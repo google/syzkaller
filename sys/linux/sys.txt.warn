@@ -27,6 +27,8 @@ compiler: unsupported syscall: lchown due to missing const __NR_lchown [arm64]
 compiler: unsupported syscall: utime due to missing const __NR_utime [arm,arm64]
 compiler: unsupported syscall: utimes due to missing const __NR_utimes [arm64]
 compiler: unsupported syscall: futimesat due to missing const __NR_futimesat [arm64]
+bad-field-number: clone_args: syz=10 kernel=11
+bad-struct-size: clone_args: syz=80 kernel=88
 compiler: unsupported syscall: getpgrp due to missing const __NR_getpgrp [arm64]
 compiler: unsupported syscall: link due to missing const __NR_link [arm64]
 compiler: unsupported syscall: symlink due to missing const __NR_symlink [arm64]
@@ -89,10 +91,12 @@ bad-field-offset: stat.st_ctime/st_ctime_nsec: syz=104 kernel=112 [amd64]
 bad-field-offset: stat.st_ctime_nsec/__unused5: syz=68 kernel=60 [386,arm]
 bad-field-offset: stat.st_ctime_nsec/__unused: syz=112 kernel=120 [amd64]
 bad-field-size: stat.st_ctime_nsec/__unused: syz=8 kernel=24 [amd64]
+bad-field-number: statx: syz=21 kernel=23
+bad-field-size: statx.__spare2/stx_mnt_id: syz=112 kernel=8
 compiler: unsupported type: stat64 due to missing const STAT64_SIZE [amd64]
 no-such-struct: sigset_size
-no-such-struct: timespec [amd64,arm,arm64]
-no-such-struct: timeval [amd64,arm,arm64]
+no-such-struct: timespec
+no-such-struct: timeval
 no-such-struct: itimerspec
 no-such-struct: itimerval
 no-such-struct: utimbuf [386]

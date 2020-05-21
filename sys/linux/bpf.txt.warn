@@ -4,7 +4,9 @@ no-such-struct: bpf_map_lookup_arg
 no-such-struct: bpf_map_update_arg
 no-such-struct: bpf_map_delete_arg
 no-such-struct: bpf_map_get_next_arg
-bad-field-number: bpf_prog: syz=21 kernel=20
+no-such-struct: bpf_map_batch_arg
+no-such-struct: bpf_link_create_arg
+no-such-struct: bpf_link_update_arg
 bad-struct-size: bpf_prog: syz=116 kernel=40 [386]
 bad-struct-size: bpf_prog: syz=120 kernel=40 [arm]
 bad-struct-size: bpf_prog: syz=120 kernel=56 [amd64,arm64]
@@ -53,9 +55,12 @@ bad-field-size: bpf_prog.line_info/orig_prog: syz=8 kernel=4 [386,arm]
 bad-field-offset: bpf_prog.line_info_cnt/bpf_func: syz=104 kernel=36 [386,arm]
 bad-field-offset: bpf_prog.line_info_cnt/bpf_func: syz=104 kernel=48 [amd64,arm64]
 bad-field-size: bpf_prog.line_info_cnt/bpf_func: syz=4 kernel=8 [amd64,arm64]
-bad-field-offset: bpf_prog.attach_btf_id/: syz=108 kernel=40 [386,arm]
-bad-field-offset: bpf_prog.attach_btf_id/: syz=108 kernel=56 [amd64,arm64]
-bad-field-size: bpf_prog.attach_btf_id/: syz=4 kernel=0
+bad-field-offset: bpf_prog.attach_btf_id/insns: syz=108 kernel=40 [386,arm]
+bad-field-offset: bpf_prog.attach_btf_id/insns: syz=108 kernel=56 [amd64,arm64]
+bad-field-size: bpf_prog.attach_btf_id/insns: syz=4 kernel=0
+bad-field-offset: bpf_prog.attach_prog_fd/insnsi: syz=112 kernel=40 [386,arm]
+bad-field-offset: bpf_prog.attach_prog_fd/insnsi: syz=112 kernel=56 [amd64,arm64]
+bad-field-size: bpf_prog.attach_prog_fd/insnsi: syz=4 kernel=0
 no-such-struct: bpf_insn_generic
 no-such-struct: bpf_insn_ldst
 no-such-struct: bpf_insn_alu
@@ -78,15 +83,11 @@ no-such-struct: bpf_get_prog_info_arg
 bad-field-number: bpf_prog_info: syz=32 kernel=34
 bad-struct-size: bpf_prog_info: syz=192 kernel=208
 no-such-struct: bpf_get_map_info_arg
-bad-field-number: bpf_map_info: syz=7 kernel=13 [386]
-bad-field-number: bpf_map_info: syz=7 kernel=14 [amd64,arm,arm64]
+bad-field-number: bpf_map_info: syz=7 kernel=14
 bad-struct-size: bpf_map_info: syz=40 kernel=80
 no-such-struct: bpf_get_btf_info_arg
 no-such-struct: bpf_prog_query
-bad-struct-size: bpf_raw_tracepoint: syz=16 kernel=8 [386,arm]
-bad-field-size: bpf_raw_tracepoint.name/btp: syz=8 kernel=4 [386,arm]
-bad-field-offset: bpf_raw_tracepoint.prog_fd/prog: syz=8 kernel=4 [386,arm]
-bad-field-size: bpf_raw_tracepoint.prog_fd/prog: syz=4 kernel=8 [amd64,arm64]
+no-such-struct: bpf_raw_tracepoint
 no-such-struct: bpf_btf_load
 no-such-struct: btf_type_int
 no-such-struct: btf_type_ref_t

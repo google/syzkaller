@@ -23,6 +23,7 @@ no-such-struct: ipv6_addr_loopback
 no-such-struct: ipv6_addr_ipv4
 no-such-struct: ipv6_addr_multicast1
 no-such-struct: ipv6_addr_multicast2
+no-such-struct: ipv6_addr_private
 no-such-struct: ipv6_addr
 no-such-struct: ipv6_fragment_ext_header
 no-such-struct: ipv6_tlv_pad1
@@ -52,6 +53,7 @@ no-such-struct: icmp_info_reply_packet
 no-such-struct: icmp_address_request_packet
 no-such-struct: icmp_address_reply_packet
 no-such-struct: icmpv6_mld_packet
+compiler: len target grec refer to an array with variable-size elements (do you mean bytesize?)
 no-such-struct: dccp_header
 bad-field-number: mpls_label: syz=4 kernel=1
 bad-bitfield: mpls_label.label/entry: size/offset: syz=20/0 kernel=0/0
