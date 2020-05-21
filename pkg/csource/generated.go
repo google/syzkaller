@@ -425,75 +425,75 @@ void child()
  */
 
 struct usb_endpoint_descriptor {
-	uint8_t bLength;
-	uint8_t bDescriptorType;
-	uint8_t bEndpointAddress;
-	uint8_t bmAttributes;
-	uint16_t wMaxPacketSize;
-	uint8_t bInterval;
-	uint8_t bRefresh;
-	uint8_t bSynchAddress;
+	uint8 bLength;
+	uint8 bDescriptorType;
+	uint8 bEndpointAddress;
+	uint8 bmAttributes;
+	uint16 wMaxPacketSize;
+	uint8 bInterval;
+	uint8 bRefresh;
+	uint8 bSynchAddress;
 } __attribute__((packed));
 
 struct usb_device_descriptor {
-	uint8_t bLength;
-	uint8_t bDescriptorType;
-	uint16_t bcdUSB;
-	uint8_t bDeviceClass;
-	uint8_t bDeviceSubClass;
-	uint8_t bDeviceProtocol;
-	uint8_t bMaxPacketSize0;
-	uint16_t idVendor;
-	uint16_t idProduct;
-	uint16_t bcdDevice;
-	uint8_t iManufacturer;
-	uint8_t iProduct;
-	uint8_t iSerialNumber;
-	uint8_t bNumConfigurations;
+	uint8 bLength;
+	uint8 bDescriptorType;
+	uint16 bcdUSB;
+	uint8 bDeviceClass;
+	uint8 bDeviceSubClass;
+	uint8 bDeviceProtocol;
+	uint8 bMaxPacketSize0;
+	uint16 idVendor;
+	uint16 idProduct;
+	uint16 bcdDevice;
+	uint8 iManufacturer;
+	uint8 iProduct;
+	uint8 iSerialNumber;
+	uint8 bNumConfigurations;
 } __attribute__((packed));
 
 struct usb_config_descriptor {
-	uint8_t bLength;
-	uint8_t bDescriptorType;
+	uint8 bLength;
+	uint8 bDescriptorType;
 
-	uint16_t wTotalLength;
-	uint8_t bNumInterfaces;
-	uint8_t bConfigurationValue;
-	uint8_t iConfiguration;
-	uint8_t bmAttributes;
-	uint8_t bMaxPower;
+	uint16 wTotalLength;
+	uint8 bNumInterfaces;
+	uint8 bConfigurationValue;
+	uint8 iConfiguration;
+	uint8 bmAttributes;
+	uint8 bMaxPower;
 } __attribute__((packed));
 
 struct usb_interface_descriptor {
-	uint8_t bLength;
-	uint8_t bDescriptorType;
-	uint8_t bInterfaceNumber;
-	uint8_t bAlternateSetting;
-	uint8_t bNumEndpoints;
-	uint8_t bInterfaceClass;
-	uint8_t bInterfaceSubClass;
-	uint8_t bInterfaceProtocol;
-	uint8_t iInterface;
+	uint8 bLength;
+	uint8 bDescriptorType;
+	uint8 bInterfaceNumber;
+	uint8 bAlternateSetting;
+	uint8 bNumEndpoints;
+	uint8 bInterfaceClass;
+	uint8 bInterfaceSubClass;
+	uint8 bInterfaceProtocol;
+	uint8 iInterface;
 } __attribute__((packed));
 
 struct usb_ctrlrequest {
-	uint8_t bRequestType;
-	uint8_t bRequest;
-	uint16_t wValue;
-	uint16_t wIndex;
-	uint16_t wLength;
+	uint8 bRequestType;
+	uint8 bRequest;
+	uint16 wValue;
+	uint16 wIndex;
+	uint16 wLength;
 } __attribute__((packed));
 
 struct usb_qualifier_descriptor {
-	uint8_t bLength;
-	uint8_t bDescriptorType;
-	uint16_t bcdUSB;
-	uint8_t bDeviceClass;
-	uint8_t bDeviceSubClass;
-	uint8_t bDeviceProtocol;
-	uint8_t bMaxPacketSize0;
-	uint8_t bNumConfigurations;
-	uint8_t bRESERVED;
+	uint8 bLength;
+	uint8 bDescriptorType;
+	uint16 bcdUSB;
+	uint8 bDeviceClass;
+	uint8 bDeviceSubClass;
+	uint8 bDeviceProtocol;
+	uint8 bMaxPacketSize0;
+	uint8 bNumConfigurations;
+	uint8 bRESERVED;
 } __attribute__((packed));
 
 #define USB_TYPE_MASK (0x03 << 5)
@@ -1359,7 +1359,7 @@ static int vhci_usb_attach(int fd)
 
 static int vhci_usb_recv(int fd, void* buf, size_t size)
 {
-	uint8_t* ptr = (uint8_t*)buf;
+	uint8* ptr = (uint8*)buf;
 	ssize_t done;
 
 	while (1) {
@@ -1375,7 +1375,7 @@ static int vhci_usb_recv(int fd, void* buf, size_t size)
 
 static int vhci_usb_send(int fd, void* buf, size_t size)
 {
-	uint8_t* ptr = (uint8_t*)buf;
+	uint8* ptr = (uint8*)buf;
 	ssize_t done;
 
 	while (1) {
@@ -1496,7 +1496,7 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 
 		if (response_length > sizeof(data))
 			response_length = 0;
-		if ((uint32_t)UGETW(req.u.ctrl.wLength) < response_length)
+		if ((uint32)UGETW(req.u.ctrl.wLength) < response_length)
 			response_length = UGETW(req.u.ctrl.wLength);
 
 		if (response_data)
