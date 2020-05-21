@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"go/format"
 	"io"
 	"io/ioutil"
 	"os"
@@ -303,15 +302,10 @@ func writeExecutorSyscalls(data *ExecutorData) {
 }
 
 func writeSource(file string, data []byte) {
-	src, err := format.Source(data)
-	if err != nil {
-		fmt.Printf("%s\n", data)
-		failf("failed to format output: %v", err)
-	}
-	if oldSrc, err := ioutil.ReadFile(file); err == nil && bytes.Equal(src, oldSrc) {
+	if oldSrc, err := ioutil.ReadFile(file); err == nil && bytes.Equal(data, oldSrc) {
 		return
 	}
-	writeFile(file, src)
+	writeFile(file, data)
 }
 
 func writeFile(file string, data []byte) {
