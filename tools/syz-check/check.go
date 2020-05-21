@@ -185,7 +185,7 @@ func writeWarnings(OS string, narches int, warnings []Warn) error {
 			}
 			fmt.Fprintf(buf, "%v: %v%v\n", warn.typ, warn.msg, archStr)
 		}
-		warnFile := filepath.Join("sys", OS, file+".warn")
+		warnFile := file + ".warn"
 		if err := osutil.WriteFile(warnFile, buf.Bytes()); err != nil {
 			return err
 		}
