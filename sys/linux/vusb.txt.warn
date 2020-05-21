@@ -1,8 +1,10 @@
+no-such-struct: usb_device_descriptor_verbose_t
 compiler: len target configs refer to an array with variable-size elements (do you mean bytesize?)
+no-such-struct: usb_config_descriptor_verbose_t
 compiler: len target interfaces refer to an array with variable-size elements (do you mean bytesize?)
-no-such-struct: usb_interface_descriptor_t
+no-such-struct: usb_interface_descriptor_verbose_t
 compiler: len target endpoints refer to an array with variable-size elements (do you mean bytesize?)
-no-such-struct: usb_endpoint_descriptor_t
+no-such-struct: usb_endpoint_descriptor_verbose_t
 no-such-struct: vusb_connect_string_descriptor
 no-such-struct: vusb_descriptors
 no-such-struct: vusb_descriptor_t
@@ -48,3 +50,11 @@ no-such-struct: uac_as_out_endpoint_descriptor
 no-such-struct: uac_as_in_endpoint_descriptor
 no-such-struct: vusb_descriptors_uac1
 no-such-struct: vusb_responses_uac1
+no-such-struct: usb_device_descriptor_ath9k
+no-such-struct: usb_config_descriptor_ath9k
+no-such-struct: usb_interface_descriptor_ath9k
+no-such-struct: usb_endpoint_descriptors_ath9k
+no-such-struct: htc_ready_frame
+no-such-struct: htc_ready_msg
+no-such-struct: htc_conn_svc_rsp_frame
+no-such-struct: htc_conn_svc_rspmsg
