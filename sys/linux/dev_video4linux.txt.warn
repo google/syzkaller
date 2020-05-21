@@ -1,3 +1,5 @@
+bad-field-number: v4l2_fmtdesc: syz=6 kernel=7
+bad-field-size: v4l2_fmtdesc.reserved/mbus_code: syz=16 kernel=4
 no-such-struct: v4l2_format_fmt
 bad-struct-size: v4l2_buffer: syz=68 kernel=76 [386]
 bad-struct-size: v4l2_buffer: syz=68 kernel=80 [arm]
