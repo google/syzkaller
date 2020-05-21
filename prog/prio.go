@@ -49,22 +49,22 @@ func (target *Target) calcStaticPriorities() [][]float32 {
 	}
 	sort.Strings(keys)
 	for _, key := range keys {
-		var calls []int
-		for call := range uses[key] {
-			calls = append(calls, call)
+		weights := make([]weights, 0, len(uses[key]))
+		for _, weight := range uses[key] {
+			weights = append(weights, weight)
 		}
-		sort.Ints(calls)
-		for _, c0 := range calls {
-			w0 := uses[key][c0]
-			for _, c1 := range calls {
-				w1 := uses[key][c1]
-				if c0 == c1 {
+		sort.Slice(weights, func(i, j int) bool {
+			return weights[i].call < weights[j].call
+		})
+		for _, w0 := range weights {
+			for _, w1 := range weights {
+				if w0.call == w1.call {
 					// Self-priority is assigned below.
 					continue
 				}
 				// The static priority is assigned based on the direction of arguments. A higher priority will be
 				// assigned when c0 is a call that produces a resource and c1 a call that uses that resource.
-				prios[c0][c1] += w0.inout*w1.in + 0.7*w0.inout*w1.inout
+				prios[w0.call][w1.call] += w0.inout*w1.in + 0.7*w0.inout*w1.inout
 			}
 		}
 	}
@@ -131,6 +131,7 @@ func (target *Target) calcResourceUsage() map[string]map[int]weights {
 }
 
 type weights struct {
+	call  int
 	in    float32
 	inout float32
 }
@@ -141,6 +142,7 @@ func noteUsage(uses map[string]map[int]weights, c *Syscall, weight float32, dir 
 		uses[id] = make(map[int]weights)
 	}
 	callWeight := uses[id][c.ID]
+	callWeight.call = c.ID
 	if dir != DirOut {
 		if weight > uses[id][c.ID].in {
 			callWeight.in = weight
