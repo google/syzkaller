@@ -43,9 +43,21 @@ func (target *Target) calcStaticPriorities() [][]float32 {
 	for i := range prios {
 		prios[i] = make([]float32, len(target.Syscalls))
 	}
-	for _, calls := range uses {
-		for c0, w0 := range calls {
-			for c1, w1 := range calls {
+	var keys []string
+	for key := range uses {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		var calls []int
+		for call := range uses[key] {
+			calls = append(calls, call)
+		}
+		sort.Ints(calls)
+		for _, c0 := range calls {
+			w0 := uses[key][c0]
+			for _, c1 := range calls {
+				w1 := uses[key][c1]
 				if c0 == c1 {
 					// Self-priority is assigned below.
 					continue

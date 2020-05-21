@@ -7,6 +7,8 @@ import (
 	"math/rand"
 	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestNormalizePrio(t *testing.T) {
@@ -64,6 +66,28 @@ func TestStaticPriorities(t *testing.T) {
 				t.Fatalf("Too high priority for %s -> %s: %d vs %s -> %s: %d",
 					call, referenceCall, count, referenceCall, call, counter[call])
 			}
+		}
+	}
+}
+
+func TestPrioDeterminism(t *testing.T) {
+	target, rs, iters := initTest(t)
+	ct := target.DefaultChoiceTable()
+	var corpus []*Prog
+	for i := 0; i < 100; i++ {
+		corpus = append(corpus, target.Generate(rs, 10, ct))
+	}
+	ct0 := target.BuildChoiceTable(corpus, nil)
+	ct1 := target.BuildChoiceTable(corpus, nil)
+	if diff := cmp.Diff(ct0.runs, ct1.runs); diff != "" {
+		t.Fatal(diff)
+	}
+	for i := 0; i < iters; i++ {
+		seed := rs.Int63()
+		call0 := ct0.choose(rand.New(rand.NewSource(seed)), -1)
+		call1 := ct1.choose(rand.New(rand.NewSource(seed)), -1)
+		if call0 != call1 {
+			t.Fatalf("seed=%v iter=%v call=%v/%v", seed, i, call0, call1)
 		}
 	}
 }
