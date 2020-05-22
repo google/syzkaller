@@ -20,6 +20,7 @@ _newer first_
 
 # Other kernel fuzzing work
 
+* [KRACE: Data Race Fuzzing for Kernel File Systems](https://www.cc.gatech.edu/~mxu80/pubs/xu:krace.pdf)
 * [trinity](https://github.com/kernelslacker/trinity)
 * [kAFL: Hardware-Assisted Feedback Fuzzing for OS Kernels](https://www.usenix.org/system/files/conference/usenixsecurity17/sec17-schumilo.pdf) (bridges AFL and Intel PT)
 * [kernel-fuzzing](https://github.com/oracle/kernel-fuzzing) (bridges AFL and KCOV)
