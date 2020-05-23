@@ -1475,13 +1475,13 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 
 		if (req.u.ctrl.bmRequestType & UE_DIR_IN) {
 			bool response_found = false;
-			NONFAILING(response_found = lookup_connect_response_in(fd, descs, (const usb_ctrlrequest*)&req.u.ctrl, &response_data, &response_length));
+			NONFAILING(response_found = lookup_connect_response_in(fd, descs, (const struct usb_ctrlrequest*)&req.u.ctrl, &response_data, &response_length));
 			if (!response_found) {
 				debug("syz_usb_connect: unknown control IN request\n");
 				goto err;
 			}
 		} else {
-			if (!lookup_connect_response_out(fd, descs, (const usb_ctrlrequest*)&req.u.ctrl, &done)) {
+			if (!lookup_connect_response_out(fd, descs, (const struct usb_ctrlrequest*)&req.u.ctrl, &done)) {
 				debug("syz_usb_connect: unknown control OUT request\n");
 				goto err;
 			}
