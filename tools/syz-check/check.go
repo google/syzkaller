@@ -263,7 +263,7 @@ func checkStruct(typ *prog.StructType, astStruct *ast.Struct, str *dwarf.StructT
 		if ai < len(str.Field) {
 			fld := str.Field[ai]
 			pos := astStruct.Fields[ai].Pos
-			desc := fmt.Sprintf("%v.%v", name, fld.Name)
+			desc := fmt.Sprintf("%v.%v", name, field.Name)
 			if field.Name != fld.Name {
 				desc += "/" + fld.Name
 			}
