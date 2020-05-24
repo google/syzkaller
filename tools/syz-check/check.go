@@ -150,6 +150,10 @@ func writeWarnings(OS string, narches int, warnings []Warn) error {
 	}
 	byFile := make(map[string][]Warn)
 	for _, warn := range warnings {
+		// KVM is not supported on ARM completely.
+		if OS == "linux" && warn.arch == "arm" && strings.HasSuffix(warn.pos.File, "_kvm.txt") {
+			continue
+		}
 		byFile[warn.pos.File] = append(byFile[warn.pos.File], warn)
 	}
 	for file, warns := range byFile {
