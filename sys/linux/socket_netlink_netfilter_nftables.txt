@@ -150,6 +150,7 @@ nft_set_policy [
 	NFTA_SET_USERDATA	nlnetw[NFTA_SET_USERDATA, array[int8]]
 	NFTA_SET_OBJ_TYPE	nlnetw[NFTA_SET_OBJ_TYPE, flags[nft_obj_type, int32be]]
 	NFTA_SET_HANDLE		nlnetw[NFTA_SET_HANDLE, nft_handle]
+	NFTA_SET_EXPR		nlnest[NFTA_SET_EXPR, nft_expr_policy]
 ] [varlen]
 
 type nft_set_id int32be[0:3]
@@ -160,6 +161,11 @@ nft_set_policies = NFT_SET_POL_PERFORMANCE, NFT_SET_POL_MEMORY
 
 nft_set_desc_policy [
 	NFTA_SET_DESC_SIZE	nlnetw[NFTA_SET_DESC_SIZE, int32be]
+	NFTA_SET_DESC_CONCAT	nlnest[NFTA_SET_DESC_CONCAT, array[nlnest[NFTA_LIST_ELEM, array[nft_concat_policy]]]]
+] [varlen]
+
+nft_concat_policy [
+	NFTA_SET_FIELD_LEN	nlnetw[NFTA_SET_FIELD_LEN, int32be]
 ] [varlen]
 
 nft_set_elem_list_policy [
@@ -182,6 +188,7 @@ nft_set_elem_policy [
 # TODO: is this used?
 	NFTA_SET_ELEM_EXPR		nlnest[NFTA_SET_ELEM_EXPR, void]
 	NFTA_SET_ELEM_OBJREF		nlattr[NFTA_SET_ELEM_OBJREF, string[nft_obj_name]]
+	NFTA_SET_ELEM_KEY_END		nlnest[NFTA_SET_ELEM_KEY_END, array[nft_data_policy]]
 ] [varlen]
 
 nft_set_elem_flags = NFT_SET_ELEM_INTERVAL_END
@@ -295,6 +302,8 @@ nft_tunnel_key_policy [
 	NFTA_TUNNEL_KEY_FLAGS	nlnetw[NFTA_TUNNEL_KEY_FLAGS, flags[nft_tunnel_flags, int32be]]
 	NFTA_TUNNEL_KEY_TOS	nlattr[NFTA_TUNNEL_KEY_TOS, int8]
 	NFTA_TUNNEL_KEY_TTL	nlattr[NFTA_TUNNEL_KEY_TTL, int8]
+	NFTA_TUNNEL_KEY_SPORT	nlnetw[NFTA_TUNNEL_KEY_SPORT, sock_port]
+	NFTA_TUNNEL_KEY_DPORT	nlnetw[NFTA_TUNNEL_KEY_DPORT, sock_port]
 	NFTA_TUNNEL_KEY_OPTS	nlnest[NFTA_TUNNEL_KEY_OPTS, nft_tunnel_opts_policy]
 ] [varlen]
 
@@ -313,6 +322,7 @@ nft_tunnel_ip6_policy [
 nft_tunnel_opts_policy [
 	NFTA_TUNNEL_KEY_OPTS_VXLAN	nlnest[NFTA_TUNNEL_KEY_OPTS_VXLAN, array[nft_tunnel_opts_vxlan_policy]]
 	NFTA_TUNNEL_KEY_OPTS_ERSPAN	nlnest[NFTA_TUNNEL_KEY_OPTS_ERSPAN, array[nft_tunnel_opts_erspan_policy]]
+	NFTA_TUNNEL_KEY_OPTS_GENEVE	nlnest[NFTA_TUNNEL_KEY_OPTS_GENEVE, array[nft_tunnel_opts_geneve_policy]]
 ] [varlen]
 
 nft_tunnel_opts_vxlan_policy [
@@ -329,6 +339,12 @@ nft_tunnel_opts_erspan_policy [
 ] [varlen]
 
 nft_tunnel_flags = NFT_TUNNEL_F_ZERO_CSUM_TX, NFT_TUNNEL_F_DONT_FRAGMENT, NFT_TUNNEL_F_SEQ_NUMBER
+
+nft_tunnel_opts_geneve_policy [
+	NFTA_TUNNEL_KEY_GENEVE_CLASS	nlnetw[NFTA_TUNNEL_KEY_GENEVE_CLASS, int16be]
+	NFTA_TUNNEL_KEY_GENEVE_TYPE	nlattr[NFTA_TUNNEL_KEY_GENEVE_TYPE, int8]
+	NFTA_TUNNEL_KEY_GENEVE_DATA	nlattr[NFTA_TUNNEL_KEY_GENEVE_DATA, array[int32]]
+] [varlen]
 
 nft_flowtable_policy [
 	NFTA_FLOWTABLE_TABLE	nlattr[NFTA_FLOWTABLE_TABLE, string[nft_table_name]]

@@ -285,6 +285,7 @@ clone_args {
 	tls		ptr64[out, array[int8]]
 	set_tid		ptr64[in, array[pid]]
 	set_tid_size	len[set_tid, int64]
+	cgroup		align64[fd_cgroup]
 }
 
 resource pid[int32]: 0, -1
