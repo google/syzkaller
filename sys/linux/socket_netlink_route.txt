@@ -284,6 +284,7 @@ ipoib_policy [
 macsec_rtnl_policy [
 # TODO: all of these need better types.
 	IFLA_MACSEC_SCI			nlattr[IFLA_MACSEC_SCI, int64]
+	IFLA_MACSEC_PORT		nlnetw[IFLA_MACSEC_PORT, sock_port]
 	IFLA_MACSEC_ICV_LEN		nlattr[IFLA_MACSEC_ICV_LEN, int8]
 	IFLA_MACSEC_CIPHER_SUITE	nlattr[IFLA_MACSEC_CIPHER_SUITE, int64]
 	IFLA_MACSEC_WINDOW		nlattr[IFLA_MACSEC_WINDOW, int32]
@@ -685,6 +686,7 @@ fib4_rule_policy [
 	FRA_SRC			nlattr[RTA_SRC, ipv4_addr]
 	FRA_GENERIC_POLICY	fib4_rule_policy_generic
 	FRA_FLOW		nlattr[FRA_FLOW, int32]
+	FRA_TUN_ID		nlnetw[FRA_TUN_ID, int64be]
 ] [varlen]
 
 fib6_rule_policy [
@@ -847,8 +849,9 @@ ifla_port_policy [
 ] [varlen]
 
 ifla_xdp_policy [
-	IFLA_XDP_FD	nlattr[IFLA_XDP_FD, fd_bpf_prog]
-	IFLA_XDP_FLAGS	nlattr[IFLA_XDP_FLAGS, flags[ifla_xdp_flags, int32]]
+	IFLA_XDP_FD		nlattr[IFLA_XDP_FD, fd_bpf_prog]
+	IFLA_XDP_FLAGS		nlattr[IFLA_XDP_FLAGS, flags[ifla_xdp_flags, int32]]
+	IFLA_XDP_EXPECTED_FD	nlattr[IFLA_XDP_EXPECTED_FD, fd_bpf_prog]
 ] [varlen]
 
 ifla_xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST, XDP_FLAGS_SKB_MODE, XDP_FLAGS_DRV_MODE, XDP_FLAGS_HW_MODE

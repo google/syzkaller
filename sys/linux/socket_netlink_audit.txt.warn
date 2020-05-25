@@ -1,2 +1,0 @@
-bad-field-number: audit_status: syz=9 kernel=10
-bad-struct-size: audit_status: syz=36 kernel=40
