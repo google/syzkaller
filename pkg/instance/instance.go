@@ -83,7 +83,13 @@ func (env *env) BuildSyzkaller(repo, commit string) error {
 		"CFLAGS=-fpermissive -w",
 	)
 	if _, err := osutil.Run(time.Hour, cmd); err != nil {
-		return fmt.Errorf("syzkaller build failed: %v", err)
+		goEnvCmd := osutil.Command("go", "env")
+		goEnvCmd.Dir = cfg.Syzkaller
+		goEnvCmd.Env = append(append([]string{}, os.Environ()...), "GOPATH="+cfg.Syzkaller[:srcIndex])
+		goEnvOut, goEnvErr := osutil.Run(time.Hour, goEnvCmd)
+		gitStatusOut, gitStatusErr := osutil.RunCmd(time.Hour, cfg.Syzkaller, "git", "status")
+		return fmt.Errorf("syzkaller build failed: %v\ngo env (err=%v)\n%s\ngit status (err=%v)\n%s",
+			err, goEnvErr, goEnvOut, gitStatusErr, gitStatusOut)
 	}
 	return nil
 }
