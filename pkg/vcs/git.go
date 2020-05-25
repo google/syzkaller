@@ -145,6 +145,7 @@ func (git *git) clone(repo, branch string) error {
 func (git *git) reset() {
 	// This function tries to reset git repo state to a known clean state.
 	git.git("reset", "--hard")
+	git.git("clean", "-fd")
 	git.git("bisect", "reset")
 	git.git("reset", "--hard")
 }
