@@ -35,6 +35,7 @@ audit_status {
 	rate_limit		int32
 	backlog_limit		int32
 	lost			int32
+	backlog			int32
 	feature_bitmap		const[0, int32]
 	backlog_wait_time	int32
 }

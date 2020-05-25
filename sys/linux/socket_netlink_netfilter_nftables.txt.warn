@@ -2,10 +2,5 @@ no-such-struct: nft_nlmsghdr
 no-such-struct: nfgenmsg_nft
 bad-netlink-attr: nft_rule_compat_policy.NFTA_RULE_COMPAT_PROTO_IPV6: duplicate attribute
 bad-netlink-attr: nft_rule_compat_policy.NFTA_RULE_COMPAT_PROTO_BRIDGE: duplicate attribute
-bad-netlink-attr: nft_set_policy: missing attributes: [17]
-bad-netlink-attr: nft_set_desc_policy: missing attributes: [2]
-bad-netlink-attr: nft_set_elem_policy: missing attributes: [10]
-bad-netlink-attr: nft_tunnel_key_policy: missing attributes: [7 8]
-bad-netlink-attr: nft_tunnel_opts_policy: missing attributes: [3]
 bad-netlink-attr: nft_bitwise_policy: missing attributes: [6 7]
 no-such-struct: nft_flow_offload_policy

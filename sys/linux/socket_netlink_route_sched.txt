@@ -214,6 +214,8 @@ fq_policy [
 	TCA_FQ_FLOW_REFILL_DELAY	nlattr[TCA_FQ_FLOW_REFILL_DELAY, int32]
 	TCA_FQ_ORPHAN_MASK		nlattr[TCA_FQ_ORPHAN_MASK, int32]
 	TCA_FQ_LOW_RATE_THRESHOLD	nlattr[TCA_FQ_LOW_RATE_THRESHOLD, int32]
+	TCA_FQ_CE_THRESHOLD		nlattr[TCA_FQ_CE_THRESHOLD, int32]
+	TCA_FQ_TIMER_SLACK		nlattr[TCA_FQ_TIMER_SLACK, int32]
 ] [varlen]
 
 fq_codel_policy [
@@ -314,7 +316,10 @@ red_policy [
 	TCA_RED_PARMS	nlattr[TCA_RED_PARMS, tc_red_qopt]
 	TCA_RED_STAB	nlattr[TCA_RED_STAB, array[int8, 256]]
 	TCA_RED_MAX_P	nlattr[TCA_RED_MAX_P, int32]
+	TCA_RED_FLAGS	nlattr[TCA_RED_FLAGS, nla_bitfield32[red_supported_flags]]
 ] [varlen]
+
+red_supported_flags = TC_RED_HISTORIC_FLAGS, TC_RED_NODROP
 
 sfb_policy [
 	TCA_SFB_PARMS	nlattr[TCA_SFB_PARMS, tc_sfb_qopt]
@@ -936,10 +941,15 @@ tca_actions [
 ] [varlen]
 
 type tcf_action_policy[NAME, VALUES] {
-	TCA_ACT_KIND	nlattr[TCA_ACT_KIND, string[NAME]]
-	TCA_ACT_OPTIONS	nlnest[TCA_ACT_OPTIONS, array[VALUES]]
-	TCA_ACT_COOKIE	nlattr[TCA_ACT_COOKIE, array[int8]]
+	TCA_ACT_KIND		nlattr[TCA_ACT_KIND, string[NAME]]
+	TCA_ACT_OPTIONS		nlnest[TCA_ACT_OPTIONS, array[VALUES]]
+	TCA_ACT_COOKIE		nlattr[TCA_ACT_COOKIE, array[int8]]
+	TCA_ACT_FLAGS		nlattr[TCA_ACT_FLAGS, nla_bitfield32[tcf_action_policy_flags]]
+	TCA_ACT_HW_STATS	nlattr[TCA_ACT_HW_STATS, nla_bitfield32[tcf_action_policy_hw_stats]]
 } [packed, align[4]]
+
+tcf_action_policy_flags = TCA_ACT_FLAGS_NO_PERCPU_STATS
+tcf_action_policy_hw_stats = TCA_ACT_HW_STATS_IMMEDIATE, TCA_ACT_HW_STATS_DELAYED
 
 act_bpf_policy [
 	TCA_ACT_BPF_PARMS	nlattr[TCA_ACT_BPF_PARMS, tc_act_bpf]

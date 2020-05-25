@@ -27,8 +27,6 @@ compiler: unsupported syscall: lchown due to missing const __NR_lchown [arm64]
 compiler: unsupported syscall: utime due to missing const __NR_utime [arm,arm64]
 compiler: unsupported syscall: utimes due to missing const __NR_utimes [arm64]
 compiler: unsupported syscall: futimesat due to missing const __NR_futimesat [arm64]
-bad-field-number: clone_args: syz=10 kernel=11
-bad-struct-size: clone_args: syz=80 kernel=88
 compiler: unsupported syscall: getpgrp due to missing const __NR_getpgrp [arm64]
 compiler: unsupported syscall: link due to missing const __NR_link [arm64]
 compiler: unsupported syscall: symlink due to missing const __NR_symlink [arm64]
