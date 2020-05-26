@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"net"
 
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/log"
@@ -77,6 +78,8 @@ type instance struct {
 	sshkey     string
 	sshuser    string
 	port       int
+	monport    int
+	mon        net.Conn
 	rpipe      io.ReadCloser
 	wpipe      io.WriteCloser
 	qemu       *exec.Cmd
@@ -373,9 +376,12 @@ func (inst *instance) Close() {
 
 func (inst *instance) boot() error {
 	inst.port = vmimpl.UnusedTCPPort()
+	inst.monport = vmimpl.UnusedTCPPort()
 	args := []string{
 		"-m", strconv.Itoa(inst.cfg.Mem),
 		"-smp", strconv.Itoa(inst.cfg.CPU),
+		"-chardev", fmt.Sprintf("socket,id=SOCKSYZ,server,nowait,host=localhost,port=%v", inst.monport),
+		"-mon", "chardev=SOCKSYZ,mode=control",
 		"-display", "none",
 		"-serial", "stdio",
 		"-no-reboot",
@@ -608,11 +614,20 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 }
 
 func (inst *instance) Diagnose() ([]byte, bool) {
-	select {
-	case inst.diagnose <- true:
-	default:
+	msg := fmt.Sprintf("%s Registers:\n", time.Now().Format("15:04:05 "))
+	ret := []byte{}
+	ret = append(ret, []byte(msg)...)
+	for cpu := 0; cpu < inst.cfg.CPU; cpu++ {
+		regs, err := inst.hmp("info registers", cpu)
+		if err == nil {
+			log.Logf(0, "VM-%v\n%v", inst.index, regs)
+			ret = append(ret, []byte(regs)...)
+		} else {
+			log.Logf(0, "VM-%v failed reading regs: %v",
+					inst.index, err)
+		}
 	}
-	return nil, false
+	return ret, true
 }
 
 // nolint: lll
