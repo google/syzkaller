@@ -4,8 +4,10 @@
 package qemu
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -77,6 +79,10 @@ type instance struct {
 	sshkey     string
 	sshuser    string
 	port       int
+	monport    int
+	mon        net.Conn
+	monEnc     *json.Encoder
+	monDec     *json.Decoder
 	rpipe      io.ReadCloser
 	wpipe      io.WriteCloser
 	qemu       *exec.Cmd
@@ -369,13 +375,19 @@ func (inst *instance) Close() {
 	if inst.wpipe != nil {
 		inst.wpipe.Close()
 	}
+	if inst.mon != nil {
+		inst.mon.Close()
+	}
 }
 
 func (inst *instance) boot() error {
 	inst.port = vmimpl.UnusedTCPPort()
+	inst.monport = vmimpl.UnusedTCPPort()
 	args := []string{
 		"-m", strconv.Itoa(inst.cfg.Mem),
 		"-smp", strconv.Itoa(inst.cfg.CPU),
+		"-chardev", fmt.Sprintf("socket,id=SOCKSYZ,server,nowait,host=localhost,port=%v", inst.monport),
+		"-mon", "chardev=SOCKSYZ,mode=control",
 		"-display", "none",
 		"-serial", "stdio",
 		"-no-reboot",
@@ -608,11 +620,18 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 }
 
 func (inst *instance) Diagnose() ([]byte, bool) {
-	select {
-	case inst.diagnose <- true:
-	default:
+	ret := []byte(fmt.Sprintf("%s Registers:\n", time.Now().Format("15:04:05 ")))
+	for cpu := 0; cpu < inst.cfg.CPU; cpu++ {
+		regs, err := inst.hmp("info registers", cpu)
+		if err == nil {
+			ret = append(ret, []byte(fmt.Sprintf("info registers vcpu %v\n", cpu))...)
+			ret = append(ret, []byte(regs)...)
+		} else {
+			log.Logf(0, "VM-%v failed reading regs: %v", inst.index, err)
+			ret = append(ret, []byte(fmt.Sprintf("Failed reading regs: %v\n", err))...)
+		}
 	}
-	return nil, false
+	return ret, false
 }
 
 // nolint: lll
