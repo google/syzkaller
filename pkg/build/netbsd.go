@@ -140,7 +140,7 @@ func (ctx netbsd) copyKernelToDisk(targetArch, vmType, outputDir, kernel string)
 			`echo 'mtu 1460' >> /etc/ifconfig.vioif0`,
 		}...)
 	}
-	commands = append(commands, "cd /dev && ./MAKEDEV vhci")
+	commands = append(commands, "mknod /dev/vhci c 355 0")
 	commands = append(commands, "sync") // Run sync so that the copied image is stored properly.
 	outc, errc, err := inst.Run(time.Minute, nil, strings.Join(commands, ";"))
 	if err != nil {
