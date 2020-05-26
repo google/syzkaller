@@ -56,7 +56,7 @@ ifeq ("$(shell git diff --shortstat)", "")
 else
 	REV=$(GITREV)+
 endif
-GITREVDATE=$(shell git log -n 1 --format="%ad")
+GITREVDATE=$(shell git log -n 1 --format="%ad" --date=format:%Y%m%d-%H%M%S)
 
 # Don't generate symbol table and DWARF debug info.
 # Reduces build time and binary sizes considerably.
