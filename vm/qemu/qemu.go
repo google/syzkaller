@@ -12,6 +12,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"net"
+	"encoding/json"
+	"errors"
 
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/log"
@@ -68,6 +71,7 @@ type instance struct {
 	sshkey     string
 	sshuser    string
 	port       int
+	monport    int
 	rpipe      io.ReadCloser
 	wpipe      io.WriteCloser
 	qemu       *exec.Cmd
@@ -220,6 +224,56 @@ var linuxCmdline = []string{
 	"biosdevname=0",
 }
 
+func (inst *instance) qmp_recv(conn net.Conn) (map[string]json.RawMessage, error) {
+	var qmp map[string]json.RawMessage
+
+	dec := json.NewDecoder(conn)
+	err := dec.Decode(&qmp)
+
+	return qmp, err
+}
+
+func (inst *instance) qmp(cmd string) (map[string]json.RawMessage, error) {
+	addr := fmt.Sprintf("127.0.0.1:%v", inst.monport)
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+
+	defer conn.Close()
+
+	if _, err = inst.qmp_recv(conn) ; err != nil {
+		return nil, err
+	}
+	conn.Write([]byte(`{"execute": "qmp_capabilities"}`))
+	if _, err = inst.qmp_recv(conn) ; err != nil {
+		return nil, err
+	}
+	conn.Write([]byte(cmd))
+	return inst.qmp_recv(conn)
+}
+
+func (inst *instance) hmp(cmd string, cpu int) (string, error) {
+	req := fmt.Sprintf(
+		`{"execute": "human-monitor-command",
+		"arguments": {"command-line": "%v",
+		"cpu-index": %v}}`, cmd, cpu)
+	resp, err := inst.qmp(req)
+	if err != nil {
+		return "", err
+	}
+
+	ret, ok := resp["return"]
+	if !ok {
+		if ret_err, ok := resp["error"]; ok {
+			return strconv.Unquote(string(ret_err))
+		}
+		return "", errors.New(fmt.Sprintf("No \"return\" nor \"error\" in [%v]", resp))
+	}
+
+	return strconv.Unquote(string(ret))
+}
+
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	archConfig := archConfigs[env.OS+"/"+env.Arch]
 	cfg := &Config{
@@ -364,9 +418,12 @@ func (inst *instance) Close() {
 
 func (inst *instance) boot() error {
 	inst.port = vmimpl.UnusedTCPPort()
+	inst.monport = vmimpl.UnusedTCPPort()
 	args := []string{
 		"-m", strconv.Itoa(inst.cfg.Mem),
 		"-smp", strconv.Itoa(inst.cfg.CPU),
+		"-chardev", fmt.Sprintf("socket,id=SOCKSYZ,server,nowait,host=localhost,port=%v", inst.monport),
+		"-mon", "chardev=SOCKSYZ,mode=control",
 		"-display", "none",
 		"-serial", "stdio",
 		"-no-reboot",
@@ -601,11 +658,20 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 }
 
 func (inst *instance) Diagnose() ([]byte, bool) {
-	select {
-	case inst.diagnose <- true:
-	default:
+	msg := fmt.Sprintf("%s Registers:\n", time.Now().Format("15:04:05 "))
+	ret := []byte{}
+	ret = append(ret, []byte(msg)...)
+	for cpu := 0; cpu < inst.cfg.CPU; cpu++ {
+		regs, err := inst.hmp("info registers", cpu)
+		if err == nil {
+			log.Logf(0, "VM-%v\n%v", inst.index, regs)
+			ret = append(ret, []byte(regs)...)
+		} else {
+			log.Logf(0, "VM-%v failed reading regs: %v",
+					inst.index, err)
+		}
 	}
-	return nil, false
+	return ret, true
 }
 
 // nolint: lll
