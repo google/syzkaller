@@ -510,7 +510,10 @@ func archCallInsn(target *targets.Target) ([][]byte, [][]byte) {
 		// c00000000006d904:       bl      c000000000350780 <.__sanitizer_cov_trace_pc>
 		// This is only known to occur in the test:
 		// 838:   bl      824 <__sanitizer_cov_trace_pc+0x8>
+		// This occurs on PPC64LE:
+		// c0000000001c21a8:       bl      c0000000002df4a0 <__sanitizer_cov_trace_pc>
 		return [][]byte{[]byte("\tbl ")}, [][]byte{
+			[]byte("<__sanitizer_cov_trace_pc>"),
 			[]byte("<__sanitizer_cov_trace_pc+0x8>"),
 			[]byte(" <.__sanitizer_cov_trace_pc>"),
 		}
