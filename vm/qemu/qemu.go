@@ -74,6 +74,7 @@ type instance struct {
 	merger     *vmimpl.OutputMerger
 	files      map[string]string
 	diagnose   chan bool
+	index      int
 }
 
 type archConfig struct {
@@ -292,6 +293,7 @@ func (pool *Pool) ctor(workdir, sshkey, sshuser string, index int) (vmimpl.Insta
 		sshkey:     sshkey,
 		sshuser:    sshuser,
 		diagnose:   make(chan bool, 1),
+		index:      index,
 	}
 	if st, err := os.Stat(inst.image); err != nil && st.Size() == 0 {
 		// Some kernels may not need an image, however caller may still
@@ -346,6 +348,7 @@ func (inst *instance) boot() error {
 		"-display", "none",
 		"-serial", "stdio",
 		"-no-reboot",
+		"-name", fmt.Sprintf("VM-%v", inst.index),
 	}
 	args = append(args, splitArgs(inst.cfg.QemuArgs, filepath.Join(inst.workdir, "template"))...)
 	if inst.image == "9p" {
