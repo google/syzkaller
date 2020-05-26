@@ -187,7 +187,7 @@ var List = map[string]map[string]*Target{
 		},
 		"ppc64le": {
 			PtrSize:          8,
-			PageSize:         4 << 10,
+			PageSize:         64 << 10,
 			CFlags:           []string{"-D__powerpc64__"},
 			Triple:           "powerpc64le-linux-gnu",
 			KernelArch:       "powerpc",

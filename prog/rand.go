@@ -175,7 +175,7 @@ func (r *randGen) randPageCount() (n uint64) {
 	case r.nOutOf(5, 6):
 		n = r.rand(20) + 1
 	default:
-		n = (r.rand(3) + 1) * 512
+		n = (r.rand(3) + 1) * r.target.NumPages / 4
 	}
 	return
 }
