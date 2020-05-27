@@ -67,6 +67,8 @@ type osCommon struct {
 	CPP string
 	// Common CFLAGS for this OS.
 	cflags []string
+	// If set, this OS uses $SOURCEDIR to locate the toolchain.
+	NeedsSourceDir bool
 }
 
 func Get(OS, arch string) *Target {
@@ -356,6 +358,7 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "netbsd.gdb",
+		NeedsSourceDir:         true,
 	},
 	"openbsd": {
 		SyscallNumbers:         true,
@@ -373,6 +376,7 @@ var oses = map[string]osCommon{
 		HostFuzzer:             true,
 		SyzExecutorCmd:         "syz-executor",
 		KernelObject:           "zircon.elf",
+		NeedsSourceDir:         true,
 	},
 	"windows": {
 		SyscallNumbers:         false,
@@ -389,6 +393,7 @@ var oses = map[string]osCommon{
 		ExecutorUsesForkServer: true,
 		HostFuzzer:             true,
 		KernelObject:           "akaros-kernel-64b",
+		NeedsSourceDir:         true,
 	},
 	"trusty": {
 		SyscallNumbers:   true,
@@ -501,6 +506,9 @@ func (target *Target) lazyInit() {
 		// On CI we want to fail loudly if cross-compilation breaks.
 		if _, err := exec.LookPath(target.CCompiler); err != nil {
 			target.BrokenCompiler = fmt.Sprintf("%v is missing", target.CCompiler)
+			if target.NeedsSourceDir && os.Getenv("SOURCEDIR") == "" {
+				target.BrokenCompiler = "SOURCEDIR is not set"
+			}
 			return
 		}
 	}
