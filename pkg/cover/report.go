@@ -19,9 +19,11 @@ import (
 
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/symbolizer"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type ReportGenerator struct {
+	target   *targets.Target
 	srcDir   string
 	buildDir string
 	objDir   string
@@ -39,25 +41,23 @@ type symbol struct {
 	end   uint64
 }
 
-func MakeReportGenerator(vmlinux, srcDir, buildDir, arch string) (*ReportGenerator, error) {
+func MakeReportGenerator(target *targets.Target, kernelObject, srcDir, buildDir string) (*ReportGenerator, error) {
 	rg := &ReportGenerator{
+		target:   target,
 		srcDir:   srcDir,
 		buildDir: buildDir,
-		objDir:   filepath.Dir(vmlinux),
+		objDir:   filepath.Dir(kernelObject),
 		pcs:      make(map[uint64][]symbolizer.Frame),
 	}
 	errc := make(chan error)
 	go func() {
 		var err error
-		rg.symbols, err = readSymbols(vmlinux)
+		rg.symbols, err = readSymbols(kernelObject)
 		errc <- err
 	}()
-	frames, err := objdumpAndSymbolize(vmlinux, arch)
+	frames, err := objdumpAndSymbolize(target, kernelObject)
 	if err != nil {
 		return nil, err
-	}
-	if len(frames) == 0 {
-		return nil, fmt.Errorf("%v does not have debug info (set CONFIG_DEBUG_INFO=y)", vmlinux)
 	}
 	if err := <-errc; err != nil {
 		return nil, err
@@ -85,10 +85,12 @@ type line struct {
 
 func (rg *ReportGenerator) Do(w io.Writer, progs []Prog) error {
 	coveredPCs := make(map[uint64]bool)
+	allPCs := make(map[uint64]bool)
 	symbols := make(map[uint64]bool)
 	files := make(map[string]*file)
 	for progIdx, prog := range progs {
 		for _, pc := range prog.PCs {
+			allPCs[pc] = true
 			symbols[rg.findSymbol(pc)] = true
 			frames, ok := rg.pcs[pc]
 			if !ok {
@@ -110,8 +112,11 @@ func (rg *ReportGenerator) Do(w io.Writer, progs []Prog) error {
 			}
 		}
 	}
+	if len(allPCs) == 0 {
+		return fmt.Errorf("no coverage collected so far")
+	}
 	if len(coveredPCs) == 0 {
-		return fmt.Errorf("no coverage data available")
+		return fmt.Errorf("coverage (%v) doesn't match coverage callbacks", len(allPCs))
 	}
 	for pc, frames := range rg.pcs {
 		covered := coveredPCs[pc]
@@ -334,8 +339,8 @@ func readSymbols(obj string) ([]symbol, error) {
 
 // objdumpAndSymbolize collects list of PCs of __sanitizer_cov_trace_pc calls
 // in the kernel and symbolizes them.
-func objdumpAndSymbolize(obj, arch string) ([]symbolizer.Frame, error) {
-	errc := make(chan error)
+func objdumpAndSymbolize(target *targets.Target, obj string) ([]symbolizer.Frame, error) {
+	errc := make(chan error, 1)
 	pcchan := make(chan []uint64, 10)
 	var frames []symbolizer.Frame
 	go func() {
@@ -354,12 +359,21 @@ func objdumpAndSymbolize(obj, arch string) ([]symbolizer.Frame, error) {
 		}
 		errc <- err
 	}()
-	cmd := osutil.Command("objdump", "-d", "--no-show-raw-insn", obj)
+	objdump := "objdump"
+	if target.Triple != "" {
+		objdump = target.Triple + "-" + objdump
+	}
+	cmd := osutil.Command(objdump, "-d", "--no-show-raw-insn", obj)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err
 	}
 	defer stdout.Close()
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return nil, err
+	}
+	defer stderr.Close()
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("failed to run objdump on %v: %v", obj, err)
 	}
@@ -368,44 +382,74 @@ func objdumpAndSymbolize(obj, arch string) ([]symbolizer.Frame, error) {
 		cmd.Wait()
 	}()
 	s := bufio.NewScanner(stdout)
-	callInsnS, traceFuncS := archCallInsn(arch)
-	callInsn, traceFunc := []byte(callInsnS), []byte(traceFuncS)
+	callInsns, traceFuncs := archCallInsn(target)
 	var pcs []uint64
+	npcs := 0
 	for s.Scan() {
-		ln := s.Bytes()
-		if pos := bytes.Index(ln, callInsn); pos == -1 {
-			continue
-		} else if !bytes.Contains(ln[pos:], traceFunc) {
-			continue
-		}
-		for len(ln) != 0 && ln[0] == ' ' {
-			ln = ln[1:]
-		}
-		colon := bytes.IndexByte(ln, ':')
-		if colon == -1 {
-			continue
-		}
-		pc, err := strconv.ParseUint(string(ln[:colon]), 16, 64)
-		if err != nil {
-			continue
-		}
-		pcs = append(pcs, pc)
-		if len(pcs) == 100 {
-			pcchan <- pcs
-			pcs = nil
+		if pc := parseLine(callInsns, traceFuncs, s.Bytes()); pc != 0 {
+			npcs++
+			pcs = append(pcs, pc)
+			if len(pcs) == 100 {
+				pcchan <- pcs
+				pcs = nil
+			}
 		}
 	}
 	if len(pcs) != 0 {
 		pcchan <- pcs
 	}
 	close(pcchan)
+	stderrOut, _ := ioutil.ReadAll(stderr)
+	if err := cmd.Wait(); err != nil {
+		return nil, fmt.Errorf("failed to run objdump on %v: %v\n%s", obj, err, stderrOut)
+	}
 	if err := s.Err(); err != nil {
-		return nil, fmt.Errorf("failed to run objdump output: %v", err)
+		return nil, fmt.Errorf("failed to run objdump on %v: %v\n%s", obj, err, stderrOut)
+	}
+	if npcs == 0 {
+		return nil, fmt.Errorf("%v doesn't contain coverage callbacks '%s%s' (set CONFIG_KCOV=y)",
+			obj, callInsns, traceFuncs)
 	}
 	if err := <-errc; err != nil {
 		return nil, err
 	}
+	if len(frames) == 0 {
+		return nil, fmt.Errorf("%v doesn't have debug info (set CONFIG_DEBUG_INFO=y)", obj)
+	}
 	return frames, nil
+}
+
+func parseLine(callInsns, traceFuncs [][]byte, ln []byte) uint64 {
+	pos := -1
+	for _, callInsn := range callInsns {
+		if pos = bytes.Index(ln, callInsn); pos != -1 {
+			break
+		}
+	}
+	if pos == -1 {
+		return 0
+	}
+	hasCall := false
+	for _, traceFunc := range traceFuncs {
+		if hasCall = bytes.Contains(ln[pos:], traceFunc); hasCall {
+			break
+		}
+	}
+	if !hasCall {
+		return 0
+	}
+	for len(ln) != 0 && ln[0] == ' ' {
+		ln = ln[1:]
+	}
+	colon := bytes.IndexByte(ln, ':')
+	if colon == -1 {
+		return 0
+	}
+	pc, err := strconv.ParseUint(string(ln[:colon]), 16, 64)
+	if err != nil {
+		return 0
+	}
+	return pc
 }
 
 func parseFile(fn string) ([][]byte, error) {
@@ -429,8 +473,8 @@ func parseFile(fn string) ([][]byte, error) {
 	return lines, nil
 }
 
-func PreviousInstructionPC(arch string, pc uint64) uint64 {
-	switch arch {
+func PreviousInstructionPC(target *targets.Target, pc uint64) uint64 {
+	switch target.Arch {
 	case "amd64":
 		return pc - 5
 	case "386":
@@ -446,33 +490,40 @@ func PreviousInstructionPC(arch string, pc uint64) uint64 {
 	case "mips64le":
 		return pc - 8
 	default:
-		panic(fmt.Sprintf("unknown arch %q", arch))
+		panic(fmt.Sprintf("unknown arch %q", target.Arch))
 	}
 }
 
-func archCallInsn(arch string) (string, string) {
-	const callName = " <__sanitizer_cov_trace_pc>"
-	switch arch {
+func archCallInsn(target *targets.Target) ([][]byte, [][]byte) {
+	callName := [][]byte{[]byte(" <__sanitizer_cov_trace_pc>")}
+	switch target.Arch {
 	case "amd64":
 		// ffffffff8100206a:       callq  ffffffff815cc1d0 <__sanitizer_cov_trace_pc>
-		return "\tcallq ", callName
+		return [][]byte{[]byte("\tcallq ")}, callName
 	case "386":
 		// c1000102:       call   c10001f0 <__sanitizer_cov_trace_pc>
-		return "\tcall ", callName
+		return [][]byte{[]byte("\tcall ")}, callName
 	case "arm64":
 		// ffff0000080d9cc0:       bl      ffff00000820f478 <__sanitizer_cov_trace_pc>
-		return "\tbl\t", callName
+		return [][]byte{[]byte("\tbl\t")}, callName
 	case "arm":
 		// 8010252c:       bl      801c3280 <__sanitizer_cov_trace_pc>
-		return "\tbl\t", callName
+		return [][]byte{[]byte("\tbl\t")}, callName
 	case "ppc64le":
 		// c00000000006d904:       bl      c000000000350780 <.__sanitizer_cov_trace_pc>
-		return "\tbl ", " <.__sanitizer_cov_trace_pc>"
+		// This is only known to occur in the test:
+		// 838:   bl      824 <__sanitizer_cov_trace_pc+0x8>
+		return [][]byte{[]byte("\tbl ")}, [][]byte{
+			[]byte("<__sanitizer_cov_trace_pc+0x8>"),
+			[]byte(" <.__sanitizer_cov_trace_pc>"),
+		}
 	case "mips64le":
 		// ffffffff80100420:       jal     ffffffff80205880 <__sanitizer_cov_trace_pc>
-		return "\tjal\t", callName
+		// This is only known to occur in the test:
+		// b58:   bal     b30 <__sanitizer_cov_trace_pc>
+		return [][]byte{[]byte("\tjal\t"), []byte("\tbal\t")}, callName
 	default:
-		panic(fmt.Sprintf("unknown arch %q", arch))
+		panic(fmt.Sprintf("unknown arch %q", target.Arch))
 	}
 }
 
