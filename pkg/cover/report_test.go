@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -123,6 +124,13 @@ int main() {}
 		"-x", "c", src,
 	}, target.CFlags...), test.CFlags...)
 	if _, err := osutil.RunCmd(time.Hour, "", target.CCompiler, flags...); err != nil {
+		errText := err.Error()
+		errText = strings.ReplaceAll(errText, "‘", "'")
+		errText = strings.ReplaceAll(errText, "’", "'")
+		if strings.Contains(errText, "error: unrecognized command line option '-fsanitize-coverage=trace-pc'") &&
+			os.Getenv("CI") == "" {
+			t.Skip("skipping test, -fsanitize-coverage=trace-pc is not supported")
+		}
 		t.Fatal(err)
 	}
 	rg, err := MakeReportGenerator(target, bin, filepath.Dir(src), filepath.Dir(src))
