@@ -15,6 +15,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 var (
@@ -24,27 +25,27 @@ var (
 	reportGenerator   *cover.ReportGenerator
 )
 
-func initCover(kernelObj, kernelObjName, kernelSrc, kernelBuildSrc, arch, OS string) error {
+func initCover(target *targets.Target, kernelObj, kernelSrc, kernelBuildSrc string) error {
 	initCoverOnce.Do(func() {
 		if kernelObj == "" {
 			initCoverError = fmt.Errorf("kernel_obj is not specified")
 			return
 		}
-		vmlinux := filepath.Join(kernelObj, kernelObjName)
-		reportGenerator, initCoverError = cover.MakeReportGenerator(vmlinux, kernelSrc, kernelBuildSrc, arch)
+		vmlinux := filepath.Join(kernelObj, target.KernelObject)
+		reportGenerator, initCoverError = cover.MakeReportGenerator(target, vmlinux, kernelSrc, kernelBuildSrc)
 		if initCoverError != nil {
 			return
 		}
-		initCoverVMOffset, initCoverError = getVMOffset(vmlinux, OS)
+		initCoverVMOffset, initCoverError = getVMOffset(vmlinux, target.OS)
 	})
 	return initCoverError
 }
 
-func coverToPCs(cov []uint32, arch string) []uint64 {
+func coverToPCs(target *targets.Target, cov []uint32) []uint64 {
 	pcs := make([]uint64, 0, len(cov))
 	for _, pc := range cov {
 		fullPC := cover.RestorePC(pc, initCoverVMOffset)
-		prevPC := cover.PreviousInstructionPC(arch, fullPC)
+		prevPC := cover.PreviousInstructionPC(target, fullPC)
 		pcs = append(pcs, prevPC)
 	}
 	return pcs

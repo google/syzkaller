@@ -218,8 +218,7 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 	}
 	// Note: initCover is executed without mgr.mu because it takes very long time
 	// (but it only reads config and it protected by initCoverOnce).
-	if err := initCover(mgr.cfg.KernelObj, mgr.sysTarget.KernelObject,
-		mgr.cfg.KernelSrc, mgr.cfg.KernelBuildSrc, mgr.cfg.TargetVMArch, mgr.cfg.TargetOS); err != nil {
+	if err := initCover(mgr.sysTarget, mgr.cfg.KernelObj, mgr.cfg.KernelSrc, mgr.cfg.KernelBuildSrc); err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -234,7 +233,7 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request) {
 		inp := mgr.corpus[sig]
 		progs = append(progs, cover.Prog{
 			Data: string(inp.Prog),
-			PCs:  coverToPCs(inp.Cover, mgr.cfg.TargetVMArch),
+			PCs:  coverToPCs(mgr.sysTarget, inp.Cover),
 		})
 	} else {
 		call := r.FormValue("call")
@@ -244,7 +243,7 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request) {
 			}
 			progs = append(progs, cover.Prog{
 				Data: string(inp.Prog),
-				PCs:  coverToPCs(inp.Cover, mgr.cfg.TargetVMArch),
+				PCs:  coverToPCs(mgr.sysTarget, inp.Cover),
 			})
 		}
 	}
@@ -391,8 +390,7 @@ func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {
 func (mgr *Manager) httpRawCover(w http.ResponseWriter, r *http.Request) {
 	// Note: initCover is executed without mgr.mu because it takes very long time
 	// (but it only reads config and it protected by initCoverOnce).
-	if err := initCover(mgr.cfg.KernelObj, mgr.sysTarget.KernelObject, mgr.cfg.KernelSrc,
-		mgr.cfg.KernelBuildSrc, mgr.cfg.TargetArch, mgr.cfg.TargetOS); err != nil {
+	if err := initCover(mgr.sysTarget, mgr.cfg.KernelObj, mgr.cfg.KernelSrc, mgr.cfg.KernelBuildSrc); err != nil {
 		http.Error(w, initCoverError.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -407,7 +405,7 @@ func (mgr *Manager) httpRawCover(w http.ResponseWriter, r *http.Request) {
 	for pc := range cov {
 		covArray = append(covArray, pc)
 	}
-	pcs := coverToPCs(covArray, mgr.cfg.TargetVMArch)
+	pcs := coverToPCs(mgr.sysTarget, covArray)
 	sort.Slice(pcs, func(i, j int) bool {
 		return pcs[i] < pcs[j]
 	})
