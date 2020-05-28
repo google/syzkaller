@@ -213,6 +213,12 @@ func (upd *SyzUpdater) pollAndBuild(lastCommit string) string {
 }
 
 func (upd *SyzUpdater) build(commit *vcs.Commit) error {
+	// syzkaller testing may be slowed down by concurrent kernel builds too much
+	// and cause timeout failures, so we serialize it with other builds:
+	// https://groups.google.com/forum/#!msg/syzkaller-openbsd-bugs/o-G3vEsyQp4/f_nFpoNKBQAJ
+	kernelBuildSem <- struct{}{}
+	defer func() { <-kernelBuildSem }()
+
 	if upd.descriptions != "" {
 		files, err := ioutil.ReadDir(upd.descriptions)
 		if err != nil {
