@@ -377,7 +377,7 @@ static void netlink_device_change(struct nlmsg* nlmsg, int sock, const char* nam
 	if (macsize)
 		netlink_attr(nlmsg, IFLA_ADDRESS, mac, macsize);
 	int err = netlink_send(nlmsg, sock);
-	debug("netlink: device %s up master %s: %s\n", name, master, strerror(err));
+	debug("netlink: device %s up master %s: %s\n", name, master ? master : "NULL", strerror(err));
 	(void)err;
 }
 #endif
