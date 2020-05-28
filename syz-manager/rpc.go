@@ -270,6 +270,7 @@ func (serv *RPCServer) Poll(a *rpctype.PollArgs, r *rpctype.PollRes) error {
 	newMaxSignal := serv.maxSignal.Diff(a.MaxSignal.Deserialize())
 	if !newMaxSignal.Empty() {
 		serv.maxSignal.Merge(newMaxSignal)
+		serv.stats.maxSignal.set(len(serv.maxSignal))
 		for _, f1 := range serv.fuzzers {
 			if f1 == f {
 				continue

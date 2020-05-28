@@ -27,6 +27,7 @@ type Stats struct {
 	hubRecvReproDrop Stat
 	corpusCover      Stat
 	corpusSignal     Stat
+	maxSignal        Stat
 
 	mu         sync.Mutex
 	namedStats map[string]uint64
@@ -44,6 +45,7 @@ func (stats *Stats) all() map[string]uint64 {
 		"exec total":     stats.execTotal.get(),
 		"cover":          stats.corpusCover.get(),
 		"signal":         stats.corpusSignal.get(),
+		"max signal":     stats.maxSignal.get(),
 	}
 	if stats.haveHub {
 		m["hub: send prog add"] = stats.hubSendProgAdd.get()
