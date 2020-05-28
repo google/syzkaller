@@ -176,9 +176,7 @@ You can compile a kernel with KASAN to increase the chances of finding bugs.
 [syzkaller-netbsd-bugs](https://groups.google.com/forum/#!forum/syzkaller-netbsd-bugs) mailing list
 (also can be seen on [dashboard](https://syzkaller.appspot.com/netbsd)).
 
-The image `syzbot` uses can be downloaded from
-[here](https://storage.googleapis.com/syzkaller/netbsd-image.raw) (2GB) and root
-ssh key from [here](https://storage.googleapis.com/syzkaller/netbsd-image.key).
+The image `syzbot` uses can be downloaded [here](https://storage.googleapis.com/syzkaller/netbsd-image.tar.gz) (266MB, includes root ssh key). The image was built using this [script](https://github.com/R3x/netbsd-fuzzing-aids/blob/master/install_netbsd.sh).
 
 The image can be used with qemu as follows:
 ```
