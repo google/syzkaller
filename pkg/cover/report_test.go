@@ -75,7 +75,7 @@ func TestReportGenerator(t *testing.T) {
 				}
 				for _, test := range tests {
 					test := test
-					t.Run("no-coverage", func(t *testing.T) {
+					t.Run(test.Name, func(t *testing.T) {
 						t.Parallel()
 						testReportGenerator(t, target, test)
 					})
@@ -120,6 +120,7 @@ int main() {}
 	}
 	defer os.Remove(bin)
 	flags := append(append([]string{
+		"-w",
 		"-o", bin,
 		"-x", "c", src,
 	}, target.CFlags...), test.CFlags...)
