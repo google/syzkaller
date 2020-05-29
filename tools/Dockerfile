@@ -43,6 +43,12 @@ RUN GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1
 # For go-fuzz we also need sources (go-fuzz-dep).
 RUN go get github.com/dvyukov/go-fuzz/go-fuzz github.com/dvyukov/go-fuzz/go-fuzz-build
 
+# Install gcloud sdk for dashboard/app tests.
+RUN curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-294.0.0-linux-x86_64.tar.gz | tar -C /usr/local -xz
+ENV PATH /usr/local/google-cloud-sdk/bin:$PATH
+RUN gcloud components install --quiet app-engine-python app-engine-go cloud-datastore-emulator
+RUN chmod 0777 /usr/local/google-cloud-sdk
+
 # Pre-create dirs for syz-dock.
 # This is necessary to make docker work with the current user,
 # otherwise --volume will create these dirs under root and then
