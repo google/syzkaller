@@ -445,6 +445,12 @@ nextFile:
 		}
 		return file
 	}
+	// Avoid producing no guilty file at all, otherwise we mail the report to nobody.
+	// It's unclear if it's better to return the first one or the last one.
+	// So far the only test we have has only one file anyway.
+	if len(files) != 0 {
+		return files[0]
+	}
 	return ""
 }
 
