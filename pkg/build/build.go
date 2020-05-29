@@ -7,6 +7,7 @@ package build
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -64,6 +65,11 @@ func Image(params *Params) (string, error) {
 	err = builder.build(params)
 	if err != nil {
 		return "", extractRootCause(err, params.TargetOS, params.KernelDir)
+	}
+	if key := filepath.Join(params.OutputDir, "key"); osutil.IsExist(key) {
+		if err := os.Chmod(key, 0600); err != nil {
+			return "", fmt.Errorf("failed to chmod 0600 %v: %v", key, err)
+		}
 	}
 	sign := ""
 	if signer, ok := builder.(signer); ok {
