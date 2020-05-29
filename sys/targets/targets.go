@@ -521,8 +521,9 @@ func (target *Target) lazyInit() {
 	if runtime.GOOS != target.BuildOS || target.BrokenCompiler != "" {
 		return
 	}
-	if target.OS != runtime.GOOS && !runningOnCI {
-		// On CI we want to fail loudly if cross-compilation breaks.
+	// Only fail on CI for native build.
+	// On CI we want to fail loudly if cross-compilation breaks.
+	if target.OS != runtime.GOOS || !runningOnCI {
 		if _, err := exec.LookPath(target.CCompiler); err != nil {
 			target.BrokenCompiler = fmt.Sprintf("%v is missing", target.CCompiler)
 			return
