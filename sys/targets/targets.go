@@ -67,8 +67,6 @@ type osCommon struct {
 	CPP string
 	// Common CFLAGS for this OS.
 	cflags []string
-	// If set, this OS uses $SOURCEDIR to locate the toolchain.
-	NeedsSourceDir bool
 }
 
 func Get(OS, arch string) *Target {
@@ -217,10 +215,12 @@ var List = map[string]map[string]*Target{
 		"amd64": {
 			PtrSize:  8,
 			PageSize: 4 << 10,
-			CFlags: []string{"-m64", "-static",
-				"--sysroot", os.ExpandEnv("${SOURCEDIR}/../dest/"),
+			CFlags: []string{
+				"-m64",
+				"-static",
+				"--sysroot", sourceDirVar + "/../dest/",
 			},
-			CCompiler: os.ExpandEnv("${SOURCEDIR}/../tools/bin/x86_64--netbsd-g++"),
+			CCompiler: sourceDirVar + "/../tools/bin/x86_64--netbsd-g++",
 		},
 	},
 	"openbsd": {
@@ -261,46 +261,46 @@ var List = map[string]map[string]*Target{
 			PtrSize:          8,
 			PageSize:         4 << 10,
 			KernelHeaderArch: "x64",
-			CCompiler:        os.ExpandEnv("${SOURCEDIR}/prebuilt/third_party/clang/linux-x64/bin/clang"),
+			CCompiler:        sourceDirVar + "/prebuilt/third_party/clang/linux-x64/bin/clang",
 			CFlags: []string{
 				"-Wno-deprecated",
 				"--target=x86_64-fuchsia",
 				"-ldriver",
 				"-lfdio",
 				"-lzircon",
-				"--sysroot", os.ExpandEnv("${SOURCEDIR}/out/x64/sdk/exported/zircon_sysroot/arch/x64/sysroot"),
-				"-I", os.ExpandEnv("${SOURCEDIR}/zircon/system/ulib/ddk/include"),
-				"-I", os.ExpandEnv("${SOURCEDIR}/zircon/system/ulib/fdio/include"),
-				"-I", os.ExpandEnv("${SOURCEDIR}/zircon/system/ulib/fidl/include"),
-				"-I", os.ExpandEnv("${SOURCEDIR}/out/x64/fidling/gen/zircon/system/fidl/fuchsia-device"),
-				"-I", os.ExpandEnv("${SOURCEDIR}/out/x64/fidling/gen/zircon/system/fidl/fuchsia-device-manager"),
-				"-I", os.ExpandEnv("${SOURCEDIR}/out/x64/fidling/gen/zircon/system/fidl/fuchsia-hardware-nand"),
-				"-I", os.ExpandEnv("${SOURCEDIR}/out/x64/fidling/gen/zircon/system/fidl/fuchsia-hardware-usb-peripheral"),
-				"-L", os.ExpandEnv("${SOURCEDIR}/out/x64/x64-shared"),
-				"-L", os.ExpandEnv("${SOURCEDIR}/out/x64/gen/zircon/public/lib/fdio"),
+				"--sysroot", sourceDirVar + "/out/x64/sdk/exported/zircon_sysroot/arch/x64/sysroot",
+				"-I", sourceDirVar + "/zircon/system/ulib/ddk/include",
+				"-I", sourceDirVar + "/zircon/system/ulib/fdio/include",
+				"-I", sourceDirVar + "/zircon/system/ulib/fidl/include",
+				"-I", sourceDirVar + "/out/x64/fidling/gen/zircon/system/fidl/fuchsia-device",
+				"-I", sourceDirVar + "/out/x64/fidling/gen/zircon/system/fidl/fuchsia-device-manager",
+				"-I", sourceDirVar + "/out/x64/fidling/gen/zircon/system/fidl/fuchsia-hardware-nand",
+				"-I", sourceDirVar + "/out/x64/fidling/gen/zircon/system/fidl/fuchsia-hardware-usb-peripheral",
+				"-L", sourceDirVar + "/out/x64/x64-shared",
+				"-L", sourceDirVar + "/out/x64/gen/zircon/public/lib/fdio",
 			},
 		},
 		"arm64": {
 			PtrSize:          8,
 			PageSize:         4 << 10,
 			KernelHeaderArch: "arm64",
-			CCompiler:        os.ExpandEnv("${SOURCEDIR}/prebuilt/third_party/clang/linux-x64/bin/clang"),
+			CCompiler:        sourceDirVar + "/prebuilt/third_party/clang/linux-x64/bin/clang",
 			CFlags: []string{
 				"-Wno-deprecated",
 				"--target=aarch64-fuchsia",
 				"-ldriver",
 				"-lfdio",
 				"-lzircon",
-				"--sysroot", os.ExpandEnv("${SOURCEDIR}/out/arm64/sdk/exported/zircon_sysroot/arch/arm64/sysroot"),
-				"-I", os.ExpandEnv("${SOURCEDIR}/zircon/system/ulib/ddk/include"),
-				"-I", os.ExpandEnv("${SOURCEDIR}/zircon/system/ulib/fdio/include"),
-				"-I", os.ExpandEnv("${SOURCEDIR}/zircon/system/ulib/fidl/include"),
-				"-I", os.ExpandEnv("${SOURCEDIR}/out/arm64/fidling/gen/zircon/system/fidl/fuchsia-device"),
-				"-I", os.ExpandEnv("${SOURCEDIR}/out/arm64/fidling/gen/zircon/system/fidl/fuchsia-device-manager"),
-				"-I", os.ExpandEnv("${SOURCEDIR}/out/arm64/fidling/gen/zircon/system/fidl/fuchsia-hardware-nand"),
-				"-I", os.ExpandEnv("${SOURCEDIR}/out/arm64/fidling/gen/zircon/system/fidl/fuchsia-hardware-usb-peripheral"),
-				"-L", os.ExpandEnv("${SOURCEDIR}/out/arm64/arm64-shared"),
-				"-L", os.ExpandEnv("${SOURCEDIR}/out/arm64/gen/zircon/public/lib/fdio"),
+				"--sysroot", sourceDirVar + "/out/arm64/sdk/exported/zircon_sysroot/arch/arm64/sysroot",
+				"-I", sourceDirVar + "/zircon/system/ulib/ddk/include",
+				"-I", sourceDirVar + "/zircon/system/ulib/fdio/include",
+				"-I", sourceDirVar + "/zircon/system/ulib/fidl/include",
+				"-I", sourceDirVar + "/out/arm64/fidling/gen/zircon/system/fidl/fuchsia-device",
+				"-I", sourceDirVar + "/out/arm64/fidling/gen/zircon/system/fidl/fuchsia-device-manager",
+				"-I", sourceDirVar + "/out/arm64/fidling/gen/zircon/system/fidl/fuchsia-hardware-nand",
+				"-I", sourceDirVar + "/out/arm64/fidling/gen/zircon/system/fidl/fuchsia-hardware-usb-peripheral",
+				"-L", sourceDirVar + "/out/arm64/arm64-shared",
+				"-L", sourceDirVar + "/out/arm64/gen/zircon/public/lib/fdio",
 			},
 		},
 	},
@@ -317,7 +317,7 @@ var List = map[string]map[string]*Target{
 			PageSize:          4 << 10,
 			KernelHeaderArch:  "x86",
 			NeedSyscallDefine: dontNeedSyscallDefine,
-			CCompiler:         os.ExpandEnv("${SOURCEDIR}/toolchain/x86_64-ucb-akaros-gcc/bin/x86_64-ucb-akaros-g++"),
+			CCompiler:         sourceDirVar + "/toolchain/x86_64-ucb-akaros-gcc/bin/x86_64-ucb-akaros-g++",
 			CFlags: []string{
 				"-static",
 			},
@@ -358,7 +358,6 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "netbsd.gdb",
-		NeedsSourceDir:         true,
 	},
 	"openbsd": {
 		SyscallNumbers:         true,
@@ -376,7 +375,6 @@ var oses = map[string]osCommon{
 		HostFuzzer:             true,
 		SyzExecutorCmd:         "syz-executor",
 		KernelObject:           "zircon.elf",
-		NeedsSourceDir:         true,
 	},
 	"windows": {
 		SyscallNumbers:         false,
@@ -393,7 +391,6 @@ var oses = map[string]osCommon{
 		ExecutorUsesForkServer: true,
 		HostFuzzer:             true,
 		KernelObject:           "akaros-kernel-64b",
-		NeedsSourceDir:         true,
 	},
 	"trusty": {
 		SyscallNumbers:   true,
@@ -460,6 +457,17 @@ func initTarget(target *Target, OS, arch string) {
 	}
 	target.DataOffset = 512 << 20
 	target.NumPages = (16 << 20) / target.PageSize
+	sourceDir := os.Getenv("SOURCEDIR_" + strings.ToUpper(OS))
+	if sourceDir == "" {
+		sourceDir = os.Getenv("SOURCEDIR")
+	}
+	for sourceDir != "" && sourceDir[len(sourceDir)-1] == '/' {
+		sourceDir = sourceDir[:len(sourceDir)-1]
+	}
+	target.replaceSourceDir(&target.CCompiler, sourceDir)
+	for i := range target.CFlags {
+		target.replaceSourceDir(&target.CFlags[i], sourceDir)
+	}
 	if OS == "linux" && arch == runtime.GOARCH {
 		// Don't use cross-compiler for native compilation, there are cases when this does not work:
 		// https://github.com/google/syzkaller/pull/619
@@ -498,17 +506,25 @@ func initTarget(target *Target, OS, arch string) {
 	}
 }
 
-func (target *Target) lazyInit() {
-	if runtime.GOOS != target.BuildOS {
+func (target *Target) replaceSourceDir(param *string, sourceDir string) {
+	if !strings.Contains(*param, sourceDirVar) {
 		return
 	}
-	if target.OS != runtime.GOOS || !runningOnCI {
+	if sourceDir == "" {
+		target.BrokenCompiler = "SOURCEDIR is not set"
+		return
+	}
+	*param = strings.ReplaceAll(*param, sourceDirVar, sourceDir)
+}
+
+func (target *Target) lazyInit() {
+	if runtime.GOOS != target.BuildOS || target.BrokenCompiler != "" {
+		return
+	}
+	if target.OS != runtime.GOOS && !runningOnCI {
 		// On CI we want to fail loudly if cross-compilation breaks.
 		if _, err := exec.LookPath(target.CCompiler); err != nil {
 			target.BrokenCompiler = fmt.Sprintf("%v is missing", target.CCompiler)
-			if target.NeedsSourceDir && os.Getenv("SOURCEDIR") == "" {
-				target.BrokenCompiler = "SOURCEDIR is not set"
-			}
 			return
 		}
 	}
@@ -559,19 +575,20 @@ func checkFlagSupported(target *Target, flag string) bool {
 	return cmd.Run() == nil
 }
 
-var runningOnCI = os.Getenv("CI") != ""
-var useClang = os.Getenv("SYZ_CLANG") != ""
+func needSyscallDefine(nr uint64) bool     { return true }
+func dontNeedSyscallDefine(nr uint64) bool { return false }
 
-const simpleProg = `
+var (
+	runningOnCI = os.Getenv("CI") != ""
+	useClang    = os.Getenv("SYZ_CLANG") != ""
+)
+
+const (
+	sourceDirVar = "${SOURCEDIR}"
+	simpleProg   = `
 #include <stdio.h>
 #include <dirent.h> // ensures that system headers are installed
 #include <algorithm> // ensures that C++ headers are installed
 int main() { printf("Hello, World!\n"); }
 `
-
-func needSyscallDefine(nr uint64) bool {
-	return true
-}
-func dontNeedSyscallDefine(nr uint64) bool {
-	return false
-}
+)
