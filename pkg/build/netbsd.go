@@ -6,6 +6,7 @@ package build
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -75,6 +76,10 @@ func (ctx netbsd) build(params *Params) error {
 		if err := osutil.CopyFile(fullSrc, fullDst); err != nil {
 			return fmt.Errorf("failed to copy %v -> %v: %v", fullSrc, fullDst, err)
 		}
+	}
+	keyFile := filepath.Join(params.OutputDir, "key")
+	if err := os.Chmod(keyFile, 0600); err != nil {
+		return fmt.Errorf("failed to chmod 0600 %v: %v", keyFile, err)
 	}
 	return ctx.copyKernelToDisk(params.TargetArch, params.VMType, params.OutputDir,
 		filepath.Join(compileDir, "netbsd"))
