@@ -47,7 +47,7 @@ Several useful `syz-execprog` flags:
     	use threaded mode in executor (default true)
 ```
 
-If you pass `-threaded=0 -collide=0`, programs will be executed as a simple single-threaded sequence of syscalls. `-threaded=1` forces execution of each syscall in a separate thread, so that execution can proceed over blocking syscalls. `-collide=0` forces second round of execution of syscalls when pairs of syscalls are executed concurrently.
+If you pass `-threaded=0 -collide=0`, programs will be executed as a simple single-threaded sequence of syscalls. `-threaded=1` forces execution of each syscall in a separate thread, so that execution can proceed over blocking syscalls. `-collide=1` forces second round of execution of syscalls when pairs of syscalls are executed concurrently.
 
 If you are replaying a reproducer program that contains a header along the following lines:
 ```
