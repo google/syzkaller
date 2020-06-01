@@ -36,7 +36,7 @@ At this point you should have a NetBSD distribution in `$HOME/netbsd/dest`.
 
 3. Compile syzkaller for NetBSD.
 	```sh
-	host$ make TARGETOS=netbsd SOURCEDIR=$HOME/netbsd/src
+	host$ make TARGETOS=netbsd SOURCEDIR=$HOME/netbsd
 	```
 
 The above steps should have built the syzkaller binaries for NetBSD.
