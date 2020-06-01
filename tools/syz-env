@@ -47,6 +47,10 @@ if [ "$COMMAND" == "" ]; then
 fi
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)"
+IMAGE="env"
+if [ "$(basename -- "$0")" == "syz-big-env" ]; then
+	IMAGE="big-env"
+fi
 
 # Run everything as the host user, this is important for created/modified files.
 docker run \
@@ -62,4 +66,4 @@ docker run \
 	--env GITHUB_SHA \
 	--env CI \
 	${DOCKERARGS[@]} \
-	gcr.io/syzkaller/env -c "$COMMAND"
+	gcr.io/syzkaller/${IMAGE} -c "$COMMAND"

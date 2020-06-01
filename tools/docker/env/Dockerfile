@@ -11,7 +11,7 @@
 #	docker run -it gcr.io/syzkaller/env
 
 # To build and push new version:
-#	docker build -t gcr.io/syzkaller/env tools
+#	docker build -t gcr.io/syzkaller/env tools/docker/env
 #	gcloud auth login && gcloud auth configure-docker
 #	docker push gcr.io/syzkaller/env
 
@@ -54,5 +54,6 @@ RUN mkdir -p /syzkaller/gopath/src/github.com/google/syzkaller && \
 # The default Docker prompt is too ugly and takes the whole line:
 # I have no name!@0f3331d2fb54:~/gopath/src/github.com/google/syzkaller$
 RUN echo "export PS1='syz-env🈴 '" > /syzkaller/.bashrc
+ENV SYZ_ENV yes
 
 ENTRYPOINT ["bash"]
