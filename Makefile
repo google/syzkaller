@@ -106,6 +106,7 @@ endif
 	arch_linux_arm64_target arch_linux_arm_target arch_linux_ppc64le_target arch_linux_mips64le_target \
 	arch_freebsd_amd64_target arch_freebsd_386_target \
 	arch_netbsd_amd64_target arch_windows_amd64_target \
+	arch_akaros_target arch_fuchsia_target \
 	arch_test presubmit presubmit_parallel clean
 
 all: host target
@@ -300,6 +301,13 @@ arch_openbsd_amd64_target:
 arch_windows_amd64_target:
 	env TARGETOS=windows TARGETARCH=amd64 $(MAKE) target
 
+arch_akaros_target:
+	env TARGETOS=akaros TARGETARCH=amd64 $(MAKE) executor
+
+arch_fuchsia_target:
+	env TARGETOS=fuchsia TARGETARCH=amd64 $(MAKE) executor
+	env TARGETOS=fuchsia TARGETARCH=arm64 $(MAKE) executor
+
 arch_test:
 	env TARGETOS=test TARGETARCH=64 $(MAKE) executor
 	env TARGETOS=test TARGETARCH=64_fork $(MAKE) executor
@@ -309,6 +317,7 @@ arch_test:
 presubmit:
 	$(MAKE) presubmit_smoke
 	$(MAKE) presubmit_arch
+	$(MAKE) presubmit_race
 
 presubmit_smoke:
 	$(MAKE) generate
@@ -321,7 +330,7 @@ presubmit_build:
 	$(GO) install ./...
 	$(MAKE) lint
 
-presubmit_arch:
+presubmit_arch: descriptions
 	$(MAKE) arch_linux_amd64_host
 	$(MAKE) arch_freebsd_amd64_host
 	$(MAKE) arch_netbsd_amd64_host
@@ -338,17 +347,23 @@ presubmit_arch:
 	$(MAKE) arch_openbsd_amd64_target
 	$(MAKE) arch_darwin_amd64_host
 	$(MAKE) arch_windows_amd64_target
+	$(MAKE) arch_akaros_target
+	$(MAKE) arch_fuchsia_target
 	$(MAKE) arch_test
-	$(MAKE) test_race
 
-test: descriptions
-	$(GO) test -short -coverprofile=.coverage.txt ./...
+presubmit_big: descriptions
+	# This target runs on CI in syz-big-env,
+	# so we test packages that need GCloud SDK or OS toolchains.
+	$(GO) test -short -coverprofile=.coverage.txt ./dashboard/app ./pkg/csource ./pkg/cover
 
-test_race: descriptions
+presubmit_race: descriptions
 	# -race requires cgo
 	env CGO_ENABLED=1 $(GO) test -race; if test $$? -ne 2; then \
 	env CGO_ENABLED=1 $(GO) test -race -short -bench=.* -benchtime=.2s ./... ;\
 	fi
+
+test: descriptions
+	$(GO) test -short -coverprofile=.coverage.txt ./...
 
 clean:
 	rm -rf ./bin .descriptions sys/*/gen executor/defs.h executor/syscalls.h
