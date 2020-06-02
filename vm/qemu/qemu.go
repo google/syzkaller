@@ -152,6 +152,15 @@ var archConfigs = map[string]*archConfig{
 		QemuArgs:  "-enable-kvm -vga none",
 		CmdLine:   linuxCmdline,
 	},
+	"linux/s390x": {
+		Qemu:      "qemu-system-s390x",
+		TargetDir: "/",
+		QemuArgs:  "-M s390-ccw-virtio -cpu max,zpci=on",
+		NicModel:  ",model=virtio",
+		CmdLine: append(linuxCmdline,
+			"root=/dev/vda",
+		),
+	},
 	"freebsd/amd64": {
 		Qemu:      "qemu-system-x86_64",
 		TargetDir: "/",

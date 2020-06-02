@@ -56,7 +56,7 @@ func removeImmutable(fname string) error {
 	switch runtime.GOARCH {
 	case "386", "arm":
 		cmd = 1074030082
-	case "amd64", "arm64":
+	case "amd64", "arm64", "s390x":
 		cmd = 1074292226
 	case "ppc64le", "mips64le":
 		cmd = 2148034050

@@ -125,6 +125,25 @@ c00000000037eb00 T sys_newstat
 			[]string{"newstat"},
 			[]string{"stat"},
 		},
+		{
+			"s390x",
+			[]byte(`
+0000000000e4f760 T __sys_bind
+0000000000e4f8e8 T __s390_sys_bind
+0000000000e4f938 T __s390x_sys_bind
+0000000000e4f938 T __se_sys_bind
+0000000000e4f988 T __sys_listen
+0000000000e4fab0 T __s390_sys_listen
+0000000000e4faf8 T __s390x_sys_listen
+0000000000e4faf8 T __se_sys_listen
+0000000000e4fb40 T __sys_accept4
+0000000000e4fe58 T __s390_sys_accept4
+0000000000e4feb0 T __s390x_sys_accept4
+0000000000e4feb0 T __se_sys_accept4
+			`),
+			[]string{"bind", "listen", "accept4"},
+			[]string{"bind", "listen", "accept4"},
+		},
 	}
 
 	for _, test := range tests {

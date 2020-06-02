@@ -486,6 +486,8 @@ func PreviousInstructionPC(target *targets.Target, pc uint64) uint64 {
 		return pc - 4
 	case "mips64le":
 		return pc - 8
+	case "s390x":
+		return pc - 6
 	default:
 		panic(fmt.Sprintf("unknown arch %q", target.Arch))
 	}
@@ -523,6 +525,9 @@ func archCallInsn(target *targets.Target) ([][]byte, [][]byte) {
 		// This is only known to occur in the test:
 		// b58:   bal     b30 <__sanitizer_cov_trace_pc>
 		return [][]byte{[]byte("\tjal\t"), []byte("\tbal\t")}, callName
+	case "s390x":
+		// 1001de:       brasl   %r14,2bc090 <__sanitizer_cov_trace_pc>
+		return [][]byte{[]byte("\tbrasl\t")}, callName
 	default:
 		panic(fmt.Sprintf("unknown arch %q", target.Arch))
 	}
