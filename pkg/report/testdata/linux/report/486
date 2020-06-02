@@ -1,0 +1,66 @@
+TITLE: WARNING in usb_remove_ep_devs
+
+[  269.644007][ T4107] ------------[ cut here ]------------
+[  269.656738][ T4107] WARNING: CPU: 1 PID: 4107 at drivers/base/devres.c:526 devres_release_all+0x8c/0xc3
+[  269.657725][    T5] usb 2-1: new high-speed USB device number 119 using dummy_hcd
+[  269.666416][ T4107] Kernel panic - not syncing: panic_on_warn set ...
+[  269.666444][ T4107] CPU: 1 PID: 4107 Comm: kworker/1:9 Not tainted 5.7.0-rc6-syzkaller #0
+[  269.689119][ T4107] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  269.699180][ T4107] Workqueue: usb_hub_wq hub_event
+[  269.704206][ T4107] Call Trace:
+[  269.707505][ T4107]  dump_stack+0xef/0x16e
+[  269.711748][ T4107]  ? devres_release_all+0x10/0xc3
+[  269.716747][ T4107]  panic+0x2aa/0x6e1
+[  269.720620][ T4107]  ? add_taint.cold+0x16/0x16
+[  269.725285][ T4107]  ? printk+0xba/0xed
+[  269.727725][ T3374] ath9k_htc 3-1:1.0: ath9k_htc: Target is unresponsive
+[  269.729272][ T4107]  ? kmsg_dump_rewind_nolock+0xd9/0xd9
+[  269.736202][ T3374] ath9k_htc: Failed to initialize the device
+[  269.741553][ T4107]  ? __warn.cold+0x14/0x30
+[  269.741567][ T4107]  ? devres_release_all+0x8c/0xc3
+[  269.741578][ T4107]  __warn.cold+0x2f/0x30
+[  269.741591][ T4107]  ? devres_release_all+0x8c/0xc3
+[  269.741606][ T4107]  report_bug+0x27b/0x2f0
+[  269.741621][ T4107]  do_error_trap+0x12b/0x1e0
+[  269.741634][ T4107]  ? devres_release_all+0x8c/0xc3
+[  269.741654][ T4107]  do_invalid_op+0x32/0x40
+[  269.784715][ T4107]  ? devres_release_all+0x8c/0xc3
+[  269.789720][ T4107]  invalid_op+0x23/0x30
+[  269.793864][ T4107] RIP: 0010:devres_release_all+0x8c/0xc3
+[  269.799482][ T4107] Code: 48 8b b5 b8 04 00 00 4c 89 e2 48 89 ef e8 6c f4 ff ff 41 89 c4 e8 a4 f8 b9 fe 44 89 e0 48 83 c4 08 5d 41 5c c3 e8 94 f8 b9 fe <0f> 0b e8 8d f8 b9 fe 41 bc ed ff ff ff 48 83 c4 08 44 89 e0 5d 41
+[  269.819075][ T4107] RSP: 0018:ffff8881c556f920 EFLAGS: 00010212
+[  269.825119][ T4107] RAX: 0000000000040000 RBX: ffffffff828400b0 RCX: ffffc9000dc85000
+[  269.833071][ T4107] RDX: 0000000000008646 RSI: ffffffff8286467c RDI: ffff8881a929d010
+[  269.841022][ T4107] RBP: ffff8881a929d010 R08: ffff8881c5b06300 R09: ffffed1035253a0a
+[  269.849023][ T4107] R10: ffff8881a929d04b R11: ffffed1035253a09 R12: ffff8881a929d4c8
+[  269.857334][ T4107] R13: ffffffff87449ca0 R14: ffff8881d8e4c378 R15: 0000000000000008
+[  269.865296][ T4107]  ? dev_attr_show+0x90/0x90
+[  269.869877][ T4107]  ? devres_release_all+0x8c/0xc3
+[  269.874881][ T4107]  ? kfree+0xd5/0x300
+[  269.879025][ T4107]  device_release+0x39/0x200
+[  269.883591][ T4107]  ? dev_attr_show+0x90/0x90
+[  269.888160][ T4107]  kobject_put+0x256/0x550
+[  269.892670][ T4107]  device_unregister+0x34/0xc0
+[  269.897518][ T4107]  usb_remove_ep_devs+0x3e/0x80
+[  269.902352][ T4107]  remove_intf_ep_devs+0x108/0x1d0
+[  269.907453][ T4107]  usb_disable_device+0x235/0x790
+[  269.912576][ T4107]  usb_disconnect+0x293/0x900
+[  269.917233][ T4107]  hub_event+0x1abf/0x43c0
+[  269.921668][ T4107]  ? hub_port_debounce+0x350/0x350
+[  269.926761][ T4107]  ? __x64_sys_sysinfo+0x30/0x40
+[  269.931765][ T4107]  ? rcu_read_lock_sched_held+0x9c/0xd0
+[  269.937374][ T4107]  ? rcu_read_lock_bh_held+0xb0/0xb0
+[  269.942642][ T4107]  ? _raw_spin_unlock_irq+0x1f/0x30
+[  269.947817][ T4107]  process_one_work+0x965/0x1630
+[  269.952731][ T4107]  ? lock_release+0x720/0x720
+[  269.957392][ T4107]  ? pwq_dec_nr_in_flight+0x310/0x310
+[  269.957747][    T5] usb 2-1: too many configurations: 120, using maximum allowed: 8
+[  269.962747][ T4107]  ? rwlock_bug.part.0+0x90/0x90
+[  269.962760][ T4107]  worker_thread+0x96/0xe20
+[  269.962773][ T4107]  ? process_one_work+0x1630/0x1630
+[  269.962785][ T4107]  kthread+0x326/0x430
+[  269.962804][ T4107]  ? kthread_create_on_node+0xf0/0xf0
+[  269.970859][  T168] usb 6-1: new high-speed USB device number 3 using dummy_hcd
+[  269.975609][ T4107]  ret_from_fork+0x24/0x30
+[  270.007423][ T4107] Kernel Offset: disabled
+[  270.011806][ T4107] Rebooting in 86400 seconds..
