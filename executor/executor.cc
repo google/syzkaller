@@ -95,6 +95,7 @@ const int kOutFd = 4;
 static uint32* output_data;
 static uint32* output_pos;
 static uint32* write_output(uint32 v);
+static uint32* write_output_64(uint64 v);
 static void write_completed(uint32 completed);
 static uint32 hash(uint32 a);
 static bool dedup(uint32 sig);
@@ -1308,6 +1309,15 @@ uint32* write_output(uint32 v)
 	return output_pos++;
 }
 
+uint32* write_output_64(uint64 v)
+{
+	if (output_pos < output_data || (char*)(output_pos + 1) >= (char*)output_data + kMaxOutput)
+		fail("output overflow: pos=%p region=[%p:%p]",
+		     output_pos, output_data, (char*)output_data + kMaxOutput);
+	*(uint64*)output_pos = v;
+	return output_pos + 2;
+}
+
 void write_completed(uint32 completed)
 {
 	__atomic_store_n(output_data, completed, __ATOMIC_RELEASE);
@@ -1344,13 +1354,10 @@ void kcov_comparison_t::write()
 	if (!is_size_8) {
 		write_output((uint32)arg1);
 		write_output((uint32)arg2);
-		return;
+	} else {
+		write_output_64(arg1);
+		write_output_64(arg2);
 	}
-	// If we have 64 bits arguments then write them in Little-endian.
-	write_output((uint32)(arg1 & 0xFFFFFFFF));
-	write_output((uint32)(arg1 >> 32));
-	write_output((uint32)(arg2 & 0xFFFFFFFF));
-	write_output((uint32)(arg2 >> 32));
 }
 
 bool kcov_comparison_t::ignore() const

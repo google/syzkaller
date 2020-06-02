@@ -167,8 +167,10 @@ static void cover_reset(cover_t* cov)
 
 static void cover_collect(cover_t* cov)
 {
-	// Note: this assumes little-endian kernel.
-	cov->size = *(uint32*)cov->data;
+	if (is_kernel_64_bit)
+		cov->size = *(uint64*)cov->data;
+	else
+		cov->size = *(uint32*)cov->data;
 }
 
 static bool cover_check(uint32 pc)

@@ -4,7 +4,6 @@
 package ipc
 
 import (
-	"encoding/binary"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -439,7 +438,7 @@ func readUint32(outp *[]byte) (uint32, bool) {
 	if len(out) < 4 {
 		return 0, false
 	}
-	v := binary.LittleEndian.Uint32(out)
+	v := prog.HostEndian.Uint32(out)
 	*outp = out[4:]
 	return v, true
 }
@@ -449,7 +448,7 @@ func readUint64(outp *[]byte) (uint64, bool) {
 	if len(out) < 8 {
 		return 0, false
 	}
-	v := binary.LittleEndian.Uint64(out)
+	v := prog.HostEndian.Uint64(out)
 	*outp = out[8:]
 	return v, true
 }

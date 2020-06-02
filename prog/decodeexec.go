@@ -203,10 +203,7 @@ func (dec *execDecoder) read() uint64 {
 	if dec.err != nil {
 		return 0
 	}
-	var v uint64
-	for i := 0; i < 8; i++ {
-		v |= uint64(dec.data[i]) << uint(i*8)
-	}
+	v := HostEndian.Uint64(dec.data)
 	dec.data = dec.data[8:]
 	return v
 }
