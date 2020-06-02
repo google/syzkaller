@@ -422,6 +422,17 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 		if res.IsRelease {
 			resp.Flags |= dashapi.BisectResultRelease
 		}
+		blacklistedCommits := []string{
+			// Commit "usb: gadget: add raw-gadget interface" adds a kernel interface for
+			// triggering USB bugs, which ends up being the guilty commit during bisection
+			// for USB bugs introduced before it.
+			"f2c2e717642c66f7fe7e5dd69b2e8ff5849f4d10",
+		}
+		for _, commit := range blacklistedCommits {
+			if res.Commits[0].Hash == commit {
+				resp.Flags |= dashapi.BisectResultBlacklist
+			}
+		}
 	}
 	if res.Report != nil {
 		resp.CrashTitle = res.Report.Title
@@ -430,7 +441,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 		if len(resp.Commits) != 0 {
 			resp.Commits[0].CC = append(resp.Commits[0].CC, res.Report.Maintainers...)
 		} else {
-			// If there is a report ahd there is no commit, it means a crash
+			// If there is a report and there is no commit, it means a crash
 			// occurred on HEAD(for BisectFix) and oldest tested release(for BisectCause).
 			resp.Build.KernelCommit = res.Commit.Hash
 			resp.Build.KernelCommitDate = res.Commit.Date

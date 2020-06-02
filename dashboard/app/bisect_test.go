@@ -541,7 +541,7 @@ https://goo.gl/tpsmEJ#testing-patches`,
 }
 
 func TestBisectWrong(t *testing.T) {
-	// Test bisection results with 	BisectResultMerge/BisectResultNoop flags set.
+	// Test bisection results with BisectResultMerge/BisectResultNoop flags set.
 	// If any of these set, the result must not be reported separately,
 	// as part of bug report during upstreamming, nor should affect CC list.
 	c := NewCtx(t)
@@ -549,7 +549,7 @@ func TestBisectWrong(t *testing.T) {
 
 	build := testBuild(1)
 	c.client2.UploadBuild(build)
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 6; i++ {
 		var flags dashapi.JobDoneFlags
 		switch i {
 		case 0:
@@ -561,6 +561,8 @@ func TestBisectWrong(t *testing.T) {
 			flags = dashapi.BisectResultMerge | dashapi.BisectResultNoop
 		case 4:
 			flags = dashapi.BisectResultRelease
+		case 5:
+			flags = dashapi.BisectResultBlacklist
 		default:
 			t.Fatalf("assign flags")
 		}
