@@ -850,6 +850,8 @@ var linuxStackParams = &stackParams{
 		"device_del",
 		"device_unregister",
 		"device_destroy",
+		"device_release",
+		"devres_release_all",
 		"hwrng_unregister",
 		"i2c_del_adapter",
 		"__unregister_client",
