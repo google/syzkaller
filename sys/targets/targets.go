@@ -26,6 +26,7 @@ type Target struct {
 	CFlags           []string
 	Triple           string
 	CCompiler        string
+	Objdump          string // name of objdump executable
 	KernelCompiler   string // override CC when running kernel make
 	KernelLinker     string // override LD when running kernel make
 	KernelArch       string
@@ -262,6 +263,7 @@ var List = map[string]map[string]*Target{
 			PageSize:         4 << 10,
 			KernelHeaderArch: "x64",
 			CCompiler:        sourceDirVar + "/prebuilt/third_party/clang/linux-x64/bin/clang",
+			Objdump:          sourceDirVar + "/prebuilt/third_party/clang/linux-x64/bin/llvm-objdump",
 			CFlags: []string{
 				"-Wno-deprecated",
 				"--target=x86_64-fuchsia",
@@ -285,6 +287,7 @@ var List = map[string]map[string]*Target{
 			PageSize:         4 << 10,
 			KernelHeaderArch: "arm64",
 			CCompiler:        sourceDirVar + "/prebuilt/third_party/clang/linux-x64/bin/clang",
+			Objdump:          sourceDirVar + "/prebuilt/third_party/clang/linux-x64/bin/llvm-objdump",
 			CFlags: []string{
 				"-Wno-deprecated",
 				"--target=aarch64-fuchsia",
@@ -465,6 +468,7 @@ func initTarget(target *Target, OS, arch string) {
 		sourceDir = sourceDir[:len(sourceDir)-1]
 	}
 	target.replaceSourceDir(&target.CCompiler, sourceDir)
+	target.replaceSourceDir(&target.Objdump, sourceDir)
 	for i := range target.CFlags {
 		target.replaceSourceDir(&target.CFlags[i], sourceDir)
 	}
@@ -492,6 +496,12 @@ func initTarget(target *Target, OS, arch string) {
 	}
 	if target.CPP == "" {
 		target.CPP = "cpp"
+	}
+	if target.Objdump == "" {
+		target.Objdump = "objdump"
+		if target.Triple != "" {
+			target.Objdump = target.Triple + "-objdump"
+		}
 	}
 	if target.BuildOS == "" {
 		target.BuildOS = OS

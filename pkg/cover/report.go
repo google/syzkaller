@@ -359,11 +359,7 @@ func objdumpAndSymbolize(target *targets.Target, obj string) ([]symbolizer.Frame
 		}
 		errc <- err
 	}()
-	objdump := "objdump"
-	if target.Triple != "" {
-		objdump = target.Triple + "-" + objdump
-	}
-	cmd := osutil.Command(objdump, "-d", "--no-show-raw-insn", obj)
+	cmd := osutil.Command(target.Objdump, "-d", "--no-show-raw-insn", obj)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err
@@ -499,7 +495,8 @@ func archCallInsn(target *targets.Target) ([][]byte, [][]byte) {
 	switch target.Arch {
 	case "amd64":
 		// ffffffff8100206a:       callq  ffffffff815cc1d0 <__sanitizer_cov_trace_pc>
-		return [][]byte{[]byte("\tcallq ")}, callName
+		// To make life more interesting, llvm-objdump does spaces slightly differently.
+		return [][]byte{[]byte("\tcallq "), []byte("\tcallq\t")}, callName
 	case "386":
 		// c1000102:       call   c10001f0 <__sanitizer_cov_trace_pc>
 		return [][]byte{[]byte("\tcall ")}, callName
