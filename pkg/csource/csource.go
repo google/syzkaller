@@ -209,7 +209,8 @@ func (ctx *context) generateCalls(p prog.ExecProg, trace bool) ([]string, []uint
 
 func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCopyout, trace bool) {
 	callName := call.Meta.CallName
-	native := ctx.sysTarget.SyscallNumbers && !strings.HasPrefix(callName, "syz_")
+	_, trampoline := ctx.sysTarget.SyscallTrampolines[callName]
+	native := ctx.sysTarget.SyscallNumbers && !strings.HasPrefix(callName, "syz_") && !trampoline
 	fmt.Fprintf(w, "\t")
 	if haveCopyout || trace {
 		fmt.Fprintf(w, "res = ")
@@ -269,6 +270,8 @@ func (ctx *context) emitCallName(w *bytes.Buffer, call prog.ExecCall, native boo
 		fmt.Fprintf(w, "syscall(%v%v", ctx.sysTarget.SyscallPrefix, callName)
 	} else if strings.HasPrefix(callName, "syz_") {
 		fmt.Fprintf(w, "%v(", callName)
+	} else if trampolineName, ok := ctx.sysTarget.SyscallTrampolines[callName]; ok {
+		fmt.Fprintf(w, "%v(", trampolineName)
 	} else {
 		args := strings.Repeat(",intptr_t", len(call.Args))
 		if args != "" {

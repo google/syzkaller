@@ -5197,6 +5197,8 @@ struct fs_image_segment {
 #define sys_memfd_create 360
 #elif GOARCH_mips64le
 #define sys_memfd_create 314
+#elif GOARCH_s390x
+#define sys_memfd_create 350
 #endif
 
 static unsigned long fs_image_segment_check(unsigned long size, unsigned long nsegs, long segments)

@@ -274,18 +274,26 @@ func generateExecutorSyscalls(target *targets.Target, syscalls []*prog.Syscall, 
 				last = i
 			}
 		}
-		data.Calls = append(data.Calls, SyscallData{
-			Name:     c.Name,
-			CallName: c.CallName,
-			NR:       int32(c.NR),
-			NeedCall: (!target.SyscallNumbers || strings.HasPrefix(c.CallName, "syz_")) && !c.Attrs.Disabled,
-			Attrs:    attrVals[:last+1],
-		})
+		data.Calls = append(data.Calls, newSyscallData(target, c, attrVals[:last+1]))
 	}
 	sort.Slice(data.Calls, func(i, j int) bool {
 		return data.Calls[i].Name < data.Calls[j].Name
 	})
 	return data
+}
+
+func newSyscallData(target *targets.Target, sc *prog.Syscall, attrs []uint64) SyscallData {
+	callName, patchCallName := target.SyscallTrampolines[sc.Name]
+	if !patchCallName {
+		callName = sc.CallName
+	}
+	return SyscallData{
+		Name:     sc.Name,
+		CallName: callName,
+		NR:       int32(sc.NR),
+		NeedCall: (!target.SyscallNumbers || strings.HasPrefix(sc.CallName, "syz_") || patchCallName) && !sc.Attrs.Disabled,
+		Attrs:    attrs,
+	}
 }
 
 func writeExecutorSyscalls(data *ExecutorData) {
