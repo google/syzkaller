@@ -222,6 +222,13 @@ func (ctx *Context) generatePrograms(progs chan *RunRequest) error {
 						}
 						ctx.produceTest(progs, req, name, properties, requires, results)
 					}
+
+					if sysTarget.HostFuzzer {
+						// For HostFuzzer mode, we need to cross-compile
+						// and copy the binary to the target system.
+						continue
+					}
+
 					name := name
 					properties["C"] = true
 					properties["executor"] = false
