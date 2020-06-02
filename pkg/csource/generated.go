@@ -354,7 +354,7 @@ static void csum_inet_update(struct csum_inet* csum, const uint8* data, size_t l
 		csum->acc += *(uint16*)&data[i];
 
 	if (length & 1)
-		csum->acc += (uint16)data[length - 1];
+		csum->acc += le16toh((uint16)data[length - 1]);
 
 	while (csum->acc > 0xffff)
 		csum->acc = (csum->acc & 0xffff) + (csum->acc >> 16);
