@@ -1,0 +1,61 @@
+TITLE: INFO: rcu detected stall in kvm_mux_dev_ioctl
+TYPE: HANG
+
+[  785.972629] rcu: INFO: rcu_sched self-detected stall on CPU
+[  785.978598] rcu: 	0-....: (10499 ticks this GP) idle=ad6/1/0x4000000000000002 softirq=74488/74499 fqs=5208 
+[  785.988667] rcu: 	 (t=10501 jiffies g=83477 q=2399)
+[  785.993688] NMI backtrace for cpu 0
+[  785.997313] CPU: 0 PID: 24585 Comm: syz-executor.5 Not tainted 4.15.0-syzkaller #0
+[  786.005023] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  786.014453] Call Trace:
+[  786.017030]  <IRQ>
+[  786.019176]  [<ffffffff84528ac6>] dump_stack+0xe1/0x15b
+[  786.024529]  [<ffffffff81388601>] ? lapic_can_unplug_cpu.cold+0x19/0x38
+[  786.031288]  [<ffffffff8453554a>] nmi_cpu_backtrace.cold+0x18/0xb3
+[  786.037593]  [<ffffffff81388620>] ? lapic_can_unplug_cpu.cold+0x38/0x38
+[  786.044330]  [<ffffffff84535506>] nmi_trigger_cpumask_backtrace+0x1a6/0x1d2
+[  786.051415]  [<ffffffff81388724>] arch_trigger_cpumask_backtrace+0x14/0x20
+[  786.058428]  [<ffffffff8162e11d>] rcu_dump_cpu_stacks+0x183/0x1cf
+[  786.064642]  [<ffffffff82229277>] ? find_next_bit+0x107/0x130
+[  786.070509]  [<ffffffff8162f191>] rcu_sched_clock_irq.cold+0x4d7/0x8a8
+[  786.077173]  [<ffffffff8142b293>] ? raise_softirq+0x183/0x240
+[  786.085233]  [<ffffffff8164dda2>] update_process_times+0x32/0x80
+[  786.091377]  [<ffffffff8167fd70>] tick_sched_handle+0xa0/0x180
+[  786.097339]  [<ffffffff81680364>] tick_sched_timer+0x44/0x130
+[  786.103384]  [<ffffffff816519eb>] __hrtimer_run_queues+0x33b/0xd10
+[  786.109687]  [<ffffffff81680320>] ? tick_sched_do_timer+0x110/0x110
+[  786.116077]  [<ffffffff816516b0>] ? hrtimer_fixup_activate+0x30/0x30
+[  786.123527]  [<ffffffff816533fa>] hrtimer_interrupt+0x2ea/0x730
+[  786.129592]  [<ffffffff84604a69>] smp_apic_timer_interrupt+0x159/0x580
+[  786.136239]  [<ffffffff846019a3>] apic_timer_interrupt+0x93/0xa0
+[  786.142379]  </IRQ>
+[  786.144599] RIP: 0010:qlist_free_all+0x4e/0x100
+[  786.149244] RSP: 0018:ffff88017c477bd0 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff12
+[  786.156975] RAX: 0000000000000000 RBX: 0000000000000282 RCX: ffffea000615195f
+[  786.164228] RDX: 0000000000000000 RSI: ffff8801854668c0 RDI: 0000000000000007
+[  786.171477] RBP: ffff88017c477c08 R08: ffff8801d7b52240 R09: 0000000000000000
+[  786.178998] R10: 0000000000000000 R11: 0000000000000000 R12: ffff880185466e00
+[  786.186335] R13: 0000000000000000 R14: ffff880185466380 R15: ffff8801d91e38c0
+[  786.193615]  [<ffffffff81ad6427>] quarantine_reduce+0x167/0x1a0
+[  786.199656]  [<ffffffff81ad4ae0>] kasan_kmalloc+0xa0/0xf0
+[  786.205190]  [<ffffffff81ad4f4f>] kasan_slab_alloc+0xf/0x20
+[  786.210882]  [<ffffffff81acf498>] kmem_cache_alloc_trace+0x678/0x7a0
+[  786.217358]  [<ffffffff81feb2d5>] ? __debugfs_create_file+0x2f5/0x3e0
+[  786.223924]  [<ffffffff810974dc>] kvm_dev_ioctl+0x8cc/0x1980
+[  786.229875]  [<ffffffff81016e30>] ? trace_hardirqs_on_thunk+0x1a/0x1c
+[  786.236443]  [<ffffffff81096c10>] ? kvm_unregister_device_ops+0x60/0x60
+[  786.243181]  [<ffffffff81cb20ab>] ? compat_SyS_ioctl+0x9b/0x3260
+[  786.249309]  [<ffffffff81075526>] kvm_mux_dev_ioctl+0x26/0x30
+[  786.255261]  [<ffffffff81075500>] ? kvm_mux_dev_open+0x160/0x160
+[  786.261387]  [<ffffffff81cb214a>] compat_SyS_ioctl+0x13a/0x3260
+[  786.267440]  [<ffffffff81cb2010>] ? do_ioctl+0x70/0x70
+[  786.272697]  [<ffffffff8101cf74>] do_fast_syscall_32+0x354/0xcfd
+[  786.278819]  [<ffffffff81016e4c>] ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  786.285477]  [<ffffffff846017f0>] entry_SYSENTER_compat+0x70/0x7f
+[  786.291686] RIP: 0023:0xf7fb4c59
+[  786.295045] RSP: 002b:00000000f5db00cc EFLAGS: 00000296 ORIG_RAX: 0000000000000036
+[  786.302907] RAX: ffffffffffffffda RBX: 0000000000000004 RCX: 000000000000ae01
+[  786.310172] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
+[  786.317422] RBP: 0000000000000000 R08: 0000000000000000 R09: 0000000000000000
+[  786.324689] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
+[  786.331938] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000

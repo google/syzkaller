@@ -1,0 +1,142 @@
+TITLE: INFO: rcu detected stall in garp_join_timer_arm
+TYPE: HANG
+
+[ 1829.205943] rcu: INFO: rcu_preempt self-detected stall on CPU
+[ 1829.212313] rcu: 	1-...!: (1 GPs behind) idle=b46/1/0x4000000000000004 softirq=214004/214006 fqs=37 
+[ 1829.222342] rcu: 	 (t=10500 jiffies g=285169 q=488)
+[ 1829.227375] rcu: rcu_preempt kthread starved for 10424 jiffies! g285169 f0x0 RCU_GP_WAIT_FQS(5) ->state=0x0 ->cpu=0
+[ 1829.237940] rcu: RCU grace-period kthread stack dump:
+[ 1829.243121] rcu_preempt     R  running task    29136    10      2 0x80000000
+[ 1829.250317] Call Trace:
+[ 1829.252918]  ? __schedule+0x866/0x1d80
+[ 1829.256808]  ? schedule_timeout+0x4c3/0xf20
+[ 1829.261133]  ? firmware_map_remove+0x19a/0x19a
+[ 1829.265718]  ? _raw_spin_unlock_irqrestore+0x67/0xe0
+[ 1829.270827]  schedule+0x8d/0x1b0
+[ 1829.274191]  schedule_timeout+0x4d1/0xf20
+[ 1829.278340]  ? usleep_range+0x160/0x160
+[ 1829.282318]  ? __next_timer_interrupt+0x190/0x190
+[ 1829.287174]  ? prepare_to_swait_exclusive+0x110/0x110
+[ 1829.292370]  rcu_gp_kthread+0xcee/0x2060
+[ 1829.296457]  ? rcu_blocking_is_gp+0x90/0x90
+[ 1829.300781]  ? _raw_spin_unlock_irqrestore+0x67/0xe0
+[ 1829.305883]  ? lockdep_hardirqs_on+0x40b/0x5d0
+[ 1829.310463]  ? _raw_spin_unlock_irqrestore+0xa0/0xe0
+[ 1829.315564]  ? __kthread_parkme+0xfd/0x1b0
+[ 1829.319796]  ? rcu_blocking_is_gp+0x90/0x90
+[ 1829.324120]  kthread+0x34a/0x420
+[ 1829.327486]  ? kthread_cancel_delayed_work_sync+0x20/0x20
+[ 1829.333134]  ret_from_fork+0x24/0x30
+[ 1829.336873] NMI backtrace for cpu 1
+[ 1829.340499] CPU: 1 PID: 23826 Comm: syz-executor.4 Not tainted 4.19.120-syzkaller #0
+[ 1829.348372] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 1829.357723] Call Trace:
+[ 1829.360298]  <IRQ>
+[ 1829.362451]  dump_stack+0x188/0x20d
+[ 1829.366080]  nmi_cpu_backtrace.cold+0x63/0xa2
+[ 1829.370578]  ? lapic_can_unplug_cpu.cold+0x44/0x44
+[ 1829.375513]  nmi_trigger_cpumask_backtrace+0x1a6/0x1eb
+[ 1829.380784]  rcu_dump_cpu_stacks+0x170/0x1bb
+[ 1829.385177]  rcu_check_callbacks.cold+0x634/0xddc
+[ 1829.390004]  ? trace_hardirqs_off+0x50/0x200
+[ 1829.394397]  update_process_times+0x2a/0x70
+[ 1829.398716]  tick_sched_handle+0x9b/0x180
+[ 1829.402846]  tick_sched_timer+0x42/0x130
+[ 1829.406890]  __hrtimer_run_queues+0x2fc/0xd50
+[ 1829.411365]  ? tick_sched_do_timer+0x1a0/0x1a0
+[ 1829.415933]  ? hrtimer_fixup_activate+0x30/0x30
+[ 1829.420583]  ? kvm_clock_read+0x14/0x30
+[ 1829.424688]  ? ktime_get_update_offsets_now+0x2db/0x450
+[ 1829.430052]  hrtimer_interrupt+0x312/0x770
+[ 1829.434284]  smp_apic_timer_interrupt+0x10c/0x550
+[ 1829.439178]  apic_timer_interrupt+0xf/0x20
+[ 1829.443404] RIP: 0010:prandom_u32+0x0/0xb0
+[ 1829.447625] Code: fd ff ff 48 89 ef e8 0f fd ff ff 48 89 ef e8 07 fd ff ff 48 89 ef e8 ff fc ff ff 48 89 ef 5d e9 f6 fc ff ff 66 0f 1f 44 00 00 <41> 54 53 48 83 ec 08 e8 84 df 13 fe bf 01 00 00 00 e8 9a e0 f2 fd
+[ 1829.466508] RSP: 0018:ffff8880ae707d18 EFLAGS: 00000206 ORIG_RAX: ffffffffffffff13
+[ 1829.474235] RAX: 0000000000000014 RBX: ffff8880941a1980 RCX: ffffffff8158014d
+[ 1829.481483] RDX: 0000000000000100 RSI: ffffffff81580176 RDI: 0000000000000005
+[ 1829.488739] RBP: 0000000000000014 R08: ffff888090e5a200 R09: 0000000000000000
+[ 1829.495988] R10: 0000000000000000 R11: 0000000000000000 R12: ffff8880ae707d70
+[ 1829.503237] R13: 1ffff11015ce0faa R14: 0000000000000000 R15: ffff8880a672d550
+[ 1829.510581]  ? apic_timer_interrupt+0xa/0x20
+[ 1829.514974]  ? __msecs_to_jiffies+0x1d/0x50
+[ 1829.519314]  ? __msecs_to_jiffies+0x46/0x50
+[ 1829.523620]  garp_join_timer_arm+0x21/0x80
+[ 1829.527838]  call_timer_fn+0x177/0x700
+[ 1829.531708]  ? garp_gid_event+0x60/0x60
+[ 1829.535674]  ? process_timeout+0x40/0x40
+[ 1829.539769]  ? _raw_spin_unlock_irq+0x24/0x80
+[ 1829.544267]  ? garp_gid_event+0x60/0x60
+[ 1829.548224]  ? garp_gid_event+0x60/0x60
+[ 1829.552203]  run_timer_softirq+0x5d0/0x1540
+[ 1829.556512]  ? add_timer+0xab0/0xab0
+[ 1829.560209]  ? __lock_is_held+0xad/0x140
+[ 1829.564258]  __do_softirq+0x26c/0x93c
+[ 1829.568136]  irq_exit+0x17b/0x1c0
+[ 1829.571574]  smp_apic_timer_interrupt+0x136/0x550
+[ 1829.576404]  apic_timer_interrupt+0xf/0x20
+[ 1829.580619]  </IRQ>
+[ 1829.582840] RIP: 0010:__sanitizer_cov_trace_pc+0x44/0x50
+[ 1829.588273] Code: 75 2b 8b 90 d8 12 00 00 83 fa 02 75 20 48 8b 88 e0 12 00 00 8b 80 dc 12 00 00 48 8b 11 48 83 c2 01 48 39 d0 76 07 48 89 34 d1 <48> 89 11 c3 0f 1f 84 00 00 00 00 00 65 4c 8b 04 25 40 ee 01 00 65
+[ 1829.607179] RSP: 0018:ffff88806cd6f9b8 EFLAGS: 00000216 ORIG_RAX: ffffffffffffff13
+[ 1829.614917] RAX: 0000000000040000 RBX: 0000000000000000 RCX: ffffc9000e2e8000
+[ 1829.622174] RDX: 0000000000000b36 RSI: ffffffff81723f4d RDI: 0000000000000001
+[ 1829.629432] RBP: 000000000045c829 R08: ffff888090e5a200 R09: ffffed1015ce4733
+[ 1829.636713] R10: ffffed1015ce4732 R11: ffff8880ae723993 R12: 0000000000000000
+[ 1829.643965] R13: 0000000000000000 R14: ffff888090e5a200 R15: ffff88809092473f
+[ 1829.651233]  ? is_bpf_text_address+0xdd/0x160
+[ 1829.655719]  is_bpf_text_address+0xdd/0x160
+[ 1829.660028]  kernel_text_address+0x6e/0xe0
+[ 1829.664252]  __kernel_text_address+0x9/0x30
+[ 1829.668559]  unwind_get_return_address+0x5a/0xa0
+[ 1829.673298]  __save_stack_trace+0x8a/0xf0
+[ 1829.677437]  save_stack+0x32/0xa0
+[ 1829.680925]  ? kasan_kmalloc+0xbf/0xe0
+[ 1829.684797]  ? kmem_cache_alloc_trace+0x14d/0x7a0
+[ 1829.689628]  ? sock_alloc_inode+0x5f/0x250
+[ 1829.693883]  ? alloc_inode+0x5d/0x180
+[ 1829.697699]  ? new_inode_pseudo+0x14/0xe0
+[ 1829.701833]  ? sock_alloc+0x3c/0x260
+[ 1829.705568]  ? __sock_create+0xba/0x740
+[ 1829.709551]  ? __sys_socket+0xef/0x200
+[ 1829.713424]  ? __x64_sys_socket+0x6f/0xb0
+[ 1829.717561]  ? do_syscall_64+0xf9/0x620
+[ 1829.721523]  ? entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[ 1829.726885]  ? mark_held_locks+0xf0/0xf0
+[ 1829.730935]  ? check_preemption_disabled+0x41/0x280
+[ 1829.735938]  ? perf_trace_lock_acquire+0xf5/0x530
+[ 1829.740765]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[ 1829.745507]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[ 1829.750251]  ? lockdep_hardirqs_on+0x40b/0x5d0
+[ 1829.754880]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[ 1829.759626]  ? retint_kernel+0x2d/0x2d
+[ 1829.763506]  ? kasan_unpoison_shadow+0x30/0x40
+[ 1829.768075]  kasan_kmalloc+0xbf/0xe0
+[ 1829.771780]  kmem_cache_alloc_trace+0x14d/0x7a0
+[ 1829.776441]  ? selinux_socket_create+0x277/0x580
+[ 1829.781215]  ? selinux_sctp_assoc_request+0x570/0x570
+[ 1829.786392]  ? sock_destroy_inode+0x60/0x60
+[ 1829.790709]  sock_alloc_inode+0x5f/0x250
+[ 1829.794792]  ? sock_destroy_inode+0x60/0x60
+[ 1829.799100]  alloc_inode+0x5d/0x180
+[ 1829.802720]  new_inode_pseudo+0x14/0xe0
+[ 1829.806684]  sock_alloc+0x3c/0x260
+[ 1829.810243]  __sock_create+0xba/0x740
+[ 1829.814033]  __sys_socket+0xef/0x200
+[ 1829.817834]  ? move_addr_to_kernel+0x70/0x70
+[ 1829.822238]  ? __x64_sys_clock_gettime+0x165/0x240
+[ 1829.827346]  ? __ia32_sys_clock_settime+0x260/0x260
+[ 1829.832360]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[ 1829.837109]  ? trace_hardirqs_off_caller+0x55/0x210
+[ 1829.842124]  __x64_sys_socket+0x6f/0xb0
+[ 1829.846166]  ? lockdep_hardirqs_on+0x40b/0x5d0
+[ 1829.850792]  do_syscall_64+0xf9/0x620
+[ 1829.854595]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[ 1829.859781] RIP: 0033:0x45c829
+[ 1829.863020] Code: 0d b7 fb ff c3 66 2e 0f 1f 84 00 00 00 00 00 66 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 db b6 fb ff c3 66 2e 0f 1f 84 00 00 00 00
+[ 1829.881950] RSP: 002b:00007ff811f67c78 EFLAGS: 00000246 ORIG_RAX: 0000000000000029
+[ 1829.889648] RAX: ffffffffffffffda RBX: 0000000000506760 RCX: 000000000045c829
+[ 1829.896904] RDX: 0000000000000000 RSI: 0000000000000803 RDI: 0000000000000001
+[ 1829.904162] RBP: 000000000078bf00 R08: 0000000000000000 R09: 0000000000000000
+[ 1829.911546] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000ffffffff
+[ 1829.918865] R13: 0000000000000b6e R14: 00000000004cda30 R15: 00007ff811f686d4

@@ -1,0 +1,350 @@
+# TODO: this should be "in hsr_announce".
+TITLE: INFO: rcu detected stall in drm_ioctl
+TYPE: HANG
+
+[ 3239.542037][    C1] rcu: INFO: rcu_preempt detected stalls on CPUs/tasks:
+[ 3239.549968][    C0] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 3239.556878][    C1] rcu: 	0-...!: (1 GPs behind) idle=a3e/1/0x4000000000000002 softirq=387990/387991 fqs=1 
+[ 3239.566893][    C0] Call Trace:
+[ 3239.576747][    C1] 	(detected by 1, t=10586 jiffies, g=559657, q=0)
+[ 3239.579996][    C0]  <IRQ>
+[ 3239.586683][    C1] Sending NMI from CPU 1 to CPUs 0:
+[ 3239.589505][    C0]  dump_stack+0x172/0x1f0
+[ 3239.596674][    C1] NMI backtrace for cpu 0
+[ 3239.596680][    C1] CPU: 0 PID: 28547 Comm: syz-executor.1 Not tainted 5.3.0-rc6 #120
+[ 3239.596686][    C1] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 3239.596690][    C1] RIP: 0010:__sanitizer_cov_trace_switch+0x49/0x80
+[ 3239.596700][    C1] Code: 74 46 48 83 f8 10 75 27 bf 03 00 00 00 4d 8b 2c 24 31 db 4d 85 ed 74 17 49 8b 74 dc 10 48 83 c3 01 48 8b 4d 08 e8 47 fe ff ff <49> 39 dd 75 e9 5b 41 5c 41 5d 5d c3 48 83 f8 40 bf 07 00 00 00 74
+[ 3239.596704][    C1] RSP: 0018:ffff8880ae808fc0 EFLAGS: 00000006
+[ 3239.596711][    C1] RAX: 0000000000000103 RBX: 0000000000000006 RCX: ffffffff873a3ef9
+[ 3239.596716][    C1] RDX: 000000000000000f RSI: 0000000000000005 RDI: 0000000000000001
+[ 3239.596721][    C1] RBP: ffff8880ae808fd8 R08: ffff888017270080 R09: ffffed1015d0124a
+[ 3239.596726][    C1] R10: ffffed1015d01249 R11: ffff8880ae80924d R12: ffffffff88474c00
+[ 3239.596730][    C1] R13: 0000000000000008 R14: 000000000000000f R15: ffff8880ae809098
+[ 3239.596735][    C1] FS:  00007f0bb4900700(0000) GS:ffff8880ae800000(0000) knlGS:0000000000000000
+[ 3239.596740][    C1] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[ 3239.596744][    C1] CR2: 000000000045984f CR3: 000000003ebb6000 CR4: 00000000001426f0
+[ 3239.596749][    C1] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[ 3239.596754][    C1] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[ 3239.596756][    C1] Call Trace:
+[ 3239.596758][    C1]  <IRQ>
+[ 3239.596761][    C1]  vsnprintf+0x1a9/0x19a0
+[ 3239.596764][    C1]  ? pointer+0x750/0x750
+[ 3239.596767][    C1]  ? pointer+0x750/0x750
+[ 3239.596771][    C1]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 3239.596774][    C1]  snprintf+0xbb/0xf0
+[ 3239.596777][    C1]  ? vsprintf+0x40/0x40
+[ 3239.596780][    C1]  ? scnprintf+0x140/0x140
+[ 3239.596784][    C1]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 3239.596787][    C1]  ? __sanitizer_cov_trace_const_cmp1+0x1a/0x20
+[ 3239.596791][    C1]  msg_print_text+0x1a2/0x5c0
+[ 3239.596794][    C1]  ? mark_held_locks+0xf0/0xf0
+[ 3239.596797][    C1]  ? msg_print_ext_body+0x450/0x450
+[ 3239.596800][    C1]  ? __kasan_check_write+0x14/0x20
+[ 3239.596804][    C1]  ? do_raw_spin_lock+0x143/0x2e0
+[ 3239.596807][    C1]  ? console_unlock+0x1c5/0xf10
+[ 3239.596810][    C1]  console_unlock+0x38d/0xf10
+[ 3239.596813][    C1]  vprintk_emit+0x2a0/0x700
+[ 3239.596817][    C1]  vprintk_default+0x28/0x30
+[ 3239.596820][    C1]  vprintk_func+0x7e/0x189
+[ 3239.596823][    C1]  ? lock_downgrade+0x920/0x920
+[ 3239.596825][    C1]  printk+0xba/0xed
+[ 3239.596829][    C1]  ? kmsg_dump_rewind_nolock+0xe4/0xe4
+[ 3239.596832][    C1]  ? is_bpf_text_address+0xd3/0x170
+[ 3239.596835][    C1]  ? dump_stack+0x172/0x1f0
+[ 3239.596839][    C1]  show_trace_log_lvl+0x23a/0x28c
+[ 3239.596842][    C1]  ? dump_stack+0x172/0x1f0
+[ 3239.596845][    C1]  ? dump_stack+0x172/0x1f0
+[ 3239.596848][    C1]  show_stack+0x39/0x3b
+[ 3239.596852][    C1]  dump_stack+0x172/0x1f0
+[ 3239.596855][    C1]  warn_alloc.cold+0x87/0x17f
+[ 3239.596858][    C1]  ? zone_watermark_ok_safe+0x260/0x260
+[ 3239.596862][    C1]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 3239.596865][    C1]  ? wakeup_kswapd+0x66/0x6a0
+[ 3239.596869][    C1]  ? __isolate_free_page+0x4c0/0x4c0
+[ 3239.596872][    C1]  ? wake_all_kswapds+0x14d/0x300
+[ 3239.596875][    C1]  __alloc_pages_slowpath+0x1f2e/0x2520
+[ 3239.596879][    C1]  ? __zone_watermark_ok+0x208/0x360
+[ 3239.596882][    C1]  ? warn_alloc+0x110/0x110
+[ 3239.596886][    C1]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[ 3239.596889][    C1]  ? should_fail+0x1de/0x852
+[ 3239.596892][    C1]  ? __isolate_free_page+0x4c0/0x4c0
+[ 3239.596896][    C1]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[ 3239.596900][    C1]  ? __kasan_check_read+0x11/0x20
+[ 3239.596903][    C1]  __alloc_pages_nodemask+0x630/0x900
+[ 3239.596906][    C1]  ? __kasan_check_read+0x11/0x20
+[ 3239.596910][    C1]  ? __alloc_pages_slowpath+0x2520/0x2520
+[ 3239.596913][    C1]  ? lock_downgrade+0x920/0x920
+[ 3239.596917][    C1]  cache_grow_begin+0x90/0xd20
+[ 3239.596921][    C1]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 3239.596924][    C1]  ? mempolicy_slab_node+0x139/0x390
+[ 3239.596928][    C1]  fallback_alloc+0x1fd/0x2d0
+[ 3239.596931][    C1]  ____cache_alloc_node+0x1bc/0x1d0
+[ 3239.596935][    C1]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 3239.596938][    C1]  kmem_cache_alloc+0x1ef/0x710
+[ 3239.596941][    C1]  ? mod_timer+0x50c/0xc10
+[ 3239.596945][    C1]  ? __netdev_alloc_skb+0x38a/0x440
+[ 3239.596948][    C1]  __build_skb+0x26/0x70
+[ 3239.596951][    C1]  __netdev_alloc_skb+0x255/0x440
+[ 3239.596955][    C1]  send_hsr_supervision_frame+0x110/0xf20
+[ 3239.596958][    C1]  ? lock_acquire+0x190/0x410
+[ 3239.596961][    C1]  ? hsr_dev_open+0x380/0x380
+[ 3239.596965][    C1]  ? __sanitizer_cov_trace_cmp4+0x16/0x20
+[ 3239.596967][    C1]  hsr_announce+0x12f/0x3b0
+[ 3239.596975][    C1]  call_timer_fn+0x1ac/0x780
+[ 3239.596978][    C1]  ? hsr_dev_open+0x380/0x380
+[ 3239.596982][    C1]  ? msleep_interruptible+0x150/0x150
+[ 3239.596985][    C1]  ? trace_hardirqs_on+0x67/0x240
+[ 3239.596989][    C1]  ? __kasan_check_read+0x11/0x20
+[ 3239.596992][    C1]  ? hsr_dev_open+0x380/0x380
+[ 3239.596995][    C1]  ? hsr_dev_open+0x380/0x380
+[ 3239.596998][    C1]  run_timer_softirq+0x697/0x17a0
+[ 3239.597001][    C1]  ? add_timer+0x930/0x930
+[ 3239.597004][    C1]  ? kvm_clock_read+0x18/0x30
+[ 3239.597008][    C1]  ? sched_clock+0x2e/0x50
+[ 3239.597011][    C1]  ? sched_clock_cpu+0x1b/0x1b0
+[ 3239.597015][    C1]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 3239.597019][    C1]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 3239.597022][    C1]  __do_softirq+0x262/0x98c
+[ 3239.597025][    C1]  ? sched_clock_cpu+0x1b/0x1b0
+[ 3239.597028][    C1]  irq_exit+0x19b/0x1e0
+[ 3239.597032][    C1]  smp_apic_timer_interrupt+0x1a3/0x610
+[ 3239.597035][    C1]  apic_timer_interrupt+0xf/0x20
+[ 3239.597037][    C1]  </IRQ>
+[ 3239.597041][    C1] RIP: 0010:console_unlock+0xdab/0xf10
+[ 3239.597051][    C1] Code: 88 48 ba 00 00 00 00 00 fc ff df 48 c1 e8 03 80 3c 10 00 75 30 48 83 3d d2 2f 77 07 00 74 1f e8 5b af 16 00 48 8b 7d 98 57 9d <0f> 1f 44 00 00 e9 64 fa ff ff e8 56 be 50 00 e9 0e f5 ff ff e8 3c
+[ 3239.597055][    C1] RSP: 0018:ffff88819f797238 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff13
+[ 3239.597063][    C1] RAX: 0000000000040000 RBX: 0000000000000200 RCX: ffffc9000ebe7000
+[ 3239.597068][    C1] RDX: 0000000000040000 RSI: ffffffff815bc485 RDI: 0000000000000246
+[ 3239.597072][    C1] RBP: ffff88819f7972c0 R08: ffff888017270080 R09: fffffbfff134af88
+[ 3239.597077][    C1] R10: fffffbfff134af87 R11: ffffffff89a57c3f R12: 0000000000000001
+[ 3239.597082][    C1] R13: ffffffff84335bb0 R14: dffffc0000000000 R15: ffffffff893ca450
+[ 3239.597085][    C1]  ? netconsole_netdev_event+0x2a0/0x2a0
+[ 3239.597089][    C1]  ? console_unlock+0xda5/0xf10
+[ 3239.597092][    C1]  vprintk_emit+0x2a0/0x700
+[ 3239.597095][    C1]  vprintk_default+0x28/0x30
+[ 3239.597098][    C1]  vprintk_func+0x7e/0x189
+[ 3239.597101][    C1]  printk+0xba/0xed
+[ 3239.597104][    C1]  ? kmsg_dump_rewind_nolock+0xe4/0xe4
+[ 3239.597108][    C1]  ? _raw_spin_unlock_irq+0x5e/0x90
+[ 3239.597112][    C1]  dump_unreclaimable_slab.cold+0xde/0xe8
+[ 3239.597115][    C1]  dump_header+0x3f3/0x82d
+[ 3239.597118][    C1]  oom_kill_process.cold+0x10/0x15
+[ 3239.597121][    C1]  out_of_memory+0x79a/0x12c0
+[ 3239.597125][    C1]  ? oom_killer_disable+0x280/0x280
+[ 3239.597128][    C1]  ? mutex_trylock+0x252/0x2d0
+[ 3239.597131][    C1]  ? __alloc_pages_slowpath+0xb69/0x2520
+[ 3239.597135][    C1]  __alloc_pages_slowpath+0x1dde/0x2520
+[ 3239.597138][    C1]  ? __zone_watermark_ok+0x208/0x360
+[ 3239.597141][    C1]  ? warn_alloc+0x110/0x110
+[ 3239.597145][    C1]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[ 3239.597148][    C1]  ? should_fail+0x1de/0x852
+[ 3239.597152][    C1]  ? __kasan_check_read+0x11/0x20
+[ 3239.597155][    C1]  __alloc_pages_nodemask+0x630/0x900
+[ 3239.597159][    C1]  ? __alloc_pages_slowpath+0x2520/0x2520
+[ 3239.597162][    C1]  ? retint_kernel+0x2b/0x2b
+[ 3239.597166][    C1]  ? __sanitizer_cov_trace_const_cmp2+0x18/0x20
+[ 3239.597169][    C1]  alloc_pages_current+0x107/0x210
+[ 3239.597172][    C1]  ? ___might_sleep+0x163/0x280
+[ 3239.597175][    C1]  __vmalloc_node_range+0x4a9/0x7d0
+[ 3239.597179][    C1]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 3239.597183][    C1]  ? drm_property_create_blob.part.0+0x32/0x320
+[ 3239.597187][    C1]  __vmalloc_node_flags_caller+0x71/0x90
+[ 3239.597191][    C1]  ? drm_property_create_blob.part.0+0x32/0x320
+[ 3239.597194][    C1]  kvmalloc_node+0xdc/0x100
+[ 3239.597198][    C1]  drm_property_create_blob.part.0+0x32/0x320
+[ 3239.597201][    C1]  ? drm_dev_exit+0x60/0x60
+[ 3239.597204][    C1]  drm_mode_createblob_ioctl+0x138/0x480
+[ 3239.597207][    C1]  drm_ioctl_kernel+0x244/0x300
+[ 3239.597211][    C1]  ? drm_mode_getblob_ioctl+0x2d0/0x2d0
+[ 3239.597215][    C1]  ? drm_setversion+0x8a0/0x8a0
+[ 3239.597218][    C1]  ? copy_user_enhanced_fast_string+0xe/0x20
+[ 3239.597222][    C1]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[ 3239.597225][    C1]  ? _copy_from_user+0x12c/0x1a0
+[ 3239.597228][    C1]  drm_ioctl+0x54e/0xa55
+[ 3239.597232][    C1]  ? drm_mode_getblob_ioctl+0x2d0/0x2d0
+[ 3239.597235][    C1]  ? drm_version+0x3d0/0x3d0
+[ 3239.597239][    C1]  ? tomoyo_execute_permission+0x4a0/0x4a0
+[ 3239.597242][    C1]  ? __kasan_check_read+0x11/0x20
+[ 3239.597245][    C1]  ? ___might_sleep+0x163/0x280
+[ 3239.597249][    C1]  ? drm_version+0x3d0/0x3d0
+[ 3239.597252][    C1]  do_vfs_ioctl+0xdb6/0x13e0
+[ 3239.597255][    C1]  ? ioctl_preallocate+0x210/0x210
+[ 3239.597258][    C1]  ? selinux_file_mprotect+0x620/0x620
+[ 3239.597261][    C1]  ? __fget+0x384/0x560
+[ 3239.597264][    C1]  ? ksys_dup3+0x3e0/0x3e0
+[ 3239.597268][    C1]  ? nsecs_to_jiffies+0x30/0x30
+[ 3239.597271][    C1]  ? tomoyo_file_ioctl+0x23/0x30
+[ 3239.597275][    C1]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 3239.597278][    C1]  ? security_file_ioctl+0x8d/0xc0
+[ 3239.597281][    C1]  ksys_ioctl+0xab/0xd0
+[ 3239.597284][    C1]  __x64_sys_ioctl+0x73/0xb0
+[ 3239.597287][    C1]  do_syscall_64+0xfd/0x6a0
+[ 3239.597291][    C1]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[ 3239.597293][    C1] RIP: 0033:0x459879
+[ 3239.597296][    C1] Code: Bad RIP value.
+[ 3239.597300][    C1] RSP: 002b:00007f0bb48ffc78 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[ 3239.597308][    C1] RAX: ffffffffffffffda RBX: 0000000000000003 RCX: 0000000000459879
+[ 3239.597313][    C1] RDX: 0000000020000080 RSI: ffffffffffffffbd RDI: 0000000000000003
+[ 3239.597317][    C1] RBP: 000000000075bf20 R08: 0000000000000000 R09: 0000000000000000
+[ 3239.597322][    C1] R10: 0000000000000000 R11: 0000000000000246 R12: 00007f0bb49006d4
+[ 3239.597327][    C1] R13: 00000000004c0ca1 R14: 00000000004d3dd8 R15: 00000000ffffffff
+[ 3239.597342][    C1] rcu: rcu_preempt kthread starved for 10555 jiffies! g559657 f0x0 RCU_GP_WAIT_FQS(5) ->state=0x0 ->cpu=1
+[ 3239.600615][    C0]  warn_alloc.cold+0x87/0x17f
+[ 3239.604902][    C1] rcu: RCU grace-period kthread stack dump:
+[ 3239.612852][    C0]  ? zone_watermark_ok_safe+0x260/0x260
+[ 3239.622867][    C1] rcu_preempt     R  running task    29160    10      2 0x80004000
+[ 3239.629338][    C0]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 3239.648905][    C1] Call Trace:
+[ 3239.654940][    C0]  ? wakeup_kswapd+0x66/0x6a0
+[ 3239.662911][    C1]  __schedule+0x755/0x1580
+[ 3239.670858][    C0]  ? __isolate_free_page+0x4c0/0x4c0
+[ 3239.678796][    C1]  ? __sched_text_start+0x8/0x8
+[ 3239.686732][    C0]  ? wake_all_kswapds+0x14d/0x300
+[ 3239.694672][    C1]  schedule+0xd9/0x260
+[ 3239.703567][    C0]  __alloc_pages_slowpath+0x1f2e/0x2520
+[ 3239.710127][    C1]  schedule_timeout+0x486/0xc50
+[ 3239.718073][    C0]  ? __zone_watermark_ok+0x208/0x360
+[ 3239.726021][    C1]  ? rwlock_bug.part.0+0x90/0x90
+[ 3239.733965][    C0]  ? warn_alloc+0x110/0x110
+[ 3239.737216][    C1]  ? usleep_range+0x170/0x170
+[ 3239.740035][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[ 3239.744327][    C1]  ? trace_hardirqs_on+0x67/0x240
+[ 3239.748542][    C0]  ? should_fail+0x1de/0x852
+[ 3239.752767][    C1]  ? __kasan_check_read+0x11/0x20
+[ 3239.758974][    C0]  ? __isolate_free_page+0x4c0/0x4c0
+[ 3239.762940][    C1]  ? __next_timer_interrupt+0x1a0/0x1a0
+[ 3239.767082][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[ 3239.771461][    C1]  ? swake_up_one+0x60/0x60
+[ 3239.777688][    C0]  ? __kasan_check_read+0x11/0x20
+[ 3239.783897][    C1]  rcu_gp_kthread+0x9b2/0x18c0
+[ 3239.788550][    C0]  __alloc_pages_nodemask+0x630/0x900
+[ 3239.793285][    C1]  ? rcu_barrier+0x310/0x310
+[ 3239.798459][    C0]  ? __kasan_check_read+0x11/0x20
+[ 3239.803530][    C1]  ? trace_hardirqs_on+0x67/0x240
+[ 3239.808524][    C0]  ? __alloc_pages_slowpath+0x2520/0x2520
+[ 3239.813335][    C1]  ? __kasan_check_read+0x11/0x20
+[ 3239.817978][    C0]  ? lock_downgrade+0x920/0x920
+[ 3239.822452][    C1]  ? __sanitizer_cov_trace_const_cmp1+0x1a/0x20
+[ 3239.827012][    C0]  cache_grow_begin+0x90/0xd20
+[ 3239.831399][    C1]  ? __kthread_parkme+0x108/0x1c0
+[ 3239.836223][    C0]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 3239.839999][    C1]  ? __kasan_check_read+0x11/0x20
+[ 3239.845427][    C0]  ? mempolicy_slab_node+0x139/0x390
+[ 3239.850585][    C1]  kthread+0x361/0x430
+[ 3239.855053][    C0]  fallback_alloc+0x1fd/0x2d0
+[ 3239.860041][    C1]  ? rcu_barrier+0x310/0x310
+[ 3239.864515][    C0]  ____cache_alloc_node+0x1bc/0x1d0
+[ 3239.868987][    C1]  ? kthread_cancel_delayed_work_sync+0x20/0x20
+[ 3239.873105][    C0]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 3239.877396][    C1]  ret_from_fork+0x24/0x30
+[ 3239.882058][    C0]  kmem_cache_alloc+0x1ef/0x710
+[ 3239.887621][    C1] aoe: skb alloc failure
+[ 3239.893776][    C0]  ? mod_timer+0x50c/0xc10
+[ 3239.898444][    C1] kworker/u4:4: page allocation failure: order:0, mode:0x40a20(GFP_ATOMIC|__GFP_COMP), nodemask=(null),cpuset=/,mems_allowed=0-1
+[ 3239.903665][    C0]  ? __netdev_alloc_skb+0x38a/0x440
+[ 3240.886309][    C0]  __build_skb+0x26/0x70
+[ 3240.890552][    C0]  __netdev_alloc_skb+0x255/0x440
+[ 3240.895572][    C0]  send_hsr_supervision_frame+0x110/0xf20
+[ 3240.901296][    C0]  ? lock_acquire+0x190/0x410
+[ 3240.905961][    C0]  ? hsr_dev_open+0x380/0x380
+[ 3240.910622][    C0]  ? __sanitizer_cov_trace_cmp4+0x16/0x20
+[ 3240.916344][    C0]  hsr_announce+0x12f/0x3b0
+[ 3240.920835][    C0]  call_timer_fn+0x1ac/0x780
+[ 3240.925416][    C0]  ? hsr_dev_open+0x380/0x380
+[ 3240.930072][    C0]  ? msleep_interruptible+0x150/0x150
+[ 3240.935431][    C0]  ? trace_hardirqs_on+0x67/0x240
+[ 3240.940441][    C0]  ? __kasan_check_read+0x11/0x20
+[ 3240.945454][    C0]  ? hsr_dev_open+0x380/0x380
+[ 3240.950105][    C0]  ? hsr_dev_open+0x380/0x380
+[ 3240.954761][    C0]  run_timer_softirq+0x697/0x17a0
+[ 3240.959785][    C0]  ? add_timer+0x930/0x930
+[ 3240.964180][    C0]  ? kvm_clock_read+0x18/0x30
+[ 3240.968860][    C0]  ? sched_clock+0x2e/0x50
+[ 3240.973267][    C0]  ? sched_clock_cpu+0x1b/0x1b0
+[ 3240.978100][    C0]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 3240.984321][    C0]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 3240.990553][    C0]  __do_softirq+0x262/0x98c
+[ 3240.995036][    C0]  ? sched_clock_cpu+0x1b/0x1b0
+[ 3240.999871][    C0]  irq_exit+0x19b/0x1e0
+[ 3241.004006][    C0]  smp_apic_timer_interrupt+0x1a3/0x610
+[ 3241.010037][    C0]  apic_timer_interrupt+0xf/0x20
+[ 3241.014959][    C0]  </IRQ>
+[ 3241.017882][    C0] RIP: 0010:console_unlock+0xdab/0xf10
+[ 3241.023359][    C0] Code: 88 48 ba 00 00 00 00 00 fc ff df 48 c1 e8 03 80 3c 10 00 75 30 48 83 3d d2 2f 77 07 00 74 1f e8 5b af 16 00 48 8b 7d 98 57 9d <0f> 1f 44 00 00 e9 64 fa ff ff e8 56 be 50 00 e9 0e f5 ff ff e8 3c
+[ 3241.042939][    C0] RSP: 0018:ffff88819f797238 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff13
+[ 3241.051325][    C0] RAX: 0000000000040000 RBX: 0000000000000200 RCX: ffffc9000ebe7000
+[ 3241.059272][    C0] RDX: 0000000000040000 RSI: ffffffff815bc485 RDI: 0000000000000246
+[ 3241.067222][    C0] RBP: ffff88819f7972c0 R08: ffff888017270080 R09: fffffbfff134af88
+[ 3241.075171][    C0] R10: fffffbfff134af87 R11: ffffffff89a57c3f R12: 0000000000000001
+[ 3241.083115][    C0] R13: ffffffff84335bb0 R14: dffffc0000000000 R15: ffffffff893ca450
+[ 3241.091069][    C0]  ? netconsole_netdev_event+0x2a0/0x2a0
+[ 3241.096681][    C0]  ? console_unlock+0xda5/0xf10
+[ 3241.101517][    C0]  vprintk_emit+0x2a0/0x700
+[ 3241.106011][    C0]  vprintk_default+0x28/0x30
+[ 3241.110576][    C0]  vprintk_func+0x7e/0x189
+[ 3241.114975][    C0]  printk+0xba/0xed
+[ 3241.118766][    C0]  ? kmsg_dump_rewind_nolock+0xe4/0xe4
+[ 3241.124209][    C0]  ? _raw_spin_unlock_irq+0x5e/0x90
+[ 3241.129393][    C0]  dump_unreclaimable_slab.cold+0xde/0xe8
+[ 3241.135094][    C0]  dump_header+0x3f3/0x82d
+[ 3241.139497][    C0]  oom_kill_process.cold+0x10/0x15
+[ 3241.144585][    C0]  out_of_memory+0x79a/0x12c0
+[ 3241.149245][    C0]  ? oom_killer_disable+0x280/0x280
+[ 3241.154420][    C0]  ? mutex_trylock+0x252/0x2d0
+[ 3241.159160][    C0]  ? __alloc_pages_slowpath+0xb69/0x2520
+[ 3241.164770][    C0]  __alloc_pages_slowpath+0x1dde/0x2520
+[ 3241.170301][    C0]  ? __zone_watermark_ok+0x208/0x360
+[ 3241.175743][    C0]  ? warn_alloc+0x110/0x110
+[ 3241.180283][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[ 3241.186517][    C0]  ? should_fail+0x1de/0x852
+[ 3241.191115][    C0]  ? __kasan_check_read+0x11/0x20
+[ 3241.196118][    C0]  __alloc_pages_nodemask+0x630/0x900
+[ 3241.201465][    C0]  ? __alloc_pages_slowpath+0x2520/0x2520
+[ 3241.207158][    C0]  ? retint_kernel+0x2b/0x2b
+[ 3241.211731][    C0]  ? __sanitizer_cov_trace_const_cmp2+0x18/0x20
+[ 3241.217947][    C0]  alloc_pages_current+0x107/0x210
+[ 3241.223033][    C0]  ? ___might_sleep+0x163/0x280
+[ 3241.227860][    C0]  __vmalloc_node_range+0x4a9/0x7d0
+[ 3241.233052][    C0]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 3241.239275][    C0]  ? drm_property_create_blob.part.0+0x32/0x320
+[ 3241.245510][    C0]  __vmalloc_node_flags_caller+0x71/0x90
+[ 3241.251119][    C0]  ? drm_property_create_blob.part.0+0x32/0x320
+[ 3241.257350][    C0]  kvmalloc_node+0xdc/0x100
+[ 3241.261836][    C0]  drm_property_create_blob.part.0+0x32/0x320
+[ 3241.267896][    C0]  ? drm_dev_exit+0x60/0x60
+[ 3241.272375][    C0]  drm_mode_createblob_ioctl+0x138/0x480
+[ 3241.277985][    C0]  drm_ioctl_kernel+0x244/0x300
+[ 3241.282813][    C0]  ? drm_mode_getblob_ioctl+0x2d0/0x2d0
+[ 3241.288337][    C0]  ? drm_setversion+0x8a0/0x8a0
+[ 3241.293165][    C0]  ? copy_user_enhanced_fast_string+0xe/0x20
+[ 3241.299118][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[ 3241.305346][    C0]  ? _copy_from_user+0x12c/0x1a0
+[ 3241.310261][    C0]  drm_ioctl+0x54e/0xa55
+[ 3241.314494][    C0]  ? drm_mode_getblob_ioctl+0x2d0/0x2d0
+[ 3241.320017][    C0]  ? drm_version+0x3d0/0x3d0
+[ 3241.324586][    C0]  ? tomoyo_execute_permission+0x4a0/0x4a0
+[ 3241.330382][    C0]  ? __kasan_check_read+0x11/0x20
+[ 3241.335385][    C0]  ? ___might_sleep+0x163/0x280
+[ 3241.340213][    C0]  ? drm_version+0x3d0/0x3d0
+[ 3241.344777][    C0]  do_vfs_ioctl+0xdb6/0x13e0
+[ 3241.349368][    C0]  ? ioctl_preallocate+0x210/0x210
+[ 3241.354456][    C0]  ? selinux_file_mprotect+0x620/0x620
+[ 3241.359886][    C0]  ? __fget+0x384/0x560
+[ 3241.364990][    C0]  ? ksys_dup3+0x3e0/0x3e0
+[ 3241.369397][    C0]  ? nsecs_to_jiffies+0x30/0x30
+[ 3241.374226][    C0]  ? tomoyo_file_ioctl+0x23/0x30
+[ 3241.379147][    C0]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 3241.385373][    C0]  ? security_file_ioctl+0x8d/0xc0
+[ 3241.390459][    C0]  ksys_ioctl+0xab/0xd0
+[ 3241.394603][    C0]  __x64_sys_ioctl+0x73/0xb0
+[ 3241.399172][    C0]  do_syscall_64+0xfd/0x6a0
+[ 3241.403670][    C0]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[ 3241.409533][    C0] RIP: 0033:0x459879
+[ 3241.413420][    C0] Code: Bad RIP value.
+[ 3241.417459][    C0] RSP: 002b:00007f0bb48ffc78 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[ 3241.425846][    C0] RAX: ffffffffffffffda RBX: 0000000000000003 RCX: 0000000000459879
+[ 3241.433790][    C0] RDX: 0000000020000080 RSI: ffffffffffffffbd RDI: 0000000000000003
+[ 3241.441757][    C0] RBP: 000000000075bf20 R08: 0000000000000000 R09: 0000000000000000
+[ 3241.449702][    C0] R10: 0000000000000000 R11: 0000000000000246 R12: 00007f0bb49006d4
+[ 3241.457656][    C0] R13: 00000000004c0ca1 R14: 00000000004d3dd8 R15: 00000000ffffffff
