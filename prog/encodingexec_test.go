@@ -42,6 +42,18 @@ func TestSerializeForExec(t *testing.T) {
 		}
 		return uint64(c.ID)
 	}
+	letoh64 := func(v uint64) uint64 {
+		buf := make([]byte, 8)
+		buf[0] = byte(v >> 0)
+		buf[1] = byte(v >> 8)
+		buf[2] = byte(v >> 16)
+		buf[3] = byte(v >> 24)
+		buf[4] = byte(v >> 32)
+		buf[5] = byte(v >> 40)
+		buf[6] = byte(v >> 48)
+		buf[7] = byte(v >> 56)
+		return HostEndian.Uint64(buf)
+	}
 	tests := []struct {
 		prog       string
 		serialized []uint64
@@ -204,7 +216,7 @@ func TestSerializeForExec(t *testing.T) {
 			"test$array1(&(0x7f0000000000)={0x42, \"0102030405\"})",
 			[]uint64{
 				execInstrCopyin, dataOffset + 0, execArgConst, 1, 0x42,
-				execInstrCopyin, dataOffset + 1, execArgData, 5, 0x0504030201,
+				execInstrCopyin, dataOffset + 1, execArgData, 5, letoh64(0x0504030201),
 				callID("test$array1"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
 				execInstrEOF,
 			},
@@ -214,7 +226,7 @@ func TestSerializeForExec(t *testing.T) {
 			"test$array2(&(0x7f0000000000)={0x42, \"aaaaaaaabbbbbbbbccccccccdddddddd\", 0x43})",
 			[]uint64{
 				execInstrCopyin, dataOffset + 0, execArgConst, 2, 0x42,
-				execInstrCopyin, dataOffset + 2, execArgData, 16, 0xbbbbbbbbaaaaaaaa, 0xddddddddcccccccc,
+				execInstrCopyin, dataOffset + 2, execArgData, 16, letoh64(0xbbbbbbbbaaaaaaaa), letoh64(0xddddddddcccccccc),
 				execInstrCopyin, dataOffset + 18, execArgConst, 2, 0x43,
 				callID("test$array2"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
 				execInstrEOF,
@@ -436,8 +448,7 @@ func TestSerializeForExec(t *testing.T) {
 				execInstrCopyin, dataOffset + 2, execArgConst, 4 | 1<<8, 0x1,
 				execInstrCopyin, dataOffset + 6, execArgConst, 4 | 1<<8, 0x2,
 				execInstrCopyin, dataOffset + 10, execArgConst, 2, 0x0,
-				execInstrCopyin, dataOffset + 12, execArgData, 1, 0xab,
-
+				execInstrCopyin, dataOffset + 12, execArgData, 1, letoh64(0xab),
 				execInstrCopyin, dataOffset + 10, execArgCsum, 2, ExecArgCsumInet, 5,
 				ExecArgCsumChunkData, dataOffset + 2, 4,
 				ExecArgCsumChunkData, dataOffset + 6, 4,
@@ -466,11 +477,11 @@ func TestSerializeForExec(t *testing.T) {
 				t.Fatalf("failed to serialize: %v", err)
 			}
 			w := new(bytes.Buffer)
-			binary.Write(w, binary.LittleEndian, test.serialized)
+			binary.Write(w, HostEndian, test.serialized)
 			data := buf[:n]
 			if !bytes.Equal(data, w.Bytes()) {
 				got := make([]uint64, len(data)/8)
-				binary.Read(bytes.NewReader(data), binary.LittleEndian, &got)
+				binary.Read(bytes.NewReader(data), HostEndian, &got)
 				t.Logf("want: %v", test.serialized)
 				t.Logf("got:  %v", got)
 				t.Fatalf("mismatch")
