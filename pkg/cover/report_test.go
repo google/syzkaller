@@ -129,7 +129,7 @@ int main() {}
 		errText = strings.ReplaceAll(errText, "‘", "'")
 		errText = strings.ReplaceAll(errText, "’", "'")
 		if strings.Contains(errText, "error: unrecognized command line option '-fsanitize-coverage=trace-pc'") &&
-			os.Getenv("CI") == "" {
+			(os.Getenv("SYZ_BIG_ENV") == "" || target.OS == "akaros") {
 			t.Skip("skipping test, -fsanitize-coverage=trace-pc is not supported")
 		}
 		t.Fatal(err)
