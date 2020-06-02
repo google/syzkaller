@@ -585,7 +585,6 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 	if inFile != nil && outFile != nil {
 		cmd.ExtraFiles = []*os.File{inFile, outFile}
 	}
-	cmd.Env = []string{}
 	cmd.Dir = dir
 	cmd.Stdin = outrp
 	cmd.Stdout = inwp
