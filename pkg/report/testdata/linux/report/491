@@ -1,0 +1,99 @@
+TITLE: INFO: rcu detected stall in kernfs_fop_open
+TYPE: HANG
+
+[  163.636748][    C0] rcu: INFO: rcu_preempt self-detected stall on CPU
+[  163.643596][    C0] rcu: 	0-...!: (10499 ticks this GP) idle=bea/1/0x4000000000000002 softirq=10739/10739 fqs=41 
+[  163.654339][    C0] 	(t=10500 jiffies g=6073 q=50)
+[  163.659278][    C0] rcu: rcu_preempt kthread starved for 10418 jiffies! g6073 f0x0 RCU_GP_WAIT_FQS(5) ->state=0x0 ->cpu=1
+[  163.670361][    C0] rcu: RCU grace-period kthread stack dump:
+[  163.676237][    C0] rcu_preempt     R  running task    29032    10      2 0x80004000
+[  163.684146][    C0] Call Trace:
+[  163.687438][    C0]  __schedule+0x9a0/0xcc0
+[  163.691764][    C0]  schedule+0x181/0x210
+[  163.695906][    C0]  schedule_timeout+0x14f/0x240
+[  163.700744][    C0]  ? run_local_timers+0x120/0x120
+[  163.705760][    C0]  rcu_gp_kthread+0xed8/0x1770
+[  163.710521][    C0]  kthread+0x332/0x350
+[  163.714571][    C0]  ? rcu_report_qs_rsp+0x140/0x140
+[  163.719666][    C0]  ? kthread_blkcg+0xe0/0xe0
+[  163.724244][    C0]  ret_from_fork+0x24/0x30
+[  163.728659][    C0] NMI backtrace for cpu 0
+[  163.732977][    C0] CPU: 0 PID: 8154 Comm: udevd Not tainted 5.4.0-syzkaller #0
+[  163.740409][    C0] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  163.750445][    C0] Call Trace:
+[  163.753716][    C0]  <IRQ>
+[  163.756552][    C0]  dump_stack+0x1fb/0x318
+[  163.760871][    C0]  nmi_cpu_backtrace+0xaf/0x1a0
+[  163.765703][    C0]  ? nmi_trigger_cpumask_backtrace+0x16d/0x290
+[  163.771842][    C0]  ? arch_trigger_cpumask_backtrace+0x20/0x20
+[  163.777894][    C0]  nmi_trigger_cpumask_backtrace+0x174/0x290
+[  163.783862][    C0]  arch_trigger_cpumask_backtrace+0x10/0x20
+[  163.789736][    C0]  rcu_dump_cpu_stacks+0x15a/0x220
+[  163.795099][    C0]  rcu_sched_clock_irq+0xe25/0x1ad0
+[  163.800286][    C0]  ? trace_hardirqs_off+0x74/0x80
+[  163.805305][    C0]  update_process_times+0x12d/0x180
+[  163.810492][    C0]  tick_sched_timer+0x263/0x420
+[  163.815325][    C0]  ? tick_setup_sched_timer+0x3d0/0x3d0
+[  163.820858][    C0]  __hrtimer_run_queues+0x403/0x840
+[  163.826057][    C0]  hrtimer_interrupt+0x38c/0xda0
+[  163.830994][    C0]  ? debug_smp_processor_id+0x9/0x20
+[  163.836266][    C0]  smp_apic_timer_interrupt+0x109/0x280
+[  163.841798][    C0]  apic_timer_interrupt+0xf/0x20
+[  163.846746][    C0]  </IRQ>
+[  163.849695][    C0] RIP: 0010:__sanitizer_cov_trace_pc+0x22/0x50
+[  163.855844][    C0] Code: 64 02 3b 00 5b 5d c3 cc 48 8b 04 24 65 48 8b 0c 25 c0 1d 02 00 65 8b 15 b8 81 8b 7e f7 c2 00 01 1f 00 75 2c 8b 91 80 13 00 00 <83> fa 02 75 21 48 8b 91 88 13 00 00 48 8b 32 48 8d 7e 01 8b 89 84
+[  163.875558][    C0] RSP: 0018:ffffc90001e27420 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff13
+[  163.883971][    C0] RAX: ffffffff81487326 RBX: ffffea000245ed00 RCX: ffff888098f940c0
+[  163.891944][    C0] RDX: 0000000000000000 RSI: 00000000fffffffc RDI: ffffea000245ed00
+[  163.899920][    C0] RBP: ffffc90001e27448 R08: 000000000003a768 R09: ffffed10145822e7
+[  163.907888][    C0] R10: ffffed10145822e7 R11: 0000000000000000 R12: ffff88808cebdf20
+[  163.915856][    C0] R13: dffffc0000000000 R14: 00000000fffffffc R15: ffff8880a2c11728
+[  163.923848][    C0]  ? mod_memcg_page_state+0x16/0x190
+[  163.929153][    C0]  ? mod_memcg_page_state+0x16/0x190
+[  163.934446][    C0]  free_thread_stack+0x168/0x590
+[  163.939475][    C0]  put_task_stack+0xa3/0x130
+[  163.944333][    C0]  finish_task_switch+0x3f1/0x550
+[  163.949364][    C0]  __schedule+0x9a8/0xcc0
+[  163.953710][    C0]  preempt_schedule_irq+0xc1/0x140
+[  163.958819][    C0]  retint_kernel+0x1b/0x2b
+[  163.963224][    C0] RIP: 0010:qlink_free+0x91/0xb0
+[  163.968256][    C0] Code: 58 07 00 74 35 4c 89 f7 57 9d 0f 1f 44 00 00 e8 15 1b ca ff eb 19 e8 ae 18 ca ff 48 83 3d 0e 7a 58 07 00 74 17 4c 89 f7 57 9d <0f> 1f 44 00 00 5b 41 5e 41 5f 5d c3 0f 0b 0f 0b 0f 0b 0f 0b 90 66
+[  163.987862][    C0] RSP: 0018:ffffc90001e276a8 EFLAGS: 00000286 ORIG_RAX: ffffffffffffff13
+[  163.996355][    C0] RAX: ffff888098f94954 RBX: ffff888091e2d000 RCX: ffffffff815c0597
+[  164.004319][    C0] RDX: 0000000000000000 RSI: 0000000000000008 RDI: 0000000000000286
+[  164.012324][    C0] RBP: ffffc90001e276c0 R08: ffff888098f94918 R09: fffffbfff13c8d2f
+[  164.020307][    C0] R10: fffffbfff13c8d2f R11: 0000000000000000 R12: ffff888091e2d000
+[  164.028263][    C0] R13: 0000000000000200 R14: 0000000000000286 R15: ffff8880aa812a80
+[  164.036244][    C0]  ? mark_lock+0x107/0x1650
+[  164.040744][    C0]  quarantine_reduce+0x15e/0x1d0
+[  164.045668][    C0]  __kasan_kmalloc+0x46/0x1b0
+[  164.050340][    C0]  ? rcu_read_lock_sched_held+0x10b/0x170
+[  164.056064][    C0]  ? trace_mm_page_alloc+0x18c/0x1f0
+[  164.061363][    C0]  ? __kasan_check_read+0x11/0x20
+[  164.066380][    C0]  ? mark_lock+0x107/0x1650
+[  164.070884][    C0]  ? do_raw_spin_unlock+0x136/0x260
+[  164.076083][    C0]  ? _raw_spin_unlock+0x27/0x40
+[  164.080931][    C0]  ? cache_grow_end+0x143/0x170
+[  164.085776][    C0]  ? lockdep_hardirqs_on+0x3c5/0x7d0
+[  164.091053][    C0]  ? kmem_cache_alloc_trace+0x199/0x2f0
+[  164.096591][    C0]  kasan_slab_alloc+0xf/0x20
+[  164.101168][    C0]  kmem_cache_alloc_trace+0x1fa/0x2f0
+[  164.106529][    C0]  ? kernfs_fop_open+0x3a9/0xc20
+[  164.111455][    C0]  kernfs_fop_open+0x3a9/0xc20
+[  164.116212][    C0]  ? kernfs_fop_mmap+0x4f0/0x4f0
+[  164.121171][    C0]  do_dentry_open+0x740/0x10c0
+[  164.125930][    C0]  vfs_open+0x73/0x80
+[  164.129901][    C0]  path_openat+0x1397/0x44a0
+[  164.134516][    C0]  do_filp_open+0x192/0x3d0
+[  164.139026][    C0]  do_sys_open+0x29f/0x560
+[  164.143433][    C0]  __x64_sys_open+0x87/0x90
+[  164.147924][    C0]  do_syscall_64+0xf7/0x1c0
+[  164.152417][    C0]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  164.158294][    C0] RIP: 0033:0x7f2260db5120
+[  164.162702][    C0] Code: 48 8b 15 1b 4d 2b 00 f7 d8 64 89 02 83 c8 ff c3 90 90 90 90 90 90 90 90 90 90 83 3d d5 a4 2b 00 00 75 10 b8 02 00 00 00 0f 05 <48> 3d 01 f0 ff ff 73 31 c3 48 83 ec 08 e8 5e 8c 01 00 48 89 04 24
+[  164.182288][    C0] RSP: 002b:00007ffd6e7b1a68 EFLAGS: 00000246 ORIG_RAX: 0000000000000002
+[  164.190685][    C0] RAX: ffffffffffffffda RBX: 0000000000000000 RCX: 00007f2260db5120
+[  164.198638][    C0] RDX: 0000000000000124 RSI: 0000000000080000 RDI: 00007ffd6e7b1b10
+[  164.206679][    C0] RBP: 0000000000f8c744 R08: 0000000000f8c744 R09: 00007f2260e0ac20
+[  164.214632][    C0] R10: 7269762f73656369 R11: 0000000000000246 R12: 0000000000f83e60
+[  164.222588][    C0] R13: 0000000000f83f50 R14: 0000000000f72250 R15: 0000000000f77e10

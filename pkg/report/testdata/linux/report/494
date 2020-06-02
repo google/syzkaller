@@ -1,0 +1,157 @@
+TITLE: INFO: rcu detected stall in br_handle_frame
+TYPE: HANG
+
+[  421.679143] INFO: rcu_sched self-detected stall on CPU
+[  421.684601] 	0-...: (10496 ticks this GP) idle=af1/140000000000001/0 softirq=11112/11144 fqs=2387 
+[  421.693677] 	 (t=10500 jiffies g=3533 c=3532 q=77)
+[  421.698806] Task dump for CPU 0:
+[  421.702163] syz-executor2   R  running task    27992  3917   3903 0x0000000a
+[  421.709658]  ffff8801c8f48000 ffff8801db606830 ffffffff813ebb96 1ffff1003b6c3ebf
+[  421.717726]  ffff8801db61ecc0 0000000000000000 dffffc0000000000 ffffffff832dce80
+[  421.725797]  ffffffff832dcf04 ffff8801db606840 ffffffff813ebbb2 ffff8801db606860
+[  421.733874] Call Trace:
+[  421.736446]  <IRQ>  [<ffffffff813ebb96>] _sched_show_task+0x2d0/0x2dc
+[  421.743205]  [<ffffffff813ebbb2>] sched_show_task+0x10/0x12
+[  421.748904]  [<ffffffff813ebced>] dump_cpu_task+0x7e/0x83
+[  421.754436]  [<ffffffff813f1918>] rcu_dump_cpu_stacks+0x155/0x169
+[  421.760756]  [<ffffffff813f22ff>] rcu_check_callbacks.cold.83+0x5f5/0xc05
+[  421.767673]  [<ffffffff8125d53f>] update_process_times+0x3f/0x70
+[  421.773809]  [<ffffffff8128743a>] tick_sched_handle.isra.17+0x5a/0xf0
+[  421.780381]  [<ffffffff81287c57>] tick_sched_timer+0x77/0x130
+[  421.786259]  [<ffffffff81287be0>] ? tick_sched_do_timer+0xa0/0xa0
+[  421.792486]  [<ffffffff812606cc>] __hrtimer_run_queues+0x36c/0xda0
+[  421.798811]  [<ffffffff81260360>] ? retrigger_next_event+0x180/0x180
+[  421.805296]  [<ffffffff810ac255>] ? kvm_clock_read+0x25/0x30
+[  421.811106]  [<ffffffff810ac269>] ? kvm_clock_get_cycles+0x9/0x10
+[  421.817328]  [<ffffffff81261a88>] ? hrtimer_interrupt+0x108/0x3f0
+[  421.823551]  [<ffffffff81261b0b>] hrtimer_interrupt+0x18b/0x3f0
+[  421.829610]  [<ffffffff8297ade8>] ? br_nf_dev_queue_xmit+0x328/0x1460
+[  421.836179]  [<ffffffff810911aa>] local_apic_timer_interrupt+0x7a/0xa0
+[  421.842845]  [<ffffffff82a61701>] smp_apic_timer_interrupt+0x81/0xb0
+[  421.849350]  [<ffffffff82a5fb00>] apic_timer_interrupt+0xa0/0xb0
+[  421.855486]  [<ffffffff8297ade8>] ? br_nf_dev_queue_xmit+0x328/0x1460
+[  421.862060]  [<ffffffff82a5e216>] ? _raw_spin_unlock_irqrestore+0x56/0x60
+[  421.868975]  [<ffffffff814e8e69>] __slab_free+0x129/0x270
+[  421.874506]  [<ffffffff814e97e5>] ? kfree+0xd5/0x2d0
+[  421.879619]  [<ffffffff8297ade8>] ? br_nf_dev_queue_xmit+0x328/0x1460
+[  421.886198]  [<ffffffff8297ade8>] ? br_nf_dev_queue_xmit+0x328/0x1460
+[  421.892767]  [<ffffffff814e9962>] kfree+0x252/0x2d0
+[  421.897777]  [<ffffffff8297ade8>] br_nf_dev_queue_xmit+0x328/0x1460
+[  421.904192]  [<ffffffff8297c943>] br_nf_post_routing+0xa23/0xda0
+[  421.910328]  [<ffffffff828e000a>] ? _decode_session6+0xc3a/0x1190
+[  421.916551]  [<ffffffff8297bf20>] ? br_nf_dev_queue_xmit+0x1460/0x1460
+[  421.923216]  [<ffffffff81012f43>] ? print_context_stack+0x63/0x130
+[  421.929525]  [<ffffffff8298ea2a>] ? ebt_nat_in+0x6a/0x80
+[  421.934966]  [<ffffffff823e3907>] nf_iterate+0x187/0x210
+[  421.940411]  [<ffffffff823e3b45>] nf_hook_slow+0x1b5/0x330
+[  421.946024]  [<ffffffff823e3995>] ? nf_hook_slow+0x5/0x330
+[  421.951648]  [<ffffffff823e3990>] ? nf_iterate+0x210/0x210
+[  421.957287]  [<ffffffff823e3b78>] ? nf_hook_slow+0x1e8/0x330
+[  421.963077]  [<ffffffff82949ce7>] br_forward_finish+0x167/0x1b0
+[  421.969124]  [<ffffffff82949b80>] ? br_multicast_flood+0x490/0x490
+[  421.975433]  [<ffffffff82948e50>] ? deliver_clone+0xc0/0xc0
+[  421.981174]  [<ffffffff829769fc>] br_nf_forward_finish+0x2cc/0x780
+[  421.987517]  [<ffffffff82976730>] ? brnf_get_logical_dev.isra.23+0x1e0/0x1e0
+[  421.994693]  [<ffffffff82949b80>] ? br_multicast_flood+0x490/0x490
+[  422.001010]  [<ffffffff8123f0b9>] ? rcu_read_lock_held+0xa9/0xc0
+[  422.007146]  [<ffffffff82977842>] br_nf_forward_ip+0x482/0x10a0
+[  422.013204]  [<ffffffff829773c0>] ? br_nf_push_frag_xmit+0x510/0x510
+[  422.019690]  [<ffffffff82976730>] ? brnf_get_logical_dev.isra.23+0x1e0/0x1e0
+[  422.026867]  [<ffffffff823e3907>] nf_iterate+0x187/0x210
+[  422.032306]  [<ffffffff823e3b45>] nf_hook_slow+0x1b5/0x330
+[  422.037921]  [<ffffffff823e3995>] ? nf_hook_slow+0x5/0x330
+[  422.043535]  [<ffffffff823e3990>] ? nf_iterate+0x210/0x210
+[  422.049170]  [<ffffffff81203f67>] ? mark_held_locks+0xc7/0x130
+[  422.055152]  [<ffffffff8294a04d>] __br_forward+0x31d/0x400
+[  422.060777]  [<ffffffff82949d30>] ? br_forward_finish+0x1b0/0x1b0
+[  422.066997]  [<ffffffff822678f0>] ? __copy_skb_header+0x2b0/0x370
+[  422.073218]  [<ffffffff82949b80>] ? br_multicast_flood+0x490/0x490
+[  422.079528]  [<ffffffff82949d30>] ? br_forward_finish+0x1b0/0x1b0
+[  422.085758]  [<ffffffff82948df4>] deliver_clone+0x64/0xc0
+[  422.091311]  [<ffffffff82949d30>] ? br_forward_finish+0x1b0/0x1b0
+[  422.097544]  [<ffffffff829494bd>] maybe_deliver+0xfd/0x140
+[  422.103179]  [<ffffffff8294960f>] br_flood+0x10f/0x1f0
+[  422.108454]  [<ffffffff82949d30>] ? br_forward_finish+0x1b0/0x1b0
+[  422.114682]  [<ffffffff8294a69a>] br_flood_forward+0x3a/0x50
+[  422.120473]  [<ffffffff8294d728>] br_handle_frame_finish+0xb38/0x1b50
+[  422.127051]  [<ffffffff8294cbf0>] ? br_handle_local_finish+0x200/0x200
+[  422.133718]  [<ffffffff823e3ba1>] ? nf_hook_slow+0x211/0x330
+[  422.139504]  [<ffffffff823e3995>] ? nf_hook_slow+0x5/0x330
+[  422.145118]  [<ffffffff823e3990>] ? nf_iterate+0x210/0x210
+[  422.150734]  [<ffffffff811fee02>] ? __lock_is_held+0xa2/0xf0
+[  422.156523]  [<ffffffff8297e957>] br_nf_pre_routing_finish_ipv6+0x6a7/0xec0
+[  422.163619]  [<ffffffff8297e2b0>] ? br_nf_pre_routing+0x1040/0x1040
+[  422.170041]  [<ffffffff8294cbf0>] ? br_handle_local_finish+0x200/0x200
+[  422.176695]  [<ffffffff8297d057>] ? setup_pre_routing+0x207/0x420
+[  422.182921]  [<ffffffff829801f7>] br_nf_pre_routing_ipv6+0x397/0x520
+[  422.189412]  [<ffffffff8297fe60>] ? br_validate_ipv6+0xcf0/0xcf0
+[  422.195720]  [<ffffffff8297e2b0>] ? br_nf_pre_routing+0x1040/0x1040
+[  422.202120]  [<ffffffff822672d6>] ? skb_pull_rcsum+0x136/0x2c0
+[  422.208086]  [<ffffffff8297db32>] br_nf_pre_routing+0x8c2/0x1040
+[  422.214226]  [<ffffffff8297d270>] ? setup_pre_routing+0x420/0x420
+[  422.220453]  [<ffffffff82263690>] ? kfree_skbmem+0xf0/0x110
+[  422.226157]  [<ffffffff823e3907>] nf_iterate+0x187/0x210
+[  422.231629]  [<ffffffff823e3b45>] nf_hook_slow+0x1b5/0x330
+[  422.237244]  [<ffffffff823e3995>] ? nf_hook_slow+0x5/0x330
+[  422.242862]  [<ffffffff823e3990>] ? nf_iterate+0x210/0x210
+[  422.248485]  [<ffffffff8298e590>] ? broute_net_init+0x80/0x80
+[  422.254361]  [<ffffffff8294ee72>] br_handle_frame+0x732/0xca0
+[  422.260237]  [<ffffffff8294e740>] ? br_handle_frame_finish+0x1b50/0x1b50
+[  422.267082]  [<ffffffff8294cbf0>] ? br_handle_local_finish+0x200/0x200
+[  422.273748]  [<ffffffff8294e740>] ? br_handle_frame_finish+0x1b50/0x1b50
+[  422.280583]  [<ffffffff822ac6a4>] __netif_receive_skb_core+0x7b4/0x27e0
+[  422.287334]  [<ffffffff822abef0>] ? dev_cpu_callback+0x670/0x670
+[  422.293474]  [<ffffffff81203f67>] ? mark_held_locks+0xc7/0x130
+[  422.299438]  [<ffffffff822ae730>] __netif_receive_skb+0x60/0x1c0
+[  422.305573]  [<ffffffff822b2a3d>] process_backlog+0x21d/0x6a0
+[  422.311448]  [<ffffffff822b29d7>] ? process_backlog+0x1b7/0x6a0
+[  422.317497]  [<ffffffff822af9f9>] net_rx_action+0x2d9/0xc50
+[  422.323213]  [<ffffffff82a5e1ac>] ? _raw_spin_unlock_irq+0x2c/0x40
+[  422.329530]  [<ffffffff822af720>] ? napi_complete_done+0x200/0x200
+[  422.335852]  [<ffffffff811fee02>] ? __lock_is_held+0xa2/0xf0
+[  422.341643]  [<ffffffff82a61f21>] __do_softirq+0x231/0x9f2
+[  422.347265]  [<ffffffff82402586>] ? nf_ct_iterate_cleanup+0xe6/0x520
+[  422.353748]  [<ffffffff82a6097c>] do_softirq_own_stack+0x1c/0x30
+[  422.359880]  <EOI>  [<ffffffff8111a3f9>] do_softirq.part.17+0x59/0x60
+[  422.366593]  [<ffffffff8111a4b9>] __local_bh_enable_ip+0xb9/0xc0
+[  422.372739]  [<ffffffff824025ad>] nf_ct_iterate_cleanup+0x10d/0x520
+[  422.379140]  [<ffffffff8278cc10>] ? help+0x630/0x630
+[  422.384240]  [<ffffffff825c3507>] ? ip_vs_dst_event+0x1a7/0x650
+[  422.390289]  [<ffffffff8278ce1d>] masq_device_event+0xad/0xe0
+[  422.396165]  [<ffffffff81171dce>] notifier_call_chain+0xbe/0x1f0
+[  422.402306]  [<ffffffff81171f82>] raw_notifier_call_chain+0x32/0x40
+[  422.408707]  [<ffffffff82299f9a>] call_netdevice_notifiers_info+0x5a/0x70
+[  422.415629]  [<ffffffff8229aa8f>] dev_close_many+0x24f/0x360
+[  422.421418]  [<ffffffff8229a840>] ? __dev_close_many+0x260/0x260
+[  422.427554]  [<ffffffff81158384>] ? __queue_work+0x414/0xe00
+[  422.433345]  [<ffffffff822a03f4>] rollback_registered_many+0x264/0x750
+[  422.440006]  [<ffffffff82a5e101>] ? _raw_spin_unlock+0x1/0x40
+[  422.445880]  [<ffffffff822a0190>] ? netdev_rx_handler_unregister+0x90/0x90
+[  422.452885]  [<ffffffff81203f67>] ? mark_held_locks+0xc7/0x130
+[  422.458857]  [<ffffffff8115a826>] ? queue_delayed_work_on+0xa6/0xc0
+[  422.465253]  [<ffffffff822a095e>] rollback_registered+0x7e/0xa0
+[  422.471301]  [<ffffffff822a08e0>] ? rollback_registered_many+0x750/0x750
+[  422.478133]  [<ffffffff822f4c68>] ? linkwatch_schedule_work+0x108/0x130
+[  422.484876]  [<ffffffff822f50f1>] ? linkwatch_fire_event+0x91/0x110
+[  422.491276]  [<ffffffff822a35c6>] unregister_netdevice_queue+0x86/0x120
+[  422.498019]  [<ffffffff8208ca49>] __tun_detach+0x839/0xa20
+[  422.503647]  [<ffffffff8208cc30>] ? __tun_detach+0xa20/0xa20
+[  422.509469]  [<ffffffff8208cc79>] tun_chr_close+0x49/0x60
+[  422.515021]  [<ffffffff8153628d>] __fput+0x23d/0x780
+[  422.520117]  [<ffffffff8153685a>] ____fput+0x1a/0x20
+[  422.525215]  [<ffffffff81169754>] task_work_run+0x114/0x190
+[  422.530915]  [<ffffffff81115f42>] do_exit+0x9f2/0x26e0
+[  422.536190]  [<ffffffff81204570>] ? trace_hardirqs_on+0x10/0x10
+[  422.542242]  [<ffffffff81115550>] ? mm_update_next_owner+0x660/0x660
+[  422.548725]  [<ffffffff81130408>] ? recalc_sigpending+0x78/0xa0
+[  422.554785]  [<ffffffff81117db6>] do_group_exit+0x116/0x340
+[  422.560499]  [<ffffffff8113a8f1>] get_signal+0x4f1/0x1460
+[  422.566033]  [<ffffffff8100b5a2>] do_signal+0x92/0x18f0
+[  422.571394]  [<ffffffff8100b510>] ? setup_sigcontext+0x780/0x780
+[  422.577531]  [<ffffffff81204570>] ? trace_hardirqs_on+0x10/0x10
+[  422.583579]  [<ffffffff812930da>] ? SyS_futex+0x26a/0x360
+[  422.589122]  [<ffffffff81292e70>] ? do_futex+0x1830/0x1830
+[  422.594743]  [<ffffffff81002a03>] ? exit_to_usermode_loop+0x93/0x140
+[  422.601227]  [<ffffffff81002a34>] exit_to_usermode_loop+0xc4/0x140
+[  422.607536]  [<ffffffff8100545e>] syscall_return_slowpath+0x1be/0x1f0
+[  422.614108]  [<ffffffff82a5ed79>] int_ret_from_sys_call+0x25/0xa3

@@ -1,0 +1,110 @@
+TITLE: INFO: rcu detected stall in neigh_timer_handler
+TYPE: HANG
+
+[  366.785711] INFO: rcu_preempt self-detected stall on CPU
+[  366.791254] 	0: (126 ticks this GP) idle=831/140000000000002/0 softirq=31611/31611 fqs=0 
+[  366.799538] 	 (t=10556 jiffies g=10195 c=10194 q=1)
+[  366.804657] rcu_preempt kthread starved for 10556 jiffies!
+[  366.810292] Task dump for CPU 0:
+[  366.813652] syz-executor.7  R  running task    26288 16095   1691 0x0000000c
+[  366.821062]  000000000000069b 000000004e28d452 ffffffff82a3b540 ffffffff8111527a
+[  366.829059]  ffffffff811150bb 000000004e28d452 0000000000000086 0000000000000000
+[  366.837057]  ffffffff82a9a750 0000000000000000 1ffffffff05534ea ffffffff82a9a728
+[  366.845047] Call Trace:
+[  366.847600]  <IRQ>  [<ffffffff8111527a>] sched_show_task+0x2da/0x4a0
+[  366.854190]  [<ffffffff811150bb>] ? sched_show_task+0x11b/0x4a0
+[  366.860218]  [<ffffffff81117100>] dump_cpu_task+0x20/0x30
+[  366.865729]  [<ffffffff81160a5c>] rcu_dump_cpu_stacks+0x18c/0x290
+[  366.871932]  [<ffffffff8116a6c6>] rcu_check_callbacks+0xa16/0x1eb0
+[  366.878221]  [<ffffffff81182d60>] ? timekeeping_inject_sleeptime64+0xa0/0xa0
+[  366.885379]  [<ffffffff817d82b3>] ? __this_cpu_preempt_check+0x13/0x20
+[  366.892017]  [<ffffffff81118c05>] ? account_system_time+0x1a5/0x4f0
+[  366.898393]  [<ffffffff811710a3>] update_process_times+0x33/0x60
+[  366.904510]  [<ffffffff81193fdd>] tick_sched_handle.isra.8+0x3d/0xd0
+[  366.910986]  [<ffffffff8119408a>] ? tick_sched_timer+0x1a/0xe0
+[  366.916939]  [<ffffffff811940d7>] tick_sched_timer+0x67/0xe0
+[  366.922708]  [<ffffffff81194070>] ? tick_sched_handle.isra.8+0xd0/0xd0
+[  366.929346]  [<ffffffff81172d92>] __run_hrtimer.isra.7+0xb2/0x210
+[  366.935549]  [<ffffffff811732b4>] hrtimer_interrupt+0x164/0x3d0
+[  366.941579]  [<ffffffff8107f325>] smp_trace_apic_timer_interrupt+0x95/0xe0
+[  366.948574]  [<ffffffff8107f379>] smp_apic_timer_interrupt+0x9/0x10
+[  366.954954]  [<ffffffff822fbb31>] apic_timer_interrupt+0x71/0x80
+[  366.961081]  [<ffffffff81131a9f>] ? mark_held_locks+0xcf/0x140
+[  366.967027]  [<ffffffff81299c24>] ? __slab_alloc.isra.25.constprop.27+0x584/0x5a0
+[  366.974619]  [<ffffffff81ebd306>] ? __alloc_skb+0xd6/0x5d0
+[  366.980225]  [<ffffffff81132680>] ? debug_check_no_locks_freed+0x2a0/0x2a0
+[  366.987208]  [<ffffffff81ebd306>] ? __alloc_skb+0xd6/0x5d0
+[  366.992819]  [<ffffffff81299d1e>] kmem_cache_alloc+0xde/0x110
+[  366.998676]  [<ffffffff81ebd306>] __alloc_skb+0xd6/0x5d0
+[  367.004099]  [<ffffffff81ebd230>] ? __kmalloc_reserve.isra.7+0xb0/0xb0
+[  367.010738]  [<ffffffff82164b4d>] ? ipv6_get_lladdr+0x27d/0x3f0
+[  367.016774]  [<ffffffff810bbf27>] ? __local_bh_enable_ip+0x67/0xe0
+[  367.023064]  [<ffffffff821944b8>] ndisc_alloc_skb+0x128/0x4f0
+[  367.028932]  [<ffffffff821988b6>] ndisc_send_ns+0x346/0x710
+[  367.034616]  [<ffffffff82198570>] ? ndisc_netdev_event+0x310/0x310
+[  367.040905]  [<ffffffff81299cda>] ? kmem_cache_alloc+0x9a/0x110
+[  367.046944]  [<ffffffff82198f28>] ndisc_solicit+0x2a8/0x640
+[  367.052625]  [<ffffffff81ebd230>] ? __kmalloc_reserve.isra.7+0xb0/0xb0
+[  367.059264]  [<ffffffff822fa265>] ? _raw_spin_unlock_irqrestore+0x45/0x80
+[  367.066164]  [<ffffffff82198c80>] ? ndisc_send_ns+0x710/0x710
+[  367.072023]  [<ffffffff81f113a7>] neigh_probe+0xa7/0xe0
+[  367.077361]  [<ffffffff81f21662>] neigh_timer_handler+0x402/0xbd0
+[  367.083564]  [<ffffffff81f21260>] ? neightbl_dump_info+0xa10/0xa10
+[  367.089874]  [<ffffffff8116e928>] call_timer_fn+0x128/0x1e0
+[  367.095567]  [<ffffffff8116e8dc>] ? call_timer_fn+0xdc/0x1e0
+[  367.101339]  [<ffffffff8116e800>] ? process_timeout+0x10/0x10
+[  367.107211]  [<ffffffff822fa2cb>] ? _raw_spin_unlock_irq+0x2b/0x60
+[  367.113500]  [<ffffffff81131caa>] ? trace_hardirqs_on_caller+0x19a/0x5a0
+[  367.120313]  [<ffffffff811706cf>] run_timer_softirq+0x55f/0x850
+[  367.126343]  [<ffffffff817b36c8>] ? trace_hardirqs_on_thunk+0x17/0x19
+[  367.132894]  [<ffffffff81f21260>] ? neightbl_dump_info+0xa10/0xa10
+[  367.139194]  [<ffffffff81170170>] ? cascade+0x2d0/0x2d0
+[  367.144528]  [<ffffffff810bc4f1>] __do_softirq+0x281/0x560
+[  367.150124]  [<ffffffff810bca58>] irq_exit+0x118/0x160
+[  367.155371]  [<ffffffff8107f32a>] smp_trace_apic_timer_interrupt+0x9a/0xe0
+[  367.162368]  [<ffffffff8107f379>] smp_apic_timer_interrupt+0x9/0x10
+[  367.168747]  [<ffffffff822fbb31>] apic_timer_interrupt+0x71/0x80
+[  367.174870]  <EOI>  [<ffffffff81299c24>] ? __slab_alloc.isra.25.constprop.27+0x584/0x5a0
+[  367.183200]  [<ffffffff81228942>] ? shrink_slab.part.6.constprop.15+0x3d2/0x540
+[  367.190622]  [<ffffffff81317e53>] ? __bdi_start_writeback+0x53/0x190
+[  367.197087]  [<ffffffff81132680>] ? debug_check_no_locks_freed+0x2a0/0x2a0
+[  367.204069]  [<ffffffff81131f1d>] ? trace_hardirqs_on_caller+0x40d/0x5a0
+[  367.210885]  [<ffffffff81317e53>] ? __bdi_start_writeback+0x53/0x190
+[  367.217352]  [<ffffffff81299d1e>] kmem_cache_alloc+0xde/0x110
+[  367.223208]  [<ffffffff81317e53>] __bdi_start_writeback+0x53/0x190
+[  367.229499]  [<ffffffff8131d41f>] wakeup_flusher_threads+0x15f/0x2f0
+[  367.235972]  [<ffffffff8131d348>] ? wakeup_flusher_threads+0x88/0x2f0
+[  367.242525]  [<ffffffff8131d2c0>] ? bdi_writeback_workfn+0x930/0x930
+[  367.248988]  [<ffffffff812150c4>] ? free_pcppages_bulk+0x8d4/0xcd0
+[  367.255277]  [<ffffffff817da846>] ? debug_object_free+0x1e6/0x380
+[  367.261482]  [<ffffffff8122fcbb>] try_to_free_pages+0x66b/0xde0
+[  367.267527]  [<ffffffff8122f650>] ? shrink_zone+0x680/0x680
+[  367.273221]  [<ffffffff812193ee>] __alloc_pages_nodemask+0x86e/0xf60
+[  367.279686]  [<ffffffff822fa2dc>] ? _raw_spin_unlock_irq+0x3c/0x60
+[  367.285976]  [<ffffffff81218b80>] ? __alloc_pages_direct_compact+0x240/0x240
+[  367.293148]  [<ffffffff822fb951>] ? retint_kernel+0x2c/0x2c
+[  367.298828]  [<ffffffff822fb951>] ? retint_kernel+0x2c/0x2c
+[  367.304619]  [<ffffffff812805d8>] __vmalloc_node_range+0x228/0x640
+[  367.310912]  [<ffffffff82227f5f>] ? packet_set_ring+0x6ff/0x1910
+[  367.317028]  [<ffffffff81280d5f>] vzalloc+0x4f/0x60
+[  367.322018]  [<ffffffff82227f5f>] ? packet_set_ring+0x6ff/0x1910
+[  367.328132]  [<ffffffff81219af8>] ? __get_free_pages+0x18/0x60
+[  367.334076]  [<ffffffff82227f5f>] packet_set_ring+0x6ff/0x1910
+[  367.340033]  [<ffffffff82227860>] ? tpacket_destruct_skb+0x5d0/0x5d0
+[  367.346509]  [<ffffffff81258ea9>] ? might_fault+0xc9/0x170
+[  367.352106]  [<ffffffff8110cdae>] ? __might_sleep+0x8e/0x1a0
+[  367.357887]  [<ffffffff8222a207>] packet_setsockopt+0x7c7/0x20d0
+[  367.364003]  [<ffffffff82229a40>] ? packet_release+0x8d0/0x8d0
+[  367.369945]  [<ffffffff8110d510>] ? preempt_count_add+0xf0/0x180
+[  367.376063]  [<ffffffff812f93ad>] ? __fget+0x3d/0x330
+[  367.381225]  [<ffffffff812f9738>] ? __fget_light+0x78/0x1f0
+[  367.386909]  [<ffffffff81258ea9>] ? might_fault+0xc9/0x170
+[  367.392505]  [<ffffffff812f98be>] ? __fdget+0xe/0x10
+[  367.397593]  [<ffffffff81e9dd4c>] ? sockfd_lookup_light+0x1c/0x160
+[  367.403913]  [<ffffffff81ea3c77>] SyS_setsockopt+0x147/0x230
+[  367.409812]  [<ffffffff81ea3b30>] ? SyS_recv+0x20/0x20
+[  367.415090]  [<ffffffff8117904d>] ? SyS_clock_gettime+0x14d/0x1a0
+[  367.421307]  [<ffffffff81178f00>] ? SyS_clock_settime+0x1f0/0x1f0
+[  367.427516]  [<ffffffff812fb263>] ? __fd_install+0xf3/0x1a0
+[  367.433198]  [<ffffffff817b36f5>] ? lockdep_sys_exit_thunk+0x12/0x14
+[  367.439667]  [<ffffffff822fad6b>] system_call_fastpath+0x12/0x76

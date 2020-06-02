@@ -1,0 +1,66 @@
+TITLE: INFO: rcu detected stall in perf_event_mmap
+TYPE: HANG
+
+[  943.341024] INFO: rcu_preempt self-detected stall on CPU
+[  943.346749] 	0-...: (3 ticks this GP) idle=6fd/140000000000001/0 softirq=67682/67682 fqs=1 
+[  943.355256] 	 (t=18319 jiffies g=30395 c=30394 q=31)
+[  943.360542] rcu_preempt kthread starved for 15615 jiffies! g30395 c30394 f0x0 s3 ->state=0x0
+[  943.369144] Task dump for CPU 0:
+[  943.372531] blkid           R  running task    29216   513  10808 0x10000008
+[  943.380070]  ffff8801db407c18 9bcf3f0caf1cd16c ffff8801db407c50 ffffffff813d2223
+[  943.388247]  1ffff1003b683de8 0000000000000000 ffff8801db41e600 0000000000000000
+[  943.396431]  dffffc0000000000 ffffffff840fbe80 ffff8801db407c60 ffffffff813d223f
+[  943.404607] Call Trace:
+[  943.407212]  <IRQ>  [<ffffffff813d2223>] _sched_show_task+0x31f/0x32b
+[  943.414088]  [<ffffffff813d223f>] sched_show_task+0x10/0x12
+[  943.419849]  [<ffffffff813d22d5>] dump_cpu_task+0x7f/0x84
+[  943.425419]  [<ffffffff813d4c0b>] rcu_dump_cpu_stacks+0x151/0x165
+[  943.431747]  [<ffffffff812b12c0>] rcu_check_callbacks+0x6cf/0x144f
+[  943.438118]  [<ffffffff812bdccb>] update_process_times+0x36/0x66
+[  943.444369]  [<ffffffff812df1fd>] tick_sched_handle+0xf4/0x105
+[  943.450809]  [<ffffffff812df7ef>] tick_sched_timer+0x45/0xd8
+[  943.456914]  [<ffffffff812c09f7>] __hrtimer_run_queues+0x5d2/0x924
+[  943.463330]  [<ffffffff81274f55>] ? trace_event_get_offsets_lock.isra.0+0x67/0x67
+[  943.470982]  [<ffffffff812df7aa>] ? tick_sched_do_timer+0x8e/0x8e
+[  943.477248]  [<ffffffff812c0425>] ? hrtimer_start_expires+0x7b/0x7b
+[  943.483697]  [<ffffffff81274f55>] ? trace_event_get_offsets_lock.isra.0+0x67/0x67
+[  943.491362]  [<ffffffff812c135b>] hrtimer_interrupt+0x15c/0x348
+[  943.497511]  [<ffffffff81166053>] local_apic_timer_interrupt+0x9c/0xa3
+[  943.504293]  [<ffffffff8333bb72>] smp_trace_apic_timer_interrupt+0x23f/0x43b
+[  943.511515]  [<ffffffff83339b68>] trace_apic_timer_interrupt+0xa8/0xb0
+[  943.518203]  <EOI>  [<ffffffff81274f55>] ? trace_event_get_offsets_lock.isra.0+0x67/0x67
+[  943.526685]  [<ffffffff8146902d>] ? arch_local_irq_restore+0x2/0x8
+[  943.533035]  [<ffffffff8146be5f>] ? __slab_alloc.isra.0.constprop.0+0x6f/0x7c
+[  943.540338]  [<ffffffff813c993d>] ? perf_event_mmap+0x2b6/0x7ee
+[  943.546430]  [<ffffffff8146c10f>] kmem_cache_alloc_trace+0x81/0x139
+[  943.552861]  [<ffffffff813c993d>] ? perf_event_mmap+0x2b6/0x7ee
+[  943.558954]  [<ffffffff813c993d>] perf_event_mmap+0x2b6/0x7ee
+[  943.564868]  [<ffffffff8127d854>] ? lock_release+0x819/0x828
+[  943.570716]  [<ffffffff813c9687>] ? perf_event_comm+0x17a/0x17a
+[  943.576890]  [<ffffffff8143bd59>] ? vm_start_gap+0x73/0x7b
+[  943.582573]  [<ffffffff8143eaf7>] ? vma_link+0x10e/0x11b
+[  943.588070]  [<ffffffff814441c1>] mmap_region+0x8e7/0xb6c
+[  943.593653]  [<ffffffff814438da>] ? vm_brk+0x104/0x104
+[  943.599042]  [<ffffffff81274f55>] ? trace_event_get_offsets_lock.isra.0+0x67/0x67
+[  943.606769]  [<ffffffff81887cfd>] ? cap_mmap_addr+0xea/0xf2
+[  943.612515]  [<ffffffff8188ff0d>] ? security_mmap_addr+0x8c/0x97
+[  943.618712]  [<ffffffff8143d465>] ? get_unmapped_area+0x283/0x293
+[  943.624995]  [<ffffffff81444b6d>] do_mmap+0x727/0x7a2
+[  943.630241]  [<ffffffff81411fc9>] vm_mmap_pgoff+0x13e/0x1be
+[  943.635992]  [<ffffffff81411e8b>] ? vma_is_stack_for_task+0x97/0x97
+[  943.642442]  [<ffffffff812733e5>] ? up_write+0x1f/0x5d
+[  943.647756]  [<ffffffff814120bf>] vm_mmap+0x76/0x8f
+[  943.652969]  [<ffffffff81546256>] elf_map+0x1d3/0x1ed
+[  943.658201]  [<ffffffff81547731>] load_elf_binary+0xf79/0x3a88
+[  943.664254]  [<ffffffff815467b8>] ? writenote+0x241/0x241
+[  943.669830]  [<ffffffff8128351c>] ? do_raw_read_unlock+0x5/0x55
+[  943.675966]  [<ffffffff81498b8f>] search_binary_handler+0x17b/0x646
+[  943.682412]  [<ffffffff8149cd18>] do_execveat_common.isra.0+0x10a0/0x175e
+[  943.689390]  [<ffffffff814afa00>] ? putname+0x65/0xf9
+[  943.694618]  [<ffffffff8149bc78>] ? prepare_bprm_creds+0xfc/0xfc
+[  943.700840]  [<ffffffff81a247a8>] ? strncpy_from_user+0x1e4/0x1f6
+[  943.707124]  [<ffffffff814a205a>] ? audit_dummy_context+0x89/0x94
+[  943.713402]  [<ffffffff8149d411>] do_execve+0x3b/0x41
+[  943.718631]  [<ffffffff8149dc09>] SyS_execve+0x37/0x3b
+[  943.723967]  [<ffffffff83338e75>] stub_execve+0x5/0x5
+[  943.729207]  [<ffffffff83338cb5>] ? tracesys_phase2+0xa3/0xa8
