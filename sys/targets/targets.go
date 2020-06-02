@@ -35,8 +35,9 @@ type Target struct {
 	KernelHeaderArch string
 	BrokenCompiler   string
 	// NeedSyscallDefine is used by csource package to decide when to emit __NR_* defines.
-	NeedSyscallDefine func(nr uint64) bool
-	HostEndian        binary.ByteOrder
+	NeedSyscallDefine  func(nr uint64) bool
+	HostEndian         binary.ByteOrder
+	SyscallTrampolines map[string]string
 }
 
 type osCommon struct {
@@ -201,6 +202,21 @@ var List = map[string]map[string]*Target{
 			Triple:           "powerpc64le-linux-gnu",
 			KernelArch:       "powerpc",
 			KernelHeaderArch: "powerpc",
+		},
+		"s390x": {
+			PtrSize:          8,
+			PageSize:         4 << 10,
+			LittleEndian:     false,
+			Triple:           "s390x-linux-gnu",
+			KernelArch:       "s390",
+			KernelHeaderArch: "s390",
+			SyscallTrampolines: map[string]string{
+				// The s390x Linux syscall ABI allows for upto 5 input parameters passed in registers, and this is not enough
+				// for the mmap syscall. Therefore, all input parameters for the mmap syscall are packed into a struct
+				// on user stack and the pointer to the struct is passed as an input parameter to the syscall.
+				// To work around this problem we therefore reroute the mmap syscall to the glibc mmap wrapper.
+				"mmap": "mmap",
+			},
 		},
 	},
 	"freebsd": {

@@ -82,7 +82,7 @@ func InitTarget(target *prog.Target) {
 		target.SpecialPointers = []uint64{
 			0xffffffff81000000, // kernel text
 		}
-	case "386", "arm64", "arm", "ppc64le", "mips64le":
+	case "386", "arm64", "arm", "ppc64le", "mips64le", "s390x":
 	default:
 		panic("unknown arch")
 	}
