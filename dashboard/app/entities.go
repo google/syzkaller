@@ -206,6 +206,7 @@ const (
 	BisectResultMerge JobFlags = 1 << iota
 	BisectResultNoop
 	BisectResultRelease
+	BisectResultBlacklist
 )
 
 func (job *Job) isUnreliableBisect() bool {
@@ -216,7 +217,8 @@ func (job *Job) isUnreliableBisect() bool {
 	// it is considered an unreliable/wrong result and should not be reported in emails.
 	return job.Flags&BisectResultMerge != 0 ||
 		job.Flags&BisectResultNoop != 0 ||
-		job.Flags&BisectResultRelease != 0
+		job.Flags&BisectResultRelease != 0 ||
+		job.Flags&BisectResultBlacklist != 0
 }
 
 // Text holds text blobs (crash logs, reports, reproducers, etc).
