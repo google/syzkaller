@@ -56,6 +56,9 @@ type ExecutorData struct {
 	CallAttrs []string
 }
 
+var srcDir = flag.String("src", "", "path to root of syzkaller source dir")
+var outDir = flag.String("out", "", "path to out dir")
+
 func main() {
 	flag.Parse()
 	defer cmdprof.Install()()
@@ -68,11 +71,11 @@ func main() {
 
 	data := &ExecutorData{}
 	for _, OS := range OSList {
-		descriptions := ast.ParseGlob(filepath.Join("sys", OS, "*.txt"), nil)
+		descriptions := ast.ParseGlob(filepath.Join(*srcDir, "sys", OS, "*.txt"), nil)
 		if descriptions == nil {
 			os.Exit(1)
 		}
-		osutil.MkdirAll(filepath.Join("sys", OS, "gen"))
+		osutil.MkdirAll(filepath.Join(*outDir, "sys", OS, "gen"))
 
 		var archs []string
 		for arch := range targets.List[OS] {
@@ -106,7 +109,7 @@ func main() {
 				eh := func(pos ast.Pos, msg string) {
 					job.Errors = append(job.Errors, fmt.Sprintf("%v: %v\n", pos, msg))
 				}
-				consts := compiler.DeserializeConstsGlob(filepath.Join("sys", OS, "*_"+job.Target.Arch+".const"), eh)
+				consts := compiler.DeserializeConstsGlob(filepath.Join(*srcDir, "sys", OS, "*_"+job.Target.Arch+".const"), eh)
 				if consts == nil {
 					return
 				}
@@ -129,7 +132,7 @@ func main() {
 				}
 				job.Unsupported = prog.Unsupported
 
-				sysFile := filepath.Join("sys", OS, "gen", job.Target.Arch+".go")
+				sysFile := filepath.Join(*outDir, "sys", OS, "gen", job.Target.Arch+".go")
 				out := new(bytes.Buffer)
 				generate(job.Target, prog, consts, out)
 				rev := hash.String(out.Bytes())
@@ -232,7 +235,7 @@ func writeEmpty(OS string) {
 // This file is needed if OS is completely excluded by build tags.
 package gen
 `
-	writeSource(filepath.Join("sys", OS, "gen", "empty.go"), []byte(data))
+	writeSource(filepath.Join(*outDir, "sys", OS, "gen", "empty.go"), []byte(data))
 }
 
 func generateExecutorSyscalls(target *targets.Target, syscalls []*prog.Syscall, rev string) ArchData {
@@ -286,6 +289,7 @@ func generateExecutorSyscalls(target *targets.Target, syscalls []*prog.Syscall, 
 }
 
 func writeExecutorSyscalls(data *ExecutorData) {
+	osutil.MkdirAll(filepath.Join(*outDir, "executor"))
 	sort.Slice(data.OSes, func(i, j int) bool {
 		return data.OSes[i].GOOS < data.OSes[j].GOOS
 	})
@@ -293,12 +297,12 @@ func writeExecutorSyscalls(data *ExecutorData) {
 	if err := defsTempl.Execute(buf, data); err != nil {
 		failf("failed to execute defs template: %v", err)
 	}
-	writeFile(filepath.FromSlash("executor/defs.h"), buf.Bytes())
+	writeFile(filepath.Join(*outDir, "executor", "defs.h"), buf.Bytes())
 	buf.Reset()
 	if err := syscallsTempl.Execute(buf, data); err != nil {
 		failf("failed to execute syscalls template: %v", err)
 	}
-	writeFile(filepath.FromSlash("executor/syscalls.h"), buf.Bytes())
+	writeFile(filepath.Join(*outDir, "executor", "syscalls.h"), buf.Bytes())
 }
 
 func writeSource(file string, data []byte) {
