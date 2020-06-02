@@ -29,7 +29,8 @@ func ctorBSD(cfg *config, oopses []*oops, symbolizeRes []*regexp.Regexp) (Report
 	if cfg.kernelObj != "" {
 		kernelObject = filepath.Join(cfg.kernelObj, cfg.target.KernelObject)
 		var err error
-		symbols, err = symbolizer.ReadTextSymbols(kernelObject)
+		symb := symbolizer.NewSymbolizer(cfg.target)
+		symbols, err = symb.ReadTextSymbols(kernelObject)
 		if err != nil {
 			return nil, err
 		}
@@ -63,7 +64,7 @@ func (ctx *bsd) Parse(output []byte) *Report {
 }
 
 func (ctx *bsd) Symbolize(rep *Report) error {
-	symb := symbolizer.NewSymbolizer()
+	symb := symbolizer.NewSymbolizer(ctx.config.target)
 	defer symb.Close()
 	var symbolized []byte
 	s := bufio.NewScanner(bytes.NewReader(rep.Report))

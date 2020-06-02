@@ -8,7 +8,8 @@ import (
 )
 
 func TestSymbols(t *testing.T) {
-	symbols, err := ReadTextSymbols("testdata/nm.test.out")
+	symb := NewSymbolizer(nil)
+	symbols, err := symb.ReadTextSymbols("testdata/nm.test.out")
 	if err != nil {
 		t.Fatalf("failed to read symbols: %v", err)
 	}

@@ -86,7 +86,7 @@ func (ctx *fuchsia) shortenReport(report []byte) []byte {
 }
 
 func (ctx *fuchsia) symbolize(output []byte) []byte {
-	symb := symbolizer.NewSymbolizer()
+	symb := symbolizer.NewSymbolizer(ctx.config.target)
 	defer symb.Close()
 	out := new(bytes.Buffer)
 	for s := bufio.NewScanner(bytes.NewReader(output)); s.Scan(); {

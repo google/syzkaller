@@ -372,7 +372,8 @@ func checkNetlink(OS, arch, obj string, structTypes []prog.Type,
 	if rodata == nil {
 		return nil, fmt.Errorf("object file %v does not contain .rodata section", obj)
 	}
-	symbols, err := symbolizer.ReadRodataSymbols(obj)
+	symb := symbolizer.NewSymbolizer(targets.Get(OS, arch))
+	symbols, err := symb.ReadRodataSymbols(obj)
 	if err != nil {
 		return nil, err
 	}
