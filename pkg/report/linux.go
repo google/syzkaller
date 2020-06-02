@@ -38,7 +38,8 @@ func ctorLinux(cfg *config) (Reporter, []string, error) {
 	if cfg.kernelObj != "" {
 		vmlinux = filepath.Join(cfg.kernelObj, cfg.target.KernelObject)
 		var err error
-		symbols, err = symbolizer.ReadTextSymbols(vmlinux)
+		symb := symbolizer.NewSymbolizer(cfg.target)
+		symbols, err = symb.ReadTextSymbols(vmlinux)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -356,7 +357,7 @@ func (ctx *linux) Symbolize(rep *Report) error {
 }
 
 func (ctx *linux) symbolize(rep *Report) error {
-	symb := symbolizer.NewSymbolizer()
+	symb := symbolizer.NewSymbolizer(ctx.config.target)
 	defer symb.Close()
 	var symbolized []byte
 	s := bufio.NewScanner(bytes.NewReader(rep.Report))

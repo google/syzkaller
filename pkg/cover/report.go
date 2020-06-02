@@ -52,7 +52,7 @@ func MakeReportGenerator(target *targets.Target, kernelObject, srcDir, buildDir 
 	errc := make(chan error)
 	go func() {
 		var err error
-		rg.symbols, err = readSymbols(kernelObject)
+		rg.symbols, err = readSymbols(target, kernelObject)
 		errc <- err
 	}()
 	frames, err := objdumpAndSymbolize(target, kernelObject)
@@ -317,8 +317,9 @@ func (rg *ReportGenerator) findSymbol(pc uint64) uint64 {
 	return s.start
 }
 
-func readSymbols(obj string) ([]symbol, error) {
-	raw, err := symbolizer.ReadTextSymbols(obj)
+func readSymbols(target *targets.Target, obj string) ([]symbol, error) {
+	symb := symbolizer.NewSymbolizer(target)
+	raw, err := symb.ReadTextSymbols(obj)
 	if err != nil {
 		return nil, fmt.Errorf("failed to run nm on %v: %v", obj, err)
 	}
@@ -344,7 +345,7 @@ func objdumpAndSymbolize(target *targets.Target, obj string) ([]symbolizer.Frame
 	pcchan := make(chan []uint64, 10)
 	var frames []symbolizer.Frame
 	go func() {
-		symb := symbolizer.NewSymbolizer()
+		symb := symbolizer.NewSymbolizer(target)
 		defer symb.Close()
 		var err error
 		for pcs := range pcchan {

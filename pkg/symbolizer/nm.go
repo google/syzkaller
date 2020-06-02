@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type Symbol struct {
@@ -17,21 +18,25 @@ type Symbol struct {
 }
 
 // ReadTextSymbols returns list of text symbols in the binary bin.
-func ReadTextSymbols(bin string) (map[string][]Symbol, error) {
-	return read(bin, "t", "T")
+func (s *Symbolizer) ReadTextSymbols(bin string) (map[string][]Symbol, error) {
+	return read(s.target, bin, "t", "T")
 }
 
 // ReadRodataSymbols returns list of rodata symbols in the binary bin.
-func ReadRodataSymbols(bin string) (map[string][]Symbol, error) {
-	return read(bin, "r", "R")
+func (s *Symbolizer) ReadRodataSymbols(bin string) (map[string][]Symbol, error) {
+	return read(s.target, bin, "r", "R")
 }
 
-func read(bin string, types ...string) (map[string][]Symbol, error) {
+func read(target *targets.Target, bin string, types ...string) (map[string][]Symbol, error) {
 	if len(types) != 2 || len(types[0]) != 1 || len(types[1]) != 1 {
 		// We assume these things below.
 		panic("bad types")
 	}
-	cmd := osutil.Command("nm", "-Ptx", bin)
+	nm := "nm"
+	if target != nil && target.Triple != "" {
+		nm = target.Triple + "-" + nm
+	}
+	cmd := osutil.Command(nm, "-Ptx", bin)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err
