@@ -752,7 +752,7 @@ icmpv6_mld_packet {
 	code	const[0, int8]
 	csum	csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
 	mrd	int16be
-	unused	int16
+	unused	int16be
 	addr	ipv6_addr
 } [packed]
 
@@ -762,7 +762,7 @@ icmpv6_mldv2_listener_query_packet {
 	code		const[0, int8]
 	csum		csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
 	mrd		int16be
-	unused		int16
+	unused		int16be
 	mca		ipv6_addr
 	qrv		int8:3
 	suppress	int8:1
@@ -831,9 +831,9 @@ icmpv6_ndisc_router_advert_packet {
 	cur_hop_limit	flags[hop_limits, int8]
 # TODO: Implement bitflags for the router advert flags
 	router_flags	int8
-	router_lifetime	int16
-	reachable_time	int32
-	retrans_time	int32
+	router_lifetime	int16be
+	reachable_time	int32be
+	retrans_time	int32be
 	options		array[icmpv6_ndisc_option]
 } [packed]
 
@@ -930,7 +930,7 @@ tcp_nop_option {
 tcp_mss_option {
 	type		const[TCPOPT_MAXSEG, int8]
 	length		len[parent, int8]
-	seg_size	int16
+	seg_size	int16be
 } [packed]
 
 # https://tools.ietf.org/html/rfc7323#section-2
