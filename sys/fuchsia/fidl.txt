@@ -1,7 +1,7 @@
 # Copyright 2018 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-# See https://fuchsia.googlesource.com/fuchsia/+/master/docs/development/languages/fidl/reference/wire-format/README.md
+# See https://fuchsia.dev/fuchsia-src/reference/fidl/language/wire-format
 
 include <zircon/fidl.h>
 
@@ -23,9 +23,8 @@ type fidl_union_member[TAG, TYPE] {
 
 type fidl_message_header[METHOD_ORDINAL] {
 	txid		const[0, int32]
-	reserved	const[0, int32]
-	flags		const[0, int32]
-# TODO: this should be int32, but the consts passed here don't fit into 32 bits.
+	flags		array[const[0, int8], 3]
+	magic_number	const[1, int8]
 	ordinal		const[METHOD_ORDINAL, int64]
 }
 
