@@ -25,18 +25,22 @@ func (*fuchsia) prepareArch(arch *Arch) error {
 }
 
 func (*fuchsia) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint64, map[string]bool, error) {
-	dir := arch.sourceDir
-	headerArch := arch.target.KernelHeaderArch
-	cc := filepath.Join(dir, "prebuilt", "third_party", "clang", "linux-x64", "bin", "clang")
-	includeDir := filepath.Join(dir, "out", headerArch, "sdk", "exported",
-		"zircon_sysroot", "arch", headerArch, "sysroot", "include")
-	args := []string{"-fmessage-length=0", "-I" + includeDir}
+	srcDir := arch.sourceDir
+	outDir := filepath.Join(srcDir, "out", arch.target.KernelHeaderArch)
+
+	cc := filepath.Join(srcDir, "prebuilt/third_party/clang/linux-x64/bin/clang")
+	args := []string{
+		"-fmessage-length=0",
+		"-I", filepath.Join(outDir, "zircon_toolchain/obj/zircon/public/sysroot/sysroot/include"),
+		"-I", filepath.Join(outDir, "fidling/gen/zircon/vdso/zx"),
+	}
 	for _, fidlLib := range layout.AllFidlLibraries {
-		args = append(args, "-I"+filepath.Join(dir, "out", headerArch, fidlLib.PathToCompiledDir()))
+		args = append(args, "-I", filepath.Join(outDir, fidlLib.PathToCompiledDir()))
 	}
 	for _, incdir := range info.Incdirs {
-		args = append(args, "-I"+filepath.Join(dir, incdir))
+		args = append(args, "-I", filepath.Join(srcDir, incdir))
 	}
+
 	params := &extractParams{
 		DeclarePrintf:  true,
 		DefineGlibcUse: true,

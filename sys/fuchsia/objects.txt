@@ -2,8 +2,9 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 include <zircon/syscalls.h>
-include <zircon/syscalls/object.h>
 include <zircon/syscalls/exception.h>
+include <zircon/syscalls/object.h>
+include <zircon/syscalls/port.h>
 
 resource koid[int64]: 0
 

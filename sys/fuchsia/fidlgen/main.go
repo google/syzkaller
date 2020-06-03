@@ -35,7 +35,7 @@ func main() {
 		"out",
 		arch,
 		"host_x64",
-		"fidlgen",
+		"fidlgen_syzkaller",
 	)
 	if !osutil.IsExist(fidlgenPath) {
 		failf("cannot find fidlgen %s", fidlgenPath)
@@ -44,7 +44,7 @@ func main() {
 	var newFiles []string
 	for _, fidlLib := range layout.AllFidlLibraries {
 		jsonPath := filepath.Join(sourceDir, "out", arch, fidlLib.PathToJSONIr())
-		txtPathBase := strings.Replace(strings.Join(fidlLib.FqName, "_"), "^fuchsia", "fidl", 1)
+		txtPathBase := strings.Replace(strings.Join(fidlLib, "_"), "^fuchsia", "fidl", 1)
 
 		txtPath := fidlgen(
 			fidlgenPath,
@@ -98,13 +98,14 @@ func fidlgen(fidlgenPath string, jsonPath string, txtPathBase string) string {
 		failf("cannot find %s", jsonPath)
 	}
 
-	_, err := osutil.RunCmd(time.Minute, "",
+	out, err := osutil.RunCmd(time.Minute, "",
 		fidlgenPath,
-		"-generators", "syzkaller",
 		"-json", jsonPath,
-		"-output-base", txtPathBase,
-		"-include-base", txtPathBase,
+		"-output-syz", txtPathBase+".syz.txt",
 	)
+	if len(out) != 0 {
+		fmt.Println(string(out))
+	}
 
 	if err != nil {
 		failf("fidlgen failed: %v", err)
