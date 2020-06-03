@@ -64,7 +64,7 @@ func main() {
 	}
 	osutil.HandleInterrupts(vm.Shutdown)
 
-	res, stats, err := repro.Run(data, cfg, reporter, vmPool, vmIndexes)
+	res, stats, err := repro.Run(data, cfg, nil, reporter, vmPool, vmIndexes)
 	if err != nil {
 		log.Logf(0, "reproduction failed: %v", err)
 	}

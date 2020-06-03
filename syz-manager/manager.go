@@ -353,7 +353,8 @@ func (mgr *Manager) vmLoop() {
 				atomic.AddUint32(&mgr.numReproducing, 1)
 				log.Logf(1, "loop: starting repro of '%v' on instances %+v", crash.Title, vmIndexes)
 				go func() {
-					res, stats, err := repro.Run(crash.Output, mgr.cfg, mgr.reporter, mgr.vmPool, vmIndexes)
+					features := mgr.checkResult.Features
+					res, stats, err := repro.Run(crash.Output, mgr.cfg, features, mgr.reporter, mgr.vmPool, vmIndexes)
 					reproDone <- &ReproResult{
 						instances: vmIndexes,
 						report0:   crash.Report,

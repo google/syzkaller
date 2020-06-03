@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/host"
 	instancePkg "github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -42,13 +43,14 @@ type Stats struct {
 }
 
 type context struct {
-	cfg          *mgrconfig.Config
+	target       *targets.Target
 	reporter     report.Reporter
 	crashTitle   string
 	crashType    report.Type
 	instances    chan *instance
 	bootRequests chan int
 	timeouts     []time.Duration
+	startOpts    csource.Options
 	stats        *Stats
 	report       *report.Report
 }
@@ -60,36 +62,8 @@ type instance struct {
 	executorBin string
 }
 
-func initInstance(cfg *mgrconfig.Config, vmPool *vm.Pool, vmIndex int) (*instance, error) {
-	vmInst, err := vmPool.Create(vmIndex)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create VM: %v", err)
-
-	}
-	execprogBin, err := vmInst.Copy(cfg.SyzExecprogBin)
-	if err != nil {
-		vmInst.Close()
-		return nil, fmt.Errorf("failed to copy to VM: %v", err)
-	}
-	executorCmd := targets.Get(cfg.TargetOS, cfg.TargetArch).SyzExecutorCmd
-	if executorCmd == "" {
-		executorCmd, err = vmInst.Copy(cfg.SyzExecutorBin)
-		if err != nil {
-			vmInst.Close()
-			return nil, fmt.Errorf("failed to copy to VM: %v", err)
-		}
-	}
-	return &instance{
-		Instance:    vmInst,
-		index:       vmIndex,
-		execprogBin: execprogBin,
-		executorBin: executorCmd,
-	}, nil
-
-}
-
-func Run(crashLog []byte, cfg *mgrconfig.Config, reporter report.Reporter, vmPool *vm.Pool,
-	vmIndexes []int) (*Result, *Stats, error) {
+func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, reporter report.Reporter,
+	vmPool *vm.Pool, vmIndexes []int) (*Result, *Stats, error) {
 	if len(vmIndexes) == 0 {
 		return nil, nil, fmt.Errorf("no VMs provided")
 	}
@@ -127,13 +101,14 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, reporter report.Reporter, vmPoo
 		timeouts = []time.Duration{noOutputTimeout}
 	}
 	ctx := &context{
-		cfg:          cfg,
+		target:       targets.Get(cfg.TargetOS, cfg.TargetArch),
 		reporter:     reporter,
 		crashTitle:   crashTitle,
 		crashType:    crashType,
 		instances:    make(chan *instance, len(vmIndexes)),
 		bootRequests: make(chan int, len(vmIndexes)),
 		timeouts:     timeouts,
+		startOpts:    createStartOptions(cfg, features, crashType),
 		stats:        new(Stats),
 	}
 	ctx.reproLog(0, "%v programs, %v VMs, timeouts %v", len(entries), len(vmIndexes), timeouts)
@@ -154,7 +129,7 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, reporter report.Reporter, vmPoo
 					default:
 					}
 					var err error
-					inst, err = initInstance(cfg, vmPool, vmIndex)
+					inst, err = ctx.initInstance(cfg, vmPool, vmIndex)
 					if err != nil {
 						ctx.reproLog(0, "failed to init instance: %v", err)
 						time.Sleep(10 * time.Second)
@@ -204,6 +179,56 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, reporter report.Reporter, vmPoo
 		res.Report = ctx.report
 	}
 	return res, ctx.stats, nil
+}
+
+func createStartOptions(cfg *mgrconfig.Config, features *host.Features, crashType report.Type) csource.Options {
+	opts := csource.DefaultOpts(cfg)
+	if crashType == report.MemoryLeak {
+		opts.Leak = true
+	}
+	if features != nil {
+		if !features[host.FeatureNetInjection].Enabled {
+			opts.NetInjection = false
+		}
+		if !features[host.FeatureNetDevices].Enabled {
+			opts.NetDevices = false
+		}
+		if !features[host.FeatureDevlinkPCI].Enabled {
+			opts.DevlinkPCI = false
+		}
+		if !features[host.FeatureUSBEmulation].Enabled {
+			opts.USB = false
+		}
+	}
+	return opts
+}
+
+func (ctx *context) initInstance(cfg *mgrconfig.Config, vmPool *vm.Pool, vmIndex int) (*instance, error) {
+	vmInst, err := vmPool.Create(vmIndex)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create VM: %v", err)
+
+	}
+	execprogBin, err := vmInst.Copy(cfg.SyzExecprogBin)
+	if err != nil {
+		vmInst.Close()
+		return nil, fmt.Errorf("failed to copy to VM: %v", err)
+	}
+	executorCmd := ctx.target.SyzExecutorCmd
+	if executorCmd == "" {
+		executorCmd, err = vmInst.Copy(cfg.SyzExecutorBin)
+		if err != nil {
+			vmInst.Close()
+			return nil, fmt.Errorf("failed to copy to VM: %v", err)
+		}
+	}
+	return &instance{
+		Instance:    vmInst,
+		index:       vmIndex,
+		execprogBin: execprogBin,
+		executorBin: executorCmd,
+	}, nil
+
 }
 
 func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, error) {
@@ -318,10 +343,7 @@ func (ctx *context) extractProg(entries []*prog.LogEntry) (*Result, error) {
 func (ctx *context) extractProgSingle(entries []*prog.LogEntry, duration time.Duration) (*Result, error) {
 	ctx.reproLog(3, "single: executing %d programs separately with timeout %s", len(entries), duration)
 
-	opts := csource.DefaultOpts(ctx.cfg)
-	if ctx.crashType == report.MemoryLeak {
-		opts.Leak = true
-	}
+	opts := ctx.startOpts
 	for _, ent := range entries {
 		opts.Fault = ent.Fault
 		opts.FaultCall = ent.FaultCall
@@ -351,10 +373,7 @@ func (ctx *context) extractProgSingle(entries []*prog.LogEntry, duration time.Du
 func (ctx *context) extractProgBisect(entries []*prog.LogEntry, baseDuration time.Duration) (*Result, error) {
 	ctx.reproLog(3, "bisect: bisecting %d programs with base timeout %s", len(entries), baseDuration)
 
-	opts := csource.DefaultOpts(ctx.cfg)
-	if ctx.crashType == report.MemoryLeak {
-		opts.Leak = true
-	}
+	opts := ctx.startOpts
 	duration := func(entries int) time.Duration {
 		return baseDuration + time.Duration(entries/4)*time.Second
 	}
@@ -576,7 +595,7 @@ func (ctx *context) testProgs(entries []*prog.LogEntry, duration time.Duration, 
 	}
 
 	command := instancePkg.ExecprogCmd(inst.execprogBin, inst.executorBin,
-		ctx.cfg.TargetOS, ctx.cfg.TargetArch, opts.Sandbox, opts.Repeat,
+		ctx.target.OS, ctx.target.Arch, opts.Sandbox, opts.Repeat,
 		opts.Threaded, opts.Collide, opts.Procs, -1, -1, vmProgFile)
 	ctx.reproLog(2, "testing program (duration=%v, %+v): %s", duration, opts, program)
 	ctx.reproLog(3, "detailed listing:\n%s", pstr)
