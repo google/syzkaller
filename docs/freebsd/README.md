@@ -14,7 +14,7 @@ To build syzkaller out of the box, a recent version of FreeBSD 13.0-CURRENT must
 
 The required dependencies can be installed by running:
 ```console
-# pkg install bash gcc git gmake go llvm
+# pkg install bash gcc git gmake go golangci-lint llvm
 ```
 When using bhyve as the VM backend, a DHCP server must also be installed:
 ```console
