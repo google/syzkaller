@@ -17,5 +17,9 @@ coverage:
         target: 50%
         threshold: 0.1%
 
+comment:
+  layout: "files"
+  after_n_builds: 2
+
 fixes:
   - "gopath/src/github.com/google/syzkaller/::"
