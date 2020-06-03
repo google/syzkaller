@@ -1075,8 +1075,8 @@ var linuxOopses = append([]*oops{
 				},
 			},
 			{
-				title: compile("BUG: using __this_cpu_([a-z_]+)\\(\\) in preemptible"),
-				fmt:   "BUG: using __this_cpu_%[1]v() in preemptible code in %[2]v",
+				title: compile("BUG: using ([a-z_]+)\\(\\) in preemptible"),
+				fmt:   "BUG: using %[1]v() in preemptible code in %[2]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
 						compile("Call Trace:"),
