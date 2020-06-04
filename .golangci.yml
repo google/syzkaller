@@ -37,8 +37,22 @@ linters:
     - whitespace
     - nestif
   disable:
+    - bodyclose
+    - depguard
+    - dogsled
+    - gochecknoglobals
+    - gochecknoinits
+    - godox
+    - goimports
+    - gomnd
+    - gomodguard
+    - gosec
+    - maligned
+    - rowserrcheck
+    - testpackage
     - typecheck
     - ineffassign
+    # errcheck would be good to enable, but we need to fix existing warnings first.
     - errcheck
     - interfacer
     - unparam
@@ -46,6 +60,7 @@ linters:
     - prealloc
     - scopelint
     - gocritic
+    - wsl
 
 linters-settings:
   lll:
