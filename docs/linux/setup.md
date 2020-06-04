@@ -102,3 +102,18 @@ To use QEMU syzkaller VMs you have to install QEMU on your host system, see [QEM
 The [create-image.sh](/tools/create-image.sh) script can be used to create a suitable Linux image.
 
 See the links at the top of the document for instructions on setting up syzkaller for QEMU, Android and some other types of VMs.
+
+### Troubleshooting
+
+* QEMU requires root for `-enable-kvm`.
+
+    Solution: add your user to the `kvm` group (`sudo usermod -a -G kvm` and relogin).
+
+* QEMU crashes with
+
+    ```
+    qemu-system-x86_64: error: failed to set MSR 0x48b to 0x159ff00000000
+    qemu-system-x86_64: /build/qemu-EmNSP4/qemu-4.2/target/i386/kvm.c:2947: kvm_put_msrs: Assertion `ret == cpu->kvm_msr_buf->nmsrs' failed.
+   ```
+
+    Solution: remove `-cpu host,migratable=off` from QEMU command line. Easiest way to do that was to set `qemu_args` to `-enable-kvm` in the `syz-manager` config file.
