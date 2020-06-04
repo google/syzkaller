@@ -315,9 +315,28 @@ func TestBisect(t *testing.T) {
 		commits = append(commits, com.Hash)
 		t.Logf("%v %v", com.Hash, com.Title)
 	}
+	type predFunc func() (BisectResult, error)
 	type Test struct {
-		pred   func() (BisectResult, error)
+		pred   predFunc
 		result []string
+	}
+	makePred := func(res1, res2, res3 BisectResult) predFunc {
+		return func() (BisectResult, error) {
+			current, err := repo.repo.HeadCommit()
+			if err != nil {
+				t.Fatal(err)
+			}
+			switch current.Hash {
+			case commits[1]:
+				return res1, nil
+			case commits[2]:
+				return res2, nil
+			case commits[3]:
+				return res3, nil
+			default:
+				return 0, fmt.Errorf("unknown commit %v", current.Hash)
+			}
+		}
 	}
 	tests := []Test{
 		{
@@ -343,62 +362,17 @@ func TestBisect(t *testing.T) {
 		},
 		{
 			// Some are skipped.
-			func() (BisectResult, error) {
-				current, err := repo.repo.HeadCommit()
-				if err != nil {
-					t.Fatal(err)
-				}
-				switch current.Hash {
-				case commits[1]:
-					return BisectSkip, nil
-				case commits[2]:
-					return BisectSkip, nil
-				case commits[3]:
-					return BisectGood, nil
-				default:
-					return 0, fmt.Errorf("unknown commit %v", current.Hash)
-				}
-			},
+			makePred(BisectSkip, BisectSkip, BisectGood),
 			[]string{commits[4]},
 		},
 		{
 			// Some are skipped.
-			func() (BisectResult, error) {
-				current, err := repo.repo.HeadCommit()
-				if err != nil {
-					t.Fatal(err)
-				}
-				switch current.Hash {
-				case commits[1]:
-					return BisectGood, nil
-				case commits[2]:
-					return BisectSkip, nil
-				case commits[3]:
-					return BisectBad, nil
-				default:
-					return 0, fmt.Errorf("unknown commit %v", current.Hash)
-				}
-			},
+			makePred(BisectGood, BisectSkip, BisectBad),
 			[]string{commits[2], commits[3]},
 		},
 		{
 			// Some are skipped.
-			func() (BisectResult, error) {
-				current, err := repo.repo.HeadCommit()
-				if err != nil {
-					t.Fatal(err)
-				}
-				switch current.Hash {
-				case commits[1]:
-					return BisectSkip, nil
-				case commits[2]:
-					return BisectSkip, nil
-				case commits[3]:
-					return BisectGood, nil
-				default:
-					return 0, fmt.Errorf("unknown commit %v", current.Hash)
-				}
-			},
+			makePred(BisectSkip, BisectSkip, BisectGood),
 			[]string{commits[4]},
 		},
 	}

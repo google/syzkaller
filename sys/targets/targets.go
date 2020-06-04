@@ -264,23 +264,7 @@ var List = map[string]map[string]*Target{
 			KernelHeaderArch: "x64",
 			CCompiler:        sourceDirVar + "/prebuilt/third_party/clang/linux-x64/bin/clang",
 			Objdump:          sourceDirVar + "/prebuilt/third_party/clang/linux-x64/bin/llvm-objdump",
-			CFlags: []string{
-				"-Wno-deprecated",
-				"--target=x86_64-fuchsia",
-				"-ldriver",
-				"-lfdio",
-				"-lzircon",
-				"--sysroot", sourceDirVar + "/out/x64/zircon_toolchain/obj/zircon/public/sysroot/sysroot",
-				"-I", sourceDirVar + "/zircon/system/ulib/fdio/include",
-				"-I", sourceDirVar + "/zircon/system/ulib/fidl/include",
-				"-I", sourceDirVar + "/src/lib/ddk/include",
-				"-I", sourceDirVar + "/out/x64/fidling/gen/sdk/fidl/fuchsia.device",
-				"-I", sourceDirVar + "/out/x64/fidling/gen/sdk/fidl/fuchsia.device.manager",
-				"-I", sourceDirVar + "/out/x64/fidling/gen/sdk/fidl/fuchsia.hardware.nand",
-				"-I", sourceDirVar + "/out/x64/fidling/gen/sdk/fidl/fuchsia.hardware.usb.peripheral",
-				"-I", sourceDirVar + "/out/x64/fidling/gen/zircon/vdso/zx",
-				"-L", sourceDirVar + "/out/x64/x64-shared",
-			},
+			CFlags:           fuchsiaCFlags("x64", "x86_64"),
 		},
 		"arm64": {
 			PtrSize:          8,
@@ -288,23 +272,7 @@ var List = map[string]map[string]*Target{
 			KernelHeaderArch: "arm64",
 			CCompiler:        sourceDirVar + "/prebuilt/third_party/clang/linux-x64/bin/clang",
 			Objdump:          sourceDirVar + "/prebuilt/third_party/clang/linux-x64/bin/llvm-objdump",
-			CFlags: []string{
-				"-Wno-deprecated",
-				"--target=aarch64-fuchsia",
-				"-ldriver",
-				"-lfdio",
-				"-lzircon",
-				"--sysroot", sourceDirVar + "/out/arm64/zircon_toolchain/obj/zircon/public/sysroot/sysroot",
-				"-I", sourceDirVar + "/zircon/system/ulib/fdio/include",
-				"-I", sourceDirVar + "/zircon/system/ulib/fidl/include",
-				"-I", sourceDirVar + "/src/lib/ddk/include",
-				"-I", sourceDirVar + "/out/arm64/fidling/gen/sdk/fidl/fuchsia.device",
-				"-I", sourceDirVar + "/out/arm64/fidling/gen/sdk/fidl/fuchsia.device.manager",
-				"-I", sourceDirVar + "/out/arm64/fidling/gen/sdk/fidl/fuchsia.hardware.nand",
-				"-I", sourceDirVar + "/out/arm64/fidling/gen/sdk/fidl/fuchsia.hardware.usb.peripheral",
-				"-I", sourceDirVar + "/out/arm64/fidling/gen/zircon/vdso/zx",
-				"-L", sourceDirVar + "/out/arm64/arm64-shared",
-			},
+			CFlags:           fuchsiaCFlags("arm64", "aarch64"),
 		},
 	},
 	"windows": {
@@ -418,6 +386,27 @@ var (
 		"-fsanitize=address":      true, // some OSes don't have ASAN
 	}
 )
+
+func fuchsiaCFlags(arch, clangArch string) []string {
+	out := sourceDirVar + "/out/" + arch
+	return []string{
+		"-Wno-deprecated",
+		"--target", clangArch + "-fuchsia",
+		"-ldriver",
+		"-lfdio",
+		"-lzircon",
+		"--sysroot", out + "/zircon_toolchain/obj/zircon/public/sysroot/sysroot",
+		"-I", sourceDirVar + "/zircon/system/ulib/fdio/include",
+		"-I", sourceDirVar + "/zircon/system/ulib/fidl/include",
+		"-I", sourceDirVar + "/src/lib/ddk/include",
+		"-I", out + "/fidling/gen/sdk/fidl/fuchsia.device",
+		"-I", out + "/fidling/gen/sdk/fidl/fuchsia.device.manager",
+		"-I", out + "/fidling/gen/sdk/fidl/fuchsia.hardware.nand",
+		"-I", out + "/fidling/gen/sdk/fidl/fuchsia.hardware.usb.peripheral",
+		"-I", out + "/fidling/gen/zircon/vdso/zx",
+		"-L", out + "/" + arch + "-shared",
+	}
+}
 
 func init() {
 	for OS, archs := range List {
