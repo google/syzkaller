@@ -435,7 +435,6 @@ func (comp *compiler) collectUnused() []ast.Node {
 
 	comp.used, _, _ = comp.collectUsed(false)
 	structs, flags, strflags := comp.collectUsed(true)
-	_, _, _ = structs, flags, strflags
 
 	note := func(n ast.Node) {
 		if pos, _, _ := n.Info(); pos.Builtin() {
