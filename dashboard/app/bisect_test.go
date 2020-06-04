@@ -15,6 +15,7 @@ import (
 	db "google.golang.org/appengine/datastore"
 )
 
+// nolint: funlen
 func TestBisectCause(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
