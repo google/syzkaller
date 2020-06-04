@@ -28,6 +28,7 @@ func TestSerializeForExecRandom(t *testing.T) {
 	}
 }
 
+// nolint: funlen
 func TestSerializeForExec(t *testing.T) {
 	target := initTargetTest(t, "test", "64")
 	var (

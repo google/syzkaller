@@ -39,6 +39,7 @@ linters:
     - goprintffuncname
     - godot
     - gocognit
+    - funlen
   disable:
     - bodyclose
     - depguard
@@ -85,6 +86,10 @@ linters-settings:
   gocognit:
     # TODO: consider reducing this value.
     min-complexity: 70
+  funlen:
+    # TODO: consider reducing these value.
+    lines: 200
+    statements: 80
 
 issues:
   exclude-use-default: false

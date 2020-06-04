@@ -7,6 +7,7 @@ import (
 	"math/rand"
 )
 
+// nolint: funlen
 func initPseudo() {
 	Insns = append(Insns, &Insn{
 		Name:   "PSEUDO_RDMSR",
