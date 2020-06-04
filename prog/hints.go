@@ -153,7 +153,7 @@ func checkDataArg(arg *DataArg, compMap CompMap, exec func()) {
 
 // Shrink and expand mutations model the cases when the syscall arguments
 // are casted to narrower (and wider) integer types.
-// ======================================================================
+//
 // Motivation for shrink:
 // void f(u16 x) {
 //		u8 y = (u8)x;
@@ -169,7 +169,7 @@ func checkDataArg(arg *DataArg, compMap CompMap, exec func()) {
 // In this case we ignore such comparison because we couldn't come up with
 // any valid code example that does similar things. To avoid such comparisons
 // we check the sizes with leastSize().
-// ======================================================================
+//
 // Motivation for expand:
 // void f(i8 x) {
 //		i16 y = (i16)x;
@@ -180,7 +180,6 @@ func checkDataArg(arg *DataArg, compMap CompMap, exec func()) {
 // check the extension.
 // As with shrink we ignore cases when the other operand is wider.
 // Note that executor sign extends all the comparison operands to int64.
-// ======================================================================
 func shrinkExpand(v uint64, compMap CompMap, bitsize uint64) []uint64 {
 	v = truncateToBitSize(v, bitsize)
 	limit := uint64(1<<bitsize - 1)

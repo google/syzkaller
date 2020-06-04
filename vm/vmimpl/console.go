@@ -79,7 +79,7 @@ func (t *tty) Close() error {
 	return nil
 }
 
-// Open dmesg remotely
+// Open dmesg remotely.
 func OpenRemoteConsole(bin string, args ...string) (rc io.ReadCloser, err error) {
 	rpipe, wpipe, err := osutil.LongPipe()
 	if err != nil {

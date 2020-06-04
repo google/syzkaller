@@ -934,7 +934,7 @@ func TestBisectCauseReproSyz2(t *testing.T) {
 	}
 }
 
-// Test that bisection results show up on UI
+// Test that bisection results show up on UI.
 func TestBugBisectionResults(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -1037,7 +1037,7 @@ func TestBugBisectionResults(t *testing.T) {
 	c.expectTrue(bytes.Contains(content, []byte("kernel: add a fix")))
 }
 
-// Test that bisection status shows up on main page
+// Test that bisection status shows up on main page.
 func TestBugBisectionStatus(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()

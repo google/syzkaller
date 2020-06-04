@@ -399,7 +399,7 @@ func (gen *generator) mov64(reg int, v uint64) {
 	gen.imm64(v)
 }
 
-// movl $v, off(%rsp)
+// movl $v, off(%rsp).
 func (gen *generator) mov32toSPaddr(v uint32, off uint8) {
 	gen.addr32()
 	gen.operand32()
@@ -565,7 +565,7 @@ var ports = []uint16{
 	0x20, 0x21, 0xa0, 0xa1, 0x4d0, 0x4d1, // 8259
 }
 
-// sys/kvm.txt also knows this list
+// sys/kvm.txt also knows this list.
 var msrs = []uint32{
 	0x0, 0x1, 0x10, 0x11, 0x12, 0x13, 0x17, 0x1b,
 	0x20, 0x21, 0x28, 0x29, 0x2a, 0x2c, 0x33, 0x34,
