@@ -36,6 +36,7 @@ linters:
     - govet
     - whitespace
     - nestif
+    - goprintffuncname
   disable:
     - bodyclose
     - depguard
