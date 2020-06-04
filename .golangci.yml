@@ -40,6 +40,7 @@ linters:
     - godot
     - gocognit
     - funlen
+    - dupl
   disable:
     - bodyclose
     - depguard
@@ -108,3 +109,10 @@ issues:
         - lll
     - path: (sys/.*/init.*|sys/targets/common.go)
       text: "don't use ALL_CAPS in Go names"
+    # TODO: this is bad, need to fix and remove the suppression.
+    - path: (pkg/report/(net|open)bsd.*)
+      linters:
+        - dupl
+    - path: (dashboard/app/.*_test\.go)
+      linters:
+        - dupl
