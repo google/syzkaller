@@ -207,7 +207,6 @@ func (ctx *context) initInstance(cfg *mgrconfig.Config, vmPool *vm.Pool, vmIndex
 	vmInst, err := vmPool.Create(vmIndex)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create VM: %v", err)
-
 	}
 	execprogBin, err := vmInst.Copy(cfg.SyzExecprogBin)
 	if err != nil {
@@ -228,7 +227,6 @@ func (ctx *context) initInstance(cfg *mgrconfig.Config, vmPool *vm.Pool, vmIndex
 		execprogBin: execprogBin,
 		executorBin: executorCmd,
 	}, nil
-
 }
 
 func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, error) {

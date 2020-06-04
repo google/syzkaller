@@ -239,7 +239,6 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		conRpipe.Close()
 		conWpipe.Close()
 		return nil, nil, fmt.Errorf("failed to connect to console server: %v", err)
-
 	}
 	conWpipe.Close()
 

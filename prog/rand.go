@@ -492,7 +492,6 @@ func createTargetIfuzzConfig(target *Target) *ifuzz.Config {
 		panic("unknown text kind")
 	}
 	return cfg
-
 }
 
 func createIfuzzConfig(kind TextKind) *ifuzz.Config {
