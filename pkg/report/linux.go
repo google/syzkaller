@@ -196,7 +196,7 @@ func (ctx *linux) findFirstOops(output []byte) (oops *oops, startPos int, contex
 }
 
 // Yes, it is complex, but all state and logic are tightly coupled. It's unclear how to simplify it.
-// nolint: gocyclo
+// nolint: gocyclo, gocognit
 func (ctx *linux) findReport(output []byte, oops *oops, startPos int, context string, useQuestionable bool) (
 	endPos, reportEnd int, report []byte, prefix [][]byte) {
 	// Prepend 5 lines preceding start of the report,

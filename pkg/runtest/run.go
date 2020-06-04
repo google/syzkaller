@@ -166,87 +166,92 @@ func (ctx *Context) generatePrograms(progs chan *RunRequest) error {
 		sandboxes = append(sandboxes, sandbox)
 	}
 	sort.Strings(sandboxes)
-	sysTarget := targets.Get(ctx.Target.OS, ctx.Target.Arch)
 	for _, file := range files {
 		if strings.HasSuffix(file.Name(), "~") ||
 			strings.HasSuffix(file.Name(), ".swp") ||
 			!strings.HasPrefix(file.Name(), ctx.Tests) {
 			continue
 		}
-		p, requires, results, err := ctx.parseProg(file.Name())
-		if err != nil {
+		if err := ctx.generateFile(progs, sandboxes, cover, file.Name()); err != nil {
 			return err
 		}
-	nextSandbox:
-		for _, sandbox := range sandboxes {
-			name := fmt.Sprintf("%v %v", file.Name(), sandbox)
-			for _, call := range p.Calls {
-				if !ctx.EnabledCalls[sandbox][call.Meta] {
-					progs <- &RunRequest{
-						name: name,
-						skip: fmt.Sprintf("unsupported call %v", call.Meta.Name),
-					}
-					continue nextSandbox
-				}
-			}
-			properties := map[string]bool{
-				"arch=" + ctx.Target.Arch: true,
-				"sandbox=" + sandbox:      true,
-			}
-			for _, threaded := range []bool{false, true} {
-				name := name
-				if threaded {
-					name += "/thr"
-				}
-				properties["threaded"] = threaded
-				for _, times := range []int{1, 3} {
-					properties["repeat"] = times > 1
-					properties["norepeat"] = times <= 1
-					if times > 1 {
-						name += "/repeat"
-					}
-					for _, cov := range cover {
-						if sandbox == "" {
-							break // executor does not support empty sandbox
-						}
-						name := name
-						if cov {
-							name += "/cover"
-						}
-						properties["cover"] = cov
-						properties["C"] = false
-						properties["executor"] = true
-						req, err := ctx.createSyzTest(p, sandbox, threaded, cov, times)
-						if err != nil {
-							return err
-						}
-						ctx.produceTest(progs, req, name, properties, requires, results)
-					}
+	}
+	return nil
+}
 
-					if sysTarget.HostFuzzer {
-						// For HostFuzzer mode, we need to cross-compile
-						// and copy the binary to the target system.
-						continue
+func (ctx *Context) generateFile(progs chan *RunRequest, sandboxes []string, cover []bool, filename string) error {
+	p, requires, results, err := ctx.parseProg(filename)
+	if err != nil {
+		return err
+	}
+	sysTarget := targets.Get(ctx.Target.OS, ctx.Target.Arch)
+nextSandbox:
+	for _, sandbox := range sandboxes {
+		name := fmt.Sprintf("%v %v", filename, sandbox)
+		for _, call := range p.Calls {
+			if !ctx.EnabledCalls[sandbox][call.Meta] {
+				progs <- &RunRequest{
+					name: name,
+					skip: fmt.Sprintf("unsupported call %v", call.Meta.Name),
+				}
+				continue nextSandbox
+			}
+		}
+		properties := map[string]bool{
+			"arch=" + ctx.Target.Arch: true,
+			"sandbox=" + sandbox:      true,
+		}
+		for _, threaded := range []bool{false, true} {
+			name := name
+			if threaded {
+				name += "/thr"
+			}
+			properties["threaded"] = threaded
+			for _, times := range []int{1, 3} {
+				properties["repeat"] = times > 1
+				properties["norepeat"] = times <= 1
+				if times > 1 {
+					name += "/repeat"
+				}
+				for _, cov := range cover {
+					if sandbox == "" {
+						break // executor does not support empty sandbox
 					}
-
 					name := name
-					properties["C"] = true
-					properties["executor"] = false
-					name += " C"
-					if !sysTarget.ExecutorUsesForkServer && times > 1 {
-						// Non-fork loop implementation does not support repetition.
-						progs <- &RunRequest{
-							name:   name,
-							broken: "non-forking loop",
-						}
-						continue
+					if cov {
+						name += "/cover"
 					}
-					req, err := ctx.createCTest(p, sandbox, threaded, times)
+					properties["cover"] = cov
+					properties["C"] = false
+					properties["executor"] = true
+					req, err := ctx.createSyzTest(p, sandbox, threaded, cov, times)
 					if err != nil {
 						return err
 					}
 					ctx.produceTest(progs, req, name, properties, requires, results)
 				}
+				if sysTarget.HostFuzzer {
+					// For HostFuzzer mode, we need to cross-compile
+					// and copy the binary to the target system.
+					continue
+				}
+				name := name
+				properties["C"] = true
+				properties["executor"] = false
+				name += " C"
+				if !sysTarget.ExecutorUsesForkServer && times > 1 {
+					// Non-fork loop implementation does not support repetition.
+					progs <- &RunRequest{
+						name:   name,
+						broken: "non-forking loop",
+					}
+					continue
+				}
+				req, err := ctx.createCTest(p, sandbox, threaded, times)
+				if err != nil {
+					return err
+				}
+				ctx.produceTest(progs, req, name, properties, requires, results)
 			}
 		}
 	}
