@@ -36,21 +36,9 @@ func ProcessTempDir(where string) (string, error) {
 		err := os.Mkdir(path, DefaultDirPerm)
 		if os.IsExist(err) {
 			// Try to clean up.
-			data, err := ioutil.ReadFile(pidfile)
-			if err == nil && len(data) > 0 {
-				pid, err := strconv.Atoi(string(data))
-				if err == nil && pid > 1 {
-					if err := syscall.Kill(pid, 0); err == syscall.ESRCH {
-						if os.Remove(pidfile) == nil {
-							if os.RemoveAll(path) == nil {
-								i--
-								continue
-							}
-						}
-					}
-				}
+			if cleanupTempDir(path, pidfile) {
+				i--
 			}
-			// If err != nil, assume that the pid file is not created yet.
 			continue
 		}
 		if err != nil {
@@ -62,6 +50,22 @@ func ProcessTempDir(where string) (string, error) {
 		return path, nil
 	}
 	return "", fmt.Errorf("too many live instances")
+}
+
+func cleanupTempDir(path, pidfile string) bool {
+	data, err := ioutil.ReadFile(pidfile)
+	if err == nil && len(data) > 0 {
+		pid, err := strconv.Atoi(string(data))
+		if err == nil && pid > 1 {
+			if err := syscall.Kill(pid, 0); err == syscall.ESRCH {
+				if os.Remove(pidfile) == nil {
+					return os.RemoveAll(path) == nil
+				}
+			}
+		}
+	}
+	// If err != nil, assume that the pid file is not created yet.
+	return false
 }
 
 // HandleInterrupts closes shutdown chan on first SIGINT
