@@ -95,7 +95,7 @@ endif
 	manager runtest fuzzer executor \
 	ci hub \
 	execprog mutate prog2c trace2syz stress repro upgrade db \
-	usbgen symbolize \
+	usbgen symbolize crush \
 	bin/syz-extract bin/syz-fmt \
 	extract generate generate_go generate_sys \
 	format format_go format_cpp format_sys \
@@ -172,6 +172,9 @@ mutate: descriptions
 
 prog2c: descriptions
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-prog2c github.com/google/syzkaller/tools/syz-prog2c
+
+crush: descriptions
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-crush github.com/google/syzkaller/tools/syz-crush
 
 stress: descriptions
 	GOOS=$(TARGETGOOS) GOARCH=$(TARGETGOARCH) $(GO) build $(GOTARGETFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-stress$(EXE) github.com/google/syzkaller/tools/syz-stress
