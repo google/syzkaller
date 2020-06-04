@@ -149,184 +149,185 @@ type BisectionTest struct {
 	culprit int
 }
 
+var bisectionTests = []BisectionTest{
+	// Tests that bisection returns the correct cause commit.
+	{
+		name:        "cause-finds-cause",
+		startCommit: 905,
+		commitLen:   1,
+		expectRep:   true,
+		culprit:     602,
+	},
+	// Tests that cause bisection returns error when crash does not reproduce
+	// on the original commit.
+	{
+		name:        "cause-does-not-repro",
+		startCommit: 400,
+		expectErr:   true,
+	},
+	// Tests that no commits are returned when crash occurs on oldest commit
+	// for cause bisection.
+	{
+		name:         "cause-crashes-oldest",
+		startCommit:  905,
+		commitLen:    0,
+		expectRep:    true,
+		culprit:      0,
+		oldestLatest: 400,
+	},
+	// Tests that more than 1 commit is returned when cause bisection is inconclusive.
+	{
+		name:        "cause-inconclusive",
+		startCommit: 802,
+		brokenStart: 500,
+		brokenEnd:   700,
+		commitLen:   15,
+		culprit:     605,
+	},
+	// Tests that bisection returns the correct fix commit.
+	{
+		name:        "fix-finds-fix",
+		fix:         true,
+		startCommit: 400,
+		commitLen:   1,
+		culprit:     500,
+		isRelease:   true,
+	},
+	// Tests that fix bisection returns error when crash does not reproduce
+	// on the original commit.
+	{
+		name:        "fix-does-not-repro",
+		fix:         true,
+		startCommit: 905,
+		expectErr:   true,
+	},
+	// Tests that no commits are returned when crash occurs on HEAD
+	// for fix bisection.
+	{
+		name:         "fix-crashes-HEAD",
+		fix:          true,
+		startCommit:  400,
+		commitLen:    0,
+		expectRep:    true,
+		culprit:      1000,
+		oldestLatest: 905,
+	},
+	// Tests that more than 1 commit is returned when fix bisection is inconclusive.
+	{
+		name:        "fix-inconclusive",
+		fix:         true,
+		startCommit: 400,
+		brokenStart: 500,
+		brokenEnd:   600,
+		commitLen:   8,
+		culprit:     501,
+	},
+	{
+		name:            "cause-same-binary",
+		startCommit:     905,
+		commitLen:       1,
+		expectRep:       true,
+		culprit:         503,
+		sameBinaryStart: 502,
+		sameBinaryEnd:   503,
+		noopChange:      true,
+	},
+	{
+		name:            "cause-same-binary-off-by-one",
+		startCommit:     905,
+		commitLen:       1,
+		expectRep:       true,
+		culprit:         503,
+		sameBinaryStart: 400,
+		sameBinaryEnd:   502,
+	},
+	{
+		name:            "cause-same-binary-off-by-one-2",
+		startCommit:     905,
+		commitLen:       1,
+		expectRep:       true,
+		culprit:         503,
+		sameBinaryStart: 503,
+		sameBinaryEnd:   905,
+	},
+	{
+		name:            "fix-same-binary",
+		fix:             true,
+		startCommit:     400,
+		commitLen:       1,
+		culprit:         503,
+		sameBinaryStart: 502,
+		sameBinaryEnd:   504,
+		noopChange:      true,
+	},
+	{
+		name:            "cause-same-binary-release1",
+		startCommit:     905,
+		commitLen:       1,
+		expectRep:       true,
+		culprit:         500,
+		sameBinaryStart: 405,
+		sameBinaryEnd:   500,
+		noopChange:      true,
+		isRelease:       true,
+	},
+	{
+		name:            "cause-same-binary-release2",
+		startCommit:     905,
+		commitLen:       1,
+		expectRep:       true,
+		culprit:         501,
+		sameBinaryStart: 500,
+		sameBinaryEnd:   501,
+		noopChange:      true,
+	},
+	{
+		name:            "cause-same-binary-release3",
+		startCommit:     905,
+		commitLen:       1,
+		expectRep:       true,
+		culprit:         405,
+		sameBinaryStart: 404,
+		sameBinaryEnd:   405,
+		noopChange:      true,
+	},
+	{
+		name:            "fix-same-binary-last",
+		fix:             true,
+		startCommit:     400,
+		commitLen:       1,
+		culprit:         905,
+		sameBinaryStart: 904,
+		sameBinaryEnd:   905,
+		noopChange:      true,
+	},
+	{
+		name:        "fix-release",
+		fix:         true,
+		startCommit: 400,
+		commitLen:   1,
+		culprit:     900,
+		isRelease:   true,
+	},
+	{
+		name:            "cause-not-in-previous-release-issue-1527",
+		startCommit:     905,
+		culprit:         650,
+		commitLen:       1,
+		expectRep:       true,
+		sameBinaryStart: 500,
+		sameBinaryEnd:   650,
+		noopChange:      true,
+	},
+}
+
 func TestBisectionResults(t *testing.T) {
 	t.Parallel()
-	tests := []BisectionTest{
-		// Tests that bisection returns the correct cause commit.
-		{
-			name:        "cause-finds-cause",
-			startCommit: 905,
-			commitLen:   1,
-			expectRep:   true,
-			culprit:     602,
-		},
-		// Tests that cause bisection returns error when crash does not reproduce
-		// on the original commit.
-		{
-			name:        "cause-does-not-repro",
-			startCommit: 400,
-			expectErr:   true,
-		},
-		// Tests that no commits are returned when crash occurs on oldest commit
-		// for cause bisection.
-		{
-			name:         "cause-crashes-oldest",
-			startCommit:  905,
-			commitLen:    0,
-			expectRep:    true,
-			culprit:      0,
-			oldestLatest: 400,
-		},
-		// Tests that more than 1 commit is returned when cause bisection is inconclusive.
-		{
-			name:        "cause-inconclusive",
-			startCommit: 802,
-			brokenStart: 500,
-			brokenEnd:   700,
-			commitLen:   15,
-			culprit:     605,
-		},
-		// Tests that bisection returns the correct fix commit.
-		{
-			name:        "fix-finds-fix",
-			fix:         true,
-			startCommit: 400,
-			commitLen:   1,
-			culprit:     500,
-			isRelease:   true,
-		},
-		// Tests that fix bisection returns error when crash does not reproduce
-		// on the original commit.
-		{
-			name:        "fix-does-not-repro",
-			fix:         true,
-			startCommit: 905,
-			expectErr:   true,
-		},
-		// Tests that no commits are returned when crash occurs on HEAD
-		// for fix bisection.
-		{
-			name:         "fix-crashes-HEAD",
-			fix:          true,
-			startCommit:  400,
-			commitLen:    0,
-			expectRep:    true,
-			culprit:      1000,
-			oldestLatest: 905,
-		},
-		// Tests that more than 1 commit is returned when fix bisection is inconclusive.
-		{
-			name:        "fix-inconclusive",
-			fix:         true,
-			startCommit: 400,
-			brokenStart: 500,
-			brokenEnd:   600,
-			commitLen:   8,
-			culprit:     501,
-		},
-		{
-			name:            "cause-same-binary",
-			startCommit:     905,
-			commitLen:       1,
-			expectRep:       true,
-			culprit:         503,
-			sameBinaryStart: 502,
-			sameBinaryEnd:   503,
-			noopChange:      true,
-		},
-		{
-			name:            "cause-same-binary-off-by-one",
-			startCommit:     905,
-			commitLen:       1,
-			expectRep:       true,
-			culprit:         503,
-			sameBinaryStart: 400,
-			sameBinaryEnd:   502,
-		},
-		{
-			name:            "cause-same-binary-off-by-one-2",
-			startCommit:     905,
-			commitLen:       1,
-			expectRep:       true,
-			culprit:         503,
-			sameBinaryStart: 503,
-			sameBinaryEnd:   905,
-		},
-		{
-			name:            "fix-same-binary",
-			fix:             true,
-			startCommit:     400,
-			commitLen:       1,
-			culprit:         503,
-			sameBinaryStart: 502,
-			sameBinaryEnd:   504,
-			noopChange:      true,
-		},
-		{
-			name:            "cause-same-binary-release1",
-			startCommit:     905,
-			commitLen:       1,
-			expectRep:       true,
-			culprit:         500,
-			sameBinaryStart: 405,
-			sameBinaryEnd:   500,
-			noopChange:      true,
-			isRelease:       true,
-		},
-		{
-			name:            "cause-same-binary-release2",
-			startCommit:     905,
-			commitLen:       1,
-			expectRep:       true,
-			culprit:         501,
-			sameBinaryStart: 500,
-			sameBinaryEnd:   501,
-			noopChange:      true,
-		},
-		{
-			name:            "cause-same-binary-release3",
-			startCommit:     905,
-			commitLen:       1,
-			expectRep:       true,
-			culprit:         405,
-			sameBinaryStart: 404,
-			sameBinaryEnd:   405,
-			noopChange:      true,
-		},
-		{
-			name:            "fix-same-binary-last",
-			fix:             true,
-			startCommit:     400,
-			commitLen:       1,
-			culprit:         905,
-			sameBinaryStart: 904,
-			sameBinaryEnd:   905,
-			noopChange:      true,
-		},
-		{
-			name:        "fix-release",
-			fix:         true,
-			startCommit: 400,
-			commitLen:   1,
-			culprit:     900,
-			isRelease:   true,
-		},
-		{
-			name:            "cause-not-in-previous-release-issue-1527",
-			startCommit:     905,
-			culprit:         650,
-			commitLen:       1,
-			expectRep:       true,
-			sameBinaryStart: 500,
-			sameBinaryEnd:   650,
-			noopChange:      true,
-		},
-	}
 	// Creating new repos takes majority of the test time,
 	// so we reuse them across tests.
-	repoCache := make(chan string, len(tests))
+	repoCache := make(chan string, len(bisectionTests))
 	t.Run("group", func(t *testing.T) {
-		for _, test := range tests {
+		for _, test := range bisectionTests {
 			test := test
 			t.Run(test.name, func(t *testing.T) {
 				t.Parallel()

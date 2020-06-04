@@ -11,7 +11,7 @@ import (
 	"math/rand"
 )
 
-// nolint: gocyclo, nestif, gocognit
+// nolint: gocyclo, nestif, gocognit, funlen
 func (insn *Insn) Encode(cfg *Config, r *rand.Rand) []byte {
 	if !insn.isCompatible(cfg) {
 		panic("instruction is not suitable for this mode")

@@ -102,6 +102,7 @@ const (
 	OutputFile
 )
 
+// nolint: funlen
 func main() {
 	debug.SetGCPercent(50)
 

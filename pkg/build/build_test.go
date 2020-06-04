@@ -37,9 +37,30 @@ func TestCompilerIdentity(t *testing.T) {
 }
 
 func TestExtractRootCause(t *testing.T) {
-	// nolint: lll
-	for i, test := range []struct{ e, reason, src, file string }{
-		{`
+	for i, test := range rootCauseTests {
+		test := test
+		t.Run(fmt.Sprint(i), func(t *testing.T) {
+			reason, file := extractCauseInner([]byte(test.e), test.src)
+			if test.reason != string(reason) {
+				t.Errorf("expected:\n%s\ngot:\n%s", test.reason, reason)
+			}
+			if test.file != file {
+				t.Errorf("expected file: %q, got: %q", test.file, file)
+			}
+		})
+	}
+}
+
+type RootCauseTest struct {
+	e      string
+	reason string
+	src    string
+	file   string
+}
+
+// nolint: lll
+var rootCauseTests = []RootCauseTest{
+	{`
   LINK     /home/dvyukov/src/linux2/tools/objtool/objtool
   MKELF   scripts/mod/elfconfig.h
   HOSTCC  scripts/mod/modpost.o
@@ -52,11 +73,11 @@ func TestExtractRootCause(t *testing.T) {
   UPD     include/generated/asm-offsets.h
   CALL    scripts/checksyscalls.sh
 `,
-			"",
-			"",
-			"",
-		},
-		{`
+		"",
+		"",
+		"",
+	},
+	{`
 cc -g -Werror db_break.c
 sys/dev/kcov.c:93:6: error: use of undeclared identifier 'kcov_cold123'; did you mean 'kcov_cold'?
         if (kcov_cold123)
@@ -67,11 +88,11 @@ int kcov_cold = 1;
     ^
 1 error generated.
 `,
-			"sys/dev/kcov.c:93:6: error: use of undeclared identifier 'kcov_cold123'; did you mean 'kcov_cold'?",
-			"",
-			"sys/dev/kcov.c",
-		},
-		{`
+		"sys/dev/kcov.c:93:6: error: use of undeclared identifier 'kcov_cold123'; did you mean 'kcov_cold'?",
+		"",
+		"sys/dev/kcov.c",
+	},
+	{`
   CC       /tools/objtool/parse-options.o
 In file included from ./scripts/gcc-plugins/gcc-common.h:119:0,
  from <stdin>:1:
@@ -83,11 +104,11 @@ make: *** [gcc-plugins-check] Error 1
 make: *** Waiting for unfinished jobs....
   UPD     include/config/kernel.release
 `,
-			"/gcc-5.5.0/bin/../lib/gcc/x86_64-unknown-linux-gnu/5.5.0/plugin/include/builtins.h:23:17: fatal error: mpc.h: No such file or directory",
-			"",
-			"",
-		},
-		{`
+		"/gcc-5.5.0/bin/../lib/gcc/x86_64-unknown-linux-gnu/5.5.0/plugin/include/builtins.h:23:17: fatal error: mpc.h: No such file or directory",
+		"",
+		"",
+	},
+	{`
 Starting local Bazel server and connecting to it...
 Loading:
 Loading: 0 packages loaded
@@ -103,13 +124,13 @@ INFO: Elapsed time: 14.914s
 INFO: 0 processes.
 FAILED: Build did NOT complete successfully (189 packages loaded)
 `,
-			`ERROR: /kernel/vdso/BUILD:13:1: no such target '@bazel_tools//tools/cpp:cc_flags': target 'cc_flags' not declared in package 'tools/cpp' defined by /syzkaller/home/.cache/bazel/_bazel_root/e1c9d86bae2b34f90e83d224bc900958/external/bazel_tools/tools/cpp/BUILD and referenced by '//vdso:vdso'
+		`ERROR: /kernel/vdso/BUILD:13:1: no such target '@bazel_tools//tools/cpp:cc_flags': target 'cc_flags' not declared in package 'tools/cpp' defined by /syzkaller/home/.cache/bazel/_bazel_root/e1c9d86bae2b34f90e83d224bc900958/external/bazel_tools/tools/cpp/BUILD and referenced by '//vdso:vdso'
 ERROR: Analysis of target '//runsc:runsc' failed; build aborted: Analysis failed
 FAILED: Build did NOT complete successfully (189 packages loaded)`,
-			"",
-			"",
-		},
-		{`
+		"",
+		"",
+	},
+	{`
 ld -T ld.script -X --warn-common -nopie -o bsd ${SYSTEM_HEAD} vers.o ${OBJS}
 ld: error: undefined symbol: __stack_smash_handler
 >>> referenced by bktr_card.c:0 (/kernel/sys/dev/pci/bktr/bktr_card.c:0)
@@ -126,12 +147,12 @@ ld: error: undefined symbol: __stack_smash_handler
 ld: error: too many errors emitted, stopping now (use -error-limit=0 to see all errors)
 *** Error 1 in /kernel/sys/arch/amd64/compile/SYZKALLER (Makefile:991 'bsd': @echo ld -T ld.script -X --warn-commo...)
 `,
-			`ld: error: undefined symbol: __stack_smash_handler
+		`ld: error: undefined symbol: __stack_smash_handler
 ld: error: too many errors emitted, stopping now (use -error-limit=0 to see all errors)`,
-			"",
-			"",
-		},
-		{`
+		"",
+		"",
+	},
+	{`
 make: execvp: /gcc-5.5.0/bin/gcc: Permission denied
 scripts/kconfig/conf  --silentoldconfig Kconfig
 arch/x86/Makefile:123: stack-protector enabled but compiler support broken
@@ -161,13 +182,13 @@ make: *** [scripts] Error 2
 make: *** Waiting for unfinished jobs....
   HOSTLD  arch/x86/tools/relocs
 `,
-			`make: execvp: /gcc-5.5.0/bin/gcc: Permission denied
+		`make: execvp: /gcc-5.5.0/bin/gcc: Permission denied
 scripts/xen-hypercalls.sh: line 7: /gcc-5.5.0/bin/gcc: Permission denied
 /bin/sh: 1: /gcc-5.5.0/bin/gcc: Permission denied`,
-			"",
-			"",
-		},
-		{`
+		"",
+		"",
+	},
+	{`
 ./arch/x86/include/asm/nospec-branch.h:360:1: warning: data definition has no type or storage class
   360 | DECLARE_STATIC_KEY_FALSE(mds_user_clear);
       | ^~~~~~~~~~~~~~~~~~~~~~~~
@@ -189,10 +210,10 @@ make: *** [prepare0] Error 2
 `, `./arch/x86/include/asm/nospec-branch.h:360:1: error: type defaults to 'int' in declaration of 'DECLARE_STATIC_KEY_FALSE' [-Werror=implicit-int]
 ./arch/x86/include/asm/nospec-branch.h:394:6: error: implicit declaration of function 'static_branch_likely' [-Werror=implicit-function-declaration]
 ./arch/x86/include/asm/nospec-branch.h:394:28: error: 'mds_user_clear' undeclared (first use in this function)`,
-			"/some/unrelated/path",
-			"arch/x86/include/asm/nospec-branch.h",
-		},
-		{`
+		"/some/unrelated/path",
+		"arch/x86/include/asm/nospec-branch.h",
+	},
+	{`
   CC      fs/notify/group.o
   CC      lib/zlib_deflate/deftree.o
   CC      net/ipv4/devinet.o
@@ -216,11 +237,11 @@ make[1]: *** Waiting for unfinished jobs....
   CC      arch/x86/kernel/apic/ipi.o
   CC      sound/hda/hdac_controller.o
 `,
-			"kernel/rcu/tasks.h:1070:37: error: 'rcu_tasks_rude' undeclared (first use in this function); did you mean 'rcu_tasks_qs'?",
-			"",
-			"kernel/rcu/tasks.h",
-		},
-		{`
+		"kernel/rcu/tasks.h:1070:37: error: 'rcu_tasks_rude' undeclared (first use in this function); did you mean 'rcu_tasks_qs'?",
+		"",
+		"kernel/rcu/tasks.h",
+	},
+	{`
   CC      arch/x86/boot/compressed/kaslr.o
   AS      arch/x86/boot/compressed/mem_encrypt.o
   CC      arch/x86/boot/compressed/kaslr_64.o
@@ -312,12 +333,12 @@ make[1]: *** [arch/x86/boot/compressed/vmlinux] Error 2
 arch/x86/Makefile:284: recipe for target 'bzImage' failed
 make: *** [bzImage] Error 2
 `,
-			`clang-10: error: unable to execute command: Aborted (core dumped)
+		`clang-10: error: unable to execute command: Aborted (core dumped)
 clang-10: error: clang integrated assembler command failed due to signal (use -v to see invocation)`,
-			"",
-			"",
-		},
-		{`
+		"",
+		"",
+	},
+	{`
 scripts/kconfig/conf  --syncconfig Kconfig
   DESCEND  objtool
   CALL    scripts/atomic/check-atomics.sh
@@ -340,20 +361,20 @@ arch/x86/platform/efi/efi_64.o: In function 'efi_set_virtual_address_map':
 Makefile:1078: recipe for target 'vmlinux' failed
 make: *** [vmlinux] Error 1
 `,
-			`arch/x86/platform/efi/efi_64.c:560: undefined reference to '__efi64_thunk'
+		`arch/x86/platform/efi/efi_64.c:560: undefined reference to '__efi64_thunk'
 arch/x86/platform/efi/efi_64.c:902: undefined reference to 'efi_uv1_memmap_phys_prolog'
 arch/x86/platform/efi/efi_64.c:921: undefined reference to 'efi_uv1_memmap_phys_epilog'`,
-			"/syzkaller/managers/upstream-linux-next-kasan-gce-root/kernel",
-			"arch/x86/platform/efi/efi_64.c",
-		},
-		{`
+		"/syzkaller/managers/upstream-linux-next-kasan-gce-root/kernel",
+		"arch/x86/platform/efi/efi_64.c",
+	},
+	{`
 /syzkaller/managers/upstream-linux-next-kasan-gce-root/kernel/arch/x86/platform/efi/efi_64.c:560: undefined reference to '__efi64_thunk'
 `,
-			`arch/x86/platform/efi/efi_64.c:560: undefined reference to '__efi64_thunk'`,
-			"/syzkaller/managers/upstream-linux-next-kasan-gce-root/kernel/",
-			"arch/x86/platform/efi/efi_64.c",
-		},
-		{`
+		`arch/x86/platform/efi/efi_64.c:560: undefined reference to '__efi64_thunk'`,
+		"/syzkaller/managers/upstream-linux-next-kasan-gce-root/kernel/",
+		"arch/x86/platform/efi/efi_64.c",
+	},
+	{`
   CC      net/ipv6/ip6_output.o
   CC      security/selinux/ss/policydb.o
   CC      net/ipv4/route.o
@@ -390,20 +411,8 @@ make[1]: *** Waiting for unfinished jobs....
   CC      net/netlabel/netlabel_domainhash.o
   CC      net/netlabel/netlabel_addrlist.o
 `,
-			"./include/linux/netfilter_ipv6.h:110:9: error: implicit declaration of function 'nf_ct_frag6_gather' [-Werror=implicit-function-declaration]",
-			"",
-			"include/linux/netfilter_ipv6.h",
-		},
-	} {
-		test := test
-		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			reason, file := extractCauseInner([]byte(test.e), test.src)
-			if test.reason != string(reason) {
-				t.Errorf("expected:\n%s\ngot:\n%s", test.reason, reason)
-			}
-			if test.file != file {
-				t.Errorf("expected file: %q, got: %q", test.file, file)
-			}
-		})
-	}
+		"./include/linux/netfilter_ipv6.h:110:9: error: implicit declaration of function 'nf_ct_frag6_gather' [-Werror=implicit-function-declaration]",
+		"",
+		"include/linux/netfilter_ipv6.h",
+	},
 }

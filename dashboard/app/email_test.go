@@ -13,6 +13,7 @@ import (
 	"github.com/google/syzkaller/pkg/email"
 )
 
+// nolint: funlen
 func TestEmailReport(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
