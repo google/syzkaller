@@ -259,7 +259,6 @@ func (p *parser) parseProg() (*Prog, error) {
 			r = name
 			p.Parse('=')
 			name = p.Ident()
-
 		}
 		meta := p.target.SyscallMap[name]
 		if meta == nil {
@@ -1021,7 +1020,6 @@ func (p *parser) fixupAutos(prog *Prog) {
 				a.Address = s.ma.alloc(nil, a.Res.Size())
 			default:
 				panic(fmt.Sprintf("unsupported auto type %T", typ))
-
 			}
 		})
 	}

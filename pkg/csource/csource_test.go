@@ -43,7 +43,6 @@ func TestGenerate(t *testing.T) {
 			t.Parallel()
 			testTarget(t, target, full)
 		})
-
 	}
 }
 
