@@ -17,7 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/serializer"
 )
 
-// nolint: gocyclo
+// nolint: gocyclo, gocognit
 func main() {
 	if len(os.Args) != 2 {
 		failf("usage: gen instructions.txt")
@@ -180,7 +180,7 @@ func (err errSkip) Error() string {
 	return string(err)
 }
 
-// nolint: gocyclo
+// nolint: gocyclo, gocognit
 func parsePattern(insn *ifuzz.Insn, vals []string) error {
 	if insn.Opcode != nil {
 		return fmt.Errorf("PATTERN is already parsed for the instruction")

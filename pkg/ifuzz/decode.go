@@ -10,7 +10,7 @@ import (
 // Decode decodes instruction length for the given mode.
 // It can have falsely decode incorrect instructions,
 // but should not fail to decode correct instructions.
-// nolint: gocyclo, nestif
+// nolint: gocyclo, nestif, gocognit
 func Decode(mode int, text []byte) (int, error) {
 	if len(text) == 0 {
 		return 0, fmt.Errorf("zero-length instruction")

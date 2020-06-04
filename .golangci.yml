@@ -38,6 +38,7 @@ linters:
     - nestif
     - goprintffuncname
     - godot
+    - gocognit
   disable:
     - bodyclose
     - depguard
@@ -68,16 +69,22 @@ linters-settings:
   lll:
     line-length: 120
   gocyclo:
+    # TODO: consider reducing this value.
     min-complexity: 24
   dupl:
+    # TODO: consider reducing this value.
     threshold: 60
   goconst:
     min-len: 7
     min-occurrences: 4
   nestif:
+    # TODO: consider reducing this value.
     min-complexity: 12
   godot:
     check-all: true
+  gocognit:
+    # TODO: consider reducing this value.
+    min-complexity: 70
 
 issues:
   exclude-use-default: false
