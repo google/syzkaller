@@ -52,7 +52,6 @@ type HidDeviceID struct {
 
 func (arch *arch) generateUsbDeviceDescriptor(g *prog.Gen, typ0 prog.Type, dir prog.Dir, old prog.Arg) (
 	arg prog.Arg, calls []*prog.Call) {
-
 	if old == nil {
 		arg = g.GenerateSpecialArg(typ0, dir, &calls)
 	} else {
@@ -142,7 +141,6 @@ func randUsbDeviceID(g *prog.Gen) UsbDeviceID {
 
 func (arch *arch) generateUsbHidDeviceDescriptor(g *prog.Gen, typ0 prog.Type, dir prog.Dir, old prog.Arg) (
 	arg prog.Arg, calls []*prog.Call) {
-
 	if old == nil {
 		arg = g.GenerateSpecialArg(typ0, dir, &calls)
 	} else {
