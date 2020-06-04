@@ -109,11 +109,11 @@ See the links at the top of the document for instructions on setting up syzkalle
 
     Solution: add your user to the `kvm` group (`sudo usermod -a -G kvm` and relogin).
 
-* QEMU crashes with
+* QEMU crashes with:
 
     ```
     qemu-system-x86_64: error: failed to set MSR 0x48b to 0x159ff00000000
     qemu-system-x86_64: /build/qemu-EmNSP4/qemu-4.2/target/i386/kvm.c:2947: kvm_put_msrs: Assertion `ret == cpu->kvm_msr_buf->nmsrs' failed.
    ```
 
-    Solution: remove `-cpu host,migratable=off` from QEMU command line. Easiest way to do that was to set `qemu_args` to `-enable-kvm` in the `syz-manager` config file.
+    Solution: remove `-cpu host,migratable=off` from the QEMU command line. The easiest way to do that is to set `qemu_args` to `-enable-kvm` in the `syz-manager` config file.
