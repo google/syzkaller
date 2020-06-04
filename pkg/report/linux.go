@@ -1082,7 +1082,8 @@ var linuxOopses = append([]*oops{
 						compile("Call Trace:"),
 						parseStackTrace,
 					},
-					skip: []string{"dump_stack", "preemption", "preempt"},
+					skip: []string{"dump_stack", "preemption", "preempt", "debug_",
+						"processor_id", "this_cpu"},
 				},
 			},
 			{
