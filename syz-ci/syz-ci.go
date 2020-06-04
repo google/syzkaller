@@ -4,7 +4,7 @@
 // syz-ci is a continuous fuzzing system for syzkaller.
 // It runs several syz-manager's, polls and rebuilds images for managers
 // and polls and rebuilds syzkaller binaries.
-// For usage instructions see: docs/ci.md
+// For usage instructions see: docs/ci.md.
 package main
 
 // Implementation details:

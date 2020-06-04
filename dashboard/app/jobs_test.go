@@ -360,7 +360,7 @@ func TestJobRestrictedManager(t *testing.T) {
 	c.expectEQ(pollResp.KernelRepo, "git://restricted.git/restricted.git")
 }
 
-// Test that JobBisectFix is returned only after 30 days
+// Test that JobBisectFix is returned only after 30 days.
 func TestBisectFixJob(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -409,7 +409,7 @@ func TestBisectFixJob(t *testing.T) {
 	c.client2.expectOK(c.client2.JobDone(done))
 }
 
-// Test that JobBisectFix jobs are re-tried if crash occurs on ToT
+// Test that JobBisectFix jobs are re-tried if crash occurs on ToT.
 func TestBisectFixRetry(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()

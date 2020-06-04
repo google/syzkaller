@@ -27,7 +27,7 @@ type Node interface {
 	walk(cb func(Node))
 }
 
-// Top-level AST nodes:
+// Top-level AST nodes.
 
 type NewLine struct {
 	Pos Pos
@@ -150,7 +150,7 @@ func (n *TypeDef) Info() (Pos, string, string) {
 	return n.Pos, "type", n.Name.Name
 }
 
-// Not top-level AST nodes:
+// Not top-level AST nodes.
 
 type Ident struct {
 	Pos  Pos
