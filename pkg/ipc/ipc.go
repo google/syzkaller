@@ -27,7 +27,7 @@ import (
 // Configuration flags for Config.Flags.
 type EnvFlags uint64
 
-// Note: New / changed flags should be added to parse_env_flags in executor.cc
+// Note: New / changed flags should be added to parse_env_flags in executor.cc.
 const (
 	FlagDebug            EnvFlags = 1 << iota // debug output from executor
 	FlagSignal                                // collect feedback signals (coverage)
@@ -43,7 +43,7 @@ const (
 	FlagEnableDevlinkPCI                      // setup devlink PCI device
 )
 
-// Per-exec flags for ExecOpts.Flags:
+// Per-exec flags for ExecOpts.Flags.
 type ExecFlags uint64
 
 const (
@@ -247,7 +247,7 @@ var rateLimit = time.NewTicker(1 * time.Second)
 // output: process output
 // info: per-call info
 // hanged: program hanged and was killed
-// err0: failed to start the process or bug in executor itself
+// err0: failed to start the process or bug in executor itself.
 func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInfo, hanged bool, err0 error) {
 	// Copy-in serialized program.
 	progSize, err := p.SerializeForExec(env.in)

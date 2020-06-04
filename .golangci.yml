@@ -37,6 +37,7 @@ linters:
     - whitespace
     - nestif
     - goprintffuncname
+    - godot
   disable:
     - bodyclose
     - depguard
@@ -75,6 +76,8 @@ linters-settings:
     min-occurrences: 4
   nestif:
     min-complexity: 12
+  godot:
+    check-all: true
 
 issues:
   exclude-use-default: false
