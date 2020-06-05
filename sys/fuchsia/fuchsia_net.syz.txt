@@ -43,19 +43,6 @@ fuchsia_net_Ipv6AddressHandles {
 	void	void
 } [packed]
 
-fuchsia_net_SubnetInLine {
-	addrInLine	fuchsia_net_IpAddressInLine
-	prefix_len	int8
-} [packed]
-
-fuchsia_net_SubnetOutOfLine {
-	void	void
-} [packed]
-
-fuchsia_net_SubnetHandles {
-	void	void
-} [packed]
-
 fuchsia_net_NameLookup_LookupIp_ResultHandles [
 	response	fuchsia_net_NameLookup_LookupIp_ResponseHandles
 ] [varlen]
@@ -65,8 +52,8 @@ fuchsia_net_NameLookup_LookupHostname_ResultHandles [
 ] [varlen]
 
 fuchsia_net_IpAddressInLine [
-	ipv4InLine	fidl_union_member[fuchsia_net_IpAddressTag_ipv4, fuchsia_net_Ipv4AddressInLine]
-	ipv6InLine	fidl_union_member[fuchsia_net_IpAddressTag_ipv6, fuchsia_net_Ipv6AddressInLine]
+	ipv4InLine	fidl_union_member[1, fuchsia_net_Ipv4AddressInLine]
+	ipv6InLine	fidl_union_member[2, fuchsia_net_Ipv6AddressInLine]
 ]
 
 fuchsia_net_IpAddressOutOfLine [
