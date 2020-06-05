@@ -21,6 +21,7 @@ import (
 	"github.com/google/syzkaller/pkg/cmdprof"
 	"github.com/google/syzkaller/pkg/compiler"
 	"github.com/google/syzkaller/pkg/hash"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/serializer"
 	"github.com/google/syzkaller/prog"
@@ -152,9 +153,9 @@ func main() {
 		var syscallArchs []ArchData
 		unsupported := make(map[string]int)
 		for _, job := range jobs {
-			fmt.Printf("generating %v/%v...\n", job.Target.OS, job.Target.Arch)
+			log.Logf(2, "generating %v/%v...\n", job.Target.OS, job.Target.Arch)
 			for _, msg := range job.Errors {
-				fmt.Print(msg)
+				log.Logf(1, "%s", msg)
 			}
 			if !job.OK {
 				os.Exit(1)
