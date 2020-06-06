@@ -216,7 +216,7 @@ type Type struct {
 }
 
 func (n *Type) Info() (Pos, string, string) {
-	return n.Pos, "type", n.Ident
+	return n.Pos, "type-opt", n.Ident
 }
 
 type Field struct {
