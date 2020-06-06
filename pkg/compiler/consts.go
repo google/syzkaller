@@ -201,10 +201,9 @@ func (comp *compiler) patchConsts(consts0 map[string]uint64) {
 		consts[name] = val
 	}
 	for _, decl := range comp.desc.Nodes {
-		switch decl.(type) {
+		switch n := decl.(type) {
 		case *ast.IntFlags:
 			// Unsupported flag values are dropped.
-			n := decl.(*ast.IntFlags)
 			var values []*ast.Int
 			for _, v := range n.Values {
 				if comp.patchIntConst(v, consts, nil) {
