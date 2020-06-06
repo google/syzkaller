@@ -60,6 +60,7 @@ bpf$MAP_DELETE_BATCH(cmd const[BPF_MAP_DELETE_BATCH], arg ptr[in, bpf_map_batch_
 bpf$BPF_MAP_LOOKUP_AND_DELETE_BATCH(cmd const[BPF_MAP_LOOKUP_AND_DELETE_BATCH], arg ptr[in, bpf_map_batch_arg], size len[arg])
 bpf$BPF_LINK_CREATE(cmd const[BPF_LINK_CREATE], arg ptr[in, bpf_link_create_arg], size len[arg]) fd_bpf_link
 bpf$BPF_LINK_UPDATE(cmd const[BPF_LINK_UPDATE], arg ptr[in, bpf_link_update_arg], size len[arg])
+bpf$ENABLE_STATS(cmd const[BPF_ENABLE_STATS], arg ptr[in, bpf_enable_stats_arg], size len[arg])
 
 bpf_map_create_arg {
 	type			flags[bpf_map_type, int32]
@@ -134,6 +135,10 @@ bpf_link_update_arg {
 	new_prog_fd	fd_bpf_prog
 	flags		flags[bpf_link_update_flags, int32]
 	old_prog_fd	fd_bpf_prog
+}
+
+bpf_enable_stats_arg {
+	type	flags[bpf_stat_types, int32]
 }
 
 bpf_batch_flags = BPF_F_LOCK
@@ -727,3 +732,4 @@ bpf_link_update_flags = BPF_F_REPLACE
 bpf_prog_query_flags = BPF_F_QUERY_EFFECTIVE
 bpf_prog_query_attach_type = BPF_CGROUP_INET_INGRESS, BPF_CGROUP_INET_EGRESS, BPF_CGROUP_INET_SOCK_CREATE, BPF_CGROUP_SOCK_OPS, BPF_CGROUP_DEVICE, BPF_CGROUP_INET4_BIND, BPF_CGROUP_INET4_CONNECT, BPF_CGROUP_INET4_POST_BIND, BPF_CGROUP_INET6_BIND, BPF_CGROUP_INET6_CONNECT, BPF_CGROUP_INET6_POST_BIND, BPF_CGROUP_UDP4_SENDMSG, BPF_CGROUP_UDP6_SENDMSG, BPF_LIRC_MODE2, BPF_CGROUP_SYSCTL, BPF_FLOW_DISSECTOR, BPF_CGROUP_UDP4_RECVMSG, BPF_CGROUP_UDP6_RECVMSG, BPF_CGROUP_GETSOCKOPT, BPF_CGROUP_SETSOCKOPT, BPF_CGROUP_INET4_GETPEERNAME, BPF_CGROUP_INET4_GETSOCKNAME, BPF_CGROUP_INET6_GETPEERNAME, BPF_CGROUP_INET6_GETSOCKNAME
 bpf_open_flags = BPF_F_RDONLY, BPF_F_WRONLY
+bpf_stat_types = BPF_STATS_RUN_TIME
