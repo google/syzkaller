@@ -76,8 +76,8 @@ linters-settings:
   dupl:
     threshold: 60
   goconst:
-    min-len: 7
-    min-occurrences: 4
+    min-len: 3
+    min-occurrences: 3
   nestif:
     # TODO: consider reducing this value.
     min-complexity: 12
@@ -109,3 +109,6 @@ issues:
     - path: (dashboard/app/.*_test\.go)
       linters:
         - dupl
+    - path: (prog/.*_test\.go)
+      linters:
+        - goconst

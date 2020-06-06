@@ -260,21 +260,25 @@ func defaultFeatures(value bool) Features {
 }
 
 func ParseFeaturesFlags(enable string, disable string, defaultValue bool) (Features, error) {
-	if enable == "none" && disable == "none" {
+	const (
+		none = "none"
+		all  = "all"
+	)
+	if enable == none && disable == none {
 		return defaultFeatures(defaultValue), nil
 	}
-	if enable != "none" && disable != "none" {
+	if enable != none && disable != none {
 		return nil, fmt.Errorf("can't use -enable and -disable flags at the same time")
 	}
-	if enable == "all" || disable == "" {
+	if enable == all || disable == "" {
 		return defaultFeatures(true), nil
 	}
-	if disable == "all" || enable == "" {
+	if disable == all || enable == "" {
 		return defaultFeatures(false), nil
 	}
 	var items []string
 	var features Features
-	if enable != "none" {
+	if enable != none {
 		items = strings.Split(enable, ",")
 		features = defaultFeatures(false)
 	} else {
@@ -286,7 +290,7 @@ func ParseFeaturesFlags(enable string, disable string, defaultValue bool) (Featu
 			return nil, fmt.Errorf("unknown feature specified: %s", item)
 		}
 		feature := features[item]
-		feature.Enabled = (enable != "none")
+		feature.Enabled = enable != none
 		features[item] = feature
 	}
 	return features, nil

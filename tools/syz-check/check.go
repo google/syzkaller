@@ -541,9 +541,14 @@ func isNetlinkPolicy(fields []prog.Field) bool {
 	return haveAttr
 }
 
+const (
+	nlattrT  = "nlattr_t"
+	nlattrTT = "nlattr_tt"
+)
+
 func isNlattr(typ prog.Type) bool {
 	name := typ.TemplateName()
-	return name == "nlattr_t" || name == "nlattr_tt"
+	return name == nlattrT || name == nlattrTT
 }
 
 func checkNetlinkPolicy(structMap map[string]prog.Type, typ prog.Type, fields []prog.Field,
@@ -586,7 +591,7 @@ func checkNetlinkPolicy(structMap map[string]prog.Type, typ prog.Type, fields []
 
 func checkNetlinkAttr(typ *prog.StructType, policy nlaPolicy) string {
 	payload := typ.Fields[2].Type
-	if typ.TemplateName() == "nlattr_tt" {
+	if typ.TemplateName() == nlattrTT {
 		payload = typ.Fields[4].Type
 	}
 	if warn := checkAttrType(typ, payload, policy); warn != "" {
@@ -657,11 +662,11 @@ func checkAttrType(typ *prog.StructType, payload prog.Type, policy nlaPolicy) st
 			return "expect string"
 		}
 	case NLA_NESTED:
-		if typ.TemplateName() != "nlattr_tt" || typ.Fields[3].Type.(*prog.ConstType).Val != 1 {
+		if typ.TemplateName() != nlattrTT || typ.Fields[3].Type.(*prog.ConstType).Val != 1 {
 			return "should be nlnest"
 		}
 	case NLA_BITFIELD32:
-		if typ.TemplateName() != "nlattr_t" || payload.TemplateName() != "nla_bitfield32" {
+		if typ.TemplateName() != nlattrT || payload.TemplateName() != "nla_bitfield32" {
 			return "should be nlattr[nla_bitfield32]"
 		}
 	case NLA_NESTED_ARRAY, NLA_REJECT:
