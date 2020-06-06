@@ -48,6 +48,7 @@ func ctorLinux(cfg *config) (Reporter, []string, error) {
 		vmlinux: vmlinux,
 		symbols: symbols,
 	}
+	// nolint: lll
 	ctx.consoleOutputRe = regexp.MustCompile(`^(?:\*\* [0-9]+ printk messages dropped \*\* )?(?:.* login: )?(?:\<[0-9]+\>)?\[ *[0-9]+\.[0-9]+\](\[ *(?:C|T)[0-9]+\])? `)
 	ctx.taskContext = regexp.MustCompile(`\[ *T[0-9]+\]`)
 	ctx.cpuContext = regexp.MustCompile(`\[ *C[0-9]+\]`)
@@ -551,7 +552,7 @@ func (ctx *linux) isCorrupted(title string, report []byte, format oopsFormat) (b
 				}
 			}
 			if bytes.Contains(frames[i], []byte("(stack is not available)")) ||
-				stackFrameRe.Match(frames[i]) {
+				linuxStackFrameRe.Match(frames[i]) {
 				corrupted = false
 				break
 			}
@@ -705,10 +706,11 @@ var linuxStallAnchorFrames = []*regexp.Regexp{
 	compile("exit_to_usermode"),
 }
 
+// nolint: lll
 var (
-	linuxSymbolizeRe = regexp.MustCompile(`(?:\[\<(?:[0-9a-f]+)\>\])?[ \t]+(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
-	stackFrameRe     = regexp.MustCompile(`^ *(?:\[\<?(?:[0-9a-f]+)\>?\] ?){0,2}[ \t]+(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
-	linuxRipFrame    = compile(`N?IP:? (?:(?:[0-9]+:)?(?:{{PC}} +){0,2}{{FUNC}}|[0-9]+:0x[0-9a-f]+|(?:[0-9]+:)?{{PC}} +\[< *\(null\)>\] +\(null\)|[0-9]+: +\(null\))`)
+	linuxSymbolizeRe  = regexp.MustCompile(`(?:\[\<(?:[0-9a-f]+)\>\])?[ \t]+(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
+	linuxStackFrameRe = regexp.MustCompile(`^ *(?:\[\<?(?:[0-9a-f]+)\>?\] ?){0,2}[ \t]+(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
+	linuxRipFrame     = compile(`N?IP:? (?:(?:[0-9]+:)?(?:{{PC}} +){0,2}{{FUNC}}|[0-9]+:0x[0-9a-f]+|(?:[0-9]+:)?{{PC}} +\[< *\(null\)>\] +\(null\)|[0-9]+: +\(null\))`)
 )
 
 var linuxCorruptedTitles = []*regexp.Regexp{
@@ -897,6 +899,7 @@ func warningStackFmt(skip ...string) *stackFmt {
 	}
 }
 
+// nolint: lll
 var linuxOopses = append([]*oops{
 	{
 		[]byte("BUG:"),
