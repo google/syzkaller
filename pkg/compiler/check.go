@@ -184,6 +184,8 @@ func (comp *compiler) checkFieldGroup(fields []*ast.Field, what, ctx string) {
 	}
 }
 
+const argBase = "BASE"
+
 func (comp *compiler) checkTypedefs() {
 	for _, decl := range comp.desc.Nodes {
 		switch n := decl.(type) {
@@ -200,7 +202,7 @@ func (comp *compiler) checkTypedefs() {
 				// For templates we only do basic checks of arguments.
 				names := make(map[string]bool)
 				for i, arg := range n.Args {
-					if arg.Name == "BASE" && i != len(n.Args)-1 {
+					if arg.Name == argBase && i != len(n.Args)-1 {
 						comp.error(arg.Pos, "type argument BASE must be the last argument")
 					}
 					if names[arg.Name] {
@@ -857,7 +859,7 @@ func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, flags checkFlag
 	}
 	typedef := comp.typedefs[typedefName]
 	// Handling optional BASE argument.
-	if len(typedef.Args) > 0 && typedef.Args[len(typedef.Args)-1].Name == "BASE" {
+	if len(typedef.Args) > 0 && typedef.Args[len(typedef.Args)-1].Name == argBase {
 		if flags&checkIsArg != 0 && len(t.Args) == len(typedef.Args)-1 {
 			t.Args = append(t.Args, &ast.Type{
 				Pos:   t.Pos,
@@ -889,7 +891,7 @@ func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, flags checkFlag
 		if nargs == 0 {
 			comp.error(t.Pos, "type %v is not a template", typedefName)
 		} else {
-			if flags&checkIsArg != 0 && typedef.Args[len(typedef.Args)-1].Name == "BASE" {
+			if flags&checkIsArg != 0 && typedef.Args[len(typedef.Args)-1].Name == argBase {
 				nargs--
 			}
 			comp.error(t.Pos, "template %v needs %v arguments instead of %v",

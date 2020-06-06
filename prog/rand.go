@@ -435,8 +435,7 @@ func (r *randGen) createResource(s *state, res *ResourceType, dir Dir) (arg Arg,
 func (r *randGen) generateText(kind TextKind) []byte {
 	switch kind {
 	case TextTarget:
-		if r.target.Arch == "amd64" || r.target.Arch == "386" {
-			cfg := createTargetIfuzzConfig(r.target)
+		if cfg := createTargetIfuzzConfig(r.target); cfg != nil {
 			return ifuzz.Generate(cfg, r.Rand)
 		}
 		fallthrough
@@ -456,8 +455,7 @@ func (r *randGen) generateText(kind TextKind) []byte {
 func (r *randGen) mutateText(kind TextKind, text []byte) []byte {
 	switch kind {
 	case TextTarget:
-		if r.target.Arch == "amd64" || r.target.Arch == "386" {
-			cfg := createTargetIfuzzConfig(r.target)
+		if cfg := createTargetIfuzzConfig(r.target); cfg != nil {
 			return ifuzz.Mutate(cfg, r.Rand, text)
 		}
 		fallthrough
@@ -489,7 +487,7 @@ func createTargetIfuzzConfig(target *Target) *ifuzz.Config {
 	case "386":
 		cfg.Mode = ifuzz.ModeProt32
 	default:
-		panic("unknown text kind")
+		return nil
 	}
 	return cfg
 }
