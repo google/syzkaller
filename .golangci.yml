@@ -105,7 +105,7 @@ issues:
         - lll
     - path: (sys/.*/init.*|sys/targets/common.go)
       text: "don't use ALL_CAPS in Go names|should not use ALL_CAPS in Go names"
-    - path: (prog/.*|pkg/ast/.*)
+    - path: (prog/.*)
       text: "methods on the same type should have the same receiver name"
     # TODO: this is bad, need to fix and remove the suppression.
     - path: (pkg/report/(net|open)bsd.*)
