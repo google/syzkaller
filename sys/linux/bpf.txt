@@ -39,9 +39,9 @@ bpf$OBJ_GET_PROG(cmd const[BPF_OBJ_GET], arg ptr[in, bpf_obj_get], size len[arg]
 bpf$BPF_PROG_ATTACH(cmd const[BPF_PROG_ATTACH], arg ptr[in, bpf_attach_arg], size len[arg])
 bpf$BPF_PROG_DETACH(cmd const[BPF_PROG_DETACH], arg ptr[in, bpf_detach_arg], size len[arg])
 bpf$BPF_PROG_TEST_RUN(cmd const[BPF_PROG_TEST_RUN], arg ptr[in, bpf_test_prog_arg], size len[arg])
-bpf$BPF_PROG_GET_NEXT_ID(cmd const[BPF_PROG_GET_NEXT_ID], arg ptr[in, bpf_obj_get_next_id_arg], size len[arg])
-bpf$BPF_MAP_GET_NEXT_ID(cmd const[BPF_MAP_GET_NEXT_ID], arg ptr[in, bpf_obj_get_next_id_arg], size len[arg])
-bpf$BPF_BTF_GET_NEXT_ID(cmd const[BPF_BTF_GET_NEXT_ID], arg ptr[in, bpf_obj_get_next_id_arg], size len[arg])
+bpf$BPF_PROG_GET_NEXT_ID(cmd const[BPF_PROG_GET_NEXT_ID], arg ptr[inout, bpf_prog_get_next_id_arg], size len[arg])
+bpf$BPF_MAP_GET_NEXT_ID(cmd const[BPF_MAP_GET_NEXT_ID], arg ptr[inout, bpf_map_get_next_id_arg], size len[arg])
+bpf$BPF_BTF_GET_NEXT_ID(cmd const[BPF_BTF_GET_NEXT_ID], arg ptr[inout, bpf_btf_get_next_id_arg], size len[arg])
 bpf$BPF_PROG_GET_FD_BY_ID(cmd const[BPF_PROG_GET_FD_BY_ID], arg ptr[in, bpf_prog_get_fd_by_id_arg], size len[arg]) fd_bpf_prog
 bpf$BPF_MAP_GET_FD_BY_ID(cmd const[BPF_MAP_GET_FD_BY_ID], arg ptr[in, bpf_map_get_fd_by_id_arg], size len[arg]) fd_bpf_map
 bpf$BPF_GET_PROG_INFO(cmd const[BPF_OBJ_GET_INFO_BY_FD], arg ptr[in, bpf_get_prog_info_arg], size len[arg])
@@ -415,10 +415,25 @@ bpf_test_prog_arg {
 	outctx		ptr64[in, array[int8]]
 }
 
-bpf_obj_get_next_id_arg {
+bpf_prog_get_next_id_arg {
+# NEED: part of fields are input here and part are output. We can't express this yet (#245).
 	start	int32
-	next	int32
-	flags	const[0, int32]
+# Output field:
+	next_id	bpf_prog_id
+}
+
+bpf_map_get_next_id_arg {
+# NEED: part of fields are input here and part are output. We can't express this yet (#245).
+	start	int32
+# Output field:
+	next_id	bpf_map_id
+}
+
+bpf_btf_get_next_id_arg {
+# NEED: part of fields are input here and part are output. We can't express this yet (#245).
+	start	int32
+# Output field:
+	next_id	bpf_btf_id
 }
 
 bpf_prog_get_fd_by_id_arg {
