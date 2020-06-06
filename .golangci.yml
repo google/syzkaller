@@ -100,7 +100,7 @@ issues:
     - "comment on .* should be of the form"
     - "at least one file in a package should have a package comment"
   exclude-rules:
-    - path: (pkg/csource/generated.go|pkg/report/linux.go|pkg/build/linux_generated.go)
+    - path: (pkg/csource/generated.go|pkg/build/linux_generated.go)
       linters:
         - lll
     - path: (sys/.*/init.*|sys/targets/common.go)
