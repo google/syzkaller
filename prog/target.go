@@ -46,10 +46,6 @@ type Target struct {
 	// and optionally any calls that need to be inserted before the arg reference.
 	SpecialTypes map[string]func(g *Gen, typ Type, dir Dir, old Arg) (Arg, []*Call)
 
-	// Special strings that can matter for the target.
-	// Used as fallback when string type does not have own dictionary.
-	StringDictionary []string
-
 	// Resources that play auxiliary role, but widely used throughout all syscalls (e.g. pid/uid).
 	AuxResources map[string]bool
 
