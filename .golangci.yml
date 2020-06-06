@@ -88,7 +88,7 @@ linters-settings:
     min-complexity: 70
   funlen:
     # TODO: consider reducing these value.
-    lines: 200
+    lines: 140
     statements: 80
 
 issues:
@@ -112,3 +112,5 @@ issues:
     - path: (prog/.*_test\.go)
       linters:
         - goconst
+    - path: (.*_test\.go)
+      text: "Function '.*' is too long"
