@@ -98,17 +98,15 @@ issues:
   exclude:
     - "exported .* should have comment"
     - "comment on .* should be of the form"
-    - "declaration of \"err\" shadows"
-    - "should not use ALL_CAPS in Go names"
     - "at least one file in a package should have a package comment"
-    - "methods on the same type should have the same receiver name"
-    - "assigning the result of this type assertion to a variable"
   exclude-rules:
     - path: (pkg/csource/generated.go|pkg/report/linux.go|pkg/build/linux_generated.go)
       linters:
         - lll
     - path: (sys/.*/init.*|sys/targets/common.go)
-      text: "don't use ALL_CAPS in Go names"
+      text: "don't use ALL_CAPS in Go names|should not use ALL_CAPS in Go names"
+    - path: (prog/.*|pkg/ast/.*)
+      text: "methods on the same type should have the same receiver name"
     # TODO: this is bad, need to fix and remove the suppression.
     - path: (pkg/report/(net|open)bsd.*)
       linters:
