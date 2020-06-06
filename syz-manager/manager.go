@@ -289,7 +289,7 @@ type ReproResult struct {
 }
 
 // Manager needs to be refactored (#605).
-// nolint: gocyclo, gocognit
+// nolint: gocyclo, gocognit, funlen
 func (mgr *Manager) vmLoop() {
 	log.Logf(0, "booting test machines...")
 	log.Logf(0, "wait for the connection from test machine...")

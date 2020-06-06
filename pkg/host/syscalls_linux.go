@@ -162,50 +162,10 @@ var (
 // The function is lengthy as it handles all pseudo-syscalls,
 // but it does not seem to cause comprehension problems as there is no shared state.
 // Splitting this per-syscall will only increase code size.
-// nolint: gocyclo
 func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 	switch c.CallName {
 	case "syz_open_dev":
-		if _, ok := c.Args[0].Type.(*prog.ConstType); ok {
-			// This is for syz_open_dev$char/block.
-			return true, ""
-		}
-		fname, ok := extractStringConst(c.Args[0].Type)
-		if !ok {
-			panic("first open arg is not a pointer to string const")
-		}
-		if !strings.Contains(fname, "#") {
-			panic(fmt.Sprintf("%v does not contain # in the file name (should be openat)", c.Name))
-		}
-		if checkUSBEmulation() == "" {
-			// These entries might not be available at boot time,
-			// but will be created by connected USB devices.
-			USBDevicePrefixes := []string{
-				"/dev/hidraw", "/dev/usb/hiddev", "/dev/input/",
-			}
-			for _, prefix := range USBDevicePrefixes {
-				if strings.HasPrefix(fname, prefix) {
-					return true, ""
-				}
-			}
-		}
-		var check func(dev string) bool
-		check = func(dev string) bool {
-			if !strings.Contains(dev, "#") {
-				// Note: don't try to open them all, some can hang (e.g. /dev/snd/pcmC#D#p).
-				return osutil.IsExist(dev)
-			}
-			for i := 0; i < 10; i++ {
-				if check(strings.Replace(dev, "#", strconv.Itoa(i), 1)) {
-					return true
-				}
-			}
-			return false
-		}
-		if !check(fname) {
-			return false, fmt.Sprintf("file %v does not exist", fname)
-		}
-		return onlySandboxNoneOrNamespace(sandbox)
+		return isSupportedSyzOpenDev(sandbox, c)
 	case "syz_open_procfs":
 		return true, ""
 	case "syz_open_pts":
@@ -260,6 +220,49 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 		return true, ""
 	}
 	panic("unknown syzkall: " + c.Name)
+}
+
+func isSupportedSyzOpenDev(sandbox string, c *prog.Syscall) (bool, string) {
+	if _, ok := c.Args[0].Type.(*prog.ConstType); ok {
+		// This is for syz_open_dev$char/block.
+		return true, ""
+	}
+	fname, ok := extractStringConst(c.Args[0].Type)
+	if !ok {
+		panic("first open arg is not a pointer to string const")
+	}
+	if !strings.Contains(fname, "#") {
+		panic(fmt.Sprintf("%v does not contain # in the file name (should be openat)", c.Name))
+	}
+	if checkUSBEmulation() == "" {
+		// These entries might not be available at boot time,
+		// but will be created by connected USB devices.
+		USBDevicePrefixes := []string{
+			"/dev/hidraw", "/dev/usb/hiddev", "/dev/input/",
+		}
+		for _, prefix := range USBDevicePrefixes {
+			if strings.HasPrefix(fname, prefix) {
+				return true, ""
+			}
+		}
+	}
+	var check func(dev string) bool
+	check = func(dev string) bool {
+		if !strings.Contains(dev, "#") {
+			// Note: don't try to open them all, some can hang (e.g. /dev/snd/pcmC#D#p).
+			return osutil.IsExist(dev)
+		}
+		for i := 0; i < 10; i++ {
+			if check(strings.Replace(dev, "#", strconv.Itoa(i), 1)) {
+				return true
+			}
+		}
+		return false
+	}
+	if !check(fname) {
+		return false, fmt.Sprintf("file %v does not exist", fname)
+	}
+	return onlySandboxNoneOrNamespace(sandbox)
 }
 
 func isSupportedLSM(c *prog.Syscall) string {
