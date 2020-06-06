@@ -16,6 +16,7 @@ resource bpf_prog_id[int32]: 0, -1
 resource bpf_map_id[int32]: 0, -1
 resource bpf_btf_id[int32]: 0, -1
 resource fd_bpf_link[fd]
+resource fd_bpf_iter[fd]
 
 # NEED: this is a random index in btf_header:types. We can't express this, so we just use a small index.
 type btf_type_id int32[1:5]
@@ -61,6 +62,7 @@ bpf$BPF_MAP_LOOKUP_AND_DELETE_BATCH(cmd const[BPF_MAP_LOOKUP_AND_DELETE_BATCH], 
 bpf$BPF_LINK_CREATE(cmd const[BPF_LINK_CREATE], arg ptr[in, bpf_link_create_arg], size len[arg]) fd_bpf_link
 bpf$BPF_LINK_UPDATE(cmd const[BPF_LINK_UPDATE], arg ptr[in, bpf_link_update_arg], size len[arg])
 bpf$ENABLE_STATS(cmd const[BPF_ENABLE_STATS], arg ptr[in, bpf_enable_stats_arg], size len[arg])
+bpf$ITER_CREATE(cmd const[BPF_ITER_CREATE], arg ptr[in, bpf_iter_create_arg], size len[arg]) fd_bpf_iter
 
 bpf_map_create_arg {
 	type			flags[bpf_map_type, int32]
@@ -139,6 +141,11 @@ bpf_link_update_arg {
 
 bpf_enable_stats_arg {
 	type	flags[bpf_stat_types, int32]
+}
+
+bpf_iter_create_arg {
+	link_fd	fd_bpf_link
+	flags	const[0, int32]
 }
 
 bpf_batch_flags = BPF_F_LOCK
