@@ -323,15 +323,9 @@ func (r *randGen) randString(s *state, t *BufferType) []byte {
 		'/', ':', '.', ',', '-', '\'', '[', ']', '{', '}'}
 	buf := new(bytes.Buffer)
 	for r.nOutOf(3, 4) {
-		switch {
-		case r.nOutOf(10, 21):
-			dict := r.target.StringDictionary
-			if len(dict) != 0 {
-				buf.WriteString(dict[r.Intn(len(dict))])
-			}
-		case r.nOutOf(10, 11):
+		if r.nOutOf(10, 11) {
 			buf.Write([]byte{punct[r.Intn(len(punct))]})
-		default:
+		} else {
 			buf.Write([]byte{byte(r.Intn(256))})
 		}
 	}
