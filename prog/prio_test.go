@@ -34,7 +34,7 @@ func TestStaticPriorities(t *testing.T) {
 	rs := rand.NewSource(0)
 	// The test is probabilistic and needs some sensible number of iterations to succeed.
 	// If it fails try to increase the number a bit.
-	const iters = 5e4
+	const iters = 1e5
 	// The first call is the one that creates a resource and the rest are calls that can use that resource.
 	tests := [][]string{
 		{"open", "read", "write", "mmap"},
