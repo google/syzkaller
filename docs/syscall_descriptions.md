@@ -106,7 +106,15 @@ more efficient.
 
 If you want to fuzz only the new subsystem that you described locally, you may
 find the `enable_syscalls` configuration parameter useful to specifically target
-the new system calls.
+the new system calls. All system calls in the `enable_syscalls` list
+will be enabled if their requirements are met (ie. if they are supported
+in the target machine and any other system calls that need to run in
+order to provide inputs for them are also enabled). You can also include
+wildcard definitions to enable multiple system calls in a single line,
+for example: `"ioctl"` will enable all the described ioctls syscalls
+that have their requirements met, ``"ioctl$UDMABUF_CREATE"`` enables
+only that particular ioctl call, ``"write$UHID_*"`` enables all write
+system calls that start with that description identifier.
 
 When updating existing syzkaller descriptions, note, that unless there's a drastic
 change in descriptions for a particular syscall, the programs that are already in
