@@ -14,10 +14,13 @@ include <uapi/linux/v4l2-subdev.h>
 include <uapi/linux/v4l2-mediabus.h>
 include <uapi/linux/media-bus-format.h>
 include <uapi/linux/v4l2-controls.h>
+include <uapi/linux/media.h>
 
 resource fd_video[fd]
 resource fd_dmabuf[fd]
 resource fd_v4l2_buffer[fd]
+resource fd_media[fd]
+resource fd_request[fd]
 
 syz_open_dev$video(dev ptr[in, string["/dev/video#"]], id intptr, flags flags[open_flags]) fd_video
 syz_open_dev$video4linux(dev ptr[in, string["/dev/v4l-subdev#"]], id intptr, flags flags[open_flags]) fd_video
@@ -32,7 +35,6 @@ openat$vimc0(fd const[AT_FDCWD], file ptr[in, string["/dev/video0"]], flags cons
 openat$vimc1(fd const[AT_FDCWD], file ptr[in, string["/dev/video1"]], flags const[O_RDWR], mode const[0]) fd_video
 openat$vimc2(fd const[AT_FDCWD], file ptr[in, string["/dev/video2"]], flags const[O_RDWR], mode const[0]) fd_video
 syz_open_dev$vivid(dev ptr[in, string["/dev/video#"]], id proc[3, 4], flags const[O_RDWR]) fd_video
-openat$vim2m(fd const[AT_FDCWD], file ptr[in, string["/dev/video35"]], flags const[O_RDWR], mode const[0]) fd_video
 openat$vicodec0(fd const[AT_FDCWD], file ptr[in, string["/dev/video36"]], flags const[O_RDWR], mode const[0]) fd_video
 openat$vicodec1(fd const[AT_FDCWD], file ptr[in, string["/dev/video37"]], flags const[O_RDWR], mode const[0]) fd_video
 # TODO: there are some complex rules as to what ioctl's are applicable to what devices
@@ -45,17 +47,17 @@ syz_open_dev$cec(dev ptr[in, string["/dev/cec#"]], id proc[0, 4], flags const[O_
 
 ioctl$VIDIOC_QUERYCAP(fd fd_video, cmd const[VIDIOC_QUERYCAP], arg ptr[out, v4l2_capability])
 ioctl$VIDIOC_RESERVED(fd fd_video, cmd const[VIDIOC_RESERVED], arg const[0])
-ioctl$VIDIOC_ENUM_FMT(fd fd_video, cmd const[VIDIOC_ENUM_FMT], arg ptr[inout, v4l2_fmtdesc])
-ioctl$VIDIOC_G_FMT(fd fd_video, cmd const[VIDIOC_G_FMT], arg ptr[inout, v4l2_format])
-ioctl$VIDIOC_S_FMT(fd fd_video, cmd const[VIDIOC_S_FMT], arg ptr[inout, v4l2_format])
-ioctl$VIDIOC_REQBUFS(fd fd_video, cmd const[VIDIOC_REQBUFS], arg ptr[inout, v4l2_requestbuffers])
-ioctl$VIDIOC_QUERYBUF(fd fd_video, cmd const[VIDIOC_QUERYBUF], arg ptr[inout, v4l2_buffer])
+ioctl$VIDIOC_ENUM_FMT(fd fd_video, cmd const[VIDIOC_ENUM_FMT], arg ptr[inout, v4l2_fmtdesc[v4l2_buf_type]])
+ioctl$VIDIOC_G_FMT(fd fd_video, cmd const[VIDIOC_G_FMT], arg ptr[inout, v4l2_format[v4l2_buf_type]])
+ioctl$VIDIOC_S_FMT(fd fd_video, cmd const[VIDIOC_S_FMT], arg ptr[inout, v4l2_format[v4l2_buf_type]])
+ioctl$VIDIOC_REQBUFS(fd fd_video, cmd const[VIDIOC_REQBUFS], arg ptr[inout, v4l2_requestbuffers[v4l2_buf_type]])
+ioctl$VIDIOC_QUERYBUF(fd fd_video, cmd const[VIDIOC_QUERYBUF], arg ptr[inout, v4l2_buffer[v4l2_buf_type, fd]])
 ioctl$VIDIOC_G_FBUF(fd fd_video, cmd const[VIDIOC_G_FBUF], arg ptr[inout, v4l2_framebuffer])
 ioctl$VIDIOC_S_FBUF(fd fd_video, cmd const[VIDIOC_S_FBUF], arg ptr[in, v4l2_framebuffer])
 ioctl$VIDIOC_OVERLAY(fd fd_video, cmd const[VIDIOC_OVERLAY], arg ptr[in, int32])
-ioctl$VIDIOC_QBUF(fd fd_video, cmd const[VIDIOC_QBUF], arg ptr[inout, v4l2_buffer])
-ioctl$VIDIOC_EXPBUF(fd fd_video, cmd const[VIDIOC_EXPBUF], arg ptr[inout, v4l2_exportbuffer])
-ioctl$VIDIOC_DQBUF(fd fd_video, cmd const[VIDIOC_DQBUF], arg ptr[inout, v4l2_buffer])
+ioctl$VIDIOC_QBUF(fd fd_video, cmd const[VIDIOC_QBUF], arg ptr[inout, v4l2_buffer[v4l2_buf_type, fd]])
+ioctl$VIDIOC_EXPBUF(fd fd_video, cmd const[VIDIOC_EXPBUF], arg ptr[inout, v4l2_exportbuffer[v4l2_buf_type]])
+ioctl$VIDIOC_DQBUF(fd fd_video, cmd const[VIDIOC_DQBUF], arg ptr[inout, v4l2_buffer[v4l2_buf_type, fd]])
 ioctl$VIDIOC_STREAMON(fd fd_video, cmd const[VIDIOC_STREAMON], arg ptr[in, int32])
 ioctl$VIDIOC_STREAMOFF(fd fd_video, cmd const[VIDIOC_STREAMOFF], arg ptr[in, int32])
 ioctl$VIDIOC_G_PARM(fd fd_video, cmd const[VIDIOC_G_PARM], arg ptr[inout, v4l2_streamparm])
@@ -91,7 +93,7 @@ ioctl$VIDIOC_S_CROP(fd fd_video, cmd const[VIDIOC_S_CROP], arg ptr[in, v4l2_crop
 ioctl$VIDIOC_G_JPEGCOMP(fd fd_video, cmd const[VIDIOC_G_JPEGCOMP], arg ptr[out, v4l2_jpegcompression])
 ioctl$VIDIOC_S_JPEGCOMP(fd fd_video, cmd const[VIDIOC_S_JPEGCOMP], arg ptr[in, v4l2_jpegcompression])
 ioctl$VIDIOC_QUERYSTD(fd fd_video, cmd const[VIDIOC_QUERYSTD], arg ptr[out, v4l2_std_id])
-ioctl$VIDIOC_TRY_FMT(fd fd_video, cmd const[VIDIOC_TRY_FMT], arg ptr[inout, v4l2_format])
+ioctl$VIDIOC_TRY_FMT(fd fd_video, cmd const[VIDIOC_TRY_FMT], arg ptr[inout, v4l2_format[v4l2_buf_type]])
 ioctl$VIDIOC_ENUMAUDIO(fd fd_video, cmd const[VIDIOC_ENUMAUDIO], arg ptr[inout, v4l2_audio])
 ioctl$VIDIOC_ENUMAUDOUT(fd fd_video, cmd const[VIDIOC_ENUMAUDOUT], arg ptr[inout, v4l2_audioout])
 ioctl$VIDIOC_G_PRIORITY(fd fd_video, cmd const[VIDIOC_G_PRIORITY], arg flags[v4l2_priority])
@@ -114,8 +116,8 @@ ioctl$VIDIOC_G_DV_TIMINGS(fd fd_video, cmd const[VIDIOC_G_DV_TIMINGS], arg ptr[i
 ioctl$VIDIOC_DQEVENT(fd fd_video, cmd const[VIDIOC_DQEVENT], arg ptr[out, v4l2_event])
 ioctl$VIDIOC_SUBSCRIBE_EVENT(fd fd_video, cmd const[VIDIOC_SUBSCRIBE_EVENT], arg ptr[in, v4l2_event_subscription])
 ioctl$VIDIOC_UNSUBSCRIBE_EVENT(fd fd_video, cmd const[VIDIOC_UNSUBSCRIBE_EVENT], arg ptr[in, v4l2_event_subscription])
-ioctl$VIDIOC_CREATE_BUFS(fd fd_video, cmd const[VIDIOC_CREATE_BUFS], arg ptr[inout, v4l2_create_buffers])
-ioctl$VIDIOC_PREPARE_BUF(fd fd_video, cmd const[VIDIOC_PREPARE_BUF], arg ptr[inout, v4l2_buffer])
+ioctl$VIDIOC_CREATE_BUFS(fd fd_video, cmd const[VIDIOC_CREATE_BUFS], arg ptr[inout, v4l2_create_buffers[v4l2_buf_type]])
+ioctl$VIDIOC_PREPARE_BUF(fd fd_video, cmd const[VIDIOC_PREPARE_BUF], arg ptr[inout, v4l2_buffer[v4l2_buf_type, fd]])
 ioctl$VIDIOC_G_SELECTION(fd fd_video, cmd const[VIDIOC_G_SELECTION], arg ptr[inout, v4l2_selection])
 ioctl$VIDIOC_S_SELECTION(fd fd_video, cmd const[VIDIOC_S_SELECTION], arg ptr[inout, v4l2_selection])
 ioctl$VIDIOC_DECODER_CMD(fd fd_video, cmd const[VIDIOC_DECODER_CMD], arg ptr[inout, v4l2_decoder_cmd])
@@ -145,6 +147,9 @@ ioctl$VIDIOC_SUBDEV_ENUM_DV_TIMINGS(fd fd_video, cmd const[VIDIOC_SUBDEV_ENUM_DV
 ioctl$VIDIOC_SUBDEV_QUERY_DV_TIMINGS(fd fd_video, cmd const[VIDIOC_SUBDEV_QUERY_DV_TIMINGS], arg ptr[out, v4l2_dv_timings])
 ioctl$VIDIOC_SUBDEV_DV_TIMINGS_CAP(fd fd_video, cmd const[VIDIOC_SUBDEV_DV_TIMINGS_CAP], arg ptr[inout, v4l2_dv_timings_cap])
 
+ioctl$MEDIA_IOC_REQUEST_ALLOC(fd fd_media, cmd const[MEDIA_IOC_REQUEST_ALLOC], arg ptr[out, fd_request])
+ioctl$MEDIA_REQUEST_IOC_QUEUE(fd fd_request, cmd const[MEDIA_REQUEST_IOC_QUEUE], arg const[0])
+
 v4l2_capability {
 	driver		array[int8, 16]
 	card		array[int8, 32]
@@ -155,17 +160,17 @@ v4l2_capability {
 	reserved	array[const[0, int32], 3]
 }
 
-v4l2_fmtdesc {
+type v4l2_fmtdesc[BUF_TYPE] {
 	index		int32
-	type		flags[v4l2_buf_type, int32]
+	type		flags[BUF_TYPE, int32]
 	flags		flags[v4l2_fmtdesc_flags, int32]
 	description	array[int8, 32]
 	pixelformat	flags[v4l2_pix_format_pixelformat, int32]
 	reserved	array[const[0, int32], 4]
 }
 
-v4l2_format {
-	type	flags[v4l2_buf_type, int32]
+type v4l2_format[BUF_TYPE] {
+	type	flags[BUF_TYPE, int32]
 	fmt	v4l2_format_fmt
 }
 
@@ -261,17 +266,17 @@ v4l2_sdr_format {
 	reserved	array[const[0, int8], 24]
 } [packed]
 
-v4l2_requestbuffers {
+type v4l2_requestbuffers[BUF_TYPE] {
 	count		int32
-	type		flags[v4l2_buf_type, int32]
+	type		flags[BUF_TYPE, int32]
 	memory		flags[v4l2_memory, int32]
 	capabilities	const[0, int32]
 	reserved	const[0, int32]
 }
 
-v4l2_buffer {
+type v4l2_buffer[BUF_TYPE, FD_TYPE] {
 	index		int32
-	type		flags[v4l2_buf_type, int32]
+	type		flags[BUF_TYPE, int32]
 	bytesused	len[type, int32]
 	flags		flags[v4l2_buffer_flags, int32]
 	field		int32
@@ -282,7 +287,7 @@ v4l2_buffer {
 	m		v4l2_buffer_union
 	length		int32
 	reserved2	const[0, int32]
-	request_fd	fd[opt]
+	request_fd	FD_TYPE[opt]
 }
 
 v4l2_buffer_union [
@@ -334,8 +339,8 @@ v4l2_framebuffer_union {
 	priv		int32
 }
 
-v4l2_exportbuffer {
-	type		flags[v4l2_buf_type, int32]
+type v4l2_exportbuffer[BUF_TYPE] {
+	type		flags[BUF_TYPE, int32]
 	index		int32
 	plane		int32
 	flags		flags[pipe_flags, int32]
@@ -707,11 +712,11 @@ v4l2_event_subscription {
 	reserved	array[const[0, int32], 5]
 }
 
-v4l2_create_buffers {
+type v4l2_create_buffers[BUF_TYPE] {
 	index		int32
 	count		int32
 	memory		flags[v4l2_memory, int32]
-	format		v4l2_format
+	format		v4l2_format[BUF_TYPE]
 	capabilities	int32
 	reserved	array[const[0, int32], 7]
 }
