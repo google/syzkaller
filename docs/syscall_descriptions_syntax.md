@@ -149,7 +149,7 @@ Attributes are:
 
 ## Resources
 
-Resources represent values that need to be passed from output of one syscall to input of another syscall. For example, `close` syscall requires an input value (fd) previously returned by `open` or `pipe` syscall. To achieve this, `fd` is declared as a resource. Resources are described as:
+Resources represent values that need to be passed from output of one syscall to input of another syscall. For example, `close` syscall requires an input value (fd) previously returned by `open` or `pipe` syscall. To achieve this, `fd` is declared as a resource. This is a way of modelling dependencies between syscalls, as defining a syscall as the producer of a resource and another syscall as the consumer defines a loose sense of ordering between them. Resources are described as:
 
 ```
 "resource" identifier "[" underlying_type "]" [ ":" const ("," const)* ]
@@ -165,6 +165,31 @@ resource sock_unix[sock]
 socket(...) sock
 accept(fd sock, ...) sock
 listen(fd sock, backlog int32)
+```
+
+Resources don't have to be necessarily returned by a syscall. They can be used as any other data type. For example:
+
+```
+resource fd_request[fd]
+
+ioctl$MEDIA_IOC_REQUEST_ALLOC(fd fd_media, cmd const[MEDIA_IOC_REQUEST_ALLOC], arg ptr[out, fd_request])
+ioctl$VIDIOC_QBUF(fd fd_video, cmd const[VIDIOC_QBUF], arg ptr[inout, v4l2_buffer])
+
+v4l2_buffer {
+	index		int32
+	type		flags[v4l2_buf_type, int32]
+	bytesused	len[type, int32]
+	flags		const[V4L2_BUF_FLAG_REQUEST_FD, int32]
+	field		int32
+	timestamp	timeval
+	timecode	v4l2_timecode
+	sequence	int32
+	memory		flags[v4l2_memory, int32]
+	m		v4l2_buffer_union
+	length		int32
+	reserved2	const[0, int32]
+	request_fd	fd_request[opt]
+}
 ```
 
 ## Type Aliases
@@ -331,3 +356,9 @@ define MY_PATH_MAX	PATH_MAX + 2
 Description files also contain `include` directives that refer to Linux kernel header files,
 `incdir` directives that refer to custom Linux kernel header directories 
 and `define` directives that define symbolic constant values.
+
+The syzkaller executor defines some pseudo sytem calls that can be used
+as any other syscall in a description file. These pseudo system calls
+expand to literal C code and can perform user-defined custom
+actions. You can find some examples in
+[executor/common_linux.h](../executor/common_linux.h).
