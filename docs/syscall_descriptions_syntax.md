@@ -170,25 +170,14 @@ listen(fd sock, backlog int32)
 Resources don't have to be necessarily returned by a syscall. They can be used as any other data type. For example:
 
 ```
-resource fd_request[fd]
+resource my_resource[int32]
 
-ioctl$MEDIA_IOC_REQUEST_ALLOC(fd fd_media, cmd const[MEDIA_IOC_REQUEST_ALLOC], arg ptr[out, fd_request])
-ioctl$VIDIOC_QBUF(fd fd_video, cmd const[VIDIOC_QBUF], arg ptr[inout, v4l2_buffer])
+request_producer(..., arg ptr[out, my_resource])
+request_consumer(..., arg ptr[inout, test_struct])
 
-v4l2_buffer {
-	index		int32
-	type		flags[v4l2_buf_type, int32]
-	bytesused	len[type, int32]
-	flags		const[V4L2_BUF_FLAG_REQUEST_FD, int32]
-	field		int32
-	timestamp	timeval
-	timecode	v4l2_timecode
-	sequence	int32
-	memory		flags[v4l2_memory, int32]
-	m		v4l2_buffer_union
-	length		int32
-	reserved2	const[0, int32]
-	request_fd	fd_request[opt]
+test_struct {
+	...
+	attr	my_resource
 }
 ```
 
