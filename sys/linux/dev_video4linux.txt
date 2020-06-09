@@ -46,18 +46,17 @@ syz_open_dev$vbi(dev ptr[in, string["/dev/vbi#"]], id proc[0, 4], flags const[O_
 syz_open_dev$cec(dev ptr[in, string["/dev/cec#"]], id proc[0, 4], flags const[O_RDWR]) fd_video
 
 ioctl$VIDIOC_QUERYCAP(fd fd_video, cmd const[VIDIOC_QUERYCAP], arg ptr[out, v4l2_capability])
-ioctl$VIDIOC_RESERVED(fd fd_video, cmd const[VIDIOC_RESERVED], arg const[0])
 ioctl$VIDIOC_ENUM_FMT(fd fd_video, cmd const[VIDIOC_ENUM_FMT], arg ptr[inout, v4l2_fmtdesc[v4l2_buf_type]])
 ioctl$VIDIOC_G_FMT(fd fd_video, cmd const[VIDIOC_G_FMT], arg ptr[inout, v4l2_format[v4l2_buf_type]])
 ioctl$VIDIOC_S_FMT(fd fd_video, cmd const[VIDIOC_S_FMT], arg ptr[inout, v4l2_format[v4l2_buf_type]])
 ioctl$VIDIOC_REQBUFS(fd fd_video, cmd const[VIDIOC_REQBUFS], arg ptr[inout, v4l2_requestbuffers[v4l2_buf_type]])
-ioctl$VIDIOC_QUERYBUF(fd fd_video, cmd const[VIDIOC_QUERYBUF], arg ptr[inout, v4l2_buffer[v4l2_buf_type, fd]])
+ioctl$VIDIOC_QUERYBUF(fd fd_video, cmd const[VIDIOC_QUERYBUF], arg ptr[inout, v4l2_buffer[v4l2_buf_type]])
 ioctl$VIDIOC_G_FBUF(fd fd_video, cmd const[VIDIOC_G_FBUF], arg ptr[inout, v4l2_framebuffer])
 ioctl$VIDIOC_S_FBUF(fd fd_video, cmd const[VIDIOC_S_FBUF], arg ptr[in, v4l2_framebuffer])
 ioctl$VIDIOC_OVERLAY(fd fd_video, cmd const[VIDIOC_OVERLAY], arg ptr[in, int32])
-ioctl$VIDIOC_QBUF(fd fd_video, cmd const[VIDIOC_QBUF], arg ptr[inout, v4l2_buffer[v4l2_buf_type, fd]])
+ioctl$VIDIOC_QBUF(fd fd_video, cmd const[VIDIOC_QBUF], arg ptr[inout, v4l2_buffer[v4l2_buf_type]])
 ioctl$VIDIOC_EXPBUF(fd fd_video, cmd const[VIDIOC_EXPBUF], arg ptr[inout, v4l2_exportbuffer[v4l2_buf_type]])
-ioctl$VIDIOC_DQBUF(fd fd_video, cmd const[VIDIOC_DQBUF], arg ptr[inout, v4l2_buffer[v4l2_buf_type, fd]])
+ioctl$VIDIOC_DQBUF(fd fd_video, cmd const[VIDIOC_DQBUF], arg ptr[inout, v4l2_buffer[v4l2_buf_type]])
 ioctl$VIDIOC_STREAMON(fd fd_video, cmd const[VIDIOC_STREAMON], arg ptr[in, int32])
 ioctl$VIDIOC_STREAMOFF(fd fd_video, cmd const[VIDIOC_STREAMOFF], arg ptr[in, int32])
 ioctl$VIDIOC_G_PARM(fd fd_video, cmd const[VIDIOC_G_PARM], arg ptr[inout, v4l2_streamparm])
@@ -117,7 +116,7 @@ ioctl$VIDIOC_DQEVENT(fd fd_video, cmd const[VIDIOC_DQEVENT], arg ptr[out, v4l2_e
 ioctl$VIDIOC_SUBSCRIBE_EVENT(fd fd_video, cmd const[VIDIOC_SUBSCRIBE_EVENT], arg ptr[in, v4l2_event_subscription])
 ioctl$VIDIOC_UNSUBSCRIBE_EVENT(fd fd_video, cmd const[VIDIOC_UNSUBSCRIBE_EVENT], arg ptr[in, v4l2_event_subscription])
 ioctl$VIDIOC_CREATE_BUFS(fd fd_video, cmd const[VIDIOC_CREATE_BUFS], arg ptr[inout, v4l2_create_buffers[v4l2_buf_type]])
-ioctl$VIDIOC_PREPARE_BUF(fd fd_video, cmd const[VIDIOC_PREPARE_BUF], arg ptr[inout, v4l2_buffer[v4l2_buf_type, fd]])
+ioctl$VIDIOC_PREPARE_BUF(fd fd_video, cmd const[VIDIOC_PREPARE_BUF], arg ptr[inout, v4l2_buffer[v4l2_buf_type]])
 ioctl$VIDIOC_G_SELECTION(fd fd_video, cmd const[VIDIOC_G_SELECTION], arg ptr[inout, v4l2_selection])
 ioctl$VIDIOC_S_SELECTION(fd fd_video, cmd const[VIDIOC_S_SELECTION], arg ptr[inout, v4l2_selection])
 ioctl$VIDIOC_DECODER_CMD(fd fd_video, cmd const[VIDIOC_DECODER_CMD], arg ptr[inout, v4l2_decoder_cmd])
@@ -274,7 +273,7 @@ type v4l2_requestbuffers[BUF_TYPE] {
 	reserved	const[0, int32]
 }
 
-type v4l2_buffer[BUF_TYPE, FD_TYPE] {
+type v4l2_buffer[BUF_TYPE] {
 	index		int32
 	type		flags[BUF_TYPE, int32]
 	bytesused	len[type, int32]
@@ -287,7 +286,7 @@ type v4l2_buffer[BUF_TYPE, FD_TYPE] {
 	m		v4l2_buffer_union
 	length		int32
 	reserved2	const[0, int32]
-	request_fd	FD_TYPE[opt]
+	request_fd	fd_request[opt]
 }
 
 v4l2_buffer_union [
