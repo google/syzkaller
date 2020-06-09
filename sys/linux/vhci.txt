@@ -32,18 +32,7 @@ hci_event_hdr_un [
 	hci_ev_io_capa_request			hci_event_hdr_t[HCI_EV_IO_CAPA_REQUEST, hci_ev_io_capa_request]
 	hci_ev_key_refresh_complete		hci_event_hdr_t[HCI_EV_KEY_REFRESH_COMPLETE, hci_ev_key_refresh_complete]
 	hci_ev_keypress_notify			hci_event_hdr_t[HCI_EV_KEYPRESS_NOTIFY, hci_ev_keypress_notify]
-	hci_ev_le_advertising_info		hci_event_hdr_t[HCI_EV_LE_ADVERTISING_REPORT, hci_ev_le_advertising_info]
-	hci_ev_le_conn_complete			hci_event_hdr_t[HCI_EV_LE_CONN_COMPLETE, hci_ev_le_conn_complete]
-	hci_ev_le_conn_update_complete		hci_event_hdr_t[HCI_EV_LE_CONN_UPDATE_COMPLETE, hci_ev_le_conn_update_complete]
-	hci_ev_le_data_len_change		hci_event_hdr_t[HCI_EV_LE_DATA_LEN_CHANGE, hci_ev_le_data_len_change]
-	hci_ev_le_direct_adv_info		hci_event_hdr_t[HCI_EV_LE_DIRECT_ADV_REPORT, hci_ev_le_direct_adv_info]
-	hci_ev_le_enh_conn_complete		hci_event_hdr_t[HCI_EV_LE_ENHANCED_CONN_COMPLETE, hci_ev_le_enh_conn_complete]
-	hci_ev_le_ext_adv_report		hci_event_hdr_t[HCI_EV_LE_EXT_ADV_REPORT, hci_ev_le_ext_adv_report]
-	hci_ev_le_ltk_req			hci_event_hdr_t[HCI_EV_LE_LTK_REQ, hci_ev_le_ltk_req]
-	hci_ev_le_meta				hci_event_hdr_t[HCI_EV_LE_META, hci_ev_le_meta]
-	hci_ev_le_phy_update_complete		hci_event_hdr_t[HCI_EV_LE_PHY_UPDATE_COMPLETE, hci_ev_le_phy_update_complete]
-	hci_ev_le_remote_conn_param_req		hci_event_hdr_t[HCI_EV_LE_REMOTE_CONN_PARAM_REQ, hci_ev_le_remote_conn_param_req]
-	hci_ev_le_remote_feat_complete		hci_event_hdr_t[HCI_EV_LE_REMOTE_FEAT_COMPLETE, hci_ev_le_remote_feat_complete]
+	hci_ev_le_meta				hci_event_hdr_t[HCI_EV_LE_META, hci_ev_le_meta_un]
 	hci_ev_link_key_notify			hci_event_hdr_t[HCI_EV_LINK_KEY_NOTIFY, hci_ev_link_key_notify]
 	hci_ev_link_key_req			hci_event_hdr_t[HCI_EV_LINK_KEY_REQ, hci_ev_link_key_req]
 	hci_ev_logical_link_complete		hci_event_hdr_t[HCI_EV_LOGICAL_LINK_COMPLETE, hci_ev_logical_link_complete]
@@ -73,9 +62,6 @@ hci_event_hdr_un [
 	hci_ev_user_confirm_req			hci_event_hdr_t[HCI_EV_USER_CONFIRM_REQUEST, hci_ev_user_confirm_req]
 	hci_ev_user_passkey_notify		hci_event_hdr_t[HCI_EV_USER_PASSKEY_NOTIFY, hci_ev_user_passkey_notify]
 	hci_ev_user_passkey_req			hci_event_hdr_t[HCI_EV_USER_PASSKEY_REQUEST, hci_ev_user_passkey_req]
-	hci_evt_le_cis_established		hci_event_hdr_t[HCI_EVT_LE_CIS_ESTABLISHED, hci_evt_le_cis_established]
-	hci_evt_le_cis_req			hci_event_hdr_t[HCI_EVT_LE_CIS_REQ, hci_evt_le_cis_req]
-	hci_evt_le_ext_adv_set_term		hci_event_hdr_t[HCI_EV_LE_EXT_ADV_SET_TERM, hci_evt_le_ext_adv_set_term]
 	inquiry_info				hci_event_hdr_t[HCI_EV_INQUIRY_RESULT, inquiry_info]
 	inquiry_info_with_rssi			hci_event_hdr_t[HCI_EV_INQUIRY_RESULT_WITH_RSSI, inquiry_info_with_rssi]
 	inquiry_info_with_rssi_and_pscan_mode	hci_event_hdr_t[HCI_EV_INQUIRY_RESULT_WITH_RSSI, inquiry_info_with_rssi_and_pscan_mode]
@@ -89,6 +75,32 @@ type hci_event_hdr_t[EVENT, PAYLOAD] {
 type hci_event_hdr[EVENT] {
 	evt	const[EVENT, int8]
 	plen	bytesize[hci_event_hdr_t:payload, int8]
+}
+
+hci_ev_le_meta_un [
+	hci_ev_le_advertising_info	hci_ev_le_meta_t[HCI_EV_LE_ADVERTISING_REPORT, hci_ev_le_advertising_info]
+	hci_ev_le_conn_complete		hci_ev_le_meta_t[HCI_EV_LE_CONN_COMPLETE, hci_ev_le_conn_complete]
+	hci_ev_le_conn_update_complete	hci_ev_le_meta_t[HCI_EV_LE_CONN_UPDATE_COMPLETE, hci_ev_le_conn_update_complete]
+	hci_ev_le_data_len_change	hci_ev_le_meta_t[HCI_EV_LE_DATA_LEN_CHANGE, hci_ev_le_data_len_change]
+	hci_ev_le_direct_adv_info	hci_ev_le_meta_t[HCI_EV_LE_DIRECT_ADV_REPORT, hci_ev_le_direct_adv_info]
+	hci_ev_le_enh_conn_complete	hci_ev_le_meta_t[HCI_EV_LE_ENHANCED_CONN_COMPLETE, hci_ev_le_enh_conn_complete]
+	hci_ev_le_ext_adv_report	hci_ev_le_meta_t[HCI_EV_LE_EXT_ADV_REPORT, hci_ev_le_ext_adv_report]
+	hci_ev_le_ltk_req		hci_ev_le_meta_t[HCI_EV_LE_LTK_REQ, hci_ev_le_ltk_req]
+	hci_ev_le_phy_update_complete	hci_ev_le_meta_t[HCI_EV_LE_PHY_UPDATE_COMPLETE, hci_ev_le_phy_update_complete]
+	hci_ev_le_remote_conn_param_req	hci_ev_le_meta_t[HCI_EV_LE_REMOTE_CONN_PARAM_REQ, hci_ev_le_remote_conn_param_req]
+	hci_ev_le_remote_feat_complete	hci_ev_le_meta_t[HCI_EV_LE_REMOTE_FEAT_COMPLETE, hci_ev_le_remote_feat_complete]
+	hci_evt_le_cis_established	hci_ev_le_meta_t[HCI_EVT_LE_CIS_ESTABLISHED, hci_evt_le_cis_established]
+	hci_evt_le_cis_req		hci_ev_le_meta_t[HCI_EVT_LE_CIS_REQ, hci_evt_le_cis_req]
+	hci_evt_le_ext_adv_set_term	hci_ev_le_meta_t[HCI_EV_LE_EXT_ADV_SET_TERM, hci_evt_le_ext_adv_set_term]
+] [varlen]
+
+type hci_ev_le_meta_t[SUBEVENT, PAYLOAD] {
+	hdr	hci_ev_le_meta[SUBEVENT]
+	payload	PAYLOAD
+}
+
+type hci_ev_le_meta[SUBEVENT] {
+	subevent	const[SUBEVENT, int8]
 }
 
 extended_inquiry_info {
@@ -285,10 +297,6 @@ hci_ev_le_ltk_req {
 	handle	int16
 	rand	int64
 	ediv	int16
-} [packed]
-
-hci_ev_le_meta {
-	subevent	int8
 } [packed]
 
 hci_ev_le_phy_update_complete {
