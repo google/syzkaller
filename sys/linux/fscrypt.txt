@@ -14,6 +14,7 @@ ioctl$FS_IOC_ADD_ENCRYPTION_KEY(fd fd, cmd const[FS_IOC_ADD_ENCRYPTION_KEY], arg
 ioctl$FS_IOC_REMOVE_ENCRYPTION_KEY(fd fd, cmd const[FS_IOC_REMOVE_ENCRYPTION_KEY], arg ptr[inout, fscrypt_remove_key_arg])
 ioctl$FS_IOC_REMOVE_ENCRYPTION_KEY_ALL_USERS(fd fd, cmd const[FS_IOC_REMOVE_ENCRYPTION_KEY_ALL_USERS], arg ptr[inout, fscrypt_remove_key_arg])
 ioctl$FS_IOC_GET_ENCRYPTION_KEY_STATUS(fd fd, cmd const[FS_IOC_GET_ENCRYPTION_KEY_STATUS], arg ptr[inout, fscrypt_get_key_status_arg])
+ioctl$FS_IOC_GET_ENCRYPTION_NONCE(fd fd, cmd const[FS_IOC_GET_ENCRYPTION_NONCE], arg ptr[out, array[int8, 16]])
 
 type fscrypt_key_descriptor array[int8, FSCRYPT_KEY_DESCRIPTOR_SIZE]
 type fscrypt_key_identifier array[int8, FSCRYPT_KEY_IDENTIFIER_SIZE]
@@ -49,7 +50,7 @@ type fscrypt_policy_mode_t[CONTENTS, FILENAMES] {
 	filenames_encryption_mode	const[FILENAMES, int8]
 }
 
-fscrypt_policy_flags = FSCRYPT_POLICY_FLAGS_PAD_4, FSCRYPT_POLICY_FLAGS_PAD_8, FSCRYPT_POLICY_FLAGS_PAD_16, FSCRYPT_POLICY_FLAGS_PAD_32, FSCRYPT_POLICY_FLAG_DIRECT_KEY, FSCRYPT_POLICY_FLAG_IV_INO_LBLK_64
+fscrypt_policy_flags = FSCRYPT_POLICY_FLAGS_PAD_4, FSCRYPT_POLICY_FLAGS_PAD_8, FSCRYPT_POLICY_FLAGS_PAD_16, FSCRYPT_POLICY_FLAGS_PAD_32, FSCRYPT_POLICY_FLAG_DIRECT_KEY, FSCRYPT_POLICY_FLAG_IV_INO_LBLK_64, FSCRYPT_POLICY_FLAG_IV_INO_LBLK_32
 
 fscrypt_get_policy_ex_arg {
 	policy_size	len[policy, int64]
@@ -71,10 +72,17 @@ fscrypt_key_specifier_payload [
 	identifier	fscrypt_key_identifier
 ]
 
+fscrypt_provisioning_key_payload {
+	type		flags[fscrypt_key_specifier_type, int32]
+	reserved	const[0, int32]
+	raw		array[int8]
+}
+
 fscrypt_add_key_arg {
 	key_spec	fscrypt_key_specifier
 	raw_size	len[raw, int32]
-	reserved	array[const[0, int32], 9]
+	key_id		fscrypt_provisioning_key[opt]
+	reserved	array[const[0, int32], 8]
 	raw		array[int8]
 }
 
