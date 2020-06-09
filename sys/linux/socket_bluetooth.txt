@@ -317,4 +317,3 @@ write$6lowpan_control(fd fd_6lowpan_control, data ptr[in, stringnoz[lowpan_contr
 
 lowpan_enable_values = "0", "1"
 lowpan_control_values = "connect aa:aa:aa:aa:aa:10 0", "connect aa:aa:aa:aa:aa:10 1", "connect aa:aa:aa:aa:aa:10 2", "connect aa:aa:aa:aa:aa:11 0", "connect aa:aa:aa:aa:aa:11 1", "connect aa:aa:aa:aa:aa:11 2", "disconnect aa:aa:aa:aa:aa:10 0", "disconnect aa:aa:aa:aa:aa:10 1", "disconnect aa:aa:aa:aa:aa:10 2", "disconnect aa:aa:aa:aa:aa:11 0", "disconnect aa:aa:aa:aa:aa:11 1", "disconnect aa:aa:aa:aa:aa:11 2"
-
