@@ -165,6 +165,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to connect to manager: %v ", err)
 	}
+	log.Logf(1, "connecting to manager...")
 	a := &rpctype.ConnectArgs{Name: *flagName}
 	r := &rpctype.ConnectRes{}
 	if err := manager.Call("Manager.Connect", a, r); err != nil {
