@@ -37,6 +37,7 @@ vhci_command [
 	HCI_EVENT_PKT	vhci_command_generic[HCI_EVENT_PKT]
 	HCI_ACLDATA_PKT	vhci_command_generic[HCI_ACLDATA_PKT]
 	HCI_SCODATA_PKT	vhci_command_generic[HCI_SCODATA_PKT]
+	HCI_COMMAND_PKT	vhci_command_pkt
 	HCI_VENDOR_PKT	vhci_command_vendor_pkt
 ] [varlen]
 
@@ -44,6 +45,11 @@ type vhci_command_generic[CMD] {
 	cmd	const[CMD, int8]
 # TODO: what's the format of these packets? Is there anything interesting?
 	data	array[int8]
+}
+
+vhci_command_pkt {
+	cmd	const[HCI_COMMAND_PKT, int8]
+	hdr	hci_command_hdr
 }
 
 vhci_command_vendor_pkt {
@@ -311,3 +317,4 @@ write$6lowpan_control(fd fd_6lowpan_control, data ptr[in, stringnoz[lowpan_contr
 
 lowpan_enable_values = "0", "1"
 lowpan_control_values = "connect aa:aa:aa:aa:aa:10 0", "connect aa:aa:aa:aa:aa:10 1", "connect aa:aa:aa:aa:aa:10 2", "connect aa:aa:aa:aa:aa:11 0", "connect aa:aa:aa:aa:aa:11 1", "connect aa:aa:aa:aa:aa:11 2", "disconnect aa:aa:aa:aa:aa:10 0", "disconnect aa:aa:aa:aa:aa:10 1", "disconnect aa:aa:aa:aa:aa:10 2", "disconnect aa:aa:aa:aa:aa:11 0", "disconnect aa:aa:aa:aa:aa:11 1", "disconnect aa:aa:aa:aa:aa:11 2"
+
