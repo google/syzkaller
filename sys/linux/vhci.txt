@@ -1,15 +1,8 @@
 # Copyright 2020 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-include <linux/socket.h>
-include <linux/net.h>
-include <linux/isdn/capilli.h>
 include <net/bluetooth/bluetooth.h>
 include <net/bluetooth/hci_sock.h>
-include <net/bluetooth/l2cap.h>
-include <net/bluetooth/cmtp/cmtp.h>
-include <net/bluetooth/bnep/bnep.h>
-include <net/bluetooth/hidp/hidp.h>
 include <net/bluetooth/sco.h>
 include <net/bluetooth/hci.h>
 
@@ -19,7 +12,7 @@ hci_event_hdr_un [
 	hci_ev_change_link_key_complete		hci_event_hdr_t[HCI_EV_CHANGE_LINK_KEY_COMPLETE, hci_ev_change_link_key_complete]
 	hci_ev_channel_selected			hci_event_hdr_t[HCI_EV_CHANNEL_SELECTED, hci_ev_channel_selected]
 	hci_ev_clock_offset			hci_event_hdr_t[HCI_EV_CLOCK_OFFSET, hci_ev_clock_offset]
-	hci_ev_cmd_complete			hci_event_hdr_t[HCI_EV_CMD_COMPLETE, hci_ev_cmd_complete]
+	hci_ev_cmd_complete			hci_event_hdr_t[HCI_EV_CMD_COMPLETE, hci_ev_cmd_complete_un]
 	hci_ev_cmd_status			hci_event_hdr_t[HCI_EV_CMD_STATUS, hci_ev_cmd_status]
 	hci_ev_conn_complete			hci_event_hdr_t[HCI_EV_CONN_COMPLETE, hci_ev_conn_complete]
 	hci_ev_conn_request			hci_event_hdr_t[HCI_EV_CONN_REQUEST, hci_ev_conn_request]
@@ -70,12 +63,12 @@ hci_event_hdr_un [
 type hci_event_hdr_t[EVENT, PAYLOAD] {
 	hdr	hci_event_hdr[EVENT]
 	payload	PAYLOAD
-}
+} [packed]
 
 type hci_event_hdr[EVENT] {
 	evt	const[EVENT, int8]
 	plen	bytesize[hci_event_hdr_t:payload, int8]
-}
+} [packed]
 
 hci_ev_le_meta_un [
 	hci_ev_le_advertising_info	hci_ev_le_meta_t[HCI_EV_LE_ADVERTISING_REPORT, hci_ev_le_advertising_info]
@@ -97,11 +90,85 @@ hci_ev_le_meta_un [
 type hci_ev_le_meta_t[SUBEVENT, PAYLOAD] {
 	hdr	hci_ev_le_meta[SUBEVENT]
 	payload	PAYLOAD
-}
+} [packed]
 
 type hci_ev_le_meta[SUBEVENT] {
 	subevent	const[SUBEVENT, int8]
-}
+} [packed]
+
+hci_ev_cmd_complete_un [
+	hci_rp_delete_reserved_lt_addr		hci_ev_cmd_complete_t[HCI_OP_DELETE_RESERVED_LT_ADDR, hci_rp_delete_reserved_lt_addr]
+	hci_rp_delete_stored_link_key		hci_ev_cmd_complete_t[HCI_OP_DELETE_STORED_LINK_KEY, hci_rp_delete_stored_link_key]
+	hci_rp_le_ltk_neg_reply			hci_ev_cmd_complete_t[HCI_OP_LE_LTK_NEG_REPLY, hci_rp_le_ltk_neg_reply]
+	hci_rp_le_ltk_reply			hci_ev_cmd_complete_t[HCI_OP_LE_LTK_REPLY, hci_rp_le_ltk_reply]
+	hci_rp_le_read_adv_tx_power		hci_ev_cmd_complete_t[HCI_OP_LE_READ_ADV_TX_POWER, hci_rp_le_read_adv_tx_power]
+	hci_rp_le_read_buffer_size		hci_ev_cmd_complete_t[HCI_OP_LE_READ_BUFFER_SIZE, hci_rp_le_read_buffer_size]
+	hci_rp_le_read_buffer_size_v2		hci_ev_cmd_complete_t[HCI_OP_LE_READ_BUFFER_SIZE_V2, hci_rp_le_read_buffer_size_v2]
+	hci_rp_le_read_def_data_len		hci_ev_cmd_complete_t[HCI_OP_LE_READ_DEF_DATA_LEN, hci_rp_le_read_def_data_len]
+	hci_rp_le_read_iso_tx_sync		hci_ev_cmd_complete_t[HCI_OP_LE_READ_ISO_TX_SYNC, hci_rp_le_read_iso_tx_sync]
+	hci_rp_le_read_local_features		hci_ev_cmd_complete_t[HCI_OP_LE_READ_LOCAL_FEATURES, hci_rp_le_read_local_features]
+	hci_rp_le_read_max_data_len		hci_ev_cmd_complete_t[HCI_OP_LE_READ_MAX_DATA_LEN, hci_rp_le_read_max_data_len]
+	hci_rp_le_read_num_supported_adv_sets	hci_ev_cmd_complete_t[HCI_OP_LE_READ_NUM_SUPPORTED_ADV_SETS, hci_rp_le_read_num_supported_adv_sets]
+	hci_rp_le_read_resolv_list_size		hci_ev_cmd_complete_t[HCI_OP_LE_READ_RESOLV_LIST_SIZE, hci_rp_le_read_resolv_list_size]
+	hci_rp_le_read_supported_states		hci_ev_cmd_complete_t[HCI_OP_LE_READ_SUPPORTED_STATES, hci_rp_le_read_supported_states]
+	hci_rp_le_read_white_list_size		hci_ev_cmd_complete_t[HCI_OP_LE_READ_WHITE_LIST_SIZE, hci_rp_le_read_white_list_size]
+	hci_rp_le_set_cig_params		hci_ev_cmd_complete_t[HCI_OP_LE_SET_CIG_PARAMS, hci_rp_le_set_cig_params]
+	hci_rp_le_set_data_len			hci_ev_cmd_complete_t[HCI_OP_LE_SET_DATA_LEN, hci_rp_le_set_data_len]
+	hci_rp_le_set_ext_adv_params		hci_ev_cmd_complete_t[HCI_OP_LE_SET_EXT_ADV_PARAMS, hci_rp_le_set_ext_adv_params]
+	hci_rp_logical_link_cancel		hci_ev_cmd_complete_t[HCI_OP_LOGICAL_LINK_CANCEL, hci_rp_logical_link_cancel]
+	hci_rp_pin_code_neg_reply		hci_ev_cmd_complete_t[HCI_OP_PIN_CODE_NEG_REPLY, hci_rp_pin_code_neg_reply]
+	hci_rp_pin_code_reply			hci_ev_cmd_complete_t[HCI_OP_PIN_CODE_REPLY, hci_rp_pin_code_reply]
+	hci_rp_read_auth_payload_to		hci_ev_cmd_complete_t[HCI_OP_READ_AUTH_PAYLOAD_TO, hci_rp_read_auth_payload_to]
+	hci_rp_read_bd_addr			hci_ev_cmd_complete_t[HCI_OP_READ_BD_ADDR, hci_rp_read_bd_addr]
+	hci_rp_read_buffer_size			hci_ev_cmd_complete_t[HCI_OP_READ_BUFFER_SIZE, hci_rp_read_buffer_size]
+	hci_rp_read_class_of_dev		hci_ev_cmd_complete_t[HCI_OP_READ_CLASS_OF_DEV, hci_rp_read_class_of_dev]
+	hci_rp_read_clock			hci_ev_cmd_complete_t[HCI_OP_READ_CLOCK, hci_rp_read_clock]
+	hci_rp_read_data_block_size		hci_ev_cmd_complete_t[HCI_OP_READ_DATA_BLOCK_SIZE, hci_rp_read_data_block_size]
+	hci_rp_read_def_err_data_reporting	hci_ev_cmd_complete_t[HCI_OP_READ_DEF_ERR_DATA_REPORTING, hci_rp_read_def_err_data_reporting]
+	hci_rp_read_def_link_policy		hci_ev_cmd_complete_t[HCI_OP_READ_DEF_LINK_POLICY, hci_rp_read_def_link_policy]
+	hci_rp_read_enc_key_size		hci_ev_cmd_complete_t[HCI_OP_READ_ENC_KEY_SIZE, hci_rp_read_enc_key_size]
+	hci_rp_read_flow_control_mode		hci_ev_cmd_complete_t[HCI_OP_READ_FLOW_CONTROL_MODE, hci_rp_read_flow_control_mode]
+	hci_rp_read_inq_rsp_tx_power		hci_ev_cmd_complete_t[HCI_OP_READ_INQ_RSP_TX_POWER, hci_rp_read_inq_rsp_tx_power]
+	hci_rp_read_link_policy			hci_ev_cmd_complete_t[HCI_OP_READ_LINK_POLICY, hci_rp_read_link_policy]
+	hci_rp_read_local_amp_assoc		hci_ev_cmd_complete_t[HCI_OP_READ_LOCAL_AMP_ASSOC, hci_rp_read_local_amp_assoc]
+	hci_rp_read_local_amp_info		hci_ev_cmd_complete_t[HCI_OP_READ_LOCAL_AMP_INFO, hci_rp_read_local_amp_info]
+	hci_rp_read_local_commands		hci_ev_cmd_complete_t[HCI_OP_READ_LOCAL_COMMANDS, hci_rp_read_local_commands]
+	hci_rp_read_local_ext_features		hci_ev_cmd_complete_t[HCI_OP_READ_LOCAL_EXT_FEATURES, hci_rp_read_local_ext_features]
+	hci_rp_read_local_features		hci_ev_cmd_complete_t[HCI_OP_READ_LOCAL_FEATURES, hci_rp_read_local_features]
+	hci_rp_read_local_name			hci_ev_cmd_complete_t[HCI_OP_READ_LOCAL_NAME, hci_rp_read_local_name]
+	hci_rp_read_local_oob_data		hci_ev_cmd_complete_t[HCI_OP_READ_LOCAL_OOB_DATA, hci_rp_read_local_oob_data]
+	hci_rp_read_local_oob_ext_data		hci_ev_cmd_complete_t[HCI_OP_READ_LOCAL_OOB_EXT_DATA, hci_rp_read_local_oob_ext_data]
+	hci_rp_read_local_pairing_opts		hci_ev_cmd_complete_t[HCI_OP_READ_LOCAL_PAIRING_OPTS, hci_rp_read_local_pairing_opts]
+	hci_rp_read_local_version		hci_ev_cmd_complete_t[HCI_OP_READ_LOCAL_VERSION, hci_rp_read_local_version]
+	hci_rp_read_num_supported_iac		hci_ev_cmd_complete_t[HCI_OP_READ_NUM_SUPPORTED_IAC, hci_rp_read_num_supported_iac]
+	hci_rp_read_page_scan_activity		hci_ev_cmd_complete_t[HCI_OP_READ_PAGE_SCAN_ACTIVITY, hci_rp_read_page_scan_activity]
+	hci_rp_read_page_scan_type		hci_ev_cmd_complete_t[HCI_OP_READ_PAGE_SCAN_TYPE, hci_rp_read_page_scan_type]
+	hci_rp_read_rssi			hci_ev_cmd_complete_t[HCI_OP_READ_RSSI, hci_rp_read_rssi]
+	hci_rp_read_sc_support			hci_ev_cmd_complete_t[HCI_OP_READ_SC_SUPPORT, hci_rp_read_sc_support]
+	hci_rp_read_ssp_mode			hci_ev_cmd_complete_t[HCI_OP_READ_SSP_MODE, hci_rp_read_ssp_mode]
+	hci_rp_read_stored_link_key		hci_ev_cmd_complete_t[HCI_OP_READ_STORED_LINK_KEY, hci_rp_read_stored_link_key]
+	hci_rp_read_tx_power			hci_ev_cmd_complete_t[HCI_OP_READ_TX_POWER, hci_rp_read_tx_power]
+	hci_rp_read_voice_setting		hci_ev_cmd_complete_t[HCI_OP_READ_VOICE_SETTING, hci_rp_read_voice_setting]
+	hci_rp_role_discovery			hci_ev_cmd_complete_t[HCI_OP_ROLE_DISCOVERY, hci_rp_role_discovery]
+	hci_rp_set_csb				hci_ev_cmd_complete_t[HCI_OP_SET_CSB, hci_rp_set_csb]
+	hci_rp_set_csb_data			hci_ev_cmd_complete_t[HCI_OP_SET_CSB_DATA, hci_rp_set_csb_data]
+	hci_rp_set_reserved_lt_addr		hci_ev_cmd_complete_t[HCI_OP_SET_RESERVED_LT_ADDR, hci_rp_set_reserved_lt_addr]
+	hci_rp_user_confirm_reply		hci_ev_cmd_complete_t[HCI_OP_USER_CONFIRM_REPLY, hci_rp_user_confirm_reply]
+	hci_rp_write_auth_payload_to		hci_ev_cmd_complete_t[HCI_OP_WRITE_AUTH_PAYLOAD_TO, hci_rp_write_auth_payload_to]
+	hci_rp_write_link_policy		hci_ev_cmd_complete_t[HCI_OP_WRITE_LINK_POLICY, hci_rp_write_link_policy]
+	hci_rp_write_remote_amp_assoc		hci_ev_cmd_complete_t[HCI_OP_WRITE_REMOTE_AMP_ASSOC, hci_rp_write_remote_amp_assoc]
+	hci_rp_write_sync_train_params		hci_ev_cmd_complete_t[HCI_OP_WRITE_SYNC_TRAIN_PARAMS, hci_rp_write_sync_train_params]
+] [varlen]
+
+type hci_ev_cmd_complete_t[OPCODE, PAYLOAD] {
+	hdr	hci_ev_cmd_complete[OPCODE]
+	payload	PAYLOAD
+} [packed]
+
+type hci_ev_cmd_complete[OPCODE] {
+	ncmd	int8
+	opcode	const[OPCODE, int16]
+} [packed]
 
 extended_inquiry_info {
 	bdaddr			bdaddr_t
@@ -142,11 +209,6 @@ hci_ev_clock_offset {
 	status		int8
 	handle		int16
 	clock_offset	int16
-} [packed]
-
-hci_ev_cmd_complete {
-	ncmd	int8
-	opcode	int16
 } [packed]
 
 hci_ev_cmd_status {
@@ -525,6 +587,363 @@ hci_evt_le_ext_adv_set_term {
 	handle		int8
 	conn_handle	int16
 	num_evts	int8
+} [packed]
+
+hci_rp_delete_reserved_lt_addr {
+	status	int8
+	lt_addr	int8
+} [packed]
+
+hci_rp_delete_stored_link_key {
+	status		int8
+	num_keys	int8
+} [packed]
+
+hci_rp_le_ltk_neg_reply {
+	status	int8
+	handle	int16
+} [packed]
+
+hci_rp_le_ltk_reply {
+	status	int8
+	handle	int16
+} [packed]
+
+hci_rp_le_read_adv_tx_power {
+	status		int8
+	tx_power	int8
+} [packed]
+
+hci_rp_le_read_buffer_size {
+	status		int8
+	le_mtu		int16
+	le_max_pkt	int8
+} [packed]
+
+hci_rp_le_read_buffer_size_v2 {
+	status		int8
+	acl_mtu		int16
+	acl_max_pkt	int8
+	iso_mtu		int16
+	iso_max_pkt	int8
+} [packed]
+
+hci_rp_le_read_def_data_len {
+	status	int8
+	tx_len	int16
+	tx_time	int16
+} [packed]
+
+hci_rp_le_read_iso_tx_sync {
+	status		int8
+	handle		int16
+	seq		int16
+	imestamp	int32
+	offset		array[int8, 3]
+} [packed]
+
+hci_rp_le_read_local_features {
+	status		int8
+	features	array[int8, 8]
+} [packed]
+
+hci_rp_le_read_max_data_len {
+	status	int8
+	tx_len	int16
+	tx_time	int16
+	rx_len	int16
+	rx_time	int16
+} [packed]
+
+hci_rp_le_read_num_supported_adv_sets {
+	status		int8
+	num_of_sets	int8
+} [packed]
+
+hci_rp_le_read_resolv_list_size {
+	status	int8
+	size	int8
+} [packed]
+
+hci_rp_le_read_supported_states {
+	status		int8
+	le_states	array[int8, 8]
+} [packed]
+
+hci_rp_le_read_white_list_size {
+	status	int8
+	size	int8
+} [packed]
+
+hci_rp_le_set_cig_params {
+	status		int8
+	cig_id		int8
+	num_handles	len[handle, int8]
+	handle		array[int16]
+} [packed]
+
+hci_rp_le_set_data_len {
+	status	int8
+	handle	int16
+} [packed]
+
+hci_rp_le_set_ext_adv_params {
+	status		int8
+	tx_power	int8
+} [packed]
+
+hci_rp_logical_link_cancel {
+	status		int8
+	phy_handle	int8
+	flow_spec_id	int8
+} [packed]
+
+hci_rp_pin_code_neg_reply {
+	status	int8
+	bdaddr	bdaddr_t
+} [packed]
+
+hci_rp_pin_code_reply {
+	status	int8
+	bdaddr	bdaddr_t
+} [packed]
+
+hci_rp_read_auth_payload_to {
+	status	int8
+	handle	int16
+	timeout	int16
+} [packed]
+
+hci_rp_read_bd_addr {
+	status	int8
+	bdaddr	bdaddr_t
+} [packed]
+
+hci_rp_read_buffer_size {
+	status		int8
+	acl_mtu		int16
+	sco_mtu		int8
+	acl_max_pkt	int16
+	sco_max_pkt	int16
+} [packed]
+
+hci_rp_read_class_of_dev {
+	status		int8
+	dev_class	array[int8, 3]
+} [packed]
+
+hci_rp_read_clock {
+	status		int8
+	handle		int16
+	clock		int32
+	accuracy	int16
+} [packed]
+
+hci_rp_read_data_block_size {
+	status		int8
+	max_acl_len	int16
+	block_len	int16
+	num_blocks	int16
+} [packed]
+
+hci_rp_read_def_err_data_reporting {
+	status			int8
+	err_data_reporting	int8
+} [packed]
+
+hci_rp_read_def_link_policy {
+	status	int8
+	policy	int16
+} [packed]
+
+hci_rp_read_enc_key_size {
+	status		int8
+	handle		int16
+	key_size	int8
+} [packed]
+
+hci_rp_read_flow_control_mode {
+	status	int8
+	mode	int8
+} [packed]
+
+hci_rp_read_inq_rsp_tx_power {
+	status		int8
+	tx_power	int8
+} [packed]
+
+hci_rp_read_link_policy {
+	status	int8
+	handle	int16
+	policy	int16
+} [packed]
+
+hci_rp_read_local_amp_assoc {
+	status		int8
+	phy_handle	int8
+	rem_len		int16
+	frag		array[int8]
+} [packed]
+
+hci_rp_read_local_amp_info {
+	status		int8
+	amp_status	int8
+	total_bw	int32
+	max_bw		int32
+	min_latency	int32
+	max_pdu		int32
+	amp_type	int8
+	pal_cap		int16
+	max_assoc_size	int16
+	max_flush_to	int32
+	be_flush_to	int32
+} [packed]
+
+hci_rp_read_local_commands {
+	status		int8
+	commands	array[int8, 64]
+} [packed]
+
+hci_rp_read_local_ext_features {
+	status		int8
+	page		int8
+	max_page	int8
+	features	array[int8, 8]
+} [packed]
+
+hci_rp_read_local_features {
+	status		int8
+	features	array[int8, 8]
+} [packed]
+
+hci_rp_read_local_name {
+	status	int8
+	name	array[int8, 248]
+} [packed]
+
+hci_rp_read_local_oob_data {
+	status	int8
+	hash	array[int8, 16]
+	rand	array[int8, 16]
+} [packed]
+
+hci_rp_read_local_oob_ext_data {
+	status	int8
+	hash192	array[int8, 16]
+	rand192	array[int8, 16]
+	hash256	array[int8, 16]
+	rand256	array[int8, 16]
+} [packed]
+
+hci_rp_read_local_pairing_opts {
+	status		int8
+	pairing_opts	int8
+	max_key_size	int8
+} [packed]
+
+hci_rp_read_local_version {
+	status		int8
+	hci_ver		int8
+	hci_rev		int16
+	lmp_ver		int8
+	manufacturer	int16
+	lmp_subver	int16
+} [packed]
+
+hci_rp_read_num_supported_iac {
+	status	int8
+	num_iac	int8
+} [packed]
+
+hci_rp_read_page_scan_activity {
+	status		int8
+	interval	int16
+	window		int16
+} [packed]
+
+hci_rp_read_page_scan_type {
+	status	int8
+	type	int8
+} [packed]
+
+hci_rp_read_rssi {
+	status	int8
+	handle	int16
+	rssi	int8
+} [packed]
+
+hci_rp_read_sc_support {
+	status	int8
+	support	int8
+} [packed]
+
+hci_rp_read_ssp_mode {
+	status	int8
+	mode	int8
+} [packed]
+
+hci_rp_read_stored_link_key {
+	status		int8
+	max_keys	int8
+	num_keys	int8
+} [packed]
+
+hci_rp_read_tx_power {
+	status		int8
+	handle		int16
+	tx_power	int8
+} [packed]
+
+hci_rp_read_voice_setting {
+	status		int8
+	voice_setting	int16
+} [packed]
+
+hci_rp_role_discovery {
+	status	int8
+	handle	int16
+	role	int8
+} [packed]
+
+hci_rp_set_csb {
+	status		int8
+	lt_addr		int8
+	interval	int16
+} [packed]
+
+hci_rp_set_csb_data {
+	status	int8
+	lt_addr	int8
+} [packed]
+
+hci_rp_set_reserved_lt_addr {
+	status	int8
+	lt_addr	int8
+} [packed]
+
+hci_rp_user_confirm_reply {
+	status	int8
+	bdaddr	bdaddr_t
+} [packed]
+
+hci_rp_write_auth_payload_to {
+	status	int8
+	handle	int16
+} [packed]
+
+hci_rp_write_link_policy {
+	status	int8
+	handle	int16
+} [packed]
+
+hci_rp_write_remote_amp_assoc {
+	status		int8
+	phy_handle	int8
+} [packed]
+
+hci_rp_write_sync_train_params {
+	status		int8
+	sync_train_int	int16
 } [packed]
 
 hci_qos {
