@@ -34,10 +34,9 @@ openat$vhci(fd const[AT_FDCWD], file ptr[in, string["/dev/vhci"]], flags flags[o
 write$vhci(fd fd_vhci, data ptr[in, vhci_command], size bytesize[data])
 
 vhci_command [
-	HCI_EVENT_PKT	vhci_command_generic[HCI_EVENT_PKT]
+	HCI_EVENT_PKT	vhci_command_event_pkt
 	HCI_ACLDATA_PKT	vhci_command_generic[HCI_ACLDATA_PKT]
 	HCI_SCODATA_PKT	vhci_command_generic[HCI_SCODATA_PKT]
-	HCI_COMMAND_PKT	vhci_command_pkt
 	HCI_VENDOR_PKT	vhci_command_vendor_pkt
 ] [varlen]
 
@@ -47,9 +46,9 @@ type vhci_command_generic[CMD] {
 	data	array[int8]
 }
 
-vhci_command_pkt {
-	cmd	const[HCI_COMMAND_PKT, int8]
-	hdr	hci_command_hdr
+vhci_command_event_pkt {
+	cmd	const[HCI_EVENT_PKT, int8]
+	hdr	hci_event_hdr_un
 }
 
 vhci_command_vendor_pkt {
