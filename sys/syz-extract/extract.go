@@ -250,7 +250,7 @@ func archFileList(os, arch string, files []string) (string, []string, []string, 
 			// Not upstream, generated on unknown tree.
 			"futex.txt": true,
 			// Was in linux-next, but then was removed, fate is unknown.
-			"watch_queue.txt": true,
+			"dev_watch_queue.txt": true,
 		}
 		androidFiles := map[string]bool{
 			"dev_tlk_device.txt": true,
