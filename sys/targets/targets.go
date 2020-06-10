@@ -391,7 +391,7 @@ func fuchsiaCFlags(arch, clangArch string) []string {
 	out := sourceDirVar + "/out/" + arch
 	return []string{
 		"-Wno-deprecated",
-		"--target", clangArch + "-fuchsia",
+		"-target", clangArch + "-fuchsia",
 		"-ldriver",
 		"-lfdio",
 		"-lzircon",
