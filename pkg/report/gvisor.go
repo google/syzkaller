@@ -175,4 +175,37 @@ var gvisorOopses = append([]*oops{
 		},
 		[]*regexp.Regexp{},
 	},
+	{
+		[]byte("Sentry detected"),
+		[]oopsFormat{
+			{
+				title:        compile("Sentry detected (.*) stuck tasks(s):(.*)"),
+				fmt:          "Sentry detected %[1]v stuck tasks(s)",
+				noStackTrace: true,
+			},
+		},
+		[]*regexp.Regexp{},
+	},
+	{
+		[]byte("Watchdog.Start() not called"),
+		[]oopsFormat{
+			{
+				title:        compile("Watchdog.Start() not called within (.*)"),
+				fmt:          "Watchdog.Start() not called within %[1]v:%[2]v",
+				noStackTrace: true,
+			},
+		},
+		[]*regexp.Regexp{},
+	},
+	{
+		[]byte("Watchdog goroutine is stuck"),
+		[]oopsFormat{
+			{
+				title:        compile("Watchdog goroutine is stuck:(.*)"),
+				fmt:          "Watchdog goroutine is stuck:%[1]v",
+				noStackTrace: true,
+			},
+		},
+		[]*regexp.Regexp{},
+	},
 }, commonOopses...)

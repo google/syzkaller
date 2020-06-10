@@ -1,0 +1,38 @@
+TITLE: Watchdog.Start() not called within 30s:
+
+W0610 22:17:15.468562  107732 log.go:338] Watchdog.Start() not called within 30s:
+goroutine 31 [running]:
+gvisor.dev/gvisor/pkg/log.Stacks(0xc00039ae01, 0x4ec95a, 0xc0003b8ea0, 0xc00039ae30)
+	pkg/log/log.go:314 +0xa5
+gvisor.dev/gvisor/pkg/log.TracebackAll(0xc0000a6150, 0x26, 0x0, 0x0, 0x0)
+	pkg/log/log.go:337 +0x2a
+gvisor.dev/gvisor/pkg/sentry/watchdog.(*Watchdog).doAction(0xc000316280, 0x1, 0x0, 0xc00039af90)
+	pkg/sentry/watchdog/watchdog.go:355 +0x2ca
+gvisor.dev/gvisor/pkg/sentry/watchdog.(*Watchdog).waitForStart(0xc000316280)
+	pkg/sentry/watchdog/watchdog.go:231 +0x1ab
+created by gvisor.dev/gvisor/pkg/sentry/watchdog.New
+	pkg/sentry/watchdog/watchdog.go:171 +0x1ba
+
+goroutine 1 [semacquire]:
+sync.runtime_Semacquire(0xc0003281c4)
+	GOROOT/src/runtime/sema.go:56 +0x42
+sync.(*WaitGroup).Wait(0xc0003281c4)
+	GOROOT/src/sync/waitgroup.go:130 +0x64
+gvisor.dev/gvisor/pkg/sentry/kernel.(*Kernel).WaitExited(...)
+	pkg/sentry/kernel/kernel.go:1240
+gvisor.dev/gvisor/runsc/boot.(*Loader).WaitExit(0xc00037c000, 0x0, 0x0)
+	runsc/boot/loader.go:998 +0x38
+gvisor.dev/gvisor/runsc/cmd.(*Boot).Execute(0xc00015e360, 0x1126800, 0xc000052008, 0xc000166420, 0xc00017b440, 0x2, 0x2, 0x0)
+	runsc/cmd/boot.go:265 +0x73f
+github.com/google/subcommands.(*Commander).Execute(0xc00011a000, 0x1126800, 0xc000052008, 0xc00017b440, 0x2, 0x2, 0x0)
+	external/com_github_google_subcommands/subcommands.go:200 +0x2f9
+github.com/google/subcommands.Execute(...)
+	external/com_github_google_subcommands/subcommands.go:481
+main.main()
+	runsc/main.go:334 +0x1a28
+
+goroutine 6 [chan receive, locked to thread]:
+gvisor.dev/gvisor/pkg/sentry/platform/ptrace.newSubprocess.func1(0xfdac68, 0xc00007c0c0, 0xc00007c120)
+	pkg/sentry/platform/ptrace/subprocess.go:175 +0x18f
+created by gvisor.dev/gvisor/pkg/sentry/platform/ptrace.newSubprocess
+	pkg/sentry/platform/ptrace/subprocess.go:159 +0x13b

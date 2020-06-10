@@ -1,0 +1,42 @@
+TITLE: Sentry detected 1 stuck task(s):
+
+W0610 22:12:59.791982  105709 log.go:338] Sentry detected 1 stuck task(s):
+	Task tid: 1 (0x1), entered RunSys state 25s ago.
+Search for '(*Task).run(0x..., 0x<tid>)' in the stack dump to find the offending goroutine:
+goroutine 15 [running]:
+gvisor.dev/gvisor/pkg/log.Stacks(0xc000142001, 0x4ed822, 0xc00051ebf0, 0xc00051ebf8)
+	pkg/log/log.go:314 +0xa5
+gvisor.dev/gvisor/pkg/log.TracebackAll(0xc0000a0160, 0xad, 0x0, 0x0, 0x0)
+	pkg/log/log.go:337 +0x2a
+gvisor.dev/gvisor/pkg/sentry/watchdog.(*Watchdog).doAction(0xc000316280, 0x0, 0x1, 0xc00051ed70)
+	pkg/sentry/watchdog/watchdog.go:349 +0xdf
+gvisor.dev/gvisor/pkg/sentry/watchdog.(*Watchdog).report(0xc000316280, 0xc00030b950, 0xc000140001, 0x5d2b65080)
+	pkg/sentry/watchdog/watchdog.go:327 +0x311
+gvisor.dev/gvisor/pkg/sentry/watchdog.(*Watchdog).runTurn(0xc000316280)
+	pkg/sentry/watchdog/watchdog.go:308 +0x4b1
+gvisor.dev/gvisor/pkg/sentry/watchdog.(*Watchdog).loop(0xc000316280)
+	pkg/sentry/watchdog/watchdog.go:243 +0x42
+created by gvisor.dev/gvisor/pkg/sentry/watchdog.(*Watchdog).Start
+	pkg/sentry/watchdog/watchdog.go:194 +0x1b7
+
+goroutine 81 [sleep]:
+time.Sleep(0x34630b8a000)
+	GOROOT/src/runtime/time.go:188 +0xba
+gvisor.dev/gvisor/pkg/sentry/syscalls/linux.openAt(0xc000140000, 0x3ffffff9c, 0x7f0f49821428, 0x80000, 0x0, 0xc000782a80, 0x200000003)
+	pkg/sentry/syscalls/linux/sys_file.go:137 +0x40
+gvisor.dev/gvisor/pkg/sentry/syscalls/linux.Openat(0xc000140000, 0xffffff9c, 0x7f0f49821428, 0x80000, 0x0, 0x0, 0x0, 0x0, 0x0, 0x19d48, ...)
+	pkg/sentry/syscalls/linux/sys_file.go:488 +0xb4
+gvisor.dev/gvisor/pkg/sentry/kernel.(*Task).executeSyscall(0xc000140000, 0x101, 0xffffff9c, 0x7f0f49821428, 0x80000, 0x0, 0x0, 0x0, 0x0, 0xf9cc80, ...)
+	pkg/sentry/kernel/task_syscall.go:170 +0x122
+gvisor.dev/gvisor/pkg/sentry/kernel.(*Task).doSyscallInvoke(0xc000140000, 0x101, 0xffffff9c, 0x7f0f49821428, 0x80000, 0x0, 0x0, 0x0, 0x0, 0x0)
+	pkg/sentry/kernel/task_syscall.go:305 +0x66
+gvisor.dev/gvisor/pkg/sentry/kernel.(*Task).doSyscallEnter(0xc000140000, 0x101, 0xffffff9c, 0x7f0f49821428, 0x80000, 0x0, 0x0, 0x0, 0xc00011e900, 0x1)
+	pkg/sentry/kernel/task_syscall.go:265 +0x96
+gvisor.dev/gvisor/pkg/sentry/kernel.(*Task).doSyscall(0xc000140000, 0x2, 0xc000119080)
+	pkg/sentry/kernel/task_syscall.go:240 +0x15c
+gvisor.dev/gvisor/pkg/sentry/kernel.(*runApp).execute(0x0, 0xc000140000, 0x1115680, 0x0)
+	pkg/sentry/kernel/task_run.go:259 +0xec8
+gvisor.dev/gvisor/pkg/sentry/kernel.(*Task).run(0xc000140000, 0x1)
+	pkg/sentry/kernel/task_run.go:92 +0x18b
+created by gvisor.dev/gvisor/pkg/sentry/kernel.(*Task).Start
+	pkg/sentry/kernel/task_start.go:318 +0xfe
