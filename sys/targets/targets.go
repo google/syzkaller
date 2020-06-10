@@ -206,6 +206,7 @@ var List = map[string]map[string]*Target{
 			VMArch:            "amd64",
 			PtrSize:           4,
 			PageSize:          4 << 10,
+			DataOffset:        256 << 20,
 			Int64Alignment:    4,
 			CCompiler:         "clang",
 			CFlags:            []string{"-m32"},
@@ -447,7 +448,9 @@ func initTarget(target *Target, OS, arch string) {
 	if target.NeedSyscallDefine == nil {
 		target.NeedSyscallDefine = needSyscallDefine
 	}
-	target.DataOffset = 512 << 20
+	if target.DataOffset == 0 {
+		target.DataOffset = 512 << 20
+	}
 	target.NumPages = (16 << 20) / target.PageSize
 	sourceDir := os.Getenv("SOURCEDIR_" + strings.ToUpper(OS))
 	if sourceDir == "" {
