@@ -346,8 +346,8 @@ Description files also contain `include` directives that refer to Linux kernel h
 `incdir` directives that refer to custom Linux kernel header directories 
 and `define` directives that define symbolic constant values.
 
-The syzkaller executor defines some pseudo sytem calls that can be used
-as any other syscall in a description file. These pseudo system calls
-expand to literal C code and can perform user-defined custom
-actions. You can find some examples in
+The syzkaller executor defines some [pseudo system calls](./pseudo_syscalls.md)
+that can be used as any other syscall in a description file. These pseudo
+system calls expand to literal C code and can perform user-defined
+custom actions. You can find some examples in
 [executor/common_linux.h](../executor/common_linux.h).
