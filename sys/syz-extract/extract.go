@@ -246,7 +246,7 @@ func archFileList(os, arch string, files []string) (string, []string, []string, 
 		}
 		manualFiles := map[string]bool{
 			// Not upstream, generated on https://github.com/multipath-tcp/mptcp_net-next
-			"mptcp.txt": true,
+			"vnet_mptcp.txt": true,
 			// Not upstream, generated on unknown tree.
 			"futex.txt": true,
 			// Was in linux-next, but then was removed, fate is unknown.
