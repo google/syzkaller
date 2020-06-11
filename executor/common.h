@@ -221,7 +221,7 @@ static void remove_dir(const char* dir)
 #endif
 #endif
 
-#if !GOOS_linux
+#if !GOOS_linux && !GOOS_netbsd
 #if SYZ_EXECUTOR
 static int inject_fault(int nth)
 {

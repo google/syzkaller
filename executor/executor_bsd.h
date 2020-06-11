@@ -172,6 +172,7 @@ static bool cover_check(uint64 pc)
 #define SYZ_HAVE_FEATURES 1
 static feature_t features[] = {
     {"usb", setup_usb},
+    {"fault", setup_fault},
 };
 
 static void setup_machine(void)
