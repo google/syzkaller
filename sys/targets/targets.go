@@ -203,9 +203,11 @@ var List = map[string]map[string]*Target{
 			NeedSyscallDefine: dontNeedSyscallDefine,
 		},
 		"386": {
-			VMArch:            "amd64",
-			PtrSize:           4,
-			PageSize:          4 << 10,
+			VMArch:   "amd64",
+			PtrSize:  4,
+			PageSize: 4 << 10,
+			// The default DataOffset doesn't work with 32-bit
+			// FreeBSD and using ld.lld due to collisions.
 			DataOffset:        256 << 20,
 			Int64Alignment:    4,
 			CCompiler:         "clang",
