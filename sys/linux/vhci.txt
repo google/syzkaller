@@ -6,6 +6,13 @@ include <net/bluetooth/hci_sock.h>
 include <net/bluetooth/sco.h>
 include <net/bluetooth/hci.h>
 
+type hci_acl_hdr[DATA] {
+	bc	int16:2
+	pb	int16:2
+	handle	int16:12
+	dlen	bytesize[DATA, int16]
+} [packed]
+
 hci_event_hdr_un [
 	extended_inquiry_info			hci_event_hdr_t[HCI_EV_EXTENDED_INQUIRY_RESULT, extended_inquiry_info]
 	hci_ev_auth_complete			hci_event_hdr_t[HCI_EV_AUTH_COMPLETE, hci_ev_auth_complete]
@@ -170,6 +177,9 @@ type hci_ev_cmd_complete[OPCODE] {
 	opcode	const[OPCODE, int16]
 } [packed]
 
+link_types = SCO_LINK, ACL_LINK, ESCO_LINK
+bdaddr_types = ADDR_LE_DEV_PUBLIC, ADDR_LE_DEV_RANDOM
+
 extended_inquiry_info {
 	bdaddr			bdaddr_t
 	pscan_rep_mode		int8
@@ -211,24 +221,26 @@ hci_ev_clock_offset {
 	clock_offset	int16
 } [packed]
 
+hci_ev_cmd_status_opcodes = HCI_OP_INQUIRY, HCI_OP_CREATE_CONN, HCI_OP_DISCONNECT, HCI_OP_ADD_SCO, HCI_OP_AUTH_REQUESTED, HCI_OP_SET_CONN_ENCRYPT, HCI_OP_REMOTE_NAME_REQ, HCI_OP_READ_REMOTE_FEATURES, HCI_OP_READ_REMOTE_EXT_FEATURES, HCI_OP_SETUP_SYNC_CONN, HCI_OP_SNIFF_MODE, HCI_OP_EXIT_SNIFF_MODE, HCI_OP_SWITCH_ROLE, HCI_OP_LE_CREATE_CONN, HCI_OP_LE_READ_REMOTE_FEATURES, HCI_OP_LE_START_ENC, HCI_OP_LE_EXT_CREATE_CONN
+
 hci_ev_cmd_status {
 	status	int8
 	ncmd	int8
-	opcode	int16
+	opcode	flags[hci_ev_cmd_status_opcodes, int16]
 } [packed]
 
 hci_ev_conn_complete {
 	status		int8
 	handle		int16
 	bdaddr		bdaddr_t
-	link_type	int8
+	link_type	flags[link_types, int8]
 	encr_mode	int8
 } [packed]
 
 hci_ev_conn_request {
 	bdaddr		bdaddr_t
 	dev_class	array[int8, 3]
-	link_type	int8
+	link_type	flags[link_types, int8]
 } [packed]
 
 hci_ev_disconn_complete {
@@ -282,7 +294,7 @@ hci_ev_keypress_notify {
 
 hci_ev_le_advertising_info {
 	evt_type	int8
-	bdaddr_type	int8
+	bdaddr_type	flags[bdaddr_types, int8]
 	bdaddr		bdaddr_t
 	length		int8
 	data		array[int8]
@@ -292,7 +304,7 @@ hci_ev_le_conn_complete {
 	status			int8
 	handle			int16
 	role			int8
-	bdaddr_type		int8
+	bdaddr_type		flags[bdaddr_types, int8]
 	bdaddr			bdaddr_t
 	interval		int16
 	latency			int16
@@ -318,7 +330,7 @@ hci_ev_le_data_len_change {
 
 hci_ev_le_direct_adv_info {
 	evt_type		int8
-	bdaddr_type		int8
+	bdaddr_type		flags[bdaddr_types, int8]
 	bdaddr			bdaddr_t
 	direct_addr_type	int8
 	direct_addr		bdaddr_t
@@ -329,7 +341,7 @@ hci_ev_le_enh_conn_complete {
 	status			int8
 	handle			int16
 	role			int8
-	bdaddr_type		int8
+	bdaddr_type		flags[bdaddr_types, int8]
 	bdaddr			bdaddr_t
 	local_rpa		bdaddr_t
 	peer_rpa		bdaddr_t
@@ -341,7 +353,7 @@ hci_ev_le_enh_conn_complete {
 
 hci_ev_le_ext_adv_report {
 	evt_type		int16
-	bdaddr_type		int8
+	bdaddr_type		flags[bdaddr_types, int8]
 	bdaddr			bdaddr_t
 	primary_phy		int8
 	secondary_phy		int8
@@ -530,7 +542,7 @@ hci_ev_sync_conn_complete {
 	status		int8
 	handle		int16
 	bdaddr		bdaddr_t
-	link_type	int8
+	link_type	flags[link_types, int8]
 	tx_interval	int8
 	retrans_window	int8
 	rx_pkt_len	int16
