@@ -153,8 +153,8 @@ for name in to_disable:
 	new_kconf.syms[name].set_value(0)
 
 # Remove testing related symbols.
-blacklist = ['COMPILE_TEST']
-for sym in blacklist:
+removelist = ['COMPILE_TEST']
+for sym in removelist:
 	new_kconf.syms[sym].set_value(0)
 
 new_kconf.write_config()

@@ -74,7 +74,7 @@ func TestJob(t *testing.T) {
 	c.expectEQ(strings.Contains(body, "does not look like a valid git repo"), true)
 
 	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch,
-		EmailOptFrom("\"foo\" <blAcklisteD@dOmain.COM>"))
+		EmailOptFrom("\"foo\" <blOcKed@dOmain.COM>"))
 	c.expectNoEmail()
 	pollResp := c.client2.pollJobs(build.Manager)
 	c.expectEQ(pollResp.ID, "")

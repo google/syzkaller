@@ -55,7 +55,7 @@ typedef std::map<long long, std::string> kallsyms_map_t;
 
 static __attribute__((noreturn)) __attribute__((format(printf, 1, 2))) void failf(const char* msg, ...);
 static kallsyms_map_t read_kallsyms();
-static bool is_blacklisted(const std::string& sym);
+static bool should_skip(const std::string& sym);
 static void probe_callback(uint64_t* cover, const kallsyms_map_t& kallsyms,
 			   const std::string& start_sym, std::function<void(void)> fn);
 
@@ -102,16 +102,16 @@ void probe_callback(uint64_t* cover, const kallsyms_map_t& kallsyms,
 		if (!started && sym != start_sym)
 			continue;
 		started = true;
-		if (!seen.insert(sym).second || is_blacklisted(sym))
+		if (!seen.insert(sym).second || should_skip(sym))
 			continue;
 		printf("%0llx %s\n", pc, sym.c_str());
 	}
 	printf("\n");
 }
 
-bool is_blacklisted(const std::string& sym)
+bool should_skip(const std::string& sym)
 {
-	static const char* blacklist[] = {
+	static const char* skip[] = {
 	    "security",
 	    "tomoyo",
 	    "selinux",
@@ -125,8 +125,8 @@ bool is_blacklisted(const std::string& sym)
 	    "snprintf",
 	    "vsnprintf",
 	};
-	for (size_t i = 0; i < sizeof(blacklist) / sizeof(blacklist[0]); i++) {
-		if (!strncmp(sym.c_str(), blacklist[i], strlen(blacklist[i])))
+	for (size_t i = 0; i < sizeof(skip) / sizeof(skip[0]); i++) {
+		if (!strncmp(sym.c_str(), skip[i], strlen(skip[i])))
 			return true;
 	}
 	return false;

@@ -344,9 +344,9 @@ int main(int argc, char** argv)
 #endif
 		return 0;
 	}
-	if (argc >= 2 && strcmp(argv[1], "setup_kcsan_blacklist") == 0) {
+	if (argc >= 2 && strcmp(argv[1], "setup_kcsan_filterlist") == 0) {
 #if SYZ_HAVE_KCSAN
-		setup_kcsan_filterlist(argv + 2, argc - 2, /*blacklist=*/true);
+		setup_kcsan_filterlist(argv + 2, argc - 2, /*ignore=*/true);
 #else
 		fail("KCSAN is not implemented");
 #endif

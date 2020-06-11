@@ -39,8 +39,8 @@ var testConfig = &GlobalConfig{
 	Clients: map[string]string{
 		"reporting": "reportingkeyreportingkeyreportingkey",
 	},
-	EmailBlacklist: []string{
-		"\"Bar\" <BlackListed@Domain.com>",
+	EmailBlocklist: []string{
+		"\"Bar\" <Blocked@Domain.com>",
 	},
 	Obsoleting: ObsoletingConfig{
 		MinPeriod:         80 * 24 * time.Hour,

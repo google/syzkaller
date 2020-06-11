@@ -177,10 +177,10 @@ const (
 type JobDoneFlags int64
 
 const (
-	BisectResultMerge     JobDoneFlags = 1 << iota // bisected to a merge commit
-	BisectResultNoop                               // commit does not affect resulting kernel binary
-	BisectResultRelease                            // commit is a kernel release
-	BisectResultBlacklist                          // commit is blacklisted, see syz-ci/jobs.go
+	BisectResultMerge   JobDoneFlags = 1 << iota // bisected to a merge commit
+	BisectResultNoop                             // commit does not affect resulting kernel binary
+	BisectResultRelease                          // commit is a kernel release
+	BisectResultIgnore                           // this particular commit should be ignored, see syz-ci/jobs.go
 )
 
 func (dash *Dashboard) JobPoll(req *JobPollReq) (*JobPollResp, error) {
