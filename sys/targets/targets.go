@@ -562,7 +562,7 @@ func (target *Target) lazyInit() {
 	//	fatal error: asm/unistd.h: No such file or directory
 	//	fatal error: asm/errno.h: No such file or directory
 	//	collect2: error: ld terminated with signal 11 [Segmentation fault]
-	if runningOnCI {
+	if runningOnCI || os.Getenv("SOURCEDIR_"+strings.ToUpper(target.OS)) != "" {
 		return // On CI all compilers are expected to work, so we don't do the following check.
 	}
 	args := []string{"-x", "c++", "-", "-o", "/dev/null"}
