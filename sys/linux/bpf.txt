@@ -96,10 +96,18 @@ bpf_map_lookup_arg {
 	flags	flags[bpf_lookup_flags, int64]
 }
 
+bpf_map_update_val [
+	buf	array[int8]
+	udp	sock_udp
+	udp6	sock_udp6
+	tcp	sock_tcp
+	tcp6	sock_tcp6
+] [varlen]
+
 bpf_map_update_arg {
 	map	fd_bpf_map
 	key	ptr64[in, array[int8]]
-	val	ptr64[in, array[int8]]
+	val	ptr64[in, bpf_map_update_val]
 	flags	flags[bpf_map_flags, int64]
 }
 
