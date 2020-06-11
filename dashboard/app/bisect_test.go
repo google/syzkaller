@@ -563,7 +563,7 @@ func TestBisectWrong(t *testing.T) {
 		case 4:
 			flags = dashapi.BisectResultRelease
 		case 5:
-			flags = dashapi.BisectResultBlacklist
+			flags = dashapi.BisectResultIgnore
 		default:
 			t.Fatalf("assign flags")
 		}

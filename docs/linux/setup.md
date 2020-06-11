@@ -80,8 +80,8 @@ See [this page](kernel_configs.md) for details.
 
 ### VM Setup
 
-Syzkaller performs kernel fuzzing on slave virtual machines or physical devices.
-These slave enviroments are referred to as VMs.
+Syzkaller performs kernel fuzzing on worker virtual machines or physical devices.
+These worker enviroments are referred to as VMs.
 Out-of-the-box syzkaller supports QEMU, kvmtool and GCE virtual machines, Android devices and Odroid C2 boards.
 
 These are the generic requirements for a syzkaller VM:

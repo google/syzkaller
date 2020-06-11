@@ -26,7 +26,7 @@ type linux struct {
 	taskContext           *regexp.Regexp
 	cpuContext            *regexp.Regexp
 	questionableFrame     *regexp.Regexp
-	guiltyFileBlacklist   []*regexp.Regexp
+	guiltyFileIgnores     []*regexp.Regexp
 	reportStartIgnores    []*regexp.Regexp
 	infoMessagesWithStack [][]byte
 	eoi                   []byte
@@ -54,7 +54,7 @@ func ctorLinux(cfg *config) (Reporter, []string, error) {
 	ctx.cpuContext = regexp.MustCompile(`\[ *C[0-9]+\]`)
 	ctx.questionableFrame = regexp.MustCompile(`(\[\<[0-9a-f]+\>\])? \? `)
 	ctx.eoi = []byte("<EOI>")
-	ctx.guiltyFileBlacklist = []*regexp.Regexp{
+	ctx.guiltyFileIgnores = []*regexp.Regexp{
 		regexp.MustCompile(`.*\.h`),
 		regexp.MustCompile(`^lib/.*`),
 		regexp.MustCompile(`^virt/lib/.*`),
@@ -423,7 +423,7 @@ func (ctx *linux) extractGuiltyFile(rep *Report) string {
 	if strings.HasPrefix(rep.Title, "INFO: rcu detected stall") {
 		// Special case for rcu stalls.
 		// There are too many frames that we want to skip before actual guilty frames,
-		// we would need to blacklist too many files and that would be fragile.
+		// we would need to ignore too many files and that would be fragile.
 		// So instead we try to extract guilty file starting from the known
 		// interrupt entry point first.
 		if pos := bytes.Index(report, []byte(" apic_timer_interrupt+0x")); pos != -1 {
@@ -439,7 +439,7 @@ func (ctx *linux) extractGuiltyFileImpl(report []byte) string {
 	files := ctx.extractFiles(report)
 nextFile:
 	for _, file := range files {
-		for _, re := range ctx.guiltyFileBlacklist {
+		for _, re := range ctx.guiltyFileIgnores {
 			if re.MatchString(file) {
 				continue nextFile
 			}
