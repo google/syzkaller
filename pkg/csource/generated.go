@@ -206,7 +206,7 @@ static void remove_dir(const char* dir)
 #endif
 #endif
 
-#if !GOOS_linux
+#if !GOOS_linux && !GOOS_netbsd
 #if SYZ_EXECUTOR
 static int inject_fault(int nth)
 {
@@ -410,6 +410,7 @@ void child()
 #include <sys/syscall.h>
 
 #if GOOS_netbsd
+
 #if SYZ_EXECUTOR || __NR_syz_usb_connect
 
 #include <dev/usb/usb.h>
@@ -1568,6 +1569,54 @@ static void setup_usb(void)
 		fail("failed to chmod /dev/vhci");
 }
 #endif
+
+#if SYZ_EXECUTOR || SYZ_FAULT
+#include <fcntl.h>
+#include <sys/fault.h>
+static void setup_fault(void)
+{
+	if (chmod("/dev/fault", 0666))
+		fail("failed to chmod /dev/fault");
+}
+static int inject_fault(int nth)
+{
+	struct fault_ioc_enable en;
+	int fd;
+
+	fd = open("/dev/fault", O_RDWR);
+	if (fd == -1)
+		fail("failed to open /dev/fault");
+
+	en.scope = FAULT_SCOPE_LWP;
+	en.mode = FAULT_MODE_NTH;
+	en.nth = nth;
+	if (ioctl(fd, FAULT_IOC_ENABLE, &en) != 0)
+		fail("FAULT_IOC_ENABLE failed with nth=%d", nth);
+
+	return fd;
+}
+#endif
+#if SYZ_EXECUTOR
+static int fault_injected(int fd)
+{
+	struct fault_ioc_getinfo info;
+	struct fault_ioc_disable dis;
+	int res;
+
+	if (ioctl(fd, FAULT_IOC_GETINFO, &info) != 0)
+		fail("FAULT_IOC_GETINFO failed");
+	res = (info.nfaults > 0);
+
+	dis.scope = FAULT_SCOPE_LWP;
+	if (ioctl(fd, FAULT_IOC_DISABLE, &dis) != 0)
+		fail("FAULT_IOC_DISABLE failed");
+
+	close(fd);
+
+	return res;
+}
+#endif
+
 #endif
 
 #if GOOS_openbsd
