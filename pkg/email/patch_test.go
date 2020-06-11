@@ -404,7 +404,6 @@ Index: usb-devel/drivers/usb/core/hub.c
 +++ usb-devel/drivers/usb/core/hub.c
 @@ -36,6 +36,10 @@
  #include "hub.h"
- #include "otg_whitelist.h"
  
 +#undef dev_dbg
 +#define dev_dbg dev_info
@@ -452,7 +451,6 @@ Index: usb-devel/drivers/usb/core/hub.c
 +++ usb-devel/drivers/usb/core/hub.c
 @@ -36,6 +36,10 @@
  #include "hub.h"
- #include "otg_whitelist.h"
  
 +#undef dev_dbg
 +#define dev_dbg dev_info

@@ -99,7 +99,7 @@ endif
 	bin/syz-extract bin/syz-fmt \
 	extract generate generate_go generate_sys \
 	format format_go format_cpp format_sys \
-	tidy test test_race check_copyright check_links check_diff \
+	tidy test test_race check_copyright check_language check_links check_diff \
 	arch arch_darwin_amd64_host arch_linux_amd64_host \
 	arch_freebsd_amd64_host arch_netbsd_amd64_host \
 	arch_linux_amd64_target arch_linux_386_target \
@@ -321,7 +321,7 @@ presubmit:
 
 presubmit_smoke:
 	$(MAKE) generate
-	$(MAKE) -j100 check_diff check_copyright check_links presubmit_build
+	$(MAKE) -j100 check_diff check_copyright check_language check_links presubmit_build
 	$(MAKE) test
 
 presubmit_build:
@@ -393,6 +393,9 @@ install_prerequisites:
 
 check_copyright:
 	./tools/check-copyright.sh
+
+check_language:
+	./tools/check-language.sh
 
 check_links:
 	python ./tools/check_links.py $$(pwd) $$(ls ./*.md; find ./docs/ -name '*.md')

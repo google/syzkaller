@@ -33,12 +33,12 @@ func init() {
 }
 
 type Config struct {
-	Host_Addr  string // ip address of the host machine
-	Slave_Addr string // ip address of the Odroid board
-	Console    string // console device name (e.g. "/dev/ttyUSB0")
-	Hub_Bus    int    // host USB bus number for the USB hub
-	Hub_Device int    // host USB device number for the USB hub
-	Hub_Port   int    // port on the USB hub to which Odroid is connected
+	Host_Addr   string // ip address of the host machine
+	Device_Addr string // ip address of the Odroid board
+	Console     string // console device name (e.g. "/dev/ttyUSB0")
+	Hub_Bus     int    // host USB bus number for the USB hub
+	Hub_Device  int    // host USB device number for the USB hub
+	Hub_Port    int    // port on the USB hub to which Odroid is connected
 }
 
 type Pool struct {
@@ -62,8 +62,8 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if cfg.Host_Addr == "" {
 		return nil, fmt.Errorf("config param host_addr is empty")
 	}
-	if cfg.Slave_Addr == "" {
-		return nil, fmt.Errorf("config param slave_addr is empty")
+	if cfg.Device_Addr == "" {
+		return nil, fmt.Errorf("config param device_addr is empty")
 	}
 	if cfg.Console == "" {
 		return nil, fmt.Errorf("config param console is empty")
@@ -133,7 +133,7 @@ func (inst *instance) ssh(command string) ([]byte, error) {
 		return nil, err
 	}
 
-	args := append(vmimpl.SSHArgs(inst.debug, inst.sshkey, 22), "root@"+inst.cfg.Slave_Addr, command)
+	args := append(vmimpl.SSHArgs(inst.debug, inst.sshkey, 22), "root@"+inst.cfg.Device_Addr, command)
 	if inst.debug {
 		Logf(0, "running command: ssh %#v", args)
 	}
@@ -272,7 +272,7 @@ func (inst *instance) repair() error {
 }
 
 func (inst *instance) waitForSSH(timeout time.Duration) error {
-	return vmimpl.WaitForSSH(inst.debug, timeout, inst.cfg.Slave_Addr, inst.sshkey, "root", inst.os, 22)
+	return vmimpl.WaitForSSH(inst.debug, timeout, inst.cfg.Device_Addr, inst.sshkey, "root", inst.os, 22)
 }
 
 func (inst *instance) Close() {
@@ -282,7 +282,7 @@ func (inst *instance) Close() {
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	basePath := "/data/"
 	vmDst := filepath.Join(basePath, filepath.Base(hostSrc))
-	args := append(vmimpl.SCPArgs(inst.debug, inst.sshkey, 22), hostSrc, "root@"+inst.cfg.Slave_Addr+":"+vmDst)
+	args := append(vmimpl.SCPArgs(inst.debug, inst.sshkey, 22), hostSrc, "root@"+inst.cfg.Device_Addr+":"+vmDst)
 	cmd := osutil.Command("scp", args...)
 	if inst.debug {
 		Logf(0, "running command: scp %#v", args)
@@ -322,7 +322,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	}
 
 	args := append(vmimpl.SSHArgs(inst.debug, inst.sshkey, 22),
-		"root@"+inst.cfg.Slave_Addr, "cd /data; "+command)
+		"root@"+inst.cfg.Device_Addr, "cd /data; "+command)
 	if inst.debug {
 		Logf(0, "running command: ssh %#v", args)
 	}

@@ -302,7 +302,7 @@ Use the following config:
 	"type": "odroid",
 	"vm": {
 		"host_addr": "172.16.0.30",
-		"slave_addr": "172.16.0.31",
+		"device_addr": "172.16.0.31",
 		"console": "/dev/ttyUSB0",
 		"hub_bus": 3,
 		"hub_device": 26,

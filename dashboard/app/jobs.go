@@ -24,9 +24,9 @@ func handleTestRequest(c context.Context, bugID, user, extID, link, patch, repo,
 	jobCC []string) string {
 	log.Infof(c, "test request: bug=%q user=%q extID=%q patch=%v, repo=%q branch=%q",
 		bugID, user, extID, len(patch), repo, branch)
-	for _, blacklisted := range config.EmailBlacklist {
-		if user == blacklisted {
-			log.Errorf(c, "test request from blacklisted user: %v", user)
+	for _, blocked := range config.EmailBlocklist {
+		if user == blocked {
+			log.Errorf(c, "test request from blocked user: %v", user)
 			return ""
 		}
 	}
