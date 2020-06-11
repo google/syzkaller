@@ -527,9 +527,10 @@ func (target *Target) lazyInit() {
 	}
 	// Only fail on CI for native build.
 	// On CI we want to fail loudly if cross-compilation breaks.
-	if target.OS != runtime.GOOS || !runningOnCI {
+	// Also fail if SOURCEDIR_GOOS is set b/c in that case user probably assumes it will work.
+	if (target.OS != runtime.GOOS || !runningOnCI) && os.Getenv("SOURCEDIR_"+strings.ToUpper(target.OS)) == "" {
 		if _, err := exec.LookPath(target.CCompiler); err != nil {
-			target.BrokenCompiler = fmt.Sprintf("%v is missing", target.CCompiler)
+			target.BrokenCompiler = fmt.Sprintf("%v is missing (%v)", target.CCompiler, err)
 			return
 		}
 	}
