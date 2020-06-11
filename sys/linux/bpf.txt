@@ -400,8 +400,13 @@ bpf_obj_get {
 	file_flags	flags[bpf_open_flags, int32]
 }
 
+bpf_attach_targets [
+	cgroup	fd_cgroup[opt]
+	map	fd_bpf_map[opt]
+]
+
 bpf_attach_arg {
-	target_fd	fd_cgroup
+	target_fd	bpf_attach_targets
 	attach_bpf_fd	fd_bpf_prog
 	type		flags[bpf_attach_type, int32]
 	flags		flags[bpf_attach_flags, int32]
@@ -409,7 +414,7 @@ bpf_attach_arg {
 }
 
 bpf_detach_arg {
-	target	const[0, int32]
+	target	bpf_attach_targets
 	prog	fd_bpf_prog
 	type	flags[bpf_attach_type, int32]
 	flags	const[0, int32]
