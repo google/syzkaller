@@ -57,11 +57,12 @@ To enable fuzzing of a new kernel interface:
 
 1. Study the interface, find out which syscalls are required to use it. Sometimes there is nothing besides the source code, but here are some things that may help:
 
-   - Searching the Internet for the subsystem name and/or some unique constants.
+   - Searching the Internet for the interface name and/or some unique constants.
    - Grepping Documentation/ dir in the kernel.
    - Searching tools/testing/ dir in the kernel.
    - Looking for large comment blocks in the source code.
    - Finding commit that added the interface via `git blame` or `git log` and reading the commit description.
+   - Reading source code of or tracing libraries or applications that are known to use this interface.
 
 2. Using [syntax documentation](syscall_descriptions_syntax.md) and
    [existing descriptions](/sys/linux/) as an example, add a declarative
