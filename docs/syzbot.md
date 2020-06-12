@@ -328,20 +328,12 @@ is the original source of uninitialized-ness.
 ## USB bugs
 
 syzkaller has an ability to perform fuzzing of the Linux kernel USB stack, see
-the details [here](/docs/linux/external_fuzzing_usb.md). This requires
-non-yet-upstreamed kernel changes, and as a result USB fuzzing is only being
-run on the `usb-fuzzer` branch of the `https://github.com/google/kasan.git` tree,
-and on the `master` branch of the `https://github.com/google/kmsan.git` tree.
-
-If the bug report comes from the `usb-fuzzer` tree, the recommended way for
-triggering patch testing is to send an email to `syzbot+HASH` address containing
-the following line:
-```
-#syz test: https://github.com/google/kasan.git commit-hash
-```
-and attach/inline your test patch in the same email. `commit-hash` is the id
-of the kernel commit that corresponds to the **newest reproducer** listed on
-the dashboard for this bug.
+the details [here](/docs/linux/external_fuzzing_usb.md). As of now all kernel
+changes required for USB fuzzing have been merged into the mainline (the last
+during the 5.8-rc1 merge window), so testing kernel patches on the USB instance
+follows the same principle as on the upstream instances. You may use any kernel
+tree (as long as it includes all mainline patches up to 5.8-rc1) to test
+patches.
 
 If the bug was triggered on the `KMSAN` tree, follow the [instructions above](#kmsan-bugs),
 with the exception that you must also use `commit-hash` instead of the `master`
