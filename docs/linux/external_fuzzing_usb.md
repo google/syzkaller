@@ -8,10 +8,9 @@ This is still in development and things might change.
 
 USB fuzzing support consists of 3 parts:
 
-1. Syzkaller changes that are now upstream, see the [Internals](/docs/linux/external_fuzzing_usb.md#Internals) section for details.
-2. Kernel interface for USB device emulation called [Raw Gadget](https://github.com/xairy/raw-gadget), which is now upstream.
-3. KCOV changes that allow to collect coverage from background threads and interrupts
-(the former is now upstream, the latter part is optional and is currently in development).
+1. Syzkaller changes that are now in the mainline, see the [Internals](/docs/linux/external_fuzzing_usb.md#Internals) section for details.
+2. Kernel interface for USB device emulation called [Raw Gadget](https://github.com/xairy/raw-gadget), which is now in the mainline.
+3. KCOV changes that allow to collect coverage from background threads and interrupts, that are now in the mainline.
 
 Some (partly outdated) details can be found in the OffensiveCon 2019 "Coverage-Guided USB Fuzzing with Syzkaller" talk
 ([slides](https://docs.google.com/presentation/d/1z-giB9kom17Lk21YEjmceiNUVYeI6yIaG5_gZ3vKC-M/edit?usp=sharing), [video](https://www.youtube.com/watch?v=1MD5JV6LfxA)).
@@ -49,9 +48,8 @@ syzkaller USB runtests are [here](/sys/linux/test/) and start with `vusb` prefix
 
 A few major things that need to be done:
 
-1. Upstream KCOV changes that allow to collect coverage from interrupts.
-2. Implement a proper way for extracting relevant USB ids from the kernel ([discussion](https://www.spinics.net/lists/linux-usb/msg187915.html) is ongoing).
-3. Add descriptions for all relevant USB classes and drivers.
+1. Implement a proper way for extracting relevant USB ids from the kernel ([discussion](https://www.spinics.net/lists/linux-usb/msg187915.html) is ongoing).
+2. Add descriptions for all relevant USB classes and drivers.
 
 Some ideas for things that can be done:
 
