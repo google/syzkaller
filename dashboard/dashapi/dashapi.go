@@ -181,9 +181,12 @@ const (
 	BisectResultNoop                             // commit does not affect resulting kernel binary
 	BisectResultRelease                          // commit is a kernel release
 	BisectResultIgnore                           // this particular commit should be ignored, see syz-ci/jobs.go
+	BisectResultBlacklisted
+	BisectResultSlave
 )
 
 func (dash *Dashboard) JobPoll(req *JobPollReq) (*JobPollResp, error) {
+	_, _ = BisectResultBlacklisted, BisectResultSlave
 	resp := new(JobPollResp)
 	err := dash.Query("job_poll", req, resp)
 	return resp, err
