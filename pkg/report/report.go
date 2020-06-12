@@ -638,6 +638,8 @@ var commonOopses = []*oops{
 		[]*regexp.Regexp{
 			// This can match some kernel functions (skb_panic, skb_over_panic).
 			compile("_panic:"),
+			// Android prints this sometimes during boot.
+			compile("xlog_status:"),
 		},
 	},
 }
