@@ -1131,6 +1131,7 @@ var linuxOopses = append([]*oops{
 			compile("ODEBUG:"),
 			// Android prints this sometimes during boot.
 			compile("Boot_DEBUG:"),
+			compile("xlog_status:"),
 			// Android ART debug output.
 			compile("DEBUG:"),
 			// pkg/host output in debug mode.
