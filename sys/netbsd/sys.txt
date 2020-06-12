@@ -42,8 +42,7 @@ fcntl$getown(fd fd, cmd const[F_GETOWN]) pid
 fcntl$setown(fd fd, cmd const[F_SETOWN], pid pid)
 
 compat_50_mknod(file ptr[in, filename], mode flags[mknod_mode], dev int32)
-__mknod50(file ptr[in, filename], mode flags[mknod_mode], dev dev)
-#mknod$loop(file ptr[in, filename], mode flags[mknod_mode], dev proc[1792, 2])
+mknod$loop(file ptr[in, filename], mode flags[mknod_mode], dev proc[1792, 2])
 mknodat(dirfd fd_dir, file ptr[in, filename], mode flags[mknod_mode], dev int32)
 chmod(file ptr[in, filename], mode flags[open_mode])
 lchmod(file ptr[in, filename], mode flags[open_mode])
