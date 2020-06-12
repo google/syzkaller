@@ -72,8 +72,7 @@ To enable fuzzing of a new kernel interface:
       subsystems, for example [bpf.txt](/sys/linux/bpf.txt) or [socket.txt](/sys/linux/socket.txt).
     - [sys/linux/sys.txt](/sys/linux/sys.txt) holds descriptions for more general system calls.
     - An entirely new subsystem can be added as a new `sys/linux/<new>.txt` file.
-    - Use `dev_*.txt` filename format for descriptions of `/dev/` devices.
-    - Similarly, use `socket_*.txt` for sockets.
+    - If subsystem descriptions are split across multiple files, prefix the name of each file with the name of the subsystem (e.g. use `dev_*.txt` for descriptions of `/dev/` devices, use `socket_*.txt` for sockets, etc).
 
 3. After adding/changing descriptions run:
 
