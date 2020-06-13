@@ -18,6 +18,7 @@ resource mode[int32]: 0, 0xffffffffffffffff
 resource ino[int64]: 0, 0xffffffffffffffff
 resource nlink[int32]: 0, 0xffffffffffffffff
 
+compat_43_ocreat(path ptr[in, filename], mode flags[open_mode])
 open(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
 # Just so that we have something that creates fd_dir resources.
 open$dir(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd_dir
@@ -70,6 +71,24 @@ stat {
 	gen		int32
 	spare1		int32
 	spare2		int32
+}
+
+stat43 {
+	dev	int16
+	ino	int32
+	mode	int16
+	nlink	int16
+	uid	int16
+	gid	int16
+	rdev	int16
+	size	int32
+	atim	timespec50
+	mtim	timespec50
+	ctim	timespec50
+	blksize	int32
+	blocks	int32
+	flags	int32
+	gen	int32
 }
 
 open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, O_CREAT, O_TRUNC, O_EXCL, O_SHLOCK, O_EXLOCK, O_NOFOLLOW, O_CLOEXEC, O_NOSIGPIPE, O_DSYNC, O_SYNC, O_RSYNC, O_ALT_IO, O_NOCTTY, O_DIRECT, O_DIRECTORY, O_ASYNC
