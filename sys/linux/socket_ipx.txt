@@ -48,6 +48,6 @@ ioctl$sock_ipx_SIOCIPXCFGDATA(fd sock_ipx, cmd const[SIOCIPXCFGDATA], arg ptr[ou
 ioctl$sock_ipx_SIOCIPXNCPCONN(fd sock_ipx, cmd const[SIOCIPXNCPCONN], arg ptr[in, int16])
 
 ipx_config_data {
-	ipxcfg_auto_select_primary	int16
-	ipxcfg_auto_create_interfaces	int16
+	ipxcfg_auto_select_primary	int8
+	ipxcfg_auto_create_interfaces	int8
 }

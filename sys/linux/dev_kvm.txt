@@ -393,6 +393,7 @@ kvm_assigned_msix_entry {
 	devid	int32
 	gsi	int32
 	entry	int16
+	padding	array[const[0, int16], 3]
 }
 
 kvm_assigned_msix_nr {
@@ -447,10 +448,11 @@ kvm_irq_routing_hv_sint {
 }
 
 kvm_assigned_irq {
-	devid	int32
-	hirq	int32
-	girq	int32
-	flags	flags[kvm_assigned_irq_flags, int32]
+	assigned_dev_id	int32
+	host_irq	const[0, int32]
+	guest_irq	int32
+	flags		flags[kvm_assigned_irq_flags, int32]
+	reserved	array[const[0, int32], 12]
 }
 
 kvm_assigned_pci_dev {

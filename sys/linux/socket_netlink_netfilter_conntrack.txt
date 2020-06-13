@@ -42,6 +42,7 @@ ct_nla_policy [
 	CTA_LABELS_MASK		nlattr[CTA_LABELS_MASK, array[int32be]]
 	CTA_SEQ_ADJ_ORIG	nlnest[CTA_SEQ_ADJ_ORIG, array[seqadj_policy]]
 	CTA_SEQ_ADJ_REPLY	nlnest[CTA_SEQ_ADJ_REPLY, array[seqadj_policy]]
+	CTA_SYNPROXY		nlnest[CTA_SYNPROXY, array[synproxy_policy]]
 ] [varlen]
 
 seqadj_policy [
@@ -113,6 +114,12 @@ nat_nla_policy [
 protonat_nla_policy [
 	CTA_PROTONAT_PORT_MIN	nlattr[CTA_PROTONAT_PORT_MIN, sock_port]
 	CTA_PROTONAT_PORT_MAX	nlattr[CTA_PROTONAT_PORT_MAX, sock_port]
+] [varlen]
+
+synproxy_policy [
+	CTA_SYNPROXY_ISN	nlnetw[CTA_SYNPROXY_ISN, int32be]
+	CTA_SYNPROXY_ITS	nlnetw[CTA_SYNPROXY_ITS, int32be]
+	CTA_SYNPROXY_TSOFF	nlnetw[CTA_SYNPROXY_TSOFF, int32be]
 ] [varlen]
 
 conntrack_proto = IPPROTO_UDP, IPPROTO_TCP, IPPROTO_ICMP, IPPROTO_DCCP, IPPROTO_SCTP, IPPROTO_UDPLITE, IPPROTO_GRE, IPPROTO_ICMPV6
