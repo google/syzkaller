@@ -27,7 +27,7 @@ func init() {
 }
 
 func checkUSBEmulation() string {
-	if err := osutil.IsAccessible("/dev/vhci"); err != nil {
+	if err := osutil.IsAccessible("/dev/vhci0"); err != nil {
 		return err.Error()
 	}
 	return ""
