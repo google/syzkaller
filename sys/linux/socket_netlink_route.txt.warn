@@ -12,7 +12,7 @@ bad-netlink-attr: vti6_policy: missing attributes: [1 2 3 6]
 bad-netlink-attr: ifa_ipv4_policy: missing attributes: [9 10]
 bad-netlink-attr: ifa_ipv6_policy: missing attributes: [9 10]
 bad-netlink-attr: rtm_ipv4_policy: missing attributes: [15 27 28 29 30]
-bad-netlink-attr: nda_policy: missing attributes: [12]
+bad-netlink-attr: nda_policy: missing attributes: [12 13]
 bad-netlink-attr: nda_policy.NDA_DST_IPV6: duplicate attribute
 bad-netlink-attr: nda_policy.NDA_DST_MAC: duplicate attribute
 bad-netlink-attr: ifla_vf_policy: missing attributes: [8]

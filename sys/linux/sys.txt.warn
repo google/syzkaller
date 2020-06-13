@@ -97,7 +97,6 @@ no-such-struct: timespec
 no-such-struct: timeval
 no-such-struct: itimerspec
 no-such-struct: itimerval
-no-such-struct: utimbuf [386]
 bad-field-size: sigevent.u/_sigev_un: syz=16 kernel=48 [amd64,arm64]
 bad-field-size: sigevent.u/_sigev_un: syz=8 kernel=52 [386,arm]
 no-such-struct: sigevent_u
