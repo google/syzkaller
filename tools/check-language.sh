@@ -21,7 +21,7 @@ for F in $(find . -name "*.go" -o -name "*.sh" -o -name "*.cc" -o -name "*.md" \
 				SUGGESTIONS="leader/follower/coordinator/worker/parent/helper"
 			fi
 			echo "$F:$L:1: Please use more respectful terminology, consider using ${SUGGESTIONS} instead." \
-				"See https://tools.ietf.org/id/draft-knodel-terminology-00.html for more info."
+				"See https://tools.ietf.org/id/draft-knodel-terminology-01.html for more info."
 			echo "$LINE"
 			FAILED="1"
 		fi
