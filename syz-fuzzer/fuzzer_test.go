@@ -23,7 +23,7 @@ func TestChooseProgram(t *testing.T) {
 	rs := rand.NewSource(0)
 	r := rand.New(rs)
 	target := getTarget(t, "test", "64")
-	fuzzer := &Fuzzer{corpusHashes: make(map[hash.Sig]struct{})}
+	fuzzer := &Fuzzer{corpusHashes: make(map[hash.Sig]int)}
 
 	const (
 		maxIters   = 1000
@@ -44,10 +44,11 @@ func TestChooseProgram(t *testing.T) {
 	snapshot := fuzzer.snapshot()
 	counters := make(map[*prog.Prog]int)
 	for it := 0; it < maxIters; it++ {
-		counters[snapshot.chooseProgram(r)]++
+		_, p := snapshot.chooseProgram(r)
+		counters[p]++
 	}
 	for p, prio := range priorities {
-		prob := float64(prio) / float64(fuzzer.sumPrios)
+		prob := float64(prio) / fuzzer.sumPrios[len(fuzzer.sumPrios)-1]
 		diff := math.Abs(prob*maxIters - float64(counters[p]))
 		if diff > eps*maxIters {
 			t.Fatalf("the difference (%f) is higher than %f%%", diff, eps*100)
@@ -57,7 +58,7 @@ func TestChooseProgram(t *testing.T) {
 
 func TestAddInputConcurrency(t *testing.T) {
 	target := getTarget(t, "test", "64")
-	fuzzer := &Fuzzer{corpusHashes: make(map[hash.Sig]struct{})}
+	fuzzer := &Fuzzer{corpusHashes: make(map[hash.Sig]int)}
 
 	const (
 		routines = 10
@@ -72,7 +73,8 @@ func TestAddInputConcurrency(t *testing.T) {
 				inp := generateInput(target, rs, 10, it)
 				fuzzer.addInputToCorpus(inp.p, inp.sign, inp.sig)
 				snapshot := fuzzer.snapshot()
-				snapshot.chooseProgram(r).Clone()
+				_, p := snapshot.chooseProgram(r)
+				p.Clone()
 			}
 		}()
 	}
