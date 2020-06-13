@@ -7,7 +7,8 @@
 //	$ syz-check -obj-amd64 /linux_amd64/vmlinux -obj-arm64 /linux_arm64/vmlinux \
 //		-obj-386 /linux_386/vmlinux -obj-arm /linux_arm/vmlinux
 //
-// The vmlinux files should include debug info and enable all relevant configs (since we parse dwarf).
+// The vmlinux files should include debug info, enable all relevant configs (since we parse dwarf),
+// and be compiled with -fno-eliminate-unused-debug-types -fno-eliminate-unused-debug-symbols flags.
 // You may check only one arch as well (but then don't commit changes to warn files):
 //
 //	$ syz-check -obj-amd64 /linux_amd64/vmlinux

@@ -26,7 +26,5 @@ no-such-struct: brctl_arg_get
 no-such-struct: brctl_arg_add_del
 no-such-struct: brctl_arg_generic
 no-such-struct: ethtool_flow_union
-no-such-struct: ethtool_rx_ntuple
-no-such-struct: ethtool_rx_ntuple_flow_spec
 no-such-struct: ethtool_rx_ntuple_flow_spec_union
 bad-field-size: ethtool_link_settings.reserved/transceiver: syz=32 kernel=1

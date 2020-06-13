@@ -44,12 +44,10 @@ bad-field-size: xt_quota_info.master: syz=8 kernel=4 [386,arm]
 bad-field-size: xt_hashlimit_mtinfo1.hinfo: syz=8 kernel=4 [386,arm]
 bad-field-size: xt_hashlimit_mtinfo2.hinfo: syz=8 kernel=4 [386,arm]
 bad-field-size: xt_hashlimit_mtinfo3.hinfo: syz=8 kernel=4 [386,arm]
-no-such-struct: xt_comment_info
 bad-field-number: xt_statistic_info: syz=6 kernel=4
 bad-field-size: xt_statistic_info.every/u: syz=4 kernel=12
 bad-field-offset: xt_statistic_info.packet/master: syz=8 kernel=16
 bad-field-size: xt_statistic_info.packet/master: syz=4 kernel=8 [amd64,arm64]
-no-such-struct: xt_recent_mtinfo
 bad-field-number: xt_policy_elem: syz=10 kernel=7
 bad-field-size: xt_policy_elem.saddr/: syz=16 kernel=64
 bad-field-offset: xt_policy_elem.smask/spi: syz=16 kernel=64

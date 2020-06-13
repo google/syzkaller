@@ -12,7 +12,6 @@ no-such-struct: vusb_responses
 no-such-struct: vusb_response_t
 no-such-struct: usb_string_descriptor_t
 compiler: len target caps refer to an array with variable-size elements (do you mean bytesize?)
-no-such-struct: usb_wireless_cap_descriptor
 bad-field-number: usb_ext_cap_descriptor: syz=7 kernel=4
 bad-bitfield: usb_ext_cap_descriptor.bmAttributes1/bmAttributes: size/offset: syz=8/0 kernel=0/0
 bad-bitfield: usb_ssp_cap_descriptor.bmAttributesSublinkSpeeds/bmAttributes: size/offset: syz=5/0 kernel=0/0
