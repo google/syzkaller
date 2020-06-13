@@ -107,7 +107,7 @@ l2cap_conn_rsp {
 l2cap_conninfo {
 	hci_handle	int16
 	dev_class	array[int8, 3]
-} [packed]
+}
 
 l2cap_create_chan_req {
 	psm	int16
@@ -216,4 +216,4 @@ l2cap_options {
 	fcs		int8
 	max_tx		int8
 	txwin_size	int16
-} [packed]
+}
