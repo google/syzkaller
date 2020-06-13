@@ -1,4 +1,2 @@
 no-such-struct: vfio_iommu_type1_info [arm]
 no-such-struct: vfio_iommu_type1_dma_map [arm]
-bad-field-number: vfio_iommu_type1_dma_unmap: syz=4 kernel=5 [386,amd64,arm64]
-no-such-struct: vfio_iommu_type1_dma_unmap [arm]

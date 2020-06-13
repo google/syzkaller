@@ -1,3 +1,0 @@
-bad-struct-size: ipx_config_data: syz=4 kernel=2
-bad-field-size: ipx_config_data.ipxcfg_auto_select_primary: syz=2 kernel=1
-bad-field-offset: ipx_config_data.ipxcfg_auto_create_interfaces: syz=2 kernel=1

@@ -43,6 +43,7 @@ vfio_iommu_type1_dma_unmap {
 	flags	flags[vfio_dma_flags, int32]
 	iova	int64
 	size	int64
+	data	array[int8]
 }
 
 iommu_flags = VFIO_TYPE1_IOMMU, VFIO_SPAPR_TCE_IOMMU, VFIO_TYPE1v2_IOMMU, VFIO_DMA_CC_IOMMU, VFIO_EEH, VFIO_TYPE1_NESTING_IOMMU, VFIO_SPAPR_TCE_v2_IOMMU, VFIO_NOIOMMU_IOMMU
