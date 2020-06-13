@@ -17,10 +17,28 @@
 #include "common_usb_netbsd.h"
 #endif
 #if SYZ_EXECUTOR || SYZ_USB
+#include <dirent.h>
 static void setup_usb(void)
 {
-	if (chmod("/dev/vhci", 0666))
-		fail("failed to chmod /dev/vhci");
+	struct dirent* ent;
+	char path[1024];
+	DIR* dir;
+
+	dir = opendir("/dev");
+	if (dir == NULL)
+		fail("failed to open /dev");
+
+	while ((ent = readdir(dir)) != NULL) {
+		if (ent->d_type != DT_CHR)
+			continue;
+		if (strncmp(ent->d_name, "vhci", 4))
+			continue;
+		snprintf(path, sizeof(path), "/dev/%s", ent->d_name);
+		if (chmod(path, 0666))
+			fail("failed to chmod %s", path);
+	}
+
+	closedir(dir);
 }
 #endif
 
