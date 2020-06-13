@@ -10,6 +10,7 @@ bad-netlink-attr: pie_policy: missing attributes: [8]
 bad-netlink-attr: entry_policy_taprio: missing attributes: [1]
 bad-netlink-attr: taprio_policy: missing attributes: [4]
 no-such-netlink-policy: tclass_kind_options
+bad-netlink-attr: fl_policy: missing attributes: [99]
 no-such-netlink-policy: tca_actions
 no-such-netlink-policy: tca_ife_meta_policy
 bad-field-size: xt_entry_target.u_target_size/u: syz=2 kernel=32
@@ -65,4 +66,3 @@ no-such-struct: tcf_ematch_hdr_t
 bad-field-size: tcf_em_nbyte.off: syz=4 kernel=2
 bad-field-offset: tcf_em_nbyte.len: syz=4 kernel=2
 bad-field-offset: tcf_em_nbyte.layer: syz=5 kernel=3
-no-such-struct: tc_estimator

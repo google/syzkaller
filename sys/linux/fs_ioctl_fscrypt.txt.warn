@@ -13,4 +13,3 @@ bad-field-size: fscrypt_policy_v2.master_key_identifier/__reserved: syz=16 kerne
 no-such-struct: fscrypt_policy_modes
 no-such-struct: fscrypt_policy_mode_t
 no-such-struct: fscrypt_key_specifier_payload
-bad-field-size: fscrypt_add_key_arg.reserved/key_id: syz=36 kernel=4
