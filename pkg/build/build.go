@@ -219,10 +219,13 @@ func extractCauseInner(s []byte, kernelSrc string) ([]byte, string) {
 			lines[i] = bytes.Replace(lines[i], stripPrefix, nil, -1)
 		}
 		if file == "" {
-			match := fileRe.FindSubmatch(lines[i])
-			if match != nil {
-				file = string(match[1])
-				if file[0] == '/' {
+			for _, fileRe := range fileRes {
+				match := fileRe.FindSubmatch(lines[i])
+				if match != nil {
+					file = string(match[1])
+					if file[0] != '/' {
+						break
+					}
 					// We already removed kernel source prefix,
 					// if we still have an absolute path, it's probably pointing
 					// to compiler/system libraries (not going to work).
@@ -232,6 +235,10 @@ func extractCauseInner(s []byte, kernelSrc string) ([]byte, string) {
 		}
 	}
 	file = strings.TrimPrefix(file, "./")
+	if strings.HasSuffix(file, ".o") {
+		// Linker may point to object files instead.
+		file = strings.TrimSuffix(file, ".o") + ".c"
+	}
 	res := bytes.Join(lines, []byte{'\n'})
 	// gcc uses these weird quotes around identifiers, which may be
 	// mis-rendered by systems that don't understand utf-8.
@@ -277,10 +284,15 @@ var buildFailureCauses = [...]buildFailureCause{
 	{pattern: []byte("ERROR: ")},
 	{pattern: []byte(": fatal error: ")},
 	{pattern: []byte(": undefined reference to")},
+	{pattern: []byte(": multiple definition of")},
 	{pattern: []byte(": Permission denied")},
 	{weak: true, pattern: []byte(": final link failed: ")},
 	{weak: true, pattern: []byte("collect2: error: ")},
 	{weak: true, pattern: []byte("FAILED: Build did NOT complete")},
 }
 
-var fileRe = regexp.MustCompile(`^([a-zA-Z0-9_\-/.]+):[0-9]+:([0-9]+:)? `)
+var fileRes = []*regexp.Regexp{
+	regexp.MustCompile(`^([a-zA-Z0-9_\-/.]+):[0-9]+:([0-9]+:)? `),
+	regexp.MustCompile(`^(?:ld: )?(([a-zA-Z0-9_\-/.]+?)\.o):`),
+	regexp.MustCompile(`; (([a-zA-Z0-9_\-/.]+?)\.o):`),
+}

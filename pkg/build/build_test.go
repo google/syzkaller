@@ -415,4 +415,55 @@ make[1]: *** Waiting for unfinished jobs....
 		"",
 		"include/linux/netfilter_ipv6.h",
 	},
+	{`
+ld: mm/slub.o: in function '__kmem_cache_create':
+slub.c:(.text+0x6260): multiple definition of '__kmem_cache_create'; mm/page_alloc.o:page_alloc.c:(.text+0x1970): first defined here
+make: *** [Makefile:1139: vmlinux] Error 1
+`,
+		"slub.c:(.text+0x6260): multiple definition of '__kmem_cache_create'; mm/page_alloc.o:page_alloc.c:(.text+0x1970): first defined here",
+		"",
+		"mm/page_alloc.c",
+	},
+	{`
+ld: mm/slub.o:(.bss+0x0): multiple definition of 'foobar'; mm/page_alloc.o:(.bss+0x34): first defined here
+make: *** [Makefile:1139: vmlinux] Error 1
+`,
+		"ld: mm/slub.o:(.bss+0x0): multiple definition of 'foobar'; mm/page_alloc.o:(.bss+0x34): first defined here",
+		"",
+		"mm/slub.c",
+	},
+	{`
+ld.lld: error: duplicate symbol: __kmem_cache_create
+>>> defined at page_alloc.c
+>>>            page_alloc.o:(__kmem_cache_create) in archive mm/built-in.a
+>>> defined at slub.c
+>>>            slub.o:(.text+0x6260) in archive mm/built-in.a
+make: *** [Makefile:1139: vmlinux] Error 1
+`,
+		"ld.lld: error: duplicate symbol: __kmem_cache_create",
+		"",
+		"", // ld.lld makes it very hard to extract the file name
+	},
+	{`
+ld.lld: error: duplicate symbol: foobar
+>>> defined at page_alloc.c
+>>>            page_alloc.o:(foobar) in archive mm/built-in.a
+>>> defined at slub.c
+>>>            slub.o:(.bss+0x0) in archive mm/built-in.a
+make: *** [Makefile:1139: vmlinux] Error 1
+`,
+		"ld.lld: error: duplicate symbol: foobar",
+		"",
+		"", // ld.lld makes it very hard to extract the file name
+	},
+	{`
+mm/page_alloc.o:(.data+0x1a40): multiple definition of '__kmem_cache_create'
+mm/slub.o:(.data+0x7a0): first defined here
+Makefile:1160: recipe for target 'vmlinux' failed
+make: *** [vmlinux] Error 1
+`,
+		"mm/page_alloc.o:(.data+0x1a40): multiple definition of '__kmem_cache_create'",
+		"",
+		"mm/page_alloc.c",
+	},
 }
