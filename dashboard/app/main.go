@@ -43,6 +43,9 @@ func initHTTPHandlers() {
 		http.Handle("/"+ns, handlerWrapper(handleMain))
 		http.Handle("/"+ns+"/fixed", handlerWrapper(handleFixed))
 		http.Handle("/"+ns+"/invalid", handlerWrapper(handleInvalid))
+		http.Handle("/"+ns+"/graph/bugs", handlerWrapper(handleKernelHealthGraph))
+		http.Handle("/"+ns+"/graph/lifetimes", handlerWrapper(handleGraphLifetimes))
+		http.Handle("/"+ns+"/graph/fuzzing", handlerWrapper(handleGraphFuzzing))
 	}
 	http.HandleFunc("/cache_update", cacheUpdate)
 }

@@ -478,3 +478,11 @@ func checkClients(clientNames map[string]bool, clients map[string]string) {
 		clientNames[name] = true
 	}
 }
+
+func (cfg *Config) lastActiveReporting() int {
+	last := len(cfg.Reporting) - 1
+	for last > 0 && cfg.Reporting[last].DailyLimit == 0 {
+		last--
+	}
+	return last
+}

@@ -602,3 +602,8 @@ func mergeStringList(list, add []string) []string {
 	}
 	return list
 }
+
+// dateTime converts date in YYYYMMDD format back to Time.
+func dateTime(date int) time.Time {
+	return time.Date(date/10000, time.Month(date/100%100), date%100, 0, 0, 0, 0, time.UTC)
+}

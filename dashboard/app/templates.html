@@ -63,6 +63,14 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 						<span style="color:ForestGreen;">🐞</span> Fixed [{{$.Cached.Fixed}}]</a>
 					<a class="navigation_tab{{if eq .URLPath (printf "/%v/invalid" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/invalid'>
 						<span style="color:RoyalBlue;">🐞</span> Invalid [{{$.Cached.Invalid}}]</a>
+					{{if .Admin}}
+					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/bugs" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/graph/bugs'>
+						<span style="color:DarkOrange;">📈</span> Kernel Health</a>
+					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/lifetimes" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/graph/lifetimes'>
+						<span style="color:DarkOrange;">📈</span> Bug Lifetimes</a>
+					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/fuzzing" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/graph/fuzzing'>
+						<span style="color:DarkOrange;">📈</span> Fuzzing</a>
+					{{end}}
 				</td>
 			</tr>
 		</table>
@@ -411,4 +419,23 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		</tbody>
 	</table>
 {{end}}
+{{end}}
+
+{{/* Checkbox input, invoked with *uiCheckbox */}}
+{{define "input-checkbox"}}
+	<div class="panel">
+		<h1>{{$.Caption}}</h1>
+		{{range .Values}}
+			<input type="checkbox" name="{{$.ID}}" {{if .Selected}}checked{{end}} value="{{.ID}}">{{if .Caption}}{{.Caption}}{{else}}{{.ID}}{{end}}</input><br>
+		{{end}}
+	</div>
+{{end}}
+
+{{/* Range slider input, invoked with *uiSlider */}}
+{{define "input-slider"}}
+	<div class="panel">
+		<label for="{{.ID}}">{{.Caption}}:</label>
+		<input type="range" name="{{.ID}}" min="{{.Min}}" max="{{.Max}}" value="{{.Val}}" oninput="document.getElementById('{{.ID}}-val').innerHTML = this.value">
+		<i id="{{.ID}}-val">{{.Val}}</i>
+	</div>
 {{end}}
