@@ -207,3 +207,60 @@ textarea {
 	color: #25a7db;
 	text-decoration: none;
 }
+
+.page {
+	position: relative;
+	width: 100%;
+}
+
+aside {
+	position: absolute;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	width: 290px;
+	margin-top: 5px;
+}
+
+.panel {
+	border: 1px solid #aaa;
+	border-radius: 5px;
+	margin-bottom: 5px;
+}
+
+.panel h1 {
+	font-size: 16px;
+	margin: 0;
+	padding: 2px 8px;
+}
+
+.panel select {
+	padding: 5px;
+	border: 0;
+	width: 100%;
+}
+
+.main-content {
+	position: absolute;
+	top: 0;
+	left: 300px;
+	right: 5px;
+	min-height: 200px;
+	overflow: hidden;
+}
+
+.graph_help {
+	position: absolute;
+	top: 115px;
+	left: 10px;
+	z-index: 1;
+	text-decoration: none;
+	font-weight: bold;
+	font-size: xx-large;
+	color: blue;
+}
+
+#graph_div {
+	width: 100%;
+	height: 85vh;
+}
