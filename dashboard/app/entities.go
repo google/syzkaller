@@ -514,3 +514,8 @@ func timeDate(t time.Time) int {
 	year, month, day := t.Date()
 	return year*10000 + int(month)*100 + day
 }
+
+// dateTime converts date in YYYYMMDD format back to Time.
+func dateTime(date int) time.Time {
+	return time.Date(date/10000, time.Month(date/100%100), date%100, 0, 0, 0, 0, time.UTC)
+}
