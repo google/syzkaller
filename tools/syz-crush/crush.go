@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -28,15 +29,10 @@ import (
 )
 
 var (
-	flagConfig      = flag.String("config", "", "configuration file")
-	flagRestartTime = flag.Duration("restartTime", 0, "restartPeriod how long to run the test.")
-	flagInfinite    = flag.Bool("infinite", true, "by default test is run for ever. -infinite=false to stop on crash")
+	flagConfig      = flag.String("config", "", "manager configuration file")
+	flagRestartTime = flag.Duration("restart_time", time.Hour, "how long to run the test")
+	flagInfinite    = flag.Bool("infinite", true, "by default test is run for ever, -infinite=false to stop on crash")
 )
-
-type CrashReport struct {
-	vmIndex int
-	Report  *report.Report
-}
 
 type FileType int
 
@@ -45,33 +41,16 @@ const (
 	CProg
 )
 
-func getType(fileName string) FileType {
-	extension := filepath.Ext(fileName)
-
-	switch extension {
-	case ".c":
-		return CProg
-	case ".txt", ".log":
-		return LogFile
-	default:
-		log.Logf(0, "assuming logfile type")
-		return LogFile
-	}
-}
-
 func main() {
 	flag.Parse()
-	cfg, err := mgrconfig.LoadFile(*flagConfig)
-	if err != nil {
-		log.Fatalf("%v", err)
+	if len(flag.Args()) != 1 || *flagConfig == "" {
+		fmt.Fprintf(os.Stderr, "usage: syz-crush [flags] <execution.log|creprog.c>\n")
+		flag.PrintDefaults()
 		os.Exit(1)
 	}
-	if len(flag.Args()) != 1 {
-		log.Fatalf("usage: syz-crush -config=config.file <execution.log|creprog.c>")
-	}
-
-	if err := osutil.MkdirAll(cfg.Workdir); err != nil {
-		log.Fatalf("failed to create tmp dir: %v", err)
+	cfg, err := mgrconfig.LoadFile(*flagConfig)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	if *flagInfinite {
@@ -96,9 +75,14 @@ func main() {
 	}
 
 	reproduceMe := flag.Args()[0]
-	baseName := filepath.Base(reproduceMe)
-
-	runType := getType(reproduceMe)
+	if cfg.Tag == "" {
+		// If no tag is given, use reproducer name as the tag.
+		cfg.Tag = filepath.Base(reproduceMe)
+	}
+	runType := LogFile
+	if strings.HasSuffix(reproduceMe, ".c") {
+		runType = CProg
+	}
 	if runType == CProg {
 		execprog, err := ioutil.ReadFile(reproduceMe)
 		if err != nil {
@@ -112,119 +96,73 @@ func main() {
 
 		log.Logf(0, "compiled csource %v to cprog: %v", reproduceMe, cfg.SyzExecprogBin)
 	} else {
-		log.Logf(0, "reproducing from logfile: %v", reproduceMe)
+		log.Logf(0, "reproducing from log file: %v", reproduceMe)
 	}
 
-	restartPeriod := *flagRestartTime
-	if restartPeriod == 0 {
-		// Set default restart period to 1h
-		restartPeriod = time.Hour
-	}
-	log.Logf(0, "restartTime set to: %v", *flagRestartTime)
-
-	log.Logf(0, "booting test machines... %v", vmPool.Count())
-	runDone := make(chan *CrashReport, vmPool.Count())
-	var shutdown uint32
-	var runningWorkers uint32
+	log.Logf(0, "booting %v test machines...", vmPool.Count())
+	runDone := make(chan *report.Report)
+	var shutdown, stoppedWorkers uint32
 
 	for i := 0; i < vmPool.Count(); i++ {
-		atomic.AddUint32(&runningWorkers, 1)
 		go func(index int) {
 			for {
-				runDone <- runInstance(target, cfg, reporter, vmPool, index, *flagRestartTime,
-					runType)
+				runDone <- runInstance(target, cfg, reporter, vmPool, index, *flagRestartTime, runType)
 				if atomic.LoadUint32(&shutdown) != 0 || !*flagInfinite {
-					atomic.AddUint32(&runningWorkers, ^uint32(0))
-
-					// If this is the last worker then we can close the channel
-					if atomic.LoadUint32(&runningWorkers) == 0 {
+					// If this is the last worker then we can close the channel.
+					if atomic.AddUint32(&stoppedWorkers, 1) == uint32(vmPool.Count()) {
 						log.Logf(0, "vm-%v: closing channel", index)
 						close(runDone)
 					}
 					break
-				} else {
-					log.Logf(0, "vm-%v: restarting", index)
 				}
 			}
 			log.Logf(0, "vm-%v: done", index)
 		}(i)
 	}
 
-	log.Logf(0, "restart/timeout set to: %v", *flagRestartTime)
 	shutdownC := make(chan struct{})
 	osutil.HandleInterrupts(shutdownC)
 	go func() {
 		<-shutdownC
 		atomic.StoreUint32(&shutdown, 1)
+		close(vm.Shutdown)
 	}()
 
-	var count int
-	var crashes int
-	for res := range runDone {
+	var count, crashes int
+	for rep := range runDone {
 		count++
-		crashes += storeCrash(res, cfg, baseName)
-		log.Logf(0, "instances executed: %v", count)
+		if rep != nil {
+			crashes++
+			storeCrash(cfg, rep)
+		}
+		log.Logf(0, "instances executed: %v, crashes: %v", count, crashes)
 	}
 
 	log.Logf(0, "all done. reproduced %v crashes. reproduce rate %.2f%%", crashes, float64(crashes)/float64(count)*100.0)
 }
 
-func storeCrash(res *CrashReport, cfg *mgrconfig.Config, baseName string) int {
-	log.Logf(0, "storing results...")
-	if res == nil || res.Report == nil {
-		log.Logf(0, "nothing to store")
-		return 0
-	}
-
-	log.Logf(0, "loop: instance %v finished, crash=%v", res.vmIndex, res.Report.Title)
-
-	crashdir := filepath.Join(cfg.Workdir, "crashes")
-	osutil.MkdirAll(crashdir)
-
-	sig := hash.Hash([]byte(res.Report.Title))
-	id := sig.String()
-	dir := filepath.Join(crashdir, id)
-	log.Logf(0, "vm-%v: crashed: %v, saving to %v", res.vmIndex, res.Report.Title, dir)
-
+func storeCrash(cfg *mgrconfig.Config, rep *report.Report) {
+	id := hash.String([]byte(rep.Title))
+	dir := filepath.Join(cfg.Workdir, "crashes", id)
 	osutil.MkdirAll(dir)
-	if err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(res.Report.Title+"\n")); err != nil {
-		log.Logf(0, "failed to write crash: %v", err)
-	}
-	// Save up to 100 reports. If we already have 100, overwrite the oldest one.
-	// Newer reports are generally more useful. Overwriting is also needed
-	// to be able to understand if a particular bug still happens or already fixed.
-	oldestI := 0
-	var oldestTime time.Time
-	for i := 0; i < 100; i++ {
-		info, err := os.Stat(filepath.Join(dir, fmt.Sprintf("log%v", i)))
-		if err != nil {
-			oldestI = i
-			break
-		}
-		if oldestTime.IsZero() || info.ModTime().Before(oldestTime) {
-			oldestI = i
-			oldestTime = info.ModTime()
-		}
-	}
-	osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("log%v", oldestI)), res.Report.Output)
-	if len(cfg.Tag) > 0 {
-		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("tag%v", oldestI)), []byte(cfg.Tag))
-	}
-	if len(res.Report.Report) > 0 {
-		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", oldestI)), res.Report.Report)
-	}
+	log.Logf(0, "saving crash %v to %v", rep.Title, dir)
 
-	reproducedWithdir := filepath.Join(dir, "reproduced_with")
-	osutil.MkdirAll(reproducedWithdir)
-	if err := osutil.WriteFile(filepath.Join(reproducedWithdir, baseName), []byte(baseName+"\n")); err != nil {
-		log.Logf(0, "failed to write reproducer: %v", err)
+	if err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(rep.Title+"\n")); err != nil {
+		log.Logf(0, "failed to write crash description: %v", err)
 	}
-
-	return 1
+	index := 0
+	for ; osutil.IsExist(filepath.Join(dir, fmt.Sprintf("log%v", index))); index++ {
+	}
+	osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("log%v", index)), rep.Output)
+	osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("tag%v", index)), []byte(cfg.Tag))
+	if len(rep.Report) > 0 {
+		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", index)), rep.Report)
+	}
 }
 
 func runInstance(target *prog.Target, cfg *mgrconfig.Config, reporter report.Reporter,
-	vmPool *vm.Pool, index int, timeout time.Duration, runType FileType) *CrashReport {
+	vmPool *vm.Pool, index int, timeout time.Duration, runType FileType) *report.Report {
+	log.Logf(0, "vm-%v: starting", index)
 	inst, err := vmPool.Create(index)
 	if err != nil {
 		log.Logf(0, "failed to create instance: %v", err)
@@ -270,10 +208,10 @@ func runInstance(target *prog.Target, cfg *mgrconfig.Config, reporter report.Rep
 
 	log.Logf(0, "vm-%v: crushing...", index)
 	rep := inst.MonitorExecution(outc, errc, reporter, vm.ExitTimeout)
-	if rep == nil {
-		// This is the only "OK" outcome.
-		log.Logf(0, "vm-%v: running long enough, stopping", index)
+	if rep != nil {
+		log.Logf(0, "vm-%v: crash: %v", index, rep.Title)
+		return rep
 	}
-
-	return &CrashReport{vmIndex: index, Report: rep}
+	log.Logf(0, "vm-%v: running long enough, stopping", index)
+	return nil
 }
