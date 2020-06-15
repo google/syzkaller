@@ -10,6 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,7 +20,6 @@ import (
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/instance"
-	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
@@ -54,9 +54,9 @@ func main() {
 	}
 
 	if *flagInfinite {
-		log.Logf(0, "running infinitely and restarting VM every %v", *flagRestartTime)
+		log.Printf("running infinitely and restarting VM every %v", *flagRestartTime)
 	} else {
-		log.Logf(0, "running until crash is found or till %v", *flagRestartTime)
+		log.Printf("running until crash is found or till %v", *flagRestartTime)
 	}
 
 	target, err := prog.GetTarget(cfg.TargetOS, cfg.TargetArch)
@@ -94,12 +94,12 @@ func main() {
 			log.Fatalf("failed to build source file: %v", err)
 		}
 
-		log.Logf(0, "compiled csource %v to cprog: %v", reproduceMe, cfg.SyzExecprogBin)
+		log.Printf("compiled csource %v to cprog: %v", reproduceMe, cfg.SyzExecprogBin)
 	} else {
-		log.Logf(0, "reproducing from log file: %v", reproduceMe)
+		log.Printf("reproducing from log file: %v", reproduceMe)
 	}
 
-	log.Logf(0, "booting %v test machines...", vmPool.Count())
+	log.Printf("booting %v test machines...", vmPool.Count())
 	runDone := make(chan *report.Report)
 	var shutdown, stoppedWorkers uint32
 
@@ -110,13 +110,13 @@ func main() {
 				if atomic.LoadUint32(&shutdown) != 0 || !*flagInfinite {
 					// If this is the last worker then we can close the channel.
 					if atomic.AddUint32(&stoppedWorkers, 1) == uint32(vmPool.Count()) {
-						log.Logf(0, "vm-%v: closing channel", index)
+						log.Printf("vm-%v: closing channel", index)
 						close(runDone)
 					}
 					break
 				}
 			}
-			log.Logf(0, "vm-%v: done", index)
+			log.Printf("vm-%v: done", index)
 		}(i)
 	}
 
@@ -135,20 +135,20 @@ func main() {
 			crashes++
 			storeCrash(cfg, rep)
 		}
-		log.Logf(0, "instances executed: %v, crashes: %v", count, crashes)
+		log.Printf("instances executed: %v, crashes: %v", count, crashes)
 	}
 
-	log.Logf(0, "all done. reproduced %v crashes. reproduce rate %.2f%%", crashes, float64(crashes)/float64(count)*100.0)
+	log.Printf("all done. reproduced %v crashes. reproduce rate %.2f%%", crashes, float64(crashes)/float64(count)*100.0)
 }
 
 func storeCrash(cfg *mgrconfig.Config, rep *report.Report) {
 	id := hash.String([]byte(rep.Title))
 	dir := filepath.Join(cfg.Workdir, "crashes", id)
 	osutil.MkdirAll(dir)
-	log.Logf(0, "saving crash %v to %v", rep.Title, dir)
+	log.Printf("saving crash %v to %v", rep.Title, dir)
 
 	if err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(rep.Title+"\n")); err != nil {
-		log.Logf(0, "failed to write crash description: %v", err)
+		log.Printf("failed to write crash description: %v", err)
 	}
 	index := 0
 	for ; osutil.IsExist(filepath.Join(dir, fmt.Sprintf("log%v", index))); index++ {
@@ -162,17 +162,17 @@ func storeCrash(cfg *mgrconfig.Config, rep *report.Report) {
 
 func runInstance(target *prog.Target, cfg *mgrconfig.Config, reporter report.Reporter,
 	vmPool *vm.Pool, index int, timeout time.Duration, runType FileType) *report.Report {
-	log.Logf(0, "vm-%v: starting", index)
+	log.Printf("vm-%v: starting", index)
 	inst, err := vmPool.Create(index)
 	if err != nil {
-		log.Logf(0, "failed to create instance: %v", err)
+		log.Printf("failed to create instance: %v", err)
 		return nil
 	}
 	defer inst.Close()
 
 	execprogBin, err := inst.Copy(cfg.SyzExecprogBin)
 	if err != nil {
-		log.Logf(0, "failed to copy execprog: %v", err)
+		log.Printf("failed to copy execprog: %v", err)
 		return nil
 	}
 
@@ -184,13 +184,13 @@ func runInstance(target *prog.Target, cfg *mgrconfig.Config, reporter report.Rep
 		if executorCmd == "" {
 			executorCmd, err = inst.Copy(cfg.SyzExecutorBin)
 			if err != nil {
-				log.Logf(0, "failed to copy executor: %v", err)
+				log.Printf("failed to copy executor: %v", err)
 				return nil
 			}
 		}
 		logFile, err := inst.Copy(flag.Args()[0])
 		if err != nil {
-			log.Logf(0, "failed to copy log: %v", err)
+			log.Printf("failed to copy log: %v", err)
 			return nil
 		}
 
@@ -202,16 +202,16 @@ func runInstance(target *prog.Target, cfg *mgrconfig.Config, reporter report.Rep
 
 	outc, errc, err := inst.Run(timeout, nil, cmd)
 	if err != nil {
-		log.Logf(0, "failed to run execprog: %v", err)
+		log.Printf("failed to run execprog: %v", err)
 		return nil
 	}
 
-	log.Logf(0, "vm-%v: crushing...", index)
+	log.Printf("vm-%v: crushing...", index)
 	rep := inst.MonitorExecution(outc, errc, reporter, vm.ExitTimeout)
 	if rep != nil {
-		log.Logf(0, "vm-%v: crash: %v", index, rep.Title)
+		log.Printf("vm-%v: crash: %v", index, rep.Title)
 		return rep
 	}
-	log.Logf(0, "vm-%v: running long enough, stopping", index)
+	log.Printf("vm-%v: running long enough, stopping", index)
 	return nil
 }
