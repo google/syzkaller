@@ -1,0 +1,88 @@
+{{/*
+Copyright 2020 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+Manager statistics graphs.
+*/}}
+
+<!doctype html>
+<html>
+<head>
+	<title>{{.Header.Namespace}} fuzzing stats</title>
+	{{template "head" .Header}}
+
+	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+	<script type="text/javascript">
+		google.load("visualization", "1", {packages:["corechart"]});
+		google.setOnLoadCallback(drawCharts);
+		function drawCharts() {
+			var data = new google.visualization.DataTable();
+			data.addColumn({type: 'string'});
+			{{range $.Graph.Headers}}
+				data.addColumn({type: 'number', label: '{{.}}'});
+				data.addColumn({type: 'string', role: 'tooltip'});
+			{{- end}}
+			data.addRows([ {{range $.Graph.Columns}}
+					[ "{{.Hint}}", {{range .Vals}}
+						{{.Val}}, '{{.Hint}}',
+					{{- end}}
+					],
+				{{- end}}
+			]);
+			/*
+			new google.charts.Line(document.getElementById('graph_div')).
+				draw(data, {
+					width: "100%",
+					height: 760,
+					series: {
+						0: {axis: 'Open'},
+						1: {axis: 'Total'},
+						2: {axis: 'Total'},
+					},
+					axes: {
+   						y: {
+							Open: {label: '# open bugs'},
+							Total: {label: '# total reported/fixed'}
+						}
+					}
+				})
+			*/
+			new google.visualization.LineChart(document.getElementById('graph_div')).
+				draw(data, {
+					width: "100%",
+					height: 400,
+					focusTarget: "category",
+					series: {
+						0: {targetAxisIndex: 0},
+						1: {targetAxisIndex: 1},
+						2: {targetAxisIndex: 1},
+					},
+					vAxes: {
+						0: {title: '# open bugs'},
+						1: {title: '# total reported / fixed'}
+					},
+					chartArea: {width: '95%', height: '100%'},
+					legend: {position: 'in'},
+					axisTitlesPosition: 'out',
+					hAxis: {textPosition: 'in', maxAlternation: 1},
+					vAxis: {textPosition: 'in'},
+					explorer: {axis: 'horizontal', maxZoomIn: 0, maxZoomOut: 1, zoomDelta: 1.2, keepInBounds: true}
+				})
+		}
+	</script>
+</head>
+<body>
+	{{template "header" .Header}}
+	<div  class="page">
+		<div id="graph_div" class="main-content"></div>
+		<aside>
+			<form>
+				{{template "input-checkbox" .Managers}}
+				{{template "input-checkbox" .Metrics}}
+				{{template "input-slider" .Months}}
+				<input type="submit" value="Refresh"/>
+			</form>
+		</aside>
+	</div>
+</body>
+</html>

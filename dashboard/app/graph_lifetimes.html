@@ -1,0 +1,60 @@
+{{/*
+Copyright 2020 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+Bug lifetimes graph.
+*/}}
+
+<!doctype html>
+<html>
+<head>
+	<title>{{.Header.Namespace}} bug lifetimes</title>
+	{{template "head" .Header}}
+
+	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+	<script type="text/javascript">
+		google.load("visualization", "1", {packages:["corechart"]});
+		google.setOnLoadCallback(drawCharts);
+		function drawCharts() {
+			var bugLifetimes = new google.visualization.DataTable();
+			bugLifetimes.addColumn('datetime', '-');
+			bugLifetimes.addColumn('number', 'fixed');
+			bugLifetimes.addColumn('number', 'fixed (>year)');
+			bugLifetimes.addColumn('number', 'not fixed');
+			bugLifetimes.addColumn('number', 'introduced');
+			bugLifetimes.addColumn('number', 'introduced (>year)');
+			bugLifetimes.addRows([
+				{{range $.BugLifetimes}}
+					[new Date("{{formatJSTime .Reported}}"),
+						{{- if .Fixed}}{{.Fixed}}{{else}}null{{end}},
+						{{- if .Fixed1y}}{{.Fixed1y}}{{else}}null{{end}},
+						{{- if .NotFixed}}{{.NotFixed}}{{else}}null{{end}},
+						{{- if .Introduced}}{{.Introduced}}{{else}}null{{end}},
+						{{- if .Introduced1y}}{{.Introduced1y}}{{else}}null{{end}}],
+				{{- end}}
+			]);
+			new google.visualization.ScatterChart(document.getElementById('graph_div')).
+				draw(bugLifetimes, {
+					width: "100%",
+					pointSize: 3,
+					chartArea: {width: '90%', height: '85%'},
+					legend: {position: 'top'},
+					axisTitlesPosition: 'out',
+					hAxis: {out: 'textPosition', title: 'bug reported on'},
+					vAxis: {textPosition: 'out', title: '# days'},
+					series: [
+						{color: "#26ba1c"},
+						{color: "#15870e"},
+						{color: "#ff0000"},
+						{color: "#f060c7"},
+						{color: "#ff0000"},
+					],
+				})
+		}
+	</script>
+</head>
+<body>
+	{{template "header" .Header}}
+	<div id="graph_div"></div>
+</body>
+</html>
