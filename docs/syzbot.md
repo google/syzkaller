@@ -329,11 +329,21 @@ is the original source of uninitialized-ness.
 
 syzkaller has an ability to perform fuzzing of the Linux kernel USB stack, see
 the details [here](/docs/linux/external_fuzzing_usb.md). As of now all kernel
-changes required for USB fuzzing have been merged into the mainline (the last
-during the 5.8-rc1 merge window), so testing kernel patches on the USB instance
-follows the same principle as on the upstream instances. You may use any kernel
-tree (as long as it includes all mainline patches up to 5.8-rc1) to test
-patches.
+changes required for USB fuzzing have been merged into the mainline (the last one
+during the 5.8-rc1 merge window), so the USB fuzzing instance has been switched
+to target the [usb-testing](https://git.kernel.org/pub/scm/linux/kernel/git/gregkh/usb.git/log/?h=usb-testing) tree.
+
+Testing kernel patches on the USB instance follows the same principle as on the
+mainline instances, with a few caveats:
+
+1. You may specify any kernel tree for `syz test` as long as it includes all
+mainline patches up to 5.8-rc1.
+
+2. Some of the bugs have reproducers generated on kernel versions with custom
+kernel (when fuzzing was performed with non-yet-mainlined kernel patches), thus
+those reproducers might no longer work. The recommended workflow is to: first,
+execute a `syz test` command on a target tree to make sure that the bug
+reproduces, and then execute a `syz test` command with a fix/debug patch.
 
 If the bug was triggered on the `KMSAN` tree, follow the [instructions above](#kmsan-bugs),
 with the exception that you must also use `commit-hash` instead of the `master`
