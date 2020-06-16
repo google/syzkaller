@@ -53,7 +53,7 @@ The core support for USB fuzzing is now in place, but there are still some thing
 2. Implement a proper way for extracting relevant USB ids from the kernel (a related [discussion](https://www.spinics.net/lists/linux-usb/msg187915.html)).
 
 3. Add a mode for standalone fuzzing of physical USB hosts (by using e.g. Raspberry Pi Zero, see below).
-This includes at least: a. making sure that current USB emulation implementation works properly on different OSes (there are some differences in protocol implementation);
+This includes at least: a. making sure that current USB emulation implementation works properly on different OSes (there are some [differences](https://github.com/RoganDawes/LOGITacker/blob/USB_host_enum/fingerprint_os.md#derive-the-os-from-the-fingerprint) in protocol implementation);
 b. using USB requests coming from the host as a signal (like coverage) to enable "signal-driven" fuzzing,
 c. making UDC driver name configurable for `syz-execprog` and `syz-prog2c`.
 
