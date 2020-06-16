@@ -246,7 +246,8 @@ func (target *Target) BuildChoiceTable(corpus []*Prog, enabled map[*Syscall]bool
 	for _, p := range corpus {
 		for _, call := range p.Calls {
 			if !enabled[call.Meta] {
-				panic(fmt.Sprintf("corpus contains disabled syscall %v", call.Meta.Name))
+				fmt.Printf("corpus contains disabled syscall %v", call.Meta.Name)
+				panic("disabled syscall")
 			}
 		}
 	}
@@ -277,7 +278,8 @@ func (ct *ChoiceTable) choose(r *rand.Rand, bias int) int {
 		bias = ct.calls[r.Intn(len(ct.calls))].ID
 	}
 	if !ct.Enabled(bias) {
-		panic("bias to disabled syscall")
+		fmt.Printf("bias to disabled syscall %v", ct.target.Syscalls[bias].Name)
+		panic("disabled syscall")
 	}
 	run := ct.runs[bias]
 	x := r.Intn(run[len(run)-1]) + 1
