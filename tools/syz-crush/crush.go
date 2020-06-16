@@ -30,6 +30,7 @@ import (
 
 var (
 	flagConfig      = flag.String("config", "", "manager configuration file")
+	flagDebug       = flag.Bool("debug", false, "dump all VM output to console")
 	flagRestartTime = flag.Duration("restart_time", time.Hour, "how long to run the test")
 	flagInfinite    = flag.Bool("infinite", true, "by default test is run for ever, -infinite=false to stop on crash")
 )
@@ -64,7 +65,7 @@ func main() {
 		log.Fatalf("%v", err)
 	}
 
-	vmPool, err := vm.Create(cfg, false)
+	vmPool, err := vm.Create(cfg, *flagDebug)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
