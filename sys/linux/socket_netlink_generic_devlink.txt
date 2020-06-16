@@ -18,6 +18,10 @@ sendmsg$DEVLINK_CMD_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLIN
 sendmsg$DEVLINK_CMD_RELOAD(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_RELOAD, devlink_reload_policy]], f flags[send_flags])
 sendmsg$DEVLINK_CMD_PORT_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_PORT_GET, devlink_port_get_policy]], f flags[send_flags])
 sendmsg$DEVLINK_CMD_PORT_SET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_PORT_SET, devlink_port_set_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_TRAP_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_TRAP_GET, devlink_trap_get_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_TRAP_SET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_TRAP_SET, devlink_trap_set_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_TRAP_GROUP_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_TRAP_GROUP_GET, devlink_trap_group_get_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_TRAP_GROUP_SET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_TRAP_GROUP_SET, devlink_trap_group_set_policy]], f flags[send_flags])
 
 devlink_devname {
 	prefix	stringnoz["netdevsim"]
@@ -65,4 +69,26 @@ devlink_port_get_policy {
 devlink_port_set_policy {
 	port_handle		devlink_port_handle
 	DEVLINK_ATTR_PORT_TYPE	nlattr[DEVLINK_ATTR_PORT_TYPE, int16[DEVLINK_PORT_TYPE_NOTSET:DEVLINK_PORT_TYPE_IB]]
+} [packed, align[4]]
+
+devlink_trap_get_policy {
+	dev_handle		devlink_handle
+	DEVLINK_ATTR_TRAP_NAME	nlattr[DEVLINK_ATTR_TRAP_NAME, string["source_mac_is_multicast"]]
+} [packed, align[4]]
+
+devlink_trap_set_policy {
+	dev_handle			devlink_handle
+	DEVLINK_ATTR_TRAP_NAME		nlattr[DEVLINK_ATTR_TRAP_NAME, string["source_mac_is_multicast"]]
+	DEVLINK_ATTR_TRAP_ACTION	nlattr[DEVLINK_ATTR_TRAP_ACTION, int8[DEVLINK_TRAP_ACTION_DROP:DEVLINK_TRAP_ACTION_TRAP]]
+} [packed, align[4]]
+
+devlink_trap_group_get_policy {
+	dev_handle			devlink_handle
+	DEVLINK_ATTR_TRAP_GROUP_NAME	nlattr[DEVLINK_ATTR_TRAP_GROUP_NAME, string["l2_drops"]]
+} [packed, align[4]]
+
+devlink_trap_group_set_policy {
+	dev_handle			devlink_handle
+	DEVLINK_ATTR_TRAP_GROUP_NAME	nlattr[DEVLINK_ATTR_TRAP_GROUP_NAME, string["l2_drops"]]
+	DEVLINK_ATTR_TRAP_ACTION	nlattr[DEVLINK_ATTR_TRAP_ACTION, int8[DEVLINK_TRAP_ACTION_DROP:DEVLINK_TRAP_ACTION_TRAP]]
 } [packed, align[4]]
