@@ -46,7 +46,7 @@ syzkaller USB runtests are [here](/sys/linux/test/) and start with `vusb` prefix
 
 ## TODO list
 
-A few major things that need to be done:
+A few important things that need to be done:
 
 1. Implement a proper way for extracting relevant USB ids from the kernel ([discussion](https://www.spinics.net/lists/linux-usb/msg187915.html) is ongoing).
 2. Add descriptions for all relevant USB classes and drivers.
