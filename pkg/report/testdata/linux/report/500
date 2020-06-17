@@ -1,0 +1,45 @@
+TITLE: WARNING in corrupted/usb_submit_urb
+CORRUPTED: Y
+
+Warning: Permanently added '10.128.0.242' (ECDSA) to the list of known hosts.
+syzkaller login: [   30.021137][   T81] usb 1-1: new high-speed USB device number 2 using dummy_hcd
+[   30.110942][   T81] usb 1-1: Using ep0 maxpacket: 16
+[   30.230812][   T81] usb 1-1: config 0 interface 0 altsetting 0 endpoint 0x8D has an invalid bInterval 0, changing to 7
+[   30.241979][   T81] usb 1-1: config 0 interface 0 altsetting 0 bulk endpoint 0x3 has invalid maxpacket 1
+[   30.410779][   T81] usb 1-1: New USB device found, idVendor=0bc7, idProduct=0006, bcdDevice=cb.33
+[   30.419944][   T81] usb 1-1: New USB device strings: Mfr=105, Product=50, SerialNumber=129
+[   30.428482][   T81] usb 1-1: Product: syz
+[   30.432717][   T81] usb 1-1: Manufacturer: syz
+[   30.437319][   T81] usb 1-1: SerialNumber: syz
+[   30.443749][   T81] usb 1-1: config 0 descriptor??
+[   30.460954][ T1791] raw-gadget gadget: fail, usb_ep_enable returned -22
+[   30.482411][   T81] ati_remote 1-1:0.0: Unknown Medion X10 receiver, using default ati_remote Medion keymap
+[   30.492495][   T81] ------------[ cut here ]------------
+[   30.497980][   T81] usb 1-1: BOGUS urb xfer, pipe 1 != type 3
+[   30.504146][   T81] WARNING: CPU: 1 PID: 81 at drivers/usb/core/urb.c:478 usb_submit_urb+0x1188/0x1460
+[   30.515546][   T81] Kernel panic - not syncing: panic_on_warn set ...
+[   30.522138][   T81] CPU: 1 PID: 81 Comm: kworker/1:1 Not tainted 5.6.0-rc3-syzkaller #0
+[   30.530285][   T81] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   30.540419][   T81] Workqueue: usb_hub_wq hub_event
+[   30.545447][   T81] Call Trace:
+[   30.548741][   T81]  dump_stack+0xef/0x16e
+[   30.552986][   T81]  ? usb_submit_urb+0x1090/0x1460
+[   30.558010][   T81]  panic+0x2aa/0x6e1
+[   30.561902][   T81]  ? add_taint.cold+0x16/0x16
+[   30.566630][   T81]  ? __probe_kernel_read+0x188/0x1d0
+[   30.571909][   T81]  ? __warn.cold+0x14/0x30
+[   30.576356][   T81]  ? __warn+0xd5/0x1c8
+[   30.580430][   T81]  ? usb_submit_urb+0x1188/0x1460
+[   30.585489][   T81]  __warn.cold+0x2f/0x30
+[   30.589981][   T81]  ? usb_submit_urb+0x1188/0x1460
+[   30.595057][   T81]  report_bug+0x27b/0x2f0
+[   30.599377][   T81]  do_error_trap+0x12b/0x1e0
+[   30.603968][   T81]  ? usb_submit_urb+0x1188/0x1460
+[   30.608999][   T81]  do_invalid_op+0x32/0x40
+[   30.613460][   T81]  ? usb_submit_urb+0x1188/0x1460
+[   30.618485][   T81]  invalid_op+0x23/0x30
+[   30.622635][   T81] RIP: 0010:usb_submit_urb+0x1188/0x1460
+[   30.628261][   T81] Code: 4d 85 ed 74 46 e8 18 ce dd fd 4c 89 f7 e8 d0 5c 17 ff 41 89 d8 44 89 e1 4c 89 ea 48 89 c6 48 c7 c7 e0 e7 3b 86 e8 a0 5f b2 fd <0f> 0b e9 20 f4 ff ff e8 ec cd dd fd 0f 1f 44 00 00 e8 e2 cd dd fd
+[   30.647861][   T81] RSP: 0018:ffff8881d8a0f0b8 EFLAGS: 00010282
+[   30.653924][   T81] RAX: 0000000000000000 RBX: 0000000000000003 RCX: 0000000000000000
+[
