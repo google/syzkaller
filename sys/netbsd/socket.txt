@@ -44,6 +44,7 @@ shutdown_flags = SHUT_RD, SHUT_WR, SHUT_RDWR
 send_flags = MSG_OOB, MSG_PEEK, MSG_DONTROUTE, MSG_EOR, MSG_NOSIGNAL
 recv_flags = MSG_CMSG_CLOEXEC, MSG_OOB, MSG_PEEK, MSG_WAITALL
 cmsg_levels = SOL_SOCKET, IPPROTO_ICMP, LINUX_SOL_IP, LINUX_SOL_TCP, LINUX_SOL_UDP, LINUX_SOL_IPV6, LINUX_SOL_IPX, LINUX_SOL_AX25
+addr_family = AF_UNSPEC, AF_LOCAL, AF_UNIX, AF_INET, AF_IMPLINK, AF_PUP, AF_CHAOS, AF_NS, AF_ISO, AF_OSI, AF_ECMA, AF_DATAKIT, AF_CCITT, AF_SNA, AF_DECnet, AF_DLI, AF_LAT, AF_HYLINK, AF_APPLETALK, AF_OROUTE, AF_LINK, AF_COIP, AF_CNT, pseudo_AF_RTIP, pseudo_AF_PIP, pseudo_AF_XTP, AF_IPX, AF_INET6, AF_ISDN, AF_E164, AF_NATM, AF_ARP, pseudo_AF_KEY, pseudo_AF_HDRCMPLT, AF_BLUETOOTH, AF_IEEE80211, AF_MPLS, AF_ROUTE, AF_CAN, AF_ETHER, AF_MAX
 
 sock_pair {
 	fd0	sock
@@ -53,7 +54,7 @@ sock_pair {
 # This sockaddr type corresponds to the sockaddr_storage type and is 128 bytes size.
 sockaddr_storage [
 	len	int8
-	family	int8
+	family	flags[addr_family, int8]
 	data	array[int8, 14]
 ]
 

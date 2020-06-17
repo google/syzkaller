@@ -30,7 +30,7 @@ compat_43_lstat43(file ptr[in, filename], ua ptr[out, stat43])
 __lstat50(file ptr[in, filename], ua ptr[out, stat])
 compat_43_fstat43(fd fd, sb ptr[out, stat43])
 __fstat50(fd fd, sb ptr[out, stat])
-profil(samples ptr[inout, filename], size len[samples], offt intptr, scale int32)
+profil(samples buffer[inout], size len[samples], offt intptr, scale int32)
 
 compat_12_msync(addr vma, len int32)
 __msync13(addr vma, len int32, f flags[msync_flags])
