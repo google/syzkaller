@@ -1,4 +1,5 @@
-TITLE: BUG: unable to handle kernel NULL pointer dereference in handle_external_interrupt_irqoff
+TITLE: BUG: unable to handle kernel NULL pointer dereference in corrupted
+CORRUPTED: Y
 
 [  418.945118][T17277] BUG: kernel NULL pointer dereference, address: 0000000000000086
 [  418.953273][T17277] #PF: supervisor instruction fetch in kernel mode

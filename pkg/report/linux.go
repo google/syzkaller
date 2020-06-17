@@ -163,13 +163,23 @@ func (ctx *linux) Parse(output []byte) *Report {
 			rep.Corrupted, rep.CorruptedReason = ctx.isCorrupted(title, report, format)
 		}
 		if rep.CorruptedReason == corruptedNoFrames && context != contextConsole && !questionable {
+			// We used to look at questionable frame with the following incentive:
+			// """
 			// Some crash reports have all frames questionable.
 			// So if we get a corrupted report because there are no frames,
 			// try again now looking at questionable frames.
 			// Only do this if we have a real context (CONFIG_PRINTK_CALLER=y),
 			// to be on the safer side. Without context it's too easy to use
 			// a stray frame from a wrong context.
-			continue
+			// """
+			// Most likely reports without proper stack traces were caused by a bug
+			// in the unwinder and are now fixed in 187b96db5ca7 "x86/unwind/orc:
+			// Fix unwind_get_return_address_ptr() for inactive tasks".
+			// Disable trying to use questionable frames for now.
+			useQuestionableFrames := false
+			if useQuestionableFrames {
+				continue
+			}
 		}
 		return rep
 	}
