@@ -1,5 +1,6 @@
-TITLE: INFO: rcu detected stall in batadv_mcast_get_bridge
+TITLE: INFO: rcu detected stall in corrupted
 TYPE: HANG
+CORRUPTED: Y
 
 [  463.512820][   T27] audit: type=1326 audit(1589206749.923:16): auid=0 uid=0 gid=0 ses=4 subj=system_u:system_r:kernel_t:s0 pid=16576 comm="syz-executor.5" exe="/root/syz-executor.5" sig=9 arch=c000003e syscall=228 compat=0 ip=0x45f66a code=0x0
 [  568.528728][    C1] rcu: INFO: rcu_preempt detected stalls on CPUs/tasks:
