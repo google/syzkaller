@@ -1,7 +1,6 @@
 # For reference see:
 # https://help.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners
 
-*		@dvyukov
 *.py		@xairy
 *fuchsia*	@mvanotti
 *freebsd*	@markjdb @tuexen
