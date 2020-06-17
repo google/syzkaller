@@ -15,13 +15,16 @@ type sock_port proc[20000, 4, int16be]
 # TODO: describe socketcall syscall
 
 socket(domain flags[socket_domain], type flags[socket_type], proto int8) sock
+compat_30_socket(domain flags[socket_domain], type flags[socket_type], proto int8) sock
 socketpair(domain flags[socket_domain], type flags[socket_type], proto int8, fds ptr[out, sock_pair])
 bind(fd sock, addr ptr[in, sockaddr_storage], addrlen len[addr])
 connect(fd sock, addr ptr[in, sockaddr_storage], addrlen len[addr])
-accept(fd sock, peer ptr[out, sockaddr_storage, opt], peerlen ptr[inout, len[peer, int32]]) sock
+accept(s sock, addr ptr[out, sockaddr_storage, opt], addrlen ptr[inout, len[addr, int32]]) sock
+compat_43_oaccept(s sock, name buffer[out], namelen ptr[inout, len[name, int32]]) sock
 paccept(fd sock, peer ptr[out, sockaddr_storage, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock
 sendto(fd sock, buf buffer[in], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_storage, opt], addrlen len[addr])
-recvfrom(fd sock, buf buffer[out], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr_storage, opt], addrlen len[addr])
+recvfrom(fd sock, buf buffer[out], len len[buf], f flags[recv_flags], frm ptr[in, sockaddr_storage, opt], frmlen len[frm])
+compat_43_orecvfrom(s sock, buf buffer[out], len len[buf], f flags[recv_flags], frm buffer[in], frmlen len[frm])
 getsockname(fd sock, addr ptr[out, sockaddr_storage], addrlen ptr[inout, len[addr, int32]])
 getpeername(fd sock, peer ptr[out, sockaddr_storage], peerlen ptr[inout, len[peer, int32]])
 
@@ -34,13 +37,14 @@ shutdown(fd sock, how flags[shutdown_flags])
 getsockopt(fd sock, level int32, optname int32, optval buffer[out], optlen ptr[inout, len[optval, int32]])
 setsockopt(fd sock, level int32, optname int32, optval buffer[in], optlen len[optval])
 
-socket_domain = AF_LOCAL, AF_INET, AF_INET6, AF_NS, AF_BLUETOOTH, AF_APPLETALK
+socket_domain = PF_LOCAL, PF_INET, PF_INET6, PF_NS, PF_BLUETOOTH, PF_APPLETALK, PF_CAN
 socket_type = SOCK_STREAM, SOCK_DGRAM, SOCK_RAW, SOCK_RDM, SOCK_SEQPACKET, SOCK_NONBLOCK, SOCK_CLOEXEC, SOCK_NOSIGPIPE
 accept_flags = SOCK_NONBLOCK, SOCK_CLOEXEC, SOCK_NOSIGPIPE
 shutdown_flags = SHUT_RD, SHUT_WR, SHUT_RDWR
 send_flags = MSG_OOB, MSG_PEEK, MSG_DONTROUTE, MSG_EOR, MSG_NOSIGNAL
 recv_flags = MSG_CMSG_CLOEXEC, MSG_OOB, MSG_PEEK, MSG_WAITALL
 cmsg_levels = SOL_SOCKET, IPPROTO_ICMP, LINUX_SOL_IP, LINUX_SOL_TCP, LINUX_SOL_UDP, LINUX_SOL_IPV6, LINUX_SOL_IPX, LINUX_SOL_AX25
+addr_family = AF_UNSPEC, AF_LOCAL, AF_UNIX, AF_INET, AF_IMPLINK, AF_PUP, AF_CHAOS, AF_NS, AF_ISO, AF_OSI, AF_ECMA, AF_DATAKIT, AF_CCITT, AF_SNA, AF_DECnet, AF_DLI, AF_LAT, AF_HYLINK, AF_APPLETALK, AF_OROUTE, AF_LINK, AF_COIP, AF_CNT, pseudo_AF_RTIP, pseudo_AF_PIP, pseudo_AF_XTP, AF_IPX, AF_INET6, AF_ISDN, AF_E164, AF_NATM, AF_ARP, pseudo_AF_KEY, pseudo_AF_HDRCMPLT, AF_BLUETOOTH, AF_IEEE80211, AF_MPLS, AF_ROUTE, AF_CAN, AF_ETHER, AF_MAX
 
 sock_pair {
 	fd0	sock
@@ -49,10 +53,10 @@ sock_pair {
 
 # This sockaddr type corresponds to the sockaddr_storage type and is 128 bytes size.
 sockaddr_storage [
-	un	sockaddr_un
-	in	sockaddr_in
-	in6	sockaddr_in6
-] [varlen]
+	len	int8
+	family	flags[addr_family, int8]
+	data	array[int8, 14]
+]
 
 send_msghdr {
 	msg_name	ptr[in, sockaddr_storage, opt]
