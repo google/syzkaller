@@ -25,6 +25,7 @@ SEEK_CUR = 1
 SEEK_END = 2
 SEEK_SET = 0
 SYS_close = 6
+SYS_compat_43_ocreat = 8
 SYS_dup = 41
 SYS_dup2 = 90
 SYS_lseek = 199
