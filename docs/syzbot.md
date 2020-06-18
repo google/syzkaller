@@ -240,6 +240,7 @@ Exact compilers used by `syzbot` can be found here:
 - [clang 7.0.0 (trunk 329060)](https://storage.googleapis.com/syzkaller/clang-kmsan-329060.tar.gz) (44MB)
 - [clang 7.0.0 (trunk 334104)](https://storage.googleapis.com/syzkaller/clang-kmsan-334104.tar.gz) (44MB)
 - [clang 8.0.0 (trunk 343298)](https://storage.googleapis.com/syzkaller/clang-kmsan-343298.tar.gz) (45MB)
+- [clang 11.0.0 (git ca2dcbd030e)](https://storage.googleapis.com/syzkaller/clang-11-prerelease-ca2dcbd030e.tar.xz) (682MB)
 
 A QEMU-suitable Debian Stretch image can be found [here](https://storage.googleapis.com/syzkaller/stretch.img) (2 GB, compression somehow breaks it), root ssh key for it is [here](https://storage.googleapis.com/syzkaller/stretch.img.key)
 (do `chmod 0600` on it). A reference `qemu` command line to run it is as follows:
@@ -374,13 +375,9 @@ of live objects in `/proc/slabinfo` steadily grow, most likely the leak is real.
 
 ## KCSAN bugs
 
-`KCSAN` is a dynamic data-race detector. `KCSAN` is not upstream yet, though,
-we want to upstream it later. For now, it lives in
-[github.com/google/ktsan/tree/kcsan](https://github.com/google/ktsan/tree/kcsan)
-and is based on a reasonably fresh upstream tree.
-
-Reproduction of data-races is unsupported, and syzbot is unable to test
-patches.
+[The Kernel Concurrency Sanitizer (KCSAN)](https://github.com/google/ktsan/wiki/KCSAN)
+is a dynamic data-race detector. Reproduction of data-races is currently
+unsupported, and syzbot is unable to test patches.
 
 ## No custom patches
 
