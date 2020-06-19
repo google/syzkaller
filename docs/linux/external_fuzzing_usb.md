@@ -48,16 +48,20 @@ syzkaller USB runtests are [here](/sys/linux/test/) and start with `vusb` prefix
 
 The core support for USB fuzzing is now in place, but there are still some things that could be done:
 
-1. Add descriptions for more relevant USB classes and drivers.
+1. Remove device from `usb_devices` on disconnect in executor.
 
-2. Implement a proper way for extracting relevant USB ids from the kernel (a related [discussion](https://www.spinics.net/lists/linux-usb/msg187915.html)).
+2. Add descriptions for more relevant USB classes and drivers.
 
-3. Add a mode for standalone fuzzing of physical USB hosts (by using e.g. Raspberry Pi Zero, see below).
+3. Look for TODOs in [sys/linux/vusb.txt](/sys/linux/vusb.txt).
+
+4. Implement a proper way for dynamically extracting relevant USB ids from the kernel (a related [discussion](https://www.spinics.net/lists/linux-usb/msg187915.html)).
+
+5. Add a mode for standalone fuzzing of physical USB hosts (by using e.g. Raspberry Pi Zero, see below).
 This includes at least: a. making sure that current USB emulation implementation works properly on different OSes (there are some [differences](https://github.com/RoganDawes/LOGITacker/blob/USB_host_enum/fingerprint_os.md#derive-the-os-from-the-fingerprint) in protocol implementation);
 b. using USB requests coming from the host as a signal (like coverage) to enable "signal-driven" fuzzing,
 c. making UDC driver name configurable for `syz-execprog` and `syz-prog2c`.
 
-4. Generate syzkaller programs from usbmon trace that is produced by actual USB devices (this should make the fuzzer to go significantly deeper into the USB drivers code).
+6. Generate syzkaller programs from usbmon trace that is produced by actual USB devices (this should make the fuzzer to go significantly deeper into the USB drivers code).
 
 
 ## Setting up
