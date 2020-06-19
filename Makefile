@@ -38,7 +38,9 @@ endif
 ifeq ("$(NCORES)", "")
 $(error syz-make failed)
 endif
-MAKEFLAGS += -j$(NCORES) --no-print-directory
+ifeq ("$(MAKELEVEL)", "0")
+	MAKEFLAGS += -j$(NCORES) --no-print-directory
+endif
 
 GO := go
 HOSTGO := go
