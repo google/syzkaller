@@ -152,11 +152,11 @@ func main() {
 		var syscallArchs []ArchData
 		unsupported := make(map[string]int)
 		for _, job := range jobs {
-			fmt.Printf("generating %v/%v...\n", job.Target.OS, job.Target.Arch)
-			for _, msg := range job.Errors {
-				fmt.Print(msg)
-			}
 			if !job.OK {
+				fmt.Printf("compilation of %v/%v target failed:\n", job.Target.OS, job.Target.Arch)
+				for _, msg := range job.Errors {
+					fmt.Print(msg)
+				}
 				os.Exit(1)
 			}
 			syscallArchs = append(syscallArchs, job.ArchData)
