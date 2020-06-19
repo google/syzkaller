@@ -38,8 +38,7 @@ endif
 ifeq ("$(NCORES)", "")
 $(error syz-make failed)
 endif
-MAKEFLAGS += " -j$(NCORES) "
-export MAKEFLAGS
+MAKEFLAGS += -j$(NCORES) --no-print-directory
 
 GO := go
 HOSTGO := go
@@ -139,7 +138,7 @@ endif
 # syz-sysgen generates them all at once, so we can't make each of them an independent target.
 .PHONY: descriptions
 descriptions:
-	export GOBIN="$(realpath .)/bin"; go list -f '{{.Stale}}' ./sys/syz-sysgen | grep -q false || go install ./sys/syz-sysgen
+	@export GOBIN="$(realpath .)/bin"; go list -f '{{.Stale}}' ./sys/syz-sysgen | grep -q false || go install ./sys/syz-sysgen
 	$(MAKE) .descriptions
 
 .descriptions: sys/*/*.txt sys/*/*.const bin/syz-sysgen
@@ -328,9 +327,9 @@ presubmit_smoke:
 	$(MAKE) test
 
 presubmit_build:
-	# Run go install before lint for better error messages if build is broken.
+	# Run go build before lint for better error messages if build is broken.
 	# This does not check build of test files, but running go test takes too long (even for building).
-	$(GO) install ./...
+	$(GO) build ./...
 	$(MAKE) lint
 
 presubmit_arch: descriptions
