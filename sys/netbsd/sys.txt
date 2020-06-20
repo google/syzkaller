@@ -2,6 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 include <sys/types.h>
+include <sys/ioctl.h>
 include <sys/mman.h>
 include <sys/stat.h>
 include <fcntl.h>
@@ -49,6 +50,18 @@ fcntl$setstatus(fd fd, cmd const[F_SETFL], flags flags[fcntl_status])
 fcntl$lock(fd fd, cmd flags[fcntl_lock], lock ptr[in, flock])
 fcntl$getown(fd fd, cmd const[F_GETOWN]) pid
 fcntl$setown(fd fd, cmd const[F_SETOWN], pid pid)
+
+ioctl$FIOSEEKDATA(fd fd, cmd const[FIOSEEKDATA], arg ptr[inout, fileoff[int64]])
+ioctl$FIOSEEKHOLE(fd fd, cmd const[FIOSEEKHOLE], arg ptr[inout, fileoff[int64]])
+ioctl$FIONREAD(fd fd, cmd const[FIONREAD], arg ptr[out, int32])
+ioctl$FIONBIO(fd fd, cmd const[FIONBIO], arg ptr[in, int32])
+ioctl$FIOASYNC(fd fd, cmd const[FIOASYNC], arg ptr[in, int32])
+ioctl$FIOSETOWN(fd fd, cmd const[FIOSETOWN], arg ptr[in, int32])
+ioctl$FIOGETOWN(fd fd, cmd const[FIOGETOWN], arg ptr[out, int32])
+ioctl$OFIOGETBMAP(fd fd, cmd const[OFIOGETBMAP], arg ptr[inout, int32])
+ioctl$FIOGETBMAP(fd fd, cmd const[FIOGETBMAP], arg ptr[inout, int64])
+ioctl$FIONWRITE(fd fd, cmd const[FIONWRITE], arg ptr[out, int32])
+ioctl$FIONSPACE(fd fd, cmd const[FIONSPACE], arg ptr[out, int32])
 
 mknod(file ptr[in, filename], mode flags[mknod_mode], dev int32)
 mknod$loop(file ptr[in, filename], mode flags[mknod_mode], dev proc[1792, 2])
