@@ -310,11 +310,11 @@ setsockopt$inet6_sctp_SCTP_RESET_ASSOC(fd sock_sctp6, level const[IPPROTO_SCTP],
 setsockopt$inet_sctp_SCTP_ADD_STREAMS(fd sock_sctp, level const[IPPROTO_SCTP], opt const[SCTP_ADD_STREAMS], val ptr[in, sctp_add_streams], len len[val])
 setsockopt$inet6_sctp_SCTP_ADD_STREAMS(fd sock_sctp6, level const[IPPROTO_SCTP], opt const[SCTP_ADD_STREAMS], val ptr[in, sctp_add_streams], len len[val])
 
-setsockopt$inet_sctp_SCTP_BINDX_ADD_ADDR(fd sock_sctp, level const[IPPROTO_SCTP], opt const[SCTP_BINDX_ADD_ADDR], val ptr[in, sctp_getaddresses_in], len ptr[inout, len[val, int32]])
-setsockopt$inet6_sctp_SCTP_BINDX_ADD_ADDR(fd sock_sctp6, level const[IPPROTO_SCTP], opt const[SCTP_BINDX_ADD_ADDR], val ptr[in, sctp_getaddresses_in], len ptr[inout, len[val, int32]])
+setsockopt$inet_sctp_SCTP_BINDX_ADD_ADDR(fd sock_sctp, level const[IPPROTO_SCTP], opt const[SCTP_BINDX_ADD_ADDR], val ptr[in, sockaddr_sctp], len ptr[inout, len[val, int32]])
+setsockopt$inet6_sctp_SCTP_BINDX_ADD_ADDR(fd sock_sctp6, level const[IPPROTO_SCTP], opt const[SCTP_BINDX_ADD_ADDR], val ptr[in, sockaddr_sctp], len ptr[inout, len[val, int32]])
 
-setsockopt$inet_sctp_SCTP_BINDX_REM_ADDR(fd sock_sctp, level const[IPPROTO_SCTP], opt const[SCTP_BINDX_REM_ADDR], val ptr[in, sctp_getaddresses_in], len ptr[inout, len[val, int32]])
-setsockopt$inet6_sctp_SCTP_BINDX_REM_ADDR(fd sock_sctp6, level const[IPPROTO_SCTP], opt const[SCTP_BINDX_REM_ADDR], val ptr[in, sctp_getaddresses_in], len ptr[inout, len[val, int32]])
+setsockopt$inet_sctp_SCTP_BINDX_REM_ADDR(fd sock_sctp, level const[IPPROTO_SCTP], opt const[SCTP_BINDX_REM_ADDR], val ptr[in, sockaddr_sctp], len ptr[inout, len[val, int32]])
+setsockopt$inet6_sctp_SCTP_BINDX_REM_ADDR(fd sock_sctp6, level const[IPPROTO_SCTP], opt const[SCTP_BINDX_REM_ADDR], val ptr[in, sockaddr_sctp], len ptr[inout, len[val, int32]])
 
 getsockopt$inet_sctp_SCTP_GET_PEER_ADDRESSES(fd sock_sctp, level const[IPPROTO_SCTP], opt const[SCTP_GET_PEER_ADDRESSES], val ptr[inout, sctp_getaddresses_out], len ptr[inout, len[val, int32]])
 getsockopt$inet6_sctp_SCTP_GET_PEER_ADDRESSES(fd sock_sctp6, level const[IPPROTO_SCTP], opt const[SCTP_GET_PEER_ADDRESSES], val ptr[inout, sctp_getaddresses_out], len ptr[inout, len[val, int32]])
@@ -502,11 +502,6 @@ sctp_sndinfo {
 	snd_ppid	int32
 	snd_context	int32
 	snd_assoc_id	assoc_id
-}
-
-sctp_getaddresses_in {
-	sget_assoc_id	assoc_id
-	addr		ptr[in, array[sockaddr_sctp]]
 }
 
 sctp_getaddresses_out {
