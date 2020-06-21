@@ -50,7 +50,8 @@ fcntl$lock(fd fd, cmd flags[fcntl_lock], lock ptr[in, flock])
 fcntl$getown(fd fd, cmd const[F_GETOWN]) pid
 fcntl$setown(fd fd, cmd const[F_SETOWN], pid pid)
 
-mknod(file ptr[in, filename], mode flags[mknod_mode], dev int32)
+compat_50_mknod(file ptr[in, filename], mode flags[mknod_mode], dev int32)
+mknod(file ptr[in, filename], mode flags[mknod_mode], dev dev)
 mknod$loop(file ptr[in, filename], mode flags[mknod_mode], dev proc[1792, 2])
 mknodat(dirfd fd_dir, file ptr[in, filename], mode flags[mknod_mode], dev int32)
 chmod(file ptr[in, filename], mode flags[open_mode])
@@ -66,7 +67,12 @@ chflags(file ptr[in, filename], flags flags[chflags_flags])
 fchflags(fd fd, flags flags[chflags_flags])
 lchflags(file ptr[in, filename], flags flags[chflags_flags])
 faccessat(dirfd fd_dir, pathname ptr[in, filename], mode flags[access_mode], flags flags[faccessat_flags])
-utimes(filename ptr[in, filename], times ptr[in, itimerval])
+compat_50_utimes(filename ptr[in, filename], times ptr[in, timeval50])
+compat_50_futimes(fd fd, times ptr[in, timeval50])
+compat_50_lutimes(link ptr[in, filename], times ptr[in, timeval50])
+__utimes50(filename ptr[in, filename], times ptr[in, timeval])
+__futimes50(fd fd, times ptr[in, timeval])
+__lutimes50(link ptr[in, filename], times ptr[in, timeval])
 utimensat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval], flags flags[utimensat_flags])
 
 execve(file ptr[in, filename], argv ptr[in, array[ptr[in, string]]], envp ptr[in, array[ptr[in, string]]])
@@ -92,6 +98,8 @@ __getlogin(buf buffer[out], size len[buf])
 getsid(pid pid) pid
 #__setlogin(buf buffer[in])		#Unsure about effects on test process
 #setsid() pid		#Unsure about effects on test process
+setpriority(which flags[priority_which], who pid, prio int32)
+getpriority(which flags[priority_which], who pid)
 
 link(old ptr[in, filename], new ptr[in, filename])
 linkat(oldfd fd_dir, old ptr[in, filename], newfd fd_dir, new ptr[in, filename], flags flags[linkat_flags])
@@ -114,25 +122,35 @@ flock(fd fd, op flags[flock_op])
 fsync(fd fd)
 fdatasync(fd fd)
 sync()
-getdents(fd fd_dir, ent buffer[out], count len[ent])
+compat_30_getdents(fd fd_dir, ent buffer[out], count int32)
+__getdents30(fd fd_dir, ent buffer[out], count int32)
 chroot(dir ptr[in, filename])
 __getcwd(buf buffer[out], size len[buf])
 fchroot(fd fd)
 chdir(dir ptr[in, filename])
 fchdir(fd fd)
+acct(filename ptr[in, filename, opt])
 
-getrusage(who flags[rusage_who], usage ptr[out, rusage])
+compat_50_getrusage(who flags[rusage_who], usage ptr[out, rusage50])
+__getrusage50(who flags[rusage_who], usage ptr[out, rusage])
 getrlimit(res flags[rlimit_type], rlim ptr[out, rlimit])
 setrlimit(res flags[rlimit_type], rlim ptr[in, rlimit])
 
-clock_gettime(id flags[clock_id], tp ptr[out, timespec])
-clock_settime(id flags[clock_id], tp ptr[in, timespec])
-clock_getres(id flags[clock_id], tp ptr[out, timespec])
+compat_50_clock_gettime(id flags[clock_id], tp ptr[out, timespec50])
+compat_50_clock_settime(id flags[clock_id], tp ptr[in, timespec50])
+compat_50_clock_getres(id flags[clock_id], res ptr[out, timespec50, opt])
 clock_nanosleep(id flags[clock_id], flags flags[timer_flags], rqtp ptr[in, timespec], rmtp ptr[out, timespec, opt])
-nanosleep(req ptr[in, timespec], rem ptr[out, timespec, opt])
-getitimer(which flags[getitimer_which], cur ptr[out, itimerval])
-setitimer(which flags[getitimer_which], new ptr[in, itimerval], old ptr[out, itimerval, opt])
-wait4(pid pid, status ptr[out, int32, opt], options flags[wait_options], ru ptr[out, rusage, opt])
+compat_50_setitimer(which flags[getitimer_which], new ptr[in, itimerval50], old ptr[out, itimerval, opt])
+compat_50_getitimer(which flags[getitimer_which], value ptr[out, itimerval50])
+compat_50_nanosleep(rqtp ptr[in, timespec50], rmtp ptr[out, timespec50, opt])
+__setitimer50(which flags[getitimer_which], new ptr[in, itimerval], old ptr[out, itimerval, opt])
+__getitimer50(which flags[getitimer_which], value ptr[out, itimerval])
+__clock_gettime50(id flags[clock_id], tp ptr[out, timespec])
+__clock_settime50(id flags[clock_id], tp ptr[in, timespec])
+__clock_getres50(id flags[clock_id], res ptr[out, timespec, opt])
+__nanosleep50(rqtp ptr[in, timespec], rmtp ptr[out, timespec, opt])
+compat_50_wait4(pid pid, status ptr[out, int32, opt], options flags[wait_options], ru ptr[out, rusage50, opt])
+__wait450(pid pid, status ptr[out, int32, opt], options flags[wait_options], ru ptr[out, rusage, opt])
 
 dup3(oldfd fd, newfd fd, flags flags[dup_flags]) fd
 exit(code intptr)
@@ -174,6 +192,11 @@ itimerval {
 	value	timeval
 }
 
+itimerval50 {
+	interv	timeval50
+	value	timeval50
+}
+
 # TODO: fd_set needs to be a separate type
 fd_set {
 	mask0	int64
@@ -189,6 +212,25 @@ fd_set {
 rusage {
 	utime	timeval
 	stime	timeval
+	maxrss	intptr
+	ixrss	intptr
+	idrss	intptr
+	isrss	intptr
+	minflt	intptr
+	majflt	intptr
+	nswap	intptr
+	inblock	intptr
+	oublock	intptr
+	msgsnd	intptr
+	msgrcv	intptr
+	signals	intptr
+	nvcsw	intptr
+	nivcsw	intptr
+}
+
+rusage50 {
+	utime	timeval50
+	stime	timeval50
 	maxrss	intptr
 	ixrss	intptr
 	idrss	intptr
@@ -275,16 +317,17 @@ mknod_mode = S_IFREG, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK, S_IRUSR, S_IWUSR, S_I
 msync_flags = MS_ASYNC, MS_SYNC, MS_INVALIDATE
 at_flags = AT_SYMLINK_NOFOLLOW, AT_SYMLINK_FOLLOW
 access_mode = R_OK, W_OK, X_OK, F_OK
+priority_which = PRIO_PROCESS, PRIO_PGRP, PRIO_USER
 linkat_flags = AT_SYMLINK_FOLLOW
 unlinkat_flags = 0, AT_REMOVEDIR
 flock_op = LOCK_SH, LOCK_EX, LOCK_UN, LOCK_NB
 faccessat_flags = AT_EACCESS, AT_SYMLINK_NOFOLLOW
 rusage_who = RUSAGE_SELF, RUSAGE_CHILDREN
 rlimit_type = RLIMIT_AS, RLIMIT_CORE, RLIMIT_CPU, RLIMIT_DATA, RLIMIT_FSIZE, RLIMIT_MEMLOCK, RLIMIT_NOFILE, RLIMIT_NPROC, RLIMIT_RSS, RLIMIT_STACK, RLIMIT_NTHR, RLIMIT_STACK
-clock_id = CLOCK_REALTIME, CLOCK_MONOTONIC, CLOCK_PROCESS_CPUTIME_ID, CLOCK_THREAD_CPUTIME_ID, CLOCK_VIRTUAL, CLOCK_PROF
+timer_flags = TIMER_RELTIME, TIMER_ABSTIME
+clock_id = CLOCK_REALTIME, CLOCK_MONOTONIC, CLOCK_VIRTUAL, CLOCK_PROF, CLOCK_PROCESS_CPUTIME_ID, CLOCK_THREAD_CPUTIME_ID
 getitimer_which = ITIMER_REAL, ITIMER_VIRTUAL, ITIMER_PROF, ITIMER_MONOTONIC
-wait_options = WALLSIG, WALTSIG, WCONTINUED, WEXITED, WNOHANG, WNOZOMBIE, WSTOPPED, WTRAPPED, WUNTRACED
-timer_flags = 0, TIMER_ABSTIME
+wait_options = WALLSIG, WALTSIG, WCONTINUED, WEXITED, WNOHANG, WNOZOMBIE, WSTOPPED, WTRAPPED, WUNTRACED, __WALL, __WCLONE
 utimensat_flags = 0, AT_SYMLINK_NOFOLLOW
 fcntl_dupfd = F_DUPFD, F_DUPFD_CLOEXEC
 fcntl_getflags = F_GETFD, F_GETFL
