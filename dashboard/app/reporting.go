@@ -129,8 +129,7 @@ func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) 
 
 	// Limit number of reports sent per day,
 	// but don't limit sending repros to already reported bugs.
-	if bugReporting.Reported.IsZero() && reporting.DailyLimit != 0 &&
-		ent.Sent >= reporting.DailyLimit {
+	if bugReporting.Reported.IsZero() && ent.Sent >= reporting.DailyLimit {
 		status = fmt.Sprintf("%v: out of quota for today", reporting.DisplayTitle)
 		reporting, bugReporting = nil, nil
 		return
@@ -324,6 +323,9 @@ func currentReporting(c context.Context, bug *Bug) (*Reporting, *BugReporting, i
 		reporting := config.Namespaces[bug.Namespace].ReportingByName(bugReporting.Name)
 		if reporting == nil {
 			return nil, nil, 0, "", fmt.Errorf("%v: missing in config", bugReporting.Name)
+		}
+		if reporting.DailyLimit == 0 {
+			return nil, nil, 0, fmt.Sprintf("%v: reporting has daily limit 0", reporting.DisplayTitle), nil
 		}
 		switch reporting.Filter(bug) {
 		case FilterSkip:

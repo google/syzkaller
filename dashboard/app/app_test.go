@@ -174,12 +174,14 @@ var testConfig = &GlobalConfig{
 			},
 			Reporting: []Reporting{
 				{
-					Name:   "access-admin-reporting1",
-					Config: &TestConfig{Index: 1},
+					Name:       "access-admin-reporting1",
+					DailyLimit: 1000,
+					Config:     &TestConfig{Index: 1},
 				},
 				{
-					Name:   "access-admin-reporting2",
-					Config: &TestConfig{Index: 2},
+					Name:       "access-admin-reporting2",
+					DailyLimit: 1000,
+					Config:     &TestConfig{Index: 2},
 				},
 			},
 		},
@@ -200,11 +202,13 @@ var testConfig = &GlobalConfig{
 				{
 					AccessLevel: AccessAdmin,
 					Name:        "access-admin-reporting1",
+					DailyLimit:  1000,
 					Config:      &TestConfig{Index: 1},
 				},
 				{
-					Name:   "access-user-reporting2",
-					Config: &TestConfig{Index: 2},
+					Name:       "access-user-reporting2",
+					DailyLimit: 1000,
+					Config:     &TestConfig{Index: 2},
 				},
 			},
 		},
@@ -225,11 +229,13 @@ var testConfig = &GlobalConfig{
 				{
 					AccessLevel: AccessUser,
 					Name:        "access-user-reporting1",
+					DailyLimit:  1000,
 					Config:      &TestConfig{Index: 1},
 				},
 				{
-					Name:   "access-public-reporting2",
-					Config: &TestConfig{Index: 2},
+					Name:       "access-public-reporting2",
+					DailyLimit: 1000,
+					Config:     &TestConfig{Index: 2},
 				},
 			},
 		},

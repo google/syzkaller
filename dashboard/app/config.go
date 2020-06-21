@@ -352,6 +352,9 @@ func checkNamespaceReporting(ns string, cfg *Config) {
 		checkConfigAccessLevel(&reporting.AccessLevel, parentAccessLevel,
 			fmt.Sprintf("reporting %q/%q", ns, reporting.Name))
 		parentAccessLevel = reporting.AccessLevel
+		if reporting.DailyLimit < 0 || reporting.DailyLimit > 1000 {
+			panic(fmt.Sprintf("reporting %v: bad daily limit %v", reporting.Name, reporting.DailyLimit))
+		}
 		if reporting.Filter == nil {
 			reporting.Filter = ConstFilter(FilterReport)
 		}
