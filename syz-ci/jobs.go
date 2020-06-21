@@ -422,15 +422,15 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 		if res.IsRelease {
 			resp.Flags |= dashapi.BisectResultRelease
 		}
-		blacklistedCommits := []string{
+		ignoredCommits := []string{
 			// Commit "usb: gadget: add raw-gadget interface" adds a kernel interface for
 			// triggering USB bugs, which ends up being the guilty commit during bisection
 			// for USB bugs introduced before it.
 			"f2c2e717642c66f7fe7e5dd69b2e8ff5849f4d10",
 		}
-		for _, commit := range blacklistedCommits {
+		for _, commit := range ignoredCommits {
 			if res.Commits[0].Hash == commit {
-				resp.Flags |= dashapi.BisectResultBlacklist
+				resp.Flags |= dashapi.BisectResultIgnore
 			}
 		}
 	}

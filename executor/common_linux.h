@@ -3496,15 +3496,16 @@ static void setup_kcsan()
 }
 
 #if SYZ_EXECUTOR // currently only used by executor
-static void setup_kcsan_filterlist(char** frames, int nframes, bool blacklist)
+static void setup_kcsan_filterlist(char** frames, int nframes, bool suppress)
 {
 	int fd = open(KCSAN_DEBUGFS_FILE, O_WRONLY);
 	if (fd == -1)
 		fail("failed to open(\"%s\")", KCSAN_DEBUGFS_FILE);
 
-	const char* const filtertype = blacklist ? "blacklist" : "whitelist";
-	printf("adding functions to KCSAN %s: ", filtertype);
-	dprintf(fd, "%s\n", filtertype);
+	printf("%s KCSAN reports in functions: ",
+	       suppress ? "suppressing" : "only showing");
+	if (!suppress)
+		dprintf(fd, "whitelist\n");
 	for (int i = 0; i < nframes; ++i) {
 		printf("'%s' ", frames[i]);
 		dprintf(fd, "!%s\n", frames[i]);

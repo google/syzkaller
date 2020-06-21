@@ -272,7 +272,7 @@ func (fuzzer *Fuzzer) useBugFrames(r *rpctype.ConnectRes, flagProcs int) func() 
 	}
 
 	if r.CheckResult.Features[host.FeatureKCSAN].Enabled && len(r.DataRaceFrames) != 0 {
-		fuzzer.blacklistDataRaceFrames(r.DataRaceFrames)
+		fuzzer.filterDataRaceFrames(r.DataRaceFrames)
 	}
 
 	return gateCallback
@@ -302,11 +302,11 @@ func (fuzzer *Fuzzer) gateCallback(leakFrames []string) {
 	}
 }
 
-func (fuzzer *Fuzzer) blacklistDataRaceFrames(frames []string) {
-	args := append([]string{"setup_kcsan_blacklist"}, frames...)
+func (fuzzer *Fuzzer) filterDataRaceFrames(frames []string) {
+	args := append([]string{"setup_kcsan_filterlist"}, frames...)
 	output, err := osutil.RunCmd(10*time.Minute, "", fuzzer.config.Executor, args...)
 	if err != nil {
-		log.Fatalf("failed to set KCSAN blacklist: %v", err)
+		log.Fatalf("failed to set KCSAN filterlist: %v", err)
 	}
 	log.Logf(0, "%s", output)
 }

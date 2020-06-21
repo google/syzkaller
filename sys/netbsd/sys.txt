@@ -24,11 +24,20 @@ syz_execute_func(text ptr[in, text[target]])
 
 pipe(pipefd ptr[out, pipefd])
 
-stat(file ptr[in, filename], statbuf ptr[out, stat])
-lstat(file ptr[in, filename], statbuf ptr[out, stat])
+compat_43_stat43(file ptr[in, filename], ua ptr[out, stat43])
+__stat50(file ptr[in, filename], ua ptr[out, stat])
+compat_43_lstat43(file ptr[in, filename], ua ptr[out, stat43])
+__lstat50(file ptr[in, filename], ua ptr[out, stat])
+compat_43_fstat43(fd fd, sb ptr[out, stat43])
+__fstat50(fd fd, sb ptr[out, stat])
+profil(samples buffer[inout], size len[samples], offt intptr, scale int32)
+
+compat_12_msync(addr vma, len int32)
+__msync13(addr vma, len int32, f flags[msync_flags])
 
 poll(fds ptr[in, array[pollfd]], nfds len[fds], timeout int32)
-select(n len[inp], inp ptr[inout, fd_set], outp ptr[inout, fd_set], exp ptr[inout, fd_set], tvp ptr[inout, timeval])
+compat_50_select(nd len[inp], inp ptr[inout, fd_set], ou ptr[inout, fd_set], ex ptr[inout, fd_set], tv ptr[inout, timeval50])
+__select50(n len[inp], inp ptr[inout, fd_set], ou ptr[inout, fd_set], ex ptr[inout, fd_set], tv ptr[inout, timeval])
 
 mincore(addr vma, size len[addr], vec buffer[out])
 minherit(addr vma, len len[addr], inherit flags[minherit_flags])
@@ -105,8 +114,10 @@ renameat(oldfd fd_dir, old ptr[in, filename], newfd fd_dir, new ptr[in, filename
 mkdir(path ptr[in, filename], mode flags[open_mode])
 mkdirat(fd fd_dir, path ptr[in, filename], mode flags[open_mode])
 rmdir(path ptr[in, filename])
-truncate(file ptr[in, filename], len intptr)
-ftruncate(fd fd, len intptr)
+truncate(file ptr[in, filename], pad const[0], len intptr)
+compat_43_otruncate(file ptr[in, filename], len intptr)
+ftruncate(fd fd, pad const[0], len intptr)
+compat_43_oftruncate(fd fd, len intptr)
 flock(fd fd, op flags[flock_op])
 fsync(fd fd)
 fdatasync(fd fd)
@@ -141,6 +152,7 @@ __nanosleep50(rqtp ptr[in, timespec], rmtp ptr[out, timespec, opt])
 compat_50_wait4(pid pid, status ptr[out, int32, opt], options flags[wait_options], ru ptr[out, rusage50, opt])
 __wait450(pid pid, status ptr[out, int32, opt], options flags[wait_options], ru ptr[out, rusage, opt])
 
+dup3(oldfd fd, newfd fd, flags flags[dup_flags]) fd
 exit(code intptr)
 ptrace(request intptr, pid pid, addr ptr[out, intptr], data intptr)
 __clone(flags flags[clone_flags], sp buffer[in]) pid
@@ -302,6 +314,7 @@ sched_param {
 
 pollfd_events = POLLIN, POLLPRI, POLLOUT, POLLERR, POLLHUP, POLLNVAL, POLLRDNORM, POLLRDBAND, POLLWRNORM, POLLWRBAND
 mknod_mode = S_IFREG, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
+msync_flags = MS_ASYNC, MS_SYNC, MS_INVALIDATE
 at_flags = AT_SYMLINK_NOFOLLOW, AT_SYMLINK_FOLLOW
 access_mode = R_OK, W_OK, X_OK, F_OK
 priority_which = PRIO_PROCESS, PRIO_PGRP, PRIO_USER
@@ -326,3 +339,4 @@ flock_type = F_RDLCK, F_WRLCK, F_UNLCK
 chflags_flags = SF_APPEND, SF_IMMUTABLE, SF_ARCHIVED, UF_OPAQUE, UF_APPEND, UF_IMMUTABLE, UF_NODUMP
 clone_flags = CLONE_CSIGNAL, CLONE_VM, CLONE_FS, CLONE_FILES, CLONE_SIGHAND, CLONE_PID, CLONE_PTRACE, CLONE_VFORK
 sa_flags = SA_ONSTACK, SA_RESTART, SA_RESETHAND, SA_NODEFER, SA_NOCLDSTOP, SA_NOCLDWAIT, SA_SIGINFO, SA_NOKERNINFO, SA_ALLBITS
+dup_flags = O_CLOEXEC, O_NONBLOCK, O_NOSIGPIPE

@@ -139,7 +139,8 @@ int main() {}
 		return nil, err
 	}
 	if test.Result == "" {
-		text, err := symbolizer.ReadTextSymbols(bin)
+		symb := symbolizer.NewSymbolizer(target)
+		text, err := symb.ReadTextSymbols(bin)
 		if err != nil {
 			t.Fatal(err)
 		}

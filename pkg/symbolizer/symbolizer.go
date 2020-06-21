@@ -14,9 +14,11 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type Symbolizer struct {
+	target   *targets.Target
 	subprocs map[string]*subprocess
 }
 
@@ -36,8 +38,8 @@ type subprocess struct {
 	scanner *bufio.Scanner
 }
 
-func NewSymbolizer() *Symbolizer {
-	return &Symbolizer{}
+func NewSymbolizer(target *targets.Target) *Symbolizer {
+	return &Symbolizer{target: target}
 }
 
 func (s *Symbolizer) Symbolize(bin string, pc uint64) ([]Frame, error) {
@@ -65,7 +67,11 @@ func (s *Symbolizer) getSubprocess(bin string) (*subprocess, error) {
 	if sub := s.subprocs[bin]; sub != nil {
 		return sub, nil
 	}
-	cmd := osutil.Command("addr2line", "-afi", "-e", bin)
+	addr2line := "addr2line"
+	if s.target.Triple != "" {
+		addr2line = s.target.Triple + "-" + addr2line
+	}
+	cmd := osutil.Command(addr2line, "-afi", "-e", bin)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, err

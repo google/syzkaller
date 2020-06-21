@@ -31,8 +31,8 @@ type GlobalConfig struct {
 	CoverPath string
 	// Global API clients that work across namespaces (e.g. external reporting).
 	Clients map[string]string
-	// List of emails blacklisted from issuing test requests.
-	EmailBlacklist []string
+	// List of emails blocked from issuing test requests.
+	EmailBlocklist []string
 	// Bug obsoleting settings. See ObsoletingConfig for details.
 	Obsoleting ObsoletingConfig
 	// Namespace that is shown by default (no namespace selected yet).
@@ -225,8 +225,8 @@ func checkConfig(cfg *GlobalConfig) {
 	if len(cfg.Namespaces) == 0 {
 		panic("no namespaces found")
 	}
-	for i := range cfg.EmailBlacklist {
-		cfg.EmailBlacklist[i] = email.CanonicalEmail(cfg.EmailBlacklist[i])
+	for i := range cfg.EmailBlocklist {
+		cfg.EmailBlocklist[i] = email.CanonicalEmail(cfg.EmailBlocklist[i])
 	}
 	namespaces := make(map[string]bool)
 	clientNames := make(map[string]bool)

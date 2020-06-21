@@ -1,0 +1,19 @@
+
+[    1.055608] mdss_mdp_pipe_addr_setup: type:0 ftchid:-1 xinid:0 num:0 rect:0 ndx:0x1 prio:0
+[    1.055667] mdss_mdp_pipe_addr_setup: type:1 ftchid:-1 xinid:1 num:3 rect:0 ndx:0x8 prio:1
+[    1.055677] mdss_mdp_pipe_addr_setup: type:1 ftchid:-1 xinid:5 num:4 rect:0 ndx:0x10 prio:2
+[    1.055701] mdss_mdp_pipe_addr_setup: type:2 ftchid:-1 xinid:2 num:6 rect:0 ndx:0x40 prio:3
+[    1.055726] mdss_mdp_pipe_addr_setup: type:3 ftchid:-1 xinid:7 num:10 rect:0 ndx:0x400 prio:0
+[    1.055744] mdss_mdp_parse_dt_handler: Error from prop qcom,mdss-pipe-sw-reset-off : u32 array read
+[    1.055900] mdss_mdp_parse_dt_handler: Error from prop qcom,mdss-ib-factor-overlap : u32 array read
+[    1.055915] mdss_mdp_parse_dt_handler: Error from prop qcom,mdss-bus-througput-factor : u32 array read
+[    1.056454] xlog_status: enable:1, panic:1, dump:2
+[    1.057102] iommu: Adding device 1a00000.qcom,mdss_mdp:qcom,smmu_mdp_unsec_cb to group 1
+[    1.057547] iommu: Adding device 1a00000.qcom,mdss_mdp:qcom,smmu_mdp_sec_cb to group 2
+[    1.057961] mdss_mdp_probe: mdss version = 0x100f0000, bootloader display is on, num 1, intf_sel=0x00000100
+[    1.061568] mdss_smmu_util_parse_dt_clock: clocks are not defined
+[    1.061590] mdss_smmu_probe: iommu v2 domain[0] mapping and clk register successful!
+[    1.061643] mdss_smmu_util_parse_dt_clock: clocks are not defined
+[    1.061658] mdss_smmu_probe: iommu v2 domain[2] mapping and clk register successful!
+[    1.061949] mdss_dsi_get_dt_vreg_data: error reading ulp load. rc=-22
+[    1.062004] mdss_dsi_get_dt_vreg_data: error reading ulp load. rc=-22

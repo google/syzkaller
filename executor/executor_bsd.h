@@ -74,7 +74,7 @@ static void cover_open(cover_t* cov, bool extra)
 		cover_size = (256 << 10); // maximum size
 		struct kcov_ioc_remote_attach args;
 		args.subsystem = KCOV_REMOTE_VHCI;
-		args.id = procid + 1; // port number
+		args.id = KCOV_REMOTE_VHCI_ID(procid, 1); // first port
 		if (ioctl(cov->fd, KCOV_IOC_REMOTE_ATTACH, &args))
 			fail("ioctl remote attach failed");
 	} else {
@@ -172,6 +172,7 @@ static bool cover_check(uint64 pc)
 #define SYZ_HAVE_FEATURES 1
 static feature_t features[] = {
     {"usb", setup_usb},
+    {"fault", setup_fault},
 };
 
 static void setup_machine(void)

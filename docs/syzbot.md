@@ -240,6 +240,7 @@ Exact compilers used by `syzbot` can be found here:
 - [clang 7.0.0 (trunk 329060)](https://storage.googleapis.com/syzkaller/clang-kmsan-329060.tar.gz) (44MB)
 - [clang 7.0.0 (trunk 334104)](https://storage.googleapis.com/syzkaller/clang-kmsan-334104.tar.gz) (44MB)
 - [clang 8.0.0 (trunk 343298)](https://storage.googleapis.com/syzkaller/clang-kmsan-343298.tar.gz) (45MB)
+- [clang 11.0.0 (git ca2dcbd030e)](https://storage.googleapis.com/syzkaller/clang-11-prerelease-ca2dcbd030e.tar.xz) (682MB)
 
 A QEMU-suitable Debian Stretch image can be found [here](https://storage.googleapis.com/syzkaller/stretch.img) (2 GB, compression somehow breaks it), root ssh key for it is [here](https://storage.googleapis.com/syzkaller/stretch.img.key)
 (do `chmod 0600` on it). A reference `qemu` command line to run it is as follows:
@@ -328,20 +329,22 @@ is the original source of uninitialized-ness.
 ## USB bugs
 
 syzkaller has an ability to perform fuzzing of the Linux kernel USB stack, see
-the details [here](/docs/linux/external_fuzzing_usb.md). This requires
-non-yet-upstreamed kernel changes, and as a result USB fuzzing is only being
-run on the `usb-fuzzer` branch of the `https://github.com/google/kasan.git` tree,
-and on the `master` branch of the `https://github.com/google/kmsan.git` tree.
+the details [here](/docs/linux/external_fuzzing_usb.md). As of now all kernel
+changes required for USB fuzzing have been merged into the mainline (the last one
+during the 5.8-rc1 merge window), so the USB fuzzing instance has been switched
+to target the [usb-testing](https://git.kernel.org/pub/scm/linux/kernel/git/gregkh/usb.git/log/?h=usb-testing) tree.
 
-If the bug report comes from the `usb-fuzzer` tree, the recommended way for
-triggering patch testing is to send an email to `syzbot+HASH` address containing
-the following line:
-```
-#syz test: https://github.com/google/kasan.git commit-hash
-```
-and attach/inline your test patch in the same email. `commit-hash` is the id
-of the kernel commit that corresponds to the **newest reproducer** listed on
-the dashboard for this bug.
+Testing kernel patches on the USB instance follows the same principle as on the
+mainline instances, with a few caveats:
+
+1. You may specify any kernel tree for `syz test` as long as it includes all
+mainline patches up to 5.8-rc1.
+
+2. Some of the bugs have reproducers generated on kernel versions with custom
+kernel (when fuzzing was performed with non-yet-mainlined kernel patches), thus
+those reproducers might no longer work. The recommended workflow is to: first,
+execute a `syz test` command on a target tree to make sure that the bug
+reproduces, and then execute a `syz test` command with a fix/debug patch.
 
 If the bug was triggered on the `KMSAN` tree, follow the [instructions above](#kmsan-bugs),
 with the exception that you must also use `commit-hash` instead of the `master`
@@ -372,13 +375,9 @@ of live objects in `/proc/slabinfo` steadily grow, most likely the leak is real.
 
 ## KCSAN bugs
 
-`KCSAN` is a dynamic data-race detector. `KCSAN` is not upstream yet, though,
-we want to upstream it later. For now, it lives in
-[github.com/google/ktsan/tree/kcsan](https://github.com/google/ktsan/tree/kcsan)
-and is based on a reasonably fresh upstream tree.
-
-Reproduction of data-races is unsupported, and syzbot is unable to test
-patches.
+[The Kernel Concurrency Sanitizer (KCSAN)](https://github.com/google/ktsan/wiki/KCSAN)
+is a dynamic data-race detector. Reproduction of data-races is currently
+unsupported, and syzbot is unable to test patches.
 
 ## No custom patches
 

@@ -1,0 +1,8 @@
+no-such-struct: vhci_command_vendor_pkt
+bad-field-number: hci_acl_hdr: syz=4 kernel=2
+bad-bitfield: hci_acl_hdr.bc/handle: size/offset: syz=2/0 kernel=0/0
+bad-bitfield: hci_acl_hdr.pb/dlen: size/offset: syz=2/2 kernel=0/0
+bad-field-offset: hci_acl_hdr.pb/dlen: syz=0 kernel=2
+no-such-struct: hci_event_hdr_t
+no-such-struct: hci_ev_le_meta_t
+no-such-struct: hci_ev_cmd_complete_t

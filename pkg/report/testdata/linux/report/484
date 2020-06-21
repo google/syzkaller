@@ -1,5 +1,6 @@
-TITLE: INFO: task hung in register_netdevice_notifier
+TITLE: INFO: task hung in corrupted
 TYPE: HANG
+CORRUPTED: Y
 
 [ 1353.547242][ T1145] INFO: task syz-executor.5:9850 blocked for more than 143 seconds.
 [ 1353.555551][ T1145]       Not tainted 5.7.0-rc5-syzkaller #0

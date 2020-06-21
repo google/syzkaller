@@ -1,0 +1,1030 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <net/bluetooth/bluetooth.h>
+include <net/bluetooth/hci_sock.h>
+include <net/bluetooth/sco.h>
+include <net/bluetooth/hci.h>
+
+resource fd_vhci[fd]
+openat$vhci(fd const[AT_FDCWD], file ptr[in, string["/dev/vhci"]], flags flags[open_flags]) fd_vhci
+write$vhci(fd fd_vhci, data ptr[in, vhci_command], size bytesize[data])
+
+vhci_command [
+	HCI_EVENT_PKT	vhci_command_event_pkt
+	HCI_ACLDATA_PKT	vhci_command_acldata_pkt
+	HCI_SCODATA_PKT	vhci_command_generic[HCI_SCODATA_PKT]
+	HCI_VENDOR_PKT	vhci_command_vendor_pkt
+] [varlen]
+
+type vhci_command_generic[CMD] {
+	cmd	const[CMD, int8]
+# TODO: what's the format of these packets? Is there anything interesting?
+	data	array[int8]
+}
+
+vhci_command_event_pkt {
+	cmd	const[HCI_EVENT_PKT, int8]
+	hdr	hci_event_hdr_un
+}
+
+vhci_command_acldata_pkt {
+	cmd		const[HCI_ACLDATA_PKT, int8]
+	acl_hdr		hci_acl_hdr[vhci_command_acldata_pkt:l2cap_hdr]
+	l2cap_hdr	l2cap_hdr_un
+}
+
+vhci_command_vendor_pkt {
+	cmd	const[HCI_VENDOR_PKT, int8]
+	opcode	flags[vhci_vendor_pkt_opcode, int8]
+}
+
+vhci_vendor_pkt_opcode = HCI_PRIMARY, HCI_AMP, HCI_EXTERNAL_CONFIG, HCI_RAW_DEVICE
+
+type hci_acl_hdr[DATA] {
+	bc	int16:2
+	pb	int16:2
+	handle	int16:12
+	dlen	bytesize[DATA, int16]
+} [packed]
+
+hci_event_hdr_un [
+	extended_inquiry_info			hci_event_hdr_t[HCI_EV_EXTENDED_INQUIRY_RESULT, extended_inquiry_info]
+	hci_ev_auth_complete			hci_event_hdr_t[HCI_EV_AUTH_COMPLETE, hci_ev_auth_complete]
+	hci_ev_change_link_key_complete		hci_event_hdr_t[HCI_EV_CHANGE_LINK_KEY_COMPLETE, hci_ev_change_link_key_complete]
+	hci_ev_channel_selected			hci_event_hdr_t[HCI_EV_CHANNEL_SELECTED, hci_ev_channel_selected]
+	hci_ev_clock_offset			hci_event_hdr_t[HCI_EV_CLOCK_OFFSET, hci_ev_clock_offset]
+	hci_ev_cmd_complete			hci_event_hdr_t[HCI_EV_CMD_COMPLETE, hci_ev_cmd_complete_un]
+	hci_ev_cmd_status			hci_event_hdr_t[HCI_EV_CMD_STATUS, hci_ev_cmd_status]
+	hci_ev_conn_complete			hci_event_hdr_t[HCI_EV_CONN_COMPLETE, hci_ev_conn_complete]
+	hci_ev_conn_request			hci_event_hdr_t[HCI_EV_CONN_REQUEST, hci_ev_conn_request]
+	hci_ev_disconn_complete			hci_event_hdr_t[HCI_EV_DISCONN_COMPLETE, hci_ev_disconn_complete]
+	hci_ev_disconn_logical_link_complete	hci_event_hdr_t[HCI_EV_DISCONN_LOGICAL_LINK_COMPLETE, hci_ev_disconn_logical_link_complete]
+	hci_ev_disconn_phy_link_complete	hci_event_hdr_t[HCI_EV_DISCONN_PHY_LINK_COMPLETE, hci_ev_disconn_phy_link_complete]
+	hci_ev_encrypt_change			hci_event_hdr_t[HCI_EV_ENCRYPT_CHANGE, hci_ev_encrypt_change]
+	hci_ev_hardware_error			hci_event_hdr_t[HCI_EV_HARDWARE_ERROR, hci_ev_hardware_error]
+	hci_ev_io_capa_reply			hci_event_hdr_t[HCI_EV_IO_CAPA_REPLY, hci_ev_io_capa_reply]
+	hci_ev_io_capa_request			hci_event_hdr_t[HCI_EV_IO_CAPA_REQUEST, hci_ev_io_capa_request]
+	hci_ev_key_refresh_complete		hci_event_hdr_t[HCI_EV_KEY_REFRESH_COMPLETE, hci_ev_key_refresh_complete]
+	hci_ev_keypress_notify			hci_event_hdr_t[HCI_EV_KEYPRESS_NOTIFY, hci_ev_keypress_notify]
+	hci_ev_le_meta				hci_event_hdr_t[HCI_EV_LE_META, hci_ev_le_meta_un]
+	hci_ev_link_key_notify			hci_event_hdr_t[HCI_EV_LINK_KEY_NOTIFY, hci_ev_link_key_notify]
+	hci_ev_link_key_req			hci_event_hdr_t[HCI_EV_LINK_KEY_REQ, hci_ev_link_key_req]
+	hci_ev_logical_link_complete		hci_event_hdr_t[HCI_EV_LOGICAL_LINK_COMPLETE, hci_ev_logical_link_complete]
+	hci_ev_mode_change			hci_event_hdr_t[HCI_EV_MODE_CHANGE, hci_ev_mode_change]
+	hci_ev_num_comp_blocks			hci_event_hdr_t[HCI_EV_NUM_COMP_BLOCKS, hci_ev_num_comp_blocks]
+	hci_ev_num_comp_pkts			hci_event_hdr_t[HCI_EV_NUM_COMP_PKTS, hci_ev_num_comp_pkts]
+	hci_ev_phy_link_complete		hci_event_hdr_t[HCI_EV_PHY_LINK_COMPLETE, hci_ev_phy_link_complete]
+	hci_ev_pin_code_req			hci_event_hdr_t[HCI_EV_PIN_CODE_REQ, hci_ev_pin_code_req]
+	hci_ev_pkt_type_change			hci_event_hdr_t[HCI_EV_PKT_TYPE_CHANGE, hci_ev_pkt_type_change]
+	hci_ev_pscan_rep_mode			hci_event_hdr_t[HCI_EV_PSCAN_REP_MODE, hci_ev_pscan_rep_mode]
+	hci_ev_qos_setup_complete		hci_event_hdr_t[HCI_EV_QOS_SETUP_COMPLETE, hci_ev_qos_setup_complete]
+	hci_ev_remote_ext_features		hci_event_hdr_t[HCI_EV_REMOTE_EXT_FEATURES, hci_ev_remote_ext_features]
+	hci_ev_remote_features			hci_event_hdr_t[HCI_EV_REMOTE_FEATURES, hci_ev_remote_features]
+	hci_ev_remote_host_features		hci_event_hdr_t[HCI_EV_REMOTE_HOST_FEATURES, hci_ev_remote_host_features]
+	hci_ev_remote_name			hci_event_hdr_t[HCI_EV_REMOTE_NAME, hci_ev_remote_name]
+	hci_ev_remote_oob_data_request		hci_event_hdr_t[HCI_EV_REMOTE_OOB_DATA_REQUEST, hci_ev_remote_oob_data_request]
+	hci_ev_remote_version			hci_event_hdr_t[HCI_EV_REMOTE_VERSION, hci_ev_remote_version]
+	hci_ev_role_change			hci_event_hdr_t[HCI_EV_ROLE_CHANGE, hci_ev_role_change]
+	hci_ev_si_device			hci_event_hdr_t[HCI_EV_SI_DEVICE, hci_ev_si_device]
+	hci_ev_si_security			hci_event_hdr_t[HCI_EV_SI_SECURITY, hci_ev_si_security]
+	hci_ev_simple_pair_complete		hci_event_hdr_t[HCI_EV_SIMPLE_PAIR_COMPLETE, hci_ev_simple_pair_complete]
+	hci_ev_sniff_subrate			hci_event_hdr_t[HCI_EV_SNIFF_SUBRATE, hci_ev_sniff_subrate]
+	hci_ev_stack_internal			hci_event_hdr_t[HCI_EV_STACK_INTERNAL, hci_ev_stack_internal]
+	hci_ev_sync_conn_changed		hci_event_hdr_t[HCI_EV_SYNC_CONN_CHANGED, hci_ev_sync_conn_changed]
+	hci_ev_sync_conn_complete		hci_event_hdr_t[HCI_EV_SYNC_CONN_COMPLETE, hci_ev_sync_conn_complete]
+	hci_ev_sync_train_complete		hci_event_hdr_t[HCI_EV_SYNC_TRAIN_COMPLETE, hci_ev_sync_train_complete]
+	hci_ev_user_confirm_req			hci_event_hdr_t[HCI_EV_USER_CONFIRM_REQUEST, hci_ev_user_confirm_req]
+	hci_ev_user_passkey_notify		hci_event_hdr_t[HCI_EV_USER_PASSKEY_NOTIFY, hci_ev_user_passkey_notify]
+	hci_ev_user_passkey_req			hci_event_hdr_t[HCI_EV_USER_PASSKEY_REQUEST, hci_ev_user_passkey_req]
+	inquiry_info				hci_event_hdr_t[HCI_EV_INQUIRY_RESULT, inquiry_info]
+	inquiry_info_with_rssi			hci_event_hdr_t[HCI_EV_INQUIRY_RESULT_WITH_RSSI, inquiry_info_with_rssi]
+	inquiry_info_with_rssi_and_pscan_mode	hci_event_hdr_t[HCI_EV_INQUIRY_RESULT_WITH_RSSI, inquiry_info_with_rssi_and_pscan_mode]
+] [varlen]
+
+type hci_event_hdr_t[EVENT, PAYLOAD] {
+	hdr	hci_event_hdr[EVENT]
+	payload	PAYLOAD
+} [packed]
+
+type hci_event_hdr[EVENT] {
+	evt	const[EVENT, int8]
+	plen	bytesize[hci_event_hdr_t:payload, int8]
+} [packed]
+
+hci_ev_le_meta_un [
+	hci_ev_le_advertising_info	hci_ev_le_meta_t[HCI_EV_LE_ADVERTISING_REPORT, hci_ev_le_advertising_info]
+	hci_ev_le_conn_complete		hci_ev_le_meta_t[HCI_EV_LE_CONN_COMPLETE, hci_ev_le_conn_complete]
+	hci_ev_le_conn_update_complete	hci_ev_le_meta_t[HCI_EV_LE_CONN_UPDATE_COMPLETE, hci_ev_le_conn_update_complete]
+	hci_ev_le_data_len_change	hci_ev_le_meta_t[HCI_EV_LE_DATA_LEN_CHANGE, hci_ev_le_data_len_change]
+	hci_ev_le_direct_adv_info	hci_ev_le_meta_t[HCI_EV_LE_DIRECT_ADV_REPORT, hci_ev_le_direct_adv_info]
+	hci_ev_le_enh_conn_complete	hci_ev_le_meta_t[HCI_EV_LE_ENHANCED_CONN_COMPLETE, hci_ev_le_enh_conn_complete]
+	hci_ev_le_ext_adv_report	hci_ev_le_meta_t[HCI_EV_LE_EXT_ADV_REPORT, hci_ev_le_ext_adv_report]
+	hci_ev_le_ltk_req		hci_ev_le_meta_t[HCI_EV_LE_LTK_REQ, hci_ev_le_ltk_req]
+	hci_ev_le_phy_update_complete	hci_ev_le_meta_t[HCI_EV_LE_PHY_UPDATE_COMPLETE, hci_ev_le_phy_update_complete]
+	hci_ev_le_remote_conn_param_req	hci_ev_le_meta_t[HCI_EV_LE_REMOTE_CONN_PARAM_REQ, hci_ev_le_remote_conn_param_req]
+	hci_ev_le_remote_feat_complete	hci_ev_le_meta_t[HCI_EV_LE_REMOTE_FEAT_COMPLETE, hci_ev_le_remote_feat_complete]
+	hci_evt_le_cis_established	hci_ev_le_meta_t[HCI_EVT_LE_CIS_ESTABLISHED, hci_evt_le_cis_established]
+	hci_evt_le_cis_req		hci_ev_le_meta_t[HCI_EVT_LE_CIS_REQ, hci_evt_le_cis_req]
+	hci_evt_le_ext_adv_set_term	hci_ev_le_meta_t[HCI_EV_LE_EXT_ADV_SET_TERM, hci_evt_le_ext_adv_set_term]
+] [varlen]
+
+type hci_ev_le_meta_t[SUBEVENT, PAYLOAD] {
+	hdr	hci_ev_le_meta[SUBEVENT]
+	payload	PAYLOAD
+} [packed]
+
+type hci_ev_le_meta[SUBEVENT] {
+	subevent	const[SUBEVENT, int8]
+} [packed]
+
+hci_ev_cmd_complete_un [
+	hci_rp_delete_reserved_lt_addr		hci_ev_cmd_complete_t[HCI_OP_DELETE_RESERVED_LT_ADDR, hci_rp_delete_reserved_lt_addr]
+	hci_rp_delete_stored_link_key		hci_ev_cmd_complete_t[HCI_OP_DELETE_STORED_LINK_KEY, hci_rp_delete_stored_link_key]
+	hci_rp_le_ltk_neg_reply			hci_ev_cmd_complete_t[HCI_OP_LE_LTK_NEG_REPLY, hci_rp_le_ltk_neg_reply]
+	hci_rp_le_ltk_reply			hci_ev_cmd_complete_t[HCI_OP_LE_LTK_REPLY, hci_rp_le_ltk_reply]
+	hci_rp_le_read_adv_tx_power		hci_ev_cmd_complete_t[HCI_OP_LE_READ_ADV_TX_POWER, hci_rp_le_read_adv_tx_power]
+	hci_rp_le_read_buffer_size		hci_ev_cmd_complete_t[HCI_OP_LE_READ_BUFFER_SIZE, hci_rp_le_read_buffer_size]
+	hci_rp_le_read_buffer_size_v2		hci_ev_cmd_complete_t[HCI_OP_LE_READ_BUFFER_SIZE_V2, hci_rp_le_read_buffer_size_v2]
+	hci_rp_le_read_def_data_len		hci_ev_cmd_complete_t[HCI_OP_LE_READ_DEF_DATA_LEN, hci_rp_le_read_def_data_len]
+	hci_rp_le_read_iso_tx_sync		hci_ev_cmd_complete_t[HCI_OP_LE_READ_ISO_TX_SYNC, hci_rp_le_read_iso_tx_sync]
+	hci_rp_le_read_local_features		hci_ev_cmd_complete_t[HCI_OP_LE_READ_LOCAL_FEATURES, hci_rp_le_read_local_features]
+	hci_rp_le_read_max_data_len		hci_ev_cmd_complete_t[HCI_OP_LE_READ_MAX_DATA_LEN, hci_rp_le_read_max_data_len]
+	hci_rp_le_read_num_supported_adv_sets	hci_ev_cmd_complete_t[HCI_OP_LE_READ_NUM_SUPPORTED_ADV_SETS, hci_rp_le_read_num_supported_adv_sets]
+	hci_rp_le_read_resolv_list_size		hci_ev_cmd_complete_t[HCI_OP_LE_READ_RESOLV_LIST_SIZE, hci_rp_le_read_resolv_list_size]
+	hci_rp_le_read_supported_states		hci_ev_cmd_complete_t[HCI_OP_LE_READ_SUPPORTED_STATES, hci_rp_le_read_supported_states]
+	hci_rp_le_read_white_list_size		hci_ev_cmd_complete_t[HCI_OP_LE_READ_WHITE_LIST_SIZE, hci_rp_le_read_white_list_size]
+	hci_rp_le_set_cig_params		hci_ev_cmd_complete_t[HCI_OP_LE_SET_CIG_PARAMS, hci_rp_le_set_cig_params]
+	hci_rp_le_set_data_len			hci_ev_cmd_complete_t[HCI_OP_LE_SET_DATA_LEN, hci_rp_le_set_data_len]
+	hci_rp_le_set_ext_adv_params		hci_ev_cmd_complete_t[HCI_OP_LE_SET_EXT_ADV_PARAMS, hci_rp_le_set_ext_adv_params]
+	hci_rp_logical_link_cancel		hci_ev_cmd_complete_t[HCI_OP_LOGICAL_LINK_CANCEL, hci_rp_logical_link_cancel]
+	hci_rp_pin_code_neg_reply		hci_ev_cmd_complete_t[HCI_OP_PIN_CODE_NEG_REPLY, hci_rp_pin_code_neg_reply]
+	hci_rp_pin_code_reply			hci_ev_cmd_complete_t[HCI_OP_PIN_CODE_REPLY, hci_rp_pin_code_reply]
+	hci_rp_read_auth_payload_to		hci_ev_cmd_complete_t[HCI_OP_READ_AUTH_PAYLOAD_TO, hci_rp_read_auth_payload_to]
+	hci_rp_read_bd_addr			hci_ev_cmd_complete_t[HCI_OP_READ_BD_ADDR, hci_rp_read_bd_addr]
+	hci_rp_read_buffer_size			hci_ev_cmd_complete_t[HCI_OP_READ_BUFFER_SIZE, hci_rp_read_buffer_size]
+	hci_rp_read_class_of_dev		hci_ev_cmd_complete_t[HCI_OP_READ_CLASS_OF_DEV, hci_rp_read_class_of_dev]
+	hci_rp_read_clock			hci_ev_cmd_complete_t[HCI_OP_READ_CLOCK, hci_rp_read_clock]
+	hci_rp_read_data_block_size		hci_ev_cmd_complete_t[HCI_OP_READ_DATA_BLOCK_SIZE, hci_rp_read_data_block_size]
+	hci_rp_read_def_err_data_reporting	hci_ev_cmd_complete_t[HCI_OP_READ_DEF_ERR_DATA_REPORTING, hci_rp_read_def_err_data_reporting]
+	hci_rp_read_def_link_policy		hci_ev_cmd_complete_t[HCI_OP_READ_DEF_LINK_POLICY, hci_rp_read_def_link_policy]
+	hci_rp_read_enc_key_size		hci_ev_cmd_complete_t[HCI_OP_READ_ENC_KEY_SIZE, hci_rp_read_enc_key_size]
+	hci_rp_read_flow_control_mode		hci_ev_cmd_complete_t[HCI_OP_READ_FLOW_CONTROL_MODE, hci_rp_read_flow_control_mode]
+	hci_rp_read_inq_rsp_tx_power		hci_ev_cmd_complete_t[HCI_OP_READ_INQ_RSP_TX_POWER, hci_rp_read_inq_rsp_tx_power]
+	hci_rp_read_link_policy			hci_ev_cmd_complete_t[HCI_OP_READ_LINK_POLICY, hci_rp_read_link_policy]
+	hci_rp_read_local_amp_assoc		hci_ev_cmd_complete_t[HCI_OP_READ_LOCAL_AMP_ASSOC, hci_rp_read_local_amp_assoc]
+	hci_rp_read_local_amp_info		hci_ev_cmd_complete_t[HCI_OP_READ_LOCAL_AMP_INFO, hci_rp_read_local_amp_info]
+	hci_rp_read_local_commands		hci_ev_cmd_complete_t[HCI_OP_READ_LOCAL_COMMANDS, hci_rp_read_local_commands]
+	hci_rp_read_local_ext_features		hci_ev_cmd_complete_t[HCI_OP_READ_LOCAL_EXT_FEATURES, hci_rp_read_local_ext_features]
+	hci_rp_read_local_features		hci_ev_cmd_complete_t[HCI_OP_READ_LOCAL_FEATURES, hci_rp_read_local_features]
+	hci_rp_read_local_name			hci_ev_cmd_complete_t[HCI_OP_READ_LOCAL_NAME, hci_rp_read_local_name]
+	hci_rp_read_local_oob_data		hci_ev_cmd_complete_t[HCI_OP_READ_LOCAL_OOB_DATA, hci_rp_read_local_oob_data]
+	hci_rp_read_local_oob_ext_data		hci_ev_cmd_complete_t[HCI_OP_READ_LOCAL_OOB_EXT_DATA, hci_rp_read_local_oob_ext_data]
+	hci_rp_read_local_pairing_opts		hci_ev_cmd_complete_t[HCI_OP_READ_LOCAL_PAIRING_OPTS, hci_rp_read_local_pairing_opts]
+	hci_rp_read_local_version		hci_ev_cmd_complete_t[HCI_OP_READ_LOCAL_VERSION, hci_rp_read_local_version]
+	hci_rp_read_num_supported_iac		hci_ev_cmd_complete_t[HCI_OP_READ_NUM_SUPPORTED_IAC, hci_rp_read_num_supported_iac]
+	hci_rp_read_page_scan_activity		hci_ev_cmd_complete_t[HCI_OP_READ_PAGE_SCAN_ACTIVITY, hci_rp_read_page_scan_activity]
+	hci_rp_read_page_scan_type		hci_ev_cmd_complete_t[HCI_OP_READ_PAGE_SCAN_TYPE, hci_rp_read_page_scan_type]
+	hci_rp_read_rssi			hci_ev_cmd_complete_t[HCI_OP_READ_RSSI, hci_rp_read_rssi]
+	hci_rp_read_sc_support			hci_ev_cmd_complete_t[HCI_OP_READ_SC_SUPPORT, hci_rp_read_sc_support]
+	hci_rp_read_ssp_mode			hci_ev_cmd_complete_t[HCI_OP_READ_SSP_MODE, hci_rp_read_ssp_mode]
+	hci_rp_read_stored_link_key		hci_ev_cmd_complete_t[HCI_OP_READ_STORED_LINK_KEY, hci_rp_read_stored_link_key]
+	hci_rp_read_tx_power			hci_ev_cmd_complete_t[HCI_OP_READ_TX_POWER, hci_rp_read_tx_power]
+	hci_rp_read_voice_setting		hci_ev_cmd_complete_t[HCI_OP_READ_VOICE_SETTING, hci_rp_read_voice_setting]
+	hci_rp_role_discovery			hci_ev_cmd_complete_t[HCI_OP_ROLE_DISCOVERY, hci_rp_role_discovery]
+	hci_rp_set_csb				hci_ev_cmd_complete_t[HCI_OP_SET_CSB, hci_rp_set_csb]
+	hci_rp_set_csb_data			hci_ev_cmd_complete_t[HCI_OP_SET_CSB_DATA, hci_rp_set_csb_data]
+	hci_rp_set_reserved_lt_addr		hci_ev_cmd_complete_t[HCI_OP_SET_RESERVED_LT_ADDR, hci_rp_set_reserved_lt_addr]
+	hci_rp_user_confirm_reply		hci_ev_cmd_complete_t[HCI_OP_USER_CONFIRM_REPLY, hci_rp_user_confirm_reply]
+	hci_rp_write_auth_payload_to		hci_ev_cmd_complete_t[HCI_OP_WRITE_AUTH_PAYLOAD_TO, hci_rp_write_auth_payload_to]
+	hci_rp_write_link_policy		hci_ev_cmd_complete_t[HCI_OP_WRITE_LINK_POLICY, hci_rp_write_link_policy]
+	hci_rp_write_remote_amp_assoc		hci_ev_cmd_complete_t[HCI_OP_WRITE_REMOTE_AMP_ASSOC, hci_rp_write_remote_amp_assoc]
+	hci_rp_write_sync_train_params		hci_ev_cmd_complete_t[HCI_OP_WRITE_SYNC_TRAIN_PARAMS, hci_rp_write_sync_train_params]
+] [varlen]
+
+type hci_ev_cmd_complete_t[OPCODE, PAYLOAD] {
+	hdr	hci_ev_cmd_complete[OPCODE]
+	payload	PAYLOAD
+} [packed]
+
+type hci_ev_cmd_complete[OPCODE] {
+	ncmd	int8
+	opcode	const[OPCODE, int16]
+} [packed]
+
+link_types = SCO_LINK, ACL_LINK, ESCO_LINK
+bdaddr_types = ADDR_LE_DEV_PUBLIC, ADDR_LE_DEV_RANDOM
+
+extended_inquiry_info {
+	bdaddr			bdaddr_t
+	pscan_rep_mode		int8
+	pscan_period_mode	int8
+	dev_class		array[int8, 3]
+	clock_offset		int16
+	rssi			int8
+	data			array[int8, 240]
+} [packed]
+
+hci_comp_blocks_info {
+	handle	int16
+	pkts	int16
+	blocks	int16
+} [packed]
+
+hci_comp_pkts_info {
+	handle	int16
+	count	int16
+} [packed]
+
+hci_ev_auth_complete {
+	status	int8
+	handle	int16
+} [packed]
+
+hci_ev_change_link_key_complete {
+	status	int8
+	handle	int16
+} [packed]
+
+hci_ev_channel_selected {
+	phy_handle	int8
+} [packed]
+
+hci_ev_clock_offset {
+	status		int8
+	handle		int16
+	clock_offset	int16
+} [packed]
+
+hci_ev_cmd_status_opcodes = HCI_OP_INQUIRY, HCI_OP_CREATE_CONN, HCI_OP_DISCONNECT, HCI_OP_ADD_SCO, HCI_OP_AUTH_REQUESTED, HCI_OP_SET_CONN_ENCRYPT, HCI_OP_REMOTE_NAME_REQ, HCI_OP_READ_REMOTE_FEATURES, HCI_OP_READ_REMOTE_EXT_FEATURES, HCI_OP_SETUP_SYNC_CONN, HCI_OP_SNIFF_MODE, HCI_OP_EXIT_SNIFF_MODE, HCI_OP_SWITCH_ROLE, HCI_OP_LE_CREATE_CONN, HCI_OP_LE_READ_REMOTE_FEATURES, HCI_OP_LE_START_ENC, HCI_OP_LE_EXT_CREATE_CONN
+
+hci_ev_cmd_status {
+	status	int8
+	ncmd	int8
+	opcode	flags[hci_ev_cmd_status_opcodes, int16]
+} [packed]
+
+hci_ev_conn_complete {
+	status		int8
+	handle		int16
+	bdaddr		bdaddr_t
+	link_type	flags[link_types, int8]
+	encr_mode	int8
+} [packed]
+
+hci_ev_conn_request {
+	bdaddr		bdaddr_t
+	dev_class	array[int8, 3]
+	link_type	flags[link_types, int8]
+} [packed]
+
+hci_ev_disconn_complete {
+	status	int8
+	handle	int16
+	reason	int8
+} [packed]
+
+hci_ev_disconn_logical_link_complete {
+	status	int8
+	handle	int16
+	reason	int8
+} [packed]
+
+hci_ev_disconn_phy_link_complete {
+	status		int8
+	phy_handle	int8
+	reason		int8
+} [packed]
+
+hci_ev_encrypt_change {
+	status	int8
+	handle	int16
+	encrypt	int8
+} [packed]
+
+hci_ev_hardware_error {
+	code	int8
+} [packed]
+
+hci_ev_io_capa_reply {
+	bdaddr		bdaddr_t
+	capability	int8
+	oob_data	int8
+	authentication	int8
+} [packed]
+
+hci_ev_io_capa_request {
+	bdaddr	bdaddr_t
+} [packed]
+
+hci_ev_key_refresh_complete {
+	status	int8
+	handle	int16
+} [packed]
+
+hci_ev_keypress_notify {
+	bdaddr	bdaddr_t
+	type	int8
+} [packed]
+
+hci_ev_le_advertising_info {
+	evt_type	int8
+	bdaddr_type	flags[bdaddr_types, int8]
+	bdaddr		bdaddr_t
+	length		int8
+	data		array[int8]
+} [packed]
+
+hci_ev_le_conn_complete {
+	status			int8
+	handle			int16
+	role			int8
+	bdaddr_type		flags[bdaddr_types, int8]
+	bdaddr			bdaddr_t
+	interval		int16
+	latency			int16
+	supervision_timeout	int16
+	clk_accurancy		int8
+} [packed]
+
+hci_ev_le_conn_update_complete {
+	status			int8
+	handle			int16
+	interval		int16
+	latency			int16
+	supervision_timeout	int16
+} [packed]
+
+hci_ev_le_data_len_change {
+	handle	int16
+	tx_len	int16
+	tx_time	int16
+	rx_len	int16
+	rx_time	int16
+} [packed]
+
+hci_ev_le_direct_adv_info {
+	evt_type		int8
+	bdaddr_type		flags[bdaddr_types, int8]
+	bdaddr			bdaddr_t
+	direct_addr_type	int8
+	direct_addr		bdaddr_t
+	rssi			int8
+} [packed]
+
+hci_ev_le_enh_conn_complete {
+	status			int8
+	handle			int16
+	role			int8
+	bdaddr_type		flags[bdaddr_types, int8]
+	bdaddr			bdaddr_t
+	local_rpa		bdaddr_t
+	peer_rpa		bdaddr_t
+	interval		int16
+	latency			int16
+	supervision_timeout	int16
+	clk_accurancy		int8
+} [packed]
+
+hci_ev_le_ext_adv_report {
+	evt_type		int16
+	bdaddr_type		flags[bdaddr_types, int8]
+	bdaddr			bdaddr_t
+	primary_phy		int8
+	secondary_phy		int8
+	sid			int8
+	tx_power		int8
+	rssi			int8
+	interval		int16
+	direct_addr_type	int8
+	direct_addr		bdaddr_t
+	length			int8
+	data			array[int8]
+} [packed]
+
+hci_ev_le_ltk_req {
+	handle	int16
+	rand	int64
+	ediv	int16
+} [packed]
+
+hci_ev_le_phy_update_complete {
+	status	int8
+	handle	int16
+	tx_phy	int8
+	rx_phy	int8
+} [packed]
+
+hci_ev_le_remote_conn_param_req {
+	handle		int16
+	interval_min	int16
+	interval_max	int16
+	latency		int16
+	timeout		int16
+} [packed]
+
+hci_ev_le_remote_feat_complete {
+	status		int8
+	handle		int16
+	features	array[int8, 8]
+} [packed]
+
+hci_ev_link_key_notify {
+	bdaddr		bdaddr_t
+	link_key	array[int8, 16]
+	key_type	int8
+} [packed]
+
+hci_ev_link_key_req {
+	bdaddr	bdaddr_t
+} [packed]
+
+hci_ev_logical_link_complete {
+	status		int8
+	handle		int16
+	phy_handle	int8
+	flow_spec_id	int8
+} [packed]
+
+hci_ev_mode_change {
+	status		int8
+	handle		int16
+	mode		int8
+	interval	int16
+} [packed]
+
+hci_ev_num_comp_blocks {
+	num_blocks	int16
+	num_hndl	len[handles, int8]
+	handles		array[hci_comp_blocks_info]
+} [packed]
+
+hci_ev_num_comp_pkts {
+	num_hndl	len[handles, int8]
+	handles		array[hci_comp_pkts_info]
+} [packed]
+
+hci_ev_phy_link_complete {
+	status		int8
+	phy_handle	int8
+} [packed]
+
+hci_ev_pin_code_req {
+	bdaddr	bdaddr_t
+} [packed]
+
+hci_ev_pkt_type_change {
+	status		int8
+	handle		int16
+	pkt_type	int16
+} [packed]
+
+hci_ev_pscan_rep_mode {
+	bdaddr		bdaddr_t
+	pscan_rep_mode	int8
+} [packed]
+
+hci_ev_qos_setup_complete {
+	status	int8
+	handle	int16
+	qos	hci_qos
+} [packed]
+
+hci_ev_remote_ext_features {
+	status		int8
+	handle		int16
+	page		int8
+	max_page	int8
+	features	array[int8, 8]
+} [packed]
+
+hci_ev_remote_features {
+	status		int8
+	handle		int16
+	features	array[int8, 8]
+} [packed]
+
+hci_ev_remote_host_features {
+	bdaddr		bdaddr_t
+	features	array[int8, 8]
+} [packed]
+
+hci_ev_remote_name {
+	status	int8
+	bdaddr	bdaddr_t
+	name	array[int8, 248]
+} [packed]
+
+hci_ev_remote_oob_data_request {
+	bdaddr	bdaddr_t
+} [packed]
+
+hci_ev_remote_version {
+	status		int8
+	handle		int16
+	lmp_ver		int8
+	manufacturer	int16
+	lmp_subver	int16
+} [packed]
+
+hci_ev_role_change {
+	status	int8
+	bdaddr	bdaddr_t
+	role	int8
+} [packed]
+
+hci_ev_si_device {
+	event	int16
+	dev_id	int16
+} [packed]
+
+hci_ev_si_security {
+	event		int16
+	proto		int16
+	subproto	int16
+	incoming	int8
+} [packed]
+
+hci_ev_simple_pair_complete {
+	status	int8
+	bdaddr	bdaddr_t
+} [packed]
+
+hci_ev_sniff_subrate {
+	status			int8
+	handle			int16
+	max_tx_latency		int16
+	max_rx_latency		int16
+	max_remote_timeout	int16
+	max_local_timeout	int16
+} [packed]
+
+hci_ev_stack_internal {
+	type	int16
+	data	array[int8]
+} [packed]
+
+hci_ev_sync_conn_changed {
+	status		int8
+	handle		int16
+	tx_interval	int8
+	retrans_window	int8
+	rx_pkt_len	int16
+	tx_pkt_len	int16
+} [packed]
+
+hci_ev_sync_conn_complete {
+	status		int8
+	handle		int16
+	bdaddr		bdaddr_t
+	link_type	flags[link_types, int8]
+	tx_interval	int8
+	retrans_window	int8
+	rx_pkt_len	int16
+	tx_pkt_len	int16
+	air_mode	int8
+} [packed]
+
+hci_ev_sync_train_complete {
+	status	int8
+} [packed]
+
+hci_ev_user_confirm_req {
+	bdaddr	bdaddr_t
+	passkey	int32
+} [packed]
+
+hci_ev_user_passkey_notify {
+	bdaddr	bdaddr_t
+	passkey	int32
+} [packed]
+
+hci_ev_user_passkey_req {
+	bdaddr	bdaddr_t
+} [packed]
+
+hci_evt_le_cis_established {
+	status		int8
+	handle		int16
+	cig_sync_delay	array[int8, 3]
+	cis_sync_delay	array[int8, 3]
+	m_latency	array[int8, 3]
+	s_latency	array[int8, 3]
+	m_phy		int8
+	s_phy		int8
+	nse		int8
+	m_bn		int8
+	s_bn		int8
+	m_ft		int8
+	s_ft		int8
+	m_mtu		int16
+	s_mtu		int16
+	interval	int16
+} [packed]
+
+hci_evt_le_cis_req {
+	acl_handle	int16
+	cis_handle	int16
+	cig_id		int8
+	cis_id		int8
+} [packed]
+
+hci_evt_le_ext_adv_set_term {
+	status		int8
+	handle		int8
+	conn_handle	int16
+	num_evts	int8
+} [packed]
+
+hci_rp_delete_reserved_lt_addr {
+	status	int8
+	lt_addr	int8
+} [packed]
+
+hci_rp_delete_stored_link_key {
+	status		int8
+	num_keys	int8
+} [packed]
+
+hci_rp_le_ltk_neg_reply {
+	status	int8
+	handle	int16
+} [packed]
+
+hci_rp_le_ltk_reply {
+	status	int8
+	handle	int16
+} [packed]
+
+hci_rp_le_read_adv_tx_power {
+	status		int8
+	tx_power	int8
+} [packed]
+
+hci_rp_le_read_buffer_size {
+	status		int8
+	le_mtu		int16
+	le_max_pkt	int8
+} [packed]
+
+hci_rp_le_read_buffer_size_v2 {
+	status		int8
+	acl_mtu		int16
+	acl_max_pkt	int8
+	iso_mtu		int16
+	iso_max_pkt	int8
+} [packed]
+
+hci_rp_le_read_def_data_len {
+	status	int8
+	tx_len	int16
+	tx_time	int16
+} [packed]
+
+hci_rp_le_read_iso_tx_sync {
+	status		int8
+	handle		int16
+	seq		int16
+	imestamp	int32
+	offset		array[int8, 3]
+} [packed]
+
+hci_rp_le_read_local_features {
+	status		int8
+	features	array[int8, 8]
+} [packed]
+
+hci_rp_le_read_max_data_len {
+	status	int8
+	tx_len	int16
+	tx_time	int16
+	rx_len	int16
+	rx_time	int16
+} [packed]
+
+hci_rp_le_read_num_supported_adv_sets {
+	status		int8
+	num_of_sets	int8
+} [packed]
+
+hci_rp_le_read_resolv_list_size {
+	status	int8
+	size	int8
+} [packed]
+
+hci_rp_le_read_supported_states {
+	status		int8
+	le_states	array[int8, 8]
+} [packed]
+
+hci_rp_le_read_white_list_size {
+	status	int8
+	size	int8
+} [packed]
+
+hci_rp_le_set_cig_params {
+	status		int8
+	cig_id		int8
+	num_handles	len[handle, int8]
+	handle		array[int16]
+} [packed]
+
+hci_rp_le_set_data_len {
+	status	int8
+	handle	int16
+} [packed]
+
+hci_rp_le_set_ext_adv_params {
+	status		int8
+	tx_power	int8
+} [packed]
+
+hci_rp_logical_link_cancel {
+	status		int8
+	phy_handle	int8
+	flow_spec_id	int8
+} [packed]
+
+hci_rp_pin_code_neg_reply {
+	status	int8
+	bdaddr	bdaddr_t
+} [packed]
+
+hci_rp_pin_code_reply {
+	status	int8
+	bdaddr	bdaddr_t
+} [packed]
+
+hci_rp_read_auth_payload_to {
+	status	int8
+	handle	int16
+	timeout	int16
+} [packed]
+
+hci_rp_read_bd_addr {
+	status	int8
+	bdaddr	bdaddr_t
+} [packed]
+
+hci_rp_read_buffer_size {
+	status		int8
+	acl_mtu		int16
+	sco_mtu		int8
+	acl_max_pkt	int16
+	sco_max_pkt	int16
+} [packed]
+
+hci_rp_read_class_of_dev {
+	status		int8
+	dev_class	array[int8, 3]
+} [packed]
+
+hci_rp_read_clock {
+	status		int8
+	handle		int16
+	clock		int32
+	accuracy	int16
+} [packed]
+
+hci_rp_read_data_block_size {
+	status		int8
+	max_acl_len	int16
+	block_len	int16
+	num_blocks	int16
+} [packed]
+
+hci_rp_read_def_err_data_reporting {
+	status			int8
+	err_data_reporting	int8
+} [packed]
+
+hci_rp_read_def_link_policy {
+	status	int8
+	policy	int16
+} [packed]
+
+hci_rp_read_enc_key_size {
+	status		int8
+	handle		int16
+	key_size	int8
+} [packed]
+
+hci_rp_read_flow_control_mode {
+	status	int8
+	mode	int8
+} [packed]
+
+hci_rp_read_inq_rsp_tx_power {
+	status		int8
+	tx_power	int8
+} [packed]
+
+hci_rp_read_link_policy {
+	status	int8
+	handle	int16
+	policy	int16
+} [packed]
+
+hci_rp_read_local_amp_assoc {
+	status		int8
+	phy_handle	int8
+	rem_len		int16
+	frag		array[int8]
+} [packed]
+
+hci_rp_read_local_amp_info {
+	status		int8
+	amp_status	int8
+	total_bw	int32
+	max_bw		int32
+	min_latency	int32
+	max_pdu		int32
+	amp_type	int8
+	pal_cap		int16
+	max_assoc_size	int16
+	max_flush_to	int32
+	be_flush_to	int32
+} [packed]
+
+hci_rp_read_local_commands {
+	status		int8
+	commands	array[int8, 64]
+} [packed]
+
+hci_rp_read_local_ext_features {
+	status		int8
+	page		int8
+	max_page	int8
+	features	array[int8, 8]
+} [packed]
+
+hci_rp_read_local_features {
+	status		int8
+	features	array[int8, 8]
+} [packed]
+
+hci_rp_read_local_name {
+	status	int8
+	name	array[int8, 248]
+} [packed]
+
+hci_rp_read_local_oob_data {
+	status	int8
+	hash	array[int8, 16]
+	rand	array[int8, 16]
+} [packed]
+
+hci_rp_read_local_oob_ext_data {
+	status	int8
+	hash192	array[int8, 16]
+	rand192	array[int8, 16]
+	hash256	array[int8, 16]
+	rand256	array[int8, 16]
+} [packed]
+
+hci_rp_read_local_pairing_opts {
+	status		int8
+	pairing_opts	int8
+	max_key_size	int8
+} [packed]
+
+hci_rp_read_local_version {
+	status		int8
+	hci_ver		int8
+	hci_rev		int16
+	lmp_ver		int8
+	manufacturer	int16
+	lmp_subver	int16
+} [packed]
+
+hci_rp_read_num_supported_iac {
+	status	int8
+	num_iac	int8
+} [packed]
+
+hci_rp_read_page_scan_activity {
+	status		int8
+	interval	int16
+	window		int16
+} [packed]
+
+hci_rp_read_page_scan_type {
+	status	int8
+	type	int8
+} [packed]
+
+hci_rp_read_rssi {
+	status	int8
+	handle	int16
+	rssi	int8
+} [packed]
+
+hci_rp_read_sc_support {
+	status	int8
+	support	int8
+} [packed]
+
+hci_rp_read_ssp_mode {
+	status	int8
+	mode	int8
+} [packed]
+
+hci_rp_read_stored_link_key {
+	status		int8
+	max_keys	int8
+	num_keys	int8
+} [packed]
+
+hci_rp_read_tx_power {
+	status		int8
+	handle		int16
+	tx_power	int8
+} [packed]
+
+hci_rp_read_voice_setting {
+	status		int8
+	voice_setting	int16
+} [packed]
+
+hci_rp_role_discovery {
+	status	int8
+	handle	int16
+	role	int8
+} [packed]
+
+hci_rp_set_csb {
+	status		int8
+	lt_addr		int8
+	interval	int16
+} [packed]
+
+hci_rp_set_csb_data {
+	status	int8
+	lt_addr	int8
+} [packed]
+
+hci_rp_set_reserved_lt_addr {
+	status	int8
+	lt_addr	int8
+} [packed]
+
+hci_rp_user_confirm_reply {
+	status	int8
+	bdaddr	bdaddr_t
+} [packed]
+
+hci_rp_write_auth_payload_to {
+	status	int8
+	handle	int16
+} [packed]
+
+hci_rp_write_link_policy {
+	status	int8
+	handle	int16
+} [packed]
+
+hci_rp_write_remote_amp_assoc {
+	status		int8
+	phy_handle	int8
+} [packed]
+
+hci_rp_write_sync_train_params {
+	status		int8
+	sync_train_int	int16
+} [packed]
+
+hci_qos {
+	service_type	int8
+	token_rate	int32
+	peak_bandwidth	int32
+	latency		int32
+	delay_variation	int32
+} [packed]
+
+inquiry_info {
+	bdaddr			bdaddr_t
+	pscan_rep_mode		int8
+	pscan_period_mode	int8
+	pscan_mode		int8
+	dev_class		array[int8, 3]
+	clock_offset		int16
+} [packed]
+
+inquiry_info_with_rssi {
+	bdaddr			bdaddr_t
+	pscan_rep_mode		int8
+	pscan_period_mode	int8
+	dev_class		array[int8, 3]
+	clock_offset		int16
+	rssi			int8
+} [packed]
+
+inquiry_info_with_rssi_and_pscan_mode {
+	bdaddr			bdaddr_t
+	pscan_rep_mode		int8
+	pscan_period_mode	int8
+	pscan_mode		int8
+	dev_class		array[int8, 3]
+	clock_offset		int16
+	rssi			int8
+} [packed]

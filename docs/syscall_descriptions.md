@@ -55,7 +55,14 @@ some parts of descriptions from header files.
 
 To enable fuzzing of a new kernel interface:
 
-1. Study the interface, find out which syscalls are required to use it.
+1. Study the interface, find out which syscalls are required to use it. Sometimes there is nothing besides the source code, but here are some things that may help:
+
+   - Searching the Internet for the interface name and/or some unique constants.
+   - Grepping Documentation/ dir in the kernel.
+   - Searching tools/testing/ dir in the kernel.
+   - Looking for large comment blocks in the source code.
+   - Finding commit that added the interface via `git blame` or `git log` and reading the commit description.
+   - Reading source code of or tracing libraries or applications that are known to use this interface.
 
 2. Using [syntax documentation](syscall_descriptions_syntax.md) and
    [existing descriptions](/sys/linux/) as an example, add a declarative
@@ -65,8 +72,7 @@ To enable fuzzing of a new kernel interface:
       subsystems, for example [bpf.txt](/sys/linux/bpf.txt) or [socket.txt](/sys/linux/socket.txt).
     - [sys/linux/sys.txt](/sys/linux/sys.txt) holds descriptions for more general system calls.
     - An entirely new subsystem can be added as a new `sys/linux/<new>.txt` file.
-    - Use `dev_*.txt` filename format for descriptions of `/dev/` devices.
-    - Similarly, use `socket_*.txt` for sockets.
+    - If subsystem descriptions are split across multiple files, prefix the name of each file with the name of the subsystem (e.g. use `dev_*.txt` for descriptions of `/dev/` devices, use `socket_*.txt` for sockets, etc).
 
 3. After adding/changing descriptions run:
 

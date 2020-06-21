@@ -15,7 +15,9 @@ resource fd_btf[fd]
 resource bpf_prog_id[int32]: 0, -1
 resource bpf_map_id[int32]: 0, -1
 resource bpf_btf_id[int32]: 0, -1
+resource bpf_link_id[int32]: 0, -1
 resource fd_bpf_link[fd]
+resource fd_bpf_iter[fd]
 
 # NEED: this is a random index in btf_header:types. We can't express this, so we just use a small index.
 type btf_type_id int32[1:5]
@@ -39,9 +41,9 @@ bpf$OBJ_GET_PROG(cmd const[BPF_OBJ_GET], arg ptr[in, bpf_obj_get], size len[arg]
 bpf$BPF_PROG_ATTACH(cmd const[BPF_PROG_ATTACH], arg ptr[in, bpf_attach_arg], size len[arg])
 bpf$BPF_PROG_DETACH(cmd const[BPF_PROG_DETACH], arg ptr[in, bpf_detach_arg], size len[arg])
 bpf$BPF_PROG_TEST_RUN(cmd const[BPF_PROG_TEST_RUN], arg ptr[in, bpf_test_prog_arg], size len[arg])
-bpf$BPF_PROG_GET_NEXT_ID(cmd const[BPF_PROG_GET_NEXT_ID], arg ptr[in, bpf_obj_get_next_id_arg], size len[arg])
-bpf$BPF_MAP_GET_NEXT_ID(cmd const[BPF_MAP_GET_NEXT_ID], arg ptr[in, bpf_obj_get_next_id_arg], size len[arg])
-bpf$BPF_BTF_GET_NEXT_ID(cmd const[BPF_BTF_GET_NEXT_ID], arg ptr[in, bpf_obj_get_next_id_arg], size len[arg])
+bpf$BPF_PROG_GET_NEXT_ID(cmd const[BPF_PROG_GET_NEXT_ID], arg ptr[inout, bpf_prog_get_next_id_arg], size len[arg])
+bpf$BPF_MAP_GET_NEXT_ID(cmd const[BPF_MAP_GET_NEXT_ID], arg ptr[inout, bpf_map_get_next_id_arg], size len[arg])
+bpf$BPF_BTF_GET_NEXT_ID(cmd const[BPF_BTF_GET_NEXT_ID], arg ptr[inout, bpf_btf_get_next_id_arg], size len[arg])
 bpf$BPF_PROG_GET_FD_BY_ID(cmd const[BPF_PROG_GET_FD_BY_ID], arg ptr[in, bpf_prog_get_fd_by_id_arg], size len[arg]) fd_bpf_prog
 bpf$BPF_MAP_GET_FD_BY_ID(cmd const[BPF_MAP_GET_FD_BY_ID], arg ptr[in, bpf_map_get_fd_by_id_arg], size len[arg]) fd_bpf_map
 bpf$BPF_GET_PROG_INFO(cmd const[BPF_OBJ_GET_INFO_BY_FD], arg ptr[in, bpf_get_prog_info_arg], size len[arg])
@@ -60,6 +62,10 @@ bpf$MAP_DELETE_BATCH(cmd const[BPF_MAP_DELETE_BATCH], arg ptr[in, bpf_map_batch_
 bpf$BPF_MAP_LOOKUP_AND_DELETE_BATCH(cmd const[BPF_MAP_LOOKUP_AND_DELETE_BATCH], arg ptr[in, bpf_map_batch_arg], size len[arg])
 bpf$BPF_LINK_CREATE(cmd const[BPF_LINK_CREATE], arg ptr[in, bpf_link_create_arg], size len[arg]) fd_bpf_link
 bpf$BPF_LINK_UPDATE(cmd const[BPF_LINK_UPDATE], arg ptr[in, bpf_link_update_arg], size len[arg])
+bpf$ENABLE_STATS(cmd const[BPF_ENABLE_STATS], arg ptr[in, bpf_enable_stats_arg], size len[arg])
+bpf$ITER_CREATE(cmd const[BPF_ITER_CREATE], arg ptr[in, bpf_iter_create_arg], size len[arg]) fd_bpf_iter
+bpf$LINK_GET_FD_BY_ID(cmd const[BPF_LINK_GET_FD_BY_ID], arg ptr[in, bpf_link_id], size len[arg]) fd_bpf_link
+bpf$LINK_GET_NEXT_ID(cmd const[BPF_LINK_GET_NEXT_ID], arg ptr[inout, bpf_link_get_next_id_arg], size len[arg])
 
 bpf_map_create_arg {
 	type			flags[bpf_map_type, int32]
@@ -90,10 +96,18 @@ bpf_map_lookup_arg {
 	flags	flags[bpf_lookup_flags, int64]
 }
 
+bpf_map_update_val [
+	buf	array[int8]
+	udp	sock_udp
+	udp6	sock_udp6
+	tcp	sock_tcp
+	tcp6	sock_tcp6
+] [varlen]
+
 bpf_map_update_arg {
 	map	fd_bpf_map
 	key	ptr64[in, array[int8]]
-	val	ptr64[in, array[int8]]
+	val	ptr64[in, bpf_map_update_val]
 	flags	flags[bpf_map_flags, int64]
 }
 
@@ -134,6 +148,15 @@ bpf_link_update_arg {
 	new_prog_fd	fd_bpf_prog
 	flags		flags[bpf_link_update_flags, int32]
 	old_prog_fd	fd_bpf_prog
+}
+
+bpf_enable_stats_arg {
+	type	flags[bpf_stat_types, int32]
+}
+
+bpf_iter_create_arg {
+	link_fd	fd_bpf_link
+	flags	const[0, int32]
 }
 
 bpf_batch_flags = BPF_F_LOCK
@@ -385,8 +408,13 @@ bpf_obj_get {
 	file_flags	flags[bpf_open_flags, int32]
 }
 
+bpf_attach_targets [
+	cgroup	fd_cgroup[opt]
+	map	fd_bpf_map[opt]
+]
+
 bpf_attach_arg {
-	target_fd	fd_cgroup
+	target_fd	bpf_attach_targets
 	attach_bpf_fd	fd_bpf_prog
 	type		flags[bpf_attach_type, int32]
 	flags		flags[bpf_attach_flags, int32]
@@ -394,7 +422,7 @@ bpf_attach_arg {
 }
 
 bpf_detach_arg {
-	target	const[0, int32]
+	target	bpf_attach_targets
 	prog	fd_bpf_prog
 	type	flags[bpf_attach_type, int32]
 	flags	const[0, int32]
@@ -415,10 +443,32 @@ bpf_test_prog_arg {
 	outctx		ptr64[in, array[int8]]
 }
 
-bpf_obj_get_next_id_arg {
+bpf_prog_get_next_id_arg {
+# NEED: part of fields are input here and part are output. We can't express this yet (#245).
 	start	int32
-	next	int32
-	flags	const[0, int32]
+# Output field:
+	next_id	bpf_prog_id
+}
+
+bpf_map_get_next_id_arg {
+# NEED: part of fields are input here and part are output. We can't express this yet (#245).
+	start	int32
+# Output field:
+	next_id	bpf_map_id
+}
+
+bpf_btf_get_next_id_arg {
+# NEED: part of fields are input here and part are output. We can't express this yet (#245).
+	start	int32
+# Output field:
+	next_id	bpf_btf_id
+}
+
+bpf_link_get_next_id_arg {
+# NEED: part of fields are input here and part are output. We can't express this yet (#245).
+	start	int32
+# Output field:
+	next_id	bpf_link_id[opt]
 }
 
 bpf_prog_get_fd_by_id_arg {
@@ -699,16 +749,17 @@ bpf_task_fd_query {
 	probe_addr	const[0, int64]
 }
 
-bpf_map_type = BPF_MAP_TYPE_HASH, BPF_MAP_TYPE_ARRAY, BPF_MAP_TYPE_PROG_ARRAY, BPF_MAP_TYPE_PERF_EVENT_ARRAY, BPF_MAP_TYPE_STACK_TRACE, BPF_MAP_TYPE_CGROUP_ARRAY, BPF_MAP_TYPE_PERCPU_HASH, BPF_MAP_TYPE_PERCPU_ARRAY, BPF_MAP_TYPE_LRU_HASH, BPF_MAP_TYPE_LRU_PERCPU_HASH, BPF_MAP_TYPE_LPM_TRIE, BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_DEVMAP, BPF_MAP_TYPE_SOCKMAP, BPF_MAP_TYPE_CPUMAP, BPF_MAP_TYPE_XSKMAP, BPF_MAP_TYPE_SOCKHASH, BPF_MAP_TYPE_CGROUP_STORAGE, BPF_MAP_TYPE_REUSEPORT_SOCKARRAY, BPF_MAP_TYPE_PERCPU_CGROUP_STORAGE, BPF_MAP_TYPE_QUEUE, BPF_MAP_TYPE_STACK, BPF_MAP_TYPE_SK_STORAGE, BPF_MAP_TYPE_DEVMAP_HASH, BPF_MAP_TYPE_STRUCT_OPS
+bpf_map_type = BPF_MAP_TYPE_HASH, BPF_MAP_TYPE_ARRAY, BPF_MAP_TYPE_PROG_ARRAY, BPF_MAP_TYPE_PERF_EVENT_ARRAY, BPF_MAP_TYPE_STACK_TRACE, BPF_MAP_TYPE_CGROUP_ARRAY, BPF_MAP_TYPE_PERCPU_HASH, BPF_MAP_TYPE_PERCPU_ARRAY, BPF_MAP_TYPE_LRU_HASH, BPF_MAP_TYPE_LRU_PERCPU_HASH, BPF_MAP_TYPE_LPM_TRIE, BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_DEVMAP, BPF_MAP_TYPE_SOCKMAP, BPF_MAP_TYPE_CPUMAP, BPF_MAP_TYPE_XSKMAP, BPF_MAP_TYPE_SOCKHASH, BPF_MAP_TYPE_CGROUP_STORAGE, BPF_MAP_TYPE_REUSEPORT_SOCKARRAY, BPF_MAP_TYPE_PERCPU_CGROUP_STORAGE, BPF_MAP_TYPE_QUEUE, BPF_MAP_TYPE_STACK, BPF_MAP_TYPE_SK_STORAGE, BPF_MAP_TYPE_DEVMAP_HASH, BPF_MAP_TYPE_STRUCT_OPS, BPF_MAP_TYPE_RINGBUF
 bpf_map_flags = BPF_ANY, BPF_NOEXIST, BPF_EXIST, BPF_F_LOCK
 bpf_lookup_flags = BPF_F_LOCK
 bpf_prog_type = BPF_PROG_TYPE_SOCKET_FILTER, BPF_PROG_TYPE_KPROBE, BPF_PROG_TYPE_SCHED_CLS, BPF_PROG_TYPE_SCHED_ACT, BPF_PROG_TYPE_TRACEPOINT, BPF_PROG_TYPE_XDP, BPF_PROG_TYPE_PERF_EVENT, BPF_PROG_TYPE_CGROUP_SKB, BPF_PROG_TYPE_CGROUP_SOCK, BPF_PROG_TYPE_LWT_IN, BPF_PROG_TYPE_LWT_OUT, BPF_PROG_TYPE_LWT_XMIT, BPF_PROG_TYPE_SOCK_OPS, BPF_PROG_TYPE_SK_SKB, BPF_PROG_TYPE_CGROUP_DEVICE, BPF_PROG_TYPE_SK_MSG, BPF_PROG_TYPE_RAW_TRACEPOINT, BPF_PROG_TYPE_CGROUP_SOCK_ADDR, BPF_PROG_TYPE_LWT_SEG6LOCAL, BPF_PROG_TYPE_LIRC_MODE2, BPF_PROG_TYPE_SK_REUSEPORT, BPF_PROG_TYPE_FLOW_DISSECTOR, BPF_PROG_TYPE_CGROUP_SYSCTL, BPF_PROG_TYPE_RAW_TRACEPOINT_WRITABLE, BPF_PROG_TYPE_CGROUP_SOCKOPT, BPF_PROG_TYPE_TRACING, BPF_PROG_TYPE_EXT, BPF_PROG_TYPE_STRUCT_OPS, BPF_PROG_TYPE_LSM
 map_flags = BPF_F_NO_PREALLOC, BPF_F_NO_COMMON_LRU, BPF_F_NUMA_NODE, BPF_F_RDONLY, BPF_F_WRONLY, BPF_F_STACK_BUILD_ID, BPF_F_ZERO_SEED, BPF_F_RDONLY_PROG, BPF_F_WRONLY_PROG, BPF_F_CLONE, BPF_F_MMAPABLE
-bpf_attach_type = BPF_CGROUP_INET_INGRESS, BPF_CGROUP_INET_EGRESS, BPF_CGROUP_INET_SOCK_CREATE, BPF_CGROUP_SOCK_OPS, BPF_SK_SKB_STREAM_PARSER, BPF_SK_SKB_STREAM_VERDICT, BPF_CGROUP_DEVICE, BPF_SK_MSG_VERDICT, BPF_CGROUP_INET4_BIND, BPF_CGROUP_INET6_BIND, BPF_CGROUP_INET4_CONNECT, BPF_CGROUP_INET6_CONNECT, BPF_CGROUP_INET4_POST_BIND, BPF_CGROUP_INET6_POST_BIND, BPF_CGROUP_UDP4_SENDMSG, BPF_CGROUP_UDP6_SENDMSG, BPF_LIRC_MODE2, BPF_FLOW_DISSECTOR, BPF_CGROUP_SYSCTL, BPF_CGROUP_UDP4_RECVMSG, BPF_CGROUP_UDP6_RECVMSG, BPF_CGROUP_GETSOCKOPT, BPF_CGROUP_SETSOCKOPT, BPF_TRACE_RAW_TP, BPF_TRACE_FENTRY, BPF_TRACE_FEXIT, BPF_LSM_MAC, BPF_MODIFY_RETURN
-bpf_attach_types_link_create = BPF_CGROUP_INET_INGRESS, BPF_CGROUP_INET_EGRESS, BPF_CGROUP_INET_SOCK_CREATE, BPF_CGROUP_INET4_POST_BIND, BPF_CGROUP_INET6_POST_BIND, BPF_CGROUP_INET4_BIND, BPF_CGROUP_INET6_BIND, BPF_CGROUP_INET4_CONNECT, BPF_CGROUP_INET6_CONNECT, BPF_CGROUP_UDP4_SENDMSG, BPF_CGROUP_UDP6_SENDMSG, BPF_CGROUP_UDP4_RECVMSG, BPF_CGROUP_UDP6_RECVMSG, BPF_CGROUP_SOCK_OPS, BPF_CGROUP_DEVICE, BPF_SK_MSG_VERDICT, BPF_SK_SKB_STREAM_PARSER, BPF_SK_SKB_STREAM_VERDICT, BPF_LIRC_MODE2, BPF_FLOW_DISSECTOR, BPF_CGROUP_SYSCTL, BPF_CGROUP_GETSOCKOPT, BPF_CGROUP_SETSOCKOPT
+bpf_attach_type = BPF_CGROUP_INET_INGRESS, BPF_CGROUP_INET_EGRESS, BPF_CGROUP_INET_SOCK_CREATE, BPF_CGROUP_SOCK_OPS, BPF_SK_SKB_STREAM_PARSER, BPF_SK_SKB_STREAM_VERDICT, BPF_CGROUP_DEVICE, BPF_SK_MSG_VERDICT, BPF_CGROUP_INET4_BIND, BPF_CGROUP_INET6_BIND, BPF_CGROUP_INET4_CONNECT, BPF_CGROUP_INET6_CONNECT, BPF_CGROUP_INET4_POST_BIND, BPF_CGROUP_INET6_POST_BIND, BPF_CGROUP_UDP4_SENDMSG, BPF_CGROUP_UDP6_SENDMSG, BPF_LIRC_MODE2, BPF_FLOW_DISSECTOR, BPF_CGROUP_SYSCTL, BPF_CGROUP_UDP4_RECVMSG, BPF_CGROUP_UDP6_RECVMSG, BPF_CGROUP_GETSOCKOPT, BPF_CGROUP_SETSOCKOPT, BPF_TRACE_RAW_TP, BPF_TRACE_FENTRY, BPF_TRACE_FEXIT, BPF_LSM_MAC, BPF_MODIFY_RETURN, BPF_CGROUP_INET4_GETPEERNAME, BPF_CGROUP_INET4_GETSOCKNAME, BPF_CGROUP_INET6_GETPEERNAME, BPF_CGROUP_INET6_GETSOCKNAME, BPF_TRACE_ITER, BPF_XDP_DEVMAP
+bpf_attach_types_link_create = BPF_CGROUP_INET_INGRESS, BPF_CGROUP_INET_EGRESS, BPF_CGROUP_INET_SOCK_CREATE, BPF_CGROUP_INET4_POST_BIND, BPF_CGROUP_INET6_POST_BIND, BPF_CGROUP_INET4_BIND, BPF_CGROUP_INET6_BIND, BPF_CGROUP_INET4_CONNECT, BPF_CGROUP_INET6_CONNECT, BPF_CGROUP_UDP4_SENDMSG, BPF_CGROUP_UDP6_SENDMSG, BPF_CGROUP_UDP4_RECVMSG, BPF_CGROUP_UDP6_RECVMSG, BPF_CGROUP_SOCK_OPS, BPF_CGROUP_DEVICE, BPF_SK_MSG_VERDICT, BPF_SK_SKB_STREAM_PARSER, BPF_SK_SKB_STREAM_VERDICT, BPF_LIRC_MODE2, BPF_FLOW_DISSECTOR, BPF_CGROUP_SYSCTL, BPF_CGROUP_GETSOCKOPT, BPF_CGROUP_SETSOCKOPT, BPF_CGROUP_INET4_GETPEERNAME, BPF_CGROUP_INET4_GETSOCKNAME, BPF_CGROUP_INET6_GETPEERNAME, BPF_CGROUP_INET6_GETSOCKNAME, BPF_TRACE_ITER
 bpf_prog_load_flags = BPF_F_STRICT_ALIGNMENT, BPF_F_ANY_ALIGNMENT, BPF_F_TEST_RND_HI32, BPF_F_TEST_STATE_FREQ
 bpf_attach_flags = BPF_F_ALLOW_OVERRIDE, BPF_F_ALLOW_MULTI, BPF_F_REPLACE
 bpf_link_update_flags = BPF_F_REPLACE
 bpf_prog_query_flags = BPF_F_QUERY_EFFECTIVE
-bpf_prog_query_attach_type = BPF_CGROUP_INET_INGRESS, BPF_CGROUP_INET_EGRESS, BPF_CGROUP_INET_SOCK_CREATE, BPF_CGROUP_SOCK_OPS, BPF_CGROUP_DEVICE, BPF_CGROUP_INET4_BIND, BPF_CGROUP_INET4_CONNECT, BPF_CGROUP_INET4_POST_BIND, BPF_CGROUP_INET6_BIND, BPF_CGROUP_INET6_CONNECT, BPF_CGROUP_INET6_POST_BIND, BPF_CGROUP_UDP4_SENDMSG, BPF_CGROUP_UDP6_SENDMSG, BPF_LIRC_MODE2, BPF_CGROUP_SYSCTL, BPF_FLOW_DISSECTOR, BPF_CGROUP_UDP4_RECVMSG, BPF_CGROUP_UDP6_RECVMSG, BPF_CGROUP_GETSOCKOPT, BPF_CGROUP_SETSOCKOPT
+bpf_prog_query_attach_type = BPF_CGROUP_INET_INGRESS, BPF_CGROUP_INET_EGRESS, BPF_CGROUP_INET_SOCK_CREATE, BPF_CGROUP_SOCK_OPS, BPF_CGROUP_DEVICE, BPF_CGROUP_INET4_BIND, BPF_CGROUP_INET4_CONNECT, BPF_CGROUP_INET4_POST_BIND, BPF_CGROUP_INET6_BIND, BPF_CGROUP_INET6_CONNECT, BPF_CGROUP_INET6_POST_BIND, BPF_CGROUP_UDP4_SENDMSG, BPF_CGROUP_UDP6_SENDMSG, BPF_LIRC_MODE2, BPF_CGROUP_SYSCTL, BPF_FLOW_DISSECTOR, BPF_CGROUP_UDP4_RECVMSG, BPF_CGROUP_UDP6_RECVMSG, BPF_CGROUP_GETSOCKOPT, BPF_CGROUP_SETSOCKOPT, BPF_CGROUP_INET4_GETPEERNAME, BPF_CGROUP_INET4_GETSOCKNAME, BPF_CGROUP_INET6_GETPEERNAME, BPF_CGROUP_INET6_GETSOCKNAME
 bpf_open_flags = BPF_F_RDONLY, BPF_F_WRONLY
+bpf_stat_types = BPF_STATS_RUN_TIME

@@ -7,7 +7,6 @@ compiler: unsupported syscall: ioctl$TIOCSLTC due to missing const TIOCSLTC
 no-such-struct: io_cmap
 no-such-struct: unimapdesc_in
 no-such-struct: unimapdesc_out
-no-such-struct: unimapinit
 no-such-struct: tiocl_selection_arg
 bad-field-number: tiocl_selection: syz=6 kernel=5
 bad-struct-size: tiocl_selection: syz=11 kernel=10

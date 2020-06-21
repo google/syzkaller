@@ -43,7 +43,7 @@ func parseKernelObject(obj string) (map[string]*dwarf.StructType, error) {
 	buffer := 100 * numProcs
 	unitc := make(chan Unit, buffer)
 	offsetc := make(chan []dwarf.Offset, buffer)
-	structc := make(chan []*dwarf.StructType, buffer)
+	structc := make(chan map[string]*dwarf.StructType, buffer)
 	errc := make(chan error)
 
 	go extractCompilationUnits(debugInfo, unitc, errc)
@@ -87,8 +87,8 @@ func parseKernelObject(obj string) (map[string]*dwarf.StructType, error) {
 	result := make(map[string]*dwarf.StructType)
 	go func() {
 		for structs := range structc {
-			for _, str := range structs {
-				result[str.StructName] = str
+			for name, str := range structs {
+				result[name] = str
 			}
 		}
 		errc <- nil
@@ -164,7 +164,7 @@ func extractOffsets(debugInfo *dwarf.Data, unitc chan Unit, offsetc chan []dwarf
 }
 
 func extractStructs(file *elf.File, debugInfo *dwarf.Data, offsetc chan []dwarf.Offset,
-	structc chan []*dwarf.StructType, errc chan error) {
+	structc chan map[string]*dwarf.StructType, errc chan error) {
 	if debugInfo == nil {
 		var err error
 		debugInfo, err = file.DWARF()
@@ -173,11 +173,15 @@ func extractStructs(file *elf.File, debugInfo *dwarf.Data, offsetc chan []dwarf.
 			return
 		}
 	}
-	var structs []*dwarf.StructType
-	appendStruct := func(str *dwarf.StructType) {
-		if str.StructName != "" && str.ByteSize > 0 {
-			structs = append(structs, str)
+	var structs map[string]*dwarf.StructType
+	appendStruct := func(str *dwarf.StructType, name string) {
+		if name == "" || str.ByteSize <= 0 {
+			return
 		}
+		if structs == nil {
+			structs = make(map[string]*dwarf.StructType)
+		}
+		structs[name] = str
 	}
 	for offsets := range offsetc {
 		for _, off := range offsets {
@@ -188,18 +192,18 @@ func extractStructs(file *elf.File, debugInfo *dwarf.Data, offsetc chan []dwarf.
 			}
 			switch typ := typ1.(type) {
 			case *dwarf.StructType:
-				appendStruct(typ)
+				appendStruct(typ, typ.StructName)
 			case *dwarf.TypedefType:
 				if str, ok := typ.Type.(*dwarf.StructType); ok {
-					str.StructName = typ.Name
-					appendStruct(str)
+					appendStruct(str, typ.Name)
 				}
 			default:
 				errc <- fmt.Errorf("got not struct/typedef")
+				return
 			}
 		}
 		structc <- structs
-		structs = make([]*dwarf.StructType, 0, len(structs))
+		structs = nil
 	}
 	errc <- nil
 }

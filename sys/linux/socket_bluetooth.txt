@@ -29,30 +29,6 @@ setsockopt$bt_hci_HCI_TIME_STAMP(fd sock_bt_hci, level const[0], opt const[HCI_T
 setsockopt$bt_hci_HCI_FILTER(fd sock_bt_hci, level const[0], opt const[HCI_FILTER], arg ptr[in, hci_ufilter], arglen len[arg])
 getsockopt$bt_hci(fd sock, level const[0], opt flags[bt_hci_sockopt], arg buffer[out], arglen ptr[inout, len[arg, int32]])
 
-resource fd_vhci[fd]
-openat$vhci(fd const[AT_FDCWD], file ptr[in, string["/dev/vhci"]], flags flags[open_flags]) fd_vhci
-write$vhci(fd fd_vhci, data ptr[in, vhci_command], size bytesize[data])
-
-vhci_command [
-	HCI_EVENT_PKT	vhci_command_generic[HCI_EVENT_PKT]
-	HCI_ACLDATA_PKT	vhci_command_generic[HCI_ACLDATA_PKT]
-	HCI_SCODATA_PKT	vhci_command_generic[HCI_SCODATA_PKT]
-	HCI_VENDOR_PKT	vhci_command_vendor_pkt
-] [varlen]
-
-type vhci_command_generic[CMD] {
-	cmd	const[CMD, int8]
-# TODO: what's the format of these packets? Is there anything interesting?
-	data	array[int8]
-}
-
-vhci_command_vendor_pkt {
-	cmd	const[HCI_VENDOR_PKT, int8]
-	opcode	flags[vhci_vendor_pkt_opcode, int8]
-}
-
-vhci_vendor_pkt_opcode = HCI_PRIMARY, HCI_AMP, HCI_EXTERNAL_CONFIG, HCI_RAW_DEVICE
-
 define HCI_EXTERNAL_CONFIG	0x40
 define HCI_RAW_DEVICE	0x80
 
@@ -181,21 +157,6 @@ bdaddr_fixed {
 bt_security {
 	lev	int8
 	keysize	int8
-}
-
-l2cap_options {
-	omtu	int16
-	imtu	int16
-	flushto	int16
-	mode	int8
-	fcs	int8
-	maxtx	int8
-	txwin	int16
-}
-
-l2cap_conninfo {
-	handle	int16
-	devcls	array[int8, 3]
 }
 
 sockaddr_rc {

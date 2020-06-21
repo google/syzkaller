@@ -187,7 +187,7 @@ var List = map[string]map[string]*Target{
 		},
 		"ppc64le": {
 			PtrSize:          8,
-			PageSize:         4 << 10,
+			PageSize:         64 << 10,
 			CFlags:           []string{"-D__powerpc64__"},
 			Triple:           "powerpc64le-linux-gnu",
 			KernelArch:       "powerpc",
@@ -203,9 +203,12 @@ var List = map[string]map[string]*Target{
 			NeedSyscallDefine: dontNeedSyscallDefine,
 		},
 		"386": {
-			VMArch:            "amd64",
-			PtrSize:           4,
-			PageSize:          4 << 10,
+			VMArch:   "amd64",
+			PtrSize:  4,
+			PageSize: 4 << 10,
+			// The default DataOffset doesn't work with 32-bit
+			// FreeBSD and using ld.lld due to collisions.
+			DataOffset:        256 << 20,
 			Int64Alignment:    4,
 			CCompiler:         "clang",
 			CFlags:            []string{"-m32"},
@@ -391,7 +394,7 @@ func fuchsiaCFlags(arch, clangArch string) []string {
 	out := sourceDirVar + "/out/" + arch
 	return []string{
 		"-Wno-deprecated",
-		"--target", clangArch + "-fuchsia",
+		"-target", clangArch + "-fuchsia",
 		"-ldriver",
 		"-lfdio",
 		"-lzircon",
@@ -447,7 +450,9 @@ func initTarget(target *Target, OS, arch string) {
 	if target.NeedSyscallDefine == nil {
 		target.NeedSyscallDefine = needSyscallDefine
 	}
-	target.DataOffset = 512 << 20
+	if target.DataOffset == 0 {
+		target.DataOffset = 512 << 20
+	}
 	target.NumPages = (16 << 20) / target.PageSize
 	sourceDir := os.Getenv("SOURCEDIR_" + strings.ToUpper(OS))
 	if sourceDir == "" {
@@ -522,9 +527,10 @@ func (target *Target) lazyInit() {
 	}
 	// Only fail on CI for native build.
 	// On CI we want to fail loudly if cross-compilation breaks.
-	if target.OS != runtime.GOOS || !runningOnCI {
+	// Also fail if SOURCEDIR_GOOS is set b/c in that case user probably assumes it will work.
+	if (target.OS != runtime.GOOS || !runningOnCI) && os.Getenv("SOURCEDIR_"+strings.ToUpper(target.OS)) == "" {
 		if _, err := exec.LookPath(target.CCompiler); err != nil {
-			target.BrokenCompiler = fmt.Sprintf("%v is missing", target.CCompiler)
+			target.BrokenCompiler = fmt.Sprintf("%v is missing (%v)", target.CCompiler, err)
 			return
 		}
 	}
@@ -556,7 +562,7 @@ func (target *Target) lazyInit() {
 	//	fatal error: asm/unistd.h: No such file or directory
 	//	fatal error: asm/errno.h: No such file or directory
 	//	collect2: error: ld terminated with signal 11 [Segmentation fault]
-	if runningOnCI {
+	if runningOnCI || os.Getenv("SOURCEDIR_"+strings.ToUpper(target.OS)) != "" {
 		return // On CI all compilers are expected to work, so we don't do the following check.
 	}
 	args := []string{"-x", "c++", "-", "-o", "/dev/null"}

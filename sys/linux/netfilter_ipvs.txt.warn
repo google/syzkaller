@@ -1,3 +1,2 @@
 bad-netlink-attr: ip_vs_svc_policy: missing attributes: [10]
 bad-netlink-attr: ip_vs_dest_policy: missing attributes: [10]
-no-such-struct: ip_vs_svcdest_user

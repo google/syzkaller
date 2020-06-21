@@ -49,7 +49,7 @@ func (ctx *akaros) Symbolize(rep *Report) error {
 	if ctx.objfile == "" {
 		return nil
 	}
-	symb := symbolizer.NewSymbolizer()
+	symb := symbolizer.NewSymbolizer(ctx.config.target)
 	defer symb.Close()
 	var symbolized []byte
 	s := bufio.NewScanner(bytes.NewReader(rep.Report))

@@ -159,7 +159,11 @@ struct usb_qualifier_descriptor {
 
 static int vhci_open(void)
 {
-	return open("/dev/vhci", O_RDWR);
+	char path[1024];
+
+	snprintf(path, sizeof(path), "/dev/vhci%llu", procid);
+
+	return open(path, O_RDWR);
 }
 
 static int vhci_setport(int fd, u_int port)
@@ -214,19 +218,12 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 					  lookup_connect_out_response_t lookup_connect_response_out)
 {
 	struct usb_device_index* index;
-	int portnum, fd, rv;
+	int fd, rv;
 	bool done;
-
-	portnum = procid + 1;
 
 	debug("syz_usb_connect: dev: %p\n", dev);
 	if (!dev) {
 		debug("syz_usb_connect: dev is null\n");
-		return -1;
-	}
-	if (portnum != 1) {
-		/* For now, we support only one proc. */
-		debug("syz_usb_connect: not proc1 %d\n", (int)procid);
 		return -1;
 	}
 
@@ -235,10 +232,8 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 
 	fd = vhci_open();
 	if (fd < 0) {
-		debug("syz_usb_connect: vhci_open failed with %d\n", fd);
-		return -1;
+		fail("syz_usb_connect: vhci_open failed with %d", errno);
 	}
-	debug("syz_usb_connect: vhci_open success\n");
 
 	index = add_usb_index(fd, dev, dev_len);
 	if (!index) {
@@ -251,12 +246,10 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 	NONFAILING(analyze_usb_device(index));
 #endif
 
-	rv = vhci_setport(fd, portnum);
+	rv = vhci_setport(fd, 1);
 	if (rv != 0) {
-		debug("syz_usb_connect: vhci_setport failed with %d\n", rv);
-		goto err;
+		fail("syz_usb_connect: vhci_setport failed with %d", errno);
 	}
-	debug("syz_usb_connect: vhci_setport success\n");
 
 	rv = vhci_usb_attach(fd);
 	if (rv != 0) {

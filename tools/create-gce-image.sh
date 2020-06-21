@@ -145,6 +145,10 @@ for i in {0..31}; do
 		sudo tee -a disk.mnt/etc/udev/50-binder.rules
 done
 
+# Add udev rules for custom drivers.
+# Create a /dev/vim2m symlink for the device managed by the vim2m driver
+echo 'ATTR{name}=="vim2m", SYMLINK+="vim2m"' | sudo tee -a disk.mnt/etc/udev/rules.d/50-udev-default.rules
+
 # sysctls
 echo "kernel.printk = 7 4 1 3" | sudo tee -a disk.mnt/etc/sysctl.conf
 echo "debug.exception-trace = 0" | sudo tee -a disk.mnt/etc/sysctl.conf

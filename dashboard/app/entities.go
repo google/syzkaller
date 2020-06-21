@@ -206,7 +206,7 @@ const (
 	BisectResultMerge JobFlags = 1 << iota
 	BisectResultNoop
 	BisectResultRelease
-	BisectResultBlacklist
+	BisectResultIgnore
 )
 
 func (job *Job) isUnreliableBisect() bool {
@@ -218,7 +218,7 @@ func (job *Job) isUnreliableBisect() bool {
 	return job.Flags&BisectResultMerge != 0 ||
 		job.Flags&BisectResultNoop != 0 ||
 		job.Flags&BisectResultRelease != 0 ||
-		job.Flags&BisectResultBlacklist != 0
+		job.Flags&BisectResultIgnore != 0
 }
 
 // Text holds text blobs (crash logs, reports, reproducers, etc).

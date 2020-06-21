@@ -1,6 +1,5 @@
 bad-field-number: sockaddr_in: syz=3 kernel=4
 no-such-struct: sockaddr_storage_in
-no-such-struct: ip_mreq
 no-such-struct: group_req_in
 no-such-struct: group_source_req_in
 no-such-struct: rtentry_in

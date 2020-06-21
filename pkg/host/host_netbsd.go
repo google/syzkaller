@@ -23,10 +23,18 @@ func init() {
 	checkFeature[FeatureComparisons] = unconditionallyEnabled
 	checkFeature[FeatureUSBEmulation] = checkUSBEmulation
 	checkFeature[FeatureExtraCoverage] = checkUSBEmulation
+	checkFeature[FeatureFault] = checkFault
 }
 
 func checkUSBEmulation() string {
-	if err := osutil.IsAccessible("/dev/vhci"); err != nil {
+	if err := osutil.IsAccessible("/dev/vhci0"); err != nil {
+		return err.Error()
+	}
+	return ""
+}
+
+func checkFault() string {
+	if err := osutil.IsAccessible("/dev/fault"); err != nil {
 		return err.Error()
 	}
 	return ""

@@ -215,7 +215,9 @@ func (inst *instance) runscCmd(add ...string) *exec.Cmd {
 		"-watchdog-action=panic",
 		"-network=none",
 		"-debug",
-		"-alsologtostderr",
+		// Send debug logs to stderr, so that they will be picked up by
+		// syzkaller. Without this, debug logs are sent to /dev/null.
+		"-debug-log=/dev/stderr",
 	}
 	if inst.cfg.RunscArgs != "" {
 		args = append(args, strings.Split(inst.cfg.RunscArgs, " ")...)

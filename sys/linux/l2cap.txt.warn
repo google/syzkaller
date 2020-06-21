@@ -1,0 +1,4 @@
+no-such-struct: l2cap_cmd_hdr_t
+bad-struct-size: l2cap_conninfo: syz=5 kernel=6
+bad-struct-size: l2cap_options: syz=11 kernel=12
+bad-field-offset: l2cap_options.txwin_size: syz=9 kernel=10

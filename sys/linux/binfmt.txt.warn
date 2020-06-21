@@ -1,3 +1,2 @@
 no-such-struct: exec
 no-such-struct: elf_hdr
-no-such-struct: elf64_phdr [386,arm]

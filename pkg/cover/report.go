@@ -52,7 +52,7 @@ func MakeReportGenerator(target *targets.Target, kernelObject, srcDir, buildDir 
 	errc := make(chan error)
 	go func() {
 		var err error
-		rg.symbols, err = readSymbols(kernelObject)
+		rg.symbols, err = readSymbols(target, kernelObject)
 		errc <- err
 	}()
 	frames, err := objdumpAndSymbolize(target, kernelObject)
@@ -317,8 +317,9 @@ func (rg *ReportGenerator) findSymbol(pc uint64) uint64 {
 	return s.start
 }
 
-func readSymbols(obj string) ([]symbol, error) {
-	raw, err := symbolizer.ReadTextSymbols(obj)
+func readSymbols(target *targets.Target, obj string) ([]symbol, error) {
+	symb := symbolizer.NewSymbolizer(target)
+	raw, err := symb.ReadTextSymbols(obj)
 	if err != nil {
 		return nil, fmt.Errorf("failed to run nm on %v: %v", obj, err)
 	}
@@ -344,7 +345,7 @@ func objdumpAndSymbolize(target *targets.Target, obj string) ([]symbolizer.Frame
 	pcchan := make(chan []uint64, 10)
 	var frames []symbolizer.Frame
 	go func() {
-		symb := symbolizer.NewSymbolizer()
+		symb := symbolizer.NewSymbolizer(target)
 		defer symb.Close()
 		var err error
 		for pcs := range pcchan {
@@ -510,7 +511,10 @@ func archCallInsn(target *targets.Target) ([][]byte, [][]byte) {
 		// c00000000006d904:       bl      c000000000350780 <.__sanitizer_cov_trace_pc>
 		// This is only known to occur in the test:
 		// 838:   bl      824 <__sanitizer_cov_trace_pc+0x8>
+		// This occurs on PPC64LE:
+		// c0000000001c21a8:       bl      c0000000002df4a0 <__sanitizer_cov_trace_pc>
 		return [][]byte{[]byte("\tbl ")}, [][]byte{
+			[]byte("<__sanitizer_cov_trace_pc>"),
 			[]byte("<__sanitizer_cov_trace_pc+0x8>"),
 			[]byte(" <.__sanitizer_cov_trace_pc>"),
 		}

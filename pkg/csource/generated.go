@@ -206,7 +206,7 @@ static void remove_dir(const char* dir)
 #endif
 #endif
 
-#if !GOOS_linux
+#if !GOOS_linux && !GOOS_netbsd
 #if SYZ_EXECUTOR
 static int inject_fault(int nth)
 {
@@ -354,7 +354,7 @@ static void csum_inet_update(struct csum_inet* csum, const uint8* data, size_t l
 		csum->acc += *(uint16*)&data[i];
 
 	if (length & 1)
-		csum->acc += (uint16)data[length - 1];
+		csum->acc += le16toh((uint16)data[length - 1]);
 
 	while (csum->acc > 0xffff)
 		csum->acc = (csum->acc & 0xffff) + (csum->acc >> 16);
@@ -410,6 +410,7 @@ void child()
 #include <sys/syscall.h>
 
 #if GOOS_netbsd
+
 #if SYZ_EXECUTOR || __NR_syz_usb_connect
 
 #include <dev/usb/usb.h>
@@ -1341,7 +1342,11 @@ static bool lookup_control_response(const struct vusb_descriptors* descs, const 
 
 static int vhci_open(void)
 {
-	return open("/dev/vhci", O_RDWR);
+	char path[1024];
+
+	snprintf(path, sizeof(path), "/dev/vhci%llu", procid);
+
+	return open(path, O_RDWR);
 }
 
 static int vhci_setport(int fd, u_int port)
@@ -1396,19 +1401,12 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 					  lookup_connect_out_response_t lookup_connect_response_out)
 {
 	struct usb_device_index* index;
-	int portnum, fd, rv;
+	int fd, rv;
 	bool done;
-
-	portnum = procid + 1;
 
 	debug("syz_usb_connect: dev: %p\n", dev);
 	if (!dev) {
 		debug("syz_usb_connect: dev is null\n");
-		return -1;
-	}
-	if (portnum != 1) {
-		/* For now, we support only one proc. */
-		debug("syz_usb_connect: not proc1 %d\n", (int)procid);
 		return -1;
 	}
 
@@ -1417,10 +1415,8 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 
 	fd = vhci_open();
 	if (fd < 0) {
-		debug("syz_usb_connect: vhci_open failed with %d\n", fd);
-		return -1;
+		fail("syz_usb_connect: vhci_open failed with %d", errno);
 	}
-	debug("syz_usb_connect: vhci_open success\n");
 
 	index = add_usb_index(fd, dev, dev_len);
 	if (!index) {
@@ -1433,12 +1429,10 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 	NONFAILING(analyze_usb_device(index));
 #endif
 
-	rv = vhci_setport(fd, portnum);
+	rv = vhci_setport(fd, 1);
 	if (rv != 0) {
-		debug("syz_usb_connect: vhci_setport failed with %d\n", rv);
-		goto err;
+		fail("syz_usb_connect: vhci_setport failed with %d", errno);
 	}
-	debug("syz_usb_connect: vhci_setport success\n");
 
 	rv = vhci_usb_attach(fd);
 	if (rv != 0) {
@@ -1562,12 +1556,78 @@ static volatile long syz_usb_disconnect(volatile long a0)
 
 #endif
 #if SYZ_EXECUTOR || SYZ_USB
+#include <dirent.h>
 static void setup_usb(void)
 {
-	if (chmod("/dev/vhci", 0666))
-		fail("failed to chmod /dev/vhci");
+	struct dirent* ent;
+	char path[1024];
+	DIR* dir;
+
+	dir = opendir("/dev");
+	if (dir == NULL)
+		fail("failed to open /dev");
+
+	while ((ent = readdir(dir)) != NULL) {
+		if (ent->d_type != DT_CHR)
+			continue;
+		if (strncmp(ent->d_name, "vhci", 4))
+			continue;
+		snprintf(path, sizeof(path), "/dev/%s", ent->d_name);
+		if (chmod(path, 0666))
+			fail("failed to chmod %s", path);
+	}
+
+	closedir(dir);
 }
 #endif
+
+#if SYZ_EXECUTOR || SYZ_FAULT
+#include <fcntl.h>
+#include <sys/fault.h>
+static void setup_fault(void)
+{
+	if (chmod("/dev/fault", 0666))
+		fail("failed to chmod /dev/fault");
+}
+static int inject_fault(int nth)
+{
+	struct fault_ioc_enable en;
+	int fd;
+
+	fd = open("/dev/fault", O_RDWR);
+	if (fd == -1)
+		fail("failed to open /dev/fault");
+
+	en.scope = FAULT_SCOPE_LWP;
+	en.mode = FAULT_MODE_NTH;
+	en.nth = nth;
+	if (ioctl(fd, FAULT_IOC_ENABLE, &en) != 0)
+		fail("FAULT_IOC_ENABLE failed with nth=%d", nth);
+
+	return fd;
+}
+#endif
+#if SYZ_EXECUTOR
+static int fault_injected(int fd)
+{
+	struct fault_ioc_getinfo info;
+	struct fault_ioc_disable dis;
+	int res;
+
+	if (ioctl(fd, FAULT_IOC_GETINFO, &info) != 0)
+		fail("FAULT_IOC_GETINFO failed");
+	res = (info.nfaults > 0);
+
+	dis.scope = FAULT_SCOPE_LWP;
+	if (ioctl(fd, FAULT_IOC_DISABLE, &dis) != 0)
+		fail("FAULT_IOC_DISABLE failed");
+
+	close(fd);
+
+	return res;
+}
+#endif
+
 #endif
 
 #if GOOS_openbsd
@@ -8283,15 +8343,16 @@ static void setup_kcsan()
 }
 
 #if SYZ_EXECUTOR
-static void setup_kcsan_filterlist(char** frames, int nframes, bool blacklist)
+static void setup_kcsan_filterlist(char** frames, int nframes, bool suppress)
 {
 	int fd = open(KCSAN_DEBUGFS_FILE, O_WRONLY);
 	if (fd == -1)
 		fail("failed to open(\"%s\")", KCSAN_DEBUGFS_FILE);
 
-	const char* const filtertype = blacklist ? "blacklist" : "whitelist";
-	printf("adding functions to KCSAN %s: ", filtertype);
-	dprintf(fd, "%s\n", filtertype);
+	printf("%s KCSAN reports in functions: ",
+	       suppress ? "suppressing" : "only showing");
+	if (!suppress)
+		dprintf(fd, "whitelist\n");
 	for (int i = 0; i < nframes; ++i) {
 		printf("'%s' ", frames[i]);
 		dprintf(fd, "!%s\n", frames[i]);

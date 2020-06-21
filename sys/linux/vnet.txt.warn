@@ -1,6 +1,7 @@
 no-such-struct: vnet_fragmentation
 no-such-struct: tcp_resources
-no-such-struct: mac_addr_t
+bad-field-number: mac_addr_t: syz=2 kernel=1
+bad-field-size: mac_addr_t.a0/mac_addr_value: syz=5 kernel=6
 no-such-struct: mac_addr_link_local
 no-such-struct: vlan_tag_ad
 no-such-struct: vlan_tag_q

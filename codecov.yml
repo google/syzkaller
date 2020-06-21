@@ -14,8 +14,7 @@ coverage:
   status:
     project:
       default:
-        target: 50%
-        threshold: 0.1%
+        informational: true
 
 comment:
   layout: "files"

@@ -279,7 +279,8 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.P
 	}
 	for _, call := range p.Calls {
 		if !proc.fuzzer.choiceTable.Enabled(call.Meta.ID) {
-			panic(fmt.Sprintf("executing disabled syscall %v", call.Meta.Name))
+			fmt.Printf("executing disabled syscall %v", call.Meta.Name)
+			panic("disabled syscall")
 		}
 	}
 

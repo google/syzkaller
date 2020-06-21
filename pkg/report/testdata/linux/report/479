@@ -1,4 +1,5 @@
-TITLE: BUG: unable to handle kernel paging request in nf_tables_newflowtable
+TITLE: BUG: unable to handle kernel paging request in corrupted
+CORRUPTED: Y
 
 [  490.564553][T16898] BUG: unable to handle page fault for address: 0000000000ffff88
 [  490.572415][T16898] #PF: supervisor read access in kernel mode
