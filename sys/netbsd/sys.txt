@@ -62,7 +62,7 @@ compat_50_utimes(filename ptr[in, filename], times ptr[in, timeval50])
 compat_50_futimes(fd fd, times ptr[in, timeval50])
 compat_50_lutimes(link ptr[in, filename], times ptr[in, timeval50])
 __utimes50(filename ptr[in, filename], times ptr[in, timeval])
-__futimes50(fd fd, times ptr[in, timeval50])
+__futimes50(fd fd, times ptr[in, timeval])
 __lutimes50(link ptr[in, filename], times ptr[in, timeval])
 utimensat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval], flags flags[utimensat_flags])
 
@@ -89,7 +89,7 @@ __getlogin(buf buffer[out], size len[buf])
 getsid(pid pid) pid
 #__setlogin(buf buffer[in])		#Unsure about effects on test process
 #setsid() pid		#Unsure about effects on test process
-setpriority(which flags[priority_which], who pid, prio intptr)
+setpriority(which flags[priority_which], who pid, prio int32)
 getpriority(which flags[priority_which], who pid)
 
 link(old ptr[in, filename], new ptr[in, filename])
@@ -111,8 +111,8 @@ flock(fd fd, op flags[flock_op])
 fsync(fd fd)
 fdatasync(fd fd)
 sync()
-compat_30_getdents(fd fd_dir, ent buffer[out], count len[ent])
-__getdents30(fd fd_dir, ent buffer[out], count len[ent])
+compat_30_getdents(fd fd_dir, ent buffer[out], count int32)
+__getdents30(fd fd_dir, ent buffer[out], count int32)
 chroot(dir ptr[in, filename])
 __getcwd(buf buffer[out], size len[buf])
 fchroot(fd fd)
@@ -301,7 +301,7 @@ sched_param {
 }
 
 pollfd_events = POLLIN, POLLPRI, POLLOUT, POLLERR, POLLHUP, POLLNVAL, POLLRDNORM, POLLRDBAND, POLLWRNORM, POLLWRBAND
-mknod_mode = S_IFREG, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
+mknod_mode = S_IFREG, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 at_flags = AT_SYMLINK_NOFOLLOW, AT_SYMLINK_FOLLOW
 access_mode = R_OK, W_OK, X_OK, F_OK
 priority_which = PRIO_PROCESS, PRIO_PGRP, PRIO_USER
