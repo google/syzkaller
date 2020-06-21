@@ -63,7 +63,6 @@ ioctl$FIOGETBMAP(fd fd, cmd const[FIOGETBMAP], arg ptr[inout, int64])
 ioctl$FIONWRITE(fd fd, cmd const[FIONWRITE], arg ptr[out, int32])
 ioctl$FIONSPACE(fd fd, cmd const[FIONSPACE], arg ptr[out, int32])
 
-
 compat_50_mknod(file ptr[in, filename], mode flags[mknod_mode], dev int32)
 mknod(file ptr[in, filename], mode flags[mknod_mode], dev dev)
 mknod$loop(file ptr[in, filename], mode flags[mknod_mode], dev proc[1792, 2])
