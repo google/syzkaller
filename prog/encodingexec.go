@@ -275,6 +275,7 @@ func (w *execContext) writeArg(arg Arg) {
 			w.eof = true
 		} else {
 			copy(w.buf, data)
+			copy(w.buf[len(data):], make([]byte, 8))
 			w.buf = w.buf[padded:]
 		}
 	case *UnionArg:
