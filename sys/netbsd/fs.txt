@@ -2,7 +2,11 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 include <sys/types.h>
+include <sys/fstypes.h>
+include <sys/mount.h>
+include <sys/param.h>
 include <sys/stat.h>
+include <sys/ucred.h>
 include <fcntl.h>
 include <unistd.h>
 
@@ -36,7 +40,10 @@ lseek(fd fd, pad const[0], offset fileoff, whence flags[seek_whence])
 compat_43_olseek(fd fd, offset fileoff[int64], whence flags[seek_whence])
 dup(oldfd fd) fd
 dup2(oldfd fd, newfd fd) fd
+dup3(oldfd fd, newfd fd, flags flags[dup_flags]) fd
 pipe2(pipefd ptr[out, pipefd], flags flags[pipe_flags])
+
+compat_20_getfsstat(buf ptr[out, statfs12], size intptr, f flags[getfsstat_flags])
 
 pipefd {
 	rfd	fd
@@ -74,6 +81,26 @@ stat {
 	spare2		int32
 }
 
+stat12 {
+	dev	int32
+	ino	int32
+	mode	int16
+	nlink	int16
+	uid	uid
+	gid	gid
+	rdev	int32
+	atim	timespec50
+	mtim	timespec50
+	ctim	timespec50
+	size	int32
+	blocks	int64
+	blksize	int32
+	flags	int32
+	gen	int32
+	lspare	int32
+	qspare	array[int64, 2]
+}
+
 stat43 {
 	dev	int16
 	ino	int32
@@ -92,7 +119,37 @@ stat43 {
 	gen	int32
 }
 
+define MFSNAMELEN	16
+define MNAMELEN	90
+
+statfs12 {
+	type		int16
+	oflags		int16
+	bsize		intptr
+	iosize		intptr
+	blocks		intptr
+	bfree		intptr
+	bavail		intptr
+	files		intptr
+	ffree		intptr
+	fsid		fsid_t
+	owner		uid
+	flags		flags[statfs_flags, intptr]
+	swrites		intptr
+	aswrites	intptr
+	spare		array[intptr, 1]
+	fstype		array[int8, MFSNAMELEN]
+	mnton		array[int8, MNAMELEN]
+	mntfrom		array[int8, MNAMELEN]
+}
+
+fsid_t {
+	val	array[int32, 2]
+}
+
 open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, O_CREAT, O_TRUNC, O_EXCL, O_SHLOCK, O_EXLOCK, O_NOFOLLOW, O_CLOEXEC, O_NOSIGPIPE, O_DSYNC, O_SYNC, O_RSYNC, O_ALT_IO, O_NOCTTY, O_DIRECT, O_DIRECTORY, O_ASYNC
 open_mode = S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 seek_whence = SEEK_SET, SEEK_CUR, SEEK_END
 pipe_flags = O_NONBLOCK, O_CLOEXEC, O_NOSIGPIPE
+statfs_flags = MNT_RDONLY, MNT_NOEXEC, MNT_NOSUID, MNT_NODEV, MNT_SYNCHRONOUS, MNT_ASYNC, MNT_UNION, MNT_NOCOREDUMP, MNT_SYMPERM, MNT_NODEVMTIME, MNT_SOFTDEP, MNT_LOCAL, MNT_QUOTA, MNT_ROOTFS, MNT_EXRDONLY, MNT_EXPORTED, MNT_DEFEXPORTED, MNT_EXPORTANON, MNT_EXKERB, MNT_EXNORESPORT, MNT_EXPUBLIC
+getfsstat_flags = MNT_NOWAIT, MNT_WAIT

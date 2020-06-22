@@ -25,12 +25,17 @@ syz_execute_func(text ptr[in, text[target]])
 
 pipe(pipefd ptr[out, pipefd])
 
+compat_12_stat12(file ptr[in, filename], ub ptr[out, stat12])
 compat_43_stat43(file ptr[in, filename], ua ptr[out, stat43])
 __stat50(file ptr[in, filename], ua ptr[out, stat])
+compat_12_lstat12(file ptr[in, filename], ub ptr[out, stat12])
 compat_43_lstat43(file ptr[in, filename], ua ptr[out, stat43])
 __lstat50(file ptr[in, filename], ua ptr[out, stat])
+compat_12_fstat12(fd fd, sb ptr[out, stat12])
 compat_43_fstat43(fd fd, sb ptr[out, stat43])
 __fstat50(fd fd, sb ptr[out, stat])
+compat_20_statfs(path ptr[in, filename], buf ptr[out, statfs12])
+compat_20_fstatfs(fd fd, buf ptr[out, statfs12])
 profil(samples buffer[inout], size len[samples], offt intptr, scale int32)
 
 compat_12_msync(addr vma, len int32)
@@ -165,7 +170,6 @@ __nanosleep50(rqtp ptr[in, timespec], rmtp ptr[out, timespec, opt])
 compat_50_wait4(pid pid, status ptr[out, int32, opt], options flags[wait_options], ru ptr[out, rusage50, opt])
 __wait450(pid pid, status ptr[out, int32, opt], options flags[wait_options], ru ptr[out, rusage, opt])
 
-dup3(oldfd fd, newfd fd, flags flags[dup_flags]) fd
 exit(code intptr)
 ptrace(request intptr, pid pid, addr ptr[out, intptr], data intptr)
 __clone(flags flags[clone_flags], sp buffer[in]) pid
