@@ -1,0 +1,32 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/socket.h>
+include <linux/net.h>
+include <asm/ioctls.h>
+include <linux/qrtr.h>
+
+# QIPCRTR sockets
+
+resource sock_qrtr[sock]
+
+sockaddr_qrtr {
+	sq_family	const[AF_QIPCRTR, int16]
+	sq_node		int32
+	sq_port		int32
+}
+
+socket$qrtr(domain const[AF_QIPCRTR], type const[SOCK_DGRAM], proto const[0]) sock_qrtr
+
+bind$qrtr(fd sock_qrtr, addr ptr[in, sockaddr_qrtr], addrlen len[addr])
+connect$qrtr(fd sock_qrtr, addr ptr[in, sockaddr_qrtr], addrlen len[addr])
+
+getsockname$qrtr(fd sock_qrtr, addr ptr[out, sockaddr_qrtr], addrlen ptr[inout, len[addr, int32]])
+getpeername$qrtr(fd sock_qrtr, peer ptr[out, sockaddr_qrtr], peerlen ptr[inout, len[peer, int32]])
+
+# ioctls
+ioctl$sock_qrtr_TIOCOUTQ(fd sock_qrtr, cmd const[TIOCOUTQ], arg ptr[out, int64])
+ioctl$sock_qrtr_TIOCINQ(fd sock_qrtr, cmd const[TIOCINQ], arg ptr[out, int64])
+ioctl$sock_qrtr_SIOCGIFADDR(fd sock_qrtr, cmd const[SIOCGIFADDR], arg ptr[inout, ifreq_t[sockaddr_qrtr]])
+
+# TODO: sendmsg$qrtr, recvmsg$qrtr, msghdr_qrtr
