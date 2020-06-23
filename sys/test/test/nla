@@ -1,3 +1,5 @@
+# requires: littleendian
+
 syz_compare(&AUTO="0500aa0055000000", AUTO, &AUTO=@nla=[@a0={AUTO, AUTO, 0x55, ''}], AUTO)
 syz_compare(&AUTO="0600bb0055550000", AUTO, &AUTO=@nla=[@a1={AUTO, AUTO, 0x5555, ''}], AUTO)
 syz_compare(&AUTO="0800cc0055555555", AUTO, &AUTO=@nla=[@a2={AUTO, AUTO, 0x55555555, ''}], AUTO)

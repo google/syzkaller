@@ -200,6 +200,7 @@ nextSandbox:
 		properties := map[string]bool{
 			"arch=" + ctx.Target.Arch: true,
 			"sandbox=" + sandbox:      true,
+			"littleendian":            ctx.Target.LittleEndian,
 		}
 		for _, threaded := range []bool{false, true} {
 			name := name

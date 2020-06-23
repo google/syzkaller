@@ -4,6 +4,7 @@
 package targets
 
 import (
+	"encoding/binary"
 	"fmt"
 	"os"
 	"os/exec"
@@ -23,6 +24,7 @@ type Target struct {
 	NumPages         uint64
 	DataOffset       uint64
 	Int64Alignment   uint64
+	LittleEndian     bool
 	CFlags           []string
 	Triple           string
 	CCompiler        string
@@ -34,6 +36,7 @@ type Target struct {
 	BrokenCompiler   string
 	// NeedSyscallDefine is used by csource package to decide when to emit __NR_* defines.
 	NeedSyscallDefine func(nr uint64) bool
+	HostEndian        binary.ByteOrder
 }
 
 type osCommon struct {
@@ -140,6 +143,7 @@ var List = map[string]map[string]*Target{
 		"amd64": {
 			PtrSize:          8,
 			PageSize:         4 << 10,
+			LittleEndian:     true,
 			CFlags:           []string{"-m64"},
 			Triple:           "x86_64-linux-gnu",
 			KernelArch:       "x86_64",
@@ -155,6 +159,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:          4,
 			PageSize:         4 << 10,
 			Int64Alignment:   4,
+			LittleEndian:     true,
 			CFlags:           []string{"-m32"},
 			Triple:           "x86_64-linux-gnu",
 			KernelArch:       "i386",
@@ -163,6 +168,7 @@ var List = map[string]map[string]*Target{
 		"arm64": {
 			PtrSize:          8,
 			PageSize:         4 << 10,
+			LittleEndian:     true,
 			Triple:           "aarch64-linux-gnu",
 			KernelArch:       "arm64",
 			KernelHeaderArch: "arm64",
@@ -171,6 +177,7 @@ var List = map[string]map[string]*Target{
 			VMArch:           "arm64",
 			PtrSize:          4,
 			PageSize:         4 << 10,
+			LittleEndian:     true,
 			CFlags:           []string{"-D__LINUX_ARM_ARCH__=6", "-march=armv6"},
 			Triple:           "arm-linux-gnueabi",
 			KernelArch:       "arm",
@@ -180,6 +187,7 @@ var List = map[string]map[string]*Target{
 			VMArch:           "mips64le",
 			PtrSize:          8,
 			PageSize:         4 << 10,
+			LittleEndian:     true,
 			CFlags:           []string{"-march=mips64r2", "-mabi=64", "-EL"},
 			Triple:           "mips64el-linux-gnuabi64",
 			KernelArch:       "mips",
@@ -188,6 +196,7 @@ var List = map[string]map[string]*Target{
 		"ppc64le": {
 			PtrSize:          8,
 			PageSize:         64 << 10,
+			LittleEndian:     true,
 			CFlags:           []string{"-D__powerpc64__"},
 			Triple:           "powerpc64le-linux-gnu",
 			KernelArch:       "powerpc",
@@ -198,6 +207,7 @@ var List = map[string]map[string]*Target{
 		"amd64": {
 			PtrSize:           8,
 			PageSize:          4 << 10,
+			LittleEndian:      true,
 			CCompiler:         "clang",
 			CFlags:            []string{"-m64"},
 			NeedSyscallDefine: dontNeedSyscallDefine,
@@ -210,6 +220,7 @@ var List = map[string]map[string]*Target{
 			// FreeBSD and using ld.lld due to collisions.
 			DataOffset:        256 << 20,
 			Int64Alignment:    4,
+			LittleEndian:      true,
 			CCompiler:         "clang",
 			CFlags:            []string{"-m32"},
 			NeedSyscallDefine: dontNeedSyscallDefine,
@@ -217,8 +228,9 @@ var List = map[string]map[string]*Target{
 	},
 	"netbsd": {
 		"amd64": {
-			PtrSize:  8,
-			PageSize: 4 << 10,
+			PtrSize:      8,
+			PageSize:     4 << 10,
+			LittleEndian: true,
 			CFlags: []string{
 				"-m64",
 				"-static",
@@ -229,10 +241,11 @@ var List = map[string]map[string]*Target{
 	},
 	"openbsd": {
 		"amd64": {
-			PtrSize:   8,
-			PageSize:  4 << 10,
-			CCompiler: "c++",
-			CFlags:    []string{"-m64", "-static", "-lutil"},
+			PtrSize:      8,
+			PageSize:     4 << 10,
+			LittleEndian: true,
+			CCompiler:    "c++",
+			CFlags:       []string{"-m64", "-static", "-lutil"},
 			NeedSyscallDefine: func(nr uint64) bool {
 				switch nr {
 				case 8: // SYS___tfork
@@ -264,6 +277,7 @@ var List = map[string]map[string]*Target{
 		"amd64": {
 			PtrSize:          8,
 			PageSize:         4 << 10,
+			LittleEndian:     true,
 			KernelHeaderArch: "x64",
 			CCompiler:        sourceDirVar + "/prebuilt/third_party/clang/linux-x64/bin/clang",
 			Objdump:          sourceDirVar + "/prebuilt/third_party/clang/linux-x64/bin/llvm-objdump",
@@ -272,6 +286,7 @@ var List = map[string]map[string]*Target{
 		"arm64": {
 			PtrSize:          8,
 			PageSize:         4 << 10,
+			LittleEndian:     true,
 			KernelHeaderArch: "arm64",
 			CCompiler:        sourceDirVar + "/prebuilt/third_party/clang/linux-x64/bin/clang",
 			Objdump:          sourceDirVar + "/prebuilt/third_party/clang/linux-x64/bin/llvm-objdump",
@@ -282,13 +297,15 @@ var List = map[string]map[string]*Target{
 		"amd64": {
 			PtrSize: 8,
 			// TODO(dvyukov): what should we do about 4k vs 64k?
-			PageSize: 4 << 10,
+			PageSize:     4 << 10,
+			LittleEndian: true,
 		},
 	},
 	"akaros": {
 		"amd64": {
 			PtrSize:           8,
 			PageSize:          4 << 10,
+			LittleEndian:      true,
 			KernelHeaderArch:  "x86",
 			NeedSyscallDefine: dontNeedSyscallDefine,
 			CCompiler:         sourceDirVar + "/toolchain/x86_64-ucb-akaros-gcc/bin/x86_64-ucb-akaros-g++",
@@ -301,6 +318,7 @@ var List = map[string]map[string]*Target{
 		"arm": {
 			PtrSize:           4,
 			PageSize:          4 << 10,
+			LittleEndian:      true,
 			NeedSyscallDefine: dontNeedSyscallDefine,
 		},
 	},
@@ -507,6 +525,18 @@ func initTarget(target *Target, OS, arch string) {
 	}
 	for _, flags := range [][]string{commonCFlags, target.osCommon.cflags} {
 		target.CFlags = append(target.CFlags, flags...)
+	}
+	if OS == "test" {
+		if runtime.GOARCH != "s390x" {
+			target.LittleEndian = true
+		} else {
+			target.LittleEndian = false
+		}
+	}
+	if target.LittleEndian {
+		target.HostEndian = binary.LittleEndian
+	} else {
+		target.HostEndian = binary.BigEndian
 	}
 }
 
