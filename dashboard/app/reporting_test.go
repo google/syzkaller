@@ -385,6 +385,43 @@ func TestReportingDupCrossReporting(t *testing.T) {
 	c.expectTrue(reply.OK)
 }
 
+// Test that dups can't form a cycle.
+// The test builds cycles of length 1..4.
+func TestReportingDupCycle(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client.UploadBuild(build)
+
+	const N = 4
+	reps := make([]*dashapi.BugReport, N)
+	for i := 0; i < N; i++ {
+		t.Logf("*************** %v ***************", i)
+		c.client.ReportCrash(testCrash(build, i))
+		reps[i] = c.client.pollBug()
+		replyError := "Can't dup bug to itself."
+		if i != 0 {
+			replyError = "Setting this dup would lead to a bug cycle, cycles are not allowed."
+			reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+				Status: dashapi.BugStatusDup,
+				ID:     reps[i-1].ID,
+				DupOf:  reps[i].ID,
+			})
+			c.expectEQ(reply.OK, true)
+		}
+		reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+			Status: dashapi.BugStatusDup,
+			ID:     reps[i].ID,
+			DupOf:  reps[0].ID,
+		})
+		c.expectEQ(reply.OK, false)
+		c.expectEQ(reply.Error, false)
+		c.expectEQ(reply.Text, replyError)
+		c.advanceTime(24 * time.Hour)
+	}
+}
+
 func TestReportingFilter(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()

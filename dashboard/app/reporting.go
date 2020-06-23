@@ -638,20 +638,30 @@ func incomingCommandImpl(c context.Context, cmd *dashapi.BugUpdate) (bool, strin
 	if err != nil {
 		return false, internalError, err
 	}
-	now := timeNow(c)
-	dupHash := ""
+	var dupKey *db.Key
 	if cmd.Status == dashapi.BugStatusDup {
-		dupHash1, ok, reason, err := findDupBug(c, cmd, bug, bugKey)
-		if !ok || err != nil {
-			return ok, reason, err
+		if looksLikeReportingHash(cmd.DupOf) {
+			_, dupKey, _ = findBugByReportingID(c, cmd.DupOf)
 		}
-		dupHash = dupHash1
+		if dupKey == nil {
+			// Email reporting passes bug title in cmd.DupOf, try to find bug by title.
+			var dup *Bug
+			dup, dupKey, err = findDupByTitle(c, bug.Namespace, cmd.DupOf)
+			if err != nil {
+				return false, "can't find the dup bug", err
+			}
+			dupReporting := lastReportedReporting(dup)
+			if dupReporting == nil {
+				return false, "can't find the dup bug", fmt.Errorf("dup does not have reporting")
+			}
+			cmd.DupOf = dupReporting.ID
+		}
 	}
-
+	now := timeNow(c)
 	ok, reply := false, ""
 	tx := func(c context.Context) error {
 		var err error
-		ok, reply, err = incomingCommandTx(c, now, cmd, bugKey, dupHash)
+		ok, reply, err = incomingCommandTx(c, now, cmd, bugKey, dupKey)
 		return err
 	}
 	err = db.RunInTransaction(c, tx, &db.TransactionOptions{
@@ -667,54 +677,46 @@ func incomingCommandImpl(c context.Context, cmd *dashapi.BugUpdate) (bool, strin
 	return ok, reply, nil
 }
 
-func findDupBug(c context.Context, cmd *dashapi.BugUpdate, bug *Bug, bugKey *db.Key) (
-	string, bool, string, error) {
-	bugReporting, _ := bugReportingByID(bug, cmd.ID)
-	dup, dupKey, err := findBugByReportingID(c, cmd.DupOf)
-	if err != nil {
-		// Email reporting passes bug title in cmd.DupOf, try to find bug by title.
-		dup, dupKey, err = findDupByTitle(c, bug.Namespace, cmd.DupOf)
-		if err != nil {
-			return "", false, "can't find the dup bug", err
-		}
-		dupReporting := lastReportedReporting(dup)
-		if dupReporting == nil {
-			return "", false, "can't find the dup bug",
-				fmt.Errorf("dup does not have reporting %q", bugReporting.Name)
-		}
-		cmd.DupOf = dupReporting.ID
+func checkDupBug(c context.Context, cmd *dashapi.BugUpdate, bug *Bug, bugKey, dupKey *db.Key) (
+	*Bug, bool, string, error) {
+	dup := new(Bug)
+	if err := db.Get(c, dupKey, dup); err != nil {
+		return nil, false, internalError, fmt.Errorf("can't find the dup by key: %v", err)
 	}
+	bugReporting, _ := bugReportingByID(bug, cmd.ID)
 	dupReporting, _ := bugReportingByID(dup, cmd.DupOf)
 	if bugReporting == nil || dupReporting == nil {
-		return "", false, internalError, fmt.Errorf("can't find bug reporting")
+		return nil, false, internalError, fmt.Errorf("can't find bug reporting")
 	}
 	if bugKey.StringID() == dupKey.StringID() {
 		if bugReporting.Name == dupReporting.Name {
-			return "", false, "Can't dup bug to itself.", nil
+			return nil, false, "Can't dup bug to itself.", nil
 		}
-		return "", false, fmt.Sprintf("Can't dup bug to itself in different reporting (%v->%v).\n"+
+		return nil, false, fmt.Sprintf("Can't dup bug to itself in different reporting (%v->%v).\n"+
 			"Please dup syzbot bugs only onto syzbot bugs for the same kernel/reporting.",
 			bugReporting.Name, dupReporting.Name), nil
 	}
 	if bug.Namespace != dup.Namespace {
-		return "", false, fmt.Sprintf("Duplicate bug corresponds to a different kernel (%v->%v).\n"+
+		return nil, false, fmt.Sprintf("Duplicate bug corresponds to a different kernel (%v->%v).\n"+
 			"Please dup syzbot bugs only onto syzbot bugs for the same kernel.",
 			bug.Namespace, dup.Namespace), nil
 	}
 	if !allowCrossReportingDup(c, bug, dup, bugReporting, dupReporting) {
-		return "", false, fmt.Sprintf("Can't dup bug to a bug in different reporting (%v->%v)."+
+		return nil, false, fmt.Sprintf("Can't dup bug to a bug in different reporting (%v->%v)."+
 			"Please dup syzbot bugs only onto syzbot bugs for the same kernel/reporting.",
 			bugReporting.Name, dupReporting.Name), nil
 	}
 	dupCanon, err := canonicalBug(c, dup)
 	if err != nil {
-		return "", false, internalError, fmt.Errorf("failed to get canonical bug for dup: %v", err)
+		return nil, false, internalError, fmt.Errorf("failed to get canonical bug for dup: %v", err)
 	}
 	if !dupReporting.Closed.IsZero() && dupCanon.Status == BugStatusOpen {
-		return "", false, "Dup bug is already upstreamed.", nil
+		return nil, false, "Dup bug is already upstreamed.", nil
 	}
-	dupHash := dup.keyHash()
-	return dupHash, true, "", nil
+	if dupCanon.keyHash() == bugKey.StringID() {
+		return nil, false, "Setting this dup would lead to a bug cycle, cycles are not allowed.", nil
+	}
+	return dup, true, "", nil
 }
 
 func allowCrossReportingDup(c context.Context, bug, dup *Bug,
@@ -752,12 +754,39 @@ func getReportingIdx(c context.Context, bug *Bug, bugReporting *BugReporting) in
 	return -1
 }
 
-func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
-	bugKey *db.Key, dupHash string) (bool, string, error) {
+func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate, bugKey, dupKey *db.Key) (
+	bool, string, error) {
 	bug := new(Bug)
 	if err := db.Get(c, bugKey, bug); err != nil {
 		return false, internalError, fmt.Errorf("can't find the corresponding bug: %v", err)
 	}
+	var dup *Bug
+	if cmd.Status == dashapi.BugStatusDup {
+		dup1, ok, reason, err := checkDupBug(c, cmd, bug, bugKey, dupKey)
+		if !ok || err != nil {
+			return ok, reason, err
+		}
+		dup = dup1
+	}
+	state, err := loadReportingState(c)
+	if err != nil {
+		return false, internalError, err
+	}
+	ok, reason, err := incomingCommandUpdate(c, now, cmd, bugKey, bug, dup, state)
+	if !ok || err != nil {
+		return ok, reason, err
+	}
+	if _, err := db.Put(c, bugKey, bug); err != nil {
+		return false, internalError, fmt.Errorf("failed to put bug: %v", err)
+	}
+	if err := saveReportingState(c, state); err != nil {
+		return false, internalError, err
+	}
+	return true, "", nil
+}
+
+func incomingCommandUpdate(c context.Context, now time.Time, cmd *dashapi.BugUpdate, bugKey *db.Key,
+	bug, dup *Bug, state *ReportingState) (bool, string, error) {
 	bugReporting, final := bugReportingByID(bug, cmd.ID)
 	if bugReporting == nil {
 		return false, internalError, fmt.Errorf("can't find bug reporting")
@@ -765,12 +794,8 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 	if ok, reply, err := checkBugStatus(c, cmd, bug, bugReporting); !ok {
 		return false, reply, err
 	}
-	state, err := loadReportingState(c)
-	if err != nil {
-		return false, internalError, err
-	}
 	stateEnt := state.getEntry(now, bug.Namespace, bugReporting.Name)
-	if ok, reply, err := incomingCommandCmd(c, now, cmd, bug, bugReporting, final, dupHash, stateEnt); !ok {
+	if ok, reply, err := incomingCommandCmd(c, now, cmd, bug, dup, bugReporting, final, stateEnt); !ok {
 		return false, reply, err
 	}
 	if len(cmd.FixCommits) != 0 && (bug.Status == BugStatusOpen || bug.Status == BugStatusDup) {
@@ -806,18 +831,11 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 		bugReporting.OnHold = time.Time{}
 	}
 	bug.LastActivity = now
-	if _, err := db.Put(c, bugKey, bug); err != nil {
-		return false, internalError, fmt.Errorf("failed to put bug: %v", err)
-	}
-	if err := saveReportingState(c, state); err != nil {
-		return false, internalError, err
-	}
 	return true, "", nil
 }
 
-func incomingCommandCmd(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
-	bug *Bug, bugReporting *BugReporting, final bool, dupHash string,
-	stateEnt *ReportingStateEntry) (bool, string, error) {
+func incomingCommandCmd(c context.Context, now time.Time, cmd *dashapi.BugUpdate, bug, dup *Bug,
+	bugReporting *BugReporting, final bool, stateEnt *ReportingStateEntry) (bool, string, error) {
 	switch cmd.Status {
 	case dashapi.BugStatusOpen:
 		bug.Status = BugStatusOpen
@@ -865,7 +883,7 @@ func incomingCommandCmd(c context.Context, now time.Time, cmd *dashapi.BugUpdate
 	case dashapi.BugStatusDup:
 		bug.Status = BugStatusDup
 		bug.Closed = now
-		bug.DupOf = dupHash
+		bug.DupOf = dup.keyHash()
 	case dashapi.BugStatusUpdate:
 		// Just update Link, Commits, etc below.
 	case dashapi.BugStatusUnCC:

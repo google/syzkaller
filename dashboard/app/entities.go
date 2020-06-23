@@ -440,10 +440,17 @@ func bugKeyHash(ns, title string, seq int64) string {
 	return hash.String([]byte(fmt.Sprintf("%v-%v-%v-%v", config.Namespaces[ns].Key, ns, title, seq)))
 }
 
+// Since these IDs appear in Reported-by tags in commit, we slightly limit their size.
+const reportingHashLen = 20
+
 func bugReportingHash(bugHash, reporting string) string {
-	// Since these IDs appear in Reported-by tags in commit, we slightly limit their size.
-	const hashLen = 20
-	return hash.String([]byte(fmt.Sprintf("%v-%v", bugHash, reporting)))[:hashLen]
+	return hash.String([]byte(fmt.Sprintf("%v-%v", bugHash, reporting)))[:reportingHashLen]
+}
+
+func looksLikeReportingHash(id string) bool {
+	// This is only used as best-effort check.
+	// Now we produce 20-chars ids, but we used to use full sha1 hash.
+	return len(id) == reportingHashLen || len(id) == 2*len(hash.Sig{})
 }
 
 func (bug *Bug) updateCommits(commits []string, now time.Time) {
