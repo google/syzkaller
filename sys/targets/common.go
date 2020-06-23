@@ -100,7 +100,8 @@ func (arch *UnixNeutralizer) Neutralize(c *prog.Call) {
 		if c.Meta.CallName == "mknodat" {
 			pos = 2
 		}
-		if _, ok := c.Args[pos+1].Type().(*prog.ProcType); ok {
+		switch c.Args[pos+1].Type().(type) {
+		case *prog.ProcType, *prog.ResourceType:
 			return
 		}
 		mode := c.Args[pos].(*prog.ConstArg)
