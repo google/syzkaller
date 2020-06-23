@@ -31,21 +31,28 @@ func TestDefault(t *testing.T) {
 }
 
 func TestDefaultCallArgs(t *testing.T) {
-	target, _, _ := initTest(t)
-	for _, meta := range target.SyscallMap {
-		if meta.Attrs.Disabled {
-			continue
+	testEachTarget(t, func(t *testing.T, target *Target) {
+		for _, meta := range target.SyscallMap {
+			if meta.Attrs.Disabled {
+				continue
+			}
+			// Ensure that we can restore all arguments of all calls.
+			prog := fmt.Sprintf("%v()", meta.Name)
+			p, err := target.Deserialize([]byte(prog), NonStrict)
+			if err != nil {
+				t.Fatalf("failed to restore default args in prog %q: %v", prog, err)
+			}
+			if len(p.Calls) != 1 || p.Calls[0].Meta.Name != meta.Name {
+				t.Fatalf("restored bad program from prog %q: %q", prog, p.Serialize())
+			}
+			s0 := string(p.Serialize())
+			p.sanitizeFix()
+			s1 := string(p.Serialize())
+			if s0 != s1 {
+				t.Fatalf("non-sanitized program or non-idempotent sanitize\nwas: %v\ngot: %v", s0, s1)
+			}
 		}
-		// Ensure that we can restore all arguments of all calls.
-		prog := fmt.Sprintf("%v()", meta.Name)
-		p, err := target.Deserialize([]byte(prog), NonStrict)
-		if err != nil {
-			t.Fatalf("failed to restore default args in prog %q: %v", prog, err)
-		}
-		if len(p.Calls) != 1 || p.Calls[0].Meta.Name != meta.Name {
-			t.Fatalf("restored bad program from prog %q: %q", prog, p.Serialize())
-		}
-	}
+	})
 }
 
 func testSerialize(t *testing.T, verbose bool) {
