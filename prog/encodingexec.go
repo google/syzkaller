@@ -20,8 +20,6 @@
 package prog
 
 import (
-	"bytes"
-	"encoding/binary"
 	"fmt"
 	"sort"
 )
@@ -223,9 +221,7 @@ func (w *execContext) write(v uint64) {
 		w.eof = true
 		return
 	}
-	buf := new(bytes.Buffer)
-	binary.Write(buf, HostEndian, v)
-	copy(w.buf, buf.Bytes())
+	HostEndian.PutUint64(w.buf, v)
 	w.buf = w.buf[8:]
 }
 
