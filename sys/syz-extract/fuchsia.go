@@ -44,6 +44,7 @@ func (*fuchsia) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]ui
 	params := &extractParams{
 		DeclarePrintf:  true,
 		DefineGlibcUse: true,
+		TargetEndian:   arch.target.HostEndian,
 	}
 	return extract(info, cc, args, params)
 }

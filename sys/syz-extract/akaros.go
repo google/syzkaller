@@ -43,6 +43,7 @@ func (*akaros) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uin
 	}
 	params := &extractParams{
 		DeclarePrintf: true,
+		TargetEndian:  arch.target.HostEndian,
 	}
 	return extract(info, "gcc", args, params)
 }

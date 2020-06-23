@@ -179,6 +179,7 @@ func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint
 	params := &extractParams{
 		AddSource:      "#include <asm/unistd.h>",
 		ExtractFromELF: true,
+		TargetEndian:   arch.target.HostEndian,
 	}
 	cc := arch.target.CCompiler
 	res, undeclared, err := extract(info, cc, args, params)

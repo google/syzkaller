@@ -92,7 +92,8 @@ func (*netbsd) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uin
 		}
 	}
 	params := &extractParams{
-		AddSource: "#include <sys/syscall.h>",
+		AddSource:    "#include <sys/syscall.h>",
+		TargetEndian: arch.target.HostEndian,
 	}
 	res, undeclared, err := extract(info, "gcc", args, params)
 	for orig, compats := range compatNames {
