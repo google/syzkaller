@@ -49,5 +49,3 @@ then
     echo "%%%%%%%% FAILED TO FIND SINGLE BAD CONFIG %%%%%%%%"
     exit 2
 fi
-
-
