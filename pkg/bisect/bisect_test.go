@@ -205,7 +205,7 @@ var bisectionTests = []BisectionTest{
 		baselineConfig: "baseline-skip",
 	},
 	{
-		name:           "cause-finds-cause-minimize_succeeds",
+		name:           "cause-finds-cause-minimize-succeeds",
 		startCommit:    905,
 		commitLen:      1,
 		expectRep:      true,
@@ -213,12 +213,10 @@ var bisectionTests = []BisectionTest{
 		baselineConfig: "minimize-succeeds",
 	},
 	{
-		name:           "cause-finds-cause-minimize_fails",
+		name:           "cause-finds-cause-minimize-fails",
 		startCommit:    905,
-		commitLen:      1,
-		expectRep:      true,
-		culprit:        602,
 		baselineConfig: "minimize-fails",
+		expectErr:      true,
 	},
 	// Tests that cause bisection returns error when crash does not reproduce
 	// on the original commit.
