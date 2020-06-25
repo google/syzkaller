@@ -123,8 +123,10 @@ func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
 	if !ok {
 		return nil, fmt.Errorf("bisection is not implemented for %v", cfg.Manager.TargetOS)
 	}
-	// Minimizer may or may not be supported.
-	minimizer, _ := repo.(vcs.ConfigMinimizer)
+	minimizer, ok := repo.(vcs.ConfigMinimizer)
+	if !ok && len(cfg.Kernel.BaselineConfig) != 0 {
+		return nil, fmt.Errorf("config minimization is not implemented for %v", cfg.Manager.TargetOS)
+	}
 	env := &env{
 		cfg:       cfg,
 		repo:      repo,
@@ -205,7 +207,9 @@ func (env *env) bisect() (*Result, error) {
 	}
 
 	if len(cfg.Kernel.BaselineConfig) != 0 {
-		env.minimizeConfig()
+		if err := env.minimizeConfig(); err != nil {
+			return nil, err
+		}
 	}
 
 	bad, good, rep1, results1, err := env.commitRange()
@@ -264,7 +268,7 @@ func (env *env) bisect() (*Result, error) {
 	return res, nil
 }
 
-func (env *env) minimizeConfig() {
+func (env *env) minimizeConfig() error {
 	cfg := env.cfg
 	// Check if crash reproduces with baseline config.
 	originalConfig := cfg.Kernel.Config
@@ -272,29 +276,34 @@ func (env *env) minimizeConfig() {
 	testRes, err := env.test()
 	cfg.Kernel.Config = originalConfig
 	if err != nil {
-		env.log("testing baseline config failed")
-	} else if testRes.verdict == vcs.BisectBad {
+		env.log("testing baseline config failed: %v", err)
+		return err
+	}
+	if testRes.verdict == vcs.BisectBad {
 		env.log("crash reproduces with baseline config")
 		cfg.Kernel.Config = cfg.Kernel.BaselineConfig
-	} else if testRes.verdict == vcs.BisectGood && env.minimizer != nil {
-		predMinimize := func(test []byte) (vcs.BisectResult, error) {
-			cfg.Kernel.Config = test
-			testRes, err := env.test()
-			if err != nil {
-				return 0, err
-			}
-			return testRes.verdict, err
-		}
-		// Find minimal configuration based on baseline to reproduce the crash
-		cfg.Kernel.Config, err = env.minimizer.Minimize(cfg.Kernel.Config,
-			cfg.Kernel.BaselineConfig, cfg.Trace, predMinimize)
-		if err != nil {
-			env.log("Minimizing config failed, using original config")
-			cfg.Kernel.Config = originalConfig
-		}
-	} else {
-		env.log("unable to test using baseline config, keep original config")
+		return nil
 	}
+	if testRes.verdict == vcs.BisectSkip {
+		env.log("unable to test using baseline config, keep original config")
+		return nil
+	}
+	predMinimize := func(test []byte) (vcs.BisectResult, error) {
+		cfg.Kernel.Config = test
+		testRes, err := env.test()
+		if err != nil {
+			return 0, err
+		}
+		return testRes.verdict, err
+	}
+	// Find minimal configuration based on baseline to reproduce the crash.
+	cfg.Kernel.Config, err = env.minimizer.Minimize(cfg.Kernel.Config,
+		cfg.Kernel.BaselineConfig, cfg.Trace, predMinimize)
+	if err != nil {
+		env.log("minimizing config failed: %v", err)
+		return err
+	}
+	return nil
 }
 
 func (env *env) detectNoopChange(results map[string]*testResult, com *vcs.Commit) (bool, error) {
@@ -423,9 +432,6 @@ func (env *env) test() (*testResult, error) {
 	cfg := env.cfg
 	env.numTests++
 	current, kernelSign, err := env.build()
-	if err != nil {
-		return nil, err
-	}
 	res := &testResult{
 		verdict:    vcs.BisectSkip,
 		com:        current,
