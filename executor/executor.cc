@@ -284,6 +284,8 @@ struct kcov_comparison_t {
 	bool operator<(const struct kcov_comparison_t& other) const;
 };
 
+static_assert(sizeof(kcov_comparison_t) == 4 * sizeof(uint64), "invalid size of kcov_comparison_t");
+
 struct feature_t {
 	const char* name;
 	void (*setup)();
@@ -1315,7 +1317,8 @@ uint32* write_output_64(uint64 v)
 		fail("output overflow: pos=%p region=[%p:%p]",
 		     output_pos, output_data, (char*)output_data + kMaxOutput);
 	*(uint64*)output_pos = v;
-	return output_pos + 2;
+	output_pos += 2;
+	return output_pos;
 }
 
 void write_completed(uint32 completed)
@@ -1327,6 +1330,9 @@ void write_completed(uint32 completed)
 #if SYZ_EXECUTOR_USES_SHMEM
 void kcov_comparison_t::write()
 {
+	if (type > (KCOV_CMP_CONST | KCOV_CMP_SIZE_MASK))
+		fail("invalid kcov comp type %llx", type);
+
 	// Write order: type arg1 arg2 pc.
 	write_output((uint32)type);
 
