@@ -218,6 +218,14 @@ var List = map[string]map[string]*Target{
 				"mmap": "mmap",
 			},
 		},
+		"riscv64": {
+			PtrSize:          8,
+			PageSize:         4 << 10,
+			LittleEndian:     true,
+			Triple:           "riscv64-linux-gnu",
+			KernelArch:       "riscv",
+			KernelHeaderArch: "riscv",
+		},
 	},
 	"freebsd": {
 		"amd64": {
