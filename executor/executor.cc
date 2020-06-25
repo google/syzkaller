@@ -284,7 +284,7 @@ struct kcov_comparison_t {
 	bool operator<(const struct kcov_comparison_t& other) const;
 };
 
-static_assert(sizeof(kcov_comparison_t) == 4 * sizeof(uint64), "invalid size of kcov_comparison_t");
+typedef char kcov_comparison_size[sizeof(kcov_comparison_t) == 4 * sizeof(uint64) ? 1 : -1];
 
 struct feature_t {
 	const char* name;
