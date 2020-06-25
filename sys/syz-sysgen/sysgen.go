@@ -114,9 +114,11 @@ func main() {
 					return
 				}
 				top := descriptions
-				if OS == "linux" && job.Target.Arch == "arm" {
-					// Hack: KVM is not supported on ARM anymore.
-					// Note: syz-extract also ignores this file for arm.
+				if OS == "linux" && (job.Target.Arch == "arm" || job.Target.Arch == "riscv64") {
+					// Hack: KVM is not supported on ARM anymore. On riscv64 it
+					// is not supported yet but might be in the future.
+					// Note: syz-extract also ignores this file for arm and
+					// riscv64.
 					top = descriptions.Filter(func(n ast.Node) bool {
 						pos, _, _ := n.Info()
 						return !strings.HasSuffix(pos.File, "_kvm.txt")
