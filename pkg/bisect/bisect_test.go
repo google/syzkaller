@@ -135,7 +135,7 @@ func runBisection(t *testing.T, baseDir string, test BisectionTest) (*Result, er
 		r:    r,
 		test: test,
 	}
-	res, err := runImpl(cfg, r, r.(vcs.Bisecter), r.(vcs.ConfigMinimizer), inst)
+	res, err := runImpl(cfg, r, inst)
 	t.Log(trace.String())
 	return res, err
 }
@@ -171,8 +171,7 @@ var bisectionTests = []BisectionTest{
 		expectRep:   true,
 		culprit:     602,
 	},
-	// Test bisection returns correct cause with different baseline/config
-	// combinations
+	// Test bisection returns correct cause with different baseline/config combinations.
 	{
 		name:           "cause-finds-cause-baseline-repro",
 		startCommit:    905,

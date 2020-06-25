@@ -372,12 +372,12 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 	}
 
 	var baseline []byte
-	var err error
-	// Read possible baseline for config minimization
-	if len(mgr.mgrcfg.KernelBaselineConfig) != 0 {
+	// Read possible baseline for config minimization.
+	if mgr.mgrcfg.KernelBaselineConfig != "" {
+		var err error
 		baseline, err = ioutil.ReadFile(mgr.mgrcfg.KernelBaselineConfig)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to read baseline config: %v", err)
 		}
 	}
 	trace := new(bytes.Buffer)

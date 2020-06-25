@@ -61,9 +61,14 @@ func Run(timeout time.Duration, cmd *exec.Cmd) ([]byte, error) {
 		if <-timedout {
 			text = fmt.Sprintf("timedout %q", cmd.Args)
 		}
+		exitCode := 0
+		if exitError, ok := err.(*exec.ExitError); ok {
+			exitCode = exitError.ProcessState.ExitCode()
+		}
 		return output.Bytes(), &VerboseError{
-			Title:  text,
-			Output: output.Bytes(),
+			Title:    text,
+			Output:   output.Bytes(),
+			ExitCode: exitCode,
 		}
 	}
 	return output.Bytes(), nil
@@ -77,8 +82,9 @@ func Command(bin string, args ...string) *exec.Cmd {
 }
 
 type VerboseError struct {
-	Title  string
-	Output []byte
+	Title    string
+	Output   []byte
+	ExitCode int
 }
 
 func (err *VerboseError) Error() string {

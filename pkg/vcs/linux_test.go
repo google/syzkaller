@@ -103,10 +103,10 @@ func TestMinimizationResults(t *testing.T) {
 		outConfig, err := minimizer.Minimize([]byte(test.config),
 			[]byte(test.baselineConfig), trace, pred)
 		if test.passing && err != nil {
-			t.Fatalf("Failed to run Minimize")
+			t.Fatalf("failed to run Minimize: %v", err)
 		} else if test.passing && !strings.Contains(string(outConfig),
 			test.expectedConfig) {
-			t.Fatalf("Output is not expected %v vs. %v", string(outConfig),
+			t.Fatalf("output is not expected %v vs. %v", string(outConfig),
 				test.expectedConfig)
 		}
 	}

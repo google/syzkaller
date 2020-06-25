@@ -40,7 +40,7 @@ type KernelConfig struct {
 	// option is found provided baseline configuration is modified according the bisection
 	// results. This new configuration is tested once more with current head. If crash
 	// reproduces with the generated configuration original configuation is replaced with
-	//this minimized one
+	// this minimized one.
 	BaselineConfig []byte
 	Userspace      string
 }
@@ -92,7 +92,7 @@ type Result struct {
 	Commits    []*vcs.Commit
 	Report     *report.Report
 	Commit     *vcs.Commit
-	Config     *[]byte
+	Config     []byte
 	NoopChange bool
 	IsRelease  bool
 }
@@ -108,14 +108,6 @@ func Run(cfg *Config) (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	bisecter, ok := repo.(vcs.Bisecter)
-	if !ok {
-		return nil, fmt.Errorf("bisection is not implemented for %v", cfg.Manager.TargetOS)
-	}
-
-	// Minimizer may or may not be supported
-	minimizer, _ := repo.(vcs.ConfigMinimizer)
-
 	inst, err := instance.NewEnv(&cfg.Manager)
 	if err != nil {
 		return nil, err
@@ -123,11 +115,16 @@ func Run(cfg *Config) (*Result, error) {
 	if _, err = repo.CheckoutBranch(cfg.Kernel.Repo, cfg.Kernel.Branch); err != nil {
 		return nil, err
 	}
-	return runImpl(cfg, repo, bisecter, minimizer, inst)
+	return runImpl(cfg, repo, inst)
 }
 
-func runImpl(cfg *Config, repo vcs.Repo, bisecter vcs.Bisecter, minimizer vcs.ConfigMinimizer,
-	inst instance.Env) (*Result, error) {
+func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
+	bisecter, ok := repo.(vcs.Bisecter)
+	if !ok {
+		return nil, fmt.Errorf("bisection is not implemented for %v", cfg.Manager.TargetOS)
+	}
+	// Minimizer may or may not be supported.
+	minimizer, _ := repo.(vcs.ConfigMinimizer)
 	env := &env{
 		cfg:       cfg,
 		repo:      repo,
@@ -207,7 +204,7 @@ func (env *env) bisect() (*Result, error) {
 		return nil, fmt.Errorf("the crash wasn't reproduced on the original commit")
 	}
 
-	if cfg.Kernel.BaselineConfig != nil {
+	if len(cfg.Kernel.BaselineConfig) != 0 {
 		env.minimizeConfig()
 	}
 
@@ -216,7 +213,7 @@ func (env *env) bisect() (*Result, error) {
 		return nil, err
 	}
 	if rep1 != nil {
-		return &Result{Report: rep1, Commit: bad, Config: &cfg.Kernel.Config},
+		return &Result{Report: rep1, Commit: bad, Config: cfg.Kernel.Config},
 			nil // still not fixed/happens on the oldest release
 	}
 	results := map[string]*testResult{cfg.Kernel.Commit: testRes}
@@ -244,7 +241,7 @@ func (env *env) bisect() (*Result, error) {
 	}
 	res := &Result{
 		Commits: commits,
-		Config:  &cfg.Kernel.Config,
+		Config:  cfg.Kernel.Config,
 	}
 	if len(commits) == 1 {
 		com := commits[0]
@@ -269,7 +266,7 @@ func (env *env) bisect() (*Result, error) {
 
 func (env *env) minimizeConfig() {
 	cfg := env.cfg
-	// Check if crash reproduces with baseline config
+	// Check if crash reproduces with baseline config.
 	originalConfig := cfg.Kernel.Config
 	cfg.Kernel.Config = cfg.Kernel.BaselineConfig
 	testRes, err := env.test()
