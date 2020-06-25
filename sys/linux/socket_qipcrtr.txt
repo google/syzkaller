@@ -1,6 +1,25 @@
 # Copyright 2020 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# Findings on qrtr rpmsg and mhi interface (with drivers implemented in 'smd.c' and 'mhi.c' under '$KERNEL_SRC/net/qrtr/')
+# The investigation is done using Linux 5.8-rc1 with following configs set:
+#   - CONFIG_QRTR, CONFIG_QRTR_SMD, CONFIG_QRTR_TUN, CONFIG_QRTR_MHI, CONFIG_RPMSG,
+#     CONFIG_RPMSG_CHAR, CONFIG_RPMSG_QCOM_GLINK_NATIVE, CONFIG_RPMSG_QCOM_GLINK_RPM,
+#     CONFIG_RPMSG_VIRTIO
+# No additional device file was found in running kernel under '/dev/', and no device
+# was found under '/sys/bus/rpmsg/devices/'.
+# All examples found involve additional hardware assumptions.
+# The conclusion is that the testing of those subsystems relies on some hardware,
+# hence, not tested at this time.
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
 include <linux/socket.h>
 include <linux/net.h>
 include <linux/termios.h>
