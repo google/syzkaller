@@ -82,6 +82,8 @@ func parseKallsyms(kallsyms []byte, arch string) map[string]bool {
 		re = regexp.MustCompile(` T sys_(mips_)?([^\n]+)\n`)
 	case "s390x":
 		re = regexp.MustCompile(` T (__s390_|__s390x_)?sys_([^\n]+)\n`)
+	case "riscv64":
+		re = regexp.MustCompile(` T sys_(riscv_)?([^\n]+)\n`)
 	default:
 		panic("unsupported arch for kallsyms parsing")
 	}
