@@ -638,7 +638,7 @@ func (ctx *context) testImpl(inst *vm.Instance, command string, duration time.Du
 		return false, fmt.Errorf("failed to run command in VM: %v", err)
 	}
 	rep := inst.MonitorExecution(outc, errc, ctx.reporter,
-		vm.ExitTimeout|vm.ExitNormal|vm.ExitError)
+		vm.ExitTimeout|vm.ExitNormal)
 	if rep == nil {
 		ctx.reproLogf(2, "program did not crash")
 		return false, nil
