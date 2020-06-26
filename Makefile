@@ -105,7 +105,7 @@ endif
 	arch_freebsd_amd64_host arch_netbsd_amd64_host \
 	arch_linux_amd64_target arch_linux_386_target \
 	arch_linux_arm64_target arch_linux_arm_target arch_linux_ppc64le_target arch_linux_mips64le_target \
-	arch_linux_s390x_target arch_freebsd_amd64_target arch_freebsd_386_target \
+	arch_linux_s390x_target arch_linux_riscv64_target arch_freebsd_amd64_target arch_freebsd_386_target \
 	arch_netbsd_amd64_target arch_windows_amd64_target \
 	arch_akaros_target arch_fuchsia_target \
 	arch_test presubmit presubmit_parallel clean
@@ -284,6 +284,9 @@ arch_linux_mips64le_target:
 arch_linux_ppc64le_target:
 	env TARGETOS=linux TARGETARCH=ppc64le $(MAKE) target
 
+arch_linux_riscv64_target:
+	env TARGETOS=linux TARGETARCH=riscv64 $(MAKE) target
+
 arch_linux_s390x_target:
 	env TARGETOS=linux TARGETARCH=s390x $(MAKE) target
 
@@ -352,6 +355,7 @@ presubmit_arch: descriptions
 	$(MAKE) arch_linux_ppc64le_target
 	$(MAKE) arch_linux_mips64le_target
 	$(MAKE) arch_linux_s390x_target
+	$(MAKE) arch_linux_riscv64_target
 	$(MAKE) arch_freebsd_amd64_target
 	$(MAKE) arch_freebsd_386_target
 	$(MAKE) arch_netbsd_amd64_target
@@ -392,6 +396,7 @@ install_prerequisites:
 	sudo apt-get install -y -q g++-arm-linux-gnueabi || true
 	sudo apt-get install -y -q g++-mips64el-linux-gnuabi64 || true
 	sudo apt-get install -y -q g++-s390x-linux-gnu || true
+	sudo apt-get install -y -q g++-riscv64-linux-gnu || true
 	sudo apt-get install -y -q ragel clang-format
 	go get -u golang.org/x/tools/cmd/goyacc \
 		github.com/dvyukov/go-fuzz/go-fuzz-build
