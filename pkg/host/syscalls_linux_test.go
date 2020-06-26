@@ -144,6 +144,22 @@ c00000000037eb00 T sys_newstat
 			[]string{"bind", "listen", "accept4"},
 			[]string{"bind", "listen", "accept4"},
 		},
+		{
+			"riscv64",
+			[]byte(`
+ffffffe0005c9b02 T __sys_bind
+ffffffe0005c9ba0 T sys_bind
+ffffffe0005c9ba0 T __se_sys_bind
+ffffffe0005c9e72 T __sys_accept4
+ffffffe0005c9f00 T sys_accept4
+ffffffe0005c9f00 T __se_sys_accept4
+ffffffe0005c9bd8 T __sys_listen
+ffffffe0005c9c76 T sys_listen
+ffffffe0005c9c76 T __se_sys_listen
+			`),
+			[]string{"bind", "listen", "accept4"},
+			[]string{"bind", "listen", "accept4"},
+		},
 	}
 
 	for _, test := range tests {
