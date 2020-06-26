@@ -1657,6 +1657,8 @@ struct fs_image_segment {
 #define sys_memfd_create 314
 #elif GOARCH_s390x
 #define sys_memfd_create 350
+#elif GOARCH_riscv64
+#define sys_memfd_create 279
 #endif
 
 static unsigned long fs_image_segment_check(unsigned long size, unsigned long nsegs, long segments)
@@ -1857,6 +1859,8 @@ error:
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
+// KVM is not yet supported on RISC-V
+#if !GOARCH_riscv64
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/kvm.h>
@@ -1874,6 +1878,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 {
 	return 0;
 }
+#endif
 #endif
 #endif
 
