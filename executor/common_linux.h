@@ -3528,3 +3528,10 @@ static void setup_usb()
 		fail("failed to chmod /dev/raw-gadget");
 }
 #endif
+
+#if GOARCH_s390x
+#include <sys/mman.h>
+// Ugly way to work around gcc's "error: function called through a non-compatible type".
+// The macro is used in generated C code.
+#define CAST(f) ({void* p = (void*)f; p; })
+#endif

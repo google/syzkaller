@@ -8376,6 +8376,11 @@ static void setup_usb()
 }
 #endif
 
+#if GOARCH_s390x
+#include <sys/mman.h>
+#define CAST(f) ({void* p = (void*)f; p; })
+#endif
+
 #elif GOOS_test
 
 #include <stdlib.h>
