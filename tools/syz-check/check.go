@@ -51,8 +51,8 @@ func main() {
 		flagDWARF   = flag.Bool("dwarf", true, "do checking based on DWARF")
 		flagNetlink = flag.Bool("netlink", true, "do checking of netlink policies")
 	)
-	arches := map[string]*string{"amd64": nil, "386": nil, "arm64": nil, "arm": nil}
-	for arch := range arches {
+	arches := make(map[string]*string)
+	for arch := range targets.List["linux"] {
 		arches[arch] = flag.String("obj-"+arch, "", arch+" kernel object file")
 	}
 	failf := func(msg string, args ...interface{}) {
