@@ -265,13 +265,14 @@ func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCo
 }
 
 func (ctx *context) emitCallName(w *bytes.Buffer, call prog.ExecCall, native bool) {
-	callName := call.Meta.CallName
+	callName, ok := ctx.sysTarget.SyscallTrampolines[call.Meta.CallName]
+	if !ok {
+		callName = call.Meta.CallName
+	}
 	if native {
 		fmt.Fprintf(w, "syscall(%v%v", ctx.sysTarget.SyscallPrefix, callName)
 	} else if strings.HasPrefix(callName, "syz_") {
 		fmt.Fprintf(w, "%v(", callName)
-	} else if trampolineName, ok := ctx.sysTarget.SyscallTrampolines[callName]; ok {
-		fmt.Fprintf(w, "%v(", trampolineName)
 	} else {
 		args := strings.Repeat(",intptr_t", len(call.Args))
 		if args != "" {
