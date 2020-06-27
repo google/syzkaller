@@ -81,7 +81,11 @@ type archConfig struct {
 	QemuArgs  string
 	TargetDir string
 	NicModel  string
-	CmdLine   []string
+	// UseNewQemuNetOptions specifies whether the arch uses "new" QEMU network device options.
+	UseNewQemuNetOptions bool
+	// UseNewQemuImageOptions specifies whether the arch uses "new" QEMU image device options.
+	UseNewQemuImageOptions bool
+	CmdLine                []string
 }
 
 var archConfigs = map[string]*archConfig{
@@ -151,6 +155,17 @@ var archConfigs = map[string]*archConfig{
 		TargetDir: "/",
 		QemuArgs:  "-enable-kvm -vga none",
 		CmdLine:   linuxCmdline,
+	},
+	"linux/riscv64": {
+		Qemu:                   "qemu-system-riscv64",
+		TargetDir:              "/",
+		QemuArgs:               "-machine virt",
+		UseNewQemuNetOptions:   true,
+		UseNewQemuImageOptions: true,
+		CmdLine: append(linuxCmdline,
+			"root=/dev/vda",
+			"console=ttyS0",
+		),
 	},
 	"linux/s390x": {
 		Qemu:      "qemu-system-s390x",
@@ -350,28 +365,42 @@ func (inst *instance) boot() error {
 	args := []string{
 		"-m", strconv.Itoa(inst.cfg.Mem),
 		"-smp", strconv.Itoa(inst.cfg.CPU),
-		"-net", "nic" + inst.archConfig.NicModel,
-		"-net", fmt.Sprintf("user,host=%v,hostfwd=tcp::%v-:22", hostAddr, inst.port),
 		"-display", "none",
 		"-serial", "stdio",
 		"-no-reboot",
 	}
 	args = append(args, splitArgs(inst.cfg.QemuArgs, filepath.Join(inst.workdir, "template"))...)
+	if inst.archConfig.UseNewQemuNetOptions {
+		args = append(args,
+			"-device", "virtio-net-device,netdev=net0",
+			"-netdev", fmt.Sprintf("user,id=net0,host=%v,hostfwd=tcp::%v-:22", hostAddr, inst.port))
+	} else {
+		args = append(args,
+			"-net", "nic"+inst.archConfig.NicModel,
+			"-net", fmt.Sprintf("user,host=%v,hostfwd=tcp::%v-:22", hostAddr, inst.port))
+	}
 	if inst.image == "9p" {
 		args = append(args,
 			"-fsdev", "local,id=fsdev0,path=/,security_model=none,readonly",
 			"-device", "virtio-9p-pci,fsdev=fsdev0,mount_tag=/dev/root",
 		)
 	} else if inst.image != "" {
-		// inst.cfg.ImageDevice can contain spaces
-		imgline := strings.Split(inst.cfg.ImageDevice, " ")
-		imgline[0] = "-" + imgline[0]
-		if strings.HasSuffix(imgline[len(imgline)-1], "file=") {
-			imgline[len(imgline)-1] = imgline[len(imgline)-1] + inst.image
+		if inst.archConfig.UseNewQemuImageOptions {
+			args = append(args,
+				"-device", "virtio-blk-device,drive=hd0",
+				"-drive", fmt.Sprintf("file=%v,if=none,format=raw,id=hd0", inst.image),
+			)
 		} else {
-			imgline = append(imgline, inst.image)
+			// inst.cfg.ImageDevice can contain spaces
+			imgline := strings.Split(inst.cfg.ImageDevice, " ")
+			imgline[0] = "-" + imgline[0]
+			if strings.HasSuffix(imgline[len(imgline)-1], "file=") {
+				imgline[len(imgline)-1] = imgline[len(imgline)-1] + inst.image
+			} else {
+				imgline = append(imgline, inst.image)
+			}
+			args = append(args, imgline...)
 		}
-		args = append(args, imgline...)
 		if inst.cfg.Snapshot {
 			args = append(args, "-snapshot")
 		}
