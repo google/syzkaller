@@ -15,6 +15,7 @@ func InitTarget(target *prog.Target) {
 	arch := &arch{
 		unix:           targets.MakeUnixNeutralizer(target),
 		DIOCKILLSTATES: target.GetConst("DIOCKILLSTATES"),
+		DIOCCLRSTATES:  target.GetConst("DIOCCLRSTATES"),
 		S_IFMT:         target.GetConst("S_IFMT"),
 		S_IFCHR:        target.GetConst("S_IFCHR"),
 	}
@@ -26,6 +27,7 @@ func InitTarget(target *prog.Target) {
 
 type arch struct {
 	unix           *targets.UnixNeutralizer
+	DIOCCLRSTATES  uint64
 	DIOCKILLSTATES uint64
 	S_IFMT         uint64
 	S_IFCHR        uint64
@@ -94,11 +96,11 @@ func (arch *arch) neutralize(c *prog.Call) {
 			flags.Val &= ^f
 		}
 	case "ioctl":
-		// Performing the following ioctl on a /dev/pf file descriptor
-		// causes the ssh VM connection to die. For now, just rewire it
-		// to an invalid command.
+		// Performing the following ioctl commands on a /dev/pf file
+		// descriptor causes the ssh VM connection to die. For now, just
+		// rewire them to an invalid command.
 		request := c.Args[1].(*prog.ConstArg)
-		if request.Val == arch.DIOCKILLSTATES {
+		if request.Val == arch.DIOCCLRSTATES || request.Val == arch.DIOCKILLSTATES {
 			request.Val = 0
 		}
 	case "mknodat":
