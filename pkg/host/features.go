@@ -107,6 +107,6 @@ func Setup(target *prog.Target, features *Features, featureFlags csource.Feature
 	if features[FeatureUSBEmulation].Enabled {
 		args = append(args, "usb")
 	}
-	_, err := osutil.RunCmd(time.Minute, "", executor, args...)
+	_, err := osutil.RunCmd(5*time.Minute, "", executor, args...)
 	return err
 }
