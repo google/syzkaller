@@ -9,7 +9,8 @@ include <net/if.h>
 
 include <net/pfvar.h>
 
-# This ioctl is restricted in SanitizeCall(), see init.go.
+# The following ioctl commands are restricted in neutralize(), see init.go.
+_ = DIOCCLRSTATES
 _ = DIOCKILLSTATES
 
 resource fd_pf[fd]
