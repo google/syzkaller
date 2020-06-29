@@ -11,13 +11,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
-	"unsafe"
+
+	"golang.org/x/sys/unix"
 )
 
 // RemoveAll is similar to os.RemoveAll, but can handle more cases.
@@ -28,8 +28,7 @@ func RemoveAll(dir string) error {
 		if f.IsDir() {
 			RemoveAll(name)
 		}
-		fn := []byte(name + "\x00")
-		syscall.Syscall(syscall.SYS_UMOUNT2, uintptr(unsafe.Pointer(&fn[0])), syscall.MNT_FORCE, 0)
+		unix.Unmount(name, unix.MNT_FORCE)
 	}
 	if err := os.RemoveAll(dir); err != nil {
 		removeImmutable(dir)
@@ -51,20 +50,7 @@ func removeImmutable(fname string) error {
 		return err
 	}
 	defer syscall.Close(fd)
-	flags := 0
-	var cmd uint64 // FS_IOC_SETFLAGS
-	switch runtime.GOARCH {
-	case "386", "arm":
-		cmd = 1074030082
-	case "amd64", "arm64", "riscv64", "s390x":
-		cmd = 1074292226
-	case "ppc64le", "mips64le":
-		cmd = 2148034050
-	default:
-		panic("unknown arch")
-	}
-	_, _, errno := syscall.Syscall(syscall.SYS_IOCTL, uintptr(fd), uintptr(cmd), uintptr(unsafe.Pointer(&flags)))
-	return errno
+	return unix.IoctlSetPointerInt(fd, unix.FS_IOC_SETFLAGS, 0)
 }
 
 func Sandbox(cmd *exec.Cmd, user, net bool) error {
