@@ -20,8 +20,14 @@ func TestNeutralize(t *testing.T) {
 			In:  `fchflags(0x0, 0x60004)`,
 			Out: `fchflags(0x0, 0x0)`,
 		},
+		// Note, a random ioctl description used since only the command
+		// is of importance.
 		{
 			In:  `ioctl$BIOCSDIRFILT(0x0, 0xc0e04429, 0x0)`,
+			Out: `ioctl$BIOCSDIRFILT(0x0, 0x0, 0x0)`,
+		},
+		{
+			In:  `ioctl$BIOCSDIRFILT(0x0, 0xc0e04412, 0x0)`,
 			Out: `ioctl$BIOCSDIRFILT(0x0, 0x0, 0x0)`,
 		},
 		{
