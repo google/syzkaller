@@ -166,11 +166,13 @@ ssh -i $IMAGE/stretch.id_rsa -p 10021 -o "StrictHostKeyChecking no" root@localho
 If this fails with "too many tries", ssh may be passing default keys before
 the one explicitly passed with `-i`. Append option `-o "IdentitiesOnly yes"`.
 
-To kill the running QEMU instance:
+To kill the running QEMU instance press `Ctrl+A` and then `X` or run:
 
 ``` bash
 kill $(cat vm.pid)
 ```
+
+If QEMU works, the kernel boots and ssh succeeds, you can try to run syzkaller.
 
 ## syzkaller
 
