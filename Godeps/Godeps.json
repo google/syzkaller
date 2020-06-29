@@ -331,7 +331,7 @@
 		},
 		{
 			"ImportPath": "golang.org/x/sys/unix",
-			"Rev": "9fbb57f87de9ccfe3a99d4e3270ce8a926ebba4f"
+			"Rev": "ddb9806d33aed8dbaac1cd6f1cba58952e87f933"
 		},
 		{
 			"ImportPath": "golang.org/x/text/secure/bidirule",
@@ -913,6 +913,10 @@
 		{
 			"ImportPath": "honnef.co/go/tools/version",
 			"Rev": "2774002210e8cbf35b5445a3805e6f173c6bec1f"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/internal/unsafeheader",
+			"Rev": "ddb9806d33aed8dbaac1cd6f1cba58952e87f933"
 		}
 	]
 }
