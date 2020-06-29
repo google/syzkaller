@@ -172,7 +172,7 @@ To kill the running QEMU instance press `Ctrl+A` and then `X` or run:
 kill $(cat vm.pid)
 ```
 
-If QEMU works, the kernel boots and ssh succeeds, you can try to run syzkaller.
+If QEMU works, the kernel boots and ssh succeeds, you can shutdown QEMU and try to run syzkaller.
 
 ## syzkaller
 
