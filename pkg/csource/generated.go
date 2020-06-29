@@ -6862,6 +6862,7 @@ static void setup_cgroups()
 		debug("mount(cgroup cpu) failed: %d\n", errno);
 	}
 	write_file("/syzcgroup/cpu/cgroup.clone_children", "1");
+	write_file("/syzcgroup/cpu/cpuset.memory_pressure_enabled", "1");
 	if (chmod("/syzcgroup/cpu", 0777)) {
 		debug("chmod(/syzcgroup/cpu) failed: %d\n", errno);
 	}
