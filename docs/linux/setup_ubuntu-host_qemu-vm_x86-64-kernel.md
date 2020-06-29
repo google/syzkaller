@@ -21,7 +21,7 @@ gcc-nm  gcov-tool   x86_64-pc-linux-gnu-gcc-nm
 Checkout Linux kernel source:
 
 ``` bash
-git clone https://github.com/torvalds/linux.git $KERNEL
+git clone git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git $KERNEL
 ```
 
 Generate default configs:
