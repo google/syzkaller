@@ -47,8 +47,6 @@ type uiMainPage struct {
 	Header         *uiHeader
 	Now            time.Time
 	Decommissioned bool
-	FixedLink      string
-	FixedCount     int
 	Managers       []*uiManager
 	Groups         []*uiBugGroup
 }
@@ -222,20 +220,14 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 		return err
 	}
 	manager := r.FormValue("manager")
-	groups, fixedCount, err := fetchNamespaceBugs(c, accessLevel, hdr.Namespace, manager)
+	groups, err := fetchNamespaceBugs(c, accessLevel, hdr.Namespace, manager)
 	if err != nil {
 		return err
-	}
-	fixedLink := fmt.Sprintf("/%v/fixed", hdr.Namespace)
-	if manager != "" {
-		fixedLink = fmt.Sprintf("%v?manager=%v", fixedLink, manager)
 	}
 	data := &uiMainPage{
 		Header:         hdr,
 		Decommissioned: config.Namespaces[hdr.Namespace].Decommissioned,
 		Now:            timeNow(c),
-		FixedCount:     fixedCount,
-		FixedLink:      fixedLink,
 		Groups:         groups,
 		Managers:       managers,
 	}
@@ -547,8 +539,7 @@ func textFilename(tag string) string {
 	}
 }
 
-func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel,
-	ns, manager string) ([]*uiBugGroup, int, error) {
+func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns, manager string) ([]*uiBugGroup, error) {
 	filter := func(query *db.Query) *db.Query {
 		query = query.Filter("Namespace=", ns)
 		if manager != "" {
@@ -558,26 +549,21 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel,
 	}
 	bugs, _, err := loadAllBugs(c, filter)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 	state, err := loadReportingState(c)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 	managers, err := managerList(c, ns)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
-	fixedCount := 0
 	groups := make(map[int][]*uiBug)
 	bugMap := make(map[string]*uiBug)
 	var dups []*Bug
 	for _, bug := range bugs {
-		if bug.Status == BugStatusFixed {
-			fixedCount++
-			continue
-		}
-		if bug.Status == BugStatusInvalid {
+		if bug.Status == BugStatusFixed || bug.Status == BugStatusInvalid {
 			continue
 		}
 		if accessLevel < bug.sanitizeAccess(accessLevel) {
@@ -640,7 +626,7 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel,
 	sort.Slice(uiGroups, func(i, j int) bool {
 		return uiGroups[i].ShowIndex > uiGroups[j].ShowIndex
 	})
-	return uiGroups, fixedCount, nil
+	return uiGroups, nil
 }
 
 func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
