@@ -58,11 +58,11 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			<tr>
 				<td class="navigation">
 					<a class="navigation_tab{{if eq .URLPath (printf "/%v" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}'>
-						<span style="color:DeepPink;">🐞</span> Open</a>
+						<span style="color:DeepPink;">🐞</span> Open [{{$.Cached.Open}}]</a>
 					<a class="navigation_tab{{if eq .URLPath (printf "/%v/fixed" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/fixed'>
-						<span style="color:ForestGreen;">🐞</span> Fixed</a>
+						<span style="color:ForestGreen;">🐞</span> Fixed [{{$.Cached.Fixed}}]</a>
 					<a class="navigation_tab{{if eq .URLPath (printf "/%v/invalid" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/invalid'>
-						<span style="color:RoyalBlue;">🐞</span> Invalid</a>
+						<span style="color:RoyalBlue;">🐞</span> Invalid [{{$.Cached.Invalid}}]</a>
 				</td>
 			</tr>
 		</table>
@@ -76,14 +76,16 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 {{if .}}
 {{if .Bugs}}
 <table class="list_table">
-	{{if $.Fragment}}
-		<caption id="{{$.Fragment}}"><a class="plain" href="#{{$.Fragment}}">
-	{{else}}
-		<caption>
+	{{if $.Caption}}
+		{{if $.Fragment}}
+			<caption id="{{$.Fragment}}"><a class="plain" href="#{{$.Fragment}}">
+		{{else}}
+			<caption>
+		{{end}}
+		{{$.Caption}} ({{len $.Bugs}}):
+		{{if $.Fragment}}</a>{{end}}
+		</caption>
 	{{end}}
-	{{$.Caption}} ({{len $.Bugs}}):
-	{{if $.Fragment}}</a>{{end}}
-	</caption>
 	<thead>
 	<tr>
 		{{if $.ShowNamespace}}
