@@ -30,6 +30,8 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			<tr>
 				<td>
 					<h1><a href="/{{$.Namespace}}">syzbot</a></h1>
+				</td>
+				<td class="namespace_td">
 					<select class="namespace" onchange="window.location.href = '/' + this.value + '{{.Subpage}}';">
 						{{- range $ns := .Namespaces}}
 							<option value="{{$ns.Name}}" {{if eq $.Namespace $ns.Name}}selected="1"{{end}}>
@@ -51,6 +53,20 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 				</td>
 			</tr>
 		</table>
+		{{if not (eq .URLPath "/admin")}}
+		<table class="position_table">
+			<tr>
+				<td class="navigation">
+					<a class="navigation_tab{{if eq .URLPath (printf "/%v" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}'>
+						<span style="color:DeepPink;">🐞</span> Open</a>
+					<a class="navigation_tab{{if eq .URLPath (printf "/%v/fixed" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/fixed'>
+						<span style="color:ForestGreen;">🐞</span> Fixed</a>
+					<a class="navigation_tab{{if eq .URLPath (printf "/%v/invalid" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/invalid'>
+						<span style="color:RoyalBlue;">🐞</span> Invalid</a>
+				</td>
+			</tr>
+		</table>
+		{{end}}
 	</header>
 	<br>
 {{end}}

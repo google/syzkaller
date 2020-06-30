@@ -92,6 +92,7 @@ func serveTemplate(w http.ResponseWriter, name string, data interface{}) error {
 
 type uiHeader struct {
 	Admin               bool
+	URLPath             string
 	LoginLink           string
 	AnalyticsTrackingID string
 	Subpage             string
@@ -111,6 +112,7 @@ type cookieData struct {
 func commonHeaderRaw(c context.Context, r *http.Request) *uiHeader {
 	h := &uiHeader{
 		Admin:               accessLevel(c, r) == AccessAdmin,
+		URLPath:             r.URL.Path,
 		AnalyticsTrackingID: config.AnalyticsTrackingID,
 	}
 	if user.Current(c) == nil {

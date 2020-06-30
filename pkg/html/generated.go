@@ -18,6 +18,24 @@ h1, h2, h3, h4 {
 	font-weight: bold;
 }
 
+.navigation_tab {
+	border: 1px solid black;
+	padding: 4px;
+	margin: 4px;
+}
+
+.navigation_tab_selected {
+	font-weight: bold;
+	border: 2px solid black;
+	padding: 4px;
+	margin: 4px;
+}
+
+.position_table .navigation {
+	padding-top: 15px;
+	padding-bottom: 6px;
+}
+
 table {
 	border: 1px solid #ccc;
 	margin: 20px 5px;
@@ -54,6 +72,12 @@ table td, table th {
 .position_table td, .position_table tr {
 	vertical-align: center;
 	padding: 0px;
+}
+
+.position_table .namespace_td {
+	width: 100%;
+	padding-top: 10px;
+	padding-left: 20px;
 }
 
 .position_table .search {
