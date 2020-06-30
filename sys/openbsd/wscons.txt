@@ -57,6 +57,24 @@ resource fd_wskbd[fd]
 
 openat$wskbd(fd const[AT_FDCWD], file ptr[in, string["/dev/wskbd0"]], flags flags[open_flags], mode const[0]) fd_wskbd
 
+ioctl$WSKBDIO_BELL(fd fd_wskbd, cmd const[WSKBDIO_BELL])
+ioctl$WSKBDIO_COMPLEXBELL(fd fd_wskbd, cmd const[WSKBDIO_COMPLEXBELL], arg ptr[in, wskbd_bell_data])
+ioctl$WSKBDIO_SETBELL(fd fd_wskbd, cmd const[WSKBDIO_SETBELL], arg ptr[in, wskbd_bell_data])
+ioctl$WSKBDIO_GETBELL(fd fd_wskbd, cmd const[WSKBDIO_GETBELL], arg ptr[out, wskbd_bell_data])
+ioctl$WSKBDIO_SETDEFAULTBELL(fd fd_wskbd, cmd const[WSKBDIO_SETDEFAULTBELL], arg ptr[in, wskbd_bell_data])
+ioctl$WSKBDIO_GETDEFAULTBELL(fd fd_wskbd, cmd const[WSKBDIO_GETDEFAULTBELL], arg ptr[out, wskbd_bell_data])
+ioctl$WSKBDIO_SETKEYREPEAT(fd fd_wskbd, cmd const[WSKBDIO_SETKEYREPEAT], arg ptr[in, wskbd_keyrepeat_data])
+ioctl$WSKBDIO_GETKEYREPEAT(fd fd_wskbd, cmd const[WSKBDIO_GETKEYREPEAT], arg ptr[out, wskbd_keyrepeat_data])
+ioctl$WSKBDIO_SETDEFAULTKEYREPEAT(fd fd_wskbd, cmd const[WSKBDIO_SETDEFAULTKEYREPEAT], arg ptr[in, wskbd_keyrepeat_data])
+ioctl$WSKBDIO_GETDEFAULTKEYREPEAT(fd fd_wskbd, cmd const[WSKBDIO_GETDEFAULTKEYREPEAT], arg ptr[out, wskbd_keyrepeat_data])
+ioctl$WSKBDIO_SETMAP(fd fd_wskbd, cmd const[WSKBDIO_SETMAP], arg ptr[in, wskbd_map_data])
+ioctl$WSKBDIO_GETMAP(fd fd_wskbd, cmd const[WSKBDIO_GETMAP], arg ptr[out, wskbd_map_data])
+ioctl$WSKBDIO_GETENCODING(fd fd_wskbd, cmd const[WSKBDIO_GETENCODING], arg ptr[out, int32])
+ioctl$WSKBDIO_SETENCODING(fd fd_wskbd, cmd const[WSKBDIO_SETENCODING], arg ptr[in, int32])
+ioctl$WSKBDIO_GETENCODINGS(fd fd_wskbd, cmd const[WSKBDIO_GETENCODINGS], arg ptr[out, wskbd_encoding_data])
+ioctl$WSKBDIO_GETBACKLIGHT(fd fd_wskbd, cmd const[WSKBDIO_GETBACKLIGHT], arg ptr[out, wskbd_backlight])
+ioctl$WSKBDIO_SETBACKLIGHT(fd fd_wskbd, cmd const[WSKBDIO_SETBACKLIGHT], arg ptr[in, wskbd_backlight])
+
 resource fd_wsmouse[fd]
 
 openat$wsmouse(fd const[AT_FDCWD], file ptr[in, string["/dev/wsmouse0"]], flags flags[open_flags], mode const[0]) fd_wsmouse
@@ -186,6 +204,43 @@ vt_mode {
 	relsig	int16
 	acqsig	int16
 	frsig	int16
+}
+
+wskbd_bell_data {
+	which	int32
+	pitch	int32
+	period	int32
+	volume	int32
+}
+
+wskbd_keyrepeat_data {
+	which	int32
+	del1	int32
+	delN	int32
+}
+
+wskbd_map_data {
+	maplen	len[map, int32]
+	map	ptr[in, array[wscons_keymap]]
+}
+
+wscons_keymap {
+	command		int16
+	group1_0	int16
+	group1_1	int16
+	group2_0	int16
+	group2_1	int16
+}
+
+wskbd_encoding_data {
+	nencodings	len[encodings, int32]
+	encodings	array[int32]
+}
+
+wskbd_backlight {
+	min	int32
+	max	int32
+	curval	int32
 }
 
 type vt_reldisp flags[vt_reldisp_flags, int32]
