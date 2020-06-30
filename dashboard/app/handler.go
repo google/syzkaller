@@ -97,6 +97,7 @@ type uiHeader struct {
 	AnalyticsTrackingID string
 	Subpage             string
 	Namespace           string
+	Cached              *Cached
 	Namespaces          []uiNamespace
 }
 
@@ -171,6 +172,11 @@ func commonHeader(c context.Context, r *http.Request, w http.ResponseWriter, ns 
 		h.Namespace = ns
 		cookie.Namespace = ns
 		encodeCookie(w, cookie)
+		cached, err := CacheGet(c, r, ns)
+		if err != nil {
+			return nil, err
+		}
+		h.Cached = cached
 	}
 	return h, nil
 }
