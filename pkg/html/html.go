@@ -42,6 +42,7 @@ var Funcs = template.FuncMap{
 	"formatTime":             FormatTime,
 	"formatDate":             FormatDate,
 	"formatKernelTime":       formatKernelTime,
+	"formatJSTime":           formatJSTime,
 	"formatClock":            formatClock,
 	"formatDuration":         formatDuration,
 	"formatLateness":         formatLateness,
@@ -96,6 +97,10 @@ func formatKernelTime(t time.Time) string {
 	}
 	// This is how dates appear in git log.
 	return t.Format("Mon Jan 2 15:04:05 2006 -0700")
+}
+
+func formatJSTime(t time.Time) string {
+	return t.Format("2006-01-02T15:04:05") // ISO 8601 without time zone
 }
 
 func formatClock(t time.Time) string {
