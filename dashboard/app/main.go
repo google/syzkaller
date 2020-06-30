@@ -240,7 +240,6 @@ func handleFixed(c context.Context, w http.ResponseWriter, r *http.Request) erro
 	return handleTerminalBugList(c, w, r, &TerminalBug{
 		Status:    BugStatusFixed,
 		Subpage:   "/fixed",
-		Caption:   "fixed",
 		ShowPatch: true,
 	})
 }
@@ -249,7 +248,6 @@ func handleInvalid(c context.Context, w http.ResponseWriter, r *http.Request) er
 	return handleTerminalBugList(c, w, r, &TerminalBug{
 		Status:    BugStatusInvalid,
 		Subpage:   "/invalid",
-		Caption:   "invalid",
 		ShowPatch: false,
 	})
 }
@@ -257,7 +255,6 @@ func handleInvalid(c context.Context, w http.ResponseWriter, r *http.Request) er
 type TerminalBug struct {
 	Status    int
 	Subpage   string
-	Caption   string
 	ShowPatch bool
 }
 
@@ -668,7 +665,6 @@ func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
 	}
 	res := &uiBugGroup{
 		Now:       timeNow(c),
-		Caption:   typ.Caption,
 		ShowPatch: typ.ShowPatch,
 		Namespace: ns,
 	}

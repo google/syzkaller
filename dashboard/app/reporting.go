@@ -44,9 +44,7 @@ func reportingPollBugs(c context.Context, typ string) []*dashapi.BugReport {
 		log.Errorf(c, "%v", err)
 		return nil
 	}
-	bugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
-		return query.Filter("Status<", BugStatusFixed)
-	})
+	bugs, _, err := loadOpenBugs(c)
 	if err != nil {
 		log.Errorf(c, "%v", err)
 		return nil
@@ -150,9 +148,7 @@ func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) 
 }
 
 func reportingPollNotifications(c context.Context, typ string) []*dashapi.BugNotification {
-	bugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
-		return query.Filter("Status<", BugStatusFixed)
-	})
+	bugs, _, err := loadOpenBugs(c)
 	if err != nil {
 		log.Errorf(c, "%v", err)
 		return nil
@@ -547,6 +543,18 @@ func loadAllBugs(c context.Context, filter func(*db.Query) *db.Query) ([]*Bug, [
 		return nil, nil, err
 	}
 	return bugs, keys, nil
+}
+
+func loadNamespaceBugs(c context.Context, ns string) ([]*Bug, []*db.Key, error) {
+	return loadAllBugs(c, func(query *db.Query) *db.Query {
+		return query.Filter("Namespace=", ns)
+	})
+}
+
+func loadOpenBugs(c context.Context) ([]*Bug, []*db.Key, error) {
+	return loadAllBugs(c, func(query *db.Query) *db.Query {
+		return query.Filter("Status<", BugStatusFixed)
+	})
 }
 
 func foreachBug(c context.Context, filter func(*db.Query) *db.Query, fn func(bug *Bug, key *db.Key) error) error {
