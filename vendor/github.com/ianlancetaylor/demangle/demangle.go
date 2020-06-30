@@ -5,6 +5,8 @@
 // Package demangle defines functions that demangle GCC/LLVM C++ symbol names.
 // This package recognizes names that were mangled according to the C++ ABI
 // defined at http://codesourcery.com/cxx-abi/.
+//
+// Most programs will want to call Filter or ToString.
 package demangle
 
 import (
@@ -45,7 +47,7 @@ func Filter(name string, options ...Option) string {
 	return ret
 }
 
-// ToString demangles a C++ symbol name, returning human-readable C++
+// ToString demangles a C++ symbol name, returning a human-readable C++
 // name or an error.
 // If the name does not appear to be a C++ symbol name at all, the
 // error will be ErrNotMangledName.
@@ -250,6 +252,7 @@ func adjustErr(err error, adj int) error {
 }
 
 type forLocalNameType int
+
 const (
 	forLocalName forLocalNameType = iota
 	notForLocalName
@@ -480,7 +483,7 @@ func (st *state) nestedName() AST {
 	q := st.cvQualifiers()
 	r := st.refQualifier()
 	a := st.prefix()
-	if len(q) > 0 || r != "" {
+	if q != nil || r != "" {
 		a = &MethodWithQualifiers{Method: a, Qualifiers: q, RefQualifier: r}
 	}
 	if len(st.str) == 0 || st.str[0] != 'E' {
@@ -1137,7 +1140,7 @@ func (st *state) demangleType(isCast bool) AST {
 	addSubst := true
 
 	q := st.cvQualifiers()
-	if len(q) > 0 {
+	if q != nil {
 		if len(st.str) == 0 {
 			st.fail("expected type")
 		}
@@ -1158,7 +1161,7 @@ func (st *state) demangleType(isCast bool) AST {
 	if btype, ok := builtinTypes[st.str[0]]; ok {
 		ret = &BuiltinType{Name: btype}
 		st.advance(1)
-		if len(q) > 0 {
+		if q != nil {
 			ret = &TypeWithQualifiers{Base: ret, Qualifiers: q}
 			st.subs.add(ret)
 		}
@@ -1285,6 +1288,8 @@ func (st *state) demangleType(isCast bool) AST {
 
 		case 'a':
 			ret = &Name{Name: "auto"}
+		case 'c':
+			ret = &Name{Name: "decltype(auto)"}
 
 		case 'f':
 			ret = &BuiltinType{Name: "decimal32"}
@@ -1342,7 +1347,7 @@ func (st *state) demangleType(isCast bool) AST {
 		}
 	}
 
-	if len(q) > 0 {
+	if q != nil {
 		if _, ok := ret.(*FunctionType); ok {
 			ret = &MethodWithQualifiers{Method: ret, Qualifiers: q, RefQualifier: ""}
 		} else if mwq, ok := ret.(*MethodWithQualifiers); ok {
@@ -1432,17 +1437,32 @@ func (st *state) demangleCastTemplateArgs(tp AST, addSubst bool) AST {
 }
 
 // mergeQualifiers merges two qualifer lists into one.
-func mergeQualifiers(q1, q2 Qualifiers) Qualifiers {
-	m := make(map[string]bool)
-	for _, qual := range q1 {
-		m[qual] = true
+func mergeQualifiers(q1AST, q2AST AST) AST {
+	if q1AST == nil {
+		return q2AST
 	}
-	for _, qual := range q2 {
-		if !m[qual] {
-			q1 = append(q1, qual)
-			m[qual] = true
+	if q2AST == nil {
+		return q1AST
+	}
+	q1 := q1AST.(*Qualifiers)
+	m := make(map[string]bool)
+	for _, qualAST := range q1.Qualifiers {
+		qual := qualAST.(*Qualifier)
+		if len(qual.Exprs) == 0 {
+			m[qual.Name] = true
 		}
 	}
+	rq := q1.Qualifiers
+	for _, qualAST := range q2AST.(*Qualifiers).Qualifiers {
+		qual := qualAST.(*Qualifier)
+		if len(qual.Exprs) > 0 {
+			rq = append(rq, qualAST)
+		} else if !m[qual.Name] {
+			rq = append(rq, qualAST)
+			m[qual.Name] = true
+		}
+	}
+	q1.Qualifiers = rq
 	return q1
 }
 
@@ -1455,20 +1475,51 @@ var qualifiers = map[byte]string{
 }
 
 // <CV-qualifiers> ::= [r] [V] [K]
-func (st *state) cvQualifiers() Qualifiers {
-	var q Qualifiers
+func (st *state) cvQualifiers() AST {
+	var q []AST
+qualLoop:
 	for len(st.str) > 0 {
 		if qv, ok := qualifiers[st.str[0]]; ok {
-			q = append([]string{qv}, q...)
+			qual := &Qualifier{Name: qv}
+			q = append([]AST{qual}, q...)
 			st.advance(1)
-		} else if len(st.str) > 1 && st.str[:2] == "Dx" {
-			q = append([]string{"transaction_safe"}, q...)
-			st.advance(2)
+		} else if len(st.str) > 1 && st.str[0] == 'D' {
+			var qual AST
+			switch st.str[1] {
+			case 'x':
+				qual = &Qualifier{Name: "transaction_safe"}
+				st.advance(2)
+			case 'o':
+				qual = &Qualifier{Name: "noexcept"}
+				st.advance(2)
+			case 'O':
+				st.advance(2)
+				expr := st.expression()
+				if len(st.str) == 0 || st.str[0] != 'E' {
+					st.fail("expected E after computed noexcept expression")
+				}
+				st.advance(1)
+				qual = &Qualifier{Name: "noexcept", Exprs: []AST{expr}}
+			case 'w':
+				st.advance(2)
+				parmlist := st.parmlist()
+				if len(st.str) == 0 || st.str[0] != 'E' {
+					st.fail("expected E after throw parameter list")
+				}
+				st.advance(1)
+				qual = &Qualifier{Name: "throw", Exprs: parmlist}
+			default:
+				break qualLoop
+			}
+			q = append([]AST{qual}, q...)
 		} else {
 			break
 		}
 	}
-	return q
+	if len(q) == 0 {
+		return nil
+	}
+	return &Qualifiers{Qualifiers: q}
 }
 
 // <ref-qualifier> ::= R

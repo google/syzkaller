@@ -10,8 +10,6 @@ import (
 	"google.golang.org/grpc/naming"
 )
 
-// TODO: move to transport/grpc package
-
 // PoolResolver provides a fixed list of addresses to load balance between
 // and does not provide further updates.
 type PoolResolver struct {

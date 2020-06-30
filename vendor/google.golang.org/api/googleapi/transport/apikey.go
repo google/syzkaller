@@ -4,10 +4,6 @@
 
 // Package transport contains HTTP transports used to make
 // authenticated API requests.
-//
-// This package is DEPRECATED. Users should instead use,
-//
-//     service, err := NewService(..., option.WithAPIKey(...))
 package transport
 
 import (
@@ -17,8 +13,6 @@ import (
 
 // APIKey is an HTTP Transport which wraps an underlying transport and
 // appends an API Key "key" parameter to the URL of outgoing requests.
-//
-// Deprecated: please use NewService(..., option.WithAPIKey(...)) instead.
 type APIKey struct {
 	// Key is the API Key to set on requests.
 	Key string

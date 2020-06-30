@@ -399,12 +399,141 @@ func (tp *TemplateParam) goString(indent int, field string) string {
 }
 
 // Qualifiers is an ordered list of type qualifiers.
-type Qualifiers []string
+type Qualifiers struct {
+	Qualifiers []AST
+}
+
+func (qs *Qualifiers) print(ps *printState) {
+	first := true
+	for _, q := range qs.Qualifiers {
+		if !first {
+			ps.writeByte(' ')
+		}
+		q.print(ps)
+		first = false
+	}
+}
+
+func (qs *Qualifiers) Traverse(fn func(AST) bool) {
+	if fn(qs) {
+		for _, q := range qs.Qualifiers {
+			q.Traverse(fn)
+		}
+	}
+}
+
+func (qs *Qualifiers) Copy(fn func(AST) AST, skip func(AST) bool) AST {
+	if skip(qs) {
+		return nil
+	}
+	changed := false
+	qualifiers := make([]AST, len(qs.Qualifiers))
+	for i, q := range qs.Qualifiers {
+		qc := q.Copy(fn, skip)
+		if qc == nil {
+			qualifiers[i] = q
+		} else {
+			qualifiers[i] = qc
+			changed = true
+		}
+	}
+	if !changed {
+		return fn(qs)
+	}
+	qs = &Qualifiers{Qualifiers: qualifiers}
+	if r := fn(qs); r != nil {
+		return r
+	}
+	return qs
+}
+
+func (qs *Qualifiers) GoString() string {
+	return qs.goString(0, "")
+}
+
+func (qs *Qualifiers) goString(indent int, field string) string {
+	quals := fmt.Sprintf("%*s%s", indent, "", field)
+	for _, q := range qs.Qualifiers {
+		quals += "\n"
+		quals += q.goString(indent+2, "")
+	}
+	return quals
+}
+
+// Qualifier is a single type qualifier.
+type Qualifier struct {
+	Name  string // qualifier name: const, volatile, etc.
+	Exprs []AST  // can be non-nil for noexcept and throw
+}
+
+func (q *Qualifier) print(ps *printState) {
+	ps.writeString(q.Name)
+	if len(q.Exprs) > 0 {
+		ps.writeByte('(')
+		first := true
+		for _, e := range q.Exprs {
+			if !first {
+				ps.writeString(", ")
+			}
+			ps.print(e)
+			first = false
+		}
+		ps.writeByte(')')
+	}
+}
+
+func (q *Qualifier) Traverse(fn func(AST) bool) {
+	if fn(q) {
+		for _, e := range q.Exprs {
+			e.Traverse(fn)
+		}
+	}
+}
+
+func (q *Qualifier) Copy(fn func(AST) AST, skip func(AST) bool) AST {
+	if skip(q) {
+		return nil
+	}
+	exprs := make([]AST, len(q.Exprs))
+	changed := false
+	for i, e := range q.Exprs {
+		ec := e.Copy(fn, skip)
+		if ec == nil {
+			exprs[i] = e
+		} else {
+			exprs[i] = ec
+			changed = true
+		}
+	}
+	if !changed {
+		return fn(q)
+	}
+	q = &Qualifier{Name: q.Name, Exprs: exprs}
+	if r := fn(q); r != nil {
+		return r
+	}
+	return q
+}
+
+func (q *Qualifier) GoString() string {
+	return q.goString(0, "Qualifier: ")
+}
+
+func (q *Qualifier) goString(indent int, field string) string {
+	qs := fmt.Sprintf("%*s%s%s", indent, "", field, q.Name)
+	if len(q.Exprs) > 0 {
+		for i, e := range q.Exprs {
+			qs += "\n"
+			qs += e.goString(indent+2, fmt.Sprintf("%d: ", i))
+		}
+	}
+	return qs
+}
 
 // TypeWithQualifiers is a type with standard qualifiers.
 type TypeWithQualifiers struct {
 	Base       AST
-	Qualifiers Qualifiers
+	Qualifiers AST
 }
 
 func (twq *TypeWithQualifiers) print(ps *printState) {
@@ -414,7 +543,7 @@ func (twq *TypeWithQualifiers) print(ps *printState) {
 	if len(ps.inner) > 0 {
 		// The qualifier wasn't printed by Base.
 		ps.writeByte(' ')
-		ps.writeString(strings.Join(twq.Qualifiers, " "))
+		ps.print(twq.Qualifiers)
 		ps.inner = ps.inner[:len(ps.inner)-1]
 	}
 }
@@ -422,7 +551,7 @@ func (twq *TypeWithQualifiers) print(ps *printState) {
 // Print qualifiers as an inner type by just printing the qualifiers.
 func (twq *TypeWithQualifiers) printInner(ps *printState) {
 	ps.writeByte(' ')
-	ps.writeString(strings.Join(twq.Qualifiers, " "))
+	ps.print(twq.Qualifiers)
 }
 
 func (twq *TypeWithQualifiers) Traverse(fn func(AST) bool) {
@@ -436,10 +565,17 @@ func (twq *TypeWithQualifiers) Copy(fn func(AST) AST, skip func(AST) bool) AST {
 		return nil
 	}
 	base := twq.Base.Copy(fn, skip)
-	if base == nil {
+	quals := twq.Qualifiers.Copy(fn, skip)
+	if base == nil && quals == nil {
 		return fn(twq)
 	}
-	twq = &TypeWithQualifiers{Base: base, Qualifiers: twq.Qualifiers}
+	if base == nil {
+		base = twq.Base
+	}
+	if quals == nil {
+		quals = twq.Qualifiers
+	}
+	twq = &TypeWithQualifiers{Base: base, Qualifiers: quals}
 	if r := fn(twq); r != nil {
 		return r
 	}
@@ -451,14 +587,15 @@ func (twq *TypeWithQualifiers) GoString() string {
 }
 
 func (twq *TypeWithQualifiers) goString(indent int, field string) string {
-	return fmt.Sprintf("%*s%sTypeWithQualifiers: Qualifiers: %s\n%s", indent, "", field,
-		twq.Qualifiers, twq.Base.goString(indent+2, "Base: "))
+	return fmt.Sprintf("%*s%sTypeWithQualifiers:\n%s\n%s", indent, "", field,
+		twq.Qualifiers.goString(indent+2, "Qualifiers: "),
+		twq.Base.goString(indent+2, "Base: "))
 }
 
 // MethodWithQualifiers is a method with qualifiers.
 type MethodWithQualifiers struct {
 	Method       AST
-	Qualifiers   Qualifiers
+	Qualifiers   AST
 	RefQualifier string // "" or "&" or "&&"
 }
 
@@ -467,9 +604,9 @@ func (mwq *MethodWithQualifiers) print(ps *printState) {
 	ps.inner = append(ps.inner, mwq)
 	ps.print(mwq.Method)
 	if len(ps.inner) > 0 {
-		if len(mwq.Qualifiers) > 0 {
+		if mwq.Qualifiers != nil {
 			ps.writeByte(' ')
-			ps.writeString(strings.Join(mwq.Qualifiers, " "))
+			ps.print(mwq.Qualifiers)
 		}
 		if mwq.RefQualifier != "" {
 			ps.writeByte(' ')
@@ -480,9 +617,9 @@ func (mwq *MethodWithQualifiers) print(ps *printState) {
 }
 
 func (mwq *MethodWithQualifiers) printInner(ps *printState) {
-	if len(mwq.Qualifiers) > 0 {
+	if mwq.Qualifiers != nil {
 		ps.writeByte(' ')
-		ps.writeString(strings.Join(mwq.Qualifiers, " "))
+		ps.print(mwq.Qualifiers)
 	}
 	if mwq.RefQualifier != "" {
 		ps.writeByte(' ')
@@ -501,10 +638,20 @@ func (mwq *MethodWithQualifiers) Copy(fn func(AST) AST, skip func(AST) bool) AST
 		return nil
 	}
 	method := mwq.Method.Copy(fn, skip)
-	if method == nil {
+	var quals AST
+	if mwq.Qualifiers != nil {
+		quals = mwq.Qualifiers.Copy(fn, skip)
+	}
+	if method == nil && quals == nil {
 		return fn(mwq)
 	}
-	mwq = &MethodWithQualifiers{Method: method, Qualifiers: mwq.Qualifiers, RefQualifier: mwq.RefQualifier}
+	if method == nil {
+		method = mwq.Method
+	}
+	if quals == nil {
+		quals = mwq.Qualifiers
+	}
+	mwq = &MethodWithQualifiers{Method: method, Qualifiers: quals, RefQualifier: mwq.RefQualifier}
 	if r := fn(mwq); r != nil {
 		return r
 	}
@@ -517,14 +664,14 @@ func (mwq *MethodWithQualifiers) GoString() string {
 
 func (mwq *MethodWithQualifiers) goString(indent int, field string) string {
 	var q string
-	if len(mwq.Qualifiers) > 0 {
-		q += fmt.Sprintf(" Qualifiers: %v", mwq.Qualifiers)
+	if mwq.Qualifiers != nil {
+		q += "\n" + mwq.Qualifiers.goString(indent+2, "Qualifiers: ")
 	}
 	if mwq.RefQualifier != "" {
 		if q != "" {
-			q += ";"
+			q += "\n"
 		}
-		q += " RefQualifier: " + mwq.RefQualifier
+		q += fmt.Sprintf("%*s%s%s", indent+2, "", "RefQualifier: ", mwq.RefQualifier)
 	}
 	return fmt.Sprintf("%*s%sMethodWithQualifiers:%s\n%s", indent, "", field,
 		q, mwq.Method.goString(indent+2, "Method: "))
