@@ -19,6 +19,7 @@ import (
 	"golang.org/x/net/context"
 	db "google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
+	"google.golang.org/appengine/memcache"
 )
 
 // This file contains web UI http handlers.
@@ -58,10 +59,11 @@ type uiTerminalPage struct {
 }
 
 type uiAdminPage struct {
-	Header   *uiHeader
-	Log      []byte
-	Managers []*uiManager
-	Jobs     *uiJobList
+	Header        *uiHeader
+	Log           []byte
+	Managers      []*uiManager
+	Jobs          *uiJobList
+	MemcacheStats *memcache.Statistics
 }
 
 type uiManager struct {
@@ -284,7 +286,20 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 	if accessLevel != AccessAdmin {
 		return ErrAccess
 	}
+	switch action := r.FormValue("action"); action {
+	case "":
+	case "memcache_flush":
+		if err := memcache.Flush(c); err != nil {
+			return fmt.Errorf("failed to flush memcache: %v", err)
+		}
+	default:
+		return fmt.Errorf("unknown action %q", action)
+	}
 	hdr, err := commonHeader(c, r, w, "")
+	if err != nil {
+		return err
+	}
+	memcacheStats, err := memcache.Stats(c)
 	if err != nil {
 		return err
 	}
@@ -301,10 +316,11 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 		return err
 	}
 	data := &uiAdminPage{
-		Header:   hdr,
-		Log:      errorLog,
-		Managers: managers,
-		Jobs:     &uiJobList{Jobs: jobs},
+		Header:        hdr,
+		Log:           errorLog,
+		Managers:      managers,
+		Jobs:          &uiJobList{Jobs: jobs},
+		MemcacheStats: memcacheStats,
 	}
 	return serveTemplate(w, "admin.html", data)
 }
