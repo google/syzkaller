@@ -22,20 +22,22 @@ Also enable the [recommended Kconfig options for syzkaller](/docs/linux/kernel_c
 Then build kernel with:
 
 ```
-make ARCH=riscv CROSS_COMPILE=riscv64-linux-gnu- -j $(nproc) vmlinux
+make ARCH=riscv CROSS_COMPILE=riscv64-linux-gnu- -j $(nproc)
 ```
 
-# BBL (Berkeley Boot Loader)
+# OpenSBI
 
-Clone the BBL repository and build the bootable image containg bootloader and kernel:
+Clone the OpenSBI repository and build the bootable OpenSBI image containg the kernel:
 
 ```shell
-git clone https://github.com/riscv/riscv-pk
-cd riscv-pk
-mkdir build && cd build
-../configure --enable-logo --host=riscv64-linux-gnu --with-payload=/path/to/linux/vmlinux
-make
+git clone https://github.com/riscv/opensbi
+cd opensbi
+make CROSS_COMPILE=riscv64-linux-gnu- PLATFORM_RISCV_XLEN=64 PLATFORM=generic FW_PAYLOAD_PATH=<linux_build_directory>/arch/riscv/boot/Image
 ```
+
+See the OpenSBI documentation for booting on the
+[QEMU RISC-V Virt Machine Platform](https://github.com/riscv/opensbi/blob/master/docs/platform/qemu_virt.md)
+for more information.
 
 # Image
 
@@ -94,7 +96,7 @@ Run:
 qemu-system-riscv64 \
 	-machine virt \
 	-nographic \
-	-kernel /riscv-pk/build/bbl \
+	-kernel /opensbi/build/platform/generic/firmware/fw_payload.elf \
 	-append "root=/dev/vda ro console=ttyS0" \
 	-object rng-random,filename=/dev/urandom,id=rng0 \
 	-device virtio-rng-device,rng=rng0 \
@@ -135,7 +137,7 @@ Create the manager config `riscv64.cfg` similar to the following one (adjusting 
 	"type": "qemu",
 	"vm": {
 		"count": 1,
-		"kernel": "/riscv-pk/build/bbl",
+		"kernel": "/opensbi/build/platform/generic/firmware/fw_payload.elf",
 		"cpu": 2,
 		"mem": 2048
 	}
