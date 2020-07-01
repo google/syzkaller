@@ -247,6 +247,14 @@ var bisectionTests = []BisectionTest{
 		commitLen:   15,
 		culprit:     605,
 	},
+	// All releases are build broken.
+	{
+		name:        "all-releases-broken",
+		startCommit: 802,
+		brokenStart: 100,
+		brokenEnd:   800,
+		commitLen:   2,
+	},
 	// Tests that bisection returns the correct fix commit.
 	{
 		name:        "fix-finds-fix",
