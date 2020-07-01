@@ -219,6 +219,12 @@ func (env *env) bisect() (*Result, error) {
 		return &Result{Report: rep1, Commit: bad, Config: &cfg.Kernel.Config},
 			nil // still not fixed/happens on the oldest release
 	}
+	if good == nil {
+		// Special case: all previous releases are build broken.
+		// It's unclear what's the best way to report this.
+		// We return 2 commits which means "inconclusive".
+		return &Result{Commits: []*vcs.Commit{com, bad}, Config: &cfg.Kernel.Config}, nil
+	}
 	results := map[string]*testResult{cfg.Kernel.Commit: testRes}
 	for _, res := range results1 {
 		results[res.com.Hash] = res
