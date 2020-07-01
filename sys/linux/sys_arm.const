@@ -731,6 +731,7 @@ __NR_rename = 38
 __NR_renameat = 329
 __NR_renameat2 = 382
 __NR_restart_syscall = 0
+# __NR_riscv_flush_icache is not set
 __NR_rmdir = 40
 __NR_rseq = 398
 __NR_rt_sigaction = 174

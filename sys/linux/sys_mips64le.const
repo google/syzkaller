@@ -731,6 +731,7 @@ __NR_rename = 5080
 __NR_renameat = 5254
 __NR_renameat2 = 5311
 __NR_restart_syscall = 5213
+# __NR_riscv_flush_icache is not set
 __NR_rmdir = 5082
 __NR_rseq = 5327
 __NR_rt_sigaction = 5013
