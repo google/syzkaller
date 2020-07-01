@@ -17,6 +17,13 @@ Note that `CONFIG_KCOV_ENABLE_COMPARISONS` feature also requires `gcc8+` and the
     kcov: fix comparison callback signature
 ```
 
+To detect memory leaks using the [Kernel Memory Leak Detector
+(kmemleak)](https://www.kernel.org/doc/html/latest/dev-tools/kmemleak.html):
+
+```
+CONFIG_KMEMLEAK=y
+```
+
 To show code coverage in web interface:
 ```
 CONFIG_DEBUG_INFO=y
