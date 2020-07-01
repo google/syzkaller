@@ -158,8 +158,9 @@ type BisectionTest struct {
 	commitLen    int
 	oldestLatest int
 	// input and output
-	culprit        int
-	baselineConfig string
+	culprit         int
+	baselineConfig  string
+	resultingConfig string
 }
 
 var bisectionTests = []BisectionTest{
@@ -173,44 +174,49 @@ var bisectionTests = []BisectionTest{
 	},
 	// Test bisection returns correct cause with different baseline/config combinations.
 	{
-		name:           "cause-finds-cause-baseline-repro",
-		startCommit:    905,
-		commitLen:      1,
-		expectRep:      true,
-		culprit:        602,
-		baselineConfig: "baseline-repro",
+		name:            "cause-finds-cause-baseline-repro",
+		startCommit:     905,
+		commitLen:       1,
+		expectRep:       true,
+		culprit:         602,
+		baselineConfig:  "baseline-repro",
+		resultingConfig: "baseline-repro",
 	},
 	{
-		name:           "cause-finds-cause-baseline-does-not-repro",
-		startCommit:    905,
-		commitLen:      1,
-		expectRep:      true,
-		culprit:        602,
-		baselineConfig: "baseline-not-reproducing",
+		name:            "cause-finds-cause-baseline-does-not-repro",
+		startCommit:     905,
+		commitLen:       1,
+		expectRep:       true,
+		culprit:         602,
+		baselineConfig:  "baseline-not-reproducing",
+		resultingConfig: "original config",
 	},
 	{
-		name:           "cause-finds-cause-baseline-fails",
-		startCommit:    905,
-		commitLen:      1,
-		expectRep:      true,
-		culprit:        602,
-		baselineConfig: "baseline-fails",
+		name:            "cause-finds-cause-baseline-fails",
+		startCommit:     905,
+		commitLen:       1,
+		expectRep:       true,
+		culprit:         602,
+		baselineConfig:  "baseline-fails",
+		resultingConfig: "original config",
 	},
 	{
-		name:           "cause-finds-cause-baseline-skip",
-		startCommit:    905,
-		commitLen:      1,
-		expectRep:      true,
-		culprit:        602,
-		baselineConfig: "baseline-skip",
+		name:            "cause-finds-cause-baseline-skip",
+		startCommit:     905,
+		commitLen:       1,
+		expectRep:       true,
+		culprit:         602,
+		baselineConfig:  "baseline-skip",
+		resultingConfig: "original config",
 	},
 	{
-		name:           "cause-finds-cause-minimize-succeeds",
-		startCommit:    905,
-		commitLen:      1,
-		expectRep:      true,
-		culprit:        602,
-		baselineConfig: "minimize-succeeds",
+		name:            "cause-finds-cause-minimize-succeeds",
+		startCommit:     905,
+		commitLen:       1,
+		expectRep:       true,
+		culprit:         602,
+		baselineConfig:  "minimize-succeeds",
+		resultingConfig: "original config",
 	},
 	{
 		name:           "cause-finds-cause-minimize-fails",
@@ -440,6 +446,10 @@ func TestBisectionResults(t *testing.T) {
 					t.Fatalf("expected latest/oldest: %v got '%v'",
 						test.oldestLatest, res.Commit.Title)
 				}
+				if test.resultingConfig != "" && test.resultingConfig != string(res.Config) {
+					t.Fatalf("expected resulting config: %q got %q",
+						test.resultingConfig, res.Config)
+				}
 			})
 		}
 	})
@@ -458,8 +468,12 @@ func checkTest(t *testing.T, test BisectionTest) {
 		(test.commitLen != 0 ||
 			test.expectRep ||
 			test.oldestLatest != 0 ||
-			test.culprit != 0) {
+			test.culprit != 0 ||
+			test.resultingConfig != "") {
 		t.Fatalf("expecting non-default values on error")
+	}
+	if !test.expectErr && test.baselineConfig != "" && test.resultingConfig == "" {
+		t.Fatalf("specify resultingConfig with baselineConfig")
 	}
 	if test.brokenStart > test.brokenEnd {
 		t.Fatalf("bad broken start/end: %v/%v",
