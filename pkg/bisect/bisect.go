@@ -58,16 +58,17 @@ type ReproConfig struct {
 }
 
 type env struct {
-	cfg       *Config
-	repo      vcs.Repo
-	bisecter  vcs.Bisecter
-	minimizer vcs.ConfigMinimizer
-	commit    *vcs.Commit
-	head      *vcs.Commit
-	inst      instance.Env
-	numTests  int
-	buildTime time.Duration
-	testTime  time.Duration
+	cfg          *Config
+	repo         vcs.Repo
+	bisecter     vcs.Bisecter
+	minimizer    vcs.ConfigMinimizer
+	commit       *vcs.Commit
+	head         *vcs.Commit
+	kernelConfig []byte
+	inst         instance.Env
+	numTests     int
+	buildTime    time.Duration
+	testTime     time.Duration
 }
 
 const NumTests = 10 // number of tests we do per commit
@@ -199,6 +200,7 @@ func (env *env) bisect() (*Result, error) {
 	}
 
 	env.commit = com
+	env.kernelConfig = cfg.Kernel.Config
 	testRes, err := env.test()
 	if err != nil {
 		return nil, err
@@ -217,14 +219,14 @@ func (env *env) bisect() (*Result, error) {
 		return nil, err
 	}
 	if rep1 != nil {
-		return &Result{Report: rep1, Commit: bad, Config: cfg.Kernel.Config},
+		return &Result{Report: rep1, Commit: bad, Config: env.kernelConfig},
 			nil // still not fixed/happens on the oldest release
 	}
 	if good == nil {
 		// Special case: all previous releases are build broken.
 		// It's unclear what's the best way to report this.
 		// We return 2 commits which means "inconclusive".
-		return &Result{Commits: []*vcs.Commit{com, bad}, Config: cfg.Kernel.Config}, nil
+		return &Result{Commits: []*vcs.Commit{com, bad}, Config: env.kernelConfig}, nil
 	}
 	results := map[string]*testResult{cfg.Kernel.Commit: testRes}
 	for _, res := range results1 {
@@ -251,7 +253,7 @@ func (env *env) bisect() (*Result, error) {
 	}
 	res := &Result{
 		Commits: commits,
-		Config:  cfg.Kernel.Config,
+		Config:  env.kernelConfig,
 	}
 	if len(commits) == 1 {
 		com := commits[0]
@@ -277,25 +279,24 @@ func (env *env) bisect() (*Result, error) {
 func (env *env) minimizeConfig() error {
 	cfg := env.cfg
 	// Check if crash reproduces with baseline config.
-	originalConfig := cfg.Kernel.Config
-	cfg.Kernel.Config = cfg.Kernel.BaselineConfig
+	env.kernelConfig = cfg.Kernel.BaselineConfig
 	testRes, err := env.test()
-	cfg.Kernel.Config = originalConfig
 	if err != nil {
 		env.log("testing baseline config failed: %v", err)
+		env.kernelConfig = cfg.Kernel.Config
 		return err
 	}
 	if testRes.verdict == vcs.BisectBad {
 		env.log("crash reproduces with baseline config")
-		cfg.Kernel.Config = cfg.Kernel.BaselineConfig
 		return nil
 	}
 	if testRes.verdict == vcs.BisectSkip {
 		env.log("unable to test using baseline config, keep original config")
+		env.kernelConfig = cfg.Kernel.Config
 		return nil
 	}
 	predMinimize := func(test []byte) (vcs.BisectResult, error) {
-		cfg.Kernel.Config = test
+		env.kernelConfig = test
 		testRes, err := env.test()
 		if err != nil {
 			return 0, err
@@ -303,7 +304,7 @@ func (env *env) minimizeConfig() error {
 		return testRes.verdict, err
 	}
 	// Find minimal configuration based on baseline to reproduce the crash.
-	cfg.Kernel.Config, err = env.minimizer.Minimize(cfg.Kernel.Config,
+	env.kernelConfig, err = env.minimizer.Minimize(cfg.Kernel.Config,
 		cfg.Kernel.BaselineConfig, cfg.Trace, predMinimize)
 	if err != nil {
 		env.log("minimizing config failed: %v", err)
@@ -410,7 +411,7 @@ func (env *env) build() (*vcs.Commit, string, error) {
 		return nil, "", err
 	}
 
-	bisectEnv, err := env.bisecter.EnvForCommit(env.cfg.BinDir, current.Hash, env.cfg.Kernel.Config)
+	bisectEnv, err := env.bisecter.EnvForCommit(env.cfg.BinDir, current.Hash, env.kernelConfig)
 	if err != nil {
 		return nil, "", err
 	}
