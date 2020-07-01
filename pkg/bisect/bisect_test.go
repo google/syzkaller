@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/report"
@@ -34,9 +35,10 @@ func (env *testEnv) BuildSyzkaller(repo, commit string) error {
 func (env *testEnv) BuildKernel(compilerBin, userspaceDir, cmdlineFile, sysctlFile string,
 	kernelConfig []byte) (string, string, error) {
 	commit := env.headCommit()
-	kernelSign := fmt.Sprintf("sign-%v", commit)
+	configHash := hash.String(kernelConfig)
+	kernelSign := fmt.Sprintf("%v-%v", commit, configHash)
 	if commit >= env.test.sameBinaryStart && commit <= env.test.sameBinaryEnd {
-		kernelSign = "same-sign"
+		kernelSign = "same-sign-" + configHash
 	}
 	env.config = string(kernelConfig)
 	if env.config == "baseline-fails" || env.config == "broken-build" {
@@ -232,6 +234,18 @@ var bisectionTests = []BisectionTest{
 		startCommit:    905,
 		baselineConfig: "minimize-fails",
 		expectErr:      true,
+	},
+	{
+		name:            "config-minimize-same-hash",
+		startCommit:     905,
+		commitLen:       1,
+		expectRep:       true,
+		culprit:         905,
+		sameBinaryStart: 904,
+		sameBinaryEnd:   905,
+		noopChange:      true,
+		baselineConfig:  "minimize-succeeds",
+		resultingConfig: "new-minimized-config",
 	},
 	// Tests that cause bisection returns error when crash does not reproduce
 	// on the original commit.

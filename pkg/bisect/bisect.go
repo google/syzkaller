@@ -210,8 +210,12 @@ func (env *env) bisect() (*Result, error) {
 	}
 
 	if len(cfg.Kernel.BaselineConfig) != 0 {
-		if err := env.minimizeConfig(); err != nil {
+		testRes1, err := env.minimizeConfig()
+		if err != nil {
 			return nil, err
+		}
+		if testRes1 != nil {
+			testRes = testRes1
 		}
 	}
 
@@ -277,7 +281,7 @@ func (env *env) bisect() (*Result, error) {
 	return res, nil
 }
 
-func (env *env) minimizeConfig() error {
+func (env *env) minimizeConfig() (*testResult, error) {
 	cfg := env.cfg
 	// Check if crash reproduces with baseline config.
 	env.kernelConfig = cfg.Kernel.BaselineConfig
@@ -285,16 +289,16 @@ func (env *env) minimizeConfig() error {
 	if err != nil {
 		env.log("testing baseline config failed: %v", err)
 		env.kernelConfig = cfg.Kernel.Config
-		return err
+		return nil, err
 	}
 	if testRes.verdict == vcs.BisectBad {
 		env.log("crash reproduces with baseline config")
-		return nil
+		return testRes, nil
 	}
 	if testRes.verdict == vcs.BisectSkip {
 		env.log("unable to test using baseline config, keep original config")
 		env.kernelConfig = cfg.Kernel.Config
-		return nil
+		return nil, nil
 	}
 	predMinimize := func(test []byte) (vcs.BisectResult, error) {
 		env.kernelConfig = test
@@ -309,21 +313,22 @@ func (env *env) minimizeConfig() error {
 		cfg.Kernel.BaselineConfig, cfg.Trace, predMinimize)
 	if err != nil {
 		env.log("minimizing config failed: %v", err)
-		return err
+		return nil, err
 	}
-	if !bytes.Equal(env.kernelConfig, cfg.Kernel.Config) {
-		// Check that crash is really reproduced with generated config.
-		testRes, err = env.test()
-		if err != nil {
-			return fmt.Errorf("testing generated minimized config failed: %v", err)
-		}
-		if testRes.verdict != vcs.BisectBad {
-			env.log("testing with generated minimized config doesn't reproduce the crash")
-			env.kernelConfig = cfg.Kernel.Config
-			return nil
-		}
+	if bytes.Equal(env.kernelConfig, cfg.Kernel.Config) {
+		return nil, nil
 	}
-	return nil
+	// Check that crash is really reproduced with generated config.
+	testRes, err = env.test()
+	if err != nil {
+		return nil, fmt.Errorf("testing generated minimized config failed: %v", err)
+	}
+	if testRes.verdict != vcs.BisectBad {
+		env.log("testing with generated minimized config doesn't reproduce the crash")
+		env.kernelConfig = cfg.Kernel.Config
+		return nil, nil
+	}
+	return testRes, nil
 }
 
 func (env *env) detectNoopChange(results map[string]*testResult, com *vcs.Commit) (bool, error) {
