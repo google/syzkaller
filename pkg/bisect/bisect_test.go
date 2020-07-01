@@ -39,7 +39,7 @@ func (env *testEnv) BuildKernel(compilerBin, userspaceDir, cmdlineFile, sysctlFi
 		kernelSign = "same-sign"
 	}
 	env.config = string(kernelConfig)
-	if env.config == "baseline-fails" {
+	if env.config == "baseline-fails" || env.config == "broken-build" {
 		return "", kernelSign, fmt.Errorf("Failure")
 	}
 	return "", kernelSign, nil
@@ -51,7 +51,7 @@ func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]erro
 		env.config == "baseline-skip" {
 		return nil, fmt.Errorf("broken build")
 	}
-	if (env.config == "baseline-repro" || env.config == "original config") &&
+	if (env.config == "baseline-repro" || env.config == "new-minimized-config" || env.config == "original config") &&
 		(!env.test.fix && commit >= env.test.culprit || env.test.fix &&
 			commit < env.test.culprit) {
 		return crashErrors(numVMs, "crash occurs"), nil
@@ -183,6 +183,15 @@ var bisectionTests = []BisectionTest{
 		resultingConfig: "baseline-repro",
 	},
 	{
+		name:            "cause-finds-cause-baseline-broken-build",
+		startCommit:     905,
+		commitLen:       1,
+		expectRep:       true,
+		culprit:         602,
+		baselineConfig:  "baseline-broken-build",
+		resultingConfig: "original config",
+	},
+	{
 		name:            "cause-finds-cause-baseline-does-not-repro",
 		startCommit:     905,
 		commitLen:       1,
@@ -216,7 +225,7 @@ var bisectionTests = []BisectionTest{
 		expectRep:       true,
 		culprit:         602,
 		baselineConfig:  "minimize-succeeds",
-		resultingConfig: "original config",
+		resultingConfig: "new-minimized-config",
 	},
 	{
 		name:           "cause-finds-cause-minimize-fails",
