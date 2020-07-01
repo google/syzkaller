@@ -69,12 +69,6 @@ func TestMinimizationResults(t *testing.T) {
 			passing:        true,
 		},
 		{
-			config:         "CONFIG_ORIGINAL=y",
-			baselineConfig: "CONFIG_NOT_REPRODUCE_CRASH=y",
-			expectedConfig: "CONFIG_ORIGINAL=y",
-			passing:        true,
-		},
-		{
 			config:         configBisectTag,
 			baselineConfig: "CONFIG_NOT_REPRODUCE_CRASH=y",
 			expectedConfig: configBisectTag,
