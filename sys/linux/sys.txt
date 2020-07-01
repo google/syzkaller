@@ -472,6 +472,9 @@ rseq_cs {
 
 rseq_cs_flags = RSEQ_CS_FLAG_NO_RESTART_ON_PREEMPT, RSEQ_CS_FLAG_NO_RESTART_ON_SIGNAL, RSEQ_CS_FLAG_NO_RESTART_ON_MIGRATE
 
+# start/end are unused for now, no definition of SYS_RISCV_FLUSH_ICACHE_LOCAL in uapi headers.
+riscv_flush_icache(start const[0], end const[0], flags bool32)
+
 syz_open_procfs(pid pid, file ptr[in, string[procfs_proc_file]]) fd
 
 # TODO: some of net files are only available in the init namespace (e.g. bluetooth bnep and hci).

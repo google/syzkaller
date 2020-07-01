@@ -731,6 +731,7 @@ __NR_remap_file_pages = 234
 __NR_renameat = 38
 __NR_renameat2 = 276
 __NR_restart_syscall = 128
+# __NR_riscv_flush_icache is not set
 # __NR_rmdir is not set
 __NR_rseq = 293
 __NR_rt_sigaction = 134
