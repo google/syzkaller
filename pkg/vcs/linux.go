@@ -312,16 +312,6 @@ func (ctx *linux) Minimize(original, baseline []byte, trace io.Writer,
 	if err != nil {
 		return nil, fmt.Errorf("generating minimized config failed: %v", err)
 	}
-
-	// Check that crash is really reproduced with generated config.
-	testRes, err := pred(minimizedConfig)
-	if err != nil {
-		return nil, fmt.Errorf("testing generated minimized config failed: %v", err)
-	}
-	if testRes != BisectBad {
-		fmt.Fprintf(trace, "# testing with generated minimized config doesn't reproduce the crash\n")
-		return original, nil
-	}
 	return minimizedConfig, nil
 }
 

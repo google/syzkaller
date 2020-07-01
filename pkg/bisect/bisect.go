@@ -4,6 +4,7 @@
 package bisect
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -309,6 +310,18 @@ func (env *env) minimizeConfig() error {
 	if err != nil {
 		env.log("minimizing config failed: %v", err)
 		return err
+	}
+	if !bytes.Equal(env.kernelConfig, cfg.Kernel.Config) {
+		// Check that crash is really reproduced with generated config.
+		testRes, err = env.test()
+		if err != nil {
+			return fmt.Errorf("testing generated minimized config failed: %v", err)
+		}
+		if testRes.verdict != vcs.BisectBad {
+			env.log("testing with generated minimized config doesn't reproduce the crash")
+			env.kernelConfig = cfg.Kernel.Config
+			return nil
+		}
 	}
 	return nil
 }
