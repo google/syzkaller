@@ -15,6 +15,8 @@ coverage:
     project:
       default:
         informational: true
+        threshold: 100%
+        target: 0%
 
 comment:
   layout: "files"
