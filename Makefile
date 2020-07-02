@@ -51,6 +51,7 @@ export CGO_ENABLED
 TARGETGOOS := $(TARGETOS)
 TARGETGOARCH := $(TARGETVMARCH)
 export GO111MODULE=on
+export GOBIN=$(shell realpath .)/bin
 
 GITREV=$(shell git rev-parse HEAD)
 ifeq ("$(shell git diff --shortstat)", "")
@@ -141,7 +142,7 @@ endif
 # syz-sysgen generates them all at once, so we can't make each of them an independent target.
 .PHONY: descriptions
 descriptions:
-	@export GOBIN="$(realpath .)/bin"; go list -f '{{.Stale}}' ./sys/syz-sysgen | grep -q false || go install ./sys/syz-sysgen
+	go list -f '{{.Stale}}' ./sys/syz-sysgen | grep -q false || go install ./sys/syz-sysgen
 	$(MAKE) .descriptions
 
 .descriptions: sys/*/*.txt sys/*/*.const bin/syz-sysgen
@@ -260,8 +261,9 @@ tidy:
 
 lint:
 	# This should install the command from our vendor dir.
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint
-	golangci-lint run ./...
+	CGO_ENABLED=1 $(HOSTGO) install github.com/golangci/golangci-lint/cmd/golangci-lint
+	CGO_ENABLED=1 $(HOSTGO) build -buildmode=plugin -o bin/syz-linter.so ./tools/syz-linter
+	bin/golangci-lint run ./...
 
 arch_darwin_amd64_host:
 	env HOSTOS=darwin HOSTARCH=amd64 $(MAKE) host
