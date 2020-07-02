@@ -249,7 +249,7 @@ func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCo
 	}
 	fmt.Fprintf(w, ");")
 	comment := ctx.target.AnnotateCall(call)
-	if len(comment) != 0 {
+	if comment != "" {
 		fmt.Fprintf(w, " /* %s */", comment)
 	}
 	fmt.Fprintf(w, "\n")
