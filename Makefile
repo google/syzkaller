@@ -108,7 +108,7 @@ endif
 	arch_linux_s390x_target arch_linux_riscv64_target arch_freebsd_amd64_target arch_freebsd_386_target \
 	arch_netbsd_amd64_target arch_windows_amd64_target \
 	arch_akaros_target arch_fuchsia_target \
-	arch_test presubmit presubmit_parallel clean
+	arch_test presubmit presubmit_parallel linter clean
 
 all: host target
 host: manager runtest repro mutate prog2c db upgrade
@@ -257,8 +257,11 @@ tidy:
 		-extra-arg=-DGOOS_$(TARGETOS)=1 -extra-arg=-DGOARCH_$(TARGETARCH)=1 \
 		executor/*.cc
 
-lint:
+lint: linter
 	golangci-lint run ./...
+
+linter:
+	(cd tools/syz-linter && GO111MODULE=on CGO_ENABLED=1 $(HOSTGO) build $(GOHOSTFLAGS) -o ../../bin/syz-linter.so -buildmode=plugin)
 
 arch_darwin_amd64_host:
 	env HOSTOS=darwin HOSTARCH=amd64 $(MAKE) host
@@ -403,7 +406,7 @@ install_prerequisites:
 	# Runs golangci-lint when go is new enough. Old versions get a
 	# free pass (except on CI which has newer go version).
 	if [ "$$(go version)" \> "go version go1.12" ]; then \
-		GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.25.0 ; \
+		GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.26.0 ; \
 	else \
 		ln -sf /bin/true $$(go env GOPATH)/bin/golangci-lint ; \
 	fi

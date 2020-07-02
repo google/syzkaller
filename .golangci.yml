@@ -41,6 +41,7 @@ linters:
     - gocognit
     - funlen
     - dupl
+    - syz-linter
   disable:
     - bodyclose
     - depguard
@@ -90,6 +91,9 @@ linters-settings:
     # TODO: consider reducing these value.
     lines: 140
     statements: 80
+  custom:
+    syz-linter:
+      path: bin/syz-linter.so
 
 issues:
   exclude-use-default: false
