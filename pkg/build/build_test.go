@@ -23,7 +23,7 @@ func TestCompilerIdentity(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed: %v", err)
 			}
-			if len(id) == 0 {
+			if id == "" {
 				t.Fatalf("identity is empty")
 			}
 			if strings.Contains(id, "\n") {
