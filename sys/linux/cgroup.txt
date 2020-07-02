@@ -8,6 +8,9 @@ resource fd_cgroup_type[fd]
 resource fd_cgroup_subtree[fd]
 resource fd_cgroup_int[fd]
 resource fd_cgroup_pid[fd]
+resource fd_cgroup_netprio_ifpriomap[fd]
+resource fd_cgroup_devices[fd]
+resource fd_cgroup_freezer_state[fd]
 
 mkdirat$cgroup_root(fd const[AT_FDCWD], path ptr[in, string[cgroup_dirs]], mode const[0x1ff])
 mkdirat$cgroup(fd fd_cgroup, path ptr[in, string[cgroup_names]], mode const[0x1ff])
@@ -39,7 +42,50 @@ cgroup_paths = "./cgroup/syz0", "./cgroup.cpu/syz0", "./cgroup.net/syz0", "./cgr
 cgroup_control_signs = '+', '-'
 cgroup_subsystems = "cpu", "memory", "io", "pids", "rdma"
 cgroup_proc_files = "cgroup.procs", "cgroup.threads", "tasks"
-cgroup_ctrl_read = "cgroup.controllers", "cgroup.events", "cgroup.stat", "cpu.stat", "cpu.stat", "io.stat", "memory.current", "memory.events", "memory.stat", "memory.swap.current", "pids.current", "pids.events", "rdma.current", "cpuacct.stat", "cpuacct.usage_all", "cpuacct.usage_percpu", "cpuacct.usage_percpu_sys", "cpuacct.usage_percpu_user", "cpuacct.usage_sys", "cpuacct.usage_user", "cpuset.effective_cpus", "cpuset.effective_mems", "cpuset.memory_pressure", "hugetlb.2MB.usage_in_bytes"
-cgroup_ctrl_int = "cgroup.max.depth", "cgroup.max.descendants", "cpu.weight", "cpu.weight.nice", "io.bfq.weight", "io.max", "io.weight", "memory.high", "memory.low", "memory.max", "memory.swap.max", "pids.max", "rdma.max", "cgroup.clone_children", "cpuacct.usage", "cpuset.cpu_exclusive", "cpuset.cpus", "cpuset.mem_exclusive", "cpuset.mem_hardwall", "cpuset.memory_migrate", "cpuset.memory_spread_page", "cpuset.memory_spread_slab", "cpuset.mems", "cpuset.sched_load_balance", "cpuset.sched_relax_domain_level", "hugetlb.2MB.failcnt", "hugetlb.2MB.limit_in_bytes", "hugetlb.2MB.max_usage_in_bytes", "notify_on_release"
+cgroup_ctrl_read = "cgroup.controllers", "cgroup.events", "cgroup.stat", "cpu.stat", "cpu.stat", "io.stat", "memory.current", "memory.events", "memory.stat", "memory.swap.current", "pids.current", "pids.events", "rdma.current", "cpuacct.stat", "cpuacct.usage_all", "cpuacct.usage_percpu", "cpuacct.usage_percpu_sys", "cpuacct.usage_percpu_user", "cpuacct.usage_sys", "cpuacct.usage_user", "cpuset.effective_cpus", "cpuset.effective_mems", "cpuset.memory_pressure", "hugetlb.2MB.limit_in_bytes", "net_prio.prioidx", "devices.list", "freezer.state", "freezer.self_freezing", "freezer.parent_freezing"
+cgroup_ctrl_int = "cgroup.max.depth", "cgroup.max.descendants", "cpu.weight", "cpu.weight.nice", "io.bfq.weight", "io.max", "io.weight", "memory.high", "memory.low", "memory.max", "memory.swap.max", "pids.max", "rdma.max", "cgroup.clone_children", "cpuacct.usage", "cpuset.cpu_exclusive", "cpuset.cpus", "cpuset.mem_exclusive", "cpuset.mem_hardwall", "cpuset.memory_migrate", "cpuset.memory_spread_page", "cpuset.memory_spread_slab", "cpuset.mems", "cpuset.sched_load_balance", "cpuset.sched_relax_domain_level", "hugetlb.2MB.failcnt", "hugetlb.2MB.usage_in_bytes", "hugetlb.2MB.max_usage_in_bytes", "net_cls.classid", "notify_on_release"
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# net_prio (.ifpriomap)
+cgroup_netprio_ifpriomap {
+	dev		stringnoz[devnames]
+	space		const[0x32, int8]
+	prio		int8['0':'9']
+	null_term	string[""]
+} [packed]
+
+openat$cgroup_netprio_ifpriomap(fd fd_cgroup, file ptr[in, string["net_prio.ifpriomap"]], flags const[O_RDWR], mode const[0]) fd_cgroup_netprio_ifpriomap
+write$cgroup_netprio_ifpriomap(fd fd_cgroup_netprio_ifpriomap, buf ptr[in, cgroup_netprio_ifpriomap], len bytesize[buf])
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# devices (.allow, .deny)
+cgroup_devices_files = "devices.allow", "devices.deny"
+
+# device types: (a)ll, (c)har, (b)lock
+cgroup_devices_type = "a", "c", "b"
+
+# access: (r)ead, (w)rite, (m)knod, or a combination of them
+cgroup_devices_access = "r", "w", "m", "rw", "rm", "wm", "rwm"
+
+# TODO: device_major_minor is in form MAJOR:MINOR, where '*' is used for all.
+#       It is non-trivial to describe valid MAJOR:MINOR as MAJOR takes values from
+#       a wide range while not all such devices might exist in the system.
+cgroup_devices_towrite {
+	dev			stringnoz[cgroup_devices_type]
+	device_major_minor	stringnoz[" *:* "]
+	access			string[cgroup_devices_access]
+} [packed]
+
+openat$cgroup_devices(fd fd_cgroup, file ptr[in, string[cgroup_devices_files]], flags const[O_RDWR], mode const[0]) fd_cgroup_devices
+write$cgroup_devices(fd fd_cgroup_devices, buf ptr[in, cgroup_devices_towrite], len bytesize[buf])
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# freezer (.state)
+cgroup_freezer_states = "THAWED", "FREEZING", "FROZEN"
+openat$cgroup_freezer_state(fd fd_cgroup, file ptr[in, string["freezer.state"]], flags const[O_RDWR], mode const[0]) fd_cgroup_freezer_state
+write$cgroup_freezer_state(fd fd_cgroup_freezer_state, buf ptr[in, string[cgroup_freezer_states]], len bytesize[buf])
 
 define CGROUP_OPEN_FLAGS	O_RDWR | O_PATH
