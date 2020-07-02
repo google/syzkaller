@@ -24,6 +24,8 @@ sendmsg$DEVLINK_CMD_TRAP_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[D
 sendmsg$DEVLINK_CMD_TRAP_SET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_TRAP_SET, devlink_trap_set_policy]], f flags[send_flags])
 sendmsg$DEVLINK_CMD_TRAP_GROUP_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_TRAP_GROUP_GET, devlink_trap_group_get_policy]], f flags[send_flags])
 sendmsg$DEVLINK_CMD_TRAP_GROUP_SET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_TRAP_GROUP_SET, devlink_trap_group_set_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_TRAP_POLICER_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_TRAP_POLICER_GET, devlink_trap_policer_get_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_TRAP_POLICER_SET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_TRAP_POLICER_SET, devlink_trap_policer_set_policy]], f flags[send_flags])
 sendmsg$DEVLINK_CMD_SB_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_SB_GET, devlink_sb_get_policy]], f flags[send_flags])
 sendmsg$DEVLINK_CMD_SB_POOL_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_SB_POOL_GET, devlink_sb_pool_get_policy]], f flags[send_flags])
 sendmsg$DEVLINK_CMD_SB_POOL_SET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_SB_POOL_SET, devlink_sb_pool_set_policy]], f flags[send_flags])
@@ -100,6 +102,22 @@ devlink_trap_set_policy {
 	dev_handle			devlink_handle
 	DEVLINK_ATTR_TRAP_NAME		nlattr[DEVLINK_ATTR_TRAP_NAME, string["source_mac_is_multicast"]]
 	DEVLINK_ATTR_TRAP_ACTION	nlattr[DEVLINK_ATTR_TRAP_ACTION, int8[DEVLINK_TRAP_ACTION_DROP:DEVLINK_TRAP_ACTION_TRAP]]
+} [packed, align[4]]
+
+# 0 stands for the only invalid policer id, the rest has no special meaning but
+#  used to ease collision in policer ids between system calls. 
+trap_policer_ids = 0, 1, 2, 3
+
+devlink_trap_policer_get_policy {
+	dev_handle			devlink_handle
+	DEVLINK_ATTR_TRAP_POLICER_ID	nlattr[DEVLINK_ATTR_TRAP_POLICER_ID, flags[trap_policer_ids, int32]]
+} [packed, align[4]]
+
+devlink_trap_policer_set_policy {
+	dev_handle			devlink_handle
+	DEVLINK_ATTR_TRAP_POLICER_ID	nlattr[DEVLINK_ATTR_TRAP_POLICER_ID, flags[trap_policer_ids, int32]]
+	DEVLINK_ATTR_TRAP_POLICER_RATE	nlattr[DEVLINK_ATTR_TRAP_POLICER_RATE, int64]
+	DEVLINK_ATTR_TRAP_POLICER_BURST	nlattr[DEVLINK_ATTR_TRAP_POLICER_BURST, int64]
 } [packed, align[4]]
 
 devlink_trap_group_get_policy {
