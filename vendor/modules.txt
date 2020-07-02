@@ -314,8 +314,12 @@ golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 golang.org/x/text/width
 # golang.org/x/tools v0.0.0-20200626171337-aa94e735be7f
+## explicit
 golang.org/x/tools/cmd/goimports
 golang.org/x/tools/go/analysis
+golang.org/x/tools/go/analysis/analysistest
+golang.org/x/tools/go/analysis/internal/analysisflags
+golang.org/x/tools/go/analysis/internal/checker
 golang.org/x/tools/go/analysis/passes/asmdecl
 golang.org/x/tools/go/analysis/passes/assign
 golang.org/x/tools/go/analysis/passes/atomic
@@ -374,8 +378,13 @@ golang.org/x/tools/internal/fastwalk
 golang.org/x/tools/internal/gocommand
 golang.org/x/tools/internal/gopathwalk
 golang.org/x/tools/internal/imports
+golang.org/x/tools/internal/lsp/diff
+golang.org/x/tools/internal/lsp/diff/myers
 golang.org/x/tools/internal/packagesinternal
+golang.org/x/tools/internal/span
+golang.org/x/tools/internal/testenv
 golang.org/x/tools/internal/typesinternal
+golang.org/x/tools/txtar
 # golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
