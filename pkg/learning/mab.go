@@ -57,45 +57,10 @@ func (mab *MultiArmedBandit) Choose(r *rand.Rand) (int, float64) {
 }
 
 func (mab *MultiArmedBandit) NewChoice() int {
-	mab.mu.Lock()
-	defer mab.mu.Unlock()
-
-	newChoice := Choice{
-		reward:     0.0,
-		weight:     1.0,
-		sumWeights: 1.0,
-	}
-	if len(mab.choices) > 0 {
-		newChoice.sumWeights = mab.choices[len(mab.choices)-1].sumWeights + newChoice.weight
-	}
-	mab.choices = append(mab.choices, newChoice)
-	// Need to update exploration and exploitation factors.
-	K := float64(len(mab.choices))
-	mab.eta = mab.theta * math.Sqrt(2.0*math.Log(K)/K)
-	mab.gamma = mab.eta / 2.0
-
-	return len(mab.choices) - 1
+	return mab.NewChoiceWithReward(0.0)
 }
 
-func (mab *MultiArmedBandit) Update(idx int, reward, pr float64) {
-	mab.mu.Lock()
-	defer mab.mu.Unlock()
-
-	if idx >= len(mab.choices) {
-		log.Fatalf("MAB Update Error: Index %v out of bound %v", idx, len(mab.choices))
-	}
-	if pr == 0 {
-		log.Fatalf("MAB Update Error: Probability is zero")
-	}
-	if reward > 1.0 || reward < -1.0 {
-		log.Fatalf("MAB Update Error: Reward (%v) should have been normalized to [-1, 1]", reward)
-	}
-	// Update reward based on growth factor.
-	rewardDiff := mab.eta * reward / (pr + mab.gamma)
-	log.Logf(MABLogLevel, "MAB reward update: %v * %v / (%v + %v) = %v",
-		mab.eta, reward, pr, mab.gamma, rewardDiff)
-	mab.choices[idx].reward += rewardDiff
-	mab.sumRewards += rewardDiff
+func (mab *MultiArmedBandit) updateWeight(idx int) {
 	// Compute average reward and check whether we need to modify reward
 	// for all choices.
 	avgReward := mab.sumRewards / float64(len(mab.choices))
@@ -130,4 +95,52 @@ func (mab *MultiArmedBandit) Update(idx int, reward, pr float64) {
 	for i := idx + 1; i < len(mab.choices); i++ {
 		mab.choices[i].sumWeights = mab.choices[i-1].sumWeights + mab.choices[i].weight
 	}
+}
+
+func (mab *MultiArmedBandit) NewChoiceWithReward(initialReward float64) int {
+	mab.mu.Lock()
+	defer mab.mu.Unlock()
+
+	newChoice := Choice{
+		reward:     initialReward,
+		weight:     1.0,
+		sumWeights: 1.0,
+	}
+	if len(mab.choices) > 0 {
+		newChoice.sumWeights = mab.choices[len(mab.choices)-1].sumWeights + newChoice.weight
+	}
+	mab.choices = append(mab.choices, newChoice)
+	idx := len(mab.choices) - 1
+	mab.sumRewards += initialReward
+	mab.updateWeight(idx)
+
+	// Need to update exploration and exploitation factors.
+	K := float64(len(mab.choices))
+	mab.eta = mab.theta * math.Sqrt(2.0*math.Log(K)/K)
+	mab.gamma = mab.eta / 2.0
+	log.Logf(MABLogLevel, "MAB gamma = %v, eta = %v", mab.gamma, mab.eta)
+
+	return idx
+}
+
+func (mab *MultiArmedBandit) Update(idx int, reward, pr float64) {
+	mab.mu.Lock()
+	defer mab.mu.Unlock()
+
+	if idx >= len(mab.choices) {
+		log.Fatalf("MAB Update Error: Index %v out of bound %v", idx, len(mab.choices))
+	}
+	if pr == 0 {
+		log.Fatalf("MAB Update Error: Probability is zero")
+	}
+	if reward > 1.0 || reward < -1.0 {
+		log.Fatalf("MAB Update Error: Reward (%v) should have been normalized to [-1, 1]", reward)
+	}
+	// Update reward based on growth factor.
+	rewardDiff := mab.eta * reward / (pr + mab.gamma)
+	log.Logf(MABLogLevel, "MAB reward update: %v * %v / (%v + %v) = %v",
+		mab.eta, reward, pr, mab.gamma, rewardDiff)
+	mab.choices[idx].reward += rewardDiff
+	mab.sumRewards += rewardDiff
+	mab.updateWeight(idx)
 }

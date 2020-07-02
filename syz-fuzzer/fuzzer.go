@@ -20,6 +20,7 @@ import (
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
+	"github.com/google/syzkaller/pkg/learning"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/rpctype"
@@ -62,6 +63,10 @@ type Fuzzer struct {
 
 	checkResult *rpctype.CheckArgs
 	logMu       sync.Mutex
+
+	// Multi-armed-bandit seed selection.
+	mabSSEnabled bool
+	mabSS        *learning.MABSeedScheduler
 }
 
 type FuzzerSnapshot struct {
@@ -265,6 +270,8 @@ func main() {
 		comparisonTracingEnabled: r.CheckResult.Features[host.FeatureComparisons].Enabled,
 		corpusHashes:             make(map[hash.Sig]struct{}),
 		checkResult:              r.CheckResult,
+		mabSSEnabled:             true,
+		mabSS:                    learning.NewMABSeedScheduler(0.1),
 	}
 	gateCallback := fuzzer.useBugFrames(r, *flagProcs)
 	fuzzer.gate = ipc.NewGate(2**flagProcs, gateCallback)
@@ -389,10 +396,14 @@ func (fuzzer *Fuzzer) pollLoop() {
 
 func (fuzzer *Fuzzer) poll(needCandidates bool, stats map[string]uint64) bool {
 	a := &rpctype.PollArgs{
-		Name:           fuzzer.name,
-		NeedCandidates: needCandidates,
-		MaxSignal:      fuzzer.grabNewSignal().Serialize(),
-		Stats:          stats,
+		Name:            fuzzer.name,
+		NeedCandidates:  needCandidates,
+		MaxSignal:       fuzzer.grabNewSignal().Serialize(),
+		Stats:           stats,
+		MABSSRewardDiff: nil,
+	}
+	if fuzzer.mabSSEnabled {
+		a.MABSSRewardDiff, a.MABSSTimeDiff, a.MABSSCovDiff = fuzzer.mabSS.Poll()
 	}
 	r := &rpctype.PollRes{}
 	if err := fuzzer.manager.Call("Manager.Poll", a, r); err != nil {
@@ -410,6 +421,9 @@ func (fuzzer *Fuzzer) poll(needCandidates bool, stats map[string]uint64) bool {
 	}
 	if needCandidates && len(r.Candidates) == 0 && atomic.LoadUint32(&fuzzer.triagedCandidates) == 0 {
 		atomic.StoreUint32(&fuzzer.triagedCandidates, 1)
+	}
+	if fuzzer.mabSSEnabled {
+		fuzzer.mabSS.UpdateTotal(r.MABSSTimeTotal, r.MABSSCovTotal)
 	}
 	return len(r.NewInputs) != 0 || len(r.Candidates) != 0 || maxSignal.Len() != 0
 }
@@ -431,7 +445,7 @@ func (fuzzer *Fuzzer) addInputFromAnotherFuzzer(inp rpctype.RPCInput) {
 	}
 	sig := hash.Hash(inp.Prog)
 	sign := inp.Signal.Deserialize()
-	fuzzer.addInputToCorpus(p, sign, sig)
+	fuzzer.addInputToCorpus(p, sign, sig, inp.MABSSReward)
 }
 
 func (fuzzer *Fuzzer) addCandidateInput(candidate rpctype.RPCCandidate) {
@@ -471,7 +485,7 @@ func (fuzzer *FuzzerSnapshot) chooseProgram(r *rand.Rand) *prog.Prog {
 	return fuzzer.corpus[idx]
 }
 
-func (fuzzer *Fuzzer) addInputToCorpus(p *prog.Prog, sign signal.Signal, sig hash.Sig) {
+func (fuzzer *Fuzzer) addInputToCorpus(p *prog.Prog, sign signal.Signal, sig hash.Sig, mabSSReward float64) {
 	fuzzer.corpusMu.Lock()
 	if _, ok := fuzzer.corpusHashes[sig]; !ok {
 		fuzzer.corpus = append(fuzzer.corpus, p)
@@ -482,6 +496,9 @@ func (fuzzer *Fuzzer) addInputToCorpus(p *prog.Prog, sign signal.Signal, sig has
 		}
 		fuzzer.sumPrios += prio
 		fuzzer.corpusPrios = append(fuzzer.corpusPrios, fuzzer.sumPrios)
+		if fuzzer.mabSSEnabled {
+			fuzzer.mabSS.NewChoiceWithReward(p, mabSSReward)
+		}
 	}
 	fuzzer.corpusMu.Unlock()
 
@@ -525,22 +542,28 @@ func (fuzzer *Fuzzer) corpusSignalDiff(sign signal.Signal) signal.Signal {
 	return fuzzer.corpusSignal.Diff(sign)
 }
 
-func (fuzzer *Fuzzer) checkNewSignal(p *prog.Prog, info *ipc.ProgInfo) (calls []int, extra bool) {
+func (fuzzer *Fuzzer) checkNewSignal(p *prog.Prog, info *ipc.ProgInfo) (calls []int, extra bool, cov int) {
 	fuzzer.signalMu.RLock()
 	defer fuzzer.signalMu.RUnlock()
 	for i, inf := range info.Calls {
-		if fuzzer.checkNewCallSignal(p, &inf, i) {
+		thisCov := fuzzer.checkNewCallSignal(p, &inf, i)
+		if thisCov > 0 {
 			calls = append(calls, i)
+			cov += thisCov
 		}
 	}
-	extra = fuzzer.checkNewCallSignal(p, &info.Extra, -1)
+	thisCov := fuzzer.checkNewCallSignal(p, &info.Extra, -1)
+	if thisCov > 0 {
+		extra = true
+		cov += thisCov
+	}
 	return
 }
 
-func (fuzzer *Fuzzer) checkNewCallSignal(p *prog.Prog, info *ipc.CallInfo, call int) bool {
+func (fuzzer *Fuzzer) checkNewCallSignal(p *prog.Prog, info *ipc.CallInfo, call int) int {
 	diff := fuzzer.maxSignal.DiffRaw(info.Signal, signalPrio(p, info, call))
 	if diff.Empty() {
-		return false
+		return 0
 	}
 	fuzzer.signalMu.RUnlock()
 	fuzzer.signalMu.Lock()
@@ -548,7 +571,7 @@ func (fuzzer *Fuzzer) checkNewCallSignal(p *prog.Prog, info *ipc.CallInfo, call 
 	fuzzer.newSignal.Merge(diff)
 	fuzzer.signalMu.Unlock()
 	fuzzer.signalMu.RLock()
-	return true
+	return len(diff)
 }
 
 func signalPrio(p *prog.Prog, info *ipc.CallInfo, call int) (prio uint8) {
