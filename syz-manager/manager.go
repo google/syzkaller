@@ -689,7 +689,7 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 		}
 	}
 	osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("log%v", oldestI)), crash.Output)
-	if len(mgr.cfg.Tag) > 0 {
+	if mgr.cfg.Tag != "" {
 		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("tag%v", oldestI)), []byte(mgr.cfg.Tag))
 	}
 	if len(crash.Report.Report) > 0 {
@@ -836,7 +836,7 @@ func (mgr *Manager) saveRepro(res *repro.Result, stats *repro.Stats, hub bool) {
 		log.Logf(0, "failed to write crash: %v", err)
 	}
 	osutil.WriteFile(filepath.Join(dir, "repro.prog"), append([]byte(opts), prog...))
-	if len(mgr.cfg.Tag) > 0 {
+	if mgr.cfg.Tag != "" {
 		osutil.WriteFile(filepath.Join(dir, "repro.tag"), []byte(mgr.cfg.Tag))
 	}
 	if len(rep.Output) > 0 {

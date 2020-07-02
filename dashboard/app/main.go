@@ -363,7 +363,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		Caption: fmt.Sprintf("Crashes (%d)", bug.NumCrashes),
 	}
 	for _, crash := range crashesTable.Crashes {
-		if len(crash.Maintainers) != 0 {
+		if crash.Maintainers != "" {
 			crashesTable.HasMaintainers = true
 			break
 		}
