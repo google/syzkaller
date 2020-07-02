@@ -352,7 +352,7 @@ func isSupportedOpenAt(c *prog.Syscall) (bool, string) {
 	var err error
 
 	fname, ok := extractStringConst(c.Args[1].Type)
-	if !ok || len(fname) == 0 || fname[0] != '/' {
+	if !ok || fname == "" || fname[0] != '/' {
 		return true, ""
 	}
 
@@ -415,7 +415,7 @@ func extractStringConst(typ prog.Type) (string, bool) {
 		return "", false
 	}
 	v := str.Values[0]
-	for len(v) != 0 && v[len(v)-1] == 0 {
+	for v != "" && v[len(v)-1] == 0 {
 		v = v[:len(v)-1] // string terminating \x00
 	}
 	return v, true

@@ -249,7 +249,7 @@ func (r *randGen) flags(vv []uint64, bitmask bool, oldVal uint64) uint64 {
 
 func (r *randGen) filename(s *state, typ *BufferType) string {
 	fn := r.filenameImpl(s)
-	if len(fn) != 0 && fn[len(fn)-1] == 0 {
+	if fn != "" && fn[len(fn)-1] == 0 {
 		panic(fmt.Sprintf("zero-terminated filename: %q", fn))
 	}
 	if escapingFilename(fn) {
@@ -284,7 +284,7 @@ func (r *randGen) filenameImpl(s *state) string {
 		dir := "."
 		if r.oneOf(2) && len(s.files) != 0 {
 			dir = r.randFromMap(s.files)
-			if len(dir) > 0 && dir[len(dir)-1] == 0 {
+			if dir != "" && dir[len(dir)-1] == 0 {
 				dir = dir[:len(dir)-1]
 			}
 			if r.oneOf(10) && filepath.Clean(dir)[0] != '.' {
