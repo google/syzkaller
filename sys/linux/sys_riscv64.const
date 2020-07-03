@@ -716,6 +716,7 @@ __NR_ppoll = 73
 __NR_pread64 = 67
 __NR_preadv = 69
 __NR_prlimit64 = 261
+__NR_process_madvise = 443
 __NR_process_vm_readv = 270
 __NR_process_vm_writev = 271
 __NR_pselect6 = 72
