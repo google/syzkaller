@@ -69,7 +69,9 @@ type Config struct {
 	Syzkaller string `json:"syzkaller"`
 
 	// Number of parallel test processes inside of each VM.
-	// 1 by default, 4 or 8 would be reasonable numbers too.
+	// Allowed values are 1-32, recommended range is ~4-8, default value is 6.
+	// It should be chosen to saturate CPU inside of the VM and maximize number of test executions,
+	// but to not oversubscribe CPU and memory too severe to not cause OOMs and false hangs/stalls.
 	Procs int `json:"procs"`
 
 	// Type of sandbox to use during fuzzing:
