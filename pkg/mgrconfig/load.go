@@ -62,7 +62,7 @@ func defaultValues() *Config {
 		Reproduce: true,
 		Sandbox:   "none",
 		RPC:       ":0",
-		Procs:     1,
+		Procs:     6,
 	}
 }
 
@@ -104,8 +104,8 @@ func Complete(cfg *Config) error {
 	if err := completeBinaries(cfg); err != nil {
 		return err
 	}
-	if cfg.Procs < 1 || cfg.Procs > 32 {
-		return fmt.Errorf("bad config param procs: '%v', want [1, 32]", cfg.Procs)
+	if cfg.Procs < 1 || cfg.Procs > prog.MaxPids {
+		return fmt.Errorf("bad config param procs: '%v', want [1, %v]", cfg.Procs, prog.MaxPids)
 	}
 	switch cfg.Sandbox {
 	case "none", "setuid", "namespace", "android":
