@@ -41,7 +41,7 @@
 //   storageService, err := storage.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
 //
 // See https://godoc.org/google.golang.org/api/option/ for details on options.
-package storage
+package storage // import "google.golang.org/api/storage/v1"
 
 import (
 	"bytes"

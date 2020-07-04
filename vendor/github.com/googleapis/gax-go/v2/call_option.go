@@ -94,25 +94,22 @@ func (r *boRetryer) Retry(err error) (time.Duration, bool) {
 	return 0, false
 }
 
-// Backoff implements exponential backoff. The wait time between retries is a
-// random value between 0 and the "retry period" - the time between retries. The
-// retry period starts at Initial and increases by the factor of Multiplier
-// every retry, but is capped at Max.
-//
-// Note: MaxNumRetries / RPCDeadline is specifically not provided. These should
-// be built on top of Backoff.
+// Backoff implements exponential backoff.
+// The wait time between retries is a random value between 0 and the "retry envelope".
+// The envelope starts at Initial and increases by the factor of Multiplier every retry,
+// but is capped at Max.
 type Backoff struct {
-	// Initial is the initial value of the retry period, defaults to 1 second.
+	// Initial is the initial value of the retry envelope, defaults to 1 second.
 	Initial time.Duration
 
-	// Max is the maximum value of the retry period, defaults to 30 seconds.
+	// Max is the maximum value of the retry envelope, defaults to 30 seconds.
 	Max time.Duration
 
-	// Multiplier is the factor by which the retry period increases.
+	// Multiplier is the factor by which the retry envelope increases.
 	// It should be greater than 1 and defaults to 2.
 	Multiplier float64
 
-	// cur is the current retry period.
+	// cur is the current retry envelope
 	cur time.Duration
 }
 

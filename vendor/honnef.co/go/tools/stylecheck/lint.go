@@ -1,4 +1,4 @@
-package stylecheck
+package stylecheck // import "honnef.co/go/tools/stylecheck"
 
 import (
 	"fmt"
@@ -6,20 +6,15 @@ import (
 	"go/constant"
 	"go/token"
 	"go/types"
-	"sort"
 	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
 
-	"honnef.co/go/tools/code"
 	"honnef.co/go/tools/config"
-	"honnef.co/go/tools/edit"
-	"honnef.co/go/tools/internal/passes/buildir"
-	"honnef.co/go/tools/ir"
+	"honnef.co/go/tools/internal/passes/buildssa"
 	. "honnef.co/go/tools/lint/lintdsl"
-	"honnef.co/go/tools/pattern"
-	"honnef.co/go/tools/report"
+	"honnef.co/go/tools/ssa"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
@@ -41,14 +36,14 @@ func CheckPackageComment(pass *analysis.Pass) (interface{}, error) {
 	}
 	hasDocs := false
 	for _, f := range pass.Files {
-		if code.IsInTest(pass, f) {
+		if IsInTest(pass, f) {
 			continue
 		}
 		if f.Doc != nil && len(f.Doc.List) > 0 {
 			hasDocs = true
 			prefix := "Package " + f.Name.Name + " "
 			if !strings.HasPrefix(strings.TrimSpace(f.Doc.Text()), prefix) {
-				report.Report(pass, f.Doc, fmt.Sprintf(`package comment should be of the form "%s..."`, prefix))
+				ReportNodef(pass, f.Doc, `package comment should be of the form "%s..."`, prefix)
 			}
 			f.Doc.Text()
 		}
@@ -56,10 +51,10 @@ func CheckPackageComment(pass *analysis.Pass) (interface{}, error) {
 
 	if !hasDocs {
 		for _, f := range pass.Files {
-			if code.IsInTest(pass, f) {
+			if IsInTest(pass, f) {
 				continue
 			}
-			report.Report(pass, f, "at least one file in a package should have a package comment", report.ShortRange())
+			ReportNodef(pass, f, "at least one file in a package should have a package comment")
 		}
 	}
 	return nil, nil
@@ -77,38 +72,8 @@ func CheckDotImports(pass *analysis.Pass) (interface{}, error) {
 				}
 			}
 
-			if imp.Name != nil && imp.Name.Name == "." && !code.IsInTest(pass, f) {
-				report.Report(pass, imp, "should not use dot imports", report.FilterGenerated())
-			}
-		}
-	}
-	return nil, nil
-}
-
-func CheckDuplicatedImports(pass *analysis.Pass) (interface{}, error) {
-	for _, f := range pass.Files {
-		// Collect all imports by their import path
-		imports := make(map[string][]*ast.ImportSpec, len(f.Imports))
-		for _, imp := range f.Imports {
-			imports[imp.Path.Value] = append(imports[imp.Path.Value], imp)
-		}
-
-		for path, value := range imports {
-			if path[1:len(path)-1] == "unsafe" {
-				// Don't flag unsafe. Cgo generated code imports
-				// unsafe using the blank identifier, and most
-				// user-written cgo code also imports unsafe
-				// explicitly.
-				continue
-			}
-			// If there's more than one import per path, we flag that
-			if len(value) > 1 {
-				s := fmt.Sprintf("package %s is being imported more than once", path)
-				opts := []report.Option{report.FilterGenerated()}
-				for _, imp := range value[1:] {
-					opts = append(opts, report.Related(imp, fmt.Sprintf("other import of %s", path)))
-				}
-				report.Report(pass, value[0], s, opts...)
+			if imp.Name != nil && imp.Name.Name == "." && !IsInTest(pass, f) {
+				ReportNodefFG(pass, imp, "should not use dot imports")
 			}
 		}
 	}
@@ -118,7 +83,7 @@ func CheckDuplicatedImports(pass *analysis.Pass) (interface{}, error) {
 func CheckBlankImports(pass *analysis.Pass) (interface{}, error) {
 	fset := pass.Fset
 	for _, f := range pass.Files {
-		if code.IsMainLike(pass) || code.IsInTest(pass, f) {
+		if IsInMain(pass, f) || IsInTest(pass, f) {
 			continue
 		}
 
@@ -152,7 +117,7 @@ func CheckBlankImports(pass *analysis.Pass) (interface{}, error) {
 		for i, imp := range f.Imports {
 			pos := fset.Position(imp.Pos())
 
-			if !code.IsBlank(imp.Name) {
+			if !IsBlank(imp.Name) {
 				continue
 			}
 			// Only flag the first blank import in a group of imports,
@@ -161,13 +126,13 @@ func CheckBlankImports(pass *analysis.Pass) (interface{}, error) {
 			if i > 0 {
 				prev := f.Imports[i-1]
 				prevPos := fset.Position(prev.Pos())
-				if pos.Line-1 == prevPos.Line && code.IsBlank(prev.Name) {
+				if pos.Line-1 == prevPos.Line && IsBlank(prev.Name) {
 					continue
 				}
 			}
 
 			if imp.Doc == nil && imp.Comment == nil && !skip[imp] {
-				report.Report(pass, imp, "a blank import should be only in a main or test package, or have a comment justifying it")
+				ReportNodef(pass, imp, "a blank import should be only in a main or test package, or have a comment justifying it")
 			}
 		}
 	}
@@ -187,7 +152,7 @@ func CheckIncDec(pass *analysis.Pass) (interface{}, error) {
 			return
 		}
 		if (len(assign.Lhs) != 1 || len(assign.Rhs) != 1) ||
-			!code.IsIntLiteral(assign.Rhs[0], "1") {
+			!IsIntLiteral(assign.Rhs[0], "1") {
 			return
 		}
 
@@ -199,15 +164,15 @@ func CheckIncDec(pass *analysis.Pass) (interface{}, error) {
 			suffix = "--"
 		}
 
-		report.Report(pass, assign, fmt.Sprintf("should replace %s with %s%s", report.Render(pass, assign), report.Render(pass, assign.Lhs[0]), suffix))
+		ReportNodef(pass, assign, "should replace %s with %s%s", Render(pass, assign), Render(pass, assign.Lhs[0]), suffix)
 	}
-	code.Preorder(pass, fn, (*ast.AssignStmt)(nil))
+	pass.ResultOf[inspect.Analyzer].(*inspector.Inspector).Preorder([]ast.Node{(*ast.AssignStmt)(nil)}, fn)
 	return nil, nil
 }
 
 func CheckErrorReturn(pass *analysis.Pass) (interface{}, error) {
 fnLoop:
-	for _, fn := range pass.ResultOf[buildir.Analyzer].(*buildir.IR).SrcFuncs {
+	for _, fn := range pass.ResultOf[buildssa.Analyzer].(*buildssa.SSA).SrcFuncs {
 		sig := fn.Type().(*types.Signature)
 		rets := sig.Results()
 		if rets == nil || rets.Len() < 2 {
@@ -221,7 +186,7 @@ fnLoop:
 		}
 		for i := rets.Len() - 2; i >= 0; i-- {
 			if rets.At(i).Type() == types.Universe.Lookup("error").Type() {
-				report.Report(pass, rets.At(i), "error should be returned as the last argument", report.ShortRange())
+				pass.Reportf(rets.At(i).Pos(), "error should be returned as the last argument")
 				continue fnLoop
 			}
 		}
@@ -232,23 +197,23 @@ fnLoop:
 // CheckUnexportedReturn checks that exported functions on exported
 // types do not return unexported types.
 func CheckUnexportedReturn(pass *analysis.Pass) (interface{}, error) {
-	for _, fn := range pass.ResultOf[buildir.Analyzer].(*buildir.IR).SrcFuncs {
+	for _, fn := range pass.ResultOf[buildssa.Analyzer].(*buildssa.SSA).SrcFuncs {
 		if fn.Synthetic != "" || fn.Parent() != nil {
 			continue
 		}
-		if !ast.IsExported(fn.Name()) || code.IsMain(pass) || code.IsInTest(pass, fn) {
+		if !ast.IsExported(fn.Name()) || IsInMain(pass, fn) || IsInTest(pass, fn) {
 			continue
 		}
 		sig := fn.Type().(*types.Signature)
-		if sig.Recv() != nil && !ast.IsExported(code.Dereference(sig.Recv().Type()).(*types.Named).Obj().Name()) {
+		if sig.Recv() != nil && !ast.IsExported(Dereference(sig.Recv().Type()).(*types.Named).Obj().Name()) {
 			continue
 		}
 		res := sig.Results()
 		for i := 0; i < res.Len(); i++ {
-			if named, ok := code.DereferenceR(res.At(i).Type()).(*types.Named); ok &&
+			if named, ok := DereferenceR(res.At(i).Type()).(*types.Named); ok &&
 				!ast.IsExported(named.Obj().Name()) &&
 				named != types.Universe.Lookup("error").Type() {
-				report.Report(pass, fn, "should not return unexported type")
+				pass.Reportf(fn.Pos(), "should not return unexported type")
 			}
 		}
 	}
@@ -256,22 +221,22 @@ func CheckUnexportedReturn(pass *analysis.Pass) (interface{}, error) {
 }
 
 func CheckReceiverNames(pass *analysis.Pass) (interface{}, error) {
-	irpkg := pass.ResultOf[buildir.Analyzer].(*buildir.IR).Pkg
-	for _, m := range irpkg.Members {
+	ssapkg := pass.ResultOf[buildssa.Analyzer].(*buildssa.SSA).Pkg
+	for _, m := range ssapkg.Members {
 		if T, ok := m.Object().(*types.TypeName); ok && !T.IsAlias() {
 			ms := typeutil.IntuitiveMethodSet(T.Type(), nil)
 			for _, sel := range ms {
 				fn := sel.Obj().(*types.Func)
 				recv := fn.Type().(*types.Signature).Recv()
-				if code.Dereference(recv.Type()) != T.Type() {
+				if Dereference(recv.Type()) != T.Type() {
 					// skip embedded methods
 					continue
 				}
 				if recv.Name() == "self" || recv.Name() == "this" {
-					report.Report(pass, recv, `receiver name should be a reflection of its identity; don't use generic names such as "this" or "self"`, report.FilterGenerated())
+					ReportfFG(pass, recv.Pos(), `receiver name should be a reflection of its identity; don't use generic names such as "this" or "self"`)
 				}
 				if recv.Name() == "_" {
-					report.Report(pass, recv, "receiver name should not be an underscore, omit the name if it is unused", report.FilterGenerated())
+					ReportfFG(pass, recv.Pos(), "receiver name should not be an underscore, omit the name if it is unused")
 				}
 			}
 		}
@@ -280,8 +245,8 @@ func CheckReceiverNames(pass *analysis.Pass) (interface{}, error) {
 }
 
 func CheckReceiverNamesIdentical(pass *analysis.Pass) (interface{}, error) {
-	irpkg := pass.ResultOf[buildir.Analyzer].(*buildir.IR).Pkg
-	for _, m := range irpkg.Members {
+	ssapkg := pass.ResultOf[buildssa.Analyzer].(*buildssa.SSA).Pkg
+	for _, m := range ssapkg.Members {
 		names := map[string]int{}
 
 		var firstFn *types.Func
@@ -290,11 +255,7 @@ func CheckReceiverNamesIdentical(pass *analysis.Pass) (interface{}, error) {
 			for _, sel := range ms {
 				fn := sel.Obj().(*types.Func)
 				recv := fn.Type().(*types.Signature).Recv()
-				if code.IsGenerated(pass, recv.Pos()) {
-					// Don't concern ourselves with methods in generated code
-					continue
-				}
-				if code.Dereference(recv.Type()) != T.Type() {
+				if Dereference(recv.Type()) != T.Type() {
 					// skip embedded methods
 					continue
 				}
@@ -312,9 +273,8 @@ func CheckReceiverNamesIdentical(pass *analysis.Pass) (interface{}, error) {
 			for name, count := range names {
 				seen = append(seen, fmt.Sprintf("%dx %q", count, name))
 			}
-			sort.Strings(seen)
 
-			report.Report(pass, firstFn, fmt.Sprintf("methods on the same type should have the same receiver name (seen %s)", strings.Join(seen, ", ")))
+			pass.Reportf(firstFn.Pos(), "methods on the same type should have the same receiver name (seen %s)", strings.Join(seen, ", "))
 		}
 	}
 	return nil, nil
@@ -324,7 +284,7 @@ func CheckContextFirstArg(pass *analysis.Pass) (interface{}, error) {
 	// TODO(dh): this check doesn't apply to test helpers. Example from the stdlib:
 	// 	func helperCommandContext(t *testing.T, ctx context.Context, s ...string) (cmd *exec.Cmd) {
 fnLoop:
-	for _, fn := range pass.ResultOf[buildir.Analyzer].(*buildir.IR).SrcFuncs {
+	for _, fn := range pass.ResultOf[buildssa.Analyzer].(*buildssa.SSA).SrcFuncs {
 		if fn.Synthetic != "" || fn.Parent() != nil {
 			continue
 		}
@@ -338,7 +298,7 @@ fnLoop:
 		for i := 1; i < params.Len(); i++ {
 			param := params.At(i)
 			if types.TypeString(param.Type(), nil) == "context.Context" {
-				report.Report(pass, param, "context.Context should be the first argument of a function", report.ShortRange())
+				pass.Reportf(param.Pos(), "context.Context should be the first argument of a function")
 				continue fnLoop
 			}
 		}
@@ -347,20 +307,20 @@ fnLoop:
 }
 
 func CheckErrorStrings(pass *analysis.Pass) (interface{}, error) {
-	objNames := map[*ir.Package]map[string]bool{}
-	irpkg := pass.ResultOf[buildir.Analyzer].(*buildir.IR).Pkg
-	objNames[irpkg] = map[string]bool{}
-	for _, m := range irpkg.Members {
-		if typ, ok := m.(*ir.Type); ok {
-			objNames[irpkg][typ.Name()] = true
+	objNames := map[*ssa.Package]map[string]bool{}
+	ssapkg := pass.ResultOf[buildssa.Analyzer].(*buildssa.SSA).Pkg
+	objNames[ssapkg] = map[string]bool{}
+	for _, m := range ssapkg.Members {
+		if typ, ok := m.(*ssa.Type); ok {
+			objNames[ssapkg][typ.Name()] = true
 		}
 	}
-	for _, fn := range pass.ResultOf[buildir.Analyzer].(*buildir.IR).SrcFuncs {
+	for _, fn := range pass.ResultOf[buildssa.Analyzer].(*buildssa.SSA).SrcFuncs {
 		objNames[fn.Package()][fn.Name()] = true
 	}
 
-	for _, fn := range pass.ResultOf[buildir.Analyzer].(*buildir.IR).SrcFuncs {
-		if code.IsInTest(pass, fn) {
+	for _, fn := range pass.ResultOf[buildssa.Analyzer].(*buildssa.SSA).SrcFuncs {
+		if IsInTest(pass, fn) {
 			// We don't care about malformed error messages in tests;
 			// they're usually for direct human consumption, not part
 			// of an API
@@ -369,15 +329,15 @@ func CheckErrorStrings(pass *analysis.Pass) (interface{}, error) {
 		for _, block := range fn.Blocks {
 		instrLoop:
 			for _, ins := range block.Instrs {
-				call, ok := ins.(*ir.Call)
+				call, ok := ins.(*ssa.Call)
 				if !ok {
 					continue
 				}
-				if !code.IsCallToAny(call.Common(), "errors.New", "fmt.Errorf") {
+				if !IsCallTo(call.Common(), "errors.New") && !IsCallTo(call.Common(), "fmt.Errorf") {
 					continue
 				}
 
-				k, ok := call.Common().Args[0].(*ir.Const)
+				k, ok := call.Common().Args[0].(*ssa.Const)
 				if !ok {
 					continue
 				}
@@ -388,7 +348,7 @@ func CheckErrorStrings(pass *analysis.Pass) (interface{}, error) {
 				}
 				switch s[len(s)-1] {
 				case '.', ':', '!', '\n':
-					report.Report(pass, call, "error strings should not end with punctuation or a newline")
+					pass.Reportf(call.Pos(), "error strings should not end with punctuation or a newline")
 				}
 				idx := strings.IndexByte(s, ' ')
 				if idx == -1 {
@@ -422,7 +382,7 @@ func CheckErrorStrings(pass *analysis.Pass) (interface{}, error) {
 				//
 				// It could still be a proper noun, though.
 
-				report.Report(pass, call, "error strings should not be capitalized")
+				pass.Reportf(call.Pos(), "error strings should not be capitalized")
 			}
 		}
 	}
@@ -437,47 +397,34 @@ func CheckTimeNames(pass *analysis.Pass) (interface{}, error) {
 		"Usec", "Usecs", "Microseconds",
 		"MS", "Ms",
 	}
-	fn := func(names []*ast.Ident) {
+	fn := func(T types.Type, names []*ast.Ident) {
+		if !IsType(T, "time.Duration") && !IsType(T, "*time.Duration") {
+			return
+		}
 		for _, name := range names {
-			if _, ok := pass.TypesInfo.Defs[name]; !ok {
-				continue
-			}
-			T := pass.TypesInfo.TypeOf(name)
-			if !code.IsType(T, "time.Duration") && !code.IsType(T, "*time.Duration") {
-				continue
-			}
 			for _, suffix := range suffixes {
 				if strings.HasSuffix(name.Name, suffix) {
-					report.Report(pass, name, fmt.Sprintf("var %s is of type %v; don't use unit-specific suffix %q", name.Name, T, suffix))
+					ReportNodef(pass, name, "var %s is of type %v; don't use unit-specific suffix %q", name.Name, T, suffix)
 					break
 				}
 			}
 		}
 	}
-
-	fn2 := func(node ast.Node) {
-		switch node := node.(type) {
-		case *ast.ValueSpec:
-			fn(node.Names)
-		case *ast.FieldList:
-			for _, field := range node.List {
-				fn(field.Names)
-			}
-		case *ast.AssignStmt:
-			if node.Tok != token.DEFINE {
-				break
-			}
-			var names []*ast.Ident
-			for _, lhs := range node.Lhs {
-				if lhs, ok := lhs.(*ast.Ident); ok {
-					names = append(names, lhs)
+	for _, f := range pass.Files {
+		ast.Inspect(f, func(node ast.Node) bool {
+			switch node := node.(type) {
+			case *ast.ValueSpec:
+				T := pass.TypesInfo.TypeOf(node.Type)
+				fn(T, node.Names)
+			case *ast.FieldList:
+				for _, field := range node.List {
+					T := pass.TypesInfo.TypeOf(field.Type)
+					fn(T, field.Names)
 				}
 			}
-			fn(names)
-		}
+			return true
+		})
 	}
-
-	code.Preorder(pass, fn2, (*ast.ValueSpec)(nil), (*ast.FieldList)(nil), (*ast.AssignStmt)(nil))
 	return nil, nil
 }
 
@@ -496,21 +443,16 @@ func CheckErrorVarNames(pass *analysis.Pass) (interface{}, error) {
 
 				for i, name := range spec.Names {
 					val := spec.Values[i]
-					if !code.IsCallToAnyAST(pass, val, "errors.New", "fmt.Errorf") {
+					if !IsCallToAST(pass, val, "errors.New") && !IsCallToAST(pass, val, "fmt.Errorf") {
 						continue
 					}
 
-					if pass.Pkg.Path() == "net/http" && strings.HasPrefix(name.Name, "http2err") {
-						// special case for internal variable names of
-						// bundled HTTP 2 code in net/http
-						continue
-					}
 					prefix := "err"
 					if name.IsExported() {
 						prefix = "Err"
 					}
 					if !strings.HasPrefix(name.Name, prefix) {
-						report.Report(pass, name, fmt.Sprintf("error var %s should have name of the form %sFoo", name.Name, prefix))
+						ReportNodef(pass, name, "error var %s should have name of the form %sFoo", name.Name, prefix)
 					}
 				}
 			}
@@ -586,11 +528,17 @@ func CheckHTTPStatusCodes(pass *analysis.Pass) (interface{}, error) {
 	for _, code := range config.For(pass).HTTPStatusCodeWhitelist {
 		whitelist[code] = true
 	}
-	fn := func(node ast.Node) {
-		call := node.(*ast.CallExpr)
+	fn := func(node ast.Node) bool {
+		if node == nil {
+			return true
+		}
+		call, ok := node.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
 
 		var arg int
-		switch code.CallNameAST(pass, call) {
+		switch CallNameAST(pass, call) {
 		case "net/http.Error":
 			arg = 2
 		case "net/http.Redirect":
@@ -600,29 +548,31 @@ func CheckHTTPStatusCodes(pass *analysis.Pass) (interface{}, error) {
 		case "net/http.RedirectHandler":
 			arg = 1
 		default:
-			return
+			return true
 		}
 		lit, ok := call.Args[arg].(*ast.BasicLit)
 		if !ok {
-			return
+			return true
 		}
 		if whitelist[lit.Value] {
-			return
+			return true
 		}
 
 		n, err := strconv.Atoi(lit.Value)
 		if err != nil {
-			return
+			return true
 		}
 		s, ok := httpStatusCodes[n]
 		if !ok {
-			return
+			return true
 		}
-		report.Report(pass, lit, fmt.Sprintf("should use constant http.%s instead of numeric literal %d", s, n),
-			report.FilterGenerated(),
-			report.Fixes(edit.Fix(fmt.Sprintf("use http.%s instead of %d", s, n), edit.ReplaceWithString(pass.Fset, lit, "http."+s))))
+		ReportNodefFG(pass, lit, "should use constant http.%s instead of numeric literal %d", s, n)
+		return true
 	}
-	code.Preorder(pass, fn, (*ast.CallExpr)(nil))
+	// OPT(dh): replace with inspector
+	for _, f := range pass.Files {
+		ast.Inspect(f, fn)
+	}
 	return nil, nil
 }
 
@@ -632,29 +582,31 @@ func CheckDefaultCaseOrder(pass *analysis.Pass) (interface{}, error) {
 		list := stmt.Body.List
 		for i, c := range list {
 			if c.(*ast.CaseClause).List == nil && i != 0 && i != len(list)-1 {
-				report.Report(pass, c, "default case should be first or last in switch statement", report.FilterGenerated())
+				ReportNodefFG(pass, c, "default case should be first or last in switch statement")
 				break
 			}
 		}
 	}
-	code.Preorder(pass, fn, (*ast.SwitchStmt)(nil))
+	pass.ResultOf[inspect.Analyzer].(*inspector.Inspector).Preorder([]ast.Node{(*ast.SwitchStmt)(nil)}, fn)
 	return nil, nil
 }
 
-var (
-	checkYodaConditionsQ = pattern.MustParse(`(BinaryExpr left@(BasicLit _ _) tok@(Or "==" "!=") right@(Not (BasicLit _ _)))`)
-	checkYodaConditionsR = pattern.MustParse(`(BinaryExpr right tok left)`)
-)
-
 func CheckYodaConditions(pass *analysis.Pass) (interface{}, error) {
 	fn := func(node ast.Node) {
-		if _, edits, ok := MatchAndEdit(pass, checkYodaConditionsQ, checkYodaConditionsR, node); ok {
-			report.Report(pass, node, "don't use Yoda conditions",
-				report.FilterGenerated(),
-				report.Fixes(edit.Fix("un-Yoda-fy", edits...)))
+		cond := node.(*ast.BinaryExpr)
+		if cond.Op != token.EQL && cond.Op != token.NEQ {
+			return
 		}
+		if _, ok := cond.X.(*ast.BasicLit); !ok {
+			return
+		}
+		if _, ok := cond.Y.(*ast.BasicLit); ok {
+			// Don't flag lit == lit conditions, just in case
+			return
+		}
+		ReportNodefFG(pass, cond, "don't use Yoda conditions")
 	}
-	code.Preorder(pass, fn, (*ast.BinaryExpr)(nil))
+	pass.ResultOf[inspect.Analyzer].(*inspector.Inspector).Preorder([]ast.Node{(*ast.BinaryExpr)(nil)}, fn)
 	return nil, nil
 }
 
@@ -664,251 +616,14 @@ func CheckInvisibleCharacters(pass *analysis.Pass) (interface{}, error) {
 		if lit.Kind != token.STRING {
 			return
 		}
-
-		type invalid struct {
-			r   rune
-			off int
-		}
-		var invalids []invalid
-		hasFormat := false
-		hasControl := false
-		for off, r := range lit.Value {
+		for _, r := range lit.Value {
 			if unicode.Is(unicode.Cf, r) {
-				invalids = append(invalids, invalid{r, off})
-				hasFormat = true
+				ReportNodef(pass, lit, "string literal contains the Unicode format character %U, consider using the %q escape sequence", r, r)
 			} else if unicode.Is(unicode.Cc, r) && r != '\n' && r != '\t' && r != '\r' {
-				invalids = append(invalids, invalid{r, off})
-				hasControl = true
+				ReportNodef(pass, lit, "string literal contains the Unicode control character %U, consider using the %q escape sequence", r, r)
 			}
-		}
-
-		switch len(invalids) {
-		case 0:
-			return
-		case 1:
-			var kind string
-			if hasFormat {
-				kind = "format"
-			} else if hasControl {
-				kind = "control"
-			} else {
-				panic("unreachable")
-			}
-
-			r := invalids[0]
-			msg := fmt.Sprintf("string literal contains the Unicode %s character %U, consider using the %q escape sequence instead", kind, r.r, r.r)
-
-			replacement := strconv.QuoteRune(r.r)
-			replacement = replacement[1 : len(replacement)-1]
-			edit := analysis.SuggestedFix{
-				Message: fmt.Sprintf("replace %s character %U with %q", kind, r.r, r.r),
-				TextEdits: []analysis.TextEdit{{
-					Pos:     lit.Pos() + token.Pos(r.off),
-					End:     lit.Pos() + token.Pos(r.off) + token.Pos(utf8.RuneLen(r.r)),
-					NewText: []byte(replacement),
-				}},
-			}
-			delete := analysis.SuggestedFix{
-				Message: fmt.Sprintf("delete %s character %U", kind, r),
-				TextEdits: []analysis.TextEdit{{
-					Pos: lit.Pos() + token.Pos(r.off),
-					End: lit.Pos() + token.Pos(r.off) + token.Pos(utf8.RuneLen(r.r)),
-				}},
-			}
-			report.Report(pass, lit, msg, report.Fixes(edit, delete))
-		default:
-			var kind string
-			if hasFormat && hasControl {
-				kind = "format and control"
-			} else if hasFormat {
-				kind = "format"
-			} else if hasControl {
-				kind = "control"
-			} else {
-				panic("unreachable")
-			}
-
-			msg := fmt.Sprintf("string literal contains Unicode %s characters, consider using escape sequences instead", kind)
-			var edits []analysis.TextEdit
-			var deletions []analysis.TextEdit
-			for _, r := range invalids {
-				replacement := strconv.QuoteRune(r.r)
-				replacement = replacement[1 : len(replacement)-1]
-				edits = append(edits, analysis.TextEdit{
-					Pos:     lit.Pos() + token.Pos(r.off),
-					End:     lit.Pos() + token.Pos(r.off) + token.Pos(utf8.RuneLen(r.r)),
-					NewText: []byte(replacement),
-				})
-				deletions = append(deletions, analysis.TextEdit{
-					Pos: lit.Pos() + token.Pos(r.off),
-					End: lit.Pos() + token.Pos(r.off) + token.Pos(utf8.RuneLen(r.r)),
-				})
-			}
-			edit := analysis.SuggestedFix{
-				Message:   fmt.Sprintf("replace all %s characters with escape sequences", kind),
-				TextEdits: edits,
-			}
-			delete := analysis.SuggestedFix{
-				Message:   fmt.Sprintf("delete all %s characters", kind),
-				TextEdits: deletions,
-			}
-			report.Report(pass, lit, msg, report.Fixes(edit, delete))
 		}
 	}
-	code.Preorder(pass, fn, (*ast.BasicLit)(nil))
-	return nil, nil
-}
-
-func CheckExportedFunctionDocs(pass *analysis.Pass) (interface{}, error) {
-	fn := func(node ast.Node) {
-		if code.IsInTest(pass, node) {
-			return
-		}
-
-		decl := node.(*ast.FuncDecl)
-		if decl.Doc == nil {
-			return
-		}
-		if !ast.IsExported(decl.Name.Name) {
-			return
-		}
-		kind := "function"
-		if decl.Recv != nil {
-			kind = "method"
-			switch T := decl.Recv.List[0].Type.(type) {
-			case *ast.StarExpr:
-				if !ast.IsExported(T.X.(*ast.Ident).Name) {
-					return
-				}
-			case *ast.Ident:
-				if !ast.IsExported(T.Name) {
-					return
-				}
-			default:
-				ExhaustiveTypeSwitch(T)
-			}
-		}
-		prefix := decl.Name.Name + " "
-		if !strings.HasPrefix(decl.Doc.Text(), prefix) {
-			report.Report(pass, decl.Doc, fmt.Sprintf(`comment on exported %s %s should be of the form "%s..."`, kind, decl.Name.Name, prefix), report.FilterGenerated())
-		}
-	}
-
-	code.Preorder(pass, fn, (*ast.FuncDecl)(nil))
-	return nil, nil
-}
-
-func CheckExportedTypeDocs(pass *analysis.Pass) (interface{}, error) {
-	var genDecl *ast.GenDecl
-	fn := func(node ast.Node, push bool) bool {
-		if !push {
-			genDecl = nil
-			return false
-		}
-		if code.IsInTest(pass, node) {
-			return false
-		}
-
-		switch node := node.(type) {
-		case *ast.GenDecl:
-			if node.Tok == token.IMPORT {
-				return false
-			}
-			genDecl = node
-			return true
-		case *ast.TypeSpec:
-			if !ast.IsExported(node.Name.Name) {
-				return false
-			}
-
-			doc := node.Doc
-			if doc == nil {
-				if len(genDecl.Specs) != 1 {
-					// more than one spec in the GenDecl, don't validate the
-					// docstring
-					return false
-				}
-				if genDecl.Lparen.IsValid() {
-					// 'type ( T )' is weird, don't guess the user's intention
-					return false
-				}
-				doc = genDecl.Doc
-				if doc == nil {
-					return false
-				}
-			}
-
-			s := doc.Text()
-			articles := [...]string{"A", "An", "The"}
-			for _, a := range articles {
-				if strings.HasPrefix(s, a+" ") {
-					s = s[len(a)+1:]
-					break
-				}
-			}
-			if !strings.HasPrefix(s, node.Name.Name+" ") {
-				report.Report(pass, doc, fmt.Sprintf(`comment on exported type %s should be of the form "%s ..." (with optional leading article)`, node.Name.Name, node.Name.Name), report.FilterGenerated())
-			}
-			return false
-		case *ast.FuncLit, *ast.FuncDecl:
-			return false
-		default:
-			ExhaustiveTypeSwitch(node)
-			return false
-		}
-	}
-
-	pass.ResultOf[inspect.Analyzer].(*inspector.Inspector).Nodes([]ast.Node{(*ast.GenDecl)(nil), (*ast.TypeSpec)(nil), (*ast.FuncLit)(nil), (*ast.FuncDecl)(nil)}, fn)
-	return nil, nil
-}
-
-func CheckExportedVarDocs(pass *analysis.Pass) (interface{}, error) {
-	var genDecl *ast.GenDecl
-	fn := func(node ast.Node, push bool) bool {
-		if !push {
-			genDecl = nil
-			return false
-		}
-		if code.IsInTest(pass, node) {
-			return false
-		}
-
-		switch node := node.(type) {
-		case *ast.GenDecl:
-			if node.Tok == token.IMPORT {
-				return false
-			}
-			genDecl = node
-			return true
-		case *ast.ValueSpec:
-			if genDecl.Lparen.IsValid() || len(node.Names) > 1 {
-				// Don't try to guess the user's intention
-				return false
-			}
-			name := node.Names[0].Name
-			if !ast.IsExported(name) {
-				return false
-			}
-			if genDecl.Doc == nil {
-				return false
-			}
-			prefix := name + " "
-			if !strings.HasPrefix(genDecl.Doc.Text(), prefix) {
-				kind := "var"
-				if genDecl.Tok == token.CONST {
-					kind = "const"
-				}
-				report.Report(pass, genDecl.Doc, fmt.Sprintf(`comment on exported %s %s should be of the form "%s..."`, kind, name, prefix), report.FilterGenerated())
-			}
-			return false
-		case *ast.FuncLit, *ast.FuncDecl:
-			return false
-		default:
-			ExhaustiveTypeSwitch(node)
-			return false
-		}
-	}
-
-	pass.ResultOf[inspect.Analyzer].(*inspector.Inspector).Nodes([]ast.Node{(*ast.GenDecl)(nil), (*ast.ValueSpec)(nil), (*ast.FuncLit)(nil), (*ast.FuncDecl)(nil)}, fn)
+	pass.ResultOf[inspect.Analyzer].(*inspector.Inspector).Preorder([]ast.Node{(*ast.BasicLit)(nil)}, fn)
 	return nil, nil
 }
