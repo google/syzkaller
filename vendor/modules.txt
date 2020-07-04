@@ -21,6 +21,12 @@ github.com/OpenPeeDeeP/depguard
 github.com/bombsimon/wsl/v3
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
+# github.com/dvyukov/go-fuzz v0.0.0-20200318091601-be3528f3a813
+## explicit
+github.com/dvyukov/go-fuzz/go-fuzz-build
+github.com/dvyukov/go-fuzz/go-fuzz-defs
+github.com/dvyukov/go-fuzz/go-fuzz-dep
+github.com/dvyukov/go-fuzz/internal/go-fuzz-types
 # github.com/fatih/color v1.7.0
 github.com/fatih/color
 # github.com/fsnotify/fsnotify v1.4.7
