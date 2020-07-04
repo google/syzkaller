@@ -1,9 +1,8 @@
 // Package lint provides the foundation for tools like staticcheck
-package lint
+package lint // import "honnef.co/go/tools/lint"
 
 import (
 	"bytes"
-	"encoding/gob"
 	"fmt"
 	"go/scanner"
 	"go/token"
@@ -18,7 +17,6 @@ import (
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/packages"
 	"honnef.co/go/tools/config"
-	"honnef.co/go/tools/internal/cache"
 )
 
 type Documentation struct {
@@ -121,21 +119,6 @@ type Problem struct {
 	Message  string
 	Check    string
 	Severity Severity
-	Related  []Related
-}
-
-type Related struct {
-	Pos     token.Position
-	End     token.Position
-	Message string
-}
-
-func (p Problem) Equal(o Problem) bool {
-	return p.Pos == o.Pos &&
-		p.End == o.End &&
-		p.Message == o.Message &&
-		p.Check == o.Check &&
-		p.Severity == o.Severity
 }
 
 func (p *Problem) String() string {
@@ -149,7 +132,6 @@ type Linter struct {
 	GoVersion          int
 	Config             config.Config
 	Stats              Stats
-	RepeatAnalyzers    uint
 }
 
 type CumulativeChecker interface {
@@ -202,7 +184,6 @@ func (l *Linter) Lint(cfg *packages.Config, patterns []string) ([]Problem, error
 		return nil, err
 	}
 	r.goVersion = l.GoVersion
-	r.repeatAnalyzers = l.RepeatAnalyzers
 
 	pkgs, err := r.Run(cfg, patterns, allowedAnalyzers, hasCumulative)
 	if err != nil {
@@ -283,12 +264,10 @@ func (l *Linter) Lint(cfg *packages.Config, patterns []string) ([]Problem, error
 	}
 
 	atomic.StoreUint32(&r.stats.State, StateCumulative)
+	var problems []Problem
 	for _, cum := range l.CumulativeCheckers {
 		for _, res := range cum.Result() {
 			pkg := tpkgToPkg[res.Pkg()]
-			if pkg == nil {
-				panic(fmt.Sprintf("analyzer %s flagged object %s in package %s, a package that we aren't tracking", cum.Analyzer(), res, res.Pkg()))
-			}
 			allowedChecks := FilterChecks(allowedAnalyzers, pkg.cfg.Merge(l.Config).Checks)
 			if allowedChecks[cum.Analyzer().Name] {
 				pos := DisplayPosition(pkg.Fset, res.Pos())
@@ -299,36 +278,21 @@ func (l *Linter) Lint(cfg *packages.Config, patterns []string) ([]Problem, error
 					continue
 				}
 				p := cum.ProblemObject(pkg.Fset, res)
-				pkg.problems = append(pkg.problems, p)
+				problems = append(problems, p)
 			}
 		}
 	}
 
 	for _, pkg := range pkgs {
-		if !pkg.fromSource {
-			// Don't cache packages that we loaded from the cache
-			continue
-		}
-		cpkg := cachedPackage{
-			Problems: pkg.problems,
-			Ignores:  pkg.ignores,
-			Config:   pkg.cfg,
-		}
-		buf := &bytes.Buffer{}
-		if err := gob.NewEncoder(buf).Encode(cpkg); err != nil {
-			return nil, err
-		}
-		id := cache.Subkey(pkg.actionID, "data "+r.problemsCacheKey)
-		if err := r.cache.PutBytes(id, buf.Bytes()); err != nil {
-			return nil, err
-		}
-	}
-
-	var problems []Problem
-	for _, pkg := range pkgs {
 		for _, ig := range pkg.ignores {
 			for i := range pkg.problems {
 				p := &pkg.problems[i]
+				if ig.Match(*p) {
+					p.Severity = Ignored
+				}
+			}
+			for i := range problems {
+				p := &problems[i]
 				if ig.Match(*p) {
 					p.Severity = Ignored
 				}
@@ -408,7 +372,7 @@ func (l *Linter) Lint(cfg *packages.Config, patterns []string) ([]Problem, error
 	for i, p := range problems[1:] {
 		// We may encounter duplicate problems because one file
 		// can be part of many packages.
-		if !problems[i].Equal(p) {
+		if problems[i] != p {
 			out = append(out, p)
 		}
 	}
@@ -456,6 +420,10 @@ func FilterChecks(allChecks []*analysis.Analyzer, checks []string) map[string]bo
 		}
 	}
 	return allowedChecks
+}
+
+type Positioner interface {
+	Pos() token.Pos
 }
 
 func DisplayPosition(fset *token.FileSet, p token.Pos) token.Position {

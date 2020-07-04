@@ -1,5 +1,5 @@
 // staticcheck analyses Go code and makes it better.
-package main
+package main // import "honnef.co/go/tools/cmd/staticcheck"
 
 import (
 	"log"

@@ -55,10 +55,6 @@ func isGenerated(path string) (Generator, bool) {
 			if strings.HasPrefix(text, `by "stringer `) {
 				return Stringer, true
 			}
-			if strings.HasPrefix(text, `by goyacc `) {
-				return Goyacc, true
-			}
-
 			return Unknown, true
 		}
 		if bytes.Equal(s, oldCgo) {
