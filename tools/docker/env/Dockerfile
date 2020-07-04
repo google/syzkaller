@@ -2,7 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 # The image provides dev environment suitable for syzkaller development/testing.
-# It includes Go toolchain, C/C++ cross-compilers, go-fuzz and golangci-lint.
+# It includes Go toolchain, C/C++ cross-compilers and go-fuzz.
 
 # The image is available as gcr.io/syzkaller/env.
 
@@ -35,11 +35,6 @@ RUN dpkg --add-architecture i386 && \
 RUN curl https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz | tar -C /usr/local -xz
 ENV PATH /usr/local/go/bin:/gopath/bin:$PATH
 ENV GOPATH /gopath
-
-# For golangci-lint we need only the binary.
-RUN GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.26.0 && \
-	mv /gopath/bin/* /usr/local/bin/ && \
-	rm -rf /gopath
 
 # For go-fuzz we also need sources (go-fuzz-dep).
 RUN go get github.com/dvyukov/go-fuzz/go-fuzz github.com/dvyukov/go-fuzz/go-fuzz-build
