@@ -14,7 +14,7 @@ static int test_copyin()
 	if (x[0] != 0 || x[1] != 0 ||
 	    x[2] != 0x34 || x[3] != 0x12 ||
 	    x[4] != 0 || x[5] != 0) {
-		printf("bad result of STORE_BY_BITMASK(0, 0): %x %x %x %x %x %x\n",
+		printf("bad result of STORE_BY_BITMASK(le16, 0x1234, 0, 16): %x %x %x %x %x %x\n",
 		       x[0], x[1], x[2], x[3], x[4], x[5]);
 		return 1;
 	}
@@ -23,7 +23,16 @@ static int test_copyin()
 	if (x[0] != 0 || x[1] != 0 ||
 	    x[2] != 0x54 || x[3] != 0x13 ||
 	    x[4] != 0 || x[5] != 0) {
-		printf("bad result of STORE_BY_BITMASK(7, 3): %x %x %x %x %x %x\n",
+		printf("bad result of STORE_BY_BITMASK(le16, 0x555a, 5, 4): %x %x %x %x %x %x\n",
+		       x[0], x[1], x[2], x[3], x[4], x[5]);
+		return 1;
+	}
+	STORE_BY_BITMASK(uint16, htobe16, &buf[1], 0x4567, 13, 3);
+	memcpy(x, buf, sizeof(x));
+	if (x[0] != 0 || x[1] != 0 ||
+	    x[2] != 0xf4 || x[3] != 0x13 ||
+	    x[4] != 0 || x[5] != 0) {
+		printf("bad result of STORE_BY_BITMASK(be16, 0x4567, 13, 3): %x %x %x %x %x %x\n",
 		       x[0], x[1], x[2], x[3], x[4], x[5]);
 		return 1;
 	}
