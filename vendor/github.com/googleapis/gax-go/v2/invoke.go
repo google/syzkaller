@@ -38,8 +38,8 @@ import (
 // APICall is a user defined call stub.
 type APICall func(context.Context, CallSettings) error
 
-// Invoke calls the given APICall, performing retries as specified by opts, if
-// any.
+// Invoke calls the given APICall,
+// performing retries as specified by opts, if any.
 func Invoke(ctx context.Context, call APICall, opts ...CallOption) error {
 	var settings CallSettings
 	for _, opt := range opts {

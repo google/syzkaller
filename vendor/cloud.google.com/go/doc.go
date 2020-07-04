@@ -97,4 +97,4 @@ making breaking changes, including removal.
 These parts of the surface will be labeled with the note, "It is EXPERIMENTAL
 and subject to change or removal without notice."
 */
-package cloud
+package cloud // import "cloud.google.com/go"

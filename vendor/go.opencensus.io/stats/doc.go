@@ -66,4 +66,4 @@ When exported to a supporting back end, you should be able to easily navigate
 to example traces that fell into each bucket in the Distribution.
 
 */
-package stats
+package stats // import "go.opencensus.io/stats"
