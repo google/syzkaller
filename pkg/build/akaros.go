@@ -109,7 +109,7 @@ func (ctx akaros) make(kernelDir, runDir string, args ...string) error {
 	return ctx.cmd(kernelDir, runDir, "make", args...)
 }
 
-func (ctx akaros) cmd(kernelDir, runDir string, bin string, args ...string) error {
+func (ctx akaros) cmd(kernelDir, runDir, bin string, args ...string) error {
 	cmd := osutil.Command(bin, args...)
 	if err := osutil.Sandbox(cmd, true, false); err != nil {
 		return err

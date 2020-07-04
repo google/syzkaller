@@ -19,7 +19,7 @@ type Description struct {
 
 // Node is AST node interface.
 type Node interface {
-	Info() (pos Pos, typ string, name string)
+	Info() (pos Pos, typ, name string)
 	// Clone makes a deep copy of the node.
 	Clone() Node
 	// walk calls callback cb for all child nodes of this node.

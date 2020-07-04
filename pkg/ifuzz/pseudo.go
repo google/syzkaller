@@ -495,7 +495,7 @@ func (gen *generator) out8(port uint16, v uint8) {
 	gen.byte(0xee) // out %dx, %al
 }
 
-func (gen *generator) out16(port uint16, v uint16) {
+func (gen *generator) out16(port, v uint16) {
 	gen.mov16(regDX, port)
 	gen.mov16(regAX, v)
 	gen.operand16()

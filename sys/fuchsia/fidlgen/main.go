@@ -93,7 +93,7 @@ func main() {
 	}
 }
 
-func fidlgen(fidlgenPath string, jsonPath string, txtPathBase string) string {
+func fidlgen(fidlgenPath, jsonPath, txtPathBase string) string {
 	if !osutil.IsExist(jsonPath) {
 		failf("cannot find %s", jsonPath)
 	}

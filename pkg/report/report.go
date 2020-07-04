@@ -356,7 +356,7 @@ type stackFmt struct {
 	extractor frameExtractor
 }
 
-type frameExtractor func(frames []string) (frame string, corrupted string)
+type frameExtractor func(frames []string) (frame, corrupted string)
 
 var parseStackTrace *regexp.Regexp
 
@@ -400,8 +400,7 @@ func matchOops(line []byte, oops *oops, ignores []*regexp.Regexp) bool {
 	return true
 }
 
-func extractDescription(output []byte, oops *oops, params *stackParams) (
-	desc string, corrupted string, format oopsFormat) {
+func extractDescription(output []byte, oops *oops, params *stackParams) (desc, corrupted string, format oopsFormat) {
 	startPos := len(output)
 	matchedTitle := false
 	for _, f := range oops.formats {

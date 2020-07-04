@@ -38,7 +38,7 @@ func (*netbsd) prepareArch(arch *Arch) error {
 	return nil
 }
 
-func machineLink(arch *Arch, machine string, dest string) error {
+func machineLink(arch *Arch, machine, dest string) error {
 	if err := os.Symlink(machineInclude(arch, machine),
 		filepath.Join(arch.buildDir, dest)); err != nil {
 		return fmt.Errorf("failed to create link: %v", err)
