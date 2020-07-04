@@ -17,3 +17,14 @@ func stringComparison() {
 }
 
 func returnString() string { return "foo" }
+
+//
+// One space.
+//  Two spaces.
+//	One tab.
+//		Two tabs.
+//No space.					// want "Use either //<one-or-more-spaces>comment or //<one-or-more-tabs>comment format for comments"
+//	  Tab and spaces.			// want "Use either //<one-or-more-spaces>comment or //<one-or-more-tabs>comment format for comments"
+// 	Space and tab.				// want "Use either //<one-or-more-spaces>comment or //<one-or-more-tabs>comment format for comments"
+func checkCommentSpace() {
+}

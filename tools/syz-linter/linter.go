@@ -7,11 +7,13 @@
 // See the following tutorial on adding custom golangci-lint linters:
 // https://golangci-lint.run/contributing/new-linters/
 // See comments below and testdata/src/lintertest/lintertest.go for the actual checks we do.
+// Note: if you change linter logic, you may need to run "rm -rf ~/.cache/golangci-lint".
 package main
 
 import (
 	"go/ast"
 	"go/token"
+	"regexp"
 	"strings"
 
 	"golang.org/x/tools/go/analysis"
@@ -39,6 +41,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			switch n := n.(type) {
 			case *ast.Comment:
 				checkMulitlineComments(pass, n)
+				checkCommentSpace(pass, n)
 			case *ast.BinaryExpr:
 				checkStringLenCompare(pass, n)
 			}
@@ -59,6 +62,20 @@ func checkMulitlineComments(pass *analysis.Pass, n *ast.Comment) {
 		Message: "Use C-style comments // instead of /* */",
 	})
 }
+
+// checkCommentSpace warns about "//nospace", "// 	tabs and spaces" and similar.
+func checkCommentSpace(pass *analysis.Pass, n *ast.Comment) {
+	if !strings.HasPrefix(n.Text, "//") ||
+		allowedComments.MatchString(n.Text) {
+		return
+	}
+	pass.Report(analysis.Diagnostic{
+		Pos:     n.Pos(),
+		Message: "Use either //<one-or-more-spaces>comment or //<one-or-more-tabs>comment format for comments",
+	})
+}
+
+var allowedComments = regexp.MustCompile(`^//($|	+[^ 	]| +[^ 	])`)
 
 // checkStringLenCompare checks for string len comparisons with 0.
 // E.g.: if len(str) == 0 {} should be if str == "" {}.
