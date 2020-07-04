@@ -259,7 +259,7 @@ func defaultFeatures(value bool) Features {
 	}
 }
 
-func ParseFeaturesFlags(enable string, disable string, defaultValue bool) (Features, error) {
+func ParseFeaturesFlags(enable, disable string, defaultValue bool) (Features, error) {
 	const (
 		none = "none"
 		all  = "all"

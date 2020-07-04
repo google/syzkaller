@@ -110,7 +110,7 @@ func CreateTestRepo(t *testing.T, baseDir, name string) *TestRepo {
 	return repo
 }
 
-func CloneTestRepo(t *testing.T, baseDir string, name string, originRepo *TestRepo) *TestRepo {
+func CloneTestRepo(t *testing.T, baseDir, name string, originRepo *TestRepo) *TestRepo {
 	dir := filepath.Join(baseDir, name)
 	if err := osutil.MkdirAll(dir); err != nil {
 		t.Fatal(err)
