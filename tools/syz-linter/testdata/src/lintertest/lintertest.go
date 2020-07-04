@@ -23,8 +23,22 @@ func returnString() string { return "foo" }
 //  Two spaces.
 //	One tab.
 //		Two tabs.
-//No space.					// want "Use either //<one-or-more-spaces>comment or //<one-or-more-tabs>comment format for comments"
-//	  Tab and spaces.			// want "Use either //<one-or-more-spaces>comment or //<one-or-more-tabs>comment format for comments"
-// 	Space and tab.				// want "Use either //<one-or-more-spaces>comment or //<one-or-more-tabs>comment format for comments"
+//No space.			// want "Use either //<one-or-more-spaces>comment or //<one-or-more-tabs>comment format for comments"
+//	  Tab and spaces.	// want "Use either //<one-or-more-spaces>comment or //<one-or-more-tabs>comment format for comments"
+// 	Space and tab.		// want "Use either //<one-or-more-spaces>comment or //<one-or-more-tabs>comment format for comments"
 func checkCommentSpace() {
+}
+
+func funcArgsGood(a, b int) (int, int) {
+	return 0, 0
+}
+
+func funcArgsBad0(a int, b int) { // want "Use 'a, b int'"
+}
+
+func funcArgsBad1() (a int, b int) { // want "Use 'a, b int'"
+	return 0, 0
+}
+
+func funcArgsBad2(a int16, b, c uint32, d uint32, e int16) { // want "Use 'b, c, d uint32'"
 }
