@@ -1059,7 +1059,7 @@ func expectedTypeArgs(desc *typeDesc, needBase bool) string {
 	return expect
 }
 
-func checkTypeKind(t *ast.Type, kind int) (unexpected string, expect string, ok bool) {
+func checkTypeKind(t *ast.Type, kind int) (unexpected, expect string, ok bool) {
 	switch {
 	case kind == kindAny:
 		ok = true

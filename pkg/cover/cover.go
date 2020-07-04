@@ -25,6 +25,6 @@ func (cov Cover) Serialize() []uint32 {
 	return res
 }
 
-func RestorePC(pc uint32, base uint32) uint64 {
+func RestorePC(pc, base uint32) uint64 {
 	return uint64(base)<<32 + uint64(pc)
 }

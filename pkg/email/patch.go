@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-func ParsePatch(text string) (title string, diff string, err error) {
+func ParsePatch(text string) (title, diff string, err error) {
 	s := bufio.NewScanner(strings.NewReader(text))
 	lastLine := ""
 	diffStarted := false

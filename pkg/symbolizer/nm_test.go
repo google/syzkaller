@@ -52,7 +52,7 @@ func TestSymbols(t *testing.T) {
 	}
 }
 
-func symcmp(want Symbol, got Symbol) bool {
+func symcmp(want, got Symbol) bool {
 	if want.Addr != got.Addr {
 		return false
 	}

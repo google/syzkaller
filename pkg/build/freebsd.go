@@ -93,7 +93,7 @@ func (ctx freebsd) clean(kernelDir, targetArch string) error {
 	return ctx.make(kernelDir, objPrefix, "cleanworld")
 }
 
-func (ctx freebsd) make(kernelDir string, objPrefix string, makeArgs ...string) error {
+func (ctx freebsd) make(kernelDir, objPrefix string, makeArgs ...string) error {
 	args := append([]string{
 		fmt.Sprintf("MAKEOBJDIRPREFIX=%v", objPrefix),
 		"make",
