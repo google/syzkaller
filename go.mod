@@ -8,6 +8,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.4.2 // indirect
+	github.com/golangci/golangci-lint v1.27.0
 	github.com/google/go-cmp v0.5.0
 	github.com/googleapis/gax-go v1.0.4-0.20191018151119-b443e5a67ec8 // indirect
 	github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6
