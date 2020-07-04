@@ -14,20 +14,18 @@ import (
 	"context"
 	"fmt"
 	"go/ast"
-	"go/build"
 	"go/format"
 	"go/parser"
 	"go/printer"
 	"go/token"
 	"io"
 	"io/ioutil"
-	"log"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"golang.org/x/tools/go/ast/astutil"
+	"golang.org/x/tools/internal/gocommand"
 )
 
 // Options is golang.org/x/tools/imports.Options with extra internal-only options.
@@ -146,19 +144,14 @@ func initialize(filename string, src []byte, opt *Options) ([]byte, *Options, er
 
 	// Set the env if the user has not provided it.
 	if opt.Env == nil {
-		opt.Env = &ProcessEnv{
-			GOPATH:      build.Default.GOPATH,
-			GOROOT:      build.Default.GOROOT,
-			GOFLAGS:     os.Getenv("GOFLAGS"),
-			GO111MODULE: os.Getenv("GO111MODULE"),
-			GOPROXY:     os.Getenv("GOPROXY"),
-			GOSUMDB:     os.Getenv("GOSUMDB"),
-		}
+		opt.Env = &ProcessEnv{}
 	}
-
-	// Set the logger if the user has not provided it.
-	if opt.Env.Logf == nil {
-		opt.Env.Logf = log.Printf
+	// Set the gocmdRunner if the user has not provided it.
+	if opt.Env.GocmdRunner == nil {
+		opt.Env.GocmdRunner = &gocommand.Runner{}
+	}
+	if err := opt.Env.init(); err != nil {
+		return nil, nil, err
 	}
 
 	if src == nil {
