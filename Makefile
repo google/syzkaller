@@ -50,6 +50,7 @@ CGO_ENABLED ?= 0
 export CGO_ENABLED
 TARGETGOOS := $(TARGETOS)
 TARGETGOARCH := $(TARGETVMARCH)
+export GO111MODULE=on
 
 GITREV=$(shell git rev-parse HEAD)
 ifeq ("$(shell git diff --shortstat)", "")
@@ -258,6 +259,8 @@ tidy:
 		executor/*.cc
 
 lint:
+	# This should install the command from our vendor dir.
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint
 	golangci-lint run ./...
 
 arch_darwin_amd64_host:
@@ -400,13 +403,6 @@ install_prerequisites:
 	sudo apt-get install -y -q ragel clang-format
 	go get -u golang.org/x/tools/cmd/goyacc \
 		github.com/dvyukov/go-fuzz/go-fuzz-build
-	# Runs golangci-lint when go is new enough. Old versions get a
-	# free pass (except on CI which has newer go version).
-	if [ "$$(go version)" \> "go version go1.12" ]; then \
-		GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.25.0 ; \
-	else \
-		ln -sf /bin/true $$(go env GOPATH)/bin/golangci-lint ; \
-	fi
 
 check_copyright:
 	./tools/check-copyright.sh
