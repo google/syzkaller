@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <errno.h>
+#include <limits.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -1157,12 +1158,21 @@ void copyin_int(char* addr, uint64 val, uint64 bf, uint64 bf_off, uint64 bf_len)
 		return;
 	}
 	T x = swap(*(T*)addr, sizeof(T), bf);
-	x = (x & ~BITMASK(bf_off, bf_len)) | ((val << bf_off) & BITMASK(bf_off, bf_len));
+	debug_verbose("copyin_int<%zu>: old x=0x%llx\n", sizeof(T), (uint64)x);
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+	const uint64 shift = sizeof(T) * CHAR_BIT - bf_off - bf_len;
+#else
+	const uint64 shift = bf_off;
+#endif
+	x = (x & ~BITMASK(shift, bf_len)) | ((val << shift) & BITMASK(shift, bf_len));
+	debug_verbose("copyin_int<%zu>: new x=0x%llx\n", sizeof(T), (uint64)x);
 	*(T*)addr = swap(x, sizeof(T), bf);
 }
 
 void copyin(char* addr, uint64 val, uint64 size, uint64 bf, uint64 bf_off, uint64 bf_len)
 {
+	debug_verbose("copyin: addr=%p val=0x%llx size=%llu bf=%llu bf_off=%llu bf_len=%llu\n",
+		      addr, val, size, bf, bf_off, bf_len);
 	if (bf != binary_format_native && bf != binary_format_bigendian && (bf_off != 0 || bf_len != 0))
 		fail("bitmask for string format %llu/%llu", bf_off, bf_len);
 	switch (bf) {
