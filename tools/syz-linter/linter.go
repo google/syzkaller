@@ -4,6 +4,10 @@
 // This is our linter with custom checks for the project.
 // See the following tutorial on writing Go analyzers:
 // https://disaev.me/p/writing-useful-go-analysis-linter/
+// See the AST reference see:
+// https://pkg.go.dev/go/ast
+// https://pkg.go.dev/go/token
+// https://pkg.go.dev/go/types
 // See the following tutorial on adding custom golangci-lint linters:
 // https://golangci-lint.run/contributing/new-linters/
 // See comments below and testdata/src/lintertest/lintertest.go for the actual checks we do.
@@ -11,8 +15,10 @@
 package main
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
+	"go/types"
 	"regexp"
 	"strings"
 
@@ -44,6 +50,8 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				checkCommentSpace(pass, n)
 			case *ast.BinaryExpr:
 				checkStringLenCompare(pass, n)
+			case *ast.FuncType:
+				checkFuncArgs(pass, n)
 			}
 			return true
 		})
@@ -108,6 +116,52 @@ func isStringLenCall(pass *analysis.Pass, n ast.Expr) bool {
 func isIntZeroLiteral(n ast.Expr) bool {
 	lit, ok := n.(*ast.BasicLit)
 	return ok && lit.Kind == token.INT && lit.Value == "0"
+}
+
+// checkFuncArgs checks for "func foo(a int, b int)" -> "func foo(a, b int)".
+func checkFuncArgs(pass *analysis.Pass, n *ast.FuncType) {
+	checkFuncArgList(pass, n.Params.List)
+	if n.Results != nil {
+		checkFuncArgList(pass, n.Results.List)
+	}
+}
+
+func checkFuncArgList(pass *analysis.Pass, fields []*ast.Field) {
+	firstBad := -1
+	var prev types.Type
+	for i, field := range fields {
+		if len(field.Names) == 0 {
+			reportFuncArgs(pass, fields, firstBad, i)
+			firstBad, prev = -1, nil
+			continue
+		}
+		this := pass.TypesInfo.Types[field.Type].Type
+		if prev != this {
+			reportFuncArgs(pass, fields, firstBad, i)
+			firstBad, prev = -1, this
+			continue
+		}
+		if firstBad == -1 {
+			firstBad = i - 1
+		}
+	}
+	reportFuncArgs(pass, fields, firstBad, len(fields))
+}
+
+func reportFuncArgs(pass *analysis.Pass, fields []*ast.Field, first, last int) {
+	if first == -1 {
+		return
+	}
+	names := ""
+	for _, field := range fields[first:last] {
+		for _, name := range field.Names {
+			names += ", " + name.Name
+		}
+	}
+	pass.Report(analysis.Diagnostic{
+		Pos:     fields[first].Pos(),
+		Message: fmt.Sprintf("Use '%v %v'", names[2:], fields[first].Type),
+	})
 }
 
 func main() {
