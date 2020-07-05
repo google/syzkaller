@@ -21,6 +21,7 @@ import (
 	"go/types"
 	"regexp"
 	"strings"
+	"unicode"
 
 	"golang.org/x/tools/go/analysis"
 )
@@ -28,6 +29,10 @@ import (
 var AnalyzerPlugin analyzerPlugin
 
 type analyzerPlugin struct{}
+
+func main() {
+	_ = AnalyzerPlugin
+}
 
 func (*analyzerPlugin) GetAnalyzers() []*analysis.Analyzer {
 	return []*analysis.Analyzer{
@@ -52,6 +57,8 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				checkStringLenCompare(pass, n)
 			case *ast.FuncType:
 				checkFuncArgs(pass, n)
+			case *ast.CallExpr:
+				checkLogErrorFormat(pass, n)
 			}
 			return true
 		})
@@ -164,6 +171,33 @@ func reportFuncArgs(pass *analysis.Pass, fields []*ast.Field, first, last int) {
 	})
 }
 
-func main() {
-	_ = AnalyzerPlugin
+func checkLogErrorFormat(pass *analysis.Pass, n *ast.CallExpr) {
+	fun, ok := n.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return
+	}
+	arg := 0
+	switch fmt.Sprintf("%v.%v", fun.X, fun.Sel) {
+	case "log.Print", "log.Printf", "log.Fatal", "log.Fatalf", "fmt.Error", "fmt.Errorf":
+		arg = 0
+	case "log.Logf":
+		arg = 1
+	default:
+		return
+	}
+	lit, ok := n.Args[arg].(*ast.BasicLit)
+	if !ok || lit.Kind != token.STRING {
+		return
+	}
+	val := lit.Value[1 : len(lit.Value)-1] // the value includes quotes
+	if len(val) < 2 || !unicode.IsUpper(rune(val[0])) || !unicode.IsLower(rune(val[1])) ||
+		publicIdentifier.MatchString(val) {
+		return
+	}
+	pass.Report(analysis.Diagnostic{
+		Pos:     n.Pos(),
+		Message: "bad log/error",
+	})
 }
+
+var publicIdentifier = regexp.MustCompile(`^[A-Z][[:alnum:]]+(\.[[:alnum:]]+)+ `)
