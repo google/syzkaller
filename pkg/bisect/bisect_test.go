@@ -42,7 +42,7 @@ func (env *testEnv) BuildKernel(compilerBin, userspaceDir, cmdlineFile, sysctlFi
 	}
 	env.config = string(kernelConfig)
 	if env.config == "baseline-fails" || env.config == "broken-build" {
-		return "", kernelSign, fmt.Errorf("Failure")
+		return "", kernelSign, fmt.Errorf("failure")
 	}
 	return "", kernelSign, nil
 }

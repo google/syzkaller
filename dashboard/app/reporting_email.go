@@ -81,7 +81,7 @@ func (cfg *EmailConfig) Validate() error {
 		}
 	}
 	if cfg.MailMaintainers && len(cfg.DefaultMaintainers) == 0 {
-		return fmt.Errorf("MailMaintainers is set but no DefaultMaintainers")
+		return fmt.Errorf("email config: MailMaintainers is set but no DefaultMaintainers")
 	}
 	return nil
 }
