@@ -113,7 +113,7 @@ type Crash struct {
 
 func main() {
 	if prog.GitRevision == "" {
-		log.Fatalf("Bad syz-manager build. Build with make, run bin/syz-manager.")
+		log.Fatalf("bad syz-manager build: build with make, run bin/syz-manager")
 	}
 	flag.Parse()
 	log.EnableLogCaching(1000, 1<<20)

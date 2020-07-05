@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
@@ -92,9 +91,6 @@ test -d "$OVERLAY" && doas cp -Rf "$OVERLAY"/. /altroot
 doas umount /altroot
 doas vnconfig -u vnd0
 `, overlayDir)
-	debugOut, err := osutil.RunCmd(10*time.Minute, outputDir, "/bin/sh", "-c", script)
-	if err != nil {
-		log.Logf(0, "Error copying kernel into image %v\n%v\n", outputDir, debugOut)
-	}
+	_, err := osutil.RunCmd(10*time.Minute, outputDir, "/bin/sh", "-c", script)
 	return err
 }
