@@ -66,3 +66,12 @@ func logErrorMessages() {
 	log.Print("no new lines\n") // want "Don't use \\\\n at the end of log/error messages"
 	log.Print("") // want "Don't use empty log/error messages"
 }
+
+func varDecls() {
+	var a int
+	b := 0
+	c := int64(0)
+	var _ int = 0
+	var d int = 0	// want "Don't use both var, type and value in variable declarations"
+	_, _, _, _ = a, b, c, d
+}
