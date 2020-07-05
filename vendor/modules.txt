@@ -416,12 +416,14 @@ google.golang.org/appengine/internal/base
 google.golang.org/appengine/internal/datastore
 google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/mail
+google.golang.org/appengine/internal/memcache
 google.golang.org/appengine/internal/modules
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/internal/user
 google.golang.org/appengine/log
 google.golang.org/appengine/mail
+google.golang.org/appengine/memcache
 google.golang.org/appengine/urlfetch
 google.golang.org/appengine/user
 # google.golang.org/genproto v0.0.0-20200626011028-ee7919e894b5
