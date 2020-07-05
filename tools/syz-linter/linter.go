@@ -47,21 +47,22 @@ var SyzAnalyzer = &analysis.Analyzer{
 	Run:  run,
 }
 
-func run(pass *analysis.Pass) (interface{}, error) {
+func run(p *analysis.Pass) (interface{}, error) {
+	pass := (*Pass)(p)
 	for _, file := range pass.Files {
 		ast.Inspect(file, func(n ast.Node) bool {
 			switch n := n.(type) {
 			case *ast.Comment:
-				checkMulitlineComments(pass, n)
-				checkCommentSpace(pass, n)
+				pass.checkMulitlineComments(n)
+				pass.checkCommentSpace(n)
 			case *ast.BinaryExpr:
-				checkStringLenCompare(pass, n)
+				pass.checkStringLenCompare(n)
 			case *ast.FuncType:
-				checkFuncArgs(pass, n)
+				pass.checkFuncArgs(n)
 			case *ast.CallExpr:
-				checkLogErrorFormat(pass, n)
+				pass.checkLogErrorFormat(n)
 			case *ast.GenDecl:
-				checkVarDecl(pass, n)
+				pass.checkVarDecl(n)
 			}
 			return true
 		})
@@ -69,49 +70,53 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	return nil, nil
 }
 
-// checkMulitlineComments warns about C++-style multiline comments.
-// We don't use them in the codebase.
-func checkMulitlineComments(pass *analysis.Pass, n *ast.Comment) {
-	if !strings.HasPrefix(n.Text, "/*") {
-		return
-	}
+type Pass analysis.Pass
+
+func (pass *Pass) report(pos ast.Node, msg string, args ...interface{}) {
 	pass.Report(analysis.Diagnostic{
-		Pos:     n.Pos(),
-		Message: "Use C-style comments // instead of /* */",
+		Pos:     pos.Pos(),
+		Message: fmt.Sprintf(msg, args...),
 	})
 }
 
+func (pass *Pass) typ(e ast.Expr) types.Type {
+	return pass.TypesInfo.Types[e].Type
+}
+
+// checkMulitlineComments warns about C++-style multiline comments.
+// We don't use them in the codebase.
+func (pass *Pass) checkMulitlineComments(n *ast.Comment) {
+	if !strings.HasPrefix(n.Text, "/*") {
+		return
+	}
+	pass.report(n, "Use C-style comments // instead of /* */")
+}
+
 // checkCommentSpace warns about "//nospace", "// 	tabs and spaces" and similar.
-func checkCommentSpace(pass *analysis.Pass, n *ast.Comment) {
+func (pass *Pass) checkCommentSpace(n *ast.Comment) {
 	if !strings.HasPrefix(n.Text, "//") ||
 		allowedComments.MatchString(n.Text) {
 		return
 	}
-	pass.Report(analysis.Diagnostic{
-		Pos:     n.Pos(),
-		Message: "Use either //<one-or-more-spaces>comment or //<one-or-more-tabs>comment format for comments",
-	})
+	pass.report(n, "Use either //<one-or-more-spaces>comment or //<one-or-more-tabs>comment format for comments")
 }
 
 var allowedComments = regexp.MustCompile(`^//($|	+[^ 	]| +[^ 	])`)
 
 // checkStringLenCompare checks for string len comparisons with 0.
 // E.g.: if len(str) == 0 {} should be if str == "" {}.
-func checkStringLenCompare(pass *analysis.Pass, n *ast.BinaryExpr) {
+func (pass *Pass) checkStringLenCompare(n *ast.BinaryExpr) {
 	if n.Op != token.EQL && n.Op != token.NEQ && n.Op != token.LSS &&
 		n.Op != token.GTR && n.Op != token.LEQ && n.Op != token.GEQ {
 		return
 	}
-	if isStringLenCall(pass, n.X) && isIntZeroLiteral(n.Y) ||
-		isStringLenCall(pass, n.Y) && isIntZeroLiteral(n.X) {
-		pass.Report(analysis.Diagnostic{
-			Pos:     n.Pos(),
-			Message: "Compare string with \"\", don't compare len with 0",
-		})
+	if pass.isStringLenCall(n.X) && pass.isIntZeroLiteral(n.Y) ||
+		pass.isStringLenCall(n.Y) && pass.isIntZeroLiteral(n.X) {
+		pass.report(n, "Compare string with \"\", don't compare len with 0")
 	}
 }
 
-func isStringLenCall(pass *analysis.Pass, n ast.Expr) bool {
+func (pass *Pass) isStringLenCall(n ast.Expr) bool {
 	call, ok := n.(*ast.CallExpr)
 	if !ok || len(call.Args) != 1 {
 		return false
@@ -120,34 +125,34 @@ func isStringLenCall(pass *analysis.Pass, n ast.Expr) bool {
 	if !ok || fun.Name != "len" {
 		return false
 	}
-	return pass.TypesInfo.Types[call.Args[0]].Type.String() == "string"
+	return pass.typ(call.Args[0]).String() == "string"
 }
 
-func isIntZeroLiteral(n ast.Expr) bool {
+func (pass *Pass) isIntZeroLiteral(n ast.Expr) bool {
 	lit, ok := n.(*ast.BasicLit)
 	return ok && lit.Kind == token.INT && lit.Value == "0"
 }
 
 // checkFuncArgs checks for "func foo(a int, b int)" -> "func foo(a, b int)".
-func checkFuncArgs(pass *analysis.Pass, n *ast.FuncType) {
-	checkFuncArgList(pass, n.Params.List)
+func (pass *Pass) checkFuncArgs(n *ast.FuncType) {
+	pass.checkFuncArgList(n.Params.List)
 	if n.Results != nil {
-		checkFuncArgList(pass, n.Results.List)
+		pass.checkFuncArgList(n.Results.List)
 	}
 }
 
-func checkFuncArgList(pass *analysis.Pass, fields []*ast.Field) {
+func (pass *Pass) checkFuncArgList(fields []*ast.Field) {
 	firstBad := -1
 	var prev types.Type
 	for i, field := range fields {
 		if len(field.Names) == 0 {
-			reportFuncArgs(pass, fields, firstBad, i)
+			pass.reportFuncArgs(fields, firstBad, i)
 			firstBad, prev = -1, nil
 			continue
 		}
-		this := pass.TypesInfo.Types[field.Type].Type
+		this := pass.typ(field.Type)
 		if prev != this {
-			reportFuncArgs(pass, fields, firstBad, i)
+			pass.reportFuncArgs(fields, firstBad, i)
 			firstBad, prev = -1, this
 			continue
 		}
@@ -155,10 +160,10 @@ func checkFuncArgList(pass *analysis.Pass, fields []*ast.Field) {
 			firstBad = i - 1
 		}
 	}
-	reportFuncArgs(pass, fields, firstBad, len(fields))
+	pass.reportFuncArgs(fields, firstBad, len(fields))
 }
 
-func reportFuncArgs(pass *analysis.Pass, fields []*ast.Field, first, last int) {
+func (pass *Pass) reportFuncArgs(fields []*ast.Field, first, last int) {
 	if first == -1 {
 		return
 	}
@@ -168,14 +173,11 @@ func reportFuncArgs(pass *analysis.Pass, fields []*ast.Field, first, last int) {
 			names += ", " + name.Name
 		}
 	}
-	pass.Report(analysis.Diagnostic{
-		Pos:     fields[first].Pos(),
-		Message: fmt.Sprintf("Use '%v %v'", names[2:], fields[first].Type),
-	})
+	pass.report(fields[first], "Use '%v %v'", names[2:], fields[first].Type)
 }
 
 // checkLogErrorFormat warns about log/error messages starting with capital letter or ending with dot.
-func checkLogErrorFormat(pass *analysis.Pass, n *ast.CallExpr) {
+func (pass *Pass) checkLogErrorFormat(n *ast.CallExpr) {
 	fun, ok := n.Fun.(*ast.SelectorExpr)
 	if !ok {
 		return
@@ -193,34 +195,31 @@ func checkLogErrorFormat(pass *analysis.Pass, n *ast.CallExpr) {
 	if !ok || lit.Kind != token.STRING {
 		return
 	}
-	report := func(msg string) {
-		pass.Report(analysis.Diagnostic{Pos: lit.Pos(), Message: msg})
-	}
 	val, err := strconv.Unquote(lit.Value)
 	if err != nil {
 		return
 	}
 	ln := len(val)
 	if ln == 0 {
-		report("Don't use empty log/error messages")
+		pass.report(lit, "Don't use empty log/error messages")
 		return
 	}
 	if val[ln-1] == '.' && (ln < 3 || val[ln-2] != '.' || val[ln-3] != '.') {
-		report("Don't use dot at the end of log/error messages")
+		pass.report(lit, "Don't use dot at the end of log/error messages")
 	}
 	if val[ln-1] == '\n' {
-		report("Don't use \\n at the end of log/error messages")
+		pass.report(lit, "Don't use \\n at the end of log/error messages")
 	}
 	if ln >= 2 && unicode.IsUpper(rune(val[0])) && unicode.IsLower(rune(val[1])) &&
 		!publicIdentifier.MatchString(val) {
-		report("Don't start log/error messages with a Capital letter")
+		pass.report(lit, "Don't start log/error messages with a Capital letter")
 	}
 }
 
 var publicIdentifier = regexp.MustCompile(`^[A-Z][[:alnum:]]+(\.[[:alnum:]]+)+ `)
 
 // checkVarDecl warns about unnecessary long variable declarations "var x type = foo".
-func checkVarDecl(pass *analysis.Pass, n *ast.GenDecl) {
+func (pass *Pass) checkVarDecl(n *ast.GenDecl) {
 	if n.Tok != token.VAR {
 		return
 	}
@@ -229,10 +228,7 @@ func checkVarDecl(pass *analysis.Pass, n *ast.GenDecl) {
 		if !ok || spec.Type == nil || len(spec.Values) == 0 || spec.Names[0].Name == "_" {
 			continue
 		}
-		pass.Report(analysis.Diagnostic{
-			Pos: n.Pos(),
-			Message: "Don't use both var, type and value in variable declarations\n" +
-				"Use either \"var x type\" or \"x := val\" or \"x := type(val)\"",
-		})
+		pass.report(n, "Don't use both var, type and value in variable declarations\n"+
+			"Use either \"var x type\" or \"x := val\" or \"x := type(val)\"")
 	}
 }
