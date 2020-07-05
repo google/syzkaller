@@ -3,6 +3,11 @@
 
 package lintertest
 
+import (
+	"fmt"
+	"log"
+)
+
 /* some comment */ // want "Use C-style comments // instead of /* */"
 var comment = 1    /* some comment */ // want "Use C-style comments // instead of /* */"
 
@@ -41,4 +46,20 @@ func funcArgsBad1() (a int, b int) { // want "Use 'a, b int'"
 }
 
 func funcArgsBad2(a int16, b, c uint32, d uint32, e int16) { // want "Use 'b, c, d uint32'"
+}
+
+func logErrorMessages() {
+	fmt.Errorf("good message")
+	fmt.Errorf("good message %v", 0)
+	msg := "good message"
+	fmt.Errorf(msg)
+	log.Printf("good message")
+	log.Print("good message")
+	log.Print("Using.An.Identifier is ok as well")
+	log.Print(msg)
+
+	fmt.Errorf("Bad message")	// want "bad log/error"
+	log.Fatalf("Bad message %v", 1) // want "bad log/error"
+	log.Printf("Bad message %v", 1) // want "bad log/error"
+	log.Print("Bad message") // want "bad log/error"
 }
