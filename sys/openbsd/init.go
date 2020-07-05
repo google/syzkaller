@@ -134,8 +134,8 @@ func (arch *arch) neutralize(c *prog.Call) {
 		flags := c.Args[0].(*prog.ConstArg)
 		flags.Val &= ^mclFuture
 	case "setrlimit":
-		var rlimitMin uint64
-		var rlimitMax uint64 = math.MaxUint64
+		rlimitMin := uint64(0)
+		rlimitMax := uint64(math.MaxUint64)
 		resource := c.Args[0].(*prog.ConstArg).Val & rlimitMask
 		if resource == rlimitData {
 			// OpenBSD performs a strict validation of the
