@@ -171,6 +171,7 @@ func reportFuncArgs(pass *analysis.Pass, fields []*ast.Field, first, last int) {
 	})
 }
 
+// checkLogErrorFormat warns about log/error messages starting with capital letter or ending with dot.
 func checkLogErrorFormat(pass *analysis.Pass, n *ast.CallExpr) {
 	fun, ok := n.Fun.(*ast.SelectorExpr)
 	if !ok {
@@ -190,14 +191,27 @@ func checkLogErrorFormat(pass *analysis.Pass, n *ast.CallExpr) {
 		return
 	}
 	val := lit.Value[1 : len(lit.Value)-1] // the value includes quotes
-	if len(val) < 2 || !unicode.IsUpper(rune(val[0])) || !unicode.IsLower(rune(val[1])) ||
-		publicIdentifier.MatchString(val) {
+	ln := len(val)
+	if ln == 0 {
+		pass.Report(analysis.Diagnostic{
+			Pos:     n.Pos(),
+			Message: "Don't use empty log/error messages",
+		})
 		return
 	}
-	pass.Report(analysis.Diagnostic{
-		Pos:     n.Pos(),
-		Message: "bad log/error",
-	})
+	if val[ln-1] == '.' && (ln < 3 || val[ln-2] != '.' || val[ln-3] != '.') {
+		pass.Report(analysis.Diagnostic{
+			Pos:     n.Pos(),
+			Message: "Don't use dot at the end of log/error messages",
+		})
+	}
+	if ln >= 2 && unicode.IsUpper(rune(val[0])) && unicode.IsLower(rune(val[1])) &&
+		!publicIdentifier.MatchString(val) {
+		pass.Report(analysis.Diagnostic{
+			Pos:     n.Pos(),
+			Message: "Don't start log/error messages with a Capital letter",
+		})
+	}
 }
 
 var publicIdentifier = regexp.MustCompile(`^[A-Z][[:alnum:]]+(\.[[:alnum:]]+)+ `)
