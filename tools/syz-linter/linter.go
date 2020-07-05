@@ -60,6 +60,8 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				checkFuncArgs(pass, n)
 			case *ast.CallExpr:
 				checkLogErrorFormat(pass, n)
+			case *ast.GenDecl:
+				checkVarDecl(pass, n)
 			}
 			return true
 		})
@@ -216,3 +218,21 @@ func checkLogErrorFormat(pass *analysis.Pass, n *ast.CallExpr) {
 }
 
 var publicIdentifier = regexp.MustCompile(`^[A-Z][[:alnum:]]+(\.[[:alnum:]]+)+ `)
+
+// checkVarDecl warns about unnecessary long variable declarations "var x type = foo".
+func checkVarDecl(pass *analysis.Pass, n *ast.GenDecl) {
+	if n.Tok != token.VAR {
+		return
+	}
+	for _, s := range n.Specs {
+		spec, ok := s.(*ast.ValueSpec)
+		if !ok || spec.Type == nil || len(spec.Values) == 0 || spec.Names[0].Name == "_" {
+			continue
+		}
+		pass.Report(analysis.Diagnostic{
+			Pos: n.Pos(),
+			Message: "Don't use both var, type and value in variable declarations\n" +
+				"Use either \"var x type\" or \"x := val\" or \"x := type(val)\"",
+		})
+	}
+}
