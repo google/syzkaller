@@ -58,8 +58,10 @@ func logErrorMessages() {
 	log.Print("Using.An.Identifier is ok as well")
 	log.Print(msg)
 
-	fmt.Errorf("Bad message")	// want "bad log/error"
-	log.Fatalf("Bad message %v", 1) // want "bad log/error"
-	log.Printf("Bad message %v", 1) // want "bad log/error"
-	log.Print("Bad message") // want "bad log/error"
+	fmt.Errorf("Bad message")	// want "Don't start log/error messages with a Capital letter"
+	log.Fatalf("Bad message %v", 1) // want "Don't start log/error messages with a Capital letter"
+	log.Printf("Bad message %v", 1) // want "Don't start log/error messages with a Capital letter"
+	log.Print("Bad message") // want "Don't start log/error messages with a Capital letter"
+	log.Print("also ad message.") // want "Don't use dot at the end of log/error messages"
+	log.Print("") // want "Don't use empty log/error messages"
 }
