@@ -63,5 +63,6 @@ func logErrorMessages() {
 	log.Printf("Bad message %v", 1) // want "Don't start log/error messages with a Capital letter"
 	log.Print("Bad message") // want "Don't start log/error messages with a Capital letter"
 	log.Print("also ad message.") // want "Don't use dot at the end of log/error messages"
+	log.Print("no new lines\n") // want "Don't use \\\\n at the end of log/error messages"
 	log.Print("") // want "Don't use empty log/error messages"
 }

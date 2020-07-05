@@ -429,7 +429,7 @@ func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
 
 func (mgr *Manager) reportBuildError(rep *report.Report, info *BuildInfo, imageDir string) error {
 	if mgr.dash == nil {
-		log.Logf(0, "%v: image testing failed: %v\n\n%s\n\n%s\n",
+		log.Logf(0, "%v: image testing failed: %v\n\n%s\n\n%s",
 			mgr.name, rep.Title, rep.Report, rep.Output)
 		return nil
 	}
