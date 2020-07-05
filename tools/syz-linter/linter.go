@@ -20,6 +20,7 @@ import (
 	"go/token"
 	"go/types"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -190,27 +191,27 @@ func checkLogErrorFormat(pass *analysis.Pass, n *ast.CallExpr) {
 	if !ok || lit.Kind != token.STRING {
 		return
 	}
-	val := lit.Value[1 : len(lit.Value)-1] // the value includes quotes
+	report := func(msg string) {
+		pass.Report(analysis.Diagnostic{Pos: lit.Pos(), Message: msg})
+	}
+	val, err := strconv.Unquote(lit.Value)
+	if err != nil {
+		return
+	}
 	ln := len(val)
 	if ln == 0 {
-		pass.Report(analysis.Diagnostic{
-			Pos:     n.Pos(),
-			Message: "Don't use empty log/error messages",
-		})
+		report("Don't use empty log/error messages")
 		return
 	}
 	if val[ln-1] == '.' && (ln < 3 || val[ln-2] != '.' || val[ln-3] != '.') {
-		pass.Report(analysis.Diagnostic{
-			Pos:     n.Pos(),
-			Message: "Don't use dot at the end of log/error messages",
-		})
+		report("Don't use dot at the end of log/error messages")
+	}
+	if val[ln-1] == '\n' {
+		report("Don't use \\n at the end of log/error messages")
 	}
 	if ln >= 2 && unicode.IsUpper(rune(val[0])) && unicode.IsLower(rune(val[1])) &&
 		!publicIdentifier.MatchString(val) {
-		pass.Report(analysis.Diagnostic{
-			Pos:     n.Pos(),
-			Message: "Don't start log/error messages with a Capital letter",
-		})
+		report("Don't start log/error messages with a Capital letter")
 	}
 }
 
