@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"syscall"
 	"time"
 )
 
@@ -61,10 +62,16 @@ func Run(timeout time.Duration, cmd *exec.Cmd) ([]byte, error) {
 		if <-timedout {
 			text = fmt.Sprintf("timedout %q", cmd.Args)
 		}
+		exitCode := 0
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
+				exitCode = status.ExitStatus()
+			}
+		}
 		return output.Bytes(), &VerboseError{
 			Title:    text,
 			Output:   output.Bytes(),
-			ExitCode: exitCode(err),
+			ExitCode: exitCode,
 		}
 	}
 	return output.Bytes(), nil
