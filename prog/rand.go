@@ -56,7 +56,7 @@ func (r *randGen) oneOf(n int) bool {
 }
 
 func (r *randGen) rand64() uint64 {
-	v := uint64(r.Int63())
+	var v uint64 = uint64(r.Int63())
 	if r.bin() {
 		v |= 1 << 63
 	}
@@ -64,7 +64,7 @@ func (r *randGen) rand64() uint64 {
 }
 
 var (
-	// Some potentially interesting integers.
+	//Some potentially interesting integers.
 	specialInts = []uint64{
 		0, 1, 31, 32, 63, 64, 127, 128,
 		129, 255, 256, 257, 511, 512,
