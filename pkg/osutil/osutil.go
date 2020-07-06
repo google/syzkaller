@@ -61,14 +61,10 @@ func Run(timeout time.Duration, cmd *exec.Cmd) ([]byte, error) {
 		if <-timedout {
 			text = fmt.Sprintf("timedout %q", cmd.Args)
 		}
-		exitCode := 0
-		if exitError, ok := err.(*exec.ExitError); ok {
-			exitCode = exitError.ProcessState.ExitCode()
-		}
 		return output.Bytes(), &VerboseError{
 			Title:    text,
 			Output:   output.Bytes(),
-			ExitCode: exitCode,
+			ExitCode: exitCode(err),
 		}
 	}
 	return output.Bytes(), nil
