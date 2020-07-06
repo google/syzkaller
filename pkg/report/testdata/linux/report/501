@@ -1,0 +1,64 @@
+TITLE: INFO: rcu detected stall in tc_modify_qdisc
+TYPE: HANG
+
+[  809.100032][    C1] rcu: INFO: rcu_preempt detected stalls on CPUs/tasks:
+[  809.107137][    C1] rcu: 	0-...0: (1 GPs behind) idle=59a/1/0x4000000000000000 softirq=8266/8267 fqs=5250 
+[  809.117093][    C1] 	(detected by 1, t=10502 jiffies, g=6117, q=61)
+[  809.123600][    C1] Sending NMI from CPU 1 to CPUs 0:
+[  809.130926][    C1] NMI backtrace for cpu 0
+[  809.130931][    C1] CPU: 0 PID: 6826 Comm: syz-executor019 Not tainted 5.8.0-rc3-syzkaller #0
+[  809.130935][    C1] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  809.130939][    C1] RIP: 0010:preempt_count_add+0xe/0x150
+[  809.130947][    C1] Code: 07 80 c1 03 38 c1 0f 8c 40 ff ff ff 48 89 ef e8 48 f2 62 00 e9 33 ff ff ff 0f 1f 00 41 57 41 56 53 89 fb 65 01 3d 4e 75 b1 7e <48> c7 c0 30 7d 5a 8b 48 c1 e8 03 49 bf 00 00 00 00 00 fc ff df 42
+[  809.130950][    C1] RSP: 0018:ffffc90000007cf0 EFLAGS: 00000006
+[  809.130956][    C1] RAX: 1ffff11012ddc459 RBX: 0000000000000001 RCX: ffff8880a8c44300
+[  809.130960][    C1] RDX: 0000000000010202 RSI: 0000000000000000 RDI: 0000000000000001
+[  809.130964][    C1] RBP: ffff888096ee2000 R08: ffffffff8164ef7e R09: fffffbfff12da576
+[  809.130968][    C1] R10: fffffbfff12da576 R11: 0000000000000000 R12: ffff888096ee2340
+[  809.130971][    C1] R13: dffffc0000000000 R14: ffff888096ee22e8 R15: ffff888096ee2340
+[  809.130975][    C1] FS:  0000000000753880(0000) GS:ffff8880ae800000(0000) knlGS:0000000000000000
+[  809.130979][    C1] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  809.130983][    C1] CR2: 0000000020000610 CR3: 00000000a9a34000 CR4: 00000000001406f0
+[  809.130987][    C1] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  809.130990][    C1] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  809.130993][    C1] Call Trace:
+[  809.130995][    C1]  <IRQ>
+[  809.130997][    C1]  _raw_spin_lock+0xe/0x40
+[  809.131000][    C1]  advance_sched+0x47/0x8c0
+[  809.131012][    C1]  __hrtimer_run_queues+0x47f/0x930
+[  809.131014][    C1]  hrtimer_interrupt+0x373/0xd60
+[  809.131017][    C1]  __sysvec_apic_timer_interrupt+0xf0/0x260
+[  809.131020][    C1]  asm_call_on_stack+0xf/0x20
+[  809.131022][    C1]  </IRQ>
+[  809.131025][    C1]  sysvec_apic_timer_interrupt+0xb9/0x130
+[  809.131028][    C1]  asm_sysvec_apic_timer_interrupt+0x12/0x20
+[  809.131032][    C1] RIP: 0010:_raw_spin_unlock_irqrestore+0xa5/0xd0
+[  809.131040][    C1] Code: b9 00 00 00 00 00 fc ff df 80 3c 08 00 74 0c 48 c7 c7 f0 c7 2b 89 e8 ea 7c 94 f9 48 83 3d d2 c9 0c 01 00 74 2c 4c 89 f7 57 9d <0f> 1f 44 00 00 bf 01 00 00 00 e8 cc 8b 31 f9 65 8b 05 d1 ff e2 77
+[  809.131043][    C1] RSP: 0018:ffffc90001277408 EFLAGS: 00000282
+[  809.131048][    C1] RAX: 1ffffffff12578fe RBX: ffff888096ee22e8 RCX: dffffc0000000000
+[  809.131052][    C1] RDX: 0000000000000000 RSI: 0000000000000008 RDI: 0000000000000282
+[  809.131056][    C1] RBP: ffffc90001277600 R08: dffffc0000000000 R09: fffffbfff16334b8
+[  809.131060][    C1] R10: fffffbfff16334b8 R11: 0000000000000000 R12: ffff888096ee2340
+[  809.131064][    C1] R13: 0000000000000000 R14: 0000000000000282 R15: 161f1f2ad520785b
+[  809.131066][    C1]  taprio_change+0x4245/0x51f0
+[  809.131072][    C1]  qdisc_create+0x7d1/0x1410
+[  809.131077][    C1]  tc_modify_qdisc+0x962/0x1d90
+[  809.131082][    C1]  rtnetlink_rcv_msg+0x889/0xd40
+[  809.131105][    C1]  netlink_rcv_skb+0x190/0x3a0
+[  809.131110][    C1]  netlink_unicast+0x786/0x940
+[  809.131113][    C1]  netlink_sendmsg+0xa57/0xd70
+[  809.131118][    C1]  ____sys_sendmsg+0x519/0x800
+[  809.131124][    C1]  __sys_sendmsg+0x2b1/0x360
+[  809.131141][    C1]  do_syscall_64+0x73/0xe0
+[  809.131144][    C1]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[  809.131146][    C1] RIP: 0033:0x443799
+[  809.131148][    C1] Code: Bad RIP value.
+[  809.131151][    C1] RSP: 002b:00007ffe68f74b78 EFLAGS: 00000246 ORIG_RAX: 000000000000002e
+[  809.131163][    C1] RAX: ffffffffffffffda RBX: 0000000000000003 RCX: 0000000000443799
+[  809.131167][    C1] RDX: 0000000000000000 RSI: 00000000200007c0 RDI: 0000000000000004
+[  809.131171][    C1] RBP: 00007ffe68f74b80 R08: 0000000001bbbbbb R09: 0000000001bbbbbb
+[  809.131175][    C1] R10: 0000000001bbbbbb R11: 0000000000000246 R12: 00007ffe68f74b90
+[  809.131179][    C1] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
+[  809.131183][    C1] INFO: NMI handler (nmi_cpu_backtrace_handler) took too long to run: 0.000 msecs
+[  815.411010][    T0] NOHZ: local_softirq_pending 08
+
