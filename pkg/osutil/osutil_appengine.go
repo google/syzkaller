@@ -22,3 +22,10 @@ func setPdeathsig(cmd *exec.Cmd) {
 
 func killPgroup(cmd *exec.Cmd) {
 }
+
+func exitCode(err error) int {
+	// We are stuck on Go 1.11 on appengine.
+	// 1.11 does not have ProcessState.ExitCode.
+	// Once we upgrade to 1.12, we should remove this.
+	return 0
+}
