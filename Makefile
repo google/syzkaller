@@ -51,7 +51,7 @@ export CGO_ENABLED
 TARGETGOOS := $(TARGETOS)
 TARGETGOARCH := $(TARGETVMARCH)
 export GO111MODULE=on
-export GOBIN=$(shell realpath .)/bin
+export GOBIN=$(shell pwd -P)/bin
 
 GITREV=$(shell git rev-parse HEAD)
 ifeq ("$(shell git diff --shortstat)", "")
