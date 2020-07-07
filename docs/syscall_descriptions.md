@@ -127,6 +127,66 @@ change in descriptions for a particular syscall, the programs that are already i
 the corpus will be kept there, unless you manually clear them out (for example by
 removing the `corpus.db` file).
 
+<div id="tips"/>
+
+## Description tips and FAQ
+
+<div id="names"/>
+
+### Syscall, struct, field, flags names
+
+Stick with existing kernel names for things, don't invent new names if possible.
+
+Following established naming conventions provides the following benefits:
+(1) consistency and familiarity of names used across kernel interfaces,
+which also enables searching kernel sources for related names; and
+(2) enable static checking of descriptions (e.g. missed flags or mistyped fields)
+with [syz-check](/tools/syz-check/check.go).
+
+For example, if there is an existing enum `v4l2_buf_type` in the kernel headers,
+use this name for flags in descriptions as well. The same for structs, unions,
+fields, etc. For syscall variants, use the command name after the `$` sign.
+For example, `fcntl$F_GET_RW_HINT`, `ioctl$FIOCLEX`, `setsockopt$SO_TIMESTAMP`.
+
+<div id="ordering"/>
+
+### Resources for syscall ordering
+
+Resources and resource directions (`in`, `out`, `inout`) impose implicit ordering
+constraints on involved syscalls.
+
+If a syscall accepts a resource of a particular type (e.g. has `fd_cdrom` as an input),
+then it will be generally placed after a syscall that has this resource as output,
+so that the resource value can be passed between syscalls. For example:
+
+```
+r0 = openat$cdrom(...)
+ioctl$CDROMPAUSE(r0, 0x123)
+close(r0)
+```
+
+Syscall arguments are always `in`, return values are `out` and pointer indirections
+have explicit direction as `ptr` type attribute.
+
+<div id="values"/>
+
+### Use of unexpected/undeclared values
+
+When specifying integer/string flags or integer fields stick with the official expected values only.
+
+Commonly, bugs are triggered by unexpected inputs. With that in mind, it can be too tempting to introduce
+some unexpected values to descriptions (e.g. `-1` or `INT_MAX`). This is not encouraged for several reasons.
+First, this is a cross-cutting aspect and these special unexpected values are applicable to just
+any flags and integer fields. Manually specifying them thousands of times is not scalable and
+is not maintainable. Second, It's hard for the fuzzer to come up with correct complex syscall sequences,
+and the descriptions are meant to help with this. Coming up with unexpected integer values is easy
+and the fuzzer does not need help here. Overall the idea is to improve the generic fuzzer logic
+to handle these cases better, which will help all descriptions, rather than over-specializing each
+individual integer separately. Fuzzer already has several tricks to deal with this, e.g. comparison
+operand value interception and list of typical magic values.
+
+Note: some values for flags may be undocumented only as an oversight. These values should be added to descriptions.
+
 ## Description compilation internals
 
 The process of compiling the textual syscall descriptions into machine-usable
