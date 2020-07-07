@@ -273,6 +273,7 @@ func (ctx *linux) Minimize(original, baseline []byte, trace io.Writer,
 	if err != nil {
 		return nil, fmt.Errorf("config bisect failed: %v", err)
 	}
+	fmt.Fprintf(trace, "# config-bisect.pl -r:\n%s", output)
 	for {
 		config, err := ioutil.ReadFile(filepath.Join(ctx.git.dir, ".config"))
 		if err != nil {
@@ -293,6 +294,7 @@ func (ctx *linux) Minimize(original, baseline []byte, trace io.Writer,
 
 		output1, err := osutil.RunCmd(time.Hour, "", configBisect,
 			"-l", ctx.git.dir, "-b", ctx.git.dir, kernelBaselineConfig, kernelConfig, verdict)
+		fmt.Fprintf(trace, "# config-bisect.pl %v:\n%s", verdict, output1)
 		output = append(output, output1...)
 		if err != nil {
 			if verr, ok := err.(*osutil.VerboseError); ok && verr.ExitCode == 2 {
