@@ -1,4 +1,4 @@
-TITLE: INFO: rcu detected stall in wb_workfn
+TITLE: INFO: rcu detected stall in smp_call_function
 TYPE: HANG
 
 [  420.341960] INFO: rcu_preempt detected stalls on CPUs/tasks:

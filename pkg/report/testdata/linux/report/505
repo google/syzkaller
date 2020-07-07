@@ -1,4 +1,4 @@
-TITLE: BUG: soft lockup in on_each_cpu
+TITLE: BUG: soft lockup in smp_call_function
 TYPE: HANG
 
 [ 1472.340932][    C1] watchdog: BUG: soft lockup - CPU#1 stuck for 123s! [syz-executor.0:8399]
