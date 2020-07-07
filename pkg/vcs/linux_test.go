@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -24,6 +25,10 @@ type MinimizationTest struct {
 }
 
 func TestConfigMinimizer(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		// The test config-bisect.pl uses bash-isms and can't run on OS that don't have bash.
+		t.Skipf("skipping on non-linux")
+	}
 	t.Parallel()
 	tests := []MinimizationTest{
 		{
@@ -67,6 +72,7 @@ func TestConfigMinimizer(t *testing.T) {
 			trace := new(bytes.Buffer)
 			outConfig, err := minimizer.Minimize([]byte(test.config),
 				[]byte(test.baselineConfig), trace, pred)
+			t.Log(trace.String())
 			if test.passing && err != nil {
 				t.Fatalf("failed to run Minimize: %v", err)
 			} else if test.passing && !strings.Contains(string(outConfig),
@@ -74,7 +80,6 @@ func TestConfigMinimizer(t *testing.T) {
 				t.Fatalf("output is not expected %v vs. %v", string(outConfig),
 					test.expectedConfig)
 			}
-			t.Log(trace.String())
 		})
 	}
 }
