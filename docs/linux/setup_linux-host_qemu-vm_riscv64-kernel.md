@@ -88,6 +88,10 @@ PermitEmptyPasswords yes
 
 Run `make` again.
 
+# QEMU
+
+The following instructions were tested with QEMU 5.0. At least QEMU 4.1 is needed.
+
 # Test kernel and image
 
 Run:
