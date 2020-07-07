@@ -590,12 +590,10 @@ func linuxStallFrameExtractor(frames []string) (string, string) {
 	prev := frames[0]
 	for _, frame := range frames {
 		if matchesAny([]byte(frame), linuxStallAnchorFrames) {
-			if strings.HasPrefix(frame, "on_each_cpu") {
+			if strings.Contains(frame, "smp_call_function") {
 				// In this case we want this function rather than the previous one
 				// (there can be several variations on the next one).
-				// This one can also be called "on_each_cpu_cond",
-				// normalize it to "on_each_cpu".
-				prev = "on_each_cpu"
+				prev = "smp_call_function"
 			}
 			for _, prefix := range []string{
 				"__x64_",
@@ -723,7 +721,7 @@ var linuxStallAnchorFrames = []*regexp.Regexp{
 	compile("__fput"),
 	compile("task_work_run"),
 	compile("exit_to_usermode"),
-	compile("on_each_cpu"),
+	compile("smp_call_function"),
 }
 
 // nolint: lll

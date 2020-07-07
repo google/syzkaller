@@ -1,4 +1,4 @@
-TITLE: INFO: rcu detected stall in on_each_cpu
+TITLE: INFO: rcu detected stall in smp_call_function
 TYPE: HANG
 
 [ 3481.239960] INFO: rcu_sched detected stalls on CPUs/tasks:
