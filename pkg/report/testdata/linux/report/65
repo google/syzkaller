@@ -1,4 +1,4 @@
-TITLE: BUG: soft lockup in jump_label_update_timeout
+TITLE: BUG: soft lockup in on_each_cpu
 TYPE: HANG
 
 [  247.938942] watchdog: BUG: soft lockup - CPU#0 stuck for 134s! [kworker/0:2:1400]

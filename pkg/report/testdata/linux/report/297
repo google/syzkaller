@@ -1,4 +1,4 @@
-TITLE: BUG: soft lockup in blkdev_close
+TITLE: BUG: soft lockup in on_each_cpu
 TYPE: HANG
 
 [  601.962573] watchdog: BUG: soft lockup - CPU#1 stuck for 123s! [syz-executor1:24793]
