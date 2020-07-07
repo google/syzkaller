@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # Copyright 2020 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 # config-bisect.pl -l ctx.git.dir -r -b ctx.git.dir kernelBaselineConfig kernelConfig
