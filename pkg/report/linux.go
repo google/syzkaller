@@ -629,7 +629,7 @@ func linuxHangTaskFrameExtractor(frames []string) (string, string) {
 	}
 	for _, frame := range frames {
 		for anchor, replacement := range anchorFrames {
-			if strings.HasPrefix(frame, anchor) {
+			if strings.Contains(frame, anchor) {
 				if replacement != "" {
 					frame = replacement
 				}
