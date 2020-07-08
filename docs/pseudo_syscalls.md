@@ -52,7 +52,7 @@ The actual pseudo-syscall function may look something like this:
     #if SYZ_EXECUTOR || __NR_syz_mycall
     /* Add all the necessary #include and #define headers */
 
-    static volatile long syz_mycall(volatile long a0, volatile long a1)
+    static long syz_mycall(volatile long a0, volatile long a1)
     {
             /* Function body */
     }
@@ -60,7 +60,17 @@ The actual pseudo-syscall function may look something like this:
 
 Make sure that all the function requirements are met and that it can
 be compiled. Note that the function name must start with "syz_". It may
-also take a different number of arguments.
+also take a different number of arguments. Type of arguments must be
+`volatile long`, return type - `long`. `long` is required to avoid
+potential calling convention issues because it is casted to a function
+pointer that accepts `long`'s. The reason for `volatile` is interesting:
+lots of libc functions are annotated with various argument constraints
+(e.g. this argument should not be `NULL`, or that argument must be a
+valid file descriptor); C reproducers may call these functions with
+constant arguments and compiler may see that some of these constraints
+are violated (e.g. passing `NULL` to a `non-NULL` argument, or passing
+`-1` as file descriptor) and produce errors/warnings. `volatile` prevents
+that.
 
 Now, to handle the pseudo-syscall properly we have to update the
 `isSupportedSyzkall` in
