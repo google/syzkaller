@@ -387,8 +387,32 @@ iopl(level int8)
 ioperm(from intptr, num intptr, on intptr)
 ioprio_get$pid(which flags[ioprio_which_pid], who pid)
 ioprio_get$uid(which flags[ioprio_which_uid], who uid)
-ioprio_set$pid(which flags[ioprio_which_pid], who pid, prio intptr)
-ioprio_set$uid(which flags[ioprio_which_uid], who uid, prio intptr)
+ioprio_set$pid(which flags[ioprio_which_pid], who pid, ioprio flags[ioprio_priorities])
+ioprio_set$uid(which flags[ioprio_which_uid], who uid, ioprio flags[ioprio_priorities])
+
+# NEED: we can express the construction of integers using structs with flags
+# and bitfields, which are normally obtained using a combination of bitwise
+# operations with the help of macros. However, structs can't be directly passed 
+# as a syscall argument; therefore, such constructions can't be directly passed either.
+# One example is ioprio argument for ioprio_set, where we could have expressed the
+# construction less messy. For now, some subset of valid values are enumerated as
+# in ioprio_priorities.
+
+# ioprio priority values are obtained using IOPRIO_PRIO_VALUE(class, data) macro.
+# the behaviour of the macro is mimicked below and some priority values are enumerated.
+ioprio_priorities = IOPRIO_CLASS_NONE_PRIO, IOPRIO_CLASS_IDLE_PRIO, IOPRIO_CLASS_RT_HIGH_PRIO, IOPRIO_CLASS_BE_HIGH_PRIO, IOPRIO_CLASS_RT_MID_PRIO, IOPRIO_CLASS_BE_MID_PRIO, IOPRIO_CLASS_RT_LOW_PRIO, IOPRIO_CLASS_BE_LOW_PRIO
+
+# The classes RT and BE take data values from the range [0:7]. Use a subset of the available
+# values (0, 4, 7) to ease collisions, and to avoid redundancy. The classes NONE and IDLE
+# have only one valid priority value each with data set to 0.
+define IOPRIO_CLASS_NONE_PRIO	(IOPRIO_CLASS_NONE << IOPRIO_CLASS_SHIFT)
+define IOPRIO_CLASS_IDLE_PRIO	(IOPRIO_CLASS_IDLE << IOPRIO_CLASS_SHIFT)
+define IOPRIO_CLASS_RT_HIGH_PRIO	(IOPRIO_CLASS_RT << IOPRIO_CLASS_SHIFT)
+define IOPRIO_CLASS_BE_HIGH_PRIO	(IOPRIO_CLASS_BE << IOPRIO_CLASS_SHIFT)
+define IOPRIO_CLASS_RT_MID_PRIO	((IOPRIO_CLASS_RT << IOPRIO_CLASS_SHIFT) + 4)
+define IOPRIO_CLASS_BE_MID_PRIO	((IOPRIO_CLASS_BE << IOPRIO_CLASS_SHIFT) + 4)
+define IOPRIO_CLASS_RT_LOW_PRIO	((IOPRIO_CLASS_RT << IOPRIO_CLASS_SHIFT) + 7)
+define IOPRIO_CLASS_BE_LOW_PRIO	((IOPRIO_CLASS_BE << IOPRIO_CLASS_SHIFT) + 7)
 
 resource timerid[int32]
 timer_create(id flags[clock_id], ev ptr[in, sigevent], timerid ptr[out, timerid])
