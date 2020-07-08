@@ -73,7 +73,11 @@ static NORETURN PRINTF(1, 2) void fail(const char* msg, ...);
 static NORETURN PRINTF(1, 2) void exitf(const char* msg, ...);
 static NORETURN void doexit(int status);
 
-// Print debug output, does not add \n at the end of msg as opposed to the previous functions.
+// Print debug output that is visible when running syz-manager/execprog with -debug flag.
+// Debug output is supposed to be relatively high-level (syscalls executed, return values, timing, etc)
+// and is intended mostly for end users. If you need to debug lower-level details, use debug_verbose
+// function and temporary enable it in your build by changing #if 0 below.
+// This function does not add \n at the end of msg as opposed to the previous functions.
 static PRINTF(1, 2) void debug(const char* msg, ...);
 void debug_dump_data(const char* data, int length);
 
