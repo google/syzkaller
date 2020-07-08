@@ -1,0 +1,19 @@
+TITLE: INFO: task hung in synchronize_rcu
+TYPE: HANG
+
+[ 2294.175185] INFO: task kworker/u4:0:437 blocked for more than 140 seconds.
+[ 2294.182313]       Not tainted 4.15.0-syzkaller #0
+[ 2294.187243] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[ 2294.195269] kworker/u4:0    D    0   437      2 0x90000000 2136304260817
+[ 2294.202156] Workqueue: events_unbound fsnotify_mark_destroy_workfn
+[ 2294.208499] Call Trace:
+[ 2294.217134]  [<ffffffff810008f9>] __schedule+0x589/0x1ce0
+[ 2294.228660]  [<ffffffff810020da>] schedule+0x8a/0x1b0
+[ 2294.233857]  [<ffffffff810109b8>] schedule_timeout+0x6e8/0xb20
+[ 2294.269977]  [<ffffffff8100557a>] wait_for_completion+0x26a/0x3c0
+[ 2294.295740]  [<ffffffff815ef967>] __synchronize_srcu+0x197/0x250
+[ 2294.314599]  [<ffffffff81c18e9d>] fsnotify_mark_destroy_workfn+0xfd/0x330
+[ 2294.334748]  [<ffffffff8145beed>] process_one_work+0x8dd/0x14a0
+[ 2294.347346]  [<ffffffff8145d0a8>] worker_thread+0x5f8/0x1090
+[ 2294.359511]  [<ffffffff814738cc>] kthread+0x33c/0x410
+[ 2294.371761]  [<ffffffff8460019f>] ret_from_fork+0x3f/0x50
