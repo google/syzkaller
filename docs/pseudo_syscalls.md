@@ -1,14 +1,23 @@
-# Syzkaller pseudo-syscalls
+# Pseudo-syscalls
 
 Besides regular system calls, a [syscall
 description](syscall_descriptions.md) file can also contain
-pseudo-syscalls. These are C functions defined in the syzkaller
-executor. When a syzkaller program uses a pseudo-syscall, the executor
+pseudo-syscalls. These are C functions defined in the
+executor. When a test program uses a pseudo-syscall, the executor
 will generate the pseudo-syscall function code in the resulting C program. 
 
 This allows a test program to have specific code blocks to perform
 certain actions, they may also be used as more test-friendly wrappers
 for primitive syscalls.
+
+Use of pseudo-syscalls is generally **discouraged** because they ruin all
+advantages of the declarative descriptions (declarativeness, conciseness,
+fuzzer control over all aspects, possibility of global improvements to
+the logic, static checking, fewer bugs, etc), increase maintenance burden,
+are non-reusable and make C reproducers longer. However, syzlang is not
+expressive enough to cover all possible cases, so use of pseudo-syscalls
+needs to be considered on a case-by-cases basis (additional benefit,
+amount of code, possibility of extending syzlang to cover this case, etc).
 
 ## How to add a pseudo-syscall to the executor
 
