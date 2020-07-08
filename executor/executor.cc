@@ -49,6 +49,13 @@ typedef unsigned char uint8;
 // because some standard libraries contain "using ::exit;", but has different signature.
 #define exit vsnprintf
 
+// Dynamic memory allocation reduces test reproducibility across different libc versions and kernels.
+// malloc will cause unspecified number of additional mmap's at unspecified locations.
+// For small objects prefer stack allocations, for larger -- either global objects (this may have
+// issues with concurrency), or controlled mmaps, or make the fuzzer allocate memory.
+#define malloc do_not_use_malloc
+#define calloc do_not_use_calloc
+
 // Note: zircon max fd is 256.
 // Some common_OS.h files know about this constant for RLIMIT_NOFILE.
 const int kMaxFd = 250;
