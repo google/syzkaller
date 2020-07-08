@@ -671,8 +671,10 @@ func checkAttrType(typ *prog.StructType, payload prog.Type, policy nlaPolicy) st
 		if typ.TemplateName() != nlattrT || payload.TemplateName() != "nla_bitfield32" {
 			return "should be nlattr[nla_bitfield32]"
 		}
-	case NLA_NESTED_ARRAY, NLA_REJECT:
-		return fmt.Sprintf("unhandled type %v", policy.typ)
+	case NLA_NESTED_ARRAY:
+		return "unhandled type NLA_NESTED_ARRAY"
+	case NLA_REJECT:
+		return "NLA_REJECT attribute will always be rejected"
 	}
 	return ""
 }
