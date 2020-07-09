@@ -147,6 +147,35 @@ Create the manager config `riscv64.cfg` similar to the following one (adjusting 
 }
 ```
 
+Alternatively, you may try to use the default OpenSBI firmware provided with QEMU 4.1 and newer by
+specifying `-machine virt -bios default` in `qemu_args` and pass the kernel image in the `kernel`
+config option:
+
+```
+{
+	"name": "riscv64",
+	"target": "linux/riscv64",
+	"http": ":56700",
+	"workdir": "/workdir",
+	"kernel_obj": "/linux",
+	"syzkaller": "/gopath/src/github.com/google/syzkaller",
+	"image": "/buildroot/output/images/rootfs.ext2",
+	"procs": 8,
+	"type": "qemu",
+	"vm": {
+		"count": 1,
+		"qemu_args": "-machine virt -bios default",
+		"kernel": "/linux/arch/riscv/boot/Image",
+		"cpu": 2,
+		"mem": 2048
+	}
+}
+```
+
+This would allow to boot a different kernel without having to re-compile OpenSBI. However, on some
+distributions the default OpenSBI firmware required by the `-bios default` option might not be
+available yet.
+
 Finally, run `bin/syz-manager -config riscv64.cfg`. After it successfully starts, you should be able
 to visit `localhost:56700` to view the fuzzing results.
 
