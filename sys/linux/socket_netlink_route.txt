@@ -23,6 +23,7 @@ include <uapi/linux/net_namespace.h>
 include <uapi/linux/veth.h>
 include <uapi/linux/can/gw.h>
 include <uapi/linux/can/vxcan.h>
+include <uapi/linux/rpl_iptunnel.h>
 include <net/caif/caif_hsi.h>
 
 resource sock_nl_route[sock_netlink]
@@ -648,8 +649,7 @@ rtm_ipv4_policy [
 	RTA_MULTIPATH	nlattr[RTA_MULTIPATH, rtnexthop]
 	RTA_FLOW	nlattr[RTA_FLOW, int32]
 	RTA_ENCAP_TYPE	nlattr[RTA_ENCAP_TYPE, flags[lwtunnel_encap_types, int16]]
-# TODO: describe RTA_ENCAP
-	RTA_ENCAP	nlnest[RTA_ENCAP, nl_generic_attr]
+	RTA_ENCAP	nlnest[RTA_ENCAP, lwtunnel_policy]
 	RTA_UID		nlattr[RTA_UID, uid]
 	RTA_MARK	nlattr[RTA_MARK, int32]
 ] [varlen]
@@ -664,8 +664,7 @@ rtm_ipv6_policy [
 	RTA_MULTIPATH	nlattr[RTA_MULTIPATH, rtnexthop]
 	RTA_PREF	nlattr[RTA_PREF, int8]
 	RTA_ENCAP_TYPE	nlattr[RTA_ENCAP_TYPE, flags[lwtunnel_encap_types, int16]]
-# TODO: describe RTA_ENCAP
-	RTA_ENCAP	nlnest[RTA_ENCAP, nl_generic_attr]
+	RTA_ENCAP	nlnest[RTA_ENCAP, lwtunnel_policy]
 	RTA_EXPIRES	nlattr[RTA_EXPIRES, int32]
 	RTA_UID		nlattr[RTA_UID, uid]
 	RTA_MARK	nlattr[RTA_MARK, int32]
@@ -966,6 +965,20 @@ rtcanmsg {
 }
 
 rtcanmsg_flags = CGW_FLAGS_CAN_ECHO, CGW_FLAGS_CAN_SRC_TSTAMP, CGW_FLAGS_CAN_IIF_TX_OK
+
+#TODO: define remaining lwtunnel_encap types
+lwtunnel_policy [
+	RPL_IPTUNNEL_SRH	nlattr[RPL_IPTUNNEL_SRH, ipv6_rpl_sr_hdr]
+] [varlen]
+
+ipv6_rpl_sr_hdr {
+	nexthdr		int8
+	hdrlen		len[parent, int8]
+	type		const[RPL_IPTUNNEL_SRH, int8]
+	segments_left	int8
+	control		int32
+	address		array[ipv6_addr]
+} [packed]
 
 cgw_policy [
 	CGW_MOD_AND	nlattr[CGW_MOD_AND, cgw_frame_mod]
