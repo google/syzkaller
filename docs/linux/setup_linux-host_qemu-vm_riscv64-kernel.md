@@ -32,7 +32,7 @@ Clone the OpenSBI repository and build the bootable OpenSBI image containg the k
 ```shell
 git clone https://github.com/riscv/opensbi
 cd opensbi
-make CROSS_COMPILE=riscv64-linux-gnu- PLATFORM_RISCV_XLEN=64 PLATFORM=generic FW_PAYLOAD_PATH=<linux_build_directory>/arch/riscv/boot/Image
+make CROSS_COMPILE=riscv64-linux-gnu- PLATFORM_RISCV_XLEN=64 PLATFORM=generic
 ```
 
 See the OpenSBI documentation for booting on the
@@ -99,7 +99,8 @@ Run:
 qemu-system-riscv64 \
 	-machine virt \
 	-nographic \
-	-kernel /opensbi/build/platform/generic/firmware/fw_payload.elf \
+	-bios /opensbi/build/platform/generic/firmware/fw_jump.bin \
+	-kernel /linux/arch/riscv/boot/Image \
 	-append "root=/dev/vda ro console=ttyS0" \
 	-object rng-random,filename=/dev/urandom,id=rng0 \
 	-device virtio-rng-device,rng=rng0 \
@@ -140,7 +141,8 @@ Create the manager config `riscv64.cfg` similar to the following one (adjusting 
 	"type": "qemu",
 	"vm": {
 		"count": 1,
-		"kernel": "/opensbi/build/platform/generic/firmware/fw_payload.elf",
+		"qemu_args": "-machine virt -bios /opensbi/build/platform/generic/firmware/fw_jump.bin",
+		"kernel": "/linux/arch/riscv/boot/Image",
 		"cpu": 2,
 		"mem": 2048
 	}
