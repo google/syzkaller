@@ -28,7 +28,7 @@ rest of the type-options are type-specific:
 "intN"/"intptr": an integer without a particular meaning, type-options:
 	optional range of values (e.g. "5:10", or "100:200"),
 	optionally followed by an alignment parameter
-"flags": a set of flags, type-options:
+"flags": a set of values, type-options:
 	reference to flags description (see below), underlying int type (e.g. "int32")
 "array": a variable/fixed-length array, type-options:
 	type of elements, optional size (fixed "5", or ranged "5:10", boundaries inclusive)
@@ -351,3 +351,5 @@ that can be used as any other syscall in a description file. These pseudo
 system calls expand to literal C code and can perform user-defined
 custom actions. You can find some examples in
 [executor/common_linux.h](../executor/common_linux.h).
+
+Also see [tips](syscall_descriptions.md#tips) on writing good descriptions.

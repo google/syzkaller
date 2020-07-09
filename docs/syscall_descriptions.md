@@ -148,6 +148,9 @@ use this name for flags in descriptions as well. The same for structs, unions,
 fields, etc. For syscall variants, use the command name after the `$` sign.
 For example, `fcntl$F_GET_RW_HINT`, `ioctl$FIOCLEX`, `setsockopt$SO_TIMESTAMP`.
 
+If you need to describe several variants of the same kernel struct, the naming
+convention understood by `syz-check` is `<ORIGINAL_KERNEL_NAME>_some_suffix`.
+
 <div id="ordering"/>
 
 ### Resources for syscall ordering
@@ -186,6 +189,22 @@ individual integer separately. Fuzzer already has several tricks to deal with th
 operand value interception and list of typical magic values.
 
 Note: some values for flags may be undocumented only as an oversight. These values should be added to descriptions.
+
+<div id="flags"/>
+
+### Flags/enums
+
+The `flags` type is used for all of:
+
+ - sets of mutually exclusive values, where only one of them should be chosen (a-la C enum)
+ - sets of bit flags, where multiple values can be combined with bitwise or (a-la mmap flags)
+ - any combinations of the above
+
+The fuzzer has logic to distinguish enums vs bit flags and generates values
+accordingly. So the general guideline is just to enumerate the meaningful values
+in `flags` without adding any "special" values to "help" the current fuzzer logic.
+When/if the fuzzer logic changes/improves, these manual additions may become
+unnecessary, or, worse, interfere with the fuzzer ability to generate good values.
 
 ## Description compilation internals
 
