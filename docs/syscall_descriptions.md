@@ -196,11 +196,11 @@ Note: some values for flags may be undocumented only as an oversight. These valu
 
 The `flags` type is used for all of:
 
- - sets of mutually exclusive values, where only one of them should be chosen (a-la C enum)
- - sets of bit flags, where multiple values can be combined with bitwise or (a-la mmap flags)
- - any combinations of the above
+ - sets of mutually exclusive values, where only one of them should be chosen (like C enum);
+ - sets of bit flags, where multiple values can be combined with bitwise OR (like mmap flags);
+ - any combination of the above.
 
-The fuzzer has logic to distinguish enums vs bit flags and generates values
+The fuzzer has logic to distinguish enums and bit flags, and generates values
 accordingly. So the general guideline is just to enumerate the meaningful values
 in `flags` without adding any "special" values to "help" the current fuzzer logic.
 When/if the fuzzer logic changes/improves, these manual additions may become
