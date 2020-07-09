@@ -138,6 +138,11 @@ func (upd *SyzUpdater) UpdateOnStart(autoupdate bool, shutdown chan struct{}) {
 
 	// No syzkaller build or executable is stale.
 	lastCommit := prog.GitRevisionBase
+	if lastCommit != latestTag {
+		// Latest build and syz-ci are inconsistent. Rebuild everything.
+		lastCommit = ""
+		latestTag = ""
+	}
 	for {
 		lastCommit = upd.pollAndBuild(lastCommit)
 		latestTag := upd.checkLatest()
@@ -201,15 +206,15 @@ func (upd *SyzUpdater) pollAndBuild(lastCommit string) string {
 		return lastCommit
 	}
 	log.Logf(0, "syzkaller: poll: %v (%v)", commit.Hash, commit.Title)
-	if lastCommit != commit.Hash {
-		log.Logf(0, "syzkaller: building ...")
-		lastCommit = commit.Hash
-		if err := upd.build(commit); err != nil {
-			log.Logf(0, "syzkaller: %v", err)
-			upd.uploadBuildError(commit, err)
-		}
+	if lastCommit == commit.Hash {
+		return lastCommit
 	}
-	return lastCommit
+	log.Logf(0, "syzkaller: building ...")
+	if err := upd.build(commit); err != nil {
+		log.Logf(0, "syzkaller: %v", err)
+		upd.uploadBuildError(commit, err)
+	}
+	return commit.Hash
 }
 
 func (upd *SyzUpdater) build(commit *vcs.Commit) error {
