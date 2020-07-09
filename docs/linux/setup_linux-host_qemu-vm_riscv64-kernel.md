@@ -55,7 +55,6 @@ Choose the following options:
 ```
     Target packages
 	    Networking applications
-	        [*] dhcpcd
 	        [*] iproute2
 	        [*] openssh
     Filesystem images
