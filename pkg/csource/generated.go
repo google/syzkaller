@@ -3539,6 +3539,106 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 }
 #endif
 
+#if SYZ_EXECUTOR || __NR__syz_io_uring_put_sqes_on_ring
+#ifndef LIBURING_BARRIER_H
+#define LIBURING_BARRIER_H
+
+#if defined(__x86_64) || defined(__i386__)
+#define read_barrier() __asm__ __volatile__("" :: \
+						: "memory")
+#define write_barrier() __asm__ __volatile__("" :: \
+						 : "memory")
+#else
+/*
+ * Add arch appropriate definitions. Be safe and use full barriers for
+ * archs we don't have support for.
+ */
+#define read_barrier() __sync_synchronize()
+#define write_barrier() __sync_synchronize()
+#endif
+
+#endif
+struct io_sqring_offsets {
+	__u32 head;
+	__u32 tail;
+	__u32 ring_mask;
+	__u32 ring_entries;
+	__u32 flags;
+	__u32 dropped;
+	__u32 array;
+	__u32 resv1;
+	__u64 resv2;
+};
+
+/**
+ * sizeof(io_uring_sqe) (as defined in linux/io_uring.h) is not likely to change -- there
+ * are currently paddings in the structure for backward compatibility in future versions.
+ * struct io_uring_sqe is only used for ptr arithmetic and size computation, thus, simply
+ * use a placeholder.
+ * */
+#define SIZEOF_IO_URING_SQE 64
+struct io_uring_sqe {
+	char fill[SIZEOF_IO_URING_SQE];
+};
+
+static void syz_io_uring_put_sqes_on_ring(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
+{
+	/* Offsets in io_uring_setup() are obtained using offsetof(), thus, they are in bytes. 
+	 * To expose those offsets in ptr arithmetic, use char* for sq_ring_ptr */
+	char* sq_ring_ptr = (char*)a0;
+	io_sqring_offsets* sq_off = (io_sqring_offsets*)a1;
+	io_uring_sqe** sqes = *(io_uring_sqe***)a2;
+	size_t len_sqes = (size_t)a3;
+
+	unsigned index, sq_tail;
+	unsigned* sq_array = (unsigned*)(sq_ring_ptr + sq_off->array);
+
+	sq_tail = sq_off->tail;
+
+	for (size_t i = 0; i < len_sqes; i++) {
+		/**
+		* Get the next sqe entry in the io_ring.
+		* Similar to io_uring_get_sqe() in liburing but without the overflow check.
+		* 
+		* Tail is a free-flowing integer and relies on natural wrapping.
+	 	* Doesn't check if all sqes are used (i.e., if the ring overflows).
+		* Doesn't check for null pointer deferences.
+		* */
+		index = sq_tail & sq_off->ring_mask;
+
+		struct io_uring_sqe* next_sqe = (io_uring_sqe*)(sq_ring_ptr + index);
+		/* Put the sqe entry to the ring */
+		memcpy(next_sqe, sqes[i], sizeof(*sqes[i]));
+
+		/*
+		 * Fill the sqe index into the SQ ring array
+		 * The array is an indirection that allows to submit fixed operations without
+		 * needing to write them again on somewhere in the ring. However, we don't do it here.
+		 * */
+
+		sq_array[index] = index;
+
+		sq_tail++;
+	}
+
+	/**
+	 * Advance the tail
+	 * First write barrier ensures that the SQE stores are updated with
+	 * the tail update. This is needed so that the kernel will never see
+	 * a tail update without the preceeding SQE stores being done.
+	 * */
+	write_barrier();
+
+	sq_off->tail = sq_tail;
+
+	/* The kernel has the matching read barrier for reading the SQ tail. */
+	write_barrier();
+
+	/* Now, the application is free to call io_uring_enter() to submit the sqes */
+}
+
+#endif
+
 #if SYZ_EXECUTOR || SYZ_REPEAT && SYZ_NET_INJECTION
 static void flush_tun()
 {

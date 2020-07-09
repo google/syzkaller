@@ -9,9 +9,18 @@
 include <uapi/linux/io_uring.h>
 
 resource fd_io_uring[fd]
+resource sq_ring_ptr[int64]
+resource cq_ring_ptr[int64]
+resource sqes_ptr[int64]
+resource ioring_register_personality_id[int32]
 
-io_uring_setup(entries int32[1:4096], params ptr[in, io_uring_params]) fd_io_uring
-io_uring_enter(fd fd_io_uring, to_submit int32, min_complete int32, flags flags[io_uring_enter_flags], sigmask ptr[in, sigset_t], size len[sigmask])
+# fs/io_uring.c
+define IORING_MAX_ENTRIES	32768
+define IORING_MAX_CQ_ENTRIES	(2 * IORING_MAX_ENTRIES)
+
+# TODO: if the requested entries exceed the max, IORING_SETUP_CLAMP can be used to successfully setup by clamping the entries to max
+io_uring_setup(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params]) fd_io_uring
+io_uring_enter(fd fd_io_uring, to_submit int32[0:IORING_MAX_ENTRIES], min_complete int32[0:IORING_MAX_CQ_ENTRIES], flags flags[io_uring_enter_flags], sigmask ptr[in, sigset_t], size len[sigmask])
 io_uring_register$IORING_REGISTER_BUFFERS(fd fd_io_uring, opcode const[IORING_REGISTER_BUFFERS], arg ptr[in, array[iovec_out]], nr_args len[arg])
 io_uring_register$IORING_UNREGISTER_BUFFERS(fd fd_io_uring, opcode const[IORING_UNREGISTER_BUFFERS], arg const[0], nr_args const[0])
 io_uring_register$IORING_REGISTER_FILES(fd fd_io_uring, opcode const[IORING_REGISTER_FILES], arg ptr[in, array[fd]], nr_args len[arg])
@@ -19,26 +28,69 @@ io_uring_register$IORING_UNREGISTER_FILES(fd fd_io_uring, opcode const[IORING_UN
 io_uring_register$IORING_REGISTER_EVENTFD(fd fd_io_uring, opcode const[IORING_REGISTER_EVENTFD], arg ptr[in, fd_event], nr_args const[1])
 io_uring_register$IORING_UNREGISTER_EVENTFD(fd fd_io_uring, opcode const[IORING_UNREGISTER_EVENTFD], arg const[0], nr_args const[0])
 io_uring_register$IORING_REGISTER_FILES_UPDATE(fd fd_io_uring, opcode const[IORING_REGISTER_FILES_UPDATE], arg ptr[in, io_uring_files_update], nr_args len[arg:fds])
+io_uring_register$IORING_REGISTER_EVENTFD_ASYNC(fd fd_io_uring, opcode const[IORING_REGISTER_EVENTFD_ASYNC], arg ptr[in, fd_event], nr_args const[1])
+io_uring_register$IORING_REGISTER_PROBE(fd fd_io_uring, opcode const[IORING_REGISTER_PROBE], arg ptr[inout, io_uring_probe], nr_args len[arg:ops])
+io_uring_register$IORING_REGISTER_PERSONALITY(fd fd_io_uring, opcode const[IORING_REGISTER_PERSONALITY], arg const[0], nr_args const[0]) ioring_register_personality_id
+io_uring_register$IORING_UNREGISTER_PERSONALITY(fd fd_io_uring, opcode const[IORING_UNREGISTER_PERSONALITY], arg const[0], nr_args ioring_register_personality_id)
 
-mmap$IORING_OFF_SQ_RING(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_io_uring, offset const[IORING_OFF_SQ_RING])
-mmap$IORING_OFF_CQ_RING(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_io_uring, offset const[IORING_OFF_CQ_RING])
-mmap$IORING_OFF_SQES(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_io_uring, offset const[IORING_OFF_SQES])
+# TODO: Consume ioring_register_personality_id within sqe as well
 
-io_uring_setup_flags = IORING_SETUP_IOPOLL, IORING_SETUP_SQPOLL, IORING_SETUP_SQ_AFF, IORING_SETUP_CQSIZE
+# The ops array in io_uring_probe might contain at most the number available
+# IORING_OP many entries, which corresponds to IORING_OP_LAST. Thus, while
+# probing, let's probe for all and ensure that the kernel can fit all if all of
+# them are supported.
+define IO_URING_PROBE_OPS_SIZE	IORING_OP_LAST
+
+# NEED: part of fields are input here and part are output. We can't express this yet (#245).
+# Only the ops and ops_len is passed in, rest is to be set by kernel
+io_uring_probe {
+	last_op	int8
+	ops_len	len[ops, int8]
+	resv	const[0, int16]
+	resv2	array[const[0, int32], 3]
+	ops	array[io_uring_probe_op, IO_URING_PROBE_OPS_SIZE]
+}
+
+# Values are to be set by kernel
+io_uring_probe_op {
+	op	int8
+	resv	const[0, int8]
+	flags	int16
+	resv2	const[0, int32]
+}
+
+# TODO: Check mmap: how to use the mmappe'd area?
+mmap$IORING_OFF_SQ_RING(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_io_uring, offset const[IORING_OFF_SQ_RING]) sq_ring_ptr
+mmap$IORING_OFF_CQ_RING(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_io_uring, offset const[IORING_OFF_CQ_RING]) cq_ring_ptr
+mmap$IORING_OFF_SQES(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_io_uring, offset const[IORING_OFF_SQES]) sqes_ptr
+
+# If no flags are specificed(0), the io_uring instance is setup for interrupt driven IO.
+io_uring_setup_flags = 0, IORING_SETUP_IOPOLL, IORING_SETUP_SQPOLL, IORING_SETUP_SQ_AFF, IORING_SETUP_CQSIZE, IORING_SETUP_CLAMP
 io_uring_enter_flags = IORING_ENTER_GETEVENTS, IORING_ENTER_SQ_WAKEUP
 _ = __NR_mmap2
 
+# This pseudo-syscall only puts entries on the ring but does not submit them. io_uring_enter() is used later for submitting.
+syz_io_uring_put_sqes_on_ring(sq_ring_ptr sq_ring_ptr, sq_off ptr[inout, io_sqring_offsets], sqes ptr[in, array[ptr[in, io_uring_sqe]]], size len[sqes])
+
+# NEED: part of fields are input here and part are output. We can't express this yet (#245).
 io_uring_params {
+# sq_entries, cq_entries, features, wq_fd, sq_off, and cq_off are set by the kernel
+# if IORING_SETUP_ATTACH_WQ is set in flags, wq_fd should be inout
 	sq_entries	const[0, int32]
 	cq_entries	const[0, int32]
 	flags		flags[io_uring_setup_flags, int32]
 	sq_thread_cpu	int32[0:3]
 	sq_thread_idle	int32[0:1000]
 	features	const[0, int32]
-	resv		array[const[0, int32], 4]
+	wq_fd		const[0, int32]
+	resv		array[const[0, int32], 3]
 	sq_off		io_sqring_offsets
-	cq_off		io_sqring_offsets
+	cq_off		io_cqring_offsets
 }
+
+# TODO: Different than ´io_uring_params´, attach_wq expects ´.wq_fd´ to be a valid
+# 		io_uring_fd wq_fd. Prepare a special ´io_uring_params´ for such case, and use
+# 		´IORING_SETUP_ATTACH_WQ´ flag for ´io_uring_setup´ with that.
 
 io_sqring_offsets {
 	head		const[0, int32]
@@ -52,7 +104,86 @@ io_sqring_offsets {
 	resv2		const[0, int64]
 }
 
+io_cqring_offsets {
+	head		const[0, int32]
+	tail		const[0, int32]
+	ring_mask	const[0, int32]
+	ring_entries	const[0, int32]
+	overflow	const[0, int32]
+	cqes		const[0, int32]
+	flags		const[0, int32]
+	resv1		const[0, int32]
+	resv2		const[0, int64]
+}
+
 io_uring_files_update {
 	offset	int32
+	resv	int32
 	fds	ptr[in, array[fd]]
 }
+
+# TODO: Remaining set of operations to be described
+# IORING_OP_READV, IORING_OP_WRITEV, IORING_OP_FSYNC, IORING_OP_READ_FIXED, IORING_OP_WRITE_FIXED, IORING_OP_POLL_ADD, IORING_OP_POLL_REMOVE, IORING_OP_SYNC_FILE_RANGE, IORING_OP_SENDMSG, IORING_OP_RECVMSG, IORING_OP_TIMEOUT, IORING_OP_TIMEOUT_REMOVE, IORING_OP_ACCEPT, IORING_OP_ASYNC_CANCEL, IORING_OP_LINK_TIMEOUT, IORING_OP_CONNECT, IORING_OP_FALLOCATE, IORING_OP_OPENAT, IORING_OP_CLOSE, IORING_OP_FILES_UPDATE, IORING_OP_STATX, IORING_OP_READ, IORING_OP_WRITE, IORING_OP_FADVISE, IORING_OP_MADVISE, IORING_OP_SEND, IORING_OP_RECV, IORING_OP_OPENAT2, IORING_OP_EPOLL_CTL, IORING_OP_SPLICE, IORING_OP_PROVIDE_BUFFERS, IORING_OP_REMOVE_BUFFERS, IORING_OP_TEE,
+ioring_opcodes = IORING_OP_NOP
+
+iosqe_flags = IOSQE_FIXED_FILE_BIT, IOSQE_IO_DRAIN_BIT, IOSQE_IO_LINK_BIT, IOSQE_IO_HARDLINK_BIT, IOSQE_ASYNC_BIT, IOSQE_BUFFER_SELECT_BIT
+
+# TODO: Describe all the remaining fields more precisely. Should be done differently for different groups of opcodes.
+#       For now, only IORING_OP_NOP operation is done (ioring_opcodes).
+io_uring_sqe {
+# type of operation for this sqe
+	opcode		flags[ioring_opcodes, int8]
+
+# common accross command types
+	flags_iosqe	flags[iosqe_flags, int8]
+
+	ioprio		flags[ioprio_priorities, int16]
+	fd		fd
+
+	placeholder0	int64
+# union {
+#    __u64   off;            /* offset into file */
+#    __u64   addr2;
+# };
+	placeholder1	int64
+	placeholder2	int32
+#__u64   addr;           /* pointer to buffer or iovecs */
+#__u32   len;            /* buffer size or number of iovecs */
+	placeholder3	int32
+# union {
+#    __kernel_rwf_t  rw_flags;
+#    __u32    fsync_flags;
+#    __u16    poll_events;
+#    __u32    sync_range_flags;
+#    __u32    msg_flags;
+#    __u32    timeout_flags;
+#    __u32    accept_flags;
+#    __u32    cancel_flags;
+# };
+	placeholder4	int64
+# __u64    user_data;     /* data to be passed back at completion time */
+	placeholder5	array[int64, 3]
+# union {
+# struct {
+#    /* index into fixed buffers, if used */
+#        __u16    buf_index;
+#    /* personality to use, if used */
+#    __u16    personality;
+# };
+#    __u64    __pad2[3];
+# };
+}
+
+# TODO: Check if any other operation with io_uring_sqe is needed
+# TODO: Check sqe->fsync_flags, sqe->timeout_flags, sqe->splice_flags
+# TODO: Any operation with io_uring_cqe (not likely, should be just read, and possibly the head ptr moved)
+# TODO: Check sq_ring->flags, cq_ring->flags
+
+# Updates: 
+# 1. io_uring_files_update is updated (addition of resv field)
+# 2. io_uring_params.resv is updated (4->3), new field is added (wq_fd)
+# 3. io_cqring_offsets is added
+# 4. io_uring_setup_flags is updated (CLAMP added (CLAMP will be tested with larger entry size), ATTACH_WQ will be added (related to wq_fd))
+# 5. io_uring_register operations made complete
+# 6. ioprio_priorities is described within sys.txt for describing io_uring_sqe.ioprio
+# 7. syz_io_uring_put_sqes_on_ring() is defined&described for putting sq entries on the ring
