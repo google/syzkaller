@@ -80,7 +80,9 @@ If you don't provide a patch, `syzbot` will test the tree as is.
 This is useful if this is your own tree which already contains the patch,
 or to check if the bug is already fixed by some recent commit.
 
-After sending an email you should get a reply email with results within an hour.
+After sending an email you should typically get a reply email with results within
+an hour. In certain cases (e.g. syzbot is busy with a bisection) it might take
+singnificantly longer, up to a few days (see #1923 for details).
 
 **Note**: you may send the request only to `syzbot` email address, as patches sent
 to some mailing lists (e.g. netdev, netfilter-devel) will trigger patchwork.
