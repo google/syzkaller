@@ -70,7 +70,7 @@ io_uring_enter_flags = IORING_ENTER_GETEVENTS, IORING_ENTER_SQ_WAKEUP
 _ = __NR_mmap2
 
 # This pseudo-syscall only puts entries on the ring but does not submit them. io_uring_enter() is used later for submitting.
-syz_io_uring_put_sqes_on_ring(sq_ring_ptr sq_ring_ptr, sq_off ptr[inout, io_sqring_offsets], sqes ptr[in, array[ptr[in, io_uring_sqe]]], size len[sqes])
+syz_io_uring_submit(sq_ring_ptr sq_ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe], sqes_index int32)
 
 # NEED: part of fields are input here and part are output. We can't express this yet (#245).
 io_uring_params {

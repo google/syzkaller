@@ -222,7 +222,8 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 		return onlySandboxNone(sandbox)
 	case "syz_execute_func":
 		return true, ""
-	case "syz_io_uring_put_sqes_on_ring":
+	case "syz_io_uring_submit":
+		// TODO: check if io_uring syscall is present
 		return true, ""
 	}
 	panic("unknown syzkall: " + c.Name)

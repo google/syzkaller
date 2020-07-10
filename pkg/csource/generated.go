@@ -3539,102 +3539,123 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR__syz_io_uring_put_sqes_on_ring
-#ifndef LIBURING_BARRIER_H
-#define LIBURING_BARRIER_H
+#if SYZ_EXECUTOR || __NR__syz_io_uring_submit
 
-#if defined(__x86_64) || defined(__i386__)
-#define read_barrier() __asm__ __volatile__("" :: \
-						: "memory")
-#define write_barrier() __asm__ __volatile__("" :: \
-						 : "memory")
-#else
-/*
- * Add arch appropriate definitions. Be safe and use full barriers for
- * archs we don't have support for.
- */
-#define read_barrier() __sync_synchronize()
-#define write_barrier() __sync_synchronize()
-#endif
-
-#endif
-struct io_sqring_offsets {
-	__u32 head;
-	__u32 tail;
-	__u32 ring_mask;
-	__u32 ring_entries;
-	__u32 flags;
-	__u32 dropped;
-	__u32 array;
-	__u32 resv1;
-	__u64 resv2;
-};
-
-/**
- * sizeof(io_uring_sqe) (as defined in linux/io_uring.h) is not likely to change -- there
- * are currently paddings in the structure for backward compatibility in future versions.
- * struct io_uring_sqe is only used for ptr arithmetic and size computation, thus, simply
- * use a placeholder.
- * */
 #define SIZEOF_IO_URING_SQE 64
-struct io_uring_sqe {
-	char fill[SIZEOF_IO_URING_SQE];
+#define SIZEOF_IO_URING_CQE 16
+struct io_sqring_offsets {
+	uint32 head;
+	uint32 tail;
+	uint32 ring_mask;
+	uint32 ring_entries;
+	uint32 flags;
+	uint32 dropped;
+	uint32 array;
+	uint32 resv1;
+	uint64 resv2;
 };
 
-static void syz_io_uring_put_sqes_on_ring(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
+struct io_cqring_offsets {
+	uint32 head;
+	uint32 tail;
+	uint32 ring_mask;
+	uint32 ring_entries;
+	uint32 overflow;
+	uint32 cqes;
+	uint32 flags;
+	uint32 resv1;
+	uint64 resv2;
+};
+struct io_uring {
+	uint32 head ____cacheline_aligned_in_smp;
+	uint32 tail ____cacheline_aligned_in_smp;
+};
+
+struct io_rings {
+	struct io_uring sq, cq;
+	uint32 sq_ring_mask, cq_ring_mask;
+	uint32 sq_ring_entries, cq_ring_entries;
+	uint32 sq_dropped;
+	uint32 sq_flags;
+	uint32 cq_flags;
+	uint32 cq_overflow;
+	struct io_uring_cqe cqes[] ____cacheline_aligned_in_smp;
+};
+static int put_io_uring_sq_array_offset(struct io_sqring_offsets* sq_off, uint32 sq_entries, uint32 cq_entries)
 {
-	/* Offsets in io_uring_setup() are obtained using offsetof(), thus, they are in bytes. 
-	 * To expose those offsets in ptr arithmetic, use char* for sq_ring_ptr */
-	char* sq_ring_ptr = (char*)a0;
-	io_sqring_offsets* sq_off = (io_sqring_offsets*)a1;
-	io_uring_sqe** sqes = *(io_uring_sqe***)a2;
-	size_t len_sqes = (size_t)a3;
+	struct io_rings* rings;
+	size_t off, sq_array_size;
 
-	unsigned index, sq_tail;
-	unsigned* sq_array = (unsigned*)(sq_ring_ptr + sq_off->array);
+	off = struct_size(rings, cqes, cq_entries);
 
-	sq_tail = sq_off->tail;
+	if (off == SIZE_MAX)
+		return -1;
 
-	for (size_t i = 0; i < len_sqes; i++) {
-		/**
-		* Get the next sqe entry in the io_ring.
-		* Similar to io_uring_get_sqe() in liburing but without the overflow check.
-		* 
-		* Tail is a free-flowing integer and relies on natural wrapping.
-	 	* Doesn't check if all sqes are used (i.e., if the ring overflows).
-		* Doesn't check for null pointer deferences.
-		* */
-		index = sq_tail & sq_off->ring_mask;
+#ifdef CONFIG_SMP
+	off = ALIGN(off, SMP_CACHE_BYTES);
+	if (off == 0)
+		return -1;
+#endif
 
-		struct io_uring_sqe* next_sqe = (io_uring_sqe*)(sq_ring_ptr + index);
-		/* Put the sqe entry to the ring */
-		memcpy(next_sqe, sqes[i], sizeof(*sqes[i]));
+	sq_array_size = array_size(sizeof(uint32), sq_entries);
+	if (sq_array_size == SIZE_MAX)
+		return -1;
 
-		/*
-		 * Fill the sqe index into the SQ ring array
-		 * The array is an indirection that allows to submit fixed operations without
-		 * needing to write them again on somewhere in the ring. However, we don't do it here.
-		 * */
+	if (check_add_overflow(off, sq_array_size, &off))
+		return -1;
+	NONFAILING(sq_off->sq_array = off);
 
-		sq_array[index] = index;
-
-		sq_tail++;
+	return 0;
+}
+static void put_io_uring_offsets(struct io_sqring_offsets* sq_off, struct io_cqring_offsets* cq_off)
+{
+	if (sq_off) {
+		NONFAILING(sq_off->head = offsetof(struct io_rings, sq.head));
+		NONFAILING(sq_off->tail = offsetof(struct io_rings, sq.tail));
+		NONFAILING(sq_off->ring_mask = offsetof(struct io_rings, sq_ring_mask));
+		NONFAILING(sq_off->ring_entries = offsetof(struct io_rings, sq_ring_entries));
+		NONFAILING(sq_off->flags = offsetof(struct io_rings, sq_flags));
+		NONFAILING(sq_off->dropped = offsetof(struct io_rings, sq_dropped));
 	}
 
-	/**
-	 * Advance the tail
-	 * First write barrier ensures that the SQE stores are updated with
-	 * the tail update. This is needed so that the kernel will never see
-	 * a tail update without the preceeding SQE stores being done.
-	 * */
-	write_barrier();
+	if (cq_off) {
+		NONFAILING(cq_off->head = offsetof(struct io_rings, cq.head));
+		NONFAILING(cq_off->tail = offsetof(struct io_rings, cq.tail));
+		NONFAILING(cq_off->ring_mask = offsetof(struct io_rings, cq_ring_mask));
+		NONFAILING(cq_off->ring_entries = offsetof(struct io_rings, cq_ring_entries));
+		NONFAILING(cq_off->overflow = offsetof(struct io_rings, cq_overflow));
+		NONFAILING(cq_off->cqes = offsetof(struct io_rings, cqes));
+		NONFAILING(cq_off->flags = offsetof(struct io_rings, cq_flags));
+	}
+}
 
-	sq_off->tail = sq_tail;
+static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
+{
+	char* sq_ring_ptr = (char*)a0;
+	char* sqes_ptr = (char*)a1;
+	char* sqe = (char*)a2;
+	uint32 sqes_index = (uint32)a3;
 
-	/* The kernel has the matching read barrier for reading the SQ tail. */
-	write_barrier();
-
-	/* Now, the application is free to call io_uring_enter() to submit the sqes */
+	uint32 sq_ring_mask, *sq_tail_ptr, sq_tail, sq_ring_entries, cq_ring_entries, *sq_array;
+	char* sqe_dest;
+	struct io_sqring_offsets sq_off;
+	struct io_cqring_offsets cq_off;
+	NONFAILING(put_io_uring_offsets(&sq_off, &cq_off));
+	NONFAILING(sq_ring_entries = *(uint32*)(sq_ring_ptr + sq_off->ring_entries));
+	NONFAILING(cq_ring_entries = *(uint32*)(sq_ring_ptr + cq_off->ring_entries));
+	if (!put_io_uring_sq_array_offset(sq_off, sq_entries, cq_entries))
+		return -1;
+	sqes_index %= sq_ring_entries;
+	NONFAILING(sqe_dest = sqes_ptr + sqes_index);
+	NONFAILING(memcpy(sqe_dest, sqe, sizeof(char) * SIZEOF_IO_URING_SQE));
+	NONFAILING(sq_ring_mask = *(uint32*)(sq_ring_ptr + sq_off->ring_mask));
+	NONFAILING(sq_tail_ptr = (uint32*)(sq_ring_ptr + sq_tail) & ring_mask);
+	NONFAILING(sq_tail = *sq_tail_ptr & ring_mask);
+	NONFAILING(sq_array = *(uint32**)(sq_ring_ptr + sq_off->array));
+	NONFAILING(sq_array[sq_tail] = sqes_index);
+	sq_tail++;
+	NONFAILING(__atomic_store_n(sq_tail_ptr, sq_tail, __ATOMIC_RELEASE));
+	return 0;
 }
 
 #endif
