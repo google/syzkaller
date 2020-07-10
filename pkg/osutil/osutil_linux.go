@@ -38,7 +38,7 @@ func RemoveAll(dir string) error {
 func SystemMemorySize() uint64 {
 	var info syscall.Sysinfo_t
 	syscall.Sysinfo(&info)
-	return uint64(info.Totalram) //nolint:unconvert
+	return uint64(info.Totalram) // nolint:unconvert
 }
 
 func removeImmutable(fname string) error {

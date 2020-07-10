@@ -32,7 +32,11 @@ func returnString() string { return "foo" }
 //	  Tab and spaces.	// want "Use either //<one-or-more-spaces>comment or //<one-or-more-tabs>comment format for comments"
 // 	Space and tab.		// want "Use either //<one-or-more-spaces>comment or //<one-or-more-tabs>comment format for comments"
 func checkCommentSpace() {
+	// Comment without a dot at the end
+	checkCommentSpace()
 }
+
+//No space.			// want "Use either //<one-or-more-spaces>comment or //<one-or-more-tabs>comment format for comments"
 
 func funcArgsGood(a, b int) (int, int) {
 	return 0, 0
