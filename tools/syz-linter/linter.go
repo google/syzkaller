@@ -63,9 +63,12 @@ func run(p *analysis.Pass) (interface{}, error) {
 	for _, file := range pass.Files {
 		ast.Inspect(file, func(n ast.Node) bool {
 			switch n := n.(type) {
-			case *ast.Comment:
-				pass.checkMulitlineComments(n)
-				pass.checkCommentSpace(n)
+			case *ast.File:
+				for _, group := range n.Comments {
+					for _, comment := range group.List {
+						pass.checkComment(comment)
+					}
+				}
 			case *ast.BinaryExpr:
 				pass.checkStringLenCompare(n)
 			case *ast.FuncType:
@@ -94,19 +97,17 @@ func (pass *Pass) typ(e ast.Expr) types.Type {
 	return pass.TypesInfo.Types[e].Type
 }
 
-// checkMulitlineComments warns about C++-style multiline comments.
-// We don't use them in the codebase.
-func (pass *Pass) checkMulitlineComments(n *ast.Comment) {
-	if !strings.HasPrefix(n.Text, "/*") {
+// checkComment warns about C++-style multiline comments (we don't use them in the codebase)
+// and about "//nospace", "// 	tabs and spaces" and similar.
+func (pass *Pass) checkComment(n *ast.Comment) {
+	if strings.HasPrefix(n.Text, "/*") {
+		pass.report(n, "Use C-style comments // instead of /* */")
 		return
 	}
-	pass.report(n, "Use C-style comments // instead of /* */")
-}
-
-// checkCommentSpace warns about "//nospace", "// 	tabs and spaces" and similar.
-func (pass *Pass) checkCommentSpace(n *ast.Comment) {
-	if !strings.HasPrefix(n.Text, "//") ||
-		allowedComments.MatchString(n.Text) {
+	if allowedComments.MatchString(n.Text) {
+		return
+	}
+	if strings.HasPrefix(n.Text, "//go:generate") {
 		return
 	}
 	pass.report(n, "Use either //<one-or-more-spaces>comment or //<one-or-more-tabs>comment format for comments")

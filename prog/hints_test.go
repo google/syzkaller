@@ -69,7 +69,7 @@ func TestHintsCheckConstArg(t *testing.T) {
 				//		i16 w = (i16) el
 				//		if (w == 0x88) {...}
 				//		i16 other = 0xfffe
-				// 		if (w == other)
+				//		if (w == other)
 				//  }; test8(i8(0x1234));
 				0x34: compSet(0x88, 0x1122, 0xfffffffffffffffe, 0xffffffffffffff0a),
 				// This following args should be iggnored.
