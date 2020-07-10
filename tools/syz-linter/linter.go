@@ -25,6 +25,11 @@ import (
 	"unicode"
 
 	"golang.org/x/tools/go/analysis"
+	"golang.org/x/tools/go/analysis/passes/atomicalign"
+	"golang.org/x/tools/go/analysis/passes/copylock"
+	"golang.org/x/tools/go/analysis/passes/deepequalerrors"
+	"golang.org/x/tools/go/analysis/passes/nilness"
+	"golang.org/x/tools/go/analysis/passes/structtag"
 )
 
 var AnalyzerPlugin analyzerPlugin
@@ -38,6 +43,12 @@ func main() {
 func (*analyzerPlugin) GetAnalyzers() []*analysis.Analyzer {
 	return []*analysis.Analyzer{
 		SyzAnalyzer,
+		// Some standard analyzers that are not enabled in vet.
+		atomicalign.Analyzer,
+		copylock.Analyzer,
+		deepequalerrors.Analyzer,
+		nilness.Analyzer,
+		structtag.Analyzer,
 	}
 }
 
