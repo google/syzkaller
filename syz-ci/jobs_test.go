@@ -5,7 +5,7 @@ package main
 
 import (
 	"errors"
-	"reflect"
+	"fmt"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/instance"
@@ -105,7 +105,7 @@ func TestAggregateTestResults(t *testing.T) {
 	}
 	for i, test := range tests {
 		rep, err := aggregateTestResults(test.results)
-		if !reflect.DeepEqual(err, test.err) {
+		if fmt.Sprint(err) != fmt.Sprint(test.err) {
 			t.Errorf("test #%v: got err: %q, want: %q", i, err, test.err)
 		}
 		got := ""
