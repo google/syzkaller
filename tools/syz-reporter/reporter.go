@@ -131,10 +131,6 @@ func readCrash(workdir, dir string) *UICrashType {
 		return nil
 	}
 	desc := string(trimNewLines(descBytes))
-	if err != nil {
-		return nil
-	}
-
 	descFile.Close()
 
 	files, err := osutil.ListDir(filepath.Join(crashdir, dir))
