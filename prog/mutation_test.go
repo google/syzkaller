@@ -280,16 +280,6 @@ mutate4(&(0x7f0000000000)="11223344", 0x4)
 `, `
 mutate4(&(0x7f0000000000)="113344", 0x3)
 `},
-		// Mutate data (insert byte and update size).
-		// TODO: this is not working, because Mutate constantly tends
-		// update addresses and insert mmap's.
-		/*
-					{`
-			mutate4(&(0x7f0000000000)="1122", 0x2)
-			`, `
-			mutate4(&(0x7f0000000000)="112200", 0x3)
-			`},
-		*/
 		// Mutate data (change byte).
 		{`
 mutate4(&(0x7f0000000000)="1122", 0x2)

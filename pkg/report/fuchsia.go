@@ -277,9 +277,9 @@ var zirconOopses = append([]*oops{
 	// We should detect just "stopping other cpus" as some kernel crash rather then as "lost connection",
 	// but if we add oops for "stopping other cpus", then it will interfere with other formats,
 	// because "stopping other cpus" usually goes after "ZIRCON KERNEL PANIC", but sometimes before. Mess.
-	//{
+	// {
 	//	[]byte("stopping other cpus"),
-	//},
+	// },
 	{
 		[]byte("welcome to Zircon"),
 		[]oopsFormat{

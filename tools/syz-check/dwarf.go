@@ -19,7 +19,7 @@ func parseKernelObject(obj string) (map[string]*dwarf.StructType, error) {
 	var sections []*elf.Section
 	for _, sec := range file.Sections {
 		// We don't need these for our purposes and dropping them speeds up parsing a lot.
-		//nolint:misspell
+		// nolint:misspell
 		if sec.Name == ".debug_line" || strings.HasPrefix(sec.Name, ".rela.") {
 			continue
 		}
