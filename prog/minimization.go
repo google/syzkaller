@@ -8,7 +8,7 @@ import (
 )
 
 // Minimize minimizes program p into an equivalent program using the equivalence
-// predicate pred.  It iteratively generates simpler programs and asks pred
+// predicate pred. It iteratively generates simpler programs and asks pred
 // whether it is equal to the original program or not. If it is equivalent then
 // the simplification attempt is committed and the process continues.
 func Minimize(p0 *Prog, callIndex0 int, crash bool, pred0 func(*Prog, int) bool) (*Prog, int) {

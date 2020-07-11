@@ -70,8 +70,8 @@ func (mc *ManagerCmd) loop() {
 	}()
 	for closing != nil || cmd != nil {
 		if cmd == nil {
-			// cmd is not running
-			// don't restart too frequently (in case it instantly exits with an error)
+			// The command is not running.
+			// Don't restart too frequently (in case it instantly exits with an error).
 			if time.Since(started) > restartPeriod {
 				started = time.Now()
 				osutil.Rename(mc.log, mc.log+".old")
@@ -96,7 +96,7 @@ func (mc *ManagerCmd) loop() {
 				}
 			}
 		} else {
-			// cmd is running
+			// The command is running. Check if we need to kill it.
 			if closing == nil && time.Since(interrupted) > interruptTimeout {
 				log.Logf(1, "%v: killing manager", mc.name)
 				cmd.Process.Kill()

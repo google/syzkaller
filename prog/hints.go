@@ -218,7 +218,7 @@ func shrinkExpand(v uint64, compMap CompMap, bitsize uint64) []uint64 {
 				mutant = swapInt(mutant, width)
 			}
 			for newV := range compMap[mutant] {
-				// Check the limit for negative numbers
+				// Check the limit for negative numbers.
 				if newV > limit && ((^(limit >> 1) & newV) != ^(limit >> 1)) {
 					continue
 				}

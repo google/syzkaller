@@ -208,7 +208,7 @@ func getNextJob(c context.Context, managers map[string]dashapi.ManagerJobs) (*Jo
 		return job, jobKey, err
 	}
 	// We need both C and syz repros, but the crazy datastore query restrictions
-	// do not allow to use ReproLevel>ReproLevelNone in the query.  So we do 2 separate queries.
+	// do not allow to use ReproLevel>ReproLevelNone in the query. So we do 2 separate queries.
 	// C repros tend to be of higher reliability so maybe it's not bad.
 	job, jobKey, err = createBisectJob(c, managers, ReproLevelC)
 	if job != nil || err != nil {

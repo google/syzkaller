@@ -263,7 +263,7 @@ var dynamicTitleReplacement = []replacement{
 		"syz-executor",
 	},
 	{
-		// syzkaller binaries are coming from repro.
+		// Executor process IDs are dynamic and are not interesting.
 		regexp.MustCompile(`syzkaller[0-9]+((/|:)[0-9]+)?`),
 		"syzkaller",
 	},

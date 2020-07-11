@@ -260,7 +260,7 @@ type ResultArg struct {
 	OpDiv uint64              // divide result (executed before OpAdd)
 	OpAdd uint64              // add to result
 	Val   uint64              // value used if Res is nil
-	uses  map[*ResultArg]bool // ArgResult args that use this arg
+	uses  map[*ResultArg]bool // args that use this arg
 }
 
 func MakeResultArg(t Type, dir Dir, r *ResultArg, v uint64) *ResultArg {

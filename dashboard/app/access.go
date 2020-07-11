@@ -60,7 +60,7 @@ func accessLevel(c context.Context, r *http.Request) AccessLevel {
 	}
 	u := user.Current(c)
 	if u == nil ||
-		// devappserver is broken
+		// Devappserver does not pass AuthDomain.
 		u.AuthDomain != "gmail.com" && !isBrokenAuthDomainInTest ||
 		!strings.HasSuffix(u.Email, config.AuthDomain) {
 		return AccessPublic

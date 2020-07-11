@@ -26,7 +26,7 @@ func (arch *arch) Neutralize(c *prog.Call) {
 		c.Args[3].(*prog.ConstArg).Val |= arch.MAP_FIXED
 	case "provision":
 		if pid, ok := c.Args[0].(*prog.ConstArg); ok && uint32(pid.Val) == ^uint32(0) {
-			// pid -1 causes some debugging splat on console.
+			// PID -1 causes some debugging splat on console.
 			pid.Val = 0
 		}
 	}

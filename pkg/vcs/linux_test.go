@@ -18,9 +18,9 @@ import (
 type MinimizationTest struct {
 	config         string
 	baselineConfig string
-	// Output contains expected config option
+	// Output contains expected config option.
 	expectedConfig string
-	// Minimization is expected to pass or fail
+	// Minimization is expected to pass or fail.
 	passing bool
 }
 
@@ -104,7 +104,7 @@ func createTestLinuxRepo(t *testing.T) string {
 		t.Fatal(err)
 	}
 
-	// Copy stubbed scripts used by config bisect
+	// Copy stubbed scripts used by config bisect.
 	err = osutil.CopyFile("testdata/linux/config-bisect.pl",
 		baseDir+"/tools/testing/ktest/config-bisect.pl")
 	if err != nil {

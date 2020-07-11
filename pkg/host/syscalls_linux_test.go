@@ -116,7 +116,7 @@ c037c7f8 T sys_getppid
 			[]string{"setfsgid", "getpid", "gettid", "getppid"},
 			[]string{"setfsgid", "getpid", "gettid", "getppid"},
 		},
-		// Test kallsymsRenameMap
+		// Test kallsymsRenameMap.
 		{
 			"ppc64le",
 			[]byte(`

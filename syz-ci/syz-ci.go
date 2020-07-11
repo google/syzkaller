@@ -108,7 +108,7 @@ type ManagerConfig struct {
 	Compiler     string `json:"compiler"`
 	Userspace    string `json:"userspace"`
 	KernelConfig string `json:"kernel_config"`
-	// Baseline config for bisection, see pkg/bisect.KernelConfig.BaselineConfig
+	// Baseline config for bisection, see pkg/bisect.KernelConfig.BaselineConfig.
 	KernelBaselineConfig string `json:"kernel_baseline_config"`
 	// File with kernel cmdline values (optional).
 	KernelCmdline string `json:"kernel_cmdline"`

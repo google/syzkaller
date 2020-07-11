@@ -288,7 +288,7 @@ func (arch *arch) generateTimespec(g *prog.Gen, typ0 prog.Type, dir prog.Dir, ol
 			prog.MakeResultArg(typ.Fields[1].Type, dir, nil, 0),
 		})
 	case g.NOutOf(1, 3):
-		// Few ms ahead for relative, past for absolute
+		// Few ms ahead for relative, past for absolute.
 		nsec := timeout1 * 1e6
 		if g.NOutOf(1, 2) {
 			nsec = timeout2 * 1e6
@@ -301,7 +301,7 @@ func (arch *arch) generateTimespec(g *prog.Gen, typ0 prog.Type, dir prog.Dir, ol
 			prog.MakeResultArg(typ.Fields[1].Type, dir, nil, nsec),
 		})
 	case g.NOutOf(1, 2):
-		// Unreachable fututre for both relative and absolute
+		// Unreachable fututre for both relative and absolute.
 		arg = prog.MakeGroupArg(typ, dir, []prog.Arg{
 			prog.MakeResultArg(typ.Fields[0].Type, dir, nil, 2e9),
 			prog.MakeResultArg(typ.Fields[1].Type, dir, nil, 0),
