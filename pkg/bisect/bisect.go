@@ -23,6 +23,7 @@ type Config struct {
 	Fix       bool
 	BinDir    string
 	DebugDir  string
+	Timeout   time.Duration
 	Kernel    KernelConfig
 	Syzkaller SyzkallerConfig
 	Repro     ReproConfig
@@ -68,6 +69,7 @@ type env struct {
 	kernelConfig []byte
 	inst         instance.Env
 	numTests     int
+	startTime    time.Time
 	buildTime    time.Duration
 	testTime     time.Duration
 }
@@ -135,6 +137,7 @@ func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
 		bisecter:  bisecter,
 		minimizer: minimizer,
 		inst:      inst,
+		startTime: time.Now(),
 	}
 	head, err := repo.HeadCommit()
 	if err != nil {
@@ -455,6 +458,9 @@ func (env *env) build() (*vcs.Commit, string, error) {
 
 func (env *env) test() (*testResult, error) {
 	cfg := env.cfg
+	if cfg.Timeout != 0 && time.Since(env.startTime) > cfg.Timeout {
+		return nil, fmt.Errorf("bisection is taking too long (>%v), aborting", cfg.Timeout)
+	}
 	env.numTests++
 	current, kernelSign, err := env.build()
 	res := &testResult{

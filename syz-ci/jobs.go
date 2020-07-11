@@ -384,8 +384,27 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 	cfg := &bisect.Config{
 		Trace:    io.MultiWriter(trace, log.VerboseWriter(3)),
 		DebugDir: osutil.Abs(filepath.Join("jobs", "debug", strings.Replace(req.ID, "|", "_", -1))),
-		Fix:      req.Type == dashapi.JobBisectFix,
-		BinDir:   jp.cfg.BisectBinDir,
+		// Out of 1049 cause bisections that we have now:
+		// -  891 finished under  6h (84.9%)
+		// -  957 finished under  8h (91.2%)
+		// -  980 finished under 10h (93.4%)
+		// -  989 finished under 12h (94.3%)
+		// - 1011 finished under 18h (96.3%)
+		// - 1025 finished under 24h (97.7%)
+		// There is also a significant increase in errors/inconclusive bisections after ~8h.
+		// Out of 4075 fix bisections:
+		// - 4015 finished under  6h (98.5%)
+		// - 4020 finished under  8h (98.7%)
+		// - 4026 finished under 10h (98.8%)
+		// - 4032 finished under 12h (98.9%)
+		// Significant increase in errors starts after ~12h.
+		// The current timeout also take into account that bisection jobs
+		// compete with patch testing jobs (it's bad delaying patch testing).
+		// When/if bisection jobs don't compete with patch testing,
+		// it makes sense to increase this to 12-24h.
+		Timeout: 8 * time.Hour,
+		Fix:     req.Type == dashapi.JobBisectFix,
+		BinDir:  jp.cfg.BisectBinDir,
 		Kernel: bisect.KernelConfig{
 			Repo:           mgr.mgrcfg.Repo,
 			Branch:         mgr.mgrcfg.Branch,
