@@ -107,9 +107,9 @@ var typeInt = &typeDesc{
 				comp.error(args[0].Pos, "bad int range [%v:%v]", begin, end)
 				return
 			}
-			// range is in [0:MAX_UINT]
+			// The range fits into the size if treated as unsigned [0:MAX_UINT].
 			inUnsignedBase := begin <= maxUInt && end <= maxUInt
-			// range is in [-MIN_SINT:MAX_SINT]
+			// The range fits into the size if treated as signed [-MIN_SINT:MAX_SINT].
 			inSignedBase := begin+maxSInt <= maxUInt && end+maxSInt <= maxUInt
 			if size < 64 && !inUnsignedBase && !inSignedBase {
 				comp.error(args[0].Colon[0].Pos, "int range [%v:%v] is too large for base type of size %v",

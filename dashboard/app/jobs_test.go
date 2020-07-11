@@ -366,14 +366,14 @@ func TestBisectFixJob(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
-	// Upload a crash report
+	// Upload a crash report.
 	build := testBuild(1)
 	c.client2.UploadBuild(build)
 	crash := testCrashWithRepro(build, 1)
 	c.client2.ReportCrash(crash)
 	c.client2.pollEmailBug()
 
-	// Receive the JobBisectCause
+	// Receive the JobBisectCause.
 	resp := c.client2.pollJobs(build.Manager)
 	c.client2.expectNE(resp.ID, "")
 	c.client2.expectEQ(resp.Type, dashapi.JobBisectCause)
@@ -383,11 +383,11 @@ func TestBisectFixJob(t *testing.T) {
 	}
 	c.client2.expectOK(c.client2.JobDone(done))
 
-	// Ensure no more jobs
+	// Ensure no more jobs.
 	resp = c.client2.pollJobs(build.Manager)
 	c.client2.expectEQ(resp.ID, "")
 
-	// Advance time by 30 days and read out any notification emails
+	// Advance time by 30 days and read out any notification emails.
 	{
 		c.advanceTime(30 * 24 * time.Hour)
 		msg := c.client2.pollEmailBug()
@@ -399,7 +399,7 @@ func TestBisectFixJob(t *testing.T) {
 		c.expectTrue(strings.Contains(msg.Body, "syzbot found the following crash"))
 	}
 
-	// Ensure that we get a JobBisectFix
+	// Ensure that we get a JobBisectFix.
 	resp = c.client2.pollJobs(build.Manager)
 	c.client2.expectNE(resp.ID, "")
 	c.client2.expectEQ(resp.Type, dashapi.JobBisectFix)
@@ -415,14 +415,14 @@ func TestBisectFixRetry(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
-	// Upload a crash report
+	// Upload a crash report.
 	build := testBuild(1)
 	c.client2.UploadBuild(build)
 	crash := testCrashWithRepro(build, 1)
 	c.client2.ReportCrash(crash)
 	c.client2.pollEmailBug()
 
-	// Receive the JobBisectCause
+	// Receive the JobBisectCause.
 	resp := c.client2.pollJobs(build.Manager)
 	c.client2.expectNE(resp.ID, "")
 	c.client2.expectEQ(resp.Type, dashapi.JobBisectCause)
@@ -432,7 +432,7 @@ func TestBisectFixRetry(t *testing.T) {
 	}
 	c.client2.expectOK(c.client2.JobDone(done))
 
-	// Advance time by 30 days and read out any notification emails
+	// Advance time by 30 days and read out any notification emails.
 	{
 		c.advanceTime(30 * 24 * time.Hour)
 		msg := c.client2.pollEmailBug()
@@ -444,7 +444,7 @@ func TestBisectFixRetry(t *testing.T) {
 		c.expectTrue(strings.Contains(msg.Body, "syzbot found the following crash"))
 	}
 
-	// Ensure that we get a JobBisectFix. We send back a crashlog, no error, no commits
+	// Ensure that we get a JobBisectFix. We send back a crashlog, no error, no commits.
 	resp = c.client2.pollJobs(build.Manager)
 	c.client2.expectNE(resp.ID, "")
 	c.client2.expectEQ(resp.Type, dashapi.JobBisectFix)
@@ -458,12 +458,12 @@ func TestBisectFixRetry(t *testing.T) {
 	}
 	c.client2.expectOK(c.client2.JobDone(done))
 
-	// Advance time by 30 days. No notification emails
+	// Advance time by 30 days. No notification emails.
 	{
 		c.advanceTime(30 * 24 * time.Hour)
 	}
 
-	// Ensure that we get a JobBisectFix retry
+	// Ensure that we get a JobBisectFix retry.
 	resp = c.client2.pollJobs(build.Manager)
 	c.client2.expectNE(resp.ID, "")
 	c.client2.expectEQ(resp.Type, dashapi.JobBisectFix)
@@ -561,7 +561,7 @@ func TestFixBisectionsListed(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
-	// Upload a crash report
+	// Upload a crash report.
 	build := testBuild(1)
 	c.client2.UploadBuild(build)
 	crash := testCrashWithRepro(build, 1)
@@ -648,7 +648,7 @@ func TestFixBisectionsDisabled(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
-	// Upload a crash report
+	// Upload a crash report.
 	build := testBuild(1)
 	build.Manager = "no-fix-bisection-manager"
 	c.client2.UploadBuild(build)

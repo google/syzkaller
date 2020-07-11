@@ -140,37 +140,37 @@ func Mutate(cfg *Config, r *rand.Rand, text []byte) []byte {
 		retry = false
 		switch x := r.Intn(100); {
 		case x < 10 && len(insns) != 0:
-			// delete instruction
+			// Delete instruction.
 			i := r.Intn(len(insns))
 			copy(insns[i:], insns[i+1:])
 			insns = insns[:len(insns)-1]
 		case x < 40 && len(insns) != 0:
-			// replace instruction with another
+			// Replace instruction with another.
 			insn := randInsn(cfg, r)
 			text1 := insn.Encode(cfg, r)
 			i := r.Intn(len(insns))
 			insns[i] = text1
 		case x < 70 && len(insns) != 0:
-			// mutate instruction
+			// Mutate instruction.
 			i := r.Intn(len(insns))
 			text1 := insns[i]
 			for stop := false; !stop || len(text1) == 0; stop = r.Intn(2) == 0 {
 				switch x := r.Intn(100); {
 				case x < 5 && len(text1) != 0:
-					// delete byte
+					// Delete byte.
 					pos := r.Intn(len(text1))
 					copy(text1[pos:], text1[pos+1:])
 					text1 = text1[:len(text1)-1]
 				case x < 40 && len(text1) != 0:
-					// replace a byte
+					// Replace a byte.
 					pos := r.Intn(len(text1))
 					text1[pos] = byte(r.Intn(256))
 				case x < 70 && len(text1) != 0:
-					// flip a bit
+					// Flip a bit.
 					pos := r.Intn(len(text1))
 					text1[pos] ^= 1 << byte(r.Intn(8))
 				default:
-					// insert a byte
+					// Insert a byte.
 					pos := r.Intn(len(text1) + 1)
 					text1 = append(text1, 0)
 					copy(text1[pos+1:], text1[pos:])
@@ -179,7 +179,7 @@ func Mutate(cfg *Config, r *rand.Rand, text []byte) []byte {
 			}
 			insns[i] = text1
 		case len(insns) < cfg.Len:
-			// insert a new instruction
+			// Insert a new instruction.
 			insn := randInsn(cfg, r)
 			text1 := insn.Encode(cfg, r)
 			i := r.Intn(len(insns) + 1)

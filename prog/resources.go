@@ -104,14 +104,14 @@ func (target *Target) isCompatibleResource(dst, src string) bool {
 // as a more specialized resource (e.g. socket). Otherwise it does.
 func isCompatibleResourceImpl(dst, src []string, precise bool) bool {
 	if len(dst) > len(src) {
-		// dst is more specialized, e.g dst=socket, src=fd.
+		// Destination resource is more specialized, e.g dst=socket, src=fd.
 		if precise {
 			return false
 		}
 		dst = dst[:len(src)]
 	}
 	if len(src) > len(dst) {
-		// src is more specialized, e.g dst=fd, src=socket.
+		// Source resource is more specialized, e.g dst=fd, src=socket.
 		src = src[:len(dst)]
 	}
 	for i, k := range dst {

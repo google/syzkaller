@@ -139,7 +139,7 @@ func (ctx *fuchsia) processPC(out *bytes.Buffer, symb *symbolizer.Symbolizer,
 		file := ctx.trimFile(frame.File)
 		name := demangle.Filter(frame.Func, demangle.NoParams, demangle.NoTemplateParams)
 		if strings.Contains(name, "<lambda(") {
-			// demangle produces super long (full) names for lambdas.
+			// Demangling produces super long (full) names for lambdas.
 			name = "lambda"
 		}
 		id := "[ inline ]"

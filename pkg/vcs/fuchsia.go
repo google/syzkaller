@@ -27,7 +27,7 @@ func newFuchsia(vm, dir string) *fuchsia {
 
 func (ctx *fuchsia) Poll(repo, branch string) (*Commit, error) {
 	if repo != "https://fuchsia.googlesource.com" || branch != "master" {
-		// fuchsia ecosystem is hard-tailored to the main repo.
+		// Fuchsia ecosystem is hard-wired to the main repo.
 		return nil, fmt.Errorf("fuchsia: can only check out https://fuchsia.googlesource.com/master")
 	}
 	if _, err := runSandboxed(ctx.dir, "./.jiri_root/bin/jiri", "update"); err != nil {

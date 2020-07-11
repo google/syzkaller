@@ -318,7 +318,7 @@ func (ctx *linux) stripLinePrefix(line []byte, context string, useQuestionable b
 			pos := bytes.Index(line, []byte(" ? "))
 			return line[pos+2:], !useQuestionable
 		}
-		// powerpc suffix.
+		// PowerPC suffix.
 		if bytes.HasSuffix(line, []byte(" (unreliable)")) {
 			return line[:len(line)-13], !useQuestionable
 		}

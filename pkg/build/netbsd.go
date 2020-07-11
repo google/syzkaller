@@ -30,25 +30,25 @@ func (ctx netbsd) build(params *Params) error {
 		return err
 	}
 
-	// Clear the tools
+	// Clear the tools.
 	if _, err := osutil.RunCmd(5*time.Minute, params.KernelDir, "rm", "-rf", "obj/"); err != nil {
 		return err
 	}
 
-	// Clear the build files
+	// Clear the build files.
 	if _, err := osutil.RunCmd(5*time.Minute, params.KernelDir, "rm", "-rf", compileDir); err != nil {
 		return err
 	}
 
 	if strings.HasSuffix(params.Compiler, "clang++") {
-		// Build tools before building kernel
+		// Build tools before building kernel.
 		if _, err := osutil.RunCmd(60*time.Minute, params.KernelDir, "./build.sh", "-m", params.TargetArch,
 			"-U", "-j"+strconv.Itoa(runtime.NumCPU()), "-V", "MKCTF=no",
 			"-V", "MKLLVM=yes", "-V", "MKGCC=no", "-V", "HAVE_LLVM=yes", "tools"); err != nil {
 			return err
 		}
 
-		// Build kernel
+		// Build kernel.
 		if _, err := osutil.RunCmd(20*time.Minute, params.KernelDir, "./build.sh", "-m", params.TargetArch,
 			"-U", "-j"+strconv.Itoa(runtime.NumCPU()), "-V", "MKCTF=no",
 			"-V", "MKLLVM=yes", "-V", "MKGCC=no", "-V", "HAVE_LLVM=yes", "kernel="+kernelName); err != nil {
@@ -126,7 +126,7 @@ func (ctx netbsd) copyKernelToDisk(targetArch, vmType, outputDir, kernel string)
 		return fmt.Errorf("failed to create the VM Instance: %v", err)
 	}
 	defer inst.Close()
-	// Copy the kernel into the disk image and replace it
+	// Copy the kernel into the disk image and replace it.
 	kernel, err = inst.Copy(kernel)
 	if err != nil {
 		return fmt.Errorf("error copying the kernel: %v", err)

@@ -940,14 +940,14 @@ func TestBugBisectionResults(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
-	// Upload a crash report
+	// Upload a crash report.
 	build := testBuild(1)
 	c.client2.UploadBuild(build)
 	crash := testCrashWithRepro(build, 1)
 	c.client2.ReportCrash(crash)
 	c.client2.pollEmailBug()
 
-	// Receive the JobBisectCause and send cause information
+	// Receive the JobBisectCause and send cause information.
 	resp := c.client2.pollJobs(build.Manager)
 	c.client2.expectNE(resp.ID, "")
 	c.client2.expectEQ(resp.Type, dashapi.JobBisectCause)
@@ -978,7 +978,7 @@ func TestBugBisectionResults(t *testing.T) {
 	}
 	c.expectOK(c.client2.JobDone(done))
 
-	// Advance time by 30 days and read out any notification emails
+	// Advance time by 30 days and read out any notification emails.
 	{
 		c.advanceTime(30 * 24 * time.Hour)
 		msg := c.client2.pollEmailBug()
@@ -1022,7 +1022,7 @@ func TestBugBisectionResults(t *testing.T) {
 	msg := c.client2.pollEmailBug()
 	c.expectTrue(strings.Contains(msg.Body, "syzbot suspects this bug was fixed by commit:"))
 
-	// Fetch bug details
+	// Fetch bug details.
 	var bugs []*Bug
 	keys, err := db.NewQuery("Bug").GetAll(c.ctx, &bugs)
 	c.expectEQ(err, nil)
@@ -1043,14 +1043,14 @@ func TestBugBisectionStatus(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
-	// Upload a crash report
+	// Upload a crash report.
 	build := testBuild(1)
 	c.client2.UploadBuild(build)
 	crash := testCrashWithRepro(build, 1)
 	c.client2.ReportCrash(crash)
 	c.client2.pollEmailBug()
 
-	// Receive the JobBisectCause and send cause information
+	// Receive the JobBisectCause and send cause information.
 	resp := c.client2.pollJobs(build.Manager)
 	c.client2.expectNE(resp.ID, "")
 	c.client2.expectEQ(resp.Type, dashapi.JobBisectCause)
@@ -1081,7 +1081,7 @@ func TestBugBisectionStatus(t *testing.T) {
 	}
 	c.expectOK(c.client2.JobDone(done))
 
-	// Fetch bug, namespace details
+	// Fetch bug, namespace details.
 	var bugs []*Bug
 	_, err := db.NewQuery("Bug").GetAll(c.ctx, &bugs)
 	c.expectEQ(err, nil)
@@ -1091,7 +1091,7 @@ func TestBugBisectionStatus(t *testing.T) {
 	c.expectEQ(err, nil)
 	c.expectTrue(bytes.Contains(content, []byte("cause")))
 
-	// Advance time by 30 days and read out any notification emails
+	// Advance time by 30 days and read out any notification emails.
 	{
 		c.advanceTime(30 * 24 * time.Hour)
 		msg := c.client2.pollEmailBug()
