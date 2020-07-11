@@ -32,7 +32,10 @@ func returnString() string { return "foo" }
 //	  Tab and spaces.	// want "Use either //<one-or-more-spaces>comment or //<one-or-more-tabs>comment format for comments"
 // 	Space and tab.		// want "Use either //<one-or-more-spaces>comment or //<one-or-more-tabs>comment format for comments"
 func checkCommentSpace() {
-	// Comment without a dot at the end
+	checkCommentSpace() // lower-case comment is OK
+	// Capital letter comment.
+	checkCommentSpace()
+	// Don't use 2 spaces after dot.  Like this.	// want "Use one space after a period"
 	checkCommentSpace()
 }
 
@@ -46,7 +49,7 @@ func funcArgsBad0(a int, b int) { // want "Use 'a, b int'"
 }
 
 func funcArgsBad1() (a int, b int) { // want "Use 'a, b int'"
-	return 0, 0
+	return 0, 0	// lower-case comment is OK
 }
 
 func funcArgsBad2(a int16, b, c uint32, d uint32, e int16) { // want "Use 'b, c, d uint32'"
@@ -66,7 +69,7 @@ func logErrorMessages() {
 	log.Fatalf("Bad message %v", 1) // want "Don't start log/error messages with a Capital letter"
 	log.Printf("Bad message %v", 1) // want "Don't start log/error messages with a Capital letter"
 	log.Print("Bad message") // want "Don't start log/error messages with a Capital letter"
-	log.Print("also ad message.") // want "Don't use dot at the end of log/error messages"
+	log.Print("also ad message.") // want "Don't use period at the end of log/error messages"
 	log.Print("no new lines\n") // want "Don't use \\\\n at the end of log/error messages"
 	log.Print("") // want "Don't use empty log/error messages"
 }

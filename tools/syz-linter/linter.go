@@ -61,14 +61,13 @@ var SyzAnalyzer = &analysis.Analyzer{
 func run(p *analysis.Pass) (interface{}, error) {
 	pass := (*Pass)(p)
 	for _, file := range pass.Files {
+		stmts := make(map[int]bool)
 		ast.Inspect(file, func(n ast.Node) bool {
+			if n == nil {
+				return true
+			}
+			stmts[pass.Fset.Position(n.Pos()).Line] = true
 			switch n := n.(type) {
-			case *ast.File:
-				for _, group := range n.Comments {
-					for _, comment := range group.List {
-						pass.checkComment(comment)
-					}
-				}
 			case *ast.BinaryExpr:
 				pass.checkStringLenCompare(n)
 			case *ast.FuncType:
@@ -80,6 +79,11 @@ func run(p *analysis.Pass) (interface{}, error) {
 			}
 			return true
 		})
+		for _, group := range file.Comments {
+			for _, comment := range group.List {
+				pass.checkComment(comment, stmts, len(group.List) == 1)
+			}
+		}
 	}
 	return nil, nil
 }
@@ -98,22 +102,50 @@ func (pass *Pass) typ(e ast.Expr) types.Type {
 }
 
 // checkComment warns about C++-style multiline comments (we don't use them in the codebase)
-// and about "//nospace", "// 	tabs and spaces" and similar.
-func (pass *Pass) checkComment(n *ast.Comment) {
+// and about "//nospace", "// 	tabs and spaces", two spaces after a period, etc.
+// See the following sources for some justification:
+// https://pep8.org/#comments
+// https://nedbatchelder.com/blog/201401/comments_should_be_sentences.html
+// https://www.cultofpedagogy.com/two-spaces-after-period
+func (pass *Pass) checkComment(n *ast.Comment, stmts map[int]bool, oneline bool) {
 	if strings.HasPrefix(n.Text, "/*") {
 		pass.report(n, "Use C-style comments // instead of /* */")
 		return
 	}
-	if allowedComments.MatchString(n.Text) {
+	if specialComment.MatchString(n.Text) {
 		return
 	}
-	if strings.HasPrefix(n.Text, "//go:generate") {
+	if !allowedComments.MatchString(n.Text) {
+		pass.report(n, "Use either //<one-or-more-spaces>comment or //<one-or-more-tabs>comment format for comments")
 		return
 	}
-	pass.report(n, "Use either //<one-or-more-spaces>comment or //<one-or-more-tabs>comment format for comments")
+	if strings.Contains(n.Text, ".  ") {
+		pass.report(n, "Use one space after a period")
+		return
+	}
+	if !oneline || onelineExceptions.MatchString(n.Text) {
+		return
+	}
+	// The following checks are only done for one-line comments,
+	// because multi-line comment blocks are harder to understand.
+	standalone := !stmts[pass.Fset.Position(n.Pos()).Line]
+	if standalone && lowerCaseComment.MatchString(n.Text) {
+		pass.report(n, "Standalone comments should be complete sentences"+
+			" with first word capitalized and a period at the end")
+	}
+	if noPeriodComment.MatchString(n.Text) {
+		pass.report(n, "Add a period at the end of the comment")
+		return
+	}
 }
 
-var allowedComments = regexp.MustCompile(`^//($|	+[^ 	]| +[^ 	])`)
+var (
+	allowedComments   = regexp.MustCompile(`^//($|	+[^ 	]| +[^ 	])`)
+	noPeriodComment   = regexp.MustCompile(`^// [A-Z][a-z].+[a-z]$`)
+	lowerCaseComment  = regexp.MustCompile(`^// [a-z]+ `)
+	onelineExceptions = regexp.MustCompile(`// want \"|http:|https:`)
+	specialComment    = regexp.MustCompile(`//go:generate|// nolint:`)
+)
 
 // checkStringLenCompare checks for string len comparisons with 0.
 // E.g.: if len(str) == 0 {} should be if str == "" {}.
@@ -188,7 +220,7 @@ func (pass *Pass) reportFuncArgs(fields []*ast.Field, first, last int) {
 	pass.report(fields[first], "Use '%v %v'", names[2:], fields[first].Type)
 }
 
-// checkLogErrorFormat warns about log/error messages starting with capital letter or ending with dot.
+// checkLogErrorFormat warns about log/error messages starting with capital letter or ending with a period.
 func (pass *Pass) checkLogErrorFormat(n *ast.CallExpr) {
 	fun, ok := n.Fun.(*ast.SelectorExpr)
 	if !ok {
@@ -217,7 +249,7 @@ func (pass *Pass) checkLogErrorFormat(n *ast.CallExpr) {
 		return
 	}
 	if val[ln-1] == '.' && (ln < 3 || val[ln-2] != '.' || val[ln-3] != '.') {
-		pass.report(lit, "Don't use dot at the end of log/error messages")
+		pass.report(lit, "Don't use period at the end of log/error messages")
 	}
 	if val[ln-1] == '\n' {
 		pass.report(lit, "Don't use \\n at the end of log/error messages")
