@@ -23,12 +23,14 @@ import (
 
 type git struct {
 	dir      string
+	sandbox  bool
 	ignoreCC map[string]bool
 }
 
 func newGit(dir string, ignoreCC map[string]bool) *git {
 	return &git{
 		dir:      dir,
+		sandbox:  true,
 		ignoreCC: ignoreCC,
 	}
 }
@@ -161,8 +163,10 @@ func (git *git) initRepo(reason error) error {
 	if err := osutil.MkdirAll(git.dir); err != nil {
 		return fmt.Errorf("failed to create repo dir: %v", err)
 	}
-	if err := osutil.SandboxChown(git.dir); err != nil {
-		return err
+	if git.sandbox {
+		if err := osutil.SandboxChown(git.dir); err != nil {
+			return err
+		}
 	}
 	if _, err := git.git("init"); err != nil {
 		return err
@@ -325,8 +329,10 @@ func (git *git) fetchCommits(since, base, user, domain string, greps []string, f
 	cmd := exec.Command("git", args...)
 	cmd.Dir = git.dir
 	cmd.Env = filterEnv()
-	if err := osutil.Sandbox(cmd, true, false); err != nil {
-		return nil, err
+	if git.sandbox {
+		if err := osutil.Sandbox(cmd, true, false); err != nil {
+			return nil, err
+		}
 	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -369,7 +375,15 @@ func (git *git) fetchCommits(since, base, user, domain string, greps []string, f
 }
 
 func (git *git) git(args ...string) ([]byte, error) {
-	return runSandboxedEnv(git.dir, "git", filterEnv(), args...)
+	cmd := osutil.Command("git", args...)
+	cmd.Dir = git.dir
+	cmd.Env = filterEnv()
+	if git.sandbox {
+		if err := osutil.Sandbox(cmd, true, false); err != nil {
+			return nil, err
+		}
+	}
+	return osutil.Run(time.Hour, cmd)
 }
 
 func splitEmail(email string) (user, domain string, err error) {

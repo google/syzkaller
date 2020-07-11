@@ -118,7 +118,9 @@ func NewRepo(os, vm, dir string) (Repo, error) {
 }
 
 func NewSyzkallerRepo(dir string) Repo {
-	return newGit(dir, nil)
+	git := newGit(dir, nil)
+	git.sandbox = false
+	return git
 }
 
 func Patch(dir string, patch []byte) error {
@@ -171,13 +173,8 @@ func CheckCommitHash(hash string) bool {
 }
 
 func runSandboxed(dir, command string, args ...string) ([]byte, error) {
-	return runSandboxedEnv(dir, command, nil, args...)
-}
-
-func runSandboxedEnv(dir, command string, env []string, args ...string) ([]byte, error) {
 	cmd := osutil.Command(command, args...)
 	cmd.Dir = dir
-	cmd.Env = env
 	if err := osutil.Sandbox(cmd, true, false); err != nil {
 		return nil, err
 	}
