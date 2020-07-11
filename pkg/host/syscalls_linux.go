@@ -358,7 +358,7 @@ func isSupportedOpenAt(c *prog.Syscall) (bool, string) {
 
 	modes := []int{syscall.O_RDONLY, syscall.O_WRONLY, syscall.O_RDWR}
 
-	// Attempt to extract flags from the syscall description
+	// Attempt to extract flags from the syscall description.
 	if mode, ok := c.Args[2].Type.(*prog.ConstType); ok {
 		modes = []int{int(mode.Val)}
 	}

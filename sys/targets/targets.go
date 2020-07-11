@@ -89,7 +89,7 @@ var List = map[string]map[string]*Target{
 		"64": {
 			PtrSize:  8,
 			PageSize: 4 << 10,
-			// Compile with -no-pie due to issues with ASan + ASLR on ppc64le
+			// Compile with -no-pie due to issues with ASan + ASLR on ppc64le.
 			CFlags: []string{"-m64", "-fsanitize=address", "-no-pie"},
 			osCommon: osCommon{
 				SyscallNumbers:         true,
@@ -102,7 +102,7 @@ var List = map[string]map[string]*Target{
 		"64_fork": {
 			PtrSize:  8,
 			PageSize: 8 << 10,
-			// Compile with -no-pie due to issues with ASan + ASLR on ppc64le
+			// Compile with -no-pie due to issues with ASan + ASLR on ppc64le.
 			CFlags: []string{"-m64", "-fsanitize=address", "-no-pie"},
 			osCommon: osCommon{
 				SyscallNumbers:         true,

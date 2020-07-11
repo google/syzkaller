@@ -102,17 +102,17 @@ func TestMutateArgument(t *testing.T) {
 			`mutate_integer2(0x00, 0x00, 0x20, 0x00, 0x01)`,
 			`mutate_integer2(0x00, 0x00, 0x20, 0x00, 0x07)`,
 		},
-		// Mutate an array of structs
+		// Mutate an array of structs.
 		{
 			`mutate_array2(&(0x7f0000000000)=[{0x0}, {0x0}, {0x0}, {0x0}, {0x0}])`,
 			`mutate_array2(&(0x7f0000000000)=[{0x0}, {0x0}, {0x3}, {0x0}, {0x0}])`,
 		},
-		// Mutate a non-special union that have more than 1 option
+		// Mutate a non-special union that have more than 1 option.
 		{
 			`mutate_union(&(0x7f0000000000)=@f1=[0x0, 0x1, 0x2, 0x3, 0x0, 0x1, 0x2, 0x3, 0x0, 0x0])`,
 			`mutate_union(&(0x7f0000000000)=@f0=0x2)`,
 		},
-		// Mutate the value of the current option in union
+		// Mutate the value of the current option in union.
 		{
 			`mutate_union(&(0x7f0000000000)=@f1=[0x0, 0x1, 0x2, 0x3, 0x0, 0x1, 0x2, 0x3, 0x0, 0x0])`,
 			`mutate_union(&(0x7f0000000000)=@f1=[0x0, 0x1, 0xff, 0x3, 0x0, 0x1, 0x2, 0x3, 0x0, 0x0])`,
@@ -318,19 +318,19 @@ mutate8(0x2)
 `, `
 mutate8(0xffffffffffffffff)
 `},
-		// Increase buffer length
+		// Increase buffer length.
 		{`
 mutate_buffer(&(0x7f0000000000)=""/100)
 `, `
 mutate_buffer(&(0x7f0000000000)=""/200)
 `},
-		// Decrease buffer length
+		// Decrease buffer length.
 		{`
 mutate_buffer(&(0x7f0000000000)=""/800)
 `, `
 mutate_buffer(&(0x7f0000000000)=""/4)
 `},
-		// Mutate a ranged buffer
+		// Mutate a ranged buffer.
 		{`
 mutate_rangedbuffer(&(0x7f00000000c0)=""/10)
 `, `
@@ -343,7 +343,7 @@ mutate_rangedbuffer(&(0x7f00000000c0)=""/7)
 
 func TestNegativeMutations(t *testing.T) {
 	tests := [][2]string{
-		// Mutate buffer size outside the range limits
+		// Mutate buffer size outside the range limits.
 		{`
 mutate_rangedbuffer(&(0x7f00000000c0)=""/7)
 `, `

@@ -343,7 +343,7 @@ func parsePattern(insn *ifuzz.Insn, vals []string) error {
 		case v == "SE_IMM8()":
 			addImm(insn, 1)
 
-		// Modes
+		// Modes.
 		case v == "mode64":
 			insn.Mode &= 1 << ifuzz.ModeLong64
 		case v == "not64":

@@ -162,7 +162,7 @@ func initPseudo() {
 			}
 			reg := uint8(r.Intn(6))
 			gen.mov16(regAX, sel)
-			gen.byte(0x8e, 0xc0|(reg<<3)) // mov %ax, %seg
+			gen.byte(0x8e, 0xc0|(reg<<3)) // MOV %ax, %seg
 			return gen.text
 		},
 	})
@@ -421,10 +421,10 @@ func (gen *generator) xor32(reg int, v uint32) {
 
 func (gen *generator) readCR(cr uint8) {
 	if cr < 8 {
-		// mov %crN, %eax/%rax
+		// MOV %crN, %eax/%rax
 		gen.byte(0x0f, 0x20, 0xc0|cr<<3)
 	} else if cr < 16 {
-		// mov %crN, %eax/%rax
+		// MOV %crN, %eax/%rax
 		gen.byte(0x44, 0x0f, 0x20, 0xc0|(cr-8)<<3)
 	} else {
 		panic("bad cr")
@@ -433,10 +433,10 @@ func (gen *generator) readCR(cr uint8) {
 
 func (gen *generator) writeCR(cr uint8) {
 	if cr < 8 {
-		// mov %eax/%rax, %crN
+		// MOV %eax/%rax, %crN
 		gen.byte(0x0f, 0x22, 0xc0|cr<<3)
 	} else if cr < 16 {
-		// mov %eax/%rax, %crN
+		// MOV %eax/%rax, %crN
 		gen.byte(0x44, 0x0f, 0x22, 0xc0|(cr-8)<<3)
 	} else {
 		panic("bad cr")
@@ -447,7 +447,7 @@ func (gen *generator) readDR(dr uint8) {
 	if dr >= 8 {
 		panic("bad dr")
 	}
-	// mov %drN, %eax/%rax
+	// MOV %drN, %eax/%rax
 	gen.byte(0x0f, 0x21, 0xc0|dr<<3)
 }
 
@@ -455,7 +455,7 @@ func (gen *generator) writeDR(dr uint8) {
 	if dr >= 8 {
 		panic("bad dr")
 	}
-	// mov %eax/%rax, %drN
+	// MOV %eax/%rax, %drN
 	gen.byte(0x0f, 0x23, 0xc0|dr<<3)
 }
 

@@ -507,7 +507,8 @@ type executeReq struct {
 	faultCall uint64
 	faultNth  uint64
 	progSize  uint64
-	// prog follows on pipe or in shmem
+	// This structure is followed by a serialized test program in encodingexec format.
+	// Both when sent over a pipe or in shared memory.
 }
 
 type executeReply struct {

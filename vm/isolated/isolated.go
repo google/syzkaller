@@ -307,7 +307,7 @@ func (inst *instance) waitForReboot(timeout int) error {
 		if !vmimpl.SleepInterruptible(time.Second) {
 			return fmt.Errorf("shutdown in progress")
 		}
-		// If it fails, then the reboot started
+		// If it fails, then the reboot started.
 		if err = inst.ssh("pwd"); err != nil {
 			return nil
 		}

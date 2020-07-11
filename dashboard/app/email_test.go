@@ -413,7 +413,7 @@ func TestEmailDup(t *testing.T) {
 	c.incomingEmail(msg2.Sender, "#syz dup: BUG: slightly more elaborate title")
 	c.expectNoEmail()
 
-	// Second crash happens again
+	// Second crash happens again.
 	crash2.ReproC = []byte("int main() {}")
 	c.client2.ReportCrash(crash2)
 	c.expectNoEmail()
@@ -421,7 +421,7 @@ func TestEmailDup(t *testing.T) {
 	// Now close the original bug, and check that new bugs for dup are now created.
 	c.incomingEmail(msg1.Sender, "#syz invalid")
 
-	// uncc command must not trugger error reply even for closed bug.
+	// "uncc" command must not trugger error reply even for closed bug.
 	c.incomingEmail(msg1.Sender, "#syz uncc", EmailOptCC(nil))
 	c.expectNoEmail()
 

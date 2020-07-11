@@ -100,11 +100,11 @@ func (s *state) analyzeImpl(c *Call, resources bool) {
 }
 
 type ArgCtx struct {
-	Parent *[]Arg      // GroupArg.Inner (for structs) or Call.Args containing this arg
-	Fields []Field     // Fields of the parent struct/syscall
-	Base   *PointerArg // pointer to the base of the heap object containing this arg
-	Offset uint64      // offset of this arg from the base
-	Stop   bool        // if set by the callback, subargs of this arg are not visited
+	Parent *[]Arg      // GroupArg.Inner (for structs) or Call.Args containing this arg.
+	Fields []Field     // Fields of the parent struct/syscall.
+	Base   *PointerArg // Pointer to the base of the heap object containing this arg.
+	Offset uint64      // Offset of this arg from the base.
+	Stop   bool        // If set by the callback, subargs of this arg are not visited.
 }
 
 func ForeachSubArg(arg Arg, f func(Arg, *ArgCtx)) {

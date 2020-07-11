@@ -407,18 +407,18 @@ func (ctx *context) constArgToStr(arg prog.ExecArgConst, handleBigEndian, native
 	}
 	if native && arg.Size == 8 {
 		// syscall() is variadic, so constant arguments must be explicitly
-		// promoted.  Otherwise the compiler is free to leave garbage in the
-		// upper 32 bits of the argument value.  In practice this can happen
+		// promoted. Otherwise the compiler is free to leave garbage in the
+		// upper 32 bits of the argument value. In practice this can happen
 		// on amd64 with arguments that are passed on the stack, i.e.,
-		// arguments beyond the first six.  For example, on freebsd/amd64,
+		// arguments beyond the first six. For example, on freebsd/amd64,
 		// syscall(SYS_mmap, ..., 0) causes clang to emit a 32-bit store of
 		// 0 to the stack, but the kernel expects a 64-bit value.
 		//
 		// syzkaller's argument type representations do not always match
-		// the OS ABI.  For instance, "flags" is always 64 bits wide on 64-bit
+		// the OS ABI. For instance, "flags" is always 64 bits wide on 64-bit
 		// platforms, but is a 32-bit value ("unsigned int" or so) in many
-		// cases.  Thus, we assume here that passing a 64-bit argument where
-		// a 32-bit argument is expected won't break anything.  On amd64
+		// cases. Thus, we assume here that passing a 64-bit argument where
+		// a 32-bit argument is expected won't break anything. On amd64
 		// this should be fine: arguments are passed in 64-bit registers or
 		// at 64 bit-aligned addresses on the stack.
 		if ctx.target.PtrSize == 4 {

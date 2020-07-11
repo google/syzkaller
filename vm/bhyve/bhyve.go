@@ -112,9 +112,9 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	// Destroy a lingering snapshot and clone.
 	osutil.RunCmd(time.Minute, "", "zfs", "destroy", "-R", snapshot)
 
-	// Create a snapshot of the data set containing the VM image.  bhyve will
-	// use a clone of the snapshot, which gets recreated every time the VM
-	// is restarted.  This is all to work around bhyve's current lack of an
+	// Create a snapshot of the data set containing the VM image.
+	// bhyve will use a clone of the snapshot, which gets recreated every time the VM
+	// is restarted. This is all to work around bhyve's current lack of an
 	// image snapshot facility.
 	if _, err := osutil.RunCmd(time.Minute, "", "zfs", "snapshot", snapshot); err != nil {
 		inst.Close()

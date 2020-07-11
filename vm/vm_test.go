@@ -84,8 +84,8 @@ func init() {
 type Test struct {
 	Name           string
 	Exit           ExitCondition
-	DiagnoseBug    bool // Diagnose produces output that is detected as kernel crash
-	DiagnoseNoWait bool // Diagnose returns output directly rather than to console
+	DiagnoseBug    bool // Diagnose produces output that is detected as kernel crash.
+	DiagnoseNoWait bool // Diagnose returns output directly rather than to console.
 	Body           func(outc chan []byte, errc chan error)
 	Report         *report.Report
 }

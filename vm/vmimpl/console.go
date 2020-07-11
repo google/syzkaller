@@ -31,11 +31,11 @@ func OpenConsole(con string) (rc io.ReadCloser, err error) {
 	if errno != 0 {
 		return nil, fmt.Errorf("failed to get console termios: %v", errno)
 	}
-	// no parity bit, only need 1 stop bit, no hardware flowcontrol
+	// No parity bit, only need 1 stop bit, no hardware flowcontrol,
 	term.Cflag &^= unixCBAUD | unix.CSIZE | unix.PARENB | unix.CSTOPB | unixCRTSCTS
-	// ignore modem controls
+	// Ignore modem controls.
 	term.Cflag |= unix.B115200 | unix.CS8 | unix.CLOCAL | unix.CREAD
-	// setup for non-canonical mode
+	// Setup for non-canonical mode.
 	term.Iflag &^= unix.IGNBRK | unix.BRKINT | unix.PARMRK | unix.ISTRIP | unix.INLCR |
 		unix.IGNCR | unix.ICRNL | unix.IXON
 	term.Lflag &^= unix.ECHO | unix.ECHONL | unix.ICANON | unix.ISIG | unix.IEXTEN
