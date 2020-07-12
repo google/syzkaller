@@ -1,6 +1,7 @@
 # Research work based on syzkaller
 
 _newer first_
+* [Agamotto: Accelerating Kernel Driver Fuzzing with Lightweight Virtual Machine Checkpoints](https://www.usenix.org/conference/usenixsecurity20/presentation/song) ([source code](https://github.com/securesystemslab/agamotto))
 * [Task selection and seed selection for Syzkaller using reinforcement learning](https://groups.google.com/d/msg/syzkaller/eKPD4ZpJ66o/UqO_K-SMFwAJ) (announce only)
 * [Empirical Notes on the Interaction Between Continuous Kernel Fuzzing and Development](http://users.utu.fi/kakrind/publications/19/vulnfuzz_camera.pdf)
 * [FastSyzkaller: Improving Fuzz Efficiency for Linux Kernel Fuzzing](https://iopscience.iop.org/article/10.1088/1742-6596/1176/2/022013)
