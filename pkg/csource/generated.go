@@ -3543,90 +3543,20 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 
 #define SIZEOF_IO_URING_SQE 64
 #define SIZEOF_IO_URING_CQE 16
-struct io_sqring_offsets {
-	uint32 head;
-	uint32 tail;
-	uint32 ring_mask;
-	uint32 ring_entries;
-	uint32 flags;
-	uint32 dropped;
-	uint32 array;
-	uint32 resv1;
-	uint64 resv2;
-};
+#define SQ_HEAD_OFFSET 0
+#define SQ_TAIL_OFFSET 64
+#define SQ_RING_MASK_OFFSET 256
+#define SQ_RING_ENTRIES_OFFSET 264
+#define CQ_HEAD_OFFSET 128
+#define CQ_TAIL_OFFSET 192
+#define CQ_RING_MASK_OFFSET 260
+#define CQ_RING_ENTRIES_OFFSET 268
+#define CQ_CQES_OFFSET 320
+#define SQ_ARRAY_OFFSET(sq_entries, cq_entries) (round_up(CQ_CQES_OFFSET + cq_entries * SIZEOF_IO_URING_CQE, 64) + sq_entries * sizeof(uint32_t))
 
-struct io_cqring_offsets {
-	uint32 head;
-	uint32 tail;
-	uint32 ring_mask;
-	uint32 ring_entries;
-	uint32 overflow;
-	uint32 cqes;
-	uint32 flags;
-	uint32 resv1;
-	uint64 resv2;
-};
-struct io_uring {
-	uint32 head ____cacheline_aligned_in_smp;
-	uint32 tail ____cacheline_aligned_in_smp;
-};
-
-struct io_rings {
-	struct io_uring sq, cq;
-	uint32 sq_ring_mask, cq_ring_mask;
-	uint32 sq_ring_entries, cq_ring_entries;
-	uint32 sq_dropped;
-	uint32 sq_flags;
-	uint32 cq_flags;
-	uint32 cq_overflow;
-	struct io_uring_cqe cqes[] ____cacheline_aligned_in_smp;
-};
-static int put_io_uring_sq_array_offset(struct io_sqring_offsets* sq_off, uint32 sq_entries, uint32 cq_entries)
+uint32_t round_up(uint32_t x, uint32_t a)
 {
-	struct io_rings* rings;
-	size_t off, sq_array_size;
-
-	off = struct_size(rings, cqes, cq_entries);
-
-	if (off == SIZE_MAX)
-		return -1;
-
-#ifdef CONFIG_SMP
-	off = ALIGN(off, SMP_CACHE_BYTES);
-	if (off == 0)
-		return -1;
-#endif
-
-	sq_array_size = array_size(sizeof(uint32), sq_entries);
-	if (sq_array_size == SIZE_MAX)
-		return -1;
-
-	if (check_add_overflow(off, sq_array_size, &off))
-		return -1;
-	NONFAILING(sq_off->sq_array = off);
-
-	return 0;
-}
-static void put_io_uring_offsets(struct io_sqring_offsets* sq_off, struct io_cqring_offsets* cq_off)
-{
-	if (sq_off) {
-		NONFAILING(sq_off->head = offsetof(struct io_rings, sq.head));
-		NONFAILING(sq_off->tail = offsetof(struct io_rings, sq.tail));
-		NONFAILING(sq_off->ring_mask = offsetof(struct io_rings, sq_ring_mask));
-		NONFAILING(sq_off->ring_entries = offsetof(struct io_rings, sq_ring_entries));
-		NONFAILING(sq_off->flags = offsetof(struct io_rings, sq_flags));
-		NONFAILING(sq_off->dropped = offsetof(struct io_rings, sq_dropped));
-	}
-
-	if (cq_off) {
-		NONFAILING(cq_off->head = offsetof(struct io_rings, cq.head));
-		NONFAILING(cq_off->tail = offsetof(struct io_rings, cq.tail));
-		NONFAILING(cq_off->ring_mask = offsetof(struct io_rings, cq_ring_mask));
-		NONFAILING(cq_off->ring_entries = offsetof(struct io_rings, cq_ring_entries));
-		NONFAILING(cq_off->overflow = offsetof(struct io_rings, cq_overflow));
-		NONFAILING(cq_off->cqes = offsetof(struct io_rings, cqes));
-		NONFAILING(cq_off->flags = offsetof(struct io_rings, cq_flags));
-	}
+	return (x + a - 1) & ~(a - 1);
 }
 
 static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
@@ -3637,21 +3567,19 @@ static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile lon
 	uint32 sqes_index = (uint32)a3;
 
 	uint32 sq_ring_mask, *sq_tail_ptr, sq_tail, sq_ring_entries, cq_ring_entries, *sq_array;
+	uint32_t sq_array_off;
 	char* sqe_dest;
-	struct io_sqring_offsets sq_off;
-	struct io_cqring_offsets cq_off;
-	NONFAILING(put_io_uring_offsets(&sq_off, &cq_off));
-	NONFAILING(sq_ring_entries = *(uint32*)(sq_ring_ptr + sq_off->ring_entries));
-	NONFAILING(cq_ring_entries = *(uint32*)(sq_ring_ptr + cq_off->ring_entries));
-	if (!put_io_uring_sq_array_offset(sq_off, sq_entries, cq_entries))
-		return -1;
+
+	NONFAILING(sq_ring_entries = *(uint32*)(sq_ring_ptr + SQ_RING_ENTRIES_OFFSET));
+	NONFAILING(cq_ring_entries = *(uint32*)(sq_ring_ptr + CQ_RING_ENTRIES_OFFSET));
+	sq_array_off = SQ_ARRAY_OFFSET(sq_ring_entries, cq_ring_entries);
 	sqes_index %= sq_ring_entries;
 	NONFAILING(sqe_dest = sqes_ptr + sqes_index);
 	NONFAILING(memcpy(sqe_dest, sqe, sizeof(char) * SIZEOF_IO_URING_SQE));
-	NONFAILING(sq_ring_mask = *(uint32*)(sq_ring_ptr + sq_off->ring_mask));
-	NONFAILING(sq_tail_ptr = (uint32*)(sq_ring_ptr + sq_tail) & ring_mask);
-	NONFAILING(sq_tail = *sq_tail_ptr & ring_mask);
-	NONFAILING(sq_array = *(uint32**)(sq_ring_ptr + sq_off->array));
+	NONFAILING(sq_ring_mask = *(uint32*)(sq_ring_ptr + SQ_RING_MASK_OFFSET));
+	NONFAILING(sq_tail_ptr = (uint32*)(sq_ring_ptr + SQ_TAIL_OFFSET));
+	NONFAILING(sq_tail = *sq_tail_ptr & sq_ring_mask);
+	NONFAILING(sq_array = *(uint32**)(sq_ring_ptr + sq_array_off));
 	NONFAILING(sq_array[sq_tail] = sqes_index);
 	sq_tail++;
 	NONFAILING(__atomic_store_n(sq_tail_ptr, sq_tail, __ATOMIC_RELEASE));
