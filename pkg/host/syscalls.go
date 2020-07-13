@@ -6,7 +6,6 @@ package host
 import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys/targets"
 )
 
 // DetectSupportedSyscalls returns list on supported and unsupported syscalls on the host.
@@ -18,7 +17,7 @@ func DetectSupportedSyscalls(target *prog.Target, sandbox string) (
 	unsupported := make(map[*prog.Syscall]string)
 	const disabledAttribute = "has disabled attribute in descriptions"
 	// These do not have own host and parasitize on some other OS.
-	if targets.Get(target.OS, target.Arch).HostFuzzer {
+	if noHostChecks(target) {
 		for _, c := range target.Syscalls {
 			if c.Attrs.Disabled {
 				unsupported[c] = disabledAttribute

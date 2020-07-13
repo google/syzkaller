@@ -96,7 +96,6 @@ var List = map[string]map[string]*Target{
 				SyscallPrefix:          "SYS_",
 				ExecutorUsesShmem:      false,
 				ExecutorUsesForkServer: false,
-				HostFuzzer:             true,
 			},
 		},
 		"64_fork": {
@@ -109,7 +108,6 @@ var List = map[string]map[string]*Target{
 				SyscallPrefix:          "SYS_",
 				ExecutorUsesShmem:      false,
 				ExecutorUsesForkServer: true,
-				HostFuzzer:             true,
 			},
 		},
 		"32_shmem": {
@@ -123,7 +121,6 @@ var List = map[string]map[string]*Target{
 				SyscallPrefix:          "SYS_",
 				ExecutorUsesShmem:      true,
 				ExecutorUsesForkServer: false,
-				HostFuzzer:             true,
 			},
 		},
 		"32_fork_shmem": {
