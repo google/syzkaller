@@ -243,7 +243,7 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 	debug("syz_usb_connect: add_usb_index success\n");
 
 #if USB_DEBUG
-	NONFAILING(analyze_usb_device(index));
+	analyze_usb_device(index);
 #endif
 
 	rv = vhci_setport(fd, 1);
@@ -285,9 +285,7 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 		char data[4096];
 
 		if (req.u.ctrl.bmRequestType & UE_DIR_IN) {
-			bool response_found = false;
-			NONFAILING(response_found = lookup_connect_response_in(fd, descs, (const struct usb_ctrlrequest*)&req.u.ctrl, &response_data, &response_length));
-			if (!response_found) {
+			if (!lookup_connect_response_in(fd, descs, (const struct usb_ctrlrequest*)&req.u.ctrl, &response_data, &response_length)) {
 				debug("syz_usb_connect: unknown control IN request\n");
 				goto err;
 			}

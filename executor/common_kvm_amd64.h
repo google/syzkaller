@@ -141,16 +141,16 @@ static void fill_segment_descriptor(uint64* dt, uint64* lt, struct kvm_segment* 
 	uint16 index = seg->selector >> 3;
 	uint64 limit = seg->g ? seg->limit >> 12 : seg->limit;
 	uint64 sd = (limit & 0xffff) | (seg->base & 0xffffff) << 16 | (uint64)seg->type << 40 | (uint64)seg->s << 44 | (uint64)seg->dpl << 45 | (uint64)seg->present << 47 | (limit & 0xf0000ULL) << 48 | (uint64)seg->avl << 52 | (uint64)seg->l << 53 | (uint64)seg->db << 54 | (uint64)seg->g << 55 | (seg->base & 0xff000000ULL) << 56;
-	NONFAILING(dt[index] = sd);
-	NONFAILING(lt[index] = sd);
+	dt[index] = sd;
+	lt[index] = sd;
 }
 
 static void fill_segment_descriptor_dword(uint64* dt, uint64* lt, struct kvm_segment* seg)
 {
 	fill_segment_descriptor(dt, lt, seg);
 	uint16 index = seg->selector >> 3;
-	NONFAILING(dt[index + 1] = 0);
-	NONFAILING(lt[index + 1] = 0);
+	dt[index + 1] = 0;
+	lt[index + 1] = 0;
 }
 
 static void setup_syscall_msrs(int cpufd, uint16 sel_cs, uint16 sel_cs_cpl3)
@@ -286,12 +286,9 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 	const uintptr_t guest_mem = 0;
 
 	(void)text_count; // fuzzer can spoof count and we need just 1 text, so ignore text_count
-	int text_type = 0;
-	const void* text = 0;
-	uintptr_t text_size = 0;
-	NONFAILING(text_type = text_array_ptr[0].typ);
-	NONFAILING(text = text_array_ptr[0].text);
-	NONFAILING(text_size = text_array_ptr[0].size);
+	int text_type = text_array_ptr[0].typ;
+	const void* text = text_array_ptr[0].text;
+	uintptr_t text_size = text_array_ptr[0].size;
 
 	uintptr_t i;
 	for (i = 0; i < guest_mem_size / page_size; i++) {
@@ -505,7 +502,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 				sregs.cs.base = 0;
 			}
 
-			NONFAILING(*(host_mem + ADDR_TEXT) = 0xf4); // hlt for rsm
+			*(host_mem + ADDR_TEXT) = 0xf4; // hlt for rsm
 			host_text = host_mem + 0x8000;
 
 			ioctl(cpufd, KVM_SMI, 0);
@@ -522,7 +519,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 				uint64 pd_addr = guest_mem + ADDR_PD;
 				uint64* pd = (uint64*)(host_mem + ADDR_PD);
 				// A single 4MB page to cover the memory region
-				NONFAILING(pd[0] = PDE32_PRESENT | PDE32_RW | PDE32_USER | PDE32_PS);
+				pd[0] = PDE32_PRESENT | PDE32_RW | PDE32_USER | PDE32_PS;
 				sregs.cr3 = pd_addr;
 				sregs.cr4 |= CR4_PSE;
 
@@ -559,7 +556,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 			sregs.cs = seg_cs32;
 			sregs.ds = sregs.es = sregs.fs = sregs.gs = sregs.ss = seg_ds32;
 
-			NONFAILING(*(host_mem + ADDR_TEXT) = 0xf4); // hlt for rsm
+			*(host_mem + ADDR_TEXT) = 0xf4; // hlt for rsm
 			host_text = host_mem + 0x8000;
 
 			ioctl(cpufd, KVM_SMI, 0);
@@ -570,7 +567,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 			uint64 pd_addr = guest_mem + ADDR_PD;
 			uint64* pd = (uint64*)(host_mem + ADDR_PD);
 			// A single 4MB page to cover the memory region
-			NONFAILING(pd[0] = PDE32_PRESENT | PDE32_RW | PDE32_USER | PDE32_PS);
+			pd[0] = PDE32_PRESENT | PDE32_RW | PDE32_USER | PDE32_PS;
 			sregs.cr3 = pd_addr;
 			sregs.cr4 |= CR4_PSE;
 
@@ -599,19 +596,19 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 		uint64* pdpt = (uint64*)(host_mem + ADDR_PDP);
 		uint64 pd_addr = guest_mem + ADDR_PD;
 		uint64* pd = (uint64*)(host_mem + ADDR_PD);
-		NONFAILING(pml4[0] = PDE64_PRESENT | PDE64_RW | PDE64_USER | pdpt_addr);
-		NONFAILING(pdpt[0] = PDE64_PRESENT | PDE64_RW | PDE64_USER | pd_addr);
-		NONFAILING(pd[0] = PDE64_PRESENT | PDE64_RW | PDE64_USER | PDE64_PS);
+		pml4[0] = PDE64_PRESENT | PDE64_RW | PDE64_USER | pdpt_addr;
+		pdpt[0] = PDE64_PRESENT | PDE64_RW | PDE64_USER | pd_addr;
+		pd[0] = PDE64_PRESENT | PDE64_RW | PDE64_USER | PDE64_PS;
 		sregs.cr3 = pml4_addr;
 		sregs.cr4 |= CR4_PAE;
 
 		if (flags & KVM_SETUP_VM) {
 			sregs.cr0 |= CR0_NE;
 
-			NONFAILING(*((uint64*)(host_mem + ADDR_VAR_VMXON_PTR)) = ADDR_VAR_VMXON);
-			NONFAILING(*((uint64*)(host_mem + ADDR_VAR_VMCS_PTR)) = ADDR_VAR_VMCS);
-			NONFAILING(memcpy(host_mem + ADDR_VAR_VMEXIT_CODE, kvm_asm64_vm_exit, sizeof(kvm_asm64_vm_exit) - 1));
-			NONFAILING(*((uint64*)(host_mem + ADDR_VAR_VMEXIT_PTR)) = ADDR_VAR_VMEXIT_CODE);
+			*((uint64*)(host_mem + ADDR_VAR_VMXON_PTR)) = ADDR_VAR_VMXON;
+			*((uint64*)(host_mem + ADDR_VAR_VMCS_PTR)) = ADDR_VAR_VMCS;
+			memcpy(host_mem + ADDR_VAR_VMEXIT_CODE, kvm_asm64_vm_exit, sizeof(kvm_asm64_vm_exit) - 1);
+			*((uint64*)(host_mem + ADDR_VAR_VMEXIT_PTR)) = ADDR_VAR_VMEXIT_CODE;
 
 			text_prefix = kvm_asm64_init_vm;
 			text_prefix_size = sizeof(kvm_asm64_init_vm) - 1;
@@ -634,7 +631,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 	tss16.es = tss16.ds = tss16.ss = SEL_DS16;
 	tss16.ldt = SEL_LDT;
 	struct tss16* tss16_addr = (struct tss16*)(host_mem + seg_tss16_2.base);
-	NONFAILING(memcpy(tss16_addr, &tss16, sizeof(tss16)));
+	memcpy(tss16_addr, &tss16, sizeof(tss16));
 
 	memset(&tss16, 0, sizeof(tss16));
 	tss16.ss0 = tss16.ss1 = tss16.ss2 = SEL_DS16;
@@ -645,7 +642,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 	tss16.es = tss16.ds = tss16.ss = SEL_DS16_CPL3;
 	tss16.ldt = SEL_LDT;
 	struct tss16* tss16_cpl3_addr = (struct tss16*)(host_mem + seg_tss16_cpl3.base);
-	NONFAILING(memcpy(tss16_cpl3_addr, &tss16, sizeof(tss16)));
+	memcpy(tss16_cpl3_addr, &tss16, sizeof(tss16));
 
 	struct tss32 tss32;
 	memset(&tss32, 0, sizeof(tss32));
@@ -657,7 +654,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 	tss32.cr3 = sregs.cr3;
 	tss32.io_bitmap = offsetof(struct tss32, io_bitmap);
 	struct tss32* tss32_addr = (struct tss32*)(host_mem + seg_tss32_vm86.base);
-	NONFAILING(memcpy(tss32_addr, &tss32, sizeof(tss32)));
+	memcpy(tss32_addr, &tss32, sizeof(tss32));
 
 	memset(&tss32, 0, sizeof(tss32));
 	tss32.ss0 = tss32.ss1 = tss32.ss2 = SEL_DS32;
@@ -671,7 +668,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 	tss32.cr3 = sregs.cr3;
 	tss32.io_bitmap = offsetof(struct tss32, io_bitmap);
 	struct tss32* tss32_cpl3_addr = (struct tss32*)(host_mem + seg_tss32_2.base);
-	NONFAILING(memcpy(tss32_cpl3_addr, &tss32, sizeof(tss32)));
+	memcpy(tss32_cpl3_addr, &tss32, sizeof(tss32));
 
 	struct tss64 tss64;
 	memset(&tss64, 0, sizeof(tss64));
@@ -680,7 +677,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 	tss64.rsp[2] = ADDR_STACK0;
 	tss64.io_bitmap = offsetof(struct tss64, io_bitmap);
 	struct tss64* tss64_addr = (struct tss64*)(host_mem + seg_tss64.base);
-	NONFAILING(memcpy(tss64_addr, &tss64, sizeof(tss64)));
+	memcpy(tss64_addr, &tss64, sizeof(tss64));
 
 	memset(&tss64, 0, sizeof(tss64));
 	tss64.rsp[0] = ADDR_STACK0;
@@ -688,43 +685,39 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 	tss64.rsp[2] = ADDR_STACK0;
 	tss64.io_bitmap = offsetof(struct tss64, io_bitmap);
 	struct tss64* tss64_cpl3_addr = (struct tss64*)(host_mem + seg_tss64_cpl3.base);
-	NONFAILING(memcpy(tss64_cpl3_addr, &tss64, sizeof(tss64)));
+	memcpy(tss64_cpl3_addr, &tss64, sizeof(tss64));
 
 	if (text_size > 1000)
 		text_size = 1000;
 	if (text_prefix) {
-		NONFAILING(memcpy(host_text, text_prefix, text_prefix_size));
-		void* patch = 0;
+		memcpy(host_text, text_prefix, text_prefix_size);
 		// Replace 0xbadc0de in LJMP with offset of a next instruction.
-		NONFAILING(patch = memmem(host_text, text_prefix_size, "\xde\xc0\xad\x0b", 4));
+		void* patch = memmem(host_text, text_prefix_size, "\xde\xc0\xad\x0b", 4);
 		if (patch)
-			NONFAILING(*((uint32*)patch) = guest_mem + ADDR_TEXT + ((char*)patch - host_text) + 6);
+			*((uint32*)patch) = guest_mem + ADDR_TEXT + ((char*)patch - host_text) + 6;
 		uint16 magic = PREFIX_SIZE;
-		patch = 0;
-		NONFAILING(patch = memmem(host_text, text_prefix_size, &magic, sizeof(magic)));
+		patch = memmem(host_text, text_prefix_size, &magic, sizeof(magic));
 		if (patch)
-			NONFAILING(*((uint16*)patch) = guest_mem + ADDR_TEXT + text_prefix_size);
+			*((uint16*)patch) = guest_mem + ADDR_TEXT + text_prefix_size;
 	}
-	NONFAILING(memcpy((void*)(host_text + text_prefix_size), text, text_size));
-	NONFAILING(*(host_text + text_prefix_size + text_size) = 0xf4); // hlt
+	memcpy((void*)(host_text + text_prefix_size), text, text_size);
+	*(host_text + text_prefix_size + text_size) = 0xf4; // hlt
 
-	NONFAILING(memcpy(host_mem + ADDR_VAR_USER_CODE, text, text_size));
-	NONFAILING(*(host_mem + ADDR_VAR_USER_CODE + text_size) = 0xf4); // hlt
+	memcpy(host_mem + ADDR_VAR_USER_CODE, text, text_size);
+	*(host_mem + ADDR_VAR_USER_CODE + text_size) = 0xf4; // hlt
 
-	NONFAILING(*(host_mem + ADDR_VAR_HLT) = 0xf4); // hlt
-	NONFAILING(memcpy(host_mem + ADDR_VAR_SYSRET, "\x0f\x07\xf4", 3));
-	NONFAILING(memcpy(host_mem + ADDR_VAR_SYSEXIT, "\x0f\x35\xf4", 3));
+	*(host_mem + ADDR_VAR_HLT) = 0xf4; // hlt
+	memcpy(host_mem + ADDR_VAR_SYSRET, "\x0f\x07\xf4", 3);
+	memcpy(host_mem + ADDR_VAR_SYSEXIT, "\x0f\x35\xf4", 3);
 
-	NONFAILING(*(uint64*)(host_mem + ADDR_VAR_VMWRITE_FLD) = 0);
-	NONFAILING(*(uint64*)(host_mem + ADDR_VAR_VMWRITE_VAL) = 0);
+	*(uint64*)(host_mem + ADDR_VAR_VMWRITE_FLD) = 0;
+	*(uint64*)(host_mem + ADDR_VAR_VMWRITE_VAL) = 0;
 
 	if (opt_count > 2)
 		opt_count = 2;
 	for (i = 0; i < opt_count; i++) {
-		uint64 typ = 0;
-		uint64 val = 0;
-		NONFAILING(typ = opt_array_ptr[i].typ);
-		NONFAILING(val = opt_array_ptr[i].val);
+		uint64 typ = opt_array_ptr[i].typ;
+		uint64 val = opt_array_ptr[i].val;
 		switch (typ % 9) {
 		case 0:
 			sregs.cr0 ^= val & (CR0_MP | CR0_EM | CR0_ET | CR0_NE | CR0_WP | CR0_AM | CR0_NW | CR0_CD);
@@ -741,10 +734,10 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 			val &= ((1 << 8) | (1 << 9) | (1 << 10) | (1 << 12) | (1 << 13) | (1 << 14) |
 				(1 << 15) | (1 << 18) | (1 << 19) | (1 << 20) | (1 << 21));
 			regs.rflags ^= val;
-			NONFAILING(tss16_addr->flags ^= val);
-			NONFAILING(tss16_cpl3_addr->flags ^= val);
-			NONFAILING(tss32_addr->flags ^= val);
-			NONFAILING(tss32_cpl3_addr->flags ^= val);
+			tss16_addr->flags ^= val;
+			tss16_cpl3_addr->flags ^= val;
+			tss32_addr->flags ^= val;
+			tss32_cpl3_addr->flags ^= val;
 			break;
 		case 4:
 			seg_cs16.type = val & 0xf;
@@ -767,8 +760,8 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 			seg_ds64_cpl3.type = val & 0xf;
 			break;
 		case 8:
-			NONFAILING(*(uint64*)(host_mem + ADDR_VAR_VMWRITE_FLD) = (val & 0xffff));
-			NONFAILING(*(uint64*)(host_mem + ADDR_VAR_VMWRITE_VAL) = (val >> 16));
+			*(uint64*)(host_mem + ADDR_VAR_VMWRITE_FLD) = (val & 0xffff);
+			*(uint64*)(host_mem + ADDR_VAR_VMWRITE_VAL) = (val >> 16);
 			break;
 		default:
 			fail("bad kvm setup opt");

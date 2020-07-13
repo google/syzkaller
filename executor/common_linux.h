@@ -1327,15 +1327,13 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 		vecs[nfrags].iov_len = length;
 		nfrags++;
 	} else {
-		bool full = true;
-		uint32 i, count = 0;
-		NONFAILING(full = frags->full);
-		NONFAILING(count = frags->count);
+		bool full = frags->full;
+		uint32 count = frags->count;
 		if (count > MAX_FRAGS)
 			count = MAX_FRAGS;
+		uint32 i;
 		for (i = 0; i < count && length != 0; i++) {
-			uint32 size = 0;
-			NONFAILING(size = frags->frags[i]);
+			uint32 size = frags->frags[i];
 			if (size > length)
 				size = length;
 			vecs[nfrags].iov_base = data;
@@ -1437,8 +1435,8 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 	}
 
 	struct tcp_resources* res = (struct tcp_resources*)a0;
-	NONFAILING(res->seq = htonl((ntohl(tcphdr->seq) + (uint32)a1)));
-	NONFAILING(res->ack = htonl((ntohl(tcphdr->ack_seq) + (uint32)a2)));
+	res->seq = htonl((ntohl(tcphdr->seq) + (uint32)a1));
+	res->ack = htonl((ntohl(tcphdr->ack_seq) + (uint32)a2));
 
 	debug("extracted seq: %08x\n", res->seq);
 	debug("extracted ack: %08x\n", res->ack);
@@ -1484,7 +1482,7 @@ static long syz_open_dev(volatile long a0, volatile long a1, volatile long a2)
 		// syz_open_dev(dev strconst, id intptr, flags flags[open_flags]) fd
 		char buf[1024];
 		char* hash;
-		NONFAILING(strncpy(buf, (char*)a0, sizeof(buf) - 1));
+		strncpy(buf, (char*)a0, sizeof(buf) - 1);
 		buf[sizeof(buf) - 1] = 0;
 		while ((hash = strchr(buf, '#'))) {
 			*hash = '0' + (char)(a1 % 10); // 10 devices should be enough for everyone.
@@ -1508,11 +1506,11 @@ static long syz_open_procfs(volatile long a0, volatile long a1)
 	char buf[128];
 	memset(buf, 0, sizeof(buf));
 	if (a0 == 0) {
-		NONFAILING(snprintf(buf, sizeof(buf), "/proc/self/%s", (char*)a1));
+		snprintf(buf, sizeof(buf), "/proc/self/%s", (char*)a1);
 	} else if (a0 == -1) {
-		NONFAILING(snprintf(buf, sizeof(buf), "/proc/thread-self/%s", (char*)a1));
+		snprintf(buf, sizeof(buf), "/proc/thread-self/%s", (char*)a1);
 	} else {
-		NONFAILING(snprintf(buf, sizeof(buf), "/proc/self/task/%d/%s", (int)a0, (char*)a1));
+		snprintf(buf, sizeof(buf), "/proc/self/task/%d/%s", (int)a0, (char*)a1);
 	}
 	int fd = open(buf, O_RDWR);
 	if (fd == -1)
@@ -1591,7 +1589,7 @@ static long syz_genetlink_get_family_id(volatile long name)
 	genlhdr->cmd = CTRL_CMD_GETFAMILY;
 	attr->nla_type = CTRL_ATTR_FAMILY_NAME;
 	attr->nla_len = sizeof(*attr) + GENL_NAMSIZ;
-	NONFAILING(strncpy((char*)(attr + 1), (char*)name, GENL_NAMSIZ));
+	strncpy((char*)(attr + 1), (char*)name, GENL_NAMSIZ);
 	struct iovec iov = {hdr, hdr->nlmsg_len};
 	struct sockaddr_nl addr = {0};
 	addr.nl_family = AF_NETLINK;
@@ -1694,7 +1692,7 @@ static long syz_read_part_table(volatile unsigned long size, volatile unsigned l
 	char loopname[64], linkname[64];
 	int loopfd, err = 0, res = -1;
 	unsigned long i, j;
-	NONFAILING(size = fs_image_segment_check(size, nsegs, segments));
+	size = fs_image_segment_check(size, nsegs, segments);
 	int memfd = syscall(sys_memfd_create, "syz_read_part_table", 0);
 	if (memfd == -1) {
 		err = errno;
@@ -1706,9 +1704,7 @@ static long syz_read_part_table(volatile unsigned long size, volatile unsigned l
 	}
 	for (i = 0; i < nsegs; i++) {
 		struct fs_image_segment* segs = (struct fs_image_segment*)segments;
-		int res1 = 0;
-		NONFAILING(res1 = pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset));
-		if (res1 < 0) {
+		if (pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset) < 0) {
 			debug("syz_read_part_table: pwrite[%u] failed: %d\n", (int)i, errno);
 		}
 	}
@@ -1783,7 +1779,7 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 	int loopfd, err = 0, res = -1;
 	unsigned long i;
 
-	NONFAILING(size = fs_image_segment_check(size, nsegs, segments));
+	size = fs_image_segment_check(size, nsegs, segments);
 	int memfd = syscall(sys_memfd_create, "syz_mount_image", 0);
 	if (memfd == -1) {
 		err = errno;
@@ -1795,9 +1791,7 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 	}
 	for (i = 0; i < nsegs; i++) {
 		struct fs_image_segment* segs = (struct fs_image_segment*)segments;
-		int res1 = 0;
-		NONFAILING(res1 = pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset));
-		if (res1 < 0) {
+		if (pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset) < 0) {
 			debug("syz_mount_image: pwrite[%u] failed: %d\n", (int)i, errno);
 		}
 	}
@@ -1821,10 +1815,10 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 	}
 	mkdir((char*)dir, 0777);
 	memset(fs, 0, sizeof(fs));
-	NONFAILING(strncpy(fs, (char*)fsarg, sizeof(fs) - 1));
+	strncpy(fs, (char*)fsarg, sizeof(fs) - 1);
 	memset(opts, 0, sizeof(opts));
 	// Leave some space for the additional options we append below.
-	NONFAILING(strncpy(opts, (char*)optsarg, sizeof(opts) - 32));
+	strncpy(opts, (char*)optsarg, sizeof(opts) - 32);
 	if (strcmp(fs, "iso9660") == 0) {
 		flags |= MS_RDONLY;
 	} else if (strncmp(fs, "ext", 3) == 0) {

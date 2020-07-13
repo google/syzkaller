@@ -652,9 +652,7 @@ static struct usb_device_index* add_usb_index(int fd, const char* dev, size_t de
 	if (i >= USB_MAX_FDS)
 		return NULL;
 
-	int rv = 0;
-	NONFAILING(rv = parse_usb_descriptor(dev, dev_len, &usb_devices[i].index));
-	if (!rv)
+	if (!parse_usb_descriptor(dev, dev_len, &usb_devices[i].index))
 		return NULL;
 
 	__atomic_store_n(&usb_devices[i].fd, fd, __ATOMIC_RELEASE);
@@ -1426,7 +1424,7 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 	debug("syz_usb_connect: add_usb_index success\n");
 
 #if USB_DEBUG
-	NONFAILING(analyze_usb_device(index));
+	analyze_usb_device(index);
 #endif
 
 	rv = vhci_setport(fd, 1);
@@ -1468,9 +1466,7 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 		char data[4096];
 
 		if (req.u.ctrl.bmRequestType & UE_DIR_IN) {
-			bool response_found = false;
-			NONFAILING(response_found = lookup_connect_response_in(fd, descs, (const struct usb_ctrlrequest*)&req.u.ctrl, &response_data, &response_length));
-			if (!response_found) {
+			if (!lookup_connect_response_in(fd, descs, (const struct usb_ctrlrequest*)&req.u.ctrl, &response_data, &response_length)) {
 				debug("syz_usb_connect: unknown control IN request\n");
 				goto err;
 			}
@@ -1886,8 +1882,8 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 	}
 
 	struct tcp_resources* res = (struct tcp_resources*)a0;
-	NONFAILING(res->seq = htonl((ntohl(tcphdr->th_seq) + (uint32)a1)));
-	NONFAILING(res->ack = htonl((ntohl(tcphdr->th_ack) + (uint32)a2)));
+	res->seq = htonl(ntohl(tcphdr->th_seq) + (uint32)a1);
+	res->ack = htonl(ntohl(tcphdr->th_ack) + (uint32)a2);
 
 	debug("extracted seq: %08x\n", res->seq);
 	debug("extracted ack: %08x\n", res->ack);
@@ -3515,15 +3511,13 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 		vecs[nfrags].iov_len = length;
 		nfrags++;
 	} else {
-		bool full = true;
-		uint32 i, count = 0;
-		NONFAILING(full = frags->full);
-		NONFAILING(count = frags->count);
+		bool full = frags->full;
+		uint32 count = frags->count;
 		if (count > MAX_FRAGS)
 			count = MAX_FRAGS;
+		uint32 i;
 		for (i = 0; i < count && length != 0; i++) {
-			uint32 size = 0;
-			NONFAILING(size = frags->frags[i]);
+			uint32 size = frags->frags[i];
 			if (size > length)
 				size = length;
 			vecs[nfrags].iov_base = data;
@@ -3618,8 +3612,8 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 	}
 
 	struct tcp_resources* res = (struct tcp_resources*)a0;
-	NONFAILING(res->seq = htonl((ntohl(tcphdr->seq) + (uint32)a1)));
-	NONFAILING(res->ack = htonl((ntohl(tcphdr->ack_seq) + (uint32)a2)));
+	res->seq = htonl((ntohl(tcphdr->seq) + (uint32)a1));
+	res->ack = htonl((ntohl(tcphdr->ack_seq) + (uint32)a2));
 
 	debug("extracted seq: %08x\n", res->seq);
 	debug("extracted ack: %08x\n", res->ack);
@@ -3735,9 +3729,7 @@ static struct usb_device_index* add_usb_index(int fd, const char* dev, size_t de
 	if (i >= USB_MAX_FDS)
 		return NULL;
 
-	int rv = 0;
-	NONFAILING(rv = parse_usb_descriptor(dev, dev_len, &usb_devices[i].index));
-	if (!rv)
+	if (!parse_usb_descriptor(dev, dev_len, &usb_devices[i].index))
 		return NULL;
 
 	__atomic_store_n(&usb_devices[i].fd, fd, __ATOMIC_RELEASE);
@@ -4707,7 +4699,7 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len, const ch
 	debug("syz_usb_connect: add_usb_index success\n");
 
 #if USB_DEBUG
-	NONFAILING(analyze_usb_device(index));
+	analyze_usb_device(index);
 #endif
 	char device[32];
 	sprintf(&device[0], "dummy_udc.%llu", procid);
@@ -4750,9 +4742,7 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len, const ch
 		uint32 response_length = 0;
 
 		if (event.ctrl.bRequestType & USB_DIR_IN) {
-			bool response_found = false;
-			NONFAILING(response_found = lookup_connect_response_in(fd, descs, &event.ctrl, &response_data, &response_length));
-			if (!response_found) {
+			if (!lookup_connect_response_in(fd, descs, &event.ctrl, &response_data, &response_length)) {
 				debug("syz_usb_connect: unknown request, stalling\n");
 				usb_raw_ep0_stall(fd);
 				continue;
@@ -4862,13 +4852,11 @@ static volatile long syz_usb_control_io(volatile long a0, volatile long a1, vola
 	analyze_control_request(fd, &event.ctrl);
 #endif
 
-	bool response_found = false;
 	char* response_data = NULL;
 	uint32 response_length = 0;
 
 	if ((event.ctrl.bRequestType & USB_DIR_IN) && event.ctrl.wLength) {
-		NONFAILING(response_found = lookup_control_response(descs, resps, &event.ctrl, &response_data, &response_length));
-		if (!response_found) {
+		if (!lookup_control_response(descs, resps, &event.ctrl, &response_data, &response_length)) {
 			debug("syz_usb_connect: unknown request, stalling\n");
 			usb_raw_ep0_stall(fd);
 			return -1;
@@ -4948,7 +4936,7 @@ static volatile long syz_usb_ep_write(volatile long a0, volatile long a1, volati
 	if (len > sizeof(io_data.data))
 		len = sizeof(io_data.data);
 	io_data.inner.length = len;
-	NONFAILING(memcpy(&io_data.data[0], data, len));
+	memcpy(&io_data.data[0], data, len);
 
 	int rv = usb_raw_ep_write(fd, (struct usb_raw_ep_io*)&io_data);
 	if (rv < 0) {
@@ -4990,7 +4978,7 @@ static volatile long syz_usb_ep_read(volatile long a0, volatile long a1, volatil
 		return rv;
 	}
 
-	NONFAILING(memcpy(&data[0], &io_data.data[0], io_data.inner.length));
+	memcpy(&data[0], &io_data.data[0], io_data.inner.length);
 
 	debug("syz_usb_ep_read: received data:\n");
 	debug_dump_data(&io_data.data[0], io_data.inner.length);
@@ -5031,7 +5019,7 @@ static long syz_open_dev(volatile long a0, volatile long a1, volatile long a2)
 	} else {
 		char buf[1024];
 		char* hash;
-		NONFAILING(strncpy(buf, (char*)a0, sizeof(buf) - 1));
+		strncpy(buf, (char*)a0, sizeof(buf) - 1);
 		buf[sizeof(buf) - 1] = 0;
 		while ((hash = strchr(buf, '#'))) {
 			*hash = '0' + (char)(a1 % 10);
@@ -5054,11 +5042,11 @@ static long syz_open_procfs(volatile long a0, volatile long a1)
 	char buf[128];
 	memset(buf, 0, sizeof(buf));
 	if (a0 == 0) {
-		NONFAILING(snprintf(buf, sizeof(buf), "/proc/self/%s", (char*)a1));
+		snprintf(buf, sizeof(buf), "/proc/self/%s", (char*)a1);
 	} else if (a0 == -1) {
-		NONFAILING(snprintf(buf, sizeof(buf), "/proc/thread-self/%s", (char*)a1));
+		snprintf(buf, sizeof(buf), "/proc/thread-self/%s", (char*)a1);
 	} else {
-		NONFAILING(snprintf(buf, sizeof(buf), "/proc/self/task/%d/%s", (int)a0, (char*)a1));
+		snprintf(buf, sizeof(buf), "/proc/self/task/%d/%s", (int)a0, (char*)a1);
 	}
 	int fd = open(buf, O_RDWR);
 	if (fd == -1)
@@ -5133,7 +5121,7 @@ static long syz_genetlink_get_family_id(volatile long name)
 	genlhdr->cmd = CTRL_CMD_GETFAMILY;
 	attr->nla_type = CTRL_ATTR_FAMILY_NAME;
 	attr->nla_len = sizeof(*attr) + GENL_NAMSIZ;
-	NONFAILING(strncpy((char*)(attr + 1), (char*)name, GENL_NAMSIZ));
+	strncpy((char*)(attr + 1), (char*)name, GENL_NAMSIZ);
 	struct iovec iov = {hdr, hdr->nlmsg_len};
 	struct sockaddr_nl addr = {0};
 	addr.nl_family = AF_NETLINK;
@@ -5231,7 +5219,7 @@ static long syz_read_part_table(volatile unsigned long size, volatile unsigned l
 	char loopname[64], linkname[64];
 	int loopfd, err = 0, res = -1;
 	unsigned long i, j;
-	NONFAILING(size = fs_image_segment_check(size, nsegs, segments));
+	size = fs_image_segment_check(size, nsegs, segments);
 	int memfd = syscall(sys_memfd_create, "syz_read_part_table", 0);
 	if (memfd == -1) {
 		err = errno;
@@ -5243,9 +5231,7 @@ static long syz_read_part_table(volatile unsigned long size, volatile unsigned l
 	}
 	for (i = 0; i < nsegs; i++) {
 		struct fs_image_segment* segs = (struct fs_image_segment*)segments;
-		int res1 = 0;
-		NONFAILING(res1 = pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset));
-		if (res1 < 0) {
+		if (pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset) < 0) {
 			debug("syz_read_part_table: pwrite[%u] failed: %d\n", (int)i, errno);
 		}
 	}
@@ -5312,7 +5298,7 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 	int loopfd, err = 0, res = -1;
 	unsigned long i;
 
-	NONFAILING(size = fs_image_segment_check(size, nsegs, segments));
+	size = fs_image_segment_check(size, nsegs, segments);
 	int memfd = syscall(sys_memfd_create, "syz_mount_image", 0);
 	if (memfd == -1) {
 		err = errno;
@@ -5324,9 +5310,7 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 	}
 	for (i = 0; i < nsegs; i++) {
 		struct fs_image_segment* segs = (struct fs_image_segment*)segments;
-		int res1 = 0;
-		NONFAILING(res1 = pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset));
-		if (res1 < 0) {
+		if (pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset) < 0) {
 			debug("syz_mount_image: pwrite[%u] failed: %d\n", (int)i, errno);
 		}
 	}
@@ -5350,9 +5334,9 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 	}
 	mkdir((char*)dir, 0777);
 	memset(fs, 0, sizeof(fs));
-	NONFAILING(strncpy(fs, (char*)fsarg, sizeof(fs) - 1));
+	strncpy(fs, (char*)fsarg, sizeof(fs) - 1);
 	memset(opts, 0, sizeof(opts));
-	NONFAILING(strncpy(opts, (char*)optsarg, sizeof(opts) - 32));
+	strncpy(opts, (char*)optsarg, sizeof(opts) - 32);
 	if (strcmp(fs, "iso9660") == 0) {
 		flags |= MS_RDONLY;
 	} else if (strncmp(fs, "ext", 3) == 0) {
@@ -5605,16 +5589,16 @@ static void fill_segment_descriptor(uint64* dt, uint64* lt, struct kvm_segment* 
 	uint16 index = seg->selector >> 3;
 	uint64 limit = seg->g ? seg->limit >> 12 : seg->limit;
 	uint64 sd = (limit & 0xffff) | (seg->base & 0xffffff) << 16 | (uint64)seg->type << 40 | (uint64)seg->s << 44 | (uint64)seg->dpl << 45 | (uint64)seg->present << 47 | (limit & 0xf0000ULL) << 48 | (uint64)seg->avl << 52 | (uint64)seg->l << 53 | (uint64)seg->db << 54 | (uint64)seg->g << 55 | (seg->base & 0xff000000ULL) << 56;
-	NONFAILING(dt[index] = sd);
-	NONFAILING(lt[index] = sd);
+	dt[index] = sd;
+	lt[index] = sd;
 }
 
 static void fill_segment_descriptor_dword(uint64* dt, uint64* lt, struct kvm_segment* seg)
 {
 	fill_segment_descriptor(dt, lt, seg);
 	uint16 index = seg->selector >> 3;
-	NONFAILING(dt[index + 1] = 0);
-	NONFAILING(lt[index + 1] = 0);
+	dt[index + 1] = 0;
+	lt[index + 1] = 0;
 }
 
 static void setup_syscall_msrs(int cpufd, uint16 sel_cs, uint16 sel_cs_cpl3)
@@ -5742,12 +5726,9 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 	const uintptr_t guest_mem = 0;
 
 	(void)text_count;
-	int text_type = 0;
-	const void* text = 0;
-	uintptr_t text_size = 0;
-	NONFAILING(text_type = text_array_ptr[0].typ);
-	NONFAILING(text = text_array_ptr[0].text);
-	NONFAILING(text_size = text_array_ptr[0].size);
+	int text_type = text_array_ptr[0].typ;
+	const void* text = text_array_ptr[0].text;
+	uintptr_t text_size = text_array_ptr[0].size;
 
 	uintptr_t i;
 	for (i = 0; i < guest_mem_size / page_size; i++) {
@@ -5960,7 +5941,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 				sregs.cs.base = 0;
 			}
 
-			NONFAILING(*(host_mem + ADDR_TEXT) = 0xf4);
+			*(host_mem + ADDR_TEXT) = 0xf4;
 			host_text = host_mem + 0x8000;
 
 			ioctl(cpufd, KVM_SMI, 0);
@@ -5976,7 +5957,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 			if (flags & KVM_SETUP_PAGING) {
 				uint64 pd_addr = guest_mem + ADDR_PD;
 				uint64* pd = (uint64*)(host_mem + ADDR_PD);
-				NONFAILING(pd[0] = PDE32_PRESENT | PDE32_RW | PDE32_USER | PDE32_PS);
+				pd[0] = PDE32_PRESENT | PDE32_RW | PDE32_USER | PDE32_PS;
 				sregs.cr3 = pd_addr;
 				sregs.cr4 |= CR4_PSE;
 
@@ -6013,7 +5994,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 			sregs.cs = seg_cs32;
 			sregs.ds = sregs.es = sregs.fs = sregs.gs = sregs.ss = seg_ds32;
 
-			NONFAILING(*(host_mem + ADDR_TEXT) = 0xf4);
+			*(host_mem + ADDR_TEXT) = 0xf4;
 			host_text = host_mem + 0x8000;
 
 			ioctl(cpufd, KVM_SMI, 0);
@@ -6023,7 +6004,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 
 			uint64 pd_addr = guest_mem + ADDR_PD;
 			uint64* pd = (uint64*)(host_mem + ADDR_PD);
-			NONFAILING(pd[0] = PDE32_PRESENT | PDE32_RW | PDE32_USER | PDE32_PS);
+			pd[0] = PDE32_PRESENT | PDE32_RW | PDE32_USER | PDE32_PS;
 			sregs.cr3 = pd_addr;
 			sregs.cr4 |= CR4_PSE;
 
@@ -6052,19 +6033,19 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 		uint64* pdpt = (uint64*)(host_mem + ADDR_PDP);
 		uint64 pd_addr = guest_mem + ADDR_PD;
 		uint64* pd = (uint64*)(host_mem + ADDR_PD);
-		NONFAILING(pml4[0] = PDE64_PRESENT | PDE64_RW | PDE64_USER | pdpt_addr);
-		NONFAILING(pdpt[0] = PDE64_PRESENT | PDE64_RW | PDE64_USER | pd_addr);
-		NONFAILING(pd[0] = PDE64_PRESENT | PDE64_RW | PDE64_USER | PDE64_PS);
+		pml4[0] = PDE64_PRESENT | PDE64_RW | PDE64_USER | pdpt_addr;
+		pdpt[0] = PDE64_PRESENT | PDE64_RW | PDE64_USER | pd_addr;
+		pd[0] = PDE64_PRESENT | PDE64_RW | PDE64_USER | PDE64_PS;
 		sregs.cr3 = pml4_addr;
 		sregs.cr4 |= CR4_PAE;
 
 		if (flags & KVM_SETUP_VM) {
 			sregs.cr0 |= CR0_NE;
 
-			NONFAILING(*((uint64*)(host_mem + ADDR_VAR_VMXON_PTR)) = ADDR_VAR_VMXON);
-			NONFAILING(*((uint64*)(host_mem + ADDR_VAR_VMCS_PTR)) = ADDR_VAR_VMCS);
-			NONFAILING(memcpy(host_mem + ADDR_VAR_VMEXIT_CODE, kvm_asm64_vm_exit, sizeof(kvm_asm64_vm_exit) - 1));
-			NONFAILING(*((uint64*)(host_mem + ADDR_VAR_VMEXIT_PTR)) = ADDR_VAR_VMEXIT_CODE);
+			*((uint64*)(host_mem + ADDR_VAR_VMXON_PTR)) = ADDR_VAR_VMXON;
+			*((uint64*)(host_mem + ADDR_VAR_VMCS_PTR)) = ADDR_VAR_VMCS;
+			memcpy(host_mem + ADDR_VAR_VMEXIT_CODE, kvm_asm64_vm_exit, sizeof(kvm_asm64_vm_exit) - 1);
+			*((uint64*)(host_mem + ADDR_VAR_VMEXIT_PTR)) = ADDR_VAR_VMEXIT_CODE;
 
 			text_prefix = kvm_asm64_init_vm;
 			text_prefix_size = sizeof(kvm_asm64_init_vm) - 1;
@@ -6087,7 +6068,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 	tss16.es = tss16.ds = tss16.ss = SEL_DS16;
 	tss16.ldt = SEL_LDT;
 	struct tss16* tss16_addr = (struct tss16*)(host_mem + seg_tss16_2.base);
-	NONFAILING(memcpy(tss16_addr, &tss16, sizeof(tss16)));
+	memcpy(tss16_addr, &tss16, sizeof(tss16));
 
 	memset(&tss16, 0, sizeof(tss16));
 	tss16.ss0 = tss16.ss1 = tss16.ss2 = SEL_DS16;
@@ -6098,7 +6079,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 	tss16.es = tss16.ds = tss16.ss = SEL_DS16_CPL3;
 	tss16.ldt = SEL_LDT;
 	struct tss16* tss16_cpl3_addr = (struct tss16*)(host_mem + seg_tss16_cpl3.base);
-	NONFAILING(memcpy(tss16_cpl3_addr, &tss16, sizeof(tss16)));
+	memcpy(tss16_cpl3_addr, &tss16, sizeof(tss16));
 
 	struct tss32 tss32;
 	memset(&tss32, 0, sizeof(tss32));
@@ -6110,7 +6091,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 	tss32.cr3 = sregs.cr3;
 	tss32.io_bitmap = offsetof(struct tss32, io_bitmap);
 	struct tss32* tss32_addr = (struct tss32*)(host_mem + seg_tss32_vm86.base);
-	NONFAILING(memcpy(tss32_addr, &tss32, sizeof(tss32)));
+	memcpy(tss32_addr, &tss32, sizeof(tss32));
 
 	memset(&tss32, 0, sizeof(tss32));
 	tss32.ss0 = tss32.ss1 = tss32.ss2 = SEL_DS32;
@@ -6124,7 +6105,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 	tss32.cr3 = sregs.cr3;
 	tss32.io_bitmap = offsetof(struct tss32, io_bitmap);
 	struct tss32* tss32_cpl3_addr = (struct tss32*)(host_mem + seg_tss32_2.base);
-	NONFAILING(memcpy(tss32_cpl3_addr, &tss32, sizeof(tss32)));
+	memcpy(tss32_cpl3_addr, &tss32, sizeof(tss32));
 
 	struct tss64 tss64;
 	memset(&tss64, 0, sizeof(tss64));
@@ -6133,7 +6114,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 	tss64.rsp[2] = ADDR_STACK0;
 	tss64.io_bitmap = offsetof(struct tss64, io_bitmap);
 	struct tss64* tss64_addr = (struct tss64*)(host_mem + seg_tss64.base);
-	NONFAILING(memcpy(tss64_addr, &tss64, sizeof(tss64)));
+	memcpy(tss64_addr, &tss64, sizeof(tss64));
 
 	memset(&tss64, 0, sizeof(tss64));
 	tss64.rsp[0] = ADDR_STACK0;
@@ -6141,42 +6122,38 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 	tss64.rsp[2] = ADDR_STACK0;
 	tss64.io_bitmap = offsetof(struct tss64, io_bitmap);
 	struct tss64* tss64_cpl3_addr = (struct tss64*)(host_mem + seg_tss64_cpl3.base);
-	NONFAILING(memcpy(tss64_cpl3_addr, &tss64, sizeof(tss64)));
+	memcpy(tss64_cpl3_addr, &tss64, sizeof(tss64));
 
 	if (text_size > 1000)
 		text_size = 1000;
 	if (text_prefix) {
-		NONFAILING(memcpy(host_text, text_prefix, text_prefix_size));
-		void* patch = 0;
-		NONFAILING(patch = memmem(host_text, text_prefix_size, "\xde\xc0\xad\x0b", 4));
+		memcpy(host_text, text_prefix, text_prefix_size);
+		void* patch = memmem(host_text, text_prefix_size, "\xde\xc0\xad\x0b", 4);
 		if (patch)
-			NONFAILING(*((uint32*)patch) = guest_mem + ADDR_TEXT + ((char*)patch - host_text) + 6);
+			*((uint32*)patch) = guest_mem + ADDR_TEXT + ((char*)patch - host_text) + 6;
 		uint16 magic = PREFIX_SIZE;
-		patch = 0;
-		NONFAILING(patch = memmem(host_text, text_prefix_size, &magic, sizeof(magic)));
+		patch = memmem(host_text, text_prefix_size, &magic, sizeof(magic));
 		if (patch)
-			NONFAILING(*((uint16*)patch) = guest_mem + ADDR_TEXT + text_prefix_size);
+			*((uint16*)patch) = guest_mem + ADDR_TEXT + text_prefix_size;
 	}
-	NONFAILING(memcpy((void*)(host_text + text_prefix_size), text, text_size));
-	NONFAILING(*(host_text + text_prefix_size + text_size) = 0xf4);
+	memcpy((void*)(host_text + text_prefix_size), text, text_size);
+	*(host_text + text_prefix_size + text_size) = 0xf4;
 
-	NONFAILING(memcpy(host_mem + ADDR_VAR_USER_CODE, text, text_size));
-	NONFAILING(*(host_mem + ADDR_VAR_USER_CODE + text_size) = 0xf4);
+	memcpy(host_mem + ADDR_VAR_USER_CODE, text, text_size);
+	*(host_mem + ADDR_VAR_USER_CODE + text_size) = 0xf4;
 
-	NONFAILING(*(host_mem + ADDR_VAR_HLT) = 0xf4);
-	NONFAILING(memcpy(host_mem + ADDR_VAR_SYSRET, "\x0f\x07\xf4", 3));
-	NONFAILING(memcpy(host_mem + ADDR_VAR_SYSEXIT, "\x0f\x35\xf4", 3));
+	*(host_mem + ADDR_VAR_HLT) = 0xf4;
+	memcpy(host_mem + ADDR_VAR_SYSRET, "\x0f\x07\xf4", 3);
+	memcpy(host_mem + ADDR_VAR_SYSEXIT, "\x0f\x35\xf4", 3);
 
-	NONFAILING(*(uint64*)(host_mem + ADDR_VAR_VMWRITE_FLD) = 0);
-	NONFAILING(*(uint64*)(host_mem + ADDR_VAR_VMWRITE_VAL) = 0);
+	*(uint64*)(host_mem + ADDR_VAR_VMWRITE_FLD) = 0;
+	*(uint64*)(host_mem + ADDR_VAR_VMWRITE_VAL) = 0;
 
 	if (opt_count > 2)
 		opt_count = 2;
 	for (i = 0; i < opt_count; i++) {
-		uint64 typ = 0;
-		uint64 val = 0;
-		NONFAILING(typ = opt_array_ptr[i].typ);
-		NONFAILING(val = opt_array_ptr[i].val);
+		uint64 typ = opt_array_ptr[i].typ;
+		uint64 val = opt_array_ptr[i].val;
 		switch (typ % 9) {
 		case 0:
 			sregs.cr0 ^= val & (CR0_MP | CR0_EM | CR0_ET | CR0_NE | CR0_WP | CR0_AM | CR0_NW | CR0_CD);
@@ -6193,10 +6170,10 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 			val &= ((1 << 8) | (1 << 9) | (1 << 10) | (1 << 12) | (1 << 13) | (1 << 14) |
 				(1 << 15) | (1 << 18) | (1 << 19) | (1 << 20) | (1 << 21));
 			regs.rflags ^= val;
-			NONFAILING(tss16_addr->flags ^= val);
-			NONFAILING(tss16_cpl3_addr->flags ^= val);
-			NONFAILING(tss32_addr->flags ^= val);
-			NONFAILING(tss32_cpl3_addr->flags ^= val);
+			tss16_addr->flags ^= val;
+			tss16_cpl3_addr->flags ^= val;
+			tss32_addr->flags ^= val;
+			tss32_cpl3_addr->flags ^= val;
 			break;
 		case 4:
 			seg_cs16.type = val & 0xf;
@@ -6219,8 +6196,8 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 			seg_ds64_cpl3.type = val & 0xf;
 			break;
 		case 8:
-			NONFAILING(*(uint64*)(host_mem + ADDR_VAR_VMWRITE_FLD) = (val & 0xffff));
-			NONFAILING(*(uint64*)(host_mem + ADDR_VAR_VMWRITE_VAL) = (val >> 16));
+			*(uint64*)(host_mem + ADDR_VAR_VMWRITE_FLD) = (val & 0xffff);
+			*(uint64*)(host_mem + ADDR_VAR_VMWRITE_VAL) = (val >> 16);
 			break;
 		default:
 			fail("bad kvm setup opt");
@@ -6294,12 +6271,9 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 	const uintptr_t guest_mem_size = 24 * page_size;
 
 	(void)text_count;
-	int text_type = 0;
-	const void* text = 0;
-	int text_size = 0;
-	NONFAILING(text_type = text_array_ptr[0].typ);
-	NONFAILING(text = text_array_ptr[0].text);
-	NONFAILING(text_size = text_array_ptr[0].size);
+	int text_type = text_array_ptr[0].typ;
+	const void* text = text_array_ptr[0].text;
+	int text_size = text_array_ptr[0].size;
 	(void)text_type;
 	(void)opt_array_ptr;
 
@@ -6308,10 +6282,8 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 		opt_count = 1;
 	uintptr_t i;
 	for (i = 0; i < opt_count; i++) {
-		uint64 typ = 0;
-		uint64 val = 0;
-		NONFAILING(typ = opt_array_ptr[i].typ);
-		NONFAILING(val = opt_array_ptr[i].val);
+		uint64 typ = opt_array_ptr[i].typ;
+		uint64 val = opt_array_ptr[i].val;
 		switch (typ) {
 		case 1:
 			features = val;
@@ -6336,7 +6308,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 
 	if (text_size > 1000)
 		text_size = 1000;
-	NONFAILING(memcpy(host_mem, text, text_size));
+	memcpy(host_mem, text, text_size);
 
 	return 0;
 }
@@ -8601,7 +8573,7 @@ static long syz_execute_func(volatile long text)
 	asm volatile("" ::"r"(0l), "r"(1l), "r"(2l), "r"(3l), "r"(4l), "r"(5l), "r"(6l),
 		     "r"(7l), "r"(8l), "r"(9l), "r"(10l), "r"(11l), "r"(12l), "r"(13l));
 #endif
-	NONFAILING(((void (*)(void))(text))());
+	((void (*)(void))(text))();
 	return 0;
 }
 #endif
