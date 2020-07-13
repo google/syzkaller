@@ -1,5 +1,5 @@
-{{with $br := .}}{{with $bisect := selectBisect .}}{{if $bisect.Commit}}{{if $bisect.Fix}}syzbot suspects this bug was fixed by commit:
-{{else}}syzbot has bisected this bug to:
+{{with $br := .}}{{with $bisect := selectBisect .}}{{if $bisect.Commit}}{{if $bisect.Fix}}syzbot suspects this issue was fixed by commit:
+{{else}}syzbot has bisected this issue to:
 {{end}}
 commit {{$bisect.Commit.Hash}}
 Author: {{$bisect.Commit.AuthorName}} <{{$bisect.Commit.Author}}>
@@ -9,12 +9,12 @@ Date:   {{formatKernelTime $bisect.Commit.Date}}
 {{else if $bisect.Commits}}Bisection is inconclusive: the {{if $bisect.Fix}}fix{{else}}first bad{{end}} commit could be any of:
 {{range $com := $bisect.Commits}}
 {{formatShortHash $com.Hash}} {{$com.Title}}{{end}}
-{{else}}Bisection is inconclusive: the bug happens on the {{if $bisect.Fix}}latest{{else}}oldest{{end}} tested release.
+{{else}}Bisection is inconclusive: the issue happens on the {{if $bisect.Fix}}latest{{else}}oldest{{end}} tested release.
 {{end}}
 bisection log:  {{$bisect.LogLink}}
 {{if $bisect.Commit}}start commit:   {{else if $bisect.Commits}}start commit:   {{else}}{{if $bisect.Fix}}latest commit:  {{else}}oldest commit:  {{end}}{{end}}{{formatShortHash $br.KernelCommit}} {{formatCommitTableTitle $br.KernelCommitTitle}}
 git tree:       {{$br.KernelRepoAlias}}
-{{if $bisect.CrashReportLink}}final crash:    {{$bisect.CrashReportLink}}
+{{if $bisect.CrashReportLink}}final oops:     {{$bisect.CrashReportLink}}
 {{end}}{{if $bisect.CrashLogLink}}console output: {{$bisect.CrashLogLink}}
 {{end}}{{if $br.KernelConfigLink}}kernel config:  {{$br.KernelConfigLink}}
 {{end}}dashboard link: {{$br.Link}}
@@ -22,7 +22,7 @@ git tree:       {{$br.KernelRepoAlias}}
 {{end}}{{if $br.ReproSyzLink}}syz repro:      {{$br.ReproSyzLink}}
 {{end}}{{if $br.ReproCLink}}C reproducer:   {{$br.ReproCLink}}
 {{end}}{{if $bisect.Fix}}
-If the result looks correct, please mark the bug fixed by replying with:
+If the result looks correct, please mark the issue as fixed by replying with:
 
 #syz fix: {{$bisect.Commit.Title}}
 {{else}}{{if $bisect.Commit}}
@@ -30,4 +30,4 @@ Reported-by: {{$br.CreditEmail}}
 Fixes: {{formatTagHash $bisect.Commit.Hash}} ("{{$bisect.Commit.Title}}")
 {{end}}{{end}}
 For information about bisection process see: https://goo.gl/tpsmEJ#bisection
-{{end}}{{end}}
+{{- end}}{{- end}}
