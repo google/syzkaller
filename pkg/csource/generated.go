@@ -3566,23 +3566,22 @@ static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile lon
 	char* sqe = (char*)a2;
 	uint32 sqes_index = (uint32)a3;
 
-	uint32 sq_ring_mask, *sq_tail_ptr, sq_tail, sq_ring_entries, cq_ring_entries, *sq_array;
-	uint32_t sq_array_off;
-	char* sqe_dest;
-
+	uint32 sq_ring_entries, cq_ring_entries;
 	NONFAILING(sq_ring_entries = *(uint32*)(sq_ring_ptr + SQ_RING_ENTRIES_OFFSET));
 	NONFAILING(cq_ring_entries = *(uint32*)(sq_ring_ptr + CQ_RING_ENTRIES_OFFSET));
-	sq_array_off = SQ_ARRAY_OFFSET(sq_ring_entries, cq_ring_entries);
-	sqes_index %= sq_ring_entries;
-	NONFAILING(sqe_dest = sqes_ptr + sqes_index);
+	uint32_t sq_array_off = SQ_ARRAY_OFFSET(sq_ring_entries, cq_ring_entries);
+	if (sq_ring_entries)
+		sqes_index %= sq_ring_entries;
+	char* sqe_dest = sqes_ptr + sqes_index * SIZEOF_IO_URING_SQE;
 	NONFAILING(memcpy(sqe_dest, sqe, sizeof(char) * SIZEOF_IO_URING_SQE));
+	uint32 sq_ring_mask, *sq_tail_ptr, sq_tail, sq_tail_next, *sq_array;
 	NONFAILING(sq_ring_mask = *(uint32*)(sq_ring_ptr + SQ_RING_MASK_OFFSET));
-	NONFAILING(sq_tail_ptr = (uint32*)(sq_ring_ptr + SQ_TAIL_OFFSET));
+	sq_tail_ptr = (uint32*)(sq_ring_ptr + SQ_TAIL_OFFSET);
 	NONFAILING(sq_tail = *sq_tail_ptr & sq_ring_mask);
+	NONFAILING(sq_tail_next = *sq_tail_ptr + 1);
 	NONFAILING(sq_array = *(uint32**)(sq_ring_ptr + sq_array_off));
 	NONFAILING(sq_array[sq_tail] = sqes_index);
-	sq_tail++;
-	NONFAILING(__atomic_store_n(sq_tail_ptr, sq_tail, __ATOMIC_RELEASE));
+	NONFAILING(__atomic_store_n(sq_tail_ptr, sq_tail_next, __ATOMIC_RELEASE));
 	return 0;
 }
 

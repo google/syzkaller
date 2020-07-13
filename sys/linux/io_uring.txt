@@ -186,4 +186,4 @@ io_uring_sqe {
 # 4. io_uring_setup_flags is updated (CLAMP added (CLAMP will be tested with larger entry size), ATTACH_WQ will be added (related to wq_fd))
 # 5. io_uring_register operations made complete
 # 6. ioprio_priorities is described within sys.txt for describing io_uring_sqe.ioprio
-# 7. syz_io_uring_put_sqes_on_ring() is defined&described for putting sq entries on the ring
+# 7. syz_io_uring_submit() is defined&described for putting an sq entry on the ring
