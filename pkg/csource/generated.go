@@ -3539,7 +3539,7 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR__syz_io_uring_submit
+#if SYZ_EXECUTOR || __NR_syz_io_uring_submit || __NR_syz_io_uring_complete
 
 #define SIZEOF_IO_URING_SQE 64
 #define SIZEOF_IO_URING_CQE 16
@@ -3558,6 +3558,28 @@ uint32_t round_up(uint32_t x, uint32_t a)
 {
 	return (x + a - 1) & ~(a - 1);
 }
+
+#if SYZ_EXECUTOR || __NR_syz_io_uring_complete
+
+static long syz_io_uring_complete(volatile long a0, volatile long a1)
+{
+	char* cq_ring_ptr = (char*)a0;
+	char* cqe_dst = (char*)a1;
+	uint32 cq_ring_mask, *cq_head_ptr, cq_head, cq_head_next;
+	NONFAILING(cq_ring_mask = *(uint32*)(cq_ring_ptr + CQ_RING_MASK_OFFSET));
+	cq_head_ptr = (uint32*)(cq_ring_ptr + CQ_HEAD_OFFSET);
+	NONFAILING(cq_head = *cq_head_ptr & cq_ring_mask);
+	NONFAILING(cq_head_next = *cq_head_ptr + 1);
+	char* cqe_src = cq_ring_ptr + CQ_CQES_OFFSET + cq_head * SIZEOF_IO_URING_CQE;
+	NONFAILING(memcpy(cqe_dst, cqe_src, sizeof(char) * SIZEOF_IO_URING_CQE));
+	NONFAILING(__atomic_store_n(cq_head_ptr, cq_head_next, __ATOMIC_RELEASE));
+
+	return 0;
+}
+
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_io_uring_submit
 
 static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
 {
@@ -3584,6 +3606,8 @@ static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile lon
 	NONFAILING(__atomic_store_n(sq_tail_ptr, sq_tail_next, __ATOMIC_RELEASE));
 	return 0;
 }
+
+#endif
 
 #endif
 

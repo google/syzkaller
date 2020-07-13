@@ -1355,9 +1355,7 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR__syz_io_uring_submit
-
-// TODO: syz_io_uring_complete()
+#if SYZ_EXECUTOR || __NR_syz_io_uring_submit || __NR_syz_io_uring_complete
 
 #define SIZEOF_IO_URING_SQE 64
 #define SIZEOF_IO_URING_CQE 16
@@ -1387,6 +1385,44 @@ uint32_t round_up(uint32_t x, uint32_t a)
 {
 	return (x + a - 1) & ~(a - 1);
 }
+
+#if SYZ_EXECUTOR || __NR_syz_io_uring_complete
+
+static long syz_io_uring_complete(volatile long a0, volatile long a1)
+{
+	// syzlang: syz_io_uring_complete(cq_ring_ptr cq_ring_ptr, cqe ptr[out, io_uring_cqe])
+	// C:       syz_io_uring_complete(char* cq_ring_ptr,       io_uring_cqe* cqe)
+
+	// It is not checked if the ring is empty
+
+	// Cast to original
+	char* cq_ring_ptr = (char*)a0;
+	char* cqe_dst = (char*)a1;
+
+	// Compute the head index and the next head value
+	uint32 cq_ring_mask, *cq_head_ptr, cq_head, cq_head_next;
+	NONFAILING(cq_ring_mask = *(uint32*)(cq_ring_ptr + CQ_RING_MASK_OFFSET));
+	cq_head_ptr = (uint32*)(cq_ring_ptr + CQ_HEAD_OFFSET);
+	NONFAILING(cq_head = *cq_head_ptr & cq_ring_mask);
+	NONFAILING(cq_head_next = *cq_head_ptr + 1);
+
+	// Compute the ptr to the src cq entry on the ring
+	char* cqe_src = cq_ring_ptr + CQ_CQES_OFFSET + cq_head * SIZEOF_IO_URING_CQE;
+
+	// Get the cq entry from the ring
+	NONFAILING(memcpy(cqe_dst, cqe_src, sizeof(char) * SIZEOF_IO_URING_CQE));
+
+	// Advance the head. Head is a free-flowing integer and relies on natural wrapping.
+	// Ensure that the kernel will never see a head update without the preceeding CQE
+	// stores being done.
+	NONFAILING(__atomic_store_n(cq_head_ptr, cq_head_next, __ATOMIC_RELEASE));
+
+	return 0;
+}
+
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_io_uring_submit
 
 static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
 {
@@ -1433,6 +1469,8 @@ static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile lon
 	// Now the application is free to call io_uring_enter() to submit the sqe
 	return 0;
 }
+
+#endif
 
 #endif
 

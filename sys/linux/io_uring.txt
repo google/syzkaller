@@ -69,8 +69,9 @@ io_uring_setup_flags = 0, IORING_SETUP_IOPOLL, IORING_SETUP_SQPOLL, IORING_SETUP
 io_uring_enter_flags = IORING_ENTER_GETEVENTS, IORING_ENTER_SQ_WAKEUP
 _ = __NR_mmap2
 
-# This pseudo-syscall only puts entries on the ring but does not submit them. io_uring_enter() is used later for submitting.
+# Only puts entries on the ring but does not submit them. io_uring_enter() is used later to finish submitting.
 syz_io_uring_submit(sq_ring_ptr sq_ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe], sqes_index int32)
+syz_io_uring_complete(cq_ring_ptr cq_ring_ptr, cqe ptr[out, io_uring_cqe])
 
 # NEED: part of fields are input here and part are output. We can't express this yet (#245).
 io_uring_params {
@@ -174,6 +175,13 @@ io_uring_sqe {
 # };
 }
 
+# Read from the cq ring io_uring_complete() but not really used anywhere else
+io_uring_cqe {
+	user_data	int64
+	res		int32
+	flags		int32
+}
+
 # TODO: Check if any other operation with io_uring_sqe is needed
 # TODO: Check sqe->fsync_flags, sqe->timeout_flags, sqe->splice_flags
 # TODO: Any operation with io_uring_cqe (not likely, should be just read, and possibly the head ptr moved)
@@ -187,3 +195,4 @@ io_uring_sqe {
 # 5. io_uring_register operations made complete
 # 6. ioprio_priorities is described within sys.txt for describing io_uring_sqe.ioprio
 # 7. syz_io_uring_submit() is defined&described for putting an sq entry on the ring
+# 8. syz_io_uring_complete() is defined & described for reading cq entry from the ring
