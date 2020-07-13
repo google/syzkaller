@@ -130,7 +130,7 @@ func TestJob(t *testing.T) {
 		c.expectEQ(len(msg.Attachments), 0)
 		c.expectEQ(msg.Body, fmt.Sprintf(`Hello,
 
-syzbot has tested the proposed patch but the reproducer still triggered crash:
+syzbot has tested the proposed patch but the reproducer is still triggering an issue:
 test crash title
 
 test crash report
@@ -169,7 +169,7 @@ patch:          %[1]v
 		c.expectEQ(len(msg.Attachments), 0)
 		c.expectEQ(msg.Body, fmt.Sprintf(`Hello,
 
-syzbot tried to test the proposed patch but build/boot failed:
+syzbot tried to test the proposed patch but the build/boot failed:
 
 failed to apply patch
 
@@ -208,7 +208,7 @@ patch:          %[1]v
 		truncatedError := string(jobDoneReq.Error[len(jobDoneReq.Error)-maxInlineError:])
 		c.expectEQ(msg.Body, fmt.Sprintf(`Hello,
 
-syzbot tried to test the proposed patch but build/boot failed:
+syzbot tried to test the proposed patch but the build/boot failed:
 
 %[1]v
 
@@ -247,7 +247,7 @@ patch:          %[3]v
 		c.expectEQ(len(msg.Attachments), 0)
 		c.expectEQ(msg.Body, fmt.Sprintf(`Hello,
 
-syzbot has tested the proposed patch and the reproducer did not trigger crash:
+syzbot has tested the proposed patch and the reproducer did not trigger any issue:
 
 Reported-and-tested-by: syzbot+%v@testapp.appspotmail.com
 
@@ -310,7 +310,7 @@ func TestJobWithoutPatch(t *testing.T) {
 		c.expectEQ(len(msg.Attachments), 0)
 		c.expectEQ(msg.Body, fmt.Sprintf(`Hello,
 
-syzbot has tested the proposed patch and the reproducer did not trigger crash:
+syzbot has tested the proposed patch and the reproducer did not trigger any issue:
 
 Reported-and-tested-by: syzbot+%v@testapp.appspotmail.com
 
@@ -396,7 +396,7 @@ func TestBisectFixJob(t *testing.T) {
 
 		msg = c.client2.pollEmailBug()
 		c.expectEQ(msg.Subject, "title1")
-		c.expectTrue(strings.Contains(msg.Body, "syzbot found the following crash"))
+		c.expectTrue(strings.Contains(msg.Body, "syzbot found the following issue"))
 	}
 
 	// Ensure that we get a JobBisectFix.
@@ -441,7 +441,7 @@ func TestBisectFixRetry(t *testing.T) {
 
 		msg = c.client2.pollEmailBug()
 		c.expectEQ(msg.Subject, "title1")
-		c.expectTrue(strings.Contains(msg.Body, "syzbot found the following crash"))
+		c.expectTrue(strings.Contains(msg.Body, "syzbot found the following issue"))
 	}
 
 	// Ensure that we get a JobBisectFix. We send back a crashlog, no error, no commits.
@@ -506,7 +506,7 @@ func TestNotReportingAlreadyFixed(t *testing.T) {
 
 		msg = c.client2.pollEmailBug()
 		c.expectEQ(msg.Subject, "title1")
-		c.expectTrue(strings.Contains(msg.Body, "syzbot found the following crash"))
+		c.expectTrue(strings.Contains(msg.Body, "syzbot found the following issue"))
 		sender = msg.Sender
 	}
 
@@ -597,7 +597,7 @@ func TestFixBisectionsListed(t *testing.T) {
 
 		msg = c.client2.pollEmailBug()
 		c.expectEQ(msg.Subject, "title1")
-		c.expectTrue(strings.Contains(msg.Body, "syzbot found the following crash"))
+		c.expectTrue(strings.Contains(msg.Body, "syzbot found the following issue"))
 	}
 
 	// Ensure that we get a JobBisectFix. We send back a crashlog, no error,
@@ -675,7 +675,7 @@ func TestFixBisectionsDisabled(t *testing.T) {
 
 		msg = c.client2.pollEmailBug()
 		c.expectEQ(msg.Subject, "title20")
-		c.expectTrue(strings.Contains(msg.Body, "syzbot found the following crash"))
+		c.expectTrue(strings.Contains(msg.Body, "syzbot found the following issue"))
 	}
 
 	// Ensure that we do not get a JobBisectFix.
