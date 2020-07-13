@@ -110,3 +110,9 @@ Or other commands/scripts, e.g.:
 syz-env go test -short ./pkg/csource
 ```
 Or you may run the shell inside of the container with just `syz-env` and look around.
+
+To update `syz-env` container to the latest version do:
+
+``` bash
+docker pull gcr.io/syzkaller/env
+```
