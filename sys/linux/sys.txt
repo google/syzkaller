@@ -576,11 +576,6 @@ openat$ocfs2_control(fd const[AT_FDCWD], file ptr[in, string["/dev/ocfs2_control
 openat$nvme_fabrics(fd const[AT_FDCWD], file ptr[in, string["/dev/nvme-fabrics"]], flags flags[open_flags], mode const[0]) fd
 openat$bsg(fd const[AT_FDCWD], file ptr[in, string["/dev/bsg"]], flags flags[open_flags], mode const[0]) fd
 
-openat$snapshot(fd const[AT_FDCWD], file ptr[in, string["/dev/snapshot"]], flags flags[open_flags], mode const[0]) fd
-
-# SNAPSHOT_FREEZE is disabled because it can easily kill the machine.
-ioctl$SNAPSHOT_FREEZE(fd fd, cmd const[SNAPSHOT_FREEZE]) (disabled)
-
 pipefd {
 	rfd	fd
 	wfd	fd
