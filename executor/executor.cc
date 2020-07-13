@@ -1088,8 +1088,11 @@ void execute_call(thread_t* th)
 
 	if (flag_coverage)
 		cover_reset(&th->cov);
-	errno = 0;
-	th->res = execute_syscall(call, th->args);
+	// For pseudo-syscalls and user-space functions NONFAILING can abort before assigning to th->res.
+	// Arrange for res = -1 and errno = EFAULT result for such case.
+	th->res = -1;
+	errno = EFAULT;
+	NONFAILING(th->res = execute_syscall(call, th->args));
 	th->reserrno = errno;
 	if (th->res == -1 && th->reserrno == 0)
 		th->reserrno = EINVAL; // our syz syscalls may misbehave
