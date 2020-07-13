@@ -6,14 +6,16 @@ include <linux/stat.h>
 include <uapi/linux/fuse.h>
 include <uapi/linux/fcntl.h>
 
+resource fuse_unique[int64]
 resource fd_fuse[fd]
 
 openat$fuse(fd const[AT_FDCWD], file ptr[in, string["/dev/fuse"]], flags const[O_RDWR], mode const[0]) fd_fuse
 openat$cuse(fd const[AT_FDCWD], file ptr[in, string["/dev/cuse"]], flags const[O_RDWR], mode const[0]) fd_fuse
 ioctl$FUSE_DEV_IOC_CLONE(fd fd_fuse, cmd const[FUSE_DEV_IOC_CLONE], arg ptr[in, fd_fuse])
-read$FUSE(fd fd_fuse, buf ptr[out, array[int8, 4096]], len len[buf])
 
 mount$fuse(src const[0], dst ptr[in, filename], type ptr[in, string["fuse"]], flags flags[mount_flags], opts ptr[in, fuse_options])
+type read_buffer array[int8, FUSE_MIN_READ_BUFFER]
+read$FUSE(fd fd_fuse, buf ptr[out, fuse_in[read_buffer]], len len[buf])
 mount$fuseblk(src ptr[in, string["/dev/loop0"]], dst ptr[in, filename], type ptr[in, string["fuseblk"]], flags flags[mount_flags], opts ptr[in, fuse_options])
 
 write$FUSE_INTERRUPT(fd fd_fuse, arg ptr[in, fuse_out[void]], len bytesize[arg])
@@ -41,12 +43,22 @@ write$FUSE_NOTIFY_DELETE(fd fd_fuse, arg ptr[in, fuse_notify[FUSE_NOTIFY_DELETE,
 
 type fuse_ino int64[0:6]
 type fuse_gen int64[0:3]
-type fuse_unique int64[1:8]
 
 type fuse_notify[MSG, PAYLOAD] {
 	len	len[parent, int32]
 	err	const[MSG, int32]
 	unique	const[0, int64]
+	payload	PAYLOAD
+} [packed]
+
+type fuse_in[PAYLOAD] {
+	len	len[parent, int32]
+	opcode	int32
+	unique	fuse_unique
+	uid	uid
+	gid	gid
+	pid	pid
+	padding	int32
 	payload	PAYLOAD
 } [packed]
 
