@@ -98,7 +98,7 @@ nft_chain_policy [
 
 nft_chain_name = "syz0", "syz1", "syz2"
 nft_chain_type = "filter", "nat", "route"
-nft_chain_flags = NFT_BASE_CHAIN, NFT_CHAIN_HW_OFFLOAD
+nft_chain_flags = NFT_CHAIN_BASE, NFT_CHAIN_HW_OFFLOAD
 
 nft_hook_policy [
 	NFTA_HOOK_HOOKNUM	nlnetw[NFTA_HOOK_HOOKNUM, flags[nf_inet_hooks, int32be]]
