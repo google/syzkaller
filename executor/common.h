@@ -416,7 +416,7 @@ static long syz_execute_func(volatile long text)
 	asm volatile("" ::"r"(0l), "r"(1l), "r"(2l), "r"(3l), "r"(4l), "r"(5l), "r"(6l),
 		     "r"(7l), "r"(8l), "r"(9l), "r"(10l), "r"(11l), "r"(12l), "r"(13l));
 #endif
-	NONFAILING(((void (*)(void))(text))());
+	((void (*)(void))(text))();
 	return 0;
 }
 #endif

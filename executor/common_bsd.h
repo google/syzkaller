@@ -379,8 +379,8 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 	}
 
 	struct tcp_resources* res = (struct tcp_resources*)a0;
-	NONFAILING(res->seq = htonl((ntohl(tcphdr->th_seq) + (uint32)a1)));
-	NONFAILING(res->ack = htonl((ntohl(tcphdr->th_ack) + (uint32)a2)));
+	res->seq = htonl(ntohl(tcphdr->th_seq) + (uint32)a1);
+	res->ack = htonl(ntohl(tcphdr->th_ack) + (uint32)a2);
 
 	debug("extracted seq: %08x\n", res->seq);
 	debug("extracted ack: %08x\n", res->ack);

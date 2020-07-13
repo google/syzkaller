@@ -107,9 +107,7 @@ static struct usb_device_index* add_usb_index(int fd, const char* dev, size_t de
 	if (i >= USB_MAX_FDS)
 		return NULL;
 
-	int rv = 0;
-	NONFAILING(rv = parse_usb_descriptor(dev, dev_len, &usb_devices[i].index));
-	if (!rv)
+	if (!parse_usb_descriptor(dev, dev_len, &usb_devices[i].index))
 		return NULL;
 
 	__atomic_store_n(&usb_devices[i].fd, fd, __ATOMIC_RELEASE);
