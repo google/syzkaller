@@ -140,6 +140,7 @@ var typeInt = &typeDesc{
 			bitLen = t.Colon[0].Value
 		}
 		base.TypeSize = size
+		base.TypeAlign = getIntAlignment(comp, base)
 		return &prog.IntType{
 			IntTypeCommon: genIntCommon(base.TypeCommon, bitLen, be),
 			Kind:          kind,
@@ -148,6 +149,14 @@ var typeInt = &typeDesc{
 			Align:         align,
 		}
 	},
+}
+
+func getIntAlignment(comp *compiler, base prog.IntTypeCommon) uint64 {
+	align := base.UnitSize()
+	if align == 8 && comp.target.Int64Alignment != 0 {
+		align = comp.target.Int64Alignment
+	}
+	return align
 }
 
 var typePtr = &typeDesc{
@@ -160,6 +169,7 @@ var typePtr = &typeDesc{
 		if t.Ident == "ptr64" {
 			base.TypeSize = 8
 		}
+		base.TypeAlign = getIntAlignment(comp, base)
 		return &prog.PtrType{
 			TypeCommon: base.TypeCommon,
 			Elem:       comp.genType(args[1], 0),
@@ -176,6 +186,7 @@ var typeVoid = &typeDesc{
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		base.TypeSize = 0 // the only type with static size 0
+		base.TypeAlign = 1
 		return &prog.BufferType{
 			TypeCommon: base.TypeCommon,
 			Kind:       prog.BufferBlobRange,
@@ -230,6 +241,7 @@ var typeArray = &typeDesc{
 					base.TypeSize = begin * elemType.Size()
 				}
 			}
+			base.TypeAlign = 1
 			return &prog.BufferType{
 				TypeCommon: base.TypeCommon,
 				Kind:       bufKind,
@@ -238,6 +250,7 @@ var typeArray = &typeDesc{
 			}
 		}
 		// TypeSize is assigned later in layoutArray.
+		base.TypeAlign = elemType.Alignment()
 		return &prog.ArrayType{
 			TypeCommon: base.TypeCommon,
 			Elem:       elemType,
@@ -273,6 +286,7 @@ var typeLen = &typeDesc{
 		for _, col := range args[0].Colon {
 			path = append(path, col.Ident)
 		}
+		base.TypeAlign = getIntAlignment(comp, base)
 		return &prog.LenType{
 			IntTypeCommon: base,
 			Path:          path,
@@ -298,6 +312,7 @@ var typeConst = &typeDesc{
 		args[0].Value = v & (uint64(1)<<bitSize - 1)
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
+		base.TypeAlign = getIntAlignment(comp, base)
 		return &prog.ConstType{
 			IntTypeCommon: base,
 			Val:           args[0].Value,
@@ -364,6 +379,7 @@ var typeFlags = &typeDesc{
 		sort.Slice(values, func(i, j int) bool {
 			return values[i] < values[j]
 		})
+		base.TypeAlign = getIntAlignment(comp, base)
 		return &prog.FlagsType{
 			IntTypeCommon: base,
 			Vals:          values,
@@ -416,6 +432,7 @@ var typeVMA = &typeDesc{
 		if t.Ident == "vma64" {
 			base.TypeSize = 8
 		}
+		base.TypeAlign = getIntAlignment(comp, base)
 		return &prog.VmaType{
 			TypeCommon: base.TypeCommon,
 			RangeBegin: begin,
@@ -447,6 +464,7 @@ var typeCsum = &typeDesc{
 		if len(args) > 2 {
 			proto = args[2].Value
 		}
+		base.TypeAlign = getIntAlignment(comp, base)
 		return &prog.CsumType{
 			IntTypeCommon: base,
 			Buf:           args[0].Ident,
@@ -501,6 +519,7 @@ var typeProc = &typeDesc{
 		}
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
+		base.TypeAlign = getIntAlignment(comp, base)
 		return &prog.ProcType{
 			IntTypeCommon: base,
 			ValuesStart:   args[0].Value,
@@ -518,6 +537,7 @@ var typeText = &typeDesc{
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		base.TypeSize = 0
+		base.TypeAlign = 1
 		return &prog.BufferType{
 			TypeCommon: base.TypeCommon,
 			Kind:       prog.BufferText,
@@ -586,6 +606,7 @@ var typeString = &typeDesc{
 		return comp.stringSize(t, args) == 0
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
+		base.TypeAlign = 1
 		if len(args) > 0 && args[0].Ident == "filename" {
 			base.TypeName = "filename"
 			base.TypeSize = 0
@@ -723,18 +744,23 @@ var typeFmt = &typeDesc{
 		case *prog.ResourceType:
 			t.ArgFormat = format
 			t.TypeSize = size
+			t.TypeAlign = 1
 		case *prog.IntType:
 			t.ArgFormat = format
 			t.TypeSize = size
+			t.TypeAlign = 1
 		case *prog.LenType:
 			t.ArgFormat = format
 			t.TypeSize = size
+			t.TypeAlign = 1
 		case *prog.FlagsType:
 			t.ArgFormat = format
 			t.TypeSize = size
+			t.TypeAlign = 1
 		case *prog.ProcType:
 			t.ArgFormat = format
 			t.TypeSize = size
+			t.TypeAlign = 1
 		default:
 			panic(fmt.Sprintf("unexpected type: %#v", typ))
 		}
@@ -769,6 +795,7 @@ func init() {
 		}
 		baseProgType := comp.genType(baseType, 0)
 		base.TypeSize = baseProgType.Size()
+		base.TypeAlign = getIntAlignment(comp, base)
 		return &prog.ResourceType{
 			TypeCommon: base.TypeCommon,
 			ArgFormat:  baseProgType.Format(),
@@ -836,8 +863,26 @@ func init() {
 		fields := comp.genFieldArray(s.Fields, make([]uint64, len(s.Fields)))
 		if s.IsUnion {
 			typ.(*prog.UnionType).Fields = fields
+			for _, f := range fields {
+				if a := f.Type.Alignment(); typ.(*prog.UnionType).TypeAlign < a {
+					typ.(*prog.UnionType).TypeAlign = a
+				}
+			}
 		} else {
 			typ.(*prog.StructType).Fields = fields
+			attrs := comp.parseAttrs(structAttrs, s, s.Attrs)
+			if align := attrs[attrAlign]; align != 0 {
+				typ.(*prog.StructType).TypeAlign = align
+			} else if attrs[attrPacked] != 0 {
+				typ.(*prog.StructType).TypeAlign = 1
+			} else {
+				for _, f := range fields {
+					a := f.Type.Alignment()
+					if typ.(*prog.StructType).TypeAlign < a {
+						typ.(*prog.StructType).TypeAlign = a
+					}
+				}
+			}
 		}
 		return typ
 	}
