@@ -11,29 +11,52 @@ import (
 func TestMemAlloc(t *testing.T) {
 	t.Parallel()
 	type op struct {
-		addr uint64
-		size int // if positive do noteAlloc, otherwise -- alloc
+		addr      uint64
+		size      int // if positive do noteAlloc, otherwise -- alloc
+		alignment uint64
 	}
 	tests := [][]op{
 		{
 			// Just sequential allocation.
-			{0, -1},
-			{64, -64},
-			{128, -65},
-			{256, -16},
-			{320, -8},
+			{0, -1, 1},
+			{64, -64, 1},
+			{128, -65, 1},
+			{256, -16, 1},
+			{320, -8, 1},
 		},
 		{
 			// First reserve some memory and then allocate.
-			{0, 1},
-			{64, 63},
-			{128, 64},
-			{192, 65},
-			{320, -1},
-			{448, 1},
-			{384, -1},
-			{576, 1},
-			{640, -128},
+			{0, 1, 1},
+			{64, 63, 1},
+			{128, 64, 1},
+			{192, 65, 1},
+			{320, -1, 1},
+			{448, 1, 1},
+			{384, -1, 1},
+			{576, 1, 1},
+			{640, -128, 1},
+		},
+		{
+			// Aligned memory allocation.
+			{0, -1, 1},
+			{512, -1, 512},
+			{1024, -1, 512},
+			{128, -1, 128},
+			{64, -1, 1},
+			// 128 used, jumps on.
+			{192, -1, 1},
+			{256, -1, 1},
+			{320, -1, 1},
+			{384, -1, 1},
+			{448, -1, 1},
+			// 512 used, jumps on.
+			{576, -1, 1},
+			// Next 512 available at 1536.
+			{1536, -1, 512},
+			// Next smallest available.
+			{640, -1, 1},
+			// Next 64 byte aligned block.
+			{1600, -512, 1},
 		},
 	}
 	for ti, test := range tests {
@@ -47,9 +70,9 @@ func TestMemAlloc(t *testing.T) {
 					continue
 				}
 				t.Logf("#%v: alloc(%v) = %v", i, -op.size, op.addr)
-				addr := ma.alloc(nil, uint64(-op.size))
+				addr := ma.alloc(nil, uint64(-op.size), op.alignment)
 				if addr != op.addr {
-					t.Fatalf("bad result %v", addr)
+					t.Fatalf("bad result %v, expecting %v", addr, op.addr)
 				}
 			}
 		})
