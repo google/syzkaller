@@ -23,6 +23,7 @@ func init() {
 	checkFeature[FeatureSandboxAndroid] = checkSandboxAndroid
 	checkFeature[FeatureFault] = checkFault
 	checkFeature[FeatureLeak] = checkLeak
+	checkFeature[FeatureVhciInjection] = checkVhciInjection
 	checkFeature[FeatureNetInjection] = checkNetInjection
 	checkFeature[FeatureNetDevices] = unconditionallyEnabled
 	checkFeature[FeatureKCSAN] = checkKCSAN
@@ -172,6 +173,13 @@ func checkSandboxNamespace() string {
 
 func checkSandboxAndroid() string {
 	if err := osutil.IsAccessible("/sys/fs/selinux/policy"); err != nil {
+		return err.Error()
+	}
+	return ""
+}
+
+func checkVhciInjection() string {
+	if err := osutil.IsAccessible("/dev/vhci"); err != nil {
 		return err.Error()
 	}
 	return ""
