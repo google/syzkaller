@@ -25,6 +25,10 @@ ioctl$F2FS_IOC_GET_COMPRESS_BLOCKS(fd fd, cmd const[F2FS_IOC_GET_COMPRESS_BLOCKS
 ioctl$F2FS_IOC_RELEASE_COMPRESS_BLOCKS(fd fd, cmd const[F2FS_IOC_RELEASE_COMPRESS_BLOCKS], arg ptr[out, int64])
 ioctl$F2FS_IOC_RESERVE_COMPRESS_BLOCKS(fd fd, cmd const[F2FS_IOC_RESERVE_COMPRESS_BLOCKS], arg ptr[out, int64])
 
+# F2FS_IOC_SHUTDOWN on root fs effectively brings the machine down in weird ways.
+# Fortunately, the value does not conflict with any other ioctl commands for now.
+ioctl$F2FS_IOC_SHUTDOWN(fd fd, cmd const[F2FS_IOC_SHUTDOWN], args ptr[in, flags[f2fs_shutdown_flag, int32]]) (disabled)
+
 f2fs_gc_range {
 	sync	bool32
 	start	int64
@@ -47,3 +51,5 @@ f2fs_flush_device {
 	dev_num		int32
 	segments	int32
 }
+
+f2fs_shutdown_flag = F2FS_GOING_DOWN_FULLSYNC, F2FS_GOING_DOWN_METASYNC, F2FS_GOING_DOWN_NOSYNC, F2FS_GOING_DOWN_METAFLUSH, F2FS_GOING_DOWN_NEED_FSCK
