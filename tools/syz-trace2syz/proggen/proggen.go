@@ -470,7 +470,7 @@ func (ctx *context) parseProc(syzType *prog.ProcType, dir prog.Dir, traceType pa
 }
 
 func (ctx *context) addr(syzType prog.Type, dir prog.Dir, size uint64, data prog.Arg) prog.Arg {
-	return prog.MakePointerArg(syzType, dir, ctx.builder.Allocate(size), data)
+	return prog.MakePointerArg(syzType, dir, ctx.builder.Allocate(size, data.Type().Alignment()), data)
 }
 
 func shouldSkip(c *parser.Syscall) bool {

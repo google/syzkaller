@@ -1017,7 +1017,7 @@ func (p *parser) fixupAutos(prog *Prog) {
 				_ = s
 			case *PtrType:
 				a := arg.(*PointerArg)
-				a.Address = s.ma.alloc(nil, a.Res.Size())
+				a.Address = s.ma.alloc(nil, a.Res.Size(), a.Res.Type().Alignment())
 			default:
 				panic(fmt.Sprintf("unsupported auto type %T", typ))
 			}
