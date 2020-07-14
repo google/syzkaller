@@ -149,6 +149,9 @@ done
 # Create a /dev/vim2m symlink for the device managed by the vim2m driver
 echo 'ATTR{name}=="vim2m", SYMLINK+="vim2m"' | sudo tee -a disk.mnt/etc/udev/rules.d/50-udev-default.rules
 
+# Create a /dev/i915 symlink to /dev/dri/card# if i915 driver is in use.
+echo 'SUBSYSTEMS=="pci", DRIVERS=="i915", SYMLINK+="i915"' | sudo tee -a disk.mnt/etc/udev/rules.d/60-drm.rules
+
 # sysctls
 echo "kernel.printk = 7 4 1 3" | sudo tee -a disk.mnt/etc/sysctl.conf
 echo "debug.exception-trace = 0" | sudo tee -a disk.mnt/etc/sysctl.conf
