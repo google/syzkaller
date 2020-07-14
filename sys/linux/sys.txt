@@ -50,7 +50,6 @@ include <uapi/linux/kcov.h>
 include <uapi/linux/membarrier.h>
 include <uapi/linux/capability.h>
 include <uapi/linux/seccomp.h>
-include <uapi/linux/suspend_ioctls.h>
 include <kernel/sched/sched.h>
 include <uapi/linux/fsinfo.h>
 include <uapi/linux/close_range.h>

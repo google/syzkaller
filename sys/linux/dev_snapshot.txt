@@ -1,4 +1,4 @@
-# Copyright 2017 syzkaller project authors. All rights reserved.
+# Copyright 2020 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 include <uapi/linux/suspend_ioctls.h>
@@ -17,7 +17,7 @@ ioctl$SNAPSHOT_UNFREEZE(fd fd_snapshot, cmd const[SNAPSHOT_UNFREEZE])
 ioctl$SNAPSHOT_CREATE_IMAGE(fd fd_snapshot, cmd const[SNAPSHOT_CREATE_IMAGE], arg ptr[out, int32])
 ioctl$SNAPSHOT_ATOMIC_RESTORE(fd fd_snapshot, cmd const[SNAPSHOT_ATOMIC_RESTORE])
 ioctl$SNAPSHOT_FREE(fd fd_snapshot, cmd const[SNAPSHOT_FREE])
-ioctl$SNAPSHOT_PREF_IMAGE_SIZE(fd fd_snapshot, cmd const[SNAPSHOT_PREF_IMAGE_SIZE])
+ioctl$SNAPSHOT_PREF_IMAGE_SIZE(fd fd_snapshot, cmd const[SNAPSHOT_PREF_IMAGE_SIZE], arg intptr)
 ioctl$SNAPSHOT_GET_IMAGE_SIZE(fd fd_snapshot, cmd const[SNAPSHOT_GET_IMAGE_SIZE], arg ptr[out, int64])
 ioctl$SNAPSHOT_AVAIL_SWAP_SIZE(fd fd_snapshot, cmd const[SNAPSHOT_AVAIL_SWAP_SIZE], arg ptr[out, int64])
 ioctl$SNAPSHOT_ALLOC_SWAP_PAGE(fd fd_snapshot, cmd const[SNAPSHOT_ALLOC_SWAP_PAGE], arg ptr[out, int64])
@@ -25,9 +25,9 @@ ioctl$SNAPSHOT_FREE_SWAP_PAGES(fd fd_snapshot, cmd const[SNAPSHOT_FREE_SWAP_PAGE
 ioctl$SNAPSHOT_S2RAM(fd fd_snapshot, cmd const[SNAPSHOT_S2RAM])
 ioctl$SNAPSHOT_PLATFORM_SUPPORT(fd fd_snapshot, cmd const[SNAPSHOT_PLATFORM_SUPPORT], arg intptr)
 ioctl$SNAPSHOT_POWER_OFF(fd fd_snapshot, cmd const[SNAPSHOT_POWER_OFF])
-ioctl$SNAPSHOT_SET_SWAP_AREA(fd fd_snapshot, cmd const[SNAPSHOT_SET_SWAP_AREA], arg ptr[in, compat_resume_swap_area])
+ioctl$SNAPSHOT_SET_SWAP_AREA(fd fd_snapshot, cmd const[SNAPSHOT_SET_SWAP_AREA], arg ptr[in, resume_swap_area])
 
-compat_resume_swap_area {
+resume_swap_area {
 	offset	int64
 	dev	int32
 }
