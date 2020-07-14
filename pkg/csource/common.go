@@ -104,6 +104,7 @@ func commonDefines(p *prog.Prog, opts Options) map[string]bool {
 		"SYZ_MULTI_PROC":                opts.Procs > 1,
 		"SYZ_FAULT":                     opts.Fault,
 		"SYZ_LEAK":                      opts.Leak,
+		"SYZ_VHCI_INJECTION":            opts.VhciInjection,
 		"SYZ_NET_INJECTION":             opts.NetInjection,
 		"SYZ_NET_DEVICES":               opts.NetDevices,
 		"SYZ_NET_RESET":                 opts.NetReset,

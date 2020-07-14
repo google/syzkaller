@@ -31,15 +31,16 @@ type Options struct {
 	Leak bool `json:"leak,omitempty"` // do leak checking
 
 	// These options allow for a more fine-tuned control over the generated C code.
-	NetInjection bool `json:"tun,omitempty"`
-	NetDevices   bool `json:"netdev,omitempty"`
-	NetReset     bool `json:"resetnet,omitempty"`
-	Cgroups      bool `json:"cgroups,omitempty"`
-	BinfmtMisc   bool `json:"binfmt_misc,omitempty"`
-	CloseFDs     bool `json:"close_fds"`
-	KCSAN        bool `json:"kcsan,omitempty"`
-	DevlinkPCI   bool `json:"devlinkpci,omitempty"`
-	USB          bool `json:"usb,omitempty"`
+	VhciInjection bool `json:"vhci,omitempty"`
+	NetInjection  bool `json:"tun,omitempty"`
+	NetDevices    bool `json:"netdev,omitempty"`
+	NetReset      bool `json:"resetnet,omitempty"`
+	Cgroups       bool `json:"cgroups,omitempty"`
+	BinfmtMisc    bool `json:"binfmt_misc,omitempty"`
+	CloseFDs      bool `json:"close_fds"`
+	KCSAN         bool `json:"kcsan,omitempty"`
+	DevlinkPCI    bool `json:"devlinkpci,omitempty"`
+	USB           bool `json:"usb,omitempty"`
 
 	UseTmpDir  bool `json:"tmpdir,omitempty"`
 	HandleSegv bool `json:"segv,omitempty"`
@@ -108,6 +109,9 @@ func (opts Options) checkLinuxOnly(OS string) error {
 	if OS == linux {
 		return nil
 	}
+	if opts.VhciInjection {
+		return fmt.Errorf("option VHCI is not supported on %v", OS)
+	}
 	if opts.NetInjection && !(OS == openbsd || OS == freebsd || OS == netbsd) {
 		return fmt.Errorf("option NetInjection is not supported on %v", OS)
 	}
@@ -151,23 +155,25 @@ func (opts Options) checkLinuxOnly(OS string) error {
 
 func DefaultOpts(cfg *mgrconfig.Config) Options {
 	opts := Options{
-		Threaded:     true,
-		Collide:      true,
-		Repeat:       true,
-		Procs:        cfg.Procs,
-		Sandbox:      cfg.Sandbox,
-		NetInjection: true,
-		NetDevices:   true,
-		NetReset:     true,
-		Cgroups:      true,
-		BinfmtMisc:   true,
-		CloseFDs:     true,
-		DevlinkPCI:   true,
-		UseTmpDir:    true,
-		HandleSegv:   true,
-		Repro:        true,
+		Threaded:      true,
+		Collide:       true,
+		Repeat:        true,
+		Procs:         cfg.Procs,
+		Sandbox:       cfg.Sandbox,
+		VhciInjection: true,
+		NetInjection:  true,
+		NetDevices:    true,
+		NetReset:      true,
+		Cgroups:       true,
+		BinfmtMisc:    true,
+		CloseFDs:      true,
+		DevlinkPCI:    true,
+		UseTmpDir:     true,
+		HandleSegv:    true,
+		Repro:         true,
 	}
 	if cfg.TargetOS != linux {
+		opts.VhciInjection = false
 		opts.NetInjection = false
 		opts.NetDevices = false
 		opts.NetReset = false
@@ -248,6 +254,7 @@ type Features map[string]Feature
 
 func defaultFeatures(value bool) Features {
 	return map[string]Feature{
+		"vhci":        {"setup and use /dev/vhci for hci packet injection", value},
 		"tun":         {"setup and use /dev/tun for packet injection", value},
 		"net_dev":     {"setup more network devices for testing", value},
 		"net_reset":   {"reset network namespace between programs", value},

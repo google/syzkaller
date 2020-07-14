@@ -22,6 +22,7 @@ const (
 	FeatureSandboxAndroid
 	FeatureFault
 	FeatureLeak
+	FeatureVhciInjection
 	FeatureNetInjection
 	FeatureNetDevices
 	FeatureKCSAN
@@ -60,6 +61,7 @@ func Check(target *prog.Target) (*Features, error) {
 		FeatureSandboxAndroid:   {Name: "Android sandbox", Reason: unsupported},
 		FeatureFault:            {Name: "fault injection", Reason: unsupported},
 		FeatureLeak:             {Name: "leak checking", Reason: unsupported},
+		FeatureVhciInjection:    {Name: "vhci packet injection", Reason: unsupported},
 		FeatureNetInjection:     {Name: "net packet injection", Reason: unsupported},
 		FeatureNetDevices:       {Name: "net device setup", Reason: unsupported},
 		FeatureKCSAN:            {Name: "concurrency sanitizer", Reason: unsupported},
