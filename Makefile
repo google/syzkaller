@@ -403,6 +403,7 @@ install_prerequisites:
 	sudo apt-get install -y -q g++-s390x-linux-gnu || true
 	sudo apt-get install -y -q g++-riscv64-linux-gnu || true
 	sudo apt-get install -y -q ragel clang-format
+	sudo apt-get install -y -q libbluetooth-dev
 	go get -u golang.org/x/tools/cmd/goyacc
 
 check_copyright:

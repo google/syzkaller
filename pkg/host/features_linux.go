@@ -23,12 +23,12 @@ func init() {
 	checkFeature[FeatureSandboxAndroid] = checkSandboxAndroid
 	checkFeature[FeatureFault] = checkFault
 	checkFeature[FeatureLeak] = checkLeak
-	checkFeature[FeatureVhciInjection] = checkVhciInjection
 	checkFeature[FeatureNetInjection] = checkNetInjection
 	checkFeature[FeatureNetDevices] = unconditionallyEnabled
 	checkFeature[FeatureKCSAN] = checkKCSAN
 	checkFeature[FeatureDevlinkPCI] = checkDevlinkPCI
 	checkFeature[FeatureUSBEmulation] = checkUSBEmulation
+	checkFeature[FeatureVhciInjection] = checkVhciInjection
 }
 
 func checkCoverage() string {
@@ -178,13 +178,6 @@ func checkSandboxAndroid() string {
 	return ""
 }
 
-func checkVhciInjection() string {
-	if err := osutil.IsAccessible("/dev/vhci"); err != nil {
-		return err.Error()
-	}
-	return ""
-}
-
 func checkNetInjection() string {
 	if err := osutil.IsAccessible("/dev/net/tun"); err != nil {
 		return err.Error()
@@ -194,6 +187,13 @@ func checkNetInjection() string {
 
 func checkUSBEmulation() string {
 	if err := osutil.IsAccessible("/dev/raw-gadget"); err != nil {
+		return err.Error()
+	}
+	return ""
+}
+
+func checkVhciInjection() string {
+	if err := osutil.IsAccessible("/dev/vhci"); err != nil {
 		return err.Error()
 	}
 	return ""

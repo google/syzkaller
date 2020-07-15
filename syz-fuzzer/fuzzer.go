@@ -219,6 +219,9 @@ func main() {
 	if r.CheckResult.Features[host.FeatureDevlinkPCI].Enabled {
 		config.Flags |= ipc.FlagEnableDevlinkPCI
 	}
+	if r.CheckResult.Features[host.FeatureVhciInjection].Enabled {
+		config.Flags |= ipc.FlagEnableVhciInjection
+	}
 
 	if *flagRunTest {
 		runTest(target, manager, *flagName, config.Executor)

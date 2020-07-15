@@ -5169,170 +5169,25 @@ static long syz_genetlink_get_family_id(volatile long name)
 #endif
 
 #if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
-/*
- *
- *  BlueZ - Bluetooth protocol stack for Linux
- *
- *  Copyright (C) 2000-2001  Qualcomm Incorporated
- *  Copyright (C) 2002-2003  Maxim Krasnyansky <maxk@qualcomm.com>
- *  Copyright (C) 2002-2010  Marcel Holtmann <marcel@holtmann.org>
- *
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
- *
- */
-
+#include <bluetooth/bluetooth.h>
+#include <bluetooth/hci.h>
+#include <bluetooth/l2cap.h>
 #include <pthread.h>
 #include <sys/epoll.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
 
-#define cmd_opcode_pack(ogf, ocf) (uint16)((ocf & 0x03ff) | (ogf << 10))
-#define cmd_opcode_ogf(op) (op >> 10)
-#define cmd_opcode_ocf(op) (op & 0x03ff)
+#define BUF_SIZE 4096
+#define ACL_HANDLE 256
+#define HCI_DEV 0
 
-#define HCI_COMMAND_PKT 0x01
-#define HCI_EVENT_PKT 0x04
-
-#define ACL_LINK 0x01
-
-#define OGF_HOST_CTL 0x03
-#define OGF_INFO_PARAM 0x04
-
-typedef struct {
-	uint8 b[6];
-} __attribute__((packed)) bdaddr_t;
-
-typedef struct {
-	uint16 opcode; /* OCF & OGF */
-	uint8 plen;
-} __attribute__((packed)) hci_command_hdr;
-#define HCI_COMMAND_HDR_SIZE 3
-
-typedef struct {
-	uint8 evt;
-	uint8 plen;
-} __attribute__((packed)) hci_event_hdr;
-#define HCI_EVENT_HDR_SIZE 2
-
-#define EVT_CONN_COMPLETE 0x03
-typedef struct {
-	uint8 status;
-	uint16 handle;
-	bdaddr_t bdaddr;
-	uint8 link_type;
-	uint8 encr_mode;
-} __attribute__((packed)) evt_conn_complete;
-#define EVT_CONN_COMPLETE_SIZE 11
-
-#define EVT_CONN_REQUEST 0x04
-typedef struct {
-	bdaddr_t bdaddr;
-	uint8 dev_class[3];
-	uint8 link_type;
-} __attribute__((packed)) evt_conn_request;
-#define EVT_CONN_REQUEST_SIZE 10
-
-#define EVT_READ_REMOTE_FEATURES_COMPLETE 0x0B
-typedef struct {
-	uint8 status;
-	uint16 handle;
-	uint8 features[8];
-} __attribute__((packed)) evt_read_remote_features_complete;
-#define EVT_READ_REMOTE_FEATURES_COMPLETE_SIZE 11
-
-#define EVT_CMD_COMPLETE 0x0E
-typedef struct {
-	uint8 ncmd;
-	uint16 opcode;
-} __attribute__((packed)) evt_cmd_complete;
-#define EVT_CMD_COMPLETE_SIZE 3
-
-#define OCF_READ_BUFFER_SIZE 0x0005
-typedef struct {
-	uint8 status;
-	uint16 acl_mtu;
-	uint8 sco_mtu;
-	uint16 acl_max_pkt;
-	uint16 sco_max_pkt;
-} __attribute__((packed)) read_buffer_size_rp;
-#define READ_BUFFER_SIZE_RP_SIZE 8
-
-#define OCF_READ_BD_ADDR 0x0009
-typedef struct {
-	uint8 status;
-	bdaddr_t bdaddr;
-} __attribute__((packed)) read_bd_addr_rp;
-#define READ_BD_ADDR_RP_SIZE 7
-
-#define OCF_WRITE_CONN_ACCEPT_TIMEOUT 0x0016
-typedef struct {
-	uint16 timeout;
-} __attribute__((packed)) write_conn_accept_timeout_cp;
-#define WRITE_CONN_ACCEPT_TIMEOUT_CP_SIZE 2
-
-#define BTPROTO_HCI 1
-
-#define SCAN_PAGE 0x02
-
-#define HCISETSCAN _IOW('H', 221, int)
-
-struct hci_dev_req {
-	uint16 dev_id;
-	uint32 dev_opt;
-};
-
-struct sockaddr_hci {
-	sa_family_t hci_family;
-	unsigned short hci_dev;
-	unsigned short hci_channel;
-};
+static int vhci_fd = -1;
+static int vhci_init = 0;
 
 static long syz_init_net_socket(volatile long domain, volatile long type, volatile long proto);
 
-int hci_open_dev(int dev_id)
-{
-	struct sockaddr_hci a;
-	int dd, err;
-
-	/* Create HCI socket */
-	dd = syz_init_net_socket(AF_BLUETOOTH, SOCK_RAW | SOCK_CLOEXEC, BTPROTO_HCI);
-	if (dd < 0)
-		return dd;
-
-	/* Bind socket to the HCI device */
-	memset(&a, 0, sizeof(a));
-	a.hci_family = AF_BLUETOOTH;
-	a.hci_dev = dev_id;
-	if (bind(dd, (struct sockaddr*)&a, sizeof(a)) < 0)
-		goto failed;
-
-	return dd;
-
-failed:
-	err = errno;
-	close(dd);
-	errno = err;
-
-	return -1;
-}
-
-static int vhci_fd = -1;
-
-int hci_send_event_packet(int fd, uint8 evt, void* data, size_t data_len)
+static int hci_send_event_packet(int fd, uint8 evt, void* data, size_t data_len)
 {
 	struct iovec iv[3];
 
@@ -5352,7 +5207,7 @@ int hci_send_event_packet(int fd, uint8 evt, void* data, size_t data_len)
 	return writev(fd, iv, sizeof(iv) / sizeof(struct iovec));
 }
 
-int hci_send_event_cmd_complete(int fd, uint16 opcode, void* data, size_t data_len)
+static int hci_send_event_cmd_complete(int fd, uint16 opcode, void* data, size_t data_len)
 {
 	struct iovec iv[4];
 
@@ -5378,18 +5233,13 @@ int hci_send_event_cmd_complete(int fd, uint16 opcode, void* data, size_t data_l
 	return writev(fd, iv, sizeof(iv) / sizeof(struct iovec));
 }
 
-static int vhci_init = 0;
-void process_command_pkt(int fd, char* buf, size_t buf_size)
+static void process_command_pkt(int fd, char* buf, size_t buf_size)
 {
 	hci_command_hdr* hdr = (hci_command_hdr*)(buf + 1);
 	uint16 opcode = hdr->opcode;
 	uint16 ogf = cmd_opcode_ogf(opcode);
 	uint16 ocf = cmd_opcode_ocf(opcode);
 
-	if (ogf == OGF_HOST_CTL) {
-		if (ocf == OCF_WRITE_CONN_ACCEPT_TIMEOUT)
-			vhci_init = 1;
-	}
 	if (ogf == OGF_INFO_PARAM) {
 		switch (ocf) {
 		case OCF_READ_BD_ADDR: {
@@ -5412,116 +5262,100 @@ void process_command_pkt(int fd, char* buf, size_t buf_size)
 		}
 	}
 
-	char status[0xf9];
-	memset(status, 0, sizeof(status));
+	char status[0xf9] = {0};
 	hci_send_event_cmd_complete(fd, opcode, status, sizeof(status));
 }
 
-#define MAX_EVENTS 1
-#define BUF_SIZE 4096
-
-void* event_thread(void* argp)
+static void* event_thread(void* arg)
 {
-	struct epoll_event events[MAX_EVENTS];
-	int event_count;
-	char buf[BUF_SIZE];
-	size_t buf_size;
+	int epoll_fd = *(int*)arg;
 
-	int epoll_fd = *(int*)argp;
+	while (!vhci_init) {
+		struct epoll_event event;
+		epoll_pwait(epoll_fd, &event, 1, -1, NULL);
 
-	while (1) {
-		event_count = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
-		for (int i = 0; i < event_count; i++) {
-			buf_size = read(events[i].data.fd, buf, BUF_SIZE);
-			debug_dump_data(buf, buf_size);
-			if (buf[0] == HCI_COMMAND_PKT) {
-				process_command_pkt(events[i].data.fd, buf, buf_size);
-			}
-		}
+		char buf[BUF_SIZE];
+		size_t buf_size = read(event.data.fd, buf, sizeof(buf));
+		if (buf[0] == HCI_COMMAND_PKT)
+			process_command_pkt(event.data.fd, buf, buf_size);
 	}
 
 	return NULL;
 }
 
-int initialize_vhci()
+void initialize_vhci()
 {
-	struct epoll_event event;
-	int epoll_fd;
-
-	epoll_fd = epoll_create1(0);
-	if (epoll_fd == -1) {
-		fail("epoll_create1 failed");
-		return -1;
-	}
+#if SYZ_EXECUTOR
+	if (!flag_vhci_injection)
+		return;
+#endif
 
 	vhci_fd = open("/dev/vhci", O_RDWR);
-	if (vhci_fd == -1) {
-		fail("open failed");
-		close(epoll_fd);
-		return -1;
-	}
+	if (vhci_fd == -1)
+		fail("open /dev/vhci failed");
 
+	int hci_socket = syz_init_net_socket(AF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI);
+	if (hci_socket < 0)
+		fail("syz_init_net_socket failed");
+
+	int epoll_fd = epoll_create1(0);
+	if (epoll_fd == -1)
+		fail("epoll_create1 failed");
+
+	struct epoll_event event = {0};
 	event.events = EPOLLIN;
 	event.data.fd = vhci_fd;
-	epoll_ctl(epoll_fd, EPOLL_CTL_ADD, vhci_fd, &event);
+	if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, vhci_fd, &event))
+		fail("epoll_ctl failed");
 
 	pthread_t th;
-	pthread_create(&th, NULL, event_thread, &epoll_fd);
-	while (!vhci_init)
-		sleep(1);
+	if (pthread_create(&th, NULL, event_thread, &epoll_fd))
+		fail("pthread_create failed");
 
-	int ctl;
-	struct hci_dev_req dr;
-	dr.dev_id = 0;
+	for (int i = 0; i < 1000; i++) {
+		struct hci_dev_info info = {0};
+		info.dev_id = HCI_DEV;
+		ioctl(hci_socket, HCIGETDEVINFO, &info);
+		if (info.flags & (1 << HCI_UP))
+			break;
+		usleep(1000);
+	}
+
+	struct hci_dev_req dr = {0};
+	dr.dev_id = HCI_DEV;
 	dr.dev_opt = SCAN_PAGE;
-
-	ctl = hci_open_dev(dr.dev_id);
-	if (ctl < 0) {
-		fail("hci_open_dev failed");
-		close(epoll_fd);
-		close(vhci_fd);
-		return -1;
-	}
-	if (ioctl(ctl, HCISETSCAN, &dr) < 0) {
+	if (ioctl(hci_socket, HCISETSCAN, &dr) < 0)
 		fail("ioctl(HCISETSCAN) failed");
-		close(epoll_fd);
-		close(vhci_fd);
-		return -1;
-	}
 
-	int handle = 0x100;
-
-	evt_conn_request request;
-	memset(&request, 0, EVT_CONN_REQUEST_SIZE);
+	evt_conn_request request = {0};
 	memcpy(&request.bdaddr, "\x66\x55\x44\x33\x22\x11", 6);
 	request.link_type = ACL_LINK;
 	hci_send_event_packet(vhci_fd, EVT_CONN_REQUEST, &request, EVT_CONN_REQUEST_SIZE);
 
-	sleep(1);
-
-	evt_conn_complete complete;
-	memset(&complete, 0, EVT_CONN_COMPLETE_SIZE);
+	evt_conn_complete complete = {0};
 	complete.status = 0;
-	complete.handle = handle;
+	complete.handle = ACL_HANDLE;
 	memcpy(&complete.bdaddr, "\x66\x55\x44\x33\x22\x11", 6);
 	complete.link_type = ACL_LINK;
 	complete.encr_mode = 0;
 	hci_send_event_packet(vhci_fd, EVT_CONN_COMPLETE, &complete, EVT_CONN_COMPLETE_SIZE);
 
-	sleep(1);
+	evt_read_remote_features_complete features = {0};
+	memset(&features, 0, EVT_READ_REMOTE_FEATURES_COMPLETE_SIZE);
+	features.status = 0;
+	features.handle = ACL_HANDLE;
+	hci_send_event_packet(vhci_fd, EVT_READ_REMOTE_FEATURES_COMPLETE, &features, EVT_READ_REMOTE_FEATURES_COMPLETE_SIZE);
 
-	evt_read_remote_features_complete read_features;
-	memset(&read_features, 0, EVT_READ_REMOTE_FEATURES_COMPLETE_SIZE);
-	read_features.status = 0;
-	read_features.handle = handle;
-	hci_send_event_packet(vhci_fd, EVT_READ_REMOTE_FEATURES_COMPLETE, &read_features, EVT_READ_REMOTE_FEATURES_COMPLETE_SIZE);
+	close(hci_socket);
 
-	sleep(1);
-
-	return 0;
+	vhci_init = 1;
+	pthread_kill(th, SIGKILL);
+	pthread_join(th, NULL);
 }
+#endif
 
-#if SYZ_EXECUTOR || __NR_syz_emit_vhci && SYZ_VHCI_INJECTION
+#if SYZ_EXECUTOR || __NR_syz_emit_vhci
+#if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
 static long syz_emit_vhci(volatile long a0, volatile long a1)
 {
 	if (vhci_fd < 0)
@@ -5531,6 +5365,11 @@ static long syz_emit_vhci(volatile long a0, volatile long a1)
 	uint32 length = a1;
 
 	return write(vhci_fd, data, length);
+}
+#else
+static long syz_emit_vhci(volatile long a0, volatile long a1)
+{
+	return 0;
 }
 #endif
 #endif
