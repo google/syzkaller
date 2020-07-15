@@ -72,6 +72,20 @@ are violated (e.g. passing `NULL` to a `non-NULL` argument, or passing
 `-1` as file descriptor) and produce errors/warnings. `volatile` prevents
 that.
 
+The implementation must not use any external libraries nor external headers,
+except for the most basic and standard ones (like `<unistd.h>` and
+`<sys/mman.h>`). In particular, it must not depend on libraries/headers
+installed by additional packages nor on headers for recently added kernel
+subsystems. External dependencies have proved to be brittle and easily cause
+build breakage because all dependencies will be required for any build/run on
+the fuzzer and any C reproducer. For example, packages/headers may be missing
+on some distros, named differently, be of a wrong version, broken, or conflict
+with other headers. Unfortunately, there is no way to reliably specify such
+dependencies and requirements for C programs. Therefore, if the pseudo-syscall
+requires definitions of some structures, constants, or helper functions, these
+should be described in the executor code itself as minimally as possible (they
+will be part of C reproducers).
+
 Now, to handle the pseudo-syscall properly we have to update the
 `isSupportedSyzkall` in
 [syscalls_linux.go](../pkg/host/syscalls_linux.go) and add a particular
