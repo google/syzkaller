@@ -169,7 +169,10 @@ close(r0)
 ```
 
 Syscall arguments are always `in`, return values are `out` and pointer indirections
-have explicit direction as `ptr` type attribute.
+have explicit direction as `ptr` type attribute. Note: for pointer indirections
+the direction applies to the whole pointee, and it's not possible to specify the
+direction individually for struct fields at the moment
+(see [#245](https://github.com/google/syzkaller/issues/245)).
 
 <div id="values"/>
 
