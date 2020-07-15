@@ -22,12 +22,12 @@ const (
 	FeatureSandboxAndroid
 	FeatureFault
 	FeatureLeak
-	FeatureVhciInjection
 	FeatureNetInjection
 	FeatureNetDevices
 	FeatureKCSAN
 	FeatureDevlinkPCI
 	FeatureUSBEmulation
+	FeatureVhciInjection
 	numFeatures
 )
 
@@ -61,12 +61,12 @@ func Check(target *prog.Target) (*Features, error) {
 		FeatureSandboxAndroid:   {Name: "Android sandbox", Reason: unsupported},
 		FeatureFault:            {Name: "fault injection", Reason: unsupported},
 		FeatureLeak:             {Name: "leak checking", Reason: unsupported},
-		FeatureVhciInjection:    {Name: "vhci packet injection", Reason: unsupported},
 		FeatureNetInjection:     {Name: "net packet injection", Reason: unsupported},
 		FeatureNetDevices:       {Name: "net device setup", Reason: unsupported},
 		FeatureKCSAN:            {Name: "concurrency sanitizer", Reason: unsupported},
 		FeatureDevlinkPCI:       {Name: "devlink PCI setup", Reason: unsupported},
 		FeatureUSBEmulation:     {Name: "USB emulation", Reason: unsupported},
+		FeatureVhciInjection:    {Name: "hci packet injection", Reason: unsupported},
 	}
 	if targets.Get(target.OS, target.Arch).HostFuzzer {
 		return res, nil

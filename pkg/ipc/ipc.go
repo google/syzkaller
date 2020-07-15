@@ -28,18 +28,19 @@ type EnvFlags uint64
 
 // Note: New / changed flags should be added to parse_env_flags in executor.cc.
 const (
-	FlagDebug            EnvFlags = 1 << iota // debug output from executor
-	FlagSignal                                // collect feedback signals (coverage)
-	FlagSandboxSetuid                         // impersonate nobody user
-	FlagSandboxNamespace                      // use namespaces for sandboxing
-	FlagSandboxAndroid                        // use Android sandboxing for the untrusted_app domain
-	FlagExtraCover                            // collect extra coverage
-	FlagEnableTun                             // setup and use /dev/tun for packet injection
-	FlagEnableNetDev                          // setup more network devices for testing
-	FlagEnableNetReset                        // reset network namespace between programs
-	FlagEnableCgroups                         // setup cgroups for testing
-	FlagEnableCloseFds                        // close fds after each program
-	FlagEnableDevlinkPCI                      // setup devlink PCI device
+	FlagDebug               EnvFlags = 1 << iota // debug output from executor
+	FlagSignal                                   // collect feedback signals (coverage)
+	FlagSandboxSetuid                            // impersonate nobody user
+	FlagSandboxNamespace                         // use namespaces for sandboxing
+	FlagSandboxAndroid                           // use Android sandboxing for the untrusted_app domain
+	FlagExtraCover                               // collect extra coverage
+	FlagEnableTun                                // setup and use /dev/tun for packet injection
+	FlagEnableNetDev                             // setup more network devices for testing
+	FlagEnableNetReset                           // reset network namespace between programs
+	FlagEnableCgroups                            // setup cgroups for testing
+	FlagEnableCloseFds                           // close fds after each program
+	FlagEnableDevlinkPCI                         // setup devlink PCI device
+	FlagEnableVhciInjection                      // setup and use /dev/vhci for hci packet injection
 )
 
 // Per-exec flags for ExecOpts.Flags.

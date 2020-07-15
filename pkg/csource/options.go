@@ -31,7 +31,6 @@ type Options struct {
 	Leak bool `json:"leak,omitempty"` // do leak checking
 
 	// These options allow for a more fine-tuned control over the generated C code.
-	VhciInjection bool `json:"vhci,omitempty"`
 	NetInjection  bool `json:"tun,omitempty"`
 	NetDevices    bool `json:"netdev,omitempty"`
 	NetReset      bool `json:"resetnet,omitempty"`
@@ -41,6 +40,7 @@ type Options struct {
 	KCSAN         bool `json:"kcsan,omitempty"`
 	DevlinkPCI    bool `json:"devlinkpci,omitempty"`
 	USB           bool `json:"usb,omitempty"`
+	VhciInjection bool `json:"vhci,omitempty"`
 
 	UseTmpDir  bool `json:"tmpdir,omitempty"`
 	HandleSegv bool `json:"segv,omitempty"`
@@ -109,9 +109,6 @@ func (opts Options) checkLinuxOnly(OS string) error {
 	if OS == linux {
 		return nil
 	}
-	if opts.VhciInjection {
-		return fmt.Errorf("option VHCI is not supported on %v", OS)
-	}
 	if opts.NetInjection && !(OS == openbsd || OS == freebsd || OS == netbsd) {
 		return fmt.Errorf("option NetInjection is not supported on %v", OS)
 	}
@@ -139,6 +136,9 @@ func (opts Options) checkLinuxOnly(OS string) error {
 	if opts.USB {
 		return fmt.Errorf("option USB is not supported on %v", OS)
 	}
+	if opts.VhciInjection {
+		return fmt.Errorf("option VHCI is not supported on %v", OS)
+	}
 	if opts.Sandbox == sandboxNamespace ||
 		(opts.Sandbox == sandboxSetuid && !(OS == openbsd || OS == freebsd || OS == netbsd)) ||
 		opts.Sandbox == sandboxAndroid {
@@ -160,7 +160,6 @@ func DefaultOpts(cfg *mgrconfig.Config) Options {
 		Repeat:        true,
 		Procs:         cfg.Procs,
 		Sandbox:       cfg.Sandbox,
-		VhciInjection: true,
 		NetInjection:  true,
 		NetDevices:    true,
 		NetReset:      true,
@@ -168,12 +167,12 @@ func DefaultOpts(cfg *mgrconfig.Config) Options {
 		BinfmtMisc:    true,
 		CloseFDs:      true,
 		DevlinkPCI:    true,
+		VhciInjection: true,
 		UseTmpDir:     true,
 		HandleSegv:    true,
 		Repro:         true,
 	}
 	if cfg.TargetOS != linux {
-		opts.VhciInjection = false
 		opts.NetInjection = false
 		opts.NetDevices = false
 		opts.NetReset = false
@@ -182,6 +181,7 @@ func DefaultOpts(cfg *mgrconfig.Config) Options {
 		opts.CloseFDs = false
 		opts.DevlinkPCI = false
 		opts.USB = false
+		opts.VhciInjection = false
 	}
 	if cfg.Sandbox == "" || cfg.Sandbox == "setuid" {
 		opts.NetReset = false
@@ -254,7 +254,6 @@ type Features map[string]Feature
 
 func defaultFeatures(value bool) Features {
 	return map[string]Feature{
-		"vhci":        {"setup and use /dev/vhci for hci packet injection", value},
 		"tun":         {"setup and use /dev/tun for packet injection", value},
 		"net_dev":     {"setup more network devices for testing", value},
 		"net_reset":   {"reset network namespace between programs", value},
@@ -263,6 +262,7 @@ func defaultFeatures(value bool) Features {
 		"close_fds":   {"close fds after each program", value},
 		"devlink_pci": {"setup devlink PCI device", value},
 		"usb":         {"setup and use /dev/raw-gadget for USB emulation", value},
+		"vhci":        {"setup and use /dev/vhci for hci packet injection", value},
 	}
 }
 
