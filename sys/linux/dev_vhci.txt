@@ -6,9 +6,7 @@ include <net/bluetooth/hci_sock.h>
 include <net/bluetooth/sco.h>
 include <net/bluetooth/hci.h>
 
-resource fd_vhci[fd]
-openat$vhci(fd const[AT_FDCWD], file ptr[in, string["/dev/vhci"]], flags flags[open_flags]) fd_vhci
-write$vhci(fd fd_vhci, data ptr[in, vhci_command], size bytesize[data])
+syz_emit_vhci(data ptr[in, vhci_command], size bytesize[data])
 
 vhci_command [
 	HCI_EVENT_PKT	vhci_command_event_pkt
@@ -42,9 +40,9 @@ vhci_command_vendor_pkt {
 vhci_vendor_pkt_opcode = HCI_PRIMARY, HCI_AMP, HCI_EXTERNAL_CONFIG, HCI_RAW_DEVICE
 
 type hci_acl_hdr[DATA] {
-	bc	int16:2
+	handle	const[0x100, int16:12]
 	pb	int16:2
-	handle	int16:12
+	bc	int16:2
 	dlen	bytesize[DATA, int16]
 } [packed]
 
