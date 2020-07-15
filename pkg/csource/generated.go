@@ -5341,7 +5341,6 @@ void initialize_vhci()
 	hci_send_event_packet(vhci_fd, EVT_CONN_COMPLETE, &complete, EVT_CONN_COMPLETE_SIZE);
 
 	evt_read_remote_features_complete features = {0};
-	memset(&features, 0, EVT_READ_REMOTE_FEATURES_COMPLETE_SIZE);
 	features.status = 0;
 	features.handle = ACL_HANDLE;
 	hci_send_event_packet(vhci_fd, EVT_READ_REMOTE_FEATURES_COMPLETE, &features, EVT_READ_REMOTE_FEATURES_COMPLETE_SIZE);
