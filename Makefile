@@ -103,14 +103,7 @@ endif
 	extract generate generate_go generate_sys \
 	format format_go format_cpp format_sys \
 	tidy test test_race check_copyright check_language check_links check_diff \
-	arch arch_darwin_amd64_host arch_linux_amd64_host \
-	arch_freebsd_amd64_host arch_netbsd_amd64_host \
-	arch_linux_amd64_target arch_linux_386_target \
-	arch_linux_arm64_target arch_linux_arm_target arch_linux_ppc64le_target arch_linux_mips64le_target \
-	arch_linux_s390x_target arch_linux_riscv64_target arch_freebsd_amd64_target arch_freebsd_386_target \
-	arch_netbsd_amd64_target arch_windows_amd64_target \
-	arch_akaros_target arch_fuchsia_target \
-	arch_test presubmit presubmit_parallel clean
+	presubmit presubmit_parallel clean
 
 all: host target
 host: manager runtest repro mutate prog2c db upgrade
@@ -265,73 +258,6 @@ lint:
 	CGO_ENABLED=1 $(HOSTGO) build -buildmode=plugin -o bin/syz-linter.so ./tools/syz-linter
 	bin/golangci-lint run ./...
 
-arch_darwin_amd64_host:
-	env HOSTOS=darwin HOSTARCH=amd64 $(MAKE) host
-
-arch_linux_amd64_host:
-	env HOSTOS=linux HOSTARCH=amd64 $(MAKE) host
-
-arch_linux_amd64_target:
-	env TARGETOS=linux TARGETARCH=amd64 $(MAKE) target
-
-arch_linux_386_target:
-	env TARGETOS=linux TARGETARCH=386 $(MAKE) target
-
-arch_linux_arm64_target:
-	env TARGETOS=linux TARGETARCH=arm64 $(MAKE) target
-
-arch_linux_arm_target:
-	env TARGETOS=linux TARGETARCH=arm $(MAKE) target
-
-arch_linux_mips64le_target:
-	env TARGETOS=linux TARGETARCH=mips64le $(MAKE) target
-
-arch_linux_ppc64le_target:
-	env TARGETOS=linux TARGETARCH=ppc64le $(MAKE) target
-
-arch_linux_riscv64_target:
-	env TARGETOS=linux TARGETARCH=riscv64 $(MAKE) target
-
-arch_linux_s390x_target:
-	env TARGETOS=linux TARGETARCH=s390x $(MAKE) target
-
-arch_freebsd_amd64_host:
-	env HOSTOS=freebsd HOSTARCH=amd64 $(MAKE) host
-
-arch_freebsd_amd64_target:
-	env TARGETOS=freebsd TARGETARCH=amd64 $(MAKE) target
-
-arch_freebsd_386_target:
-	env TARGETOS=freebsd TARGETARCH=386 $(MAKE) target
-
-arch_netbsd_amd64_host:
-	env HOSTOS=netbsd HOSTARCH=amd64 $(MAKE) host
-
-arch_netbsd_amd64_target:
-	env TARGETOS=netbsd TARGETARCH=amd64 $(MAKE) target
-
-arch_openbsd_amd64_host:
-	env HOSTOS=openbsd HOSTARCH=amd64 $(MAKE) host
-
-arch_openbsd_amd64_target:
-	env TARGETOS=openbsd TARGETARCH=amd64 $(MAKE) target
-
-arch_windows_amd64_target:
-	env TARGETOS=windows TARGETARCH=amd64 $(MAKE) target
-
-arch_akaros_target:
-	env TARGETOS=akaros TARGETARCH=amd64 $(MAKE) executor
-
-arch_fuchsia_target:
-	env TARGETOS=fuchsia TARGETARCH=amd64 $(MAKE) executor
-	env TARGETOS=fuchsia TARGETARCH=arm64 $(MAKE) executor
-
-arch_test:
-	env TARGETOS=test TARGETARCH=64 $(MAKE) executor
-	env TARGETOS=test TARGETARCH=64_fork $(MAKE) executor
-	env TARGETOS=test TARGETARCH=32_shmem $(MAKE) executor
-	env TARGETOS=test TARGETARCH=32_fork_shmem $(MAKE) executor
-
 presubmit:
 	$(MAKE) presubmit_smoke
 	$(MAKE) presubmit_arch
@@ -349,27 +275,31 @@ presubmit_build:
 	$(MAKE) lint
 
 presubmit_arch: descriptions
-	$(MAKE) arch_linux_amd64_host
-	$(MAKE) arch_freebsd_amd64_host
-	$(MAKE) arch_netbsd_amd64_host
-	$(MAKE) arch_openbsd_amd64_host
-	$(MAKE) arch_linux_amd64_target
-	$(MAKE) arch_linux_386_target
-	$(MAKE) arch_linux_arm64_target
-	$(MAKE) arch_linux_arm_target
-	$(MAKE) arch_linux_ppc64le_target
-	$(MAKE) arch_linux_mips64le_target
-	$(MAKE) arch_linux_s390x_target
-	$(MAKE) arch_linux_riscv64_target
-	$(MAKE) arch_freebsd_amd64_target
-	$(MAKE) arch_freebsd_386_target
-	$(MAKE) arch_netbsd_amd64_target
-	$(MAKE) arch_openbsd_amd64_target
-	$(MAKE) arch_darwin_amd64_host
-	$(MAKE) arch_windows_amd64_target
-	$(MAKE) arch_akaros_target
-	$(MAKE) arch_fuchsia_target
-	$(MAKE) arch_test
+	env HOSTOS=linux HOSTARCH=amd64 $(MAKE) host
+	env HOSTOS=freebsd HOSTARCH=amd64 $(MAKE) host
+	env HOSTOS=netbsd HOSTARCH=amd64 $(MAKE) host
+	env HOSTOS=openbsd HOSTARCH=amd64 $(MAKE) host
+	env HOSTOS=darwin HOSTARCH=amd64 $(MAKE) host
+	env TARGETOS=linux TARGETARCH=amd64 $(MAKE) target
+	env TARGETOS=linux TARGETARCH=386 $(MAKE) target
+	env TARGETOS=linux TARGETARCH=arm64 $(MAKE) target
+	env TARGETOS=linux TARGETARCH=arm $(MAKE) target
+	env TARGETOS=linux TARGETARCH=mips64le $(MAKE) target
+	env TARGETOS=linux TARGETARCH=ppc64le $(MAKE) target
+	env TARGETOS=linux TARGETARCH=riscv64 $(MAKE) target
+	env TARGETOS=linux TARGETARCH=s390x $(MAKE) target
+	env TARGETOS=freebsd TARGETARCH=amd64 $(MAKE) target
+	env TARGETOS=freebsd TARGETARCH=386 $(MAKE) target
+	env TARGETOS=netbsd TARGETARCH=amd64 $(MAKE) target
+	env TARGETOS=openbsd TARGETARCH=amd64 $(MAKE) target
+	env TARGETOS=windows TARGETARCH=amd64 $(MAKE) target
+	env TARGETOS=akaros TARGETARCH=amd64 $(MAKE) executor
+	env TARGETOS=fuchsia TARGETARCH=amd64 $(MAKE) executor
+	env TARGETOS=fuchsia TARGETARCH=arm64 $(MAKE) executor
+	env TARGETOS=test TARGETARCH=64 $(MAKE) executor
+	env TARGETOS=test TARGETARCH=64_fork $(MAKE) executor
+	env TARGETOS=test TARGETARCH=32_shmem $(MAKE) executor
+	env TARGETOS=test TARGETARCH=32_fork_shmem $(MAKE) executor
 
 presubmit_big: descriptions
 	# This target runs on CI in syz-big-env,
