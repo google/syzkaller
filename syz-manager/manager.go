@@ -88,6 +88,7 @@ type Manager struct {
 	usedFiles map[string]time.Time
 	pcsWeight map[uint32]float32
 	kstateMap map[uint64]string
+	kstateCnt map[uint64]float32
 }
 
 const (
@@ -183,6 +184,7 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, sysTarget *targets.T
 		saturatedCalls:        make(map[string]bool),
 		pcsWeight:             make(map[uint32]float32),
 		kstateMap:             make(map[uint64]string),
+		kstateCnt:             make(map[uint64]float32),
 	}
 
 	log.Logf(0, "loading corpus...")
@@ -1149,6 +1151,7 @@ func (mgr *Manager) readKernStateMap() {
 	for true {
 		var varName string
 		var id uint64
+		var count uint32
 		_, err := fmt.Fscan(kstateFile, &varName)
 		if err != nil {
 			break
@@ -1158,8 +1161,13 @@ func (mgr *Manager) readKernStateMap() {
 		if err != nil {
 			break
 		}
+		_, err = fmt.Fscan(kstateFile, &count)
+		if err != nil {
+			break
+		}
 		mgr.kstateMap[id] = varName
-		log.Logf(0, "Init KernState map: %s: %x\n", varName, id)
+		mgr.kstateCnt[id] = float32(count)
+		log.Logf(0, "Init KernState map: %s: %x %f\n", varName, id, float32(count))
 	}
 }
 

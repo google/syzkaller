@@ -13,6 +13,7 @@ type Prog struct {
 	Calls    []*Call
 	Comments []string
 	Weight   float32
+	ResPrio  float32
 }
 
 type Call struct {

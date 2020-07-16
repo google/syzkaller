@@ -7,6 +7,10 @@ type KernState struct {
 	Value uint64
 }
 
+func (state KernState) Hash() uint64 {
+	return (state.ID & 0xffffffff) ^ state.Value
+}
+
 func (states KernStates) Merge(id uint64, value uint64) KernStates {
 	for i, s := range states {
 		/* duplicate state set */
@@ -21,6 +25,20 @@ func (states KernStates) Merge(id uint64, value uint64) KernStates {
 	}
 	states = append(states, KernState{ID: id, Value: value})
 	return states
+}
+
+func (states KernStates) Dedup() KernStates {
+	dedupMap := make(map[uint32]bool)
+	var retStates KernStates
+	for _, s := range states {
+		id := uint32(s.ID & 0xffffffff)
+		val := uint32(s.Value & 0xffffffff)
+		if _, ok := dedupMap[id ^ val]; !ok {
+			dedupMap[id ^ val] = true
+			retStates = append(retStates, s)
+		}
+	}
+	return retStates;
 }
 
 func (states KernStates) Len() int {

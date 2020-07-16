@@ -178,6 +178,7 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 				})
 		}
 	}
+	inputKernState = inputKernState.Dedup()
 	log.Logf(2, "added new input for %v to corpus:\n%s", logCallName, data)
 	proc.fuzzer.sendInputToManager(rpctype.RPCInput{
 		Call:   callName,
@@ -189,7 +190,9 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 
 	proc.fuzzer.getPCsWeight()
 	weight := calCoverWeight(proc.fuzzer.pcsWeight, proc.fuzzer.pcsWeightMu, inputCover.Serialize())
+	resPrio := calStateWeight(proc.fuzzer.kstateMap, proc.fuzzer.kstateMapMu, inputKernState)
 	item.p.Weight = weight
+	item.p.ResPrio = resPrio
 	for _, p := range proc.fuzzer.corpus {
 		log.Logf(3, "Prog: %s weight: %.5f", p.Comments, p.Weight)
 	}
@@ -262,6 +265,24 @@ func calCoverWeight(pcsWeight map[uint32]float32, pcsWeightMu sync.RWMutex, pcs 
 	/* Base on the cyclomatic complexity.
 	 * Weight is determined by potential forward edges of the prog */
 	weight = weight - float32(count) + 1
+	return weight
+}
+
+func calStateWeight(statemap map[uint64]float32, pcsWeightMu sync.RWMutex, state kstate.KernStates) float32 {
+	var weight float32 = 1.0
+	var count float32 = 1.0
+	for _, s := range state {
+		id := s.ID | 0xffffffff
+		hash := s.Hash()
+		if _, ok := statemap[hash]; ok {
+			weight += statemap[hash]
+			count++
+		}else if _, ok := statemap[id]; ok {
+			weight += statemap[id]
+			count++
+		}
+	}
+	weight = weight - count + 1
 	return weight
 }
 

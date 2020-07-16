@@ -204,6 +204,18 @@ func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
 		if !mgr.cfg.Covfilter {
 			weight = float32(inp.Signal.Deserialize().Len())
 		}
+		var stateWeight float32 = 1.0
+		var scount float32 = 1.0
+		for _, s := range inp.State {
+			if _, ok := mgr.kstateCnt[s.Hash()]; ok {
+				scount++
+				stateWeight += mgr.kstateCnt[s.Hash()]
+			} else if _, ok := mgr.kstateCnt[s.ID&0xffffffff]; ok {
+				scount++
+				stateWeight += mgr.kstateCnt[s.ID&0xffffffff]
+			}
+		}
+		stateWeight = stateWeight - scount + 1
 		data.Inputs = append(data.Inputs, &UIInput{
 			Sig:      sig,
 			Short:    p.String(),
@@ -212,6 +224,7 @@ func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
 			Signal:   inp.Signal.Deserialize(),
 			SigLen:   inp.Signal.Deserialize().Len(),
 			StateLen: inp.State.Len(),
+			ResPrio:  stateWeight,
 			State:    inp.State,
 		})
 	}
@@ -333,7 +346,7 @@ func (mgr *Manager) httpBitmapCover(w http.ResponseWriter, r *http.Request) {
 			pcs = append(pcs, pc)
 			progs = append(progs, cover.Prog{
 				Data: "From pcs weight table: " + string(pc) + ":" + string(i),
-				PCs: coverToPCs(mgr.sysTarget, pcs),
+				PCs:  coverToPCs(mgr.sysTarget, pcs),
 			})
 		}
 	}
@@ -664,6 +677,7 @@ type UIInput struct {
 	SigLen   int
 	StateLen int
 	State    kstate.KernStates
+	ResPrio  float32
 }
 
 var summaryTemplate = html.CreatePage(`
@@ -809,9 +823,10 @@ var corpusTemplate = html.CreatePage(`
 	<tr>
 		<th>Coverage</th>
 		<th>Program</th>
-		<th>SignalLen</th>
-		<th>Prog Weight</th>
-		<th>StateLen</th>
+		<th>Signal</th>
+		<th>Cover Weight</th>
+		<th>State</th>
+		<th>Resource Weight</th>
 	</tr>
 	{{range $inp := $.Inputs}}
 	<tr>
@@ -820,6 +835,7 @@ var corpusTemplate = html.CreatePage(`
 		<td><a href="/input?sig={{$inp.Sig}}">{{$inp.SigLen}}</a></td>
 		<td><a href="/input?sig={{$inp.Sig}}">{{$inp.Weight}}</a></td>
 		<td><a href="/input?sig={{$inp.Sig}}">{{$inp.StateLen}}</a></td>
+		<td><a href="/input?sig={{$inp.Sig}}">{{$inp.ResPrio}}</a></td>
 	</tr>
 	{{end}}
 </table>

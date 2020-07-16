@@ -55,6 +55,8 @@ type Fuzzer struct {
 	sumPrios     int64
 	pcsWeight    map[uint32]float32
 	pcsWeightMu  sync.RWMutex
+	kstateMap    map[uint64]float32
+	kstateMapMu  sync.RWMutex
 
 	signalMu     sync.RWMutex
 	corpusSignal signal.Signal // signal of inputs in corpus
@@ -246,6 +248,7 @@ func main() {
 		comparisonTracingEnabled: r.CheckResult.Features[host.FeatureComparisons].Enabled,
 		corpusHashes:             make(map[hash.Sig]struct{}),
 		pcsWeight:                make(map[uint32]float32),
+		kstateMap:                make(map[uint64]float32),
 	}
 
 	fuzzer.getPCsWeight()
@@ -291,6 +294,34 @@ func (fuzzer *Fuzzer) getPCsWeight() {
 	fuzzer.pcsWeightMu.Lock()
 	fuzzer.pcsWeight = r.PCsWeight
 	fuzzer.pcsWeightMu.Unlock()
+}
+
+func (fuzzer *Fuzzer) getKstateMap() {
+	kstateFile, err := os.Open("/kstate.map")
+	if err != nil {
+		log.Fatalf("failed to open kernstatemap file: %v", err)
+	}
+	defer kstateFile.Close()
+	for true {
+		var varName string
+		var id uint64
+		var count uint32
+		_, err := fmt.Fscan(kstateFile, &varName)
+		if err != nil {
+			break
+		}
+		varName = varName[:len(varName)-1]
+		_, err = fmt.Fscan(kstateFile, &id)
+		if err != nil {
+			break
+		}
+		_, err = fmt.Fscan(kstateFile, &count)
+		if err != nil {
+			break
+		}
+		fuzzer.kstateMap[id] = float32(count)
+		log.Logf(0, "Init KernState map: %s: %x: %f\n", varName, id, float32(count))
+	}
 }
 
 // Returns gateCallback for leak checking if enabled.
