@@ -5,6 +5,7 @@ package prog
 
 import (
 	"fmt"
+	"github.com/google/syzkaller/pkg/kstate"
 )
 
 type Prog struct {
@@ -19,6 +20,7 @@ type Call struct {
 	Args    []Arg
 	Ret     *ResultArg
 	Comment string
+	State   kstate.KernStates
 }
 
 type Arg interface {

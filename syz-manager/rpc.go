@@ -55,7 +55,7 @@ type RPCManagerView interface {
 	newInput(inp rpctype.RPCInput, sign signal.Signal) bool
 	candidateBatch(size int) []rpctype.RPCCandidate
 	rotateCorpus() bool
-	getPCsWeight() map[uint32]Float32
+	getPCsWeight() map[uint32]float32
 }
 
 func startRPCServer(mgr *Manager) (int, error) {

@@ -87,6 +87,7 @@ type Manager struct {
 	// Maps file name to modification time.
 	usedFiles map[string]time.Time
 	pcsWeight map[uint32]float32
+	kstateMap map[uint64]string
 }
 
 const (
@@ -181,6 +182,7 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, sysTarget *targets.T
 		usedFiles:             make(map[string]time.Time),
 		saturatedCalls:        make(map[string]bool),
 		pcsWeight:             make(map[uint32]float32),
+		kstateMap:             make(map[uint64]string),
 	}
 
 	log.Logf(0, "loading corpus...")
@@ -190,6 +192,7 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, sysTarget *targets.T
 	}
 
 	mgr.readPCsWeight()
+	mgr.readKernStateMap()
 
 	// Create HTTP server.
 	mgr.initHTTP()
@@ -565,6 +568,12 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 
 	/* scp coverage filter pcs to machine */
 	_, err = inst.Copy(mgr.cfg.SyzCoverPCs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to copy binary: %v", err)
+	}
+
+	/* scp kernel state map to machine */
+	_, err = inst.Copy(mgr.cfg.SyzKernStates)
 	if err != nil {
 		return nil, fmt.Errorf("failed to copy binary: %v", err)
 	}
@@ -1128,6 +1137,29 @@ func (mgr *Manager) readPCsWeight() {
 		var weight float32 = float32((encode >> 32) & 0xffff)
 		mgr.pcsWeight[pc] = weight
 		log.Logf(0, "Init PCs weight: pc: %x weight: %f\n", pc, mgr.pcsWeight[pc])
+	}
+}
+
+func (mgr *Manager) readKernStateMap() {
+	kstateFile, err := os.Open(mgr.cfg.SyzKernStates)
+	if err != nil {
+		log.Fatalf("failed to open kernstatemap file: %v", err)
+	}
+	defer kstateFile.Close()
+	for true {
+		var varName string
+		var id uint64
+		_, err := fmt.Fscan(kstateFile, &varName)
+		if err != nil {
+			break
+		}
+		varName = varName[:len(varName)-1]
+		_, err = fmt.Fscan(kstateFile, &id)
+		if err != nil {
+			break
+		}
+		mgr.kstateMap[id] = varName
+		log.Logf(0, "Init KernState map: %s: %x\n", varName, id)
 	}
 }
 

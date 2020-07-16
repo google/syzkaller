@@ -8,6 +8,7 @@ package rpctype
 import (
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
+	"github.com/google/syzkaller/pkg/kstate"
 	"github.com/google/syzkaller/pkg/signal"
 )
 
@@ -16,6 +17,7 @@ type RPCInput struct {
 	Prog   []byte
 	Signal signal.Serial
 	Cover  []uint32
+	State  kstate.KernStates
 }
 
 type RPCCandidate struct {

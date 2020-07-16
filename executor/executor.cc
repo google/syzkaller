@@ -265,9 +265,11 @@ struct call_reply {
 	uint32 reserrno;
 	uint32 flags;
 	uint32 signal_size;
+	uint32 kstate_size;
 	uint32 cover_size;
 	uint32 comps_size;
 	// signal/cover/comps follow
+	/* signal/kstate/cover/comps follow */
 };
 
 enum {
@@ -878,8 +880,22 @@ void write_coverage_signal(cover_t* cov, uint32* signal_count_pos, uint32* cover
 	cover_data_t* cover_data = ((cover_data_t*)cov->data) + 1;
 	uint32 nsig = 0;
 	cover_data_t prev = 0;
+	uint32* state_count_pos = signal_count_pos + 1;
+	/* Collect kernel state less than 50 per syscall */
+	cover_data_t* state[0x50];
+	uint32 nstate = 0;
 	for (uint32 i = 0; i < cov->size; i++) {
 		cover_data_t pc = cover_data[i];
+		if (((uint64(pc) >> 48) & 0xffff) == 0xfefe) {
+			if (nstate < 0x50) {
+				state[nstate] = &cover_data[i];
+				nstate++;
+			}
+			i++;
+			if (!flag_cover_filter)
+				i++;
+			continue;
+		}
 		if (!cover_check(pc)) {
 			debug("got bad pc: 0x%llx\n", (uint64)pc);
 			doexit(0);
@@ -899,6 +915,15 @@ void write_coverage_signal(cover_t* cov, uint32* signal_count_pos, uint32* cover
 	// Write out number of signals.
 	*signal_count_pos = nsig;
 
+	/* Write kernel state to shared memory */
+	*state_count_pos = nstate;
+	for (uint32 i = 0; i < nstate; i++) {
+		uint64 id = (uint64)(*state[i]);
+		uint64 val = (uint64) * (state[i] + 1);
+		write_output_64(id);
+		write_output_64(val);
+	}
+
 	if (!flag_collect_cover)
 		return;
 	// Write out real coverage (basic block PCs).
@@ -912,8 +937,16 @@ void write_coverage_signal(cover_t* cov, uint32* signal_count_pos, uint32* cover
 	}
 	// Truncate PCs to uint32 assuming that they fit into 32-bits.
 	// True for x86_64 and arm64 without KASLR.
-	for (uint32 i = 0; i < cover_size; i++)
+	for (uint32 i = 0; i < cover_size; i++) {
+		cover_data_t pc = cover_data[i];
+		if (((uint64(pc) >> 48) & 0xffff) == 0xfefe) {
+			i += 1;
+			write_output(0x81000000);
+			write_output(0x81000000);
+			continue;
+		}
 		write_output(cover_data[i]);
+	}
 	*cover_count_pos = cover_size;
 }
 #endif
@@ -995,6 +1028,7 @@ void write_call_output(thread_t* th, bool finished)
 	write_output(reserrno);
 	write_output(call_flags);
 	uint32* signal_count_pos = write_output(0); // filled in later
+	/*uint32* kstate_count_pos = */ write_output(0); // filled in later
 	uint32* cover_count_pos = write_output(0); // filled in later
 	uint32* comps_count_pos = write_output(0); // filled in later
 
@@ -1039,6 +1073,7 @@ void write_call_output(thread_t* th, bool finished)
 	reply.reserrno = reserrno;
 	reply.flags = call_flags;
 	reply.signal_size = 0;
+	reply.kstate_size = 0;
 	reply.cover_size = 0;
 	reply.comps_size = 0;
 	if (write(kOutPipeFd, &reply, sizeof(reply)) != sizeof(reply))

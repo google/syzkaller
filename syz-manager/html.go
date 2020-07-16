@@ -22,6 +22,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/html"
+	"github.com/google/syzkaller/pkg/kstate"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/signal"
@@ -36,6 +37,7 @@ func (mgr *Manager) initHTTP() {
 	http.HandleFunc("/corpus", mgr.httpCorpus)
 	http.HandleFunc("/crash", mgr.httpCrash)
 	http.HandleFunc("/cover", mgr.httpCover)
+	http.HandleFunc("/bitmap", mgr.httpBitmap)
 	http.HandleFunc("/prio", mgr.httpPrio)
 	http.HandleFunc("/file", mgr.httpFile)
 	http.HandleFunc("/report", mgr.httpReport)
@@ -199,13 +201,18 @@ func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		weight = weight - float32(count) + 1
+		if !mgr.cfg.Covfilter {
+			weight = float32(inp.Signal.Deserialize().Len())
+		}
 		data.Inputs = append(data.Inputs, &UIInput{
-			Sig:    sig,
-			Short:  p.String(),
-			Cover:  len(inp.Cover),
-			Weight: weight,
-			Signal: inp.Signal.Deserialize(),
-			SigLen: inp.Signal.Deserialize().Len(),
+			Sig:      sig,
+			Short:    p.String(),
+			Cover:    len(inp.Cover),
+			Weight:   weight,
+			Signal:   inp.Signal.Deserialize(),
+			SigLen:   inp.Signal.Deserialize().Len(),
+			StateLen: inp.State.Len(),
+			State:    inp.State,
 		})
 	}
 	sort.Slice(data.Inputs, func(i, j int) bool {
@@ -301,6 +308,42 @@ func (mgr *Manager) httpCoverFallback(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (mgr *Manager) httpBitmap(w http.ResponseWriter, r *http.Request) {
+	if !mgr.cfg.Cover {
+		mgr.mu.Lock()
+		defer mgr.mu.Unlock()
+		mgr.httpCoverFallback(w, r)
+	}
+	// Note: initCover is executed without mgr.mu because it takes very long time
+	// (but it only reads config and it protected by initCoverOnce).
+	if err := initCover(mgr.sysTarget, mgr.cfg.KernelObj, mgr.cfg.KernelSrc, mgr.cfg.KernelBuildSrc); err != nil {
+		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
+		return
+	}
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+	mgr.httpBitmapCover(w, r)
+}
+
+func (mgr *Manager) httpBitmapCover(w http.ResponseWriter, r *http.Request) {
+	var progs []cover.Prog
+	for pc, weight := range mgr.pcsWeight {
+		for i := 0; i < int(weight); i++ {
+			var pcs []uint32
+			pcs = append(pcs, pc)
+			progs = append(progs, cover.Prog{
+				Data: "From pcs weight table: " + string(pc) + ":" + string(i),
+				PCs: coverToPCs(mgr.sysTarget, pcs),
+			})
+		}
+	}
+	if err := reportGenerator.Do(w, progs); err != nil {
+		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
+		return
+	}
+	runtime.GC()
+}
+
 func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
@@ -364,6 +407,12 @@ func (mgr *Manager) httpInput(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Write(inp.Prog)
+	for _, s := range inp.State {
+		realID := s.ID & 0xffffffff
+		if varName, ok := mgr.kstateMap[realID]; ok {
+			w.Write([]byte(fmt.Sprintf("syscall-%d: %s = 0x%x\n", (s.ID>>32)&0xffff, varName, s.Value)))
+		}
+	}
 }
 
 func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {
@@ -607,12 +656,14 @@ type UICorpus struct {
 }
 
 type UIInput struct {
-	Sig    string
-	Short  string
-	Cover  int
-	Weight float32
-	Signal signal.Signal
-	SigLen int
+	Sig      string
+	Short    string
+	Cover    int
+	Weight   float32
+	Signal   signal.Signal
+	SigLen   int
+	StateLen int
+	State    kstate.KernStates
 }
 
 var summaryTemplate = html.CreatePage(`
@@ -760,6 +811,7 @@ var corpusTemplate = html.CreatePage(`
 		<th>Program</th>
 		<th>SignalLen</th>
 		<th>Prog Weight</th>
+		<th>StateLen</th>
 	</tr>
 	{{range $inp := $.Inputs}}
 	<tr>
@@ -767,6 +819,7 @@ var corpusTemplate = html.CreatePage(`
 		<td><a href="/input?sig={{$inp.Sig}}">{{$inp.Short}}</a></td>
 		<td><a href="/input?sig={{$inp.Sig}}">{{$inp.SigLen}}</a></td>
 		<td><a href="/input?sig={{$inp.Sig}}">{{$inp.Weight}}</a></td>
+		<td><a href="/input?sig={{$inp.Sig}}">{{$inp.StateLen}}</a></td>
 	</tr>
 	{{end}}
 </table>

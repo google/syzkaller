@@ -118,4 +118,5 @@ type Config struct {
 	SyzExecprogBin string `json:"-"`
 	SyzExecutorBin string `json:"-"`
 	SyzCoverPCs    string `json:"coverpcs"`
+	SyzKernStates  string `json:"kstatemap"`
 }
