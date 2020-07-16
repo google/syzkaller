@@ -317,6 +317,10 @@ func (rg *ReportGenerator) findSymbol(pc uint64) uint64 {
 	return s.start
 }
 
+func (rg *ReportGenerator) PCs() map[uint64][]symbolizer.Frame {
+	return rg.pcs
+}
+
 func readSymbols(target *targets.Target, obj string) ([]symbol, error) {
 	symb := symbolizer.NewSymbolizer(target)
 	raw, err := symb.ReadTextSymbols(obj)

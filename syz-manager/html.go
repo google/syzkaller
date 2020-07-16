@@ -38,6 +38,7 @@ func (mgr *Manager) initHTTP() {
 	http.HandleFunc("/crash", mgr.httpCrash)
 	http.HandleFunc("/cover", mgr.httpCover)
 	http.HandleFunc("/bitmap", mgr.httpBitmap)
+	http.HandleFunc("/kernfunc", mgr.httpKernFunc)
 	http.HandleFunc("/prio", mgr.httpPrio)
 	http.HandleFunc("/file", mgr.httpFile)
 	http.HandleFunc("/report", mgr.httpReport)
@@ -355,6 +356,64 @@ func (mgr *Manager) httpBitmapCover(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	runtime.GC()
+}
+
+func (mgr *Manager) httpKernFunc(w http.ResponseWriter, r *http.Request) {
+	if err := initCover(mgr.sysTarget, mgr.cfg.KernelObj, mgr.cfg.KernelSrc, mgr.cfg.KernelBuildSrc); err != nil {
+		http.Error(w, initCoverError.Error(), http.StatusInternalServerError)
+		return
+	}
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+
+	var cov cover.Cover
+	for _, inp := range mgr.corpus {
+		cov.Merge(inp.Cover)
+	}
+	covArray := make([]uint32, 0, len(cov))
+	for pc := range cov {
+		covArray = append(covArray, pc)
+	}
+	funcCovCount := mgr.getFuncCount(covArray)
+
+	funcMapArray := make([]uint32, 0, len(cov))
+	for pc, _ := range mgr.pcsWeight {
+		funcMapArray = append(funcMapArray, pc)
+	}
+	funcMapCount := mgr.getFuncCount(funcMapArray)
+	totalMap := uint32(0)
+	totalCov := uint32(0)
+	for fn, _ := range funcMapCount {
+		if _, ok := funcCovCount[fn]; ok {
+			w.Write([]byte(fmt.Sprintf("%s: %d/%d\n", fn, funcCovCount[fn], funcMapCount[fn])))
+			totalMap += funcMapCount[fn]
+			totalCov += funcCovCount[fn]
+		} else {
+			totalMap += funcMapCount[fn]
+			w.Write([]byte(fmt.Sprintf("%s: 0/%d\n", fn, funcMapCount[fn])))
+		}
+	}
+	w.Write([]byte(fmt.Sprintf("\nTotal: %d/%d\n", totalCov, totalMap)))
+}
+
+func (mgr *Manager) getFuncCount(cover []uint32) map[string]uint32 {
+	fCount := make(map[string]uint32)
+	fPCs := coverToPCs(mgr.sysTarget, cover)
+	sort.Slice(fPCs, func(i, j int) bool {
+		return fPCs[i] < fPCs[j]
+	})
+	for _, pc := range fPCs {
+		frame, ok := reportGenerator.PCs()[pc]
+		if len(frame) > 0 && ok {
+			funcName := frame[len(frame)-1].Func
+			if _, ok := fCount[funcName]; ok {
+				fCount[funcName]++
+			} else {
+				fCount[funcName] = 1
+			}
+		}
+	}
+	return fCount
 }
 
 func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
