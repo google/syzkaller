@@ -559,6 +559,12 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 		}
 	}
 
+	/* scp coverage filter pcs to machine */
+	_, err = inst.Copy(mgr.cfg.SyzCoverPCs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to copy binary: %v", err)
+	}
+
 	fuzzerV := 0
 	procs := mgr.cfg.Procs
 	if *flagDebug {

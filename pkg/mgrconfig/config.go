@@ -117,4 +117,5 @@ type Config struct {
 	SyzFuzzerBin   string `json:"-"`
 	SyzExecprogBin string `json:"-"`
 	SyzExecutorBin string `json:"-"`
+	SyzCoverPCs    string `json:"coverpcs"`
 }
