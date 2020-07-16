@@ -586,6 +586,8 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 		cmd.ExtraFiles = []*os.File{inFile, outFile}
 	}
 	cmd.Dir = dir
+	// Tell ASAN to not mess with our NONFAILING.
+	cmd.Env = append(append([]string{}, os.Environ()...), "ASAN_OPTIONS=handle_segv=0 allow_user_segv_handler=1")
 	cmd.Stdin = outrp
 	cmd.Stdout = inwp
 	if config.Flags&FlagDebug != 0 {
