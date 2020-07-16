@@ -1,0 +1,57 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# drivers/char/raw.c
+include <linux/raw.h>
+
+resource fd_char_raw[fd]
+resource fd_char_raw_ctl[fd]
+
+openat$char_raw_ctl(fd const[AT_FDCWD], file ptr[in, string["/dev/raw/rawctl"]], flags flags[open_flags], mode const[0]) fd_char_raw_ctl
+# /dev/raw/raw# only exists if ioctl$RAW_CHAR_CTRL_SETBIND executed first.
+syz_open_dev$char_raw(file ptr[in, string["/dev/raw/raw#"]], raw_minor proc[1, 2], flags flags[open_flags]) fd_char_raw
+
+read$char_raw(fd fd_char_raw, buf ptr[out, raw_char_buffer], count len[buf])
+write$char_raw(fd fd_char_raw, buf ptr[in, raw_char_buffer], count len[buf])
+
+raw_char_buffer {
+	buf	array[int8, 1:65536]
+} [align[512]]
+
+# IOCTL on /dev/raw/rawctl
+ioctl$RAW_CHAR_CTRL_SETBIND(fd fd_char_raw_ctl, cmd const[RAW_SETBIND], arg ptr[in, raw_bind_info])
+ioctl$RAW_CHAR_CTRL_GETBIND(fd fd_char_raw_ctl, cmd const[RAW_GETBIND], arg ptr[inout, raw_bind_info])
+
+# TODO: add other suitable major types
+raw_bind_info {
+	raw_minor	proc[1, 2, int32]
+	block_major	const[LOOP_MAJOR, int64]
+	block_minor	proc[0, 1, int64]
+}
+
+# IOCTL on /dev/raw/rawN
+# similar to dev_block.txt - redefined for fd_char_raw
+include <linux/blkdev.h>
+ioctl$CHAR_RAW_FLSBUF(fd fd_char_raw, cmd const[BLKFLSBUF], arg ptr[in, intptr])
+ioctl$CHAR_RAW_ROSET(fd fd_char_raw, cmd const[BLKROSET], arg ptr[in, intptr])
+ioctl$CHAR_RAW_DISCARD(fd fd_char_raw, cmd const[BLKDISCARD], arg ptr[in, intptr])
+ioctl$CHAR_RAW_SECDISCARD(fd fd_char_raw, cmd const[BLKSECDISCARD], arg ptr[in, intptr])
+ioctl$CHAR_RAW_ZEROOUT(fd fd_char_raw, cmd const[BLKZEROOUT], arg ptr[in, blk_zone_range])
+ioctl$CHAR_RAW_REPORTZONE(fd fd_char_raw, cmd const[BLKREPORTZONE], arg ptr[in, blk_zone_report])
+ioctl$CHAR_RAW_RESETZONE(fd fd_char_raw, cmd const[BLKRESETZONE], arg ptr[in, blk_zone_range])
+ioctl$CHAR_RAW_RAGET(fd fd_char_raw, cmd const[BLKRAGET], arg ptr[out, intptr])
+ioctl$CHAR_RAW_ROGET(fd fd_char_raw, cmd const[BLKROGET], arg ptr[out, intptr])
+ioctl$CHAR_RAW_BSZGET(fd fd_char_raw, cmd const[BLKBSZGET], arg ptr[out, intptr])
+ioctl$CHAR_RAW_PBSZGET(fd fd_char_raw, cmd const[BLKPBSZGET], arg ptr[out, intptr])
+ioctl$CHAR_RAW_IOMIN(fd fd_char_raw, cmd const[BLKIOMIN], arg ptr[out, intptr])
+ioctl$CHAR_RAW_IOOPT(fd fd_char_raw, cmd const[BLKIOOPT], arg ptr[out, intptr])
+ioctl$CHAR_RAW_ALIGNOFF(fd fd_char_raw, cmd const[BLKALIGNOFF], arg ptr[out, intptr])
+ioctl$CHAR_RAW_SECTGET(fd fd_char_raw, cmd const[BLKSECTGET], arg ptr[out, intptr])
+ioctl$CHAR_RAW_ROTATIONAL(fd fd_char_raw, cmd const[BLKROTATIONAL], arg ptr[out, intptr])
+ioctl$CHAR_RAW_FRASET(fd fd_char_raw, cmd const[BLKFRASET], arg ptr[in, intptr])
+ioctl$CHAR_RAW_BSZSET(fd fd_char_raw, cmd const[BLKBSZSET], arg ptr[in, intptr])
+ioctl$CHAR_RAW_PG(fd fd_char_raw, cmd const[BLKPG], arg ptr[in, blkpg_ioctl_arg])
+ioctl$CHAR_RAW_RRPART(fd fd_char_raw, cmd const[BLKRRPART], arg const[0])
+ioctl$CHAR_RAW_GETSIZE(fd fd_char_raw, cmd const[BLKGETSIZE], arg ptr[out, intptr])
+ioctl$CHAR_RAW_GETSIZE64(fd fd_char_raw, cmd const[BLKGETSIZE64], arg ptr[out, int64])
+ioctl$CHAR_RAW_HDIO_GETGEO(fd fd_char_raw, cmd const[HDIO_GETGEO], arg ptr[out, hd_geometry])

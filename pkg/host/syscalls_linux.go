@@ -235,6 +235,10 @@ func isSupportedSyzOpenDev(sandbox string, c *prog.Syscall) (bool, string) {
 	if !ok {
 		panic("first open arg is not a pointer to string const")
 	}
+	if strings.Contains(fname, "/dev/raw/raw#") {
+		// For syz_open_dev$char_raw, these files don't exist initially.
+		return true, ""
+	}
 	if !strings.Contains(fname, "#") {
 		panic(fmt.Sprintf("%v does not contain # in the file name (should be openat)", c.Name))
 	}
