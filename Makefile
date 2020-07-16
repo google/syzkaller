@@ -281,6 +281,7 @@ presubmit_arch: descriptions
 	env HOSTOS=openbsd HOSTARCH=amd64 $(MAKE) host
 	env HOSTOS=darwin HOSTARCH=amd64 $(MAKE) host
 	env TARGETOS=linux TARGETARCH=amd64 $(MAKE) target
+	env TARGETOS=linux TARGETARCH=amd64 SYZ_CLANG=yes $(MAKE) target
 	env TARGETOS=linux TARGETARCH=386 $(MAKE) target
 	env TARGETOS=linux TARGETARCH=arm64 $(MAKE) target
 	env TARGETOS=linux TARGETARCH=arm $(MAKE) target
@@ -332,7 +333,7 @@ install_prerequisites:
 	sudo apt-get install -y -q g++-mips64el-linux-gnuabi64 || true
 	sudo apt-get install -y -q g++-s390x-linux-gnu || true
 	sudo apt-get install -y -q g++-riscv64-linux-gnu || true
-	sudo apt-get install -y -q ragel clang-format
+	sudo apt-get install -y -q clang clang-format ragel
 	go get -u golang.org/x/tools/cmd/goyacc
 
 check_copyright:
