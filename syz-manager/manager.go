@@ -572,7 +572,7 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	defer atomic.AddUint32(&mgr.numFuzzing, ^uint32(0))
 	cmd := instance.FuzzerCmd(fuzzerBin, executorCmd, fmt.Sprintf("vm-%v", index),
 		mgr.cfg.TargetOS, mgr.cfg.TargetArch, fwdAddr, mgr.cfg.Sandbox, procs, fuzzerV,
-		mgr.cfg.Cover, *flagDebug, false, false)
+		mgr.cfg.Cover, *flagDebug, false, false, mgr.cfg.Covfilter)
 	outc, errc, err := inst.Run(time.Hour, mgr.vmStop, cmd)
 	if err != nil {
 		return nil, fmt.Errorf("failed to run fuzzer: %v", err)
