@@ -190,10 +190,22 @@ func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, fmt.Sprintf("failed to deserialize program: %v", err), http.StatusInternalServerError)
 			return
 		}
+		count := 0
+		var weight float32 = 0.0
+		for _, pc := range inp.Cover {
+			if _, ok := mgr.pcsWeight[pc]; ok {
+				count++
+				weight += mgr.pcsWeight[pc]
+			}
+		}
+		weight = weight - float32(count) + 1
 		data.Inputs = append(data.Inputs, &UIInput{
-			Sig:   sig,
-			Short: p.String(),
-			Cover: len(inp.Cover),
+			Sig:    sig,
+			Short:  p.String(),
+			Cover:  len(inp.Cover),
+			Weight: weight,
+			Signal: inp.Signal.Deserialize(),
+			SigLen: inp.Signal.Deserialize().Len(),
 		})
 	}
 	sort.Slice(data.Inputs, func(i, j int) bool {
@@ -595,9 +607,12 @@ type UICorpus struct {
 }
 
 type UIInput struct {
-	Sig   string
-	Short string
-	Cover int
+	Sig    string
+	Short  string
+	Cover  int
+	Weight float32
+	Signal signal.Signal
+	SigLen int
 }
 
 var summaryTemplate = html.CreatePage(`
@@ -743,11 +758,15 @@ var corpusTemplate = html.CreatePage(`
 	<tr>
 		<th>Coverage</th>
 		<th>Program</th>
+		<th>SignalLen</th>
+		<th>Prog Weight</th>
 	</tr>
 	{{range $inp := $.Inputs}}
 	<tr>
 		<td><a href='/cover?input={{$inp.Sig}}'>{{$inp.Cover}}</a></td>
 		<td><a href="/input?sig={{$inp.Sig}}">{{$inp.Short}}</a></td>
+		<td><a href="/input?sig={{$inp.Sig}}">{{$inp.SigLen}}</a></td>
+		<td><a href="/input?sig={{$inp.Sig}}">{{$inp.Weight}}</a></td>
 	</tr>
 	{{end}}
 </table>

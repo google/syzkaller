@@ -55,6 +55,7 @@ type RPCManagerView interface {
 	newInput(inp rpctype.RPCInput, sign signal.Signal) bool
 	candidateBatch(size int) []rpctype.RPCCandidate
 	rotateCorpus() bool
+	getPCsWeight() map[uint32]Float32
 }
 
 func startRPCServer(mgr *Manager) (int, error) {
@@ -304,5 +305,13 @@ func (serv *RPCServer) Poll(a *rpctype.PollArgs, r *rpctype.PollRes) error {
 	}
 	log.Logf(4, "poll from %v: candidates=%v inputs=%v maxsignal=%v",
 		a.Name, len(r.Candidates), len(r.NewInputs), len(r.MaxSignal.Elems))
+	return nil
+}
+
+func (serv *RPCServer) GetPCsWeight(a *rpctype.GetPCsWeightArgs, r *rpctype.GetPCsWeightRes) error {
+	serv.mu.Lock()
+	defer serv.mu.Unlock()
+	pcsWeight := serv.mgr.getPCsWeight()
+	r.PCsWeight = pcsWeight
 	return nil
 }

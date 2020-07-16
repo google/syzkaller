@@ -164,7 +164,7 @@ func (target *Target) calcDynamicPrio(corpus []*Prog) [][]float32 {
 			for _, c1 := range p.Calls[idx0+1:] {
 				id0 := c0.Meta.ID
 				id1 := c1.Meta.ID
-				prios[id0][id1] += 1.0
+				prios[id0][id1] += 1.0 * p.Weight
 			}
 		}
 	}

@@ -86,6 +86,7 @@ type Manager struct {
 	// For checking that files that we are using are not changing under us.
 	// Maps file name to modification time.
 	usedFiles map[string]time.Time
+	pcsWeight map[uint32]float32
 }
 
 const (
@@ -179,6 +180,7 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, sysTarget *targets.T
 		reproRequest:          make(chan chan map[string]bool),
 		usedFiles:             make(map[string]time.Time),
 		saturatedCalls:        make(map[string]bool),
+		pcsWeight:             make(map[uint32]float32),
 	}
 
 	log.Logf(0, "loading corpus...")
@@ -186,6 +188,8 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, sysTarget *targets.T
 	if err != nil {
 		log.Fatalf("failed to open corpus database: %v", err)
 	}
+
+	mgr.readPCsWeight()
 
 	// Create HTTP server.
 	mgr.initHTTP()
@@ -1098,10 +1102,33 @@ func (mgr *Manager) candidateBatch(size int) []rpctype.RPCCandidate {
 	return res
 }
 
+func (mgr *Manager) getPCsWeight() map[uint32]float32 {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+	/* Actually, you can do some dynamic calculation and assign to pcs weight here */
+	return mgr.pcsWeight
+}
+
 func (mgr *Manager) rotateCorpus() bool {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 	return mgr.phase == phaseTriagedHub
+}
+
+func (mgr *Manager) readPCsWeight() {
+	bitmapFile, _ := os.Open(mgr.cfg.SyzCoverPCs)
+	defer bitmapFile.Close()
+	for true {
+		var encode uint64
+		_, err := fmt.Fscanf(bitmapFile, "0x%x\n", &encode)
+		if err != nil {
+			break
+		}
+		var pc uint32 = uint32(encode & 0xffffffff)
+		var weight float32 = float32((encode >> 32) & 0xffff)
+		mgr.pcsWeight[pc] = weight
+		log.Logf(0, "Init PCs weight: pc: %x weight: %f\n", pc, mgr.pcsWeight[pc])
+	}
 }
 
 func (mgr *Manager) collectUsedFiles() {

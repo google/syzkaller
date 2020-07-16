@@ -11,6 +11,7 @@ type Prog struct {
 	Target   *Target
 	Calls    []*Call
 	Comments []string
+	Weight   float32
 }
 
 type Call struct {

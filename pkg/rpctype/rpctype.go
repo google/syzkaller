@@ -128,3 +128,11 @@ type RunTestDoneArgs struct {
 	Info   []*ipc.ProgInfo
 	Error  string
 }
+
+type GetPCsWeightArgs struct {
+	Nop int
+}
+
+type GetPCsWeightRes struct {
+	PCsWeight map[uint32]float32
+}

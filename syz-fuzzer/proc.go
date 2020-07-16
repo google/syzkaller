@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"os"
 	"runtime/debug"
+	"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -170,6 +171,13 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 		Cover:  inputCover.Serialize(),
 	})
 
+	proc.fuzzer.getPCsWeight()
+	weight := calCoverWeight(proc.fuzzer.pcsWeight, proc.fuzzer.pcsWeightMu, inputCover.Serialize())
+	item.p.Weight = weight
+	for _, p := range proc.fuzzer.corpus {
+		log.Logf(3, "Prog: %s weight: %.5f", p.Comments, p.Weight)
+	}
+
 	proc.fuzzer.addInputToCorpus(item.p, inputSignal, sig)
 
 	if item.flags&ProgSmashed == 0 {
@@ -214,6 +222,23 @@ func (proc *Proc) smashInput(item *WorkSmash) {
 		log.Logf(1, "#%v: smash mutated", proc.pid)
 		proc.execute(proc.execOpts, p, ProgNormal, StatSmash)
 	}
+}
+
+func calCoverWeight(pcsWeight map[uint32]float32, pcsWeightMu sync.RWMutex, pcs []uint32) float32 {
+	var weight float32 = 0.0
+	var count uint32 = 0
+	pcsWeightMu.Lock()
+	for _, pc := range pcs {
+		if _, ok := pcsWeight[pc]; ok {
+			weight += pcsWeight[pc]
+			count++
+		}
+	}
+	pcsWeightMu.Unlock()
+	/* Base on the cyclomatic complexity.
+	 * Weight is determined by potential forward edges of the prog */
+	weight = weight - float32(count) + 1
+	return weight
 }
 
 func (proc *Proc) failCall(p *prog.Prog, call int) {
