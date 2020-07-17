@@ -194,7 +194,7 @@ fuse_attr {
 	atimensec	int32
 	mtimensec	int32
 	ctimensec	int32
-	mode		int32
+	mode		flags[fuse_mode, int32]
 	nlink		int32
 	uid		uid
 	gid		gid
