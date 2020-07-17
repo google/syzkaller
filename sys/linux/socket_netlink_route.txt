@@ -972,7 +972,40 @@ lwtunnel_policy [
 	MPLS_IPTUNNEL_DST	nlattr[MPLS_IPTUNNEL_DST, array[mpls_label]]
 	MPLS_IPTUNNEL_TTL	nlattr[MPLS_IPTUNNEL_TTL, int8]
 
+	LWTUNNEL_IP_ID		nlattr[LWTUNNEL_IP_ID, int64be]
+	LWTUNNEL_IP_DST		nlattr[LWTUNNEL_IP_DST, ipv4_addr]
+	LWTUNNEL_IP_SRC		nlattr[LWTUNNEL_IP_SRC, ipv4_addr]
+	LWTUNNEL_IP_TTL		nlattr[LWTUNNEL_IP_TTL, int8]
+	LWTUNNEL_IP_TOS		nlattr[LWTUNNEL_IP_TOS, int8]
+	LWTUNNEL_IP_FLAGS	nlattr[LWTUNNEL_IP_FLAGS, flags[lwtunnel_ip_flags, int16be]]
+	LWTUNNEL_IP_OPTS	nlnest[LWTUNNEL_IP_OPTS, ip_opts_policy]
+
 	RPL_IPTUNNEL_SRH	nlattr[RPL_IPTUNNEL_SRH, ipv6_rpl_sr_hdr]
+] [varlen]
+
+lwtunnel_ip_flags = TUNNEL_GENEVE_OPT, TUNNEL_VXLAN_OPT, TUNNEL_ERSPAN_OPT
+
+ip_opts_policy [
+	LWTUNNEL_IP_OPTS_GENEVE	nlnest[LWTUNNEL_IP_OPTS_GENEVE, geneve_opt_policy_lwt]
+	LWTUNNEL_IP_OPTS_VXLAN	nlnest[LWTUNNEL_IP_OPTS_VXLAN, vxlan_opt_policy_lwt]
+	LWTUNNEL_IP_OPTS_ERSPAN	nlnest[LWTUNNEL_IP_OPTS_ERSPAN, erspan_opt_policy_lwt]
+] [varlen]
+
+geneve_opt_policy_lwt [
+	LWTUNNEL_IP_OPT_GENEVE_CLASS	nlattr[LWTUNNEL_IP_OPT_GENEVE_CLASS, int16be]
+	LWTUNNEL_IP_OPT_GENEVE_TYPE	nlattr[LWTUNNEL_IP_OPT_GENEVE_TYPE, int8]
+	LWTUNNEL_IP_OPT_GENEVE_DATA	nlattr[LWTUNNEL_IP_OPT_GENEVE_DATA, array[int8, 0:128]]
+] [varlen]
+
+vxlan_opt_policy_lwt [
+	LWTUNNEL_IP_OPT_VXLAN_GBP	nlattr[LWTUNNEL_IP_OPT_VXLAN_GBP, int32]
+] [varlen]
+
+erspan_opt_policy_lwt [
+	LWTUNNEL_IP_OPT_ERSPAN_VER	nlattr[LWTUNNEL_IP_OPT_ERSPAN_VER, int8[1:2]]
+	LWTUNNEL_IP_OPT_ERSPAN_INDEX	nlattr[LWTUNNEL_IP_OPT_ERSPAN_INDEX, int32be]
+	LWTUNNEL_IP_OPT_ERSPAN_DIR	nlattr[LWTUNNEL_IP_OPT_ERSPAN_DIR, int8]
+	LWTUNNEL_IP_OPT_ERSPAN_HWID	nlattr[LWTUNNEL_IP_OPT_ERSPAN_HWID, int8]
 ] [varlen]
 
 ipv6_rpl_sr_hdr {
