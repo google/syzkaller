@@ -161,11 +161,9 @@ syz_io_uring_submit$IORING_OP_RECV(sq_ring_ptr sq_ring_ptr, sqes_ptr sqes_ptr, s
 syz_io_uring_submit$IORING_OP_OPENAT2(sq_ring_ptr sq_ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe_openat2], sqes_index int32)
 syz_io_uring_submit$IORING_OP_EPOLL_CTL(sq_ring_ptr sq_ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe_epoll_ctl], sqes_index int32)
 syz_io_uring_submit$IORING_OP_SPLICE(sq_ring_ptr sq_ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe_splice], sqes_index int32)
+syz_io_uring_submit$IORING_OP_PROVIDE_BUFFERS(sq_ring_ptr sq_ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe_provide_buffers], sqes_index int32)
+syz_io_uring_submit$IORING_OP_REMOVE_BUFFERS(sq_ring_ptr sq_ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe_remove_buffers], sqes_index int32)
 syz_io_uring_submit$IORING_OP_TEE(sq_ring_ptr sq_ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe_tee], sqes_index int32)
-
-# TODO: write necessary descriptions for IORING_OP_PROVIDE_BUFFERS and IORING_OP_REMOVE_BUFFERS.
-# syz_io_uring_submit$IORING_OP_PROVIDE_BUFFERS(sq_ring_ptr sq_ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, TODO_SQE], sqes_index int32)
-# syz_io_uring_submit$IORING_OP_REMOVE_BUFFERS(sq_ring_ptr sq_ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, TODO_SQE], sqes_index int32)
 
 # TODO: IORING_OP_IOCTL
 
@@ -221,8 +219,6 @@ io_uring_sqe_fsync {
 # 0 for normal file integrity sync, IORING_FSYNC_DATASYNC to provide data sync only semantics
 io_uring_fsync_flags = 0, IORING_FSYNC_DATASYNC
 
-# TODO: The following operations need further attention
-# TODO: Maybe not use template type here to keep it consistent with the others?
 # IORING_OP_READ_FIXED, IORING_OP_WRITE_FIXED
 type io_uring_sqe_rw_fixed[OP_FIXED_RW, DIR] {
 	opcode		const[OP_FIXED_RW, int8]
@@ -240,6 +236,8 @@ type io_uring_sqe_rw_fixed[OP_FIXED_RW, DIR] {
 
 type io_uring_sqe_read_fixed io_uring_sqe_rw_fixed[IORING_OP_READ_FIXED, out]
 type io_uring_sqe_write_fixed io_uring_sqe_rw_fixed[IORING_OP_WRITE_FIXED, in]
+
+# TODO: buffer index only valid with fixed read/write, or buffer select
 
 # IORING_OP_POLL_ADD
 io_uring_sqe_poll_add {
@@ -616,6 +614,7 @@ io_uring_sqe_splice {
 # TODO: fd is int32, the field is int64. check if such alignment is right.
 	splice_off_in_unused	const[0, int32]
 	splice_off_in		fd
+# where is addr?
 	len			int32
 	splice_flags		flags[splice_flags, int32]
 	user_data		sqe_user_data
@@ -623,6 +622,45 @@ io_uring_sqe_splice {
 	personality_unused	const[0, int16]
 	splice_fd_in		fd
 	pad_unused		array[const[0, int64], 2]
+}
+
+# IORING_OP_PROVIDE_BUFFERS
+io_uring_sqe_provide_buffers {
+	opcode			const[IORING_OP_PROVIDE_BUFFERS, int8]
+	flags			flags[iosqe_flags, int8]
+	ioprio_unused		const[0, int16]
+# Number of bufs, where addr is incremented by len for each
+	fd			int32
+	off			io_uring_bid[int64]
+	addr			buffer[in]
+# Length of each buffer
+	len			int32
+	misc_flags_unused	const[0, int32]
+	user_data		sqe_user_data
+	buf_group		io_uring_bgid[int16]
+	pad_unused		array[const[0, int8], 22]
+}
+
+# The buffer id (bid) and the buffer group id (bgid) are registered using
+# IORING_OP_PROVIDE_BUFFERS. Use the ids in a limited range to ease collisions
+# with other operations.
+type io_uring_bid[T] T[0:10]
+type io_uring_bgid[T] T[0:10]
+
+# IORING_OP_REMOVE_BUFFERS
+io_uring_sqe_remove_buffers {
+	opcode			const[IORING_OP_PROVIDE_BUFFERS, int8]
+	flags			flags[iosqe_flags, int8]
+	ioprio_unused		const[0, int16]
+# Number of bufs
+	fd			int32
+	off_unused		const[0, int64]
+	addr_unusted		const[0, int64]
+	len_unused		const[0, int32]
+	misc_flags_unused	const[0, int32]
+	user_data		sqe_user_data
+	buf_group		io_uring_bgid[int16]
+	pad_unused		array[const[0, int8], 22]
 }
 
 # IORING_OP_TEE
