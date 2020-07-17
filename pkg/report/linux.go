@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"net/mail"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -16,6 +15,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/symbolizer"
+	"github.com/google/syzkaller/pkg/vcs"
 )
 
 type linux struct {
@@ -340,7 +340,7 @@ func (ctx *linux) Symbolize(rep *Report) error {
 		if err != nil {
 			return err
 		}
-		rep.Maintainers = maintainers
+		rep.Recipients = maintainers
 	}
 	return nil
 }
@@ -455,14 +455,14 @@ nextFile:
 	return ""
 }
 
-func (ctx *linux) getMaintainers(file string) ([]string, error) {
+func (ctx *linux) getMaintainers(file string) ([]vcs.RecipientInfo, error) {
 	if ctx.kernelSrc == "" {
 		return nil, nil
 	}
 	return GetLinuxMaintainers(ctx.kernelSrc, file)
 }
 
-func GetLinuxMaintainers(kernelSrc, file string) ([]string, error) {
+func GetLinuxMaintainers(kernelSrc, file string) ([]vcs.RecipientInfo, error) {
 	mtrs, err := getMaintainersImpl(kernelSrc, file, false)
 	if err != nil {
 		return nil, err
@@ -476,9 +476,9 @@ func GetLinuxMaintainers(kernelSrc, file string) ([]string, error) {
 	return mtrs, nil
 }
 
-func getMaintainersImpl(kernelSrc, file string, blame bool) ([]string, error) {
+func getMaintainersImpl(kernelSrc, file string, blame bool) ([]vcs.RecipientInfo, error) {
 	// See #1441 re --git-min-percent.
-	args := []string{"--no-n", "--no-rolestats", "--git-min-percent=15"}
+	args := []string{"--git-min-percent=15"}
 	if blame {
 		args = append(args, "--git-blame")
 	}
@@ -489,15 +489,7 @@ func getMaintainersImpl(kernelSrc, file string, blame bool) ([]string, error) {
 		return nil, err
 	}
 	lines := strings.Split(string(output), "\n")
-	var mtrs []string
-	for _, line := range lines {
-		addr, err := mail.ParseAddress(line)
-		if err != nil {
-			continue
-		}
-		mtrs = append(mtrs, addr.Address)
-	}
-	return mtrs, nil
+	return vcs.ParseMaintainers(lines), nil
 }
 
 func (ctx *linux) extractFiles(report []byte) []string {

@@ -8,17 +8,24 @@ import (
 	"io"
 	"net/mail"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
 type linux struct {
 	*git
+}
+
+type RecipientInfo struct {
+	Email         string
+	RealName      string
+	RecipientType string
+	ToCc          bool // True for To, False for Cc.
 }
 
 var _ Bisecter = new(linux)
@@ -211,18 +218,18 @@ func (ctx *linux) addMaintainers(com *Commit) {
 	if len(com.CC) > 2 {
 		return
 	}
-	list := ctx.getMaintainers(com.Hash, false)
-	if len(list) < 3 {
-		list = ctx.getMaintainers(com.Hash, true)
+	mtrs := ctx.getMaintainers(com.Hash, false)
+	if len(mtrs) < 3 {
+		mtrs = ctx.getMaintainers(com.Hash, true)
 	}
-	com.CC = email.MergeEmailLists(com.CC, list)
+	com.Recipients = mtrs
 }
 
-func (ctx *linux) getMaintainers(hash string, blame bool) []string {
+func (ctx *linux) getMaintainers(hash string, blame bool) []RecipientInfo {
 	// See #1441 re --git-min-percent.
 	args := "git show " + hash + " | " +
 		filepath.FromSlash("scripts/get_maintainer.pl") +
-		" --no-n --no-rolestats --git-min-percent=20"
+		" --git-min-percent=20"
 	if blame {
 		args += " --git-blame"
 	}
@@ -230,13 +237,44 @@ func (ctx *linux) getMaintainers(hash string, blame bool) []string {
 	if err != nil {
 		return nil
 	}
-	var list []string
-	for _, line := range strings.Split(string(output), "\n") {
-		addr, err := mail.ParseAddress(line)
+	lines := strings.Split(string(output), "\n")
+	return ParseMaintainers(lines)
+}
+
+func ParseMaintainers(lines []string) []RecipientInfo {
+	if len(lines) < 1 {
+		return []RecipientInfo{}
+	}
+	reType := regexp.MustCompile(`\(.*?\)`)
+	var mtrs []RecipientInfo
+	listFlag := false // check if there are lists besides linux-kernel
+	for _, line := range lines {
+		mtr := RecipientInfo{}
+		reType := reType.FindString(line)
+		addr, err := mail.ParseAddress(strings.Replace(line, reType, "", 1))
 		if err != nil {
 			continue
 		}
-		list = append(list, strings.ToLower(addr.Address))
+		mtr.RecipientType = reType
+		mtr.RealName = addr.Name
+		mtr.Email = addr.Address
+		if strings.Contains(mtr.RecipientType, "reviewer") {
+			mtr.ToCc = false
+		} else if strings.Contains(mtr.RecipientType, "(open list)") {
+			continue
+		} else {
+			if strings.Contains(mtr.RecipientType, "open list") {
+				listFlag = true
+			}
+			mtr.ToCc = true
+		}
+		mtrs = append(mtrs, mtr)
 	}
-	return list
+
+	if listFlag {
+		mtrs = append(mtrs, RecipientInfo{"linux-kernel@vger.kernel.org", "", "(open list)", false})
+	} else {
+		mtrs = append(mtrs, RecipientInfo{"linux-kernel@vger.kernel.org", "", "(open list)", true})
+	}
+	return mtrs
 }

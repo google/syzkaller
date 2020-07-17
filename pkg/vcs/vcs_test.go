@@ -5,6 +5,8 @@ package vcs
 
 import (
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestCanonicalizeCommit(t *testing.T) {
@@ -153,5 +155,37 @@ func TestCommitLink(t *testing.T) {
 		if link != test.CommitLink {
 			t.Errorf("URL: %v\nhash: %v\nwant: %v\ngot:  %v", test.URL, test.Hash, test.CommitLink, link)
 		}
+	}
+}
+
+func TestParse(t *testing.T) {
+	lines := []string{"Masahiro Yamada <masahiroy@kernel.org> " +
+		"(maintainer:KERNEL BUILD + files below scripts/ (unless mai...)",
+		"Michal Marek <michal.lkml@markovi.net>" +
+			"(maintainer:KERNEL BUILD + files below scripts/ (unless mai...)",
+		"linux-kbuild@vger.kernel.org" +
+			"(open list:KERNEL BUILD + files below scripts/ (unless mai...)",
+		"linux-kernel@vger.kernel.org (open list)"}
+	maintainers := []RecipientInfo{{"masahiroy@kernel.org",
+		"Masahiro Yamada",
+		"(maintainer:KERNEL BUILD + files below scripts/ (unless mai...)",
+		true},
+		{"michal.lkml@markovi.net",
+			"Michal Marek",
+			"(maintainer:KERNEL BUILD + files below scripts/ (unless mai...)", true},
+		{"linux-kbuild@vger.kernel.org",
+			"",
+			"(open list:KERNEL BUILD + files below scripts/ (unless mai...)",
+			true},
+		{"linux-kernel@vger.kernel.org",
+			"",
+			"(open list)",
+			false}}
+
+	if diff := cmp.Diff(ParseMaintainers(lines), maintainers); diff != "" {
+		t.Fatal(diff)
+	}
+	if diff := cmp.Diff(ParseMaintainers([]string{}), []RecipientInfo{}); diff != "" {
+		t.Fatal(diff)
 	}
 }

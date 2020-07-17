@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -50,8 +51,12 @@ type Report struct {
 	Corrupted bool
 	// CorruptedReason contains reason why the report is marked as corrupted.
 	CorruptedReason string
-	// Maintainers is list of maintainer emails (filled in by Symbolize).
+	// Maintainers is a list of maintainer emails (filled in by Symbolize).
 	Maintainers []string
+	// Cc is a list of less important emails (filled in by Symbolize).
+	Cc []string
+	// Recipients is a list of RecipientInfo with Email, Real Name, and type.
+	Recipients []vcs.RecipientInfo
 	// guiltyFile is the source file that we think is to blame for the crash  (filled in by Symbolize).
 	guiltyFile string
 	// reportPrefixLen is length of additional prefix lines that we added before actual crash report.
