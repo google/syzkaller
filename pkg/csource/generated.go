@@ -5103,6 +5103,7 @@ static long syz_init_net_socket(volatile long domain, volatile long type, volati
 #endif
 
 #if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
+#include <fcntl.h>
 #include <pthread.h>
 #include <sys/epoll.h>
 #include <sys/ioctl.h>
@@ -5314,7 +5315,7 @@ static void initialize_vhci()
 	pthread_t th;
 	if (pthread_create(&th, NULL, event_thread, &epoll_fd))
 		fail("pthread_create failed");
-	uint8_t setup_cmd[2];
+	uint8 setup_cmd[2];
 	setup_cmd[0] = HCI_VENDOR_PKT;
 	setup_cmd[1] = 0;
 	write(vhci_fd, setup_cmd, sizeof(setup_cmd));
