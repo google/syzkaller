@@ -73,17 +73,18 @@ func TestTransitivelyEnabledCallsLinux(t *testing.T) {
 	}
 	delete(calls, target.SyscallMap["epoll_create1"])
 	trans, disabled := target.TransitivelyEnabledCalls(calls)
-	if len(calls)-6 != len(trans) ||
+	if len(calls)-7 != len(trans) ||
 		trans[target.SyscallMap["epoll_ctl$EPOLL_CTL_ADD"]] ||
 		trans[target.SyscallMap["epoll_ctl$EPOLL_CTL_MOD"]] ||
 		trans[target.SyscallMap["epoll_ctl$EPOLL_CTL_DEL"]] ||
 		trans[target.SyscallMap["epoll_wait"]] ||
 		trans[target.SyscallMap["epoll_pwait"]] ||
-		trans[target.SyscallMap["kcmp$KCMP_EPOLL_TFD"]] {
+		trans[target.SyscallMap["kcmp$KCMP_EPOLL_TFD"]] ||
+		trans[target.SyscallMap["syz_io_uring_submit$IORING_OP_EPOLL_CTL"]] {
 		t.Fatalf("epoll fd is not disabled")
 	}
-	if len(disabled) != 6 {
-		t.Fatalf("disabled %v syscalls, want 6", len(disabled))
+	if len(disabled) != 7 {
+		t.Fatalf("disabled %v syscalls, want 7", len(disabled))
 	}
 	for c, reason := range disabled {
 		if !strings.Contains(reason, "no syscalls can create resource fd_epoll,"+
