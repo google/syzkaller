@@ -1377,11 +1377,11 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 #define CQ_RING_MASK_OFFSET 260
 #define CQ_RING_ENTRIES_OFFSET 268
 #define CQ_CQES_OFFSET 320
-// TODO: `sq_entries * sizeof(uint32_t)` part will go away when the following fix is merged:
+// TODO: `sq_entries * sizeof(uint32)` part will go away when the following fix is merged:
 // https://lore.kernel.org/io-uring/20200711093111.2490946-1-dvyukov@google.com
-#define SQ_ARRAY_OFFSET(sq_entries, cq_entries) (round_up(CQ_CQES_OFFSET + cq_entries * SIZEOF_IO_URING_CQE, 64) + sq_entries * sizeof(uint32_t))
+#define SQ_ARRAY_OFFSET(sq_entries, cq_entries) (round_up(CQ_CQES_OFFSET + cq_entries * SIZEOF_IO_URING_CQE, 64) + sq_entries * sizeof(uint32))
 
-uint32_t round_up(uint32_t x, uint32_t a)
+uint32 round_up(uint32 x, uint32 a)
 {
 	return (x + a - 1) & ~(a - 1);
 }
@@ -1442,7 +1442,7 @@ static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile lon
 	NONFAILING(cq_ring_entries = *(uint32*)(sq_ring_ptr + CQ_RING_ENTRIES_OFFSET));
 
 	// Compute the sq_array offset
-	uint32_t sq_array_off = SQ_ARRAY_OFFSET(sq_ring_entries, cq_ring_entries);
+	uint32 sq_array_off = SQ_ARRAY_OFFSET(sq_ring_entries, cq_ring_entries);
 
 	// Get the ptr to the destination for the sqe
 	if (sq_ring_entries)
