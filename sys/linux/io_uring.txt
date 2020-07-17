@@ -593,7 +593,7 @@ type io_uring_sqe_epoll_ctl_template[EPOLL_OP, EPOLL_EVENTS] {
 	fd			fd_epoll
 	off			EPOLL_EVENTS
 	addr			fd
-	len			EPOLL_OP
+	len			const[EPOLL_OP, int32]
 	misc_flags_unused	const[0, int32]
 	user_data		sqe_user_data
 	pad_unused		array[const[0, int64], 3]
@@ -601,9 +601,9 @@ type io_uring_sqe_epoll_ctl_template[EPOLL_OP, EPOLL_EVENTS] {
 
 # An epoll_ctl operation could be one of add, del, mod
 io_uring_sqe_epoll_ctl [
-	add	io_uring_sqe_epoll_ctl_template[const[EPOLL_CTL_ADD, int64], ptr[in, epoll_event]]
-	del	io_uring_sqe_epoll_ctl_template[const[EPOLL_CTL_DEL, int64], const[0, int32]]
-	mod	io_uring_sqe_epoll_ctl_template[const[EPOLL_CTL_MOD, int64], ptr[in, epoll_event]]
+	add	io_uring_sqe_epoll_ctl_template[EPOLL_CTL_ADD, ptr[in, epoll_event]]
+	del	io_uring_sqe_epoll_ctl_template[EPOLL_CTL_DEL, const[0, int64]]
+	mod	io_uring_sqe_epoll_ctl_template[EPOLL_CTL_MOD, ptr[in, epoll_event]]
 ]
 
 # IORING_OP_SPLICE
