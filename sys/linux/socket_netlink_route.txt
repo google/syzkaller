@@ -24,6 +24,7 @@ include <uapi/linux/veth.h>
 include <uapi/linux/can/gw.h>
 include <uapi/linux/can/vxcan.h>
 include <uapi/linux/mpls_iptunnel.h>
+include <uapi/linux/ila.h>
 include <uapi/linux/rpl_iptunnel.h>
 include <net/caif/caif_hsi.h>
 
@@ -980,6 +981,11 @@ lwtunnel_policy [
 	LWTUNNEL_IP_FLAGS	nlattr[LWTUNNEL_IP_FLAGS, flags[lwtunnel_ip_flags, int16be]]
 	LWTUNNEL_IP_OPTS	nlnest[LWTUNNEL_IP_OPTS, ip_opts_policy]
 
+	ILA_ATTR_LOCATOR	nlattr[ILA_ATTR_LOCATOR, int64be]
+	ILA_ATTR_CSUM_MODE	nlattr[ILA_ATTR_CSUM_MODE, flags[ila_attr_csum_mode, int8]]
+	ILA_ATTR_IDENT_TYPE	nlattr[ILA_ATTR_IDENT_TYPE, flags[ila_attr_ident_type, int8]]
+	ILA_ATTR_HOOK_TYPE	nlattr[ILA_ATTR_HOOK_TYPE, flags[ila_attr_hook_type, int8]]
+
 	RPL_IPTUNNEL_SRH	nlattr[RPL_IPTUNNEL_SRH, ipv6_rpl_sr_hdr]
 ] [varlen]
 
@@ -1016,6 +1022,13 @@ ipv6_rpl_sr_hdr {
 	control		int32
 	address		array[ipv6_addr]
 } [packed]
+
+ila_attr_csum_mode = ILA_CSUM_ADJUST_TRANSPORT, ILA_CSUM_NEUTRAL_MAP, ILA_CSUM_NO_ACTION, ILA_CSUM_NEUTRAL_MAP_AUTO
+
+# TODO: describe remaining when supported
+ila_attr_ident_type = ILA_ATYPE_IID, ILA_ATYPE_LUID, ILA_ATYPE_USE_FORMAT
+
+ila_attr_hook_type = ILA_HOOK_ROUTE_INPUT, ILA_HOOK_ROUTE_OUTPUT
 
 cgw_policy [
 	CGW_MOD_AND	nlattr[CGW_MOD_AND, cgw_frame_mod]
