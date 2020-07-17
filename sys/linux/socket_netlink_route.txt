@@ -986,6 +986,14 @@ lwtunnel_policy [
 	ILA_ATTR_IDENT_TYPE	nlattr[ILA_ATTR_IDENT_TYPE, flags[ila_attr_ident_type, int8]]
 	ILA_ATTR_HOOK_TYPE	nlattr[ILA_ATTR_HOOK_TYPE, flags[ila_attr_hook_type, int8]]
 
+	LWTUNNEL_IP6_ID		nlattr[LWTUNNEL_IP6_ID, int64be]
+	LWTUNNEL_IP6_DST	nlattr[LWTUNNEL_IP6_DST, ipv6_addr]
+	LWTUNNEL_IP6_SRC	nlattr[LWTUNNEL_IP6_SRC, ipv6_addr]
+	LWTUNNEL_IP6_HOPLIMIT	nlattr[LWTUNNEL_IP6_HOPLIMIT, int8]
+	LWTUNNEL_IP6_TC		nlattr[LWTUNNEL_IP6_TC, int8]
+	LWTUNNEL_IP6_FLAGS	nlattr[LWTUNNEL_IP6_FLAGS, flags[lwtunnel_ip_flags, int16be]]
+	LWTUNNEL_IP6_OPTS	nlattr[LWTUNNEL_IP6_OPTS, ip_opts_policy]
+
 	RPL_IPTUNNEL_SRH	nlattr[RPL_IPTUNNEL_SRH, ipv6_rpl_sr_hdr]
 ] [varlen]
 
