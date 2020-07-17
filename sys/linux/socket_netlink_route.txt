@@ -27,6 +27,7 @@ include <uapi/linux/mpls_iptunnel.h>
 include <uapi/linux/ila.h>
 # TODO: uncomment after the kernel fixes the seg6_iptunnel.h uapi header.
 #include <uapi/linux/seg6_iptunnel.h>
+include <uapi/linux/seg6_local.h>
 include <uapi/linux/rpl_iptunnel.h>
 include <net/caif/caif_hsi.h>
 
@@ -970,7 +971,6 @@ rtcanmsg {
 
 rtcanmsg_flags = CGW_FLAGS_CAN_ECHO, CGW_FLAGS_CAN_SRC_TSTAMP, CGW_FLAGS_CAN_IIF_TX_OK
 
-#TODO: define remaining lwtunnel_encap types
 lwtunnel_policy [
 	MPLS_IPTUNNEL_DST	nlattr[MPLS_IPTUNNEL_DST, array[mpls_label]]
 	MPLS_IPTUNNEL_TTL	nlattr[MPLS_IPTUNNEL_TTL, int8]
@@ -1005,6 +1005,15 @@ lwtunnel_policy [
 	LWT_BPF_XMIT		nlnest[LWT_BPF_XMIT, bpf_prog_policy]
 	LWT_BPF_XMIT_HEADROOM	nlattr[LWT_BPF_XMIT_HEADROOM, int32[0:LWT_BPF_MAX_HEADROOM]]
 
+	SEG6_LOCAL_ACTION	nlattr[SEG6_LOCAL_ACTION, int32[SEG6_LOCAL_ACTION_END:SEG6_LOCAL_ACTION_END_BPF]]
+	SEG6_LOCAL_SRH		nlattr[SEG6_LOCAL_SRH, ipv6_sr_hdr]
+	SEG6_LOCAL_TABLE	nlattr[SEG6_LOCAL_TABLE, int32]
+	SEG6_LOCAL_NH4		nlattr[SEG6_LOCAL_NH4, ipv4_addr]
+	SEG6_LOCAL_NH6		nlattr[SEG6_LOCAL_NH6, ipv6_addr]
+	SEG6_LOCAL_IIF		nlattr[SEG6_LOCAL_IIF, int32]
+	SEG6_LOCAL_OIF		nlattr[SEG6_LOCAL_OIF, int32]
+	SEG6_LOCAL_BPF		nlnest[SEG6_LOCAL_BPF, bpf_prog_policy_seg6_local]
+
 	RPL_IPTUNNEL_SRH	nlattr[RPL_IPTUNNEL_SRH, ipv6_rpl_sr_hdr]
 ] [varlen]
 
@@ -1036,6 +1045,11 @@ erspan_opt_policy_lwt [
 bpf_prog_policy [
 	LWT_BPF_PROG_FD		nlattr[LWT_BPF_PROG_FD, fd_bpf_prog]
 	LWT_BPF_PROG_NAME	nlattr[LWT_BPF_PROG_NAME, string]
+] [varlen]
+
+bpf_prog_policy_seg6_local [
+	SEG6_LOCAL_BPF_PROG		nlattr[SEG6_LOCAL_BPF_PROG, fd_bpf_prog]
+	SEG6_LOCAL_BPF_PROG_NAME	nlattr[SEG6_LOCAL_BPF_PROG_NAME, string]
 ] [varlen]
 
 ipv6_rpl_sr_hdr {
