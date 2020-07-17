@@ -23,6 +23,7 @@ include <uapi/linux/net_namespace.h>
 include <uapi/linux/veth.h>
 include <uapi/linux/can/gw.h>
 include <uapi/linux/can/vxcan.h>
+include <uapi/linux/mpls_iptunnel.h>
 include <uapi/linux/rpl_iptunnel.h>
 include <net/caif/caif_hsi.h>
 
@@ -968,6 +969,9 @@ rtcanmsg_flags = CGW_FLAGS_CAN_ECHO, CGW_FLAGS_CAN_SRC_TSTAMP, CGW_FLAGS_CAN_IIF
 
 #TODO: define remaining lwtunnel_encap types
 lwtunnel_policy [
+	MPLS_IPTUNNEL_DST	nlattr[MPLS_IPTUNNEL_DST, array[mpls_label]]
+	MPLS_IPTUNNEL_TTL	nlattr[MPLS_IPTUNNEL_TTL, int8]
+
 	RPL_IPTUNNEL_SRH	nlattr[RPL_IPTUNNEL_SRH, ipv6_rpl_sr_hdr]
 ] [varlen]
 
