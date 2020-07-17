@@ -557,7 +557,7 @@ static void initialize_tun(void)
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI
+#if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI || SYZ_VHCI_INJECTION
 const int kInitNetNsFd = 239; // see kMaxFd
 #endif
 
@@ -1537,7 +1537,7 @@ static long syz_open_pts(volatile long a0, volatile long a1)
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_init_net_socket
+#if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_VHCI_INJECTION
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID
 #include <fcntl.h>
 #include <sched.h>
@@ -1577,6 +1577,7 @@ static long syz_init_net_socket(volatile long domain, volatile long type, volati
 #include <sys/socket.h>
 #include <sys/uio.h>
 
+#define BTPROTO_HCI 1
 #define ACL_LINK 1
 #define SCAN_PAGE 2
 
@@ -1585,12 +1586,14 @@ typedef struct {
 } __attribute__((packed)) bdaddr_t;
 
 #define HCI_COMMAND_PKT 1
+#define HCI_EVENT_PKT 4
+#define HCI_VENDOR_PKT 0xff
+
 struct hci_command_hdr {
 	uint16 opcode;
 	uint8 plen;
 } __attribute__((packed));
 
-#define HCI_EVENT_PKT 4
 struct hci_event_hdr {
 	uint8 evt;
 	uint8 plen;
@@ -1640,58 +1643,15 @@ struct hci_rp_read_bd_addr {
 	bdaddr_t bdaddr;
 } __attribute__((packed));
 
-struct hci_dev_stats {
-	uint32 err_rx;
-	uint32 err_tx;
-	uint32 cmd_tx;
-	uint32 evt_rx;
-	uint32 acl_tx;
-	uint32 acl_rx;
-	uint32 sco_tx;
-	uint32 sco_rx;
-	uint32 byte_rx;
-	uint32 byte_tx;
-};
-
-struct hci_dev_info {
-	uint16 dev_id;
-	char name[8];
-
-	bdaddr_t bdaddr;
-
-	uint32 flags;
-	uint8 type;
-
-	uint8 features[8];
-
-	uint32 pkt_type;
-	uint32 link_policy;
-	uint32 link_mode;
-
-	uint16 acl_mtu;
-	uint16 acl_pkts;
-	uint16 sco_mtu;
-	uint16 sco_pkts;
-
-	struct hci_dev_stats stat;
-};
-
 struct hci_dev_req {
 	uint16 dev_id;
 	uint32 dev_opt;
 };
 
-#define HCISETSCAN _IOW('H', 208, int)
-#define HCIGETDEVINFO _IOR('H', 211, int)
-
-#define BUF_SIZE 4096
-#define ACL_HANDLE 256
-#define HCI_DEV 0
+#define HCIDEVUP _IOW('H', 201, int)
+#define HCISETSCAN _IOW('H', 221, int)
 
 static int vhci_fd = -1;
-static int vhci_init = 0;
-
-static long syz_init_net_socket(volatile long domain, volatile long type, volatile long proto);
 
 static int hci_send_event_packet(int fd, uint8 evt, void* data, size_t data_len)
 {
@@ -1741,13 +1701,18 @@ static int hci_send_event_cmd_complete(int fd, uint16 opcode, void* data, size_t
 
 static void process_command_pkt(int fd, char* buf, size_t buf_size)
 {
-	struct hci_command_hdr* hdr = (struct hci_command_hdr*)(buf + 1);
+	struct hci_command_hdr* hdr = (struct hci_command_hdr*)buf;
+	if (buf_size < sizeof(struct hci_command_hdr) ||
+	    hdr->plen != buf_size - sizeof(struct hci_command_hdr)) {
+		fail("invalid size: %lx\n", buf_size);
+		return;
+	}
 
 	switch (hdr->opcode) {
 	case HCI_OP_READ_BD_ADDR: {
 		struct hci_rp_read_bd_addr rp;
 		rp.status = 0;
-		memcpy(&rp.bdaddr, "\x66\x55\x44\x33\x22\x11", 6);
+		memset(&rp.bdaddr, 0xaa, 6);
 		hci_send_event_cmd_complete(fd, hdr->opcode, &rp, sizeof(rp));
 		return;
 	}
@@ -1771,18 +1736,23 @@ static void* event_thread(void* arg)
 {
 	int epoll_fd = *(int*)arg;
 
-	while (!vhci_init) {
+	while (1) {
 		struct epoll_event event;
-		epoll_pwait(epoll_fd, &event, 1, -1, NULL);
+		if (epoll_pwait(epoll_fd, &event, 1, -1, NULL) < 0)
+			break;
 
-		char buf[BUF_SIZE];
+		char buf[1024] = {0};
 		size_t buf_size = read(event.data.fd, buf, sizeof(buf));
-		if (buf[0] == HCI_COMMAND_PKT)
-			process_command_pkt(event.data.fd, buf, buf_size);
+		debug_dump_data(buf, buf_size);
+		if (buf_size > 0 && buf[0] == HCI_COMMAND_PKT)
+			process_command_pkt(event.data.fd, buf + 1, buf_size - 1);
 	}
 
 	return NULL;
 }
+
+#define ACL_HANDLE 256
+#define HCI_DEV 0
 
 static void initialize_vhci()
 {
@@ -1791,13 +1761,13 @@ static void initialize_vhci()
 		return;
 #endif
 
+	int hci_socket = syz_init_net_socket(AF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI);
+	if (hci_socket < 0)
+		fail("syz_init_net_socket failed");
+
 	vhci_fd = open("/dev/vhci", O_RDWR);
 	if (vhci_fd == -1)
 		fail("open /dev/vhci failed");
-
-	int hci_socket = syz_init_net_socket(AF_BLUETOOTH, SOCK_RAW, 1);
-	if (hci_socket < 0)
-		fail("syz_init_net_socket failed");
 
 	int epoll_fd = epoll_create1(0);
 	if (epoll_fd == -1)
@@ -1813,30 +1783,47 @@ static void initialize_vhci()
 	if (pthread_create(&th, NULL, event_thread, &epoll_fd))
 		fail("pthread_create failed");
 
-	for (int i = 0; i < 1000; i++) {
-		struct hci_dev_info info = {0};
-		info.dev_id = HCI_DEV;
-		ioctl(hci_socket, HCIGETDEVINFO, &info);
-		if (info.flags & 1) // UP
-			break;
-		usleep(1000);
-	}
+	// Register hci device
+	uint8_t setup_cmd[2];
+	setup_cmd[0] = HCI_VENDOR_PKT;
+	setup_cmd[1] = 0;
+	write(vhci_fd, setup_cmd, sizeof(setup_cmd));
 
+	// Bring hci device up
+	int res, tries = 16;
+	do {
+		res = ioctl(hci_socket, HCIDEVUP, HCI_DEV);
+		if (res != 0) {
+			if (errno == ENODEV)
+				continue;
+			else if (errno == EALREADY)
+				break;
+			else
+				fail("ioctl(HCIDEVUP) failed");
+		}
+	} while (res != 0 && tries--);
+
+	if (tries == 0)
+		fail("failed to bring hci device up");
+
+	// Activate page scanning mode which is required to fake a connection.
 	struct hci_dev_req dr = {0};
 	dr.dev_id = HCI_DEV;
 	dr.dev_opt = SCAN_PAGE;
-	if (ioctl(hci_socket, HCISETSCAN, &dr) < 0)
+	if (ioctl(hci_socket, HCISETSCAN, &dr))
 		fail("ioctl(HCISETSCAN) failed");
 
+	// Fake a connection with bd address aa:aa:aa:aa:aa:aa.
+	// This is a fixed address used in sys/linux/socket_bluetooth.txt.
 	struct hci_ev_conn_request request = {0};
-	memcpy(&request.bdaddr, "\x66\x55\x44\x33\x22\x11", 6);
+	memset(&request.bdaddr, 0xaa, 6);
 	request.link_type = ACL_LINK;
 	hci_send_event_packet(vhci_fd, HCI_EV_CONN_REQUEST, &request, sizeof(request));
 
 	struct hci_ev_conn_complete complete = {0};
 	complete.status = 0;
 	complete.handle = ACL_HANDLE;
-	memcpy(&complete.bdaddr, "\x66\x55\x44\x33\x22\x11", 6);
+	memset(&complete.bdaddr, 0xaa, 6);
 	complete.link_type = ACL_LINK;
 	complete.encr_mode = 0;
 	hci_send_event_packet(vhci_fd, HCI_EV_CONN_COMPLETE, &complete, sizeof(complete));
@@ -1846,16 +1833,13 @@ static void initialize_vhci()
 	features.handle = ACL_HANDLE;
 	hci_send_event_packet(vhci_fd, HCI_EV_REMOTE_FEATURES, &features, sizeof(features));
 
+	close(epoll_fd);
 	close(hci_socket);
-
-	vhci_init = 1;
-	pthread_kill(th, SIGKILL);
 	pthread_join(th, NULL);
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_emit_vhci
-#if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
+#if SYZ_EXECUTOR || __NR_syz_emit_vhci && SYZ_VHCI_INJECTION
 long syz_emit_vhci(volatile long a0, volatile long a1)
 {
 	if (vhci_fd < 0)
@@ -1866,12 +1850,6 @@ long syz_emit_vhci(volatile long a0, volatile long a1)
 
 	return write(vhci_fd, data, length);
 }
-#else
-long syz_emit_vhci(volatile long a0, volatile long a1)
-{
-	return 0;
-}
-#endif
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_genetlink_get_family_id
@@ -2851,7 +2829,7 @@ static void sandbox_common()
 	setpgrp();
 	setsid();
 
-#if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI
+#if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI || SYZ_VHCI_INJECTION
 	int netns = open("/proc/self/ns/net", O_RDONLY);
 	if (netns == -1)
 		fail("open(/proc/self/ns/net) failed");
