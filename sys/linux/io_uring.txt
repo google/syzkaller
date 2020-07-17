@@ -220,24 +220,23 @@ io_uring_sqe_fsync {
 io_uring_fsync_flags = 0, IORING_FSYNC_DATASYNC
 
 # IORING_OP_READ_FIXED, IORING_OP_WRITE_FIXED
-type io_uring_sqe_rw_fixed[OP_FIXED_RW, DIR] {
+type io_uring_sqe_rw_fixed[OP_FIXED_RW] {
 	opcode		const[OP_FIXED_RW, int8]
 	flags		flags[iosqe_flags, int8]
 	ioprio		flags[ioprio_priorities, int16]
 	fd		fd
 	off		fileoff[int64]
-	addr		buffer[DIR]
-	len		bytesize[addr, int32]
+# addr and len for the buffer located at buf_index
+	addr		int64
+	len		int32
 	rw_flags	flags[rwf_flags, int32]
 	user_data	sqe_user_data
-# TODO: buf_index and buf_group should be relevant for this one
-	pad_unused	array[const[0, int64], 3]
+	buf_index	io_uring_bid[int16]
+	pad_unused	array[const[0, int8], 22]
 }
 
-type io_uring_sqe_read_fixed io_uring_sqe_rw_fixed[IORING_OP_READ_FIXED, out]
-type io_uring_sqe_write_fixed io_uring_sqe_rw_fixed[IORING_OP_WRITE_FIXED, in]
-
-# TODO: buffer index only valid with fixed read/write, or buffer select
+type io_uring_sqe_read_fixed io_uring_sqe_rw_fixed[IORING_OP_READ_FIXED]
+type io_uring_sqe_write_fixed io_uring_sqe_rw_fixed[IORING_OP_WRITE_FIXED]
 
 # IORING_OP_POLL_ADD
 io_uring_sqe_poll_add {
@@ -614,7 +613,6 @@ io_uring_sqe_splice {
 # TODO: fd is int32, the field is int64. check if such alignment is right.
 	splice_off_in_unused	const[0, int32]
 	splice_off_in		fd
-# where is addr?
 	len			int32
 	splice_flags		flags[splice_flags, int32]
 	user_data		sqe_user_data
