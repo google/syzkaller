@@ -1000,6 +1000,11 @@ lwtunnel_policy [
 # after the kernel fixes the seg6_iptunnel.h uapi header.
 #	SEG6_IPTUNNEL_SRH	nlattr[SEG6_IPTUNNEL_SRH, tuninfo]
 #
+	LWT_BPF_IN		nlnest[LWT_BPF_IN, bpf_prog_policy]
+	LWT_BPF_OUT		nlnest[LWT_BPF_OUT, bpf_prog_policy]
+	LWT_BPF_XMIT		nlnest[LWT_BPF_XMIT, bpf_prog_policy]
+	LWT_BPF_XMIT_HEADROOM	nlattr[LWT_BPF_XMIT_HEADROOM, int32[0:LWT_BPF_MAX_HEADROOM]]
+
 	RPL_IPTUNNEL_SRH	nlattr[RPL_IPTUNNEL_SRH, ipv6_rpl_sr_hdr]
 ] [varlen]
 
@@ -1026,6 +1031,11 @@ erspan_opt_policy_lwt [
 	LWTUNNEL_IP_OPT_ERSPAN_INDEX	nlattr[LWTUNNEL_IP_OPT_ERSPAN_INDEX, int32be]
 	LWTUNNEL_IP_OPT_ERSPAN_DIR	nlattr[LWTUNNEL_IP_OPT_ERSPAN_DIR, int8]
 	LWTUNNEL_IP_OPT_ERSPAN_HWID	nlattr[LWTUNNEL_IP_OPT_ERSPAN_HWID, int8]
+] [varlen]
+
+bpf_prog_policy [
+	LWT_BPF_PROG_FD		nlattr[LWT_BPF_PROG_FD, fd_bpf_prog]
+	LWT_BPF_PROG_NAME	nlattr[LWT_BPF_PROG_NAME, string]
 ] [varlen]
 
 ipv6_rpl_sr_hdr {
