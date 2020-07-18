@@ -3084,7 +3084,7 @@ static int namespace_sandbox_proc(void* arg)
 	initialize_netdevices();
 #endif
 #if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
-  // This will fail and we only have it here to avoid complains about the
+	// This will fail and we only have it here to avoid complains about the
 	// function being unused.
 	initialize_vhci();
 #endif
@@ -3305,8 +3305,8 @@ static int do_sandbox_android(void)
 	initialize_netdevices();
 #endif
 #if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
-// This will fail and we only have it here to avoid complains about the
-// function being unused.
+	// This will fail and we only have it here to avoid complains about the
+	// function being unused.
 	initialize_vhci();
 #endif
 
