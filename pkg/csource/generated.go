@@ -5340,12 +5340,14 @@ static void initialize_vhci()
 	dr.dev_opt = SCAN_PAGE;
 	if (ioctl(hci_socket, HCISETSCAN, &dr))
 		fail("ioctl(HCISETSCAN) failed");
-	struct hci_ev_conn_request request = {0};
+	struct hci_ev_conn_request request;
+	memset(&request, 0, sizeof(request));
 	memset(&request.bdaddr, 0xaa, 6);
 	request.link_type = ACL_LINK;
 	hci_send_event_packet(vhci_fd, HCI_EV_CONN_REQUEST, &request, sizeof(request));
 
-	struct hci_ev_conn_complete complete = {0};
+	struct hci_ev_conn_complete complete;
+	memset(&complete, 0, sizeof(complete));
 	complete.status = 0;
 	complete.handle = ACL_HANDLE;
 	memset(&complete.bdaddr, 0xaa, 6);
@@ -5353,7 +5355,8 @@ static void initialize_vhci()
 	complete.encr_mode = 0;
 	hci_send_event_packet(vhci_fd, HCI_EV_CONN_COMPLETE, &complete, sizeof(complete));
 
-	struct hci_ev_remote_features features = {0};
+	struct hci_ev_remote_features features;
+	memset(&features, 0, sizeof(features));
 	features.status = 0;
 	features.handle = ACL_HANDLE;
 	hci_send_event_packet(vhci_fd, HCI_EV_REMOTE_FEATURES, &features, sizeof(features));
