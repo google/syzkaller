@@ -1706,7 +1706,7 @@ static void process_command_pkt(int fd, char* buf, size_t buf_size)
 	struct hci_command_hdr* hdr = (struct hci_command_hdr*)buf;
 	if (buf_size < sizeof(struct hci_command_hdr) ||
 	    hdr->plen != buf_size - sizeof(struct hci_command_hdr)) {
-		fail("invalid size: %lx\n", buf_size);
+		fail("invalid size: %zx\n", buf_size);
 		return;
 	}
 
