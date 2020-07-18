@@ -89,6 +89,9 @@ func (opts Options) Check(OS string) error {
 		if opts.BinfmtMisc {
 			return errors.New("option BinfmtMisc without sandbox")
 		}
+		if opts.VhciInjection {
+			return errors.New("option VhciInjection without sandbox")
+		}
 	}
 	if opts.Sandbox == sandboxNamespace && !opts.UseTmpDir {
 		// This is borken and never worked.

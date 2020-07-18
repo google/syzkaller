@@ -429,6 +429,9 @@ func (ctx *Context) createCTest(p *prog.Prog, sandbox string, threaded bool, tim
 		if ctx.Features[host.FeatureNetDevices].Enabled {
 			opts.NetDevices = true
 		}
+		if ctx.Features[host.FeatureVhciInjection].Enabled {
+			opts.VhciInjection = true
+		}
 	}
 	src, err := csource.Write(p, opts)
 	if err != nil {

@@ -5103,6 +5103,7 @@ static long syz_init_net_socket(volatile long domain, volatile long type, volati
 #endif
 
 #if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
+#include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <sys/epoll.h>
@@ -5276,7 +5277,6 @@ static void* event_thread(void* arg)
 
 		char buf[1024] = {0};
 		size_t buf_size = read(event.data.fd, buf, sizeof(buf));
-		debug_dump_data(buf, buf_size);
 		if (buf_size > 0 && buf[0] == HCI_COMMAND_PKT)
 			process_command_pkt(event.data.fd, buf + 1, buf_size - 1);
 	}
@@ -5318,7 +5318,8 @@ static void initialize_vhci()
 	uint8 setup_cmd[2];
 	setup_cmd[0] = HCI_VENDOR_PKT;
 	setup_cmd[1] = 0;
-	write(vhci_fd, setup_cmd, sizeof(setup_cmd));
+	if (write(vhci_fd, setup_cmd, sizeof(setup_cmd)) < 0)
+		fail("write failed");
 	int res, tries = 16;
 	do {
 		res = ioctl(hci_socket, HCIDEVUP, HCI_DEV);
@@ -5364,7 +5365,7 @@ static void initialize_vhci()
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_emit_vhci && SYZ_VHCI_INJECTION
-long syz_emit_vhci(volatile long a0, volatile long a1)
+static long syz_emit_vhci(volatile long a0, volatile long a1)
 {
 	if (vhci_fd < 0)
 		return (uintptr_t)-1;
@@ -7455,6 +7456,9 @@ static int namespace_sandbox_proc(void* arg)
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	initialize_netdevices();
 #endif
+#if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
+	initialize_vhci();
+#endif
 
 	if (mkdir("./syz-tmp", 0777))
 		fail("mkdir(syz-tmp) failed");
@@ -8159,6 +8163,9 @@ static int do_sandbox_android(void)
 #endif
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	initialize_netdevices();
+#endif
+#if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
+	initialize_vhci();
 #endif
 
 	if (chown(".", UNTRUSTED_APP_UID, UNTRUSTED_APP_UID) != 0)
