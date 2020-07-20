@@ -41,7 +41,7 @@ mmap$IORING_OFF_CQ_RING(addr vma, len len[addr], prot flags[mmap_prot], flags fl
 mmap$IORING_OFF_SQES(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_io_uring, offset const[IORING_OFF_SQES]) sqes_ptr
 
 # If no flags are specified(0), the io_uring instance is setup for interrupt driven IO.
-io_uring_setup_flags = 0, IORING_SETUP_IOPOLL, IORING_SETUP_SQPOLL, IORING_SETUP_SQ_AFF, IORING_SETUP_CQSIZE, IORING_SETUP_CLAMP
+io_uring_setup_flags = 0, IORING_SETUP_IOPOLL, IORING_SETUP_SQPOLL, IORING_SETUP_SQ_AFF, IORING_SETUP_CQSIZE, IORING_SETUP_CLAMP, IORING_SETUP_ATTACH_WQ
 io_uring_enter_flags = IORING_ENTER_GETEVENTS, IORING_ENTER_SQ_WAKEUP
 _ = __NR_mmap2
 
@@ -87,9 +87,7 @@ io_uring_params {
 	sq_thread_cpu	int32[0:3]
 	sq_thread_idle	int32[0:1000]
 	features	const[0, int32]
-# TODO: If IORING_SETUP_ATTACH_WQ is set for io_uring_setup(), wq_fd is expected
-# to be a valid io_uring_fd. Utilize this flag.
-	wq_fd		const[0, int32]
+	wq_fd		fd_io_uring[opt]
 	resv		array[const[0, int32], 3]
 	sq_off		io_sqring_offsets
 	cq_off		io_cqring_offsets
