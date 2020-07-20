@@ -1652,6 +1652,8 @@ struct hci_dev_req {
 	uint32 dev_opt;
 };
 
+#define HCI_MAX_DEV 16
+
 #define HCIDEVUP _IOW('H', 201, int)
 #define HCISETSCAN _IOW('H', 221, int)
 
@@ -1720,14 +1722,15 @@ static void process_command_pkt(int fd, char* buf, size_t buf_size)
 		vhci_init = 1;
 		break;
 	case HCI_OP_READ_BD_ADDR: {
-		struct hci_rp_read_bd_addr rp;
+		struct hci_rp_read_bd_addr rp = {0};
 		rp.status = 0;
-		memset(&rp.bdaddr, 0xaa, 6);
+		uint64 macaddr = 0xbbbbbbbbbb00 + procid;
+		memcpy(&rp.bdaddr, &macaddr, 6);
 		hci_send_event_cmd_complete(fd, hdr->opcode, &rp, sizeof(rp));
 		return;
 	}
 	case HCI_OP_READ_BUFFER_SIZE: {
-		struct hci_rp_read_buffer_size rp;
+		struct hci_rp_read_buffer_size rp = {0};
 		rp.status = 0;
 		rp.acl_mtu = 1021;
 		rp.sco_mtu = 96;
@@ -1765,8 +1768,8 @@ static void initialize_vhci()
 		return;
 #endif
 
-	int hci_socket = syz_init_net_socket(AF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI);
-	if (hci_socket < 0)
+	int hci_sock = syz_init_net_socket(AF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI);
+	if (hci_sock < 0)
 		fail("syz_init_net_socket failed");
 
 	vhci_fd = open("/dev/vhci", O_RDWR);
@@ -1792,16 +1795,20 @@ static void initialize_vhci()
 	if (write(vhci_fd, setup_cmd, sizeof(setup_cmd)) < 0)
 		fail("write failed");
 
-	// Bring hci device up
-	if (ioctl(hci_socket, HCIDEVUP, HCI_DEV) && errno != EALREADY)
-		fail("ioctl(HCIDEVUP) failed");
+	// Try all possible dev ids. Do this lazy hack instead of getting all devices
+	// from before and after opening /dev/vhci and figuring what was added.
+	for (int i = 0; i < HCI_MAX_DEV; i++) {
+		// Bring hci device up
+		if (ioctl(hci_sock, HCIDEVUP, i) && errno != EALREADY && errno != ENODEV)
+			fail("ioctl(HCIDEVUP) failed");
 
-	// Activate page scanning mode which is required to fake a connection.
-	struct hci_dev_req dr = {0};
-	dr.dev_id = HCI_DEV;
-	dr.dev_opt = SCAN_PAGE;
-	if (ioctl(hci_socket, HCISETSCAN, &dr))
-		fail("ioctl(HCISETSCAN) failed");
+		// Activate page scanning mode which is required to fake a connection.
+		struct hci_dev_req dr = {0};
+		dr.dev_id = i;
+		dr.dev_opt = SCAN_PAGE;
+		if (ioctl(hci_sock, HCISETSCAN, &dr) && errno != ENODEV)
+			fail("ioctl(HCISETSCAN) failed");
+	}
 
 	// Fake a connection with bd address aa:aa:aa:aa:aa:aa.
 	// This is a fixed address used in sys/linux/socket_bluetooth.txt.
@@ -1827,7 +1834,7 @@ static void initialize_vhci()
 	hci_send_event_packet(vhci_fd, HCI_EV_REMOTE_FEATURES, &features, sizeof(features));
 
 	pthread_join(th, NULL);
-	close(hci_socket);
+	close(hci_sock);
 }
 #endif
 
