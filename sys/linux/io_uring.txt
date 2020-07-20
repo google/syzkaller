@@ -45,6 +45,12 @@ io_uring_setup_flags = 0, IORING_SETUP_IOPOLL, IORING_SETUP_SQPOLL, IORING_SETUP
 io_uring_enter_flags = IORING_ENTER_GETEVENTS, IORING_ENTER_SQ_WAKEUP
 _ = __NR_mmap2
 
+# Toggle IORING_CQ_EVENTFD_DISABLED in cq_ring flags. This allows to temporarily
+# disable notifications and then enable again.
+syz_io_uring_cq_eventfd_toggle(cq_ring_ptr cq_ring_ptr)
+
+# TODO: Utilize sq_ring flags
+
 # TODO: Consume anything registered within io_uring_sqes as well.
 
 io_uring_probe {

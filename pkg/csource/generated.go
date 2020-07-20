@@ -3539,7 +3539,7 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_io_uring_submit || __NR_syz_io_uring_complete
+#if SYZ_EXECUTOR || __NR_syz_io_uring_submit || __NR_syz_io_uring_complete || __NR_syz_io_uring_cq_eventfd_toggle
 
 #define SIZEOF_IO_URING_SQE 64
 #define SIZEOF_IO_URING_CQE 16
@@ -3547,10 +3547,12 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 #define SQ_TAIL_OFFSET 64
 #define SQ_RING_MASK_OFFSET 256
 #define SQ_RING_ENTRIES_OFFSET 264
+#define SQ_FLAGS_OFFSET 276
 #define CQ_HEAD_OFFSET 128
 #define CQ_TAIL_OFFSET 192
 #define CQ_RING_MASK_OFFSET 260
 #define CQ_RING_ENTRIES_OFFSET 268
+#define CQ_FLAGS_OFFSET 280
 #define CQ_CQES_OFFSET 320
 #define SQ_ARRAY_OFFSET(sq_entries, cq_entries) (round_up(CQ_CQES_OFFSET + cq_entries * SIZEOF_IO_URING_CQE, 64))
 
@@ -3601,6 +3603,20 @@ static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile lon
 	uint32* sq_array = *(uint32**)(sq_ring_ptr + sq_array_off);
 	sq_array[sq_tail] = sqes_index;
 	__atomic_store_n(sq_tail_ptr, sq_tail_next, __ATOMIC_RELEASE);
+	return 0;
+}
+
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_io_uring_cq_eventfd_toggle
+#define IORING_CQ_EVENTFD_DISABLED (1U << 0)
+
+static long syz_io_uring_cq_eventfd_toggle(volatile long a0)
+{
+	char* cq_ring_ptr = (char*)a0;
+	uint32* cq_ring_flags = (uint32*)(cq_ring_ptr + CQ_FLAGS_OFFSET);
+	*cq_ring_flags ^= IORING_CQ_EVENTFD_DISABLED;
+
 	return 0;
 }
 
