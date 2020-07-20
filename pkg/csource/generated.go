@@ -5162,6 +5162,8 @@ struct hci_ev_cmd_complete {
 	uint16 opcode;
 } __attribute__((packed));
 
+#define HCI_OP_WRITE_SCAN_ENABLE 0x0c1a
+
 #define HCI_OP_READ_BUFFER_SIZE 0x1005
 struct hci_rp_read_buffer_size {
 	uint8 status;
@@ -5186,8 +5188,9 @@ struct hci_dev_req {
 #define HCISETSCAN _IOW('H', 221, int)
 
 static int vhci_fd = -1;
+static int vhci_init = 0;
 
-static int hci_send_event_packet(int fd, uint8 evt, void* data, size_t data_len)
+static void hci_send_event_packet(int fd, uint8 evt, void* data, size_t data_len)
 {
 	struct iovec iv[3];
 
@@ -5204,10 +5207,11 @@ static int hci_send_event_packet(int fd, uint8 evt, void* data, size_t data_len)
 	iv[2].iov_base = data;
 	iv[2].iov_len = data_len;
 
-	return writev(fd, iv, sizeof(iv) / sizeof(struct iovec));
+	if (writev(fd, iv, sizeof(iv) / sizeof(struct iovec)) < 0)
+		fail("writev failed");
 }
 
-static int hci_send_event_cmd_complete(int fd, uint16 opcode, void* data, size_t data_len)
+static void hci_send_event_cmd_complete(int fd, uint16 opcode, void* data, size_t data_len)
 {
 	struct iovec iv[4];
 
@@ -5230,7 +5234,8 @@ static int hci_send_event_cmd_complete(int fd, uint16 opcode, void* data, size_t
 	iv[3].iov_base = data;
 	iv[3].iov_len = data_len;
 
-	return writev(fd, iv, sizeof(iv) / sizeof(struct iovec));
+	if (writev(fd, iv, sizeof(iv) / sizeof(struct iovec)) < 0)
+		fail("writev failed");
 }
 
 static void process_command_pkt(int fd, char* buf, size_t buf_size)
@@ -5243,6 +5248,9 @@ static void process_command_pkt(int fd, char* buf, size_t buf_size)
 	}
 
 	switch (hdr->opcode) {
+	case HCI_OP_WRITE_SCAN_ENABLE:
+		vhci_init = 1;
+		break;
 	case HCI_OP_READ_BD_ADDR: {
 		struct hci_rp_read_bd_addr rp;
 		rp.status = 0;
@@ -5268,17 +5276,12 @@ static void process_command_pkt(int fd, char* buf, size_t buf_size)
 
 static void* event_thread(void* arg)
 {
-	int epoll_fd = *(int*)arg;
-
-	while (1) {
-		struct epoll_event event;
-		if (epoll_pwait(epoll_fd, &event, 1, -1, NULL) < 0)
-			break;
-
+	while (!vhci_init) {
 		char buf[1024] = {0};
-		size_t buf_size = read(event.data.fd, buf, sizeof(buf));
+		size_t buf_size = read(vhci_fd, buf, sizeof(buf));
+		debug_dump_data(buf, buf_size);
 		if (buf_size > 0 && buf[0] == HCI_COMMAND_PKT)
-			process_command_pkt(event.data.fd, buf + 1, buf_size - 1);
+			process_command_pkt(vhci_fd, buf + 1, buf_size - 1);
 	}
 
 	return NULL;
@@ -5301,40 +5304,22 @@ static void initialize_vhci()
 	vhci_fd = open("/dev/vhci", O_RDWR);
 	if (vhci_fd == -1)
 		fail("open /dev/vhci failed");
-
-	int epoll_fd = epoll_create1(0);
-	if (epoll_fd == -1)
-		fail("epoll_create1 failed");
-
-	struct epoll_event event = {0};
-	event.events = EPOLLIN;
-	event.data.fd = vhci_fd;
-	if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, vhci_fd, &event))
-		fail("epoll_ctl failed");
+	const int kVhciFd = 241;
+	if (dup2(vhci_fd, kVhciFd) < 0)
+		fail("dup2(vhci_fd, kVhciFd) failed");
+	close(vhci_fd);
+	vhci_fd = kVhciFd;
 
 	pthread_t th;
-	if (pthread_create(&th, NULL, event_thread, &epoll_fd))
+	if (pthread_create(&th, NULL, event_thread, NULL))
 		fail("pthread_create failed");
 	uint8 setup_cmd[2];
 	setup_cmd[0] = HCI_VENDOR_PKT;
 	setup_cmd[1] = 0;
 	if (write(vhci_fd, setup_cmd, sizeof(setup_cmd)) < 0)
 		fail("write failed");
-	int res, tries = 16;
-	do {
-		res = ioctl(hci_socket, HCIDEVUP, HCI_DEV);
-		if (res != 0) {
-			if (errno == ENODEV)
-				continue;
-			else if (errno == EALREADY)
-				break;
-			else
-				fail("ioctl(HCIDEVUP) failed");
-		}
-	} while (res != 0 && tries--);
-
-	if (tries == 0)
-		fail("failed to bring hci device up");
+	if (ioctl(hci_socket, HCIDEVUP, HCI_DEV) && errno != EALREADY)
+		fail("ioctl(HCIDEVUP) failed");
 	struct hci_dev_req dr = {0};
 	dr.dev_id = HCI_DEV;
 	dr.dev_opt = SCAN_PAGE;
@@ -5361,9 +5346,8 @@ static void initialize_vhci()
 	features.handle = ACL_HANDLE;
 	hci_send_event_packet(vhci_fd, HCI_EV_REMOTE_FEATURES, &features, sizeof(features));
 
-	close(epoll_fd);
-	close(hci_socket);
 	pthread_join(th, NULL);
+	close(hci_socket);
 }
 #endif
 
