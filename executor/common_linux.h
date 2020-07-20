@@ -1400,17 +1400,16 @@ static long syz_io_uring_complete(volatile long a0, volatile long a1)
 	char* cqe_dst = (char*)a1;
 
 	// Compute the head index and the next head value
-	uint32 cq_ring_mask, *cq_head_ptr, cq_head, cq_head_next;
-	cq_ring_mask = *(uint32*)(cq_ring_ptr + CQ_RING_MASK_OFFSET);
-	cq_head_ptr = (uint32*)(cq_ring_ptr + CQ_HEAD_OFFSET);
-	cq_head = *cq_head_ptr & cq_ring_mask;
-	cq_head_next = *cq_head_ptr + 1;
+	uint32 cq_ring_mask = *(uint32*)(cq_ring_ptr + CQ_RING_MASK_OFFSET);
+	uint32* cq_head_ptr = (uint32*)(cq_ring_ptr + CQ_HEAD_OFFSET);
+	uint32 cq_head = *cq_head_ptr & cq_ring_mask;
+	uint32 cq_head_next = *cq_head_ptr + 1;
 
 	// Compute the ptr to the src cq entry on the ring
 	char* cqe_src = cq_ring_ptr + CQ_CQES_OFFSET + cq_head * SIZEOF_IO_URING_CQE;
 
 	// Get the cq entry from the ring
-	memcpy(cqe_dst, cqe_src, sizeof(char) * SIZEOF_IO_URING_CQE);
+	memcpy(cqe_dst, cqe_src, SIZEOF_IO_URING_CQE);
 
 	// Advance the head. Head is a free-flowing integer and relies on natural wrapping.
 	// Ensure that the kernel will never see a head update without the preceeding CQE
@@ -1437,9 +1436,8 @@ static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile lon
 	char* sqe = (char*)a2;
 	uint32 sqes_index = (uint32)a3;
 
-	uint32 sq_ring_entries, cq_ring_entries;
-	sq_ring_entries = *(uint32*)(sq_ring_ptr + SQ_RING_ENTRIES_OFFSET);
-	cq_ring_entries = *(uint32*)(sq_ring_ptr + CQ_RING_ENTRIES_OFFSET);
+	uint32 sq_ring_entries = *(uint32*)(sq_ring_ptr + SQ_RING_ENTRIES_OFFSET);
+	uint32 cq_ring_entries = *(uint32*)(sq_ring_ptr + CQ_RING_ENTRIES_OFFSET);
 
 	// Compute the sq_array offset
 	uint32 sq_array_off = SQ_ARRAY_OFFSET(sq_ring_entries, cq_ring_entries);
@@ -1450,15 +1448,14 @@ static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile lon
 	char* sqe_dest = sqes_ptr + sqes_index * SIZEOF_IO_URING_SQE;
 
 	// Write the sqe entry to its destination in sqes
-	memcpy(sqe_dest, sqe, sizeof(char) * SIZEOF_IO_URING_SQE);
+	memcpy(sqe_dest, sqe, SIZEOF_IO_URING_SQE);
 
 	// Write the index to the sqe array
-	uint32 sq_ring_mask, *sq_tail_ptr, sq_tail, sq_tail_next, *sq_array;
-	sq_ring_mask = *(uint32*)(sq_ring_ptr + SQ_RING_MASK_OFFSET);
-	sq_tail_ptr = (uint32*)(sq_ring_ptr + SQ_TAIL_OFFSET);
-	sq_tail = *sq_tail_ptr & sq_ring_mask;
-	sq_tail_next = *sq_tail_ptr + 1;
-	sq_array = *(uint32**)(sq_ring_ptr + sq_array_off);
+	uint32 sq_ring_mask = *(uint32*)(sq_ring_ptr + SQ_RING_MASK_OFFSET);
+	uint32* sq_tail_ptr = (uint32*)(sq_ring_ptr + SQ_TAIL_OFFSET);
+	uint32 sq_tail = *sq_tail_ptr & sq_ring_mask;
+	uint32 sq_tail_next = *sq_tail_ptr + 1;
+	uint32* sq_array = *(uint32**)(sq_ring_ptr + sq_array_off);
 	sq_array[sq_tail] = sqes_index;
 
 	// Advance the tail. Tail is a free-flowing integer and relies on natural wrapping.
