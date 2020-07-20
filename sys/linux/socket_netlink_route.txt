@@ -10,6 +10,7 @@ include <uapi/linux/ip.h>
 include <uapi/linux/if_link.h>
 include <uapi/linux/if_addr.h>
 include <uapi/linux/if_addrlabel.h>
+include <uapi/linux/if_bridge.h>
 include <uapi/linux/if_vlan.h>
 include <uapi/linux/netlink.h>
 include <uapi/linux/netconf.h>
@@ -92,6 +93,9 @@ netlink_msg_route [
 	bridge_getlink		netlink_msg[RTM_GETLINK, ifinfomsg[AF_BRIDGE], ifla_policy]
 	bridge_setlink		netlink_msg[RTM_SETLINK, ifinfomsg[AF_BRIDGE], ifla_policy]
 	bridge_dellink		netlink_msg[RTM_DELLINK, ifinfomsg[AF_BRIDGE], ifla_policy]
+	bridge_getvlan		netlink_msg[RTM_GETVLAN, br_vlan_msg[AF_BRIDGE], br_vlan_db_dump_pol]
+	bridge_newvlan		netlink_msg[RTM_NEWVLAN, br_vlan_msg[AF_BRIDGE], br_vlan_db_policy_container]
+	bridge_delvlan		netlink_msg[RTM_DELVLAN, br_vlan_msg[AF_BRIDGE], br_vlan_db_policy_container]
 
 	RTM_NEWNSID		netlink_msg[RTM_NEWNSID, rtgenmsg[AF_UNSPEC], rtnl_net_policy]
 	RTM_GETNSID		netlink_msg[RTM_GETNSID, rtgenmsg[AF_UNSPEC], rtnl_net_policy]
@@ -132,6 +136,13 @@ type ifaddrlblmsg[FAMILY] {
 	ifal_flags	const[0, int8]
 	ifal_index	ifindex
 	ifal_seq	int32
+}
+
+type br_vlan_msg[FAMILY] {
+	family		const[FAMILY, int8]
+	reserved1	const[0, int8]
+	reserved2	const[0, int16]
+	ifindex		ifindex
 }
 
 type rtmsg[FAMILY] {
@@ -779,6 +790,32 @@ ifa_cacheinfo {
 	tstamp		int32
 }
 
+br_vlan_db_dump_pol [
+	BRIDGE_VLANDB_DUMP_FLAGS	nlattr[BRIDGE_VLANDB_DUMP_FLAGS, flags[br_vlan_dumpflags, int32]]
+]
+
+br_vlan_db_policy_container [
+	BRIDGE_VLANDB_ENTRY	nlnest[BRIDGE_VLANDB_ENTRY, br_vlan_db_policy]
+] [varlen]
+
+br_vlan_db_policy [
+	BRIDGE_VLANDB_ENTRY_INFO	nlattr[BRIDGE_VLANDB_ENTRY_INFO, bridge_vlan_info]
+	BRIDGE_VLANDB_ENTRY_RANGE	nlattr[BRIDGE_VLANDB_ENTRY_RANGE, int16[BRIDGE_VLAN_INFO_RANGE_BEGIN:BRIDGE_VLAN_INFO_RANGE_END]]
+	BRIDGE_VLANDB_ENTRY_STATE	nlattr[BRIDGE_VLANDB_ENTRY_STATE, flags[br_vlan_state_options, int8]]
+	BRIDGE_VLANDB_ENTRY_TUNNEL_INFO	nlnest[BRIDGE_VLANDB_ENTRY_TUNNEL_INFO, br_vlandb_tinfo_pol]
+] [varlen]
+
+
+bridge_vlan_info {
+	flags	flags[br_vlan_info_flags, int16]
+	vid	int16[0:4]
+}
+
+br_vlandb_tinfo_pol [
+	BRIDGE_VLANDB_TINFO_ID	nlattr[BRIDGE_VLANDB_TINFO_ID, int32]
+	BRIDGE_VLANDB_TINFO_CMD	nlattr[BRIDGE_VLANDB_TINFO_CMD, flags[br_vlan_tinfo_cmd, int32]]
+] [varlen]
+
 devconf_ipv4_policy [
 	NETCONFA_IFINDEX		nlattr[NETCONFA_IFINDEX, ifindex]
 	NETCONFA_FORWARDING		nlattr[NETCONFA_FORWARDING, int32]
@@ -960,3 +997,7 @@ rtm_addr_len = 0, 16, 20, 32, 128
 filter_mask = IFLA_STATS_UNSPEC, IFLA_STATS_LINK_64, IFLA_STATS_LINK_XSTATS, IFLA_STATS_LINK_XSTATS_SLAVE, IFLA_STATS_LINK_OFFLOAD_XSTATS, IFLA_STATS_AF_SPEC
 tunnel_encap_types = TUNNEL_ENCAP_NONE, TUNNEL_ENCAP_FOU, TUNNEL_ENCAP_GUE, TUNNEL_ENCAP_MPLS
 ifal_labels = 0, 1, 2, 3, 4, 5, 6, 7, 11, 12
+br_vlan_dumpflags = BRIDGE_VLANDB_DUMPF_STATS
+br_vlan_state_options = BR_STATE_DISABLED, BR_STATE_LISTENING, BR_STATE_LEARNING, BR_STATE_FORWARDING, BR_STATE_BLOCKING
+br_vlan_info_flags = BRIDGE_VLAN_INFO_MASTER, BRIDGE_VLAN_INFO_PVID, BRIDGE_VLAN_INFO_UNTAGGED, BRIDGE_VLAN_INFO_RANGE_BEGIN, BRIDGE_VLAN_INFO_RANGE_END, BRIDGE_VLAN_INFO_BRENTRY, BRIDGE_VLAN_INFO_ONLY_OPTS
+br_vlan_tinfo_cmd = RTM_SETLINK, RTM_DELLINK
