@@ -45,11 +45,15 @@ io_uring_setup_flags = 0, IORING_SETUP_IOPOLL, IORING_SETUP_SQPOLL, IORING_SETUP
 io_uring_enter_flags = IORING_ENTER_GETEVENTS, IORING_ENTER_SQ_WAKEUP
 _ = __NR_mmap2
 
-# Toggle IORING_CQ_EVENTFD_DISABLED in cq_ring flags. This allows to temporarily
-# disable notifications and then enable again.
-syz_io_uring_cq_eventfd_toggle(cq_ring_ptr cq_ring_ptr)
+syz_io_uring_put_ring_metadata$SQ_RING_GENERIC(which_ring ptr[in, string["sq"]], ring_ptr sq_ring_ptr, field_name ptr[in, string[sq_ring_field_names]], field_val int32)
+syz_io_uring_put_ring_metadata$CQ_RING_GENERIC(which_ring ptr[in, string["cq"]], ring_ptr cq_ring_ptr, field_name ptr[in, string[cq_ring_field_names]], field_val int32)
 
-# TODO: Utilize sq_ring flags
+sq_ring_field_names = "head", "tail", "ring_mask", "ring_entries", "flags", "dropped"
+cq_ring_field_names = "head", "tail", "ring_mask", "ring_entries", "ring_overflow", "flags"
+
+# The flags available are: IORING_SQ_NEED_WAKEUP (1) for sq, IORING_CQ_EVENTFD_DISABLED (1) for cq. Use int32[0:1] to represent possible values.
+syz_io_uring_put_ring_metadata$SQ_RING_FLAGS(which_ring ptr[in, string["sq"]], ring_ptr sq_ring_ptr, field_name ptr[in, string["flags"]], field_val int32[0:1])
+syz_io_uring_put_ring_metadata$CQ_RING_FLAGS(which_ring ptr[in, string["cq"]], ring_ptr cq_ring_ptr, field_name ptr[in, string["flags"]], field_val int32[0:1])
 
 # TODO: Consume anything registered within io_uring_sqes as well.
 

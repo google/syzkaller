@@ -3539,7 +3539,7 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_io_uring_submit || __NR_syz_io_uring_complete || __NR_syz_io_uring_cq_eventfd_toggle
+#if SYZ_EXECUTOR || __NR_syz_io_uring_submit || __NR_syz_io_uring_complete || __NR_syz_io_uring_put_ring_metadata
 
 #define SIZEOF_IO_URING_SQE 64
 #define SIZEOF_IO_URING_CQE 16
@@ -3548,10 +3548,12 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 #define SQ_RING_MASK_OFFSET 256
 #define SQ_RING_ENTRIES_OFFSET 264
 #define SQ_FLAGS_OFFSET 276
+#define SQ_DROPPED_OFFSET 272
 #define CQ_HEAD_OFFSET 128
 #define CQ_TAIL_OFFSET 192
 #define CQ_RING_MASK_OFFSET 260
 #define CQ_RING_ENTRIES_OFFSET 268
+#define CQ_RING_OVERFLOW_OFFSET 284
 #define CQ_FLAGS_OFFSET 280
 #define CQ_CQES_OFFSET 320
 #define SQ_ARRAY_OFFSET(sq_entries, cq_entries) (round_up(CQ_CQES_OFFSET + cq_entries * SIZEOF_IO_URING_CQE, 64))
@@ -3608,16 +3610,54 @@ static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile lon
 
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_io_uring_cq_eventfd_toggle
-#define IORING_CQ_EVENTFD_DISABLED (1U << 0)
+#if SYZ_EXECUTOR || __NR_syz_io_uring_put_ring_metadata
+#define put_val_into_ring(ring_ptr, offset, type_t, val) (*(type_t*)(ring_ptr + offset) = (type_t)val)
 
-static long syz_io_uring_cq_eventfd_toggle(volatile long a0)
+static long syz_io_uring_put_ring_metadata(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
 {
-	char* cq_ring_ptr = (char*)a0;
-	uint32* cq_ring_flags = (uint32*)(cq_ring_ptr + CQ_FLAGS_OFFSET);
-	*cq_ring_flags ^= IORING_CQ_EVENTFD_DISABLED;
+	const char* ring_type = (char*)a0;
+	const char* ring_ptr = (char*)a1;
+	const char* field_name = (char*)a2;
+	if (!strcmp(ring_type, "sq")) {
+		if (!strcmp(field_name, "head")) {
+			put_val_into_ring(ring_ptr, SQ_HEAD_OFFSET, uint32, a3);
+		} else if (!strcmp(field_name, "tail")) {
+			put_val_into_ring(ring_ptr, SQ_TAIL_OFFSET, uint32, a3);
+		} else if (!strcmp(field_name, "ring_mask")) {
+			put_val_into_ring(ring_ptr, SQ_RING_MASK_OFFSET, uint32, a3);
+		} else if (!strcmp(field_name, "ring_entries")) {
+			put_val_into_ring(ring_ptr, SQ_RING_ENTRIES_OFFSET, uint32, a3);
+		} else if (!strcmp(field_name, "flags")) {
+			put_val_into_ring(ring_ptr, SQ_FLAGS_OFFSET, uint32, a3);
+		} else if (!strcmp(field_name, "dropped")) {
+			put_val_into_ring(ring_ptr, SQ_DROPPED_OFFSET, uint32, a3);
+		} else {
+			return -1;
+		}
 
-	return 0;
+		return 0;
+
+	} else if (!strcmp(ring_type, "cq")) {
+		if (!strcmp(field_name, "head")) {
+			put_val_into_ring(ring_ptr, CQ_HEAD_OFFSET, uint32, a3);
+		} else if (!strcmp(field_name, "tail")) {
+			put_val_into_ring(ring_ptr, CQ_TAIL_OFFSET, uint32, a3);
+		} else if (!strcmp(field_name, "ring_mask")) {
+			put_val_into_ring(ring_ptr, CQ_RING_MASK_OFFSET, uint32, a3);
+		} else if (!strcmp(field_name, "ring_entries")) {
+			put_val_into_ring(ring_ptr, CQ_RING_ENTRIES_OFFSET, uint32, a3);
+		} else if (!strcmp(field_name, "ring_overflow")) {
+			put_val_into_ring(ring_ptr, CQ_RING_OVERFLOW_OFFSET, uint32, a3);
+		} else if (!strcmp(field_name, "flags")) {
+			put_val_into_ring(ring_ptr, CQ_FLAGS_OFFSET, uint32, a3);
+		} else {
+			return -1;
+		}
+
+		return 0;
+	} else {
+		return -1;
+	}
 }
 
 #endif
