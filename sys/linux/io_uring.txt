@@ -82,7 +82,7 @@ io_uring_cqe {
 io_uring_params {
 # sq_entries, cq_entries, features, wq_fd, sq_off, and cq_off are set by the kernel
 	sq_entries	const[0, int32]
-	cq_entries	const[0, int32]
+	cq_entries	int32[0:IORING_MAX_CQ_ENTRIES]
 	flags		flags[io_uring_setup_flags, int32]
 	sq_thread_cpu	int32[0:3]
 	sq_thread_idle	int32[0:1000]
