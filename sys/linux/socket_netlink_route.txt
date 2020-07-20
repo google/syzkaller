@@ -97,6 +97,10 @@ netlink_msg_route [
 	bridge_newvlan		netlink_msg[RTM_NEWVLAN, br_vlan_msg[AF_BRIDGE], br_vlan_db_policy_container]
 	bridge_delvlan		netlink_msg[RTM_DELVLAN, br_vlan_msg[AF_BRIDGE], br_vlan_db_policy_container]
 
+	RTM_GETMDB		netlink_msg[RTM_GETMDB, br_port_msg[AF_BRIDGE], void]
+	RTM_NEWMDB		netlink_msg[RTM_NEWMDB, br_port_msg[AF_BRIDGE], br_mdb_policy]
+	RTM_DELMDB		netlink_msg[RTM_DELMDB, br_port_msg[AF_BRIDGE], br_mdb_policy]
+
 	RTM_NEWNSID		netlink_msg[RTM_NEWNSID, rtgenmsg[AF_UNSPEC], rtnl_net_policy]
 	RTM_GETNSID		netlink_msg[RTM_GETNSID, rtgenmsg[AF_UNSPEC], rtnl_net_policy]
 
@@ -143,6 +147,11 @@ type br_vlan_msg[FAMILY] {
 	reserved1	const[0, int8]
 	reserved2	const[0, int16]
 	ifindex		ifindex
+}
+
+type br_port_msg[FAMILY] {
+	family	const[FAMILY, int8]
+	ifindex	ifindex
 }
 
 type rtmsg[FAMILY] {
@@ -816,6 +825,28 @@ br_vlandb_tinfo_pol [
 	BRIDGE_VLANDB_TINFO_CMD	nlattr[BRIDGE_VLANDB_TINFO_CMD, flags[br_vlan_tinfo_cmd, int32]]
 ] [varlen]
 
+br_mdb_policy [
+	MDBA_SET_ENTRY	nlattr[MDBA_SET_ENTRY, br_mdb_entry]
+]
+
+br_mdb_entry {
+	ifindex	ifindex
+	state	flags[br_mdb_entry_state, int8]
+	flags	flags[br_mdb_entry_flags, int8]
+	vid	int16[0:4]
+	addr	br_mdb_entry_sub
+}
+
+br_mdb_entry_sub {
+	u	br_mdb_entry_sub_u
+	proto	flags[br_mdb_entry_sub_proto, int16be]
+}
+
+br_mdb_entry_sub_u [
+	ip4		ipv4_addr
+	in6_addr	ipv6_addr
+]
+
 devconf_ipv4_policy [
 	NETCONFA_IFINDEX		nlattr[NETCONFA_IFINDEX, ifindex]
 	NETCONFA_FORWARDING		nlattr[NETCONFA_FORWARDING, int32]
@@ -1001,3 +1032,6 @@ br_vlan_dumpflags = BRIDGE_VLANDB_DUMPF_STATS
 br_vlan_state_options = BR_STATE_DISABLED, BR_STATE_LISTENING, BR_STATE_LEARNING, BR_STATE_FORWARDING, BR_STATE_BLOCKING
 br_vlan_info_flags = BRIDGE_VLAN_INFO_MASTER, BRIDGE_VLAN_INFO_PVID, BRIDGE_VLAN_INFO_UNTAGGED, BRIDGE_VLAN_INFO_RANGE_BEGIN, BRIDGE_VLAN_INFO_RANGE_END, BRIDGE_VLAN_INFO_BRENTRY, BRIDGE_VLAN_INFO_ONLY_OPTS
 br_vlan_tinfo_cmd = RTM_SETLINK, RTM_DELLINK
+br_mdb_entry_state = MDB_TEMPORARY, MDB_PERMANENT
+br_mdb_entry_flags = MDB_FLAGS_OFFLOAD, MDB_FLAGS_FAST_LEAVE
+br_mdb_entry_sub_proto = ETH_P_IP, ETH_P_IPV6
