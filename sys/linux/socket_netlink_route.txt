@@ -45,6 +45,9 @@ netlink_msg_route [
 	getneigh		netlink_msg[RTM_GETNEIGH, rtgenmsg[AF_UNSPEC], void]
 	getneightbl		netlink_msg[RTM_GETNEIGHTBL, rtgenmsg[AF_UNSPEC], void]
 	setneightbl		netlink_msg[RTM_SETNEIGHTBL, ndtmsg, nl_neightbl_policy]
+	newlinkprop		netlink_msg[RTM_NEWLINKPROP, ifinfomsg[AF_UNSPEC], ifla_policy]
+#	RTM_GETLINKPROP is currently not used by the kernel.
+	dellinkprop		netlink_msg[RTM_DELLINKPROP, ifinfomsg[AF_UNSPEC], ifla_policy]
 
 	ipv4_newaddr		netlink_msg[RTM_NEWADDR, ifaddrmsg[AF_INET], ifa_ipv4_policy]
 	ipv4_deladdr		netlink_msg[RTM_DELADDR, ifaddrmsg[AF_INET], ifa_ipv4_policy]
