@@ -24,6 +24,8 @@ io_uring_setup(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_p
 io_uring_enter(fd fd_io_uring, to_submit int32[0:IORING_MAX_ENTRIES], min_complete int32[0:IORING_MAX_CQ_ENTRIES], flags flags[io_uring_enter_flags], sigmask ptr[in, sigset_t], size len[sigmask])
 io_uring_register$IORING_REGISTER_BUFFERS(fd fd_io_uring, opcode const[IORING_REGISTER_BUFFERS], arg ptr[in, array[iovec_out]], nr_args len[arg])
 io_uring_register$IORING_UNREGISTER_BUFFERS(fd fd_io_uring, opcode const[IORING_UNREGISTER_BUFFERS], arg const[0], nr_args const[0])
+# TODO: Utilize registered files by setting fd field in sqes to indices.
+# TODO: Limit the number of files that could be registered to ease collisions in sqes
 io_uring_register$IORING_REGISTER_FILES(fd fd_io_uring, opcode const[IORING_REGISTER_FILES], arg ptr[in, array[fd]], nr_args len[arg])
 io_uring_register$IORING_UNREGISTER_FILES(fd fd_io_uring, opcode const[IORING_UNREGISTER_FILES], arg const[0], nr_args const[0])
 io_uring_register$IORING_REGISTER_EVENTFD(fd fd_io_uring, opcode const[IORING_REGISTER_EVENTFD], arg ptr[in, fd_event], nr_args const[1])
@@ -38,41 +40,32 @@ mmap$IORING_OFF_SQ_RING(addr vma, len len[addr], prot flags[mmap_prot], flags fl
 mmap$IORING_OFF_CQ_RING(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_io_uring, offset const[IORING_OFF_CQ_RING]) cq_ring_ptr
 mmap$IORING_OFF_SQES(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_io_uring, offset const[IORING_OFF_SQES]) sqes_ptr
 
-# If no flags are specificed(0), the io_uring instance is setup for interrupt driven IO.
+# If no flags are specified(0), the io_uring instance is setup for interrupt driven IO.
 io_uring_setup_flags = 0, IORING_SETUP_IOPOLL, IORING_SETUP_SQPOLL, IORING_SETUP_SQ_AFF, IORING_SETUP_CQSIZE, IORING_SETUP_CLAMP
 io_uring_enter_flags = IORING_ENTER_GETEVENTS, IORING_ENTER_SQ_WAKEUP
 _ = __NR_mmap2
 
 # TODO: Consume anything registered within io_uring_sqes as well.
 
-# The ops array in io_uring_probe might contain at most the number available
-# IORING_OP many entries, which corresponds to IORING_OP_LAST. Thus, while
-# probing, let's probe for all and ensure that the kernel can fit all if all of
-# them are supported.
-define IO_URING_PROBE_OPS_SIZE	IORING_OP_LAST
-
-# NEED: part of fields are input here and part are output. We can't express this yet (#245).
-# Only the ops and ops_len is passed in, rest is to be set by kernel
 io_uring_probe {
-	last_op	int8
-	ops_len	len[ops, int8]
+	last_op	const[0, int8]
+	ops_len	const[0, int8]
 	resv	const[0, int16]
 	resv2	array[const[0, int32], 3]
-	ops	array[io_uring_probe_op, IO_URING_PROBE_OPS_SIZE]
+	ops	array[io_uring_probe_op, 0:IORING_OP_LAST]
 }
 
-# Values are to be set by kernel
 io_uring_probe_op {
-	op	int8
+	op	const[0, int8]
 	resv	const[0, int8]
-	flags	int16
+	flags	const[0, int16]
 	resv2	const[0, int32]
 }
 
 io_uring_files_update {
 	offset	int32
-	resv	int32
-	fds	ptr[in, array[fd]]
+	resv	const[0, int32]
+	fds	ptr64[in, array[fd]]
 }
 
 syz_io_uring_complete(cq_ring_ptr cq_ring_ptr, cqe ptr[out, io_uring_cqe])
