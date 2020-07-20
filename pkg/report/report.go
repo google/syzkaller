@@ -213,7 +213,8 @@ func extractReportType(rep *Report) Type {
 	}
 	if strings.HasPrefix(rep.Title, "INFO: rcu detected stall") ||
 		strings.HasPrefix(rep.Title, "INFO: task hung") ||
-		strings.HasPrefix(rep.Title, "BUG: soft lockup") {
+		strings.HasPrefix(rep.Title, "BUG: soft lockup") ||
+		strings.HasPrefix(rep.Title, "INFO: task can't die") {
 		return Hang
 	}
 	return Unknown

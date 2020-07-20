@@ -1386,6 +1386,17 @@ var linuxOopses = append([]*oops{
 				},
 			},
 			{
+				title: compile("INFO: task .* can't die for more than .* seconds"),
+				fmt:   "INFO: task can't die in %[1]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						compile("Call Trace:"),
+						parseStackTrace,
+					},
+					skip: []string{"schedule"},
+				},
+			},
+			{
 				// This gets captured for corrupted old-style KASAN reports.
 				title:     compile("INFO: (Freed|Allocated) in (.*)"),
 				fmt:       "INFO: %[1]v in %[2]v",

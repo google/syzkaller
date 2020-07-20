@@ -1,0 +1,38 @@
+TITLE: INFO: task can't die in p9_client_rpc
+TYPE: HANG
+
+[ 1455.962139][ T1161] INFO: task syz-executor.4:21128 can't die for more than 143 seconds.
+[ 1455.970412][ T1161] syz-executor.4  D27704 21128   7271 0x00004004
+[ 1456.001567][ T1161] Call Trace:
+[ 1456.004892][ T1161]  __schedule+0x8b4/0x1e80
+[ 1456.037127][ T1161]  schedule+0xd0/0x2a0
+[ 1456.041278][ T1161]  p9_client_rpc+0x3b5/0x1220
+[ 1456.130549][ T1161]  p9_client_flush+0x1f9/0x430
+[ 1456.166531][ T1161]  p9_client_rpc+0xfcd/0x1220
+[ 1456.279649][ T1161]  p9_client_create+0xa8f/0x10c0
+[ 1456.386918][ T1161]  v9fs_session_init+0x1dd/0x1770
+[ 1456.476501][ T1161]  v9fs_mount+0x79/0x970
+[ 1456.490207][ T1161]  legacy_get_tree+0x105/0x220
+[ 1456.496799][ T1161]  vfs_get_tree+0x89/0x2f0
+[ 1456.501234][ T1161]  do_mount+0x14f6/0x1e20
+[ 1456.521359][ T1161]  __x64_sys_mount+0x18f/0x230
+[ 1456.529593][ T1161]  do_syscall_64+0x60/0xe0
+[ 1456.551586][ T1161]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[ 1456.557491][ T1161] RIP: 0033:0x45c1d9
+[ 1456.561377][ T1161] Code: Bad RIP value.
+[ 1456.581588][ T1161] RSP: 002b:00007fb0e6e0ac78 EFLAGS: 00000246 ORIG_RAX: 00000000000000a5
+[ 1456.590057][ T1161] RAX: ffffffffffffffda RBX: 000000000001f440 RCX: 000000000045c1d9
+[ 1456.611582][ T1161] RDX: 0000000020000100 RSI: 0000000020000040 RDI: 0000000000000000
+[ 1456.619572][ T1161] RBP: 000000000078c090 R08: 0000000020000380 R09: 0000000000000000
+[ 1456.651566][ T1161] R10: 0000000000000000 R11: 0000000000000246 R12: 000000000078c04c
+[ 1456.659553][ T1161] R13: 00007ffec64332bf R14: 00007fb0e6e0b9c0 R15: 000000000078c04c
+[ 1456.691601][ T1161] 
+[ 1456.691601][ T1161] Showing all locks held in the system:
+[ 1456.699339][ T1161] 1 lock held by khungtaskd/1161:
+[ 1456.707971][ T1161]  #0: ffffffff89c53980 (rcu_read_lock){....}-{1:2}, at: debug_show_all_locks+0x53/0x260
+[ 1456.719822][ T1161] 1 lock held by in:imklog/6533:
+[ 1456.726621][ T1161]  #0: ffff888097ae2af0 (&f->f_pos_lock){+.+.}-{3:3}, at: __fdget_pos+0xe9/0x100
+[ 1456.737655][ T1161] 2 locks held by kworker/u4:2/5491:
+[ 1456.744847][ T1161]  #0: ffff8880ae735e18 (&rq->lock){-.-.}-{2:2}, at: __schedule+0x230/0x1e80
+[ 1456.756322][ T1161]  #1: ffffc9000858fda8 ((work_completion)(&(&bat_priv->nc.work)->work)){+.+.}-{0:0}, at: process_one_work+0x85f/0x1670
+[ 1456.771099][ T1161] =============================================
