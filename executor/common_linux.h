@@ -1377,9 +1377,7 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 #define CQ_RING_MASK_OFFSET 260
 #define CQ_RING_ENTRIES_OFFSET 268
 #define CQ_CQES_OFFSET 320
-// TODO: `sq_entries * sizeof(uint32)` part will go away when the following fix is merged:
-// https://lore.kernel.org/io-uring/20200711093111.2490946-1-dvyukov@google.com
-#define SQ_ARRAY_OFFSET(sq_entries, cq_entries) (round_up(CQ_CQES_OFFSET + cq_entries * SIZEOF_IO_URING_CQE, 64) + sq_entries * sizeof(uint32))
+#define SQ_ARRAY_OFFSET(sq_entries, cq_entries) (round_up(CQ_CQES_OFFSET + cq_entries * SIZEOF_IO_URING_CQE, 64))
 
 uint32 round_up(uint32 x, uint32 a)
 {
