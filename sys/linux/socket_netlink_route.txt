@@ -9,6 +9,7 @@ include <uapi/linux/if.h>
 include <uapi/linux/ip.h>
 include <uapi/linux/if_link.h>
 include <uapi/linux/if_addr.h>
+include <uapi/linux/if_addrlabel.h>
 include <uapi/linux/if_vlan.h>
 include <uapi/linux/netlink.h>
 include <uapi/linux/netconf.h>
@@ -72,6 +73,9 @@ netlink_msg_route [
 	ipv6_newrule		netlink_msg[RTM_NEWRULE, fib_rule_hdr[AF_INET6], fib6_rule_policy]
 	ipv6_delrule		netlink_msg[RTM_DELRULE, fib_rule_hdr[AF_INET6], fib6_rule_policy]
 	ipv6_getrule		netlink_msg[RTM_GETRULE, fib_rule_hdr[AF_INET6], void]
+	ipv6_newaddrlabel	netlink_msg[RTM_NEWADDRLABEL, ifaddrlblmsg[AF_INET6], ifal_policy]
+	ipv6_deladdrlabel	netlink_msg[RTM_DELADDRLABEL, ifaddrlblmsg[AF_INET6], ifal_policy]
+	ipv6_getaddrlabel	netlink_msg[RTM_GETADDRLABEL, ifaddrlblmsg[AF_INET6], ifal_policy]
 
 	ipmr_newroute		netlink_msg[RTM_NEWROUTE, rtmsg[RTNL_FAMILY_IPMR], rtm_ipv4_policy]
 	ipmr_delroute		netlink_msg[RTM_DELROUTE, rtmsg[RTNL_FAMILY_IPMR], rtm_ipv4_policy]
@@ -119,6 +123,15 @@ type ifaddrmsg[FAMILY] {
 	ifa_flags	flags[ifa_flags8, int8]
 	ifa_scope	flags[rt_scope_t, int8]
 	ifa_index	ifindex
+}
+
+type ifaddrlblmsg[FAMILY] {
+	ifal_family	const[FAMILY, int8]
+	__ifal_reserved	const[0, int8]
+	ifal_prefixlen	flags[ifa_prefixlen, int8]
+	ifal_flags	const[0, int8]
+	ifal_index	ifindex
+	ifal_seq	int32
 }
 
 type rtmsg[FAMILY] {
@@ -208,6 +221,11 @@ ifla_af_spec_policy [
 inet6_af_policy [
 	IFLA_INET6_ADDR_GEN_MODE	nlattr[IFLA_INET6_ADDR_GEN_MODE, int8]
 	IFLA_INET6_TOKEN		nlattr[IFLA_INET6_TOKEN, ipv6_addr]
+] [varlen]
+
+ifal_policy [
+	IFAL_ADDRESS	nlattr[IFAL_ADDRESS, ipv6_addr]
+	IFAL_LABEL	nlattr[IFAL_LABEL, flags[ifal_labels, int32]]
 ] [varlen]
 
 type ifla_info_policy_t[TYPE, DATA_TYPE, DATA] {
@@ -941,3 +959,4 @@ ifa_prefixlen = 0, 1, 8, 16, 24, 31, 32, 56, 63, 64, 120, 128
 rtm_addr_len = 0, 16, 20, 32, 128
 filter_mask = IFLA_STATS_UNSPEC, IFLA_STATS_LINK_64, IFLA_STATS_LINK_XSTATS, IFLA_STATS_LINK_XSTATS_SLAVE, IFLA_STATS_LINK_OFFLOAD_XSTATS, IFLA_STATS_AF_SPEC
 tunnel_encap_types = TUNNEL_ENCAP_NONE, TUNNEL_ENCAP_FOU, TUNNEL_ENCAP_GUE, TUNNEL_ENCAP_MPLS
+ifal_labels = 0, 1, 2, 3, 4, 5, 6, 7, 11, 12
