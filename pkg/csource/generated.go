@@ -5651,7 +5651,7 @@ static void setup_32bit_idt(struct kvm_sregs* sregs, char* host_mem, uintptr_t g
 			gate.type = 15;
 			gate.base = SEL_CS32;
 			break;
-		case 6:
+		case 5:
 			gate.type = 11;
 			gate.base = SEL_TGATE32;
 			break;
