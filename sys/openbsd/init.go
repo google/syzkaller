@@ -13,11 +13,13 @@ import (
 
 func InitTarget(target *prog.Target) {
 	arch := &arch{
-		unix:           targets.MakeUnixNeutralizer(target),
-		DIOCKILLSTATES: target.GetConst("DIOCKILLSTATES"),
-		DIOCCLRSTATES:  target.GetConst("DIOCCLRSTATES"),
-		S_IFMT:         target.GetConst("S_IFMT"),
-		S_IFCHR:        target.GetConst("S_IFCHR"),
+		unix:             targets.MakeUnixNeutralizer(target),
+		CTL_KERN:         target.GetConst("CTL_KERN"),
+		DIOCCLRSTATES:    target.GetConst("DIOCCLRSTATES"),
+		DIOCKILLSTATES:   target.GetConst("DIOCKILLSTATES"),
+		KERN_MAXCLUSTERS: target.GetConst("KERN_MAXCLUSTERS"),
+		S_IFCHR:          target.GetConst("S_IFCHR"),
+		S_IFMT:           target.GetConst("S_IFMT"),
 	}
 
 	target.MakeDataMmap = targets.MakePosixMmap(target, false, false)
@@ -26,11 +28,13 @@ func InitTarget(target *prog.Target) {
 }
 
 type arch struct {
-	unix           *targets.UnixNeutralizer
-	DIOCCLRSTATES  uint64
-	DIOCKILLSTATES uint64
-	S_IFMT         uint64
-	S_IFCHR        uint64
+	unix             *targets.UnixNeutralizer
+	CTL_KERN         uint64
+	DIOCCLRSTATES    uint64
+	DIOCKILLSTATES   uint64
+	KERN_MAXCLUSTERS uint64
+	S_IFCHR          uint64
+	S_IFMT           uint64
 }
 
 const (
@@ -170,8 +174,31 @@ func (arch *arch) neutralize(c *prog.Call) {
 				}
 			}
 		}
+	case "sysctl":
+		arch.neutralizeSysctl(c)
 	default:
 		arch.unix.Neutralize(c)
+	}
+}
+
+func (arch *arch) neutralizeSysctl(c *prog.Call) {
+	ptr := c.Args[0].(*prog.PointerArg)
+	if ptr.Res == nil {
+		return
+	}
+
+	mib := ptr.Res.(*prog.GroupArg).Inner
+	if len(mib) < 2 {
+		return
+	}
+
+	n1 := mib[0].(*prog.ConstArg)
+	n2 := mib[1].(*prog.ConstArg)
+	// Do not fiddle with root only knob kern.maxclusters, one of the causes
+	// of "no output from test machine" reports.
+	if n1.Val == arch.CTL_KERN && n2.Val == arch.KERN_MAXCLUSTERS {
+		n1.Val = 0
+		n2.Val = 0
 	}
 }
 
