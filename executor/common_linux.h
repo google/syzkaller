@@ -1355,7 +1355,7 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_io_uring_submit || __NR_syz_io_uring_complete || __NR_syz_io_uring_put_ring_metadata
+#if SYZ_EXECUTOR || __NR_syz_io_uring_submit || __NR_syz_io_uring_complete
 
 #define SIZEOF_IO_URING_SQE 64
 #define SIZEOF_IO_URING_CQE 16
@@ -1365,9 +1365,9 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 // Except io_sqring_offsets.array, the offsets are static while all depend on how struct io_rings
 // is organized in code. The offsets can be marked as resources in syzkaller descriptions but
 // this makes it difficult to generate correct programs by the fuzzer. Thus, the offsets are
-// hard-coded here, and array offset is later computed once the number of entries is available.
-// Another way to obtain the offsets is to setup another io_uring here and use what it returns.
-// It is slower but might be more maintainable.
+// hard-coded here (and in the descriptions), and array offset is later computed once the number
+// of entries is available. Another way to obtain the offsets is to setup another io_uring here
+// and use what it returns. It is slower but might be more maintainable.
 #define SQ_HEAD_OFFSET 0
 #define SQ_TAIL_OFFSET 64
 #define SQ_RING_MASK_OFFSET 256
@@ -1471,72 +1471,23 @@ static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile lon
 
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_io_uring_put_ring_metadata
-
-// Used for syz_io_uring_put_ring_metadata(). Currently, all values are uint32,
-// therefore, usage of template type parameter type_t does not contribute much.
-#define put_val_into_ring(ring_ptr, offset, type_t, val) (*(type_t*)(ring_ptr + offset) = (type_t)val)
-
-static long syz_io_uring_put_ring_metadata(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
-{
-	// syzlang: syz_io_uring_put_ring_metadata(string ring_type, ring_ptr ring_ptr, string field_name, T field_val)
-	// C:       syz_io_uring_put_ring_metadata(const char* ring_type, char* ring_ptr, const char* field_name, T field_val)
-
-	// Cast to original
-	const char* ring_type = (char*)a0;
-	const char* ring_ptr = (char*)a1;
-	const char* field_name = (char*)a2;
-
-	// Just map the ring type and field name to the offset and put the value
-	if (!strcmp(ring_type, "sq")) {
-		// sq ring
-		if (!strcmp(field_name, "head")) {
-			put_val_into_ring(ring_ptr, SQ_HEAD_OFFSET, uint32, a3);
-		} else if (!strcmp(field_name, "tail")) {
-			put_val_into_ring(ring_ptr, SQ_TAIL_OFFSET, uint32, a3);
-		} else if (!strcmp(field_name, "ring_mask")) {
-			put_val_into_ring(ring_ptr, SQ_RING_MASK_OFFSET, uint32, a3);
-		} else if (!strcmp(field_name, "ring_entries")) {
-			put_val_into_ring(ring_ptr, SQ_RING_ENTRIES_OFFSET, uint32, a3);
-		} else if (!strcmp(field_name, "flags")) {
-			put_val_into_ring(ring_ptr, SQ_FLAGS_OFFSET, uint32, a3);
-		} else if (!strcmp(field_name, "dropped")) {
-			put_val_into_ring(ring_ptr, SQ_DROPPED_OFFSET, uint32, a3);
-		} else {
-			// Invalid fieldname
-			return -1;
-		}
-
-		return 0;
-
-	} else if (!strcmp(ring_type, "cq")) {
-		// cq ring
-		if (!strcmp(field_name, "head")) {
-			put_val_into_ring(ring_ptr, CQ_HEAD_OFFSET, uint32, a3);
-		} else if (!strcmp(field_name, "tail")) {
-			put_val_into_ring(ring_ptr, CQ_TAIL_OFFSET, uint32, a3);
-		} else if (!strcmp(field_name, "ring_mask")) {
-			put_val_into_ring(ring_ptr, CQ_RING_MASK_OFFSET, uint32, a3);
-		} else if (!strcmp(field_name, "ring_entries")) {
-			put_val_into_ring(ring_ptr, CQ_RING_ENTRIES_OFFSET, uint32, a3);
-		} else if (!strcmp(field_name, "ring_overflow")) {
-			put_val_into_ring(ring_ptr, CQ_RING_OVERFLOW_OFFSET, uint32, a3);
-		} else if (!strcmp(field_name, "flags")) {
-			put_val_into_ring(ring_ptr, CQ_FLAGS_OFFSET, uint32, a3);
-		} else {
-			// Invalid fieldname
-			return -1;
-		}
-
-		return 0;
-	} else {
-		// Invalid ring name
-		return -1;
-	}
-}
-
 #endif
 
+// Same as memcpy except that it accepts offset to dest and src.
+#if SYZ_EXECUTOR || __NR_syz_memcpy_off
+static long syz_memcpy_off(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4)
+{
+	// C:       syz_memcpy_off(void* dest, uint32 dest_off, void* src, uint32 src_off, size_t n)
+
+	// Cast to original
+	char* dest = (char*)a0;
+	uint32 dest_off = (uint32)a1;
+	char* src = (char*)a2;
+	uint32 src_off = (uint32)a3;
+	size_t n = (size_t)a4;
+
+	return (long)memcpy(dest + dest_off, src + src_off, n);
+}
 #endif
 
 #if SYZ_EXECUTOR || SYZ_REPEAT && SYZ_NET_INJECTION

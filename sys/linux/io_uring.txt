@@ -45,15 +45,36 @@ io_uring_setup_flags = 0, IORING_SETUP_IOPOLL, IORING_SETUP_SQPOLL, IORING_SETUP
 io_uring_enter_flags = IORING_ENTER_GETEVENTS, IORING_ENTER_SQ_WAKEUP
 _ = __NR_mmap2
 
-syz_io_uring_put_ring_metadata$SQ_RING_GENERIC(which_ring ptr[in, string["sq"]], ring_ptr sq_ring_ptr, field_name ptr[in, string[sq_ring_field_names]], field_val int32)
-syz_io_uring_put_ring_metadata$CQ_RING_GENERIC(which_ring ptr[in, string["cq"]], ring_ptr cq_ring_ptr, field_name ptr[in, string[cq_ring_field_names]], field_val int32)
+# Once an io_uring is set up by calling io_uring_setup, the offsets to the member fields
+# to be used on the mmap'ed area are set in structs io_sqring_offsets and io_cqring_offsets.
+# Except io_sqring_offsets.array, the offsets are static while all depend on how struct io_rings
+# is organized in code. The offsets can be marked as resources in syzkaller descriptions but
+# this makes it difficult to generate correct programs by the fuzzer. Thus, the offsets are
+# hard-coded here (and in the executor).
+define SQ_HEAD_OFFSET	0
+define SQ_TAIL_OFFSET	64
+define SQ_RING_MASK_OFFSET	256
+define SQ_RING_ENTRIES_OFFSET	264
+define SQ_FLAGS_OFFSET	276
+define SQ_DROPPED_OFFSET	272
+define CQ_HEAD_OFFSET	128
+define CQ_TAIL_OFFSET	192
+define CQ_RING_MASK_OFFSET	260
+define CQ_RING_ENTRIES_OFFSET	268
+define CQ_RING_OVERFLOW_OFFSET	284
+define CQ_FLAGS_OFFSET	280
 
-sq_ring_field_names = "head", "tail", "ring_mask", "ring_entries", "flags", "dropped"
-cq_ring_field_names = "head", "tail", "ring_mask", "ring_entries", "ring_overflow", "flags"
+# Notice all offsets are pointing to uint32 values. This is assumed for the 
+io_uring_offsets = SQ_HEAD_OFFSET, SQ_TAIL_OFFSET, SQ_RING_MASK_OFFSET, SQ_RING_ENTRIES_OFFSET, SQ_FLAGS_OFFSET, SQ_DROPPED_OFFSET, CQ_HEAD_OFFSET, CQ_TAIL_OFFSET, CQ_RING_MASK_OFFSET, CQ_RING_ENTRIES_OFFSET, CQ_RING_OVERFLOW_OFFSET, CQ_FLAGS_OFFSET
+
+# The mmap'ed area for SQ and CQ rings are really the same -- the difference is
+# accounted for with the usage of offsets. Hence, just use sq_ring_ptr as the dest.
+# Also, all values are int32, thus, set nbytes to 4.
+syz_memcpy_off$IO_URING_METADATA_GENERIC(sq_ring_ptr sq_ring_ptr, off flags[io_uring_offsets], src ptr[in, int32], src_off const[0], nbytes const[4])
 
 # The flags available are: IORING_SQ_NEED_WAKEUP (1) for sq, IORING_CQ_EVENTFD_DISABLED (1) for cq. Use int32[0:1] to represent possible values.
-syz_io_uring_put_ring_metadata$SQ_RING_FLAGS(which_ring ptr[in, string["sq"]], ring_ptr sq_ring_ptr, field_name ptr[in, string["flags"]], field_val int32[0:1])
-syz_io_uring_put_ring_metadata$CQ_RING_FLAGS(which_ring ptr[in, string["cq"]], ring_ptr cq_ring_ptr, field_name ptr[in, string["flags"]], field_val int32[0:1])
+io_uring_flags_offsets = SQ_FLAGS_OFFSET, CQ_FLAGS_OFFSET
+syz_memcpy_off$IO_URING_METADATA_FLAGS(sq_ring_ptr sq_ring_ptr, flag_off flags[io_uring_flags_offsets], src ptr[in, int32[0:1]], src_off const[0], nbytes const[4])
 
 # TODO: Consume anything registered within io_uring_sqes as well.
 

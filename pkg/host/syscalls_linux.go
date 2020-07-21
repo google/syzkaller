@@ -228,8 +228,7 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 	case "syz_io_uring_complete":
 		// TODO: check if io_uring syscall is present
 		return true, ""
-	case "syz_io_uring_put_ring_metadata":
-		// TODO: check if io_uring syscall is present
+	case "syz_memcpy_off":
 		return true, ""
 	}
 	panic("unknown syzkall: " + c.Name)

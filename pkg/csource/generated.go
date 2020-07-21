@@ -3539,7 +3539,7 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_io_uring_submit || __NR_syz_io_uring_complete || __NR_syz_io_uring_put_ring_metadata
+#if SYZ_EXECUTOR || __NR_syz_io_uring_submit || __NR_syz_io_uring_complete
 
 #define SIZEOF_IO_URING_SQE 64
 #define SIZEOF_IO_URING_CQE 16
@@ -3610,58 +3610,18 @@ static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile lon
 
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_io_uring_put_ring_metadata
-#define put_val_into_ring(ring_ptr, offset, type_t, val) (*(type_t*)(ring_ptr + offset) = (type_t)val)
-
-static long syz_io_uring_put_ring_metadata(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
-{
-	const char* ring_type = (char*)a0;
-	const char* ring_ptr = (char*)a1;
-	const char* field_name = (char*)a2;
-	if (!strcmp(ring_type, "sq")) {
-		if (!strcmp(field_name, "head")) {
-			put_val_into_ring(ring_ptr, SQ_HEAD_OFFSET, uint32, a3);
-		} else if (!strcmp(field_name, "tail")) {
-			put_val_into_ring(ring_ptr, SQ_TAIL_OFFSET, uint32, a3);
-		} else if (!strcmp(field_name, "ring_mask")) {
-			put_val_into_ring(ring_ptr, SQ_RING_MASK_OFFSET, uint32, a3);
-		} else if (!strcmp(field_name, "ring_entries")) {
-			put_val_into_ring(ring_ptr, SQ_RING_ENTRIES_OFFSET, uint32, a3);
-		} else if (!strcmp(field_name, "flags")) {
-			put_val_into_ring(ring_ptr, SQ_FLAGS_OFFSET, uint32, a3);
-		} else if (!strcmp(field_name, "dropped")) {
-			put_val_into_ring(ring_ptr, SQ_DROPPED_OFFSET, uint32, a3);
-		} else {
-			return -1;
-		}
-
-		return 0;
-
-	} else if (!strcmp(ring_type, "cq")) {
-		if (!strcmp(field_name, "head")) {
-			put_val_into_ring(ring_ptr, CQ_HEAD_OFFSET, uint32, a3);
-		} else if (!strcmp(field_name, "tail")) {
-			put_val_into_ring(ring_ptr, CQ_TAIL_OFFSET, uint32, a3);
-		} else if (!strcmp(field_name, "ring_mask")) {
-			put_val_into_ring(ring_ptr, CQ_RING_MASK_OFFSET, uint32, a3);
-		} else if (!strcmp(field_name, "ring_entries")) {
-			put_val_into_ring(ring_ptr, CQ_RING_ENTRIES_OFFSET, uint32, a3);
-		} else if (!strcmp(field_name, "ring_overflow")) {
-			put_val_into_ring(ring_ptr, CQ_RING_OVERFLOW_OFFSET, uint32, a3);
-		} else if (!strcmp(field_name, "flags")) {
-			put_val_into_ring(ring_ptr, CQ_FLAGS_OFFSET, uint32, a3);
-		} else {
-			return -1;
-		}
-
-		return 0;
-	} else {
-		return -1;
-	}
-}
-
 #endif
+#if SYZ_EXECUTOR || __NR_syz_memcpy_off
+static long syz_memcpy_off(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4)
+{
+	char* dest = (char*)a0;
+	uint32 dest_off = (uint32)a1;
+	char* src = (char*)a2;
+	uint32 src_off = (uint32)a3;
+	size_t n = (size_t)a4;
 
+	return (long)memcpy(dest + dest_off, src + src_off, n);
+}
 #endif
 
 #if SYZ_EXECUTOR || SYZ_REPEAT && SYZ_NET_INJECTION
