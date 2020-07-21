@@ -13,8 +13,9 @@ ioctl$FICLONE(fd fd, cmd const[FICLONE], arg fd)
 ioctl$FICLONERANGE(fd fd, cmd const[FICLONERANGE], arg ptr[in, file_clone_range])
 ioctl$FIDEDUPERANGE(fd fd, cmd const[FIDEDUPERANGE], arg ptr[in, file_dedupe_range])
 
-ioctl$FS_IOC_GETFLAGS(fd fd, cmd const[FS_IOC_GETFLAGS], arg ptr[out, int32])
-ioctl$FS_IOC_SETFLAGS(fd fd, cmd const[FS_IOC_SETFLAGS], arg ptr[in, int32])
+ioctl$FS_IOC_GETFLAGS(fd fd, cmd const[FS_IOC_GETFLAGS], arg ptr[out, flags[fs_flags, int32]])
+ioctl$FS_IOC_SETFLAGS(fd fd, cmd const[FS_IOC_SETFLAGS], arg ptr[in, flags[fs_flags, int32]])
+
 ioctl$FS_IOC_GETVERSION(fd fd, cmd const[FS_IOC_GETVERSION], arg ptr[out, intptr])
 ioctl$FS_IOC_SETVERSION(fd fd, cmd const[FS_IOC_SETVERSION], arg ptr[in, intptr])
 ioctl$FS_IOC_FIEMAP(fd fd, cmd const[FS_IOC_FIEMAP], v ptr[in, fiemap])
@@ -111,5 +112,7 @@ fsmap {
 	fmr_length	int64
 	fmr_reserved	array[const[0, int64], 3]
 }
+
+fs_flags = FS_SECRM_FL, FS_UNRM_FL, FS_COMPR_FL, FS_SYNC_FL, FS_IMMUTABLE_FL, FS_APPEND_FL, FS_NODUMP_FL, FS_NOATIME_FL, FS_DIRTY_FL, FS_COMPRBLK_FL, FS_NOCOMP_FL, FS_ENCRYPT_FL, FS_BTREE_FL, FS_INDEX_FL, FS_IMAGIC_FL, FS_JOURNAL_DATA_FL, FS_NOTAIL_FL, FS_DIRSYNC_FL, FS_TOPDIR_FL, FS_HUGE_FILE_FL, FS_EXTENT_FL, FS_VERITY_FL, FS_EA_INODE_FL, FS_EOFBLOCKS_FL, FS_NOCOW_FL, FS_DAX_FL, FS_INLINE_DATA_FL, FS_PROJINHERIT_FL, FS_CASEFOLD_FL, FS_RESERVED_FL
 
 define FSMAP_SIZE	sizeof(struct fsmap)
