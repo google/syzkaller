@@ -1390,16 +1390,22 @@ uint32 round_up(uint32 x, uint32 a)
 
 #if SYZ_EXECUTOR || __NR_syz_io_uring_complete
 
-static long syz_io_uring_complete(volatile long a0, volatile long a1)
+// From linux/io_uring.h
+struct io_uring_cqe {
+	uint64 user_data;
+	uint32 res;
+	uint32 flags;
+};
+
+static long syz_io_uring_complete(volatile long a0)
 {
-	// syzlang: syz_io_uring_complete(cq_ring_ptr cq_ring_ptr, cqe ptr[out, io_uring_cqe])
-	// C:       syz_io_uring_complete(char* cq_ring_ptr,       io_uring_cqe* cqe)
+	// syzlang: syz_io_uring_complete(cq_ring_ptr cq_ring_ptr)
+	// C:       syz_io_uring_complete(char* cq_ring_ptr)
 
 	// It is not checked if the ring is empty
 
 	// Cast to original
 	char* cq_ring_ptr = (char*)a0;
-	char* cqe_dst = (char*)a1;
 
 	// Compute the head index and the next head value
 	uint32 cq_ring_mask = *(uint32*)(cq_ring_ptr + CQ_RING_MASK_OFFSET);
@@ -1411,14 +1417,20 @@ static long syz_io_uring_complete(volatile long a0, volatile long a1)
 	char* cqe_src = cq_ring_ptr + CQ_CQES_OFFSET + cq_head * SIZEOF_IO_URING_CQE;
 
 	// Get the cq entry from the ring
-	memcpy(cqe_dst, cqe_src, SIZEOF_IO_URING_CQE);
+	struct io_uring_cqe cqe;
+	memcpy(&cqe, cqe_src, sizeof(cqe));
 
 	// Advance the head. Head is a free-flowing integer and relies on natural wrapping.
 	// Ensure that the kernel will never see a head update without the preceeding CQE
 	// stores being done.
 	__atomic_store_n(cq_head_ptr, cq_head_next, __ATOMIC_RELEASE);
 
-	return 0;
+	// In the descriptions (sys/linux/io_uring.txt), openat and openat2 are passed
+	// with a unique range of sqe.user_data (int64[0:3]) to identify the operations
+	// which produces an fd instance. Check cqe.user_data, which should be the same
+	// as sqe.user_data for that operation. If it falls in that unique range, return
+	// cqe.res as fd. Otherwise, just return an invalid fd.
+	return (cqe.user_data >= 0 && cqe.user_data <= 3) ? (long)cqe.res : (long)-1;
 }
 
 #endif

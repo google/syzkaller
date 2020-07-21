@@ -106,7 +106,6 @@ dup3(oldfd fd, newfd fd, flags flags[dup_flags]) fd
 pipe(pipefd ptr[out, pipefd])
 pipe2(pipefd ptr[out, pipefd], flags flags[pipe_flags])
 
-# TODO: The fds should be pipefds
 tee(fdin fd, fdout fd, len intptr, f flags[splice_flags])
 splice(fdin fd, offin ptr[in, fileoff[int64]], fdout fd, offout ptr[in, fileoff[int64]], len intptr, f flags[splice_flags])
 vmsplice(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec], f flags[splice_flags])

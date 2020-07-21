@@ -3564,20 +3564,24 @@ uint32 round_up(uint32 x, uint32 a)
 }
 
 #if SYZ_EXECUTOR || __NR_syz_io_uring_complete
+struct io_uring_cqe {
+	uint64 user_data;
+	uint32 res;
+	uint32 flags;
+};
 
-static long syz_io_uring_complete(volatile long a0, volatile long a1)
+static long syz_io_uring_complete(volatile long a0)
 {
 	char* cq_ring_ptr = (char*)a0;
-	char* cqe_dst = (char*)a1;
 	uint32 cq_ring_mask = *(uint32*)(cq_ring_ptr + CQ_RING_MASK_OFFSET);
 	uint32* cq_head_ptr = (uint32*)(cq_ring_ptr + CQ_HEAD_OFFSET);
 	uint32 cq_head = *cq_head_ptr & cq_ring_mask;
 	uint32 cq_head_next = *cq_head_ptr + 1;
 	char* cqe_src = cq_ring_ptr + CQ_CQES_OFFSET + cq_head * SIZEOF_IO_URING_CQE;
-	memcpy(cqe_dst, cqe_src, SIZEOF_IO_URING_CQE);
+	struct io_uring_cqe cqe;
+	memcpy(&cqe, cqe_src, sizeof(cqe));
 	__atomic_store_n(cq_head_ptr, cq_head_next, __ATOMIC_RELEASE);
-
-	return 0;
+	return (cqe.user_data >= 0 && cqe.user_data <= 3) ? (long)cqe.res : (long)-1;
 }
 
 #endif
