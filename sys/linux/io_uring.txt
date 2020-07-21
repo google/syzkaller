@@ -14,7 +14,7 @@ resource fd_io_uring[fd]
 resource sq_ring_ptr[int64]
 resource cq_ring_ptr[int64]
 resource sqes_ptr[int64]
-resource ioring_register_personality_id[int32]
+resource ioring_personality_id[int16]
 
 # fs/io_uring.c
 define IORING_MAX_ENTRIES	32768
@@ -32,8 +32,8 @@ io_uring_register$IORING_UNREGISTER_EVENTFD(fd fd_io_uring, opcode const[IORING_
 io_uring_register$IORING_REGISTER_FILES_UPDATE(fd fd_io_uring, opcode const[IORING_REGISTER_FILES_UPDATE], arg ptr[in, io_uring_files_update], nr_args len[arg:fds])
 io_uring_register$IORING_REGISTER_EVENTFD_ASYNC(fd fd_io_uring, opcode const[IORING_REGISTER_EVENTFD_ASYNC], arg ptr[in, fd_event], nr_args const[1])
 io_uring_register$IORING_REGISTER_PROBE(fd fd_io_uring, opcode const[IORING_REGISTER_PROBE], arg ptr[inout, io_uring_probe], nr_args len[arg:ops])
-io_uring_register$IORING_REGISTER_PERSONALITY(fd fd_io_uring, opcode const[IORING_REGISTER_PERSONALITY], arg const[0], nr_args const[0]) ioring_register_personality_id
-io_uring_register$IORING_UNREGISTER_PERSONALITY(fd fd_io_uring, opcode const[IORING_UNREGISTER_PERSONALITY], arg const[0], nr_args ioring_register_personality_id)
+io_uring_register$IORING_REGISTER_PERSONALITY(fd fd_io_uring, opcode const[IORING_REGISTER_PERSONALITY], arg const[0], nr_args const[0]) ioring_personality_id
+io_uring_register$IORING_UNREGISTER_PERSONALITY(fd fd_io_uring, opcode const[IORING_UNREGISTER_PERSONALITY], arg const[0], nr_args ioring_personality_id)
 
 mmap$IORING_OFF_SQ_RING(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_io_uring, offset const[IORING_OFF_SQ_RING]) sq_ring_ptr
 mmap$IORING_OFF_CQ_RING(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_io_uring, offset const[IORING_OFF_CQ_RING]) cq_ring_ptr
@@ -198,50 +198,50 @@ type io_uring_sqe_t[OP, IOPRIO, FD, OFF, ADDR, LEN, MISC_FLAGS, USER_DATA, MISC]
 type io_uring_sqe_nop io_uring_sqe_t[IORING_OP_NOP, const[0, int16], const[0, int32], const[0, int64], const[0, int64], const[0, int32], const[0, int32], const[0, int64], array[const[0, int64], 3]]
 
 io_uring_sqe_readv [
-	pass_iovec		io_uring_sqe_t[IORING_OP_READV, flags[ioprio_priorities, int16], fd_or_fixed_fd_index, fileoff[int64], ptr[in, array[iovec_out]], len[addr, int32], flags[rwf_flags, int32], sqe_user_data, array[const[0, int64], 3]]
-	use_registered_buffer	io_uring_sqe_t[IORING_OP_READV, flags[ioprio_priorities, int16], fd_or_fixed_fd_index, fileoff[int64], const[0, int64], const[0, int32], flags[rwf_flags, int32], sqe_user_data, io_uring_sqe_readv_misc_use_reg_buf]
+	pass_iovec		io_uring_sqe_t[IORING_OP_READV, flags[ioprio_priorities, int16], fd_or_fixed_fd_index, fileoff[int64], ptr[in, array[iovec_out]], len[addr, int32], flags[rwf_flags, int32], sqe_user_data, personality_only_misc]
+	use_registered_buffer	io_uring_sqe_t[IORING_OP_READV, flags[ioprio_priorities, int16], fd_or_fixed_fd_index, fileoff[int64], const[0, int64], const[0, int32], flags[rwf_flags, int32], sqe_user_data, buf_index_personality_misc]
 ]
 
-type io_uring_sqe_writev io_uring_sqe_t[IORING_OP_WRITEV, flags[ioprio_priorities, int16], fd_or_fixed_fd_index, fileoff[int64], ptr[in, array[iovec_in]], len[addr, int32], flags[rwf_flags, int32], sqe_user_data, io_uring_sqe_writev_misc]
-type io_uring_sqe_fsync io_uring_sqe_t[IORING_OP_FSYNC, const[0, int16], fd_or_fixed_fd_index, const[0, int64], const[0, int64], const[0, int32], flags[io_uring_fsync_flags, int32], sqe_user_data, array[const[0, int64], 3]]
-type io_uring_sqe_read_fixed io_uring_sqe_t[IORING_OP_READ_FIXED, flags[ioprio_priorities, int16], fd_or_fixed_fd_index, fileoff[int64], int64, int32, flags[rwf_flags, int32], sqe_user_data, io_uring_sqe_rw_fixed_misc]
-type io_uring_sqe_write_fixed io_uring_sqe_t[IORING_OP_WRITE_FIXED, flags[ioprio_priorities, int16], fd_or_fixed_fd_index, fileoff[int64], int64, int32, flags[rwf_flags, int32], sqe_user_data, io_uring_sqe_rw_fixed_misc]
-type io_uring_sqe_poll_add io_uring_sqe_t[IORING_OP_POLL_ADD, const[0, int16], fd_or_fixed_fd_index, const[0, int64], const[0, int64], const[0, int32], io_uring_sqe_poll_add_misc_flags, sqe_user_data, array[const[0, int64], 3]]
-type io_uring_sqe_poll_remove io_uring_sqe_t[IORING_OP_POLL_REMOVE, const[0, int16], const[0, int32], const[0, int64], sqe_user_data, const[0, int32], const[0, int32], sqe_user_data, array[const[0, int64], 3]]
-type io_uring_sqe_sync_file_range io_uring_sqe_t[IORING_OP_SYNC_FILE_RANGE, const[0, int16], fd_or_fixed_fd_index, fileoff[int64], const[0, int64], int32, flags[sync_file_flags, int32], sqe_user_data, array[const[0, int64], 3]]
-type io_uring_sqe_sendmsg io_uring_sqe_t[IORING_OP_SENDMSG, const[0, int16], sock, const[0, int64], ptr[in, send_msghdr], const[0, int32], flags[send_flags, int32], sqe_user_data, array[const[0, int64], 3]]
-type io_uring_sqe_recvmsg io_uring_sqe_t[IORING_OP_RECVMSG, const[0, int16], sock, const[0, int64], ptr[inout, recv_msghdr], const[0, int32], flags[recv_flags, int32], sqe_user_data, io_uring_sqe_recvmsg_misc]
-type io_uring_sqe_timeout io_uring_sqe_t[IORING_OP_TIMEOUT, const[0, int16], const[0, int32], io_uring_timeout_completion_event_count, ptr[in, timespec], const[1, int32], flags[io_uring_timeout_flags, int32], sqe_user_data, array[const[0, int64], 3]]
-type io_uring_sqe_timeout_remove io_uring_sqe_t[IORING_OP_TIMEOUT_REMOVE, const[0, int16], const[0, int32], const[0, int64], sqe_user_data, const[0, int32], const[0, int32], sqe_user_data, array[const[0, int64], 3]]
-type io_uring_sqe_accept io_uring_sqe_t[IORING_OP_ACCEPT, const[0, int16], sock, ptr[inout, len[addr, int32]], ptr[out, sockaddr_storage, opt], const[0, int32], flags[accept_flags, int32], sqe_user_data, array[const[0, int64], 3]]
-type io_uring_sqe_async_cancel io_uring_sqe_t[IORING_OP_ASYNC_CANCEL, const[0, int16], const[0, int32], const[0, int64], sqe_user_data, const[0, int32], const[0, int32], sqe_user_data, array[const[0, int64], 3]]
-type io_uring_sqe_link_timeout io_uring_sqe_t[IORING_OP_LINK_TIMEOUT, const[0, int16], const[0, int32], const[0, int64], ptr[in, timespec], const[1, int32], flags[io_uring_timeout_flags, int32], sqe_user_data, array[const[0, int64], 3]]
-type io_uring_sqe_connect io_uring_sqe_t[IORING_OP_CONNECT, const[0, int16], sock, len[addr, int32], ptr[in, sockaddr_storage], const[0, int32], const[0, int32], sqe_user_data, array[const[0, int64], 3]]
-type io_uring_sqe_fallocate io_uring_sqe_t[IORING_OP_FALLOCATE, const[0, int16], fd_or_fixed_fd_index, fileoff[int64], const[0, int64], int32, const[0, int32], sqe_user_data, array[const[0, int64], 3]]
+type io_uring_sqe_writev io_uring_sqe_t[IORING_OP_WRITEV, flags[ioprio_priorities, int16], fd_or_fixed_fd_index, fileoff[int64], ptr[in, array[iovec_in]], len[addr, int32], flags[rwf_flags, int32], sqe_user_data, buf_index_personality_misc]
+type io_uring_sqe_fsync io_uring_sqe_t[IORING_OP_FSYNC, const[0, int16], fd_or_fixed_fd_index, const[0, int64], const[0, int64], const[0, int32], flags[io_uring_fsync_flags, int32], sqe_user_data, personality_only_misc]
+type io_uring_sqe_read_fixed io_uring_sqe_t[IORING_OP_READ_FIXED, flags[ioprio_priorities, int16], fd_or_fixed_fd_index, fileoff[int64], int64, int32, flags[rwf_flags, int32], sqe_user_data, buf_index_personality_misc]
+type io_uring_sqe_write_fixed io_uring_sqe_t[IORING_OP_WRITE_FIXED, flags[ioprio_priorities, int16], fd_or_fixed_fd_index, fileoff[int64], int64, int32, flags[rwf_flags, int32], sqe_user_data, buf_index_personality_misc]
+type io_uring_sqe_poll_add io_uring_sqe_t[IORING_OP_POLL_ADD, const[0, int16], fd_or_fixed_fd_index, const[0, int64], const[0, int64], const[0, int32], io_uring_sqe_poll_add_misc_flags, sqe_user_data, personality_only_misc]
+type io_uring_sqe_poll_remove io_uring_sqe_t[IORING_OP_POLL_REMOVE, const[0, int16], const[0, int32], const[0, int64], sqe_user_data, const[0, int32], const[0, int32], sqe_user_data, personality_only_misc]
+type io_uring_sqe_sync_file_range io_uring_sqe_t[IORING_OP_SYNC_FILE_RANGE, const[0, int16], fd_or_fixed_fd_index, fileoff[int64], const[0, int64], int32, flags[sync_file_flags, int32], sqe_user_data, personality_only_misc]
+type io_uring_sqe_sendmsg io_uring_sqe_t[IORING_OP_SENDMSG, const[0, int16], sock, const[0, int64], ptr[in, send_msghdr], const[0, int32], flags[send_flags, int32], sqe_user_data, personality_only_misc]
+type io_uring_sqe_recvmsg io_uring_sqe_t[IORING_OP_RECVMSG, const[0, int16], sock, const[0, int64], ptr[inout, recv_msghdr], const[0, int32], flags[recv_flags, int32], sqe_user_data, buf_group_personality_misc]
+type io_uring_sqe_timeout io_uring_sqe_t[IORING_OP_TIMEOUT, const[0, int16], const[0, int32], io_uring_timeout_completion_event_count, ptr[in, timespec], const[1, int32], flags[io_uring_timeout_flags, int32], sqe_user_data, personality_only_misc]
+type io_uring_sqe_timeout_remove io_uring_sqe_t[IORING_OP_TIMEOUT_REMOVE, const[0, int16], const[0, int32], const[0, int64], sqe_user_data, const[0, int32], const[0, int32], sqe_user_data, personality_only_misc]
+type io_uring_sqe_accept io_uring_sqe_t[IORING_OP_ACCEPT, const[0, int16], sock, ptr[inout, len[addr, int32]], ptr[out, sockaddr_storage, opt], const[0, int32], flags[accept_flags, int32], sqe_user_data, personality_only_misc]
+type io_uring_sqe_async_cancel io_uring_sqe_t[IORING_OP_ASYNC_CANCEL, const[0, int16], const[0, int32], const[0, int64], sqe_user_data, const[0, int32], const[0, int32], sqe_user_data, personality_only_misc]
+type io_uring_sqe_link_timeout io_uring_sqe_t[IORING_OP_LINK_TIMEOUT, const[0, int16], const[0, int32], const[0, int64], ptr[in, timespec], const[1, int32], flags[io_uring_timeout_flags, int32], sqe_user_data, personality_only_misc]
+type io_uring_sqe_connect io_uring_sqe_t[IORING_OP_CONNECT, const[0, int16], sock, len[addr, int32], ptr[in, sockaddr_storage], const[0, int32], const[0, int32], sqe_user_data, personality_only_misc]
+type io_uring_sqe_fallocate io_uring_sqe_t[IORING_OP_FALLOCATE, const[0, int16], fd_or_fixed_fd_index, fileoff[int64], const[0, int64], int32, const[0, int32], sqe_user_data, personality_only_misc]
 # TODO: how to use the returned fd? (maybe this is where we are going to utilize cqe?)
-type io_uring_sqe_openat io_uring_sqe_t[IORING_OP_OPENAT, const[0, int16], fd_dir[opt], const[0, int64], ptr[in, filename], flags[open_mode, int32], flags[open_flags, int32], sqe_user_data, array[const[0, int64], 3]]
-type io_uring_sqe_close io_uring_sqe_t[IORING_OP_CLOSE, const[0, int16], fd, const[0, int64], const[0, int64], const[0, int32], const[0, int32], sqe_user_data, array[const[0, int64], 3]]
-type io_uring_sqe_files_update io_uring_sqe_t[IORING_OP_FILES_UPDATE, const[0, int16], const[0, int32], fileoff[int64], ptr[in, array[fd]], len[addr, int32], const[0, int32], sqe_user_data, array[const[0, int64], 3]]
-type io_uring_sqe_statx io_uring_sqe_t[IORING_OP_STATX, const[0, int16], fd_dir[opt], ptr[out, statx], ptr[in, filename], flags[statx_mask, int32], flags[statx_flags, int32], sqe_user_data, array[const[0, int64], 3]]
+type io_uring_sqe_openat io_uring_sqe_t[IORING_OP_OPENAT, const[0, int16], fd_dir[opt], const[0, int64], ptr[in, filename], flags[open_mode, int32], flags[open_flags, int32], sqe_user_data, personality_only_misc]
+type io_uring_sqe_close io_uring_sqe_t[IORING_OP_CLOSE, const[0, int16], fd, const[0, int64], const[0, int64], const[0, int32], const[0, int32], sqe_user_data, personality_only_misc]
+type io_uring_sqe_files_update io_uring_sqe_t[IORING_OP_FILES_UPDATE, const[0, int16], const[0, int32], fileoff[int64], ptr[in, array[fd]], len[addr, int32], const[0, int32], sqe_user_data, personality_only_misc]
+type io_uring_sqe_statx io_uring_sqe_t[IORING_OP_STATX, const[0, int16], fd_dir[opt], ptr[out, statx], ptr[in, filename], flags[statx_mask, int32], flags[statx_flags, int32], sqe_user_data, personality_only_misc]
 
 io_uring_sqe_read [
-	pass_buffer		io_uring_sqe_t[IORING_OP_READ, flags[ioprio_priorities, int16], fd_or_fixed_fd_index, fileoff[int64], buffer[out], bytesize[addr, int32], flags[rwf_flags, int32], sqe_user_data, array[const[0, int64], 3]]
-	use_registered_buffer	io_uring_sqe_t[IORING_OP_READ, flags[ioprio_priorities, int16], fd_or_fixed_fd_index, fileoff[int64], const[0, int64], const[0, int32], flags[rwf_flags, int32], sqe_user_data, io_uring_sqe_read_misc_use_reg_buf]
+	pass_buffer		io_uring_sqe_t[IORING_OP_READ, flags[ioprio_priorities, int16], fd_or_fixed_fd_index, fileoff[int64], buffer[out], bytesize[addr, int32], flags[rwf_flags, int32], sqe_user_data, personality_only_misc]
+	use_registered_buffer	io_uring_sqe_t[IORING_OP_READ, flags[ioprio_priorities, int16], fd_or_fixed_fd_index, fileoff[int64], const[0, int64], const[0, int32], flags[rwf_flags, int32], sqe_user_data, buf_index_personality_misc]
 ]
 
-type io_uring_sqe_write io_uring_sqe_t[IORING_OP_WRITE, flags[ioprio_priorities, int16], fd_or_fixed_fd_index, fileoff[int64], buffer[in], bytesize[addr, int32], flags[rwf_flags, int32], sqe_user_data, array[const[0, int64], 3]]
-type io_uring_sqe_fadvise io_uring_sqe_t[IORING_OP_FADVISE, const[0, int16], fd_or_fixed_fd_index, fileoff[int64], const[0, int64], int32, flags[fadvise_flags, int32], sqe_user_data, array[const[0, int64], 3]]
-type io_uring_sqe_madvise io_uring_sqe_t[IORING_OP_MADVISE, const[0, int16], const[0, int32], const[0, int64], vma, len[addr, int32], flags[madvise_flags, int32], sqe_user_data, array[const[0, int64], 3]]
-type io_uring_sqe_send io_uring_sqe_t[IORING_OP_SEND, const[0, int16], sock, const[0, int64], buffer[in], len[addr, int32], flags[send_flags, int32], sqe_user_data, array[const[0, int64], 3]]
+type io_uring_sqe_write io_uring_sqe_t[IORING_OP_WRITE, flags[ioprio_priorities, int16], fd_or_fixed_fd_index, fileoff[int64], buffer[in], bytesize[addr, int32], flags[rwf_flags, int32], sqe_user_data, personality_only_misc]
+type io_uring_sqe_fadvise io_uring_sqe_t[IORING_OP_FADVISE, const[0, int16], fd_or_fixed_fd_index, fileoff[int64], const[0, int64], int32, flags[fadvise_flags, int32], sqe_user_data, personality_only_misc]
+type io_uring_sqe_madvise io_uring_sqe_t[IORING_OP_MADVISE, const[0, int16], const[0, int32], const[0, int64], vma, len[addr, int32], flags[madvise_flags, int32], sqe_user_data, personality_only_misc]
+type io_uring_sqe_send io_uring_sqe_t[IORING_OP_SEND, const[0, int16], sock, const[0, int64], buffer[in], len[addr, int32], flags[send_flags, int32], sqe_user_data, personality_only_misc]
 
 io_uring_sqe_recv [
-	pass_buffer		io_uring_sqe_t[IORING_OP_RECV, const[0, int16], sock, const[0, int64], buffer[inout], len[addr, int32], flags[recv_flags, int32], sqe_user_data, array[const[0, int64], 3]]
-	use_registered_buffer	io_uring_sqe_t[IORING_OP_RECV, const[0, int16], sock, const[0, int64], const[0, int64], const[0, int32], flags[recv_flags, int32], sqe_user_data, io_uring_sqe_recv_misc_use_reg_buf]
+	pass_buffer		io_uring_sqe_t[IORING_OP_RECV, const[0, int16], sock, const[0, int64], buffer[inout], len[addr, int32], flags[recv_flags, int32], sqe_user_data, personality_only_misc]
+	use_registered_buffer	io_uring_sqe_t[IORING_OP_RECV, const[0, int16], sock, const[0, int64], const[0, int64], const[0, int32], flags[recv_flags, int32], sqe_user_data, buf_group_personality_misc]
 ]
 
 # TODO: how to use the returned fd? (maybe this is where we are going to utilize cqe?)
-type io_uring_sqe_openat2 io_uring_sqe_t[IORING_OP_OPENAT2, const[0, int16], fd_dir[opt], ptr[in, open_how], ptr[in, filename], bytesize[off, int32], const[0, int32], sqe_user_data, array[const[0, int64], 3]]
-type io_uring_sqe_epoll_ctl_t[EPOLL_OP, EPOLL_EVENTS] io_uring_sqe_t[IORING_OP_EPOLL_CTL, const[0, int16], fd_epoll, EPOLL_EVENTS, fd, const[EPOLL_OP, int32], const[0, int32], sqe_user_data, array[const[0, int64], 3]]
+type io_uring_sqe_openat2 io_uring_sqe_t[IORING_OP_OPENAT2, const[0, int16], fd_dir[opt], ptr[in, open_how], ptr[in, filename], bytesize[off, int32], const[0, int32], sqe_user_data, personality_only_misc]
+type io_uring_sqe_epoll_ctl_t[EPOLL_OP, EPOLL_EVENTS] io_uring_sqe_t[IORING_OP_EPOLL_CTL, const[0, int16], fd_epoll, EPOLL_EVENTS, fd, const[EPOLL_OP, int32], const[0, int32], sqe_user_data, personality_only_misc]
 
 io_uring_sqe_epoll_ctl [
 	add	io_uring_sqe_epoll_ctl_t[EPOLL_CTL_ADD, ptr[in, epoll_event]]
@@ -250,8 +250,8 @@ io_uring_sqe_epoll_ctl [
 ]
 
 type io_uring_sqe_splice io_uring_sqe_t[IORING_OP_SPLICE, const[0, int16], fd_or_fixed_fd_index, fileoff[int64], io_uring_sqe_splice_off_in, int32, flags[splice_flags, int32], sqe_user_data, io_uring_sqe_splice_misc]
-type io_uring_sqe_provide_buffers io_uring_sqe_t[IORING_OP_PROVIDE_BUFFERS, const[0, int16], int32, io_uring_bid[int64], buffer[in], int32, const[0, int32], sqe_user_data, io_uring_sqe_provide_buffers_misc]
-type io_uring_sqe_remove_buffers io_uring_sqe_t[IORING_OP_PROVIDE_BUFFERS, const[0, int16], int32, const[0, int64], const[0, int64], const[0, int32], const[0, int32], sqe_user_data, io_uring_sqe_remove_buffers_misc]
+type io_uring_sqe_provide_buffers io_uring_sqe_t[IORING_OP_PROVIDE_BUFFERS, const[0, int16], int32, io_uring_bid[int64], buffer[in], int32, const[0, int32], sqe_user_data, buf_group_personality_misc]
+type io_uring_sqe_remove_buffers io_uring_sqe_t[IORING_OP_PROVIDE_BUFFERS, const[0, int16], int32, const[0, int64], const[0, int64], const[0, int32], const[0, int32], sqe_user_data, buf_group_personality_misc]
 # TODO: fd should be pipefd
 type io_uring_sqe_tee io_uring_sqe_t[IORING_OP_TEE, const[0, int16], fd_or_fixed_fd_index, const[0, int64], const[0, int64], int32, flags[splice_flags, int32], sqe_user_data, io_uring_sqe_tee_misc]
 
@@ -294,40 +294,10 @@ type sqe_user_data int64[0:10]
 type io_uring_bid[T] T[0:10]
 type io_uring_bgid[T] T[0:10]
 
-io_uring_sqe_readv_misc_use_reg_buf {
-	buf_index	io_uring_bid[int16]
-	pad_unused	array[const[0, int8], 22]
-}
-
-io_uring_sqe_writev_misc {
-	buf_index	io_uring_bid[int16]
-	pad_unused	array[const[0, int8], 22]
-}
-
-io_uring_sqe_rw_fixed_misc {
-	buf_index	io_uring_bid[int16]
-	pad_unused	array[const[0, int8], 22]
-}
-
 io_uring_sqe_poll_add_misc_flags {
 	misc_flags		flags[pollfd_events, int16]
 # 2 bytes of padding to fill what is left from the union of flags
 	fill_flags_union	const[0, int16]
-}
-
-io_uring_sqe_recvmsg_misc {
-	buf_group	io_uring_bgid[int16]
-	pad_unused	array[const[0, int8], 22]
-}
-
-io_uring_sqe_read_misc_use_reg_buf {
-	buf_index	io_uring_bid[int16]
-	pad_unused	array[const[0, int8], 22]
-}
-
-io_uring_sqe_recv_misc_use_reg_buf {
-	buf_group	io_uring_bgid[int16]
-	pad_unused	array[const[0, int8], 22]
 }
 
 io_uring_sqe_splice_off_in {
@@ -335,26 +305,37 @@ io_uring_sqe_splice_off_in {
 	splice_off_in		fd
 }
 
+# Descriptions for MISC field of io_uring_sqe_t. The content for most are common
+# while there are a few specials.
+
+personality_only_misc {
+	buf_index_unused	const[0, int16]
+	ioring_personality_id	ioring_personality_id[opt]
+	pad_unused		array[const[0, int8], 20]
+}
+
+buf_index_personality_misc {
+	buf_index		io_uring_bid[int16]
+	ioring_personality_id	ioring_personality_id[opt]
+	pad_unused		array[const[0, int8], 20]
+}
+
+buf_group_personality_misc {
+	buf_group		io_uring_bgid[int16]
+	ioring_personality_id	ioring_personality_id[opt]
+	pad_unused		array[const[0, int8], 20]
+}
+
 io_uring_sqe_splice_misc {
 	buf_unused		const[0, int16]
-	personality_unused	const[0, int16]
+	ioring_personality_id	ioring_personality_id[opt]
 	splice_fd_in		fd
 	pad_unused		array[const[0, int64], 2]
 }
 
-io_uring_sqe_provide_buffers_misc {
-	buf_group	io_uring_bgid[int16]
-	pad_unused	array[const[0, int8], 22]
-}
-
-io_uring_sqe_remove_buffers_misc {
-	buf_group	io_uring_bgid[int16]
-	pad_unused	array[const[0, int8], 22]
-}
-
 io_uring_sqe_tee_misc {
 	buf_unused		const[0, int16]
-	personality_unused	const[0, int16]
+	ioring_personality_id	ioring_personality_id[opt]
 # TODO: Should be pipefd
 	splice_fd_in		fd
 	pad_unused		array[const[0, int64], 2]
