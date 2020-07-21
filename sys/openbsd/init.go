@@ -20,6 +20,9 @@ func InitTarget(target *prog.Target) {
 		KERN_MAXCLUSTERS: target.GetConst("KERN_MAXCLUSTERS"),
 		S_IFCHR:          target.GetConst("S_IFCHR"),
 		S_IFMT:           target.GetConst("S_IFMT"),
+		MCL_FUTURE:       target.GetConst("MCL_FUTURE"),
+		RLIMIT_DATA:      target.GetConst("RLIMIT_DATA"),
+		RLIMIT_STACK:     target.GetConst("RLIMIT_STACK"),
 	}
 
 	target.MakeDataMmap = targets.MakePosixMmap(target, false, false)
@@ -35,6 +38,9 @@ type arch struct {
 	KERN_MAXCLUSTERS uint64
 	S_IFCHR          uint64
 	S_IFMT           uint64
+	MCL_FUTURE       uint64
+	RLIMIT_DATA      uint64
+	RLIMIT_STACK     uint64
 }
 
 const (
@@ -50,13 +56,6 @@ const (
 	// kOutPipeFd in executor/executor.cc
 	kcovFdMinorMax = 248
 
-	// MCL_FUTURE from openbsd:src/sys/sys/mman.h
-	mclFuture uint64 = 0x2
-
-	// RLIMIT_DATA from openbsd:src/sys/sys/resource.h
-	rlimitData = 2
-	// RLIMIT_STACK from openbsd:src/sys/sys/resource.h
-	rlimitStack = 3
 	// Mask covering all valid rlimit resources.
 	rlimitMask = 0xf
 )
@@ -136,12 +135,12 @@ func (arch *arch) neutralize(c *prog.Call) {
 		}
 	case "mlockall":
 		flags := c.Args[0].(*prog.ConstArg)
-		flags.Val &= ^mclFuture
+		flags.Val &= ^arch.MCL_FUTURE
 	case "setrlimit":
 		rlimitMin := uint64(0)
 		rlimitMax := uint64(math.MaxUint64)
 		resource := c.Args[0].(*prog.ConstArg).Val & rlimitMask
-		if resource == rlimitData {
+		if resource == arch.RLIMIT_DATA {
 			// OpenBSD performs a strict validation of the
 			// RLIMIT_DATA soft limit during memory allocation.
 			// Lowering the same limit could cause syz-executor to
@@ -149,7 +148,7 @@ func (arch *arch) neutralize(c *prog.Call) {
 			// go lower than the default soft limit for the staff
 			// group.
 			rlimitMin = 1536 * 1024 * 1024
-		} else if resource == rlimitStack {
+		} else if resource == arch.RLIMIT_STACK {
 			// Do not allow the stack to grow beyond the initial
 			// soft limit chosen by syz-executor. Otherwise,
 			// syz-executor will most likely not be able to perform
