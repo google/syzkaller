@@ -250,6 +250,16 @@ func isBtfVmlinuxSupported(c *prog.Syscall, target *prog.Target, sandbox string)
 	return onlySandboxNone(sandbox)
 }
 
+func isSyzFuseSupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
+	if ok, reason := isSupportedFilesystem("fuse"); !ok {
+		return ok, reason
+	}
+	if ok, reason := onlySandboxNoneOrNamespace(sandbox); !ok {
+		return false, reason
+	}
+	return true, ""
+}
+
 var syzkallSupport = map[string]func(*prog.Syscall, *prog.Target, string) (bool, string){
 	"syz_open_dev":                isSyzOpenDevSupported,
 	"syz_open_procfs":             alwaysSupported,
@@ -274,8 +284,9 @@ var syzkallSupport = map[string]func(*prog.Syscall, *prog.Target, string) (bool,
 	"syz_io_uring_setup":          isSyzIoUringSupported,
 	// syz_memcpy_off is only used for io_uring descriptions, thus, enable it
 	// only if io_uring syscalls are enabled.
-	"syz_memcpy_off":     isSyzIoUringSupported,
-	"syz_btf_id_by_name": isBtfVmlinuxSupported,
+	"syz_memcpy_off":      isSyzIoUringSupported,
+	"syz_btf_id_by_name":  isBtfVmlinuxSupported,
+	"syz_fuse_handle_req": isSyzFuseSupported,
 }
 
 func isSupportedSyzkall(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
