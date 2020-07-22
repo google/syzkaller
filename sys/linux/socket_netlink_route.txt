@@ -814,7 +814,6 @@ br_vlan_db_policy [
 	BRIDGE_VLANDB_ENTRY_TUNNEL_INFO	nlnest[BRIDGE_VLANDB_ENTRY_TUNNEL_INFO, br_vlandb_tinfo_pol]
 ] [varlen]
 
-
 bridge_vlan_info {
 	flags	flags[br_vlan_info_flags, int16]
 	vid	int16[0:4]
