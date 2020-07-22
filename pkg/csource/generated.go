@@ -8916,6 +8916,174 @@ static void setup_usb()
 #define CAST(f) ({void* p = (void*)f; p; })
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_fuse_handle_req
+#include <fcntl.h>
+#include <linux/fuse.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+struct syz_fuse_req_out {
+	struct fuse_out_header* init;
+	struct fuse_out_header* lseek;
+	struct fuse_out_header* bmap;
+	struct fuse_out_header* poll;
+	struct fuse_out_header* getxattr;
+	struct fuse_out_header* lk;
+	struct fuse_out_header* statfs;
+	struct fuse_out_header* write;
+	struct fuse_out_header* read;
+	struct fuse_out_header* open;
+	struct fuse_out_header* attr;
+	struct fuse_out_header* entry;
+	struct fuse_out_header* dirent;
+	struct fuse_out_header* direntplus;
+	struct fuse_out_header* create_open;
+	struct fuse_out_header* ioctl;
+};
+static int
+fuse_send_response(int fd,
+		   const struct fuse_in_header* in_hdr,
+		   struct fuse_out_header* out_hdr)
+{
+	if (!out_hdr) {
+		debug("fuse_send_response: received a NULL out_hdr\n");
+		return -1;
+	}
+
+	out_hdr->unique = in_hdr->unique;
+	if (write(fd, out_hdr, out_hdr->len) == -1) {
+		debug("fuse_send_response > write failed: %d\n", errno);
+		return -1;
+	}
+
+	return 0;
+}
+static volatile long syz_fuse_handle_req(volatile long a0,
+					 volatile long a1,
+					 volatile long a2,
+					 volatile long a3)
+{
+	struct syz_fuse_req_out* req_out = (struct syz_fuse_req_out*)a3;
+	struct fuse_out_header* out_hdr = NULL;
+	char* buf = (char*)a1;
+	int buf_len = (int)a2;
+	int fd = (int)a0;
+
+	if (!req_out) {
+		debug("syz_fuse_handle_req: received a NULL syz_fuse_req_out\n");
+		return -1;
+	}
+	if (buf_len < FUSE_MIN_READ_BUFFER) {
+		debug("FUSE requires the read buffer to be at least %u\n", FUSE_MIN_READ_BUFFER);
+		return -1;
+	}
+
+	int ret = read(fd, buf, buf_len);
+	if (ret == -1) {
+		debug("syz_fuse_handle_req > read failed: %d\n", errno);
+		return -1;
+	}
+	if ((size_t)ret < sizeof(struct fuse_in_header)) {
+		debug("syz_fuse_handle_req: received a truncated FUSE header\n");
+		return -1;
+	}
+
+	const struct fuse_in_header* in_hdr = (const struct fuse_in_header*)buf;
+	debug("syz_fuse_handle_req: received opcode %d\n", in_hdr->opcode);
+	if (in_hdr->len > (uint32)ret) {
+		debug("syz_fuse_handle_req: received a truncated message\n");
+		return -1;
+	}
+
+	switch (in_hdr->opcode) {
+	case FUSE_GETATTR:
+	case FUSE_SETATTR:
+		out_hdr = req_out->attr;
+		break;
+	case FUSE_LOOKUP:
+	case FUSE_SYMLINK:
+	case FUSE_LINK:
+	case FUSE_MKNOD:
+	case FUSE_MKDIR:
+		out_hdr = req_out->entry;
+		break;
+	case FUSE_OPEN:
+	case FUSE_OPENDIR:
+		out_hdr = req_out->open;
+		break;
+	case FUSE_STATFS:
+		out_hdr = req_out->statfs;
+		break;
+	case FUSE_RMDIR:
+	case FUSE_RENAME:
+	case FUSE_RENAME2:
+	case FUSE_FALLOCATE:
+	case FUSE_SETXATTR:
+	case FUSE_REMOVEXATTR:
+	case FUSE_FSYNCDIR:
+	case FUSE_FSYNC:
+	case FUSE_SETLKW:
+	case FUSE_SETLK:
+	case FUSE_ACCESS:
+	case FUSE_FLUSH:
+	case FUSE_RELEASE:
+	case FUSE_RELEASEDIR:
+		out_hdr = req_out->init;
+		if (!out_hdr) {
+			debug("syz_fuse_handle_req: received a NULL out_hdr\n");
+			return -1;
+		}
+		out_hdr->len = sizeof(struct fuse_out_header);
+		break;
+	case FUSE_READ:
+		out_hdr = req_out->read;
+		break;
+	case FUSE_READDIR:
+		out_hdr = req_out->dirent;
+		break;
+	case FUSE_READDIRPLUS:
+		out_hdr = req_out->direntplus;
+		break;
+	case FUSE_INIT:
+		out_hdr = req_out->init;
+		break;
+	case FUSE_LSEEK:
+		out_hdr = req_out->lseek;
+		break;
+	case FUSE_GETLK:
+		out_hdr = req_out->lk;
+		break;
+	case FUSE_BMAP:
+		out_hdr = req_out->bmap;
+		break;
+	case FUSE_POLL:
+		out_hdr = req_out->poll;
+		break;
+	case FUSE_GETXATTR:
+	case FUSE_LISTXATTR:
+		out_hdr = req_out->getxattr;
+		break;
+	case FUSE_WRITE:
+		out_hdr = req_out->write;
+		break;
+	case FUSE_FORGET:
+		return 0;
+	case FUSE_CREATE:
+		out_hdr = req_out->create_open;
+		break;
+	case FUSE_IOCTL:
+		out_hdr = req_out->ioctl;
+		break;
+	default:
+		debug("syz_fuse_handle_req: unknown FUSE opcode\n");
+		return -1;
+	}
+
+	return fuse_send_response(fd, in_hdr, out_hdr);
+}
+#endif
+
 #elif GOOS_test
 
 #include <stdlib.h>

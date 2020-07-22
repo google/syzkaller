@@ -41,6 +41,8 @@ write$FUSE_NOTIFY_STORE(fd fd_fuse, arg ptr[in, fuse_notify[FUSE_NOTIFY_STORE, f
 write$FUSE_NOTIFY_RETRIEVE(fd fd_fuse, arg ptr[in, fuse_notify[FUSE_NOTIFY_RETRIEVE, fuse_notify_retrieve_out]], len bytesize[arg])
 write$FUSE_NOTIFY_DELETE(fd fd_fuse, arg ptr[in, fuse_notify[FUSE_NOTIFY_DELETE, fuse_notify_delete_out]], len bytesize[arg])
 
+syz_fuse_handle_req(fd fd_fuse, buf ptr[in, read_buffer], len bytesize[buf], res ptr[in, syz_fuse_req_out])
+
 type fuse_ino int64[0:6]
 type fuse_gen int64[0:3]
 
@@ -62,12 +64,19 @@ type fuse_in[PAYLOAD] {
 	payload	PAYLOAD
 } [packed]
 
-type fuse_out[PAYLOAD] {
+type fuse_out_t[UNIQUE, PAYLOAD] {
 	len	len[parent, int32]
 	err	flags[fuse_errors, int32]
-	unique	fuse_unique
+	unique	UNIQUE
 	payload	PAYLOAD
 } [packed]
+
+type fuse_out[PAYLOAD] fuse_out_t[fuse_unique, PAYLOAD]
+# This response header is used by syz_fuse_handle_req(). It defines the FUSE unique
+# identifier as int64 because syz_fuse_handle_req() retrieves it internally
+# (defining it as a resource would create a dependency with read$FUSE() which is
+# incorrect).
+type syz_fuse_out[PAYLOAD] fuse_out_t[int64, PAYLOAD]
 
 # -ENOENT, -EAGAIN, -ENOSYS
 fuse_errors = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -2, -11, -38
@@ -152,6 +161,10 @@ fuse_kstatfs {
 fuse_write_out {
 	size	int32
 	padding	const[0, int32]
+}
+
+fuse_read_out {
+	content	string
 }
 
 fuse_open_out {
@@ -278,3 +291,23 @@ fuse_opts [
 
 fuse_mode = S_IFREG, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK, S_IFLNK, S_IFDIR
 fuse_block_sizes = 512, 1024, 2048, 4096
+
+# Used by syz_fuse_handle_req() to mimic a FUSE daemon.
+syz_fuse_req_out {
+	init		ptr[in, syz_fuse_out[fuse_init_out]]
+	lseek		ptr[in, syz_fuse_out[fuse_lseek_out]]
+	bmap		ptr[in, syz_fuse_out[fuse_bmap_out]]
+	poll		ptr[in, syz_fuse_out[fuse_poll_out]]
+	getxattr	ptr[in, syz_fuse_out[fuse_getxattr_out]]
+	lk		ptr[in, syz_fuse_out[fuse_lk_out]]
+	statfs		ptr[in, syz_fuse_out[fuse_statfs_out]]
+	write		ptr[in, syz_fuse_out[fuse_write_out]]
+	read		ptr[in, syz_fuse_out[fuse_read_out]]
+	open		ptr[in, syz_fuse_out[fuse_open_out]]
+	attr		ptr[in, syz_fuse_out[fuse_attr_out]]
+	entry		ptr[in, syz_fuse_out[fuse_entry_out]]
+	dirent		ptr[in, syz_fuse_out[array[fuse_dirent]]]
+	direntplus	ptr[in, syz_fuse_out[array[fuse_direntplus]]]
+	create_open	ptr[in, syz_fuse_out[fuse_create_open_out]]
+	ioctl		ptr[in, syz_fuse_out[fuse_ioctl_out]]
+}
