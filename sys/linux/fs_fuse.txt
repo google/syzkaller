@@ -13,9 +13,9 @@ openat$fuse(fd const[AT_FDCWD], file ptr[in, string["/dev/fuse"]], flags const[O
 openat$cuse(fd const[AT_FDCWD], file ptr[in, string["/dev/cuse"]], flags const[O_RDWR], mode const[0]) fd_fuse
 ioctl$FUSE_DEV_IOC_CLONE(fd fd_fuse, cmd const[FUSE_DEV_IOC_CLONE], arg ptr[in, fd_fuse])
 
-mount$fuse(src const[0], dst ptr[in, filename], type ptr[in, string["fuse"]], flags flags[mount_flags], opts ptr[in, fuse_options])
 type read_buffer array[int8, FUSE_MIN_READ_BUFFER]
-read$FUSE(fd fd_fuse, buf ptr[out, fuse_in[read_buffer]], len len[buf])
+read$FUSE(fd fd_fuse, buf ptr[out, fuse_in[read_buffer]], len bytesize[buf])
+mount$fuse(src const[0], dst ptr[in, filename], type ptr[in, string["fuse"]], flags flags[mount_flags], opts ptr[in, fuse_options])
 mount$fuseblk(src ptr[in, string["/dev/loop0"]], dst ptr[in, filename], type ptr[in, string["fuseblk"]], flags flags[mount_flags], opts ptr[in, fuse_options])
 
 write$FUSE_INTERRUPT(fd fd_fuse, arg ptr[in, fuse_out[void]], len bytesize[arg])
