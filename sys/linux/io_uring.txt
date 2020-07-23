@@ -284,8 +284,8 @@ type io_uring_timeout_completion_event_count int64[0:10]
 # to identify cqes for those operations is to keep track of their user data. Thus,
 # use a seperate set of sqe_user_data range for openat and openat2.
 sqe_user_data_not_openat = 0, 1
-sqe_user_data_openat = 12345, 23456
-sqe_user_data = 0, 1, 12345, 23456
+sqe_user_data_openat = 0x12345, 0x23456
+sqe_user_data = 0, 1, 0x12345, 0x23456
 
 # The buffer id (bid) and the buffer group id (bgid) are registered using
 # IORING_OP_PROVIDE_BUFFERS. Use the ids in a limited range to ease collisions

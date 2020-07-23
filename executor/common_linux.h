@@ -1426,11 +1426,11 @@ static long syz_io_uring_complete(volatile long a0)
 	__atomic_store_n(cq_head_ptr, cq_head_next, __ATOMIC_RELEASE);
 
 	// In the descriptions (sys/linux/io_uring.txt), openat and openat2 are passed
-	// with a unique range of sqe.user_data (int64[0:3]) to identify the operations
+	// with a unique range of sqe.user_data (0x12345 and 0x23456) to identify the operations
 	// which produces an fd instance. Check cqe.user_data, which should be the same
 	// as sqe.user_data for that operation. If it falls in that unique range, return
 	// cqe.res as fd. Otherwise, just return an invalid fd.
-	return (cqe.user_data >= 0 && cqe.user_data <= 3) ? (long)cqe.res : (long)-1;
+	return (cqe.user_data == 0x12345 || cqe.user_data == 0x23456) ? (long)cqe.res : (long)-1;
 }
 
 #endif

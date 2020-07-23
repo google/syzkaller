@@ -3581,7 +3581,7 @@ static long syz_io_uring_complete(volatile long a0)
 	struct io_uring_cqe cqe;
 	memcpy(&cqe, cqe_src, sizeof(cqe));
 	__atomic_store_n(cq_head_ptr, cq_head_next, __ATOMIC_RELEASE);
-	return (cqe.user_data >= 0 && cqe.user_data <= 3) ? (long)cqe.res : (long)-1;
+	return (cqe.user_data == 0x12345 || cqe.user_data == 0x23456) ? (long)cqe.res : (long)-1;
 }
 
 #endif
