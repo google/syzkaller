@@ -10,8 +10,7 @@ include <uapi/linux/io_uring.h>
 include <uapi/linux/eventpoll.h>
 
 resource fd_io_uring[fd]
-resource sq_ring_ptr[int64]
-resource cq_ring_ptr[int64]
+resource ring_ptr[int64]
 resource sqes_ptr[int64]
 resource ioring_personality_id[int16]
 
@@ -34,8 +33,10 @@ io_uring_register$IORING_REGISTER_PROBE(fd fd_io_uring, opcode const[IORING_REGI
 io_uring_register$IORING_REGISTER_PERSONALITY(fd fd_io_uring, opcode const[IORING_REGISTER_PERSONALITY], arg const[0], nr_args const[0]) ioring_personality_id
 io_uring_register$IORING_UNREGISTER_PERSONALITY(fd fd_io_uring, opcode const[IORING_UNREGISTER_PERSONALITY], arg const[0], nr_args ioring_personality_id)
 
-mmap$IORING_OFF_SQ_RING(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_io_uring, offset const[IORING_OFF_SQ_RING]) sq_ring_ptr
-mmap$IORING_OFF_CQ_RING(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_io_uring, offset const[IORING_OFF_CQ_RING]) cq_ring_ptr
+# The mmap'ed area for SQ and CQ rings are really the same -- the difference is
+# accounted for with the usage of offsets.
+mmap$IORING_OFF_SQ_RING(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_io_uring, offset const[IORING_OFF_SQ_RING]) ring_ptr
+mmap$IORING_OFF_CQ_RING(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_io_uring, offset const[IORING_OFF_CQ_RING]) ring_ptr
 mmap$IORING_OFF_SQES(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_io_uring, offset const[IORING_OFF_SQES]) sqes_ptr
 
 # If no flags are specified(0), the io_uring instance is setup for interrupt driven IO.
@@ -65,14 +66,12 @@ define CQ_FLAGS_OFFSET	280
 # Notice all offsets are pointing to uint32 values. This is assumed for the 
 io_uring_offsets = SQ_HEAD_OFFSET, SQ_TAIL_OFFSET, SQ_RING_MASK_OFFSET, SQ_RING_ENTRIES_OFFSET, SQ_FLAGS_OFFSET, SQ_DROPPED_OFFSET, CQ_HEAD_OFFSET, CQ_TAIL_OFFSET, CQ_RING_MASK_OFFSET, CQ_RING_ENTRIES_OFFSET, CQ_RING_OVERFLOW_OFFSET, CQ_FLAGS_OFFSET
 
-# The mmap'ed area for SQ and CQ rings are really the same -- the difference is
-# accounted for with the usage of offsets. Hence, just use sq_ring_ptr as the dest.
 # Also, all values are int32, thus, set nbytes to 4.
-syz_memcpy_off$IO_URING_METADATA_GENERIC(sq_ring_ptr sq_ring_ptr, off flags[io_uring_offsets], src ptr[in, int32], src_off const[0], nbytes const[4])
+syz_memcpy_off$IO_URING_METADATA_GENERIC(ring_ptr ring_ptr, off flags[io_uring_offsets], src ptr[in, int32], src_off const[0], nbytes const[4])
 
 # The flags available are: IORING_SQ_NEED_WAKEUP (1) for sq, IORING_CQ_EVENTFD_DISABLED (1) for cq. Use int32[0:1] to represent possible values.
 io_uring_flags_offsets = SQ_FLAGS_OFFSET, CQ_FLAGS_OFFSET
-syz_memcpy_off$IO_URING_METADATA_FLAGS(sq_ring_ptr sq_ring_ptr, flag_off flags[io_uring_flags_offsets], src ptr[in, int32[0:1]], src_off const[0], nbytes const[4])
+syz_memcpy_off$IO_URING_METADATA_FLAGS(ring_ptr ring_ptr, flag_off flags[io_uring_flags_offsets], src ptr[in, int32[0:1]], src_off const[0], nbytes const[4])
 
 io_uring_probe {
 	last_op	const[0, int8]
@@ -119,10 +118,10 @@ io_uring_params {
 # resource contained within a cqe is by the completion of openat or openat2 calls,
 # which produce fd. If that is the case, returns the return value of those. Otherwise,
 # for other operations, returns an invalid fd (-1).
-syz_io_uring_complete(cq_ring_ptr cq_ring_ptr) fd
+syz_io_uring_complete(ring_ptr ring_ptr) fd
 
-# Submit sqe into the sq_ring (the submission )
-syz_io_uring_submit(sq_ring_ptr sq_ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe_u], sqes_index int32)
+# Submit sqe into the sq_ring
+syz_io_uring_submit(ring_ptr ring_ptr, sqes_ptr sqes_ptr, sqe ptr[in, io_uring_sqe_u], sqes_index int32)
 
 io_uring_sqe_u [
 	IORING_OP_NOP			io_uring_sqe_nop

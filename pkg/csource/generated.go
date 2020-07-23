@@ -3572,12 +3572,12 @@ struct io_uring_cqe {
 
 static long syz_io_uring_complete(volatile long a0)
 {
-	char* cq_ring_ptr = (char*)a0;
-	uint32 cq_ring_mask = *(uint32*)(cq_ring_ptr + CQ_RING_MASK_OFFSET);
-	uint32* cq_head_ptr = (uint32*)(cq_ring_ptr + CQ_HEAD_OFFSET);
+	char* ring_ptr = (char*)a0;
+	uint32 cq_ring_mask = *(uint32*)(ring_ptr + CQ_RING_MASK_OFFSET);
+	uint32* cq_head_ptr = (uint32*)(ring_ptr + CQ_HEAD_OFFSET);
 	uint32 cq_head = *cq_head_ptr & cq_ring_mask;
 	uint32 cq_head_next = *cq_head_ptr + 1;
-	char* cqe_src = cq_ring_ptr + CQ_CQES_OFFSET + cq_head * SIZEOF_IO_URING_CQE;
+	char* cqe_src = ring_ptr + CQ_CQES_OFFSET + cq_head * SIZEOF_IO_URING_CQE;
 	struct io_uring_cqe cqe;
 	memcpy(&cqe, cqe_src, sizeof(cqe));
 	__atomic_store_n(cq_head_ptr, cq_head_next, __ATOMIC_RELEASE);
@@ -3590,24 +3590,24 @@ static long syz_io_uring_complete(volatile long a0)
 
 static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
 {
-	char* sq_ring_ptr = (char*)a0;
+	char* ring_ptr = (char*)a0;
 	char* sqes_ptr = (char*)a1;
 	char* sqe = (char*)a2;
 	uint32 sqes_index = (uint32)a3;
 
-	uint32 sq_ring_entries = *(uint32*)(sq_ring_ptr + SQ_RING_ENTRIES_OFFSET);
-	uint32 cq_ring_entries = *(uint32*)(sq_ring_ptr + CQ_RING_ENTRIES_OFFSET);
+	uint32 sq_ring_entries = *(uint32*)(ring_ptr + SQ_RING_ENTRIES_OFFSET);
+	uint32 cq_ring_entries = *(uint32*)(ring_ptr + CQ_RING_ENTRIES_OFFSET);
 	uint32 sq_array_off = SQ_ARRAY_OFFSET(sq_ring_entries, cq_ring_entries);
 	if (sq_ring_entries)
 		sqes_index %= sq_ring_entries;
 	char* sqe_dest = sqes_ptr + sqes_index * SIZEOF_IO_URING_SQE;
 	memcpy(sqe_dest, sqe, SIZEOF_IO_URING_SQE);
-	uint32 sq_ring_mask = *(uint32*)(sq_ring_ptr + SQ_RING_MASK_OFFSET);
-	uint32* sq_tail_ptr = (uint32*)(sq_ring_ptr + SQ_TAIL_OFFSET);
+	uint32 sq_ring_mask = *(uint32*)(ring_ptr + SQ_RING_MASK_OFFSET);
+	uint32* sq_tail_ptr = (uint32*)(ring_ptr + SQ_TAIL_OFFSET);
 	uint32 sq_tail = *sq_tail_ptr & sq_ring_mask;
 	uint32 sq_tail_next = *sq_tail_ptr + 1;
-	uint32* sq_array = *(uint32**)(sq_ring_ptr + sq_array_off);
-	sq_array[sq_tail] = sqes_index;
+	uint32* sq_array = (uint32*)(ring_ptr + sq_array_off);
+	*(sq_array + sq_tail) = sqes_index;
 	__atomic_store_n(sq_tail_ptr, sq_tail_next, __ATOMIC_RELEASE);
 	return 0;
 }

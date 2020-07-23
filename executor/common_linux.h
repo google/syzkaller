@@ -1399,22 +1399,22 @@ struct io_uring_cqe {
 
 static long syz_io_uring_complete(volatile long a0)
 {
-	// syzlang: syz_io_uring_complete(cq_ring_ptr cq_ring_ptr)
-	// C:       syz_io_uring_complete(char* cq_ring_ptr)
+	// syzlang: syz_io_uring_complete(ring_ptr ring_ptr)
+	// C:       syz_io_uring_complete(char* ring_ptr)
 
 	// It is not checked if the ring is empty
 
 	// Cast to original
-	char* cq_ring_ptr = (char*)a0;
+	char* ring_ptr = (char*)a0;
 
 	// Compute the head index and the next head value
-	uint32 cq_ring_mask = *(uint32*)(cq_ring_ptr + CQ_RING_MASK_OFFSET);
-	uint32* cq_head_ptr = (uint32*)(cq_ring_ptr + CQ_HEAD_OFFSET);
+	uint32 cq_ring_mask = *(uint32*)(ring_ptr + CQ_RING_MASK_OFFSET);
+	uint32* cq_head_ptr = (uint32*)(ring_ptr + CQ_HEAD_OFFSET);
 	uint32 cq_head = *cq_head_ptr & cq_ring_mask;
 	uint32 cq_head_next = *cq_head_ptr + 1;
 
 	// Compute the ptr to the src cq entry on the ring
-	char* cqe_src = cq_ring_ptr + CQ_CQES_OFFSET + cq_head * SIZEOF_IO_URING_CQE;
+	char* cqe_src = ring_ptr + CQ_CQES_OFFSET + cq_head * SIZEOF_IO_URING_CQE;
 
 	// Get the cq entry from the ring
 	struct io_uring_cqe cqe;
@@ -1439,19 +1439,19 @@ static long syz_io_uring_complete(volatile long a0)
 
 static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
 {
-	// syzlang: syz_io_uring_submit(sq_ring_ptr sq_ring_ptr, sqes_ptr sqes_ptr, 		sqe ptr[in, io_uring_sqe],   sqes_index int32)
-	// C:       syz_io_uring_submit(char* sq_ring_ptr,       io_uring_sqe* sqes_ptr,    io_uring_sqe* sqe,           uint32 sqes_index)
+	// syzlang: syz_io_uring_submit(ring_ptr ring_ptr, sqes_ptr sqes_ptr, 		sqe ptr[in, io_uring_sqe],   sqes_index int32)
+	// C:       syz_io_uring_submit(char* ring_ptr,       io_uring_sqe* sqes_ptr,    io_uring_sqe* sqe,           uint32 sqes_index)
 
 	// It is not checked if the ring is full
 
 	// Cast to original
-	char* sq_ring_ptr = (char*)a0; // This will be exposed to offsets in bytes
+	char* ring_ptr = (char*)a0; // This will be exposed to offsets in bytes
 	char* sqes_ptr = (char*)a1;
 	char* sqe = (char*)a2;
 	uint32 sqes_index = (uint32)a3;
 
-	uint32 sq_ring_entries = *(uint32*)(sq_ring_ptr + SQ_RING_ENTRIES_OFFSET);
-	uint32 cq_ring_entries = *(uint32*)(sq_ring_ptr + CQ_RING_ENTRIES_OFFSET);
+	uint32 sq_ring_entries = *(uint32*)(ring_ptr + SQ_RING_ENTRIES_OFFSET);
+	uint32 cq_ring_entries = *(uint32*)(ring_ptr + CQ_RING_ENTRIES_OFFSET);
 
 	// Compute the sq_array offset
 	uint32 sq_array_off = SQ_ARRAY_OFFSET(sq_ring_entries, cq_ring_entries);
@@ -1465,12 +1465,12 @@ static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile lon
 	memcpy(sqe_dest, sqe, SIZEOF_IO_URING_SQE);
 
 	// Write the index to the sqe array
-	uint32 sq_ring_mask = *(uint32*)(sq_ring_ptr + SQ_RING_MASK_OFFSET);
-	uint32* sq_tail_ptr = (uint32*)(sq_ring_ptr + SQ_TAIL_OFFSET);
+	uint32 sq_ring_mask = *(uint32*)(ring_ptr + SQ_RING_MASK_OFFSET);
+	uint32* sq_tail_ptr = (uint32*)(ring_ptr + SQ_TAIL_OFFSET);
 	uint32 sq_tail = *sq_tail_ptr & sq_ring_mask;
 	uint32 sq_tail_next = *sq_tail_ptr + 1;
-	uint32* sq_array = *(uint32**)(sq_ring_ptr + sq_array_off);
-	sq_array[sq_tail] = sqes_index;
+	uint32* sq_array = (uint32*)(ring_ptr + sq_array_off);
+	*(sq_array + sq_tail) = sqes_index;
 
 	// Advance the tail. Tail is a free-flowing integer and relies on natural wrapping.
 	// Ensure that the kernel will never see a tail update without the preceeding SQE
