@@ -41,7 +41,13 @@ compare_data [
 	blob	array[int8]
 	arr16be	array[int16be]
 	nla	array[compare_nla]
+	fmt0	fmt[oct, int32]
+	fmt1	fmt[dec, int32]
+	fmt2	fmt[hex, int32]
+	fmt3	fmt[dec, flags[flags_with_one_value]]
 ] [varlen]
+
+flags_with_one_value = 0
 
 compare_nla [
 	a0	nlattr[0xaa, int8]

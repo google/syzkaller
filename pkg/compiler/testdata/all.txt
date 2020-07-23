@@ -294,7 +294,10 @@ foo_fmt2(a ptr[in, fmt[oct, len[b]]], b ptr[in, array[int8]])
 foo_fmt3(a ptr[in, fmt[dec, proc[10, 20]]])
 foo_fmt4(a ptr[in, fmt[dec, r0]])
 foo_fmt5(a ptr[in, struct$fmt0])
+foo_fmt6(a ptr[in, fmt[dec, flags[flags_with_one_value]]])
 
 struct$fmt0 {
 	f0	fmt[dec, int8]
 }
+
+flags_with_one_value = 0

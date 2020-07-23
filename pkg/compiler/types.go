@@ -761,6 +761,12 @@ var typeFmt = &typeDesc{
 			t.ArgFormat = format
 			t.TypeSize = size
 			t.TypeAlign = 1
+		case *prog.ConstType:
+			// We don't allow fmt[const] directly, but flags with only 1 value
+			// are transformed to ConstType.
+			t.ArgFormat = format
+			t.TypeSize = size
+			t.TypeAlign = 1
 		default:
 			panic(fmt.Sprintf("unexpected type: %#v", typ))
 		}
