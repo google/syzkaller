@@ -177,10 +177,12 @@ type io_uring_sqe_t[OP, IOPRIO, FD, OFF, ADDR, LEN, MISC_FLAGS, USER_DATA, MISC]
 	addr		ADDR
 	len		LEN
 	misc_flags	MISC_FLAGS
-	user_data	USER_DATA
+	user_data	flags[USER_DATA, int64]
 # This is a union of different possibilites with a padding at the end.
 	misc		MISC
-}
+} [size[SIZEOF_IO_URING_SQE]]
+
+define SIZEOF_IO_URING_SQE	64
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -188,7 +190,7 @@ type io_uring_sqe_t[OP, IOPRIO, FD, OFF, ADDR, LEN, MISC_FLAGS, USER_DATA, MISC]
 # Instantiation of sqes for each op
 #
 
-type io_uring_sqe_nop io_uring_sqe_t[IORING_OP_NOP, const[0, int16], const[0, int32], const[0, int64], const[0, int64], const[0, int32], const[0, int32], const[0, int64], array[const[0, int64], 3]]
+type io_uring_sqe_nop io_uring_sqe_t[IORING_OP_NOP, const[0, int16], const[0, int32], const[0, int64], const[0, int64], const[0, int32], const[0, int32], zero_flag, array[const[0, int64], 3]]
 
 io_uring_sqe_readv [
 	pass_iovec		io_uring_sqe_t[IORING_OP_READV, flags[ioprio_priorities, int16], fd_or_fixed_fd_index, fileoff[int64], ptr[in, array[iovec_out]], len[addr, int32], flags[rwf_flags, int32], sqe_user_data_not_openat, personality_only_misc]
@@ -200,14 +202,14 @@ type io_uring_sqe_fsync io_uring_sqe_t[IORING_OP_FSYNC, const[0, int16], fd_or_f
 type io_uring_sqe_read_fixed io_uring_sqe_t[IORING_OP_READ_FIXED, flags[ioprio_priorities, int16], fd_or_fixed_fd_index, fileoff[int64], int64, int32, flags[rwf_flags, int32], sqe_user_data_not_openat, buf_index_personality_misc]
 type io_uring_sqe_write_fixed io_uring_sqe_t[IORING_OP_WRITE_FIXED, flags[ioprio_priorities, int16], fd_or_fixed_fd_index, fileoff[int64], int64, int32, flags[rwf_flags, int32], sqe_user_data_not_openat, buf_index_personality_misc]
 type io_uring_sqe_poll_add io_uring_sqe_t[IORING_OP_POLL_ADD, const[0, int16], fd_or_fixed_fd_index, const[0, int64], const[0, int64], const[0, int32], io_uring_sqe_poll_add_misc_flags, sqe_user_data_not_openat, personality_only_misc]
-type io_uring_sqe_poll_remove io_uring_sqe_t[IORING_OP_POLL_REMOVE, const[0, int16], const[0, int32], const[0, int64], sqe_user_data, const[0, int32], const[0, int32], sqe_user_data_not_openat, personality_only_misc]
+type io_uring_sqe_poll_remove io_uring_sqe_t[IORING_OP_POLL_REMOVE, const[0, int16], const[0, int32], const[0, int64], flags[sqe_user_data, int64], const[0, int32], const[0, int32], sqe_user_data_not_openat, personality_only_misc]
 type io_uring_sqe_sync_file_range io_uring_sqe_t[IORING_OP_SYNC_FILE_RANGE, const[0, int16], fd_or_fixed_fd_index, fileoff[int64], const[0, int64], int32, flags[sync_file_flags, int32], sqe_user_data_not_openat, personality_only_misc]
 type io_uring_sqe_sendmsg io_uring_sqe_t[IORING_OP_SENDMSG, const[0, int16], sock, const[0, int64], ptr[in, send_msghdr], const[0, int32], flags[send_flags, int32], sqe_user_data_not_openat, personality_only_misc]
 type io_uring_sqe_recvmsg io_uring_sqe_t[IORING_OP_RECVMSG, const[0, int16], sock, const[0, int64], ptr[inout, recv_msghdr], const[0, int32], flags[recv_flags, int32], sqe_user_data_not_openat, buf_group_personality_misc]
 type io_uring_sqe_timeout io_uring_sqe_t[IORING_OP_TIMEOUT, const[0, int16], const[0, int32], io_uring_timeout_completion_event_count, ptr[in, timespec], const[1, int32], flags[io_uring_timeout_flags, int32], sqe_user_data_not_openat, personality_only_misc]
-type io_uring_sqe_timeout_remove io_uring_sqe_t[IORING_OP_TIMEOUT_REMOVE, const[0, int16], const[0, int32], const[0, int64], sqe_user_data, const[0, int32], const[0, int32], sqe_user_data_not_openat, personality_only_misc]
+type io_uring_sqe_timeout_remove io_uring_sqe_t[IORING_OP_TIMEOUT_REMOVE, const[0, int16], const[0, int32], const[0, int64], flags[sqe_user_data, int64], const[0, int32], const[0, int32], sqe_user_data_not_openat, personality_only_misc]
 type io_uring_sqe_accept io_uring_sqe_t[IORING_OP_ACCEPT, const[0, int16], sock, ptr[inout, len[addr, int32]], ptr[out, sockaddr_storage, opt], const[0, int32], flags[accept_flags, int32], sqe_user_data_not_openat, personality_only_misc]
-type io_uring_sqe_async_cancel io_uring_sqe_t[IORING_OP_ASYNC_CANCEL, const[0, int16], const[0, int32], const[0, int64], sqe_user_data, const[0, int32], const[0, int32], sqe_user_data_not_openat, personality_only_misc]
+type io_uring_sqe_async_cancel io_uring_sqe_t[IORING_OP_ASYNC_CANCEL, const[0, int16], const[0, int32], const[0, int64], flags[sqe_user_data, int64], const[0, int32], const[0, int32], sqe_user_data_not_openat, personality_only_misc]
 type io_uring_sqe_link_timeout io_uring_sqe_t[IORING_OP_LINK_TIMEOUT, const[0, int16], const[0, int32], const[0, int64], ptr[in, timespec], const[1, int32], flags[io_uring_timeout_flags, int32], sqe_user_data_not_openat, personality_only_misc]
 type io_uring_sqe_connect io_uring_sqe_t[IORING_OP_CONNECT, const[0, int16], sock, len[addr, int32], ptr[in, sockaddr_storage], const[0, int32], const[0, int32], sqe_user_data_not_openat, personality_only_misc]
 type io_uring_sqe_fallocate io_uring_sqe_t[IORING_OP_FALLOCATE, const[0, int16], fd_or_fixed_fd_index, fileoff[int64], const[0, int64], int32, const[0, int32], sqe_user_data_not_openat, personality_only_misc]
@@ -281,15 +283,17 @@ type io_uring_timeout_completion_event_count int64[0:10]
 # systemcalls. The resulting fds are returned within io_uring_cqe.res. The only way
 # to identify cqes for those operations is to keep track of their user data. Thus,
 # use a seperate set of sqe_user_data range for openat and openat2.
-type sqe_user_data_openat int64[0:3]
-type sqe_user_data_not_openat int64[4:10]
-type sqe_user_data int64[0:10]
+sqe_user_data_not_openat = 0, 1
+sqe_user_data_openat = 12345, 23456
+sqe_user_data = 0, 1, 12345, 23456
 
 # The buffer id (bid) and the buffer group id (bgid) are registered using
 # IORING_OP_PROVIDE_BUFFERS. Use the ids in a limited range to ease collisions
 # with other operations.
-type io_uring_bid[T] T[0:10]
-type io_uring_bgid[T] T[0:10]
+type io_uring_bid[T] T[0:3]
+type io_uring_bgid[T] T[0:3]
+
+zero_flag = 0
 
 io_uring_sqe_poll_add_misc_flags {
 	misc_flags		flags[pollfd_events, int16]
