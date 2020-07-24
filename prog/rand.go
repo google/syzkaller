@@ -835,7 +835,16 @@ func (r *randGen) existingResource(s *state, res *ResourceType, dir Dir) Arg {
 func (r *randGen) resourceCentric(s *state, t *ResourceType, dir Dir) (arg Arg, calls []*Call) {
 	var p *Prog
 	var resource *ResultArg
-	for idx := range r.Perm(len(s.corpus)) {
+	var sumPrios int64 = 0
+	for _, tmp := range s.corpus {
+		sumPrios += int64(tmp.ResPrio)
+	}
+	for i := 0; i < len(s.corpus); i++ {
+		randVal := r.Int63n(sumPrios + 1)
+		found, idx := chooseResProgramIdx(randVal, s.corpus)
+		if !found {
+			return nil, nil
+		}
 		p = s.corpus[idx].Clone()
 		resources := getCompatibleResources(p, t.TypeName, r)
 		if len(resources) > 0 {
@@ -885,6 +894,20 @@ func (r *randGen) resourceCentric(s *state, t *ResourceType, dir Dir) (arg Arg, 
 	}
 
 	return MakeResultArg(t, dir, resource, 0), p.Calls
+}
+
+func chooseResProgramIdx(randVal int64, corpus []*Prog) (bool, int) {
+	idx := 0
+	found := false
+	for i, p := range corpus {
+		randVal -= int64(p.ResPrio)
+		if randVal <= 0 {
+			found = true
+			idx = i
+			break
+		}
+	}
+	return found, idx
 }
 
 func getCompatibleResources(p *Prog, resourceType string, r *randGen) (resources []*ResultArg) {

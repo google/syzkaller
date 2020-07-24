@@ -53,6 +53,10 @@ type Fuzzer struct {
 	corpusHashes map[hash.Sig]struct{}
 	corpusPrios  []int64
 	sumPrios     int64
+	pcsWeight    map[uint32]float32
+	pcsWeightMu  sync.RWMutex
+	kstateMap    map[uint64]float32
+	kstateMapMu  sync.RWMutex
 
 	signalMu     sync.RWMutex
 	corpusSignal signal.Signal // signal of inputs in corpus
@@ -107,15 +111,16 @@ func main() {
 	debug.SetGCPercent(50)
 
 	var (
-		flagName    = flag.String("name", "test", "unique name for manager")
-		flagOS      = flag.String("os", runtime.GOOS, "target OS")
-		flagArch    = flag.String("arch", runtime.GOARCH, "target arch")
-		flagManager = flag.String("manager", "", "manager rpc address")
-		flagProcs   = flag.Int("procs", 1, "number of parallel test processes")
-		flagOutput  = flag.String("output", "stdout", "write programs to none/stdout/dmesg/file")
-		flagPprof   = flag.String("pprof", "", "address to serve pprof profiles")
-		flagTest    = flag.Bool("test", false, "enable image testing mode")      // used by syz-ci
-		flagRunTest = flag.Bool("runtest", false, "enable program testing mode") // used by pkg/runtest
+		flagName      = flag.String("name", "test", "unique name for manager")
+		flagOS        = flag.String("os", runtime.GOOS, "target OS")
+		flagArch      = flag.String("arch", runtime.GOARCH, "target arch")
+		flagManager   = flag.String("manager", "", "manager rpc address")
+		flagProcs     = flag.Int("procs", 1, "number of parallel test processes")
+		flagOutput    = flag.String("output", "stdout", "write programs to none/stdout/dmesg/file")
+		flagPprof     = flag.String("pprof", "", "address to serve pprof profiles")
+		flagTest      = flag.Bool("test", false, "enable image testing mode")      // used by syz-ci
+		flagRunTest   = flag.Bool("runtest", false, "enable program testing mode") // used by pkg/runtest
+		flagCovFilter = flag.Bool("covfilter", false, "enable coverage filter")    // used by syz-executor
 	)
 	flag.Parse()
 	outputType := parseOutputType(*flagOutput)
@@ -131,6 +136,9 @@ func main() {
 		log.Fatalf("failed to create default ipc config: %v", err)
 	}
 	sandbox := ipc.FlagsToSandbox(config.Flags)
+	if *flagCovFilter {
+		config.Flags |= (1 << 12)
+	}
 	shutdown := make(chan struct{})
 	osutil.HandleInterrupts(shutdown)
 	go func() {
@@ -239,7 +247,12 @@ func main() {
 		faultInjectionEnabled:    r.CheckResult.Features[host.FeatureFault].Enabled,
 		comparisonTracingEnabled: r.CheckResult.Features[host.FeatureComparisons].Enabled,
 		corpusHashes:             make(map[hash.Sig]struct{}),
+		pcsWeight:                make(map[uint32]float32),
+		kstateMap:                make(map[uint64]float32),
 	}
+
+	fuzzer.getPCsWeight()
+
 	gateCallback := fuzzer.useBugFrames(r, *flagProcs)
 	fuzzer.gate = ipc.NewGate(2**flagProcs, gateCallback)
 
@@ -261,6 +274,54 @@ func main() {
 	}
 
 	fuzzer.pollLoop()
+}
+
+func (fuzzer *Fuzzer) getPCsWeight() {
+	a := &rpctype.GetPCsWeightArgs{}
+	r := &rpctype.GetPCsWeightRes{
+		PCsWeight: make(map[uint32]float32),
+	}
+	if err := fuzzer.manager.Call("Manager.GetPCsWeight", a, r); err != nil {
+		log.Fatalf("manager call failed: %v", err)
+	}
+	if len(r.PCsWeight) < 1 {
+		log.Fatalf("got a empty pcs weight map")
+	}
+	log.Logf(0, "Got a new weighted pcs map:\n")
+	for pc, w := range r.PCsWeight {
+		log.Logf(0, "pc: 0x%x weight: %.5f", pc, w)
+	}
+	fuzzer.pcsWeightMu.Lock()
+	fuzzer.pcsWeight = r.PCsWeight
+	fuzzer.pcsWeightMu.Unlock()
+}
+
+func (fuzzer *Fuzzer) getKstateMap() {
+	kstateFile, err := os.Open("/kstate.map")
+	if err != nil {
+		log.Fatalf("failed to open kernstatemap file: %v", err)
+	}
+	defer kstateFile.Close()
+	for true {
+		var varName string
+		var id uint64
+		var count uint32
+		_, err := fmt.Fscan(kstateFile, &varName)
+		if err != nil {
+			break
+		}
+		varName = varName[:len(varName)-1]
+		_, err = fmt.Fscan(kstateFile, &id)
+		if err != nil {
+			break
+		}
+		_, err = fmt.Fscan(kstateFile, &count)
+		if err != nil {
+			break
+		}
+		fuzzer.kstateMap[id] = float32(count)
+		log.Logf(0, "Init KernState map: %s: %x: %f\n", varName, id, float32(count))
+	}
 }
 
 // Returns gateCallback for leak checking if enabled.
@@ -439,11 +500,23 @@ func (fuzzer *Fuzzer) addInputToCorpus(p *prog.Prog, sign signal.Signal, sig has
 	if _, ok := fuzzer.corpusHashes[sig]; !ok {
 		fuzzer.corpus = append(fuzzer.corpus, p)
 		fuzzer.corpusHashes[sig] = struct{}{}
+		weight := float64(p.Weight)
+		if weight < 1 {
+			weight = 1
+		}
 		prio := int64(len(sign))
 		if sign.Empty() {
 			prio = 1
 		}
-		fuzzer.sumPrios += prio
+		/* prio is the number of signal,
+		 * instead, we use the sum of blocks weight */
+		if fuzzer.config.Flags & (1 << 12) != 0 {
+			prio = 1
+		} else {
+			weight = 1
+		}
+		weightedPrio := int64(float64(prio) * float64(weight))
+		fuzzer.sumPrios += weightedPrio
 		fuzzer.corpusPrios = append(fuzzer.corpusPrios, fuzzer.sumPrios)
 	}
 	fuzzer.corpusMu.Unlock()

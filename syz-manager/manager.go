@@ -86,6 +86,9 @@ type Manager struct {
 	// For checking that files that we are using are not changing under us.
 	// Maps file name to modification time.
 	usedFiles map[string]time.Time
+	pcsWeight map[uint32]float32
+	kstateMap map[uint64]string
+	kstateCnt map[uint64]float32
 }
 
 const (
@@ -179,6 +182,9 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, sysTarget *targets.T
 		reproRequest:          make(chan chan map[string]bool),
 		usedFiles:             make(map[string]time.Time),
 		saturatedCalls:        make(map[string]bool),
+		pcsWeight:             make(map[uint32]float32),
+		kstateMap:             make(map[uint64]string),
+		kstateCnt:             make(map[uint64]float32),
 	}
 
 	log.Logf(0, "loading corpus...")
@@ -186,6 +192,9 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, sysTarget *targets.T
 	if err != nil {
 		log.Fatalf("failed to open corpus database: %v", err)
 	}
+
+	mgr.readPCsWeight()
+	mgr.readKernStateMap()
 
 	// Create HTTP server.
 	mgr.initHTTP()
@@ -559,6 +568,18 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 		}
 	}
 
+	/* scp coverage filter pcs to machine */
+	_, err = inst.Copy(mgr.cfg.SyzCoverPCs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to copy binary: %v", err)
+	}
+
+	/* scp kernel state map to machine */
+	_, err = inst.Copy(mgr.cfg.SyzKernStates)
+	if err != nil {
+		return nil, fmt.Errorf("failed to copy binary: %v", err)
+	}
+
 	fuzzerV := 0
 	procs := mgr.cfg.Procs
 	if *flagDebug {
@@ -572,7 +593,7 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	defer atomic.AddUint32(&mgr.numFuzzing, ^uint32(0))
 	cmd := instance.FuzzerCmd(fuzzerBin, executorCmd, fmt.Sprintf("vm-%v", index),
 		mgr.cfg.TargetOS, mgr.cfg.TargetArch, fwdAddr, mgr.cfg.Sandbox, procs, fuzzerV,
-		mgr.cfg.Cover, *flagDebug, false, false)
+		mgr.cfg.Cover, *flagDebug, false, false, mgr.cfg.Covfilter)
 	outc, errc, err := inst.Run(time.Hour, mgr.vmStop, cmd)
 	if err != nil {
 		return nil, fmt.Errorf("failed to run fuzzer: %v", err)
@@ -1092,10 +1113,62 @@ func (mgr *Manager) candidateBatch(size int) []rpctype.RPCCandidate {
 	return res
 }
 
+func (mgr *Manager) getPCsWeight() map[uint32]float32 {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+	/* Actually, you can do some dynamic calculation and assign to pcs weight here */
+	return mgr.pcsWeight
+}
+
 func (mgr *Manager) rotateCorpus() bool {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 	return mgr.phase == phaseTriagedHub
+}
+
+func (mgr *Manager) readPCsWeight() {
+	bitmapFile, _ := os.Open(mgr.cfg.SyzCoverPCs)
+	defer bitmapFile.Close()
+	for true {
+		var encode uint64
+		_, err := fmt.Fscanf(bitmapFile, "0x%x\n", &encode)
+		if err != nil {
+			break
+		}
+		var pc uint32 = uint32(encode & 0xffffffff)
+		var weight float32 = float32((encode >> 32) & 0xffff)
+		mgr.pcsWeight[pc] = weight
+		log.Logf(0, "Init PCs weight: pc: %x weight: %f\n", pc, mgr.pcsWeight[pc])
+	}
+}
+
+func (mgr *Manager) readKernStateMap() {
+	kstateFile, err := os.Open(mgr.cfg.SyzKernStates)
+	if err != nil {
+		log.Fatalf("failed to open kernstatemap file: %v", err)
+	}
+	defer kstateFile.Close()
+	for true {
+		var varName string
+		var id uint64
+		var count uint32
+		_, err := fmt.Fscan(kstateFile, &varName)
+		if err != nil {
+			break
+		}
+		varName = varName[:len(varName)-1]
+		_, err = fmt.Fscan(kstateFile, &id)
+		if err != nil {
+			break
+		}
+		_, err = fmt.Fscan(kstateFile, &count)
+		if err != nil {
+			break
+		}
+		mgr.kstateMap[id] = varName
+		mgr.kstateCnt[id] = float32(count)
+		log.Logf(0, "Init KernState map: %s: %x %f\n", varName, id, float32(count))
+	}
 }
 
 func (mgr *Manager) collectUsedFiles() {

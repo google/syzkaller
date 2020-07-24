@@ -17,6 +17,7 @@ import (
 	"unsafe"
 
 	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/kstate"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
@@ -28,18 +29,20 @@ type EnvFlags uint64
 
 // Note: New / changed flags should be added to parse_env_flags in executor.cc.
 const (
-	FlagDebug            EnvFlags = 1 << iota // debug output from executor
-	FlagSignal                                // collect feedback signals (coverage)
-	FlagSandboxSetuid                         // impersonate nobody user
-	FlagSandboxNamespace                      // use namespaces for sandboxing
-	FlagSandboxAndroid                        // use Android sandboxing for the untrusted_app domain
-	FlagExtraCover                            // collect extra coverage
-	FlagEnableTun                             // setup and use /dev/tun for packet injection
-	FlagEnableNetDev                          // setup more network devices for testing
-	FlagEnableNetReset                        // reset network namespace between programs
-	FlagEnableCgroups                         // setup cgroups for testing
-	FlagEnableCloseFds                        // close fds after each program
-	FlagEnableDevlinkPCI                      // setup devlink PCI device
+	FlagDebug             EnvFlags = 1 << iota // debug output from executor
+	FlagSignal                                 // collect feedback signals (coverage)
+	FlagSandboxSetuid                          // impersonate nobody user
+	FlagSandboxNamespace                       // use namespaces for sandboxing
+	FlagSandboxAndroid                         // use Android sandboxing for the untrusted_app domain
+	FlagExtraCover                             // collect extra coverage
+	FlagEnableTun                              // setup and use /dev/tun for packet injection
+	FlagEnableNetDev                           // setup more network devices for testing
+	FlagEnableNetReset                         // reset network namespace between programs
+	FlagEnableCgroups                          // setup cgroups for testing
+	FlagEnableCloseFds                         // close fds after each program
+	FlagEnableDevlinkPCI                       // setup devlink PCI device
+	FlagEnableCoverFilter                      // maintain a bitmap for coverage filter
+
 )
 
 // Per-exec flags for ExecOpts.Flags.
@@ -89,8 +92,9 @@ type CallInfo struct {
 	Signal []uint32 // feedback signal, filled if FlagSignal is set
 	Cover  []uint32 // per-call coverage, filled if FlagSignal is set and cover == true,
 	// if dedup == false, then cov effectively contains a trace, otherwise duplicates are removed
-	Comps prog.CompMap // per-call comparison operands
-	Errno int          // call errno (0 if the call was successful)
+	Comps prog.CompMap      // per-call comparison operands
+	State kstate.KernStates /* feedback kernel state */
+	Errno int               // call errno (0 if the call was successful)
 }
 
 type ProgInfo struct {
@@ -355,6 +359,10 @@ func (env *Env) parseOutput(p *prog.Prog) (*ProgInfo, error) {
 			return nil, fmt.Errorf("call %v/%v/%v: signal overflow: %v/%v",
 				i, reply.index, reply.num, reply.signalSize, len(out))
 		}
+		if inf.State, ok = readKernState(&out, reply.stateSize); !ok {
+			return nil, fmt.Errorf("call %v/%v/%v: state overflow: %v/%v",
+				i, reply.index, reply.num, reply.stateSize, len(out))
+		}
 		if inf.Cover, ok = readUint32Array(&out, reply.coverSize); !ok {
 			return nil, fmt.Errorf("call %v/%v/%v: cover overflow: %v/%v",
 				i, reply.index, reply.num, reply.coverSize, len(out))
@@ -471,6 +479,30 @@ func readUint32Array(outp *[]byte, size uint32) ([]uint32, bool) {
 	return res, true
 }
 
+func readKernState(outp *[]byte, size uint32) (kstate.KernStates, bool) {
+	if size == 0 {
+		return nil, true
+	}
+	fmt.Fprintf(os.Stdout, "%x state was read", size)
+	states := make(kstate.KernStates, size)
+	out := *outp
+	if int(size)*8*2 > len(out) {
+		return nil, false
+	}
+	for i := uint32(0); i < size; i++ {
+		id, _ := readUint64(outp)
+		val, _ := readUint64(outp)
+		state := kstate.KernState{
+			ID:    uint64(id),
+			Value: uint64(val),
+		}
+		states = append(states, state)
+		fmt.Fprintf(os.Stdout, "read a kernel state id: %x, value: %x\n", state.ID, state.Value)
+	}
+	/* state_size * size(uint64) * 3  */
+	return states, true
+}
+
 type command struct {
 	pid      int
 	config   *Config
@@ -525,6 +557,7 @@ type callReply struct {
 	errno      uint32
 	flags      uint32 // see CallFlags
 	signalSize uint32
+	stateSize  uint32
 	coverSize  uint32
 	compsSize  uint32
 	// signal/cover/comps follow

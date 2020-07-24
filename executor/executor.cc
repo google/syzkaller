@@ -16,6 +16,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "bitmap.h"
 #include "defs.h"
 
 #if defined(__GNUC__)
@@ -44,6 +45,12 @@ typedef unsigned long long uint64;
 typedef unsigned int uint32;
 typedef unsigned short uint16;
 typedef unsigned char uint8;
+
+/* Roughly assume that kernel text size( exclude modules) is less than 0x3000000
+ * The lowest 4-bit is discard because of align and small deviation is acceptable */
+#define COVERAGE_BITMAP_SIZE 0x300000 / sizeof(uint32)
+static uint32 kTextBitMap[COVERAGE_BITMAP_SIZE];
+extern uint32* func_pcs;
 
 // exit/_exit do not necessary work (e.g. if fuzzer sets seccomp filter that prohibits exit_group).
 // Use doexit instead.  We must redefine exit to something that exists in stdlib,
@@ -128,6 +135,7 @@ static bool flag_net_reset;
 static bool flag_cgroups;
 static bool flag_close_fds;
 static bool flag_devlink_pci;
+static bool flag_cover_filter;
 
 static bool flag_collect_cover;
 static bool flag_dedup_cover;
@@ -269,9 +277,11 @@ struct call_reply {
 	uint32 reserrno;
 	uint32 flags;
 	uint32 signal_size;
+	uint32 kstate_size;
 	uint32 cover_size;
 	uint32 comps_size;
 	// signal/cover/comps follow
+	/* signal/kstate/cover/comps follow */
 };
 
 enum {
@@ -416,6 +426,20 @@ int main(int argc, char** argv)
 			// Don't enable comps because we don't use them in the fuzzer yet.
 			cover_enable(&extra_cov, false, true);
 		}
+		/* initialize bitmap for coverage filter */
+		debug("Read pcs for bitmap ...\n");
+		uint32 c = readPcs();
+		for (uint32 i = 0; i < c; i++) {
+			uint32 pc = func_pcs[i];
+			pc -= KERNEL_TEXT_BASE;
+			uint32 pcc = pc >> 4;
+			uint32 index = pcc / 32;
+			uint32 shift = pcc % 32;
+			if (pcc > 0x300000)
+				continue;
+			/* A bit for a address for coverage filtering */
+			kTextBitMap[index] |= (0x1 << shift);
+		}
 	}
 
 	int status = 0;
@@ -490,6 +514,7 @@ void parse_env_flags(uint64 flags)
 	flag_cgroups = flags & (1 << 9);
 	flag_close_fds = flags & (1 << 10);
 	flag_devlink_pci = flags & (1 << 11);
+	flag_cover_filter = flags & (1 << 12);
 }
 
 #if SYZ_EXECUTOR_USES_FORK_SERVER
@@ -841,6 +866,24 @@ thread_t* schedule_call(int call_index, int call_num, bool colliding, uint64 cop
 }
 
 #if SYZ_EXECUTOR_USES_SHMEM
+
+bool cover_filter(uint64 pc)
+{
+	pc &= 0xffffffff;
+	pc -= KERNEL_TEXT_BASE;
+	uint64 pcc = pc >> 4;
+	uint64 index = pcc / 32;
+	uint64 shift = pcc % 32;
+	/* Kernel text size */
+	if (pcc > 0x300000) {
+		return false;
+	}
+	if ((kTextBitMap[index] & (0x1 << shift))) {
+		return true;
+	}
+	return false;
+}
+
 template <typename cover_data_t>
 void write_coverage_signal(cover_t* cov, uint32* signal_count_pos, uint32* cover_count_pos)
 {
@@ -849,14 +892,33 @@ void write_coverage_signal(cover_t* cov, uint32* signal_count_pos, uint32* cover
 	cover_data_t* cover_data = ((cover_data_t*)cov->data) + 1;
 	uint32 nsig = 0;
 	cover_data_t prev = 0;
+	uint32* state_count_pos = signal_count_pos + 1;
+	/* Collect kernel state less than 50 per syscall */
+	cover_data_t* state[0x50];
+	uint32 nstate = 0;
 	for (uint32 i = 0; i < cov->size; i++) {
 		cover_data_t pc = cover_data[i];
+		if (((uint64(pc) >> 48) & 0xffff) == 0xfefe) {
+			if (nstate < 0x50) {
+				state[nstate] = &cover_data[i];
+				nstate++;
+			}
+			i++;
+			if (!flag_cover_filter)
+				i++;
+			continue;
+		}
 		if (!cover_check(pc)) {
 			debug("got bad pc: 0x%llx\n", (uint64)pc);
 			doexit(0);
 		}
 		cover_data_t sig = pc ^ prev;
 		prev = hash(pc);
+		/* Be sure cover filtering is after the prev renew,
+		 * the prodecessor information wouldn't be loss.
+		 */
+		if (flag_cover_filter && !cover_filter(pc))
+			continue;
 		if (dedup(sig))
 			continue;
 		write_output(sig);
@@ -864,6 +926,15 @@ void write_coverage_signal(cover_t* cov, uint32* signal_count_pos, uint32* cover
 	}
 	// Write out number of signals.
 	*signal_count_pos = nsig;
+
+	/* Write kernel state to shared memory */
+	*state_count_pos = nstate;
+	for (uint32 i = 0; i < nstate; i++) {
+		uint64 id = (uint64)(*state[i]);
+		uint64 val = (uint64) * (state[i] + 1);
+		write_output_64(id);
+		write_output_64(val);
+	}
 
 	if (!flag_collect_cover)
 		return;
@@ -878,8 +949,16 @@ void write_coverage_signal(cover_t* cov, uint32* signal_count_pos, uint32* cover
 	}
 	// Truncate PCs to uint32 assuming that they fit into 32-bits.
 	// True for x86_64 and arm64 without KASLR.
-	for (uint32 i = 0; i < cover_size; i++)
+	for (uint32 i = 0; i < cover_size; i++) {
+		cover_data_t pc = cover_data[i];
+		if (((uint64(pc) >> 48) & 0xffff) == 0xfefe) {
+			i += 1;
+			write_output(0x81000000);
+			write_output(0x81000000);
+			continue;
+		}
 		write_output(cover_data[i]);
+	}
 	*cover_count_pos = cover_size;
 }
 #endif
@@ -961,6 +1040,7 @@ void write_call_output(thread_t* th, bool finished)
 	write_output(reserrno);
 	write_output(call_flags);
 	uint32* signal_count_pos = write_output(0); // filled in later
+	/*uint32* kstate_count_pos = */ write_output(0); // filled in later
 	uint32* cover_count_pos = write_output(0); // filled in later
 	uint32* comps_count_pos = write_output(0); // filled in later
 
@@ -1005,6 +1085,7 @@ void write_call_output(thread_t* th, bool finished)
 	reply.reserrno = reserrno;
 	reply.flags = call_flags;
 	reply.signal_size = 0;
+	reply.kstate_size = 0;
 	reply.cover_size = 0;
 	reply.comps_size = 0;
 	if (write(kOutPipeFd, &reply, sizeof(reply)) != sizeof(reply))

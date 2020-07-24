@@ -59,6 +59,7 @@ func defaultValues() *Config {
 	return &Config{
 		SSHUser:   "root",
 		Cover:     true,
+		Covfilter: false,
 		Reproduce: true,
 		Sandbox:   "none",
 		RPC:       ":0",

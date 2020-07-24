@@ -318,7 +318,7 @@ func (inst *inst) testInstance() error {
 	}
 
 	cmd := OldFuzzerCmd(fuzzerBin, executorCmd, "test", inst.cfg.TargetOS, inst.cfg.TargetArch, fwdAddr,
-		inst.cfg.Sandbox, 0, inst.cfg.Cover, true)
+		inst.cfg.Sandbox, 0, inst.cfg.Cover, true, false)
 	outc, errc, err := inst.vm.Run(10*time.Minute, nil, cmd)
 	if err != nil {
 		return fmt.Errorf("failed to run binary in VM: %v", err)
@@ -424,7 +424,7 @@ func (inst *inst) testProgram(command string, testTime time.Duration) error {
 }
 
 func FuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox string, procs, verbosity int,
-	cover, debug, test, runtest bool) string {
+	cover, debug, test, runtest bool, covfilter bool) string {
 	osArg := ""
 	if targets.Get(OS, arch).HostFuzzer {
 		// Only these OSes need the flag, because the rest assume host OS.
@@ -441,13 +441,13 @@ func FuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox string, procs,
 		verbosityArg = fmt.Sprintf(" -vv=%v", verbosity)
 	}
 	return fmt.Sprintf("%v -executor=%v -name=%v -arch=%v%v -manager=%v -sandbox=%v"+
-		" -procs=%v -cover=%v -debug=%v -test=%v%v%v",
+		" -procs=%v -cover=%v -debug=%v -test=%v%v%v -covfilter=%v",
 		fuzzer, executor, name, arch, osArg, fwdAddr, sandbox,
-		procs, cover, debug, test, runtestArg, verbosityArg)
+		procs, cover, debug, test, runtestArg, verbosityArg, covfilter)
 }
 
-func OldFuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox string, procs int, cover, test bool) string {
-	return FuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox, procs, 0, cover, false, test, false)
+func OldFuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox string, procs int, cover, test bool, covfilter bool) string {
+	return FuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox, procs, 0, cover, false, test, false, covfilter)
 }
 
 func ExecprogCmd(execprog, executor, OS, arch, sandbox string, repeat, threaded, collide bool,

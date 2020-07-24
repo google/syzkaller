@@ -5,12 +5,15 @@ package prog
 
 import (
 	"fmt"
+	"github.com/google/syzkaller/pkg/kstate"
 )
 
 type Prog struct {
 	Target   *Target
 	Calls    []*Call
 	Comments []string
+	Weight   float32
+	ResPrio  float32
 }
 
 type Call struct {
@@ -18,6 +21,7 @@ type Call struct {
 	Args    []Arg
 	Ret     *ResultArg
 	Comment string
+	State   kstate.KernStates
 }
 
 type Arg interface {

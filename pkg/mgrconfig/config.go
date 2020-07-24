@@ -85,6 +85,9 @@ type Config struct {
 
 	// Use KCOV coverage (default: true).
 	Cover bool `json:"cover"`
+	/* Enable KCOV filter */
+	Covfilter bool `json:"covfilter"`
+
 	// Reproduce, localize and minimize crashers (default: true).
 	Reproduce bool `json:"reproduce"`
 
@@ -116,4 +119,6 @@ type Config struct {
 	SyzFuzzerBin   string `json:"-"`
 	SyzExecprogBin string `json:"-"`
 	SyzExecutorBin string `json:"-"`
+	SyzCoverPCs    string `json:"coverpcs"`
+	SyzKernStates  string `json:"kstatemap"`
 }

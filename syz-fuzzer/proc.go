@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"os"
 	"runtime/debug"
+	"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/ipc"
+	"github.com/google/syzkaller/pkg/kstate"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/signal"
@@ -133,6 +135,7 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 			continue
 		}
 		thisSignal, thisCover := getSignalAndCover(item.p, info, item.call)
+		getKernState(item.p, info)
 		newSignal = newSignal.Intersection(thisSignal)
 		// Without !minimized check manager starts losing some considerable amount
 		// of coverage after each restart. Mechanics of this are not completely clear.
@@ -151,6 +154,7 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 						continue
 					}
 					thisSignal, _ := getSignalAndCover(p1, info, call1)
+					getKernState(p1, info)
 					if newSignal.Intersection(thisSignal).Len() == newSignal.Len() {
 						return true
 					}
@@ -162,13 +166,36 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 	data := item.p.Serialize()
 	sig := hash.Hash(data)
 
+	/* put the kernState into p.Calls, so it can hold the call information after minimize */
+	var inputKernState kstate.KernStates
+	for i, c := range item.p.Calls {
+		for _, s := range c.State {
+			inputKernState = append(inputKernState,
+				kstate.KernState{
+					/* i is sequence number of syscalls */
+					ID:    (s.ID & 0xffffffff) | (uint64(i) << 32),
+					Value: s.Value,
+				})
+		}
+	}
+	inputKernState = inputKernState.Dedup()
 	log.Logf(2, "added new input for %v to corpus:\n%s", logCallName, data)
 	proc.fuzzer.sendInputToManager(rpctype.RPCInput{
 		Call:   callName,
 		Prog:   data,
 		Signal: inputSignal.Serialize(),
 		Cover:  inputCover.Serialize(),
+		State:  inputKernState,
 	})
+
+	proc.fuzzer.getPCsWeight()
+	weight := calCoverWeight(proc.fuzzer.pcsWeight, proc.fuzzer.pcsWeightMu, inputCover.Serialize())
+	resPrio := calStateWeight(proc.fuzzer.kstateMap, proc.fuzzer.kstateMapMu, inputKernState)
+	item.p.Weight = weight
+	item.p.ResPrio = resPrio
+	for _, p := range proc.fuzzer.corpus {
+		log.Logf(3, "Prog: %s weight: %.5f", p.Comments, p.Weight)
+	}
 
 	proc.fuzzer.addInputToCorpus(item.p, inputSignal, sig)
 
@@ -200,6 +227,14 @@ func getSignalAndCover(p *prog.Prog, info *ipc.ProgInfo, call int) (signal.Signa
 	return signal.FromRaw(inf.Signal, signalPrio(p, inf, call)), inf.Cover
 }
 
+func getKernState(p *prog.Prog, info *ipc.ProgInfo) {
+	for i, ci := range info.Calls {
+		for _, s := range ci.State {
+			p.Calls[i].State = p.Calls[i].State.Merge(s.ID, s.Value)
+		}
+	}
+}
+
 func (proc *Proc) smashInput(item *WorkSmash) {
 	if proc.fuzzer.faultInjectionEnabled && item.call != -1 {
 		proc.failCall(item.p, item.call)
@@ -214,6 +249,41 @@ func (proc *Proc) smashInput(item *WorkSmash) {
 		log.Logf(1, "#%v: smash mutated", proc.pid)
 		proc.execute(proc.execOpts, p, ProgNormal, StatSmash)
 	}
+}
+
+func calCoverWeight(pcsWeight map[uint32]float32, pcsWeightMu sync.RWMutex, pcs []uint32) float32 {
+	var weight float32 = 0.0
+	var count uint32 = 0
+	pcsWeightMu.Lock()
+	for _, pc := range pcs {
+		if _, ok := pcsWeight[pc]; ok {
+			weight += pcsWeight[pc]
+			count++
+		}
+	}
+	pcsWeightMu.Unlock()
+	/* Base on the cyclomatic complexity.
+	 * Weight is determined by potential forward edges of the prog */
+	weight = weight - float32(count) + 1
+	return weight
+}
+
+func calStateWeight(statemap map[uint64]float32, pcsWeightMu sync.RWMutex, state kstate.KernStates) float32 {
+	var weight float32 = 1.0
+	var count float32 = 1.0
+	for _, s := range state {
+		id := s.ID | 0xffffffff
+		hash := s.Hash()
+		if _, ok := statemap[hash]; ok {
+			weight += statemap[hash]
+			count++
+		}else if _, ok := statemap[id]; ok {
+			weight += statemap[id]
+			count++
+		}
+	}
+	weight = weight - count + 1
+	return weight
 }
 
 func (proc *Proc) failCall(p *prog.Prog, call int) {

@@ -22,6 +22,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/html"
+	"github.com/google/syzkaller/pkg/kstate"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/signal"
@@ -36,6 +37,8 @@ func (mgr *Manager) initHTTP() {
 	http.HandleFunc("/corpus", mgr.httpCorpus)
 	http.HandleFunc("/crash", mgr.httpCrash)
 	http.HandleFunc("/cover", mgr.httpCover)
+	http.HandleFunc("/bitmap", mgr.httpBitmap)
+	http.HandleFunc("/kernfunc", mgr.httpKernFunc)
 	http.HandleFunc("/prio", mgr.httpPrio)
 	http.HandleFunc("/file", mgr.httpFile)
 	http.HandleFunc("/report", mgr.httpReport)
@@ -190,10 +193,40 @@ func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, fmt.Sprintf("failed to deserialize program: %v", err), http.StatusInternalServerError)
 			return
 		}
+		count := 0
+		var weight float32 = 0.0
+		for _, pc := range inp.Cover {
+			if _, ok := mgr.pcsWeight[pc]; ok {
+				count++
+				weight += mgr.pcsWeight[pc]
+			}
+		}
+		weight = weight - float32(count) + 1
+		if !mgr.cfg.Covfilter {
+			weight = float32(inp.Signal.Deserialize().Len())
+		}
+		var stateWeight float32 = 1.0
+		var scount float32 = 1.0
+		for _, s := range inp.State {
+			if _, ok := mgr.kstateCnt[s.Hash()]; ok {
+				scount++
+				stateWeight += mgr.kstateCnt[s.Hash()]
+			} else if _, ok := mgr.kstateCnt[s.ID&0xffffffff]; ok {
+				scount++
+				stateWeight += mgr.kstateCnt[s.ID&0xffffffff]
+			}
+		}
+		stateWeight = stateWeight - scount + 1
 		data.Inputs = append(data.Inputs, &UIInput{
-			Sig:   sig,
-			Short: p.String(),
-			Cover: len(inp.Cover),
+			Sig:      sig,
+			Short:    p.String(),
+			Cover:    len(inp.Cover),
+			Weight:   weight,
+			Signal:   inp.Signal.Deserialize(),
+			SigLen:   inp.Signal.Deserialize().Len(),
+			StateLen: inp.State.Len(),
+			ResPrio:  stateWeight,
+			State:    inp.State,
 		})
 	}
 	sort.Slice(data.Inputs, func(i, j int) bool {
@@ -289,6 +322,100 @@ func (mgr *Manager) httpCoverFallback(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (mgr *Manager) httpBitmap(w http.ResponseWriter, r *http.Request) {
+	if !mgr.cfg.Cover {
+		mgr.mu.Lock()
+		defer mgr.mu.Unlock()
+		mgr.httpCoverFallback(w, r)
+	}
+	// Note: initCover is executed without mgr.mu because it takes very long time
+	// (but it only reads config and it protected by initCoverOnce).
+	if err := initCover(mgr.sysTarget, mgr.cfg.KernelObj, mgr.cfg.KernelSrc, mgr.cfg.KernelBuildSrc); err != nil {
+		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
+		return
+	}
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+	mgr.httpBitmapCover(w, r)
+}
+
+func (mgr *Manager) httpBitmapCover(w http.ResponseWriter, r *http.Request) {
+	var progs []cover.Prog
+	for pc, weight := range mgr.pcsWeight {
+		for i := 0; i < int(weight); i++ {
+			var pcs []uint32
+			pcs = append(pcs, pc)
+			progs = append(progs, cover.Prog{
+				Data: "From pcs weight table: " + string(pc) + ":" + string(i),
+				PCs:  coverToPCs(mgr.sysTarget, pcs),
+			})
+		}
+	}
+	if err := reportGenerator.Do(w, progs); err != nil {
+		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
+		return
+	}
+	runtime.GC()
+}
+
+func (mgr *Manager) httpKernFunc(w http.ResponseWriter, r *http.Request) {
+	if err := initCover(mgr.sysTarget, mgr.cfg.KernelObj, mgr.cfg.KernelSrc, mgr.cfg.KernelBuildSrc); err != nil {
+		http.Error(w, initCoverError.Error(), http.StatusInternalServerError)
+		return
+	}
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+
+	var cov cover.Cover
+	for _, inp := range mgr.corpus {
+		cov.Merge(inp.Cover)
+	}
+	covArray := make([]uint32, 0, len(cov))
+	for pc := range cov {
+		covArray = append(covArray, pc)
+	}
+	funcCovCount := mgr.getFuncCount(covArray)
+
+	funcMapArray := make([]uint32, 0, len(cov))
+	for pc, _ := range mgr.pcsWeight {
+		funcMapArray = append(funcMapArray, pc)
+	}
+	funcMapCount := mgr.getFuncCount(funcMapArray)
+	totalMap := uint32(0)
+	totalCov := uint32(0)
+	for fn, _ := range funcMapCount {
+		if _, ok := funcCovCount[fn]; ok {
+			w.Write([]byte(fmt.Sprintf("%s: %d/%d\n", fn, funcCovCount[fn], funcMapCount[fn])))
+			totalMap += funcMapCount[fn]
+			totalCov += funcCovCount[fn]
+		} else {
+			totalMap += funcMapCount[fn]
+			w.Write([]byte(fmt.Sprintf("%s: 0/%d\n", fn, funcMapCount[fn])))
+		}
+	}
+	w.Write([]byte(fmt.Sprintf("\nTotal: %d/%d\n", totalCov, totalMap)))
+}
+
+func (mgr *Manager) getFuncCount(cover []uint32) map[string]uint32 {
+	fCount := make(map[string]uint32)
+	fPCs := coverToPCs(mgr.sysTarget, cover)
+	sort.Slice(fPCs, func(i, j int) bool {
+		return fPCs[i] < fPCs[j]
+	})
+	for _, pc := range fPCs {
+		frame, ok := reportGenerator.PCs()[pc]
+		if len(frame) > 0 && ok {
+			funcName := frame[len(frame)-1].Func
+			if _, ok := fCount[funcName]; ok {
+				fCount[funcName]++
+			} else {
+				fCount[funcName] = 1
+			}
+		}
+	}
+	return fCount
+}
+
 func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
@@ -352,6 +479,12 @@ func (mgr *Manager) httpInput(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Write(inp.Prog)
+	for _, s := range inp.State {
+		realID := s.ID & 0xffffffff
+		if varName, ok := mgr.kstateMap[realID]; ok {
+			w.Write([]byte(fmt.Sprintf("syscall-%d: %s = 0x%x\n", (s.ID>>32)&0xffff, varName, s.Value)))
+		}
+	}
 }
 
 func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {
@@ -595,9 +728,15 @@ type UICorpus struct {
 }
 
 type UIInput struct {
-	Sig   string
-	Short string
-	Cover int
+	Sig      string
+	Short    string
+	Cover    int
+	Weight   float32
+	Signal   signal.Signal
+	SigLen   int
+	StateLen int
+	State    kstate.KernStates
+	ResPrio  float32
 }
 
 var summaryTemplate = html.CreatePage(`
@@ -743,11 +882,19 @@ var corpusTemplate = html.CreatePage(`
 	<tr>
 		<th>Coverage</th>
 		<th>Program</th>
+		<th>Signal</th>
+		<th>Cover Weight</th>
+		<th>State</th>
+		<th>Resource Weight</th>
 	</tr>
 	{{range $inp := $.Inputs}}
 	<tr>
 		<td><a href='/cover?input={{$inp.Sig}}'>{{$inp.Cover}}</a></td>
 		<td><a href="/input?sig={{$inp.Sig}}">{{$inp.Short}}</a></td>
+		<td><a href="/input?sig={{$inp.Sig}}">{{$inp.SigLen}}</a></td>
+		<td><a href="/input?sig={{$inp.Sig}}">{{$inp.Weight}}</a></td>
+		<td><a href="/input?sig={{$inp.Sig}}">{{$inp.StateLen}}</a></td>
+		<td><a href="/input?sig={{$inp.Sig}}">{{$inp.ResPrio}}</a></td>
 	</tr>
 	{{end}}
 </table>
