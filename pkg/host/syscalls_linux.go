@@ -223,13 +223,13 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 	case "syz_execute_func":
 		return true, ""
 	case "syz_io_uring_submit":
-		// TODO: check if io_uring syscall is present
-		return true, ""
+		fallthrough
 	case "syz_io_uring_complete":
-		// TODO: check if io_uring syscall is present
-		return true, ""
+		fallthrough
 	case "syz_memcpy_off":
-		return true, ""
+		// syz_memcpy_off is only used for io_uring descriptions, thus, enable it
+		// only if io_uring syscalls are enabled.
+		return isSupportedIOUring()
 	}
 	panic("unknown syzkall: " + c.Name)
 }
@@ -321,6 +321,23 @@ func onlySandboxNoneOrNamespace(sandbox string) (bool, string) {
 	if syscall.Getuid() != 0 || sandbox == "setuid" {
 		return false, "only supported under root with sandbox=none/namespace"
 	}
+	return true, ""
+}
+
+func isSupportedIOUring() (bool, string) {
+	// TODO: Ensure /proc/kallsysms is read before calling this function.
+	if !testFallback && len(kallsymsSyscallSet) != 0 {
+		name := "io_uring_setup"
+		if !kallsymsSyscallSet[name] {
+			return false, fmt.Sprintf("sys_%v is not present in /proc/kallsyms", name)
+		}
+		return true, ""
+	}
+
+	// TODO: How to create an instance of prog.Syscall for io_uring_setup()?
+	// This would allow us to conitnue with supported check with trial by directly
+	// calling isSupportedTrial. In addition, we can avoid some other duplications.
+	// return isSupportedTrial(c)
 	return true, ""
 }
 
