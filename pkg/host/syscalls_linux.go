@@ -24,7 +24,7 @@ import (
 func isSupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
 	log.Logf(2, "checking support for %v", c.Name)
 	if strings.HasPrefix(c.CallName, "syz_") {
-		return isSupportedSyzkall(sandbox, c)
+		return isSupportedSyzkall(c, target, sandbox)
 	}
 	if reason := isSupportedLSM(c); reason != "" {
 		return false, reason
@@ -43,6 +43,10 @@ func isSupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, st
 		// Don't shutdown root filesystem.
 		return false, "unsafe with sandbox=none"
 	}
+	return isSupportedSyscall(c, target)
+}
+
+func isSupportedSyscall(c *prog.Syscall, target *prog.Target) (bool, string) {
 	// There are 3 possible strategies for detecting supported syscalls:
 	// 1. Executes all syscalls with presumably invalid arguments and check for ENOprog.
 	//    But not all syscalls are safe to execute. For example, pause will hang,
@@ -166,7 +170,7 @@ var (
 // The function is lengthy as it handles all pseudo-syscalls,
 // but it does not seem to cause comprehension problems as there is no shared state.
 // Splitting this per-syscall will only increase code size.
-func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
+func isSupportedSyzkall(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
 	switch c.CallName {
 	case "syz_open_dev":
 		return isSupportedSyzOpenDev(sandbox, c)
@@ -222,6 +226,15 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 		return onlySandboxNone(sandbox)
 	case "syz_execute_func":
 		return true, ""
+	case "syz_io_uring_submit", "syz_io_uring_complete", "syz_memcpy_off":
+		// syz_memcpy_off is only used for io_uring descriptions, thus, enable it
+		// only if io_uring syscalls are enabled.
+		ioUringSyscallName := "io_uring_setup"
+		ioUringSyscall := target.SyscallMap[ioUringSyscallName]
+		if ioUringSyscall == nil {
+			return false, fmt.Sprintf("sys_%v is not present in the target", ioUringSyscallName)
+		}
+		return isSupportedSyscall(ioUringSyscall, target)
 	}
 	panic("unknown syzkall: " + c.Name)
 }

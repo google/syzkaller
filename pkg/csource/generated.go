@@ -3539,6 +3539,95 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 }
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_io_uring_submit || __NR_syz_io_uring_complete
+
+#define SIZEOF_IO_URING_SQE 64
+#define SIZEOF_IO_URING_CQE 16
+#define SQ_HEAD_OFFSET 0
+#define SQ_TAIL_OFFSET 64
+#define SQ_RING_MASK_OFFSET 256
+#define SQ_RING_ENTRIES_OFFSET 264
+#define SQ_FLAGS_OFFSET 276
+#define SQ_DROPPED_OFFSET 272
+#define CQ_HEAD_OFFSET 128
+#define CQ_TAIL_OFFSET 192
+#define CQ_RING_MASK_OFFSET 260
+#define CQ_RING_ENTRIES_OFFSET 268
+#define CQ_RING_OVERFLOW_OFFSET 284
+#define CQ_FLAGS_OFFSET 280
+#define CQ_CQES_OFFSET 320
+#define SQ_ARRAY_OFFSET(sq_entries, cq_entries) (round_up(CQ_CQES_OFFSET + cq_entries * SIZEOF_IO_URING_CQE, 64))
+
+uint32 round_up(uint32 x, uint32 a)
+{
+	return (x + a - 1) & ~(a - 1);
+}
+
+#if SYZ_EXECUTOR || __NR_syz_io_uring_complete
+struct io_uring_cqe {
+	uint64 user_data;
+	uint32 res;
+	uint32 flags;
+};
+
+static long syz_io_uring_complete(volatile long a0)
+{
+	char* ring_ptr = (char*)a0;
+	uint32 cq_ring_mask = *(uint32*)(ring_ptr + CQ_RING_MASK_OFFSET);
+	uint32* cq_head_ptr = (uint32*)(ring_ptr + CQ_HEAD_OFFSET);
+	uint32 cq_head = *cq_head_ptr & cq_ring_mask;
+	uint32 cq_head_next = *cq_head_ptr + 1;
+	char* cqe_src = ring_ptr + CQ_CQES_OFFSET + cq_head * SIZEOF_IO_URING_CQE;
+	struct io_uring_cqe cqe;
+	memcpy(&cqe, cqe_src, sizeof(cqe));
+	__atomic_store_n(cq_head_ptr, cq_head_next, __ATOMIC_RELEASE);
+	return (cqe.user_data == 0x12345 || cqe.user_data == 0x23456) ? (long)cqe.res : (long)-1;
+}
+
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_io_uring_submit
+
+static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
+{
+	char* ring_ptr = (char*)a0;
+	char* sqes_ptr = (char*)a1;
+	char* sqe = (char*)a2;
+	uint32 sqes_index = (uint32)a3;
+
+	uint32 sq_ring_entries = *(uint32*)(ring_ptr + SQ_RING_ENTRIES_OFFSET);
+	uint32 cq_ring_entries = *(uint32*)(ring_ptr + CQ_RING_ENTRIES_OFFSET);
+	uint32 sq_array_off = SQ_ARRAY_OFFSET(sq_ring_entries, cq_ring_entries);
+	if (sq_ring_entries)
+		sqes_index %= sq_ring_entries;
+	char* sqe_dest = sqes_ptr + sqes_index * SIZEOF_IO_URING_SQE;
+	memcpy(sqe_dest, sqe, SIZEOF_IO_URING_SQE);
+	uint32 sq_ring_mask = *(uint32*)(ring_ptr + SQ_RING_MASK_OFFSET);
+	uint32* sq_tail_ptr = (uint32*)(ring_ptr + SQ_TAIL_OFFSET);
+	uint32 sq_tail = *sq_tail_ptr & sq_ring_mask;
+	uint32 sq_tail_next = *sq_tail_ptr + 1;
+	uint32* sq_array = (uint32*)(ring_ptr + sq_array_off);
+	*(sq_array + sq_tail) = sqes_index;
+	__atomic_store_n(sq_tail_ptr, sq_tail_next, __ATOMIC_RELEASE);
+	return 0;
+}
+
+#endif
+
+#endif
+#if SYZ_EXECUTOR || __NR_syz_memcpy_off
+static long syz_memcpy_off(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4)
+{
+	char* dest = (char*)a0;
+	uint32 dest_off = (uint32)a1;
+	char* src = (char*)a2;
+	uint32 src_off = (uint32)a3;
+	size_t n = (size_t)a4;
+
+	return (long)memcpy(dest + dest_off, src + src_off, n);
+}
+#endif
+
 #if SYZ_EXECUTOR || SYZ_REPEAT && SYZ_NET_INJECTION
 static void flush_tun()
 {
