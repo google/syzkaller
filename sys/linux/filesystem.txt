@@ -194,14 +194,7 @@ fs_options_security [
 	smackfstransmute	fs_opt_str["smackfstransmute"]
 
 # IMA options:
-	measure			stringnoz["measure"]
-	dont_measure		stringnoz["dont_measure"]
-	appraise		stringnoz["appraise"]
-	dont_appraise		stringnoz["dont_appraise"]
-	audit			stringnoz["audit"]
-	hash			stringnoz["hash"]
-	dont_hash		stringnoz["dont_hash"]
-	permit_directio		stringnoz["permit_directio"]
+	action			stringnoz[ima_action]
 	obj_user		fs_opt_str["obj_user"]
 	obj_role		fs_opt_str["obj_role"]
 	obj_type		fs_opt_str["obj_type"]
@@ -212,6 +205,7 @@ fs_options_security [
 	mask			fs_opt["mask", stringnoz[ima_masks]]
 	fsmagic			fs_opt_hex["fsmagic", intptr]
 	fsname			fs_opt_str["fsname"]
+	keyrings		fs_opt["keyrings", ima_keyring_list]
 	fsuuid			fs_opt["fsuuid", uuid_str]
 	uid_eq			fs_opt_dec["uid", uid]
 	euid_eq			fs_opt_dec["euid", uid]
@@ -222,8 +216,11 @@ fs_options_security [
 	uid_lt			fs_opt_nodelim["uid<", fmt[dec, uid]]
 	euid_lt			fs_opt_nodelim["euid<", fmt[dec, uid]]
 	fowner_lt		fs_opt_nodelim["fowner<", fmt[dec, uid]]
-	appraise_type		stringnoz["appraise_type=imasig"]
+	appraise_type		fs_opt["appraise_type", stringnoz[ima_appraise_type]]
+	appraise_flag		stringnoz["appraise_flag=check_blacklist"]
+	permit_directio		stringnoz["permit_directio"]
 	pcr			fs_opt_dec["pcr", int64[0:64]]
+	template		fs_opt["template", stringnoz[ima_template]]
 ] [varlen]
 
 uuid_str {
@@ -240,8 +237,24 @@ uuid_str {
 
 hex_chars = '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
 
-ima_funcs = "FILE_CHECK", "PATH_CHECK", "MODULE_CHECK", "FIRMWARE_CHECK", "FILE_MMAP", "MMAP_CHECK", "BPRM_CHECK", "CREDS_CHECK", "KEXEC_KERNEL_CHECK", "KEXEC_INITRAMFS_CHECK", "POLICY_CHECK"
+ima_action = "measure", "dont_measure", "appraise", "dont_appraise", "audit", "hash", "dont_hash"
+ima_funcs = "FILE_CHECK", "PATH_CHECK", "MODULE_CHECK", "FIRMWARE_CHECK", "FILE_MMAP", "MMAP_CHECK", "BPRM_CHECK", "CREDS_CHECK", "KEXEC_KERNEL_CHECK", "KEXEC_INITRAMFS_CHECK", "POLICY_CHECK", "KEXEC_CMDLINE", "KEY_CHECK"
 ima_masks = "MAY_EXEC", "MAY_WRITE", "MAY_READ", "MAY_APPEND", "^MAY_EXEC", "^MAY_WRITE", "^MAY_READ", "^MAY_APPEND"
+ima_appraise_type = "imasig", "imasig|modsig"
+ima_template = "ima", "ima-ng", "ima-sig", "ima-buf", "ima-modsig"
+# from security/integrity/digsig.c keyring_name
+# TODO: other values? .persistent_register, .dns_resolver?
+ima_keyrings = ".builtin_trusted_keys", ".secondary_trusted_keys", "_ima", "_evm", ".ima", ".evm", ".platform"
+
+type ima_opt_keyring[ELEMS] {
+	elem	ELEMS
+	or	const['|', int8]
+} [packed]
+
+ima_keyring_list {
+	list	array[ima_opt_keyring[stringnoz[ima_keyrings]]]
+	final	stringnoz[ima_keyrings]
+} [packed]
 
 msdos_options [
 	fat	fat_options
