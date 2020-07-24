@@ -607,6 +607,7 @@ __NR_clone = 220
 __NR_clone3 = 435
 __NR_close = 57
 __NR_close_range = 436
+__NR_copy_file_range = 285
 # __NR_creat is not set
 __NR_delete_module = 106
 __NR_dup = 23
