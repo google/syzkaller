@@ -96,8 +96,10 @@ writev(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec])
 pwritev(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec], off_low int32, off_high int32)
 pwritev2(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec], off_low int32, off_high int32, flags flags[rwf_flags])
 lseek(fd fd, offset fileoff, whence flags[seek_whence])
+copy_file_range(fd_in fd, off_in ptr[inout, fileoff[int64], opt], fd_out fd, off_out ptr[inout, fileoff[int64], opt], len intptr, flags flags[copy_file_range_flags])
 
 rwf_flags = RWF_DSYNC, RWF_HIPRI, RWF_SYNC, RWF_NOWAIT, RWF_APPEND
+copy_file_range_flags = 0
 
 dup(oldfd fd) fd
 dup2(oldfd fd, newfd fd) fd
