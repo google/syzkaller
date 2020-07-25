@@ -28,6 +28,19 @@ _lwp_setname(target lwpid, name ptr[in, string])
 _lwp_getname(target lwpid, name ptr[out, string], size bytesize[name])
 _lwp_ctl(features int32, address ptr[in, ptr[in, lwpctl]])
 
+resource semid[intptr]
+
+_ksem_init(val int32, idp ptr[out, semid])
+_ksem_open(name buffer[in], oflag flags[semopen_flags], mode flags[open_mode], val int32, idp ptr[in, semid])
+_ksem_unlink(name buffer[in])
+_ksem_close(id semid)
+_ksem_post(id semid)
+_ksem_wait(id semid)
+_ksem_trywait(id semid)
+_ksem_getvalue(id semid, val ptr[out, int32])
+_ksem_destroy(id semid)
+_ksem_timedwait(id semid)
+
 ucontext_t {
 	uc_flags	flags[ucontext_flags, int32]
 	uc_link		ptr[in, ucontext_t, opt]
@@ -60,3 +73,4 @@ lwpctl {
 lwp_flags = LWP_DETACHED, LWP_SUSPENDED
 ucontext_flags = _UC_SIGMASK, _UC_STACK, _UC_CPU, _UC_FPU, _UC_MD
 stack_flags = SS_DISABLE, SS_ONSTACK
+semopen_flags = O_CREAT, O_EXCL
