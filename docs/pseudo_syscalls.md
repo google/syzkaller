@@ -72,20 +72,6 @@ are violated (e.g. passing `NULL` to a `non-NULL` argument, or passing
 `-1` as file descriptor) and produce errors/warnings. `volatile` prevents
 that.
 
-The implementation must not use any external libraries nor external headers,
-except for the most basic and standard ones (like `<unistd.h>` and
-`<sys/mman.h>`). In particular, it must not depend on libraries/headers
-installed by additional packages nor on headers for recently added kernel
-subsystems. External dependencies have proved to be brittle and easily cause
-build breakage because all dependencies will be required for any build/run on
-the fuzzer and any C reproducer. For example, packages/headers may be missing
-on some distros, named differently, be of a wrong version, broken, or conflict
-with other headers. Unfortunately, there is no way to reliably specify such
-dependencies and requirements for C programs. Therefore, if the pseudo-syscall
-requires definitions of some structures, constants, or helper functions, these
-should be described in the executor code itself as minimally as possible (they
-will be part of C reproducers).
-
 Now, to handle the pseudo-syscall properly we have to update the
 `isSupportedSyzkall` in
 [syscalls_linux.go](../pkg/host/syscalls_linux.go) and add a particular
@@ -103,3 +89,36 @@ Finally, run `make generate`. Now you can use it in a syscall
 description file as if it was a regular system call:
 
     syz_mycall(arg0 pid, arg1 const[0])
+
+<div id="dependencies"/>
+
+## External Dependencies
+
+The implementation must not use any external libraries nor external headers,
+except for the most basic and standard ones (like `<unistd.h>` and
+`<sys/mman.h>`). In particular, it must not depend on libraries/headers
+installed by additional packages nor on headers for recently added kernel
+subsystems. External dependencies have proved to be brittle and easily cause
+build breakage because all dependencies will be required for any build/run on
+the fuzzer and any C reproducer. For example, packages/headers may be missing
+on some distros, named differently, be of a wrong version, broken, or conflict
+with other headers. Unfortunately, there is no way to reliably specify such
+dependencies and requirements for C programs. Therefore, if the pseudo-syscall
+requires definitions of some structures, constants, or helper functions, these
+should be described in the executor code itself as minimally as possible (they
+will be part of C reproducers).
+
+## Testing
+
+Each new pseudo-syscall should have at least one test in `sys/OS/test`.
+See [Linux tests](/sys/linux/test) for an example. A tests is just a program
+with checked syscall return values. There should be at least one test
+that contains "the main successful scenario" of using the pseudo-syscall.
+See [io_uring test](/sys/linux/test/io_uring) as a good example.
+Such tests are important because they ensure that the pseudo-syscall code
+does not contain "stupid" bugs (e.g. crash on NULL-deref each time),
+that it is possible for the fuzzer to come up with the successful scenario
+(as a combination of the pseudo-syscall and the surrounding descriptions)
+and that it will continue to work in future.
+See [Testing of descriptions](syscall_descriptions.md#testing)
+for details about the tests.

@@ -252,3 +252,44 @@ remember to add `CROSS_COMPILE=arm-linux-gnueabi-/aarch64-linux-gnu-/powerpc64le
 If the kernel was built into a separate directory (with `make O=output_dir`, remember to put .config
 into output_dir, this will be helpful if you'd like to work on different arch at the same time)
 then also set `$LINUXBLD` to the location of the build directory.
+
+<div id="testing"/>
+
+### Testing of descriptions
+
+Descriptions themselves may contain bugs. After running `syz-manager` with the new descriptions
+it's always useful to check the kernel code coverage report available in the `syz-manager` web UI.
+The report allows to assess if everything one expects to be covered is in fact covered,
+and if not, where the fuzzer gets stuck. However, this is a useful but quite indirect assessment
+of the descriptions correctness. The fuzzer may get around some bugs in the descriptions by diverging
+from what the descriptions say, but it makes it considerably harder for the fuzzer to progress.
+
+Tests stored in `sys/OS/test/*` provide a more direct testing of the descriptions. Each test is just
+a program with checked syscall return values. The syntax of the programs is not currently documented,
+but look at the [existing examples](/sys/linux/test) and at the program [deserialization code](/prog/encoding.go).
+`AUTO` keyword can be used as a value for consts and pointers, for pointers it will lead to
+some reasonable sequential allocation of memory addresses.
+
+It's always good to add a test at least for "the main successful scenario" for the subsystem.
+It will ensure that the descriptions are actually correct and that it's possible for the fuzzer
+to come up with the successful scenario. See [io_uring test](/sys/linux/test/io_uring) as a good example.
+
+The tests can be run with the `syz-runtest` utility as:
+```
+make runtest && bin/syz-runtest -config manager.config
+```
+`syz-runtest` boots multiple VMs and runs these tests in different execution modes inside of the VMs.
+
+However, full `syz-runtest` run takes time, so while developing the test, it's more handy to run it
+using the `syz-execprog` utility. To run the test, copy `syz-execprog`, `syz-executor` and the test
+into a manually booted VM and then run the following command inside of the VM:
+```
+syz-execprog -debug -threaded=0 mytest
+```
+It will show results of all executed syscalls. It's also handy for manual debugging of pseudo-syscall code:
+if you add some temporal `debug` calls to the pseudo-syscall, `syz-execprog -debug` will show their output.
+
+The test syntax can be checked by running:
+```
+go test -run=TestSysTests ./pkg/csource
+```
