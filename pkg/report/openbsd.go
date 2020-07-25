@@ -117,12 +117,19 @@ var openbsdOopses = append([]*oops{
 		[]byte("uvm_fault("),
 		[]oopsFormat{
 			{
-				title: compile("uvm_fault\\((?:.*\\n)+?.*Stopped at[ ]+{{ADDR}}"),
-				fmt:   "uvm_fault",
+				title:  compile("uvm_fault\\((?:.*\\n)+?.*Stopped at[ ]+{{ADDR}}"),
+				report: compile("uvm_fault\\((?:.*\\n)+?.*end trace frame"),
+				fmt:    "uvm_fault",
 			},
 			{
-				title: compile("uvm_fault\\((?:.*\\n)+?.*Stopped at[ ]+([^\\+]+)"),
-				fmt:   "uvm_fault: %[1]v",
+				title:  compile("uvm_fault\\((?:.*\\n)+?.*Stopped at[ ]+([^\\+]+)"),
+				report: compile("uvm_fault\\((?:.*\\n)+?.*Stopped at[ ]+([^\\+]+)\\((?:.*\\n)+?.*end trace frame"),
+				fmt:    "uvm_fault: %[1]v",
+			},
+			{
+				title:     compile("uvm_fault\\("),
+				fmt:       "uvm_fault",
+				corrupted: true,
 			},
 		},
 		[]*regexp.Regexp{},
