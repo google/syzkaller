@@ -503,7 +503,9 @@ func checkResult(req *RunRequest) error {
 				if len(inf.Signal) < 2 && !calls[callName] && len(info.Extra.Signal) == 0 {
 					return fmt.Errorf("run %v: call %v: no signal", run, i)
 				}
-				if len(inf.Cover) == 0 {
+				// syz_btf_id_by_name is a pseudo-syscall that might not provide
+				// any coverage when invoked.
+				if len(inf.Cover) == 0 && callName != "syz_btf_id_by_name" {
 					return fmt.Errorf("run %v: call %v: no cover", run, i)
 				}
 				calls[callName] = true

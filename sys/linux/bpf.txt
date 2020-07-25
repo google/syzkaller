@@ -48,7 +48,7 @@ bpf$BPF_GET_PROG_INFO(cmd const[BPF_OBJ_GET_INFO_BY_FD], arg ptr[in, bpf_get_pro
 bpf$BPF_GET_MAP_INFO(cmd const[BPF_OBJ_GET_INFO_BY_FD], arg ptr[in, bpf_get_map_info_arg], size len[arg])
 bpf$BPF_GET_BTF_INFO(cmd const[BPF_OBJ_GET_INFO_BY_FD], arg ptr[in, bpf_get_btf_info_arg], size len[arg])
 bpf$BPF_PROG_QUERY(cmd const[BPF_PROG_QUERY], arg ptr[in, bpf_prog_query], size len[arg])
-bpf$BPF_RAW_TRACEPOINT_OPEN(cmd const[BPF_RAW_TRACEPOINT_OPEN], arg ptr[in, bpf_raw_tracepoint], size len[arg]) fd_perf_base
+bpf$BPF_RAW_TRACEPOINT_OPEN(cmd const[BPF_RAW_TRACEPOINT_OPEN], arg ptr[in, bpf_raw_tracepoint], size len[arg]) fd_perf_base (timeout[500])
 bpf$BPF_BTF_LOAD(cmd const[BPF_BTF_LOAD], arg ptr[in, bpf_btf_load], size len[arg]) fd_btf
 bpf$BPF_BTF_GET_FD_BY_ID(cmd const[BPF_BTF_GET_FD_BY_ID], arg ptr[in, bpf_btf_id], size len[arg]) fd_btf
 bpf$BPF_TASK_FD_QUERY(cmd const[BPF_TASK_FD_QUERY], arg ptr[inout, bpf_task_fd_query], size len[arg])
@@ -162,8 +162,8 @@ bpf_batch_flags = BPF_F_LOCK
 define BPF_LINE_INFO_SIZE	sizeof(struct bpf_line_info)
 define BPF_FUNC_INFO_SIZE	sizeof(struct bpf_func_info)
 
-bpf_prog {
-	type			flags[bpf_prog_type, int32]
+type bpf_prog_t[TYPE, ATTACH_TYPE, BTF_ID, PROG_FD] {
+	type			TYPE
 	ninsn			bytesize8[insns, int32]
 	insns			ptr64[in, bpf_instructions]
 	license			ptr64[in, string[bpf_licenses]]
@@ -174,7 +174,7 @@ bpf_prog {
 	flags			flags[bpf_prog_load_flags, int32]
 	prog_name		array[const[0, int8], BPF_OBJ_NAME_LEN]
 	prog_ifindex		ifindex[opt]
-	expected_attach_type	flags[bpf_attach_type, int32]
+	expected_attach_type	ATTACH_TYPE
 	btf_fd			fd_btf[opt]
 	func_info_rec_size	const[BPF_FUNC_INFO_SIZE, int32]
 	func_info		ptr64[in, bpf_func_info]
@@ -182,9 +182,11 @@ bpf_prog {
 	line_info_rec_size	const[BPF_LINE_INFO_SIZE, int32]
 	line_info		ptr64[in, bpf_line_info]
 	line_info_cnt		len[line_info, int32]
-	attach_btf_id		bpf_btf_id[opt]
-	attach_prog_fd		fd_bpf_prog[opt]
+	attach_btf_id		BTF_ID
+	attach_prog_fd		PROG_FD
 }
+
+type bpf_prog bpf_prog_t[flags[bpf_prog_type, int32], flags[bpf_attach_type, int32], bpf_btf_id[opt], fd_bpf_prog[opt]]
 
 bpf_licenses = "GPL", "syzkaller"
 bpf_kern_version = 0x40f00, 0x41000, 0x41100

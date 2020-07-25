@@ -3660,6 +3660,171 @@ static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile lon
 #endif
 
 #endif
+
+#if SYZ_EXECUTOR || __NR_syz_btf_id_by_name
+
+#include <errno.h>
+#include <fcntl.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#define BTF_MAGIC 0xeB9F
+
+struct btf_header {
+	__u16 magic;
+	__u8 version;
+	__u8 flags;
+	__u32 hdr_len;
+	__u32 type_off;
+	__u32 type_len;
+	__u32 str_off;
+	__u32 str_len;
+};
+
+#define BTF_INFO_KIND(info) (((info) >> 24) & 0x0f)
+#define BTF_INFO_VLEN(info) ((info)&0xffff)
+
+#define BTF_KIND_INT 1
+#define BTF_KIND_ARRAY 3
+#define BTF_KIND_STRUCT 4
+#define BTF_KIND_UNION 5
+#define BTF_KIND_ENUM 6
+#define BTF_KIND_FUNC_PROTO 13
+#define BTF_KIND_VAR 14
+#define BTF_KIND_DATASEC 15
+
+struct btf_type {
+	__u32 name_off;
+	__u32 info;
+	union {
+		__u32 size;
+		__u32 type;
+	};
+};
+
+struct btf_enum {
+	__u32 name_off;
+	__s32 val;
+};
+
+struct btf_array {
+	__u32 type;
+	__u32 index_type;
+	__u32 nelems;
+};
+
+struct btf_member {
+	__u32 name_off;
+	__u32 type;
+	__u32 offset;
+};
+
+struct btf_param {
+	__u32 name_off;
+	__u32 type;
+};
+
+struct btf_var {
+	__u32 linkage;
+};
+
+struct btf_var_secinfo {
+	__u32 type;
+	__u32 offset;
+	__u32 size;
+};
+#define VMLINUX_MAX_SUPPORT_SIZE (10 * 1024 * 1024)
+static char* read_btf_vmlinux()
+{
+	static bool is_read = false;
+	static char buf[VMLINUX_MAX_SUPPORT_SIZE];
+	if (is_read)
+		return buf;
+
+	int fd = open("/sys/kernel/btf/vmlinux", O_RDONLY);
+	if (fd < 0)
+		return NULL;
+
+	unsigned long bytes_read = 0;
+	for (;;) {
+		ssize_t ret = read(fd, buf + bytes_read,
+				   VMLINUX_MAX_SUPPORT_SIZE - bytes_read);
+
+		if (ret < 0 || bytes_read + ret == VMLINUX_MAX_SUPPORT_SIZE)
+			return NULL;
+
+		if (ret == 0)
+			break;
+
+		bytes_read += ret;
+	}
+
+	is_read = true;
+	return buf;
+}
+static long syz_btf_id_by_name(volatile long a0)
+{
+	char* target = (char*)a0;
+
+	char* vmlinux = read_btf_vmlinux();
+	if (vmlinux == NULL)
+		return -1;
+
+	struct btf_header* btf_header = (struct btf_header*)vmlinux;
+	if (btf_header->magic != BTF_MAGIC)
+		return -1;
+	char* btf_type_sec = vmlinux + btf_header->hdr_len + btf_header->type_off;
+	char* btf_str_sec = vmlinux + btf_header->hdr_len + btf_header->str_off;
+	unsigned int bytes_parsed = 0;
+	long idx = 1;
+	while (bytes_parsed < btf_header->type_len) {
+		struct btf_type* btf_type = (struct btf_type*)(btf_type_sec + bytes_parsed);
+		uint32 kind = BTF_INFO_KIND(btf_type->info);
+		uint32 vlen = BTF_INFO_VLEN(btf_type->info);
+		char* name = btf_str_sec + btf_type->name_off;
+
+		if (strcmp(name, target) == 0)
+			return idx;
+		size_t skip;
+		switch (kind) {
+		case BTF_KIND_INT:
+			skip = sizeof(uint32);
+			break;
+		case BTF_KIND_ENUM:
+			skip = sizeof(struct btf_enum) * vlen;
+			break;
+		case BTF_KIND_ARRAY:
+			skip = sizeof(struct btf_array);
+			break;
+		case BTF_KIND_STRUCT:
+		case BTF_KIND_UNION:
+			skip = sizeof(struct btf_member) * vlen;
+			break;
+		case BTF_KIND_FUNC_PROTO:
+			skip = sizeof(struct btf_param) * vlen;
+			break;
+		case BTF_KIND_VAR:
+			skip = sizeof(struct btf_var);
+			break;
+		case BTF_KIND_DATASEC:
+			skip = sizeof(struct btf_var_secinfo) * vlen;
+			break;
+		default:
+			skip = 0;
+		}
+
+		bytes_parsed += sizeof(struct btf_type) + skip;
+		idx++;
+	}
+
+	return -1;
+}
+
+#endif
 #if SYZ_EXECUTOR || __NR_syz_memcpy_off
 static long syz_memcpy_off(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4)
 {
