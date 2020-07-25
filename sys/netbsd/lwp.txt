@@ -3,6 +3,7 @@
 
 include <sys/types.h>
 include <sys/lwp.h>
+include <sys/fcntl.h>
 include <sys/lwpctl.h>
 include <sys/ucontext.h>
 include <sys/signal.h>
