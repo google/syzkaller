@@ -68,17 +68,23 @@ l2cap_cmd_rej_unk {
 	reason	int16
 } [packed]
 
+l2cap_conf_opt {
+	type	int8
+	len	bytesize[val, int8]
+	val	array[int8]
+} [packed]
+
 l2cap_conf_req {
 	dcid	int16
 	flags	int16
-	data	array[int8]
+	data	array[l2cap_conf_opt]
 } [packed]
 
 l2cap_conf_rsp {
 	scid	int16
 	flags	int16
 	result	int16
-	data	array[int8]
+	data	array[l2cap_conf_opt]
 } [packed]
 
 l2cap_conn_param_update_req {
