@@ -216,7 +216,7 @@ bdaddr_types = ADDR_LE_DEV_PUBLIC, ADDR_LE_DEV_RANDOM
 extended_inquiry_info_t {
 	num_rsp	len[rsps, int8]
 	rsps	array[extended_inquiry_info]
-}
+} [packed]
 
 extended_inquiry_info {
 	bdaddr			bdaddr_t
