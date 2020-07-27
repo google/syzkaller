@@ -1717,7 +1717,6 @@ static bool process_command_pkt(int fd, char* buf, ssize_t buf_size)
 	if (buf_size < (ssize_t)sizeof(struct hci_command_hdr) ||
 	    hdr->plen != buf_size - sizeof(struct hci_command_hdr)) {
 		fail("invalid size: %zx\n", buf_size);
-		return false;
 	}
 
 	switch (hdr->opcode) {
@@ -1793,7 +1792,7 @@ static void initialize_vhci()
 	vhci_fd = kVhciFd;
 
 	struct vhci_vendor_pkt vendor_pkt;
-	if (read(vhci_fd, &vendor_pkt, sizeof(vendor_pkt)) < 0)
+	if (read(vhci_fd, &vendor_pkt, sizeof(vendor_pkt)) != sizeof(vendor_pkt))
 		fail("read failed");
 
 	if (vendor_pkt.type != HCI_VENDOR_PKT)
