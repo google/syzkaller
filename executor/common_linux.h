@@ -1647,6 +1647,42 @@ struct hci_rp_read_bd_addr {
 	bdaddr_t bdaddr;
 } __attribute__((packed));
 
+struct hci_dev_stats {
+	uint32 err_rx;
+	uint32 err_tx;
+	uint32 cmd_tx;
+	uint32 evt_rx;
+	uint32 acl_tx;
+	uint32 acl_rx;
+	uint32 sco_tx;
+	uint32 sco_rx;
+	uint32 byte_rx;
+	uint32 byte_tx;
+};
+
+struct hci_dev_info {
+	uint16 dev_id;
+	char name[8];
+
+	bdaddr_t bdaddr;
+
+	uint32 flags;
+	uint8 type;
+
+	uint8 features[8];
+
+	uint32 pkt_type;
+	uint32 link_policy;
+	uint32 link_mode;
+
+	uint16 acl_mtu;
+	uint16 acl_pkts;
+	uint16 sco_mtu;
+	uint16 sco_pkts;
+
+	struct hci_dev_stats stat;
+};
+
 struct hci_dev_req {
 	uint16 dev_id;
 	uint32 dev_opt;
@@ -1655,6 +1691,7 @@ struct hci_dev_req {
 #define HCI_MAX_DEV 16
 
 #define HCIDEVUP _IOW('H', 201, int)
+#define HCIGETDEVINFO _IOR('H', 211, int)
 #define HCISETSCAN _IOW('H', 221, int)
 
 static int vhci_fd = -1;
@@ -1754,12 +1791,21 @@ static void* event_thread(void* arg)
 		if (buf_size > 0 && buf[0] == HCI_COMMAND_PKT)
 			process_command_pkt(vhci_fd, buf + 1, buf_size - 1);
 	}
-
 	return NULL;
 }
 
 #define ACL_HANDLE 256
 #define HCI_DEV 0
+
+static void find_registered_hci_devices(int hci_sock, bool devs[HCI_MAX_DEV])
+{
+	for (int i = 0; i < HCI_MAX_DEV; i++) {
+		struct hci_dev_info info = {0};
+		info.dev_id = i;
+		if (ioctl(hci_sock, HCIGETDEVINFO, &info) == 0)
+			devs[i] = true;
+	}
+}
 
 static void initialize_vhci()
 {
@@ -1771,6 +1817,9 @@ static void initialize_vhci()
 	int hci_sock = syz_init_net_socket(AF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI);
 	if (hci_sock < 0)
 		fail("syz_init_net_socket failed");
+
+	bool devs_before[HCI_MAX_DEV] = {0};
+	find_registered_hci_devices(hci_sock, devs_before);
 
 	vhci_fd = open("/dev/vhci", O_RDWR);
 	if (vhci_fd == -1)
@@ -1795,20 +1844,30 @@ static void initialize_vhci()
 	if (write(vhci_fd, setup_cmd, sizeof(setup_cmd)) < 0)
 		fail("write failed");
 
-	// Try all possible dev ids. Do this lazy hack instead of getting all devices
-	// from before and after opening /dev/vhci and figuring what was added.
-	for (int i = 0; i < HCI_MAX_DEV; i++) {
-		// Bring hci device up
-		if (ioctl(hci_sock, HCIDEVUP, i) && errno != EALREADY && errno != ENODEV)
-			fail("ioctl(HCIDEVUP) failed");
+	bool devs_after[HCI_MAX_DEV] = {0};
+	find_registered_hci_devices(hci_sock, devs_after);
 
-		// Activate page scanning mode which is required to fake a connection.
-		struct hci_dev_req dr = {0};
-		dr.dev_id = i;
-		dr.dev_opt = SCAN_PAGE;
-		if (ioctl(hci_sock, HCISETSCAN, &dr) && errno != ENODEV)
-			fail("ioctl(HCISETSCAN) failed");
+	int new_dev = -1;
+	for (int i = 0; i < HCI_MAX_DEV; i++) {
+		if (devs_before[i] != devs_after[i]) {
+			new_dev = i;
+			break;
+		}
 	}
+	if (new_dev == -1)
+		fail("no new hci device found");
+	debug("new device: %d\n", new_dev);
+
+	// Bring hci device up
+	if (ioctl(hci_sock, HCIDEVUP, new_dev) && errno != EALREADY)
+		fail("ioctl(HCIDEVUP) failed");
+
+	// Activate page scanning mode which is required to fake a connection.
+	struct hci_dev_req dr = {0};
+	dr.dev_id = new_dev;
+	dr.dev_opt = SCAN_PAGE;
+	if (ioctl(hci_sock, HCISETSCAN, &dr))
+		fail("ioctl(HCISETSCAN) failed");
 
 	// Fake a connection with bd address aa:aa:aa:aa:aa:aa.
 	// This is a fixed address used in sys/linux/socket_bluetooth.txt.
