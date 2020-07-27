@@ -5179,55 +5179,21 @@ struct hci_rp_read_bd_addr {
 	bdaddr_t bdaddr;
 } __attribute__((packed));
 
-struct hci_dev_stats {
-	uint32 err_rx;
-	uint32 err_tx;
-	uint32 cmd_tx;
-	uint32 evt_rx;
-	uint32 acl_tx;
-	uint32 acl_rx;
-	uint32 sco_tx;
-	uint32 sco_rx;
-	uint32 byte_rx;
-	uint32 byte_tx;
-};
-
-struct hci_dev_info {
-	uint16 dev_id;
-	char name[8];
-
-	bdaddr_t bdaddr;
-
-	uint32 flags;
-	uint8 type;
-
-	uint8 features[8];
-
-	uint32 pkt_type;
-	uint32 link_policy;
-	uint32 link_mode;
-
-	uint16 acl_mtu;
-	uint16 acl_pkts;
-	uint16 sco_mtu;
-	uint16 sco_pkts;
-
-	struct hci_dev_stats stat;
-};
-
 struct hci_dev_req {
 	uint16 dev_id;
 	uint32 dev_opt;
 };
 
-#define HCI_MAX_DEV 16
+struct vhci_vendor_pkt {
+	uint8 type;
+	uint8 opcode;
+	uint16 id;
+};
 
 #define HCIDEVUP _IOW('H', 201, int)
-#define HCIGETDEVINFO _IOR('H', 211, int)
 #define HCISETSCAN _IOW('H', 221, int)
 
 static int vhci_fd = -1;
-static int vhci_init = 0;
 
 static void hci_send_event_packet(int fd, uint8 evt, void* data, size_t data_len)
 {
@@ -5277,26 +5243,28 @@ static void hci_send_event_cmd_complete(int fd, uint16 opcode, void* data, size_
 		fail("writev failed");
 }
 
-static void process_command_pkt(int fd, char* buf, size_t buf_size)
+static bool process_command_pkt(int fd, char* buf, ssize_t buf_size)
 {
 	struct hci_command_hdr* hdr = (struct hci_command_hdr*)buf;
-	if (buf_size < sizeof(struct hci_command_hdr) ||
+	if (buf_size < (ssize_t)sizeof(struct hci_command_hdr) ||
 	    hdr->plen != buf_size - sizeof(struct hci_command_hdr)) {
 		fail("invalid size: %zx\n", buf_size);
-		return;
+		return false;
 	}
 
 	switch (hdr->opcode) {
-	case HCI_OP_WRITE_SCAN_ENABLE:
-		vhci_init = 1;
-		break;
+	case HCI_OP_WRITE_SCAN_ENABLE: {
+		uint8 status = 0;
+		hci_send_event_cmd_complete(fd, hdr->opcode, &status, sizeof(status));
+		return true;
+	}
 	case HCI_OP_READ_BD_ADDR: {
 		struct hci_rp_read_bd_addr rp = {0};
 		rp.status = 0;
 		uint64 macaddr = 0xbbbbbbbbbb00 + procid;
 		memcpy(&rp.bdaddr, &macaddr, 6);
 		hci_send_event_cmd_complete(fd, hdr->opcode, &rp, sizeof(rp));
-		return;
+		return false;
 	}
 	case HCI_OP_READ_BUFFER_SIZE: {
 		struct hci_rp_read_buffer_size rp = {0};
@@ -5306,38 +5274,32 @@ static void process_command_pkt(int fd, char* buf, size_t buf_size)
 		rp.acl_max_pkt = 4;
 		rp.sco_max_pkt = 6;
 		hci_send_event_cmd_complete(fd, hdr->opcode, &rp, sizeof(rp));
-		return;
+		return false;
 	}
 	}
 
-	char status[0xf9] = {0};
-	hci_send_event_cmd_complete(fd, hdr->opcode, status, sizeof(status));
+	char dummy[0xf9] = {0};
+	hci_send_event_cmd_complete(fd, hdr->opcode, dummy, sizeof(dummy));
+	return false;
 }
 
 static void* event_thread(void* arg)
 {
-	while (!vhci_init) {
+	while (1) {
 		char buf[1024] = {0};
-		size_t buf_size = read(vhci_fd, buf, sizeof(buf));
+		ssize_t buf_size = read(vhci_fd, buf, sizeof(buf));
+		if (buf_size < 0)
+			fail("read failed");
 		debug_dump_data(buf, buf_size);
-		if (buf_size > 0 && buf[0] == HCI_COMMAND_PKT)
-			process_command_pkt(vhci_fd, buf + 1, buf_size - 1);
+		if (buf_size > 0 && buf[0] == HCI_COMMAND_PKT) {
+			if (process_command_pkt(vhci_fd, buf + 1, buf_size - 1))
+				break;
+		}
 	}
 	return NULL;
 }
 
 #define ACL_HANDLE 256
-#define HCI_DEV 0
-
-static void find_registered_hci_devices(int hci_sock, bool devs[HCI_MAX_DEV])
-{
-	for (int i = 0; i < HCI_MAX_DEV; i++) {
-		struct hci_dev_info info = {0};
-		info.dev_id = i;
-		if (ioctl(hci_sock, HCIGETDEVINFO, &info) == 0)
-			devs[i] = true;
-	}
-}
 
 static void initialize_vhci()
 {
@@ -5350,9 +5312,6 @@ static void initialize_vhci()
 	if (hci_sock < 0)
 		fail("syz_init_net_socket failed");
 
-	bool devs_before[HCI_MAX_DEV] = {0};
-	find_registered_hci_devices(hci_sock, devs_before);
-
 	vhci_fd = open("/dev/vhci", O_RDWR);
 	if (vhci_fd == -1)
 		fail("open /dev/vhci failed");
@@ -5362,32 +5321,22 @@ static void initialize_vhci()
 	close(vhci_fd);
 	vhci_fd = kVhciFd;
 
+	struct vhci_vendor_pkt vendor_pkt;
+	if (read(vhci_fd, &vendor_pkt, sizeof(vendor_pkt)) < 0)
+		fail("read failed");
+
+	if (vendor_pkt.type != HCI_VENDOR_PKT)
+		fail("wrong response packet");
+
+	debug("hci dev id: %x\n", vendor_pkt.id);
+
 	pthread_t th;
 	if (pthread_create(&th, NULL, event_thread, NULL))
 		fail("pthread_create failed");
-	uint8 setup_cmd[2];
-	setup_cmd[0] = HCI_VENDOR_PKT;
-	setup_cmd[1] = 0;
-	if (write(vhci_fd, setup_cmd, sizeof(setup_cmd)) < 0)
-		fail("write failed");
-
-	bool devs_after[HCI_MAX_DEV] = {0};
-	find_registered_hci_devices(hci_sock, devs_after);
-
-	int new_dev = -1;
-	for (int i = 0; i < HCI_MAX_DEV; i++) {
-		if (devs_before[i] != devs_after[i]) {
-			new_dev = i;
-			break;
-		}
-	}
-	if (new_dev == -1)
-		fail("no new hci device found");
-	debug("new device: %d\n", new_dev);
-	if (ioctl(hci_sock, HCIDEVUP, new_dev) && errno != EALREADY)
+	if (ioctl(hci_sock, HCIDEVUP, vendor_pkt.id) && errno != EALREADY)
 		fail("ioctl(HCIDEVUP) failed");
 	struct hci_dev_req dr = {0};
-	dr.dev_id = new_dev;
+	dr.dev_id = vendor_pkt.id;
 	dr.dev_opt = SCAN_PAGE;
 	if (ioctl(hci_sock, HCISETSCAN, &dr))
 		fail("ioctl(HCISETSCAN) failed");
