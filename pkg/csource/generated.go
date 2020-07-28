@@ -5260,8 +5260,7 @@ static bool process_command_pkt(int fd, char* buf, ssize_t buf_size)
 	case HCI_OP_READ_BD_ADDR: {
 		struct hci_rp_read_bd_addr rp = {0};
 		rp.status = 0;
-		uint64 macaddr = 0xbbbbbbbbbb00 + procid;
-		memcpy(&rp.bdaddr, &macaddr, 6);
+		memset(&rp.bdaddr, 0xaa, 6);
 		hci_send_event_cmd_complete(fd, hdr->opcode, &rp, sizeof(rp));
 		return false;
 	}
