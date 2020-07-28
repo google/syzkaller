@@ -180,7 +180,8 @@ func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
 	}
 	com := res.Commits[0]
 	env.log("first %v commit: %v %v", what, com.Hash, com.Title)
-	env.log("cc: %q", com.CC)
+	env.log("recipients (to): %q", com.Recipients.GetEmails(vcs.To))
+	env.log("recipients (cc): %q", com.Recipients.GetEmails(vcs.Cc))
 	if res.Report != nil {
 		env.log("crash: %v\n%s", res.Report.Title, res.Report.Report)
 	}

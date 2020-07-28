@@ -167,8 +167,8 @@ func checkCommit(t *testing.T, idx int, test testCommit, com *Commit, checkTags 
 	if userName != com.AuthorName {
 		t.Errorf("#%v: want author name %q, got %q", idx, userName, com.Author)
 	}
-	if diff := cmp.Diff(test.cc, com.CC); diff != "" {
-		t.Logf("%#v", com.CC)
+	if diff := cmp.Diff(test.cc, com.Recipients.GetEmails(To)); diff != "" {
+		t.Logf("%#v", com.Recipients)
 		t.Error(diff)
 	}
 	if diff := cmp.Diff(test.tags, com.Tags); checkTags && diff != "" {

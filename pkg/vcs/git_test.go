@@ -37,7 +37,7 @@ Signed-off-by: Linux Master <linux@linux-foundation.org>
 			Title:      "rbtree: include rcu.h",
 			Author:     "foobar@foobar.de",
 			AuthorName: "Foo Bar",
-			CC: []string{
+			Recipients: NewRecipients([]string{
 				"and@me.com",
 				"another@email.de",
 				"foobar@foobar.de",
@@ -46,7 +46,7 @@ Signed-off-by: Linux Master <linux@linux-foundation.org>
 				"name@name.com",
 				"subsystem@reviewer.com",
 				"yetanother@email.org",
-			},
+			}, To),
 			Date: time.Date(2018, 5, 11, 16, 02, 14, 0, time.FixedZone("", -7*60*60)),
 		},
 	}
@@ -70,7 +70,7 @@ Signed-off-by: Linux Master <linux@linux-foundation.org>
 		if com.Author != res.Author {
 			t.Fatalf("want author %q, got %q", com.Author, res.Author)
 		}
-		if diff := cmp.Diff(com.CC, res.CC); diff != "" {
+		if diff := cmp.Diff(com.Recipients, res.Recipients); diff != "" {
 			t.Fatalf("bad CC: %v", diff)
 		}
 		if !com.Date.Equal(res.Date) {
