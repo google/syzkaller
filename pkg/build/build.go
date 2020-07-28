@@ -15,6 +15,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/pkg/vcs"
 )
 
 // Params is input arguments for the Image function.
@@ -90,10 +91,10 @@ func Clean(targetOS, targetArch, vmType, kernelDir string) error {
 }
 
 type KernelError struct {
-	Report      []byte
-	Output      []byte
-	Maintainers []string
-	guiltyFile  string
+	Report     []byte
+	Output     []byte
+	Recipients vcs.Recipients
+	guiltyFile string
 }
 
 func (err *KernelError) Error() string {
@@ -195,7 +196,7 @@ func extractRootCause(err error, OS, kernelSrc string) error {
 		if err != nil {
 			kernelErr.Output = append(kernelErr.Output, err.Error()...)
 		}
-		kernelErr.Maintainers = maintainers
+		kernelErr.Recipients = maintainers
 	}
 	return kernelErr
 }

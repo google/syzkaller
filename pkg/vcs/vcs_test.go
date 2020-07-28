@@ -4,7 +4,10 @@
 package vcs
 
 import (
+	"net/mail"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestCanonicalizeCommit(t *testing.T) {
@@ -153,5 +156,39 @@ func TestCommitLink(t *testing.T) {
 		if link != test.CommitLink {
 			t.Errorf("URL: %v\nhash: %v\nwant: %v\ngot:  %v", test.URL, test.Hash, test.CommitLink, link)
 		}
+	}
+}
+
+func TestParse(t *testing.T) {
+	// nolint: lll
+	test1 := []byte(`Foo (Maintainer) Bar <a@email.com> (maintainer:KERNEL)
+	Foo Bar(Reviewer) <b@email.com> (reviewer:KERNEL)
+	<somelist@list.com> (open list:FOO)
+	"Supporter Foo" <c@email.com> (supporter:KERNEL)
+	linux-kernel@vger.kernel.org (open list)`)
+	// nolint: lll
+	test2 := []byte(`Foo (Maintainer) Bar <a@email.com> (maintainer:KERNEL)
+	Foo Bar(Reviewer) <b@email.com> (reviewer:KERNEL)
+	"Supporter Foo" <c@email.com> (supporter:KERNEL)
+	linux-kernel@vger.kernel.org (open list)`)
+
+	maintainers1 := Recipients{{mail.Address{Name: "Foo (Maintainer) Bar", Address: "a@email.com"}, To},
+		{mail.Address{Name: "Foo Bar(Reviewer)", Address: "b@email.com"}, Cc},
+		{mail.Address{Name: "Supporter Foo", Address: "c@email.com"}, To},
+		{mail.Address{Name: "", Address: "linux-kernel@vger.kernel.org"}, Cc},
+		{mail.Address{Name: "", Address: "somelist@list.com"}, To}}
+	maintainers2 := Recipients{{mail.Address{Name: "Foo (Maintainer) Bar", Address: "a@email.com"}, To},
+		{mail.Address{Name: "Foo Bar(Reviewer)", Address: "b@email.com"}, Cc},
+		{mail.Address{Name: "Supporter Foo", Address: "c@email.com"}, To},
+		{mail.Address{Name: "", Address: "linux-kernel@vger.kernel.org"}, To}}
+
+	if diff := cmp.Diff(ParseMaintainersLinux(test1), maintainers1); diff != "" {
+		t.Fatal(diff)
+	}
+	if diff := cmp.Diff(ParseMaintainersLinux(test2), maintainers2); diff != "" {
+		t.Fatal(diff)
+	}
+	if diff := cmp.Diff(ParseMaintainersLinux([]byte("")), Recipients(nil)); diff != "" {
+		t.Fatal(diff)
 	}
 }

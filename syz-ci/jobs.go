@@ -438,7 +438,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 			Title:      com.Title,
 			Author:     com.Author,
 			AuthorName: com.AuthorName,
-			CC:         com.CC,
+			Recipients: com.Recipients.ToDash(),
 			Date:       com.Date,
 		})
 	}
@@ -469,7 +469,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 		resp.CrashReport = res.Report.Report
 		resp.CrashLog = res.Report.Output
 		if len(resp.Commits) != 0 {
-			resp.Commits[0].CC = append(resp.Commits[0].CC, res.Report.Maintainers...)
+			resp.Commits[0].Recipients = append(resp.Commits[0].Recipients, res.Report.Recipients.ToDash()...)
 		} else {
 			// If there is a report and there is no commit, it means a crash
 			// occurred on HEAD(for BisectFix) and oldest tested release(for BisectCause).
