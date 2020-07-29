@@ -1,6 +1,7 @@
-*.swp
 *~
+*.swp
 *.cfg
+*.tmp
 workdir*
 
 bin/
