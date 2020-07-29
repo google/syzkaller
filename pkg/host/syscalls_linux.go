@@ -226,7 +226,7 @@ func isSupportedSyzkall(c *prog.Syscall, target *prog.Target, sandbox string) (b
 		return onlySandboxNone(sandbox)
 	case "syz_execute_func":
 		return true, ""
-	case "syz_io_uring_submit", "syz_io_uring_complete", "syz_memcpy_off":
+	case "syz_io_uring_submit", "syz_io_uring_complete", "syz_io_uring_setup", "syz_memcpy_off":
 		// syz_memcpy_off is only used for io_uring descriptions, thus, enable it
 		// only if io_uring syscalls are enabled.
 		ioUringSyscallName := "io_uring_setup"

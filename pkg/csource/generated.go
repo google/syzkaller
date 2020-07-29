@@ -3539,7 +3539,7 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_io_uring_submit || __NR_syz_io_uring_complete
+#if SYZ_EXECUTOR || __NR_syz_io_uring_submit || __NR_syz_io_uring_complete || __NR_syz_io_uring_setup
 
 #define SIZEOF_IO_URING_SQE 64
 #define SIZEOF_IO_URING_CQE 16
@@ -3582,6 +3582,78 @@ static long syz_io_uring_complete(volatile long a0)
 	memcpy(&cqe, cqe_src, sizeof(cqe));
 	__atomic_store_n(cq_head_ptr, cq_head_next, __ATOMIC_RELEASE);
 	return (cqe.user_data == 0x12345 || cqe.user_data == 0x23456) ? (long)cqe.res : (long)-1;
+}
+
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_io_uring_setup
+
+struct io_sqring_offsets {
+	uint32 head;
+	uint32 tail;
+	uint32 ring_mask;
+	uint32 ring_entries;
+	uint32 flags;
+	uint32 dropped;
+	uint32 array;
+	uint32 resv1;
+	uint64 resv2;
+};
+
+struct io_cqring_offsets {
+	uint32 head;
+	uint32 tail;
+	uint32 ring_mask;
+	uint32 ring_entries;
+	uint32 overflow;
+	uint32 cqes;
+	uint64 resv[2];
+};
+
+struct io_uring_params {
+	uint32 sq_entries;
+	uint32 cq_entries;
+	uint32 flags;
+	uint32 sq_thread_cpu;
+	uint32 sq_thread_idle;
+	uint32 features;
+	uint32 resv[4];
+	struct io_sqring_offsets sq_off;
+	struct io_cqring_offsets cq_off;
+};
+
+#define IORING_OFF_SQ_RING 0
+#define IORING_OFF_SQES 0x10000000ULL
+
+#include <sys/mman.h>
+#include <unistd.h>
+
+#ifndef __NR_io_uring_setup
+#ifdef __alpha__
+#define __NR_io_uring_setup 535
+#else
+#define __NR_io_uring_setup 425
+#endif
+#endif
+static long syz_io_uring_setup(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5)
+{
+	uint32 entries = (uint32)a0;
+	struct io_uring_params* setup_params = (struct io_uring_params*)a1;
+	void* vma1 = (void*)a2;
+	void* vma2 = (void*)a3;
+	void** ring_ptr_out = (void**)a4;
+	void** sqes_ptr_out = (void**)a5;
+
+	uint32 fd_io_uring = syscall(__NR_io_uring_setup, entries, setup_params);
+	uint32 sq_ring_sz = setup_params->sq_off.array + setup_params->sq_entries * sizeof(uint32);
+	uint32 cq_ring_sz = setup_params->cq_off.cqes + setup_params->cq_entries * SIZEOF_IO_URING_CQE;
+	uint32 ring_sz = sq_ring_sz > cq_ring_sz ? sq_ring_sz : cq_ring_sz;
+	*ring_ptr_out = mmap(vma1, ring_sz, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE | MAP_FIXED, fd_io_uring, IORING_OFF_SQ_RING);
+
+	uint32 sqes_sz = setup_params->sq_entries * SIZEOF_IO_URING_SQE;
+	*sqes_ptr_out = mmap(vma2, sqes_sz, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE | MAP_FIXED, fd_io_uring, IORING_OFF_SQES);
+
+	return fd_io_uring;
 }
 
 #endif
