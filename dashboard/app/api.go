@@ -788,12 +788,14 @@ func saveCrash(c context.Context, ns string, req *dashapi.Crash, bugKey *db.Key,
 		prio += 1e3
 	}
 	crash := &Crash{
-		Manager:     build.Manager,
-		BuildID:     req.BuildID,
-		Time:        timeNow(c),
-		Maintainers: req.Maintainers,
-		ReproOpts:   req.ReproOpts,
-		ReportLen:   prio,
+		Manager: build.Manager,
+		BuildID: req.BuildID,
+		Time:    timeNow(c),
+		Maintainers: email.MergeEmailLists(req.Maintainers,
+			GetEmails(req.Recipients, dashapi.To),
+			GetEmails(req.Recipients, dashapi.Cc)),
+		ReproOpts: req.ReproOpts,
+		ReportLen: prio,
 	}
 	var err error
 	if crash.Log, err = putText(c, ns, textCrashLog, req.Log, false); err != nil {
@@ -1231,4 +1233,15 @@ func limitLength(s string, max int) string {
 		}
 		max--
 	}
+}
+
+func GetEmails(r dashapi.Recipients, filter dashapi.RecipientType) []string {
+	emails := []string{}
+	for _, user := range r {
+		if user.Type == filter {
+			emails = append(emails, user.Address.Address)
+		}
+	}
+	sort.Strings(emails)
+	return emails
 }
