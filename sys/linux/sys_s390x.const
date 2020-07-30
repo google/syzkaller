@@ -635,7 +635,7 @@ __NR_fcntl = 55
 __NR_fdatasync = 148
 __NR_finit_module = 344
 __NR_flock = 143
-__NR_fsinfo = 442
+__NR_fsinfo = 441
 __NR_fstat = 108
 # __NR_fstat64 is not set
 # __NR_fstatat64 is not set
@@ -732,7 +732,7 @@ __NR_pread64 = 180
 __NR_preadv = 328
 __NR_preadv2 = 376
 __NR_prlimit64 = 334
-__NR_process_madvise = 443
+__NR_process_madvise = 442
 __NR_process_vm_readv = 340
 __NR_process_vm_writev = 341
 __NR_pselect6 = 301

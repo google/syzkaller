@@ -8,6 +8,10 @@ include <net/bluetooth/hci.h>
 
 syz_emit_vhci(data ptr[in, vhci_command], size bytesize[data])
 
+# Matches HCI_HANDLE in executor/common_linux.h and hci_acl_hdr.handle.
+type hci_conn_handle const[200, int16]
+type hci_phy_handle const[200, int8]
+
 vhci_command [
 	HCI_EVENT_PKT	vhci_command_event_pkt
 	HCI_ACLDATA_PKT	vhci_command_acldata_pkt
@@ -40,7 +44,7 @@ vhci_command_vendor_pkt {
 vhci_vendor_pkt_opcode = HCI_PRIMARY, HCI_AMP, HCI_EXTERNAL_CONFIG, HCI_RAW_DEVICE
 
 type hci_acl_hdr[DATA] {
-	handle	const[0x100, int16:12]
+	handle	const[200, int16:12]
 	pb	int16:2
 	bc	int16:2
 	dlen	bytesize[DATA, int16]
@@ -123,7 +127,6 @@ hci_ev_le_meta_un [
 	hci_ev_le_remote_conn_param_req	hci_ev_le_meta_t[HCI_EV_LE_REMOTE_CONN_PARAM_REQ, hci_ev_le_remote_conn_param_req]
 	hci_ev_le_remote_feat_complete	hci_ev_le_meta_t[HCI_EV_LE_REMOTE_FEAT_COMPLETE, hci_ev_le_remote_feat_complete]
 	hci_evt_le_cis_established	hci_ev_le_meta_t[HCI_EVT_LE_CIS_ESTABLISHED, hci_evt_le_cis_established]
-	hci_evt_le_cis_req		hci_ev_le_meta_t[HCI_EVT_LE_CIS_REQ, hci_evt_le_cis_req]
 	hci_evt_le_ext_adv_set_term	hci_ev_le_meta_t[HCI_EV_LE_EXT_ADV_SET_TERM, hci_evt_le_ext_adv_set_term]
 ] [varlen]
 
@@ -229,33 +232,33 @@ extended_inquiry_info {
 } [packed]
 
 hci_comp_blocks_info {
-	handle	int16
+	handle	hci_conn_handle
 	pkts	int16
 	blocks	int16
 } [packed]
 
 hci_comp_pkts_info {
-	handle	int16
+	handle	hci_conn_handle
 	count	int16
 } [packed]
 
 hci_ev_auth_complete {
 	status	int8
-	handle	int16
+	handle	hci_conn_handle
 } [packed]
 
 hci_ev_change_link_key_complete {
 	status	int8
-	handle	int16
+	handle	hci_conn_handle
 } [packed]
 
 hci_ev_channel_selected {
-	phy_handle	int8
+	phy_handle	hci_phy_handle
 } [packed]
 
 hci_ev_clock_offset {
 	status		int8
-	handle		int16
+	handle		hci_conn_handle
 	clock_offset	int16
 } [packed]
 
@@ -269,7 +272,7 @@ hci_ev_cmd_status {
 
 hci_ev_conn_complete {
 	status		int8
-	handle		int16
+	handle		hci_conn_handle
 	bdaddr		bdaddr_t
 	link_type	flags[link_types, int8]
 	encr_mode	int8
@@ -283,25 +286,25 @@ hci_ev_conn_request {
 
 hci_ev_disconn_complete {
 	status	int8
-	handle	int16
+	handle	hci_conn_handle
 	reason	int8
 } [packed]
 
 hci_ev_disconn_logical_link_complete {
 	status	int8
-	handle	int16
+	handle	hci_conn_handle
 	reason	int8
 } [packed]
 
 hci_ev_disconn_phy_link_complete {
 	status		int8
-	phy_handle	int8
+	phy_handle	hci_phy_handle
 	reason		int8
 } [packed]
 
 hci_ev_encrypt_change {
 	status	int8
-	handle	int16
+	handle	hci_conn_handle
 	encrypt	int8
 } [packed]
 
@@ -322,7 +325,7 @@ hci_ev_io_capa_request {
 
 hci_ev_key_refresh_complete {
 	status	int8
-	handle	int16
+	handle	hci_conn_handle
 } [packed]
 
 hci_ev_keypress_notify {
@@ -336,16 +339,19 @@ hci_ev_le_advertising_info_t {
 } [packed]
 
 hci_ev_le_advertising_info {
-	evt_type	int8
+	evt_type	flags[hci_adv_evt_type, int8]
 	bdaddr_type	flags[bdaddr_types, int8]
 	bdaddr		bdaddr_t
-	length		int8
-	data		array[int8]
+	length		bytesize[data, int8]
+	data		array[int8, 0:HCI_MAX_AD_LENGTH]
+	rssi		int8
 } [packed]
+
+hci_adv_evt_type = LE_ADV_IND, LE_ADV_DIRECT_IND, LE_ADV_SCAN_IND, LE_ADV_NONCONN_IND, LE_ADV_SCAN_RSP
 
 hci_ev_le_conn_complete {
 	status			int8
-	handle			int16
+	handle			hci_conn_handle
 	role			int8
 	bdaddr_type		flags[bdaddr_types, int8]
 	bdaddr			bdaddr_t
@@ -356,15 +362,15 @@ hci_ev_le_conn_complete {
 } [packed]
 
 hci_ev_le_conn_update_complete {
-	status			int8
-	handle			int16
+	status			const[0, int8]
+	handle			hci_conn_handle
 	interval		int16
 	latency			int16
 	supervision_timeout	int16
 } [packed]
 
 hci_ev_le_data_len_change {
-	handle	int16
+	handle	hci_conn_handle
 	tx_len	int16
 	tx_time	int16
 	rx_len	int16
@@ -382,7 +388,7 @@ hci_ev_le_direct_adv_info {
 
 hci_ev_le_enh_conn_complete {
 	status			int8
-	handle			int16
+	handle			hci_conn_handle
 	role			int8
 	bdaddr_type		flags[bdaddr_types, int8]
 	bdaddr			bdaddr_t
@@ -400,7 +406,7 @@ hci_ev_le_ext_adv_report_t {
 } [packed]
 
 hci_ev_le_ext_adv_report {
-	evt_type		int16
+	evt_type		flags[hci_legacy_adv_evt_type, int16]
 	bdaddr_type		flags[bdaddr_types, int8]
 	bdaddr			bdaddr_t
 	primary_phy		int8
@@ -411,25 +417,27 @@ hci_ev_le_ext_adv_report {
 	interval		int16
 	direct_addr_type	int8
 	direct_addr		bdaddr_t
-	length			int8
+	length			bytesize[data, int8]
 	data			array[int8]
 } [packed]
 
+hci_legacy_adv_evt_type = LE_LEGACY_ADV_IND, LE_LEGACY_ADV_DIRECT_IND, LE_LEGACY_ADV_SCAN_IND, LE_LEGACY_NONCONN_IND, LE_LEGACY_SCAN_RSP_ADV, LE_LEGACY_SCAN_RSP_ADV_SCAN, LE_EXT_ADV_NON_CONN_IND, LE_EXT_ADV_CONN_IND, LE_EXT_ADV_SCAN_IND, LE_EXT_ADV_DIRECT_IND, LE_EXT_ADV_SCAN_RSP, LE_EXT_ADV_LEGACY_PDU
+
 hci_ev_le_ltk_req {
-	handle	int16
+	handle	hci_conn_handle
 	rand	int64
 	ediv	int16
 } [packed]
 
 hci_ev_le_phy_update_complete {
 	status	int8
-	handle	int16
+	handle	hci_conn_handle
 	tx_phy	int8
 	rx_phy	int8
 } [packed]
 
 hci_ev_le_remote_conn_param_req {
-	handle		int16
+	handle		hci_conn_handle
 	interval_min	int16
 	interval_max	int16
 	latency		int16
@@ -438,7 +446,7 @@ hci_ev_le_remote_conn_param_req {
 
 hci_ev_le_remote_feat_complete {
 	status		int8
-	handle		int16
+	handle		hci_conn_handle
 	features	array[int8, 8]
 } [packed]
 
@@ -454,14 +462,14 @@ hci_ev_link_key_req {
 
 hci_ev_logical_link_complete {
 	status		int8
-	handle		int16
-	phy_handle	int8
+	handle		hci_conn_handle
+	phy_handle	hci_phy_handle
 	flow_spec_id	int8
 } [packed]
 
 hci_ev_mode_change {
 	status		int8
-	handle		int16
+	handle		hci_conn_handle
 	mode		int8
 	interval	int16
 } [packed]
@@ -479,7 +487,7 @@ hci_ev_num_comp_pkts {
 
 hci_ev_phy_link_complete {
 	status		int8
-	phy_handle	int8
+	phy_handle	hci_phy_handle
 } [packed]
 
 hci_ev_pin_code_req {
@@ -488,7 +496,7 @@ hci_ev_pin_code_req {
 
 hci_ev_pkt_type_change {
 	status		int8
-	handle		int16
+	handle		hci_conn_handle
 	pkt_type	int16
 } [packed]
 
@@ -499,13 +507,13 @@ hci_ev_pscan_rep_mode {
 
 hci_ev_qos_setup_complete {
 	status	int8
-	handle	int16
+	handle	hci_conn_handle
 	qos	hci_qos
 } [packed]
 
 hci_ev_remote_ext_features {
 	status		int8
-	handle		int16
+	handle		hci_conn_handle
 	page		int8
 	max_page	int8
 	features	array[int8, 8]
@@ -513,7 +521,7 @@ hci_ev_remote_ext_features {
 
 hci_ev_remote_features {
 	status		int8
-	handle		int16
+	handle		hci_conn_handle
 	features	array[int8, 8]
 } [packed]
 
@@ -534,7 +542,7 @@ hci_ev_remote_oob_data_request {
 
 hci_ev_remote_version {
 	status		int8
-	handle		int16
+	handle		hci_conn_handle
 	lmp_ver		int8
 	manufacturer	int16
 	lmp_subver	int16
@@ -565,7 +573,7 @@ hci_ev_simple_pair_complete {
 
 hci_ev_sniff_subrate {
 	status			int8
-	handle			int16
+	handle			hci_conn_handle
 	max_tx_latency		int16
 	max_rx_latency		int16
 	max_remote_timeout	int16
@@ -579,7 +587,7 @@ hci_ev_stack_internal {
 
 hci_ev_sync_conn_changed {
 	status		int8
-	handle		int16
+	handle		hci_conn_handle
 	tx_interval	int8
 	retrans_window	int8
 	rx_pkt_len	int16
@@ -588,7 +596,7 @@ hci_ev_sync_conn_changed {
 
 hci_ev_sync_conn_complete {
 	status		int8
-	handle		int16
+	handle		hci_conn_handle
 	bdaddr		bdaddr_t
 	link_type	flags[link_types, int8]
 	tx_interval	int8
@@ -618,7 +626,7 @@ hci_ev_user_passkey_req {
 
 hci_evt_le_cis_established {
 	status		int8
-	handle		int16
+	handle		hci_conn_handle
 	cig_sync_delay	array[int8, 3]
 	cis_sync_delay	array[int8, 3]
 	m_latency	array[int8, 3]
@@ -635,17 +643,11 @@ hci_evt_le_cis_established {
 	interval	int16
 } [packed]
 
-hci_evt_le_cis_req {
-	acl_handle	int16
-	cis_handle	int16
-	cig_id		int8
-	cis_id		int8
-} [packed]
-
 hci_evt_le_ext_adv_set_term {
-	status		int8
-	handle		int8
-	conn_handle	int16
+	status		const[0, int8]
+# This does not seem to be used.
+	handle		const[0, int8]
+	conn_handle	hci_conn_handle
 	num_evts	int8
 } [packed]
 
@@ -661,12 +663,12 @@ hci_rp_delete_stored_link_key {
 
 hci_rp_le_ltk_neg_reply {
 	status	int8
-	handle	int16
+	handle	hci_conn_handle
 } [packed]
 
 hci_rp_le_ltk_reply {
 	status	int8
-	handle	int16
+	handle	hci_conn_handle
 } [packed]
 
 hci_rp_le_read_adv_tx_power {
@@ -696,7 +698,7 @@ hci_rp_le_read_def_data_len {
 
 hci_rp_le_read_iso_tx_sync {
 	status		int8
-	handle		int16
+	handle		hci_conn_handle
 	seq		int16
 	imestamp	int32
 	offset		array[int8, 3]
@@ -739,12 +741,12 @@ hci_rp_le_set_cig_params {
 	status		int8
 	cig_id		int8
 	num_handles	len[handle, int8]
-	handle		array[int16]
+	handle		array[hci_conn_handle]
 } [packed]
 
 hci_rp_le_set_data_len {
 	status	int8
-	handle	int16
+	handle	hci_conn_handle
 } [packed]
 
 hci_rp_le_set_ext_adv_params {
@@ -754,7 +756,7 @@ hci_rp_le_set_ext_adv_params {
 
 hci_rp_logical_link_cancel {
 	status		int8
-	phy_handle	int8
+	phy_handle	hci_phy_handle
 	flow_spec_id	int8
 } [packed]
 
@@ -770,7 +772,7 @@ hci_rp_pin_code_reply {
 
 hci_rp_read_auth_payload_to {
 	status	int8
-	handle	int16
+	handle	hci_conn_handle
 	timeout	int16
 } [packed]
 
@@ -794,7 +796,7 @@ hci_rp_read_class_of_dev {
 
 hci_rp_read_clock {
 	status		int8
-	handle		int16
+	handle		hci_conn_handle
 	clock		int32
 	accuracy	int16
 } [packed]
@@ -818,7 +820,7 @@ hci_rp_read_def_link_policy {
 
 hci_rp_read_enc_key_size {
 	status		int8
-	handle		int16
+	handle		hci_conn_handle
 	key_size	int8
 } [packed]
 
@@ -834,13 +836,13 @@ hci_rp_read_inq_rsp_tx_power {
 
 hci_rp_read_link_policy {
 	status	int8
-	handle	int16
+	handle	hci_conn_handle
 	policy	int16
 } [packed]
 
 hci_rp_read_local_amp_assoc {
 	status		int8
-	phy_handle	int8
+	phy_handle	hci_phy_handle
 	rem_len		int16
 	frag		array[int8]
 } [packed]
@@ -928,7 +930,7 @@ hci_rp_read_page_scan_type {
 
 hci_rp_read_rssi {
 	status	int8
-	handle	int16
+	handle	hci_conn_handle
 	rssi	int8
 } [packed]
 
@@ -950,7 +952,7 @@ hci_rp_read_stored_link_key {
 
 hci_rp_read_tx_power {
 	status		int8
-	handle		int16
+	handle		hci_conn_handle
 	tx_power	int8
 } [packed]
 
@@ -961,7 +963,7 @@ hci_rp_read_voice_setting {
 
 hci_rp_role_discovery {
 	status	int8
-	handle	int16
+	handle	hci_conn_handle
 	role	int8
 } [packed]
 
@@ -988,17 +990,17 @@ hci_rp_user_confirm_reply {
 
 hci_rp_write_auth_payload_to {
 	status	int8
-	handle	int16
+	handle	hci_conn_handle
 } [packed]
 
 hci_rp_write_link_policy {
 	status	int8
-	handle	int16
+	handle	hci_conn_handle
 } [packed]
 
 hci_rp_write_remote_amp_assoc {
 	status		int8
-	phy_handle	int8
+	phy_handle	hci_phy_handle
 } [packed]
 
 hci_rp_write_sync_train_params {

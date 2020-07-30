@@ -1996,7 +1996,8 @@ static void* event_thread(void* arg)
 	return NULL;
 }
 
-#define ACL_HANDLE 256
+// Matches hci_conn_handle in sys/linux/dev_vhci.txt.
+#define HCI_HANDLE 200
 
 static void initialize_vhci()
 {
@@ -2056,7 +2057,7 @@ static void initialize_vhci()
 	struct hci_ev_conn_complete complete;
 	memset(&complete, 0, sizeof(complete));
 	complete.status = 0;
-	complete.handle = ACL_HANDLE;
+	complete.handle = HCI_HANDLE;
 	memset(&complete.bdaddr, 0xaa, 6);
 	complete.link_type = ACL_LINK;
 	complete.encr_mode = 0;
@@ -2065,7 +2066,7 @@ static void initialize_vhci()
 	struct hci_ev_remote_features features;
 	memset(&features, 0, sizeof(features));
 	features.status = 0;
-	features.handle = ACL_HANDLE;
+	features.handle = HCI_HANDLE;
 	hci_send_event_packet(vhci_fd, HCI_EV_REMOTE_FEATURES, &features, sizeof(features));
 
 	pthread_join(th, NULL);
