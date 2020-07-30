@@ -27,6 +27,7 @@ const (
 	FeatureKCSAN
 	FeatureDevlinkPCI
 	FeatureUSBEmulation
+	FeatureVhciInjection
 	numFeatures
 )
 
@@ -65,6 +66,7 @@ func Check(target *prog.Target) (*Features, error) {
 		FeatureKCSAN:            {Name: "concurrency sanitizer", Reason: unsupported},
 		FeatureDevlinkPCI:       {Name: "devlink PCI setup", Reason: unsupported},
 		FeatureUSBEmulation:     {Name: "USB emulation", Reason: unsupported},
+		FeatureVhciInjection:    {Name: "hci packet injection", Reason: unsupported},
 	}
 	if noHostChecks(target) {
 		return res, nil

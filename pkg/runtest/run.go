@@ -394,6 +394,9 @@ func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bo
 	if ctx.Features[host.FeatureDevlinkPCI].Enabled {
 		cfg.Flags |= ipc.FlagEnableDevlinkPCI
 	}
+	if ctx.Features[host.FeatureVhciInjection].Enabled {
+		cfg.Flags |= ipc.FlagEnableVhciInjection
+	}
 	if ctx.Debug {
 		cfg.Flags |= ipc.FlagDebug
 	}
@@ -425,6 +428,9 @@ func (ctx *Context) createCTest(p *prog.Prog, sandbox string, threaded bool, tim
 		}
 		if ctx.Features[host.FeatureNetDevices].Enabled {
 			opts.NetDevices = true
+		}
+		if ctx.Features[host.FeatureVhciInjection].Enabled {
+			opts.VhciInjection = true
 		}
 	}
 	src, err := csource.Write(p, opts)

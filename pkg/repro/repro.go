@@ -199,6 +199,9 @@ func createStartOptions(cfg *mgrconfig.Config, features *host.Features, crashTyp
 		if !features[host.FeatureUSBEmulation].Enabled {
 			opts.USB = false
 		}
+		if !features[host.FeatureVhciInjection].Enabled {
+			opts.VhciInjection = false
+		}
 	}
 	return opts
 }
@@ -862,6 +865,7 @@ var cSimplifies = append(progSimplifies, []Simplify{
 		opts.CloseFDs = false
 		opts.DevlinkPCI = false
 		opts.USB = false
+		opts.VhciInjection = false
 		return true
 	},
 	func(opts *csource.Options) bool {
@@ -920,6 +924,13 @@ var cSimplifies = append(progSimplifies, []Simplify{
 			return false
 		}
 		opts.USB = false
+		return true
+	},
+	func(opts *csource.Options) bool {
+		if !opts.VhciInjection {
+			return false
+		}
+		opts.VhciInjection = false
 		return true
 	},
 	func(opts *csource.Options) bool {

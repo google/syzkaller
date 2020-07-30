@@ -102,6 +102,27 @@ const (
 	OutputFile
 )
 
+func createIPCConfig(features *host.Features, config *ipc.Config) {
+	if features[host.FeatureExtraCoverage].Enabled {
+		config.Flags |= ipc.FlagExtraCover
+	}
+	if features[host.FeatureNetInjection].Enabled {
+		config.Flags |= ipc.FlagEnableTun
+	}
+	if features[host.FeatureNetDevices].Enabled {
+		config.Flags |= ipc.FlagEnableNetDev
+	}
+	config.Flags |= ipc.FlagEnableNetReset
+	config.Flags |= ipc.FlagEnableCgroups
+	config.Flags |= ipc.FlagEnableCloseFds
+	if features[host.FeatureDevlinkPCI].Enabled {
+		config.Flags |= ipc.FlagEnableDevlinkPCI
+	}
+	if features[host.FeatureVhciInjection].Enabled {
+		config.Flags |= ipc.FlagEnableVhciInjection
+	}
+}
+
 // nolint: funlen
 func main() {
 	debug.SetGCPercent(50)
@@ -204,21 +225,7 @@ func main() {
 	for _, feat := range r.CheckResult.Features.Supported() {
 		log.Logf(0, "%v: %v", feat.Name, feat.Reason)
 	}
-	if r.CheckResult.Features[host.FeatureExtraCoverage].Enabled {
-		config.Flags |= ipc.FlagExtraCover
-	}
-	if r.CheckResult.Features[host.FeatureNetInjection].Enabled {
-		config.Flags |= ipc.FlagEnableTun
-	}
-	if r.CheckResult.Features[host.FeatureNetDevices].Enabled {
-		config.Flags |= ipc.FlagEnableNetDev
-	}
-	config.Flags |= ipc.FlagEnableNetReset
-	config.Flags |= ipc.FlagEnableCgroups
-	config.Flags |= ipc.FlagEnableCloseFds
-	if r.CheckResult.Features[host.FeatureDevlinkPCI].Enabled {
-		config.Flags |= ipc.FlagEnableDevlinkPCI
-	}
+	createIPCConfig(r.CheckResult.Features, config)
 
 	if *flagRunTest {
 		runTest(target, manager, *flagName, config.Executor)

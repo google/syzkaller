@@ -2793,7 +2793,7 @@ static void initialize_tun(void)
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI
+#if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI || SYZ_VHCI_INJECTION
 const int kInitNetNsFd = 239;
 #endif
 
@@ -5233,7 +5233,7 @@ static long syz_open_pts(volatile long a0, volatile long a1)
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_init_net_socket
+#if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_VHCI_INJECTION
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID
 #include <fcntl.h>
 #include <sched.h>
@@ -5261,6 +5261,281 @@ static long syz_init_net_socket(volatile long domain, volatile long type, volati
 	return syscall(__NR_socket, domain, type, proto);
 }
 #endif
+#endif
+
+#if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
+#include <errno.h>
+#include <fcntl.h>
+#include <pthread.h>
+#include <sys/epoll.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/uio.h>
+
+#define BTPROTO_HCI 1
+#define ACL_LINK 1
+#define SCAN_PAGE 2
+
+typedef struct {
+	uint8 b[6];
+} __attribute__((packed)) bdaddr_t;
+
+#define HCI_COMMAND_PKT 1
+#define HCI_EVENT_PKT 4
+#define HCI_VENDOR_PKT 0xff
+
+struct hci_command_hdr {
+	uint16 opcode;
+	uint8 plen;
+} __attribute__((packed));
+
+struct hci_event_hdr {
+	uint8 evt;
+	uint8 plen;
+} __attribute__((packed));
+
+#define HCI_EV_CONN_COMPLETE 0x03
+struct hci_ev_conn_complete {
+	uint8 status;
+	uint16 handle;
+	bdaddr_t bdaddr;
+	uint8 link_type;
+	uint8 encr_mode;
+} __attribute__((packed));
+
+#define HCI_EV_CONN_REQUEST 0x04
+struct hci_ev_conn_request {
+	bdaddr_t bdaddr;
+	uint8 dev_class[3];
+	uint8 link_type;
+} __attribute__((packed));
+
+#define HCI_EV_REMOTE_FEATURES 0x0b
+struct hci_ev_remote_features {
+	uint8 status;
+	uint16 handle;
+	uint8 features[8];
+} __attribute__((packed));
+
+#define HCI_EV_CMD_COMPLETE 0x0e
+struct hci_ev_cmd_complete {
+	uint8 ncmd;
+	uint16 opcode;
+} __attribute__((packed));
+
+#define HCI_OP_WRITE_SCAN_ENABLE 0x0c1a
+
+#define HCI_OP_READ_BUFFER_SIZE 0x1005
+struct hci_rp_read_buffer_size {
+	uint8 status;
+	uint16 acl_mtu;
+	uint8 sco_mtu;
+	uint16 acl_max_pkt;
+	uint16 sco_max_pkt;
+} __attribute__((packed));
+
+#define HCI_OP_READ_BD_ADDR 0x1009
+struct hci_rp_read_bd_addr {
+	uint8 status;
+	bdaddr_t bdaddr;
+} __attribute__((packed));
+
+struct hci_dev_req {
+	uint16 dev_id;
+	uint32 dev_opt;
+};
+
+struct vhci_vendor_pkt {
+	uint8 type;
+	uint8 opcode;
+	uint16 id;
+};
+
+#define HCIDEVUP _IOW('H', 201, int)
+#define HCISETSCAN _IOW('H', 221, int)
+
+static int vhci_fd = -1;
+
+static void hci_send_event_packet(int fd, uint8 evt, void* data, size_t data_len)
+{
+	struct iovec iv[3];
+
+	struct hci_event_hdr hdr;
+	hdr.evt = evt;
+	hdr.plen = data_len;
+
+	uint8 type = HCI_EVENT_PKT;
+
+	iv[0].iov_base = &type;
+	iv[0].iov_len = sizeof(type);
+	iv[1].iov_base = &hdr;
+	iv[1].iov_len = sizeof(hdr);
+	iv[2].iov_base = data;
+	iv[2].iov_len = data_len;
+
+	if (writev(fd, iv, sizeof(iv) / sizeof(struct iovec)) < 0)
+		fail("writev failed");
+}
+
+static void hci_send_event_cmd_complete(int fd, uint16 opcode, void* data, size_t data_len)
+{
+	struct iovec iv[4];
+
+	struct hci_event_hdr hdr;
+	hdr.evt = HCI_EV_CMD_COMPLETE;
+	hdr.plen = sizeof(struct hci_ev_cmd_complete) + data_len;
+
+	struct hci_ev_cmd_complete evt_hdr;
+	evt_hdr.ncmd = 1;
+	evt_hdr.opcode = opcode;
+
+	uint8 type = HCI_EVENT_PKT;
+
+	iv[0].iov_base = &type;
+	iv[0].iov_len = sizeof(type);
+	iv[1].iov_base = &hdr;
+	iv[1].iov_len = sizeof(hdr);
+	iv[2].iov_base = &evt_hdr;
+	iv[2].iov_len = sizeof(evt_hdr);
+	iv[3].iov_base = data;
+	iv[3].iov_len = data_len;
+
+	if (writev(fd, iv, sizeof(iv) / sizeof(struct iovec)) < 0)
+		fail("writev failed");
+}
+
+static bool process_command_pkt(int fd, char* buf, ssize_t buf_size)
+{
+	struct hci_command_hdr* hdr = (struct hci_command_hdr*)buf;
+	if (buf_size < (ssize_t)sizeof(struct hci_command_hdr) ||
+	    hdr->plen != buf_size - sizeof(struct hci_command_hdr)) {
+		fail("invalid size: %zx\n", buf_size);
+	}
+
+	switch (hdr->opcode) {
+	case HCI_OP_WRITE_SCAN_ENABLE: {
+		uint8 status = 0;
+		hci_send_event_cmd_complete(fd, hdr->opcode, &status, sizeof(status));
+		return true;
+	}
+	case HCI_OP_READ_BD_ADDR: {
+		struct hci_rp_read_bd_addr rp = {0};
+		rp.status = 0;
+		memset(&rp.bdaddr, 0xaa, 6);
+		hci_send_event_cmd_complete(fd, hdr->opcode, &rp, sizeof(rp));
+		return false;
+	}
+	case HCI_OP_READ_BUFFER_SIZE: {
+		struct hci_rp_read_buffer_size rp = {0};
+		rp.status = 0;
+		rp.acl_mtu = 1021;
+		rp.sco_mtu = 96;
+		rp.acl_max_pkt = 4;
+		rp.sco_max_pkt = 6;
+		hci_send_event_cmd_complete(fd, hdr->opcode, &rp, sizeof(rp));
+		return false;
+	}
+	}
+
+	char dummy[0xf9] = {0};
+	hci_send_event_cmd_complete(fd, hdr->opcode, dummy, sizeof(dummy));
+	return false;
+}
+
+static void* event_thread(void* arg)
+{
+	while (1) {
+		char buf[1024] = {0};
+		ssize_t buf_size = read(vhci_fd, buf, sizeof(buf));
+		if (buf_size < 0)
+			fail("read failed");
+		debug_dump_data(buf, buf_size);
+		if (buf_size > 0 && buf[0] == HCI_COMMAND_PKT) {
+			if (process_command_pkt(vhci_fd, buf + 1, buf_size - 1))
+				break;
+		}
+	}
+	return NULL;
+}
+
+#define ACL_HANDLE 256
+
+static void initialize_vhci()
+{
+#if SYZ_EXECUTOR
+	if (!flag_vhci_injection)
+		return;
+#endif
+
+	int hci_sock = syz_init_net_socket(AF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI);
+	if (hci_sock < 0)
+		fail("syz_init_net_socket failed");
+
+	vhci_fd = open("/dev/vhci", O_RDWR);
+	if (vhci_fd == -1)
+		fail("open /dev/vhci failed");
+	const int kVhciFd = 241;
+	if (dup2(vhci_fd, kVhciFd) < 0)
+		fail("dup2(vhci_fd, kVhciFd) failed");
+	close(vhci_fd);
+	vhci_fd = kVhciFd;
+
+	struct vhci_vendor_pkt vendor_pkt;
+	if (read(vhci_fd, &vendor_pkt, sizeof(vendor_pkt)) != sizeof(vendor_pkt))
+		fail("read failed");
+
+	if (vendor_pkt.type != HCI_VENDOR_PKT)
+		fail("wrong response packet");
+
+	debug("hci dev id: %x\n", vendor_pkt.id);
+
+	pthread_t th;
+	if (pthread_create(&th, NULL, event_thread, NULL))
+		fail("pthread_create failed");
+	if (ioctl(hci_sock, HCIDEVUP, vendor_pkt.id) && errno != EALREADY)
+		fail("ioctl(HCIDEVUP) failed");
+	struct hci_dev_req dr = {0};
+	dr.dev_id = vendor_pkt.id;
+	dr.dev_opt = SCAN_PAGE;
+	if (ioctl(hci_sock, HCISETSCAN, &dr))
+		fail("ioctl(HCISETSCAN) failed");
+	struct hci_ev_conn_request request;
+	memset(&request, 0, sizeof(request));
+	memset(&request.bdaddr, 0xaa, 6);
+	request.link_type = ACL_LINK;
+	hci_send_event_packet(vhci_fd, HCI_EV_CONN_REQUEST, &request, sizeof(request));
+
+	struct hci_ev_conn_complete complete;
+	memset(&complete, 0, sizeof(complete));
+	complete.status = 0;
+	complete.handle = ACL_HANDLE;
+	memset(&complete.bdaddr, 0xaa, 6);
+	complete.link_type = ACL_LINK;
+	complete.encr_mode = 0;
+	hci_send_event_packet(vhci_fd, HCI_EV_CONN_COMPLETE, &complete, sizeof(complete));
+
+	struct hci_ev_remote_features features;
+	memset(&features, 0, sizeof(features));
+	features.status = 0;
+	features.handle = ACL_HANDLE;
+	hci_send_event_packet(vhci_fd, HCI_EV_REMOTE_FEATURES, &features, sizeof(features));
+
+	pthread_join(th, NULL);
+	close(hci_sock);
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_emit_vhci && SYZ_VHCI_INJECTION
+static long syz_emit_vhci(volatile long a0, volatile long a1)
+{
+	if (vhci_fd < 0)
+		return (uintptr_t)-1;
+
+	char* data = (char*)a0;
+	uint32 length = a1;
+
+	return write(vhci_fd, data, length);
+}
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_genetlink_get_family_id
@@ -7127,7 +7402,7 @@ static void sandbox_common()
 	setpgrp();
 	setsid();
 
-#if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI
+#if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI || SYZ_VHCI_INJECTION
 	int netns = open("/proc/self/ns/net", O_RDONLY);
 	if (netns == -1)
 		fail("open(/proc/self/ns/net) failed");
@@ -7252,6 +7527,9 @@ static int do_sandbox_none(void)
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	initialize_netdevices();
 #endif
+#if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
+	initialize_vhci();
+#endif
 	loop();
 	doexit(1);
 }
@@ -7288,6 +7566,9 @@ static int do_sandbox_setuid(void)
 #endif
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	initialize_netdevices();
+#endif
+#if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
+	initialize_vhci();
 #endif
 
 	const int nobody = 65534;
@@ -7335,6 +7616,9 @@ static int namespace_sandbox_proc(void* arg)
 #endif
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	initialize_netdevices();
+#endif
+#if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
+	initialize_vhci();
 #endif
 
 	if (mkdir("./syz-tmp", 0777))
@@ -8040,6 +8324,9 @@ static int do_sandbox_android(void)
 #endif
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	initialize_netdevices();
+#endif
+#if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
+	initialize_vhci();
 #endif
 
 	if (chown(".", UNTRUSTED_APP_UID, UNTRUSTED_APP_UID) != 0)

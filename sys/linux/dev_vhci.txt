@@ -6,9 +6,7 @@ include <net/bluetooth/hci_sock.h>
 include <net/bluetooth/sco.h>
 include <net/bluetooth/hci.h>
 
-resource fd_vhci[fd]
-openat$vhci(fd const[AT_FDCWD], file ptr[in, string["/dev/vhci"]], flags flags[open_flags]) fd_vhci
-write$vhci(fd fd_vhci, data ptr[in, vhci_command], size bytesize[data])
+syz_emit_vhci(data ptr[in, vhci_command], size bytesize[data])
 
 vhci_command [
 	HCI_EVENT_PKT	vhci_command_event_pkt
@@ -42,14 +40,14 @@ vhci_command_vendor_pkt {
 vhci_vendor_pkt_opcode = HCI_PRIMARY, HCI_AMP, HCI_EXTERNAL_CONFIG, HCI_RAW_DEVICE
 
 type hci_acl_hdr[DATA] {
-	bc	int16:2
+	handle	const[0x100, int16:12]
 	pb	int16:2
-	handle	int16:12
+	bc	int16:2
 	dlen	bytesize[DATA, int16]
 } [packed]
 
 hci_event_hdr_un [
-	extended_inquiry_info			hci_event_hdr_t[HCI_EV_EXTENDED_INQUIRY_RESULT, extended_inquiry_info]
+	extended_inquiry_info			hci_event_hdr_t[HCI_EV_EXTENDED_INQUIRY_RESULT, extended_inquiry_info_t]
 	hci_ev_auth_complete			hci_event_hdr_t[HCI_EV_AUTH_COMPLETE, hci_ev_auth_complete]
 	hci_ev_change_link_key_complete		hci_event_hdr_t[HCI_EV_CHANGE_LINK_KEY_COMPLETE, hci_ev_change_link_key_complete]
 	hci_ev_channel_selected			hci_event_hdr_t[HCI_EV_CHANNEL_SELECTED, hci_ev_channel_selected]
@@ -97,9 +95,9 @@ hci_event_hdr_un [
 	hci_ev_user_confirm_req			hci_event_hdr_t[HCI_EV_USER_CONFIRM_REQUEST, hci_ev_user_confirm_req]
 	hci_ev_user_passkey_notify		hci_event_hdr_t[HCI_EV_USER_PASSKEY_NOTIFY, hci_ev_user_passkey_notify]
 	hci_ev_user_passkey_req			hci_event_hdr_t[HCI_EV_USER_PASSKEY_REQUEST, hci_ev_user_passkey_req]
-	inquiry_info				hci_event_hdr_t[HCI_EV_INQUIRY_RESULT, inquiry_info]
-	inquiry_info_with_rssi			hci_event_hdr_t[HCI_EV_INQUIRY_RESULT_WITH_RSSI, inquiry_info_with_rssi]
-	inquiry_info_with_rssi_and_pscan_mode	hci_event_hdr_t[HCI_EV_INQUIRY_RESULT_WITH_RSSI, inquiry_info_with_rssi_and_pscan_mode]
+	inquiry_info				hci_event_hdr_t[HCI_EV_INQUIRY_RESULT, inquiry_info_t]
+	inquiry_info_with_rssi			hci_event_hdr_t[HCI_EV_INQUIRY_RESULT_WITH_RSSI, inquiry_info_with_rssi_t]
+	inquiry_info_with_rssi_and_pscan_mode	hci_event_hdr_t[HCI_EV_INQUIRY_RESULT_WITH_RSSI, inquiry_info_with_rssi_and_pscan_mode_t]
 ] [varlen]
 
 type hci_event_hdr_t[EVENT, PAYLOAD] {
@@ -113,13 +111,13 @@ type hci_event_hdr[EVENT] {
 } [packed]
 
 hci_ev_le_meta_un [
-	hci_ev_le_advertising_info	hci_ev_le_meta_t[HCI_EV_LE_ADVERTISING_REPORT, hci_ev_le_advertising_info]
+	hci_ev_le_advertising_info	hci_ev_le_meta_t[HCI_EV_LE_ADVERTISING_REPORT, hci_ev_le_advertising_info_t]
 	hci_ev_le_conn_complete		hci_ev_le_meta_t[HCI_EV_LE_CONN_COMPLETE, hci_ev_le_conn_complete]
 	hci_ev_le_conn_update_complete	hci_ev_le_meta_t[HCI_EV_LE_CONN_UPDATE_COMPLETE, hci_ev_le_conn_update_complete]
 	hci_ev_le_data_len_change	hci_ev_le_meta_t[HCI_EV_LE_DATA_LEN_CHANGE, hci_ev_le_data_len_change]
 	hci_ev_le_direct_adv_info	hci_ev_le_meta_t[HCI_EV_LE_DIRECT_ADV_REPORT, hci_ev_le_direct_adv_info]
 	hci_ev_le_enh_conn_complete	hci_ev_le_meta_t[HCI_EV_LE_ENHANCED_CONN_COMPLETE, hci_ev_le_enh_conn_complete]
-	hci_ev_le_ext_adv_report	hci_ev_le_meta_t[HCI_EV_LE_EXT_ADV_REPORT, hci_ev_le_ext_adv_report]
+	hci_ev_le_ext_adv_report	hci_ev_le_meta_t[HCI_EV_LE_EXT_ADV_REPORT, hci_ev_le_ext_adv_report_t]
 	hci_ev_le_ltk_req		hci_ev_le_meta_t[HCI_EV_LE_LTK_REQ, hci_ev_le_ltk_req]
 	hci_ev_le_phy_update_complete	hci_ev_le_meta_t[HCI_EV_LE_PHY_UPDATE_COMPLETE, hci_ev_le_phy_update_complete]
 	hci_ev_le_remote_conn_param_req	hci_ev_le_meta_t[HCI_EV_LE_REMOTE_CONN_PARAM_REQ, hci_ev_le_remote_conn_param_req]
@@ -214,6 +212,11 @@ type hci_ev_cmd_complete[OPCODE] {
 
 link_types = SCO_LINK, ACL_LINK, ESCO_LINK
 bdaddr_types = ADDR_LE_DEV_PUBLIC, ADDR_LE_DEV_RANDOM
+
+extended_inquiry_info_t {
+	num_rsp	len[rsps, int8]
+	rsps	array[extended_inquiry_info]
+} [packed]
 
 extended_inquiry_info {
 	bdaddr			bdaddr_t
@@ -327,6 +330,11 @@ hci_ev_keypress_notify {
 	type	int8
 } [packed]
 
+hci_ev_le_advertising_info_t {
+	num_reports	len[reports, int8]
+	reports		array[hci_ev_le_advertising_info]
+} [packed]
+
 hci_ev_le_advertising_info {
 	evt_type	int8
 	bdaddr_type	flags[bdaddr_types, int8]
@@ -384,6 +392,11 @@ hci_ev_le_enh_conn_complete {
 	latency			int16
 	supervision_timeout	int16
 	clk_accurancy		int8
+} [packed]
+
+hci_ev_le_ext_adv_report_t {
+	num_reports	len[reports, int8]
+	reports		array[hci_ev_le_ext_adv_report]
 } [packed]
 
 hci_ev_le_ext_adv_report {
@@ -1001,6 +1014,11 @@ hci_qos {
 	delay_variation	int32
 } [packed]
 
+inquiry_info_t {
+	num_rsp	len[rsps, int8]
+	rsps	array[inquiry_info]
+} [packed]
+
 inquiry_info {
 	bdaddr			bdaddr_t
 	pscan_rep_mode		int8
@@ -1010,6 +1028,11 @@ inquiry_info {
 	clock_offset		int16
 } [packed]
 
+inquiry_info_with_rssi_t {
+	num_rsp	len[rsps, int8]
+	rsps	array[inquiry_info_with_rssi]
+} [packed]
+
 inquiry_info_with_rssi {
 	bdaddr			bdaddr_t
 	pscan_rep_mode		int8
@@ -1017,6 +1040,11 @@ inquiry_info_with_rssi {
 	dev_class		array[int8, 3]
 	clock_offset		int16
 	rssi			int8
+} [packed]
+
+inquiry_info_with_rssi_and_pscan_mode_t {
+	num_rsp	len[rsps, int8]
+	rsps	array[inquiry_info_with_rssi_and_pscan_mode]
 } [packed]
 
 inquiry_info_with_rssi_and_pscan_mode {
