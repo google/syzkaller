@@ -39,7 +39,13 @@ ima_funcs = "FILE_CHECK", "PATH_CHECK", "MODULE_CHECK", "FIRMWARE_CHECK", "FILE_
 ima_masks = "MAY_EXEC", "MAY_WRITE", "MAY_READ", "MAY_APPEND", "^MAY_EXEC", "^MAY_WRITE", "^MAY_READ", "^MAY_APPEND"
 ima_appraise_type = "imasig", "imasig|modsig"
 ima_template = "ima", "ima-ng", "ima-sig", "ima-buf", "ima-modsig"
-ima_keyrings = ".builtin_trusted_keys", ".secondary_trusted_keys", "_ima", "_evm", ".ima", ".evm", ".platform"
+ima_keyrings_dict = ".builtin_trusted_keys", ".secondary_trusted_keys", "_ima", "_evm", ".ima", ".evm", ".platform"
+
+ima_keyrings [
+	real	stringnoz[ima_keyrings_dict]
+	syzbot	key_desc
+	random	stringnoz
+] [varlen]
 
 type ima_opt_keyring[ELEMS] {
 	elem	ELEMS
@@ -47,8 +53,8 @@ type ima_opt_keyring[ELEMS] {
 } [packed]
 
 ima_keyring_list {
-	list	array[ima_opt_keyring[stringnoz[ima_keyrings]]]
-	final	stringnoz[ima_keyrings]
+	list	array[ima_opt_keyring[ima_keyrings]]
+	final	ima_keyrings
 } [packed]
 
 ima_condition_elem [
