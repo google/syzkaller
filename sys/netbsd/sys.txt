@@ -36,7 +36,10 @@ compat_43_fstat43(fd fd, sb ptr[out, stat43])
 __fstat50(fd fd, sb ptr[out, stat])
 compat_20_statfs(path ptr[in, filename], buf ptr[out, statfs12])
 compat_20_fstatfs(fd fd, buf ptr[out, statfs12])
+fstatat(fd fd, path ptr[in, filename], buf ptr[out, stat], flag flags[fstatat_flags])
 profil(samples buffer[inout], size len[samples], offt intptr, scale int32)
+
+compat_09_ouname(name ptr[out, outsname])
 
 compat_12_msync(addr vma, len int32)
 __msync13(addr vma, len int32, f flags[msync_flags])
@@ -72,6 +75,7 @@ compat_50_mknod(file ptr[in, filename], mode flags[mknod_mode], dev int32)
 mknod(file ptr[in, filename], mode flags[mknod_mode], dev dev)
 mknod$loop(file ptr[in, filename], mode flags[mknod_mode], dev proc[1792, 2])
 mknodat(dirfd fd_dir, file ptr[in, filename], mode flags[mknod_mode], dev int32)
+umask(mode flags[open_mode])
 chmod(file ptr[in, filename], mode flags[open_mode])
 lchmod(file ptr[in, filename], mode flags[open_mode])
 fchmod(fd fd, mode flags[open_mode])
@@ -85,6 +89,8 @@ chflags(file ptr[in, filename], flags flags[chflags_flags])
 fchflags(fd fd, flags flags[chflags_flags])
 lchflags(file ptr[in, filename], flags flags[chflags_flags])
 faccessat(dirfd fd_dir, pathname ptr[in, filename], mode flags[access_mode], flags flags[faccessat_flags])
+compat_50_quotactl(path ptr[in, filename], cmd int32, id uid, addr buffer[in])
+
 compat_50_utimes(filename ptr[in, filename], times ptr[in, timeval50])
 compat_50_futimes(fd fd, times ptr[in, timeval50])
 compat_50_lutimes(link ptr[in, filename], times ptr[in, timeval50])
@@ -151,8 +157,10 @@ acct(filename ptr[in, filename, opt])
 
 compat_50_getrusage(who flags[rusage_who], usage ptr[out, rusage50])
 __getrusage50(who flags[rusage_who], usage ptr[out, rusage])
-getrlimit(res flags[rlimit_type], rlim ptr[out, rlimit])
-setrlimit(res flags[rlimit_type], rlim ptr[in, rlimit])
+getrlimit(res flags[rlimit_type], rlp ptr[out, rlimit])
+compat_43_ogetrlimit(res flags[rlimit_type], rlp ptr[out, orlimit])
+setrlimit(res flags[rlimit_type], rlp ptr[in, rlimit])
+compat_43_osetrlimit(res flags[rlimit_type], rlp ptr[in, orlimit])
 
 compat_50_clock_gettime(id flags[clock_id], tp ptr[out, timespec50])
 compat_50_clock_settime(id flags[clock_id], tp ptr[in, timespec50])
@@ -177,6 +185,14 @@ fork() pid
 __vfork14() pid
 vfork() pid
 posix_spawn(pid pid, path ptr[in, string], file_actions ptr[in, posix_spawn_file_actions], attrp ptr[in, posix_spawnattr], argv ptr[in, array[string]], envp ptr[in, array[string]]) pid
+
+outsname {
+	sname	array[int8, 32]
+	nname	array[int8, 32]
+	release	array[int8, 32]
+	version	array[int8, 32]
+	mach	array[int8, 32]
+}
 
 pollfd {
 	fd	fd
@@ -269,6 +285,11 @@ rlimit {
 	hard	intptr
 }
 
+orlimit {
+	cur	int32
+	max	int32
+}
+
 flock {
 	type	flags[flock_type, int16]
 	whence	flags[seek_whence, int16]
@@ -329,6 +350,7 @@ sched_param {
 	sched_priority	int32
 }
 
+fstatat_flags = AT_SYMLINK_NOFOLLOW, AT_SYMLINK_FOLLOW, AT_EACCESS, AT_REMOVEDIR
 pollfd_events = POLLIN, POLLPRI, POLLOUT, POLLERR, POLLHUP, POLLNVAL, POLLRDNORM, POLLRDBAND, POLLWRNORM, POLLWRBAND
 mknod_mode = S_IFREG, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 msync_flags = MS_ASYNC, MS_SYNC, MS_INVALIDATE
@@ -340,7 +362,7 @@ unlinkat_flags = 0, AT_REMOVEDIR
 flock_op = LOCK_SH, LOCK_EX, LOCK_UN, LOCK_NB
 faccessat_flags = AT_EACCESS, AT_SYMLINK_NOFOLLOW
 rusage_who = RUSAGE_SELF, RUSAGE_CHILDREN
-rlimit_type = RLIMIT_AS, RLIMIT_CORE, RLIMIT_CPU, RLIMIT_DATA, RLIMIT_FSIZE, RLIMIT_MEMLOCK, RLIMIT_NOFILE, RLIMIT_NPROC, RLIMIT_RSS, RLIMIT_STACK, RLIMIT_NTHR, RLIMIT_STACK
+rlimit_type = RLIMIT_CPU, RLIMIT_FSIZE, RLIMIT_DATA, RLIMIT_STACK, RLIMIT_CORE, RLIMIT_RSS, RLIMIT_MEMLOCK, RLIMIT_NPROC, RLIMIT_NOFILE, RLIMIT_SBSIZE, RLIMIT_AS, RLIMIT_NTHR
 timer_flags = TIMER_RELTIME, TIMER_ABSTIME
 clock_id = CLOCK_REALTIME, CLOCK_MONOTONIC, CLOCK_VIRTUAL, CLOCK_PROF, CLOCK_PROCESS_CPUTIME_ID, CLOCK_THREAD_CPUTIME_ID
 getitimer_which = ITIMER_REAL, ITIMER_VIRTUAL, ITIMER_PROF, ITIMER_MONOTONIC
