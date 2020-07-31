@@ -33,12 +33,23 @@ the problem you are solving and how it is solved.
 
 `dir/path` is a relative path to the main dir this commit changes
 (look at examples in the [commit history](https://github.com/google/syzkaller/commits/master)).
+If several packages/dirs are significantly affected, then the following format is allowed:
+```
+dir1/path1, dir2/path2: one-line description
+```
+Though, dirs should not be included if they have only minor changes.
+For pervasive changes the following format is allowed:
+```
+all: one-line description
+```
 
 Please pay attention to punctuation. In particular:
 
 - `one-line description` should *not* start with a Capital letter.
 - There is *no dot* at the end of `one-line description`.
 - `Extended multi-line description` is full English sentences with Capital letters and dots.
+
+Commit message line length is limited to 120 characters.
 
 Also:
 
