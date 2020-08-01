@@ -361,7 +361,7 @@ branch when testing patches.
 ## Memory leaks
 
 `syzbot` uses `KMEMLEAK` to find memory leaks in the Linux kernel.
-`KMEMLEAK` kernel config is stored [here](/dashboard/config/upstream-leak.config).
+`KMEMLEAK` kernel config is stored [here](/dashboard/config/linux/upstream-leak.config).
 See `KMEMLEAK` [docs](https://www.kernel.org/doc/html/latest/dev-tools/kmemleak.html)
 for general info, algorithm overview and usage instructions.
 
