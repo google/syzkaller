@@ -5340,6 +5340,24 @@ struct hci_rp_read_bd_addr {
 	bdaddr_t bdaddr;
 } __attribute__((packed));
 
+#define HCI_EV_LE_META 0x3e
+struct hci_ev_le_meta {
+	uint8 subevent;
+} __attribute__((packed));
+
+#define HCI_EV_LE_CONN_COMPLETE 0x01
+struct hci_ev_le_conn_complete {
+	uint8 status;
+	uint16 handle;
+	uint8 role;
+	uint8 bdaddr_type;
+	bdaddr_t bdaddr;
+	uint16 interval;
+	uint16 latency;
+	uint16 supervision_timeout;
+	uint8 clk_accurancy;
+} __attribute__((packed));
+
 struct hci_dev_req {
 	uint16 dev_id;
 	uint32 dev_opt;
@@ -5457,7 +5475,8 @@ static void* event_thread(void* arg)
 	}
 	return NULL;
 }
-#define HCI_HANDLE 200
+#define HCI_HANDLE_1 200
+#define HCI_HANDLE_2 201
 
 static void initialize_vhci()
 {
@@ -5501,14 +5520,16 @@ static void initialize_vhci()
 	struct hci_ev_conn_request request;
 	memset(&request, 0, sizeof(request));
 	memset(&request.bdaddr, 0xaa, 6);
+	*(uint8*)&request.bdaddr.b[5] = 0x10;
 	request.link_type = ACL_LINK;
 	hci_send_event_packet(vhci_fd, HCI_EV_CONN_REQUEST, &request, sizeof(request));
 
 	struct hci_ev_conn_complete complete;
 	memset(&complete, 0, sizeof(complete));
 	complete.status = 0;
-	complete.handle = HCI_HANDLE;
+	complete.handle = HCI_HANDLE_1;
 	memset(&complete.bdaddr, 0xaa, 6);
+	*(uint8*)&complete.bdaddr.b[5] = 0x10;
 	complete.link_type = ACL_LINK;
 	complete.encr_mode = 0;
 	hci_send_event_packet(vhci_fd, HCI_EV_CONN_COMPLETE, &complete, sizeof(complete));
@@ -5516,8 +5537,19 @@ static void initialize_vhci()
 	struct hci_ev_remote_features features;
 	memset(&features, 0, sizeof(features));
 	features.status = 0;
-	features.handle = HCI_HANDLE;
+	features.handle = HCI_HANDLE_1;
 	hci_send_event_packet(vhci_fd, HCI_EV_REMOTE_FEATURES, &features, sizeof(features));
+	struct {
+		struct hci_ev_le_meta le_meta;
+		struct hci_ev_le_conn_complete le_conn;
+	} le_conn;
+	memset(&le_conn, 0, sizeof(le_conn));
+	le_conn.le_meta.subevent = HCI_EV_LE_CONN_COMPLETE;
+	memset(&le_conn.le_conn.bdaddr, 0xaa, 6);
+	*(uint8*)&le_conn.le_conn.bdaddr.b[5] = 0x11;
+	le_conn.le_conn.role = 1;
+	le_conn.le_conn.handle = HCI_HANDLE_2;
+	hci_send_event_packet(vhci_fd, HCI_EV_LE_META, &le_conn, sizeof(le_conn));
 
 	pthread_join(th, NULL);
 	close(hci_sock);

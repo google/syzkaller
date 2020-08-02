@@ -8,22 +8,17 @@ include <net/bluetooth/hci.h>
 
 syz_emit_vhci(data ptr[in, vhci_command], size bytesize[data])
 
-# Matches HCI_HANDLE in executor/common_linux.h and hci_acl_hdr.handle.
-type hci_conn_handle const[200, int16]
-type hci_phy_handle const[200, int8]
+# Matches HCI_HANDLE_1/HCI_HANDLE_2 in executor/common_linux.h.
+hci_handles = 200, 201
+type hci_conn_handle flags[hci_handles, int16]
+type hci_phy_handle flags[hci_handles, int8]
 
 vhci_command [
 	HCI_EVENT_PKT	vhci_command_event_pkt
 	HCI_ACLDATA_PKT	vhci_command_acldata_pkt
-	HCI_SCODATA_PKT	vhci_command_generic[HCI_SCODATA_PKT]
+	HCI_SCODATA_PKT	vhci_command_scodata_pkt
 	HCI_VENDOR_PKT	vhci_command_vendor_pkt
 ] [varlen]
-
-type vhci_command_generic[CMD] {
-	cmd	const[CMD, int8]
-# TODO: what's the format of these packets? Is there anything interesting?
-	data	array[int8]
-}
 
 vhci_command_event_pkt {
 	cmd	const[HCI_EVENT_PKT, int8]
@@ -36,6 +31,12 @@ vhci_command_acldata_pkt {
 	l2cap_hdr	l2cap_hdr_un
 }
 
+vhci_command_scodata_pkt {
+	cmd	const[HCI_SCODATA_PKT, int8]
+	sco_hdr	hci_sco_hdr[vhci_command_scodata_pkt:data]
+	data	array[int8]
+}
+
 vhci_command_vendor_pkt {
 	cmd	const[HCI_VENDOR_PKT, int8]
 	opcode	flags[vhci_vendor_pkt_opcode, int8]
@@ -44,10 +45,15 @@ vhci_command_vendor_pkt {
 vhci_vendor_pkt_opcode = HCI_PRIMARY, HCI_AMP, HCI_EXTERNAL_CONFIG, HCI_RAW_DEVICE
 
 type hci_acl_hdr[DATA] {
-	handle	const[200, int16:12]
+	handle	flags[hci_handles, int16:12]
 	pb	int16:2
 	bc	int16:2
 	dlen	bytesize[DATA, int16]
+} [packed]
+
+type hci_sco_hdr[DATA] {
+	handle	hci_conn_handle
+	dlen	bytesize[DATA, int8]
 } [packed]
 
 hci_event_hdr_un [
