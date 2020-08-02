@@ -7,7 +7,7 @@ include <net/bluetooth/l2cap.h>
 
 l2cap_hdr_un [
 	l2cap_cid_signaling	l2cap_hdr_t[L2CAP_CID_SIGNALING, array[l2cap_cid_signaling_un]]
-	l2cap_cid_le_signaling	l2cap_hdr_t[L2CAP_CID_LE_SIGNALING, array[l2cap_cid_le_signaling_un]]
+	l2cap_cid_le_signaling	l2cap_hdr_t[L2CAP_CID_LE_SIGNALING, l2cap_cid_le_signaling_un]
 ] [varlen]
 
 l2cap_cid_signaling_un [
