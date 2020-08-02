@@ -51,6 +51,7 @@ type hci_acl_hdr[DATA] {
 } [packed]
 
 hci_event_hdr_un [
+	HCI_EV_INQUIRY_COMPLETE			hci_event_hdr_t[HCI_EV_INQUIRY_COMPLETE, int8]
 	extended_inquiry_info			hci_event_hdr_t[HCI_EV_EXTENDED_INQUIRY_RESULT, extended_inquiry_info_t]
 	hci_ev_auth_complete			hci_event_hdr_t[HCI_EV_AUTH_COMPLETE, hci_ev_auth_complete]
 	hci_ev_change_link_key_complete		hci_event_hdr_t[HCI_EV_CHANGE_LINK_KEY_COMPLETE, hci_ev_change_link_key_complete]
@@ -102,6 +103,7 @@ hci_event_hdr_un [
 	inquiry_info				hci_event_hdr_t[HCI_EV_INQUIRY_RESULT, inquiry_info_t]
 	inquiry_info_with_rssi			hci_event_hdr_t[HCI_EV_INQUIRY_RESULT_WITH_RSSI, inquiry_info_with_rssi_t]
 	inquiry_info_with_rssi_and_pscan_mode	hci_event_hdr_t[HCI_EV_INQUIRY_RESULT_WITH_RSSI, inquiry_info_with_rssi_and_pscan_mode_t]
+	HCI_EV_VENDOR				hci_event_hdr_t[HCI_EV_VENDOR, array[int8]]
 ] [varlen]
 
 type hci_event_hdr_t[EVENT, PAYLOAD] {
@@ -201,6 +203,48 @@ hci_ev_cmd_complete_un [
 	hci_rp_write_link_policy		hci_ev_cmd_complete_t[HCI_OP_WRITE_LINK_POLICY, hci_rp_write_link_policy]
 	hci_rp_write_remote_amp_assoc		hci_ev_cmd_complete_t[HCI_OP_WRITE_REMOTE_AMP_ASSOC, hci_rp_write_remote_amp_assoc]
 	hci_rp_write_sync_train_params		hci_ev_cmd_complete_t[HCI_OP_WRITE_SYNC_TRAIN_PARAMS, hci_rp_write_sync_train_params]
+	HCI_OP_INQUIRY_CANCEL			hci_ev_cmd_complete_t[HCI_OP_INQUIRY_CANCEL, int8]
+	HCI_OP_PERIODIC_INQ			hci_ev_cmd_complete_t[HCI_OP_PERIODIC_INQ, int8]
+	HCI_OP_EXIT_PERIODIC_INQ		hci_ev_cmd_complete_t[HCI_OP_EXIT_PERIODIC_INQ, int8]
+# Unused:
+# HCI_OP_REMOTE_NAME_REQ_CANCEL		hci_ev_cmd_complete_t[HCI_OP_REMOTE_NAME_REQ_CANCEL, int8]
+	HCI_OP_WRITE_DEF_LINK_POLICY		hci_ev_cmd_complete_t[HCI_OP_WRITE_DEF_LINK_POLICY, int8]
+	HCI_OP_RESET				hci_ev_cmd_complete_t[HCI_OP_RESET, int8]
+	HCI_OP_WRITE_LOCAL_NAME			hci_ev_cmd_complete_t[HCI_OP_WRITE_LOCAL_NAME, int8]
+	HCI_OP_WRITE_AUTH_ENABLE		hci_ev_cmd_complete_t[HCI_OP_WRITE_AUTH_ENABLE, int8]
+	HCI_OP_WRITE_ENCRYPT_MODE		hci_ev_cmd_complete_t[HCI_OP_WRITE_ENCRYPT_MODE, int8]
+	HCI_OP_WRITE_SCAN_ENABLE		hci_ev_cmd_complete_t[HCI_OP_WRITE_SCAN_ENABLE, int8]
+	HCI_OP_WRITE_CLASS_OF_DEV		hci_ev_cmd_complete_t[HCI_OP_WRITE_CLASS_OF_DEV, int8]
+	HCI_OP_WRITE_VOICE_SETTING		hci_ev_cmd_complete_t[HCI_OP_WRITE_VOICE_SETTING, int8]
+	HCI_OP_WRITE_SSP_MODE			hci_ev_cmd_complete_t[HCI_OP_WRITE_SSP_MODE, int8]
+	HCI_OP_WRITE_SC_SUPPORT			hci_ev_cmd_complete_t[HCI_OP_WRITE_SC_SUPPORT, int8]
+	HCI_OP_WRITE_PAGE_SCAN_ACTIVITY		hci_ev_cmd_complete_t[HCI_OP_WRITE_PAGE_SCAN_ACTIVITY, int8]
+	HCI_OP_WRITE_PAGE_SCAN_TYPE		hci_ev_cmd_complete_t[HCI_OP_WRITE_PAGE_SCAN_TYPE, int8]
+	HCI_OP_WRITE_DEF_ERR_DATA_REPORTING	hci_ev_cmd_complete_t[HCI_OP_WRITE_DEF_ERR_DATA_REPORTING, int8]
+	HCI_OP_USER_CONFIRM_NEG_REPLY		hci_ev_cmd_complete_t[HCI_OP_USER_CONFIRM_NEG_REPLY, int8]
+	HCI_OP_USER_PASSKEY_REPLY		hci_ev_cmd_complete_t[HCI_OP_USER_PASSKEY_REPLY, int8]
+	HCI_OP_USER_PASSKEY_NEG_REPLY		hci_ev_cmd_complete_t[HCI_OP_USER_PASSKEY_NEG_REPLY, int8]
+	HCI_OP_LE_SET_RANDOM_ADDR		hci_ev_cmd_complete_t[HCI_OP_LE_SET_RANDOM_ADDR, int8]
+	HCI_OP_LE_SET_ADV_ENABLE		hci_ev_cmd_complete_t[HCI_OP_LE_SET_ADV_ENABLE, int8]
+	HCI_OP_LE_SET_SCAN_PARAM		hci_ev_cmd_complete_t[HCI_OP_LE_SET_SCAN_PARAM, int8]
+	HCI_OP_LE_SET_SCAN_ENABLE		hci_ev_cmd_complete_t[HCI_OP_LE_SET_SCAN_ENABLE, int8]
+	HCI_OP_LE_CLEAR_WHITE_LIST		hci_ev_cmd_complete_t[HCI_OP_LE_CLEAR_WHITE_LIST, int8]
+	HCI_OP_LE_ADD_TO_WHITE_LIST		hci_ev_cmd_complete_t[HCI_OP_LE_ADD_TO_WHITE_LIST, int8]
+	HCI_OP_LE_DEL_FROM_WHITE_LIST		hci_ev_cmd_complete_t[HCI_OP_LE_DEL_FROM_WHITE_LIST, int8]
+	HCI_OP_LE_WRITE_DEF_DATA_LEN		hci_ev_cmd_complete_t[HCI_OP_LE_WRITE_DEF_DATA_LEN, int8]
+	HCI_OP_LE_ADD_TO_RESOLV_LIST		hci_ev_cmd_complete_t[HCI_OP_LE_ADD_TO_RESOLV_LIST, int8]
+	HCI_OP_LE_DEL_FROM_RESOLV_LIST		hci_ev_cmd_complete_t[HCI_OP_LE_DEL_FROM_RESOLV_LIST, int8]
+	HCI_OP_LE_CLEAR_RESOLV_LIST		hci_ev_cmd_complete_t[HCI_OP_LE_CLEAR_RESOLV_LIST, int8]
+	HCI_OP_LE_SET_ADDR_RESOLV_ENABLE	hci_ev_cmd_complete_t[HCI_OP_LE_SET_ADDR_RESOLV_ENABLE, int8]
+	HCI_OP_WRITE_LE_HOST_SUPPORTED		hci_ev_cmd_complete_t[HCI_OP_WRITE_LE_HOST_SUPPORTED, int8]
+	HCI_OP_LE_SET_ADV_PARAM			hci_ev_cmd_complete_t[HCI_OP_LE_SET_ADV_PARAM, int8]
+	HCI_OP_WRITE_SSP_DEBUG_MODE		hci_ev_cmd_complete_t[HCI_OP_WRITE_SSP_DEBUG_MODE, int8]
+	HCI_OP_LE_SET_EXT_SCAN_PARAMS		hci_ev_cmd_complete_t[HCI_OP_LE_SET_EXT_SCAN_PARAMS, int8]
+	HCI_OP_LE_SET_EXT_SCAN_ENABLE		hci_ev_cmd_complete_t[HCI_OP_LE_SET_EXT_SCAN_ENABLE, int8]
+	HCI_OP_LE_SET_DEFAULT_PHY		hci_ev_cmd_complete_t[HCI_OP_LE_SET_DEFAULT_PHY, int8]
+	HCI_OP_LE_SET_EXT_ADV_ENABLE		hci_ev_cmd_complete_t[HCI_OP_LE_SET_EXT_ADV_ENABLE, int8]
+	HCI_OP_LE_SET_ADV_SET_RAND_ADDR		hci_ev_cmd_complete_t[HCI_OP_LE_SET_ADV_SET_RAND_ADDR, int8]
+	HCI_OP_NOP				hci_ev_cmd_complete_t[HCI_OP_NOP, int8]
 ] [varlen]
 
 type hci_ev_cmd_complete_t[OPCODE, PAYLOAD] {
@@ -262,11 +306,11 @@ hci_ev_clock_offset {
 	clock_offset	int16
 } [packed]
 
-hci_ev_cmd_status_opcodes = HCI_OP_INQUIRY, HCI_OP_CREATE_CONN, HCI_OP_DISCONNECT, HCI_OP_ADD_SCO, HCI_OP_AUTH_REQUESTED, HCI_OP_SET_CONN_ENCRYPT, HCI_OP_REMOTE_NAME_REQ, HCI_OP_READ_REMOTE_FEATURES, HCI_OP_READ_REMOTE_EXT_FEATURES, HCI_OP_SETUP_SYNC_CONN, HCI_OP_SNIFF_MODE, HCI_OP_EXIT_SNIFF_MODE, HCI_OP_SWITCH_ROLE, HCI_OP_LE_CREATE_CONN, HCI_OP_LE_READ_REMOTE_FEATURES, HCI_OP_LE_START_ENC, HCI_OP_LE_EXT_CREATE_CONN
+hci_ev_cmd_status_opcodes = HCI_OP_NOP, HCI_OP_INQUIRY, HCI_OP_CREATE_CONN, HCI_OP_DISCONNECT, HCI_OP_ADD_SCO, HCI_OP_AUTH_REQUESTED, HCI_OP_SET_CONN_ENCRYPT, HCI_OP_REMOTE_NAME_REQ, HCI_OP_READ_REMOTE_FEATURES, HCI_OP_READ_REMOTE_EXT_FEATURES, HCI_OP_SETUP_SYNC_CONN, HCI_OP_SNIFF_MODE, HCI_OP_EXIT_SNIFF_MODE, HCI_OP_SWITCH_ROLE, HCI_OP_LE_CREATE_CONN, HCI_OP_LE_READ_REMOTE_FEATURES, HCI_OP_LE_START_ENC, HCI_OP_LE_EXT_CREATE_CONN
 
 hci_ev_cmd_status {
 	status	int8
-	ncmd	int8
+	ncmd	bool8
 	opcode	flags[hci_ev_cmd_status_opcodes, int16]
 } [packed]
 
