@@ -66,13 +66,6 @@ static void cover_open(cover_t* cov, bool extra)
 	unsigned long cover_size = kCoverSize;
 	if (ioctl(cov->fd, KIOSETBUFSIZE, &cover_size))
 		fail("ioctl init trace write failed");
-	if (extra) {
-		struct kio_remote_attach args;
-		args.subsystem = KCOV_REMOTE_COMMON;
-		args.id = 0;
-		if (ioctl(cov->fd, KIOREMOTEATTACH, &args))
-			fail("ioctl remote attach failed");
-	}
 	size_t mmap_alloc_size = kCoverSize * (is_kernel_64_bit ? 8 : 4);
 #elif GOOS_netbsd
 	uint64_t cover_size;
@@ -142,8 +135,6 @@ static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
 		exitf("cover enable write trace failed, mode=%d", kcov_mode);
 #elif GOOS_openbsd
 	// OpenBSD uses an pointer to an int as the third argument.
-	// Whether it is a regular coverage or an extra coverage, the enable
-	// ioctl is the same.
 	if (ioctl(cov->fd, KIOENABLE, &kcov_mode))
 		exitf("cover enable write trace failed, mode=%d", kcov_mode);
 #elif GOOS_netbsd
