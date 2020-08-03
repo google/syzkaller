@@ -721,6 +721,53 @@ func foreachTypeImpl(meta *Syscall, preorder bool, f func(t Type, ctx TypeCtx)) 
 	}
 }
 
+func ForeachTypeImpl1(meta *Syscall, preorder bool, f func(t Type, ctx TypeCtx)) {
+	seen := make(map[Type]bool)
+	var rec func(*Type, Dir)
+	rec = func(ptr *Type, dir Dir) {
+		if preorder {
+			f(*ptr, TypeCtx{Meta: meta, Dir: dir, Ptr: ptr})
+		}
+		switch a := (*ptr).(type) {
+		case *PtrType:
+			rec(&a.Elem, a.ElemDir)
+		case *ArrayType:
+			rec(&a.Elem, dir)
+		case *StructType:
+			if seen[a] {
+				break // prune recursion via pointers to structs/unions
+			}
+			seen[a] = true
+			for i := range a.Fields {
+				rec(&a.Fields[i].Type, dir)
+			}
+		case *UnionType:
+			if seen[a] {
+				break // prune recursion via pointers to structs/unions
+			}
+			seen[a] = true
+			for i := range a.Fields {
+				rec(&a.Fields[i].Type, dir)
+			}
+		case *ResourceType, *BufferType, *VmaType, *LenType, *FlagsType,
+			*ConstType, *IntType, *ProcType, *CsumType:
+		case Ref:
+			// This is only needed for pkg/compiler.
+		default:
+			panic("unknown type")
+		}
+		if !preorder {
+			f(*ptr, TypeCtx{Meta: meta, Dir: dir, Ptr: ptr})
+		}
+	}
+	for i := range meta.Args {
+		rec(&meta.Args[i].Type, DirIn)
+	}
+	if meta.Ret != nil {
+		rec(&meta.Ret, DirOut)
+	}
+}
+
 // CppName transforms PascalStyleNames to cpp_style_names.
 func CppName(name string) string {
 	var res []byte
