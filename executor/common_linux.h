@@ -4066,7 +4066,7 @@ static void setup_kcsan()
 }
 
 #if SYZ_EXECUTOR // currently only used by executor
-static void setup_kcsan_filterlist(char** frames, int nframes, bool suppress)
+static void setup_kcsan_blacklist(char** frames, int nframes, bool suppress)
 {
 	int fd = open(KCSAN_DEBUGFS_FILE, O_WRONLY);
 	if (fd == -1)
