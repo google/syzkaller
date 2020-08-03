@@ -28,6 +28,7 @@ setsockopt$bt_hci_HCI_DATA_DIR(fd sock_bt_hci, level const[0], opt const[HCI_DAT
 setsockopt$bt_hci_HCI_TIME_STAMP(fd sock_bt_hci, level const[0], opt const[HCI_TIME_STAMP], arg ptr[in, int32], arglen len[arg])
 setsockopt$bt_hci_HCI_FILTER(fd sock_bt_hci, level const[0], opt const[HCI_FILTER], arg ptr[in, hci_ufilter], arglen len[arg])
 getsockopt$bt_hci(fd sock, level const[0], opt flags[bt_hci_sockopt], arg buffer[out], arglen ptr[inout, len[arg, int32]])
+write$bt_hci(fd sock_bt_hci, data ptr[in, vhci_command_pkt], size bytesize[data])
 
 define HCI_EXTERNAL_CONFIG	0x40
 define HCI_RAW_DEVICE	0x80
