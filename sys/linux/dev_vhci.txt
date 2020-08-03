@@ -6,38 +6,43 @@ include <net/bluetooth/hci_sock.h>
 include <net/bluetooth/sco.h>
 include <net/bluetooth/hci.h>
 
-syz_emit_vhci(data ptr[in, vhci_command], size bytesize[data])
+syz_emit_vhci(data ptr[in, vhci_pkt], size bytesize[data])
 
 # Matches HCI_HANDLE_1/HCI_HANDLE_2 in executor/common_linux.h.
 hci_handles = 200, 201
 type hci_conn_handle flags[hci_handles, int16]
 type hci_phy_handle flags[hci_handles, int8]
 
-vhci_command [
-	HCI_EVENT_PKT	vhci_command_event_pkt
-	HCI_ACLDATA_PKT	vhci_command_acldata_pkt
-	HCI_SCODATA_PKT	vhci_command_scodata_pkt
-	HCI_VENDOR_PKT	vhci_command_vendor_pkt
+vhci_pkt [
+	HCI_EVENT_PKT	vhci_event_pkt
+	HCI_ACLDATA_PKT	vhci_acldata_pkt
+	HCI_SCODATA_PKT	vhci_scodata_pkt
+	HCI_VENDOR_PKT	vhci_vendor_pkt
 ] [varlen]
 
-vhci_command_event_pkt {
+vhci_command_pkt {
+	cmd	const[HCI_COMMAND_PKT, int8]
+	hdr	hci_command_hdr_un
+}
+
+vhci_event_pkt {
 	cmd	const[HCI_EVENT_PKT, int8]
 	hdr	hci_event_hdr_un
 }
 
-vhci_command_acldata_pkt {
+vhci_acldata_pkt {
 	cmd		const[HCI_ACLDATA_PKT, int8]
-	acl_hdr		hci_acl_hdr[vhci_command_acldata_pkt:l2cap_hdr]
+	acl_hdr		hci_acl_hdr[vhci_acldata_pkt:l2cap_hdr]
 	l2cap_hdr	l2cap_hdr_un
 }
 
-vhci_command_scodata_pkt {
+vhci_scodata_pkt {
 	cmd	const[HCI_SCODATA_PKT, int8]
-	sco_hdr	hci_sco_hdr[vhci_command_scodata_pkt:data]
+	sco_hdr	hci_sco_hdr[vhci_scodata_pkt:data]
 	data	array[int8]
 }
 
-vhci_command_vendor_pkt {
+vhci_vendor_pkt {
 	cmd	const[HCI_VENDOR_PKT, int8]
 	opcode	flags[vhci_vendor_pkt_opcode, int8]
 }
@@ -54,6 +59,771 @@ type hci_acl_hdr[DATA] {
 type hci_sco_hdr[DATA] {
 	handle	hci_conn_handle
 	dlen	bytesize[DATA, int8]
+} [packed]
+
+ext_flow_spec {
+	id		int8
+	stype		int8
+	msdu		int16
+	sdu_itime	int32
+	acc_lat		int32
+	flush_to	int32
+} [packed]
+
+hci_cis {
+	cis_handle	int16
+	acl_handle	int16
+} [packed]
+
+hci_cis_params {
+	cis_id	int8
+	m_sdu	int16
+	s_sdu	int16
+	m_phy	int8
+	s_phy	int8
+	m_rtn	int8
+	s_rtn	int8
+} [packed]
+
+hci_command_hdr_un [
+	accept_conn_req			hci_command_packet_t[HCI_OP_ACCEPT_CONN_REQ, hci_cp_accept_conn_req]
+	accept_phy_link			hci_command_packet_t[HCI_OP_ACCEPT_PHY_LINK, hci_cp_accept_phy_link]
+	accept_sync_conn_req		hci_command_packet_t[HCI_OP_ACCEPT_SYNC_CONN_REQ, hci_cp_accept_sync_conn_req]
+	add_sco				hci_command_packet_t[HCI_OP_ADD_SCO, hci_cp_add_sco]
+	auth_requested			hci_command_packet_t[HCI_OP_AUTH_REQUESTED, hci_cp_auth_requested]
+	change_conn_link_key		hci_command_packet_t[HCI_OP_CHANGE_CONN_LINK_KEY, hci_cp_change_conn_link_key]
+	change_conn_ptype		hci_command_packet_t[HCI_OP_CHANGE_CONN_PTYPE, hci_cp_change_conn_ptype]
+	create_logical_link		hci_command_packet_t[HCI_OP_CREATE_LOGICAL_LINK, hci_cp_create_accept_logical_link]
+	accept_logical_link		hci_command_packet_t[HCI_OP_ACCEPT_LOGICAL_LINK, hci_cp_create_accept_logical_link]
+	create_conn			hci_command_packet_t[HCI_OP_CREATE_CONN, hci_cp_create_conn]
+	create_conn_cancel		hci_command_packet_t[HCI_OP_CREATE_CONN_CANCEL, hci_cp_create_conn_cancel]
+	create_phy_link			hci_command_packet_t[HCI_OP_CREATE_PHY_LINK, hci_cp_create_phy_link]
+	delete_reserved_lt_addr		hci_command_packet_t[HCI_OP_DELETE_RESERVED_LT_ADDR, hci_cp_delete_reserved_lt_addr]
+	delete_stored_link_key		hci_command_packet_t[HCI_OP_DELETE_STORED_LINK_KEY, hci_cp_delete_stored_link_key]
+	disconn_logical_link		hci_command_packet_t[HCI_OP_DISCONN_LOGICAL_LINK, hci_cp_disconn_logical_link]
+	disconn_phy_link		hci_command_packet_t[HCI_OP_DISCONN_PHY_LINK, hci_cp_disconn_phy_link]
+	disconnect			hci_command_packet_t[HCI_OP_DISCONNECT, hci_cp_disconnect]
+	exit_sniff_mode			hci_command_packet_t[HCI_OP_EXIT_SNIFF_MODE, hci_cp_exit_sniff_mode]
+	host_buffer_size		hci_command_packet_t[HCI_OP_HOST_BUFFER_SIZE, hci_cp_host_buffer_size]
+	inquiry				hci_command_packet_t[HCI_OP_INQUIRY, hci_cp_inquiry]
+	io_capability_neg_reply		hci_command_packet_t[HCI_OP_IO_CAPABILITY_NEG_REPLY, hci_cp_io_capability_neg_reply]
+	io_capability_reply		hci_command_packet_t[HCI_OP_IO_CAPABILITY_REPLY, hci_cp_io_capability_reply]
+	le_accept_cis			hci_command_packet_t[HCI_OP_LE_ACCEPT_CIS, hci_cp_le_accept_cis]
+	le_add_to_resolv_list		hci_command_packet_t[HCI_OP_LE_ADD_TO_RESOLV_LIST, hci_cp_le_add_to_resolv_list]
+	le_add_to_white_list		hci_command_packet_t[HCI_OP_LE_ADD_TO_WHITE_LIST, hci_cp_le_add_to_white_list]
+	le_conn_param_req_neg_reply	hci_command_packet_t[HCI_OP_LE_CONN_PARAM_REQ_NEG_REPLY, hci_cp_le_conn_param_req_neg_reply]
+	le_conn_param_req_reply		hci_command_packet_t[HCI_OP_LE_CONN_PARAM_REQ_REPLY, hci_cp_le_conn_param_req_reply]
+	le_conn_update			hci_command_packet_t[HCI_OP_LE_CONN_UPDATE, hci_cp_le_conn_update]
+	le_create_cis			hci_command_packet_t[HCI_OP_LE_CREATE_CIS, hci_cp_le_create_cis]
+	le_create_conn			hci_command_packet_t[HCI_OP_LE_CREATE_CONN, hci_cp_le_create_conn]
+	le_del_from_resolv_list		hci_command_packet_t[HCI_OP_LE_DEL_FROM_RESOLV_LIST, hci_cp_le_del_from_resolv_list]
+	le_del_from_white_list		hci_command_packet_t[HCI_OP_LE_DEL_FROM_WHITE_LIST, hci_cp_le_del_from_white_list]
+	le_ext_create_conn		hci_command_packet_t[HCI_OP_LE_EXT_CREATE_CONN, hci_cp_le_ext_create_conn]
+	le_ltk_neg_reply		hci_command_packet_t[HCI_OP_LE_LTK_NEG_REPLY, hci_cp_le_ltk_neg_reply]
+	le_ltk_reply			hci_command_packet_t[HCI_OP_LE_LTK_REPLY, hci_cp_le_ltk_reply]
+	le_read_iso_tx_sync		hci_command_packet_t[HCI_OP_LE_READ_ISO_TX_SYNC, hci_cp_le_read_iso_tx_sync]
+	le_read_remote_features		hci_command_packet_t[HCI_OP_LE_READ_REMOTE_FEATURES, hci_cp_le_read_remote_features]
+	le_reject_cis			hci_command_packet_t[HCI_OP_LE_REJECT_CIS, hci_cp_le_reject_cis]
+	le_remove_cig			hci_command_packet_t[HCI_OP_LE_REMOVE_CIG, hci_cp_le_remove_cig]
+	le_set_adv_data			hci_command_packet_t[HCI_OP_LE_SET_ADV_DATA, hci_cp_le_set_adv_data]
+	le_set_adv_param		hci_command_packet_t[HCI_OP_LE_SET_ADV_PARAM, hci_cp_le_set_adv_param]
+	le_set_adv_set_rand_addr	hci_command_packet_t[HCI_OP_LE_SET_ADV_SET_RAND_ADDR, hci_cp_le_set_adv_set_rand_addr]
+	le_set_cig_params		hci_command_packet_t[HCI_OP_LE_SET_CIG_PARAMS, hci_cp_le_set_cig_params]
+	le_set_data_len			hci_command_packet_t[HCI_OP_LE_SET_DATA_LEN, hci_cp_le_set_data_len]
+	le_set_default_phy		hci_command_packet_t[HCI_OP_LE_SET_DEFAULT_PHY, hci_cp_le_set_default_phy]
+	le_set_event_mask		hci_command_packet_t[HCI_OP_LE_SET_EVENT_MASK, hci_cp_le_set_event_mask]
+	le_set_ext_adv_data		hci_command_packet_t[HCI_OP_LE_SET_EXT_ADV_DATA, hci_cp_le_set_ext_adv_data]
+	le_set_ext_adv_enable		hci_command_packet_t[HCI_OP_LE_SET_EXT_ADV_ENABLE, hci_cp_le_set_ext_adv_enable]
+	le_set_ext_adv_params		hci_command_packet_t[HCI_OP_LE_SET_EXT_ADV_PARAMS, hci_cp_le_set_ext_adv_params]
+	le_set_ext_scan_enable		hci_command_packet_t[HCI_OP_LE_SET_EXT_SCAN_ENABLE, hci_cp_le_set_ext_scan_enable]
+	le_set_ext_scan_params		hci_command_packet_t[HCI_OP_LE_SET_EXT_SCAN_PARAMS, hci_cp_le_set_ext_scan_params]
+	le_set_ext_scan_rsp_data	hci_command_packet_t[HCI_OP_LE_SET_EXT_SCAN_RSP_DATA, hci_cp_le_set_ext_scan_rsp_data]
+	le_set_scan_enable		hci_command_packet_t[HCI_OP_LE_SET_SCAN_ENABLE, hci_cp_le_set_scan_enable]
+	le_set_scan_param		hci_command_packet_t[HCI_OP_LE_SET_SCAN_PARAM, hci_cp_le_set_scan_param]
+	le_set_scan_rsp_data		hci_command_packet_t[HCI_OP_LE_SET_SCAN_RSP_DATA, hci_cp_le_set_scan_rsp_data]
+	le_start_enc			hci_command_packet_t[HCI_OP_LE_START_ENC, hci_cp_le_start_enc]
+	le_write_def_data_len		hci_command_packet_t[HCI_OP_LE_WRITE_DEF_DATA_LEN, hci_cp_le_write_def_data_len]
+	link_key_neg_reply		hci_command_packet_t[HCI_OP_LINK_KEY_NEG_REPLY, hci_cp_link_key_neg_reply]
+	link_key_reply			hci_command_packet_t[HCI_OP_LINK_KEY_REPLY, hci_cp_link_key_reply]
+	logical_link_cancel		hci_command_packet_t[HCI_OP_LOGICAL_LINK_CANCEL, hci_cp_logical_link_cancel]
+	pin_code_neg_reply		hci_command_packet_t[HCI_OP_PIN_CODE_NEG_REPLY, hci_cp_pin_code_neg_reply]
+	pin_code_reply			hci_command_packet_t[HCI_OP_PIN_CODE_REPLY, hci_cp_pin_code_reply]
+	read_auth_payload_to		hci_command_packet_t[HCI_OP_READ_AUTH_PAYLOAD_TO, hci_cp_read_auth_payload_to]
+	read_clock			hci_command_packet_t[HCI_OP_READ_CLOCK, hci_cp_read_clock]
+	read_clock_offset		hci_command_packet_t[HCI_OP_READ_CLOCK_OFFSET, hci_cp_read_clock_offset]
+	read_enc_key_size		hci_command_packet_t[HCI_OP_READ_ENC_KEY_SIZE, hci_cp_read_enc_key_size]
+	read_link_policy		hci_command_packet_t[HCI_OP_READ_LINK_POLICY, hci_cp_read_link_policy]
+	read_local_amp_assoc		hci_command_packet_t[HCI_OP_READ_LOCAL_AMP_ASSOC, hci_cp_read_local_amp_assoc]
+	read_local_ext_features		hci_command_packet_t[HCI_OP_READ_LOCAL_EXT_FEATURES, hci_cp_read_local_ext_features]
+	read_remote_ext_features	hci_command_packet_t[HCI_OP_READ_REMOTE_EXT_FEATURES, hci_cp_read_remote_ext_features]
+	read_remote_features		hci_command_packet_t[HCI_OP_READ_REMOTE_FEATURES, hci_cp_read_remote_features]
+	read_remote_version		hci_command_packet_t[HCI_OP_READ_REMOTE_VERSION, hci_cp_read_remote_version]
+	read_rssi			hci_command_packet_t[HCI_OP_READ_RSSI, hci_cp_read_rssi]
+	read_stored_link_key		hci_command_packet_t[HCI_OP_READ_STORED_LINK_KEY, hci_cp_read_stored_link_key]
+	read_tx_power			hci_command_packet_t[HCI_OP_READ_TX_POWER, hci_cp_read_tx_power]
+	reject_conn_req			hci_command_packet_t[HCI_OP_REJECT_CONN_REQ, hci_cp_reject_conn_req]
+	reject_sync_conn_req		hci_command_packet_t[HCI_OP_REJECT_SYNC_CONN_REQ, hci_cp_reject_sync_conn_req]
+	remote_name_req			hci_command_packet_t[HCI_OP_REMOTE_NAME_REQ, hci_cp_remote_name_req]
+	remote_name_req_cancel		hci_command_packet_t[HCI_OP_REMOTE_NAME_REQ_CANCEL, hci_cp_remote_name_req_cancel]
+	remote_oob_data_neg_reply	hci_command_packet_t[HCI_OP_REMOTE_OOB_DATA_NEG_REPLY, hci_cp_remote_oob_data_neg_reply]
+	remote_oob_data_reply		hci_command_packet_t[HCI_OP_REMOTE_OOB_DATA_REPLY, hci_cp_remote_oob_data_reply]
+	remote_oob_ext_data_reply	hci_command_packet_t[HCI_OP_REMOTE_OOB_EXT_DATA_REPLY, hci_cp_remote_oob_ext_data_reply]
+	role_discovery			hci_command_packet_t[HCI_OP_ROLE_DISCOVERY, hci_cp_role_discovery]
+	set_conn_encrypt		hci_command_packet_t[HCI_OP_SET_CONN_ENCRYPT, hci_cp_set_conn_encrypt]
+	set_csb				hci_command_packet_t[HCI_OP_SET_CSB, hci_cp_set_csb]
+	set_csb_data			hci_command_packet_t[HCI_OP_SET_CSB_DATA, hci_cp_set_csb_data]
+	set_reserved_lt_addr		hci_command_packet_t[HCI_OP_SET_RESERVED_LT_ADDR, hci_cp_set_reserved_lt_addr]
+	setup_sync_conn			hci_command_packet_t[HCI_OP_SETUP_SYNC_CONN, hci_cp_setup_sync_conn]
+	sniff_mode			hci_command_packet_t[HCI_OP_SNIFF_MODE, hci_cp_sniff_mode]
+	sniff_subrate			hci_command_packet_t[HCI_OP_SNIFF_SUBRATE, hci_cp_sniff_subrate]
+	switch_role			hci_command_packet_t[HCI_OP_SWITCH_ROLE, hci_cp_switch_role]
+	user_confirm_reply		hci_command_packet_t[HCI_OP_USER_CONFIRM_REPLY, hci_cp_user_confirm_reply]
+	user_passkey_reply		hci_command_packet_t[HCI_OP_USER_PASSKEY_REPLY, hci_cp_user_passkey_reply]
+	write_auth_payload_to		hci_command_packet_t[HCI_OP_WRITE_AUTH_PAYLOAD_TO, hci_cp_write_auth_payload_to]
+	write_class_of_dev		hci_command_packet_t[HCI_OP_WRITE_CLASS_OF_DEV, hci_cp_write_class_of_dev]
+	write_current_iac_lap		hci_command_packet_t[HCI_OP_WRITE_CURRENT_IAC_LAP, hci_cp_write_current_iac_lap]
+	write_def_err_data_reporting	hci_command_packet_t[HCI_OP_WRITE_DEF_ERR_DATA_REPORTING, hci_cp_write_def_err_data_reporting]
+	write_def_link_policy		hci_command_packet_t[HCI_OP_WRITE_DEF_LINK_POLICY, hci_cp_write_def_link_policy]
+	write_eir			hci_command_packet_t[HCI_OP_WRITE_EIR, hci_cp_write_eir]
+	write_le_host_supported		hci_command_packet_t[HCI_OP_WRITE_LE_HOST_SUPPORTED, hci_cp_write_le_host_supported]
+	write_link_policy		hci_command_packet_t[HCI_OP_WRITE_LINK_POLICY, hci_cp_write_link_policy]
+	write_local_name		hci_command_packet_t[HCI_OP_WRITE_LOCAL_NAME, hci_cp_write_local_name]
+	write_page_scan_activity	hci_command_packet_t[HCI_OP_WRITE_PAGE_SCAN_ACTIVITY, hci_cp_write_page_scan_activity]
+	write_remote_amp_assoc		hci_command_packet_t[HCI_OP_WRITE_REMOTE_AMP_ASSOC, hci_cp_write_remote_amp_assoc]
+	write_sc_support		hci_command_packet_t[HCI_OP_WRITE_SC_SUPPORT, hci_cp_write_sc_support]
+	write_ssp_mode			hci_command_packet_t[HCI_OP_WRITE_SSP_MODE, hci_cp_write_ssp_mode]
+	write_sync_train_params		hci_command_packet_t[HCI_OP_WRITE_SYNC_TRAIN_PARAMS, hci_cp_write_sync_train_params]
+	write_voice_setting		hci_command_packet_t[HCI_OP_WRITE_VOICE_SETTING, hci_cp_write_voice_setting]
+] [varlen]
+
+type hci_command_packet_t[OPCODE, PAYLOAD] {
+	hdr	hci_command_packet[OPCODE]
+	payload	PAYLOAD
+} [packed]
+
+type hci_command_packet[OPCODE] {
+	opcode	const[OPCODE, int16]
+	plen	bytesize[hci_command_packet_t:payload, int8]
+} [packed]
+
+hci_cp_accept_conn_req {
+	bdaddr	bdaddr_t
+	role	int8
+} [packed]
+
+hci_cp_accept_phy_link {
+	phy_handle	hci_phy_handle
+	key_len		int8
+	key_type	int8
+	key		array[int8]
+} [packed]
+
+hci_cp_accept_sync_conn_req {
+	bdaddr		bdaddr_t
+	tx_bandwidth	int32
+	rx_bandwidth	int32
+	max_latency	int16
+	content_format	int16
+	retrans_effort	int8
+	pkt_type	int16
+} [packed]
+
+hci_cp_add_sco {
+	handle		hci_conn_handle
+	pkt_type	int16
+} [packed]
+
+hci_cp_auth_requested {
+	handle	hci_conn_handle
+} [packed]
+
+hci_cp_change_conn_link_key {
+	handle	hci_conn_handle
+} [packed]
+
+hci_cp_change_conn_ptype {
+	handle		hci_conn_handle
+	pkt_type	int16
+} [packed]
+
+hci_cp_create_accept_logical_link {
+	phy_handle	hci_phy_handle
+	tx_flow_spec	ext_flow_spec
+	rx_flow_spec	ext_flow_spec
+} [packed]
+
+hci_cp_create_conn {
+	bdaddr		bdaddr_t
+	pkt_type	int16
+	pscan_rep_mode	int8
+	pscan_mode	int8
+	clock_offset	int16
+	role_switch	int8
+} [packed]
+
+hci_cp_create_conn_cancel {
+	bdaddr	bdaddr_t
+} [packed]
+
+hci_cp_create_phy_link {
+	phy_handle	hci_phy_handle
+	key_len		int8
+	key_type	int8
+	key		array[int8]
+} [packed]
+
+hci_cp_delete_reserved_lt_addr {
+	lt_addr	int8
+} [packed]
+
+hci_cp_delete_stored_link_key {
+	bdaddr		bdaddr_t
+	delete_all	int8
+} [packed]
+
+hci_cp_disconn_logical_link {
+	log_handle	int16
+} [packed]
+
+hci_cp_disconn_phy_link {
+	phy_handle	hci_phy_handle
+	reason		int8
+} [packed]
+
+hci_cp_disconnect {
+	handle	hci_conn_handle
+	reason	int8
+} [packed]
+
+hci_cp_exit_sniff_mode {
+	handle	hci_conn_handle
+} [packed]
+
+hci_cp_host_buffer_size {
+	acl_mtu		int16
+	sco_mtu		int8
+	acl_max_pkt	int16
+	sco_max_pkt	int16
+} [packed]
+
+hci_cp_inquiry {
+	lap	array[int8, 3]
+	length	int8
+	num_rsp	int8
+} [packed]
+
+hci_cp_io_capability_neg_reply {
+	bdaddr	bdaddr_t
+	reason	int8
+} [packed]
+
+hci_cp_io_capability_reply {
+	bdaddr		bdaddr_t
+	capability	int8
+	oob_data	int8
+	authentication	int8
+} [packed]
+
+hci_cp_le_accept_cis {
+	handle	hci_conn_handle
+} [packed]
+
+hci_cp_le_add_to_resolv_list {
+	bdaddr_type	int8
+	bdaddr		bdaddr_t
+	peer_irk	array[int8, 16]
+	local_irk	array[int8, 16]
+} [packed]
+
+hci_cp_le_add_to_white_list {
+	bdaddr_type	int8
+	bdaddr		bdaddr_t
+} [packed]
+
+hci_cp_le_conn_param_req_neg_reply {
+	handle	hci_conn_handle
+	reason	int8
+} [packed]
+
+hci_cp_le_conn_param_req_reply {
+	handle		hci_conn_handle
+	interval_min	int16
+	interval_max	int16
+	latency		int16
+	timeout		int16
+	min_ce_len	int16
+	max_ce_len	int16
+} [packed]
+
+hci_cp_le_conn_update {
+	handle			hci_conn_handle
+	conn_interval_min	int16
+	conn_interval_max	int16
+	conn_latency		int16
+	supervision_timeout	int16
+	min_ce_len		int16
+	max_ce_len		int16
+} [packed]
+
+hci_cp_le_create_cis {
+	num_cis	len[cis, int8]
+	cis	array[hci_cis]
+} [packed]
+
+hci_cp_le_create_conn {
+	scan_interval		int16
+	scan_window		int16
+	filter_policy		int8
+	peer_addr_type		int8
+	peer_addr		bdaddr_t
+	own_address_type	int8
+	conn_interval_min	int16
+	conn_interval_max	int16
+	conn_latency		int16
+	supervision_timeout	int16
+	min_ce_len		int16
+	max_ce_len		int16
+} [packed]
+
+hci_cp_le_del_from_resolv_list {
+	bdaddr_type	int8
+	bdaddr		bdaddr_t
+} [packed]
+
+hci_cp_le_del_from_white_list {
+	bdaddr_type	int8
+	bdaddr		bdaddr_t
+} [packed]
+
+hci_cp_le_ext_create_conn {
+	filter_policy	int8
+	own_addr_type	int8
+	peer_addr_type	int8
+	peer_addr	bdaddr_t
+	phys		int8
+	data		array[int8]
+} [packed]
+
+hci_cp_le_ltk_neg_reply {
+	handle	hci_conn_handle
+} [packed]
+
+hci_cp_le_ltk_reply {
+	handle	hci_conn_handle
+	ltk	array[int8, 16]
+} [packed]
+
+hci_cp_le_read_iso_tx_sync {
+	handle	hci_conn_handle
+} [packed]
+
+hci_cp_le_read_remote_features {
+	handle	hci_conn_handle
+} [packed]
+
+hci_cp_le_reject_cis {
+	handle	hci_conn_handle
+	reason	int8
+} [packed]
+
+hci_cp_le_remove_cig {
+	cig_id	int8
+} [packed]
+
+hci_cp_le_set_adv_data {
+	length	int8
+	data	array[int8, 31]
+} [packed]
+
+hci_cp_le_set_adv_param {
+	min_interval		int16
+	max_interval		int16
+	type			int8
+	own_address_type	int8
+	direct_addr_type	int8
+	direct_addr		bdaddr_t
+	channel_map		int8
+	filter_policy		int8
+} [packed]
+
+hci_cp_le_set_adv_set_rand_addr {
+	handle	int8
+	bdaddr	bdaddr_t
+} [packed]
+
+hci_cp_le_set_cig_params {
+	cig_id		int8
+	m_interval	array[int8, 3]
+	s_interval	array[int8, 3]
+	sca		int8
+	packing		int8
+	framing		int8
+	m_latency	int16
+	s_latency	int16
+	num_cis		len[cis, int8]
+	cis		array[hci_cis_params]
+} [packed]
+
+hci_cp_le_set_data_len {
+	handle	hci_conn_handle
+	tx_len	int16
+	tx_time	int16
+} [packed]
+
+hci_cp_le_set_default_phy {
+	all_phys	int8
+	tx_phys		int8
+	rx_phys		int8
+} [packed]
+
+hci_cp_le_set_event_mask {
+	mask	array[int8, 8]
+} [packed]
+
+hci_cp_le_set_ext_adv_data {
+	handle		int8
+	operation	int8
+	frag_pref	int8
+	length		int8
+	data		array[int8, 31]
+} [packed]
+
+hci_cp_le_set_ext_adv_enable {
+	enable		int8
+	num_of_sets	int8
+	data		array[int8]
+} [packed]
+
+hci_cp_le_set_ext_adv_params {
+	handle			int8
+	evt_properties		int16
+	min_interval		array[int8, 3]
+	max_interval		array[int8, 3]
+	channel_map		int8
+	own_addr_type		int8
+	peer_addr_type		int8
+	peer_addr		bdaddr_t
+	filter_policy		int8
+	tx_power		int8
+	primary_phy		int8
+	secondary_max_skip	int8
+	secondary_phy		int8
+	sid			int8
+	notif_enable		int8
+} [packed]
+
+hci_cp_le_set_ext_scan_enable {
+	enable		int8
+	filter_dup	int8
+	duration	int16
+	period		int16
+} [packed]
+
+hci_cp_le_set_ext_scan_params {
+	own_addr_type	int8
+	filter_policy	int8
+	scanning_phys	int8
+	data		array[int8]
+} [packed]
+
+hci_cp_le_set_ext_scan_rsp_data {
+	handle		int8
+	operation	int8
+	frag_pref	int8
+	length		int8
+	data		array[int8, 31]
+} [packed]
+
+hci_cp_le_set_scan_enable {
+	enable		int8
+	filter_dup	int8
+} [packed]
+
+hci_cp_le_set_scan_param {
+	type			int8
+	interval		int16
+	window			int16
+	own_address_type	int8
+	filter_policy		int8
+} [packed]
+
+hci_cp_le_set_scan_rsp_data {
+	length	int8
+	data	array[int8, 31]
+} [packed]
+
+hci_cp_le_start_enc {
+	handle	hci_conn_handle
+	rand	int64
+	ediv	int16
+	ltk	array[int8, 16]
+} [packed]
+
+hci_cp_le_write_def_data_len {
+	tx_len	int16
+	tx_time	int16
+} [packed]
+
+hci_cp_link_key_neg_reply {
+	bdaddr	bdaddr_t
+} [packed]
+
+hci_cp_link_key_reply {
+	bdaddr		bdaddr_t
+	link_key	array[int8, 16]
+} [packed]
+
+hci_cp_logical_link_cancel {
+	phy_handle	hci_phy_handle
+	flow_spec_id	int8
+} [packed]
+
+hci_cp_pin_code_neg_reply {
+	bdaddr	bdaddr_t
+} [packed]
+
+hci_cp_pin_code_reply {
+	bdaddr		bdaddr_t
+	pin_len		int8
+	pin_code	array[int8, 16]
+} [packed]
+
+hci_cp_read_auth_payload_to {
+	handle	hci_conn_handle
+} [packed]
+
+hci_cp_read_clock {
+	handle	hci_conn_handle
+	which	int8
+} [packed]
+
+hci_cp_read_clock_offset {
+	handle	hci_conn_handle
+} [packed]
+
+hci_cp_read_enc_key_size {
+	handle	hci_conn_handle
+} [packed]
+
+hci_cp_read_link_policy {
+	handle	hci_conn_handle
+} [packed]
+
+hci_cp_read_local_amp_assoc {
+	phy_handle	hci_phy_handle
+	len_so_far	int16
+	max_len		int16
+} [packed]
+
+hci_cp_read_local_ext_features {
+	page	int8
+} [packed]
+
+hci_cp_read_remote_ext_features {
+	handle	hci_conn_handle
+	page	int8
+} [packed]
+
+hci_cp_read_remote_features {
+	handle	hci_conn_handle
+} [packed]
+
+hci_cp_read_remote_version {
+	handle	hci_conn_handle
+} [packed]
+
+hci_cp_read_rssi {
+	handle	hci_conn_handle
+} [packed]
+
+hci_cp_read_stored_link_key {
+	bdaddr		bdaddr_t
+	read_all	int8
+} [packed]
+
+hci_cp_read_tx_power {
+	handle	hci_conn_handle
+	type	int8
+} [packed]
+
+hci_cp_reject_conn_req {
+	bdaddr	bdaddr_t
+	reason	int8
+} [packed]
+
+hci_cp_reject_sync_conn_req {
+	bdaddr	bdaddr_t
+	reason	int8
+} [packed]
+
+hci_cp_remote_name_req {
+	bdaddr		bdaddr_t
+	pscan_rep_mode	int8
+	pscan_mode	int8
+	clock_offset	int16
+} [packed]
+
+hci_cp_remote_name_req_cancel {
+	bdaddr	bdaddr_t
+} [packed]
+
+hci_cp_remote_oob_data_neg_reply {
+	bdaddr	bdaddr_t
+} [packed]
+
+hci_cp_remote_oob_data_reply {
+	bdaddr	bdaddr_t
+	hash	array[int8, 16]
+	rand	array[int8, 16]
+} [packed]
+
+hci_cp_remote_oob_ext_data_reply {
+	bdaddr	bdaddr_t
+	hash192	array[int8, 16]
+	rand192	array[int8, 16]
+	hash256	array[int8, 16]
+	rand256	array[int8, 16]
+} [packed]
+
+hci_cp_role_discovery {
+	handle	hci_conn_handle
+} [packed]
+
+hci_cp_set_conn_encrypt {
+	handle	hci_conn_handle
+	encrypt	int8
+} [packed]
+
+hci_cp_set_csb {
+	enable		int8
+	lt_addr		int8
+	lpo_allowed	int8
+	packet_type	int16
+	interval_min	int16
+	interval_max	int16
+	csb_sv_tout	int16
+} [packed]
+
+hci_cp_set_csb_data {
+	lt_addr		int8
+	fragment	int8
+	data_length	int8
+	data		array[int8, 252]
+} [packed]
+
+hci_cp_set_reserved_lt_addr {
+	lt_addr	int8
+} [packed]
+
+hci_cp_setup_sync_conn {
+	handle		hci_conn_handle
+	tx_bandwidth	int32
+	rx_bandwidth	int32
+	max_latency	int16
+	voice_setting	int16
+	retrans_effort	int8
+	pkt_type	int16
+} [packed]
+
+hci_cp_sniff_mode {
+	handle		hci_conn_handle
+	max_interval	int16
+	min_interval	int16
+	attempt		int16
+	timeout		int16
+} [packed]
+
+hci_cp_sniff_subrate {
+	handle			hci_conn_handle
+	max_latency		int16
+	min_remote_timeout	int16
+	min_local_timeout	int16
+} [packed]
+
+hci_cp_switch_role {
+	bdaddr	bdaddr_t
+	role	int8
+} [packed]
+
+hci_cp_user_confirm_reply {
+	bdaddr	bdaddr_t
+} [packed]
+
+hci_cp_user_passkey_reply {
+	bdaddr	bdaddr_t
+	passkey	int32
+} [packed]
+
+hci_cp_write_auth_payload_to {
+	handle	hci_conn_handle
+	timeout	int16
+} [packed]
+
+hci_cp_write_class_of_dev {
+	dev_class	array[int8, 3]
+} [packed]
+
+hci_cp_write_current_iac_lap {
+	num_iac	len[iac_lap, int8]
+	iac_lap	array[int8, 6]
+} [packed]
+
+hci_cp_write_def_err_data_reporting {
+	err_data_reporting	int8
+} [packed]
+
+hci_cp_write_def_link_policy {
+	policy	int16
+} [packed]
+
+hci_cp_write_eir {
+	fec	int8
+	data	array[int8, 240]
+} [packed]
+
+hci_cp_write_le_host_supported {
+	le	int8
+	simul	int8
+} [packed]
+
+hci_cp_write_link_policy {
+	handle	hci_conn_handle
+	policy	int16
+} [packed]
+
+hci_cp_write_local_name {
+	name	array[int8, 248]
+} [packed]
+
+hci_cp_write_page_scan_activity {
+	interval	int16
+	window		int16
+} [packed]
+
+hci_cp_write_remote_amp_assoc {
+	phy_handle	hci_phy_handle
+	len_so_far	int16
+	rem_len		int16
+	frag		array[int8]
+} [packed]
+
+hci_cp_write_sc_support {
+	support	int8
+} [packed]
+
+hci_cp_write_ssp_mode {
+	mode	int8
+} [packed]
+
+hci_cp_write_sync_train_params {
+	interval_min	int16
+	interval_max	int16
+	sync_train_tout	int32
+	service_data	int8
+} [packed]
+
+hci_cp_write_voice_setting {
+	voice_setting	int16
 } [packed]
 
 hci_event_hdr_un [
