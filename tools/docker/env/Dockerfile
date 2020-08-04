@@ -22,7 +22,7 @@ LABEL homepage="https://github.com/google/syzkaller"
 RUN dpkg --add-architecture i386 && \
 	apt-get update && \
 	DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
-	sudo make nano git curl ca-certificates clang-format binutils g++ clang \
+	sudo make nano git curl ca-certificates clang-format clang-tidy binutils g++ clang \
 	g++-arm-linux-gnueabi g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu \
 	g++-mips64el-linux-gnuabi64 g++-s390x-linux-gnu g++-riscv64-linux-gnu \
 	libc6-dev:i386 linux-libc-dev:i386 lib32gcc-8-dev lib32stdc++-8-dev \
