@@ -11,8 +11,8 @@ fuchsia_io_ServiceHandles {
 } [packed]
 
 fuchsia_io_FileObjectHandles {
-	event	zx_event
-	stream	zx_stream
+	event	zx_handle
+	stream	zx_handle
 } [packed]
 
 fuchsia_io_DirectoryObjectHandles {
@@ -28,15 +28,15 @@ fuchsia_io_VmofileHandles {
 } [packed]
 
 fuchsia_io_DeviceHandles {
-	event	zx_eventpair
+	event	zx_handle
 } [packed]
 
 fuchsia_io_TtyHandles {
-	event	zx_eventpair
+	event	zx_handle
 } [packed]
 
 fuchsia_io_DatagramSocketHandles {
-	event	zx_eventpair
+	event	zx_handle
 } [packed]
 
 fuchsia_io_StreamSocketHandles {

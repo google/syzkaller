@@ -547,16 +547,17 @@ type structDir struct {
 }
 
 func (comp *compiler) checkConstructors() {
-	ctors := make(map[string]bool) // resources for which we have ctors
+	ctors := make(map[string]bool)  // resources for which we have ctors
+	inputs := make(map[string]bool) // resources which are used as inputs
 	checked := make(map[structDir]bool)
 	for _, decl := range comp.desc.Nodes {
 		switch n := decl.(type) {
 		case *ast.Call:
 			for _, arg := range n.Args {
-				comp.checkTypeCtors(arg.Type, prog.DirIn, true, ctors, checked)
+				comp.checkTypeCtors(arg.Type, prog.DirIn, true, ctors, inputs, checked)
 			}
 			if n.Ret != nil {
-				comp.checkTypeCtors(n.Ret, prog.DirOut, true, ctors, checked)
+				comp.checkTypeCtors(n.Ret, prog.DirOut, true, ctors, inputs, checked)
 			}
 		}
 	}
@@ -564,17 +565,23 @@ func (comp *compiler) checkConstructors() {
 		switch n := decl.(type) {
 		case *ast.Resource:
 			name := n.Name.Name
-			if !ctors[name] && comp.used[name] {
+			if !comp.used[name] {
+				continue
+			}
+			if !ctors[name] {
 				comp.error(n.Pos, "resource %v can't be created"+
-					" (never mentioned as a syscall return value or output argument/field)",
-					name)
+					" (never mentioned as a syscall return value or output argument/field)", name)
+			}
+			if !inputs[name] {
+				comp.error(n.Pos, "resource %v is never used as an input"+
+					"(such resources are not useful)", name)
 			}
 		}
 	}
 }
 
 func (comp *compiler) checkTypeCtors(t *ast.Type, dir prog.Dir, isArg bool,
-	ctors map[string]bool, checked map[structDir]bool) {
+	ctors, inputs map[string]bool, checked map[structDir]bool) {
 	desc := comp.getTypeDesc(t)
 	if desc == typeResource {
 		// TODO(dvyukov): consider changing this to "dir == prog.DirOut".
@@ -589,6 +596,13 @@ func (comp *compiler) checkTypeCtors(t *ast.Type, dir prog.Dir, isArg bool,
 				r = comp.resources[r.Base.Ident]
 			}
 		}
+		if dir != prog.DirOut {
+			r := comp.resources[t.Ident]
+			for r != nil && !inputs[r.Name.Name] {
+				inputs[r.Name.Name] = true
+				r = comp.resources[r.Base.Ident]
+			}
+		}
 		return
 	}
 	if desc == typeStruct {
@@ -600,7 +614,7 @@ func (comp *compiler) checkTypeCtors(t *ast.Type, dir prog.Dir, isArg bool,
 		}
 		checked[key] = true
 		for _, fld := range s.Fields {
-			comp.checkTypeCtors(fld.Type, dir, false, ctors, checked)
+			comp.checkTypeCtors(fld.Type, dir, false, ctors, inputs, checked)
 		}
 		return
 	}
@@ -610,7 +624,7 @@ func (comp *compiler) checkTypeCtors(t *ast.Type, dir prog.Dir, isArg bool,
 	_, args, _ := comp.getArgsBase(t, isArg)
 	for i, arg := range args {
 		if desc.Args[i].Type == typeArgType {
-			comp.checkTypeCtors(arg, dir, desc.Args[i].IsArg, ctors, checked)
+			comp.checkTypeCtors(arg, dir, desc.Args[i].IsArg, ctors, inputs, checked)
 		}
 	}
 }

@@ -16,19 +16,20 @@ include <uapi/rdma/mlx5_user_ioctl_cmds.h>
 # resources
 resource fd_rdma[fd]
 resource pd_handle[int32]
-resource ah_handle[int32]
 resource mr_handle[int32]
 resource mr_rkey[int32]
-resource mr_lkey[int32]
 resource cq_handle[int32]
 resource qp_handle[int32]
-resource qp_number[int32]
 resource mw_handle[int32]
 resource srq_handle[int32]
 resource xrcd_handle[int32]
 resource wq_handle[int32]
 resource ind_tbl_handle[int32]
 resource flow_handle[int32]
+
+type ah_handle int32
+type mr_lkey int32
+type qp_number int32
 
 # defines
 define IB_USER_VERBS_EX_CMD_QUERY_DEVICE	0x80000001

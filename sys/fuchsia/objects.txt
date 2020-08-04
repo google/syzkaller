@@ -8,8 +8,7 @@ include <zircon/syscalls/port.h>
 
 resource koid[int64]: 0
 
-# TODO: temporary disabled as it crashes kernel left and right.
-# zx_object_get_child(handle zx_handle, koid koid, rights flags[zx_rights], out ptr[out, zx_handle])
+zx_object_get_child(handle zx_handle, koid koid, rights flags[zx_rights], out ptr[out, zx_handle])
 zx_object_get_info$ZX_INFO_HANDLE_VALID(handle zx_handle, topic const[ZX_INFO_HANDLE_VALID], buffer const[0], buffer_size const[0], actual ptr[out, intptr], avail ptr[out, intptr])
 zx_object_get_info$ZX_INFO_HANDLE_BASIC(handle zx_handle, topic const[ZX_INFO_HANDLE_BASIC], buffer ptr[out, zx_info_handle_basic], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
 zx_object_get_info$ZX_INFO_HANDLE_COUNT(handle zx_handle, topic const[ZX_INFO_HANDLE_COUNT], buffer ptr[out, zx_info_handle_count], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
