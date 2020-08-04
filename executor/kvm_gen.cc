@@ -5,8 +5,8 @@
 
 #include <stdio.h>
 
-#define PRINT(x)                                   \
-	extern const unsigned char x[], x##_end[]; \
+#define PRINT(x)                                    \
+	extern const unsigned char(x)[], x##_end[]; \
 	print(#x, x, x##_end);
 
 void print(const char* name, const unsigned char* start, const unsigned char* end)

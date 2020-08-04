@@ -248,8 +248,10 @@ bin/syz-fmt:
 
 tidy:
 	# A single check is enabled for now. But it's always fixable and proved to be useful.
-	clang-tidy -quiet -header-filter=.* -checks=-*,misc-definitions-in-headers -warnings-as-errors=* \
+	clang-tidy -quiet -header-filter=.* -warnings-as-errors=* \
 		-extra-arg=-DGOOS_$(TARGETOS)=1 -extra-arg=-DGOARCH_$(TARGETARCH)=1 \
+		-extra-arg=-DHOSTGOOS_$(HOSTOS)=1 -extra-arg=-DGIT_REVISION=\"$(REV)\" \
+		-checks=-*,misc-definitions-in-headers,bugprone-macro-parentheses,clang-analyzer-*,-clang-analyzer-security.insecureAPI*,-clang-analyzer-optin.performance* \
 		executor/*.cc
 
 lint:
@@ -265,7 +267,7 @@ presubmit:
 
 presubmit_smoke:
 	$(MAKE) generate
-	$(MAKE) -j100 check_commits check_diff check_copyright check_language check_links presubmit_build
+	$(MAKE) -j100 check_commits check_diff check_copyright check_language check_links presubmit_build tidy
 	$(MAKE) test
 
 presubmit_build:

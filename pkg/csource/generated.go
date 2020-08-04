@@ -2435,10 +2435,10 @@ static int netlink_send_ext(struct nlmsg* nlmsg, int sock,
 	if (n != hdr->nlmsg_len)
 		fail("short netlink write: %d/%d", n, hdr->nlmsg_len);
 	n = recv(sock, nlmsg->buf, sizeof(nlmsg->buf), 0);
-	if (hdr->nlmsg_type == NLMSG_DONE) {
+	if (reply_len)
 		*reply_len = 0;
+	if (hdr->nlmsg_type == NLMSG_DONE)
 		return 0;
-	}
 	if (n < sizeof(struct nlmsghdr))
 		fail("short netlink read: %d", n);
 	if (reply_len && hdr->nlmsg_type == reply_type) {
@@ -3556,12 +3556,6 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 #define CQ_RING_OVERFLOW_OFFSET 284
 #define CQ_FLAGS_OFFSET 280
 #define CQ_CQES_OFFSET 320
-#define SQ_ARRAY_OFFSET(sq_entries, cq_entries) (round_up(CQ_CQES_OFFSET + cq_entries * SIZEOF_IO_URING_CQE, 64))
-
-uint32 round_up(uint32 x, uint32 a)
-{
-	return (x + a - 1) & ~(a - 1);
-}
 
 #if SYZ_EXECUTOR || __NR_syz_io_uring_complete
 struct io_uring_cqe {
@@ -3669,7 +3663,7 @@ static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile lon
 
 	uint32 sq_ring_entries = *(uint32*)(ring_ptr + SQ_RING_ENTRIES_OFFSET);
 	uint32 cq_ring_entries = *(uint32*)(ring_ptr + CQ_RING_ENTRIES_OFFSET);
-	uint32 sq_array_off = SQ_ARRAY_OFFSET(sq_ring_entries, cq_ring_entries);
+	uint32 sq_array_off = (CQ_CQES_OFFSET + cq_ring_entries * SIZEOF_IO_URING_CQE + 63) & ~63;
 	if (sq_ring_entries)
 		sqes_index %= sq_ring_entries;
 	char* sqe_dest = sqes_ptr + sqes_index * SIZEOF_IO_URING_SQE;
@@ -8270,8 +8264,8 @@ static void set_app_seccomp_filter()
 #define AID_EVERYBODY 9997
 #define AID_APP 10000
 
-#define UNTRUSTED_APP_UID AID_APP + 999
-#define UNTRUSTED_APP_GID AID_APP + 999
+#define UNTRUSTED_APP_UID (AID_APP + 999)
+#define UNTRUSTED_APP_GID (AID_APP + 999)
 
 const char* const SELINUX_CONTEXT_UNTRUSTED_APP = "u:r:untrusted_app:s0:c512,c768";
 const char* const SELINUX_LABEL_APP_DATA_FILE = "u:object_r:app_data_file:s0:c512,c768";
