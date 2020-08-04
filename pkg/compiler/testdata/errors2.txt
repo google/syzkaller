@@ -11,6 +11,7 @@ resource r2[r1]			### recursive resource r2->r1->r2
 resource r3[int32]		### unused resource r3
 
 foo$0(a0 ptr[out, r0], a1 ptr[out, r1], a2 ptr[out, r2])
+foo$1(a0 r0, a1 r1, a2 r2)
 
 # Recursive structs/unions.
 
@@ -175,9 +176,11 @@ resource r104[int8]
 resource r105[int8]
 resource r106[int8]		### resource r106 can't be created (never mentioned as a syscall return value or output argument/field)
 resource r107[int8]		### resource r107 can't be created (never mentioned as a syscall return value or output argument/field)
+resource r108[int8]		### resource r108 is never used as an input(such resources are not useful)
 
-foo$300(a r100)
+foo$300(a0 r100, a1 r101, a2 r102, a3 r103, a4 r104)
 foo$301(a ptr[out, array[r103]], b ptr[in, s300], c r107) r104
+foo$302() r108
 
 s300 {
 	f1	ptr[inout, s301]

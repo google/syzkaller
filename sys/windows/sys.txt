@@ -4,12 +4,11 @@
 include <windows.h>
 
 resource HANDLE[intptr]: INVALID_HANDLE_VALUE
-resource hFile[HANDLE]
 
 syz_execute_func(text ptr[in, text[target]])
 
 CloseHandle(hObject HANDLE)
-CreateFileA(lpFileName ptr[in, filename], dwDesiredAccess flags[file_access_rights], dwShareMode flags[file_share_mode], lpSecurityAttributes ptr[in, SECURITY_ATTRIBUTES, opt], dwCreationDisposition flags[file_create_disposition], dwFlagsAndAttributes flags[file_attributes], hTemplateFile HANDLE[opt]) hFile
+CreateFileA(lpFileName ptr[in, filename], dwDesiredAccess flags[file_access_rights], dwShareMode flags[file_share_mode], lpSecurityAttributes ptr[in, SECURITY_ATTRIBUTES, opt], dwCreationDisposition flags[file_create_disposition], dwFlagsAndAttributes flags[file_attributes], hTemplateFile HANDLE[opt]) HANDLE
 VirtualAlloc(lpAddress vma, dwSize len[lpAddress], flAllocationType flags[allocation_type], flProtect flags[protect_flags])
 
 SECURITY_ATTRIBUTES {

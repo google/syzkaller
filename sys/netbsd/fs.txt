@@ -18,9 +18,10 @@ resource uid[int32]: 0, 0xffffffffffffffff
 resource gid[int32]: 0, 0xffffffffffffffff
 
 resource dev[int64]: 0, 0xffffffffffffffff
-resource mode[int32]: 0, 0xffffffffffffffff
-resource ino[int64]: 0, 0xffffffffffffffff
-resource nlink[int32]: 0, 0xffffffffffffffff
+
+type mode int32
+type ino int64
+type nlink int32
 
 compat_43_ocreat(path ptr[in, filename], mode flags[open_mode])
 open(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd

@@ -15,7 +15,6 @@ include <unistd.h>
 include <utime.h>
 
 resource fd[int32]: 0xffffffffffffffff, AT_FDCWD
-resource pid[int32]: 0, 0xffffffffffffffff
 resource uid[int32]: 0, 0xffffffffffffffff
 resource gid[int32]: 0, 0xffffffffffffffff
 
@@ -78,7 +77,7 @@ chdir(dir ptr[in, filename])
 
 getgid() gid
 getuid() uid
-getpid() pid
+getpid()
 
 pipe(pipefd ptr[out, pipefd])
 

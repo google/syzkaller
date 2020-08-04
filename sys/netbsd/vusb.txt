@@ -524,9 +524,7 @@ usb_descriptor_types = USB_DT_DEVICE, USB_DT_CONFIG, USB_DT_STRING, USB_DT_INTER
 # Connected HID devices are known to create the following /dev/ files:
 # /dev/hidraw#, /dev/usb/hiddev# and /dev/input/event#.
 
-resource fd_usb_hid[fd_usb]
-
-syz_usb_connect$hid(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_hid], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_hid (timeout[3000], prog_timeout[3000])
+syz_usb_connect$hid(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_hid], conn_descs ptr[in, vusb_connect_descriptors]) fd (timeout[3000], prog_timeout[3000])
 
 # idVendor and idProduct are patched by Go code, see sys/linux/init_vusb.go.
 usb_device_descriptor_hid {
@@ -601,9 +599,7 @@ define USBLP_REQ_HP_CHANNEL_CHANGE_REQUEST	0x00
 define USBLP_FIRST_PROTOCOL	1
 define USBLP_LAST_PROTOCOL	3
 
-resource fd_usb_printer[fd_usb]
-
-syz_usb_connect$printer(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_printer], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_printer (timeout[3000], prog_timeout[3000])
+syz_usb_connect$printer(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_printer], conn_descs ptr[in, vusb_connect_descriptors]) fd (timeout[3000], prog_timeout[3000])
 
 usb_device_descriptor_printer {
 	inner	usb_device_descriptor_t[0, 0, 0, 0x525, 0xa4a8, 64, array[usb_config_descriptor_printer, 1]]
@@ -649,9 +645,7 @@ define USB_ENDPOINT_PRINTER_IN_ADDRESS	(2 | USB_DIR_IN)
 # Connected CDC ECM devices are known to create usbN network interfaces.
 # TODO: write descriptions for those.
 
-resource fd_usb_cdc_ecm[fd_usb]
-
-syz_usb_connect$cdc_ecm(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_cdc_ecm], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_cdc_ecm (timeout[3000], prog_timeout[3000])
+syz_usb_connect$cdc_ecm(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_cdc_ecm], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb (timeout[3000], prog_timeout[3000])
 
 usb_device_descriptor_cdc_ecm {
 	inner	usb_device_descriptor_t[USB_CLASS_COMM, 0, 0, 0x525, 0xa4a1, 64, array[usb_config_descriptor_cdc_ecm, 1]]
@@ -896,9 +890,7 @@ usb_cdc_mbim_extended_desc {
 # https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/legacy/ncm.c
 # https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/function/f_ncm.c
 
-resource fd_usb_cdc_ncm[fd_usb]
-
-syz_usb_connect$cdc_ncm(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_cdc_ncm], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_cdc_ncm (timeout[3000], prog_timeout[3000])
+syz_usb_connect$cdc_ncm(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_cdc_ncm], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb (timeout[3000], prog_timeout[3000])
 
 usb_device_descriptor_cdc_ncm {
 	inner	usb_device_descriptor_t[USB_CLASS_COMM, 0, 0, 0x525, 0xa4a1, 64, array[usb_config_descriptor_cdc_ncm, 1]]
@@ -983,9 +975,7 @@ define USB_CDC_SET_CRC_MODE	0x8a
 
 # TODO: find out which /dev/ files are created by connected UAC1 devices and add descriptions for those.
 
-resource fd_usb_uac1[fd_usb]
-
-syz_usb_connect$uac1(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_uac1], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_uac1 (timeout[3000], prog_timeout[3000])
+syz_usb_connect$uac1(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_uac1], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb (timeout[3000], prog_timeout[3000])
 
 usb_device_descriptor_uac1 {
 	inner	usb_device_descriptor_t[0, 0, 0, 0x1d6b, 0x101, 64, array[usb_config_descriptor_uac1, 1]]

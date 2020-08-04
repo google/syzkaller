@@ -87,10 +87,8 @@ ioctl$WSMOUSEIO_SETMODE(fd fd_wsmouse, cmd const[WSMOUSEIO_SETMODE], arg ptr[in,
 ioctl$WSMOUSEIO_SETPARAMS(fd fd_wsmouse, cmd const[WSMOUSEIO_SETPARAMS], arg ptr[in, wsmouse_parameters])
 ioctl$WSMOUSEIO_SRES(fd fd_wsmouse, cmd const[WSMOUSEIO_SRES], arg ptr[in, int32])
 
-resource fd_wsmux[fd]
-
-openat$wsmuxkbd(fd const[AT_FDCWD], file ptr[in, string["/dev/wskbd"]], flags flags[open_flags], mode const[0]) fd_wsmux
-openat$wsmuxmouse(fd const[AT_FDCWD], file ptr[in, string["/dev/wsmouse"]], flags flags[open_flags], mode const[0]) fd_wsmux
+openat$wsmuxkbd(fd const[AT_FDCWD], file ptr[in, string["/dev/wskbd"]], flags flags[open_flags], mode const[0]) fd
+openat$wsmuxmouse(fd const[AT_FDCWD], file ptr[in, string["/dev/wsmouse"]], flags flags[open_flags], mode const[0]) fd
 
 wsmux_device {
 	type	flags[wsmux_device_flags, int32]
