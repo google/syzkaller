@@ -186,24 +186,38 @@ func TestExecutorMacros(t *testing.T) {
 }
 
 func TestExecutorMistakes(t *testing.T) {
-	mistakes := map[string][]string{
-		// We strip debug() calls from the resulting C source,
-		// this breaks the following pattern. Use {} around debug() to fix.
-		"\\)\n\\t*(debug|debug_dump_data)\\(": {
-			`
+	mistakes := []struct {
+		pattern string
+		message string
+		tests   []string
+	}{
+		{
+			pattern: `\)\n\t*(debug|debug_dump_data)\(`,
+			message: "debug() calls are stripped from C reproducers, this code will break. Use {} around debug() to fix",
+			tests: []string{
+				`
 if (foo)
 	debug("foo failed");
 `, `
 	if (x + y)
 		debug_dump_data(data, len);
 `,
+			},
+		},
+		{
+			// These are also not properly stripped by pkg/csource.
+			pattern: `/\*[^{]`,
+			message: "Don't use /* */ block comments. Use // line comments instead",
+			tests: []string{
+				`/* C++ comment */`,
+			},
 		},
 	}
-	for pattern, tests := range mistakes {
-		re := regexp.MustCompile(pattern)
-		for _, test := range tests {
+	for _, mistake := range mistakes {
+		re := regexp.MustCompile(mistake.pattern)
+		for _, test := range mistake.tests {
 			if !re.MatchString(test) {
-				t.Errorf("patter %q does not match test %q", pattern, test)
+				t.Errorf("patter %q does not match test %q", mistake.pattern, test)
 			}
 		}
 		for _, match := range re.FindAllStringIndex(commonHeader, -1) {
@@ -214,8 +228,7 @@ if (foo)
 			for end != len(commonHeader) && commonHeader[end] != '\n' {
 				end++
 			}
-			t.Errorf("pattern %q matches executor source:\n%v",
-				pattern, commonHeader[start:end])
+			t.Errorf("%v:%v", mistake.message, commonHeader[start:end])
 		}
 	}
 }

@@ -606,7 +606,7 @@ static int netlink_devlink_id_get(struct nlmsg* nlmsg, int sock)
 		debug("netlink: failed to parse message for devlink family id\n");
 		return -1;
 	}
-	recv(sock, nlmsg->buf, sizeof(nlmsg->buf), 0); /* recv ack */
+	recv(sock, nlmsg->buf, sizeof(nlmsg->buf), 0); // recv ack
 
 	return id;
 }
@@ -820,7 +820,7 @@ static int netlink_wireguard_id_get(struct nlmsg* nlmsg, int sock)
 		debug("netlink: failed to parse message for wireguard family id\n");
 		return -1;
 	}
-	recv(sock, nlmsg->buf, sizeof(nlmsg->buf), 0); /* recv ack */
+	recv(sock, nlmsg->buf, sizeof(nlmsg->buf), 0); // recv ack
 
 	return id;
 }
@@ -841,11 +841,11 @@ static void netlink_wireguard_setup(void)
 	const uint16 listen_c = 20003;
 	const uint16 af_inet = AF_INET;
 	const uint16 af_inet6 = AF_INET6;
-	/* Unused, but useful in case we change this:
-	const struct sockaddr_in endpoint_a_v4 = {
-	    .sin_family = AF_INET,
-	    .sin_port = htons(listen_a),
-	    .sin_addr = {htonl(INADDR_LOOPBACK)}};*/
+	// Unused, but useful in case we change this:
+	// const struct sockaddr_in endpoint_a_v4 = {
+	//     .sin_family = AF_INET,
+	//     .sin_port = htons(listen_a),
+	//     .sin_addr = {htonl(INADDR_LOOPBACK)}};
 	const struct sockaddr_in endpoint_b_v4 = {
 	    .sin_family = AF_INET,
 	    .sin_port = htons(listen_b),
@@ -858,11 +858,11 @@ static void netlink_wireguard_setup(void)
 	    .sin6_family = AF_INET6,
 	    .sin6_port = htons(listen_a)};
 	endpoint_a_v6.sin6_addr = in6addr_loopback;
-	/* Unused, but useful in case we change this:
-	const struct sockaddr_in6 endpoint_b_v6 = {
-	    .sin6_family = AF_INET6,
-	    .sin6_port = htons(listen_b)};
-	endpoint_b_v6.sin6_addr = in6addr_loopback; */
+	// Unused, but useful in case we change this:
+	// const struct sockaddr_in6 endpoint_b_v6 = {
+	//     .sin6_family = AF_INET6,
+	//     .sin6_port = htons(listen_b)};
+	// endpoint_b_v6.sin6_addr = in6addr_loopback;
 	struct sockaddr_in6 endpoint_c_v6 = {
 	    .sin6_family = AF_INET6,
 	    .sin6_port = htons(listen_c)};
