@@ -11,11 +11,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 
-/* -------------------------------------------------------------------------- */
-
-/*
- * Redefinitions to match the linux types used in common_usb.h.
- */
+// Redefinitions to match the linux types used in common_usb.h.
 
 struct usb_endpoint_descriptor {
 	uint8 bLength;
@@ -155,8 +151,6 @@ struct usb_qualifier_descriptor {
 
 #include "common_usb.h"
 
-/* -------------------------------------------------------------------------- */
-
 static int vhci_open(void)
 {
 	char path[1024];
@@ -210,8 +204,6 @@ static int vhci_usb_send(int fd, void* buf, size_t size)
 		ptr += done;
 	}
 }
-
-/* -------------------------------------------------------------------------- */
 
 static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 					  const char* dev, const struct vusb_connect_descriptors* descs,
@@ -300,7 +292,7 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 
 		if ((req.u.ctrl.bmRequestType & USB_TYPE_MASK) == USB_TYPE_STANDARD &&
 		    req.u.ctrl.bRequest == USB_REQ_SET_CONFIGURATION) {
-			/* TODO: possibly revisit */
+			// TODO: possibly revisit.
 		}
 
 		if (response_length > sizeof(data))

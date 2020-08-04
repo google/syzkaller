@@ -419,12 +419,6 @@ void child()
 #include <fcntl.h>
 #include <sys/ioctl.h>
 
-/* -------------------------------------------------------------------------- */
-
-/*
- * Redefinitions to match the linux types used in common_usb.h.
- */
-
 struct usb_endpoint_descriptor {
 	uint8 bLength;
 	uint8 bDescriptorType;
@@ -1336,8 +1330,6 @@ static bool lookup_control_response(const struct vusb_descriptors* descs, const 
 #endif
 
 
-/* -------------------------------------------------------------------------- */
-
 static int vhci_open(void)
 {
 	char path[1024];
@@ -1391,8 +1383,6 @@ static int vhci_usb_send(int fd, void* buf, size_t size)
 		ptr += done;
 	}
 }
-
-/* -------------------------------------------------------------------------- */
 
 static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 					  const char* dev, const struct vusb_connect_descriptors* descs,
@@ -1481,7 +1471,6 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 
 		if ((req.u.ctrl.bmRequestType & USB_TYPE_MASK) == USB_TYPE_STANDARD &&
 		    req.u.ctrl.bRequest == USB_REQ_SET_CONFIGURATION) {
-			/* TODO: possibly revisit */
 		}
 
 		if (response_length > sizeof(data))
@@ -1595,8 +1584,8 @@ static int inject_fault(int nth)
 		fail("failed to open /dev/fault");
 
 	en.scope = FAULT_SCOPE_LWP;
-	en.mode = 0 /* FAULT_MODE_NTH_ONESHOT */;
-	en.nth = nth + 2 /* FAULT_NTH_MIN */;
+	en.mode = 0;
+	en.nth = nth + 2;
 	if (ioctl(fd, FAULT_IOC_ENABLE, &en) != 0)
 		fail("FAULT_IOC_ENABLE failed with nth=%d", nth);
 
@@ -2842,7 +2831,7 @@ static int netlink_devlink_id_get(struct nlmsg* nlmsg, int sock)
 		debug("netlink: failed to parse message for devlink family id\n");
 		return -1;
 	}
-	recv(sock, nlmsg->buf, sizeof(nlmsg->buf), 0); /* recv ack */
+	recv(sock, nlmsg->buf, sizeof(nlmsg->buf), 0);
 
 	return id;
 }
@@ -3054,7 +3043,7 @@ static int netlink_wireguard_id_get(struct nlmsg* nlmsg, int sock)
 		debug("netlink: failed to parse message for wireguard family id\n");
 		return -1;
 	}
-	recv(sock, nlmsg->buf, sizeof(nlmsg->buf), 0); /* recv ack */
+	recv(sock, nlmsg->buf, sizeof(nlmsg->buf), 0);
 
 	return id;
 }
@@ -3075,11 +3064,6 @@ static void netlink_wireguard_setup(void)
 	const uint16 listen_c = 20003;
 	const uint16 af_inet = AF_INET;
 	const uint16 af_inet6 = AF_INET6;
-	/* Unused, but useful in case we change this:
-	const struct sockaddr_in endpoint_a_v4 = {
-	    .sin_family = AF_INET,
-	    .sin_port = htons(listen_a),
-	    .sin_addr = {htonl(INADDR_LOOPBACK)}};*/
 	const struct sockaddr_in endpoint_b_v4 = {
 	    .sin_family = AF_INET,
 	    .sin_port = htons(listen_b),
@@ -3092,11 +3076,6 @@ static void netlink_wireguard_setup(void)
 	    .sin6_family = AF_INET6,
 	    .sin6_port = htons(listen_a)};
 	endpoint_a_v6.sin6_addr = in6addr_loopback;
-	/* Unused, but useful in case we change this:
-	const struct sockaddr_in6 endpoint_b_v6 = {
-	    .sin6_family = AF_INET6,
-	    .sin6_port = htons(listen_b)};
-	endpoint_b_v6.sin6_addr = in6addr_loopback; */
 	struct sockaddr_in6 endpoint_c_v6 = {
 	    .sin6_family = AF_INET6,
 	    .sin6_port = htons(listen_c)};
@@ -9098,7 +9077,7 @@ static void loop(void)
 	int collide = 0;
 again:
 #endif
-	for (call = 0; call < /*NUM_CALLS*/; call++) {
+	for (call = 0; call < /*{{{NUM_CALLS}}}*/; call++) {
 		for (thread = 0; thread < (int)(sizeof(threads) / sizeof(threads[0])); thread++) {
 			struct thread_t* th = &threads[thread];
 			if (!th->created) {
@@ -9118,7 +9097,7 @@ again:
 			if (collide && (call % 2) == 0)
 				break;
 #endif
-			event_timedwait(&th->done, /*CALL_TIMEOUT*/);
+			event_timedwait(&th->done, /*{{{CALL_TIMEOUT}}}*/);
 			break;
 		}
 	}
@@ -9168,7 +9147,7 @@ static void loop(void)
 #endif
 	int iter;
 #if SYZ_REPEAT_TIMES
-	for (iter = 0; iter < /*REPEAT_TIMES*/; iter++) {
+	for (iter = 0; iter < /*{{{REPEAT_TIMES}}}*/; iter++) {
 #else
 	for (iter = 0;; iter++) {
 #endif
@@ -9273,9 +9252,9 @@ static void loop(void)
 #endif
 
 #if !SYZ_EXECUTOR
-/*SYSCALL_DEFINES*/
+/*{{{SYSCALL_DEFINES}}}*/
 
-/*RESULTS*/
+/*{{{RESULTS}}}*/
 
 #if SYZ_THREADED || SYZ_REPEAT || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID
 #if SYZ_THREADED
@@ -9286,7 +9265,7 @@ void execute_one(void)
 void loop(void)
 #endif
 {
-	/*SYSCALLS*/
+	/*{{{SYSCALLS}}}*/
 #if SYZ_HAVE_CLOSE_FDS && !SYZ_THREADED && !SYZ_REPEAT
 	close_fds();
 #endif
@@ -9297,7 +9276,7 @@ void loop(void)
 
 int main(int argc, char** argv)
 {
-	/*MMAP_DATA*/
+	/*{{{MMAP_DATA}}}*/
 
 	program_name = argv[0];
 	if (argc == 2 && strcmp(argv[1], "child") == 0)
@@ -9305,7 +9284,7 @@ int main(int argc, char** argv)
 #else
 int main(void)
 {
-	/*MMAP_DATA*/
+	/*{{{MMAP_DATA}}}*/
 #endif
 
 #if SYZ_BINFMT_MISC
@@ -9328,13 +9307,13 @@ int main(void)
 	install_segv_handler();
 #endif
 #if SYZ_MULTI_PROC
-	for (procid = 0; procid < /*PROCS*/; procid++) {
+	for (procid = 0; procid < /*{{{PROCS}}}*/; procid++) {
 		if (fork() == 0) {
 #endif
 #if SYZ_USE_TMP_DIR || SYZ_SANDBOX_ANDROID
 			use_temporary_dir();
 #endif
-			/*SANDBOX_FUNC*/
+			/*{{{SANDBOX_FUNC}}}*/
 #if SYZ_HAVE_CLOSE_FDS && !SYZ_THREADED && !SYZ_REPEAT && !SYZ_SANDBOX_NONE && \
     !SYZ_SANDBOX_SETUID && !SYZ_SANDBOX_NAMESPACE && !SYZ_SANDBOX_ANDROID
 			close_fds();
