@@ -205,7 +205,7 @@ type if_stats_msg[FAMILY] {
 }
 
 type nhmsg_get_del[FAMILY] nhmsg[FAMILY, const[0, int8], const[0, int32]]
-type nhmsg_new[FAMILY] nhmsg[FAMILY, flags[rtm_protocol, int8], flags[nh_flags, int32]]
+type nhmsg_new[FAMILY] nhmsg[FAMILY, flags[rtm_protocol, int8], flags[rtnh_flags, int32]]
 
 type nhmsg[FAMILY, PROTOCOL, FLAGS] {
 	nh_family	const[FAMILY, int8]
@@ -810,7 +810,7 @@ nda_cacheinfo {
 
 rtnexthop {
 	rtnh_len	int16
-	rtnh_flags	int8
+	rtnh_flags	flags[rtnh_flags, int8]
 	rtnh_hops	int8
 	rtnh_ifindex	ifindex
 }
@@ -1202,5 +1202,5 @@ br_vlan_tinfo_cmd = RTM_SETLINK, RTM_DELLINK
 br_mdb_entry_state = MDB_TEMPORARY, MDB_PERMANENT
 br_mdb_entry_flags = MDB_FLAGS_OFFLOAD, MDB_FLAGS_FAST_LEAVE
 br_mdb_entry_sub_proto = ETH_P_IP, ETH_P_IPV6
-nh_flags = RTNH_F_DEAD, RTNH_F_PERVASIVE, RTNH_F_ONLINK, RTNH_F_OFFLOAD, RTNH_F_LINKDOWN, RTNH_F_UNRESOLVED
+rtnh_flags = RTNH_F_DEAD, RTNH_F_PERVASIVE, RTNH_F_ONLINK, RTNH_F_OFFLOAD, RTNH_F_LINKDOWN, RTNH_F_UNRESOLVED
 nha_group_types = NEXTHOP_GRP_TYPE_MPATH
