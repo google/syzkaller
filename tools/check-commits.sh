@@ -4,22 +4,21 @@
 
 set -e
 
-# GITHUB_PR_BASE_SHA is exported in .github/workflows/ci.yml for pull requests.
-# If it is not set, check against refs/heads/master (presumably a local run),
-# otherwise skip the checks (presumably CI run on a fork commit).
-if [ "${GITHUB_PR_BASE_SHA}" == "" ]; then
-	GITHUB_PR_BASE_SHA="refs/heads/master"
-	HAVE_MASTER=0
-	git show-ref ${GITHUB_PR_BASE_SHA} 1>/dev/null 2>&1 || HAVE_MASTER=$?
-	if [[ HAVE_MASTER -ne 0 ]]; then
-		echo "skipping commit checks: GITHUB_PR_BASE_SHA is not set and ${GITHUB_PR_BASE_SHA} does not exist"
-		exit 0
+# .github/workflows/ci.yml passes GITHUB_PR_BASE_SHA and GITHUB_PR_COMMITS for pull requests.
+# That's the range we want to check for PRs. If these are not set, we check from the current HEAD
+# to the master branch (presumably a local run). If master does not exist (presumably CI run on
+# a commit into a fork tree), check HEAD commit only.
+GITHUB_PR_BASE_SHA="${GITHUB_PR_BASE_SHA:-HEAD}"
+if [ "${GITHUB_PR_COMMITS}" == "" ]; then
+	GITHUB_PR_COMMITS=`git log --oneline master..${GITHUB_PR_BASE_SHA} | wc -l`
+	if [ "${GITHUB_PR_COMMITS}" == "" ] || [ "${GITHUB_PR_COMMITS}" == "0" ]; then
+		GITHUB_PR_COMMITS=1
 	fi
 fi
 
 COMMITS=0
 FAILED=""
-HASHES=$(git log --format="%h" ${GITHUB_PR_BASE_SHA}..HEAD)
+HASHES=$(git log --format="%h" -n ${GITHUB_PR_COMMITS} ${GITHUB_PR_BASE_SHA})
 for HASH in ${HASHES}; do
 	((COMMITS+=1))
 	SUBJECT=$(git show --format="%s" --no-patch ${HASH})
