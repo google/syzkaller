@@ -50,7 +50,7 @@ func TestReportBug(t *testing.T) {
 		Title:             "title1",
 		Link:              fmt.Sprintf("https://testapp.appspot.com/bug?extid=%v", rep.ID),
 		CreditEmail:       fmt.Sprintf("syzbot+%v@testapp.appspotmail.com", rep.ID),
-		Maintainers:       []string{"bar@foo.com", "foo@bar.com"},
+		Maintainers:       []string{"<bar@foo.com>", "<foo@bar.com>"},
 		CompilerID:        "compiler1",
 		KernelRepo:        "repo1",
 		KernelRepoAlias:   "repo1 branch1",

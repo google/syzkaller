@@ -302,7 +302,8 @@ func createNotification(c context.Context, typ dashapi.BugNotif, public bool, te
 		CC:        kernelRepo.CC,
 	}
 	if public {
-		notif.Maintainers = append(crash.Maintainers, kernelRepo.Maintainers...)
+		to, cc := GetEmails(crash.Maintainers)
+		notif.Maintainers = append(append(to, cc...), kernelRepo.Maintainers...)
 	}
 	if (public || reporting.moderation) && bugReporting.CC != "" {
 		notif.CC = append(notif.CC, strings.Split(bugReporting.CC, "|")...)
@@ -410,6 +411,7 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 	}
 
 	kernelRepo := kernelRepoInfo(build)
+	to, cc := GetEmails(crash.Maintainers)
 	rep := &dashapi.BugReport{
 		Type:         typ,
 		Config:       reportingConfig,
@@ -421,7 +423,7 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 		Report:       report,
 		ReportLink:   externalLink(c, textCrashReport, crash.Report),
 		CC:           kernelRepo.CC,
-		Maintainers:  append(crash.Maintainers, kernelRepo.Maintainers...),
+		Maintainers:  append(append(to, cc...), kernelRepo.Maintainers...),
 		ReproC:       reproC,
 		ReproCLink:   externalLink(c, textReproC, crash.ReproC),
 		ReproSyz:     reproSyz,

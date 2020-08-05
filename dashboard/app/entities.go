@@ -5,8 +5,11 @@ package main
 
 import (
 	"fmt"
+	"net/mail"
 	"regexp"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -102,7 +105,7 @@ type Commit struct {
 	Title      string
 	Author     string
 	AuthorName string
-	CC         string `datastore:",noindex"` // (|-delimited list)
+	CC         RecipientString `datastore:",noindex"` // (|-delimited list)
 	Date       time.Time
 }
 
@@ -124,13 +127,13 @@ type Crash struct {
 	Manager     string
 	BuildID     string
 	Time        time.Time
-	Reported    time.Time // set if this crash was ever reported
-	Maintainers []string  `datastore:",noindex"`
-	Log         int64     // reference to CrashLog text entity
-	Report      int64     // reference to CrashReport text entity
-	ReproOpts   []byte    `datastore:",noindex"`
-	ReproSyz    int64     // reference to ReproSyz text entity
-	ReproC      int64     // reference to ReproC text entity
+	Reported    time.Time         // set if this crash was ever reported
+	Maintainers []RecipientString `datastore:",noindex"`
+	Log         int64             // reference to CrashLog text entity
+	Report      int64             // reference to CrashReport text entity
+	ReproOpts   []byte            `datastore:",noindex"`
+	ReproSyz    int64             // reference to ReproSyz text entity
+	ReproC      int64             // reference to ReproC text entity
 	// Custom crash priority for reporting (greater values are higher priority).
 	// For example, a crash in mainline kernel has higher priority than a crash in a side branch.
 	// For historical reasons this is called ReportLen.
@@ -513,4 +516,94 @@ func textLink(tag string, id int64) string {
 func timeDate(t time.Time) int {
 	year, month, day := t.Date()
 	return year*10000 + int(month)*100 + day
+}
+
+type RecipientType int
+
+const (
+	To RecipientType = iota
+	Cc
+)
+
+// t.String() must not be changed as the data is stored in this format.
+func (t RecipientType) String() string {
+	return [...]string{"To", "Cc"}[t]
+}
+
+type RecipientInfo struct {
+	Address mail.Address
+	Type    RecipientType
+}
+
+type Recipients []RecipientInfo
+
+func (r Recipients) Len() int           { return len(r) }
+func (r Recipients) Less(i, j int) bool { return r[i].Address.Address < r[j].Address.Address }
+func (r Recipients) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
+
+type RecipientString string
+
+func (r Recipients) String() RecipientString {
+	recStrSlice := RecipientStrSlice(r.StringSlice())
+	return RecipientString(strings.Join(recStrSlice, "|"))
+}
+
+func RecipientStrSlice(emails []RecipientString) []string {
+	var slice []string
+	for _, user := range emails {
+		slice = append(slice, string(user))
+	}
+	return slice
+}
+
+func (r Recipients) StringSlice() []RecipientString {
+	var slice []RecipientString
+	for _, addr := range r {
+		newAddress := strings.ReplaceAll(addr.Address.String(), "|", "\t")
+		slice = append(slice, RecipientString(newAddress+"\n"+addr.Type.String()))
+	}
+	return slice
+}
+
+func SplitEmails(emails []string) (to, cc []RecipientString) {
+	for _, e := range emails {
+		user := strings.Split(e, "\n")
+		if len(user) == 1 || user[1] == "To" {
+			to = append(to, RecipientString(strings.ReplaceAll(user[0], "\t", "|")))
+		} else {
+			cc = append(cc, RecipientString(strings.ReplaceAll(user[0], "\t", "|")))
+		}
+	}
+	return to, cc
+}
+
+// TODO change output to Recipients and use Recipients instead of
+// Maintainers/Cc on BugNotification and BugReport.
+func GetEmails(emails []RecipientString) (to, cc []string) {
+	for _, e := range emails {
+		user := strings.Split(string(e), "\n")
+		if len(user) == 1 || user[1] == "To" {
+			to = append(to, strings.ReplaceAll(user[0], "\\|", "|"))
+		} else {
+			cc = append(cc, strings.ReplaceAll(user[0], "\\|", "|"))
+		}
+	}
+	return to, cc
+}
+
+func ToApp(d dashapi.Recipients) Recipients {
+	r := Recipients{}
+	for _, user := range d {
+		r = append(r, RecipientInfo{Address: user.Address, Type: RecipientType(user.Type)})
+	}
+	return r
+}
+
+func NewRecipients(emails []string, t RecipientType) Recipients {
+	r := Recipients{}
+	for _, e := range emails {
+		r = append(r, RecipientInfo{Address: mail.Address{Address: e}, Type: t})
+	}
+	sort.Sort(r)
+	return r
 }

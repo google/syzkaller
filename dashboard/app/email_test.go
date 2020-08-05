@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	"net/mail"
 	"strings"
 	"testing"
 	"time"
@@ -23,6 +24,9 @@ func TestEmailReport(t *testing.T) {
 
 	crash := testCrash(build, 1)
 	crash.Maintainers = []string{`"Foo Bar" <foo@bar.com>`, `bar@foo.com`, `idont@want.EMAILS`}
+	crash.Recipients = dashapi.Recipients{
+		dashapi.RecipientInfo{Address: mail.Address{Name: "Foo", Address: "email@bar.com"}, Type: dashapi.To},
+		dashapi.RecipientInfo{Address: mail.Address{Name: "FooBar", Address: "email@foo.com"}, Type: dashapi.Cc}}
 	c.client2.ReportCrash(crash)
 
 	// Report the crash over email and check all fields.
@@ -54,7 +58,7 @@ console output: %[2]v
 kernel config:  %[3]v
 dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 compiler:       compiler1
-CC:             [bar@foo.com foo@bar.com idont@want.EMAILS]
+CC:             [<bar@foo.com> <foo@bar.com> <idont@want.EMAILS> "Foo" <email@bar.com> "FooBar" <email@foo.com>]
 
 Unfortunately, I don't have any reproducer for this issue yet.
 
@@ -155,6 +159,7 @@ For more options, visit https://groups.google.com/d/optout.
 		c.expectEQ(msg.Subject, "Re: "+crash.Title)
 		c.expectEQ(len(msg.Attachments), 0)
 		c.expectEQ(msg.Headers["In-Reply-To"], []string{"<1234>"})
+		// nolint: lll
 		c.expectEQ(msg.Body, fmt.Sprintf(`syzbot has found a reproducer for the following issue on:
 
 HEAD commit:    10101010 a really long title, longer than 80 chars, really..
@@ -165,7 +170,7 @@ dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 compiler:       compiler10
 userspace arch: i386
 syz repro:      %[2]v
-CC:             [bar@foo.com foo@bar.com maintainers@repo10.org bugs@repo10.org]
+CC:             [<bar@foo.com> <foo@bar.com> "Foo" <email@bar.com> "FooBar" <email@foo.com> maintainers@repo10.org bugs@repo10.org]
 
 IMPORTANT: if you fix the issue, please add the following tag to the commit:
 Reported-by: syzbot+%[1]v@testapp.appspotmail.com
@@ -199,11 +204,14 @@ report1
 			"bugs@repo10.org",
 			"bugs@syzkaller.com",
 			"default@maintainers.com",
+			"email@bar.com",
+			"email@foo.com",
 			"foo@bar.com",
 			"maintainers@repo10.org",
 		})
 		c.expectEQ(msg.Subject, crash.Title)
 		c.expectEQ(len(msg.Attachments), 0)
+		// nolint: lll
 		c.expectEQ(msg.Body, fmt.Sprintf(`Hello,
 
 syzbot found the following issue on:
@@ -216,7 +224,7 @@ dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 compiler:       compiler10
 userspace arch: i386
 syz repro:      %[2]v
-CC:             [bar@foo.com foo@bar.com maintainers@repo10.org bugs@repo10.org]
+CC:             [<bar@foo.com> <foo@bar.com> "Foo" <email@bar.com> "FooBar" <email@foo.com> maintainers@repo10.org bugs@repo10.org]
 
 IMPORTANT: if you fix the issue, please add the following tag to the commit:
 Reported-by: syzbot+%[1]v@testapp.appspotmail.com
@@ -272,9 +280,9 @@ Content-Type: text/plain
 		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 		c.expectEQ(sender, fromAddr(c.ctx))
 		c.expectEQ(msg.To, []string{
-			"always@cc.me",
-			"another@another.com", "bar@foo.com", "bugs@repo10.org",
-			"bugs@syzkaller.com", "default@maintainers.com", "foo@bar.com",
+			"always@cc.me", "another@another.com", "bar@foo.com",
+			"bugs@repo10.org", "bugs@syzkaller.com", "default@maintainers.com",
+			"email@bar.com", "email@foo.com", "foo@bar.com",
 			"maintainers@repo10.org", "new@new.com", "qux@qux.com"})
 		c.expectEQ(msg.Subject, "Re: "+crash.Title)
 		c.expectEQ(len(msg.Attachments), 0)
@@ -289,7 +297,7 @@ compiler:       compiler10
 userspace arch: i386
 syz repro:      %[3]v
 C reproducer:   %[2]v
-CC:             [qux@qux.com maintainers@repo10.org bugs@repo10.org]
+CC:             [<qux@qux.com> "Foo" <email@bar.com> "FooBar" <email@foo.com> maintainers@repo10.org bugs@repo10.org]
 
 IMPORTANT: if you fix the issue, please add the following tag to the commit:
 Reported-by: syzbot+%[1]v@testapp.appspotmail.com
@@ -601,7 +609,7 @@ console output: %[2]v
 kernel config:  %[3]v
 dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 compiler:       compiler10
-CC:             [maintainer@crash maintainers@repo10.org bugs@repo10.org build-maintainers@repo10.org]
+CC:             [<maintainer@crash> maintainers@repo10.org bugs@repo10.org build-maintainers@repo10.org]
 
 IMPORTANT: if you fix the issue, please add the following tag to the commit:
 Reported-by: syzbot+%[1]v@testapp.appspotmail.com
@@ -618,4 +626,20 @@ syzbot engineers can be reached at syzkaller@googlegroups.com.
 syzbot will keep track of this issue. See:
 https://goo.gl/tpsmEJ#status for how to communicate with syzbot.`,
 		extBugID, crashLogLink, kernelConfigLink))
+}
+
+func TestParseMailingList(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	maintainers := []string{`foo@bar.com`, "bar@foo.com"}
+	recipients := Recipients{RecipientInfo{Address: mail.Address{Name: "Foo", Address: "email@bar.com"}, Type: To},
+		RecipientInfo{Address: mail.Address{Name: "Foo | Bar", Address: "email@foo.com"}, Type: Cc}}
+	r := append(recipients, NewRecipients(maintainers, To)...)
+	mailingString := r.String()
+	mailingList := strings.Split(string(mailingString), "|")
+	to, cc := SplitEmails(mailingList)
+	toString, ccString := GetEmails(append(to, cc...))
+	finalList := email.MergeEmailLists(toString, ccString)
+	c.expectEQ([]string{"bar@foo.com", "email@bar.com", "email@foo.com", "foo@bar.com"}, finalList)
 }

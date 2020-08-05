@@ -919,7 +919,7 @@ func makeUICrash(crash *Crash, build *Build) *uiCrash {
 	ui := &uiCrash{
 		Manager:      crash.Manager,
 		Time:         crash.Time,
-		Maintainers:  strings.Join(crash.Maintainers, ", "),
+		Maintainers:  strings.Join(RecipientStrSlice(crash.Maintainers), ", "),
 		LogLink:      textLink(textCrashLog, crash.Log),
 		ReportLink:   textLink(textCrashReport, crash.Report),
 		ReproSyzLink: textLink(textReproSyz, crash.ReproSyz),
@@ -1121,11 +1121,12 @@ func makeUIJob(job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *
 		}
 	}
 	for _, com := range job.Commits {
+		to, cc := SplitEmails(strings.Split(string(com.CC), "|"))
 		ui.Commits = append(ui.Commits, &uiCommit{
 			Hash:   com.Hash,
 			Title:  com.Title,
 			Author: fmt.Sprintf("%v <%v>", com.AuthorName, com.Author),
-			CC:     strings.Split(com.CC, "|"),
+			CC:     append(RecipientStrSlice(to), RecipientStrSlice(cc)...),
 			Date:   com.Date,
 		})
 	}

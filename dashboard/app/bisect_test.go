@@ -206,7 +206,7 @@ dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 compiler:       compiler1
 syz repro:      %[4]v
 C reproducer:   %[5]v
-CC:             [author@kernel.org reviewer1@kernel.org reviewer2@kernel.org]
+CC:             [author@kernel.org <reviewer1@kernel.org> <reviewer2@kernel.org>]
 
 The issue was bisected to:
 
