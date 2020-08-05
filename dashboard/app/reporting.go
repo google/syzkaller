@@ -302,7 +302,7 @@ func createNotification(c context.Context, typ dashapi.BugNotif, public bool, te
 		CC:        kernelRepo.CC,
 	}
 	if public {
-		notif.Maintainers = append(crash.Maintainers, kernelRepo.Maintainers...)
+		notif.Maintainers = append(SplitEmails(crash.Maintainers), kernelRepo.Maintainers...)
 	}
 	if (public || reporting.moderation) && bugReporting.CC != "" {
 		notif.CC = append(notif.CC, strings.Split(bugReporting.CC, "|")...)
@@ -421,7 +421,7 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 		Report:       report,
 		ReportLink:   externalLink(c, textCrashReport, crash.Report),
 		CC:           kernelRepo.CC,
-		Maintainers:  append(crash.Maintainers, kernelRepo.Maintainers...),
+		Maintainers:  append(SplitEmails(crash.Maintainers), kernelRepo.Maintainers...),
 		ReproC:       reproC,
 		ReproCLink:   externalLink(c, textReproC, crash.ReproC),
 		ReproSyz:     reproSyz,

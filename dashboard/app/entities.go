@@ -5,8 +5,11 @@ package main
 
 import (
 	"fmt"
+	"net/mail"
 	"regexp"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -513,4 +516,65 @@ func textLink(tag string, id int64) string {
 func timeDate(t time.Time) int {
 	year, month, day := t.Date()
 	return year*10000 + int(month)*100 + day
+}
+
+type RecipientType int
+
+const (
+	To RecipientType = iota
+)
+
+func (t RecipientType) String() string {
+	return [...]string{"To", "Cc"}[t]
+}
+
+type RecipientInfo struct {
+	Address mail.Address
+	Type    RecipientType
+}
+
+type Recipients []RecipientInfo
+
+func (r Recipients) Len() int           { return len(r) }
+func (r Recipients) Less(i, j int) bool { return r[i].Address.Address < r[j].Address.Address }
+func (r Recipients) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
+
+func (r Recipients) String() string {
+	return strings.Join(r.StringSlice(), "|")
+}
+
+func (r Recipients) StringSlice() []string {
+	slice := []string{}
+	for _, addr := range r {
+		slice = append(slice, addr.Address.Address+"&"+addr.Type.String())
+	}
+	return slice
+}
+
+func SplitEmails(emails []string) []string {
+	if len(emails) < 1 {
+		return nil
+	}
+	newEmails := []string{}
+	for _, e := range emails {
+		newEmails = append(newEmails, strings.Split(e, "&")[0])
+	}
+	return newEmails
+}
+
+func ToApp(d dashapi.Recipients) Recipients {
+	r := Recipients{}
+	for _, user := range d {
+		r = append(r, RecipientInfo{Address: user.Address, Type: RecipientType(user.Type)})
+	}
+	return r
+}
+
+func NewRecipients(emails []string, t RecipientType) Recipients {
+	r := Recipients{}
+	for _, e := range emails {
+		r = append(r, RecipientInfo{Address: mail.Address{Address: e}, Type: t})
+	}
+	sort.Sort(r)
+	return r
 }

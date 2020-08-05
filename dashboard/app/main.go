@@ -1125,7 +1125,7 @@ func makeUIJob(job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *
 			Hash:   com.Hash,
 			Title:  com.Title,
 			Author: fmt.Sprintf("%v <%v>", com.AuthorName, com.Author),
-			CC:     strings.Split(com.CC, "|"),
+			CC:     SplitEmails(strings.Split(com.CC, "|")),
 			Date:   com.Date,
 		})
 	}

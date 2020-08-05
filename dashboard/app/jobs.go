@@ -56,7 +56,7 @@ func handleTestRequest(c context.Context, bugID, user, extID, link, patch, repo,
 		}
 		bug.LastActivity = now
 		bugReporting = bugReportingByName(bug, bugReporting.Name)
-		bugCC := strings.Split(bugReporting.CC, "|")
+		bugCC := SplitEmails(strings.Split(bugReporting.CC, "|"))
 		merged := email.MergeEmailLists(bugCC, jobCC)
 		bugReporting.CC = strings.Join(merged, "|")
 		if _, err := db.Put(c, bugKey, bug); err != nil {
@@ -489,15 +489,13 @@ func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 			return err
 		}
 		for _, com := range req.Commits {
-			cc := email.MergeEmailLists(com.CC,
-				GetEmails(com.Recipients, dashapi.To),
-				GetEmails(com.Recipients, dashapi.Cc))
+			cc := append(NewRecipients(sanitizeCC(c, com.CC), To), ToApp(com.Recipients)...)
 			job.Commits = append(job.Commits, Commit{
 				Hash:       com.Hash,
 				Title:      com.Title,
 				Author:     com.Author,
 				AuthorName: com.AuthorName,
-				CC:         strings.Join(sanitizeCC(c, cc), "|"),
+				CC:         cc.String(),
 				Date:       com.Date,
 			})
 		}
@@ -685,7 +683,7 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *db.Key, config i
 		PatchLink:    externalLink(c, textPatch, job.Patch),
 	}
 	if job.Type == JobBisectCause || job.Type == JobBisectFix {
-		rep.Maintainers = append(crash.Maintainers, kernelRepo.Maintainers...)
+		rep.Maintainers = append(SplitEmails(crash.Maintainers), kernelRepo.Maintainers...)
 		rep.ExtID = bugReporting.ExtID
 		if bugReporting.CC != "" {
 			rep.CC = strings.Split(bugReporting.CC, "|")
@@ -729,7 +727,7 @@ func bisectFromJob(c context.Context, rep *dashapi.BugReport, job *Job) *dashapi
 		bisect.Commits = nil
 		com := job.Commits[0]
 		rep.Maintainers = append(rep.Maintainers, com.Author)
-		rep.Maintainers = append(rep.Maintainers, strings.Split(com.CC, "|")...)
+		rep.Maintainers = append(rep.Maintainers, SplitEmails(strings.Split(com.CC, "|"))...)
 	}
 	return bisect
 }
