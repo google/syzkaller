@@ -402,6 +402,7 @@ func (pool *Pool) ctor(workdir, sshkey, sshuser string, index int) (vmimpl.Insta
 
 func (inst *instance) Close() {
 	if inst.qemu != nil {
+		inst.qmp(`{"execute":"quit"}`)
 		inst.qemu.Process.Kill()
 		inst.qemu.Wait()
 	}
@@ -427,6 +428,7 @@ func (inst *instance) boot() error {
 		"-display", "none",
 		"-serial", "stdio",
 		"-no-reboot",
+		"-no-shutdown",
 		"-name", fmt.Sprintf("VM-%v", inst.index),
 	}
 	args = append(args, splitArgs(inst.cfg.QemuArgs, filepath.Join(inst.workdir, "template"))...)
@@ -671,6 +673,10 @@ func (inst *instance) Diagnose() ([]byte, bool) {
 					inst.index, err)
 		}
 	}
+	// The caller is going to kill the process anyway but if
+	// QEMU was running from a script, Process.Kill() will kill
+	// the script and not QEMU
+	inst.qmp(`{"execute":"quit"}`)
 	return ret, true
 }
 
