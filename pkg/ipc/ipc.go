@@ -48,12 +48,13 @@ const (
 type ExecFlags uint64
 
 const (
-	FlagCollectCover ExecFlags = 1 << iota // collect coverage
-	FlagDedupCover                         // deduplicate coverage in executor
-	FlagInjectFault                        // inject a fault in this execution (see ExecOpts)
-	FlagCollectComps                       // collect KCOV comparisons
-	FlagThreaded                           // use multiple threads to mitigate blocked syscalls
-	FlagCollide                            // collide syscalls to provoke data races
+	FlagCollectCover         ExecFlags = 1 << iota // collect coverage
+	FlagDedupCover                                 // deduplicate coverage in executor
+	FlagInjectFault                                // inject a fault in this execution (see ExecOpts)
+	FlagCollectComps                               // collect KCOV comparisons
+	FlagThreaded                                   // use multiple threads to mitigate blocked syscalls
+	FlagCollide                                    // collide syscalls to provoke data races
+	FlagEnableCoverageFilter                       // setup and use bitmap to do coverage filter
 )
 
 type ExecOpts struct {

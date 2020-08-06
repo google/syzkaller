@@ -269,6 +269,10 @@ func main() {
 	}
 	fuzzer.choiceTable = target.BuildChoiceTable(fuzzer.corpus, calls)
 
+	if r.EnabledCoverFilter {
+		fuzzer.execOpts.Flags |= ipc.FlagEnableCoverageFilter
+	}
+
 	for pid := 0; pid < *flagProcs; pid++ {
 		proc, err := newProc(fuzzer, pid)
 		if err != nil {

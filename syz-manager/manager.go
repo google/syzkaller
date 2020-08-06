@@ -87,6 +87,8 @@ type Manager struct {
 	// For checking that files that we are using are not changing under us.
 	// Maps file name to modification time.
 	usedFiles map[string]time.Time
+
+	coverFilterFilename string
 }
 
 const (
@@ -173,6 +175,11 @@ func RunManager(cfg *mgrconfig.Config) {
 	mgr.preloadCorpus()
 	mgr.initHTTP() // Creates HTTP server.
 	mgr.collectUsedFiles()
+
+	mgr.coverFilterFilename, err = createCoverageFilter(mgr.cfg)
+	if err != nil {
+		log.Fatalf("failed to create coverage filter: %v", err)
+	}
 
 	// Create RPC server for fuzzers.
 	mgr.serv, err = startRPCServer(mgr)
@@ -583,6 +590,13 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Re
 	fwdAddr, err := inst.Forward(mgr.serv.port)
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup port forwarding: %v", err)
+	}
+
+	if mgr.coverFilterFilename != "" {
+		_, err = inst.Copy(mgr.coverFilterFilename)
+		if err != nil {
+			return nil, fmt.Errorf("failed to copy coverage filter bitmap: %v", err)
+		}
 	}
 
 	fuzzerBin, err := inst.Copy(mgr.cfg.FuzzerBin)
@@ -1023,7 +1037,7 @@ func (mgr *Manager) collectSyscallInfoUnlocked() map[string]*CallCov {
 	return calls
 }
 
-func (mgr *Manager) fuzzerConnect() ([]rpctype.RPCInput, BugFrames) {
+func (mgr *Manager) fuzzerConnect() ([]rpctype.RPCInput, BugFrames, bool) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
@@ -1040,7 +1054,7 @@ func (mgr *Manager) fuzzerConnect() ([]rpctype.RPCInput, BugFrames) {
 	for frame := range mgr.dataRaceFrames {
 		dataRaceFrames = append(dataRaceFrames, frame)
 	}
-	return corpus, BugFrames{memoryLeaks: memoryLeakFrames, dataRaces: dataRaceFrames}
+	return corpus, BugFrames{memoryLeaks: memoryLeakFrames, dataRaces: dataRaceFrames}, mgr.coverFilterFilename != ""
 }
 
 func (mgr *Manager) machineChecked(a *rpctype.CheckArgs, enabledSyscalls map[*prog.Syscall]bool) {

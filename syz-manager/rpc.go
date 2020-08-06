@@ -53,7 +53,7 @@ type BugFrames struct {
 
 // RPCManagerView restricts interface between RPCServer and Manager.
 type RPCManagerView interface {
-	fuzzerConnect() ([]rpctype.RPCInput, BugFrames)
+	fuzzerConnect() ([]rpctype.RPCInput, BugFrames, bool)
 	machineChecked(result *rpctype.CheckArgs, enabledSyscalls map[*prog.Syscall]bool)
 	newInput(inp rpctype.RPCInput, sign signal.Signal) bool
 	candidateBatch(size int) []rpctype.RPCCandidate
@@ -88,7 +88,7 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	log.Logf(1, "fuzzer %v connected", a.Name)
 	serv.stats.vmRestarts.inc()
 
-	corpus, bugFrames := serv.mgr.fuzzerConnect()
+	corpus, bugFrames, enabledCoverFilter := serv.mgr.fuzzerConnect()
 
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
@@ -103,6 +103,7 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	r.EnabledCalls = serv.configEnabledSyscalls
 	r.GitRevision = prog.GitRevision
 	r.TargetRevision = serv.target.Revision
+	r.EnabledCoverFilter = enabledCoverFilter
 	if serv.mgr.rotateCorpus() && serv.rnd.Intn(5) == 0 {
 		// We do rotation every other time because there are no objective
 		// proofs regarding its efficiency either way.
