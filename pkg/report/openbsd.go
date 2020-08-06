@@ -123,7 +123,7 @@ var openbsdOopses = append([]*oops{
 			},
 			{
 				title:  compile("uvm_fault\\((?:.*\\n)+?.*Stopped at[ ]+([^\\+]+)"),
-				report: compile("uvm_fault\\((?:.*\\n)+?.*Stopped at[ ]+([^\\+]+)\\((?:.*\\n)+?.*end trace frame"),
+				report: compile("uvm_fault(?:.*\\n)+?.*Stopped at[ ]+([^\\+]+)(?:.*\\n)+?.*end trace frame"),
 				fmt:    "uvm_fault: %[1]v",
 			},
 			{

@@ -1,0 +1,296 @@
+TITLE: uvm_fault: pfsync_state_import
+
+uvm_fault(0xfffffd8057333668, 0x7b8, 0, 1) -> e
+kernel: page fault trap, code=0
+Stopped at      pfsync_state_import+0x10f:      movq    0(%r15,%rbx,8),%r15
+ddb>
+ddb> set $lines = 0
+ddb> set $maxwidth = 0
+ddb> show panic
+kernel page fault
+uvm_fault(0xfffffd8057333668, 0x7b8, 0, 1) -> e
+pfsync_state_import(ffff800000aaf800,1) at pfsync_state_import+0x10f
+end trace frame: 0xffff80001d795540, count: 0
+ddb> trace
+pfsync_state_import(ffff800000aaf800,1) at pfsync_state_import+0x10f
+pfioctl(4900,c1084425,ffff800000aaf800,3,ffff80001d6bf650) at pfioctl+0x284a
+VOP_IOCTL(fffffd8065547000,c1084425,ffff800000aaf800,3,fffffd806c3bf960,ffff80001d6bf650) at VOP_IOCTL+0x88
+vn_ioctl(fffffd80682ad5b8,c1084425,ffff800000aaf800,ffff80001d6bf650) at vn_ioctl+0xb5
+sys_ioctl(ffff80001d6bf650,ffff80001d795828,ffff80001d795870) at sys_ioctl+0x4a1
+syscall(ffff80001d7958f0) at syscall+0x507
+Xsyscall() at Xsyscall+0x128
+end of kernel
+end trace frame: 0xc8f686c38f0, count: -7
+ddb> show registers
+rdi               0xffff80001e7a0000
+rsi                            0x466
+rbp               0xffff80001d7953e0
+rbx                             0xf7
+rdx               0xffff80001e7a0000
+rcx                            0x465
+rax               0xffffffff81ed143f    pfsync_state_import+0x10f
+r8                              0xf8
+r9                0xffffffff81d6451e    pfioctl+0x16e
+r10               0x39f53c80d823cce9
+r11               0x5989032c12739994
+r12               0xffff800000c29b00
+r13               0xffff800000aaf800
+r14                              0x1
+r15                                0
+rip               0xffffffff81ed143f    pfsync_state_import+0x10f
+cs                               0x8
+rflags                       0x10246    __ALIGN_SIZE+0xf246
+rsp               0xffff80001d795360
+ss                              0x10
+pfsync_state_import+0x10f:      movq    0(%r15,%rbx,8),%r15
+ddb> show proc
+PROC (syz-executor.0) pid=332194 stat=onproc
+    flags process=10<SUGID> proc=4000000<THREAD>
+    pri=32, usrpri=81, nice=20
+    forw=0xffffffffffffffff, list=0xffff80001d6be018,0xffffffff827fbfa8
+    process=0xffff80001fdc8030 user=0xffff80001d790000, vmspace=0xfffffd8057333668
+    estcpu=36, cpticks=0, pctcpu=0.0
+    user=0, sys=0, intr=0
+ddb> ps
+   PID     TID   PPID    UID  S       FLAGS  WAIT          COMMAND
+ 11812  289001  74882      0  2        0x10                syz-executor.0
+*11812  332194  74882      0  7   0x4000010                syz-executor.0
+ 74882  461940  13679      0  3        0x82  nanosleep     syz-executor.0
+ 84963  254392      0      0  3     0x14280  nfsidl        nfsio
+ 36558  280941      0      0  3     0x14280  nfsidl        nfsio
+  4490  153852      0      0  3     0x14280  nfsidl        nfsio
+ 14592  496286      0      0  3     0x14280  nfsidl        nfsio
+ 23323  137879      0      0  3     0x14280  nfsidl        nfsio
+ 34529  381711      0      0  3     0x14280  nfsidl        nfsio
+ 22632  268460      0      0  3     0x14280  nfsidl        nfsio
+ 57648  217930      0      0  3     0x14280  nfsidl        nfsio
+  8960  322061      0      0  3     0x14280  nfsidl        nfsio
+ 73061  332892      0      0  3     0x14280  nfsidl        nfsio
+ 36204  490761      0      0  3     0x14280  nfsidl        nfsio
+ 24641   54593      0      0  3     0x14280  nfsidl        nfsio
+ 65412  189884      0      0  3     0x14280  nfsidl        nfsio
+  6810  290947      0      0  3     0x14280  nfsidl        nfsio
+ 27773  420663      0      0  3     0x14280  nfsidl        nfsio
+ 66819  102959      0      0  3     0x14280  nfsidl        nfsio
+ 33090  193697      0      0  3     0x14280  nfsidl        nfsio
+ 92973  445274      0      0  3     0x14280  nfsidl        nfsio
+  7174  347227      0      0  3     0x14280  nfsidl        nfsio
+ 88648   17564      0      0  3     0x14280  nfsidl        nfsio
+  3610  247041      0      0  3     0x14200  bored         sosplice
+ 67453  251414  13679      0  3        0x82  piperd        syz-executor.1
+ 13679  135120  35191      0  3        0x82  thrsleep      syz-fuzzer
+ 13679    1695  35191      0  3   0x4000082  nanosleep     syz-fuzzer
+ 13679  278526  35191      0  3   0x4000082  thrsleep      syz-fuzzer
+ 13679  262417  35191      0  3   0x4000082  thrsleep      syz-fuzzer
+ 13679  470597  35191      0  3   0x4000082  thrsleep      syz-fuzzer
+ 13679  291701  35191      0  2   0x4000002                syz-fuzzer
+ 13679  497915  35191      0  3   0x4000082  thrsleep      syz-fuzzer
+ 35191  335649  99529      0  3    0x10008a  pause         ksh
+ 99529  352028  67521      0  3        0x92  select        sshd
+ 32439  337175      1      0  3    0x100083  ttyin         getty
+ 67521  351518      1      0  3        0x80  select        sshd
+ 94096  305528  72474     73  3    0x100090  kqread        syslogd
+ 72474  128518      1      0  3    0x100082  netio         syslogd
+ 31310  524237      1     77  3    0x100090  poll          dhclient
+ 46693  353564      1      0  3        0x80  poll          dhclient
+ 15480  334950      0      0  3     0x14200  bored         smr
+ 90320  198361      0      0  2     0x14200                zerothread
+ 44915   50779      0      0  3     0x14200  aiodoned      aiodoned
+ 25905  520388      0      0  3     0x14200  syncer        update
+ 17016  187125      0      0  3     0x14200  cleaner       cleaner
+ 51826   26903      0      0  3     0x14200  reaper        reaper
+ 85881  305928      0      0  3     0x14200  pgdaemon      pagedaemon
+ 23107  500747      0      0  3     0x14200  bored         crynlk
+ 32527  146753      0      0  3     0x14200  bored         crypto
+  1344  228298      0      0  3  0x40014200  acpi0         acpi0
+ 57789  421890      0      0  3     0x14200  bored         softnet
+ 60572  168817      0      0  3     0x14200  bored         systqmp
+ 66185  438394      0      0  3     0x14200  bored         systq
+ 40584  285445      0      0  3  0x40014200  bored         softclock
+ 82719  106718      0      0  3  0x40014200                idle0
+     1  196028      0      0  3        0x82  wait          init
+     0       0     -1      0  3     0x10200  scheduler     swapper
+ddb> show all locks
+No such command
+ddb> show malloc
+           Type InUse  MemUse  HighUse   Limit  Requests Type Lim
+         devbuf  9510   6347K    6863K  78643K     12159        0
+            pcb    13      8K       8K  78643K       123        0
+         rtable    96     14K      17K  78643K       723        0
+         ifaddr    77     14K      15K  78643K       238        0
+         sysctl     2      0K       0K  78643K         2        0
+       counters    21     16K      16K  78643K        28        0
+       ioctlops     1      0K       4K  78643K      1590        0
+            iov     0      0K      12K  78643K        90        0
+          mount     1      1K       1K  78643K         1        0
+         vnodes  1226     77K      78K  78643K      1734        0
+      UFS quota     1     32K      32K  78643K         1        0
+      UFS mount     5     36K      36K  78643K         5        0
+            shm     2      1K       5K  78643K        15        0
+         VM map     2      0K       0K  78643K         2        0
+            sem    12      0K       0K  78643K       274        0
+        dirhash     9      1K       2K  78643K        12        0
+           ACPI  1809    195K     288K  78643K     12938        0
+      file desc     5     13K      25K  78643K      1307        0
+          sigio     0      0K       0K  78643K        18        0
+           proc    50     38K      63K  78643K       490        0
+        subproc    32      2K       2K  78643K        72        0
+    NFS srvsock     1      0K       0K  78643K         1        0
+     NFS daemon     1     16K      16K  78643K         1        0
+    ip_moptions     0      0K       0K  78643K      2106        0
+       in_multi    29      2K       2K  78643K       108        0
+    ether_multi     1      0K       0K  78643K        15        0
+            mrt     0      0K       0K  78643K        10        0
+    ISOFS mount     1     32K      32K  78643K         1        0
+  MSDOSFS mount     1     16K      16K  78643K         1        0
+           ttys    73    334K     334K  78643K        73        0
+           exec     0      0K       1K  78643K       277        0
+        pagedep     1      8K       8K  78643K         1        0
+       inodedep     1     32K      32K  78643K         1        0
+         newblk     1      0K       0K  78643K         1        0
+        VM swap     7     26K      26K  78643K         7        0
+       UVM amap   139     71K      71K  78643K      3772        0
+       UVM aobj    57      2K       3K  78643K        64        0
+        memdesc     1      4K       4K  78643K         1        0
+    crypto data     1      1K       1K  78643K         1        0
+    ip6_options     0      0K       0K  78643K        60        0
+            NDP    13      0K       0K  78643K        29        0
+           temp   137   3877K    3941K  78643K     10085        0
+         kqueue     3      4K      18K  78643K        37        0
+      SYN cache     2     16K      16K  78643K         2        0
+ddb> show all pools
+Name      Size Requests Fail Releases Pgreq Pgrel Npage Hiwat Minpg Maxpg Idle
+arp         64       11    0        7     1     0     1     1     0     8    0
+rtpcb       88       77    0       75     1     0     1     1     0     8    0
+rtentry    112       87    0       58     2     0     2     2     0     8    0
+unpcb      120      427    0      419     1     0     1     1     0     8    0
+syncache   272       12    0       12     5     5     0     1     0     8    0
+tcpqe       32      154    0      154     4     4     0     1     0     8    0
+tcpcb      592     1295    0     1287    11    10     1     6     0     8    0
+ipq         40        1    0        1     1     1     0     1     0     8    0
+ipqe        40        2    0        2     1     1     0     1     0     8    0
+inpcb      296     2686    0     2679     6     4     2     2     0     8    1
+rttmr       72        4    0        4     2     2     0     1     0     8    0
+ip6q        72        5    0        5     5     5     0     1     0     8    0
+ip6af       40        8    0        8     4     4     0     1     0     8    0
+nd6         48       13    0        7     1     0     1     1     0     8    0
+pkpcb       40        2    0        2     1     1     0     1     0     8    0
+swfcl       56        2    0        0     1     0     1     1     0     8    0
+ppxss      1136       2    0        2     2     2     0     1     0     8    0
+pfstscr     40        4    0        2     1     0     1     1     0     8    0
+pfrktable  1344     155    0      148     3     2     1     2     0     8    0
+pftag       88       25    0       24     1     0     1     1     0     8    0
+pfstitem    24        2    0        0     1     0     1     1     0     8    0
+pfstkey    112        4    0        2     1     0     1     1     0     8    0
+pfstate    328        2    0        1     1     0     1     1     0     8    0
+pfrule     1360     479    0       40    37     0    37    37     0     8    0
+art_heap8  4096       1    0        0     1     0     1     1     0     8    0
+art_heap4  256      385    0      229    14     3    11    12     0     8    0
+art_table   32      386    0      229     2     0     2     2     0     8    0
+art_node    16       86    0       61     1     0     1     1     0     8    0
+sysvmsgpl   40       34    0       20     2     1     1     1     0     8    0
+semupl     112        4    0        4     1     1     0     1     0     8    0
+semapl     112      268    0      258     1     0     1     1     0     8    0
+shmpl      112       61    0        7     2     0     2     2     0     8    0
+dirhash    1024      17    0       10     3     1     2     3     0     8    0
+dino2pl    256     2933    0     1543    88     0    88    88     0     8    0
+ffsino     240     2933    0     1543    83     0    83    83     0     8    0
+nchpl      144     4806    0     3221    60     0    60    60     0     8    0
+uvmvnodes   72     3392    0        0    62     0    62    62     0     8    0
+vnodes     208     3392    0        0   179     0   179   179     0     8    0
+namei      1024   14214    0    14214     5     4     1     1     0     8    1
+vcpupl     1984       4    0        0     1     0     1     1     0     8    0
+vmpool     528        4    0        0     1     0     1     1     0     8    0
+pfiaddrpl  120       44    0       42     1     0     1     1     0     8    0
+scsiplug    72        2    0        2     2     2     0     1     0     8    0
+scxspl     200    15382    0    15382    10     9     1     1     0     8    1
+plimitpl   152       71    0       64     1     0     1     1     0     8    0
+sigapl     424     1510    0     1461     6     0     6     6     0     8    0
+futexpl     56    24583    0    24583     5     4     1     1     0     8    1
+knotepl    112      139    0      119     2     1     1     2     0     8    0
+kqueuepl   152       96    0       94     1     0     1     1     0     8    0
+pipepl     272      218    0      207     2     1     1     2     0     8    0
+fdescpl    432     1473    0     1459     2     0     2     2     0     8    0
+filepl     120     9400    0     9301     4     0     4     4     0     8    0
+lockfpl    104      221    0      220     1     0     1     1     0     8    0
+lockfspl    48       83    0       82     1     0     1     1     0     8    0
+sessionpl  120       19    0        9     1     0     1     1     0     8    0
+pgrppl      48       25    0       15     1     0     1     1     0     8    0
+ucredpl     96      530    0      522     1     0     1     1     0     8    0
+zombiepl   144     1461    0     1461     1     0     1     1     0     8    1
+processpl  944     1510    0     1461     7     0     7     7     0     8    0
+procpl     632     2960    0     2904     7     2     5     6     0     8    0
+sosppl     144        4    0        4     2     2     0     1     0     8    0
+sockpl     400     3192    0     3175     9     6     3     4     0     8    1
+mcl64k     65536     64    0       64     6     5     1     1     0     8    1
+mcl16k     16384      6    0        6     6     5     1     1     0     8    1
+mcl12k     12288     37    0       37     6     6     0     1     0     8    0
+mcl9k      9216      11    0       11     4     4     0     1     0     8    0
+mcl8k      8192      25    0       25     8     8     0     1     0     8    0
+mcl4k      4096      91    0       91     7     6     1     1     0     8    1
+mcl2k2     2112       5    0        5     3     3     0     1     0     8    0
+mcl2k      2048   89507    0    89462    19    12     7    15     0     8    0
+mtagpl      96       75    0       43     2     1     1     1     0     8    0
+mbufpl     256   151219    0   151084    21     9    12    15     0     8    0
+bufpl      280     5061    0      118   354     0   354   354     0     8    0
+anonpl      16   151474    0   133232   114    34    80    91     0   107    0
+amapchunkpl 152    6778    0     6595    29    21     8    21     0   158    0
+amappl16   192     7314    0     6288    85    33    52    64     0     8    0
+amappl15   184        3    0        1     1     0     1     1     0     8    0
+amappl14   176        4    0        2     1     0     1     1     0     8    0
+amappl13   168      543    0      538     1     0     1     1     0     8    0
+amappl12   160      764    0      760     1     0     1     1     0     8    0
+amappl11   152       76    0       66     1     0     1     1     0     8    0
+amappl10   144       24    0       20     1     0     1     1     0     8    0
+amappl9    136      354    0      353     1     0     1     1     0     8    0
+amappl8    128      337    0      311     1     0     1     1     0     8    0
+amappl7    120      118    0      105     1     0     1     1     0     8    0
+amappl6    112       27    0       21     1     0     1     1     0     8    0
+amappl5    104     2137    0     2124     1     0     1     1     0     8    0
+amappl4     96      972    0      945     1     0     1     1     0     8    0
+amappl3     88      166    0      156     1     0     1     1     0     8    0
+amappl2     80    10851    0    10785     2     0     2     2     0     8    0
+amappl1     72    41463    0    41054    24    15     9    17     0     8    0
+amappl      80     3216    0     3157     2     0     2     2     0    84    0
+dma4096    4096       1    0        1     1     1     0     1     0     8    0
+dma256     256        6    0        6     1     1     0     1     0     8    0
+dma128     128      253    0      253     1     1     0     1     0     8    0
+dma64       64        6    0        6     1     1     0     1     0     8    0
+dma32       32        7    0        7     1     1     0     1     0     8    0
+dma16       16       18    0       17     1     0     1     1     0     8    0
+aobjpl      64       63    0        7     1     0     1     1     0     8    0
+uaddrrnd    24     1477    0     1459     1     0     1     1     0     8    0
+uaddrbest   32        2    0        0     1     0     1     1     0     8    0
+uaddr       24     1477    0     1459     1     0     1     1     0     8    0
+vmmpekpl   168    11242    0    11214     2     0     2     2     0     8    0
+vmmpepl    168   183266    0   181141   188    93    95   130     0   357    0
+vmsppl     272     1476    0     1459     2     0     2     2     0     8    0
+pdppl      4096    2960    0     2922     6     1     5     6     0     8    0
+pvpl        32   416139    0   394802   261    65   196   212     0   265   14
+pmappl     200     1476    0     1459     1     0     1     1     0     8    0
+extentpl    40       53    0       36     1     0     1     1     0     8    0
+phpool     112      324    0       68     8     0     8     8     0     8    0
+ddb> machine ddbcpu 0
+No such command
+ddb> trace
+pfsync_state_import(ffff800000aaf800,1) at pfsync_state_import+0x10f
+pfioctl(4900,c1084425,ffff800000aaf800,3,ffff80001d6bf650) at pfioctl+0x284a
+VOP_IOCTL(fffffd8065547000,c1084425,ffff800000aaf800,3,fffffd806c3bf960,ffff80001d6bf650) at VOP_IOCTL+0x88
+vn_ioctl(fffffd80682ad5b8,c1084425,ffff800000aaf800,ffff80001d6bf650) at vn_ioctl+0xb5
+sys_ioctl(ffff80001d6bf650,ffff80001d795828,ffff80001d795870) at sys_ioctl+0x4a1
+syscall(ffff80001d7958f0) at syscall+0x507
+Xsyscall() at Xsyscall+0x128
+end of kernel
+end trace frame: 0xc8f686c38f0, count: -7
+ddb> machine ddbcpu 1
+No such command
+ddb> trace
+pfsync_state_import(ffff800000aaf800,1) at pfsync_state_import+0x10f
+pfioctl(4900,c1084425,ffff800000aaf800,3,ffff80001d6bf650) at pfioctl+0x284a
+VOP_IOCTL(fffffd8065547000,c1084425,ffff800000aaf800,3,fffffd806c3bf960,ffff80001d6bf650) at VOP_IOCTL+0x88
+vn_ioctl(fffffd80682ad5b8,c1084425,ffff800000aaf800,ffff80001d6bf650) at vn_ioctl+0xb5
+sys_ioctl(ffff80001d6bf650,ffff80001d795828,ffff80001d795870) at sys_ioctl+0x4a1
+syscall(ffff80001d7958f0) at syscall+0x507
+Xsyscall() at Xsyscall+0x128
+end of kernel
+end trace frame: 0xc8f686c38f0, count: -7
