@@ -106,6 +106,16 @@ type Config struct {
 
 	// Use KCOV coverage (default: true).
 	Cover bool `json:"cover"`
+	// Use coverage filter. Supported types of filter:
+	// "files": support specifying kernel source files, support regular expression.
+	// eg. "files": ["^net/core/tcp.c$", "^net/sctp/", "tcp"].
+	// "functions": support specifying kernel functions, support regular expression.
+	// eg. "functions": ["^foo$", "^bar", "baz"].
+	// "pcs": specify raw PC table files name.
+	// Each line of the file should be: "64-bit-pc:32-bit-weight\n".
+	// eg. "0xffffffff81000000:0x10\n"
+	CovFilter covFilterCfg `json:"cover_filter"`
+
 	// Reproduce, localize and minimize crashers (default: true).
 	Reproduce bool `json:"reproduce"`
 
@@ -130,4 +140,10 @@ type Config struct {
 
 	// Implementation details beyond this point. Filled after parsing.
 	Derived `json:"-"`
+}
+
+type covFilterCfg struct {
+	Files     []string `json:"files"`
+	Functions []string `json:"functions"`
+	RawPCs    []string `json:"pcs"`
 }

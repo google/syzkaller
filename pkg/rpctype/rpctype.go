@@ -30,13 +30,14 @@ type ConnectArgs struct {
 }
 
 type ConnectRes struct {
-	EnabledCalls     []int
-	GitRevision      string
-	TargetRevision   string
-	AllSandboxes     bool
-	CheckResult      *CheckArgs
-	MemoryLeakFrames []string
-	DataRaceFrames   []string
+	EnabledCalls       []int
+	GitRevision        string
+	TargetRevision     string
+	AllSandboxes       bool
+	CheckResult        *CheckArgs
+	MemoryLeakFrames   []string
+	DataRaceFrames     []string
+	EnabledCoverFilter bool
 }
 
 type CheckArgs struct {

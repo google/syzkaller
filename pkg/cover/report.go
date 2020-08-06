@@ -326,6 +326,24 @@ func (rg *ReportGenerator) lazySymbolize(files map[string]*file, progs []Prog) e
 	return nil
 }
 
+type Symbol struct {
+	Name string
+	File string
+	PCs  []uint64
+}
+
+func (rg *ReportGenerator) GetSymbolsInfo() []Symbol {
+	retSymbols := make([]Symbol, 0)
+	for _, sym := range rg.symbols {
+		retSymbols = append(retSymbols, Symbol{
+			Name: sym.name,
+			File: sym.unit.name,
+			PCs:  sym.pcs,
+		})
+	}
+	return retSymbols
+}
+
 func getFile(files map[string]*file, name, filename string) *file {
 	f := files[name]
 	if f == nil {
@@ -829,27 +847,47 @@ func parseFile(fn string) ([][]byte, error) {
 }
 
 func PreviousInstructionPC(target *targets.Target, pc uint64) uint64 {
-	switch target.Arch {
+	offset := instructionLen(target.Arch)
+	pc -= offset
+	// THUMB instructions are 2 or 4 bytes with low bit set.
+	// ARM instructions are always 4 bytes.
+	if target.Arch == targets.ARM {
+		return pc & ^uint64(1)
+	}
+	return pc
+}
+
+func NextInstructionPC(target *targets.Target, pc uint64) uint64 {
+	offset := instructionLen(target.Arch)
+	pc += offset
+	// THUMB instructions are 2 or 4 bytes with low bit set.
+	// ARM instructions are always 4 bytes.
+	if target.Arch == targets.ARM {
+		return pc & ^uint64(1)
+	}
+	return pc
+}
+
+func instructionLen(arch string) uint64 {
+	switch arch {
 	case targets.AMD64:
-		return pc - 5
+		return 5
 	case targets.I386:
-		return pc - 5
+		return 5
 	case targets.ARM64:
-		return pc - 4
+		return 4
 	case targets.ARM:
-		// THUMB instructions are 2 or 4 bytes with low bit set.
-		// ARM instructions are always 4 bytes.
-		return (pc - 3) & ^uint64(1)
+		return 3
 	case targets.PPC64LE:
-		return pc - 4
+		return 4
 	case targets.MIPS64LE:
-		return pc - 8
+		return 8
 	case targets.S390x:
-		return pc - 6
+		return 6
 	case targets.RiscV64:
-		return pc - 4
+		return 4
 	default:
-		panic(fmt.Sprintf("unknown arch %q", target.Arch))
+		panic(fmt.Sprintf("unknown arch %q", arch))
 	}
 }
 
