@@ -2313,12 +2313,12 @@ error:
 #include <string.h>
 #include <sys/mount.h>
 
-//syz_mount_image(fs ptr[in, string[disk_filesystems]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[vfat_options]])
-//fs_image_segment {
+// syz_mount_image(fs ptr[in, string[disk_filesystems]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[vfat_options]])
+// fs_image_segment {
 //	data	ptr[in, array[int8]]
 //	size	len[data, intptr]
 //	offset	intptr
-//}
+// }
 static long syz_mount_image(volatile long fsarg, volatile long dir, volatile unsigned long size, volatile unsigned long nsegs, volatile long segments, volatile long flags, volatile long optsarg)
 {
 	char loopname[64], fs[32], opts[256];
