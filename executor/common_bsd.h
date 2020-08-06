@@ -61,7 +61,7 @@ static int inject_fault(int nth)
 
 	en.scope = FAULT_SCOPE_LWP;
 	en.mode = 0; // FAULT_MODE_NTH_ONESHOT
-	en.nth = nth + 2; //FAULT_NTH_MIN
+	en.nth = nth + 2; // FAULT_NTH_MIN
 	if (ioctl(fd, FAULT_IOC_ENABLE, &en) != 0)
 		fail("FAULT_IOC_ENABLE failed with nth=%d", nth);
 

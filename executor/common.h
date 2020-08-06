@@ -9,7 +9,7 @@
 // - NORETURN/PRINTF/debug are removed
 // - exitf/fail are replaced with exit
 // - uintN types are replaced with uintN_t
-// - /*FOO*/ placeholders are replaced by actual values
+// - /*{{{FOO}}}*/ placeholders are replaced by actual values
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
