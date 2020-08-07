@@ -78,7 +78,19 @@ static void segv_handler(int sig, siginfo_t* info, void* ctx)
 	uintptr_t addr = (uintptr_t)info->si_addr;
 	const uintptr_t prog_start = 1 << 20;
 	const uintptr_t prog_end = 100 << 20;
-	if (__atomic_load_n(&skip_segv, __ATOMIC_RELAXED) && (addr < prog_start || addr > prog_end)) {
+	int skip = __atomic_load_n(&skip_segv, __ATOMIC_RELAXED) != 0;
+	int valid = addr < prog_start || addr > prog_end;
+#if GOOS_freebsd || (GOOS_test && HOSTGOOS_freebsd)
+	// FreeBSD delivers SIGBUS in response to any fault that isn't a page
+	// fault.  In this case it tries to be helpful and sets si_addr to the
+	// address of the faulting instruction rather than zero as other
+	// operating systems seem to do.  However, such faults should always be
+	// ignored.
+	if (sig == SIGBUS) {
+		valid = 1;
+	}
+#endif
+	if (skip && valid) {
 		debug("SIGSEGV on %p, skipping\n", (void*)addr);
 #if GOOS_akaros
 		struct user_context* uctx = (struct user_context*)ctx;
