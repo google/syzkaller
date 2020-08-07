@@ -1,5 +1,5 @@
 security=selinux
-lsm=lockdown,yama,safesetid,integrity,selinux,tomoyo
+lsm=lockdown,yama,safesetid,integrity,selinux,tomoyo,bpf
 ima_policy=tcb
 workqueue.watchdog_thresh=140
 kvm-intel.nested=1
