@@ -47,7 +47,7 @@ func main() {
 		corpus = loadCorpus(target, *flagCorpus)
 	}
 	log.Printf("loaded %v reproducers, %v corpus programs", len(repros), len(corpus))
-	if len(repros)+len(corpus) == 0 {
+	if len(repros)+len(corpus) == 0 && !*flagDrain {
 		return
 	}
 	log.Printf("connecting to hub at %v...", *flagHubAddress)
