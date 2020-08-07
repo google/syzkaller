@@ -34,6 +34,11 @@ func Test(t *testing.T) {
 			continue
 		}
 		sysTarget1 := targets.Get(sysTarget.OS, sysTarget.Arch)
+		if runtime.GOOS == "freebsd" && sysTarget1.PtrSize == 4 {
+			// The default DataOffset collides with a runtime mapping
+			// on FreeBSD.
+			continue
+		}
 		t.Run(sysTarget1.Arch, func(t *testing.T) {
 			t.Parallel()
 			test(t, sysTarget1)
