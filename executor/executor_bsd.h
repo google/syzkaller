@@ -26,7 +26,13 @@ static void os_init(int argc, char** argv, void* data, size_t data_size)
 	int prot = PROT_READ | PROT_WRITE | PROT_EXEC;
 #endif
 
-	if (mmap(data, data_size, prot, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0) != data)
+	int flags = MAP_ANON | MAP_PRIVATE | MAP_FIXED;
+#if GOOS_freebsd
+	// Fail closed if the chosen data offset conflicts with an existing mapping.
+	flags |= MAP_EXCL;
+#endif
+
+	if (mmap(data, data_size, prot, flags, -1, 0) != data)
 		fail("mmap of data segment failed");
 
 	// Makes sure the file descriptor limit is sufficient to map control pipes.
