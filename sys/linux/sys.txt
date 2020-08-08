@@ -550,7 +550,6 @@ syz_open_dev$media(dev ptr[in, string["/dev/media#"]], id intptr, flags flags[op
 openat$null(fd const[AT_FDCWD], file ptr[in, string["/dev/null"]], flags flags[open_flags], mode const[0]) fd
 openat$zero(fd const[AT_FDCWD], file ptr[in, string["/dev/zero"]], flags flags[open_flags], mode const[0]) fd
 openat$full(fd const[AT_FDCWD], file ptr[in, string["/dev/full"]], flags flags[open_flags], mode const[0]) fd
-openat$qat_adf_ctl(fd const[AT_FDCWD], file ptr[in, string["/dev/qat_adf_ctl"]], flags flags[open_flags], mode const[0]) fd
 openat$irnet(fd const[AT_FDCWD], file ptr[in, string["/dev/irnet"]], flags flags[open_flags], mode const[0]) fd
 openat$hwrng(fd const[AT_FDCWD], file ptr[in, string["/dev/hwrng"]], flags flags[open_flags], mode const[0]) fd
 openat$hpet(fd const[AT_FDCWD], file ptr[in, string["/dev/hpet"]], flags flags[open_flags], mode const[0]) fd
