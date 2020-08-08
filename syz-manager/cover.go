@@ -36,7 +36,7 @@ func initCover(target *targets.Target, kernelObj, kernelSrc, kernelBuildSrc stri
 		if initCoverError != nil {
 			return
 		}
-		initCoverVMOffset, initCoverError = getVMOffset(vmlinux, target.OS)
+		initCoverVMOffset, initCoverError = getVMOffset(target, vmlinux)
 	})
 	return initCoverError
 }
@@ -51,11 +51,15 @@ func coverToPCs(target *targets.Target, cov []uint32) []uint64 {
 	return pcs
 }
 
-func getVMOffset(vmlinux, OS string) (uint32, error) {
-	if OS == "freebsd" {
+func getVMOffset(target *targets.Target, vmlinux string) (uint32, error) {
+	if target.OS == "freebsd" {
 		return 0xffffffff, nil
 	}
-	out, err := osutil.RunCmd(time.Hour, "", "readelf", "-SW", vmlinux)
+	readelf := "readelf"
+	if target.Triple != "" {
+		readelf = target.Triple + "-" + readelf
+	}
+	out, err := osutil.RunCmd(time.Hour, "", readelf, "-SW", vmlinux)
 	if err != nil {
 		return 0, err
 	}
