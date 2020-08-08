@@ -1,0 +1,116 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# NEED: These descriptions need an actual Intel QAT device or an emulation so we can fuzz deeper into the subsystem.
+# /dev/qat_adf_ctl is only the control interface, and currently ioctl$IOCTL_GET_NUM_DEVICES returns 0 on qemu.
+
+include <linux/fcntl.h>
+include <drivers/crypto/qat/qat_common/adf_cfg_user.h>
+include <drivers/crypto/qat/qat_common/adf_cfg_common.h>
+resource fd_qat[fd]
+
+openat$qat_adf_ctl(fd const[AT_FDCWD], file ptr[in, string["/dev/qat_adf_ctl"]], flags flags[open_flags], mode const[0]) fd_qat
+ioctl$IOCTL_CONFIG_SYS_RESOURCE_PARAMETERS(fd fd_qat, cmd const[IOCTL_CONFIG_SYS_RESOURCE_PARAMETERS], arg ptr[in, adf_user_cfg_ctl_data])
+ioctl$IOCTL_STOP_ACCEL_DEV(fd fd_qat, cmd const[IOCTL_STOP_ACCEL_DEV], arg ptr[in, adf_user_cfg_ctl_data])
+ioctl$IOCTL_START_ACCEL_DEV(fd fd_qat, cmd const[IOCTL_START_ACCEL_DEV], arg ptr[in, adf_user_cfg_ctl_data])
+ioctl$IOCTL_GET_NUM_DEVICES(fd fd_qat, cmd const[IOCTL_GET_NUM_DEVICES], arg ptr[out, int32])
+ioctl$IOCTL_STATUS_ACCEL_DEV(fd fd_qat, cmd const[IOCTL_STATUS_ACCEL_DEV], arg ptr[inout, adf_dev_status_info])
+
+adf_user_cfg_ctl_data {
+	config_section	adf_ptr64[adf_user_cfg_section]
+	device_id	int8
+} [packed]
+
+# Section
+
+adf_user_cfg_section {
+	name	string[qat_section_name, ADF_CFG_MAX_SECTION_LEN_IN_BYTES]
+	params	adf_ptr64[adf_user_cfg_key_val]
+	next	adf_ptr64[adf_user_cfg_section]
+} [packed]
+
+qat_section_name = "GENERAL", "KERNEL", "Accelerator", "Accelerator0", "Accelerator1"
+
+# Key-values
+
+adf_user_cfg_key_val [
+	adf_dec	adf_user_cfg_key_val_t[ADF_DEC, adf_user_cfg_val_dec]
+	adf_hex	adf_user_cfg_key_val_t[ADF_HEX, adf_user_cfg_val_hex]
+	adf_str	adf_user_cfg_key_val_t[ADF_STR, adf_user_cfg_val_str]
+]
+
+type adf_user_cfg_key_val_t[TYPE, VAL] {
+	key	adf_user_cfg_key
+	val	VAL
+	next	adf_ptr64[adf_user_cfg_key_val]
+	type	const[TYPE, int32]
+} [packed]
+
+# Key
+
+adf_user_cfg_key [
+	normal	string[adf_user_cfg_normal_keys, ADF_CFG_MAX_KEY_LEN_IN_BYTES]
+	format	adf_user_cfg_format_keys
+	bank	adf_user_cfg_bank_keys
+]
+
+adf_user_cfg_format_keys {
+	prefix	stringnoz[adf_user_cfg_format_keys_prefix]
+	number	stringnoz[adf_user_cfg_numbers]
+	postfix	string[adf_user_cfg_format_keys_postfix, ADF_KEYS_POSTFIX_MAX_LEN]
+} [size[ADF_CFG_MAX_KEY_LEN_IN_BYTES]]
+
+adf_user_cfg_bank_keys {
+	prefix	stringnoz["Bank"]
+	number	stringnoz[adf_user_cfg_numbers]
+	postfix	string[adf_user_cfg_bank_keys_postfix, ADF_KEYS_POSTFIX_MAX_LEN]
+} [size[ADF_CFG_MAX_KEY_LEN_IN_BYTES]]
+
+adf_user_cfg_normal_keys = "NumberCyInstances", "NumberDcInstances"
+adf_user_cfg_numbers = "0", "1", "2", "3", "4", "5"
+adf_user_cfg_format_keys_prefix = "Cy", "Dc"
+adf_user_cfg_format_keys_postfix = "NumConcurrentSymRequests", "NumConcurrentAsymRequests", "NumConcurrentRequests", "RingAsymTx", "RingSymTx", "RingAsymRx", "RingSymRx", "RingTx", "RingRx", "BankNumber"
+adf_user_cfg_bank_keys_postfix = "InterruptCoalescingEnabled", "InterruptCoalescingTimerNs", "InterruptCoalescingNumResponses", "CoreAffinity"
+
+# This constant 32 needs to be at least the length of the longest string in
+# adf_user_cfg_format_keys_postfix and adf_user_cfg_bank_keys_postfix
+define ADF_KEYS_POSTFIX_MAX_LEN	32
+
+# Value
+
+adf_user_cfg_val_dec {
+	val	fmt[dec, intptr]
+	null	const[0, int8]
+} [packed, size[ADF_CFG_MAX_VAL_LEN_IN_BYTES]]
+
+adf_user_cfg_val_hex {
+	val	fmt[hex, intptr]
+	null	const[0, int8]
+} [packed, size[ADF_CFG_MAX_VAL_LEN_IN_BYTES]]
+
+adf_user_cfg_val_str {
+	val	array[int8, ADF_CFG_MAX_VAL_LEN_IN_BYTES]
+}
+
+# Ptr
+
+type adf_ptr64[T] {
+	ptr	ptr[in, T, opt]
+} [size[8]]
+
+adf_dev_status_info {
+	type			flags[adf_device_type, int32]
+	accel_id		int32
+	instance_id		int32
+	num_ae			int8
+	num_accel		int8
+	num_logical_accel	int8
+	banks_per_accel		int8
+	state			int8
+	bus			int8
+	dev			int8
+	fun			int8
+	name			array[int8, MAX_DEVICE_NAME_SIZE]
+}
+
+adf_device_type = DEV_UNKNOWN, DEV_DH895XCC, DEV_DH895XCCVF, DEV_C62X, DEV_C62XVF, DEV_C3XXX, DEV_C3XXXVF
