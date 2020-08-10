@@ -97,7 +97,7 @@ If you plan to run the syscall executor as root, ensure that root SSH logins are
 
 ### Running Under bhyve
 
-Some additional steps are required on the host in order to use bhyve.  First, ensure that the host system is at r346550 or later.  Second, since bhyve currently does not support disk image snapshots, ZFS must be used to provide equivalent functionality.  Create a ZFS data set and copy the VM image there.  The data set can also be used to store the syzkaller workdir.
+Some additional steps are required on the host in order to use bhyve.  First, ensure that the host system is at r346550 or later.  Second, since bhyve currently does not support disk image snapshots, ZFS must be used to provide equivalent functionality.  Create a ZFS data set and copy the VM image there.  The data set can also be used to store the syzkaller workdir.  For example, with a zpool named `data` mounted at `/data`, write:
 ```console
 # zfs create data/syzkaller
 # cp FreeBSD-13.0-CURRENT-amd64.raw /data/syzkaller
@@ -158,7 +158,7 @@ For GCE, add the following instead (alter the storage bucket path as necessary):
 		"gcs_path": "syzkaller"
 	}
 ```
-For bhyve, we need to specify the VM image snapshot name and networking info:
+For bhyve, we need to specify the VM image snapshot name and networking info (alter the dataset name and paths as necessary):
 ```
 	"image": "/data/syzkaller/FreeBSD-13.0-CURRENT-amd64.raw",
 	"type": "bhyve",
