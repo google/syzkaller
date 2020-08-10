@@ -2388,17 +2388,11 @@ struct fs_image_segment {
 #define sys_memfd_create 279
 #endif
 
-static unsigned long fs_image_segment_check(unsigned long size, unsigned long nsegs, long segments)
+static unsigned long fs_image_segment_check(unsigned long size, unsigned long nsegs, struct fs_image_segment* segs)
 {
-	// Strictly saying we ought to do a nonfailing copyout of segments into a local var.
-	// But some filesystems have large number of segments (2000+),
-	// we can't allocate that much on stack and allocating elsewhere is problematic,
-	// so we just use the memory allocated by fuzzer.
-	struct fs_image_segment* segs = (struct fs_image_segment*)segments;
-
 	if (nsegs > IMAGE_MAX_SEGMENTS)
 		nsegs = IMAGE_MAX_SEGMENTS;
-	for (unsigned long i = 0; i < nsegs; i++) {
+	for (size_t i = 0; i < nsegs; i++) {
 		if (segs[i].size > IMAGE_MAX_SIZE)
 			segs[i].size = IMAGE_MAX_SIZE;
 		segs[i].offset %= IMAGE_MAX_SIZE;
@@ -2411,15 +2405,17 @@ static unsigned long fs_image_segment_check(unsigned long size, unsigned long ns
 		size = IMAGE_MAX_SIZE;
 	return size;
 }
-#endif
 
-#if SYZ_EXECUTOR || __NR_syz_read_part_table
-// syz_read_part_table(size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]])
-static long syz_read_part_table(volatile unsigned long size, volatile unsigned long nsegs, volatile long segments)
+// Setup the loop device needed for mounting a filesystem image. Takes care of
+// creating and initializing the underlying file backing the loop device and
+// returns the fds to the file and device.
+// Returns 0 on success, -1 otherwise.
+static int setup_loop_device(long unsigned size, long unsigned nsegs, struct fs_image_segment* segs, const char* loopname, int* memfd_p, int* loopfd_p)
 {
-	int err = 0, res = -1, loopfd = -1;
-	size = fs_image_segment_check(size, nsegs, segments);
-	int memfd = syscall(sys_memfd_create, "syz_read_part_table", 0);
+	int err = 0, loopfd = -1;
+
+	size = fs_image_segment_check(size, nsegs, segs);
+	int memfd = syscall(sys_memfd_create, "syzkaller", 0);
 	if (memfd == -1) {
 		err = errno;
 		goto error;
@@ -2428,14 +2424,12 @@ static long syz_read_part_table(volatile unsigned long size, volatile unsigned l
 		err = errno;
 		goto error_close_memfd;
 	}
-	for (unsigned long i = 0; i < nsegs; i++) {
-		struct fs_image_segment* segs = (struct fs_image_segment*)segments;
+	for (size_t i = 0; i < nsegs; i++) {
 		if (pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset) < 0) {
-			debug("syz_read_part_table: pwrite[%u] failed: %d\n", (int)i, errno);
+			debug("setup_loop_device: pwrite[%zu] failed: %d\n", i, errno);
 		}
 	}
-	char loopname[64];
-	snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
+
 	loopfd = open(loopname, O_RDWR);
 	if (loopfd == -1) {
 		err = errno;
@@ -2453,6 +2447,33 @@ static long syz_read_part_table(volatile unsigned long size, volatile unsigned l
 			goto error_close_loop;
 		}
 	}
+
+	*memfd_p = memfd;
+	*loopfd_p = loopfd;
+	return 0;
+
+error_close_loop:
+	close(loopfd);
+error_close_memfd:
+	close(memfd);
+error:
+	errno = err;
+	return -1;
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_read_part_table
+// syz_read_part_table(size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]])
+static long syz_read_part_table(volatile unsigned long size, volatile unsigned long nsegs, volatile long segments)
+{
+	struct fs_image_segment* segs = (struct fs_image_segment*)segments;
+	int err = 0, res = -1, loopfd = -1, memfd = -1;
+	char loopname[64];
+
+	snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
+	if (setup_loop_device(size, nsegs, segs, loopname, &memfd, &loopfd) == -1)
+		return -1;
+
 	struct loop_info64 info;
 	if (ioctl(loopfd, LOOP_GET_STATUS64, &info)) {
 		err = errno;
@@ -2481,21 +2502,19 @@ static long syz_read_part_table(volatile unsigned long size, volatile unsigned l
 	}
 error_clear_loop:
 	ioctl(loopfd, LOOP_CLR_FD, 0);
-error_close_loop:
 	close(loopfd);
-error_close_memfd:
 	close(memfd);
-error:
 	errno = err;
 	return res;
 }
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_mount_image
+#include <stddef.h>
 #include <string.h>
 #include <sys/mount.h>
 
-// syz_mount_image(fs ptr[in, string[disk_filesystems]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[vfat_options]])
+// syz_mount_image(fs ptr[in, string[disk_filesystems]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[vfat_options]]) fd_dir
 // fs_image_segment {
 //	data	ptr[in, array[int8]]
 //	size	len[data, intptr]
@@ -2503,50 +2522,32 @@ error:
 // }
 static long syz_mount_image(volatile long fsarg, volatile long dir, volatile unsigned long size, volatile unsigned long nsegs, volatile long segments, volatile long flags, volatile long optsarg)
 {
-	int err = 0, res = -1, loopfd = -1;
-	size = fs_image_segment_check(size, nsegs, segments);
-	int memfd = syscall(sys_memfd_create, "syz_mount_image", 0);
-	if (memfd == -1) {
-		err = errno;
-		goto error;
-	}
-	if (ftruncate(memfd, size)) {
-		err = errno;
-		goto error_close_memfd;
-	}
-	for (unsigned long i = 0; i < nsegs; i++) {
-		struct fs_image_segment* segs = (struct fs_image_segment*)segments;
-		if (pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset) < 0) {
-			debug("syz_mount_image: pwrite[%u] failed: %d\n", (int)i, errno);
-		}
-	}
+	struct fs_image_segment* segs = (struct fs_image_segment*)segments;
+	int res = -1, err = 0, loopfd = -1, memfd = -1, need_loop_device = !!segs;
+	char* mount_opts = (char*)optsarg;
+	char* target = (char*)dir;
+	char* fs = (char*)fsarg;
+	char* source = NULL;
 	char loopname[64];
-	snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
-	loopfd = open(loopname, O_RDWR);
-	if (loopfd == -1) {
-		err = errno;
-		goto error_close_memfd;
+
+	if (need_loop_device) {
+		// Some filesystems (e.g. FUSE) do not need a backing device or
+		// filesystem image.
+		memset(loopname, 0, sizeof(loopname));
+		snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
+		if (setup_loop_device(size, nsegs, segs, loopname, &memfd, &loopfd) == -1)
+			return -1;
+		source = loopname;
 	}
-	if (ioctl(loopfd, LOOP_SET_FD, memfd)) {
-		if (errno != EBUSY) {
-			err = errno;
-			goto error_close_loop;
-		}
-		ioctl(loopfd, LOOP_CLR_FD, 0);
-		usleep(1000);
-		if (ioctl(loopfd, LOOP_SET_FD, memfd)) {
-			err = errno;
-			goto error_close_loop;
-		}
-	}
-	mkdir((char*)dir, 0777);
-	char fs[32];
-	memset(fs, 0, sizeof(fs));
-	strncpy(fs, (char*)fsarg, sizeof(fs) - 1);
+
+	mkdir(target, 0777);
 	char opts[256];
 	memset(opts, 0, sizeof(opts));
 	// Leave some space for the additional options we append below.
-	strncpy(opts, (char*)optsarg, sizeof(opts) - 32);
+	if (strlen(mount_opts) > (sizeof(opts) - 32)) {
+		debug("ERROR: syz_mount_image parameter optsarg bigger than internal opts\n");
+	}
+	strncpy(opts, mount_opts, sizeof(opts) - 32);
 	if (strcmp(fs, "iso9660") == 0) {
 		flags |= MS_RDONLY;
 	} else if (strncmp(fs, "ext", 3) == 0) {
@@ -2559,22 +2560,28 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 		// and if two parallel executors mounts fs with the same uuid, second mount fails.
 		strcat(opts, ",nouuid");
 	}
-	debug("syz_mount_image: size=%llu segs=%llu loop='%s' dir='%s' fs='%s' flags=%llu opts='%s'\n", (uint64)size, (uint64)nsegs, loopname, (char*)dir, fs, (uint64)flags, opts);
+	debug("syz_mount_image: size=%llu segs=%llu loop='%s' dir='%s' fs='%s' flags=%llu opts='%s'\n", (uint64)size, (uint64)nsegs, loopname, target, fs, (uint64)flags, opts);
 #if SYZ_EXECUTOR
 	cover_reset(0);
 #endif
-	if (mount(loopname, (char*)dir, fs, flags, opts)) {
+	res = mount(source, target, fs, flags, opts);
+	if (res == -1) {
+		debug("syz_mount_image > mount error: %d\n", errno);
 		err = errno;
 		goto error_clear_loop;
 	}
-	res = 0;
+	res = open(target, O_RDONLY | O_DIRECTORY);
+	if (res == -1) {
+		debug("syz_mount_image > open error: %d\n", errno);
+		err = errno;
+	}
+
 error_clear_loop:
-	ioctl(loopfd, LOOP_CLR_FD, 0);
-error_close_loop:
-	close(loopfd);
-error_close_memfd:
-	close(memfd);
-error:
+	if (need_loop_device) {
+		ioctl(loopfd, LOOP_CLR_FD, 0);
+		close(loopfd);
+		close(memfd);
+	}
 	errno = err;
 	return res;
 }
