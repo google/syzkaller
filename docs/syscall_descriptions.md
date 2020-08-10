@@ -219,7 +219,7 @@ includes kernel headers referenced by `include` directives, defines macros as sp
 by `define` directives and prints values of symbolic constants.
 Results are stored in `.const` files, one per arch.
 For example, [sys/linux/dev_ptmx.txt](/sys/linux/dev_ptmx.txt) is translated into
-[sys/linux/dev_ptmx_amd64.const](/sys/linux/dev_ptmx_amd64.const).
+[sys/linux/dev_ptmx.txt.const](/sys/linux/dev_ptmx.txt.const).
 
 The second step is translation of descriptions into Go code using
 [syz-sysgen](/sys/syz-sysgen) utility (the actual compiler code lives in
