@@ -168,6 +168,7 @@ func (n *Field) Clone() Node {
 		Pos:      n.Pos,
 		Name:     n.Name.Clone().(*Ident),
 		Type:     n.Type.Clone().(*Type),
+		Attrs:    cloneTypes(n.Attrs),
 		NewBlock: n.NewBlock,
 		Comments: cloneComments(n.Comments),
 	}

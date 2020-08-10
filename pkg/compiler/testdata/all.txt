@@ -276,7 +276,15 @@ s4 {
 	f2	int8
 } [size[19]]
 
-foo_s0(a ptr[in, s0], b ptr[in, s1], c ptr[in, s2], d ptr[in, s4])
+s5 {
+	f_in0		int32	(in)
+	f_in1		int32[0:1]	(in)
+	f_out		int32	(out)
+	f_inout0	int32	(inout)
+	f_inout1	int32[0:1]	(inout)
+}
+
+foo_s0(a ptr[in, s0], b ptr[in, s1], c ptr[in, s2], d ptr[in, s4], e ptr[in, s5])
 
 # Unions.
 
