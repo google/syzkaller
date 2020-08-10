@@ -188,11 +188,9 @@ If something does not work, try adding the `-debug` flag to `syz-manager`.
 
 ## Missing things
 
-- System call descriptions. `sys/freebsd/*.txt` is a dirty copy from `sys/linux/*.txt` with everything that does not compile dropped. We need to go through syscalls and verify/fix/extend them, including devices/ioctls/etc.
-- Currently only the `amd64` arch is supported.  It would be useful to support a 32-bit executor in order to cover 32-bit compatibility syscalls.
+- System call descriptions.  The initial list of FreeBSD system calls was a copy-and-paste of Linux's, and while they have been cleaned up over time they should be audited more carefully.  We are also still missing many system call descriptions.
 - We should support fuzzing the Linux compatibility subsystem.
-- `pkg/csource` needs to be taught how to generate/build C reproducers.
+- We should provide instructions for fuzzing a FreeBSD system on ZFS
 - `pkg/host` needs to be taught how to detect supported syscalls/devices.
-- `pkg/report`/`pkg/symbolizer` need to be taught how to extract/symbolize kernel crash reports.
-- KASAN for FreeBSD would be useful.
+- KASAN and KCSAN for FreeBSD would be useful.
 - On Linux we have emission of exernal networking/USB traffic into kernel using tun/gadgetfs. Implementing these for FreeBSD could uncover a number of high-profile bugs.
