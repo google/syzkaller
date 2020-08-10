@@ -290,7 +290,7 @@ func (p *parser) parseCall(name *Ident) *Call {
 	}
 	p.consume(tokLParen)
 	for p.tok != tokRParen {
-		c.Args = append(c.Args, p.parseField())
+		c.Args = append(c.Args, p.parseField(false))
 		p.expect(tokComma, tokRParen)
 		p.tryConsume(tokComma)
 	}
@@ -376,7 +376,7 @@ func (p *parser) parseStruct(name *Ident) *Struct {
 			str.Comments = comments
 			break
 		}
-		fld := p.parseField()
+		fld := p.parseField(true)
 		fld.NewBlock = newBlock
 		fld.Comments = comments
 		str.Fields = append(str.Fields, fld)
@@ -403,13 +403,24 @@ func (p *parser) parseCommentBlock() []*Comment {
 	return comments
 }
 
-func (p *parser) parseField() *Field {
+func (p *parser) parseField(parseAttrs bool) *Field {
 	name := p.parseIdent()
-	return &Field{
+
+	field := &Field{
 		Pos:  name.Pos,
 		Name: name,
 		Type: p.parseType(),
 	}
+
+	if parseAttrs && p.tryConsume(tokLParen) {
+		field.Attrs = append(field.Attrs, p.parseType())
+		for p.tryConsume(tokComma) {
+			field.Attrs = append(field.Attrs, p.parseType())
+		}
+		p.consume(tokRParen)
+	}
+
+	return field
 }
 
 func (p *parser) parseType() *Type {

@@ -30,6 +30,7 @@ call() ("attr1")
 call() (42)
 call() (				### unexpected '\n', expecting int, identifier, string
 call() ()				### unexpected ')', expecting int, identifier, string
+call(foo int32 (attr))	### unexpected '(', expecting ',', ')'
 
 define FOO bar
 
@@ -81,3 +82,15 @@ type templ_struct0[A, B] {
 	typ	const[A, int16]
 	data	B
 } [align_4]
+
+s4 {
+	f0 int8 (attr)
+	f1 int8 (attr1, attr2[arg1, "arg2"])
+	f2 int8 ("attr1")
+}
+
+s5 {
+	f0 int8 (	### unexpected '\n', expecting int, identifier, string
+
+s6 {
+	f0 int8 ()	### unexpected ')', expecting int, identifier, string

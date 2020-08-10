@@ -168,6 +168,14 @@ func (comp *compiler) checkStructFields(n *ast.Struct, typ, name string) {
 	if len(n.Fields) < 1 {
 		comp.error(n.Pos, "%v %v has no fields, need at least 1 field", typ, name)
 	}
+	for _, f := range n.Fields {
+		attrs := comp.parseAttrs(fieldAttrs, f, f.Attrs)
+
+		if attrs[attrIn]+attrs[attrOut]+attrs[attrInOut] > 1 {
+			_, typ, _ := f.Info()
+			comp.error(f.Pos, "%v has multiple direction attributes", typ)
+		}
+	}
 }
 
 func (comp *compiler) checkFieldGroup(fields []*ast.Field, what, ctx string) {
@@ -265,6 +273,16 @@ func (comp *compiler) checkAttributeValues() {
 				desc := structOrUnionAttrs(n)[attr.Ident]
 				if desc.CheckConsts != nil {
 					desc.CheckConsts(comp, n, attr)
+				}
+			}
+			// Check each field's attributes.
+			st := decl.(*ast.Struct)
+			for _, f := range st.Fields {
+				for _, attr := range f.Attrs {
+					desc := fieldAttrs[attr.Ident]
+					if desc.CheckConsts != nil {
+						desc.CheckConsts(comp, f, attr)
+					}
 				}
 			}
 		}
@@ -614,7 +632,11 @@ func (comp *compiler) checkTypeCtors(t *ast.Type, dir prog.Dir, isArg bool,
 		}
 		checked[key] = true
 		for _, fld := range s.Fields {
-			comp.checkTypeCtors(fld.Type, dir, false, ctors, inputs, checked)
+			fldDir, fldHasDir := comp.genFieldDir(fld)
+			if !fldHasDir {
+				fldDir = dir
+			}
+			comp.checkTypeCtors(fld.Type, fldDir, false, ctors, inputs, checked)
 		}
 		return
 	}

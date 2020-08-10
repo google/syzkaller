@@ -593,7 +593,7 @@ func (r *randGen) generateArgs(s *state, fields []Field, dir Dir) ([]Arg, []*Cal
 
 	// Generate all args. Size args have the default value 0 for now.
 	for i, field := range fields {
-		arg, calls1 := r.generateArg(s, field.Type, dir)
+		arg, calls1 := r.generateArg(s, field.Type, field.Dir(dir))
 		if arg == nil {
 			panic(fmt.Sprintf("generated arg is nil for field '%v', fields: %+v", field.Type.Name(), fields))
 		}
@@ -784,8 +784,8 @@ func (a *StructType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*
 
 func (a *UnionType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
 	index := r.Intn(len(a.Fields))
-	optType := a.Fields[index].Type
-	opt, calls := r.generateArg(s, optType, dir)
+	optType, optDir := a.Fields[index].Type, a.Fields[index].Dir(dir)
+	opt, calls := r.generateArg(s, optType, optDir)
 	return MakeUnionArg(a, dir, opt, index), calls
 }
 

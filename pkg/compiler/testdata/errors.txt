@@ -346,3 +346,13 @@ struct$fmt0 {
 	f0	fmt[dec, int8:3]		### unexpected ':', only struct fields can be bitfields
 	f1	int32:-1			### bitfield of size 18446744073709551615 is too large for base type of size 32
 }
+
+struct$perfielddir {
+	f0	int32	(in, in)	### duplicate arg/field f0 attribute in
+	f1	int32	(out, out)	### duplicate arg/field f1 attribute out
+	f2	int32	(inout, inout)	### duplicate arg/field f2 attribute inout
+	f3	int32	(in, out)	### arg/field has multiple direction attributes
+	f4	int32	(in, inout)	### arg/field has multiple direction attributes
+	f5	int32	(out, inout)	### arg/field has multiple direction attributes
+	f6	int32	(in, out, inout)	### arg/field has multiple direction attributes
+}

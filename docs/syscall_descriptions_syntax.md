@@ -120,9 +120,13 @@ Structs are described as:
 
 ```
 structname "{" "\n"
-	(fieldname type "\n")+
+	(fieldname type ("(" fieldattribute* ")")? "\n")+
 "}" ("[" attribute* "]")?
 ```
+
+Fields can have attributes specified in parentheses after the field, independent
+of their type. The only attribute is direction (`in/out/inout`). For the field for
+which it is specified, the direction attributes on the upper levels are overridden.
 
 Structs can have attributes specified in square brackets after the struct.
 Attributes are:
@@ -137,9 +141,11 @@ Unions are described as:
 
 ```
 unionname "[" "\n"
-	(fieldname type "\n")+
+	(fieldname type ("(" fieldattribute* ")")? "\n")+
 "]" ("[" attribute* "]")?
 ```
+
+Field attributes are as defined for [structs](#structs).
 
 Unions can have attributes specified in square brackets after the union.
 Attributes are:
@@ -178,6 +184,22 @@ request_consumer(..., arg ptr[inout, test_struct])
 test_struct {
 	...
 	attr	my_resource
+}
+```
+
+For more complex producer/consumer scenarios, field attributes can be utilized.
+For example:
+
+```
+resource my_resource_1[int32]
+resource my_resource_2[int32]
+
+request_produce1_consume2(..., arg ptr[inout, test_struct])
+
+test_struct {
+	...
+	field0	my_resource_1	(out)
+	field1	my_resource_2	(in)
 }
 ```
 
