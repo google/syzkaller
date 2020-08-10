@@ -75,6 +75,10 @@ func main() {
 		if descriptions == nil {
 			os.Exit(1)
 		}
+		constFile := compiler.DeserializeConstFile(filepath.Join(*srcDir, "sys", OS, "*.const"), nil)
+		if constFile == nil {
+			os.Exit(1)
+		}
 		osutil.MkdirAll(filepath.Join(*outDir, "sys", OS, "gen"))
 
 		var archs []string
@@ -109,10 +113,7 @@ func main() {
 				eh := func(pos ast.Pos, msg string) {
 					job.Errors = append(job.Errors, fmt.Sprintf("%v: %v\n", pos, msg))
 				}
-				consts := compiler.DeserializeConstsGlob(filepath.Join(*srcDir, "sys", OS, "*_"+job.Target.Arch+".const"), eh)
-				if consts == nil {
-					return
-				}
+				consts := constFile.Arch(job.Target.Arch)
 				top := descriptions
 				if OS == "linux" && (job.Target.Arch == "arm" || job.Target.Arch == "riscv64") {
 					// Hack: KVM is not supported on ARM anymore. On riscv64 it
