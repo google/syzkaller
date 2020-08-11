@@ -952,7 +952,13 @@ var linuxOopses = append([]*oops{
 				title:  compile("BUG: KMSAN: kernel-usb-infoleak"),
 				report: compile("BUG: KMSAN: kernel-usb-infoleak in {{FUNC}}"),
 				fmt:    "KMSAN: kernel-usb-infoleak in %[2]v",
-				stack:  warningStackFmt("usb_submit_urb", "usb_start_wait_urb", "usb_bulk_msg", "usb_interrupt_msg", "usb_control_msg"),
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						compile("Call Trace:"),
+						parseStackTrace,
+					},
+					skip: []string{"usb_submit_urb", "usb_start_wait_urb", "usb_bulk_msg", "usb_interrupt_msg", "usb_control_msg"},
+				},
 			},
 			{
 				title:  compile("BUG: KMSAN:"),
