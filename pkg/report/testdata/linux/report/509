@@ -1,0 +1,94 @@
+TITLE: KMSAN: kernel-usb-infoleak in hid_submit_ctrl
+
+[  431.800648][T12331] =====================================================
+[  431.807668][T12331] BUG: KMSAN: kernel-usb-infoleak in kmsan_handle_urb+0x28/0x40
+[  431.815318][T12331] CPU: 0 PID: 12331 Comm: syz-executor.4 Not tainted 5.8.0-rc5-syzkaller #0
+[  431.823993][T12331] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  431.834142][T12331] Call Trace:
+[  431.837459][T12331]  dump_stack+0x21c/0x280
+[  431.841815][T12331]  kmsan_report+0xf7/0x1e0
+[  431.846258][T12331]  kmsan_internal_check_memory+0x358/0x3d0
+[  431.852085][T12331]  ? __ia32_compat_sys_ioctl+0x4a/0x70
+[  431.857569][T12331]  ? __do_fast_syscall_32+0x2af/0x480
+[  431.862956][T12331]  ? do_fast_syscall_32+0x6b/0xd0
+[  431.867996][T12331]  ? do_SYSENTER_32+0x73/0x90
+[  431.872693][T12331]  ? kfree+0xaf8/0x3000
+[  431.876885][T12331]  kmsan_handle_urb+0x28/0x40
+[  431.881650][T12331]  usb_submit_urb+0x861/0x2470
+[  431.886473][T12331]  ? kmsan_get_shadow_origin_ptr+0x81/0xb0
+[  431.892308][T12331]  ? kmsan_set_origin_checked+0x95/0xf0
+[  431.898034][T12331]  hid_submit_ctrl+0xc3d/0x1260
+[  431.902919][T12331]  usbhid_restart_ctrl_queue+0x3e9/0x5c0
+[  431.908592][T12331]  usbhid_submit_report+0xa63/0x13a0
+[  431.913935][T12331]  usbhid_init_reports+0x231/0x5e0
+[  431.919076][T12331]  hiddev_ioctl+0x1157/0x3a60
+[  431.923792][T12331]  ? kmsan_get_metadata+0x116/0x180
+[  431.929026][T12331]  ? hiddev_poll+0x390/0x390
+[  431.933635][T12331]  compat_ptr_ioctl+0xe2/0x150
+[  431.938421][T12331]  ? __ia32_sys_ioctl+0x70/0x70
+[  431.943285][T12331]  __se_compat_sys_ioctl+0x55f/0x1100
+[  431.948684][T12331]  ? kmsan_get_metadata+0x116/0x180
+[  431.953878][T12331]  __ia32_compat_sys_ioctl+0x4a/0x70
+[  431.959155][T12331]  __do_fast_syscall_32+0x2af/0x480
+[  431.964354][T12331]  do_fast_syscall_32+0x6b/0xd0
+[  431.969222][T12331]  do_SYSENTER_32+0x73/0x90
+[  431.973730][T12331]  entry_SYSENTER_compat_after_hwframe+0x4d/0x5c
+[  431.980051][T12331] RIP: 0023:0xf7f76549
+[  431.984101][T12331] Code: Bad RIP value.
+[  431.988152][T12331] RSP: 002b:00000000f55700cc EFLAGS: 00000296 ORIG_RAX: 0000000000000036
+[  431.996555][T12331] RAX: ffffffffffffffda RBX: 0000000000000004 RCX: 0000000000004805
+[  432.004512][T12331] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
+[  432.012558][T12331] RBP: 0000000000000000 R08: 0000000000000000 R09: 0000000000000000
+[  432.020525][T12331] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
+[  432.028496][T12331] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
+[  432.036468][T12331] 
+[  432.038781][T12331] Uninit was created at:
+[  432.043018][T12331]  kmsan_internal_poison_shadow+0x66/0xd0
+[  432.048725][T12331]  kmsan_slab_alloc+0x8a/0xe0
+[  432.053389][T12331]  __kmalloc+0x312/0x410
+[  432.057620][T12331]  hcd_buffer_alloc+0x279/0x650
+[  432.062463][T12331]  usb_alloc_coherent+0x11a/0x190
+[  432.067479][T12331]  usbhid_start+0x1125/0x3fa0
+[  432.072212][T12331]  hid_hw_start+0xa6/0x2a0
+[  432.076658][T12331]  cmhid_probe+0x260/0x440
+[  432.081065][T12331]  hid_device_probe+0x480/0x940
+[  432.085978][T12331]  really_probe+0xe46/0x20b0
+[  432.090561][T12331]  driver_probe_device+0x293/0x390
+[  432.095666][T12331]  __device_attach_driver+0x63f/0x830
+[  432.101029][T12331]  bus_for_each_drv+0x2ca/0x3f0
+[  432.105867][T12331]  __device_attach+0x4e2/0x7f0
+[  432.110618][T12331]  device_initial_probe+0x4a/0x60
+[  432.115628][T12331]  bus_probe_device+0x177/0x3d0
+[  432.120470][T12331]  device_add+0x3b0e/0x40d0
+[  432.124962][T12331]  hid_add_device+0x15fc/0x1760
+[  432.129797][T12331]  usbhid_probe+0x187f/0x1b90
+[  432.134479][T12331]  usb_probe_interface+0xece/0x1550
+[  432.139754][T12331]  really_probe+0xf20/0x20b0
+[  432.144332][T12331]  driver_probe_device+0x293/0x390
+[  432.149432][T12331]  __device_attach_driver+0x63f/0x830
+[  432.154790][T12331]  bus_for_each_drv+0x2ca/0x3f0
+[  432.159626][T12331]  __device_attach+0x4e2/0x7f0
+[  432.164399][T12331]  device_initial_probe+0x4a/0x60
+[  432.169419][T12331]  bus_probe_device+0x177/0x3d0
+[  432.174261][T12331]  device_add+0x3b0e/0x40d0
+[  432.178760][T12331]  usb_set_configuration+0x380f/0x3f10
+[  432.184207][T12331]  usb_generic_driver_probe+0x138/0x300
+[  432.189743][T12331]  usb_probe_device+0x311/0x490
+[  432.194583][T12331]  really_probe+0xf20/0x20b0
+[  432.199163][T12331]  driver_probe_device+0x293/0x390
+[  432.204265][T12331]  __device_attach_driver+0x63f/0x830
+[  432.209624][T12331]  bus_for_each_drv+0x2ca/0x3f0
+[  432.214465][T12331]  __device_attach+0x4e2/0x7f0
+[  432.219219][T12331]  device_initial_probe+0x4a/0x60
+[  432.224232][T12331]  bus_probe_device+0x177/0x3d0
+[  432.229072][T12331]  device_add+0x3b0e/0x40d0
+[  432.233572][T12331]  usb_new_device+0x1bd4/0x2a30
+[  432.238410][T12331]  hub_event+0x5e7b/0x8a70
+[  432.242889][T12331]  process_one_work+0x1688/0x2140
+[  432.247914][T12331]  worker_thread+0x10bc/0x2730
+[  432.252662][T12331]  kthread+0x551/0x590
+[  432.256719][T12331]  ret_from_fork+0x1f/0x30
+[  432.261111][T12331] 
+[  432.263429][T12331] Bytes 0-8191 of 8192 are uninitialized
+[  432.269042][T12331] Memory access of size 8192 starts at ffff88801ef48000
+[  432.275953][T12331] =====================================================
