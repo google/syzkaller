@@ -196,6 +196,9 @@ usbgen:
 symbolize:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-symbolize github.com/google/syzkaller/tools/syz-symbolize
 
+bisect: descriptions
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-bisect github.com/google/syzkaller/tools/syz-bisect
+
 # `extract` extracts const files from various kernel sources, and may only
 # re-generate parts of files.
 extract: bin/syz-extract

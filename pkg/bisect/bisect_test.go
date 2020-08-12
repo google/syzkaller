@@ -38,7 +38,15 @@ func (env *testEnv) BuildKernel(compilerBin, userspaceDir, cmdlineFile, sysctlFi
 	configHash := hash.String(kernelConfig)
 	kernelSign := fmt.Sprintf("%v-%v", commit, configHash)
 	if commit >= env.test.sameBinaryStart && commit <= env.test.sameBinaryEnd {
-		kernelSign = "same-sign-" + configHash
+		// kernelSign = "same-sign-" + configHash  // [TOV]: Can't use this for real sign-re checking logic
+		// [TOV]: Needed keeping kernelSign as in real-life - equal to one in last OpCh commit
+		kernelSign = fmt.Sprintf("%v-%v", env.test.sameBinaryStart, configHash)
+		// __DB__
+		fmt.Fprintf(os.Stdout, "|%v|TDB>> For COMMIT #'%v', the TEST build SIGN-re was gen-ed:"+
+			" '%v' instead of 'same-sign- + HASH'.\n", env.test.name, commit, kernelSign)
+		// env.t.Logf("\n  [Log]TDB>> For COMMIT #'%v', the TEST buid SIGN-re was gen-ed:"+
+		// 	" '%v' instead of 'same-sign- + HASH'.\n", commit, kernelSign)
+		// ^^DB^^
 	}
 	env.config = string(kernelConfig)
 	if env.config == "baseline-fails" || env.config == "broken-build" {
@@ -53,12 +61,42 @@ func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]erro
 		env.config == "baseline-skip" {
 		return nil, fmt.Errorf("broken build")
 	}
-	if (env.config == "baseline-repro" || env.config == "new-minimized-config" || env.config == "original config") &&
-		(!env.test.fix && commit >= env.test.culprit || env.test.fix &&
-			commit < env.test.culprit) {
+	// [TOV] FIXME: Currently, ~30% of all test-cases - whole "NoOp" test sets - are inconsistent!
+	//       IMPOSSIBLE "NoOp" search 'culprit' + 'same_binary' span combination targets are given
+	//       in order to trigger wanted code branches. Specifically, different errors are generated for same binaries!
+	//       TODO: Check the Fix the "NoOp" test-cases to be aligned with real-life and common sense.
+	//             Handling of noOps - 'rollback' to non-noOp now, so no nonsense (U)testing setups are needed.
+	//             Question: code coverage..
+	// __DB__
+	// Re-calc KernSign-re
+	kernelSign := "not recalc-ed yet"
+	if commit >= env.test.sameBinaryStart && commit <= env.test.sameBinaryEnd {
+		kernelSign = fmt.Sprintf("%v-%v", env.test.sameBinaryStart, hash.String([]byte(env.config)))
+	} else {
+		kernelSign = fmt.Sprintf("%v-%v", commit, hash.String([]byte(env.config)))
+	}
+	// if _, reproFailFnd := env.test.randomPitfalls[commit]; reproFailFnd {
+	// 	fmt.Fprintf(os.Stdout, "|%v|TDB>> TDB>> Pitfall predefined popped up.. For COMMIT #'%v'\n", env.test.name, commit)
+	// }
+	// ^^DB^^
+	if _, reproFailFnd := env.test.randomPitfalls[commit]; (env.config == "baseline-repro" ||
+		env.config == "new-minimized-config" || env.config == "original config") &&
+		(!env.test.fix && commit >= env.test.culprit && !reproFailFnd /*&& (env.test.sameBinaryEnd == 0 || commit <= env.test.sameBinaryEnd) //  leads to bisection start issues*/ ||
+			env.test.fix && commit < env.test.culprit) { // [TOV]: TODO: Add the same ^ extra logic for fix search?
+		// __DB__
+		fmt.Fprintf(os.Stdout, "|%v|TDB>> For COMMIT #'%v', the 'crash occurs' build (sign-re: '%v') TEST result was gen-ed (all VMs).\n",
+			env.test.name, commit, kernelSign)
+		// env.t.Logf("\n  [Log]TDB>> For COMMIT #'%v', the 'crash occurs' build (sign-re: '%v') TEST result was gen-ed (all VMs).\n",
+		// 	commit, kernelSign)
+		// ^^DB^^
 		return crashErrors(numVMs, "crash occurs"), nil
 	}
-
+	// __DB__
+	fmt.Fprintf(os.Stdout, "|%v|TDB>> For COMMIT #'%v', the 'nil' ('no err') build (sign-re: '%v') TEST result was gen-ed (all VMs).\n",
+		env.test.name, commit, kernelSign)
+	// env.t.Logf("\n  [Log]TDB>> For COMMIT #'%v', the 'nil' ('no err') build (sign-re: '%v') TEST result was gen-ed (all VMs).\n",
+	// 	commit, kernelSign)
+	// ^^DB^^
 	return make([]error, numVMs), nil
 }
 
@@ -105,8 +143,19 @@ func createTestRepo(t *testing.T) string {
 	return baseDir
 }
 
-func runBisection(t *testing.T, baseDir string, test BisectionTest) (*Result, error) {
+// [TOV]: TODO: finalize mocking
+// func (env *testEnv) Bisect(bad, good string, trace io.Writer, pred func() (BisectResult, error)) ([]*Commit, error) {
+// 	commits, err := ctx.git.Bisect(bad, good, trace, pred)
+// 	if len(commits) == 1 {
+// 		ctx.addMaintainers(commits[0])
+// 	}
+// 	return commits, err
+// }
+
+func runBisection(t *testing.T, baseDir string, test BisectionTest) (*BisectResult, error) {
+	// [TOV]: TODO: Need mocking the 'bisecter.Bisect' for easier controlling its output
 	r, err := vcs.NewRepo("test", "64", baseDir)
+
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -153,16 +202,18 @@ type BisectionTest struct {
 	sameBinaryStart int
 	sameBinaryEnd   int
 	// expected output
-	expectErr    bool
-	expectRep    bool
-	noopChange   bool
-	isRelease    bool
-	commitLen    int
-	oldestLatest int
+	expectErr            bool
+	expectRep            bool
+	noopChange           bool
+	origBisectWasNoOpCmt bool
+	isRelease            bool
+	commitLen            int
+	oldestLatest         int
 	// input and output
 	culprit         int
 	baselineConfig  string
 	resultingConfig string
+	randomPitfalls  map[int]bool
 }
 
 var bisectionTests = []BisectionTest{
@@ -240,10 +291,11 @@ var bisectionTests = []BisectionTest{
 		startCommit:     905,
 		commitLen:       1,
 		expectRep:       true,
-		culprit:         905,
-		sameBinaryStart: 904,
+		culprit:         904, //905,
+		sameBinaryStart: 904, // [TOV]: Can't untie culprit and same bin range start commit. TODO: Keep only End?
 		sameBinaryEnd:   905,
-		noopChange:      true,
+		// origBisectWasNoOpCmt: true, // TODO: Check
+		//noopChange:      true,
 		baselineConfig:  "minimize-succeeds",
 		resultingConfig: "new-minimized-config",
 	},
@@ -325,9 +377,16 @@ var bisectionTests = []BisectionTest{
 		commitLen:       1,
 		expectRep:       true,
 		culprit:         503,
-		sameBinaryStart: 502,
-		sameBinaryEnd:   503,
-		noopChange:      true,
+		sameBinaryStart: 503, //502,
+		sameBinaryEnd:   504, //503,
+		// origBisectWasNoOpCmt: true, // TODO: Check
+		//noopChange:      true,
+		randomPitfalls: map[int]bool{
+			// 700: true, // fails the test (release commit?)
+			// 600: true, // fails the test (release commit?)
+			602: true,
+			505: true,
+		},
 	},
 	{
 		name:            "cause-same-binary-off-by-one",
@@ -353,9 +412,10 @@ var bisectionTests = []BisectionTest{
 		startCommit:     400,
 		commitLen:       1,
 		culprit:         503,
-		sameBinaryStart: 502,
+		sameBinaryStart: 503, //502,
 		sameBinaryEnd:   504,
-		noopChange:      true,
+		// origBisectWasNoOpCmt: true, // TODO: Check
+		//noopChange:      true,
 	},
 	{
 		name:            "cause-same-binary-release1",
@@ -363,10 +423,16 @@ var bisectionTests = []BisectionTest{
 		commitLen:       1,
 		expectRep:       true,
 		culprit:         500,
-		sameBinaryStart: 405,
-		sameBinaryEnd:   500,
-		noopChange:      true,
-		isRelease:       true,
+		sameBinaryStart: 500, //405,
+		sameBinaryEnd:   501, //500,
+		// origBisectWasNoOpCmt: true, // TODO: Check
+		//noopChange:      true,
+		randomPitfalls: map[int]bool{
+			605: true,
+			603: true,
+			701: false, // not matter what here, just slices are undeveloped in Go, so maps are used ;)
+		},
+		isRelease: true,
 	},
 	{
 		name:            "cause-same-binary-release2",
@@ -374,29 +440,42 @@ var bisectionTests = []BisectionTest{
 		commitLen:       1,
 		expectRep:       true,
 		culprit:         501,
-		sameBinaryStart: 500,
-		sameBinaryEnd:   501,
-		noopChange:      true,
+		sameBinaryStart: 501, //500,
+		sameBinaryEnd:   502, //501,
+		// origBisectWasNoOpCmt: true, // TODO: Check
+		//noopChange:      true,
+		randomPitfalls: map[int]bool{
+			702: true,
+			604: true,
+			// [TOV]: TODO: Does a pitfall on any of commits that are checked by Bisector fail bisection?
+			// 503: true, // fails the test.
+		},
 	},
 	{
 		name:            "cause-same-binary-release3",
 		startCommit:     905,
 		commitLen:       1,
 		expectRep:       true,
-		culprit:         405,
+		culprit:         404, //405,
 		sameBinaryStart: 404,
 		sameBinaryEnd:   405,
-		noopChange:      true,
+		// origBisectWasNoOpCmt: true, // TODO: Check
+		//noopChange:      true,
+		randomPitfalls: map[int]bool{
+			501: true,
+			603: true,
+		},
 	},
 	{
-		name:            "fix-same-binary-last",
+		name:            "fix-same-binary-prelast", // "fix-same-binary-last" [TOV]: Impossible testcase name ;)
 		fix:             true,
 		startCommit:     400,
 		commitLen:       1,
-		culprit:         905,
+		culprit:         904, //905,
 		sameBinaryStart: 904,
 		sameBinaryEnd:   905,
-		noopChange:      true,
+		// origBisectWasNoOpCmt: true, // TODO: Check
+		//noopChange:      true,
 	},
 	{
 		name:        "fix-release",
@@ -412,9 +491,10 @@ var bisectionTests = []BisectionTest{
 		culprit:         650,
 		commitLen:       1,
 		expectRep:       true,
-		sameBinaryStart: 500,
-		sameBinaryEnd:   650,
-		noopChange:      true,
+		sameBinaryStart: 650, //500,
+		sameBinaryEnd:   701, //650,
+		// origBisectWasNoOpCmt: true, // TODO: Check
+		//noopChange:      true,
 	},
 }
 
@@ -457,6 +537,11 @@ func TestBisectionResults(t *testing.T) {
 				}
 				if test.expectRep != (res.Report != nil) {
 					t.Fatalf("got rep: %v, want: %v", res.Report, test.expectRep)
+				}
+				// [TOV]: TODO: Added res.OrigBisectWasNoOpCmt?
+				if res.OrigBisectWasNoOpCmt != test.origBisectWasNoOpCmt {
+					t.Fatalf("got orig noOp change commit: %v, want: %v",
+						res.OrigBisectWasNoOpCmt, test.origBisectWasNoOpCmt)
 				}
 				if res.NoopChange != test.noopChange {
 					t.Fatalf("got noop change: %v, want: %v", res.NoopChange, test.noopChange)
