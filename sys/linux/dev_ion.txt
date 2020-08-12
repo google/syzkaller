@@ -17,10 +17,10 @@ ioctl$ION_IOC_HEAP_QUERY(fd fd_ion, cmd const[ION_IOC_HEAP_QUERY], arg ptr[inout
 ioctl$DMA_BUF_IOCTL_SYNC(fd fd_dma_buf, cmd const[DMA_BUF_IOCTL_SYNC], arg ptr[in, flags[dma_buf_sync_flags, int64]])
 
 ion_allocation_data {
-	len		int64
-	heap_id_mask	flags[ion_heap_mask, int32]
-	flags		flags[ion_alloc_flags, int32]
-	fd		fd_dma_buf[opt]
+	len		int64	(in)
+	heap_id_mask	flags[ion_heap_mask, int32]	(in)
+	flags		flags[ion_alloc_flags, int32]	(in)
+	fd		fd_dma_buf	(out)
 	unused		const[0, int32]
 }
 

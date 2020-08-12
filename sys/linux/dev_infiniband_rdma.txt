@@ -1331,7 +1331,10 @@ ib_uverbs_create_counters_cmd {
 	flags		flags[ib_uverbs_attr_flags, int16]
 	elem_id		int8
 	reserved2	const[0x0, int8]
+# TODO: reserved3 seems unnecessary: https://elixir.bootlin.com/linux/latest/source/include/uapi/rdma/rdma_user_ioctl_cmds.h#L58
 	reserved3	const[0x0, int16]
+# TODO: Is the following field really optional, or, is opt used as a workaround?
+# Now that we have per-field directions, this can be fixed if it is the second case.
 	vcontext_handle	vcontext_handle[opt]
 	more_data	int32
 }
