@@ -2789,7 +2789,7 @@ static void initialize_tun(void)
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI || SYZ_VHCI_INJECTION
+#if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI
 const int kInitNetNsFd = 239;
 #endif
 
@@ -5378,7 +5378,7 @@ static long syz_open_pts(volatile long a0, volatile long a1)
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_VHCI_INJECTION
+#if SYZ_EXECUTOR || __NR_syz_init_net_socket
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID
 #include <fcntl.h>
 #include <sched.h>
@@ -5630,9 +5630,9 @@ static void initialize_vhci()
 		return;
 #endif
 
-	int hci_sock = syz_init_net_socket(AF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI);
+	int hci_sock = socket(AF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI);
 	if (hci_sock < 0)
-		fail("syz_init_net_socket failed");
+		fail("socket(AF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI) failed");
 
 	vhci_fd = open("/dev/vhci", O_RDWR);
 	if (vhci_fd == -1)
@@ -7578,7 +7578,7 @@ static void sandbox_common()
 	setpgrp();
 	setsid();
 
-#if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI || SYZ_VHCI_INJECTION
+#if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI
 	int netns = open("/proc/self/ns/net", O_RDONLY);
 	if (netns == -1)
 		fail("open(/proc/self/ns/net) failed");
@@ -7686,6 +7686,9 @@ static int do_sandbox_none(void)
 		return wait_for_loop(pid);
 
 	setup_common();
+#if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
+	initialize_vhci();
+#endif
 	sandbox_common();
 	drop_caps();
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
@@ -7702,9 +7705,6 @@ static int do_sandbox_none(void)
 #endif
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	initialize_netdevices();
-#endif
-#if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
-	initialize_vhci();
 #endif
 	loop();
 	doexit(1);
@@ -7727,6 +7727,9 @@ static int do_sandbox_setuid(void)
 		return wait_for_loop(pid);
 
 	setup_common();
+#if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
+	initialize_vhci();
+#endif
 	sandbox_common();
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	initialize_netdevices_init();
@@ -7742,9 +7745,6 @@ static int do_sandbox_setuid(void)
 #endif
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	initialize_netdevices();
-#endif
-#if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
-	initialize_vhci();
 #endif
 
 	const int nobody = 65534;
@@ -7792,9 +7792,6 @@ static int namespace_sandbox_proc(void* arg)
 #endif
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	initialize_netdevices();
-#endif
-#if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
-	initialize_vhci();
 #endif
 
 	if (mkdir("./syz-tmp", 0777))
@@ -7857,6 +7854,9 @@ static int do_sandbox_namespace(void)
 	int pid;
 
 	setup_common();
+#if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
+	initialize_vhci();
+#endif
 	real_uid = getuid();
 	real_gid = getgid();
 	mprotect(sandbox_stack, 4096, PROT_NONE);
@@ -8486,6 +8486,9 @@ static void syz_setfilecon(const char* path, const char* context)
 static int do_sandbox_android(void)
 {
 	setup_common();
+#if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
+	initialize_vhci();
+#endif
 	sandbox_common();
 	drop_caps();
 
@@ -8500,9 +8503,6 @@ static int do_sandbox_android(void)
 #endif
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	initialize_netdevices();
-#endif
-#if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
-	initialize_vhci();
 #endif
 
 	if (chown(".", UNTRUSTED_APP_UID, UNTRUSTED_APP_UID) != 0)
