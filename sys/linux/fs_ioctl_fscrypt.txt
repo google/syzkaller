@@ -66,6 +66,7 @@ fscrypt_key_specifier {
 
 fscrypt_key_specifier_type = FSCRYPT_KEY_SPEC_TYPE_DESCRIPTOR, FSCRYPT_KEY_SPEC_TYPE_IDENTIFIER
 
+# TODO: The direction of the payload changes with regards to the key specifier type
 fscrypt_key_specifier_payload [
 	reserved	array[int8, 32]
 	descriptor	fscrypt_key_descriptor
@@ -81,7 +82,7 @@ fscrypt_provisioning_key_payload {
 fscrypt_add_key_arg {
 	key_spec	fscrypt_key_specifier
 	raw_size	len[raw, int32]
-	key_id		fscrypt_provisioning_key[opt]
+	key_id		fscrypt_provisioning_key[opt]	(in)
 	reserved	array[const[0, int32], 8]
 	raw		array[int8]
 }
