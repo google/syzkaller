@@ -91,11 +91,28 @@ static intptr_t execute_syscall(const call_t* c, intptr_t a[kMaxArgs])
 	return res;
 }
 
+static void dump_dir(const char* path)
+{
+	DIR* dir = opendir(path);
+	struct dirent* d = NULL;
+	if (!dir)
+		return;
+	fprintf(stderr, "Index of %s\n", path);
+	while ((d = readdir(dir)) != NULL)
+		fprintf(stderr, "  %s\n", d->d_name);
+	closedir(dir);
+}
+
 static void cover_open(cover_t* cov, bool extra)
 {
 	int fd = open("/sys/kernel/debug/kcov", O_RDWR);
 	if (fd == -1) {
 		const int err = errno;
+		dump_dir("/");
+		dump_dir("/proc/");
+		dump_dir("/sys/");
+		if (mount("/proc/", "/proc/", "proc", 0, NULL))
+			fprintf(stderr, "Can't mount proc on /proc/\n");
 		if (chdir("/sys/"))
 			fprintf(stderr, "/sys/ does not exist.\n");
 		else if (chdir("/sys/kernel/"))
