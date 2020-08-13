@@ -45,8 +45,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 	uint32 features = 0;
 	if (opt_count > 1)
 		opt_count = 1;
-	uintptr_t i;
-	for (i = 0; i < opt_count; i++) {
+	for (uintptr_t i = 0; i < opt_count; i++) {
 		uint64 typ = opt_array_ptr[i].typ;
 		uint64 val = opt_array_ptr[i].val;
 		switch (typ) {
@@ -56,7 +55,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 		}
 	}
 
-	for (i = 0; i < guest_mem_size / page_size; i++) {
+	for (uintptr_t i = 0; i < guest_mem_size / page_size; i++) {
 		struct kvm_userspace_memory_region memreg;
 		memreg.slot = i;
 		memreg.flags = 0; // can be KVM_MEM_LOG_DIRTY_PAGES | KVM_MEM_READONLY

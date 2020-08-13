@@ -245,8 +245,7 @@ static long syz_job_default(void)
 #if SYZ_EXECUTOR || __NR_syz_future_time
 static long syz_future_time(volatile long when)
 {
-	zx_time_t delta_ms;
-	zx_time_t now;
+	zx_time_t delta_ms = 10000;
 	switch (when) {
 	case 0:
 		delta_ms = 5;
@@ -254,10 +253,8 @@ static long syz_future_time(volatile long when)
 	case 1:
 		delta_ms = 30;
 		break;
-	default:
-		delta_ms = 10000;
-		break;
 	}
+	zx_time_t now = 0;
 	zx_clock_get(ZX_CLOCK_MONOTONIC, &now);
 	return now + delta_ms * 1000 * 1000;
 }

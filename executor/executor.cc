@@ -809,8 +809,8 @@ retry:
 thread_t* schedule_call(int call_index, int call_num, bool colliding, uint64 copyout_index, uint64 num_args, uint64* args, uint64* pos)
 {
 	// Find a spare thread to execute the call.
-	int i;
-	for (i = 0; i < kMaxThreads; i++) {
+	int i = 0;
+	for (; i < kMaxThreads; i++) {
 		thread_t* th = &threads[i];
 		if (!th->created)
 			thread_create(th, i);
@@ -1504,8 +1504,8 @@ void debug_dump_data(const char* data, int length)
 {
 	if (!flag_debug)
 		return;
-	int i;
-	for (i = 0; i < length; i++) {
+	int i = 0;
+	for (; i < length; i++) {
 		debug("%02x ", data[i] & 0xff);
 		if (i % 16 == 15)
 			debug("\n");

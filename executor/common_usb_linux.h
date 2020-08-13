@@ -158,12 +158,10 @@ static int usb_raw_ep0_stall(int fd)
 static int lookup_interface(int fd, uint8 bInterfaceNumber, uint8 bAlternateSetting)
 {
 	struct usb_device_index* index = lookup_usb_index(fd);
-	int i;
-
 	if (!index)
 		return -1;
 
-	for (i = 0; i < index->ifaces_num; i++) {
+	for (int i = 0; i < index->ifaces_num; i++) {
 		if (index->ifaces[i].bInterfaceNumber == bInterfaceNumber &&
 		    index->ifaces[i].bAlternateSetting == bAlternateSetting)
 			return i;
@@ -176,14 +174,12 @@ static int lookup_interface(int fd, uint8 bInterfaceNumber, uint8 bAlternateSett
 static int lookup_endpoint(int fd, uint8 bEndpointAddress)
 {
 	struct usb_device_index* index = lookup_usb_index(fd);
-	int ep;
-
 	if (!index)
 		return -1;
 	if (index->iface_cur < 0)
 		return -1;
 
-	for (ep = 0; index->ifaces[index->iface_cur].eps_num; ep++)
+	for (int ep = 0; index->ifaces[index->iface_cur].eps_num; ep++)
 		if (index->ifaces[index->iface_cur].eps[ep].desc.bEndpointAddress == bEndpointAddress)
 			return index->ifaces[index->iface_cur].eps[ep].handle;
 	return -1;
@@ -193,13 +189,11 @@ static int lookup_endpoint(int fd, uint8 bEndpointAddress)
 static void set_interface(int fd, int n)
 {
 	struct usb_device_index* index = lookup_usb_index(fd);
-	int ep;
-
 	if (!index)
 		return;
 
 	if (index->iface_cur >= 0 && index->iface_cur < index->ifaces_num) {
-		for (ep = 0; ep < index->ifaces[index->iface_cur].eps_num; ep++) {
+		for (int ep = 0; ep < index->ifaces[index->iface_cur].eps_num; ep++) {
 			int rv = usb_raw_ep_disable(fd, index->ifaces[index->iface_cur].eps[ep].handle);
 			if (rv < 0) {
 				debug("set_interface: failed to disable endpoint 0x%02x\n",
@@ -211,7 +205,7 @@ static void set_interface(int fd, int n)
 		}
 	}
 	if (n >= 0 && n < index->ifaces_num) {
-		for (ep = 0; ep < index->ifaces[n].eps_num; ep++) {
+		for (int ep = 0; ep < index->ifaces[n].eps_num; ep++) {
 			int rv = usb_raw_ep_enable(fd, &index->ifaces[n].eps[ep].desc);
 			if (rv < 0) {
 				debug("set_interface: failed to enable endpoint 0x%02x\n",

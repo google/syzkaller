@@ -117,14 +117,12 @@ static void cover_protect(cover_t* cov)
 			 PROT_READ);
 #elif GOOS_openbsd
 	int mib[2], page_size;
-	size_t len;
 	size_t mmap_alloc_size = kCoverSize * sizeof(uintptr_t);
 	mib[0] = CTL_HW;
 	mib[1] = HW_PAGESIZE;
-	len = sizeof(page_size);
+	size_t len = sizeof(page_size);
 	if (sysctl(mib, ARRAY_SIZE(mib), &page_size, &len, NULL, 0) != -1)
-		mprotect(cov->data + page_size, mmap_alloc_size - page_size,
-			 PROT_READ);
+		mprotect(cov->data + page_size, mmap_alloc_size - page_size, PROT_READ);
 #endif
 }
 

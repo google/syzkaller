@@ -51,6 +51,47 @@ if (foo)
 				`//foo`,
 			},
 		},
+		{
+			// This detects C89-style variable declarations in the beginning of block in a best-effort manner.
+			// Struct fields look exactly as C89 variable declarations, to filter them out we look for "{"
+			// at the beginning of the line.
+			pattern: `
+{[^{]*
+\s+((unsigned )?[a-zA-Z][a-zA-Z0-9_]+\s*\*?|(struct )?[a-zA-Z][a-zA-Z0-9_]+\*)\s+([a-zA-Z][a-zA-Z0-9_]*(,\s*)?)+;
+`,
+			suppression: `return |goto |va_list |pthread_|zx_`,
+			message:     "Don't use C89 var declarations. Declare vars where they are needed and combine with initialization",
+			tests: []string{
+				`
+{
+	int i;
+`,
+				`
+{
+	socklen_t optlen;
+`,
+				`
+{
+	int fd, rv;
+`,
+				`
+{
+	int fd, rv;
+`,
+				`
+{
+	struct nlattr* attr;
+`,
+				`
+{
+	int* i;
+`,
+				`
+{
+	DIR* dp;
+`,
+			},
+		},
 	}
 	for _, check := range checks {
 		re := regexp.MustCompile(check.pattern)
@@ -72,12 +113,14 @@ if (foo)
 			re := regexp.MustCompile(check.pattern)
 			supp := regexp.MustCompile(check.suppression)
 			for _, match := range re.FindAllIndex(data, -1) {
-				start, end := match[0], match[1]
-				for check.pattern[0] != '\n' && start != 0 && data[start-1] != '\n' {
-					start--
-				}
-				for check.pattern[len(check.pattern)-1] != '\n' && end != len(data) && data[end] != '\n' {
+				// Locate the last line of the match, that's where we assume the error is.
+				end := match[1] - 1
+				for end != len(data) && data[end] != '\n' {
 					end++
+				}
+				start := end - 1
+				for start != 0 && data[start-1] != '\n' {
+					start--
 				}
 				if check.suppression != "" && supp.Match(data[start:end]) {
 					continue
