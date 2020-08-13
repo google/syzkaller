@@ -186,11 +186,10 @@ static void use_temporary_dir(void)
 
 static void remove_dir(const char* dir)
 {
-	DIR* dp;
-	struct dirent* ep;
-	dp = opendir(dir);
+	DIR* dp = opendir(dir);
 	if (dp == NULL)
 		exitf("opendir(%s) failed", dir);
+	struct dirent* ep = 0;
 	while ((ep = readdir(dp))) {
 		if (strcmp(ep->d_name, ".") == 0 || strcmp(ep->d_name, "..") == 0)
 			continue;
@@ -240,8 +239,8 @@ static void thread_start(void* (*fn)(void*), void* arg)
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 	pthread_attr_setstacksize(&attr, 128 << 10);
-	int i;
-	for (i = 0; i < 100; i++) {
+	int i = 0;
+	for (; i < 100; i++) {
 		if (pthread_create(&th, &attr, fn, arg) == 0) {
 			pthread_attr_destroy(&attr);
 			return;
@@ -356,8 +355,8 @@ static void csum_inet_update(struct csum_inet* csum, const uint8* data, size_t l
 	if (length == 0)
 		return;
 
-	size_t i;
-	for (i = 0; i < length - 1; i += 2)
+	size_t i = 0;
+	for (; i < length - 1; i += 2)
 		csum->acc += *(uint16*)&data[i];
 
 	if (length & 1)
@@ -662,8 +661,7 @@ static struct usb_device_index* add_usb_index(int fd, const char* dev, size_t de
 
 static struct usb_device_index* lookup_usb_index(int fd)
 {
-	int i;
-	for (i = 0; i < USB_MAX_FDS; i++) {
+	for (int i = 0; i < USB_MAX_FDS; i++) {
 		if (__atomic_load_n(&usb_devices[i].fd, __ATOMIC_ACQUIRE) == fd) {
 			return &usb_devices[i].index;
 		}
@@ -1362,10 +1360,9 @@ static int vhci_usb_attach(int fd)
 static int vhci_usb_recv(int fd, void* buf, size_t size)
 {
 	uint8* ptr = (uint8*)buf;
-	ssize_t done;
 
 	while (1) {
-		done = read(fd, ptr, size);
+		ssize_t done = read(fd, ptr, size);
 		if (done < 0)
 			return -1;
 		if ((size_t)done == size)
@@ -1378,10 +1375,9 @@ static int vhci_usb_recv(int fd, void* buf, size_t size)
 static int vhci_usb_send(int fd, void* buf, size_t size)
 {
 	uint8* ptr = (uint8*)buf;
-	ssize_t done;
 
 	while (1) {
-		done = write(fd, ptr, size);
+		ssize_t done = write(fd, ptr, size);
 		if (done <= 0)
 			return -1;
 		if ((size_t)done == size)
@@ -1391,32 +1387,14 @@ static int vhci_usb_send(int fd, void* buf, size_t size)
 	}
 }
 
-static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
+static volatile long syz_usb_connect_impl(int fd, uint64 speed, uint64 dev_len,
 					  const char* dev, const struct vusb_connect_descriptors* descs,
 					  lookup_connect_out_response_t lookup_connect_response_out)
 {
-	struct usb_device_index* index;
-	int fd, rv;
-	bool done;
-
-	debug("syz_usb_connect: dev: %p\n", dev);
-	if (!dev) {
-		debug("syz_usb_connect: dev is null\n");
-		return -1;
-	}
-
-	debug("syz_usb_connect: device data:\n");
-	debug_dump_data(dev, dev_len);
-
-	fd = vhci_open();
-	if (fd < 0) {
-		fail("syz_usb_connect: vhci_open failed with %d", errno);
-	}
-
-	index = add_usb_index(fd, dev, dev_len);
+	struct usb_device_index* index = add_usb_index(fd, dev, dev_len);
 	if (!index) {
 		debug("syz_usb_connect: add_usb_index failed\n");
-		goto err;
+		return -1;
 	}
 	debug("syz_usb_connect: add_usb_index success\n");
 
@@ -1424,7 +1402,7 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 	analyze_usb_device(index);
 #endif
 
-	rv = vhci_setport(fd, 1);
+	int rv = vhci_setport(fd, 1);
 	if (rv != 0) {
 		fail("syz_usb_connect: vhci_setport failed with %d", errno);
 	}
@@ -1432,22 +1410,22 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 	rv = vhci_usb_attach(fd);
 	if (rv != 0) {
 		debug("syz_usb_connect: vhci_usb_attach failed with %d\n", rv);
-		goto err;
+		return -1;
 	}
 	debug("syz_usb_connect: vhci_usb_attach success\n");
 
-	done = false;
+	bool done = false;
 	while (!done) {
 		vhci_request_t req;
 
 		rv = vhci_usb_recv(fd, &req, sizeof(req));
 		if (rv != 0) {
 			debug("syz_usb_connect: vhci_usb_recv failed with %d\n", errno);
-			goto err;
+			return -1;
 		}
 		if (req.type != VHCI_REQ_CTRL) {
 			debug("syz_usb_connect: received non-control transfer\n");
-			goto err;
+			return -1;
 		}
 
 		debug("syz_usb_connect: bReqType: 0x%x (%s), bReq: 0x%x, wVal: 0x%x, wIdx: 0x%x, wLen: %d\n",
@@ -1465,12 +1443,12 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 		if (req.u.ctrl.bmRequestType & UE_DIR_IN) {
 			if (!lookup_connect_response_in(fd, descs, (const struct usb_ctrlrequest*)&req.u.ctrl, &response_data, &response_length)) {
 				debug("syz_usb_connect: unknown control IN request\n");
-				goto err;
+				return -1;
 			}
 		} else {
 			if (!lookup_connect_response_out(fd, descs, (const struct usb_ctrlrequest*)&req.u.ctrl, &done)) {
 				debug("syz_usb_connect: unknown control OUT request\n");
-				goto err;
+				return -1;
 			}
 			response_data = NULL;
 			response_length = UGETW(req.u.ctrl.wLength);
@@ -1506,17 +1484,13 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 		}
 		if (rv < 0) {
 			debug("syz_usb_connect: usb_raw_ep0_read/write failed with %d\n", rv);
-			goto err;
+			return -1;
 		}
 	}
 
 	sleep_ms(200);
 	debug("syz_usb_connect: configured\n");
 	return fd;
-
-err:
-	close(fd);
-	return -1;
 }
 
 #if SYZ_EXECUTOR || __NR_syz_usb_connect
@@ -1528,8 +1502,22 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1,
 	const char* dev = (const char*)a2;
 	const struct vusb_connect_descriptors* descs = (const struct vusb_connect_descriptors*)a3;
 
-	return syz_usb_connect_impl(speed, dev_len, dev, descs,
-				    &lookup_connect_response_out_generic);
+	debug("syz_usb_connect: dev: %p\n", dev);
+	if (!dev) {
+		debug("syz_usb_connect: dev is null\n");
+		return -1;
+	}
+
+	debug("syz_usb_connect: device data:\n");
+	debug_dump_data(dev, dev_len);
+
+	int fd = vhci_open();
+	if (fd < 0) {
+		fail("syz_usb_connect: vhci_open failed with %d", errno);
+	}
+	long res = syz_usb_connect_impl(fd, speed, dev_len, dev, descs, &lookup_connect_response_out_generic);
+	close(fd);
+	return res;
 }
 #endif
 
@@ -1551,19 +1539,17 @@ static volatile long syz_usb_disconnect(volatile long a0)
 #include <dirent.h>
 static void setup_usb(void)
 {
-	struct dirent* ent;
-	char path[1024];
-	DIR* dir;
-
-	dir = opendir("/dev");
+	DIR* dir = opendir("/dev");
 	if (dir == NULL)
 		fail("failed to open /dev");
 
+	struct dirent* ent = NULL;
 	while ((ent = readdir(dir)) != NULL) {
 		if (ent->d_type != DT_CHR)
 			continue;
 		if (strncmp(ent->d_name, "vhci", 4))
 			continue;
+		char path[1024];
 		snprintf(path, sizeof(path), "/dev/%s", ent->d_name);
 		if (chmod(path, 0666))
 			fail("failed to chmod %s", path);
@@ -1672,9 +1658,7 @@ static int tunfd = -1;
 
 static void vsnprintf_check(char* str, size_t size, const char* format, va_list args)
 {
-	int rv;
-
-	rv = vsnprintf(str, size, format, args);
+	int rv = vsnprintf(str, size, format, args);
 	if (rv < 0)
 		fail("vsnprintf failed");
 	if ((size_t)rv >= size)
@@ -1697,14 +1681,12 @@ static void snprintf_check(char* str, size_t size, const char* format, ...)
 static void execute_command(bool panic, const char* format, ...)
 {
 	va_list args;
-	char command[PATH_PREFIX_LEN + COMMAND_MAX_LEN];
-	int rv;
-
 	va_start(args, format);
+	char command[PATH_PREFIX_LEN + COMMAND_MAX_LEN];
 	memcpy(command, PATH_PREFIX, PATH_PREFIX_LEN);
 	vsnprintf_check(command + PATH_PREFIX_LEN, COMMAND_MAX_LEN, format, args);
 	va_end(args);
-	rv = system(command);
+	int rv = system(command);
 	if (rv) {
 		if (panic)
 			fail("command '%s' failed: %d", &command[0], rv);
@@ -1851,12 +1833,11 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 	size_t length = rv;
 	debug_dump_data(data, length);
 
-	struct tcphdr* tcphdr;
-
 	if (length < sizeof(struct ether_header))
 		return (uintptr_t)-1;
 	struct ether_header* ethhdr = (struct ether_header*)&data[0];
 
+	struct tcphdr* tcphdr = 0;
 	if (ethhdr->ether_type == htons(ETHERTYPE_IP)) {
 		if (length < sizeof(struct ether_header) + sizeof(struct ip))
 			return (uintptr_t)-1;
@@ -2220,8 +2201,7 @@ static long syz_job_default(void)
 #if SYZ_EXECUTOR || __NR_syz_future_time
 static long syz_future_time(volatile long when)
 {
-	zx_time_t delta_ms;
-	zx_time_t now;
+	zx_time_t delta_ms = 10000;
 	switch (when) {
 	case 0:
 		delta_ms = 5;
@@ -2229,10 +2209,8 @@ static long syz_future_time(volatile long when)
 	case 1:
 		delta_ms = 30;
 		break;
-	default:
-		delta_ms = 10000;
-		break;
 	}
+	zx_time_t now = 0;
 	zx_clock_get(ZX_CLOCK_MONOTONIC, &now);
 	return now + delta_ms * 1000 * 1000;
 }
@@ -2814,20 +2792,18 @@ const int kInitNetNsFd = 239;
 static int netlink_devlink_id_get(struct nlmsg* nlmsg, int sock)
 {
 	struct genlmsghdr genlhdr;
-	struct nlattr* attr;
-	int err, n;
-	uint16 id = 0;
-
 	memset(&genlhdr, 0, sizeof(genlhdr));
 	genlhdr.cmd = CTRL_CMD_GETFAMILY;
 	netlink_init(nlmsg, GENL_ID_CTRL, 0, &genlhdr, sizeof(genlhdr));
 	netlink_attr(nlmsg, CTRL_ATTR_FAMILY_NAME, DEVLINK_FAMILY_NAME, strlen(DEVLINK_FAMILY_NAME) + 1);
-	err = netlink_send_ext(nlmsg, sock, GENL_ID_CTRL, &n);
+	int n = 0;
+	int err = netlink_send_ext(nlmsg, sock, GENL_ID_CTRL, &n);
 	if (err) {
 		debug("netlink: failed to get devlink family id: %s\n", strerror(err));
 		return -1;
 	}
-	attr = (struct nlattr*)(nlmsg->buf + NLMSG_HDRLEN + NLMSG_ALIGN(sizeof(genlhdr)));
+	uint16 id = 0;
+	struct nlattr* attr = (struct nlattr*)(nlmsg->buf + NLMSG_HDRLEN + NLMSG_ALIGN(sizeof(genlhdr)));
 	for (; (char*)attr < nlmsg->buf + n; attr = (struct nlattr*)((char*)attr + NLMSG_ALIGN(attr->nla_len))) {
 		if (attr->nla_type == CTRL_ATTR_FAMILY_ID) {
 			id = *(uint16*)(attr + 1);
@@ -3026,20 +3002,18 @@ enum wgallowedip_attribute {
 static int netlink_wireguard_id_get(struct nlmsg* nlmsg, int sock)
 {
 	struct genlmsghdr genlhdr;
-	struct nlattr* attr;
-	int err, n;
-	uint16 id = 0;
-
 	memset(&genlhdr, 0, sizeof(genlhdr));
 	genlhdr.cmd = CTRL_CMD_GETFAMILY;
 	netlink_init(nlmsg, GENL_ID_CTRL, 0, &genlhdr, sizeof(genlhdr));
 	netlink_attr(nlmsg, CTRL_ATTR_FAMILY_NAME, WG_GENL_NAME, strlen(WG_GENL_NAME) + 1);
-	err = netlink_send_ext(nlmsg, sock, GENL_ID_CTRL, &n);
+	int n = 0;
+	int err = netlink_send_ext(nlmsg, sock, GENL_ID_CTRL, &n);
 	if (err) {
 		debug("netlink: failed to get wireguard family id: %s\n", strerror(err));
 		return -1;
 	}
-	attr = (struct nlattr*)(nlmsg->buf + NLMSG_HDRLEN + NLMSG_ALIGN(sizeof(genlhdr)));
+	uint16 id = 0;
+	struct nlattr* attr = (struct nlattr*)(nlmsg->buf + NLMSG_HDRLEN + NLMSG_ALIGN(sizeof(genlhdr)));
 	for (; (char*)attr < nlmsg->buf + n; attr = (struct nlattr*)((char*)attr + NLMSG_ALIGN(attr->nla_len))) {
 		if (attr->nla_type == CTRL_ATTR_FAMILY_ID) {
 			id = *(uint16*)(attr + 1);
@@ -3891,12 +3865,11 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 	size_t length = rv;
 	debug_dump_data(data, length);
 
-	struct tcphdr* tcphdr;
-
 	if (length < sizeof(struct ethhdr))
 		return (uintptr_t)-1;
 	struct ethhdr* ethhdr = (struct ethhdr*)&data[0];
 
+	struct tcphdr* tcphdr = 0;
 	if (ethhdr->h_proto == htons(ETH_P_IP)) {
 		if (length < sizeof(struct ethhdr) + sizeof(struct iphdr))
 			return (uintptr_t)-1;
@@ -4044,8 +4017,7 @@ static struct usb_device_index* add_usb_index(int fd, const char* dev, size_t de
 
 static struct usb_device_index* lookup_usb_index(int fd)
 {
-	int i;
-	for (i = 0; i < USB_MAX_FDS; i++) {
+	for (int i = 0; i < USB_MAX_FDS; i++) {
 		if (__atomic_load_n(&usb_devices[i].fd, __ATOMIC_ACQUIRE) == fd) {
 			return &usb_devices[i].index;
 		}
@@ -4870,12 +4842,10 @@ static int usb_raw_ep0_stall(int fd)
 static int lookup_interface(int fd, uint8 bInterfaceNumber, uint8 bAlternateSetting)
 {
 	struct usb_device_index* index = lookup_usb_index(fd);
-	int i;
-
 	if (!index)
 		return -1;
 
-	for (i = 0; i < index->ifaces_num; i++) {
+	for (int i = 0; i < index->ifaces_num; i++) {
 		if (index->ifaces[i].bInterfaceNumber == bInterfaceNumber &&
 		    index->ifaces[i].bAlternateSetting == bAlternateSetting)
 			return i;
@@ -4888,14 +4858,12 @@ static int lookup_interface(int fd, uint8 bInterfaceNumber, uint8 bAlternateSett
 static int lookup_endpoint(int fd, uint8 bEndpointAddress)
 {
 	struct usb_device_index* index = lookup_usb_index(fd);
-	int ep;
-
 	if (!index)
 		return -1;
 	if (index->iface_cur < 0)
 		return -1;
 
-	for (ep = 0; index->ifaces[index->iface_cur].eps_num; ep++)
+	for (int ep = 0; index->ifaces[index->iface_cur].eps_num; ep++)
 		if (index->ifaces[index->iface_cur].eps[ep].desc.bEndpointAddress == bEndpointAddress)
 			return index->ifaces[index->iface_cur].eps[ep].handle;
 	return -1;
@@ -4905,13 +4873,11 @@ static int lookup_endpoint(int fd, uint8 bEndpointAddress)
 static void set_interface(int fd, int n)
 {
 	struct usb_device_index* index = lookup_usb_index(fd);
-	int ep;
-
 	if (!index)
 		return;
 
 	if (index->iface_cur >= 0 && index->iface_cur < index->ifaces_num) {
-		for (ep = 0; ep < index->ifaces[index->iface_cur].eps_num; ep++) {
+		for (int ep = 0; ep < index->ifaces[index->iface_cur].eps_num; ep++) {
 			int rv = usb_raw_ep_disable(fd, index->ifaces[index->iface_cur].eps[ep].handle);
 			if (rv < 0) {
 				debug("set_interface: failed to disable endpoint 0x%02x\n",
@@ -4923,7 +4889,7 @@ static void set_interface(int fd, int n)
 		}
 	}
 	if (n >= 0 && n < index->ifaces_num) {
-		for (ep = 0; ep < index->ifaces[n].eps_num; ep++) {
+		for (int ep = 0; ep < index->ifaces[n].eps_num; ep++) {
 			int rv = usb_raw_ep_enable(fd, &index->ifaces[n].eps[ep].desc);
 			if (rv < 0) {
 				debug("set_interface: failed to enable endpoint 0x%02x\n",
@@ -5805,12 +5771,11 @@ struct fs_image_segment {
 
 static unsigned long fs_image_segment_check(unsigned long size, unsigned long nsegs, long segments)
 {
-	unsigned long i;
 	struct fs_image_segment* segs = (struct fs_image_segment*)segments;
 
 	if (nsegs > IMAGE_MAX_SEGMENTS)
 		nsegs = IMAGE_MAX_SEGMENTS;
-	for (i = 0; i < nsegs; i++) {
+	for (unsigned long i = 0; i < nsegs; i++) {
 		if (segs[i].size > IMAGE_MAX_SIZE)
 			segs[i].size = IMAGE_MAX_SIZE;
 		segs[i].offset %= IMAGE_MAX_SIZE;
@@ -5828,9 +5793,7 @@ static unsigned long fs_image_segment_check(unsigned long size, unsigned long ns
 #if SYZ_EXECUTOR || __NR_syz_read_part_table
 static long syz_read_part_table(volatile unsigned long size, volatile unsigned long nsegs, volatile long segments)
 {
-	char loopname[64], linkname[64];
-	int loopfd, err = 0, res = -1;
-	unsigned long i, j;
+	int err = 0, res = -1, loopfd = -1;
 	size = fs_image_segment_check(size, nsegs, segments);
 	int memfd = syscall(sys_memfd_create, "syz_read_part_table", 0);
 	if (memfd == -1) {
@@ -5841,12 +5804,13 @@ static long syz_read_part_table(volatile unsigned long size, volatile unsigned l
 		err = errno;
 		goto error_close_memfd;
 	}
-	for (i = 0; i < nsegs; i++) {
+	for (unsigned long i = 0; i < nsegs; i++) {
 		struct fs_image_segment* segs = (struct fs_image_segment*)segments;
 		if (pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset) < 0) {
 			debug("syz_read_part_table: pwrite[%u] failed: %d\n", (int)i, errno);
 		}
 	}
+	char loopname[64];
 	snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
 	loopfd = open(loopname, O_RDWR);
 	if (loopfd == -1) {
@@ -5879,10 +5843,11 @@ static long syz_read_part_table(volatile unsigned long size, volatile unsigned l
 		goto error_clear_loop;
 	}
 	res = 0;
-	for (i = 1, j = 0; i < 8; i++) {
+	for (unsigned long i = 1, j = 0; i < 8; i++) {
 		snprintf(loopname, sizeof(loopname), "/dev/loop%llup%d", procid, (int)i);
 		struct stat statbuf;
 		if (stat(loopname, &statbuf) == 0) {
+			char linkname[64];
 			snprintf(linkname, sizeof(linkname), "./file%d", (int)j++);
 			if (symlink(loopname, linkname)) {
 				debug("syz_read_part_table: symlink(%s, %s) failed: %d\n", loopname, linkname, errno);
@@ -5906,10 +5871,7 @@ error:
 #include <sys/mount.h>
 static long syz_mount_image(volatile long fsarg, volatile long dir, volatile unsigned long size, volatile unsigned long nsegs, volatile long segments, volatile long flags, volatile long optsarg)
 {
-	char loopname[64], fs[32], opts[256];
-	int loopfd, err = 0, res = -1;
-	unsigned long i;
-
+	int err = 0, res = -1, loopfd = -1;
 	size = fs_image_segment_check(size, nsegs, segments);
 	int memfd = syscall(sys_memfd_create, "syz_mount_image", 0);
 	if (memfd == -1) {
@@ -5920,12 +5882,13 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 		err = errno;
 		goto error_close_memfd;
 	}
-	for (i = 0; i < nsegs; i++) {
+	for (unsigned long i = 0; i < nsegs; i++) {
 		struct fs_image_segment* segs = (struct fs_image_segment*)segments;
 		if (pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset) < 0) {
 			debug("syz_mount_image: pwrite[%u] failed: %d\n", (int)i, errno);
 		}
 	}
+	char loopname[64];
 	snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
 	loopfd = open(loopname, O_RDWR);
 	if (loopfd == -1) {
@@ -5945,8 +5908,10 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 		}
 	}
 	mkdir((char*)dir, 0777);
+	char fs[32];
 	memset(fs, 0, sizeof(fs));
 	strncpy(fs, (char*)fsarg, sizeof(fs) - 1);
+	char opts[256];
 	memset(opts, 0, sizeof(opts));
 	strncpy(opts, (char*)optsarg, sizeof(opts) - 32);
 	if (strcmp(fs, "iso9660") == 0) {
@@ -6238,8 +6203,7 @@ static void setup_32bit_idt(struct kvm_sregs* sregs, char* host_mem, uintptr_t g
 	sregs->idt.base = guest_mem + ADDR_VAR_IDT;
 	sregs->idt.limit = 0x1ff;
 	uint64* idt = (uint64*)(host_mem + sregs->idt.base);
-	int i;
-	for (i = 0; i < 32; i++) {
+	for (int i = 0; i < 32; i++) {
 		struct kvm_segment gate;
 		gate.selector = i << 3;
 		switch (i % 6) {
@@ -6285,8 +6249,7 @@ static void setup_64bit_idt(struct kvm_sregs* sregs, char* host_mem, uintptr_t g
 	sregs->idt.base = guest_mem + ADDR_VAR_IDT;
 	sregs->idt.limit = 0x1ff;
 	uint64* idt = (uint64*)(host_mem + sregs->idt.base);
-	int i;
-	for (i = 0; i < 32; i++) {
+	for (int i = 0; i < 32; i++) {
 		struct kvm_segment gate;
 		gate.selector = (i * 2) << 3;
 		gate.type = (i & 1) ? 14 : 15;
@@ -6342,8 +6305,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 	const void* text = text_array_ptr[0].text;
 	uintptr_t text_size = text_array_ptr[0].size;
 
-	uintptr_t i;
-	for (i = 0; i < guest_mem_size / page_size; i++) {
+	for (uintptr_t i = 0; i < guest_mem_size / page_size; i++) {
 		struct kvm_userspace_memory_region memreg;
 		memreg.slot = i;
 		memreg.flags = 0;
@@ -6763,7 +6725,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 
 	if (opt_count > 2)
 		opt_count = 2;
-	for (i = 0; i < opt_count; i++) {
+	for (uintptr_t i = 0; i < opt_count; i++) {
 		uint64 typ = opt_array_ptr[i].typ;
 		uint64 val = opt_array_ptr[i].val;
 		switch (typ % 9) {
@@ -6892,8 +6854,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 	uint32 features = 0;
 	if (opt_count > 1)
 		opt_count = 1;
-	uintptr_t i;
-	for (i = 0; i < opt_count; i++) {
+	for (uintptr_t i = 0; i < opt_count; i++) {
 		uint64 typ = opt_array_ptr[i].typ;
 		uint64 val = opt_array_ptr[i].val;
 		switch (typ) {
@@ -6903,7 +6864,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 		}
 	}
 
-	for (i = 0; i < guest_mem_size / page_size; i++) {
+	for (uintptr_t i = 0; i < guest_mem_size / page_size; i++) {
 		struct kvm_userspace_memory_region memreg;
 		memreg.slot = i;
 		memreg.flags = 0;
@@ -7047,11 +7008,7 @@ static struct arpt_table_desc arpt_tables[] = {
 
 static void checkpoint_iptables(struct ipt_table_desc* tables, int num_tables, int family, int level)
 {
-	struct ipt_get_entries entries;
-	socklen_t optlen;
-	int fd, i;
-
-	fd = socket(family, SOCK_STREAM, IPPROTO_TCP);
+	int fd = socket(family, SOCK_STREAM, IPPROTO_TCP);
 	if (fd == -1) {
 		switch (errno) {
 		case EAFNOSUPPORT:
@@ -7060,11 +7017,11 @@ static void checkpoint_iptables(struct ipt_table_desc* tables, int num_tables, i
 		}
 		fail("iptable checkpoint %d: socket failed", family);
 	}
-	for (i = 0; i < num_tables; i++) {
+	for (int i = 0; i < num_tables; i++) {
 		struct ipt_table_desc* table = &tables[i];
 		strcpy(table->info.name, table->name);
 		strcpy(table->replace.name, table->name);
-		optlen = sizeof(table->info);
+		socklen_t optlen = sizeof(table->info);
 		if (getsockopt(fd, level, IPT_SO_GET_INFO, &table->info, &optlen)) {
 			switch (errno) {
 			case EPERM:
@@ -7083,6 +7040,7 @@ static void checkpoint_iptables(struct ipt_table_desc* tables, int num_tables, i
 		if (table->info.num_entries > XT_MAX_ENTRIES)
 			fail("iptable checkpoint %s/%d: too many counters: %u",
 			     table->name, family, table->info.num_entries);
+		struct ipt_get_entries entries;
 		memset(&entries, 0, sizeof(entries));
 		strcpy(entries.name, table->name);
 		entries.size = table->info.size;
@@ -7102,13 +7060,7 @@ static void checkpoint_iptables(struct ipt_table_desc* tables, int num_tables, i
 
 static void reset_iptables(struct ipt_table_desc* tables, int num_tables, int family, int level)
 {
-	struct xt_counters counters[XT_MAX_ENTRIES];
-	struct ipt_get_entries entries;
-	struct ipt_getinfo info;
-	socklen_t optlen;
-	int fd, i;
-
-	fd = socket(family, SOCK_STREAM, IPPROTO_TCP);
+	int fd = socket(family, SOCK_STREAM, IPPROTO_TCP);
 	if (fd == -1) {
 		switch (errno) {
 		case EAFNOSUPPORT:
@@ -7117,16 +7069,18 @@ static void reset_iptables(struct ipt_table_desc* tables, int num_tables, int fa
 		}
 		fail("iptable %d: socket failed", family);
 	}
-	for (i = 0; i < num_tables; i++) {
+	for (int i = 0; i < num_tables; i++) {
 		struct ipt_table_desc* table = &tables[i];
 		if (table->info.valid_hooks == 0)
 			continue;
+		struct ipt_getinfo info;
 		memset(&info, 0, sizeof(info));
 		strcpy(info.name, table->name);
-		optlen = sizeof(info);
+		socklen_t optlen = sizeof(info);
 		if (getsockopt(fd, level, IPT_SO_GET_INFO, &info, &optlen))
 			fail("iptable %s/%d: getsockopt(IPT_SO_GET_INFO)", table->name, family);
 		if (memcmp(&table->info, &info, sizeof(table->info)) == 0) {
+			struct ipt_get_entries entries;
 			memset(&entries, 0, sizeof(entries));
 			strcpy(entries.name, table->name);
 			entries.size = table->info.size;
@@ -7137,6 +7091,7 @@ static void reset_iptables(struct ipt_table_desc* tables, int num_tables, int fa
 				continue;
 		}
 		debug("iptable %s/%d: resetting\n", table->name, family);
+		struct xt_counters counters[XT_MAX_ENTRIES];
 		table->replace.num_counters = info.num_entries;
 		table->replace.counters = counters;
 		optlen = sizeof(table->replace) - sizeof(table->replace.entrytable) + table->replace.size;
@@ -7148,12 +7103,7 @@ static void reset_iptables(struct ipt_table_desc* tables, int num_tables, int fa
 
 static void checkpoint_arptables(void)
 {
-	struct arpt_get_entries entries;
-	socklen_t optlen;
-	unsigned i;
-	int fd;
-
-	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	int fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (fd == -1) {
 		switch (errno) {
 		case EAFNOSUPPORT:
@@ -7162,11 +7112,11 @@ static void checkpoint_arptables(void)
 		}
 		fail("arptable checkpoint: socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
 	}
-	for (i = 0; i < sizeof(arpt_tables) / sizeof(arpt_tables[0]); i++) {
+	for (unsigned i = 0; i < sizeof(arpt_tables) / sizeof(arpt_tables[0]); i++) {
 		struct arpt_table_desc* table = &arpt_tables[i];
 		strcpy(table->info.name, table->name);
 		strcpy(table->replace.name, table->name);
-		optlen = sizeof(table->info);
+		socklen_t optlen = sizeof(table->info);
 		if (getsockopt(fd, SOL_IP, ARPT_SO_GET_INFO, &table->info, &optlen)) {
 			switch (errno) {
 			case EPERM:
@@ -7184,6 +7134,7 @@ static void checkpoint_arptables(void)
 		if (table->info.num_entries > XT_MAX_ENTRIES)
 			fail("arptable checkpoint %s: too many counters: %u",
 			     table->name, table->info.num_entries);
+		struct arpt_get_entries entries;
 		memset(&entries, 0, sizeof(entries));
 		strcpy(entries.name, table->name);
 		entries.size = table->info.size;
@@ -7202,14 +7153,7 @@ static void checkpoint_arptables(void)
 
 static void reset_arptables()
 {
-	struct xt_counters counters[XT_MAX_ENTRIES];
-	struct arpt_get_entries entries;
-	struct arpt_getinfo info;
-	socklen_t optlen;
-	unsigned i;
-	int fd;
-
-	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	int fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (fd == -1) {
 		switch (errno) {
 		case EAFNOSUPPORT:
@@ -7218,16 +7162,18 @@ static void reset_arptables()
 		}
 		fail("arptable: socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
 	}
-	for (i = 0; i < sizeof(arpt_tables) / sizeof(arpt_tables[0]); i++) {
+	for (unsigned i = 0; i < sizeof(arpt_tables) / sizeof(arpt_tables[0]); i++) {
 		struct arpt_table_desc* table = &arpt_tables[i];
 		if (table->info.valid_hooks == 0)
 			continue;
+		struct arpt_getinfo info;
 		memset(&info, 0, sizeof(info));
 		strcpy(info.name, table->name);
-		optlen = sizeof(info);
+		socklen_t optlen = sizeof(info);
 		if (getsockopt(fd, SOL_IP, ARPT_SO_GET_INFO, &info, &optlen))
 			fail("arptable %s:getsockopt(ARPT_SO_GET_INFO)", table->name);
 		if (memcmp(&table->info, &info, sizeof(table->info)) == 0) {
+			struct arpt_get_entries entries;
 			memset(&entries, 0, sizeof(entries));
 			strcpy(entries.name, table->name);
 			entries.size = table->info.size;
@@ -7241,6 +7187,7 @@ static void reset_arptables()
 			debug("arptable %s: header changed\n", table->name);
 		}
 		debug("arptable %s: resetting\n", table->name);
+		struct xt_counters counters[XT_MAX_ENTRIES];
 		table->replace.num_counters = info.num_entries;
 		table->replace.counters = counters;
 		optlen = sizeof(table->replace) - sizeof(table->replace.entrytable) + table->replace.size;
@@ -7294,11 +7241,7 @@ static struct ebt_table_desc ebt_tables[] = {
 
 static void checkpoint_ebtables(void)
 {
-	socklen_t optlen;
-	unsigned i;
-	int fd;
-
-	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	int fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (fd == -1) {
 		switch (errno) {
 		case EAFNOSUPPORT:
@@ -7307,10 +7250,10 @@ static void checkpoint_ebtables(void)
 		}
 		fail("ebtable checkpoint: socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
 	}
-	for (i = 0; i < sizeof(ebt_tables) / sizeof(ebt_tables[0]); i++) {
+	for (size_t i = 0; i < sizeof(ebt_tables) / sizeof(ebt_tables[0]); i++) {
 		struct ebt_table_desc* table = &ebt_tables[i];
 		strcpy(table->replace.name, table->name);
-		optlen = sizeof(table->replace);
+		socklen_t optlen = sizeof(table->replace);
 		if (getsockopt(fd, SOL_IP, EBT_SO_GET_INIT_INFO, &table->replace, &optlen)) {
 			switch (errno) {
 			case EPERM:
@@ -7337,13 +7280,7 @@ static void checkpoint_ebtables(void)
 
 static void reset_ebtables()
 {
-	struct ebt_replace replace;
-	char entrytable[XT_TABLE_SIZE];
-	socklen_t optlen;
-	unsigned i, j, h;
-	int fd;
-
-	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	int fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (fd == -1) {
 		switch (errno) {
 		case EAFNOSUPPORT:
@@ -7352,20 +7289,22 @@ static void reset_ebtables()
 		}
 		fail("ebtable: socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
 	}
-	for (i = 0; i < sizeof(ebt_tables) / sizeof(ebt_tables[0]); i++) {
+	for (unsigned i = 0; i < sizeof(ebt_tables) / sizeof(ebt_tables[0]); i++) {
 		struct ebt_table_desc* table = &ebt_tables[i];
 		if (table->replace.valid_hooks == 0)
 			continue;
+		struct ebt_replace replace;
 		memset(&replace, 0, sizeof(replace));
 		strcpy(replace.name, table->name);
-		optlen = sizeof(replace);
+		socklen_t optlen = sizeof(replace);
 		if (getsockopt(fd, SOL_IP, EBT_SO_GET_INFO, &replace, &optlen))
 			fail("ebtable %s: getsockopt(EBT_SO_GET_INFO)", table->name);
 		replace.num_counters = 0;
 		table->replace.entries = 0;
-		for (h = 0; h < NF_BR_NUMHOOKS; h++)
+		for (unsigned h = 0; h < NF_BR_NUMHOOKS; h++)
 			table->replace.hook_entry[h] = 0;
 		if (memcmp(&table->replace, &replace, sizeof(table->replace)) == 0) {
+			char entrytable[XT_TABLE_SIZE];
 			memset(&entrytable, 0, sizeof(entrytable));
 			replace.entries = entrytable;
 			optlen = sizeof(replace) + replace.entries_size;
@@ -7375,7 +7314,7 @@ static void reset_ebtables()
 				continue;
 		}
 		debug("ebtable %s: resetting\n", table->name);
-		for (j = 0, h = 0; h < NF_BR_NUMHOOKS; h++) {
+		for (unsigned j = 0, h = 0; h < NF_BR_NUMHOOKS; h++) {
 			if (table->replace.valid_hooks & (1 << h)) {
 				table->replace.hook_entry[h] = (struct ebt_entries*)table->entrytable + j;
 				j++;
@@ -7851,8 +7790,6 @@ static int namespace_sandbox_proc(void* arg)
 #define SYZ_HAVE_SANDBOX_NAMESPACE 1
 static int do_sandbox_namespace(void)
 {
-	int pid;
-
 	setup_common();
 #if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
 	initialize_vhci();
@@ -7860,8 +7797,8 @@ static int do_sandbox_namespace(void)
 	real_uid = getuid();
 	real_gid = getgid();
 	mprotect(sandbox_stack, 4096, PROT_NONE);
-	pid = clone(namespace_sandbox_proc, &sandbox_stack[sizeof(sandbox_stack) - 64],
-		    CLONE_NEWUSER | CLONE_NEWPID, 0);
+	int pid = clone(namespace_sandbox_proc, &sandbox_stack[sizeof(sandbox_stack) - 64],
+			CLONE_NEWUSER | CLONE_NEWPID, 0);
 	return wait_for_loop(pid);
 }
 #endif
@@ -8539,9 +8476,8 @@ static int do_sandbox_android(void)
 #define FS_IOC_SETFLAGS _IOW('f', 2, long)
 static void remove_dir(const char* dir)
 {
-	DIR* dp;
-	struct dirent* ep;
 	int iter = 0;
+	DIR* dp = 0;
 retry:
 #if not SYZ_SANDBOX_ANDROID
 	if (!flag_sandbox_android) {
@@ -8557,6 +8493,7 @@ retry:
 		}
 		exitf("opendir(%s) failed", dir);
 	}
+	struct dirent* ep = 0;
 	while ((ep = readdir(dp))) {
 		if (strcmp(ep->d_name, ".") == 0 || strcmp(ep->d_name, "..") == 0)
 			continue;
@@ -8607,8 +8544,7 @@ retry:
 		}
 	}
 	closedir(dp);
-	int i;
-	for (i = 0;; i++) {
+	for (int i = 0;; i++) {
 		if (rmdir(dir) == 0)
 			break;
 		if (i < 100) {
@@ -8699,8 +8635,7 @@ static void kill_and_wait(int pid, int* status)
 {
 	kill(-pid, SIGKILL);
 	kill(pid, SIGKILL);
-	int i;
-	for (i = 0; i < 100; i++) {
+	for (int i = 0; i < 100; i++) {
 		if (waitpid(-1, status, WNOHANG | __WALL) == pid)
 			return;
 		usleep(1000);
@@ -8800,8 +8735,7 @@ static void close_fds()
 	if (!flag_close_fds)
 		return;
 #endif
-	int fd;
-	for (fd = 3; fd < MAX_FDS; fd++)
+	for (int fd = 3; fd < MAX_FDS; fd++)
 		close(fd);
 }
 #endif
@@ -9311,11 +9245,11 @@ static void loop(void)
 	if (pipe(child_pipe))
 		fail("pipe failed");
 #endif
-	int iter;
+	int iter = 0;
 #if SYZ_REPEAT_TIMES
-	for (iter = 0; iter < /*{{{REPEAT_TIMES}}}*/; iter++) {
+	for (; iter < /*{{{REPEAT_TIMES}}}*/; iter++) {
 #else
-	for (iter = 0;; iter++) {
+	for (;; iter++) {
 #endif
 #if SYZ_EXECUTOR || SYZ_USE_TMP_DIR
 		char cwdbuf[32];

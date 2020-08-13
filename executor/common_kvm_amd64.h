@@ -178,8 +178,7 @@ static void setup_32bit_idt(struct kvm_sregs* sregs, char* host_mem, uintptr_t g
 	sregs->idt.base = guest_mem + ADDR_VAR_IDT;
 	sregs->idt.limit = 0x1ff;
 	uint64* idt = (uint64*)(host_mem + sregs->idt.base);
-	int i;
-	for (i = 0; i < 32; i++) {
+	for (int i = 0; i < 32; i++) {
 		struct kvm_segment gate;
 		gate.selector = i << 3;
 		switch (i % 6) {
@@ -231,8 +230,7 @@ static void setup_64bit_idt(struct kvm_sregs* sregs, char* host_mem, uintptr_t g
 	sregs->idt.base = guest_mem + ADDR_VAR_IDT;
 	sregs->idt.limit = 0x1ff;
 	uint64* idt = (uint64*)(host_mem + sregs->idt.base);
-	int i;
-	for (i = 0; i < 32; i++) {
+	for (int i = 0; i < 32; i++) {
 		struct kvm_segment gate;
 		gate.selector = (i * 2) << 3;
 		gate.type = (i & 1) ? 14 : 15; // interrupt or trap gate
@@ -290,8 +288,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 	const void* text = text_array_ptr[0].text;
 	uintptr_t text_size = text_array_ptr[0].size;
 
-	uintptr_t i;
-	for (i = 0; i < guest_mem_size / page_size; i++) {
+	for (uintptr_t i = 0; i < guest_mem_size / page_size; i++) {
 		struct kvm_userspace_memory_region memreg;
 		memreg.slot = i;
 		memreg.flags = 0; // can be KVM_MEM_LOG_DIRTY_PAGES | KVM_MEM_READONLY
@@ -715,7 +712,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 
 	if (opt_count > 2)
 		opt_count = 2;
-	for (i = 0; i < opt_count; i++) {
+	for (uintptr_t i = 0; i < opt_count; i++) {
 		uint64 typ = opt_array_ptr[i].typ;
 		uint64 val = opt_array_ptr[i].val;
 		switch (typ % 9) {

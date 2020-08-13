@@ -206,11 +206,10 @@ static void use_temporary_dir(void)
 
 static void remove_dir(const char* dir)
 {
-	DIR* dp;
-	struct dirent* ep;
-	dp = opendir(dir);
+	DIR* dp = opendir(dir);
 	if (dp == NULL)
 		exitf("opendir(%s) failed", dir);
+	struct dirent* ep = 0;
 	while ((ep = readdir(dp))) {
 		if (strcmp(ep->d_name, ".") == 0 || strcmp(ep->d_name, "..") == 0)
 			continue;
@@ -260,11 +259,11 @@ static void thread_start(void* (*fn)(void*), void* arg)
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 	pthread_attr_setstacksize(&attr, 128 << 10);
-	int i;
 	// Clone can fail spuriously with EAGAIN if there is a concurrent execve in progress.
 	// (see linux kernel commit 498052bba55ec). But it can also be a true limit imposed by cgroups.
 	// In one case we want to retry infinitely, in another -- fail immidiately...
-	for (i = 0; i < 100; i++) {
+	int i = 0;
+	for (; i < 100; i++) {
 		if (pthread_create(&th, &attr, fn, arg) == 0) {
 			pthread_attr_destroy(&attr);
 			return;
@@ -379,8 +378,8 @@ static void csum_inet_update(struct csum_inet* csum, const uint8* data, size_t l
 	if (length == 0)
 		return;
 
-	size_t i;
-	for (i = 0; i < length - 1; i += 2)
+	size_t i = 0;
+	for (; i < length - 1; i += 2)
 		csum->acc += *(uint16*)&data[i];
 
 	if (length & 1)
@@ -545,11 +544,11 @@ static void loop(void)
 	if (pipe(child_pipe))
 		fail("pipe failed");
 #endif
-	int iter;
+	int iter = 0;
 #if SYZ_REPEAT_TIMES
-	for (iter = 0; iter < /*{{{REPEAT_TIMES}}}*/; iter++) {
+	for (; iter < /*{{{REPEAT_TIMES}}}*/; iter++) {
 #else
-	for (iter = 0;; iter++) {
+	for (;; iter++) {
 #endif
 #if SYZ_EXECUTOR || SYZ_USE_TMP_DIR
 		// Create a new private work dir for this test (removed at the end of the loop).
