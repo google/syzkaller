@@ -19,6 +19,7 @@ func InitTarget(target *prog.Target) {
 		DIOCCLRSTATES:    target.GetConst("DIOCCLRSTATES"),
 		DIOCKILLSTATES:   target.GetConst("DIOCKILLSTATES"),
 		KERN_MAXCLUSTERS: target.GetConst("KERN_MAXCLUSTERS"),
+		KERN_MAXTHREAD:   target.GetConst("KERN_MAXTHREAD"),
 		S_IFCHR:          target.GetConst("S_IFCHR"),
 		S_IFMT:           target.GetConst("S_IFMT"),
 		MCL_FUTURE:       target.GetConst("MCL_FUTURE"),
@@ -38,6 +39,7 @@ type arch struct {
 	DIOCCLRSTATES    uint64
 	DIOCKILLSTATES   uint64
 	KERN_MAXCLUSTERS uint64
+	KERN_MAXTHREAD   uint64
 	S_IFCHR          uint64
 	S_IFMT           uint64
 	MCL_FUTURE       uint64
@@ -206,19 +208,46 @@ func (arch *arch) neutralizeSysctl(c *prog.Call) {
 		return
 	}
 
-	mib := ptr.Res.(*prog.GroupArg).Inner
-	if len(mib) < 2 {
+	var mib []*prog.ConstArg
+	for _, arg := range ptr.Res.(*prog.GroupArg).Inner {
+		switch v := arg.(type) {
+		case *prog.ConstArg:
+			mib = append(mib, v)
+		}
+	}
+
+	if !arch.neutralizeSysctlKern(mib) {
 		return
 	}
 
-	n1 := mib[0].(*prog.ConstArg)
-	n2 := mib[1].(*prog.ConstArg)
+	for _, m := range mib {
+		m.Val = 0
+	}
+	// Reflect changes in the namelen argument.
+	if len(c.Args) >= 1 {
+		switch v := c.Args[1].(type) {
+		case *prog.ConstArg:
+			v.Val = 0
+		}
+	}
+}
+
+func (arch *arch) neutralizeSysctlKern(mib []*prog.ConstArg) bool {
 	// Do not fiddle with root only knob kern.maxclusters, one of the causes
 	// of "no output from test machine" reports.
-	if n1.Val == arch.CTL_KERN && n2.Val == arch.KERN_MAXCLUSTERS {
-		n1.Val = 0
-		n2.Val = 0
+	if len(mib) >= 2 &&
+		mib[0].Val == arch.CTL_KERN && mib[1].Val == arch.KERN_MAXCLUSTERS {
+		return true
 	}
+
+	// Do not fiddle with root only knob kern.maxthread, can cause the
+	// syz-execprog process to panic.
+	if len(mib) >= 2 &&
+		mib[0].Val == arch.CTL_KERN && mib[1].Val == arch.KERN_MAXTHREAD {
+		return true
+	}
+
+	return false
 }
 
 func (arch *arch) annotateCall(c prog.ExecCall) string {
