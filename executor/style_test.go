@@ -73,13 +73,13 @@ if (foo)
 			supp := regexp.MustCompile(check.suppression)
 			for _, match := range re.FindAllIndex(data, -1) {
 				start, end := match[0], match[1]
-				for start != 0 && data[start-1] != '\n' {
+				for check.pattern[0] != '\n' && start != 0 && data[start-1] != '\n' {
 					start--
 				}
-				for end != len(data) && data[end] != '\n' {
+				for check.pattern[len(check.pattern)-1] != '\n' && end != len(data) && data[end] != '\n' {
 					end++
 				}
-				if supp.Match(data[start:end]) {
+				if check.suppression != "" && supp.Match(data[start:end]) {
 					continue
 				}
 				line := bytes.Count(data[:start], []byte{'\n'}) + 1
