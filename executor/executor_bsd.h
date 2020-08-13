@@ -192,6 +192,5 @@ static feature_t features[] = {
 
 static void setup_machine(void)
 {
-	/* nothing */
 }
 #endif

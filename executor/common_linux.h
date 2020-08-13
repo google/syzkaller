@@ -3482,7 +3482,7 @@ static int do_sandbox_setuid(void)
 	if (syscall(SYS_setresuid, nobody, nobody, nobody))
 		fail("failed to setresuid");
 
-	// This is required to open /proc/self/* files.
+	// This is required to open /proc/self/ files.
 	// Otherwise they are owned by root and we can't open them after setuid.
 	// See task_dump_owner function in kernel.
 	prctl(PR_SET_DUMPABLE, 1, 0, 0, 0);
