@@ -67,26 +67,26 @@ static void os_init(int argc, char** argv, char* data, size_t data_size)
 {
 	struct statfs sbuf;
 	// Unshare mount namespace.
-	if (unshare(CLONE_NEWNS))
+	if (unshare(CLONE_NEWNS) && errno != EPERM)
 		fail("unshare mount namespace failed");
 	// Undo mount("/", MS_REC|MS_SHARED) made by systemd.
-	if (mount(NULL, "/", NULL, MS_REC | MS_PRIVATE, NULL))
+	if (mount(NULL, "/", NULL, MS_REC | MS_PRIVATE, NULL) && errno != EPERM)
 		fail("mount --make-rprivate / failed");
 	// Mount proc as needed.
 	if (statfs("/proc/", &sbuf) || sbuf.f_type != PROC_SUPER_MAGIC) {
 		mkdir("/proc/", 0755);
-		if (mount("/proc/", "/proc/", "proc", 0, NULL))
+		if (mount("/proc/", "/proc/", "proc", 0, NULL) && errno != EPERM)
 			fail("mount -t proc /proc/ /proc/ failed");
 	}
 	// Mount sysfs as needed.
 	if (statfs("/sys/", &sbuf) || sbuf.f_type != SYSFS_MAGIC) {
 		mkdir("/sys/", 0755);
-		if (mount("/sys/", "/sys/", "sysfs", 0, NULL))
+		if (mount("/sys/", "/sys/", "sysfs", 0, NULL) && errno != EPERM)
 			fail("mount -t sysfs /sys/ /sys/ failed");
 	}
 	// Mount debugfs as needed.
 	if (statfs("/sys/kernel/debug/", &sbuf) || sbuf.f_type != DEBUGFS_MAGIC) {
-		if (mount("/sys/kernel/debug/", "/sys/kernel/debug/", "debugfs", 0, NULL))
+		if (mount("/sys/kernel/debug/", "/sys/kernel/debug/", "debugfs", 0, NULL) && errno != EPERM)
 			fail("mount -t debugfs /sys/kernel/debug/ /sys/kernel/debug/ failed");
 	}
 
