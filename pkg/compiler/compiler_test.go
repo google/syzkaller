@@ -44,7 +44,7 @@ func TestCompileAll(t *testing.T) {
 					defer func() {
 						t.Logf("\n%s", errors.Bytes())
 					}()
-					consts := DeserializeConstsGlob(filepath.Join(path, "*_"+arch+".const"), eh)
+					consts := DeserializeConstFile(filepath.Join(path, "*.const"), eh).Arch(arch)
 					if consts == nil {
 						t.Fatalf("reading consts failed")
 					}

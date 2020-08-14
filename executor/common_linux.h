@@ -184,10 +184,10 @@ static int netlink_send_ext(struct nlmsg* nlmsg, int sock,
 	if (n != hdr->nlmsg_len)
 		fail("short netlink write: %d/%d", n, hdr->nlmsg_len);
 	n = recv(sock, nlmsg->buf, sizeof(nlmsg->buf), 0);
-	if (hdr->nlmsg_type == NLMSG_DONE) {
+	if (reply_len)
 		*reply_len = 0;
+	if (hdr->nlmsg_type == NLMSG_DONE)
 		return 0;
-	}
 	if (n < sizeof(struct nlmsghdr))
 		fail("short netlink read: %d", n);
 	if (reply_len && hdr->nlmsg_type == reply_type) {
@@ -582,20 +582,18 @@ const int kInitNetNsFd = 239; // see kMaxFd
 static int netlink_devlink_id_get(struct nlmsg* nlmsg, int sock)
 {
 	struct genlmsghdr genlhdr;
-	struct nlattr* attr;
-	int err, n;
-	uint16 id = 0;
-
 	memset(&genlhdr, 0, sizeof(genlhdr));
 	genlhdr.cmd = CTRL_CMD_GETFAMILY;
 	netlink_init(nlmsg, GENL_ID_CTRL, 0, &genlhdr, sizeof(genlhdr));
 	netlink_attr(nlmsg, CTRL_ATTR_FAMILY_NAME, DEVLINK_FAMILY_NAME, strlen(DEVLINK_FAMILY_NAME) + 1);
-	err = netlink_send_ext(nlmsg, sock, GENL_ID_CTRL, &n);
+	int n = 0;
+	int err = netlink_send_ext(nlmsg, sock, GENL_ID_CTRL, &n);
 	if (err) {
 		debug("netlink: failed to get devlink family id: %s\n", strerror(err));
 		return -1;
 	}
-	attr = (struct nlattr*)(nlmsg->buf + NLMSG_HDRLEN + NLMSG_ALIGN(sizeof(genlhdr)));
+	uint16 id = 0;
+	struct nlattr* attr = (struct nlattr*)(nlmsg->buf + NLMSG_HDRLEN + NLMSG_ALIGN(sizeof(genlhdr)));
 	for (; (char*)attr < nlmsg->buf + n; attr = (struct nlattr*)((char*)attr + NLMSG_ALIGN(attr->nla_len))) {
 		if (attr->nla_type == CTRL_ATTR_FAMILY_ID) {
 			id = *(uint16*)(attr + 1);
@@ -606,7 +604,7 @@ static int netlink_devlink_id_get(struct nlmsg* nlmsg, int sock)
 		debug("netlink: failed to parse message for devlink family id\n");
 		return -1;
 	}
-	recv(sock, nlmsg->buf, sizeof(nlmsg->buf), 0); /* recv ack */
+	recv(sock, nlmsg->buf, sizeof(nlmsg->buf), 0); // recv ack
 
 	return id;
 }
@@ -796,20 +794,18 @@ enum wgallowedip_attribute {
 static int netlink_wireguard_id_get(struct nlmsg* nlmsg, int sock)
 {
 	struct genlmsghdr genlhdr;
-	struct nlattr* attr;
-	int err, n;
-	uint16 id = 0;
-
 	memset(&genlhdr, 0, sizeof(genlhdr));
 	genlhdr.cmd = CTRL_CMD_GETFAMILY;
 	netlink_init(nlmsg, GENL_ID_CTRL, 0, &genlhdr, sizeof(genlhdr));
 	netlink_attr(nlmsg, CTRL_ATTR_FAMILY_NAME, WG_GENL_NAME, strlen(WG_GENL_NAME) + 1);
-	err = netlink_send_ext(nlmsg, sock, GENL_ID_CTRL, &n);
+	int n = 0;
+	int err = netlink_send_ext(nlmsg, sock, GENL_ID_CTRL, &n);
 	if (err) {
 		debug("netlink: failed to get wireguard family id: %s\n", strerror(err));
 		return -1;
 	}
-	attr = (struct nlattr*)(nlmsg->buf + NLMSG_HDRLEN + NLMSG_ALIGN(sizeof(genlhdr)));
+	uint16 id = 0;
+	struct nlattr* attr = (struct nlattr*)(nlmsg->buf + NLMSG_HDRLEN + NLMSG_ALIGN(sizeof(genlhdr)));
 	for (; (char*)attr < nlmsg->buf + n; attr = (struct nlattr*)((char*)attr + NLMSG_ALIGN(attr->nla_len))) {
 		if (attr->nla_type == CTRL_ATTR_FAMILY_ID) {
 			id = *(uint16*)(attr + 1);
@@ -820,7 +816,7 @@ static int netlink_wireguard_id_get(struct nlmsg* nlmsg, int sock)
 		debug("netlink: failed to parse message for wireguard family id\n");
 		return -1;
 	}
-	recv(sock, nlmsg->buf, sizeof(nlmsg->buf), 0); /* recv ack */
+	recv(sock, nlmsg->buf, sizeof(nlmsg->buf), 0); // recv ack
 
 	return id;
 }
@@ -841,11 +837,11 @@ static void netlink_wireguard_setup(void)
 	const uint16 listen_c = 20003;
 	const uint16 af_inet = AF_INET;
 	const uint16 af_inet6 = AF_INET6;
-	/* Unused, but useful in case we change this:
-	const struct sockaddr_in endpoint_a_v4 = {
-	    .sin_family = AF_INET,
-	    .sin_port = htons(listen_a),
-	    .sin_addr = {htonl(INADDR_LOOPBACK)}};*/
+	// Unused, but useful in case we change this:
+	// const struct sockaddr_in endpoint_a_v4 = {
+	//     .sin_family = AF_INET,
+	//     .sin_port = htons(listen_a),
+	//     .sin_addr = {htonl(INADDR_LOOPBACK)}};
 	const struct sockaddr_in endpoint_b_v4 = {
 	    .sin_family = AF_INET,
 	    .sin_port = htons(listen_b),
@@ -858,11 +854,11 @@ static void netlink_wireguard_setup(void)
 	    .sin6_family = AF_INET6,
 	    .sin6_port = htons(listen_a)};
 	endpoint_a_v6.sin6_addr = in6addr_loopback;
-	/* Unused, but useful in case we change this:
-	const struct sockaddr_in6 endpoint_b_v6 = {
-	    .sin6_family = AF_INET6,
-	    .sin6_port = htons(listen_b)};
-	endpoint_b_v6.sin6_addr = in6addr_loopback; */
+	// Unused, but useful in case we change this:
+	// const struct sockaddr_in6 endpoint_b_v6 = {
+	//     .sin6_family = AF_INET6,
+	//     .sin6_port = htons(listen_b)};
+	// endpoint_b_v6.sin6_addr = in6addr_loopback;
 	struct sockaddr_in6 endpoint_c_v6 = {
 	    .sin6_family = AF_INET6,
 	    .sin6_port = htons(listen_c)};
@@ -1355,7 +1351,7 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_io_uring_submit || __NR_syz_io_uring_complete
+#if SYZ_EXECUTOR || __NR_syz_io_uring_submit || __NR_syz_io_uring_complete || __NR_syz_io_uring_setup
 
 #define SIZEOF_IO_URING_SQE 64
 #define SIZEOF_IO_URING_CQE 16
@@ -1381,12 +1377,6 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 #define CQ_RING_OVERFLOW_OFFSET 284
 #define CQ_FLAGS_OFFSET 280
 #define CQ_CQES_OFFSET 320
-#define SQ_ARRAY_OFFSET(sq_entries, cq_entries) (round_up(CQ_CQES_OFFSET + cq_entries * SIZEOF_IO_URING_CQE, 64))
-
-uint32 round_up(uint32 x, uint32 a)
-{
-	return (x + a - 1) & ~(a - 1);
-}
 
 #if SYZ_EXECUTOR || __NR_syz_io_uring_complete
 
@@ -1435,6 +1425,90 @@ static long syz_io_uring_complete(volatile long a0)
 
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_io_uring_setup
+
+struct io_sqring_offsets {
+	uint32 head;
+	uint32 tail;
+	uint32 ring_mask;
+	uint32 ring_entries;
+	uint32 flags;
+	uint32 dropped;
+	uint32 array;
+	uint32 resv1;
+	uint64 resv2;
+};
+
+struct io_cqring_offsets {
+	uint32 head;
+	uint32 tail;
+	uint32 ring_mask;
+	uint32 ring_entries;
+	uint32 overflow;
+	uint32 cqes;
+	uint64 resv[2];
+};
+
+struct io_uring_params {
+	uint32 sq_entries;
+	uint32 cq_entries;
+	uint32 flags;
+	uint32 sq_thread_cpu;
+	uint32 sq_thread_idle;
+	uint32 features;
+	uint32 resv[4];
+	struct io_sqring_offsets sq_off;
+	struct io_cqring_offsets cq_off;
+};
+
+#define IORING_OFF_SQ_RING 0
+#define IORING_OFF_SQES 0x10000000ULL
+
+#include <sys/mman.h>
+#include <unistd.h>
+
+#ifndef __NR_io_uring_setup
+#ifdef __alpha__
+#define __NR_io_uring_setup 535
+#else // !__alpha__
+#define __NR_io_uring_setup 425
+#endif
+#endif // __NR_io_uring_setup
+
+// Wrapper for io_uring_setup and the subsequent mmap calls that map the ring and the sqes
+static long syz_io_uring_setup(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5)
+{
+	// syzlang: syz_io_uring_setup(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params], addr_ring vma, addr_sqes vma, ring_ptr ptr[out, ring_ptr], sqes_ptr ptr[out, sqes_ptr]) fd_io_uring
+	// C:       syz_io_uring_setup(uint32 entries, struct io_uring_params* params, void* mmap_addr_ring, void* mmap_addr_sqes, void** ring_ptr_out, void** sqes_ptr_out) // returns uint32 fd_io_uring
+
+	// Cast to original
+	uint32 entries = (uint32)a0;
+	struct io_uring_params* setup_params = (struct io_uring_params*)a1;
+	void* vma1 = (void*)a2;
+	void* vma2 = (void*)a3;
+	void** ring_ptr_out = (void**)a4;
+	void** sqes_ptr_out = (void**)a5;
+
+	uint32 fd_io_uring = syscall(__NR_io_uring_setup, entries, setup_params);
+
+	// Compute the ring sizes
+	uint32 sq_ring_sz = setup_params->sq_off.array + setup_params->sq_entries * sizeof(uint32);
+	uint32 cq_ring_sz = setup_params->cq_off.cqes + setup_params->cq_entries * SIZEOF_IO_URING_CQE;
+
+	// Asssumed IORING_FEAT_SINGLE_MMAP, which is always the case with the current implementation
+	// The implication is that the sq_ring_ptr and the cq_ring_ptr are the same but the
+	// difference is in the offsets to access the fields of these rings.
+	uint32 ring_sz = sq_ring_sz > cq_ring_sz ? sq_ring_sz : cq_ring_sz;
+	*ring_ptr_out = mmap(vma1, ring_sz, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE | MAP_FIXED, fd_io_uring, IORING_OFF_SQ_RING);
+
+	uint32 sqes_sz = setup_params->sq_entries * SIZEOF_IO_URING_SQE;
+	*sqes_ptr_out = mmap(vma2, sqes_sz, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE | MAP_FIXED, fd_io_uring, IORING_OFF_SQES);
+
+	return fd_io_uring;
+}
+
+#endif
+
 #if SYZ_EXECUTOR || __NR_syz_io_uring_submit
 
 static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
@@ -1454,7 +1528,7 @@ static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile lon
 	uint32 cq_ring_entries = *(uint32*)(ring_ptr + CQ_RING_ENTRIES_OFFSET);
 
 	// Compute the sq_array offset
-	uint32 sq_array_off = SQ_ARRAY_OFFSET(sq_ring_entries, cq_ring_entries);
+	uint32 sq_array_off = (CQ_CQES_OFFSET + cq_ring_entries * SIZEOF_IO_URING_CQE + 63) & ~63;
 
 	// Get the ptr to the destination for the sqe
 	if (sq_ring_entries)
@@ -1484,6 +1558,194 @@ static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile lon
 #endif
 
 #endif
+
+#if SYZ_EXECUTOR || __NR_syz_btf_id_by_name
+
+#include <errno.h>
+#include <fcntl.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+// Some items in linux/btf.h are relatively new, so we copy them here for
+// backward compatibility.
+#define BTF_MAGIC 0xeB9F
+
+struct btf_header {
+	__u16 magic;
+	__u8 version;
+	__u8 flags;
+	__u32 hdr_len;
+	__u32 type_off;
+	__u32 type_len;
+	__u32 str_off;
+	__u32 str_len;
+};
+
+#define BTF_INFO_KIND(info) (((info) >> 24) & 0x0f)
+#define BTF_INFO_VLEN(info) ((info)&0xffff)
+
+#define BTF_KIND_INT 1
+#define BTF_KIND_ARRAY 3
+#define BTF_KIND_STRUCT 4
+#define BTF_KIND_UNION 5
+#define BTF_KIND_ENUM 6
+#define BTF_KIND_FUNC_PROTO 13
+#define BTF_KIND_VAR 14
+#define BTF_KIND_DATASEC 15
+
+struct btf_type {
+	__u32 name_off;
+	__u32 info;
+	union {
+		__u32 size;
+		__u32 type;
+	};
+};
+
+struct btf_enum {
+	__u32 name_off;
+	__s32 val;
+};
+
+struct btf_array {
+	__u32 type;
+	__u32 index_type;
+	__u32 nelems;
+};
+
+struct btf_member {
+	__u32 name_off;
+	__u32 type;
+	__u32 offset;
+};
+
+struct btf_param {
+	__u32 name_off;
+	__u32 type;
+};
+
+struct btf_var {
+	__u32 linkage;
+};
+
+struct btf_var_secinfo {
+	__u32 type;
+	__u32 offset;
+	__u32 size;
+};
+
+// Set the limit on the maximum size of btf/vmlinux to be 10 MiB.
+#define VMLINUX_MAX_SUPPORT_SIZE (10 * 1024 * 1024)
+
+// Read out all the content of /sys/kernel/btf/vmlinux to the fixed address
+// buffer and return it. Return NULL if failed.
+static char* read_btf_vmlinux()
+{
+	static bool is_read = false;
+	static char buf[VMLINUX_MAX_SUPPORT_SIZE];
+
+	// There could be a race condition here, but it should not be harmful.
+	if (is_read)
+		return buf;
+
+	int fd = open("/sys/kernel/btf/vmlinux", O_RDONLY);
+	if (fd < 0)
+		return NULL;
+
+	unsigned long bytes_read = 0;
+	for (;;) {
+		ssize_t ret = read(fd, buf + bytes_read,
+				   VMLINUX_MAX_SUPPORT_SIZE - bytes_read);
+
+		if (ret < 0 || bytes_read + ret == VMLINUX_MAX_SUPPORT_SIZE)
+			return NULL;
+
+		if (ret == 0)
+			break;
+
+		bytes_read += ret;
+	}
+
+	is_read = true;
+	return buf;
+}
+
+// Given a pointer to a C-string as the only argument a0, return the
+// corresponding btf ID for this name. Return -1 if there is an error when
+// opening the vmlinux file or the name is not found in vmlinux.
+static long syz_btf_id_by_name(volatile long a0)
+{
+	// syzlang: syz_btf_id_by_name(name ptr[in, string]) btf_id
+	// C:		syz_btf_id_by_name(char* name)
+	char* target = (char*)a0;
+
+	char* vmlinux = read_btf_vmlinux();
+	if (vmlinux == NULL)
+		return -1;
+
+	struct btf_header* btf_header = (struct btf_header*)vmlinux;
+	if (btf_header->magic != BTF_MAGIC)
+		return -1;
+	// These offsets are bytes relative to the end of the header.
+	char* btf_type_sec = vmlinux + btf_header->hdr_len + btf_header->type_off;
+	char* btf_str_sec = vmlinux + btf_header->hdr_len + btf_header->str_off;
+	// Scan through the btf type section, and find a type description that
+	// matches the provided name.
+	unsigned int bytes_parsed = 0;
+	// BTF index starts at 1.
+	long idx = 1;
+	while (bytes_parsed < btf_header->type_len) {
+		struct btf_type* btf_type = (struct btf_type*)(btf_type_sec + bytes_parsed);
+		uint32 kind = BTF_INFO_KIND(btf_type->info);
+		uint32 vlen = BTF_INFO_VLEN(btf_type->info);
+		char* name = btf_str_sec + btf_type->name_off;
+
+		if (strcmp(name, target) == 0)
+			return idx;
+
+		// From /include/uapi/linux/btf.h, some kinds of types are
+		// followed by extra data.
+		size_t skip;
+		switch (kind) {
+		case BTF_KIND_INT:
+			skip = sizeof(uint32);
+			break;
+		case BTF_KIND_ENUM:
+			skip = sizeof(struct btf_enum) * vlen;
+			break;
+		case BTF_KIND_ARRAY:
+			skip = sizeof(struct btf_array);
+			break;
+		case BTF_KIND_STRUCT:
+		case BTF_KIND_UNION:
+			skip = sizeof(struct btf_member) * vlen;
+			break;
+		case BTF_KIND_FUNC_PROTO:
+			skip = sizeof(struct btf_param) * vlen;
+			break;
+		case BTF_KIND_VAR:
+			skip = sizeof(struct btf_var);
+			break;
+		case BTF_KIND_DATASEC:
+			skip = sizeof(struct btf_var_secinfo) * vlen;
+			break;
+		default:
+			skip = 0;
+		}
+
+		bytes_parsed += sizeof(struct btf_type) + skip;
+		idx++;
+	}
+
+	return -1;
+}
+
+#endif // SYZ_EXECUTOR || __NR_syz_btf_id_by_name
 
 // Same as memcpy except that it accepts offset to dest and src.
 #if SYZ_EXECUTOR || __NR_syz_memcpy_off
@@ -1554,12 +1816,11 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 	size_t length = rv;
 	debug_dump_data(data, length);
 
-	struct tcphdr* tcphdr;
-
 	if (length < sizeof(struct ethhdr))
 		return (uintptr_t)-1;
 	struct ethhdr* ethhdr = (struct ethhdr*)&data[0];
 
+	struct tcphdr* tcphdr = 0;
 	if (ethhdr->h_proto == htons(ETH_P_IP)) {
 		if (length < sizeof(struct ethhdr) + sizeof(struct iphdr))
 			return (uintptr_t)-1;
@@ -1717,6 +1978,327 @@ static long syz_init_net_socket(volatile long domain, volatile long type, volati
 #endif
 #endif
 
+#if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
+#include <errno.h>
+#include <fcntl.h>
+#include <pthread.h>
+#include <sys/epoll.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/uio.h>
+
+#define BTPROTO_HCI 1
+#define ACL_LINK 1
+#define SCAN_PAGE 2
+
+typedef struct {
+	uint8 b[6];
+} __attribute__((packed)) bdaddr_t;
+
+#define HCI_COMMAND_PKT 1
+#define HCI_EVENT_PKT 4
+#define HCI_VENDOR_PKT 0xff
+
+struct hci_command_hdr {
+	uint16 opcode;
+	uint8 plen;
+} __attribute__((packed));
+
+struct hci_event_hdr {
+	uint8 evt;
+	uint8 plen;
+} __attribute__((packed));
+
+#define HCI_EV_CONN_COMPLETE 0x03
+struct hci_ev_conn_complete {
+	uint8 status;
+	uint16 handle;
+	bdaddr_t bdaddr;
+	uint8 link_type;
+	uint8 encr_mode;
+} __attribute__((packed));
+
+#define HCI_EV_CONN_REQUEST 0x04
+struct hci_ev_conn_request {
+	bdaddr_t bdaddr;
+	uint8 dev_class[3];
+	uint8 link_type;
+} __attribute__((packed));
+
+#define HCI_EV_REMOTE_FEATURES 0x0b
+struct hci_ev_remote_features {
+	uint8 status;
+	uint16 handle;
+	uint8 features[8];
+} __attribute__((packed));
+
+#define HCI_EV_CMD_COMPLETE 0x0e
+struct hci_ev_cmd_complete {
+	uint8 ncmd;
+	uint16 opcode;
+} __attribute__((packed));
+
+#define HCI_OP_WRITE_SCAN_ENABLE 0x0c1a
+
+#define HCI_OP_READ_BUFFER_SIZE 0x1005
+struct hci_rp_read_buffer_size {
+	uint8 status;
+	uint16 acl_mtu;
+	uint8 sco_mtu;
+	uint16 acl_max_pkt;
+	uint16 sco_max_pkt;
+} __attribute__((packed));
+
+#define HCI_OP_READ_BD_ADDR 0x1009
+struct hci_rp_read_bd_addr {
+	uint8 status;
+	bdaddr_t bdaddr;
+} __attribute__((packed));
+
+#define HCI_EV_LE_META 0x3e
+struct hci_ev_le_meta {
+	uint8 subevent;
+} __attribute__((packed));
+
+#define HCI_EV_LE_CONN_COMPLETE 0x01
+struct hci_ev_le_conn_complete {
+	uint8 status;
+	uint16 handle;
+	uint8 role;
+	uint8 bdaddr_type;
+	bdaddr_t bdaddr;
+	uint16 interval;
+	uint16 latency;
+	uint16 supervision_timeout;
+	uint8 clk_accurancy;
+} __attribute__((packed));
+
+struct hci_dev_req {
+	uint16 dev_id;
+	uint32 dev_opt;
+};
+
+struct vhci_vendor_pkt {
+	uint8 type;
+	uint8 opcode;
+	uint16 id;
+};
+
+#define HCIDEVUP _IOW('H', 201, int)
+#define HCISETSCAN _IOW('H', 221, int)
+
+static int vhci_fd = -1;
+
+static void hci_send_event_packet(int fd, uint8 evt, void* data, size_t data_len)
+{
+	struct iovec iv[3];
+
+	struct hci_event_hdr hdr;
+	hdr.evt = evt;
+	hdr.plen = data_len;
+
+	uint8 type = HCI_EVENT_PKT;
+
+	iv[0].iov_base = &type;
+	iv[0].iov_len = sizeof(type);
+	iv[1].iov_base = &hdr;
+	iv[1].iov_len = sizeof(hdr);
+	iv[2].iov_base = data;
+	iv[2].iov_len = data_len;
+
+	if (writev(fd, iv, sizeof(iv) / sizeof(struct iovec)) < 0)
+		fail("writev failed");
+}
+
+static void hci_send_event_cmd_complete(int fd, uint16 opcode, void* data, size_t data_len)
+{
+	struct iovec iv[4];
+
+	struct hci_event_hdr hdr;
+	hdr.evt = HCI_EV_CMD_COMPLETE;
+	hdr.plen = sizeof(struct hci_ev_cmd_complete) + data_len;
+
+	struct hci_ev_cmd_complete evt_hdr;
+	evt_hdr.ncmd = 1;
+	evt_hdr.opcode = opcode;
+
+	uint8 type = HCI_EVENT_PKT;
+
+	iv[0].iov_base = &type;
+	iv[0].iov_len = sizeof(type);
+	iv[1].iov_base = &hdr;
+	iv[1].iov_len = sizeof(hdr);
+	iv[2].iov_base = &evt_hdr;
+	iv[2].iov_len = sizeof(evt_hdr);
+	iv[3].iov_base = data;
+	iv[3].iov_len = data_len;
+
+	if (writev(fd, iv, sizeof(iv) / sizeof(struct iovec)) < 0)
+		fail("writev failed");
+}
+
+static bool process_command_pkt(int fd, char* buf, ssize_t buf_size)
+{
+	struct hci_command_hdr* hdr = (struct hci_command_hdr*)buf;
+	if (buf_size < (ssize_t)sizeof(struct hci_command_hdr) ||
+	    hdr->plen != buf_size - sizeof(struct hci_command_hdr)) {
+		fail("invalid size: %zx\n", buf_size);
+	}
+
+	switch (hdr->opcode) {
+	case HCI_OP_WRITE_SCAN_ENABLE: {
+		uint8 status = 0;
+		hci_send_event_cmd_complete(fd, hdr->opcode, &status, sizeof(status));
+		return true;
+	}
+	case HCI_OP_READ_BD_ADDR: {
+		struct hci_rp_read_bd_addr rp = {0};
+		rp.status = 0;
+		memset(&rp.bdaddr, 0xaa, 6);
+		hci_send_event_cmd_complete(fd, hdr->opcode, &rp, sizeof(rp));
+		return false;
+	}
+	case HCI_OP_READ_BUFFER_SIZE: {
+		struct hci_rp_read_buffer_size rp = {0};
+		rp.status = 0;
+		rp.acl_mtu = 1021;
+		rp.sco_mtu = 96;
+		rp.acl_max_pkt = 4;
+		rp.sco_max_pkt = 6;
+		hci_send_event_cmd_complete(fd, hdr->opcode, &rp, sizeof(rp));
+		return false;
+	}
+	}
+
+	char dummy[0xf9] = {0};
+	hci_send_event_cmd_complete(fd, hdr->opcode, dummy, sizeof(dummy));
+	return false;
+}
+
+static void* event_thread(void* arg)
+{
+	while (1) {
+		char buf[1024] = {0};
+		ssize_t buf_size = read(vhci_fd, buf, sizeof(buf));
+		if (buf_size < 0)
+			fail("read failed");
+		debug_dump_data(buf, buf_size);
+		if (buf_size > 0 && buf[0] == HCI_COMMAND_PKT) {
+			if (process_command_pkt(vhci_fd, buf + 1, buf_size - 1))
+				break;
+		}
+	}
+	return NULL;
+}
+
+// Matches hci_handles in sys/linux/dev_vhci.txt.
+#define HCI_HANDLE_1 200
+#define HCI_HANDLE_2 201
+
+static void initialize_vhci()
+{
+#if SYZ_EXECUTOR
+	if (!flag_vhci_injection)
+		return;
+#endif
+
+	int hci_sock = socket(AF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI);
+	if (hci_sock < 0)
+		fail("socket(AF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI) failed");
+
+	vhci_fd = open("/dev/vhci", O_RDWR);
+	if (vhci_fd == -1)
+		fail("open /dev/vhci failed");
+
+	// Remap vhci onto higher fd number to hide it from fuzzer and to keep
+	// fd numbers stable regardless of whether vhci is opened or not (also see kMaxFd).
+	const int kVhciFd = 241;
+	if (dup2(vhci_fd, kVhciFd) < 0)
+		fail("dup2(vhci_fd, kVhciFd) failed");
+	close(vhci_fd);
+	vhci_fd = kVhciFd;
+
+	struct vhci_vendor_pkt vendor_pkt;
+	if (read(vhci_fd, &vendor_pkt, sizeof(vendor_pkt)) != sizeof(vendor_pkt))
+		fail("read failed");
+
+	if (vendor_pkt.type != HCI_VENDOR_PKT)
+		fail("wrong response packet");
+
+	debug("hci dev id: %x\n", vendor_pkt.id);
+
+	pthread_t th;
+	if (pthread_create(&th, NULL, event_thread, NULL))
+		fail("pthread_create failed");
+
+	// Bring hci device up
+	if (ioctl(hci_sock, HCIDEVUP, vendor_pkt.id) && errno != EALREADY)
+		fail("ioctl(HCIDEVUP) failed");
+
+	// Activate page scanning mode which is required to fake a connection.
+	struct hci_dev_req dr = {0};
+	dr.dev_id = vendor_pkt.id;
+	dr.dev_opt = SCAN_PAGE;
+	if (ioctl(hci_sock, HCISETSCAN, &dr))
+		fail("ioctl(HCISETSCAN) failed");
+
+	// Fake a connection with bd address 10:aa:aa:aa:aa:aa.
+	// This is a fixed address used in sys/linux/socket_bluetooth.txt.
+	struct hci_ev_conn_request request;
+	memset(&request, 0, sizeof(request));
+	memset(&request.bdaddr, 0xaa, 6);
+	*(uint8*)&request.bdaddr.b[5] = 0x10;
+	request.link_type = ACL_LINK;
+	hci_send_event_packet(vhci_fd, HCI_EV_CONN_REQUEST, &request, sizeof(request));
+
+	struct hci_ev_conn_complete complete;
+	memset(&complete, 0, sizeof(complete));
+	complete.status = 0;
+	complete.handle = HCI_HANDLE_1;
+	memset(&complete.bdaddr, 0xaa, 6);
+	*(uint8*)&complete.bdaddr.b[5] = 0x10;
+	complete.link_type = ACL_LINK;
+	complete.encr_mode = 0;
+	hci_send_event_packet(vhci_fd, HCI_EV_CONN_COMPLETE, &complete, sizeof(complete));
+
+	struct hci_ev_remote_features features;
+	memset(&features, 0, sizeof(features));
+	features.status = 0;
+	features.handle = HCI_HANDLE_1;
+	hci_send_event_packet(vhci_fd, HCI_EV_REMOTE_FEATURES, &features, sizeof(features));
+
+	// Fake a low-energy connection with bd address 11:aa:aa:aa:aa:aa.
+	// This is a fixed address used in sys/linux/socket_bluetooth.txt.
+	struct {
+		struct hci_ev_le_meta le_meta;
+		struct hci_ev_le_conn_complete le_conn;
+	} le_conn;
+	memset(&le_conn, 0, sizeof(le_conn));
+	le_conn.le_meta.subevent = HCI_EV_LE_CONN_COMPLETE;
+	memset(&le_conn.le_conn.bdaddr, 0xaa, 6);
+	*(uint8*)&le_conn.le_conn.bdaddr.b[5] = 0x11;
+	le_conn.le_conn.role = 1;
+	le_conn.le_conn.handle = HCI_HANDLE_2;
+	hci_send_event_packet(vhci_fd, HCI_EV_LE_META, &le_conn, sizeof(le_conn));
+
+	pthread_join(th, NULL);
+	close(hci_sock);
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_emit_vhci && SYZ_VHCI_INJECTION
+static long syz_emit_vhci(volatile long a0, volatile long a1)
+{
+	if (vhci_fd < 0)
+		return (uintptr_t)-1;
+
+	char* data = (char*)a0;
+	uint32 length = a1;
+
+	return write(vhci_fd, data, length);
+}
+#endif
+
 #if SYZ_EXECUTOR || __NR_syz_genetlink_get_family_id
 #include <errno.h>
 #include <linux/genetlink.h>
@@ -1808,7 +2390,6 @@ struct fs_image_segment {
 
 static unsigned long fs_image_segment_check(unsigned long size, unsigned long nsegs, long segments)
 {
-	unsigned long i;
 	// Strictly saying we ought to do a nonfailing copyout of segments into a local var.
 	// But some filesystems have large number of segments (2000+),
 	// we can't allocate that much on stack and allocating elsewhere is problematic,
@@ -1817,7 +2398,7 @@ static unsigned long fs_image_segment_check(unsigned long size, unsigned long ns
 
 	if (nsegs > IMAGE_MAX_SEGMENTS)
 		nsegs = IMAGE_MAX_SEGMENTS;
-	for (i = 0; i < nsegs; i++) {
+	for (unsigned long i = 0; i < nsegs; i++) {
 		if (segs[i].size > IMAGE_MAX_SIZE)
 			segs[i].size = IMAGE_MAX_SIZE;
 		segs[i].offset %= IMAGE_MAX_SIZE;
@@ -1836,9 +2417,7 @@ static unsigned long fs_image_segment_check(unsigned long size, unsigned long ns
 // syz_read_part_table(size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]])
 static long syz_read_part_table(volatile unsigned long size, volatile unsigned long nsegs, volatile long segments)
 {
-	char loopname[64], linkname[64];
-	int loopfd, err = 0, res = -1;
-	unsigned long i, j;
+	int err = 0, res = -1, loopfd = -1;
 	size = fs_image_segment_check(size, nsegs, segments);
 	int memfd = syscall(sys_memfd_create, "syz_read_part_table", 0);
 	if (memfd == -1) {
@@ -1849,12 +2428,13 @@ static long syz_read_part_table(volatile unsigned long size, volatile unsigned l
 		err = errno;
 		goto error_close_memfd;
 	}
-	for (i = 0; i < nsegs; i++) {
+	for (unsigned long i = 0; i < nsegs; i++) {
 		struct fs_image_segment* segs = (struct fs_image_segment*)segments;
 		if (pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset) < 0) {
 			debug("syz_read_part_table: pwrite[%u] failed: %d\n", (int)i, errno);
 		}
 	}
+	char loopname[64];
 	snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
 	loopfd = open(loopname, O_RDWR);
 	if (loopfd == -1) {
@@ -1888,10 +2468,11 @@ static long syz_read_part_table(volatile unsigned long size, volatile unsigned l
 	}
 	res = 0;
 	// If we managed to parse some partitions, symlink them into our work dir.
-	for (i = 1, j = 0; i < 8; i++) {
+	for (unsigned long i = 1, j = 0; i < 8; i++) {
 		snprintf(loopname, sizeof(loopname), "/dev/loop%llup%d", procid, (int)i);
 		struct stat statbuf;
 		if (stat(loopname, &statbuf) == 0) {
+			char linkname[64];
 			snprintf(linkname, sizeof(linkname), "./file%d", (int)j++);
 			if (symlink(loopname, linkname)) {
 				debug("syz_read_part_table: symlink(%s, %s) failed: %d\n", loopname, linkname, errno);
@@ -1914,18 +2495,15 @@ error:
 #include <string.h>
 #include <sys/mount.h>
 
-//syz_mount_image(fs ptr[in, string[disk_filesystems]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[vfat_options]])
-//fs_image_segment {
+// syz_mount_image(fs ptr[in, string[disk_filesystems]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[vfat_options]])
+// fs_image_segment {
 //	data	ptr[in, array[int8]]
 //	size	len[data, intptr]
 //	offset	intptr
-//}
+// }
 static long syz_mount_image(volatile long fsarg, volatile long dir, volatile unsigned long size, volatile unsigned long nsegs, volatile long segments, volatile long flags, volatile long optsarg)
 {
-	char loopname[64], fs[32], opts[256];
-	int loopfd, err = 0, res = -1;
-	unsigned long i;
-
+	int err = 0, res = -1, loopfd = -1;
 	size = fs_image_segment_check(size, nsegs, segments);
 	int memfd = syscall(sys_memfd_create, "syz_mount_image", 0);
 	if (memfd == -1) {
@@ -1936,12 +2514,13 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 		err = errno;
 		goto error_close_memfd;
 	}
-	for (i = 0; i < nsegs; i++) {
+	for (unsigned long i = 0; i < nsegs; i++) {
 		struct fs_image_segment* segs = (struct fs_image_segment*)segments;
 		if (pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset) < 0) {
 			debug("syz_mount_image: pwrite[%u] failed: %d\n", (int)i, errno);
 		}
 	}
+	char loopname[64];
 	snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
 	loopfd = open(loopname, O_RDWR);
 	if (loopfd == -1) {
@@ -1961,8 +2540,10 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 		}
 	}
 	mkdir((char*)dir, 0777);
+	char fs[32];
 	memset(fs, 0, sizeof(fs));
 	strncpy(fs, (char*)fsarg, sizeof(fs) - 1);
+	char opts[256];
 	memset(opts, 0, sizeof(opts));
 	// Leave some space for the additional options we append below.
 	strncpy(opts, (char*)optsarg, sizeof(opts) - 32);
@@ -2143,11 +2724,7 @@ static struct arpt_table_desc arpt_tables[] = {
 
 static void checkpoint_iptables(struct ipt_table_desc* tables, int num_tables, int family, int level)
 {
-	struct ipt_get_entries entries;
-	socklen_t optlen;
-	int fd, i;
-
-	fd = socket(family, SOCK_STREAM, IPPROTO_TCP);
+	int fd = socket(family, SOCK_STREAM, IPPROTO_TCP);
 	if (fd == -1) {
 		switch (errno) {
 		case EAFNOSUPPORT:
@@ -2156,11 +2733,11 @@ static void checkpoint_iptables(struct ipt_table_desc* tables, int num_tables, i
 		}
 		fail("iptable checkpoint %d: socket failed", family);
 	}
-	for (i = 0; i < num_tables; i++) {
+	for (int i = 0; i < num_tables; i++) {
 		struct ipt_table_desc* table = &tables[i];
 		strcpy(table->info.name, table->name);
 		strcpy(table->replace.name, table->name);
-		optlen = sizeof(table->info);
+		socklen_t optlen = sizeof(table->info);
 		if (getsockopt(fd, level, IPT_SO_GET_INFO, &table->info, &optlen)) {
 			switch (errno) {
 			case EPERM:
@@ -2179,6 +2756,7 @@ static void checkpoint_iptables(struct ipt_table_desc* tables, int num_tables, i
 		if (table->info.num_entries > XT_MAX_ENTRIES)
 			fail("iptable checkpoint %s/%d: too many counters: %u",
 			     table->name, family, table->info.num_entries);
+		struct ipt_get_entries entries;
 		memset(&entries, 0, sizeof(entries));
 		strcpy(entries.name, table->name);
 		entries.size = table->info.size;
@@ -2198,13 +2776,7 @@ static void checkpoint_iptables(struct ipt_table_desc* tables, int num_tables, i
 
 static void reset_iptables(struct ipt_table_desc* tables, int num_tables, int family, int level)
 {
-	struct xt_counters counters[XT_MAX_ENTRIES];
-	struct ipt_get_entries entries;
-	struct ipt_getinfo info;
-	socklen_t optlen;
-	int fd, i;
-
-	fd = socket(family, SOCK_STREAM, IPPROTO_TCP);
+	int fd = socket(family, SOCK_STREAM, IPPROTO_TCP);
 	if (fd == -1) {
 		switch (errno) {
 		case EAFNOSUPPORT:
@@ -2213,16 +2785,18 @@ static void reset_iptables(struct ipt_table_desc* tables, int num_tables, int fa
 		}
 		fail("iptable %d: socket failed", family);
 	}
-	for (i = 0; i < num_tables; i++) {
+	for (int i = 0; i < num_tables; i++) {
 		struct ipt_table_desc* table = &tables[i];
 		if (table->info.valid_hooks == 0)
 			continue;
+		struct ipt_getinfo info;
 		memset(&info, 0, sizeof(info));
 		strcpy(info.name, table->name);
-		optlen = sizeof(info);
+		socklen_t optlen = sizeof(info);
 		if (getsockopt(fd, level, IPT_SO_GET_INFO, &info, &optlen))
 			fail("iptable %s/%d: getsockopt(IPT_SO_GET_INFO)", table->name, family);
 		if (memcmp(&table->info, &info, sizeof(table->info)) == 0) {
+			struct ipt_get_entries entries;
 			memset(&entries, 0, sizeof(entries));
 			strcpy(entries.name, table->name);
 			entries.size = table->info.size;
@@ -2233,6 +2807,7 @@ static void reset_iptables(struct ipt_table_desc* tables, int num_tables, int fa
 				continue;
 		}
 		debug("iptable %s/%d: resetting\n", table->name, family);
+		struct xt_counters counters[XT_MAX_ENTRIES];
 		table->replace.num_counters = info.num_entries;
 		table->replace.counters = counters;
 		optlen = sizeof(table->replace) - sizeof(table->replace.entrytable) + table->replace.size;
@@ -2244,12 +2819,7 @@ static void reset_iptables(struct ipt_table_desc* tables, int num_tables, int fa
 
 static void checkpoint_arptables(void)
 {
-	struct arpt_get_entries entries;
-	socklen_t optlen;
-	unsigned i;
-	int fd;
-
-	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	int fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (fd == -1) {
 		switch (errno) {
 		case EAFNOSUPPORT:
@@ -2258,11 +2828,11 @@ static void checkpoint_arptables(void)
 		}
 		fail("arptable checkpoint: socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
 	}
-	for (i = 0; i < sizeof(arpt_tables) / sizeof(arpt_tables[0]); i++) {
+	for (unsigned i = 0; i < sizeof(arpt_tables) / sizeof(arpt_tables[0]); i++) {
 		struct arpt_table_desc* table = &arpt_tables[i];
 		strcpy(table->info.name, table->name);
 		strcpy(table->replace.name, table->name);
-		optlen = sizeof(table->info);
+		socklen_t optlen = sizeof(table->info);
 		if (getsockopt(fd, SOL_IP, ARPT_SO_GET_INFO, &table->info, &optlen)) {
 			switch (errno) {
 			case EPERM:
@@ -2280,6 +2850,7 @@ static void checkpoint_arptables(void)
 		if (table->info.num_entries > XT_MAX_ENTRIES)
 			fail("arptable checkpoint %s: too many counters: %u",
 			     table->name, table->info.num_entries);
+		struct arpt_get_entries entries;
 		memset(&entries, 0, sizeof(entries));
 		strcpy(entries.name, table->name);
 		entries.size = table->info.size;
@@ -2298,14 +2869,7 @@ static void checkpoint_arptables(void)
 
 static void reset_arptables()
 {
-	struct xt_counters counters[XT_MAX_ENTRIES];
-	struct arpt_get_entries entries;
-	struct arpt_getinfo info;
-	socklen_t optlen;
-	unsigned i;
-	int fd;
-
-	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	int fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (fd == -1) {
 		switch (errno) {
 		case EAFNOSUPPORT:
@@ -2314,16 +2878,18 @@ static void reset_arptables()
 		}
 		fail("arptable: socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
 	}
-	for (i = 0; i < sizeof(arpt_tables) / sizeof(arpt_tables[0]); i++) {
+	for (unsigned i = 0; i < sizeof(arpt_tables) / sizeof(arpt_tables[0]); i++) {
 		struct arpt_table_desc* table = &arpt_tables[i];
 		if (table->info.valid_hooks == 0)
 			continue;
+		struct arpt_getinfo info;
 		memset(&info, 0, sizeof(info));
 		strcpy(info.name, table->name);
-		optlen = sizeof(info);
+		socklen_t optlen = sizeof(info);
 		if (getsockopt(fd, SOL_IP, ARPT_SO_GET_INFO, &info, &optlen))
 			fail("arptable %s:getsockopt(ARPT_SO_GET_INFO)", table->name);
 		if (memcmp(&table->info, &info, sizeof(table->info)) == 0) {
+			struct arpt_get_entries entries;
 			memset(&entries, 0, sizeof(entries));
 			strcpy(entries.name, table->name);
 			entries.size = table->info.size;
@@ -2337,6 +2903,7 @@ static void reset_arptables()
 			debug("arptable %s: header changed\n", table->name);
 		}
 		debug("arptable %s: resetting\n", table->name);
+		struct xt_counters counters[XT_MAX_ENTRIES];
 		table->replace.num_counters = info.num_entries;
 		table->replace.counters = counters;
 		optlen = sizeof(table->replace) - sizeof(table->replace.entrytable) + table->replace.size;
@@ -2394,11 +2961,7 @@ static struct ebt_table_desc ebt_tables[] = {
 
 static void checkpoint_ebtables(void)
 {
-	socklen_t optlen;
-	unsigned i;
-	int fd;
-
-	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	int fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (fd == -1) {
 		switch (errno) {
 		case EAFNOSUPPORT:
@@ -2407,10 +2970,10 @@ static void checkpoint_ebtables(void)
 		}
 		fail("ebtable checkpoint: socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
 	}
-	for (i = 0; i < sizeof(ebt_tables) / sizeof(ebt_tables[0]); i++) {
+	for (size_t i = 0; i < sizeof(ebt_tables) / sizeof(ebt_tables[0]); i++) {
 		struct ebt_table_desc* table = &ebt_tables[i];
 		strcpy(table->replace.name, table->name);
-		optlen = sizeof(table->replace);
+		socklen_t optlen = sizeof(table->replace);
 		if (getsockopt(fd, SOL_IP, EBT_SO_GET_INIT_INFO, &table->replace, &optlen)) {
 			switch (errno) {
 			case EPERM:
@@ -2437,13 +3000,7 @@ static void checkpoint_ebtables(void)
 
 static void reset_ebtables()
 {
-	struct ebt_replace replace;
-	char entrytable[XT_TABLE_SIZE];
-	socklen_t optlen;
-	unsigned i, j, h;
-	int fd;
-
-	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	int fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (fd == -1) {
 		switch (errno) {
 		case EAFNOSUPPORT:
@@ -2452,20 +3009,22 @@ static void reset_ebtables()
 		}
 		fail("ebtable: socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
 	}
-	for (i = 0; i < sizeof(ebt_tables) / sizeof(ebt_tables[0]); i++) {
+	for (unsigned i = 0; i < sizeof(ebt_tables) / sizeof(ebt_tables[0]); i++) {
 		struct ebt_table_desc* table = &ebt_tables[i];
 		if (table->replace.valid_hooks == 0)
 			continue;
+		struct ebt_replace replace;
 		memset(&replace, 0, sizeof(replace));
 		strcpy(replace.name, table->name);
-		optlen = sizeof(replace);
+		socklen_t optlen = sizeof(replace);
 		if (getsockopt(fd, SOL_IP, EBT_SO_GET_INFO, &replace, &optlen))
 			fail("ebtable %s: getsockopt(EBT_SO_GET_INFO)", table->name);
 		replace.num_counters = 0;
 		table->replace.entries = 0;
-		for (h = 0; h < NF_BR_NUMHOOKS; h++)
+		for (unsigned h = 0; h < NF_BR_NUMHOOKS; h++)
 			table->replace.hook_entry[h] = 0;
 		if (memcmp(&table->replace, &replace, sizeof(table->replace)) == 0) {
+			char entrytable[XT_TABLE_SIZE];
 			memset(&entrytable, 0, sizeof(entrytable));
 			replace.entries = entrytable;
 			optlen = sizeof(replace) + replace.entries_size;
@@ -2476,7 +3035,7 @@ static void reset_ebtables()
 		}
 		debug("ebtable %s: resetting\n", table->name);
 		// Kernel does not seem to return actual entry points (wat?).
-		for (j = 0, h = 0; h < NF_BR_NUMHOOKS; h++) {
+		for (unsigned j = 0, h = 0; h < NF_BR_NUMHOOKS; h++) {
 			if (table->replace.valid_hooks & (1 << h)) {
 				table->replace.hook_entry[h] = (struct ebt_entries*)table->entrytable + j;
 				j++;
@@ -2826,6 +3385,9 @@ static int do_sandbox_none(void)
 		return wait_for_loop(pid);
 
 	setup_common();
+#if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
+	initialize_vhci();
+#endif
 	sandbox_common();
 	drop_caps();
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
@@ -2864,6 +3426,9 @@ static int do_sandbox_setuid(void)
 		return wait_for_loop(pid);
 
 	setup_common();
+#if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
+	initialize_vhci();
+#endif
 	sandbox_common();
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	initialize_netdevices_init();
@@ -2889,7 +3454,7 @@ static int do_sandbox_setuid(void)
 	if (syscall(SYS_setresuid, nobody, nobody, nobody))
 		fail("failed to setresuid");
 
-	// This is required to open /proc/self/* files.
+	// This is required to open /proc/self/ files.
 	// Otherwise they are owned by root and we can't open them after setuid.
 	// See task_dump_owner function in kernel.
 	prctl(PR_SET_DUMPABLE, 1, 0, 0, 0);
@@ -2999,14 +3564,16 @@ static int namespace_sandbox_proc(void* arg)
 #define SYZ_HAVE_SANDBOX_NAMESPACE 1
 static int do_sandbox_namespace(void)
 {
-	int pid;
-
 	setup_common();
+#if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
+	// HCIDEVUP requires CAP_ADMIN, so this needs to happen early.
+	initialize_vhci();
+#endif
 	real_uid = getuid();
 	real_gid = getgid();
 	mprotect(sandbox_stack, 4096, PROT_NONE); // to catch stack underflows
-	pid = clone(namespace_sandbox_proc, &sandbox_stack[sizeof(sandbox_stack) - 64],
-		    CLONE_NEWUSER | CLONE_NEWPID, 0);
+	int pid = clone(namespace_sandbox_proc, &sandbox_stack[sizeof(sandbox_stack) - 64],
+			CLONE_NEWUSER | CLONE_NEWPID, 0);
 	return wait_for_loop(pid);
 }
 #endif
@@ -3036,8 +3603,8 @@ static int do_sandbox_namespace(void)
 #define AID_EVERYBODY 9997
 #define AID_APP 10000
 
-#define UNTRUSTED_APP_UID AID_APP + 999
-#define UNTRUSTED_APP_GID AID_APP + 999
+#define UNTRUSTED_APP_UID (AID_APP + 999)
+#define UNTRUSTED_APP_GID (AID_APP + 999)
 
 const char* const SELINUX_CONTEXT_UNTRUSTED_APP = "u:r:untrusted_app:s0:c512,c768";
 const char* const SELINUX_LABEL_APP_DATA_FILE = "u:object_r:app_data_file:s0:c512,c768";
@@ -3137,6 +3704,9 @@ static void syz_setfilecon(const char* path, const char* context)
 static int do_sandbox_android(void)
 {
 	setup_common();
+#if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
+	initialize_vhci();
+#endif
 	sandbox_common();
 	drop_caps();
 
@@ -3200,9 +3770,8 @@ static int do_sandbox_android(void)
 // Moreover, a mount can be re-mounted as read-only and then we will fail to make a dir empty.
 static void remove_dir(const char* dir)
 {
-	DIR* dp;
-	struct dirent* ep;
 	int iter = 0;
+	DIR* dp = 0;
 retry:
 #if not SYZ_SANDBOX_ANDROID
 	if (!flag_sandbox_android) {
@@ -3221,6 +3790,7 @@ retry:
 		}
 		exitf("opendir(%s) failed", dir);
 	}
+	struct dirent* ep = 0;
 	while ((ep = readdir(dp))) {
 		if (strcmp(ep->d_name, ".") == 0 || strcmp(ep->d_name, "..") == 0)
 			continue;
@@ -3274,8 +3844,7 @@ retry:
 		}
 	}
 	closedir(dp);
-	int i;
-	for (i = 0;; i++) {
+	for (int i = 0;; i++) {
 		if (rmdir(dir) == 0)
 			break;
 		if (i < 100) {
@@ -3370,9 +3939,8 @@ static void kill_and_wait(int pid, int* status)
 {
 	kill(-pid, SIGKILL);
 	kill(pid, SIGKILL);
-	int i;
 	// First, give it up to 100 ms to surrender.
-	for (i = 0; i < 100; i++) {
+	for (int i = 0; i < 100; i++) {
 		if (waitpid(-1, status, WNOHANG | __WALL) == pid)
 			return;
 		usleep(1000);
@@ -3485,8 +4053,7 @@ static void close_fds()
 	// so close all opened file descriptors.
 	// Also close all USB emulation descriptors to trigger exit from USB
 	// event loop to collect coverage.
-	int fd;
-	for (fd = 3; fd < MAX_FDS; fd++)
+	for (int fd = 3; fd < MAX_FDS; fd++)
 		close(fd);
 }
 #endif

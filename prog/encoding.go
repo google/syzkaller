@@ -584,9 +584,9 @@ func (p *parser) parseArgStruct(typ Type, dir Dir) (Arg, error) {
 		}
 		field := t1.Fields[i]
 		if IsPad(field.Type) {
-			inner = append(inner, MakeConstArg(field.Type, dir, 0))
+			inner = append(inner, MakeConstArg(field.Type, field.Dir(dir), 0))
 		} else {
-			arg, err := p.parseArg(field.Type, dir)
+			arg, err := p.parseArg(field.Type, field.Dir(dir))
 			if err != nil {
 				return nil, err
 			}
@@ -602,7 +602,7 @@ func (p *parser) parseArgStruct(typ Type, dir Dir) (Arg, error) {
 		if !IsPad(field.Type) {
 			p.strictFailf("missing struct %v fields %v/%v", typ.Name(), len(inner), len(t1.Fields))
 		}
-		inner = append(inner, field.Type.DefaultArg(dir))
+		inner = append(inner, field.Type.DefaultArg(field.Dir(dir)))
 	}
 	return MakeGroupArg(typ, dir, inner), nil
 }
@@ -645,11 +645,14 @@ func (p *parser) parseArgUnion(typ Type, dir Dir) (Arg, error) {
 	}
 	p.Parse('@')
 	name := p.Ident()
-	var optType Type
+	var (
+		optType Type
+		optDir  Dir
+	)
 	index := -1
 	for i, field := range t1.Fields {
 		if name == field.Name {
-			optType, index = field.Type, i
+			optType, index, optDir = field.Type, i, field.Dir(dir)
 			break
 		}
 	}
@@ -661,12 +664,12 @@ func (p *parser) parseArgUnion(typ Type, dir Dir) (Arg, error) {
 	if p.Char() == '=' {
 		p.Parse('=')
 		var err error
-		opt, err = p.parseArg(optType, dir)
+		opt, err = p.parseArg(optType, optDir)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		opt = optType.DefaultArg(dir)
+		opt = optType.DefaultArg(optDir)
 	}
 	return MakeUnionArg(typ, dir, opt, index), nil
 }

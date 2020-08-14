@@ -118,6 +118,9 @@ func (n *Type) walk(cb func(Node)) {
 func (n *Field) walk(cb func(Node)) {
 	cb(n.Name)
 	cb(n.Type)
+	for _, a := range n.Attrs {
+		cb(a)
+	}
 	for _, c := range n.Comments {
 		cb(c)
 	}

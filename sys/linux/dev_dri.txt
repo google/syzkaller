@@ -27,7 +27,7 @@ ioctl$DRM_IOCTL_VERSION(fd fd_dri, cmd const[DRM_IOCTL_VERSION], arg ptr[in, drm
 ioctl$DRM_IOCTL_GET_UNIQUE(fd fd_dri, cmd const[DRM_IOCTL_GET_UNIQUE], arg ptr[in, drm_unique_out])
 ioctl$DRM_IOCTL_GET_MAGIC(fd fd_dri, cmd const[DRM_IOCTL_GET_MAGIC], arg ptr[in, int32])
 ioctl$DRM_IOCTL_IRQ_BUSID(fd fd_dri, cmd const[DRM_IOCTL_IRQ_BUSID], arg ptr[in, drm_irq_busid])
-ioctl$DRM_IOCTL_GET_MAP(fd fd_dri, cmd const[DRM_IOCTL_GET_MAP], arg ptr[in, drm_map])
+ioctl$DRM_IOCTL_GET_MAP(fd fd_dri, cmd const[DRM_IOCTL_GET_MAP], arg ptr[inout, drm_map$DRM_IOCTL_GET_MAP])
 ioctl$DRM_IOCTL_GET_CLIENT(fd fd_dri, cmd const[DRM_IOCTL_GET_CLIENT], arg ptr[inout, drm_client])
 ioctl$DRM_IOCTL_GET_STATS(fd fd_dri, cmd const[DRM_IOCTL_GET_STATS], arg buffer[out])
 ioctl$DRM_IOCTL_GET_CAP(fd fd_dri, cmd const[DRM_IOCTL_GET_CAP], arg ptr[in, drm_get_cap])
@@ -35,8 +35,8 @@ ioctl$DRM_IOCTL_SET_CLIENT_CAP(fd fd_dri, cmd const[DRM_IOCTL_SET_CLIENT_CAP], a
 ioctl$DRM_IOCTL_SET_VERSION(fd fd_dri, cmd const[DRM_IOCTL_SET_VERSION], arg ptr[in, drm_set_version])
 ioctl$DRM_IOCTL_SET_UNIQUE(fd fd_dri, cmd const[DRM_IOCTL_SET_UNIQUE], arg ptr[in, drm_unique_in])
 ioctl$DRM_IOCTL_AUTH_MAGIC(fd fd_dri, cmd const[DRM_IOCTL_AUTH_MAGIC], arg ptr[in, int32])
-ioctl$DRM_IOCTL_ADD_MAP(fd fd_dri, cmd const[DRM_IOCTL_ADD_MAP], arg ptr[in, drm_map])
-ioctl$DRM_IOCTL_RM_MAP(fd fd_dri, cmd const[DRM_IOCTL_RM_MAP], arg ptr[in, drm_map])
+ioctl$DRM_IOCTL_ADD_MAP(fd fd_dri, cmd const[DRM_IOCTL_ADD_MAP], arg ptr[inout, drm_map$DRM_IOCTL_ADD_MAP])
+ioctl$DRM_IOCTL_RM_MAP(fd fd_dri, cmd const[DRM_IOCTL_RM_MAP], arg ptr[in, drm_map$DRM_IOCTL_RM_MAP])
 ioctl$DRM_IOCTL_SET_SAREA_CTX(fd fd_dri, cmd const[DRM_IOCTL_SET_SAREA_CTX], arg ptr[in, drm_ctx_priv_map])
 ioctl$DRM_IOCTL_GET_SAREA_CTX(fd fd_dri, cmd const[DRM_IOCTL_GET_SAREA_CTX], arg ptr[in, drm_ctx_priv_map])
 ioctl$DRM_IOCTL_SET_MASTER(fd fd_dri, cmd const[DRM_IOCTL_SET_MASTER])
@@ -60,8 +60,8 @@ ioctl$DRM_IOCTL_AGP_ACQUIRE(fd fd_dri, cmd const[DRM_IOCTL_AGP_ACQUIRE])
 ioctl$DRM_IOCTL_AGP_RELEASE(fd fd_dri, cmd const[DRM_IOCTL_AGP_RELEASE])
 ioctl$DRM_IOCTL_AGP_ENABLE(fd fd_dri, cmd const[DRM_IOCTL_AGP_ENABLE], arg ptr[in, int32])
 ioctl$DRM_IOCTL_AGP_INFO(fd fd_dri, cmd const[DRM_IOCTL_AGP_INFO], arg buffer[out])
-ioctl$DRM_IOCTL_AGP_ALLOC(fd fd_dri, cmd const[DRM_IOCTL_AGP_ALLOC], arg ptr[inout, drm_agp_buffer])
-ioctl$DRM_IOCTL_AGP_FREE(fd fd_dri, cmd const[DRM_IOCTL_AGP_FREE], arg ptr[in, drm_agp_buffer])
+ioctl$DRM_IOCTL_AGP_ALLOC(fd fd_dri, cmd const[DRM_IOCTL_AGP_ALLOC], arg ptr[inout, drm_agp_buffer$DRM_IOCTL_AGP_ALLOC])
+ioctl$DRM_IOCTL_AGP_FREE(fd fd_dri, cmd const[DRM_IOCTL_AGP_FREE], arg ptr[in, drm_agp_buffer$DRM_IOCTL_AGP_FREE])
 ioctl$DRM_IOCTL_AGP_BIND(fd fd_dri, cmd const[DRM_IOCTL_AGP_BIND], arg ptr[in, drm_agp_binding])
 ioctl$DRM_IOCTL_AGP_UNBIND(fd fd_dri, cmd const[DRM_IOCTL_AGP_UNBIND], arg ptr[in, drm_agp_binding])
 ioctl$DRM_IOCTL_SG_ALLOC(fd fd_dri, cmd const[DRM_IOCTL_SG_ALLOC], arg ptr[in, drm_scatter_gather])
@@ -72,8 +72,8 @@ ioctl$DRM_IOCTL_GEM_OPEN(fd fd_dri, cmd const[DRM_IOCTL_GEM_OPEN], arg ptr[inout
 ioctl$DRM_IOCTL_GEM_CLOSE(fd fd_dri, cmd const[DRM_IOCTL_GEM_CLOSE], arg ptr[in, drm_gem_close])
 ioctl$DRM_IOCTL_GEM_FLINK(fd fd_dri, cmd const[DRM_IOCTL_GEM_FLINK], arg ptr[inout, drm_gem_flink])
 ioctl$DRM_IOCTL_MODE_GETRESOURCES(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETRESOURCES], arg ptr[in, drm_mode_card_res])
-ioctl$DRM_IOCTL_PRIME_HANDLE_TO_FD(fd fd_dri, cmd const[DRM_IOCTL_PRIME_HANDLE_TO_FD], arg ptr[inout, drm_prime_handle])
-ioctl$DRM_IOCTL_PRIME_FD_TO_HANDLE(fd fd_dri, cmd const[DRM_IOCTL_PRIME_FD_TO_HANDLE], arg ptr[inout, drm_prime_handle])
+ioctl$DRM_IOCTL_PRIME_HANDLE_TO_FD(fd fd_dri, cmd const[DRM_IOCTL_PRIME_HANDLE_TO_FD], arg ptr[inout, drm_prime_handle$DRM_IOCTL_PRIME_HANDLE_TO_FD])
+ioctl$DRM_IOCTL_PRIME_FD_TO_HANDLE(fd fd_dri, cmd const[DRM_IOCTL_PRIME_FD_TO_HANDLE], arg ptr[inout, drm_prime_handle$DRM_IOCTL_PRIME_FD_TO_HANDLE])
 ioctl$DRM_IOCTL_MODE_GETPLANERESOURCES(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETPLANERESOURCES], arg ptr[in, drm_mode_get_plane_res])
 ioctl$DRM_IOCTL_MODE_GETCRTC(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETCRTC], arg ptr[in, drm_mode_crtc])
 ioctl$DRM_IOCTL_MODE_SETCRTC(fd fd_dri, cmd const[DRM_IOCTL_MODE_SETCRTC], arg ptr[in, drm_mode_crtc])
@@ -249,8 +249,7 @@ drm_mode_get_blob {
 drm_mode_create_blob {
 	data	ptr64[in, array[int8]]
 	length	len[data, int32]
-# Output:
-	blob_id	drm_blob_id[opt]
+	blob_id	drm_blob_id	(out)
 }
 
 drm_mode_destroy_blob {
@@ -318,26 +317,26 @@ drm_clip_rect {
 drm_mode_fb_dirty_flags = DRM_MODE_FB_DIRTY_ANNOTATE_COPY, DRM_MODE_FB_DIRTY_ANNOTATE_FILL
 
 ioctl$DRM_IOCTL_MODE_CREATE_DUMB(fd fd_dri, cmd const[DRM_IOCTL_MODE_CREATE_DUMB], arg ptr[inout, drm_mode_create_dumb])
-ioctl$DRM_IOCTL_MODE_MAP_DUMB(fd fd_dri, cmd const[DRM_IOCTL_MODE_MAP_DUMB], arg ptr[in, drm_mode_map_dumb])
+ioctl$DRM_IOCTL_MODE_MAP_DUMB(fd fd_dri, cmd const[DRM_IOCTL_MODE_MAP_DUMB], arg ptr[inout, drm_mode_map_dumb])
 ioctl$DRM_IOCTL_MODE_DESTROY_DUMB(fd fd_dri, cmd const[DRM_IOCTL_MODE_DESTROY_DUMB], arg ptr[in, drm_mode_destroy_dumb])
 
 resource drm_dumb_handle[int32]
 
 drm_mode_create_dumb {
-	height	int32
-	width	int32
-	bpp	int32
-	flags	int32
-# Outputs:
-	handle	drm_dumb_handle[opt]
-	pitch	const[0, int32]
-	size	const[0, int64]
+	height	int32	(in)
+	width	int32	(in)
+	bpp	int32	(in)
+# flags does not seem to be used by any driver.
+	flags	const[0, int32]
+	handle	drm_dumb_handle	(out)
+	pitch	int32	(out)
+	size	int64	(out)
 }
 
 drm_mode_map_dumb {
-	handle	drm_dumb_handle
+	handle	drm_dumb_handle	(in)
 	pad	const[0, int32]
-	offset	const[0, int64]
+	offset	int64	(out)
 }
 
 drm_mode_destroy_dumb {
@@ -389,7 +388,7 @@ drm_mode_atomic_flags = DRM_MODE_PAGE_FLIP_EVENT, DRM_MODE_ATOMIC_TEST_ONLY, DRM
 #ioctl$DRM_IOCTL_CRTC_GET_SEQUENCE(fd fd_dri, cmd const[DRM_IOCTL_CRTC_GET_SEQUENCE], arg ptr[in, XXXXX])
 #ioctl$DRM_IOCTL_CRTC_QUEUE_SEQUENCE(fd fd_dri, cmd const[DRM_IOCTL_CRTC_QUEUE_SEQUENCE], arg ptr[in, XXXXX])
 
-ioctl$DRM_IOCTL_MODE_CREATE_LEASE(fd fd_dri, cmd const[DRM_IOCTL_MODE_CREATE_LEASE], arg ptr[in, drm_mode_create_lease])
+ioctl$DRM_IOCTL_MODE_CREATE_LEASE(fd fd_dri, cmd const[DRM_IOCTL_MODE_CREATE_LEASE], arg ptr[inout, drm_mode_create_lease])
 ioctl$DRM_IOCTL_MODE_LIST_LESSEES(fd fd_dri, cmd const[DRM_IOCTL_MODE_LIST_LESSEES], arg ptr[in, drm_mode_list_lessees])
 ioctl$DRM_IOCTL_MODE_GET_LEASE(fd fd_dri, cmd const[DRM_IOCTL_MODE_GET_LEASE], arg ptr[in, drm_mode_get_lease])
 ioctl$DRM_IOCTL_MODE_REVOKE_LEASE(fd fd_dri, cmd const[DRM_IOCTL_MODE_REVOKE_LEASE], arg ptr[in, drm_mode_revoke_lease])
@@ -398,12 +397,11 @@ resource drm_lessee_id[int32]
 
 drm_mode_create_lease {
 # TODO: what are these "object ids"? where does one get these?
-	object_ids	ptr64[in, array[int32]]
-	object_count	len[object_ids, int32]
-	flags		flags[drm_mode_create_lease_flag, int32]
-# Outputs:
-	lessee_id	drm_lessee_id[opt]
-	fd		fd[opt]
+	object_ids	ptr64[in, array[int32]]	(in)
+	object_count	len[object_ids, int32]	(in)
+	flags		flags[drm_mode_create_lease_flag, int32]	(in)
+	lessee_id	drm_lessee_id	(out)
+	fd		fd	(out)
 }
 
 drm_mode_create_lease_flag = O_CLOEXEC, O_NONBLOCK
@@ -453,13 +451,32 @@ drm_irq_busid {
 	func	int32
 }
 
-drm_map {
-	off	vma[opt]
-	size	intptr
-	type	flags[drm_map_type, int32]
-	flags	flags[drm_map_flags, int32]
+drm_map$DRM_IOCTL_GET_MAP {
+	off	vma	(inout)
+	size	intptr	(out)
+	type	int32	(out)
+	flags	int32	(out)
+	handle	vma	(out)
+	mtrr	int32	(out)
+}
+
+drm_map$DRM_IOCTL_ADD_MAP {
+	off	vma	(in)
+	size	intptr	(in)
+	type	flags[drm_map_type, int32]	(in)
+	flags	flags[drm_map_flags, int32]	(in)
+	handle	vma	(out)
+	mtrr	int32	(out)
+}
+
+drm_map$DRM_IOCTL_RM_MAP {
+# Only handle is used.
+	off	const[0, intptr]
+	size	const[0, intptr]
+	type	const[0, int32]
+	flags	const[0, int32]
 	handle	vma
-	mtrr	int32
+	mtrr	const[0, int32]
 }
 
 drm_client {
@@ -551,11 +568,19 @@ drm_control {
 	irq	int32
 }
 
-drm_agp_buffer {
-	size	intptr
-	handle	drm_agp_handle[opt]
-	type	flags[drm_agp_mem_type, intptr]
-	physic	intptr
+drm_agp_buffer$DRM_IOCTL_AGP_ALLOC {
+	size	intptr	(in)
+	handle	drm_agp_handle	(out)
+	type	flags[drm_agp_mem_type, intptr]	(in)
+	physic	intptr	(out)
+}
+
+drm_agp_buffer$DRM_IOCTL_AGP_FREE {
+# Only handle is used.
+	size	const[0, intptr]
+	handle	drm_agp_handle
+	type	const[0, intptr]
+	physic	const[0, intptr]
 }
 
 drm_agp_binding {
@@ -580,11 +605,9 @@ drm_modeset_ctl {
 }
 
 drm_gem_open {
-# input:
-	name	drm_gem_name[opt]
-# output:
-	handle	drm_gem_handle[opt]
-	size	int64
+	name	drm_gem_name	(in)
+	handle	drm_gem_handle	(out)
+	size	int64	(out)
 }
 
 drm_gem_close {
@@ -593,8 +616,8 @@ drm_gem_close {
 }
 
 drm_gem_flink {
-	handle	drm_gem_handle[opt]
-	name	drm_gem_name[opt]
+	handle	drm_gem_handle	(in)
+	name	drm_gem_name	(out)
 }
 
 drm_mode_card_res {
@@ -612,10 +635,16 @@ drm_mode_card_res {
 	minh	const[0, int32]
 }
 
-drm_prime_handle {
-	handle	drm_gem_handle[opt]
-	flags	flags[dup_flags, int32]
-	fd	fd_dri[opt]
+drm_prime_handle$DRM_IOCTL_PRIME_HANDLE_TO_FD {
+	handle	drm_gem_handle	(in)
+	flags	flags[dup_flags, int32]	(in)
+	fd	fd_dri	(out)
+}
+
+drm_prime_handle$DRM_IOCTL_PRIME_FD_TO_HANDLE {
+	handle	drm_gem_handle	(out)
+	flags	const[0, int32]
+	fd	fd_dri	(in)
 }
 
 drm_mode_crtc {

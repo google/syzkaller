@@ -28,6 +28,7 @@ func init() {
 	checkFeature[FeatureKCSAN] = checkKCSAN
 	checkFeature[FeatureDevlinkPCI] = checkDevlinkPCI
 	checkFeature[FeatureUSBEmulation] = checkUSBEmulation
+	checkFeature[FeatureVhciInjection] = checkVhciInjection
 }
 
 func checkCoverage() string {
@@ -186,6 +187,13 @@ func checkNetInjection() string {
 
 func checkUSBEmulation() string {
 	if err := osutil.IsAccessible("/dev/raw-gadget"); err != nil {
+		return err.Error()
+	}
+	return ""
+}
+
+func checkVhciInjection() string {
+	if err := osutil.IsAccessible("/dev/vhci"); err != nil {
 		return err.Error()
 	}
 	return ""

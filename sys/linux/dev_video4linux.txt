@@ -273,6 +273,8 @@ type v4l2_requestbuffers[BUF_TYPE] {
 	reserved	const[0, int32]
 }
 
+# TODO: The field directions needs to be defined. Recursively, v4l2_buffer_union,
+# v4l2_plane, v4l2_plane_union needs checking.
 type v4l2_buffer[BUF_TYPE] {
 	index		int32
 	type		flags[BUF_TYPE, int32]
@@ -343,6 +345,8 @@ type v4l2_exportbuffer[BUF_TYPE] {
 	index		int32
 	plane		int32
 	flags		flags[pipe_flags, int32]
+# TODO: This should've been out, look into the problem. Otherwise, the resource is
+# never used.
 	fd		fd_dmabuf[opt]
 	reserved	array[const[0, int32], 11]
 }
@@ -499,7 +503,7 @@ v4l2_ext_controls {
 	ctrl_class	flags[v4l2_ext_ctrl_class, int32]
 	count		int32
 	error_idx	int32
-	request_fd	fd[opt]
+	request_fd	fd[opt]	(in)
 	reserved	const[0, int32]
 	controls	ptr[inout, v4l2_ext_control]
 }

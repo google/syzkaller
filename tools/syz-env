@@ -64,6 +64,9 @@ docker run \
 	--env FUZZIT_API_KEY \
 	--env GITHUB_REF \
 	--env GITHUB_SHA \
+	--env GITHUB_PR_HEAD_SHA \
+	--env GITHUB_PR_BASE_SHA \
+	--env GITHUB_PR_COMMITS \
 	--env CI \
 	${DOCKERARGS[@]} \
 	gcr.io/syzkaller/${IMAGE} -c "$COMMAND"

@@ -3,6 +3,4 @@
 
 include <uapi/linux/fcntl.h>
 
-resource fd_sr[fd_block]
-
-openat$sr(fd const[AT_FDCWD], file ptr[in, string["/dev/sr0"]], flags flags[open_flags], mode const[0]) fd_sr
+openat$sr(fd const[AT_FDCWD], file ptr[in, string["/dev/sr0"]], flags flags[open_flags], mode const[0]) fd

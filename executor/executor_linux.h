@@ -91,11 +91,50 @@ static intptr_t execute_syscall(const call_t* c, intptr_t a[kMaxArgs])
 	return res;
 }
 
+static void dump_dir(const char* path)
+{
+	DIR* dir = opendir(path);
+	struct dirent* d = NULL;
+	if (!dir)
+		return;
+	fprintf(stderr, "Index of %s\n", path);
+	while ((d = readdir(dir)) != NULL)
+		fprintf(stderr, "  %s\n", d->d_name);
+	closedir(dir);
+}
+
 static void cover_open(cover_t* cov, bool extra)
 {
 	int fd = open("/sys/kernel/debug/kcov", O_RDWR);
-	if (fd == -1)
+	if (fd == -1) {
+		const int err = errno;
+		dump_dir("/");
+		dump_dir("/proc/");
+		dump_dir("/sys/");
+		if (mount("/proc/", "/proc/", "proc", 0, NULL))
+			fprintf(stderr, "Can't mount proc on /proc/\n");
+		if (chdir("/sys/"))
+			fprintf(stderr, "/sys/ does not exist.\n");
+		else if (chdir("/sys/kernel/"))
+			fprintf(stderr, "/sys/kernel/ does not exist.\n");
+		else if (chdir("/sys/kernel/debug/"))
+			fprintf(stderr, "/sys/kernel/debug/ does not exist.\n");
+		fd = open("/proc/mounts", O_RDONLY);
+		if (fd == -1) {
+			fprintf(stderr, "open of /proc/mounts failed.\n");
+			if (chdir("/proc/"))
+				fprintf(stderr, "/proc/ does not exist.\n");
+		} else {
+			static char buffer[4096];
+			int len;
+			fprintf(stderr, "Content of /proc/mounts\n");
+			while ((len = read(fd, buffer, sizeof(buffer))) > 0)
+				fwrite(buffer, 1, len, stderr);
+			close(fd);
+		}
+		errno = err;
 		fail("open of /sys/kernel/debug/kcov failed");
+	}
 	if (dup2(fd, cov->fd) < 0)
 		fail("filed to dup2(%d, %d) cover fd", fd, cov->fd);
 	close(fd);

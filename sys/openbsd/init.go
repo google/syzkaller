@@ -14,6 +14,7 @@ import (
 func InitTarget(target *prog.Target) {
 	arch := &arch{
 		unix:             targets.MakeUnixNeutralizer(target),
+		CLOCK_REALTIME:   target.GetConst("CLOCK_REALTIME"),
 		CTL_KERN:         target.GetConst("CTL_KERN"),
 		DIOCCLRSTATES:    target.GetConst("DIOCCLRSTATES"),
 		DIOCKILLSTATES:   target.GetConst("DIOCKILLSTATES"),
@@ -32,6 +33,7 @@ func InitTarget(target *prog.Target) {
 
 type arch struct {
 	unix             *targets.UnixNeutralizer
+	CLOCK_REALTIME   uint64
 	CTL_KERN         uint64
 	DIOCCLRSTATES    uint64
 	DIOCKILLSTATES   uint64
@@ -98,6 +100,8 @@ func (arch *arch) neutralize(c *prog.Call) {
 		for _, f := range badflags {
 			flags.Val &= ^f
 		}
+	case "clock_settime":
+		arch.neutralizeClockSettime(c)
 	case "ioctl":
 		// Performing the following ioctl commands on a /dev/pf file
 		// descriptor causes the ssh VM connection to die. For now, just
@@ -142,6 +146,17 @@ func (arch *arch) neutralize(c *prog.Call) {
 		arch.neutralizeSysctl(c)
 	default:
 		arch.unix.Neutralize(c)
+	}
+}
+
+func (arch *arch) neutralizeClockSettime(c *prog.Call) {
+	switch v := c.Args[0].(type) {
+	case *prog.ConstArg:
+		// Do not fiddle with the wall clock, one of the causes of "no
+		// output from test machine" reports.
+		if v.Val == arch.CLOCK_REALTIME {
+			v.Val = ^uint64(0)
+		}
 	}
 }
 

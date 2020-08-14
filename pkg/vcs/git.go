@@ -196,8 +196,8 @@ func gitParseCommit(output, user, domain []byte, ignoreCC map[string]bool) (*Com
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse date in git log output: %v\n%q", err, output)
 	}
-	cc := make(map[string]bool)
-	cc[strings.ToLower(string(lines[2]))] = true
+	recipients := make(map[string]bool)
+	recipients[strings.ToLower(string(lines[2]))] = true
 	var tags []string
 	// Use summary line + all description lines.
 	for _, line := range append([][]byte{lines[1]}, lines[6:]...) {
@@ -235,15 +235,15 @@ func gitParseCommit(output, user, domain []byte, ignoreCC map[string]bool) (*Com
 			if ignoreCC[email] {
 				continue
 			}
-			cc[email] = true
+			recipients[email] = true
 			break
 		}
 	}
-	sortedCC := make([]string, 0, len(cc))
-	for addr := range cc {
-		sortedCC = append(sortedCC, addr)
+	sortedRecipients := make(Recipients, 0, len(recipients))
+	for addr := range recipients {
+		sortedRecipients = append(sortedRecipients, RecipientInfo{mail.Address{Address: addr}, To})
 	}
-	sort.Strings(sortedCC)
+	sort.Sort(sortedRecipients)
 	parents := strings.Split(string(lines[5]), " ")
 	com := &Commit{
 		Hash:       string(lines[0]),
@@ -251,7 +251,7 @@ func gitParseCommit(output, user, domain []byte, ignoreCC map[string]bool) (*Com
 		Author:     string(lines[2]),
 		AuthorName: string(lines[3]),
 		Parents:    parents,
-		CC:         sortedCC,
+		Recipients: sortedRecipients,
 		Tags:       tags,
 		Date:       date,
 	}

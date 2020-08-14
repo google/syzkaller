@@ -305,9 +305,9 @@ kvm_device_attr {
 }
 
 kvm_create_device {
-	type	flags[kvm_device_type, int32]
-	fd	fd_kvmdev[opt]
-	flags	flags[kvm_device_flags, int32]
+	type	flags[kvm_device_type, int32]	(in)
+	fd	fd_kvmdev	(out)
+	flags	flags[kvm_device_flags, int32]	(in)
 }
 
 kvm_s390_interrupt {

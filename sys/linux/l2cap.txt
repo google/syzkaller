@@ -7,7 +7,7 @@ include <net/bluetooth/l2cap.h>
 
 l2cap_hdr_un [
 	l2cap_cid_signaling	l2cap_hdr_t[L2CAP_CID_SIGNALING, array[l2cap_cid_signaling_un]]
-	l2cap_cid_le_signaling	l2cap_hdr_t[L2CAP_CID_LE_SIGNALING, array[l2cap_cid_le_signaling_un]]
+	l2cap_cid_le_signaling	l2cap_hdr_t[L2CAP_CID_LE_SIGNALING, l2cap_cid_le_signaling_un]
 ] [varlen]
 
 l2cap_cid_signaling_un [
@@ -68,17 +68,56 @@ l2cap_cmd_rej_unk {
 	reason	int16
 } [packed]
 
+l2cap_conf_rfc {
+	mode		flags[l2cap_rfc_mode, int8]
+	txwin_size	int8
+	max_transmit	int8
+	retrans_timeout	int16
+	monitor_timeout	int16
+	max_pdu_size	int16
+} [packed]
+
+l2cap_rfc_mode = L2CAP_MODE_BASIC, L2CAP_MODE_RETRANS, L2CAP_MODE_FLOWCTL, L2CAP_MODE_ERTM, L2CAP_MODE_STREAMING
+
+l2cap_conf_efs {
+	id		int8
+	stype		flags[l2cap_serv_type, int8]
+	msdu		int16
+	sdu_itime	int32
+	acc_lat		int32
+	flush_to	int32
+} [packed]
+
+l2cap_serv_type = L2CAP_SERV_NOTRAFIC, L2CAP_SERV_BESTEFFORT, L2CAP_SERV_GUARANTEED
+
+type l2cap_conf_opt[TYPE, VAL] {
+	type	const[TYPE, int8]
+	len	bytesize[val, int8]
+	val	VAL
+} [packed]
+
+l2cap_conf_opt_un [
+	l2cap_conf_rfc		l2cap_conf_opt[L2CAP_CONF_RFC, l2cap_conf_rfc]
+	l2cap_conf_efs		l2cap_conf_opt[L2CAP_CONF_EFS, l2cap_conf_efs]
+	l2cap_conf_mtu		l2cap_conf_opt[L2CAP_CONF_MTU, int16]
+	l2cap_conf_flushto	l2cap_conf_opt[L2CAP_CONF_FLUSH_TO, int16]
+	l2cap_conf_fcs		l2cap_conf_opt[L2CAP_CONF_FCS, flags[l2cap_fcs_type, int8]]
+	l2cap_conf_ews		l2cap_conf_opt[L2CAP_CONF_EWS, int16]
+] [varlen]
+
+l2cap_fcs_type = L2CAP_FCS_NONE, L2CAP_FCS_CRC16
+
 l2cap_conf_req {
 	dcid	int16
 	flags	int16
-	data	array[int8]
+	data	array[l2cap_conf_opt_un]
 } [packed]
 
 l2cap_conf_rsp {
 	scid	int16
 	flags	int16
 	result	int16
-	data	array[int8]
+	data	array[l2cap_conf_opt_un]
 } [packed]
 
 l2cap_conn_param_update_req {

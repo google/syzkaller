@@ -6,6 +6,26 @@ mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/ope
 
 Newer bugs comes first.
 
+- [wsmux(4): use-after-free](https://marc.info/?l=openbsd-cvs&m=159600205025410&w=2)
+
+- [pty(4): machine lockup due to expensive retyping](https://marc.info/?l=openbsd-cvs&m=159473720602522&w=2)
+
+- [sysctl(2): lenient validation of `net.inet.tcp.synbucketlimit`](https://marc.info/?l=openbsd-cvs&m=159249199005451&w=2)
+
+- [tty(4): infinite sleep during close](https://marc.info/?l=openbsd-cvs&m=158892312627663&w=2)
+
+- [inet6(4): lenient validation in `ip6_pullexthdr()`](https://marc.info/?l=openbsd-cvs&m=158874895026819&w=2)
+
+- [inet6(4): mutating static routes](https://marc.info/?l=openbsd-cvs&m=158754155106430&w=2)
+
+- [pf(4): lenient validation in `pf_rulecopyin()`](https://marc.info/?l=openbsd-cvs&m=158733548829486&w=2)
+
+- [sosplice(9): socket lock already held](https://marc.info/?l=openbsd-cvs&m=158670814206616&w=2)
+
+- [vmm(4): out-of-bounds read](https://marc.info/?l=openbsd-cvs&m=158548168627386&w=2)
+
+- [VOP_LOCK(9): too strict lockcount assertion](https://marc.info/?l=openbsd-cvs&m=158529591303747&w=2)
+
 - [wsmux(4): use-after-free](https://marc.info/?l=openbsd-cvs&m=158503642507991&w=2)
 
 - [sosplice(9): unbound recursion](https://marc.info/?l=openbsd-cvs&m=158396530407996&w=2)

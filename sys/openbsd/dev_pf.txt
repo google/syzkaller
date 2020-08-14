@@ -10,9 +10,6 @@ include <net/if.h>
 include <net/pfvar.h>
 
 # The following ioctl commands are restricted in neutralize(), see init.go.
-_ = DIOCCLRSTATES
-_ = DIOCKILLSTATES
+_ = DIOCCLRSTATES, DIOCKILLSTATES
 
-resource fd_pf[fd]
-
-openat$pf(fd const[AT_FDCWD], file ptr[in, string["/dev/pf"]], flags flags[open_flags], mode const[0]) fd_pf
+openat$pf(fd const[AT_FDCWD], file ptr[in, string["/dev/pf"]], flags flags[open_flags], mode const[0]) fd

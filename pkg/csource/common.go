@@ -52,7 +52,7 @@ func createCommonHeader(p, mmapProg *prog.Prog, replacements map[string]string, 
 	}
 
 	for from, to := range replacements {
-		src = bytes.Replace(src, []byte("/*"+from+"*/"), []byte(to), -1)
+		src = bytes.Replace(src, []byte("/*{{{"+from+"}}}*/"), []byte(to), -1)
 	}
 
 	for from, to := range map[string]string{
@@ -113,6 +113,7 @@ func commonDefines(p *prog.Prog, opts Options) map[string]bool {
 		"SYZ_KCSAN":                     opts.KCSAN,
 		"SYZ_DEVLINK_PCI":               opts.DevlinkPCI,
 		"SYZ_USB":                       opts.USB,
+		"SYZ_VHCI_INJECTION":            opts.VhciInjection,
 		"SYZ_USE_TMP_DIR":               opts.UseTmpDir,
 		"SYZ_HANDLE_SEGV":               opts.HandleSegv,
 		"SYZ_REPRO":                     opts.Repro,

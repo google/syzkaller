@@ -16,19 +16,20 @@ include <uapi/rdma/mlx5_user_ioctl_cmds.h>
 # resources
 resource fd_rdma[fd]
 resource pd_handle[int32]
-resource ah_handle[int32]
 resource mr_handle[int32]
 resource mr_rkey[int32]
-resource mr_lkey[int32]
 resource cq_handle[int32]
 resource qp_handle[int32]
-resource qp_number[int32]
 resource mw_handle[int32]
 resource srq_handle[int32]
 resource xrcd_handle[int32]
 resource wq_handle[int32]
 resource ind_tbl_handle[int32]
 resource flow_handle[int32]
+
+type ah_handle int32
+type mr_lkey int32
+type qp_number int32
 
 # defines
 define IB_USER_VERBS_EX_CMD_QUERY_DEVICE	0x80000001
@@ -1330,7 +1331,10 @@ ib_uverbs_create_counters_cmd {
 	flags		flags[ib_uverbs_attr_flags, int16]
 	elem_id		int8
 	reserved2	const[0x0, int8]
+# TODO: reserved3 seems unnecessary: https://elixir.bootlin.com/linux/latest/source/include/uapi/rdma/rdma_user_ioctl_cmds.h#L58
 	reserved3	const[0x0, int16]
+# TODO: Is the following field really optional, or, is opt used as a workaround?
+# Now that we have per-field directions, this can be fixed if it is the second case.
 	vcontext_handle	vcontext_handle[opt]
 	more_data	int32
 }

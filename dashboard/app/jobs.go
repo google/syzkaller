@@ -489,12 +489,15 @@ func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 			return err
 		}
 		for _, com := range req.Commits {
+			cc := email.MergeEmailLists(com.CC,
+				GetEmails(com.Recipients, dashapi.To),
+				GetEmails(com.Recipients, dashapi.Cc))
 			job.Commits = append(job.Commits, Commit{
 				Hash:       com.Hash,
 				Title:      com.Title,
 				Author:     com.Author,
 				AuthorName: com.AuthorName,
-				CC:         strings.Join(sanitizeCC(c, com.CC), "|"),
+				CC:         strings.Join(sanitizeCC(c, cc), "|"),
 				Date:       com.Date,
 			})
 		}

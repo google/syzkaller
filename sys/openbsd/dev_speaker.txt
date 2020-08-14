@@ -11,8 +11,8 @@ resource fd_speaker[fd]
 
 openat$speaker(fd const[AT_FDCWD], file ptr[in, string["/dev/speaker"]], flags flags[open_flags], mode const[0]) fd_speaker
 
-ioctl$SPKRTONE(fd fd_diskmap, cmd const[SPKRTONE], arg ptr[in, tone])
-ioctl$SPKRTUNE(fd fd_diskmap, cmd const[SPKRTUNE], arg ptr[in, tone])
+ioctl$SPKRTONE(fd fd_speaker, cmd const[SPKRTONE], arg ptr[in, tone])
+ioctl$SPKRTUNE(fd fd_speaker, cmd const[SPKRTUNE], arg ptr[in, tone])
 
 tone {
 	frequency	int32

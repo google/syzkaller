@@ -128,6 +128,7 @@ static bool flag_net_reset;
 static bool flag_cgroups;
 static bool flag_close_fds;
 static bool flag_devlink_pci;
+static bool flag_vhci_injection;
 
 static bool flag_collect_cover;
 static bool flag_dedup_cover;
@@ -361,7 +362,7 @@ int main(int argc, char** argv)
 	}
 	if (argc >= 2 && strcmp(argv[1], "setup_kcsan_filterlist") == 0) {
 #if SYZ_HAVE_KCSAN
-		setup_kcsan_filterlist(argv + 2, argc - 2, /*suppress=*/true);
+		setup_kcsan_filterlist(argv + 2, argc - 2, true);
 #else
 		fail("KCSAN is not implemented");
 #endif
@@ -490,6 +491,7 @@ void parse_env_flags(uint64 flags)
 	flag_cgroups = flags & (1 << 9);
 	flag_close_fds = flags & (1 << 10);
 	flag_devlink_pci = flags & (1 << 11);
+	flag_vhci_injection = flags & (1 << 12);
 }
 
 #if SYZ_EXECUTOR_USES_FORK_SERVER
@@ -807,8 +809,8 @@ retry:
 thread_t* schedule_call(int call_index, int call_num, bool colliding, uint64 copyout_index, uint64 num_args, uint64* args, uint64* pos)
 {
 	// Find a spare thread to execute the call.
-	int i;
-	for (i = 0; i < kMaxThreads; i++) {
+	int i = 0;
+	for (; i < kMaxThreads; i++) {
 		thread_t* th = &threads[i];
 		if (!th->created)
 			thread_create(th, i);
@@ -1502,8 +1504,8 @@ void debug_dump_data(const char* data, int length)
 {
 	if (!flag_debug)
 		return;
-	int i;
-	for (i = 0; i < length; i++) {
+	int i = 0;
+	for (; i < length; i++) {
 		debug("%02x ", data[i] & 0xff);
 		if (i % 16 == 15)
 			debug("\n");

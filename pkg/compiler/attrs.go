@@ -23,9 +23,13 @@ var (
 	attrVarlen = &attrDesc{Name: "varlen"}
 	attrSize   = &attrDesc{Name: "size", HasArg: true}
 	attrAlign  = &attrDesc{Name: "align", HasArg: true}
+	attrIn     = &attrDesc{Name: "in"}
+	attrOut    = &attrDesc{Name: "out"}
+	attrInOut  = &attrDesc{Name: "inout"}
 
 	structAttrs = makeAttrs(attrPacked, attrSize, attrAlign)
 	unionAttrs  = makeAttrs(attrVarlen, attrSize)
+	fieldAttrs  = makeAttrs(attrIn, attrOut, attrInOut)
 	callAttrs   = make(map[string]*attrDesc)
 )
 

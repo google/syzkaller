@@ -223,6 +223,7 @@ type Field struct {
 	Pos      Pos
 	Name     *Ident
 	Type     *Type
+	Attrs    []*Type
 	NewBlock bool // separated from previous fields by a new line
 	Comments []*Comment
 }

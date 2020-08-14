@@ -3,11 +3,9 @@
 
 syz_emit_ethernet(len len[packet], packet ptr[in, array[int8]])
 
-resource tcp_seq_num[int32]: 0x41424344
-
 tcp_resources {
-	seq	tcp_seq_num
-	ack	tcp_seq_num
+	seq	int32
+	ack	int32
 }
 
 # These pseudo syscalls read a packet from tap device and extract tcp sequence and acknowledgement numbers from it.

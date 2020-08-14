@@ -1,0 +1,6 @@
+arches = 32_fork_shmem, 32_shmem, 64, 64_fork
+IPPROTO_ICMPV6 = 58
+IPPROTO_TCP = 6
+IPPROTO_UDP = 17
+ONLY_32BITS_CONST = 32_fork_shmem:1, 32_shmem:1
+ARCH_64_SPECIFIC_CONST = 64:10

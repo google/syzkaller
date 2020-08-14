@@ -169,10 +169,9 @@ close(r0)
 ```
 
 Syscall arguments are always `in`, return values are `out` and pointer indirections
-have explicit direction as `ptr` type attribute. Note: for pointer indirections
-the direction applies to the whole pointee, and it's not possible to specify the
-direction individually for struct fields at the moment
-(see [#245](https://github.com/google/syzkaller/issues/245)).
+have explicit direction as `ptr` type attribute. Also, it is possible to specify
+direction attribute individually for struct fields to account for more complex 
+producer/consumer scenarious with structs that include both input/output resources.
 
 <div id="values"/>
 
@@ -220,7 +219,7 @@ includes kernel headers referenced by `include` directives, defines macros as sp
 by `define` directives and prints values of symbolic constants.
 Results are stored in `.const` files, one per arch.
 For example, [sys/linux/dev_ptmx.txt](/sys/linux/dev_ptmx.txt) is translated into
-[sys/linux/dev_ptmx_amd64.const](/sys/linux/dev_ptmx_amd64.const).
+[sys/linux/dev_ptmx.txt.const](/sys/linux/dev_ptmx.txt.const).
 
 The second step is translation of descriptions into Go code using
 [syz-sysgen](/sys/syz-sysgen) utility (the actual compiler code lives in

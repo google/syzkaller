@@ -317,7 +317,7 @@ func parseDescriptions(OS, arch string) ([]prog.Type, map[string]*ast.Struct, []
 	if top == nil {
 		return nil, nil, nil, fmt.Errorf("failed to parse txt files:\n%s", errorBuf.Bytes())
 	}
-	consts := compiler.DeserializeConstsGlob(filepath.Join("sys", OS, "*_"+arch+".const"), eh)
+	consts := compiler.DeserializeConstFile(filepath.Join("sys", OS, "*.const"), eh).Arch(arch)
 	if consts == nil {
 		return nil, nil, nil, fmt.Errorf("failed to parse const files:\n%s", errorBuf.Bytes())
 	}

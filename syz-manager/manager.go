@@ -645,12 +645,12 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 			return true
 		}
 		dc := &dashapi.Crash{
-			BuildID:     mgr.cfg.Tag,
-			Title:       crash.Title,
-			Corrupted:   crash.Corrupted,
-			Maintainers: crash.Maintainers,
-			Log:         crash.Output,
-			Report:      crash.Report.Report,
+			BuildID:    mgr.cfg.Tag,
+			Title:      crash.Title,
+			Corrupted:  crash.Corrupted,
+			Recipients: crash.Recipients.ToDash(),
+			Log:        crash.Output,
+			Report:     crash.Report.Report,
 		}
 		resp, err := mgr.dash.ReportCrash(dc)
 		if err != nil {
@@ -811,14 +811,14 @@ func (mgr *Manager) saveRepro(res *repro.Result, stats *repro.Stats, hub bool) {
 		//    so maybe corrupted report detection is broken.
 		// 3. Reproduction is expensive so it's good to persist the result.
 		dc := &dashapi.Crash{
-			BuildID:     mgr.cfg.Tag,
-			Title:       res.Report.Title,
-			Maintainers: res.Report.Maintainers,
-			Log:         res.Report.Output,
-			Report:      res.Report.Report,
-			ReproOpts:   res.Opts.Serialize(),
-			ReproSyz:    res.Prog.Serialize(),
-			ReproC:      cprogText,
+			BuildID:    mgr.cfg.Tag,
+			Title:      res.Report.Title,
+			Recipients: res.Report.Recipients.ToDash(),
+			Log:        res.Report.Output,
+			Report:     res.Report.Report,
+			ReproOpts:  res.Opts.Serialize(),
+			ReproSyz:   res.Prog.Serialize(),
+			ReproC:     cprogText,
 		}
 		if _, err := mgr.dash.ReportCrash(dc); err != nil {
 			log.Logf(0, "failed to report repro to dashboard: %v", err)

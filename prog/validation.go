@@ -194,7 +194,7 @@ func (arg *GroupArg) validate(ctx *validCtx) error {
 				typ.Name(), len(typ.Fields), len(arg.Inner))
 		}
 		for i, field := range arg.Inner {
-			if err := ctx.validateArg(field, typ.Fields[i].Type, arg.Dir()); err != nil {
+			if err := ctx.validateArg(field, typ.Fields[i].Type, typ.Fields[i].Dir(arg.Dir())); err != nil {
 				return err
 			}
 		}
@@ -223,8 +223,8 @@ func (arg *UnionArg) validate(ctx *validCtx) error {
 	if arg.Index < 0 || arg.Index >= len(typ.Fields) {
 		return fmt.Errorf("union arg %v has bad index %v/%v", arg, arg.Index, len(typ.Fields))
 	}
-	optType := typ.Fields[arg.Index].Type
-	return ctx.validateArg(arg.Option, optType, arg.Dir())
+	opt := typ.Fields[arg.Index]
+	return ctx.validateArg(arg.Option, opt.Type, opt.Dir(arg.Dir()))
 }
 
 func (arg *PointerArg) validate(ctx *validCtx) error {

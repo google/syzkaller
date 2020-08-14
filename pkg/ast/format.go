@@ -113,11 +113,7 @@ func (n *Call) serialize(w io.Writer) {
 		fmt.Fprintf(w, " %v", fmtType(n.Ret))
 	}
 	if len(n.Attrs) != 0 {
-		fmt.Fprintf(w, " (")
-		for i, t := range n.Attrs {
-			fmt.Fprintf(w, "%v%v", comma(i, ""), fmtType(t))
-		}
-		fmt.Fprintf(w, ")")
+		fmt.Fprintf(w, " %v", fmtTypeList(n.Attrs, "(", ")"))
 	}
 	fmt.Fprintf(w, "\n")
 }
@@ -148,13 +144,17 @@ func (n *Struct) serialize(w io.Writer) {
 		for tabs := len(f.Name.Name)/tabWidth + 1; tabs < maxTabs; tabs++ {
 			fmt.Fprintf(w, "\t")
 		}
-		fmt.Fprintf(w, "%v\n", fmtType(f.Type))
+		fmt.Fprintf(w, "%v", fmtType(f.Type))
+		if len(f.Attrs) != 0 {
+			fmt.Fprintf(w, "\t%v", fmtTypeList(f.Attrs, "(", ")"))
+		}
+		fmt.Fprintf(w, "\n")
 	}
 	for _, com := range n.Comments {
 		fmt.Fprintf(w, "#%v\n", com.Text)
 	}
 	fmt.Fprintf(w, "%c", closing)
-	if attrs := fmtTypeList(n.Attrs); attrs != "" {
+	if attrs := fmtTypeList(n.Attrs, "[", "]"); attrs != "" {
 		fmt.Fprintf(w, " %v", attrs)
 	}
 	fmt.Fprintf(w, "\n")
@@ -197,20 +197,20 @@ func fmtType(t *Type) string {
 	for _, c := range t.Colon {
 		v += ":" + fmtType(c)
 	}
-	v += fmtTypeList(t.Args)
+	v += fmtTypeList(t.Args, "[", "]")
 	return v
 }
 
-func fmtTypeList(args []*Type) string {
+func fmtTypeList(args []*Type, opening, closing string) string {
 	if len(args) == 0 {
 		return ""
 	}
 	w := new(bytes.Buffer)
-	fmt.Fprintf(w, "[")
+	fmt.Fprint(w, opening)
 	for i, t := range args {
 		fmt.Fprintf(w, "%v%v", comma(i, ""), fmtType(t))
 	}
-	fmt.Fprintf(w, "]")
+	fmt.Fprint(w, closing)
 	return w.String()
 }
 

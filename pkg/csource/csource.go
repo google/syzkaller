@@ -2,6 +2,25 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // Package csource generates [almost] equivalent C programs from syzkaller programs.
+//
+// Outline of the process:
+// - inputs to the generation are the program and options
+// - options control multiple aspects of the resulting C program,
+//   like if we want a multi-threaded program or a single-threaded,
+//   what type of sandbox we want to use, if we want to setup net devices or not, etc
+// - we use actual executor sources as the base
+// - gen.go takes all executor/common*.h headers and bundles them into generated.go
+// - during generation we tear executor headers apart and take only the bits
+//   we need for the current program/options, this is done by running C preprocessor
+//   with particular set of defines so that the preprocessor removes unneeded
+//   #ifdef SYZ_FOO sections
+// - then we generate actual syscall calls with the given arguments
+//   based on the binary "encodingexec" representation of the program
+//   (the same representation executor uses for interpretation)
+// - then we glue it all together
+// - as the last step we run some text post-processing on the resulting source code:
+//   remove debug calls, replace exitf/fail with exit, hoist/sort/dedup includes,
+//   remove duplicate empty lines, etc
 package csource
 
 import (
@@ -15,6 +34,7 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
+// Write generates C source for program p based on the provided options opt.
 func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	if err := opts.Check(p.Target.OS); err != nil {
 		return nil, fmt.Errorf("csource: invalid opts: %v", err)
@@ -187,9 +207,10 @@ func (ctx *context) generateCalls(p prog.ExecProg, trace bool) ([]string, []uint
 		callName := call.Meta.CallName
 		resCopyout := call.Index != prog.ExecNoCopyout
 		argCopyout := len(call.Copyout) != 0
-		emitCall := ctx.opts.NetInjection ||
+		emitCall := (ctx.opts.NetInjection ||
 			callName != "syz_emit_ethernet" &&
-				callName != "syz_extract_tcp_res"
+				callName != "syz_extract_tcp_res") &&
+			(ctx.opts.VhciInjection || callName != "syz_emit_vhci")
 		// TODO: if we don't emit the call we must also not emit copyin, copyout and fault injection.
 		// However, simply skipping whole iteration breaks tests due to unused static functions.
 		if emitCall {

@@ -3,6 +3,4 @@
 
 include <zircon/syscalls.h>
 
-resource zx_stream[zx_handle]
-
 # TODO: Add stream-related system calls.

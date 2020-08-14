@@ -184,38 +184,3 @@ func TestExecutorMacros(t *testing.T) {
 		}
 	}
 }
-
-func TestExecutorMistakes(t *testing.T) {
-	mistakes := map[string][]string{
-		// We strip debug() calls from the resulting C source,
-		// this breaks the following pattern. Use {} around debug() to fix.
-		"\\)\n\\t*(debug|debug_dump_data)\\(": {
-			`
-if (foo)
-	debug("foo failed");
-`, `
-	if (x + y)
-		debug_dump_data(data, len);
-`,
-		},
-	}
-	for pattern, tests := range mistakes {
-		re := regexp.MustCompile(pattern)
-		for _, test := range tests {
-			if !re.MatchString(test) {
-				t.Errorf("patter %q does not match test %q", pattern, test)
-			}
-		}
-		for _, match := range re.FindAllStringIndex(commonHeader, -1) {
-			start, end := match[0], match[1]
-			for start != 0 && commonHeader[start] != '\n' {
-				start--
-			}
-			for end != len(commonHeader) && commonHeader[end] != '\n' {
-				end++
-			}
-			t.Errorf("pattern %q matches executor source:\n%v",
-				pattern, commonHeader[start:end])
-		}
-	}
-}

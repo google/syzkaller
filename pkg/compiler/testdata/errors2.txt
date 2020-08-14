@@ -11,6 +11,7 @@ resource r2[r1]			### recursive resource r2->r1->r2
 resource r3[int32]		### unused resource r3
 
 foo$0(a0 ptr[out, r0], a1 ptr[out, r1], a2 ptr[out, r2])
+foo$1(a0 r0, a1 r1, a2 r2)
 
 # Recursive structs/unions.
 
@@ -175,9 +176,26 @@ resource r104[int8]
 resource r105[int8]
 resource r106[int8]		### resource r106 can't be created (never mentioned as a syscall return value or output argument/field)
 resource r107[int8]		### resource r107 can't be created (never mentioned as a syscall return value or output argument/field)
+resource r108[int8]		### resource r108 can't be created (never mentioned as a syscall return value or output argument/field)
+resource r109[int8]		### resource r109 can't be created (never mentioned as a syscall return value or output argument/field)
+resource r110[int8]
+resource r111[int8]
+resource r112[int8]		### resource r112 can't be created (never mentioned as a syscall return value or output argument/field)
+resource r113[int8]
+resource r114[int8]
+resource r115[int8]		### resource r115 can't be created (never mentioned as a syscall return value or output argument/field)
+resource r116[int8]		### resource r116 is never used as an input(such resources are not useful)
+resource r117[int8]		### resource r117 is never used as an input(such resources are not useful)
+resource r118[int8]		### resource r118 is never used as an input(such resources are not useful)
+resource r119[int8]		### resource r119 is never used as an input(such resources are not useful)
+resource r120[int8]		### resource r120 can't be created (never mentioned as a syscall return value or output argument/field)
+resource r121[int8]
 
-foo$300(a r100)
-foo$301(a ptr[out, array[r103]], b ptr[in, s300], c r107) r104
+foo$300(a0 r100, a1 r101, a2 r102, a3 r103, a4 r104, a5 r105, a6 r106, a7 r107, a8 r108)
+foo$301(a0 r109, a1 r110, a2 r111, a3 r112, a4 r113, a5 r114, a6 r115, a7 r120, a8 r121)
+foo$302(a ptr[out, array[r103]], b ptr[in, s300], c r107) r104
+foo$303(a ptr[in, s302], b ptr[in, s303], c ptr[in, s304], d ptr[out, s305], e ptr[inout, s306], f ptr[inout, s307], g ptr[in, s308], h ptr[out, s310])
+foo$304(a ptr[out, r117], b ptr[in, s312], c ptr[in, s313], d ptr[inout, u100]) r116
 
 s300 {
 	f1	ptr[inout, s301]
@@ -187,6 +205,75 @@ s300 {
 s301 {
 	f2	r105
 }
+
+s302 {
+	f1	r108
+}
+
+s303 {
+	f1	r109	(in)
+}
+
+# ptr to struct is in, field is out (valid, resource can be created)
+s304 {
+	f1	r110	(out)
+}
+
+# ptr to struct is out, field is in (error, resource can't be created)
+s305 {
+	f1	r111	(in)
+}
+
+# ptr to struct is inout, field is inout (valid, resource can be created)
+s306 {
+	f1	r111	(inout)
+}
+
+# ptr to struct is inout, fields are in (error) and out (valid)
+s307 {
+	f1	r112	(in)
+	f2	r113	(out)
+}
+
+# recurse the out field inside two levels of in ptrs (valid, resource can be created)
+s308 {
+	f1	ptr[in, s309]
+}
+
+s309 {
+	f1	ptr[out, r114]
+}
+
+# recurse the in field inside two levels of out ptrs (error, resource can't be created)
+s310 {
+	f1	ptr[out, s311]
+}
+
+s311 {
+	f1	ptr[in, r115]
+}
+
+# ptr to struct is in, field is out (error, never used as an input)
+s312 {
+	f1	r118	(out)
+}
+
+# recurse the out field inside two levels of in ptrs (error, never used as an input)
+s313 {
+	f1	ptr[in, s314]
+}
+
+s314 {
+	f1	r119	(out)
+}
+
+u100 [
+	f1	r120	(in)
+	f2	r121	(out)
+]
+
+# TODO: Two instances of the same resource might exist in the same structure as
+# both in and out. How common is this and how to handle this?
 
 # Varlen field tests.
 

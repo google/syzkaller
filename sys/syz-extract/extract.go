@@ -101,28 +101,14 @@ func main() {
 	}
 
 	for p := 0; p < runtime.GOMAXPROCS(0); p++ {
-		go func() {
-			for job := range jobC {
-				switch j := job.(type) {
-				case *Arch:
-					infos, err := processArch(extractor, j)
-					j.err = err
-					close(j.done)
-					if j.err == nil {
-						for _, f := range j.files {
-							f.info = infos[filepath.Join("sys", j.target.OS, f.name)]
-							jobC <- f
-						}
-					}
-				case *File:
-					j.consts, j.undeclared, j.err = processFile(extractor, j.arch, j)
-					close(j.done)
-				}
-			}
-		}()
+		go worker(extractor, jobC)
 	}
 
 	failed := false
+	constFiles := make(map[string]*compiler.ConstFile)
+	for _, file := range files {
+		constFiles[file] = compiler.NewConstFile()
+	}
 	for _, arch := range arches {
 		fmt.Printf("generating %v/%v...\n", arch.target.OS, arch.target.Arch)
 		<-arch.done
@@ -138,6 +124,18 @@ func main() {
 				fmt.Printf("%v: %v\n", f.name, f.err)
 				continue
 			}
+			constFiles[f.name].AddArch(f.arch.target.Arch, f.consts, f.undeclared)
+		}
+	}
+	for file, cf := range constFiles {
+		outname := filepath.Join("sys", OS, file+".const")
+		data := cf.Serialize()
+		if len(data) == 0 {
+			os.Remove(outname)
+			continue
+		}
+		if err := osutil.WriteFile(outname, data); err != nil {
+			failf("failed to write output file: %v", err)
 		}
 	}
 
@@ -151,6 +149,26 @@ func main() {
 	}
 	if failed {
 		os.Exit(1)
+	}
+}
+
+func worker(extractor Extractor, jobC chan interface{}) {
+	for job := range jobC {
+		switch j := job.(type) {
+		case *Arch:
+			infos, err := processArch(extractor, j)
+			j.err = err
+			close(j.done)
+			if j.err == nil {
+				for _, f := range j.files {
+					f.info = infos[filepath.Join("sys", j.target.OS, f.name)]
+					jobC <- f
+				}
+			}
+		case *File:
+			j.consts, j.undeclared, j.err = processFile(extractor, j.arch, j)
+			close(j.done)
+		}
 	}
 }
 
@@ -291,21 +309,11 @@ func processArch(extractor Extractor, arch *Arch) (map[string]*compiler.ConstInf
 
 func processFile(extractor Extractor, arch *Arch, file *File) (map[string]uint64, map[string]bool, error) {
 	inname := filepath.Join("sys", arch.target.OS, file.name)
-	outname := strings.TrimSuffix(inname, ".txt") + "_" + arch.target.Arch + ".const"
 	if file.info == nil {
 		return nil, nil, fmt.Errorf("const info for input file %v is missing", inname)
 	}
 	if len(file.info.Consts) == 0 {
-		os.Remove(outname)
 		return nil, nil, nil
 	}
-	consts, undeclared, err := extractor.processFile(arch, file.info)
-	if err != nil {
-		return nil, nil, err
-	}
-	data := compiler.SerializeConsts(consts, undeclared)
-	if err := osutil.WriteFile(outname, data); err != nil {
-		return nil, nil, fmt.Errorf("failed to write output file: %v", err)
-	}
-	return consts, undeclared, nil
+	return extractor.processFile(arch, file.info)
 }

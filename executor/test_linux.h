@@ -96,13 +96,13 @@ static int test_kvm()
 	printf("host kernel version %u\n", ver);
 
 	// TODO: test VM mode.
-	//const char text16_vm[] = "\x48\xc7\xc3\xde\xc0\xad\x0b\x90\x90\x48\xc7\xc0\xef\xcd\xab\x00\xf4";
-	//if (res = test_one(64, text16_vm, sizeof(text16_vm) - 1, KVM_SETUP_VM, KVM_EXIT_HLT, true))
+	// const char text16_vm[] = "\x48\xc7\xc3\xde\xc0\xad\x0b\x90\x90\x48\xc7\xc0\xef\xcd\xab\x00\xf4";
+	// if (res = test_one(64, text16_vm, sizeof(text16_vm) - 1, KVM_SETUP_VM, KVM_EXIT_HLT, true))
 	//	return res;
 
-	/// TODO: test code executed in interrupt handlers.
-	//const char text32_div0[] = "\x31\xc0\xf7\xf0";
-	//if (res = test_one(32, text32_div0, sizeof(text32_div0)-1, 0, KVM_EXIT_HLT, true))
+	// TODO: test code executed in interrupt handlers.
+	// const char text32_div0[] = "\x31\xc0\xf7\xf0";
+	// if (res = test_one(32, text32_div0, sizeof(text32_div0)-1, 0, KVM_EXIT_HLT, true))
 	//	return res;
 
 	const char text8[] = "\x66\xb8\xde\xc0\xad\x0b";
@@ -147,7 +147,7 @@ static int test_kvm()
 		if ((res = test_one(8, text8_smm, sizeof(text8_smm) - 1, KVM_SETUP_SMM | KVM_SETUP_PROTECTED, KVM_EXIT_HLT, true)))
 			return res;
 
-		//const char text32_smm[] = "\xb8\xde\xc0\xad\x0b";
+		// const char text32_smm[] = "\xb8\xde\xc0\xad\x0b";
 		if ((res = test_one(32, text8_smm, sizeof(text8_smm) - 1, KVM_SETUP_SMM, KVM_EXIT_HLT, true)))
 			return res;
 

@@ -102,7 +102,7 @@ endif
 	bin/syz-extract bin/syz-fmt \
 	extract generate generate_go generate_sys \
 	format format_go format_cpp format_sys \
-	tidy test test_race check_copyright check_language check_links check_diff \
+	tidy test test_race check_copyright check_language check_links check_diff check_commits \
 	presubmit presubmit_parallel clean
 
 all: host target
@@ -251,8 +251,10 @@ bin/syz-fmt:
 
 tidy:
 	# A single check is enabled for now. But it's always fixable and proved to be useful.
-	clang-tidy -quiet -header-filter=.* -checks=-*,misc-definitions-in-headers -warnings-as-errors=* \
+	clang-tidy -quiet -header-filter=.* -warnings-as-errors=* \
 		-extra-arg=-DGOOS_$(TARGETOS)=1 -extra-arg=-DGOARCH_$(TARGETARCH)=1 \
+		-extra-arg=-DHOSTGOOS_$(HOSTOS)=1 -extra-arg=-DGIT_REVISION=\"$(REV)\" \
+		-checks=-*,misc-definitions-in-headers,bugprone-macro-parentheses,clang-analyzer-*,-clang-analyzer-security.insecureAPI*,-clang-analyzer-optin.performance* \
 		executor/*.cc
 
 lint:
@@ -268,7 +270,7 @@ presubmit:
 
 presubmit_smoke:
 	$(MAKE) generate
-	$(MAKE) -j100 check_diff check_copyright check_language check_links presubmit_build
+	$(MAKE) -j100 check_commits check_diff check_copyright check_language check_links presubmit_build tidy
 	$(MAKE) test
 
 presubmit_build:
@@ -336,6 +338,7 @@ install_prerequisites:
 	sudo apt-get install -y -q g++-mips64el-linux-gnuabi64 || true
 	sudo apt-get install -y -q g++-s390x-linux-gnu || true
 	sudo apt-get install -y -q g++-riscv64-linux-gnu || true
+	sudo apt-get install -y -q clang-tidy || true
 	sudo apt-get install -y -q clang clang-format ragel
 	GO111MODULE=off go get -u golang.org/x/tools/cmd/goyacc
 
@@ -344,6 +347,9 @@ check_copyright:
 
 check_language:
 	./tools/check-language.sh
+
+check_commits:
+	./tools/check-commits.sh
 
 check_links:
 	python ./tools/check_links.py $$(pwd) $$(ls ./*.md; find ./docs/ -name '*.md')

@@ -176,19 +176,17 @@ static int test_csum_inet_acc()
 {
 	uint8 buffer[128];
 
-	int test;
-	for (test = 0; test < 256; test++) {
+	for (int test = 0; test < 256; test++) {
 		int size = rand_int_range(1, 128);
 		int step = rand_int_range(1, 8) * 2;
 
-		int i;
-		for (i = 0; i < size; i++)
+		for (int i = 0; i < size; i++)
 			buffer[i] = rand_int_range(0, 255);
 
 		struct csum_inet csum_acc;
 		csum_inet_init(&csum_acc);
 
-		for (i = 0; i < size / step; i++)
+		for (int i = 0; i < size / step; i++)
 			csum_inet_update(&csum_acc, &buffer[i * step], step);
 		if (size % step != 0)
 			csum_inet_update(&csum_acc, &buffer[size - size % step], size % step);

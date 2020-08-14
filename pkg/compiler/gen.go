@@ -441,10 +441,28 @@ func (comp *compiler) genFieldArray(fields []*ast.Field, argSizes []uint64) []pr
 	return res
 }
 
+func (comp *compiler) genFieldDir(f *ast.Field) (prog.Dir, bool) {
+	attrs := comp.parseAttrs(fieldAttrs, f, f.Attrs)
+	switch {
+	case attrs[attrIn] != 0:
+		return prog.DirIn, true
+	case attrs[attrOut] != 0:
+		return prog.DirOut, true
+	case attrs[attrInOut] != 0:
+		return prog.DirInOut, true
+	default:
+		return prog.DirIn, false
+	}
+}
+
 func (comp *compiler) genField(f *ast.Field, argSize uint64) prog.Field {
+	dir, hasDir := comp.genFieldDir(f)
+
 	return prog.Field{
-		Name: f.Name.Name,
-		Type: comp.genType(f.Type, argSize),
+		Name:         f.Name.Name,
+		Type:         comp.genType(f.Type, argSize),
+		HasDirection: hasDir,
+		Direction:    dir,
 	}
 }
 

@@ -10,14 +10,12 @@ include <uapi/linux/btf.h>
 
 resource fd_bpf_map[fd]: BPF_PSEUDO_MAP_FD
 resource fd_bpf_prog[fd]
-resource fd_rawtp[fd_perf_base]
 resource fd_btf[fd]
 resource bpf_prog_id[int32]: 0, -1
 resource bpf_map_id[int32]: 0, -1
 resource bpf_btf_id[int32]: 0, -1
 resource bpf_link_id[int32]: 0, -1
 resource fd_bpf_link[fd]
-resource fd_bpf_iter[fd]
 
 # NEED: this is a random index in btf_header:types. We can't express this, so we just use a small index.
 type btf_type_id int32[1:5]
@@ -50,7 +48,7 @@ bpf$BPF_GET_PROG_INFO(cmd const[BPF_OBJ_GET_INFO_BY_FD], arg ptr[in, bpf_get_pro
 bpf$BPF_GET_MAP_INFO(cmd const[BPF_OBJ_GET_INFO_BY_FD], arg ptr[in, bpf_get_map_info_arg], size len[arg])
 bpf$BPF_GET_BTF_INFO(cmd const[BPF_OBJ_GET_INFO_BY_FD], arg ptr[in, bpf_get_btf_info_arg], size len[arg])
 bpf$BPF_PROG_QUERY(cmd const[BPF_PROG_QUERY], arg ptr[in, bpf_prog_query], size len[arg])
-bpf$BPF_RAW_TRACEPOINT_OPEN(cmd const[BPF_RAW_TRACEPOINT_OPEN], arg ptr[in, bpf_raw_tracepoint], size len[arg]) fd_rawtp
+bpf$BPF_RAW_TRACEPOINT_OPEN(cmd const[BPF_RAW_TRACEPOINT_OPEN], arg ptr[in, bpf_raw_tracepoint], size len[arg]) fd_perf_base (timeout[500])
 bpf$BPF_BTF_LOAD(cmd const[BPF_BTF_LOAD], arg ptr[in, bpf_btf_load], size len[arg]) fd_btf
 bpf$BPF_BTF_GET_FD_BY_ID(cmd const[BPF_BTF_GET_FD_BY_ID], arg ptr[in, bpf_btf_id], size len[arg]) fd_btf
 bpf$BPF_TASK_FD_QUERY(cmd const[BPF_TASK_FD_QUERY], arg ptr[inout, bpf_task_fd_query], size len[arg])
@@ -63,7 +61,7 @@ bpf$BPF_MAP_LOOKUP_AND_DELETE_BATCH(cmd const[BPF_MAP_LOOKUP_AND_DELETE_BATCH], 
 bpf$BPF_LINK_CREATE(cmd const[BPF_LINK_CREATE], arg ptr[in, bpf_link_create_arg], size len[arg]) fd_bpf_link
 bpf$BPF_LINK_UPDATE(cmd const[BPF_LINK_UPDATE], arg ptr[in, bpf_link_update_arg], size len[arg])
 bpf$ENABLE_STATS(cmd const[BPF_ENABLE_STATS], arg ptr[in, bpf_enable_stats_arg], size len[arg])
-bpf$ITER_CREATE(cmd const[BPF_ITER_CREATE], arg ptr[in, bpf_iter_create_arg], size len[arg]) fd_bpf_iter
+bpf$ITER_CREATE(cmd const[BPF_ITER_CREATE], arg ptr[in, bpf_iter_create_arg], size len[arg]) fd
 bpf$LINK_GET_FD_BY_ID(cmd const[BPF_LINK_GET_FD_BY_ID], arg ptr[in, bpf_link_id], size len[arg]) fd_bpf_link
 bpf$LINK_GET_NEXT_ID(cmd const[BPF_LINK_GET_NEXT_ID], arg ptr[inout, bpf_link_get_next_id_arg], size len[arg])
 
@@ -164,8 +162,8 @@ bpf_batch_flags = BPF_F_LOCK
 define BPF_LINE_INFO_SIZE	sizeof(struct bpf_line_info)
 define BPF_FUNC_INFO_SIZE	sizeof(struct bpf_func_info)
 
-bpf_prog {
-	type			flags[bpf_prog_type, int32]
+type bpf_prog_t[TYPE, ATTACH_TYPE, BTF_ID, PROG_FD] {
+	type			TYPE
 	ninsn			bytesize8[insns, int32]
 	insns			ptr64[in, bpf_instructions]
 	license			ptr64[in, string[bpf_licenses]]
@@ -176,7 +174,7 @@ bpf_prog {
 	flags			flags[bpf_prog_load_flags, int32]
 	prog_name		array[const[0, int8], BPF_OBJ_NAME_LEN]
 	prog_ifindex		ifindex[opt]
-	expected_attach_type	flags[bpf_attach_type, int32]
+	expected_attach_type	ATTACH_TYPE
 	btf_fd			fd_btf[opt]
 	func_info_rec_size	const[BPF_FUNC_INFO_SIZE, int32]
 	func_info		ptr64[in, bpf_func_info]
@@ -184,9 +182,11 @@ bpf_prog {
 	line_info_rec_size	const[BPF_LINE_INFO_SIZE, int32]
 	line_info		ptr64[in, bpf_line_info]
 	line_info_cnt		len[line_info, int32]
-	attach_btf_id		bpf_btf_id[opt]
-	attach_prog_fd		fd_bpf_prog[opt]
+	attach_btf_id		BTF_ID
+	attach_prog_fd		PROG_FD
 }
+
+type bpf_prog bpf_prog_t[flags[bpf_prog_type, int32], flags[bpf_attach_type, int32], bpf_btf_id[opt], fd_bpf_prog[opt]]
 
 bpf_licenses = "GPL", "syzkaller"
 bpf_kern_version = 0x40f00, 0x41000, 0x41100
@@ -444,31 +444,23 @@ bpf_test_prog_arg {
 }
 
 bpf_prog_get_next_id_arg {
-# NEED: part of fields are input here and part are output. We can't express this yet (#245).
-	start	int32
-# Output field:
-	next_id	bpf_prog_id
+	start	int32	(in)
+	next_id	bpf_prog_id	(out)
 }
 
 bpf_map_get_next_id_arg {
-# NEED: part of fields are input here and part are output. We can't express this yet (#245).
-	start	int32
-# Output field:
-	next_id	bpf_map_id
+	start	int32	(in)
+	next_id	bpf_map_id	(out)
 }
 
 bpf_btf_get_next_id_arg {
-# NEED: part of fields are input here and part are output. We can't express this yet (#245).
-	start	int32
-# Output field:
-	next_id	bpf_btf_id
+	start	int32	(in)
+	next_id	bpf_btf_id	(out)
 }
 
 bpf_link_get_next_id_arg {
-# NEED: part of fields are input here and part are output. We can't express this yet (#245).
-	start	int32
-# Output field:
-	next_id	bpf_link_id[opt]
+	start	int32	(in)
+	next_id	bpf_link_id	(out)
 }
 
 bpf_prog_get_fd_by_id_arg {
@@ -535,15 +527,15 @@ bpf_map_info {
 } [align[8]]
 
 bpf_get_btf_info_arg {
-	btf	fd_btf
-	len	len[info, int32]
+	btf	fd_btf	(in)
+	len	len[info, int32]	(in)
 	info	ptr64[inout, bpf_btf_info]
 }
 
 bpf_btf_info {
 	btf		ptr64[out, array[int8]]
 	btf_size	bytesize[btf, int32]
-	id		bpf_btf_id[opt]
+	id		bpf_btf_id	(out)
 } [align[8]]
 
 bpf_prog_query {
@@ -736,17 +728,15 @@ bpf_btf_strings {
 bpf_btf_strings_elem = 'a', '0', '_', '.', 0
 
 bpf_task_fd_query {
-# NEED: part of fields are input here and part are output. We can't express this yet (#245).
-	pid		pid
-	fd		fd_perf_base
-	flags		const[0, int32]
-	buf_len		bytesize[buf, int32]
-	buf		ptr64[in, string]
-# These are output fields:
-	prog_id		bpf_prog_id[opt]
-	fd_type		const[0, int32]
-	probe_offset	const[0, int64]
-	probe_addr	const[0, int64]
+	pid		pid	(in)
+	fd		fd_perf_base	(in)
+	flags		const[0, int32]	(in)
+	buf_len		bytesize[buf, int32]	(in)
+	buf		ptr64[in, string]	(in)
+	prog_id		bpf_prog_id	(out)
+	fd_type		int32	(out)
+	probe_offset	int64	(out)
+	probe_addr	int64	(out)
 }
 
 bpf_map_type = BPF_MAP_TYPE_HASH, BPF_MAP_TYPE_ARRAY, BPF_MAP_TYPE_PROG_ARRAY, BPF_MAP_TYPE_PERF_EVENT_ARRAY, BPF_MAP_TYPE_STACK_TRACE, BPF_MAP_TYPE_CGROUP_ARRAY, BPF_MAP_TYPE_PERCPU_HASH, BPF_MAP_TYPE_PERCPU_ARRAY, BPF_MAP_TYPE_LRU_HASH, BPF_MAP_TYPE_LRU_PERCPU_HASH, BPF_MAP_TYPE_LPM_TRIE, BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_DEVMAP, BPF_MAP_TYPE_SOCKMAP, BPF_MAP_TYPE_CPUMAP, BPF_MAP_TYPE_XSKMAP, BPF_MAP_TYPE_SOCKHASH, BPF_MAP_TYPE_CGROUP_STORAGE, BPF_MAP_TYPE_REUSEPORT_SOCKARRAY, BPF_MAP_TYPE_PERCPU_CGROUP_STORAGE, BPF_MAP_TYPE_QUEUE, BPF_MAP_TYPE_STACK, BPF_MAP_TYPE_SK_STORAGE, BPF_MAP_TYPE_DEVMAP_HASH, BPF_MAP_TYPE_STRUCT_OPS, BPF_MAP_TYPE_RINGBUF

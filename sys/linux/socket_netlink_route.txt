@@ -17,6 +17,7 @@ include <uapi/linux/netconf.h>
 include <uapi/linux/rtnetlink.h>
 include <uapi/linux/lwtunnel.h>
 include <uapi/linux/neighbour.h>
+include <uapi/linux/nexthop.h>
 include <uapi/linux/fib_rules.h>
 include <uapi/linux/if_tunnel.h>
 include <uapi/linux/net_namespace.h>
@@ -56,6 +57,9 @@ netlink_msg_route [
 	newlinkprop		netlink_msg[RTM_NEWLINKPROP, ifinfomsg[AF_UNSPEC], ifla_policy]
 #	RTM_GETLINKPROP is currently not used by the kernel.
 	dellinkprop		netlink_msg[RTM_DELLINKPROP, ifinfomsg[AF_UNSPEC], ifla_policy]
+	newnexthop		netlink_msg[RTM_NEWNEXTHOP, nhmsg_new[AF_UNSPEC], rtm_nh_policy_new]
+	delnexthop		netlink_msg[RTM_DELNEXTHOP, nhmsg_get_del[AF_UNSPEC], rtm_nh_policy_del]
+	getnexthop		netlink_msg[RTM_GETNEXTHOP, nhmsg_get_del[AF_UNSPEC], rtm_nh_policy_get]
 
 	ipv4_newaddr		netlink_msg[RTM_NEWADDR, ifaddrmsg[AF_INET], ifa_ipv4_policy]
 	ipv4_deladdr		netlink_msg[RTM_DELADDR, ifaddrmsg[AF_INET], ifa_ipv4_policy]
@@ -67,6 +71,8 @@ netlink_msg_route [
 	ipv4_newrule		netlink_msg[RTM_NEWRULE, fib_rule_hdr[AF_INET], fib4_rule_policy]
 	ipv4_delrule		netlink_msg[RTM_DELRULE, fib_rule_hdr[AF_INET], fib4_rule_policy]
 	ipv4_getrule		netlink_msg[RTM_GETRULE, fib_rule_hdr[AF_INET], void]
+	ipv4_newnexthop		netlink_msg[RTM_NEWNEXTHOP, nhmsg_new[AF_INET], rtm_nh_policy_new]
+	ipv4_getnexthop		netlink_msg[RTM_GETNEXTHOP, nhmsg_get_del[AF_INET], rtm_nh_policy_get]
 
 	ipv6_newaddr		netlink_msg[RTM_NEWADDR, ifaddrmsg[AF_INET6], ifa_ipv6_policy]
 	ipv6_deladdr		netlink_msg[RTM_DELADDR, ifaddrmsg[AF_INET6], ifa_ipv6_policy]
@@ -83,6 +89,8 @@ netlink_msg_route [
 	ipv6_newaddrlabel	netlink_msg[RTM_NEWADDRLABEL, ifaddrlblmsg[AF_INET6], ifal_policy]
 	ipv6_deladdrlabel	netlink_msg[RTM_DELADDRLABEL, ifaddrlblmsg[AF_INET6], ifal_policy]
 	ipv6_getaddrlabel	netlink_msg[RTM_GETADDRLABEL, ifaddrlblmsg[AF_INET6], ifal_policy]
+	ipv6_newnexthop		netlink_msg[RTM_NEWNEXTHOP, nhmsg_new[AF_INET6], rtm_nh_policy_new]
+	ipv6_getnexthop		netlink_msg[RTM_GETNEXTHOP, nhmsg_get_del[AF_INET6], rtm_nh_policy_get]
 
 	ipmr_newroute		netlink_msg[RTM_NEWROUTE, rtmsg[RTNL_FAMILY_IPMR], rtm_ipv4_policy]
 	ipmr_delroute		netlink_msg[RTM_DELROUTE, rtmsg[RTNL_FAMILY_IPMR], rtm_ipv4_policy]
@@ -194,6 +202,17 @@ type if_stats_msg[FAMILY] {
 	pad2		const[0, int16]
 	ifindex		ifindex
 	filter_mask	flags[filter_mask, int32]
+}
+
+type nhmsg_get_del[FAMILY] nhmsg[FAMILY, const[0, int8], const[0, int32]]
+type nhmsg_new[FAMILY] nhmsg[FAMILY, flags[rtm_protocol, int8], flags[rtnh_flags, int32]]
+
+type nhmsg[FAMILY, PROTOCOL, FLAGS] {
+	nh_family	const[FAMILY, int8]
+	nh_scope	const[0, int8]
+	nh_protocol	PROTOCOL
+	resvd		const[0, int8]
+	nh_flags	FLAGS
 }
 
 ifla_policy [
@@ -791,7 +810,7 @@ nda_cacheinfo {
 
 rtnexthop {
 	rtnh_len	int16
-	rtnh_flags	int8
+	rtnh_flags	flags[rtnh_flags, int8]
 	rtnh_hops	int8
 	rtnh_ifindex	ifindex
 }
@@ -846,6 +865,42 @@ br_mdb_entry_sub {
 }
 
 br_mdb_entry_sub_u [
+	ip4		ipv4_addr
+	in6_addr	ipv6_addr
+]
+
+type rtm_nh_id int32[0:2]
+
+rtm_nh_policy_get [
+	NHA_ID		nlattr[NHA_ID, rtm_nh_id]
+	NHA_OIF		nlattr[NHA_OIF, ifindex]
+	NHA_GROUPS	nlattr[NHA_GROUPS, void]
+	NHA_MASTER	nlattr[NHA_MASTER, rtm_nh_id]
+	NHA_FDB		nlattr[NHA_FDB, void]
+] [varlen]
+
+rtm_nh_policy_new [
+	NHA_ID		nlattr[NHA_ID, rtm_nh_id]
+	NHA_GROUP	nlattr[NHA_GROUP, array[nexthop_grp]]
+	NHA_GROUP_TYPE	nlattr[NHA_GROUP_TYPE, flags[nha_group_types, int16]]
+	NHA_BLACKHOLE	nlattr[NHA_BLACKHOLE, void]
+	NHA_OIF		nlattr[NHA_OIF, ifindex]
+	NHA_GATEWAY	nlattr[NHA_GATEWAY, nha_gateway]
+	NHA_ENCAP_TYPE	nlattr[NHA_ENCAP_TYPE, flags[lwtunnel_encap_types, int16]]
+	NHA_ENCAP	nlnest[NHA_ENCAP, lwtunnel_policy]
+	NHA_FDB		nlattr[NHA_FDB, void]
+] [varlen]
+
+type rtm_nh_policy_del nlattr[NHA_ID, rtm_nh_id]
+
+nexthop_grp {
+	id	int32[0:2]
+	weight	int8
+	resvd1	const[0, int8]
+	resvd2	const[0, int16]
+}
+
+nha_gateway [
 	ip4		ipv4_addr
 	in6_addr	ipv6_addr
 ]
@@ -1147,3 +1202,5 @@ br_vlan_tinfo_cmd = RTM_SETLINK, RTM_DELLINK
 br_mdb_entry_state = MDB_TEMPORARY, MDB_PERMANENT
 br_mdb_entry_flags = MDB_FLAGS_OFFLOAD, MDB_FLAGS_FAST_LEAVE
 br_mdb_entry_sub_proto = ETH_P_IP, ETH_P_IPV6
+rtnh_flags = RTNH_F_DEAD, RTNH_F_PERVASIVE, RTNH_F_ONLINK, RTNH_F_OFFLOAD, RTNH_F_LINKDOWN, RTNH_F_UNRESOLVED
+nha_group_types = NEXTHOP_GRP_TYPE_MPATH

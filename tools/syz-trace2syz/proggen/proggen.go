@@ -218,17 +218,18 @@ func (ctx *context) genStruct(syzType *prog.StructType, dir prog.Dir, traceType 
 			return ret
 		}
 		for i := range syzType.Fields {
+			fldDir := syzType.Fields[i].Dir(dir)
 			if prog.IsPad(syzType.Fields[i].Type) {
-				args = append(args, syzType.Fields[i].DefaultArg(dir))
+				args = append(args, syzType.Fields[i].DefaultArg(fldDir))
 				continue
 			}
 			// If the last n fields of a struct are zero or NULL, strace will occasionally omit those values
 			// this creates a mismatch in the number of elements in the ir type and in
 			// our descriptions. We generate default values for omitted fields
 			if j >= len(a.Elems) {
-				args = append(args, syzType.Fields[i].DefaultArg(dir))
+				args = append(args, syzType.Fields[i].DefaultArg(fldDir))
 			} else {
-				args = append(args, ctx.genArg(syzType.Fields[i].Type, dir, a.Elems[j]))
+				args = append(args, ctx.genArg(syzType.Fields[i].Type, fldDir, a.Elems[j]))
 			}
 			j++
 		}
@@ -275,7 +276,7 @@ func (ctx *context) recurseStructs(syzType *prog.StructType, dir prog.Dir, trace
 		}
 		args = append(args, ctx.genStruct(t, dir, traceType))
 		for _, field := range syzType.Fields[1:] {
-			args = append(args, field.DefaultArg(dir))
+			args = append(args, field.DefaultArg(field.Dir(dir)))
 		}
 		return prog.MakeGroupArg(syzType, dir, args), true
 	}
@@ -301,7 +302,7 @@ func (ctx *context) genUnionArg(syzType *prog.UnionType, dir prog.Dir, straceTyp
 	case "ifr_ifru":
 		return ctx.genIfrIfru(syzType, dir, straceType)
 	}
-	return prog.MakeUnionArg(syzType, dir, ctx.genArg(syzType.Fields[0].Type, dir, straceType), 0)
+	return prog.MakeUnionArg(syzType, dir, ctx.genArg(syzType.Fields[0].Type, syzType.Fields[0].Dir(dir), straceType), 0)
 }
 
 func (ctx *context) genBuffer(syzType *prog.BufferType, dir prog.Dir, traceType parser.IrType) prog.Arg {

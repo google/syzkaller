@@ -16,6 +16,11 @@ resource ioring_personality_id[int16]
 define IORING_MAX_ENTRIES	32768
 define IORING_MAX_CQ_ENTRIES	(2 * IORING_MAX_ENTRIES)
 
+# First does the setup calling io_uring_setup, than calls mmap to map the ring and
+# the sqes. It is hard for the fuzzer to generate correct programs using mmap calls
+# with fuzzer-provided mmap length. This wrapper ensures correct length computation.
+syz_io_uring_setup(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params], addr_ring vma, addr_sqes vma, ring_ptr ptr[out, ring_ptr], sqes_ptr ptr[out, sqes_ptr]) fd_io_uring
+
 io_uring_setup(entries int32[1:IORING_MAX_ENTRIES], params ptr[inout, io_uring_params]) fd_io_uring
 io_uring_enter(fd fd_io_uring, to_submit int32[0:IORING_MAX_ENTRIES], min_complete int32[0:IORING_MAX_CQ_ENTRIES], flags flags[io_uring_enter_flags], sigmask ptr[in, sigset_t], size len[sigmask])
 io_uring_register$IORING_REGISTER_BUFFERS(fd fd_io_uring, opcode const[IORING_REGISTER_BUFFERS], arg ptr[in, array[iovec_out]], nr_args len[arg])
@@ -91,20 +96,19 @@ io_uring_files_update {
 	fds	ptr64[in, array[fd]]
 }
 
-# NEED: part of fields are input here and part are output. We can't express this yet (#245).
 io_uring_params {
-# sq_entries, cq_entries, features, wq_fd, sq_off, and cq_off are set by the kernel
-	sq_entries	const[0, int32]
-	cq_entries	int32[0:IORING_MAX_CQ_ENTRIES]
-	flags		flags[io_uring_setup_flags, int32]
-	sq_thread_cpu	int32[0:3]
-	sq_thread_idle	int32[0:1000]
-	features	const[0, int32]
-	wq_fd		fd_io_uring[opt]
+	sq_entries	int32	(out)
+	cq_entries	int32[0:IORING_MAX_CQ_ENTRIES]	(inout)
+	flags		flags[io_uring_setup_flags, int32]	(in)
+	sq_thread_cpu	int32[0:3]	(in)
+	sq_thread_idle	int32[0:1000]	(in)
+	features	int32	(out)
+	wq_fd		fd_io_uring[opt]	(in)
 	resv		array[const[0, int32], 3]
 # We don't really use them (they are hard-coded). Thus, just pass some memory region of their size.
-	sq_off		array[const[0, int32], 10]
-	cq_off		array[const[0, int32], 10]
+# TODO: Now that per-field directions is supported, can we avoid using hard-coded values for offsets?
+	sq_off		array[int32, 10]	(out)
+	cq_off		array[int32, 10]	(out)
 }
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

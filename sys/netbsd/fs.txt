@@ -18,9 +18,10 @@ resource uid[int32]: 0, 0xffffffffffffffff
 resource gid[int32]: 0, 0xffffffffffffffff
 
 resource dev[int64]: 0, 0xffffffffffffffff
-resource mode[int32]: 0, 0xffffffffffffffff
-resource ino[int64]: 0, 0xffffffffffffffff
-resource nlink[int32]: 0, 0xffffffffffffffff
+
+type mode int32
+type ino int64
+type nlink int32
 
 compat_43_ocreat(path ptr[in, filename], mode flags[open_mode])
 open(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
@@ -42,6 +43,10 @@ dup(oldfd fd) fd
 dup2(oldfd fd, newfd fd) fd
 dup3(oldfd fd, newfd fd, flags flags[dup_flags]) fd
 pipe2(pipefd ptr[out, pipefd], flags flags[pipe_flags])
+
+compat_40_mount(type ptr[in, string[filesystem_types]], path ptr[in, filename], flags flags[mount_flags], data buffer[in])
+__mount50(type ptr[in, string[filesystem_types]], path ptr[in, filename], flags flags[mount_flags], data buffer[in], len len[data])
+unmount(path ptr[in, filename], flags flags[mount_flags])
 
 compat_20_getfsstat(buf ptr[out, statfs12], size intptr, f flags[getfsstat_flags])
 
@@ -134,7 +139,7 @@ statfs12 {
 	ffree		intptr
 	fsid		fsid_t
 	owner		uid
-	flags		flags[statfs_flags, intptr]
+	flags		flags[mount_flags, intptr]
 	swrites		intptr
 	aswrites	intptr
 	spare		array[intptr, 1]
@@ -147,9 +152,10 @@ fsid_t {
 	val	array[int32, 2]
 }
 
+filesystem_types = "ffs", "nfs", "mfs", "msdos", "lfs", "fdesc", "null", "overlay", "umap", "kernfs", "procfs", "afs", "cd9660", "union", "adosfs", "ext2fs", "coda", "filecore", "ntfs", "smbfs", "ptyfs", "tmpfs", "udf", "sysvbfs", "puffs", "hfs", "efs", "zfs", "nilfs", "rumpfs", "v7fs", "autofs"
 open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, O_CREAT, O_TRUNC, O_EXCL, O_SHLOCK, O_EXLOCK, O_NOFOLLOW, O_CLOEXEC, O_NOSIGPIPE, O_DSYNC, O_SYNC, O_RSYNC, O_ALT_IO, O_NOCTTY, O_DIRECT, O_DIRECTORY, O_ASYNC
-open_mode = S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
+open_mode = S_IRWXU, S_IRUSR, S_IWUSR, S_IXUSR, S_IRWXG, S_IRGRP, S_IWGRP, S_IXGRP, S_IRWXO, S_IROTH, S_IWOTH, S_IXOTH, S_ISUID, S_ISGID, S_ISVTX
 seek_whence = SEEK_SET, SEEK_CUR, SEEK_END
 pipe_flags = O_NONBLOCK, O_CLOEXEC, O_NOSIGPIPE
-statfs_flags = MNT_RDONLY, MNT_NOEXEC, MNT_NOSUID, MNT_NODEV, MNT_SYNCHRONOUS, MNT_ASYNC, MNT_UNION, MNT_NOCOREDUMP, MNT_SYMPERM, MNT_NODEVMTIME, MNT_SOFTDEP, MNT_LOCAL, MNT_QUOTA, MNT_ROOTFS, MNT_EXRDONLY, MNT_EXPORTED, MNT_DEFEXPORTED, MNT_EXPORTANON, MNT_EXKERB, MNT_EXNORESPORT, MNT_EXPUBLIC
+mount_flags = MNT_RDONLY, MNT_SYNCHRONOUS, MNT_NOEXEC, MNT_NOSUID, MNT_NODEV, MNT_UNION, MNT_ASYNC, MNT_NOCOREDUMP, MNT_RELATIME, MNT_IGNORE, MNT_DISCARD, MNT_EXTATTR, MNT_LOG, MNT_NOATIME, MNT_AUTOMOUNTED, MNT_SYMPERM, MNT_NODEVMTIME, MNT_SOFTDEP, MNT_EXRDONLY, MNT_EXPORTED, MNT_DEFEXPORTED, MNT_EXPORTANON, MNT_EXKERB, MNT_EXNORESPORT, MNT_EXPUBLIC, MNT_LOCAL, MNT_QUOTA, MNT_ROOTFS
 getfsstat_flags = MNT_NOWAIT, MNT_WAIT, MNT_LAZY

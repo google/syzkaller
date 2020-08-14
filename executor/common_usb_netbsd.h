@@ -11,11 +11,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 
-/* -------------------------------------------------------------------------- */
-
-/*
- * Redefinitions to match the linux types used in common_usb.h.
- */
+// Redefinitions to match the linux types used in common_usb.h.
 
 struct usb_endpoint_descriptor {
 	uint8 bLength;
@@ -155,8 +151,6 @@ struct usb_qualifier_descriptor {
 
 #include "common_usb.h"
 
-/* -------------------------------------------------------------------------- */
-
 static int vhci_open(void)
 {
 	char path[1024];
@@ -182,10 +176,9 @@ static int vhci_usb_attach(int fd)
 static int vhci_usb_recv(int fd, void* buf, size_t size)
 {
 	uint8* ptr = (uint8*)buf;
-	ssize_t done;
 
 	while (1) {
-		done = read(fd, ptr, size);
+		ssize_t done = read(fd, ptr, size);
 		if (done < 0)
 			return -1;
 		if ((size_t)done == size)
@@ -198,10 +191,9 @@ static int vhci_usb_recv(int fd, void* buf, size_t size)
 static int vhci_usb_send(int fd, void* buf, size_t size)
 {
 	uint8* ptr = (uint8*)buf;
-	ssize_t done;
 
 	while (1) {
-		done = write(fd, ptr, size);
+		ssize_t done = write(fd, ptr, size);
 		if (done <= 0)
 			return -1;
 		if ((size_t)done == size)
@@ -211,34 +203,14 @@ static int vhci_usb_send(int fd, void* buf, size_t size)
 	}
 }
 
-/* -------------------------------------------------------------------------- */
-
-static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
+static volatile long syz_usb_connect_impl(int fd, uint64 speed, uint64 dev_len,
 					  const char* dev, const struct vusb_connect_descriptors* descs,
 					  lookup_connect_out_response_t lookup_connect_response_out)
 {
-	struct usb_device_index* index;
-	int fd, rv;
-	bool done;
-
-	debug("syz_usb_connect: dev: %p\n", dev);
-	if (!dev) {
-		debug("syz_usb_connect: dev is null\n");
-		return -1;
-	}
-
-	debug("syz_usb_connect: device data:\n");
-	debug_dump_data(dev, dev_len);
-
-	fd = vhci_open();
-	if (fd < 0) {
-		fail("syz_usb_connect: vhci_open failed with %d", errno);
-	}
-
-	index = add_usb_index(fd, dev, dev_len);
+	struct usb_device_index* index = add_usb_index(fd, dev, dev_len);
 	if (!index) {
 		debug("syz_usb_connect: add_usb_index failed\n");
-		goto err;
+		return -1;
 	}
 	debug("syz_usb_connect: add_usb_index success\n");
 
@@ -246,7 +218,7 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 	analyze_usb_device(index);
 #endif
 
-	rv = vhci_setport(fd, 1);
+	int rv = vhci_setport(fd, 1);
 	if (rv != 0) {
 		fail("syz_usb_connect: vhci_setport failed with %d", errno);
 	}
@@ -254,22 +226,22 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 	rv = vhci_usb_attach(fd);
 	if (rv != 0) {
 		debug("syz_usb_connect: vhci_usb_attach failed with %d\n", rv);
-		goto err;
+		return -1;
 	}
 	debug("syz_usb_connect: vhci_usb_attach success\n");
 
-	done = false;
+	bool done = false;
 	while (!done) {
 		vhci_request_t req;
 
 		rv = vhci_usb_recv(fd, &req, sizeof(req));
 		if (rv != 0) {
 			debug("syz_usb_connect: vhci_usb_recv failed with %d\n", errno);
-			goto err;
+			return -1;
 		}
 		if (req.type != VHCI_REQ_CTRL) {
 			debug("syz_usb_connect: received non-control transfer\n");
-			goto err;
+			return -1;
 		}
 
 		debug("syz_usb_connect: bReqType: 0x%x (%s), bReq: 0x%x, wVal: 0x%x, wIdx: 0x%x, wLen: %d\n",
@@ -287,12 +259,12 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 		if (req.u.ctrl.bmRequestType & UE_DIR_IN) {
 			if (!lookup_connect_response_in(fd, descs, (const struct usb_ctrlrequest*)&req.u.ctrl, &response_data, &response_length)) {
 				debug("syz_usb_connect: unknown control IN request\n");
-				goto err;
+				return -1;
 			}
 		} else {
 			if (!lookup_connect_response_out(fd, descs, (const struct usb_ctrlrequest*)&req.u.ctrl, &done)) {
 				debug("syz_usb_connect: unknown control OUT request\n");
-				goto err;
+				return -1;
 			}
 			response_data = NULL;
 			response_length = UGETW(req.u.ctrl.wLength);
@@ -300,7 +272,7 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 
 		if ((req.u.ctrl.bmRequestType & USB_TYPE_MASK) == USB_TYPE_STANDARD &&
 		    req.u.ctrl.bRequest == USB_REQ_SET_CONFIGURATION) {
-			/* TODO: possibly revisit */
+			// TODO: possibly revisit.
 		}
 
 		if (response_length > sizeof(data))
@@ -329,17 +301,13 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 		}
 		if (rv < 0) {
 			debug("syz_usb_connect: usb_raw_ep0_read/write failed with %d\n", rv);
-			goto err;
+			return -1;
 		}
 	}
 
 	sleep_ms(200);
 	debug("syz_usb_connect: configured\n");
 	return fd;
-
-err:
-	close(fd);
-	return -1;
 }
 
 #if SYZ_EXECUTOR || __NR_syz_usb_connect
@@ -351,8 +319,22 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1,
 	const char* dev = (const char*)a2;
 	const struct vusb_connect_descriptors* descs = (const struct vusb_connect_descriptors*)a3;
 
-	return syz_usb_connect_impl(speed, dev_len, dev, descs,
-				    &lookup_connect_response_out_generic);
+	debug("syz_usb_connect: dev: %p\n", dev);
+	if (!dev) {
+		debug("syz_usb_connect: dev is null\n");
+		return -1;
+	}
+
+	debug("syz_usb_connect: device data:\n");
+	debug_dump_data(dev, dev_len);
+
+	int fd = vhci_open();
+	if (fd < 0) {
+		fail("syz_usb_connect: vhci_open failed with %d", errno);
+	}
+	long res = syz_usb_connect_impl(fd, speed, dev_len, dev, descs, &lookup_connect_response_out_generic);
+	close(fd);
+	return res;
 }
 #endif // SYZ_EXECUTOR || __NR_syz_usb_connect
 

@@ -20,19 +20,17 @@
 #include <dirent.h>
 static void setup_usb(void)
 {
-	struct dirent* ent;
-	char path[1024];
-	DIR* dir;
-
-	dir = opendir("/dev");
+	DIR* dir = opendir("/dev");
 	if (dir == NULL)
 		fail("failed to open /dev");
 
+	struct dirent* ent = NULL;
 	while ((ent = readdir(dir)) != NULL) {
 		if (ent->d_type != DT_CHR)
 			continue;
 		if (strncmp(ent->d_name, "vhci", 4))
 			continue;
+		char path[1024];
 		snprintf(path, sizeof(path), "/dev/%s", ent->d_name);
 		if (chmod(path, 0666))
 			fail("failed to chmod %s", path);
@@ -60,8 +58,8 @@ static int inject_fault(int nth)
 		fail("failed to open /dev/fault");
 
 	en.scope = FAULT_SCOPE_LWP;
-	en.mode = 0 /* FAULT_MODE_NTH_ONESHOT */;
-	en.nth = nth + 2 /* FAULT_NTH_MIN */;
+	en.mode = 0; // FAULT_MODE_NTH_ONESHOT
+	en.nth = nth + 2; // FAULT_NTH_MIN
 	if (ioctl(fd, FAULT_IOC_ENABLE, &en) != 0)
 		fail("FAULT_IOC_ENABLE failed with nth=%d", nth);
 
@@ -147,9 +145,7 @@ static int tunfd = -1;
 
 static void vsnprintf_check(char* str, size_t size, const char* format, va_list args)
 {
-	int rv;
-
-	rv = vsnprintf(str, size, format, args);
+	int rv = vsnprintf(str, size, format, args);
 	if (rv < 0)
 		fail("vsnprintf failed");
 	if ((size_t)rv >= size)
@@ -172,17 +168,15 @@ static void snprintf_check(char* str, size_t size, const char* format, ...)
 static void execute_command(bool panic, const char* format, ...)
 {
 	va_list args;
-	char command[PATH_PREFIX_LEN + COMMAND_MAX_LEN];
-	int rv;
-
 	va_start(args, format);
 	// Executor process does not have any env, including PATH.
 	// On some distributions, system/shell adds a minimal PATH, on some it does not.
 	// Set own standard PATH to make it work across distributions.
+	char command[PATH_PREFIX_LEN + COMMAND_MAX_LEN];
 	memcpy(command, PATH_PREFIX, PATH_PREFIX_LEN);
 	vsnprintf_check(command + PATH_PREFIX_LEN, COMMAND_MAX_LEN, format, args);
 	va_end(args);
-	rv = system(command);
+	int rv = system(command);
 	if (rv) {
 		if (panic)
 			fail("command '%s' failed: %d", &command[0], rv);
@@ -351,12 +345,11 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 	size_t length = rv;
 	debug_dump_data(data, length);
 
-	struct tcphdr* tcphdr;
-
 	if (length < sizeof(struct ether_header))
 		return (uintptr_t)-1;
 	struct ether_header* ethhdr = (struct ether_header*)&data[0];
 
+	struct tcphdr* tcphdr = 0;
 	if (ethhdr->ether_type == htons(ETHERTYPE_IP)) {
 		if (length < sizeof(struct ether_header) + sizeof(struct ip))
 			return (uintptr_t)-1;

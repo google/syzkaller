@@ -138,10 +138,9 @@ epoll_ctl$EPOLL_CTL_DEL(epfd fd_epoll, op const[EPOLL_CTL_DEL], fd fd)
 epoll_wait(epfd fd_epoll, events ptr[out, array[epoll_event]], maxevents len[events], timeout int32)
 epoll_pwait(epfd fd_epoll, events ptr[out, array[epoll_event]], maxevents len[events], timeout int32, sigmask ptr[in, sigset_t], size len[sigmask])
 
-resource fd_signal[fd]
 resource fd_timer[fd]
-signalfd(fd fd, mask ptr[in, sigset_t], size len[mask]) fd_signal
-signalfd4(fd fd, mask ptr[in, sigset_t], size len[mask], flags flags[signalfd_flags]) fd_signal
+signalfd(fd fd, mask ptr[in, sigset_t], size len[mask]) fd
+signalfd4(fd fd, mask ptr[in, sigset_t], size len[mask], flags flags[signalfd_flags]) fd
 timerfd_create(clockid flags[clock_type], flags flags[timerfd_create_flags]) fd_timer
 timerfd_settime(fd fd_timer, flags flags[timerfd_settime_flags], new ptr[in, itimerspec], old ptr[out, itimerspec])
 timerfd_gettime(fd fd_timer, cur ptr[out, itimerspec])
@@ -548,7 +547,6 @@ openat$vcsu(fd const[AT_FDCWD], file ptr[in, string["/dev/vcsu"]], flags flags[o
 syz_open_dev$vcsu(dev ptr[in, string["/dev/vcsu#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$ircomm(dev ptr[in, string["/dev/ircomm#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$audion(dev ptr[in, string["/dev/audio#"]], id intptr, flags flags[open_flags]) fd
-syz_open_dev$sndhw(dev ptr[in, string["/dev/snd/hwC#D#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$media(dev ptr[in, string["/dev/media#"]], id intptr, flags flags[open_flags]) fd_media
 
 openat$null(fd const[AT_FDCWD], file ptr[in, string["/dev/null"]], flags flags[open_flags], mode const[0]) fd
@@ -565,8 +563,6 @@ openat$zygote(fd const[AT_FDCWD], file ptr[in, string["/dev/socket/zygote"]], fl
 openat$sw_sync(fd const[AT_FDCWD], file ptr[in, string["/dev/sw_sync"]], flags flags[open_flags], mode const[0]) fd
 openat$pktcdvd(fd const[AT_FDCWD], file ptr[in, string["/dev/pktcdvd/control"]], flags flags[open_flags], mode const[0]) fd
 openat$lightnvm(fd const[AT_FDCWD], file ptr[in, string["/dev/lightnvm/control"]], flags flags[open_flags], mode const[0]) fd
-openat$sequencer(fd const[AT_FDCWD], file ptr[in, string["/dev/sequencer"]], flags flags[open_flags], mode const[0]) fd
-openat$sequencer2(fd const[AT_FDCWD], file ptr[in, string["/dev/sequencer2"]], flags flags[open_flags], mode const[0]) fd
 openat$xenevtchn(fd const[AT_FDCWD], file ptr[in, string["/dev/xen/evtchn"]], flags flags[open_flags], mode const[0]) fd
 openat$dlm_control(fd const[AT_FDCWD], file ptr[in, string["/dev/dlm-control"]], flags flags[open_flags], mode const[0]) fd
 openat$dlm_monitor(fd const[AT_FDCWD], file ptr[in, string["/dev/dlm-monitor"]], flags flags[open_flags], mode const[0]) fd

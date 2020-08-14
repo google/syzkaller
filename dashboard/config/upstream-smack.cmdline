@@ -1,5 +1,5 @@
 security=smack
-lsm=lockdown,yama,safesetid,integrity,smack,tomoyo
+lsm=lockdown,yama,safesetid,integrity,smack,tomoyo,bpf
 ima_policy=tcb
 workqueue.watchdog_thresh=140
 kvm-intel.nested=1
@@ -17,3 +17,4 @@ numa=fake=2
 nopcid
 dummy_hcd.num=8
 binder.debug_mask=0
+rcupdate.rcu_expedited=1
