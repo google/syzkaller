@@ -1,0 +1,45 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <fcntl.h>
+
+resource fd_vga_arbiter[fd]
+openat$vga_arbiter(fd const[AT_FDCWD], file ptr[in, string["/dev/vga_arbiter"]], flags flags[open_flags], mode const[0]) fd_vga_arbiter
+write$vga_arbiter(fd fd_vga_arbiter, data ptr[in, data_vga_arbiter], len bytesize[data])
+
+data_vga_arbiter [
+	target_default	string["target default"]
+	unlock_all	string["unlock all"]
+	target		vga_arbiter_target_cmd
+	other		vga_arbiter_io_state_cmd
+] [varlen]
+
+vga_arbiter_target_cmd {
+	prefix	stringnoz["target "]
+	card_id	vga_arbiter_card_id
+	end	const[0, int8]
+} [packed]
+
+# We cannot use fmt for the numbers here or else the result string will be too long
+vga_arbiter_card_id {
+	prefix	stringnoz["PCI:"]
+	domain	stringnoz[vga_arbiter_pci_numbers]
+	colon1	stringnoz[":"]
+	bus	stringnoz[vga_arbiter_pci_numbers]
+	colon2	stringnoz[":"]
+	dev	stringnoz[vga_arbiter_pci_numbers]
+	dot	stringnoz["."]
+	fn	stringnoz[vga_arbiter_pci_numbers]
+} [packed]
+
+vga_arbiter_pci_numbers = "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "1a", "1b", "1c", "1d", "1e", "1f"
+
+vga_arbiter_io_state_cmd {
+	name		stringnoz[vga_arbiter_io_state_cmd_names]
+	space		stringnoz[" "]
+	io_state	stringnoz[vga_arbiter_io_states]
+	end		const[0, int8]
+} [packed]
+
+vga_arbiter_io_state_cmd_names = "lock", "trylock", "unlock", "decodes"
+vga_arbiter_io_states = "io", "mem", "io+mem", "none"
