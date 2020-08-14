@@ -6,6 +6,7 @@ package cover
 import (
 	"bufio"
 	"bytes"
+	"encoding/csv"
 	"fmt"
 	"html"
 	"html/template"
@@ -41,6 +42,13 @@ type symbol struct {
 	end   uint64
 }
 
+var CSVHeader = []string{
+	"Filename",
+	"Function",
+	"Covered PCs",
+	"Total PCs",
+}
+
 func MakeReportGenerator(target *targets.Target, kernelObject, srcDir, buildDir string) (*ReportGenerator, error) {
 	rg := &ReportGenerator{
 		target:   target,
@@ -70,10 +78,16 @@ func MakeReportGenerator(target *targets.Target, kernelObject, srcDir, buildDir 
 
 type file struct {
 	lines       map[int]line
+	functions   map[string]*function
 	totalPCs    map[uint64]bool
 	coverPCs    map[uint64]bool
 	totalInline map[int]bool
 	coverInline map[int]bool
+}
+
+type function struct {
+	totalPCs map[uint64]bool
+	coverPCs map[uint64]bool
 }
 
 type line struct {
@@ -83,7 +97,23 @@ type line struct {
 	symbolCovered bool
 }
 
-func (rg *ReportGenerator) Do(w io.Writer, progs []Prog) error {
+func (rg *ReportGenerator) DoHTML(buf io.Writer, progs []Prog) error {
+	files, err := rg.prepareFileMap(progs)
+	if err != nil {
+		return err
+	}
+	return rg.generateHTML(buf, progs, files)
+}
+
+func (rg *ReportGenerator) DoCSV(buf io.Writer, progs []Prog) error {
+	files, err := rg.prepareFileMap(progs)
+	if err != nil {
+		return err
+	}
+	return rg.generateCSV(buf, progs, files)
+}
+
+func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error) {
 	coveredPCs := make(map[uint64]bool)
 	allPCs := make(map[uint64]bool)
 	symbols := make(map[uint64]bool)
@@ -113,10 +143,10 @@ func (rg *ReportGenerator) Do(w io.Writer, progs []Prog) error {
 		}
 	}
 	if len(allPCs) == 0 {
-		return fmt.Errorf("no coverage collected so far")
+		return nil, fmt.Errorf("no coverage collected so far")
 	}
 	if len(coveredPCs) == 0 {
-		return fmt.Errorf("coverage (%v) doesn't match coverage callbacks", len(allPCs))
+		return nil, fmt.Errorf("coverage (%v) doesn't match coverage callbacks", len(allPCs))
 	}
 	for pc, frames := range rg.pcs {
 		covered := coveredPCs[pc]
@@ -133,6 +163,8 @@ func (rg *ReportGenerator) Do(w io.Writer, progs []Prog) error {
 					f.coverPCs[pc] = true
 				}
 			}
+			function := getFunction(f.functions, frame.Func)
+			function.totalPCs[pc] = true
 			if !covered {
 				ln := f.lines[frame.Line]
 				if !frame.Inline || len(ln.count) == 0 {
@@ -140,10 +172,12 @@ func (rg *ReportGenerator) Do(w io.Writer, progs []Prog) error {
 					ln.symbolCovered = symbols[rg.findSymbol(pc)]
 					f.lines[frame.Line] = ln
 				}
+			} else {
+				function.coverPCs[pc] = true
 			}
 		}
 	}
-	return rg.generate(w, progs, files)
+	return files, nil
 }
 
 func getFile(files map[string]*file, name string) *file {
@@ -151,6 +185,7 @@ func getFile(files map[string]*file, name string) *file {
 	if f == nil {
 		f = &file{
 			lines:       make(map[int]line),
+			functions:   make(map[string]*function),
 			totalPCs:    make(map[uint64]bool),
 			coverPCs:    make(map[uint64]bool),
 			totalInline: make(map[int]bool),
@@ -161,7 +196,43 @@ func getFile(files map[string]*file, name string) *file {
 	return f
 }
 
-func (rg *ReportGenerator) generate(w io.Writer, progs []Prog, files map[string]*file) error {
+func getFunction(functions map[string]*function, name string) *function {
+	f := functions[name]
+	if f == nil {
+		f = &function{
+			totalPCs: make(map[uint64]bool),
+			coverPCs: make(map[uint64]bool),
+		}
+		functions[name] = f
+	}
+	return f
+}
+
+func (rg *ReportGenerator) generateCSV(w io.Writer, progs []Prog, files map[string]*file) error {
+	data := [][]string{
+		CSVHeader,
+	}
+
+	for fname, file := range files {
+		for funcName, function := range file.functions {
+			line := []string{filepath.Clean(fname), funcName,
+				strconv.Itoa(len(function.coverPCs)),
+				strconv.Itoa(len(function.totalPCs))}
+			data = append(data, line)
+		}
+	}
+	writer := csv.NewWriter(w)
+	defer writer.Flush()
+
+	err := writer.WriteAll(data)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (rg *ReportGenerator) generateHTML(w io.Writer, progs []Prog, files map[string]*file) error {
 	d := &templateData{
 		Root: new(templateDir),
 	}

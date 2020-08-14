@@ -233,7 +233,7 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 	}
-	if err := reportGenerator.Do(w, progs); err != nil {
+	if err := reportGenerator.DoHTML(w, progs); err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
 	}

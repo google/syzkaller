@@ -9,9 +9,11 @@ package cover
 
 import (
 	"bytes"
+	"encoding/csv"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -88,7 +90,7 @@ func TestReportGenerator(t *testing.T) {
 }
 
 func testReportGenerator(t *testing.T, target *targets.Target, test Test) {
-	rep, err := generateReport(t, target, test)
+	rep, csv, err := generateReport(t, target, test)
 	if err != nil {
 		if test.Result == "" {
 			t.Fatalf("expected no error, but got:\n%v", err)
@@ -101,6 +103,7 @@ func testReportGenerator(t *testing.T, target *targets.Target, test Test) {
 	if test.Result != "" {
 		t.Fatalf("got no error, but expected %q", test.Result)
 	}
+	checkCSVReport(t, csv)
 	_ = rep
 }
 
@@ -136,7 +139,7 @@ void __sanitizer_cov_trace_pc() { printf("%llu", (long long)__builtin_return_add
 	return bin
 }
 
-func generateReport(t *testing.T, target *targets.Target, test Test) ([]byte, error) {
+func generateReport(t *testing.T, target *targets.Target, test Test) ([]byte, []byte, error) {
 	dir, err := ioutil.TempDir("", "syz-cover-test")
 	if err != nil {
 		t.Fatal(err)
@@ -145,7 +148,7 @@ func generateReport(t *testing.T, target *targets.Target, test Test) ([]byte, er
 	bin := buildTestBinary(t, target, test, dir)
 	rg, err := MakeReportGenerator(target, bin, dir, dir)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if test.Result == "" {
 		var pcs []uint64
@@ -175,9 +178,32 @@ func generateReport(t *testing.T, target *targets.Target, test Test) ([]byte, er
 		}
 		test.Progs = append(test.Progs, Prog{Data: "main", PCs: pcs})
 	}
-	out := new(bytes.Buffer)
-	if err := rg.Do(out, test.Progs); err != nil {
-		return nil, err
+	html := new(bytes.Buffer)
+	if err := rg.DoHTML(html, test.Progs); err != nil {
+		return nil, nil, err
 	}
-	return out.Bytes(), nil
+	csv := new(bytes.Buffer)
+	if err := rg.DoCSV(csv, test.Progs); err != nil {
+		return nil, nil, err
+	}
+
+	return html.Bytes(), csv.Bytes(), nil
+}
+
+func checkCSVReport(t *testing.T, CSVReport []byte) {
+	csvReader := csv.NewReader(bytes.NewBuffer(CSVReport))
+	lines, err := csvReader.ReadAll()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(lines[0], CSVHeader) {
+		t.Fatalf("Heading line in CSV doesn't match %v", lines[0])
+	}
+
+	for _, line := range lines {
+		if line[1] == "main" && line[2] != "1" && line[3] != "1" {
+			t.Fatalf("Function coverage percentage doesn't match %v vs. %v", line[2], "100")
+		}
+	}
 }
