@@ -195,6 +195,8 @@ usbgen:
 
 symbolize:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-symbolize github.com/google/syzkaller/tools/syz-symbolize
+cover:
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-cover github.com/google/syzkaller/tools/syz-cover
 
 bisect: descriptions
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-bisect github.com/google/syzkaller/tools/syz-bisect
