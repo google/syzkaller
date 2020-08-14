@@ -451,10 +451,10 @@ func (t *UnionType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*
 	if index >= a.Index {
 		index++
 	}
-	optType := t.Fields[index].Type
+	optType, optDir := t.Fields[index].Type, t.Fields[index].Dir(a.Dir())
 	removeArg(a.Option)
 	var newOpt Arg
-	newOpt, calls = r.generateArg(s, optType, a.Dir())
+	newOpt, calls = r.generateArg(s, optType, optDir)
 	replaceArg(arg, MakeUnionArg(t, a.Dir(), newOpt, index))
 	return
 }

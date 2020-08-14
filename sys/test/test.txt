@@ -831,7 +831,7 @@ test$r104_producer(a ptr[out, r104])
 test$r100_producer(a ptr[in, syz_r100_out])
 test$r101_producer_recur(a ptr[in, syz_r101_out_recur0])
 test$r102_producer(a ptr[out, r102])
-test$r103_producer_r104_consumer(a ptr[inout, syz_r103_r104])
+test$r103_producer_r104_consumer(a ptr[inout, syz_r103_r104_u], b ptr[inout, syz_r103_r104_s])
 
 syz_r100_out {
 	f0	r100	(out)
@@ -853,7 +853,12 @@ syz_r102_in_recur1 {
 	f0	r102	(in)
 }
 
-syz_r103_r104 [
+syz_r103_r104_u [
 	opt0	r103	(out)
 	opt1	r104	(in)
 ]
+
+syz_r103_r104_s {
+	opt0	r103	(out)
+	opt1	r104	(in)
+}
