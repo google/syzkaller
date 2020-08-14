@@ -50,7 +50,7 @@ type BugFrames struct {
 
 // RPCManagerView restricts interface between RPCServer and Manager.
 type RPCManagerView interface {
-	fuzzerConnect() ([]rpctype.RPCInput, BugFrames)
+	fuzzerConnect(args *rpctype.ConnectArgs) ([]rpctype.RPCInput, BugFrames)
 	machineChecked(result *rpctype.CheckArgs, enabledSyscalls map[*prog.Syscall]bool)
 	newInput(inp rpctype.RPCInput, sign signal.Signal) bool
 	candidateBatch(size int) []rpctype.RPCCandidate
@@ -85,7 +85,7 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	log.Logf(1, "fuzzer %v connected", a.Name)
 	serv.stats.vmRestarts.inc()
 
-	corpus, bugFrames := serv.mgr.fuzzerConnect()
+	corpus, bugFrames := serv.mgr.fuzzerConnect(a)
 
 	serv.mu.Lock()
 	defer serv.mu.Unlock()

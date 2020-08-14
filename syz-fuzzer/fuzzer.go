@@ -181,13 +181,18 @@ func main() {
 		runtime.MemProfileRate = 0
 	}
 
+	machineInfo := CollectMachineInfo()
+
 	log.Logf(0, "dialing manager at %v", *flagManager)
 	manager, err := rpctype.NewRPCClient(*flagManager)
 	if err != nil {
 		log.Fatalf("failed to connect to manager: %v ", err)
 	}
 	log.Logf(1, "connecting to manager...")
-	a := &rpctype.ConnectArgs{Name: *flagName}
+	a := &rpctype.ConnectArgs{
+		Name:        *flagName,
+		MachineInfo: machineInfo,
+	}
 	r := &rpctype.ConnectRes{}
 	if err := manager.Call("Manager.Connect", a, r); err != nil {
 		log.Fatalf("failed to connect to manager: %v ", err)

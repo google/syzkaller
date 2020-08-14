@@ -86,6 +86,8 @@ type Manager struct {
 	// For checking that files that we are using are not changing under us.
 	// Maps file name to modification time.
 	usedFiles map[string]time.Time
+
+	machineInfo map[int]string
 }
 
 const (
@@ -179,6 +181,7 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, sysTarget *targets.T
 		reproRequest:          make(chan chan map[string]bool),
 		usedFiles:             make(map[string]time.Time),
 		saturatedCalls:        make(map[string]bool),
+		machineInfo:           make(map[int]string),
 	}
 
 	log.Logf(0, "loading corpus...")
@@ -583,6 +586,10 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 		// This is the only "OK" outcome.
 		log.Logf(0, "vm-%v: running for %v, restarting", index, time.Since(start))
 		return nil, nil
+	}
+
+	if info, ok := mgr.machineInfo[index]; ok {
+		rep.Report = append(rep.Report, info...)
 	}
 	crash := &Crash{
 		vmIndex: index,
@@ -991,9 +998,15 @@ func (mgr *Manager) collectSyscallInfoUnlocked() map[string]*CallCov {
 	return calls
 }
 
-func (mgr *Manager) fuzzerConnect() ([]rpctype.RPCInput, BugFrames) {
+func (mgr *Manager) fuzzerConnect(args *rpctype.ConnectArgs) ([]rpctype.RPCInput, BugFrames) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
+
+	var idx int
+	_, err := fmt.Sscanf(args.Name, "vm-%d", &idx)
+	if err == nil {
+		mgr.machineInfo[idx] = args.MachineInfo
+	}
 
 	mgr.minimizeCorpus()
 	corpus := make([]rpctype.RPCInput, 0, len(mgr.corpus))
