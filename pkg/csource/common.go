@@ -42,8 +42,15 @@ func createCommonHeader(p, mmapProg *prog.Prog, replacements map[string]string, 
 	stdout := new(bytes.Buffer)
 	cmd.Stderr = stderr
 	cmd.Stdout = stdout
+	// Note: we ignore error because we pass -nostdinc so there are lots of errors of the form:
+	//	error: no include path in which to search for stdlib.h
+	// This is exactly what we want: we don't want these to be included into the C reproducer.
+	// But the downside is that we can miss some real errors, e.g.:
+	//	error: missing binary operator before token "SYZ_SANDBOX_ANDROID"
+	//	3776 | #if not SYZ_SANDBOX_ANDROID
+	// Potentially we could analyze errors manually and ignore only the expected ones.
 	if err := cmd.Run(); len(stdout.Bytes()) == 0 {
-		return nil, fmt.Errorf("cpp failed: %v\n%v\n%v", err, stdout.String(), stderr.String())
+		return nil, fmt.Errorf("cpp failed: %v %v: %v\n%v\n%v", cmd.Path, cmd.Args, err, stdout.String(), stderr.String())
 	}
 
 	src, err := removeSystemDefines(stdout.Bytes(), defines)
