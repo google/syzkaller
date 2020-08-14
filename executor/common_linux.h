@@ -3773,12 +3773,13 @@ static void remove_dir(const char* dir)
 	int iter = 0;
 	DIR* dp = 0;
 retry:
-#if not SYZ_SANDBOX_ANDROID
-	if (!flag_sandbox_android) {
+#if SYZ_EXECUTOR || !SYZ_SANDBOX_ANDROID
+#if SYZ_EXECUTOR
+	if (!flag_sandbox_android)
+#endif
 		while (umount2(dir, MNT_DETACH) == 0) {
 			debug("umount(%s)\n", dir);
 		}
-	}
 #endif
 	dp = opendir(dir);
 	if (dp == NULL) {
@@ -3798,12 +3799,13 @@ retry:
 		snprintf(filename, sizeof(filename), "%s/%s", dir, ep->d_name);
 		// If it's 9p mount with broken transport, lstat will fail.
 		// So try to umount first.
-#if not SYZ_SANDBOX_ANDROID
-		if (!flag_sandbox_android) {
+#if SYZ_EXECUTOR || !SYZ_SANDBOX_ANDROID
+#if SYZ_EXECUTOR
+		if (!flag_sandbox_android)
+#endif
 			while (umount2(filename, MNT_DETACH) == 0) {
 				debug("umount(%s)\n", filename);
 			}
-		}
 #endif
 		struct stat st;
 		if (lstat(filename, &st))
@@ -3834,12 +3836,16 @@ retry:
 			}
 			if (errno != EBUSY || i > 100)
 				exitf("unlink(%s) failed", filename);
-#if not SYZ_SANDBOX_ANDROID
+#if SYZ_EXECUTOR || !SYZ_SANDBOX_ANDROID
+#if SYZ_EXECUTOR
 			if (!flag_sandbox_android) {
+#endif
 				debug("umount(%s)\n", filename);
 				if (umount2(filename, MNT_DETACH))
 					exitf("umount(%s) failed", filename);
+#if SYZ_EXECUTOR
 			}
+#endif
 #endif
 		}
 	}
@@ -3865,12 +3871,16 @@ retry:
 				break;
 			}
 			if (errno == EBUSY) {
-#if not SYZ_SANDBOX_ANDROID
+#if SYZ_EXECUTOR || !SYZ_SANDBOX_ANDROID
+#if SYZ_EXECUTOR
 				if (!flag_sandbox_android) {
+#endif
 					debug("umount(%s)\n", dir);
 					if (umount2(dir, MNT_DETACH))
 						exitf("umount(%s) failed", dir);
+#if SYZ_EXECUTOR
 				}
+#endif
 #endif
 				continue;
 			}
