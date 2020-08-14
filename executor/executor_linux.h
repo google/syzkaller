@@ -2,12 +2,16 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 #include <fcntl.h>
+#include <linux/magic.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <sys/mount.h>
 #include <sys/prctl.h>
+#include <sys/stat.h>
+#include <sys/statfs.h>
 #include <sys/syscall.h>
 #include <unistd.h>
 
@@ -61,6 +65,31 @@ static bool detect_kernel_bitness();
 
 static void os_init(int argc, char** argv, char* data, size_t data_size)
 {
+	struct statfs sbuf;
+	// Unshare mount namespace.
+	if (unshare(CLONE_NEWNS))
+		fail("unshare mount namespace failed");
+	// Undo mount("/", MS_REC|MS_SHARED) made by systemd.
+	if (mount(NULL, "/", NULL, MS_REC | MS_PRIVATE, NULL))
+		fail("mount --make-rprivate / failed");
+	// Mount proc as needed.
+	if (statfs("/proc/", &sbuf) || sbuf.f_type != PROC_SUPER_MAGIC) {
+		mkdir("/proc/", 0755);
+		if (mount("/proc/", "/proc/", "proc", 0, NULL))
+			fail("mount -t proc /proc/ /proc/ failed");
+	}
+	// Mount sysfs as needed.
+	if (statfs("/sys/", &sbuf) || sbuf.f_type != SYSFS_MAGIC) {
+		mkdir("/sys/", 0755);
+		if (mount("/sys/", "/sys/", "sysfs", 0, NULL))
+			fail("mount -t sysfs /sys/ /sys/ failed");
+	}
+	// Mount debugfs as needed.
+	if (statfs("/sys/kernel/debug/", &sbuf) || sbuf.f_type != DEBUGFS_MAGIC) {
+		if (mount("/sys/kernel/debug/", "/sys/kernel/debug/", "debugfs", 0, NULL))
+			fail("mount -t debugfs /sys/kernel/debug/ /sys/kernel/debug/ failed");
+	}
+
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 	is_kernel_64_bit = detect_kernel_bitness();
 	// Surround the main data mapping with PROT_NONE pages to make virtual address layout more consistent
@@ -97,7 +126,7 @@ static void dump_dir(const char* path)
 	struct dirent* d = NULL;
 	if (!dir)
 		return;
-	fprintf(stderr, "Index of %s\n", path);
+	fprintf(stderr, "Content of %s\n", path);
 	while ((d = readdir(dir)) != NULL)
 		fprintf(stderr, "  %s\n", d->d_name);
 	closedir(dir);
