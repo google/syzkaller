@@ -187,6 +187,9 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, sysTarget *targets.T
 		log.Fatalf("failed to open corpus database: %v", err)
 	}
 
+	// Load unit test program into corpusDB.
+	mgr.corpusDB.LoadTestAsSeed(target, filepath.Join(cfg.Workdir, "seeds/"))
+
 	// Create HTTP server.
 	mgr.initHTTP()
 	mgr.collectUsedFiles()

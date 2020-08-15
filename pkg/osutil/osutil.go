@@ -222,6 +222,21 @@ func LinkFiles(srcDir, dstDir string, files map[string]bool) error {
 	return nil
 }
 
+// LinkDir creates soft links from dstDir to srcDir.
+// All other files in dstDir are removed.
+func LinkDir(srcDir, dstDir string) error {
+	if err := os.RemoveAll(dstDir); err != nil {
+		return err
+	}
+	if err := MkdirAll(dstDir); err != nil {
+		return err
+	}
+	if err := os.Symlink(srcDir, dstDir); err != nil {
+		return err
+	}
+	return nil
+}
+
 func MkdirAll(dir string) error {
 	return os.MkdirAll(dir, DefaultDirPerm)
 }

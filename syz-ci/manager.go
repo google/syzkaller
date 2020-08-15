@@ -79,7 +79,7 @@ type Manager struct {
 	stop       chan struct{}
 }
 
-func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) (*Manager, error) {
+func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}, syzLinuxTestDir string) (*Manager, error) {
 	dir := osutil.Abs(filepath.Join("managers", mgrcfg.Name))
 	if err := osutil.MkdirAll(dir); err != nil {
 		log.Fatal(err)
@@ -126,6 +126,12 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) (*Man
 		dash:       dash,
 		stop:       stop,
 	}
+
+	// Copy test files into the current manager workdir.
+	if err := osutil.LinkDir(syzLinuxTestDir, filepath.Join(dir, "workdir", "seeds")); err != nil {
+		log.Fatal(err)
+	}
+
 	os.RemoveAll(mgr.currentDir)
 	return mgr, nil
 }
