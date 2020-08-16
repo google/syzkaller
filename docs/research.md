@@ -2,6 +2,7 @@
 
 _newer first_
 * [HFL: Hybrid Fuzzing on the Linux Kernel](https://chungkim.gitlab.io/doc/ndss20-hfl.pdf)
+* [Industry Practice of Coverage-Guided Enterprise Linux Kernel Fuzzing](http://wingtecher.com/themes/WingTecherResearch/assets/papers/fse19-linux-kernel.pdf)
 * [Agamotto: Accelerating Kernel Driver Fuzzing with Lightweight Virtual Machine Checkpoints](https://www.usenix.org/conference/usenixsecurity20/presentation/song) ([source code](https://github.com/securesystemslab/agamotto))
 * [Task selection and seed selection for Syzkaller using reinforcement learning](https://groups.google.com/d/msg/syzkaller/eKPD4ZpJ66o/UqO_K-SMFwAJ) (announce only)
 * [Empirical Notes on the Interaction Between Continuous Kernel Fuzzing and Development](http://users.utu.fi/kakrind/publications/19/vulnfuzz_camera.pdf)
