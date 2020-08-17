@@ -72,7 +72,7 @@ sudo mount /dev/${md}p${partn} $tmpdir
 
 sudo MAKEOBJDIRPREFIX=%s make -C %s installkernel WITH_EXTRA_TCP_STACKS= KERNCONF=%s DESTDIR=$tmpdir
 
-cat | sudo tee ${tmpdir}/boot/loader.conf <<__EOF__
+cat | sudo tee ${tmpdir}/boot/loader.conf.local <<__EOF__
 ipsec_load="YES"
 pf_load="YES"
 sctp_load="YES"
