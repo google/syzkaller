@@ -69,6 +69,7 @@ func sshArgs(debug bool, sshKey, portArg string, port int) []string {
 		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "BatchMode=yes",
 		"-o", "IdentitiesOnly=yes",
+		"-o", "IdentityAgent=none",
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "ConnectTimeout=10",
 	}
