@@ -21,7 +21,7 @@ To detect memory leaks using the [Kernel Memory Leak Detector
 (kmemleak)](https://www.kernel.org/doc/html/latest/dev-tools/kmemleak.html):
 
 ```
-CONFIG_KMEMLEAK=y
+CONFIG_DEBUG_KMEMLEAK=y
 ```
 
 To show code coverage in web interface:
