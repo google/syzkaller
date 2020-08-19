@@ -9,9 +9,7 @@ Alternatively, you can also build your own
 
 # Kernel
 
-The following instructions were tested with Linux Kernel `v5.8-rc2`. In addition you need the
-["riscv: Allow building with kcov coverage"](https://lore.kernel.org/linux-riscv/20200626124056.29708-1-tklauser@distanz.ch/)
-patch. Create a kernel config with:
+The following instructions were tested with Linux Kernel `v5.9-rc1`. Create a kernel config with:
 
 ```shell
 make ARCH=riscv CROSS_COMPILE=riscv64-linux-gnu- defconfig
