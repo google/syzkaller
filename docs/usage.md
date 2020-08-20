@@ -26,7 +26,7 @@ In case syzkaller only generated a syzkaller program, there's [a way to execute 
 
 ## Hub
 
-In case you're running multiple `syz-manager` instances, there's a way connect them together and allow to exchange programs and reproducers, see the details [here](hub.md).
+In case you're running multiple `syz-manager` instances, there's a way to connect them together and allow to exchange programs and reproducers, see the details [here](hub.md).
 
 ## Reporting bugs
 
