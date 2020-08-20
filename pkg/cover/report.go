@@ -330,12 +330,34 @@ func (rg *ReportGenerator) generateHTML(w io.Writer, progs []Prog, files map[str
 		}
 		d.Contents = append(d.Contents, template.HTML(buf.String()))
 		f.Index = len(d.Contents) - 1
+
+		addFunctionCoverage(file, d)
 	}
 	for _, prog := range progs {
 		d.Progs = append(d.Progs, template.HTML(html.EscapeString(prog.Data)))
 	}
+
 	processDir(d.Root)
 	return coverTemplate.Execute(w, d)
+}
+
+func addFunctionCoverage(file *file, data *templateData) {
+	var buf bytes.Buffer
+	for functionName, function := range file.functions {
+		var percentage string
+		if len(function.coverPCs) > 0 {
+			percentage = fmt.Sprintf("%d%%", percent(len(function.coverPCs), len(function.totalPCs)))
+		} else {
+			percentage = "---"
+		}
+		buf.WriteString(fmt.Sprintf("<span class='hover'>%v", functionName))
+		buf.WriteString(fmt.Sprintf("<span class='cover hover'>%v", percentage))
+		buf.WriteString(fmt.Sprintf("<span class='cover-right'>of %v", strconv.Itoa(len(function.totalPCs))))
+		buf.WriteString("</span></span></span><br>\n")
+	}
+	if buf.Len() > 0 {
+		data.Functions = append(data.Functions, template.HTML(buf.String()))
+	}
 }
 
 func processDir(dir *templateDir) {
@@ -611,9 +633,10 @@ func archCallInsn(target *targets.Target) ([][]byte, [][]byte) {
 }
 
 type templateData struct {
-	Root     *templateDir
-	Contents []template.HTML
-	Progs    []template.HTML
+	Root      *templateDir
+	Contents  []template.HTML
+	Progs     []template.HTML
+	Functions []template.HTML
 }
 
 type templateBase struct {
@@ -662,6 +685,18 @@ var coverTemplate = template.Must(template.New("").Parse(`
 			.tree {
 				left: 0;
 				width: 24%;
+			}
+			.function {
+				height: 100%;
+				position: fixed;
+				z-index: 1;
+				top: 0;
+				overflow-x: hidden;
+				display: none;
+			}
+			.list {
+				left: 24%;
+				width: 30%;
 			}
 			.right {
 				border-left: 2px solid #444;
@@ -738,6 +773,9 @@ var coverTemplate = template.Must(template.New("").Parse(`
 			{{range $i, $p := .Progs}}
 				<pre class="file" id="prog_{{$i}}">{{$p}}</pre>
 			{{end}}
+                        {{range $i, $p := .Functions}}
+				<div class="function list" id="function_{{$i}}">{{$p}}</div>
+			{{end}}
 		</div>
 	</body>
 	<script>
@@ -761,6 +799,13 @@ var coverTemplate = template.Must(template.New("").Parse(`
 		}
 	})();
 	var visible;
+        function onPercentClick(index) {
+		if (visible)
+			visible.style.display = 'none';
+		visible = document.getElementById("function_" + index);
+		visible.style.display = 'block';
+		document.getElementById("right_pane").scrollTo(0, 0);
+	}
 	function onFileClick(index) {
 		if (visible)
 			visible.style.display = 'none';
@@ -797,11 +842,14 @@ var coverTemplate = template.Must(template.New("").Parse(`
 		<li><span class="hover">
 			{{if $file.Covered}}
 				<a href="#{{$file.Path}}" id="path/{{$file.Path}}" onclick="onFileClick({{$file.Index}})">
-					{{$file.Name}}<span class="cover hover">
-						{{$file.Percent}}%
-						<span class="cover-right">of {{$file.Total}}</span>
-					</span>
+					{{$file.Name}}
 				</a>
+				<span class="cover hover">
+					<a href="#{{$file.Path}}/func_cov" id="path/{{$file.Path}}/func_cov" onclick="onPercentClick({{$file.Index}})">
+                                                {{$file.Percent}}%
+					</a>
+					<span class="cover-right">of {{$file.Total}}</span>
+				</span>
 			{{else}}
 					{{$file.Name}}<span class="cover hover">---<span class="cover-right">
 						of {{$file.Total}}</span></span>
