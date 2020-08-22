@@ -9,10 +9,12 @@ package cover
 
 import (
 	"bytes"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -102,28 +104,25 @@ func testReportGenerator(t *testing.T, target *targets.Target, test Test) {
 	_ = rep
 }
 
-func generateReport(t *testing.T, target *targets.Target, test Test) ([]byte, error) {
-	src, err := osutil.TempFile("syz-cover-test-src")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.Remove(src)
-	if err := osutil.WriteFile(src, []byte(`
-void __sanitizer_cov_trace_pc() {}
-int main() {}
+func buildTestBinary(t *testing.T, target *targets.Target, test Test, dir string) string {
+	kcovSrc := filepath.Join(dir, "kcov.c")
+	kcovObj := filepath.Join(dir, "kcov.o")
+	if err := osutil.WriteFile(kcovSrc, []byte(`
+#include <stdio.h>
+void __sanitizer_cov_trace_pc() { printf("%llu", (long long)__builtin_return_address(0)); }
 `)); err != nil {
 		t.Fatal(err)
 	}
-	bin, err := osutil.TempFile("syz-cover-test-bin")
-	if err != nil {
+	kcovFlags := append([]string{"-c", "-w", "-x", "c", "-o", kcovObj, kcovSrc}, target.CFlags...)
+	src := filepath.Join(dir, "main.c")
+	bin := filepath.Join(dir, "bin")
+	if err := osutil.WriteFile(src, []byte(`int main() {}`)); err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(bin)
-	flags := append(append([]string{
-		"-w",
-		"-o", bin,
-		"-x", "c", src,
-	}, target.CFlags...), test.CFlags...)
+	if _, err := osutil.RunCmd(time.Hour, "", target.CCompiler, kcovFlags...); err != nil {
+		t.Fatal(err)
+	}
+	flags := append(append([]string{"-w", "-o", bin, src, kcovObj}, target.CFlags...), test.CFlags...)
 	if _, err := osutil.RunCmd(time.Hour, "", target.CCompiler, flags...); err != nil {
 		errText := err.Error()
 		errText = strings.ReplaceAll(errText, "‘", "'")
@@ -134,23 +133,45 @@ int main() {}
 		}
 		t.Fatal(err)
 	}
-	rg, err := MakeReportGenerator(target, bin, filepath.Dir(src), filepath.Dir(src))
+	return bin
+}
+
+func generateReport(t *testing.T, target *targets.Target, test Test) ([]byte, error) {
+	dir, err := ioutil.TempDir("", "syz-cover-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+	bin := buildTestBinary(t, target, test, dir)
+	rg, err := MakeReportGenerator(target, bin, dir, dir)
 	if err != nil {
 		return nil, err
 	}
 	if test.Result == "" {
-		symb := symbolizer.NewSymbolizer(target)
-		text, err := symb.ReadTextSymbols(bin)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if nmain := len(text["main"]); nmain != 1 {
-			t.Fatalf("got %v main symbols", nmain)
-		}
-		main := text["main"][0]
 		var pcs []uint64
-		for off := 0; off < main.Size; off++ {
-			pcs = append(pcs, main.Addr+uint64(off))
+		if output, err := osutil.RunCmd(time.Minute, "", bin); err == nil {
+			pc, err := strconv.ParseUint(string(output), 10, 64)
+			if err != nil {
+				t.Fatal(err)
+			}
+			pcs = append(pcs, PreviousInstructionPC(target, pc))
+			t.Logf("using exact coverage PC 0x%x", pcs[0])
+		} else if target.OS == runtime.GOOS && (target.Arch == runtime.GOARCH || target.VMArch == runtime.GOARCH) {
+			t.Fatal(err)
+		} else {
+			symb := symbolizer.NewSymbolizer(target)
+			text, err := symb.ReadTextSymbols(bin)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if nmain := len(text["main"]); nmain != 1 {
+				t.Fatalf("got %v main symbols", nmain)
+			}
+			main := text["main"][0]
+			for off := 0; off < main.Size; off++ {
+				pcs = append(pcs, main.Addr+uint64(off))
+			}
+			t.Logf("using inexact coverage range 0x%x-0x%x", main.Addr, main.Addr+uint64(main.Size))
 		}
 		test.Progs = append(test.Progs, Prog{Data: "main", PCs: pcs})
 	}
