@@ -94,7 +94,7 @@ ifeq ("$(TARGETOS)", "trusty")
 	TARGETGOARCH := $(HOSTARCH)
 endif
 
-.PHONY: all host target \
+.PHONY: all clean host target \
 	manager runtest fuzzer executor \
 	ci hub \
 	execprog mutate prog2c trace2syz stress repro upgrade db \
@@ -103,7 +103,7 @@ endif
 	extract generate generate_go generate_sys \
 	format format_go format_cpp format_sys \
 	tidy test test_race check_copyright check_language check_links check_diff check_commits \
-	presubmit presubmit_parallel clean
+	presubmit presubmit_smoke presubmit_build presubmit_arch presubmit_big presubmit_race presubmit_old
 
 all: host target
 host: manager runtest repro mutate prog2c db upgrade
@@ -314,6 +314,15 @@ presubmit_race: descriptions
 	env CGO_ENABLED=1 $(GO) test -race; if test $$? -ne 2; then \
 	env CGO_ENABLED=1 $(GO) test -race -short -bench=.* -benchtime=.2s ./... ;\
 	fi
+
+presubmit_old: descriptions
+	# Binaries we can compile in syz-old-env. 386 is broken, riscv64 is missing.
+	TARGETARCH=amd64 $(MAKE) target
+	TARGETARCH=arm64 $(MAKE) target
+	TARGETARCH=arm $(MAKE) target
+	TARGETARCH=ppc64le $(MAKE) target
+	TARGETARCH=mips64le $(MAKE) target
+	TARGETARCH=s390x $(MAKE) target
 
 test: descriptions
 	$(GO) test -short -coverprofile=.coverage.txt ./...

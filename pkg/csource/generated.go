@@ -3062,7 +3062,7 @@ static void netlink_wireguard_setup(void)
 	    .sin6_port = htons(listen_c)};
 	endpoint_c_v6.sin6_addr = in6addr_loopback;
 	const struct in_addr first_half_v4 = {0};
-	const struct in_addr second_half_v4 = {htonl(128 << 24)};
+	const struct in_addr second_half_v4 = {(uint32)htonl(128 << 24)};
 	const struct in6_addr first_half_v6 = {{{0}}};
 	const struct in6_addr second_half_v6 = {{{0x80}}};
 	const uint8 half_cidr = 1;
