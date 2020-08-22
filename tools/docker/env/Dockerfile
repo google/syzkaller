@@ -27,7 +27,10 @@ RUN dpkg --add-architecture i386 && \
 	g++-mips64el-linux-gnuabi64 g++-s390x-linux-gnu g++-riscv64-linux-gnu \
 	libc6-dev:i386 linux-libc-dev:i386 lib32gcc-8-dev lib32stdc++-8-dev \
 	# These are needed to build Linux kernel:
-	flex bison bc libelf-dev libssl-dev && \
+	flex bison bc libelf-dev libssl-dev \
+	# qemu-user is required to run alien arch binaries in pkg/cover tests.
+	qemu-user \
+	&& \
 	apt-get -y autoremove && \
 	apt-get clean autoclean && \
 	rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/*
