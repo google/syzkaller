@@ -60,7 +60,7 @@ func initTest(t *testing.T) (*prog.Target, rand.Source, int, bool, bool) {
 func TestExecutor(t *testing.T) {
 	t.Parallel()
 	for _, sysTarget := range targets.List[runtime.GOOS] {
-		sysTarget := sysTarget
+		sysTarget := targets.Get(runtime.GOOS, sysTarget.Arch)
 		t.Run(sysTarget.Arch, func(t *testing.T) {
 			if sysTarget.BrokenCompiler != "" {
 				t.Skipf("skipping, broken cross-compiler: %v", sysTarget.BrokenCompiler)
