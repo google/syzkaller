@@ -475,7 +475,7 @@ func PreviousInstructionPC(target *targets.Target, pc uint64) uint64 {
 	case "amd64":
 		return pc - 5
 	case "386":
-		return pc - 1
+		return pc - 5
 	case "arm64":
 		return pc - 4
 	case "arm":
