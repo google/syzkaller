@@ -1981,6 +1981,7 @@ static long syz_init_net_socket(volatile long domain, volatile long type, volati
 #if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
 #include <errno.h>
 #include <fcntl.h>
+#include <linux/rfkill.h>
 #include <pthread.h>
 #include <sys/epoll.h>
 #include <sys/ioctl.h>
@@ -2088,6 +2089,22 @@ struct vhci_vendor_pkt {
 #define HCISETSCAN _IOW('H', 221, int)
 
 static int vhci_fd = -1;
+
+void rfkill_unblock_all()
+{
+	int fd = open("/dev/rfkill", O_WRONLY);
+	if (fd < 0)
+		fail("open /dev/rfkill failed");
+	struct rfkill_event event = {0};
+	event.idx = 0;
+	event.type = RFKILL_TYPE_ALL;
+	event.op = RFKILL_OP_CHANGE_ALL;
+	event.soft = 0;
+	event.hard = 0;
+	if (write(fd, &event, sizeof(event)) < 0)
+		fail("write rfkill event failed\n");
+	close(fd);
+}
 
 static void hci_send_event_packet(int fd, uint8 evt, void* data, size_t data_len)
 {
@@ -2232,8 +2249,16 @@ static void initialize_vhci()
 		fail("pthread_create failed");
 
 	// Bring hci device up
-	if (ioctl(hci_sock, HCIDEVUP, vendor_pkt.id) && errno != EALREADY)
-		fail("ioctl(HCIDEVUP) failed");
+	int ret = ioctl(hci_sock, HCIDEVUP, vendor_pkt.id);
+	if (ret) {
+		if (errno == ERFKILL) {
+			rfkill_unblock_all();
+			ret = ioctl(hci_sock, HCIDEVUP, vendor_pkt.id);
+		}
+
+		if (ret && errno != EALREADY)
+			fail("ioctl(HCIDEVUP) failed");
+	}
 
 	// Activate page scanning mode which is required to fake a connection.
 	struct hci_dev_req dr = {0};
