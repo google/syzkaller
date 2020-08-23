@@ -5486,7 +5486,7 @@ struct vhci_vendor_pkt {
 
 static int vhci_fd = -1;
 
-void rfkill_unblock_all()
+static void rfkill_unblock_all()
 {
 	int fd = open("/dev/rfkill", O_WRONLY);
 	if (fd < 0)
