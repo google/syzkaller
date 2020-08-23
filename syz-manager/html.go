@@ -5,8 +5,10 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
 	"io/ioutil"
 	"net"
@@ -67,12 +69,7 @@ func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("failed to collect crashes: %v", err), http.StatusInternalServerError)
 		return
 	}
-
-	if err := summaryTemplate.Execute(w, data); err != nil {
-		http.Error(w, fmt.Sprintf("failed to execute template: %v", err),
-			http.StatusInternalServerError)
-		return
-	}
+	executeTemplate(w, summaryTemplate, data)
 }
 
 func (mgr *Manager) httpConfig(w http.ResponseWriter, r *http.Request) {
@@ -99,11 +96,7 @@ func (mgr *Manager) httpSyscalls(w http.ResponseWriter, r *http.Request) {
 	sort.Slice(data.Calls, func(i, j int) bool {
 		return data.Calls[i].Name < data.Calls[j].Name
 	})
-	if err := syscallsTemplate.Execute(w, data); err != nil {
-		http.Error(w, fmt.Sprintf("failed to execute template: %v", err),
-			http.StatusInternalServerError)
-		return
-	}
+	executeTemplate(w, syscallsTemplate, data)
 }
 
 func (mgr *Manager) collectStats() []UIStat {
@@ -168,10 +161,7 @@ func (mgr *Manager) httpCrash(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to read crash info", http.StatusInternalServerError)
 		return
 	}
-	if err := crashTemplate.Execute(w, crash); err != nil {
-		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
-		return
-	}
+	executeTemplate(w, crashTemplate, crash)
 }
 
 func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
@@ -203,11 +193,7 @@ func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
 		}
 		return a.Short < b.Short
 	})
-
-	if err := corpusTemplate.Execute(w, data); err != nil {
-		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
-		return
-	}
+	executeTemplate(w, corpusTemplate, data)
 }
 
 func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
@@ -282,11 +268,7 @@ func (mgr *Manager) httpCoverFallback(w http.ResponseWriter, r *http.Request) {
 	sort.Slice(data.Calls, func(i, j int) bool {
 		return data.Calls[i].Name < data.Calls[j].Name
 	})
-
-	if err := fallbackCoverTemplate.Execute(w, data); err != nil {
-		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
-		return
-	}
+	executeTemplate(w, fallbackCoverTemplate, data)
 }
 
 func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
@@ -318,11 +300,7 @@ func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
 	sort.Slice(data.Prios, func(i, j int) bool {
 		return data.Prios[i].Prio > data.Prios[j].Prio
 	})
-
-	if err := prioTemplate.Execute(w, data); err != nil {
-		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
-		return
-	}
+	executeTemplate(w, prioTemplate, data)
 }
 
 func (mgr *Manager) httpFile(w http.ResponseWriter, r *http.Request) {
@@ -537,6 +515,16 @@ func reproStatus(hasRepro, hasCRepro, reproducing, nonReproducible bool) string 
 		status = "non-reproducible"
 	}
 	return status
+}
+
+func executeTemplate(w http.ResponseWriter, templ *template.Template, data interface{}) {
+	buf := new(bytes.Buffer)
+	if err := templ.Execute(buf, data); err != nil {
+		log.Logf(0, "failed to execute template: %v", err)
+		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
+		return
+	}
+	w.Write(buf.Bytes())
 }
 
 func trimNewLines(data []byte) []byte {
