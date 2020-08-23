@@ -40,6 +40,7 @@ func main() {
 		flagKernelSrc      = flag.String("kernel_src", "", "path to kernel sources")
 		flagKernelBuildSrc = flag.String("kernel_build_src", "", "path to kernel image's build dir (optional)")
 		flagKernelObj      = flag.String("kernel_obj", "", "path to kernel build/obj dir")
+		flagExport         = flag.String("csv", "", "export coverage data in csv format (optional)")
 	)
 	flag.Parse()
 
@@ -72,6 +73,15 @@ func main() {
 	}
 	progs := []cover.Prog{{PCs: pcs}}
 	buf := new(bytes.Buffer)
+	if *flagExport != "" {
+		if err := rg.DoCSV(buf, progs); err != nil {
+			failf("%v", err)
+		}
+		if err := osutil.WriteFile(*flagExport, buf.Bytes()); err != nil {
+			failf("%v", err)
+		}
+		return
+	}
 	if err := rg.DoHTML(buf, progs); err != nil {
 		failf("%v", err)
 	}
