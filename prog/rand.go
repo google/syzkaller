@@ -26,9 +26,9 @@ const (
 
 type randGen struct {
 	*rand.Rand
-	target           *Target
-	inCreateResource bool
-	recDepth         map[string]int
+	target             *Target
+	inGenerateResource bool
+	recDepth           map[string]int
 }
 
 func newRand(target *Target, rs rand.Source) *randGen {
@@ -345,12 +345,6 @@ func (r *randGen) allocVMA(s *state, typ Type, dir Dir, numPages uint64) *Pointe
 }
 
 func (r *randGen) createResource(s *state, res *ResourceType, dir Dir) (arg Arg, calls []*Call) {
-	if r.inCreateResource {
-		return nil, nil
-	}
-	r.inCreateResource = true
-	defer func() { r.inCreateResource = false }()
-
 	kind := res.Desc.Name
 	// We may have no resources, but still be in createResource due to ANYRES.
 	if len(r.target.resourceMap) != 0 && r.oneOf(1000) {
@@ -659,20 +653,28 @@ func (r *randGen) generateArgImpl(s *state, typ Type, dir Dir, ignoreSpecial boo
 }
 
 func (a *ResourceType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
-	if r.oneOf(3) {
+	if !r.inGenerateResource {
+		// Don't allow recursion for resourceCentric/createResource.
+		// That can lead to generation of huge programs and may be very slow
+		// (esp. if we are generating some failing attempts in createResource already).
+		r.inGenerateResource = true
+		defer func() { r.inGenerateResource = false }()
+
+		if r.oneOf(4) {
+			arg, calls = r.resourceCentric(s, a, dir)
+			if arg != nil {
+				return
+			}
+		}
+		if r.oneOf(3) {
+			arg, calls = r.createResource(s, a, dir)
+			if arg != nil {
+				return
+			}
+		}
+	}
+	if r.nOutOf(9, 10) {
 		arg = r.existingResource(s, a, dir)
-		if arg != nil {
-			return
-		}
-	}
-	if r.nOutOf(2, 3) {
-		arg, calls = r.resourceCentric(s, a, dir)
-		if arg != nil {
-			return
-		}
-	}
-	if r.nOutOf(4, 5) {
-		arg, calls = r.createResource(s, a, dir)
 		if arg != nil {
 			return
 		}
