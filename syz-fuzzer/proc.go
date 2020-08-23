@@ -194,10 +194,10 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 		Cover:  inputCover.Serialize(),
 	})
 
-	proc.fuzzer.addInputToCorpus(item.p, inputSignal, sig, 0.0)
+	pidx := proc.fuzzer.addInputToCorpus(item.p, inputSignal, sig, 0.0)
 
 	if item.flags&ProgSmashed == 0 {
-		proc.fuzzer.workQueue.enqueue(&WorkSmash{item.p, item.call})
+		proc.fuzzer.workQueue.enqueue(&WorkSmash{pidx, item.p, item.call})
 	}
 }
 
@@ -231,17 +231,21 @@ func (proc *Proc) smashInput(item *WorkSmash) {
 	if proc.fuzzer.comparisonTracingEnabled && item.call != -1 {
 		proc.executeHintSeed(item.p, item.call)
 	}
-	// If MAB seed scheduling enabled, do not mutate for 100 times.
-	// Let MAB decide when to mutate new seeds.
-	if proc.fuzzer.mabSSEnabled {
-		return
-	}
 	fuzzerSnapshot := proc.fuzzer.snapshot()
 	for i := 0; i < 100; i++ {
 		p := item.p.Clone()
 		p.Mutate(proc.rnd, prog.RecommendedCalls, proc.fuzzer.choiceTable, fuzzerSnapshot.corpus)
 		log.Logf(1, "#%v: smash mutated", proc.pid)
-		proc.execute(proc.execOpts, p, ProgNormal, StatSmash)
+		_, result := proc.execute(proc.execOpts, p, ProgNormal, StatSmash)
+		// If MAB seed scheduling enabled, do not mutate for 100 times.
+		// Let MAB decide when to mutate new seeds.
+		if proc.fuzzer.mabSSEnabled {
+			proc.fuzzer.mabSS.Update(item.pidx, result, 1.0)
+			if proc.fuzzer.mabSS.GetRawReward(item.pidx) < 0.0 {
+				log.Logf(1, "#%v: MAB SS smash mutated %v times", proc.pid, i+1)
+				return
+			}
+		}
 	}
 }
 

@@ -182,3 +182,7 @@ func (ss *MABSeedScheduler) UpdateTotal(timeTotal int64, covTotal int) {
 	ss.totalTime = timeTotal
 	ss.totalCov = covTotal
 }
+
+func (ss *MABSeedScheduler) GetRawReward(idx int) float64 {
+	return ss.mab.GetRawReward(idx)
+}

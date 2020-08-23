@@ -20,7 +20,7 @@ const (
 )
 
 type Choice struct {
-	reward     float64 // Normalized reward.
+	reward     float64 // Normalized reward, adjusted to prevent overflow.
 	weight     float64 // Weight proportional to reward. Subject to float64 overflow prevention.
 	sumWeights float64 // Sum of weights up to current choice.
 }
@@ -32,7 +32,8 @@ type MultiArmedBandit struct {
 	// Keep track of sumRewards (avgReward) to prevent weight overflowing.
 	// If e^(avgReward) exceeds MABWeightThresholds, subtracts all rewards
 	// by avgReward
-	sumRewards float64
+	sumRewards   float64
+	rewardAdjust float64
 
 	theta float64 // Factor controlling gamma and eta.
 	gamma float64 // Exploration factor.
@@ -75,6 +76,7 @@ func (mab *MultiArmedBandit) updateWeight(idx int) {
 			mab.choices[i].sumWeights = sumWeights
 		}
 		mab.sumRewards = 0.0
+		mab.rewardAdjust += avgReward
 	}
 	// Update selection weight and prevent float64 overflow for individual
 	// choice.
@@ -102,7 +104,7 @@ func (mab *MultiArmedBandit) NewChoiceWithReward(initialReward float64) int {
 	defer mab.mu.Unlock()
 
 	newChoice := Choice{
-		reward:     initialReward,
+		reward:     initialReward - mab.rewardAdjust,
 		weight:     1.0,
 		sumWeights: 1.0,
 	}
@@ -111,7 +113,7 @@ func (mab *MultiArmedBandit) NewChoiceWithReward(initialReward float64) int {
 	}
 	mab.choices = append(mab.choices, newChoice)
 	idx := len(mab.choices) - 1
-	mab.sumRewards += initialReward
+	mab.sumRewards += newChoice.reward
 	mab.updateWeight(idx)
 
 	// Need to update exploration and exploitation factors.
@@ -143,4 +145,14 @@ func (mab *MultiArmedBandit) Update(idx int, reward, pr float64) {
 	mab.choices[idx].reward += rewardDiff
 	mab.sumRewards += rewardDiff
 	mab.updateWeight(idx)
+}
+
+func (mab *MultiArmedBandit) GetRawReward(idx int) float64 {
+	mab.mu.Lock()
+	defer mab.mu.Unlock()
+
+	if idx < 0 || idx >= len(mab.choices) {
+		return math.Inf(-1)
+	}
+	return mab.choices[idx].reward + mab.rewardAdjust
 }

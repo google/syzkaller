@@ -52,7 +52,7 @@ type Fuzzer struct {
 
 	corpusMu     sync.RWMutex
 	corpus       []*prog.Prog
-	corpusHashes map[hash.Sig]struct{}
+	corpusHashes map[hash.Sig]int
 	corpusPrios  []int64
 	sumPrios     int64
 
@@ -268,7 +268,7 @@ func main() {
 		timeouts:                 timeouts,
 		faultInjectionEnabled:    r.CheckResult.Features[host.FeatureFault].Enabled,
 		comparisonTracingEnabled: r.CheckResult.Features[host.FeatureComparisons].Enabled,
-		corpusHashes:             make(map[hash.Sig]struct{}),
+		corpusHashes:             make(map[hash.Sig]int),
 		checkResult:              r.CheckResult,
 		mabSSEnabled:             true,
 		mabSS:                    learning.NewMABSeedScheduler(0.1),
@@ -485,11 +485,11 @@ func (fuzzer *FuzzerSnapshot) chooseProgram(r *rand.Rand) *prog.Prog {
 	return fuzzer.corpus[idx]
 }
 
-func (fuzzer *Fuzzer) addInputToCorpus(p *prog.Prog, sign signal.Signal, sig hash.Sig, mabSSReward float64) {
+func (fuzzer *Fuzzer) addInputToCorpus(p *prog.Prog, sign signal.Signal, sig hash.Sig, mabSSReward float64) (pidx int) {
 	fuzzer.corpusMu.Lock()
 	if _, ok := fuzzer.corpusHashes[sig]; !ok {
+		fuzzer.corpusHashes[sig] = len(fuzzer.corpus)
 		fuzzer.corpus = append(fuzzer.corpus, p)
-		fuzzer.corpusHashes[sig] = struct{}{}
 		prio := int64(len(sign))
 		if sign.Empty() {
 			prio = 1
@@ -500,6 +500,7 @@ func (fuzzer *Fuzzer) addInputToCorpus(p *prog.Prog, sign signal.Signal, sig has
 			fuzzer.mabSS.NewChoiceWithReward(p, mabSSReward)
 		}
 	}
+	pidx = fuzzer.corpusHashes[sig]
 	fuzzer.corpusMu.Unlock()
 
 	if !sign.Empty() {
@@ -508,6 +509,7 @@ func (fuzzer *Fuzzer) addInputToCorpus(p *prog.Prog, sign signal.Signal, sig has
 		fuzzer.maxSignal.Merge(sign)
 		fuzzer.signalMu.Unlock()
 	}
+	return
 }
 
 func (fuzzer *Fuzzer) snapshot() FuzzerSnapshot {
