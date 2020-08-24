@@ -10,6 +10,8 @@ Directory can be clicked and you get view on files and possible subdirectories. 
 
 If you click on any C files you will get source code view. There is certain coloring used in the source code view. Color definitions can be found in [coverTemplate](/pkg/cover/report.go#L504). Coloring is described below.
 
+If you click on percentage number of any listed source file you will get cover percentage for each function in that source file.
+
 ### Covered: black (#000000)
 
 All PC values associated to that line are covered. There is number on the left side indicating how many programs have triggered executing the PC values assocaciated to this line. You can click on that number and it will open last executed program. Example below shows how single line which is fully covered is shown.
@@ -58,4 +60,10 @@ Now this raw cover data can be fed to `syz-cover` to generate coverage report:
 
 ``` bash
 ./bin/syz-cover --kernel_obj <directory where vmlinux is located> rawcover
+```
+
+You can also export CSV file containing function coverage by:
+
+``` bash
+./bin/syz-cover --kernel_obj <directory where vmlinux is located> --csv <filename where to export>  rawcover
 ```
