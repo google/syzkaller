@@ -218,13 +218,12 @@ These instructions describe how to set this up on a Raspberry Pi Zero W, but any
 
 15. Insert the module with `sudo insmod raw_gadget.ko`.
 
-16. [Download](https://raw.githubusercontent.com/xairy/raw-gadget/master/examples/keyboard.c), [patch](https://raw.githubusercontent.com/xairy/raw-gadget/master/examples/rpi_zero.patch), build and test the [keyboard emulator program](https://github.com/xairy/raw-gadget/tree/master/examples):
+16. [Download](https://raw.githubusercontent.com/xairy/raw-gadget/master/examples/keyboard.c), build and run the [keyboard emulator program](https://github.com/xairy/raw-gadget/tree/master/examples):
 
     ``` bash
     # Get keyboard.c
-    # Apply rpi_zero.patch
     gcc keyboard.c -o keyboard
-    sudo ./keyboard
+    sudo ./keyboard 20980000.usb 20980000.usb
     # Make sure you see the letter 'x' being entered on the host.
     ```
 
