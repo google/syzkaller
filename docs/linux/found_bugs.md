@@ -4,6 +4,21 @@ Most latest bugs are reported by [syzbot](/docs/syzbot.md) and are listed [here]
 Additional USB bugs are [here](/docs/linux/found_bugs_usb.md).
 
 _newer first_
+* [KASAN: use-after-free Read in screen_glyph_unicode](https://groups.google.com/g/syzkaller/c/114zHXgUIxc/m/HDakO4aDAQAJ)
+* [KASAN: use-after-free Read in vc_do_resize](https://groups.google.com/g/syzkaller/c/YxdMWhGfeWw/m/P9bVFhNNBgAJ)
+* [KASAN: use-after-free in usb_hcd_unlink_urb](https://groups.google.com/g/syzkaller/c/TVhdYRmqdvU/m/dRD7Rat9IQAJ)
+* [KASAN: slab-out-of-bounds Read in gadget_dev_desc_UDC_store](https://groups.google.com/g/syzkaller/c/p-eayxoLmWA/m/x12xTwhwAgAJ)
+* [KASAN: use-after-free Write in snd_rawmidi_kernel_write1](https://groups.google.com/g/syzkaller/c/GzOkkJGH6iY/m/2TTi8tdCAAAJ)
+* [KASAN: use-after-free Write in config_item_get](https://groups.google.com/g/syzkaller/c/TzmTYZVXk_Q/m/TfFqRdJ4AQAJ)
+* [KASAN: use-after-free Read in f_hidg_poll](https://groups.google.com/g/syzkaller/c/-WXXWIlZBu0/m/uhWv9RmMAgAJ)
+* [KASAN: use-after-free Read in printer_ioctl](https://groups.google.com/g/syzkaller/c/-e8qjq9mmUk/m/KYZy8SqkAgAJ)
+* [KASAN: null-ptr-deref Read in tty_wakeup](https://groups.google.com/g/syzkaller/c/BNzyjDzkYms/m/p9WwoUCpAwAJ)
+* [KASAN: use-after-free in afs_wake_up_async_call](https://groups.google.com/g/syzkaller/c/Km3HYdzI7Ng/m/tpC-0d8EBAAJ)
+* [KASAN: use-after-free Read in gs_flush_chars](https://groups.google.com/g/syzkaller/c/CtuIx6aFPDE/m/jK9d4529BQAJ)
+* [kernel BUG at net/core/skbuff.c](https://lkml.org/lkml/2017/10/2/181)
+* [io_uring: avoid page allocation warnings](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d4ef647510b1200fe1c996ff1cbf5ac47eb930cc)
+* [io_uring: free allocated io_memory once](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=52e04ef4c9d459cba3afd86ec335a411b40b7fd2)
+* [io_uring: fix SQPOLL cpu validation](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=975554b03eddc1df73bda3a764a09e18cadd5f1c)
 * [locks: use-after-free in perf_trace_lock_acquire](https://bugzilla.kernel.org/show_bug.cgi?id=205705) [CVE-2019-19769](https://nvd.nist.gov/vuln/detail/CVE-2019-19769)
 * [cirrusfb: divide errors in cirrusfb_check_var/cirrusfb_check_pixclock/cirrusfb_set_par_foo](https://groups.google.com/forum/#!topic/syzkaller/_utQWPf5qeY)
 * [floppy: fix out-of-bounds read in copy_buffer](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=da99466ac243f15fbba65bd261bfc75ffa1532b6)
