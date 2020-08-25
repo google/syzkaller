@@ -9137,6 +9137,8 @@ static volatile long syz_fuse_handle_req(volatile long a0,
 	case FUSE_FLUSH:
 	case FUSE_RELEASE:
 	case FUSE_RELEASEDIR:
+	case FUSE_UNLINK:
+	case FUSE_DESTROY:
 		out_hdr = req_out->init;
 		if (!out_hdr) {
 			debug("syz_fuse_handle_req: received a NULL out_hdr\n");
@@ -9173,9 +9175,11 @@ static volatile long syz_fuse_handle_req(volatile long a0,
 		out_hdr = req_out->getxattr;
 		break;
 	case FUSE_WRITE:
+	case FUSE_COPY_FILE_RANGE:
 		out_hdr = req_out->write;
 		break;
 	case FUSE_FORGET:
+	case FUSE_BATCH_FORGET:
 		return 0;
 	case FUSE_CREATE:
 		out_hdr = req_out->create_open;

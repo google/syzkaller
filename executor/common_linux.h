@@ -4500,6 +4500,8 @@ static volatile long syz_fuse_handle_req(volatile long a0, // /dev/fuse fd.
 	case FUSE_FLUSH:
 	case FUSE_RELEASE:
 	case FUSE_RELEASEDIR:
+	case FUSE_UNLINK:
+	case FUSE_DESTROY:
 		// These opcodes do not have any reply data. Hence, we pick
 		// another response and only use the shared header.
 		out_hdr = req_out->init;
@@ -4538,10 +4540,12 @@ static volatile long syz_fuse_handle_req(volatile long a0, // /dev/fuse fd.
 		out_hdr = req_out->getxattr;
 		break;
 	case FUSE_WRITE:
+	case FUSE_COPY_FILE_RANGE:
 		out_hdr = req_out->write;
 		break;
 	case FUSE_FORGET:
-		// FUSE_FORGET expects no reply.
+	case FUSE_BATCH_FORGET:
+		// FUSE_FORGET and FUSE_BATCH_FORGET expect no reply.
 		return 0;
 	case FUSE_CREATE:
 		out_hdr = req_out->create_open;
