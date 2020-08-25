@@ -50,6 +50,7 @@ type Manager struct {
 	sysTarget      *targets.Target
 	reporter       report.Reporter
 	crashdir       string
+	serv           *RPCServer
 	port           int
 	corpusDB       *db.DB
 	startTime      time.Time
@@ -86,8 +87,6 @@ type Manager struct {
 	// For checking that files that we are using are not changing under us.
 	// Maps file name to modification time.
 	usedFiles map[string]time.Time
-
-	machineInfo map[int]string
 }
 
 const (
@@ -111,6 +110,7 @@ type Crash struct {
 	vmIndex int
 	hub     bool // this crash was created based on a repro from hub
 	*report.Report
+	machineInfo []byte
 }
 
 func main() {
@@ -181,7 +181,6 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, sysTarget *targets.T
 		reproRequest:          make(chan chan map[string]bool),
 		usedFiles:             make(map[string]time.Time),
 		saturatedCalls:        make(map[string]bool),
-		machineInfo:           make(map[int]string),
 	}
 
 	log.Logf(0, "loading corpus...")
@@ -195,7 +194,7 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, sysTarget *targets.T
 	mgr.collectUsedFiles()
 
 	// Create RPC server for fuzzers.
-	mgr.port, err = startRPCServer(mgr)
+	mgr.serv, mgr.port, err = startRPCServer(mgr)
 	if err != nil {
 		log.Fatalf("failed to create rpc server: %v", err)
 	}
@@ -588,13 +587,16 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 		return nil, nil
 	}
 
-	if info, ok := mgr.machineInfo[index]; ok {
-		rep.Report = append(rep.Report, info...)
+	instanceName := fmt.Sprintf("vm-%d", index)
+	var machineInfo []byte
+	if info, ok := mgr.serv.getMachineInfo(instanceName); ok {
+		machineInfo = info
 	}
 	crash := &Crash{
-		vmIndex: index,
-		hub:     false,
-		Report:  rep,
+		vmIndex:     index,
+		hub:         false,
+		Report:      rep,
+		machineInfo: machineInfo,
 	}
 	return crash, nil
 }
@@ -701,6 +703,9 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 	}
 	if len(crash.Report.Report) > 0 {
 		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", oldestI)), crash.Report.Report)
+	}
+	if len(crash.machineInfo) > 0 {
+		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("machineInfo%v", oldestI)), crash.machineInfo)
 	}
 
 	return mgr.needLocalRepro(crash)
@@ -998,15 +1003,9 @@ func (mgr *Manager) collectSyscallInfoUnlocked() map[string]*CallCov {
 	return calls
 }
 
-func (mgr *Manager) fuzzerConnect(args *rpctype.ConnectArgs) ([]rpctype.RPCInput, BugFrames) {
+func (mgr *Manager) fuzzerConnect() ([]rpctype.RPCInput, BugFrames) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
-
-	var idx int
-	_, err := fmt.Sscanf(args.Name, "vm-%d", &idx)
-	if err == nil {
-		mgr.machineInfo[idx] = args.MachineInfo
-	}
 
 	mgr.minimizeCorpus()
 	corpus := make([]rpctype.RPCInput, 0, len(mgr.corpus))

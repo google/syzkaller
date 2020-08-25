@@ -26,7 +26,7 @@ type RPCCandidate struct {
 
 type ConnectArgs struct {
 	Name        string
-	MachineInfo string
+	MachineInfo []byte
 }
 
 type ConnectRes struct {

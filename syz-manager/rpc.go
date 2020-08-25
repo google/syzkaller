@@ -41,6 +41,7 @@ type Fuzzer struct {
 	inputs        []rpctype.RPCInput
 	newMaxSignal  signal.Signal
 	rotatedSignal signal.Signal
+	machineInfo   []byte
 }
 
 type BugFrames struct {
@@ -50,14 +51,14 @@ type BugFrames struct {
 
 // RPCManagerView restricts interface between RPCServer and Manager.
 type RPCManagerView interface {
-	fuzzerConnect(args *rpctype.ConnectArgs) ([]rpctype.RPCInput, BugFrames)
+	fuzzerConnect() ([]rpctype.RPCInput, BugFrames)
 	machineChecked(result *rpctype.CheckArgs, enabledSyscalls map[*prog.Syscall]bool)
 	newInput(inp rpctype.RPCInput, sign signal.Signal) bool
 	candidateBatch(size int) []rpctype.RPCCandidate
 	rotateCorpus() bool
 }
 
-func startRPCServer(mgr *Manager) (int, error) {
+func startRPCServer(mgr *Manager) (*RPCServer, int, error) {
 	serv := &RPCServer{
 		mgr:                   mgr,
 		target:                mgr.target,
@@ -73,25 +74,26 @@ func startRPCServer(mgr *Manager) (int, error) {
 	}
 	s, err := rpctype.NewRPCServer(mgr.cfg.RPC, "Manager", serv)
 	if err != nil {
-		return 0, err
+		return nil, 0, err
 	}
 	log.Logf(0, "serving rpc on tcp://%v", s.Addr())
 	port := s.Addr().(*net.TCPAddr).Port
 	go s.Serve()
-	return port, nil
+	return serv, port, nil
 }
 
 func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) error {
 	log.Logf(1, "fuzzer %v connected", a.Name)
 	serv.stats.vmRestarts.inc()
 
-	corpus, bugFrames := serv.mgr.fuzzerConnect(a)
+	corpus, bugFrames := serv.mgr.fuzzerConnect()
 
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
 
 	f := &Fuzzer{
-		name: a.Name,
+		name:        a.Name,
+		machineInfo: a.MachineInfo,
 	}
 	serv.fuzzers[a.Name] = f
 	r.MemoryLeakFrames = bugFrames.memoryLeaks
@@ -305,4 +307,12 @@ func (serv *RPCServer) Poll(a *rpctype.PollArgs, r *rpctype.PollRes) error {
 	log.Logf(4, "poll from %v: candidates=%v inputs=%v maxsignal=%v",
 		a.Name, len(r.Candidates), len(r.NewInputs), len(r.MaxSignal.Elems))
 	return nil
+}
+
+func (serv *RPCServer) getMachineInfo(name string) ([]byte, bool) {
+	fuzzer, ok := serv.fuzzers[name]
+	if !ok {
+		return nil, false
+	}
+	return fuzzer.machineInfo, true
 }

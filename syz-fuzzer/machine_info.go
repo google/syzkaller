@@ -1,18 +1,21 @@
+// Copyright 2020 syzkaller project authors. All rights reserved.
+// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
 package main
 
 import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path"
 	"runtime"
 	"strings"
 )
 
-func CollectMachineInfo() string {
-
+func CollectMachineInfo() ([]byte, error) {
 	if runtime.GOOS != "linux" {
-		return ""
+		return []byte{}, nil
 	}
 
 	type machineInfoFunc struct {
@@ -28,18 +31,20 @@ func CollectMachineInfo() string {
 	var buffer bytes.Buffer
 
 	for _, pair := range allMachineInfo {
-		buffer.WriteString(fmt.Sprintf("-------------------- %s ---------------------", pair.name))
+		buffer.WriteString(fmt.Sprintf("[%s]\n", pair.name))
 		data, err := pair.fn()
-		if err == nil {
-			buffer.WriteString("\n")
-			buffer.Write(data)
-			buffer.WriteString("\n")
+		if err != nil {
+			if os.IsNotExist(err) {
+				buffer.WriteString(err.Error() + "\n")
+			} else {
+				return nil, err
+			}
 		} else {
-			buffer.WriteString(" error while reading data\n")
+			buffer.Write(data)
 		}
 	}
 
-	return buffer.String()
+	return buffer.Bytes(), nil
 }
 
 func readCPUInfo() (result []byte, err error) {
@@ -51,33 +56,43 @@ func readCPUInfo() (result []byte, err error) {
 	return result, nil
 }
 
-func readKVMInfo() (result []byte, err error) {
+func readKVMInfo() ([]byte, error) {
 	files, err := ioutil.ReadDir("/sys/module/")
 	if err != nil {
-		return result, err
+		return nil, err
 	}
+
+	var buffer bytes.Buffer
 
 	for _, file := range files {
 		name := file.Name()
 		if strings.HasPrefix(name, "kvm") {
-			param_path := path.Join("/sys/module", name, "parameters")
+			paramPath := path.Join("/sys/module", name, "parameters")
 
-			params, err := ioutil.ReadDir(param_path)
+			params, err := ioutil.ReadDir(paramPath)
 			if err != nil {
-				continue
+				if os.IsNotExist(err) {
+					continue
+				} else {
+					return nil, err
+				}
 			}
 
-			for _, key := range params {
-				keyName := key.Name()
-				data, err := ioutil.ReadFile(path.Join(param_path, keyName))
-				if err != nil {
-					continue
-				}
+			if len(params) > 0 {
+				buffer.WriteString(fmt.Sprintf("/sys/module/%s:\n", name))
+				for _, key := range params {
+					keyName := key.Name()
+					data, err := ioutil.ReadFile(path.Join(paramPath, keyName))
+					if err != nil {
+						return nil, err
+					}
 
-				result = append(result, fmt.Sprintf("%s: %s", keyName, data)...)
+					buffer.WriteString(fmt.Sprintf("\t%s: ", keyName))
+					buffer.Write(data)
+				}
 			}
 		}
 	}
 
-	return result, nil
+	return buffer.Bytes(), nil
 }
