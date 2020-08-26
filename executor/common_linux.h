@@ -3318,6 +3318,9 @@ static void sandbox_common()
 	if (unshare(CLONE_NEWNS)) {
 		debug("unshare(CLONE_NEWNS): %d\n", errno);
 	}
+	if (mount(NULL, "/", NULL, MS_REC | MS_PRIVATE, NULL)) {
+		debug("mount(\"/\", MS_REC | MS_PRIVATE): %d\n", errno);
+	}
 	if (unshare(CLONE_NEWIPC)) {
 		debug("unshare(CLONE_NEWIPC): %d\n", errno);
 	}
