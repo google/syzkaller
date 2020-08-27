@@ -6,6 +6,7 @@ package csource
 import (
 	"fmt"
 	"io/ioutil"
+	"math"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -181,6 +182,109 @@ func TestExecutorMacros(t *testing.T) {
 		}
 		if _, ok := expected[macro]; !ok {
 			t.Errorf("unexpected macro: %v", macro)
+		}
+	}
+}
+
+var sourceOpts = Options{
+	Threaded:     false,
+	Collide:      false,
+	Repeat:       true,
+	RepeatTimes:  0,
+	Procs:        1,
+	Sandbox:      "none",
+	Fault:        false,
+	FaultCall:    -1,
+	FaultNth:     0,
+	Leak:         false,
+	NetInjection: false,
+	NetDevices:   false,
+	NetReset:     false,
+	Cgroups:      false,
+	BinfmtMisc:   false,
+	CloseFDs:     false,
+	KCSAN:        false,
+	DevlinkPCI:   false,
+	USB:          false,
+	UseTmpDir:    false,
+	HandleSegv:   false,
+	Repro:        false,
+	Trace:        false,
+}
+var source = `r0 = socket$qrtr(0x2a, 0x2, 0x0)
+bind$qrtr(r0, &(0x7f0000000140)={0x2a, 0x1, 0xfffffffc}, 0xc)`
+
+func TestDeserializeWrite(t *testing.T) {
+	target, _ := prog.GetTarget("linux", "amd64")
+	data := []byte(source)
+	p, err := target.Deserialize(data, 0) // Strict DeserializationMode
+	if err != nil {
+		t.Fatalf("failed to deserialize:\n%v", err)
+	}
+	data, _ = Write(p, sourceOpts)
+	fmt.Println(string(data))
+}
+func TestGenerateWrite(t *testing.T) {
+	for _, target := range prog.AllTargets() {
+		p := target.Generate(rand.NewSource(0), 1, target.DefaultChoiceTable())
+		data, err := Write(p, sourceOpts)
+		if err != nil {
+			t.Fatalf("failed to generate C source")
+		}
+
+		code := string(data)
+		if !strings.Contains(code, "int main(") {
+			t.Errorf("Unusual C source code")
+		}
+	}
+}
+
+var expectedOutput = []string{"res = syscall(__NR_socket, 0x2aul, 2ul, 0);	//socket(AF_QIPCRTR, SOCK_DGRAM, 0)",
+`syscall(__NR_bind, r[0], 0x20000140ul, 0xcul);	//bind(-1, {sa_family=AF_QIPCRTR, sa_data="\0\0\1\0\0\0\374\377\377\377"}, 12)`}
+
+func CreateC() string {
+	target, _ := prog.GetTarget("linux", "amd64")
+	data := []byte(source)
+	p, err := target.Deserialize(data, 0) // Strict DeserializationMode
+	if err != nil {
+		fmt.Println("failed to deserialize:\n", err)
+		os.Exit(1)
+	}
+	data, _ = Write(p, sourceOpts)
+	code := string(data)
+
+	return code
+}
+
+func TestMainCode(t *testing.T) {
+	code := CreateC()
+	fmt.Println(code)
+	lines := strings.Split(code, "\n")
+
+	idx := math.MaxInt64
+	for _, line := range lines {
+		if strings.HasPrefix(line, "{") {
+			continue
+		}
+
+		if strings.Compare(line, "void execute_one(void)") == 0 {
+			idx = 0
+			continue
+		}
+
+		if idx < len(expectedOutput) {
+			//fmt.Println("idx has the correct value")
+			if strings.Contains(line, "syscall") {
+				if !strings.Contains(line, expectedOutput[idx]) {
+					fmt.Println("Wrong output for line: ", line)
+					fmt.Println("Expected output: ", expectedOutput[idx])
+					t.Fatalf("incorrect code")
+				}
+				idx++
+			}
+		} else if idx == len(expectedOutput) + 1 {
+			fmt.Println("Correct output")
+			break
 		}
 	}
 }
