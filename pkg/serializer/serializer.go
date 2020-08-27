@@ -41,6 +41,8 @@ func (w *writer) do(v reflect.Value, sliceElem bool) {
 		w.doSlice(v)
 	case reflect.Struct:
 		w.doStruct(v, sliceElem)
+	case reflect.Map:
+		w.doMap(v)
 	case reflect.Bool:
 		if v.Bool() {
 			w.string("true")
@@ -129,6 +131,20 @@ func (w *writer) doSlice(v reflect.Value) {
 	w.byte('}')
 }
 
+func (w *writer) doMap(v reflect.Value) {
+	w.typ(v.Type())
+	w.byte('{')
+	for i, k := range v.MapKeys() {
+		if i > 0 {
+			w.byte(',')
+		}
+		w.do(k, false)
+		w.byte(':')
+		w.do(v.MapIndex(k), false)
+	}
+	w.byte('}')
+}
+
 func (w *writer) doStruct(v reflect.Value, sliceElem bool) {
 	if !sliceElem {
 		w.string(v.Type().Name())
@@ -168,6 +184,11 @@ func (w *writer) typ(t reflect.Type) {
 		w.typ(t.Elem())
 	case reflect.Slice:
 		w.string("[]")
+		w.typ(t.Elem())
+	case reflect.Map:
+		w.string("map[")
+		w.typ(t.Key())
+		w.string("]")
 		w.typ(t.Elem())
 	default:
 		w.string(t.Name())
