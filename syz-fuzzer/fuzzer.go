@@ -183,7 +183,7 @@ func main() {
 
 	machineInfo, err := CollectMachineInfo()
 	if err != nil {
-		log.Logf(0, "collect machine information failed: %v", err)
+		log.Fatalf("failed to collect machine information: %v", err)
 	}
 
 	log.Logf(0, "dialing manager at %v", *flagManager)

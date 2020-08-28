@@ -8,14 +8,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"runtime"
 	"strings"
 )
 
 func CollectMachineInfo() ([]byte, error) {
 	if runtime.GOOS != "linux" {
-		return []byte{}, nil
+		return nil, nil
 	}
 
 	type machineInfoFunc struct {
@@ -28,20 +28,20 @@ func CollectMachineInfo() ([]byte, error) {
 		{"KVM", readKVMInfo},
 	}
 
-	var buffer bytes.Buffer
+	buffer := new(bytes.Buffer)
 
 	for _, pair := range allMachineInfo {
-		buffer.WriteString(fmt.Sprintf("[%s]\n", pair.name))
+		fmt.Fprintf(buffer, "[%s]\n", pair.name)
 		data, err := pair.fn()
 		if err != nil {
 			if os.IsNotExist(err) {
 				buffer.WriteString(err.Error() + "\n")
-			} else {
-				return nil, err
 			}
+			return nil, err
 		} else {
 			buffer.Write(data)
 		}
+		fmt.Fprintf(buffer, "-------------------------\n", pair.name)
 	}
 
 	return buffer.Bytes(), nil
@@ -52,7 +52,6 @@ func readCPUInfo() (result []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return result, nil
 }
 
@@ -62,37 +61,37 @@ func readKVMInfo() ([]byte, error) {
 		return nil, err
 	}
 
-	var buffer bytes.Buffer
+	buffer := new(bytes.Buffer)
 
 	for _, file := range files {
 		name := file.Name()
-		if strings.HasPrefix(name, "kvm") {
-			paramPath := path.Join("/sys/module", name, "parameters")
+		if !strings.HasPrefix(name, "kvm") {
+			continue
+		}
 
-			params, err := ioutil.ReadDir(paramPath)
+		paramPath := filepath.Join("/sys", "module", name, "parameters")
+		params, err := ioutil.ReadDir(paramPath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return nil, err
+		}
+
+		if len(params) == 0 {
+			continue
+		}
+
+		fmt.Fprintf(buffer, "/sys/module/%s:\n", name)
+		for _, key := range params {
+			keyName := key.Name()
+			data, err := ioutil.ReadFile(filepath.Join(paramPath, keyName))
 			if err != nil {
-				if os.IsNotExist(err) {
-					continue
-				} else {
-					return nil, err
-				}
+				return nil, err
 			}
-
-			if len(params) > 0 {
-				buffer.WriteString(fmt.Sprintf("/sys/module/%s:\n", name))
-				for _, key := range params {
-					keyName := key.Name()
-					data, err := ioutil.ReadFile(path.Join(paramPath, keyName))
-					if err != nil {
-						return nil, err
-					}
-
-					buffer.WriteString(fmt.Sprintf("\t%s: ", keyName))
-					buffer.Write(data)
-				}
-			}
+			fmt.Fprintf(buffer, "\t%s: ", keyName)
+			buffer.Write(data)
 		}
 	}
-
 	return buffer.Bytes(), nil
 }

@@ -51,7 +51,6 @@ type Manager struct {
 	reporter       report.Reporter
 	crashdir       string
 	serv           *RPCServer
-	port           int
 	corpusDB       *db.DB
 	startTime      time.Time
 	firstConnect   time.Time
@@ -194,7 +193,7 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, sysTarget *targets.T
 	mgr.collectUsedFiles()
 
 	// Create RPC server for fuzzers.
-	mgr.serv, mgr.port, err = startRPCServer(mgr)
+	mgr.serv, err = startRPCServer(mgr)
 	if err != nil {
 		log.Fatalf("failed to create rpc server: %v", err)
 	}
@@ -268,7 +267,7 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, sysTarget *targets.T
 	if mgr.vmPool == nil {
 		log.Logf(0, "no VMs started (type=none)")
 		log.Logf(0, "you are supposed to start syz-fuzzer manually as:")
-		log.Logf(0, "syz-fuzzer -manager=manager.ip:%v [other flags as necessary]", mgr.port)
+		log.Logf(0, "syz-fuzzer -manager=manager.ip:%v [other flags as necessary]", mgr.serv.port)
 		<-vm.Shutdown
 		return
 	}
@@ -541,7 +540,7 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	}
 	defer inst.Close()
 
-	fwdAddr, err := inst.Forward(mgr.port)
+	fwdAddr, err := inst.Forward(mgr.serv.port)
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup port forwarding: %v", err)
 	}
@@ -572,7 +571,9 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	start := time.Now()
 	atomic.AddUint32(&mgr.numFuzzing, 1)
 	defer atomic.AddUint32(&mgr.numFuzzing, ^uint32(0))
-	cmd := instance.FuzzerCmd(fuzzerBin, executorCmd, fmt.Sprintf("vm-%v", index),
+
+	instanceName := fmt.Sprintf("vm-%d", index)
+	cmd := instance.FuzzerCmd(fuzzerBin, executorCmd, instanceName,
 		mgr.cfg.TargetOS, mgr.cfg.TargetArch, fwdAddr, mgr.cfg.Sandbox, procs, fuzzerV,
 		mgr.cfg.Cover, *flagDebug, false, false)
 	outc, errc, err := inst.Run(time.Hour, mgr.vmStop, cmd)
@@ -583,15 +584,11 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	rep := inst.MonitorExecution(outc, errc, mgr.reporter, vm.ExitTimeout)
 	if rep == nil {
 		// This is the only "OK" outcome.
-		log.Logf(0, "vm-%v: running for %v, restarting", index, time.Since(start))
+		log.Logf(0, "%s: running for %v, restarting", instanceName, time.Since(start))
 		return nil, nil
 	}
 
-	instanceName := fmt.Sprintf("vm-%d", index)
-	var machineInfo []byte
-	if info, ok := mgr.serv.getMachineInfo(instanceName); ok {
-		machineInfo = info
-	}
+	machineInfo := mgr.serv.getMachineInfo(instanceName)
 	crash := &Crash{
 		vmIndex:     index,
 		hub:         false,

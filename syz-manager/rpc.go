@@ -19,6 +19,7 @@ import (
 
 type RPCServer struct {
 	mgr                   RPCManagerView
+	port                  int
 	target                *prog.Target
 	configEnabledSyscalls []int
 	targetEnabledSyscalls map[*prog.Syscall]bool
@@ -58,7 +59,7 @@ type RPCManagerView interface {
 	rotateCorpus() bool
 }
 
-func startRPCServer(mgr *Manager) (*RPCServer, int, error) {
+func startRPCServer(mgr *Manager) (*RPCServer, error) {
 	serv := &RPCServer{
 		mgr:                   mgr,
 		target:                mgr.target,
@@ -74,12 +75,12 @@ func startRPCServer(mgr *Manager) (*RPCServer, int, error) {
 	}
 	s, err := rpctype.NewRPCServer(mgr.cfg.RPC, "Manager", serv)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 	log.Logf(0, "serving rpc on tcp://%v", s.Addr())
-	port := s.Addr().(*net.TCPAddr).Port
+	serv.port = s.Addr().(*net.TCPAddr).Port
 	go s.Serve()
-	return serv, port, nil
+	return serv, nil
 }
 
 func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) error {
@@ -309,10 +310,15 @@ func (serv *RPCServer) Poll(a *rpctype.PollArgs, r *rpctype.PollRes) error {
 	return nil
 }
 
-func (serv *RPCServer) getMachineInfo(name string) ([]byte, bool) {
+func (serv *RPCServer) getMachineInfo(name string) []byte {
+	serv.mu.Lock()
+	defer serv.mu.Unlock()
+
 	fuzzer, ok := serv.fuzzers[name]
 	if !ok {
-		return nil, false
+		return nil
 	}
-	return fuzzer.machineInfo, true
+
+	serv.fuzzers[name] = nil
+	return fuzzer.machineInfo
 }
