@@ -4,12 +4,14 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 )
 
@@ -38,21 +40,69 @@ func CollectMachineInfo() ([]byte, error) {
 				buffer.WriteString(err.Error() + "\n")
 			}
 			return nil, err
-		} else {
-			buffer.Write(data)
 		}
-		fmt.Fprintf(buffer, "-------------------------\n", pair.name)
+		buffer.Write(data)
+		fmt.Fprintf(buffer, "-----------------------------------\n\n")
 	}
 
 	return buffer.Bytes(), nil
 }
 
-func readCPUInfo() (result []byte, err error) {
-	result, err = ioutil.ReadFile("/proc/cpuinfo")
+func readCPUInfo() ([]byte, error) {
+	file, err := os.Open("/proc/cpuinfo")
 	if err != nil {
 		return nil, err
 	}
-	return result, nil
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	keyOrder := make(map[string]int)
+	info := make(map[string][]string)
+	for scanner.Scan() {
+		splitted := strings.Split(scanner.Text(), ":")
+		if len(splitted) != 2 {
+			continue
+		}
+		key := strings.TrimSpace(splitted[0])
+		val := strings.TrimSpace(splitted[1])
+		if _, ok := keyOrder[key]; !ok {
+			keyIdx := len(keyOrder)
+			keyOrder[key] = keyIdx
+		}
+		info[key] = append(info[key], val)
+	}
+	keys := make([]string, 0, len(keyOrder))
+	for key := range keyOrder {
+		keys = append(keys, key)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		return keyOrder[keys[i]] < keyOrder[keys[j]]
+	})
+
+	buffer := new(bytes.Buffer)
+	for _, key := range keys {
+		// It is guaranteed that len(vals) >= 1
+		vals := info[key]
+		if allEqual(vals) {
+			fmt.Fprintf(buffer, "%-20s:\t\t%s\n", key, vals[0])
+		} else {
+			fmt.Fprintf(buffer, "%-20s:\t\t%s\n", key, strings.Join(vals, ", "))
+		}
+	}
+
+	return buffer.Bytes(), nil
+}
+
+func allEqual(slice []string) bool {
+	if len(slice) == 0 {
+		return true
+	}
+	for i := 1; i < len(slice); i++ {
+		if slice[i] != slice[0] {
+			return false
+		}
+	}
+	return true
 }
 
 func readKVMInfo() ([]byte, error) {
@@ -92,6 +142,7 @@ func readKVMInfo() ([]byte, error) {
 			fmt.Fprintf(buffer, "\t%s: ", keyName)
 			buffer.Write(data)
 		}
+		buffer.WriteString("\n")
 	}
 	return buffer.Bytes(), nil
 }
