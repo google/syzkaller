@@ -534,57 +534,67 @@ func checkProgram(target *prog.Target, enabled map[*prog.Syscall]bool, data []by
 
 func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	mgr.checkUsedFiles()
-	inst, err := mgr.vmPool.Create(index)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create instance: %v", err)
-	}
-	defer inst.Close()
+	instanceName := fmt.Sprintf("vm-%d", index)
 
-	fwdAddr, err := inst.Forward(mgr.serv.port)
-	if err != nil {
-		return nil, fmt.Errorf("failed to setup port forwarding: %v", err)
-	}
+	rep, err := func() (*report.Report, error) {
+		inst, err := mgr.vmPool.Create(index)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create instance: %v", err)
+		}
+		defer inst.Close()
 
-	fuzzerBin, err := inst.Copy(mgr.cfg.SyzFuzzerBin)
-	if err != nil {
-		return nil, fmt.Errorf("failed to copy binary: %v", err)
-	}
+		fwdAddr, err := inst.Forward(mgr.serv.port)
+		if err != nil {
+			return nil, fmt.Errorf("failed to setup port forwarding: %v", err)
+		}
 
-	// If SyzExecutorCmd is provided, it means that syz-executor is already in
-	// the image, so no need to copy it.
-	executorCmd := targets.Get(mgr.cfg.TargetOS, mgr.cfg.TargetArch).SyzExecutorCmd
-	if executorCmd == "" {
-		executorCmd, err = inst.Copy(mgr.cfg.SyzExecutorBin)
+		fuzzerBin, err := inst.Copy(mgr.cfg.SyzFuzzerBin)
 		if err != nil {
 			return nil, fmt.Errorf("failed to copy binary: %v", err)
 		}
-	}
 
-	fuzzerV := 0
-	procs := mgr.cfg.Procs
-	if *flagDebug {
-		fuzzerV = 100
-		procs = 1
-	}
+		// If SyzExecutorCmd is provided, it means that syz-executor is already in
+		// the image, so no need to copy it.
+		executorCmd := targets.Get(mgr.cfg.TargetOS, mgr.cfg.TargetArch).SyzExecutorCmd
+		if executorCmd == "" {
+			executorCmd, err = inst.Copy(mgr.cfg.SyzExecutorBin)
+			if err != nil {
+				return nil, fmt.Errorf("failed to copy binary: %v", err)
+			}
+		}
 
-	// Run the fuzzer binary.
-	start := time.Now()
-	atomic.AddUint32(&mgr.numFuzzing, 1)
-	defer atomic.AddUint32(&mgr.numFuzzing, ^uint32(0))
+		fuzzerV := 0
+		procs := mgr.cfg.Procs
+		if *flagDebug {
+			fuzzerV = 100
+			procs = 1
+		}
 
-	instanceName := fmt.Sprintf("vm-%d", index)
-	cmd := instance.FuzzerCmd(fuzzerBin, executorCmd, instanceName,
-		mgr.cfg.TargetOS, mgr.cfg.TargetArch, fwdAddr, mgr.cfg.Sandbox, procs, fuzzerV,
-		mgr.cfg.Cover, *flagDebug, false, false)
-	outc, errc, err := inst.Run(time.Hour, mgr.vmStop, cmd)
+		// Run the fuzzer binary.
+		start := time.Now()
+		atomic.AddUint32(&mgr.numFuzzing, 1)
+		defer atomic.AddUint32(&mgr.numFuzzing, ^uint32(0))
+
+		cmd := instance.FuzzerCmd(fuzzerBin, executorCmd, instanceName,
+			mgr.cfg.TargetOS, mgr.cfg.TargetArch, fwdAddr, mgr.cfg.Sandbox, procs, fuzzerV,
+			mgr.cfg.Cover, *flagDebug, false, false)
+		outc, errc, err := inst.Run(time.Hour, mgr.vmStop, cmd)
+		if err != nil {
+			return nil, fmt.Errorf("failed to run fuzzer: %v", err)
+		}
+
+		rep := inst.MonitorExecution(outc, errc, mgr.reporter, vm.ExitTimeout)
+		if rep == nil {
+			// This is the only "OK" outcome.
+			log.Logf(0, "%s: running for %v, restarting", instanceName, time.Since(start))
+		}
+		return rep, nil
+	}()
+
 	if err != nil {
-		return nil, fmt.Errorf("failed to run fuzzer: %v", err)
+		return nil, err
 	}
-
-	rep := inst.MonitorExecution(outc, errc, mgr.reporter, vm.ExitTimeout)
 	if rep == nil {
-		// This is the only "OK" outcome.
-		log.Logf(0, "%s: running for %v, restarting", instanceName, time.Since(start))
 		return nil, nil
 	}
 
