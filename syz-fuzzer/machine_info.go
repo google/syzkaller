@@ -56,6 +56,11 @@ func readCPUInfo() ([]byte, error) {
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
+	result := scanCPUInfo(scanner)
+	return result, nil
+}
+
+func scanCPUInfo(scanner *bufio.Scanner) []byte {
 	keyOrder := make(map[string]int)
 	info := make(map[string][]string)
 	for scanner.Scan() {
@@ -84,13 +89,13 @@ func readCPUInfo() ([]byte, error) {
 		// It is guaranteed that len(vals) >= 1
 		vals := info[key]
 		if allEqual(vals) {
-			fmt.Fprintf(buffer, "%-20s:\t\t%s\n", key, vals[0])
+			fmt.Fprintf(buffer, "%-20s: %s\n", key, vals[0])
 		} else {
-			fmt.Fprintf(buffer, "%-20s:\t\t%s\n", key, strings.Join(vals, ", "))
+			fmt.Fprintf(buffer, "%-20s: %s\n", key, strings.Join(vals, ", "))
 		}
 	}
 
-	return buffer.Bytes(), nil
+	return buffer.Bytes()
 }
 
 func allEqual(slice []string) bool {
