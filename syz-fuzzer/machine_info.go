@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"sort"
 	"strings"
 )
 
@@ -61,8 +60,13 @@ func readCPUInfo() ([]byte, error) {
 }
 
 func scanCPUInfo(scanner *bufio.Scanner) []byte {
-	keyOrder := make(map[string]int)
-	info := make(map[string][]string)
+	keyIndices := make(map[string]int)
+	type keyValues struct {
+		key    string
+		values []string
+	}
+	var info []keyValues
+
 	for scanner.Scan() {
 		splitted := strings.Split(scanner.Text(), ":")
 		if len(splitted) != 2 {
@@ -70,24 +74,21 @@ func scanCPUInfo(scanner *bufio.Scanner) []byte {
 		}
 		key := strings.TrimSpace(splitted[0])
 		val := strings.TrimSpace(splitted[1])
-		if _, ok := keyOrder[key]; !ok {
-			keyIdx := len(keyOrder)
-			keyOrder[key] = keyIdx
+
+		if idx, ok := keyIndices[key]; !ok {
+			idx = len(keyIndices)
+			keyIndices[key] = idx
+			info = append(info, keyValues{key, []string{val}})
+		} else {
+			info[idx].values = append(info[idx].values, val)
 		}
-		info[key] = append(info[key], val)
 	}
-	keys := make([]string, 0, len(keyOrder))
-	for key := range keyOrder {
-		keys = append(keys, key)
-	}
-	sort.Slice(keys, func(i, j int) bool {
-		return keyOrder[keys[i]] < keyOrder[keys[j]]
-	})
 
 	buffer := new(bytes.Buffer)
-	for _, key := range keys {
+	for _, kv := range info {
 		// It is guaranteed that len(vals) >= 1
-		vals := info[key]
+		key := kv.key
+		vals := kv.values
 		if allEqual(vals) {
 			fmt.Fprintf(buffer, "%-20s: %s\n", key, vals[0])
 		} else {
