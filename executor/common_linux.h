@@ -131,8 +131,6 @@ struct nlmsg {
 	char buf[4096];
 };
 
-static struct nlmsg nlmsg;
-
 static void netlink_init(struct nlmsg* nlmsg, int typ, int flags,
 			 const void* data, int size)
 {
@@ -438,6 +436,10 @@ static void netlink_add_neigh(struct nlmsg* nlmsg, int sock, const char* name,
 	(void)err;
 }
 #endif
+#endif
+
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI
+static struct nlmsg nlmsg;
 #endif
 
 #if SYZ_EXECUTOR || SYZ_NET_INJECTION
