@@ -136,6 +136,7 @@ sudo cp $2 disk.mnt/vmlinuz
 sudo sed -i "/^root/ { s/:x:/::/ }" disk.mnt/etc/passwd
 echo "T0:23:respawn:/sbin/getty -L ttyS0 115200 vt100" | sudo tee -a disk.mnt/etc/inittab
 echo -en "auto lo\niface lo inet loopback\nauto eth0\niface eth0 inet dhcp\n" | sudo tee disk.mnt/etc/network/interfaces
+echo '/dev/root / ext4 defaults 0 0' | sudo tee -a disk.mnt/etc/fstab
 echo "debugfs /sys/kernel/debug debugfs defaults 0 0" | sudo tee -a disk.mnt/etc/fstab
 echo "securityfs /sys/kernel/security securityfs defaults 0 0" | sudo tee -a disk.mnt/etc/fstab
 echo "configfs /sys/kernel/config/ configfs defaults 0 0" | sudo tee -a disk.mnt/etc/fstab
