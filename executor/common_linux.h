@@ -150,7 +150,8 @@ static void netlink_attr(struct nlmsg* nlmsg, int typ,
 	struct nlattr* attr = (struct nlattr*)nlmsg->pos;
 	attr->nla_len = sizeof(*attr) + size;
 	attr->nla_type = typ;
-	memcpy(attr + 1, data, size);
+	if (size > 0)
+		memcpy(attr + 1, data, size);
 	nlmsg->pos += NLMSG_ALIGN(attr->nla_len);
 }
 
