@@ -2353,7 +2353,7 @@ struct nlmsg {
 	char* pos;
 	int nesting;
 	struct nlattr* nested[8];
-	char buf[1024];
+	char buf[4096];
 };
 
 static struct nlmsg nlmsg;
