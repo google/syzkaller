@@ -6,7 +6,6 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"strings"
 	"testing"
 )
@@ -115,8 +114,9 @@ D:	d
 		{"D", "d"},
 	}
 	scanner := bufio.NewScanner(strings.NewReader(input))
-	result := bufio.NewScanner(bytes.NewReader(scanCPUInfo(scanner)))
-	fmt.Println(string(scanCPUInfo(bufio.NewScanner(strings.NewReader(input)))))
+	buffer := new(bytes.Buffer)
+	scanCPUInfo(buffer, scanner)
+	result := bufio.NewScanner(strings.NewReader(buffer.String()))
 
 	idx := 0
 	for result.Scan() {

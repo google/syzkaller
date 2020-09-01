@@ -21,7 +21,7 @@ func CollectMachineInfo() ([]byte, error) {
 
 	type machineInfoFunc struct {
 		name string
-		fn   func() ([]byte, error)
+		fn   func(*bytes.Buffer) error
 	}
 
 	allMachineInfo := []machineInfoFunc{
@@ -33,33 +33,33 @@ func CollectMachineInfo() ([]byte, error) {
 
 	for _, pair := range allMachineInfo {
 		fmt.Fprintf(buffer, "[%s]\n", pair.name)
-		data, err := pair.fn()
+		err := pair.fn(buffer)
 		if err != nil {
 			if os.IsNotExist(err) {
 				buffer.WriteString(err.Error() + "\n")
+			} else {
+				return nil, err
 			}
-			return nil, err
 		}
-		buffer.Write(data)
 		fmt.Fprintf(buffer, "-----------------------------------\n\n")
 	}
 
 	return buffer.Bytes(), nil
 }
 
-func readCPUInfo() ([]byte, error) {
+func readCPUInfo(buffer *bytes.Buffer) error {
 	file, err := os.Open("/proc/cpuinfo")
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
-	result := scanCPUInfo(scanner)
-	return result, nil
+	scanCPUInfo(buffer, scanner)
+	return nil
 }
 
-func scanCPUInfo(scanner *bufio.Scanner) []byte {
+func scanCPUInfo(buffer *bytes.Buffer, scanner *bufio.Scanner) {
 	keyIndices := make(map[string]int)
 	type keyValues struct {
 		key    string
@@ -84,7 +84,6 @@ func scanCPUInfo(scanner *bufio.Scanner) []byte {
 		}
 	}
 
-	buffer := new(bytes.Buffer)
 	for _, kv := range info {
 		// It is guaranteed that len(vals) >= 1
 		key := kv.key
@@ -95,8 +94,6 @@ func scanCPUInfo(scanner *bufio.Scanner) []byte {
 			fmt.Fprintf(buffer, "%-20s: %s\n", key, strings.Join(vals, ", "))
 		}
 	}
-
-	return buffer.Bytes()
 }
 
 func allEqual(slice []string) bool {
@@ -111,13 +108,11 @@ func allEqual(slice []string) bool {
 	return true
 }
 
-func readKVMInfo() ([]byte, error) {
+func readKVMInfo(buffer *bytes.Buffer) error {
 	files, err := ioutil.ReadDir("/sys/module/")
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	buffer := new(bytes.Buffer)
 
 	for _, file := range files {
 		name := file.Name()
@@ -131,7 +126,7 @@ func readKVMInfo() ([]byte, error) {
 			if os.IsNotExist(err) {
 				continue
 			}
-			return nil, err
+			return err
 		}
 
 		if len(params) == 0 {
@@ -143,12 +138,12 @@ func readKVMInfo() ([]byte, error) {
 			keyName := key.Name()
 			data, err := ioutil.ReadFile(filepath.Join(paramPath, keyName))
 			if err != nil {
-				return nil, err
+				return err
 			}
 			fmt.Fprintf(buffer, "\t%s: ", keyName)
 			buffer.Write(data)
 		}
 		buffer.WriteString("\n")
 	}
-	return buffer.Bytes(), nil
+	return nil
 }

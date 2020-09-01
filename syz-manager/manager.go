@@ -536,64 +536,13 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	mgr.checkUsedFiles()
 	instanceName := fmt.Sprintf("vm-%d", index)
 
-	rep, err := func() (*report.Report, error) {
-		inst, err := mgr.vmPool.Create(index)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create instance: %v", err)
-		}
-		defer inst.Close()
+	rep, err := mgr.runInstanceInner(index)
 
-		fwdAddr, err := inst.Forward(mgr.serv.port)
-		if err != nil {
-			return nil, fmt.Errorf("failed to setup port forwarding: %v", err)
-		}
-
-		fuzzerBin, err := inst.Copy(mgr.cfg.SyzFuzzerBin)
-		if err != nil {
-			return nil, fmt.Errorf("failed to copy binary: %v", err)
-		}
-
-		// If SyzExecutorCmd is provided, it means that syz-executor is already in
-		// the image, so no need to copy it.
-		executorCmd := targets.Get(mgr.cfg.TargetOS, mgr.cfg.TargetArch).SyzExecutorCmd
-		if executorCmd == "" {
-			executorCmd, err = inst.Copy(mgr.cfg.SyzExecutorBin)
-			if err != nil {
-				return nil, fmt.Errorf("failed to copy binary: %v", err)
-			}
-		}
-
-		fuzzerV := 0
-		procs := mgr.cfg.Procs
-		if *flagDebug {
-			fuzzerV = 100
-			procs = 1
-		}
-
-		// Run the fuzzer binary.
-		start := time.Now()
-		atomic.AddUint32(&mgr.numFuzzing, 1)
-		defer atomic.AddUint32(&mgr.numFuzzing, ^uint32(0))
-
-		cmd := instance.FuzzerCmd(fuzzerBin, executorCmd, instanceName,
-			mgr.cfg.TargetOS, mgr.cfg.TargetArch, fwdAddr, mgr.cfg.Sandbox, procs, fuzzerV,
-			mgr.cfg.Cover, *flagDebug, false, false)
-		outc, errc, err := inst.Run(time.Hour, mgr.vmStop, cmd)
-		if err != nil {
-			return nil, fmt.Errorf("failed to run fuzzer: %v", err)
-		}
-
-		rep := inst.MonitorExecution(outc, errc, mgr.reporter, vm.ExitTimeout)
-		if rep == nil {
-			// This is the only "OK" outcome.
-			log.Logf(0, "%s: running for %v, restarting", instanceName, time.Since(start))
-		}
-		return rep, nil
-	}()
-
+	// Error that is not a VM crash.
 	if err != nil {
 		return nil, err
 	}
+	// No crash.
 	if rep == nil {
 		return nil, nil
 	}
@@ -606,6 +555,62 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 		machineInfo: machineInfo,
 	}
 	return crash, nil
+}
+
+func (mgr *Manager) runInstanceInner(index int) (*report.Report, error) {
+	inst, err := mgr.vmPool.Create(index)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create instance: %v", err)
+	}
+	defer inst.Close()
+
+	fwdAddr, err := inst.Forward(mgr.serv.port)
+	if err != nil {
+		return nil, fmt.Errorf("failed to setup port forwarding: %v", err)
+	}
+
+	fuzzerBin, err := inst.Copy(mgr.cfg.SyzFuzzerBin)
+	if err != nil {
+		return nil, fmt.Errorf("failed to copy binary: %v", err)
+	}
+
+	// If SyzExecutorCmd is provided, it means that syz-executor is already in
+	// the image, so no need to copy it.
+	executorCmd := targets.Get(mgr.cfg.TargetOS, mgr.cfg.TargetArch).SyzExecutorCmd
+	if executorCmd == "" {
+		executorCmd, err = inst.Copy(mgr.cfg.SyzExecutorBin)
+		if err != nil {
+			return nil, fmt.Errorf("failed to copy binary: %v", err)
+		}
+	}
+
+	fuzzerV := 0
+	procs := mgr.cfg.Procs
+	if *flagDebug {
+		fuzzerV = 100
+		procs = 1
+	}
+
+	// Run the fuzzer binary.
+	start := time.Now()
+	atomic.AddUint32(&mgr.numFuzzing, 1)
+	defer atomic.AddUint32(&mgr.numFuzzing, ^uint32(0))
+
+	instanceName := fmt.Sprintf("vm-%d", index)
+	cmd := instance.FuzzerCmd(fuzzerBin, executorCmd, instanceName,
+		mgr.cfg.TargetOS, mgr.cfg.TargetArch, fwdAddr, mgr.cfg.Sandbox, procs, fuzzerV,
+		mgr.cfg.Cover, *flagDebug, false, false)
+	outc, errc, err := inst.Run(time.Hour, mgr.vmStop, cmd)
+	if err != nil {
+		return nil, fmt.Errorf("failed to run fuzzer: %v", err)
+	}
+
+	rep := inst.MonitorExecution(outc, errc, mgr.reporter, vm.ExitTimeout)
+	if rep == nil {
+		// This is the only "OK" outcome.
+		log.Logf(0, "%s: running for %v, restarting", instanceName, time.Since(start))
+	}
+	return rep, nil
 }
 
 func (mgr *Manager) emailCrash(crash *Crash) {
