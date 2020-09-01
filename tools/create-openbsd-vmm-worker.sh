@@ -10,13 +10,14 @@
 set -eu -o pipefail
 
 readonly MIRROR="${MIRROR:-cdn.openbsd.org}"
-readonly VERSION="${VERSION:-6.7}"
-readonly DOWNLOAD_VERSION="${DOWNLOAD_VERSION:-snapshots}"
-readonly RELNO="${2:-${VERSION/./}}"
-
 # The only supported setting.
 readonly ARCH="amd64"
+readonly SNAPSHOTS="https://${MIRROR}/pub/OpenBSD/snapshots/"
 
+readonly VERSION=$(curl -s "${SNAPSHOTS}${ARCH}/" | perl -ne 'print "$1.$2" if m/>base(.)(.)\.tgz/')
+echo "Found snapshots for version ${VERSION}"
+
+readonly RELNO="${2:-${VERSION/./}}"
 readonly ISO="install${RELNO}-${ARCH}.iso"
 readonly ISO_PATCHED="install${RELNO}-${ARCH}-patched.iso"
 
@@ -81,7 +82,7 @@ EOF
 rm -f worker_key*
 ssh-keygen -t ed25519 -N '' -f worker_key -C worker_key
 
-tar --owner=root --group=root -zcvf site${RELNO}.tgz install.site etc/*
+tar --owner=root --group=root -zcvf "site${RELNO}.tgz" install.site etc/*
 
 # Autoinstall script.
 cat >auto_install.conf <<EOF
@@ -121,7 +122,7 @@ echo 'set tty com0' > boot.conf
 dd if=/dev/urandom of=random.seed bs=4096 count=1
 cp "${ISO}" "${ISO_PATCHED}"
 growisofs -M "${ISO_PATCHED}" -l -R -graft-points \
-  /${VERSION}/${ARCH}/site${RELNO}.tgz=site${RELNO}.tgz \
+  "/${VERSION}/${ARCH}/site${RELNO}.tgz=site${RELNO}.tgz" \
   /auto_install.conf=auto_install.conf \
   /disklabel.template=disklabel.template \
   /etc/boot.conf=boot.conf \
