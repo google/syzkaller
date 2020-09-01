@@ -124,6 +124,7 @@ func (ctx *linux) EnvForCommit(binDir, commit string, kernelConfig []byte) (*Bis
 			return nil, err
 		}
 	}
+
 	return env, nil
 }
 
