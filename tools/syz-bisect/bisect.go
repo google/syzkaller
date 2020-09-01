@@ -46,6 +46,7 @@ type Config struct {
 	// gcc versions. A working archive can be downloaded from:
 	// https://storage.googleapis.com/syzkaller/bisect_bin.tar.gz
 	BinDir        string `json:"bin_dir"`
+	Ccache        string `json:"ccache"`
 	KernelRepo    string `json:"kernel_repo"`
 	KernelBranch  string `json:"kernel_branch"`
 	SyzkallerRepo string `json:"syzkaller_repo"`
@@ -86,6 +87,7 @@ func main() {
 		Trace:    os.Stdout,
 		Fix:      *flagFix,
 		BinDir:   mycfg.BinDir,
+		Ccache:   mycfg.Ccache,
 		DebugDir: *flagCrash,
 		Kernel: bisect.KernelConfig{
 			Repo:      mycfg.KernelRepo,

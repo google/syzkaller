@@ -93,6 +93,7 @@ type Config struct {
 	// GCS path to upload coverage reports from managers (optional).
 	CoverUploadPath string           `json:"cover_upload_path"`
 	BisectBinDir    string           `json:"bisect_bin_dir"`
+	Ccache          string           `json:"ccache"`
 	Managers        []*ManagerConfig `json:"managers"`
 }
 
@@ -106,6 +107,7 @@ type ManagerConfig struct {
 	RepoAlias    string `json:"repo_alias"`
 	Branch       string `json:"branch"` // Defaults to "master".
 	Compiler     string `json:"compiler"`
+	Ccache       string `json:"ccache"`
 	Userspace    string `json:"userspace"`
 	KernelConfig string `json:"kernel_config"`
 	// Baseline config for bisection, see pkg/bisect.KernelConfig.BaselineConfig.

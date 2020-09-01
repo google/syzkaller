@@ -65,7 +65,24 @@ func (linux) buildKernel(params *Params) error {
 	case "ppc64le":
 		target = "zImage"
 	}
-	if err := runMake(params.KernelDir, target, "CC="+params.Compiler); err != nil {
+
+	ccParam := params.Compiler
+	if params.Ccache != "" {
+		ccParam = params.Ccache + " " + ccParam
+		// Ensure CONFIG_GCC_PLUGIN_RANDSTRUCT doesn't prevent ccache usage.
+		// See /Documentation/kbuild/reproducible-builds.rst.
+		gccPluginsDir := filepath.Join(params.KernelDir, "scripts", "gcc-plugins")
+		if osutil.IsExist(gccPluginsDir) {
+			err := osutil.WriteFile(filepath.Join(gccPluginsDir,
+				"randomize_layout_seed.h"),
+				[]byte("const char *randstruct_seed = "+
+					"\"e9db0ca5181da2eedb76eba144df7aba4b7f9359040ee58409765f2bdc4cb3b8\";"))
+			if err != nil {
+				return err
+			}
+		}
+	}
+	if err := runMake(params.KernelDir, target, "CC="+ccParam); err != nil {
 		return err
 	}
 	vmlinux := filepath.Join(params.KernelDir, "vmlinux")

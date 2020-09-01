@@ -405,6 +405,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 		Timeout: 8 * time.Hour,
 		Fix:     req.Type == dashapi.JobBisectFix,
 		BinDir:  jp.cfg.BisectBinDir,
+		Ccache:  jp.cfg.Ccache,
 		Kernel: bisect.KernelConfig{
 			Repo:           mgr.mgrcfg.Repo,
 			Branch:         mgr.mgrcfg.Branch,
@@ -527,8 +528,8 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 	}
 
 	log.Logf(0, "job: building kernel...")
-	kernelConfig, _, err := env.BuildKernel(mgr.mgrcfg.Compiler, mgr.mgrcfg.Userspace, mgr.mgrcfg.KernelCmdline,
-		mgr.mgrcfg.KernelSysctl, req.KernelConfig)
+	kernelConfig, _, err := env.BuildKernel(mgr.mgrcfg.Compiler, mgr.mgrcfg.Ccache, mgr.mgrcfg.Userspace,
+		mgr.mgrcfg.KernelCmdline, mgr.mgrcfg.KernelSysctl, req.KernelConfig)
 	if err != nil {
 		return err
 	}

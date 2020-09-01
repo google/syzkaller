@@ -22,6 +22,7 @@ type Config struct {
 	Trace     io.Writer
 	Fix       bool
 	BinDir    string
+	Ccache    string
 	DebugDir  string
 	Timeout   time.Duration
 	Kernel    KernelConfig
@@ -448,7 +449,7 @@ func (env *env) build() (*vcs.Commit, string, error) {
 		return nil, "", fmt.Errorf("kernel clean failed: %v", err)
 	}
 	kern := &env.cfg.Kernel
-	_, kernelSign, err := env.inst.BuildKernel(bisectEnv.Compiler, kern.Userspace,
+	_, kernelSign, err := env.inst.BuildKernel(bisectEnv.Compiler, env.cfg.Ccache, kern.Userspace,
 		kern.Cmdline, kern.Sysctl, bisectEnv.KernelConfig)
 	if kernelSign != "" {
 		env.log("kernel signature: %v", kernelSign)

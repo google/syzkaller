@@ -26,6 +26,7 @@ type Params struct {
 	KernelDir    string
 	OutputDir    string
 	Compiler     string
+	Ccache       string
 	UserspaceDir string
 	CmdlineFile  string
 	SysctlFile   string
