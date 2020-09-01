@@ -10,18 +10,19 @@
 set -eu -o pipefail
 
 readonly MIRROR="${MIRROR:-cdn.openbsd.org}"
-readonly VERSION="${VERSION:-6.7}"
-readonly DOWNLOAD_VERSION="${DOWNLOAD_VERSION:-snapshots}"
-readonly RELNO="${2:-${VERSION/./}}"
-
 # The only supported setting.
 readonly ARCH="amd64"
+readonly SNAPSHOTS="https://${MIRROR}/pub/OpenBSD/snapshots/"
 
+readonly VERSION=$(curl -s "${SNAPSHOTS}${ARCH}/" | perl -ne 'print "$1.$2" if m/>base(.)(.)\.tgz/')
+echo "Found snapshots for version ${VERSION}"
+
+readonly RELNO="${2:-${VERSION/./}}"
 readonly ISO="install${RELNO}-${ARCH}.iso"
 readonly ISO_PATCHED="install${RELNO}-${ARCH}-patched.iso"
 
 if [[ ! -f "${ISO}" ]]; then
-  curl -o "${ISO}" "https://${MIRROR}/pub/OpenBSD/${DOWNLOAD_VERSION}/${ARCH}/install${RELNO}.iso"
+  curl -o "${ISO}" "${SNAPSHOTS}${ARCH}/install${RELNO}.iso"
 fi
 
 # Create custom siteXX.tgz set.
@@ -29,7 +30,7 @@ rm -fr etc && mkdir -p etc
 cat >install.site <<EOF
 #!/bin/sh
 PKGS="bash gcc%8 git gmake go llvm nano wget"
-PKG_PATH=https://${MIRROR}/pub/OpenBSD/${DOWNLOAD_VERSION}/packages/${ARCH}/ pkg_add -I \$PKGS
+PKG_PATH=${SNAPSHOTS}packages/${ARCH}/ pkg_add -I \$PKGS
 PKG_PATH= pkg_info -I \$PKGS && echo pkg_add OK
 
 echo 'set tty com0' > boot.conf
@@ -84,7 +85,7 @@ cat >etc/sysctl.conf <<EOF
 hw.smt=1
 EOF
 
-tar --owner=root --group=root -zcvf site${RELNO}.tgz install.site etc/*
+tar --owner=root --group=root -zcvf "site${RELNO}.tgz" install.site etc/*
 
 # Autoinstall script.
 cat >auto_install.conf <<EOF
@@ -124,7 +125,7 @@ echo 'set tty com0' > boot.conf
 dd if=/dev/urandom of=random.seed bs=4096 count=1
 cp "${ISO}" "${ISO_PATCHED}"
 growisofs -M "${ISO_PATCHED}" -l -R -graft-points \
-  /${VERSION}/${ARCH}/site${RELNO}.tgz=site${RELNO}.tgz \
+  "/${VERSION}/${ARCH}/site${RELNO}.tgz=site${RELNO}.tgz" \
   /auto_install.conf=auto_install.conf \
   /disklabel.template=disklabel.template \
   /etc/boot.conf=boot.conf \
@@ -192,7 +193,7 @@ grep 'pkg_add OK' install_log > /dev/null \
 
 # Create Compute Engine disk image.
 echo "Archiving disk.raw... (this may take a while)"
-i="openbsd-${ARCH}-${RELNO}-gce.tar.gz"
+i="openbsd-${ARCH}-snapshot-gce.tar.gz"
 tar -Szcf "$i" disk.raw
 
 cat <<EOF
