@@ -70,7 +70,8 @@ static int test_one(int text_type, const char* text, int text_size, int flags, u
 	if (cpu_mem->exit_reason != reason) {
 		printf("KVM_RUN exit reason %d, expect %d\n", cpu_mem->exit_reason, reason);
 		if (cpu_mem->exit_reason == KVM_EXIT_FAIL_ENTRY)
-			printf("hardware exit reason 0x%llx\n",
+			// __u64 {aka long unsigned int}
+			printf("hardware exit reason 0x%lx\n",
 			       cpu_mem->fail_entry.hardware_entry_failure_reason);
 		dump_cpu_state(cpufd, (char*)vm_mem);
 		return 1;
