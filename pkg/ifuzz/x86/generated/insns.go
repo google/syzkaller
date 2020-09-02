@@ -4,11 +4,13 @@
 
 package generated
 
-import . "github.com/google/syzkaller/pkg/ifuzz"
+import "github.com/google/syzkaller/pkg/ifuzz/x86"
 
-func init() { Insns = insns }
+func init() {
+	x86.Register(insns)
+}
 
-var insns = []*Insn{
+var insns = []*x86.Insn{
 	{Name: "FADD", Extension: "X87", Mode: 15, Opcode: []uint8{216}, Modrm: true, Mod: -3, Rm: -1, Mem32: true, VexP: -1},
 	{Name: "FMUL", Extension: "X87", Mode: 15, Opcode: []uint8{216}, Modrm: true, Mod: -3, Reg: 1, Rm: -1, Mem32: true, VexP: -1},
 	{Name: "FCOMP", Extension: "X87", Mode: 15, Opcode: []uint8{216}, Modrm: true, Mod: -3, Reg: 3, Rm: -1, Mem32: true, VexP: -1},
