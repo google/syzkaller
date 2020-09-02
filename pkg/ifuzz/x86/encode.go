@@ -5,28 +5,26 @@
 // and AMD64 Architecture Programmer’s Manual Volume 3: General-Purpose and System Instructions
 // for details of instruction encoding.
 
-package ifuzz
+package x86
 
 import (
 	"math/rand"
+	"github.com/google/syzkaller/pkg/ifuzz/common"
 )
 
 // nolint: gocyclo, nestif, gocognit, funlen
-func (insn *Insn) Encode(cfg *Config, r *rand.Rand) []byte {
-	if !insn.isCompatible(cfg) {
-		panic("instruction is not suitable for this mode")
-	}
+func (insn *InsnX86) Encode(cfg *ifuzz_types.Config, r *rand.Rand) []byte {
 	if insn.Pseudo {
 		return insn.generator(cfg, r)
 	}
 
 	var operSize, immSize, dispSize, addrSize int
 	switch cfg.Mode {
-	case ModeLong64:
+	case ifuzz_types.ModeLong64:
 		operSize, immSize, dispSize, addrSize = 4, 4, 4, 8
-	case ModeProt32:
+	case ifuzz_types.ModeProt32:
 		operSize, immSize, dispSize, addrSize = 4, 4, 4, 4
-	case ModeProt16, ModeReal16:
+	case ifuzz_types.ModeProt16, ifuzz_types.ModeReal16:
 		operSize, immSize, dispSize, addrSize = 2, 2, 2, 2
 	default:
 		panic("bad mode")
@@ -52,7 +50,7 @@ func (insn *Insn) Encode(cfg *Config, r *rand.Rand) []byte {
 			if !insn.No66Prefix {
 				prefixes = append(prefixes, 0x66) // operand size
 			}
-			if cfg.Mode == ModeLong64 || !insn.Mem32 {
+			if cfg.Mode == ifuzz_types.ModeLong64 || !insn.Mem32 {
 				prefixes = append(prefixes, 0x67) // address size
 			}
 			if !insn.NoRepPrefix {
@@ -69,7 +67,7 @@ func (insn *Insn) Encode(cfg *Config, r *rand.Rand) []byte {
 
 		// REX
 		var rex byte
-		if cfg.Mode == ModeLong64 && r.Intn(2) == 0 {
+		if cfg.Mode == ifuzz_types.ModeLong64 && r.Intn(2) == 0 {
 			// bit 0 - B
 			// bit 1 - X
 			// bit 2 - R
@@ -117,7 +115,7 @@ func (insn *Insn) Encode(cfg *Config, r *rand.Rand) []byte {
 		code = append(code, insn.Vex)
 		vexR = byte(1)
 		vexX = byte(1)
-		if cfg.Mode == ModeLong64 {
+		if cfg.Mode == ifuzz_types.ModeLong64 {
 			vexR = byte(r.Intn(2))
 			vexX = byte(r.Intn(2))
 		}
@@ -145,7 +143,7 @@ func (insn *Insn) Encode(cfg *Config, r *rand.Rand) []byte {
 		code = append(code, vexR<<7|vexX<<6|vexB<<5|insn.VexMap)
 		code = append(code, W<<7|vvvv<<3|L<<2|pp)
 		// TODO: short encoding
-		if cfg.Mode != ModeLong64 {
+		if cfg.Mode != ifuzz_types.ModeLong64 {
 			vvvv |= 8
 		}
 	}

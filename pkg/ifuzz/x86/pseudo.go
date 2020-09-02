@@ -1,15 +1,16 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package ifuzz
+package x86
 
 import (
 	"math/rand"
+	. "github.com/google/syzkaller/pkg/ifuzz/common"
 )
 
 // nolint: funlen
 func initPseudo() {
-	Insns = append(Insns, &Insn{
+	insns.insns = append(insns.insns, &InsnX86{
 		Name:   "PSEUDO_RDMSR",
 		Mode:   1<<ModeLast - 1,
 		Priv:   true,
@@ -22,7 +23,7 @@ func initPseudo() {
 			return gen.text
 		},
 	})
-	Insns = append(Insns, &Insn{
+	insns.insns = append(insns.insns, &InsnX86{
 		Name:   "PSEUDO_WRMSR",
 		Mode:   1<<ModeLast - 1,
 		Priv:   true,
@@ -38,7 +39,7 @@ func initPseudo() {
 			return gen.text
 		},
 	})
-	Insns = append(Insns, &Insn{
+	insns.insns = append(insns.insns, &InsnX86{
 		Name:   "PSEUDO_PCI_READ",
 		Mode:   1<<ModeLast - 1,
 		Priv:   true,
@@ -51,7 +52,7 @@ func initPseudo() {
 			return gen.text
 		},
 	})
-	Insns = append(Insns, &Insn{
+	insns.insns = append(insns.insns, &InsnX86{
 		Name:   "PSEUDO_PCI_WRITE",
 		Mode:   1<<ModeLast - 1,
 		Priv:   true,
@@ -65,7 +66,7 @@ func initPseudo() {
 			return gen.text
 		},
 	})
-	Insns = append(Insns, &Insn{
+	insns.insns = append(insns.insns, &InsnX86{
 		Name:   "PSEUDO_PORT_READ",
 		Mode:   1<<ModeLast - 1,
 		Priv:   true,
@@ -77,7 +78,7 @@ func initPseudo() {
 			return gen.text
 		},
 	})
-	Insns = append(Insns, &Insn{
+	insns.insns = append(insns.insns, &InsnX86{
 		Name:   "PSEUDO_PORT_WRITE",
 		Mode:   1<<ModeLast - 1,
 		Priv:   true,
@@ -90,7 +91,7 @@ func initPseudo() {
 			return gen.text
 		},
 	})
-	Insns = append(Insns, &Insn{
+	insns.insns = append(insns.insns, &InsnX86{
 		Name:   "PSEUDO_XOR_CR",
 		Mode:   1<<ModeLast - 1,
 		Priv:   true,
@@ -111,7 +112,7 @@ func initPseudo() {
 			return gen.text
 		},
 	})
-	Insns = append(Insns, &Insn{
+	insns.insns = append(insns.insns, &InsnX86{
 		Name:   "PSEUDO_XOR_EFER",
 		Mode:   1<<ModeLast - 1,
 		Priv:   true,
@@ -126,7 +127,7 @@ func initPseudo() {
 			return gen.text
 		},
 	})
-	Insns = append(Insns, &Insn{
+	insns.insns = append(insns.insns, &InsnX86{
 		Name:   "PSEUDO_SET_BREAK",
 		Mode:   1<<ModeLast - 1,
 		Priv:   true,
@@ -149,7 +150,7 @@ func initPseudo() {
 			return gen.text
 		},
 	})
-	Insns = append(Insns, &Insn{
+	insns.insns = append(insns.insns, &InsnX86{
 		Name:   "PSEUDO_LOAD_SEG",
 		Mode:   1<<ModeLast - 1,
 		Priv:   true,
@@ -166,7 +167,7 @@ func initPseudo() {
 			return gen.text
 		},
 	})
-	Insns = append(Insns, &Insn{
+	insns.insns = append(insns.insns, &InsnX86{
 		Name:   "PSEUDO_FAR_JMP",
 		Mode:   1<<ModeLong64 | 1<<ModeProt32 | 1<<ModeProt16,
 		Priv:   true,
@@ -199,7 +200,7 @@ func initPseudo() {
 			return gen.text
 		},
 	})
-	Insns = append(Insns, &Insn{
+	insns.insns = append(insns.insns, &InsnX86{
 		Name:   "PSEUDO_LTR_LLDT",
 		Mode:   1<<ModeLong64 | 1<<ModeProt32 | 1<<ModeProt16,
 		Priv:   true,
@@ -216,7 +217,7 @@ func initPseudo() {
 			return gen.text
 		},
 	})
-	Insns = append(Insns, &Insn{
+	insns.insns = append(insns.insns, &InsnX86{
 		Name:   "PSEUDO_LGIDT",
 		Mode:   1<<ModeLong64 | 1<<ModeProt32 | 1<<ModeProt16,
 		Priv:   true,
@@ -237,7 +238,7 @@ func initPseudo() {
 			return gen.text
 		},
 	})
-	Insns = append(Insns, &Insn{
+	insns.insns = append(insns.insns, &InsnX86{
 		Name:   "PSEUDO_HYPERCALL",
 		Mode:   1<<ModeLong64 | 1<<ModeProt32 | 1<<ModeProt16,
 		Priv:   true,

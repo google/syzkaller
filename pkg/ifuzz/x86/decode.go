@@ -1,10 +1,11 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package ifuzz
+package x86
 
 import (
 	"fmt"
+	. "github.com/google/syzkaller/pkg/ifuzz/common"
 )
 
 // Decode decodes instruction length for the given mode.
@@ -95,7 +96,11 @@ func Decode(mode int, text []byte) (int, error) {
 		}
 	}
 nextInsn:
-	for _, insn := range modeInsns[mode][typeAll] {
+	//for _, insn := range insns.modeInsns[mode][typeAll] {
+	for _, insn := range insns.insns {
+		if insn.Mode != mode {
+			continue nextInsn
+		}
 		if vex != (insn.Vex != 0) {
 			continue nextInsn
 		}

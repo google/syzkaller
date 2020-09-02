@@ -8,122 +8,28 @@ package ifuzz
 
 import (
 	"math/rand"
-	"sync"
+	. "github.com/google/syzkaller/pkg/ifuzz/common"
+	_ "github.com/google/syzkaller/pkg/ifuzz/x86"
 )
-
-const (
-	ModeLong64 = iota
-	ModeProt32
-	ModeProt16
-	ModeReal16
-	ModeLast
-)
-
-type Insn struct {
-	Name      string
-	Extension string
-
-	Mode   int  // bitmask of compatible modes
-	Priv   bool // CPL=0
-	Pseudo bool // pseudo instructions can consist of several real instructions
-
-	Opcode      []byte
-	Prefix      []byte
-	Suffix      []byte
-	Modrm       bool
-	Mod         int8
-	Reg         int8 // -6 - segment register, -8 - control register
-	Rm          int8
-	Srm         bool // register is embed in the first byte
-	NoSibDisp   bool // no SIB/disp even if modrm says otherwise
-	Imm         int8 // immediate size, -1 - immediate size, -2 - address size, -3 - operand size
-	Imm2        int8
-	NoRepPrefix bool
-	No66Prefix  bool
-	Rexw        int8 // 1 must be set, -1 must not be set
-	Mem32       bool // instruction always references 32-bit memory operand, 0x67 is illegal
-	Mem16       bool // instruction always references 16-bit memory operand
-
-	Vex        byte
-	VexMap     byte
-	VexL       int8
-	VexNoR     bool
-	VexP       int8
-	Avx2Gather bool
-
-	generator func(cfg *Config, r *rand.Rand) []byte // for pseudo instructions
-}
-
-type Config struct {
-	Len        int         // number of instructions to generate
-	Mode       int         // one of ModeXXX
-	Priv       bool        // generate CPL=0 instructions
-	Exec       bool        // generate instructions sequences interesting for execution
-	MemRegions []MemRegion // generated instructions will reference these regions
-}
-
-type MemRegion struct {
-	Start uint64
-	Size  uint64
-}
-
-const (
-	typeExec = iota
-	typePriv
-	typeUser
-	typeAll
-	typeLast
-)
-
-var modeInsns [ModeLast][typeLast][]*Insn
-
-var (
-	Insns    []*Insn
-	initOnce sync.Once
-)
-
-func initInsns() {
-	if len(Insns) == 0 {
-		panic("no instructions")
-	}
-	initPseudo()
-	for mode := 0; mode < ModeLast; mode++ {
-		for _, insn := range Insns {
-			if insn.Mode&(1<<uint(mode)) == 0 {
-				continue
-			}
-			if insn.Pseudo {
-				modeInsns[mode][typeExec] = append(modeInsns[mode][typeExec], insn)
-			} else if insn.Priv {
-				modeInsns[mode][typePriv] = append(modeInsns[mode][typePriv], insn)
-				modeInsns[mode][typeAll] = append(modeInsns[mode][typeAll], insn)
-			} else {
-				modeInsns[mode][typeUser] = append(modeInsns[mode][typeUser], insn)
-				modeInsns[mode][typeAll] = append(modeInsns[mode][typeAll], insn)
-			}
-		}
-	}
-}
 
 // ModeInsns returns list of all instructions for the given mode.
-func ModeInsns(cfg *Config) []*Insn {
-	initOnce.Do(initInsns)
+func ModeInsns(cfg *Config) []Insn {
+	insnset := Types[cfg.Arch]
 	if cfg.Mode < 0 || cfg.Mode >= ModeLast {
 		panic("bad mode")
 	}
-	var insns []*Insn
-	insns = append(insns, modeInsns[cfg.Mode][typeUser]...)
+	var insns []Insn
+	insns = append(insns, insnset.Insns(cfg.Mode, TypeUser)...)
 	if cfg.Priv {
-		insns = append(insns, modeInsns[cfg.Mode][typePriv]...)
+		insns = append(insns, insnset.Insns(cfg.Mode, TypePriv)...)
 		if cfg.Exec {
-			insns = append(insns, modeInsns[cfg.Mode][typeExec]...)
+			insns = append(insns, insnset.Insns(cfg.Mode, TypeExec)...)
 		}
 	}
 	return insns
 }
 
 func Generate(cfg *Config, r *rand.Rand) []byte {
-	initOnce.Do(initInsns)
 	var text []byte
 	for i := 0; i < cfg.Len; i++ {
 		insn := randInsn(cfg, r)
@@ -133,7 +39,6 @@ func Generate(cfg *Config, r *rand.Rand) []byte {
 }
 
 func Mutate(cfg *Config, r *rand.Rand, text []byte) []byte {
-	initOnce.Do(initInsns)
 	insns := split(cfg, text)
 	retry := false
 	for stop := false; !stop || retry || len(insns) == 0; stop = r.Intn(2) == 0 {
@@ -197,24 +102,26 @@ func Mutate(cfg *Config, r *rand.Rand, text []byte) []byte {
 	return text
 }
 
-func randInsn(cfg *Config, r *rand.Rand) *Insn {
-	var insns []*Insn
+func randInsn(cfg *Config, r *rand.Rand) Insn {
+	insnset := Types[cfg.Arch]
+	var insns []Insn
 	if cfg.Priv && cfg.Exec {
-		insns = modeInsns[cfg.Mode][r.Intn(3)]
+		insns = insnset.Insns(cfg.Mode, r.Intn(3))
 	} else if cfg.Priv {
-		insns = modeInsns[cfg.Mode][r.Intn(2)]
+		insns = insnset.Insns(cfg.Mode, r.Intn(2))
 	} else {
-		insns = modeInsns[cfg.Mode][typeUser]
+		insns = insnset.Insns(cfg.Mode, TypeUser)
 	}
 	return insns[r.Intn(len(insns))]
 }
 
 func split(cfg *Config, text []byte) [][]byte {
+	insnset := Types[cfg.Arch]
 	text = append([]byte{}, text...)
 	var insns [][]byte
 	var bad []byte
 	for len(text) != 0 {
-		n, err := Decode(cfg.Mode, text)
+		n, err := insnset.Decode(cfg.Mode, text)
 		if err != nil || n == 0 {
 			bad = append(bad, text[0])
 			text = text[1:]
@@ -241,22 +148,6 @@ func generateArg(cfg *Config, r *rand.Rand, size int) []byte {
 		v >>= 8
 	}
 	return arg
-}
-
-func (insn *Insn) isCompatible(cfg *Config) bool {
-	if cfg.Mode < 0 || cfg.Mode >= ModeLast {
-		panic("bad mode")
-	}
-	if insn.Priv && !cfg.Priv {
-		return false
-	}
-	if insn.Pseudo && !cfg.Exec {
-		return false
-	}
-	if insn.Mode&(1<<uint(cfg.Mode)) == 0 {
-		return false
-	}
-	return true
 }
 
 func generateInt(cfg *Config, r *rand.Rand, size int) uint64 {

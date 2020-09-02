@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 	"unicode"
+
+	. "github.com/google/syzkaller/pkg/ifuzz/common"
 )
 
 type Syscall struct {
@@ -481,17 +483,6 @@ const (
 	BufferString
 	BufferFilename
 	BufferText
-)
-
-type TextKind int
-
-const (
-	TextTarget TextKind = iota
-	TextX86Real
-	TextX86bit16
-	TextX86bit32
-	TextX86bit64
-	TextArm64
 )
 
 type BufferType struct {

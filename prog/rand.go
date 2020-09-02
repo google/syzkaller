@@ -12,8 +12,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/google/syzkaller/pkg/ifuzz/common"
 	"github.com/google/syzkaller/pkg/ifuzz"
-	_ "github.com/google/syzkaller/pkg/ifuzz/generated" // pull in generated instruction descriptions
 )
 
 const (
@@ -420,14 +420,14 @@ func (r *randGen) createResource(s *state, res *ResourceType, dir Dir) (arg Arg,
 		res.Desc.Kind[0], strings.Join(ctors, ", ")))
 }
 
-func (r *randGen) generateText(kind TextKind) []byte {
+func (r *randGen) generateText(kind ifuzz_types.TextKind) []byte {
 	switch kind {
-	case TextTarget:
+	case ifuzz_types.TextTarget:
 		if cfg := createTargetIfuzzConfig(r.target); cfg != nil {
 			return ifuzz.Generate(cfg, r.Rand)
 		}
 		fallthrough
-	case TextArm64:
+	case ifuzz_types.TextArm64:
 		// Just a stub, need something better.
 		text := make([]byte, 50)
 		for i := range text {
@@ -440,14 +440,14 @@ func (r *randGen) generateText(kind TextKind) []byte {
 	}
 }
 
-func (r *randGen) mutateText(kind TextKind, text []byte) []byte {
+func (r *randGen) mutateText(kind ifuzz_types.TextKind, text []byte) []byte {
 	switch kind {
-	case TextTarget:
+	case ifuzz_types.TextTarget:
 		if cfg := createTargetIfuzzConfig(r.target); cfg != nil {
 			return ifuzz.Mutate(cfg, r.Rand, text)
 		}
 		fallthrough
-	case TextArm64:
+	case ifuzz_types.TextArm64:
 		return mutateData(r, text, 40, 60)
 	default:
 		cfg := createIfuzzConfig(kind)
@@ -455,37 +455,39 @@ func (r *randGen) mutateText(kind TextKind, text []byte) []byte {
 	}
 }
 
-func createTargetIfuzzConfig(target *Target) *ifuzz.Config {
-	cfg := &ifuzz.Config{
+func createTargetIfuzzConfig(target *Target) *ifuzz_types.Config {
+	cfg := &ifuzz_types.Config{
 		Len:  10,
 		Priv: false,
 		Exec: true,
-		MemRegions: []ifuzz.MemRegion{
+		MemRegions: []ifuzz_types.MemRegion{
 			{Start: target.DataOffset, Size: target.NumPages * target.PageSize},
 		},
 	}
 	for _, p := range target.SpecialPointers {
-		cfg.MemRegions = append(cfg.MemRegions, ifuzz.MemRegion{
+		cfg.MemRegions = append(cfg.MemRegions, ifuzz_types.MemRegion{
 			Start: p & ^target.PageSize, Size: p & ^target.PageSize + target.PageSize,
 		})
 	}
 	switch target.Arch {
 	case "amd64":
-		cfg.Mode = ifuzz.ModeLong64
+		cfg.Mode = ifuzz_types.ModeLong64
+		cfg.Arch = "x86"
 	case "386":
-		cfg.Mode = ifuzz.ModeProt32
+		cfg.Mode = ifuzz_types.ModeProt32
+		cfg.Arch = "x86"
 	default:
 		return nil
 	}
 	return cfg
 }
 
-func createIfuzzConfig(kind TextKind) *ifuzz.Config {
-	cfg := &ifuzz.Config{
+func createIfuzzConfig(kind ifuzz_types.TextKind) *ifuzz_types.Config {
+	cfg := &ifuzz_types.Config{
 		Len:  10,
 		Priv: true,
 		Exec: true,
-		MemRegions: []ifuzz.MemRegion{
+		MemRegions: []ifuzz_types.MemRegion{
 			{Start: 0 << 12, Size: 1 << 12},
 			{Start: 1 << 12, Size: 1 << 12},
 			{Start: 2 << 12, Size: 1 << 12},
@@ -500,14 +502,18 @@ func createIfuzzConfig(kind TextKind) *ifuzz.Config {
 		},
 	}
 	switch kind {
-	case TextX86Real:
-		cfg.Mode = ifuzz.ModeReal16
-	case TextX86bit16:
-		cfg.Mode = ifuzz.ModeProt16
-	case TextX86bit32:
-		cfg.Mode = ifuzz.ModeProt32
-	case TextX86bit64:
-		cfg.Mode = ifuzz.ModeLong64
+	case ifuzz_types.TextX86Real:
+		cfg.Mode = ifuzz_types.ModeReal16
+		cfg.Arch = "x86"
+	case ifuzz_types.TextX86bit16:
+		cfg.Mode = ifuzz_types.ModeProt16
+		cfg.Arch = "x86"
+	case ifuzz_types.TextX86bit32:
+		cfg.Mode = ifuzz_types.ModeProt32
+		cfg.Arch = "x86"
+	case ifuzz_types.TextX86bit64:
+		cfg.Mode = ifuzz_types.ModeLong64
+		cfg.Arch = "x86"
 	default:
 		panic("unknown text kind")
 	}

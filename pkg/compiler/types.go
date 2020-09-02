@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/pkg/ifuzz/common"
 )
 
 // typeDesc is arg/field type descriptor.
@@ -551,20 +552,20 @@ var typeArgTextType = &typeArg{
 	Names: []string{"target", "x86_real", "x86_16", "x86_32", "x86_64", "arm64"},
 }
 
-func genTextType(t *ast.Type) prog.TextKind {
+func genTextType(t *ast.Type) ifuzz_types.TextKind {
 	switch t.Ident {
 	case "target":
-		return prog.TextTarget
+		return ifuzz_types.TextTarget
 	case "x86_real":
-		return prog.TextX86Real
+		return ifuzz_types.TextX86Real
 	case "x86_16":
-		return prog.TextX86bit16
+		return ifuzz_types.TextX86bit16
 	case "x86_32":
-		return prog.TextX86bit32
+		return ifuzz_types.TextX86bit32
 	case "x86_64":
-		return prog.TextX86bit64
+		return ifuzz_types.TextX86bit64
 	case "arm64":
-		return prog.TextArm64
+		return ifuzz_types.TextArm64
 	default:
 		panic(fmt.Sprintf("unknown text type %q", t.Ident))
 	}

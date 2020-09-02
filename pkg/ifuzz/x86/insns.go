@@ -2,13 +2,9 @@
 
 // +build !codeanalysis
 
-package generated
+package x86
 
-import . "github.com/google/syzkaller/pkg/ifuzz"
-
-func init() { Insns = insns }
-
-var insns = []*Insn{
+var insns_x86 = []*InsnX86{
 	{Name: "FADD", Extension: "X87", Mode: 15, Opcode: []uint8{216}, Modrm: true, Mod: -3, Rm: -1, Mem32: true, VexP: -1},
 	{Name: "FMUL", Extension: "X87", Mode: 15, Opcode: []uint8{216}, Modrm: true, Mod: -3, Reg: 1, Rm: -1, Mem32: true, VexP: -1},
 	{Name: "FCOMP", Extension: "X87", Mode: 15, Opcode: []uint8{216}, Modrm: true, Mod: -3, Reg: 3, Rm: -1, Mem32: true, VexP: -1},

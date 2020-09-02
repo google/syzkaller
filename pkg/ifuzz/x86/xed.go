@@ -9,7 +9,7 @@
 
 // +build xed
 
-package ifuzz
+package x86
 
 /*
 #include "xed-interface.h"
