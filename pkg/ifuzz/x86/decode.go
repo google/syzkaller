@@ -1,29 +1,30 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package ifuzz
+package x86
 
 import (
 	"fmt"
+	"github.com/google/syzkaller/pkg/ifuzz"
 )
 
 // Decode decodes instruction length for the given mode.
 // It can have falsely decode incorrect instructions,
 // but should not fail to decode correct instructions.
 // nolint: gocyclo, nestif, gocognit, funlen
-func Decode(mode int, text []byte) (int, error) {
+func (insnset *InsnSetX86) Decode(mode int, text []byte) (int, error) {
 	if len(text) == 0 {
 		return 0, fmt.Errorf("zero-length instruction")
 	}
 	prefixes := prefixes32
 	var operSize, immSize, dispSize, addrSize int
 	switch mode {
-	case ModeLong64:
+	case ifuzz.ModeLong64:
 		operSize, immSize, dispSize, addrSize = 4, 4, 4, 8
 		prefixes = prefixes64
-	case ModeProt32:
+	case ifuzz.ModeProt32:
 		operSize, immSize, dispSize, addrSize = 4, 4, 4, 4
-	case ModeProt16, ModeReal16:
+	case ifuzz.ModeProt16, ifuzz.ModeReal16:
 		operSize, immSize, dispSize, addrSize = 2, 2, 2, 2
 	default:
 		panic("bad mode")
@@ -34,7 +35,7 @@ func Decode(mode int, text []byte) (int, error) {
 	if len(text) > 1 {
 		// There are only 2 32-bit instructions that look like VEX-prefixed but are actually not: LDS, LES.
 		// They always reference memory (mod!=3), but all VEX instructions have "mod=3" where LDS/LES would have mod.
-		if (text[0] == 0xc4 || text[0] == 0xc5) && (mode == ModeLong64 || text[1]&0xc0 == 0xc0) {
+		if (text[0] == 0xc4 || text[0] == 0xc5) && (mode == ifuzz.ModeLong64 || text[1]&0xc0 == 0xc0) {
 			vex = true
 		}
 		// There is only one instruction that looks like XOP-prefixed but is actually not: POP.
@@ -95,7 +96,10 @@ func Decode(mode int, text []byte) (int, error) {
 		}
 	}
 nextInsn:
-	for _, insn := range modeInsns[mode][typeAll] {
+	for _, insn := range insnset.Insns {
+		if (insn.Mode & (1 << mode)) == 0 {
+			continue nextInsn
+		}
 		if vex != (insn.Vex != 0) {
 			continue nextInsn
 		}
@@ -220,3 +224,13 @@ var (
 		0x4e: true, 0x4f: true,
 	}
 )
+
+func (insnset *InsnSetX86) DecodeExt(mode int, text []byte) (int, error) {
+	if XedDecode != nil && text != nil && len(text) > 0 {
+		return XedDecode(mode, text)
+	}
+	if XedDecode == nil {
+		return 0, fmt.Errorf("no XED")
+	}
+	return 0, nil // tells the caller XED is enabled
+}

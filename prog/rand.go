@@ -13,7 +13,8 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ifuzz"
-	_ "github.com/google/syzkaller/pkg/ifuzz/generated" // pull in generated instruction descriptions
+	"github.com/google/syzkaller/pkg/ifuzz/ifuzzimpl"
+	_ "github.com/google/syzkaller/pkg/ifuzz/x86/generated" // pull in generated instruction descriptions
 )
 
 const (
@@ -426,7 +427,7 @@ func (r *randGen) generateText(kind TextKind) []byte {
 	switch kind {
 	case TextTarget:
 		if cfg := createTargetIfuzzConfig(r.target); cfg != nil {
-			return ifuzz.Generate(cfg, r.Rand)
+			return ifuzzimpl.Generate(cfg, r.Rand)
 		}
 		fallthrough
 	case TextArm64:
@@ -438,7 +439,7 @@ func (r *randGen) generateText(kind TextKind) []byte {
 		return text
 	default:
 		cfg := createIfuzzConfig(kind)
-		return ifuzz.Generate(cfg, r.Rand)
+		return ifuzzimpl.Generate(cfg, r.Rand)
 	}
 }
 
@@ -446,14 +447,14 @@ func (r *randGen) mutateText(kind TextKind, text []byte) []byte {
 	switch kind {
 	case TextTarget:
 		if cfg := createTargetIfuzzConfig(r.target); cfg != nil {
-			return ifuzz.Mutate(cfg, r.Rand, text)
+			return ifuzzimpl.Mutate(cfg, r.Rand, text)
 		}
 		fallthrough
 	case TextArm64:
 		return mutateData(r, text, 40, 60)
 	default:
 		cfg := createIfuzzConfig(kind)
-		return ifuzz.Mutate(cfg, r.Rand, text)
+		return ifuzzimpl.Mutate(cfg, r.Rand, text)
 	}
 }
 
@@ -474,8 +475,10 @@ func createTargetIfuzzConfig(target *Target) *ifuzz.Config {
 	switch target.Arch {
 	case "amd64":
 		cfg.Mode = ifuzz.ModeLong64
+		cfg.Arch = ifuzz.ArchX86
 	case "386":
 		cfg.Mode = ifuzz.ModeProt32
+		cfg.Arch = ifuzz.ArchX86
 	default:
 		return nil
 	}
@@ -504,12 +507,16 @@ func createIfuzzConfig(kind TextKind) *ifuzz.Config {
 	switch kind {
 	case TextX86Real:
 		cfg.Mode = ifuzz.ModeReal16
+		cfg.Arch = ifuzz.ArchX86
 	case TextX86bit16:
 		cfg.Mode = ifuzz.ModeProt16
+		cfg.Arch = ifuzz.ArchX86
 	case TextX86bit32:
 		cfg.Mode = ifuzz.ModeProt32
+		cfg.Arch = ifuzz.ArchX86
 	case TextX86bit64:
 		cfg.Mode = ifuzz.ModeLong64
+		cfg.Arch = ifuzz.ArchX86
 	default:
 		panic("unknown text kind")
 	}
