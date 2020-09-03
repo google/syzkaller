@@ -179,6 +179,7 @@ static void use_temporary_dir(void)
 #if GOOS_akaros || GOOS_netbsd || GOOS_freebsd || GOOS_openbsd || GOOS_test
 #if (SYZ_EXECUTOR || SYZ_REPEAT) && SYZ_EXECUTOR_USES_FORK_SERVER && (SYZ_EXECUTOR || SYZ_USE_TMP_DIR)
 #include <dirent.h>
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -187,8 +188,14 @@ static void use_temporary_dir(void)
 static void remove_dir(const char* dir)
 {
 	DIR* dp = opendir(dir);
-	if (dp == NULL)
+	if (dp == NULL) {
+		if (errno == EACCES) {
+			if (rmdir(dir))
+				exitf("rmdir(%s) failed", dir);
+			return;
+		}
 		exitf("opendir(%s) failed", dir);
+	}
 	struct dirent* ep = 0;
 	while ((ep = readdir(dp))) {
 		if (strcmp(ep->d_name, ".") == 0 || strcmp(ep->d_name, "..") == 0)
