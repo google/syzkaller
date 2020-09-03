@@ -109,6 +109,7 @@ type Crash struct {
 	vmIndex int
 	hub     bool // this crash was created based on a repro from hub
 	*report.Report
+	machineInfo []byte
 }
 
 func main() {
