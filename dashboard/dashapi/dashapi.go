@@ -241,6 +241,7 @@ type Crash struct {
 	Recipients  Recipients
 	Log         []byte
 	Report      []byte
+	MachineInfo []byte
 	// The following is optional and is filled only after repro.
 	ReproOpts []byte
 	ReproSyz  []byte
@@ -333,6 +334,8 @@ type BugReport struct {
 	ReproCLink        string
 	ReproSyz          []byte
 	ReproSyzLink      string
+	MachineInfo       []byte
+	MachineInfoLink   string
 	CrashID           int64 // returned back in BugUpdate
 	NumCrashes        int64
 	HappenedOn        []string // list of kernel repo aliases

@@ -391,6 +391,10 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 	if err != nil {
 		return nil, err
 	}
+	machineInfo, _, err := getText(c, textMachineInfo, crash.MachineInfo)
+	if err != nil {
+		return nil, err
+	}
 	if len(reproSyz) != 0 {
 		buf := new(bytes.Buffer)
 		buf.WriteString(syzReproPrefix)
@@ -411,24 +415,26 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 
 	kernelRepo := kernelRepoInfo(build)
 	rep := &dashapi.BugReport{
-		Type:         typ,
-		Config:       reportingConfig,
-		ExtID:        bugReporting.ExtID,
-		First:        bugReporting.Reported.IsZero(),
-		Moderation:   reporting.moderation,
-		Log:          crashLog,
-		LogLink:      externalLink(c, textCrashLog, crash.Log),
-		Report:       report,
-		ReportLink:   externalLink(c, textCrashReport, crash.Report),
-		CC:           kernelRepo.CC,
-		Maintainers:  append(crash.Maintainers, kernelRepo.Maintainers...),
-		ReproC:       reproC,
-		ReproCLink:   externalLink(c, textReproC, crash.ReproC),
-		ReproSyz:     reproSyz,
-		ReproSyzLink: externalLink(c, textReproSyz, crash.ReproSyz),
-		CrashID:      crashKey.IntID(),
-		NumCrashes:   bug.NumCrashes,
-		HappenedOn:   managersToRepos(c, bug.Namespace, bug.HappenedOn),
+		Type:            typ,
+		Config:          reportingConfig,
+		ExtID:           bugReporting.ExtID,
+		First:           bugReporting.Reported.IsZero(),
+		Moderation:      reporting.moderation,
+		Log:             crashLog,
+		LogLink:         externalLink(c, textCrashLog, crash.Log),
+		Report:          report,
+		ReportLink:      externalLink(c, textCrashReport, crash.Report),
+		CC:              kernelRepo.CC,
+		Maintainers:     append(crash.Maintainers, kernelRepo.Maintainers...),
+		ReproC:          reproC,
+		ReproCLink:      externalLink(c, textReproC, crash.ReproC),
+		ReproSyz:        reproSyz,
+		ReproSyzLink:    externalLink(c, textReproSyz, crash.ReproSyz),
+		MachineInfo:     machineInfo,
+		MachineInfoLink: externalLink(c, textMachineInfo, crash.MachineInfo),
+		CrashID:         crashKey.IntID(),
+		NumCrashes:      bug.NumCrashes,
+		HappenedOn:      managersToRepos(c, bug.Namespace, bug.HappenedOn),
 	}
 	if bugReporting.CC != "" {
 		rep.CC = append(rep.CC, strings.Split(bugReporting.CC, "|")...)

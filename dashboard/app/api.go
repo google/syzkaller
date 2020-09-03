@@ -810,6 +810,9 @@ func saveCrash(c context.Context, ns string, req *dashapi.Crash, bugKey *db.Key,
 	if crash.ReproC, err = putText(c, ns, textReproC, req.ReproC, false); err != nil {
 		return err
 	}
+	if crash.MachineInfo, err = putText(c, ns, textMachineInfo, req.MachineInfo, false); err != nil {
+		return err
+	}
 	crashKey := db.NewIncompleteKey(c, "Crash", bugKey)
 	if _, err = db.Put(c, crashKey, crash); err != nil {
 		return fmt.Errorf("failed to put crash: %v", err)
