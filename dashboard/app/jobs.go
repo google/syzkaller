@@ -668,21 +668,22 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *db.Key, config i
 	}
 	kernelRepo := kernelRepoInfo(build)
 	rep := &dashapi.BugReport{
-		Type:         typ,
-		Config:       reportingConfig,
-		JobID:        extJobID(jobKey),
-		ExtID:        job.ExtID,
-		CC:           append(job.CC, kernelRepo.CC...),
-		Log:          crashLog,
-		LogLink:      externalLink(c, textCrashLog, job.CrashLog),
-		Report:       report,
-		ReportLink:   externalLink(c, textCrashReport, job.CrashReport),
-		ReproCLink:   externalLink(c, textReproC, crash.ReproC),
-		ReproSyzLink: externalLink(c, textReproSyz, crash.ReproSyz),
-		CrashTitle:   job.CrashTitle,
-		Error:        jobError,
-		ErrorLink:    externalLink(c, textError, job.Error),
-		PatchLink:    externalLink(c, textPatch, job.Patch),
+		Type:            typ,
+		Config:          reportingConfig,
+		JobID:           extJobID(jobKey),
+		ExtID:           job.ExtID,
+		CC:              append(job.CC, kernelRepo.CC...),
+		Log:             crashLog,
+		LogLink:         externalLink(c, textCrashLog, job.CrashLog),
+		Report:          report,
+		ReportLink:      externalLink(c, textCrashReport, job.CrashReport),
+		ReproCLink:      externalLink(c, textReproC, crash.ReproC),
+		ReproSyzLink:    externalLink(c, textReproSyz, crash.ReproSyz),
+		MachineInfoLink: externalLink(c, textMachineInfo, crash.MachineInfo),
+		CrashTitle:      job.CrashTitle,
+		Error:           jobError,
+		ErrorLink:       externalLink(c, textError, job.Error),
+		PatchLink:       externalLink(c, textPatch, job.Patch),
 	}
 	if job.Type == JobBisectCause || job.Type == JobBisectFix {
 		rep.Maintainers = append(crash.Maintainers, kernelRepo.Maintainers...)

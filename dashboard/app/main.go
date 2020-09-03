@@ -165,13 +165,14 @@ type uiBug struct {
 }
 
 type uiCrash struct {
-	Manager      string
-	Time         time.Time
-	Maintainers  string
-	LogLink      string
-	ReportLink   string
-	ReproSyzLink string
-	ReproCLink   string
+	Manager         string
+	Time            time.Time
+	Maintainers     string
+	LogLink         string
+	ReportLink      string
+	ReproSyzLink    string
+	ReproCLink      string
+	MachineInfoLink string
 	*uiBuild
 }
 
@@ -917,13 +918,14 @@ func loadFixBisectionsForBug(c context.Context, bug *Bug) ([]*uiCrash, error) {
 
 func makeUICrash(crash *Crash, build *Build) *uiCrash {
 	ui := &uiCrash{
-		Manager:      crash.Manager,
-		Time:         crash.Time,
-		Maintainers:  strings.Join(crash.Maintainers, ", "),
-		LogLink:      textLink(textCrashLog, crash.Log),
-		ReportLink:   textLink(textCrashReport, crash.Report),
-		ReproSyzLink: textLink(textReproSyz, crash.ReproSyz),
-		ReproCLink:   textLink(textReproC, crash.ReproC),
+		Manager:         crash.Manager,
+		Time:            crash.Time,
+		Maintainers:     strings.Join(crash.Maintainers, ", "),
+		LogLink:         textLink(textCrashLog, crash.Log),
+		ReportLink:      textLink(textCrashReport, crash.Report),
+		ReproSyzLink:    textLink(textReproSyz, crash.ReproSyz),
+		ReproCLink:      textLink(textReproC, crash.ReproC),
+		MachineInfoLink: textLink(textMachineInfo, crash.MachineInfo),
 	}
 	if build != nil {
 		ui.uiBuild = makeUIBuild(build)

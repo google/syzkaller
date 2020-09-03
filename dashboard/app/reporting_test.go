@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 	"time"
 
@@ -459,4 +460,48 @@ func TestReportingFilter(t *testing.T) {
 
 	rep4 := c.client.pollBug()
 	c.expectEQ(string(rep4.Config), `{"Index":2}`)
+}
+
+func TestMachineInfo(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client.UploadBuild(build)
+
+	machineInfo := []byte("info1")
+
+	// Create a crash with machine information and check the returned machine
+	// information field is equal.
+	crash := &dashapi.Crash{
+		BuildID:     "build1",
+		Title:       "title1",
+		Maintainers: []string{`"Foo Bar" <foo@bar.com>`, `bar@foo.com`},
+		Log:         []byte("log1"),
+		Report:      []byte("report1"),
+		MachineInfo: machineInfo,
+	}
+	c.client.ReportCrash(crash)
+	rep := c.client.pollBug()
+	c.expectEQ(machineInfo, rep.MachineInfo)
+
+	// Check that a link to machine information page is created on the dashboard,
+	// and the content is correct.
+	indexPage, err := c.AuthGET(AccessAdmin, "/test1")
+	c.expectOK(err)
+	bugLinkRegex := regexp.MustCompile(`<a href="(/bug\?id=[^"]+)">title1</a>`)
+	bugLinkSubmatch := bugLinkRegex.FindSubmatch(indexPage)
+	c.expectEQ(len(bugLinkSubmatch), 2)
+	bugURL := string(bugLinkSubmatch[1])
+
+	bugPage, err := c.AuthGET(AccessAdmin, bugURL)
+	c.expectOK(err)
+	infoLinkRegex := regexp.MustCompile(`<a href="(/text\?tag=MachineInfo[^"]+)">machine info</a>`)
+	infoLinkSubmatch := infoLinkRegex.FindSubmatch(bugPage)
+	c.expectEQ(len(infoLinkSubmatch), 2)
+	infoURL := string(infoLinkSubmatch[1])
+
+	receivedInfo, err := c.AuthGET(AccessAdmin, infoURL)
+	c.expectOK(err)
+	c.expectEQ(receivedInfo, machineInfo)
 }

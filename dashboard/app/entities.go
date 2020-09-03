@@ -131,6 +131,7 @@ type Crash struct {
 	ReproOpts   []byte    `datastore:",noindex"`
 	ReproSyz    int64     // reference to ReproSyz text entity
 	ReproC      int64     // reference to ReproC text entity
+	MachineInfo int64     // Reference to MachineInfo text entity.
 	// Custom crash priority for reporting (greater values are higher priority).
 	// For example, a crash in mainline kernel has higher priority than a crash in a side branch.
 	// For historical reasons this is called ReportLen.
@@ -232,6 +233,7 @@ const (
 	textCrashReport  = "CrashReport"
 	textReproSyz     = "ReproSyz"
 	textReproC       = "ReproC"
+	textMachineInfo  = "MachineInfo"
 	textKernelConfig = "KernelConfig"
 	textPatch        = "Patch"
 	textLog          = "Log"

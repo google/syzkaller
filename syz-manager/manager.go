@@ -695,12 +695,13 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 			return true
 		}
 		dc := &dashapi.Crash{
-			BuildID:    mgr.cfg.Tag,
-			Title:      crash.Title,
-			Corrupted:  crash.Corrupted,
-			Recipients: crash.Recipients.ToDash(),
-			Log:        crash.Output,
-			Report:     crash.Report.Report,
+			BuildID:     mgr.cfg.Tag,
+			Title:       crash.Title,
+			Corrupted:   crash.Corrupted,
+			Recipients:  crash.Recipients.ToDash(),
+			Log:         crash.Output,
+			Report:      crash.Report.Report,
+			MachineInfo: crash.machineInfo,
 		}
 		resp, err := mgr.dash.ReportCrash(dc)
 		if err != nil {
