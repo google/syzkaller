@@ -23,45 +23,53 @@ The target-triple prefix is determined based on the _target_ config option.
 
 
 ## Reporting coverage data
-
 _MakeReportGenerator_ factory creates an object database for the report. It requires target data, as well as information on the location of the source files and build directory. The first step in building this database is 
 extracting the function data from the target binary.
 
 ### nm
+
 `nm` is used to parse address and size of each function in the kernel image
+
 ```
 nm -Ptx kernel_image
 ```
+
 The meaning of the flags is as follows:
-* -P - use the portable output format (Standard Output)
-* -tx - write the numeric values in the hex format
+
+* `-P` - use the portable output format (Standard Output)
+* `-tx` - write the numeric values in the hex format
 
 Output is of the following form:
+
 ```
 tracepoint_module_nb d ffffffff84509580 0000000000000018
 ...
 udp_lib_hash t ffffffff831a4660 0000000000000007
 ```
 
-The first column is a symbol name and the second column its type (e.g. text section, data section, debugging symbol, undefined, zero-init section, etc.). The third column is the symbol value in hex format while the forth column contains the its size. The size is always rounded to up to 16 in syzkaller. For the report, we are only interested in the code sections so the _nm_ output is filtered for the symbols with type _t_ or _T_.
-The final result is a  map with symbol names as keys, values being starting and ending address of a symbol. This information is used to map coverage data to symbols (functions). This step is needed to find out whether certain functions are called at all.
+The first column is a symbol name and the second column is its type (e.g. text section, data section, debugging symbol, undefined, zero-init section, etc.). The third column is the symbol value in hex format while the forth column contains its size. The size is always rounded to up to 16 in syzkaller. For the report, we are only interested in the code sections so the `nm` output is filtered for the symbols with type `t` or `T`.
+The final result is a map with symbol names as keys, values being starting and ending address of a symbol. This information is used to map coverage data to symbols (functions). This step is needed to find out whether certain functions are called at all.
 
 ## Object Dump and Symbolize
 
-In order to provide the necessary information for tracking the coverage information with syzkaller, the compiler is instrumented to insert the __trace_pc__ instruction into every basic block generated during the build process. These instructions are then used as anchor points to backtrack the covered code lines.
+In order to provide the necessary information for tracking the coverage information with syzkaller, the compiler is instrumented to insert the `__sanitizer_cov_trace_pc` call into every basic block generated during the build process. These instructions are then used as anchor points to backtrack the covered code lines.
 
 ### objdump
 
 `objdump` is used to parse PC value of each call to `__sanitizer_cov_trace_pc` in the kernel image. These PC values are representing all code that is built into kernel image. PC values exported by kcov are compared against these to determine coverage
 The kernel image is dissasembled using the following command:
+
 ```
 objdump -d --no-show-raw-insn kernel_image
 ```
+
 The meaning of the flags is as follows:
-* -d - disassemble executable code blocks
-* -no-show-raw-insn - prevent printing hex alongside symbolic disassembly
+
+* `-d` - disassemble executable code blocks
+* `-no-show-raw-insn` - prevent printing hex alongside symbolic disassembly
 
 Excerpt output looks like this:
+
 ```
 ...
 ffffffff81000f41:	callq  ffffffff81382a00 <__sanitizer_cov_trace_pc>
@@ -76,9 +84,10 @@ ffffffff81000f68:	callq  ffffffff81382a00 <__sanitizer_cov_trace_pc>
 ffffffff81000f6d:	mov    -0x40(%r13),%rdx
 ffffffff81000f71:	mov    0x8(%rbp),%rsi
 ...
-)
 ```
+
 From this output coverage trace calls are identified to determine the start of the executable block addresses:
+
 ```
 ffffffff81000f41:	callq  ffffffff81382a00 <__sanitizer_cov_trace_pc>
 ffffffff81000f68:	callq  ffffffff81382a00 <__sanitizer_cov_trace_pc>
@@ -87,23 +96,27 @@ ffffffff81000f68:	callq  ffffffff81382a00 <__sanitizer_cov_trace_pc>
 ### addr2line
 
 `addr2line` is used for mapping PC values exported by kcov and parsed by `objdump` to source code files and lines.
+
 ```
 addr2line -afi -e kernel_image
 ```
 
 The meaning of the flags is as follows:
-* -afi - means show addresses, function names and unwind inlined functions
-* -e - is switch for specifying executable instead of using default
+
+* `-afi` - means show addresses, function names and unwind inlined functions
+* `-e` - is switch for specifying executable instead of using default
 
 addr2line reads hexadecimal addresses from standard input and prints the filename
 function and line number for each address on standard output. Example usage:
+
 ```
 >> ffffffff8148ba08
 << 0xffffffff8148ba08
 << generic_file_read_iter
 << /home/user/linux/mm/filemap.c:2363
 ```
-where `>>` represents query and `<<` is the response from the addr2line.
+
+where `>>` represents the query and `<<` is the response from the `addr2line`.
 
 The final goal is to have a hash table of frames where key is a program counter
 and value is a frame array consisting of a following information:
@@ -115,12 +128,11 @@ and value is a frame array consisting of a following information:
 
 Multiple frames can be linked to a single program counter value due to inlining.
 
-
 ## Creating report
+Once the database of the frames and function address ranges is created the next step is to determine the program coverage. Each program is represented here as a series of program counter values. As the function address ranges are known at this point it is easy to determine which functions were called by simply comparing the program counters against these address intervals. In addition, the coverage information is aggregated over the source files based on the program counters that are keys in the frame hash map. These are marked as `coveredPCs`. The resulting coverage is not line based but the basic block based. The end result is stored in the `file` struct containing the following information:
 
-Once the database of the frames and function address ranges is created the next step is to determine the program coverage. Each program is represented here as a series of program counter values. As the function address ranges are know at this point it is easy to determine which functions were called simply by comparing the program counters against this address intervals. In addition, the coverage information is aggregated over the source files based on the program counters that are keys in the frame hash map. These are marked as _coveredPCs_. The resulting coverage is not line based but the frame block based. The end result is stored in the _file_ struct containing the following information:
-* lines - lines covered in the file
-* totalPCs - total program counters identified for this file
-* coveredPcs - the program counters that were executed in the program run
-* totalInline - total number of program counters mapped to inlined frames
-* coveredInline - the program counters mapped to inlined frames that were executed in the program run
+* `lines` - lines covered in the file
+* `totalPCs` - total program counters identified for this file
+* `coveredPCs` - the program counters that were executed in the program run
+* `totalInline` - total number of program counters mapped to inlined frames
+* `coveredInline` - the program counters mapped to inlined frames that were executed in the program run
