@@ -120,6 +120,7 @@ func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
 		{"linux", "amd64", []string{"gvisor"}, gvisor{}},
 		{"linux", "amd64", []string{"gce", "qemu"}, linux{}},
 		{"linux", "ppc64le", []string{"qemu"}, linux{}},
+		{"linux", "s390x", []string{"qemu"}, linux{}},
 		{"fuchsia", "amd64", []string{"qemu"}, fuchsia{}},
 		{"fuchsia", "arm64", []string{"qemu"}, fuchsia{}},
 		{"akaros", "amd64", []string{"qemu"}, akaros{}},
