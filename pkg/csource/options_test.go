@@ -236,6 +236,7 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"devlink_pci": true,
 			"usb":         true,
 			"vhci":        true,
+			"wifi":        true,
 		}},
 		{"none", "none", false, map[string]bool{
 			"tun":         false,
@@ -247,6 +248,7 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"devlink_pci": false,
 			"usb":         false,
 			"vhci":        false,
+			"wifi":        false,
 		}},
 		{"all", "none", true, map[string]bool{
 			"tun":         true,
@@ -258,6 +260,7 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"devlink_pci": true,
 			"usb":         true,
 			"vhci":        true,
+			"wifi":        true,
 		}},
 		{"", "none", true, map[string]bool{
 			"tun":         false,
@@ -269,6 +272,7 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"devlink_pci": false,
 			"usb":         false,
 			"vhci":        false,
+			"wifi":        false,
 		}},
 		{"none", "all", true, map[string]bool{
 			"tun":         false,
@@ -280,6 +284,7 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"devlink_pci": false,
 			"usb":         false,
 			"vhci":        false,
+			"wifi":        false,
 		}},
 		{"none", "", true, map[string]bool{
 			"tun":         true,
@@ -291,6 +296,7 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"devlink_pci": true,
 			"usb":         true,
 			"vhci":        true,
+			"wifi":        true,
 		}},
 		{"tun,net_dev", "none", true, map[string]bool{
 			"tun":         true,
@@ -302,6 +308,7 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"devlink_pci": false,
 			"usb":         false,
 			"vhci":        false,
+			"wifi":        false,
 		}},
 		{"none", "cgroups,net_dev", true, map[string]bool{
 			"tun":         true,
@@ -313,6 +320,7 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"devlink_pci": true,
 			"usb":         true,
 			"vhci":        true,
+			"wifi":        true,
 		}},
 		{"close_fds", "none", true, map[string]bool{
 			"tun":         false,
@@ -324,6 +332,7 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"devlink_pci": false,
 			"usb":         false,
 			"vhci":        false,
+			"wifi":        false,
 		}},
 	}
 	for i, test := range tests {

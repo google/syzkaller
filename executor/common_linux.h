@@ -107,7 +107,8 @@ static bool write_file(const char* file, const char* what, ...)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI || __NR_syz_genetlink_get_family_id
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI || SYZ_WIFI || \
+    __NR_syz_genetlink_get_family_id || __NR_syz_80211_inject_frame || __NR_syz_80211_join_ibss
 #include <arpa/inet.h>
 #include <net/if.h>
 #include <netinet/in.h>
@@ -201,7 +202,8 @@ static int netlink_send_ext(struct nlmsg* nlmsg, int sock,
 	return ((struct nlmsgerr*)(hdr + 1))->error;
 }
 
-#if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI || SYZ_WIFI || \
+    __NR_syz_80211_join_ibss || __NR_syz_80211_inject_frame
 static int netlink_send(struct nlmsg* nlmsg, int sock)
 {
 	return netlink_send_ext(nlmsg, sock, 0, NULL);
@@ -471,7 +473,7 @@ static void netlink_add_neigh(struct nlmsg* nlmsg, int sock, const char* name,
 #endif
 #endif
 
-#if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI || SYZ_WIFI
 static struct nlmsg nlmsg;
 #endif
 
@@ -726,6 +728,278 @@ static void initialize_devlink_pci(void)
 	initialize_devlink_ports("pci", "0000:00:10.0", "netpci");
 }
 #endif
+#endif
+
+#if SYZ_EXECUTOR || SYZ_WIFI || __NR_syz_80211_inject_frame || __NR_syz_80211_join_ibss
+
+#define WIFI_INITIAL_DEVICE_COUNT 2
+#define WIFI_MAC_BASE                              \
+	{                                          \
+		0x08, 0x02, 0x11, 0x00, 0x00, 0x00 \
+	}
+#define WIFI_IBSS_BSSID                            \
+	{                                          \
+		0x50, 0x50, 0x50, 0x50, 0x50, 0x50 \
+	}
+#define WIFI_IBSS_SSID                             \
+	{                                          \
+		0x10, 0x10, 0x10, 0x10, 0x10, 0x10 \
+	}
+#define WIFI_DEFAULT_FREQUENCY 2412
+#define WIFI_DEFAULT_SIGNAL 0
+#define WIFI_DEFAULT_RX_RATE 1
+
+// consts from drivers/net/wireless/mac80211_hwsim.h
+#define HWSIM_CMD_REGISTER 1
+#define HWSIM_CMD_FRAME 2
+#define HWSIM_CMD_NEW_RADIO 4
+#define HWSIM_ATTR_SUPPORT_P2P_DEVICE 14
+#define HWSIM_ATTR_PERM_ADDR 22
+
+#endif
+
+#if SYZ_EXECUTOR || SYZ_WIFI || __NR_syz_80211_join_ibss
+#include <linux/genetlink.h>
+#include <linux/if_ether.h>
+#include <linux/nl80211.h>
+#include <linux/rtnetlink.h>
+#include <net/if.h>
+#include <stdbool.h>
+#include <sys/ioctl.h>
+
+// From linux/if.h, but we cannot include the file as it conflicts with net/if.h
+#define IF_OPER_UP 6
+
+// IBSS parameters for nl80211_join_ibss
+struct join_ibss_props {
+	int wiphy_freq;
+	bool wiphy_freq_fixed;
+	uint8* mac;
+	uint8* ssid;
+	int ssid_len;
+};
+
+static int set_interface_state(const char* interface_name, int on)
+{
+	struct ifreq ifr;
+	int sock = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sock < 0) {
+		debug("set_interface_state: failed to open socket, errno %d\n", errno);
+		return -1;
+	}
+
+	memset(&ifr, 0, sizeof(ifr));
+	strcpy(ifr.ifr_name, interface_name);
+	int ret = ioctl(sock, SIOCGIFFLAGS, &ifr);
+	if (ret < 0) {
+		debug("set_interface_state: failed to execute SIOCGIFFLAGS, ret %d\n", ret);
+		close(sock);
+		return -1;
+	}
+
+	if (on)
+		ifr.ifr_flags |= IFF_UP;
+	else
+		ifr.ifr_flags &= ~IFF_UP;
+
+	ret = ioctl(sock, SIOCSIFFLAGS, &ifr);
+	close(sock);
+	if (ret < 0) {
+		debug("set_interface_state: failed to execute SIOCSIFFLAGS, ret %d\n", ret);
+		return -1;
+	}
+	return 0;
+}
+
+static int nl80211_set_interface(struct nlmsg* nlmsg, int sock, int nl80211_family, uint32 ifindex, uint32 iftype)
+{
+	struct genlmsghdr genlhdr;
+
+	memset(&genlhdr, 0, sizeof(genlhdr));
+	genlhdr.cmd = NL80211_CMD_SET_INTERFACE;
+	netlink_init(nlmsg, nl80211_family, 0, &genlhdr, sizeof(genlhdr));
+	netlink_attr(nlmsg, NL80211_ATTR_IFINDEX, &ifindex, sizeof(ifindex));
+	netlink_attr(nlmsg, NL80211_ATTR_IFTYPE, &iftype, sizeof(iftype));
+	int err = netlink_send(nlmsg, sock);
+	if (err < 0) {
+		debug("nl80211_set_interface failed: %s\n", strerror(-err));
+		return -1;
+	}
+	return 0;
+}
+
+static int nl80211_join_ibss(struct nlmsg* nlmsg, int sock, int nl80211_family, uint32 ifindex, struct join_ibss_props* props)
+{
+	struct genlmsghdr genlhdr;
+
+	memset(&genlhdr, 0, sizeof(genlhdr));
+	genlhdr.cmd = NL80211_CMD_JOIN_IBSS;
+	netlink_init(nlmsg, nl80211_family, 0, &genlhdr, sizeof(genlhdr));
+	netlink_attr(nlmsg, NL80211_ATTR_IFINDEX, &ifindex, sizeof(ifindex));
+	netlink_attr(nlmsg, NL80211_ATTR_SSID, props->ssid, props->ssid_len);
+	netlink_attr(nlmsg, NL80211_ATTR_WIPHY_FREQ, &(props->wiphy_freq), sizeof(props->wiphy_freq));
+	if (props->mac)
+		netlink_attr(nlmsg, NL80211_ATTR_MAC, props->mac, ETH_ALEN);
+	if (props->wiphy_freq_fixed)
+		netlink_attr(nlmsg, NL80211_ATTR_FREQ_FIXED, NULL, 0);
+	int err = netlink_send(nlmsg, sock);
+	if (err < 0) {
+		debug("nl80211_join_ibss failed: %s\n", strerror(-err));
+		return -1;
+	}
+	return 0;
+}
+
+static int get_ifla_operstate(struct nlmsg* nlmsg, int ifindex)
+{
+	struct ifinfomsg info;
+	memset(&info, 0, sizeof(info));
+	info.ifi_family = AF_UNSPEC;
+	info.ifi_index = ifindex;
+
+	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
+	if (sock == -1) {
+		debug("get_ifla_operstate: socket failed: %d\n", errno);
+		return -1;
+	}
+
+	netlink_init(nlmsg, RTM_GETLINK, 0, &info, sizeof(info));
+	int n;
+	int err = netlink_send_ext(nlmsg, sock, RTM_NEWLINK, &n);
+	close(sock);
+
+	if (err) {
+		debug("get_ifla_operstate: failed to query: %s\n", strerror(-err));
+		return -1;
+	}
+
+	struct rtattr* attr = IFLA_RTA(NLMSG_DATA(nlmsg->buf));
+	for (; RTA_OK(attr, n); attr = RTA_NEXT(attr, n)) {
+		if (attr->rta_type == IFLA_OPERSTATE)
+			return *((int32_t*)RTA_DATA(attr));
+	}
+
+	return -1;
+}
+
+static int await_ifla_operstate(struct nlmsg* nlmsg, char* interface, int operstate)
+{
+	int ifindex = if_nametoindex(interface);
+	while (true) {
+		usleep(1000); // 1 ms
+		int ret = get_ifla_operstate(nlmsg, ifindex);
+		if (ret < 0)
+			return ret;
+		if (ret == operstate)
+			return 0;
+	}
+	return 0;
+}
+
+static int nl80211_setup_ibss_interface(struct nlmsg* nlmsg, int sock, int nl80211_family_id, char* interface, struct join_ibss_props* ibss_props)
+{
+	int ifindex = if_nametoindex(interface);
+	if (ifindex == 0) {
+		debug("nl80211_setup_ibss_interface: if_nametoindex failed for %.32s, ret 0\n", interface);
+		return -1;
+	}
+
+	int ret = nl80211_set_interface(nlmsg, sock, nl80211_family_id, ifindex, NL80211_IFTYPE_ADHOC);
+	if (ret < 0) {
+		debug("nl80211_setup_ibss_interface: nl80211_set_interface failed for %.32s, ret %d\n", interface, ret);
+		return -1;
+	}
+
+	ret = set_interface_state(interface, 1);
+	if (ret < 0) {
+		debug("nl80211_setup_ibss_interface: set_interface_state failed for %.32s, ret %d\n", interface, ret);
+		return -1;
+	}
+
+	ret = nl80211_join_ibss(nlmsg, sock, nl80211_family_id, ifindex, ibss_props);
+	if (ret < 0) {
+		debug("nl80211_setup_ibss_interface: nl80211_join_ibss failed for %.32s, ret %d\n", interface, ret);
+		return -1;
+	}
+
+	return 0;
+}
+#endif
+
+#if SYZ_EXECUTOR || SYZ_WIFI
+static int hwsim80211_create_device(struct nlmsg* nlmsg, int sock, int hwsim_family, uint8 mac_addr[ETH_ALEN])
+{
+	struct genlmsghdr genlhdr;
+	memset(&genlhdr, 0, sizeof(genlhdr));
+	genlhdr.cmd = HWSIM_CMD_NEW_RADIO;
+	netlink_init(nlmsg, hwsim_family, 0, &genlhdr, sizeof(genlhdr));
+	netlink_attr(nlmsg, HWSIM_ATTR_SUPPORT_P2P_DEVICE, NULL, 0);
+	netlink_attr(nlmsg, HWSIM_ATTR_PERM_ADDR, mac_addr, ETH_ALEN);
+	int err = netlink_send(nlmsg, sock);
+	if (err < 0) {
+		debug("hwsim80211_create_device failed: %s\n", strerror(-err));
+		return -1;
+	}
+	return 0;
+}
+
+static void initialize_wifi_devices(void)
+{
+	// Set up virtual wifi devices and join them into an IBSS network.
+	// An IBSS network is created here in order to put these devices in an operable state right from
+	// the beginning. It has the following positive effects.
+	// 1. Frame injection becomes possible from the very start.
+	// 2. A number of nl80211 commands expect their target wireless interface to be in an operable state.
+	// 3. Simplification of reproducer generation - in many cases the reproducer will not have to spend time
+	//    selecting system calls that set up the environment.
+	//
+	// IBSS network was chosen as the simplest network type to begin with.
+
+#if SYZ_EXECUTOR
+	if (!flag_wifi)
+		return;
+#endif
+	uint8 mac_addr[6] = WIFI_MAC_BASE;
+	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
+	if (sock < 0) {
+		debug("initialize_wifi_devices: failed to create socket (%d)\n", errno);
+		return;
+	}
+
+	int hwsim_family_id = netlink_query_family_id(&nlmsg, sock, "MAC80211_HWSIM");
+	int nl80211_family_id = netlink_query_family_id(&nlmsg, sock, "nl80211");
+	uint8 ssid[] = WIFI_IBSS_SSID;
+	uint8 bssid[] = WIFI_IBSS_BSSID;
+	struct join_ibss_props ibss_props = {
+	    .wiphy_freq = WIFI_DEFAULT_FREQUENCY, .wiphy_freq_fixed = true, .mac = bssid, .ssid = ssid, .ssid_len = sizeof(ssid)};
+
+	for (int device_id = 0; device_id < WIFI_INITIAL_DEVICE_COUNT; device_id++) {
+		// Virtual wifi devices will have consequtive mac addresses
+		mac_addr[5] = device_id;
+		int ret = hwsim80211_create_device(&nlmsg, sock, hwsim_family_id, mac_addr);
+		if (ret < 0)
+			fail("initialize_wifi_devices: failed to create device #%d\n", device_id);
+
+		// For each device, unless HWSIM_ATTR_NO_VIF is passed, a network interface is created
+		// automatically. Such interfaces are named "wlan0", "wlan1" and so on.
+		char interface[6] = "wlan0";
+		interface[4] += device_id;
+
+		if (nl80211_setup_ibss_interface(&nlmsg, sock, nl80211_family_id, interface, &ibss_props) < 0)
+			fail("initialize_wifi_devices: failed set up IBSS network for #%d\n", device_id);
+	}
+
+	// Wait for all devices to join the IBSS network
+	for (int device_id = 0; device_id < WIFI_INITIAL_DEVICE_COUNT; device_id++) {
+		char interface[6] = "wlan0";
+		interface[4] += device_id;
+		int ret = await_ifla_operstate(&nlmsg, interface, IF_OPER_UP);
+		if (ret < 0)
+			fail("initialize_wifi_devices: get_ifla_operstate failed for #%d, ret %d\n", device_id, ret);
+	}
+
+	close(sock);
+}
 #endif
 
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
@@ -3388,6 +3662,9 @@ static int do_sandbox_none(void)
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	initialize_netdevices();
 #endif
+#if SYZ_EXECUTOR || SYZ_WIFI
+	initialize_wifi_devices();
+#endif
 	loop();
 	doexit(1);
 }
@@ -3427,6 +3704,9 @@ static int do_sandbox_setuid(void)
 #endif
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	initialize_netdevices();
+#endif
+#if SYZ_EXECUTOR || SYZ_WIFI
+	initialize_wifi_devices();
 #endif
 
 	const int nobody = 65534;
@@ -3487,6 +3767,9 @@ static int namespace_sandbox_proc(void* arg)
 #endif
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	initialize_netdevices();
+#endif
+#if SYZ_EXECUTOR || SYZ_WIFI
+	initialize_wifi_devices();
 #endif
 
 	if (mkdir("./syz-tmp", 0777))
@@ -4508,4 +4791,170 @@ static volatile long syz_fuse_handle_req(volatile long a0, // /dev/fuse fd.
 
 	return fuse_send_response(fd, in_hdr, out_hdr);
 }
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_80211_inject_frame
+#include <linux/genetlink.h>
+#include <linux/if_ether.h>
+#include <linux/nl80211.h>
+#include <net/if.h>
+#include <sys/ioctl.h>
+
+// This pseudo syscall performs 802.11 frame injection.
+//
+// Its current implementation performs the injection by means of mac80211_hwsim.
+// The procedure consists of the following steps:
+// 1. Open a netlink socket
+// 2. Register as an application responsible for wireless medium simulation by executing
+//    HWSIM_CMD_REGISTER. This is a preq-requisite for the following step. After HWSIM_CMD_REGISTER
+//    is executed, mac80211_hwsim stops simulating a perfect medium.
+//    It is also important to note that this command registers a specific socket, not a netlink port.
+// 3. Inject a frame to the required interface by executing HWSIM_CMD_FRAME.
+// 4. Close the socket. mac80211_hwsim will detect this and return to perfect medium simulation.
+//
+// Note that we cannot (should not) open a socket, register it once and then use it for frame injection
+// throughout the lifetime of a proc. When some socket is registered, mac80211_hwsim does not broadcast
+// frames to all interfaces itself. As we do not perform this activity either, a permanently registered
+// socket will disrupt normal network operation.
+
+#define HWSIM_ATTR_RX_RATE 5
+#define HWSIM_ATTR_SIGNAL 6
+#define HWSIM_ATTR_ADDR_RECEIVER 1
+#define HWSIM_ATTR_FRAME 3
+
+#define WIFI_MAX_INJECT_LEN 2048
+
+static int hwsim_register_socket(struct nlmsg* nlmsg, int sock, int hwsim_family)
+{
+	struct genlmsghdr genlhdr;
+	memset(&genlhdr, 0, sizeof(genlhdr));
+	genlhdr.cmd = HWSIM_CMD_REGISTER;
+	netlink_init(nlmsg, hwsim_family, 0, &genlhdr, sizeof(genlhdr));
+	int err = netlink_send(nlmsg, sock);
+	if (err < 0) {
+		debug("hwsim_register_device failed: %s\n", strerror(-err));
+		return -1;
+	}
+	return 0;
+}
+
+static int hwsim_inject_frame(struct nlmsg* nlmsg, int sock, int hwsim_family, uint8* mac_addr, uint8* data, int len)
+{
+	struct genlmsghdr genlhdr;
+	uint32 rx_rate = WIFI_DEFAULT_RX_RATE;
+	uint32 signal = WIFI_DEFAULT_SIGNAL;
+
+	memset(&genlhdr, 0, sizeof(genlhdr));
+	genlhdr.cmd = HWSIM_CMD_FRAME;
+	netlink_init(nlmsg, hwsim_family, 0, &genlhdr, sizeof(genlhdr));
+	netlink_attr(nlmsg, HWSIM_ATTR_RX_RATE, &rx_rate, sizeof(rx_rate));
+	netlink_attr(nlmsg, HWSIM_ATTR_SIGNAL, &signal, sizeof(signal));
+	netlink_attr(nlmsg, HWSIM_ATTR_ADDR_RECEIVER, mac_addr, ETH_ALEN);
+	netlink_attr(nlmsg, HWSIM_ATTR_FRAME, data, len);
+	int err = netlink_send(nlmsg, sock);
+	if (err < 0) {
+		debug("hwsim_inject_frame failed: %s\n", strerror(-err));
+		return -1;
+	}
+	return 0;
+}
+
+static long syz_80211_inject_frame(volatile long a0, volatile long a1, volatile long a2)
+{
+	uint8* mac_addr = (uint8*)a0;
+	uint8* buf = (uint8*)a1;
+	int buf_len = (int)a2;
+	struct nlmsg tmp_msg;
+
+	if (buf_len < 0 || buf_len > WIFI_MAX_INJECT_LEN) {
+		debug("syz_80211_inject_frame: wrong buffer size %d\n", buf_len);
+		return -1;
+	}
+
+	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
+	if (sock < 0) {
+		debug("syz_80211_inject_frame: socket creation failed, errno %d\n", errno);
+		return -1;
+	}
+
+	int hwsim_family_id = netlink_query_family_id(&tmp_msg, sock, "MAC80211_HWSIM");
+	int ret = hwsim_register_socket(&tmp_msg, sock, hwsim_family_id);
+	if (ret < 0) {
+		debug("syz_80211_inject_frame: failed to register socket, ret %d\n", ret);
+		close(sock);
+		return -1;
+	}
+
+	ret = hwsim_inject_frame(&tmp_msg, sock, hwsim_family_id, mac_addr, buf, buf_len);
+	close(sock);
+	if (ret < 0) {
+		debug("syz_80211_inject_frame: failed to inject message, ret %d\n", ret);
+		return -1;
+	}
+
+	return 0;
+}
+
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_80211_join_ibss
+
+#define WIFI_MAX_SSID_LEN 32
+
+#define WIFI_JOIN_IBSS_NO_SCAN 0
+#define WIFI_JOIN_IBSS_BG_SCAN 1
+#define WIFI_JOIN_IBSS_BG_NO_SCAN 2
+
+static long syz_80211_join_ibss(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
+{
+	char* interface = (char*)a0;
+	uint8* ssid = (uint8*)a1;
+	int ssid_len = (int)a2;
+	int mode = (int)a3; // This parameter essentially determines whether it will perform a scan
+
+	struct nlmsg tmp_msg;
+	uint8 bssid[ETH_ALEN] = WIFI_IBSS_BSSID;
+
+	if (ssid_len < 0 || ssid_len > WIFI_MAX_SSID_LEN) {
+		debug("syz_80211_join_ibss: invalid ssid len %d\n", ssid_len);
+		return -1;
+	}
+
+	if (mode < 0 || mode > WIFI_JOIN_IBSS_BG_NO_SCAN) {
+		debug("syz_80211_join_ibss: invalid mode %d\n", mode);
+		return -1;
+	}
+
+	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
+	if (sock < 0) {
+		debug("syz_80211_join_ibss: socket creation failed, errno %d\n", errno);
+		return -1;
+	}
+
+	int nl80211_family_id = netlink_query_family_id(&tmp_msg, sock, "nl80211");
+	struct join_ibss_props ibss_props = {
+	    .wiphy_freq = WIFI_DEFAULT_FREQUENCY,
+	    .wiphy_freq_fixed = (mode == WIFI_JOIN_IBSS_NO_SCAN || mode == WIFI_JOIN_IBSS_BG_NO_SCAN),
+	    .mac = bssid,
+	    .ssid = ssid,
+	    .ssid_len = ssid_len};
+
+	int ret = nl80211_setup_ibss_interface(&tmp_msg, sock, nl80211_family_id, interface, &ibss_props);
+	close(sock);
+	if (ret < 0) {
+		debug("syz_80211_join_ibss: failed set up IBSS network for %.32s\n", interface);
+		return -1;
+	}
+
+	if (mode == WIFI_JOIN_IBSS_NO_SCAN) {
+		ret = await_ifla_operstate(&tmp_msg, interface, IF_OPER_UP);
+		if (ret < 0) {
+			debug("syz_80211_join_ibss: await_ifla_operstate failed for %.32s, ret %d\n", interface, ret);
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
 #endif

@@ -121,6 +121,9 @@ func createIPCConfig(features *host.Features, config *ipc.Config) {
 	if features[host.FeatureVhciInjection].Enabled {
 		config.Flags |= ipc.FlagEnableVhciInjection
 	}
+	if features[host.FeatureWifiEmulation].Enabled {
+		config.Flags |= ipc.FlagEnableWifi
+	}
 }
 
 // nolint: funlen

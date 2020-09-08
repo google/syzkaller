@@ -41,6 +41,7 @@ const (
 	FlagEnableCloseFds                           // close fds after each program
 	FlagEnableDevlinkPCI                         // setup devlink PCI device
 	FlagEnableVhciInjection                      // setup and use /dev/vhci for hci packet injection
+	FlagEnableWifi                               // setup and use mac80211_hwsim for wifi emulation
 )
 
 // Per-exec flags for ExecOpts.Flags.

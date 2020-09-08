@@ -202,6 +202,9 @@ func createStartOptions(cfg *mgrconfig.Config, features *host.Features, crashTyp
 		if !features[host.FeatureVhciInjection].Enabled {
 			opts.VhciInjection = false
 		}
+		if !features[host.FeatureWifiEmulation].Enabled {
+			opts.Wifi = false
+		}
 	}
 	return opts
 }
@@ -866,6 +869,7 @@ var cSimplifies = append(progSimplifies, []Simplify{
 		opts.DevlinkPCI = false
 		opts.USB = false
 		opts.VhciInjection = false
+		opts.Wifi = false
 		return true
 	},
 	func(opts *csource.Options) bool {
@@ -931,6 +935,13 @@ var cSimplifies = append(progSimplifies, []Simplify{
 			return false
 		}
 		opts.VhciInjection = false
+		return true
+	},
+	func(opts *csource.Options) bool {
+		if !opts.Wifi {
+			return false
+		}
+		opts.Wifi = false
 		return true
 	},
 	func(opts *csource.Options) bool {

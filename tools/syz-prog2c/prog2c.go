@@ -91,6 +91,7 @@ func main() {
 		DevlinkPCI:    features["devlink_pci"].Enabled,
 		USB:           features["usb"].Enabled,
 		VhciInjection: features["vhci"].Enabled,
+		Wifi:          features["wifi"].Enabled,
 		UseTmpDir:     *flagUseTmpDir,
 		HandleSegv:    *flagHandleSegv,
 		Repro:         false,
