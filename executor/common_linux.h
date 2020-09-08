@@ -115,6 +115,7 @@ static bool write_file(const char* file, const char* what, ...)
 #include <sys/socket.h>
 #include <sys/types.h>
 
+#include <linux/genetlink.h>
 #include <linux/if_addr.h>
 #include <linux/if_link.h>
 #include <linux/in6.h>
@@ -203,6 +204,36 @@ static int netlink_send_ext(struct nlmsg* nlmsg, int sock,
 static int netlink_send(struct nlmsg* nlmsg, int sock)
 {
 	return netlink_send_ext(nlmsg, sock, 0, NULL);
+}
+
+static int netlink_query_family_id(struct nlmsg* nlmsg, int sock, const char* family_name)
+{
+	struct genlmsghdr genlhdr;
+	memset(&genlhdr, 0, sizeof(genlhdr));
+	genlhdr.cmd = CTRL_CMD_GETFAMILY;
+	netlink_init(nlmsg, GENL_ID_CTRL, 0, &genlhdr, sizeof(genlhdr));
+	netlink_attr(nlmsg, CTRL_ATTR_FAMILY_NAME, family_name, strnlen(family_name, GENL_NAMSIZ - 1) + 1);
+	int n = 0;
+	int err = netlink_send_ext(nlmsg, sock, GENL_ID_CTRL, &n);
+	if (err) {
+		debug("netlink: failed to get family id for %.*s: %s\n", GENL_NAMSIZ, family_name, strerror(err));
+		return -1;
+	}
+	uint16 id = 0;
+	struct nlattr* attr = (struct nlattr*)(nlmsg->buf + NLMSG_HDRLEN + NLMSG_ALIGN(sizeof(genlhdr)));
+	for (; (char*)attr < nlmsg->buf + n; attr = (struct nlattr*)((char*)attr + NLMSG_ALIGN(attr->nla_len))) {
+		if (attr->nla_type == CTRL_ATTR_FAMILY_ID) {
+			id = *(uint16*)(attr + 1);
+			break;
+		}
+	}
+	if (!id) {
+		debug("netlink: failed to parse family id for %.*s\n", GENL_NAMSIZ, family_name);
+		return -1;
+	}
+	recv(sock, nlmsg->buf, sizeof(nlmsg->buf), 0); // recv ack
+
+	return id;
 }
 
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_DEVLINK_PCI
@@ -582,36 +613,6 @@ const int kInitNetNsFd = 239; // see kMaxFd
 #define DEVLINK_ATTR_NETNS_FD 138
 #endif
 
-static int netlink_devlink_id_get(struct nlmsg* nlmsg, int sock)
-{
-	struct genlmsghdr genlhdr;
-	memset(&genlhdr, 0, sizeof(genlhdr));
-	genlhdr.cmd = CTRL_CMD_GETFAMILY;
-	netlink_init(nlmsg, GENL_ID_CTRL, 0, &genlhdr, sizeof(genlhdr));
-	netlink_attr(nlmsg, CTRL_ATTR_FAMILY_NAME, DEVLINK_FAMILY_NAME, strlen(DEVLINK_FAMILY_NAME) + 1);
-	int n = 0;
-	int err = netlink_send_ext(nlmsg, sock, GENL_ID_CTRL, &n);
-	if (err) {
-		debug("netlink: failed to get devlink family id: %s\n", strerror(err));
-		return -1;
-	}
-	uint16 id = 0;
-	struct nlattr* attr = (struct nlattr*)(nlmsg->buf + NLMSG_HDRLEN + NLMSG_ALIGN(sizeof(genlhdr)));
-	for (; (char*)attr < nlmsg->buf + n; attr = (struct nlattr*)((char*)attr + NLMSG_ALIGN(attr->nla_len))) {
-		if (attr->nla_type == CTRL_ATTR_FAMILY_ID) {
-			id = *(uint16*)(attr + 1);
-			break;
-		}
-	}
-	if (!id) {
-		debug("netlink: failed to parse message for devlink family id\n");
-		return -1;
-	}
-	recv(sock, nlmsg->buf, sizeof(nlmsg->buf), 0); // recv ack
-
-	return id;
-}
-
 #if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
 static void netlink_devlink_netns_move(const char* bus_name, const char* dev_name, int netns_fd)
 {
@@ -623,7 +624,7 @@ static void netlink_devlink_netns_move(const char* bus_name, const char* dev_nam
 	if (sock == -1)
 		fail("socket(AF_NETLINK) failed\n");
 
-	id = netlink_devlink_id_get(&nlmsg, sock);
+	id = netlink_query_family_id(&nlmsg, sock, DEVLINK_FAMILY_NAME);
 	if (id == -1)
 		goto error;
 
@@ -660,7 +661,7 @@ static void initialize_devlink_ports(const char* bus_name, const char* dev_name,
 	if (rtsock == -1)
 		fail("socket(AF_NETLINK) failed");
 
-	id = netlink_devlink_id_get(&nlmsg, sock);
+	id = netlink_query_family_id(&nlmsg, sock, DEVLINK_FAMILY_NAME);
 	if (id == -1)
 		goto error;
 
@@ -794,36 +795,6 @@ enum wgallowedip_attribute {
 	WGALLOWEDIP_A_CIDR_MASK,
 };
 
-static int netlink_wireguard_id_get(struct nlmsg* nlmsg, int sock)
-{
-	struct genlmsghdr genlhdr;
-	memset(&genlhdr, 0, sizeof(genlhdr));
-	genlhdr.cmd = CTRL_CMD_GETFAMILY;
-	netlink_init(nlmsg, GENL_ID_CTRL, 0, &genlhdr, sizeof(genlhdr));
-	netlink_attr(nlmsg, CTRL_ATTR_FAMILY_NAME, WG_GENL_NAME, strlen(WG_GENL_NAME) + 1);
-	int n = 0;
-	int err = netlink_send_ext(nlmsg, sock, GENL_ID_CTRL, &n);
-	if (err) {
-		debug("netlink: failed to get wireguard family id: %s\n", strerror(err));
-		return -1;
-	}
-	uint16 id = 0;
-	struct nlattr* attr = (struct nlattr*)(nlmsg->buf + NLMSG_HDRLEN + NLMSG_ALIGN(sizeof(genlhdr)));
-	for (; (char*)attr < nlmsg->buf + n; attr = (struct nlattr*)((char*)attr + NLMSG_ALIGN(attr->nla_len))) {
-		if (attr->nla_type == CTRL_ATTR_FAMILY_ID) {
-			id = *(uint16*)(attr + 1);
-			break;
-		}
-	}
-	if (!id) {
-		debug("netlink: failed to parse message for wireguard family id\n");
-		return -1;
-	}
-	recv(sock, nlmsg->buf, sizeof(nlmsg->buf), 0); // recv ack
-
-	return id;
-}
-
 static void netlink_wireguard_setup(void)
 {
 	const char ifname_a[] = "wg0";
@@ -885,7 +856,7 @@ static void netlink_wireguard_setup(void)
 		return;
 	}
 
-	id = netlink_wireguard_id_get(&nlmsg, sock);
+	id = netlink_query_family_id(&nlmsg, sock, WG_GENL_NAME);
 	if (id == -1)
 		goto error;
 
