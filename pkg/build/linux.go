@@ -64,7 +64,7 @@ func (linux) buildKernel(params *Params) error {
 	// We build only zImage/bzImage as we currently don't use modules.
 	var target string
 	switch params.TargetArch {
-	case "386", "amd64":
+	case "386", "amd64", "s390x":
 		target = "bzImage"
 	case "ppc64le":
 		target = "zImage"
@@ -97,6 +97,8 @@ func (linux) createImage(params *Params) error {
 		kernelImage = "arch/x86/boot/bzImage"
 	case "ppc64le":
 		kernelImage = "arch/powerpc/boot/zImage.pseries"
+	case "s390x":
+		kernelImage = "arch/s390/boot/bzImage"
 	}
 	kernelImagePath := filepath.Join(params.KernelDir, filepath.FromSlash(kernelImage))
 	cmd := osutil.Command(scriptFile, params.UserspaceDir, kernelImagePath, params.TargetArch)
