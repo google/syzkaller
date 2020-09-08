@@ -29,6 +29,7 @@ func init() {
 	checkFeature[FeatureDevlinkPCI] = checkDevlinkPCI
 	checkFeature[FeatureUSBEmulation] = checkUSBEmulation
 	checkFeature[FeatureVhciInjection] = checkVhciInjection
+	checkFeature[FeatureWifiEmulation] = checkWifiEmulation
 }
 
 func checkCoverage() string {
@@ -216,6 +217,13 @@ func checkKCSAN() string {
 func checkDevlinkPCI() string {
 	if err := osutil.IsAccessible("/sys/bus/pci/devices/0000:00:10.0/"); err != nil {
 		return "PCI device 0000:00:10.0 is not available"
+	}
+	return ""
+}
+
+func checkWifiEmulation() string {
+	if err := osutil.IsAccessible("/sys/class/mac80211_hwsim/"); err != nil {
+		return err.Error()
 	}
 	return ""
 }

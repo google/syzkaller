@@ -153,6 +153,8 @@ func createCRepro(bug *dashapi.LoadBugResp) error {
 	return err
 }
 
+// Although liter complains about this function, it does not seem complex.
+// nolint: gocyclo
 func createProg2CArgs(bug *dashapi.LoadBugResp, opts csource.Options, file string) []string {
 	haveEnableFlag := containsCommit("dfd609eca1871f01757d6b04b19fc273c87c14e5")
 	haveRepeatFlag := containsCommit("b25fc7b83119e8dca728a199fd92e24dd4c33fa4")
@@ -231,6 +233,10 @@ func createProg2CArgs(bug *dashapi.LoadBugResp, opts csource.Options, file strin
 	if opts.VhciInjection {
 		enable = append(enable, "vhci")
 		flags = append(flags, "-vhci")
+	}
+	if opts.Wifi {
+		enable = append(enable, "wifi")
+		flags = append(flags, "-wifi")
 	}
 	if !haveEnableFlag {
 		args = append(args, flags...)

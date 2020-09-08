@@ -28,6 +28,7 @@ const (
 	FeatureDevlinkPCI
 	FeatureUSBEmulation
 	FeatureVhciInjection
+	FeatureWifiEmulation
 	numFeatures
 )
 
@@ -67,6 +68,7 @@ func Check(target *prog.Target) (*Features, error) {
 		FeatureDevlinkPCI:       {Name: "devlink PCI setup", Reason: unsupported},
 		FeatureUSBEmulation:     {Name: "USB emulation", Reason: unsupported},
 		FeatureVhciInjection:    {Name: "hci packet injection", Reason: unsupported},
+		FeatureWifiEmulation:    {Name: "wifi device emulation", Reason: unsupported},
 	}
 	if noHostChecks(target) {
 		return res, nil

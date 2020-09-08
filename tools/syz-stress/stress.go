@@ -165,6 +165,9 @@ func createIPCConfig(target *prog.Target, features *host.Features, featuresFlags
 	if featuresFlags["vhci"].Enabled && features[host.FeatureVhciInjection].Enabled {
 		config.Flags |= ipc.FlagEnableVhciInjection
 	}
+	if featuresFlags["wifi"].Enabled && features[host.FeatureWifiEmulation].Enabled {
+		config.Flags |= ipc.FlagEnableWifi
+	}
 	return config, execOpts, nil
 }
 

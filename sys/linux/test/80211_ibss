@@ -1,0 +1,9 @@
+# requires: -sandbox=namespace
+
+# Join IBSSS network
+
+syz_80211_join_ibss(&AUTO='wlan0\x00', &AUTO=@default_ibss_ssid, 0x6, 0x0)
+
+# Inject an arbitrary packet
+
+syz_80211_inject_frame(&AUTO=@device_a, &AUTO="00112233445566778899", 0xa)

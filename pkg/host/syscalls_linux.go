@@ -186,6 +186,11 @@ func isVhciInjectionSupported(c *prog.Syscall, target *prog.Target, sandbox stri
 	return reason == "", reason
 }
 
+func isWifiEmulationSupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
+	reason := checkWifiEmulation()
+	return reason == "", reason
+}
+
 func isSyzKvmSetupCPUSupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
 	switch c.Name {
 	case "syz_kvm_setup_cpu$x86":
@@ -284,9 +289,11 @@ var syzkallSupport = map[string]func(*prog.Syscall, *prog.Target, string) (bool,
 	"syz_io_uring_setup":          isSyzIoUringSupported,
 	// syz_memcpy_off is only used for io_uring descriptions, thus, enable it
 	// only if io_uring syscalls are enabled.
-	"syz_memcpy_off":      isSyzIoUringSupported,
-	"syz_btf_id_by_name":  isBtfVmlinuxSupported,
-	"syz_fuse_handle_req": isSyzFuseSupported,
+	"syz_memcpy_off":         isSyzIoUringSupported,
+	"syz_btf_id_by_name":     isBtfVmlinuxSupported,
+	"syz_fuse_handle_req":    isSyzFuseSupported,
+	"syz_80211_inject_frame": isWifiEmulationSupported,
+	"syz_80211_join_ibss":    isWifiEmulationSupported,
 }
 
 func isSupportedSyzkall(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {

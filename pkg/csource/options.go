@@ -41,6 +41,7 @@ type Options struct {
 	DevlinkPCI    bool `json:"devlinkpci,omitempty"`
 	USB           bool `json:"usb,omitempty"`
 	VhciInjection bool `json:"vhci,omitempty"`
+	Wifi          bool `json:"wifi,omitempty"`
 
 	UseTmpDir  bool `json:"tmpdir,omitempty"`
 	HandleSegv bool `json:"segv,omitempty"`
@@ -92,6 +93,9 @@ func (opts Options) Check(OS string) error {
 		if opts.VhciInjection {
 			return errors.New("option VhciInjection without sandbox")
 		}
+		if opts.Wifi {
+			return errors.New("option Wifi without sandbox")
+		}
 	}
 	if opts.Sandbox == sandboxNamespace && !opts.UseTmpDir {
 		// This is borken and never worked.
@@ -142,6 +146,9 @@ func (opts Options) checkLinuxOnly(OS string) error {
 	if opts.VhciInjection {
 		return fmt.Errorf("option VHCI is not supported on %v", OS)
 	}
+	if opts.Wifi {
+		return fmt.Errorf("option Wifi is not supported on %v", OS)
+	}
 	if opts.Sandbox == sandboxNamespace ||
 		(opts.Sandbox == sandboxSetuid && !(OS == openbsd || OS == freebsd || OS == netbsd)) ||
 		opts.Sandbox == sandboxAndroid {
@@ -171,6 +178,7 @@ func DefaultOpts(cfg *mgrconfig.Config) Options {
 		CloseFDs:      true,
 		DevlinkPCI:    true,
 		VhciInjection: true,
+		Wifi:          true,
 		UseTmpDir:     true,
 		HandleSegv:    true,
 		Repro:         true,
@@ -185,6 +193,7 @@ func DefaultOpts(cfg *mgrconfig.Config) Options {
 		opts.DevlinkPCI = false
 		opts.USB = false
 		opts.VhciInjection = false
+		opts.Wifi = false
 	}
 	if cfg.Sandbox == "" || cfg.Sandbox == "setuid" {
 		opts.NetReset = false
@@ -266,6 +275,7 @@ func defaultFeatures(value bool) Features {
 		"devlink_pci": {"setup devlink PCI device", value},
 		"usb":         {"setup and use /dev/raw-gadget for USB emulation", value},
 		"vhci":        {"setup and use /dev/vhci for hci packet injection", value},
+		"wifi":        {"setup and use mac80211_hwsim for wifi emulation", value},
 	}
 }
 
