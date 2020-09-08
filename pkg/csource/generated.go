@@ -2429,7 +2429,7 @@ static int netlink_send_ext(struct nlmsg* nlmsg, int sock,
 		fail("short netlink read: %d", n);
 	if (hdr->nlmsg_type != NLMSG_ERROR)
 		fail("short netlink ack: %d", hdr->nlmsg_type);
-	return -((struct nlmsgerr*)(hdr + 1))->error;
+	return ((struct nlmsgerr*)(hdr + 1))->error;
 }
 
 static int netlink_send(struct nlmsg* nlmsg, int sock)
@@ -2446,8 +2446,8 @@ static int netlink_query_family_id(struct nlmsg* nlmsg, int sock, const char* fa
 	netlink_attr(nlmsg, CTRL_ATTR_FAMILY_NAME, family_name, strnlen(family_name, GENL_NAMSIZ - 1) + 1);
 	int n = 0;
 	int err = netlink_send_ext(nlmsg, sock, GENL_ID_CTRL, &n);
-	if (err) {
-		debug("netlink: failed to get family id for %.*s: %s\n", GENL_NAMSIZ, family_name, strerror(err));
+	if (err < 0) {
+		debug("netlink: failed to get family id for %.*s: %s\n", GENL_NAMSIZ, family_name, strerror(-err));
 		return -1;
 	}
 	uint16 id = 0;
@@ -2498,7 +2498,7 @@ static void netlink_add_device(struct nlmsg* nlmsg, int sock, const char* type,
 	netlink_add_device_impl(nlmsg, type, name);
 	netlink_done(nlmsg);
 	int err = netlink_send(nlmsg, sock);
-	debug("netlink: adding device %s type %s: %s\n", name, type, strerror(err));
+	debug("netlink: adding device %s type %s: %s\n", name, type, strerror(-err));
 	(void)err;
 }
 
@@ -2514,7 +2514,7 @@ static void netlink_add_veth(struct nlmsg* nlmsg, int sock, const char* name,
 	netlink_done(nlmsg);
 	netlink_done(nlmsg);
 	int err = netlink_send(nlmsg, sock);
-	debug("netlink: adding device %s type veth peer %s: %s\n", name, peer, strerror(err));
+	debug("netlink: adding device %s type veth peer %s: %s\n", name, peer, strerror(-err));
 	(void)err;
 }
 
@@ -2531,7 +2531,7 @@ static void netlink_add_hsr(struct nlmsg* nlmsg, int sock, const char* name,
 	netlink_done(nlmsg);
 	int err = netlink_send(nlmsg, sock);
 	debug("netlink: adding device %s type hsr slave1 %s slave2 %s: %s\n",
-	      name, slave1, slave2, strerror(err));
+	      name, slave1, slave2, strerror(-err));
 	(void)err;
 }
 
@@ -2543,7 +2543,7 @@ static void netlink_add_linked(struct nlmsg* nlmsg, int sock, const char* type, 
 	netlink_attr(nlmsg, IFLA_LINK, &ifindex, sizeof(ifindex));
 	int err = netlink_send(nlmsg, sock);
 	debug("netlink: adding device %s type %s link %s: %s\n",
-	      name, type, link, strerror(err));
+	      name, type, link, strerror(-err));
 	(void)err;
 }
 
@@ -2559,7 +2559,7 @@ static void netlink_add_vlan(struct nlmsg* nlmsg, int sock, const char* name, co
 	netlink_attr(nlmsg, IFLA_LINK, &ifindex, sizeof(ifindex));
 	int err = netlink_send(nlmsg, sock);
 	debug("netlink: add %s type vlan link %s id %d: %s\n",
-	      name, link, id, strerror(err));
+	      name, link, id, strerror(-err));
 	(void)err;
 }
 
@@ -2575,7 +2575,7 @@ static void netlink_add_macvlan(struct nlmsg* nlmsg, int sock, const char* name,
 	netlink_attr(nlmsg, IFLA_LINK, &ifindex, sizeof(ifindex));
 	int err = netlink_send(nlmsg, sock);
 	debug("netlink: add %s type macvlan link %s mode %d: %s\n",
-	      name, link, mode, strerror(err));
+	      name, link, mode, strerror(-err));
 	(void)err;
 }
 
@@ -2592,7 +2592,7 @@ static void netlink_add_geneve(struct nlmsg* nlmsg, int sock, const char* name, 
 	netlink_done(nlmsg);
 	int err = netlink_send(nlmsg, sock);
 	debug("netlink: add %s type geneve vni %u: %s\n",
-	      name, vni, strerror(err));
+	      name, vni, strerror(-err));
 	(void)err;
 }
 
@@ -2613,7 +2613,7 @@ static void netlink_add_ipvlan(struct nlmsg* nlmsg, int sock, const char* name, 
 	netlink_attr(nlmsg, IFLA_LINK, &ifindex, sizeof(ifindex));
 	int err = netlink_send(nlmsg, sock);
 	debug("netlink: add %s type ipvlan link %s mode %d: %s\n",
-	      name, link, mode, strerror(err));
+	      name, link, mode, strerror(-err));
 	(void)err;
 }
 #endif
@@ -2638,7 +2638,7 @@ static void netlink_device_change(struct nlmsg* nlmsg, int sock, const char* nam
 	if (macsize)
 		netlink_attr(nlmsg, IFLA_ADDRESS, mac, macsize);
 	int err = netlink_send(nlmsg, sock);
-	debug("netlink: device %s up master %s: %s\n", name, master ? master : "NULL", strerror(err));
+	debug("netlink: device %s up master %s: %s\n", name, master ? master : "NULL", strerror(-err));
 	(void)err;
 }
 #endif
@@ -2665,7 +2665,7 @@ static void netlink_add_addr4(struct nlmsg* nlmsg, int sock,
 	struct in_addr in_addr;
 	inet_pton(AF_INET, addr, &in_addr);
 	int err = netlink_add_addr(nlmsg, sock, dev, &in_addr, sizeof(in_addr));
-	debug("netlink: add addr %s dev %s: %s\n", addr, dev, strerror(err));
+	debug("netlink: add addr %s dev %s: %s\n", addr, dev, strerror(-err));
 	(void)err;
 }
 
@@ -2675,7 +2675,7 @@ static void netlink_add_addr6(struct nlmsg* nlmsg, int sock,
 	struct in6_addr in6_addr;
 	inet_pton(AF_INET6, addr, &in6_addr);
 	int err = netlink_add_addr(nlmsg, sock, dev, &in6_addr, sizeof(in6_addr));
-	debug("netlink: add addr %s dev %s: %s\n", addr, dev, strerror(err));
+	debug("netlink: add addr %s dev %s: %s\n", addr, dev, strerror(-err));
 	(void)err;
 }
 #endif
@@ -2694,7 +2694,7 @@ static void netlink_add_neigh(struct nlmsg* nlmsg, int sock, const char* name,
 	netlink_attr(nlmsg, NDA_LLADDR, mac, macsize);
 	int err = netlink_send(nlmsg, sock);
 	debug("netlink: add neigh %s addr %d lladdr %d: %s\n",
-	      name, addrsize, macsize, strerror(err));
+	      name, addrsize, macsize, strerror(-err));
 	(void)err;
 }
 #endif
@@ -2851,9 +2851,9 @@ static void netlink_devlink_netns_move(const char* bus_name, const char* dev_nam
 	netlink_attr(&nlmsg, DEVLINK_ATTR_DEV_NAME, dev_name, strlen(dev_name) + 1);
 	netlink_attr(&nlmsg, DEVLINK_ATTR_NETNS_FD, &netns_fd, sizeof(netns_fd));
 	err = netlink_send(&nlmsg, sock);
-	if (err) {
+	if (err < 0) {
 		debug("netlink: failed to move devlink instance %s/%s into network namespace: %s\n",
-		      bus_name, dev_name, strerror(err));
+		      bus_name, dev_name, strerror(-err));
 	}
 error:
 	close(sock);
@@ -2888,8 +2888,8 @@ static void initialize_devlink_ports(const char* bus_name, const char* dev_name,
 	netlink_attr(&nlmsg, DEVLINK_ATTR_DEV_NAME, dev_name, strlen(dev_name) + 1);
 
 	err = netlink_send_ext(&nlmsg, sock, id, &total_len);
-	if (err) {
-		debug("netlink: failed to get port get reply: %s\n", strerror(err));
+	if (err < 0) {
+		debug("netlink: failed to get port get reply: %s\n", strerror(-err));
 		goto error;
 	}
 
@@ -3105,8 +3105,8 @@ static void netlink_wireguard_setup(void)
 	netlink_done(&nlmsg);
 	netlink_done(&nlmsg);
 	err = netlink_send(&nlmsg, sock);
-	if (err) {
-		debug("netlink: failed to setup wireguard instance: %s\n", strerror(err));
+	if (err < 0) {
+		debug("netlink: failed to setup wireguard instance: %s\n", strerror(-err));
 	}
 
 	netlink_init(&nlmsg, id, 0, &genlhdr, sizeof(genlhdr));
@@ -3150,8 +3150,8 @@ static void netlink_wireguard_setup(void)
 	netlink_done(&nlmsg);
 	netlink_done(&nlmsg);
 	err = netlink_send(&nlmsg, sock);
-	if (err) {
-		debug("netlink: failed to setup wireguard instance: %s\n", strerror(err));
+	if (err < 0) {
+		debug("netlink: failed to setup wireguard instance: %s\n", strerror(-err));
 	}
 
 	netlink_init(&nlmsg, id, 0, &genlhdr, sizeof(genlhdr));
@@ -3195,8 +3195,8 @@ static void netlink_wireguard_setup(void)
 	netlink_done(&nlmsg);
 	netlink_done(&nlmsg);
 	err = netlink_send(&nlmsg, sock);
-	if (err) {
-		debug("netlink: failed to setup wireguard instance: %s\n", strerror(err));
+	if (err < 0) {
+		debug("netlink: failed to setup wireguard instance: %s\n", strerror(-err));
 	}
 
 error:
