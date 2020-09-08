@@ -51,6 +51,14 @@ indexes:
 
 - kind: Bug
   properties:
+  - name: BisectCause
+  - name: ReproLevel
+  - name: Status
+  - name: FirstTime
+    direction: desc
+
+- kind: Bug
+  properties:
   - name: BisectFix
   - name: ReproLevel
   - name: Status
