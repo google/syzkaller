@@ -83,6 +83,7 @@ For testing with fault injection enable the following configs (syzkaller will pi
 ```
 CONFIG_FAULT_INJECTION=y
 CONFIG_FAULT_INJECTION_DEBUG_FS=y
+CONFIG_FAULT_INJECTION_USERCOPY=y
 CONFIG_FAILSLAB=y
 CONFIG_FAIL_PAGE_ALLOC=y
 CONFIG_FAIL_MAKE_REQUEST=y
