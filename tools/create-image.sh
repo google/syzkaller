@@ -16,6 +16,7 @@ if [ -z ${ADD_PACKAGE+x} ]; then
 fi
 
 # Variables affected by options
+ARCH=$(uname -m)
 RELEASE=stretch
 FEATURE=minimal
 SEEK=2047
@@ -25,6 +26,7 @@ PERF=false
 display_help() {
     echo "Usage: $0 [option...] " >&2
     echo
+    echo "   -a, --arch                 Set architecture"
     echo "   -d, --distribution         Set on which debian distribution to create"
     echo "   -f, --feature              Check what packages to install in the image, options are minimal, full"
     echo "   -s, --size                 Image size (MB), default 2048 (2G)"
@@ -42,6 +44,10 @@ while true; do
         -h | --help)
             display_help
             exit 0
+            ;;
+        -a | --arch)
+	    ARCH=$2
+            shift 2
             ;;
         -d | --distribution)
 	    RELEASE=$2
@@ -69,6 +75,20 @@ while true; do
     esac
 done
 
+# Foreign architecture
+if [ $ARCH != $(uname -m) ]; then
+    # Check for according qemu static binary
+    if ! which qemu-$ARCH-static; then
+        echo "Please install qemu static binary for architecture $ARCH (package 'qemu-user-static' on Debian/Ubuntu/Fedora)"
+        exit 1
+    fi
+    # Check for according binfmt entry
+    if [ ! -r /proc/sys/fs/binfmt_misc/qemu-$ARCH ]; then
+        echo "binfmt entry /proc/sys/fs/binfmt_misc/qemu-$ARCH does not exist"
+        exit 1
+    fi
+fi
+
 # Double check KERNEL when PERF is enabled
 if [ $PERF = "true" ] && [ -z ${KERNEL+x} ]; then
     echo "Please set KERNEL environment variable when PERF is enabled"
@@ -83,7 +103,21 @@ fi
 sudo rm -rf $DIR
 sudo mkdir -p $DIR
 sudo chmod 0755 $DIR
-sudo debootstrap --include=$PREINSTALL_PKGS --components=main,contrib,non-free $RELEASE $DIR
+
+# 1. debootstrap stage
+
+DEBOOTSTRAP_PARAMS="--include=$PREINSTALL_PKGS --components=main,contrib,non-free $RELEASE $DIR"
+if [ $ARCH != $(uname -m) ]; then
+    DEBOOTSTRAP_PARAMS="--arch=$ARCH --foreign $DEBOOTSTRAP_PARAMS"
+fi
+sudo debootstrap $DEBOOTSTRAP_PARAMS
+
+# 2. debootstrap stage: only necessary if target != host architecture
+
+if [ $ARCH != $(uname -m) ]; then
+    sudo cp $(which qemu-$ARCH-static) $DIR/$(which qemu-$ARCH-static)
+    sudo chroot $DIR /bin/bash -c "/debootstrap/debootstrap --second-stage"
+fi
 
 # Set some defaults and enable promtless ssh to the machine for root.
 sudo sed -i '/^root/ { s/:x:/::/ }' $DIR/etc/passwd
