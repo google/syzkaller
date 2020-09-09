@@ -24,6 +24,21 @@ FROM gcr.io/syzkaller/env
 # NetBSD toolchain can be re-built with:
 # ./build.sh -j72 -m amd64 -U -T ../tools tools
 # ./build.sh -j72 -m amd64 -U -T ../tools -D ../dest distribution
+#
+# To build root image run:
+#	docker run -it --rm --privileged --device /dev/loop0 gcr.io/syzkaller/big-env
+#	mount binfmt_misc -t binfmt_misc /proc/sys/fs/binfmt_misc
+#	create-image.sh -a s390x -d buster
+
+RUN dpkg --add-architecture i386 && \
+	apt-get update && \
+	DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
+	# required to build root images.
+	debootstrap ssh-tools qemu-user-static \
+	&& \
+	apt-get -y autoremove && \
+	apt-get clean autoclean && \
+	rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/*
 
 RUN curl https://storage.googleapis.com/syzkaller/fuchsia-toolchain.tar.gz | tar -C /syzkaller -xz
 RUN curl https://storage.googleapis.com/syzkaller/netbsd-toolchain.tar.gz | tar -C /syzkaller -xz
