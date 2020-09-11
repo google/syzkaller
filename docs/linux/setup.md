@@ -26,7 +26,8 @@ If you encounter any troubles, check the [troubleshooting](/docs/troubleshooting
 ### Go and syzkaller
 
 `syzkaller` is written in [Go](https://golang.org), and `Go 1.13+`
-toolchain is required for build. The toolchain can be installed with:
+toolchain is required for build. *Note:* `Go 1.14` is required for contributors,
+as `Go 1.13` may change `go.mod` file. The toolchain can be installed with:
 
 ```
 wget https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz
@@ -39,6 +40,8 @@ export PATH=$GOPATH/bin:$PATH
 export PATH=$GOROOT/bin:$PATH
 ```
 
+See [Go: Download and install](https://golang.org/doc/install) for other options.
+
 To download and build `syzkaller`:
 
 ``` bash
@@ -48,8 +51,6 @@ make
 ```
 
 As the result compiled binaries should appear in the `bin/` dir.
-
-Also see [Go Getting Started](https://golang.org/doc/install) for more details.
 
 Note: if you want to do cross-OS/arch testing, you need to specify `TARGETOS`,
 `TARGETVMARCH` and `TARGETARCH` arguments to `make`. See the [Makefile](/Makefile) for details.
