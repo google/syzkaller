@@ -50,6 +50,8 @@ typedef char kcov_remote_arg64_size[sizeof(kcov_remote_arg64) == 24 ? 1 : -1];
 #define KCOV_SUBSYSTEM_MASK (0xffull << 56)
 #define KCOV_INSTANCE_MASK (0xffffffffull)
 
+static bool is_gvisor;
+
 static inline __u64 kcov_remote_handle(__u64 subsys, __u64 inst)
 {
 	if (subsys & ~KCOV_SUBSYSTEM_MASK || inst & ~KCOV_INSTANCE_MASK)
@@ -58,11 +60,13 @@ static inline __u64 kcov_remote_handle(__u64 subsys, __u64 inst)
 }
 
 static bool detect_kernel_bitness();
+static bool detect_gvisor();
 
 static void os_init(int argc, char** argv, char* data, size_t data_size)
 {
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 	is_kernel_64_bit = detect_kernel_bitness();
+	is_gvisor = detect_gvisor();
 	// Surround the main data mapping with PROT_NONE pages to make virtual address layout more consistent
 	// across different configurations (static/non-static build) and C repros.
 	// One observed case before: executor had a mapping above the data mapping (output region),
@@ -221,7 +225,7 @@ static bool cover_check(uint64 pc)
 {
 #if defined(__i386__) || defined(__x86_64__)
 	// Text/modules range for x86_64.
-	return pc >= 0xffffffff80000000ull && pc < 0xffffffffff000000ull;
+	return is_gvisor || (pc >= 0xffffffff80000000ull && pc < 0xffffffffff000000ull);
 #else
 	return true;
 #endif
@@ -247,6 +251,15 @@ static bool detect_kernel_bitness()
 	}
 	debug("detected %d-bit kernel\n", wide ? 64 : 32);
 	return wide;
+}
+
+static bool detect_gvisor()
+{
+	char buf[64] = {};
+	// 3 stands for undeclared SYSLOG_ACTION_READ_ALL.
+	syscall(__NR_syslog, 3, buf, sizeof(buf) - 1);
+	// This is a first line of gvisor dmesg.
+	return strstr(buf, "Starting gVisor");
 }
 
 // One does not simply exit.
