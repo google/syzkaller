@@ -131,7 +131,7 @@ static void kill_and_wait(int pid, int* status)
 
 #if !GOOS_windows
 #if SYZ_EXECUTOR || SYZ_THREADED || SYZ_REPEAT && SYZ_EXECUTOR_USES_FORK_SERVER || \
-    __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
+    __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k || __NR_syz_sleep_ms
 static void sleep_ms(uint64 ms)
 {
 	usleep(ms * 1000);
@@ -9222,6 +9222,14 @@ static long syz_errno(volatile long v)
 static long syz_exit(volatile long status)
 {
 	_exit(status);
+	return 0;
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_sleep_ms
+static long syz_sleep_ms(volatile long ms)
+{
+	sleep_ms(ms);
 	return 0;
 }
 #endif

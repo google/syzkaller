@@ -36,6 +36,15 @@ static long syz_exit(volatile long status)
 }
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_sleep_ms
+// syz_sleep_ms(ms intptr)
+static long syz_sleep_ms(volatile long ms)
+{
+	sleep_ms(ms);
+	return 0;
+}
+#endif
+
 #if SYZ_EXECUTOR || __NR_syz_compare
 #include <errno.h>
 #include <string.h>
