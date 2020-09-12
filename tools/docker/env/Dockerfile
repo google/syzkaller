@@ -1,19 +1,7 @@
 # Copyright 2020 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-# The image provides dev environment suitable for syzkaller development/testing.
-# It includes Go toolchain and C/C++ cross-compilers.
-
-# The image is available as gcr.io/syzkaller/env.
-
-# To download and run locally:
-#	docker pull gcr.io/syzkaller/env
-#	docker run -it gcr.io/syzkaller/env
-
-# To build and push new version:
-#	docker build -t gcr.io/syzkaller/env tools/docker/env
-#	gcloud auth login && gcloud auth configure-docker
-#	docker push gcr.io/syzkaller/env
+# See /tools/docker/README.md for details.
 
 FROM debian:buster
 

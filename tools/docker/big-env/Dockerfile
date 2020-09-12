@@ -1,13 +1,7 @@
 # Copyright 2020 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-# The image provides dev environment suitable for syzkaller development/testing.
-# On top of syz-env it provides akaros/fuchsia/netbsd toolchains and gcloud sdk.
-
-# The image is available as gcr.io/syzkaller/big-env.
-
-# Build as:
-# docker build -t gcr.io/syzkaller/big-env tools/docker/big-env
+# See /tools/docker/README.md for details.
 
 FROM gcr.io/syzkaller/env
 
