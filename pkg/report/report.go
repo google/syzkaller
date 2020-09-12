@@ -631,6 +631,12 @@ var commonOopses = []*oops{
 		[]byte("panic:"),
 		[]oopsFormat{
 			{
+				// This is gvisor-specific, but we need to handle it here since we handle "panic:" here.
+				title:        compile("panic: Sentry detected .* stuck task"),
+				fmt:          "panic: Sentry detected stuck tasks",
+				noStackTrace: true,
+			},
+			{
 				title:        compile("panic:(.*)"),
 				fmt:          "panic:%[1]v",
 				noStackTrace: true,
