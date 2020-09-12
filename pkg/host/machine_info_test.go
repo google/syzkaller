@@ -1,16 +1,20 @@
 // Copyright 2020 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package main
+package host
 
 import (
 	"bufio"
 	"bytes"
+	"runtime"
 	"strings"
 	"testing"
 )
 
 func TestMachineInfoLinux(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip()
+	}
 	result, err := CollectMachineInfo()
 	if err != nil {
 		t.Fatal(err)
@@ -116,7 +120,7 @@ D:	d
 	scanner := bufio.NewScanner(strings.NewReader(input))
 	buffer := new(bytes.Buffer)
 	scanCPUInfo(buffer, scanner)
-	result := bufio.NewScanner(strings.NewReader(buffer.String()))
+	result := bufio.NewScanner(buffer)
 
 	idx := 0
 	for result.Scan() {
