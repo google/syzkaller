@@ -485,7 +485,7 @@ func (ctx *context) simplifyProg(res *Result) (*Result, error) {
 
 	for _, simplify := range progSimplifies {
 		opts := res.Opts
-		if !simplify(&opts) {
+		if !simplify(&opts) || !checkOpts(&opts, res.Duration) {
 			continue
 		}
 		crashed, err := ctx.testProg(res.Prog, res.Duration, opts)
@@ -535,17 +535,42 @@ func (ctx *context) simplifyC(res *Result) (*Result, error) {
 
 	for _, simplify := range cSimplifies {
 		opts := res.Opts
-		if simplify(&opts) {
-			crashed, err := ctx.testCProg(res.Prog, res.Duration, opts)
-			if err != nil {
-				return nil, err
-			}
-			if crashed {
-				res.Opts = opts
-			}
+		if !simplify(&opts) || !checkOpts(&opts, res.Duration) {
+			continue
 		}
+		crashed, err := ctx.testCProg(res.Prog, res.Duration, opts)
+		if err != nil {
+			return nil, err
+		}
+		if !crashed {
+			continue
+		}
+		res.Opts = opts
 	}
 	return res, nil
+}
+
+func checkOpts(opts *csource.Options, timeout time.Duration) bool {
+	if !opts.Repeat && timeout >= time.Minute {
+		// If we have a non-repeating C reproducer with timeout > vm.NoOutputTimeout and it hangs
+		// (the reproducer itself does not terminate on its own, note: it does not have builtin timeout),
+		// then we will falsely detect "not output from test machine" kernel bug.
+		// We could fix it by adding a builtin timeout to such reproducers (like we have in all other cases).
+		// However, then it will exit within few seconds and we will finish the test without actually waiting
+		// for full vm.NoOutputTimeout, which breaks the whole reason of using vm.NoOutputTimeout in the first
+		// place. So we would need something more elaborate: let the program exist after few seconds, but
+		// continue waiting for kernel hang errors for minutes, but at the same time somehow ignore "no output"
+		// error because it will be false in this case.
+		// Instead we simply prohibit !Repeat with long timeouts.
+		// It makes sense on its own to some degree: if we are chasing an elusive bug, repeating the test
+		// will increase chances of reproducing it and can make the reproducer less flaky.
+		// Syz repros does not have this problem because they always have internal timeout, however
+		// (1) it makes sense on its own, (2) we will either not use the whole timeout or waste the remaining
+		// time as mentioned above, (3) if we remove repeat for syz repro, we won't be able to handle it
+		// when/if we switch to C repro (we can simplify options, but we can't "complicate" them back).
+		return false
+	}
+	return true
 }
 
 func (ctx *context) testProg(p *prog.Prog, duration time.Duration, opts csource.Options) (crashed bool, err error) {
