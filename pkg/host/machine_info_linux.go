@@ -1,7 +1,7 @@
 // Copyright 2020 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package main
+package host
 
 import (
 	"bufio"
@@ -10,41 +10,14 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 )
 
-func CollectMachineInfo() ([]byte, error) {
-	if runtime.GOOS != "linux" {
-		return nil, nil
-	}
-
-	type machineInfoFunc struct {
-		name string
-		fn   func(*bytes.Buffer) error
-	}
-
-	allMachineInfo := []machineInfoFunc{
+func init() {
+	machineInfoFuncs = []machineInfoFunc{
 		{"CPU Info", readCPUInfo},
 		{"KVM", readKVMInfo},
 	}
-
-	buffer := new(bytes.Buffer)
-
-	for _, pair := range allMachineInfo {
-		fmt.Fprintf(buffer, "[%s]\n", pair.name)
-		err := pair.fn(buffer)
-		if err != nil {
-			if os.IsNotExist(err) {
-				buffer.WriteString(err.Error() + "\n")
-			} else {
-				return nil, err
-			}
-		}
-		fmt.Fprintf(buffer, "-----------------------------------\n\n")
-	}
-
-	return buffer.Bytes(), nil
 }
 
 func readCPUInfo(buffer *bytes.Buffer) error {
@@ -143,7 +116,7 @@ func readKVMInfo(buffer *bytes.Buffer) error {
 			fmt.Fprintf(buffer, "\t%s: ", keyName)
 			buffer.Write(data)
 		}
-		buffer.WriteString("\n")
+		buffer.WriteByte('\n')
 	}
 	return nil
 }

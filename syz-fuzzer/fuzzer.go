@@ -181,7 +181,7 @@ func main() {
 		runtime.MemProfileRate = 0
 	}
 
-	machineInfo, err := CollectMachineInfo()
+	machineInfo, err := host.CollectMachineInfo()
 	if err != nil {
 		log.Fatalf("failed to collect machine information: %v", err)
 	}
