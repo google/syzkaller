@@ -441,9 +441,16 @@ func (ctx *Context) createCTest(p *prog.Prog, sandbox string, threaded bool, tim
 	if err != nil {
 		return nil, fmt.Errorf("failed to build C program: %v", err)
 	}
+	var ipcFlags ipc.ExecFlags
+	if threaded {
+		ipcFlags |= ipc.FlagThreaded | ipc.FlagCollide
+	}
 	req := &RunRequest{
-		P:      p,
-		Bin:    bin,
+		P:   p,
+		Bin: bin,
+		Opts: &ipc.ExecOpts{
+			Flags: ipcFlags,
+		},
 		Repeat: times,
 	}
 	return req, nil
@@ -463,57 +470,72 @@ func checkResult(req *RunRequest) error {
 	}
 	calls := make(map[string]bool)
 	for run, info := range req.Info {
-		for i, inf := range info.Calls {
-			want := req.results.Calls[i]
-			for flag, what := range map[ipc.CallFlags]string{
-				ipc.CallExecuted: "executed",
-				ipc.CallBlocked:  "blocked",
-				ipc.CallFinished: "finished",
-			} {
-				if isC && flag == ipc.CallBlocked {
-					// C code does not detect when a call was blocked.
-					continue
-				}
-				if runtime.GOOS == "freebsd" && flag == ipc.CallBlocked {
-					// Blocking detection is flaky on freebsd.
-					// TODO(dvyukov): try to increase the timeout in executor to make it non-flaky.
-					continue
-				}
-				if (inf.Flags^want.Flags)&flag != 0 {
-					not := " not"
-					if inf.Flags&flag != 0 {
-						not = ""
-					}
-					return fmt.Errorf("run %v: call %v is%v %v", run, i, not, what)
-				}
+		for call := range info.Calls {
+			if err := checkCallResult(req, isC, run, call, info, calls); err != nil {
+				return err
 			}
-			if inf.Flags&ipc.CallFinished != 0 && inf.Errno != want.Errno {
-				return fmt.Errorf("run %v: wrong call %v result %v, want %v",
-					run, i, inf.Errno, want.Errno)
-			}
-			if isC || inf.Flags&ipc.CallExecuted == 0 {
+		}
+	}
+	return nil
+}
+
+func checkCallResult(req *RunRequest, isC bool, run, call int, info *ipc.ProgInfo, calls map[string]bool) error {
+	inf := info.Calls[call]
+	want := req.results.Calls[call]
+	for flag, what := range map[ipc.CallFlags]string{
+		ipc.CallExecuted: "executed",
+		ipc.CallBlocked:  "blocked",
+		ipc.CallFinished: "finished",
+	} {
+		if flag != ipc.CallFinished {
+			if isC {
+				// C code does not detect blocked/non-finished calls.
 				continue
 			}
-			if req.Cfg.Flags&ipc.FlagSignal != 0 {
-				// Signal is always deduplicated, so we may not get any signal
-				// on a second invocation of the same syscall.
-				// For calls that are not meant to collect synchronous coverage we
-				// allow the signal to be empty as long as the extra signal is not.
-				callName := req.P.Calls[i].Meta.CallName
-				if len(inf.Signal) < 2 && !calls[callName] && len(info.Extra.Signal) == 0 {
-					return fmt.Errorf("run %v: call %v: no signal", run, i)
-				}
-				// syz_btf_id_by_name is a pseudo-syscall that might not provide
-				// any coverage when invoked.
-				if len(inf.Cover) == 0 && callName != "syz_btf_id_by_name" {
-					return fmt.Errorf("run %v: call %v: no cover", run, i)
-				}
-				calls[callName] = true
-			} else {
-				if len(inf.Signal) == 0 {
-					return fmt.Errorf("run %v: call %v: no fallback signal", run, i)
-				}
+			if req.Opts.Flags&ipc.FlagThreaded == 0 {
+				// In non-threaded mode blocked syscalls will block main thread
+				// and we won't detect blocked/unfinished syscalls.
+				continue
 			}
+		}
+		if runtime.GOOS == "freebsd" && flag == ipc.CallBlocked {
+			// Blocking detection is flaky on freebsd.
+			// TODO(dvyukov): try to increase the timeout in executor to make it non-flaky.
+			continue
+		}
+		if (inf.Flags^want.Flags)&flag != 0 {
+			not := " not"
+			if inf.Flags&flag != 0 {
+				not = ""
+			}
+			return fmt.Errorf("run %v: call %v is%v %v", run, call, not, what)
+		}
+	}
+	if inf.Flags&ipc.CallFinished != 0 && inf.Errno != want.Errno {
+		return fmt.Errorf("run %v: wrong call %v result %v, want %v",
+			run, call, inf.Errno, want.Errno)
+	}
+	if isC || inf.Flags&ipc.CallExecuted == 0 {
+		return nil
+	}
+	if req.Cfg.Flags&ipc.FlagSignal != 0 {
+		// Signal is always deduplicated, so we may not get any signal
+		// on a second invocation of the same syscall.
+		// For calls that are not meant to collect synchronous coverage we
+		// allow the signal to be empty as long as the extra signal is not.
+		callName := req.P.Calls[call].Meta.CallName
+		if len(inf.Signal) < 2 && !calls[callName] && len(info.Extra.Signal) == 0 {
+			return fmt.Errorf("run %v: call %v: no signal", run, call)
+		}
+		// syz_btf_id_by_name is a pseudo-syscall that might not provide
+		// any coverage when invoked.
+		if len(inf.Cover) == 0 && callName != "syz_btf_id_by_name" {
+			return fmt.Errorf("run %v: call %v: no cover", run, call)
+		}
+		calls[callName] = true
+	} else {
+		if len(inf.Signal) == 0 {
+			return fmt.Errorf("run %v: call %v: no fallback signal", run, call)
 		}
 	}
 	return nil
