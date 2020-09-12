@@ -50,7 +50,7 @@ type Manager struct {
 	sysTarget      *targets.Target
 	reporter       report.Reporter
 	crashdir       string
-	port           int
+	serv           *RPCServer
 	corpusDB       *db.DB
 	startTime      time.Time
 	firstConnect   time.Time
@@ -109,6 +109,7 @@ type Crash struct {
 	vmIndex int
 	hub     bool // this crash was created based on a repro from hub
 	*report.Report
+	machineInfo []byte
 }
 
 func main() {
@@ -192,7 +193,7 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, sysTarget *targets.T
 	mgr.collectUsedFiles()
 
 	// Create RPC server for fuzzers.
-	mgr.port, err = startRPCServer(mgr)
+	mgr.serv, err = startRPCServer(mgr)
 	if err != nil {
 		log.Fatalf("failed to create rpc server: %v", err)
 	}
@@ -266,7 +267,7 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, sysTarget *targets.T
 	if mgr.vmPool == nil {
 		log.Logf(0, "no VMs started (type=none)")
 		log.Logf(0, "you are supposed to start syz-fuzzer manually as:")
-		log.Logf(0, "syz-fuzzer -manager=manager.ip:%v [other flags as necessary]", mgr.port)
+		log.Logf(0, "syz-fuzzer -manager=manager.ip:%v [other flags as necessary]", mgr.serv.port)
 		<-vm.Shutdown
 		return
 	}
@@ -533,13 +534,37 @@ func checkProgram(target *prog.Target, enabled map[*prog.Syscall]bool, data []by
 
 func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	mgr.checkUsedFiles()
+	instanceName := fmt.Sprintf("vm-%d", index)
+
+	rep, err := mgr.runInstanceInner(index)
+
+	// Error that is not a VM crash.
+	if err != nil {
+		return nil, err
+	}
+	// No crash.
+	if rep == nil {
+		return nil, nil
+	}
+
+	machineInfo := mgr.serv.getMachineInfo(instanceName)
+	crash := &Crash{
+		vmIndex:     index,
+		hub:         false,
+		Report:      rep,
+		machineInfo: machineInfo,
+	}
+	return crash, nil
+}
+
+func (mgr *Manager) runInstanceInner(index int) (*report.Report, error) {
 	inst, err := mgr.vmPool.Create(index)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create instance: %v", err)
 	}
 	defer inst.Close()
 
-	fwdAddr, err := inst.Forward(mgr.port)
+	fwdAddr, err := inst.Forward(mgr.serv.port)
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup port forwarding: %v", err)
 	}
@@ -570,7 +595,9 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	start := time.Now()
 	atomic.AddUint32(&mgr.numFuzzing, 1)
 	defer atomic.AddUint32(&mgr.numFuzzing, ^uint32(0))
-	cmd := instance.FuzzerCmd(fuzzerBin, executorCmd, fmt.Sprintf("vm-%v", index),
+
+	instanceName := fmt.Sprintf("vm-%d", index)
+	cmd := instance.FuzzerCmd(fuzzerBin, executorCmd, instanceName,
 		mgr.cfg.TargetOS, mgr.cfg.TargetArch, fwdAddr, mgr.cfg.Sandbox, procs, fuzzerV,
 		mgr.cfg.Cover, *flagDebug, false, false)
 	outc, errc, err := inst.Run(time.Hour, mgr.vmStop, cmd)
@@ -581,15 +608,9 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	rep := inst.MonitorExecution(outc, errc, mgr.reporter, vm.ExitTimeout)
 	if rep == nil {
 		// This is the only "OK" outcome.
-		log.Logf(0, "vm-%v: running for %v, restarting", index, time.Since(start))
-		return nil, nil
+		log.Logf(0, "%s: running for %v, restarting", instanceName, time.Since(start))
 	}
-	crash := &Crash{
-		vmIndex: index,
-		hub:     false,
-		Report:  rep,
-	}
-	return crash, nil
+	return rep, nil
 }
 
 func (mgr *Manager) emailCrash(crash *Crash) {
@@ -694,6 +715,9 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 	}
 	if len(crash.Report.Report) > 0 {
 		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", oldestI)), crash.Report.Report)
+	}
+	if len(crash.machineInfo) > 0 {
+		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("machineInfo%v", oldestI)), crash.machineInfo)
 	}
 
 	return mgr.needLocalRepro(crash)

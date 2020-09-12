@@ -19,6 +19,7 @@ import (
 
 type RPCServer struct {
 	mgr                   RPCManagerView
+	port                  int
 	target                *prog.Target
 	configEnabledSyscalls []int
 	targetEnabledSyscalls map[*prog.Syscall]bool
@@ -41,6 +42,7 @@ type Fuzzer struct {
 	inputs        []rpctype.RPCInput
 	newMaxSignal  signal.Signal
 	rotatedSignal signal.Signal
+	machineInfo   []byte
 }
 
 type BugFrames struct {
@@ -57,7 +59,7 @@ type RPCManagerView interface {
 	rotateCorpus() bool
 }
 
-func startRPCServer(mgr *Manager) (int, error) {
+func startRPCServer(mgr *Manager) (*RPCServer, error) {
 	serv := &RPCServer{
 		mgr:                   mgr,
 		target:                mgr.target,
@@ -73,12 +75,12 @@ func startRPCServer(mgr *Manager) (int, error) {
 	}
 	s, err := rpctype.NewRPCServer(mgr.cfg.RPC, "Manager", serv)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	log.Logf(0, "serving rpc on tcp://%v", s.Addr())
-	port := s.Addr().(*net.TCPAddr).Port
+	serv.port = s.Addr().(*net.TCPAddr).Port
 	go s.Serve()
-	return port, nil
+	return serv, nil
 }
 
 func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) error {
@@ -91,7 +93,8 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	defer serv.mu.Unlock()
 
 	f := &Fuzzer{
-		name: a.Name,
+		name:        a.Name,
+		machineInfo: a.MachineInfo,
 	}
 	serv.fuzzers[a.Name] = f
 	r.MemoryLeakFrames = bugFrames.memoryLeaks
@@ -305,4 +308,17 @@ func (serv *RPCServer) Poll(a *rpctype.PollArgs, r *rpctype.PollRes) error {
 	log.Logf(4, "poll from %v: candidates=%v inputs=%v maxsignal=%v",
 		a.Name, len(r.Candidates), len(r.NewInputs), len(r.MaxSignal.Elems))
 	return nil
+}
+
+func (serv *RPCServer) getMachineInfo(name string) []byte {
+	serv.mu.Lock()
+	defer serv.mu.Unlock()
+
+	fuzzer, ok := serv.fuzzers[name]
+	if !ok {
+		return nil
+	}
+
+	serv.fuzzers[name] = nil
+	return fuzzer.machineInfo
 }
