@@ -310,15 +310,14 @@ func (serv *RPCServer) Poll(a *rpctype.PollArgs, r *rpctype.PollRes) error {
 	return nil
 }
 
-func (serv *RPCServer) getMachineInfo(name string) []byte {
+func (serv *RPCServer) shutdownInstance(name string) []byte {
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
 
-	fuzzer, ok := serv.fuzzers[name]
-	if !ok {
+	fuzzer := serv.fuzzers[name]
+	if fuzzer == nil {
 		return nil
 	}
-
 	serv.fuzzers[name] = nil
 	return fuzzer.machineInfo
 }

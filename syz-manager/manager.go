@@ -536,7 +536,9 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	mgr.checkUsedFiles()
 	instanceName := fmt.Sprintf("vm-%d", index)
 
-	rep, err := mgr.runInstanceInner(index)
+	rep, err := mgr.runInstanceInner(index, instanceName)
+
+	machineInfo := mgr.serv.shutdownInstance(instanceName)
 
 	// Error that is not a VM crash.
 	if err != nil {
@@ -546,8 +548,6 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	if rep == nil {
 		return nil, nil
 	}
-
-	machineInfo := mgr.serv.getMachineInfo(instanceName)
 	crash := &Crash{
 		vmIndex:     index,
 		hub:         false,
@@ -557,7 +557,7 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	return crash, nil
 }
 
-func (mgr *Manager) runInstanceInner(index int) (*report.Report, error) {
+func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Report, error) {
 	inst, err := mgr.vmPool.Create(index)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create instance: %v", err)
@@ -596,7 +596,6 @@ func (mgr *Manager) runInstanceInner(index int) (*report.Report, error) {
 	atomic.AddUint32(&mgr.numFuzzing, 1)
 	defer atomic.AddUint32(&mgr.numFuzzing, ^uint32(0))
 
-	instanceName := fmt.Sprintf("vm-%d", index)
 	cmd := instance.FuzzerCmd(fuzzerBin, executorCmd, instanceName,
 		mgr.cfg.TargetOS, mgr.cfg.TargetArch, fwdAddr, mgr.cfg.Sandbox, procs, fuzzerV,
 		mgr.cfg.Cover, *flagDebug, false, false)
