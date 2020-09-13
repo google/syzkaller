@@ -318,6 +318,6 @@ func (serv *RPCServer) shutdownInstance(name string) []byte {
 	if fuzzer == nil {
 		return nil
 	}
-	serv.fuzzers[name] = nil
+	delete(serv.fuzzers, name)
 	return fuzzer.machineInfo
 }
