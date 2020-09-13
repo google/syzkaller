@@ -80,7 +80,7 @@ Some message
 
     ``` bash
     $ ssh root@172.16.0.31
-    root@172.16.0.31's password: 
+    root@172.16.0.31's password:
     ...
     Last login: Thu Feb 11 11:30:51 2016
     root@odroid64:~#
@@ -93,7 +93,7 @@ This hub has support for a feature called [Per Port Power Switching](http://www.
 
 [To be able to open the hub device entry](http://www.janosgyerik.com/adding-udev-rules-for-usb-debugging-android-devices/) under `/dev/` without being root, add the following file to `/etc/udev/rules.d/` on the host machine:
 ``` bash
-$ cat /etc/udev/rules.d/10-local.rules 
+$ cat /etc/udev/rules.d/10-local.rules
 SUBSYSTEM=="usb", ATTR{idVendor}=="2001", ATTR{idProduct}=="f103", MODE="0664", GROUP="plugdev"
 ```
 
@@ -101,7 +101,7 @@ SUBSYSTEM=="usb", ATTR{idVendor}=="2001", ATTR{idProduct}=="f103", MODE="0664", 
 Don't forget to replug the hub after you add this file.
 
 ``` bash
-$ lsusb 
+$ lsusb
 ...
 Bus 003 Device 026: ID 2001:f103 D-Link Corp. DUB-H7 7-port USB 2.0 hub
 ...
@@ -159,14 +159,14 @@ index 165cf9783a5d..ff8b40dca9e2 100644
 @@ -653,6 +653,11 @@ KBUILD_CFLAGS += $(call cc-ifversion, -lt, 0409, \
  # Tell gcc to never replace conditional load with a non-conditional one
  KBUILD_CFLAGS  += $(call cc-option,--param=allow-store-data-races=0)
- 
+
 +# Stop gcc from converting switches into a form that defeats dead code
 +# elimination and can subsequently lead to calls to intentionally
 +# undefined functions appearing in the final link.
 +KBUILD_CFLAGS  += $(call cc-option,--param=max-fsm-thread-path-insns=1)
 +
  include scripts/Makefile.gcc-plugins
- 
+
  ifdef CONFIG_READABLE_ASM
 ```
 
@@ -177,12 +177,12 @@ index 9576775a86f6..8bc4eb36fc1b 100644
 --- a/scripts/Makefile.kasan
 +++ b/scripts/Makefile.kasan
 @@ -11,7 +11,6 @@ CFLAGS_KASAN_MINIMAL := -fsanitize=kernel-address
- 
+
  CFLAGS_KASAN := $(call cc-option, -fsanitize=kernel-address \
                 -fasan-shadow-offset=$(KASAN_SHADOW_OFFSET) \
 -               --param asan-stack=1 --param asan-globals=1 \
                 --param asan-instrumentation-with-call-threshold=$(call_threshold))
- 
+
  ifeq ($(call cc-option, $(CFLAGS_KASAN_MINIMAL) -Werror),)
 ```
 

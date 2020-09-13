@@ -5,7 +5,7 @@
 Obtain a fresh `arm-linux-gnueabihf-gcc`. Latest Debian distributions provide
 version 7.2.0, which should be enough. Otherwise you can download Linaro
 compiler [here](https://www.linaro.org/downloads).
- 
+
 # Kernel
 
 The instructions are tested with `v4.16.1`. Check that you have/backport
@@ -77,7 +77,7 @@ debugfs	/sys/kernel/debug	debugfs	defaults	0	0
 ```
 
 Then replace `output/target/etc/ssh/sshd_config` with the following contents:
- 
+
 ```
 PermitRootLogin yes
 PasswordAuthentication yes

@@ -75,7 +75,7 @@ Now you should have `vmlinux` (kernel binary) and `bzImage` (packed kernel image
 ``` bash
 $ ls $KERNEL/vmlinux
 $KERNEL/vmlinux
-$ ls $KERNEL/arch/s390/boot/bzImage 
+$ ls $KERNEL/arch/s390/boot/bzImage
 $KERNEL/arch/s390/boot/bzImage
 ```
 
