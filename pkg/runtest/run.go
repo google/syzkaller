@@ -198,6 +198,7 @@ nextSandbox:
 			}
 		}
 		properties := map[string]bool{
+			"manual":                  ctx.Tests != "", // "manual" tests run only if selected by the filter explicitly.
 			"arch=" + ctx.Target.Arch: true,
 			"sandbox=" + sandbox:      true,
 			"littleendian":            ctx.Target.LittleEndian,
