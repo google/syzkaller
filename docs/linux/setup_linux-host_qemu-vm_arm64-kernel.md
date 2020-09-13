@@ -109,7 +109,7 @@ At the top of /etc/init.d/S50sshd add the following lines:
     mount -t debugfs none /sys/kernel/debug
     chmod 777 /sys/kernel/debug/kcov
 
-Comment out the line 
+Comment out the line
 
     /usr/bin/ssh-keygen -A
 

@@ -176,7 +176,7 @@ Suggestions and patches that improve bisection quality for common cases are
 `syzbot` supports cause bisection (find the commit that introduces a bug) and
 fix bisection (find the commit that fixes a bug).
 
-The web UI for a specific kernel 
+The web UI for a specific kernel
 (say [upstream linux](https://syzkaller.appspot.com/upstream)) shows the
 `Bisected` status for all bugs.
 
@@ -227,7 +227,7 @@ the provided crash report on the provided reproducer on a freshly-booted
 machine, so the reproducer worked for it somehow.
 
 Note: if the report contains `userspace arch: i386`,
-then the program needs to be built with `-m32` flag. 
+then the program needs to be built with `-m32` flag.
 
 `syzbot` uses GCE VMs for testing, but *usually* it is not important.
 
@@ -405,7 +405,7 @@ ask tree maintainers for priority handling.
 However, syzbot kernel config always includes `CONFIG_DEBUG_AID_FOR_SYZBOT=y` setting,
 which is not normally present in kernel. What was used for particularly elusive bugs in the past
 is temporary merging some additional debugging code into `linux-next` under this config setting
-(e.g. more debug checks and/or debug output) and waiting for new crash reports from syzbot. 
+(e.g. more debug checks and/or debug output) and waiting for new crash reports from syzbot.
 
 ## Kernel configs
 

@@ -151,7 +151,7 @@ using config along the lines of (substitute actual values for `$KERNEL`, `$SYZKA
 		"ppoll",
 		"dup3",
 		"tkill",
-		"gettid",		
+		"gettid",
 		"close"
 	]
 }

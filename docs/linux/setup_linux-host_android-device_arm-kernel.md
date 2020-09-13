@@ -5,7 +5,7 @@
 This document details the steps involved in setting up a syzkaller instance fuzzing an `arm32/64` linux kernel on an Android device.
 
 Some features of syzkaller may not yet work properly on `arm32`. For example, not all debugging and test coverage features are available in the Linux kernel for `arm32`, limiting the efficacy of syskaller in finding bugs fast.
- 
+
 These were tested on an NXP Pico-Pi-IMX7D following the instructions [here](https://developer.android.com/things/hardware/developer-kits.html).
 
 You may find additional details in syzkaller's `adb` vm implementation [here](/vm/adb/adb.go).

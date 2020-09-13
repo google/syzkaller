@@ -70,7 +70,7 @@ Now you should have `vmlinux` (kernel binary) and `bzImage` (packed kernel image
 ``` bash
 $ ls $KERNEL/vmlinux
 $KERNEL/vmlinux
-$ ls $KERNEL/arch/x86/boot/bzImage 
+$ ls $KERNEL/arch/x86/boot/bzImage
 $KERNEL/arch/x86/boot/bzImage
 ```
 

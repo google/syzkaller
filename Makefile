@@ -102,7 +102,7 @@ endif
 	bin/syz-extract bin/syz-fmt \
 	extract generate generate_go generate_sys \
 	format format_go format_cpp format_sys \
-	tidy test test_race check_copyright check_language check_links check_diff check_commits \
+	tidy test test_race check_copyright check_language check_whitespace check_links check_diff check_commits \
 	presubmit presubmit_smoke presubmit_build presubmit_arch presubmit_big presubmit_race presubmit_old
 
 all: host target
@@ -266,7 +266,7 @@ presubmit:
 
 presubmit_smoke:
 	$(MAKE) generate
-	$(MAKE) -j100 check_commits check_diff check_copyright check_language check_links presubmit_build tidy
+	$(MAKE) -j100 check_commits check_diff check_copyright check_language check_whitespace check_links presubmit_build tidy
 	$(MAKE) test
 
 presubmit_build:
@@ -352,6 +352,9 @@ check_copyright:
 
 check_language:
 	./tools/check-language.sh
+
+check_whitespace:
+	./tools/check-whitespace.sh
 
 check_commits:
 	./tools/check-commits.sh

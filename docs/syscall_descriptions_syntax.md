@@ -365,7 +365,7 @@ define MY_PATH_MAX	PATH_MAX + 2
 ## Misc
 
 Description files also contain `include` directives that refer to Linux kernel header files,
-`incdir` directives that refer to custom Linux kernel header directories 
+`incdir` directives that refer to custom Linux kernel header directories
 and `define` directives that define symbolic constant values.
 
 The syzkaller executor defines some [pseudo system calls](./pseudo_syscalls.md)

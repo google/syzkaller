@@ -151,48 +151,48 @@ These instructions describe how to set this up on a Raspberry Pi Zero W, but any
 
 9. Download syzkaller, apply the patch below and build `syz-executor`:
 
-    ``` c
-    diff --git a/executor/common_usb.h b/executor/common_usb.h
-    index e342d808..278c2f4e 100644
-    --- a/executor/common_usb.h
-    +++ b/executor/common_usb.h
-    @@ -269,9 +269,7 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
-    
-            // TODO: consider creating two dummy_udc's per proc to increace the chance of
-            // triggering interaction between multiple USB devices within the same program.
-    -       char device[32];
-    -       sprintf(&device[0], "dummy_udc.%llu", procid);
-    -       rv = usb_raw_init(fd, speed, "dummy_udc", &device[0]);
-    +       rv = usb_raw_init(fd, speed, "20980000.usb", "20980000.usb");
-            if (rv < 0) {
-                    debug("syz_usb_connect: usb_raw_init failed with %d\n", rv);
-                    return rv;
-    diff --git a/executor/executor.cc b/executor/executor.cc
-    index 34949a01..1afcb288 100644
-    --- a/executor/executor.cc
-    +++ b/executor/executor.cc
-    @@ -604,8 +604,8 @@ retry:
-                            call_extra_cover = true;
-                    }
-                    if (strncmp(syscalls[call_num].name, "syz_usb_connect", strlen("syz_usb_connect")) == 0) {
-    -                       prog_extra_timeout = 2000;
-    -                       call_extra_timeout = 2000;
-    +                       prog_extra_timeout = 5000;
-    +                       call_extra_timeout = 5000;
-                    }
-                    if (strncmp(syscalls[call_num].name, "syz_usb_control_io", strlen("syz_usb_control_io")) == 0)
-                            call_extra_timeout = 300;
-    ```
+``` c
+diff --git a/executor/common_usb.h b/executor/common_usb.h
+index e342d808..278c2f4e 100644
+--- a/executor/common_usb.h
++++ b/executor/common_usb.h
+@@ -269,9 +269,7 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 
-    ``` bash
-    go get -u -d github.com/google/syzkaller/prog
-    cd ~/gopath/src/github.com/google/syzkaller
-    # Put the patch above into ./syzkaller.patch
-    git apply ./syzkaller.patch
-    make executor
-    mkdir ~/syz-bin
-    cp bin/linux_arm/syz-executor ~/syz-bin/
-    ```
+    // TODO: consider creating two dummy_udc's per proc to increace the chance of
+    // triggering interaction between multiple USB devices within the same program.
+-       char device[32];
+-       sprintf(&device[0], "dummy_udc.%llu", procid);
+-       rv = usb_raw_init(fd, speed, "dummy_udc", &device[0]);
++       rv = usb_raw_init(fd, speed, "20980000.usb", "20980000.usb");
+    if (rv < 0) {
+            debug("syz_usb_connect: usb_raw_init failed with %d\n", rv);
+            return rv;
+diff --git a/executor/executor.cc b/executor/executor.cc
+index 34949a01..1afcb288 100644
+--- a/executor/executor.cc
++++ b/executor/executor.cc
+@@ -604,8 +604,8 @@ retry:
+                    call_extra_cover = true;
+            }
+            if (strncmp(syscalls[call_num].name, "syz_usb_connect", strlen("syz_usb_connect")) == 0) {
+-                       prog_extra_timeout = 2000;
+-                       call_extra_timeout = 2000;
++                       prog_extra_timeout = 5000;
++                       call_extra_timeout = 5000;
+            }
+            if (strncmp(syscalls[call_num].name, "syz_usb_control_io", strlen("syz_usb_control_io")) == 0)
+                    call_extra_timeout = 300;
+```
+
+``` bash
+go get -u -d github.com/google/syzkaller/prog
+cd ~/gopath/src/github.com/google/syzkaller
+# Put the patch above into ./syzkaller.patch
+git apply ./syzkaller.patch
+make executor
+mkdir ~/syz-bin
+cp bin/linux_arm/syz-executor ~/syz-bin/
+```
 
 10. Build `syz-execprog` on your host machine for arm32 with `make TARGETARCH=arm execprog` and copy to `~/syz-bin` onto the SD card. You may try building syz-execprog on the Raspberry Pi itself, but that worked poorly for me due to large memory consumption during the compilation process.
 

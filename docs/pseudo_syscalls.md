@@ -4,7 +4,7 @@ Besides regular system calls, a [syscall
 description](syscall_descriptions.md) file can also contain
 pseudo-syscalls. These are C functions defined in the
 executor. When a test program uses a pseudo-syscall, the executor
-will generate the pseudo-syscall function code in the resulting C program. 
+will generate the pseudo-syscall function code in the resulting C program.
 
 This allows a test program to have specific code blocks to perform
 certain actions, they may also be used as more test-friendly wrappers
