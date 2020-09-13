@@ -15,17 +15,48 @@ ln -s `which mips64el-linux-gnuabi64-readelf` ~/bin/mips64le/readelf
 export PATH=~/bin/mips64le:$PATH
 ```
 
-The target-triple prefix is determined based on the _target_ config option.
+The target-triple prefix is determined based on the `target` config option.
 
 ### readelf
 
-`readelf` is used to detect virtual memory offset. Executor truncates PC values into `uint32` before sending them to `syz-manager` and `syz-manager` has to detect the offset.
+`readelf` is used to detect virtual memory offset. 
+
+```
+readelf -SW kernel_image
+```
+
+The meaning of the flags is as follows:
+
+* `-S' - list section headers in the kernel image file
+* `-W' - output each section header entry in a single line
+
+Example output of the command:
+
+```
+There are 59 section headers, starting at offset 0x3825258:
+
+Section Headers:
+  [Nr] Name              Type            Address          Off    Size   ES Flg Lk Inf Al
+  [ 0]                   NULL            0000000000000000 000000 000000 00      0   0  0
+  [ 1] .text             PROGBITS        ffffffff81000000 200000 e010f7 00  AX  0   0 4096
+  [ 2] .rela.text        RELA            0000000000000000 23ff488 684720 18   I 56   1  8
+  [ 3] .rodata           PROGBITS        ffffffff82000000 1200000 2df790 00  WA  0   0 4096
+  [ 4] .rela.rodata      RELA            0000000000000000 2a83ba8 0d8e28 18   I 56   3  8
+  [ 5] .pci_fixup        PROGBITS        ffffffff822df790 14df790 003180 00   A  0   0 16
+  [ 6] .rela.pci_fixup   RELA            0000000000000000 2b5c9d0 004a40 18   I 56   5  8
+  [ 7] .tracedata        PROGBITS        ffffffff822e2910 14e2910 000078 00   A  0   0  1
+  [ 8] .rela.tracedata   RELA            0000000000000000 2b61410 000120 18   I 56   7  8
+  [ 9] __ksymtab         PROGBITS        ffffffff822e2988 14e2988 011b68 00   A  0   0  4
+  [10] ...
+```
+
+Executor truncates PC values into `uint32` before sending them to `syz-manager` and `syz-manager` uses section header information to recover the offset. Only the section headers of type `PROGBITS` are considered. The `Address` field represents the virtual address of a section in memory (for the sections that are loaded). It is required that all `PROGBITS` sections have same upper 32 bits in the `Address` field. These 32 bits are used as recovery offset.
 
 
 ## Reporting coverage data
-_MakeReportGenerator_ factory creates an object database for the report. It requires target data, as well as information on the location of the source files and build directory. The first step in building this database is 
-extracting the function data from the target binary.
 
+`MakeReportGenerator` factory creates an object database for the report. It requires target data, as well as information on the location of the source files and build directory. The first step in building this database is 
+extracting the function data from the target binary.
 ### nm
 
 `nm` is used to parse address and size of each function in the kernel image
@@ -56,8 +87,9 @@ In order to provide the necessary information for tracking the coverage informat
 
 ### objdump
 
-`objdump` is used to parse PC value of each call to `__sanitizer_cov_trace_pc` in the kernel image. These PC values are representing all code that is built into kernel image. PC values exported by kcov are compared against these to determine coverage
-The kernel image is dissasembled using the following command:
+`objdump` is used to parse PC value of each call to `__sanitizer_cov_trace_pc` in the kernel image. These PC values are representing all code that is built into kernel image. PC values exported by kcov are compared against these to determine coverage.
+
+The kernel image is disassembled using the following command:
 
 ```
 objdump -d --no-show-raw-insn kernel_image
@@ -106,7 +138,7 @@ The meaning of the flags is as follows:
 * `-afi` - means show addresses, function names and unwind inlined functions
 * `-e` - is switch for specifying executable instead of using default
 
-addr2line reads hexadecimal addresses from standard input and prints the filename
+`addr2line` reads hexadecimal addresses from standard input and prints the filename
 function and line number for each address on standard output. Example usage:
 
 ```
@@ -120,15 +152,17 @@ where `>>` represents the query and `<<` is the response from the `addr2line`.
 
 The final goal is to have a hash table of frames where key is a program counter
 and value is a frame array consisting of a following information:
-- PC - 64bit program counter value (same as key)
-- Func - function name to which the frame belongs
-- File - file where function/frame code is located
-- Line - Line in a file to which program counter maps
-- Inline - boolean inlining information
+
+* `PC` - 64bit program counter value (same as key)
+* `Func` - function name to which the frame belongs
+* `File` - file where function/frame code is located
+* `Line` - Line in a file to which program counter maps
+* `Inline` - boolean inlining information
 
 Multiple frames can be linked to a single program counter value due to inlining.
 
 ## Creating report
+
 Once the database of the frames and function address ranges is created the next step is to determine the program coverage. Each program is represented here as a series of program counter values. As the function address ranges are known at this point it is easy to determine which functions were called by simply comparing the program counters against these address intervals. In addition, the coverage information is aggregated over the source files based on the program counters that are keys in the frame hash map. These are marked as `coveredPCs`. The resulting coverage is not line based but the basic block based. The end result is stored in the `file` struct containing the following information:
 
 * `lines` - lines covered in the file
