@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/host"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	_ "github.com/google/syzkaller/sys/test/gen" // pull in the test target
@@ -93,5 +94,29 @@ func test(t *testing.T, sysTarget *targets.Target) {
 	}
 	if err := ctx.Run(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestParsing(t *testing.T) {
+	for OS, arches := range targets.List {
+		dir := filepath.Join("..", "..", "sys", OS, "test")
+		if !osutil.IsExist(dir) {
+			continue
+		}
+		files, err := progFileList(dir, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		for arch := range arches {
+			target, err := prog.GetTarget(OS, arch)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, file := range files {
+				if _, _, _, err := parseProg(target, dir, file); err != nil {
+					t.Errorf("failed to parse %v/%v for %v: %v", dir, file, arch, err)
+				}
+			}
+		}
 	}
 }

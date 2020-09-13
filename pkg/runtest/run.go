@@ -153,10 +153,6 @@ func (ctx *Context) Run() error {
 }
 
 func (ctx *Context) generatePrograms(progs chan *RunRequest) error {
-	files, err := ioutil.ReadDir(ctx.Dir)
-	if err != nil {
-		return fmt.Errorf("failed to read %v: %v", ctx.Dir, err)
-	}
 	cover := []bool{false}
 	if ctx.Features[host.FeatureCoverage].Enabled {
 		cover = append(cover, true)
@@ -166,17 +162,33 @@ func (ctx *Context) generatePrograms(progs chan *RunRequest) error {
 		sandboxes = append(sandboxes, sandbox)
 	}
 	sort.Strings(sandboxes)
+	files, err := progFileList(ctx.Dir, ctx.Tests)
+	if err != nil {
+		return err
+	}
 	for _, file := range files {
-		if strings.HasSuffix(file.Name(), "~") ||
-			strings.HasSuffix(file.Name(), ".swp") ||
-			!strings.HasPrefix(file.Name(), ctx.Tests) {
-			continue
-		}
-		if err := ctx.generateFile(progs, sandboxes, cover, file.Name()); err != nil {
+		if err := ctx.generateFile(progs, sandboxes, cover, file); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func progFileList(dir, filter string) ([]string, error) {
+	files, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read %v: %v", dir, err)
+	}
+	var res []string
+	for _, file := range files {
+		if strings.HasSuffix(file.Name(), "~") ||
+			strings.HasSuffix(file.Name(), ".swp") ||
+			!strings.HasPrefix(file.Name(), filter) {
+			continue
+		}
+		res = append(res, file.Name())
+	}
+	return res, nil
 }
 
 func (ctx *Context) generateFile(progs chan *RunRequest, sandboxes []string, cover []bool, filename string) error {
@@ -264,11 +276,6 @@ func (ctx *Context) parseProg(filename string) (*prog.Prog, map[string]bool, *ip
 	return parseProg(ctx.Target, ctx.Dir, filename)
 }
 
-func TestParseProg(target *prog.Target, dir, filename string) error {
-	_, _, _, err := parseProg(target, dir, filename)
-	return err
-}
-
 func parseProg(target *prog.Target, dir, filename string) (*prog.Prog, map[string]bool, *ipc.ProgInfo, error) {
 	data, err := ioutil.ReadFile(filepath.Join(dir, filename))
 	if err != nil {
@@ -323,7 +330,7 @@ func parseProg(target *prog.Target, dir, filename string) (*prog.Prog, map[strin
 		default:
 			res, ok := errnos[call.Comment]
 			if !ok {
-				return nil, nil, nil, fmt.Errorf("%v: unknown comment %q",
+				return nil, nil, nil, fmt.Errorf("%v: unknown call comment %q",
 					filename, call.Comment)
 			}
 			info.Calls[i].Errno = res

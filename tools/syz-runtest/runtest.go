@@ -15,7 +15,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -45,10 +44,6 @@ func main() {
 	}
 	target, err := prog.GetTarget(cfg.TargetOS, cfg.TargetArch)
 	if err != nil {
-		log.Fatal(err)
-	}
-	testDir := filepath.Join(cfg.Syzkaller, "sys", target.OS, "test")
-	if err := testParsing(target, testDir); err != nil {
 		log.Fatal(err)
 	}
 	vmPool, err := vm.Create(cfg, *flagDebug)
@@ -121,7 +116,7 @@ func main() {
 		fmt.Printf("%-24v: %v calls enabled\n", sandbox+" sandbox", len(calls))
 	}
 	ctx := &runtest.Context{
-		Dir:          testDir,
+		Dir:          filepath.Join(cfg.Syzkaller, "sys", target.OS, "test"),
 		Target:       target,
 		Features:     mgr.checkResult.Features,
 		EnabledCalls: enabledCalls,
@@ -286,27 +281,5 @@ func (mgr *Manager) Done(a *rpctype.RunTestDoneArgs, r *int) error {
 		req.Err = errors.New(a.Error)
 	}
 	close(req.Done)
-	return nil
-}
-
-func testParsing(target *prog.Target, dir string) error {
-	files, err := ioutil.ReadDir(dir)
-	if err != nil {
-		return fmt.Errorf("failed to read %v: %v", dir, err)
-	}
-	for _, file := range files {
-		if strings.HasSuffix(file.Name(), "~") {
-			continue
-		}
-		if strings.HasSuffix(file.Name(), ".swp") {
-			continue
-		}
-		if !strings.HasPrefix(file.Name(), *flagTests) {
-			continue
-		}
-		if err := runtest.TestParseProg(target, dir, file.Name()); err != nil {
-			return err
-		}
-	}
 	return nil
 }
