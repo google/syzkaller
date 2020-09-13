@@ -3,6 +3,7 @@
 
 include <sys/types.h>
 include <sys/fcntl.h>
+include <sys/filio.h>
 include <sys/ipc.h>
 include <sys/mman.h>
 include <sys/msg.h>
@@ -61,10 +62,21 @@ shmctl$SHM_LOCK(shmid ipc_shm, cmd const[SHM_LOCK])
 shmctl$SHM_UNLOCK(shmid ipc_shm, cmd const[SHM_UNLOCK])
 shmdt(addr shmaddr)
 
-freebsd12_shm_open(path ptr[in, filename], flags flags[shm_open_flags], mode flags[open_mode])
-shm_open2(path ptr[in, filename], flags flags[shm_open_flags], mode flags[open_mode], shmflags flags[shm_open2_flags], name ptr[in, string])
+resource shmfd[fd]
+
+freebsd12_shm_open(path ptr[in, filename], flags flags[shm_open_flags], mode flags[open_mode]) shmfd
+shm_open2(path ptr[in, filename], flags flags[shm_open_flags], mode flags[open_mode], shmflags flags[shm_open2_flags], name ptr[in, string]) shmfd
 shm_rename(from ptr[in, filename], to ptr[in, filename], flags flags[shm_rename_flags])
 shm_unlink(path ptr[in, filename])
+
+ioctl$FIOSSHMLPGCNF(fd shmfd, cmd const[FIOSSHMLPGCNF], arg ptr[in, shmlgpgconf])
+ioctl$FIOGSHMLPGCNF(fd shmfd, cmd const[FIOGSHMLPGCNF], arg ptr[out, shmlgpgconf])
+
+shmlgpgconf {
+	psind	int32
+	alloc	int32
+	pad	array[const[0, int32], 10]
+}
 
 msgget_flags = IPC_CREAT, IPC_EXCL, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 msgbuf_type = 0, 1, 2, 3
@@ -76,7 +88,7 @@ sem_sem_id = 0, 1, 2, 3, 4
 shmget_flags = IPC_CREAT, IPC_EXCL, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 shmat_flags = SHM_RND, SHM_RDONLY
 shm_open_flags = O_RDONLY, O_RDWR, O_CREAT, O_EXCL, O_TRUNC
-shm_open2_flags = SHM_ALLOW_SEALING
+shm_open2_flags = SHM_ALLOW_SEALING, SHM_GROW_ON_WRITE, SHM_LARGEPAGE
 shm_rename_flags = SHM_RENAME_EXCHANGE, SHM_RENAME_NOREPLACE
 
 ipc_perm {
