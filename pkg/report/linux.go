@@ -824,6 +824,8 @@ var linuxStackParams = &stackParams{
 		"list_replace",
 		"list_move",
 		"list_splice",
+		"^rb_",
+		"^__rb_",
 		"_indirect_thunk_", // retpolines
 		"string",
 		"pointer",
