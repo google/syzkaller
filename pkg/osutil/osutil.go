@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -141,7 +142,7 @@ func FilesExist(dir string, files map[string]bool) bool {
 }
 
 // CopyFiles copies files from srcDir to dstDir as atomically as possible.
-// Files are assumed to be relative names in slash notation.
+// Files are assumed to be relative glob patterns in slash notation in srcDir.
 // All other files in dstDir are removed.
 func CopyFiles(srcDir, dstDir string, files map[string]bool) error {
 	// Linux does not support atomic dir replace, so we copy to tmp dir first.
@@ -153,17 +154,29 @@ func CopyFiles(srcDir, dstDir string, files map[string]bool) error {
 	if err := MkdirAll(tmpDir); err != nil {
 		return err
 	}
-	for f, required := range files {
-		src := filepath.Join(srcDir, filepath.FromSlash(f))
-		if !required && !IsExist(src) {
-			continue
-		}
-		dst := filepath.Join(tmpDir, filepath.FromSlash(f))
-		if err := MkdirAll(filepath.Dir(dst)); err != nil {
+	srcDir = filepath.Clean(srcDir)
+	for pattern, required := range files {
+		files, err := filepath.Glob(filepath.Join(srcDir, filepath.FromSlash(pattern)))
+		if err != nil {
 			return err
 		}
-		if err := CopyFile(src, dst); err != nil {
-			return err
+		if len(files) == 0 {
+			if !required {
+				continue
+			}
+			return fmt.Errorf("file %v does not exist", pattern)
+		}
+		for _, file := range files {
+			if !strings.HasPrefix(file, srcDir) {
+				return fmt.Errorf("file %q matched from %q in %q doesn't have src prefix", file, pattern, srcDir)
+			}
+			dst := filepath.Join(tmpDir, strings.TrimPrefix(file, srcDir))
+			if err := MkdirAll(filepath.Dir(dst)); err != nil {
+				return err
+			}
+			if err := CopyFile(file, dst); err != nil {
+				return err
+			}
 		}
 	}
 	if err := os.RemoveAll(dstDir); err != nil {
