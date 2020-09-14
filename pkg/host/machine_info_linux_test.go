@@ -6,15 +6,11 @@ package host
 import (
 	"bufio"
 	"bytes"
-	"runtime"
 	"strings"
 	"testing"
 )
 
 func TestMachineInfoLinux(t *testing.T) {
-	if runtime.GOOS != "linux" {
-		t.Skip()
-	}
 	result, err := CollectMachineInfo()
 	if err != nil {
 		t.Fatal(err)
