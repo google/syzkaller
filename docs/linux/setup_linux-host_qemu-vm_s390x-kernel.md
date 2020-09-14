@@ -83,16 +83,16 @@ $KERNEL/arch/s390/boot/bzImage
 
 ### Debian
 
-To create a Debian Buster Linux image with the minimal set of required packages do:
+To create a Debian Linux image with the minimal set of required packages do:
 
 ```
 cd $IMAGE/
 wget https://raw.githubusercontent.com/google/syzkaller/master/tools/create-image.sh -O create-image.sh
 chmod +x create-image.sh
-./create-image.sh -a s390x -d buster
+./create-image.sh -a s390x
 ```
 
-The result should be `$IMAGE/buster.img` disk image.
+The result should be `$IMAGE/bullseye.img` disk image.
 
 For additional options of `create-image.sh`, please refer to `./create-image.sh -h`
 

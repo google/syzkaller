@@ -31,8 +31,8 @@ other. The tool automates checking out syzkaller repos, building them, running
   "manager_config": {
 	  "target": "linux/amd64",
 	  "kernel_obj": "/tmp/linux-stable",
-	  "image": "/tmp/kernel-image/stretch.img",
-	  "sshkey": "/tmp/kernel-image/stretch.id_rsa",
+	  "image": "/tmp/kernel-image/bullseye.img",
+	  "sshkey": "/tmp/kernel-image/bullseye.id_rsa",
 	  "procs": 8,
 	  "type": "qemu",
 	  "vm": {
