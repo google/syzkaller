@@ -72,6 +72,7 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 		"tag":             true, // contains syzkaller repo git hash
 		"bin/syz-ci":      true, // these are just copied from syzkaller dir
 		"bin/syz-manager": true,
+		"sys/*/test/*":    true,
 	}
 	targets := make(map[string]bool)
 	for _, mgr := range cfg.Managers {
