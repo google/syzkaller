@@ -4,7 +4,7 @@ See [this](linux/coverage.md) for Linux kernel specific coverage information.
 
 ## Web Interface
 
-When clicking on `cover` link you get view showing each directory located in your kernel build directory. It's showing either percentage number `X% of N` or `---`. `X% of N` means that `X%` of `N` coverage points is covered so far, a coverage point generally refers to a basic block or a CFG edge (depends on compiler and instrumentation mode used during build). `---` indicates there is no coverage in that directory.
+When clicking on `cover` link you get view showing each directory located in your kernel build directory. It's showing either percentage number `X% of N` or `---`. `X% of N` means that `X%` of `N` coverage points is covered so far, a coverage point generally refers to a basic block or a CFG edge (depends on compiler and instrumentation mode used during build, basic block in gcc and CFG edge in clang). `---` indicates there is no coverage in that directory.
 
 Directory can be clicked and you get view on files and possible subdirectories. On each source code file there is again either `---` or coverage percentage.
 
