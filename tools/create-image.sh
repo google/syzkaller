@@ -75,6 +75,22 @@ while true; do
     esac
 done
 
+# Handle cases where qemu and Debian use different arch names
+case "$ARCH" in
+	ppc64le)
+		DEBARCH=ppc64el
+		;;
+	aarch64)
+		DEBARCH=arm64
+		;;
+	arm)
+		DEBARCH=armel
+		;;
+	*)
+		DEBARCH=$ARCH
+		;;
+esac
+
 # Foreign architecture
 if [ $ARCH != $(uname -m) ]; then
     # Check for according qemu static binary
@@ -108,7 +124,7 @@ sudo chmod 0755 $DIR
 
 DEBOOTSTRAP_PARAMS="--include=$PREINSTALL_PKGS --components=main,contrib,non-free $RELEASE $DIR"
 if [ $ARCH != $(uname -m) ]; then
-    DEBOOTSTRAP_PARAMS="--arch=$ARCH --foreign $DEBOOTSTRAP_PARAMS"
+    DEBOOTSTRAP_PARAMS="--arch=$DEBARCH --foreign $DEBOOTSTRAP_PARAMS"
 fi
 sudo debootstrap $DEBOOTSTRAP_PARAMS
 
