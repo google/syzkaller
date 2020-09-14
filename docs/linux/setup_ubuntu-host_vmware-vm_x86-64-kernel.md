@@ -1,6 +1,6 @@
 # Setup: Ubuntu host, VMware vm, x86-64 kernel
 
-These are the instructions on how to fuzz the x86-64 kernel in VMware Workstation with Ubuntu on the host machine and Debian Stretch in the virtual machines.
+These are the instructions on how to fuzz the x86-64 kernel in VMware Workstation with Ubuntu on the host machine and Debian Bullseye in the virtual machines.
 
 In the instructions below, the `$VAR` notation (e.g. `$GCC`, `$KERNEL`, etc.) is used to denote paths to directories that are either created when executing the instructions (e.g. when unpacking GCC archive, a directory will be created), or that you have to create yourself before running the instructions. Substitute the values for those variables manually.
 
@@ -16,15 +16,15 @@ Install debootstrap:
 sudo apt-get install debootstrap
 ```
 
-To create a Debian Stretch Linux user space in the $USERSPACE dir do:
+To create a Debian Bullseye Linux user space in the $USERSPACE dir do:
 ```
-mkdir -p $USERSPACE
-sudo debootstrap --include=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sudo,less,psmisc,selinux-utils,policycoreutils,checkpolicy,selinux-policy-default,firmware-atheros,open-vm-tools --components=main,contrib,non-free stretch $USERSPACE
+sudo mkdir -p $USERSPACE
+sudo debootstrap --include=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sudo,less,psmisc,selinux-utils,policycoreutils,checkpolicy,selinux-policy-default,firmware-atheros,open-vm-tools --components=main,contrib,non-free bullseye $USERSPACE
 ```
 
 Note: it is important to include the `open-vm-tools` package in the user space as it provides better VM management.
 
-To create a Debian Stretch Linux VMDK do:
+To create a Debian Bullseye Linux VMDK do:
 
 ```
 wget https://raw.githubusercontent.com/google/syzkaller/master/tools/create-gce-image.sh -O create-gce-image.sh

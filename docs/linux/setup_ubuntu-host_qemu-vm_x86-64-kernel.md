@@ -1,6 +1,6 @@
 # Setup: Ubuntu host, QEMU vm, x86-64 kernel
 
-These are the instructions on how to fuzz the x86-64 kernel in a QEMU with Ubuntu on the host machine and Debian Stretch in the QEMU instances.
+These are the instructions on how to fuzz the x86-64 kernel in a QEMU with Ubuntu on the host machine and Debian Bullseye in the QEMU instances.
 
 In the instructions below, the `$VAR` notation (e.g. `$GCC`, `$KERNEL`, etc.) is used to denote paths to directories that are either created when executing the instructions (e.g. when unpacking GCC archive, a directory will be created), or that you have to create yourself before running the instructions. Substitute the values for those variables manually.
 
@@ -75,7 +75,7 @@ CONFIG_DEBUG_INFO_DWARF4=y
 CONFIG_KASAN=y
 CONFIG_KASAN_INLINE=y
 
-# Required for Debian Stretch
+# Required for Debian Stretch and later
 CONFIG_CONFIGFS_FS=y
 CONFIG_SECURITYFS=y
 ```
@@ -136,9 +136,9 @@ Command:
 sudo apt install debootstrap
 ```
 
-### Create Debian Stretch Linux image
+### Create Debian Bullseye Linux image
 
-Create a Debian Stretch Linux image with the minimal set of required packages.
+Create a Debian Bullseye Linux image with the minimal set of required packages.
 
 Command:
 ``` bash
@@ -149,9 +149,11 @@ chmod +x create-image.sh
 ./create-image.sh
 ```
 
-The result should be `$IMAGE/stretch.img` disk image.
+The result should be `$IMAGE/bullseye.img` disk image.
 
-### OR Create Debian Buster Linux image
+### OR Create Debian Linux image with a different version
+
+To create a Debian image with a different version (e.g. buster, stretch, sid), specify the `--distribution` option.
 
 Command:
 ``` bash
@@ -196,7 +198,7 @@ qemu-system-x86_64 \
 	-smp 2 \
 	-kernel $KERNEL/arch/x86/boot/bzImage \
 	-append "console=ttyS0 root=/dev/sda earlyprintk=serial net.ifnames=0" \
-	-drive file=$IMAGE/stretch.img,format=raw \
+	-drive file=$IMAGE/bullseye.img,format=raw \
 	-net user,host=10.0.2.10,hostfwd=tcp:127.0.0.1:10021-:22 \
 	-net nic,model=e1000 \
 	-enable-kvm \
@@ -228,7 +230,7 @@ After that you should be able to ssh to QEMU instance in another terminal.
 
 Command:
 ``` bash
-ssh -i $IMAGE/stretch.id_rsa -p 10021 -o "StrictHostKeyChecking no" root@localhost
+ssh -i $IMAGE/bullseye.id_rsa -p 10021 -o "StrictHostKeyChecking no" root@localhost
 ```
 
 ### Troubleshooting
@@ -257,8 +259,8 @@ variables `$GOPATH`, `$KERNEL` and `$IMAGE` with their actual values.
 	"http": "127.0.0.1:56741",
 	"workdir": "$GOPATH/src/github.com/google/syzkaller/workdir",
 	"kernel_obj": "$KERNEL",
-	"image": "$IMAGE/stretch.img",
-	"sshkey": "$IMAGE/stretch.id_rsa",
+	"image": "$IMAGE/bullseye.img",
+	"sshkey": "$IMAGE/bullseye.id_rsa",
 	"syzkaller": "$GOPATH/src/github.com/google/syzkaller",
 	"procs": 8,
 	"type": "qemu",
