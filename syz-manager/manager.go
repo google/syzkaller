@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"net"
 	"os"
@@ -73,6 +74,7 @@ type Manager struct {
 	candidates       []rpctype.RPCCandidate // untriaged inputs from corpus and hub
 	disabledHashes   map[string]struct{}
 	corpus           map[string]rpctype.RPCInput
+	seeds            [][]byte
 	newRepros        [][]byte
 	lastMinCorpus    int
 	memoryLeakFrames map[string]bool
@@ -182,17 +184,8 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, sysTarget *targets.T
 		saturatedCalls:        make(map[string]bool),
 	}
 
-	log.Logf(0, "loading corpus...")
-	mgr.corpusDB, err = db.Open(filepath.Join(cfg.Workdir, "corpus.db"))
-	if err != nil {
-		log.Fatalf("failed to open corpus database: %v", err)
-	}
-
-	// Load unit test program into corpusDB.
-	mgr.corpusDB.LoadTestAsSeed(target, filepath.Join(cfg.Workdir, "seeds/"))
-
-	// Create HTTP server.
-	mgr.initHTTP()
+	mgr.preloadCorpus()
+	mgr.initHTTP() // Creates HTTP server.
 	mgr.collectUsedFiles()
 
 	// Create RPC server for fuzzers.
@@ -453,6 +446,29 @@ func (mgr *Manager) vmLoop() {
 	}
 }
 
+func (mgr *Manager) preloadCorpus() {
+	log.Logf(0, "loading corpus...")
+	corpusDB, err := db.Open(filepath.Join(mgr.cfg.Workdir, "corpus.db"))
+	if err != nil {
+		log.Fatalf("failed to open corpus database: %v", err)
+	}
+	mgr.corpusDB = corpusDB
+
+	if seedDir := filepath.Join(mgr.cfg.Syzkaller, "sys", mgr.cfg.TargetOS, "test"); osutil.IsExist(seedDir) {
+		seeds, err := ioutil.ReadDir(seedDir)
+		if err != nil {
+			log.Fatalf("failed to read seeds dir: %v", err)
+		}
+		for _, seed := range seeds {
+			data, err := ioutil.ReadFile(filepath.Join(seedDir, seed.Name()))
+			if err != nil {
+				log.Fatalf("failed to read seed %v: %v", seed.Name(), err)
+			}
+			mgr.seeds = append(mgr.seeds, data)
+		}
+	}
+}
+
 func (mgr *Manager) loadCorpus() {
 	// By default we don't re-minimize/re-smash programs from corpus,
 	// it takes lots of time on start and is unnecessary.
@@ -479,30 +495,21 @@ func (mgr *Manager) loadCorpus() {
 	}
 	broken := 0
 	for key, rec := range mgr.corpusDB.Records {
-		bad, disabled := checkProgram(mgr.target, mgr.targetEnabledSyscalls, rec.Val)
-		if bad {
+		if !mgr.loadProg(rec.Val, minimized, smashed) {
 			mgr.corpusDB.Delete(key)
 			broken++
-			continue
 		}
-		if disabled {
-			// This program contains a disabled syscall.
-			// We won't execute it, but remember its hash so
-			// it is not deleted during minimization.
-			mgr.disabledHashes[hash.String(rec.Val)] = struct{}{}
-			continue
-		}
-		mgr.candidates = append(mgr.candidates, rpctype.RPCCandidate{
-			Prog:      rec.Val,
-			Minimized: minimized,
-			Smashed:   smashed,
-		})
 	}
 	mgr.fresh = len(mgr.corpusDB.Records) == 0
-	log.Logf(0, "%-24v: %v (deleted %v broken)",
-		"corpus", len(mgr.candidates), broken)
+	corpusSize := len(mgr.candidates)
+	log.Logf(0, "%-24v: %v (deleted %v broken)", "corpus", corpusSize, broken)
 
-	// Now this is ugly.
+	for _, seed := range mgr.seeds {
+		mgr.loadProg(seed, true, false)
+	}
+	log.Logf(0, "%-24v: %v/%v", "seeds", len(mgr.candidates)-corpusSize, len(mgr.seeds))
+	mgr.seeds = nil
+
 	// We duplicate all inputs in the corpus and shuffle the second part.
 	// This solves the following problem. A fuzzer can crash while triaging candidates,
 	// in such case it will also lost all cached candidates. Or, the input can be somewhat flaky
@@ -517,6 +524,26 @@ func (mgr *Manager) loadCorpus() {
 		panic(fmt.Sprintf("loadCorpus: bad phase %v", mgr.phase))
 	}
 	mgr.phase = phaseLoadedCorpus
+}
+
+func (mgr *Manager) loadProg(data []byte, minimized, smashed bool) bool {
+	bad, disabled := checkProgram(mgr.target, mgr.targetEnabledSyscalls, data)
+	if bad {
+		return false
+	}
+	if disabled {
+		// This program contains a disabled syscall.
+		// We won't execute it, but remember its hash so
+		// it is not deleted during minimization.
+		mgr.disabledHashes[hash.String(data)] = struct{}{}
+		return true
+	}
+	mgr.candidates = append(mgr.candidates, rpctype.RPCCandidate{
+		Prog:      data,
+		Minimized: minimized,
+		Smashed:   smashed,
+	})
+	return true
 }
 
 func checkProgram(target *prog.Target, enabled map[*prog.Syscall]bool, data []byte) (bad, disabled bool) {

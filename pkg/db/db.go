@@ -17,7 +17,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/log"
@@ -67,41 +66,6 @@ func (db *DB) Save(key string, val []byte, seq uint64) {
 	db.Records[key] = Record{val, seq}
 	db.serialize(key, val, seq)
 	db.uncompacted++
-}
-
-// Load the test progs in the given directory store them inside db.
-func (db *DB) LoadTestAsSeed(target *prog.Target, seedsDir string) {
-	var files []string
-	err := filepath.Walk(seedsDir, func(path string, info os.FileInfo, err error) error {
-		if !info.IsDir() {
-			files = append(files, path)
-		}
-		return nil
-	})
-	if err != nil {
-		panic(err)
-	}
-	progEntries := loadPrograms(target, files)
-	if len(progEntries) == 0 {
-		return
-	}
-	for _, progEntry := range progEntries {
-		prog := progEntry.P.Serialize()
-		sig := hash.String(prog)
-		db.Save(sig, prog, 0)
-	}
-}
-
-func loadPrograms(target *prog.Target, files []string) []*prog.LogEntry {
-	var entries []*prog.LogEntry
-	for _, fn := range files {
-		data, err := ioutil.ReadFile(fn)
-		if err != nil {
-			log.Fatalf("failed to read log file: %v", err)
-		}
-		entries = append(entries, target.ParseLog(data)...)
-	}
-	return entries
 }
 
 func (db *DB) Delete(key string) {
