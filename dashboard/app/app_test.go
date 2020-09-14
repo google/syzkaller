@@ -305,10 +305,11 @@ var buildCommitDate = time.Date(1, 2, 3, 4, 5, 6, 0, time.UTC)
 
 func testCrash(build *dashapi.Build, id int) *dashapi.Crash {
 	return &dashapi.Crash{
-		BuildID: build.ID,
-		Title:   fmt.Sprintf("title%v", id),
-		Log:     []byte(fmt.Sprintf("log%v", id)),
-		Report:  []byte(fmt.Sprintf("report%v", id)),
+		BuildID:     build.ID,
+		Title:       fmt.Sprintf("title%v", id),
+		Log:         []byte(fmt.Sprintf("log%v", id)),
+		Report:      []byte(fmt.Sprintf("report%v", id)),
+		MachineInfo: []byte(fmt.Sprintf("machine info %v", id)),
 	}
 }
 
