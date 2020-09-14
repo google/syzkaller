@@ -29,7 +29,7 @@ display_help() {
     echo "   -a, --arch                 Set architecture"
     echo "   -d, --distribution         Set on which debian distribution to create"
     echo "   -f, --feature              Check what packages to install in the image, options are minimal, full"
-    echo "   -s, --size                 Image size (MB), default 2048 (2G)"
+    echo "   -s, --seek                 Image size (MB), default 2048 (2G)"
     echo "   -h, --help                 Display help message"
     echo "   -p, --add-perf             Add perf support with this option enabled. Please set envrionment variable \$KERNEL at first"
     echo
