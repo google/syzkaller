@@ -25,6 +25,7 @@ func TestReportBug(t *testing.T) {
 		Maintainers: []string{`"Foo Bar" <foo@bar.com>`, `bar@foo.com`},
 		Log:         []byte("log1"),
 		Report:      []byte("report1"),
+		MachineInfo: []byte("machine info 1"),
 	}
 	c.client.ReportCrash(crash1)
 
@@ -61,6 +62,8 @@ func TestReportBug(t *testing.T) {
 		KernelCommitDate:  buildCommitDate,
 		KernelConfig:      []byte("config1"),
 		KernelConfigLink:  externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig),
+		MachineInfo:       []byte("machine info 1"),
+		MachineInfoLink:   externalLink(c.ctx, textMachineInfo, dbCrash.MachineInfo),
 		Log:               []byte("log1"),
 		LogLink:           externalLink(c.ctx, textCrashLog, dbCrash.Log),
 		Report:            []byte("report1"),
@@ -496,7 +499,7 @@ func TestMachineInfo(t *testing.T) {
 
 	bugPage, err := c.AuthGET(AccessAdmin, bugURL)
 	c.expectOK(err)
-	infoLinkRegex := regexp.MustCompile(`<a href="(/text\?tag=MachineInfo[^"]+)">machine info</a>`)
+	infoLinkRegex := regexp.MustCompile(`<a href="(/text\?tag=MachineInfo[^"]+)">info</a>`)
 	infoLinkSubmatch := infoLinkRegex.FindSubmatch(bugPage)
 	c.expectEQ(len(infoLinkSubmatch), 2)
 	infoURL := string(infoLinkSubmatch[1])

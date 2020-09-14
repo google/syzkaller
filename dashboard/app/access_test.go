@@ -108,7 +108,7 @@ func TestAccess(t *testing.T) {
 	}
 
 	// noteBugAccessLevel collects all entities associated with the extID bug.
-	noteBugAccessLevel := func(extID string, level AccessLevel) {
+	noteBugAccessLevel := func(extID string, level, nsLevel AccessLevel) {
 		bug, _, err := findBugByReportingID(c.ctx, extID)
 		c.expectOK(err)
 		crash, _, err := findCrashForBug(c.ctx, bug)
@@ -174,11 +174,22 @@ func TestAccess(t *testing.T) {
 				url: fmt.Sprintf("/text?tag=ReproSyz&x=%v",
 					strconv.FormatUint(uint64(crash.ReproSyz), 16)),
 			},
+			{
+				level: nsLevel,
+				ref:   fmt.Sprint(crash.MachineInfo),
+				url:   fmt.Sprintf("/text?tag=MachineInfo&id=%v", crash.MachineInfo),
+			},
+			{
+				level: nsLevel,
+				ref:   fmt.Sprint(crash.MachineInfo),
+				url: fmt.Sprintf("/text?tag=MachineInfo&x=%v",
+					strconv.FormatUint(uint64(crash.MachineInfo), 16)),
+			},
 		}...)
 	}
 
-	// noteBuildccessLevel collects all entities associated with the kernel build buildID.
-	noteBuildccessLevel := func(ns, buildID string) {
+	// noteBuildAccessLevel collects all entities associated with the kernel build buildID.
+	noteBuildAccessLevel := func(ns, buildID string) {
 		build, err := loadBuild(c.ctx, ns, buildID)
 		c.expectOK(err)
 		entities = append(entities, entity{
@@ -211,12 +222,13 @@ func TestAccess(t *testing.T) {
 		for k, v := range config.Namespaces[ns].Clients {
 			clientName, clientKey = k, v
 		}
-		namespaceAccessPrefix := accessLevelPrefix(config.Namespaces[ns].AccessLevel)
+		nsLevel := config.Namespaces[ns].AccessLevel
+		namespaceAccessPrefix := accessLevelPrefix(nsLevel)
 		client := c.makeClient(clientName, clientKey, true)
 		build := testBuild(1)
 		build.KernelConfig = []byte(namespaceAccessPrefix + "build")
 		client.UploadBuild(build)
-		noteBuildccessLevel(ns, build.ID)
+		noteBuildAccessLevel(ns, build.ID)
 
 		for reportingIdx := 0; reportingIdx < 2; reportingIdx++ {
 			accessLevel := config.Namespaces[ns].Reporting[reportingIdx].AccessLevel
@@ -233,7 +245,7 @@ func TestAccess(t *testing.T) {
 			// Invalid bugs become visible up to the last reporting.
 			finalLevel := config.Namespaces[ns].
 				Reporting[len(config.Namespaces[ns].Reporting)-1].AccessLevel
-			noteBugAccessLevel(repInvalid.ID, finalLevel)
+			noteBugAccessLevel(repInvalid.ID, finalLevel, nsLevel)
 
 			crashFixed := testCrashWithRepro(build, reportingIdx*10+0)
 			client.ReportCrash(crashFixed)
@@ -254,22 +266,23 @@ func TestAccess(t *testing.T) {
 			buildFixing.Manager = build.Manager
 			buildFixing.Commits = []string{ns + "-patch0"}
 			client.UploadBuild(buildFixing)
-			noteBuildccessLevel(ns, buildFixing.ID)
+			noteBuildAccessLevel(ns, buildFixing.ID)
 			// Fixed bugs are also visible up to the last reporting.
-			noteBugAccessLevel(repFixed.ID, finalLevel)
+			noteBugAccessLevel(repFixed.ID, finalLevel, nsLevel)
 
 			crashOpen := testCrashWithRepro(build, reportingIdx*10+0)
 			crashOpen.Log = []byte(accessPrefix + "log")
 			crashOpen.Report = []byte(accessPrefix + "report")
 			crashOpen.ReproC = []byte(accessPrefix + "repro c")
 			crashOpen.ReproSyz = []byte(accessPrefix + "repro syz")
+			crashOpen.MachineInfo = []byte(ns + "machine info")
 			client.ReportCrash(crashOpen)
 			repOpen := client.pollBug()
 			if reportingIdx != 0 {
 				client.updateBug(repOpen.ID, dashapi.BugStatusUpstream, "")
 				repOpen = client.pollBug()
 			}
-			noteBugAccessLevel(repOpen.ID, accessLevel)
+			noteBugAccessLevel(repOpen.ID, accessLevel, nsLevel)
 
 			crashPatched := testCrashWithRepro(build, reportingIdx*10+1)
 			client.ReportCrash(crashPatched)
@@ -287,7 +300,7 @@ func TestAccess(t *testing.T) {
 			})
 			c.expectEQ(reply.OK, true)
 			// Patched bugs are also visible up to the last reporting.
-			noteBugAccessLevel(repPatched.ID, finalLevel)
+			noteBugAccessLevel(repPatched.ID, finalLevel, nsLevel)
 
 			crashDup := testCrashWithRepro(build, reportingIdx*10+2)
 			client.ReportCrash(crashDup)
@@ -297,7 +310,7 @@ func TestAccess(t *testing.T) {
 				repDup = client.pollBug()
 			}
 			client.updateBug(repDup.ID, dashapi.BugStatusDup, repOpen.ID)
-			noteBugAccessLevel(repDup.ID, accessLevel)
+			noteBugAccessLevel(repDup.ID, accessLevel, nsLevel)
 		}
 	}
 

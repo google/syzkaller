@@ -810,7 +810,7 @@ func saveCrash(c context.Context, ns string, req *dashapi.Crash, bugKey *db.Key,
 	if crash.ReproC, err = putText(c, ns, textReproC, req.ReproC, false); err != nil {
 		return err
 	}
-	if crash.MachineInfo, err = putText(c, ns, textMachineInfo, req.MachineInfo, false); err != nil {
+	if crash.MachineInfo, err = putText(c, ns, textMachineInfo, req.MachineInfo, true); err != nil {
 		return err
 	}
 	crashKey := db.NewIncompleteKey(c, "Crash", bugKey)

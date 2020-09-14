@@ -37,6 +37,7 @@ func initHTTPHandlers() {
 	http.Handle("/x/patch.diff", handlerWrapper(handleTextX(textPatch)))
 	http.Handle("/x/bisect.txt", handlerWrapper(handleTextX(textLog)))
 	http.Handle("/x/error.txt", handlerWrapper(handleTextX(textError)))
+	http.Handle("/x/minfo.txt", handlerWrapper(handleTextX(textMachineInfo)))
 	for ns := range config.Namespaces {
 		http.Handle("/"+ns, handlerWrapper(handleMain))
 		http.Handle("/"+ns+"/fixed", handlerWrapper(handleFixed))
@@ -548,8 +549,10 @@ func textFilename(tag string) string {
 		return "bisect.txt"
 	case textError:
 		return "error.txt"
+	case textMachineInfo:
+		return "minfo.txt"
 	default:
-		return "text.txt"
+		panic(fmt.Sprintf("unknown tag %v", tag))
 	}
 }
 
