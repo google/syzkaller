@@ -170,10 +170,9 @@ func main() {
 		wg.Done()
 	}()
 
-	syzLinuxTestDir := filepath.Join(updater.syzkallerDir, "sys", "linux", "test")
 	var managers []*Manager
 	for _, mgrcfg := range cfg.Managers {
-		mgr, err := createManager(cfg, mgrcfg, stop, syzLinuxTestDir)
+		mgr, err := createManager(cfg, mgrcfg, stop)
 		if err != nil {
 			log.Logf(0, "failed to create manager %v: %v", mgrcfg.Name, err)
 			continue
