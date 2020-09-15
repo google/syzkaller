@@ -44,6 +44,24 @@ if (foo)
 			},
 		},
 		{
+			pattern: `#define __NR_`,
+			message: "Don't define syscall __NR_foo constants.\n" +
+				"These should be guarded by #ifndef __NR_foo, but this is dependent on the host " +
+				"and may break on other machines (after pkg/csource processing).\n" +
+				"Define sys_foo constants instead.",
+			tests: []string{
+				`
+#ifndef __NR_io_uring_setup
+#ifdef __alpha__
+#define __NR_io_uring_setup 535
+#else // !__alpha__
+#define __NR_io_uring_setup 425
+#endif
+#endif // __NR_io_uring_setup
+`,
+			},
+		},
+		{
 			pattern:     `//[^\s]`,
 			suppression: `https?://`,
 			message:     "Add a space after //",

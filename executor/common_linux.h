@@ -1467,13 +1467,11 @@ struct io_uring_params {
 #include <sys/mman.h>
 #include <unistd.h>
 
-#ifndef __NR_io_uring_setup
-#ifdef __alpha__
-#define __NR_io_uring_setup 535
-#else // !__alpha__
-#define __NR_io_uring_setup 425
+#if GOARCH_mips64le
+#define sys_io_uring_setup 5425
+#else
+#define sys_io_uring_setup 425
 #endif
-#endif // __NR_io_uring_setup
 
 // Wrapper for io_uring_setup and the subsequent mmap calls that map the ring and the sqes
 static long syz_io_uring_setup(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5)
@@ -1489,7 +1487,7 @@ static long syz_io_uring_setup(volatile long a0, volatile long a1, volatile long
 	void** ring_ptr_out = (void**)a4;
 	void** sqes_ptr_out = (void**)a5;
 
-	uint32 fd_io_uring = syscall(__NR_io_uring_setup, entries, setup_params);
+	uint32 fd_io_uring = syscall(sys_io_uring_setup, entries, setup_params);
 
 	// Compute the ring sizes
 	uint32 sq_ring_sz = setup_params->sq_off.array + setup_params->sq_entries * sizeof(uint32);
