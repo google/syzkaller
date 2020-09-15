@@ -205,7 +205,14 @@ static void use_temporary_dir(void)
 #include <sys/stat.h>
 #include <sys/types.h>
 
-static void remove_dir(const char* dir)
+// We need to prevent the compiler from unrolling the while loop by using the gcc's noinline attribute
+// because otherwise it could trigger the compiler warning about a potential format truncation
+// when a filename is constructed with help of snprintf. This warning occurs because by unrolling
+// the while loop, the snprintf call will try to concatenate 2 buffers of length FILENAME_MAX and put
+// the result into a buffer of length FILENAME_MAX which is apparently not possible. But this is no
+// problem in our case because file and directory names should be short enough and fit into a buffer
+// of length FILENAME_MAX.
+static void __attribute__((noinline)) remove_dir(const char* dir)
 {
 	DIR* dp = opendir(dir);
 	if (dp == NULL) {
