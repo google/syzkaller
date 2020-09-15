@@ -10,7 +10,7 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
-// NewAnalyzer creates a new analysis.Analyzer instance tuned to run err113 checks
+// NewAnalyzer creates a new analysis.Analyzer instance tuned to run err113 checks.
 func NewAnalyzer() *analysis.Analyzer {
 	return &analysis.Analyzer{
 		Name: "err113",
@@ -35,7 +35,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	return nil, nil
 }
 
-// render returns the pretty-print of the given node
+// render returns the pretty-print of the given node.
 func render(fset *token.FileSet, x interface{}) string {
 	var buf bytes.Buffer
 	if err := printer.Fprint(&buf, fset, x); err != nil {

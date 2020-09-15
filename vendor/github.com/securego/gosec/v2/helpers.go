@@ -37,7 +37,6 @@ import (
 // 	node, matched := MatchCallByPackage(n, ctx, "math/rand", "Read")
 //
 func MatchCallByPackage(n ast.Node, c *Context, pkg string, names ...string) (*ast.CallExpr, bool) {
-
 	importedName, found := GetImportedName(pkg, c)
 	if !found {
 		return nil, false
@@ -224,6 +223,27 @@ func GetIdentStringValues(ident *ast.Ident) []string {
 
 	}
 	return values
+}
+
+// GetBinaryExprOperands returns all operands of a binary expression by traversing
+// the expression tree
+func GetBinaryExprOperands(be *ast.BinaryExpr) []ast.Node {
+	var traverse func(be *ast.BinaryExpr)
+	result := []ast.Node{}
+	traverse = func(be *ast.BinaryExpr) {
+		if lhs, ok := be.X.(*ast.BinaryExpr); ok {
+			traverse(lhs)
+		} else {
+			result = append(result, be.X)
+		}
+		if rhs, ok := be.Y.(*ast.BinaryExpr); ok {
+			traverse(rhs)
+		} else {
+			result = append(result, be.Y)
+		}
+	}
+	traverse(be)
+	return result
 }
 
 // GetImportedName returns the name used for the package within the

@@ -152,9 +152,13 @@ type Run struct {
 	UseDefaultSkipDirs bool     `mapstructure:"skip-dirs-use-default"`
 
 	AllowParallelRunners bool `mapstructure:"allow-parallel-runners"`
+	AllowSerialRunners   bool `mapstructure:"allow-serial-runners"`
 }
 
 type LintersSettings struct {
+	Gci struct {
+		LocalPrefixes string `mapstructure:"local-prefixes"`
+	}
 	Govet  GovetSettings
 	Golint struct {
 		MinConfidence float64 `mapstructure:"min-confidence"`
@@ -221,6 +225,10 @@ type LintersSettings struct {
 				Recommendations []string `mapstructure:"recommendations"`
 				Reason          string   `mapstructure:"reason"`
 			} `mapstructure:"modules"`
+			Versions []map[string]struct {
+				Version string `mapstructure:"version"`
+				Reason  string `mapstructure:"reason"`
+			} `mapstructure:"versions"`
 		} `mapstructure:"blocked"`
 	}
 
@@ -235,11 +243,20 @@ type LintersSettings struct {
 	Dogsled     DogsledSettings
 	Gocognit    GocognitSettings
 	Godot       GodotSettings
+	Goheader    GoHeaderSettings
 	Testpackage TestpackageSettings
 	Nestif      NestifSettings
 	NoLintLint  NoLintLintSettings
+	Exhaustive  ExhaustiveSettings
+	Gofumpt     GofumptSettings
 
 	Custom map[string]CustomLinterSettings
+}
+
+type GoHeaderSettings struct {
+	Values       map[string]map[string]string `mapstructure:"values"`
+	Template     string                       `mapstructure:"template"`
+	TemplatePath string                       `mapstructure:"template-path"`
 }
 
 type GovetSettings struct {
@@ -335,6 +352,14 @@ type NestifSettings struct {
 	MinComplexity int `mapstructure:"min-complexity"`
 }
 
+type ExhaustiveSettings struct {
+	DefaultSignifiesExhaustive bool `mapstructure:"default-signifies-exhaustive"`
+}
+
+type GofumptSettings struct {
+	ExtraRules bool `mapstructure:"extra-rules"`
+}
+
 var defaultLintersSettings = LintersSettings{
 	Lll: LllSettings{
 		LineLength: 120,
@@ -385,6 +410,12 @@ var defaultLintersSettings = LintersSettings{
 	Nestif: NestifSettings{
 		MinComplexity: 5,
 	},
+	Exhaustive: ExhaustiveSettings{
+		DefaultSignifiesExhaustive: false,
+	},
+	Gofumpt: GofumptSettings{
+		ExtraRules: false,
+	},
 }
 
 type CustomLinterSettings struct {
@@ -403,11 +434,46 @@ type Linters struct {
 	Presets []string
 }
 
-type ExcludeRule struct {
+type BaseRule struct {
 	Linters []string
 	Path    string
 	Text    string
 	Source  string
+}
+
+func (b BaseRule) Validate(minConditionsCount int) error {
+	if err := validateOptionalRegex(b.Path); err != nil {
+		return fmt.Errorf("invalid path regex: %v", err)
+	}
+	if err := validateOptionalRegex(b.Text); err != nil {
+		return fmt.Errorf("invalid text regex: %v", err)
+	}
+	if err := validateOptionalRegex(b.Source); err != nil {
+		return fmt.Errorf("invalid source regex: %v", err)
+	}
+	nonBlank := 0
+	if len(b.Linters) > 0 {
+		nonBlank++
+	}
+	if b.Path != "" {
+		nonBlank++
+	}
+	if b.Text != "" {
+		nonBlank++
+	}
+	if b.Source != "" {
+		nonBlank++
+	}
+	if nonBlank < minConditionsCount {
+		return fmt.Errorf("at least %d of (text, source, path, linters) should be set", minConditionsCount)
+	}
+	return nil
+}
+
+const excludeRuleMinConditionsCount = 2
+
+type ExcludeRule struct {
+	BaseRule `mapstructure:",squash"`
 }
 
 func validateOptionalRegex(value string) error {
@@ -419,33 +485,18 @@ func validateOptionalRegex(value string) error {
 }
 
 func (e ExcludeRule) Validate() error {
-	if err := validateOptionalRegex(e.Path); err != nil {
-		return fmt.Errorf("invalid path regex: %v", err)
-	}
-	if err := validateOptionalRegex(e.Text); err != nil {
-		return fmt.Errorf("invalid text regex: %v", err)
-	}
-	if err := validateOptionalRegex(e.Source); err != nil {
-		return fmt.Errorf("invalid source regex: %v", err)
-	}
-	nonBlank := 0
-	if len(e.Linters) > 0 {
-		nonBlank++
-	}
-	if e.Path != "" {
-		nonBlank++
-	}
-	if e.Text != "" {
-		nonBlank++
-	}
-	if e.Source != "" {
-		nonBlank++
-	}
-	const minConditionsCount = 2
-	if nonBlank < minConditionsCount {
-		return errors.New("at least 2 of (text, source, path, linters) should be set")
-	}
-	return nil
+	return e.BaseRule.Validate(excludeRuleMinConditionsCount)
+}
+
+const severityRuleMinConditionsCount = 1
+
+type SeverityRule struct {
+	BaseRule `mapstructure:",squash"`
+	Severity string
+}
+
+func (s *SeverityRule) Validate() error {
+	return s.BaseRule.Validate(severityRuleMinConditionsCount)
 }
 
 type Issues struct {
@@ -465,21 +516,35 @@ type Issues struct {
 	NeedFix bool `mapstructure:"fix"`
 }
 
+type Severity struct {
+	Default       string         `mapstructure:"default-severity"`
+	CaseSensitive bool           `mapstructure:"case-sensitive"`
+	Rules         []SeverityRule `mapstructure:"rules"`
+}
+
+type Version struct {
+	Format string `mapstructure:"format"`
+}
+
 type Config struct {
 	Run Run
 
 	Output struct {
 		Format              string
 		Color               string
-		PrintIssuedLine     bool `mapstructure:"print-issued-lines"`
-		PrintLinterName     bool `mapstructure:"print-linter-name"`
-		UniqByLine          bool `mapstructure:"uniq-by-line"`
-		PrintWelcomeMessage bool `mapstructure:"print-welcome"`
+		PrintIssuedLine     bool   `mapstructure:"print-issued-lines"`
+		PrintLinterName     bool   `mapstructure:"print-linter-name"`
+		UniqByLine          bool   `mapstructure:"uniq-by-line"`
+		SortResults         bool   `mapstructure:"sort-results"`
+		PrintWelcomeMessage bool   `mapstructure:"print-welcome"`
+		PathPrefix          string `mapstructure:"path-prefix"`
 	}
 
 	LintersSettings LintersSettings `mapstructure:"linters-settings"`
 	Linters         Linters
 	Issues          Issues
+	Severity        Severity
+	Version         Version
 
 	InternalTest bool // Option is used only for testing golangci-lint code, don't use it
 }

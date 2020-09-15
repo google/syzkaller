@@ -13,21 +13,30 @@ end of the last sentence if needed.
 > Comments should begin with the name of the thing being described
 > and end in a period
 
-## Install and run
+## Install
 
 *NOTE: Godot is available as a part of [GolangCI Lint](https://github.com/golangci/golangci-lint)
 (disabled by default).*
 
 Build from source
+
 ```sh
 go get -u github.com/tetafro/godot/cmd/godot
 ```
 
 or download binary from [releases page](https://github.com/tetafro/godot/releases).
 
-Run
+## Run
+
 ```sh
 godot ./myproject
+```
+
+Autofix flags are also available
+
+```sh
+godot -f ./myproject # fix issues and print the result
+godot -w ./myproject # fix issues and replace the original file
 ```
 
 ## Examples
@@ -50,5 +59,5 @@ Top level comment should end in a period: math/math.go:3:1
 ```
 
 See more examples in test files:
-- [for default mode](testdata/example_default.go)
-- [for using --all flag](testdata/example_checkall.go)
+- [for default mode](testdata/default/in/main.go)
+- [for using --all flag](testdata/checkall/in/main.go)
