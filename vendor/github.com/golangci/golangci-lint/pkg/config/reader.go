@@ -12,6 +12,7 @@ import (
 
 	"github.com/golangci/golangci-lint/pkg/fsutils"
 	"github.com/golangci/golangci-lint/pkg/logutils"
+	"github.com/golangci/golangci-lint/pkg/sliceutil"
 )
 
 type FileReader struct {
@@ -113,6 +114,14 @@ func (r *FileReader) validateConfig() error {
 			return fmt.Errorf("error in exclude rule #%d: %v", i, err)
 		}
 	}
+	if len(c.Severity.Rules) > 0 && c.Severity.Default == "" {
+		return errors.New("can't set severity rule option: no default severity defined")
+	}
+	for i, rule := range c.Severity.Rules {
+		if err := rule.Validate(); err != nil {
+			return fmt.Errorf("error in severity rule #%d: %v", i, err)
+		}
+	}
 	if err := c.LintersSettings.Govet.Validate(); err != nil {
 		return fmt.Errorf("error in govet config: %v", err)
 	}
@@ -162,6 +171,7 @@ func (r *FileReader) setupConfigFileSearch() {
 
 	// find all dirs from it up to the root
 	configSearchPaths := []string{"./"}
+
 	for {
 		configSearchPaths = append(configSearchPaths, curDir)
 		newCurDir := filepath.Dir(curDir)
@@ -169,6 +179,13 @@ func (r *FileReader) setupConfigFileSearch() {
 			break
 		}
 		curDir = newCurDir
+	}
+
+	// find home directory for global config
+	if home, err := homedir.Dir(); err != nil {
+		r.log.Warnf("Can't get user's home directory: %s", err.Error())
+	} else if !sliceutil.Contains(configSearchPaths, home) {
+		configSearchPaths = append(configSearchPaths, home)
 	}
 
 	r.log.Infof("Config search paths: %s", configSearchPaths)

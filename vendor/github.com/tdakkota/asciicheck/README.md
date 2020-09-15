@@ -7,6 +7,34 @@ Simple linter to check that your code does not contain non-ASCII identifiers
 go get -u github.com/tdakkota/asciicheck/cmd/asciicheck
 ```
 
+# Reason to use
+So, do you see this code? Looks correct, isn't it?
+
+```go
+package main
+
+import "fmt"
+
+type TеstStruct struct{}
+
+func main() {
+	s := TestStruct{}
+	fmt.Println(s)
+}
+```
+But if you try to run it, you will get an error:
+```
+./prog.go:8:7: undefined: TestStruct
+```
+What? `TestStruct` is defined above, but compiler thinks diffrent. Why?
+
+**Answer**:
+Because `TestStruct` is not `TеstStruct`.
+```
+type TеstStruct struct{}
+      ^ this 'e' (U+0435) is not 'e' (U+0065)
+```
+
 # Usage
 asciicheck uses [`singlechecker`](https://pkg.go.dev/golang.org/x/tools/go/analysis/singlechecker) package to run:
 

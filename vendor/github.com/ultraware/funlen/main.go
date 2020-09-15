@@ -7,8 +7,10 @@ import (
 	"reflect"
 )
 
-const defaultLineLimit = 60
-const defaultStmtLimit = 40
+const (
+	defaultLineLimit = 60
+	defaultStmtLimit = 40
+)
 
 // Run runs this linter on the provided code
 func Run(file *ast.File, fset *token.FileSet, lineLimit, stmtLimit int) []Message {
@@ -26,13 +28,17 @@ func Run(file *ast.File, fset *token.FileSet, lineLimit, stmtLimit int) []Messag
 			continue
 		}
 
-		if stmts := parseStmts(decl.Body.List); stmts > stmtLimit {
-			msgs = append(msgs, makeStmtMessage(fset, decl.Name, stmts, stmtLimit))
-			continue
+		if stmtLimit > 0 {
+			if stmts := parseStmts(decl.Body.List); stmts > stmtLimit {
+				msgs = append(msgs, makeStmtMessage(fset, decl.Name, stmts, stmtLimit))
+				continue
+			}
 		}
 
-		if lines := getLines(fset, decl); lines > lineLimit {
-			msgs = append(msgs, makeLineMessage(fset, decl.Name, lines, lineLimit))
+		if lineLimit > 0 {
+			if lines := getLines(fset, decl); lines > lineLimit {
+				msgs = append(msgs, makeLineMessage(fset, decl.Name, lines, lineLimit))
+			}
 		}
 	}
 

@@ -1,10 +1,10 @@
 package rules
 
 import (
-	"fmt"
-	"github.com/securego/gosec/v2"
 	"go/ast"
 	"go/token"
+
+	"github.com/securego/gosec/v2"
 )
 
 type implicitAliasing struct {
@@ -33,20 +33,23 @@ func (r *implicitAliasing) Match(n ast.Node, c *gosec.Context) (*gosec.Issue, er
 		// When presented with a range statement, get the underlying Object bound to
 		// by assignment and add it to our set (r.aliases) of objects to check for.
 		if key, ok := node.Value.(*ast.Ident); ok {
-			if assignment, ok := key.Obj.Decl.(*ast.AssignStmt); ok {
-				if len(assignment.Lhs) < 2 {
-					return nil, nil
-				}
+			if key.Obj != nil {
+				if assignment, ok := key.Obj.Decl.(*ast.AssignStmt); ok {
+					if len(assignment.Lhs) < 2 {
+						return nil, nil
+					}
 
-				if object, ok := assignment.Lhs[1].(*ast.Ident); ok {
-					r.aliases[object.Obj] = struct{}{}
+					if object, ok := assignment.Lhs[1].(*ast.Ident); ok {
+						r.aliases[object.Obj] = struct{}{}
 
-					if r.rightBrace < node.Body.Rbrace {
-						r.rightBrace = node.Body.Rbrace
+						if r.rightBrace < node.Body.Rbrace {
+							r.rightBrace = node.Body.Rbrace
+						}
 					}
 				}
 			}
 		}
+
 	case *ast.UnaryExpr:
 		// If this unary expression is outside of the last range statement we were looking at
 		// then clear the list of objects we're concerned about because they're no longer in
@@ -95,7 +98,7 @@ func NewImplicitAliasing(id string, conf gosec.Config) (gosec.Rule, []ast.Node) 
 			ID:         id,
 			Severity:   gosec.Medium,
 			Confidence: gosec.Medium,
-			What:       fmt.Sprintf("Implicit memory aliasing in for loop."),
+			What:       "Implicit memory aliasing in for loop.",
 		},
 	}, []ast.Node{(*ast.RangeStmt)(nil), (*ast.UnaryExpr)(nil), (*ast.ReturnStmt)(nil)}
 }

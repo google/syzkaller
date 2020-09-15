@@ -250,6 +250,20 @@ func (r *runner) isCloseCall(ccall ssa.Instruction) bool {
 						}
 					}
 				}
+
+				if returnOp, ok := cs.(*ssa.Return); ok {
+					for _, resultValue := range returnOp.Results {
+						if resultValue.Type().String() == "io.Closer" {
+							return true
+						}
+					}
+				}
+			}
+		}
+	case *ssa.Return:
+		for _, resultValue := range ccall.Results {
+			if resultValue.Type().String() == "io.ReadCloser" {
+				return true
 			}
 		}
 	}

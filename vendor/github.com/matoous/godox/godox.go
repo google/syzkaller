@@ -49,7 +49,7 @@ func getMessages(c *ast.Comment, fset *token.FileSet, keywords []string) []Messa
 				pos := fset.Position(c.Pos())
 				// trim the comment
 				if len(sComment) > 40 {
-					sComment = []byte(fmt.Sprintf("%s...", sComment[:40]))
+					sComment = []byte(fmt.Sprintf("%.40s...", sComment))
 				}
 				comments = append(comments, Message{
 					Pos: pos,
