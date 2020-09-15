@@ -19,7 +19,7 @@ The target-triple prefix is determined based on the `target` config option.
 
 ### readelf
 
-`readelf` is used to detect virtual memory offset. 
+`readelf` is used to detect virtual memory offset.
 
 ```
 readelf -SW kernel_image
@@ -55,7 +55,7 @@ Executor truncates PC values into `uint32` before sending them to `syz-manager` 
 
 ## Reporting coverage data
 
-`MakeReportGenerator` factory creates an object database for the report. It requires target data, as well as information on the location of the source files and build directory. The first step in building this database is 
+`MakeReportGenerator` factory creates an object database for the report. It requires target data, as well as information on the location of the source files and build directory. The first step in building this database is
 extracting the function data from the target binary.
 ### nm
 
