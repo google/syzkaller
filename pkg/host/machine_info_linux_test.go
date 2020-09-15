@@ -48,7 +48,7 @@ func checkCPUInfo(t *testing.T, scanner *bufio.Scanner) {
 
 	importantKeys := [][]string{
 		{"vendor", "vendor_id", "CPU implementer"},
-		{"model", "CPU part", "cpu model"},
+		{"model", "CPU part", "cpu model", "machine"},
 		{"flags", "features", "Features", "ASEs implemented", "type"},
 	}
 	for _, possibleNames := range importantKeys {
