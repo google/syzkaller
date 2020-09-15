@@ -184,8 +184,7 @@ static void use_temporary_dir(void)
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-
-static void remove_dir(const char* dir)
+static void __attribute__((noinline)) remove_dir(const char* dir)
 {
 	DIR* dp = opendir(dir);
 	if (dp == NULL) {
