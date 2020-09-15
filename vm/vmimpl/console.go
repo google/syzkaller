@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"sync"
 	"syscall"
-	"unsafe"
 
 	"github.com/google/syzkaller/pkg/osutil"
 	"golang.org/x/sys/unix"
@@ -26,10 +25,9 @@ func OpenConsole(con string) (rc io.ReadCloser, err error) {
 			syscall.Close(fd)
 		}
 	}()
-	var term unix.Termios
-	_, _, errno := syscall.Syscall(unix.SYS_IOCTL, uintptr(fd), syscallTCGETS, uintptr(unsafe.Pointer(&term)))
-	if errno != 0 {
-		return nil, fmt.Errorf("failed to get console termios: %v", errno)
+	term, err := unix.IoctlGetTermios(fd, syscallTCGETS)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get console termios: %v", err)
 	}
 	// No parity bit, only need 1 stop bit, no hardware flowcontrol,
 	term.Cflag &^= unixCBAUD | unix.CSIZE | unix.PARENB | unix.CSTOPB | unixCRTSCTS
@@ -42,9 +40,8 @@ func OpenConsole(con string) (rc io.ReadCloser, err error) {
 	term.Oflag &^= unix.OPOST
 	term.Cc[unix.VMIN] = 0
 	term.Cc[unix.VTIME] = 10 // 1 second timeout
-	_, _, errno = syscall.Syscall(unix.SYS_IOCTL, uintptr(fd), syscallTCSETS, uintptr(unsafe.Pointer(&term)))
-	if errno != 0 {
-		return nil, fmt.Errorf("failed to get console termios: %v", errno)
+	if err = unix.IoctlSetTermios(fd, syscallTCSETS, term); err != nil {
+		return nil, fmt.Errorf("failed to get console termios: %v", err)
 	}
 	tmp := fd
 	fd = -1
