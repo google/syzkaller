@@ -55,9 +55,9 @@ const (
 	devFdMajor  = 22
 	devNullDevT = 0x0202
 
-	// kCoverFd in executor/executor.cc
+	// kCoverFd in executor/executor.cc.
 	kcovFdMinorMin = 232
-	// kOutPipeFd in executor/executor.cc
+	// kOutPipeFd in executor/executor.cc.
 	kcovFdMinorMax = 248
 
 	// Mask covering all valid rlimit resources.
