@@ -1651,6 +1651,18 @@ var linuxOopses = append([]*oops{
 					skip: []string{"ubsan", "overflow"},
 				},
 			},
+			{
+				title:  compile("UBSAN:"),
+				report: compile("UBSAN: (.*?) in"),
+				fmt:    "UBSAN: %[1]v in %[2]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						compile("Call Trace:"),
+						parseStackTrace,
+					},
+					skip: []string{"ubsan", "overflow"},
+				},
+			},
 		},
 		[]*regexp.Regexp{},
 	},
