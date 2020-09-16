@@ -1,6 +1,7 @@
 # Research work based on syzkaller
 
 _newer first_
+* [A Novel Dynamic Analysis Infrastructure to Instrument Untrusted Execution Flow Across User-Kernel Spaces](https://www.computer.org/csdl/proceedings-article/sp/2021/893400a402/1mbmHSlbmvK)
 * [HFL: Hybrid Fuzzing on the Linux Kernel](https://chungkim.gitlab.io/doc/ndss20-hfl.pdf)
 * [Industry Practice of Coverage-Guided Enterprise Linux Kernel Fuzzing](http://wingtecher.com/themes/WingTecherResearch/assets/papers/fse19-linux-kernel.pdf)
 * [Agamotto: Accelerating Kernel Driver Fuzzing with Lightweight Virtual Machine Checkpoints](https://www.usenix.org/conference/usenixsecurity20/presentation/song) ([source code](https://github.com/securesystemslab/agamotto))
