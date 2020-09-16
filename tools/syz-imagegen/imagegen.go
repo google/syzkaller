@@ -20,26 +20,33 @@ import (
 )
 
 type FileSystem struct {
-	Name      string
-	MinSize   int
-	MkfsFlags [][]string
+	Name                 string
+	MinSize              int
+	MkfsFlags            []string
+	MkfsFlagCombinations [][]string
 }
 
 var fileSystems = []FileSystem{
 	{
-		Name:    "f2fs",
-		MinSize: 64 << 20,
-		MkfsFlags: [][]string{
+		Name:      "f2fs",
+		MinSize:   64 << 20,
+		MkfsFlags: []string{"-e cold"},
+		MkfsFlagCombinations: [][]string{
 			{"-a 0", "-a 1"},
 			{"-s 1", "-s 2"},
 			{"", "-m"},
-			{"", "-O encrypt"},
+			{
+				"",
+				"-O encrypt",
+				"-O extra_attr",
+				"-O extra_attr -O flexible_inline_xattr -O inode_checksum -O inode_crtime -O project_quota",
+			},
 		},
 	},
 	{
 		Name:    "btrfs",
 		MinSize: 16 << 20,
-		MkfsFlags: [][]string{
+		MkfsFlagCombinations: [][]string{
 			{"", "-M"},
 			{"", "-K"},
 			{"--csum crc32c", "--csum xxhash", "--csum sha256", "--csum blake2"},
@@ -52,7 +59,7 @@ func main() {
 	var images []*Image
 	for _, fs := range fileSystems {
 		index := 0
-		enumerateFlags(&images, &index, fs, "", 0)
+		enumerateFlags(&images, &index, fs, fs.MkfsFlags, 0)
 	}
 	procs := runtime.NumCPU()
 	requests := make(chan *Image, procs)
@@ -86,23 +93,29 @@ func main() {
 
 type Image struct {
 	fs    FileSystem
-	flags string
+	flags []string
 	index int
 	size  int
 	done  chan error
 }
 
-func enumerateFlags(images *[]*Image, index *int, fs FileSystem, flags string, flagsIndex int) {
-	if flagsIndex == len(fs.MkfsFlags) {
-		*images = append(*images, &Image{fs: fs, flags: flags, index: *index, done: make(chan error, 1)})
+func enumerateFlags(images *[]*Image, index *int, fs FileSystem, flags []string, flagsIndex int) {
+	if flagsIndex == len(fs.MkfsFlagCombinations) {
+		*images = append(*images, &Image{
+			fs:    fs,
+			flags: append([]string{}, flags...),
+			index: *index,
+			done:  make(chan error, 1),
+		})
 		*index++
 		return
 	}
-	for _, flag := range fs.MkfsFlags[flagsIndex] {
-		if flags != "" && flag != "" {
-			flag = " " + flag
+	for _, flag := range fs.MkfsFlagCombinations[flagsIndex] {
+		flags1 := flags
+		if flag != "" {
+			flags1 = append(flags1, strings.Split(flag, " ")...)
 		}
-		enumerateFlags(images, index, fs, flags+flag, flagsIndex+1)
+		enumerateFlags(images, index, fs, flags1, flagsIndex+1)
 	}
 }
 
@@ -125,8 +138,7 @@ func generateImageSize(image *Image) error {
 	if err := os.Truncate(disk, int64(image.size)); err != nil {
 		return err
 	}
-	args := append(strings.Split(image.flags, " "), disk)
-	output, err := exec.Command("mkfs."+image.fs.Name, args...).CombinedOutput()
+	output, err := exec.Command("mkfs."+image.fs.Name, append(image.flags, disk)...).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("%v\n%s", err, output)
 	}
