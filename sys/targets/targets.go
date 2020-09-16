@@ -476,6 +476,14 @@ func init() {
 					// to link against the libc++ library.
 					target.CFlags = append(target.CFlags, "-lc++")
 				}
+				// In ESA/390 mode, the CPU is able to address only 31bit of memory but
+				// arithmetic operations are still 32bit
+				// Fix cflags by replacing compiler's -m32 option with -m31
+				if goarch == "s390x" {
+					for i := range target.CFlags {
+						target.CFlags[i] = strings.Replace(target.CFlags[i], "-m32", "-m31", -1)
+					}
+				}
 			}
 			if target.PtrSize == 4 && goos == "freebsd" && goarch == "amd64" {
 				// A hack to let 32-bit "test" target tests run on FreeBSD:
