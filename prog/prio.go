@@ -246,7 +246,7 @@ func (target *Target) BuildChoiceTable(corpus []*Prog, enabled map[*Syscall]bool
 	for _, p := range corpus {
 		for _, call := range p.Calls {
 			if !enabled[call.Meta] {
-				fmt.Printf("corpus contains disabled syscall %v", call.Meta.Name)
+				fmt.Printf("corpus contains disabled syscall %v\n", call.Meta.Name)
 				panic("disabled syscall")
 			}
 		}
