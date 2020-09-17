@@ -20,7 +20,7 @@ type msghdr_nl80211[CMD, POLICY] msghdr_netlink[netlink_msg_t[nl80211_family_id,
 type nl80211_whipy int32[-1:4]
 
 syz_genetlink_get_family_id$nl80211(name ptr[in, string["nl80211"]]) nl80211_family_id
-ioctl$sock_SIOCGIFINDEX_80211(fd sock, cmd const[SIOCGIFINDEX], arg ptr[inout, ifreq_dev_t[nl80211_devnames, nl80211_ifindex[opt]]])
+ioctl$sock_SIOCGIFINDEX_80211(fd sock, cmd const[SIOCGIFINDEX], arg ptr[inout, ifreq_dev_t[nl80211_devnames, nl80211_ifindex]])
 
 sendmsg$NL80211_CMD_GET_WIPHY(fd sock_nl_generic, msg ptr[in, msghdr_nl80211[NL80211_CMD_GET_WIPHY, nl80211_policy_dev]], f flags[send_flags])
 sendmsg$NL80211_CMD_SET_WIPHY(fd sock_nl_generic, msg ptr[in, msghdr_nl80211[NL80211_CMD_SET_WIPHY, nl80211_policy_wiphy]], f flags[send_flags])
