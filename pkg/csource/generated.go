@@ -2338,7 +2338,7 @@ static bool write_file(const char* file, const char* what, ...)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI || __NR_syz_genetlink_get_family_id
 #include <arpa/inet.h>
 #include <net/if.h>
 #include <netinet/in.h>
@@ -2432,10 +2432,12 @@ static int netlink_send_ext(struct nlmsg* nlmsg, int sock,
 	return ((struct nlmsgerr*)(hdr + 1))->error;
 }
 
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI
 static int netlink_send(struct nlmsg* nlmsg, int sock)
 {
 	return netlink_send_ext(nlmsg, sock, 0, NULL);
 }
+#endif
 
 static int netlink_query_family_id(struct nlmsg* nlmsg, int sock, const char* family_name)
 {
@@ -5685,55 +5687,27 @@ static long syz_emit_vhci(volatile long a0, volatile long a1)
 
 #if SYZ_EXECUTOR || __NR_syz_genetlink_get_family_id
 #include <errno.h>
-#include <linux/genetlink.h>
-#include <linux/netlink.h>
 #include <sys/socket.h>
-#include <sys/types.h>
 
 static long syz_genetlink_get_family_id(volatile long name)
 {
-	char buf[512] = {0};
-	struct nlmsghdr* hdr = (struct nlmsghdr*)buf;
-	struct genlmsghdr* genlhdr = (struct genlmsghdr*)NLMSG_DATA(hdr);
-	struct nlattr* attr = (struct nlattr*)(genlhdr + 1);
-	hdr->nlmsg_len = sizeof(*hdr) + sizeof(*genlhdr) + sizeof(*attr) + GENL_NAMSIZ;
-	hdr->nlmsg_type = GENL_ID_CTRL;
-	hdr->nlmsg_flags = NLM_F_REQUEST | NLM_F_ACK;
-	genlhdr->cmd = CTRL_CMD_GETFAMILY;
-	attr->nla_type = CTRL_ATTR_FAMILY_NAME;
-	attr->nla_len = sizeof(*attr) + GENL_NAMSIZ;
-	strncpy((char*)(attr + 1), (char*)name, GENL_NAMSIZ);
-	struct iovec iov = {hdr, hdr->nlmsg_len};
-	struct sockaddr_nl addr = {0};
-	addr.nl_family = AF_NETLINK;
-	debug("syz_genetlink_get_family_id(%s)\n", (char*)(attr + 1));
+	struct nlmsg nlmsg_tmp;
+
+	debug("syz_genetlink_get_family_id(%s)\n", (char*)name);
 	int fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
 	if (fd == -1) {
 		debug("syz_genetlink_get_family_id: socket failed: %d\n", errno);
 		return -1;
 	}
-	struct msghdr msg = {&addr, sizeof(addr), &iov, 1, NULL, 0, 0};
-	if (sendmsg(fd, &msg, 0) == -1) {
-		debug("syz_genetlink_get_family_id: sendmsg failed: %d\n", errno);
-		close(fd);
-		return -1;
-	}
-	ssize_t n = recv(fd, buf, sizeof(buf), 0);
+
+	int ret = netlink_query_family_id(&nlmsg_tmp, fd, (char*)name);
 	close(fd);
-	if (n <= 0) {
-		debug("syz_genetlink_get_family_id: recv failed: %d\n", errno);
+	if (ret < 0) {
+		debug("syz_genetlink_get_family_id: netlink_query_family_id failed: %d\n", ret);
 		return -1;
 	}
-	if (hdr->nlmsg_type != GENL_ID_CTRL) {
-		debug("syz_genetlink_get_family_id: wrong reply type: %d\n", hdr->nlmsg_type);
-		return -1;
-	}
-	for (; (char*)attr < buf + n; attr = (struct nlattr*)((char*)attr + NLMSG_ALIGN(attr->nla_len))) {
-		if (attr->nla_type == CTRL_ATTR_FAMILY_ID)
-			return *(uint16*)(attr + 1);
-	}
-	debug("syz_genetlink_get_family_id: no CTRL_ATTR_FAMILY_ID attr\n");
-	return -1;
+
+	return ret;
 }
 #endif
 
