@@ -344,6 +344,7 @@ install_prerequisites:
 	sudo apt-get install -y -q g++-s390x-linux-gnu || true
 	sudo apt-get install -y -q g++-riscv64-linux-gnu || true
 	sudo apt-get install -y -q g++ || true
+	[ -z "$(shell which python)" -a -n "$(shell which python3)" ] && sudo apt-get install -y -q python-is-python3 || true
 	sudo apt-get install -y -q clang-tidy || true
 	sudo apt-get install -y -q clang clang-format ragel
 	GO111MODULE=off go get -u golang.org/x/tools/cmd/goyacc
