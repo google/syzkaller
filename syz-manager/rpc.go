@@ -223,9 +223,11 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 	defer serv.mu.Unlock()
 
 	f := serv.fuzzers[a.Name]
+	// Note: f may be nil if we called shutdownInstance,
+	// but this request is already in-flight.
 	genuine := !serv.corpusSignal.Diff(inputSignal).Empty()
 	rotated := false
-	if !genuine && f.rotatedSignal != nil {
+	if !genuine && f != nil && f.rotatedSignal != nil {
 		rotated = !f.rotatedSignal.Diff(inputSignal).Empty()
 	}
 	if !genuine && !rotated {
@@ -235,7 +237,7 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 		return nil
 	}
 
-	if f.rotatedSignal != nil {
+	if f != nil && f.rotatedSignal != nil {
 		f.rotatedSignal.Merge(inputSignal)
 	}
 	serv.corpusCover.Merge(a.Cover)
@@ -268,7 +270,10 @@ func (serv *RPCServer) Poll(a *rpctype.PollArgs, r *rpctype.PollRes) error {
 
 	f := serv.fuzzers[a.Name]
 	if f == nil {
-		log.Fatalf("fuzzer %v is not connected", a.Name)
+		// This is possible if we called shutdownInstance,
+		// but already have a pending request from this instance in-flight.
+		log.Logf(1, "poll: fuzzer %v is not connected", a.Name)
+		return nil
 	}
 	newMaxSignal := serv.maxSignal.Diff(a.MaxSignal.Deserialize())
 	if !newMaxSignal.Empty() {
