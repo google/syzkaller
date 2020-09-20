@@ -5,6 +5,7 @@ package runtest
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -112,11 +113,13 @@ func TestParsing(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			for _, file := range files {
-				if _, _, _, err := parseProg(target, dir, file); err != nil {
-					t.Errorf("failed to parse %v/%v for %v: %v", dir, file, arch, err)
+			t.Run(fmt.Sprintf("%v/%v", target.OS, target.Arch), func(t *testing.T) {
+				for _, file := range files {
+					if _, _, _, err := parseProg(target, dir, file); err != nil {
+						t.Errorf("failed to parse %v/%v for %v: %v", dir, file, arch, err)
+					}
 				}
-			}
+			})
 		}
 	}
 }
