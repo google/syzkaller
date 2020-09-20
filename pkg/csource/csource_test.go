@@ -4,6 +4,7 @@
 package csource
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -151,6 +152,11 @@ func TestSysTests(t *testing.T) {
 				data, err := ioutil.ReadFile(file)
 				if err != nil {
 					t.Fatalf("failed to read %v: %v", file, err)
+				}
+				// syz_mount_image tests are very large and this test takes too long.
+				// syz-imagegen that generates does some of this testing (Deserialize/SerializeForExec).
+				if bytes.Contains(data, []byte("# requires: manual")) {
+					continue
 				}
 				p, err := target.Deserialize(data, prog.Strict)
 				if err != nil {
