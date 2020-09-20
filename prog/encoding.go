@@ -458,7 +458,7 @@ func (p *parser) parseArgAddr(typ Type, dir Dir) (Arg, error) {
 		elem, elemDir = t1.Elem, t1.ElemDir
 	case *VmaType:
 	default:
-		p.eatExcessive(true, "wrong addr arg")
+		p.eatExcessive(true, "wrong addr arg %T", typ)
 		return typ.DefaultArg(dir), nil
 	}
 	p.Parse('&')
