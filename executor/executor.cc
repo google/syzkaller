@@ -215,10 +215,13 @@ struct thread_t {
 	uint32 reserrno;
 	bool fault_injected;
 	cover_t cov;
+	bool soft_fail_state;
 };
 
 static thread_t threads[kMaxThreads];
 static thread_t* last_scheduled;
+// Threads use this variable to access information about themselves.
+static __thread struct thread_t* current_thread;
 
 static cover_t extra_cov;
 
@@ -375,6 +378,7 @@ int main(int argc, char** argv)
 	start_time_ms = current_time_ms();
 
 	os_init(argc, argv, (char*)SYZ_DATA_OFFSET, SYZ_NUM_PAGES * SYZ_PAGE_SIZE);
+	current_thread = &threads[0];
 
 #if SYZ_EXECUTOR_USES_SHMEM
 	if (mmap(&input_data[0], kMaxInput, PROT_READ, MAP_PRIVATE | MAP_FIXED, kInFd, 0) != &input_data[0])
@@ -1059,7 +1063,7 @@ void thread_create(thread_t* th, int id)
 void* worker_thread(void* arg)
 {
 	thread_t* th = (thread_t*)arg;
-
+	current_thread = th;
 	if (flag_coverage)
 		cover_enable(&th->cov, flag_comparisons, false);
 	for (;;) {
@@ -1084,10 +1088,12 @@ void execute_call(thread_t* th)
 	debug(")\n");
 
 	int fail_fd = -1;
+	th->soft_fail_state = false;
 	if (flag_fault && th->call_index == flag_fault_call) {
 		if (collide)
 			fail("both collide and fault injection are enabled");
 		fail_fd = inject_fault(flag_fault_nth);
+		th->soft_fail_state = true;
 	}
 
 	if (flag_coverage)
@@ -1104,6 +1110,9 @@ void execute_call(thread_t* th)
 		th->res = 0;
 		th->reserrno = 0;
 	}
+	// Reset the flag before the first possible fail().
+	th->soft_fail_state = false;
+
 	if (flag_coverage) {
 		cover_collect(&th->cov);
 		if (th->cov.size >= kCoverSize)
@@ -1477,6 +1486,20 @@ void fail(const char* msg, ...)
 	vfprintf(stderr, msg, args);
 	va_end(args);
 	fprintf(stderr, " (errno %d)\n", e);
+
+	// fail()'s are often used during the validation of kernel reactions to queries
+	// that were issued by pseudo syscalls implementations. As fault injection may
+	// cause the kernel not to succeed in handling these queries (e.g. socket writes
+	// or reads may fail), this could ultimately lead to unwanted "lost connection to
+	// test machine" crashes.
+	// In order to avoid this and, on the other hand, to still have the ability to
+	// signal a disastrous situation, the exit code of this function depends on the
+	// current context.
+	// All fail() invocations during system call execution with enabled fault injection
+	// lead to termination with zero exit code. In all other cases, the exit code is
+	// kFailStatus.
+	if (current_thread && current_thread->soft_fail_state)
+		doexit(0);
 	doexit(kFailStatus);
 }
 

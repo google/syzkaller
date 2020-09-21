@@ -80,8 +80,6 @@ static void os_init(int argc, char** argv, char* data, size_t data_size)
 		fail("mmap of right data PROT_NONE page failed");
 }
 
-static __thread cover_t* current_cover;
-
 static intptr_t execute_syscall(const call_t* c, intptr_t a[kMaxArgs])
 {
 	if (c->call)
@@ -186,7 +184,6 @@ static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
 	if (!extra) {
 		if (ioctl(cov->fd, KCOV_ENABLE, kcov_mode))
 			exitf("cover enable write trace failed, mode=%d", kcov_mode);
-		current_cover = cov;
 		return;
 	}
 	if (is_kernel_64_bit)
@@ -201,9 +198,9 @@ static void cover_reset(cover_t* cov)
 	if (!flag_coverage)
 		return;
 	if (cov == 0) {
-		if (current_cover == 0)
-			fail("cover_reset: current_cover == 0");
-		cov = current_cover;
+		if (current_thread == 0)
+			fail("cover_reset: current_thread == 0");
+		cov = &current_thread->cov;
 	}
 	*(uint64*)cov->data = 0;
 }
