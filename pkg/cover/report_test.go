@@ -28,23 +28,26 @@ import (
 )
 
 type Test struct {
-	Name   string
-	CFlags []string
-	Progs  []Prog
-	Result string
+	Name     string
+	CFlags   []string
+	Progs    []Prog
+	AddCover bool
+	Result   string
 }
 
 func TestReportGenerator(t *testing.T) {
 	tests := []Test{
 		{
-			Name:   "no-coverage",
-			CFlags: []string{"-g"},
-			Result: `.* doesn't contain coverage callbacks '.*__sanitizer_cov_trace_pc>\]' \(set CONFIG_KCOV=y\)`,
+			Name:     "no-coverage",
+			CFlags:   []string{"-g"},
+			AddCover: true,
+			Result:   `.* doesn't contain coverage callbacks \(set CONFIG_KCOV=y\)`,
 		},
 		{
-			Name:   "no-debug-info",
-			CFlags: []string{"-fsanitize-coverage=trace-pc"},
-			Result: `.* doesn't have debug info \(set CONFIG_DEBUG_INFO=y\)`,
+			Name:     "no-debug-info",
+			CFlags:   []string{"-fsanitize-coverage=trace-pc"},
+			AddCover: true,
+			Result:   `failed to parse DWARF.*\(set CONFIG_DEBUG_INFO=y\?\)`,
 		},
 		{
 			Name:   "no-pcs",
@@ -55,11 +58,12 @@ func TestReportGenerator(t *testing.T) {
 			Name:   "bad-pcs",
 			CFlags: []string{"-fsanitize-coverage=trace-pc", "-g"},
 			Progs:  []Prog{{Data: "data", PCs: []uint64{0x1, 0x2}}},
-			Result: `coverage \(2\) doesn't match coverage callbacks`,
+			Result: `coverage doesn't match any coverage callbacks`,
 		},
 		{
-			Name:   "good",
-			CFlags: []string{"-fsanitize-coverage=trace-pc", "-g"},
+			Name:     "good",
+			AddCover: true,
+			CFlags:   []string{"-fsanitize-coverage=trace-pc", "-g"},
 		},
 	}
 	t.Parallel()
@@ -150,7 +154,7 @@ func generateReport(t *testing.T, target *targets.Target, test Test) ([]byte, []
 	if err != nil {
 		return nil, nil, err
 	}
-	if test.Result == "" {
+	if test.AddCover {
 		var pcs []uint64
 		if output, err := osutil.RunCmd(time.Minute, "", bin); err == nil {
 			pc, err := strconv.ParseUint(string(output), 10, 64)
