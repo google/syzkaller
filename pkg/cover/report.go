@@ -6,6 +6,9 @@ package cover
 import (
 	"bufio"
 	"bytes"
+	"debug/dwarf"
+	"debug/elf"
+	"encoding/binary"
 	"encoding/csv"
 	"fmt"
 	"html"
@@ -14,6 +17,7 @@ import (
 	"io/ioutil"
 	"math"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -24,12 +28,14 @@ import (
 )
 
 type ReportGenerator struct {
-	target   *targets.Target
-	srcDir   string
-	buildDir string
-	objDir   string
-	symbols  []symbol
-	pcs      map[uint64][]symbolizer.Frame
+	target       *targets.Target
+	kernelObject string
+	srcDir       string
+	objDir       string
+	buildDir     string
+	units        []*compileUnit
+	symbols      []*symbol
+	pcs          map[uint64][]pcFrame
 }
 
 type Prog struct {
@@ -38,56 +44,154 @@ type Prog struct {
 }
 
 type symbol struct {
+	name       string
+	unit       *compileUnit
+	start      uint64
+	end        uint64
+	pcs        []uint64
+	symbolized bool
+}
+
+type compileUnit struct {
+	name     string
+	filename string
+	pcs      int
+}
+
+type pcFrame struct {
+	symbolizer.Frame
+	filename string
+}
+
+type pcRange struct {
 	start uint64
 	end   uint64
+	cu    *compileUnit
 }
 
 func MakeReportGenerator(target *targets.Target, kernelObject, srcDir, buildDir string) (*ReportGenerator, error) {
-	rg := &ReportGenerator{
-		target:   target,
-		srcDir:   srcDir,
-		buildDir: buildDir,
-		objDir:   filepath.Dir(kernelObject),
-		pcs:      make(map[uint64][]symbolizer.Frame),
+	file, err := elf.Open(kernelObject)
+	if err != nil {
+		return nil, err
 	}
-	errc := make(chan error)
+	var coverPoints []uint64
+	var symbols []*symbol
+	errc := make(chan error, 1)
 	go func() {
 		var err error
-		rg.symbols, err = readSymbols(target, kernelObject)
+		var tracePC uint64
+		symbols, tracePC, err = readSymbols(file)
+		if err != nil {
+			errc <- err
+			return
+		}
+		if target.Arch == "amd64" {
+			coverPoints, err = readCoverPoints(file, tracePC)
+		} else {
+			coverPoints, err = objdump(target, kernelObject)
+		}
 		errc <- err
 	}()
-	frames, err := objdumpAndSymbolize(target, kernelObject)
+	ranges, units, err := readTextRanges(file)
 	if err != nil {
 		return nil, err
 	}
 	if err := <-errc; err != nil {
 		return nil, err
 	}
-	for _, frame := range frames {
-		rg.pcs[frame.PC] = append(rg.pcs[frame.PC], frame)
+	if len(coverPoints) == 0 {
+		return nil, fmt.Errorf("%v doesn't contain coverage callbacks (set CONFIG_KCOV=y)", kernelObject)
+	}
+	symbols = buildSymbols(symbols, ranges, coverPoints)
+	objDir := filepath.Dir(kernelObject)
+	nunit := 0
+	for _, unit := range units {
+		if unit.pcs == 0 {
+			continue // drop the unit
+		}
+		unit.name, unit.filename = cleanPath(unit.name, srcDir, objDir, buildDir)
+		units[nunit] = unit
+		nunit++
+	}
+	units = units[:nunit]
+	if len(symbols) == 0 || len(units) == 0 {
+		return nil, fmt.Errorf("failed to parse DWARF (set CONFIG_DEBUG_INFO=y?)")
+	}
+	rg := &ReportGenerator{
+		target:       target,
+		kernelObject: kernelObject,
+		srcDir:       srcDir,
+		objDir:       objDir,
+		buildDir:     buildDir,
+		units:        units,
+		symbols:      symbols,
+		pcs:          make(map[uint64][]pcFrame),
 	}
 	return rg, nil
 }
 
+func buildSymbols(symbols []*symbol, ranges []pcRange, coverPoints []uint64) []*symbol {
+	// Assign coverage point PCs to symbols.
+	// Both symbols and coverage points are sorted, so we do it one pass over both.
+	var curSymbol *symbol
+	firstSymbolPC, symbolIdx := -1, 0
+	for i := 0; i < len(coverPoints); i++ {
+		pc := coverPoints[i]
+		for ; symbolIdx < len(symbols) && pc >= symbols[symbolIdx].end; symbolIdx++ {
+		}
+		var symb *symbol
+		if symbolIdx < len(symbols) && pc >= symbols[symbolIdx].start && pc < symbols[symbolIdx].end {
+			symb = symbols[symbolIdx]
+		}
+		if curSymbol != nil && curSymbol != symb {
+			curSymbol.pcs = coverPoints[firstSymbolPC:i]
+			firstSymbolPC = -1
+		}
+		curSymbol = symb
+		if symb != nil && firstSymbolPC == -1 {
+			firstSymbolPC = i
+		}
+	}
+	if curSymbol != nil {
+		curSymbol.pcs = coverPoints[firstSymbolPC:]
+	}
+	// Assign compile units to symbols based on unit pc ranges.
+	// Do it one pass as both are sorted.
+	nsymbol := 0
+	rangeIndex := 0
+	for _, s := range symbols {
+		for ; rangeIndex < len(ranges) && ranges[rangeIndex].end <= s.start; rangeIndex++ {
+		}
+		if rangeIndex == len(ranges) || s.start < ranges[rangeIndex].start || len(s.pcs) == 0 {
+			continue // drop the symbol
+		}
+		unit := ranges[rangeIndex].cu
+		s.unit = unit
+		unit.pcs += len(s.pcs)
+		symbols[nsymbol] = s
+		nsymbol++
+	}
+	return symbols[:nsymbol]
+}
+
 type file struct {
-	lines       map[int]line
-	functions   map[string]*function
-	totalPCs    map[uint64]bool
-	coverPCs    map[uint64]bool
-	totalInline map[int]bool
-	coverInline map[int]bool
+	filename  string
+	lines     map[int]line
+	functions []*function
+	pcs       int
+	covered   int
 }
 
 type function struct {
-	totalPCs map[uint64]bool
-	coverPCs map[uint64]bool
+	name    string
+	pcs     int
+	covered int
 }
 
 type line struct {
-	count         map[int]bool
-	prog          int
-	uncovered     bool
-	symbolCovered bool
+	count     map[int]bool
+	prog      int
+	uncovered bool
 }
 
 func (rg *ReportGenerator) DoHTML(buf io.Writer, progs []Prog) error {
@@ -107,21 +211,28 @@ func (rg *ReportGenerator) DoCSV(buf io.Writer, progs []Prog) error {
 }
 
 func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error) {
-	coveredPCs := make(map[uint64]bool)
-	allPCs := make(map[uint64]bool)
-	symbols := make(map[uint64]bool)
 	files := make(map[string]*file)
+	for _, unit := range rg.units {
+		f := &file{
+			filename: unit.filename,
+			lines:    make(map[int]line),
+			pcs:      unit.pcs,
+		}
+		files[unit.name] = f
+	}
+	if err := rg.lazySymbolize(files, progs); err != nil {
+		return nil, err
+	}
+	coveredPCs := make(map[uint64]bool)
 	for progIdx, prog := range progs {
 		for _, pc := range prog.PCs {
-			allPCs[pc] = true
-			symbols[rg.findSymbol(pc)] = true
 			frames, ok := rg.pcs[pc]
 			if !ok {
 				continue
 			}
 			coveredPCs[pc] = true
 			for _, frame := range frames {
-				f := getFile(files, frame.File)
+				f := getFile(files, frame.File, frame.filename)
 				ln := f.lines[frame.Line]
 				if ln.count == nil {
 					ln.count = make(map[int]bool)
@@ -135,68 +246,97 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error
 			}
 		}
 	}
-	if len(allPCs) == 0 {
-		return nil, fmt.Errorf("no coverage collected so far")
-	}
 	if len(coveredPCs) == 0 {
-		return nil, fmt.Errorf("coverage (%v) doesn't match coverage callbacks", len(allPCs))
+		return nil, fmt.Errorf("coverage doesn't match any coverage callbacks")
 	}
 	for pc, frames := range rg.pcs {
-		covered := coveredPCs[pc]
+		if coveredPCs[pc] {
+			continue
+		}
 		for _, frame := range frames {
-			f := getFile(files, frame.File)
-			if frame.Inline {
-				f.totalInline[frame.Line] = true
-				if covered {
-					f.coverInline[frame.Line] = true
-				}
-			} else {
-				f.totalPCs[pc] = true
-				if covered {
-					f.coverPCs[pc] = true
-				}
-			}
-			function := getFunction(f.functions, frame.Func)
-			function.totalPCs[pc] = true
-			if !covered {
-				ln := f.lines[frame.Line]
-				if !frame.Inline || len(ln.count) == 0 {
-					ln.uncovered = true
-					ln.symbolCovered = symbols[rg.findSymbol(pc)]
-					f.lines[frame.Line] = ln
-				}
-			} else {
-				function.coverPCs[pc] = true
+			f := getFile(files, frame.File, frame.filename)
+			ln := f.lines[frame.Line]
+			if !frame.Inline || len(ln.count) == 0 {
+				ln.uncovered = true
+				f.lines[frame.Line] = ln
 			}
 		}
+	}
+	for _, s := range rg.symbols {
+		covered := 0
+		for _, pc := range s.pcs {
+			if coveredPCs[pc] {
+				covered++
+			}
+		}
+		f := files[s.unit.name]
+		f.functions = append(f.functions, &function{
+			name:    s.name,
+			pcs:     len(s.pcs),
+			covered: covered,
+		})
+		sort.Slice(f.functions, func(i, j int) bool {
+			return f.functions[i].name < f.functions[j].name
+		})
 	}
 	return files, nil
 }
 
-func getFile(files map[string]*file, name string) *file {
+func (rg *ReportGenerator) lazySymbolize(files map[string]*file, progs []Prog) error {
+	uniquePCs := make(map[uint64]bool)
+	symbolizeSymbols := make(map[*symbol]bool)
+	var symbolizePCs []uint64
+	anyPCs := false
+	for _, prog := range progs {
+		for _, pc := range prog.PCs {
+			anyPCs = true
+			if uniquePCs[pc] {
+				continue
+			}
+			uniquePCs[pc] = true
+			s := findSymbol(rg.symbols, pc)
+			if s == nil {
+				continue
+			}
+			files[s.unit.name].covered++
+			if !s.symbolized && !symbolizeSymbols[s] {
+				symbolizeSymbols[s] = true
+				symbolizePCs = append(symbolizePCs, s.pcs...)
+			}
+		}
+	}
+	if !anyPCs {
+		return fmt.Errorf("no coverage collected so far")
+	}
+	if len(symbolizeSymbols) == 0 {
+		return nil
+	}
+	frames, err := symbolize(rg.target, rg.kernelObject, symbolizePCs)
+	if err != nil {
+		return err
+	}
+	for _, frame := range frames {
+		f := pcFrame{frame, ""}
+		f.File, f.filename = cleanPath(frame.File, rg.srcDir, rg.objDir, rg.buildDir)
+		rg.pcs[frame.PC] = append(rg.pcs[frame.PC], f)
+	}
+	for s := range symbolizeSymbols {
+		s.symbolized = true
+	}
+	return nil
+}
+
+func getFile(files map[string]*file, name, filename string) *file {
 	f := files[name]
 	if f == nil {
 		f = &file{
-			lines:       make(map[int]line),
-			functions:   make(map[string]*function),
-			totalPCs:    make(map[uint64]bool),
-			coverPCs:    make(map[uint64]bool),
-			totalInline: make(map[int]bool),
-			coverInline: make(map[int]bool),
+			filename: filename,
+			lines:    make(map[int]line),
+			// Special mark for header files, if a file does not have coverage at all it is not shown.
+			pcs:     1,
+			covered: 1,
 		}
 		files[name] = f
-	}
-	return f
-}
-
-func getFunction(functions map[string]*function, name string) *function {
-	f := functions[name]
-	if f == nil {
-		f = &function{
-			totalPCs: make(map[uint64]bool),
-			coverPCs: make(map[uint64]bool),
-		}
-		functions[name] = f
 	}
 	return f
 }
@@ -211,12 +351,12 @@ var csvHeader = []string{
 func (rg *ReportGenerator) generateCSV(w io.Writer, progs []Prog, files map[string]*file) error {
 	var data [][]string
 	for fname, file := range files {
-		for funcName, function := range file.functions {
+		for _, function := range file.functions {
 			data = append(data, []string{
-				filepath.Clean(fname),
-				funcName,
-				strconv.Itoa(len(function.coverPCs)),
-				strconv.Itoa(len(function.totalPCs)),
+				fname,
+				function.name,
+				strconv.Itoa(function.covered),
+				strconv.Itoa(function.pcs),
 			})
 		}
 	}
@@ -239,31 +379,18 @@ func (rg *ReportGenerator) generateHTML(w io.Writer, progs []Prog, files map[str
 		Root: new(templateDir),
 	}
 	for fname, file := range files {
-		remain := ""
-		switch {
-		case strings.HasPrefix(fname, rg.objDir):
-			// Assume the file was built there.
-			remain = filepath.Clean(strings.TrimPrefix(fname, rg.objDir))
-		case strings.HasPrefix(fname, rg.buildDir):
-			// Assume the file was moved from buildDir to srcDir.
-			remain = filepath.Clean(strings.TrimPrefix(fname, rg.buildDir))
-			fname = filepath.Join(rg.srcDir, remain)
-		default:
-			return fmt.Errorf("path %q doesn't match build dir %q nor obj dir %q",
-				fname, rg.buildDir, rg.objDir)
-		}
 		pos := d.Root
 		path := ""
 		for {
 			if path != "" {
 				path += "/"
 			}
-			sep := strings.IndexByte(remain, filepath.Separator)
+			sep := strings.IndexByte(fname, filepath.Separator)
 			if sep == -1 {
-				path += remain
+				path += fname
 				break
 			}
-			dir := remain[:sep]
+			dir := fname[:sep]
 			path += dir
 			if pos.Dirs == nil {
 				pos.Dirs = make(map[string]*templateDir)
@@ -277,24 +404,21 @@ func (rg *ReportGenerator) generateHTML(w io.Writer, progs []Prog, files map[str
 				}
 			}
 			pos = pos.Dirs[dir]
-			remain = remain[sep+1:]
+			fname = fname[sep+1:]
 		}
 		f := &templateFile{
 			templateBase: templateBase{
 				Path:    path,
-				Name:    remain,
-				Total:   len(file.totalPCs) + len(file.totalInline),
-				Covered: len(file.coverPCs) + len(file.coverInline),
+				Name:    fname,
+				Total:   file.pcs,
+				Covered: file.covered,
 			},
 		}
-		if f.Total == 0 {
-			return fmt.Errorf("%v: file does not have any coverage", fname)
-		}
 		pos.Files = append(pos.Files, f)
-		if len(file.lines) == 0 || f.Covered == 0 {
+		if file.covered == 0 {
 			continue
 		}
-		lines, err := parseFile(fname)
+		lines, err := parseFile(file.filename)
 		if err != nil {
 			return err
 		}
@@ -313,10 +437,7 @@ func (rg *ReportGenerator) generateHTML(w io.Writer, progs []Prog, files map[str
 						class = "both"
 					}
 				} else {
-					class = "weak-uncovered"
-					if cov.symbolCovered {
-						class = "uncovered"
-					}
+					class = "uncovered"
 				}
 			}
 			buf.WriteString(fmt.Sprintf("<span class='count' %v>%v</span>", prog, count))
@@ -345,16 +466,16 @@ func (rg *ReportGenerator) generateHTML(w io.Writer, progs []Prog, files map[str
 
 func addFunctionCoverage(file *file, data *templateData) {
 	var buf bytes.Buffer
-	for functionName, function := range file.functions {
-		var percentage string
-		if len(function.coverPCs) > 0 {
-			percentage = fmt.Sprintf("%d%%", percent(len(function.coverPCs), len(function.totalPCs)))
+	for _, function := range file.functions {
+		percentage := ""
+		if function.covered > 0 {
+			percentage = fmt.Sprintf("%v%%", percent(function.covered, function.pcs))
 		} else {
 			percentage = "---"
 		}
-		buf.WriteString(fmt.Sprintf("<span class='hover'>%v", functionName))
+		buf.WriteString(fmt.Sprintf("<span class='hover'>%v", function.name))
 		buf.WriteString(fmt.Sprintf("<span class='cover hover'>%v", percentage))
-		buf.WriteString(fmt.Sprintf("<span class='cover-right'>of %v", strconv.Itoa(len(function.totalPCs))))
+		buf.WriteString(fmt.Sprintf("<span class='cover-right'>of %v", strconv.Itoa(function.pcs)))
 		buf.WriteString("</span></span></span><br>\n")
 	}
 	data.Functions = append(data.Functions, template.HTML(buf.String()))
@@ -388,6 +509,24 @@ func processDir(dir *templateDir) {
 	}
 }
 
+func cleanPath(path, srcDir, objDir, buildDir string) (string, string) {
+	filename := ""
+	switch {
+	case strings.HasPrefix(path, objDir):
+		// Assume the file was built there.
+		path = strings.TrimPrefix(path, objDir)
+		filename = filepath.Join(objDir, path)
+	case strings.HasPrefix(path, buildDir):
+		// Assume the file was moved from buildDir to srcDir.
+		path = strings.TrimPrefix(path, buildDir)
+		filename = filepath.Join(srcDir, path)
+	default:
+		// Assume this is relative path.
+		filename = filepath.Join(srcDir, path)
+	}
+	return strings.TrimLeft(filepath.Clean(path), "/\\"), filename
+}
+
 func percent(covered, total int) int {
 	f := math.Ceil(float64(covered) / float64(total) * 100)
 	if f == 100 && covered < total {
@@ -396,63 +535,187 @@ func percent(covered, total int) int {
 	return int(f)
 }
 
-func (rg *ReportGenerator) findSymbol(pc uint64) uint64 {
-	idx := sort.Search(len(rg.symbols), func(i int) bool {
-		return pc < rg.symbols[i].end
+func findSymbol(symbols []*symbol, pc uint64) *symbol {
+	idx := sort.Search(len(symbols), func(i int) bool {
+		return pc < symbols[i].end
 	})
-	if idx == len(rg.symbols) {
-		return 0
+	if idx == len(symbols) {
+		return nil
 	}
-	s := rg.symbols[idx]
+	s := symbols[idx]
 	if pc < s.start || pc > s.end {
-		return 0
+		return nil
 	}
-	return s.start
+	return s
 }
 
-func readSymbols(target *targets.Target, obj string) ([]symbol, error) {
-	symb := symbolizer.NewSymbolizer(target)
-	raw, err := symb.ReadTextSymbols(obj)
-	if err != nil {
-		return nil, fmt.Errorf("failed to run nm on %v: %v", obj, err)
+func readSymbols(file *elf.File) ([]*symbol, uint64, error) {
+	text := file.Section(".text")
+	if text == nil {
+		return nil, 0, fmt.Errorf("no .text section in the object file")
 	}
-	var symbols []symbol
-	for _, ss := range raw {
-		for _, s := range ss {
-			symbols = append(symbols, symbol{
-				start: s.Addr,
-				end:   s.Addr + uint64(s.Size),
-			})
+	allSymbols, err := file.Symbols()
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to read ELF symbols: %v", err)
+	}
+	var tracePC uint64
+	var symbols []*symbol
+	for _, symb := range allSymbols {
+		if symb.Value < text.Addr || symb.Value+symb.Size > text.Addr+text.Size {
+			continue
 		}
+		symbols = append(symbols, &symbol{
+			name:  symb.Name,
+			start: symb.Value,
+			end:   symb.Value + symb.Size,
+		})
+		if tracePC == 0 && symb.Name == "__sanitizer_cov_trace_pc" {
+			tracePC = symb.Value
+		}
+	}
+	if tracePC == 0 {
+		return nil, 0, fmt.Errorf("no __sanitizer_cov_trace_pc symbol in the object file")
 	}
 	sort.Slice(symbols, func(i, j int) bool {
 		return symbols[i].start < symbols[j].start
 	})
-	return symbols, nil
+	return symbols, tracePC, nil
 }
 
-// objdumpAndSymbolize collects list of PCs of __sanitizer_cov_trace_pc calls
-// in the kernel and symbolizes them.
-func objdumpAndSymbolize(target *targets.Target, obj string) ([]symbolizer.Frame, error) {
-	errc := make(chan error, 1)
-	pcchan := make(chan []uint64, 10)
-	var frames []symbolizer.Frame
-	go func() {
-		symb := symbolizer.NewSymbolizer(target)
-		defer symb.Close()
-		var err error
-		for pcs := range pcchan {
-			if err != nil {
+func readTextRanges(file *elf.File) ([]pcRange, []*compileUnit, error) {
+	text := file.Section(".text")
+	if text == nil {
+		return nil, nil, fmt.Errorf("no .text section in the object file")
+	}
+	debugInfo, err := file.DWARF()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to parse DWARF: %v (set CONFIG_DEBUG_INFO=y?)", err)
+	}
+	var ranges []pcRange
+	var units []*compileUnit
+	for r := debugInfo.Reader(); ; {
+		ent, err := r.Next()
+		if err != nil {
+			return nil, nil, err
+		}
+		if ent == nil {
+			break
+		}
+		if ent.Tag != dwarf.TagCompileUnit {
+			return nil, nil, fmt.Errorf("found unexpected tag %v on top level", ent.Tag)
+		}
+		attrName := ent.Val(dwarf.AttrName)
+		if attrName == nil {
+			continue
+		}
+		unit := &compileUnit{
+			name: attrName.(string),
+		}
+		units = append(units, unit)
+		ranges1, err := debugInfo.Ranges(ent)
+		if err != nil {
+			return nil, nil, err
+		}
+		for _, r := range ranges1 {
+			if r[0] >= r[1] || r[0] < text.Addr || r[1] > text.Addr+text.Size {
 				continue
 			}
-			frames1, err1 := symb.SymbolizeArray(obj, pcs)
-			if err1 != nil {
-				err = fmt.Errorf("failed to symbolize: %v", err1)
-			}
-			frames = append(frames, frames1...)
+			ranges = append(ranges, pcRange{r[0], r[1], unit})
 		}
-		errc <- err
-	}()
+		r.SkipChildren()
+	}
+	sort.Slice(ranges, func(i, j int) bool {
+		return ranges[i].start < ranges[j].start
+	})
+	return ranges, units, nil
+}
+
+func symbolize(target *targets.Target, obj string, pcs []uint64) ([]symbolizer.Frame, error) {
+	procs := runtime.GOMAXPROCS(0) / 2
+	if procs == 0 {
+		procs = 1
+	}
+	type symbolizerResult struct {
+		frames []symbolizer.Frame
+		err    error
+	}
+	symbolizerC := make(chan symbolizerResult, procs)
+	pcchan := make(chan []uint64, procs)
+	for p := 0; p < procs; p++ {
+		go func() {
+			symb := symbolizer.NewSymbolizer(target)
+			defer symb.Close()
+			var res symbolizerResult
+			for pcs := range pcchan {
+				frames, err := symb.SymbolizeArray(obj, pcs)
+				if err != nil {
+					res.err = fmt.Errorf("failed to symbolize: %v", err)
+				}
+				res.frames = append(res.frames, frames...)
+			}
+			symbolizerC <- res
+		}()
+	}
+	for i := 0; i < len(pcs); {
+		end := i + 100
+		if end > len(pcs) {
+			end = len(pcs)
+		}
+		pcchan <- pcs[i:end]
+		i = end
+	}
+	close(pcchan)
+	var err0 error
+	var frames []symbolizer.Frame
+	for p := 0; p < procs; p++ {
+		res := <-symbolizerC
+		if res.err != nil {
+			err0 = res.err
+		}
+		frames = append(frames, res.frames...)
+	}
+	if err0 != nil {
+		return nil, err0
+	}
+	return frames, nil
+}
+
+// readCoverPoints finds all coverage points (calls of __sanitizer_cov_trace_pc) in the object file.
+// Currently it is amd64-specific: looks for e8 opcode and correct offset.
+// Running objdump on the whole object file is too slow.
+func readCoverPoints(file *elf.File, tracePC uint64) ([]uint64, error) {
+	text := file.Section(".text")
+	if text == nil {
+		return nil, fmt.Errorf("no .text section in the object file")
+	}
+	data, err := text.Data()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read .text: %v", err)
+	}
+	var pcs []uint64
+	const callLen = 5
+	end := len(data) - callLen + 1
+	for i := 0; i < end; i++ {
+		pos := bytes.IndexByte(data[i:end], 0xe8)
+		if pos == -1 {
+			break
+		}
+		pos += i
+		i = pos
+		off := uint64(int64(int32(binary.LittleEndian.Uint32(data[pos+1:]))))
+		pc := text.Addr + uint64(pos)
+		target := pc + off + callLen
+		if target == tracePC {
+			pcs = append(pcs, pc)
+		}
+	}
+	return pcs, nil
+}
+
+// objdump is an old, slow way of finding coverage points.
+// amd64 uses faster option of parsing binary directly (readCoverPoints).
+// TODO: use the faster approach for all other arches and drop this.
+func objdump(target *targets.Target, obj string) ([]uint64, error) {
 	cmd := osutil.Command(target.Objdump, "-d", "--no-show-raw-insn", obj)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -474,21 +737,11 @@ func objdumpAndSymbolize(target *targets.Target, obj string) ([]symbolizer.Frame
 	s := bufio.NewScanner(stdout)
 	callInsns, traceFuncs := archCallInsn(target)
 	var pcs []uint64
-	npcs := 0
 	for s.Scan() {
 		if pc := parseLine(callInsns, traceFuncs, s.Bytes()); pc != 0 {
-			npcs++
 			pcs = append(pcs, pc)
-			if len(pcs) == 100 {
-				pcchan <- pcs
-				pcs = nil
-			}
 		}
 	}
-	if len(pcs) != 0 {
-		pcchan <- pcs
-	}
-	close(pcchan)
 	stderrOut, _ := ioutil.ReadAll(stderr)
 	if err := cmd.Wait(); err != nil {
 		return nil, fmt.Errorf("failed to run objdump on %v: %v\n%s", obj, err, stderrOut)
@@ -496,17 +749,7 @@ func objdumpAndSymbolize(target *targets.Target, obj string) ([]symbolizer.Frame
 	if err := s.Err(); err != nil {
 		return nil, fmt.Errorf("failed to run objdump on %v: %v\n%s", obj, err, stderrOut)
 	}
-	if npcs == 0 {
-		return nil, fmt.Errorf("%v doesn't contain coverage callbacks '%s%s' (set CONFIG_KCOV=y)",
-			obj, callInsns, traceFuncs)
-	}
-	if err := <-errc; err != nil {
-		return nil, err
-	}
-	if len(frames) == 0 {
-		return nil, fmt.Errorf("%v doesn't have debug info (set CONFIG_DEBUG_INFO=y)", obj)
-	}
-	return frames, nil
+	return pcs, nil
 }
 
 func parseLine(callInsns, traceFuncs [][]byte, ln []byte) uint64 {
@@ -591,10 +834,6 @@ func PreviousInstructionPC(target *targets.Target, pc uint64) uint64 {
 func archCallInsn(target *targets.Target) ([][]byte, [][]byte) {
 	callName := [][]byte{[]byte(" <__sanitizer_cov_trace_pc>")}
 	switch target.Arch {
-	case "amd64":
-		// ffffffff8100206a:       callq  ffffffff815cc1d0 <__sanitizer_cov_trace_pc>
-		// To make life more interesting, llvm-objdump does spaces slightly differently.
-		return [][]byte{[]byte("\tcallq "), []byte("\tcallq\t")}, callName
 	case "386":
 		// c1000102:       call   c10001f0 <__sanitizer_cov_trace_pc>
 		return [][]byte{[]byte("\tcall ")}, callName
@@ -721,9 +960,6 @@ var coverTemplate = template.Must(template.New("").Parse(`
 				color: rgb(255, 0, 0);
 				font-weight: bold;
 			}
-			.weak-uncovered {
-				color: rgb(200, 0, 0);
-			}
 			.both {
 				color: rgb(200, 100, 0);
 				font-weight: bold;
@@ -773,7 +1009,7 @@ var coverTemplate = template.Must(template.New("").Parse(`
 			{{range $i, $p := .Progs}}
 				<pre class="file" id="prog_{{$i}}">{{$p}}</pre>
 			{{end}}
-                        {{range $i, $p := .Functions}}
+			{{range $i, $p := .Functions}}
 				<div class="function list" id="function_{{$i}}">{{$p}}</div>
 			{{end}}
 		</div>
