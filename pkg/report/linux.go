@@ -656,6 +656,7 @@ var linuxStallAnchorFrames = []*regexp.Regexp{
 	compile("call_timer_fn"),
 	compile("_run_timers"),
 	compile("run_timer_softirq"),
+	compile("hrtimer_run"),
 	compile("run_ksoftirqd"),
 	compile("smpboot_thread_fn"),
 	compile("kthread"),
