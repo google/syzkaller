@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in mac80211_hwsim_beacon
+TYPE: HANG
 
 [ 2700.709744][    C0] rcu: INFO: rcu_preempt self-detected stall on CPU
 [ 2700.716975][    C0] rcu: 	0-...!: (10499 ticks this GP) idle=bde/1/0x4000000000000000 softirq=233837/233838 fqs=1 
