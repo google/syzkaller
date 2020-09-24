@@ -75,7 +75,8 @@ type env struct {
 	testTime     time.Duration
 }
 
-const NumTests = 10 // number of tests we do per commit
+const NumTests = 10             // number of tests we do per commit
+const MaxConfigBisectRounds = 2 // maximum rounds we try config bisect
 
 // Result describes bisection result:
 //  - if bisection is conclusive, the single cause/fix commit in Commits
@@ -313,25 +314,36 @@ func (env *env) minimizeConfig() (*testResult, error) {
 		}
 		return testRes.verdict, err
 	}
-	// Find minimal configuration based on baseline to reproduce the crash.
-	env.kernelConfig, err = env.minimizer.Minimize(cfg.Kernel.Config,
-		cfg.Kernel.BaselineConfig, cfg.Trace, predMinimize)
-	if err != nil {
-		env.log("minimizing config failed: %v", err)
-		return nil, err
-	}
-	if bytes.Equal(env.kernelConfig, cfg.Kernel.Config) {
-		return nil, nil
-	}
-	// Check that crash is really reproduced with generated config.
-	testRes, err = env.test()
-	if err != nil {
-		return nil, fmt.Errorf("testing generated minimized config failed: %v", err)
-	}
-	if testRes.verdict != vcs.BisectBad {
+
+	configBisectRounds := 0
+	baselineConfig := cfg.Kernel.BaselineConfig
+	for configBisectRounds < MaxConfigBisectRounds {
+		env.log("minimizing config round %d.", configBisectRounds+1)
+		// Find minimal configuration based on baseline to reproduce the crash.
+		env.kernelConfig, err = env.minimizer.Minimize(cfg.Kernel.Config,
+			baselineConfig, cfg.Trace, predMinimize)
+		if err != nil {
+			env.log("minimizing config failed: %v", err)
+			return nil, err
+		}
+		if bytes.Equal(env.kernelConfig, cfg.Kernel.Config) {
+			return nil, nil
+		}
+		// Check that crash is really reproduced with generated config.
+		testRes, err = env.test()
+		if err != nil {
+			return nil, fmt.Errorf("testing generated minimized config failed: %v", err)
+		}
+		if testRes.verdict == vcs.BisectBad {
+			env.log("generated minimized config reproduces the crash")
+			break
+		}
+
 		env.log("testing with generated minimized config doesn't reproduce the crash")
+		baselineConfig = env.kernelConfig
 		env.kernelConfig = cfg.Kernel.Config
-		return nil, nil
+		testRes = nil
+		configBisectRounds = configBisectRounds + 1
 	}
 	return testRes, nil
 }
