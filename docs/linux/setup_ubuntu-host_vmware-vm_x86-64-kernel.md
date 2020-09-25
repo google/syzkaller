@@ -74,6 +74,38 @@ Stopping the VM:
 vmrun stop $VMPATH/debian.vmx
 ```
 
+If all of the above `vmrun` commands work, then you can proceed to running syzkaller.
+
 ## syzkaller
 
-Once you start the VM and get its IP address, you can use syzkaller to fuzz the VM in [isolated](/docs/linux/setup_linux-host_isolated.md) mode.
+Create a manager config like the following, replacing the environment variables $GOPATH, $KERNEL and $VMPATH with their actual values.
+
+```
+{
+	"target": "linux/amd64",
+	"http": "127.0.0.1:56741",
+	"workdir": "$GOPATH/src/github.com/google/syzkaller/workdir",
+	"kernel_obj": "$KERNEL",
+	"sshkey": "$IMAGE/key",
+	"syzkaller": "$GOPATH/src/github.com/google/syzkaller",
+	"procs": 8,
+	"type": "vmware",
+	"vm": {
+		"count": 4,
+		"base_vmx": "$VMPATH/debian.vmx",
+	}
+}
+```
+
+Run syzkaller manager:
+
+``` bash
+mkdir workdir
+./bin/syz-manager -config=my.cfg
+```
+
+Syzkaller will create linked clone VMs from the `base_vmx` VM and then use ssh to copy and execute programs in them.
+The `base_vmx` VM will not be started and its disk will remain unmodified.
+
+If you get issues after `syz-manager` starts, consider running it with the `-debug` flag.
+Also see [this page](/docs/troubleshooting.md) for troubleshooting tips.
