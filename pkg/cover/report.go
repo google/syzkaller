@@ -209,27 +209,29 @@ var csvHeader = []string{
 }
 
 func (rg *ReportGenerator) generateCSV(w io.Writer, progs []Prog, files map[string]*file) error {
-	data := [][]string{
-		csvHeader,
-	}
-
+	var data [][]string
 	for fname, file := range files {
 		for funcName, function := range file.functions {
-			line := []string{filepath.Clean(fname), funcName,
+			data = append(data, []string{
+				filepath.Clean(fname),
+				funcName,
 				strconv.Itoa(len(function.coverPCs)),
-				strconv.Itoa(len(function.totalPCs))}
-			data = append(data, line)
+				strconv.Itoa(len(function.totalPCs)),
+			})
 		}
 	}
+	sort.Slice(data, func(i, j int) bool {
+		if data[i][0] != data[j][0] {
+			return data[i][0] < data[j][0]
+		}
+		return data[i][1] < data[j][1]
+	})
 	writer := csv.NewWriter(w)
 	defer writer.Flush()
-
-	err := writer.WriteAll(data)
-	if err != nil {
+	if err := writer.Write(csvHeader); err != nil {
 		return err
 	}
-
-	return nil
+	return writer.WriteAll(data)
 }
 
 func (rg *ReportGenerator) generateHTML(w io.Writer, progs []Prog, files map[string]*file) error {
