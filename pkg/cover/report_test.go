@@ -198,12 +198,12 @@ func checkCSVReport(t *testing.T, CSVReport []byte) {
 	}
 
 	if !reflect.DeepEqual(lines[0], csvHeader) {
-		t.Fatalf("Heading line in CSV doesn't match %v", lines[0])
+		t.Fatalf("heading line in CSV doesn't match %v", lines[0])
 	}
 
 	for _, line := range lines {
 		if line[1] == "main" && line[2] != "1" && line[3] != "1" {
-			t.Fatalf("Function coverage percentage doesn't match %v vs. %v", line[2], "100")
+			t.Fatalf("function coverage percentage doesn't match %v vs. %v", line[2], "100")
 		}
 	}
 }
