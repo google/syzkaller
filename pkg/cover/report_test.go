@@ -197,7 +197,7 @@ func checkCSVReport(t *testing.T, CSVReport []byte) {
 		t.Fatal(err)
 	}
 
-	if !reflect.DeepEqual(lines[0], CSVHeader) {
+	if !reflect.DeepEqual(lines[0], csvHeader) {
 		t.Fatalf("Heading line in CSV doesn't match %v", lines[0])
 	}
 

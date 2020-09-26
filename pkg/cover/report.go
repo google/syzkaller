@@ -42,13 +42,6 @@ type symbol struct {
 	end   uint64
 }
 
-var CSVHeader = []string{
-	"Filename",
-	"Function",
-	"Covered PCs",
-	"Total PCs",
-}
-
 func MakeReportGenerator(target *targets.Target, kernelObject, srcDir, buildDir string) (*ReportGenerator, error) {
 	rg := &ReportGenerator{
 		target:   target,
@@ -208,9 +201,16 @@ func getFunction(functions map[string]*function, name string) *function {
 	return f
 }
 
+var csvHeader = []string{
+	"Filename",
+	"Function",
+	"Covered PCs",
+	"Total PCs",
+}
+
 func (rg *ReportGenerator) generateCSV(w io.Writer, progs []Prog, files map[string]*file) error {
 	data := [][]string{
-		CSVHeader,
+		csvHeader,
 	}
 
 	for fname, file := range files {
