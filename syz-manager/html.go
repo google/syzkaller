@@ -42,6 +42,7 @@ func (mgr *Manager) initHTTP() {
 	http.HandleFunc("/file", mgr.httpFile)
 	http.HandleFunc("/report", mgr.httpReport)
 	http.HandleFunc("/rawcover", mgr.httpRawCover)
+	http.HandleFunc("/funccover", mgr.httpFuncCover)
 	http.HandleFunc("/input", mgr.httpInput)
 	// Browsers like to request this, without special handler this goes to / handler.
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
@@ -210,10 +211,10 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 	}
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
-	mgr.httpCoverCover(w, r)
+	mgr.httpCoverCover(w, r, reportGenerator.DoHTML)
 }
 
-func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request) {
+func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, do func(io.Writer, []cover.Prog) error) {
 	var progs []cover.Prog
 	if sig := r.FormValue("input"); sig != "" {
 		inp := mgr.corpus[sig]
@@ -233,7 +234,7 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 	}
-	if err := reportGenerator.DoHTML(w, progs); err != nil {
+	if err := do(w, progs); err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -269,6 +270,20 @@ func (mgr *Manager) httpCoverFallback(w http.ResponseWriter, r *http.Request) {
 		return data.Calls[i].Name < data.Calls[j].Name
 	})
 	executeTemplate(w, fallbackCoverTemplate, data)
+}
+
+func (mgr *Manager) httpFuncCover(w http.ResponseWriter, r *http.Request) {
+	if !mgr.cfg.Cover {
+		http.Error(w, "coverage is not enabled", http.StatusInternalServerError)
+		return
+	}
+	if err := initCover(mgr.sysTarget, mgr.cfg.KernelObj, mgr.cfg.KernelSrc, mgr.cfg.KernelBuildSrc); err != nil {
+		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
+		return
+	}
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+	mgr.httpCoverCover(w, r, reportGenerator.DoCSV)
 }
 
 func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
