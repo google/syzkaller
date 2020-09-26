@@ -45,9 +45,13 @@ type Config struct {
 	// "drive index=0,media=disk,file=" is transformed to "-drive index=0,media=disk,file=image"
 	// for qemu.
 	ImageDevice string `json:"image_device"`
-	CPU         int    `json:"cpu"`      // number of VM CPUs
-	Mem         int    `json:"mem"`      // amount of VM memory in MiB
-	Snapshot    bool   `json:"snapshot"` // For building kernels without -snapshot (for pkg/build)
+	// qemu network device type to use.
+	// If not specified, some default per-arch value will be used.
+	// See the full list with qemu-system-x86_64 -device help.
+	NetDev   string `json:"network_device"`
+	CPU      int    `json:"cpu"`      // number of VM CPUs
+	Mem      int    `json:"mem"`      // amount of VM memory in MiB
+	Snapshot bool   `json:"snapshot"` // For building kernels without -snapshot (for pkg/build)
 }
 
 type Pool struct {
@@ -80,9 +84,7 @@ type archConfig struct {
 	Qemu      string
 	QemuArgs  string
 	TargetDir string
-	NicModel  string
-	// UseNewQemuNetOptions specifies whether the arch uses "new" QEMU network device options.
-	UseNewQemuNetOptions bool
+	NetDev    string // default network device type (see the full list with qemu-system-x86_64 -device help)
 	// UseNewQemuImageOptions specifies whether the arch uses "new" QEMU image device options.
 	UseNewQemuImageOptions bool
 	CmdLine                []string
@@ -96,7 +98,7 @@ var archConfigs = map[string]*archConfig{
 		// e1000e fails on recent Debian distros with:
 		// Initialization of device e1000e failed: failed to find romfile "efi-e1000e.rom
 		// But other arches don't use e1000e, e.g. arm64 uses virtio by default.
-		NicModel: ",model=e1000",
+		NetDev: "e1000",
 		CmdLine: append(linuxCmdline,
 			"root=/dev/sda",
 			"console=ttyS0",
@@ -117,7 +119,7 @@ var archConfigs = map[string]*archConfig{
 	"linux/386": {
 		Qemu:      "qemu-system-i386",
 		TargetDir: "/",
-		NicModel:  ",model=e1000",
+		NetDev:    "e1000",
 		CmdLine: append(linuxCmdline,
 			"root=/dev/sda",
 			"console=ttyS0",
@@ -127,6 +129,7 @@ var archConfigs = map[string]*archConfig{
 		Qemu:      "qemu-system-aarch64",
 		QemuArgs:  "-machine virt,virtualization=on -cpu cortex-a57",
 		TargetDir: "/",
+		NetDev:    "virtio-net-pci",
 		CmdLine: append(linuxCmdline,
 			"root=/dev/vda",
 			"console=ttyAMA0",
@@ -135,6 +138,7 @@ var archConfigs = map[string]*archConfig{
 	"linux/arm": {
 		Qemu:      "qemu-system-arm",
 		TargetDir: "/",
+		NetDev:    "virtio-net-pci",
 		CmdLine: append(linuxCmdline,
 			"root=/dev/vda",
 			"console=ttyAMA0",
@@ -144,7 +148,7 @@ var archConfigs = map[string]*archConfig{
 		Qemu:      "qemu-system-mips64el",
 		TargetDir: "/",
 		QemuArgs:  "-M malta -cpu MIPS64R2-generic -nodefaults",
-		NicModel:  ",model=e1000",
+		NetDev:    "e1000",
 		CmdLine: append(linuxCmdline,
 			"root=/dev/sda",
 			"console=ttyS0",
@@ -154,13 +158,14 @@ var archConfigs = map[string]*archConfig{
 		Qemu:      "qemu-system-ppc64",
 		TargetDir: "/",
 		QemuArgs:  "-enable-kvm -vga none",
+		NetDev:    "virtio-net-pci",
 		CmdLine:   linuxCmdline,
 	},
 	"linux/riscv64": {
 		Qemu:                   "qemu-system-riscv64",
 		TargetDir:              "/",
 		QemuArgs:               "-machine virt",
-		UseNewQemuNetOptions:   true,
+		NetDev:                 "virtio-net-pci",
 		UseNewQemuImageOptions: true,
 		CmdLine: append(linuxCmdline,
 			"root=/dev/vda",
@@ -171,7 +176,7 @@ var archConfigs = map[string]*archConfig{
 		Qemu:      "qemu-system-s390x",
 		TargetDir: "/",
 		QemuArgs:  "-M s390-ccw-virtio -cpu max,zpci=on",
-		NicModel:  ",model=virtio",
+		NetDev:    "virtio-net-pci",
 		CmdLine: append(linuxCmdline,
 			"root=/dev/vda",
 		),
@@ -180,19 +185,19 @@ var archConfigs = map[string]*archConfig{
 		Qemu:      "qemu-system-x86_64",
 		TargetDir: "/",
 		QemuArgs:  "-enable-kvm",
-		NicModel:  ",model=e1000",
+		NetDev:    "e1000",
 	},
 	"netbsd/amd64": {
 		Qemu:      "qemu-system-x86_64",
 		TargetDir: "/",
 		QemuArgs:  "-enable-kvm",
-		NicModel:  ",model=e1000",
+		NetDev:    "e1000",
 	},
 	"fuchsia/amd64": {
 		Qemu:      "qemu-system-x86_64",
 		QemuArgs:  "-enable-kvm -machine q35 -cpu host,migratable=off",
 		TargetDir: "/tmp",
-		NicModel:  ",model=e1000",
+		NetDev:    "e1000",
 		CmdLine: []string{
 			"kernel.serial=legacy",
 			"kernel.halt-on-panic=true",
@@ -202,7 +207,7 @@ var archConfigs = map[string]*archConfig{
 		Qemu:      "qemu-system-x86_64",
 		QemuArgs:  "-enable-kvm -cpu host,migratable=off",
 		TargetDir: "/",
-		NicModel:  ",model=e1000",
+		NetDev:    "e1000",
 	},
 }
 
@@ -227,6 +232,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		ImageDevice: "hda",
 		Qemu:        archConfig.Qemu,
 		QemuArgs:    archConfig.QemuArgs,
+		NetDev:      archConfig.NetDev,
 		Snapshot:    true,
 	}
 	if err := config.LoadData(env.Config, cfg); err != nil {
@@ -370,15 +376,9 @@ func (inst *instance) boot() error {
 		"-no-reboot",
 	}
 	args = append(args, splitArgs(inst.cfg.QemuArgs, filepath.Join(inst.workdir, "template"))...)
-	if inst.archConfig.UseNewQemuNetOptions {
-		args = append(args,
-			"-device", "virtio-net-device,netdev=net0",
-			"-netdev", fmt.Sprintf("user,id=net0,host=%v,hostfwd=tcp::%v-:22", hostAddr, inst.port))
-	} else {
-		args = append(args,
-			"-net", "nic"+inst.archConfig.NicModel,
-			"-net", fmt.Sprintf("user,host=%v,hostfwd=tcp::%v-:22", hostAddr, inst.port))
-	}
+	args = append(args,
+		"-device", inst.cfg.NetDev+",netdev=net0",
+		"-netdev", fmt.Sprintf("user,id=net0,host=%v,hostfwd=tcp::%v-:22", hostAddr, inst.port))
 	if inst.image == "9p" {
 		args = append(args,
 			"-fsdev", "local,id=fsdev0,path=/,security_model=none,readonly",
