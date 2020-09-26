@@ -201,9 +201,16 @@ func checkCSVReport(t *testing.T, CSVReport []byte) {
 		t.Fatalf("heading line in CSV doesn't match %v", lines[0])
 	}
 
+	foundMain := false
 	for _, line := range lines {
-		if line[1] == "main" && line[2] != "1" && line[3] != "1" {
-			t.Fatalf("function coverage percentage doesn't match %v vs. %v", line[2], "100")
+		if line[1] == "main" {
+			foundMain = true
+			if line[2] != "1" && line[3] != "1" {
+				t.Fatalf("function coverage percentage doesn't match %v vs. %v", line[2], "100")
+			}
 		}
+	}
+	if !foundMain {
+		t.Fatalf("no main in the CSV report")
 	}
 }
