@@ -355,9 +355,7 @@ func addFunctionCoverage(file *file, data *templateData) {
 		buf.WriteString(fmt.Sprintf("<span class='cover-right'>of %v", strconv.Itoa(len(function.totalPCs))))
 		buf.WriteString("</span></span></span><br>\n")
 	}
-	if buf.Len() > 0 {
-		data.Functions = append(data.Functions, template.HTML(buf.String()))
-	}
+	data.Functions = append(data.Functions, template.HTML(buf.String()))
 }
 
 func processDir(dir *templateDir) {
