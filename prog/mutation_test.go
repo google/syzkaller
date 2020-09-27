@@ -388,6 +388,9 @@ func BenchmarkGenerate(b *testing.B) {
 }
 
 func runMutationTests(t *testing.T, tests [][2]string, valid bool) {
+	if raceEnabled {
+		t.Skip("skipping in race mode, too slow")
+	}
 	target := initTargetTest(t, "test", "64")
 	for ti, test := range tests {
 		test := test
