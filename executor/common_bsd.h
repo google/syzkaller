@@ -192,7 +192,7 @@ static void initialize_tun(int tun_id)
 #endif // SYZ_EXECUTOR
 
 	if (tun_id < 0 || tun_id >= MAX_TUN) {
-		fail("tun_id out of range %d\n", tun_id);
+		fail("tun_id out of range %d", tun_id);
 	}
 
 	char tun_device[sizeof(TUN_DEVICE)];
@@ -219,7 +219,7 @@ static void initialize_tun(int tun_id)
 #endif
 	if (tunfd == -1) {
 #if SYZ_EXECUTOR
-		fail("tun: can't open %s\n", tun_device);
+		fail("tun: can't open %s", tun_device);
 #else
 		printf("tun: can't open %s: errno=%d\n", tun_device, errno);
 		return;

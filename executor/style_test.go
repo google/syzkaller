@@ -110,6 +110,13 @@ if (foo)
 `,
 			},
 		},
+		{
+			pattern: `\s*(fail|exitf)\(".*\\n`,
+			message: "Don't use \\n in fail/exitf messages",
+			tests: []string{
+				`fail("some message with new line\n");`,
+			},
+		},
 	}
 	for _, check := range checks {
 		re := regexp.MustCompile(check.pattern)
