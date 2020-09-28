@@ -167,6 +167,9 @@ func linuxAlterConfigs(config []byte, tags map[string]bool) []byte {
 		"CONFIG_NET_TEAM": "v4.7",
 		// Setup of network devices is broken before v4.5 with a warning in batadv_tvlv_container_remove.
 		"CONFIG_BATMAN_ADV": "v4.5",
+		// UBSAN is broken in multiple ways before v5.3, see:
+		// https://github.com/google/syzkaller/issues/1523#issuecomment-696514105
+		"CONFIG_UBSAN": "v5.3",
 		// First, we disable coverage in pkg/bisect because it fails machine testing starting from 4.7.
 		// Second, at 6689da155bdcd17abfe4d3a8b1e245d9ed4b5f2c CONFIG_KCOV selects CONFIG_GCC_PLUGIN_SANCOV
 		// (why?), which is build broken for hundreds of revisions.
