@@ -6,6 +6,9 @@
 
 #include "nocover.h"
 
+#define read read_win
+#define write write_win
+
 static void os_init(int argc, char** argv, void* data, size_t data_size)
 {
 	if (VirtualAlloc(data, data_size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE) != data)
@@ -19,4 +22,19 @@ static intptr_t execute_syscall(const call_t* c, intptr_t a[kMaxArgs])
 	} __except (EXCEPTION_EXECUTE_HANDLER) {
 		return -1;
 	}
+}
+
+static __inline int read_win(int pipe_id, void* input_data, int data_size)
+{
+	DWORD dwBytesRead = 0;
+	ReadFile((HANDLE)_get_osfhandle(pipe_id), input_data, data_size, &dwBytesRead, NULL);
+
+	return (int)dwBytesRead;
+}
+
+static __inline int write_win(int pipe_id, void* input_data, int data_size)
+{
+	DWORD dwBytesWritten = 0;
+	WriteFile((HANDLE)_get_osfhandle(pipe_id), input_data, data_size, &dwBytesWritten, NULL);
+	return (int)dwBytesWritten;
 }

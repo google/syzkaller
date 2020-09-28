@@ -3,20 +3,17 @@
 
 // This file is shared between executor and csource package.
 
+#include <direct.h> // for _chdir
+#include <io.h> // for mktemp
 #include <windows.h>
-
-#include "common.h"
 
 #if SYZ_EXECUTOR || SYZ_HANDLE_SEGV
 static void install_segv_handler()
 {
 }
 
-#define NONFAILING(...)                          \
-	__try {                                  \
-		__VA_ARGS__;                     \
-	} __except (EXCEPTION_EXECUTE_HANDLER) { \
-	}
+#define NONFAILING(...) \
+	([&]() { __try { __VA_ARGS__; } __except (EXCEPTION_EXECUTE_HANDLER) { return false; } return true; }())
 #endif
 
 #if SYZ_EXECUTOR || SYZ_THREADED || SYZ_REPEAT && SYZ_EXECUTOR_USES_FORK_SERVER
@@ -111,3 +108,12 @@ static int do_sandbox_none(void)
 	return 0;
 }
 #endif
+
+static void use_temporary_dir(void)
+{
+	char tmpdir_template[] = "./syzkaller.XXXXXX";
+	char* tmpdir = mktemp(tmpdir_template);
+
+	CreateDirectory(tmpdir, NULL);
+	_chdir(tmpdir);
+}

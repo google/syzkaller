@@ -11,6 +11,13 @@ var commonHeader = `
 
 #if GOOS_freebsd || GOOS_test && HOSTGOOS_freebsd
 #include <sys/endian.h>
+#elif GOOS_windows
+#define htobe16 _byteswap_ushort
+#define htobe32 _byteswap_ulong
+#define htobe64 _byteswap_uint64
+#define le16toh(x) x
+#define htole16(x) x
+typedef signed int ssize_t;
 #else
 #include <endian.h>
 #endif
@@ -24,7 +31,9 @@ var commonHeader = `
 #endif
 
 #if SYZ_EXECUTOR && !GOOS_linux
+#if !GOOS_windows
 #include <unistd.h>
+#endif
 NORETURN void doexit(int status)
 {
 	_exit(status);
@@ -104,13 +113,16 @@ static void install_segv_handler(void)
 }
 
 #define NONFAILING(...)                                              \
-	{                                                            \
+	({                                                           \
+		int ok = 1;                                          \
 		__atomic_fetch_add(&skip_segv, 1, __ATOMIC_SEQ_CST); \
 		if (_setjmp(segv_env) == 0) {                        \
 			__VA_ARGS__;                                 \
-		}                                                    \
+		} else                                               \
+			ok = 0;                                      \
 		__atomic_fetch_sub(&skip_segv, 1, __ATOMIC_SEQ_CST); \
-	}
+		ok;                                                  \
+	})
 #endif
 #endif
 
@@ -2090,13 +2102,16 @@ static void install_segv_handler(void)
 }
 
 #define NONFAILING(...)                                              \
-	{                                                            \
+	({                                                           \
+		int ok = 1;                                          \
 		__atomic_fetch_add(&skip_segv, 1, __ATOMIC_SEQ_CST); \
 		if (sigsetjmp(segv_env, 0) == 0) {                   \
 			__VA_ARGS__;                                 \
-		}                                                    \
+		} else                                               \
+			ok = 0;                                      \
 		__atomic_fetch_sub(&skip_segv, 1, __ATOMIC_SEQ_CST); \
-	}
+		ok;                                                  \
+	})
 #endif
 
 #if SYZ_EXECUTOR || SYZ_THREADED
@@ -9660,20 +9675,17 @@ static int do_sandbox_none(void)
 
 #elif GOOS_windows
 
+#include <direct.h>
+#include <io.h>
 #include <windows.h>
-
-#include "common.h"
 
 #if SYZ_EXECUTOR || SYZ_HANDLE_SEGV
 static void install_segv_handler()
 {
 }
 
-#define NONFAILING(...)                          \
-	__try {                                  \
-		__VA_ARGS__;                     \
-	} __except (EXCEPTION_EXECUTE_HANDLER) { \
-	}
+#define NONFAILING(...) \
+	([&]() { __try { __VA_ARGS__; } __except (EXCEPTION_EXECUTE_HANDLER) { return false; } return true; }())
 #endif
 
 #if SYZ_EXECUTOR || SYZ_THREADED || SYZ_REPEAT && SYZ_EXECUTOR_USES_FORK_SERVER
@@ -9769,6 +9781,15 @@ static int do_sandbox_none(void)
 }
 #endif
 
+static void use_temporary_dir(void)
+{
+	char tmpdir_template[] = "./syzkaller.XXXXXX";
+	char* tmpdir = mktemp(tmpdir_template);
+
+	CreateDirectory(tmpdir, NULL);
+	_chdir(tmpdir);
+}
+
 #else
 #error "unknown OS"
 #endif
@@ -9776,11 +9797,13 @@ static int do_sandbox_none(void)
 #if SYZ_EXECUTOR || __NR_syz_execute_func
 static long syz_execute_func(volatile long text)
 {
+#if defined(__GNUC__)
 	volatile long p[8] = {0};
 	(void)p;
 #if GOARCH_amd64
 	asm volatile("" ::"r"(0l), "r"(1l), "r"(2l), "r"(3l), "r"(4l), "r"(5l), "r"(6l),
 		     "r"(7l), "r"(8l), "r"(9l), "r"(10l), "r"(11l), "r"(12l), "r"(13l));
+#endif
 #endif
 	((void (*)(void))(text))();
 	return 0;
