@@ -259,7 +259,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		{{else if eq .Type $fixJob}}
 			<b>Fix bisection: failed</b>
 		{{end}}
-		({{link .LogLink "bisect log"}})</b><br>
+		<b>({{link .LogLink "bisect log"}})</b><br>
 	{{else if .Commit}}
 		{{if eq .Type $causeJob}}
 			<b>Cause bisection: introduced by</b>
@@ -288,11 +288,11 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		</span>
 	{{else}}
 		{{if eq .Type $causeJob}}
-			<b>Cause bisection: the bug happens on the oldest tested release</b>
+			<b>Cause bisection: the issue happens on the oldest tested release</b>
 		{{else if eq .Type $fixJob}}
-			<b>Fix bisection: the bug occurs on the latest tested release</b>
+			<b>Fix bisection: the issue occurs on the latest tested release</b>
 		{{end}}
-		<br>
+		<b>({{link .LogLink "bisect log"}})</b><br>
 	{{end}}
 	{{if .CrashLogLink}}
 		Crash: {{link .CrashReportLink .CrashTitle}} ({{link .CrashLogLink "log"}})<br>
