@@ -14,7 +14,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
+#if !GOOS_windows
 #include <unistd.h>
+#endif
 
 #include "defs.h"
 
@@ -23,12 +26,15 @@
 #define NORETURN __attribute__((noreturn))
 #define ALIGNED(N) __attribute__((aligned(N)))
 #define PRINTF(fmt, args) __attribute__((format(printf, fmt, args)))
+#define INPUT_DATA_ALIGNMENT 64 << 10
 #else
 // Assuming windows/cl.
 #define SYSCALLAPI WINAPI
 #define NORETURN __declspec(noreturn)
-#define ALIGNED(N) __declspec(align(N))
+#define INPUT_DATA_ALIGNMENT 4 << 10
+#define ALIGNED(N) __declspec(align(N)) // here we are not aligning the value because of msvc reporting the value as an illegal value
 #define PRINTF(fmt, args)
+#define __thread __declspec(thread)
 #endif
 
 #ifndef GIT_REVISION
@@ -172,7 +178,7 @@ static bool collide;
 uint32 completed;
 bool is_kernel_64_bit = true;
 
-ALIGNED(64 << 10)
+ALIGNED(INPUT_DATA_ALIGNMENT)
 static char input_data[kMaxInput];
 
 // Checksum kinds.
@@ -1233,8 +1239,7 @@ void copyin(char* addr, uint64 val, uint64 size, uint64 bf, uint64 bf_off, uint6
 
 bool copyout(char* addr, uint64 size, uint64* res)
 {
-	bool ok = false;
-	NONFAILING(
+	return NONFAILING(
 	    switch (size) {
 		    case 1:
 			    *res = *(uint8*)addr;
@@ -1250,8 +1255,7 @@ bool copyout(char* addr, uint64 size, uint64* res)
 			    break;
 		    default:
 			    fail("copyout: bad argument size %llu", size);
-	    } __atomic_store_n(&ok, true, __ATOMIC_RELEASE););
-	return ok;
+	    });
 }
 
 uint64 read_arg(uint64** input_posp)

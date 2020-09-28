@@ -17,6 +17,13 @@
 
 #if GOOS_freebsd || GOOS_test && HOSTGOOS_freebsd
 #include <sys/endian.h> // for htobe*.
+#elif GOOS_windows
+#define htobe16 _byteswap_ushort
+#define htobe32 _byteswap_ulong
+#define htobe64 _byteswap_uint64
+#define le16toh(x) x
+#define htole16(x) x
+typedef signed int ssize_t;
 #else
 #include <endian.h> // for htobe*.
 #endif
@@ -30,7 +37,9 @@
 #endif
 
 #if SYZ_EXECUTOR && !GOOS_linux
+#if !GOOS_windows
 #include <unistd.h>
+#endif
 NORETURN void doexit(int status)
 {
 	_exit(status);
@@ -124,13 +133,16 @@ static void install_segv_handler(void)
 }
 
 #define NONFAILING(...)                                              \
-	{                                                            \
+	({                                                           \
+		int ok = 1;                                          \
 		__atomic_fetch_add(&skip_segv, 1, __ATOMIC_SEQ_CST); \
 		if (_setjmp(segv_env) == 0) {                        \
 			__VA_ARGS__;                                 \
-		}                                                    \
+		} else                                               \
+			ok = 0;                                      \
 		__atomic_fetch_sub(&skip_segv, 1, __ATOMIC_SEQ_CST); \
-	}
+		ok;                                                  \
+	})
 #endif
 #endif
 
@@ -440,11 +452,13 @@ static long syz_execute_func(volatile long text)
 	// from the reach of the random code, otherwise it's known to reach
 	// the output region somehow. The asm block is arch-independent except
 	// for the number of available registers.
+#if defined(__GNUC__)
 	volatile long p[8] = {0};
 	(void)p;
 #if GOARCH_amd64
 	asm volatile("" ::"r"(0l), "r"(1l), "r"(2l), "r"(3l), "r"(4l), "r"(5l), "r"(6l),
 		     "r"(7l), "r"(8l), "r"(9l), "r"(10l), "r"(11l), "r"(12l), "r"(13l));
+#endif
 #endif
 	((void (*)(void))(text))();
 	return 0;

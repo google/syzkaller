@@ -126,13 +126,16 @@ static void install_segv_handler(void)
 }
 
 #define NONFAILING(...)                                              \
-	{                                                            \
+	({                                                           \
+		int ok = 1;                                          \
 		__atomic_fetch_add(&skip_segv, 1, __ATOMIC_SEQ_CST); \
 		if (sigsetjmp(segv_env, 0) == 0) {                   \
 			__VA_ARGS__;                                 \
-		}                                                    \
+		} else                                               \
+			ok = 0;                                      \
 		__atomic_fetch_sub(&skip_segv, 1, __ATOMIC_SEQ_CST); \
-	}
+		ok;                                                  \
+	})
 #endif
 
 #if SYZ_EXECUTOR || SYZ_THREADED
