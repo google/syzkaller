@@ -626,7 +626,7 @@ static void netlink_devlink_netns_move(const char* bus_name, const char* dev_nam
 
 	sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
 	if (sock == -1)
-		fail("socket(AF_NETLINK) failed\n");
+		fail("socket(AF_NETLINK) failed");
 
 	id = netlink_query_family_id(&nlmsg, sock, DEVLINK_FAMILY_NAME);
 	if (id == -1)
@@ -659,7 +659,7 @@ static void initialize_devlink_ports(const char* bus_name, const char* dev_name,
 
 	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
 	if (sock == -1)
-		fail("socket(AF_NETLINK) failed\n");
+		fail("socket(AF_NETLINK) failed");
 
 	int rtsock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 	if (rtsock == -1)
@@ -978,7 +978,7 @@ static void initialize_wifi_devices(void)
 		mac_addr[5] = device_id;
 		int ret = hwsim80211_create_device(&nlmsg, sock, hwsim_family_id, mac_addr);
 		if (ret < 0)
-			fail("initialize_wifi_devices: failed to create device #%d\n", device_id);
+			fail("initialize_wifi_devices: failed to create device #%d", device_id);
 
 		// For each device, unless HWSIM_ATTR_NO_VIF is passed, a network interface is created
 		// automatically. Such interfaces are named "wlan0", "wlan1" and so on.
@@ -986,7 +986,7 @@ static void initialize_wifi_devices(void)
 		interface[4] += device_id;
 
 		if (nl80211_setup_ibss_interface(&nlmsg, sock, nl80211_family_id, interface, &ibss_props) < 0)
-			fail("initialize_wifi_devices: failed set up IBSS network for #%d\n", device_id);
+			fail("initialize_wifi_devices: failed set up IBSS network for #%d", device_id);
 	}
 
 	// Wait for all devices to join the IBSS network
@@ -995,7 +995,7 @@ static void initialize_wifi_devices(void)
 		interface[4] += device_id;
 		int ret = await_ifla_operstate(&nlmsg, interface, IF_OPER_UP);
 		if (ret < 0)
-			fail("initialize_wifi_devices: get_ifla_operstate failed for #%d, ret %d\n", device_id, ret);
+			fail("initialize_wifi_devices: get_ifla_operstate failed for #%d, ret %d", device_id, ret);
 	}
 
 	close(sock);
@@ -2350,7 +2350,7 @@ static void rfkill_unblock_all()
 	event.soft = 0;
 	event.hard = 0;
 	if (write(fd, &event, sizeof(event)) < 0)
-		fail("write rfkill event failed\n");
+		fail("write rfkill event failed");
 	close(fd);
 }
 
@@ -2407,7 +2407,7 @@ static bool process_command_pkt(int fd, char* buf, ssize_t buf_size)
 	struct hci_command_hdr* hdr = (struct hci_command_hdr*)buf;
 	if (buf_size < (ssize_t)sizeof(struct hci_command_hdr) ||
 	    hdr->plen != buf_size - sizeof(struct hci_command_hdr)) {
-		fail("invalid size: %zx\n", buf_size);
+		fail("invalid size: %zx", buf_size);
 	}
 
 	switch (hdr->opcode) {

@@ -673,7 +673,7 @@ retry:
 							break;
 						case arg_csum_chunk_const:
 							if (chunk_size != 2 && chunk_size != 4 && chunk_size != 8) {
-								fail("bad checksum const chunk size %lld\n", chunk_size);
+								fail("bad checksum const chunk size %lld", chunk_size);
 							}
 							// Here we assume that const values come to us big endian.
 							debug_verbose("#%lld: const chunk, value: %llx, size: %llu\n",

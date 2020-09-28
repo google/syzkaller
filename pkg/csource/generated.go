@@ -1708,7 +1708,7 @@ static void initialize_tun(int tun_id)
 #endif
 
 	if (tun_id < 0 || tun_id >= MAX_TUN) {
-		fail("tun_id out of range %d\n", tun_id);
+		fail("tun_id out of range %d", tun_id);
 	}
 
 	char tun_device[sizeof(TUN_DEVICE)];
@@ -1733,7 +1733,7 @@ static void initialize_tun(int tun_id)
 #endif
 	if (tunfd == -1) {
 #if SYZ_EXECUTOR
-		fail("tun: can't open %s\n", tun_device);
+		fail("tun: can't open %s", tun_device);
 #else
 		printf("tun: can't open %s: errno=%d\n", tun_device, errno);
 		return;
@@ -2842,7 +2842,7 @@ static void netlink_devlink_netns_move(const char* bus_name, const char* dev_nam
 
 	sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
 	if (sock == -1)
-		fail("socket(AF_NETLINK) failed\n");
+		fail("socket(AF_NETLINK) failed");
 
 	id = netlink_query_family_id(&nlmsg, sock, DEVLINK_FAMILY_NAME);
 	if (id == -1)
@@ -2875,7 +2875,7 @@ static void initialize_devlink_ports(const char* bus_name, const char* dev_name,
 
 	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
 	if (sock == -1)
-		fail("socket(AF_NETLINK) failed\n");
+		fail("socket(AF_NETLINK) failed");
 
 	int rtsock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 	if (rtsock == -1)
@@ -3178,19 +3178,19 @@ static void initialize_wifi_devices(void)
 		mac_addr[5] = device_id;
 		int ret = hwsim80211_create_device(&nlmsg, sock, hwsim_family_id, mac_addr);
 		if (ret < 0)
-			fail("initialize_wifi_devices: failed to create device #%d\n", device_id);
+			fail("initialize_wifi_devices: failed to create device #%d", device_id);
 		char interface[6] = "wlan0";
 		interface[4] += device_id;
 
 		if (nl80211_setup_ibss_interface(&nlmsg, sock, nl80211_family_id, interface, &ibss_props) < 0)
-			fail("initialize_wifi_devices: failed set up IBSS network for #%d\n", device_id);
+			fail("initialize_wifi_devices: failed set up IBSS network for #%d", device_id);
 	}
 	for (int device_id = 0; device_id < WIFI_INITIAL_DEVICE_COUNT; device_id++) {
 		char interface[6] = "wlan0";
 		interface[4] += device_id;
 		int ret = await_ifla_operstate(&nlmsg, interface, IF_OPER_UP);
 		if (ret < 0)
-			fail("initialize_wifi_devices: get_ifla_operstate failed for #%d, ret %d\n", device_id, ret);
+			fail("initialize_wifi_devices: get_ifla_operstate failed for #%d, ret %d", device_id, ret);
 	}
 
 	close(sock);
@@ -5731,7 +5731,7 @@ static void rfkill_unblock_all()
 	event.soft = 0;
 	event.hard = 0;
 	if (write(fd, &event, sizeof(event)) < 0)
-		fail("write rfkill event failed\n");
+		fail("write rfkill event failed");
 	close(fd);
 }
 
@@ -5788,7 +5788,7 @@ static bool process_command_pkt(int fd, char* buf, ssize_t buf_size)
 	struct hci_command_hdr* hdr = (struct hci_command_hdr*)buf;
 	if (buf_size < (ssize_t)sizeof(struct hci_command_hdr) ||
 	    hdr->plen != buf_size - sizeof(struct hci_command_hdr)) {
-		fail("invalid size: %zx\n", buf_size);
+		fail("invalid size: %zx", buf_size);
 	}
 
 	switch (hdr->opcode) {
