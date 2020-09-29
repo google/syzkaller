@@ -46,7 +46,7 @@ func main() {
 	log.Printf("loading %v bugs", len(resp.List))
 	const P = 10
 	idchan := make(chan string, 10*P)
-	bugchan := make(chan *dashapi.LoadBugResp, 10*P)
+	bugchan := make(chan *dashapi.BugReport, 10*P)
 	go func() {
 		for _, id := range resp.List {
 			if _, err := os.Stat(filepath.Join(*flagOutputDir, id+".c")); err == nil {
@@ -90,10 +90,10 @@ func main() {
 	writeRepros(bugchan)
 }
 
-func writeRepros(bugchan chan *dashapi.LoadBugResp) {
+func writeRepros(bugchan chan *dashapi.BugReport) {
 	for bug := range bugchan {
 		if len(bug.ReproSyz) == 0 {
-			log.Printf("%v: %v: no repro", bug.ID, bug.Status)
+			log.Printf("%v: %v: no repro", bug.ID, bug.BugStatus)
 			file := filepath.Join(*flagOutputDir, bug.ID+".norepro")
 			if err := ioutil.WriteFile(file, nil, 0644); err != nil {
 				log.Fatalf("failed to write file: %v", err)
@@ -101,7 +101,7 @@ func writeRepros(bugchan chan *dashapi.LoadBugResp) {
 			continue
 		}
 		if len(bug.ReproC) == 0 {
-			log.Printf("%v: %v: syz repro on %v", bug.ID, bug.Status, bug.SyzkallerCommit)
+			log.Printf("%v: %v: syz repro on %v", bug.ID, bug.BugStatus, bug.SyzkallerCommit)
 			if err := createCRepro(bug); err != nil {
 				log.Print(err)
 				errText := []byte(err.Error())
@@ -112,13 +112,13 @@ func writeRepros(bugchan chan *dashapi.LoadBugResp) {
 				continue
 			}
 		}
-		log.Printf("%v: %v: C repro", bug.ID, bug.Status)
+		log.Printf("%v: %v: C repro", bug.ID, bug.BugStatus)
 		arch := ""
 		if bug.Arch != "" && bug.Arch != "amd64" {
 			arch = fmt.Sprintf(" arch:%v", bug.Arch)
 		}
 		repro := []byte(fmt.Sprintf("// %v\n// %v/bug?id=%v\n// status:%v%v\n",
-			bug.Title, *flagDashboard, bug.ID, bug.Status, arch))
+			bug.Title, *flagDashboard, bug.ID, bug.BugStatus, arch))
 		repro = append(repro, bug.ReproC...)
 		file := filepath.Join(*flagOutputDir, bug.ID+".c")
 		if err := ioutil.WriteFile(file, repro, 0644); err != nil {
@@ -127,7 +127,7 @@ func writeRepros(bugchan chan *dashapi.LoadBugResp) {
 	}
 }
 
-func createCRepro(bug *dashapi.LoadBugResp) error {
+func createCRepro(bug *dashapi.BugReport) error {
 	opts, err := csource.DeserializeOptions(bug.ReproOpts)
 	if err != nil {
 		return fmt.Errorf("failed to deserialize opts: %v", err)
@@ -155,7 +155,7 @@ func createCRepro(bug *dashapi.LoadBugResp) error {
 
 // Although liter complains about this function, it does not seem complex.
 // nolint: gocyclo
-func createProg2CArgs(bug *dashapi.LoadBugResp, opts csource.Options, file string) []string {
+func createProg2CArgs(bug *dashapi.BugReport, opts csource.Options, file string) []string {
 	haveEnableFlag := containsCommit("dfd609eca1871f01757d6b04b19fc273c87c14e5")
 	haveRepeatFlag := containsCommit("b25fc7b83119e8dca728a199fd92e24dd4c33fa4")
 	haveCgroupFlag := containsCommit("9753d3be5e6c79e271ed128795039f161ee339b7")
