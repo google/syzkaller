@@ -96,6 +96,10 @@ type Config struct {
 	BisectBinDir    string           `json:"bisect_bin_dir"`
 	Ccache          string           `json:"ccache"`
 	Managers        []*ManagerConfig `json:"managers"`
+	// Poll period for jobs in seconds (optional, defaults to 10 seconds)
+	JobPollPeriod int `json:"job_poll_period"`
+	// Poll period for commits in seconds (optional, defaults to 3600 seconds)
+	CommitPollPeriod int `json:"commit_poll_period"`
 }
 
 type ManagerConfig struct {
@@ -237,10 +241,12 @@ func serveHTTP(cfg *Config) {
 
 func loadConfig(filename string) (*Config, error) {
 	cfg := &Config{
-		SyzkallerRepo:   "https://github.com/google/syzkaller.git",
-		SyzkallerBranch: "master",
-		ManagerPort:     10000,
-		Goroot:          os.Getenv("GOROOT"),
+		SyzkallerRepo:    "https://github.com/google/syzkaller.git",
+		SyzkallerBranch:  "master",
+		ManagerPort:      10000,
+		Goroot:           os.Getenv("GOROOT"),
+		JobPollPeriod:    10,
+		CommitPollPeriod: 3600,
 	}
 	if err := config.LoadFile(filename, cfg); err != nil {
 		return nil, err

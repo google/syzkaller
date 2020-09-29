@@ -25,10 +25,6 @@ import (
 	"github.com/google/syzkaller/vm"
 )
 
-const (
-	commitPollPeriod = time.Hour
-)
-
 type JobProcessor struct {
 	cfg             *Config
 	name            string
@@ -56,9 +52,10 @@ func newJobProcessor(cfg *Config, managers []*Manager, stop, shutdownPending cha
 }
 
 func (jp *JobProcessor) loop() {
-	ticker := time.NewTicker(10 * time.Second)
-	defer ticker.Stop()
-	var lastCommitPoll time.Time
+	jobTicker := time.NewTicker(time.Duration(jp.cfg.JobPollPeriod) * time.Second)
+	commitTicker := time.NewTicker(time.Duration(jp.cfg.CommitPollPeriod) * time.Second)
+	defer jobTicker.Stop()
+	defer commitTicker.Stop()
 loop:
 	for {
 		// Check jp.stop separately first, otherwise if stop signal arrives during a job execution,
@@ -69,17 +66,15 @@ loop:
 		default:
 		}
 		select {
-		case <-ticker.C:
+		case <-jobTicker.C:
 			if len(kernelBuildSem) != 0 {
 				// If normal kernel build is in progress (usually on start), don't query jobs.
 				// Otherwise we claim a job, but can't start it for a while.
 				continue loop
 			}
 			jp.pollJobs()
-			if time.Since(lastCommitPoll) > commitPollPeriod {
-				jp.pollCommits()
-				lastCommitPoll = time.Now()
-			}
+		case <-commitTicker.C:
+			jp.pollCommits()
 		case <-jp.stop:
 			break loop
 		}
