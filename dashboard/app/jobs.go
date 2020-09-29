@@ -679,6 +679,7 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *db.Key, config i
 		ReportLink:      externalLink(c, textCrashReport, job.CrashReport),
 		ReproCLink:      externalLink(c, textReproC, crash.ReproC),
 		ReproSyzLink:    externalLink(c, textReproSyz, crash.ReproSyz),
+		ReproOpts:       crash.ReproOpts,
 		MachineInfoLink: externalLink(c, textMachineInfo, crash.MachineInfo),
 		CrashTitle:      job.CrashTitle,
 		Error:           jobError,

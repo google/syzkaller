@@ -41,6 +41,7 @@ func TestReportBug(t *testing.T) {
 	_, dbCrash, dbBuild := c.loadBug(rep.ID)
 	want := &dashapi.BugReport{
 		Type:              dashapi.ReportNew,
+		BugStatus:         dashapi.BugStatusOpen,
 		Namespace:         "test1",
 		Config:            []byte(`{"Index":1}`),
 		ID:                rep.ID,
@@ -54,6 +55,8 @@ func TestReportBug(t *testing.T) {
 		CreditEmail:       fmt.Sprintf("syzbot+%v@testapp.appspotmail.com", rep.ID),
 		Maintainers:       []string{"bar@foo.com", "foo@bar.com"},
 		CompilerID:        "compiler1",
+		BuildID:           "build1",
+		BuildTime:         timeNow(c.ctx),
 		KernelRepo:        "repo1",
 		KernelRepoAlias:   "repo1 branch1",
 		KernelBranch:      "branch1",
@@ -62,13 +65,16 @@ func TestReportBug(t *testing.T) {
 		KernelCommitDate:  buildCommitDate,
 		KernelConfig:      []byte("config1"),
 		KernelConfigLink:  externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig),
+		SyzkallerCommit:   "syzkaller_commit1",
 		MachineInfo:       []byte("machine info 1"),
 		MachineInfoLink:   externalLink(c.ctx, textMachineInfo, dbCrash.MachineInfo),
 		Log:               []byte("log1"),
 		LogLink:           externalLink(c.ctx, textCrashLog, dbCrash.Log),
 		Report:            []byte("report1"),
 		ReportLink:        externalLink(c.ctx, textCrashReport, dbCrash.Report),
+		ReproOpts:         []uint8{},
 		CrashID:           rep.CrashID,
+		CrashTime:         timeNow(c.ctx),
 		NumCrashes:        1,
 		HappenedOn:        []string{"repo1 branch1"},
 	}
@@ -83,6 +89,7 @@ func TestReportBug(t *testing.T) {
 	want.Type = dashapi.ReportRepro
 	want.First = false
 	want.ReproSyz = []byte(syzReproPrefix + "#some opts\ngetpid()")
+	want.ReproOpts = []byte("some opts")
 	c.client.ReportCrash(crash1)
 	rep1 := c.client.pollBug()
 	c.expectNE(want.CrashID, rep1.CrashID)
@@ -127,6 +134,7 @@ func TestReportBug(t *testing.T) {
 	want.ReportLink = rep2.ReportLink
 	want.CrashID = rep2.CrashID
 	want.ReproSyzLink = rep2.ReproSyzLink
+	want.ReproOpts = []byte("some opts")
 	want.Link = fmt.Sprintf("https://testapp.appspot.com/bug?extid=%v", rep2.ID)
 	want.CreditEmail = fmt.Sprintf("syzbot+%v@testapp.appspotmail.com", rep2.ID)
 	want.First = true
@@ -196,6 +204,7 @@ func TestInvalidBug(t *testing.T) {
 	_, dbCrash, dbBuild := c.loadBug(rep.ID)
 	want := &dashapi.BugReport{
 		Type:              dashapi.ReportNew,
+		BugStatus:         dashapi.BugStatusOpen,
 		Namespace:         "test1",
 		Config:            []byte(`{"Index":1}`),
 		ID:                rep.ID,
@@ -207,6 +216,8 @@ func TestInvalidBug(t *testing.T) {
 		Title:             "title1 (2)",
 		Link:              fmt.Sprintf("https://testapp.appspot.com/bug?extid=%v", rep.ID),
 		CreditEmail:       fmt.Sprintf("syzbot+%v@testapp.appspotmail.com", rep.ID),
+		BuildID:           "build1",
+		BuildTime:         timeNow(c.ctx),
 		CompilerID:        "compiler1",
 		KernelRepo:        "repo1",
 		KernelRepoAlias:   "repo1 branch1",
@@ -216,13 +227,16 @@ func TestInvalidBug(t *testing.T) {
 		KernelCommitDate:  buildCommitDate,
 		KernelConfig:      []byte("config1"),
 		KernelConfigLink:  externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig),
+		SyzkallerCommit:   "syzkaller_commit1",
 		Log:               []byte("log2"),
 		LogLink:           externalLink(c.ctx, textCrashLog, dbCrash.Log),
 		Report:            []byte("report2"),
 		ReportLink:        externalLink(c.ctx, textCrashReport, dbCrash.Report),
 		ReproC:            []byte("int main() { return 1; }"),
 		ReproCLink:        externalLink(c.ctx, textReproC, dbCrash.ReproC),
+		ReproOpts:         []uint8{},
 		CrashID:           rep.CrashID,
+		CrashTime:         timeNow(c.ctx),
 		NumCrashes:        1,
 		HappenedOn:        []string{"repo1 branch1"},
 	}

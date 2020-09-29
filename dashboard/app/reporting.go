@@ -430,9 +430,11 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 		ReproCLink:      externalLink(c, textReproC, crash.ReproC),
 		ReproSyz:        reproSyz,
 		ReproSyzLink:    externalLink(c, textReproSyz, crash.ReproSyz),
+		ReproOpts:       crash.ReproOpts,
 		MachineInfo:     machineInfo,
 		MachineInfoLink: externalLink(c, textMachineInfo, crash.MachineInfo),
 		CrashID:         crashKey.IntID(),
+		CrashTime:       crash.Time,
 		NumCrashes:      bug.NumCrashes,
 		HappenedOn:      managersToRepos(c, bug.Namespace, bug.HappenedOn),
 	}
@@ -462,6 +464,18 @@ func fillBugReport(c context.Context, rep *dashapi.BugReport, bug *Bug, bugRepor
 	if err != nil {
 		return err
 	}
+	switch bug.Status {
+	case BugStatusOpen:
+		rep.BugStatus = dashapi.BugStatusOpen
+	case BugStatusFixed:
+		rep.BugStatus = dashapi.BugStatusFixed
+	case BugStatusInvalid:
+		rep.BugStatus = dashapi.BugStatusInvalid
+	case BugStatusDup:
+		rep.BugStatus = dashapi.BugStatusDup
+	default:
+		return fmt.Errorf("unknown bugs status %v", bug.Status)
+	}
 	rep.Namespace = bug.Namespace
 	rep.ID = bugReporting.ID
 	rep.Title = bug.displayTitle()
@@ -471,6 +485,8 @@ func fillBugReport(c context.Context, rep *dashapi.BugReport, bug *Bug, bugRepor
 	rep.Arch = build.Arch
 	rep.VMArch = build.VMArch
 	rep.UserSpaceArch = kernelArch(build.Arch)
+	rep.BuildID = build.ID
+	rep.BuildTime = build.Time
 	rep.CompilerID = build.CompilerID
 	rep.KernelRepo = build.KernelRepo
 	rep.KernelRepoAlias = kernelRepoInfo(build).Alias
@@ -480,6 +496,7 @@ func fillBugReport(c context.Context, rep *dashapi.BugReport, bug *Bug, bugRepor
 	rep.KernelCommitDate = build.KernelCommitDate
 	rep.KernelConfig = kernelConfig
 	rep.KernelConfigLink = externalLink(c, textKernelConfig, build.KernelConfig)
+	rep.SyzkallerCommit = build.SyzkallerCommit
 	rep.NoRepro = build.Type == BuildFailed
 	for _, addr := range bug.UNCC {
 		rep.CC = email.RemoveFromEmailList(rep.CC, addr)
