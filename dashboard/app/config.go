@@ -4,6 +4,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/mail"
@@ -83,6 +84,8 @@ type Config struct {
 	// Other repos are secondary repos, they may be tested or not.
 	// If not tested they are used to poll for fixing commits.
 	Repos []KernelRepo
+	// If not nil, bugs in this namespace will be exported to the specified Kcidb.
+	Kcidb *KcidbConfig
 }
 
 // ObsoletingConfig describes how bugs without reproducer should be obsoleted.
@@ -167,6 +170,17 @@ type KernelRepo struct {
 	BuildMaintainers []string
 }
 
+type KcidbConfig struct {
+	// Origin is how this system identified in Kcidb, e.g. "syzbot_foobar".
+	Origin string
+	// Project is Kcidb GCE project name, e.g. "kernelci-production".
+	Project string
+	// Topic is pubsub topic to publish messages to, e.g. "playground_kernelci_new".
+	Topic string
+	// Credentials is Google application credentials file contents to use for authorization.
+	Credentials []byte
+}
+
 var (
 	namespaceNameRe = regexp.MustCompile("^[a-zA-Z0-9-_.]{4,32}$")
 	clientNameRe    = regexp.MustCompile("^[a-zA-Z0-9-_.]{4,100}$")
@@ -216,6 +230,7 @@ func installConfig(cfg *GlobalConfig) {
 	initEmailReporting()
 	initHTTPHandlers()
 	initAPIHandlers()
+	initKcidb()
 }
 
 func checkConfig(cfg *GlobalConfig) {
@@ -298,6 +313,9 @@ func checkNamespace(ns string, cfg *Config, namespaces, clientNames map[string]b
 		cfg.NeedRepro = func(bug *Bug) bool {
 			return true
 		}
+	}
+	if cfg.Kcidb != nil {
+		checkKcidb(ns, cfg.Kcidb)
 	}
 	checkKernelRepos(ns, cfg)
 	checkNamespaceReporting(ns, cfg)
@@ -393,6 +411,21 @@ func checkManager(ns, name string, mgr ConfigManager) {
 	}
 	if mgr.ObsoletingMinPeriod != 0 && mgr.ObsoletingMinPeriod < 24*time.Hour {
 		panic(fmt.Sprintf("manager %v/%v obsoleting: too low MinPeriod", ns, name))
+	}
+}
+
+func checkKcidb(ns string, kcidb *KcidbConfig) {
+	if !regexp.MustCompile("^[a-z0-9_]+$").MatchString(kcidb.Origin) {
+		panic(fmt.Sprintf("%v: bad Kcidb origin %q", ns, kcidb.Origin))
+	}
+	if kcidb.Project == "" {
+		panic(fmt.Sprintf("%v: empty Kcidb project", ns))
+	}
+	if kcidb.Topic == "" {
+		panic(fmt.Sprintf("%v: empty Kcidb topic", ns))
+	}
+	if !bytes.Contains(kcidb.Credentials, []byte("private_key")) {
+		panic(fmt.Sprintf("%v: empty Kcidb credentials", ns))
 	}
 }
 
