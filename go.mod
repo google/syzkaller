@@ -3,7 +3,7 @@ module github.com/google/syzkaller
 go 1.14
 
 require (
-	cloud.google.com/go v0.60.0 // indirect
+	cloud.google.com/go/pubsub v1.7.0
 	cloud.google.com/go/storage v1.10.0
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/Djarvur/go-err113 v0.1.0 // indirect
@@ -36,11 +36,11 @@ require (
 	github.com/tdakkota/asciicheck v0.0.0-20200416200610-e657995f937b // indirect
 	github.com/timakin/bodyclose v0.0.0-20200424151742-cb6215831a94 // indirect
 	github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8 // indirect
-	golang.org/x/net v0.0.0-20200822124328-c89045814202
-	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
+	golang.org/x/net v0.0.0-20200904194848-62affa334b73
+	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
 	golang.org/x/sys v0.0.0-20200915084602-288bc346aa39
-	golang.org/x/tools v0.0.0-20200915031644-64986481280e
-	google.golang.org/api v0.28.0
+	golang.org/x/tools v0.0.0-20200924224222-8d73f17870ce
+	google.golang.org/api v0.32.0
 	google.golang.org/appengine v1.6.6
 	gopkg.in/ini.v1 v1.61.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
