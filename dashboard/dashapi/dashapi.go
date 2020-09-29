@@ -299,6 +299,7 @@ func (dash *Dashboard) LogError(name, msg string, args ...interface{}) {
 // Used by dashboard external reporting.
 type BugReport struct {
 	Type              ReportType
+	BugStatus         BugStatus
 	Namespace         string
 	Config            []byte
 	ID                string
@@ -317,6 +318,8 @@ type BugReport struct {
 	Arch              string
 	VMArch            string
 	UserSpaceArch     string // user-space arch as kernel developers know it (rather than Go names)
+	BuildID           string
+	BuildTime         time.Time
 	CompilerID        string
 	KernelRepo        string
 	KernelRepoAlias   string
@@ -326,6 +329,7 @@ type BugReport struct {
 	KernelCommitDate  time.Time
 	KernelConfig      []byte
 	KernelConfigLink  string
+	SyzkallerCommit   string
 	Log               []byte
 	LogLink           string
 	Report            []byte
@@ -334,9 +338,11 @@ type BugReport struct {
 	ReproCLink        string
 	ReproSyz          []byte
 	ReproSyzLink      string
+	ReproOpts         []byte
 	MachineInfo       []byte
 	MachineInfoLink   string
 	CrashID           int64 // returned back in BugUpdate
+	CrashTime         time.Time
 	NumCrashes        int64
 	HappenedOn        []string // list of kernel repo aliases
 
@@ -533,6 +539,7 @@ const (
 	BugStatusDup
 	BugStatusUpdate // aux info update (i.e. ExtID/Link/CC)
 	BugStatusUnCC   // don't CC sender on any future communication
+	BugStatusFixed
 )
 
 const (
