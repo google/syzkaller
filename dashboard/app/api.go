@@ -1014,6 +1014,10 @@ func apiLoadBug(c context.Context, ns string, r *http.Request, payload []byte) (
 	if bug.sanitizeAccess(AccessPublic) > AccessPublic {
 		return nil, nil
 	}
+	return loadBugReport(c, bug)
+}
+
+func loadBugReport(c context.Context, bug *Bug) (*dashapi.BugReport, error) {
 	crash, crashKey, err := findCrashForBug(c, bug)
 	if err != nil {
 		return nil, err
