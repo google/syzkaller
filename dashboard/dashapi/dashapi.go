@@ -507,20 +507,9 @@ type LoadBugReq struct {
 	ID string
 }
 
-type LoadBugResp struct {
-	ID              string
-	Title           string
-	Status          string
-	SyzkallerCommit string
-	Arch            string
-	ReproOpts       []byte
-	ReproSyz        []byte
-	ReproC          []byte
-}
-
-func (dash *Dashboard) LoadBug(id string) (*LoadBugResp, error) {
+func (dash *Dashboard) LoadBug(id string) (*BugReport, error) {
 	req := LoadBugReq{id}
-	resp := new(LoadBugResp)
+	resp := new(BugReport)
 	err := dash.Query("load_bug", req, resp)
 	return resp, err
 }

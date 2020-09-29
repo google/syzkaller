@@ -1014,38 +1014,17 @@ func apiLoadBug(c context.Context, ns string, r *http.Request, payload []byte) (
 	if bug.sanitizeAccess(AccessPublic) > AccessPublic {
 		return nil, nil
 	}
-	crash, _, err := findCrashForBug(c, bug)
+	crash, crashKey, err := findCrashForBug(c, bug)
 	if err != nil {
 		return nil, err
 	}
-	build, err := loadBuild(c, ns, crash.BuildID)
-	if err != nil {
-		return nil, err
+	// Create report for the last reporting so that it's stable and ExtID does not change over time.
+	bugReporting := &bug.Reporting[len(bug.Reporting)-1]
+	reporting := config.Namespaces[bug.Namespace].ReportingByName(bugReporting.Name)
+	if reporting == nil {
+		return nil, fmt.Errorf("reporting %v is missing in config", bugReporting.Name)
 	}
-	reproSyz, _, err := getText(c, textReproSyz, crash.ReproSyz)
-	if err != nil {
-		return nil, err
-	}
-	reproC, _, err := getText(c, textReproC, crash.ReproC)
-	if err != nil {
-		return nil, err
-	}
-	statuses := map[int]string{
-		BugStatusOpen:    "open",
-		BugStatusFixed:   "fixed",
-		BugStatusInvalid: "invalid",
-		BugStatusDup:     "dup",
-	}
-	resp := &dashapi.LoadBugResp{
-		ID:              req.ID,
-		Title:           bug.displayTitle(),
-		Status:          statuses[bug.Status],
-		SyzkallerCommit: build.SyzkallerCommit,
-		ReproOpts:       crash.ReproOpts,
-		ReproSyz:        reproSyz,
-		ReproC:          reproC,
-	}
-	return resp, nil
+	return createBugReport(c, bug, crash, crashKey, bugReporting, reporting)
 }
 
 func findBugForCrash(c context.Context, ns, title string) (*Bug, *db.Key, error) {
