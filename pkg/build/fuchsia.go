@@ -57,7 +57,7 @@ func (fu fuchsia) build(params *Params) error {
 	kernelZBI := filepath.Join(params.KernelDir, "out", arch, "fuchsia.zbi")
 	authorizedKeys := fmt.Sprintf("data/ssh/authorized_keys=%s",
 		filepath.Join(params.KernelDir, ".ssh", "authorized_keys"))
-	if _, err := runSandboxed(time.Minute, params.KernelDir, "out/"+arch+".zircon/tools/zbi",
+	if _, err := runSandboxed(time.Minute, params.KernelDir, "out/"+arch+"/host_x64/zbi",
 		"-o", sshZBI, kernelZBI, "--entry", authorizedKeys); err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func (fu fuchsia) build(params *Params) error {
 		"out/" + arch + "/obj/build/images/fvm.blk": "image",
 		".ssh/pkey": "key",
 		"out/" + arch + ".zircon/kernel-" + arch + "-kasan/obj/kernel/zircon.elf": "obj/zircon.elf",
-		"out/" + arch + ".zircon/multiboot.bin":                                   "kernel",
+		"out/" + arch + "/multiboot.bin":                                          "kernel",
 		"out/" + arch + "/fuchsia-ssh.zbi":                                        "initrd",
 	} {
 		fullSrc := filepath.Join(params.KernelDir, filepath.FromSlash(src))
