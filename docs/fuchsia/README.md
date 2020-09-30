@@ -50,7 +50,14 @@ $ make TARGETOS=fuchsia TARGETARCH=amd64 \
 Running syz-manager requires you to have built fuchsia previously, and added the ssh keys to the fuchsia.zbi image:
 
 ```
-$ ${SOURCEDIR}/out/x64.zircon/tools/zbi -o ${SOURCEDIR}/out/x64/fuchsia-ssh.zbi ${SOURCEDIR}/out/x64/fuchsia.zbi --entry "data/ssh/authorized_keys=${SOURCEDIR}/.ssh/authorized_keys"
+$ ${SOURCEDIR}/out/x64/host_x64/zbi -o ${SOURCEDIR}/out/x64/fuchsia-ssh.zbi ${SOURCEDIR}/out/x64/fuchsia.zbi --entry "data/ssh/authorized_keys=${SOURCEDIR}/.ssh/authorized_keys"
+```
+
+You will also need to extend the `fvm` image:
+
+```
+$ cp "${SOURCEDIR}/out/x64/obj/build/images/fvm.blk" "${SOURCEDIR}/out/x64/obj/build/images/fvm-extended.blk"
+$ ${SOURCEDIR}/out/x64/host_x64/fvm "${SOURCEDIR}/out/x64/obj/build/images/fvm-extended.blk" extend --length 3G
 ```
 
 Note: This needs to be repeated after each `fx build`.
@@ -64,7 +71,7 @@ Run `syz-manager` with a config along the lines of:
         "workdir": "/workdir.fuchsia",
         "kernel_obj": "/fuchsia/out/x64.zircon/kernel-x64-gcc",
         "syzkaller": "/syzkaller",
-        "image": "/fuchsia/out/x64/obj/build/images/fvm.blk",
+        "image": "/fuchsia/out/x64/obj/build/images/fvm-extended.blk",
         "sshkey": "/fuchsia/.ssh/pkey",
         "reproduce": false,
         "cover": false,
@@ -74,7 +81,7 @@ Run `syz-manager` with a config along the lines of:
                 "count": 10,
                 "cpu": 4,
                 "mem": 2048,
-                "kernel": "/fuchsia/out/x64.zircon/multiboot.bin",
+                "kernel": "/fuchsia/out/x64/multiboot.bin",
                 "initrd": "/fuchsia/out/x64/fuchsia-ssh.zbi"
         }
 }
