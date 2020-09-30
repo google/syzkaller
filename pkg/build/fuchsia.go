@@ -6,6 +6,7 @@ package build
 import (
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"runtime"
 	"time"
@@ -52,22 +53,25 @@ func (fu fuchsia) build(params *Params) error {
 		return err
 	}
 
-	// Fuchsia images no longer include ssh keys. Manually append the ssh public key to the zbi.
-	sshZBI := filepath.Join(params.KernelDir, "out", arch, "fuchsia-ssh.zbi")
+	// Add ssh keys to the zbi image so syzkaller can access the fuchsia vm.
+	_, sshKeyPub, err := genSSHKeys(params.OutputDir)
+	if err != nil {
+		return err
+	}
+
+	sshZBI := filepath.Join(params.OutputDir, "initrd")
 	kernelZBI := filepath.Join(params.KernelDir, "out", arch, "fuchsia.zbi")
-	authorizedKeys := fmt.Sprintf("data/ssh/authorized_keys=%s",
-		filepath.Join(params.KernelDir, ".ssh", "authorized_keys"))
-	if _, err := runSandboxed(time.Minute, params.KernelDir, "out/"+arch+"/host_x64/zbi",
+	authorizedKeys := fmt.Sprintf("data/ssh/authorized_keys=%s", sshKeyPub)
+
+	if _, err := osutil.RunCmd(time.Minute, params.KernelDir, "out/"+arch+"/host_x64/zbi",
 		"-o", sshZBI, kernelZBI, "--entry", authorizedKeys); err != nil {
 		return err
 	}
 
 	for src, dst := range map[string]string{
-		"out/" + arch + "/obj/build/images/fvm.blk": "image",
-		".ssh/pkey": "key",
+		"out/" + arch + "/obj/build/images/fvm.blk":                               "image",
 		"out/" + arch + ".zircon/kernel-" + arch + "-kasan/obj/kernel/zircon.elf": "obj/zircon.elf",
 		"out/" + arch + "/multiboot.bin":                                          "kernel",
-		"out/" + arch + "/fuchsia-ssh.zbi":                                        "initrd",
 	} {
 		fullSrc := filepath.Join(params.KernelDir, filepath.FromSlash(src))
 		fullDst := filepath.Join(params.OutputDir, filepath.FromSlash(dst))
@@ -91,4 +95,21 @@ func runSandboxed(timeout time.Duration, dir, command string, arg ...string) ([]
 		return nil, err
 	}
 	return osutil.Run(timeout, cmd)
+}
+
+// genSSHKeys generates a pair of ssh keys inside the given directory, named key and key.pub.
+// If both files already exist, this function does nothing.
+// The function returns the path to both keys.
+func genSSHKeys(dir string) (privKey, pubKey string, err error) {
+	privKey = filepath.Join(dir, "key")
+	pubKey = filepath.Join(dir, "key.pub")
+
+	os.Remove(privKey)
+	os.Remove(pubKey)
+
+	if _, err := osutil.RunCmd(time.Minute*5, dir, "ssh-keygen", "-t", "rsa", "-b", "2048",
+		"-N", "", "-C", "syzkaller-ssh", "-f", privKey); err != nil {
+		return "", "", err
+	}
+	return privKey, pubKey, nil
 }
