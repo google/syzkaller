@@ -77,9 +77,10 @@ type Manager struct {
 	cmd        *ManagerCmd
 	dash       *dashapi.Dashboard
 	stop       chan struct{}
+	debug      bool
 }
 
-func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) (*Manager, error) {
+func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}, debug bool) (*Manager, error) {
 	dir := osutil.Abs(filepath.Join("managers", mgrcfg.Name))
 	if err := osutil.MkdirAll(dir); err != nil {
 		log.Fatal(err)
@@ -125,6 +126,7 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) (*Man
 		managercfg: mgrcfg.managercfg,
 		dash:       dash,
 		stop:       stop,
+		debug:      debug,
 	}
 
 	os.RemoveAll(mgr.currentDir)
@@ -369,7 +371,11 @@ func (mgr *Manager) restartManager() {
 	}
 	bin := filepath.FromSlash("syzkaller/current/bin/syz-manager")
 	logFile := filepath.Join(mgr.currentDir, "manager.log")
-	mgr.cmd = NewManagerCmd(mgr.name, logFile, mgr.Errorf, bin, "-config", cfgFile)
+	args := []string{"-config", cfgFile}
+	if mgr.debug {
+		args = append(args, "-debug")
+	}
+	mgr.cmd = NewManagerCmd(mgr.name, logFile, mgr.Errorf, bin, args...)
 }
 
 func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
