@@ -586,7 +586,7 @@ func (target *Target) replaceSourceDir(param *string, sourceDir string) {
 		target.BrokenCompiler = "SOURCEDIR is not set"
 		return
 	}
-	*param = strings.ReplaceAll(*param, sourceDirVar, sourceDir)
+	*param = strings.Replace(*param, sourceDirVar, sourceDir, -1)
 }
 
 func (target *Target) lazyInit() {
