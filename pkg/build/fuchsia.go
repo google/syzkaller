@@ -68,8 +68,18 @@ func (fu fuchsia) build(params *Params) error {
 		return err
 	}
 
+	// Copy and extend the fvm.
+	fvmTool := filepath.Join("out", arch, "host_x64", "fvm")
+	fvmDst := filepath.Join(params.OutputDir, "image")
+	fvmSrc := filepath.Join(params.KernelDir, "out", arch, "obj/build/images/fvm.blk")
+	if err := osutil.CopyFile(fvmSrc, fvmDst); err != nil {
+		return err
+	}
+	if _, err := osutil.RunCmd(time.Minute*5, params.KernelDir, fvmTool, fvmDst, "extend", "--length", "3G"); err != nil {
+		return err
+	}
+
 	for src, dst := range map[string]string{
-		"out/" + arch + "/obj/build/images/fvm.blk":                               "image",
 		"out/" + arch + ".zircon/kernel-" + arch + "-kasan/obj/kernel/zircon.elf": "obj/zircon.elf",
 		"out/" + arch + "/multiboot.bin":                                          "kernel",
 	} {
