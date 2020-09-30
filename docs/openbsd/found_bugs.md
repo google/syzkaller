@@ -6,6 +6,12 @@ mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/ope
 
 Newer bugs comes first.
 
+- [kcov(4): race during remote section removal](https://marc.info/?l=openbsd-cvs&m=159869048726340&w=2)
+
+- [sysctl(2): lenient validation of integer values](https://marc.info/?l=openbsd-cvs&m=159772809607851&w=2)
+
+- [inet6(4): lenient validation in `in6_ioctl_change_ifaddr()`](https://marc.info/?l=openbsd-cvs&m=159656077206976&w=2)
+
 - [wsmux(4): use-after-free](https://marc.info/?l=openbsd-cvs&m=159600205025410&w=2)
 
 - [pty(4): machine lockup due to expensive retyping](https://marc.info/?l=openbsd-cvs&m=159473720602522&w=2)
