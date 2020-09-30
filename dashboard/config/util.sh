@@ -8,7 +8,7 @@ set -eux
 
 [ -z "${CC}" ] && echo 'Please set $CC to point to the compiler!' && exit
 
-THIS_DIR=`cd "${BASH_SOURCE[0]}"; pwd`
+THIS_DIR=`cd "${BASH_SOURCE[0]%/*}"; pwd`
 MAKE_VARS="CC=${CC}"
 
 function util_add_syzbot_bits {
