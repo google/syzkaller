@@ -73,6 +73,7 @@ var (
 	flagConfig     = flag.String("config", "", "config file")
 	flagAutoUpdate = flag.Bool("autoupdate", true, "auto-update the binary (for testing)")
 	flagManagers   = flag.Bool("managers", true, "start managers (for testing)")
+	flagDebug      = flag.Bool("debug", false, "debug mode (for testing)")
 )
 
 type Config struct {
@@ -174,7 +175,7 @@ func main() {
 
 	var managers []*Manager
 	for _, mgrcfg := range cfg.Managers {
-		mgr, err := createManager(cfg, mgrcfg, stop)
+		mgr, err := createManager(cfg, mgrcfg, stop, *flagDebug)
 		if err != nil {
 			log.Logf(0, "failed to create manager %v: %v", mgrcfg.Name, err)
 			continue
