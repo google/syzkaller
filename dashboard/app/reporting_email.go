@@ -311,6 +311,8 @@ func incomingMail(c context.Context, r *http.Request) error {
 			return replyTo(c, msg, "no commit title", nil)
 		}
 		cmd.FixCommits = []string{msg.CommandArgs}
+	case email.CmdUnFix:
+		cmd.ResetFixCommits = true
 	case email.CmdDup:
 		if msg.CommandArgs == "" {
 			return replyTo(c, msg, "no dup title", nil)
@@ -343,6 +345,7 @@ var emailCmdToStatus = map[email.Command]dashapi.BugStatus{
 	email.CmdInvalid:  dashapi.BugStatusInvalid,
 	email.CmdUnDup:    dashapi.BugStatusOpen,
 	email.CmdFix:      dashapi.BugStatusOpen,
+	email.CmdUnFix:    dashapi.BugStatusUpdate,
 	email.CmdDup:      dashapi.BugStatusDup,
 	email.CmdUnCC:     dashapi.BugStatusUnCC,
 }

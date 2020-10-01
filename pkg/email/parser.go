@@ -38,6 +38,7 @@ const (
 	CmdNone
 	CmdUpstream
 	CmdFix
+	CmdUnFix
 	CmdDup
 	CmdUnDup
 	CmdTest
@@ -223,28 +224,7 @@ func extractCommand(body string) (cmd Command, str, args string) {
 		cmdEnd = cmdEnd1
 	}
 	str = body[cmdPos : cmdPos+cmdEnd]
-	switch str {
-	default:
-		cmd = CmdUnknown
-	case "":
-		cmd = CmdNone
-	case "upstream":
-		cmd = CmdUpstream
-	case "fix", "fix:":
-		cmd = CmdFix
-	case "dup", "dup:":
-		cmd = CmdDup
-	case "undup":
-		cmd = CmdUnDup
-	case "test", "test:":
-		cmd = CmdTest
-	case "invalid":
-		cmd = CmdInvalid
-	case "uncc", "uncc:":
-		cmd = CmdUnCC
-	case "test_5_arg_cmd":
-		cmd = cmdTest5
-	}
+	cmd = strToCmd(str)
 	// Some email clients split text emails at 80 columns are the transformation is irrevesible.
 	// We try hard to restore what was there before.
 	// For "test:" command we know that there must be 2 tokens without spaces.
@@ -258,6 +238,33 @@ func extractCommand(body string) (cmd Command, str, args string) {
 		args = extractArgsLine(body[cmdPos+cmdEnd:])
 	}
 	return
+}
+
+func strToCmd(str string) Command {
+	switch str {
+	default:
+		return CmdUnknown
+	case "":
+		return CmdNone
+	case "upstream":
+		return CmdUpstream
+	case "fix", "fix:":
+		return CmdFix
+	case "unfix":
+		return CmdUnFix
+	case "dup", "dup:":
+		return CmdDup
+	case "undup":
+		return CmdUnDup
+	case "test", "test:":
+		return CmdTest
+	case "invalid":
+		return CmdInvalid
+	case "uncc", "uncc:":
+		return CmdUnCC
+	case "test_5_arg_cmd":
+		return cmdTest5
+	}
 }
 
 func extractArgsTokens(body string, num int) string {

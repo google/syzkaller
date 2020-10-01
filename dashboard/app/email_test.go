@@ -619,3 +619,32 @@ syzbot will keep track of this issue. See:
 https://goo.gl/tpsmEJ#status for how to communicate with syzbot.`,
 		extBugID, crashLogLink, kernelConfigLink))
 }
+
+// Test for unfix command which should unmark a bug as fixed by any commits.
+func TestEmailUnfix(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client2.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	c.client2.ReportCrash(crash)
+
+	c.expectOK(c.GET("/email_poll"))
+	msg := c.pollEmailBug()
+
+	c.incomingEmail(msg.Sender, "#syz fix: some commit")
+	c.expectNoEmail()
+	c.incomingEmail(msg.Sender, "#syz unfix")
+	c.expectNoEmail()
+
+	build2 := testBuild(2)
+	build2.Manager = build.Manager
+	build2.Commits = []string{"some commit"}
+	c.client2.UploadBuild(build2)
+
+	// The bug should be still unfixed, since we unmarked it.
+	c.client2.ReportCrash(crash)
+	c.expectNoEmail()
+}
