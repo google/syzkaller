@@ -54,7 +54,7 @@ func (ctx *akaros) Symbolize(rep *Report) error {
 	var symbolized []byte
 	s := bufio.NewScanner(bytes.NewReader(rep.Report))
 	for s.Scan() {
-		line := bytes.Trim(s.Bytes(), "\r")
+		line := s.Bytes()
 		line = ctx.symbolizeLine(symb.Symbolize, ctx.objfile, line)
 		symbolized = append(symbolized, line...)
 		symbolized = append(symbolized, '\n')
@@ -100,7 +100,7 @@ func (ctx *akaros) symbolizeLine(symbFunc func(bin string, pc uint64) ([]symboli
 func (ctx *akaros) minimizeReport(report []byte) []byte {
 	out := new(bytes.Buffer)
 	for s := bufio.NewScanner(bytes.NewReader(report)); s.Scan(); {
-		line := bytes.Trim(s.Bytes(), "\r")
+		line := s.Bytes()
 		if len(line) == 0 ||
 			bytes.Contains(line, []byte("Entering Nanwan's Dungeon")) ||
 			bytes.Contains(line, []byte("Type 'help' for a list of commands")) {

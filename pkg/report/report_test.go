@@ -9,7 +9,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -40,11 +39,12 @@ type ParseTest struct {
 }
 
 func testParseFile(t *testing.T, reporter Reporter, fn string) {
-	input, err := os.Open(fn)
+	data, err := ioutil.ReadFile(fn)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer input.Close()
+	// Strip all \r from reports because the merger removes it.
+	data = bytes.ReplaceAll(data, []byte{'\r'}, nil)
 	const (
 		phaseHeaders = iota
 		phaseLog
@@ -55,7 +55,7 @@ func testParseFile(t *testing.T, reporter Reporter, fn string) {
 		FileName: fn,
 	}
 	prevEmptyLine := false
-	s := bufio.NewScanner(input)
+	s := bufio.NewScanner(bytes.NewReader(data))
 	for s.Scan() {
 		switch phase {
 		case phaseHeaders:
@@ -85,10 +85,6 @@ func testParseFile(t *testing.T, reporter Reporter, fn string) {
 	if len(test.Log) == 0 {
 		t.Fatalf("can't find log in input file")
 	}
-	testParseImpl(t, reporter, test)
-	// In some cases we get output with \r\n for line endings,
-	// ensure that regexps are not confused by this.
-	bytes.Replace(test.Log, []byte{'\n'}, []byte{'\r', '\n'}, -1)
 	testParseImpl(t, reporter, test)
 }
 
@@ -388,8 +384,8 @@ func TestFuzz(t *testing.T) {
 		"BUG:Disabling lock debugging due to kernel taint",
 		"[0.0] WARNING: ? 0+0x0/0",
 		"BUG: login: [0.0] ",
-		"cleaned vnod\re",
-		"kernel\r:",
+		"cleaned vnode",
+		"kernel:",
 	} {
 		Fuzz([]byte(data)[:len(data):len(data)])
 	}

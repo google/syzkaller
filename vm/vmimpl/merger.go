@@ -63,7 +63,12 @@ func (merger *OutputMerger) AddDecoder(name string, r io.ReadCloser,
 						merger.Output <- decoded // note: this can block
 					}
 				}
-				pending = append(pending, buf[:n]...)
+				// Remove all carriage returns.
+				buf := buf[:n]
+				if bytes.IndexByte(buf, '\r') != -1 {
+					buf = bytes.ReplaceAll(buf, []byte("\r"), nil)
+				}
+				pending = append(pending, buf...)
 				if pos := bytes.LastIndexByte(pending, '\n'); pos != -1 {
 					out := pending[:pos+1]
 					if merger.tee != nil {

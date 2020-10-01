@@ -48,11 +48,7 @@ func (ctx *freebsd) Parse(output []byte) *Report {
 		// Console output is indistinguishable from fuzzer output,
 		// so we just collect everything after the oops.
 		if oops != nil {
-			lineEnd := next
-			if lineEnd != 0 && output[lineEnd-1] == '\r' {
-				lineEnd--
-			}
-			rep.Report = append(rep.Report, output[pos:lineEnd]...)
+			rep.Report = append(rep.Report, output[pos:next]...)
 			rep.Report = append(rep.Report, '\n')
 		}
 		pos = next + 1
@@ -78,19 +74,19 @@ var freebsdOopses = append([]*oops{
 		[]byte("Fatal trap"),
 		[]oopsFormat{
 			{
-				title: compile("Fatal trap (.+?)\\r?\\n(?:.*\\n)+?" +
-					"KDB: stack backtrace:\\r?\\n" +
+				title: compile("Fatal trap (.+?)\\n(?:.*\\n)+?" +
+					"KDB: stack backtrace:\\n" +
 					"(?:#[0-9]+ {{ADDR}} at (?:kdb_backtrace|vpanic|panic|trap_fatal|" +
 					"trap_pfault|trap|calltrap|m_copydata|__rw_wlock_hard)" +
-					"\\+{{ADDR}}\\r?\\n)*#[0-9]+ {{ADDR}} at {{FUNC}}{{ADDR}}"),
+					"\\+{{ADDR}}\\n)*#[0-9]+ {{ADDR}} at {{FUNC}}{{ADDR}}"),
 				fmt: "Fatal trap %[1]v in %[2]v",
 			},
 			{
-				title: compile("(Fatal trap [0-9]+:.*) while in (?:user|kernel) mode\\r?\\n(?:.*\\n)+?" +
-					"KDB: stack backtrace:\\r?\\n" +
-					"(?:[a-zA-Z0-9_]+\\(\\) at [a-zA-Z0-9_]+\\+0x.*\\r?\\n)*" +
-					"--- trap 0x[0-9a-fA-F]+.* ---\\r?\\n" +
-					"([a-zA-Z0-9_]+)\\(\\) at [a-zA-Z0-9_]+\\+0x.*\\r?\\n"),
+				title: compile("(Fatal trap [0-9]+:.*) while in (?:user|kernel) mode\\n(?:.*\\n)+?" +
+					"KDB: stack backtrace:\\n" +
+					"(?:[a-zA-Z0-9_]+\\(\\) at [a-zA-Z0-9_]+\\+0x.*\\n)*" +
+					"--- trap 0x[0-9a-fA-F]+.* ---\\n" +
+					"([a-zA-Z0-9_]+)\\(\\) at [a-zA-Z0-9_]+\\+0x.*\\n"),
 				fmt: "%[1]v in %[2]v",
 			},
 		},
@@ -109,27 +105,27 @@ var freebsdOopses = append([]*oops{
 				fmt: "panic: %[1]v of destroyed %[2]v at %[3]v",
 			},
 			{
-				title: compile("panic: No chunks on the queues for sid [0-9]+\\.\\r?\\n"),
+				title: compile("panic: No chunks on the queues for sid [0-9]+\\.\\n"),
 				fmt:   "panic: sctp: no chunks on the queues",
 			},
 			{
-				title: compile("panic: size_on_all_streams = [0-9]+ smaller than control length [0-9]+\\r?\\n"),
+				title: compile("panic: size_on_all_streams = [0-9]+ smaller than control length [0-9]+\\n"),
 				fmt:   "panic: size_on_all_streams smaller than control length",
 			},
 			{
-				title: compile("panic: sbflush_internal: ccc [0-9]+ mb [0-9]+ mbcnt [0-9]+\\r?\\n"),
+				title: compile("panic: sbflush_internal: ccc [0-9]+ mb [0-9]+ mbcnt [0-9]+\\n"),
 				fmt:   "panic: sbflush_internal: residual data",
 			},
 			{
-				title: compile("(panic: sx lock still held)\\r?\\n(?:.*\\n)+?" +
-					"KDB: stack backtrace:\\r?\\n" +
-					"(?:[a-zA-Z0-9_]+\\(\\) at [a-zA-Z0-9_]+\\+0x.*\\r?\\n)*" +
-					"sx_destroy\\(\\) at [a-zA-Z0-9_+/ ]+\\r?\\n" +
-					"([a-zA-Z0-9_]+)\\(\\) at [a-zA-Z0-9_+/ ]+\\+0x.*\\r?\\n"),
+				title: compile("(panic: sx lock still held)\\n(?:.*\\n)+?" +
+					"KDB: stack backtrace:\\n" +
+					"(?:[a-zA-Z0-9_]+\\(\\) at [a-zA-Z0-9_]+\\+0x.*\\n)*" +
+					"sx_destroy\\(\\) at [a-zA-Z0-9_+/ ]+\\n" +
+					"([a-zA-Z0-9_]+)\\(\\) at [a-zA-Z0-9_+/ ]+\\+0x.*\\n"),
 				fmt: "%[1]v in %[2]v",
 			},
 			{
-				title: compile("panic: pfi_dynaddr_setup: dyn is 0x[0-9a-f]+\\r?\\n"),
+				title: compile("panic: pfi_dynaddr_setup: dyn is 0x[0-9a-f]+\\n"),
 				fmt:   "panic: pfi_dynaddr_setup: non-NULL dyn",
 			},
 		},

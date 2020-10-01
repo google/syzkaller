@@ -44,13 +44,13 @@ func TestMerger(t *testing.T) {
 	case <-time.After(10 * time.Millisecond):
 	}
 
-	wp1.Write([]byte("333\n444"))
+	wp1.Write([]byte("333\n444\r"))
 	got := string(<-merger.Output)
 	if want := "111333\n"; got != want {
 		t.Fatalf("bad line: '%s', want '%s'", got, want)
 	}
 
-	wp2.Write([]byte("555\n666\n777"))
+	wp2.Write([]byte("555\r\n666\n\r\r777"))
 	got = string(<-merger.Output)
 	if want := "222555\n666\n"; got != want {
 		t.Fatalf("bad line: '%s', want '%s'", got, want)
