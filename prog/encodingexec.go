@@ -20,6 +20,7 @@
 package prog
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 )
@@ -53,6 +54,8 @@ const (
 	ExecNoCopyout  = ^uint64(0)
 )
 
+var ErrExecBufferTooSmall = errors.New("encodingexec: provided buffer is too small")
+
 // SerializeForExec serializes program p for execution by process pid into the provided buffer.
 // Returns number of bytes written to the buffer.
 // If the provided buffer is too small for the program an error is returned.
@@ -70,7 +73,7 @@ func (p *Prog) SerializeForExec(buffer []byte) (int, error) {
 	}
 	w.write(execInstrEOF)
 	if w.eof {
-		return 0, fmt.Errorf("provided buffer is too small")
+		return 0, ErrExecBufferTooSmall
 	}
 	return len(buffer) - len(w.buf), nil
 }
