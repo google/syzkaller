@@ -127,6 +127,16 @@ func IsAccessible(name string) error {
 	return nil
 }
 
+// IsWritable checks if the file can be written.
+func IsWritable(name string) error {
+	f, err := os.OpenFile(name, os.O_WRONLY, DefaultFilePerm)
+	if err != nil {
+		return fmt.Errorf("%v can't be written (%v)", name, err)
+	}
+	f.Close()
+	return nil
+}
+
 // FilesExist returns true if all files exist in dir.
 // Files are assumed to be relative names in slash notation.
 func FilesExist(dir string, files map[string]bool) bool {

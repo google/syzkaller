@@ -1807,6 +1807,63 @@ static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile lon
 
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_usbip_server_init
+
+#include <errno.h>
+#include <fcntl.h>
+#include <linux/usb/ch9.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
+// This should be coherent with CONFIG_USBIP_VHCI_HC_PORTS.
+#define VHCI_HC_PORTS 8
+#define VHCI_PORTS (VHCI_HC_PORTS * 2)
+
+static long syz_usbip_server_init(volatile long a0)
+{
+	int socket_pair[2];
+	char buffer[100];
+	// port_alloc[0] corresponds to ports which can be used by usb2 and
+	// port_alloc[1] corresponds to ports which can be used by usb3.
+	static int port_alloc[2];
+
+	int speed = (int)a0;
+	bool usb3 = (speed == USB_SPEED_SUPER);
+
+	int rc = socketpair(AF_UNIX, SOCK_STREAM, 0, socket_pair);
+	if (rc < 0)
+		fail("syz_usbip_server_init : socketpair failed: %d", rc);
+
+	int client_fd = socket_pair[0];
+	int server_fd = socket_pair[1];
+
+	int available_port_num = __atomic_fetch_add(&port_alloc[usb3], 1, __ATOMIC_RELAXED);
+	if (available_port_num > VHCI_HC_PORTS) {
+		debug("syz_usbip_server_init : no more available port for : %d\n", available_port_num);
+		return -1;
+	}
+
+	// Each port number corresponds to a particular vhci_hcd (USB/IP Virtual Host Controller) and it is used by either
+	// an usb2 device or usb3 device. There are 16 ports available in each vhci_hcd.
+	// (VHCI_PORTS = 16 in our case.) When they are occupied, the following vhci_hcd's ports are used.
+	// First 16 ports correspond to vhci_hcd0, next 16 ports correspond to
+	// vhci_hcd1 etc. In a vhci_hcd, first 8 ports are used by usb2 devices and last 8 are used by usb3 devices.
+	int port_num = procid * VHCI_PORTS + usb3 * VHCI_HC_PORTS + available_port_num;
+
+	// Under normal USB/IP usage, devid represents the device ID on the server.
+	// When fuzzing with syzkaller we don't have an actual server or an actual device, so use 0 for devid.
+	sprintf(buffer, "%d %d %s %d", port_num, client_fd, "0", speed);
+
+	write_file("/sys/devices/platform/vhci_hcd.0/attach", buffer);
+	return server_fd;
+}
+
+#endif
+
 #if SYZ_EXECUTOR || __NR_syz_btf_id_by_name
 
 #include <errno.h>
