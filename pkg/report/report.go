@@ -509,7 +509,7 @@ nextPart:
 	for _, part := range parts {
 		if part == parseStackTrace {
 			for s.Scan() {
-				ln := bytes.Trim(s.Bytes(), "\r")
+				ln := s.Bytes()
 				if matchesAny(ln, params.corruptedLines) {
 					break nextPart
 				}
@@ -527,7 +527,7 @@ nextPart:
 			}
 		} else {
 			for s.Scan() {
-				ln := bytes.Trim(s.Bytes(), "\r")
+				ln := s.Bytes()
 				if matchesAny(ln, params.corruptedLines) {
 					break nextPart
 				}

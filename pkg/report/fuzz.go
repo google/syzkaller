@@ -32,10 +32,8 @@ func Fuzz(data []byte) int {
 		if len(rep.Output) == 0 {
 			panic(fmt.Sprintf("%v: len(Output) == 0", typ))
 		}
-		switch os {
-		case "openbsd", "netbsd", "fuchsia":
-			// openbsd/netbsd has Start/End/SkipPos set incorrectly due to messing with /r/n.
-			// fuchsia because it symbolizes before parsing.
+		if os == "fuchsia" {
+			// Fuchsia has Start/End/SkipPos set incorrectly because it symbolizes before parsing.
 			continue
 		}
 		if rep.StartPos != 0 && rep.EndPos != 0 && rep.StartPos >= rep.EndPos {

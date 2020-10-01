@@ -304,9 +304,6 @@ func (ctx *linux) findReport(output []byte, oops *oops, startPos int, context st
 }
 
 func (ctx *linux) stripLinePrefix(line []byte, context string, useQuestionable bool) ([]byte, bool) {
-	if last := len(line) - 1; last >= 0 && line[last] == '\r' {
-		line = line[:last]
-	}
 	if context == "" {
 		return line, false
 	}
