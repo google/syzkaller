@@ -6,6 +6,7 @@ package host
 import (
 	"bufio"
 	"bytes"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -46,22 +47,20 @@ func checkCPUInfo(t *testing.T, scanner *bufio.Scanner) {
 		keys[key] = true
 	}
 
-	importantKeys := [][]string{
-		{"vendor", "vendor_id", "CPU implementer"},
-		{"model", "CPU part", "cpu model", "machine", "processor 0"},
-		{"flags", "features", "Features", "ASEs implemented", "type"},
+	importantKeys := map[string][]string{
+		"ppc64le":  {"cpu", "revision", "platform", "model", "machine"},
+		"amd64":    {"vendor_id", "model", "flags"},
+		"s390x":    {"vendor_id", "processor 0", "features"},
+		"386":      {"vendor_id", "model", "flags"},
+		"arm64":    {"CPU implementer", "CPU part", "Features"},
+		"arm":      {"CPU implementer", "CPU part", "Features"},
+		"mips64le": {"system type", "cpu model", "ASEs implemented"},
+		"riscv64":  {"processor", "isa", "mmu"},
 	}
-	for _, possibleNames := range importantKeys {
-		exists := false
-		for _, name := range possibleNames {
-			if keys[name] {
-				exists = true
-				break
-			}
-		}
-		if !exists {
-			t.Fatalf("one of {%s} should exists in the output, but not found",
-				strings.Join(possibleNames, ", "))
+	archKeys := importantKeys[runtime.GOARCH]
+	for _, name := range archKeys {
+		if !keys[name] {
+			t.Fatalf("key '%s' not found", name)
 		}
 	}
 }
