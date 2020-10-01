@@ -102,8 +102,7 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	r.EnabledCalls = serv.configEnabledSyscalls
 	r.GitRevision = prog.GitRevision
 	r.TargetRevision = serv.target.Revision
-	// TODO: temporary disabled b/c we suspect this negatively affects fuzzing.
-	if false && serv.mgr.rotateCorpus() && serv.rnd.Intn(3) != 0 {
+	if serv.mgr.rotateCorpus() && serv.rnd.Intn(5) == 0 {
 		// We do rotation every other time because there are no objective
 		// proofs regarding its efficiency either way.
 		// Also, rotation gives significantly skewed syscall selection
@@ -253,7 +252,7 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 
 		a.RPCInput.Cover = nil // Don't send coverage back to all fuzzers.
 		for _, other := range serv.fuzzers {
-			if other == f {
+			if other == f || other.rotatedSignal != nil {
 				continue
 			}
 			other.inputs = append(other.inputs, a.RPCInput)
@@ -280,11 +279,15 @@ func (serv *RPCServer) Poll(a *rpctype.PollArgs, r *rpctype.PollRes) error {
 		serv.maxSignal.Merge(newMaxSignal)
 		serv.stats.maxSignal.set(len(serv.maxSignal))
 		for _, f1 := range serv.fuzzers {
-			if f1 == f {
+			if f1 == f || f1.rotatedSignal != nil {
 				continue
 			}
 			f1.newMaxSignal.Merge(newMaxSignal)
 		}
+	}
+	if f.rotatedSignal != nil {
+		// Let rotated VMs run in isolation, don't send them anything.
+		return nil
 	}
 	r.MaxSignal = f.newMaxSignal.Split(500).Serialize()
 	if a.NeedCandidates {
