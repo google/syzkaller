@@ -29,9 +29,12 @@ func init() {
 }
 
 type Config struct {
-	Count    int    `json:"count"`     // number of VMs to run in parallel
-	Qemu     string `json:"qemu"`      // qemu binary name (qemu-system-arch by default)
-	QemuArgs string `json:"qemu_args"` // additional command line arguments for qemu binary
+	Count int    `json:"count"` // number of VMs to run in parallel
+	Qemu  string `json:"qemu"`  // qemu binary name (qemu-system-arch by default)
+	// Additional command line arguments for the qemu binary.
+	// "{{INDEX}}" is replaced with 0-based index of the VM (from 0 to Count-1).
+	// "{{TEMPLATE}}" is replaced with the path to a copy of workdir/template dir.
+	QemuArgs string `json:"qemu_args"`
 	// Location of the kernel for injected boot (e.g. arch/x86/boot/bzImage, optional).
 	// This is passed to qemu as the -kernel option.
 	Kernel string `json:"kernel"`
@@ -62,6 +65,7 @@ type Pool struct {
 }
 
 type instance struct {
+	index      int
 	cfg        *Config
 	target     *targets.Target
 	archConfig *archConfig
@@ -311,6 +315,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 
 func (pool *Pool) ctor(workdir, sshkey, sshuser string, index int) (vmimpl.Instance, error) {
 	inst := &instance{
+		index:      index,
 		cfg:        pool.cfg,
 		target:     pool.target,
 		archConfig: pool.archConfig,
@@ -374,7 +379,8 @@ func (inst *instance) boot() error {
 		"-serial", "stdio",
 		"-no-reboot",
 	}
-	args = append(args, splitArgs(inst.cfg.QemuArgs, filepath.Join(inst.workdir, "template"))...)
+	templateDir := filepath.Join(inst.workdir, "template")
+	args = append(args, splitArgs(inst.cfg.QemuArgs, templateDir, inst.index)...)
 	args = append(args,
 		"-device", inst.cfg.NetDev+",netdev=net0",
 		"-netdev", fmt.Sprintf("user,id=net0,host=%v,hostfwd=tcp::%v-:22", hostAddr, inst.port))
@@ -471,12 +477,14 @@ func (inst *instance) boot() error {
 	return nil
 }
 
-func splitArgs(str, template string) (args []string) {
+func splitArgs(str, templateDir string, index int) (args []string) {
 	for _, arg := range strings.Split(str, " ") {
 		if arg == "" {
 			continue
 		}
-		args = append(args, strings.Replace(arg, "{{TEMPLATE}}", template, -1))
+		arg = strings.ReplaceAll(arg, "{{INDEX}}", fmt.Sprint(index))
+		arg = strings.ReplaceAll(arg, "{{TEMPLATE}}", templateDir)
+		args = append(args, arg)
 	}
 	return
 }
