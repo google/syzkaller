@@ -57,6 +57,7 @@ func testEachTarget(t *testing.T, fn func(t *testing.T, target *Target)) {
 	for _, target := range AllTargets() {
 		target := target
 		t.Run(fmt.Sprintf("%v/%v", target.OS, target.Arch), func(t *testing.T) {
+			skipTargetRace(t, target)
 			t.Parallel()
 			fn(t, target)
 		})
@@ -76,9 +77,19 @@ func testEachTargetRandom(t *testing.T, fn func(t *testing.T, target *Target, rs
 		target := target
 		rs := rand.NewSource(rs0.Int63())
 		t.Run(fmt.Sprintf("%v/%v", target.OS, target.Arch), func(t *testing.T) {
+			skipTargetRace(t, target)
 			t.Parallel()
 			fn(t, target, rs, iters)
 		})
+	}
+}
+
+func skipTargetRace(t *testing.T, target *Target) {
+	// Race execution is slow and we are getting timeouts on CI.
+	// For tests that run for all targets, leave only 2 targets,
+	// this should be enough to detect some races.
+	if raceEnabled && (target.OS != "test" || target.Arch != "64" && target.Arch != "32") {
+		t.Skip("skipping all but test/64 targets in race mode")
 	}
 }
 
