@@ -142,6 +142,9 @@ func TestVmaType(t *testing.T) {
 // deserialized for another arch. This happens when managers exchange
 // programs via hub.
 func TestCrossTarget(t *testing.T) {
+	if raceEnabled {
+		t.Skip("skipping in race mode, too slow")
+	}
 	t.Parallel()
 	const OS = "linux"
 	var archs []string

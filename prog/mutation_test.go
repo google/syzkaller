@@ -81,6 +81,9 @@ mutate_integer(0x0, 0x1, 0x1, 0x1, 0x0, 0x1, 0x0, 0x0, 0x1)`,
 }
 
 func TestMutateArgument(t *testing.T) {
+	if raceEnabled {
+		t.Skip("skipping in race mode, too slow")
+	}
 	tests := [][2]string{
 		// Mutate an integer with a higher priority than the boolean arguments.
 		{
