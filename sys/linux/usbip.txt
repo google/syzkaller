@@ -1,0 +1,55 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <drivers/usb/usbip/usbip_common.h>
+
+resource fd_usbip_server[fd]
+
+syz_usbip_server_init(speed flags[usbip_device_speed]) fd_usbip_server
+write$usbip_server(fd fd_usbip_server, buffer ptr[in, usbip_packet], len bytesize[buffer])
+
+type usbip_header_basic[PACKET_TYPE] {
+	command		const[PACKET_TYPE, int32be]
+	seqnum		int32be
+	devid		const[0, int32be]
+	direction	flags[direction_flags, int32be]
+	ep		int32be
+} [packed]
+
+usbip_header_ret_unlink {
+	status	int32be
+} [packed]
+
+usbip_iso_packet_descriptor {
+	offset		int32be
+	length		int32be
+	actual_length	int32be
+	status		int32be
+} [packed]
+
+usbip_packet_ret_submit {
+	base_submit		usbip_header_basic[USBIP_RET_SUBMIT]
+	status			int32be
+	actual_length		len[xbuff, int32be]
+	start_frame		int32be
+	number_of_packets	len[iso, int32be]
+	error_count		int32be
+	padding			const[0, int64be]
+	xbuff			array[int8]
+	iso			array[usbip_iso_packet_descriptor, 0:USBIP_MAX_ISO_PACKETS]
+} [packed]
+
+define USBIP_HEADER_SIZE	sizeof(struct usbip_header)
+
+usbip_packet_ret_unlink {
+	base_unlink	usbip_header_basic[USBIP_RET_UNLINK]
+	ret_unlink	usbip_header_ret_unlink
+} [packed, size[USBIP_HEADER_SIZE]]
+
+usbip_packet [
+	ret_submit	usbip_packet_ret_submit
+	ret_unlink	usbip_packet_ret_unlink
+] [varlen]
+
+direction_flags = USBIP_DIR_OUT, USBIP_DIR_IN
+usbip_device_speed = USB_SPEED_LOW, USB_SPEED_FULL, USB_SPEED_HIGH, USB_SPEED_WIRELESS, USB_SPEED_SUPER

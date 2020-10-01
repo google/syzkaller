@@ -265,6 +265,13 @@ func isSyzFuseSupported(c *prog.Syscall, target *prog.Target, sandbox string) (b
 	return true, ""
 }
 
+func isSyzUsbIPSupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
+	if err := osutil.IsWritable("/sys/devices/platform/vhci_hcd.0/attach"); err != nil {
+		return false, err.Error()
+	}
+	return onlySandboxNoneOrNamespace(sandbox)
+}
+
 var syzkallSupport = map[string]func(*prog.Syscall, *prog.Target, string) (bool, string){
 	"syz_open_dev":                isSyzOpenDevSupported,
 	"syz_open_procfs":             alwaysSupported,
@@ -294,6 +301,7 @@ var syzkallSupport = map[string]func(*prog.Syscall, *prog.Target, string) (bool,
 	"syz_fuse_handle_req":    isSyzFuseSupported,
 	"syz_80211_inject_frame": isWifiEmulationSupported,
 	"syz_80211_join_ibss":    isWifiEmulationSupported,
+	"syz_usbip_server_init":  isSyzUsbIPSupported,
 }
 
 func isSupportedSyzkall(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
