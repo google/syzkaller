@@ -140,7 +140,7 @@ menuentry 'linux' --class gnu-linux --class gnu --class os {
 	insmod part_msdos
 	insmod ext2
 	set root='(hd0,1)'
-	linux /vmlinuz root=/dev/sda1 console=ttyS0 earlyprintk=serial vsyscall=native rodata=n oops=panic panic_on_warn=1 nmi_watchdog=panic panic=86400 net.ifnames=0 sysctl.kernel.hung_task_all_cpu_backtrace=1 $CMDLINE
+	linux /vmlinuz root=/dev/sda1 console=ttyS0 earlyprintk=serial vsyscall=native oops=panic panic_on_warn=1 nmi_watchdog=panic panic=86400 net.ifnames=0 sysctl.kernel.hung_task_all_cpu_backtrace=1 $CMDLINE
 }
 EOF
 	sudo grub-install --target=i386-pc --boot-directory=disk.mnt/boot --no-floppy $DISKDEV
@@ -155,14 +155,14 @@ menuentry 'linux' --class gnu-linux --class gnu --class os {
 	insmod part_gpt
 	insmod ext2
 	set root='(ieee1275/disk,gpt2)'
-	linux /vmlinuz root=/dev/sda2 console=ttyS0 earlyprintk=serial rodata=n oops=panic panic_on_warn=1 nmi_watchdog=panic panic=86400 net.ifnames=0 $CMDLINE
+	linux /vmlinuz root=/dev/sda2 console=ttyS0 earlyprintk=serial oops=panic panic_on_warn=1 nmi_watchdog=panic panic=86400 net.ifnames=0 $CMDLINE
 }
 EOF
 	sudo grub-install --target=powerpc-ieee1275 --boot-directory=disk.mnt/boot $DISKDEV"p1"
 	;;
 s390x)
 	sudo zipl -V -t disk.mnt/boot -i disk.mnt/vmlinuz \
-	     -P "root=/dev/vda1 console=ttyS0 earlyprintk=serial rodata=n oops=panic panic_on_warn=1 nmi_watchdog=panic panic=86400 net.ifnames=0 sysctl.kernel.hung_task_all_cpu_backtrace=1 net.ifnames=0 biosdevname=0 $CMDLINE" \
+	     -P "root=/dev/vda1 console=ttyS0 earlyprintk=serial oops=panic panic_on_warn=1 nmi_watchdog=panic panic=86400 net.ifnames=0 sysctl.kernel.hung_task_all_cpu_backtrace=1 net.ifnames=0 biosdevname=0 $CMDLINE" \
 	     --targetbase=$DISKDEV --targettype=SCSI --targetblocksize=512 --targetoffset=2048
 	;;
 esac

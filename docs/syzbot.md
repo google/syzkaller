@@ -255,7 +255,7 @@ qemu-system-x86_64 -smp 2 -m 4G -enable-kvm -cpu host \
     -device virtio-scsi-pci,id=scsi \
     -device scsi-hd,bus=scsi.0,drive=d0 \
     -drive file=stretch.img,format=raw,if=none,id=d0 \
-    -append "root=/dev/sda console=ttyS0 earlyprintk=serial rodata=n \
+    -append "root=/dev/sda console=ttyS0 earlyprintk=serial \
       oops=panic panic_on_warn=1 panic=86400 kvm-intel.nested=1 \
       security=apparmor ima_policy=tcb workqueue.watchdog_thresh=140 \
       nf-conntrack-ftp.ports=20000 nf-conntrack-tftp.ports=20000 \
