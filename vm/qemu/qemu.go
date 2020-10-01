@@ -218,7 +218,6 @@ var linuxCmdline = []string{
 	"panic_on_warn=1",
 	"panic=1",
 	"ftrace_dump_on_oops=orig_cpu",
-	"rodata=n",
 	"vsyscall=native",
 	"net.ifnames=0",
 	"biosdevname=0",
