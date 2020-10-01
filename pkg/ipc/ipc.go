@@ -253,7 +253,7 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInf
 	// Copy-in serialized program.
 	progSize, err := p.SerializeForExec(env.in)
 	if err != nil {
-		err0 = fmt.Errorf("failed to serialize: %v", err)
+		err0 = err
 		return
 	}
 	var progData []byte

@@ -249,6 +249,9 @@ func (proc *Proc) executeHintSeed(p *prog.Prog, call int) {
 
 func (proc *Proc) execute(execOpts *ipc.ExecOpts, p *prog.Prog, flags ProgTypes, stat Stat) *ipc.ProgInfo {
 	info := proc.executeRaw(execOpts, p, stat)
+	if info == nil {
+		return nil
+	}
 	calls, extra := proc.fuzzer.checkNewSignal(p, info)
 	for _, callIndex := range calls {
 		proc.enqueueCallTriage(p, flags, callIndex, info.Calls[callIndex])
@@ -293,6 +296,12 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.P
 		atomic.AddUint64(&proc.fuzzer.stats[stat], 1)
 		output, info, hanged, err := proc.env.Exec(opts, p)
 		if err != nil {
+			if err == prog.ErrExecBufferTooSmall {
+				// It's bad if we systematically fail to serialize programs,
+				// but so far we don't have a better handling than ignoring this.
+				// This error is observed a lot on the seeded syz_mount_image calls.
+				return nil
+			}
 			if try > 10 {
 				log.Fatalf("executor %v failed %v times:\n%v", proc.pid, try, err)
 			}
