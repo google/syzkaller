@@ -365,18 +365,19 @@ type BisectResult struct {
 }
 
 type BugUpdate struct {
-	ID           string // copied from BugReport
-	JobID        string // copied from BugReport
-	ExtID        string
-	Link         string
-	Status       BugStatus
-	ReproLevel   ReproLevel
-	DupOf        string
-	OnHold       bool     // If set for open bugs, don't upstream this bug.
-	Notification bool     // Reply to a notification.
-	FixCommits   []string // Titles of commits that fix this bug.
-	CC           []string // Additional emails to add to CC list in future emails.
-	CrashID      int64
+	ID              string // copied from BugReport
+	JobID           string // copied from BugReport
+	ExtID           string
+	Link            string
+	Status          BugStatus
+	ReproLevel      ReproLevel
+	DupOf           string
+	OnHold          bool     // If set for open bugs, don't upstream this bug.
+	Notification    bool     // Reply to a notification.
+	ResetFixCommits bool     // Remove all commits (empty FixCommits means leave intact).
+	FixCommits      []string // Titles of commits that fix this bug.
+	CC              []string // Additional emails to add to CC list in future emails.
+	CrashID         int64
 }
 
 type BugUpdateReply struct {

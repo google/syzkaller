@@ -831,7 +831,8 @@ func incomingCommandUpdate(c context.Context, now time.Time, cmd *dashapi.BugUpd
 	if ok, reply, err := incomingCommandCmd(c, now, cmd, bug, dup, bugReporting, final, stateEnt); !ok {
 		return false, reply, err
 	}
-	if len(cmd.FixCommits) != 0 && (bug.Status == BugStatusOpen || bug.Status == BugStatusDup) {
+	if (len(cmd.FixCommits) != 0 || cmd.ResetFixCommits) &&
+		(bug.Status == BugStatusOpen || bug.Status == BugStatusDup) {
 		sort.Strings(cmd.FixCommits)
 		if !reflect.DeepEqual(bug.Commits, cmd.FixCommits) {
 			bug.updateCommits(cmd.FixCommits, now)

@@ -37,6 +37,10 @@ about its final title, in particular, you don't need to wait for the commit to
 be merged into upstream tree. `syzbot` only needs to know the title by which
 it will appear in tested trees. In case of an error or a title change, you can
 override the commit simply by sending another `#syz fix` command.
+- to undo a previous fix command and remove any fixing commits:
+```
+#syz unfix
+````
 - to mark the bug as a duplicate of another `syzbot` bug:
 ```
 #syz dup: exact-subject-of-another-report
