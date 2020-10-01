@@ -4,9 +4,12 @@
 package kcidb
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -56,8 +59,32 @@ func (c *Client) Publish(bug *dashapi.BugReport) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal kcidb json: %v", err)
 	}
+	if err := kcidbValidate(data); err != nil {
+		return err
+	}
 	_, err = c.topic.Publish(c.ctx, &pubsub.Message{Data: data}).Get(c.ctx)
 	return err
+}
+
+var Validate bool
+
+func kcidbValidate(data []byte) error {
+	if !Validate {
+		return nil
+	}
+	const bin = "kcidb-validate"
+	if _, err := exec.LookPath(bin); err != nil {
+		fmt.Fprintf(os.Stderr, "%v is not found\n", bin)
+		return nil
+	}
+	cmd := exec.Command(bin)
+	cmd.Stdin = bytes.NewReader(data)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("%v failed (%v) on:\n%s\n\nerror: %s",
+			bin, err, data, output)
+	}
+	return nil
 }
 
 func (c *Client) convert(target *targets.Target, bug *dashapi.BugReport) *Kcidb {
@@ -70,7 +97,7 @@ func (c *Client) convert(target *targets.Target, bug *dashapi.BugReport) *Kcidb 
 			{
 				Origin:              c.origin,
 				ID:                  bug.KernelCommit,
-				GitRepositoryURL:    bug.KernelRepo,
+				GitRepositoryURL:    normalizeRepo(bug.KernelRepo),
 				GitCommitHash:       bug.KernelCommit,
 				GitRepositoryBranch: bug.KernelBranch,
 				Description:         bug.KernelCommitTitle,
@@ -97,12 +124,11 @@ func (c *Client) convert(target *targets.Target, bug *dashapi.BugReport) *Kcidb 
 		build.Valid = false
 		build.LogURL = bug.LogLink
 		build.Misc = &BuildMisc{
+			OriginURL:  bug.Link,
 			ReportedBy: bug.CreditEmail,
 		}
 	} else {
-		outputFiles := []*Resource{
-			{Name: "dashboard", URL: bug.Link},
-		}
+		var outputFiles []*Resource
 		if bug.ReportLink != "" {
 			outputFiles = append(outputFiles, &Resource{Name: "report.txt", URL: bug.ReportLink})
 		}
@@ -134,6 +160,7 @@ func (c *Client) convert(target *targets.Target, bug *dashapi.BugReport) *Kcidb 
 				Status:      "FAIL",
 				Waived:      false,
 				Misc: &TestMisc{
+					OriginURL:       bug.Link,
 					ReportedBy:      bug.CreditEmail,
 					UserSpaceArch:   bug.UserSpaceArch,
 					CauseRevisionID: causeRevisionID,
@@ -142,6 +169,16 @@ func (c *Client) convert(target *targets.Target, bug *dashapi.BugReport) *Kcidb 
 		}
 	}
 	return res
+}
+
+func normalizeRepo(repo string) string {
+	// Kcidb needs normalized repo addresses to match reports from different
+	// origins and with subscriptions. "https:" is always preferred over "git:"
+	// where available. Unfortunately we don't know where it's available
+	// and where it isn't. We know that "https:" is supported on kernel.org,
+	// and that's the main case we need to fix up. "https:" is always used
+	// for github.com and googlesource.com.
+	return strings.Replace(repo, "git://git.kernel.org", "https://git.kernel.org", -1)
 }
 
 func (c *Client) extID(id string) string {

@@ -43,6 +43,7 @@ func main() {
 	if err != nil {
 		failf("%v", err)
 	}
+	kcidb.Validate = true
 	client, err := kcidb.NewClient(context.Background(), origin, projectID, topicName, cred)
 	if err != nil {
 		failf("%v", err)

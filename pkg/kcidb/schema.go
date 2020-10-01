@@ -86,6 +86,7 @@ type Build struct {
 
 // Miscellaneous extra data about the build.
 type BuildMisc struct {
+	OriginURL  string `json:"origin_url,omitempty"`
 	ReportedBy string `json:"reported_by,omitempty"`
 }
 
@@ -234,11 +235,12 @@ type Test struct {
 	// Could be used for reporting test results without affecting the overall test status and alerting
 	// the contacts concerned with the tested code revision. For example, for collecting test reliability
 	// statistics when the test is first introduced, or is being fixed.
-	Waived bool `json:"waived,omitempty"`
+	Waived bool `json:"waived"`
 }
 
 // Miscellaneous extra data about the test.
 type TestMisc struct {
+	OriginURL       string `json:"origin_url,omitempty"`
 	ReportedBy      string `json:"reported_by,omitempty"`
 	UserSpaceArch   string `json:"user_space_arch,omitempty"`
 	CauseRevisionID string `json:"cause_revision_id,omitempty"`
