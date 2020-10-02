@@ -133,3 +133,115 @@ In order to facilitate 802.11 fuzzing, two pseudo syscalls are also introduced.
 | `NL80211_CMD_UPDATE_FT_IES` | yes | |
 | `NL80211_CMD_UPDATE_OWE_INFO` | yes | |
 | `NL80211_CMD_VENDOR` | yes | |
+
+## 802.11 frames
+This is not an exhaustive list as it does not include all frames/commands that are defined by 802.11 standards. However, it aims to include all frames supported by mac80211.
+
+### Data frames
+
+| Feature | In descriptions | Supported by mac80211 |
+| ------- | --------------- | --------------------- |
+| QoS control | yes | yes |
+| HT control | yes | yes |
+| A-MSDU | yes | yes |
+| Short A-MSDU | no | no? |
+| Frame encryption | no | yes |
+
+### Management frames
+| Command | In descriptions | Supported by mac80211 |
+| ------- | --------------- | --------------------- |
+| Association Request | yes | yes |
+| Association Response | yes | yes |
+| Reassociation Request | yes | yes |
+| Reassociation Response | yes | yes |
+| Probe Request | yes | yes |
+| Probe Response | yes | yes |
+| Timing Advertisement | not yes | no |
+| Beacon | yes | yes |
+| ATIM | not yes | no |
+| Disassociation | yes | yes |
+| Authentication |  yes | yes |
+| Deauthentication | yes | yes |
+| Action | see below | yes |
+| Action No Ack | see below | no |
+
+### Management Actions
+| Category | Command | In descriptions | Supported by mac80211 |
+| -------- | ------- | --------------- | --------------------- |
+| Spectrum Management | Measurement Request | partially | receives and refuses |
+| Spectrum Management | Measurement Report | no | no |
+| Spectrum Management | TPC Request | no  | no |
+| Spectrum Management | TPC Report | no | no |
+| Spectrum Management | Channel Switch Announcement | yes | yes |
+| Block ACK | ADDBA Request | yes | yes |
+| Block ACK | ADDBA Response | yes | yes |
+| Block ACK | DELBA | yes | yes |
+| Public | Extended Channel Switch Announcement | yes | yes |
+| HT | Notify Channel Width | yes | yes |
+| HT | SM Power Save | yes | yes |
+| HT | PMSP | no | no |
+| HT | Set PCO Phase | no | no |
+| HT | CSI | no | no |
+| SA Query | SA Query Request | yes | yes |
+| SA Query | SA Query Response | no | no |
+| TLDS | Setup Request | yes | yes |
+| TLDS | Setup Response | yes | yes |
+| TLDS | Setup Confirm | yes | yes |
+| TLDS | Teardown | yes | yes |
+| TLDS | Discover Request | yes | yes |
+| TLDS | Channel Switch Request | yes | yes |
+| TLDS | Channel Switch Response | yes | yes |
+| Mesh | HWMP Mesh Path Selection | yes | yes |
+| Self Protected | Mesh Peering Open | yes | yes |
+| Self Protected | Mesh Peering Close | yes | yes |
+| Self Protected | Mesh Peering Confirm | yes | yes |
+| VHT | Operating Mode Notification | yes | yes |
+| VHT | Group ID Management | yes | yes |
+
+### Control frames
+| Command | In descriptions | Supported by mac80211 |
+| ------- | --------------- | --------------------- |
+| Trigger | no | no |
+| Beamforming Report Poll | no | no |
+| VHT/HE NDP Announcement | no | no |
+| Control Frame Extension | no | no |
+| Control Wrapper | no | no |
+| Block Ack Request (BAR) | yes (802.11n) | yes |
+| Block Ack (BA) | yes (802.11n) | ? |
+| PS-Poll | yes | ? |
+| RTS | yes | no |
+| CTS | yes | no |
+| ACK | yes | no |
+| CF-End | yes | ? |
+| CF-End + CF-ACK | yes | ? |
+
+### Information Elements
+
+| ID | IE | In descriptions | Supported by mac80211 |
+| -- | -- | ----- | --------------------- |
+| 0 | SSID | yes | yes |
+| 1 | Supported Rates | yes | yes |
+| 3 | DS | yes | yes |
+| 4 | CF | yes | yes |
+| 5 | Traffic Indication Map | yes | yes |
+| 6 | IBSS | yes | yes |
+| 7 | HT Capabilities | yes | ? |
+| 10 | Request | no | no |
+| 37 | Channel Switch Announcement | yes | yes |
+| 38 | Measurement Request | yes | yes |
+| 42 | Extended Rate PHY (ERP) | yes | yes? |
+| 55 | Fast BSS Transition element | yes | yes |
+| 60 | Extended Channel Switch Announcement | yes | ? |
+| 62 | Secondary Channel Offset | yes | yes |
+| 101 | Link Identifier | yes | ? |
+| 104 | Channel Switch Timing Information | yes | ? |
+| 113 | Mesh Config | yes | yes |
+| 114 | Mesh ID | yes | yes |
+| 117 | Mesh Peering Management | yes | yes |
+| 118 | MESH Channel Switch | yes | yes |
+| 126 | RANN | yes | yes |
+| 130 | PREQ | yes | yes |
+| 131 | PREP | yes | yes |
+| 132 | PERR | yes | yes |
+| 140 | MIC | yes | yes |
+| 189 | GCR Group Address | yes | no |
