@@ -48,7 +48,7 @@ func handleKcidbNamespce(c context.Context, ns string, cfg *KcidbConfig) error {
 			bug.KcidbStatus != 0 ||
 			bug.sanitizeAccess(AccessPublic) > AccessPublic ||
 			bug.Reporting[len(bug.Reporting)-1].Reported.IsZero() ||
-			timeSince(c, bug.LastTime) > 7*24*time.Hour {
+			bug.Status != BugStatusOpen && timeSince(c, bug.LastTime) > 7*24*time.Hour {
 			return nil
 		}
 		reported++
