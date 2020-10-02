@@ -722,7 +722,9 @@ retry:
 		if (prog_extra_timeout < call->attrs.prog_timeout)
 			prog_extra_timeout = call->attrs.prog_timeout;
 		if (strncmp(syscalls[call_num].name, "syz_usb", strlen("syz_usb")) == 0)
-			prog_extra_cover_timeout = 500;
+			prog_extra_cover_timeout = std::max(prog_extra_cover_timeout, (uint64)500);
+		if (strncmp(syscalls[call_num].name, "syz_80211_inject_frame", strlen("syz_80211_inject_frame")) == 0)
+			prog_extra_cover_timeout = std::max(prog_extra_cover_timeout, (uint64)300);
 		uint64 copyout_index = read_input(&input_pos);
 		uint64 num_args = read_input(&input_pos);
 		if (num_args > kMaxArgs)
