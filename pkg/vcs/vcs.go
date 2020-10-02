@@ -213,7 +213,9 @@ func Patch(dir string, patch []byte) error {
 
 // CheckRepoAddress does a best-effort approximate check of a git repo address.
 func CheckRepoAddress(repo string) bool {
-	return gitRepoRe.MatchString(repo) || gitSSHRepoRe.MatchString(repo)
+	return gitLocalRepoRe.MatchString(repo) ||
+		gitRemoteRepoRe.MatchString(repo) ||
+		gitSSHRepoRe.MatchString(repo)
 }
 
 // CheckBranch does a best-effort approximate check of a git branch name.
@@ -236,7 +238,9 @@ func runSandboxed(dir, command string, args ...string) ([]byte, error) {
 
 var (
 	// nolint: lll
-	gitRepoRe = regexp.MustCompile(`^(git|ssh|http|https|ftp|ftps)://[a-zA-Z0-9-_]+(\.[a-zA-Z0-9-_]+)+(:[0-9]+)?(/[a-zA-Z0-9-_./]+)?(/)?$`)
+	gitLocalRepoRe = regexp.MustCompile(`^file:///[a-zA-Z0-9-_./]+(/)?$`)
+	// nolint: lll
+	gitRemoteRepoRe = regexp.MustCompile(`^(git|ssh|http|https|ftp|ftps)://[a-zA-Z0-9-_]+(\.[a-zA-Z0-9-_]+)+(:[0-9]+)?(/[a-zA-Z0-9-_./]+)?(/)?$`)
 	// nolint: lll
 	gitSSHRepoRe = regexp.MustCompile(`^(git|ssh|http|https|ftp|ftps)@[a-zA-Z0-9-_]+(\.[a-zA-Z0-9-_]+)+(:[a-zA-Z0-9-_]+)?(/[a-zA-Z0-9-_./]+)?(/)?$`)
 	gitBranchRe  = regexp.MustCompile("^[a-zA-Z0-9-_/.]{2,200}$")
