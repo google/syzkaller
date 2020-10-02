@@ -44,25 +44,33 @@ func handleKcidbNamespce(c context.Context, ns string, cfg *KcidbConfig) error {
 	}
 	reported := 0
 	return foreachBug(c, filter, func(bug *Bug, bugKey *db.Key) error {
-		if reported >= 30 ||
-			bug.KcidbStatus != 0 ||
-			bug.sanitizeAccess(AccessPublic) > AccessPublic ||
-			bug.Reporting[len(bug.Reporting)-1].Reported.IsZero() ||
-			bug.Status != BugStatusOpen && timeSince(c, bug.LastTime) > 7*24*time.Hour {
+		if reported >= 30 {
 			return nil
 		}
-		reported++
-		return publishKcidbBug(c, client, bug, bugKey)
+		ok, err := publishKcidbBug(c, client, bug, bugKey)
+		if err != nil {
+			return err
+		}
+		if ok {
+			reported++
+		}
+		return nil
 	})
 }
 
-func publishKcidbBug(c context.Context, client *kcidb.Client, bug *Bug, bugKey *db.Key) error {
+func publishKcidbBug(c context.Context, client *kcidb.Client, bug *Bug, bugKey *db.Key) (bool, error) {
+	if bug.KcidbStatus != 0 ||
+		bug.sanitizeAccess(AccessPublic) > AccessPublic ||
+		bug.Reporting[len(bug.Reporting)-1].Reported.IsZero() ||
+		bug.Status != BugStatusOpen && timeSince(c, bug.LastTime) > 7*24*time.Hour {
+		return false, nil
+	}
 	rep, err := loadBugReport(c, bug)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if err := client.Publish(rep); err != nil {
-		return err
+		return false, err
 	}
 	tx := func(c context.Context) error {
 		bug := new(Bug)
@@ -76,8 +84,8 @@ func publishKcidbBug(c context.Context, client *kcidb.Client, bug *Bug, bugKey *
 		return nil
 	}
 	if err := db.RunInTransaction(c, tx, nil); err != nil {
-		return err
+		return false, err
 	}
 	log.Infof(c, "published bug to kcidb: %v:%v '%v'", bug.Namespace, bugKey.StringID(), bug.displayTitle())
-	return nil
+	return true, nil
 }
