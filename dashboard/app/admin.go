@@ -142,6 +142,9 @@ func updateBugReporting(c context.Context, w http.ResponseWriter, r *http.Reques
 	}
 	log.Warningf(c, "fetched %v bugs for namespce %v", len(bugs), ns)
 	cfg := config.Namespaces[ns]
+	transform := func(bug *Bug) {
+		createBugReporting(bug, cfg)
+	}
 	var batchKeys []*db.Key
 	const batchSize = 20
 	for i, bug := range bugs {
@@ -150,28 +153,28 @@ func updateBugReporting(c context.Context, w http.ResponseWriter, r *http.Reques
 		}
 		batchKeys = append(batchKeys, keys[i])
 		if len(batchKeys) == batchSize {
-			if err := updateBugReportingBatch(c, cfg, batchKeys); err != nil {
+			if err := updateBugBatch(c, batchKeys, transform); err != nil {
 				return err
 			}
 			batchKeys = nil
 		}
 	}
 	if len(batchKeys) != 0 {
-		if err := updateBugReportingBatch(c, cfg, batchKeys); err != nil {
+		if err := updateBugBatch(c, batchKeys, transform); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func updateBugReportingBatch(c context.Context, cfg *Config, keys []*db.Key) error {
+func updateBugBatch(c context.Context, keys []*db.Key, transform func(bug *Bug)) error {
 	tx := func(c context.Context) error {
 		bugs := make([]*Bug, len(keys))
 		if err := db.GetMulti(c, keys, bugs); err != nil {
 			return err
 		}
 		for _, bug := range bugs {
-			createBugReporting(bug, cfg)
+			transform(bug)
 		}
 		_, err := db.PutMulti(c, keys, bugs)
 		return err
