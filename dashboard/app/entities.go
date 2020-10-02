@@ -95,8 +95,9 @@ type Bug struct {
 	HappenedOn     []string // list of managers
 	PatchedOn      []string `datastore:",noindex"` // list of managers
 	UNCC           []string // don't CC these emails on this bug
-	// 0 means we did not report this bug to Kcidb, 1 - reported.
-	// The idea is to extend this to a bitmask later: if reported a reproducer, if we reported bisection, etc.
+	// Kcidb publishing status bitmask:
+	// bit 0 - the bug is published
+	// bit 1 - don't want to publish it (syzkaller build/test errors)
 	KcidbStatus int64
 }
 

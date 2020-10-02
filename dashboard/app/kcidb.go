@@ -69,8 +69,17 @@ func publishKcidbBug(c context.Context, client *kcidb.Client, bug *Bug, bugKey *
 	if err != nil {
 		return false, err
 	}
-	if err := client.Publish(rep); err != nil {
-		return false, err
+	publish := true
+	if rep.KernelCommit == "" || len(rep.KernelConfig) == 0 {
+		// This should happen only for syzkaller build/test errors, which we don't want to publish.
+		// But if this ever happens for a kernel bug, then we also don't want to publish such bugs
+		// with missing critical info.
+		publish = false
+	}
+	if publish {
+		if err := client.Publish(rep); err != nil {
+			return false, err
+		}
 	}
 	tx := func(c context.Context) error {
 		bug := new(Bug)
@@ -78,6 +87,9 @@ func publishKcidbBug(c context.Context, client *kcidb.Client, bug *Bug, bugKey *
 			return err
 		}
 		bug.KcidbStatus = 1
+		if !publish {
+			bug.KcidbStatus = 2
+		}
 		if _, err := db.Put(c, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to put bug: %v", err)
 		}
@@ -87,5 +99,5 @@ func publishKcidbBug(c context.Context, client *kcidb.Client, bug *Bug, bugKey *
 		return false, err
 	}
 	log.Infof(c, "published bug to kcidb: %v:%v '%v'", bug.Namespace, bugKey.StringID(), bug.displayTitle())
-	return true, nil
+	return publish, nil
 }
