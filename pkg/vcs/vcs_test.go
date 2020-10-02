@@ -37,6 +37,7 @@ func TestCheckRepoAddress(t *testing.T) {
 		"https://chromium.googlesource.com/chromiumos/third_party/kernel":       true,
 		"https://fuchsia.googlesource.com":                                      true,
 		"git@my-github.com:my/fd.git":                                           true,
+		"file:///repo/linux.git":                                                true,
 		"git@my-github.com:/fd.git":                                             false,
 		"gitgit@my-github:/fd.git":                                              false,
 		"git@my-github/fd.git":                                                  false,
