@@ -632,8 +632,16 @@ func readTextRanges(file *elf.File) ([]pcRange, []*compileUnit, error) {
 
 func symbolize(target *targets.Target, obj string, pcs []uint64) ([]symbolizer.Frame, error) {
 	procs := runtime.GOMAXPROCS(0) / 2
-	if procs == 0 {
-		procs = 1
+	const (
+		minProcs = 1
+		maxProcs = 4
+	)
+	// addr2line on a beefy vmlinux takes up to 1.6GB of RAM, so don't create too many of them.
+	if procs > maxProcs {
+		procs = maxProcs
+	}
+	if procs < minProcs {
+		procs = minProcs
 	}
 	type symbolizerResult struct {
 		frames []symbolizer.Frame
