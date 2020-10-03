@@ -522,7 +522,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	if inst.debug {
 		log.Logf(0, "running command: scp %#v", args)
 	}
-	_, err := osutil.RunCmd(3*time.Minute, "", "scp", args...)
+	_, err := osutil.RunCmd(10*time.Minute, "", "scp", args...)
 	if err != nil {
 		return "", err
 	}
