@@ -2466,8 +2466,6 @@ static int netlink_query_family_id(struct nlmsg* nlmsg, int sock, const char* fa
 		debug("netlink: failed to parse family id for %.*s\n", GENL_NAMSIZ, family_name);
 		return -1;
 	}
-	recv(sock, nlmsg->buf, sizeof(nlmsg->buf), 0);
-
 	return id;
 }
 
