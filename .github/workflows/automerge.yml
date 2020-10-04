@@ -1,0 +1,47 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# When a "autocommit" label is applied to a PR, this action will wait for CI to pass
+# and then merge the PR using rebase method (preserving individual commits).
+# Similarly, "autosquash" label will result in merging using squash method
+# (commit the whole PR as a single commit).
+# The action respects github branch protection rules, in particular this is where
+# "wait for CI" part is configured:
+# https://github.com/google/syzkaller/settings/branches
+
+# Action reference:
+# https://github.com/marketplace/actions/merge-pull-requests
+
+name: automerge
+on:
+  pull_request:
+    types:
+      - labeled
+      - unlabeled
+      - synchronize
+      - opened
+      - edited
+      - ready_for_review
+      - reopened
+      - unlocked
+  pull_request_review:
+    types:
+      - submitted
+  check_suite:
+    types:
+      - completed
+  status: {}
+jobs:
+  automerge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: automerge
+        uses: "pascalgn/automerge-action@v0.15.3"
+        with:
+          args: "--trace"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          MERGE_METHOD_LABELS: "autocommit=rebase,autosquash=squash"
+          MERGE_METHOD_LABEL_REQUIRED: true
+          UPDATE_METHOD: "rebase"
+          UPDATE_LABELS: ""
