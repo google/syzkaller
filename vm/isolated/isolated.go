@@ -378,7 +378,6 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		args = append(args, "-o", "ServerAliveCountMax=5")
 	}
 	args = append(args, inst.sshUser+"@"+inst.targetAddr, "cd "+inst.cfg.TargetDir+" && exec "+command)
-	log.Logf(0, "running command: ssh %#v", args)
 	if inst.debug {
 		log.Logf(0, "running command: ssh %#v", args)
 	}
