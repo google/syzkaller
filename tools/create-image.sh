@@ -95,7 +95,16 @@ case "$ARCH" in
 esac
 
 # Foreign architecture
+
+FOREIGN=false
 if [ $ARCH != $(uname -m) ]; then
+    # i386 on an x86_64 host is exempted, as we can run i386 binaries natively
+    if [ $ARCH != "i386" -o $(uname -m) != "x86_64" ]; then
+        FOREIGN=true
+    fi
+fi
+
+if [ $FOREIGN = "true" ]; then
     # Check for according qemu static binary
     if ! which qemu-$ARCH-static; then
         echo "Please install qemu static binary for architecture $ARCH (package 'qemu-user-static' on Debian/Ubuntu/Fedora)"
@@ -125,15 +134,16 @@ sudo chmod 0755 $DIR
 
 # 1. debootstrap stage
 
-DEBOOTSTRAP_PARAMS="--include=$PREINSTALL_PKGS --components=main,contrib,non-free $RELEASE $DIR"
-if [ $ARCH != $(uname -m) ]; then
-    DEBOOTSTRAP_PARAMS="--arch=$DEBARCH --foreign $DEBOOTSTRAP_PARAMS"
+DEBOOTSTRAP_PARAMS="--arch=$DEBARCH --include=$PREINSTALL_PKGS --components=main,contrib,non-free $RELEASE $DIR"
+if [ $FOREIGN = "true" ]; then
+    DEBOOTSTRAP_PARAMS="--foreign $DEBOOTSTRAP_PARAMS"
 fi
+
 sudo debootstrap $DEBOOTSTRAP_PARAMS
 
 # 2. debootstrap stage: only necessary if target != host architecture
 
-if [ $ARCH != $(uname -m) ]; then
+if [ $FOREIGN = "true" ]; then
     sudo cp $(which qemu-$ARCH-static) $DIR/$(which qemu-$ARCH-static)
     sudo chroot $DIR /bin/bash -c "/debootstrap/debootstrap --second-stage"
 fi
