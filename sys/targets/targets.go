@@ -203,6 +203,7 @@ var List = map[string]map[string]*Target{
 		"s390x": {
 			PtrSize:          8,
 			PageSize:         4 << 10,
+			DataOffset:       0xfffff000,
 			LittleEndian:     false,
 			Triple:           "s390x-linux-gnu",
 			KernelArch:       "s390",
