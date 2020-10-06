@@ -77,18 +77,21 @@ done
 
 # Handle cases where qemu and Debian use different arch names
 case "$ARCH" in
-	ppc64le)
-		DEBARCH=ppc64el
-		;;
-	aarch64)
-		DEBARCH=arm64
-		;;
-	arm)
-		DEBARCH=armel
-		;;
-	*)
-		DEBARCH=$ARCH
-		;;
+    ppc64le)
+        DEBARCH=ppc64el
+        ;;
+    aarch64)
+        DEBARCH=arm64
+        ;;
+    arm)
+        DEBARCH=armel
+        ;;
+    x86_64)
+        DEBARCH=amd64
+        ;;
+    *)
+        DEBARCH=$ARCH
+        ;;
 esac
 
 # Foreign architecture
