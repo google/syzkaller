@@ -1,0 +1,13 @@
+# Test for GUP fast.
+# requires: arch=s390x
+
+mmap(&(0x7f0000000000/0x2000)=nil, 0x2000, 0x3, 0x32, 0xffffffffffffffff, 0x0)
+
+r0 = openat$urandom(0xffffffffffffff9c, &AUTO='/dev/urandom\x00', 0x0, 0x0)
+read(r0, &(0x7f0000000000), 0x2000)
+close(r0)
+
+r1 = openat(0xffffffffffffff9c, &AUTO='/proc/self/exe\x00', 0x105000, 0x0)
+read(r1, &(0x7f0000000000), 0x2000)
+close(r1)
+munmap(&(0x7f0000000000/0x2000), 0x2000)
