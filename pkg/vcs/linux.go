@@ -185,6 +185,10 @@ func linuxAlterConfigs(config []byte, tags map[string]bool) []byte {
 		// and kernel is boot-broken for prolonged ranges of commits with deadlock
 		// which makes bisections take weeks.
 		"CONFIG_DEBUG_KOBJECT": "disable-always",
+		// This config is causing problems to kernel signature calculation as new initramfs is generated
+		// as a part of every build. Due to this init.data section containing this generated initramfs
+		// is differing between builds causing signture being random number.
+		"CONFIG_BLK_DEV_INITRD": "disable-always",
 	}
 	for cfg, tag := range disable {
 		if !tags[tag] {
