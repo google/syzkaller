@@ -7995,6 +7995,7 @@ static int do_sandbox_setuid(void)
 		fail("failed to setresgid");
 	if (syscall(SYS_setresuid, nobody, nobody, nobody))
 		fail("failed to setresuid");
+	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 	prctl(PR_SET_DUMPABLE, 1, 0, 0, 0);
 
 	loop();
@@ -8762,6 +8763,7 @@ static int do_sandbox_android(void)
 
 	if (setresuid(UNTRUSTED_APP_UID, UNTRUSTED_APP_UID, UNTRUSTED_APP_UID) != 0)
 		fail("setresuid failed");
+	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 
 	syz_setfilecon(".", SELINUX_LABEL_APP_DATA_FILE);
 	syz_setcon(SELINUX_CONTEXT_UNTRUSTED_APP);
