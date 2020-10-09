@@ -3772,6 +3772,8 @@ static int do_sandbox_setuid(void)
 	if (syscall(SYS_setresuid, nobody, nobody, nobody))
 		fail("failed to setresuid");
 
+	// setresuid and setresgid clear the parent-death signal.
+	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 	// This is required to open /proc/self/ files.
 	// Otherwise they are owned by root and we can't open them after setuid.
 	// See task_dump_owner function in kernel.
@@ -4066,6 +4068,9 @@ static int do_sandbox_android(void)
 
 	if (setresuid(UNTRUSTED_APP_UID, UNTRUSTED_APP_UID, UNTRUSTED_APP_UID) != 0)
 		fail("setresuid failed");
+
+	// setresuid and setresgid clear the parent-death signal.
+	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 
 	syz_setfilecon(".", SELINUX_LABEL_APP_DATA_FILE);
 	syz_setcon(SELINUX_CONTEXT_UNTRUSTED_APP);
