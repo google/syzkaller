@@ -11,42 +11,25 @@ import (
 	"testing"
 )
 
-func TestMachineInfoLinux(t *testing.T) {
-	result, err := CollectMachineInfo()
-	if err != nil {
+func TestReadCPUInfoLinux(t *testing.T) {
+	buf := new(bytes.Buffer)
+	if err := readCPUInfo(buf); err != nil {
 		t.Fatal(err)
 	}
-
-	scanner := bufio.NewScanner(bytes.NewReader(result))
-
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		if line == "[CPU Info]" {
-			checkCPUInfo(t, scanner)
-		}
-		if line == "[KVM]" {
-			checkKVMInfo(t, scanner)
-		}
-	}
+	checkCPUInfo(t, buf.Bytes(), runtime.GOARCH)
 }
 
-func checkCPUInfo(t *testing.T, scanner *bufio.Scanner) {
+func checkCPUInfo(t *testing.T, data []byte, arch string) {
+	t.Logf("input data:\n%s", data)
 	keys := make(map[string]bool)
-	for scanner.Scan() {
-		line := scanner.Text()
-		// End of CPU Info section.
-		if strings.HasPrefix(line, "-----") {
-			break
-		}
-		splitted := strings.Split(line, ":")
+	for s := bufio.NewScanner(bytes.NewReader(data)); s.Scan(); {
+		splitted := strings.Split(s.Text(), ":")
 		if len(splitted) != 2 {
-			t.Fatalf("the format of line \"%s\" is not correct", line)
+			t.Fatalf("the format of line %q is not correct", s.Text())
 		}
 		key := strings.TrimSpace(splitted[0])
 		keys[key] = true
 	}
-
 	importantKeys := map[string][]string{
 		"ppc64le":  {"cpu", "revision", "platform", "model", "machine"},
 		"amd64":    {"vendor_id", "model", "flags"},
@@ -57,22 +40,26 @@ func checkCPUInfo(t *testing.T, scanner *bufio.Scanner) {
 		"mips64le": {"system type", "cpu model", "ASEs implemented"},
 		"riscv64":  {"processor", "isa", "mmu"},
 	}
-	archKeys := importantKeys[runtime.GOARCH]
+	archKeys := importantKeys[arch]
+	if len(archKeys) == 0 {
+		t.Fatalf("unknown arch %v", arch)
+	}
 	for _, name := range archKeys {
 		if !keys[name] {
-			t.Fatalf("key '%s' not found", name)
+			t.Fatalf("key %q not found", name)
 		}
 	}
 }
 
-func checkKVMInfo(t *testing.T, scanner *bufio.Scanner) {
-	for scanner.Scan() {
-		line := scanner.Text()
+func TestReadKVMInfoLinux(t *testing.T) {
+	buf := new(bytes.Buffer)
+	if err := readKVMInfo(buf); err != nil {
+		t.Fatal(err)
+	}
+	for s := bufio.NewScanner(buf); s.Scan(); {
+		line := s.Text()
 		if line == "" {
 			continue
-		}
-		if strings.HasPrefix(line, "-----") {
-			break
 		}
 		splitted := strings.Split(line, ":")
 		if len(splitted) != 2 {
