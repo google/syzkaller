@@ -179,7 +179,7 @@ func (git *git) HeadCommit() (*Commit, error) {
 }
 
 func (git *git) getCommit(commit string) (*Commit, error) {
-	output, err := git.git("log", "--format=%H%n%s%n%ae%n%an%n%ad%n%P%n%b", "-n", "1", commit)
+	output, err := git.git("log", "--format=%H%n%s%n%ae%n%an%n%ad%n%P%n%cd%n%b", "-n", "1", commit)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +188,7 @@ func (git *git) getCommit(commit string) (*Commit, error) {
 
 func gitParseCommit(output, user, domain []byte, ignoreCC map[string]bool) (*Commit, error) {
 	lines := bytes.Split(output, []byte{'\n'})
-	if len(lines) < 4 || len(lines[0]) != 40 {
+	if len(lines) < 8 || len(lines[0]) != 40 {
 		return nil, fmt.Errorf("unexpected git log output: %q", output)
 	}
 	const dateFormat = "Mon Jan 2 15:04:05 2006 -0700"
@@ -196,11 +196,15 @@ func gitParseCommit(output, user, domain []byte, ignoreCC map[string]bool) (*Com
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse date in git log output: %v\n%q", err, output)
 	}
+	commitDate, err := time.Parse(dateFormat, string(lines[6]))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse date in git log output: %v\n%q", err, output)
+	}
 	recipients := make(map[string]bool)
 	recipients[strings.ToLower(string(lines[2]))] = true
 	var tags []string
 	// Use summary line + all description lines.
-	for _, line := range append([][]byte{lines[1]}, lines[6:]...) {
+	for _, line := range append([][]byte{lines[1]}, lines[7:]...) {
 		if user != nil {
 			userPos := bytes.Index(line, user)
 			if userPos != -1 {
@@ -254,6 +258,7 @@ func gitParseCommit(output, user, domain []byte, ignoreCC map[string]bool) (*Com
 		Recipients: sortedRecipients,
 		Tags:       tags,
 		Date:       date,
+		CommitDate: commitDate,
 	}
 	return com, nil
 }
@@ -318,7 +323,7 @@ func (git *git) ExtractFixTagsFromCommits(baseCommit, email string) ([]*Commit, 
 
 func (git *git) fetchCommits(since, base, user, domain string, greps []string, fixedStrings bool) ([]*Commit, error) {
 	const commitSeparator = "---===syzkaller-commit-separator===---"
-	args := []string{"log", "--since", since, "--format=%H%n%s%n%ae%n%an%n%ad%n%P%n%b%n" + commitSeparator}
+	args := []string{"log", "--since", since, "--format=%H%n%s%n%ae%n%an%n%ad%n%P%n%cd%n%b%n" + commitSeparator}
 	if fixedStrings {
 		args = append(args, "--fixed-strings")
 	}

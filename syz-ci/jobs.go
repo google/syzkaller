@@ -475,7 +475,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 			// If there is a report and there is no commit, it means a crash
 			// occurred on HEAD(for BisectFix) and oldest tested release(for BisectCause).
 			resp.Build.KernelCommit = res.Commit.Hash
-			resp.Build.KernelCommitDate = res.Commit.Date
+			resp.Build.KernelCommitDate = res.Commit.CommitDate
 			resp.Build.KernelCommitTitle = res.Commit.Title
 		}
 	}
@@ -516,7 +516,7 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 	}
 	resp.Build.KernelCommit = kernelCommit.Hash
 	resp.Build.KernelCommitTitle = kernelCommit.Title
-	resp.Build.KernelCommitDate = kernelCommit.Date
+	resp.Build.KernelCommitDate = kernelCommit.CommitDate
 
 	if err := build.Clean(mgrcfg.TargetOS, mgrcfg.TargetVMArch, mgrcfg.Type, mgrcfg.KernelSrc); err != nil {
 		return fmt.Errorf("kernel clean failed: %v", err)

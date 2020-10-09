@@ -281,7 +281,7 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 		KernelBranch:      mgr.mgrcfg.Branch,
 		KernelCommit:      kernelCommit.Hash,
 		KernelCommitTitle: kernelCommit.Title,
-		KernelCommitDate:  kernelCommit.Date,
+		KernelCommitDate:  kernelCommit.CommitDate,
 		KernelConfigTag:   mgr.configTag,
 	}
 
