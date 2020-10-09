@@ -127,14 +127,15 @@ type ConfigMinimizer interface {
 }
 
 type Commit struct {
-	Hash       string
-	Title      string
-	Author     string
-	AuthorName string
-	Recipients Recipients
-	Tags       []string
-	Parents    []string
-	Date       time.Time
+	Hash        string
+	Title       string
+	Author      string
+	AuthorName  string
+	Recipients  Recipients
+	Tags        []string
+	Parents     []string
+	author_date time.Time
+	commit_date time.Time
 }
 
 type BisectResult int

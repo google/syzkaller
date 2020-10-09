@@ -179,7 +179,7 @@ func (git *git) HeadCommit() (*Commit, error) {
 }
 
 func (git *git) getCommit(commit string) (*Commit, error) {
-	output, err := git.git("log", "--format=%H%n%s%n%ae%n%an%n%ad%n%P%n%b", "-n", "1", commit)
+	output, err := git.git("log", "--format=%H%n%s%n%ae%n%an%n%ad%n%cd%n%P%n%b", "-n", "1", commit)
 	if err != nil {
 		return nil, err
 	}
@@ -188,13 +188,17 @@ func (git *git) getCommit(commit string) (*Commit, error) {
 
 func gitParseCommit(output, user, domain []byte, ignoreCC map[string]bool) (*Commit, error) {
 	lines := bytes.Split(output, []byte{'\n'})
-	if len(lines) < 4 || len(lines[0]) != 40 {
+	if len(lines) < 5 || len(lines[0]) != 40 {
 		return nil, fmt.Errorf("unexpected git log output: %q", output)
 	}
 	const dateFormat = "Mon Jan 2 15:04:05 2006 -0700"
-	date, err := time.Parse(dateFormat, string(lines[4]))
+	author_date, err := time.Parse(dateFormat, string(lines[4]))
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse date in git log output: %v\n%q", err, output)
+		return nil, fmt.Errorf("failed to parse author date in git log output: %v\n%q", err, output)
+	}
+	commit_date, err := time.Parse(dateFormat, string(lines[5]))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse commit date in git log output: %v\n%q", err, output)
 	}
 	recipients := make(map[string]bool)
 	recipients[strings.ToLower(string(lines[2]))] = true
@@ -246,14 +250,15 @@ func gitParseCommit(output, user, domain []byte, ignoreCC map[string]bool) (*Com
 	sort.Sort(sortedRecipients)
 	parents := strings.Split(string(lines[5]), " ")
 	com := &Commit{
-		Hash:       string(lines[0]),
-		Title:      string(lines[1]),
-		Author:     string(lines[2]),
-		AuthorName: string(lines[3]),
-		Parents:    parents,
-		Recipients: sortedRecipients,
-		Tags:       tags,
-		Date:       date,
+		Hash:        string(lines[0]),
+		Title:       string(lines[1]),
+		Author:      string(lines[2]),
+		AuthorName:  string(lines[3]),
+		Parents:     parents,
+		Recipients:  sortedRecipients,
+		Tags:        tags,
+		author_date: author_date,
+		commit_date: commit_date,
 	}
 	return com, nil
 }

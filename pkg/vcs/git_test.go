@@ -18,6 +18,7 @@ rbtree: include rcu.h
 foobar@foobar.de
 Foo Bar
 Fri May 11 16:02:14 2018 -0700
+Wed May 16 8:14:41 2018 -0700
 Since commit c1adf20052d8 ("Introduce rb_replace_node_rcu()")
 rbtree_augmented.h uses RCU related data structures but does not include
 the header file.  It works as long as it gets somehow included before
@@ -47,7 +48,8 @@ Signed-off-by: Linux Master <linux@linux-foundation.org>
 				"subsystem@reviewer.com",
 				"yetanother@email.org",
 			}, To),
-			Date: time.Date(2018, 5, 11, 16, 02, 14, 0, time.FixedZone("", -7*60*60)),
+			author_date: time.Date(2018, 5, 11, 16, 02, 14, 0, time.FixedZone("", -7*60*60)),
+			commit_date: time.Date(2018, 5, 16, 8, 14, 41, 0, time.FixedZone("", -7*60*60)),
 		},
 	}
 	for input, com := range tests {
@@ -73,8 +75,11 @@ Signed-off-by: Linux Master <linux@linux-foundation.org>
 		if diff := cmp.Diff(com.Recipients, res.Recipients); diff != "" {
 			t.Fatalf("bad CC: %v", diff)
 		}
-		if !com.Date.Equal(res.Date) {
-			t.Fatalf("want date %v, got %v", com.Date, res.Date)
+		if !com.author_date.Equal(res.author_date) {
+			t.Fatalf("want date %v, got %v", com.author_date, res.author_date)
+		}
+		if !com.commit_date.Equal(res.commit_date) {
+			t.Fatalf("want date %v, got %v", com.commit_date, res.commit_date)
 		}
 	}
 }
