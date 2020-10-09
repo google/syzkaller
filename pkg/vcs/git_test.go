@@ -18,6 +18,8 @@ rbtree: include rcu.h
 foobar@foobar.de
 Foo Bar
 Fri May 11 16:02:14 2018 -0700
+78eb0c6356cda285c6ee6e29bea0c0188368103e
+Fri May 11 17:28:45 2018 -0700
 Since commit c1adf20052d8 ("Introduce rb_replace_node_rcu()")
 rbtree_augmented.h uses RCU related data structures but does not include
 the header file.  It works as long as it gets somehow included before
@@ -47,7 +49,8 @@ Signed-off-by: Linux Master <linux@linux-foundation.org>
 				"subsystem@reviewer.com",
 				"yetanother@email.org",
 			}, To),
-			Date: time.Date(2018, 5, 11, 16, 02, 14, 0, time.FixedZone("", -7*60*60)),
+			Date:       time.Date(2018, 5, 11, 16, 02, 14, 0, time.FixedZone("", -7*60*60)),
+			CommitDate: time.Date(2018, 5, 11, 17, 28, 45, 0, time.FixedZone("", -7*60*60)),
 		},
 	}
 	for input, com := range tests {
@@ -75,6 +78,9 @@ Signed-off-by: Linux Master <linux@linux-foundation.org>
 		}
 		if !com.Date.Equal(res.Date) {
 			t.Fatalf("want date %v, got %v", com.Date, res.Date)
+		}
+		if !com.CommitDate.Equal(res.CommitDate) {
+			t.Fatalf("want date %v, got %v", com.CommitDate, res.CommitDate)
 		}
 	}
 }

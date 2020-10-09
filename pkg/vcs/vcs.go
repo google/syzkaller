@@ -135,6 +135,7 @@ type Commit struct {
 	Tags       []string
 	Parents    []string
 	Date       time.Time
+	CommitDate time.Time
 }
 
 type BisectResult int

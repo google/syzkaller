@@ -310,7 +310,7 @@ func (upd *SyzUpdater) uploadBuildError(commit *vcs.Commit, buildErr error) {
 				Arch:                managercfg.TargetArch,
 				VMArch:              managercfg.TargetVMArch,
 				SyzkallerCommit:     commit.Hash,
-				SyzkallerCommitDate: commit.Date,
+				SyzkallerCommitDate: commit.CommitDate,
 				CompilerID:          upd.compilerID,
 				KernelRepo:          upd.repoAddress,
 				KernelBranch:        upd.branch,
