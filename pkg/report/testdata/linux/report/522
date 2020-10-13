@@ -1,0 +1,66 @@
+TITLE: divide error in tabledist
+
+[   63.550339][    C1] divide_error: 0000 [#1] PREEMPT SMP KASAN
+[   63.556240][    C1] CPU: 1 PID: 6855 Comm: syz-executor857 Not tainted 5.9.0-rc8-syzkaller #0
+[   63.564879][    C1] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   63.575262][    C1] RIP: 0010:tabledist.part.0+0x22a/0x2a0
+[   63.580864][    C1] Code: 4c 01 f0 48 c1 e8 20 41 89 45 00 41 89 c6 e8 3d 9a d2 fa 48 85 db 0f 85 6d fe ff ff e8 2f 9a d2 fa 8d 4c 2d 00 44 89 f0 31 d2 <f7> f1 49 29 ec 49 01 d4 e9 2b ff ff ff e8 14 9a d2 fa 48 81 eb 00
+[   63.600477][    C1] RSP: 0018:ffffc90000da86d8 EFLAGS: 00010246
+[   63.606526][    C1] RAX: 00000000f1328ef9 RBX: 0000000000000000 RCX: 0000000000000000
+[   63.614469][    C1] RDX: 0000000000000000 RSI: ffffffff86a3ee51 RDI: 0000000000000005
+[   63.622498][    C1] RBP: ffffffff80000000 R08: 0000000000000000 R09: ffffffff8b5cdd4f
+[   63.630454][    C1] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
+[   63.638399][    C1] R13: ffff8880a7fba37c R14: 00000000f1328ef9 R15: 0000000000000000
+[   63.647140][    C1] FS:  0000000000000000(0000) GS:ffff8880ae500000(0000) knlGS:0000000000000000
+[   63.656047][    C1] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   63.662735][    C1] CR2: 00000000004c9428 CR3: 0000000009e8d000 CR4: 00000000001506e0
+[   63.670684][    C1] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   63.678646][    C1] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   63.686606][    C1] Call Trace:
+[   63.689890][    C1]  <IRQ>
+[   63.692734][    C1]  netem_enqueue+0x461/0x3560
+[   63.712107][    C1]  __dev_queue_xmit+0x1881/0x2d70
+[   63.747400][    C1]  neigh_resolve_output+0x3fe/0x6a0
+[   63.752593][    C1]  ip6_finish_output2+0x8ac/0x1780
+[   63.757740][    C1]  __ip6_finish_output+0x447/0xab0
+[   63.762849][    C1]  ip6_finish_output+0x34/0x1f0
+[   63.767672][    C1]  ip6_output+0x1db/0x520
+[   63.771993][    C1]  mld_sendpack+0x92a/0xdb0
+[   63.808288][    C1]  mld_ifc_timer_expire+0x60a/0xf10
+[   63.813468][    C1]  call_timer_fn+0x1ac/0x760
+[   63.853685][    C1]  __run_timers.part.0+0x67c/0xaa0
+[   63.872675][    C1]  run_timer_softirq+0xb3/0x1d0
+[   63.877499][    C1]  __do_softirq+0x1f8/0xb23
+[   63.881984][    C1]  asm_call_irq_on_stack+0xf/0x20
+[   63.886977][    C1]  </IRQ>
+[   63.889894][    C1]  do_softirq_own_stack+0x9b/0xd0
+[   63.894891][    C1]  do_softirq+0x154/0x1b0
+[   63.904551][    C1]  __local_bh_enable_ip+0x196/0x1f0
+[   63.909735][    C1]  nf_ct_iterate_cleanup+0x9e/0x330
+[   63.920801][    C1]  nf_ct_iterate_cleanup_net+0x113/0x170
+[   63.948264][    C1]  masq_device_event+0xae/0xe0
+[   63.953004][    C1]  notifier_call_chain+0xb5/0x200
+[   63.958022][    C1]  call_netdevice_notifiers_info+0xb5/0x130
+[   63.964163][    C1]  dev_close_many+0x30b/0x650
+[   63.978566][    C1]  rollback_registered_many+0x3a8/0x1550
+[   64.020853][    C1]  unregister_netdevice_queue+0x2dd/0x570
+[   64.043064][    C1]  __tun_detach+0x105a/0x13d0
+[   64.052639][    C1]  tun_chr_close+0xd9/0x180
+[   64.057117][    C1]  __fput+0x285/0x920
+[   64.065927][    C1]  task_work_run+0xdd/0x190
+[   64.070425][    C1]  do_exit+0xb7d/0x29f0
+[   64.084922][    C1]  do_group_exit+0x125/0x310
+[   64.089500][    C1]  __x64_sys_exit_group+0x3a/0x50
+[   64.094496][    C1]  do_syscall_64+0x2d/0x70
+[   64.098884][    C1]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[   64.104758][    C1] RIP: 0033:0x442d78
+[   64.108632][    C1] Code: Bad RIP value.
+[   64.112668][    C1] RSP: 002b:00007ffdd2151d28 EFLAGS: 00000246 ORIG_RAX: 00000000000000e7
+[   64.121056][    C1] RAX: ffffffffffffffda RBX: 0000000000000001 RCX: 0000000000442d78
+[   64.129016][    C1] RDX: 0000000000000001 RSI: 000000000000003c RDI: 0000000000000001
+[   64.136978][    C1] RBP: 00000000004c93f0 R08: 00000000000000e7 R09: ffffffffffffffd0
+[   64.144927][    C1] R10: 000000200000005b R11: 0000000000000246 R12: 0000000000000001
+[   64.152871][    C1] R13: 00000000006de240 R14: 0000000000000048 R15: 0000000000000004
+[   64.160820][    C1] Modules linked in:
+[   64.164758][    C1] ---[ end trace 95c854ea04de1591 ]---
+
