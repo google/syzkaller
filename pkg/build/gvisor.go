@@ -16,9 +16,14 @@ type gvisor struct{}
 func (gvisor gvisor) build(params *Params) error {
 	// Bring down bazel daemon right away. We don't need it running and consuming memory.
 	defer osutil.RunCmd(10*time.Minute, params.KernelDir, params.Compiler, "shutdown")
-	outBinary := ""
+
+	config := " " + string(params.Config) + " "
 	args := []string{"build", "--verbose_failures"}
-	if strings.Contains(" "+string(params.Config)+" ", " -race ") {
+	outBinary := ""
+	if strings.Contains(config, " -cover ") {
+		args = append(args, []string{"--collect_code_coverage", "--instrumentation_filter=//pkg/..."}...)
+	}
+	if strings.Contains(config, " -race ") {
 		args = append(args, "--features=race", "//runsc:runsc-race")
 		outBinary = "bazel-bin/runsc/linux_amd64_static_race_stripped/runsc-race"
 	} else {
