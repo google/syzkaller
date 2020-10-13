@@ -587,6 +587,7 @@ func readTextRanges(file *elf.File) ([]pcRange, []*compileUnit, error) {
 	if text == nil {
 		return nil, nil, fmt.Errorf("no .text section in the object file")
 	}
+	kaslr := file.Section(".rela.text") != nil
 	debugInfo, err := file.DWARF()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse DWARF: %v (set CONFIG_DEBUG_INFO=y?)", err)
@@ -618,7 +619,24 @@ func readTextRanges(file *elf.File) ([]pcRange, []*compileUnit, error) {
 		}
 		for _, r := range ranges1 {
 			if r[0] >= r[1] || r[0] < text.Addr || r[1] > text.Addr+text.Size {
-				continue
+				if kaslr {
+					// Linux kernel binaries with CONFIG_RANDOMIZE_BASE=y are strange.
+					// .text starts at 0xffffffff81000000 and symbols point there as well,
+					// but PC ranges point to addresses around 0.
+					// So try to add text offset and retry the check.
+					// It's unclear if we also need some offset on top of text.Addr,
+					// it gives approximately correct addresses, but not necessary precisely
+					// correct addresses.
+					// It would be good to add a test for this, but it's unclear what flag
+					// combination will give a similar binary. The following still gives
+					// matching .text/symbols/PC ranges:
+					// gcc test.c -g -fpie -pie -Wl,--section-start=.text=0x33300000
+					r[0] += text.Addr
+					r[1] += text.Addr
+					if r[0] >= r[1] || r[0] < text.Addr || r[1] > text.Addr+text.Size {
+						continue
+					}
+				}
 			}
 			ranges = append(ranges, pcRange{r[0], r[1], unit})
 		}
