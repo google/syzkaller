@@ -1620,6 +1620,22 @@ var linuxOopses = append([]*oops{
 		[]*regexp.Regexp{},
 	},
 	{
+		// A misspelling of the above introduced in 9d06c4027f21 ("x86/entry: Convert Divide Error to IDTENTRY").
+		[]byte("divide_error:"),
+		[]oopsFormat{
+			{
+				title: compile("divide_error: "),
+				fmt:   "divide error in %[1]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						linuxRipFrame,
+					},
+				},
+			},
+		},
+		[]*regexp.Regexp{},
+	},
+	{
 		[]byte("invalid opcode:"),
 		[]oopsFormat{
 			{
