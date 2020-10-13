@@ -34,6 +34,7 @@ type Config struct {
 	// Additional command line arguments for the qemu binary.
 	// "{{INDEX}}" is replaced with 0-based index of the VM (from 0 to Count-1).
 	// "{{TEMPLATE}}" is replaced with the path to a copy of workdir/template dir.
+	// "{{TCP_PORT}}" is replaced with a random free TCP port
 	QemuArgs string `json:"qemu_args"`
 	// Location of the kernel for injected boot (e.g. arch/x86/boot/bzImage, optional).
 	// This is passed to qemu as the -kernel option.
@@ -485,6 +486,7 @@ func splitArgs(str, templateDir string, index int) (args []string) {
 		}
 		arg = strings.ReplaceAll(arg, "{{INDEX}}", fmt.Sprint(index))
 		arg = strings.ReplaceAll(arg, "{{TEMPLATE}}", templateDir)
+		arg = strings.ReplaceAll(arg, "{{TCP_PORT}}", string(vmimpl.UnusedTCPPort()))
 		args = append(args, arg)
 	}
 	return
