@@ -75,11 +75,13 @@ static int test_one(int text_type, const char* text, int text_size, int flags, u
 		dump_cpu_state(cpufd, (char*)vm_mem);
 		return 1;
 	}
+#ifdef GOARCH_amd64
 	if (check_rax && regs.rax != 0xbadc0de) {
 		printf("wrong result: rax=0x%llx\n", (long long)regs.rax);
 		dump_cpu_state(cpufd, (char*)vm_mem);
 		return 1;
 	}
+#endif
 	munmap(vm_mem, vm_mem_size);
 	munmap(cpu_mem, cpu_mem_size);
 	close(cpufd);
@@ -108,6 +110,7 @@ static int test_kvm()
 	const char text8[] = "\x66\xb8\xde\xc0\xad\x0b";
 	if ((res = test_one(8, text8, sizeof(text8) - 1, 0, KVM_EXIT_HLT, true)))
 		return res;
+#ifdef GOARCH_amd64
 	if ((res = test_one(8, text8, sizeof(text8) - 1, KVM_SETUP_VIRT86, KVM_EXIT_SHUTDOWN, true)))
 		return res;
 	if ((res = test_one(8, text8, sizeof(text8) - 1, KVM_SETUP_VIRT86 | KVM_SETUP_PAGING, KVM_EXIT_SHUTDOWN, true)))
@@ -161,6 +164,7 @@ static int test_kvm()
 		if ((res = test_one(32, text_rsm, sizeof(text_rsm) - 1, KVM_SETUP_SMM, KVM_EXIT_HLT, false)))
 			return res;
 	}
+#endif
 
 	return 0;
 }
@@ -179,14 +183,17 @@ static unsigned host_kernel_version()
 	return major * 100 + minor;
 }
 
+#ifdef GOARCH_amd64
 static void dump_seg(const char* name, struct kvm_segment* seg)
 {
 	printf("%s: base=0x%llx limit=0x%x sel=0x%x type=%d p=%d dpl=%d, db=%d s=%d l=%d g=%d\n",
 	       name, seg->base, seg->limit, seg->selector, seg->type, seg->present, seg->dpl, seg->db, seg->s, seg->l, seg->g);
 }
+#endif
 
 static void dump_cpu_state(int cpufd, char* vm_mem)
 {
+#ifdef GOARCH_amd64
 	struct kvm_sregs sregs;
 	if (ioctl(cpufd, KVM_GET_SREGS, &sregs)) {
 		printf("KVM_GET_SREGS failed (%d)\n", errno);
@@ -219,4 +226,5 @@ static void dump_cpu_state(int cpufd, char* vm_mem)
 			       ((long long*)vm_mem)[i], ((long long*)vm_mem)[i + 1], ((long long*)vm_mem)[i + 2], ((long long*)vm_mem)[i + 3]);
 		}
 	}
+#endif
 }

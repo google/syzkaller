@@ -549,7 +549,7 @@ var typeText = &typeDesc{
 
 var typeArgTextType = &typeArg{
 	Kind:  kindIdent,
-	Names: []string{"target", "x86_real", "x86_16", "x86_32", "x86_64", "arm64"},
+	Names: []string{"target", "x86_real", "x86_16", "x86_32", "x86_64", "arm64", "ppc64"},
 }
 
 func genTextType(t *ast.Type) ifuzz_types.TextKind {
@@ -566,6 +566,8 @@ func genTextType(t *ast.Type) ifuzz_types.TextKind {
 		return ifuzz_types.TextX86bit64
 	case "arm64":
 		return ifuzz_types.TextArm64
+	case "ppc64":
+		return ifuzz_types.TextPpc64
 	default:
 		panic(fmt.Sprintf("unknown text type %q", t.Ident))
 	}

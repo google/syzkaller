@@ -476,6 +476,9 @@ func createTargetIfuzzConfig(target *Target) *ifuzz_types.Config {
 	case "386":
 		cfg.Mode = ifuzz_types.ModeProt32
 		cfg.Arch = "x86"
+	case "ppc64":
+		cfg.Arch = "ppc64"
+		cfg.Mode = ifuzz_types.ModeLong64
 	default:
 		return nil
 	}
@@ -514,6 +517,9 @@ func createIfuzzConfig(kind ifuzz_types.TextKind) *ifuzz_types.Config {
 	case ifuzz_types.TextX86bit64:
 		cfg.Mode = ifuzz_types.ModeLong64
 		cfg.Arch = "x86"
+	case ifuzz_types.TextPpc64:
+		cfg.Mode = ifuzz_types.ModeLong64
+		cfg.Arch = "ppc64"
 	default:
 		panic("unknown text kind")
 	}

@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	. "github.com/google/syzkaller/pkg/ifuzz/common"
 	_ "github.com/google/syzkaller/pkg/ifuzz/x86"
+	_ "github.com/google/syzkaller/pkg/ifuzz/ppc64"
 )
 
 // ModeInsns returns list of all instructions for the given mode.

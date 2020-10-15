@@ -157,6 +157,7 @@ kvm_x86_rflags = 1, 2, 4, 16, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 
 # The interface is designed for extensibility so that addition of new options does not invalidate all existing programs.
 syz_kvm_setup_cpu$x86(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text_x86, 1]], ntext len[text], flags flags[kvm_setup_flags], opts ptr[in, array[kvm_setup_opt_x86, 0:2]], nopt len[opts])
 syz_kvm_setup_cpu$arm64(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text_arm64, 1]], ntext len[text], flags const[0], opts ptr[in, array[kvm_setup_opt_arm64, 1]], nopt len[opts])
+syz_kvm_setup_cpu$ppc64(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text_ppc64, 1]], ntext len[text], flags const[0], opts ptr[in, array[kvm_setup_opt_ppc64, 1]], nopt len[opts])
 
 kvm_text_x86 [
 	textreal	kvm_text_x86_real
@@ -192,6 +193,12 @@ kvm_text_x86_64 {
 kvm_text_arm64 {
 	typ	const[0, intptr]
 	text	ptr[in, text[arm64]]
+	size	len[text, intptr]
+}
+
+kvm_text_ppc64 {
+#	typ	const[0, intptr]  # always 64bit
+	text	ptr[in, text[ppc64]]
 	size	len[text, intptr]
 }
 
@@ -269,6 +276,16 @@ kvm_setup_opt_arm64 [
 kvm_setup_opt_feature {
 	typ	const[1, int64]
 	val	flags[kvm_vcpu_features_arm64, int64]
+}
+
+kvm_setup_opt_ppc64 [
+	hcall   kvm_setup_opt_ppc64_enable_hcall
+]
+
+kvm_setup_opt_ppc64_enable_hcall {
+#	typ	const[0, int64]
+	hcall	int64
+	enable  int64[0:1]
 }
 
 kvm_setup_flags = KVM_SETUP_PAGING, KVM_SETUP_PAE, KVM_SETUP_PROTECTED, KVM_SETUP_CPL3, KVM_SETUP_VIRT86, KVM_SETUP_SMM, KVM_SETUP_VM
