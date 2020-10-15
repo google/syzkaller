@@ -89,3 +89,7 @@ func (ctx *fuchsia) ListRecentCommits(baseCommit string) ([]string, error) {
 func (ctx *fuchsia) ExtractFixTagsFromCommits(baseCommit, email string) ([]*Commit, error) {
 	return ctx.repo.ExtractFixTagsFromCommits(baseCommit, email)
 }
+
+func (ctx *fuchsia) ReleaseTag(commit string) (string, error) {
+	return "", fmt.Errorf("not implemented for fuchsia")
+}

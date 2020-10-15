@@ -102,6 +102,9 @@ type Repo interface {
 	// Given email = "user@domain.com", it searches for tags of the form "user+tag@domain.com"
 	// and returns commits with these tags.
 	ExtractFixTagsFromCommits(baseCommit, email string) ([]*Commit, error)
+
+	// ReleaseTag returns the latest release tag that is reachable from the given commit.
+	ReleaseTag(commit string) (string, error)
 }
 
 // Bisecter may be optionally implemented by Repo.
@@ -115,6 +118,7 @@ type Bisecter interface {
 	Bisect(bad, good string, trace io.Writer, pred func() (BisectResult, error)) ([]*Commit, error)
 
 	// PreviousReleaseTags returns list of preceding release tags that are reachable from the given commit.
+	// If the commit itself has a release tag, this tag is not included.
 	PreviousReleaseTags(commit string) ([]string, error)
 
 	IsRelease(commit string) (bool, error)

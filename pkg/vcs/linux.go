@@ -39,7 +39,7 @@ func newLinux(dir string) *linux {
 }
 
 func (ctx *linux) PreviousReleaseTags(commit string) ([]string, error) {
-	tags, err := ctx.git.previousReleaseTags(commit, false)
+	tags, err := ctx.git.previousReleaseTags(commit, false, false)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func (ctx *linux) PreviousReleaseTags(commit string) ([]string, error) {
 	return tags, nil
 }
 
-func gitParseReleaseTags(output []byte) ([]string, error) {
+func gitParseReleaseTags(output []byte) []string {
 	var tags []string
 	for _, tag := range bytes.Split(output, []byte{'\n'}) {
 		if releaseTagRe.Match(tag) && gitReleaseTagToInt(string(tag)) != 0 {
@@ -81,7 +81,7 @@ func gitParseReleaseTags(output []byte) ([]string, error) {
 	sort.Slice(tags, func(i, j int) bool {
 		return gitReleaseTagToInt(tags[i]) > gitReleaseTagToInt(tags[j])
 	})
-	return tags, nil
+	return tags
 }
 
 func gitReleaseTagToInt(tag string) uint64 {
@@ -105,7 +105,7 @@ func gitReleaseTagToInt(tag string) uint64 {
 }
 
 func (ctx *linux) EnvForCommit(binDir, commit string, kernelConfig []byte) (*BisectEnv, error) {
-	tagList, err := ctx.previousReleaseTags(commit, true)
+	tagList, err := ctx.previousReleaseTags(commit, true, false)
 	if err != nil {
 		return nil, err
 	}
