@@ -34,7 +34,9 @@ func (ctx *testos) Minimize(original, baseline []byte, trace io.Writer,
 	case "minimize-fails":
 		return nil, fmt.Errorf("minimization failure")
 	case "minimize-succeeds":
-		return []byte("new-minimized-config"), nil
+		config := []byte("new-minimized-config")
+		pred(config)
+		return config, nil
 	case "baseline-broken-build":
 		return []byte("broken-build"), nil
 	default:
