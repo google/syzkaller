@@ -23,16 +23,26 @@ import (
 
 type git struct {
 	dir      string
-	sandbox  bool
 	ignoreCC map[string]bool
+	precious bool
+	sandbox  bool
 }
 
-func newGit(dir string, ignoreCC map[string]bool) *git {
-	return &git{
+func newGit(dir string, ignoreCC map[string]bool, opts []RepoOpt) *git {
+	git := &git{
 		dir:      dir,
-		sandbox:  true,
 		ignoreCC: ignoreCC,
+		sandbox:  true,
 	}
+	for _, opt := range opts {
+		switch opt {
+		case OptPrecious:
+			git.precious = true
+		case OptDontSandbox:
+			git.sandbox = false
+		}
+	}
+	return git
 }
 
 func filterEnv() []string {
@@ -86,11 +96,8 @@ func (git *git) Poll(repo, branch string) (*Commit, error) {
 }
 
 func (git *git) CheckoutBranch(repo, branch string) (*Commit, error) {
-	git.reset()
-	if _, err := git.git("reset", "--hard"); err != nil {
-		if err := git.initRepo(err); err != nil {
-			return nil, err
-		}
+	if err := git.repair(); err != nil {
+		return nil, err
 	}
 	_, err := git.git("fetch", repo, branch)
 	if err != nil {
@@ -103,11 +110,8 @@ func (git *git) CheckoutBranch(repo, branch string) (*Commit, error) {
 }
 
 func (git *git) CheckoutCommit(repo, commit string) (*Commit, error) {
-	git.reset()
-	if _, err := git.git("reset", "--hard"); err != nil {
-		if err := git.initRepo(err); err != nil {
-			return nil, err
-		}
+	if err := git.repair(); err != nil {
+		return nil, err
 	}
 	if err := git.fetchRemote(repo); err != nil {
 		return nil, err
@@ -124,8 +128,10 @@ func (git *git) fetchRemote(repo string) error {
 }
 
 func (git *git) SwitchCommit(commit string) (*Commit, error) {
-	git.git("reset", "--hard")
-	git.git("clean", "-fdx")
+	if !git.precious {
+		git.git("reset", "--hard")
+		git.git("clean", "-fdx")
+	}
 	if _, err := git.git("checkout", commit); err != nil {
 		return nil, err
 	}
@@ -133,6 +139,9 @@ func (git *git) SwitchCommit(commit string) (*Commit, error) {
 }
 
 func (git *git) clone(repo, branch string) error {
+	if git.precious {
+		return fmt.Errorf("won't reinit precious repo")
+	}
 	if err := git.initRepo(nil); err != nil {
 		return err
 	}
@@ -145,12 +154,23 @@ func (git *git) clone(repo, branch string) error {
 	return nil
 }
 
-func (git *git) reset() {
+func (git *git) reset() error {
 	// This function tries to reset git repo state to a known clean state.
+	if git.precious {
+		return nil
+	}
 	git.git("reset", "--hard")
 	git.git("clean", "-fdx")
 	git.git("bisect", "reset")
-	git.git("reset", "--hard")
+	_, err := git.git("reset", "--hard")
+	return err
+}
+
+func (git *git) repair() error {
+	if err := git.reset(); err != nil {
+		return git.initRepo(err)
+	}
+	return nil
 }
 
 func (git *git) initRepo(reason error) error {

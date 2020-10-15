@@ -155,29 +155,39 @@ type BisectEnv struct {
 	KernelConfig []byte
 }
 
-func NewRepo(os, vm, dir string) (Repo, error) {
+type RepoOpt int
+
+const (
+	// RepoPrecious is intended for command-line tools that work with a user-provided repo.
+	// Such repo won't be re-created to recover from errors, but rather return errors.
+	// If this option is not specified, the repo can be re-created from scratch to recover from any errors.
+	OptPrecious RepoOpt = iota
+	// Don't use sandboxing suitable for pkg/build.
+	OptDontSandbox
+)
+
+func NewRepo(os, vm, dir string, opts ...RepoOpt) (Repo, error) {
 	switch os {
 	case "linux":
-		return newLinux(dir), nil
+		return newLinux(dir, opts), nil
 	case "akaros":
-		return newAkaros(vm, dir), nil
+		return newAkaros(dir, opts), nil
 	case "fuchsia":
-		return newFuchsia(vm, dir), nil
+		return newFuchsia(dir, opts), nil
 	case "openbsd":
-		return newOpenBSD(vm, dir), nil
+		return newGit(dir, nil, opts), nil
 	case "netbsd":
-		return newNetBSD(vm, dir), nil
+		return newGit(dir, nil, opts), nil
 	case "freebsd":
-		return newFreeBSD(vm, dir), nil
+		return newGit(dir, nil, opts), nil
 	case "test":
-		return newTestos(dir), nil
+		return newTestos(dir, opts), nil
 	}
 	return nil, fmt.Errorf("vcs is unsupported for %v", os)
 }
 
 func NewSyzkallerRepo(dir string) Repo {
-	git := newGit(dir, nil)
-	git.sandbox = false
+	git := newGit(dir, nil, []RepoOpt{OptDontSandbox})
 	return git
 }
 

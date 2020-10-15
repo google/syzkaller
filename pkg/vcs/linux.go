@@ -26,15 +26,17 @@ type linux struct {
 	*git
 }
 
-var _ Bisecter = new(linux)
-var _ ConfigMinimizer = new(linux)
+var (
+	_ Bisecter        = new(linux)
+	_ ConfigMinimizer = new(linux)
+)
 
-func newLinux(dir string) *linux {
+func newLinux(dir string, opts []RepoOpt) *linux {
 	ignoreCC := map[string]bool{
 		"stable@vger.kernel.org": true,
 	}
 	return &linux{
-		git: newGit(dir, ignoreCC),
+		git: newGit(dir, ignoreCC, opts),
 	}
 }
 
