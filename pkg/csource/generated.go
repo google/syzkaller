@@ -7215,7 +7215,7 @@ struct ipt_getinfo {
 struct ipt_get_entries {
 	char name[32];
 	unsigned int size;
-	void* entrytable[XT_TABLE_SIZE / sizeof(void*)];
+	uint64 entrytable[XT_TABLE_SIZE / sizeof(uint64)];
 };
 
 struct ipt_replace {
@@ -7227,7 +7227,7 @@ struct ipt_replace {
 	unsigned int underflow[5];
 	unsigned int num_counters;
 	struct xt_counters* counters;
-	char entrytable[XT_TABLE_SIZE];
+	uint64 entrytable[XT_TABLE_SIZE / sizeof(uint64)];
 };
 
 struct ipt_table_desc {
@@ -7269,7 +7269,7 @@ struct arpt_getinfo {
 struct arpt_get_entries {
 	char name[32];
 	unsigned int size;
-	void* entrytable[XT_TABLE_SIZE / sizeof(void*)];
+	uint64 entrytable[XT_TABLE_SIZE / sizeof(uint64)];
 };
 
 struct arpt_replace {
@@ -7281,7 +7281,7 @@ struct arpt_replace {
 	unsigned int underflow[3];
 	unsigned int num_counters;
 	struct xt_counters* counters;
-	char entrytable[XT_TABLE_SIZE];
+	uint64 entrytable[XT_TABLE_SIZE / sizeof(uint64)];
 };
 
 struct arpt_table_desc {
