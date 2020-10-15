@@ -28,7 +28,7 @@ func TestGitRepo(t *testing.T) {
 	defer os.RemoveAll(baseDir)
 	repo1 := CreateTestRepo(t, baseDir, "repo1")
 	repo2 := CreateTestRepo(t, baseDir, "repo2")
-	repo := newGit(filepath.Join(baseDir, "repo"), nil)
+	repo := newGit(filepath.Join(baseDir, "repo"), nil, nil)
 	{
 		com, err := repo.Poll(repo1.Dir, "master")
 		if err != nil {

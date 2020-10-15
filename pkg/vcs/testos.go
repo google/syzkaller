@@ -14,9 +14,9 @@ type testos struct {
 
 var _ ConfigMinimizer = new(testos)
 
-func newTestos(dir string) *testos {
+func newTestos(dir string, opts []RepoOpt) *testos {
 	return &testos{
-		git: newGit(dir, nil),
+		git: newGit(dir, nil, opts),
 	}
 }
 

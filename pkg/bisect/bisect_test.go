@@ -106,7 +106,7 @@ func createTestRepo(t *testing.T) string {
 }
 
 func runBisection(t *testing.T, baseDir string, test BisectionTest) (*Result, error) {
-	r, err := vcs.NewRepo("test", "64", baseDir)
+	r, err := vcs.NewRepo("test", "64", baseDir, vcs.OptPrecious)
 	if err != nil {
 		t.Fatal(err)
 	}
