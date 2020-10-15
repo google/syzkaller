@@ -98,7 +98,7 @@ endif
 	manager runtest fuzzer executor \
 	ci hub \
 	execprog mutate prog2c trace2syz stress repro upgrade db \
-	usbgen symbolize crush \
+	usbgen symbolize cover kconf crush \
 	bin/syz-extract bin/syz-fmt \
 	extract generate generate_go generate_sys \
 	format format_go format_cpp format_sys \
@@ -197,6 +197,8 @@ symbolize:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-symbolize github.com/google/syzkaller/tools/syz-symbolize
 cover:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-cover github.com/google/syzkaller/tools/syz-cover
+kconf:
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-kconf github.com/google/syzkaller/tools/syz-kconf
 
 bisect: descriptions
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-bisect github.com/google/syzkaller/tools/syz-bisect
@@ -250,6 +252,9 @@ format_sys: bin/syz-fmt
 
 bin/syz-fmt:
 	$(HOSTGO) build $(GOHOSTFLAGS) -o $@ ./tools/syz-fmt
+
+configs: kconf
+	bin/syz-kconf -config dashboard/config/linux/main.yml -sourcedir $(SOURCEDIR)
 
 tidy: descriptions
 	clang-tidy -quiet -header-filter=.* -warnings-as-errors=* \
