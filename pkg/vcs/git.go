@@ -482,36 +482,47 @@ func (git *git) bisectInconclusive(output []byte) ([]*Commit, error) {
 	return commits, nil
 }
 
-func (git *git) previousReleaseTags(commit string, self bool) ([]string, error) {
+func (git *git) ReleaseTag(commit string) (string, error) {
+	tags, err := git.previousReleaseTags(commit, true, true)
+	if err != nil {
+		return "", err
+	}
+	if len(tags) == 0 {
+		return "", fmt.Errorf("no release tags found for commit %v", commit)
+	}
+	return tags[0], nil
+}
+
+func (git *git) previousReleaseTags(commit string, self, onlyTop bool) ([]string, error) {
 	var tags []string
 	if self {
 		output, err := git.git("tag", "--list", "--points-at", commit, "--merged", commit, "v*.*")
 		if err != nil {
 			return nil, err
 		}
-		tags, err = gitParseReleaseTags(output)
-		if err != nil {
-			return nil, err
+		tags = gitParseReleaseTags(output)
+		if onlyTop && len(tags) != 0 {
+			return tags, nil
 		}
 	}
 	output, err := git.git("tag", "--no-contains", commit, "--merged", commit, "v*.*")
 	if err != nil {
 		return nil, err
 	}
-	tags1, err := gitParseReleaseTags(output)
-	if err != nil {
-		return nil, err
-	}
+	tags1 := gitParseReleaseTags(output)
 	tags = append(tags, tags1...)
+	if len(tags) == 0 {
+		return nil, fmt.Errorf("no release tags found for commit %v", commit)
+	}
 	return tags, nil
 }
 
 func (git *git) IsRelease(commit string) (bool, error) {
-	tags1, err := git.previousReleaseTags(commit, true)
+	tags1, err := git.previousReleaseTags(commit, true, false)
 	if err != nil {
 		return false, err
 	}
-	tags2, err := git.previousReleaseTags(commit, false)
+	tags2, err := git.previousReleaseTags(commit, false, false)
 	if err != nil {
 		return false, err
 	}

@@ -121,10 +121,7 @@ v1.
 		"v2.6.13",
 		"v2.6.12",
 	}
-	got, err := gitParseReleaseTags([]byte(input))
-	if err != nil {
-		t.Fatal(err)
-	}
+	got := gitParseReleaseTags([]byte(input))
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("got bad tags\ngot:  %+v\nwant: %+v", got, want)
 	}
