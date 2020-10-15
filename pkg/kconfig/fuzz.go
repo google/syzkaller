@@ -3,6 +3,11 @@
 
 package kconfig
 
+func FuzzParseKConfig(data []byte) int {
+	ParseData(data, "kconfig")
+	return 0
+}
+
 func FuzzParseExpr(data []byte) int {
 	p := newParser(data, "expr")
 	if !p.nextLine() {
