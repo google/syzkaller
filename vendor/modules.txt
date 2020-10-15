@@ -16,7 +16,6 @@ cloud.google.com/go/pubsub/internal/scheduler
 ## explicit
 cloud.google.com/go/storage
 # github.com/BurntSushi/toml v0.3.1
-## explicit
 github.com/BurntSushi/toml
 # github.com/Djarvur/go-err113 v0.1.0
 ## explicit
@@ -27,10 +26,6 @@ github.com/Masterminds/semver
 github.com/OpenPeeDeeP/depguard
 # github.com/bombsimon/wsl/v3 v3.1.0
 github.com/bombsimon/wsl/v3
-# github.com/coreos/go-etcd v2.0.0+incompatible
-## explicit
-# github.com/cpuguy83/go-md2man v1.0.10
-## explicit
 # github.com/daixiang0/gci v0.2.4
 github.com/daixiang0/gci/pkg/gci
 # github.com/davecgh/go-spew v1.1.1
@@ -52,8 +47,6 @@ github.com/go-critic/go-critic/checkers
 github.com/go-critic/go-critic/checkers/internal/astwalk
 github.com/go-critic/go-critic/checkers/internal/lintutil
 github.com/go-critic/go-critic/framework/linter
-# github.com/go-lintpack/lintpack v0.5.2
-## explicit
 # github.com/go-toolsmith/astcast v1.0.0
 github.com/go-toolsmith/astcast
 # github.com/go-toolsmith/astcopy v1.0.0
@@ -81,13 +74,9 @@ github.com/gobwas/glob/util/runes
 github.com/gobwas/glob/util/strings
 # github.com/gofrs/flock v0.8.0
 github.com/gofrs/flock
-# github.com/gogo/protobuf v1.3.1
-## explicit
 # github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
-## explicit
 github.com/golang/groupcache/lru
 # github.com/golang/protobuf v1.4.2
-## explicit
 github.com/golang/protobuf/internal/gengogrpc
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/protoc-gen-go
@@ -168,8 +157,6 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/googleapis/gax-go v1.0.4-0.20191018151119-b443e5a67ec8
-## explicit
 # github.com/googleapis/gax-go/v2 v2.0.5
 github.com/googleapis/gax-go/v2
 # github.com/gostaticanalysis/analysisutil v0.2.1
@@ -207,8 +194,6 @@ github.com/jstemmer/go-junit-report/parser
 # github.com/kisielk/gotool v1.0.0
 github.com/kisielk/gotool
 github.com/kisielk/gotool/internal/load
-# github.com/klauspost/cpuid v1.2.0
-## explicit
 # github.com/konsorten/go-windows-terminal-sequences v1.0.3
 github.com/konsorten/go-windows-terminal-sequences
 # github.com/kyoh86/exportloopref v0.1.7
@@ -316,8 +301,6 @@ github.com/timakin/bodyclose/passes/bodyclose
 github.com/tommy-muehle/go-mnd
 github.com/tommy-muehle/go-mnd/checks
 github.com/tommy-muehle/go-mnd/config
-# github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8
-## explicit
 # github.com/ultraware/funlen v0.0.3
 github.com/ultraware/funlen
 # github.com/ultraware/whitespace v0.0.4
@@ -643,5 +626,3 @@ mvdan.cc/lint
 # mvdan.cc/unparam v0.0.0-20200501210554-b37ab49443f7
 ## explicit
 mvdan.cc/unparam/check
-# sourcegraph.com/sqs/pbtypes v1.0.0
-## explicit
