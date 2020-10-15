@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/syzkaller/pkg/kconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 )
@@ -115,9 +116,14 @@ func (ctx *linux) EnvForCommit(binDir, commit string, kernelConfig []byte) (*Bis
 	for _, tag := range tagList {
 		tags[tag] = true
 	}
+	cf, err := kconfig.ParseConfigData(kernelConfig, "config")
+	if err != nil {
+		return nil, err
+	}
+	linuxAlterConfigs(cf, tags)
 	env := &BisectEnv{
 		Compiler:     filepath.Join(binDir, "gcc-"+linuxCompilerVersion(tags), "bin", "gcc"),
-		KernelConfig: linuxAlterConfigs(kernelConfig, tags),
+		KernelConfig: cf.Serialize(),
 	}
 	// v4.0 doesn't boot with our config nor with defconfig, it halts on an interrupt in x86_64_start_kernel.
 	if !tags["v4.1"] {
@@ -141,60 +147,66 @@ func linuxCompilerVersion(tags map[string]bool) string {
 	}
 }
 
-func linuxAlterConfigs(config []byte, tags map[string]bool) []byte {
+func linuxAlterConfigs(cf *kconfig.ConfigFile, tags map[string]bool) {
+	const disableAlways = "disable-always"
+	// If tags is nil, disable only configs marked as disableAlways.
+	checkTag := func(tag string) bool {
+		return tags != nil && !tags[tag] ||
+			tags == nil && tag == disableAlways
+	}
 	disable := map[string]string{
 		// 5.2 has CONFIG_SECURITY_TOMOYO_INSECURE_BUILTIN_SETTING which allows to test tomoyo better.
 		// This config also enables CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER
 		// but we need it disabled to boot older kernels.
-		"CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER": "v5.2",
+		"SECURITY_TOMOYO_OMIT_USERSPACE_LOADER": "v5.2",
 		// Kernel is boot broken before 4.15 due to double-free in vudc_probe:
 		// https://lkml.org/lkml/2018/9/7/648
 		// Fixed by e28fd56ad5273be67d0fae5bedc7e1680e729952.
-		"CONFIG_USBIP_VUDC": "v4.15",
+		"USBIP_VUDC": "v4.15",
 		// CONFIG_CAN causes:
 		// all runs: crashed: INFO: trying to register non-static key in can_notifier
 		// for v4.11..v4.12 and v4.12..v4.13 ranges.
 		// Fixed by 74b7b490886852582d986a33443c2ffa50970169.
-		"CONFIG_CAN": "v4.13",
+		"CAN": "v4.13",
 		// Setup of network devices is broken before v4.12 with a "WARNING in hsr_get_node".
 		// Fixed by 675c8da049fd6556eb2d6cdd745fe812752f07a8.
-		"CONFIG_HSR": "v4.12",
+		"HSR": "v4.12",
 		// Setup of network devices is broken before v4.12 with a "WARNING: ODEBUG bug in __sk_destruct"
 		// coming from smc_release.
-		"CONFIG_SMC": "v4.12",
+		"SMC": "v4.12",
 		// Kernel is boot broken before 4.10 with a lockdep warning in vhci_hcd_probe.
-		"CONFIG_USBIP_VHCI_HCD": "v4.10",
-		"CONFIG_BT_HCIVHCI":     "v4.10",
+		"USBIP_VHCI_HCD": "v4.10",
+		"BT_HCIVHCI":     "v4.10",
 		// Setup of network devices is broken before v4.7 with a deadlock involving team.
-		"CONFIG_NET_TEAM": "v4.7",
+		"NET_TEAM": "v4.7",
 		// Setup of network devices is broken before v4.5 with a warning in batadv_tvlv_container_remove.
-		"CONFIG_BATMAN_ADV": "v4.5",
+		"BATMAN_ADV": "v4.5",
 		// UBSAN is broken in multiple ways before v5.3, see:
 		// https://github.com/google/syzkaller/issues/1523#issuecomment-696514105
-		"CONFIG_UBSAN": "v5.3",
+		"UBSAN": "v5.3",
 		// First, we disable coverage in pkg/bisect because it fails machine testing starting from 4.7.
 		// Second, at 6689da155bdcd17abfe4d3a8b1e245d9ed4b5f2c CONFIG_KCOV selects CONFIG_GCC_PLUGIN_SANCOV
 		// (why?), which is build broken for hundreds of revisions.
-		"CONFIG_KCOV": "disable-always",
+		"KCOV": disableAlways,
 		// This helps to produce stable binaries in presence of kernel tag changes.
-		"CONFIG_LOCALVERSION_AUTO": "disable-always",
+		"LOCALVERSION_AUTO": disableAlways,
 		// BTF fails lots of builds with:
 		// pahole version v1.9 is too old, need at least v1.13
 		// Failed to generate BTF for vmlinux. Try to disable CONFIG_DEBUG_INFO_BTF.
-		"CONFIG_DEBUG_INFO_BTF": "disable-always",
+		"DEBUG_INFO_BTF": disableAlways,
 		// This config only adds debug output. It should not be enabled at all,
 		// but it was accidentially enabled on some instances for some periods of time,
 		// and kernel is boot-broken for prolonged ranges of commits with deadlock
 		// which makes bisections take weeks.
-		"CONFIG_DEBUG_KOBJECT": "disable-always",
+		"DEBUG_KOBJECT": disableAlways,
 		// This config is causing problems to kernel signature calculation as new initramfs is generated
 		// as a part of every build. Due to this init.data section containing this generated initramfs
 		// is differing between builds causing signture being random number.
-		"CONFIG_BLK_DEV_INITRD": "disable-always",
+		"BLK_DEV_INITRD": disableAlways,
 	}
 	for cfg, tag := range disable {
-		if !tags[tag] {
-			config = bytes.Replace(config, []byte(cfg+"=y"), []byte("# "+cfg+" is not set"), -1)
+		if checkTag(tag) {
+			cf.Unset(cfg)
 		}
 	}
 	alter := []struct {
@@ -204,15 +216,14 @@ func linuxAlterConfigs(config []byte, tags map[string]bool) []byte {
 	}{
 		// Even though ORC unwinder was introduced a long time ago, it might have been broken for
 		// some time. 5.4 is chosen as a version tag, where ORC unwinder seems to work properly.
-		{"CONFIG_UNWINDER_ORC", "CONFIG_UNWINDER_FRAME_POINTER", "v5.4"},
+		{"UNWINDER_ORC", "UNWINDER_FRAME_POINTER", "v5.4"},
 	}
 	for _, a := range alter {
-		if !tags[a.Tag] {
-			config = bytes.Replace(config, []byte(a.From+"=y"), []byte("# "+a.From+" is not set"), -1)
-			config = bytes.Replace(config, []byte("# "+a.To+" is not set"), []byte(a.To+"=y"), -1)
+		if checkTag(a.Tag) {
+			cf.Unset(a.From)
+			cf.Set(a.To, kconfig.Yes)
 		}
 	}
-	return config
 }
 
 func (ctx *linux) Bisect(bad, good string, trace io.Writer, pred func() (BisectResult, error)) ([]*Commit, error) {
