@@ -5,6 +5,8 @@
 [ -z "${CC}" ] && echo 'Please set $CC to point to the compiler!' && exit
 [ -z "${KERNEL_SOURCE}" ] && echo 'Please set $KERNEL_SOURCE to point to the kernel tree!' && exit
 
+MAKE_VARS="CC=${CC}"
+
 other_configs=""
 for config in "upstream-kcsan.config upstream-kmsan.config upstream-leak.config upstream-usb.config"
 do
@@ -26,10 +28,28 @@ disabled_configs=$kasan_config.disabled
 baseline_disabled_configs=$kasan_config.baseline.disabled
 
 # Clear options from previous runs.
-echo -n > $enabled_configs $disabled_configs $baseline_disabled_configs
+echo -n > $enabled_configs
+echo -n > $disabled_configs
+echo -n > $baseline_disabled_configs
 
 # All kernel Kconfig files
 kconfig_files=`find $KERNEL_SOURCE -name Kconfig`
+
+check_if_case () {
+    option=$1
+    enabled=false
+
+    for kconfig_file in $kconfig_files
+    do
+	grep "^if $option" $kconfig_file 2>&1 > /dev/null
+	if [ $? -eq 0 ]
+	then
+	    enabled="true"
+	    break
+	fi
+    done
+    echo $enabled
+}
 
 # Iterates all Kconfig files for options that are dependent on config option given as parameter
 check_dependents () {
@@ -61,7 +81,7 @@ check_dependents () {
 is_enabled () {
     option=$1
 
-    grep CONFIG_$option=y $kasan_config > /dev/null
+    grep CONFIG_$option=y $kasan_config 2>&1 > /dev/null
     if [ $? -eq 0 ]
     then
 	echo "true"
@@ -70,30 +90,67 @@ is_enabled () {
     fi
 }
 
+parallel_checks=0
+# Check one option for possible reason to enable it
+check_config_option () {
+    option=$1
+
+    echo "Checking $option..."
+    enabled=`check_if_case $option`
+    if [ $enabled == "false" ]
+    then
+	dependents="$(check_dependents $option)"
+
+	for dependent in $dependents
+	do
+	    enabled=$(is_enabled $dependent)
+	    if [ $enabled == "true" ]
+	    then
+		break
+	    fi
+	done
+    fi
+
+    if [ $enabled == "true" ]
+    then
+	flock -x /var/lock/enable_configs_lock echo CONFIG_$option=y >> $enabled_configs
+    fi
+}
+
 # Figure out what is disabled in barebones.config compared to kasan config.
-disabled_options=`diff -Naur $kasan_config $barebones_config | grep "^+.*is.not.set" | cut -d ' ' -f 2 | sed 's/CONFIG_//'`
+changed_options=`diff -Naur $kasan_config $barebones_config | grep "^-.*=y" | cut -d '=' -f 1 | sed 's/CONFIG_//' | tr -d '-'`
+
+disabled_options=""
+for option in $changed_options
+do
+    # Check if option is still enabled in barebones
+    grep "CONFIG_$option=y" $barebones_config 2>&1 > /dev/null
+    if [ $? -eq 0 ]
+    then
+	continue
+    fi
+    disabled_options="$disabled_options $option"
+done
 
 # Iterate all disabled options and check if there are dependents that
 # are enabled in kasan config. Add config options which has any
 # enabled dependent to config options that has to be enabled.
 for option in $disabled_options
 do
-    echo "Checking $option..."
-    dependents="$(check_dependents $option)"
-    echo $dependents
+    check_config_option $option &
 
-    for dependent in $dependents
+    while [ 1 ]
     do
-	echo "  checking if dependent $dependent is enabled..."
-	enabled=$(is_enabled $dependent)
-	if [ $enabled == "true" ]
+	num_checks=`ps -aux  | grep \`basename $0\` | wc -l`
+	if [ $num_checks -ge 9 ]
 	then
-	    echo "  $dependent is enabled -> enabling dependency"
-	    echo CONFIG_$option=y >> $enabled_configs
+	    sleep 5
+	else
 	    break
 	fi
     done
 done
+wait
 
 cd ${KERNEL_SOURCE}
 cp $barebones_config .config
@@ -111,7 +168,7 @@ enabled_options=`diff -Naur $barebones_config .config | grep "^+.*=[y|m]" | cut 
 # olddefconfig
 for option in $enabled_options
 do
-    grep $option $enabled_configs > /dev/null
+    grep $option $enabled_configs 2>&1 > /dev/null
     if [ $? -ne 0 ]
     then
 	echo "# $option is not set" >> $disabled_configs

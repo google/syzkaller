@@ -1,0 +1,87 @@
+#
+# Automatically generated file; DO NOT EDIT.
+# Akaros/x86 Kernel Configuration
+#
+CONFIG_64BIT=y
+CONFIG_RUN_INIT_SCRIPT=y
+CONFIG_INIT_SCRIPT_PATH_AND_ARGS="/init.sh"
+CONFIG_X86=y
+CONFIG_X86_64=y
+
+#
+# x86 Options
+#
+# CONFIG_PCI_VERBOSE is not set
+# CONFIG_NOFASTCALL_FSBASE is not set
+
+#
+# x86 Hacks
+#
+# CONFIG_LOUSY_LAPIC_TIMER is not set
+CONFIG_NOMTRRS=y
+# CONFIG_KB_CORE0_ONLY is not set
+# CONFIG_X86_DISABLE_KEYBOARD is not set
+# CONFIG_ENABLE_LEGACY_USB is not set
+CONFIG_NETWORKING=y
+
+#
+# Drivers
+#
+# CONFIG_BNX2X is not set
+# CONFIG_MLX4_EN is not set
+# CONFIG_MLX4_CORE is not set
+# CONFIG_MLX4_INFINIBAND is not set
+CONFIG_REGRESS=y
+CONFIG_DEVVARS=y
+# CONFIG_DEVVARS_TEST is not set
+
+#
+# Filesystems
+#
+CONFIG_KFS=y
+CONFIG_KFS_PATHS="kern/kfs"
+CONFIG_KFS_CPIO_BIN=""
+CONFIG_COREALLOC_FCFS=y
+# CONFIG_COREALLOC_PACKED is not set
+
+#
+# Kernel Debugging
+#
+
+#
+# Per-cpu Tracers
+#
+# CONFIG_TRACE_KMSGS is not set
+# CONFIG_TRACE_LOCKS is not set
+CONFIG_DEVELOPMENT_ASSERTIONS=y
+CONFIG_SPINLOCK_DEBUG=y
+CONFIG_SEQLOCK_DEBUG=y
+CONFIG_SEMAPHORE_DEBUG=y
+# CONFIG_SEM_SPINWAIT is not set
+CONFIG_LARGE_KSTACKS=y
+# CONFIG_DISABLE_SMT is not set
+# CONFIG_PRINTK_NO_BACKSPACE is not set
+# CONFIG_SYSCALL_STRING_SAVING is not set
+CONFIG_BLOCK_EXTRAS=y
+CONFIG_BETTER_BACKTRACE=y
+
+#
+# Misc/Old Options
+#
+# CONFIG_ARSC_SERVER is not set
+# CONFIG_APPSERVER is not set
+# CONFIG_SERIAL_IO is not set
+# CONFIG_SINGLE_CORE is not set
+# CONFIG_BSD_ON_CORE0 is not set
+
+#
+# Libraries
+#
+CONFIG_ZLIB_DEFLATE=y
+CONFIG_ZLIB_INFLATE=y
+
+#
+# Testing
+#
+# CONFIG_KERNEL_TESTING is not set
+# CONFIG_USERSPACE_TESTING is not set

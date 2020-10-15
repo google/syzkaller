@@ -16,13 +16,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 )
 
 func isSupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
-	log.Logf(2, "checking support for %v", c.Name)
 	if strings.HasPrefix(c.CallName, "syz_") {
 		return isSupportedSyzkall(c, target, sandbox)
 	}
@@ -94,7 +92,6 @@ func parseKallsyms(kallsyms []byte, arch string) map[string]bool {
 	matches := re.FindAllSubmatch(kallsyms, -1)
 	for _, m := range matches {
 		name := string(m[2])
-		log.Logf(2, "found in kallsyms: %v", name)
 		set[name] = true
 	}
 	return set
