@@ -30,6 +30,11 @@ func (ctx *testos) EnvForCommit(binDir, commit string, kernelConfig []byte) (*Bi
 
 func (ctx *testos) Minimize(original, baseline []byte, trace io.Writer,
 	pred func(test []byte) (BisectResult, error)) ([]byte, error) {
+	if res, err := pred(baseline); err != nil {
+		return nil, err
+	} else if res == BisectBad {
+		return baseline, nil
+	}
 	switch string(baseline) {
 	case "minimize-fails":
 		return nil, fmt.Errorf("minimization failure")
@@ -37,8 +42,6 @@ func (ctx *testos) Minimize(original, baseline []byte, trace io.Writer,
 		config := []byte("new-minimized-config")
 		pred(config)
 		return config, nil
-	case "baseline-broken-build":
-		return []byte("broken-build"), nil
 	default:
 		return original, nil
 	}

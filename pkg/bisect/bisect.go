@@ -4,13 +4,13 @@
 package bisect
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"path/filepath"
 	"time"
 
 	"github.com/google/syzkaller/pkg/build"
+	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -287,53 +287,24 @@ func (env *env) bisect() (*Result, error) {
 }
 
 func (env *env) minimizeConfig() (*testResult, error) {
-	cfg := env.cfg
-	// Check if crash reproduces with baseline config.
-	env.kernelConfig = cfg.Kernel.BaselineConfig
-	testRes, err := env.test()
-	if err != nil {
-		env.log("testing baseline config failed: %v", err)
-		env.kernelConfig = cfg.Kernel.Config
-		return nil, err
-	}
-	if testRes.verdict == vcs.BisectBad {
-		env.log("crash reproduces with baseline config")
-		return testRes, nil
-	}
-	if testRes.verdict == vcs.BisectSkip {
-		env.log("unable to test using baseline config, keep original config")
-		env.kernelConfig = cfg.Kernel.Config
-		return nil, nil
-	}
+	// Find minimal configuration based on baseline to reproduce the crash.
+	testResults := make(map[hash.Sig]*testResult)
 	predMinimize := func(test []byte) (vcs.BisectResult, error) {
 		env.kernelConfig = test
 		testRes, err := env.test()
 		if err != nil {
 			return 0, err
 		}
+		testResults[hash.Hash(test)] = testRes
 		return testRes.verdict, err
 	}
-	// Find minimal configuration based on baseline to reproduce the crash.
-	env.kernelConfig, err = env.minimizer.Minimize(cfg.Kernel.Config,
-		cfg.Kernel.BaselineConfig, cfg.Trace, predMinimize)
+	minConfig, err := env.minimizer.Minimize(env.cfg.Kernel.Config,
+		env.cfg.Kernel.BaselineConfig, env.cfg.Trace, predMinimize)
 	if err != nil {
-		env.log("minimizing config failed: %v", err)
 		return nil, err
 	}
-	if bytes.Equal(env.kernelConfig, cfg.Kernel.Config) {
-		return nil, nil
-	}
-	// Check that crash is really reproduced with generated config.
-	testRes, err = env.test()
-	if err != nil {
-		return nil, fmt.Errorf("testing generated minimized config failed: %v", err)
-	}
-	if testRes.verdict != vcs.BisectBad {
-		env.log("testing with generated minimized config doesn't reproduce the crash")
-		env.kernelConfig = cfg.Kernel.Config
-		return nil, nil
-	}
-	return testRes, nil
+	env.kernelConfig = minConfig
+	return testResults[hash.Hash(minConfig)], nil
 }
 
 func (env *env) detectNoopChange(results map[string]*testResult, com *vcs.Commit) (bool, error) {
