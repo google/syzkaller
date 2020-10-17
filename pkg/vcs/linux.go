@@ -4,13 +4,10 @@
 package vcs
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/mail"
-	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -304,166 +301,31 @@ func (ctx *linux) Minimize(original, baseline []byte, trace io.Writer,
 		fmt.Fprintf(trace, "# configuration already minimized\n")
 		return original, nil
 	}
-	bisectDir, err := ioutil.TempDir("", "syz-config-bisect")
+	kconf, err := kconfig.Parse(filepath.Join(ctx.git.dir, "Kconfig"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create temp dir for config bisect: %v", err)
+		return nil, fmt.Errorf("failed to parse Kconfig: %v", err)
 	}
-	defer os.RemoveAll(bisectDir)
-	kernelConfig := filepath.Join(bisectDir, "kernel.config")
-	kernelBaselineConfig := filepath.Join(bisectDir, "kernel.baseline_config")
-	if err := ctx.prepareConfigBisectEnv(kernelConfig, kernelBaselineConfig, original, baseline); err != nil {
+	originalConfig, err := kconfig.ParseConfigData(original, "original")
+	if err != nil {
 		return nil, err
 	}
-
-	fmt.Fprintf(trace, "# start config bisection\n")
-	configBisect := filepath.Join(ctx.git.dir, "tools", "testing", "ktest", "config-bisect.pl")
-	output, err := osutil.RunCmd(time.Hour, "", configBisect,
-		"-l", ctx.git.dir, "-r", "-b", ctx.git.dir, kernelBaselineConfig, kernelConfig)
+	baselineConfig, err := kconfig.ParseConfigData(baseline, "baseline")
 	if err != nil {
-		return nil, fmt.Errorf("config bisect failed: %v", err)
+		return nil, err
 	}
-	fmt.Fprintf(trace, "# config-bisect.pl -r:\n%s", output)
-	for {
-		config, err := ioutil.ReadFile(filepath.Join(ctx.git.dir, ".config"))
-		if err != nil {
-			return nil, fmt.Errorf("failed to read .config: %v", err)
-		}
-
-		testRes, err := pred(config)
-		if err != nil {
-			return nil, err
-		}
-		if testRes == BisectSkip {
-			return nil, fmt.Errorf("unable to test, stopping config bisection")
-		}
-		verdict := "good"
-		if testRes == BisectBad {
-			verdict = "bad"
-		}
-
-		output1, err := osutil.RunCmd(time.Hour, "", configBisect,
-			"-l", ctx.git.dir, "-b", ctx.git.dir, kernelBaselineConfig, kernelConfig, verdict)
-		fmt.Fprintf(trace, "# config-bisect.pl %v:\n%s", verdict, output1)
-		output = append(output, output1...)
-		if err != nil {
-			if verr, ok := err.(*osutil.VerboseError); ok && verr.ExitCode == 2 {
-				break
-			}
-			return nil, fmt.Errorf("config bisect failed: %v", err)
-		}
+	linuxAlterConfigs(originalConfig, nil)
+	linuxAlterConfigs(baselineConfig, nil)
+	kconfPred := func(candidate *kconfig.ConfigFile) (bool, error) {
+		res, err := pred(serialize(candidate))
+		return res == BisectBad, err
 	}
-	fmt.Fprintf(trace, "# config_bisect.pl finished\n")
-	configOptions := ctx.parseConfigBisectLog(trace, output)
-	if len(configOptions) == 0 {
-		return nil, fmt.Errorf("no config changes in the config bisect log:\n%s", output)
-	}
-
-	// Parse minimalistic configuration to generate the crash.
-	minimizedConfig, err := ctx.generateMinConfig(configOptions, bisectDir, kernelBaselineConfig)
+	minConfig, err := kconf.Minimize(baselineConfig, originalConfig, kconfPred, trace)
 	if err != nil {
-		return nil, fmt.Errorf("generating minimized config failed: %v", err)
+		return nil, err
 	}
-	return minimizedConfig, nil
+	return serialize(minConfig), nil
 }
 
-func (ctx *linux) prepareConfigBisectEnv(kernelConfig, kernelBaselineConfig string, original, baseline []byte) error {
-	current, err := ctx.HeadCommit()
-	if err != nil {
-		return err
-	}
-
-	// Call EnvForCommit if some options needs to be adjusted.
-	bisectEnv, err := ctx.EnvForCommit("", current.Hash, original)
-	if err != nil {
-		return fmt.Errorf("failed create commit environment: %v", err)
-	}
-	if err := osutil.WriteFile(kernelConfig, bisectEnv.KernelConfig); err != nil {
-		return fmt.Errorf("failed to write config file: %v", err)
-	}
-
-	// Call EnvForCommit again if some options needs to be adjusted in baseline.
-	bisectEnv, err = ctx.EnvForCommit("", current.Hash, baseline)
-	if err != nil {
-		return fmt.Errorf("failed create commit environment: %v", err)
-	}
-	if err := osutil.WriteFile(kernelBaselineConfig, bisectEnv.KernelConfig); err != nil {
-		return fmt.Errorf("failed to write minimum config file: %v", err)
-	}
-	return nil
-}
-
-//       Takes in config_bisect.pl output:
-//       Hmm, can't make any more changes without making good == bad?
-//       Difference between good (+) and bad (-)
-//        +DRIVER1=n
-//        +DRIVER2=n
-//        -DRIVER3=n
-//        -DRIVER4=n
-//        DRIVER5 n -> y
-//        DRIVER6 y -> n
-//       See good and bad configs for details:
-//       good: /mnt/work/linux/good_config.tmp
-//       bad:  /mnt/work/linux/bad_config.tmp
-func (ctx *linux) parseConfigBisectLog(trace io.Writer, bisectLog []byte) []string {
-	var configOptions []string
-	start := false
-	for s := bufio.NewScanner(bytes.NewReader(bisectLog)); s.Scan(); {
-		line := s.Text()
-		if strings.Contains(line, "See good and bad configs for details:") {
-			break
-		}
-		if !start {
-			if strings.Contains(line, "Difference between good (+) and bad (-)") {
-				start = true
-			}
-			continue
-		}
-		if strings.HasPrefix(line, "+") {
-			// This is option only in good config. Drop it as it's dependent
-			// on some option which is disabled in bad config.
-			continue
-		}
-		option, selection := "", ""
-		if strings.HasPrefix(line, "-") {
-			// -CONFIG_DRIVER_1=n
-			// Remove preceding -1 and split to option and selection
-			fields := strings.Split(strings.TrimPrefix(line, "-"), "=")
-			option = fields[0]
-			selection = fields[len(fields)-1]
-		} else {
-			// DRIVER_OPTION1 n -> y
-			fields := strings.Split(strings.TrimPrefix(line, " "), " ")
-			option = fields[0]
-			selection = fields[len(fields)-1]
-		}
-
-		configOptioon := "CONFIG_" + option + "=" + selection
-		if selection == "n" {
-			configOptioon = "# CONFIG_" + option + " is not set"
-		}
-		configOptions = append(configOptions, configOptioon)
-	}
-
-	fmt.Fprintf(trace, "# found config option changes %v\n", configOptions)
-	return configOptions
-}
-
-func (ctx *linux) generateMinConfig(configOptions []string, outdir, baseline string) ([]byte, error) {
-	kernelAdditionsConfig := filepath.Join(outdir, "kernel.additions_config")
-	if err := osutil.WriteFile(kernelAdditionsConfig, []byte(strings.Join(configOptions, "\n"))); err != nil {
-		return nil, fmt.Errorf("failed to write config additions file: %v", err)
-	}
-
-	_, err := osutil.RunCmd(time.Hour, "", filepath.Join(ctx.git.dir, "scripts", "kconfig", "merge_config.sh"),
-		"-m", "-O", outdir, baseline, kernelAdditionsConfig)
-	if err != nil {
-		return nil, fmt.Errorf("config merge failed: %v", err)
-	}
-
-	minConfig, err := ioutil.ReadFile(filepath.Join(outdir, ".config"))
-	if err != nil {
-		return nil, fmt.Errorf("failed to read merged configuration: %v", err)
-	}
-	minConfig = append([]byte(fmt.Sprintf("%v, rev: %v\n", configBisectTag, prog.GitRevision)), minConfig...)
-	return minConfig, nil
+func serialize(cf *kconfig.ConfigFile) []byte {
+	return []byte(fmt.Sprintf("%v, rev: %v\n%s", configBisectTag, prog.GitRevision, cf.Serialize()))
 }

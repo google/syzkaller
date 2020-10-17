@@ -41,7 +41,7 @@ func (env *testEnv) BuildKernel(compilerBin, cCache, userspaceDir, cmdlineFile, 
 		kernelSign = "same-sign-" + configHash
 	}
 	env.config = string(kernelConfig)
-	if env.config == "baseline-fails" || env.config == "broken-build" {
+	if env.config == "baseline-fails" {
 		return "", kernelSign, fmt.Errorf("failure")
 	}
 	return "", kernelSign, nil
@@ -183,15 +183,6 @@ var bisectionTests = []BisectionTest{
 		culprit:         602,
 		baselineConfig:  "baseline-repro",
 		resultingConfig: "baseline-repro",
-	},
-	{
-		name:            "cause-finds-cause-baseline-broken-build",
-		startCommit:     905,
-		commitLen:       1,
-		expectRep:       true,
-		culprit:         602,
-		baselineConfig:  "baseline-broken-build",
-		resultingConfig: "original config",
 	},
 	{
 		name:            "cause-finds-cause-baseline-does-not-repro",
