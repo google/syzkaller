@@ -1,0 +1,45 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+config:
+ - SECURITY
+ - SECURITY_NETWORK
+ - SECURITY_NETWORK_XFRM: [-baseline]
+ - SECURITY_PATH
+ - SECURITY_INFINIBAND: [optional]
+
+ - SECURITY_TOMOYO
+ - SECURITY_TOMOYO_MAX_ACCEPT_ENTRY: 1024
+ - SECURITY_TOMOYO_MAX_AUDIT_LOG: 32
+ - SECURITY_TOMOYO_INSECURE_BUILTIN_SETTING
+ - SECURITY_YAMA
+ - SECURITY_SAFESETID
+ - SECURITY_LOCKDOWN_LSM
+ - SECURITY_LOCKDOWN_LSM_EARLY
+ - INTEGRITY_SIGNATURE
+ - INTEGRITY_ASYMMETRIC_KEYS
+ # TODO: enable this.
+ - KEY_NOTIFICATIONS: n
+ - IMA
+ - IMA_DEFAULT_HASH_SHA256
+ - IMA_WRITE_POLICY
+ - IMA_APPRAISE
+ - IMA_APPRAISE_MODSIG
+ - IMA_TRUSTED_KEYRING: n
+ - EVM
+ - EVM_ADD_XATTRS
+
+ # Note: this depends on a number of BPF-related configs, which may be not enabled.
+ - BPF_LSM: [optional]
+
+ # TODO: the following enables all LSMs at once.
+ # Switch to LSM-per-config scheme later with separate apparmor.yml, selinux.yml, smack.yml.
+ - SECURITY_APPARMOR
+ - SECURITY_APPARMOR_DEBUG
+ - SECURITY_APPARMOR_DEBUG_ASSERTS
+ - DEFAULT_SECURITY_APPARMOR
+ - SECURITY_SELINUX
+ - SECURITY_SMACK
+ - SECURITY_SMACK_NETFILTER
+ - EVM_EXTRA_SMACK_XATTRS
+ - LSM: "yama,loadpin,safesetid,integrity,selinux,smack,tomoyo,apparmor"
