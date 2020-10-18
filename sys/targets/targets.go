@@ -14,7 +14,6 @@ import (
 )
 
 type Target struct {
-	init sync.Once
 	osCommon
 	OS               string
 	Arch             string
@@ -38,6 +37,11 @@ type Target struct {
 	NeedSyscallDefine  func(nr uint64) bool
 	HostEndian         binary.ByteOrder
 	SyscallTrampolines map[string]string
+
+	init      *sync.Once
+	initOther *sync.Once
+	// Target for the other compiler. If SYZ_CLANG says to use gcc, this will be clang. Or the other way around.
+	other *Target
 }
 
 type osCommon struct {
@@ -75,12 +79,26 @@ type osCommon struct {
 }
 
 func Get(OS, arch string) *Target {
+	return GetEx(OS, arch, useClang)
+}
+
+func GetEx(OS, arch string, clang bool) *Target {
 	target := List[OS][arch]
 	if target == nil {
 		return nil
 	}
-	target.init.Do(target.lazyInit)
-	return target
+	if clang == useClang {
+		target.init.Do(target.lazyInit)
+		return target
+	}
+	target.initOther.Do(func() {
+		other := new(Target)
+		*other = *target
+		other.setCompiler(clang)
+		other.lazyInit()
+		target.other = other
+	})
+	return target.other
 }
 
 // nolint: lll
@@ -502,6 +520,8 @@ func initTarget(target *Target, OS, arch string) {
 	if common, ok := oses[OS]; ok {
 		target.osCommon = common
 	}
+	target.init = new(sync.Once)
+	target.initOther = new(sync.Once)
 	target.OS = OS
 	target.Arch = arch
 	if target.NeedSyscallDefine == nil {
@@ -531,19 +551,7 @@ func initTarget(target *Target, OS, arch string) {
 		target.Triple = ""
 	}
 	if target.CCompiler == "" {
-		target.CCompiler = "gcc"
-		if target.Triple != "" {
-			target.CCompiler = target.Triple + "-" + target.CCompiler
-		}
-	}
-	if useClang {
-		target.CCompiler = "clang"
-		target.KernelCompiler = "clang"
-		target.KernelLinker = "ld.lld"
-		if target.Triple != "" {
-			target.CFlags = append(target.CFlags, "--target="+target.Triple)
-		}
-		target.CFlags = append(target.CFlags, "-ferror-limit=0")
+		target.setCompiler(useClang)
 	}
 	if target.CPP == "" {
 		target.CPP = "cpp"
@@ -576,6 +584,37 @@ func initTarget(target *Target, OS, arch string) {
 		target.HostEndian = binary.LittleEndian
 	} else {
 		target.HostEndian = binary.BigEndian
+	}
+}
+
+func (target *Target) setCompiler(clang bool) {
+	// setCompiler may be called effectively twice for target.other,
+	// so first we remove flags the previous call may have added.
+	pos := 0
+	for _, flag := range target.CFlags {
+		if flag == "-ferror-limit=0" ||
+			strings.HasPrefix(flag, "--target=") {
+			continue
+		}
+		target.CFlags[pos] = flag
+		pos++
+	}
+	target.CFlags = target.CFlags[:pos]
+	if clang {
+		target.CCompiler = "clang"
+		target.KernelCompiler = "clang"
+		target.KernelLinker = "ld.lld"
+		if target.Triple != "" {
+			target.CFlags = append(target.CFlags, "--target="+target.Triple)
+		}
+		target.CFlags = append(target.CFlags, "-ferror-limit=0")
+	} else {
+		target.CCompiler = "gcc"
+		target.KernelCompiler = ""
+		target.KernelLinker = ""
+		if target.Triple != "" {
+			target.CCompiler = target.Triple + "-" + target.CCompiler
+		}
 	}
 }
 
