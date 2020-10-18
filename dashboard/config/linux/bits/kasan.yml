@@ -1,0 +1,18 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+config:
+ - KASAN
+ - KASAN_GENERIC
+ - KASAN_INLINE
+ - KASAN_STACK_ENABLE: [clang]
+ - KASAN_VMALLOC: [x86_64, v5.5]
+ # This was historically enabled in the KASAN section without explanation.
+ - SPARSEMEM_VMEMMAP
+
+ - UBSAN: [v5.8]
+ - UBSAN_BOUNDS: [v5.8]
+ - UBSAN_SANITIZE_ALL: [v5.8]
+ - UBSAN_TRAP: [n, v5.8]
+ - UBSAN_MISC: [n, v5.8]
+ - UBSAN_ALIGNMENT: [n, v5.8]
