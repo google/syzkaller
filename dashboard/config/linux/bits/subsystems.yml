@@ -53,9 +53,8 @@ config:
  - ACPI_NFIT: [x86_64]
  - CPU_FREQ_DEFAULT_GOV_USERSPACE
  - CPU_FREQ_GOV_ONDEMAND
- # TODO: remove these.
- - GOOGLE_SMI: [x86_64]
- - GOOGLE_MEMCONSOLE_X86_LEGACY: [x86_64]
+ - GOOGLE_SMI: n
+ - GOOGLE_MEMCONSOLE_X86_LEGACY: n
  - GOOGLE_FIRMWARE
  - GOOGLE_COREBOOT_TABLE
  - GOOGLE_FRAMEBUFFER_COREBOOT
@@ -578,9 +577,8 @@ config:
  - CGROUP_NET_PRIO
  - BPF_JIT
  - BPF_STREAM_PARSER
- # TODO: change to v5.9 and remove optional once we start generating configs on v5.9.
- - BPF_PRELOAD: [v5.8, optional]
- - BPF_PRELOAD_UMD: [v5.8, optional]
+ - BPF_PRELOAD: [linux-next]
+ - BPF_PRELOAD_UMD: [linux-next]
  - HAMRADIO
  - AX25
  - NETROM
@@ -628,8 +626,7 @@ config:
  - MAC80211_MESH
  - MAC80211_LEDS
  - MAC80211_DEBUGFS
- # TODO: remove this, in newer kernels it depends on ARCH_QCOM.
- - ATH11K: [optional]
+ - ATH11K: [linux-next]
  - WIMAX
  - WLAN_VENDOR_ATMEL: n
  - WLAN_VENDOR_BROADCOM: n
@@ -695,8 +692,7 @@ config:
  - ZRAM
  - BLK_DEV_LOOP
  # Loop device per test process.
- # TODO: change to 16.
- - BLK_DEV_LOOP_MIN_COUNT: 8
+ - BLK_DEV_LOOP_MIN_COUNT: 16
  - BLK_DEV_CRYPTOLOOP
  - BLK_DEV_NBD
  - BLK_DEV_RAM
@@ -764,9 +760,8 @@ config:
  - FIREWIRE_OHCI
  - FIREWIRE_SBP2
  - FIREWIRE_NET
- # TODO: remove these.
- - MACINTOSH_DRIVERS: [x86_64]
- - MAC_EMUMOUSEBTN: [x86_64]
+ - MACINTOSH_DRIVERS: n
+ - MAC_EMUMOUSEBTN: n
  - NETDEVICES
  - BONDING
  - DUMMY
@@ -952,11 +947,10 @@ config:
  - LEGACY_PTYS
  - LEGACY_PTY_COUNT: 256
  - HW_RANDOM
- # TODO: enable this and disable CONFIG_HW_RANDOM_VIA
- - HW_RANDOM_VIRTIO: n
+ - HW_RANDOM_VIRTIO
  - HW_RANDOM_INTEL: n
  - HW_RANDOM_AMD: n
- - HW_RANDOM_VIA: [x86_64]
+ - HW_RANDOM_VIA: n
  - NVRAM: [x86_64]
  - HPET: [x86_64]
  - HPET_MMAP: [x86_64]
@@ -970,10 +964,9 @@ config:
  - I2C_ISCH
  - I2C_PIIX4
  - I2C_NFORCE2
- # TODO: remove these.
- - I2C_AMD756_S4882: [x86_64]
- - I2C_ISMT: [x86_64]
- - I2C_NFORCE2_S4985: [x86_64]
+ - I2C_AMD756_S4882: n
+ - I2C_ISMT: n
+ - I2C_NFORCE2_S4985: n
  - I2C_SCMI
  - I2C_ROBOTFUZZ_OSIF
  - I2C_TINY_USB
@@ -984,12 +977,11 @@ config:
  - SPI_PXA2XX
  - SPI_SPIDEV
  - WATCHDOG
- # TODO: remove these.
- - X86_PKG_TEMP_THERMAL: [x86_64]
- - INTEL_SOC_DTS_THERMAL: [x86_64]
- - I6300ESB_WDT: [x86_64]
- - ITCO_WDT: [x86_64]
- - ITCO_VENDOR_SUPPORT: [x86_64]
+ - X86_PKG_TEMP_THERMAL: n
+ - INTEL_SOC_DTS_THERMAL: n
+ - I6300ESB_WDT: n
+ - ITCO_WDT: n
+ - ITCO_VENDOR_SUPPORT: n
  - LPC_ICH
  - RC_CORE
  - RC_DECODERS
@@ -1012,8 +1004,7 @@ config:
  - USB_VIDEO_CLASS
  - USB_GSPCA
  - MEDIA_PCI_SUPPORT
- # TODO: remove this.
- - VIDEO_IPU3_CIO2: [x86_64, v5.5]
+ - VIDEO_IPU3_CIO2: n
  - V4L_TEST_DRIVERS: [v5.8]
  - VIDEO_VIMC: [v5.8]
  - VIDEO_VIVID: [v5.8]
@@ -1026,8 +1017,7 @@ config:
  - DRM
  - DRM_DP_AUX_CHARDEV
  - DRM_DEBUG_MM
- # TODO: remove this.
- - DRM_I915: [x86_64]
+ - DRM_I915: n
  - DRM_VGEM
  - DRM_VKMS
  - DRM_VMWGFX: [x86_64]
@@ -1042,8 +1032,7 @@ config:
  - FB_VGA16: [x86_64]
  - FB_UVESA
  - FB_VESA: [x86_64]
- # TODO: remove this.
- - FB_HGA: [x86_64]
+ - FB_HGA: n
  - FB_I740
  - FB_UDL
  - FB_VIRTUAL
@@ -1083,9 +1072,8 @@ config:
  - SND_HDA_CODEC_SI3054
  - SND_HDA_PREALLOC_SIZE: 0
  - SND_USB_AUDIO
- # TODO: remove, these is for some hardware board.
- - SND_FIREWORKS
- - SND_FIREWIRE_TASCAM
+ - SND_FIREWORKS: n
+ - SND_FIREWIRE_TASCAM: n
  - HID_BATTERY_STRENGTH
  - HIDRAW
  - UHID
@@ -1104,7 +1092,6 @@ config:
  - HID_ELECOM
  - HID_EZKEY
  - HID_HOLTEK
- - HID_GOOGLE_HAMMER
  - HID_KEYTOUCH
  - HID_KYE
  - HID_UCLOGIC
@@ -1138,8 +1125,7 @@ config:
  - HID_SPEEDLINK
  - HID_SUNPLUS
  - HID_RMI
- # TODO: enable this.
- - HID_REDRAGON: n
+ - HID_REDRAGON
  - HID_GREENASIA
  - GREENASIA_FF
  - HID_SMARTJOYPLUS
@@ -1200,7 +1186,9 @@ config:
  - USB_CONFIGFS_F_FS
  - USB_CONFIGFS_F_MIDI
  - USB_CONFIGFS_SERIAL
- - USB_RAW_GADGET: [v5.7]
+ # It's introduced in v5.5 or so, but we want it in android-5.4, but it's not present in stable-5.4.
+ # A better way to express this would to add "or" operator (v5.5||android-5.4), but for now we have this.
+ - USB_RAW_GADGET: [v5.4, -stable-5.4]
  - TYPEC
  - TYPEC_TCPM
  - TYPEC_UCSI
@@ -1209,10 +1197,9 @@ config:
  - INFINIBAND_USER_MAD
  - INFINIBAND_USER_ACCESS
  - MLX4_INFINIBAND
- # TODO: remove these.
- - INFINIBAND_USNIC: [x86_64]
- - INFINIBAND_RDMAVT: [x86_64]
- - INFINIBAND_OPA_VNIC: [x86_64]
+ - INFINIBAND_USNIC: n
+ - INFINIBAND_RDMAVT: n
+ - INFINIBAND_OPA_VNIC: n
  - RDMA_RXE
  - RDMA_SIW
  - INFINIBAND_IPOIB
@@ -1225,9 +1212,8 @@ config:
  - RTC_HCTOSYS: n
  - RTC_NVMEM: n
  - DMADEVICES
- # TODO: remove these.
- - INTEL_IDMA64: [x86_64]
- - INTEL_IOATDMA: [x86_64]
+ - INTEL_IDMA64: n
+ - INTEL_IOATDMA: n
  - ASYNC_TX_DMA
  - SW_SYNC
  - UDMABUF
@@ -1257,23 +1243,9 @@ config:
  - ION
  - ION_SYSTEM_HEAP
  - ION_CMA_HEAP
- # TODO: remove these.
- - CHROME_PLATFORMS
- - CROS_EC
- - EEEPC_LAPTOP: [x86_64]
- - INTEL_MENLOW: [x86_64]
- - I2C_MULTI_INSTANTIATE: [x86_64]
- - MFD_CROS_EC: [weak]
- - CHROMEOS_LAPTOP: [x86_64]
- - CHROMEOS_PSTORE: [x86_64]
- - CHROMEOS_TBMC: [x86_64]
- - CROS_KBD_LED_BACKLIGHT: [x86_64]
- - CROS_EC_SENSORHUB: [n, x86_64]
- - CROS_EC_TYPEC: [n, x86_64]
- # TODO: probably remove these? no specific reason to enable this.
- - AMD_IOMMU: [x86_64]
- - INTEL_IOMMU: [x86_64]
- - INTEL_IOMMU_DEFAULT_ON: [x86_64]
+ - CHROME_PLATFORMS: n
+ - AMD_IOMMU: n
+ - INTEL_IOMMU
  - SOUNDWIRE
  - GENERIC_PHY
  - REALTEK_PHY: n
@@ -1371,6 +1343,7 @@ config:
  - FANOTIFY_ACCESS_PERMISSIONS
  - MOUNT_NOTIFICATIONS: [linux-next]
  - WATCH_QUEUE: [v5.8]
+ - KEY_NOTIFICATIONS: [v5.8]
  - QUOTA_NETLINK_INTERFACE
  - PRINT_QUOTA_WARNING: n
  - QFMT_V2
@@ -1593,6 +1566,4 @@ config:
  - SCHEDSTATS
  - RAW_DRIVER
  - THERMAL_NETLINK: [v5.8]
- # TODO: remove this along with the rest of XEN in x86_64.yml.
- - NET_9P_XEN
  - VMWARE_VMCI
