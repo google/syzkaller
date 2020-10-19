@@ -24,30 +24,6 @@ type linux struct{}
 
 var _ signer = linux{}
 
-// Key for module signing.
-const moduleSigningKey = `-----BEGIN PRIVATE KEY-----
-MIIBVAIBADANBgkqhkiG9w0BAQEFAASCAT4wggE6AgEAAkEAxu5GRXw7d13xTLlZ
-GT1y63U4Firk3WjXapTgf9radlfzpqheFr5HWO8f11U/euZQWXDzi+Bsq+6s/2lJ
-AU9XWQIDAQABAkB24ZxTGBv9iMGURUvOvp83wRRkgvvEqUva4N+M6MAXagav3GRi
-K/gl3htzQVe+PLGDfbIkstPJUvI2izL8ZWmBAiEA/P72IitEYE4NQj4dPcYglEYT
-Hbh2ydGYFbYxvG19DTECIQDJSvg7NdAaZNd9faE5UIAcLF35k988m9hSqBjtz0tC
-qQIgGOJC901mJkrHBxLw8ViBb9QMoUm5dVRGLyyCa9QhDqECIQCQGLX4lP5DVrsY
-X43BnMoI4Q3o8x1Uou/JxAIMg1+J+QIgamNCPBLeP8Ce38HtPcm8BXmhPKkpCXdn
-uUf4bYtfSSw=
------END PRIVATE KEY-----
------BEGIN CERTIFICATE-----
-MIIBvzCCAWmgAwIBAgIUKoM7Idv4nw571nWDgYFpw6I29u0wDQYJKoZIhvcNAQEF
-BQAwLjEsMCoGA1UEAwwjQnVpbGQgdGltZSBhdXRvZ2VuZXJhdGVkIGtlcm5lbCBr
-ZXkwIBcNMjAxMDA4MTAzMzIwWhgPMjEyMDA5MTQxMDMzMjBaMC4xLDAqBgNVBAMM
-I0J1aWxkIHRpbWUgYXV0b2dlbmVyYXRlZCBrZXJuZWwga2V5MFwwDQYJKoZIhvcN
-AQEBBQADSwAwSAJBAMbuRkV8O3dd8Uy5WRk9cut1OBYq5N1o12qU4H/a2nZX86ao
-Xha+R1jvH9dVP3rmUFlw84vgbKvurP9pSQFPV1kCAwEAAaNdMFswDAYDVR0TAQH/
-BAIwADALBgNVHQ8EBAMCB4AwHQYDVR0OBBYEFPhQx4etmYw5auCJwIO5QP8Kmrt3
-MB8GA1UdIwQYMBaAFPhQx4etmYw5auCJwIO5QP8Kmrt3MA0GCSqGSIb3DQEBBQUA
-A0EAK5moCH39eLLn98pBzSm3MXrHpLtOWuu2p696fg/ZjiUmRSdHK3yoRONxMHLJ
-1nL9cAjWPantqCm5eoyhj7V7gg==
------END CERTIFICATE-----`
-
 func (linux linux) build(params *Params) error {
 	if err := linux.buildKernel(params); err != nil {
 		return err
@@ -62,13 +38,10 @@ func (linux linux) sign(params *Params) (string, error) {
 	return elfBinarySignature(filepath.Join(params.OutputDir, "obj", "vmlinux"))
 }
 
-func (linux) buildKernel(params *Params) error {
+func (linux linux) buildKernel(params *Params) error {
 	configFile := filepath.Join(params.KernelDir, ".config")
-	if err := osutil.WriteFile(configFile, params.Config); err != nil {
+	if err := linux.writeFile(configFile, params.Config); err != nil {
 		return fmt.Errorf("failed to write config file: %v", err)
-	}
-	if err := osutil.SandboxChown(configFile); err != nil {
-		return err
 	}
 	// One would expect olddefconfig here, but olddefconfig is not present in v3.6 and below.
 	// oldconfig is the same as olddefconfig if stdin is not set.
@@ -95,13 +68,10 @@ func (linux) buildKernel(params *Params) error {
 		ccParam = params.Ccache + " " + ccParam
 		// Ensure CONFIG_GCC_PLUGIN_RANDSTRUCT doesn't prevent ccache usage.
 		// See /Documentation/kbuild/reproducible-builds.rst.
+		const seed = `const char *randstruct_seed = "e9db0ca5181da2eedb76eba144df7aba4b7f9359040ee58409765f2bdc4cb3b8";`
 		gccPluginsDir := filepath.Join(params.KernelDir, "scripts", "gcc-plugins")
 		if osutil.IsExist(gccPluginsDir) {
-			err := osutil.WriteFile(filepath.Join(gccPluginsDir,
-				"randomize_layout_seed.h"),
-				[]byte("const char *randstruct_seed = "+
-					"\"e9db0ca5181da2eedb76eba144df7aba4b7f9359040ee58409765f2bdc4cb3b8\";"))
-			if err != nil {
+			if err := linux.writeFile(filepath.Join(gccPluginsDir, "randomize_layout_seed.h"), []byte(seed)); err != nil {
 				return err
 			}
 		}
@@ -112,8 +82,7 @@ func (linux) buildKernel(params *Params) error {
 	// calculation.
 	certsDir := filepath.Join(params.KernelDir, "certs")
 	if osutil.IsExist(certsDir) {
-		err := osutil.WriteFile(filepath.Join(certsDir, "signing_key.pem"), []byte(moduleSigningKey))
-		if err != nil {
+		if err := linux.writeFile(filepath.Join(certsDir, "signing_key.pem"), []byte(moduleSigningKey)); err != nil {
 			return err
 		}
 	}
@@ -179,6 +148,13 @@ func (linux) clean(kernelDir, targetArch string) error {
 	return runMake(kernelDir, "distclean")
 }
 
+func (linux) writeFile(file string, data []byte) error {
+	if err := osutil.WriteFile(file, data); err != nil {
+		return err
+	}
+	return osutil.SandboxChown(file)
+}
+
 func runMake(kernelDir string, args ...string) error {
 	args = append(args, fmt.Sprintf("-j%v", runtime.NumCPU()))
 	cmd := osutil.Command("make", args...)
@@ -228,3 +204,27 @@ func elfBinarySignature(bin string) (string, error) {
 	}
 	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
+
+// moduleSigningKey is a constant module signing key for reproducible builds.
+const moduleSigningKey = `-----BEGIN PRIVATE KEY-----
+MIIBVAIBADANBgkqhkiG9w0BAQEFAASCAT4wggE6AgEAAkEAxu5GRXw7d13xTLlZ
+GT1y63U4Firk3WjXapTgf9radlfzpqheFr5HWO8f11U/euZQWXDzi+Bsq+6s/2lJ
+AU9XWQIDAQABAkB24ZxTGBv9iMGURUvOvp83wRRkgvvEqUva4N+M6MAXagav3GRi
+K/gl3htzQVe+PLGDfbIkstPJUvI2izL8ZWmBAiEA/P72IitEYE4NQj4dPcYglEYT
+Hbh2ydGYFbYxvG19DTECIQDJSvg7NdAaZNd9faE5UIAcLF35k988m9hSqBjtz0tC
+qQIgGOJC901mJkrHBxLw8ViBb9QMoUm5dVRGLyyCa9QhDqECIQCQGLX4lP5DVrsY
+X43BnMoI4Q3o8x1Uou/JxAIMg1+J+QIgamNCPBLeP8Ce38HtPcm8BXmhPKkpCXdn
+uUf4bYtfSSw=
+-----END PRIVATE KEY-----
+-----BEGIN CERTIFICATE-----
+MIIBvzCCAWmgAwIBAgIUKoM7Idv4nw571nWDgYFpw6I29u0wDQYJKoZIhvcNAQEF
+BQAwLjEsMCoGA1UEAwwjQnVpbGQgdGltZSBhdXRvZ2VuZXJhdGVkIGtlcm5lbCBr
+ZXkwIBcNMjAxMDA4MTAzMzIwWhgPMjEyMDA5MTQxMDMzMjBaMC4xLDAqBgNVBAMM
+I0J1aWxkIHRpbWUgYXV0b2dlbmVyYXRlZCBrZXJuZWwga2V5MFwwDQYJKoZIhvcN
+AQEBBQADSwAwSAJBAMbuRkV8O3dd8Uy5WRk9cut1OBYq5N1o12qU4H/a2nZX86ao
+Xha+R1jvH9dVP3rmUFlw84vgbKvurP9pSQFPV1kCAwEAAaNdMFswDAYDVR0TAQH/
+BAIwADALBgNVHQ8EBAMCB4AwHQYDVR0OBBYEFPhQx4etmYw5auCJwIO5QP8Kmrt3
+MB8GA1UdIwQYMBaAFPhQx4etmYw5auCJwIO5QP8Kmrt3MA0GCSqGSIb3DQEBBQUA
+A0EAK5moCH39eLLn98pBzSm3MXrHpLtOWuu2p696fg/ZjiUmRSdHK3yoRONxMHLJ
+1nL9cAjWPantqCm5eoyhj7V7gg==
+-----END CERTIFICATE-----`
