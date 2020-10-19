@@ -148,8 +148,7 @@ func (ctx *Context) generate() error {
 	if err != nil {
 		return err
 	}
-	// TODO: remove nousb, it is only used for upstream-kasan for transition from old configs.
-	if !ctx.Inst.Features[featBaseline] && !ctx.Inst.Features["nousb"] {
+	if !ctx.Inst.Features[featBaseline] {
 		if err := ctx.addUSBConfigs(cf); err != nil {
 			return err
 		}

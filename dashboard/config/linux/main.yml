@@ -2,7 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 instances:
- - upstream-kasan:	[linux-next, x86_64, gcc, lsm, apparmor, nousb, slab, kasan]
+ - upstream-kasan:	[linux-next, x86_64, gcc, lsm, apparmor, slab, kasan]
  - upstream-kmsan:	[x86_64, clang, lsm, apparmor, kmsan]
  - upstream-kcsan:	[upstream, x86_64, clang, lsm, apparmor, slab, kcsan]
  - upstream-leak:	[upstream, x86_64, gcc, lsm, apparmor, slab, kmemleak]
