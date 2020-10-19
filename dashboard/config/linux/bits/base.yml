@@ -22,8 +22,7 @@ config:
  - DEBUG_AID_FOR_SYZBOT: [linux-next]
 
  # We don't need lots, but some configs set it to 2 which is too low.
- # TODO: change to 8.
- - NR_CPUS: 64
+ - NR_CPUS: 8
 
  # We slowdown execution significantly and there is no point in low latency under test.
  - HZ_100
@@ -49,7 +48,7 @@ config:
  - NAMESPACES
  - USER_NS
  - UTS_NS
- # TODO: depends on CONFIG_SYSVIPC
+ # Depends on CONFIG_SYSVIPC.
  - CONFIG_IPC_NS: [optional]
  - PID_NS
  - NET_NS
@@ -79,8 +78,7 @@ config:
  - DEBUG_KOBJECT: n
 
  - DEBUG_INFO
- # TODO: enable this.
- # CONFIG_DEBUG_INFO_REDUCED=y
+ - DEBUG_INFO_REDUCED
  # BTF requires pahole (dwarves package on some distros) version 1.13,
  # while syzbot distros only provide 1.9, this breaks kernel builds.
  # See https://syzkaller.appspot.com/bug?id=cce16fbb0be2ed0c6f40459226202a8c06797536
@@ -135,3 +133,6 @@ config:
  - MAGIC_SYSRQ: n
 
  - RUNTIME_TESTING_MENU: n
+
+ # Don't test/need this (may be enabled via HID_HYPERV_MOUSE in USB/HID configs).
+ - HYPERV: n

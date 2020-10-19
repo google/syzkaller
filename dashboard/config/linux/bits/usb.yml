@@ -6,7 +6,7 @@
 config:
  - USB_SUPPORT
  - USB_GADGET
- - USB_RAW_GADGET: [v5.7]
+ - USB_RAW_GADGET: [v5.5]
  - USB_DUMMY_HCD
 
  # There are legacy gadget drivers that we don't reach anyway.

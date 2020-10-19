@@ -43,8 +43,7 @@ config:
  - SND_DEBUG
  - SND_PCM_XRUN_DEBUG
  - SND_CTL_VALIDATION: [v5.6]
- # TODO: enable this.
- - DYNAMIC_DEBUG: n
+ - DYNAMIC_DEBUG
  - DEBUG_PER_CPU_MAPS
  - DEBUG_SG
  - DEBUG_PREEMPT: [optional]
@@ -52,6 +51,5 @@ config:
  - PTDUMP_DEBUGFS: [v5.8]
  - HARDLOCKUP_DETECTOR: [x86_64]
  - BOOTPARAM_HARDLOCKUP_PANIC: [x86_64]
- # TODO: disable this. The check runs episodically, so won't be attributed to a test.
- # And can happen on any memory corruption.
- - X86_CHECK_BIOS_CORRUPTION: [x86_64]
+ # The check runs episodically, so won't be attributed to a test. And can happen on any memory corruption.
+ - X86_CHECK_BIOS_CORRUPTION: n
