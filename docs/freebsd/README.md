@@ -47,22 +47,18 @@ Then, copy out the binary back to host into `bin/freebsd_amd64` dir.
 ## Setting up the FreeBSD VM
 
 It is easiest to start with a [snapshot image](http://ftp.freebsd.org/pub/FreeBSD/snapshots/VM-IMAGES/13.0-CURRENT/amd64/Latest/) of FreeBSD.  Fetch a QCOW2 disk image for QEMU or a raw image for GCE or bhyve.
-
-To enable KCOV on FreeBSD, a custom kernel must be compiled.  It is easiest to do this in the VM itself.  Use QEMU to start a VM using the downloaded image:
-
+Fetch a copy of the FreeBSD kernel sources and place them in `/usr/src`. You will likely need to expand the disk of the VM. Before booting the VM, run:
 ```console
-$ qemu-system-x86_64 -hda $IMAGEFILE -nographic -net user,host=10.0.2.10,hostfwd=tcp::10022-:22 -net nic,model=e1000
+# truncate -s 15G $IMAGEFILE
 ```
-When the boot loader menu is printed, escape to the loader prompt and enter the commands `set console="comconsole"` and `boot`.  Once you reach a login prompt, log in as root and add a couple of configuration parameters to `/boot/loader.conf`:
-
+To enable KCOV on FreeBSD, a custom kernel must be compiled. It is easiest to do this on the host.<br>
+Before booting the VM, compile a custom kernel on the host and install it on the VM. On the host:
 ```console
-# cat <<__EOF__ >>/boot/loader.conf
-autoboot_delay="-1"
-console="comconsole"
-__EOF__
+# mdconfig -a -f $IMAGEFILE
+# mount /dev/md0p4 /mnt
 ```
-Fetch a copy of the FreeBSD kernel sources and place them in `/usr/src`.  For instance, to get a copy of the current development sources, run:
-
+This will create a memory device for the VM file and allow host to install the custom kernel source on the VM. <br>
+To get a copy of the current development sources:
 ```console
 # pkg install git
 # git clone --depth=1 --branch=master https://github.com/freebsd/freebsd /usr/src
@@ -81,10 +77,34 @@ options 	KCOV
 __EOF__
 # cd /usr/src
 # make -j $(sysctl -n hw.ncpu) KERNCONF=SYZKALLER buildkernel
-# make KERNCONF=SYZKALLER installkernel
-# shutdown -r now
+# make KERNCONF=SYZKALLER installkernel DESTDIR=/mnt
 ```
-When the VM is restarted, verify that `uname -i` prints `SYZKALLER` to confirm that your newly built kernel is running.
+Before booting the VM, make sure to run:
+```console
+# umount /mnt
+```
+The md device will linger and you can use it again later if you want. Otherwise destroy it:
+```console
+# mdconfig -d -u 0
+```
+Use QEMU to start a VM using the downloaded image:
+
+```console
+$ qemu-system-x86_64 -hda $IMAGEFILE -nographic -net user,host=10.0.2.10,hostfwd=tcp::10022-:22 -net nic,model=e1000
+```
+When the boot loader menu is printed, escape to the loader prompt and enter the commands `set console="comconsole"` and `boot`.  Once you reach a login prompt, log in as root and add a couple of configuration parameters to `/boot/loader.conf`:
+
+```console
+# cat <<__EOF__ >>/boot/loader.conf
+autoboot_delay="-1"
+console="comconsole"
+__EOF__
+```
+After VM is booted, /etc/rc.d/growfs should haven grown its file system automatically. Otherwise run:
+```console
+# /etc/rc.d/growfs onestart
+```
+Verify that `uname -i` prints `SYZKALLER` to confirm that your newly built kernel is running.
 
 Then, to permit remote access to the VM, you must configure DHCP and enable `sshd`:
 
@@ -114,6 +134,12 @@ bridge0
 # service dnsmasq start
 # echo 'net.link.tap.up_on_open=1' >> /etc/sysctl.conf
 # sysctl net.link.tap.up_on_open=1
+```
+To enable automatic configuration of bridged network every time the system boots, add the following to /etc/rc.conf:
+```console
+# cloned_interfaces="bridge0 tap0"
+# ifconfig_bridge0="inet 169.254.0.1 addm tap0 up"
+# ifconfig_tap0="up"
 ```
 Finally, ensure that the bhyve kernel module is loaded:
 ```console
