@@ -21,7 +21,9 @@ func (gvisor gvisor) build(params *Params) error {
 	args := []string{"build", "--verbose_failures"}
 	outBinary := ""
 	if strings.Contains(config, " -cover ") {
-		args = append(args, []string{"--collect_code_coverage", "--instrumentation_filter=//pkg/..."}...)
+		args = append(args, []string{
+			"--collect_code_coverage",
+			"--instrumentation_filter=//pkg/...,-//pkg/sentry/platform/..."}...)
 	}
 	if strings.Contains(config, " -race ") {
 		args = append(args, "--features=race", "//runsc:runsc-race")
