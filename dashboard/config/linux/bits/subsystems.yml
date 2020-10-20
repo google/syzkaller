@@ -134,6 +134,7 @@ config:
  - XFRM_INTERFACE
  - XFRM_SUB_POLICY
  - XFRM_STATISTICS
+ - XFRM_USER_COMPAT: [linux-next]
  - NET_KEY
  - NET_KEY_MIGRATE
  - SMC
@@ -632,6 +633,7 @@ config:
  - CAN_RAW
  - CAN_BCM
  - CAN_GW
+ - CAN_ISOTP: [linux-next]
  - CAN_CALC_BITTIMING
  - BT
  - BT_BREDR
@@ -643,6 +645,7 @@ config:
  - BT_CMTP
  - BT_HIDP
  - BT_LE
+ - BT_HS
  - BT_6LOWPAN
  - BT_LEDS
  - BT_MSFTEXT: [v5.5]
@@ -1244,6 +1247,7 @@ config:
  # It's introduced in v5.5 or so, but we want it in android-5.4, but it's not present in stable-5.4.
  # A better way to express this would to add "or" operator (v5.5||android-5.4), but for now we have this.
  - USB_RAW_GADGET: [v5.4, -stable-5.4]
+ - USB_FEW_INIT_RETRIES: [linux-next]
  - TYPEC
  - TYPEC_TCPM
  - TYPEC_UCSI
@@ -1637,6 +1641,7 @@ config:
  - CRYPTO_DEV_QAT_C3XXXVF: [x86_64]
  - CRYPTO_DEV_QAT_C62XVF: [x86_64]
  - CRYPTO_DEV_VIRTIO
+ - CRYPTO_SM2: [linux-next]
  - ASYMMETRIC_TPM_KEY_SUBTYPE
  - PKCS8_PRIVATE_KEY_PARSER
  - TPM_KEY_PARSER
