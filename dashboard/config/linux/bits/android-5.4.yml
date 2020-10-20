@@ -6,8 +6,7 @@
 
 kernel:
  repo: https://android.googlesource.com/kernel/common
- # TODO: switch ASB tags (e.g. "ASB-2020-05-05_5.4-stable").
- tag: cdedb91e2984
+ tag: ASB-2020-10-05_12-5.4
 
 shell:
  - make gki_defconfig
