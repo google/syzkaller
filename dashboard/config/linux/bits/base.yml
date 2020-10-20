@@ -137,3 +137,23 @@ config:
 
  # Don't test/need this (may be enabled via HID_HYPERV_MOUSE in USB/HID configs).
  - HYPERV: n
+
+ # These are legacy gadget drivers that we don't reach/test and some of these break boot:
+ # https://github.com/google/syzkaller/pull/1975#issuecomment-712807462
+ - USB_G_NCM: n
+ - USB_G_SERIAL: n
+ - USB_G_PRINTER: n
+ - USB_G_NOKIA: n
+ - USB_G_ACM_MS: n
+ - USB_G_MULTI: n
+ - USB_G_HID: n
+ - USB_G_DBGP: n
+ - USB_G_WEBCAM: n
+ - USB_ZERO: n
+ - USB_AUDIO: n
+ - USB_ETH: n
+ - USB_FUNCTIONFS: n
+ - USB_MASS_STORAGE: n
+ - USB_GADGET_TARGET: n
+ - USB_MIDI_GADGET: n
+ - USB_CDC_COMPOSITE: n
