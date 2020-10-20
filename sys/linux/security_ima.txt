@@ -1,0 +1,141 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+#
+# It's better to disable syscall write$evm. An attempt to write to
+# "/sys/kernel/security/integrity/evm/evm" without additional vm setup
+# highly likely will result in "lost connection to test machine" error
+# due to -ENOKEY error.
+#
+# Recommended boot args for fuzzing: "ima_appraise=fix evm=fix"
+
+include <uapi/linux/fcntl.h>
+include <security/integrity/evm/evm.h>
+
+openat$ima_measurements_ascii(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/security/integrity/ima/ascii_runtime_measurements"]], flags const[O_RDONLY], mode const[0]) fd
+openat$ima_measurements_binary(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/security/integrity/ima/binary_runtime_measurements"]], flags const[O_RDONLY], mode const[0]) fd
+
+resource fd_ima_count[fd]
+
+openat$ima_measurements_count(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/security/integrity/ima/runtime_measurements_count"]], flags const[O_RDONLY], mode const[0]) fd_ima_count
+openat$ima_violations(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/security/integrity/ima/violations"]], flags const[O_RDONLY], mode const[0]) fd_ima_count
+read$ima_count(fd fd_ima_count, buf ptr[out, fmt[dec, intptr]], count len[buf])
+
+uuid_str {
+	p0	array[flags[hex_chars, int8], 8]
+	d0	const['-', int8]
+	p1	array[flags[hex_chars, int8], 4]
+	d1	const['-', int8]
+	p2	array[flags[hex_chars, int8], 4]
+	d2	const['-', int8]
+	p3	array[flags[hex_chars, int8], 4]
+	d3	const['-', int8]
+	p4	array[flags[hex_chars, int8], 8]
+}
+
+hex_chars = '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
+
+ima_action = "measure", "dont_measure", "appraise", "dont_appraise", "audit", "hash", "dont_hash"
+ima_funcs = "FILE_CHECK", "PATH_CHECK", "MODULE_CHECK", "FIRMWARE_CHECK", "FILE_MMAP", "MMAP_CHECK", "BPRM_CHECK", "CREDS_CHECK", "KEXEC_KERNEL_CHECK", "KEXEC_INITRAMFS_CHECK", "POLICY_CHECK", "KEXEC_CMDLINE", "KEY_CHECK"
+ima_masks = "MAY_EXEC", "MAY_WRITE", "MAY_READ", "MAY_APPEND", "^MAY_EXEC", "^MAY_WRITE", "^MAY_READ", "^MAY_APPEND"
+ima_appraise_type = "imasig", "imasig|modsig"
+ima_template = "ima", "ima-ng", "ima-sig", "ima-buf", "ima-modsig"
+ima_keyrings_dict = ".builtin_trusted_keys", ".secondary_trusted_keys", "_ima", "_evm", ".ima", ".evm", ".platform"
+
+ima_keyrings [
+	real	stringnoz[ima_keyrings_dict]
+	syzbot	key_desc
+	random	stringnoz
+] [varlen]
+
+type ima_opt_keyring[ELEMS] {
+	elem	ELEMS
+	or	const['|', int8]
+} [packed]
+
+ima_keyring_list {
+	list	array[ima_opt_keyring[ima_keyrings]]
+	final	ima_keyrings
+} [packed]
+
+ima_condition_elem [
+# base
+	func		fs_opt["func", stringnoz[ima_funcs]]
+	mask		fs_opt["mask", stringnoz[ima_masks]]
+	fsmagic		fs_opt_hex["fsmagic", intptr]
+	fsuuid		fs_opt["fsuuid", uuid_str]
+	uid_eq		fs_opt_dec["uid", uid]
+	euid_eq		fs_opt_dec["euid", uid]
+	fowner_eq	fs_opt_dec["fowner", uid]
+	uid_gt		fs_opt_nodelim["uid>", fmt[dec, uid]]
+	euid_gt		fs_opt_nodelim["euid>", fmt[dec, uid]]
+	fowner_gt	fs_opt_nodelim["fowner>", fmt[dec, uid]]
+	uid_lt		fs_opt_nodelim["uid<", fmt[dec, uid]]
+	euid_lt		fs_opt_nodelim["euid<", fmt[dec, uid]]
+	fowner_lt	fs_opt_nodelim["fowner<", fmt[dec, uid]]
+# lsm
+	obj_user	fs_opt_str["obj_user"]
+	obj_role	fs_opt_str["obj_role"]
+	obj_type	fs_opt_str["obj_type"]
+	subj_user	fs_opt_str["subj_user"]
+	subj_role	fs_opt_str["subj_role"]
+	subj_type	fs_opt_str["subj_type"]
+# option
+	appraise_type	fs_opt["appraise_type", stringnoz[ima_appraise_type]]
+	appraise_flag	stringnoz["appraise_flag=check_blacklist"]
+	permit_directio	stringnoz["permit_directio"]
+	keyrings	fs_opt["keyrings", ima_keyring_list]
+	pcr		fs_opt_dec["pcr", int64[0:64]]
+	template	fs_opt["template", stringnoz[ima_template]]
+] [varlen]
+
+ima_condition {
+	cond	ima_condition_elem
+	sp0	const[' ', int8]
+} [packed]
+
+ima_policy_line {
+	action	stringnoz[ima_action]
+	sp0	const[' ', int8]
+	list	array[ima_condition]
+	n	const[0xa, int8]
+} [packed]
+
+ima_policy [
+	file	filename
+	list	array[ima_policy_line]
+] [varlen]
+
+resource fd_ima_policy[fd]
+openat$ima_policy(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/security/integrity/ima/policy"]], flags const[O_RDWR], mode const[0]) fd_ima_policy
+write$ima_policy(fd fd_ima_policy, buf ptr[in, ima_policy], count len[buf])
+read$ima_policy(fd fd_ima_policy, buf ptr[out, ima_policy], count len[buf])
+
+evm_flags = EVM_INIT_HMAC, EVM_INIT_X509, EVM_ALLOW_METADATA_WRITES, EVM_SETUP_COMPLETE
+
+resource fd_evm[fd]
+# disabled, because easily could result in "lost connection to test machine"
+# error due to -ENOKEY error for filesystem operations
+openat$evm(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/security/integrity/evm/evm"]], flags const[O_RDWR], mode const[0]) fd_evm (disabled)
+write$evm(fd fd_evm, buf ptr[in, fmt[dec, flags[evm_flags]]], count len[buf])
+read$evm(fd fd_evm, buf ptr[out, fmt[dec, flags[evm_flags]]], count len[buf])
+
+xattr_name_random_noz {
+	prefix	stringnoz[xattr_prefix]
+	name	stringnoz
+} [packed]
+
+evm_xattr_name [
+	known	stringnoz[xattr_names]
+	random	xattr_name_random_noz
+	point	const['.', int8]
+] [varlen]
+
+evm_xattr_line {
+	xattr	evm_xattr_name
+	n	const[0xa, int8]
+} [packed]
+
+resource fd_evm_xattrs[fd]
+openat$evm_xattrs(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/security/integrity/evm/evm_xattrs"]], flags const[O_RDWR], mode const[0]) fd_evm_xattrs
+write$evm_xattrs(fd fd_evm_xattrs, buf ptr[in, array[evm_xattr_line]], count len[buf])
+read$evm_xattrs(fd fd_evm_xattrs, buf ptr[out, array[evm_xattr_line]], count len[buf])
