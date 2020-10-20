@@ -18,14 +18,17 @@ config:
  - SECURITY_LOCKDOWN_LSM_EARLY
  - INTEGRITY_SIGNATURE
  - INTEGRITY_ASYMMETRIC_KEYS
+ - INTEGRITY_TRUSTED_KEYRING
  - IMA
  - IMA_DEFAULT_HASH_SHA256
+ - IMA_READ_POLICY
  - IMA_WRITE_POLICY
  - IMA_APPRAISE
  - IMA_APPRAISE_MODSIG
  - IMA_TRUSTED_KEYRING: n
  - EVM
  - EVM_ADD_XATTRS
+ - EVM_ATTR_FSUUID
 
  # Note: this depends on a number of BPF-related configs, which may be not enabled.
  - BPF_LSM: [optional]
@@ -33,6 +36,8 @@ config:
  # TODO: the following enables all LSMs at once.
  # Switch to LSM-per-config scheme later with separate apparmor.yml, selinux.yml, smack.yml.
  - SECURITY_APPARMOR
+ - SECURITY_APPARMOR_HASH
+ - SECURITY_APPARMOR_HASH_DEFAULT
  - SECURITY_APPARMOR_DEBUG
  - SECURITY_APPARMOR_DEBUG_ASSERTS
  - DEFAULT_SECURITY_APPARMOR

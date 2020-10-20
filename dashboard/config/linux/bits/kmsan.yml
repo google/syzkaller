@@ -19,6 +19,7 @@ config:
  - MTD: [n, weak]
  - SND_HDA_INTEL: [n, weak]
  - HARDENED_USERCOPY: [n, weak]
+ - HARDENED_USERCOPY_FALLBACK: [n, weak]
 
  # KMSAN doesn't support ORC unwinder (https://github.com/google/kmsan/issues/48).
  - UNWINDER_FRAME_POINTER
@@ -55,6 +56,10 @@ config:
  - UBIFS_FS: [n, weak]
  - UBIFS_FS_ADVANCED_COMPR: [n, weak]
  - UBIFS_ATIME_SUPPORT: [n, weak]
+ - UBIFS_FS_LZO: [n, weak]
+ - UBIFS_FS_ZLIB: [n, weak]
+ - UBIFS_FS_ZSTD: [n, weak]
+ - UBIFS_FS_SECURITY: [n, weak]
  - CRYPTO_AEGIS128_AESNI_SSE2: [n, weak]
  - CRYPTO_NHPOLY1305_SSE2: [n, weak]
  - CRYPTO_NHPOLY1305_AVX2: [n, weak]
