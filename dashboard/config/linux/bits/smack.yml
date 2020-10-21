@@ -2,9 +2,10 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 config:
+ - SECURITY_SELINUX: n
  - SECURITY_APPARMOR: n
- - SECURITY_SMACK: n
- - SECURITY_SELINUX
- - SECURITY_SELINUX_DISABLE: n
- - DEFAULT_SECURITY_SELINUX
- - LSM: "lockdown,yama,safesetid,integrity,tomoyo,selinux,bpf"
+ - SECURITY_SMACK
+ - SECURITY_SMACK_NETFILTER
+ - EVM_EXTRA_SMACK_XATTRS
+ - DEFAULT_SECURITY_SMACK
+ - LSM: "lockdown,yama,safesetid,integrity,tomoyo,smack,bpf"
