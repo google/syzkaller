@@ -289,6 +289,7 @@ var buildFailureCauses = [...]buildFailureCause{
 	{pattern: []byte(": undefined reference to")},
 	{pattern: []byte(": multiple definition of")},
 	{pattern: []byte(": Permission denied")},
+	{pattern: []byte(": not found")},
 	{weak: true, pattern: []byte(": final link failed: ")},
 	{weak: true, pattern: []byte("collect2: error: ")},
 	{weak: true, pattern: []byte("FAILED: Build did NOT complete")},
