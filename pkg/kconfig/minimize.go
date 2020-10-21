@@ -17,7 +17,7 @@ import (
 func (kconf *KConfig) Minimize(base, full *ConfigFile, pred func(*ConfigFile) (bool, error),
 	tw io.Writer) (*ConfigFile, error) {
 	trace := traceLogger{tw}
-	diff := kconf.missingConfigs(base, full)
+	diff, other := kconf.missingConfigs(base, full)
 	trace.log("kconfig minimization: base=%v full=%v diff=%v", len(base.Configs), len(full.Configs), len(diff))
 	// First, check the base config as is, it is the smallest we can possibly get.
 	if res, err := pred(base); err != nil {
@@ -38,9 +38,8 @@ func (kconf *KConfig) Minimize(base, full *ConfigFile, pred func(*ConfigFile) (b
 	// can be quite large if we are unlucky. Also note that we sort configs so that related configs are most
 	// likely situated together.
 	// Numerous improvements are possible for this simple algorithm.
-	// 1. We probably need to move all non-tristate/bool configs from full to base always as we don't minimize them.
-	// 2. We could split the config onto 4 parts and try all pairs, this should find all pairs of configs reliably.
-	// 3. We could continue trying to reduce a part even if removing the whole part fails. I.e. we try to remove
+	// 1. We could split the config onto 4 parts and try all pairs, this should find all pairs of configs reliably.
+	// 2. We could continue trying to reduce a part even if removing the whole part fails. I.e. we try to remove
 	//    a half and it fails, we can try to remove half of the half, maybe that will succeed.
 top:
 	for len(diff) >= 2 {
@@ -49,8 +48,12 @@ top:
 			trace.log("trying half: %v", part)
 			closure := kconf.addDependencies(base, full, part)
 			candidate := base.clone()
+			// 1. Always move all non-tristate configs from full to base as we don't minimize them.
+			for _, cfg := range other {
+				candidate.Set(cfg.Name, cfg.Value)
+			}
 			for cfg := range closure {
-				candidate.Set(cfg, full.Value(cfg))
+				candidate.Set(cfg, Yes)
 			}
 			res, err := pred(candidate)
 			if err != nil {
@@ -75,15 +78,16 @@ top:
 	return current, nil
 }
 
-func (kconf *KConfig) missingConfigs(base, full *ConfigFile) []string {
-	var diff []string
+func (kconf *KConfig) missingConfigs(base, full *ConfigFile) (tristate []string, other []*Config) {
 	for _, cfg := range full.Configs {
-		if cfg.Value != No && base.Value(cfg.Name) == No {
-			diff = append(diff, cfg.Name)
+		if cfg.Value == Yes && base.Value(cfg.Name) == No {
+			tristate = append(tristate, cfg.Name)
+		} else if cfg.Value != No && cfg.Value != Yes && cfg.Value != Mod {
+			other = append(other, cfg)
 		}
 	}
-	sort.Strings(diff)
-	return diff
+	sort.Strings(tristate)
+	return
 }
 
 func (kconf *KConfig) addDependencies(base, full *ConfigFile, configs []string) map[string]bool {
