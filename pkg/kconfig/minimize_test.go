@@ -17,16 +17,20 @@ config A
 config B
 config C
 config D
+config I
+config S
 `
-
 		baseConfig = `
 CONFIG_A=y
+CONFIG_I=1
 `
 		fullConfig = `
 CONFIG_A=y
 CONFIG_B=y
 CONFIG_C=y
 CONFIG_D=y
+CONFIG_I=42
+CONFIG_S="foo"
 `
 	)
 	type Test struct {
@@ -52,6 +56,8 @@ CONFIG_D=y
 			},
 			result: `
 CONFIG_A=y
+CONFIG_I=42
+CONFIG_S="foo"
 CONFIG_C=y
 `,
 		},
