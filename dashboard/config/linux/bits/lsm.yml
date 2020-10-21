@@ -32,17 +32,3 @@ config:
 
  # Note: this depends on a number of BPF-related configs, which may be not enabled.
  - BPF_LSM: [optional]
-
- # TODO: the following enables all LSMs at once.
- # Switch to LSM-per-config scheme later with separate apparmor.yml, selinux.yml, smack.yml.
- - SECURITY_APPARMOR
- - SECURITY_APPARMOR_HASH
- - SECURITY_APPARMOR_HASH_DEFAULT
- - SECURITY_APPARMOR_DEBUG
- - SECURITY_APPARMOR_DEBUG_ASSERTS
- - DEFAULT_SECURITY_APPARMOR
- - SECURITY_SELINUX
- - SECURITY_SMACK
- - SECURITY_SMACK_NETFILTER
- - EVM_EXTRA_SMACK_XATTRS
- - LSM: "yama,loadpin,safesetid,integrity,selinux,smack,tomoyo,apparmor"
