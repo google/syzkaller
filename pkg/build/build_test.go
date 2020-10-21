@@ -466,4 +466,20 @@ make: *** [vmlinux] Error 1
 		"",
 		"mm/page_alloc.c",
 	},
+	{`
+  LZ4     arch/x86/boot/compressed/vmlinux.bin.lz4
+/bin/sh: 1: lz4: not found
+arch/x86/boot/compressed/Makefile:151: recipe for target 'arch/x86/boot/compressed/vmlinux.bin.lz4' failed
+make[2]: *** [arch/x86/boot/compressed/vmlinux.bin.lz4] Error 127
+make[2]: *** Deleting file 'arch/x86/boot/compressed/vmlinux.bin.lz4'
+make[2]: *** Waiting for unfinished jobs....
+arch/x86/boot/Makefile:112: recipe for target 'arch/x86/boot/compressed/vmlinux' failed
+make[1]: *** [arch/x86/boot/compressed/vmlinux] Error 2
+arch/x86/Makefile:290: recipe for target 'bzImage' failed
+make: *** [bzImage] Error 2
+`,
+		"/bin/sh: 1: lz4: not found",
+		"",
+		"",
+	},
 }
