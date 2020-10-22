@@ -527,7 +527,6 @@ again:
 				break;
 #endif
 			event_timedwait(&th->done, /*{{{CALL_TIMEOUT}}}*/);
-			break;
 		}
 	}
 	for (i = 0; i < 100 && __atomic_load_n(&running, __ATOMIC_RELAXED); i++)
