@@ -143,26 +143,26 @@ type uiJobList struct {
 }
 
 type uiBug struct {
-	Namespace       string
-	Title           string
-	NumCrashes      int64
-	NumCrashesBad   bool
-	BisectCauseDone bool
-	BisectFixDone   bool
-	FirstTime       time.Time
-	LastTime        time.Time
-	ReportedTime    time.Time
-	ClosedTime      time.Time
-	ReproLevel      dashapi.ReproLevel
-	ReportingIndex  int
-	Status          string
-	Link            string
-	ExternalLink    string
-	CreditEmail     string
-	Commits         []*uiCommit
-	PatchedOn       []string
-	MissingOn       []string
-	NumManagers     int
+	Namespace      string
+	Title          string
+	NumCrashes     int64
+	NumCrashesBad  bool
+	BisectCause    BisectStatus
+	BisectFix      BisectStatus
+	FirstTime      time.Time
+	LastTime       time.Time
+	ReportedTime   time.Time
+	ClosedTime     time.Time
+	ReproLevel     dashapi.ReproLevel
+	ReportingIndex int
+	Status         string
+	Link           string
+	ExternalLink   string
+	CreditEmail    string
+	Commits        []*uiCommit
+	PatchedOn      []string
+	MissingOn      []string
+	NumManagers    int
 }
 
 type uiCrash struct {
@@ -185,6 +185,7 @@ type uiCrashTable struct {
 
 type uiJob struct {
 	Type            JobType
+	Flags           JobFlags
 	Created         time.Time
 	BugLink         string
 	ExternalLink    string
@@ -803,22 +804,22 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 	}
 	id := bug.keyHash()
 	uiBug := &uiBug{
-		Namespace:       bug.Namespace,
-		Title:           bug.displayTitle(),
-		BisectCauseDone: bug.BisectCause > BisectPending,
-		BisectFixDone:   bug.BisectFix > BisectPending,
-		NumCrashes:      bug.NumCrashes,
-		FirstTime:       bug.FirstTime,
-		LastTime:        bug.LastTime,
-		ReportedTime:    reported,
-		ClosedTime:      bug.Closed,
-		ReproLevel:      bug.ReproLevel,
-		ReportingIndex:  reportingIdx,
-		Status:          status,
-		Link:            bugLink(id),
-		ExternalLink:    link,
-		CreditEmail:     creditEmail,
-		NumManagers:     len(managers),
+		Namespace:      bug.Namespace,
+		Title:          bug.displayTitle(),
+		BisectCause:    bug.BisectCause,
+		BisectFix:      bug.BisectFix,
+		NumCrashes:     bug.NumCrashes,
+		FirstTime:      bug.FirstTime,
+		LastTime:       bug.LastTime,
+		ReportedTime:   reported,
+		ClosedTime:     bug.Closed,
+		ReproLevel:     bug.ReproLevel,
+		ReportingIndex: reportingIdx,
+		Status:         status,
+		Link:           bugLink(id),
+		ExternalLink:   link,
+		CreditEmail:    creditEmail,
+		NumManagers:    len(managers),
 	}
 	updateBugBadness(c, uiBug)
 	if len(bug.Commits) != 0 {
@@ -853,8 +854,8 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 
 func mergeUIBug(c context.Context, bug *uiBug, dup *Bug) {
 	bug.NumCrashes += dup.NumCrashes
-	bug.BisectCauseDone = bug.BisectCauseDone || dup.BisectCause > BisectPending
-	bug.BisectFixDone = bug.BisectFixDone || dup.BisectFix > BisectPending
+	bug.BisectCause = mergeBisectStatus(bug.BisectCause, dup.BisectCause)
+	bug.BisectFix = mergeBisectStatus(bug.BisectFix, dup.BisectFix)
 	if bug.LastTime.Before(dup.LastTime) {
 		bug.LastTime = dup.LastTime
 	}
@@ -862,6 +863,16 @@ func mergeUIBug(c context.Context, bug *uiBug, dup *Bug) {
 		bug.ReproLevel = dup.ReproLevel
 	}
 	updateBugBadness(c, bug)
+}
+
+func mergeBisectStatus(a, b BisectStatus) BisectStatus {
+	// The statuses are stored in the datastore, so we can't reorder them.
+	// But if one of bisections is Yes, then we want to show Yes.
+	bisectPriority := [bisectStatusLast]int{0, 1, 2, 6, 5, 4, 3}
+	if bisectPriority[a] >= bisectPriority[b] {
+		return a
+	}
+	return b
 }
 
 func updateBugBadness(c context.Context, bug *uiBug) {
@@ -1095,6 +1106,7 @@ func loadTestPatchJobs(c context.Context, bug *Bug) ([]*uiJob, error) {
 func makeUIJob(job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *uiJob {
 	ui := &uiJob{
 		Type:            job.Type,
+		Flags:           job.Flags,
 		Created:         job.Created,
 		BugLink:         bugLink(jobKey.Parent().StringID()),
 		ExternalLink:    job.Link,

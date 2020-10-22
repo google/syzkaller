@@ -214,6 +214,26 @@ const (
 	BisectResultIgnore
 )
 
+func (flags JobFlags) String() string {
+	res := ""
+	if flags&BisectResultMerge != 0 {
+		res += "merge "
+	}
+	if flags&BisectResultNoop != 0 {
+		res += "no-op "
+	}
+	if flags&BisectResultRelease != 0 {
+		res += "release "
+	}
+	if flags&BisectResultIgnore != 0 {
+		res += "ignored "
+	}
+	if res == "" {
+		return res
+	}
+	return "[" + res + "commit]"
+}
+
 func (job *Job) isUnreliableBisect() bool {
 	if job.Type != JobBisectCause && job.Type != JobBisectFix {
 		panic(fmt.Sprintf("bad job type %v", job.Type))
@@ -274,8 +294,29 @@ const (
 	BisectNot BisectStatus = iota
 	BisectPending
 	BisectError
-	BisectYes
+	BisectYes          // have 1 commit
+	BisectUnreliable   // have 1 commit, but suspect it's wrong
+	BisectInconclusive // multiple commits due to skips
+	BisectHorizont     // happens on the oldest commit we can test (or HEAD for fix bisection)
+	bisectStatusLast   // this value can be changed (not stored in datastore)
 )
+
+func (status BisectStatus) String() string {
+	switch status {
+	case BisectError:
+		return "error"
+	case BisectYes:
+		return "done"
+	case BisectUnreliable:
+		return "unreliable"
+	case BisectInconclusive:
+		return "inconclusive"
+	case BisectHorizont:
+		return "inconclusive"
+	default:
+		return ""
+	}
+}
 
 func mgrKey(c context.Context, ns, name string) *db.Key {
 	return db.NewKey(c, "Manager", fmt.Sprintf("%v-%v", ns, name), 0, nil)
