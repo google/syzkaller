@@ -356,14 +356,17 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 		return nil, err
 	}
 	var job *Job
-	if bug.BisectCause == BisectYes {
+	reportBisection := bug.BisectCause == BisectYes ||
+		bug.BisectCause == BisectInconclusive ||
+		bug.BisectCause == BisectHorizont
+	if reportBisection {
 		// If we have bisection results, report the crash/repro used for bisection.
 		job1, crash1, _, crashKey1, err := loadBisectJob(c, bug, JobBisectCause)
 		if err != nil {
 			return nil, err
 		}
 		job = job1
-		if !job.isUnreliableBisect() && (crash1.ReproC != 0 || crash.ReproC == 0) {
+		if crash1.ReproC != 0 || crash.ReproC == 0 {
 			// Don't override the crash in this case,
 			// otherwise we will always think that we haven't reported the C repro.
 			crash, crashKey = crash1, crashKey1
@@ -444,7 +447,7 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 	if build.Type == BuildFailed {
 		rep.Maintainers = append(rep.Maintainers, kernelRepo.BuildMaintainers...)
 	}
-	if bug.BisectCause == BisectYes && !job.isUnreliableBisect() {
+	if reportBisection {
 		rep.BisectCause = bisectFromJob(c, rep, job)
 	}
 	if err := fillBugReport(c, rep, bug, bugReporting, build); err != nil {

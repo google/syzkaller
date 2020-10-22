@@ -38,7 +38,7 @@ function isSorted(values) {
 	return true;
 }
 
-function textSort(v) { return v.toLowerCase(); }
+function textSort(v) { return v == "" ? "zzz" : v.toLowerCase(); }
 function numSort(v) { return -parseInt(v); }
 function floatSort(v) { return -parseFloat(v); }
 function reproSort(v) { return v == "C" ? 0 : v == "syz" ? 1 : 2; }

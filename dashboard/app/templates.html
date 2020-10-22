@@ -93,7 +93,8 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		{{end}}
 		<th><a onclick="return sortTable(this, 'Title', textSort)" href="#">Title</a></th>
 		<th><a onclick="return sortTable(this, 'Repro', reproSort)" href="#">Repro</a></th>
-		<th><a onclick="return sortTable(this, 'Bisected', textSort)" href="#">Bisected</a></th>
+		<th><a onclick="return sortTable(this, 'Cause bisect', textSort)" href="#">Cause bisect</a></th>
+		<th><a onclick="return sortTable(this, 'Fix bisect', textSort)" href="#">Fix bisect</a></th>
 		<th><a onclick="return sortTable(this, 'Count', numSort)" href="#">Count</a></th>
 		<th><a onclick="return sortTable(this, 'Last', timeSort)" href="#">Last</a></th>
 		<th><a onclick="return sortTable(this, 'Reported', timeSort)" href="#">Reported</a></th>
@@ -115,15 +116,8 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			{{if $.ShowNamespace}}<td>{{$b.Namespace}}</td>{{end}}
 			<td class="title"><a href="{{$b.Link}}">{{$b.Title}}</a></td>
 			<td class="stat">{{formatReproLevel $b.ReproLevel}}</td>
-			<td class="stat">
-				{{if and $b.BisectCauseDone $b.BisectFixDone}}
-					cause+fix
-				{{else if $b.BisectCauseDone}}
-					cause
-				{{else if $b.BisectFixDone}}
-					fix
-				{{end}}
-			</td>
+			<td class="bisect_status">{{print $b.BisectCause}}</td>
+			<td class="bisect_status">{{print $b.BisectFix}}</td>
 			<td class="stat {{if $b.NumCrashesBad}}bad{{end}}">{{$b.NumCrashes}}</td>
 			<td class="stat">{{formatLateness $.Now $b.LastTime}}</td>
 			<td class="stat">
@@ -266,8 +260,8 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		{{else if eq .Type $fixJob}}
 			<b>Fix bisection: fixed by</b>
 		{{end}}
-		<b>({{link .LogLink "bisect log"}}):</b><br>
-		<br><span class="mono">
+		<b>({{link .LogLink "bisect log"}})</b> <span class="bad">{{print .Flags}}</span>:<br>
+		<span class="mono">
 		commit {{.Commit.Hash}}<br>
 		Author: {{.Commit.Author}}<br>
 		Date:   {{formatKernelTime .Commit.Date}}<br>
@@ -281,7 +275,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			<b>Fix bisection: the fix commit could be any of</b>
 		{{end}}
 		<b>({{link .LogLink "bisect log"}}):</b><br>
-		<br><span class="mono">
+		<span class="mono">
 		{{range $com := .Commits}}
 			&nbsp;&nbsp;{{formatTagHash $com.Hash}} {{$com.Title}}<br>
 		{{end}}
