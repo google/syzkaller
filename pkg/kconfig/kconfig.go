@@ -403,5 +403,5 @@ func (kp *kconfigParser) parseDefaultValue() {
 }
 
 func (kp *kconfigParser) expandString(str string) string {
-	return strings.ReplaceAll(str, "$(SRCARCH)", "x86")
+	return strings.Replace(str, "$(SRCARCH)", "x86", -1)
 }
