@@ -9,6 +9,7 @@ instances:
  - upstream-kcsan:		[upstream, x86_64, clang, lsm, apparmor, slab, kcsan]
  - upstream-leak:		[upstream, x86_64, gcc, lsm, apparmor, slab, kmemleak]
  - upstream-usb:		[upstream, x86_64, gcc, lsm, apparmor, onlyusb, kasan]
+ - upstream-arm64-kasan:		[upstream, arm64, gcc, lsm, selinux, kasan]
  - stable-5.4-kasan:		[stable-5.4, x86_64, gcc, lsm, apparmor, kasan]
  - android-5.4:			[android, android-5.4, x86_64, clang, onlyusb, nonoise, kasan]
  - chromeos-5.4:		[chromeos, chromeos-5.4, x86_64, onlyusb, kasan]
