@@ -15,13 +15,14 @@ import (
 )
 
 type Instance struct {
-	Name      string
-	Kernel    Kernel
-	Verbatim  []byte
-	Shell     []Shell
-	Features  Features
-	ConfigMap map[string]*Config
-	Configs   []*Config
+	Name        string
+	Kernel      Kernel
+	Verbatim    []byte
+	Shell       []Shell
+	Features    Features
+	ConfigMap   map[string]*Config
+	Configs     []*Config
+	MenuDisable []string
 }
 
 type Config struct {
@@ -73,9 +74,10 @@ type rawFile struct {
 		Repo string
 		Tag  string
 	}
-	Shell    []yaml.Node
-	Verbatim string
-	Config   []yaml.Node
+	Shell       []yaml.Node
+	Verbatim    string
+	Config      []yaml.Node
+	MenuDisable []string `yaml:"menu_disable"`
 }
 
 func parseMainSpec(file string) ([]*Instance, error) {
@@ -171,6 +173,7 @@ func mergeFile(inst *Instance, raw *rawFile, file string, errs *Errors) {
 		})
 	}
 	inst.Verbatim = append(append(inst.Verbatim, raw.Verbatim...), '\n')
+	inst.MenuDisable = append(inst.MenuDisable, raw.MenuDisable...)
 	for _, node := range raw.Config {
 		mergeConfig(inst, file, node, errs)
 	}

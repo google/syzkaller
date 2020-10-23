@@ -20,6 +20,7 @@ import (
 type KConfig struct {
 	Root    *Menu            // mainmenu
 	Configs map[string]*Menu // only config/menuconfig entries
+	Menus   map[string]*Menu // only menu/if
 }
 
 // Menu represents a single hierarchical menu or config.
@@ -142,6 +143,7 @@ func ParseData(target *targets.Target, data []byte, file string) (*KConfig, erro
 	kconf := &KConfig{
 		Root:    root,
 		Configs: make(map[string]*Menu),
+		Menus:   make(map[string]*Menu),
 	}
 	kconf.walk(root, nil, nil)
 	return kconf, nil
@@ -151,8 +153,17 @@ func (kconf *KConfig) walk(m *Menu, dependsOn, visibleIf expr) {
 	m.kconf = kconf
 	m.dependsOn = exprAnd(dependsOn, m.dependsOn)
 	m.visibleIf = exprAnd(visibleIf, m.visibleIf)
-	if m.Kind == MenuConfig {
+	switch m.Kind {
+	case MenuConfig:
 		kconf.Configs[m.Name] = m
+	case MenuGroup:
+		prompt := m.Prompt()
+		if prompt != "" {
+			if kconf.Menus[prompt] != nil {
+				//!!! panic(prompt)
+			}
+			kconf.Menus[prompt] = m
+		}
 	}
 	for _, elem := range m.Elems {
 		kconf.walk(elem, m.dependsOn, m.visibleIf)

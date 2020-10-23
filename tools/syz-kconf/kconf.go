@@ -137,6 +137,31 @@ func (ctx *Context) generate() error {
 	if ctx.Kconf, err = kconfig.Parse(ctx.Target, filepath.Join(ctx.SourceDir, "Kconfig")); err != nil {
 		return err
 	}
+	for _, title := range ctx.Inst.MenuDisable {
+		root := ctx.Kconf.Menus[title]
+		if root == nil {
+			return fmt.Errorf("menu %q is not present in Kconfig", title)
+		}
+		var collect func(m *kconfig.Menu)
+		collect = func(m *kconfig.Menu) {
+			for _, elem := range m.Elems {
+				if ctx.Inst.ConfigMap[elem.Name] == nil && (elem.Type == kconfig.TypeBool || elem.Type == kconfig.TypeTristate) && elem.Prompt() != "" {
+					cfg := &Config{
+						Name:     elem.Name,
+						Value:    kconfig.No,
+						Optional: true,
+						File:     title,
+					}
+					if true {
+						ctx.Inst.Configs = append(ctx.Inst.Configs, cfg)
+						ctx.Inst.ConfigMap[cfg.Name] = cfg
+					}
+				}
+				collect(elem)
+			}
+		}
+		collect(root)
+	}
 	if err := ctx.setReleaseFeatures(); err != nil {
 		return err
 	}
