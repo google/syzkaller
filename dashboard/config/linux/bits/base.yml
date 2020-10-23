@@ -133,6 +133,10 @@ config:
  - UEVENT_HELPER
  - UEVENT_HELPER_PATH: "/sbin/hotplug"
 
+ # QEMU disk is usually on the generic PCI bus.
+ - PCI_HOST_GENERIC
+ - OF
+
  # Options enabled to boot Debian Stretch.
  - CONFIGFS_FS
  - SECURITYFS
