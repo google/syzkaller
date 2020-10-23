@@ -260,6 +260,7 @@ function numSort(v) { return -parseInt(v); }
 function floatSort(v) { return -parseFloat(v); }
 function reproSort(v) { return v == "C" ? 0 : v == "syz" ? 1 : 2; }
 function patchedSort(v) { return v == "" ? -1 : parseInt(v); }
+function lineSort(v) { return -v.split(/\r\n|\r|\n/g).length }
 
 function timeSort(v) {
 	if (v == "now")
