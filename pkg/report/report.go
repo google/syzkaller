@@ -479,6 +479,9 @@ type stackParams struct {
 	// If we looked at any lines that match corruptedLines during report analysis,
 	// then the report is marked as corrupted.
 	corruptedLines []*regexp.Regexp
+	// Prefixes that need to be removed from frames.
+	// E.g. syscall prefixes as different arches have different prefixes.
+	stripFramePrefixes []string
 }
 
 func extractStackFrame(params *stackParams, stack *stackFmt, output []byte) (string, string) {
@@ -523,7 +526,7 @@ nextPart:
 						break
 					}
 				}
-				frames = appendStackFrame(frames, match, skipRe)
+				frames = appendStackFrame(frames, match, params, skipRe)
 			}
 		} else {
 			for s.Scan() {
@@ -535,7 +538,7 @@ nextPart:
 				if match == nil {
 					continue
 				}
-				frames = appendStackFrame(frames, match, skipRe)
+				frames = appendStackFrame(frames, match, params, skipRe)
 				break
 			}
 		}
@@ -546,13 +549,17 @@ nextPart:
 	return extractor(frames)
 }
 
-func appendStackFrame(frames []string, match [][]byte, skipRe *regexp.Regexp) []string {
+func appendStackFrame(frames []string, match [][]byte, params *stackParams, skipRe *regexp.Regexp) []string {
 	if len(match) < 2 {
 		return frames
 	}
 	for _, frame := range match[1:] {
 		if frame != nil && (skipRe == nil || !skipRe.Match(frame)) {
-			frames = append(frames, string(frame))
+			frameName := string(frame)
+			for _, prefix := range params.stripFramePrefixes {
+				frameName = strings.TrimPrefix(frameName, prefix)
+			}
+			frames = append(frames, frameName)
 			break
 		}
 	}
