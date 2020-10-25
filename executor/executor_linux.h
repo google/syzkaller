@@ -248,14 +248,41 @@ static feature_t features[] = {
     {"usb", setup_usb},
 };
 
+// Note: this is not executed in C reproducers.
 static void setup_machine()
 {
-	// nmi_check_duration() prints "INFO: NMI handler took too long" on slow debug kernels.
-	// It happens a lot in qemu, and the messages are frequently corrupted
-	// (intermixed with other kernel output as they are printed from NMI)
-	// and are not matched against the suppression in pkg/report.
-	// This write prevents these messages from being printed.
-	// Note: this is not executed in C reproducers.
-	if (!write_file("/sys/kernel/debug/x86/nmi_longest_ns", "10000000000"))
-		printf("write to /sys/kernel/debug/x86/nmi_longest_ns failed: %s\n", strerror(errno));
+	static struct {
+		const char* name;
+		const char* data;
+	} files[] = {
+	    // nmi_check_duration() prints "INFO: NMI handler took too long" on slow debug kernels.
+	    // It happens a lot in qemu, and the messages are frequently corrupted
+	    // (intermixed with other kernel output as they are printed from NMI)
+	    // and are not matched against the suppression in pkg/report.
+	    // This write prevents these messages from being printed.
+	    {"/sys/kernel/debug/x86/nmi_longest_ns", "10000000000"},
+	    // This is part of deterministic hang/stall detection.
+	    // Don't change this without considering workqueue.watchdog_thresh,
+	    // CONFIG_RCU_CPU_STALL_TIMEOUT and CONFIG_DEFAULT_HUNG_TASK_TIMEOUT.
+	    {"/proc/sys/kernel/watchdog_thresh", "55"},
+	    {"/proc/sys/kernel/hung_task_check_interval_secs", "20"},
+	    // This gives more interesting coverage.
+	    {"/proc/sys/net/core/bpf_jit_enable", "1"},
+	    // bpf_jit_kallsyms and disabling bpf_jit_harden are required
+	    // for unwinding through bpf functions.
+	    {"/proc/sys/net/core/bpf_jit_kallsyms", "1"},
+	    {"/proc/sys/net/core/bpf_jit_harden", "0"},
+	    // This is to provide more useful info in crash reports.
+	    {"/proc/sys/kernel/kptr_restrict", "0"},
+	    {"/proc/sys/kernel/softlockup_all_cpu_backtrace", "1"},
+	    // This is to restrict effects of recursive exponential mounts, for details see
+	    // "mnt: Add a per mount namespace limit on the number of mounts" commit.
+	    {"/proc/sys/fs/mount-max", "100"},
+	    // Dumping all tasks to console can take too long.
+	    {"/proc/sys/vm/oom_dump_tasks", "0"},
+	};
+	for (size_t i = 0; i < ARRAY_SIZE(files); i++) {
+		if (!write_file(files[i].name, files[i].data))
+			printf("write to %s failed: %s\n", files[i].name, strerror(errno));
+	}
 }
