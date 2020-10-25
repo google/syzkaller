@@ -188,7 +188,7 @@ static feature_t features[] = {
     {"fault", setup_fault},
 };
 
-static void setup_machine(void)
+static void setup_sysctl(void)
 {
 }
 #endif
