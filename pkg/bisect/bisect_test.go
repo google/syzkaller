@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 // testEnv will implement instance.BuilderTester. This allows us to
@@ -106,7 +107,7 @@ func createTestRepo(t *testing.T) string {
 }
 
 func runBisection(t *testing.T, baseDir string, test BisectionTest) (*Result, error) {
-	r, err := vcs.NewRepo("test", "64", baseDir, vcs.OptPrecious)
+	r, err := vcs.NewRepo(targets.TestOS, targets.TestArch64, baseDir, vcs.OptPrecious)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,8 +121,8 @@ func runBisection(t *testing.T, baseDir string, test BisectionTest) (*Result, er
 		Fix:   test.fix,
 		Trace: trace,
 		Manager: mgrconfig.Config{
-			TargetOS:     "test",
-			TargetVMArch: "64",
+			TargetOS:     targets.TestOS,
+			TargetVMArch: targets.TestArch64,
 			Type:         "qemu",
 			KernelSrc:    baseDir,
 		},

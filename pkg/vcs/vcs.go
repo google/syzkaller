@@ -16,6 +16,7 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type RecipientType int
@@ -168,19 +169,19 @@ const (
 
 func NewRepo(os, vm, dir string, opts ...RepoOpt) (Repo, error) {
 	switch os {
-	case "linux":
+	case targets.Linux:
 		return newLinux(dir, opts), nil
-	case "akaros":
+	case targets.Akaros:
 		return newAkaros(dir, opts), nil
-	case "fuchsia":
+	case targets.Fuchsia:
 		return newFuchsia(dir, opts), nil
-	case "openbsd":
+	case targets.OpenBSD:
 		return newGit(dir, nil, opts), nil
-	case "netbsd":
+	case targets.NetBSD:
 		return newGit(dir, nil, opts), nil
-	case "freebsd":
+	case targets.FreeBSD:
 		return newGit(dir, nil, opts), nil
-	case "test":
+	case targets.TestOS:
 		return newTestos(dir, opts), nil
 	}
 	return nil, fmt.Errorf("vcs is unsupported for %v", os)

@@ -10,10 +10,12 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/google/syzkaller/sys/targets"
 )
 
 func TestParseAll(t *testing.T) {
-	files, err := filepath.Glob(filepath.Join("..", "..", "sys", "linux", "*.txt"))
+	files, err := filepath.Glob(filepath.Join("..", "..", "sys", targets.Linux, "*.txt"))
 	if err != nil || len(files) == 0 {
 		t.Fatalf("failed to read sys dir: %v", err)
 	}

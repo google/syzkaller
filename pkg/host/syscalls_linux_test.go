@@ -11,11 +11,12 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 func TestSupportedSyscalls(t *testing.T) {
 	t.Parallel()
-	target, err := prog.GetTarget("linux", runtime.GOARCH)
+	target, err := prog.GetTarget(targets.Linux, runtime.GOARCH)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +59,7 @@ func TestKallsymsParse(t *testing.T) {
 		SupportedSyscalls []string
 	}{
 		{
-			"amd64",
+			targets.AMD64,
 			[]byte(`
 ffffffff817cdcc0 T __sys_bind
 ffffffff817cdda0 T __x64_sys_bind
@@ -74,7 +75,7 @@ ffffffff817ce0a0 T __ia32_sys_accept4
 			[]string{"bind", "listen", "accept4"},
 		},
 		{
-			"arm64",
+			targets.ARM64,
 			[]byte(`
 ffff000010a3ddf8 T __sys_bind
 ffff000010a3def8 T __arm64_sys_bind
@@ -87,7 +88,7 @@ ffff000010a3e1f0 T __arm64_sys_accept4
 			[]string{"bind", "listen", "accept4"},
 		},
 		{
-			"ppc64le",
+			targets.PPC64LE,
 			[]byte(`
 c0000000011ec810 T __sys_bind
 c0000000011eca10 T sys_bind
@@ -103,7 +104,7 @@ c0000000011ed050 T __se_sys_accept4
 			[]string{"bind", "listen", "accept4"},
 		},
 		{
-			"arm",
+			targets.ARM,
 			[]byte(`
 c037c67c T __se_sys_setfsuid
 c037c694 T __sys_setfsgid
@@ -118,7 +119,7 @@ c037c7f8 T sys_getppid
 		},
 		// Test kallsymsRenameMap.
 		{
-			"ppc64le",
+			targets.PPC64LE,
 			[]byte(`
 c00000000037eb00 T sys_newstat
 			`),
@@ -126,7 +127,7 @@ c00000000037eb00 T sys_newstat
 			[]string{"stat"},
 		},
 		{
-			"s390x",
+			targets.S390x,
 			[]byte(`
 0000000000e4f760 T __sys_bind
 0000000000e4f8e8 T __s390_sys_bind
@@ -145,7 +146,7 @@ c00000000037eb00 T sys_newstat
 			[]string{"bind", "listen", "accept4"},
 		},
 		{
-			"riscv64",
+			targets.RiscV64,
 			[]byte(`
 ffffffe0005c9b02 T __sys_bind
 ffffffe0005c9ba0 T sys_bind

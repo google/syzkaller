@@ -166,7 +166,7 @@ func (ctx *context) generateSyscallDefines() string {
 		fmt.Fprintf(buf, "#define %v%v %v\n", prefix, name, ctx.calls[name])
 		fmt.Fprintf(buf, "#endif\n")
 	}
-	if ctx.target.OS == "linux" && ctx.target.PtrSize == 4 {
+	if ctx.target.OS == targets.Linux && ctx.target.PtrSize == 4 {
 		// This is a dirty hack.
 		// On 32-bit linux mmap translated to old_mmap syscall which has a different signature.
 		// mmap2 has the right signature. syz-extract translates mmap to mmap2, do the same here.
@@ -403,7 +403,7 @@ func (ctx *context) copyinVal(w *bytes.Buffer, addr, size uint64, val string, bf
 }
 
 func (ctx *context) copyout(w *bytes.Buffer, call prog.ExecCall, resCopyout bool) {
-	if ctx.sysTarget.OS == "fuchsia" {
+	if ctx.sysTarget.OS == targets.Fuchsia {
 		// On fuchsia we have real system calls that return ZX_OK on success,
 		// and libc calls that are casted to function returning intptr_t,
 		// as the result int -1 is returned as 0x00000000ffffffff rather than full -1.
@@ -523,7 +523,7 @@ func (ctx *context) hoistIncludes(result []byte) []byte {
 			sortedBottom = append(sortedBottom, include)
 		} else if strings.Contains(include, "<netinet/if_ether.h>") {
 			sortedBottom = append(sortedBottom, include)
-		} else if ctx.target.OS == freebsd && strings.Contains(include, "<sys/types.h>") {
+		} else if ctx.target.OS == targets.FreeBSD && strings.Contains(include, "<sys/types.h>") {
 			sortedTop = append(sortedTop, include)
 		} else {
 			sorted = append(sorted, include)

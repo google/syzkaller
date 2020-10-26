@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/google/syzkaller/sys/targets"
 )
 
 func TestParseOptions(t *testing.T) {
-	for _, opts := range allOptionsSingle("linux") {
+	for _, opts := range allOptionsSingle(targets.Linux) {
 		data := opts.Serialize()
 		got, err := DeserializeOptions(data)
 		if err != nil {

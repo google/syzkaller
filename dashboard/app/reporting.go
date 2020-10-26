@@ -15,6 +15,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/html"
+	"github.com/google/syzkaller/sys/targets"
 	"golang.org/x/net/context"
 	db "google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
@@ -1175,9 +1176,9 @@ func (a bugReportSorter) Less(i, j int) bool {
 // Currently Linux-specific.
 func kernelArch(arch string) string {
 	switch arch {
-	case "386":
+	case targets.I386:
 		return "i386"
-	case "amd64":
+	case targets.AMD64:
 		return "" // this is kinda the default, so we don't notify about it
 	default:
 		return arch

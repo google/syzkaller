@@ -22,6 +22,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/tools/syz-trace2syz/proggen"
 )
 
@@ -32,8 +33,8 @@ var (
 )
 
 const (
-	goos = "linux" // Target OS
-	arch = "amd64" // Target architecture
+	goos = targets.Linux // Target OS
+	arch = targets.AMD64 // Target architecture
 )
 
 func main() {

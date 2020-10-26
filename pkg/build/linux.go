@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type linux struct{}
@@ -57,9 +58,9 @@ func (linux linux) buildKernel(params *Params) error {
 	// We build only zImage/bzImage as we currently don't use modules.
 	var target string
 	switch params.TargetArch {
-	case "386", "amd64", "s390x":
+	case targets.I386, targets.AMD64, targets.S390x:
 		target = "bzImage"
-	case "ppc64le":
+	case targets.PPC64LE:
 		target = "zImage"
 	}
 
@@ -110,11 +111,11 @@ func (linux) createImage(params *Params) error {
 
 	var kernelImage string
 	switch params.TargetArch {
-	case "386", "amd64":
+	case targets.I386, targets.AMD64:
 		kernelImage = "arch/x86/boot/bzImage"
-	case "ppc64le":
+	case targets.PPC64LE:
 		kernelImage = "arch/powerpc/boot/zImage.pseries"
-	case "s390x":
+	case targets.S390x:
 		kernelImage = "arch/s390/boot/bzImage"
 	}
 	kernelImagePath := filepath.Join(params.KernelDir, filepath.FromSlash(kernelImage))

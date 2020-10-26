@@ -68,7 +68,7 @@ func TestReportGenerator(t *testing.T) {
 	}
 	t.Parallel()
 	for os, arches := range targets.List {
-		if os == "test" {
+		if os == targets.TestOS {
 			continue
 		}
 		for _, target := range arches {
@@ -135,7 +135,7 @@ void __sanitizer_cov_trace_pc() { printf("%llu", (long long)__builtin_return_add
 		errText = strings.ReplaceAll(errText, "‘", "'")
 		errText = strings.ReplaceAll(errText, "’", "'")
 		if strings.Contains(errText, "error: unrecognized command line option '-fsanitize-coverage=trace-pc'") &&
-			(os.Getenv("SYZ_BIG_ENV") == "" || target.OS == "akaros") {
+			(os.Getenv("SYZ_BIG_ENV") == "" || target.OS == targets.Akaros) {
 			t.Skip("skipping test, -fsanitize-coverage=trace-pc is not supported")
 		}
 		t.Fatal(err)

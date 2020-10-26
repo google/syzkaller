@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 // Options control various aspects of source generation.
@@ -113,10 +114,10 @@ func (opts Options) Check(OS string) error {
 }
 
 func (opts Options) checkLinuxOnly(OS string) error {
-	if OS == linux {
+	if OS == targets.Linux {
 		return nil
 	}
-	if opts.NetInjection && !(OS == openbsd || OS == freebsd || OS == netbsd) {
+	if opts.NetInjection && !(OS == targets.OpenBSD || OS == targets.FreeBSD || OS == targets.NetBSD) {
 		return fmt.Errorf("option NetInjection is not supported on %v", OS)
 	}
 	if opts.NetDevices {
@@ -150,7 +151,7 @@ func (opts Options) checkLinuxOnly(OS string) error {
 		return fmt.Errorf("option Wifi is not supported on %v", OS)
 	}
 	if opts.Sandbox == sandboxNamespace ||
-		(opts.Sandbox == sandboxSetuid && !(OS == openbsd || OS == freebsd || OS == netbsd)) ||
+		(opts.Sandbox == sandboxSetuid && !(OS == targets.OpenBSD || OS == targets.FreeBSD || OS == targets.NetBSD)) ||
 		opts.Sandbox == sandboxAndroid {
 		return fmt.Errorf("option Sandbox=%v is not supported on %v", opts.Sandbox, OS)
 	}
@@ -183,7 +184,7 @@ func DefaultOpts(cfg *mgrconfig.Config) Options {
 		HandleSegv:    true,
 		Repro:         true,
 	}
-	if cfg.TargetOS != linux {
+	if cfg.TargetOS != targets.Linux {
 		opts.NetInjection = false
 		opts.NetDevices = false
 		opts.NetReset = false

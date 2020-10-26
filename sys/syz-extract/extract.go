@@ -57,15 +57,15 @@ type Extractor interface {
 }
 
 var extractors = map[string]Extractor{
-	"akaros":  new(akaros),
-	"linux":   new(linux),
-	"freebsd": new(freebsd),
-	"netbsd":  new(netbsd),
-	"openbsd": new(openbsd),
-	"android": new(linux),
-	"fuchsia": new(fuchsia),
-	"windows": new(windows),
-	"trusty":  new(trusty),
+	targets.Akaros:  new(akaros),
+	targets.Linux:   new(linux),
+	targets.FreeBSD: new(freebsd),
+	targets.NetBSD:  new(netbsd),
+	targets.OpenBSD: new(openbsd),
+	"android":       new(linux),
+	targets.Fuchsia: new(fuchsia),
+	targets.Windows: new(windows),
+	targets.Trusty:  new(trusty),
 }
 
 func main() {
@@ -243,7 +243,7 @@ func archFileList(os, arch string, files []string) (string, []string, []string, 
 	android := false
 	if os == "android" {
 		android = true
-		os = "linux"
+		os = targets.Linux
 	}
 	var arches []string
 	if arch != "" {
@@ -253,7 +253,7 @@ func archFileList(os, arch string, files []string) (string, []string, []string, 
 			arches = append(arches, arch)
 		}
 		if android {
-			arches = []string{"386", "amd64", "arm", "arm64"}
+			arches = []string{targets.I386, targets.AMD64, targets.ARM, targets.ARM64}
 		}
 		sort.Strings(arches)
 	}
@@ -278,7 +278,7 @@ func archFileList(os, arch string, files []string) (string, []string, []string, 
 		}
 		for _, f := range matches {
 			f = filepath.Base(f)
-			if manualFiles[f] || os == "linux" && android != androidFiles[f] {
+			if manualFiles[f] || os == targets.Linux && android != androidFiles[f] {
 				continue
 			}
 			files = append(files, f)

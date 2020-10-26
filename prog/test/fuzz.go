@@ -9,6 +9,7 @@ import (
 	"math/rand"
 
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/targets"
 	_ "github.com/google/syzkaller/sys/test/gen" // import the target we use for fuzzing
 )
 
@@ -66,7 +67,7 @@ func FuzzParseLog(data []byte) int {
 var fuzzBuffer = make([]byte, prog.ExecBufferSize)
 var fuzzTarget, fuzzChoiceTable = func() (*prog.Target, *prog.ChoiceTable) {
 	prog.Debug()
-	target, err := prog.GetTarget("test", "64")
+	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64)
 	if err != nil {
 		panic(err)
 	}

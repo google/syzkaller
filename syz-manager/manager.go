@@ -454,7 +454,7 @@ func (mgr *Manager) preloadCorpus() {
 	}
 	mgr.corpusDB = corpusDB
 
-	if seedDir := filepath.Join(mgr.cfg.Syzkaller, "sys", mgr.cfg.TargetOS, "test"); osutil.IsExist(seedDir) {
+	if seedDir := filepath.Join(mgr.cfg.Syzkaller, "sys", mgr.cfg.TargetOS, targets.TestOS); osutil.IsExist(seedDir) {
 		seeds, err := ioutil.ReadDir(seedDir)
 		if err != nil {
 			log.Fatalf("failed to read seeds dir: %v", err)

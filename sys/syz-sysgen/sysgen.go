@@ -115,7 +115,7 @@ func main() {
 				}
 				consts := constFile.Arch(job.Target.Arch)
 				top := descriptions
-				if OS == "linux" && (job.Target.Arch == "arm" || job.Target.Arch == "riscv64") {
+				if OS == targets.Linux && (job.Target.Arch == targets.ARM || job.Target.Arch == targets.RiscV64) {
 					// Hack: KVM is not supported on ARM anymore. On riscv64 it
 					// is not supported yet but might be in the future.
 					// Note: syz-extract also ignores this file for arm and
@@ -125,7 +125,7 @@ func main() {
 						return !strings.HasSuffix(pos.File, "_kvm.txt")
 					})
 				}
-				if OS == "test" {
+				if OS == targets.TestOS {
 					constInfo := compiler.ExtractConsts(top, job.Target, eh)
 					compiler.FabricateSyscallConsts(job.Target, constInfo, consts)
 				}

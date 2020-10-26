@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 // Params is input arguments for the Image function.
@@ -118,17 +119,17 @@ func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
 		vms  []string
 		b    builder
 	}{
-		{"linux", "amd64", []string{"gvisor"}, gvisor{}},
-		{"linux", "amd64", []string{"gce", "qemu"}, linux{}},
-		{"linux", "ppc64le", []string{"qemu"}, linux{}},
-		{"linux", "s390x", []string{"qemu"}, linux{}},
-		{"fuchsia", "amd64", []string{"qemu"}, fuchsia{}},
-		{"fuchsia", "arm64", []string{"qemu"}, fuchsia{}},
-		{"akaros", "amd64", []string{"qemu"}, akaros{}},
-		{"openbsd", "amd64", []string{"gce", "vmm"}, openbsd{}},
-		{"netbsd", "amd64", []string{"gce", "qemu"}, netbsd{}},
-		{"freebsd", "amd64", []string{"gce", "qemu"}, freebsd{}},
-		{"test", "64", []string{"qemu"}, test{}},
+		{targets.Linux, targets.AMD64, []string{"gvisor"}, gvisor{}},
+		{targets.Linux, targets.AMD64, []string{"gce", "qemu"}, linux{}},
+		{targets.Linux, targets.PPC64LE, []string{"qemu"}, linux{}},
+		{targets.Linux, targets.S390x, []string{"qemu"}, linux{}},
+		{targets.Fuchsia, targets.AMD64, []string{"qemu"}, fuchsia{}},
+		{targets.Fuchsia, targets.ARM64, []string{"qemu"}, fuchsia{}},
+		{targets.Akaros, targets.AMD64, []string{"qemu"}, akaros{}},
+		{targets.OpenBSD, targets.AMD64, []string{"gce", "vmm"}, openbsd{}},
+		{targets.NetBSD, targets.AMD64, []string{"gce", "qemu"}, netbsd{}},
+		{targets.FreeBSD, targets.AMD64, []string{"gce", "qemu"}, freebsd{}},
+		{targets.TestOS, targets.TestArch64, []string{"qemu"}, test{}},
 	}
 	for _, s := range supported {
 		if targetOS == s.OS && targetArch == s.arch {
@@ -193,7 +194,7 @@ func extractRootCause(err error, OS, kernelSrc string) error {
 		Output:     verr.Output,
 		guiltyFile: file,
 	}
-	if file != "" && OS == "linux" {
+	if file != "" && OS == targets.Linux {
 		maintainers, err := report.GetLinuxMaintainers(kernelSrc, file)
 		if err != nil {
 			kernelErr.Output = append(kernelErr.Output, err.Error()...)

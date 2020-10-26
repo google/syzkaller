@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/compiler"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type linux struct{}
@@ -134,7 +135,8 @@ func (*linux) prepareArch(arch *Arch) error {
 }
 
 func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint64, map[string]bool, error) {
-	if strings.HasSuffix(info.File, "_kvm.txt") && (arch.target.Arch == "arm" || arch.target.Arch == "riscv64") {
+	if strings.HasSuffix(info.File, "_kvm.txt") &&
+		(arch.target.Arch == targets.ARM || arch.target.Arch == targets.RiscV64) {
 		// Hack: KVM is not supported on ARM anymore. We may want some more official support
 		// for marking descriptions arch-specific, but so far this combination is the only
 		// one. For riscv64, KVM is not supported yet but might be in the future.
