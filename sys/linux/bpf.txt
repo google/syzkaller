@@ -479,8 +479,6 @@ bpf_link_get_next_id_arg {
 
 bpf_prog_get_fd_by_id_arg {
 	prog	bpf_prog_id
-	next	const[0, int32]
-	flags	const[0, int32]
 }
 
 bpf_prog_bind_map_arg {
