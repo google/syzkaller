@@ -647,6 +647,7 @@ var commonOopses = []*oops{
 			compile("_panic:"),
 			// Android prints this sometimes during boot.
 			compile("xlog_status:"),
+			compile(`ddb\.onpanic:`),
 		},
 	},
 }

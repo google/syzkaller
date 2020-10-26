@@ -61,7 +61,9 @@ var netbsdOopses = append([]*oops{
 				fmt:    "UBSan: Undefined Behavior in %[1]v",
 			},
 		},
-		[]*regexp.Regexp{},
+		[]*regexp.Regexp{
+			compile(`ddb\.onpanic:`),
+		},
 	},
 	{
 		[]byte("UBSan:"),
