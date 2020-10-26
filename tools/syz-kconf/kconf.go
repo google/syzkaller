@@ -49,7 +49,7 @@ func main() {
 	if *flagSourceDir == "" {
 		failf("missing mandatory flag -sourcedir")
 	}
-	repo, err := vcs.NewRepo("linux", "", *flagSourceDir, vcs.OptPrecious)
+	repo, err := vcs.NewRepo(targets.Linux, "", *flagSourceDir, vcs.OptPrecious)
 	if err != nil {
 		failf("failed to create repo: %v", err)
 	}
@@ -307,12 +307,12 @@ func (ctx *Context) addDependentConfigs(dst *kconfig.ConfigFile, include []strin
 }
 
 func (ctx *Context) setTarget() error {
-	for _, target := range targets.List["linux"] {
+	for _, target := range targets.List[targets.Linux] {
 		if ctx.Inst.Features[target.KernelArch] {
 			if ctx.Target != nil {
 				return fmt.Errorf("arch is set twice")
 			}
-			ctx.Target = targets.GetEx("linux", target.Arch, ctx.Inst.Features[featClang])
+			ctx.Target = targets.GetEx(targets.Linux, target.Arch, ctx.Inst.Features[featClang])
 		}
 	}
 	if ctx.Target == nil {

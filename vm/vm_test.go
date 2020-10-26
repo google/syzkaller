@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/vmimpl"
 )
 
@@ -340,9 +341,9 @@ func testMonitorExecution(t *testing.T, test *Test) {
 	defer os.RemoveAll(dir)
 	cfg := &mgrconfig.Config{
 		Workdir:      dir,
-		TargetOS:     "linux",
-		TargetArch:   "amd64",
-		TargetVMArch: "amd64",
+		TargetOS:     targets.Linux,
+		TargetArch:   targets.AMD64,
+		TargetVMArch: targets.AMD64,
 		Type:         "test",
 	}
 	pool, err := Create(cfg, false)

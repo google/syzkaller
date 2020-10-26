@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm"
 )
 
@@ -104,7 +105,7 @@ func (ctx netbsd) copyKernelToDisk(targetArch, vmType, outputDir, kernel string)
 		Image:        filepath.Join(outputDir, "image"),
 		SSHKey:       filepath.Join(outputDir, "key"),
 		SSHUser:      "root",
-		TargetOS:     "netbsd",
+		TargetOS:     targets.NetBSD,
 		TargetArch:   targetArch,
 		TargetVMArch: targetArch,
 		Type:         "qemu",

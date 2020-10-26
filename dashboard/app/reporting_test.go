@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 func TestReportBug(t *testing.T) {
@@ -45,9 +46,9 @@ func TestReportBug(t *testing.T) {
 		Namespace:         "test1",
 		Config:            []byte(`{"Index":1}`),
 		ID:                rep.ID,
-		OS:                "linux",
-		Arch:              "amd64",
-		VMArch:            "amd64",
+		OS:                targets.Linux,
+		Arch:              targets.AMD64,
+		VMArch:            targets.AMD64,
 		First:             true,
 		Moderation:        true,
 		Title:             "title1",
@@ -208,9 +209,9 @@ func TestInvalidBug(t *testing.T) {
 		Namespace:         "test1",
 		Config:            []byte(`{"Index":1}`),
 		ID:                rep.ID,
-		OS:                "linux",
-		Arch:              "amd64",
-		VMArch:            "amd64",
+		OS:                targets.Linux,
+		Arch:              targets.AMD64,
+		VMArch:            targets.AMD64,
 		First:             true,
 		Moderation:        true,
 		Title:             "title1 (2)",

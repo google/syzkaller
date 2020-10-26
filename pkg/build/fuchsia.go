@@ -33,7 +33,7 @@ func (fu fuchsia) build(params *Params) error {
 		return err
 	}
 
-	sysTarget := targets.Get("fuchsia", params.TargetArch)
+	sysTarget := targets.Get(targets.Fuchsia, params.TargetArch)
 	if sysTarget == nil {
 		return fmt.Errorf("unsupported fuchsia arch %v", params.TargetArch)
 	}

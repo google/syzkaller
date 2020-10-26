@@ -26,12 +26,12 @@ var flagFilter = flag.String("filter", "", "prefix to match test file names")
 
 func Test(t *testing.T) {
 	switch runtime.GOOS {
-	case "openbsd":
+	case targets.OpenBSD:
 		t.Skipf("broken on %v", runtime.GOOS)
 	}
 	// Test only one target in short mode (each takes 5+ seconds to run).
-	shortTarget := targets.Get("test", "64")
-	for _, sysTarget := range targets.List["test"] {
+	shortTarget := targets.Get(targets.TestOS, targets.TestArch64)
+	for _, sysTarget := range targets.List[targets.TestOS] {
 		if testing.Short() && sysTarget != shortTarget {
 			continue
 		}
@@ -80,7 +80,7 @@ func test(t *testing.T, sysTarget *targets.Target) {
 		}
 	}()
 	ctx := &Context{
-		Dir:          filepath.Join("..", "..", "sys", target.OS, "test"),
+		Dir:          filepath.Join("..", "..", "sys", target.OS, targets.TestOS),
 		Target:       target,
 		Tests:        *flagFilter,
 		Features:     features,
@@ -100,7 +100,7 @@ func test(t *testing.T, sysTarget *targets.Target) {
 
 func TestParsing(t *testing.T) {
 	for OS, arches := range targets.List {
-		dir := filepath.Join("..", "..", "sys", OS, "test")
+		dir := filepath.Join("..", "..", "sys", OS, targets.TestOS)
 		if !osutil.IsExist(dir) {
 			continue
 		}

@@ -259,7 +259,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		return nil, err
 	}
 	if env.Image == "9p" {
-		if env.OS != "linux" {
+		if env.OS != targets.Linux {
 			return nil, fmt.Errorf("9p image is supported for linux only")
 		}
 		if cfg.Kernel == "" {

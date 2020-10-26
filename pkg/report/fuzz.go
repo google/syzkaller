@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 func Fuzz(data []byte) int {
@@ -32,7 +33,7 @@ func Fuzz(data []byte) int {
 		if len(rep.Output) == 0 {
 			panic(fmt.Sprintf("%v: len(Output) == 0", typ))
 		}
-		if os == "fuchsia" {
+		if os == targets.Fuchsia {
 			// Fuchsia has Start/End/SkipPos set incorrectly because it symbolizes before parsing.
 			continue
 		}
@@ -66,12 +67,12 @@ func Fuzz(data []byte) int {
 var fuzzReporters = func() map[string]Reporter {
 	reporters := make(map[string]Reporter)
 	for os := range ctors {
-		if os == "windows" {
+		if os == targets.Windows {
 			continue
 		}
 		cfg := &mgrconfig.Config{
 			TargetOS:   os,
-			TargetArch: "amd64",
+			TargetArch: targets.AMD64,
 		}
 		reporter, err := NewReporter(cfg)
 		if err != nil {

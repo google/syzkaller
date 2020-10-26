@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/tools/syz-trace2syz/parser"
 )
 
@@ -265,7 +266,7 @@ r0 = openat$rtc(0xffffffffffffff9c, &(0x7f0000000000)='/dev/rtc0\x00', 0x0, 0x0)
 ioctl$RTC_WKALM_SET(r0, 0x4028700f, &(0x7f0000000040)={0x0, 0x0, {0x0, 0x0, 0x0, 0x0, 0x10000, 0x5181}})`,
 		},
 	}
-	target, err := prog.GetTarget("linux", "amd64")
+	target, err := prog.GetTarget(targets.Linux, targets.AMD64)
 	if err != nil {
 		t.Fatal(err)
 	}

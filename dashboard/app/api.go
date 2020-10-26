@@ -19,6 +19,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/hash"
+	"github.com/google/syzkaller/sys/targets"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	db "google.golang.org/appengine/datastore"
@@ -784,7 +785,7 @@ func saveCrash(c context.Context, ns string, req *dashapi.Crash, bugKey *db.Key,
 	} else if len(req.ReproSyz) != 0 {
 		prio += 2e12
 	}
-	if build.Arch == "amd64" {
+	if build.Arch == targets.AMD64 {
 		prio += 1e3
 	}
 	crash := &Crash{

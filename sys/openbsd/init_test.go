@@ -8,10 +8,11 @@ import (
 
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys/openbsd/gen"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 func TestNeutralize(t *testing.T) {
-	prog.TestDeserializeHelper(t, "openbsd", "amd64", nil, []prog.DeserializeTest{
+	prog.TestDeserializeHelper(t, targets.OpenBSD, targets.AMD64, nil, []prog.DeserializeTest{
 		{
 			In:  `chflagsat(0x0, 0x0, 0x60004, 0x0)`,
 			Out: `chflagsat(0x0, 0x0, 0x0, 0x0)`,

@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 // Sleep for d.
@@ -24,7 +25,7 @@ func SleepInterruptible(d time.Duration) bool {
 
 func WaitForSSH(debug bool, timeout time.Duration, addr, sshKey, sshUser, OS string, port int, stop chan error) error {
 	pwd := "pwd"
-	if OS == "windows" {
+	if OS == targets.Windows {
 		pwd = "dir"
 	}
 	startTime := time.Now()

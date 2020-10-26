@@ -28,6 +28,7 @@ import (
 	"github.com/google/syzkaller/pkg/kd"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/vmimpl"
 )
 
@@ -248,7 +249,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	}
 	merger := vmimpl.NewOutputMerger(tee)
 	var decoder func(data []byte) (int, int, []byte)
-	if inst.env.OS == "windows" {
+	if inst.env.OS == targets.Windows {
 		decoder = kd.Decode
 	}
 	merger.AddDecoder("console", conRpipe, decoder)
@@ -264,7 +265,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		sshRpipe.Close()
 		return nil, nil, err
 	}
-	if inst.env.OS == "linux" {
+	if inst.env.OS == targets.Linux {
 		if inst.sshUser != "root" {
 			command = fmt.Sprintf("sudo bash -c '%v'", command)
 		}
@@ -369,10 +370,10 @@ func waitForConsoleConnect(merger *vmimpl.OutputMerger) error {
 }
 
 func (inst *instance) Diagnose() ([]byte, bool) {
-	if inst.env.OS == "freebsd" {
+	if inst.env.OS == targets.FreeBSD {
 		return vmimpl.DiagnoseFreeBSD(inst.consolew)
 	}
-	if inst.env.OS == "openbsd" {
+	if inst.env.OS == targets.OpenBSD {
 		return vmimpl.DiagnoseOpenBSD(inst.consolew)
 	}
 	return nil, false

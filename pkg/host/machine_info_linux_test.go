@@ -10,6 +10,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/google/syzkaller/sys/targets"
 )
 
 func TestReadCPUInfoLinux(t *testing.T) {
@@ -42,14 +44,14 @@ func checkCPUInfo(t *testing.T, data []byte, arch string) {
 		keys[key] = true
 	}
 	importantKeys := map[string][]string{
-		"ppc64le":  {"cpu", "revision", "platform", "model", "machine"},
-		"amd64":    {"vendor_id", "model", "flags"},
-		"s390x":    {"vendor_id", "processor 0", "features"},
-		"386":      {"vendor_id", "model", "flags"},
-		"arm64":    {"CPU implementer", "CPU part", "Features"},
-		"arm":      {"CPU implementer", "CPU part", "Features"},
-		"mips64le": {"system type", "cpu model", "ASEs implemented"},
-		"riscv64":  {"processor", "isa", "mmu"},
+		targets.PPC64LE:  {"cpu", "revision", "platform", "model", "machine"},
+		targets.AMD64:    {"vendor_id", "model", "flags"},
+		targets.S390x:    {"vendor_id", "processor 0", "features"},
+		targets.I386:     {"vendor_id", "model", "flags"},
+		targets.ARM64:    {"CPU implementer", "CPU part", "Features"},
+		targets.ARM:      {"CPU implementer", "CPU part", "Features"},
+		targets.MIPS64LE: {"system type", "cpu model", "ASEs implemented"},
+		targets.RiscV64:  {"processor", "isa", "mmu"},
 	}
 	archKeys := importantKeys[arch]
 	if len(archKeys) == 0 {
@@ -149,7 +151,7 @@ type cannedTest struct {
 // nolint:lll
 var cpuInfoTests = []cannedTest{
 	{
-		arch: "ppc64le",
+		arch: targets.PPC64LE,
 		data: `
 processor	: 0
 cpu		: POWER8 (architected), altivec supported
@@ -179,7 +181,7 @@ MMU		: Hash
 `,
 	},
 	{
-		arch: "ppc64le",
+		arch: targets.PPC64LE,
 		data: `
 processor       : 0
 cpu             : POWER8 (architected), altivec supported
@@ -201,7 +203,7 @@ MMU             : Hash
 `,
 	},
 	{
-		arch: "ppc64le",
+		arch: targets.PPC64LE,
 		data: `
 processor       : 0
 cpu             : POWER8E, altivec supported
@@ -242,7 +244,7 @@ MMU             : Hash
 `,
 	},
 	{
-		arch: "amd64",
+		arch: targets.AMD64,
 		data: `
 processor	: 0
 vendor_id	: GenuineIntel
@@ -302,7 +304,7 @@ power management:
 `,
 	},
 	{
-		arch: "amd64",
+		arch: targets.AMD64,
 		data: `
 processor	: 0
 vendor_id	: GenuineIntel

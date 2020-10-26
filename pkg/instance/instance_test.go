@@ -9,6 +9,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/google/syzkaller/sys/targets"
 )
 
 func TestFuzzerCmd(t *testing.T) {
@@ -29,7 +31,7 @@ func TestFuzzerCmd(t *testing.T) {
 	flagSandbox := flags.String("sandbox", "none", "sandbox for fuzzing (none/setuid/namespace)")
 	flagDebug := flags.Bool("debug", false, "debug output from executor")
 	flagV := flags.Int("v", 0, "verbosity")
-	cmdLine := OldFuzzerCmd(os.Args[0], "/myexecutor", "myname", "linux", "386", "localhost:1234",
+	cmdLine := OldFuzzerCmd(os.Args[0], "/myexecutor", "myname", targets.Linux, targets.I386, "localhost:1234",
 		"namespace", 3, true, true)
 	args := strings.Split(cmdLine, " ")[1:]
 	if err := flags.Parse(args); err != nil {
@@ -38,8 +40,8 @@ func TestFuzzerCmd(t *testing.T) {
 	if *flagName != "myname" {
 		t.Errorf("bad name: %q, want: %q", *flagName, "myname")
 	}
-	if *flagArch != "386" {
-		t.Errorf("bad arch: %q, want: %q", *flagArch, "386")
+	if *flagArch != targets.I386 {
+		t.Errorf("bad arch: %q, want: %q", *flagArch, targets.I386)
 	}
 	if *flagManager != "localhost:1234" {
 		t.Errorf("bad manager: %q, want: %q", *flagManager, "localhost:1234")
@@ -91,7 +93,8 @@ func TestExecprogCmd(t *testing.T) {
 	flagCollide := flags.Bool("collide", true, "collide syscalls to provoke data races")
 	flagSignal := flags.Bool("cover", false, "collect feedback signals (coverage)")
 	flagSandbox := flags.String("sandbox", "none", "sandbox for fuzzing (none/setuid/namespace)")
-	cmdLine := ExecprogCmd(os.Args[0], "/myexecutor", "freebsd", "386", "namespace", true, false, false, 7, 2, 3, "myprog")
+	cmdLine := ExecprogCmd(os.Args[0], "/myexecutor", targets.FreeBSD, targets.I386,
+		"namespace", true, false, false, 7, 2, 3, "myprog")
 	args := strings.Split(cmdLine, " ")[1:]
 	if err := flags.Parse(args); err != nil {
 		t.Fatal(err)
@@ -102,8 +105,8 @@ func TestExecprogCmd(t *testing.T) {
 	if *flagOS != runtime.GOOS {
 		t.Errorf("bad os: %q, want: %q", *flagOS, runtime.GOOS)
 	}
-	if *flagArch != "386" {
-		t.Errorf("bad arch: %q, want: %q", *flagArch, "386")
+	if *flagArch != targets.I386 {
+		t.Errorf("bad arch: %q, want: %q", *flagArch, targets.I386)
 	}
 	if *flagRepeat != 0 {
 		t.Errorf("bad repeat: %v, want: %v", *flagRepeat, 0)

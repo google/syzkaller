@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 func initTest(t *testing.T) (*rand.Rand, int) {
@@ -92,7 +93,7 @@ func TestSimplifies(t *testing.T) {
 	}
 	var check func(opts csource.Options, i int)
 	check = func(opts csource.Options, i int) {
-		if err := opts.Check("linux"); err != nil {
+		if err := opts.Check(targets.Linux); err != nil {
 			t.Fatalf("opts are invalid: %v", err)
 		}
 		if i == len(cSimplifies) {
