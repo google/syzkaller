@@ -498,7 +498,10 @@ func splitArgs(str, templateDir string, index int) (args []string) {
 		}
 		arg = strings.ReplaceAll(arg, "{{INDEX}}", fmt.Sprint(index))
 		arg = strings.ReplaceAll(arg, "{{TEMPLATE}}", templateDir)
-		arg = strings.ReplaceAll(arg, "{{TCP_PORT}}", string(vmimpl.UnusedTCPPort()))
+		const tcpPort = "{{TCP_PORT}}"
+		if strings.Contains(arg, tcpPort) {
+			arg = strings.ReplaceAll(arg, tcpPort, fmt.Sprint(vmimpl.UnusedTCPPort()))
+		}
 		args = append(args, arg)
 	}
 	return
