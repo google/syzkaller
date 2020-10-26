@@ -64,6 +64,7 @@ bpf$ITER_CREATE(cmd const[BPF_ITER_CREATE], arg ptr[in, bpf_iter_create_arg], si
 bpf$LINK_GET_FD_BY_ID(cmd const[BPF_LINK_GET_FD_BY_ID], arg ptr[in, bpf_link_id], size len[arg]) fd_bpf_link
 bpf$LINK_GET_NEXT_ID(cmd const[BPF_LINK_GET_NEXT_ID], arg ptr[inout, bpf_link_get_next_id_arg], size len[arg])
 bpf$LINK_DETACH(cmd const[BPF_LINK_DETACH], arg ptr[in, fd_bpf_link], size len[arg])
+bpf$PROG_BIND_MAP(cmd const[BPF_PROG_BIND_MAP], arg ptr[in, bpf_prog_bind_map_arg], size len[arg])
 
 bpf_map_create_arg {
 	type			flags[bpf_map_type, int32]
@@ -466,6 +467,12 @@ bpf_link_get_next_id_arg {
 bpf_prog_get_fd_by_id_arg {
 	prog	bpf_prog_id
 	next	const[0, int32]
+	flags	const[0, int32]
+}
+
+bpf_prog_bind_map_arg {
+	prog_fd	fd_bpf_prog
+	map_fd	fd_bpf_map
 	flags	const[0, int32]
 }
 
