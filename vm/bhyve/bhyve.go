@@ -26,6 +26,7 @@ func init() {
 type Config struct {
 	Bridge  string `json:"bridge"`  // name of network bridge device
 	Count   int    `json:"count"`   // number of VMs to use
+	CPU     int    `json:"cpu"`     // number of VM vCPU
 	HostIP  string `json:"hostip"`  // VM host IP address
 	Mem     string `json:"mem"`     // amount of VM memory
 	Dataset string `json:"dataset"` // ZFS dataset containing VM image
@@ -58,6 +59,7 @@ var tapRegex = regexp.MustCompile(`^tap[0-9]+`)
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	cfg := &Config{
 		Count: 1,
+		CPU:   1,
 		Mem:   "512M",
 	}
 	if err := config.LoadData(env.Config, cfg); err != nil {
@@ -164,7 +166,7 @@ func (inst *instance) Boot() error {
 
 	bhyveArgs := []string{
 		"-H", "-A", "-P",
-		"-c", "1",
+		"-c", fmt.Sprintf("%d", inst.cfg.CPU),
 		"-m", inst.cfg.Mem,
 		"-s", "0:0,hostbridge",
 		"-s", "1:0,lpc",
