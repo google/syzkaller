@@ -33,6 +33,7 @@ type Test struct {
 	Progs    []Prog
 	AddCover bool
 	Result   string
+	Supports func(target *targets.Target) bool
 }
 
 func TestReportGenerator(t *testing.T) {
@@ -65,6 +66,31 @@ func TestReportGenerator(t *testing.T) {
 			AddCover: true,
 			CFlags:   []string{"-fsanitize-coverage=trace-pc", "-g"},
 		},
+		{
+			Name:     "good-pie",
+			AddCover: true,
+			CFlags: []string{"-fsanitize-coverage=trace-pc", "-g", "-fpie", "-pie",
+				"-Wl,--section-start=.text=0x33300000"},
+			Supports: func(target *targets.Target) bool {
+				return target.OS == targets.Fuchsia ||
+					// Fails with "relocation truncated to fit: R_AARCH64_CALL26 against symbol `memcpy'".
+					target.OS == targets.Linux && target.Arch != targets.ARM64
+			},
+		},
+		{
+			Name:     "good-pie-relocs",
+			AddCover: true,
+			// This produces a binary that resembles CONFIG_RANDOMIZE_BASE=y.
+			// Symbols and .text section has addresses around 0x33300000,
+			// but debug info has all PC ranges around 0 address.
+			CFlags: []string{"-fsanitize-coverage=trace-pc", "-g", "-fpie", "-pie",
+				"-Wl,--section-start=.text=0x33300000,--emit-relocs"},
+			Supports: func(target *targets.Target) bool {
+				return target.OS == targets.Fuchsia ||
+					target.OS == targets.Linux && target.Arch != targets.ARM64 &&
+						target.Arch != targets.ARM && target.Arch != targets.I386
+			},
+		},
 	}
 	t.Parallel()
 	for os, arches := range targets.List {
@@ -84,6 +110,9 @@ func TestReportGenerator(t *testing.T) {
 				for _, test := range tests {
 					test := test
 					t.Run(test.Name, func(t *testing.T) {
+						if test.Supports != nil && !test.Supports(target) {
+							t.Skip("unsupported target")
+						}
 						t.Parallel()
 						testReportGenerator(t, target, test)
 					})

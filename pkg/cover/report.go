@@ -627,10 +627,6 @@ func readTextRanges(file *elf.File) ([]pcRange, []*compileUnit, error) {
 					// It's unclear if we also need some offset on top of text.Addr,
 					// it gives approximately correct addresses, but not necessary precisely
 					// correct addresses.
-					// It would be good to add a test for this, but it's unclear what flag
-					// combination will give a similar binary. The following still gives
-					// matching .text/symbols/PC ranges:
-					// gcc test.c -g -fpie -pie -Wl,--section-start=.text=0x33300000
 					r[0] += text.Addr
 					r[1] += text.Addr
 					if r[0] >= r[1] || r[0] < text.Addr || r[1] > text.Addr+text.Size {
