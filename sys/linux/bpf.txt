@@ -63,6 +63,7 @@ bpf$ENABLE_STATS(cmd const[BPF_ENABLE_STATS], arg ptr[in, bpf_enable_stats_arg],
 bpf$ITER_CREATE(cmd const[BPF_ITER_CREATE], arg ptr[in, bpf_iter_create_arg], size len[arg]) fd
 bpf$LINK_GET_FD_BY_ID(cmd const[BPF_LINK_GET_FD_BY_ID], arg ptr[in, bpf_link_id], size len[arg]) fd_bpf_link
 bpf$LINK_GET_NEXT_ID(cmd const[BPF_LINK_GET_NEXT_ID], arg ptr[inout, bpf_link_get_next_id_arg], size len[arg])
+bpf$LINK_DETACH(cmd const[BPF_LINK_DETACH], arg ptr[in, fd_bpf_link], size len[arg])
 
 bpf_map_create_arg {
 	type			flags[bpf_map_type, int32]
