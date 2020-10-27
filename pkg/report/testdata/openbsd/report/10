@@ -1,6 +1,7 @@
 TITLE: witness: reversal: vmmaplk inode
+SUPPRESSED: Y
 
-lock order reversal:
+witness: lock order reversal:
 
  1st 0xfffffd806e935890 vmmaplk (&map->lock) @ /syzkaller/managers/setuid/kernel/sys/uvm/uvm_fault.c:1442
  2nd 0xfffffd806e099f88 inode (&ip->i_lock) @ /syzkaller/managers/setuid/kernel/sys/ufs/ufs/ufs_vnops.c:1547
