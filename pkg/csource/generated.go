@@ -7807,7 +7807,6 @@ static void loop();
 static void sandbox_common()
 {
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
-	setpgrp();
 	setsid();
 
 #if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI
