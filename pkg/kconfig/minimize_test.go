@@ -7,6 +7,8 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
+
+	"github.com/google/syzkaller/sys/targets"
 )
 
 func TestMinimize(t *testing.T) {
@@ -62,7 +64,7 @@ CONFIG_C=y
 `,
 		},
 	}
-	kconf, err := ParseData([]byte(kconfig), "kconf")
+	kconf, err := ParseData(targets.Get("linux", "amd64"), []byte(kconfig), "kconf")
 	if err != nil {
 		t.Fatal(err)
 	}

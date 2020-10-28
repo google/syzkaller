@@ -128,7 +128,8 @@ type Bisecter interface {
 }
 
 type ConfigMinimizer interface {
-	Minimize(original, baseline []byte, trace io.Writer, pred func(test []byte) (BisectResult, error)) ([]byte, error)
+	Minimize(target *targets.Target, original, baseline []byte, trace io.Writer,
+		pred func(test []byte) (BisectResult, error)) ([]byte, error)
 }
 
 type Commit struct {

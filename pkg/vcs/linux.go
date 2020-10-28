@@ -18,6 +18,7 @@ import (
 	"github.com/google/syzkaller/pkg/kconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type linux struct {
@@ -308,13 +309,13 @@ func ParseMaintainersLinux(text []byte) Recipients {
 
 const configBisectTag = "# Minimized by syzkaller"
 
-func (ctx *linux) Minimize(original, baseline []byte, trace io.Writer,
+func (ctx *linux) Minimize(target *targets.Target, original, baseline []byte, trace io.Writer,
 	pred func(test []byte) (BisectResult, error)) ([]byte, error) {
 	if bytes.HasPrefix(original, []byte(configBisectTag)) {
 		fmt.Fprintf(trace, "# configuration already minimized\n")
 		return original, nil
 	}
-	kconf, err := kconfig.Parse(filepath.Join(ctx.git.dir, "Kconfig"))
+	kconf, err := kconfig.Parse(target, filepath.Join(ctx.git.dir, "Kconfig"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse Kconfig: %v", err)
 	}
