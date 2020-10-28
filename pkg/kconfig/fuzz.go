@@ -3,8 +3,12 @@
 
 package kconfig
 
+import (
+	"github.com/google/syzkaller/sys/targets"
+)
+
 func FuzzParseKConfig(data []byte) int {
-	ParseData(data, "kconfig")
+	ParseData(targets.Get("linux", "amd64"), data, "kconfig")
 	return 0
 }
 

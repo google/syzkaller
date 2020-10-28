@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/google/syzkaller/sys/targets"
 )
 
 // KConfig represents a parsed Kconfig file (including includes).
@@ -107,6 +109,7 @@ func (m *Menu) Prompt() string {
 
 type kconfigParser struct {
 	*parser
+	target    *targets.Target
 	includes  []*parser
 	stack     []*Menu
 	cur       *Menu
@@ -114,17 +117,18 @@ type kconfigParser struct {
 	helpIdent int
 }
 
-func Parse(file string) (*KConfig, error) {
+func Parse(target *targets.Target, file string) (*KConfig, error) {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open Kconfig file %v: %v", file, err)
 	}
-	return ParseData(data, file)
+	return ParseData(target, data, file)
 }
 
-func ParseData(data []byte, file string) (*KConfig, error) {
+func ParseData(target *targets.Target, data []byte, file string) (*KConfig, error) {
 	kp := &kconfigParser{
 		parser:  newParser(data, file),
+		target:  target,
 		baseDir: filepath.Dir(file),
 	}
 	kp.parseFile()
@@ -403,5 +407,5 @@ func (kp *kconfigParser) parseDefaultValue() {
 }
 
 func (kp *kconfigParser) expandString(str string) string {
-	return strings.Replace(str, "$(SRCARCH)", "x86", -1)
+	return strings.Replace(str, "$(SRCARCH)", kp.target.KernelHeaderArch, -1)
 }
