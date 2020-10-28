@@ -681,7 +681,8 @@ func (c *command) handshake() error {
 		read <- nil
 	}()
 	// Sandbox setup can take significant time.
-	timeout := time.NewTimer(time.Minute)
+	//!!! double check how this plays with "no output" detection.
+	timeout := time.NewTimer(5 * time.Minute)
 	select {
 	case err := <-read:
 		timeout.Stop()

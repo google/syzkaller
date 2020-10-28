@@ -299,7 +299,7 @@ func (mgr *Manager) vmLoop() {
 	go func() {
 		for i := 0; i < vmCount; i++ {
 			bootInstance <- i
-			time.Sleep(10 * time.Second)
+			time.Sleep(60 * time.Second)
 		}
 	}()
 	var instances []int
