@@ -9235,7 +9235,6 @@ static void setup_sysctl()
 		const char* data;
 	} files[] = {
 	    {"/sys/kernel/debug/x86/nmi_longest_ns", "10000000000"},
-	    {"/proc/sys/kernel/watchdog_thresh", "55"},
 	    {"/proc/sys/kernel/hung_task_check_interval_secs", "20"},
 	    {"/proc/sys/net/core/bpf_jit_enable", "1"},
 	    {"/proc/sys/net/core/bpf_jit_kallsyms", "1"},
