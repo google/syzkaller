@@ -13,9 +13,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/kconfig"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 func main() {
@@ -24,9 +26,10 @@ func main() {
 		flagBase      = flag.String("base", "", "baseline config")
 		flagFull      = flag.String("full", "", "full config")
 		flagConfigs   = flag.String("configs", "", "comma-separated list of configs for the crash predicate")
+		flagArch      = flag.String("arch", runtime.GOARCH, "kernel arch")
 	)
 	flag.Parse()
-	kconf, err := kconfig.Parse(filepath.Join(*flagSourceDir, "Kconfig"))
+	kconf, err := kconfig.Parse(targets.Get("linux", *flagArch), filepath.Join(*flagSourceDir, "Kconfig"))
 	if err != nil {
 		failf("%v", err)
 	}

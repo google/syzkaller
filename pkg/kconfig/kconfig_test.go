@@ -6,6 +6,8 @@ package kconfig
 import (
 	"fmt"
 	"testing"
+
+	"github.com/google/syzkaller/sys/targets"
 )
 
 func TestParseKConfig(t *testing.T) {
@@ -21,9 +23,10 @@ config FOO
 `,
 		},
 	}
+	target := targets.Get("linux", "amd64")
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			kconf, err := ParseData([]byte(test.in), "Kconfig")
+			kconf, err := ParseData(target, []byte(test.in), "Kconfig")
 			if err != nil {
 				t.Fatal(err)
 			}
