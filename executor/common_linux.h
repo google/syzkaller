@@ -4591,10 +4591,6 @@ static void setup_sysctl()
 	    // and are not matched against the suppression in pkg/report.
 	    // This write prevents these messages from being printed.
 	    {"/sys/kernel/debug/x86/nmi_longest_ns", "10000000000"},
-	    // This is part of deterministic hang/stall detection.
-	    // Don't change this without considering workqueue.watchdog_thresh,
-	    // CONFIG_RCU_CPU_STALL_TIMEOUT and CONFIG_DEFAULT_HUNG_TASK_TIMEOUT.
-	    {"/proc/sys/kernel/watchdog_thresh", "55"},
 	    {"/proc/sys/kernel/hung_task_check_interval_secs", "20"},
 	    // This gives more interesting coverage.
 	    {"/proc/sys/net/core/bpf_jit_enable", "1"},
