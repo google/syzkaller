@@ -1080,9 +1080,6 @@ func (mgr *Manager) machineChecked(a *rpctype.CheckArgs, enabledSyscalls map[*pr
 			}
 		}
 	}
-	if a.Error != "" {
-		log.Fatalf("machine check: %v", a.Error)
-	}
 	log.Logf(0, "machine check:")
 	log.Logf(0, "%-24v: %v/%v", "syscalls", len(enabledSyscalls), len(mgr.target.Syscalls))
 	for _, feat := range a.Features.Supported() {

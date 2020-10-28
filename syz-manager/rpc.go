@@ -27,14 +27,15 @@ type RPCServer struct {
 	sandbox               string
 	batchSize             int
 
-	mu           sync.Mutex
-	fuzzers      map[string]*Fuzzer
-	checkResult  *rpctype.CheckArgs
-	maxSignal    signal.Signal
-	corpusSignal signal.Signal
-	corpusCover  cover.Cover
-	rotator      *prog.Rotator
-	rnd          *rand.Rand
+	mu            sync.Mutex
+	fuzzers       map[string]*Fuzzer
+	checkResult   *rpctype.CheckArgs
+	maxSignal     signal.Signal
+	corpusSignal  signal.Signal
+	corpusCover   cover.Cover
+	rotator       *prog.Rotator
+	rnd           *rand.Rand
+	checkFailures int
 }
 
 type Fuzzer struct {
@@ -197,6 +198,14 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *int) error {
 
 	if serv.checkResult != nil {
 		return nil
+	}
+	if a.Error != "" {
+		log.Logf(0, "machine check failed: %v", a.Error)
+		serv.checkFailures++
+		if serv.checkFailures == 10 {
+			log.Fatalf("machine check failing")
+		}
+		return fmt.Errorf("you failed")
 	}
 	serv.targetEnabledSyscalls = make(map[*prog.Syscall]bool)
 	for _, call := range a.EnabledCalls[serv.sandbox] {
