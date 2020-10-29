@@ -261,7 +261,7 @@ var (
 	gitSSHRepoRe = regexp.MustCompile(`^(git|ssh|http|https|ftp|ftps)@[a-zA-Z0-9-_]+(\.[a-zA-Z0-9-_]+)+(:[a-zA-Z0-9-_]+)?(/[a-zA-Z0-9-_./]+)?(/)?$`)
 	gitBranchRe  = regexp.MustCompile("^[a-zA-Z0-9-_/.]{2,200}$")
 	gitHashRe    = regexp.MustCompile("^[a-f0-9]{8,40}$")
-	releaseTagRe = regexp.MustCompile(`^v([0-9]+).([0-9]+)(?:\.([0-9]+))?$`)
+	releaseTagRe = regexp.MustCompile(`^v([0-9]+).([0-9]+)(?:-rc([0-9]+))?(?:\.([0-9]+))?$`)
 	// CC: is intentionally not on this list, see #1441.
 	ccRes = []*regexp.Regexp{
 		regexp.MustCompile(`^Reviewed\-.*: (.*)$`),

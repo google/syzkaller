@@ -21,7 +21,7 @@ func newTestos(dir string, opts []RepoOpt) *testos {
 }
 
 func (ctx *testos) PreviousReleaseTags(commit string) ([]string, error) {
-	return ctx.git.previousReleaseTags(commit, false, false)
+	return ctx.git.previousReleaseTags(commit, false, false, false)
 }
 
 func (ctx *testos) EnvForCommit(binDir, commit string, kernelConfig []byte) (*BisectEnv, error) {
