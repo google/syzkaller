@@ -379,6 +379,7 @@ func (inst *instance) boot() error {
 		"-mon", "chardev=SOCKSYZ,mode=control",
 		"-display", "none",
 		"-serial", "stdio",
+		"-device", "virtio-rng-pci",
 		"-no-reboot",
 		"-name", fmt.Sprintf("VM-%v", inst.index),
 	}
