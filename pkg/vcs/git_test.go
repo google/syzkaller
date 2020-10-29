@@ -97,11 +97,18 @@ v3.11
 v3.19
 v3.9
 v3.2
+v4.9-rc1
 v4.9
+v4.9-rc3
+v4.9-rc2
 v2.6.32
 v4.0
+vv4.1
+v2.6-rc5
+v4.1foo
 voo
 v1.foo
+v2.6-rc2
 v10.2.foo
 v1.2.
 v1.
@@ -121,8 +128,32 @@ v1.
 		"v2.6.13",
 		"v2.6.12",
 	}
-	got := gitParseReleaseTags([]byte(input))
+	got := gitParseReleaseTags([]byte(input), false)
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("got bad tags\ngot:  %+v\nwant: %+v", got, want)
+	}
+	wantRC := []string{
+		"v4.9",
+		"v4.9-rc3",
+		"v4.9-rc2",
+		"v4.9-rc1",
+		"v4.0",
+		"v3.19",
+		"v3.11",
+		"v3.10",
+		"v3.9",
+		"v3.2",
+		"v3.1",
+		"v3.0",
+		"v2.6.39",
+		"v2.6.32",
+		"v2.6.13",
+		"v2.6.12",
+		"v2.6-rc5",
+		"v2.6-rc2",
+	}
+	gotRC := gitParseReleaseTags([]byte(input), true)
+	if !reflect.DeepEqual(gotRC, wantRC) {
+		t.Fatalf("got bad tags\ngot:  %+v\nwant: %+v", gotRC, wantRC)
 	}
 }

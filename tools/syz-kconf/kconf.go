@@ -323,7 +323,7 @@ func (ctx *Context) setTarget() error {
 
 func (ctx *Context) setReleaseFeatures() error {
 	tag := ctx.ReleaseTag
-	match := regexp.MustCompile(`^v([0-9]+)\.([0-9]+)(?:\.([0-9]+))?$`).FindStringSubmatch(tag)
+	match := regexp.MustCompile(`^v([0-9]+)\.([0-9]+)(?:-rc([0-9]+))?(?:\.([0-9]+))?$`).FindStringSubmatch(tag)
 	if match == nil {
 		return fmt.Errorf("bad release tag %q", tag)
 	}

@@ -39,7 +39,7 @@ func newLinux(dir string, opts []RepoOpt) *linux {
 }
 
 func (ctx *linux) PreviousReleaseTags(commit string) ([]string, error) {
-	tags, err := ctx.git.previousReleaseTags(commit, false, false)
+	tags, err := ctx.git.previousReleaseTags(commit, false, false, false)
 	if err != nil {
 		return nil, err
 	}
@@ -71,21 +71,24 @@ func (ctx *linux) PreviousReleaseTags(commit string) ([]string, error) {
 	return tags, nil
 }
 
-func gitParseReleaseTags(output []byte) []string {
+func gitParseReleaseTags(output []byte, includeRC bool) []string {
 	var tags []string
 	for _, tag := range bytes.Split(output, []byte{'\n'}) {
-		if releaseTagRe.Match(tag) && gitReleaseTagToInt(string(tag)) != 0 {
+		if gitReleaseTagToInt(string(tag), includeRC) != 0 {
 			tags = append(tags, string(tag))
 		}
 	}
 	sort.Slice(tags, func(i, j int) bool {
-		return gitReleaseTagToInt(tags[i]) > gitReleaseTagToInt(tags[j])
+		return gitReleaseTagToInt(tags[i], includeRC) > gitReleaseTagToInt(tags[j], includeRC)
 	})
 	return tags
 }
 
-func gitReleaseTagToInt(tag string) uint64 {
+func gitReleaseTagToInt(tag string, includeRC bool) uint64 {
 	matches := releaseTagRe.FindStringSubmatchIndex(tag)
+	if matches == nil {
+		return 0
+	}
 	v1, err := strconv.ParseUint(tag[matches[2]:matches[3]], 10, 64)
 	if err != nil {
 		return 0
@@ -94,18 +97,28 @@ func gitReleaseTagToInt(tag string) uint64 {
 	if err != nil {
 		return 0
 	}
-	var v3 uint64
+	rc := uint64(999)
 	if matches[6] != -1 {
-		v3, err = strconv.ParseUint(tag[matches[6]:matches[7]], 10, 64)
+		if !includeRC {
+			return 0
+		}
+		rc, err = strconv.ParseUint(tag[matches[6]:matches[7]], 10, 64)
 		if err != nil {
 			return 0
 		}
 	}
-	return v1*1e6 + v2*1e3 + v3
+	var v3 uint64
+	if matches[8] != -1 {
+		v3, err = strconv.ParseUint(tag[matches[8]:matches[9]], 10, 64)
+		if err != nil {
+			return 0
+		}
+	}
+	return v1*1e9 + v2*1e6 + rc*1e3 + v3
 }
 
 func (ctx *linux) EnvForCommit(binDir, commit string, kernelConfig []byte) (*BisectEnv, error) {
-	tagList, err := ctx.previousReleaseTags(commit, true, false)
+	tagList, err := ctx.previousReleaseTags(commit, true, false, false)
 	if err != nil {
 		return nil, err
 	}

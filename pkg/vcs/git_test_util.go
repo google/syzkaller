@@ -90,7 +90,7 @@ func (repo *TestRepo) SetTag(tag string) {
 
 func (repo *TestRepo) SupportsBisection() bool {
 	// Detect too old git binary. --no-contains appeared in git 2.13.
-	_, err := repo.repo.previousReleaseTags("HEAD", true, false)
+	_, err := repo.repo.previousReleaseTags("HEAD", true, false, false)
 	return err == nil ||
 		!strings.Contains(err.Error(), "usage: git tag") &&
 			!strings.Contains(err.Error(), "error: unknown option")
