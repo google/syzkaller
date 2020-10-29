@@ -7,6 +7,7 @@ shell:
  - make kvm_guest.config: [-android]
 
 config:
+ - CMDLINE_BOOL
  # Should be faster this way.
  - MCORE2
  - BASE_FULL
@@ -43,5 +44,4 @@ config:
  - EFI: n
 
  - TRACE_EVENT_INJECT: [v5.5]
- - PREEMPTIRQ_TRACEPOINTS: [v5.5, optional]
  - PM_TRACE_RTC: [optional]
