@@ -137,7 +137,7 @@ config:
  - XFRM_INTERFACE
  - XFRM_SUB_POLICY
  - XFRM_STATISTICS
- - XFRM_USER_COMPAT: [linux-next]
+ - XFRM_USER_COMPAT: [v5.10]
  - NET_KEY
  - NET_KEY_MIGRATE
  - SMC
@@ -619,8 +619,8 @@ config:
  - CGROUP_NET_PRIO
  - BPF_JIT
  - BPF_STREAM_PARSER
- - BPF_PRELOAD: [linux-next]
- - BPF_PRELOAD_UMD: [linux-next]
+ - BPF_PRELOAD: [v5.10]
+ - BPF_PRELOAD_UMD: [v5.10]
  - HAMRADIO
  - AX25
  - AX25_DAMA_SLAVE
@@ -638,7 +638,7 @@ config:
  - CAN_RAW
  - CAN_BCM
  - CAN_GW
- - CAN_ISOTP: [linux-next]
+ - CAN_ISOTP: [v5.10]
  - CAN_CALC_BITTIMING
  - BT
  - BT_BREDR
@@ -696,7 +696,7 @@ config:
  - ATH10K_PCI
  - ATH10K_SDIO
  - ATH10K_USB
- - ATH11K: [linux-next]
+ - ATH11K: [v5.10]
  - WIMAX
  - WLAN_VENDOR_ATMEL: n
  - WLAN_VENDOR_BROADCOM: n
@@ -1267,7 +1267,7 @@ config:
  # It's introduced in v5.5 or so, but we want it in android-5.4, but it's not present in stable-5.4.
  # A better way to express this would to add "or" operator (v5.5||android-5.4), but for now we have this.
  - USB_RAW_GADGET: [v5.4, -stable-5.4]
- - USB_FEW_INIT_RETRIES: [linux-next]
+ - USB_FEW_INIT_RETRIES: [v5.10]
  - TYPEC
  - TYPEC_TCPM
  - TYPEC_UCSI
@@ -1322,9 +1322,9 @@ config:
  - STAGING
  - ANDROID
  - ASHMEM
- - ION
- - ION_SYSTEM_HEAP
- - ION_CMA_HEAP
+ - ION: [-v5.10]
+ - ION_SYSTEM_HEAP: [-v5.10]
+ - ION_CMA_HEAP: [-v5.10]
  - CHROME_PLATFORMS: n
  - AMD_IOMMU: n
  - INTEL_IOMMU: [x86_64]
@@ -1404,7 +1404,7 @@ config:
  - XFS_QUOTA
  - XFS_POSIX_ACL
  - XFS_RT
- - XFS_SUPPORT_V4: [linux-next]
+ - XFS_SUPPORT_V4: [v5.10]
  - GFS2_FS
  - GFS2_FS_LOCKING_DLM
  - OCFS2_FS
@@ -1441,7 +1441,7 @@ config:
  - QFMT_V2
  - AUTOFS4_FS
  - FUSE_FS
- - FUSE_DAX: [linux-next]
+ - FUSE_DAX: [v5.10]
  - CUSE
  - VIRTIO_FS
  - OVERLAY_FS
@@ -1583,7 +1583,7 @@ config:
  - TRUSTED_KEYS
  - KEY_DH_OPERATIONS
  - CRYPTO_USER
- - CRYPTO_USER_API_ENABLE_OBSOLETE: [linux-next]
+ - CRYPTO_USER_API_ENABLE_OBSOLETE: [v5.10]
  - CRYPTO_PCRYPT
  - CRYPTO_ECRDSA
  - CRYPTO_CURVE25519: [v5.6]
@@ -1661,7 +1661,7 @@ config:
  - CRYPTO_DEV_QAT_C3XXXVF: [x86_64]
  - CRYPTO_DEV_QAT_C62XVF: [x86_64]
  - CRYPTO_DEV_VIRTIO
- - CRYPTO_SM2: [linux-next]
+ - CRYPTO_SM2: [v5.10]
  - ASYMMETRIC_TPM_KEY_SUBTYPE
  - PKCS8_PRIVATE_KEY_PARSER
  - TPM_KEY_PARSER
