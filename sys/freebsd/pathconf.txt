@@ -1,0 +1,12 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <unistd.h>
+
+resource fd[int32]: 0xffffffffffffffff, AT_FDCWD
+
+pathconf(file ptr[in, filename], name flags[conf_value]) int64
+lpathconf(file ptr[in, filename], name flags[conf_value]) int64
+fpathconf(fd fd, name flags[conf_value]) int64
+
+conf_value = _PC_LINK_MAX, _PC_MAX_CANON, _PC_MAX_INPUT, _PC_NAME_MAX, _PC_PATH_MAX, _PC_PIPE_BUF, _PC_CHOWN_RESTRICTED, _PC_NO_TRUNC, _PC_VDISABLE, _PC_ASYNC_IO, _PC_PRIO_IO, _PC_SYNC_IO, _PC_ALLOC_SIZE_MIN, _PC_FILESIZEBITS, _PC_REC_INCR_XFER_SIZE, _PC_REC_MAX_XFER_SIZE, _PC_REC_MIN_XFER_SIZE, _PC_REC_XFER_ALIGN, _PC_SYMLINK_MAX, _PC_ACL_EXTENDED, _PC_ACL_NFS, _PC_ACL_PATH_MAX, _PC_CAP_PRESENT, _PC_INF_PRESENT, _PC_MAC_PRESENT, _PC_MIN_HOLE_SIZE
