@@ -10,6 +10,10 @@ config:
  - IA32_EMULATION: [x86_64]
  - X86_X32: [x86_64]
 
+ # Can get lots of interesting things on the PCI bus in qemu.
+ - PCI_HOST_GENERIC
+ - OF
+
  - SYSVIPC
  - POSIX_MQUEUE
  - NO_HZ
