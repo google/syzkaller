@@ -72,8 +72,9 @@ static int event_timedwait(event_t* ev, uint64 timeout)
 
 #if SYZ_EXECUTOR || SYZ_REPEAT || SYZ_NET_INJECTION || SYZ_FAULT || SYZ_SANDBOX_NONE || \
     SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID ||               \
-    SYZ_FAULT || SYZ_LEAK || SYZ_BINFMT_MISC ||                                         \
-    ((__NR_syz_usb_connect || __NR_syz_usb_connect_ath9k) && USB_DEBUG)
+    SYZ_FAULT || SYZ_LEAK || SYZ_BINFMT_MISC || SYZ_SYSCTL ||                           \
+    ((__NR_syz_usb_connect || __NR_syz_usb_connect_ath9k) && USB_DEBUG) ||              \
+    __NR_syz_usbip_server_init
 #include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
@@ -4579,6 +4580,9 @@ static void setup_usb()
 #endif
 
 #if SYZ_EXECUTOR || SYZ_SYSCTL
+#include <errno.h>
+#include <string.h>
+
 static void setup_sysctl()
 {
 	static struct {
