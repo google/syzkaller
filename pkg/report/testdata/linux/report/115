@@ -1,4 +1,4 @@
-TITLE: BUG: bad unlock balance detected! ]
+TITLE: BUG: bad unlock balance in corrupted
 CORRUPTED: Y
 
 [   76.640408] binder: undelivered TRANSACTION_ERROR: 29189

@@ -3559,7 +3559,6 @@ static void loop();
 static void sandbox_common()
 {
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
-	setpgrp();
 	setsid();
 
 #if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI
@@ -4576,6 +4575,42 @@ static void setup_usb()
 {
 	if (chmod("/dev/raw-gadget", 0666))
 		fail("failed to chmod /dev/raw-gadget");
+}
+#endif
+
+#if SYZ_EXECUTOR || SYZ_SYSCTL
+static void setup_sysctl()
+{
+	static struct {
+		const char* name;
+		const char* data;
+	} files[] = {
+	    // nmi_check_duration() prints "INFO: NMI handler took too long" on slow debug kernels.
+	    // It happens a lot in qemu, and the messages are frequently corrupted
+	    // (intermixed with other kernel output as they are printed from NMI)
+	    // and are not matched against the suppression in pkg/report.
+	    // This write prevents these messages from being printed.
+	    {"/sys/kernel/debug/x86/nmi_longest_ns", "10000000000"},
+	    {"/proc/sys/kernel/hung_task_check_interval_secs", "20"},
+	    // This gives more interesting coverage.
+	    {"/proc/sys/net/core/bpf_jit_enable", "1"},
+	    // bpf_jit_kallsyms and disabling bpf_jit_harden are required
+	    // for unwinding through bpf functions.
+	    {"/proc/sys/net/core/bpf_jit_kallsyms", "1"},
+	    {"/proc/sys/net/core/bpf_jit_harden", "0"},
+	    // This is to provide more useful info in crash reports.
+	    {"/proc/sys/kernel/kptr_restrict", "0"},
+	    {"/proc/sys/kernel/softlockup_all_cpu_backtrace", "1"},
+	    // This is to restrict effects of recursive exponential mounts, for details see
+	    // "mnt: Add a per mount namespace limit on the number of mounts" commit.
+	    {"/proc/sys/fs/mount-max", "100"},
+	    // Dumping all tasks to console can take too long.
+	    {"/proc/sys/vm/oom_dump_tasks", "0"},
+	};
+	for (size_t i = 0; i < sizeof(files) / sizeof(files[0]); i++) {
+		if (!write_file(files[i].name, files[i].data))
+			printf("write to %s failed: %s\n", files[i].name, strerror(errno));
+	}
 }
 #endif
 

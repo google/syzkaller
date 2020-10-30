@@ -71,10 +71,6 @@ func main() {
 				failf("failed to checkout %v/%v: %v", inst.Kernel.Repo, inst.Kernel.Tag, err)
 			}
 		}
-		kconf, err := kconfig.Parse(filepath.Join(*flagSourceDir, "Kconfig"))
-		if err != nil {
-			fail(err)
-		}
 		releaseTag, err := repo.ReleaseTag("HEAD")
 		if err != nil {
 			fail(err)
@@ -95,7 +91,6 @@ func main() {
 				ConfigDir:  filepath.Dir(*flagConfig),
 				SourceDir:  *flagSourceDir,
 				ReleaseTag: releaseTag,
-				Kconf:      kconf,
 			}
 			go func() {
 				if err := ctx.generate(); err != nil {
@@ -137,6 +132,9 @@ func (ctx *Context) generate() error {
 	}
 	defer os.RemoveAll(ctx.BuildDir)
 	if err := ctx.setTarget(); err != nil {
+		return err
+	}
+	if ctx.Kconf, err = kconfig.Parse(ctx.Target, filepath.Join(ctx.SourceDir, "Kconfig")); err != nil {
 		return err
 	}
 	if err := ctx.setReleaseFeatures(); err != nil {
@@ -323,7 +321,7 @@ func (ctx *Context) setTarget() error {
 
 func (ctx *Context) setReleaseFeatures() error {
 	tag := ctx.ReleaseTag
-	match := regexp.MustCompile(`^v([0-9]+)\.([0-9]+)(?:\.([0-9]+))?$`).FindStringSubmatch(tag)
+	match := regexp.MustCompile(`^v([0-9]+)\.([0-9]+)(?:-rc([0-9]+))?(?:\.([0-9]+))?$`).FindStringSubmatch(tag)
 	if match == nil {
 		return fmt.Errorf("bad release tag %q", tag)
 	}

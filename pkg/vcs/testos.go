@@ -6,6 +6,8 @@ package vcs
 import (
 	"fmt"
 	"io"
+
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type testos struct {
@@ -21,14 +23,14 @@ func newTestos(dir string, opts []RepoOpt) *testos {
 }
 
 func (ctx *testos) PreviousReleaseTags(commit string) ([]string, error) {
-	return ctx.git.previousReleaseTags(commit, false, false)
+	return ctx.git.previousReleaseTags(commit, false, false, false)
 }
 
 func (ctx *testos) EnvForCommit(binDir, commit string, kernelConfig []byte) (*BisectEnv, error) {
 	return &BisectEnv{KernelConfig: kernelConfig}, nil
 }
 
-func (ctx *testos) Minimize(original, baseline []byte, trace io.Writer,
+func (ctx *testos) Minimize(target *targets.Target, original, baseline []byte, trace io.Writer,
 	pred func(test []byte) (BisectResult, error)) ([]byte, error) {
 	if res, err := pred(baseline); err != nil {
 		return nil, err

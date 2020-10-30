@@ -7807,7 +7807,6 @@ static void loop();
 static void sandbox_common()
 {
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
-	setpgrp();
 	setsid();
 
 #if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI
@@ -9228,6 +9227,30 @@ static void setup_usb()
 }
 #endif
 
+#if SYZ_EXECUTOR || SYZ_SYSCTL
+static void setup_sysctl()
+{
+	static struct {
+		const char* name;
+		const char* data;
+	} files[] = {
+	    {"/sys/kernel/debug/x86/nmi_longest_ns", "10000000000"},
+	    {"/proc/sys/kernel/hung_task_check_interval_secs", "20"},
+	    {"/proc/sys/net/core/bpf_jit_enable", "1"},
+	    {"/proc/sys/net/core/bpf_jit_kallsyms", "1"},
+	    {"/proc/sys/net/core/bpf_jit_harden", "0"},
+	    {"/proc/sys/kernel/kptr_restrict", "0"},
+	    {"/proc/sys/kernel/softlockup_all_cpu_backtrace", "1"},
+	    {"/proc/sys/fs/mount-max", "100"},
+	    {"/proc/sys/vm/oom_dump_tasks", "0"},
+	};
+	for (size_t i = 0; i < sizeof(files) / sizeof(files[0]); i++) {
+		if (!write_file(files[i].name, files[i].data))
+			printf("write to %s failed: %s\n", files[i].name, strerror(errno));
+	}
+}
+#endif
+
 #if GOARCH_s390x
 #include <sys/mman.h>
 #define CAST(f) ({void* p = (void*)f; p; })
@@ -10107,6 +10130,9 @@ int main(void)
 	/*{{{MMAP_DATA}}}*/
 #endif
 
+#if SYZ_SYSCTL
+	setup_sysctl();
+#endif
 #if SYZ_BINFMT_MISC
 	setup_binfmt_misc();
 #endif

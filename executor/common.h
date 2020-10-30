@@ -740,6 +740,9 @@ int main(void)
 	/*{{{MMAP_DATA}}}*/
 #endif
 
+#if SYZ_SYSCTL
+	setup_sysctl();
+#endif
 #if SYZ_BINFMT_MISC
 	setup_binfmt_misc();
 #endif

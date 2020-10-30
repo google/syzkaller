@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type Config struct {
@@ -62,6 +63,7 @@ type ReproConfig struct {
 
 type env struct {
 	cfg          *Config
+	target       *targets.Target
 	repo         vcs.Repo
 	bisecter     vcs.Bisecter
 	minimizer    vcs.ConfigMinimizer
@@ -132,8 +134,13 @@ func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
 	if !ok && len(cfg.Kernel.BaselineConfig) != 0 {
 		return nil, fmt.Errorf("config minimization is not implemented for %v", cfg.Manager.TargetOS)
 	}
+	target := targets.Get(cfg.Manager.TargetOS, cfg.Manager.TargetVMArch)
+	if target == nil {
+		return nil, fmt.Errorf("unknown target %v/%v", cfg.Manager.TargetOS, cfg.Manager.TargetVMArch)
+	}
 	env := &env{
 		cfg:       cfg,
+		target:    target,
 		repo:      repo,
 		bisecter:  bisecter,
 		minimizer: minimizer,
@@ -298,7 +305,7 @@ func (env *env) minimizeConfig() (*testResult, error) {
 		testResults[hash.Hash(test)] = testRes
 		return testRes.verdict, err
 	}
-	minConfig, err := env.minimizer.Minimize(env.cfg.Kernel.Config,
+	minConfig, err := env.minimizer.Minimize(env.target, env.cfg.Kernel.Config,
 		env.cfg.Kernel.BaselineConfig, env.cfg.Trace, predMinimize)
 	if err != nil {
 		return nil, err

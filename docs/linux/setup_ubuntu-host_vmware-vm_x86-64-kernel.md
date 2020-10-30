@@ -46,11 +46,14 @@ Assuming you want to create the new VM in `$VMPATH`, complete the wizard as foll
 * Guest OS type: Linux
 * Virtual Machine Name and Location: select `$VMPATH` as location and "debian" as name
 * Processors and Memory: select as appropriate
-* Network connection: NAT
+* Network connection: Use host-only networking
 * I/O Controller Type: LSI Logic
 * Virtual Disk Type: IDE
 * Disk: select "Use an existing virtual disk"
 * Existing Disk File: enter the path of `disk.vmdk` created above
+* Select "Cusomize Hardware..." and remove the "Printer" device if you have one. Add a new "Serial Port" device. For the serial port connection choose "Use socket (named pipe)" and enter "serial" for the socket path. At the end it should look like this:
+
+![Virtual Machine Settings](vmw-settings.png?raw=true)
 
 When you complete the wizard, you should have `$VMPATH/debian.vmx`. From this point onward, you no longer need the Workstation UI.
 
@@ -67,6 +70,11 @@ vmrun getGuestIPAddress $VMPATH/debian.vmx -wait
 SSH into the VM:
 ``` bash
 ssh -i key root@<vm-ip-address>
+```
+
+Connecting to the serial port of the VM (after it is started):
+``` bash
+nc -U $VMPATH/serial
 ```
 
 Stopping the VM:
@@ -104,7 +112,7 @@ mkdir workdir
 ./bin/syz-manager -config=my.cfg
 ```
 
-Syzkaller will create linked clone VMs from the `base_vmx` VM and then use ssh to copy and execute programs in them.
+Syzkaller will create full clone VMs from the `base_vmx` VM and then use ssh to copy and execute programs in them.
 The `base_vmx` VM will not be started and its disk will remain unmodified.
 
 If you get issues after `syz-manager` starts, consider running it with the `-debug` flag.

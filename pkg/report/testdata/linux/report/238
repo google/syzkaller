@@ -1,4 +1,4 @@
-TITLE: Unable to handle kernel paging request at virtual address ADDR
+TITLE: BUG: unable to handle kernel paging request in corrupted
 CORRUPTED: Y
 
 Unable to handle kernel paging request at virtual address 80b0f484

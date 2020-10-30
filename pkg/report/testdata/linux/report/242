@@ -1,4 +1,4 @@
-TITLE: kernel panic: Fatal exception
+TITLE: Alignment trap in corrupted
 CORRUPTED: Y
 
 Alignment trap: not handling instruction e1932f9f at [<8028bd58>]
