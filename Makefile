@@ -102,7 +102,8 @@ endif
 	bin/syz-extract bin/syz-fmt \
 	extract generate generate_go generate_sys \
 	format format_go format_cpp format_sys \
-	tidy test test_race check_copyright check_language check_whitespace check_links check_diff check_commits \
+	tidy test test_race \
+	check_copyright check_language check_whitespace check_links check_diff check_commits check_shebang \
 	presubmit presubmit_smoke presubmit_build presubmit_arch presubmit_big presubmit_race presubmit_old
 
 all: host target
@@ -276,7 +277,7 @@ presubmit:
 
 presubmit_smoke:
 	$(MAKE) generate
-	$(MAKE) -j100 check_commits check_diff check_copyright check_language check_whitespace check_links presubmit_build tidy
+	$(MAKE) -j100 check_commits check_diff check_copyright check_language check_whitespace check_links check_shebang presubmit_build tidy
 	$(MAKE) test
 
 presubmit_build:
@@ -383,3 +384,6 @@ check_diff:
 			sed "s#.*#&:1:1: The file is not formatted/regenerated. Run 'make generate' and include it into the commit.#g"; \
 		false; \
 	fi
+
+check_shebang:
+	./tools/check-shebang.sh
