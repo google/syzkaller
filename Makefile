@@ -372,7 +372,7 @@ check_commits:
 	./tools/check-commits.sh
 
 check_links:
-	python ./tools/check_links.py $$(pwd) $$(find -name '*.md' | grep -v "./vendor/")
+	python ./tools/check_links.py $$(pwd) $$(find . -name '*.md' | grep -v "./vendor/")
 
 # Check that the diff is empty. This is meant to be executed after generating
 # and formatting the code to make sure that everything is committed.
