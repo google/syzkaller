@@ -379,9 +379,13 @@ func (inst *instance) boot() error {
 		"-mon", "chardev=SOCKSYZ,mode=control",
 		"-display", "none",
 		"-serial", "stdio",
-		"-device", "virtio-rng-pci",
 		"-no-reboot",
 		"-name", fmt.Sprintf("VM-%v", inst.index),
+	}
+	if inst.target.Arch == targets.S390x {
+		args = append(args, "-device", "virtio-rng-ccw")
+	} else {
+		args = append(args, "-device", "virtio-rng-pci")
 	}
 	templateDir := filepath.Join(inst.workdir, "template")
 	args = append(args, splitArgs(inst.cfg.QemuArgs, templateDir, inst.index)...)
