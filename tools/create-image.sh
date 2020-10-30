@@ -181,10 +181,11 @@ cat $RELEASE.id_rsa.pub | sudo tee $DIR/root/.ssh/authorized_keys
 # Add perf support
 if [ $PERF = "true" ]; then
     cp -r $KERNEL $DIR/tmp/
+    BASENAME=$(basename $KERNEL)
     sudo chroot $DIR /bin/bash -c "apt-get update; apt-get install -y flex bison python-dev libelf-dev libunwind8-dev libaudit-dev libslang2-dev libperl-dev binutils-dev liblzma-dev libnuma-dev"
-    sudo chroot $DIR /bin/bash -c "cd /tmp/linux/tools/perf/; make"
-    sudo chroot $DIR /bin/bash -c "cp /tmp/linux/tools/perf/perf /usr/bin/"
-    rm -r $DIR/tmp/linux
+    sudo chroot $DIR /bin/bash -c "cd /tmp/$BASENAME/tools/perf/; make"
+    sudo chroot $DIR /bin/bash -c "cp /tmp/$BASENAME/tools/perf/perf /usr/bin/"
+    rm -r $DIR/tmp/$BASENAME
 fi
 
 # Add udev rules for custom drivers.
