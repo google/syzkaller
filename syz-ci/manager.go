@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -612,11 +613,7 @@ func (mgr *Manager) pollCommits(buildCommit string) ([]string, []dashapi.Commit,
 }
 
 func (mgr *Manager) uploadCoverReport() error {
-	GCS, err := gcs.NewClient()
-	if err != nil {
-		return fmt.Errorf("failed to create GCS client: %v", err)
-	}
-	defer GCS.Close()
+	// Get coverage report from manager.
 	addr := mgr.managercfg.HTTP
 	if addr != "" && addr[0] == ':' {
 		addr = "127.0.0.1" + addr // in case addr is ":port"
@@ -626,19 +623,52 @@ func (mgr *Manager) uploadCoverReport() error {
 		return fmt.Errorf("failed to get report: %v", err)
 	}
 	defer resp.Body.Close()
-	gcsPath := filepath.Join(mgr.cfg.CoverUploadPath, mgr.name+".html")
-	gcsWriter, err := GCS.FileWriter(gcsPath)
+	// Upload coverage report.
+	coverUploadURL := filepath.Join(mgr.cfg.CoverUploadPath, mgr.name+".html")
+	if strings.HasPrefix(coverUploadURL, "gs://") {
+		return uploadCoverReportGCS(strings.TrimPrefix(coverUploadURL, "gs://"), resp.Body)
+	} else if strings.HasPrefix(coverUploadURL, "http://") || strings.HasPrefix(coverUploadURL, "https://") {
+		return uploadCoverReportHTTPPut(coverUploadURL, resp.Body)
+	} else { // Use GCS as default to maintain backwards compatibility.
+		return uploadCoverReportGCS(coverUploadURL, resp.Body)
+	}
+}
+
+func uploadCoverReportGCS(coverUploadURL string, coverReport io.Reader) error {
+	GCS, err := gcs.NewClient()
+	if err != nil {
+		return fmt.Errorf("failed to create GCS client: %v", err)
+	}
+	defer GCS.Close()
+	gcsWriter, err := GCS.FileWriter(coverUploadURL)
 	if err != nil {
 		return fmt.Errorf("failed to create GCS writer: %v", err)
 	}
-	if _, err := io.Copy(gcsWriter, resp.Body); err != nil {
+	if _, err := io.Copy(gcsWriter, coverReport); err != nil {
 		gcsWriter.Close()
 		return fmt.Errorf("failed to copy report: %v", err)
 	}
 	if err := gcsWriter.Close(); err != nil {
 		return fmt.Errorf("failed to close gcs writer: %v", err)
 	}
-	return GCS.Publish(gcsPath)
+	return GCS.Publish(coverUploadURL)
+}
+
+func uploadCoverReportHTTPPut(coverUploadURL string, coverReport io.Reader) error {
+	req, err := http.NewRequest(http.MethodPut, coverUploadURL, coverReport)
+	if err != nil {
+		return fmt.Errorf("failed to create HTTP PUT request: %v", err)
+	}
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to perform HTTP PUT request: %v", err)
+	}
+	defer resp.Body.Close()
+	if !(resp.StatusCode >= 200 && resp.StatusCode <= 299) {
+		return fmt.Errorf("HTTP PUT failed with status code: %v", err)
+	}
+	return nil
 }
 
 // Errorf logs non-fatal error and sends it to dashboard.
