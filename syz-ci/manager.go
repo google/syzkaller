@@ -8,7 +8,9 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -624,13 +626,20 @@ func (mgr *Manager) uploadCoverReport() error {
 	}
 	defer resp.Body.Close()
 	// Upload coverage report.
-	coverUploadURL := filepath.Join(mgr.cfg.CoverUploadPath, mgr.name+".html")
-	if strings.HasPrefix(coverUploadURL, "gs://") {
-		return uploadCoverReportGCS(strings.TrimPrefix(coverUploadURL, "gs://"), resp.Body)
-	} else if strings.HasPrefix(coverUploadURL, "http://") || strings.HasPrefix(coverUploadURL, "https://") {
-		return uploadCoverReportHTTPPut(coverUploadURL, resp.Body)
+	coverUploadURL, err := url.Parse(mgr.cfg.CoverUploadPath)
+	if err != nil {
+		return fmt.Errorf("failed to parse cover upload path: %v", err)
+	}
+	coverUploadURL.Path = path.Join(coverUploadURL.Path, mgr.name+".html")
+	coverUploadURLStr := coverUploadURL.String()
+	log.Logf(0, "%v: uploading cover report to %v", mgr.name, coverUploadURLStr)
+	if strings.HasPrefix(coverUploadURLStr, "gs://") {
+		return uploadCoverReportGCS(strings.TrimPrefix(coverUploadURLStr, "gs://"), resp.Body)
+	} else if strings.HasPrefix(coverUploadURLStr, "http://") ||
+		strings.HasPrefix(coverUploadURLStr, "https://") {
+		return uploadCoverReportHTTPPut(coverUploadURLStr, resp.Body)
 	} else { // Use GCS as default to maintain backwards compatibility.
-		return uploadCoverReportGCS(coverUploadURL, resp.Body)
+		return uploadCoverReportGCS(coverUploadURLStr, resp.Body)
 	}
 }
 
@@ -666,7 +675,7 @@ func uploadCoverReportHTTPPut(coverUploadURL string, coverReport io.Reader) erro
 	}
 	defer resp.Body.Close()
 	if !(resp.StatusCode >= 200 && resp.StatusCode <= 299) {
-		return fmt.Errorf("HTTP PUT failed with status code: %v", err)
+		return fmt.Errorf("HTTP PUT failed with status code: %v", resp.StatusCode)
 	}
 	return nil
 }
