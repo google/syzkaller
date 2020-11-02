@@ -1,0 +1,34 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <sys/event.h>
+
+resource kqueue[fd]
+
+kqueue() kqueue
+kevent(kqueue kqueue, changelist ptr[in, array[kevent]], nchanges len[changelist], eventlist ptr[out, array[kevent]], nevents len[eventlist], timeout ptr[in, timespec])
+freebsd11_kevent(int fd, changelist ptr[in, array[freebsd11_kevent]], nchanges len[changelist], eventlist ptr[out, array[freebsd11_kevent]], nevents len[eventlist], timeout ptr[in, timespec])
+
+kevent {
+	ident	intptr
+	filter	flags[filters, int16]
+	flags	flags[evflags, int16]
+	fflags	flags[fflags, int32]
+	data	int64
+	udata	intptr
+	ext	array[int64, 4]
+}
+
+freebsd11_kevent {
+	ident	intptr
+	filter	flags[filters, int16]
+	flags	flags[evflags, int16]
+	fflags	flags[fflags, int32]
+	data	intptr
+	udata	intptr
+}
+
+evflags = EV_ADD, EV_ENABLE, EV_DISABLE, EV_DISPATCH, EV_DELETE, EV_RECEIPT, EV_ONESHOT, EV_CLEAR, EV_EOF, EV_ERROR
+filters = EVFILT_READ, EVFILT_WRITE, EVFILT_EMPTY, EVFILT_AIO, EVFILT_VNODE, EVFILT_PROC, EVFILT_PROCDESC, EVFILT_SIGNAL, EVFILT_TIMER, EVFILT_USER
+fflags = NOTE_LOWAT, NOTE_FILE_POLL, NOTE_ATTRIB, NOTE_CLOSE, NOTE_CLOSE_WRITE, NOTE_DELETE, NOTE_EXTEND, NOTE_LINK, NOTE_OPEN, NOTE_READ, NOTE_RENAME, NOTE_REVOKE, NOTE_WRITE, NOTE_EXIT, NOTE_FORK, NOTE_EXEC, NOTE_TRACK, NOTE_SECONDS, NOTE_MSECONDS, NOTE_USECONDS, NOTE_NSECONDS, NOTE_ABSTIME, NOTE_FFNOP, NOTE_FFAND, NOTE_FFOR, NOTE_FFCOPY, NOTE_FFCTRLMASK, NOTE_FFLAGSMASK, NOTE_TRIGGER
