@@ -205,7 +205,7 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *int) error {
 		if serv.checkFailures == 10 {
 			log.Fatalf("machine check failing")
 		}
-		return fmt.Errorf("you failed")
+		return fmt.Errorf("you loser")
 	}
 	serv.targetEnabledSyscalls = make(map[*prog.Syscall]bool)
 	for _, call := range a.EnabledCalls[serv.sandbox] {
