@@ -44,6 +44,14 @@ type GlobalConfig struct {
 	// Each namespace has own reporting config, own API clients
 	// and bugs are not merged across namespaces.
 	Namespaces map[string]*Config
+	// app's own email address which will appear in FROM field of mails sent by the app.
+	OwnEmailAddress string
+	// List of email addresses which are considered app's own email addresses.
+	// All emails sent from one of these email addresses shall be ignored by the app on reception.
+	ExtraOwnEmailAddresses []string
+	// Main part of the URL at which the app is reachable.
+	// This URL is used e.g. to construct HTML links contained in the emails sent by the app.
+	AppURL string
 }
 
 // Per-namespace config.

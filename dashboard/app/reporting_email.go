@@ -514,6 +514,9 @@ var sendEmail = func(c context.Context, msg *aemail.Message) error {
 }
 
 func ownEmail(c context.Context) string {
+	if config.OwnEmailAddress != "" {
+		return config.OwnEmailAddress
+	}
 	return fmt.Sprintf("syzbot@%v.appspotmail.com", appengine.AppID(c))
 }
 
@@ -522,11 +525,14 @@ func fromAddr(c context.Context) string {
 }
 
 func ownEmails(c context.Context) []string {
-	// Now we use syzbot@ but we used to use bot@, so we add them both.
-	return []string{
-		ownEmail(c),
-		fmt.Sprintf("bot@%v.appspotmail.com", appengine.AppID(c)),
+	emails := []string{ownEmail(c)}
+	if config.ExtraOwnEmailAddresses != nil {
+		emails = append(emails, config.ExtraOwnEmailAddresses...)
+	} else if config.OwnEmailAddress == "" {
+		// Now we use syzbot@ but we used to use bot@, so we add them both.
+		emails = append(emails, fmt.Sprintf("bot@%v.appspotmail.com", appengine.AppID(c)))
 	}
+	return emails
 }
 
 func sanitizeCC(c context.Context, cc []string) []string {
@@ -552,6 +558,9 @@ func externalLink(c context.Context, tag string, id int64) string {
 }
 
 func appURL(c context.Context) string {
+	if config.AppURL != "" {
+		return config.AppURL
+	}
 	return fmt.Sprintf("https://%v.appspot.com", appengine.AppID(c))
 }
 
