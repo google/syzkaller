@@ -57,7 +57,13 @@ func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]erro
 	if (env.config == "baseline-repro" || env.config == "new-minimized-config" || env.config == "original config") &&
 		(!env.test.fix && commit >= env.test.culprit || env.test.fix &&
 			commit < env.test.culprit) {
-		return crashErrors(numVMs, "crash occurs"), nil
+		var errors []error
+		if env.test.flaky {
+			errors = crashErrors(1, numVMs-1, "crash occurs")
+		} else {
+			errors = crashErrors(numVMs, 0, "crash occurs")
+		}
+		return errors, nil
 	}
 
 	return make([]error, numVMs), nil
@@ -158,6 +164,7 @@ type BisectionTest struct {
 	expectRep    bool
 	noopChange   bool
 	isRelease    bool
+	flaky        bool
 	commitLen    int
 	oldestLatest int
 	// input and output
@@ -173,6 +180,14 @@ var bisectionTests = []BisectionTest{
 		startCommit: 905,
 		commitLen:   1,
 		expectRep:   true,
+		culprit:     602,
+	},
+	{
+		name:        "cause-finds-cause",
+		startCommit: 905,
+		commitLen:   1,
+		expectRep:   true,
+		flaky:       true,
 		culprit:     602,
 	},
 	// Test bisection returns correct cause with different baseline/config combinations.
@@ -500,14 +515,17 @@ func checkTest(t *testing.T, test BisectionTest) {
 	}
 }
 
-func crashErrors(num int, title string) []error {
+func crashErrors(crashing, nonCrashing int, title string) []error {
 	var errors []error
-	for i := 0; i < num; i++ {
+	for i := 0; i < crashing; i++ {
 		errors = append(errors, &instance.CrashError{
 			Report: &report.Report{
 				Title: fmt.Sprintf("crashes at %v", title),
 			},
 		})
+	}
+	for i := 0; i < nonCrashing; i++ {
+		errors = append(errors, nil)
 	}
 	return errors
 }
