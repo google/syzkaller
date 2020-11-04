@@ -362,7 +362,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 
 	// Hack: if the manager has only, say, 5 VMs, but bisect wants 10, try to override number of VMs to 10.
 	// OverrideVMCount is opportunistic and should do it only if it's safe.
-	if err := instance.OverrideVMCount(mgrcfg, bisect.NumTests); err != nil {
+	if err := instance.OverrideVMCount(mgrcfg, bisect.MaxNumTests); err != nil {
 		return err
 	}
 
