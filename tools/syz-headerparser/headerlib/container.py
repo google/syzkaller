@@ -210,7 +210,7 @@ class GlobalHierarchy(dict):
             sr.set_global_hierarchy(self)
             self["struct %s" % (struct_name)] = sr
 
-        for struct_name in self.keys():
+        for struct_name in list(self.keys()):
             sr = self[struct_name]
             for field in sr.get_fields():
                 # If the item is a struct object, we link it against an

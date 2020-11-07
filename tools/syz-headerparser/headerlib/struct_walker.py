@@ -10,7 +10,7 @@ import collections
 import logging
 
 from pycparser import c_ast
-from header_preprocessor import HeaderFilePreprocessor
+from .header_preprocessor import HeaderFilePreprocessor
 
 
 class StructWalkerException(Exception):
