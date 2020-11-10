@@ -4,13 +4,13 @@
 package bisect
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strconv"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -122,10 +122,9 @@ func runBisection(t *testing.T, baseDir string, test BisectionTest) (*Result, er
 	if err != nil {
 		t.Fatal(err)
 	}
-	trace := new(bytes.Buffer)
 	cfg := &Config{
 		Fix:   test.fix,
-		Trace: trace,
+		Trace: &debugtracer.TestTracer{T: t},
 		Manager: &mgrconfig.Config{
 			Derived: mgrconfig.Derived{
 				TargetOS:     targets.TestOS,
@@ -147,7 +146,6 @@ func runBisection(t *testing.T, baseDir string, test BisectionTest) (*Result, er
 		test: test,
 	}
 	res, err := runImpl(cfg, r, inst)
-	t.Log(trace.String())
 	return res, err
 }
 

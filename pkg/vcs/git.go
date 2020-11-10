@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io"
 	"net/mail"
 	"os"
 	"os/exec"
@@ -16,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -431,7 +431,8 @@ func splitEmail(email string) (user, domain string, err error) {
 	return
 }
 
-func (git *git) Bisect(bad, good string, trace io.Writer, pred func() (BisectResult, error)) ([]*Commit, error) {
+func (git *git) Bisect(bad, good string, dt debugtracer.DebugTracer, pred func() (BisectResult,
+	error)) ([]*Commit, error) {
 	git.reset()
 	firstBad, err := git.getCommit(bad)
 	if err != nil {
@@ -442,7 +443,7 @@ func (git *git) Bisect(bad, good string, trace io.Writer, pred func() (BisectRes
 		return nil, err
 	}
 	defer git.reset()
-	fmt.Fprintf(trace, "# git bisect start %v %v\n%s", bad, good, output)
+	dt.Log("# git bisect start %v %v\n%s", bad, good, output)
 	current, err := git.HeadCommit()
 	if err != nil {
 		return nil, err
@@ -463,7 +464,7 @@ func (git *git) Bisect(bad, good string, trace io.Writer, pred func() (BisectRes
 			firstBad = current
 		}
 		output, err = git.git("bisect", bisectTerms[res])
-		fmt.Fprintf(trace, "# git bisect %v %v\n%s", bisectTerms[res], current.Hash, output)
+		dt.Log("# git bisect %v %v\n%s", bisectTerms[res], current.Hash, output)
 		if err != nil {
 			if bytes.Contains(output, []byte("There are only 'skip'ped commits left to test")) {
 				return git.bisectInconclusive(output)

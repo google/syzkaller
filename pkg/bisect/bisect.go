@@ -5,11 +5,10 @@ package bisect
 
 import (
 	"fmt"
-	"io"
-	"path/filepath"
 	"time"
 
 	"github.com/google/syzkaller/pkg/build"
+	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -19,11 +18,10 @@ import (
 )
 
 type Config struct {
-	Trace     io.Writer
+	Trace     debugtracer.DebugTracer
 	Fix       bool
 	BinDir    string
 	Ccache    string
-	DebugDir  string
 	Timeout   time.Duration
 	Kernel    KernelConfig
 	Syzkaller SyzkallerConfig
@@ -540,11 +538,7 @@ func (env *env) processResults(current *vcs.Commit, results []error) (bad, good 
 }
 
 func (env *env) saveDebugFile(hash string, idx int, data []byte) {
-	if env.cfg.DebugDir == "" || len(data) == 0 {
-		return
-	}
-	osutil.MkdirAll(env.cfg.DebugDir)
-	osutil.WriteFile(filepath.Join(env.cfg.DebugDir, fmt.Sprintf("%v.%v", hash, idx)), data)
+	env.cfg.Trace.SaveFile(fmt.Sprintf("%v.%v", hash, idx), data)
 }
 
 func checkConfig(cfg *Config) error {
@@ -564,5 +558,5 @@ func checkConfig(cfg *Config) error {
 }
 
 func (env *env) log(msg string, args ...interface{}) {
-	fmt.Fprintf(env.cfg.Trace, msg+"\n", args...)
+	env.cfg.Trace.Log(msg, args...)
 }

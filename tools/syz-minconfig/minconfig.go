@@ -16,6 +16,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/kconfig"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -49,7 +50,10 @@ func main() {
 		}
 		return true, nil
 	}
-	res, err := kconf.Minimize(base, full, pred, os.Stderr)
+	gt := &debugtracer.GenericTracer{
+		TraceWriter: os.Stdout,
+	}
+	res, err := kconf.Minimize(base, full, pred, gt)
 	if err != nil {
 		failf("%v", err)
 	}

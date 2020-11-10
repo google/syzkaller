@@ -4,9 +4,10 @@
 package kconfig
 
 import (
-	"fmt"
-	"io"
 	"sort"
+
+	"github.com/google/syzkaller/pkg/debugtracer"
+	"github.com/google/syzkaller/pkg/osutil"
 )
 
 // Minimize finds an equivalent with respect to the provided predicate, but smaller config.
@@ -15,15 +16,14 @@ import (
 // mostly by adding more configs. The minimization procedure thus consists of figuring out what set of configs that
 // are present in full and are not present in base affect the predicate.
 func (kconf *KConfig) Minimize(base, full *ConfigFile, pred func(*ConfigFile) (bool, error),
-	tw io.Writer) (*ConfigFile, error) {
-	trace := traceLogger{tw}
+	dt debugtracer.DebugTracer) (*ConfigFile, error) {
 	diff, other := kconf.missingConfigs(base, full)
-	trace.log("kconfig minimization: base=%v full=%v diff=%v", len(base.Configs), len(full.Configs), len(diff))
+	dt.Log("kconfig minimization: base=%v full=%v diff=%v", len(base.Configs), len(full.Configs), len(diff))
 	// First, check the base config as is, it is the smallest we can possibly get.
 	if res, err := pred(base); err != nil {
 		return nil, err
 	} else if res {
-		trace.log("base config crashes")
+		dt.Log("base config crashes")
 		return base, nil
 	}
 	// Since base does not crash, full config is our best bet for now.
@@ -45,7 +45,7 @@ top:
 	for len(diff) >= 2 {
 		half := len(diff) / 2
 		for _, part := range [][]string{diff[:half], diff[half:]} {
-			trace.log("trying half: %v", part)
+			dt.Log("trying half: %v", part)
 			closure := kconf.addDependencies(base, full, part)
 			candidate := base.clone()
 			// Always move all non-tristate configs from full to base as we don't minimize them.
@@ -60,20 +60,21 @@ top:
 				return nil, err
 			}
 			if res {
-				trace.log("half crashed")
+				dt.Log("half crashed")
 				diff = part
 				current = candidate
 				suspects = closure
 				continue top
 			}
 		}
-		trace.log("both halves did not crash")
+		dt.Log("both halves did not crash")
 		break
 	}
 	if suspects != nil {
-		trace.log("resulting configs: %v", suspects)
+		dt.Log("resulting configs: %v", suspects)
+		kconf.writeSuspects(dt, suspects)
 	} else {
-		trace.log("only full config crashes")
+		dt.Log("only full config crashes")
 	}
 	return current, nil
 }
@@ -110,10 +111,15 @@ func (kconf *KConfig) addDependencies(base, full *ConfigFile, configs []string) 
 	return sorted
 }
 
-type traceLogger struct{ io.Writer }
+const CauseConfigFile = "cause.config"
 
-func (trace traceLogger) log(msg string, args ...interface{}) {
-	if trace.Writer != nil {
-		fmt.Fprintf(trace.Writer, msg+"\n", args...)
+func (kconf *KConfig) writeSuspects(dt debugtracer.DebugTracer, suspects []string) {
+	cf := &ConfigFile{
+		Map: make(map[string]*Config),
 	}
+
+	for _, cfg := range suspects {
+		cf.Set(cfg, Yes)
+	}
+	osutil.WriteFile(CauseConfigFile, cf.Serialize())
 }

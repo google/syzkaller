@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/syzkaller/pkg/debugtracer"
 )
 
 func init() {
@@ -378,7 +379,7 @@ func TestBisect(t *testing.T) {
 	}
 	for i, test := range tests {
 		t.Logf("TEST %v", i)
-		result, err := repo.repo.Bisect(commits[4], commits[0], (*testWriter)(t), test.pred)
+		result, err := repo.repo.Bisect(commits[4], commits[0], &debugtracer.TestTracer{T: t}, test.pred)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -393,11 +394,4 @@ func TestBisect(t *testing.T) {
 			t.Fatal(diff)
 		}
 	}
-}
-
-type testWriter testing.T
-
-func (t *testWriter) Write(data []byte) (int, error) {
-	(*testing.T)(t).Log(string(data))
-	return len(data), nil
 }

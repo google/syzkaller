@@ -4,10 +4,10 @@
 package kconfig
 
 import (
-	"bytes"
 	"fmt"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -106,9 +106,7 @@ CONFIG_ROSE=y
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			trace := new(bytes.Buffer)
-			res, err := kconf.Minimize(base, full, test.pred, trace)
-			t.Log(trace.String())
+			res, err := kconf.Minimize(base, full, test.pred, &debugtracer.TestTracer{T: t})
 			if err != nil {
 				t.Fatal(err)
 			}
