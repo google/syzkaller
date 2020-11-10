@@ -7,7 +7,6 @@ package vcs
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"net/mail"
 	"regexp"
 	"sort"
@@ -15,6 +14,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -116,7 +116,7 @@ type Bisecter interface {
 	// Progress of the process is streamed to the provided trace.
 	// Returns the first commit on which the predicate returns BisectBad,
 	// or multiple commits if bisection is inconclusive due to BisectSkip.
-	Bisect(bad, good string, trace io.Writer, pred func() (BisectResult, error)) ([]*Commit, error)
+	Bisect(bad, good string, dt debugtracer.DebugTracer, pred func() (BisectResult, error)) ([]*Commit, error)
 
 	// PreviousReleaseTags returns list of preceding release tags that are reachable from the given commit.
 	// If the commit itself has a release tag, this tag is not included.
@@ -128,7 +128,7 @@ type Bisecter interface {
 }
 
 type ConfigMinimizer interface {
-	Minimize(target *targets.Target, original, baseline []byte, trace io.Writer,
+	Minimize(target *targets.Target, original, baseline []byte, dt debugtracer.DebugTracer,
 		pred func(test []byte) (BisectResult, error)) ([]byte, error)
 }
 

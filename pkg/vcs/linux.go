@@ -6,7 +6,6 @@ package vcs
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"net/mail"
 	"path/filepath"
 	"regexp"
@@ -15,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/kconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
@@ -237,8 +237,9 @@ func linuxAlterConfigs(cf *kconfig.ConfigFile, tags map[string]bool) {
 	}
 }
 
-func (ctx *linux) Bisect(bad, good string, trace io.Writer, pred func() (BisectResult, error)) ([]*Commit, error) {
-	commits, err := ctx.git.Bisect(bad, good, trace, pred)
+func (ctx *linux) Bisect(bad, good string, dt debugtracer.DebugTracer, pred func() (BisectResult,
+	error)) ([]*Commit, error) {
+	commits, err := ctx.git.Bisect(bad, good, dt, pred)
 	if len(commits) == 1 {
 		ctx.addMaintainers(commits[0])
 	}
@@ -309,10 +310,10 @@ func ParseMaintainersLinux(text []byte) Recipients {
 
 const configBisectTag = "# Minimized by syzkaller"
 
-func (ctx *linux) Minimize(target *targets.Target, original, baseline []byte, trace io.Writer,
-	pred func(test []byte) (BisectResult, error)) ([]byte, error) {
+func (ctx *linux) Minimize(target *targets.Target, original, baseline []byte,
+	dt debugtracer.DebugTracer, pred func(test []byte) (BisectResult, error)) ([]byte, error) {
 	if bytes.HasPrefix(original, []byte(configBisectTag)) {
-		fmt.Fprintf(trace, "# configuration already minimized\n")
+		dt.Log("# configuration already minimized\n")
 		return original, nil
 	}
 	kconf, err := kconfig.Parse(target, filepath.Join(ctx.git.dir, "Kconfig"))
@@ -333,7 +334,7 @@ func (ctx *linux) Minimize(target *targets.Target, original, baseline []byte, tr
 		res, err := pred(serialize(candidate))
 		return res == BisectBad, err
 	}
-	minConfig, err := kconf.Minimize(baselineConfig, originalConfig, kconfPred, trace)
+	minConfig, err := kconf.Minimize(baselineConfig, originalConfig, kconfPred, dt)
 	if err != nil {
 		return nil, err
 	}

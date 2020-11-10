@@ -26,6 +26,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/bisect"
 	"github.com/google/syzkaller/pkg/config"
+	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
@@ -87,11 +88,13 @@ func main() {
 		defer os.RemoveAll(mgrcfg.Workdir)
 	}
 	cfg := &bisect.Config{
-		Trace:    os.Stdout,
-		Fix:      *flagFix,
-		BinDir:   mycfg.BinDir,
-		Ccache:   mycfg.Ccache,
-		DebugDir: *flagCrash,
+		Trace: &debugtracer.GenericTracer{
+			TraceWriter: os.Stdout,
+			OutDir:      *flagCrash,
+		},
+		Fix:    *flagFix,
+		BinDir: mycfg.BinDir,
+		Ccache: mycfg.Ccache,
 		Kernel: bisect.KernelConfig{
 			Repo:      mycfg.KernelRepo,
 			Branch:    mycfg.KernelBranch,

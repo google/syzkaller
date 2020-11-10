@@ -5,8 +5,8 @@ package vcs
 
 import (
 	"fmt"
-	"io"
 
+	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -30,8 +30,8 @@ func (ctx *testos) EnvForCommit(binDir, commit string, kernelConfig []byte) (*Bi
 	return &BisectEnv{KernelConfig: kernelConfig}, nil
 }
 
-func (ctx *testos) Minimize(target *targets.Target, original, baseline []byte, trace io.Writer,
-	pred func(test []byte) (BisectResult, error)) ([]byte, error) {
+func (ctx *testos) Minimize(target *targets.Target, original, baseline []byte,
+	dt debugtracer.DebugTracer, pred func(test []byte) (BisectResult, error)) ([]byte, error) {
 	if res, err := pred(baseline); err != nil {
 		return nil, err
 	} else if res == BisectBad {

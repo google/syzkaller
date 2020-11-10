@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/bisect"
 	"github.com/google/syzkaller/pkg/build"
+	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -377,8 +378,10 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 	}
 	trace := new(bytes.Buffer)
 	cfg := &bisect.Config{
-		Trace:    io.MultiWriter(trace, log.VerboseWriter(3)),
-		DebugDir: osutil.Abs(filepath.Join("jobs", "debug", strings.Replace(req.ID, "|", "_", -1))),
+		Trace: &debugtracer.GenericTracer{
+			TraceWriter: io.MultiWriter(trace, log.VerboseWriter(3)),
+			OutDir:      osutil.Abs(filepath.Join("jobs", "debug", strings.Replace(req.ID, "|", "_", -1))),
+		},
 		// Out of 1049 cause bisections that we have now:
 		// -  891 finished under  6h (84.9%)
 		// -  957 finished under  8h (91.2%)
