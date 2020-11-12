@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/html"
+	"github.com/google/syzkaller/pkg/kconfig"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 )
@@ -42,11 +43,14 @@ type UISummaryData struct {
 }
 
 type UICrashType struct {
-	Description string
-	ID          string
-	Count       int
-	Reproducers map[string]string
-	Crashes     []*UICrash
+	Description    string
+	ID             string
+	Count          int
+	Reproducers    map[string]string
+	Crashes        []*UICrash
+	CausingCommits []string
+	FixingCommits  []string
+	CausingConfigs []string
 }
 
 type UICrash struct {
@@ -150,6 +154,9 @@ func readCrash(workdir, dir string) *UICrashType {
 	var crashes []*UICrash
 
 	reproducers := make(map[string]string)
+	var causingCommits []string
+	var fixingCommits []string
+	var causingConfigs []string
 	for _, f := range files {
 		if strings.HasPrefix(f, "log") {
 			index, err := strconv.ParseUint(f[3:], 10, 64)
@@ -170,14 +177,42 @@ func readCrash(workdir, dir string) *UICrashType {
 		if strings.HasSuffix(f, "prog") {
 			reproducers[f] = f
 		}
+
+		if f == "cause.commit" {
+			commits, err := ioutil.ReadFile(filepath.Join(crashdir, dir, f))
+			if err == nil {
+				causingCommits = strings.Split(string(commits), "\n")
+			}
+		}
+		if f == "fix.commit" {
+			commits, err := ioutil.ReadFile(filepath.Join(crashdir, dir, f))
+			if err == nil {
+				fixingCommits = strings.Split(string(commits), "\n")
+			}
+		}
+		if f == kconfig.CauseConfigFile {
+			configs, err := ioutil.ReadFile(filepath.Join(crashdir, dir, f))
+			if err == nil {
+				configsList := strings.Split(string(configs), "\n")
+				// Ignore configuration list longer than 10
+				if len(configsList) <= 10 {
+					causingConfigs = configsList
+				} else {
+					causingConfigs = []string{"..."}
+				}
+			}
+		}
 	}
 
 	return &UICrashType{
-		Description: desc,
-		ID:          dir,
-		Count:       len(crashes),
-		Reproducers: reproducers,
-		Crashes:     crashes,
+		Description:    desc,
+		ID:             dir,
+		Count:          len(crashes),
+		Reproducers:    reproducers,
+		Crashes:        crashes,
+		CausingCommits: causingCommits,
+		FixingCommits:  fixingCommits,
+		CausingConfigs: causingConfigs,
 	}
 }
 
@@ -211,15 +246,33 @@ var summaryTemplate = html.CreatePage(`
 		<th><a onclick="return sortTable(this, 'Description', textSort)" href="#">Description</a></th>
 		<th><a onclick="return sortTable(this, 'Count', numSort)" href="#">Count</a></th>
 		<th><a onclick="return sortTable(this, 'Reproducers', lineSort)" href="#">Reproducers</a></th>
+		<th><a onclick="return sortTable(this, 'Causing_Commits', lineSort)" href="#">Causing_Commits</a></th>
+		<th><a onclick="return sortTable(this, 'Fixing_Commits', lineSort)" href="#">Fixing_Commits</a></th>
+		<th><a onclick="return sortTable(this, 'Causing_Configs', lineSort)" href="#">Causing_Configs</a></th>
 	</tr>
 	{{range $c := $.Crashes}}
 	<tr>
 		<td class="title">{{$c.Description}}</td>
 		<td class="stat">{{$c.Count}}</td>
 		<td class="reproducer">
-                {{range $reproducer := $c.Reproducers}}
-                {{$reproducer}}</br>
-                {{end}}
+		{{range $reproducer := $c.Reproducers}}
+		{{$reproducer}}</br>
+		{{end}}
+		</td>
+		<td class="Causing Commits">
+		{{range $commit := $c.CausingCommits}}
+		{{$commit}}</br>
+		{{end}}
+		</td>
+		<td class="Fixing Commits">
+		{{range $commit := $c.FixingCommits}}
+		{{$commit}}</br>
+		{{end}}
+		</td>
+		<td class="Causing Configs">
+		{{range $config := $c.CausingConfigs}}
+		{{$config}}</br>
+		{{end}}
 		</td>
 	</tr>
 	{{end}}
