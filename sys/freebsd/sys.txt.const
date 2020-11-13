@@ -151,6 +151,7 @@ SYS_symlink = 57
 SYS_symlinkat = 502
 SYS_sync = 36
 SYS_truncate = 479
+SYS_undelete = 205
 SYS_unlink = 10
 SYS_unlinkat = 503
 SYS_utimensat = 547
