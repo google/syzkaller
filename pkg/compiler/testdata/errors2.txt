@@ -370,6 +370,12 @@ foo$534(a ptr[in, flags[large_flags, int8]])	### large_flags U16_MAX=0xffff does
 
 large_flags = U8_MAX, U16_MAX
 
+equal_flags_0 = 0, 0, 0, 0		### all equal_flags_0 values are equal 0
+equal_flags_1 = 42, 42, 42, 42		### all equal_flags_1 values are equal 42
+non_equal_flags = 0, 0, 0, 1
+
+equal_flags_call(a flags[equal_flags_0], b flags[equal_flags_1], c flags[non_equal_flags])
+
 type type500 proc[C1, 8, int8]	### values starting from 1 with step 8 overflow base type for 32 procs
 type type501 int8		### unused type type501
 type type502[C] const[C, int8]	### unused type type502

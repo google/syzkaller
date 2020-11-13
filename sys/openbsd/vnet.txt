@@ -566,7 +566,7 @@ ipv6_hopots_ext_header {
 	options		array[ipv6_tlv_option]
 } [packed, align[8]]
 
-ipv6_routing_types = IPV6_RTHDR_LOOSE, IPV6_RTHDR_TYPE_0
+ipv6_routing_types = IPV6_RTHDR_LOOSE
 
 ipv6_rt_hdr {
 	next_header	flags[ipv6_types, int8]
