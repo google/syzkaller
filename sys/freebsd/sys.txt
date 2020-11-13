@@ -111,6 +111,7 @@ chdir(dir ptr[in, filename])
 fchdir(fd fd)
 copy_file_range(infd fd, inoffp ptr[inout, fileoff[int64]], outfd fd, outoffp ptr[inout, fileoff[int64]], len int64, flags flags[copy_file_range_flags])
 __realpathat(dirfd fd, path ptr[in, filename], buf ptr[out, string], size len[buf], flags flags[realpathat_flags])
+undelete(path ptr[in, filename])
 
 getrusage(who flags[rusage_who], usage ptr[out, rusage])
 getrlimit(res flags[rlimit_type], rlim ptr[out, rlimit])
