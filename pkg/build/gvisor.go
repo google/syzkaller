@@ -4,7 +4,9 @@
 package build
 
 import (
+	"fmt"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -13,32 +15,46 @@ import (
 
 type gvisor struct{}
 
+var bazelTargetPath = regexp.MustCompile(`(?sm:.*^)\s*Outputs: \[(.*)\](?sm:$.*)`)
+
 func (gvisor gvisor) build(params *Params) error {
 	// Bring down bazel daemon right away. We don't need it running and consuming memory.
 	defer osutil.RunCmd(10*time.Minute, params.KernelDir, params.Compiler, "shutdown")
 
 	config := " " + string(params.Config) + " "
 	args := []string{"build", "--verbose_failures"}
-	outBinary := ""
+	target := "//runsc:runsc"
 	if strings.Contains(config, " -cover ") {
 		args = append(args, []string{
 			"--collect_code_coverage",
 			"--instrumentation_filter=//pkg/...,-//pkg/sentry/platform/..."}...)
 	}
 	if strings.Contains(config, " -race ") {
-		args = append(args, "--features=race", "//runsc:runsc-race")
-		outBinary = "bazel-bin/runsc/linux_amd64_static_race_stripped/runsc-race"
-	} else {
-		args = append(args, "//runsc:runsc")
-		outBinary = "bazel-bin/runsc/linux_amd64_pure_stripped/runsc"
+		args = append(args, "--features=race")
+		target = "//runsc:runsc-race"
 	}
-	outBinary = filepath.Join(params.KernelDir, filepath.FromSlash(outBinary))
+	args = append(args, target)
 	// The 1 hour timeout is quite high. But we've seen false positives with 20 mins
 	// on the first build after bazel/deps update. Also other gvisor instances running
 	// on the same machine contribute to longer build times.
 	if _, err := osutil.RunCmd(60*time.Minute, params.KernelDir, params.Compiler, args...); err != nil {
 		return err
 	}
+
+	// Find out a path to the runsc binary.
+	out, err := osutil.RunCmd(time.Minute, params.KernelDir, params.Compiler,
+		"aquery", fmt.Sprintf("mnemonic(\"GoLink\", %s)", target))
+	if err != nil {
+		return err
+	}
+
+	match := bazelTargetPath.FindSubmatch(out)
+	if match == nil {
+		return fmt.Errorf("faile to find the runsc binary")
+	}
+	outBinary := string(match[1])
+	outBinary = filepath.Join(params.KernelDir, filepath.FromSlash(outBinary))
+
 	if err := osutil.CopyFile(outBinary, filepath.Join(params.OutputDir, "image")); err != nil {
 		return err
 	}
