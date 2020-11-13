@@ -248,7 +248,7 @@ func (comp *compiler) checkTypes() {
 
 func (comp *compiler) checkTypeValues() {
 	for _, decl := range comp.desc.Nodes {
-		switch decl.(type) {
+		switch n := decl.(type) {
 		case *ast.Call, *ast.Struct, *ast.Resource, *ast.TypeDef:
 			comp.foreachType(decl, func(t *ast.Type, desc *typeDesc,
 				args []*ast.Type, base prog.IntTypeCommon) {
@@ -261,6 +261,16 @@ func (comp *compiler) checkTypeValues() {
 					}
 				}
 			})
+		case *ast.IntFlags:
+			allEqual := len(n.Values) >= 2
+			for _, val := range n.Values {
+				if val.Value != n.Values[0].Value {
+					allEqual = false
+				}
+			}
+			if allEqual {
+				comp.error(n.Pos, "all %v values are equal %v", n.Name.Name, n.Values[0].Value)
+			}
 		}
 	}
 }

@@ -573,7 +573,7 @@ xt_ipcomp {
 	hdrres		const[0, int8]
 }
 
-xt_ipcomp_flags = XT_IPCOMP_INV_SPI, XT_IPCOMP_INV_MASK
+xt_ipcomp_flags = XT_IPCOMP_INV_SPI
 
 xt_statistic_info {
 	mode	bool16
@@ -768,7 +768,7 @@ xt_esp {
 	invflags	flags[xt_esp_flags, int8]
 }
 
-xt_esp_flags = XT_ESP_INV_SPI, XT_ESP_INV_MASK
+xt_esp_flags = XT_ESP_INV_SPI
 
 xt_cpu_info {
 	cpu	int32
