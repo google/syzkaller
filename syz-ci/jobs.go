@@ -187,7 +187,7 @@ func (jp *JobProcessor) getCommitInfo(mgr *Manager, URL, branch string, commits 
 		return nil, err
 	}
 	for _, title := range missing {
-		log.Logf(0, "did not find commit %q", title)
+		log.Logf(0, "did not find commit %q in kernel repo %v/%v", title, URL, branch)
 	}
 	return results, nil
 }
