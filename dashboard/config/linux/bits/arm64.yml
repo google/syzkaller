@@ -5,3 +5,6 @@ shell:
  # android-5.4.yml has own defconfig.
  - make defconfig: [-android]
  - make kvm_guest.config: [-android]
+
+config:
+ - CMDLINE: [append, "root=/dev/vda console=ttyAMA0"]
