@@ -4587,6 +4587,8 @@ static void setup_usb()
 
 static void setup_sysctl()
 {
+	// TODO: consider moving all sysctl's into CMDLINE config later.
+	// Kernel has support for setting sysctl's via command line since 3db978d480e28 (v5.8).
 	static struct {
 		const char* name;
 		const char* data;
@@ -4612,6 +4614,10 @@ static void setup_sysctl()
 	    {"/proc/sys/fs/mount-max", "100"},
 	    // Dumping all tasks to console can take too long.
 	    {"/proc/sys/vm/oom_dump_tasks", "0"},
+	    // Executor hits lots of SIGSEGVs, no point in logging them.
+	    {"/proc/sys/debug/exception-trace", "0"},
+	    {"/proc/sys/kernel/printk", "7 4 1 3"},
+	    {"/proc/sys/net/ipv4/ping_group_range", "0 65535"},
 	};
 	for (size_t i = 0; i < sizeof(files) / sizeof(files[0]); i++) {
 		if (!write_file(files[i].name, files[i].data))
