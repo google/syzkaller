@@ -7,7 +7,12 @@ shell:
  - make kvm_guest.config: [-android]
 
 config:
+ # root=/dev/sda is not necessary correct, but it's a common setting and user arguments are appended
+ # to the builtin command line, so user can always override this.
+ # vsyscall=native required to run x86_64 executables on android kernels (it disables VDSO by default).
+ - CMDLINE: [append, "root=/dev/sda console=ttyS0 vsyscall=native"]
  - CMDLINE_BOOL
+
  # Should be faster this way.
  - MCORE2
  - BASE_FULL
