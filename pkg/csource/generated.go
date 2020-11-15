@@ -9385,6 +9385,9 @@ static void setup_sysctl()
 	    {"/proc/sys/kernel/softlockup_all_cpu_backtrace", "1"},
 	    {"/proc/sys/fs/mount-max", "100"},
 	    {"/proc/sys/vm/oom_dump_tasks", "0"},
+	    {"/proc/sys/debug/exception-trace", "0"},
+	    {"/proc/sys/kernel/printk", "7 4 1 3"},
+	    {"/proc/sys/net/ipv4/ping_group_range", "0 65535"},
 	};
 	for (size_t i = 0; i < sizeof(files) / sizeof(files[0]); i++) {
 		if (!write_file(files[i].name, files[i].data))
