@@ -46,8 +46,7 @@ func (linux linux) buildKernel(params *Params) error {
 	}
 	// One would expect olddefconfig here, but olddefconfig is not present in v3.6 and below.
 	// oldconfig is the same as olddefconfig if stdin is not set.
-	// Note: passing in compiler is important since 4.17 (at the very least it's noted in the config).
-	if err := runMake(params.KernelDir, "oldconfig", "CC="+params.Compiler); err != nil {
+	if err := runMake(params, "oldconfig"); err != nil {
 		return err
 	}
 	// Write updated kernel config early, so that it's captured on build failures.
@@ -64,30 +63,25 @@ func (linux linux) buildKernel(params *Params) error {
 		target = "zImage"
 	}
 
-	ccParam := params.Compiler
-	if params.Ccache != "" {
-		ccParam = params.Ccache + " " + ccParam
-		// Ensure CONFIG_GCC_PLUGIN_RANDSTRUCT doesn't prevent ccache usage.
-		// See /Documentation/kbuild/reproducible-builds.rst.
-		const seed = `const char *randstruct_seed = "e9db0ca5181da2eedb76eba144df7aba4b7f9359040ee58409765f2bdc4cb3b8";`
-		gccPluginsDir := filepath.Join(params.KernelDir, "scripts", "gcc-plugins")
-		if osutil.IsExist(gccPluginsDir) {
-			if err := linux.writeFile(filepath.Join(gccPluginsDir, "randomize_layout_seed.h"), []byte(seed)); err != nil {
-				return err
-			}
+	// Ensure CONFIG_GCC_PLUGIN_RANDSTRUCT doesn't prevent ccache usage.
+	// See /Documentation/kbuild/reproducible-builds.rst.
+	const seed = `const char *randstruct_seed = "e9db0ca5181da2eedb76eba144df7aba4b7f9359040ee58409765f2bdc4cb3b8";`
+	gccPluginsDir := filepath.Join(params.KernelDir, "scripts", "gcc-plugins")
+	if osutil.IsExist(gccPluginsDir) {
+		if err := linux.writeFile(filepath.Join(gccPluginsDir, "randomize_layout_seed.h"), []byte(seed)); err != nil {
+			return err
 		}
 	}
 
 	// Different key is generated for each build if key is not provided.
-	// see Documentation/reproducible-builds.rst. This is causing problems to our signature
-	// calculation.
+	// see Documentation/reproducible-builds.rst. This is causing problems to our signature calculation.
 	certsDir := filepath.Join(params.KernelDir, "certs")
 	if osutil.IsExist(certsDir) {
 		if err := linux.writeFile(filepath.Join(certsDir, "signing_key.pem"), []byte(moduleSigningKey)); err != nil {
 			return err
 		}
 	}
-	if err := runMake(params.KernelDir, target, "CC="+ccParam); err != nil {
+	if err := runMake(params, target); err != nil {
 		return err
 	}
 	vmlinux := filepath.Join(params.KernelDir, "vmlinux")
@@ -146,7 +140,7 @@ func (linux) createImage(params *Params) error {
 }
 
 func (linux) clean(kernelDir, targetArch string) error {
-	return runMake(kernelDir, "distclean")
+	return runMakeImpl(targetArch, "", "", kernelDir, "distclean")
 }
 
 func (linux) writeFile(file string, data []byte) error {
@@ -156,8 +150,10 @@ func (linux) writeFile(file string, data []byte) error {
 	return osutil.SandboxChown(file)
 }
 
-func runMake(kernelDir string, args ...string) error {
-	args = append(args, fmt.Sprintf("-j%v", runtime.NumCPU()))
+func runMakeImpl(arch, compiler, ccache, kernelDir string, addArgs ...string) error {
+	target := targets.Get(targets.Linux, arch)
+	args := LinuxMakeArgs(target, compiler, ccache, "")
+	args = append(args, addArgs...)
 	cmd := osutil.Command("make", args...)
 	if err := osutil.Sandbox(cmd, true, true); err != nil {
 		return err
@@ -178,6 +174,36 @@ func runMake(kernelDir string, args ...string) error {
 	)
 	_, err := osutil.Run(time.Hour, cmd)
 	return err
+}
+
+func runMake(params *Params, addArgs ...string) error {
+	return runMakeImpl(params.TargetArch, params.Compiler, params.Ccache, params.KernelDir, addArgs...)
+}
+
+func LinuxMakeArgs(target *targets.Target, compiler, ccache, buildDir string) []string {
+	args := []string{
+		"-j", fmt.Sprint(runtime.NumCPU()),
+		"ARCH=" + target.KernelArch,
+	}
+	if target.Triple != "" {
+		args = append(args, "CROSS_COMPILE="+target.Triple+"-")
+	}
+	if compiler == "" {
+		compiler = target.KernelCompiler
+		if target.KernelLinker != "" {
+			args = append(args, "LD="+target.KernelLinker)
+		}
+	}
+	if compiler != "" {
+		if ccache != "" {
+			compiler = ccache + " " + compiler
+		}
+		args = append(args, "CC="+compiler)
+	}
+	if buildDir != "" {
+		args = append(args, "O="+buildDir)
+	}
+	return args
 }
 
 // elfBinarySignature calculates signature of an elf binary aiming at runtime behavior
