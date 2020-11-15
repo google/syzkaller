@@ -27,7 +27,6 @@ type Instance struct {
 type Config struct {
 	Name        string
 	Value       string
-	Override    bool
 	Optional    bool
 	Constraints []string
 	File        string
@@ -48,10 +47,6 @@ type Features map[string]bool
 
 func (features Features) Match(constraints []string) bool {
 	for _, feat := range constraints {
-		switch feat {
-		case featOptional, featOverride, featWeak:
-			continue
-		}
 		if feat[0] == '-' {
 			if features[feat[1:]] {
 				return false
@@ -188,26 +183,38 @@ func mergeConfig(inst *Instance, file string, node yaml.Node, errs *Errors) {
 		File:  file,
 		Line:  node.Line,
 	}
+	override, appendVal := false, false
 	for _, feat := range constraints {
 		switch feat {
 		case featOverride:
-			cfg.Override = true
+			override = true
 		case featOptional:
 			cfg.Optional = true
 		case featWeak:
-			cfg.Override, cfg.Optional = true, true
+			override, cfg.Optional = true, true
+		case featAppend:
+			override, appendVal = true, true
 		default:
 			cfg.Constraints = append(cfg.Constraints, feat)
 		}
 	}
 	if prev := inst.ConfigMap[name]; prev != nil {
-		if !cfg.Override {
+		if !override {
 			errs.push("%v:%v: %v is already defined at %v:%v", file, node.Line, name, prev.File, prev.Line)
 		}
-		*prev = *cfg
+		if appendVal {
+			a, b := prev.Value, cfg.Value
+			if a == "" || a[len(a)-1] != '"' || b == "" || b[0] != '"' {
+				errs.push("%v:%v: bad values to append, want non-empty strings", file, node.Line)
+				return
+			}
+			prev.Value = a[:len(a)-1] + " " + b[1:]
+		} else {
+			*prev = *cfg
+		}
 		return
 	}
-	if cfg.Override && !cfg.Optional {
+	if override && !cfg.Optional {
 		errs.push("%v:%v: %v nothing to override", file, node.Line, name)
 	}
 	inst.ConfigMap[name] = cfg

@@ -26,6 +26,7 @@ import (
 const (
 	featOverride = "override"
 	featOptional = "optional"
+	featAppend   = "append"
 	featWeak     = "weak"
 	featBaseline = "baseline"
 	featClang    = "clang"
