@@ -29,7 +29,18 @@ func (linux linux) build(params *Params) error {
 	if err := linux.buildKernel(params); err != nil {
 		return err
 	}
-	if err := linux.createImage(params); err != nil {
+	kernelPath := filepath.Join(params.KernelDir, filepath.FromSlash(kernelBin(params.TargetArch)))
+	if fileInfo, err := os.Stat(params.UserspaceDir); err == nil && !fileInfo.IsDir() && params.VMType == "qemu" {
+		// If UserspaceDir is a file (image) and we use qemu, we just copy image and kernel to the output dir
+		// assuming that qemu will use injected kernel boot. In this mode we also assume password/key-less ssh.
+		// In future it would be good to switch to accepting complete disk image always and just replacing
+		// kernel in it for GCE VMs (assembling image from userspace files in createImage isn't reasonable).
+		if err := osutil.CopyFile(kernelPath, filepath.Join(params.OutputDir, "kernel")); err != nil {
+			return err
+		}
+		return osutil.CopyFile(params.UserspaceDir, filepath.Join(params.OutputDir, "image"))
+	}
+	if err := linux.createImage(params, kernelPath); err != nil {
 		return err
 	}
 	return nil
@@ -92,7 +103,7 @@ func (linux linux) buildKernel(params *Params) error {
 	return nil
 }
 
-func (linux) createImage(params *Params) error {
+func (linux) createImage(params *Params, kernelPath string) error {
 	tempDir, err := ioutil.TempDir("", "syz-build")
 	if err != nil {
 		return err
@@ -102,18 +113,7 @@ func (linux) createImage(params *Params) error {
 	if err := osutil.WriteExecFile(scriptFile, []byte(createImageScript)); err != nil {
 		return fmt.Errorf("failed to write script file: %v", err)
 	}
-
-	var kernelImage string
-	switch params.TargetArch {
-	case targets.I386, targets.AMD64:
-		kernelImage = "arch/x86/boot/bzImage"
-	case targets.PPC64LE:
-		kernelImage = "arch/powerpc/boot/zImage.pseries"
-	case targets.S390x:
-		kernelImage = "arch/s390/boot/bzImage"
-	}
-	kernelImagePath := filepath.Join(params.KernelDir, filepath.FromSlash(kernelImage))
-	cmd := osutil.Command(scriptFile, params.UserspaceDir, kernelImagePath, params.TargetArch)
+	cmd := osutil.Command(scriptFile, params.UserspaceDir, kernelPath, params.TargetArch)
 	cmd.Dir = tempDir
 	cmd.Env = append([]string{}, os.Environ()...)
 	cmd.Env = append(cmd.Env,
@@ -204,6 +204,19 @@ func LinuxMakeArgs(target *targets.Target, compiler, ccache, buildDir string) []
 		args = append(args, "O="+buildDir)
 	}
 	return args
+}
+
+func kernelBin(arch string) string {
+	switch arch {
+	case targets.I386, targets.AMD64:
+		return "arch/x86/boot/bzImage"
+	case targets.PPC64LE:
+		return "arch/powerpc/boot/zImage.pseries"
+	case targets.S390x:
+		return "arch/s390/boot/bzImage"
+	default:
+		panic(fmt.Sprintf("unsupported arch %v", arch))
+	}
 }
 
 // elfBinarySignature calculates signature of an elf binary aiming at runtime behavior
