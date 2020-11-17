@@ -166,6 +166,7 @@ func (kp *kconfigParser) parseFile() {
 			_ = kp.ConsumeLine()
 		}
 	}
+	kp.endCurrent()
 }
 
 func (kp *kconfigParser) parseLine() {
@@ -347,7 +348,7 @@ func (kp *kconfigParser) pushCurrent(m *Menu) {
 func (kp *kconfigParser) popCurrent() {
 	kp.endCurrent()
 	if len(kp.stack) < 2 {
-		kp.failf("unbalanced menuend")
+		kp.failf("unbalanced endmenu")
 		return
 	}
 	last := kp.stack[len(kp.stack)-1]
@@ -375,7 +376,7 @@ func (kp *kconfigParser) endCurrent() {
 		return
 	}
 	if len(kp.stack) == 0 {
-		kp.failf("unbalanced menuend")
+		kp.failf("unbalanced endmenu")
 		return
 	}
 	top := kp.stack[len(kp.stack)-1]

@@ -28,7 +28,7 @@ func (kconf *KConfig) Minimize(base, full *ConfigFile, pred func(*ConfigFile) (b
 	}
 	// Since base does not crash, full config is our best bet for now.
 	current := full.clone()
-	var suspects map[string]bool
+	var suspects []string
 	// Take half of the diff between base and full, apply to base and test.
 	// If this candidate config crashes, we commit it as new full and repeat the process.
 	// If it does not crash, try another half.
@@ -48,11 +48,11 @@ top:
 			trace.log("trying half: %v", part)
 			closure := kconf.addDependencies(base, full, part)
 			candidate := base.clone()
-			// 1. Always move all non-tristate configs from full to base as we don't minimize them.
+			// Always move all non-tristate configs from full to base as we don't minimize them.
 			for _, cfg := range other {
 				candidate.Set(cfg.Name, cfg.Value)
 			}
-			for cfg := range closure {
+			for _, cfg := range closure {
 				candidate.Set(cfg, Yes)
 			}
 			res, err := pred(candidate)
@@ -90,7 +90,7 @@ func (kconf *KConfig) missingConfigs(base, full *ConfigFile) (tristate []string,
 	return
 }
 
-func (kconf *KConfig) addDependencies(base, full *ConfigFile, configs []string) map[string]bool {
+func (kconf *KConfig) addDependencies(base, full *ConfigFile, configs []string) []string {
 	closure := make(map[string]bool)
 	for _, cfg := range configs {
 		closure[cfg] = true
@@ -102,7 +102,12 @@ func (kconf *KConfig) addDependencies(base, full *ConfigFile, configs []string) 
 			}
 		}
 	}
-	return closure
+	var sorted []string
+	for cfg := range closure {
+		sorted = append(sorted, cfg)
+	}
+	sort.Strings(sorted)
+	return sorted
 }
 
 type traceLogger struct{ io.Writer }

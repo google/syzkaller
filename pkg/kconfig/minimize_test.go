@@ -21,6 +21,18 @@ config C
 config D
 config I
 config S
+
+menuconfig HAMRADIO
+	depends on NET && !S390
+	bool "Amateur Radio support"
+
+config AX25
+	tristate "Amateur Radio AX.25 Level 2 protocol"
+	depends on HAMRADIO
+
+config ROSE
+	tristate "Amateur Radio X.25 PLP (Rose)"
+	depends on AX25
 `
 		baseConfig = `
 CONFIG_A=y
@@ -33,6 +45,9 @@ CONFIG_C=y
 CONFIG_D=y
 CONFIG_I=42
 CONFIG_S="foo"
+CONFIG_HAMRADIO=y
+CONFIG_AX25=y
+CONFIG_ROSE=y
 `
 	)
 	type Test struct {
@@ -61,6 +76,19 @@ CONFIG_A=y
 CONFIG_I=42
 CONFIG_S="foo"
 CONFIG_C=y
+`,
+		},
+		{
+			pred: func(cf *ConfigFile) (bool, error) {
+				return cf.Value("HAMRADIO") == Yes && cf.Value("AX25") == Yes && cf.Value("ROSE") == Yes, nil
+			},
+			result: `
+CONFIG_A=y
+CONFIG_I=42
+CONFIG_S="foo"
+CONFIG_AX25=y
+CONFIG_HAMRADIO=y
+CONFIG_ROSE=y
 `,
 		},
 	}
