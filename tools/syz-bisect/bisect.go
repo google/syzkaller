@@ -28,6 +28,7 @@ import (
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/vcs"
 )
 
 var (
@@ -114,6 +115,13 @@ func main() {
 	if len(cfg.Repro.Syz) == 0 && len(cfg.Repro.C) == 0 {
 		fmt.Fprintf(os.Stderr, "no repro.cprog or repro.prog found\n")
 		os.Exit(1)
+	}
+
+	if cfg.Syzkaller.Commit == "" {
+		cfg.Syzkaller.Commit = vcs.HEAD
+	}
+	if cfg.Kernel.Commit == "" {
+		cfg.Kernel.Commit = vcs.HEAD
 	}
 
 	if _, err := bisect.Run(cfg); err != nil {
