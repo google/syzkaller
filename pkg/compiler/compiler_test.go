@@ -151,6 +151,14 @@ type p b[L]
 type b[L] {
 	e b[L[L]]
 }`,
+		`
+p() b[len]
+type b[b] b
+`,
+		`
+p() b[len[opt]]
+type b[b] b
+`,
 	} {
 		Fuzz([]byte(data)[:len(data):len(data)])
 	}
