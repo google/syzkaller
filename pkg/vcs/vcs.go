@@ -300,6 +300,8 @@ var commitPrefixes = []string{
 
 const SyzkallerRepo = "https://github.com/google/syzkaller"
 
+const HEAD = "HEAD"
+
 func CommitLink(url, hash string) string {
 	return link(url, hash, 0)
 }
