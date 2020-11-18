@@ -967,13 +967,16 @@ func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, flags checkFlag
 		}
 	}
 	t.Pos = pos0
+	comp.maybeRemoveBase(t, flags)
+}
 
+func (comp *compiler) maybeRemoveBase(t *ast.Type, flags checkFlags) {
 	// Remove base type if it's not needed in this context.
 	// If desc is nil, will return an error later when we typecheck the result.
 	desc := comp.getTypeDesc(t)
-	if desc != nil && flags&checkIsArg != 0 && desc.NeedBase {
+	if desc != nil && flags&checkIsArg != 0 && desc.NeedBase && len(t.Args) != 0 {
 		baseTypePos := len(t.Args) - 1
-		if t.Args[baseTypePos].Ident == "opt" {
+		if t.Args[baseTypePos].Ident == "opt" && len(t.Args) >= 2 {
 			baseTypePos--
 		}
 		copy(t.Args[baseTypePos:], t.Args[baseTypePos+1:])
