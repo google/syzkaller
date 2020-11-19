@@ -123,8 +123,6 @@ func NewReporter(cfg *mgrconfig.Config) (Reporter, error) {
 }
 
 const (
-	VMDiagnosisStart = "\nVM DIAGNOSIS:\n"
-
 	unexpectedKernelReboot = "unexpected kernel reboot"
 	memoryLeakPrefix       = "memory leak in "
 	dataRacePrefix         = "KCSAN: data-race"
@@ -183,9 +181,6 @@ func (wrap *reporterWrapper) Parse(output []byte) *Report {
 	rep.Type = extractReportType(rep)
 	if match := reportFrameRe.FindStringSubmatch(rep.Title); match != nil {
 		rep.Frame = match[1]
-	}
-	if pos := bytes.Index(rep.Report, []byte(VMDiagnosisStart)); pos != -1 {
-		rep.Report = rep.Report[:pos]
 	}
 	rep.SkipPos = len(output)
 	if pos := bytes.IndexByte(output[rep.StartPos:], '\n'); pos != -1 {

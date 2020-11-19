@@ -18,6 +18,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/report"
 )
 
 // Pool represents a set of test machines (VMs, physical devices, etc) of particular type.
@@ -44,13 +45,14 @@ type Instance interface {
 	// Command is terminated after timeout. Send on the stop chan can be used to terminate it earlier.
 	Run(timeout time.Duration, stop <-chan bool, command string) (outc <-chan []byte, errc <-chan error, err error)
 
-	// Diagnose retrieves additional debugging info from the VM (e.g. by
-	// sending some sys-rq's or SIGABORT'ing a Go program).
+	// Diagnose retrieves additional debugging info from the VM
+	// (e.g. by sending some sys-rq's or SIGABORT'ing a Go program).
 	//
-	// Optionally returns (some or all) of the info directly. If wait ==
-	// true, the caller must wait for the VM to output info directly to its
-	// log.
-	Diagnose() (diagnosis []byte, wait bool)
+	// Optionally returns (some or all) of the info directly. If wait == true,
+	// the caller must wait for the VM to output info directly to its log.
+	//
+	// rep describes the reason why Diagnose was called.
+	Diagnose(rep *report.Report) (diagnosis []byte, wait bool)
 
 	// Close stops and destroys the VM.
 	Close()

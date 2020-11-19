@@ -137,8 +137,11 @@ func (inst *Instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	return inst.impl.Run(timeout, stop, command)
 }
 
-func (inst *Instance) Diagnose() ([]byte, bool) {
-	return inst.impl.Diagnose()
+func (inst *Instance) diagnose(rep *report.Report) ([]byte, bool) {
+	if rep == nil {
+		panic("rep is nil")
+	}
+	return inst.impl.Diagnose(rep)
 }
 
 func (inst *Instance) Close() {
@@ -267,14 +270,8 @@ type monitor struct {
 
 func (mon *monitor) extractError(defaultError string) *report.Report {
 	diagOutput, diagWait := []byte{}, false
-	appendDiagOutput := func() {
-		if len(diagOutput) > 0 {
-			mon.output = append(mon.output, report.VMDiagnosisStart...)
-			mon.output = append(mon.output, diagOutput...)
-		}
-	}
 	if defaultError != "" {
-		diagOutput, diagWait = mon.inst.Diagnose()
+		diagOutput, diagWait = mon.inst.diagnose(mon.createReport(defaultError))
 	}
 	// Give it some time to finish writing the error message.
 	// But don't wait for "no output", we already waited enough.
@@ -284,27 +281,35 @@ func (mon *monitor) extractError(defaultError string) *report.Report {
 	if bytes.Contains(mon.output, []byte(fuzzerPreemptedStr)) {
 		return nil
 	}
-	if !mon.reporter.ContainsCrash(mon.output[mon.matchPos:]) {
+	if defaultError == "" && mon.reporter.ContainsCrash(mon.output[mon.matchPos:]) {
+		// We did not call Diagnose above because we thought there is no error, so call it now.
+		diagOutput, diagWait = mon.inst.diagnose(mon.createReport(defaultError))
+		if diagWait {
+			mon.waitForOutput()
+		}
+	}
+	rep := mon.createReport(defaultError)
+	if rep == nil {
+		return nil
+	}
+	if len(diagOutput) > 0 {
+		rep.Output = append(rep.Output, vmDiagnosisStart...)
+		rep.Output = append(rep.Output, diagOutput...)
+	}
+	return rep
+}
+
+func (mon *monitor) createReport(defaultError string) *report.Report {
+	rep := mon.reporter.Parse(mon.output[mon.matchPos:])
+	if rep == nil {
 		if defaultError == "" {
 			return nil
 		}
-		appendDiagOutput()
 		return &report.Report{
 			Title:      defaultError,
 			Output:     mon.output,
 			Suppressed: report.IsSuppressed(mon.reporter, mon.output),
 		}
-	}
-	if defaultError == "" {
-		diagOutput, diagWait = mon.inst.Diagnose()
-		if diagWait {
-			mon.waitForOutput()
-		}
-	}
-	appendDiagOutput()
-	rep := mon.reporter.Parse(mon.output[mon.matchPos:])
-	if rep == nil {
-		panic(fmt.Sprintf("reporter.ContainsCrash/Parse disagree:\n%s", mon.output[mon.matchPos:]))
 	}
 	start := mon.matchPos + rep.StartPos - beforeContext
 	if start < 0 {
@@ -347,6 +352,7 @@ const (
 	executingProgramStr1 = "executing program"  // syz-fuzzer output
 	executingProgramStr2 = "executed programs:" // syz-execprog output
 	fuzzerPreemptedStr   = "SYZ-FUZZER: PREEMPTED"
+	vmDiagnosisStart     = "\nVM DIAGNOSIS:\n"
 )
 
 var (

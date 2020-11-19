@@ -18,6 +18,7 @@ import (
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/vmimpl"
 )
@@ -619,7 +620,9 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	return inst.merger.Output, errc, nil
 }
 
-func (inst *instance) Diagnose() ([]byte, bool) {
+func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
+	// TODO: we don't need registers on all reports. Probably only relevant for "crashes"
+	// (NULL derefs, paging faults, etc), but is not useful for WARNING/BUG/HANG (?).
 	ret := []byte(fmt.Sprintf("%s Registers:\n", time.Now().Format("15:04:05 ")))
 	for cpu := 0; cpu < inst.cfg.CPU; cpu++ {
 		regs, err := inst.hmp("info registers", cpu)

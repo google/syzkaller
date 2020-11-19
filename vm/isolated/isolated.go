@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/vm/vmimpl"
 )
 
@@ -420,10 +421,12 @@ func (inst *instance) readPstoreContents() ([]byte, error) {
 	return stdout.Bytes(), nil
 }
 
-func (inst *instance) Diagnose() ([]byte, bool) {
+func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
 	if !inst.cfg.Pstore {
 		return nil, false
 	}
+	// TODO: kernel may not reboot after some errors.
+	// E.g. if panic_on_warn is not set, or some errors don't trigger reboot at all (e.g. LOCKDEP overflows).
 	log.Logf(2, "waiting for crashed DUT to come back up")
 	if err := inst.waitRebootAndSSH(5*60, 30*time.Minute); err != nil {
 		return []byte(fmt.Sprintf("unable to SSH into DUT after reboot: %v", err)), false
