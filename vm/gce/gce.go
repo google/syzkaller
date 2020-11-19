@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/config"
@@ -266,13 +267,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		sshRpipe.Close()
 		return nil, nil, err
 	}
-	if inst.env.OS == targets.Linux {
-		if inst.sshUser != "root" {
-			command = fmt.Sprintf("sudo bash -c '%v'", command)
-		}
-	}
-	args := append(vmimpl.SSHArgs(inst.debug, inst.sshKey, 22), inst.sshUser+"@"+inst.ip, command)
-	ssh := osutil.Command("ssh", args...)
+	ssh := osutil.Command("ssh", inst.sshArgs(command)...)
 	ssh.Stdout = sshWpipe
 	ssh.Stderr = sshWpipe
 	if err := ssh.Start(); err != nil {
@@ -371,13 +366,28 @@ func waitForConsoleConnect(merger *vmimpl.OutputMerger) error {
 }
 
 func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
-	if inst.env.OS == targets.FreeBSD {
+	switch inst.env.OS {
+	case targets.Linux:
+		output, wait, _ := vmimpl.DiagnoseLinux(rep, inst.ssh)
+		return output, wait
+	case targets.FreeBSD:
 		return vmimpl.DiagnoseFreeBSD(inst.consolew)
-	}
-	if inst.env.OS == targets.OpenBSD {
+	case targets.OpenBSD:
 		return vmimpl.DiagnoseOpenBSD(inst.consolew)
 	}
 	return nil, false
+}
+
+func (inst *instance) ssh(args ...string) ([]byte, error) {
+	return osutil.RunCmd(time.Minute, "", "ssh", inst.sshArgs(args...)...)
+}
+
+func (inst *instance) sshArgs(args ...string) []string {
+	sshArgs := append(vmimpl.SSHArgs(inst.debug, inst.sshKey, 22), inst.sshUser+"@"+inst.ip)
+	if inst.env.OS == targets.Linux && inst.sshUser != "root" {
+		args = []string{"sudo", "bash", "-c", "'" + strings.Join(args, " ") + "'"}
+	}
+	return append(sshArgs, args...)
 }
 
 func (pool *Pool) getSerialPortOutput(name, gceKey string) ([]byte, error) {
