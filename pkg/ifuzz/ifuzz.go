@@ -53,7 +53,8 @@ type InsnSet interface {
 }
 
 const (
-	ArchX86 = "x86"
+	ArchX86     = "x86"
+	ArchPowerPC = "powerpc"
 )
 
 var SpecialNumbers = [...]uint64{0, 1 << 15, 1 << 16, 1 << 31, 1 << 32, 1 << 47, 1 << 47, 1 << 63}
