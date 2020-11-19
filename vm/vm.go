@@ -235,7 +235,7 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 				mon.matchPos = 0
 			}
 		case <-ticker.C:
-			// Detect both "not output whatsoever" and "kernel episodically prints
+			// Detect both "no output whatsoever" and "kernel episodically prints
 			// something to console, but fuzzer is not actually executing programs".
 			// The timeout used to be 3 mins for a long time.
 			// But (1) we were seeing flakes on linux where net namespace
@@ -246,23 +246,9 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 			// in 140-280s detection delay.
 			// So the current timeout is 5 mins (300s).
 			// We don't want it to be too long too because it will waste time on real hangs.
-			if time.Since(lastExecuteTime) < NoOutputTimeout {
-				break
+			if time.Since(lastExecuteTime) > NoOutputTimeout {
+				return mon.extractError(noOutputCrash)
 			}
-			diag, wait := inst.Diagnose()
-			if len(diag) > 0 {
-				mon.output = append(mon.output, "DIAGNOSIS:\n"...)
-				mon.output = append(mon.output, diag...)
-			}
-			if wait {
-				mon.waitForOutput()
-			}
-			rep := &report.Report{
-				Title:      noOutputCrash,
-				Output:     mon.output,
-				Suppressed: report.IsSuppressed(mon.reporter, mon.output),
-			}
-			return rep
 		case <-Shutdown:
 			return nil
 		}
@@ -280,7 +266,7 @@ type monitor struct {
 }
 
 func (mon *monitor) extractError(defaultError string) *report.Report {
-	var diagOutput []byte
+	diagOutput, diagWait := []byte{}, false
 	appendDiagOutput := func() {
 		if len(diagOutput) > 0 {
 			mon.output = append(mon.output, report.VMDiagnosisStart...)
@@ -288,11 +274,13 @@ func (mon *monitor) extractError(defaultError string) *report.Report {
 		}
 	}
 	if defaultError != "" {
-		// N.B. we always wait below for other errors.
-		diagOutput, _ = mon.inst.Diagnose()
+		diagOutput, diagWait = mon.inst.Diagnose()
 	}
 	// Give it some time to finish writing the error message.
-	mon.waitForOutput()
+	// But don't wait for "no output", we already waited enough.
+	if defaultError != noOutputCrash || diagWait {
+		mon.waitForOutput()
+	}
 	if bytes.Contains(mon.output, []byte(fuzzerPreemptedStr)) {
 		return nil
 	}
@@ -301,17 +289,15 @@ func (mon *monitor) extractError(defaultError string) *report.Report {
 			return nil
 		}
 		appendDiagOutput()
-		rep := &report.Report{
+		return &report.Report{
 			Title:      defaultError,
 			Output:     mon.output,
 			Suppressed: report.IsSuppressed(mon.reporter, mon.output),
 		}
-		return rep
 	}
 	if defaultError == "" {
-		wait := false
-		diagOutput, wait = mon.inst.Diagnose()
-		if wait {
+		diagOutput, diagWait = mon.inst.Diagnose()
+		if diagWait {
 			mon.waitForOutput()
 		}
 	}
