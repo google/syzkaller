@@ -621,6 +621,11 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 }
 
 func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
+	if inst.target.OS == targets.Linux {
+		if output, wait, handled := vmimpl.DiagnoseLinux(rep, inst.ssh); handled {
+			return output, wait
+		}
+	}
 	// TODO: we don't need registers on all reports. Probably only relevant for "crashes"
 	// (NULL derefs, paging faults, etc), but is not useful for WARNING/BUG/HANG (?).
 	ret := []byte(fmt.Sprintf("%s Registers:\n", time.Now().Format("15:04:05 ")))
@@ -635,6 +640,15 @@ func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
 		}
 	}
 	return ret, false
+}
+
+func (inst *instance) ssh(args ...string) ([]byte, error) {
+	return osutil.RunCmd(time.Minute, "", "ssh", inst.sshArgs(args...)...)
+}
+
+func (inst *instance) sshArgs(args ...string) []string {
+	sshArgs := append(vmimpl.SSHArgs(inst.debug, inst.sshkey, inst.port), inst.sshuser+"@localhost")
+	return append(sshArgs, args...)
 }
 
 // nolint: lll
