@@ -14,6 +14,8 @@
 // The crash dir should contain the following files:
 //  - repro.cprog or repro.prog: reproducer for the crash
 //  - repro.opts: syzkaller reproducer options (e.g. {"procs":1,"sandbox":"none",...}) (optional)
+//
+// The tool stores bisection result into cause.commit or fix.commit.
 package main
 
 import (
@@ -127,10 +129,13 @@ func main() {
 		cfg.Kernel.Commit = vcs.HEAD
 	}
 
-	if _, err := bisect.Run(cfg); err != nil {
+	result, err := bisect.Run(cfg)
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "bisection failed: %v\n", err)
 		os.Exit(1)
 	}
+
+	saveResultCommits(result.Commits)
 }
 
 func loadFile(path, file string, dst *[]byte, mandatory bool) {
@@ -144,4 +149,25 @@ func loadFile(path, file string, dst *[]byte, mandatory bool) {
 		os.Exit(1)
 	}
 	*dst = data
+}
+
+func saveResultCommits(commits []*vcs.Commit) {
+	var result string
+	if len(commits) > 0 {
+		for _, commit := range commits {
+			result = result + commit.Hash + "\n"
+		}
+	} else if *flagFix {
+		result = "the crash still happens on HEAD\n"
+	} else {
+		result = "the crash already happened on the oldest tested release\n"
+	}
+
+	var fileName string
+	if *flagFix {
+		fileName = filepath.Join(*flagCrash, "fix.commit")
+	} else {
+		fileName = filepath.Join(*flagCrash, "cause.commit")
+	}
+	osutil.WriteFile(fileName, []byte(result))
 }
