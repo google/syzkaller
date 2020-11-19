@@ -14,7 +14,8 @@ import (
 
 	"github.com/google/syzkaller/pkg/ifuzz"
 	"github.com/google/syzkaller/pkg/ifuzz/ifuzzimpl"
-	_ "github.com/google/syzkaller/pkg/ifuzz/x86/generated" // pull in generated instruction descriptions
+	_ "github.com/google/syzkaller/pkg/ifuzz/powerpc/generated" // pull in generated instruction descriptions
+	_ "github.com/google/syzkaller/pkg/ifuzz/x86/generated"     // pull in generated instruction descriptions
 )
 
 const (
@@ -479,6 +480,9 @@ func createTargetIfuzzConfig(target *Target) *ifuzz.Config {
 	case "386":
 		cfg.Mode = ifuzz.ModeProt32
 		cfg.Arch = ifuzz.ArchX86
+	case "ppc64":
+		cfg.Mode = ifuzz.ModeLong64
+		cfg.Arch = ifuzz.ArchPowerPC
 	default:
 		return nil
 	}
@@ -517,6 +521,9 @@ func createIfuzzConfig(kind TextKind) *ifuzz.Config {
 	case TextX86bit64:
 		cfg.Mode = ifuzz.ModeLong64
 		cfg.Arch = ifuzz.ArchX86
+	case TextPpc64:
+		cfg.Mode = ifuzz.ModeLong64
+		cfg.Arch = ifuzz.ArchPowerPC
 	default:
 		panic("unknown text kind")
 	}

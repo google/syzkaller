@@ -199,6 +199,10 @@ func isSyzKvmSetupCPUSupported(c *prog.Syscall, target *prog.Target, sandbox str
 		if runtime.GOARCH == targets.ARM64 {
 			return true, ""
 		}
+	case "syz_kvm_setup_cpu$ppc64":
+		if runtime.GOARCH == "ppc64le" || runtime.GOARCH == "ppc64" {
+			return true, ""
+		}
 	}
 	return false, "unsupported arch"
 }

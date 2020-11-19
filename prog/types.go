@@ -492,6 +492,7 @@ const (
 	TextX86bit32
 	TextX86bit64
 	TextArm64
+	TextPpc64
 )
 
 type BufferType struct {

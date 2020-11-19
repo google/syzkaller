@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/ifuzz"
 	"github.com/google/syzkaller/pkg/ifuzz/ifuzzimpl"
+	_ "github.com/google/syzkaller/pkg/ifuzz/powerpc/generated"
 	_ "github.com/google/syzkaller/pkg/ifuzz/x86/generated"
 )
 
@@ -39,6 +40,7 @@ func testmodearch(t *testing.T, arch string) {
 
 func TestMode(t *testing.T) {
 	testmodearch(t, ifuzz.ArchX86)
+	testmodearch(t, ifuzz.ArchPowerPC)
 }
 
 func testdecodearch(t *testing.T, arch string) {
@@ -118,4 +120,5 @@ func testdecodearch(t *testing.T, arch string) {
 
 func TestDecode(t *testing.T) {
 	testdecodearch(t, ifuzz.ArchX86)
+	testdecodearch(t, ifuzz.ArchPowerPC)
 }
