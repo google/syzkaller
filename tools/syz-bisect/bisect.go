@@ -3,17 +3,15 @@
 
 // syz-bisect runs bisection to find cause/fix commit for a crash.
 //
-// The tool is originally created to test pkg/bisect logic,
-// the interface is not particularly handy to use.
+// The tool is originally created to test pkg/bisect logic.
 //
 // The tool requires a config file passed in -config flag, see Config type below for details,
 // and a directory with info about the crash passed in -crash flag).
 // If -fix flag is specified, it does fix bisection. Otherwise it does cause bisection.
 //
 // The crash dir should contain the following files:
-//  - repro.c: C reproducer for the crash (optional)
-//  - repro.syz: syzkaller reproducer for the crash
-//  - repro.opts: syzkaller reproducer options (e.g. {"procs":1,"sandbox":"none",...})
+//  - repro.cprog or repro.prog: reproducer for the crash
+//  - repro.opts: syzkaller reproducer options (e.g. {"procs":1,"sandbox":"none",...}) (optional)
 //  - syzkaller.commit: hash of syzkaller commit which was used to trigger the crash
 //  - kernel.commit: hash of kernel commit on which the crash was triggered
 //  - kernel.config: kernel config file
@@ -105,9 +103,14 @@ func main() {
 	loadString("kernel.commit", &cfg.Kernel.Commit)
 	loadFile("kernel.config", &cfg.Kernel.Config, true)
 	loadFile("kernel.baseline_config", &cfg.Kernel.BaselineConfig, false)
-	loadFile("repro.syz", &cfg.Repro.Syz, false)
-	loadFile("repro.c", &cfg.Repro.C, false)
+	loadFile("repro.prog", &cfg.Repro.Syz, false)
+	loadFile("repro.cprog", &cfg.Repro.C, false)
 	loadFile("repro.opts", &cfg.Repro.Opts, true)
+
+	if len(cfg.Repro.Syz) == 0 && len(cfg.Repro.C) == 0 {
+		fmt.Fprintf(os.Stderr, "no repro.cprog or repro.prog found\n")
+		os.Exit(1)
+	}
 
 	if _, err := bisect.Run(cfg); err != nil {
 		fmt.Fprintf(os.Stderr, "bisection failed: %v\n", err)
