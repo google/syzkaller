@@ -51,7 +51,7 @@ func (inst *testInstance) Run(timeout time.Duration, stop <-chan bool, command s
 	return inst.outc, inst.errc, nil
 }
 
-func (inst *testInstance) Diagnose() ([]byte, bool) {
+func (inst *testInstance) Diagnose(rep *report.Report) ([]byte, bool) {
 	var diag []byte
 	if inst.diagnoseBug {
 		diag = []byte("BUG: DIAGNOSE\n")

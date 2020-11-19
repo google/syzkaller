@@ -28,6 +28,7 @@ import (
 	"github.com/google/syzkaller/pkg/kd"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/vmimpl"
 )
@@ -369,7 +370,7 @@ func waitForConsoleConnect(merger *vmimpl.OutputMerger) error {
 	}
 }
 
-func (inst *instance) Diagnose() ([]byte, bool) {
+func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
 	if inst.env.OS == targets.FreeBSD {
 		return vmimpl.DiagnoseFreeBSD(inst.consolew)
 	}
