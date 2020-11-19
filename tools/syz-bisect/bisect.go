@@ -7,13 +7,13 @@
 //
 // The tool requires a config file passed in -config flag, see Config type below for details,
 // and a directory with info about the crash passed in -crash flag).
-// If -fix flag is specified, it does fix bisection. Otherwise it does cause bisection.
+// If -fix flag is specified, it does fix bisection. Otherwise it does cause bisection. Also
+// wanted syzkaller and kernel commits can be specified using -syzkaller_commit and
+// -kernel_commit. HEAD is used if commits are not specified.
 //
 // The crash dir should contain the following files:
 //  - repro.cprog or repro.prog: reproducer for the crash
 //  - repro.opts: syzkaller reproducer options (e.g. {"procs":1,"sandbox":"none",...}) (optional)
-//  - syzkaller.commit: hash of syzkaller commit which was used to trigger the crash
-//  - kernel.commit: hash of kernel commit on which the crash was triggered
 package main
 
 import (
@@ -23,7 +23,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/google/syzkaller/pkg/bisect"
 	"github.com/google/syzkaller/pkg/config"
@@ -32,9 +31,11 @@ import (
 )
 
 var (
-	flagConfig = flag.String("config", "", "bisect config file")
-	flagCrash  = flag.String("crash", "", "dir with crash info")
-	flagFix    = flag.Bool("fix", false, "search for crash fix")
+	flagConfig          = flag.String("config", "", "bisect config file")
+	flagCrash           = flag.String("crash", "", "dir with crash info")
+	flagFix             = flag.Bool("fix", false, "search for crash fix")
+	flagKernelCommit    = flag.String("kernel_commit", "", "original kernel commit")
+	flagSyzkallerCommit = flag.String("syzkaller_commit", "", "original syzkaller commit")
 )
 
 type Config struct {
@@ -93,17 +94,17 @@ func main() {
 		Kernel: bisect.KernelConfig{
 			Repo:      mycfg.KernelRepo,
 			Branch:    mycfg.KernelBranch,
+			Commit:    *flagKernelCommit,
 			Userspace: mycfg.Userspace,
 			Sysctl:    mycfg.Sysctl,
 			Cmdline:   mycfg.Cmdline,
 		},
 		Syzkaller: bisect.SyzkallerConfig{
-			Repo: mycfg.SyzkallerRepo,
+			Repo:   mycfg.SyzkallerRepo,
+			Commit: *flagSyzkallerCommit,
 		},
 		Manager: mgrcfg,
 	}
-	loadString("syzkaller.commit", &cfg.Syzkaller.Commit)
-	loadString("kernel.commit", &cfg.Kernel.Commit)
 	loadFile("", mycfg.KernelConfig, &cfg.Kernel.Config, true)
 	loadFile("", mycfg.KernelBaselineConfig, &cfg.Kernel.BaselineConfig, false)
 	loadFile(*flagCrash, "repro.prog", &cfg.Repro.Syz, false)
@@ -119,15 +120,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "bisection failed: %v\n", err)
 		os.Exit(1)
 	}
-}
-
-func loadString(file string, dst *string) {
-	data, err := ioutil.ReadFile(filepath.Join(*flagCrash, file))
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-	*dst = strings.TrimSpace(string(data))
 }
 
 func loadFile(path, file string, dst *[]byte, mandatory bool) {
