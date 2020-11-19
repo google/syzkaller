@@ -14,7 +14,6 @@
 //  - repro.opts: syzkaller reproducer options (e.g. {"procs":1,"sandbox":"none",...}) (optional)
 //  - syzkaller.commit: hash of syzkaller commit which was used to trigger the crash
 //  - kernel.commit: hash of kernel commit on which the crash was triggered
-//  - kernel.config: kernel config file
 package main
 
 import (
@@ -56,6 +55,10 @@ type Config struct {
 	// dashboard/config/upstream-selinux.cmdline
 	Sysctl  string `json:"sysctl"`
 	Cmdline string `json:"cmdline"`
+
+	KernelConfig         string `json:"kernel_config"`
+	KernelBaselineConfig string `json:"kernel_baseline_config"`
+
 	// Manager config that was used to obtain the crash.
 	Manager json.RawMessage `json:"manager"`
 }
@@ -101,11 +104,11 @@ func main() {
 	}
 	loadString("syzkaller.commit", &cfg.Syzkaller.Commit)
 	loadString("kernel.commit", &cfg.Kernel.Commit)
-	loadFile("kernel.config", &cfg.Kernel.Config, true)
-	loadFile("kernel.baseline_config", &cfg.Kernel.BaselineConfig, false)
-	loadFile("repro.prog", &cfg.Repro.Syz, false)
-	loadFile("repro.cprog", &cfg.Repro.C, false)
-	loadFile("repro.opts", &cfg.Repro.Opts, true)
+	loadFile("", mycfg.KernelConfig, &cfg.Kernel.Config, true)
+	loadFile("", mycfg.KernelBaselineConfig, &cfg.Kernel.BaselineConfig, false)
+	loadFile(*flagCrash, "repro.prog", &cfg.Repro.Syz, false)
+	loadFile(*flagCrash, "repro.cprog", &cfg.Repro.C, false)
+	loadFile(*flagCrash, "repro.opts", &cfg.Repro.Opts, false)
 
 	if len(cfg.Repro.Syz) == 0 && len(cfg.Repro.C) == 0 {
 		fmt.Fprintf(os.Stderr, "no repro.cprog or repro.prog found\n")
@@ -127,8 +130,8 @@ func loadString(file string, dst *string) {
 	*dst = strings.TrimSpace(string(data))
 }
 
-func loadFile(file string, dst *[]byte, mandatory bool) {
-	filename := filepath.Join(*flagCrash, file)
+func loadFile(path, file string, dst *[]byte, mandatory bool) {
+	filename := filepath.Join(path, file)
 	if !mandatory && !osutil.IsExist(filename) {
 		return
 	}
