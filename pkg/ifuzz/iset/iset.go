@@ -16,8 +16,8 @@ const (
 var Arches = make(map[string]InsnSet)
 
 type (
-	Mode int
-	Type int
+	Mode uint
+	Type uint
 )
 
 type Insn interface {
@@ -86,7 +86,7 @@ func (modeInsns *ModeInsns) Add(insn Insn) {
 
 func (cfg *Config) IsCompatible(insn Insn) bool {
 	_, mode, pseudo, priv := insn.Info()
-	if cfg.Mode < 0 || cfg.Mode >= ModeLast {
+	if cfg.Mode >= ModeLast {
 		panic("bad mode")
 	}
 	if priv && !cfg.Priv {
