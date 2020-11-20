@@ -57,9 +57,8 @@ func Register(insns []*Insn) {
 		panic("no instructions")
 	}
 	insnset := &InsnSet{
-		Insns: insns,
+		Insns: append(insns, pseudo...),
 	}
-	insnset.initPseudo()
 	for mode := ifuzzimpl.Mode(0); mode < ifuzzimpl.ModeLast; mode++ {
 		for _, insn := range insnset.Insns {
 			if insn.Mode&(1<<uint(mode)) == 0 {
