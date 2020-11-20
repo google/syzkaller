@@ -4,8 +4,9 @@
 package powerpc
 
 import (
-	"github.com/google/syzkaller/pkg/ifuzz"
 	"math/rand"
+
+	"github.com/google/syzkaller/pkg/ifuzz/ifuzzimpl"
 )
 
 // nolint:dupl
@@ -14,7 +15,7 @@ func (insnset *InsnSetPowerPC) initPseudo() {
 		Name:   "PSEUDO_hypercall",
 		Priv:   true,
 		Pseudo: true,
-		generator: func(cfg *ifuzz.Config, r *rand.Rand) []byte {
+		generator: func(cfg *ifuzzimpl.Config, r *rand.Rand) []byte {
 			gen := makeGen(insnset, cfg, r)
 			gen.sc(1)
 			return gen.text
@@ -24,7 +25,7 @@ func (insnset *InsnSetPowerPC) initPseudo() {
 		Name:   "PSEUDO_syscall",
 		Priv:   true,
 		Pseudo: true,
-		generator: func(cfg *ifuzz.Config, r *rand.Rand) []byte {
+		generator: func(cfg *ifuzzimpl.Config, r *rand.Rand) []byte {
 			gen := makeGen(insnset, cfg, r)
 			gen.sc(0)
 			return gen.text
@@ -34,7 +35,7 @@ func (insnset *InsnSetPowerPC) initPseudo() {
 		Name:   "PSEUDO_ultracall",
 		Priv:   true,
 		Pseudo: true,
-		generator: func(cfg *ifuzz.Config, r *rand.Rand) []byte {
+		generator: func(cfg *ifuzzimpl.Config, r *rand.Rand) []byte {
 			gen := makeGen(insnset, cfg, r)
 			gen.sc(2)
 			return gen.text
@@ -44,12 +45,12 @@ func (insnset *InsnSetPowerPC) initPseudo() {
 
 type generator struct {
 	imap map[string]*Insn
-	mode int
+	mode ifuzzimpl.Mode
 	r    *rand.Rand
 	text []byte
 }
 
-func makeGen(insnset *InsnSetPowerPC, cfg *ifuzz.Config, r *rand.Rand) *generator {
+func makeGen(insnset *InsnSetPowerPC, cfg *ifuzzimpl.Config, r *rand.Rand) *generator {
 	return &generator{
 		imap: insnset.insnMap,
 		mode: cfg.Mode,

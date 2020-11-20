@@ -5,26 +5,27 @@ package x86
 
 import (
 	"fmt"
-	"github.com/google/syzkaller/pkg/ifuzz"
+
+	"github.com/google/syzkaller/pkg/ifuzz/ifuzzimpl"
 )
 
 // Decode decodes instruction length for the given mode.
 // It can have falsely decode incorrect instructions,
 // but should not fail to decode correct instructions.
 // nolint: gocyclo, nestif, gocognit, funlen
-func (insnset *InsnSetX86) Decode(mode int, text []byte) (int, error) {
+func (insnset *InsnSetX86) Decode(mode ifuzzimpl.Mode, text []byte) (int, error) {
 	if len(text) == 0 {
 		return 0, fmt.Errorf("zero-length instruction")
 	}
 	prefixes := prefixes32
 	var operSize, immSize, dispSize, addrSize int
 	switch mode {
-	case ifuzz.ModeLong64:
+	case ifuzzimpl.ModeLong64:
 		operSize, immSize, dispSize, addrSize = 4, 4, 4, 8
 		prefixes = prefixes64
-	case ifuzz.ModeProt32:
+	case ifuzzimpl.ModeProt32:
 		operSize, immSize, dispSize, addrSize = 4, 4, 4, 4
-	case ifuzz.ModeProt16, ifuzz.ModeReal16:
+	case ifuzzimpl.ModeProt16, ifuzzimpl.ModeReal16:
 		operSize, immSize, dispSize, addrSize = 2, 2, 2, 2
 	default:
 		panic("bad mode")
@@ -35,7 +36,7 @@ func (insnset *InsnSetX86) Decode(mode int, text []byte) (int, error) {
 	if len(text) > 1 {
 		// There are only 2 32-bit instructions that look like VEX-prefixed but are actually not: LDS, LES.
 		// They always reference memory (mod!=3), but all VEX instructions have "mod=3" where LDS/LES would have mod.
-		if (text[0] == 0xc4 || text[0] == 0xc5) && (mode == ifuzz.ModeLong64 || text[1]&0xc0 == 0xc0) {
+		if (text[0] == 0xc4 || text[0] == 0xc5) && (mode == ifuzzimpl.ModeLong64 || text[1]&0xc0 == 0xc0) {
 			vex = true
 		}
 		// There is only one instruction that looks like XOP-prefixed but is actually not: POP.
@@ -207,7 +208,7 @@ nextInsn:
 	return 0, fmt.Errorf("unknown instruction")
 }
 
-var XedDecode func(mode int, text []byte) (int, error)
+var XedDecode func(mode ifuzzimpl.Mode, text []byte) (int, error)
 
 var (
 	prefixes32 = map[byte]bool{
@@ -225,7 +226,7 @@ var (
 	}
 )
 
-func (insnset *InsnSetX86) DecodeExt(mode int, text []byte) (int, error) {
+func (insnset *InsnSetX86) DecodeExt(mode ifuzzimpl.Mode, text []byte) (int, error) {
 	if XedDecode != nil && text != nil && len(text) > 0 {
 		return XedDecode(mode, text)
 	}

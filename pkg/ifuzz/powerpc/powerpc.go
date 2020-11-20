@@ -16,9 +16,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/google/syzkaller/pkg/ifuzz"
-	"github.com/google/syzkaller/pkg/ifuzz/ifuzzimpl"
 	"math/rand"
+
+	"github.com/google/syzkaller/pkg/ifuzz/ifuzzimpl"
 )
 
 type InsnBits struct {
@@ -35,20 +35,20 @@ type Insn struct {
 	Opcode uint32
 	Mask   uint32
 
-	generator func(cfg *ifuzz.Config, r *rand.Rand) []byte
+	generator func(cfg *ifuzzimpl.Config, r *rand.Rand) []byte
 }
 
 type InsnSetPowerPC struct {
 	Insns     []*Insn
-	modeInsns [ifuzz.ModeLast][ifuzz.TypeLast][]ifuzz.Insn
+	modeInsns [ifuzzimpl.ModeLast][ifuzzimpl.TypeLast][]ifuzzimpl.Insn
 	insnMap   map[string]*Insn
 }
 
-func (insnset *InsnSetPowerPC) GetInsns(mode, insntype int) []ifuzz.Insn {
-	return insnset.modeInsns[mode][insntype]
+func (insnset *InsnSetPowerPC) GetInsns(mode ifuzzimpl.Mode, typ ifuzzimpl.Type) []ifuzzimpl.Insn {
+	return insnset.modeInsns[mode][typ]
 }
 
-func (insnset *InsnSetPowerPC) Decode(mode int, text []byte) (int, error) {
+func (insnset *InsnSetPowerPC) Decode(mode ifuzzimpl.Mode, text []byte) (int, error) {
 	if len(text) < 4 {
 		return 0, errors.New("must be at least 4 bytes")
 	}
@@ -61,7 +61,7 @@ func (insnset *InsnSetPowerPC) Decode(mode int, text []byte) (int, error) {
 	return 0, fmt.Errorf("unrecognised instruction %08x", insn32)
 }
 
-func (insnset *InsnSetPowerPC) DecodeExt(mode int, text []byte) (int, error) {
+func (insnset *InsnSetPowerPC) DecodeExt(mode ifuzzimpl.Mode, text []byte) (int, error) {
 	return 0, fmt.Errorf("no external decoder")
 }
 
@@ -85,7 +85,7 @@ func (insn *Insn) EncodeParam(v map[string]uint, r *rand.Rand) []byte {
 	return ret
 }
 
-func (insn Insn) Encode(cfg *ifuzz.Config, r *rand.Rand) []byte {
+func (insn Insn) Encode(cfg *ifuzzimpl.Config, r *rand.Rand) []byte {
 	if insn.Pseudo {
 		return insn.generator(cfg, r)
 	}
@@ -94,39 +94,39 @@ func (insn Insn) Encode(cfg *ifuzz.Config, r *rand.Rand) []byte {
 }
 
 func Register(insns []*Insn) {
-	var insnset InsnSetPowerPC
-
-	insnset.Insns = insns
-	if len(insnset.Insns) == 0 {
+	if len(insns) == 0 {
 		panic("no instructions")
 	}
-	insnset.insnMap = make(map[string]*Insn)
+	insnset := &InsnSetPowerPC{
+		Insns:   insns,
+		insnMap: make(map[string]*Insn),
+	}
 	for _, insn := range insnset.Insns {
 		insnset.insnMap[insn.GetName()] = insn
 	}
 	insnset.initPseudo()
-	for mode := 0; mode < ifuzz.ModeLast; mode++ {
+	for mode := ifuzzimpl.Mode(0); mode < ifuzzimpl.ModeLast; mode++ {
 		for _, insn := range insnset.Insns {
 			if insn.GetMode()&(1<<uint(mode)) == 0 {
 				continue
 			}
 			if insn.GetPseudo() {
-				insnset.modeInsns[mode][ifuzz.TypeExec] =
-					append(insnset.modeInsns[mode][ifuzz.TypeExec], ifuzz.Insn(insn))
+				insnset.modeInsns[mode][ifuzzimpl.TypeExec] =
+					append(insnset.modeInsns[mode][ifuzzimpl.TypeExec], insn)
 			} else if insn.GetPriv() {
-				insnset.modeInsns[mode][ifuzz.TypePriv] =
-					append(insnset.modeInsns[mode][ifuzz.TypePriv], ifuzz.Insn(insn))
-				insnset.modeInsns[mode][ifuzz.TypeAll] =
-					append(insnset.modeInsns[mode][ifuzz.TypeAll], ifuzz.Insn(insn))
+				insnset.modeInsns[mode][ifuzzimpl.TypePriv] =
+					append(insnset.modeInsns[mode][ifuzzimpl.TypePriv], insn)
+				insnset.modeInsns[mode][ifuzzimpl.TypeAll] =
+					append(insnset.modeInsns[mode][ifuzzimpl.TypeAll], insn)
 			} else {
-				insnset.modeInsns[mode][ifuzz.TypeUser] =
-					append(insnset.modeInsns[mode][ifuzz.TypeUser], ifuzz.Insn(insn))
-				insnset.modeInsns[mode][ifuzz.TypeAll] =
-					append(insnset.modeInsns[mode][ifuzz.TypeAll], ifuzz.Insn(insn))
+				insnset.modeInsns[mode][ifuzzimpl.TypeUser] =
+					append(insnset.modeInsns[mode][ifuzzimpl.TypeUser], insn)
+				insnset.modeInsns[mode][ifuzzimpl.TypeAll] =
+					append(insnset.modeInsns[mode][ifuzzimpl.TypeAll], insn)
 			}
 		}
 	}
-	ifuzzimpl.Register(ifuzz.ArchPowerPC, ifuzz.InsnSet(&insnset))
+	ifuzzimpl.Arches[ifuzzimpl.ArchPowerPC] = insnset
 }
 
 func (insn Insn) GetName() string {
@@ -135,9 +135,9 @@ func (insn Insn) GetName() string {
 
 func (insn Insn) GetMode() int {
 	if insn.M64 {
-		return (1 << ifuzz.ModeLong64)
+		return (1 << ifuzzimpl.ModeLong64)
 	}
-	return (1 << ifuzz.ModeLong64) | (1 << ifuzz.ModeProt32)
+	return (1 << ifuzzimpl.ModeLong64) | (1 << ifuzzimpl.ModeProt32)
 }
 
 func (insn Insn) GetPriv() bool {
@@ -148,8 +148,8 @@ func (insn Insn) GetPseudo() bool {
 	return insn.Pseudo
 }
 
-func (insn Insn) IsCompatible(cfg *ifuzz.Config) bool {
-	if cfg.Mode < 0 || cfg.Mode >= ifuzz.ModeLast {
+func (insn Insn) IsCompatible(cfg *ifuzzimpl.Config) bool {
+	if cfg.Mode < 0 || cfg.Mode >= ifuzzimpl.ModeLast {
 		panic("bad mode")
 	}
 	if insn.Priv && !cfg.Priv {
@@ -158,7 +158,7 @@ func (insn Insn) IsCompatible(cfg *ifuzz.Config) bool {
 	if insn.Pseudo && !cfg.Exec {
 		return false
 	}
-	if insn.M64 && ((1 << uint(cfg.Mode)) != ifuzz.ModeLong64) {
+	if insn.M64 && ((1 << uint(cfg.Mode)) != ifuzzimpl.ModeLong64) {
 		return false
 	}
 	return true
