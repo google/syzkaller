@@ -1,7 +1,7 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package ifuzz_test
+package ifuzz
 
 import (
 	"encoding/hex"
@@ -10,13 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/syzkaller/pkg/ifuzz"
 	"github.com/google/syzkaller/pkg/ifuzz/ifuzzimpl"
-	_ "github.com/google/syzkaller/pkg/ifuzz/powerpc/generated"
-	_ "github.com/google/syzkaller/pkg/ifuzz/x86/generated"
 )
 
-var allArches = []string{ifuzz.ArchX86, ifuzz.ArchPowerPC}
+var allArches = []string{ArchX86, ArchPowerPC}
 
 func TestMode(t *testing.T) {
 	for _, arch := range allArches {
@@ -27,11 +24,11 @@ func TestMode(t *testing.T) {
 }
 
 func testMode(t *testing.T, arch string) {
-	all := make(map[ifuzz.Insn]bool)
-	for mode := 0; mode < ifuzz.ModeLast; mode++ {
+	all := make(map[ifuzzimpl.Insn]bool)
+	for mode := ifuzzimpl.Mode(0); mode < ifuzzimpl.ModeLast; mode++ {
 		for priv := 0; priv < 2; priv++ {
 			for exec := 0; exec < 2; exec++ {
-				cfg := &ifuzz.Config{
+				cfg := &Config{
 					Arch: arch,
 					Mode: mode,
 					Priv: priv != 0,
@@ -57,7 +54,7 @@ func TestDecode(t *testing.T) {
 }
 
 func testDecode(t *testing.T, arch string) {
-	insnset := ifuzzimpl.Types[arch]
+	insnset := ifuzzimpl.Arches[arch]
 	xedEnabled := false
 	if _, err := insnset.DecodeExt(0, nil); err == nil {
 		xedEnabled = true
@@ -70,8 +67,8 @@ func testDecode(t *testing.T, arch string) {
 	r := rand.New(rand.NewSource(seed))
 
 	for repeat := 0; repeat < 10; repeat++ {
-		for mode := 0; mode < ifuzz.ModeLast; mode++ {
-			cfg := &ifuzz.Config{
+		for mode := ifuzzimpl.Mode(0); mode < ifuzzimpl.ModeLast; mode++ {
+			cfg := &Config{
 				Arch: arch,
 				Mode: mode,
 				Priv: true,

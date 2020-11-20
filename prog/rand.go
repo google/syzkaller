@@ -13,9 +13,6 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ifuzz"
-	"github.com/google/syzkaller/pkg/ifuzz/ifuzzimpl"
-	_ "github.com/google/syzkaller/pkg/ifuzz/powerpc/generated" // pull in generated instruction descriptions
-	_ "github.com/google/syzkaller/pkg/ifuzz/x86/generated"     // pull in generated instruction descriptions
 )
 
 const (
@@ -428,7 +425,7 @@ func (r *randGen) generateText(kind TextKind) []byte {
 	switch kind {
 	case TextTarget:
 		if cfg := createTargetIfuzzConfig(r.target); cfg != nil {
-			return ifuzzimpl.Generate(cfg, r.Rand)
+			return ifuzz.Generate(cfg, r.Rand)
 		}
 		fallthrough
 	case TextArm64:
@@ -440,7 +437,7 @@ func (r *randGen) generateText(kind TextKind) []byte {
 		return text
 	default:
 		cfg := createIfuzzConfig(kind)
-		return ifuzzimpl.Generate(cfg, r.Rand)
+		return ifuzz.Generate(cfg, r.Rand)
 	}
 }
 
@@ -448,14 +445,14 @@ func (r *randGen) mutateText(kind TextKind, text []byte) []byte {
 	switch kind {
 	case TextTarget:
 		if cfg := createTargetIfuzzConfig(r.target); cfg != nil {
-			return ifuzzimpl.Mutate(cfg, r.Rand, text)
+			return ifuzz.Mutate(cfg, r.Rand, text)
 		}
 		fallthrough
 	case TextArm64:
 		return mutateData(r, text, 40, 60)
 	default:
 		cfg := createIfuzzConfig(kind)
-		return ifuzzimpl.Mutate(cfg, r.Rand, text)
+		return ifuzz.Mutate(cfg, r.Rand, text)
 	}
 }
 

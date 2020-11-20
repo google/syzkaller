@@ -7,9 +7,9 @@
 package x86
 
 import (
-	"github.com/google/syzkaller/pkg/ifuzz"
-	"github.com/google/syzkaller/pkg/ifuzz/ifuzzimpl"
 	"math/rand"
+
+	"github.com/google/syzkaller/pkg/ifuzz/ifuzzimpl"
 )
 
 type Insn struct {
@@ -44,57 +44,48 @@ type Insn struct {
 	VexP       int8
 	Avx2Gather bool
 
-	generator func(cfg *ifuzz.Config, r *rand.Rand) []byte // for pseudo instructions
+	generator func(cfg *ifuzzimpl.Config, r *rand.Rand) []byte // for pseudo instructions
 }
 
-const (
-	typeExec = iota
-	typePriv
-	typeUser
-	typeAll
-	typeLast
-)
-
 type InsnSetX86 struct {
-	modeInsns [ifuzz.ModeLast][typeLast][]ifuzz.Insn
+	modeInsns [ifuzzimpl.ModeLast][ifuzzimpl.TypeLast][]ifuzzimpl.Insn
 	Insns     []*Insn
 }
 
 func Register(insns []*Insn) {
-	var insnset InsnSetX86
-
-	insnset.Insns = insns
-	if len(insnset.Insns) == 0 {
+	if len(insns) == 0 {
 		panic("no instructions")
 	}
+	insnset := &InsnSetX86{
+		Insns: insns,
+	}
 	insnset.initPseudo()
-	for mode := 0; mode < ifuzz.ModeLast; mode++ {
+	for mode := ifuzzimpl.Mode(0); mode < ifuzzimpl.ModeLast; mode++ {
 		for _, insn := range insnset.Insns {
 			if insn.Mode&(1<<uint(mode)) == 0 {
 				continue
 			}
 			if insn.Pseudo {
-				insnset.modeInsns[mode][typeExec] =
-					append(insnset.modeInsns[mode][typeExec], ifuzz.Insn(insn))
+				insnset.modeInsns[mode][ifuzzimpl.TypeExec] =
+					append(insnset.modeInsns[mode][ifuzzimpl.TypeExec], insn)
 			} else if insn.Priv {
-				insnset.modeInsns[mode][typePriv] =
-					append(insnset.modeInsns[mode][typePriv], ifuzz.Insn(insn))
-				insnset.modeInsns[mode][typeAll] =
-					append(insnset.modeInsns[mode][typeAll], ifuzz.Insn(insn))
+				insnset.modeInsns[mode][ifuzzimpl.TypePriv] =
+					append(insnset.modeInsns[mode][ifuzzimpl.TypePriv], insn)
+				insnset.modeInsns[mode][ifuzzimpl.TypeAll] =
+					append(insnset.modeInsns[mode][ifuzzimpl.TypeAll], insn)
 			} else {
-				insnset.modeInsns[mode][typeUser] =
-					append(insnset.modeInsns[mode][typeUser], ifuzz.Insn(insn))
-				insnset.modeInsns[mode][typeAll] =
-					append(insnset.modeInsns[mode][typeAll], ifuzz.Insn(insn))
+				insnset.modeInsns[mode][ifuzzimpl.TypeUser] =
+					append(insnset.modeInsns[mode][ifuzzimpl.TypeUser], insn)
+				insnset.modeInsns[mode][ifuzzimpl.TypeAll] =
+					append(insnset.modeInsns[mode][ifuzzimpl.TypeAll], insn)
 			}
 		}
 	}
-
-	ifuzzimpl.Register(ifuzz.ArchX86, ifuzz.InsnSet(&insnset))
+	ifuzzimpl.Arches[ifuzzimpl.ArchX86] = insnset
 }
 
-func (insnset *InsnSetX86) GetInsns(mode, insntype int) []ifuzz.Insn {
-	return insnset.modeInsns[mode][insntype]
+func (insnset *InsnSetX86) GetInsns(mode ifuzzimpl.Mode, typ ifuzzimpl.Type) []ifuzzimpl.Insn {
+	return insnset.modeInsns[mode][typ]
 }
 
 func (insn Insn) GetName() string {
@@ -113,7 +104,7 @@ func (insn Insn) GetPseudo() bool {
 	return insn.Pseudo
 }
 
-func generateArg(cfg *ifuzz.Config, r *rand.Rand, size int) []byte {
+func generateArg(cfg *ifuzzimpl.Config, r *rand.Rand, size int) []byte {
 	v := generateInt(cfg, r, size)
 	arg := make([]byte, size)
 	for i := 0; i < size; i++ {
@@ -123,8 +114,8 @@ func generateArg(cfg *ifuzz.Config, r *rand.Rand, size int) []byte {
 	return arg
 }
 
-func (insn Insn) IsCompatible(cfg *ifuzz.Config) bool {
-	if cfg.Mode < 0 || cfg.Mode >= ifuzz.ModeLast {
+func (insn Insn) IsCompatible(cfg *ifuzzimpl.Config) bool {
+	if cfg.Mode < 0 || cfg.Mode >= ifuzzimpl.ModeLast {
 		panic("bad mode")
 	}
 	if insn.Priv && !cfg.Priv {
@@ -139,7 +130,7 @@ func (insn Insn) IsCompatible(cfg *ifuzz.Config) bool {
 	return true
 }
 
-func generateInt(cfg *ifuzz.Config, r *rand.Rand, size int) uint64 {
+func generateInt(cfg *ifuzzimpl.Config, r *rand.Rand, size int) uint64 {
 	if size != 1 && size != 2 && size != 4 && size != 8 {
 		panic("bad arg size")
 	}
@@ -154,7 +145,7 @@ func generateInt(cfg *ifuzz.Config, r *rand.Rand, size int) uint64 {
 	case x < 30:
 		v = uint64(r.Int63())
 	case x < 40:
-		v = ifuzz.SpecialNumbers[r.Intn(len(ifuzz.SpecialNumbers))]
+		v = ifuzzimpl.SpecialNumbers[r.Intn(len(ifuzzimpl.SpecialNumbers))]
 		if r.Intn(5) == 0 {
 			v += uint64(r.Intn(33)) - 16
 		}
