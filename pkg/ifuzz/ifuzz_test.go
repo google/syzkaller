@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/syzkaller/pkg/ifuzz/ifuzzimpl"
+	"github.com/google/syzkaller/pkg/ifuzz/iset"
 )
 
 var allArches = []string{ArchX86, ArchPowerPC}
@@ -24,8 +24,8 @@ func TestMode(t *testing.T) {
 }
 
 func testMode(t *testing.T, arch string) {
-	all := make(map[ifuzzimpl.Insn]bool)
-	for mode := ifuzzimpl.Mode(0); mode < ifuzzimpl.ModeLast; mode++ {
+	all := make(map[iset.Insn]bool)
+	for mode := iset.Mode(0); mode < iset.ModeLast; mode++ {
 		for priv := 0; priv < 2; priv++ {
 			for exec := 0; exec < 2; exec++ {
 				insns := allInsns(arch, mode, priv != 0, exec != 0)
@@ -48,7 +48,7 @@ func TestDecode(t *testing.T) {
 }
 
 func testDecode(t *testing.T, arch string) {
-	insnset := ifuzzimpl.Arches[arch]
+	insnset := iset.Arches[arch]
 	xedEnabled := false
 	if _, err := insnset.DecodeExt(0, nil); err == nil {
 		xedEnabled = true
@@ -61,8 +61,8 @@ func testDecode(t *testing.T, arch string) {
 	r := rand.New(rand.NewSource(seed))
 
 	for repeat := 0; repeat < 10; repeat++ {
-		for mode := ifuzzimpl.Mode(0); mode < ifuzzimpl.ModeLast; mode++ {
-			cfg := &ifuzzimpl.Config{
+		for mode := iset.Mode(0); mode < iset.ModeLast; mode++ {
+			cfg := &iset.Config{
 				Mode: mode,
 				Priv: true,
 				Exec: true,
@@ -122,13 +122,13 @@ func testDecode(t *testing.T, arch string) {
 	}
 }
 
-func allInsns(arch string, mode ifuzzimpl.Mode, priv, exec bool) []ifuzzimpl.Insn {
-	insnset := ifuzzimpl.Arches[arch]
-	insns := insnset.GetInsns(mode, ifuzzimpl.TypeUser)
+func allInsns(arch string, mode iset.Mode, priv, exec bool) []iset.Insn {
+	insnset := iset.Arches[arch]
+	insns := insnset.GetInsns(mode, iset.TypeUser)
 	if priv {
-		insns = append(insns, insnset.GetInsns(mode, ifuzzimpl.TypePriv)...)
+		insns = append(insns, insnset.GetInsns(mode, iset.TypePriv)...)
 		if exec {
-			insns = append(insns, insnset.GetInsns(mode, ifuzzimpl.TypeExec)...)
+			insns = append(insns, insnset.GetInsns(mode, iset.TypeExec)...)
 		}
 	}
 	return insns

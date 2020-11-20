@@ -9,16 +9,16 @@ package x86
 import (
 	"math/rand"
 
-	"github.com/google/syzkaller/pkg/ifuzz/ifuzzimpl"
+	"github.com/google/syzkaller/pkg/ifuzz/iset"
 )
 
 type Insn struct {
 	Name      string
 	Extension string
 
-	Mode   ifuzzimpl.Mode // bitmask of compatible modes
-	Priv   bool           // CPL=0
-	Pseudo bool           // pseudo instructions can consist of several real instructions
+	Mode   iset.Mode // bitmask of compatible modes
+	Priv   bool      // CPL=0
+	Pseudo bool      // pseudo instructions can consist of several real instructions
 
 	Opcode      []byte
 	Prefix      []byte
@@ -44,11 +44,11 @@ type Insn struct {
 	VexP       int8
 	Avx2Gather bool
 
-	generator func(cfg *ifuzzimpl.Config, r *rand.Rand) []byte // for pseudo instructions
+	generator func(cfg *iset.Config, r *rand.Rand) []byte // for pseudo instructions
 }
 
 type InsnSet struct {
-	modeInsns ifuzzimpl.ModeInsns
+	modeInsns iset.ModeInsns
 	Insns     []*Insn
 }
 
@@ -62,18 +62,18 @@ func Register(insns []*Insn) {
 	for _, insn := range insnset.Insns {
 		insnset.modeInsns.Add(insn)
 	}
-	ifuzzimpl.Arches[ifuzzimpl.ArchX86] = insnset
+	iset.Arches[iset.ArchX86] = insnset
 }
 
-func (insnset *InsnSet) GetInsns(mode ifuzzimpl.Mode, typ ifuzzimpl.Type) []ifuzzimpl.Insn {
+func (insnset *InsnSet) GetInsns(mode iset.Mode, typ iset.Type) []iset.Insn {
 	return insnset.modeInsns[mode][typ]
 }
 
-func (insn *Insn) Info() (string, ifuzzimpl.Mode, bool, bool) {
+func (insn *Insn) Info() (string, iset.Mode, bool, bool) {
 	return insn.Name, insn.Mode, insn.Pseudo, insn.Priv
 }
 
-func generateArg(cfg *ifuzzimpl.Config, r *rand.Rand, size int) []byte {
+func generateArg(cfg *iset.Config, r *rand.Rand, size int) []byte {
 	v := generateInt(cfg, r, size)
 	arg := make([]byte, size)
 	for i := 0; i < size; i++ {
@@ -83,7 +83,7 @@ func generateArg(cfg *ifuzzimpl.Config, r *rand.Rand, size int) []byte {
 	return arg
 }
 
-func generateInt(cfg *ifuzzimpl.Config, r *rand.Rand, size int) uint64 {
+func generateInt(cfg *iset.Config, r *rand.Rand, size int) uint64 {
 	if size != 1 && size != 2 && size != 4 && size != 8 {
 		panic("bad arg size")
 	}
@@ -98,7 +98,7 @@ func generateInt(cfg *ifuzzimpl.Config, r *rand.Rand, size int) uint64 {
 	case x < 30:
 		v = uint64(r.Int63())
 	case x < 40:
-		v = ifuzzimpl.SpecialNumbers[r.Intn(len(ifuzzimpl.SpecialNumbers))]
+		v = iset.SpecialNumbers[r.Intn(len(iset.SpecialNumbers))]
 		if r.Intn(5) == 0 {
 			v += uint64(r.Intn(33)) - 16
 		}

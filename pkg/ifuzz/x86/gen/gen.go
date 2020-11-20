@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/ifuzz/ifuzzimpl"
+	"github.com/google/syzkaller/pkg/ifuzz/iset"
 	"github.com/google/syzkaller/pkg/ifuzz/x86"
 	"github.com/google/syzkaller/pkg/serializer"
 )
@@ -102,7 +102,7 @@ func main() {
 			insn.Extension = vals[0]
 			switch insn.Extension {
 			case "FMA", "AVX2", "AVX", "F16C", "BMI2", "BMI", "XOP", "FMA4", "AVXAES", "BMI1", "AVX2GATHER":
-				insn.Mode = 1<<ifuzzimpl.ModeLong64 | 1<<ifuzzimpl.ModeProt32
+				insn.Mode = 1<<iset.ModeLong64 | 1<<iset.ModeProt32
 			}
 			insn.Avx2Gather = insn.Extension == "AVX2GATHER"
 		case "PATTERN":
@@ -201,7 +201,7 @@ func parsePattern(insn *x86.Insn, vals []string) error {
 		return errSkip("")
 	}
 	if insn.Mode == 0 {
-		insn.Mode = 1<<ifuzzimpl.ModeLast - 1
+		insn.Mode = 1<<iset.ModeLast - 1
 	}
 	insn.Mod = -100
 	insn.Reg = -100
@@ -314,7 +314,7 @@ func parsePattern(insn *x86.Insn, vals []string) error {
 		// VOP/VEX
 		case v == "XOPV":
 			insn.Vex = 0x8f
-			insn.Mode &^= 1 << ifuzzimpl.ModeReal16
+			insn.Mode &^= 1 << iset.ModeReal16
 		case v == "EVV":
 			insn.Vex = 0xc4
 		case v == "VV1":
@@ -355,13 +355,13 @@ func parsePattern(insn *x86.Insn, vals []string) error {
 
 		// Modes.
 		case v == "mode64":
-			insn.Mode &= 1 << ifuzzimpl.ModeLong64
+			insn.Mode &= 1 << iset.ModeLong64
 		case v == "not64":
-			insn.Mode &^= 1 << ifuzzimpl.ModeLong64
+			insn.Mode &^= 1 << iset.ModeLong64
 		case v == "mode32":
-			insn.Mode &= 1 << ifuzzimpl.ModeProt32
+			insn.Mode &= 1 << iset.ModeProt32
 		case v == "mode16":
-			insn.Mode &= 1<<ifuzzimpl.ModeProt16 | 1<<ifuzzimpl.ModeReal16
+			insn.Mode &= 1<<iset.ModeProt16 | 1<<iset.ModeReal16
 		case v == "eamode64",
 			v == "eamode32",
 			v == "eamode16",
