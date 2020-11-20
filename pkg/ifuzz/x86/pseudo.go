@@ -9,9 +9,8 @@ import (
 	"github.com/google/syzkaller/pkg/ifuzz/ifuzzimpl"
 )
 
-// nolint: funlen
-func (insnset *InsnSet) initPseudo() {
-	insnset.Insns = append(insnset.Insns, &Insn{
+var pseudo = []*Insn{
+	{
 		Name:   "PSEUDO_RDMSR",
 		Mode:   1<<ifuzzimpl.ModeLast - 1,
 		Priv:   true,
@@ -23,8 +22,8 @@ func (insnset *InsnSet) initPseudo() {
 			gen.byte(0x0f, 0x32) // rdmsr
 			return gen.text
 		},
-	})
-	insnset.Insns = append(insnset.Insns, &Insn{
+	},
+	{
 		Name:   "PSEUDO_WRMSR",
 		Mode:   1<<ifuzzimpl.ModeLast - 1,
 		Priv:   true,
@@ -39,8 +38,8 @@ func (insnset *InsnSet) initPseudo() {
 			gen.byte(0x0f, 0x30) // wrmsr
 			return gen.text
 		},
-	})
-	insnset.Insns = append(insnset.Insns, &Insn{
+	},
+	{
 		Name:   "PSEUDO_PCI_READ",
 		Mode:   1<<ifuzzimpl.ModeLast - 1,
 		Priv:   true,
@@ -52,8 +51,8 @@ func (insnset *InsnSet) initPseudo() {
 			gen.in(port, size)
 			return gen.text
 		},
-	})
-	insnset.Insns = append(insnset.Insns, &Insn{
+	},
+	{
 		Name:   "PSEUDO_PCI_WRITE",
 		Mode:   1<<ifuzzimpl.ModeLast - 1,
 		Priv:   true,
@@ -66,8 +65,8 @@ func (insnset *InsnSet) initPseudo() {
 			gen.out(port, uint32(val), size)
 			return gen.text
 		},
-	})
-	insnset.Insns = append(insnset.Insns, &Insn{
+	},
+	{
 		Name:   "PSEUDO_PORT_READ",
 		Mode:   1<<ifuzzimpl.ModeLast - 1,
 		Priv:   true,
@@ -78,8 +77,8 @@ func (insnset *InsnSet) initPseudo() {
 			gen.in(port, r.Intn(3))
 			return gen.text
 		},
-	})
-	insnset.Insns = append(insnset.Insns, &Insn{
+	},
+	{
 		Name:   "PSEUDO_PORT_WRITE",
 		Mode:   1<<ifuzzimpl.ModeLast - 1,
 		Priv:   true,
@@ -91,8 +90,8 @@ func (insnset *InsnSet) initPseudo() {
 			gen.out(port, uint32(val), r.Intn(3))
 			return gen.text
 		},
-	})
-	insnset.Insns = append(insnset.Insns, &Insn{
+	},
+	{
 		Name:   "PSEUDO_XOR_CR",
 		Mode:   1<<ifuzzimpl.ModeLast - 1,
 		Priv:   true,
@@ -112,8 +111,8 @@ func (insnset *InsnSet) initPseudo() {
 			gen.writeCR(cr)
 			return gen.text
 		},
-	})
-	insnset.Insns = append(insnset.Insns, &Insn{
+	},
+	{
 		Name:   "PSEUDO_XOR_EFER",
 		Mode:   1<<ifuzzimpl.ModeLast - 1,
 		Priv:   true,
@@ -127,8 +126,8 @@ func (insnset *InsnSet) initPseudo() {
 			gen.byte(0x0f, 0x30) // wrmsr
 			return gen.text
 		},
-	})
-	insnset.Insns = append(insnset.Insns, &Insn{
+	},
+	{
 		Name:   "PSEUDO_SET_BREAK",
 		Mode:   1<<ifuzzimpl.ModeLast - 1,
 		Priv:   true,
@@ -150,8 +149,8 @@ func (insnset *InsnSet) initPseudo() {
 			gen.writeDR(7)
 			return gen.text
 		},
-	})
-	insnset.Insns = append(insnset.Insns, &Insn{
+	},
+	{
 		Name:   "PSEUDO_LOAD_SEG",
 		Mode:   1<<ifuzzimpl.ModeLast - 1,
 		Priv:   true,
@@ -167,8 +166,8 @@ func (insnset *InsnSet) initPseudo() {
 			gen.byte(0x8e, 0xc0|(reg<<3)) // MOV %ax, %seg
 			return gen.text
 		},
-	})
-	insnset.Insns = append(insnset.Insns, &Insn{
+	},
+	{
 		Name:   "PSEUDO_FAR_JMP",
 		Mode:   1<<ifuzzimpl.ModeLong64 | 1<<ifuzzimpl.ModeProt32 | 1<<ifuzzimpl.ModeProt16,
 		Priv:   true,
@@ -200,8 +199,8 @@ func (insnset *InsnSet) initPseudo() {
 			}
 			return gen.text
 		},
-	})
-	insnset.Insns = append(insnset.Insns, &Insn{
+	},
+	{
 		Name:   "PSEUDO_LTR_LLDT",
 		Mode:   1<<ifuzzimpl.ModeLong64 | 1<<ifuzzimpl.ModeProt32 | 1<<ifuzzimpl.ModeProt16,
 		Priv:   true,
@@ -217,8 +216,8 @@ func (insnset *InsnSet) initPseudo() {
 			}
 			return gen.text
 		},
-	})
-	insnset.Insns = append(insnset.Insns, &Insn{
+	},
+	{
 		Name:   "PSEUDO_LGIDT",
 		Mode:   1<<ifuzzimpl.ModeLong64 | 1<<ifuzzimpl.ModeProt32 | 1<<ifuzzimpl.ModeProt16,
 		Priv:   true,
@@ -238,8 +237,8 @@ func (insnset *InsnSet) initPseudo() {
 			}
 			return gen.text
 		},
-	})
-	insnset.Insns = append(insnset.Insns, &Insn{
+	},
+	{
 		Name:   "PSEUDO_HYPERCALL",
 		Mode:   1<<ifuzzimpl.ModeLong64 | 1<<ifuzzimpl.ModeProt32 | 1<<ifuzzimpl.ModeProt16,
 		Priv:   true,
@@ -262,7 +261,7 @@ func (insnset *InsnSet) initPseudo() {
 			}
 			return gen.text
 		},
-	})
+	},
 }
 
 const (
