@@ -10,7 +10,7 @@ import (
 )
 
 // nolint: funlen
-func (insnset *InsnSetX86) initPseudo() {
+func (insnset *InsnSet) initPseudo() {
 	insnset.Insns = append(insnset.Insns, &Insn{
 		Name:   "PSEUDO_RDMSR",
 		Mode:   1<<ifuzzimpl.ModeLast - 1,

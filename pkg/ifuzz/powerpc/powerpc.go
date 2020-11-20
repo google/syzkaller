@@ -38,17 +38,17 @@ type Insn struct {
 	generator func(cfg *ifuzzimpl.Config, r *rand.Rand) []byte
 }
 
-type InsnSetPowerPC struct {
+type InsnSet struct {
 	Insns     []*Insn
 	modeInsns [ifuzzimpl.ModeLast][ifuzzimpl.TypeLast][]ifuzzimpl.Insn
 	insnMap   map[string]*Insn
 }
 
-func (insnset *InsnSetPowerPC) GetInsns(mode ifuzzimpl.Mode, typ ifuzzimpl.Type) []ifuzzimpl.Insn {
+func (insnset *InsnSet) GetInsns(mode ifuzzimpl.Mode, typ ifuzzimpl.Type) []ifuzzimpl.Insn {
 	return insnset.modeInsns[mode][typ]
 }
 
-func (insnset *InsnSetPowerPC) Decode(mode ifuzzimpl.Mode, text []byte) (int, error) {
+func (insnset *InsnSet) Decode(mode ifuzzimpl.Mode, text []byte) (int, error) {
 	if len(text) < 4 {
 		return 0, errors.New("must be at least 4 bytes")
 	}
@@ -61,7 +61,7 @@ func (insnset *InsnSetPowerPC) Decode(mode ifuzzimpl.Mode, text []byte) (int, er
 	return 0, fmt.Errorf("unrecognised instruction %08x", insn32)
 }
 
-func (insnset *InsnSetPowerPC) DecodeExt(mode ifuzzimpl.Mode, text []byte) (int, error) {
+func (insnset *InsnSet) DecodeExt(mode ifuzzimpl.Mode, text []byte) (int, error) {
 	return 0, fmt.Errorf("no external decoder")
 }
 
@@ -97,7 +97,7 @@ func Register(insns []*Insn) {
 	if len(insns) == 0 {
 		panic("no instructions")
 	}
-	insnset := &InsnSetPowerPC{
+	insnset := &InsnSet{
 		Insns:   insns,
 		insnMap: make(map[string]*Insn),
 	}
