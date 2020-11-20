@@ -83,22 +83,6 @@ func generateArg(cfg *ifuzzimpl.Config, r *rand.Rand, size int) []byte {
 	return arg
 }
 
-func (insn *Insn) isCompatible(cfg *ifuzzimpl.Config) bool {
-	if cfg.Mode < 0 || cfg.Mode >= ifuzzimpl.ModeLast {
-		panic("bad mode")
-	}
-	if insn.Priv && !cfg.Priv {
-		return false
-	}
-	if insn.Pseudo && !cfg.Exec {
-		return false
-	}
-	if insn.Mode&(1<<uint(cfg.Mode)) == 0 {
-		return false
-	}
-	return true
-}
-
 func generateInt(cfg *ifuzzimpl.Config, r *rand.Rand, size int) uint64 {
 	if size != 1 && size != 2 && size != 4 && size != 8 {
 		panic("bad arg size")
