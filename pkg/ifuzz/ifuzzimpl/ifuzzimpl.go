@@ -20,7 +20,7 @@ type (
 )
 
 type Insn interface {
-	Info() (string, bool)
+	Info() (name string, mode Mode, pseudo, priv bool)
 	Encode(cfg *Config, r *rand.Rand) []byte
 }
 
@@ -61,3 +61,24 @@ const (
 )
 
 var SpecialNumbers = [...]uint64{0, 1 << 15, 1 << 16, 1 << 31, 1 << 32, 1 << 47, 1 << 47, 1 << 63}
+
+type ModeInsns [ModeLast][TypeLast][]Insn
+
+func (modeInsns *ModeInsns) Add(insn Insn) {
+	_, mode, pseudo, priv := insn.Info()
+	for m := Mode(0); m < ModeLast; m++ {
+		if mode&(1<<uint(m)) == 0 {
+			continue
+		}
+		set := &modeInsns[m]
+		if pseudo {
+			set[TypeExec] = append(set[TypeExec], insn)
+		} else if priv {
+			set[TypePriv] = append(set[TypePriv], insn)
+			set[TypeAll] = append(set[TypeAll], insn)
+		} else {
+			set[TypeUser] = append(set[TypeUser], insn)
+			set[TypeAll] = append(set[TypeAll], insn)
+		}
+	}
+}
