@@ -69,12 +69,13 @@ func testDecode(t *testing.T, arch string) {
 			}
 			failed := false
 			for _, insn := range allInsns(arch, mode, true, true) {
+				name, pseudo := insn.Info()
 				text0 := insn.Encode(cfg, r)
 				text := text0
 			repeat:
 				size, err := insnset.Decode(mode, text)
 				if err != nil {
-					t.Errorf("decoding %v %v failed (mode=%v): %v", insn.GetName(), hex.EncodeToString(text), mode, err)
+					t.Errorf("decoding %v %v failed (mode=%v): %v", name, hex.EncodeToString(text), mode, err)
 					if len(text) != len(text0) {
 						t.Errorf("whole: %v", hex.EncodeToString(text0))
 					}
@@ -84,7 +85,7 @@ func testDecode(t *testing.T, arch string) {
 				if xedEnabled {
 					xedSize, xedErr := insnset.DecodeExt(mode, text)
 					if xedErr != nil {
-						t.Errorf("xed decoding %v %v failed (mode=%v): %v", insn.GetName(), hex.EncodeToString(text), mode, xedErr)
+						t.Errorf("xed decoding %v %v failed (mode=%v): %v", name, hex.EncodeToString(text), mode, xedErr)
 						if len(text) != len(text0) {
 							t.Errorf("whole: %v", hex.EncodeToString(text0))
 						}
@@ -93,7 +94,7 @@ func testDecode(t *testing.T, arch string) {
 					}
 					if size != xedSize {
 						t.Errorf("decoding %v %v failed (mode=%v): decoded %v/%v, xed decoded %v/%v",
-							insn.GetName(), hex.EncodeToString(text), mode, size, xedSize, size, len(text))
+							name, hex.EncodeToString(text), mode, size, xedSize, size, len(text))
 						if len(text) != len(text0) {
 							t.Errorf("whole: %v", hex.EncodeToString(text0))
 						}
@@ -101,13 +102,13 @@ func testDecode(t *testing.T, arch string) {
 						continue
 					}
 				}
-				if insn.GetPseudo() && size >= 0 && size < len(text) {
+				if pseudo && size >= 0 && size < len(text) {
 					text = text[size:]
 					goto repeat
 				}
 				if size != len(text) {
 					t.Errorf("decoding %v %v failed (mode=%v): decoded %v/%v",
-						insn.GetName(), hex.EncodeToString(text), mode, size, len(text))
+						name, hex.EncodeToString(text), mode, size, len(text))
 					if len(text) != len(text0) {
 						t.Errorf("whole: %v", hex.EncodeToString(text0))
 					}
