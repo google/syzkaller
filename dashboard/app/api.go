@@ -1150,7 +1150,9 @@ func putText(c context.Context, ns, tag string, data []byte, dedup bool) (int64,
 		return 0, nil
 	}
 	const (
-		maxTextLen       = 2 << 20
+		// Kernel crash log is capped at ~1MB, but vm.Diagnose can add more.
+		// These text files usually compress very well.
+		maxTextLen       = 10 << 20
 		maxCompressedLen = 1000 << 10 // datastore entity limit is 1MB
 	)
 	if len(data) > maxTextLen {
