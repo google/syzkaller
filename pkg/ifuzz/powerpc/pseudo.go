@@ -10,7 +10,7 @@ import (
 )
 
 // nolint:dupl
-func (insnset *InsnSetPowerPC) initPseudo() {
+func (insnset *InsnSet) initPseudo() {
 	insnset.Insns = append(insnset.Insns, &Insn{
 		Name:   "PSEUDO_hypercall",
 		Priv:   true,
@@ -50,7 +50,7 @@ type generator struct {
 	text []byte
 }
 
-func makeGen(insnset *InsnSetPowerPC, cfg *ifuzzimpl.Config, r *rand.Rand) *generator {
+func makeGen(insnset *InsnSet, cfg *ifuzzimpl.Config, r *rand.Rand) *generator {
 	return &generator{
 		imap: insnset.insnMap,
 		mode: cfg.Mode,

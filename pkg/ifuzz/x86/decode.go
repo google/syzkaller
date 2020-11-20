@@ -13,7 +13,7 @@ import (
 // It can have falsely decode incorrect instructions,
 // but should not fail to decode correct instructions.
 // nolint: gocyclo, nestif, gocognit, funlen
-func (insnset *InsnSetX86) Decode(mode ifuzzimpl.Mode, text []byte) (int, error) {
+func (insnset *InsnSet) Decode(mode ifuzzimpl.Mode, text []byte) (int, error) {
 	if len(text) == 0 {
 		return 0, fmt.Errorf("zero-length instruction")
 	}
@@ -226,7 +226,7 @@ var (
 	}
 )
 
-func (insnset *InsnSetX86) DecodeExt(mode ifuzzimpl.Mode, text []byte) (int, error) {
+func (insnset *InsnSet) DecodeExt(mode ifuzzimpl.Mode, text []byte) (int, error) {
 	if XedDecode != nil && text != nil && len(text) > 0 {
 		return XedDecode(mode, text)
 	}

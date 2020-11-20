@@ -47,7 +47,7 @@ type Insn struct {
 	generator func(cfg *ifuzzimpl.Config, r *rand.Rand) []byte // for pseudo instructions
 }
 
-type InsnSetX86 struct {
+type InsnSet struct {
 	modeInsns [ifuzzimpl.ModeLast][ifuzzimpl.TypeLast][]ifuzzimpl.Insn
 	Insns     []*Insn
 }
@@ -56,7 +56,7 @@ func Register(insns []*Insn) {
 	if len(insns) == 0 {
 		panic("no instructions")
 	}
-	insnset := &InsnSetX86{
+	insnset := &InsnSet{
 		Insns: insns,
 	}
 	insnset.initPseudo()
@@ -84,7 +84,7 @@ func Register(insns []*Insn) {
 	ifuzzimpl.Arches[ifuzzimpl.ArchX86] = insnset
 }
 
-func (insnset *InsnSetX86) GetInsns(mode ifuzzimpl.Mode, typ ifuzzimpl.Type) []ifuzzimpl.Insn {
+func (insnset *InsnSet) GetInsns(mode ifuzzimpl.Mode, typ ifuzzimpl.Type) []ifuzzimpl.Insn {
 	return insnset.modeInsns[mode][typ]
 }
 
