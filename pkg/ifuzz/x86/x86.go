@@ -88,20 +88,8 @@ func (insnset *InsnSetX86) GetInsns(mode ifuzzimpl.Mode, typ ifuzzimpl.Type) []i
 	return insnset.modeInsns[mode][typ]
 }
 
-func (insn Insn) GetName() string {
-	return insn.Name
-}
-
-func (insn Insn) GetMode() int {
-	return insn.Mode
-}
-
-func (insn Insn) GetPriv() bool {
-	return insn.Priv
-}
-
-func (insn Insn) GetPseudo() bool {
-	return insn.Pseudo
+func (insn *Insn) Info() (string, bool) {
+	return insn.Name, insn.Pseudo
 }
 
 func generateArg(cfg *ifuzzimpl.Config, r *rand.Rand, size int) []byte {
@@ -114,7 +102,7 @@ func generateArg(cfg *ifuzzimpl.Config, r *rand.Rand, size int) []byte {
 	return arg
 }
 
-func (insn Insn) IsCompatible(cfg *ifuzzimpl.Config) bool {
+func (insn *Insn) isCompatible(cfg *ifuzzimpl.Config) bool {
 	if cfg.Mode < 0 || cfg.Mode >= ifuzzimpl.ModeLast {
 		panic("bad mode")
 	}

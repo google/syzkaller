@@ -102,18 +102,18 @@ func Register(insns []*Insn) {
 		insnMap: make(map[string]*Insn),
 	}
 	for _, insn := range insnset.Insns {
-		insnset.insnMap[insn.GetName()] = insn
+		insnset.insnMap[insn.Name] = insn
 	}
 	insnset.initPseudo()
 	for mode := ifuzzimpl.Mode(0); mode < ifuzzimpl.ModeLast; mode++ {
 		for _, insn := range insnset.Insns {
-			if insn.GetMode()&(1<<uint(mode)) == 0 {
+			if insn.mode()&(1<<uint(mode)) == 0 {
 				continue
 			}
-			if insn.GetPseudo() {
+			if insn.Pseudo {
 				insnset.modeInsns[mode][ifuzzimpl.TypeExec] =
 					append(insnset.modeInsns[mode][ifuzzimpl.TypeExec], insn)
-			} else if insn.GetPriv() {
+			} else if insn.Priv {
 				insnset.modeInsns[mode][ifuzzimpl.TypePriv] =
 					append(insnset.modeInsns[mode][ifuzzimpl.TypePriv], insn)
 				insnset.modeInsns[mode][ifuzzimpl.TypeAll] =
@@ -129,37 +129,13 @@ func Register(insns []*Insn) {
 	ifuzzimpl.Arches[ifuzzimpl.ArchPowerPC] = insnset
 }
 
-func (insn Insn) GetName() string {
-	return insn.Name
+func (insn *Insn) Info() (string, bool) {
+	return insn.Name, insn.Pseudo
 }
 
-func (insn Insn) GetMode() int {
+func (insn Insn) mode() int {
 	if insn.M64 {
 		return (1 << ifuzzimpl.ModeLong64)
 	}
 	return (1 << ifuzzimpl.ModeLong64) | (1 << ifuzzimpl.ModeProt32)
-}
-
-func (insn Insn) GetPriv() bool {
-	return insn.Priv
-}
-
-func (insn Insn) GetPseudo() bool {
-	return insn.Pseudo
-}
-
-func (insn Insn) IsCompatible(cfg *ifuzzimpl.Config) bool {
-	if cfg.Mode < 0 || cfg.Mode >= ifuzzimpl.ModeLast {
-		panic("bad mode")
-	}
-	if insn.Priv && !cfg.Priv {
-		return false
-	}
-	if insn.Pseudo && !cfg.Exec {
-		return false
-	}
-	if insn.M64 && ((1 << uint(cfg.Mode)) != ifuzzimpl.ModeLong64) {
-		return false
-	}
-	return true
 }

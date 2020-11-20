@@ -15,7 +15,7 @@ import (
 
 // nolint: gocyclo, nestif, gocognit, funlen
 func (insn *Insn) Encode(cfg *ifuzzimpl.Config, r *rand.Rand) []byte {
-	if !insn.IsCompatible(cfg) {
+	if !insn.isCompatible(cfg) {
 		panic("instruction is not suitable for this mode")
 	}
 	if insn.Pseudo {

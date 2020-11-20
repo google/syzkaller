@@ -20,11 +20,7 @@ type (
 )
 
 type Insn interface {
-	GetName() string
-	GetMode() int
-	GetPseudo() bool
-	GetPriv() bool
-	IsCompatible(cfg *Config) bool
+	Info() (string, bool)
 	Encode(cfg *Config, r *rand.Rand) []byte
 }
 
