@@ -99,7 +99,10 @@ func (git *git) CheckoutBranch(repo, branch string) (*Commit, error) {
 	if err := git.repair(); err != nil {
 		return nil, err
 	}
-	_, err := git.git("fetch", repo, branch)
+	repoHash := hash.String([]byte(repo))
+	// Ignore error as we can double add the same remote and that will fail.
+	git.git("remote", "add", repoHash, repo)
+	_, err := git.git("fetch", repoHash, branch)
 	if err != nil {
 		return nil, err
 	}
