@@ -16,7 +16,17 @@ import (
 	_ "github.com/google/syzkaller/pkg/ifuzz/x86/generated"
 )
 
-func testmodearch(t *testing.T, arch string) {
+var allArches = []string{ifuzz.ArchX86, ifuzz.ArchPowerPC}
+
+func TestMode(t *testing.T) {
+	for _, arch := range allArches {
+		t.Run(arch, func(t *testing.T) {
+			testMode(t, arch)
+		})
+	}
+}
+
+func testMode(t *testing.T, arch string) {
 	all := make(map[ifuzz.Insn]bool)
 	for mode := 0; mode < ifuzz.ModeLast; mode++ {
 		for priv := 0; priv < 2; priv++ {
@@ -38,12 +48,15 @@ func testmodearch(t *testing.T, arch string) {
 	t.Logf("total: %v instructions", len(all))
 }
 
-func TestMode(t *testing.T) {
-	testmodearch(t, ifuzz.ArchX86)
-	testmodearch(t, ifuzz.ArchPowerPC)
+func TestDecode(t *testing.T) {
+	for _, arch := range allArches {
+		t.Run(arch, func(t *testing.T) {
+			testDecode(t, arch)
+		})
+	}
 }
 
-func testdecodearch(t *testing.T, arch string) {
+func testDecode(t *testing.T, arch string) {
 	insnset := ifuzzimpl.Types[arch]
 	xedEnabled := false
 	if _, err := insnset.DecodeExt(0, nil); err == nil {
@@ -116,9 +129,4 @@ func testdecodearch(t *testing.T, arch string) {
 			}
 		}
 	}
-}
-
-func TestDecode(t *testing.T) {
-	testdecodearch(t, ifuzz.ArchX86)
-	testdecodearch(t, ifuzz.ArchPowerPC)
 }
