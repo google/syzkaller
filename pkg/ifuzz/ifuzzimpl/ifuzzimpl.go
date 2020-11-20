@@ -64,20 +64,4 @@ const (
 	TypeLast
 )
 
-// ModeInsns returns list of all instructions for the given mode.
-func ModeInsns(cfg *Config) []Insn {
-	insnset := Arches[cfg.Arch]
-	if cfg.Mode < 0 || cfg.Mode >= ModeLast {
-		panic("bad mode")
-	}
-	insns := insnset.GetInsns(cfg.Mode, TypeUser)
-	if cfg.Priv {
-		insns = append(insns, insnset.GetInsns(cfg.Mode, TypePriv)...)
-		if cfg.Exec {
-			insns = append(insns, insnset.GetInsns(cfg.Mode, TypeExec)...)
-		}
-	}
-	return insns
-}
-
 var SpecialNumbers = [...]uint64{0, 1 << 15, 1 << 16, 1 << 31, 1 << 32, 1 << 47, 1 << 47, 1 << 63}

@@ -28,13 +28,7 @@ func testMode(t *testing.T, arch string) {
 	for mode := ifuzzimpl.Mode(0); mode < ifuzzimpl.ModeLast; mode++ {
 		for priv := 0; priv < 2; priv++ {
 			for exec := 0; exec < 2; exec++ {
-				cfg := &Config{
-					Arch: arch,
-					Mode: mode,
-					Priv: priv != 0,
-					Exec: exec != 0,
-				}
-				insns := ifuzzimpl.ModeInsns(cfg)
+				insns := allInsns(arch, mode, priv != 0, exec != 0)
 				t.Logf("mode=%v priv=%v exec=%v: %v instructions", mode, priv, exec, len(insns))
 				for _, insn := range insns {
 					all[insn] = true
@@ -68,14 +62,13 @@ func testDecode(t *testing.T, arch string) {
 
 	for repeat := 0; repeat < 10; repeat++ {
 		for mode := ifuzzimpl.Mode(0); mode < ifuzzimpl.ModeLast; mode++ {
-			cfg := &Config{
-				Arch: arch,
+			cfg := &ifuzzimpl.Config{
 				Mode: mode,
 				Priv: true,
 				Exec: true,
 			}
 			failed := false
-			for _, insn := range ifuzzimpl.ModeInsns(cfg) {
+			for _, insn := range allInsns(arch, mode, true, true) {
 				text0 := insn.Encode(cfg, r)
 				text := text0
 			repeat:
@@ -126,4 +119,16 @@ func testDecode(t *testing.T, arch string) {
 			}
 		}
 	}
+}
+
+func allInsns(arch string, mode ifuzzimpl.Mode, priv, exec bool) []ifuzzimpl.Insn {
+	insnset := ifuzzimpl.Arches[arch]
+	insns := insnset.GetInsns(mode, ifuzzimpl.TypeUser)
+	if priv {
+		insns = append(insns, insnset.GetInsns(mode, ifuzzimpl.TypePriv)...)
+		if exec {
+			insns = append(insns, insnset.GetInsns(mode, ifuzzimpl.TypeExec)...)
+		}
+	}
+	return insns
 }
