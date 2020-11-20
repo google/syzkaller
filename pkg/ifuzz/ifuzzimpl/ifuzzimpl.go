@@ -82,3 +82,20 @@ func (modeInsns *ModeInsns) Add(insn Insn) {
 		}
 	}
 }
+
+func (cfg *Config) IsCompatible(insn Insn) bool {
+	_, mode, pseudo, priv := insn.Info()
+	if cfg.Mode < 0 || cfg.Mode >= ModeLast {
+		panic("bad mode")
+	}
+	if priv && !cfg.Priv {
+		return false
+	}
+	if pseudo && !cfg.Exec {
+		return false
+	}
+	if mode&(1<<uint(cfg.Mode)) == 0 {
+		return false
+	}
+	return true
+}
