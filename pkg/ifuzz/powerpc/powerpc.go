@@ -40,7 +40,7 @@ type Insn struct {
 
 type InsnSet struct {
 	Insns     []*Insn
-	modeInsns [ifuzzimpl.ModeLast][ifuzzimpl.TypeLast][]ifuzzimpl.Insn
+	modeInsns ifuzzimpl.ModeInsns
 	insnMap   map[string]*Insn
 }
 
@@ -105,35 +105,17 @@ func Register(insns []*Insn) {
 		insnset.insnMap[insn.Name] = insn
 	}
 	insnset.initPseudo()
-	for mode := ifuzzimpl.Mode(0); mode < ifuzzimpl.ModeLast; mode++ {
-		for _, insn := range insnset.Insns {
-			if insn.mode()&(1<<uint(mode)) == 0 {
-				continue
-			}
-			if insn.Pseudo {
-				insnset.modeInsns[mode][ifuzzimpl.TypeExec] =
-					append(insnset.modeInsns[mode][ifuzzimpl.TypeExec], insn)
-			} else if insn.Priv {
-				insnset.modeInsns[mode][ifuzzimpl.TypePriv] =
-					append(insnset.modeInsns[mode][ifuzzimpl.TypePriv], insn)
-				insnset.modeInsns[mode][ifuzzimpl.TypeAll] =
-					append(insnset.modeInsns[mode][ifuzzimpl.TypeAll], insn)
-			} else {
-				insnset.modeInsns[mode][ifuzzimpl.TypeUser] =
-					append(insnset.modeInsns[mode][ifuzzimpl.TypeUser], insn)
-				insnset.modeInsns[mode][ifuzzimpl.TypeAll] =
-					append(insnset.modeInsns[mode][ifuzzimpl.TypeAll], insn)
-			}
-		}
+	for _, insn := range insnset.Insns {
+		insnset.modeInsns.Add(insn)
 	}
 	ifuzzimpl.Arches[ifuzzimpl.ArchPowerPC] = insnset
 }
 
-func (insn *Insn) Info() (string, bool) {
-	return insn.Name, insn.Pseudo
+func (insn *Insn) Info() (string, ifuzzimpl.Mode, bool, bool) {
+	return insn.Name, insn.mode(), insn.Pseudo, insn.Priv
 }
 
-func (insn Insn) mode() int {
+func (insn Insn) mode() ifuzzimpl.Mode {
 	if insn.M64 {
 		return (1 << ifuzzimpl.ModeLong64)
 	}

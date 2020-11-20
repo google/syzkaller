@@ -16,9 +16,9 @@ type Insn struct {
 	Name      string
 	Extension string
 
-	Mode   int  // bitmask of compatible modes
-	Priv   bool // CPL=0
-	Pseudo bool // pseudo instructions can consist of several real instructions
+	Mode   ifuzzimpl.Mode // bitmask of compatible modes
+	Priv   bool           // CPL=0
+	Pseudo bool           // pseudo instructions can consist of several real instructions
 
 	Opcode      []byte
 	Prefix      []byte
@@ -48,7 +48,7 @@ type Insn struct {
 }
 
 type InsnSet struct {
-	modeInsns [ifuzzimpl.ModeLast][ifuzzimpl.TypeLast][]ifuzzimpl.Insn
+	modeInsns ifuzzimpl.ModeInsns
 	Insns     []*Insn
 }
 
@@ -59,26 +59,8 @@ func Register(insns []*Insn) {
 	insnset := &InsnSet{
 		Insns: append(insns, pseudo...),
 	}
-	for mode := ifuzzimpl.Mode(0); mode < ifuzzimpl.ModeLast; mode++ {
-		for _, insn := range insnset.Insns {
-			if insn.Mode&(1<<uint(mode)) == 0 {
-				continue
-			}
-			if insn.Pseudo {
-				insnset.modeInsns[mode][ifuzzimpl.TypeExec] =
-					append(insnset.modeInsns[mode][ifuzzimpl.TypeExec], insn)
-			} else if insn.Priv {
-				insnset.modeInsns[mode][ifuzzimpl.TypePriv] =
-					append(insnset.modeInsns[mode][ifuzzimpl.TypePriv], insn)
-				insnset.modeInsns[mode][ifuzzimpl.TypeAll] =
-					append(insnset.modeInsns[mode][ifuzzimpl.TypeAll], insn)
-			} else {
-				insnset.modeInsns[mode][ifuzzimpl.TypeUser] =
-					append(insnset.modeInsns[mode][ifuzzimpl.TypeUser], insn)
-				insnset.modeInsns[mode][ifuzzimpl.TypeAll] =
-					append(insnset.modeInsns[mode][ifuzzimpl.TypeAll], insn)
-			}
-		}
+	for _, insn := range insnset.Insns {
+		insnset.modeInsns.Add(insn)
 	}
 	ifuzzimpl.Arches[ifuzzimpl.ArchX86] = insnset
 }
@@ -87,8 +69,8 @@ func (insnset *InsnSet) GetInsns(mode ifuzzimpl.Mode, typ ifuzzimpl.Type) []ifuz
 	return insnset.modeInsns[mode][typ]
 }
 
-func (insn *Insn) Info() (string, bool) {
-	return insn.Name, insn.Pseudo
+func (insn *Insn) Info() (string, ifuzzimpl.Mode, bool, bool) {
+	return insn.Name, insn.Mode, insn.Pseudo, insn.Priv
 }
 
 func generateArg(cfg *ifuzzimpl.Config, r *rand.Rand, size int) []byte {

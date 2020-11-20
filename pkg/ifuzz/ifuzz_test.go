@@ -69,7 +69,7 @@ func testDecode(t *testing.T, arch string) {
 			}
 			failed := false
 			for _, insn := range allInsns(arch, mode, true, true) {
-				name, pseudo := insn.Info()
+				name, _, pseudo, _ := insn.Info()
 				text0 := insn.Encode(cfg, r)
 				text := text0
 			repeat:
