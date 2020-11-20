@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/google/syzkaller/pkg/ifuzz/ifuzzimpl"
+	"github.com/google/syzkaller/pkg/ifuzz/iset"
 )
 
 type InsnBits struct {
@@ -35,20 +35,20 @@ type Insn struct {
 	Opcode uint32
 	Mask   uint32
 
-	generator func(cfg *ifuzzimpl.Config, r *rand.Rand) []byte
+	generator func(cfg *iset.Config, r *rand.Rand) []byte
 }
 
 type InsnSet struct {
 	Insns     []*Insn
-	modeInsns ifuzzimpl.ModeInsns
+	modeInsns iset.ModeInsns
 	insnMap   map[string]*Insn
 }
 
-func (insnset *InsnSet) GetInsns(mode ifuzzimpl.Mode, typ ifuzzimpl.Type) []ifuzzimpl.Insn {
+func (insnset *InsnSet) GetInsns(mode iset.Mode, typ iset.Type) []iset.Insn {
 	return insnset.modeInsns[mode][typ]
 }
 
-func (insnset *InsnSet) Decode(mode ifuzzimpl.Mode, text []byte) (int, error) {
+func (insnset *InsnSet) Decode(mode iset.Mode, text []byte) (int, error) {
 	if len(text) < 4 {
 		return 0, errors.New("must be at least 4 bytes")
 	}
@@ -61,7 +61,7 @@ func (insnset *InsnSet) Decode(mode ifuzzimpl.Mode, text []byte) (int, error) {
 	return 0, fmt.Errorf("unrecognised instruction %08x", insn32)
 }
 
-func (insnset *InsnSet) DecodeExt(mode ifuzzimpl.Mode, text []byte) (int, error) {
+func (insnset *InsnSet) DecodeExt(mode iset.Mode, text []byte) (int, error) {
 	return 0, fmt.Errorf("no external decoder")
 }
 
@@ -85,7 +85,7 @@ func (insn *Insn) EncodeParam(v map[string]uint, r *rand.Rand) []byte {
 	return ret
 }
 
-func (insn Insn) Encode(cfg *ifuzzimpl.Config, r *rand.Rand) []byte {
+func (insn Insn) Encode(cfg *iset.Config, r *rand.Rand) []byte {
 	if insn.Pseudo {
 		return insn.generator(cfg, r)
 	}
@@ -108,16 +108,16 @@ func Register(insns []*Insn) {
 	for _, insn := range insnset.Insns {
 		insnset.modeInsns.Add(insn)
 	}
-	ifuzzimpl.Arches[ifuzzimpl.ArchPowerPC] = insnset
+	iset.Arches[iset.ArchPowerPC] = insnset
 }
 
-func (insn *Insn) Info() (string, ifuzzimpl.Mode, bool, bool) {
+func (insn *Insn) Info() (string, iset.Mode, bool, bool) {
 	return insn.Name, insn.mode(), insn.Pseudo, insn.Priv
 }
 
-func (insn Insn) mode() ifuzzimpl.Mode {
+func (insn Insn) mode() iset.Mode {
 	if insn.M64 {
-		return (1 << ifuzzimpl.ModeLong64)
+		return (1 << iset.ModeLong64)
 	}
-	return (1 << ifuzzimpl.ModeLong64) | (1 << ifuzzimpl.ModeProt32)
+	return (1 << iset.ModeLong64) | (1 << iset.ModeProt32)
 }

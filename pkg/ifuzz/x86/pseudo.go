@@ -6,16 +6,16 @@ package x86
 import (
 	"math/rand"
 
-	"github.com/google/syzkaller/pkg/ifuzz/ifuzzimpl"
+	"github.com/google/syzkaller/pkg/ifuzz/iset"
 )
 
 var pseudo = []*Insn{
 	{
 		Name:   "PSEUDO_RDMSR",
-		Mode:   1<<ifuzzimpl.ModeLast - 1,
+		Mode:   1<<iset.ModeLast - 1,
 		Priv:   true,
 		Pseudo: true,
-		generator: func(cfg *ifuzzimpl.Config, r *rand.Rand) []byte {
+		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
 			gen := makeGen(cfg, r)
 			msr := msrs[r.Intn(len(msrs))]
 			gen.mov32(regECX, msr)
@@ -25,10 +25,10 @@ var pseudo = []*Insn{
 	},
 	{
 		Name:   "PSEUDO_WRMSR",
-		Mode:   1<<ifuzzimpl.ModeLast - 1,
+		Mode:   1<<iset.ModeLast - 1,
 		Priv:   true,
 		Pseudo: true,
-		generator: func(cfg *ifuzzimpl.Config, r *rand.Rand) []byte {
+		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
 			gen := makeGen(cfg, r)
 			msr := msrs[r.Intn(len(msrs))]
 			v := generateInt(cfg, r, 8)
@@ -41,10 +41,10 @@ var pseudo = []*Insn{
 	},
 	{
 		Name:   "PSEUDO_PCI_READ",
-		Mode:   1<<ifuzzimpl.ModeLast - 1,
+		Mode:   1<<iset.ModeLast - 1,
 		Priv:   true,
 		Pseudo: true,
-		generator: func(cfg *ifuzzimpl.Config, r *rand.Rand) []byte {
+		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
 			gen := makeGen(cfg, r)
 			addr, port, size := pciAddrPort(r)
 			gen.out32(0xcf8, addr)
@@ -54,10 +54,10 @@ var pseudo = []*Insn{
 	},
 	{
 		Name:   "PSEUDO_PCI_WRITE",
-		Mode:   1<<ifuzzimpl.ModeLast - 1,
+		Mode:   1<<iset.ModeLast - 1,
 		Priv:   true,
 		Pseudo: true,
-		generator: func(cfg *ifuzzimpl.Config, r *rand.Rand) []byte {
+		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
 			gen := makeGen(cfg, r)
 			addr, port, size := pciAddrPort(r)
 			val := generateInt(cfg, r, 4)
@@ -68,10 +68,10 @@ var pseudo = []*Insn{
 	},
 	{
 		Name:   "PSEUDO_PORT_READ",
-		Mode:   1<<ifuzzimpl.ModeLast - 1,
+		Mode:   1<<iset.ModeLast - 1,
 		Priv:   true,
 		Pseudo: true,
-		generator: func(cfg *ifuzzimpl.Config, r *rand.Rand) []byte {
+		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
 			gen := makeGen(cfg, r)
 			port := ports[r.Intn(len(ports))]
 			gen.in(port, r.Intn(3))
@@ -80,10 +80,10 @@ var pseudo = []*Insn{
 	},
 	{
 		Name:   "PSEUDO_PORT_WRITE",
-		Mode:   1<<ifuzzimpl.ModeLast - 1,
+		Mode:   1<<iset.ModeLast - 1,
 		Priv:   true,
 		Pseudo: true,
-		generator: func(cfg *ifuzzimpl.Config, r *rand.Rand) []byte {
+		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
 			gen := makeGen(cfg, r)
 			port := ports[r.Intn(len(ports))]
 			val := generateInt(cfg, r, 4)
@@ -93,10 +93,10 @@ var pseudo = []*Insn{
 	},
 	{
 		Name:   "PSEUDO_XOR_CR",
-		Mode:   1<<ifuzzimpl.ModeLast - 1,
+		Mode:   1<<iset.ModeLast - 1,
 		Priv:   true,
 		Pseudo: true,
-		generator: func(cfg *ifuzzimpl.Config, r *rand.Rand) []byte {
+		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
 			gen := makeGen(cfg, r)
 			cr := controlRegisters[r.Intn(len(controlRegisters))]
 			var v uint32
@@ -114,10 +114,10 @@ var pseudo = []*Insn{
 	},
 	{
 		Name:   "PSEUDO_XOR_EFER",
-		Mode:   1<<ifuzzimpl.ModeLast - 1,
+		Mode:   1<<iset.ModeLast - 1,
 		Priv:   true,
 		Pseudo: true,
-		generator: func(cfg *ifuzzimpl.Config, r *rand.Rand) []byte {
+		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
 			gen := makeGen(cfg, r)
 			gen.mov32(regECX, eferMSR)
 			gen.byte(0x0f, 0x32) // rdmsr
@@ -129,16 +129,16 @@ var pseudo = []*Insn{
 	},
 	{
 		Name:   "PSEUDO_SET_BREAK",
-		Mode:   1<<ifuzzimpl.ModeLast - 1,
+		Mode:   1<<iset.ModeLast - 1,
 		Priv:   true,
 		Pseudo: true,
-		generator: func(cfg *ifuzzimpl.Config, r *rand.Rand) []byte {
+		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
 			gen := makeGen(cfg, r)
 			br := uint8(r.Intn(4))
 			loc := uint32(r.Intn(4))
 			typ := uint32(r.Intn(16))
 			addr := generateInt(cfg, r, 8)
-			if cfg.Mode == ifuzzimpl.ModeLong64 {
+			if cfg.Mode == iset.ModeLong64 {
 				gen.mov64(regRAX, addr)
 			} else {
 				gen.mov32(regEAX, uint32(addr))
@@ -152,13 +152,13 @@ var pseudo = []*Insn{
 	},
 	{
 		Name:   "PSEUDO_LOAD_SEG",
-		Mode:   1<<ifuzzimpl.ModeLast - 1,
+		Mode:   1<<iset.ModeLast - 1,
 		Priv:   true,
 		Pseudo: true,
-		generator: func(cfg *ifuzzimpl.Config, r *rand.Rand) []byte {
+		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
 			gen := makeGen(cfg, r)
 			sel := randSelector(r)
-			if cfg.Mode == ifuzzimpl.ModeReal16 {
+			if cfg.Mode == iset.ModeReal16 {
 				sel = uint16(generateInt(cfg, r, 8)) >> 4
 			}
 			reg := uint8(r.Intn(6))
@@ -169,14 +169,14 @@ var pseudo = []*Insn{
 	},
 	{
 		Name:   "PSEUDO_FAR_JMP",
-		Mode:   1<<ifuzzimpl.ModeLong64 | 1<<ifuzzimpl.ModeProt32 | 1<<ifuzzimpl.ModeProt16,
+		Mode:   1<<iset.ModeLong64 | 1<<iset.ModeProt32 | 1<<iset.ModeProt16,
 		Priv:   true,
 		Pseudo: true,
-		generator: func(cfg *ifuzzimpl.Config, r *rand.Rand) []byte {
+		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
 			gen := makeGen(cfg, r)
 			sel := randSelector(r)
 			off := generateInt(cfg, r, 4)
-			if cfg.Mode == ifuzzimpl.ModeLong64 {
+			if cfg.Mode == iset.ModeLong64 {
 				gen.mov32toSPaddr(uint32(sel), 0)
 				gen.mov32toSPaddr(uint32(off), 2)
 				if r.Intn(2) == 0 {
@@ -190,7 +190,7 @@ var pseudo = []*Insn{
 				} else {
 					gen.byte(0x9a) // lcall $imm16, $imm16/32
 				}
-				if cfg.Mode == ifuzzimpl.ModeProt16 {
+				if cfg.Mode == iset.ModeProt16 {
 					gen.imm16(uint16(off))
 				} else {
 					gen.imm32(uint32(off))
@@ -202,10 +202,10 @@ var pseudo = []*Insn{
 	},
 	{
 		Name:   "PSEUDO_LTR_LLDT",
-		Mode:   1<<ifuzzimpl.ModeLong64 | 1<<ifuzzimpl.ModeProt32 | 1<<ifuzzimpl.ModeProt16,
+		Mode:   1<<iset.ModeLong64 | 1<<iset.ModeProt32 | 1<<iset.ModeProt16,
 		Priv:   true,
 		Pseudo: true,
-		generator: func(cfg *ifuzzimpl.Config, r *rand.Rand) []byte {
+		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
 			gen := makeGen(cfg, r)
 			sel := randSelector(r)
 			gen.mov16(regAX, sel)
@@ -219,10 +219,10 @@ var pseudo = []*Insn{
 	},
 	{
 		Name:   "PSEUDO_LGIDT",
-		Mode:   1<<ifuzzimpl.ModeLong64 | 1<<ifuzzimpl.ModeProt32 | 1<<ifuzzimpl.ModeProt16,
+		Mode:   1<<iset.ModeLong64 | 1<<iset.ModeProt32 | 1<<iset.ModeProt16,
 		Priv:   true,
 		Pseudo: true,
-		generator: func(cfg *ifuzzimpl.Config, r *rand.Rand) []byte {
+		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
 			gen := makeGen(cfg, r)
 			limit := uint32(generateInt(cfg, r, 2))
 			base := uint32(generateInt(cfg, r, 4))
@@ -240,10 +240,10 @@ var pseudo = []*Insn{
 	},
 	{
 		Name:   "PSEUDO_HYPERCALL",
-		Mode:   1<<ifuzzimpl.ModeLong64 | 1<<ifuzzimpl.ModeProt32 | 1<<ifuzzimpl.ModeProt16,
+		Mode:   1<<iset.ModeLong64 | 1<<iset.ModeProt32 | 1<<iset.ModeProt16,
 		Priv:   true,
 		Pseudo: true,
-		generator: func(cfg *ifuzzimpl.Config, r *rand.Rand) []byte {
+		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
 			gen := makeGen(cfg, r)
 			switch r.Intn(2) {
 			case 0:
@@ -280,12 +280,12 @@ const (
 )
 
 type generator struct {
-	mode ifuzzimpl.Mode
+	mode iset.Mode
 	r    *rand.Rand
 	text []byte
 }
 
-func makeGen(cfg *ifuzzimpl.Config, r *rand.Rand) *generator {
+func makeGen(cfg *iset.Config, r *rand.Rand) *generator {
 	return &generator{
 		mode: cfg.Mode,
 		r:    r,
@@ -311,9 +311,9 @@ func (gen *generator) imm64(v uint64) {
 
 func (gen *generator) operand16() {
 	switch gen.mode {
-	case ifuzzimpl.ModeLong64, ifuzzimpl.ModeProt32:
+	case iset.ModeLong64, iset.ModeProt32:
 		gen.byte(0x66)
-	case ifuzzimpl.ModeProt16, ifuzzimpl.ModeReal16:
+	case iset.ModeProt16, iset.ModeReal16:
 	default:
 		panic("bad mode")
 	}
@@ -321,8 +321,8 @@ func (gen *generator) operand16() {
 
 func (gen *generator) operand32() {
 	switch gen.mode {
-	case ifuzzimpl.ModeLong64, ifuzzimpl.ModeProt32:
-	case ifuzzimpl.ModeProt16, ifuzzimpl.ModeReal16:
+	case iset.ModeLong64, iset.ModeProt32:
+	case iset.ModeProt16, iset.ModeReal16:
 		gen.byte(0x66)
 	default:
 		panic("bad mode")
@@ -331,8 +331,8 @@ func (gen *generator) operand32() {
 
 func (gen *generator) addr32() {
 	switch gen.mode {
-	case ifuzzimpl.ModeLong64, ifuzzimpl.ModeProt32:
-	case ifuzzimpl.ModeProt16, ifuzzimpl.ModeReal16:
+	case iset.ModeLong64, iset.ModeProt32:
+	case iset.ModeProt16, iset.ModeReal16:
 		gen.byte(0x67)
 	default:
 		panic("bad mode")
@@ -384,7 +384,7 @@ func (gen *generator) mov32(reg int, v uint32) {
 }
 
 func (gen *generator) mov64(reg int, v uint64) {
-	if gen.mode != ifuzzimpl.ModeLong64 {
+	if gen.mode != iset.ModeLong64 {
 		panic("bad mode")
 	}
 	gen.byte(0x48)

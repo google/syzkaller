@@ -6,24 +6,24 @@ package ifuzz
 import (
 	"math/rand"
 
-	"github.com/google/syzkaller/pkg/ifuzz/ifuzzimpl"
+	"github.com/google/syzkaller/pkg/ifuzz/iset"
 	_ "github.com/google/syzkaller/pkg/ifuzz/powerpc/generated" // pull in generated instruction descriptions
 	_ "github.com/google/syzkaller/pkg/ifuzz/x86/generated"     // pull in generated instruction descriptions
 )
 
 type (
-	Config    = ifuzzimpl.Config
-	MemRegion = ifuzzimpl.MemRegion
-	Mode      = ifuzzimpl.Mode
+	Config    = iset.Config
+	MemRegion = iset.MemRegion
+	Mode      = iset.Mode
 )
 
 const (
-	ArchX86     = ifuzzimpl.ArchX86
-	ArchPowerPC = ifuzzimpl.ArchPowerPC
-	ModeLong64  = ifuzzimpl.ModeLong64
-	ModeProt32  = ifuzzimpl.ModeProt32
-	ModeProt16  = ifuzzimpl.ModeProt16
-	ModeReal16  = ifuzzimpl.ModeReal16
+	ArchX86     = iset.ArchX86
+	ArchPowerPC = iset.ArchPowerPC
+	ModeLong64  = iset.ModeLong64
+	ModeProt32  = iset.ModeProt32
+	ModeProt16  = iset.ModeProt16
+	ModeReal16  = iset.ModeReal16
 )
 
 func Generate(cfg *Config, r *rand.Rand) []byte {
@@ -99,21 +99,21 @@ func Mutate(cfg *Config, r *rand.Rand, text []byte) []byte {
 	return text
 }
 
-func randInsn(cfg *Config, r *rand.Rand) ifuzzimpl.Insn {
-	insnset := ifuzzimpl.Arches[cfg.Arch]
-	var insns []ifuzzimpl.Insn
+func randInsn(cfg *Config, r *rand.Rand) iset.Insn {
+	insnset := iset.Arches[cfg.Arch]
+	var insns []iset.Insn
 	if cfg.Priv && cfg.Exec {
-		insns = insnset.GetInsns(cfg.Mode, ifuzzimpl.Type(r.Intn(3)))
+		insns = insnset.GetInsns(cfg.Mode, iset.Type(r.Intn(3)))
 	} else if cfg.Priv {
-		insns = insnset.GetInsns(cfg.Mode, ifuzzimpl.Type(r.Intn(2)))
+		insns = insnset.GetInsns(cfg.Mode, iset.Type(r.Intn(2)))
 	} else {
-		insns = insnset.GetInsns(cfg.Mode, ifuzzimpl.TypeUser)
+		insns = insnset.GetInsns(cfg.Mode, iset.TypeUser)
 	}
 	return insns[r.Intn(len(insns))]
 }
 
 func split(cfg *Config, text []byte) [][]byte {
-	insnset := ifuzzimpl.Arches[cfg.Arch]
+	insnset := iset.Arches[cfg.Arch]
 	text = append([]byte{}, text...)
 	var insns [][]byte
 	var bad []byte

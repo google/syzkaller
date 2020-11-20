@@ -1,7 +1,8 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package ifuzzimpl
+// Package iset ("instruction set") provides base and helper types for ifuzz arch implementations.
+package iset
 
 import (
 	"math/rand"
