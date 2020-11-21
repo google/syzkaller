@@ -287,7 +287,7 @@ func init() {
 
 func Abs(path string) string {
 	if wd1, err := os.Getwd(); err == nil && wd1 != wd {
-		panic("don't mess with wd in a concurrent program")
+		panic(fmt.Sprintf("wd changed: %q -> %q", wd, wd1))
 	}
 	if path == "" || filepath.IsAbs(path) {
 		return path
