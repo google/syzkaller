@@ -222,7 +222,7 @@ func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string) ([]in
 		for _, c := range enabled {
 			n := 0
 			for _, call := range target.Syscalls {
-				if matchSyscall(call.Name, c) {
+				if MatchSyscall(call.Name, c) {
 					syscalls[call.ID] = true
 					n++
 				}
@@ -244,7 +244,7 @@ func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string) ([]in
 	for _, c := range disabled {
 		n := 0
 		for _, call := range target.Syscalls {
-			if matchSyscall(call.Name, c) {
+			if MatchSyscall(call.Name, c) {
 				delete(syscalls, call.ID)
 				n++
 			}
@@ -263,7 +263,7 @@ func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string) ([]in
 	return arr, nil
 }
 
-func matchSyscall(name, pattern string) bool {
+func MatchSyscall(name, pattern string) bool {
 	if pattern == name || strings.HasPrefix(name, pattern+"$") {
 		return true
 	}
