@@ -137,7 +137,7 @@ func createCRepro(bug *dashapi.BugReport) error {
 	if err := ioutil.WriteFile(file, bug.ReproSyz, 0644); err != nil {
 		return fmt.Errorf("failed to write file: %v", err)
 	}
-	repo := vcs.NewSyzkallerRepo(*flagSyzkallerDir)
+	repo := vcs.NewSyzkallerRepo(*flagSyzkallerDir, vcs.OptPrecious)
 	if _, err := repo.SwitchCommit(bug.SyzkallerCommit); err != nil {
 		return fmt.Errorf("failed to checkout commit %v: %v", bug.SyzkallerCommit, err)
 	}

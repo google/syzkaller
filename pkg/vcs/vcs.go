@@ -188,8 +188,8 @@ func NewRepo(os, vm, dir string, opts ...RepoOpt) (Repo, error) {
 	return nil, fmt.Errorf("vcs is unsupported for %v", os)
 }
 
-func NewSyzkallerRepo(dir string) Repo {
-	git := newGit(dir, nil, []RepoOpt{OptDontSandbox})
+func NewSyzkallerRepo(dir string, opts ...RepoOpt) Repo {
+	git := newGit(dir, nil, append(opts, OptDontSandbox))
 	return git
 }
 
