@@ -134,7 +134,7 @@ func (target *Target) getInputResources(c *Syscall) []*ResourceDesc {
 				resources = append(resources, typ1.Desc)
 			}
 		case *StructType:
-			if target.OS == "linux" && (typ1.Name() == "timespec" || typ1.Name() == "timeval") {
+			if target.SyscallMap["clock_gettime"] != nil && (typ1.Name() == "timespec" || typ1.Name() == "timeval") {
 				resources = append(resources, timespecRes)
 			}
 		}
