@@ -1,6 +1,8 @@
 # Copyright 2020 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-kernel:
- repo: git://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next-history.git
- tag: next-20201124
+config:
+  - KFENCE
+  - KFENCE_SAMPLE_INTERVAL: 100
+  - KFENCE_NUM_OBJECTS: 255
+  - KFENCE_STRESS_TEST_FAULTS: 0
