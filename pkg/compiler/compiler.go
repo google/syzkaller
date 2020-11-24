@@ -241,11 +241,16 @@ func (comp *compiler) parseAttrArg(attr *ast.Type) uint64 {
 
 func (comp *compiler) applyOverrides() *compiler {
 	newComp := createCompiler(&ast.Description{}, comp.target, comp.eh)
+
+	// Temporarily ignore errors in old compiler, as they will be surfaced later
+	prevErrors := comp.errors
+	comp.eh = func(pos ast.Pos, msg string) {}
+
+	// Save list of AST nodes *before* applying typedefs
 	origDesc := comp.desc.Clone()
 
+	// Need to typecheck to resolve type descriptions
 	comp.typecheck()
-	// comp.warnings = []warn{}
-	// comp.errors = 0
 
 	newDesc := &ast.Description{}
 
@@ -265,7 +270,7 @@ func (comp *compiler) applyOverrides() *compiler {
 				newCall, ok := ovrCall.NewType.(*ast.Call)
 				if !ok {
 					_, typ, _ := ovrCall.NewType.Info()
-					comp.error(ovrCall.Pos, "Cannot override call %v with a %v", name, typ)
+					newComp.error(ovrCall.Pos, "Cannot override call %v with a %v", name, typ)
 					newDesc.Nodes = append(newDesc.Nodes, n)
 					continue
 				}
@@ -307,7 +312,7 @@ func (comp *compiler) applyOverrides() *compiler {
 
 				// It doesn't make sense to override a struct with a call
 				if _, ok := ovrStruct.NewType.(*ast.Call); ok {
-					comp.error(ovrStruct.Pos, "Cannot override struct %v with a call", name)
+					newComp.error(ovrStruct.Pos, "Cannot override struct %v with a call", name)
 					newDesc.Nodes = append(newDesc.Nodes, n)
 					continue
 				}
@@ -341,7 +346,7 @@ func (comp *compiler) applyOverrides() *compiler {
 
 				// It doesn't make sense to override a typedef with a call
 				if _, ok := ovrTypeDef.NewType.(*ast.Call); ok {
-					comp.error(ovrTypeDef.Pos, "Cannot override typedef %v with a call", name)
+					newComp.error(ovrTypeDef.Pos, "Cannot override typedef %v with a call", name)
 					newDesc.Nodes = append(newDesc.Nodes, n)
 					continue
 				}
@@ -360,7 +365,7 @@ func (comp *compiler) applyOverrides() *compiler {
 
 				// It doesn't make sense to override a resource with a call
 				if _, ok := ovrResource.NewType.(*ast.Call); ok {
-					comp.error(ovrResource.Pos, "Cannot override resource %v with a call", name)
+					newComp.error(ovrResource.Pos, "Cannot override resource %v with a call", name)
 					newDesc.Nodes = append(newDesc.Nodes, n)
 					continue
 				}
@@ -380,6 +385,10 @@ func (comp *compiler) applyOverrides() *compiler {
 		}
 	}
 
+	// Restore original compiler's error handler function
+	comp.eh = newComp.eh
+	comp.errors = prevErrors
+
 	// Replace AST with the overridden ones
 	newComp.desc = newDesc
 
@@ -396,11 +405,6 @@ func (comp *compiler) applyOverrides() *compiler {
 	// used during checkUnused(), so pass them on
 	newComp.overrides = comp.overrides
 	newComp.varOverrides = comp.varOverrides
-
-	// In case there were any errors during the override resolution phase,
-	// pass them on to the new compiler
-	newComp.errors = comp.errors
-	newComp.warnings = comp.warnings
 
 	return newComp
 }
