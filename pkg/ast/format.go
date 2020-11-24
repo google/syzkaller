@@ -93,6 +93,19 @@ func (n *Resource) serialize(w io.Writer) {
 	fmt.Fprintf(w, "\n")
 }
 
+func (ovr *Override) serialize(w io.Writer) {
+	fmt.Fprintf(w, "override ")
+	t, ok := ovr.NewType.(serializer)
+	if !ok {
+		panic(fmt.Sprintf("unknown node: %#v", t))
+	}
+	t.serialize(w)
+}
+
+func (ovr *VarOverride) serialize(w io.Writer) {
+	fmt.Fprintf(w, "override %v.%v %v\n", ovr.ContainerName, ovr.VarName, fmtType(ovr.NewVarType))
+}
+
 func (n *TypeDef) serialize(w io.Writer) {
 	fmt.Fprintf(w, "type %v%v", n.Name.Name, fmtIdentList(n.Args))
 	if n.Type != nil {

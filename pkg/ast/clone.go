@@ -55,6 +55,22 @@ func (n *Resource) Clone() Node {
 	}
 }
 
+func (n *Override) Clone() Node {
+	return &Override{
+		Pos:     n.Pos,
+		NewType: n.NewType.Clone(),
+	}
+}
+
+func (n *VarOverride) Clone() Node {
+	return &VarOverride{
+		Pos:           n.Pos,
+		ContainerName: n.ContainerName,
+		VarName:       n.VarName.Clone().(*Ident),
+		NewVarType:    n.NewVarType.Clone().(*Type),
+	}
+}
+
 func (n *TypeDef) Clone() Node {
 	var args []*Ident
 	for _, v := range n.Args {

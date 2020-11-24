@@ -85,6 +85,27 @@ func (n *Resource) Info() (Pos, string, string) {
 	return n.Pos, tok2str[tokResource], n.Name.Name
 }
 
+type Override struct {
+	Pos     Pos
+	NewType Node
+}
+
+func (n *Override) Info() (Pos, string, string) {
+	_, _, name := n.NewType.Info()
+	return n.Pos, "override", name
+}
+
+type VarOverride struct {
+	Pos           Pos
+	ContainerName *Ident
+	VarName       *Ident
+	NewVarType    *Type
+}
+
+func (n *VarOverride) Info() (Pos, string, string) {
+	return n.Pos, "var_override", n.ContainerName.Name + "." + n.VarName.Name
+}
+
 type Call struct {
 	Pos      Pos
 	Name     *Ident

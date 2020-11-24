@@ -862,3 +862,66 @@ syz_r103_r104_s {
 	opt0	r103	(out)
 	opt1	r104	(in)
 }
+
+
+# Testing overrides support
+
+syz_ovr_proc(a int32)
+
+override syz_ovr_proc(a const[0x12345678])
+
+syz_ovr_param(a int32, b int32)
+
+override syz_ovr_param.b const[0xaabbccdd]
+
+ovr_struct {
+	f0	int32
+	f1	const[0x12344321, int32]
+}
+
+override ovr_struct.f1 const[0x56788765, int32]
+syz_ovr_struct(a ptr[in, ovr_struct])
+
+ovr_union [
+	f0	int32
+	f1	const[0xbabababa, int32]
+]
+
+override ovr_union.f1 const[0xfefefefe, int32]
+syz_ovr_union(a ptr[in, ovr_union])
+
+type ovr_unused_after_override int32
+syz_ovr_unused_after(a ovr_unused_after_override)
+
+override syz_ovr_unused_after.a const[0xdadadada]
+
+resource ovr_unused_before_override[intptr]
+syz_ovr_unused_before(a ptr[out, intptr])
+
+override syz_ovr_unused_before.a ptr[out, ovr_unused_before_override]
+
+type ovr_type const[0x10101010, int32]
+override type ovr_type const[0x12121212, int32]
+syz_ovr_type(a ovr_type)
+
+resource ovr_resource[int32]
+override resource ovr_resource[int64]
+ovr_resource_struct {
+	f0	ovr_resource
+}
+syz_ovr_resource(a ptr[out, ovr_resource_struct])
+
+type ovr_change_to_resource int32
+override resource ovr_change_to_resource[int32]
+syz_ovr_change_to_resource(a ptr[out, ovr_change_to_resource])
+
+syz_ovr_disable_call(a int32)
+override syz_ovr_disable_call(a int32) (disabled)
+
+syz_ovr_return(a int32)
+override syz_ovr_return.return ovr_resource
+
+syz_ovr_use_resources(a ovr_unused_before_override, b ovr_resource, c int32)
+override syz_ovr_use_resources.c ovr_change_to_resource
+
+# bin/syz-mutate -os test -arch 64 -enable syz_ovr_proc,syz_ovr_param,syz_ovr_struct,syz_ovr_union,syz_ovr_unused_after,syz_ovr_unused_before,syz_ovr_type,syz_ovr_resource,syz_ovr_change_to_resource,syz_ovr_disable_call,syz_ovr_return,syz_ovr_use_resources

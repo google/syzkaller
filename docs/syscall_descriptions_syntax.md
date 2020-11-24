@@ -12,6 +12,7 @@ typename = "const" | "intN" | "intptr" | "flags" | "array" | "ptr" |
 	   "string" | "strconst" | "filename" | "len" |
 	   "bytesize" | "bytesizeN" | "bitsize" | "vma" | "proc"
 type-options = [type-opt ["," type-opt]]
+override = "override" type-decl | "override" identifier "." identifier typename
 ```
 
 common type-options include:
@@ -360,6 +361,40 @@ foo(a int8['a':'z'])
 foo(a const[PATH_MAX])
 foo(a ptr[in, array[int8, MY_PATH_MAX]])
 define MY_PATH_MAX	PATH_MAX + 2
+```
+
+## Overrides
+
+In case you're auto-generating syzkaller definitions, it is often useful to apply
+manual overrides to the definitions without needing to directly edit the generated
+file. To support this usecase, you can create another syzlang file such as `overrides.txt`
+which contains additional syzlang definitions and overrides. There are two syntaxes
+for the `override` keyword:
+
+1. Re-definition of a complete type: `override type-decl`
+  This form completely replaces the type definition of a named type with the new one.
+2. Re-definition of a parameter/field's type: `override container.param/fieldName newType`
+  This form replaces the type of a struct/union field or call parameter with the new type.
+
+As an example, assume this is in `generated.txt`:
+
+```
+customOpen(path ptr[in, filename])
+customRead(handle int32, buf buffer[out], size len[buffer])
+```
+
+Then, you could override these calls to use resources by creating `overrides.txt` (any name
+ending in `.txt` will work):
+
+```
+# Define fileHandle as a resource w/ underlying type int32
+resource fileHandle[int32]
+
+# Override the customOpen() call to return an `fileHandle` resource
+override customOpen.return fileHandle
+
+# Override customRead()'s `fileHandle` parameter to be an `fileHandle` resource
+override customRead.handle fileHandle
 ```
 
 ## Misc
