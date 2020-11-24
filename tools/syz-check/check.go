@@ -52,7 +52,7 @@ func main() {
 		flagNetlink = flag.Bool("netlink", true, "do checking of netlink policies")
 	)
 	arches := make(map[string]*string)
-	for arch := range targets.List["linux"] {
+	for arch := range targets.List[targets.Linux] {
 		arches[arch] = flag.String("obj-"+arch, "", arch+" kernel object file")
 	}
 	failf := func(msg string, args ...interface{}) {
@@ -152,7 +152,7 @@ func writeWarnings(OS string, narches int, warnings []Warn) error {
 	byFile := make(map[string][]Warn)
 	for _, warn := range warnings {
 		// KVM is not supported on ARM completely.
-		if OS == "linux" && warn.arch == "arm" && strings.HasSuffix(warn.pos.File, "_kvm.txt") {
+		if OS == targets.Linux && warn.arch == targets.ARM && strings.HasSuffix(warn.pos.File, "_kvm.txt") {
 			continue
 		}
 		byFile[warn.pos.File] = append(byFile[warn.pos.File], warn)
@@ -358,7 +358,7 @@ func parseDescriptions(OS, arch string) ([]prog.Type, map[string]*ast.Struct, []
 // Finally we compare our descriptions with the kernel policy description.
 func checkNetlink(OS, arch, obj string, structTypes []prog.Type,
 	locs map[string]*ast.Struct) ([]Warn, error) {
-	if arch != "amd64" {
+	if arch != targets.AMD64 {
 		// Netlink policies are arch-independent (?),
 		// so no need to check all arches.
 		// Also our definition of nlaPolicy below is 64-bit specific.

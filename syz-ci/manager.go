@@ -8,8 +8,11 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -143,7 +146,8 @@ func (mgr *Manager) loop() {
 	nextBuildTime := time.Now()
 	var managerRestartTime, coverUploadTime time.Time
 	latestInfo := mgr.checkLatest()
-	if latestInfo != nil && time.Since(latestInfo.Time) < kernelRebuildPeriod/2 && mgr.managercfg.TargetOS != "fuchsia" {
+	if latestInfo != nil && time.Since(latestInfo.Time) < kernelRebuildPeriod/2 &&
+		mgr.managercfg.TargetOS != targets.Fuchsia {
 		// If we have a reasonably fresh build,
 		// start manager straight away and don't rebuild kernel for a while.
 		// Fuchsia is a special case: it builds with syz-executor, so if we just updated syzkaller, we need
@@ -410,7 +414,7 @@ func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
 		switch err := res.(type) {
 		case *instance.TestError:
 			if rep := err.Report; rep != nil {
-				what := "test"
+				what := targets.TestOS
 				if err.Boot {
 					what = "boot"
 				}
@@ -611,11 +615,7 @@ func (mgr *Manager) pollCommits(buildCommit string) ([]string, []dashapi.Commit,
 }
 
 func (mgr *Manager) uploadCoverReport() error {
-	GCS, err := gcs.NewClient()
-	if err != nil {
-		return fmt.Errorf("failed to create GCS client: %v", err)
-	}
-	defer GCS.Close()
+	// Get coverage report from manager.
 	addr := mgr.managercfg.HTTP
 	if addr != "" && addr[0] == ':' {
 		addr = "127.0.0.1" + addr // in case addr is ":port"
@@ -625,19 +625,59 @@ func (mgr *Manager) uploadCoverReport() error {
 		return fmt.Errorf("failed to get report: %v", err)
 	}
 	defer resp.Body.Close()
-	gcsPath := filepath.Join(mgr.cfg.CoverUploadPath, mgr.name+".html")
-	gcsWriter, err := GCS.FileWriter(gcsPath)
+	// Upload coverage report.
+	coverUploadURL, err := url.Parse(mgr.cfg.CoverUploadPath)
+	if err != nil {
+		return fmt.Errorf("failed to parse cover upload path: %v", err)
+	}
+	coverUploadURL.Path = path.Join(coverUploadURL.Path, mgr.name+".html")
+	coverUploadURLStr := coverUploadURL.String()
+	log.Logf(0, "%v: uploading cover report to %v", mgr.name, coverUploadURLStr)
+	if strings.HasPrefix(coverUploadURLStr, "gs://") {
+		return uploadCoverReportGCS(strings.TrimPrefix(coverUploadURLStr, "gs://"), resp.Body)
+	} else if strings.HasPrefix(coverUploadURLStr, "http://") ||
+		strings.HasPrefix(coverUploadURLStr, "https://") {
+		return uploadCoverReportHTTPPut(coverUploadURLStr, resp.Body)
+	} else { // Use GCS as default to maintain backwards compatibility.
+		return uploadCoverReportGCS(coverUploadURLStr, resp.Body)
+	}
+}
+
+func uploadCoverReportGCS(coverUploadURL string, coverReport io.Reader) error {
+	GCS, err := gcs.NewClient()
+	if err != nil {
+		return fmt.Errorf("failed to create GCS client: %v", err)
+	}
+	defer GCS.Close()
+	gcsWriter, err := GCS.FileWriter(coverUploadURL)
 	if err != nil {
 		return fmt.Errorf("failed to create GCS writer: %v", err)
 	}
-	if _, err := io.Copy(gcsWriter, resp.Body); err != nil {
+	if _, err := io.Copy(gcsWriter, coverReport); err != nil {
 		gcsWriter.Close()
 		return fmt.Errorf("failed to copy report: %v", err)
 	}
 	if err := gcsWriter.Close(); err != nil {
 		return fmt.Errorf("failed to close gcs writer: %v", err)
 	}
-	return GCS.Publish(gcsPath)
+	return GCS.Publish(coverUploadURL)
+}
+
+func uploadCoverReportHTTPPut(coverUploadURL string, coverReport io.Reader) error {
+	req, err := http.NewRequest(http.MethodPut, coverUploadURL, coverReport)
+	if err != nil {
+		return fmt.Errorf("failed to create HTTP PUT request: %v", err)
+	}
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to perform HTTP PUT request: %v", err)
+	}
+	defer resp.Body.Close()
+	if !(resp.StatusCode >= 200 && resp.StatusCode <= 299) {
+		return fmt.Errorf("HTTP PUT failed with status code: %v", resp.StatusCode)
+	}
+	return nil
 }
 
 // Errorf logs non-fatal error and sends it to dashboard.

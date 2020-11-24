@@ -91,7 +91,8 @@ type Config struct {
 	SyzkallerBranch string `json:"syzkaller_branch"` // Defaults to "master".
 	// Dir with additional syscall descriptions (.txt and .const files).
 	SyzkallerDescriptions string `json:"syzkaller_descriptions"`
-	// GCS path to upload coverage reports from managers (optional).
+	// Protocol-specific path to upload coverage reports from managers (optional).
+	// Supported protocols: GCS (gs://) and HTTP PUT (http:// or https://).
 	CoverUploadPath string           `json:"cover_upload_path"`
 	BisectBinDir    string           `json:"bisect_bin_dir"`
 	Ccache          string           `json:"ccache"`

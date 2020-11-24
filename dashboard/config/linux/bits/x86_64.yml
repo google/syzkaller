@@ -1,0 +1,52 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+shell:
+ # android-5.4.yml has own defconfig.
+ - make x86_64_defconfig: [-android]
+ - make kvm_guest.config: [-android]
+
+config:
+ # root=/dev/sda is not necessary correct, but it's a common setting and user arguments are appended
+ # to the builtin command line, so user can always override this.
+ # vsyscall=native required to run x86_64 executables on android kernels (it disables VDSO by default).
+ - CMDLINE: [append, "root=/dev/sda console=ttyS0 vsyscall=native"]
+ - CMDLINE_BOOL
+
+ # Should be faster this way.
+ - MCORE2
+ - BASE_FULL
+
+ # Moved from legacy config, reason for enabling is unknown.
+ - KALLSYMS_ABSOLUTE_PERCPU
+ - X86_MSR
+ - X86_CPUID
+ - X86_5LEVEL: n
+
+ # Should be faster this way.
+ - PARAVIRT_SPINLOCKS
+ - PARAVIRT_DEBUG
+
+ - PROCESSOR_SELECT
+ - CPU_SUP_HYGON: n
+ - CPU_SUP_CENTAUR: n
+ - CPU_SUP_ZHAOXIN: n
+
+ # Required to boot Debian Wheezy.
+ - X86_VSYSCALL_EMULATION
+
+ # Intel network support.
+ # TODO: should we switch to virtio instead?
+ - ETHERNET
+ - NET_VENDOR_INTEL
+ - E1000
+
+ - X86_ACPI_CPUFREQ
+ - CPU_IDLE_GOV_HALTPOLL
+ - X86_INTEL_TSX_MODE_ON
+ - INTEL_IDLE
+ - LEGACY_VSYSCALL_EMULATE
+ - EFI: n
+
+ - TRACE_EVENT_INJECT: [v5.5]
+ - PM_TRACE_RTC: [optional]

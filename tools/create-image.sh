@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Copyright 2016 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
@@ -162,15 +162,6 @@ echo 'debugfs /sys/kernel/debug debugfs defaults 0 0' | sudo tee -a $DIR/etc/fst
 echo 'securityfs /sys/kernel/security securityfs defaults 0 0' | sudo tee -a $DIR/etc/fstab
 echo 'configfs /sys/kernel/config/ configfs defaults 0 0' | sudo tee -a $DIR/etc/fstab
 echo 'binfmt_misc /proc/sys/fs/binfmt_misc binfmt_misc defaults 0 0' | sudo tee -a $DIR/etc/fstab
-echo "kernel.printk = 7 4 1 3" | sudo tee -a $DIR/etc/sysctl.conf
-echo 'debug.exception-trace = 0' | sudo tee -a $DIR/etc/sysctl.conf
-echo "net.core.bpf_jit_enable = 1" | sudo tee -a $DIR/etc/sysctl.conf
-echo "net.core.bpf_jit_kallsyms = 1" | sudo tee -a $DIR/etc/sysctl.conf
-echo "net.core.bpf_jit_harden = 0" | sudo tee -a $DIR/etc/sysctl.conf
-echo "kernel.softlockup_all_cpu_backtrace = 1" | sudo tee -a $DIR/etc/sysctl.conf
-echo "kernel.kptr_restrict = 0" | sudo tee -a $DIR/etc/sysctl.conf
-echo "kernel.watchdog_thresh = 60" | sudo tee -a $DIR/etc/sysctl.conf
-echo "net.ipv4.ping_group_range = 0 65535" | sudo tee -a $DIR/etc/sysctl.conf
 echo -en "127.0.0.1\tlocalhost\n" | sudo tee $DIR/etc/hosts
 echo "nameserver 8.8.8.8" | sudo tee -a $DIR/etc/resolve.conf
 echo "syzkaller" | sudo tee $DIR/etc/hostname
@@ -181,10 +172,11 @@ cat $RELEASE.id_rsa.pub | sudo tee $DIR/root/.ssh/authorized_keys
 # Add perf support
 if [ $PERF = "true" ]; then
     cp -r $KERNEL $DIR/tmp/
+    BASENAME=$(basename $KERNEL)
     sudo chroot $DIR /bin/bash -c "apt-get update; apt-get install -y flex bison python-dev libelf-dev libunwind8-dev libaudit-dev libslang2-dev libperl-dev binutils-dev liblzma-dev libnuma-dev"
-    sudo chroot $DIR /bin/bash -c "cd /tmp/linux/tools/perf/; make"
-    sudo chroot $DIR /bin/bash -c "cp /tmp/linux/tools/perf/perf /usr/bin/"
-    rm -r $DIR/tmp/linux
+    sudo chroot $DIR /bin/bash -c "cd /tmp/$BASENAME/tools/perf/; make"
+    sudo chroot $DIR /bin/bash -c "cp /tmp/$BASENAME/tools/perf/perf /usr/bin/"
+    rm -r $DIR/tmp/$BASENAME
 fi
 
 # Add udev rules for custom drivers.

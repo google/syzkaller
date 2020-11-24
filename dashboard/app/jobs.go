@@ -529,6 +529,12 @@ func updateBugBisection(c context.Context, job *Job, jobKey *db.Key, req *dashap
 	result := BisectYes
 	if len(req.Error) != 0 {
 		result = BisectError
+	} else if len(req.Commits) > 1 {
+		result = BisectInconclusive
+	} else if len(req.Commits) == 0 {
+		result = BisectHorizont
+	} else if job.isUnreliableBisect() {
+		result = BisectUnreliable
 	}
 	if job.Type == JobBisectCause {
 		bug.BisectCause = result

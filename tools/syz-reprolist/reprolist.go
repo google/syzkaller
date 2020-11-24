@@ -19,6 +19,7 @@ import (
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 var (
@@ -114,7 +115,7 @@ func writeRepros(bugchan chan *dashapi.BugReport) {
 		}
 		log.Printf("%v: %v: C repro", bug.ID, bug.BugStatus)
 		arch := ""
-		if bug.Arch != "" && bug.Arch != "amd64" {
+		if bug.Arch != "" && bug.Arch != targets.AMD64 {
 			arch = fmt.Sprintf(" arch:%v", bug.Arch)
 		}
 		repro := []byte(fmt.Sprintf("// %v\n// %v/bug?id=%v\n// status:%v%v\n",
@@ -136,7 +137,7 @@ func createCRepro(bug *dashapi.BugReport) error {
 	if err := ioutil.WriteFile(file, bug.ReproSyz, 0644); err != nil {
 		return fmt.Errorf("failed to write file: %v", err)
 	}
-	repo := vcs.NewSyzkallerRepo(*flagSyzkallerDir)
+	repo := vcs.NewSyzkallerRepo(*flagSyzkallerDir, vcs.OptPrecious)
 	if _, err := repo.SwitchCommit(bug.SyzkallerCommit); err != nil {
 		return fmt.Errorf("failed to checkout commit %v: %v", bug.SyzkallerCommit, err)
 	}
@@ -173,7 +174,7 @@ func createProg2CArgs(bug *dashapi.BugReport, opts csource.Options, file string)
 	if haveOSFlag {
 		args = append(args, "-os", *flagOS)
 	}
-	if bug.Arch != "" && bug.Arch != "amd64" {
+	if bug.Arch != "" && bug.Arch != targets.AMD64 {
 		args = append(args, "-arch", bug.Arch)
 	}
 	if opts.Fault {

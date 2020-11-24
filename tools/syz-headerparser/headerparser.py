@@ -55,7 +55,7 @@ def main():
         sys.exit(-1)
 
 
-    print gh.get_metadata_structs()
+    print(gh.get_metadata_structs())
 
 if __name__ == '__main__':
     main()

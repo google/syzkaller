@@ -29,6 +29,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 // FileSystem represents one file system.
@@ -478,7 +479,7 @@ func main() {
 		}
 		return
 	}
-	target, err := prog.GetTarget("linux", "amd64")
+	target, err := prog.GetTarget(targets.Linux, targets.AMD64)
 	if err != nil {
 		failf("%v", err)
 	}
@@ -587,7 +588,7 @@ func generateImages(target *prog.Target, flagFS string, list bool) ([]*Image, er
 			fmt.Printf("%v [%v images]\n", fs.Name, index)
 			continue
 		}
-		files, err := filepath.Glob(filepath.Join("sys", "linux", "test", "syz_mount_image_"+fs.Name+"_*"))
+		files, err := filepath.Glob(filepath.Join("sys", targets.Linux, "test", "syz_mount_image_"+fs.Name+"_*"))
 		if err != nil {
 			return nil, fmt.Errorf("error reading output dir: %v", err)
 		}
@@ -634,7 +635,8 @@ func (image *Image) generate() error {
 }
 
 func (image *Image) generateSize() error {
-	outFile := filepath.Join("sys", "linux", "test", fmt.Sprintf("syz_mount_image_%v_%v", image.fs.Name, image.index))
+	outFile := filepath.Join("sys", targets.Linux, "test",
+		fmt.Sprintf("syz_mount_image_%v_%v", image.fs.Name, image.index))
 	image.disk = outFile + ".img"
 	f, err := os.Create(image.disk)
 	if err != nil {

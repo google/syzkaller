@@ -8,10 +8,11 @@ package proggen
 import (
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys/linux/gen" // pull in the target
+	"github.com/google/syzkaller/sys/targets"
 )
 
 var linuxTarget = func() *prog.Target {
-	target, err := prog.GetTarget("linux", "amd64")
+	target, err := prog.GetTarget(targets.Linux, targets.AMD64)
 	if err != nil {
 		panic(err)
 	}

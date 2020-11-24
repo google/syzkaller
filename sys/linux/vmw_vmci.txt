@@ -1,8 +1,10 @@
 # Copyright 2020 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+include <uapi/linux/fcntl.h>
 include <linux/ioctl.h>
 include <linux/vmw_vmci_defs.h>
+include <drivers/misc/vmw_vmci/vmci_context.h>
 
 resource fd_vmci[fd]
 
@@ -128,3 +130,16 @@ vmci_version = VMCI_VERSION_NOVMVM, VMCI_VERSION_NOTIFY, VMCI_VERSION_HOSTQP, VM
 vmci_cpt_state = VMCI_NOTIFICATION_CPT_STATE, VMCI_WELLKNOWN_CPT_STATE, VMCI_DG_OUT_STATE, VMCI_DG_IN_STATE, VMCI_DG_IN_SIZE_STATE, VMCI_DOORBELL_CPT_STATE
 vmci_notify_resource = VMCI_NOTIFY_RESOURCE_QUEUE_PAIR, VMCI_NOTIFY_RESOURCE_DOOR_BELL
 vmci_notify_action = VMCI_NOTIFY_RESOURCE_ACTION_NOTIFY, VMCI_NOTIFY_RESOURCE_ACTION_CREATE, VMCI_NOTIFY_RESOURCE_ACTION_DESTROY
+
+# These are defined in kernel source files.
+define VMCI_NOTIFICATION_CPT_STATE	1
+define VMCI_WELLKNOWN_CPT_STATE	2
+define VMCI_DG_OUT_STATE	3
+define VMCI_DG_IN_STATE	4
+define VMCI_DG_IN_SIZE_STATE	5
+define VMCI_DOORBELL_CPT_STATE	6
+define VMCI_NOTIFY_RESOURCE_ACTION_NOTIFY	0
+define VMCI_NOTIFY_RESOURCE_ACTION_CREATE	1
+define VMCI_NOTIFY_RESOURCE_ACTION_DESTROY	2
+define VMCI_NOTIFY_RESOURCE_QUEUE_PAIR	0
+define VMCI_NOTIFY_RESOURCE_DOOR_BELL	1

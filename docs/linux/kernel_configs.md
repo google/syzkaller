@@ -1,6 +1,6 @@
 # Linux kernel configs
 
-List of recommended kernel configs for `syzkaller`. See [syzbot config](/dashboard/config/upstream-kasan.config) for a reference config.
+List of recommended kernel configs for `syzkaller`. See [syzbot config](/dashboard/config/linux/upstream-apparmor-kasan.config) for a reference config.
 
 ## Syzkaller features
 

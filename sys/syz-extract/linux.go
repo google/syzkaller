@@ -10,8 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/compiler"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type linux struct{}
@@ -78,35 +80,13 @@ func (*linux) prepareArch(arch *Arch) error {
 	if !arch.build {
 		return nil
 	}
-	target := arch.target
-	var cflags []string
-	for _, flag := range target.CFlags {
-		if !strings.HasPrefix(flag, "-W") {
-			cflags = append(cflags, flag)
-		}
-	}
 	kernelDir := arch.sourceDir
-	buildDir := arch.buildDir
-	makeArgs := []string{
-		"ARCH=" + target.KernelArch,
-		"CFLAGS=" + strings.Join(cflags, " "),
-		"O=" + buildDir,
-		"-j", fmt.Sprint(runtime.NumCPU()),
-	}
-	if target.Triple != "" {
-		makeArgs = append(makeArgs, "CROSS_COMPILE="+target.Triple+"-")
-	}
-	if target.KernelCompiler != "" {
-		makeArgs = append(makeArgs, "CC="+target.KernelCompiler)
-	}
-	if target.KernelLinker != "" {
-		makeArgs = append(makeArgs, "LD="+target.KernelLinker)
-	}
+	makeArgs := build.LinuxMakeArgs(arch.target, "", "", arch.buildDir)
 	out, err := osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "defconfig")...)
 	if err != nil {
 		return fmt.Errorf("make defconfig failed: %v\n%s", err, out)
 	}
-	_, err = osutil.RunCmd(time.Minute, buildDir, filepath.Join(kernelDir, "scripts", "config"),
+	_, err = osutil.RunCmd(time.Minute, arch.buildDir, filepath.Join(kernelDir, "scripts", "config"),
 		// powerpc arch is configured to be big-endian by default, but we want little-endian powerpc.
 		// Since all of our archs are little-endian for now, we just blindly switch it.
 		"-d", "CPU_BIG_ENDIAN", "-e", "CPU_LITTLE_ENDIAN",
@@ -134,7 +114,8 @@ func (*linux) prepareArch(arch *Arch) error {
 }
 
 func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint64, map[string]bool, error) {
-	if strings.HasSuffix(info.File, "_kvm.txt") && (arch.target.Arch == "arm" || arch.target.Arch == "riscv64") {
+	if strings.HasSuffix(info.File, "_kvm.txt") &&
+		(arch.target.Arch == targets.ARM || arch.target.Arch == targets.RiscV64) {
 		// Hack: KVM is not supported on ARM anymore. We may want some more official support
 		// for marking descriptions arch-specific, but so far this combination is the only
 		// one. For riscv64, KVM is not supported yet but might be in the future.

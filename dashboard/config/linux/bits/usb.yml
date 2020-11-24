@@ -1,0 +1,13 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Config fragments for the USB instance, included in baseline as well.
+
+config:
+ - USB_SUPPORT
+ - USB_GADGET
+ - USB_RAW_GADGET: [v5.5]
+ - USB_DUMMY_HCD
+ # We don't need/test these on the USB instance.
+ - USB_GADGETFS: n
+ - USB_CONFIGFS: n

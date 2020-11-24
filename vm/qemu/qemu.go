@@ -4,8 +4,10 @@
 package qemu
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,6 +18,7 @@ import (
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/vmimpl"
 )
@@ -34,6 +37,7 @@ type Config struct {
 	// Additional command line arguments for the qemu binary.
 	// "{{INDEX}}" is replaced with 0-based index of the VM (from 0 to Count-1).
 	// "{{TEMPLATE}}" is replaced with the path to a copy of workdir/template dir.
+	// "{{TCP_PORT}}" is replaced with a random free TCP port
 	QemuArgs string `json:"qemu_args"`
 	// Location of the kernel for injected boot (e.g. arch/x86/boot/bzImage, optional).
 	// This is passed to qemu as the -kernel option.
@@ -76,6 +80,10 @@ type instance struct {
 	sshkey     string
 	sshuser    string
 	port       int
+	monport    int
+	mon        net.Conn
+	monEnc     *json.Encoder
+	monDec     *json.Decoder
 	rpipe      io.ReadCloser
 	wpipe      io.WriteCloser
 	qemu       *exec.Cmd
@@ -87,7 +95,7 @@ type instance struct {
 type archConfig struct {
 	Qemu      string
 	QemuArgs  string
-	TargetDir string
+	TargetDir string // "/" by default
 	NetDev    string // default network device type (see the full list with qemu-system-x86_64 -device help)
 	// UseNewQemuImageOptions specifies whether the arch uses "new" QEMU image device options.
 	UseNewQemuImageOptions bool
@@ -96,9 +104,8 @@ type archConfig struct {
 
 var archConfigs = map[string]*archConfig{
 	"linux/amd64": {
-		Qemu:      "qemu-system-x86_64",
-		QemuArgs:  "-enable-kvm -cpu host,migratable=off",
-		TargetDir: "/",
+		Qemu:     "qemu-system-x86_64",
+		QemuArgs: "-enable-kvm -cpu host,migratable=off",
 		// e1000e fails on recent Debian distros with:
 		// Initialization of device e1000e failed: failed to find romfile "efi-e1000e.rom
 		// But other arches don't use e1000e, e.g. arm64 uses virtio by default.
@@ -121,53 +128,47 @@ var archConfigs = map[string]*archConfig{
 		),
 	},
 	"linux/386": {
-		Qemu:      "qemu-system-i386",
-		TargetDir: "/",
-		NetDev:    "e1000",
+		Qemu:   "qemu-system-i386",
+		NetDev: "e1000",
 		CmdLine: append(linuxCmdline,
 			"root=/dev/sda",
 			"console=ttyS0",
 		),
 	},
 	"linux/arm64": {
-		Qemu:      "qemu-system-aarch64",
-		QemuArgs:  "-machine virt,virtualization=on -cpu cortex-a57",
-		TargetDir: "/",
-		NetDev:    "virtio-net-pci",
+		Qemu:     "qemu-system-aarch64",
+		QemuArgs: "-machine virt,virtualization=on -cpu cortex-a57",
+		NetDev:   "virtio-net-pci",
 		CmdLine: append(linuxCmdline,
 			"root=/dev/vda",
 			"console=ttyAMA0",
 		),
 	},
 	"linux/arm": {
-		Qemu:      "qemu-system-arm",
-		TargetDir: "/",
-		NetDev:    "virtio-net-pci",
+		Qemu:   "qemu-system-arm",
+		NetDev: "virtio-net-pci",
 		CmdLine: append(linuxCmdline,
 			"root=/dev/vda",
 			"console=ttyAMA0",
 		),
 	},
 	"linux/mips64le": {
-		Qemu:      "qemu-system-mips64el",
-		TargetDir: "/",
-		QemuArgs:  "-M malta -cpu MIPS64R2-generic -nodefaults",
-		NetDev:    "e1000",
+		Qemu:     "qemu-system-mips64el",
+		QemuArgs: "-M malta -cpu MIPS64R2-generic -nodefaults",
+		NetDev:   "e1000",
 		CmdLine: append(linuxCmdline,
 			"root=/dev/sda",
 			"console=ttyS0",
 		),
 	},
 	"linux/ppc64le": {
-		Qemu:      "qemu-system-ppc64",
-		TargetDir: "/",
-		QemuArgs:  "-enable-kvm -vga none",
-		NetDev:    "virtio-net-pci",
-		CmdLine:   linuxCmdline,
+		Qemu:     "qemu-system-ppc64",
+		QemuArgs: "-enable-kvm -vga none",
+		NetDev:   "virtio-net-pci",
+		CmdLine:  linuxCmdline,
 	},
 	"linux/riscv64": {
 		Qemu:                   "qemu-system-riscv64",
-		TargetDir:              "/",
 		QemuArgs:               "-machine virt",
 		NetDev:                 "virtio-net-pci",
 		UseNewQemuImageOptions: true,
@@ -177,25 +178,22 @@ var archConfigs = map[string]*archConfig{
 		),
 	},
 	"linux/s390x": {
-		Qemu:      "qemu-system-s390x",
-		TargetDir: "/",
-		QemuArgs:  "-M s390-ccw-virtio -cpu max,zpci=on",
-		NetDev:    "virtio-net-pci",
+		Qemu:     "qemu-system-s390x",
+		QemuArgs: "-M s390-ccw-virtio -cpu max,zpci=on",
+		NetDev:   "virtio-net-pci",
 		CmdLine: append(linuxCmdline,
 			"root=/dev/vda",
 		),
 	},
 	"freebsd/amd64": {
-		Qemu:      "qemu-system-x86_64",
-		TargetDir: "/",
-		QemuArgs:  "-enable-kvm",
-		NetDev:    "e1000",
+		Qemu:     "qemu-system-x86_64",
+		QemuArgs: "-enable-kvm",
+		NetDev:   "e1000",
 	},
 	"netbsd/amd64": {
-		Qemu:      "qemu-system-x86_64",
-		TargetDir: "/",
-		QemuArgs:  "-enable-kvm",
-		NetDev:    "e1000",
+		Qemu:     "qemu-system-x86_64",
+		QemuArgs: "-enable-kvm",
+		NetDev:   "e1000",
 	},
 	"fuchsia/amd64": {
 		Qemu:      "qemu-system-x86_64",
@@ -208,10 +206,9 @@ var archConfigs = map[string]*archConfig{
 		},
 	},
 	"akaros/amd64": {
-		Qemu:      "qemu-system-x86_64",
-		QemuArgs:  "-enable-kvm -cpu host,migratable=off",
-		TargetDir: "/",
-		NetDev:    "e1000",
+		Qemu:     "qemu-system-x86_64",
+		QemuArgs: "-enable-kvm -cpu host,migratable=off",
+		NetDev:   "e1000",
 	},
 }
 
@@ -252,7 +249,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		return nil, err
 	}
 	if env.Image == "9p" {
-		if env.OS != "linux" {
+		if env.OS != targets.Linux {
 			return nil, fmt.Errorf("9p image is supported for linux only")
 		}
 		if cfg.Kernel == "" {
@@ -368,16 +365,28 @@ func (inst *instance) Close() {
 	if inst.wpipe != nil {
 		inst.wpipe.Close()
 	}
+	if inst.mon != nil {
+		inst.mon.Close()
+	}
 }
 
 func (inst *instance) boot() error {
 	inst.port = vmimpl.UnusedTCPPort()
+	inst.monport = vmimpl.UnusedTCPPort()
 	args := []string{
 		"-m", strconv.Itoa(inst.cfg.Mem),
 		"-smp", strconv.Itoa(inst.cfg.CPU),
+		"-chardev", fmt.Sprintf("socket,id=SOCKSYZ,server,nowait,host=localhost,port=%v", inst.monport),
+		"-mon", "chardev=SOCKSYZ,mode=control",
 		"-display", "none",
 		"-serial", "stdio",
 		"-no-reboot",
+		"-name", fmt.Sprintf("VM-%v", inst.index),
+	}
+	if inst.target.Arch == targets.S390x {
+		args = append(args, "-device", "virtio-rng-ccw")
+	} else {
+		args = append(args, "-device", "virtio-rng-pci")
 	}
 	templateDir := filepath.Join(inst.workdir, "template")
 	args = append(args, splitArgs(inst.cfg.QemuArgs, templateDir, inst.index)...)
@@ -484,6 +493,10 @@ func splitArgs(str, templateDir string, index int) (args []string) {
 		}
 		arg = strings.ReplaceAll(arg, "{{INDEX}}", fmt.Sprint(index))
 		arg = strings.ReplaceAll(arg, "{{TEMPLATE}}", templateDir)
+		const tcpPort = "{{TCP_PORT}}"
+		if strings.Contains(arg, tcpPort) {
+			arg = strings.ReplaceAll(arg, tcpPort, fmt.Sprint(vmimpl.UnusedTCPPort()))
+		}
 		args = append(args, arg)
 	}
 	return
@@ -500,6 +513,9 @@ func (inst *instance) Forward(port int) (string, error) {
 func (inst *instance) targetDir() string {
 	if inst.image == "9p" {
 		return "/tmp"
+	}
+	if inst.archConfig.TargetDir == "" {
+		return "/"
 	}
 	return inst.archConfig.TargetDir
 }
@@ -604,12 +620,35 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	return inst.merger.Output, errc, nil
 }
 
-func (inst *instance) Diagnose() ([]byte, bool) {
-	select {
-	case inst.diagnose <- true:
-	default:
+func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
+	if inst.target.OS == targets.Linux {
+		if output, wait, handled := vmimpl.DiagnoseLinux(rep, inst.ssh); handled {
+			return output, wait
+		}
 	}
-	return nil, false
+	// TODO: we don't need registers on all reports. Probably only relevant for "crashes"
+	// (NULL derefs, paging faults, etc), but is not useful for WARNING/BUG/HANG (?).
+	ret := []byte(fmt.Sprintf("%s Registers:\n", time.Now().Format("15:04:05 ")))
+	for cpu := 0; cpu < inst.cfg.CPU; cpu++ {
+		regs, err := inst.hmp("info registers", cpu)
+		if err == nil {
+			ret = append(ret, []byte(fmt.Sprintf("info registers vcpu %v\n", cpu))...)
+			ret = append(ret, []byte(regs)...)
+		} else {
+			log.Logf(0, "VM-%v failed reading regs: %v", inst.index, err)
+			ret = append(ret, []byte(fmt.Sprintf("Failed reading regs: %v\n", err))...)
+		}
+	}
+	return ret, false
+}
+
+func (inst *instance) ssh(args ...string) ([]byte, error) {
+	return osutil.RunCmd(time.Minute, "", "ssh", inst.sshArgs(args...)...)
+}
+
+func (inst *instance) sshArgs(args ...string) []string {
+	sshArgs := append(vmimpl.SSHArgs(inst.debug, inst.sshkey, inst.port), inst.sshuser+"@localhost")
+	return append(sshArgs, args...)
 }
 
 // nolint: lll

@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/google/syzkaller/sys/targets"
 )
 
 func TestParseOptions(t *testing.T) {
-	for _, opts := range allOptionsSingle("linux") {
+	for _, opts := range allOptionsSingle(targets.Linux) {
 		data := opts.Serialize()
 		got, err := DeserializeOptions(data)
 		if err != nil {
@@ -237,19 +239,9 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"usb":         true,
 			"vhci":        true,
 			"wifi":        true,
+			"sysctl":      true,
 		}},
-		{"none", "none", false, map[string]bool{
-			"tun":         false,
-			"net_dev":     false,
-			"net_reset":   false,
-			"cgroups":     false,
-			"binfmt_misc": false,
-			"close_fds":   false,
-			"devlink_pci": false,
-			"usb":         false,
-			"vhci":        false,
-			"wifi":        false,
-		}},
+		{"none", "none", false, map[string]bool{}},
 		{"all", "none", true, map[string]bool{
 			"tun":         true,
 			"net_dev":     true,
@@ -261,31 +253,10 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"usb":         true,
 			"vhci":        true,
 			"wifi":        true,
+			"sysctl":      true,
 		}},
-		{"", "none", true, map[string]bool{
-			"tun":         false,
-			"net_dev":     false,
-			"net_reset":   false,
-			"cgroups":     false,
-			"binfmt_misc": false,
-			"close_fds":   false,
-			"devlink_pci": false,
-			"usb":         false,
-			"vhci":        false,
-			"wifi":        false,
-		}},
-		{"none", "all", true, map[string]bool{
-			"tun":         false,
-			"net_dev":     false,
-			"net_reset":   false,
-			"cgroups":     false,
-			"binfmt_misc": false,
-			"close_fds":   false,
-			"devlink_pci": false,
-			"usb":         false,
-			"vhci":        false,
-			"wifi":        false,
-		}},
+		{"", "none", true, map[string]bool{}},
+		{"none", "all", true, map[string]bool{}},
 		{"none", "", true, map[string]bool{
 			"tun":         true,
 			"net_dev":     true,
@@ -297,42 +268,25 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"usb":         true,
 			"vhci":        true,
 			"wifi":        true,
+			"sysctl":      true,
 		}},
 		{"tun,net_dev", "none", true, map[string]bool{
-			"tun":         true,
-			"net_dev":     true,
-			"net_reset":   false,
-			"cgroups":     false,
-			"binfmt_misc": false,
-			"close_fds":   false,
-			"devlink_pci": false,
-			"usb":         false,
-			"vhci":        false,
-			"wifi":        false,
+			"tun":     true,
+			"net_dev": true,
 		}},
 		{"none", "cgroups,net_dev", true, map[string]bool{
 			"tun":         true,
-			"net_dev":     false,
 			"net_reset":   true,
-			"cgroups":     false,
 			"binfmt_misc": true,
 			"close_fds":   true,
 			"devlink_pci": true,
 			"usb":         true,
 			"vhci":        true,
 			"wifi":        true,
+			"sysctl":      true,
 		}},
 		{"close_fds", "none", true, map[string]bool{
-			"tun":         false,
-			"net_dev":     false,
-			"net_reset":   false,
-			"cgroups":     false,
-			"binfmt_misc": false,
-			"close_fds":   true,
-			"devlink_pci": false,
-			"usb":         false,
-			"vhci":        false,
-			"wifi":        false,
+			"close_fds": true,
 		}},
 	}
 	for i, test := range tests {

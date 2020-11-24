@@ -1,0 +1,10 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+shell:
+ # android-5.4.yml has own defconfig.
+ - make defconfig: [-android]
+ - make kvm_guest.config: [-android]
+
+config:
+ - CMDLINE: [append, "root=/dev/vda console=ttyAMA0"]

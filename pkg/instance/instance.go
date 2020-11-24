@@ -318,7 +318,7 @@ func (inst *inst) testInstance() error {
 		}
 	}
 
-	cmd := OldFuzzerCmd(fuzzerBin, executorCmd, "test", inst.cfg.TargetOS, inst.cfg.TargetArch, fwdAddr,
+	cmd := OldFuzzerCmd(fuzzerBin, executorCmd, targets.TestOS, inst.cfg.TargetOS, inst.cfg.TargetArch, fwdAddr,
 		inst.cfg.Sandbox, 0, inst.cfg.Cover, true)
 	outc, errc, err := inst.vm.Run(10*time.Minute, nil, cmd)
 	if err != nil {
@@ -470,7 +470,7 @@ func ExecprogCmd(execprog, executor, OS, arch, sandbox string, repeat, threaded,
 }
 
 var MakeBin = func() string {
-	if runtime.GOOS == "freebsd" || runtime.GOOS == "openbsd" {
+	if runtime.GOOS == targets.FreeBSD || runtime.GOOS == targets.OpenBSD {
 		return "gmake"
 	}
 	return "make"

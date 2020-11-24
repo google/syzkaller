@@ -2318,8 +2318,9 @@ static int event_timedwait(event_t* ev, uint64 timeout)
 
 #if SYZ_EXECUTOR || SYZ_REPEAT || SYZ_NET_INJECTION || SYZ_FAULT || SYZ_SANDBOX_NONE || \
     SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID ||               \
-    SYZ_FAULT || SYZ_LEAK || SYZ_BINFMT_MISC ||                                         \
-    ((__NR_syz_usb_connect || __NR_syz_usb_connect_ath9k) && USB_DEBUG)
+    SYZ_FAULT || SYZ_LEAK || SYZ_BINFMT_MISC || SYZ_SYSCTL ||                           \
+    ((__NR_syz_usb_connect || __NR_syz_usb_connect_ath9k) && USB_DEBUG) ||              \
+    __NR_syz_usbip_server_init
 #include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
@@ -7179,6 +7180,144 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 	return 0;
 }
 
+#elif GOARCH_ppc64 || GOARCH_ppc64le
+
+#define ADDR_TEXT 0x0000
+#define ADDR_GDT 0x1000
+#define ADDR_LDT 0x1800
+#define ADDR_PML4 0x2000
+#define ADDR_PDP 0x3000
+#define ADDR_PD 0x4000
+#define ADDR_STACK0 0x0f80
+#define ADDR_VAR_HLT 0x2800
+#define ADDR_VAR_SYSRET 0x2808
+#define ADDR_VAR_SYSEXIT 0x2810
+#define ADDR_VAR_IDT 0x3800
+#define ADDR_VAR_TSS64 0x3a00
+#define ADDR_VAR_TSS64_CPL3 0x3c00
+#define ADDR_VAR_TSS16 0x3d00
+#define ADDR_VAR_TSS16_2 0x3e00
+#define ADDR_VAR_TSS16_CPL3 0x3f00
+#define ADDR_VAR_TSS32 0x4800
+#define ADDR_VAR_TSS32_2 0x4a00
+#define ADDR_VAR_TSS32_CPL3 0x4c00
+#define ADDR_VAR_TSS32_VM86 0x4e00
+#define ADDR_VAR_VMXON_PTR 0x5f00
+#define ADDR_VAR_VMCS_PTR 0x5f08
+#define ADDR_VAR_VMEXIT_PTR 0x5f10
+#define ADDR_VAR_VMWRITE_FLD 0x5f18
+#define ADDR_VAR_VMWRITE_VAL 0x5f20
+#define ADDR_VAR_VMXON 0x6000
+#define ADDR_VAR_VMCS 0x7000
+#define ADDR_VAR_VMEXIT_CODE 0x9000
+#define ADDR_VAR_USER_CODE 0x9100
+#define ADDR_VAR_USER_CODE2 0x9120
+
+#define SEL_LDT (1 << 3)
+#define SEL_CS16 (2 << 3)
+#define SEL_DS16 (3 << 3)
+#define SEL_CS16_CPL3 ((4 << 3) + 3)
+#define SEL_DS16_CPL3 ((5 << 3) + 3)
+#define SEL_CS32 (6 << 3)
+#define SEL_DS32 (7 << 3)
+#define SEL_CS32_CPL3 ((8 << 3) + 3)
+#define SEL_DS32_CPL3 ((9 << 3) + 3)
+#define SEL_CS64 (10 << 3)
+#define SEL_DS64 (11 << 3)
+#define SEL_CS64_CPL3 ((12 << 3) + 3)
+#define SEL_DS64_CPL3 ((13 << 3) + 3)
+#define SEL_CGATE16 (14 << 3)
+#define SEL_TGATE16 (15 << 3)
+#define SEL_CGATE32 (16 << 3)
+#define SEL_TGATE32 (17 << 3)
+#define SEL_CGATE64 (18 << 3)
+#define SEL_CGATE64_HI (19 << 3)
+#define SEL_TSS16 (20 << 3)
+#define SEL_TSS16_2 (21 << 3)
+#define SEL_TSS16_CPL3 ((22 << 3) + 3)
+#define SEL_TSS32 (23 << 3)
+#define SEL_TSS32_2 (24 << 3)
+#define SEL_TSS32_CPL3 ((25 << 3) + 3)
+#define SEL_TSS32_VM86 (26 << 3)
+#define SEL_TSS64 (27 << 3)
+#define SEL_TSS64_HI (28 << 3)
+#define SEL_TSS64_CPL3 ((29 << 3) + 3)
+#define SEL_TSS64_CPL3_HI (30 << 3)
+
+#define MSR_IA32_FEATURE_CONTROL 0x3a
+#define MSR_IA32_VMX_BASIC 0x480
+#define MSR_IA32_SMBASE 0x9e
+#define MSR_IA32_SYSENTER_CS 0x174
+#define MSR_IA32_SYSENTER_ESP 0x175
+#define MSR_IA32_SYSENTER_EIP 0x176
+#define MSR_IA32_STAR 0xC0000081
+#define MSR_IA32_LSTAR 0xC0000082
+#define MSR_IA32_VMX_PROCBASED_CTLS2 0x48B
+
+#define NEXT_INSN $0xbadc0de
+#define PREFIX_SIZE 0xba1d
+
+
+struct kvm_text {
+	uintptr_t typ;
+	const void* text;
+	uintptr_t size;
+};
+static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6, volatile long a7)
+{
+	const int vmfd = a0;
+	const int cpufd = a1;
+	char* const host_mem = (char*)a2;
+	const struct kvm_text* const text_array_ptr = (struct kvm_text*)a3;
+	const uintptr_t text_count = a4;
+
+	const uintptr_t page_size = 16 << 10;
+	const uintptr_t guest_mem_size = 256 << 20;
+	const uintptr_t guest_mem = 0;
+
+	(void)text_count;
+	const void* text = 0;
+	uintptr_t text_size = 0;
+	NONFAILING(text = text_array_ptr[0].text);
+	NONFAILING(text_size = text_array_ptr[0].size);
+
+	for (uintptr_t i = 0; i < guest_mem_size / page_size; i++) {
+		struct kvm_userspace_memory_region memreg;
+		memreg.slot = i;
+		memreg.flags = 0;
+		memreg.guest_phys_addr = guest_mem + i * page_size;
+		memreg.memory_size = page_size;
+		memreg.userspace_addr = (uintptr_t)host_mem + i * page_size;
+		ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &memreg);
+	}
+
+	struct kvm_regs regs;
+	struct kvm_sregs sregs;
+	if (ioctl(cpufd, KVM_GET_SREGS, &sregs))
+		return -1;
+	if (ioctl(cpufd, KVM_GET_REGS, &regs))
+		return -1;
+	regs.msr = 1ULL | (1ULL << 63);
+
+	memcpy(host_mem, text, text_size);
+
+	if (ioctl(cpufd, KVM_SET_SREGS, &sregs))
+		return -1;
+	if (ioctl(cpufd, KVM_SET_REGS, &regs))
+		return -1;
+#define MAX_HCALL 0x450
+	for (unsigned hcall = 4; hcall < MAX_HCALL; hcall += 4) {
+		struct kvm_enable_cap cap = {
+		    .cap = KVM_CAP_PPC_ENABLE_HCALL,
+		    .flags = 0,
+		    .args = {hcall, 1},
+		};
+		ioctl(vmfd, KVM_ENABLE_CAP, &cap);
+	}
+
+	return 0;
+}
+
 #elif !GOARCH_arm
 static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6, volatile long a7)
 {
@@ -7215,7 +7354,7 @@ struct ipt_getinfo {
 struct ipt_get_entries {
 	char name[32];
 	unsigned int size;
-	void* entrytable[XT_TABLE_SIZE / sizeof(void*)];
+	uint64 entrytable[XT_TABLE_SIZE / sizeof(uint64)];
 };
 
 struct ipt_replace {
@@ -7227,7 +7366,7 @@ struct ipt_replace {
 	unsigned int underflow[5];
 	unsigned int num_counters;
 	struct xt_counters* counters;
-	char entrytable[XT_TABLE_SIZE];
+	uint64 entrytable[XT_TABLE_SIZE / sizeof(uint64)];
 };
 
 struct ipt_table_desc {
@@ -7269,7 +7408,7 @@ struct arpt_getinfo {
 struct arpt_get_entries {
 	char name[32];
 	unsigned int size;
-	void* entrytable[XT_TABLE_SIZE / sizeof(void*)];
+	uint64 entrytable[XT_TABLE_SIZE / sizeof(uint64)];
 };
 
 struct arpt_replace {
@@ -7281,7 +7420,7 @@ struct arpt_replace {
 	unsigned int underflow[3];
 	unsigned int num_counters;
 	struct xt_counters* counters;
-	char entrytable[XT_TABLE_SIZE];
+	uint64 entrytable[XT_TABLE_SIZE / sizeof(uint64)];
 };
 
 struct arpt_table_desc {
@@ -7807,7 +7946,6 @@ static void loop();
 static void sandbox_common()
 {
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
-	setpgrp();
 	setsid();
 
 #if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI
@@ -9228,6 +9366,36 @@ static void setup_usb()
 }
 #endif
 
+#if SYZ_EXECUTOR || SYZ_SYSCTL
+#include <errno.h>
+#include <string.h>
+
+static void setup_sysctl()
+{
+	static struct {
+		const char* name;
+		const char* data;
+	} files[] = {
+	    {"/sys/kernel/debug/x86/nmi_longest_ns", "10000000000"},
+	    {"/proc/sys/kernel/hung_task_check_interval_secs", "20"},
+	    {"/proc/sys/net/core/bpf_jit_enable", "1"},
+	    {"/proc/sys/net/core/bpf_jit_kallsyms", "1"},
+	    {"/proc/sys/net/core/bpf_jit_harden", "0"},
+	    {"/proc/sys/kernel/kptr_restrict", "0"},
+	    {"/proc/sys/kernel/softlockup_all_cpu_backtrace", "1"},
+	    {"/proc/sys/fs/mount-max", "100"},
+	    {"/proc/sys/vm/oom_dump_tasks", "0"},
+	    {"/proc/sys/debug/exception-trace", "0"},
+	    {"/proc/sys/kernel/printk", "7 4 1 3"},
+	    {"/proc/sys/net/ipv4/ping_group_range", "0 65535"},
+	};
+	for (size_t i = 0; i < sizeof(files) / sizeof(files[0]); i++) {
+		if (!write_file(files[i].name, files[i].data))
+			printf("write to %s failed: %s\n", files[i].name, strerror(errno));
+	}
+}
+#endif
+
 #if GOARCH_s390x
 #include <sys/mman.h>
 #define CAST(f) ({void* p = (void*)f; p; })
@@ -10107,6 +10275,9 @@ int main(void)
 	/*{{{MMAP_DATA}}}*/
 #endif
 
+#if SYZ_SYSCTL
+	setup_sysctl();
+#endif
 #if SYZ_BINFMT_MISC
 	setup_binfmt_misc();
 #endif

@@ -23,16 +23,26 @@ import (
 
 type git struct {
 	dir      string
-	sandbox  bool
 	ignoreCC map[string]bool
+	precious bool
+	sandbox  bool
 }
 
-func newGit(dir string, ignoreCC map[string]bool) *git {
-	return &git{
+func newGit(dir string, ignoreCC map[string]bool, opts []RepoOpt) *git {
+	git := &git{
 		dir:      dir,
-		sandbox:  true,
 		ignoreCC: ignoreCC,
+		sandbox:  true,
 	}
+	for _, opt := range opts {
+		switch opt {
+		case OptPrecious:
+			git.precious = true
+		case OptDontSandbox:
+			git.sandbox = false
+		}
+	}
+	return git
 }
 
 func filterEnv() []string {
@@ -86,13 +96,13 @@ func (git *git) Poll(repo, branch string) (*Commit, error) {
 }
 
 func (git *git) CheckoutBranch(repo, branch string) (*Commit, error) {
-	git.reset()
-	if _, err := git.git("reset", "--hard"); err != nil {
-		if err := git.initRepo(err); err != nil {
-			return nil, err
-		}
+	if err := git.repair(); err != nil {
+		return nil, err
 	}
-	_, err := git.git("fetch", repo, branch)
+	repoHash := hash.String([]byte(repo))
+	// Ignore error as we can double add the same remote and that will fail.
+	git.git("remote", "add", repoHash, repo)
+	_, err := git.git("fetch", repoHash, branch)
 	if err != nil {
 		return nil, err
 	}
@@ -103,11 +113,8 @@ func (git *git) CheckoutBranch(repo, branch string) (*Commit, error) {
 }
 
 func (git *git) CheckoutCommit(repo, commit string) (*Commit, error) {
-	git.reset()
-	if _, err := git.git("reset", "--hard"); err != nil {
-		if err := git.initRepo(err); err != nil {
-			return nil, err
-		}
+	if err := git.repair(); err != nil {
+		return nil, err
 	}
 	if err := git.fetchRemote(repo); err != nil {
 		return nil, err
@@ -124,8 +131,10 @@ func (git *git) fetchRemote(repo string) error {
 }
 
 func (git *git) SwitchCommit(commit string) (*Commit, error) {
-	git.git("reset", "--hard")
-	git.git("clean", "-fdx")
+	if !git.precious {
+		git.git("reset", "--hard")
+		git.git("clean", "-fdx")
+	}
 	if _, err := git.git("checkout", commit); err != nil {
 		return nil, err
 	}
@@ -133,6 +142,9 @@ func (git *git) SwitchCommit(commit string) (*Commit, error) {
 }
 
 func (git *git) clone(repo, branch string) error {
+	if git.precious {
+		return fmt.Errorf("won't reinit precious repo")
+	}
 	if err := git.initRepo(nil); err != nil {
 		return err
 	}
@@ -145,12 +157,23 @@ func (git *git) clone(repo, branch string) error {
 	return nil
 }
 
-func (git *git) reset() {
+func (git *git) reset() error {
 	// This function tries to reset git repo state to a known clean state.
+	if git.precious {
+		return nil
+	}
 	git.git("reset", "--hard")
 	git.git("clean", "-fdx")
 	git.git("bisect", "reset")
-	git.git("reset", "--hard")
+	_, err := git.git("reset", "--hard")
+	return err
+}
+
+func (git *git) repair() error {
+	if err := git.reset(); err != nil {
+		return git.initRepo(err)
+	}
+	return nil
 }
 
 func (git *git) initRepo(reason error) error {
@@ -482,36 +505,47 @@ func (git *git) bisectInconclusive(output []byte) ([]*Commit, error) {
 	return commits, nil
 }
 
-func (git *git) previousReleaseTags(commit string, self bool) ([]string, error) {
+func (git *git) ReleaseTag(commit string) (string, error) {
+	tags, err := git.previousReleaseTags(commit, true, true, true)
+	if err != nil {
+		return "", err
+	}
+	if len(tags) == 0 {
+		return "", fmt.Errorf("no release tags found for commit %v", commit)
+	}
+	return tags[0], nil
+}
+
+func (git *git) previousReleaseTags(commit string, self, onlyTop, includeRC bool) ([]string, error) {
 	var tags []string
 	if self {
 		output, err := git.git("tag", "--list", "--points-at", commit, "--merged", commit, "v*.*")
 		if err != nil {
 			return nil, err
 		}
-		tags, err = gitParseReleaseTags(output)
-		if err != nil {
-			return nil, err
+		tags = gitParseReleaseTags(output, includeRC)
+		if onlyTop && len(tags) != 0 {
+			return tags, nil
 		}
 	}
 	output, err := git.git("tag", "--no-contains", commit, "--merged", commit, "v*.*")
 	if err != nil {
 		return nil, err
 	}
-	tags1, err := gitParseReleaseTags(output)
-	if err != nil {
-		return nil, err
-	}
+	tags1 := gitParseReleaseTags(output, includeRC)
 	tags = append(tags, tags1...)
+	if len(tags) == 0 {
+		return nil, fmt.Errorf("no release tags found for commit %v", commit)
+	}
 	return tags, nil
 }
 
 func (git *git) IsRelease(commit string) (bool, error) {
-	tags1, err := git.previousReleaseTags(commit, true)
+	tags1, err := git.previousReleaseTags(commit, true, false, false)
 	if err != nil {
 		return false, err
 	}
-	tags2, err := git.previousReleaseTags(commit, false)
+	tags2, err := git.previousReleaseTags(commit, false, false, false)
 	if err != nil {
 		return false, err
 	}

@@ -72,8 +72,9 @@ static int event_timedwait(event_t* ev, uint64 timeout)
 
 #if SYZ_EXECUTOR || SYZ_REPEAT || SYZ_NET_INJECTION || SYZ_FAULT || SYZ_SANDBOX_NONE || \
     SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID ||               \
-    SYZ_FAULT || SYZ_LEAK || SYZ_BINFMT_MISC ||                                         \
-    ((__NR_syz_usb_connect || __NR_syz_usb_connect_ath9k) && USB_DEBUG)
+    SYZ_FAULT || SYZ_LEAK || SYZ_BINFMT_MISC || SYZ_SYSCTL ||                           \
+    ((__NR_syz_usb_connect || __NR_syz_usb_connect_ath9k) && USB_DEBUG) ||              \
+    __NR_syz_usbip_server_init
 #include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
@@ -2904,6 +2905,8 @@ error_clear_loop:
 #include "common_kvm_amd64.h"
 #elif GOARCH_arm64
 #include "common_kvm_arm64.h"
+#elif GOARCH_ppc64 || GOARCH_ppc64le
+#include "common_kvm_ppc64.h"
 #elif !GOARCH_arm
 static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6, volatile long a7)
 {
@@ -2947,7 +2950,7 @@ struct ipt_getinfo {
 struct ipt_get_entries {
 	char name[32];
 	unsigned int size;
-	void* entrytable[XT_TABLE_SIZE / sizeof(void*)];
+	uint64 entrytable[XT_TABLE_SIZE / sizeof(uint64)];
 };
 
 struct ipt_replace {
@@ -2959,7 +2962,7 @@ struct ipt_replace {
 	unsigned int underflow[5];
 	unsigned int num_counters;
 	struct xt_counters* counters;
-	char entrytable[XT_TABLE_SIZE];
+	uint64 entrytable[XT_TABLE_SIZE / sizeof(uint64)];
 };
 
 struct ipt_table_desc {
@@ -3001,7 +3004,7 @@ struct arpt_getinfo {
 struct arpt_get_entries {
 	char name[32];
 	unsigned int size;
-	void* entrytable[XT_TABLE_SIZE / sizeof(void*)];
+	uint64 entrytable[XT_TABLE_SIZE / sizeof(uint64)];
 };
 
 struct arpt_replace {
@@ -3013,7 +3016,7 @@ struct arpt_replace {
 	unsigned int underflow[3];
 	unsigned int num_counters;
 	struct xt_counters* counters;
-	char entrytable[XT_TABLE_SIZE];
+	uint64 entrytable[XT_TABLE_SIZE / sizeof(uint64)];
 };
 
 struct arpt_table_desc {
@@ -3559,7 +3562,6 @@ static void loop();
 static void sandbox_common()
 {
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
-	setpgrp();
 	setsid();
 
 #if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI
@@ -4576,6 +4578,51 @@ static void setup_usb()
 {
 	if (chmod("/dev/raw-gadget", 0666))
 		fail("failed to chmod /dev/raw-gadget");
+}
+#endif
+
+#if SYZ_EXECUTOR || SYZ_SYSCTL
+#include <errno.h>
+#include <string.h>
+
+static void setup_sysctl()
+{
+	// TODO: consider moving all sysctl's into CMDLINE config later.
+	// Kernel has support for setting sysctl's via command line since 3db978d480e28 (v5.8).
+	static struct {
+		const char* name;
+		const char* data;
+	} files[] = {
+	    // nmi_check_duration() prints "INFO: NMI handler took too long" on slow debug kernels.
+	    // It happens a lot in qemu, and the messages are frequently corrupted
+	    // (intermixed with other kernel output as they are printed from NMI)
+	    // and are not matched against the suppression in pkg/report.
+	    // This write prevents these messages from being printed.
+	    {"/sys/kernel/debug/x86/nmi_longest_ns", "10000000000"},
+	    {"/proc/sys/kernel/hung_task_check_interval_secs", "20"},
+	    // This gives more interesting coverage.
+	    {"/proc/sys/net/core/bpf_jit_enable", "1"},
+	    // bpf_jit_kallsyms and disabling bpf_jit_harden are required
+	    // for unwinding through bpf functions.
+	    {"/proc/sys/net/core/bpf_jit_kallsyms", "1"},
+	    {"/proc/sys/net/core/bpf_jit_harden", "0"},
+	    // This is to provide more useful info in crash reports.
+	    {"/proc/sys/kernel/kptr_restrict", "0"},
+	    {"/proc/sys/kernel/softlockup_all_cpu_backtrace", "1"},
+	    // This is to restrict effects of recursive exponential mounts, for details see
+	    // "mnt: Add a per mount namespace limit on the number of mounts" commit.
+	    {"/proc/sys/fs/mount-max", "100"},
+	    // Dumping all tasks to console can take too long.
+	    {"/proc/sys/vm/oom_dump_tasks", "0"},
+	    // Executor hits lots of SIGSEGVs, no point in logging them.
+	    {"/proc/sys/debug/exception-trace", "0"},
+	    {"/proc/sys/kernel/printk", "7 4 1 3"},
+	    {"/proc/sys/net/ipv4/ping_group_range", "0 65535"},
+	};
+	for (size_t i = 0; i < sizeof(files) / sizeof(files[0]); i++) {
+		if (!write_file(files[i].name, files[i].data))
+			printf("write to %s failed: %s\n", files[i].name, strerror(errno));
+	}
 }
 #endif
 

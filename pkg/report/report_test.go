@@ -16,6 +16,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 var flagUpdate = flag.Bool("update", false, "update test files accordingly to current results")
@@ -303,12 +304,12 @@ func testGuiltyFile(t *testing.T, reporter Reporter, fn string) {
 
 func forEachFile(t *testing.T, dir string, fn func(t *testing.T, reporter Reporter, fn string)) {
 	for os := range ctors {
-		if os == "windows" {
+		if os == targets.Windows {
 			continue // not implemented
 		}
 		cfg := &mgrconfig.Config{
 			TargetOS:   os,
-			TargetArch: "amd64",
+			TargetArch: targets.AMD64,
 		}
 		reporter, err := NewReporter(cfg)
 		if err != nil {

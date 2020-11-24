@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ifuzz"
-	_ "github.com/google/syzkaller/pkg/ifuzz/generated" // pull in generated instruction descriptions
 )
 
 const (
@@ -231,7 +230,9 @@ func (r *randGen) flags(vv []uint64, bitmask bool, oldVal uint64) uint64 {
 	}
 	// We don't want to return 0 here, because we already given 0
 	// fixed probability above (otherwise we get 0 too frequently).
-	for v == 0 || r.nOutOf(2, 3) {
+	// Note: this loop can hang if all values are equal to 0. We don't generate such flags in the compiler now,
+	// but it used to hang occasionally, so we keep the try < 10 logic b/c we don't have a local check for values.
+	for try := 0; try < 10 && (v == 0 || r.nOutOf(2, 3)); try++ {
 		flag := vv[r.rand(len(vv))]
 		if r.oneOf(20) {
 			// Try choosing adjacent bit values in case we forgot
@@ -472,8 +473,13 @@ func createTargetIfuzzConfig(target *Target) *ifuzz.Config {
 	switch target.Arch {
 	case "amd64":
 		cfg.Mode = ifuzz.ModeLong64
+		cfg.Arch = ifuzz.ArchX86
 	case "386":
 		cfg.Mode = ifuzz.ModeProt32
+		cfg.Arch = ifuzz.ArchX86
+	case "ppc64":
+		cfg.Mode = ifuzz.ModeLong64
+		cfg.Arch = ifuzz.ArchPowerPC
 	default:
 		return nil
 	}
@@ -502,12 +508,19 @@ func createIfuzzConfig(kind TextKind) *ifuzz.Config {
 	switch kind {
 	case TextX86Real:
 		cfg.Mode = ifuzz.ModeReal16
+		cfg.Arch = ifuzz.ArchX86
 	case TextX86bit16:
 		cfg.Mode = ifuzz.ModeProt16
+		cfg.Arch = ifuzz.ArchX86
 	case TextX86bit32:
 		cfg.Mode = ifuzz.ModeProt32
+		cfg.Arch = ifuzz.ArchX86
 	case TextX86bit64:
 		cfg.Mode = ifuzz.ModeLong64
+		cfg.Arch = ifuzz.ArchX86
+	case TextPpc64:
+		cfg.Mode = ifuzz.ModeLong64
+		cfg.Arch = ifuzz.ArchPowerPC
 	default:
 		panic("unknown text kind")
 	}

@@ -1,0 +1,33 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/param.h>
+include <sys/cpuset.h>
+include <sys/domainset.h>
+
+define CPU_SETSIZE	CPU_MAXSIZE / 64
+define DOMAIN_SETSIZE	DOMAINSET_MAXSIZE / 64
+
+resource cpuset[int32]
+
+cpuset(setid ptr[out, cpuset])
+cpuset_setid(which flags[cpuset_which], id int64, setid cpuset)
+cpuset_getid(level flags[cpuset_level], which flags[cpuset_which], id int64, setid ptr[out, cpuset])
+
+cpuset_getaffinity(level flags[cpuset_level], which flags[cpuset_which], id int64, size bytesize[mask], mask ptr[out, cpuset_mask])
+cpuset_setaffinity(level flags[cpuset_level], which flags[cpuset_which], id int64, size bytesize[mask], mask ptr[in, cpuset_mask])
+
+cpuset_getdomain(level flags[cpuset_level], which flags[cpuset_which], id int64, size bytesize[mask], mask ptr[out, domainset_mask], policy ptr[out, flags[domainset_policy, int32]])
+cpuset_setdomain(level flags[cpuset_level], which flags[cpuset_which], id int64, size bytesize[mask], mask ptr[in, domainset_mask], policy flags[domainset_policy])
+
+cpuset_level = CPU_LEVEL_ROOT, CPU_LEVEL_CPUSET, CPU_LEVEL_WHICH
+cpuset_which = CPU_WHICH_TID, CPU_WHICH_PID, CPU_WHICH_JAIL, CPU_WHICH_CPUSET, CPU_WHICH_IRQ, CPU_WHICH_INTRHANDLER, CPU_WHICH_ITHREAD, CPU_WHICH_DOMAIN
+domainset_policy = DOMAINSET_POLICY_ROUNDROBIN, DOMAINSET_POLICY_FIRSTTOUCH, DOMAINSET_POLICY_PREFER
+
+cpuset_mask {
+	mask	array[int64, CPU_SETSIZE]
+}
+
+domainset_mask {
+	mask	array[int64, DOMAIN_SETSIZE]
+}

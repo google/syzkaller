@@ -136,7 +136,7 @@ func TestSysTests(t *testing.T) {
 		}
 		t.Run(target.OS+"/"+target.Arch, func(t *testing.T) {
 			t.Parallel()
-			dir := filepath.Join("..", "..", "sys", target.OS, "test")
+			dir := filepath.Join("..", "..", "sys", target.OS, targets.TestOS)
 			if !osutil.IsExist(dir) {
 				return
 			}
@@ -173,7 +173,7 @@ func TestSysTests(t *testing.T) {
 
 func TestExecutorMacros(t *testing.T) {
 	// Ensure that executor does not mis-spell any of the SYZ_* macros.
-	target, _ := prog.GetTarget("test", "64")
+	target, _ := prog.GetTarget(targets.TestOS, targets.TestArch64)
 	p := target.Generate(rand.NewSource(0), 1, target.DefaultChoiceTable())
 	expected := commonDefines(p, Options{})
 	expected["SYZ_EXECUTOR"] = true

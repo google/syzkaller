@@ -161,6 +161,13 @@ table td, table th {
 	text-align: right;
 }
 
+.list_table .bisect_status {
+	width: 75pt;
+	max-width: 75pt;
+	font-family: monospace;
+	text-align: right;
+}
+
 .list_table .date {
 	width: 60pt;
 	max-width: 60pt;
@@ -248,11 +255,12 @@ function isSorted(values) {
 	return true;
 }
 
-function textSort(v) { return v.toLowerCase(); }
+function textSort(v) { return v == "" ? "zzz" : v.toLowerCase(); }
 function numSort(v) { return -parseInt(v); }
 function floatSort(v) { return -parseFloat(v); }
 function reproSort(v) { return v == "C" ? 0 : v == "syz" ? 1 : 2; }
 function patchedSort(v) { return v == "" ? -1 : parseInt(v); }
+function lineSort(v) { return -v.split(/\r\n|\r|\n/g).length }
 
 function timeSort(v) {
 	if (v == "now")

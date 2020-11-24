@@ -1089,7 +1089,7 @@ func TestBugBisectionStatus(t *testing.T) {
 	url := fmt.Sprintf("/%v", bugs[0].Namespace)
 	content, err := c.httpRequest("GET", url, "", AccessAdmin)
 	c.expectEQ(err, nil)
-	c.expectTrue(bytes.Contains(content, []byte("cause")))
+	c.expectTrue(bytes.Contains(content, []byte("done")))
 
 	// Advance time by 30 days and read out any notification emails.
 	{
@@ -1134,7 +1134,7 @@ func TestBugBisectionStatus(t *testing.T) {
 	c.expectOK(c.client2.JobDone(done))
 	content, err = c.httpRequest("GET", url, "", AccessAdmin)
 	c.expectEQ(err, nil)
-	c.expectTrue(bytes.Contains(content, []byte("cause+fix")))
+	c.expectTrue(bytes.Contains(content, []byte("done")))
 
 	msg := c.client2.pollEmailBug()
 	c.expectTrue(strings.Contains(msg.Body, "syzbot suspects this issue was fixed by commit:"))

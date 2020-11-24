@@ -1,0 +1,174 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Common config fragments required by syzbot for all kernels
+
+# CONFIG_DEBUG_MEMORY was once added to mm tree and cause disabling of KASAN,
+# which in turn caused storm of assorted crashes after silent memory corruptions.
+# The config was reverted, but we keep it here for the case it is reintroduced to kernel again.
+# CONFIG_TWIST_KERNEL_BEHAVIOR can be used to prevent fuzzers from trying stupid things.
+# See https://github.com/google/syzkaller/issues/1622 for details.
+verbatim: |
+ CONFIG_DEBUG_MEMORY=y
+ CONFIG_TWIST_KERNEL_BEHAVIOR=y
+ CONFIG_TWIST_FOR_SYZKALLER_TESTING=y
+
+config:
+ # Required to enable some other configs we set.
+ - EXPERT
+ - DEBUG_KERNEL
+
+ # watchdog_thresh/workqueue.watchdog_thresh are part of deterministic hang/stall detection.
+ # Don't change them without considering kernel.hung_task_check_interval_secs,
+ # CONFIG_RCU_CPU_STALL_TIMEOUT, CONFIG_DEFAULT_HUNG_TASK_TIMEOUT and "no output from test machine" timeout.
+ # panic=86400: prevents kernel from rebooting so that we don't get reboot output in all crash reports.
+ - CMDLINE: "earlyprintk=serial oops=panic panic_on_warn=1 nmi_watchdog=panic panic=86400 net.ifnames=0 sysctl.kernel.hung_task_all_cpu_backtrace=1 ima_policy=tcb watchdog_thresh=55 workqueue.watchdog_thresh=140 kvm-intel.nested=1 nf-conntrack-ftp.ports=20000 nf-conntrack-tftp.ports=20000 nf-conntrack-sip.ports=20000 nf-conntrack-irc.ports=20000 nf-conntrack-sane.ports=20000 vivid.n_devs=16 vivid.multiplanar=1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2 netrom.nr_ndevs=16 rose.rose_ndevs=16 spec_store_bypass_disable=prctl numa=fake=2 nopcid dummy_hcd.num=8 binder.debug_mask=0 rcupdate.rcu_expedited=1"
+
+ # This config can be used to enable any additional temporal debugging features in linux-next tree.
+ - DEBUG_AID_FOR_SYZBOT: [linux-next]
+
+ # We don't need lots, but some configs set it to 2 which is too low.
+ - NR_CPUS: 8
+
+ # We slowdown execution significantly and there is no point in low latency under test.
+ - HZ_100
+
+ - RCU_CPU_STALL_TIMEOUT: 100
+ - RCU_TRACE: n
+
+ # KPROBES pollute coverage and needlessly slow down execution.
+ - KPROBES: n
+ # Slows down execution and sometimes fuzzer actually enables it.
+ - FUNCTION_TRACER: n
+ # Slows down execution.
+ - RETPOLINE: n
+ - PAGE_TABLE_ISOLATION: n
+ - SCHED_DEBUG: n
+
+ # Speeds up randomness initialization.
+ - HW_RANDOM
+ - HW_RANDOM_VIRTIO
+ - HW_RANDOM_INTEL: n
+ - HW_RANDOM_AMD: n
+ - HW_RANDOM_VIA: n
+ - RANDOM_TRUST_CPU
+ - RANDOM_TRUST_BOOTLOADER
+
+ # For detection of supported syscalls
+ - KALLSYMS
+ - KALLSYMS_ALL
+ - KALLSYMS_BASE_RELATIVE
+
+ # For namespace sandbox.
+ - NAMESPACES
+ - USER_NS
+ - UTS_NS
+ # Depends on CONFIG_SYSVIPC.
+ - CONFIG_IPC_NS: [optional]
+ - PID_NS
+ - NET_NS
+
+ # Control groups are needed for better sandboxing of test processes.
+ - CGROUP_PIDS
+ - MEMCG
+
+ # Debugging features (from kernel_configs.md, do not alpha sort).
+ - DEBUG_BUGVERBOSE
+ - PANIC_ON_OOPS
+ - PANIC_TIMEOUT: 86400
+ - SCHED_STACK_END_CHECK
+ - FORTIFY_SOURCE
+ - HARDENED_USERCOPY
+ - HARDENED_USERCOPY_FALLBACK
+ - BUG_ON_DATA_CORRUPTION
+ - DEBUG_LIST
+
+ # CONFIG_DEBUG_PI_LIST was renamed to CONFIG_DEBUG_PLIST in 8e18faeac3e4.
+ - DEBUG_PLIST: [v5.2]
+ - DEBUG_PI_LIST: [-v5.2]
+
+ # CONFIG_REFCOUNT_FULL was removed in fb041bb7c0a9.
+ - REFCOUNT_FULL: [-v5.5]
+
+ # This config does not add any debug checks (only debug output).
+ - DEBUG_KOBJECT: n
+
+ - DEBUG_INFO
+ - DEBUG_INFO_REDUCED
+ # BTF requires pahole (dwarves package on some distros) version 1.13,
+ # while syzbot distros only provide 1.9, this breaks kernel builds.
+ # See https://syzkaller.appspot.com/bug?id=cce16fbb0be2ed0c6f40459226202a8c06797536
+ # It depends on !CONFIG_DEBUG_INFO_REDUCED.
+ - DEBUG_INFO_BTF: n
+
+ # This should make behavior more deterministic.
+ - INIT_ON_ALLOC_DEFAULT_ON
+
+ - KCOV
+ - KCOV_INSTRUMENT_ALL
+ - KCOV_ENABLE_COMPARISONS
+ - DEBUG_FS
+
+ # Required for KCOV but also eliminates unnecessary non-determinism.
+ - RANDOMIZE_BASE: n
+
+ # Print thread and CPU ids.
+ - PRINTK_CALLER
+ - PRINTK_TIME
+
+ # Fault injection.
+ - FAULT_INJECTION
+ - FAILSLAB
+ - FAIL_PAGE_ALLOC
+ - FAIL_MAKE_REQUEST
+ - FAIL_IO_TIMEOUT
+ - FAIL_FUTEX
+ - FAULT_INJECTION_DEBUG_FS
+ - FAULT_INJECTION_USERCOPY: [v5.10]
+
+ # Options enabled to boot Debian Wheezy.
+ - DEVTMPFS
+ - DEVTMPFS_MOUNT
+ - INOTIFY_USER
+ - UEVENT_HELPER
+ - UEVENT_HELPER_PATH: "/sbin/hotplug"
+
+ # Options enabled to boot Debian Stretch.
+ - CONFIGFS_FS
+ - SECURITYFS
+
+ # If syzkaller gets to /dev/{mem,kmem,ioport}, it will destroy the machine.
+ # It managed to do so with some mount's, chdir's and bogus file names.
+ # These are not needed for fuzzing, so completely disabling them is
+ # the simplest and the most reliable option.
+ - DEVMEM: n
+ - DEVKMEM: n
+ - DEVPORT: n
+
+ # Disable magic SysRq completely, as it can be reached over USB and through tty.
+ - MAGIC_SYSRQ: n
+
+ - RUNTIME_TESTING_MENU: n
+
+ # Don't test/need this (may be enabled via HID_HYPERV_MOUSE in USB/HID configs).
+ - HYPERV: n
+
+ # These are legacy gadget drivers that we don't reach/test and some of these break boot:
+ # https://github.com/google/syzkaller/pull/1975#issuecomment-712807462
+ - USB_G_NCM: n
+ - USB_G_SERIAL: n
+ - USB_G_PRINTER: n
+ - USB_G_NOKIA: n
+ - USB_G_ACM_MS: n
+ - USB_G_MULTI: n
+ - USB_G_HID: n
+ - USB_G_DBGP: n
+ - USB_G_WEBCAM: n
+ - USB_ZERO: n
+ - USB_AUDIO: n
+ - USB_ETH: n
+ - USB_FUNCTIONFS: n
+ - USB_MASS_STORAGE: n
+ - USB_GADGET_TARGET: n
+ - USB_MIDI_GADGET: n
+ - USB_CDC_COMPOSITE: n

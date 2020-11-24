@@ -66,11 +66,11 @@ func TestData(t *testing.T) {
 	// E.g. if we failed to parse descriptions, we won't run type checking at all.
 	// Because of this we have one file per phase.
 	for _, name := range []string{"errors.txt", "errors2.txt", "errors3.txt", "warnings.txt", "all.txt"} {
-		for _, arch := range []string{"32_shmem", "64"} {
+		for _, arch := range []string{targets.TestArch32Shmem, targets.TestArch64} {
 			name, arch := name, arch
 			t.Run(fmt.Sprintf("%v/%v", name, arch), func(t *testing.T) {
 				t.Parallel()
-				target := targets.List["test"][arch]
+				target := targets.List[targets.TestOS][arch]
 				fileName := filepath.Join("testdata", name)
 				em := ast.NewErrorMatcher(t, fileName)
 				astDesc := ast.Parse(em.Data, name, em.ErrorHandler)
@@ -151,6 +151,14 @@ type p b[L]
 type b[L] {
 	e b[L[L]]
 }`,
+		`
+p() b[len]
+type b[b] b
+`,
+		`
+p() b[len[opt]]
+type b[b] b
+`,
 	} {
 		Fuzz([]byte(data)[:len(data):len(data)])
 	}
@@ -182,7 +190,7 @@ s2 {
 	if desc == nil {
 		t.Fatal("failed to parse")
 	}
-	p := Compile(desc, map[string]uint64{"SYS_foo": 1}, targets.List["test"]["64"], eh)
+	p := Compile(desc, map[string]uint64{"SYS_foo": 1}, targets.List[targets.TestOS][targets.TestArch64], eh)
 	if p == nil {
 		t.Fatal("failed to compile")
 	}
@@ -201,7 +209,7 @@ func TestCollectUnusedError(t *testing.T) {
 		t.Fatal("failed to parse")
 	}
 
-	_, err := CollectUnused(desc, targets.List["test"]["64"], nopErrorHandler)
+	_, err := CollectUnused(desc, targets.List[targets.TestOS][targets.TestArch64], nopErrorHandler)
 	if err == nil {
 		t.Fatal("CollectUnused should have failed but didn't")
 	}
@@ -252,7 +260,7 @@ func TestCollectUnused(t *testing.T) {
 			t.Fatalf("Test %d: failed to parse", i)
 		}
 
-		nodes, err := CollectUnused(desc, targets.List["test"]["64"], nil)
+		nodes, err := CollectUnused(desc, targets.List[targets.TestOS][targets.TestArch64], nil)
 		if err != nil {
 			t.Fatalf("Test %d: CollectUnused failed: %v", i, err)
 		}

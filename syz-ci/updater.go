@@ -18,6 +18,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 const (
@@ -232,7 +233,7 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 		}
 		for _, f := range files {
 			src := filepath.Join(upd.descriptions, f.Name())
-			dst := filepath.Join(upd.syzkallerDir, "sys", "linux", f.Name())
+			dst := filepath.Join(upd.syzkallerDir, "sys", targets.Linux, f.Name())
 			if err := osutil.CopyFile(src, dst); err != nil {
 				return err
 			}

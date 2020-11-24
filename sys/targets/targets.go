@@ -14,7 +14,6 @@ import (
 )
 
 type Target struct {
-	init sync.Once
 	osCommon
 	OS               string
 	Arch             string
@@ -38,6 +37,11 @@ type Target struct {
 	NeedSyscallDefine  func(nr uint64) bool
 	HostEndian         binary.ByteOrder
 	SyscallTrampolines map[string]string
+
+	init      *sync.Once
+	initOther *sync.Once
+	// Target for the other compiler. If SYZ_CLANG says to use gcc, this will be clang. Or the other way around.
+	other *Target
 }
 
 type osCommon struct {
@@ -74,19 +78,58 @@ type osCommon struct {
 	cflags []string
 }
 
+const (
+	Akaros  = "akaros"
+	FreeBSD = "freebsd"
+	Fuchsia = "fuchsia"
+	Linux   = "linux"
+	NetBSD  = "netbsd"
+	OpenBSD = "openbsd"
+	TestOS  = "test"
+	Trusty  = "trusty"
+	Windows = "windows"
+
+	AMD64               = "amd64"
+	ARM64               = "arm64"
+	ARM                 = "arm"
+	I386                = "386"
+	MIPS64LE            = "mips64le"
+	PPC64LE             = "ppc64le"
+	S390x               = "s390x"
+	RiscV64             = "riscv64"
+	TestArch64          = "64"
+	TestArch64Fork      = "64_fork"
+	TestArch32Shmem     = "32_shmem"
+	TestArch32ForkShmem = "32_fork_shmem"
+)
+
 func Get(OS, arch string) *Target {
+	return GetEx(OS, arch, useClang)
+}
+
+func GetEx(OS, arch string, clang bool) *Target {
 	target := List[OS][arch]
 	if target == nil {
 		return nil
 	}
-	target.init.Do(target.lazyInit)
-	return target
+	if clang == useClang {
+		target.init.Do(target.lazyInit)
+		return target
+	}
+	target.initOther.Do(func() {
+		other := new(Target)
+		*other = *target
+		other.setCompiler(clang)
+		other.lazyInit()
+		target.other = other
+	})
+	return target.other
 }
 
 // nolint: lll
 var List = map[string]map[string]*Target{
-	"test": {
-		"64": {
+	TestOS: {
+		TestArch64: {
 			PtrSize:  8,
 			PageSize: 4 << 10,
 			// Compile with -no-pie due to issues with ASan + ASLR on ppc64le.
@@ -98,7 +141,7 @@ var List = map[string]map[string]*Target{
 				ExecutorUsesForkServer: false,
 			},
 		},
-		"64_fork": {
+		TestArch64Fork: {
 			PtrSize:  8,
 			PageSize: 8 << 10,
 			// Compile with -no-pie due to issues with ASan + ASLR on ppc64le.
@@ -110,7 +153,7 @@ var List = map[string]map[string]*Target{
 				ExecutorUsesForkServer: true,
 			},
 		},
-		"32_shmem": {
+		TestArch32Shmem: {
 			PtrSize:        4,
 			PageSize:       8 << 10,
 			Int64Alignment: 4,
@@ -123,7 +166,7 @@ var List = map[string]map[string]*Target{
 				ExecutorUsesForkServer: false,
 			},
 		},
-		"32_fork_shmem": {
+		TestArch32ForkShmem: {
 			PtrSize:  4,
 			PageSize: 4 << 10,
 			CFlags:   []string{"-m32", "-static"},
@@ -137,8 +180,8 @@ var List = map[string]map[string]*Target{
 			},
 		},
 	},
-	"linux": {
-		"amd64": {
+	Linux: {
+		AMD64: {
 			PtrSize:          8,
 			PageSize:         4 << 10,
 			LittleEndian:     true,
@@ -152,8 +195,8 @@ var List = map[string]map[string]*Target{
 				return nr >= 313
 			},
 		},
-		"386": {
-			VMArch:           "amd64",
+		I386: {
+			VMArch:           AMD64,
 			PtrSize:          4,
 			PageSize:         4 << 10,
 			Int64Alignment:   4,
@@ -163,7 +206,7 @@ var List = map[string]map[string]*Target{
 			KernelArch:       "i386",
 			KernelHeaderArch: "x86",
 		},
-		"arm64": {
+		ARM64: {
 			PtrSize:          8,
 			PageSize:         4 << 10,
 			LittleEndian:     true,
@@ -171,8 +214,8 @@ var List = map[string]map[string]*Target{
 			KernelArch:       "arm64",
 			KernelHeaderArch: "arm64",
 		},
-		"arm": {
-			VMArch:           "arm64",
+		ARM: {
+			VMArch:           ARM64,
 			PtrSize:          4,
 			PageSize:         4 << 10,
 			LittleEndian:     true,
@@ -181,8 +224,7 @@ var List = map[string]map[string]*Target{
 			KernelArch:       "arm",
 			KernelHeaderArch: "arm",
 		},
-		"mips64le": {
-			VMArch:           "mips64le",
+		MIPS64LE: {
 			PtrSize:          8,
 			PageSize:         4 << 10,
 			LittleEndian:     true,
@@ -191,7 +233,7 @@ var List = map[string]map[string]*Target{
 			KernelArch:       "mips",
 			KernelHeaderArch: "mips",
 		},
-		"ppc64le": {
+		PPC64LE: {
 			PtrSize:          8,
 			PageSize:         64 << 10,
 			LittleEndian:     true,
@@ -200,7 +242,7 @@ var List = map[string]map[string]*Target{
 			KernelArch:       "powerpc",
 			KernelHeaderArch: "powerpc",
 		},
-		"s390x": {
+		S390x: {
 			PtrSize:          8,
 			PageSize:         4 << 10,
 			DataOffset:       0xfffff000,
@@ -216,7 +258,7 @@ var List = map[string]map[string]*Target{
 				"mmap": "mmap",
 			},
 		},
-		"riscv64": {
+		RiscV64: {
 			PtrSize:          8,
 			PageSize:         4 << 10,
 			LittleEndian:     true,
@@ -225,8 +267,8 @@ var List = map[string]map[string]*Target{
 			KernelHeaderArch: "riscv",
 		},
 	},
-	"freebsd": {
-		"amd64": {
+	FreeBSD: {
+		AMD64: {
 			PtrSize:           8,
 			PageSize:          4 << 10,
 			LittleEndian:      true,
@@ -234,8 +276,8 @@ var List = map[string]map[string]*Target{
 			CFlags:            []string{"-m64"},
 			NeedSyscallDefine: dontNeedSyscallDefine,
 		},
-		"386": {
-			VMArch:   "amd64",
+		I386: {
+			VMArch:   AMD64,
 			PtrSize:  4,
 			PageSize: 4 << 10,
 			// The default DataOffset doesn't work with 32-bit
@@ -248,8 +290,8 @@ var List = map[string]map[string]*Target{
 			NeedSyscallDefine: dontNeedSyscallDefine,
 		},
 	},
-	"netbsd": {
-		"amd64": {
+	NetBSD: {
+		AMD64: {
 			PtrSize:      8,
 			PageSize:     4 << 10,
 			LittleEndian: true,
@@ -261,8 +303,8 @@ var List = map[string]map[string]*Target{
 			CCompiler: sourceDirVar + "/tools/bin/x86_64--netbsd-g++",
 		},
 	},
-	"openbsd": {
-		"amd64": {
+	OpenBSD: {
+		AMD64: {
 			PtrSize:      8,
 			PageSize:     4 << 10,
 			LittleEndian: true,
@@ -295,8 +337,8 @@ var List = map[string]map[string]*Target{
 			},
 		},
 	},
-	"fuchsia": {
-		"amd64": {
+	Fuchsia: {
+		AMD64: {
 			PtrSize:          8,
 			PageSize:         4 << 10,
 			LittleEndian:     true,
@@ -305,26 +347,26 @@ var List = map[string]map[string]*Target{
 			Objdump:          sourceDirVar + "/prebuilt/third_party/clang/linux-x64/bin/llvm-objdump",
 			CFlags:           fuchsiaCFlags("x64", "x86_64"),
 		},
-		"arm64": {
+		ARM64: {
 			PtrSize:          8,
 			PageSize:         4 << 10,
 			LittleEndian:     true,
-			KernelHeaderArch: "arm64",
+			KernelHeaderArch: ARM64,
 			CCompiler:        sourceDirVar + "/prebuilt/third_party/clang/linux-x64/bin/clang",
 			Objdump:          sourceDirVar + "/prebuilt/third_party/clang/linux-x64/bin/llvm-objdump",
-			CFlags:           fuchsiaCFlags("arm64", "aarch64"),
+			CFlags:           fuchsiaCFlags(ARM64, "aarch64"),
 		},
 	},
-	"windows": {
-		"amd64": {
+	Windows: {
+		AMD64: {
 			PtrSize: 8,
 			// TODO(dvyukov): what should we do about 4k vs 64k?
 			PageSize:     4 << 10,
 			LittleEndian: true,
 		},
 	},
-	"akaros": {
-		"amd64": {
+	Akaros: {
+		AMD64: {
 			PtrSize:           8,
 			PageSize:          4 << 10,
 			LittleEndian:      true,
@@ -336,8 +378,8 @@ var List = map[string]map[string]*Target{
 			},
 		},
 	},
-	"trusty": {
-		"arm": {
+	Trusty: {
+		ARM: {
 			PtrSize:           4,
 			PageSize:          4 << 10,
 			LittleEndian:      true,
@@ -347,7 +389,7 @@ var List = map[string]map[string]*Target{
 }
 
 var oses = map[string]osCommon{
-	"linux": {
+	Linux: {
 		SyscallNumbers:         true,
 		SyscallPrefix:          "__NR_",
 		ExecutorUsesShmem:      true,
@@ -355,7 +397,7 @@ var oses = map[string]osCommon{
 		KernelObject:           "vmlinux",
 		cflags:                 []string{"-static"},
 	},
-	"freebsd": {
+	FreeBSD: {
 		SyscallNumbers:         true,
 		Int64SyscallArgs:       true,
 		SyscallPrefix:          "SYS_",
@@ -365,15 +407,15 @@ var oses = map[string]osCommon{
 		CPP:                    "g++",
 		cflags:                 []string{"-static", "-lc++"},
 	},
-	"netbsd": {
-		BuildOS:                "linux",
+	NetBSD: {
+		BuildOS:                Linux,
 		SyscallNumbers:         true,
 		SyscallPrefix:          "SYS_",
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "netbsd.gdb",
 	},
-	"openbsd": {
+	OpenBSD: {
 		SyscallNumbers:         true,
 		SyscallPrefix:          "SYS_",
 		ExecutorUsesShmem:      true,
@@ -381,8 +423,8 @@ var oses = map[string]osCommon{
 		KernelObject:           "bsd.gdb",
 		CPP:                    "ecpp",
 	},
-	"fuchsia": {
-		BuildOS:                "linux",
+	Fuchsia: {
+		BuildOS:                Linux,
 		SyscallNumbers:         false,
 		ExecutorUsesShmem:      false,
 		ExecutorUsesForkServer: false,
@@ -390,15 +432,15 @@ var oses = map[string]osCommon{
 		SyzExecutorCmd:         "syz-executor",
 		KernelObject:           "zircon.elf",
 	},
-	"windows": {
+	Windows: {
 		SyscallNumbers:         false,
 		ExecutorUsesShmem:      false,
 		ExecutorUsesForkServer: false,
 		ExeExtension:           ".exe",
 		KernelObject:           "vmlinux",
 	},
-	"akaros": {
-		BuildOS:                "linux",
+	Akaros: {
+		BuildOS:                Linux,
 		SyscallNumbers:         true,
 		SyscallPrefix:          "SYS_",
 		ExecutorUsesShmem:      false,
@@ -406,7 +448,7 @@ var oses = map[string]osCommon{
 		HostFuzzer:             true,
 		KernelObject:           "akaros-kernel-64b",
 	},
-	"trusty": {
+	Trusty: {
 		SyscallNumbers:   true,
 		Int64SyscallArgs: true,
 		SyscallPrefix:    "__NR_",
@@ -461,14 +503,14 @@ func init() {
 	goarch := runtime.GOARCH
 	goos := runtime.GOOS
 	if goos == "android" {
-		goos = "linux"
+		goos = Linux
 	}
-	for _, target := range List["test"] {
+	for _, target := range List[TestOS] {
 		if List[goos] != nil {
 			if host := List[goos][goarch]; host != nil {
 				target.CCompiler = host.CCompiler
 				target.CPP = host.CPP
-				if goos == "freebsd" {
+				if goos == FreeBSD {
 					// For some configurations -no-pie is passed to the compiler,
 					// which is not used by clang.
 					// Ensure clang does not complain about it.
@@ -480,18 +522,18 @@ func init() {
 				// In ESA/390 mode, the CPU is able to address only 31bit of memory but
 				// arithmetic operations are still 32bit
 				// Fix cflags by replacing compiler's -m32 option with -m31
-				if goarch == "s390x" {
+				if goarch == S390x {
 					for i := range target.CFlags {
 						target.CFlags[i] = strings.Replace(target.CFlags[i], "-m32", "-m31", -1)
 					}
 				}
 			}
-			if target.PtrSize == 4 && goos == "freebsd" && goarch == "amd64" {
+			if target.PtrSize == 4 && goos == FreeBSD && goarch == AMD64 {
 				// A hack to let 32-bit "test" target tests run on FreeBSD:
 				// freebsd/386 requires a non-default DataOffset to avoid
 				// clobbering mappings created by the C runtime. Since that is the
 				// only target with this constraint, just special-case it for now.
-				target.DataOffset = List[goos]["386"].DataOffset
+				target.DataOffset = List[goos][I386].DataOffset
 			}
 		}
 		target.BuildOS = goos
@@ -502,8 +544,13 @@ func initTarget(target *Target, OS, arch string) {
 	if common, ok := oses[OS]; ok {
 		target.osCommon = common
 	}
+	target.init = new(sync.Once)
+	target.initOther = new(sync.Once)
 	target.OS = OS
 	target.Arch = arch
+	if target.KernelArch == "" {
+		target.KernelArch = target.Arch
+	}
 	if target.NeedSyscallDefine == nil {
 		target.NeedSyscallDefine = needSyscallDefine
 	}
@@ -523,7 +570,7 @@ func initTarget(target *Target, OS, arch string) {
 	for i := range target.CFlags {
 		target.replaceSourceDir(&target.CFlags[i], sourceDir)
 	}
-	if OS == "linux" && arch == runtime.GOARCH {
+	if OS == Linux && arch == runtime.GOARCH {
 		// Don't use cross-compiler for native compilation, there are cases when this does not work:
 		// https://github.com/google/syzkaller/pull/619
 		// https://github.com/google/syzkaller/issues/387
@@ -531,19 +578,7 @@ func initTarget(target *Target, OS, arch string) {
 		target.Triple = ""
 	}
 	if target.CCompiler == "" {
-		target.CCompiler = "gcc"
-		if target.Triple != "" {
-			target.CCompiler = target.Triple + "-" + target.CCompiler
-		}
-	}
-	if useClang {
-		target.CCompiler = "clang"
-		target.KernelCompiler = "clang"
-		target.KernelLinker = "ld.lld"
-		if target.Triple != "" {
-			target.CFlags = append(target.CFlags, "--target="+target.Triple)
-		}
-		target.CFlags = append(target.CFlags, "-ferror-limit=0")
+		target.setCompiler(useClang)
 	}
 	if target.CPP == "" {
 		target.CPP = "cpp"
@@ -565,8 +600,8 @@ func initTarget(target *Target, OS, arch string) {
 	for _, flags := range [][]string{commonCFlags, target.osCommon.cflags} {
 		target.CFlags = append(target.CFlags, flags...)
 	}
-	if OS == "test" {
-		if runtime.GOARCH != "s390x" {
+	if OS == TestOS {
+		if runtime.GOARCH != S390x {
 			target.LittleEndian = true
 		} else {
 			target.LittleEndian = false
@@ -576,6 +611,37 @@ func initTarget(target *Target, OS, arch string) {
 		target.HostEndian = binary.LittleEndian
 	} else {
 		target.HostEndian = binary.BigEndian
+	}
+}
+
+func (target *Target) setCompiler(clang bool) {
+	// setCompiler may be called effectively twice for target.other,
+	// so first we remove flags the previous call may have added.
+	pos := 0
+	for _, flag := range target.CFlags {
+		if flag == "-ferror-limit=0" ||
+			strings.HasPrefix(flag, "--target=") {
+			continue
+		}
+		target.CFlags[pos] = flag
+		pos++
+	}
+	target.CFlags = target.CFlags[:pos]
+	if clang {
+		target.CCompiler = "clang"
+		target.KernelCompiler = "clang"
+		target.KernelLinker = "ld.lld"
+		if target.Triple != "" {
+			target.CFlags = append(target.CFlags, "--target="+target.Triple)
+		}
+		target.CFlags = append(target.CFlags, "-ferror-limit=0")
+	} else {
+		target.CCompiler = "gcc"
+		target.KernelCompiler = ""
+		target.KernelLinker = ""
+		if target.Triple != "" {
+			target.CCompiler = target.Triple + "-" + target.CCompiler
+		}
 	}
 }
 

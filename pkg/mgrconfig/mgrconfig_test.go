@@ -1,13 +1,14 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package mgrconfig
+package mgrconfig_test
 
 import (
 	"path/filepath"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/config"
+	. "github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/vm/gce"
 	"github.com/google/syzkaller/vm/qemu"
 )
@@ -55,7 +56,7 @@ func TestMatchSyscall(t *testing.T) {
 		{"foo$*", "foo$BAR", true},
 	}
 	for i, test := range tests {
-		res := matchSyscall(test.call, test.pattern)
+		res := MatchSyscall(test.call, test.pattern)
 		if res != test.result {
 			t.Errorf("#%v: pattern=%q call=%q want=%v got=%v",
 				i, test.pattern, test.call, test.result, res)

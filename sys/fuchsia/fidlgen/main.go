@@ -19,7 +19,7 @@ import (
 
 func main() {
 	targetArch := os.Getenv("TARGETARCH")
-	target := targets.Get("fuchsia", targetArch)
+	target := targets.Get(targets.Fuchsia, targetArch)
 	if target == nil {
 		failf("unknown TARGETARCH %s", targetArch)
 	}

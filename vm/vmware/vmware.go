@@ -6,6 +6,7 @@ package vmware
 import (
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/vm/vmimpl"
 )
 
@@ -38,7 +40,6 @@ type instance struct {
 	baseVMX     string
 	vmx         string
 	ipAddr      string
-	snapshot    string
 	closed      chan bool
 	debug       bool
 	sshuser     string
@@ -76,18 +77,18 @@ func (pool *Pool) Count() int {
 }
 
 func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
-	vmx := filepath.Join(workdir, "syzkaller.vmx")
+	createTime := strconv.FormatInt(time.Now().UnixNano(), 10)
+	vmx := filepath.Join(workdir, createTime, "syzkaller.vmx")
 	sshkey := pool.env.SSHKey
 	sshuser := pool.env.SSHUser
 	inst := &instance{
-		cfg:      pool.cfg,
-		debug:    pool.env.Debug,
-		baseVMX:  pool.cfg.BaseVMX,
-		vmx:      vmx,
-		sshkey:   sshkey,
-		sshuser:  sshuser,
-		snapshot: strconv.FormatInt(time.Now().Unix(), 10),
-		closed:   make(chan bool),
+		cfg:     pool.cfg,
+		debug:   pool.env.Debug,
+		baseVMX: pool.cfg.BaseVMX,
+		vmx:     vmx,
+		sshkey:  sshkey,
+		sshuser: sshuser,
+		closed:  make(chan bool),
 	}
 	if err := inst.clone(); err != nil {
 		return nil, err
@@ -100,16 +101,9 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 
 func (inst *instance) clone() error {
 	if inst.debug {
-		log.Logf(0, "snapshotting %v (%v)", inst.baseVMX, inst.snapshot)
-	}
-	if _, err := osutil.RunCmd(2*time.Minute, "", "vmrun", "snapshot", inst.baseVMX, inst.snapshot); err != nil {
-		return err
-	}
-	if inst.debug {
 		log.Logf(0, "cloning %v to %v", inst.baseVMX, inst.vmx)
 	}
-	if _, err := osutil.RunCmd(2*time.Minute, "", "vmrun", "clone", inst.baseVMX, inst.vmx, "linked",
-		"-snapshot="+inst.snapshot); err != nil {
+	if _, err := osutil.RunCmd(2*time.Minute, "", "vmrun", "clone", inst.baseVMX, inst.vmx, "full"); err != nil {
 		return err
 	}
 	return nil
@@ -151,15 +145,11 @@ func (inst *instance) Close() {
 	if inst.debug {
 		log.Logf(0, "stopping %v", inst.vmx)
 	}
-	osutil.RunCmd(2*time.Minute, "", "vmrun", "stop", inst.vmx)
+	osutil.RunCmd(2*time.Minute, "", "vmrun", "stop", inst.vmx, "hard")
 	if inst.debug {
 		log.Logf(0, "deleting %v", inst.vmx)
 	}
 	osutil.RunCmd(2*time.Minute, "", "vmrun", "deleteVM", inst.vmx)
-	if inst.debug {
-		log.Logf(0, "deleting snapshot %v", inst.snapshot)
-	}
-	osutil.RunCmd(2*time.Minute, "", "vmrun", "deleteSnapshot", inst.baseVMX, inst.snapshot)
 	close(inst.closed)
 }
 
@@ -183,8 +173,9 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 
 func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (
 	<-chan []byte, <-chan error, error) {
-	args := append(vmimpl.SSHArgs(inst.debug, inst.sshkey, 22), inst.sshuser+"@"+inst.ipAddr)
-	dmesg, err := vmimpl.OpenRemoteConsole("ssh", args...)
+	vmxDir := filepath.Dir(inst.vmx)
+	serial := filepath.Join(vmxDir, "serial")
+	dmesg, err := net.Dial("unix", serial)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -195,7 +186,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		return nil, nil, err
 	}
 
-	args = vmimpl.SSHArgs(inst.debug, inst.sshkey, 22)
+	args := vmimpl.SSHArgs(inst.debug, inst.sshkey, 22)
 	// Forward target port as part of the ssh connection (reverse proxy)
 	if inst.forwardPort != 0 {
 		proxy := fmt.Sprintf("%v:127.0.0.1:%v", inst.forwardPort, inst.forwardPort)
@@ -227,6 +218,6 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	return vmimpl.Multiplex(cmd, merger, dmesg, timeout, stop, inst.closed, inst.debug)
 }
 
-func (inst *instance) Diagnose() ([]byte, bool) {
+func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
 	return nil, false
 }

@@ -22,6 +22,6 @@ func Fuzz(data []byte) int {
 }
 
 var (
-	fuzzTarget = targets.Get("test", "64")
+	fuzzTarget = targets.Get(targets.TestOS, targets.TestArch64)
 	fuzzConsts = map[string]uint64{"A": 1, "B": 2, "C": 3, "SYS_A": 4, "SYS_B": 5, "SYS_C": 6}
 )

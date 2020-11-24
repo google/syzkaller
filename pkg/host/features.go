@@ -104,7 +104,7 @@ func Setup(target *prog.Target, features *Features, featureFlags csource.Feature
 	if features[FeatureFault].Enabled {
 		args = append(args, "fault")
 	}
-	if target.OS == "linux" && featureFlags["binfmt_misc"].Enabled {
+	if target.OS == targets.Linux && featureFlags["binfmt_misc"].Enabled {
 		args = append(args, "binfmt_misc")
 	}
 	if features[FeatureKCSAN].Enabled {
@@ -119,6 +119,6 @@ func Setup(target *prog.Target, features *Features, featureFlags csource.Feature
 
 func noHostChecks(target *prog.Target) bool {
 	// HostFuzzer targets can't run Go binaries on the targets,
-	// so we actually run on the host on another OS. The same for "test" OS.
-	return targets.Get(target.OS, target.Arch).HostFuzzer || target.OS == "test"
+	// so we actually run on the host on another OS. The same for targets.TestOS OS.
+	return targets.Get(target.OS, target.Arch).HostFuzzer || target.OS == targets.TestOS
 }

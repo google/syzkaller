@@ -34,16 +34,18 @@ var (
 )
 
 type UISummaryData struct {
-	Name    string
-	Crashes []*UICrashType
-	Workdir string
+	Name                  string
+	Crashes               []*UICrashType
+	CrashCount            int
+	CrashCountReproducers int
+	Workdir               string
 }
 
 type UICrashType struct {
 	Description string
 	ID          string
 	Count       int
-	Tags        map[string]string
+	Reproducers map[string]string
 	Crashes     []*UICrash
 }
 
@@ -88,6 +90,14 @@ func httpSummary(w io.Writer, cfg *mgrconfig.Config) error {
 	var err error
 	if data.Crashes, err = collectCrashes(cfg.Workdir); err != nil {
 		return fmt.Errorf("failed to collect crashes: %v", err)
+	}
+
+	data.CrashCount = len(data.Crashes)
+
+	for _, crash := range data.Crashes {
+		if len(crash.Reproducers) > 0 {
+			data.CrashCountReproducers = data.CrashCountReproducers + 1
+		}
 	}
 
 	if err = summaryTemplate.Execute(w, data); err != nil {
@@ -139,7 +149,7 @@ func readCrash(workdir, dir string) *UICrashType {
 	}
 	var crashes []*UICrash
 
-	tags := make(map[string]string)
+	reproducers := make(map[string]string)
 	for _, f := range files {
 		if strings.HasPrefix(f, "log") {
 			index, err := strconv.ParseUint(f[3:], 10, 64)
@@ -153,8 +163,12 @@ func readCrash(workdir, dir string) *UICrashType {
 		if strings.HasPrefix(f, "tag") {
 			tag, err := ioutil.ReadFile(filepath.Join(crashdir, dir, f))
 			if err == nil {
-				tags[string(tag)] = string(tag)
+				reproducers[string(tag)] = string(tag)
 			}
+		}
+
+		if strings.HasSuffix(f, "prog") {
+			reproducers[f] = f
 		}
 	}
 
@@ -162,7 +176,7 @@ func readCrash(workdir, dir string) *UICrashType {
 		Description: desc,
 		ID:          dir,
 		Count:       len(crashes),
-		Tags:        tags,
+		Reproducers: reproducers,
 		Crashes:     crashes,
 	}
 }
@@ -186,22 +200,26 @@ var summaryTemplate = html.CreatePage(`
 <br>
 <b>Workdir: {{.Workdir }}</b>
 <br>
+<b>Crash Count: {{ .CrashCount }}</b>
+<br>
+<b>Crash With Reproducers Count: {{ .CrashCountReproducers }}</b>
+<br>
 
 <table class="list_table">
 	<caption>Crashes:</caption>
 	<tr>
 		<th><a onclick="return sortTable(this, 'Description', textSort)" href="#">Description</a></th>
 		<th><a onclick="return sortTable(this, 'Count', numSort)" href="#">Count</a></th>
-		<th><a onclick="return sortTable(this, 'Tags', textSort)" href="#">Tags</a></th>
+		<th><a onclick="return sortTable(this, 'Reproducers', lineSort)" href="#">Reproducers</a></th>
 	</tr>
 	{{range $c := $.Crashes}}
 	<tr>
 		<td class="title">{{$c.Description}}</td>
 		<td class="stat">{{$c.Count}}</td>
-		<td class="tags">
-		{{range $tag := $c.Tags}}
-		{{$tag}}</br>
-		{{end}}
+		<td class="reproducer">
+                {{range $reproducer := $c.Reproducers}}
+                {{$reproducer}}</br>
+                {{end}}
 		</td>
 	</tr>
 	{{end}}

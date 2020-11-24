@@ -4,13 +4,10 @@
 package vcs
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/mail"
-	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -18,28 +15,32 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/syzkaller/pkg/kconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type linux struct {
 	*git
 }
 
-var _ Bisecter = new(linux)
-var _ ConfigMinimizer = new(linux)
+var (
+	_ Bisecter        = new(linux)
+	_ ConfigMinimizer = new(linux)
+)
 
-func newLinux(dir string) *linux {
+func newLinux(dir string, opts []RepoOpt) *linux {
 	ignoreCC := map[string]bool{
 		"stable@vger.kernel.org": true,
 	}
 	return &linux{
-		git: newGit(dir, ignoreCC),
+		git: newGit(dir, ignoreCC, opts),
 	}
 }
 
 func (ctx *linux) PreviousReleaseTags(commit string) ([]string, error) {
-	tags, err := ctx.git.previousReleaseTags(commit, false)
+	tags, err := ctx.git.previousReleaseTags(commit, false, false, false)
 	if err != nil {
 		return nil, err
 	}
@@ -71,21 +72,24 @@ func (ctx *linux) PreviousReleaseTags(commit string) ([]string, error) {
 	return tags, nil
 }
 
-func gitParseReleaseTags(output []byte) ([]string, error) {
+func gitParseReleaseTags(output []byte, includeRC bool) []string {
 	var tags []string
 	for _, tag := range bytes.Split(output, []byte{'\n'}) {
-		if releaseTagRe.Match(tag) && gitReleaseTagToInt(string(tag)) != 0 {
+		if gitReleaseTagToInt(string(tag), includeRC) != 0 {
 			tags = append(tags, string(tag))
 		}
 	}
 	sort.Slice(tags, func(i, j int) bool {
-		return gitReleaseTagToInt(tags[i]) > gitReleaseTagToInt(tags[j])
+		return gitReleaseTagToInt(tags[i], includeRC) > gitReleaseTagToInt(tags[j], includeRC)
 	})
-	return tags, nil
+	return tags
 }
 
-func gitReleaseTagToInt(tag string) uint64 {
+func gitReleaseTagToInt(tag string, includeRC bool) uint64 {
 	matches := releaseTagRe.FindStringSubmatchIndex(tag)
+	if matches == nil {
+		return 0
+	}
 	v1, err := strconv.ParseUint(tag[matches[2]:matches[3]], 10, 64)
 	if err != nil {
 		return 0
@@ -94,18 +98,28 @@ func gitReleaseTagToInt(tag string) uint64 {
 	if err != nil {
 		return 0
 	}
-	var v3 uint64
+	rc := uint64(999)
 	if matches[6] != -1 {
-		v3, err = strconv.ParseUint(tag[matches[6]:matches[7]], 10, 64)
+		if !includeRC {
+			return 0
+		}
+		rc, err = strconv.ParseUint(tag[matches[6]:matches[7]], 10, 64)
 		if err != nil {
 			return 0
 		}
 	}
-	return v1*1e6 + v2*1e3 + v3
+	var v3 uint64
+	if matches[8] != -1 {
+		v3, err = strconv.ParseUint(tag[matches[8]:matches[9]], 10, 64)
+		if err != nil {
+			return 0
+		}
+	}
+	return v1*1e9 + v2*1e6 + rc*1e3 + v3
 }
 
 func (ctx *linux) EnvForCommit(binDir, commit string, kernelConfig []byte) (*BisectEnv, error) {
-	tagList, err := ctx.previousReleaseTags(commit, true)
+	tagList, err := ctx.previousReleaseTags(commit, true, false, false)
 	if err != nil {
 		return nil, err
 	}
@@ -113,9 +127,14 @@ func (ctx *linux) EnvForCommit(binDir, commit string, kernelConfig []byte) (*Bis
 	for _, tag := range tagList {
 		tags[tag] = true
 	}
+	cf, err := kconfig.ParseConfigData(kernelConfig, "config")
+	if err != nil {
+		return nil, err
+	}
+	linuxAlterConfigs(cf, tags)
 	env := &BisectEnv{
 		Compiler:     filepath.Join(binDir, "gcc-"+linuxCompilerVersion(tags), "bin", "gcc"),
-		KernelConfig: linuxAlterConfigs(kernelConfig, tags),
+		KernelConfig: cf.Serialize(),
 	}
 	// v4.0 doesn't boot with our config nor with defconfig, it halts on an interrupt in x86_64_start_kernel.
 	if !tags["v4.1"] {
@@ -139,60 +158,66 @@ func linuxCompilerVersion(tags map[string]bool) string {
 	}
 }
 
-func linuxAlterConfigs(config []byte, tags map[string]bool) []byte {
+func linuxAlterConfigs(cf *kconfig.ConfigFile, tags map[string]bool) {
+	const disableAlways = "disable-always"
+	// If tags is nil, disable only configs marked as disableAlways.
+	checkTag := func(tag string) bool {
+		return tags != nil && !tags[tag] ||
+			tags == nil && tag == disableAlways
+	}
 	disable := map[string]string{
 		// 5.2 has CONFIG_SECURITY_TOMOYO_INSECURE_BUILTIN_SETTING which allows to test tomoyo better.
 		// This config also enables CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER
 		// but we need it disabled to boot older kernels.
-		"CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER": "v5.2",
+		"SECURITY_TOMOYO_OMIT_USERSPACE_LOADER": "v5.2",
 		// Kernel is boot broken before 4.15 due to double-free in vudc_probe:
 		// https://lkml.org/lkml/2018/9/7/648
 		// Fixed by e28fd56ad5273be67d0fae5bedc7e1680e729952.
-		"CONFIG_USBIP_VUDC": "v4.15",
+		"USBIP_VUDC": "v4.15",
 		// CONFIG_CAN causes:
 		// all runs: crashed: INFO: trying to register non-static key in can_notifier
 		// for v4.11..v4.12 and v4.12..v4.13 ranges.
 		// Fixed by 74b7b490886852582d986a33443c2ffa50970169.
-		"CONFIG_CAN": "v4.13",
+		"CAN": "v4.13",
 		// Setup of network devices is broken before v4.12 with a "WARNING in hsr_get_node".
 		// Fixed by 675c8da049fd6556eb2d6cdd745fe812752f07a8.
-		"CONFIG_HSR": "v4.12",
+		"HSR": "v4.12",
 		// Setup of network devices is broken before v4.12 with a "WARNING: ODEBUG bug in __sk_destruct"
 		// coming from smc_release.
-		"CONFIG_SMC": "v4.12",
+		"SMC": "v4.12",
 		// Kernel is boot broken before 4.10 with a lockdep warning in vhci_hcd_probe.
-		"CONFIG_USBIP_VHCI_HCD": "v4.10",
-		"CONFIG_BT_HCIVHCI":     "v4.10",
+		"USBIP_VHCI_HCD": "v4.10",
+		"BT_HCIVHCI":     "v4.10",
 		// Setup of network devices is broken before v4.7 with a deadlock involving team.
-		"CONFIG_NET_TEAM": "v4.7",
+		"NET_TEAM": "v4.7",
 		// Setup of network devices is broken before v4.5 with a warning in batadv_tvlv_container_remove.
-		"CONFIG_BATMAN_ADV": "v4.5",
+		"BATMAN_ADV": "v4.5",
 		// UBSAN is broken in multiple ways before v5.3, see:
 		// https://github.com/google/syzkaller/issues/1523#issuecomment-696514105
-		"CONFIG_UBSAN": "v5.3",
+		"UBSAN": "v5.3",
 		// First, we disable coverage in pkg/bisect because it fails machine testing starting from 4.7.
 		// Second, at 6689da155bdcd17abfe4d3a8b1e245d9ed4b5f2c CONFIG_KCOV selects CONFIG_GCC_PLUGIN_SANCOV
 		// (why?), which is build broken for hundreds of revisions.
-		"CONFIG_KCOV": "disable-always",
+		"KCOV": disableAlways,
 		// This helps to produce stable binaries in presence of kernel tag changes.
-		"CONFIG_LOCALVERSION_AUTO": "disable-always",
+		"LOCALVERSION_AUTO": disableAlways,
 		// BTF fails lots of builds with:
 		// pahole version v1.9 is too old, need at least v1.13
 		// Failed to generate BTF for vmlinux. Try to disable CONFIG_DEBUG_INFO_BTF.
-		"CONFIG_DEBUG_INFO_BTF": "disable-always",
+		"DEBUG_INFO_BTF": disableAlways,
 		// This config only adds debug output. It should not be enabled at all,
 		// but it was accidentially enabled on some instances for some periods of time,
 		// and kernel is boot-broken for prolonged ranges of commits with deadlock
 		// which makes bisections take weeks.
-		"CONFIG_DEBUG_KOBJECT": "disable-always",
+		"DEBUG_KOBJECT": disableAlways,
 		// This config is causing problems to kernel signature calculation as new initramfs is generated
 		// as a part of every build. Due to this init.data section containing this generated initramfs
 		// is differing between builds causing signture being random number.
-		"CONFIG_BLK_DEV_INITRD": "disable-always",
+		"BLK_DEV_INITRD": disableAlways,
 	}
 	for cfg, tag := range disable {
-		if !tags[tag] {
-			config = bytes.Replace(config, []byte(cfg+"=y"), []byte("# "+cfg+" is not set"), -1)
+		if checkTag(tag) {
+			cf.Unset(cfg)
 		}
 	}
 	alter := []struct {
@@ -202,15 +227,14 @@ func linuxAlterConfigs(config []byte, tags map[string]bool) []byte {
 	}{
 		// Even though ORC unwinder was introduced a long time ago, it might have been broken for
 		// some time. 5.4 is chosen as a version tag, where ORC unwinder seems to work properly.
-		{"CONFIG_UNWINDER_ORC", "CONFIG_UNWINDER_FRAME_POINTER", "v5.4"},
+		{"UNWINDER_ORC", "UNWINDER_FRAME_POINTER", "v5.4"},
 	}
 	for _, a := range alter {
-		if !tags[a.Tag] {
-			config = bytes.Replace(config, []byte(a.From+"=y"), []byte("# "+a.From+" is not set"), -1)
-			config = bytes.Replace(config, []byte("# "+a.To+" is not set"), []byte(a.To+"=y"), -1)
+		if checkTag(a.Tag) {
+			cf.Unset(a.From)
+			cf.Set(a.To, kconfig.Yes)
 		}
 	}
-	return config
 }
 
 func (ctx *linux) Bisect(bad, good string, trace io.Writer, pred func() (BisectResult, error)) ([]*Commit, error) {
@@ -285,172 +309,37 @@ func ParseMaintainersLinux(text []byte) Recipients {
 
 const configBisectTag = "# Minimized by syzkaller"
 
-func (ctx *linux) Minimize(original, baseline []byte, trace io.Writer,
+func (ctx *linux) Minimize(target *targets.Target, original, baseline []byte, trace io.Writer,
 	pred func(test []byte) (BisectResult, error)) ([]byte, error) {
 	if bytes.HasPrefix(original, []byte(configBisectTag)) {
 		fmt.Fprintf(trace, "# configuration already minimized\n")
 		return original, nil
 	}
-	bisectDir, err := ioutil.TempDir("", "syz-config-bisect")
+	kconf, err := kconfig.Parse(target, filepath.Join(ctx.git.dir, "Kconfig"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create temp dir for config bisect: %v", err)
+		return nil, fmt.Errorf("failed to parse Kconfig: %v", err)
 	}
-	defer os.RemoveAll(bisectDir)
-	kernelConfig := filepath.Join(bisectDir, "kernel.config")
-	kernelBaselineConfig := filepath.Join(bisectDir, "kernel.baseline_config")
-	if err := ctx.prepareConfigBisectEnv(kernelConfig, kernelBaselineConfig, original, baseline); err != nil {
+	originalConfig, err := kconfig.ParseConfigData(original, "original")
+	if err != nil {
 		return nil, err
 	}
-
-	fmt.Fprintf(trace, "# start config bisection\n")
-	configBisect := filepath.Join(ctx.git.dir, "tools", "testing", "ktest", "config-bisect.pl")
-	output, err := osutil.RunCmd(time.Hour, "", configBisect,
-		"-l", ctx.git.dir, "-r", "-b", ctx.git.dir, kernelBaselineConfig, kernelConfig)
+	baselineConfig, err := kconfig.ParseConfigData(baseline, "baseline")
 	if err != nil {
-		return nil, fmt.Errorf("config bisect failed: %v", err)
+		return nil, err
 	}
-	fmt.Fprintf(trace, "# config-bisect.pl -r:\n%s", output)
-	for {
-		config, err := ioutil.ReadFile(filepath.Join(ctx.git.dir, ".config"))
-		if err != nil {
-			return nil, fmt.Errorf("failed to read .config: %v", err)
-		}
-
-		testRes, err := pred(config)
-		if err != nil {
-			return nil, err
-		}
-		if testRes == BisectSkip {
-			return nil, fmt.Errorf("unable to test, stopping config bisection")
-		}
-		verdict := "good"
-		if testRes == BisectBad {
-			verdict = "bad"
-		}
-
-		output1, err := osutil.RunCmd(time.Hour, "", configBisect,
-			"-l", ctx.git.dir, "-b", ctx.git.dir, kernelBaselineConfig, kernelConfig, verdict)
-		fmt.Fprintf(trace, "# config-bisect.pl %v:\n%s", verdict, output1)
-		output = append(output, output1...)
-		if err != nil {
-			if verr, ok := err.(*osutil.VerboseError); ok && verr.ExitCode == 2 {
-				break
-			}
-			return nil, fmt.Errorf("config bisect failed: %v", err)
-		}
+	linuxAlterConfigs(originalConfig, nil)
+	linuxAlterConfigs(baselineConfig, nil)
+	kconfPred := func(candidate *kconfig.ConfigFile) (bool, error) {
+		res, err := pred(serialize(candidate))
+		return res == BisectBad, err
 	}
-	fmt.Fprintf(trace, "# config_bisect.pl finished\n")
-	configOptions := ctx.parseConfigBisectLog(trace, output)
-	if len(configOptions) == 0 {
-		return nil, fmt.Errorf("no config changes in the config bisect log:\n%s", output)
-	}
-
-	// Parse minimalistic configuration to generate the crash.
-	minimizedConfig, err := ctx.generateMinConfig(configOptions, bisectDir, kernelBaselineConfig)
+	minConfig, err := kconf.Minimize(baselineConfig, originalConfig, kconfPred, trace)
 	if err != nil {
-		return nil, fmt.Errorf("generating minimized config failed: %v", err)
+		return nil, err
 	}
-	return minimizedConfig, nil
+	return serialize(minConfig), nil
 }
 
-func (ctx *linux) prepareConfigBisectEnv(kernelConfig, kernelBaselineConfig string, original, baseline []byte) error {
-	current, err := ctx.HeadCommit()
-	if err != nil {
-		return err
-	}
-
-	// Call EnvForCommit if some options needs to be adjusted.
-	bisectEnv, err := ctx.EnvForCommit("", current.Hash, original)
-	if err != nil {
-		return fmt.Errorf("failed create commit environment: %v", err)
-	}
-	if err := osutil.WriteFile(kernelConfig, bisectEnv.KernelConfig); err != nil {
-		return fmt.Errorf("failed to write config file: %v", err)
-	}
-
-	// Call EnvForCommit again if some options needs to be adjusted in baseline.
-	bisectEnv, err = ctx.EnvForCommit("", current.Hash, baseline)
-	if err != nil {
-		return fmt.Errorf("failed create commit environment: %v", err)
-	}
-	if err := osutil.WriteFile(kernelBaselineConfig, bisectEnv.KernelConfig); err != nil {
-		return fmt.Errorf("failed to write minimum config file: %v", err)
-	}
-	return nil
-}
-
-//       Takes in config_bisect.pl output:
-//       Hmm, can't make any more changes without making good == bad?
-//       Difference between good (+) and bad (-)
-//        +DRIVER1=n
-//        +DRIVER2=n
-//        -DRIVER3=n
-//        -DRIVER4=n
-//        DRIVER5 n -> y
-//        DRIVER6 y -> n
-//       See good and bad configs for details:
-//       good: /mnt/work/linux/good_config.tmp
-//       bad:  /mnt/work/linux/bad_config.tmp
-func (ctx *linux) parseConfigBisectLog(trace io.Writer, bisectLog []byte) []string {
-	var configOptions []string
-	start := false
-	for s := bufio.NewScanner(bytes.NewReader(bisectLog)); s.Scan(); {
-		line := s.Text()
-		if strings.Contains(line, "See good and bad configs for details:") {
-			break
-		}
-		if !start {
-			if strings.Contains(line, "Difference between good (+) and bad (-)") {
-				start = true
-			}
-			continue
-		}
-		if strings.HasPrefix(line, "+") {
-			// This is option only in good config. Drop it as it's dependent
-			// on some option which is disabled in bad config.
-			continue
-		}
-		option, selection := "", ""
-		if strings.HasPrefix(line, "-") {
-			// -CONFIG_DRIVER_1=n
-			// Remove preceding -1 and split to option and selection
-			fields := strings.Split(strings.TrimPrefix(line, "-"), "=")
-			option = fields[0]
-			selection = fields[len(fields)-1]
-		} else {
-			// DRIVER_OPTION1 n -> y
-			fields := strings.Split(strings.TrimPrefix(line, " "), " ")
-			option = fields[0]
-			selection = fields[len(fields)-1]
-		}
-
-		configOptioon := "CONFIG_" + option + "=" + selection
-		if selection == "n" {
-			configOptioon = "# CONFIG_" + option + " is not set"
-		}
-		configOptions = append(configOptions, configOptioon)
-	}
-
-	fmt.Fprintf(trace, "# found config option changes %v\n", configOptions)
-	return configOptions
-}
-
-func (ctx *linux) generateMinConfig(configOptions []string, outdir, baseline string) ([]byte, error) {
-	kernelAdditionsConfig := filepath.Join(outdir, "kernel.additions_config")
-	if err := osutil.WriteFile(kernelAdditionsConfig, []byte(strings.Join(configOptions, "\n"))); err != nil {
-		return nil, fmt.Errorf("failed to write config additions file: %v", err)
-	}
-
-	_, err := osutil.RunCmd(time.Hour, "", filepath.Join(ctx.git.dir, "scripts", "kconfig", "merge_config.sh"),
-		"-m", "-O", outdir, baseline, kernelAdditionsConfig)
-	if err != nil {
-		return nil, fmt.Errorf("config merge failed: %v", err)
-	}
-
-	minConfig, err := ioutil.ReadFile(filepath.Join(outdir, ".config"))
-	if err != nil {
-		return nil, fmt.Errorf("failed to read merged configuration: %v", err)
-	}
-	minConfig = append([]byte(fmt.Sprintf("%v, rev: %v\n", configBisectTag, prog.GitRevision)), minConfig...)
-	return minConfig, nil
+func serialize(cf *kconfig.ConfigFile) []byte {
+	return []byte(fmt.Sprintf("%v, rev: %v\n%s", configBisectTag, prog.GitRevision, cf.Serialize()))
 }

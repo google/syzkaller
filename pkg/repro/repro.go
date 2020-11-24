@@ -983,4 +983,11 @@ var cSimplifies = append(progSimplifies, []Simplify{
 		opts.HandleSegv = false
 		return true
 	},
+	func(opts *csource.Options) bool {
+		if !opts.Sysctl {
+			return false
+		}
+		opts.Sysctl = false
+		return true
+	},
 }...)

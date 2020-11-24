@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/vmimpl"
 )
 
@@ -50,7 +51,7 @@ func (inst *testInstance) Run(timeout time.Duration, stop <-chan bool, command s
 	return inst.outc, inst.errc, nil
 }
 
-func (inst *testInstance) Diagnose() ([]byte, bool) {
+func (inst *testInstance) Diagnose(rep *report.Report) ([]byte, bool) {
 	var diag []byte
 	if inst.diagnoseBug {
 		diag = []byte("BUG: DIAGNOSE\n")
@@ -340,9 +341,9 @@ func testMonitorExecution(t *testing.T, test *Test) {
 	defer os.RemoveAll(dir)
 	cfg := &mgrconfig.Config{
 		Workdir:      dir,
-		TargetOS:     "linux",
-		TargetArch:   "amd64",
-		TargetVMArch: "amd64",
+		TargetOS:     targets.Linux,
+		TargetArch:   targets.AMD64,
+		TargetVMArch: targets.AMD64,
 		Type:         "test",
 	}
 	pool, err := Create(cfg, false)

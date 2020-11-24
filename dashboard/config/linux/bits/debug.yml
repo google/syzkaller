@@ -1,0 +1,58 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Auxiliary debug configs that detect non-critical bugs.
+
+config:
+ # Lock debugging does not seem to work properly on arm64:
+ # https://groups.google.com/g/syzkaller/c/0Wpssi9zJbw/m/KbGObTC7BQAJ
+ - LOCKDEP: [-arm64]
+ - PROVE_LOCKING: [-arm64]
+ - DEBUG_ATOMIC_SLEEP: [-arm64]
+ - PROVE_RCU: [-arm64]
+ - RCU_EQS_DEBUG: [-arm64]
+ - DEBUG_LOCK_ALLOC: [-arm64]
+ - DEBUG_RT_MUTEXES: [-arm64]
+ - DEBUG_SPINLOCK: [-arm64]
+ - DEBUG_MUTEXES: [-arm64]
+ - DEBUG_WW_MUTEX_SLOWPATH: [-arm64]
+ - DEBUG_RWSEMS: [-arm64]
+
+ - DEBUG_VM
+ - DEBUG_VM_RB
+ - DEBUG_VM_VMACACHE
+ - DEBUG_VM_PGFLAGS
+ - DEBUG_VM_PGTABLE: [v5.8]
+ - DEBUG_VIRTUAL
+ - LOCKUP_DETECTOR
+ - SOFTLOCKUP_DETECTOR
+ - DETECT_HUNG_TASK
+ - WQ_WATCHDOG
+ - DEFAULT_HUNG_TASK_TIMEOUT: 140
+ - BOOTPARAM_HUNG_TASK_PANIC
+ - BOOTPARAM_SOFTLOCKUP_PANIC
+ - DEBUG_DEVRES
+ - DEBUG_MEMORY_INIT
+ - DEBUG_NOTIFIERS
+ - DEBUG_CREDENTIALS
+ - DEBUG_OBJECTS
+ - DEBUG_OBJECTS_ENABLE_DEFAULT: 1
+ - DEBUG_OBJECTS_FREE
+ - DEBUG_OBJECTS_PERCPU_COUNTER
+ - DEBUG_OBJECTS_RCU_HEAD
+ - DEBUG_OBJECTS_TIMERS
+ - DEBUG_OBJECTS_WORK
+ - DEBUG_OBJECTS_SELFTEST: n
+ - SND_DEBUG
+ - SND_PCM_XRUN_DEBUG
+ - SND_CTL_VALIDATION: [v5.6]
+ - DYNAMIC_DEBUG
+ - DEBUG_PER_CPU_MAPS
+ - DEBUG_SG
+ - DEBUG_PREEMPT: [optional]
+ - PAGE_POISONING
+ - PTDUMP_DEBUGFS: [v5.8]
+ - HARDLOCKUP_DETECTOR: [x86_64]
+ - BOOTPARAM_HARDLOCKUP_PANIC: [x86_64]
+ # The check runs episodically, so won't be attributed to a test. And can happen on any memory corruption.
+ - X86_CHECK_BIOS_CORRUPTION: n

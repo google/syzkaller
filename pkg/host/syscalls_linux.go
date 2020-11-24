@@ -16,13 +16,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 func isSupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
-	log.Logf(2, "checking support for %v", c.Name)
 	if strings.HasPrefix(c.CallName, "syz_") {
 		return isSupportedSyzkall(c, target, sandbox)
 	}
@@ -76,17 +75,17 @@ func parseKallsyms(kallsyms []byte, arch string) map[string]bool {
 	set := make(map[string]bool)
 	var re *regexp.Regexp
 	switch arch {
-	case "386", "amd64":
+	case targets.I386, targets.AMD64:
 		re = regexp.MustCompile(` T (__ia32_|__x64_)?sys_([^\n]+)\n`)
-	case "arm", "arm64":
+	case targets.ARM, targets.ARM64:
 		re = regexp.MustCompile(` T (__arm64_)?sys_([^\n]+)\n`)
-	case "ppc64le":
+	case targets.PPC64LE:
 		re = regexp.MustCompile(` T ()?sys_([^\n]+)\n`)
-	case "mips64le":
+	case targets.MIPS64LE:
 		re = regexp.MustCompile(` T sys_(mips_)?([^\n]+)\n`)
-	case "s390x":
+	case targets.S390x:
 		re = regexp.MustCompile(` T (__s390_|__s390x_)?sys_([^\n]+)\n`)
-	case "riscv64":
+	case targets.RiscV64:
 		re = regexp.MustCompile(` T sys_(riscv_)?([^\n]+)\n`)
 	default:
 		panic("unsupported arch for kallsyms parsing")
@@ -94,7 +93,6 @@ func parseKallsyms(kallsyms []byte, arch string) map[string]bool {
 	matches := re.FindAllSubmatch(kallsyms, -1)
 	for _, m := range matches {
 		name := string(m[2])
-		log.Logf(2, "found in kallsyms: %v", name)
 		set[name] = true
 	}
 	return set
@@ -194,11 +192,15 @@ func isWifiEmulationSupported(c *prog.Syscall, target *prog.Target, sandbox stri
 func isSyzKvmSetupCPUSupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
 	switch c.Name {
 	case "syz_kvm_setup_cpu$x86":
-		if runtime.GOARCH == "amd64" || runtime.GOARCH == "386" {
+		if runtime.GOARCH == targets.AMD64 || runtime.GOARCH == targets.I386 {
 			return true, ""
 		}
 	case "syz_kvm_setup_cpu$arm64":
-		if runtime.GOARCH == "arm64" {
+		if runtime.GOARCH == targets.ARM64 {
+			return true, ""
+		}
+	case "syz_kvm_setup_cpu$ppc64":
+		if runtime.GOARCH == "ppc64le" || runtime.GOARCH == "ppc64" {
 			return true, ""
 		}
 	}

@@ -18,41 +18,29 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type linux struct{}
 
 var _ signer = linux{}
 
-// Key for module signing.
-const moduleSigningKey = `-----BEGIN PRIVATE KEY-----
-MIIBVAIBADANBgkqhkiG9w0BAQEFAASCAT4wggE6AgEAAkEAxu5GRXw7d13xTLlZ
-GT1y63U4Firk3WjXapTgf9radlfzpqheFr5HWO8f11U/euZQWXDzi+Bsq+6s/2lJ
-AU9XWQIDAQABAkB24ZxTGBv9iMGURUvOvp83wRRkgvvEqUva4N+M6MAXagav3GRi
-K/gl3htzQVe+PLGDfbIkstPJUvI2izL8ZWmBAiEA/P72IitEYE4NQj4dPcYglEYT
-Hbh2ydGYFbYxvG19DTECIQDJSvg7NdAaZNd9faE5UIAcLF35k988m9hSqBjtz0tC
-qQIgGOJC901mJkrHBxLw8ViBb9QMoUm5dVRGLyyCa9QhDqECIQCQGLX4lP5DVrsY
-X43BnMoI4Q3o8x1Uou/JxAIMg1+J+QIgamNCPBLeP8Ce38HtPcm8BXmhPKkpCXdn
-uUf4bYtfSSw=
------END PRIVATE KEY-----
------BEGIN CERTIFICATE-----
-MIIBvzCCAWmgAwIBAgIUKoM7Idv4nw571nWDgYFpw6I29u0wDQYJKoZIhvcNAQEF
-BQAwLjEsMCoGA1UEAwwjQnVpbGQgdGltZSBhdXRvZ2VuZXJhdGVkIGtlcm5lbCBr
-ZXkwIBcNMjAxMDA4MTAzMzIwWhgPMjEyMDA5MTQxMDMzMjBaMC4xLDAqBgNVBAMM
-I0J1aWxkIHRpbWUgYXV0b2dlbmVyYXRlZCBrZXJuZWwga2V5MFwwDQYJKoZIhvcN
-AQEBBQADSwAwSAJBAMbuRkV8O3dd8Uy5WRk9cut1OBYq5N1o12qU4H/a2nZX86ao
-Xha+R1jvH9dVP3rmUFlw84vgbKvurP9pSQFPV1kCAwEAAaNdMFswDAYDVR0TAQH/
-BAIwADALBgNVHQ8EBAMCB4AwHQYDVR0OBBYEFPhQx4etmYw5auCJwIO5QP8Kmrt3
-MB8GA1UdIwQYMBaAFPhQx4etmYw5auCJwIO5QP8Kmrt3MA0GCSqGSIb3DQEBBQUA
-A0EAK5moCH39eLLn98pBzSm3MXrHpLtOWuu2p696fg/ZjiUmRSdHK3yoRONxMHLJ
-1nL9cAjWPantqCm5eoyhj7V7gg==
------END CERTIFICATE-----`
-
 func (linux linux) build(params *Params) error {
 	if err := linux.buildKernel(params); err != nil {
 		return err
 	}
-	if err := linux.createImage(params); err != nil {
+	kernelPath := filepath.Join(params.KernelDir, filepath.FromSlash(kernelBin(params.TargetArch)))
+	if fileInfo, err := os.Stat(params.UserspaceDir); err == nil && !fileInfo.IsDir() && params.VMType == "qemu" {
+		// If UserspaceDir is a file (image) and we use qemu, we just copy image and kernel to the output dir
+		// assuming that qemu will use injected kernel boot. In this mode we also assume password/key-less ssh.
+		// In future it would be good to switch to accepting complete disk image always and just replacing
+		// kernel in it for GCE VMs (assembling image from userspace files in createImage isn't reasonable).
+		if err := osutil.CopyFile(kernelPath, filepath.Join(params.OutputDir, "kernel")); err != nil {
+			return err
+		}
+		return osutil.CopyFile(params.UserspaceDir, filepath.Join(params.OutputDir, "image"))
+	}
+	if err := linux.createImage(params, kernelPath); err != nil {
 		return err
 	}
 	return nil
@@ -62,18 +50,14 @@ func (linux linux) sign(params *Params) (string, error) {
 	return elfBinarySignature(filepath.Join(params.OutputDir, "obj", "vmlinux"))
 }
 
-func (linux) buildKernel(params *Params) error {
+func (linux linux) buildKernel(params *Params) error {
 	configFile := filepath.Join(params.KernelDir, ".config")
-	if err := osutil.WriteFile(configFile, params.Config); err != nil {
+	if err := linux.writeFile(configFile, params.Config); err != nil {
 		return fmt.Errorf("failed to write config file: %v", err)
-	}
-	if err := osutil.SandboxChown(configFile); err != nil {
-		return err
 	}
 	// One would expect olddefconfig here, but olddefconfig is not present in v3.6 and below.
 	// oldconfig is the same as olddefconfig if stdin is not set.
-	// Note: passing in compiler is important since 4.17 (at the very least it's noted in the config).
-	if err := runMake(params.KernelDir, "oldconfig", "CC="+params.Compiler); err != nil {
+	if err := runMake(params, "oldconfig"); err != nil {
 		return err
 	}
 	// Write updated kernel config early, so that it's captured on build failures.
@@ -84,40 +68,31 @@ func (linux) buildKernel(params *Params) error {
 	// We build only zImage/bzImage as we currently don't use modules.
 	var target string
 	switch params.TargetArch {
-	case "386", "amd64", "s390x":
+	case targets.I386, targets.AMD64, targets.S390x:
 		target = "bzImage"
-	case "ppc64le":
+	case targets.PPC64LE:
 		target = "zImage"
 	}
 
-	ccParam := params.Compiler
-	if params.Ccache != "" {
-		ccParam = params.Ccache + " " + ccParam
-		// Ensure CONFIG_GCC_PLUGIN_RANDSTRUCT doesn't prevent ccache usage.
-		// See /Documentation/kbuild/reproducible-builds.rst.
-		gccPluginsDir := filepath.Join(params.KernelDir, "scripts", "gcc-plugins")
-		if osutil.IsExist(gccPluginsDir) {
-			err := osutil.WriteFile(filepath.Join(gccPluginsDir,
-				"randomize_layout_seed.h"),
-				[]byte("const char *randstruct_seed = "+
-					"\"e9db0ca5181da2eedb76eba144df7aba4b7f9359040ee58409765f2bdc4cb3b8\";"))
-			if err != nil {
-				return err
-			}
+	// Ensure CONFIG_GCC_PLUGIN_RANDSTRUCT doesn't prevent ccache usage.
+	// See /Documentation/kbuild/reproducible-builds.rst.
+	const seed = `const char *randstruct_seed = "e9db0ca5181da2eedb76eba144df7aba4b7f9359040ee58409765f2bdc4cb3b8";`
+	gccPluginsDir := filepath.Join(params.KernelDir, "scripts", "gcc-plugins")
+	if osutil.IsExist(gccPluginsDir) {
+		if err := linux.writeFile(filepath.Join(gccPluginsDir, "randomize_layout_seed.h"), []byte(seed)); err != nil {
+			return err
 		}
 	}
 
 	// Different key is generated for each build if key is not provided.
-	// see Documentation/reproducible-builds.rst. This is causing problems to our signature
-	// calculation.
+	// see Documentation/reproducible-builds.rst. This is causing problems to our signature calculation.
 	certsDir := filepath.Join(params.KernelDir, "certs")
 	if osutil.IsExist(certsDir) {
-		err := osutil.WriteFile(filepath.Join(certsDir, "signing_key.pem"), []byte(moduleSigningKey))
-		if err != nil {
+		if err := linux.writeFile(filepath.Join(certsDir, "signing_key.pem"), []byte(moduleSigningKey)); err != nil {
 			return err
 		}
 	}
-	if err := runMake(params.KernelDir, target, "CC="+ccParam); err != nil {
+	if err := runMake(params, target); err != nil {
 		return err
 	}
 	vmlinux := filepath.Join(params.KernelDir, "vmlinux")
@@ -128,7 +103,7 @@ func (linux) buildKernel(params *Params) error {
 	return nil
 }
 
-func (linux) createImage(params *Params) error {
+func (linux) createImage(params *Params, kernelPath string) error {
 	tempDir, err := ioutil.TempDir("", "syz-build")
 	if err != nil {
 		return err
@@ -138,18 +113,7 @@ func (linux) createImage(params *Params) error {
 	if err := osutil.WriteExecFile(scriptFile, []byte(createImageScript)); err != nil {
 		return fmt.Errorf("failed to write script file: %v", err)
 	}
-
-	var kernelImage string
-	switch params.TargetArch {
-	case "386", "amd64":
-		kernelImage = "arch/x86/boot/bzImage"
-	case "ppc64le":
-		kernelImage = "arch/powerpc/boot/zImage.pseries"
-	case "s390x":
-		kernelImage = "arch/s390/boot/bzImage"
-	}
-	kernelImagePath := filepath.Join(params.KernelDir, filepath.FromSlash(kernelImage))
-	cmd := osutil.Command(scriptFile, params.UserspaceDir, kernelImagePath, params.TargetArch)
+	cmd := osutil.Command(scriptFile, params.UserspaceDir, kernelPath, params.TargetArch)
 	cmd.Dir = tempDir
 	cmd.Env = append([]string{}, os.Environ()...)
 	cmd.Env = append(cmd.Env,
@@ -176,11 +140,20 @@ func (linux) createImage(params *Params) error {
 }
 
 func (linux) clean(kernelDir, targetArch string) error {
-	return runMake(kernelDir, "distclean")
+	return runMakeImpl(targetArch, "", "", kernelDir, "distclean")
 }
 
-func runMake(kernelDir string, args ...string) error {
-	args = append(args, fmt.Sprintf("-j%v", runtime.NumCPU()))
+func (linux) writeFile(file string, data []byte) error {
+	if err := osutil.WriteFile(file, data); err != nil {
+		return err
+	}
+	return osutil.SandboxChown(file)
+}
+
+func runMakeImpl(arch, compiler, ccache, kernelDir string, addArgs ...string) error {
+	target := targets.Get(targets.Linux, arch)
+	args := LinuxMakeArgs(target, compiler, ccache, "")
+	args = append(args, addArgs...)
 	cmd := osutil.Command("make", args...)
 	if err := osutil.Sandbox(cmd, true, true); err != nil {
 		return err
@@ -201,6 +174,49 @@ func runMake(kernelDir string, args ...string) error {
 	)
 	_, err := osutil.Run(time.Hour, cmd)
 	return err
+}
+
+func runMake(params *Params, addArgs ...string) error {
+	return runMakeImpl(params.TargetArch, params.Compiler, params.Ccache, params.KernelDir, addArgs...)
+}
+
+func LinuxMakeArgs(target *targets.Target, compiler, ccache, buildDir string) []string {
+	args := []string{
+		"-j", fmt.Sprint(runtime.NumCPU()),
+		"ARCH=" + target.KernelArch,
+	}
+	if target.Triple != "" {
+		args = append(args, "CROSS_COMPILE="+target.Triple+"-")
+	}
+	if compiler == "" {
+		compiler = target.KernelCompiler
+		if target.KernelLinker != "" {
+			args = append(args, "LD="+target.KernelLinker)
+		}
+	}
+	if compiler != "" {
+		if ccache != "" {
+			compiler = ccache + " " + compiler
+		}
+		args = append(args, "CC="+compiler)
+	}
+	if buildDir != "" {
+		args = append(args, "O="+buildDir)
+	}
+	return args
+}
+
+func kernelBin(arch string) string {
+	switch arch {
+	case targets.I386, targets.AMD64:
+		return "arch/x86/boot/bzImage"
+	case targets.PPC64LE:
+		return "arch/powerpc/boot/zImage.pseries"
+	case targets.S390x:
+		return "arch/s390/boot/bzImage"
+	default:
+		panic(fmt.Sprintf("unsupported arch %v", arch))
+	}
 }
 
 // elfBinarySignature calculates signature of an elf binary aiming at runtime behavior
@@ -228,3 +244,27 @@ func elfBinarySignature(bin string) (string, error) {
 	}
 	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
+
+// moduleSigningKey is a constant module signing key for reproducible builds.
+const moduleSigningKey = `-----BEGIN PRIVATE KEY-----
+MIIBVAIBADANBgkqhkiG9w0BAQEFAASCAT4wggE6AgEAAkEAxu5GRXw7d13xTLlZ
+GT1y63U4Firk3WjXapTgf9radlfzpqheFr5HWO8f11U/euZQWXDzi+Bsq+6s/2lJ
+AU9XWQIDAQABAkB24ZxTGBv9iMGURUvOvp83wRRkgvvEqUva4N+M6MAXagav3GRi
+K/gl3htzQVe+PLGDfbIkstPJUvI2izL8ZWmBAiEA/P72IitEYE4NQj4dPcYglEYT
+Hbh2ydGYFbYxvG19DTECIQDJSvg7NdAaZNd9faE5UIAcLF35k988m9hSqBjtz0tC
+qQIgGOJC901mJkrHBxLw8ViBb9QMoUm5dVRGLyyCa9QhDqECIQCQGLX4lP5DVrsY
+X43BnMoI4Q3o8x1Uou/JxAIMg1+J+QIgamNCPBLeP8Ce38HtPcm8BXmhPKkpCXdn
+uUf4bYtfSSw=
+-----END PRIVATE KEY-----
+-----BEGIN CERTIFICATE-----
+MIIBvzCCAWmgAwIBAgIUKoM7Idv4nw571nWDgYFpw6I29u0wDQYJKoZIhvcNAQEF
+BQAwLjEsMCoGA1UEAwwjQnVpbGQgdGltZSBhdXRvZ2VuZXJhdGVkIGtlcm5lbCBr
+ZXkwIBcNMjAxMDA4MTAzMzIwWhgPMjEyMDA5MTQxMDMzMjBaMC4xLDAqBgNVBAMM
+I0J1aWxkIHRpbWUgYXV0b2dlbmVyYXRlZCBrZXJuZWwga2V5MFwwDQYJKoZIhvcN
+AQEBBQADSwAwSAJBAMbuRkV8O3dd8Uy5WRk9cut1OBYq5N1o12qU4H/a2nZX86ao
+Xha+R1jvH9dVP3rmUFlw84vgbKvurP9pSQFPV1kCAwEAAaNdMFswDAYDVR0TAQH/
+BAIwADALBgNVHQ8EBAMCB4AwHQYDVR0OBBYEFPhQx4etmYw5auCJwIO5QP8Kmrt3
+MB8GA1UdIwQYMBaAFPhQx4etmYw5auCJwIO5QP8Kmrt3MA0GCSqGSIb3DQEBBQUA
+A0EAK5moCH39eLLn98pBzSm3MXrHpLtOWuu2p696fg/ZjiUmRSdHK3yoRONxMHLJ
+1nL9cAjWPantqCm5eoyhj7V7gg==
+-----END CERTIFICATE-----`

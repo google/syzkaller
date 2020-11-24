@@ -1,0 +1,11 @@
+workqueue.watchdog_thresh=140
+nf-conntrack-ftp.ports=20000
+nf-conntrack-tftp.ports=20000
+nf-conntrack-sip.ports=20000
+nf-conntrack-irc.ports=20000
+nf-conntrack-sane.ports=20000
+vivid.n_devs=16
+vivid.multiplanar=1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2
+dummy_hcd.num=8
+binder.debug_mask=0
+panic_on_warn=0

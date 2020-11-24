@@ -79,11 +79,11 @@ func InitTarget(target *prog.Target) {
 	}
 
 	switch target.Arch {
-	case "amd64":
+	case targets.AMD64:
 		target.SpecialPointers = []uint64{
 			0xffffffff81000000, // kernel text
 		}
-	case "386", "arm64", "arm", "ppc64le", "mips64le", "s390x", "riscv64":
+	case targets.I386, targets.ARM64, targets.ARM, targets.PPC64LE, targets.MIPS64LE, targets.S390x, targets.RiscV64:
 	default:
 		panic("unknown arch")
 	}

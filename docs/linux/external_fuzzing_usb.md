@@ -70,17 +70,7 @@ c. making UDC driver name configurable for `syz-execprog` and `syz-prog2c`.
 
 2. Configure the kernel (at the very least `CONFIG_USB_RAW_GADGET=y` and `CONFIG_USB_DUMMY_HCD=y` need to be enabled).
 
-    The easiest option is to use the [config](/dashboard/config/upstream-usb.config) from the syzbot USB fuzzing instance.
-
-    Another option is to use the USB config generation [script](/dashboard/config/generate-config-usb.sh).
-    This script allows to extract enabled USB related configs from a set of existing `.config` files.
-    Right now it extracts configs only from [one](/dashboard/config/distros) of the Ubuntu kernel's configs.
-
-    ``` bash
-    cd ./dashboard/config/
-    # Put relevant .configs into ./distros/
-    CC=$COMPILER_BINARY_PATH KERNEL_SOURCE=$KERNEL_SOURCE_PATH ./generate-config-usb.sh
-    ```
+    The easiest option is to use the [config](/dashboard/config/linux/upstream-usb.config) from the syzbot USB fuzzing instance.
 
 3. Build the kernel.
 

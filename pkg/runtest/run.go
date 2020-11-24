@@ -430,7 +430,7 @@ func (ctx *Context) createCTest(p *prog.Prog, sandbox string, threaded bool, tim
 		Sandbox:     sandbox,
 		UseTmpDir:   true,
 		HandleSegv:  true,
-		Cgroups:     p.Target.OS == "linux" && sandbox != "",
+		Cgroups:     p.Target.OS == targets.Linux && sandbox != "",
 		Trace:       true,
 	}
 	if sandbox != "" {
@@ -512,7 +512,7 @@ func checkCallResult(req *RunRequest, isC bool, run, call int, info *ipc.ProgInf
 				continue
 			}
 		}
-		if runtime.GOOS == "freebsd" && flag == ipc.CallBlocked {
+		if runtime.GOOS == targets.FreeBSD && flag == ipc.CallBlocked {
 			// Blocking detection is flaky on freebsd.
 			// TODO(dvyukov): try to increase the timeout in executor to make it non-flaky.
 			continue

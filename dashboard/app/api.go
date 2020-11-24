@@ -19,6 +19,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/hash"
+	"github.com/google/syzkaller/sys/targets"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	db "google.golang.org/appengine/datastore"
@@ -784,7 +785,7 @@ func saveCrash(c context.Context, ns string, req *dashapi.Crash, bugKey *db.Key,
 	} else if len(req.ReproSyz) != 0 {
 		prio += 2e12
 	}
-	if build.Arch == "amd64" {
+	if build.Arch == targets.AMD64 {
 		prio += 1e3
 	}
 	crash := &Crash{
@@ -1149,7 +1150,9 @@ func putText(c context.Context, ns, tag string, data []byte, dedup bool) (int64,
 		return 0, nil
 	}
 	const (
-		maxTextLen       = 2 << 20
+		// Kernel crash log is capped at ~1MB, but vm.Diagnose can add more.
+		// These text files usually compress very well.
+		maxTextLen       = 10 << 20
 		maxCompressedLen = 1000 << 10 // datastore entity limit is 1MB
 	)
 	if len(data) > maxTextLen {

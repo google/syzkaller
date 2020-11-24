@@ -1,0 +1,356 @@
+#! /usr/bin/env python3
+
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+import re
+import sys
+import pprint
+import subprocess
+
+
+def add_stat(m, s):
+	if s in m:
+		m[s] += 1
+	else:
+		m[s] = 1
+
+def add_fmt_ins(m, fmt, ins):
+	if fmt in m:
+		m[fmt] += [ins]
+	else:
+		m[fmt] = [ins]
+
+pagecache = {}
+
+pdf2txt = "/home/aik/powerisa/xpdf-4.02/build/xpdf/pdftotext"
+isa_pdf = sys.argv[1]
+isa_pagenum_correction = {
+		'vadduqm': 3,
+		'rldicl[.]': -1,
+		'dcbtst': -1,
+		'dcbf': -1,
+		'dcbz': -1,
+		'fmsubs[.]': -1,
+		'fmsub[.]': -1,
+		'rldicr[.]': -2,
+		'rldcl[.]': 1,
+		'rldcr[.]': 2
+	}
+
+def myint(s):
+	try:
+		return int(s)
+	except:
+		return None
+
+f = open("outp", 'w+')
+
+def read_pdf_page(pnum, store = False):
+	global pagecache
+
+	pagenum = str(pnum)
+	if pagenum in pagecache:
+		return pagecache[pagenum]
+
+	tmp = subprocess.check_output([pdf2txt, '-enc', "Latin1", "-f", pagenum, "-l", pagenum, "-nopgbrk", "-nodiag",
+		"-table",
+		isa_pdf, "-"])
+	tmp = tmp.decode("Latin1").split("\n")
+	ret = []
+
+	for t in range(len(tmp)):
+		if tmp[t] == "":
+			continue
+		ret += [tmp[t]]
+
+	if store:
+		off = 0
+		for t in range(len(tmp)):
+			t2 = re.match(r"\b0\b\s+[\d\s]+?\b31\b", tmp[t])
+			if t2:
+				if t2.start() == 0:
+					off = t2.end() + 2
+					break
+				off = t2.start()
+				break
+		for t in range(len(tmp)):
+			t2 = re.search(r"\b0\b\s+[\d\s]+?\b31\b", tmp[t][30:])
+			if t2:
+				off = max(off, t2.span()[0] + 30)
+				break
+		if not off:
+			print("!!! No idea how to split {}".format(pagenum))
+			sys.exit(-1)
+
+		f.write("===== page {}\n".format(pagenum))
+		ret2 = []
+		for c in ret[1:-1]:
+			t = c[:off].strip()
+			if not t:
+				continue
+			t = re.sub(r'\s+', ' ', t)
+			ret2 += [t]
+			f.write(t + "\n")
+		for c in ret[1:-1]:
+			t = c[off:].strip()
+			if not t:
+				continue
+			t = re.sub(r'\s+', ' ', t)
+			ret2 += [t]
+			f.write(t + "\n")
+		ret = ret2
+
+	pagecache[pagenum] = ret
+	return ret
+
+def find_pdf_pagenumber_offset():
+	opcodes_first_page = None
+	opcodes_last_page = None
+	for i in range(15, 100):
+		tmp = read_pdf_page(i)
+		if not tmp:
+			continue
+
+		print("Reading page {}: '{}'".format(i, tmp[-1]), file = sys.stderr)
+		if not opcodes_first_page:
+			for t in tmp:
+				t2 = re.match(r'.*Set Sorted by Opcode[\s\.]+(\d+)', t)
+				if t2:
+					print("Found: {}".format(t2.groups()), file = sys.stderr)
+					opcodes_first_page = int(t2.group(1))
+					continue
+				t2 = re.match(r'.*Set Sorted by Version[\s\.]+(\d+)', t)
+				if t2:
+					print("Found: {}".format(t2.groups()), file = sys.stderr)
+					opcodes_last_page = int(t2.group(1)) - 1
+					break
+
+		t2  = re.match(r'^(\d+)\s+.*$', tmp[-1])
+		if not t2:
+			t2  = re.match(r'.*\s+(\d+)$', tmp[-1])
+		if t2:
+			first_page = int(t2.group(1))
+			if first_page < 100:
+				first_page = i - 1
+				break
+	return first_page, opcodes_first_page, opcodes_last_page
+
+pageoffset, opcodes_first_page, opcodes_last_page = find_pdf_pagenumber_offset()
+print("Offset = {}, opcodes on pages {}..{} (phys pages {}..{})".format(pageoffset, opcodes_first_page, opcodes_last_page, opcodes_first_page + pageoffset, opcodes_last_page + pageoffset), file = sys.stderr)
+
+def add_mode_priv(mode, priv):
+	ret = ""
+	if "64" in mode:
+		ret += ", M64: true"
+	if "P" in priv or "H" in priv:
+		ret += ", Priv: true"
+	return ret
+
+def ppcmask(val, s, l):
+	return (val & ((1 << l) - 1)) << (31 - (s + l - 1))
+
+def do_sorted_opcodes(fmt_map, ins_stat):
+	ins_num = 0
+
+	for i in range(opcodes_first_page, opcodes_last_page):
+		tmp = read_pdf_page(i + pageoffset)[1:-1] # skip header and page number
+
+		for line in tmp:
+			#print(line)
+			tmp = re.match(r'^\s+Instruction1\s+Format.*', line)
+			if tmp:
+				priv_off = line.find("Privilege3")
+				mode_off = line.find("Mode Dep4")
+
+			tmp = re.match(r'([\.01]{6})\s+([/\.01]{5})\s+([/\.01]{5})\s+([/\.01]{5})\s+([/\.01]{5})\s+([/\.01]{6})\s+(B|X|XO|D|VX|VC|VA|SC|I|XL|DX|M|D|MD|MDS|XFX|XX1|XS|DQ|DS|Z22|Z23|A|XX3|XX4|XX2|XFL)\s+(\S+)\s+(\d+)\s+(\S+)\s+(PPC|P1|P2|v2.00|v2.01|v2.02|v2.03|v2.04|v2.05|v2.06|v2.07|v3.0|v3.0B)(.*)', line)
+
+			if not tmp:
+				continue
+			ins0_5 = tmp.group(1)
+			ins6_10 = tmp.group(2)
+			ins11_15 = tmp.group(3)
+			ins16_20 = tmp.group(4)
+			ins21_25 = tmp.group(5)
+			ins26_31 = tmp.group(6)
+			fmt = tmp.group(7)
+			ins_book = tmp.group(8)
+			pagenum = int(tmp.group(9))
+			mnem = tmp.group(10).replace("_", "")
+			if mnem == "paste[.]":
+				mnem = "paste."
+			ins_isa = tmp.group(11)
+
+			priv = line[priv_off:priv_off + 4].strip()
+			mode = line[mode_off:mode_off + 4].strip()
+			ins_desc = line[mode_off + 4:].strip()
+
+			add_stat(ins_stat, "Fmt " + fmt)
+			add_stat(ins_stat, "Priv " + priv)
+			add_stat(ins_stat, "Mod " + mode)
+			add_fmt_ins(fmt_map, "Fmt " + fmt, mnem)
+
+			if re.match(r'^[01]+$', ins0_5 + ins6_10 + ins11_15 + ins16_20 + ins21_25 + ins26_31):
+				outp = 'Name: "{}", Opcode: 0x{:08x}, Mask: 0xFFFFFFFF'.format(mnem,
+					int(ins0_5 + ins6_10 + ins11_15 + ins16_20 + ins21_25 + ins26_31, 2))
+				outp += add_mode_priv(mode, priv)
+				print("{" + outp + "},")
+				ins_num += 1
+				continue
+
+			if mnem in isa_pagenum_correction:
+				pagenum += isa_pagenum_correction[mnem]
+
+			tmp = read_pdf_page(pagenum + pageoffset, True)
+
+			#
+			# We are looking for a pattern like this:
+			#
+			# Trap Word Immediate                               D-form
+			# twi             TO,RA,SI
+			#     3          TO          RA               SI
+			# 0            6          11       16                          31
+			mnem_list = mnem.split('[', 1)
+			mnem_short = re.escape(mnem_list[0])
+			found = False
+			for n in range(len(tmp) - 1):
+				if mnem == tmp[n] or re.match(r"{} (FRT|FRS|FLM|FXM|CT|IH|XT|XS|BO|VR|S|WC|L|T|R|A|RA|RT|BF|BT|RB|target_addr).*".format(mnem_short), tmp[n]):
+					break
+			else:
+				print("!!!Error: could not find {} on page {}".format(mnem, pagenum + pageoffset), file = sys.stderr)
+				sys.exit(-1)
+
+			# Found the instruction(s), see now how many variants
+			for n1 in range(n, len(tmp)):
+				if re.match(r"\b0\b\s+[\d\s]+\b31\b", tmp[n1]):
+					#print(n1)
+					break
+			else:
+				print("!!!Error: could not find format for {} on page {}".format(mnem, pagenum + pageoffset), file = sys.stderr)
+				sys.exit(-1)
+
+			namesraw = re.sub(r'(/ )+', '/ ', tmp[n1 - 1]).upper()
+			namesraw = namesraw.replace('AXBXTX', "AX BX TX") # xxperm xxpermr xscmpeqdp xscmpgtdp xscmpgedp
+			namesraw = namesraw.replace('CXAXBX', "CX AX BX") # xxsel
+			namesraw = namesraw.replace('DMBXTX', "DM BX TX") # xvtstdcsp xvtstdcdp
+			namesraw = namesraw.replace('AXBX', "AX BX") # xscmpexpdp
+			namesraw = namesraw.replace('BXTX', "BX TX") # xxinsertw
+			names = namesraw.split()
+			numbers = [int(i) for i in tmp[n1].split()]
+
+			comment = ""
+			if "addpcis" == tmp[n][:7]:
+				# this one is just badly formatted
+				names = ["19", "RT", "D1", "D0", "2", "D2"]
+				numbers = [0, 6, 11, 16, 26, 31]
+			if "darn" == tmp[n][:4]:
+				# this one is just badly formatted
+				names = ["31", "RT", "///", "L", "///", "755", "/"]
+				numbers = [0, 6, 11, 14, 16, 21, 31]
+			if "sc " == tmp[n][:3]:
+				# this one is just badly formatted
+				names += ["/"]
+			elif len(numbers) > 5 and "RC" == names[4].upper() and numbers[4] == 21 and numbers[5] == 31:
+				# vcmpneb & co have missing bitfield offset right before the last one
+				comment += "fixup"
+				numbers = numbers[:5] + [22] + numbers[5:]
+
+			for i in range(n, n1 - 1):
+				predef = {}
+				com2 = comment
+				ext = re.match(r'^(\S+)\s+\S+\s+\(([^\)]+)\)$', tmp[i])
+				outp = '{'
+				if ext:
+					extbits = ext.group(2).strip()
+					# we have "(OE=1 Rc=0)" or "(if Rc=0)"
+					ee = re.sub(r'(\(|\)|if )', '', extbits, flags = re.I).split()
+					for e in ee:
+						e2 = e.split("=")
+						predef[e2[0].upper()] = int(e2[1])
+					outp += 'Name: "{}", '.format(ext.group(1))
+				else:
+					outp += 'Name: "{}", '.format(tmp[i].split()[0])
+
+				check_bitmap = 0
+				opcode = 0
+				opcodemask = 0
+				bits = {}
+				for j in range(len(names)):
+					start = numbers[j]
+					if j + 1 < len(numbers): # bc BO,BI,target_addr (AA=0 LK=0)
+						nn = numbers[j + 1] - numbers[j]
+						if j == len(names) - 1 and numbers[j + 1] == 31:
+							nn += 1
+					else:
+						if numbers[j] != 31:
+							nn = 32 - numbers[j]
+						else:
+							nn = 1
+
+					for n in range(start, start + nn):
+						bit = 1 << (31 - n)
+						if check_bitmap & bit:
+							print("!!!Error: bit {} overlap in {}".format(n, mnem), file = sys.stderr)
+						check_bitmap |= bit
+
+					if names[j].upper() in predef:
+						if nn != 1:
+							print("!!!Error: bitfield {} is expected to be a single bit in {}".format(names[j], mnem), file = sys.stderr)
+							sys.exit(-10)
+						opcodemask |= ppcmask(1, start, nn)
+						opcode |= ppcmask(predef[names[j].upper()], start, nn)
+						com2 += " {}:{}({})".format(predef[names[j].upper()], start, names[j])
+						continue
+					if re.match(r'\d+', names[j]):
+						opcodemask |= ppcmask(0xffffffff, start, nn)
+						opcode |= ppcmask(int(names[j]), start, nn)
+						com2 += ' {}:{}..{}'.format(names[j], start, start + nn - 1)
+						continue
+					if re.match(r'/+', names[j]):
+						opcodemask |= ppcmask(0xffffffff, start, nn)
+						com2 += ' 0:{}..{}(///)'.format(start, start + nn - 1)
+						continue
+					bits[names[j].upper()] = (start, nn)
+
+				if check_bitmap != 0xFFFFFFFF:
+					com2 += " 0x{:08X}".format(check_bitmap)
+				outp += "Opcode: 0x{:08x}, Mask: 0x{:08x}".format(opcode, opcodemask)
+				outp += add_mode_priv(mode, priv)
+				outp += ", Fields:map[string]ppc64.InsnBits{"
+				for k, v in sorted(bits.items()):
+					outp += '"{}": ppc64.InsnBits{{{}, {}}}, '.format(k, v[0], v[1])
+				outp += "}"
+				outp += "}, "
+				outp += " //{}".format(com2)
+				print(outp)
+				ins_num += 1
+
+	return ins_num
+
+ins_stat = {}
+fmt_map = {}
+
+print('// Code generated by {}. DO NOT EDIT.'.format(sys.argv[0]))
+print('')
+print('// +build !codeanalysis')
+print('')
+print('package isnsn')
+print('')
+print('import "github.com/google/syzkaller/pkg/ifuzz/powerpc"')
+print('')
+print('func init() {')
+print('        powerpc.Register(insns)')
+print('}')
+print('')
+print('var insns = []*powerpc.Insn{')
+
+ins_num = do_sorted_opcodes(fmt_map, ins_stat)
+
+print("}")
+
+print("Total {} instructions".format(ins_num), file = sys.stderr)
+ins_num = 0
+for k, v in sorted(ins_stat.items()):
+	print("\t{}: {} / {}".format(k if k else "-", v, len(fmt_map[k]) if k in fmt_map else "-"), file = sys.stderr)
+	ins_num += v
+print("Sorted {} instructions".format(ins_num/3), file = sys.stderr)

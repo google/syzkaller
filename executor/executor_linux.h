@@ -249,6 +249,7 @@ static feature_t features[] = {
     {"binfmt_misc", setup_binfmt_misc},
     {"kcsan", setup_kcsan},
     {"usb", setup_usb},
+    {"sysctl", setup_sysctl},
 };
 
 static void setup_machine()

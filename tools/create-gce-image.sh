@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Copyright 2016 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
@@ -154,8 +154,6 @@ echo 'ATTR{name}=="vim2m", SYMLINK+="vim2m"' | sudo tee -a disk.mnt/etc/udev/rul
 echo 'SUBSYSTEMS=="pci", DRIVERS=="i915", SYMLINK+="i915"' | sudo tee -a disk.mnt/etc/udev/rules.d/60-drm.rules
 
 # sysctls
-echo "kernel.printk = 7 4 1 3" | sudo tee -a disk.mnt/etc/sysctl.conf
-echo "debug.exception-trace = 0" | sudo tee -a disk.mnt/etc/sysctl.conf
 SYZ_SYSCTL_FILE="${SYZ_SYSCTL_FILE:-}"
 if [ "$SYZ_SYSCTL_FILE" != "" ]; then
 	cat $SYZ_SYSCTL_FILE | sudo tee -a disk.mnt/etc/sysctl.conf

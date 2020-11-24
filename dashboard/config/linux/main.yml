@@ -1,0 +1,35 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+instances:
+ - upstream-apparmor-kasan:	[linux-next, x86_64, gcc, lsm, apparmor, kasan]
+ - upstream-selinux-kasan:	[linux-next, x86_64, gcc, lsm, selinux, slab, kasan]
+ - upstream-smack-kasan:		[linux-next, x86_64, gcc, lsm, smack, kasan]
+ - upstream-kmsan:		[x86_64, clang, lsm, apparmor, kmsan]
+ - upstream-kcsan:		[upstream, x86_64, clang, lsm, apparmor, slab, kcsan]
+ - upstream-leak:		[upstream, x86_64, gcc, lsm, apparmor, slab, kmemleak]
+ - upstream-usb:		[upstream, x86_64, gcc, lsm, apparmor, onlyusb, kasan]
+ - stable-5.4-kasan:		[stable-5.4, x86_64, gcc, lsm, apparmor, kasan]
+ - android-5.4:			[android, android-5.4, x86_64, clang, onlyusb, nonoise, kasan]
+
+# These files are included from the bits/ dir.
+includes:
+ - linux-upstream.yml: [upstream]
+ - linux-next.yml: [linux-next]
+ - stable-5.4.yml: [stable-5.4]
+ - android-5.4.yml: [android-5.4]
+ - base.yml: []
+ - x86_64.yml: [x86_64]
+ - arm64.yml: [arm64]
+ - subsystems.yml: [-baseline, -onlyusb]
+ - usb.yml: [onlyusb]
+ - lsm.yml: [lsm]
+ - apparmor.yml: [apparmor]
+ - selinux.yml: [selinux]
+ - smack.yml: [smack]
+ - slab.yml: [slab]
+ - debug.yml: [-nonoise, -kmsan, -kcsan, -kmemleak]
+ - kmemleak.yml: [kmemleak]
+ - kasan.yml: [kasan]
+ - kcsan.yml: [kcsan]
+ - kmsan.yml: [kmsan]

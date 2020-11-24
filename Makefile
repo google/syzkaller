@@ -59,7 +59,7 @@ ifeq ("$(shell git diff --shortstat)", "")
 else
 	REV=$(GITREV)+
 endif
-GITREVDATE=$(shell git log -n 1 --format="%cd")
+GITREVDATE=$(shell git log -n 1 --format="%cd" --date=format:%Y%m%d-%H%M%S)
 
 # Don't generate symbol table and DWARF debug info.
 # Reduces build time and binary sizes considerably.
@@ -98,11 +98,12 @@ endif
 	manager runtest fuzzer executor \
 	ci hub \
 	execprog mutate prog2c trace2syz stress repro upgrade db \
-	usbgen symbolize crush \
+	usbgen symbolize cover kconf crush \
 	bin/syz-extract bin/syz-fmt \
 	extract generate generate_go generate_sys \
 	format format_go format_cpp format_sys \
-	tidy test test_race check_copyright check_language check_whitespace check_links check_diff check_commits \
+	tidy test test_race \
+	check_copyright check_language check_whitespace check_links check_diff check_commits check_shebang \
 	presubmit presubmit_smoke presubmit_build presubmit_arch presubmit_big presubmit_race presubmit_old
 
 all: host target
@@ -197,6 +198,8 @@ symbolize:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-symbolize github.com/google/syzkaller/tools/syz-symbolize
 cover:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-cover github.com/google/syzkaller/tools/syz-cover
+kconf:
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-kconf github.com/google/syzkaller/tools/syz-kconf
 
 bisect: descriptions
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-bisect github.com/google/syzkaller/tools/syz-bisect
@@ -251,6 +254,9 @@ format_sys: bin/syz-fmt
 bin/syz-fmt:
 	$(HOSTGO) build $(GOHOSTFLAGS) -o $@ ./tools/syz-fmt
 
+configs: kconf
+	bin/syz-kconf -config dashboard/config/linux/main.yml -sourcedir $(SOURCEDIR)
+
 tidy: descriptions
 	clang-tidy -quiet -header-filter=.* -warnings-as-errors=* \
 		-checks=-*,misc-definitions-in-headers,bugprone-macro-parentheses,clang-analyzer-*,-clang-analyzer-security.insecureAPI*,-clang-analyzer-optin.performance* \
@@ -271,7 +277,7 @@ presubmit:
 
 presubmit_smoke:
 	$(MAKE) generate
-	$(MAKE) -j100 check_commits check_diff check_copyright check_language check_whitespace check_links presubmit_build tidy
+	$(MAKE) -j100 check_commits check_diff check_copyright check_language check_whitespace check_links check_shebang presubmit_build tidy
 	$(MAKE) test
 
 presubmit_build:
@@ -367,7 +373,7 @@ check_commits:
 	./tools/check-commits.sh
 
 check_links:
-	python ./tools/check_links.py $$(pwd) $$(find -name '*.md' | grep -v "./vendor/")
+	python ./tools/check_links.py $$(pwd) $$(find . -name '*.md' | grep -v "./vendor/")
 
 # Check that the diff is empty. This is meant to be executed after generating
 # and formatting the code to make sure that everything is committed.
@@ -378,3 +384,6 @@ check_diff:
 			sed "s#.*#&:1:1: The file is not formatted/regenerated. Run 'make generate' and include it into the commit.#g"; \
 		false; \
 	fi
+
+check_shebang:
+	./tools/check-shebang.sh

@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 // testEnv will implement instance.BuilderTester. This allows us to
@@ -41,7 +42,7 @@ func (env *testEnv) BuildKernel(compilerBin, cCache, userspaceDir, cmdlineFile, 
 		kernelSign = "same-sign-" + configHash
 	}
 	env.config = string(kernelConfig)
-	if env.config == "baseline-fails" || env.config == "broken-build" {
+	if env.config == "baseline-fails" {
 		return "", kernelSign, fmt.Errorf("failure")
 	}
 	return "", kernelSign, nil
@@ -56,7 +57,13 @@ func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]erro
 	if (env.config == "baseline-repro" || env.config == "new-minimized-config" || env.config == "original config") &&
 		(!env.test.fix && commit >= env.test.culprit || env.test.fix &&
 			commit < env.test.culprit) {
-		return crashErrors(numVMs, "crash occurs"), nil
+		var errors []error
+		if env.test.flaky {
+			errors = crashErrors(1, numVMs-1, "crash occurs")
+		} else {
+			errors = crashErrors(numVMs, 0, "crash occurs")
+		}
+		return errors, nil
 	}
 
 	return make([]error, numVMs), nil
@@ -106,7 +113,7 @@ func createTestRepo(t *testing.T) string {
 }
 
 func runBisection(t *testing.T, baseDir string, test BisectionTest) (*Result, error) {
-	r, err := vcs.NewRepo("test", "64", baseDir)
+	r, err := vcs.NewRepo(targets.TestOS, targets.TestArch64, baseDir, vcs.OptPrecious)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,8 +127,8 @@ func runBisection(t *testing.T, baseDir string, test BisectionTest) (*Result, er
 		Fix:   test.fix,
 		Trace: trace,
 		Manager: mgrconfig.Config{
-			TargetOS:     "test",
-			TargetVMArch: "64",
+			TargetOS:     targets.TestOS,
+			TargetVMArch: targets.TestArch64,
 			Type:         "qemu",
 			KernelSrc:    baseDir,
 		},
@@ -157,6 +164,7 @@ type BisectionTest struct {
 	expectRep    bool
 	noopChange   bool
 	isRelease    bool
+	flaky        bool
 	commitLen    int
 	oldestLatest int
 	// input and output
@@ -174,6 +182,14 @@ var bisectionTests = []BisectionTest{
 		expectRep:   true,
 		culprit:     602,
 	},
+	{
+		name:        "cause-finds-cause",
+		startCommit: 905,
+		commitLen:   1,
+		expectRep:   true,
+		flaky:       true,
+		culprit:     602,
+	},
 	// Test bisection returns correct cause with different baseline/config combinations.
 	{
 		name:            "cause-finds-cause-baseline-repro",
@@ -183,15 +199,6 @@ var bisectionTests = []BisectionTest{
 		culprit:         602,
 		baselineConfig:  "baseline-repro",
 		resultingConfig: "baseline-repro",
-	},
-	{
-		name:            "cause-finds-cause-baseline-broken-build",
-		startCommit:     905,
-		commitLen:       1,
-		expectRep:       true,
-		culprit:         602,
-		baselineConfig:  "baseline-broken-build",
-		resultingConfig: "original config",
 	},
 	{
 		name:            "cause-finds-cause-baseline-does-not-repro",
@@ -508,14 +515,17 @@ func checkTest(t *testing.T, test BisectionTest) {
 	}
 }
 
-func crashErrors(num int, title string) []error {
+func crashErrors(crashing, nonCrashing int, title string) []error {
 	var errors []error
-	for i := 0; i < num; i++ {
+	for i := 0; i < crashing; i++ {
 		errors = append(errors, &instance.CrashError{
 			Report: &report.Report{
 				Title: fmt.Sprintf("crashes at %v", title),
 			},
 		})
+	}
+	for i := 0; i < nonCrashing; i++ {
+		errors = append(errors, nil)
 	}
 	return errors
 }

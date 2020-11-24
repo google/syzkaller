@@ -23,7 +23,7 @@ func TestExtractConsts(t *testing.T) {
 	if desc == nil {
 		t.Fatalf("failed to parse input")
 	}
-	target := targets.List["linux"]["amd64"]
+	target := targets.List[targets.Linux][targets.AMD64]
 	fileInfo := ExtractConsts(desc, target, func(pos ast.Pos, msg string) {
 		t.Fatalf("%v: %v", pos, msg)
 	})
@@ -69,7 +69,7 @@ func TestConstErrors(t *testing.T) {
 		em.DumpErrors()
 		t.Fatalf("parsing failed")
 	}
-	target := targets.List["linux"]["amd64"]
+	target := targets.List[targets.Linux][targets.AMD64]
 	ExtractConsts(desc, target, em.ErrorHandler)
 	em.Check()
 }

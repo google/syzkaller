@@ -49,7 +49,7 @@ func MakeTestRepo(t *testing.T, dir string) *TestRepo {
 		Dir:     dir,
 		name:    filepath.Base(dir),
 		Commits: make(map[string]map[string]*Commit),
-		repo:    newGit(dir, ignoreCC),
+		repo:    newGit(dir, ignoreCC, []RepoOpt{OptPrecious, OptDontSandbox}),
 	}
 	repo.Git("init")
 	repo.Git("config", "--add", "user.email", userEmail)
@@ -90,7 +90,7 @@ func (repo *TestRepo) SetTag(tag string) {
 
 func (repo *TestRepo) SupportsBisection() bool {
 	// Detect too old git binary. --no-contains appeared in git 2.13.
-	_, err := repo.repo.previousReleaseTags("HEAD", true)
+	_, err := repo.repo.previousReleaseTags("HEAD", true, false, false)
 	return err == nil ||
 		!strings.Contains(err.Error(), "usage: git tag") &&
 			!strings.Contains(err.Error(), "error: unknown option")
@@ -123,7 +123,7 @@ func CloneTestRepo(t *testing.T, baseDir, name string, originRepo *TestRepo) *Te
 		Dir:     dir,
 		name:    filepath.Base(dir),
 		Commits: make(map[string]map[string]*Commit),
-		repo:    newGit(dir, ignoreCC),
+		repo:    newGit(dir, ignoreCC, []RepoOpt{OptPrecious, OptDontSandbox}),
 	}
 	repo.Git("clone", originRepo.Dir, repo.Dir)
 	return repo

@@ -1,0 +1,13 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+config:
+ - SECURITY_SELINUX: n
+ - SECURITY_SMACK: n
+ - SECURITY_APPARMOR
+ - SECURITY_APPARMOR_HASH
+ - SECURITY_APPARMOR_HASH_DEFAULT
+ - SECURITY_APPARMOR_DEBUG
+ - SECURITY_APPARMOR_DEBUG_ASSERTS
+ - DEFAULT_SECURITY_APPARMOR
+ - LSM: "lockdown,yama,safesetid,integrity,tomoyo,apparmor,bpf"

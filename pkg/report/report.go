@@ -126,8 +126,6 @@ func NewReporter(cfg *mgrconfig.Config) (Reporter, error) {
 }
 
 const (
-	VMDiagnosisStart = "\nVM DIAGNOSIS:\n"
-
 	unexpectedKernelReboot = "unexpected kernel reboot"
 	memoryLeakPrefix       = "memory leak in "
 	dataRacePrefix         = "KCSAN: data-race"
@@ -136,14 +134,14 @@ const (
 )
 
 var ctors = map[string]fn{
-	"akaros":  ctorAkaros,
-	"linux":   ctorLinux,
-	"gvisor":  ctorGvisor,
-	"freebsd": ctorFreebsd,
-	"netbsd":  ctorNetbsd,
-	"openbsd": ctorOpenbsd,
-	"fuchsia": ctorFuchsia,
-	"windows": ctorStub,
+	targets.Akaros:  ctorAkaros,
+	targets.Linux:   ctorLinux,
+	"gvisor":        ctorGvisor,
+	targets.FreeBSD: ctorFreebsd,
+	targets.NetBSD:  ctorNetbsd,
+	targets.OpenBSD: ctorOpenbsd,
+	targets.Fuchsia: ctorFuchsia,
+	targets.Windows: ctorStub,
 }
 
 type config struct {
@@ -187,9 +185,6 @@ func (wrap *reporterWrapper) Parse(output []byte) *Report {
 	rep.Type = extractReportType(rep)
 	if match := reportFrameRe.FindStringSubmatch(rep.Title); match != nil {
 		rep.Frame = match[1]
-	}
-	if pos := bytes.Index(rep.Report, []byte(VMDiagnosisStart)); pos != -1 {
-		rep.Report = rep.Report[:pos]
 	}
 	rep.SkipPos = len(output)
 	if pos := bytes.IndexByte(output[rep.StartPos:], '\n'); pos != -1 {
@@ -486,6 +481,9 @@ type stackParams struct {
 	// If we looked at any lines that match corruptedLines during report analysis,
 	// then the report is marked as corrupted.
 	corruptedLines []*regexp.Regexp
+	// Prefixes that need to be removed from frames.
+	// E.g. syscall prefixes as different arches have different prefixes.
+	stripFramePrefixes []string
 }
 
 func extractStackFrame(params *stackParams, stack *stackFmt, output []byte) (string, string) {
@@ -530,7 +528,7 @@ nextPart:
 						break
 					}
 				}
-				frames = appendStackFrame(frames, match, skipRe)
+				frames = appendStackFrame(frames, match, params, skipRe)
 			}
 		} else {
 			for s.Scan() {
@@ -542,7 +540,7 @@ nextPart:
 				if match == nil {
 					continue
 				}
-				frames = appendStackFrame(frames, match, skipRe)
+				frames = appendStackFrame(frames, match, params, skipRe)
 				break
 			}
 		}
@@ -553,13 +551,17 @@ nextPart:
 	return extractor(frames)
 }
 
-func appendStackFrame(frames []string, match [][]byte, skipRe *regexp.Regexp) []string {
+func appendStackFrame(frames []string, match [][]byte, params *stackParams, skipRe *regexp.Regexp) []string {
 	if len(match) < 2 {
 		return frames
 	}
 	for _, frame := range match[1:] {
 		if frame != nil && (skipRe == nil || !skipRe.Match(frame)) {
-			frames = append(frames, string(frame))
+			frameName := string(frame)
+			for _, prefix := range params.stripFramePrefixes {
+				frameName = strings.TrimPrefix(frameName, prefix)
+			}
+			frames = append(frames, frameName)
 			break
 		}
 	}
@@ -654,6 +656,7 @@ var commonOopses = []*oops{
 			compile("_panic:"),
 			// Android prints this sometimes during boot.
 			compile("xlog_status:"),
+			compile(`ddb\.onpanic:`),
 		},
 	},
 }

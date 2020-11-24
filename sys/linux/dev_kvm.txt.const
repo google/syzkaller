@@ -2,7 +2,7 @@
 arches = 386, amd64, arm, arm64, mips64le, ppc64le, riscv64, s390x
 AT_FDCWD = 18446744073709551516, arm:riscv64:???
 KVM_ARM_SET_DEVICE_ADDR = 1074835115, arm:riscv64:???, mips64le:ppc64le:2148576939
-KVM_ARM_TARGET_AEM_V8 = 386:amd64:arm:mips64le:ppc64le:riscv64:s390x:???
+KVM_ARM_TARGET_AEM_V8 = 386:amd64:arm:mips64le:ppc64le:riscv64:s390x:???, arm64:0
 KVM_ARM_TARGET_CORTEX_A53 = 386:amd64:arm:mips64le:ppc64le:riscv64:s390x:???, arm64:4
 KVM_ARM_TARGET_CORTEX_A57 = 386:amd64:arm:mips64le:ppc64le:riscv64:s390x:???, arm64:2
 KVM_ARM_TARGET_FOUNDATION_V8 = 386:amd64:arm:mips64le:ppc64le:riscv64:s390x:???, arm64:1
@@ -11,7 +11,7 @@ KVM_ARM_TARGET_XGENE_POTENZA = 386:amd64:arm:mips64le:ppc64le:riscv64:s390x:???,
 KVM_ARM_VCPU_EL1_32BIT = 386:amd64:arm:mips64le:ppc64le:riscv64:s390x:???, arm64:1
 KVM_ARM_VCPU_INIT = 386:amd64:arm:mips64le:ppc64le:riscv64:s390x:???, arm64:1075883694
 KVM_ARM_VCPU_PMU_V3 = 386:amd64:arm:mips64le:ppc64le:riscv64:s390x:???, arm64:3
-KVM_ARM_VCPU_POWER_OFF = 386:amd64:arm:mips64le:ppc64le:riscv64:s390x:???
+KVM_ARM_VCPU_POWER_OFF = 386:amd64:arm:mips64le:ppc64le:riscv64:s390x:???, arm64:0
 KVM_ARM_VCPU_PSCI_0_2 = 386:amd64:arm:mips64le:ppc64le:riscv64:s390x:???, arm64:2
 KVM_ASSIGN_DEV_IRQ = 1077980784, arm:riscv64:???, mips64le:ppc64le:2151722608
 KVM_ASSIGN_PCI_DEVICE = 2151722601, arm:riscv64:???, mips64le:ppc64le:1077980777

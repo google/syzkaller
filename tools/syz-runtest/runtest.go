@@ -116,7 +116,7 @@ func main() {
 		fmt.Printf("%-24v: %v calls enabled\n", sandbox+" sandbox", len(calls))
 	}
 	ctx := &runtest.Context{
-		Dir:          filepath.Join(cfg.Syzkaller, "sys", target.OS, "test"),
+		Dir:          filepath.Join(cfg.Syzkaller, "sys", target.OS, targets.TestOS),
 		Target:       target,
 		Features:     mgr.checkResult.Features,
 		EnabledCalls: enabledCalls,

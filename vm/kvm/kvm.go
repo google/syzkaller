@@ -18,6 +18,7 @@ import (
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/vm/vmimpl"
 )
 
@@ -287,7 +288,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	return outputC, errorC, nil
 }
 
-func (inst *instance) Diagnose() ([]byte, bool) {
+func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
 	return nil, false
 }
 

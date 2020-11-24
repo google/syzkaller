@@ -85,7 +85,7 @@ func MakeReportGenerator(target *targets.Target, kernelObject, srcDir, buildDir 
 			errc <- err
 			return
 		}
-		if target.Arch == "amd64" {
+		if target.Arch == targets.AMD64 {
 			coverPoints, err = readCoverPoints(file, tracePC)
 		} else {
 			coverPoints, err = objdump(target, kernelObject)
@@ -627,10 +627,6 @@ func readTextRanges(file *elf.File) ([]pcRange, []*compileUnit, error) {
 					// It's unclear if we also need some offset on top of text.Addr,
 					// it gives approximately correct addresses, but not necessary precisely
 					// correct addresses.
-					// It would be good to add a test for this, but it's unclear what flag
-					// combination will give a similar binary. The following still gives
-					// matching .text/symbols/PC ranges:
-					// gcc test.c -g -fpie -pie -Wl,--section-start=.text=0x33300000
 					r[0] += text.Addr
 					r[1] += text.Addr
 					if r[0] >= r[1] || r[0] < text.Addr || r[1] > text.Addr+text.Size {
@@ -834,23 +830,23 @@ func parseFile(fn string) ([][]byte, error) {
 
 func PreviousInstructionPC(target *targets.Target, pc uint64) uint64 {
 	switch target.Arch {
-	case "amd64":
+	case targets.AMD64:
 		return pc - 5
-	case "386":
+	case targets.I386:
 		return pc - 5
-	case "arm64":
+	case targets.ARM64:
 		return pc - 4
-	case "arm":
+	case targets.ARM:
 		// THUMB instructions are 2 or 4 bytes with low bit set.
 		// ARM instructions are always 4 bytes.
 		return (pc - 3) & ^uint64(1)
-	case "ppc64le":
+	case targets.PPC64LE:
 		return pc - 4
-	case "mips64le":
+	case targets.MIPS64LE:
 		return pc - 8
-	case "s390x":
+	case targets.S390x:
 		return pc - 6
-	case "riscv64":
+	case targets.RiscV64:
 		return pc - 4
 	default:
 		panic(fmt.Sprintf("unknown arch %q", target.Arch))
@@ -860,16 +856,16 @@ func PreviousInstructionPC(target *targets.Target, pc uint64) uint64 {
 func archCallInsn(target *targets.Target) ([][]byte, [][]byte) {
 	callName := [][]byte{[]byte(" <__sanitizer_cov_trace_pc>")}
 	switch target.Arch {
-	case "386":
+	case targets.I386:
 		// c1000102:       call   c10001f0 <__sanitizer_cov_trace_pc>
 		return [][]byte{[]byte("\tcall ")}, callName
-	case "arm64":
+	case targets.ARM64:
 		// ffff0000080d9cc0:       bl      ffff00000820f478 <__sanitizer_cov_trace_pc>
 		return [][]byte{[]byte("\tbl\t")}, callName
-	case "arm":
+	case targets.ARM:
 		// 8010252c:       bl      801c3280 <__sanitizer_cov_trace_pc>
 		return [][]byte{[]byte("\tbl\t")}, callName
-	case "ppc64le":
+	case targets.PPC64LE:
 		// c00000000006d904:       bl      c000000000350780 <.__sanitizer_cov_trace_pc>
 		// This is only known to occur in the test:
 		// 838:   bl      824 <__sanitizer_cov_trace_pc+0x8>
@@ -880,15 +876,15 @@ func archCallInsn(target *targets.Target) ([][]byte, [][]byte) {
 			[]byte("<__sanitizer_cov_trace_pc+0x8>"),
 			[]byte(" <.__sanitizer_cov_trace_pc>"),
 		}
-	case "mips64le":
+	case targets.MIPS64LE:
 		// ffffffff80100420:       jal     ffffffff80205880 <__sanitizer_cov_trace_pc>
 		// This is only known to occur in the test:
 		// b58:   bal     b30 <__sanitizer_cov_trace_pc>
 		return [][]byte{[]byte("\tjal\t"), []byte("\tbal\t")}, callName
-	case "s390x":
+	case targets.S390x:
 		// 1001de:       brasl   %r14,2bc090 <__sanitizer_cov_trace_pc>
 		return [][]byte{[]byte("\tbrasl\t")}, callName
-	case "riscv64":
+	case targets.RiscV64:
 		// ffffffe000200018:       jal     ra,ffffffe0002935b0 <__sanitizer_cov_trace_pc>
 		// ffffffe0000010da:       jalr    1242(ra) # ffffffe0002935b0 <__sanitizer_cov_trace_pc>
 		return [][]byte{[]byte("\tjal\t"), []byte("\tjalr\t")}, callName

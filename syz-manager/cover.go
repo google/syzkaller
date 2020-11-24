@@ -52,7 +52,7 @@ func coverToPCs(target *targets.Target, cov []uint32) []uint64 {
 }
 
 func getVMOffset(target *targets.Target, vmlinux string) (uint32, error) {
-	if target.OS == "freebsd" {
+	if target.OS == targets.FreeBSD {
 		return 0xffffffff, nil
 	}
 	readelf := "readelf"

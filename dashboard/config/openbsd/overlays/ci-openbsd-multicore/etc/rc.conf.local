@@ -1,0 +1,10 @@
+# Overrides the minimal config in the image created by
+# tools/create-openbsd-vmm-worker.sh to enable PF.
+cron_flags=NO
+library_aslr=NO
+ntpd_flags=NO
+pf=YES
+pflogd_flags=YES
+slaacd_flags=NO
+smtpd_flags=NO
+sndiod_flags=NO

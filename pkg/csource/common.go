@@ -19,11 +19,6 @@ import (
 )
 
 const (
-	linux   = "linux"
-	freebsd = "freebsd"
-	openbsd = "openbsd"
-	netbsd  = "netbsd"
-
 	sandboxNone      = "none"
 	sandboxSetuid    = "setuid"
 	sandboxNamespace = "namespace"
@@ -126,6 +121,7 @@ func commonDefines(p *prog.Prog, opts Options) map[string]bool {
 		"SYZ_REPRO":                     opts.Repro,
 		"SYZ_TRACE":                     opts.Trace,
 		"SYZ_WIFI":                      opts.Wifi,
+		"SYZ_SYSCTL":                    opts.Sysctl,
 		"SYZ_EXECUTOR_USES_SHMEM":       sysTarget.ExecutorUsesShmem,
 		"SYZ_EXECUTOR_USES_FORK_SERVER": sysTarget.ExecutorUsesForkServer,
 	}

@@ -123,7 +123,7 @@ func (cf *ConstFile) Serialize() []byte {
 		handled := make([]bool, len(arches))
 		for i, arch := range arches {
 			val, ok := cv.vals[arch]
-			if ok && val == dflt || handled[i] {
+			if ok && (max != 0 && val == dflt) || handled[i] {
 				// Default value or serialized on a previous iteration.
 				continue
 			}

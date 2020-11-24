@@ -16,6 +16,7 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type RecipientType int
@@ -102,6 +103,9 @@ type Repo interface {
 	// Given email = "user@domain.com", it searches for tags of the form "user+tag@domain.com"
 	// and returns commits with these tags.
 	ExtractFixTagsFromCommits(baseCommit, email string) ([]*Commit, error)
+
+	// ReleaseTag returns the latest release tag that is reachable from the given commit.
+	ReleaseTag(commit string) (string, error)
 }
 
 // Bisecter may be optionally implemented by Repo.
@@ -115,6 +119,7 @@ type Bisecter interface {
 	Bisect(bad, good string, trace io.Writer, pred func() (BisectResult, error)) ([]*Commit, error)
 
 	// PreviousReleaseTags returns list of preceding release tags that are reachable from the given commit.
+	// If the commit itself has a release tag, this tag is not included.
 	PreviousReleaseTags(commit string) ([]string, error)
 
 	IsRelease(commit string) (bool, error)
@@ -123,7 +128,8 @@ type Bisecter interface {
 }
 
 type ConfigMinimizer interface {
-	Minimize(original, baseline []byte, trace io.Writer, pred func(test []byte) (BisectResult, error)) ([]byte, error)
+	Minimize(target *targets.Target, original, baseline []byte, trace io.Writer,
+		pred func(test []byte) (BisectResult, error)) ([]byte, error)
 }
 
 type Commit struct {
@@ -151,29 +157,39 @@ type BisectEnv struct {
 	KernelConfig []byte
 }
 
-func NewRepo(os, vm, dir string) (Repo, error) {
+type RepoOpt int
+
+const (
+	// RepoPrecious is intended for command-line tools that work with a user-provided repo.
+	// Such repo won't be re-created to recover from errors, but rather return errors.
+	// If this option is not specified, the repo can be re-created from scratch to recover from any errors.
+	OptPrecious RepoOpt = iota
+	// Don't use sandboxing suitable for pkg/build.
+	OptDontSandbox
+)
+
+func NewRepo(os, vm, dir string, opts ...RepoOpt) (Repo, error) {
 	switch os {
-	case "linux":
-		return newLinux(dir), nil
-	case "akaros":
-		return newAkaros(vm, dir), nil
-	case "fuchsia":
-		return newFuchsia(vm, dir), nil
-	case "openbsd":
-		return newOpenBSD(vm, dir), nil
-	case "netbsd":
-		return newNetBSD(vm, dir), nil
-	case "freebsd":
-		return newFreeBSD(vm, dir), nil
-	case "test":
-		return newTestos(dir), nil
+	case targets.Linux:
+		return newLinux(dir, opts), nil
+	case targets.Akaros:
+		return newAkaros(dir, opts), nil
+	case targets.Fuchsia:
+		return newFuchsia(dir, opts), nil
+	case targets.OpenBSD:
+		return newGit(dir, nil, opts), nil
+	case targets.NetBSD:
+		return newGit(dir, nil, opts), nil
+	case targets.FreeBSD:
+		return newGit(dir, nil, opts), nil
+	case targets.TestOS:
+		return newTestos(dir, opts), nil
 	}
 	return nil, fmt.Errorf("vcs is unsupported for %v", os)
 }
 
-func NewSyzkallerRepo(dir string) Repo {
-	git := newGit(dir, nil)
-	git.sandbox = false
+func NewSyzkallerRepo(dir string, opts ...RepoOpt) Repo {
+	git := newGit(dir, nil, append(opts, OptDontSandbox))
 	return git
 }
 
@@ -246,7 +262,7 @@ var (
 	gitSSHRepoRe = regexp.MustCompile(`^(git|ssh|http|https|ftp|ftps)@[a-zA-Z0-9-_]+(\.[a-zA-Z0-9-_]+)+(:[a-zA-Z0-9-_]+)?(/[a-zA-Z0-9-_./]+)?(/)?$`)
 	gitBranchRe  = regexp.MustCompile("^[a-zA-Z0-9-_/.]{2,200}$")
 	gitHashRe    = regexp.MustCompile("^[a-f0-9]{8,40}$")
-	releaseTagRe = regexp.MustCompile(`^v([0-9]+).([0-9]+)(?:\.([0-9]+))?$`)
+	releaseTagRe = regexp.MustCompile(`^v([0-9]+).([0-9]+)(?:-rc([0-9]+))?(?:\.([0-9]+))?$`)
 	// CC: is intentionally not on this list, see #1441.
 	ccRes = []*regexp.Regexp{
 		regexp.MustCompile(`^Reviewed\-.*: (.*)$`),

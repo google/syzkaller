@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 // Options control various aspects of source generation.
@@ -42,6 +43,7 @@ type Options struct {
 	USB           bool `json:"usb,omitempty"`
 	VhciInjection bool `json:"vhci,omitempty"`
 	Wifi          bool `json:"wifi,omitempty"`
+	Sysctl        bool `json:"sysctl,omitempty"`
 
 	UseTmpDir  bool `json:"tmpdir,omitempty"`
 	HandleSegv bool `json:"segv,omitempty"`
@@ -113,87 +115,62 @@ func (opts Options) Check(OS string) error {
 }
 
 func (opts Options) checkLinuxOnly(OS string) error {
-	if OS == linux {
+	if OS == targets.Linux {
 		return nil
 	}
-	if opts.NetInjection && !(OS == openbsd || OS == freebsd || OS == netbsd) {
+	if opts.NetInjection && !(OS == targets.OpenBSD || OS == targets.FreeBSD || OS == targets.NetBSD) {
 		return fmt.Errorf("option NetInjection is not supported on %v", OS)
 	}
-	if opts.NetDevices {
-		return fmt.Errorf("option NetDevices is not supported on %v", OS)
-	}
-	if opts.NetReset {
-		return fmt.Errorf("option NetReset is not supported on %v", OS)
-	}
-	if opts.Cgroups {
-		return fmt.Errorf("option Cgroups is not supported on %v", OS)
-	}
-	if opts.BinfmtMisc {
-		return fmt.Errorf("option BinfmtMisc is not supported on %v", OS)
-	}
-	if opts.CloseFDs {
-		return fmt.Errorf("option CloseFDs is not supported on %v", OS)
-	}
-	if opts.KCSAN {
-		return fmt.Errorf("option KCSAN is not supported on %v", OS)
-	}
-	if opts.DevlinkPCI {
-		return fmt.Errorf("option DevlinkPCI is not supported on %v", OS)
-	}
-	if opts.USB {
-		return fmt.Errorf("option USB is not supported on %v", OS)
-	}
-	if opts.VhciInjection {
-		return fmt.Errorf("option VHCI is not supported on %v", OS)
-	}
-	if opts.Wifi {
-		return fmt.Errorf("option Wifi is not supported on %v", OS)
-	}
 	if opts.Sandbox == sandboxNamespace ||
-		(opts.Sandbox == sandboxSetuid && !(OS == openbsd || OS == freebsd || OS == netbsd)) ||
+		(opts.Sandbox == sandboxSetuid && !(OS == targets.OpenBSD || OS == targets.FreeBSD || OS == targets.NetBSD)) ||
 		opts.Sandbox == sandboxAndroid {
 		return fmt.Errorf("option Sandbox=%v is not supported on %v", opts.Sandbox, OS)
 	}
-	if opts.Fault {
-		return fmt.Errorf("option Fault is not supported on %v", OS)
-	}
-	if opts.Leak {
-		return fmt.Errorf("option Leak is not supported on %v", OS)
+	for name, opt := range map[string]*bool{
+		"NetDevices":    &opts.NetDevices,
+		"NetReset":      &opts.NetReset,
+		"Cgroups":       &opts.Cgroups,
+		"BinfmtMisc":    &opts.BinfmtMisc,
+		"CloseFDs":      &opts.CloseFDs,
+		"KCSAN":         &opts.KCSAN,
+		"DevlinkPCI":    &opts.DevlinkPCI,
+		"USB":           &opts.USB,
+		"VhciInjection": &opts.VhciInjection,
+		"Wifi":          &opts.Wifi,
+		"Fault":         &opts.Fault,
+		"Leak":          &opts.Leak,
+		"Sysctl":        &opts.Sysctl,
+	} {
+		if *opt {
+			return fmt.Errorf("option %v is not supported on %v", name, OS)
+		}
 	}
 	return nil
 }
 
 func DefaultOpts(cfg *mgrconfig.Config) Options {
 	opts := Options{
-		Threaded:      true,
-		Collide:       true,
-		Repeat:        true,
-		Procs:         cfg.Procs,
-		Sandbox:       cfg.Sandbox,
-		NetInjection:  true,
-		NetDevices:    true,
-		NetReset:      true,
-		Cgroups:       true,
-		BinfmtMisc:    true,
-		CloseFDs:      true,
-		DevlinkPCI:    true,
-		VhciInjection: true,
-		Wifi:          true,
-		UseTmpDir:     true,
-		HandleSegv:    true,
-		Repro:         true,
+		Threaded:   true,
+		Collide:    true,
+		Repeat:     true,
+		Procs:      cfg.Procs,
+		Sandbox:    cfg.Sandbox,
+		UseTmpDir:  true,
+		HandleSegv: true,
+		Repro:      true,
 	}
-	if cfg.TargetOS != linux {
-		opts.NetInjection = false
-		opts.NetDevices = false
-		opts.NetReset = false
-		opts.Cgroups = false
-		opts.BinfmtMisc = false
-		opts.CloseFDs = false
-		opts.DevlinkPCI = false
-		opts.USB = false
-		opts.VhciInjection = false
-		opts.Wifi = false
+	if cfg.TargetOS == targets.Linux {
+		opts.NetInjection = true
+		opts.NetDevices = true
+		opts.NetReset = true
+		opts.Cgroups = true
+		opts.BinfmtMisc = true
+		opts.CloseFDs = true
+		opts.DevlinkPCI = true
+		opts.USB = true
+		opts.VhciInjection = true
+		opts.Wifi = true
+		opts.Sysctl = true
 	}
 	if cfg.Sandbox == "" || cfg.Sandbox == "setuid" {
 		opts.NetReset = false
@@ -276,6 +253,7 @@ func defaultFeatures(value bool) Features {
 		"usb":         {"setup and use /dev/raw-gadget for USB emulation", value},
 		"vhci":        {"setup and use /dev/vhci for hci packet injection", value},
 		"wifi":        {"setup and use mac80211_hwsim for wifi emulation", value},
+		"sysctl":      {"setup sysctl's for fuzzing", value},
 	}
 }
 

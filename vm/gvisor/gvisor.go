@@ -20,6 +20,7 @@ import (
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/vm/vmimpl"
 )
 
@@ -352,7 +353,8 @@ func (inst *instance) guestProxy() (*os.File, error) {
 	return guestSock, nil
 }
 
-func (inst *instance) Diagnose() ([]byte, bool) {
+func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
+	// TODO: stacks and dmesg are mostly useful for hangs/stalls, so we could do this only sometimes based on rep.
 	b, err := osutil.Run(time.Minute, inst.runscCmd("debug", "-stacks", "--ps", inst.name))
 	if err != nil {
 		b = append(b, fmt.Sprintf("\n\nError collecting stacks: %v", err)...)

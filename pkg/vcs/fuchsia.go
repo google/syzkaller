@@ -12,16 +12,14 @@ import (
 )
 
 type fuchsia struct {
-	vm   string
 	dir  string
 	repo *git
 }
 
-func newFuchsia(vm, dir string) *fuchsia {
+func newFuchsia(dir string, opts []RepoOpt) *fuchsia {
 	return &fuchsia{
-		vm:   vm,
 		dir:  dir,
-		repo: newGit(dir, nil),
+		repo: newGit(dir, nil, opts),
 	}
 }
 
@@ -88,4 +86,8 @@ func (ctx *fuchsia) ListRecentCommits(baseCommit string) ([]string, error) {
 
 func (ctx *fuchsia) ExtractFixTagsFromCommits(baseCommit, email string) ([]*Commit, error) {
 	return ctx.repo.ExtractFixTagsFromCommits(baseCommit, email)
+}
+
+func (ctx *fuchsia) ReleaseTag(commit string) (string, error) {
+	return "", fmt.Errorf("not implemented for fuchsia")
 }
