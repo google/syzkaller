@@ -50,7 +50,7 @@ If you have another ARM64 toolchain on your machine, ensure that this newly down
 
 ## Compile the kernel
 
-Once you have obtained the source code for the linux kernel you wish to fuzz, do the following.
+Get the source code of the Linux kernel version you want to fuzz, and do the following.
 
     $ ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- make defconfig
     $ vim .config
