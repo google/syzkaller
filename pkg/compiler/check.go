@@ -694,6 +694,10 @@ func (comp *compiler) collectUsedType(structs, flags, strflags map[string]bool, 
 	}
 	_, args, _ := comp.getArgsBase(t, isArg)
 	for i, arg := range args {
+		if i >= len(desc.Args) {
+			break
+		}
+
 		if desc.Args[i].Type == typeArgType {
 			comp.collectUsedType(structs, flags, strflags, arg, desc.Args[i].IsArg)
 		}
