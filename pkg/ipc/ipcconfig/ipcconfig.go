@@ -15,6 +15,7 @@ var (
 	flagExecutor = flag.String("executor", "./syz-executor", "path to executor binary")
 	flagThreaded = flag.Bool("threaded", true, "use threaded mode in executor")
 	flagCollide  = flag.Bool("collide", true, "collide syscalls to provoke data races")
+	flagDoubleFetch = flag.Bool("doubleFetch", false, "Detect double fetching")
 	flagSignal   = flag.Bool("cover", false, "collect feedback signals (coverage)")
 	flagSandbox  = flag.String("sandbox", "none", "sandbox for fuzzing (none/setuid/namespace/android)")
 	flagDebug    = flag.Bool("debug", false, "debug output from executor")
@@ -48,6 +49,9 @@ func Default(target *prog.Target) (*ipc.Config, *ipc.ExecOpts, error) {
 	}
 	if *flagCollide {
 		opts.Flags |= ipc.FlagCollide
+	}
+	if *flagDoubleFetch {
+		opts.Flags |= ipc.FlagDoubleFetch
 	}
 
 	return c, opts, nil

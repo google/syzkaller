@@ -66,6 +66,7 @@ const (
 	Hang
 	MemoryLeak
 	DataRace
+	MultiRead
 	UnexpectedReboot
 )
 
@@ -79,6 +80,8 @@ func (t Type) String() string {
 		return "LEAK"
 	case DataRace:
 		return "DATARACE"
+	case MultiRead:
+		return "MULTIREAD"
 	case UnexpectedReboot:
 		return "REBOOT"
 	default:
@@ -128,6 +131,7 @@ const (
 	unexpectedKernelReboot = "unexpected kernel reboot"
 	memoryLeakPrefix       = "memory leak in "
 	dataRacePrefix         = "KCSAN: data-race"
+	multiReadPrefix        = "BUG: multi-read"
 	corruptedNoFrames      = "extracted no frames"
 )
 
@@ -211,6 +215,9 @@ func extractReportType(rep *Report) Type {
 	}
 	if strings.HasPrefix(rep.Title, dataRacePrefix) {
 		return DataRace
+	}
+	if strings.HasPrefix(rep.Title, multiReadPrefix) {
+		return MultiRead
 	}
 	if strings.HasPrefix(rep.Title, "INFO: rcu detected stall") ||
 		strings.HasPrefix(rep.Title, "INFO: task hung") ||

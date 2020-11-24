@@ -141,6 +141,7 @@ static bool flag_collect_cover;
 static bool flag_dedup_cover;
 static bool flag_threaded;
 static bool flag_collide;
+static bool flag_dFetch;
 
 // If true, then executor should write the comparisons data to fuzzer.
 static bool flag_comparisons;
@@ -547,6 +548,7 @@ void receive_execute()
 	flag_comparisons = req.exec_flags & (1 << 3);
 	flag_threaded = req.exec_flags & (1 << 4);
 	flag_collide = req.exec_flags & (1 << 5);
+	flag_dFetch = req.exec_flags & (1 << 6);
 	flag_fault_call = req.fault_call;
 	flag_fault_nth = req.fault_nth;
 	if (!flag_threaded)
@@ -599,6 +601,8 @@ void reply_execute(int status)
 // execute_one executes program stored in input_data.
 void execute_one()
 {
+	if (flag_dFetch)
+		dFetch_enable();
 	// Duplicate global collide variable on stack.
 	// Fuzzer once come up with ioctl(fd, FIONREAD, 0x920000),
 	// where 0x920000 was exactly collide address, so every iteration reset collide to 0.
@@ -1072,6 +1076,8 @@ void* worker_thread(void* arg)
 {
 	thread_t* th = (thread_t*)arg;
 	current_thread = th;
+	if (flag_dFetch)
+		dFetch_enable();
 	if (flag_coverage)
 		cover_enable(&th->cov, flag_comparisons, false);
 	for (;;) {

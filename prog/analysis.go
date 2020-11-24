@@ -10,6 +10,7 @@ package prog
 
 import (
 	"fmt"
+	"sort"
 )
 
 type state struct {
@@ -308,4 +309,142 @@ func encodeFallbackSignal(typ, id, aux int) uint32 {
 
 func decodeFallbackSignal(s uint32) (typ, id, aux int) {
 	return int(s & 7), int((s >> 3) & fallbackCallMask), int(s >> 16)
+}
+
+type pair struct {
+	addr uint64
+	len  uint64
+}
+
+func detectIntersection(ranges []pair) bool {
+	sort.SliceStable(ranges, func(i, j int) bool {
+		return ranges[i].addr < ranges[j].addr
+	})
+	for i := 0; i < len(ranges)-1; i++ {
+		if ranges[i+1].addr < ranges[i].addr+ranges[i].len {
+			return true
+		}
+	}
+	return false
+}
+
+func max(a, b uint64) uint64 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+// iterate over the arguments tree and collect the addresses range of pointersArg
+
+func filterArguments(call *Call, requiredArg map[Arg]uint64, p *Prog) bool {
+	var ranges []pair
+	ForeachArg(call, func(arg Arg, ctx *ArgCtx) {
+		a, ok := arg.(*PointerArg)
+		if !ok {
+			return
+		}
+		_, found := requiredArg[InnerArg(arg)]
+		var len uint64 = 1
+		if found {
+			len = requiredArg[InnerArg(arg)]
+		}
+		switch {
+		case a.VmaSize != 0:
+			ranges = append(ranges, pair{a.Address / p.Target.PageSize, max(len, a.VmaSize/p.Target.PageSize)})
+		case a.Res != nil:
+			ranges = append(ranges, pair{a.Address, max(len, a.Res.Size())})
+		}
+	})
+	return detectIntersection(ranges)
+}
+
+//get the pointer associated to lenType
+
+func getPointer(pos Arg, path []string, args []Arg, fields []Field, p *Prog, parentsMap map[Arg]Arg) Arg {
+	elem := path[0]
+	for i, buf := range args {
+		if elem != fields[i].Name {
+			continue
+		}
+		//check for invalid cases
+		if typ := buf.Type(); typ == p.Target.any.ptrPtr || typ == p.Target.any.ptr64 || InnerArg(buf) == nil {
+			return nil
+		}
+		buf = InnerArg(buf)
+		return buf
+	}
+	if elem == ParentRef {
+		return parentsMap[pos]
+	}
+	for buf := parentsMap[InnerArg(pos)]; buf != nil; buf = parentsMap[buf] {
+		if elem != buf.Type().TemplateName() {
+			continue
+		}
+		return buf
+	}
+	return nil
+
+}
+
+// check for any LenType argument to get its associated pointer
+
+func checkLenType(args []Arg, fields []Field, parentsMap map[Arg]Arg,
+	syscallArgs []Arg, syscallFields []Field, p *Prog) map[Arg]uint64 {
+	requiredArg := make(map[Arg]uint64)
+	for _, arg := range args {
+		if arg = InnerArg(arg); arg == nil {
+			continue
+		}
+		typ, ok := arg.Type().(*LenType)
+		if !ok {
+			continue
+		}
+		lenArg := arg.(*ConstArg)
+		var pointer Arg
+		if typ.Path[0] == SyscallRef {
+			pointer = getPointer(nil, typ.Path[1:], syscallArgs, syscallFields, p, parentsMap)
+		} else {
+			pointer = getPointer(lenArg, typ.Path, args, fields, p, parentsMap)
+		}
+		// pointer is an optional pointer
+		if pointer != nil {
+			requiredArg[pointer] = lenArg.Val
+		}
+	}
+	return requiredArg
+}
+
+// to filter any program contain overlapped arguments
+
+func HasOverLappedArgs(p *Prog) bool {
+	for _, call := range p.Calls {
+		parentsMap := make(map[Arg]Arg)
+		for _, arg := range call.Args {
+			ForeachSubArg(arg, func(arg Arg, _ *ArgCtx) {
+				if _, ok := arg.Type().(*StructType); ok {
+					for _, field := range arg.(*GroupArg).Inner {
+						parentsMap[InnerArg(field)] = arg
+					}
+				}
+			})
+		}
+
+		pointerSize := checkLenType(call.Args, call.Meta.Args, parentsMap, call.Args, call.Meta.Args, p)
+		for _, arg := range call.Args {
+			ForeachSubArg(arg, func(arg Arg, _ *ArgCtx) {
+				if typ, ok := arg.Type().(*StructType); ok {
+					mp := checkLenType(arg.(*GroupArg).Inner, typ.Fields, parentsMap, call.Args, call.Meta.Args, p)
+					for key, value := range mp {
+						pointerSize[key] = value
+					}
+				}
+			})
+		}
+		dFetchDisable := filterArguments(call, pointerSize, p)
+		if dFetchDisable {
+			return true
+		}
+	}
+	return false
 }

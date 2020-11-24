@@ -1136,6 +1136,17 @@ var linuxOopses = append([]*oops{
 				noStackTrace: true,
 			},
 			{
+				title: compile("BUG: multi-read"),
+				fmt:   "BUG: multi-read in %[1]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						compile("First Address Range Stack:"),
+						parseStackTrace,
+					},
+					skip: []string{"df_save_stack", "add_address", "strncpy_from_user", "copy_from_user", "copyin", "get_user", "memdup_user"},
+				},
+			},
+			{
 				title:     compile(`BUG:[[:space:]]*(?:\n|$)`),
 				fmt:       "BUG: corrupted",
 				corrupted: true,
