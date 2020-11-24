@@ -120,6 +120,8 @@ func (p *parser) parseTop() Node {
 		return p.parseComment()
 	case tokDefine:
 		return p.parseDefine()
+	case tokDeclare:
+		return p.parseDeclare()
 	case tokInclude:
 		return p.parseInclude()
 	case tokIncdir:
@@ -145,7 +147,7 @@ func (p *parser) parseTop() Node {
 		// Scanner has already producer an error for this one.
 		panic(errSkipLine)
 	default:
-		p.expect(tokComment, tokDefine, tokInclude, tokResource, tokIdent)
+		p.expect(tokComment, tokDefine, tokDeclare, tokInclude, tokResource, tokIdent)
 	}
 	panic("not reachable")
 }
@@ -205,6 +207,15 @@ func (p *parser) parseDefine() *Define {
 		Pos:   pos0,
 		Name:  name,
 		Value: val,
+	}
+}
+
+func (p *parser) parseDeclare() *Declaration {
+	pos0 := p.pos
+	p.consume(tokDeclare)
+	return &Declaration{
+		Pos:  pos0,
+		Body: p.parseCDecl(),
 	}
 }
 
@@ -549,4 +560,13 @@ func (p *parser) parseCExpr() *Int {
 	}
 	p.consume(tokCExpr)
 	return i
+}
+
+func (p *parser) parseCDecl() *String {
+	s := &String{
+		Pos:   p.pos,
+		Value: p.lit,
+	}
+	p.consume(tokCDecl)
+	return s
 }

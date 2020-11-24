@@ -862,3 +862,12 @@ syz_r103_r104_s {
 	opt0	r103	(out)
 	opt1	r104	(in)
 }
+
+# Declare statements
+
+declare `
+int syz_test_declare(int a, int b) {
+	return a + b;
+}
+`
+syz_test_declare(a const[0xa1a1a1a1], b const[0xb2b2b2b2])

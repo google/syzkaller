@@ -21,6 +21,10 @@ amount of code, possibility of extending syzlang to cover this case, etc).
 
 ## How to add a pseudo-syscall to the executor
 
+For simple pseudo-syscalls, you can use
+[declare statements](syscall_descriptions_syntax.md#declare-statements) to
+add C++ code inline within your syzkaller description files.
+
 First, think about the scope of the pseudo-syscall and which systems and
 subsystems it will be related to. The executor includes a fixed set of C
 header files containing the code of the pseudo-syscalls. Check if the

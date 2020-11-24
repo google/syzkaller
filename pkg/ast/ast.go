@@ -74,6 +74,15 @@ func (n *Define) Info() (Pos, string, string) {
 	return n.Pos, tok2str[tokDefine], n.Name.Name
 }
 
+type Declaration struct {
+	Pos  Pos
+	Body *String
+}
+
+func (n *Declaration) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokDeclare], ""
+}
+
 type Resource struct {
 	Pos    Pos
 	Name   *Ident

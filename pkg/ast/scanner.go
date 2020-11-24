@@ -19,6 +19,8 @@ const (
 	tokInclude
 	tokIncdir
 	tokDefine
+	tokDeclare
+	tokCDecl
 	tokResource
 	tokString
 	tokStringHex
@@ -59,6 +61,8 @@ var tok2str = [...]string{
 	tokInclude:   "include",
 	tokIncdir:    "incdir",
 	tokDefine:    "define",
+	tokDeclare:   "declare",
+	tokCDecl:     "CDECL",
 	tokResource:  "resource",
 	tokString:    "string",
 	tokStringHex: "hex string",
@@ -81,6 +85,7 @@ var keywords = map[string]token{
 	"include":  tokInclude,
 	"incdir":   tokIncdir,
 	"define":   tokDefine,
+	"declare":  tokDeclare,
 	"resource": tokResource,
 }
 
@@ -162,6 +167,12 @@ func (s *scanner) Scan() (tok token, lit string, pos Pos) {
 		for ; s.ch != '\n'; s.next() {
 		}
 		lit = string(s.data[pos.Off:s.off])
+	case s.prev1 == tokDeclare && s.ch == '`':
+		tok = tokCDecl
+		for s.next(); s.ch != '`'; s.next() {
+		}
+		lit = string(s.data[pos.Off+1 : s.off])
+		s.next()
 	case s.ch == '#':
 		tok = tokComment
 		for s.next(); s.ch != '\n'; s.next() {

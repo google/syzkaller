@@ -85,6 +85,10 @@ func (n *Define) serialize(w io.Writer) {
 	fmt.Fprintf(w, "define %v\t%v\n", n.Name.Name, fmtInt(n.Value))
 }
 
+func (n *Declaration) serialize(w io.Writer) {
+	fmt.Fprintf(w, "declare `%v`\n", n.Body.Value)
+}
+
 func (n *Resource) serialize(w io.Writer) {
 	fmt.Fprintf(w, "resource %v[%v]", n.Name.Name, fmtType(n.Base))
 	for i, v := range n.Values {
