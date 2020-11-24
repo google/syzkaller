@@ -863,7 +863,6 @@ syz_r103_r104_s {
 	opt1	r104	(in)
 }
 
-
 # Testing overrides support
 
 syz_ovr_proc(a int32)
@@ -906,9 +905,11 @@ syz_ovr_type(a ovr_type)
 
 resource ovr_resource[int32]
 override resource ovr_resource[int64]
+
 ovr_resource_struct {
 	f0	ovr_resource
 }
+
 syz_ovr_resource(a ptr[out, ovr_resource_struct])
 
 type ovr_change_to_resource int32

@@ -103,7 +103,7 @@ func (ovr *Override) serialize(w io.Writer) {
 }
 
 func (ovr *VarOverride) serialize(w io.Writer) {
-	fmt.Fprintf(w, "override %v.%v %v\n", ovr.ContainerName, ovr.VarName, fmtType(ovr.NewVarType))
+	fmt.Fprintf(w, "override %v.%v %v\n", ovr.ContainerName.Name, ovr.VarName.Name, fmtType(ovr.NewVarType))
 }
 
 func (n *TypeDef) serialize(w io.Writer) {
