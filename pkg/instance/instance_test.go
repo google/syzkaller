@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -32,7 +33,7 @@ func TestFuzzerCmd(t *testing.T) {
 	flagDebug := flags.Bool("debug", false, "debug output from executor")
 	flagV := flags.Int("v", 0, "verbosity")
 	cmdLine := OldFuzzerCmd(os.Args[0], "/myexecutor", "myname", targets.Linux, targets.I386, "localhost:1234",
-		"namespace", 3, true, true)
+		"namespace", 3, true, true, false, 0)
 	args := strings.Split(cmdLine, " ")[1:]
 	if err := flags.Parse(args); err != nil {
 		t.Fatal(err)
@@ -93,10 +94,11 @@ func TestExecprogCmd(t *testing.T) {
 	flagCollide := flags.Bool("collide", true, "collide syscalls to provoke data races")
 	flagSignal := flags.Bool("cover", false, "collect feedback signals (coverage)")
 	flagSandbox := flags.String("sandbox", "none", "sandbox for fuzzing (none/setuid/namespace)")
+	flagSlowdown := flags.Int("slowdown", 1, "")
 	cmdLine := ExecprogCmd(os.Args[0], "/myexecutor", targets.FreeBSD, targets.I386,
-		"namespace", true, false, false, 7, 2, 3, "myprog")
+		"namespace", true, false, false, 7, 2, 3, true, 10, "myprog")
 	args := strings.Split(cmdLine, " ")[1:]
-	if err := flags.Parse(args); err != nil {
+	if err := tool.ParseFlags(flags, args); err != nil {
 		t.Fatal(err)
 	}
 	if len(flags.Args()) != 1 || flags.Arg(0) != "myprog" {
@@ -134,5 +136,8 @@ func TestExecprogCmd(t *testing.T) {
 	}
 	if *flagCollide {
 		t.Errorf("bad collide: %v, want: %v", *flagCollide, false)
+	}
+	if *flagSlowdown != 10 {
+		t.Errorf("bad slowdown: %v, want: %v", *flagSlowdown, 10)
 	}
 }

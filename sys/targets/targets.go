@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 )
 
 type Target struct {
@@ -41,7 +42,8 @@ type Target struct {
 	init      *sync.Once
 	initOther *sync.Once
 	// Target for the other compiler. If SYZ_CLANG says to use gcc, this will be clang. Or the other way around.
-	other *Target
+	other    *Target
+	timeouts Timeouts
 }
 
 type osCommon struct {
@@ -76,6 +78,39 @@ type osCommon struct {
 	CPP string
 	// Common CFLAGS for this OS.
 	cflags []string
+}
+
+// Timeouts structure parametrizes timeouts throughout the system.
+// It allows to support different operating system, architectures and execution environments
+// (emulation, models, etc) without scattering and duplicating knowledge about their execution
+// performance everywhere.
+// Timeouts calculation consists of 2 parts: base values and scaling.
+// Base timeout values consist of a single syscall timeout, program timeout and "no output" timeout
+// and are specified by the target (OS/arch), or defaults are used.
+// Scaling part is calculated from the execution environment in pkg/mgrconfig based on VM type,
+// kernel build type, emulation, etc. Scaling is specifically converged to a single number so that
+// it can be specified/overridden for command line tools (e.g. syz-execprog -slowdown=10).
+type Timeouts struct {
+	// Base scaling factor, used only for a single syscall timeout.
+	Slowdown int
+	// Capped scaling factor used for timeouts other than syscall timeout.
+	// It's already applied to all values in this struct, but can be used for one-off timeout values
+	// in the system. This should also be applied to syscall/program timeout attributes in syscall descriptions.
+	// Derived from Slowdown and should not be greater than Slowdown.
+	// The idea behind capping is that slowdown can be large (10-20) and most timeouts already
+	// include some safety margin. If we just multiply them we will get too large timeouts,
+	// e.g. program timeout can become 5s*20 = 100s, or "no output" timeout: 5m*20 = 100m.
+	Scale time.Duration
+	// Timeout for a single syscall, after this time the syscall is considered "blocked".
+	Syscall time.Duration
+	// Timeout for a single program execution.
+	Program time.Duration
+	// Timeout for "no output" detection.
+	NoOutput time.Duration
+	// Limit on a single VM running time, after this time a VM is restarted.
+	VMRunningTime time.Duration
+	// How long we should test to get "no output" error (derivative of NoOutput, here to avoid duplication).
+	NoOutputRunningTime time.Duration
 }
 
 const (
@@ -632,6 +667,45 @@ func initTarget(target *Target, OS, arch string) {
 	} else {
 		target.HostEndian = binary.BigEndian
 	}
+}
+
+func (target *Target) Timeouts(slowdown int) Timeouts {
+	if slowdown <= 0 {
+		panic(fmt.Sprintf("bad slowdown %v", slowdown))
+	}
+	timeouts := target.timeouts
+	timeouts.Slowdown = slowdown
+	timeouts.Scale = time.Duration(slowdown)
+	if timeouts.Scale > 3 {
+		timeouts.Scale = 3
+	}
+	if timeouts.Syscall == 0 {
+		timeouts.Syscall = 50 * time.Millisecond
+	}
+	if timeouts.Program == 0 {
+		timeouts.Program = 5 * time.Second
+	}
+	if timeouts.NoOutput == 0 {
+		// The timeout used to be 3 mins for a long time.
+		// But (1) we were seeing flakes on linux where net namespace
+		// destruction can be really slow, and (2) gVisor watchdog timeout
+		// is 3 mins + 1/4 of that for checking period = 3m45s.
+		// Current linux max timeout is CONFIG_DEFAULT_HUNG_TASK_TIMEOUT=140
+		// and workqueue.watchdog_thresh=140 which both actually result
+		// in 140-280s detection delay.
+		// So the current timeout is 5 mins (300s).
+		// We don't want it to be too long too because it will waste time on real hangs.
+		timeouts.NoOutput = 5 * time.Minute
+	}
+	if timeouts.VMRunningTime == 0 {
+		timeouts.VMRunningTime = time.Hour
+	}
+	timeouts.Syscall *= time.Duration(slowdown)
+	timeouts.Program *= timeouts.Scale
+	timeouts.NoOutput *= timeouts.Scale
+	timeouts.VMRunningTime *= timeouts.Scale
+	timeouts.NoOutputRunningTime = timeouts.NoOutput + time.Minute
+	return timeouts
 }
 
 func (target *Target) setCompiler(clang bool) {

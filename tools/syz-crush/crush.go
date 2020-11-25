@@ -23,14 +23,13 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
-	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/vm"
 )
 
 var (
 	flagConfig      = flag.String("config", "", "manager configuration file")
 	flagDebug       = flag.Bool("debug", false, "dump all VM output to console")
-	flagRestartTime = flag.Duration("restart_time", time.Hour, "how long to run the test")
+	flagRestartTime = flag.Duration("restart_time", 0, "how long to run the test")
 	flagInfinite    = flag.Bool("infinite", true, "by default test is run for ever, -infinite=false to stop on crash")
 )
 
@@ -52,7 +51,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	if *flagRestartTime == 0 {
+		*flagRestartTime *= cfg.Timeouts.VMRunningTime
+	}
 	if *flagInfinite {
 		log.Printf("running infinitely and restarting VM every %v", *flagRestartTime)
 	} else {
@@ -101,7 +102,7 @@ func main() {
 	for i := 0; i < vmPool.Count(); i++ {
 		go func(index int) {
 			for {
-				runDone <- runInstance(cfg.Target, cfg, reporter, vmPool, index, *flagRestartTime, runType)
+				runDone <- runInstance(cfg, reporter, vmPool, index, *flagRestartTime, runType)
 				if atomic.LoadUint32(&shutdown) != 0 || !*flagInfinite {
 					// If this is the last worker then we can close the channel.
 					if atomic.AddUint32(&stoppedWorkers, 1) == uint32(vmPool.Count()) {
@@ -165,7 +166,7 @@ func storeCrash(cfg *mgrconfig.Config, rep *report.Report) {
 	}
 }
 
-func runInstance(target *prog.Target, cfg *mgrconfig.Config, reporter report.Reporter,
+func runInstance(cfg *mgrconfig.Config, reporter report.Reporter,
 	vmPool *vm.Pool, index int, timeout time.Duration, runType FileType) *report.Report {
 	log.Printf("vm-%v: starting", index)
 	inst, err := vmPool.Create(index)
@@ -200,7 +201,7 @@ func runInstance(target *prog.Target, cfg *mgrconfig.Config, reporter report.Rep
 		}
 
 		cmd = instance.ExecprogCmd(execprogBin, executorBin, cfg.TargetOS, cfg.TargetArch, cfg.Sandbox,
-			true, true, true, cfg.Procs, -1, -1, logFile)
+			true, true, true, cfg.Procs, -1, -1, true, cfg.Timeouts.Slowdown, logFile)
 	} else {
 		cmd = execprogBin
 	}

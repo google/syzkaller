@@ -37,6 +37,7 @@ func TestParseOptionsCanned(t *testing.T) {
 			Collide:      true,
 			Repeat:       true,
 			Procs:        10,
+			Slowdown:     1,
 			Sandbox:      "namespace",
 			Fault:        true,
 			FaultCall:    1,
@@ -59,6 +60,7 @@ func TestParseOptionsCanned(t *testing.T) {
 			Collide:      true,
 			Repeat:       true,
 			Procs:        10,
+			Slowdown:     1,
 			Sandbox:      "android",
 			Fault:        true,
 			FaultCall:    1,
@@ -78,6 +80,7 @@ func TestParseOptionsCanned(t *testing.T) {
 			Collide:      true,
 			Repeat:       true,
 			Procs:        1,
+			Slowdown:     1,
 			Sandbox:      "none",
 			Fault:        false,
 			FaultCall:    -1,
@@ -95,6 +98,7 @@ func TestParseOptionsCanned(t *testing.T) {
 			Collide:      true,
 			Repeat:       true,
 			Procs:        1,
+			Slowdown:     1,
 			Sandbox:      "",
 			Fault:        false,
 			FaultCall:    -1,
@@ -112,6 +116,7 @@ func TestParseOptionsCanned(t *testing.T) {
 			Collide:      true,
 			Repeat:       true,
 			Procs:        1,
+			Slowdown:     1,
 			Sandbox:      "namespace",
 			Fault:        false,
 			FaultCall:    -1,
@@ -147,6 +152,7 @@ func allOptionsSingle(OS string) []Options {
 			Repeat:    true,
 			Sandbox:   "none",
 			UseTmpDir: true,
+			Slowdown:  1,
 		}
 		opts = append(opts, enumerateField(OS, opt, i)...)
 	}
@@ -198,6 +204,11 @@ func enumerateField(OS string, opt Options, field int) []Options {
 	} else if fldName == "RepeatTimes" {
 		for _, times := range []int64{0, 10} {
 			fld.SetInt(times)
+			opts = append(opts, opt)
+		}
+	} else if fldName == "Slowdown" {
+		for _, val := range []int64{1, 10} {
+			fld.SetInt(val)
 			opts = append(opts, opt)
 		}
 	} else if fldName == "FaultCall" {

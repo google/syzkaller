@@ -30,7 +30,7 @@ func buildExecutor(t *testing.T, target *prog.Target) string {
 	return bin
 }
 
-func initTest(t *testing.T) (*prog.Target, rand.Source, int, bool, bool) {
+func initTest(t *testing.T) (*prog.Target, rand.Source, int, bool, bool, targets.Timeouts) {
 	t.Parallel()
 	iters := 100
 	if testing.Short() {
@@ -50,7 +50,7 @@ func initTest(t *testing.T) (*prog.Target, rand.Source, int, bool, bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return target, rs, iters, cfg.UseShmem, cfg.UseForkServer
+	return target, rs, iters, cfg.UseShmem, cfg.UseForkServer, cfg.Timeouts
 }
 
 // TestExecutor runs all internal executor unit tests.
@@ -82,7 +82,7 @@ func TestExecutor(t *testing.T) {
 }
 
 func TestExecute(t *testing.T) {
-	target, _, _, useShmem, useForkServer := initTest(t)
+	target, _, _, useShmem, useForkServer, timeouts := initTest(t)
 
 	bin := buildExecutor(t, target)
 	defer os.Remove(bin)
@@ -94,6 +94,7 @@ func TestExecute(t *testing.T) {
 			Executor:      bin,
 			UseShmem:      useShmem,
 			UseForkServer: useForkServer,
+			Timeouts:      timeouts,
 		}
 		env, err := MakeEnv(cfg, 0)
 		if err != nil {
@@ -127,13 +128,14 @@ func TestExecute(t *testing.T) {
 }
 
 func TestParallel(t *testing.T) {
-	target, _, _, useShmem, useForkServer := initTest(t)
+	target, _, _, useShmem, useForkServer, timeouts := initTest(t)
 	bin := buildExecutor(t, target)
 	defer os.Remove(bin)
 	cfg := &Config{
 		Executor:      bin,
 		UseShmem:      useShmem,
 		UseForkServer: useForkServer,
+		Timeouts:      timeouts,
 	}
 	const P = 10
 	errs := make(chan error, P)

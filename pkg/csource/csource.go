@@ -29,6 +29,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -93,11 +94,12 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		replacements["SANDBOX_FUNC"] = replacements["SYSCALLS"]
 		replacements["SYSCALLS"] = "unused"
 	}
-	replacements["PROGRAM_TIMEOUT_MS"] = "5000"
-	timeoutExpr := "45"
+	timeouts := ctx.sysTarget.Timeouts(opts.Slowdown)
+	replacements["PROGRAM_TIMEOUT_MS"] = fmt.Sprint(int(timeouts.Program / time.Millisecond))
+	timeoutExpr := fmt.Sprint(int(timeouts.Syscall / time.Millisecond))
 	for i, call := range p.Calls {
 		if timeout := call.Meta.Attrs.Timeout; timeout != 0 {
-			timeoutExpr += fmt.Sprintf(" + (call == %d ? %d : 0)", i, timeout)
+			timeoutExpr += fmt.Sprintf(" + (call == %v ? %v : 0)", i, timeout*uint64(timeouts.Scale))
 		}
 	}
 	replacements["CALL_TIMEOUT_MS"] = timeoutExpr

@@ -293,7 +293,7 @@ func (mgr *Manager) vmLoop() {
 	go func() {
 		for i := 0; i < vmCount; i++ {
 			bootInstance <- i
-			time.Sleep(10 * time.Second)
+			time.Sleep(10 * time.Second * mgr.cfg.Timeouts.Scale)
 		}
 	}()
 	var instances []int
@@ -629,8 +629,8 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Re
 
 	cmd := instance.FuzzerCmd(fuzzerBin, executorBin, instanceName,
 		mgr.cfg.TargetOS, mgr.cfg.TargetArch, fwdAddr, mgr.cfg.Sandbox, procs, fuzzerV,
-		mgr.cfg.Cover, *flagDebug, false, false)
-	outc, errc, err := inst.Run(time.Hour, mgr.vmStop, cmd)
+		mgr.cfg.Cover, *flagDebug, false, false, true, mgr.cfg.Timeouts.Slowdown)
+	outc, errc, err := inst.Run(mgr.cfg.Timeouts.VMRunningTime, mgr.vmStop, cmd)
 	if err != nil {
 		return nil, fmt.Errorf("failed to run fuzzer: %v", err)
 	}

@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/config"
@@ -34,6 +35,7 @@ type Derived struct {
 	ExecutorBin string
 
 	Syscalls []int
+	Timeouts targets.Timeouts
 }
 
 func LoadData(data []byte) (*Config, error) {
@@ -171,7 +173,25 @@ func Complete(cfg *Config) error {
 	if err != nil {
 		return err
 	}
+	cfg.initTimeouts()
 	return nil
+}
+
+func (cfg *Config) initTimeouts() {
+	slowdown := 1
+	switch {
+	case cfg.Type == "qemu" && runtime.GOARCH != cfg.SysTarget.Arch && runtime.GOARCH != cfg.SysTarget.VMArch:
+		// Assuming qemu emulation.
+		// Quick tests of mmap syscall on arm64 show ~9x slowdown.
+		slowdown = 10
+	case cfg.Type == "gvisor" && cfg.Cover && strings.Contains(cfg.Name, "-race"):
+		// Go coverage+race has insane slowdown of ~350x. We can't afford such large value,
+		// but a smaller value should be enough to finish at least some syscalls.
+		// Note: the name check is a hack.
+		slowdown = 10
+	}
+	// Note: we could also consider heavy debug tools (KASAN/KMSAN/KCSAN/KMEMLEAK) if necessary.
+	cfg.Timeouts = cfg.SysTarget.Timeouts(slowdown)
 }
 
 func checkNonEmpty(fields ...string) error {
