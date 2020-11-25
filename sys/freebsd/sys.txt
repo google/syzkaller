@@ -3,8 +3,10 @@
 
 include <sys/types.h>
 include <sys/mman.h>
+include <sys/proc.h>
 include <sys/rtprio.h>
 include <sys/stat.h>
+include <sys/thr.h>
 include <fcntl.h>
 include <unistd.h>
 include <mqueue.h>
@@ -26,6 +28,8 @@ sf_hdtr {
 	trailers	ptr[in, array[iovec_in]]
 	trl_cnt		len[trailers, int32]
 }
+
+resource lwpid[int32]: 0, 0xffffffffffffffff
 
 sf_flags = SF_NODISKIO, SF_NOCACHE, SF_SYNC, SF_USER_READAHEAD
 sendfile(fd fd, s sock_in, offset fileoff, nbytes int64, hdtr ptr[in, sf_hdtr], sbytes ptr[out, fileoff[int64]], flags flags[sf_flags])
@@ -129,7 +133,14 @@ setitimer(which flags[getitimer_which], new ptr[in, itimerval], old ptr[out, iti
 exit(code intptr)
 wait4(pid pid, status ptr[out, int32, opt], options flags[wait_options], ru ptr[out, rusage, opt])
 
+thr_new(param ptr[in, thr_param], param_size bytesize[param])
+thr_self(lwpid ptr[out, lwpid])
+thr_suspend(timeout ptr[in, timespec])
+thr_wake(lwpid lwpid)
+thr_set_name(lwpid lwpid, name ptr[in, string])
+
 rtprio(function flags[rtprio_functions], pid pid, rtp ptr[in, rtprio])
+rtprio_thread(function flags[rtprio_functions], lwpid lwpid, rtp ptr[in, rtprio])
 
 pollfd {
 	fd	fd
@@ -197,6 +208,25 @@ rtprio {
 	prio	int16[0:RTP_PRIO_MAX]
 }
 
+thr_param {
+	start_func	ptr[in, text[target]]
+	arg		intptr
+	stack_base	ptr64[in, array[int8]]
+	stack_size	bytesize[stack_base, intptr]
+	tls_base	ptr64[in, array[int8]]
+	tls_size	bytesize[tls_base, intptr]
+	child_tid	ptr[out, intptr]
+	parent_tid	ptr[out, thr_param_tid]
+	flags		flags[thr_flags, int32]
+	rtp		ptr[in, rtprio]
+	spare		array[intptr, 3]
+}
+
+thr_param_tid {
+	lwpid	lwpid
+	pad	int32
+}
+
 flock {
 	type	flags[flock_type, int16]
 	whence	flags[seek_whence, int16]
@@ -237,3 +267,4 @@ chflags_flags = SF_APPEND, SF_ARCHIVED, SF_IMMUTABLE, SF_NOUNLINK, SF_SNAPSHOT, 
 
 rtprio_functions = RTP_LOOKUP, RTP_SET
 rtprio_types = RTP_PRIO_REALTIME, RTP_PRIO_NORMAL, RTP_PRIO_IDLE
+thr_flags = THR_SUSPENDED, THR_SYSTEM_SCOPE
