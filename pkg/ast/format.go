@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 )
 
 func Format(desc *Description) []byte {
@@ -70,7 +71,7 @@ func (n *NewLine) serialize(w io.Writer) {
 }
 
 func (n *Comment) serialize(w io.Writer) {
-	fmt.Fprintf(w, "#%v\n", n.Text)
+	fmt.Fprintf(w, "#%v\n", strings.TrimRight(n.Text, " \t"))
 }
 
 func (n *Include) serialize(w io.Writer) {
@@ -138,7 +139,7 @@ func (n *Struct) serialize(w io.Writer) {
 			fmt.Fprintf(w, "\n")
 		}
 		for _, com := range f.Comments {
-			fmt.Fprintf(w, "#%v\n", com.Text)
+			com.serialize(w)
 		}
 		fmt.Fprintf(w, "\t%v\t", f.Name.Name)
 		for tabs := len(f.Name.Name)/tabWidth + 1; tabs < maxTabs; tabs++ {
@@ -151,7 +152,7 @@ func (n *Struct) serialize(w io.Writer) {
 		fmt.Fprintf(w, "\n")
 	}
 	for _, com := range n.Comments {
-		fmt.Fprintf(w, "#%v\n", com.Text)
+		com.serialize(w)
 	}
 	fmt.Fprintf(w, "%c", closing)
 	if attrs := fmtTypeList(n.Attrs, "[", "]"); attrs != "" {
