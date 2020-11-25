@@ -3,6 +3,7 @@
 
 include <sys/types.h>
 include <sys/mman.h>
+include <sys/rtprio.h>
 include <sys/stat.h>
 include <fcntl.h>
 include <unistd.h>
@@ -128,6 +129,8 @@ setitimer(which flags[getitimer_which], new ptr[in, itimerval], old ptr[out, iti
 exit(code intptr)
 wait4(pid pid, status ptr[out, int32, opt], options flags[wait_options], ru ptr[out, rusage, opt])
 
+rtprio(function flags[rtprio_functions], pid pid, rtp ptr[in, rtprio])
+
 pollfd {
 	fd	fd
 	events	flags[pollfd_events, int16]
@@ -189,6 +192,11 @@ rlimit {
 	hard	intptr
 }
 
+rtprio {
+	type	flags[rtprio_types, int16]
+	prio	int16[0:RTP_PRIO_MAX]
+}
+
 flock {
 	type	flags[flock_type, int16]
 	whence	flags[seek_whence, int16]
@@ -226,3 +234,6 @@ minherit_flags = INHERIT_SHARE, INHERIT_NONE, INHERIT_COPY, INHERIT_ZERO
 copy_file_range_flags = 0
 realpathat_flags = 0
 chflags_flags = SF_APPEND, SF_ARCHIVED, SF_IMMUTABLE, SF_NOUNLINK, SF_SNAPSHOT, UF_APPEND, UF_ARCHIVE, UF_HIDDEN, UF_IMMUTABLE, UF_NODUMP, UF_NOUNLINK, UF_OFFLINE, UF_OPAQUE, UF_READONLY, UF_REPARSE, UF_SPARSE, UF_SYSTEM
+
+rtprio_functions = RTP_LOOKUP, RTP_SET
+rtprio_types = RTP_PRIO_REALTIME, RTP_PRIO_NORMAL, RTP_PRIO_IDLE
