@@ -376,6 +376,7 @@ func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bo
 	opts := new(ipc.ExecOpts)
 	cfg.UseShmem = sysTarget.ExecutorUsesShmem
 	cfg.UseForkServer = sysTarget.ExecutorUsesForkServer
+	cfg.Timeouts = sysTarget.Timeouts(1)
 	sandboxFlags, err := ipc.SandboxToFlags(sandbox)
 	if err != nil {
 		return nil, err
@@ -427,6 +428,7 @@ func (ctx *Context) createCTest(p *prog.Prog, sandbox string, threaded bool, tim
 		Repeat:      times > 1,
 		RepeatTimes: times,
 		Procs:       1,
+		Slowdown:    1,
 		Sandbox:     sandbox,
 		UseTmpDir:   true,
 		HandleSegv:  true,

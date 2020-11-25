@@ -18,6 +18,7 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/vmimpl"
 
 	// Import all VM implementations, so that users only need to import vm.
@@ -37,12 +38,14 @@ type Pool struct {
 	impl     vmimpl.Pool
 	workdir  string
 	template string
+	timeouts targets.Timeouts
 }
 
 type Instance struct {
-	impl    vmimpl.Instance
-	workdir string
-	index   int
+	impl     vmimpl.Instance
+	workdir  string
+	timeouts targets.Timeouts
+	index    int
 }
 
 var (
@@ -92,6 +95,7 @@ func Create(cfg *mgrconfig.Config, debug bool) (*Pool, error) {
 		impl:     impl,
 		workdir:  env.Workdir,
 		template: cfg.WorkdirTemplate,
+		timeouts: cfg.Timeouts,
 	}, nil
 }
 
@@ -118,9 +122,10 @@ func (pool *Pool) Create(index int) (*Instance, error) {
 		return nil, err
 	}
 	return &Instance{
-		impl:    impl,
-		workdir: workdir,
-		index:   index,
+		impl:     impl,
+		workdir:  workdir,
+		timeouts: pool.timeouts,
+		index:    index,
 	}, nil
 }
 
@@ -175,7 +180,7 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 		exit:     exit,
 	}
 	lastExecuteTime := time.Now()
-	ticker := time.NewTicker(tickerPeriod)
+	ticker := time.NewTicker(tickerPeriod * inst.timeouts.Scale)
 	defer ticker.Stop()
 	for {
 		select {
@@ -240,16 +245,7 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 		case <-ticker.C:
 			// Detect both "no output whatsoever" and "kernel episodically prints
 			// something to console, but fuzzer is not actually executing programs".
-			// The timeout used to be 3 mins for a long time.
-			// But (1) we were seeing flakes on linux where net namespace
-			// destruction can be really slow, and (2) gVisor watchdog timeout
-			// is 3 mins + 1/4 of that for checking period = 3m45s.
-			// Current linux max timeout is CONFIG_DEFAULT_HUNG_TASK_TIMEOUT=140
-			// and workqueue.watchdog_thresh=140 which both actually result
-			// in 140-280s detection delay.
-			// So the current timeout is 5 mins (300s).
-			// We don't want it to be too long too because it will waste time on real hangs.
-			if time.Since(lastExecuteTime) > NoOutputTimeout {
+			if time.Since(lastExecuteTime) > inst.timeouts.NoOutput {
 				return mon.extractError(noOutputCrash)
 			}
 		case <-Shutdown:
@@ -360,7 +356,6 @@ var (
 	beforeContext = 1024 << 10
 	afterContext  = 128 << 10
 
-	NoOutputTimeout      = 5 * time.Minute
 	tickerPeriod         = 10 * time.Second
 	waitForOutputTimeout = 10 * time.Second
 )

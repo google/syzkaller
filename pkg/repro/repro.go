@@ -49,10 +49,11 @@ type context struct {
 	crashType    report.Type
 	instances    chan *instance
 	bootRequests chan int
-	timeouts     []time.Duration
+	testTimeouts []time.Duration
 	startOpts    csource.Options
 	stats        *Stats
 	report       *report.Report
+	timeouts     targets.Timeouts
 }
 
 type instance struct {
@@ -78,10 +79,11 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, report
 		crashTitle = rep.Title
 		crashType = rep.Type
 	}
-	// The shortest duration is 10 seconds to detect simple crashes (i.e. no races and no hangs).
-	// The longest duration is 6 minutes to catch races and hangs.
-	noOutputTimeout := vm.NoOutputTimeout + time.Minute
-	timeouts := []time.Duration{15 * time.Second, time.Minute, noOutputTimeout}
+	testTimeouts := []time.Duration{
+		3 * cfg.Timeouts.Program, // to catch simpler crashes (i.e. no races and no hangs)
+		20 * cfg.Timeouts.Program,
+		cfg.Timeouts.NoOutputRunningTime, // to catch "no output", races and hangs
+	}
 	switch {
 	case crashTitle == "":
 		crashTitle = "no output/lost connection"
@@ -89,12 +91,12 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, report
 		// but theoretically if it's caused by a race it may need the largest timeout.
 		// No output can only be reproduced with the max timeout.
 		// As a compromise we use the smallest and the largest timeouts.
-		timeouts = []time.Duration{15 * time.Second, noOutputTimeout}
+		testTimeouts = []time.Duration{testTimeouts[0], testTimeouts[2]}
 	case crashType == report.MemoryLeak:
 		// Memory leaks can't be detected quickly because of expensive setup and scanning.
-		timeouts = []time.Duration{time.Minute, noOutputTimeout}
+		testTimeouts = testTimeouts[1:]
 	case crashType == report.Hang:
-		timeouts = []time.Duration{noOutputTimeout}
+		testTimeouts = testTimeouts[2:]
 	}
 	ctx := &context{
 		target:       cfg.SysTarget,
@@ -103,11 +105,12 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, report
 		crashType:    crashType,
 		instances:    make(chan *instance, len(vmIndexes)),
 		bootRequests: make(chan int, len(vmIndexes)),
-		timeouts:     timeouts,
+		testTimeouts: testTimeouts,
 		startOpts:    createStartOptions(cfg, features, crashType),
 		stats:        new(Stats),
+		timeouts:     cfg.Timeouts,
 	}
-	ctx.reproLogf(0, "%v programs, %v VMs, timeouts %v", len(entries), len(vmIndexes), timeouts)
+	ctx.reproLogf(0, "%v programs, %v VMs, timeouts %v", len(entries), len(vmIndexes), testTimeouts)
 	var wg sync.WaitGroup
 	wg.Add(len(vmIndexes))
 	for _, vmIndex := range vmIndexes {
@@ -308,7 +311,7 @@ func (ctx *context) extractProg(entries []*prog.LogEntry) (*Result, error) {
 	for i := len(indices) - 1; i >= 0; i-- {
 		lastEntries = append(lastEntries, entries[indices[i]])
 	}
-	for _, timeout := range ctx.timeouts {
+	for _, timeout := range ctx.testTimeouts {
 		// Execute each program separately to detect simple crashes caused by a single program.
 		// Programs are executed in reverse order, usually the last program is the guilty one.
 		res, err := ctx.extractProgSingle(lastEntries, timeout)
@@ -484,7 +487,7 @@ func (ctx *context) simplifyProg(res *Result) (*Result, error) {
 
 	for _, simplify := range progSimplifies {
 		opts := res.Opts
-		if !simplify(&opts) || !checkOpts(&opts, res.Duration) {
+		if !simplify(&opts) || !checkOpts(&opts, ctx.timeouts, res.Duration) {
 			continue
 		}
 		crashed, err := ctx.testProg(res.Prog, res.Duration, opts)
@@ -534,7 +537,7 @@ func (ctx *context) simplifyC(res *Result) (*Result, error) {
 
 	for _, simplify := range cSimplifies {
 		opts := res.Opts
-		if !simplify(&opts) || !checkOpts(&opts, res.Duration) {
+		if !simplify(&opts) || !checkOpts(&opts, ctx.timeouts, res.Duration) {
 			continue
 		}
 		crashed, err := ctx.testCProg(res.Prog, res.Duration, opts)
@@ -549,7 +552,7 @@ func (ctx *context) simplifyC(res *Result) (*Result, error) {
 	return res, nil
 }
 
-func checkOpts(opts *csource.Options, timeout time.Duration) bool {
+func checkOpts(opts *csource.Options, timeouts targets.Timeouts, timeout time.Duration) bool {
 	if !opts.Repeat && timeout >= time.Minute {
 		// If we have a non-repeating C reproducer with timeout > vm.NoOutputTimeout and it hangs
 		// (the reproducer itself does not terminate on its own, note: it does not have builtin timeout),
@@ -621,7 +624,7 @@ func (ctx *context) testProgs(entries []*prog.LogEntry, duration time.Duration, 
 
 	command := instancePkg.ExecprogCmd(inst.execprogBin, inst.executorBin,
 		ctx.target.OS, ctx.target.Arch, opts.Sandbox, opts.Repeat,
-		opts.Threaded, opts.Collide, opts.Procs, -1, -1, vmProgFile)
+		opts.Threaded, opts.Collide, opts.Procs, -1, -1, true, ctx.timeouts.Slowdown, vmProgFile)
 	ctx.reproLogf(2, "testing program (duration=%v, %+v): %s", duration, opts, program)
 	ctx.reproLogf(3, "detailed listing:\n%s", pstr)
 	return ctx.testImpl(inst.Instance, command, duration)

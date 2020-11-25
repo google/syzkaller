@@ -283,8 +283,7 @@ func loadPrograms(target *prog.Target, files []string) []*prog.LogEntry {
 	return entries
 }
 
-func createConfig(target *prog.Target,
-	features *host.Features, featuresFlags csource.Features) (
+func createConfig(target *prog.Target, features *host.Features, featuresFlags csource.Features) (
 	*ipc.Config, *ipc.ExecOpts) {
 	config, execOpts, err := ipcconfig.Default(target)
 	if err != nil {

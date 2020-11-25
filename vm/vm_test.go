@@ -73,7 +73,6 @@ func (inst *testInstance) Close() {
 func init() {
 	beforeContext = maxErrorLength + 100
 	tickerPeriod = 1 * time.Second
-	NoOutputTimeout = 5 * time.Second
 	waitForOutputTimeout = 3 * time.Second
 
 	ctor := func(env *vmimpl.Env) (vmimpl.Pool, error) {
@@ -344,6 +343,11 @@ func testMonitorExecution(t *testing.T, test *Test) {
 			TargetOS:     targets.Linux,
 			TargetArch:   targets.AMD64,
 			TargetVMArch: targets.AMD64,
+			Timeouts: targets.Timeouts{
+				Scale:    1,
+				Slowdown: 1,
+				NoOutput: 5 * time.Second,
+			},
 		},
 		Workdir: dir,
 		Type:    "test",

@@ -23,6 +23,7 @@ type Options struct {
 	Repeat      bool   `json:"repeat,omitempty"`
 	RepeatTimes int    `json:"repeat_times,omitempty"` // if non-0, repeat that many times
 	Procs       int    `json:"procs"`
+	Slowdown    int    `json:"slowdown"`
 	Sandbox     string `json:"sandbox"`
 
 	Fault     bool `json:"fault,omitempty"` // inject fault into FaultCall/FaultNth
@@ -154,6 +155,7 @@ func DefaultOpts(cfg *mgrconfig.Config) Options {
 		Collide:    true,
 		Repeat:     true,
 		Procs:      cfg.Procs,
+		Slowdown:   cfg.Timeouts.Slowdown,
 		Sandbox:    cfg.Sandbox,
 		UseTmpDir:  true,
 		HandleSegv: true,
@@ -190,9 +192,11 @@ func (opts Options) Serialize() []byte {
 }
 
 func DeserializeOptions(data []byte) (Options, error) {
-	var opts Options
-	// Before CloseFDs was added, close_fds() was always called, so default to true.
-	opts.CloseFDs = true
+	opts := Options{
+		Slowdown: 1,
+		// Before CloseFDs was added, close_fds() was always called, so default to true.
+		CloseFDs: true,
+	}
 	if err := json.Unmarshal(data, &opts); err == nil {
 		return opts, nil
 	}

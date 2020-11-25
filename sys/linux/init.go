@@ -280,6 +280,7 @@ func (arch *arch) generateTimespec(g *prog.Gen, typ0 prog.Type, dir prog.Dir, ol
 	// Note: timespec/timeval can be absolute or relative to now.
 	// Note: executor has blocking syscall timeout of 45 ms,
 	// so we generate both 10ms and 60ms.
+	// TODO(dvyukov): this is now all outdated with tunable timeouts.
 	const (
 		timeout1 = uint64(10)
 		timeout2 = uint64(60)

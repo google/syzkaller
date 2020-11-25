@@ -53,6 +53,7 @@ var executorOpts = Options{
 	Collide:   true,
 	Repeat:    true,
 	Procs:     2,
+	Slowdown:  1,
 	Sandbox:   "none",
 	Repro:     true,
 	UseTmpDir: true,

@@ -43,7 +43,7 @@ func (serv *RPCServer) Serve() {
 			log.Logf(0, "failed to accept an rpc connection: %v", err)
 			continue
 		}
-		setupKeepAlive(conn, 10*time.Second)
+		setupKeepAlive(conn, time.Minute)
 		go serv.s.ServeConn(newFlateConn(conn))
 	}
 }
@@ -53,39 +53,44 @@ func (serv *RPCServer) Addr() net.Addr {
 }
 
 type RPCClient struct {
-	conn net.Conn
-	c    *rpc.Client
+	conn      net.Conn
+	c         *rpc.Client
+	timeScale time.Duration
 }
 
-func Dial(addr string) (net.Conn, error) {
+func Dial(addr string, timeScale time.Duration) (net.Conn, error) {
+	if timeScale <= 0 {
+		return nil, fmt.Errorf("bad rpc time scale %v", timeScale)
+	}
 	var conn net.Conn
 	var err error
 	if addr == "stdin" {
 		// This is used by vm/gvisor which passes us a unix socket connection in stdin.
 		return net.FileConn(os.Stdin)
 	}
-	if conn, err = net.DialTimeout("tcp", addr, 60*time.Second); err != nil {
+	if conn, err = net.DialTimeout("tcp", addr, time.Minute*timeScale); err != nil {
 		return nil, err
 	}
-	setupKeepAlive(conn, time.Minute)
+	setupKeepAlive(conn, time.Minute*timeScale)
 	return conn, nil
 }
 
-func NewRPCClient(addr string) (*RPCClient, error) {
-	conn, err := Dial(addr)
+func NewRPCClient(addr string, timeScale time.Duration) (*RPCClient, error) {
+	conn, err := Dial(addr, timeScale)
 	if err != nil {
 		return nil, err
 	}
 	cli := &RPCClient{
-		conn: conn,
-		c:    rpc.NewClient(newFlateConn(conn)),
+		conn:      conn,
+		c:         rpc.NewClient(newFlateConn(conn)),
+		timeScale: timeScale,
 	}
 	return cli, nil
 }
 
 func (cli *RPCClient) Call(method string, args, reply interface{}) error {
 	// Note: SetDeadline is not implemented on fuchsia, so don't fail on error.
-	cli.conn.SetDeadline(time.Now().Add(5 * 60 * time.Second))
+	cli.conn.SetDeadline(time.Now().Add(3 * time.Minute * cli.timeScale))
 	defer cli.conn.SetDeadline(time.Time{})
 	return cli.c.Call(method, args, reply)
 }
@@ -94,8 +99,8 @@ func (cli *RPCClient) Close() {
 	cli.c.Close()
 }
 
-func RPCCall(addr, method string, args, reply interface{}) error {
-	c, err := NewRPCClient(addr)
+func RPCCall(addr string, timeScale time.Duration, method string, args, reply interface{}) error {
+	c, err := NewRPCClient(addr, timeScale)
 	if err != nil {
 		return err
 	}

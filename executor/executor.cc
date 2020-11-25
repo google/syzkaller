@@ -567,10 +567,14 @@ void receive_execute()
 	flag_fault_nth = req.fault_nth;
 	if (!flag_threaded)
 		flag_collide = false;
-	debug("[%llums] exec opts: procid=%llu threaded=%d collide=%d cover=%d comps=%d dedup=%d fault=%d/%d/%d prog=%llu filter=%d\n",
+	debug("[%llums] exec opts: procid=%llu threaded=%d collide=%d cover=%d comps=%d dedup=%d fault=%d/%d/%d"
+	      " timeouts=%llu/%llu/%llu prog=%llu filter=%d\n",
 	      current_time_ms() - start_time_ms, procid, flag_threaded, flag_collide,
 	      flag_collect_cover, flag_comparisons, flag_dedup_cover, flag_fault,
-	      flag_fault_call, flag_fault_nth, req.prog_size, flag_coverage_filter);
+	      flag_fault_call, flag_fault_nth, syscall_timeout_ms, program_timeout_ms, slowdown_scale,
+	      req.prog_size, flag_coverage_filter);
+	if (syscall_timeout_ms == 0 || program_timeout_ms <= syscall_timeout_ms || slowdown_scale == 0)
+		fail("bad timeouts: %llu/%llu/%llu", syscall_timeout_ms, program_timeout_ms, slowdown_scale);
 	if (SYZ_EXECUTOR_USES_SHMEM) {
 		if (req.prog_size)
 			fail("need_prog: no program");
@@ -758,8 +762,6 @@ retry:
 			// We already have results from the previous execution.
 		} else if (flag_threaded) {
 			// Wait for call completion.
-			// Note: sys/linux knows about this 45 ms timeout when it generates timespec/timeval values.
-			// Note: pkg/csource also knows about this 45 ms per-call timeout.
 			uint64 timeout_ms = syscall_timeout_ms + call->attrs.timeout * slowdown_scale;
 			// This is because of printing pre/post call. Ideally we print everything in the main thread
 			// and then remove this (would also avoid intermixed output).

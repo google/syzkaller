@@ -27,6 +27,7 @@ import (
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type Fuzzer struct {
@@ -43,6 +44,7 @@ type Fuzzer struct {
 	manager           *rpctype.RPCClient
 	target            *prog.Target
 	triagedCandidates uint32
+	timeouts          targets.Timeouts
 
 	faultInjectionEnabled    bool
 	comparisonTracingEnabled bool
@@ -152,6 +154,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to create default ipc config: %v", err)
 	}
+	timeouts := config.Timeouts
 	sandbox := ipc.FlagsToSandbox(config.Flags)
 	shutdown := make(chan struct{})
 	osutil.HandleInterrupts(shutdown)
@@ -179,7 +182,7 @@ func main() {
 	}
 
 	log.Logf(0, "dialing manager at %v", *flagManager)
-	manager, err := rpctype.NewRPCClient(*flagManager)
+	manager, err := rpctype.NewRPCClient(*flagManager, timeouts.Scale)
 	if err != nil {
 		log.Fatalf("failed to connect to manager: %v ", err)
 	}
@@ -243,6 +246,7 @@ func main() {
 		needPoll:                 needPoll,
 		manager:                  manager,
 		target:                   target,
+		timeouts:                 timeouts,
 		faultInjectionEnabled:    r.CheckResult.Features[host.FeatureFault].Enabled,
 		comparisonTracingEnabled: r.CheckResult.Features[host.FeatureComparisons].Enabled,
 		corpusHashes:             make(map[hash.Sig]struct{}),
@@ -300,7 +304,8 @@ func (fuzzer *Fuzzer) gateCallback(leakFrames []string) {
 		return
 	}
 	args := append([]string{"leak"}, leakFrames...)
-	output, err := osutil.RunCmd(10*time.Minute, "", fuzzer.config.Executor, args...)
+	timeout := fuzzer.timeouts.NoOutput * 9 / 10
+	output, err := osutil.RunCmd(timeout, "", fuzzer.config.Executor, args...)
 	if err != nil && triagedCandidates == 2 {
 		// If we exit right away, dying executors will dump lots of garbage to console.
 		os.Stdout.Write(output)
@@ -315,7 +320,8 @@ func (fuzzer *Fuzzer) gateCallback(leakFrames []string) {
 
 func (fuzzer *Fuzzer) filterDataRaceFrames(frames []string) {
 	args := append([]string{"setup_kcsan_filterlist"}, frames...)
-	output, err := osutil.RunCmd(10*time.Minute, "", fuzzer.config.Executor, args...)
+	timeout := time.Minute * fuzzer.timeouts.Scale
+	output, err := osutil.RunCmd(timeout, "", fuzzer.config.Executor, args...)
 	if err != nil {
 		log.Fatalf("failed to set KCSAN filterlist: %v", err)
 	}
@@ -326,7 +332,7 @@ func (fuzzer *Fuzzer) pollLoop() {
 	var execTotal uint64
 	var lastPoll time.Time
 	var lastPrint time.Time
-	ticker := time.NewTicker(3 * time.Second).C
+	ticker := time.NewTicker(3 * time.Second * fuzzer.timeouts.Scale).C
 	for {
 		poll := false
 		select {
@@ -334,12 +340,12 @@ func (fuzzer *Fuzzer) pollLoop() {
 		case <-fuzzer.needPoll:
 			poll = true
 		}
-		if fuzzer.outputType != OutputStdout && time.Since(lastPrint) > 10*time.Second {
+		if fuzzer.outputType != OutputStdout && time.Since(lastPrint) > 10*time.Second*fuzzer.timeouts.Scale {
 			// Keep-alive for manager.
 			log.Logf(0, "alive, executed %v", execTotal)
 			lastPrint = time.Now()
 		}
-		if poll || time.Since(lastPoll) > 10*time.Second {
+		if poll || time.Since(lastPoll) > 10*time.Second*fuzzer.timeouts.Scale {
 			needCandidates := fuzzer.workQueue.wantCandidates()
 			if poll && !needCandidates {
 				continue

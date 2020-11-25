@@ -51,7 +51,7 @@ func main() {
 		return
 	}
 	log.Printf("connecting to hub at %v...", *flagHubAddress)
-	conn, err := rpctype.NewRPCClient(*flagHubAddress)
+	conn, err := rpctype.NewRPCClient(*flagHubAddress, 1)
 	if err != nil {
 		log.Fatalf("failed to connect to hub: %v", err)
 	}

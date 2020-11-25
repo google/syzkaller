@@ -73,6 +73,8 @@ type Config struct {
 
 	// Flags are configuation flags, defined above.
 	Flags EnvFlags
+
+	Timeouts targets.Timeouts
 }
 
 type CallFlags uint32
@@ -154,6 +156,10 @@ func FlagsToSandbox(flags EnvFlags) string {
 }
 
 func MakeEnv(config *Config, pid int) (*Env, error) {
+	if config.Timeouts.Slowdown == 0 || config.Timeouts.Scale == 0 ||
+		config.Timeouts.Syscall == 0 || config.Timeouts.Program == 0 {
+		return nil, fmt.Errorf("ipc.MakeEnv: uninitialized timeouts (%+v)", config.Timeouts)
+	}
 	var inf, outf *os.File
 	var inmem, outmem []byte
 	if config.UseShmem {
@@ -731,9 +737,9 @@ func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, hanged b
 		pid:              uint64(c.pid),
 		faultCall:        uint64(opts.FaultCall),
 		faultNth:         uint64(opts.FaultNth),
-		syscallTimeoutMS: 50,
-		programTimeoutMS: 5000,
-		slowdownScale:    1,
+		syscallTimeoutMS: uint64(c.config.Timeouts.Syscall / time.Millisecond),
+		programTimeoutMS: uint64(c.config.Timeouts.Program / time.Millisecond),
+		slowdownScale:    uint64(c.config.Timeouts.Scale),
 		progSize:         uint64(len(progData)),
 	}
 	reqData := (*[unsafe.Sizeof(*req)]byte)(unsafe.Pointer(req))[:]
