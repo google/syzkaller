@@ -394,7 +394,7 @@ ioprio_set$uid(which flags[ioprio_which_uid], who uid, ioprio flags[ioprio_prior
 
 # NEED: we can express the construction of integers using structs with flags
 # and bitfields, which are normally obtained using a combination of bitwise
-# operations with the help of macros. However, structs can't be directly passed 
+# operations with the help of macros. However, structs can't be directly passed
 # as a syscall argument; therefore, such constructions can't be directly passed either.
 # One example is ioprio argument for ioprio_set, where we could have expressed the
 # construction less messy. For now, some subset of valid values are enumerated as

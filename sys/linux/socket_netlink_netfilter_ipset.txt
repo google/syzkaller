@@ -156,7 +156,7 @@ ip_set_type_adt_policy [
 ] [varlen]
 
 ipaddr_policy [
-# TODO: should ipv4_addr be in reverse byte order here? 
+# TODO: should ipv4_addr be in reverse byte order here?
 	IPSET_ATTR_IPADDR_IPV4	nlnetw[IPSET_ATTR_IPADDR_IPV4, ipv4_addr]
 	IPSET_ATTR_IPADDR_IPV6	nlnetw[IPSET_ATTR_IPADDR_IPV6, ipv6_addr]
 ] [varlen]
