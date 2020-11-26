@@ -8,7 +8,7 @@
 // In particular, API reference:
 // https://cloud.google.com/compute/docs/reference/latest
 // and Go API wrappers:
-// https://godoc.org/google.golang.org/api/compute/v0.beta
+// https://godoc.org/google.golang.org/api/compute/v1
 package gce
 
 import (
@@ -22,7 +22,7 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
-	"google.golang.org/api/compute/v0.beta"
+	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 )
 
@@ -140,8 +140,10 @@ func (ctx *Context) CreateInstance(name, machineType, image, sshkey string, pree
 			Preemptible:       preemptible,
 			OnHostMaintenance: "TERMINATE",
 		},
+		DisplayDevice: &compute.DisplayDevice{
+			EnableDisplay: true,
+		},
 	}
-
 retry:
 	if !instance.Scheduling.Preemptible && strings.HasPrefix(machineType, "e2-") {
 		// Otherwise we get "Error 400: Efficient instances do not support
