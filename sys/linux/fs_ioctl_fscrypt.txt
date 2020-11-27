@@ -6,14 +6,14 @@
 include <uapi/linux/fs.h>
 include <uapi/linux/fscrypt.h>
 
-ioctl$FS_IOC_SET_ENCRYPTION_POLICY(fd fd, cmd const[FS_IOC_SET_ENCRYPTION_POLICY], arg ptr[in, fscrypt_policy])
-ioctl$FS_IOC_GET_ENCRYPTION_PWSALT(fd fd, cmd const[FS_IOC_GET_ENCRYPTION_PWSALT], arg ptr[out, array[int8, 16]])
+ioctl$FS_IOC_SET_ENCRYPTION_POLICY(fd fd_dir, cmd const[FS_IOC_SET_ENCRYPTION_POLICY], arg ptr[in, fscrypt_policy])
+ioctl$FS_IOC_GET_ENCRYPTION_PWSALT(fd fd_dir, cmd const[FS_IOC_GET_ENCRYPTION_PWSALT], arg ptr[out, array[int8, 16]])
 ioctl$FS_IOC_GET_ENCRYPTION_POLICY(fd fd, cmd const[FS_IOC_GET_ENCRYPTION_POLICY], arg ptr[out, fscrypt_policy_v1])
 ioctl$FS_IOC_GET_ENCRYPTION_POLICY_EX(fd fd, cmd const[FS_IOC_GET_ENCRYPTION_POLICY_EX], arg ptr[inout, fscrypt_get_policy_ex_arg])
-ioctl$FS_IOC_ADD_ENCRYPTION_KEY(fd fd, cmd const[FS_IOC_ADD_ENCRYPTION_KEY], arg ptr[inout, fscrypt_add_key_arg])
-ioctl$FS_IOC_REMOVE_ENCRYPTION_KEY(fd fd, cmd const[FS_IOC_REMOVE_ENCRYPTION_KEY], arg ptr[inout, fscrypt_remove_key_arg])
-ioctl$FS_IOC_REMOVE_ENCRYPTION_KEY_ALL_USERS(fd fd, cmd const[FS_IOC_REMOVE_ENCRYPTION_KEY_ALL_USERS], arg ptr[inout, fscrypt_remove_key_arg])
-ioctl$FS_IOC_GET_ENCRYPTION_KEY_STATUS(fd fd, cmd const[FS_IOC_GET_ENCRYPTION_KEY_STATUS], arg ptr[inout, fscrypt_get_key_status_arg])
+ioctl$FS_IOC_ADD_ENCRYPTION_KEY(fd fd_dir, cmd const[FS_IOC_ADD_ENCRYPTION_KEY], arg ptr[inout, fscrypt_add_key_arg])
+ioctl$FS_IOC_REMOVE_ENCRYPTION_KEY(fd fd_dir, cmd const[FS_IOC_REMOVE_ENCRYPTION_KEY], arg ptr[inout, fscrypt_remove_key_arg])
+ioctl$FS_IOC_REMOVE_ENCRYPTION_KEY_ALL_USERS(fd fd_dir, cmd const[FS_IOC_REMOVE_ENCRYPTION_KEY_ALL_USERS], arg ptr[inout, fscrypt_remove_key_arg])
+ioctl$FS_IOC_GET_ENCRYPTION_KEY_STATUS(fd fd_dir, cmd const[FS_IOC_GET_ENCRYPTION_KEY_STATUS], arg ptr[inout, fscrypt_get_key_status_arg])
 ioctl$FS_IOC_GET_ENCRYPTION_NONCE(fd fd, cmd const[FS_IOC_GET_ENCRYPTION_NONCE], arg ptr[out, array[int8, 16]])
 
 type fscrypt_key_descriptor array[int8, FSCRYPT_KEY_DESCRIPTOR_SIZE]
