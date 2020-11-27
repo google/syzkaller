@@ -4,7 +4,7 @@
 shell:
  # android-5.4.yml has own defconfig.
  - make x86_64_defconfig: [-android]
- - make kvm_guest.config: [-android]
+ - make kvm_guest.config
 
 config:
  # root=/dev/sda is not necessary correct, but it's a common setting and user arguments are appended
