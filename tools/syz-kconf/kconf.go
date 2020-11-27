@@ -31,6 +31,7 @@ const (
 	featBaseline = "baseline"
 	featClang    = "clang"
 	featAndroid  = "android"
+	featChromeos = "chromeos"
 )
 
 func main() {
@@ -204,10 +205,16 @@ func (ctx *Context) executeShell() error {
 			continue
 		}
 		args := strings.Split(shell.Cmd, " ")
-		if args[0] != "make" {
-			return fmt.Errorf("non-make shell is not supported yet")
+		for i := 1; i < len(args); i++ {
+			args[i] = strings.ReplaceAll(args[i], "${BUILDDIR}", ctx.BuildDir)
 		}
-		if err := ctx.Make(args[1:]...); err != nil {
+		if args[0] == "make" {
+			if err := ctx.Make(args[1:]...); err != nil {
+				return err
+			}
+			continue
+		}
+		if _, err := osutil.RunCmd(10*time.Minute, ctx.SourceDir, args[0], args[1:]...); err != nil {
 			return err
 		}
 	}
@@ -254,11 +261,14 @@ func (ctx *Context) verifyConfigs(cf *kconfig.ConfigFile) error {
 }
 
 func (ctx *Context) addUSBConfigs(cf *kconfig.ConfigFile) error {
-	android := ""
-	if ctx.Inst.Features[featAndroid] {
-		android = "android"
+	prefix := ""
+	switch {
+	case ctx.Inst.Features[featAndroid]:
+		prefix = "android"
+	case ctx.Inst.Features[featChromeos]:
+		prefix = "chromeos"
 	}
-	distroConfig := filepath.Join(ctx.ConfigDir, "distros", android+"*")
+	distroConfig := filepath.Join(ctx.ConfigDir, "distros", prefix+"*")
 	// Some USB drivers don't depend on any USB related symbols, but rather on a generic symbol
 	// for some input subsystem (e.g. HID), so include it as well.
 	return ctx.addDependentConfigs(cf, []string{"USB_SUPPORT", "HID"}, distroConfig)
