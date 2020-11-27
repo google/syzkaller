@@ -19,6 +19,24 @@ ioctl$FS_IOC_GET_ENCRYPTION_NONCE(fd fd, cmd const[FS_IOC_GET_ENCRYPTION_NONCE],
 type fscrypt_key_descriptor array[int8, FSCRYPT_KEY_DESCRIPTOR_SIZE]
 type fscrypt_key_identifier array[int8, FSCRYPT_KEY_IDENTIFIER_SIZE]
 
+# Below are the data structures needed to put keys for fscrypt_policy_v1 in the
+# regular Linux keyrings via the add_key() syscall.  Note that this part of the
+# API is deprecated in favor of FS_IOC_ADD_ENCRYPTION_KEY and fscrypt_policy_v2.
+
+fscrypt_v1_key_description {
+	prefix		stringnoz["fscrypt:"]
+	descriptor	array[flags[hex_chars, int8], 16]
+	nil		const[0, int8]
+}
+
+fscrypt_v1_key_payload {
+	mode	const[0, int32]
+	raw	array[int8, 64]
+	size	int32[16:64]
+}
+
+# Structs for the ioctls that get and set encryption policies
+
 fscrypt_policy_v1 {
 	version			const[0, int8]
 	modes			fscrypt_policy_modes
@@ -57,6 +75,8 @@ fscrypt_get_policy_ex_arg {
 # policy is an output field, so just leave it zeroed.
 	policy		array[const[0, int8]]
 }
+
+# Structs for the ioctls that manage keys in the filesystem-level keyring
 
 fscrypt_key_specifier {
 	type		flags[fscrypt_key_specifier_type, int32]
