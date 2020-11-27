@@ -120,27 +120,49 @@ type fscrypt_policy_mode_t[CONTENTS, FILENAMES] {
 fscrypt_policy_flags = FSCRYPT_POLICY_FLAGS_PAD_4, FSCRYPT_POLICY_FLAGS_PAD_8, FSCRYPT_POLICY_FLAGS_PAD_16, FSCRYPT_POLICY_FLAGS_PAD_32, FSCRYPT_POLICY_FLAG_DIRECT_KEY, FSCRYPT_POLICY_FLAG_IV_INO_LBLK_64, FSCRYPT_POLICY_FLAG_IV_INO_LBLK_32
 
 fscrypt_get_policy_ex_arg {
-	policy_size	len[policy, int64]
-# policy is an output field, so just leave it zeroed.
-	policy		array[const[0, int8]]
+	policy_size	len[policy, int64]	(in)
+	policy		array[const[0, int8]]	(out)
 }
 
 # Structs for the ioctls that manage keys in the filesystem-level keyring
 
-fscrypt_key_specifier {
-	type		flags[fscrypt_key_specifier_type, int32]
+fscrypt_key_specifier [
+	desc	fscrypt_key_specifier__by_descriptor
+	id	fscrypt_key_specifier__by_identifier
+]
+
+fscrypt_key_specifier__by_descriptor {
+	type		const[FSCRYPT_KEY_SPEC_TYPE_DESCRIPTOR, int32]
 	reserved	const[0, int32]
-	u		fscrypt_key_specifier_payload
+	descriptor	fscrypt_key_descriptor
+	reserved2	array[const[0, int8], 24]
+}
+
+fscrypt_key_specifier__by_identifier {
+	type		const[FSCRYPT_KEY_SPEC_TYPE_IDENTIFIER, int32]
+	reserved	const[0, int32]
+	identifier	fscrypt_key_identifier
+	reserved2	array[const[0, int8], 16]
+}
+
+# Usually, fscrypt_key_specifier is entirely an input.  But in
+# FS_IOC_ADD_ENCRYPTION_KEY, if 'fscrypt_add_key_arg::key_spec.type' is set to
+# FSCRYPT_KEY_SPEC_TYPE_IDENTIFIER, then
+# 'fscrypt_add_key_arg::key_spec.identifier' is an output field.  The version of
+# fscrypt_key_specifier below has per-field directions set to represent this.
+fscrypt_key_specifier__for_add_key [
+	desc	fscrypt_key_specifier__by_descriptor	(in)
+	id	fscrypt_key_specifier__by_identifier_for_add_key
+]
+
+fscrypt_key_specifier__by_identifier_for_add_key {
+	type		const[FSCRYPT_KEY_SPEC_TYPE_IDENTIFIER, int32]	(in)
+	reserved	const[0, int32]	(in)
+	identifier	fscrypt_key_identifier	(out)
+	reserved2	array[const[0, int8], 16]	(in)
 }
 
 fscrypt_key_specifier_type = FSCRYPT_KEY_SPEC_TYPE_DESCRIPTOR, FSCRYPT_KEY_SPEC_TYPE_IDENTIFIER
-
-# TODO: The direction of the payload changes with regards to the key specifier type
-fscrypt_key_specifier_payload [
-	reserved	array[int8, 32]
-	descriptor	fscrypt_key_descriptor
-	identifier	fscrypt_key_identifier
-]
 
 fscrypt_provisioning_key_payload {
 	type		flags[fscrypt_key_specifier_type, int32]
@@ -149,27 +171,25 @@ fscrypt_provisioning_key_payload {
 }
 
 fscrypt_add_key_arg {
-	key_spec	fscrypt_key_specifier
-	raw_size	bytesize[raw, int32]
+	key_spec	fscrypt_key_specifier__for_add_key
+	raw_size	bytesize[raw, int32]	(in)
 	key_id		fscrypt_provisioning_key[opt]	(in)
-	reserved	array[const[0, int32], 8]
-	raw		fscrypt_raw_key
+	reserved	array[const[0, int32], 8]	(in)
+	raw		fscrypt_raw_key	(in)
 }
 
 fscrypt_remove_key_arg {
-	key_spec		fscrypt_key_specifier
-# removal_status_flags is an output field, so just leave it zeroed.
-	removal_status_flags	const[0, int32]
-	reserved		array[const[0, int32], 5]
+	key_spec		fscrypt_key_specifier	(in)
+	removal_status_flags	const[0, int32]	(out)
+	reserved		array[const[0, int32], 5]	(in)
 }
 
 fscrypt_get_key_status_arg {
-	key_spec	fscrypt_key_specifier
-	reserved	array[const[0, int32], 6]
+	key_spec	fscrypt_key_specifier	(in)
+	reserved	array[const[0, int32], 6]	(in)
 
-# The following are output fields, so just leave them zeroed.
-	status		const[0, int32]
-	status_flags	const[0, int32]
-	user_count	const[0, int32]
-	out_reserved	array[const[0, int32], 13]
+	status		const[0, int32]	(out)
+	status_flags	const[0, int32]	(out)
+	user_count	const[0, int32]	(out)
+	out_reserved	array[const[0, int32], 13]	(out)
 }
