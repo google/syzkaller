@@ -30,6 +30,7 @@ func init() {
 	checkFeature[FeatureUSBEmulation] = checkUSBEmulation
 	checkFeature[FeatureVhciInjection] = checkVhciInjection
 	checkFeature[FeatureWifiEmulation] = checkWifiEmulation
+	checkFeature[FeatureDoubleFetch] = checkDoubleFetch
 }
 
 func checkCoverage() string {
@@ -223,6 +224,13 @@ func checkDevlinkPCI() string {
 
 func checkWifiEmulation() string {
 	if err := osutil.IsAccessible("/sys/class/mac80211_hwsim/"); err != nil {
+		return err.Error()
+	}
+	return ""
+}
+
+func checkDoubleFetch() string {
+	if err := osutil.IsAccessible("/sys/kernel/debug/dfetch_detection"); err != nil {
 		return err.Error()
 	}
 	return ""

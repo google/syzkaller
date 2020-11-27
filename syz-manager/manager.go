@@ -79,6 +79,7 @@ type Manager struct {
 	lastMinCorpus    int
 	memoryLeakFrames map[string]bool
 	dataRaceFrames   map[string]bool
+	multiReadFrames  map[string]bool
 	saturatedCalls   map[string]bool
 
 	needMoreRepros chan chan bool
@@ -175,6 +176,7 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, sysTarget *targets.T
 		disabledHashes:        make(map[string]struct{}),
 		memoryLeakFrames:      make(map[string]bool),
 		dataRaceFrames:        make(map[string]bool),
+		multiReadFrames:       make(map[string]bool),
 		fresh:                 true,
 		vmStop:                make(chan bool),
 		hubReproQueue:         make(chan *Crash, 10),
@@ -666,6 +668,14 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 	if crash.Type == report.DataRace {
 		mgr.mu.Lock()
 		mgr.dataRaceFrames[crash.Frame] = true
+		mgr.mu.Unlock()
+	}
+	if crash.Type == report.MultiRead {
+		mgr.mu.Lock()
+		if mgr.multiReadFrames[crash.Title] {
+			mgr.cfg.Ignores = append(mgr.cfg.Ignores, crash.Title)
+		}
+		mgr.multiReadFrames[crash.Title] = true
 		mgr.mu.Unlock()
 	}
 	if crash.Suppressed {

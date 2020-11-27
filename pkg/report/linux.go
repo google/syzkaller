@@ -1167,6 +1167,14 @@ var linuxOopses = append([]*oops{
 				noStackTrace: true,
 			},
 			{
+				title: compile("BUG: multi-read"),
+				fmt:   "BUG: multi-read in %[1]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						compile("First Address Range Stack:"),
+						parseStackTrace,
+					},
+					skip: []string{"df_save_stack", "add_address", "strncpy_from_user", "copy_from_user", "copyin", "get_user", "memdup_user"},
 				title: compile("BUG: Invalid wait context"),
 				// Somehow amd64 and arm64 report this bug completely differently.
 				// This is arm64 format, but we match amd64 title to not duplicate bug reports.

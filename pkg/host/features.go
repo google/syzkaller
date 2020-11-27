@@ -29,6 +29,7 @@ const (
 	FeatureUSBEmulation
 	FeatureVhciInjection
 	FeatureWifiEmulation
+	FeatureDoubleFetch
 	numFeatures
 )
 
@@ -69,6 +70,7 @@ func Check(target *prog.Target) (*Features, error) {
 		FeatureUSBEmulation:     {Name: "USB emulation", Reason: unsupported},
 		FeatureVhciInjection:    {Name: "hci packet injection", Reason: unsupported},
 		FeatureWifiEmulation:    {Name: "wifi device emulation", Reason: unsupported},
+		FeatureDoubleFetch:      {Name: "double fetch detection", Reason: unsupported},
 	}
 	if noHostChecks(target) {
 		return res, nil
