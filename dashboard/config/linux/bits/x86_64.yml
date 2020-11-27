@@ -3,7 +3,7 @@
 
 shell:
  # android-5.4.yml has own defconfig.
- - make x86_64_defconfig: [-android]
+ - make x86_64_defconfig: [-android, -chromeos]
  - make kvm_guest.config
 
 config:

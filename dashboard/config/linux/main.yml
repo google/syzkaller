@@ -11,6 +11,7 @@ instances:
  - upstream-usb:		[upstream, x86_64, gcc, lsm, apparmor, onlyusb, kasan]
  - stable-5.4-kasan:		[stable-5.4, x86_64, gcc, lsm, apparmor, kasan]
  - android-5.4:			[android, android-5.4, x86_64, clang, onlyusb, nonoise, kasan]
+ - chromeos-5.4:		[chromeos, chromeos-5.4, x86_64, onlyusb, kasan]
 
 # These files are included from the bits/ dir.
 includes:
@@ -18,6 +19,7 @@ includes:
  - linux-next.yml: [linux-next]
  - stable-5.4.yml: [stable-5.4]
  - android-5.4.yml: [android-5.4]
+ - chromeos-5.4.yml: [chromeos-5.4]
  - base.yml: []
  - x86_64.yml: [x86_64]
  - arm64.yml: [arm64]
@@ -34,3 +36,4 @@ includes:
  - kcsan.yml: [kcsan]
  - kmsan.yml: [kmsan]
  - kfence.yml: [kfence]
+ - chromeos.yml: [chromeos]
