@@ -16,8 +16,55 @@ ioctl$FS_IOC_REMOVE_ENCRYPTION_KEY_ALL_USERS(fd fd_dir, cmd const[FS_IOC_REMOVE_
 ioctl$FS_IOC_GET_ENCRYPTION_KEY_STATUS(fd fd_dir, cmd const[FS_IOC_GET_ENCRYPTION_KEY_STATUS], arg ptr[inout, fscrypt_get_key_status_arg])
 ioctl$FS_IOC_GET_ENCRYPTION_NONCE(fd fd, cmd const[FS_IOC_GET_ENCRYPTION_NONCE], arg ptr[out, array[int8, 16]])
 
-type fscrypt_key_descriptor array[int8, FSCRYPT_KEY_DESCRIPTOR_SIZE]
-type fscrypt_key_identifier array[int8, FSCRYPT_KEY_IDENTIFIER_SIZE]
+# Define the types for fscrypt raw keys, key identifiers, and key descriptors.
+#
+# "Key identifiers" are the new way to identify fscrypt keys.  They are 16-byte
+# values that must be computed in a specific way from the raw key.  The
+# FS_IOC_ADD_ENCRYPTION_KEY ioctl will do this computation and return the
+# identifier to userspace, as a side effect of adding a key.  But it's unclear
+# that syzkaller can understand this flow yet (as arrays can't be resources), so
+# we also define some sample keys with precomputed identifiers to use.
+#
+# "Key descriptors" are the old way to identify fscrypt keys.  They are 8-byte
+# values arbitrarily assigned by userspace.
+
+fscrypt_raw_key [
+	auto	array[int8[16:64]]
+# 64-byte keys (usable with aes256, aes128, adiantum)
+	a	stringnoz[`0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40`]
+	b	stringnoz["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa11111111111111111111111111111111"]
+# 32-byte key (usable with aes128, adiantum)
+	c	stringnoz["abcdefghijklmnopqrstuvwxyz0123456"]
+# 16-byte key (usable with aes128 only)
+	d	stringnoz["abcdefghijklmnop"]
+] [varlen]
+
+fscrypt_key_identifier [
+	auto	array[int8, FSCRYPT_KEY_IDENTIFIER_SIZE]
+# These 16-byte values are computed from the raw keys listed above.
+	a	stringnoz[`69b2f6edeee720cce0577937eb8a6751`]
+	b	stringnoz[`912ae510a458723a839a9fad701538ac`]
+	c	stringnoz[`1c2d6754b6cc7daacb599875d7faf9bb`]
+	d	stringnoz[`7eb80af3f24ef086726a4cea3a154ce0`]
+]
+
+fscrypt_key_descriptor [
+	auto	array[int8, FSCRYPT_KEY_DESCRIPTOR_SIZE]
+# These are arbitrary 8-byte values.
+	desc1	stringnoz[`0000111122223333`]
+	desc2	stringnoz[`e355a76a11a1be18`]
+	desc3	stringnoz[`e8dab99234bb312e`]
+	desc4	stringnoz[`85baa174f0cb1142`]
+]
+
+# fscrypt_key_descriptor translated into a hex string
+fscrypt_key_descriptor_hex [
+	auto	array[flags[hex_chars, int8], 16]
+	desc1	stringnoz["0000111122223333"]
+	desc2	stringnoz["e355a76a11a1be18"]
+	desc3	stringnoz["e8dab99234bb312e"]
+	desc4	stringnoz["85baa174f0cb1142"]
+]
 
 # Below are the data structures needed to put keys for fscrypt_policy_v1 in the
 # regular Linux keyrings via the add_key() syscall.  Note that this part of the
@@ -25,12 +72,14 @@ type fscrypt_key_identifier array[int8, FSCRYPT_KEY_IDENTIFIER_SIZE]
 
 fscrypt_v1_key_description {
 	prefix		stringnoz["fscrypt:"]
-	descriptor	array[flags[hex_chars, int8], 16]
+	descriptor	fscrypt_key_descriptor_hex
 	nil		const[0, int8]
 }
 
 fscrypt_v1_key_payload {
 	mode	const[0, int32]
+# This really should be fscrypt_raw_key, but that has the varlen attribute so it
+# doesn't work in this struct.
 	raw	array[int8, 64]
 	size	int32[16:64]
 }
@@ -96,15 +145,15 @@ fscrypt_key_specifier_payload [
 fscrypt_provisioning_key_payload {
 	type		flags[fscrypt_key_specifier_type, int32]
 	reserved	const[0, int32]
-	raw		array[int8]
+	raw		fscrypt_raw_key
 }
 
 fscrypt_add_key_arg {
 	key_spec	fscrypt_key_specifier
-	raw_size	len[raw, int32]
+	raw_size	bytesize[raw, int32]
 	key_id		fscrypt_provisioning_key[opt]	(in)
 	reserved	array[const[0, int32], 8]
-	raw		array[int8]
+	raw		fscrypt_raw_key
 }
 
 fscrypt_remove_key_arg {
