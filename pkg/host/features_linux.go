@@ -5,7 +5,9 @@ package host
 
 import (
 	"fmt"
+	"regexp"
 	"runtime"
+	"strconv"
 	"syscall"
 	"unsafe"
 
@@ -225,5 +227,50 @@ func checkWifiEmulation() string {
 	if err := osutil.IsAccessible("/sys/class/mac80211_hwsim/"); err != nil {
 		return err.Error()
 	}
+	// We use HWSIM_ATTR_PERM_ADDR which was added in 4.17.
+	return requireKernel(4, 17)
+}
+
+func requireKernel(x, y int) string {
+	info := new(syscall.Utsname)
+	if err := syscall.Uname(info); err != nil {
+		return fmt.Sprintf("uname failed: %v", err)
+	}
+	var ver []byte
+	for _, b := range info.Release {
+		if b == 0 {
+			break
+		}
+		ver = append(ver, byte(b))
+	}
+	if ok, bad := matchKernelVersion(string(ver), x, y); bad {
+		return fmt.Sprintf("failed to parse kernel version (%v)", ver)
+	} else if !ok {
+		return fmt.Sprintf("kernel %v.%v required (have %s)", x, y, ver)
+	}
 	return ""
 }
+
+func matchKernelVersion(ver string, x, y int) (bool, bool) {
+	match := kernelVersionRe.FindStringSubmatch(ver)
+	if match == nil {
+		return false, true
+	}
+	major, err := strconv.Atoi(match[1])
+	if err != nil {
+		return false, true
+	}
+	if major <= 0 || major > 999 {
+		return false, true
+	}
+	minor, err := strconv.Atoi(match[2])
+	if err != nil {
+		return false, true
+	}
+	if minor <= 0 || minor > 999 {
+		return false, true
+	}
+	return major*1000+minor >= x*1000+y, false
+}
+
+var kernelVersionRe = regexp.MustCompile(`^([0-9]+)\.([0-9]+)`)
