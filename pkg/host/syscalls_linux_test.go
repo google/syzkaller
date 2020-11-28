@@ -6,6 +6,7 @@
 package host
 
 import (
+	"fmt"
 	"runtime"
 	"syscall"
 	"testing"
@@ -183,5 +184,122 @@ ffffffe0005c9c76 T __se_sys_listen
 				t.Fatalf("syscall %v not found in supported syscall list", syscall)
 			}
 		}
+	}
+}
+
+func TestMatchKernelVersion(t *testing.T) {
+	tests := []struct {
+		version string
+		major   int
+		minor   int
+		res     bool
+		bad     bool
+	}{
+		{
+			version: "5.9.0-rc5-next-20200918",
+			major:   5,
+			minor:   8,
+			res:     true,
+		},
+		{
+			version: "5.9.0-rc5-next-20200918",
+			major:   4,
+			minor:   10,
+			res:     true,
+		},
+		{
+			version: "5.9.0-rc5-next-20200918",
+			major:   5,
+			minor:   9,
+			res:     true,
+		},
+		{
+			version: "5.9.0-rc5-next-20200918",
+			major:   5,
+			minor:   10,
+			res:     false,
+		},
+		{
+			version: "5.9.0-rc5-next-20200918",
+			major:   6,
+			minor:   0,
+			res:     false,
+		},
+		{
+			version: "4.4.246-19567-g2c01e3dada31",
+			major:   4,
+			minor:   3,
+			res:     true,
+		},
+		{
+			version: "4.4.246-19567-g2c01e3dada31",
+			major:   4,
+			minor:   4,
+			res:     true,
+		},
+		{
+			version: "5.17.17-1debian-amd64",
+			major:   5,
+			minor:   16,
+			res:     true,
+		},
+		{
+			version: "5.17.17-1debian-amd64",
+			major:   5,
+			minor:   17,
+			res:     true,
+		},
+		{
+			version: "3.5",
+			major:   3,
+			minor:   4,
+			res:     true,
+		},
+		{
+			version: "3.5",
+			major:   3,
+			minor:   5,
+			res:     true,
+		},
+		{
+			version: "3.5",
+			major:   3,
+			minor:   6,
+			res:     false,
+		},
+		{
+			version: "",
+			bad:     true,
+		},
+		{
+			version: "something unparsable",
+			bad:     true,
+		},
+		{
+			version: "mykernel 4.17-5",
+			bad:     true,
+		},
+		{
+			version: "999999.999999",
+			bad:     true,
+		},
+		{
+			version: "4.abc.def",
+			bad:     true,
+		},
+	}
+	for i, test := range tests {
+		t.Run(fmt.Sprint(i), func(t *testing.T) {
+			ok, bad := matchKernelVersion(test.version, test.major, test.minor)
+			if test.bad && !bad {
+				t.Fatal("want error, but got no error")
+			}
+			if !test.bad && bad {
+				t.Fatalf("want no error, but got error")
+			}
+			if test.res != ok {
+				t.Fatalf("want match %v, but got %v", test.res, ok)
+			}
+		})
 	}
 }
