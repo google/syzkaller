@@ -15,7 +15,6 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/repro"
-	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/vm"
 )
 
@@ -39,9 +38,6 @@ func main() {
 	data, err := ioutil.ReadFile(logFile)
 	if err != nil {
 		log.Fatalf("failed to open log file %v: %v", logFile, err)
-	}
-	if _, err := prog.GetTarget(cfg.TargetOS, cfg.TargetArch); err != nil {
-		log.Fatalf("%v", err)
 	}
 	vmPool, err := vm.Create(cfg, *flagDebug)
 	if err != nil {

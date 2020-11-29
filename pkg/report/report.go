@@ -100,12 +100,8 @@ func NewReporter(cfg *mgrconfig.Config) (Reporter, error) {
 	if err != nil {
 		return nil, err
 	}
-	target := targets.Get(cfg.TargetOS, cfg.TargetArch)
-	if target == nil && typ != "gvisor" {
-		return nil, fmt.Errorf("unknown target %v/%v", cfg.TargetOS, cfg.TargetArch)
-	}
 	config := &config{
-		target:         target,
+		target:         cfg.SysTarget,
 		kernelSrc:      cfg.KernelSrc,
 		kernelBuildSrc: cfg.KernelBuildSrc,
 		kernelObj:      cfg.KernelObj,

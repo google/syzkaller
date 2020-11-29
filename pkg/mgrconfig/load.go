@@ -19,6 +19,9 @@ import (
 
 // Derived config values that are handy to keep with the config, filled after reading user config.
 type Derived struct {
+	Target    *prog.Target
+	SysTarget *targets.Target
+
 	// Parsed Target:
 	TargetOS     string
 	TargetArch   string
@@ -28,6 +31,8 @@ type Derived struct {
 	SyzFuzzerBin   string
 	SyzExecprogBin string
 	SyzExecutorBin string
+
+	Syscalls []int
 }
 
 func LoadData(data []byte) (*Config, error) {
@@ -81,9 +86,17 @@ func defaultValues() *Config {
 
 func loadPartial(cfg *Config) (*Config, error) {
 	var err error
-	cfg.TargetOS, cfg.TargetVMArch, cfg.TargetArch, err = splitTarget(cfg.Target)
+	cfg.TargetOS, cfg.TargetVMArch, cfg.TargetArch, err = splitTarget(cfg.RawTarget)
 	if err != nil {
 		return nil, err
+	}
+	cfg.Target, err = prog.GetTarget(cfg.TargetOS, cfg.TargetArch)
+	if err != nil {
+		return nil, err
+	}
+	cfg.SysTarget = targets.Get(cfg.TargetOS, cfg.TargetVMArch)
+	if cfg.SysTarget == nil {
+		return nil, fmt.Errorf("unsupported OS/arch: %v/%v", cfg.TargetOS, cfg.TargetVMArch)
 	}
 	return cfg, nil
 }
@@ -114,7 +127,7 @@ func Complete(cfg *Config) error {
 		}
 		cfg.Image = osutil.Abs(cfg.Image)
 	}
-	if err := completeBinaries(cfg); err != nil {
+	if err := cfg.completeBinaries(); err != nil {
 		return err
 	}
 	if cfg.Procs < 1 || cfg.Procs > prog.MaxPids {
@@ -125,7 +138,7 @@ func Complete(cfg *Config) error {
 	default:
 		return fmt.Errorf("config param sandbox must contain one of none/setuid/namespace/android")
 	}
-	if err := checkSSHParams(cfg); err != nil {
+	if err := cfg.checkSSHParams(); err != nil {
 		return err
 	}
 	cfg.CompleteKernelDirs()
@@ -147,6 +160,11 @@ func Complete(cfg *Config) error {
 		); err != nil {
 			return err
 		}
+	}
+	var err error
+	cfg.Syscalls, err = ParseEnabledSyscalls(cfg.Target, cfg.EnabledSyscalls, cfg.DisabledSyscalls)
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -172,7 +190,7 @@ func (cfg *Config) CompleteKernelDirs() {
 	cfg.KernelBuildSrc = osutil.Abs(cfg.KernelBuildSrc)
 }
 
-func checkSSHParams(cfg *Config) error {
+func (cfg *Config) checkSSHParams() error {
 	if cfg.SSHKey == "" {
 		return nil
 	}
@@ -187,13 +205,9 @@ func checkSSHParams(cfg *Config) error {
 	return nil
 }
 
-func completeBinaries(cfg *Config) error {
-	sysTarget := targets.Get(cfg.TargetOS, cfg.TargetArch)
-	if sysTarget == nil {
-		return fmt.Errorf("unsupported OS/arch: %v/%v", cfg.TargetOS, cfg.TargetArch)
-	}
+func (cfg *Config) completeBinaries() error {
 	cfg.Syzkaller = osutil.Abs(cfg.Syzkaller)
-	exe := sysTarget.ExeExtension
+	exe := cfg.SysTarget.ExeExtension
 	targetBin := func(name, arch string) string {
 		return filepath.Join(cfg.Syzkaller, "bin", cfg.TargetOS+"_"+arch, name+exe)
 	}

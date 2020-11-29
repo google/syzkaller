@@ -67,11 +67,7 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, report
 	if len(vmIndexes) == 0 {
 		return nil, nil, fmt.Errorf("no VMs provided")
 	}
-	target, err := prog.GetTarget(cfg.TargetOS, cfg.TargetArch)
-	if err != nil {
-		return nil, nil, err
-	}
-	entries := target.ParseLog(crashLog)
+	entries := cfg.Target.ParseLog(crashLog)
 	if len(entries) == 0 {
 		return nil, nil, fmt.Errorf("crash log does not contain any programs")
 	}
@@ -101,7 +97,7 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, report
 		timeouts = []time.Duration{noOutputTimeout}
 	}
 	ctx := &context{
-		target:       targets.Get(cfg.TargetOS, cfg.TargetArch),
+		target:       cfg.SysTarget,
 		reporter:     reporter,
 		crashTitle:   crashTitle,
 		crashType:    crashType,
