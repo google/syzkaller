@@ -127,10 +127,12 @@ func runBisection(t *testing.T, baseDir string, test BisectionTest) (*Result, er
 		Fix:   test.fix,
 		Trace: trace,
 		Manager: mgrconfig.Config{
-			TargetOS:     targets.TestOS,
-			TargetVMArch: targets.TestArch64,
-			Type:         "qemu",
-			KernelSrc:    baseDir,
+			Derived: mgrconfig.Derived{
+				TargetOS:     targets.TestOS,
+				TargetVMArch: targets.TestArch64,
+			},
+			Type:      "qemu",
+			KernelSrc: baseDir,
 		},
 		Kernel: KernelConfig{
 			Repo:           baseDir,

@@ -67,21 +67,23 @@ func main() {
 	}
 	defer os.RemoveAll(dir)
 	cfg := &mgrconfig.Config{
-		Target:       *flagOS + "/" + *flagArch,
-		TargetOS:     *flagOS,
-		TargetArch:   *flagArch,
-		TargetVMArch: *flagArch,
-		HTTP:         ":0",
-		Workdir:      dir,
-		KernelSrc:    *flagKernelSrc,
-		KernelObj:    *flagKernelSrc,
-		Syzkaller:    *flagSyzkaller,
-		Sandbox:      *flagSandbox,
-		SSHUser:      "root",
-		Procs:        1,
-		Cover:        false,
-		Type:         vmType,
-		VM:           json.RawMessage([]byte(fmt.Sprintf(`{ "count": %v, "cpu": 2, "mem": 2048 }`, numTests))),
+		Target:    *flagOS + "/" + *flagArch,
+		HTTP:      ":0",
+		Workdir:   dir,
+		KernelSrc: *flagKernelSrc,
+		KernelObj: *flagKernelSrc,
+		Syzkaller: *flagSyzkaller,
+		Sandbox:   *flagSandbox,
+		SSHUser:   "root",
+		Procs:     1,
+		Cover:     false,
+		Type:      vmType,
+		VM:        json.RawMessage([]byte(fmt.Sprintf(`{ "count": %v, "cpu": 2, "mem": 2048 }`, numTests))),
+		Derived: mgrconfig.Derived{
+			TargetOS:     *flagOS,
+			TargetArch:   *flagArch,
+			TargetVMArch: *flagArch,
+		},
 	}
 	if err := mgrconfig.Complete(cfg); err != nil {
 		fail(err)

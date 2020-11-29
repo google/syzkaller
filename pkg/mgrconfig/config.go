@@ -107,13 +107,6 @@ type Config struct {
 	// Parameters for concrete types are in Config type in vm/TYPE/TYPE.go, e.g. vm/qemu/qemu.go.
 	VM json.RawMessage `json:"vm"`
 
-	// Implementation details beyond this point.
-	// Parsed Target:
-	TargetOS     string `json:"-"`
-	TargetArch   string `json:"-"`
-	TargetVMArch string `json:"-"`
-	// Syzkaller binaries that we are going to use:
-	SyzFuzzerBin   string `json:"-"`
-	SyzExecprogBin string `json:"-"`
-	SyzExecutorBin string `json:"-"`
+	// Implementation details beyond this point. Filled after parsing.
+	Derived `json:"-"`
 }

@@ -340,11 +340,13 @@ func testMonitorExecution(t *testing.T, test *Test) {
 	}
 	defer os.RemoveAll(dir)
 	cfg := &mgrconfig.Config{
-		Workdir:      dir,
-		TargetOS:     targets.Linux,
-		TargetArch:   targets.AMD64,
-		TargetVMArch: targets.AMD64,
-		Type:         "test",
+		Derived: mgrconfig.Derived{
+			TargetOS:     targets.Linux,
+			TargetArch:   targets.AMD64,
+			TargetVMArch: targets.AMD64,
+		},
+		Workdir: dir,
+		Type:    "test",
 	}
 	pool, err := Create(cfg, false)
 	if err != nil {
