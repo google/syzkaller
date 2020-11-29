@@ -21,8 +21,6 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-const timeout = 10 * time.Second
-
 func buildExecutor(t *testing.T, target *prog.Target) string {
 	src := filepath.FromSlash("../../executor/executor.cc")
 	bin, err := csource.BuildFile(target, src)
@@ -96,7 +94,6 @@ func TestExecute(t *testing.T) {
 			Executor:      bin,
 			UseShmem:      useShmem,
 			UseForkServer: useForkServer,
-			Timeout:       timeout,
 		}
 		env, err := MakeEnv(cfg, 0)
 		if err != nil {
