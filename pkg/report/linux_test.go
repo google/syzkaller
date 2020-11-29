@@ -14,8 +14,10 @@ import (
 
 func TestLinuxIgnores(t *testing.T) {
 	cfg := &mgrconfig.Config{
-		TargetOS:   targets.Linux,
-		TargetArch: targets.AMD64,
+		Derived: mgrconfig.Derived{
+			TargetOS:   targets.Linux,
+			TargetArch: targets.AMD64,
+		},
 	}
 	reporter, err := NewReporter(cfg)
 	if err != nil {

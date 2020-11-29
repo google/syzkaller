@@ -101,15 +101,17 @@ func (ctx netbsd) copyKernelToDisk(targetArch, vmType, outputDir, kernel string)
 }`
 	// Create config for booting the disk image.
 	cfg := &mgrconfig.Config{
-		Workdir:      outputDir,
-		Image:        filepath.Join(outputDir, "image"),
-		SSHKey:       filepath.Join(outputDir, "key"),
-		SSHUser:      "root",
-		TargetOS:     targets.NetBSD,
-		TargetArch:   targetArch,
-		TargetVMArch: targetArch,
-		Type:         "qemu",
-		VM:           json.RawMessage([]byte(vmConfig)),
+		Workdir: outputDir,
+		Image:   filepath.Join(outputDir, "image"),
+		SSHKey:  filepath.Join(outputDir, "key"),
+		SSHUser: "root",
+		Type:    "qemu",
+		VM:      json.RawMessage([]byte(vmConfig)),
+		Derived: mgrconfig.Derived{
+			TargetOS:     targets.NetBSD,
+			TargetArch:   targetArch,
+			TargetVMArch: targetArch,
+		},
 	}
 	// Create a VM pool.
 	pool, err := vm.Create(cfg, false)

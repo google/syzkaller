@@ -17,6 +17,19 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
+// Derived config values that are handy to keep with the config, filled after reading user config.
+type Derived struct {
+	// Parsed Target:
+	TargetOS     string
+	TargetArch   string
+	TargetVMArch string
+
+	// Syzkaller binaries that we are going to use:
+	SyzFuzzerBin   string
+	SyzExecprogBin string
+	SyzExecutorBin string
+}
+
 func LoadData(data []byte) (*Config, error) {
 	cfg, err := LoadPartialData(data)
 	if err != nil {

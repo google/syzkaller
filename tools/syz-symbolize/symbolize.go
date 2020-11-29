@@ -34,11 +34,13 @@ func main() {
 		os.Exit(1)
 	}
 	cfg := &mgrconfig.Config{
-		TargetOS:     *flagOS,
-		TargetArch:   *flagArch,
-		TargetVMArch: *flagArch,
-		KernelObj:    *flagKernelObj,
-		KernelSrc:    *flagKernelSrc,
+		Derived: mgrconfig.Derived{
+			TargetOS:     *flagOS,
+			TargetArch:   *flagArch,
+			TargetVMArch: *flagArch,
+		},
+		KernelObj: *flagKernelObj,
+		KernelSrc: *flagKernelSrc,
 	}
 	cfg.CompleteKernelDirs()
 	reporter, err := report.NewReporter(cfg)

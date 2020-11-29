@@ -308,8 +308,10 @@ func forEachFile(t *testing.T, dir string, fn func(t *testing.T, reporter Report
 			continue // not implemented
 		}
 		cfg := &mgrconfig.Config{
-			TargetOS:   os,
-			TargetArch: targets.AMD64,
+			Derived: mgrconfig.Derived{
+				TargetOS:   os,
+				TargetArch: targets.AMD64,
+			},
 		}
 		reporter, err := NewReporter(cfg)
 		if err != nil {
