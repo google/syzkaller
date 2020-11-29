@@ -67,7 +67,7 @@ func main() {
 	}
 	defer os.RemoveAll(dir)
 	cfg := &mgrconfig.Config{
-		Target:    *flagOS + "/" + *flagArch,
+		RawTarget: *flagOS + "/" + *flagArch,
 		HTTP:      ":0",
 		Workdir:   dir,
 		KernelSrc: *flagKernelSrc,

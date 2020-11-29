@@ -68,7 +68,6 @@ type Manager struct {
 
 	mu                    sync.Mutex
 	phase                 int
-	configEnabledSyscalls []int
 	targetEnabledSyscalls map[*prog.Syscall]bool
 
 	candidates       []rpctype.RPCCandidate // untriaged inputs from corpus and hub
@@ -124,22 +123,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	target, err := prog.GetTarget(cfg.TargetOS, cfg.TargetArch)
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-	sysTarget := targets.Get(cfg.TargetOS, cfg.TargetVMArch)
-	if sysTarget == nil {
-		log.Fatalf("unsupported OS/arch: %v/%v", cfg.TargetOS, cfg.TargetVMArch)
-	}
-	syscalls, err := mgrconfig.ParseEnabledSyscalls(target, cfg.EnabledSyscalls, cfg.DisabledSyscalls)
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-	RunManager(cfg, target, sysTarget, syscalls)
+	RunManager(cfg)
 }
 
-func RunManager(cfg *mgrconfig.Config, target *prog.Target, sysTarget *targets.Target, syscalls []int) {
+func RunManager(cfg *mgrconfig.Config) {
 	var vmPool *vm.Pool
 	// Type "none" is a special case for debugging/development when manager
 	// does not start any VMs, but instead you start them manually
@@ -161,27 +148,26 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, sysTarget *targets.T
 	}
 
 	mgr := &Manager{
-		cfg:                   cfg,
-		vmPool:                vmPool,
-		target:                target,
-		sysTarget:             sysTarget,
-		reporter:              reporter,
-		crashdir:              crashdir,
-		startTime:             time.Now(),
-		stats:                 &Stats{haveHub: cfg.HubClient != ""},
-		crashTypes:            make(map[string]bool),
-		configEnabledSyscalls: syscalls,
-		corpus:                make(map[string]rpctype.RPCInput),
-		disabledHashes:        make(map[string]struct{}),
-		memoryLeakFrames:      make(map[string]bool),
-		dataRaceFrames:        make(map[string]bool),
-		fresh:                 true,
-		vmStop:                make(chan bool),
-		hubReproQueue:         make(chan *Crash, 10),
-		needMoreRepros:        make(chan chan bool),
-		reproRequest:          make(chan chan map[string]bool),
-		usedFiles:             make(map[string]time.Time),
-		saturatedCalls:        make(map[string]bool),
+		cfg:              cfg,
+		vmPool:           vmPool,
+		target:           cfg.Target,
+		sysTarget:        cfg.SysTarget,
+		reporter:         reporter,
+		crashdir:         crashdir,
+		startTime:        time.Now(),
+		stats:            &Stats{haveHub: cfg.HubClient != ""},
+		crashTypes:       make(map[string]bool),
+		corpus:           make(map[string]rpctype.RPCInput),
+		disabledHashes:   make(map[string]struct{}),
+		memoryLeakFrames: make(map[string]bool),
+		dataRaceFrames:   make(map[string]bool),
+		fresh:            true,
+		vmStop:           make(chan bool),
+		hubReproQueue:    make(chan *Crash, 10),
+		needMoreRepros:   make(chan chan bool),
+		reproRequest:     make(chan chan map[string]bool),
+		usedFiles:        make(map[string]time.Time),
+		saturatedCalls:   make(map[string]bool),
 	}
 
 	mgr.preloadCorpus()
@@ -606,7 +592,7 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Re
 
 	// If SyzExecutorCmd is provided, it means that syz-executor is already in
 	// the image, so no need to copy it.
-	executorCmd := targets.Get(mgr.cfg.TargetOS, mgr.cfg.TargetArch).SyzExecutorCmd
+	executorCmd := mgr.sysTarget.SyzExecutorCmd
 	if executorCmd == "" {
 		executorCmd, err = inst.Copy(mgr.cfg.SyzExecutorBin)
 		if err != nil {
@@ -1073,7 +1059,7 @@ func (mgr *Manager) machineChecked(a *rpctype.CheckArgs, enabledSyscalls map[*pr
 		for _, dc := range a.DisabledCalls[mgr.cfg.Sandbox] {
 			disabled[mgr.target.Syscalls[dc.ID].Name] = dc.Reason
 		}
-		for _, id := range mgr.configEnabledSyscalls {
+		for _, id := range mgr.cfg.Syscalls {
 			name := mgr.target.Syscalls[id].Name
 			if reason := disabled[name]; reason != "" {
 				log.Logf(0, "disabling %v: %v", name, reason)

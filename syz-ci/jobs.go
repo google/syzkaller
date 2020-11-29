@@ -420,7 +420,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 			Syz:  req.ReproSyz,
 			C:    req.ReproC,
 		},
-		Manager: *mgrcfg,
+		Manager: mgrcfg,
 	}
 
 	res, err := bisect.Run(cfg)

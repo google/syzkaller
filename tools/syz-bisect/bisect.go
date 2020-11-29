@@ -70,7 +70,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	mgrcfg, err := mgrconfig.LoadPartialData(mycfg.Manager)
+	mgrcfg, err := mgrconfig.LoadData(mycfg.Manager)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -99,7 +99,7 @@ func main() {
 		Syzkaller: bisect.SyzkallerConfig{
 			Repo: mycfg.SyzkallerRepo,
 		},
-		Manager: *mgrcfg,
+		Manager: mgrcfg,
 	}
 	loadString("syzkaller.commit", &cfg.Syzkaller.Commit)
 	loadString("kernel.commit", &cfg.Kernel.Commit)

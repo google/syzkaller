@@ -24,7 +24,6 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm"
 )
 
@@ -60,11 +59,6 @@ func main() {
 		log.Printf("running until crash is found or till %v", *flagRestartTime)
 	}
 
-	target, err := prog.GetTarget(cfg.TargetOS, cfg.TargetArch)
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-
 	vmPool, err := vm.Create(cfg, *flagDebug)
 	if err != nil {
 		log.Fatalf("%v", err)
@@ -90,7 +84,7 @@ func main() {
 			log.Fatalf("error reading source file from '%s'", reproduceMe)
 		}
 
-		cfg.SyzExecprogBin, err = csource.BuildNoWarn(target, execprog)
+		cfg.SyzExecprogBin, err = csource.BuildNoWarn(cfg.Target, execprog)
 		if err != nil {
 			log.Fatalf("failed to build source file: %v", err)
 		}
@@ -107,7 +101,7 @@ func main() {
 	for i := 0; i < vmPool.Count(); i++ {
 		go func(index int) {
 			for {
-				runDone <- runInstance(target, cfg, reporter, vmPool, index, *flagRestartTime, runType)
+				runDone <- runInstance(cfg.Target, cfg, reporter, vmPool, index, *flagRestartTime, runType)
 				if atomic.LoadUint32(&shutdown) != 0 || !*flagInfinite {
 					// If this is the last worker then we can close the channel.
 					if atomic.AddUint32(&stoppedWorkers, 1) == uint32(vmPool.Count()) {
@@ -181,7 +175,7 @@ func runInstance(target *prog.Target, cfg *mgrconfig.Config, reporter report.Rep
 	if runType == LogFile {
 		// If SyzExecutorCmd is provided, it means that syz-executor is already in
 		// the image, so no need to copy it.
-		executorCmd := targets.Get(cfg.TargetOS, cfg.TargetArch).SyzExecutorCmd
+		executorCmd := cfg.SysTarget.SyzExecutorCmd
 		if executorCmd == "" {
 			executorCmd, err = inst.Copy(cfg.SyzExecutorBin)
 			if err != nil {

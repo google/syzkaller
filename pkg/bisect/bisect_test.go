@@ -126,7 +126,7 @@ func runBisection(t *testing.T, baseDir string, test BisectionTest) (*Result, er
 	cfg := &Config{
 		Fix:   test.fix,
 		Trace: trace,
-		Manager: mgrconfig.Config{
+		Manager: &mgrconfig.Config{
 			Derived: mgrconfig.Derived{
 				TargetOS:     targets.TestOS,
 				TargetVMArch: targets.TestArch64,

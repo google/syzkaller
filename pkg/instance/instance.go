@@ -22,7 +22,6 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/vcs"
-	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm"
 )
@@ -310,7 +309,7 @@ func (inst *inst) testInstance() error {
 
 	// If SyzExecutorCmd is provided, it means that syz-executor is already in
 	// the image, so no need to copy it.
-	executorCmd := targets.Get(inst.cfg.TargetOS, inst.cfg.TargetArch).SyzExecutorCmd
+	executorCmd := inst.cfg.SysTarget.SyzExecutorCmd
 	if executorCmd == "" {
 		executorCmd, err = inst.vm.Copy(inst.cfg.SyzExecutorBin)
 		if err != nil {
@@ -352,7 +351,7 @@ func (inst *inst) testRepro() error {
 		}
 		// If SyzExecutorCmd is provided, it means that syz-executor is already in
 		// the image, so no need to copy it.
-		executorCmd := targets.Get(cfg.TargetOS, cfg.TargetArch).SyzExecutorCmd
+		executorCmd := cfg.SysTarget.SyzExecutorCmd
 		if executorCmd == "" {
 			executorCmd, err = inst.vm.Copy(inst.cfg.SyzExecutorBin)
 			if err != nil {
@@ -390,11 +389,7 @@ func (inst *inst) testRepro() error {
 	if len(inst.reproC) == 0 {
 		return nil
 	}
-	target, err := prog.GetTarget(cfg.TargetOS, cfg.TargetArch)
-	if err != nil {
-		return err
-	}
-	bin, err := csource.BuildNoWarn(target, inst.reproC)
+	bin, err := csource.BuildNoWarn(cfg.Target, inst.reproC)
 	if err != nil {
 		return err
 	}

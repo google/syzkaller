@@ -16,7 +16,6 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/vcs"
-	"github.com/google/syzkaller/sys/targets"
 )
 
 type Config struct {
@@ -29,7 +28,7 @@ type Config struct {
 	Kernel    KernelConfig
 	Syzkaller SyzkallerConfig
 	Repro     ReproConfig
-	Manager   mgrconfig.Config
+	Manager   *mgrconfig.Config
 }
 
 type KernelConfig struct {
@@ -63,7 +62,6 @@ type ReproConfig struct {
 
 type env struct {
 	cfg          *Config
-	target       *targets.Target
 	repo         vcs.Repo
 	bisecter     vcs.Bisecter
 	minimizer    vcs.ConfigMinimizer
@@ -116,7 +114,7 @@ func Run(cfg *Config) (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	inst, err := instance.NewEnv(&cfg.Manager)
+	inst, err := instance.NewEnv(cfg.Manager)
 	if err != nil {
 		return nil, err
 	}
@@ -135,13 +133,8 @@ func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
 	if !ok && len(cfg.Kernel.BaselineConfig) != 0 {
 		return nil, fmt.Errorf("config minimization is not implemented for %v", cfg.Manager.TargetOS)
 	}
-	target := targets.Get(cfg.Manager.TargetOS, cfg.Manager.TargetVMArch)
-	if target == nil {
-		return nil, fmt.Errorf("unknown target %v/%v", cfg.Manager.TargetOS, cfg.Manager.TargetVMArch)
-	}
 	env := &env{
 		cfg:       cfg,
-		target:    target,
 		repo:      repo,
 		bisecter:  bisecter,
 		minimizer: minimizer,
@@ -309,7 +302,7 @@ func (env *env) minimizeConfig() (*testResult, error) {
 		testResults[hash.Hash(test)] = testRes
 		return testRes.verdict, err
 	}
-	minConfig, err := env.minimizer.Minimize(env.target, env.cfg.Kernel.Config,
+	minConfig, err := env.minimizer.Minimize(env.cfg.Manager.SysTarget, env.cfg.Kernel.Config,
 		env.cfg.Kernel.BaselineConfig, env.cfg.Trace, predMinimize)
 	if err != nil {
 		return nil, err
@@ -426,7 +419,7 @@ func (env *env) build() (*vcs.Commit, string, error) {
 	}
 	env.log("testing commit %v with %v", current.Hash, compilerID)
 	buildStart := time.Now()
-	mgr := &env.cfg.Manager
+	mgr := env.cfg.Manager
 	if err := build.Clean(mgr.TargetOS, mgr.TargetVMArch, mgr.Type, mgr.KernelSrc); err != nil {
 		return nil, "", fmt.Errorf("kernel clean failed: %v", err)
 	}

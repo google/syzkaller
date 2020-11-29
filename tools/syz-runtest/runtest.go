@@ -26,7 +26,6 @@ import (
 	"github.com/google/syzkaller/pkg/runtest"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
-	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm"
 )
 
@@ -42,10 +41,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	target, err := prog.GetTarget(cfg.TargetOS, cfg.TargetArch)
-	if err != nil {
-		log.Fatal(err)
-	}
 	vmPool, err := vm.Create(cfg, *flagDebug)
 	if err != nil {
 		log.Fatal(err)
@@ -57,7 +52,6 @@ func main() {
 	osutil.MkdirAll(cfg.Workdir)
 	mgr := &Manager{
 		cfg:              cfg,
-		target:           target,
 		vmPool:           vmPool,
 		reporter:         reporter,
 		debug:            *flagDebug,
@@ -102,7 +96,7 @@ func main() {
 	for sandbox, ids := range mgr.checkResult.EnabledCalls {
 		calls := make(map[*prog.Syscall]bool)
 		for _, id := range ids {
-			calls[target.Syscalls[id]] = true
+			calls[cfg.Target.Syscalls[id]] = true
 		}
 		enabledCalls[sandbox] = calls
 	}
@@ -116,8 +110,8 @@ func main() {
 		fmt.Printf("%-24v: %v calls enabled\n", sandbox+" sandbox", len(calls))
 	}
 	ctx := &runtest.Context{
-		Dir:          filepath.Join(cfg.Syzkaller, "sys", target.OS, targets.TestOS),
-		Target:       target,
+		Dir:          filepath.Join(cfg.Syzkaller, "sys", cfg.Target.OS, "test"),
+		Target:       cfg.Target,
 		Features:     mgr.checkResult.Features,
 		EnabledCalls: enabledCalls,
 		Requests:     mgr.requests,
@@ -137,7 +131,6 @@ func main() {
 
 type Manager struct {
 	cfg              *mgrconfig.Config
-	target           *prog.Target
 	vmPool           *vm.Pool
 	reporter         report.Reporter
 	requests         chan *runtest.RunRequest
@@ -173,7 +166,7 @@ func (mgr *Manager) boot(name string, index int) (*report.Report, error) {
 
 	// If SyzExecutorCmd is provided, it means that syz-executor is already in
 	// the image, so no need to copy it.
-	executorCmd := targets.Get(mgr.cfg.TargetOS, mgr.cfg.TargetArch).SyzExecutorCmd
+	executorCmd := mgr.cfg.SysTarget.SyzExecutorCmd
 	if executorCmd == "" {
 		executorCmd, err = inst.Copy(mgr.cfg.SyzExecutorBin)
 		if err != nil {
@@ -212,7 +205,7 @@ func (mgr *Manager) finishRequest(name string, rep *report.Report) error {
 
 func (mgr *Manager) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) error {
 	r.GitRevision = prog.GitRevision
-	r.TargetRevision = mgr.target.Revision
+	r.TargetRevision = mgr.cfg.Target.Revision
 	r.AllSandboxes = true
 	select {
 	case <-mgr.checkResultReady:
