@@ -210,14 +210,14 @@ func (ctx *context) initInstance(cfg *mgrconfig.Config, vmPool *vm.Pool, vmIndex
 	if err != nil {
 		return nil, fmt.Errorf("failed to create VM: %v", err)
 	}
-	execprogBin, err := vmInst.Copy(cfg.SyzExecprogBin)
+	execprogBin, err := vmInst.Copy(cfg.ExecprogBin)
 	if err != nil {
 		vmInst.Close()
 		return nil, fmt.Errorf("failed to copy to VM: %v", err)
 	}
-	executorCmd := ctx.target.SyzExecutorCmd
-	if executorCmd == "" {
-		executorCmd, err = vmInst.Copy(cfg.SyzExecutorBin)
+	executorBin := ctx.target.ExecutorBin
+	if executorBin == "" {
+		executorBin, err = vmInst.Copy(cfg.ExecutorBin)
 		if err != nil {
 			vmInst.Close()
 			return nil, fmt.Errorf("failed to copy to VM: %v", err)
@@ -227,7 +227,7 @@ func (ctx *context) initInstance(cfg *mgrconfig.Config, vmPool *vm.Pool, vmIndex
 		Instance:    vmInst,
 		index:       vmIndex,
 		execprogBin: execprogBin,
-		executorBin: executorCmd,
+		executorBin: executorBin,
 	}, nil
 }
 

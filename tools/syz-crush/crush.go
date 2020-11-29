@@ -84,12 +84,12 @@ func main() {
 			log.Fatalf("error reading source file from '%s'", reproduceMe)
 		}
 
-		cfg.SyzExecprogBin, err = csource.BuildNoWarn(cfg.Target, execprog)
+		cfg.ExecprogBin, err = csource.BuildNoWarn(cfg.Target, execprog)
 		if err != nil {
 			log.Fatalf("failed to build source file: %v", err)
 		}
 
-		log.Printf("compiled csource %v to cprog: %v", reproduceMe, cfg.SyzExecprogBin)
+		log.Printf("compiled csource %v to cprog: %v", reproduceMe, cfg.ExecprogBin)
 	} else {
 		log.Printf("reproducing from log file: %v", reproduceMe)
 	}
@@ -165,7 +165,7 @@ func runInstance(target *prog.Target, cfg *mgrconfig.Config, reporter report.Rep
 	}
 	defer inst.Close()
 
-	execprogBin, err := inst.Copy(cfg.SyzExecprogBin)
+	execprogBin, err := inst.Copy(cfg.ExecprogBin)
 	if err != nil {
 		log.Printf("failed to copy execprog: %v", err)
 		return nil
@@ -175,9 +175,9 @@ func runInstance(target *prog.Target, cfg *mgrconfig.Config, reporter report.Rep
 	if runType == LogFile {
 		// If SyzExecutorCmd is provided, it means that syz-executor is already in
 		// the image, so no need to copy it.
-		executorCmd := cfg.SysTarget.SyzExecutorCmd
-		if executorCmd == "" {
-			executorCmd, err = inst.Copy(cfg.SyzExecutorBin)
+		executorBin := cfg.SysTarget.ExecutorBin
+		if executorBin == "" {
+			executorBin, err = inst.Copy(cfg.ExecutorBin)
 			if err != nil {
 				log.Printf("failed to copy executor: %v", err)
 				return nil
@@ -189,7 +189,7 @@ func runInstance(target *prog.Target, cfg *mgrconfig.Config, reporter report.Rep
 			return nil
 		}
 
-		cmd = instance.ExecprogCmd(execprogBin, executorCmd, cfg.TargetOS, cfg.TargetArch, cfg.Sandbox,
+		cmd = instance.ExecprogCmd(execprogBin, executorBin, cfg.TargetOS, cfg.TargetArch, cfg.Sandbox,
 			true, true, true, cfg.Procs, -1, -1, logFile)
 	} else {
 		cmd = execprogBin

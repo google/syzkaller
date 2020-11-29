@@ -302,22 +302,22 @@ func (inst *inst) testInstance() error {
 		return fmt.Errorf("failed to setup port forwarding: %v", err)
 	}
 
-	fuzzerBin, err := inst.vm.Copy(inst.cfg.SyzFuzzerBin)
+	fuzzerBin, err := inst.vm.Copy(inst.cfg.FuzzerBin)
 	if err != nil {
 		return &TestError{Title: fmt.Sprintf("failed to copy test binary to VM: %v", err)}
 	}
 
-	// If SyzExecutorCmd is provided, it means that syz-executor is already in
-	// the image, so no need to copy it.
-	executorCmd := inst.cfg.SysTarget.SyzExecutorCmd
-	if executorCmd == "" {
-		executorCmd, err = inst.vm.Copy(inst.cfg.SyzExecutorBin)
+	// If ExecutorBin is provided, it means that syz-executor is already in the image,
+	// so no need to copy it.
+	executorBin := inst.cfg.SysTarget.ExecutorBin
+	if executorBin == "" {
+		executorBin, err = inst.vm.Copy(inst.cfg.ExecutorBin)
 		if err != nil {
 			return &TestError{Title: fmt.Sprintf("failed to copy test binary to VM: %v", err)}
 		}
 	}
 
-	cmd := OldFuzzerCmd(fuzzerBin, executorCmd, targets.TestOS, inst.cfg.TargetOS, inst.cfg.TargetArch, fwdAddr,
+	cmd := OldFuzzerCmd(fuzzerBin, executorBin, targets.TestOS, inst.cfg.TargetOS, inst.cfg.TargetArch, fwdAddr,
 		inst.cfg.Sandbox, 0, inst.cfg.Cover, true)
 	outc, errc, err := inst.vm.Run(10*time.Minute, nil, cmd)
 	if err != nil {
@@ -345,15 +345,15 @@ func (inst *inst) testInstance() error {
 func (inst *inst) testRepro() error {
 	cfg := inst.cfg
 	if len(inst.reproSyz) > 0 {
-		execprogBin, err := inst.vm.Copy(cfg.SyzExecprogBin)
+		execprogBin, err := inst.vm.Copy(cfg.ExecprogBin)
 		if err != nil {
 			return &TestError{Title: fmt.Sprintf("failed to copy test binary to VM: %v", err)}
 		}
-		// If SyzExecutorCmd is provided, it means that syz-executor is already in
-		// the image, so no need to copy it.
-		executorCmd := cfg.SysTarget.SyzExecutorCmd
-		if executorCmd == "" {
-			executorCmd, err = inst.vm.Copy(inst.cfg.SyzExecutorBin)
+		// If ExecutorBin is provided, it means that syz-executor is already in the image,
+		// so no need to copy it.
+		executorBin := cfg.SysTarget.ExecutorBin
+		if executorBin == "" {
+			executorBin, err = inst.vm.Copy(inst.cfg.ExecutorBin)
 			if err != nil {
 				return &TestError{Title: fmt.Sprintf("failed to copy test binary to VM: %v", err)}
 			}
@@ -380,7 +380,7 @@ func (inst *inst) testRepro() error {
 		if !opts.Fault {
 			opts.FaultCall = -1
 		}
-		cmdSyz := ExecprogCmd(execprogBin, executorCmd, cfg.TargetOS, cfg.TargetArch, opts.Sandbox,
+		cmdSyz := ExecprogCmd(execprogBin, executorBin, cfg.TargetOS, cfg.TargetArch, opts.Sandbox,
 			true, true, true, cfg.Procs, opts.FaultCall, opts.FaultNth, vmProgFile)
 		if err := inst.testProgram(cmdSyz, 7*time.Minute); err != nil {
 			return err
