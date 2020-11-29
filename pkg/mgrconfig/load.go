@@ -27,10 +27,10 @@ type Derived struct {
 	TargetArch   string
 	TargetVMArch string
 
-	// Syzkaller binaries that we are going to use:
-	SyzFuzzerBin   string
-	SyzExecprogBin string
-	SyzExecutorBin string
+	// Full paths to binaries we are going to use:
+	FuzzerBin   string
+	ExecprogBin string
+	ExecutorBin string
 
 	Syscalls []int
 }
@@ -211,17 +211,17 @@ func (cfg *Config) completeBinaries() error {
 	targetBin := func(name, arch string) string {
 		return filepath.Join(cfg.Syzkaller, "bin", cfg.TargetOS+"_"+arch, name+exe)
 	}
-	cfg.SyzFuzzerBin = targetBin("syz-fuzzer", cfg.TargetVMArch)
-	cfg.SyzExecprogBin = targetBin("syz-execprog", cfg.TargetVMArch)
-	cfg.SyzExecutorBin = targetBin("syz-executor", cfg.TargetArch)
-	if !osutil.IsExist(cfg.SyzFuzzerBin) {
-		return fmt.Errorf("bad config syzkaller param: can't find %v", cfg.SyzFuzzerBin)
+	cfg.FuzzerBin = targetBin("syz-fuzzer", cfg.TargetVMArch)
+	cfg.ExecprogBin = targetBin("syz-execprog", cfg.TargetVMArch)
+	cfg.ExecutorBin = targetBin("syz-executor", cfg.TargetArch)
+	if !osutil.IsExist(cfg.FuzzerBin) {
+		return fmt.Errorf("bad config syzkaller param: can't find %v", cfg.FuzzerBin)
 	}
-	if !osutil.IsExist(cfg.SyzExecprogBin) {
-		return fmt.Errorf("bad config syzkaller param: can't find %v", cfg.SyzExecprogBin)
+	if !osutil.IsExist(cfg.ExecprogBin) {
+		return fmt.Errorf("bad config syzkaller param: can't find %v", cfg.ExecprogBin)
 	}
-	if !osutil.IsExist(cfg.SyzExecutorBin) {
-		return fmt.Errorf("bad config syzkaller param: can't find %v", cfg.SyzExecutorBin)
+	if !osutil.IsExist(cfg.ExecutorBin) {
+		return fmt.Errorf("bad config syzkaller param: can't find %v", cfg.ExecutorBin)
 	}
 	return nil
 }

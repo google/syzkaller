@@ -159,21 +159,21 @@ func (mgr *Manager) boot(name string, index int) (*report.Report, error) {
 		return nil, fmt.Errorf("failed to setup port forwarding: %v", err)
 	}
 
-	fuzzerBin, err := inst.Copy(mgr.cfg.SyzFuzzerBin)
+	fuzzerBin, err := inst.Copy(mgr.cfg.FuzzerBin)
 	if err != nil {
 		return nil, fmt.Errorf("failed to copy binary: %v", err)
 	}
 
 	// If SyzExecutorCmd is provided, it means that syz-executor is already in
 	// the image, so no need to copy it.
-	executorCmd := mgr.cfg.SysTarget.SyzExecutorCmd
-	if executorCmd == "" {
-		executorCmd, err = inst.Copy(mgr.cfg.SyzExecutorBin)
+	executorBin := mgr.cfg.SysTarget.ExecutorBin
+	if executorBin == "" {
+		executorBin, err = inst.Copy(mgr.cfg.ExecutorBin)
 		if err != nil {
 			return nil, fmt.Errorf("failed to copy binary: %v", err)
 		}
 	}
-	cmd := instance.FuzzerCmd(fuzzerBin, executorCmd, name,
+	cmd := instance.FuzzerCmd(fuzzerBin, executorBin, name,
 		mgr.cfg.TargetOS, mgr.cfg.TargetArch, fwdAddr, mgr.cfg.Sandbox, mgr.cfg.Procs, 0,
 		mgr.cfg.Cover, mgr.debug, false, true)
 	outc, errc, err := inst.Run(time.Hour, mgr.vmStop, cmd)

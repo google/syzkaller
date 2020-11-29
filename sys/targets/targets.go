@@ -67,7 +67,7 @@ type osCommon struct {
 	// Some systems build syz-executor into their images.
 	// If this flag is not empty, syz-executor will not be copied to the machine, and will be run using
 	// this command instead.
-	SyzExecutorCmd string
+	ExecutorBin string
 	// Extension of executable files (notably, .exe for windows).
 	ExeExtension string
 	// Name of the kernel object file.
@@ -429,7 +429,7 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      false,
 		ExecutorUsesForkServer: false,
 		HostFuzzer:             true,
-		SyzExecutorCmd:         "syz-executor",
+		ExecutorBin:            "syz-executor",
 		KernelObject:           "zircon.elf",
 	},
 	Windows: {

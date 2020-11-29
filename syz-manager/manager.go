@@ -585,16 +585,16 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Re
 		return nil, fmt.Errorf("failed to setup port forwarding: %v", err)
 	}
 
-	fuzzerBin, err := inst.Copy(mgr.cfg.SyzFuzzerBin)
+	fuzzerBin, err := inst.Copy(mgr.cfg.FuzzerBin)
 	if err != nil {
 		return nil, fmt.Errorf("failed to copy binary: %v", err)
 	}
 
-	// If SyzExecutorCmd is provided, it means that syz-executor is already in
-	// the image, so no need to copy it.
-	executorCmd := mgr.sysTarget.SyzExecutorCmd
-	if executorCmd == "" {
-		executorCmd, err = inst.Copy(mgr.cfg.SyzExecutorBin)
+	// If ExecutorBin is provided, it means that syz-executor is already in the image,
+	// so no need to copy it.
+	executorBin := mgr.sysTarget.ExecutorBin
+	if executorBin == "" {
+		executorBin, err = inst.Copy(mgr.cfg.ExecutorBin)
 		if err != nil {
 			return nil, fmt.Errorf("failed to copy binary: %v", err)
 		}
@@ -612,7 +612,7 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Re
 	atomic.AddUint32(&mgr.numFuzzing, 1)
 	defer atomic.AddUint32(&mgr.numFuzzing, ^uint32(0))
 
-	cmd := instance.FuzzerCmd(fuzzerBin, executorCmd, instanceName,
+	cmd := instance.FuzzerCmd(fuzzerBin, executorBin, instanceName,
 		mgr.cfg.TargetOS, mgr.cfg.TargetArch, fwdAddr, mgr.cfg.Sandbox, procs, fuzzerV,
 		mgr.cfg.Cover, *flagDebug, false, false)
 	outc, errc, err := inst.Run(time.Hour, mgr.vmStop, cmd)
@@ -1150,9 +1150,9 @@ func (mgr *Manager) collectUsedFiles() {
 		mgr.usedFiles[f] = stat.ModTime()
 	}
 	cfg := mgr.cfg
-	addUsedFile(cfg.SyzFuzzerBin)
-	addUsedFile(cfg.SyzExecprogBin)
-	addUsedFile(cfg.SyzExecutorBin)
+	addUsedFile(cfg.FuzzerBin)
+	addUsedFile(cfg.ExecprogBin)
+	addUsedFile(cfg.ExecutorBin)
 	addUsedFile(cfg.SSHKey)
 	if vmlinux := filepath.Join(cfg.KernelObj, mgr.sysTarget.KernelObject); osutil.IsExist(vmlinux) {
 		addUsedFile(vmlinux)
