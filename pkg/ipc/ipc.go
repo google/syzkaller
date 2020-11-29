@@ -72,9 +72,6 @@ type Config struct {
 
 	// Flags are configuation flags, defined above.
 	Flags EnvFlags
-
-	// Timeout is the execution timeout for a single program.
-	Timeout time.Duration
 }
 
 type CallFlags uint32
@@ -540,10 +537,19 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 	}
 	dir = osutil.Abs(dir)
 
+	// Executor protects against most hangs, so we use quite large timeout here.
+	// Executor can be slow due to global locks in namespaces and other things,
+	// so let's better wait than report false misleading crashes.
+	timeout := time.Minute
+	if !config.UseForkServer {
+		// If there is no fork server, executor does not have internal timeout.
+		timeout = 5 * time.Second
+	}
+
 	c := &command{
 		pid:     pid,
 		config:  config,
-		timeout: sanitizeTimeout(config),
+		timeout: timeout,
 		dir:     dir,
 		outmem:  outmem,
 	}
@@ -808,28 +814,4 @@ func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, hanged b
 		err0 = fmt.Errorf("executor %v: exit status %d\n%s", c.pid, exitStatus, output)
 	}
 	return
-}
-
-func sanitizeTimeout(config *Config) time.Duration {
-	const (
-		executorTimeout = 5 * time.Second
-		minTimeout      = executorTimeout + 2*time.Second
-	)
-	timeout := config.Timeout
-	if timeout == 0 {
-		// Executor protects against most hangs, so we use quite large timeout here.
-		// Executor can be slow due to global locks in namespaces and other things,
-		// so let's better wait than report false misleading crashes.
-		timeout = time.Minute
-		if !config.UseForkServer {
-			// If there is no fork server, executor does not have internal timeout.
-			timeout = executorTimeout
-		}
-	}
-	// IPC timeout must be larger then executor timeout.
-	// Otherwise IPC will kill parent executor but leave child executor alive.
-	if config.UseForkServer && timeout < minTimeout {
-		timeout = minTimeout
-	}
-	return timeout
 }
