@@ -1,8 +1,8 @@
 // KCOV glue for libfuzzer. Build as:
-// clang libfuzzer_kcov.c -fsanitize=fuzzer -Wall -o fuzzer
+// clang tools/kcovfuzzer/kcovfuzzer.c -fsanitize=fuzzer -Wall -o fuzzer
 // Run as:
-// ./fuzzer -max_len=129 corpus-bpf
-// ./fuzzer -max_len=100 -only_ascii=1 corpus-filter
+// KCOVFUZZER=bpf ./fuzzer -max_len=129 corpus_bpf
+// KCOVFUZZER=trace_filter ./fuzzer -max_len=100 -only_ascii=1 corpus_trace_filter
 // If you need to build with -static, then the following env needs to be exported:
 // UBSAN_OPTIONS="handle_segv=0 handle_sigbus=0 handle_abort=0 handle_sigill=0 handle_sigtrap=0 handle_sigfpe=0"
 // and the following flags added to fuzzer invocation:
@@ -25,45 +25,20 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define KCOV_COVER_SIZE (256 << 10)
-#define KCOV_TRACE_PC 0
-#define KCOV_INIT_TRACE64 _IOR('c', 1, uint64_t)
-#define KCOV_ENABLE _IO('c', 100)
-
-__attribute__((section("__libfuzzer_extra_counters"))) unsigned char libfuzzer_coverage[32 << 10];
-
-void fail(const char* msg, ...)
-{
-	int e = errno;
-	va_list args;
-	va_start(args, msg);
-	vfprintf(stderr, msg, args);
-	va_end(args);
-	fprintf(stderr, " (errno %d)\n", e);
-	_exit(1);
-}
-
-#define FUZZ_BPF 1
-//#define FUZZ_TRACE_FILTER 1
+void init(const char*, long);
+void (*fuzz_func)(const char*, long) = init;
+void fail(const char* msg, ...);
+void cover_start();
+void cover_stop();
 
 int LLVMFuzzerTestOneInput(const char* data, long size)
 {
-	static int kcov = -1;
-	static uint64_t* kcov_data;
-	if (kcov == -1) {
-		kcov = open("/sys/kernel/debug/kcov", O_RDWR);
-		if (kcov == -1)
-			fail("open of /sys/kernel/debug/kcov failed");
-		if (ioctl(kcov, KCOV_INIT_TRACE64, KCOV_COVER_SIZE))
-			fail("cover init trace write failed");
-		kcov_data = (uint64_t*)mmap(NULL, KCOV_COVER_SIZE * sizeof(kcov_data[0]),
-					    PROT_READ | PROT_WRITE, MAP_SHARED, kcov, 0);
-		if (kcov_data == MAP_FAILED)
-			fail("cover mmap failed");
-		if (ioctl(kcov, KCOV_ENABLE, KCOV_TRACE_PC))
-			fail("cover enable write trace failed");
-	}
-#ifdef FUZZ_BPF
+	fuzz_func(data, size);
+	return 0;
+}
+
+void bpf(const char* data, long size)
+{
 	union bpf_attr attr;
 	memset(&attr, 0, sizeof(attr));
 	attr.map_type = BPF_MAP_TYPE_HASH;
@@ -78,14 +53,20 @@ int LLVMFuzzerTestOneInput(const char* data, long size)
 	attr.insn_cnt = size / 8;
 	attr.license = (uint64_t) "GPL";
 
-	__atomic_store_n(&kcov_data[0], 0, __ATOMIC_RELAXED);
+	cover_start();
 	int pfd = syscall(SYS_bpf, BPF_PROG_LOAD, &attr, sizeof(attr));
 	if (pfd != -1) {
 		memset(&attr, 0, sizeof(attr));
 		attr.test.prog_fd = pfd;
 		syscall(SYS_bpf, BPF_PROG_TEST_RUN, &attr, sizeof(attr));
 	}
-#elif FUZZ_TRACE_FILTER
+	cover_stop();
+	close(pfd);
+	close(mfd);
+}
+
+void trace_filter(const char* data, long size)
+{
 	int fd0 = open("/sys/kernel/debug/tracing/events/syscalls/sys_exit_read/enable", O_RDWR);
 	if (fd0 == -1)
 		fail("open enable failed");
@@ -95,7 +76,7 @@ int LLVMFuzzerTestOneInput(const char* data, long size)
 	int fd2 = open("/sys/kernel/debug/tracing/events/syscalls/sys_exit_read/trigger", O_RDWR);
 	if (fd2 == -1)
 		fail("open trigger failed");
-	__atomic_store_n(&kcov_data[0], 0, __ATOMIC_RELAXED);
+	cover_start();
 	char buf[256];
 	buf[0] = '1';
 	write(fd0, buf, 1);
@@ -107,7 +88,53 @@ int LLVMFuzzerTestOneInput(const char* data, long size)
 	read(fd2, buf, sizeof(buf));
 	buf[0] = '0';
 	write(fd0, buf, 1);
-#endif
+	cover_stop();
+	close(fd0);
+	close(fd1);
+	close(fd2);
+}
+
+#define KCOV_COVER_SIZE (256 << 10)
+#define KCOV_TRACE_PC 0
+#define KCOV_INIT_TRACE64 _IOR('c', 1, uint64_t)
+#define KCOV_ENABLE _IO('c', 100)
+
+__attribute__((section("__libfuzzer_extra_counters"))) unsigned char libfuzzer_coverage[32 << 10];
+uint64_t* kcov_data;
+
+void init(const char* data, long size)
+{
+	const char* name = getenv("KCOVFUZZER");
+	if (strcmp(name, "bpf") == 0)
+		fuzz_func = bpf;
+	else if (strcmp(name, "trace_filter") == 0)
+		fuzz_func = trace_filter;
+	else
+		fail("unknown fuzz function '%s'", name);
+
+	int kcov = open("/sys/kernel/debug/kcov", O_RDWR);
+	if (kcov == -1)
+		fail("open of /sys/kernel/debug/kcov failed");
+	if (ioctl(kcov, KCOV_INIT_TRACE64, KCOV_COVER_SIZE))
+		fail("cover init trace write failed");
+	kcov_data = (uint64_t*)mmap(NULL, KCOV_COVER_SIZE * sizeof(kcov_data[0]),
+				    PROT_READ | PROT_WRITE, MAP_SHARED, kcov, 0);
+	if (kcov_data == MAP_FAILED)
+		fail("cover mmap failed");
+	if (ioctl(kcov, KCOV_ENABLE, KCOV_TRACE_PC))
+		fail("cover enable write trace failed");
+	close(kcov);
+
+	fuzz_func(data, size);
+}
+
+void cover_start()
+{
+	__atomic_store_n(&kcov_data[0], 0, __ATOMIC_RELAXED);
+}
+
+void cover_stop()
+{
 	uint64_t ncov = __atomic_load_n(&kcov_data[0], __ATOMIC_RELAXED);
 	if (ncov >= KCOV_COVER_SIZE)
 		fail("too much cover: %llu", ncov);
@@ -115,14 +142,15 @@ int LLVMFuzzerTestOneInput(const char* data, long size)
 		uint64_t pc = __atomic_load_n(&kcov_data[i + 1], __ATOMIC_RELAXED);
 		libfuzzer_coverage[pc % sizeof(libfuzzer_coverage)]++;
 	}
-#ifdef FUZZ_BPF
+}
 
-	close(pfd);
-	close(mfd);
-#elif FUZZ_TRACE_FILTER
-	close(fd0);
-	close(fd1);
-	close(fd2);
-#endif
-	return 0;
+void fail(const char* msg, ...)
+{
+	int e = errno;
+	va_list args;
+	va_start(args, msg);
+	vfprintf(stderr, msg, args);
+	va_end(args);
+	fprintf(stderr, " (errno %d)\n", e);
+	_exit(1);
 }
