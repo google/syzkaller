@@ -1032,14 +1032,15 @@ var linuxOopses = append([]*oops{
 				corrupted: true,
 			},
 			{
-				title: compile("BUG: spinlock (lockup suspected|already unlocked|recursion|bad magic|wrong owner|wrong CPU)"),
-				fmt:   "BUG: spinlock %[1]v in %[2]v",
+				title: compile("BUG: (spinlock|rwlock) (lockup suspected|already unlocked|recursion" +
+					"|cpu recursion|bad magic|wrong owner|wrong CPU|trylock failure on UP)"),
+				fmt: "BUG: %[1]v %[2]v in %[3]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
 						linuxCallTrace,
 						parseStackTrace,
 					},
-					skip: []string{"spin_"},
+					skip: []string{"spin_", "_lock", "_unlock"},
 				},
 			},
 			{
