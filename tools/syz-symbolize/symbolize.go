@@ -33,14 +33,14 @@ func main() {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
-	cfg := &mgrconfig.Config{
-		Derived: mgrconfig.Derived{
-			TargetOS:     *flagOS,
-			TargetArch:   *flagArch,
-			TargetVMArch: *flagArch,
-		},
-		KernelObj: *flagKernelObj,
-		KernelSrc: *flagKernelSrc,
+	cfg, err := mgrconfig.LoadPartialData([]byte(`{
+		"kernel_obj": "` + *flagKernelObj + `",
+		"kernel_src": "` + *flagKernelSrc + `",
+		"target": "` + *flagOS + "/" + *flagArch + `"
+}`))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
 	}
 	cfg.CompleteKernelDirs()
 	reporter, err := report.NewReporter(cfg)
