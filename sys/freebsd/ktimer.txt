@@ -1,0 +1,43 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <time.h>
+include <signal.h>
+
+resource timerid[int32]
+
+type signalno int32[0:33]
+
+ktimer_create(id flags[clock_id], evp ptr[in, sigevent], timerid ptr[out, timerid])
+ktimer_delete(timerid timerid)
+ktimer_settime(timerid timerid, flags flags[timer_flags], value ptr[in, itimerspec], ovalue ptr[out, itimerspec])
+ktimer_gettime(timerid timerid, value ptr[out, itimerspec])
+ktimer_getoverrun(timerid timerid)
+
+define SIGEVENT_SIZE	sizeof(struct sigevent)
+
+sigevent {
+	notify	flags[sigev_notify, int32]
+	signo	signalno
+	val	const[0, intptr]
+	u	sigevent_u
+} [size[SIGEVENT_SIZE]]
+
+sigevent_u [
+	tid		pid
+	thr		sigevent_thread
+	ke_flags	flags[evflags, int16]
+	spare		array[int64, 8]
+]
+
+sigevent_thread {
+	func	ptr[in, text[target]]
+	attr	buffer[in]
+}
+
+itimerspec {
+	interv	timespec
+	value	timespec
+}
+
+sigev_notify = SIGEV_NONE, SIGEV_SIGNAL, SIGEV_THREAD, SIGEV_KEVENT, SIGEV_THREAD_ID
