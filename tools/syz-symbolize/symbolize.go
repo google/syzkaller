@@ -84,18 +84,18 @@ func saveCrash(rep *report.Report, path string) {
 	dir := filepath.Join(path, id)
 	osutil.MkdirAll(dir)
 	if err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(rep.Title+"\n")); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to write description: %v", err)
+		fmt.Fprintf(os.Stderr, "failed to write description: %v\n", err)
 		os.Exit(1)
 	}
 
 	if err := osutil.WriteFile(filepath.Join(dir, "log"), rep.Output); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to write log: %v", err)
+		fmt.Fprintf(os.Stderr, "failed to write log: %v\n", err)
 		os.Exit(1)
 	}
 
 	if len(rep.Report) > 0 {
 		if err := osutil.WriteFile(filepath.Join(dir, "report"), rep.Report); err != nil {
-			fmt.Fprintf(os.Stderr, "failed to write report: %v", err)
+			fmt.Fprintf(os.Stderr, "failed to write report: %v\n", err)
 			os.Exit(1)
 		}
 	}

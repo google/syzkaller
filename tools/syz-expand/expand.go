@@ -31,7 +31,7 @@ func main() {
 	}
 	target, err := prog.GetTarget(*flagOS, *flagArch)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v", err)
+		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
 	data, err := ioutil.ReadFile(*flagProg)

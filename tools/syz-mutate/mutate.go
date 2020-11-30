@@ -33,7 +33,7 @@ func main() {
 	flag.Parse()
 	target, err := prog.GetTarget(*flagOS, *flagArch)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v", err)
+		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
 	var syscalls map[*prog.Syscall]bool
@@ -41,7 +41,7 @@ func main() {
 		enabled := strings.Split(*flagEnable, ",")
 		syscallsIDs, err := mgrconfig.ParseEnabledSyscalls(target, enabled, nil)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to parse enabled syscalls: %v", err)
+			fmt.Fprintf(os.Stderr, "failed to parse enabled syscalls: %v\n", err)
 			os.Exit(1)
 		}
 		syscalls = make(map[*prog.Syscall]bool)
@@ -60,7 +60,7 @@ func main() {
 	}
 	corpus, err := db.ReadCorpus(*flagCorpus, target)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to read corpus: %v", err)
+		fmt.Fprintf(os.Stderr, "failed to read corpus: %v\n", err)
 		os.Exit(1)
 	}
 	rs := rand.NewSource(seed)
