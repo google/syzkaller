@@ -222,17 +222,8 @@ func (pass *Pass) reportFuncArgs(fields []*ast.Field, first, last int) {
 
 // checkLogErrorFormat warns about log/error messages starting with capital letter or ending with a period.
 func (pass *Pass) checkLogErrorFormat(n *ast.CallExpr) {
-	fun, ok := n.Fun.(*ast.SelectorExpr)
-	if !ok {
-		return
-	}
-	arg := 0
-	switch fmt.Sprintf("%v.%v", fun.X, fun.Sel) {
-	case "log.Print", "log.Printf", "log.Fatal", "log.Fatalf", "fmt.Error", "fmt.Errorf":
-		arg = 0
-	case "log.Logf":
-		arg = 1
-	default:
+	arg, newLine, sure := pass.logFormatArg(n)
+	if arg == -1 {
 		return
 	}
 	lit, ok := n.Args[arg].(*ast.BasicLit)
@@ -248,16 +239,45 @@ func (pass *Pass) checkLogErrorFormat(n *ast.CallExpr) {
 		pass.report(lit, "Don't use empty log/error messages")
 		return
 	}
+	// Some Printf's legitimately don't need \n, so this check is based on a heuristic.
+	// Printf's that don't need \n tend to contain % and are short.
+	if !sure && len(val) < 25 && (len(val) < 10 || strings.Contains(val, "%")) {
+		return
+	}
 	if val[ln-1] == '.' && (ln < 3 || val[ln-2] != '.' || val[ln-3] != '.') {
 		pass.report(lit, "Don't use period at the end of log/error messages")
 	}
-	if val[ln-1] == '\n' {
+	if newLine && val[ln-1] != '\n' {
+		pass.report(lit, "Add \\n at the end of printed messages")
+	}
+	if !newLine && val[ln-1] == '\n' {
 		pass.report(lit, "Don't use \\n at the end of log/error messages")
 	}
 	if ln >= 2 && unicode.IsUpper(rune(val[0])) && unicode.IsLower(rune(val[1])) &&
 		!publicIdentifier.MatchString(val) {
 		pass.report(lit, "Don't start log/error messages with a Capital letter")
 	}
+}
+
+func (pass *Pass) logFormatArg(n *ast.CallExpr) (arg int, newLine, sure bool) {
+	fun, ok := n.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return -1, false, false
+	}
+	switch fmt.Sprintf("%v.%v", fun.X, fun.Sel) {
+	case "log.Print", "log.Printf", "log.Fatal", "log.Fatalf", "fmt.Error", "fmt.Errorf":
+		return 0, false, true
+	case "log.Logf":
+		return 1, false, true
+	case "fmt.Print", "fmt.Printf":
+		return 0, true, false
+	case "fmt.Fprint", "fmt.Fprintf":
+		if w, ok := n.Args[0].(*ast.SelectorExpr); !ok || fmt.Sprintf("%v.%v", w.X, w.Sel) != "os.Stderr" {
+			break
+		}
+		return 1, true, true
+	}
+	return -1, false, false
 }
 
 var publicIdentifier = regexp.MustCompile(`^[A-Z][[:alnum:]]+(\.[[:alnum:]]+)+ `)
