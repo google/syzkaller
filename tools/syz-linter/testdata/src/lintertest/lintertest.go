@@ -4,6 +4,7 @@
 package lintertest
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -54,6 +55,13 @@ func funcArgsBad1() (a int, b int) { // want "Use 'a, b int'"
 }
 
 func funcArgsBad2(a int16, b, c uint32, d uint32, e int16) { // want "Use 'b, c, d uint32'"
+}
+
+func flagDefinitions() {
+	flag.Int("good", 0, "fine description")
+	flag.Int("camelCase", 0, "fine description") // want "Don't use Capital letters in flag names"
+	flag.String("fine", "", "Capital Letter")    // want "Don't start flag description with a Capital letter"
+	flag.Bool("fine", false, "dot at the end.")  // want "Don't use '.' at the end of flag description"
 }
 
 func logErrorMessages() {
