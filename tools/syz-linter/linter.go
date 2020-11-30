@@ -73,6 +73,7 @@ func run(p *analysis.Pass) (interface{}, error) {
 			case *ast.FuncType:
 				pass.checkFuncArgs(n)
 			case *ast.CallExpr:
+				pass.checkFlagDefinition(n)
 				pass.checkLogErrorFormat(n)
 			case *ast.GenDecl:
 				pass.checkVarDecl(n)
@@ -220,42 +221,66 @@ func (pass *Pass) reportFuncArgs(fields []*ast.Field, first, last int) {
 	pass.report(fields[first], "Use '%v %v'", names[2:], fields[first].Type)
 }
 
+func (pass *Pass) checkFlagDefinition(n *ast.CallExpr) {
+	fun, ok := n.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return
+	}
+	switch fmt.Sprintf("%v.%v", fun.X, fun.Sel) {
+	case "flag.Bool", "flag.Duration", "flag.Float64", "flag.Int", "flag.Int64",
+		"flag.String", "flag.Uint", "flag.Uint64":
+	default:
+		return
+	}
+	if name, ok := stringLit(n.Args[0]); ok {
+		if name != strings.ToLower(name) {
+			pass.report(n, "Don't use Capital letters in flag names")
+		}
+	}
+	if desc, ok := stringLit(n.Args[2]); ok {
+		if desc == "" {
+			pass.report(n, "Provide flag description")
+		} else if last := desc[len(desc)-1]; last == '.' || last == '\n' {
+			pass.report(n, "Don't use %q at the end of flag description", last)
+		}
+		if len(desc) >= 2 && unicode.IsUpper(rune(desc[0])) && unicode.IsLower(rune(desc[1])) {
+			pass.report(n, "Don't start flag description with a Capital letter")
+		}
+	}
+}
+
 // checkLogErrorFormat warns about log/error messages starting with capital letter or ending with a period.
 func (pass *Pass) checkLogErrorFormat(n *ast.CallExpr) {
 	arg, newLine, sure := pass.logFormatArg(n)
 	if arg == -1 {
 		return
 	}
-	lit, ok := n.Args[arg].(*ast.BasicLit)
-	if !ok || lit.Kind != token.STRING {
-		return
-	}
-	val, err := strconv.Unquote(lit.Value)
-	if err != nil {
+	val, ok := stringLit(n.Args[arg])
+	if !ok {
 		return
 	}
 	ln := len(val)
 	if ln == 0 {
-		pass.report(lit, "Don't use empty log/error messages")
+		pass.report(n, "Don't use empty log/error messages")
 		return
 	}
 	// Some Printf's legitimately don't need \n, so this check is based on a heuristic.
 	// Printf's that don't need \n tend to contain % and are short.
-	if !sure && len(val) < 25 && (len(val) < 10 || strings.Contains(val, "%")) {
+	if !sure && ln < 25 && (ln < 10 || strings.Contains(val, "%")) {
 		return
 	}
 	if val[ln-1] == '.' && (ln < 3 || val[ln-2] != '.' || val[ln-3] != '.') {
-		pass.report(lit, "Don't use period at the end of log/error messages")
+		pass.report(n, "Don't use period at the end of log/error messages")
 	}
 	if newLine && val[ln-1] != '\n' {
-		pass.report(lit, "Add \\n at the end of printed messages")
+		pass.report(n, "Add \\n at the end of printed messages")
 	}
 	if !newLine && val[ln-1] == '\n' {
-		pass.report(lit, "Don't use \\n at the end of log/error messages")
+		pass.report(n, "Don't use \\n at the end of log/error messages")
 	}
 	if ln >= 2 && unicode.IsUpper(rune(val[0])) && unicode.IsLower(rune(val[1])) &&
 		!publicIdentifier.MatchString(val) {
-		pass.report(lit, "Don't start log/error messages with a Capital letter")
+		pass.report(n, "Don't start log/error messages with a Capital letter")
 	}
 }
 
@@ -281,6 +306,18 @@ func (pass *Pass) logFormatArg(n *ast.CallExpr) (arg int, newLine, sure bool) {
 }
 
 var publicIdentifier = regexp.MustCompile(`^[A-Z][[:alnum:]]+(\.[[:alnum:]]+)+ `)
+
+func stringLit(n ast.Node) (string, bool) {
+	lit, ok := n.(*ast.BasicLit)
+	if !ok || lit.Kind != token.STRING {
+		return "", false
+	}
+	val, err := strconv.Unquote(lit.Value)
+	if err != nil {
+		return "", false
+	}
+	return val, true
+}
 
 // checkVarDecl warns about unnecessary long variable declarations "var x type = foo".
 func (pass *Pass) checkVarDecl(n *ast.GenDecl) {
