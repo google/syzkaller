@@ -1,9 +1,12 @@
 // KCOV glue for libfuzzer. Build as:
-// clang tools/kcovfuzzer/kcovfuzzer.c -fsanitize=fuzzer -Wall -o fuzzer
+// clang tools/kcovfuzzer/kcovfuzzer.c -fsanitize=fuzzer -static -Wall -o fuzzer
 // Run as:
+//
 // KCOVFUZZER=bpf ./fuzzer -max_len=129 corpus_bpf
 // KCOVFUZZER=trace_filter ./fuzzer -max_len=100 -only_ascii=1 corpus_trace_filter
-// If you need to build with -static, then the following env needs to be exported:
+// KCOVFUZZER=binfmt ./fuzzer -max_len=30 -only_ascii=1 corpus_binfmt
+//
+// If you build with -static, then the following env needs to be exported:
 // UBSAN_OPTIONS="handle_segv=0 handle_sigbus=0 handle_abort=0 handle_sigill=0 handle_sigtrap=0 handle_sigfpe=0"
 // and the following flags added to fuzzer invocation:
 // -timeout=0 -rss_limit_mb=0 -handle_segv=0 -handle_bus=0 -handle_abrt=0 -handle_ill=0 \
@@ -94,6 +97,18 @@ void trace_filter(const char* data, long size)
 	close(fd2);
 }
 
+void binfmt(const char* data, long size)
+{
+	static int fd = -1;
+	if (fd == -1)
+		fd = open("/proc/sys/fs/binfmt_misc/register", O_WRONLY);
+	if (fd == -1)
+		fail("open(/proc/sys/fs/binfmt_misc/register) failed");
+	cover_start();
+	write(fd, data, size);
+	cover_stop();
+}
+
 #define KCOV_COVER_SIZE (256 << 10)
 #define KCOV_TRACE_PC 0
 #define KCOV_INIT_TRACE64 _IOR('c', 1, uint64_t)
@@ -109,6 +124,8 @@ void init(const char* data, long size)
 		fuzz_func = bpf;
 	else if (strcmp(name, "trace_filter") == 0)
 		fuzz_func = trace_filter;
+	else if (strcmp(name, "binfmt") == 0)
+		fuzz_func = binfmt;
 	else
 		fail("unknown fuzz function '%s'", name);
 
