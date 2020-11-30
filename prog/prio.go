@@ -278,7 +278,7 @@ func (ct *ChoiceTable) choose(r *rand.Rand, bias int) int {
 		bias = ct.calls[r.Intn(len(ct.calls))].ID
 	}
 	if !ct.Enabled(bias) {
-		fmt.Printf("bias to disabled syscall %v", ct.target.Syscalls[bias].Name)
+		fmt.Printf("bias to disabled syscall %v\n", ct.target.Syscalls[bias].Name)
 		panic("disabled syscall")
 	}
 	run := ct.runs[bias]

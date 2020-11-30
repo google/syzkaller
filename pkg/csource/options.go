@@ -295,7 +295,7 @@ func ParseFeaturesFlags(enable, disable string, defaultValue bool) (Features, er
 }
 
 func PrintAvailableFeaturesFlags() {
-	fmt.Printf("Available features for -enable and -disable:\n")
+	fmt.Printf("available features for -enable and -disable:\n")
 	features := defaultFeatures(false)
 	var names []string
 	for name := range features {

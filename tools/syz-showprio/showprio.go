@@ -27,22 +27,22 @@ func main() {
 	flag.Parse()
 	target, err := prog.GetTarget(*flagOS, *flagArch)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v", err)
+		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
 	if *flagEnable == "" {
-		fmt.Fprintf(os.Stderr, "no syscalls enabled")
+		fmt.Fprintf(os.Stderr, "no syscalls enabled\n")
 		os.Exit(1)
 	}
 	enabled := strings.Split(*flagEnable, ",")
 	_, err = mgrconfig.ParseEnabledSyscalls(target, enabled, nil)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to parse enabled syscalls: %v", err)
+		fmt.Fprintf(os.Stderr, "failed to parse enabled syscalls: %v\n", err)
 		os.Exit(1)
 	}
 	corpus, err := db.ReadCorpus(*flagCorpus, target)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to read corpus: %v", err)
+		fmt.Fprintf(os.Stderr, "failed to read corpus: %v\n", err)
 		os.Exit(1)
 	}
 	showPriorities(enabled, target.CalculatePriorities(corpus), target)

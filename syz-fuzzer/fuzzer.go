@@ -311,7 +311,7 @@ func (fuzzer *Fuzzer) gateCallback(leakFrames []string) {
 	if err != nil && triagedCandidates == 2 {
 		// If we exit right away, dying executors will dump lots of garbage to console.
 		os.Stdout.Write(output)
-		fmt.Printf("BUG: leak checking failed")
+		fmt.Printf("BUG: leak checking failed\n")
 		time.Sleep(time.Hour)
 		os.Exit(1)
 	}
