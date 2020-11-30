@@ -29,6 +29,7 @@
 #include <unistd.h>
 
 void init(const char*, long);
+void dump_input(const char*, long);
 void (*fuzz_func)(const char*, long) = init;
 void fail(const char* msg, ...);
 void cover_start();
@@ -36,6 +37,7 @@ void cover_stop();
 
 int LLVMFuzzerTestOneInput(const char* data, long size)
 {
+	dump_input(data, size);
 	fuzz_func(data, size);
 	return 0;
 }
@@ -159,6 +161,52 @@ void cover_stop()
 		uint64_t pc = __atomic_load_n(&kcov_data[i + 1], __ATOMIC_RELAXED);
 		libfuzzer_coverage[pc % sizeof(libfuzzer_coverage)]++;
 	}
+}
+
+void dump_input(const char* data, long size)
+{
+	static int kmsg = -1;
+	if (kmsg == -1) {
+		kmsg = open("/dev/kmsg", O_WRONLY);
+		if (kmsg == -1)
+			fail("open(/dev/kmsg) failed");
+		int printk_devkmsg = open("/proc/sys/kernel/printk_devkmsg", O_WRONLY);
+		if (printk_devkmsg == -1)
+			fail("open(/proc/sys/kernel/printk_devkmsg) failed");
+		if (write(printk_devkmsg, "on", 3) != 3)
+			fail("write(/proc/sys/kernel/printk_devkmsg) failed");
+		close(printk_devkmsg);
+	}
+	char buf[1024];
+	char* pos = buf + sprintf(buf, "INPUT[%ld]: ", size);
+	for (long i = 0; i < size; i++) {
+		if (pos > buf + sizeof(buf) - 10) {
+			*pos++ = '.';
+			*pos++ = '.';
+			*pos++ = '.';
+			break;
+		}
+		char ch = data[i];
+		if (ch >= 0x20 && ch < 0x7f && ch != '\\') {
+			*pos++ = ch;
+			continue;
+		}
+		*pos++ = '\\';
+		*pos++ = 'x';
+		char hi = ch >> 4;
+		if (hi <= 9)
+			*pos++ = '0' + hi;
+		else
+			*pos++ = 'a' + hi - 9;
+		char lo = ch & 0xf;
+		if (lo <= 9)
+			*pos++ = '0' + lo;
+		else
+			*pos++ = 'a' + lo - 9;
+	}
+	*pos++ = '\n';
+	if (write(kmsg, buf, pos - buf) != pos - buf)
+		fail("write(/dev/kmsg) failed");
 }
 
 void fail(const char* msg, ...)
