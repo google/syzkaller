@@ -140,18 +140,28 @@ func storeCrash(cfg *mgrconfig.Config, rep *report.Report) {
 	id := hash.String([]byte(rep.Title))
 	dir := filepath.Join(cfg.Workdir, "crashes", id)
 	osutil.MkdirAll(dir)
-	log.Printf("saving crash %v to %v", rep.Title, dir)
+
+	index := 0
+	for ; osutil.IsExist(filepath.Join(dir, fmt.Sprintf("log%v", index))); index++ {
+	}
+	log.Printf("saving crash '%v' with index %v in %v", rep.Title, index, dir)
 
 	if err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(rep.Title+"\n")); err != nil {
 		log.Printf("failed to write crash description: %v", err)
 	}
-	index := 0
-	for ; osutil.IsExist(filepath.Join(dir, fmt.Sprintf("log%v", index))); index++ {
+	if err := osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("log%v", index)), rep.Output); err != nil {
+		log.Printf("failed to write crash log: %v", err)
 	}
-	osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("log%v", index)), rep.Output)
-	osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("tag%v", index)), []byte(cfg.Tag))
+	if err := osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("tag%v", index)), []byte(cfg.Tag)); err != nil {
+		log.Printf("failed to write crash tag: %v", err)
+	}
 	if len(rep.Report) > 0 {
-		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", index)), rep.Report)
+		if err := osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", index)), rep.Report); err != nil {
+			log.Printf("failed to write crash report: %v", err)
+		}
+	}
+	if err := osutil.CopyFile(flag.Args()[0], filepath.Join(dir, fmt.Sprintf("reproducer%v", index))); err != nil {
+		log.Printf("failed to write crash reproducer: %v", err)
 	}
 }
 
