@@ -1,0 +1,96 @@
+FILE: drivers/net/wireless/ath/ath9k/hif_usb.c
+
+BUG: memory leak
+unreferenced object 0xffff888109b4dc00 (size 192):
+  comm "kworker/1:2", pid 3705, jiffies 4294941906 (age 14.110s)
+  hex dump (first 32 bytes):
+    01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+    00 00 00 00 00 00 00 00 18 dc b4 09 81 88 ff ff  ................
+  backtrace:
+    [<000000006422299c>] kmalloc include/linux/slab.h:557 [inline]
+    [<000000006422299c>] usb_alloc_urb+0x66/0xe0 drivers/usb/core/urb.c:74
+    [<000000007744b258>] ath9k_hif_usb_alloc_tx_urbs drivers/net/wireless/ath/ath9k/hif_usb.c:829 [inline]
+    [<000000007744b258>] ath9k_hif_usb_alloc_urbs+0x148/0x640 drivers/net/wireless/ath/ath9k/hif_usb.c:1008
+    [<000000006c8e4116>] ath9k_hif_usb_dev_init drivers/net/wireless/ath/ath9k/hif_usb.c:1102 [inline]
+    [<000000006c8e4116>] ath9k_hif_usb_firmware_cb+0x88/0x1f0 drivers/net/wireless/ath/ath9k/hif_usb.c:1235
+    [<00000000e5c70763>] request_firmware_work_func+0x47/0x90 drivers/base/firmware_loader/main.c:1079
+    [<0000000089bbfbae>] process_one_work+0x27d/0x590 kernel/workqueue.c:2272
+    [<00000000d58def96>] worker_thread+0x59/0x5d0 kernel/workqueue.c:2418
+    [<000000001b9033f3>] kthread+0x178/0x1b0 kernel/kthread.c:292
+    [<000000001b3150ee>] ret_from_fork+0x1f/0x30 arch/x86/entry/entry_64.S:296
+
+BUG: memory leak
+unreferenced object 0xffff88810efed240 (size 192):
+  comm "kworker/1:2", pid 3705, jiffies 4294941906 (age 14.110s)
+  hex dump (first 32 bytes):
+    01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+    00 00 00 00 00 00 00 00 58 d2 fe 0e 81 88 ff ff  ........X.......
+  backtrace:
+    [<000000006422299c>] kmalloc include/linux/slab.h:557 [inline]
+    [<000000006422299c>] usb_alloc_urb+0x66/0xe0 drivers/usb/core/urb.c:74
+    [<000000007744b258>] ath9k_hif_usb_alloc_tx_urbs drivers/net/wireless/ath/ath9k/hif_usb.c:829 [inline]
+    [<000000007744b258>] ath9k_hif_usb_alloc_urbs+0x148/0x640 drivers/net/wireless/ath/ath9k/hif_usb.c:1008
+    [<000000006c8e4116>] ath9k_hif_usb_dev_init drivers/net/wireless/ath/ath9k/hif_usb.c:1102 [inline]
+    [<000000006c8e4116>] ath9k_hif_usb_firmware_cb+0x88/0x1f0 drivers/net/wireless/ath/ath9k/hif_usb.c:1235
+    [<00000000e5c70763>] request_firmware_work_func+0x47/0x90 drivers/base/firmware_loader/main.c:1079
+    [<0000000089bbfbae>] process_one_work+0x27d/0x590 kernel/workqueue.c:2272
+    [<00000000d58def96>] worker_thread+0x59/0x5d0 kernel/workqueue.c:2418
+    [<000000001b9033f3>] kthread+0x178/0x1b0 kernel/kthread.c:292
+    [<000000001b3150ee>] ret_from_fork+0x1f/0x30 arch/x86/entry/entry_64.S:296
+
+BUG: memory leak
+unreferenced object 0xffff88810efedb40 (size 192):
+  comm "kworker/1:2", pid 3705, jiffies 4294941906 (age 14.110s)
+  hex dump (first 32 bytes):
+    01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+    00 00 00 00 00 00 00 00 58 db fe 0e 81 88 ff ff  ........X.......
+  backtrace:
+    [<000000006422299c>] kmalloc include/linux/slab.h:557 [inline]
+    [<000000006422299c>] usb_alloc_urb+0x66/0xe0 drivers/usb/core/urb.c:74
+    [<000000007744b258>] ath9k_hif_usb_alloc_tx_urbs drivers/net/wireless/ath/ath9k/hif_usb.c:829 [inline]
+    [<000000007744b258>] ath9k_hif_usb_alloc_urbs+0x148/0x640 drivers/net/wireless/ath/ath9k/hif_usb.c:1008
+    [<000000006c8e4116>] ath9k_hif_usb_dev_init drivers/net/wireless/ath/ath9k/hif_usb.c:1102 [inline]
+    [<000000006c8e4116>] ath9k_hif_usb_firmware_cb+0x88/0x1f0 drivers/net/wireless/ath/ath9k/hif_usb.c:1235
+    [<00000000e5c70763>] request_firmware_work_func+0x47/0x90 drivers/base/firmware_loader/main.c:1079
+    [<0000000089bbfbae>] process_one_work+0x27d/0x590 kernel/workqueue.c:2272
+    [<00000000d58def96>] worker_thread+0x59/0x5d0 kernel/workqueue.c:2418
+    [<000000001b9033f3>] kthread+0x178/0x1b0 kernel/kthread.c:292
+    [<000000001b3150ee>] ret_from_fork+0x1f/0x30 arch/x86/entry/entry_64.S:296
+
+BUG: memory leak
+unreferenced object 0xffff88810efedf00 (size 192):
+  comm "kworker/1:2", pid 3705, jiffies 4294941906 (age 14.110s)
+  hex dump (first 32 bytes):
+    01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+    00 00 00 00 00 00 00 00 18 df fe 0e 81 88 ff ff  ................
+  backtrace:
+    [<000000006422299c>] kmalloc include/linux/slab.h:557 [inline]
+    [<000000006422299c>] usb_alloc_urb+0x66/0xe0 drivers/usb/core/urb.c:74
+    [<000000007744b258>] ath9k_hif_usb_alloc_tx_urbs drivers/net/wireless/ath/ath9k/hif_usb.c:829 [inline]
+    [<000000007744b258>] ath9k_hif_usb_alloc_urbs+0x148/0x640 drivers/net/wireless/ath/ath9k/hif_usb.c:1008
+    [<000000006c8e4116>] ath9k_hif_usb_dev_init drivers/net/wireless/ath/ath9k/hif_usb.c:1102 [inline]
+    [<000000006c8e4116>] ath9k_hif_usb_firmware_cb+0x88/0x1f0 drivers/net/wireless/ath/ath9k/hif_usb.c:1235
+    [<00000000e5c70763>] request_firmware_work_func+0x47/0x90 drivers/base/firmware_loader/main.c:1079
+    [<0000000089bbfbae>] process_one_work+0x27d/0x590 kernel/workqueue.c:2272
+    [<00000000d58def96>] worker_thread+0x59/0x5d0 kernel/workqueue.c:2418
+    [<000000001b9033f3>] kthread+0x178/0x1b0 kernel/kthread.c:292
+    [<000000001b3150ee>] ret_from_fork+0x1f/0x30 arch/x86/entry/entry_64.S:296
+
+BUG: memory leak
+unreferenced object 0xffff88810efedc00 (size 192):
+  comm "kworker/1:2", pid 3705, jiffies 4294941906 (age 14.110s)
+  hex dump (first 32 bytes):
+    01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+    00 00 00 00 00 00 00 00 18 dc fe 0e 81 88 ff ff  ................
+  backtrace:
+    [<000000006422299c>] kmalloc include/linux/slab.h:557 [inline]
+    [<000000006422299c>] usb_alloc_urb+0x66/0xe0 drivers/usb/core/urb.c:74
+    [<000000007744b258>] ath9k_hif_usb_alloc_tx_urbs drivers/net/wireless/ath/ath9k/hif_usb.c:829 [inline]
+    [<000000007744b258>] ath9k_hif_usb_alloc_urbs+0x148/0x640 drivers/net/wireless/ath/ath9k/hif_usb.c:1008
+    [<000000006c8e4116>] ath9k_hif_usb_dev_init drivers/net/wireless/ath/ath9k/hif_usb.c:1102 [inline]
+    [<000000006c8e4116>] ath9k_hif_usb_firmware_cb+0x88/0x1f0 drivers/net/wireless/ath/ath9k/hif_usb.c:1235
+    [<00000000e5c70763>] request_firmware_work_func+0x47/0x90 drivers/base/firmware_loader/main.c:1079
+    [<0000000089bbfbae>] process_one_work+0x27d/0x590 kernel/workqueue.c:2272
+    [<00000000d58def96>] worker_thread+0x59/0x5d0 kernel/workqueue.c:2418
+    [<000000001b9033f3>] kthread+0x178/0x1b0 kernel/kthread.c:292
+    [<000000001b3150ee>] ret_from_fork+0x1f/0x30 arch/x86/entry/entry_64.S:296

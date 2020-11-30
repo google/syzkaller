@@ -84,7 +84,8 @@ func ctorLinux(cfg *config) (Reporter, []string, error) {
 		regexp.MustCompile(`^net/core/sock.c`),
 		regexp.MustCompile(`^net/core/skbuff.c`),
 		regexp.MustCompile(`^fs/proc/generic.c`),
-		regexp.MustCompile(`^trusty/`), // Trusty sources are not in linux kernel tree.
+		regexp.MustCompile(`^trusty/`),                // Trusty sources are not in linux kernel tree.
+		regexp.MustCompile(`^drivers/usb/core/urb.c`), // WARNING in urb.c usually means a bug in a driver
 	}
 	// These pattern do _not_ start a new report, i.e. can be in a middle of another report.
 	ctx.reportStartIgnores = []*regexp.Regexp{
