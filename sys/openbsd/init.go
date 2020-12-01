@@ -20,6 +20,7 @@ func InitTarget(target *prog.Target) {
 		DIOCKILLSTATES:   target.GetConst("DIOCKILLSTATES"),
 		KERN_MAXCLUSTERS: target.GetConst("KERN_MAXCLUSTERS"),
 		KERN_MAXTHREAD:   target.GetConst("KERN_MAXTHREAD"),
+		KERN_WITNESS:     target.GetConst("KERN_WITNESS"),
 		S_IFCHR:          target.GetConst("S_IFCHR"),
 		S_IFMT:           target.GetConst("S_IFMT"),
 		MCL_FUTURE:       target.GetConst("MCL_FUTURE"),
@@ -40,6 +41,7 @@ type arch struct {
 	DIOCKILLSTATES   uint64
 	KERN_MAXCLUSTERS uint64
 	KERN_MAXTHREAD   uint64
+	KERN_WITNESS     uint64
 	S_IFCHR          uint64
 	S_IFMT           uint64
 	MCL_FUTURE       uint64
@@ -244,6 +246,11 @@ func (arch *arch) neutralizeSysctlKern(mib []*prog.ConstArg) bool {
 	// syz-execprog process to panic.
 	if len(mib) >= 2 &&
 		mib[0].Val == arch.CTL_KERN && mib[1].Val == arch.KERN_MAXTHREAD {
+		return true
+	}
+
+	if len(mib) >= 2 &&
+		mib[0].Val == arch.CTL_KERN && mib[1].Val == arch.KERN_WITNESS {
 		return true
 	}
 
