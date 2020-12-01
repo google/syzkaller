@@ -514,6 +514,30 @@ openat$procfs(fd const[AT_FDCWD], file ptr[in, string[procfs_file]], flags const
 
 procfs_file = "/proc/keys", "/proc/key-users", "/proc/crypto", "/proc/consoles", "/proc/cgroups", "/proc/zoneinfo", "/proc/vmstat", "/proc/vmallocinfo", "/proc/tty/drivers", "/proc/tty/ldiscs", "/proc/timer_list", "/proc/sysvipc/sem", "/proc/sysvipc/msg", "/proc/sysvipc/shm", "/proc/stat", "/proc/slabinfo", "/proc/schedstat", "/proc/partitions", "/proc/meminfo", "/proc/mdstat", "/proc/locks", "/proc/diskstats", "/proc/cpuinfo", "/proc/consoles", "/proc/bus/input/devices", "/proc/bus/input/handlers", "/proc/asound/seq/clients", "/proc/asound/seq/clients", "/proc/asound/seq/timer", "/proc/asound/timers"
 
+# Write into some interesting sysct's and sysfs/procfs files.
+resource fd_sysctl[fd]
+
+openat$sysctl(fd const[AT_FDCWD], file ptr[in, string[sysctl_file]], flags const[O_WRONLY], mode const[0]) fd_sysctl
+write$sysctl(fd fd_sysctl, val ptr[in, string[sysctl_value]], len len[val])
+
+sysctl_file = "/sys/kernel/mm/ksm/run", "/proc/sys/vm/compact_memory", "/proc/sys/vm/drop_caches", "/proc/sys/net/ipv4/tcp_timestamps", "/proc/sys/net/ipv4/tcp_sack", "/proc/sys/net/ipv4/tcp_window_scaling", "/proc/sys/net/ipv4/tcp_syncookies", "/proc/self/clear_refs"
+# Most of these values are suitable for all sysctl_file files.
+sysctl_value = "0", "1", "2", "3", "4", "5"
+
+# Write to this file triggers khugepaged scan.
+# We don't want to write small values as we only want the explicitly triggered scan.
+resource fd_khugepaged_scan[fd]
+
+openat$khugepaged_scan(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/mm/transparent_hugepage/khugepaged/scan_sleep_millisecs"]], flags const[O_WRONLY], mode const[0]) fd_khugepaged_scan
+write$khugepaged_scan(fd fd_khugepaged_scan, val ptr[in, string["1000000"]], len len[val])
+
+resource fd_tcp_congestion[fd]
+
+openat$tcp_congestion(fd const[AT_FDCWD], file ptr[in, string["/proc/sys/net/ipv4/tcp_congestion_control"]], flags const[O_WRONLY], mode const[0]) fd_tcp_congestion
+write$tcp_congestion(fd fd_tcp_congestion, val ptr[in, string[tcp_congestion]], len len[val])
+
+tcp_congestion = "reno", "bbr", "bic", "cdg", "cubic", "dctcp", "westwood", "highspeed", "hybla", "htcp", "vegas", "nv", "veno", "scalable", "lp", "yeah", "illinois"
+
 resource fd_pidfd[fd]
 
 openat$pidfd(fd const[AT_FDCWD], file ptr[in, string["/proc/self"]], flags flags[open_flags], mode const[0]) fd_pidfd
