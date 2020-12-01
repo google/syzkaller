@@ -1,0 +1,24 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <fcntl.h>
+include <mqueue.h>
+
+resource mqd[fd]
+
+kmq_open(file ptr[in, filename], oflags flags[oflags], mode flags[open_mode], attr ptr[in, mq_attr]) mqd
+kmq_setattr(mqd mqd, attr ptr[in, mq_attr], oldattr ptr[out, mq_attr, opt])
+kmq_timedreceive(mqd mqd, msg buffer[out], msglen len[msg], prio intptr, timeout ptr[in, timespec, opt])
+kmq_timedsend(mqd mqd, msg buffer[in], msglen len[msg], prio intptr, timeout ptr[in, timespec, opt])
+kmq_notify(mqd mqd, notif ptr[in, sigevent, opt])
+kmq_unlink(file ptr[in, filename])
+
+oflags = O_RDONLY, O_WRONLY, O_RDWR, O_CREAT, O_EXCL, O_NONBLOCK
+
+mq_attr {
+	mq_flags	intptr
+	mq_maxmsg	intptr
+	mq_msgsize	intptr
+	mq_curmsgs	intptr
+	__reserved	array[const[0, intptr], 4]
+}

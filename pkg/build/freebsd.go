@@ -79,6 +79,7 @@ sctp_load="YES"
 tcp_bbr_load="YES"
 tcp_rack_load="YES"
 sem_load="YES"
+mqueuefs_load="YES"
 __EOF__
 
 sudo umount $tmpdir
