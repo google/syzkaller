@@ -9388,6 +9388,9 @@ static void setup_sysctl()
 	    {"/proc/sys/debug/exception-trace", "0"},
 	    {"/proc/sys/kernel/printk", "7 4 1 3"},
 	    {"/proc/sys/net/ipv4/ping_group_range", "0 65535"},
+	    {"/proc/sys/kernel/keys/gc_delay", "1"},
+	    {"/proc/sys/vm/nr_overcommit_hugepages", "4"},
+	    {"/proc/sys/vm/oom_kill_allocating_task", "1"},
 	};
 	for (size_t i = 0; i < sizeof(files) / sizeof(files[0]); i++) {
 		if (!write_file(files[i].name, files[i].data))
