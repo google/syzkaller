@@ -54,6 +54,27 @@ type Config struct {
 	HubClient string `json:"hub_client,omitempty"`
 	HubAddr   string `json:"hub_addr,omitempty"`
 	HubKey    string `json:"hub_key,omitempty"`
+	// Hub input domain identifier (optional).
+	// The domain is used to avoid duplicate work (input minimization, smashing)
+	// across multiple managers testing similar kernels and connected to the same hub.
+	// If two managers are in the same domain, they will not do input minimization after each other.
+	// If additionally they are in the same smashing sub-domain, they will also not do smashing
+	// after each other.
+	// By default (empty domain) all managers testing the same OS are placed into the same domain,
+	// this is a reasonable setting if managers test roughly the same kernel. In this case they
+	// will not do minimization nor smashing after each other.
+	// The setting can be either a single identifier (e.g. "foo") which will affect both minimization
+	// and smashing; or two identifiers separated with '/' (e.g. "foo/bar"), in this case the first
+	// identifier affects minimization and both affect smashing.
+	// For example, if managers test different Linux kernel versions with different tools,
+	// a reasonable use of domains on these managers can be:
+	//  - "upstream/kasan"
+	//  - "upstream/kmsan"
+	//  - "upstream/kcsan"
+	//  - "5.4/kasan"
+	//  - "5.4/kcsan"
+	//  - "4.19/kasan"
+	HubDomain string `json:"hub_domain,omitempty"`
 
 	// List of email addresses to receive notifications when bugs are encountered for the first time (optional).
 	// Mailx is the only supported mailer. Please set it up prior to using this function.

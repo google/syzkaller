@@ -76,6 +76,8 @@ type HubConnectArgs struct {
 	Key    string
 	// Manager name, must start with Client.
 	Manager string
+	// See pkg/mgrconfig.Config.HubDomain.
+	Domain string
 	// Manager has started with an empty corpus and requests whole hub corpus.
 	Fresh bool
 	// Set of system call names supported by this manager.
@@ -100,13 +102,21 @@ type HubSyncArgs struct {
 }
 
 type HubSyncRes struct {
-	// Set of programs from other managers.
+	// Set of inputs from other managers.
+	Inputs []HubInput
+	// Same as Inputs but for legacy managers that don't understand new format (remove later).
 	Progs [][]byte
 	// Set of repros from other managers.
 	Repros [][]byte
 	// Number of remaining pending programs,
 	// if >0 manager should do sync again.
 	More int
+}
+
+type HubInput struct {
+	// Domain of the source manager.
+	Domain string
+	Prog   []byte
 }
 
 type RunTestPollReq struct {

@@ -75,7 +75,7 @@ func (hub *Hub) Connect(a *rpctype.HubConnectArgs, r *int) error {
 
 	log.Logf(0, "connect from %v: fresh=%v calls=%v corpus=%v",
 		name, a.Fresh, len(a.Calls), len(a.Corpus))
-	if err := hub.st.Connect(name, a.Fresh, a.Calls, a.Corpus); err != nil {
+	if err := hub.st.Connect(name, a.Domain, a.Fresh, a.Calls, a.Corpus); err != nil {
 		log.Logf(0, "connect error: %v", err)
 		return err
 	}
@@ -90,12 +90,18 @@ func (hub *Hub) Sync(a *rpctype.HubSyncArgs, r *rpctype.HubSyncRes) error {
 	hub.mu.Lock()
 	defer hub.mu.Unlock()
 
-	progs, more, err := hub.st.Sync(name, a.Add, a.Del)
+	domain, inputs, more, err := hub.st.Sync(name, a.Add, a.Del)
 	if err != nil {
 		log.Logf(0, "sync error: %v", err)
 		return err
 	}
-	r.Progs = progs
+	if domain != "" {
+		r.Inputs = inputs
+	} else {
+		for _, inp := range inputs {
+			r.Progs = append(r.Progs, inp.Prog)
+		}
+	}
 	r.More = more
 	for _, repro := range a.Repros {
 		if err := hub.st.AddRepro(name, repro); err != nil {
@@ -112,7 +118,7 @@ func (hub *Hub) Sync(a *rpctype.HubSyncArgs, r *rpctype.HubSyncRes) error {
 		}
 	}
 	log.Logf(0, "sync from %v: recv: add=%v del=%v repros=%v; send: progs=%v repros=%v pending=%v",
-		name, len(a.Add), len(a.Del), len(a.Repros), len(r.Progs), len(r.Repros), more)
+		name, len(a.Add), len(a.Del), len(a.Repros), len(inputs), len(r.Repros), more)
 	return nil
 }
 
