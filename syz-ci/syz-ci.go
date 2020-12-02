@@ -259,7 +259,7 @@ func loadConfig(filename string) (*Config, error) {
 		return nil, fmt.Errorf("param 'http' is empty")
 	}
 	// Manager name must not contain dots because it is used as GCE image name prefix.
-	managerNameRe := regexp.MustCompile("^[a-zA-Z0-9-_]{4,64}$")
+	managerNameRe := regexp.MustCompile("^[a-zA-Z0-9-_]{3,64}$")
 	var managers []*ManagerConfig
 	for i, mgr := range cfg.Managers {
 		if mgr.Disabled == "" {
