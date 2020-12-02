@@ -263,13 +263,14 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error
 		}
 	}
 	for _, s := range rg.symbols {
+		f := files[s.unit.name]
 		covered := 0
 		for _, pc := range s.pcs {
 			if coveredPCs[pc] {
 				covered++
+				f.covered++
 			}
 		}
-		f := files[s.unit.name]
 		f.functions = append(f.functions, &function{
 			name:    s.name,
 			pcs:     len(s.pcs),
@@ -298,7 +299,6 @@ func (rg *ReportGenerator) lazySymbolize(files map[string]*file, progs []Prog) e
 			if s == nil {
 				continue
 			}
-			files[s.unit.name].covered++
 			if !s.symbolized && !symbolizeSymbols[s] {
 				symbolizeSymbols[s] = true
 				symbolizePCs = append(symbolizePCs, s.pcs...)
