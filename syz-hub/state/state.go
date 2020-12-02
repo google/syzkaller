@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -34,11 +35,13 @@ type State struct {
 // Manager represents one syz-manager instance.
 type Manager struct {
 	name          string
+	domain        string
 	corpusSeq     uint64
 	reproSeq      uint64
 	corpusFile    string
 	corpusSeqFile string
 	reproSeqFile  string
+	domainFile    string
 	ownRepros     map[string]bool
 	Connected     time.Time
 	Added         int
@@ -59,11 +62,11 @@ func Make(dir string) (*State, error) {
 
 	osutil.MkdirAll(st.dir)
 	var err error
-	st.Corpus, st.corpusSeq, err = loadDB(filepath.Join(st.dir, "corpus.db"), "corpus")
+	st.Corpus, st.corpusSeq, err = loadDB(filepath.Join(st.dir, "corpus.db"), "corpus", true)
 	if err != nil {
 		log.Fatal(err)
 	}
-	st.Repros, st.reproSeq, err = loadDB(filepath.Join(st.dir, "repro.db"), "repro")
+	st.Repros, st.reproSeq, err = loadDB(filepath.Join(st.dir, "repro.db"), "repro", true)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -83,11 +86,21 @@ func Make(dir string) (*State, error) {
 	log.Logf(0, "purging corpus...")
 	st.purgeCorpus()
 	log.Logf(0, "done, %v programs", len(st.Corpus.Records))
-
 	return st, err
 }
 
-func loadDB(file, name string) (*db.DB, uint64, error) {
+func (st *State) Flush() {
+	if err := st.Corpus.Flush(); err != nil {
+		log.Logf(0, "failed to flush corpus database: %v", err)
+	}
+	for _, mgr := range st.Managers {
+		if err := mgr.Corpus.Flush(); err != nil {
+			log.Logf(0, "failed to flush corpus database: %v", err)
+		}
+	}
+}
+
+func loadDB(file, name string, progs bool) (*db.DB, uint64, error) {
 	log.Logf(0, "reading %v...", name)
 	db, err := db.Open(file)
 	if err != nil {
@@ -96,21 +109,23 @@ func loadDB(file, name string) (*db.DB, uint64, error) {
 	log.Logf(0, "read %v programs", len(db.Records))
 	var maxSeq uint64
 	for key, rec := range db.Records {
-		_, ncalls, err := prog.CallSet(rec.Val)
-		if err != nil {
-			log.Logf(0, "bad file: can't parse call set: %v", err)
-			db.Delete(key)
-			continue
-		}
-		if ncalls > prog.MaxCalls {
-			log.Logf(0, "bad file: too many calls: %v", ncalls)
-			db.Delete(key)
-			continue
-		}
-		if sig := hash.Hash(rec.Val); sig.String() != key {
-			log.Logf(0, "bad file: hash %v, want hash %v", key, sig.String())
-			db.Delete(key)
-			continue
+		if progs {
+			_, ncalls, err := prog.CallSet(rec.Val)
+			if err != nil {
+				log.Logf(0, "bad file: can't parse call set: %v\n%q", err, rec.Val)
+				db.Delete(key)
+				continue
+			}
+			if ncalls > prog.MaxCalls {
+				log.Logf(0, "bad file: too many calls: %v", ncalls)
+				db.Delete(key)
+				continue
+			}
+			if sig := hash.Hash(rec.Val); sig.String() != key {
+				log.Logf(0, "bad file: hash %v, want hash %v", key, sig.String())
+				db.Delete(key)
+				continue
+			}
 		}
 		if maxSeq < rec.Seq {
 			maxSeq = rec.Seq
@@ -130,6 +145,7 @@ func (st *State) createManager(name string) (*Manager, error) {
 		corpusFile:    filepath.Join(dir, "corpus.db"),
 		corpusSeqFile: filepath.Join(dir, "seq"),
 		reproSeqFile:  filepath.Join(dir, "repro.seq"),
+		domainFile:    filepath.Join(dir, "domain"),
 		ownRepros:     make(map[string]bool),
 	}
 	mgr.corpusSeq = loadSeqFile(mgr.corpusSeqFile)
@@ -143,18 +159,20 @@ func (st *State) createManager(name string) (*Manager, error) {
 	if st.reproSeq < mgr.reproSeq {
 		st.reproSeq = mgr.reproSeq
 	}
-	corpus, _, err := loadDB(mgr.corpusFile, name)
+	domainData, _ := ioutil.ReadFile(mgr.domainFile)
+	mgr.domain = string(domainData)
+	corpus, _, err := loadDB(mgr.corpusFile, name, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open manager corpus %v: %v", mgr.corpusFile, err)
 	}
 	mgr.Corpus = corpus
-	log.Logf(0, "created manager %v: corpus=%v, corpusSeq=%v, reproSeq=%v",
-		mgr.name, len(mgr.Corpus.Records), mgr.corpusSeq, mgr.reproSeq)
+	log.Logf(0, "created manager %v: domain=%v corpus=%v, corpusSeq=%v, reproSeq=%v",
+		mgr.name, mgr.domain, len(mgr.Corpus.Records), mgr.corpusSeq, mgr.reproSeq)
 	st.Managers[name] = mgr
 	return mgr, nil
 }
 
-func (st *State) Connect(name string, fresh bool, calls []string, corpus [][]byte) error {
+func (st *State) Connect(name, domain string, fresh bool, calls []string, corpus [][]byte) error {
 	mgr := st.Managers[name]
 	if mgr == nil {
 		var err error
@@ -164,6 +182,8 @@ func (st *State) Connect(name string, fresh bool, calls []string, corpus [][]byt
 		}
 	}
 	mgr.Connected = time.Now()
+	mgr.domain = domain
+	writeFile(mgr.domainFile, []byte(mgr.domain))
 	if fresh {
 		mgr.corpusSeq = 0
 		mgr.reproSeq = st.reproSeq
@@ -188,10 +208,10 @@ func (st *State) Connect(name string, fresh bool, calls []string, corpus [][]byt
 	return nil
 }
 
-func (st *State) Sync(name string, add [][]byte, del []string) ([][]byte, int, error) {
+func (st *State) Sync(name string, add [][]byte, del []string) (string, []rpctype.HubInput, int, error) {
 	mgr := st.Managers[name]
 	if mgr == nil || mgr.Connected.IsZero() {
-		return nil, 0, fmt.Errorf("unconnected manager %v", name)
+		return "", nil, 0, fmt.Errorf("unconnected manager %v", name)
 	}
 	if len(del) != 0 {
 		for _, sig := range del {
@@ -207,7 +227,7 @@ func (st *State) Sync(name string, add [][]byte, del []string) ([][]byte, int, e
 	mgr.Added += len(add)
 	mgr.Deleted += len(del)
 	mgr.New += len(progs)
-	return progs, more, err
+	return mgr.domain, progs, more, err
 }
 
 func (st *State) AddRepro(name string, repro []byte) error {
@@ -278,11 +298,16 @@ func (st *State) PendingRepro(name string) ([]byte, error) {
 	return repro, nil
 }
 
-func (st *State) pendingInputs(mgr *Manager) ([][]byte, int, error) {
+func (st *State) pendingInputs(mgr *Manager) ([]rpctype.HubInput, int, error) {
 	if mgr.corpusSeq == st.corpusSeq {
 		return nil, 0, nil
 	}
-	var records []db.Record
+	type Record struct {
+		Key string
+		Val []byte
+		Seq uint64
+	}
+	var records []Record
 	for key, rec := range st.Corpus.Records {
 		if mgr.corpusSeq >= rec.Seq {
 			continue
@@ -297,7 +322,7 @@ func (st *State) pendingInputs(mgr *Manager) ([][]byte, int, error) {
 		if !managerSupportsAllCalls(mgr.Calls, calls) {
 			continue
 		}
-		records = append(records, rec)
+		records = append(records, Record{key, rec.Val, rec.Seq})
 	}
 	maxSeq := st.corpusSeq
 	more := 0
@@ -325,13 +350,48 @@ func (st *State) pendingInputs(mgr *Manager) ([][]byte, int, error) {
 		more = len(records) - pos
 		records = records[:pos]
 	}
-	progs := make([][]byte, len(records))
+	progs := make([]rpctype.HubInput, 0, len(records))
 	for _, rec := range records {
-		progs = append(progs, rec.Val)
+		domain := ""
+		for _, mgr1 := range st.Managers {
+			same := mgr1.domain == mgr.domain
+			if !same && domain != "" {
+				continue
+			}
+			if _, ok := mgr1.Corpus.Records[rec.Key]; !ok {
+				continue
+			}
+			domain = mgr1.domain
+			if same {
+				break
+			}
+		}
+		progs = append(progs, rpctype.HubInput{
+			Domain: st.inputDomain(rec.Key, mgr.domain),
+			Prog:   rec.Val,
+		})
 	}
 	mgr.corpusSeq = maxSeq
 	saveSeqFile(mgr.corpusSeqFile, mgr.corpusSeq)
 	return progs, more, nil
+}
+
+func (st *State) inputDomain(key, self string) string {
+	domain := ""
+	for _, mgr := range st.Managers {
+		same := mgr.domain == self
+		if !same && domain != "" {
+			continue
+		}
+		if _, ok := mgr.Corpus.Records[key]; !ok {
+			continue
+		}
+		domain = mgr.domain
+		if same {
+			break
+		}
+	}
+	return domain
 }
 
 func (st *State) addInputs(mgr *Manager, inputs [][]byte) {

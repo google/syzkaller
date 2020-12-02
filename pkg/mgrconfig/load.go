@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/config"
@@ -151,6 +152,10 @@ func Complete(cfg *Config) error {
 		); err != nil {
 			return err
 		}
+	}
+	if cfg.HubDomain != "" &&
+		!regexp.MustCompile(`^[a-zA-Z0-9-_.]{2,50}(/[a-zA-Z0-9-_.]{2,50})?$`).MatchString(cfg.HubDomain) {
+		return fmt.Errorf("bad value for hub_domain")
 	}
 	if cfg.DashboardClient != "" {
 		if err := checkNonEmpty(

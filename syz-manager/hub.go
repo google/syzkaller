@@ -4,6 +4,7 @@
 package main
 
 import (
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/hash"
@@ -21,6 +22,7 @@ func (mgr *Manager) hubSyncLoop() {
 		cfg:           mgr.cfg,
 		target:        mgr.target,
 		stats:         mgr.stats,
+		domain:        mgr.cfg.TargetOS + "/" + mgr.cfg.HubDomain,
 		enabledCalls:  mgr.targetEnabledSyscalls,
 		leak:          mgr.checkResult.Features[host.FeatureLeak].Enabled,
 		fresh:         mgr.fresh,
@@ -37,6 +39,7 @@ type HubConnector struct {
 	cfg            *mgrconfig.Config
 	target         *prog.Target
 	stats          *Stats
+	domain         string
 	enabledCalls   map[*prog.Syscall]bool
 	leak           bool
 	fresh          bool
@@ -49,7 +52,7 @@ type HubConnector struct {
 // HubManagerView restricts interface between HubConnector and Manager.
 type HubManagerView interface {
 	getMinimizedCorpus() (corpus, repros [][]byte)
-	addNewCandidates(progs [][]byte)
+	addNewCandidates(candidates []rpctype.RPCCandidate)
 }
 
 func (hc *HubConnector) loop() {
@@ -143,7 +146,7 @@ func (hc *HubConnector) sync(hub *rpctype.RPCClient, corpus [][]byte) error {
 		if err := hub.Call("Hub.Sync", a, r); err != nil {
 			return err
 		}
-		progDropped := hc.processProgs(r.Progs)
+		minimized, smashed, progDropped := hc.processProgs(r.Inputs)
 		reproDropped := hc.processRepros(r.Repros)
 		hc.stats.hubSendProgAdd.add(len(a.Add))
 		hc.stats.hubSendProgDel.add(len(a.Del))
@@ -153,9 +156,10 @@ func (hc *HubConnector) sync(hub *rpctype.RPCClient, corpus [][]byte) error {
 		hc.stats.hubRecvRepro.add(len(r.Repros) - reproDropped)
 		hc.stats.hubRecvReproDrop.add(reproDropped)
 		log.Logf(0, "hub sync: send: add %v, del %v, repros %v;"+
-			" recv: progs %v, repros %v; more %v",
+			" recv: progs %v (min %v, smash %v), repros %v; more %v",
 			len(a.Add), len(a.Del), len(a.Repros),
-			len(r.Progs)-progDropped, len(r.Repros)-reproDropped, r.More)
+			len(r.Progs)-progDropped, minimized, smashed,
+			len(r.Repros)-reproDropped, r.More)
 		a.Add = nil
 		a.Del = nil
 		a.Repros = nil
@@ -167,21 +171,57 @@ func (hc *HubConnector) sync(hub *rpctype.RPCClient, corpus [][]byte) error {
 	}
 }
 
-func (hc *HubConnector) processProgs(progs [][]byte) int {
-	dropped := 0
-	candidates := make([][]byte, 0, len(progs))
-	for _, inp := range progs {
-		bad, disabled := checkProgram(hc.target, hc.enabledCalls, inp)
+func (hc *HubConnector) processProgs(inputs []rpctype.HubInput) (minimized, smashed, dropped int) {
+	candidates := make([]rpctype.RPCCandidate, 0, len(inputs))
+	for _, inp := range inputs {
+		bad, disabled := checkProgram(hc.target, hc.enabledCalls, inp.Prog)
 		if bad || disabled {
 			log.Logf(0, "rejecting program from hub (bad=%v, disabled=%v):\n%s",
 				bad, disabled, inp)
 			dropped++
 			continue
 		}
-		candidates = append(candidates, inp)
+		min, smash := matchDomains(hc.domain, inp.Domain)
+		if min {
+			minimized++
+		}
+		if smash {
+			smashed++
+		}
+		candidates = append(candidates, rpctype.RPCCandidate{
+			Prog:      inp.Prog,
+			Minimized: min,
+			Smashed:   smash,
+		})
 	}
 	hc.mgr.addNewCandidates(candidates)
-	return dropped
+	return
+}
+
+func matchDomains(self, input string) (bool, bool) {
+	if self == "" || input == "" {
+		return true, true
+	}
+	min0, smash0 := splitDomains(self)
+	min1, smash1 := splitDomains(input)
+	min := min0 != min1
+	smash := min || smash0 != smash1
+	return min, smash
+}
+
+func splitDomains(domain string) (string, string) {
+	delim0 := strings.IndexByte(domain, '/')
+	if delim0 == -1 {
+		return domain, ""
+	}
+	if delim0 == len(domain)-1 {
+		return domain[:delim0], ""
+	}
+	delim1 := strings.IndexByte(domain[delim0+1:], '/')
+	if delim1 == -1 {
+		return domain, ""
+	}
+	return domain[:delim0+delim1+1], domain[delim0+delim1+2:]
 }
 
 func (hc *HubConnector) processRepros(repros [][]byte) int {

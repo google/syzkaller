@@ -440,7 +440,7 @@ func (mgr *Manager) preloadCorpus() {
 	}
 	mgr.corpusDB = corpusDB
 
-	if seedDir := filepath.Join(mgr.cfg.Syzkaller, "sys", mgr.cfg.TargetOS, targets.TestOS); osutil.IsExist(seedDir) {
+	if seedDir := filepath.Join(mgr.cfg.Syzkaller, "sys", mgr.cfg.TargetOS, "test"); osutil.IsExist(seedDir) {
 		seeds, err := ioutil.ReadDir(seedDir)
 		if err != nil {
 			log.Fatalf("failed to read seeds dir: %v", err)
@@ -915,15 +915,7 @@ func (mgr *Manager) getMinimizedCorpus() (corpus, repros [][]byte) {
 	return
 }
 
-func (mgr *Manager) addNewCandidates(progs [][]byte) {
-	candidates := make([]rpctype.RPCCandidate, len(progs))
-	for i, inp := range progs {
-		candidates[i] = rpctype.RPCCandidate{
-			Prog:      inp,
-			Minimized: false, // don't trust programs from hub
-			Smashed:   false,
-		}
-	}
+func (mgr *Manager) addNewCandidates(candidates []rpctype.RPCCandidate) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 	mgr.candidates = append(mgr.candidates, candidates...)
