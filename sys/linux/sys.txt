@@ -520,9 +520,9 @@ resource fd_sysctl[fd]
 openat$sysctl(fd const[AT_FDCWD], file ptr[in, string[sysctl_file]], flags const[O_WRONLY], mode const[0]) fd_sysctl
 write$sysctl(fd fd_sysctl, val ptr[in, string[sysctl_value]], len len[val])
 
-sysctl_file = "/sys/kernel/mm/ksm/run", "/proc/sys/vm/compact_memory", "/proc/sys/vm/drop_caches", "/proc/sys/net/ipv4/tcp_timestamps", "/proc/sys/net/ipv4/tcp_sack", "/proc/sys/net/ipv4/tcp_window_scaling", "/proc/sys/net/ipv4/tcp_syncookies", "/proc/self/clear_refs"
+sysctl_file = "/sys/kernel/mm/ksm/run", "/proc/sys/vm/compact_memory", "/proc/sys/vm/drop_caches", "/proc/sys/net/ipv4/tcp_timestamps", "/proc/sys/net/ipv4/tcp_sack", "/proc/sys/net/ipv4/tcp_dsack", "/proc/sys/net/ipv4/tcp_window_scaling", "/proc/sys/net/ipv4/tcp_syncookies", "/proc/sys/net/ipv4/tcp_recovery", "/proc/sys/net/ipv4/tcp_mtu_probing", "/proc/sys/net/ipv4/tcp_rfc1337", "/proc/self/clear_refs"
 # Most of these values are suitable for all sysctl_file files.
-sysctl_value = "0", "1", "2", "3", "4", "5"
+sysctl_value = "0", "1", "2", "3", "4", "5", "6", "7"
 
 # Write to this file triggers khugepaged scan.
 # We don't want to write small values as we only want the explicitly triggered scan.
@@ -537,6 +537,22 @@ openat$tcp_congestion(fd const[AT_FDCWD], file ptr[in, string["/proc/sys/net/ipv
 write$tcp_congestion(fd fd_tcp_congestion, val ptr[in, string[tcp_congestion]], len len[val])
 
 tcp_congestion = "reno", "bbr", "bic", "cdg", "cubic", "dctcp", "westwood", "highspeed", "hybla", "htcp", "vegas", "nv", "veno", "scalable", "lp", "yeah", "illinois"
+
+resource fd_tcp_mem[fd]
+
+openat$tcp_mem(fd const[AT_FDCWD], file ptr[in, string[tcp_mem_files]], flags const[O_WRONLY], mode const[0]) fd_tcp_mem
+write$tcp_mem(fd fd_tcp_mem, val ptr[in, tcp_mem_values], len len[val])
+
+tcp_mem_files = "/proc/sys/net/ipv4/tcp_rmem", "/proc/sys/net/ipv4/tcp_wmem"
+
+tcp_mem_values {
+	v0	fmt[oct, int64]
+	sp0	const[' ', int8]
+	v1	fmt[oct, int64]
+	sp1	const[' ', int8]
+	v2	fmt[oct, int64]
+	z	const[0, int8]
+} [packed]
 
 resource fd_pidfd[fd]
 
