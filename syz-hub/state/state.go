@@ -35,7 +35,7 @@ type State struct {
 // Manager represents one syz-manager instance.
 type Manager struct {
 	name          string
-	domain        string
+	Domain        string
 	corpusSeq     uint64
 	reproSeq      uint64
 	corpusFile    string
@@ -160,14 +160,14 @@ func (st *State) createManager(name string) (*Manager, error) {
 		st.reproSeq = mgr.reproSeq
 	}
 	domainData, _ := ioutil.ReadFile(mgr.domainFile)
-	mgr.domain = string(domainData)
+	mgr.Domain = string(domainData)
 	corpus, _, err := loadDB(mgr.corpusFile, name, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open manager corpus %v: %v", mgr.corpusFile, err)
 	}
 	mgr.Corpus = corpus
 	log.Logf(0, "created manager %v: domain=%v corpus=%v, corpusSeq=%v, reproSeq=%v",
-		mgr.name, mgr.domain, len(mgr.Corpus.Records), mgr.corpusSeq, mgr.reproSeq)
+		mgr.name, mgr.Domain, len(mgr.Corpus.Records), mgr.corpusSeq, mgr.reproSeq)
 	st.Managers[name] = mgr
 	return mgr, nil
 }
@@ -182,8 +182,8 @@ func (st *State) Connect(name, domain string, fresh bool, calls []string, corpus
 		}
 	}
 	mgr.Connected = time.Now()
-	mgr.domain = domain
-	writeFile(mgr.domainFile, []byte(mgr.domain))
+	mgr.Domain = domain
+	writeFile(mgr.domainFile, []byte(mgr.Domain))
 	if fresh {
 		mgr.corpusSeq = 0
 		mgr.reproSeq = st.reproSeq
@@ -227,7 +227,7 @@ func (st *State) Sync(name string, add [][]byte, del []string) (string, []rpctyp
 	mgr.Added += len(add)
 	mgr.Deleted += len(del)
 	mgr.New += len(progs)
-	return mgr.domain, progs, more, err
+	return mgr.Domain, progs, more, err
 }
 
 func (st *State) AddRepro(name string, repro []byte) error {
@@ -352,22 +352,8 @@ func (st *State) pendingInputs(mgr *Manager) ([]rpctype.HubInput, int, error) {
 	}
 	progs := make([]rpctype.HubInput, 0, len(records))
 	for _, rec := range records {
-		domain := ""
-		for _, mgr1 := range st.Managers {
-			same := mgr1.domain == mgr.domain
-			if !same && domain != "" {
-				continue
-			}
-			if _, ok := mgr1.Corpus.Records[rec.Key]; !ok {
-				continue
-			}
-			domain = mgr1.domain
-			if same {
-				break
-			}
-		}
 		progs = append(progs, rpctype.HubInput{
-			Domain: st.inputDomain(rec.Key, mgr.domain),
+			Domain: st.inputDomain(rec.Key, mgr.Domain),
 			Prog:   rec.Val,
 		})
 	}
@@ -379,14 +365,14 @@ func (st *State) pendingInputs(mgr *Manager) ([]rpctype.HubInput, int, error) {
 func (st *State) inputDomain(key, self string) string {
 	domain := ""
 	for _, mgr := range st.Managers {
-		same := mgr.domain == self
+		same := mgr.Domain == self
 		if !same && domain != "" {
 			continue
 		}
 		if _, ok := mgr.Corpus.Records[key]; !ok {
 			continue
 		}
-		domain = mgr.domain
+		domain = mgr.Domain
 		if same {
 			break
 		}
