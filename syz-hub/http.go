@@ -48,6 +48,7 @@ func (hub *Hub) httpSummary(w http.ResponseWriter, r *http.Request) {
 		total.RecvRepros += mgr.RecvRepros
 		data.Managers = append(data.Managers, UIManager{
 			Name:       name,
+			Domain:     mgr.Domain,
 			Corpus:     len(mgr.Corpus.Records),
 			Added:      mgr.Added,
 			Deleted:    mgr.Deleted,
@@ -56,7 +57,9 @@ func (hub *Hub) httpSummary(w http.ResponseWriter, r *http.Request) {
 			RecvRepros: mgr.RecvRepros,
 		})
 	}
-	sort.Sort(UIManagerArray(data.Managers))
+	sort.Slice(data.Managers, func(i, j int) bool {
+		return data.Managers[i].Name < data.Managers[j].Name
+	})
 	data.Managers = append([]UIManager{total}, data.Managers...)
 	if err := summaryTemplate.Execute(w, data); err != nil {
 		log.Logf(0, "failed to execute template: %v", err)
@@ -76,6 +79,7 @@ type UISummaryData struct {
 
 type UIManager struct {
 	Name       string
+	Domain     string
 	Corpus     int
 	Added      int
 	Deleted    int
@@ -84,12 +88,6 @@ type UIManager struct {
 	SentRepros int
 	RecvRepros int
 }
-
-type UIManagerArray []UIManager
-
-func (a UIManagerArray) Len() int           { return len(a) }
-func (a UIManagerArray) Less(i, j int) bool { return a[i].Name < a[j].Name }
-func (a UIManagerArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
 var summaryTemplate = compileTemplate(`
 <!doctype html>
@@ -106,6 +104,7 @@ var summaryTemplate = compileTemplate(`
 	<caption>Managers:</caption>
 	<tr>
 		<th>Name</th>
+		<th>Domain</th>
 		<th>Corpus</th>
 		<th>Added</th>
 		<th>Deleted</th>
@@ -117,6 +116,7 @@ var summaryTemplate = compileTemplate(`
 	{{range $m := $.Managers}}
 	<tr>
 		<td>{{$m.Name}}</td>
+		<td>{{$m.Domain}}</td>
 		<td>{{$m.Corpus}}</td>
 		<td>{{$m.Added}}</td>
 		<td>{{$m.Deleted}}</td>
