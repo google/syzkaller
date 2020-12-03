@@ -21,15 +21,15 @@ func (gvisor gvisor) build(params *Params) error {
 	// Bring down bazel daemon right away. We don't need it running and consuming memory.
 	defer osutil.RunCmd(10*time.Minute, params.KernelDir, params.Compiler, "shutdown")
 
-	config := " " + string(params.Config) + " "
+	config := strings.Fields(string(params.Config))
 	args := []string{"build", "--verbose_failures"}
 	target := "//runsc:runsc"
-	if strings.Contains(config, " -cover ") {
+	if coverageEnabled(config) {
 		args = append(args, []string{
 			"--collect_code_coverage",
 			"--instrumentation_filter=//pkg/...,-//pkg/sentry/platform/..."}...)
 	}
-	if strings.Contains(config, " -race ") {
+	if raceEnabled(config) {
 		args = append(args, "--features=race")
 		target = "//runsc:runsc-race"
 	}
@@ -50,7 +50,7 @@ func (gvisor gvisor) build(params *Params) error {
 
 	match := bazelTargetPath.FindSubmatch(out)
 	if match == nil {
-		return fmt.Errorf("faile to find the runsc binary")
+		return fmt.Errorf("failed to find the runsc binary")
 	}
 	outBinary := string(match[1])
 	outBinary = filepath.Join(params.KernelDir, filepath.FromSlash(outBinary))
@@ -64,4 +64,22 @@ func (gvisor gvisor) build(params *Params) error {
 func (gvisor) clean(kernelDir, targetArch string) error {
 	// Let's assume that bazel always properly handles build without cleaning (until proven otherwise).
 	return nil
+}
+
+func coverageEnabled(config []string) bool {
+	for _, flag := range config {
+		if flag == "-cover" {
+			return true
+		}
+	}
+	return false
+}
+
+func raceEnabled(config []string) bool {
+	for _, flag := range config {
+		if flag == "-race" {
+			return true
+		}
+	}
+	return false
 }
