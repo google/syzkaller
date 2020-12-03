@@ -81,6 +81,7 @@ func (hc *HubConnector) connect(corpus [][]byte) (*rpctype.RPCClient, error) {
 		Client:  hc.cfg.HubClient,
 		Key:     hc.cfg.HubKey,
 		Manager: hc.cfg.Name,
+		Domain:  hc.domain,
 		Fresh:   hc.fresh,
 	}
 	for call := range hc.enabledCalls {
