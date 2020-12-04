@@ -138,7 +138,7 @@ func main() {
 
 func storeCrash(cfg *mgrconfig.Config, rep *report.Report) {
 	id := hash.String([]byte(rep.Title))
-	dir := filepath.Join(cfg.Workdir, "crashes", id)
+	dir := filepath.Join(filepath.Dir(flag.Args()[0]), "crashes", id)
 	osutil.MkdirAll(dir)
 
 	index := 0
