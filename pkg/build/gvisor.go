@@ -24,14 +24,32 @@ func (gvisor gvisor) build(params *Params) error {
 	config := strings.Fields(string(params.Config))
 	args := []string{"build", "--verbose_failures"}
 	target := "//runsc:runsc"
-	if coverageEnabled(config) {
-		args = append(args, []string{
-			"--collect_code_coverage",
-			"--instrumentation_filter=//pkg/...,-//pkg/sentry/platform/..."}...)
-	}
-	if raceEnabled(config) {
+	race := raceEnabled(config)
+	if race {
 		args = append(args, "--features=race")
 		target = "//runsc:runsc-race"
+	}
+	if coverageEnabled(config) {
+		coverageFiles := "//pkg/..."
+		exclusions := []string{
+			"//pkg/sentry/platform/...", // Breaks kvm.
+		}
+		if race {
+			// These files use go:norace, which is not respected by
+			// coverage instrumentation. Race builds will be
+			// instrumented with atomic coverage (using
+			// sync/atomic.AddInt32), which will not work.
+			exclusions = append(exclusions, []string{
+				"//pkg/sleep/sleep_unsafe.go",
+				"//pkg/syncevent/waiter_unsafe.go",
+			}...)
+		}
+		for _, f := range exclusions {
+			coverageFiles += ",-" + f
+		}
+		args = append(args, []string{
+			"--collect_code_coverage",
+			"--instrumentation_filter=" + coverageFiles}...)
 	}
 	args = append(args, target)
 	// The 1 hour timeout is quite high. But we've seen false positives with 20 mins
