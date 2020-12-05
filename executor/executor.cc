@@ -1112,12 +1112,9 @@ void execute_call(thread_t* th)
 	errno = EFAULT;
 	NONFAILING(th->res = execute_syscall(call, th->args));
 	th->reserrno = errno;
-	if (th->res == -1 && th->reserrno == 0)
-		th->reserrno = EINVAL; // our syz syscalls may misbehave
-	if (call->attrs.ignore_return) {
-		th->res = 0;
-		th->reserrno = 0;
-	}
+	// Our pseudo-syscalls may misbehave.
+	if ((th->res == -1 && th->reserrno == 0) || call->attrs.ignore_return)
+		th->reserrno = EINVAL;
 	// Reset the flag before the first possible fail().
 	th->soft_fail_state = false;
 
