@@ -37,7 +37,7 @@ var openbsdOopses = append([]*oops{
 		[]*regexp.Regexp{},
 	},
 	{
-		[]byte("panic"),
+		[]byte("panic:"),
 		[]oopsFormat{
 			{
 				title: compile("panic: kernel diagnostic assertion (.+) failed: file \".*/([^\"]+)"),
