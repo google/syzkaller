@@ -1894,8 +1894,13 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 
 static void sandbox_common()
 {
-	if (setsid() == -1)
-		fail("setsid failed");
+#if !SYZ_THREADED
+#if SYZ_EXECUTOR
+	if (!flag_threaded)
+#endif
+		if (setsid() == -1)
+			fail("setsid failed");
+#endif
 	struct rlimit rlim;
 #ifdef GOOS_freebsd
 	rlim.rlim_cur = rlim.rlim_max = 128 << 20;
