@@ -32,20 +32,25 @@ semget(key ipc_key_t, nsems flags[sem_sem_id], flags flags[semget_flags]) ipc_se
 semget$private(key const[IPC_PRIVATE], nsems flags[sem_sem_id], flags flags[semget_flags]) ipc_sem
 semop(semid ipc_sem, ops ptr[in, array[sembuf]], nops len[ops])
 semtimedop(semid ipc_sem, ops ptr[in, array[sembuf]], nops len[ops], timeout ptr[in, timespec])
-semctl$IPC_STAT(semid ipc_sem, semnum const[0], cmd const[IPC_STAT], arg buffer[out])
-semctl$IPC_SET(semid ipc_sem, semnum const[0], cmd const[IPC_SET], arg ptr[in, semid_ds])
-semctl$IPC_RMID(semid ipc_sem, semnum const[0], cmd const[IPC_RMID])
-semctl$IPC_INFO(semid ipc_sem, semnum flags[sem_sem_id], cmd const[IPC_INFO], buf buffer[out])
-semctl$SEM_INFO(semid ipc_sem, semnum flags[sem_sem_id], cmd const[SEM_INFO], arg buffer[out])
-semctl$SEM_STAT(semid ipc_sem, semnum flags[sem_sem_id], cmd const[SEM_STAT], arg buffer[out])
-semctl$SEM_STAT_ANY(semid ipc_sem, semnum flags[sem_sem_id], cmd const[SEM_STAT_ANY], arg buffer[out])
-semctl$GETALL(semid ipc_sem, semnum const[0], cmd const[GETALL], arg buffer[out])
-semctl$GETNCNT(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETNCNT], arg buffer[out])
-semctl$GETPID(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETPID], arg buffer[out])
-semctl$GETVAL(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETVAL], arg buffer[out])
-semctl$GETZCNT(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETZCNT], arg buffer[out])
-semctl$SETALL(semid ipc_sem, semnum const[0], cmd const[SETALL], arg ptr[in, array[int16]])
-semctl$SETVAL(semid ipc_sem, semnum flags[sem_sem_id], cmd const[SETVAL], arg ptr[in, int32])
+
+# semctl$GETVAL produces random errno values, so we use ignore_return attribute.
+# Since we don't have strict const enforcement, we need to apply it to all variants.
+# When/if we have stricter enforcement of arguments for syscall variants, we may remove some of the attributes.
+
+semctl$IPC_STAT(semid ipc_sem, semnum const[0], cmd const[IPC_STAT], arg buffer[out]) (ignore_return)
+semctl$IPC_SET(semid ipc_sem, semnum const[0], cmd const[IPC_SET], arg ptr[in, semid_ds]) (ignore_return)
+semctl$IPC_RMID(semid ipc_sem, semnum const[0], cmd const[IPC_RMID]) (ignore_return)
+semctl$IPC_INFO(semid ipc_sem, semnum flags[sem_sem_id], cmd const[IPC_INFO], buf buffer[out]) (ignore_return)
+semctl$SEM_INFO(semid ipc_sem, semnum flags[sem_sem_id], cmd const[SEM_INFO], arg buffer[out]) (ignore_return)
+semctl$SEM_STAT(semid ipc_sem, semnum flags[sem_sem_id], cmd const[SEM_STAT], arg buffer[out]) (ignore_return)
+semctl$SEM_STAT_ANY(semid ipc_sem, semnum flags[sem_sem_id], cmd const[SEM_STAT_ANY], arg buffer[out]) (ignore_return)
+semctl$GETALL(semid ipc_sem, semnum const[0], cmd const[GETALL], arg buffer[out]) (ignore_return)
+semctl$GETNCNT(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETNCNT], arg buffer[out]) (ignore_return)
+semctl$GETPID(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETPID], arg buffer[out]) (ignore_return)
+semctl$GETVAL(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETVAL], arg buffer[out]) (ignore_return)
+semctl$GETZCNT(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETZCNT], arg buffer[out]) (ignore_return)
+semctl$SETALL(semid ipc_sem, semnum const[0], cmd const[SETALL], arg ptr[in, array[int16]]) (ignore_return)
+semctl$SETVAL(semid ipc_sem, semnum flags[sem_sem_id], cmd const[SETVAL], arg ptr[in, int32]) (ignore_return)
 
 resource ipc_shm[ipc]
 resource shmaddr[intptr]: 0
