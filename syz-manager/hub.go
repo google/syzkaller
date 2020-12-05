@@ -152,21 +152,21 @@ func (hc *HubConnector) sync(hub *rpctype.RPCClient, corpus [][]byte) error {
 		hc.stats.hubSendProgAdd.add(len(a.Add))
 		hc.stats.hubSendProgDel.add(len(a.Del))
 		hc.stats.hubSendRepro.add(len(a.Repros))
-		hc.stats.hubRecvProg.add(len(r.Progs) - progDropped)
+		hc.stats.hubRecvProg.add(len(r.Inputs) - progDropped)
 		hc.stats.hubRecvProgDrop.add(progDropped)
 		hc.stats.hubRecvRepro.add(len(r.Repros) - reproDropped)
 		hc.stats.hubRecvReproDrop.add(reproDropped)
 		log.Logf(0, "hub sync: send: add %v, del %v, repros %v;"+
 			" recv: progs %v (min %v, smash %v), repros %v; more %v",
 			len(a.Add), len(a.Del), len(a.Repros),
-			len(r.Progs)-progDropped, minimized, smashed,
+			len(r.Inputs)-progDropped, minimized, smashed,
 			len(r.Repros)-reproDropped, r.More)
 		a.Add = nil
 		a.Del = nil
 		a.Repros = nil
 		a.NeedRepros = false
 		hc.newRepros = nil
-		if len(r.Progs)+r.More == 0 {
+		if len(r.Inputs)+r.More == 0 {
 			return nil
 		}
 	}
