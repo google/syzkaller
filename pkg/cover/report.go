@@ -332,16 +332,16 @@ type Symbol struct {
 	PCs  []uint64
 }
 
-func (rg *ReportGenerator) GetSymbolsInfo() []Symbol {
-	retSymbols := make([]Symbol, 0)
+func (rg *ReportGenerator) GetSymbols() []Symbol {
+	var ret []Symbol
 	for _, sym := range rg.symbols {
-		retSymbols = append(retSymbols, Symbol{
+		ret = append(ret, Symbol{
 			Name: sym.name,
 			File: sym.unit.name,
 			PCs:  sym.pcs,
 		})
 	}
-	return retSymbols
+	return ret
 }
 
 func getFile(files map[string]*file, name, filename string) *file {
