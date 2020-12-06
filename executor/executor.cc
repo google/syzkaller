@@ -878,7 +878,7 @@ void write_coverage_signal(cover_t* cov, uint32* signal_count_pos, uint32* cover
 		}
 		cover_data_t sig = pc ^ prev;
 		prev = hash(pc);
-		if (flag_coverage_filter && !coverage_filter((uint64)pc))
+		if (!coverage_filter(pc))
 			continue;
 		if (dedup(sig))
 			continue;

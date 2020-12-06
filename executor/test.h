@@ -201,6 +201,7 @@ static int test_csum_inet_acc()
 	return 0;
 }
 
+#if SYZ_EXECUTOR_USES_SHMEM
 static int test_coverage_filter()
 {
 	struct tmp_cov_filter_t {
@@ -211,8 +212,8 @@ static int test_coverage_filter()
 	static struct tmp_cov_filter_t tmp_cov_filter;
 	tmp_cov_filter.pcstart = 0x81000000;
 	tmp_cov_filter.pcsize = 0x1000;
-	memset(tmp_cov_filter.bitmap, 0, ((0x1000 >> 4) + 7) / 8);
 	cov_filter = (cov_filter_t*)&tmp_cov_filter;
+	flag_coverage_filter = true;
 
 	uint64 full_enable_pc = 0xffffffff81000765;
 	uint64 full_disable_pc = 0xffffffff81000627;
@@ -231,8 +232,10 @@ static int test_coverage_filter()
 		return 1;
 
 	cov_filter = NULL;
+	flag_coverage_filter = false;
 	return 0;
 }
+#endif
 
 static struct {
 	const char* name;
@@ -244,7 +247,9 @@ static struct {
 #if GOOS_linux && (GOARCH_amd64 || GOARCH_ppc64 || GOARCH_ppc64le)
     {"test_kvm", test_kvm},
 #endif
+#if SYZ_EXECUTOR_USES_SHMEM
     {"test_coverage_filter", test_coverage_filter},
+#endif
 };
 
 static int run_tests()
