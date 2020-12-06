@@ -71,8 +71,8 @@ func TestExecutor(t *testing.T) {
 			bin := buildExecutor(t, target)
 			defer os.Remove(bin)
 			// qemu-user may allow us to run some cross-arch binaries.
-			if _, err := osutil.RunCmd(time.Minute, "", bin, targets.TestOS); err != nil {
-				if sysTarget.Arch == runtime.GOOS || sysTarget.VMArch == runtime.GOOS {
+			if _, err := osutil.RunCmd(time.Minute, "", bin, "test"); err != nil {
+				if sysTarget.Arch == runtime.GOARCH || sysTarget.VMArch == runtime.GOARCH {
 					t.Fatal(err)
 				}
 				t.Skipf("skipping, cross-arch binary failed: %v", err)
