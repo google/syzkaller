@@ -869,18 +869,22 @@ void write_coverage_signal(cover_t* cov, uint32* signal_count_pos, uint32* cover
 	// Currently it is code edges computed as xor of two subsequent basic block PCs.
 	cover_data_t* cover_data = ((cover_data_t*)cov->data) + 1;
 	uint32 nsig = 0;
-	cover_data_t prev = 0;
+	cover_data_t prev_pc = 0;
+	bool prev_filter = true;
 	for (uint32 i = 0; i < cov->size; i++) {
 		cover_data_t pc = cover_data[i];
 		if (!cover_check(pc)) {
 			debug("got bad pc: 0x%llx\n", (uint64)pc);
 			doexit(0);
 		}
-		cover_data_t sig = pc ^ prev;
-		prev = hash(pc);
-		if (!coverage_filter(pc))
-			continue;
-		if (dedup(sig))
+		cover_data_t sig = pc ^ hash(prev_pc);
+		bool filter = coverage_filter(pc);
+		// Ignore the edge only if both current and previous PCs are filtered out
+		// to capture all incoming and outcoming edges into the interesting code.
+		bool ignore = !filter && !prev_filter;
+		prev_pc = pc;
+		prev_filter = filter;
+		if (ignore || dedup(sig))
 			continue;
 		write_output(sig);
 		nsig++;
