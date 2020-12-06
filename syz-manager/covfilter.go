@@ -8,7 +8,9 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 
 	"github.com/google/syzkaller/pkg/cover"
@@ -18,80 +20,45 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-type CoverFilter struct {
-	pcStart     uint32
-	pcSize      uint32
-	pcEnd       uint32
-	weightedPCs map[uint32]uint32
-
-	bitmapFilename string
-	target         *targets.Target
-}
-
 func createCoverageFilter(cfg *mgrconfig.Config) (covFilterFilename string, err error) {
-	files := cfg.CovFilter.Files
-	funcs := cfg.CovFilter.Functions
-	rawPCs := cfg.CovFilter.RawPCs
-	if len(files) == 0 && len(funcs) == 0 && len(rawPCs) == 0 {
+	pcs := make(map[uint32]uint32)
+	filter := &cfg.CovFilter
+	if len(filter.Files) != 0 || len(filter.Functions) != 0 {
+		log.Logf(0, "initializing coverage information...")
+		if err := initCover(cfg.SysTarget, cfg.KernelObj, cfg.KernelSrc, cfg.KernelBuildSrc); err != nil {
+			return "", err
+		}
+		symbols := reportGenerator.GetSymbols()
+		if err := initFilesFuncs(pcs, filter.Files, filter.Functions, symbols); err != nil {
+			return "", err
+		}
+	}
+	if err = initWeightedPCs(pcs, filter.RawPCs); err != nil {
+		return "", err
+	}
+	if len(pcs) == 0 {
 		return "", nil
 	}
-	filesRegexp, err := getRegexps(files)
-	if err != nil {
+	if !cfg.SysTarget.ExecutorUsesShmem {
+		return "", fmt.Errorf("coverage filter is only supported for targets that use shmem")
+	}
+	bitmap := createCoverageBitmap(cfg.SysTarget, pcs)
+	filename := filepath.Join(cfg.Workdir, "syz-cover-bitmap")
+	if err = osutil.WriteFile(filename, bitmap); err != nil {
 		return "", err
 	}
-	funcsRegexp, err := getRegexps(funcs)
-	if err != nil {
-		return "", err
-	}
-
-	covFilter := CoverFilter{
-		weightedPCs:    make(map[uint32]uint32),
-		target:         cfg.SysTarget,
-		bitmapFilename: cfg.Workdir + "/" + "syz-cover-bitmap",
-	}
-
-	if len(filesRegexp) > 0 || len(funcsRegexp) > 0 {
-		log.Logf(0, "initialize coverage information...")
-		if err = initCover(cfg.SysTarget, cfg.KernelObj, cfg.KernelSrc, cfg.KernelBuildSrc); err != nil {
-			return "", err
-		}
-		symbols := reportGenerator.GetSymbolsInfo()
-		if err = covFilter.initFilesFuncs(filesRegexp, funcsRegexp, symbols); err != nil {
-			return "", err
-		}
-	}
-
-	if err = covFilter.initWeightedPCs(rawPCs); err != nil {
-		return "", err
-	}
-
-	covFilter.detectRegion()
-	if covFilter.pcSize > 0 {
-		log.Logf(0, "coverage filter from 0x%x to 0x%x, size 0x%x",
-			covFilter.pcStart, covFilter.pcEnd, covFilter.pcSize)
-	} else {
-		return "", fmt.Errorf("coverage filter is enabled but nothing will be filtered")
-	}
-
-	if err = osutil.WriteFile(covFilter.bitmapFilename, covFilter.bitmapBytes()); err != nil {
-		return "", err
-	}
-	return covFilter.bitmapFilename, nil
+	return filename, nil
 }
 
-func getRegexps(regexpStrings []string) ([]*regexp.Regexp, error) {
-	var regexps []*regexp.Regexp
-	for _, rs := range regexpStrings {
-		r, err := regexp.Compile(rs)
-		if err != nil {
-			return nil, fmt.Errorf("failed to compile regexp: %v", err)
-		}
-		regexps = append(regexps, r)
+func initFilesFuncs(pcs map[uint32]uint32, files, funcs []string, symbols []cover.Symbol) error {
+	funcsRegexp, err := compileRegexps(funcs)
+	if err != nil {
+		return err
 	}
-	return regexps, nil
-}
-
-func (covFilter *CoverFilter) initFilesFuncs(filesRegexp, funcsRegexp []*regexp.Regexp, symbols []cover.Symbol) error {
+	filesRegexp, err := compileRegexps(files)
+	if err != nil {
+		return err
+	}
 	fileDedup := make(map[string]bool)
 	used := make(map[*regexp.Regexp][]string)
 	for _, sym := range symbols {
@@ -115,42 +82,33 @@ func (covFilter *CoverFilter) initFilesFuncs(filesRegexp, funcsRegexp []*regexp.
 		}
 		if matched {
 			for _, pc := range sym.PCs {
-				covFilter.weightedPCs[uint32(pc)] = 1
+				pcs[uint32(pc)] = 1
 			}
 		}
 	}
-
 	for _, re := range filesRegexp {
-		if _, ok := used[re]; !ok {
-			log.Logf(0, "coverage file filter doesn't match anything: %v", re.String())
-		} else {
-			log.Logf(1, "coverage file filter: %v: %v", re.String(), used[re])
-		}
+		sort.Strings(used[re])
+		log.Logf(0, "coverage file filter: %v: %v", re, used[re])
 	}
 	for _, re := range funcsRegexp {
-		if _, ok := used[re]; !ok {
-			log.Logf(0, "coverage func filter doesn't match anything: %v", re.String())
-		} else {
-			log.Logf(1, "coverage func filter: %v: %v", re.String(), used[re])
-		}
+		sort.Strings(used[re])
+		log.Logf(0, "coverage func filter: %v: %v", re, used[re])
 	}
-	// TODO: do we want to error on this? or logging it enough?
 	if len(filesRegexp)+len(funcsRegexp) != len(used) {
 		return fmt.Errorf("some coverage filters don't match anything")
 	}
 	return nil
 }
 
-func (covFilter *CoverFilter) initWeightedPCs(rawPCsFiles []string) error {
+func initWeightedPCs(pcs map[uint32]uint32, rawPCsFiles []string) error {
+	re := regexp.MustCompile(`(0x[0-9a-f]+)(?:: (0x[0-9a-f]+))?`)
 	for _, f := range rawPCsFiles {
 		rawFile, err := os.Open(f)
 		if err != nil {
 			return fmt.Errorf("failed to open raw PCs file: %v", err)
 		}
 		defer rawFile.Close()
-
 		s := bufio.NewScanner(rawFile)
-		re := regexp.MustCompile(`(0x[0-9a-f]+)(?:: (0x[0-9a-f]+))?`)
 		for s.Scan() {
 			match := re.FindStringSubmatch(s.Text())
 			if match == nil {
@@ -168,46 +126,62 @@ func (covFilter *CoverFilter) initWeightedPCs(rawPCsFiles []string) error {
 			if match[2] == "" || weight < 1 {
 				weight = 1
 			}
-			covFilter.weightedPCs[uint32(pc)] = uint32(weight)
+			pcs[uint32(pc)] = uint32(weight)
+		}
+		if err := s.Err(); err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
-func (covFilter *CoverFilter) detectRegion() {
-	covFilter.pcStart = ^uint32(0)
-	covFilter.pcEnd = 0x0
-	for pc := range covFilter.weightedPCs {
-		if pc < covFilter.pcStart {
-			covFilter.pcStart = pc
-		}
-		if pc > covFilter.pcEnd {
-			covFilter.pcEnd = pc
-		}
-	}
-	// align
-	covFilter.pcStart &= ^uint32(0xf)
-	covFilter.pcEnd = (covFilter.pcEnd + 0xf) &^ uint32(0xf)
-	covFilter.pcSize = covFilter.pcEnd - covFilter.pcStart
-}
-
-func (covFilter *CoverFilter) bitmapBytes() []byte {
+func createCoverageBitmap(target *targets.Target, pcs map[uint32]uint32) []byte {
+	start, size := coverageFilterRegion(pcs)
+	log.Logf(0, "coverage filter from 0x%x to 0x%x, size 0x%x, pcs %v", start, start+size, size, len(pcs))
 	// The file starts with two uint32: covFilterStart and covFilterSize,
 	// and a bitmap with size ((covFilterSize>>4) + 7)/8 bytes follow them.
 	// 8-bit = 1-byte, additional 1-byte to prevent overflow
-	data := make([]byte, 8+((covFilter.pcSize>>4)+7)/8)
+	data := make([]byte, 8+((size>>4)+7)/8)
 	order := binary.ByteOrder(binary.BigEndian)
-	if covFilter.target.LittleEndian {
+	if target.LittleEndian {
 		order = binary.LittleEndian
 	}
-	order.PutUint32(data, covFilter.pcStart)
-	order.PutUint32(data[4:], covFilter.pcSize)
+	order.PutUint32(data, start)
+	order.PutUint32(data[4:], size)
 
 	bitmap := data[8:]
-	for pc := range covFilter.weightedPCs {
+	for pc := range pcs {
 		// The lowest 4-bit is dropped.
-		pc = (pc - covFilter.pcStart) >> 4
+		pc = (pc - start) >> 4
 		bitmap[pc/8] |= (1 << (pc % 8))
 	}
 	return data
+}
+
+func coverageFilterRegion(pcs map[uint32]uint32) (uint32, uint32) {
+	start, end := ^uint32(0), uint32(0)
+	for pc := range pcs {
+		if start > pc {
+			start = pc
+		}
+		if end < pc {
+			end = pc
+		}
+	}
+	// align
+	start &= ^uint32(0xf)
+	end = (end + 0xf) &^ uint32(0xf)
+	return start, end - start
+}
+
+func compileRegexps(regexpStrings []string) ([]*regexp.Regexp, error) {
+	var regexps []*regexp.Regexp
+	for _, rs := range regexpStrings {
+		r, err := regexp.Compile(rs)
+		if err != nil {
+			return nil, fmt.Errorf("failed to compile regexp: %v", err)
+		}
+		regexps = append(regexps, r)
+	}
+	return regexps, nil
 }
