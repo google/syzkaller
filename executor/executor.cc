@@ -897,6 +897,8 @@ void write_coverage_signal(cover_t* cov, uint32* signal_count_pos, uint32* cover
 		cover_unprotect(cov);
 		std::sort(cover_data, end);
 		cover_size = std::unique(cover_data, end) - cover_data;
+		if (flag_coverage_filter)
+			cover_size = std::remove_if(cover_data, cover_data + cover_size, coverage_filter) - cover_data;
 		cover_protect(cov);
 	}
 	// Truncate PCs to uint32 assuming that they fit into 32-bits.
