@@ -1448,7 +1448,7 @@ bool kcov_comparison_t::ignore() const
 			return true;
 #endif
 	}
-	return false;
+	return !coverage_filter(pc);
 }
 
 bool kcov_comparison_t::operator==(const struct kcov_comparison_t& other) const
