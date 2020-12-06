@@ -27,5 +27,8 @@ comment:
   layout: "files"
   after_n_builds: 2
 
+github_checks:
+  annotations: false
+
 fixes:
   - "gopath/src/github.com/google/syzkaller/::"
