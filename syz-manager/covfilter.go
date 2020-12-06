@@ -13,7 +13,6 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -28,8 +27,7 @@ func createCoverageFilter(cfg *mgrconfig.Config) (string, map[uint32]uint32, err
 		if err := initCover(cfg.SysTarget, cfg.KernelObj, cfg.KernelSrc, cfg.KernelBuildSrc); err != nil {
 			return "", nil, err
 		}
-		symbols := reportGenerator.GetSymbols()
-		if err := initFilesFuncs(pcs, filter.Files, filter.Functions, symbols); err != nil {
+		if err := initFilesFuncs(pcs, filter.Files, filter.Functions); err != nil {
 			return "", nil, err
 		}
 	}
@@ -50,7 +48,7 @@ func createCoverageFilter(cfg *mgrconfig.Config) (string, map[uint32]uint32, err
 	return filename, pcs, nil
 }
 
-func initFilesFuncs(pcs map[uint32]uint32, files, funcs []string, symbols []cover.Symbol) error {
+func initFilesFuncs(pcs map[uint32]uint32, files, funcs []string) error {
 	funcsRegexp, err := compileRegexps(funcs)
 	if err != nil {
 		return err
@@ -61,7 +59,7 @@ func initFilesFuncs(pcs map[uint32]uint32, files, funcs []string, symbols []cove
 	}
 	fileDedup := make(map[string]bool)
 	used := make(map[*regexp.Regexp][]string)
-	for _, sym := range symbols {
+	for _, sym := range reportGenerator.Symbols {
 		matched := false
 		for _, re := range funcsRegexp {
 			if re.MatchString(sym.Name) {
@@ -71,11 +69,12 @@ func initFilesFuncs(pcs map[uint32]uint32, files, funcs []string, symbols []cove
 			}
 		}
 		for _, re := range filesRegexp {
-			if re.MatchString(sym.File) {
+			file := sym.Unit.Name
+			if re.MatchString(file) {
 				matched = true
-				if !fileDedup[sym.File] {
-					fileDedup[sym.File] = true
-					used[re] = append(used[re], sym.File)
+				if !fileDedup[file] {
+					fileDedup[file] = true
+					used[re] = append(used[re], file)
 				}
 				break
 			}
