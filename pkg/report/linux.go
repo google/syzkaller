@@ -705,6 +705,8 @@ var linuxStallAnchorFrames = []*regexp.Regexp{
 	compile("task_work_run"),
 	compile("exit_to_usermode"),
 	compile("smp_call_function"),
+	compile("tasklet_action"),
+	compile("tasklet_hi_action"),
 }
 
 // nolint: lll
