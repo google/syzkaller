@@ -32,16 +32,16 @@ func (gvisor gvisor) build(params *Params) error {
 	if coverageEnabled(config) {
 		coverageFiles := "//pkg/..."
 		exclusions := []string{
-			"//pkg/sentry/platform/...", // Breaks kvm.
+			"//pkg/sentry/platform:platform", // Breaks kvm.
 		}
 		if race {
-			// These files use go:norace, which is not respected by
-			// coverage instrumentation. Race builds will be
-			// instrumented with atomic coverage (using
+			// These targets use go:norace, which is not
+			// respected by coverage instrumentation. Race builds
+			// will be instrumented with atomic coverage (using
 			// sync/atomic.AddInt32), which will not work.
 			exclusions = append(exclusions, []string{
-				"//pkg/sleep/sleep_unsafe.go",
-				"//pkg/syncevent/waiter_unsafe.go",
+				"//pkg/sleep:sleep",
+				"//pkg/syncevent:syncevent",
 			}...)
 		}
 		for _, f := range exclusions {
