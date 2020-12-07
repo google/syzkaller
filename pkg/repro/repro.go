@@ -680,6 +680,10 @@ func (ctx *context) testImpl(inst *vm.Instance, command string, duration time.Du
 	}
 	ctx.report = rep
 	ctx.reproLogf(2, "program crashed: %v", rep.Title)
+	if ctx.crashTitle != rep.Title {
+		ctx.reproLogf(2, "program crashed for different reason")
+		return false, nil
+	}
 	return true, nil
 }
 
