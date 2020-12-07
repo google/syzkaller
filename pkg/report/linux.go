@@ -27,6 +27,7 @@ type linux struct {
 	cpuContext            *regexp.Regexp
 	questionableFrame     *regexp.Regexp
 	guiltyFileIgnores     []*regexp.Regexp
+	guiltyLineIgnore      *regexp.Regexp
 	reportStartIgnores    []*regexp.Regexp
 	infoMessagesWithStack [][]byte
 	eoi                   []byte
@@ -87,6 +88,7 @@ func ctorLinux(cfg *config) (Reporter, []string, error) {
 		regexp.MustCompile(`^trusty/`),                // Trusty sources are not in linux kernel tree.
 		regexp.MustCompile(`^drivers/usb/core/urb.c`), // WARNING in urb.c usually means a bug in a driver
 	}
+	ctx.guiltyLineIgnore = regexp.MustCompile(`(hardirqs|softirqs)\s+last\s+(enabled|disabled)`)
 	// These pattern do _not_ start a new report, i.e. can be in a middle of another report.
 	ctx.reportStartIgnores = []*regexp.Regexp{
 		compile(`invalid opcode: 0000`),
@@ -446,23 +448,27 @@ func (ctx *linux) extractGuiltyFile(rep *Report) string {
 }
 
 func (ctx *linux) extractGuiltyFileImpl(report []byte) string {
-	files := ctx.extractFiles(report)
-nextFile:
-	for _, file := range files {
-		for _, re := range ctx.guiltyFileIgnores {
-			if re.MatchString(file) {
-				continue nextFile
-			}
+	var first []byte
+	for s := bufio.NewScanner(bytes.NewReader(report)); s.Scan(); {
+		match := filenameRe.FindSubmatch(s.Bytes())
+		if match == nil {
+			continue
 		}
-		return file
+		file := match[1]
+		if len(first) == 0 {
+			// Avoid producing no guilty file at all, otherwise we mail the report to nobody.
+			// It's unclear if it's better to return the first one or the last one.
+			// So far the only test we have has only one file anyway.
+			first = file
+		}
+
+		if matchesAny(file, ctx.guiltyFileIgnores) || ctx.guiltyLineIgnore.Match(s.Bytes()) {
+			continue
+		}
+		first = file
+		break
 	}
-	// Avoid producing no guilty file at all, otherwise we mail the report to nobody.
-	// It's unclear if it's better to return the first one or the last one.
-	// So far the only test we have has only one file anyway.
-	if len(files) != 0 {
-		return files[0]
-	}
-	return ""
+	return filepath.Clean(string(first))
 }
 
 func (ctx *linux) getMaintainers(file string) (vcs.Recipients, error) {
@@ -499,16 +505,6 @@ func getMaintainersImpl(kernelSrc, file string, blame bool) (vcs.Recipients, err
 		return nil, err
 	}
 	return vcs.ParseMaintainersLinux(output), nil
-}
-
-func (ctx *linux) extractFiles(report []byte) []string {
-	matches := filenameRe.FindAll(report, -1)
-	var files []string
-	for _, match := range matches {
-		f := string(bytes.Split(match, []byte{':'})[0])
-		files = append(files, filepath.Clean(f))
-	}
-	return files
 }
 
 func (ctx *linux) isCorrupted(title string, report []byte, format oopsFormat) (bool, string) {

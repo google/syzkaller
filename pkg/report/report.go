@@ -618,7 +618,7 @@ func replace(where []byte, start, end int, what []byte) []byte {
 }
 
 var (
-	filenameRe    = regexp.MustCompile(`[a-zA-Z0-9_\-\./]*[a-zA-Z0-9_\-]+\.(c|h):[0-9]+`)
+	filenameRe    = regexp.MustCompile(`([a-zA-Z0-9_\-\./]*[a-zA-Z0-9_\-]+\.(c|h)):[0-9]+`)
 	reportFrameRe = regexp.MustCompile(`.* in ([a-zA-Z0-9_]+)`)
 )
 
