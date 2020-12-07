@@ -63,6 +63,12 @@ func reportingPollBugs(c context.Context, typ string) []*dashapi.BugReport {
 			continue
 		}
 		reports = append(reports, rep)
+		// Trying to report too many at once is known to cause OOMs.
+		// But new bugs appear incrementally and polling is frequent enough,
+		// so reporting lots of bugs at once is also not necessary.
+		if len(reports) == 3 {
+			break
+		}
 	}
 	return reports
 }
@@ -136,8 +142,8 @@ func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) 
 
 	// Ready to be reported.
 	if bugReporting.Reported.IsZero() {
-		// This update won't be committed, but it will prevent us from
-		// reporting too many bugs in a single poll.
+		// This update won't be committed, but it is useful as a best effort measure
+		// so that we don't overflow the limit in a single poll.
 		ent.Sent++
 	}
 	status = fmt.Sprintf("%v: ready to report", reporting.DisplayTitle)
