@@ -17,6 +17,25 @@ func (cov *Cover) Merge(raw []uint32) {
 	}
 }
 
+// Merge merges raw into coverage and returns newly added PCs. Overwrites/mutates raw.
+func (cov *Cover) MergeDiff(raw []uint32) []uint32 {
+	c := *cov
+	if c == nil {
+		c = make(Cover)
+		*cov = c
+	}
+	n := 0
+	for _, pc := range raw {
+		if _, ok := c[pc]; ok {
+			continue
+		}
+		c[pc] = struct{}{}
+		raw[n] = pc
+		n++
+	}
+	return raw[:n]
+}
+
 func (cov Cover) Serialize() []uint32 {
 	res := make([]uint32, 0, len(cov))
 	for pc := range cov {
