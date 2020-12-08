@@ -272,6 +272,11 @@ var dynamicTitleReplacement = []replacement{
 		"${1}NUM",
 	},
 	{
+		// Replace IP addresses.
+		regexp.MustCompile(`([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})`),
+		"IP",
+	},
+	{
 		// Replace that everything looks like a file line number with "LINE".
 		regexp.MustCompile(`(:[0-9]+)+`),
 		":LINE",
