@@ -15,6 +15,7 @@ import (
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type RPCServer struct {
@@ -23,6 +24,8 @@ type RPCServer struct {
 	target                *prog.Target
 	configEnabledSyscalls []int
 	targetEnabledSyscalls map[*prog.Syscall]bool
+	coverFilter           map[uint32]uint32
+	sysTarget             *targets.Target
 	stats                 *Stats
 	sandbox               string
 	batchSize             int
@@ -65,6 +68,8 @@ func startRPCServer(mgr *Manager) (*RPCServer, error) {
 		mgr:                   mgr,
 		target:                mgr.target,
 		configEnabledSyscalls: mgr.cfg.Syscalls,
+		coverFilter:           mgr.coverFilter,
+		sysTarget:             mgr.cfg.SysTarget,
 		stats:                 mgr.stats,
 		sandbox:               mgr.cfg.Sandbox,
 		fuzzers:               make(map[string]*Fuzzer),
@@ -249,8 +254,18 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 	if f != nil && f.rotatedSignal != nil {
 		f.rotatedSignal.Merge(inputSignal)
 	}
-	serv.corpusCover.Merge(a.Cover)
+	diff := serv.corpusCover.MergeDiff(a.Cover)
 	serv.stats.corpusCover.set(len(serv.corpusCover))
+	if serv.coverFilter != nil {
+		filtered := 0
+		for _, pc := range diff {
+			prevPC := uint32(cover.PreviousInstructionPC(serv.sysTarget, uint64(pc)))
+			if serv.coverFilter[prevPC] != 0 {
+				filtered++
+			}
+		}
+		serv.stats.corpusCoverFiltered.add(filtered)
+	}
 	serv.stats.newInputs.inc()
 	if rotated {
 		serv.stats.rotatedInputs.inc()
