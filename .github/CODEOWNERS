@@ -6,4 +6,5 @@
 *freebsd*	@markjdb @tuexen
 *netbsd*	@krytarowski @R3x
 *openbsd*	@blackgnezdo @mptre
+*gvisor*	@avagin @dean-deng
 vendor/		@dvyukov
