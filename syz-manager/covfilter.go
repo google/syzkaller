@@ -20,34 +20,34 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-func createCoverageFilter(cfg *mgrconfig.Config) (covFilterFilename string, err error) {
+func createCoverageFilter(cfg *mgrconfig.Config) (string, map[uint32]uint32, error) {
 	pcs := make(map[uint32]uint32)
 	filter := &cfg.CovFilter
 	if len(filter.Files) != 0 || len(filter.Functions) != 0 {
 		log.Logf(0, "initializing coverage information...")
 		if err := initCover(cfg.SysTarget, cfg.KernelObj, cfg.KernelSrc, cfg.KernelBuildSrc); err != nil {
-			return "", err
+			return "", nil, err
 		}
 		symbols := reportGenerator.GetSymbols()
 		if err := initFilesFuncs(pcs, filter.Files, filter.Functions, symbols); err != nil {
-			return "", err
+			return "", nil, err
 		}
 	}
-	if err = initWeightedPCs(pcs, filter.RawPCs); err != nil {
-		return "", err
+	if err := initWeightedPCs(pcs, filter.RawPCs); err != nil {
+		return "", nil, err
 	}
 	if len(pcs) == 0 {
-		return "", nil
+		return "", nil, nil
 	}
 	if !cfg.SysTarget.ExecutorUsesShmem {
-		return "", fmt.Errorf("coverage filter is only supported for targets that use shmem")
+		return "", nil, fmt.Errorf("coverage filter is only supported for targets that use shmem")
 	}
 	bitmap := createCoverageBitmap(cfg.SysTarget, pcs)
 	filename := filepath.Join(cfg.Workdir, "syz-cover-bitmap")
-	if err = osutil.WriteFile(filename, bitmap); err != nil {
-		return "", err
+	if err := osutil.WriteFile(filename, bitmap); err != nil {
+		return "", nil, err
 	}
-	return filename, nil
+	return filename, pcs, nil
 }
 
 func initFilesFuncs(pcs map[uint32]uint32, files, funcs []string, symbols []cover.Symbol) error {

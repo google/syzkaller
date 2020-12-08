@@ -89,6 +89,7 @@ type Manager struct {
 	usedFiles map[string]time.Time
 
 	coverFilterFilename string
+	coverFilter         map[uint32]uint32
 }
 
 const (
@@ -176,7 +177,7 @@ func RunManager(cfg *mgrconfig.Config) {
 	mgr.initHTTP() // Creates HTTP server.
 	mgr.collectUsedFiles()
 
-	mgr.coverFilterFilename, err = createCoverageFilter(mgr.cfg)
+	mgr.coverFilterFilename, mgr.coverFilter, err = createCoverageFilter(mgr.cfg)
 	if err != nil {
 		log.Fatalf("failed to create coverage filter: %v", err)
 	}

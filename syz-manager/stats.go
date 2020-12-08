@@ -11,23 +11,24 @@ import (
 type Stat uint64
 
 type Stats struct {
-	crashes          Stat
-	crashTypes       Stat
-	crashSuppressed  Stat
-	vmRestarts       Stat
-	newInputs        Stat
-	rotatedInputs    Stat
-	execTotal        Stat
-	hubSendProgAdd   Stat
-	hubSendProgDel   Stat
-	hubSendRepro     Stat
-	hubRecvProg      Stat
-	hubRecvProgDrop  Stat
-	hubRecvRepro     Stat
-	hubRecvReproDrop Stat
-	corpusCover      Stat
-	corpusSignal     Stat
-	maxSignal        Stat
+	crashes             Stat
+	crashTypes          Stat
+	crashSuppressed     Stat
+	vmRestarts          Stat
+	newInputs           Stat
+	rotatedInputs       Stat
+	execTotal           Stat
+	hubSendProgAdd      Stat
+	hubSendProgDel      Stat
+	hubSendRepro        Stat
+	hubRecvProg         Stat
+	hubRecvProgDrop     Stat
+	hubRecvRepro        Stat
+	hubRecvReproDrop    Stat
+	corpusCover         Stat
+	corpusCoverFiltered Stat
+	corpusSignal        Stat
+	maxSignal           Stat
 
 	mu         sync.Mutex
 	namedStats map[string]uint64
@@ -36,16 +37,17 @@ type Stats struct {
 
 func (stats *Stats) all() map[string]uint64 {
 	m := map[string]uint64{
-		"crashes":        stats.crashes.get(),
-		"crash types":    stats.crashTypes.get(),
-		"suppressed":     stats.crashSuppressed.get(),
-		"vm restarts":    stats.vmRestarts.get(),
-		"new inputs":     stats.newInputs.get(),
-		"rotated inputs": stats.rotatedInputs.get(),
-		"exec total":     stats.execTotal.get(),
-		"cover":          stats.corpusCover.get(),
-		"signal":         stats.corpusSignal.get(),
-		"max signal":     stats.maxSignal.get(),
+		"crashes":           stats.crashes.get(),
+		"crash types":       stats.crashTypes.get(),
+		"suppressed":        stats.crashSuppressed.get(),
+		"vm restarts":       stats.vmRestarts.get(),
+		"new inputs":        stats.newInputs.get(),
+		"rotated inputs":    stats.rotatedInputs.get(),
+		"exec total":        stats.execTotal.get(),
+		"coverage":          stats.corpusCover.get(),
+		"filtered coverage": stats.corpusCoverFiltered.get(),
+		"signal":            stats.corpusSignal.get(),
+		"max signal":        stats.maxSignal.get(),
 	}
 	if stats.haveHub {
 		m["hub: send prog add"] = stats.hubSendProgAdd.get()

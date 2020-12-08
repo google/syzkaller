@@ -113,11 +113,20 @@ func (mgr *Manager) collectStats() []UIStat {
 		{Name: "fuzzing", Value: fmt.Sprint(mgr.fuzzingTime / 60e9 * 60e9)},
 		{Name: "corpus", Value: fmt.Sprint(len(mgr.corpus)), Link: "/corpus"},
 		{Name: "triage queue", Value: fmt.Sprint(len(mgr.candidates))},
-		{Name: "cover", Value: fmt.Sprint(rawStats["cover"]), Link: "/cover"},
 		{Name: "signal", Value: fmt.Sprint(rawStats["signal"])},
+		{Name: "coverage", Value: fmt.Sprint(rawStats["coverage"]), Link: "/cover"},
 	}
-	delete(rawStats, "cover")
+	if mgr.coverFilter != nil {
+		stats = append(stats, UIStat{
+			Name: "filtered coverage",
+			Value: fmt.Sprintf("%v / %v (%v%%)",
+				rawStats["filtered coverage"], len(mgr.coverFilter),
+				rawStats["filtered coverage"]*100/uint64(len(mgr.coverFilter))),
+		})
+	}
 	delete(rawStats, "signal")
+	delete(rawStats, "coverage")
+	delete(rawStats, "filtered coverage")
 	if mgr.checkResult != nil {
 		stats = append(stats, UIStat{
 			Name:  "syscalls",
@@ -394,11 +403,7 @@ func (mgr *Manager) httpRawCover(w http.ResponseWriter, r *http.Request) {
 	for _, inp := range mgr.corpus {
 		cov.Merge(inp.Cover)
 	}
-	covArray := make([]uint32, 0, len(cov))
-	for pc := range cov {
-		covArray = append(covArray, pc)
-	}
-	pcs := coverToPCs(mgr.sysTarget, covArray)
+	pcs := coverToPCs(mgr.sysTarget, cov.Serialize())
 	sort.Slice(pcs, func(i, j int) bool {
 		return pcs[i] < pcs[j]
 	})
