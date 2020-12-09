@@ -275,6 +275,9 @@ func archFileList(os, arch string, files []string) (string, []string, []string, 
 			// This was generated on:
 			// https://source.codeaurora.org/quic/la/kernel/msm-4.9 msm-4.9
 			"dev_video4linux.txt": true,
+			// This was generated on:
+			// https://chromium.googlesource.com/chromiumos/third_party/kernel 3a36438201f3
+			"fs_incfs.txt": true,
 		}
 		for _, f := range matches {
 			f = filepath.Base(f)

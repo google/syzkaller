@@ -1,0 +1,120 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <asm/ioctls.h>
+include <linux/stat.h>
+include <uapi/linux/fcntl.h>
+include <uapi/linux/incrementalfs.h>
+
+# incremental-fs is ChromeOS/Android-specific:
+# https://chromium.googlesource.com/chromiumos/third_party/kernel/+/2db8add7871ad%5E%21/
+
+mount$incfs(src ptr[in, filename], dst ptr[in, filename], type ptr[in, string["incremental-fs"]], flags flags[mount_flags], opts ptr[in, fs_options[incfs_options]])
+
+incfs_options [
+	read_timeout_ms	fs_opt_dec["read_timeout_ms", int32]
+	readahead	fs_opt_dec["readahead", int32]
+	no_bf_cache	fs_opt_dec["no_bf_cache", bool32]
+	no_bf_readahead	fs_opt_dec["no_bf_readahead", bool32]
+	rlog_pages	fs_opt_dec["rlog_pages", int32]
+	rlog_wakeup_cnt	fs_opt_dec["rlog_wakeup_cnt", int32]
+] [varlen]
+
+ioctl$INCFS_IOC_CREATE_FILE(fd fd, cmd const[INCFS_IOC_CREATE_FILE], arg ptr[in, incfs_new_file_args])
+ioctl$INCFS_IOC_FILL_BLOCKS(fd fd, cmd const[INCFS_IOC_FILL_BLOCKS], arg ptr[in, incfs_fill_blocks])
+ioctl$INCFS_IOC_PERMIT_FILL(fd fd, cmd const[INCFS_IOC_PERMIT_FILL], arg ptr[in, incfs_permit_fill])
+ioctl$INCFS_IOC_READ_FILE_SIGNATURE(fd fd, cmd const[INCFS_IOC_READ_FILE_SIGNATURE], arg ptr[in, incfs_get_file_sig_args])
+ioctl$INCFS_IOC_GET_FILLED_BLOCKS(fd fd, cmd const[INCFS_IOC_GET_FILLED_BLOCKS], arg ptr[in, incfs_get_filled_blocks_args])
+
+openat$incfs(fd fd_dir, file ptr[in, string[incfs_filename]], flags flags[open_flags], mode flags[open_mode]) fd
+
+incfs_filename = ".pending_reads", ".log"
+
+setxattr$incfs_id(path ptr[in, filename], name ptr[in, string["user.incfs.id"]], val ptr[in, incfs_uuid_str], size bytesize[val], flags flags[setxattr_flags])
+setxattr$incfs_size(path ptr[in, filename], name ptr[in, string["user.incfs.size"]], val ptr[in, int64], size bytesize[val], flags flags[setxattr_flags])
+setxattr$incfs_metadata(path ptr[in, filename], name ptr[in, string["user.incfs.metadata"]], val ptr[in, array[int8]], size bytesize[val], flags flags[setxattr_flags])
+
+incfs_uuid_t {
+	zeros	array[const[0, int8], 15]
+	id	int8[0:3]
+} [align[8]]
+
+incfs_uuid_str {
+	zeros	array[const['0', int8], 31]
+	id	int8['0':'3']
+}
+
+incfs_new_file_args {
+	file_id		incfs_uuid_t
+	size		align64[int64]
+	mode		flags[open_mode, int16]
+	reserved1	const[0, int16]
+	reserved2	const[0, int32]
+	directory_path	ptr[in, filename]
+	file_name	ptr[in, filename]
+	file_attr	ptr64[in, array[int8, 0:INCFS_MAX_FILE_ATTR_SIZE]]
+	file_attr_len	bytesize[file_attr, int32]
+	reserved4	const[0, int32]
+	signature_info	ptr64[in, incfs_signature_info]
+	signature_size	bytesize[signature_info, int64]
+	reserved6	const[0, int16]
+}
+
+incfs_signature_info {
+	version			const[INCFS_SIGNATURE_VERSION, int32]
+	hash_info_size		bytesize[hash_info, int32]
+	hash_info		incfs_hash_info_section
+	signing_info_size	bytesize[signing_info, int32]
+	signing_info		array[int8]
+} [packed]
+
+incfs_hash_info_section {
+	hash_algorithm	flags[incfs_hash_tree_algorithm, int32]
+	log2_blocksize	const[12, int8]
+	salt_size	bytesize[salt, int32]
+	salt		array[int8]
+	hash_size	bytesize[root_hash, int32]
+	root_hash	array[int8]
+} [packed]
+
+incfs_hash_tree_algorithm = INCFS_HASH_TREE_NONE, INCFS_HASH_TREE_SHA256
+
+incfs_fill_blocks {
+	count		len[fill_blocks, int64]
+	fill_blocks	ptr64[in, array[incfs_fill_block]]
+}
+
+incfs_fill_block {
+	block_index	int32
+	data_len	bytesize[data, int32]
+	data		ptr64[in, array[int8]]
+	compression	flags[incfs_compression_alg, int8]
+	flags		flags[incfs_block_flags, int8]
+	reserved1	const[0, int16]
+	reserved2	const[0, int32]
+	reserved3	const[0, int64]
+}
+
+incfs_compression_alg = COMPRESSION_NONE, COMPRESSION_LZ4
+incfs_block_flags = INCFS_BLOCK_FLAGS_NONE, INCFS_BLOCK_FLAGS_HASH
+
+incfs_permit_fill {
+	incfs_permit_fill	fd
+}
+
+incfs_get_file_sig_args {
+	file_signature		ptr64[out, array[int8]]
+	file_signature_buf_size	bytesize[file_signature, int32]
+	file_signature_len_out	const[0, int32]
+}
+
+incfs_get_filled_blocks_args {
+	range_buffer		ptr64[out, array[int8]]
+	range_buffer_size	bytesize[range_buffer, int32]
+	start_index		int32
+	end_index		int32
+	total_blocks_out	const[0, int32]
+	data_blocks_out		const[0, int32]
+	range_buffer_size_out	const[0, int32]
+	index_out		const[0, int32]
+}
