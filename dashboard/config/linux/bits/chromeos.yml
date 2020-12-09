@@ -6,3 +6,10 @@ config:
  - SECURITY_CHROMIUMOS_NO_UNPRIVILEGED_UNSAFE_MOUNTS: n
  # These were used historically, their origins are lost.
  - CMDLINE: [append, "noresume noswap dm_verity.error_behavior=3 dm_verity.max_bios=-1 dm_verity.dev_wait=1 i915.modeset=1 cros_efi"]
+ # These are not enabled in prepareconfig, but have lots of backports or completely ChromeOS-specific.
+ - PKGLIST: [baseline]
+ - PKGLIST_USE_CONFIGFS: [baseline]
+ - ESD_FS: [baseline]
+ - INCREMENTAL_FS: [baseline]
+ - VIRTIO_FS: [baseline]
+ - VIRTIO_WL: [baseline]

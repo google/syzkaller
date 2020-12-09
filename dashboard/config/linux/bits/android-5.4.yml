@@ -6,7 +6,7 @@
 
 kernel:
  repo: https://android.googlesource.com/kernel/common
- tag: ASB-2020-10-05_12-5.4
+ tag: d7ec680881a1
 
 shell:
  - make gki_defconfig
@@ -15,3 +15,4 @@ config:
  # gki_defconfig defaults to KERNEL_LZ4, but we don't have lz4 installed,
  # and the package lz4 is not available on the syzbot distros.
  - KERNEL_GZIP
+ - INCREMENTAL_FS: [baseline]
