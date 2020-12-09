@@ -3,7 +3,7 @@
 
 kernel:
  repo: https://chromium.googlesource.com/chromiumos/third_party/kernel
- tag: 742f2aee74fe4
+ tag: 3a36438201f3
 
 shell:
  - chromeos/scripts/prepareconfig chromiumos-x86_64 ${BUILDDIR}/.config
