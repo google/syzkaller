@@ -12,6 +12,10 @@ mount$bpf(src const[0], dst ptr[in, filename], type ptr[in, string["bpf"]], flag
 mount$overlay(src const[0], dst ptr[in, filename], type ptr[in, string["overlay"]], flags flags[mount_flags], opts ptr[in, fs_options[overlay_options]])
 mount$binder(src const[0], dst ptr[in, filename], type ptr[in, string["binder"]], flags flags[mount_flags], opts ptr[in, fs_options[binder_options]])
 
+# esdfs is ChromeOS-specific:
+# https://chromium.googlesource.com/chromiumos/third_party/kernel/+/d2c1fb9fcdb53%5E%21/
+mount$esdfs(src ptr[in, filename], dst ptr[in, filename], type ptr[in, string["esdfs"]], flags flags[mount_flags], opts ptr[in, fs_options[esdfs_options]])
+
 resource fd_fscontext[fd]
 
 fsopen(type ptr[in, string[filesystem]], flags flags[fsopen_flags]) fd_fscontext
@@ -36,7 +40,7 @@ fsmount_attr_flags = MOUNT_ATTR_RDONLY, MOUNT_ATTR_NOSUID, MOUNT_ATTR_NODEV, MOU
 move_mount_flags = MOVE_MOUNT_F_SYMLINKS, MOVE_MOUNT_F_AUTOMOUNTS, MOVE_MOUNT_F_EMPTY_PATH, MOVE_MOUNT_T_SYMLINKS, MOVE_MOUNT_T_AUTOMOUNTS, MOVE_MOUNT_T_EMPTY_PATH
 fsconfig_flag_params = "dirsync", "lazytime", "mand", "posixacl", "ro", "sync", "async", "nolazytime", "nomand", "rw", "silent"
 
-filesystem = "sysfs", "rootfs", "ramfs", "tmpfs", "devtmpfs", "debugfs", "securityfs", "sockfs", "pipefs", "anon_inodefs", "devpts", "ext3", "ext2", "ext4", "hugetlbfs", "vfat", "ecryptfs", "fuseblk", "fuse", "rpc_pipefs", "nfs", "nfs4", "nfsd", "binfmt_misc", "autofs", "xfs", "jfs", "msdos", "ntfs", "minix", "hfs", "hfsplus", "qnx4", "ufs", "btrfs", "configfs", "ncpfs", "qnx6", "exofs", "befs", "vxfs", "gfs2", "gfs2meta", "fusectl", "bfs", "nsfs", "efs", "cifs", "efivarfs", "affs", "tracefs", "bdev", "ocfs2", "ocfs2_dlmfs", "hpfs", "proc", "afs", "reiserfs", "jffs2", "romfs", "aio", "sysv", "v7", "udf", "ceph", "pstore", "adfs", "9p", "hostfs", "squashfs", "cramfs", "iso9660", "coda", "nilfs2", "logfs", "overlay", "f2fs", "omfs", "ubifs", "openpromfs", "bpf", "cgroup", "cgroup2", "cpuset", "mqueue", "aufs", "selinuxfs", "dax", "erofs", "virtiofs", "exfat", "binder", "zonefs", "pvfs2", "incremental-fs"
+filesystem = "sysfs", "rootfs", "ramfs", "tmpfs", "devtmpfs", "debugfs", "securityfs", "sockfs", "pipefs", "anon_inodefs", "devpts", "ext3", "ext2", "ext4", "hugetlbfs", "vfat", "ecryptfs", "fuseblk", "fuse", "rpc_pipefs", "nfs", "nfs4", "nfsd", "binfmt_misc", "autofs", "xfs", "jfs", "msdos", "ntfs", "minix", "hfs", "hfsplus", "qnx4", "ufs", "btrfs", "configfs", "ncpfs", "qnx6", "exofs", "befs", "vxfs", "gfs2", "gfs2meta", "fusectl", "bfs", "nsfs", "efs", "cifs", "efivarfs", "affs", "tracefs", "bdev", "ocfs2", "ocfs2_dlmfs", "hpfs", "proc", "afs", "reiserfs", "jffs2", "romfs", "aio", "sysv", "v7", "udf", "ceph", "pstore", "adfs", "9p", "hostfs", "squashfs", "cramfs", "iso9660", "coda", "nilfs2", "logfs", "overlay", "f2fs", "omfs", "ubifs", "openpromfs", "bpf", "cgroup", "cgroup2", "cpuset", "mqueue", "aufs", "selinuxfs", "dax", "erofs", "virtiofs", "exfat", "binder", "zonefs", "pvfs2", "incremental-fs", "esdfs"
 
 blockdev_filename [
 	filename	filename
@@ -857,6 +861,28 @@ udf_options [
 	fileset		fs_opt_dec["fileset", int32]
 	rootdir		fs_opt_dec["rootdir", int32]
 ] [varlen]
+
+esdfs_options [
+	lower		fs_opt_str["lower"]
+	upper		fs_opt_str["upper"]
+	derive		fs_opt["derive", stringnoz[esdfs_derive]]
+	confine		stringnoz["confine"]
+	noconfine	stringnoz["noconfine"]
+	derive_gid	stringnoz["derive_gid"]
+	default_normal	stringnoz["default_normal"]
+	dl_loc		fs_opt_str["dl_loc"]
+	dl_uid		fs_opt_oct["dl_uid", uid]
+	dl_gid		fs_opt_oct["dl_gid", gid]
+	ns_fd		fs_opt_oct["ns_fd", fd_namespace]
+	fsuid		fs_opt_oct["fsuid", uid]
+	fsgid		fs_opt_oct["fsgid", gid]
+	gid		fs_opt_oct["gid", gid]
+	mask		fs_opt_oct["mask", int32]
+	userid		fs_opt_oct["userid", uid]
+	multiuser	stringnoz["multiuser"]
+] [varlen]
+
+esdfs_derive = "none", "legacy", "unified", "multi", "public"
 
 codepage_nums = "1250", "1251", "1255", "437", "737", "775", "850", "852", "855", "857", "860", "861", "862", "863", "864", "865", "866", "869", "874", "932", "936", "949", "950"
 codepages_names = "macceltic", "maccenteuro", "maccroatian", "maccyrillic", "macgaelic", "macgreek", "maciceland", "macinuit", "macroman", "macromanian", "macturkish", "ascii", "default", "cp1250", "cp1251", "cp1255", "cp437", "cp737", "cp775", "cp850", "cp852", "cp855", "cp857", "cp860", "cp861", "cp862", "cp863", "cp864", "cp865", "cp866", "cp869", "cp874", "cp932", "cp936", "cp949", "cp950", "euc-jp", "iso8859-13", "iso8859-14", "iso8859-15", "iso8859-1", "iso8859-2", "iso8859-3", "iso8859-4", "iso8859-5", "iso8859-6", "iso8859-7", "iso8859-9", "koi8-r", "koi8-ru", "koi8-u", "utf8", "none"
