@@ -269,12 +269,22 @@ var List = map[string]map[string]*Target{
 	},
 	FreeBSD: {
 		AMD64: {
-			PtrSize:           8,
-			PageSize:          4 << 10,
-			LittleEndian:      true,
-			CCompiler:         "clang",
-			CFlags:            []string{"-m64"},
-			NeedSyscallDefine: dontNeedSyscallDefine,
+			PtrSize:      8,
+			PageSize:     4 << 10,
+			LittleEndian: true,
+			CCompiler:    "clang",
+			CFlags:       []string{"-m64"},
+			NeedSyscallDefine: func(nr uint64) bool {
+				switch nr {
+				case 482: // SYS_freebsd_12_shm_open
+					return true
+				case 571: // SYS_shm_open2
+					return true
+				case 572: // SYS_shm_rename
+					return true
+				}
+				return false
+			},
 		},
 		I386: {
 			VMArch:   AMD64,
@@ -282,12 +292,22 @@ var List = map[string]map[string]*Target{
 			PageSize: 4 << 10,
 			// The default DataOffset doesn't work with 32-bit
 			// FreeBSD and using ld.lld due to collisions.
-			DataOffset:        256 << 20,
-			Int64Alignment:    4,
-			LittleEndian:      true,
-			CCompiler:         "clang",
-			CFlags:            []string{"-m32"},
-			NeedSyscallDefine: dontNeedSyscallDefine,
+			DataOffset:     256 << 20,
+			Int64Alignment: 4,
+			LittleEndian:   true,
+			CCompiler:      "clang",
+			CFlags:         []string{"-m32"},
+			NeedSyscallDefine: func(nr uint64) bool {
+				switch nr {
+				case 482: // SYS_freebsd_12_shm_open
+					return true
+				case 571: // SYS_shm_open2
+					return true
+				case 572: // SYS_shm_rename
+					return true
+				}
+				return false
+			},
 		},
 	},
 	NetBSD: {
