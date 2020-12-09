@@ -276,7 +276,7 @@ func isSyzUsbIPSupported(c *prog.Syscall, target *prog.Target, sandbox string) (
 
 var syzkallSupport = map[string]func(*prog.Syscall, *prog.Target, string) (bool, string){
 	"syz_open_dev":                isSyzOpenDevSupported,
-	"syz_open_procfs":             alwaysSupported,
+	"syz_open_procfs":             isSyzOpenProcfsSupported,
 	"syz_open_pts":                alwaysSupported,
 	"syz_execute_func":            alwaysSupported,
 	"syz_emit_ethernet":           isNetInjectionSupported,
@@ -438,23 +438,30 @@ func isSupportedSocket(c *prog.Syscall) (bool, string) {
 	return false, err.Error()
 }
 
+func isSyzOpenProcfsSupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
+	return isSupportedOpenFile(c, 1, nil)
+}
+
 func isSupportedOpenAt(c *prog.Syscall) (bool, string) {
-	var fd int
-	var err error
-
-	fname, ok := extractStringConst(c.Args[1].Type)
-	if !ok || fname == "" || fname[0] != '/' {
-		return true, ""
-	}
-
-	modes := []int{syscall.O_RDONLY, syscall.O_WRONLY, syscall.O_RDWR}
-
 	// Attempt to extract flags from the syscall description.
+	var modes []int
 	if mode, ok := c.Args[2].Type.(*prog.ConstType); ok {
 		modes = []int{int(mode.Val)}
 	}
+	return isSupportedOpenFile(c, 1, modes)
+}
 
+func isSupportedOpenFile(c *prog.Syscall, filenameArg int, modes []int) (bool, string) {
+	fname, ok := extractStringConst(c.Args[filenameArg].Type)
+	if !ok || fname == "" || fname[0] != '/' {
+		return true, ""
+	}
+	if len(modes) == 0 {
+		modes = []int{syscall.O_RDONLY, syscall.O_WRONLY, syscall.O_RDWR}
+	}
+	var err error
 	for _, mode := range modes {
+		var fd int
 		fd, err = syscall.Open(fname, mode, 0)
 		if fd != -1 {
 			syscall.Close(fd)
@@ -463,7 +470,6 @@ func isSupportedOpenAt(c *prog.Syscall) (bool, string) {
 			return true, ""
 		}
 	}
-
 	return false, fmt.Sprintf("open(%v) failed: %v", fname, err)
 }
 
