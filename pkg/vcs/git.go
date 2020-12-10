@@ -83,7 +83,7 @@ func (git *git) Poll(repo, branch string) (*Commit, error) {
 			return nil, err
 		}
 	}
-	if _, err := git.git("fetch"); err != nil {
+	if _, err := git.git("fetch", "--force"); err != nil {
 		// Something else is wrong, re-clone.
 		if err := git.clone(repo, branch); err != nil {
 			return nil, err
@@ -102,7 +102,7 @@ func (git *git) CheckoutBranch(repo, branch string) (*Commit, error) {
 	repoHash := hash.String([]byte(repo))
 	// Ignore error as we can double add the same remote and that will fail.
 	git.git("remote", "add", repoHash, repo)
-	_, err := git.git("fetch", repoHash, branch)
+	_, err := git.git("fetch", "--force", repoHash, branch)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +126,7 @@ func (git *git) fetchRemote(repo string) error {
 	repoHash := hash.String([]byte(repo))
 	// Ignore error as we can double add the same remote and that will fail.
 	git.git("remote", "add", repoHash, repo)
-	_, err := git.git("fetch", "--tags", repoHash)
+	_, err := git.git("fetch", "--force", "--tags", repoHash)
 	return err
 }
 
