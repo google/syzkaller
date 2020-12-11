@@ -26,6 +26,7 @@ func (rg *ReportGenerator) DoHTML(w io.Writer, progs []Prog) error {
 	d := &templateData{
 		Root: new(templateDir),
 	}
+	fileOpenErr := fmt.Errorf("failed to open/locate any source file")
 	for fname, file := range files {
 		pos := d.Root
 		path := ""
@@ -66,43 +67,29 @@ func (rg *ReportGenerator) DoHTML(w io.Writer, progs []Prog) error {
 		if file.covered == 0 {
 			continue
 		}
-		lines, err := parseFile(file.filename)
-		if err != nil {
-			return err
-		}
-		var buf bytes.Buffer
-		for i, ln := range lines {
-			cov, ok := file.lines[i+1]
-			prog, class, count := "", "", "     "
-			if ok {
-				if len(cov.count) != 0 {
-					if cov.prog != -1 {
-						prog = fmt.Sprintf("onclick='onProgClick(%v)'", cov.prog)
-					}
-					count = fmt.Sprintf("% 5v", len(cov.count))
-					class = "covered"
-					if cov.uncovered {
-						class = "both"
-					}
-				} else {
-					class = "uncovered"
-				}
-			}
-			buf.WriteString(fmt.Sprintf("<span class='count' %v>%v</span>", prog, count))
-			if class == "" {
-				buf.WriteByte(' ')
-				buf.Write(ln)
-				buf.WriteByte('\n')
-			} else {
-				buf.WriteString(fmt.Sprintf("<span class='%v'> ", class))
-				buf.Write(ln)
-				buf.WriteString("</span>\n")
-			}
-		}
-		d.Contents = append(d.Contents, template.HTML(buf.String()))
-		f.Index = len(d.Contents) - 1
-
 		addFunctionCoverage(file, d)
+		contents := ""
+		lines, err := parseFile(file.filename)
+		if err == nil {
+			contents = fileContents(file, lines)
+			fileOpenErr = nil
+		} else {
+			// We ignore individual errors of opening/locating source files
+			// because there is a number of reasons when/why it can happen.
+			// We fail only if we can't open/locate any single source file.
+			// syz-ci can mess state of source files (https://github.com/google/syzkaller/issues/1770),
+			// or bazel lies about location of auto-generated files,
+			// or a used can update source files with git pull/checkout.
+			contents = html.EscapeString(err.Error())
+			if fileOpenErr != nil {
+				fileOpenErr = err
+			}
+		}
+		d.Contents = append(d.Contents, template.HTML(contents))
+		f.Index = len(d.Contents) - 1
+	}
+	if fileOpenErr != nil {
+		return fileOpenErr
 	}
 	for _, prog := range progs {
 		d.Progs = append(d.Progs, template.HTML(html.EscapeString(prog.Data)))
@@ -147,6 +134,39 @@ func (rg *ReportGenerator) DoCSV(w io.Writer, progs []Prog) error {
 		return err
 	}
 	return writer.WriteAll(data)
+}
+
+func fileContents(file *file, lines [][]byte) string {
+	var buf bytes.Buffer
+	for i, ln := range lines {
+		cov, ok := file.lines[i+1]
+		prog, class, count := "", "", "     "
+		if ok {
+			if len(cov.count) != 0 {
+				if cov.prog != -1 {
+					prog = fmt.Sprintf("onclick='onProgClick(%v)'", cov.prog)
+				}
+				count = fmt.Sprintf("% 5v", len(cov.count))
+				class = "covered"
+				if cov.uncovered {
+					class = "both"
+				}
+			} else {
+				class = "uncovered"
+			}
+		}
+		buf.WriteString(fmt.Sprintf("<span class='count' %v>%v</span>", prog, count))
+		if class == "" {
+			buf.WriteByte(' ')
+			buf.Write(ln)
+			buf.WriteByte('\n')
+		} else {
+			buf.WriteString(fmt.Sprintf("<span class='%v'> ", class))
+			buf.Write(ln)
+			buf.WriteString("</span>\n")
+		}
+	}
+	return buf.String()
 }
 
 func addFunctionCoverage(file *file, data *templateData) {
