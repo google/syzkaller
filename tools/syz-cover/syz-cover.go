@@ -23,7 +23,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -69,8 +68,7 @@ func main() {
 	if err != nil {
 		failf("%v", err)
 	}
-	kernelObj := filepath.Join(*flagKernelObj, target.KernelObject)
-	rg, err := cover.MakeReportGenerator(target, *flagVM, kernelObj, *flagKernelSrc, *flagKernelBuildSrc)
+	rg, err := cover.MakeReportGenerator(target, *flagVM, *flagKernelObj, *flagKernelSrc, *flagKernelBuildSrc)
 	if err != nil {
 		failf("%v", err)
 	}

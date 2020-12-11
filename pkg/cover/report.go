@@ -26,15 +26,15 @@ type Prog struct {
 	PCs  []uint64
 }
 
-func MakeReportGenerator(target *targets.Target, vm, kernelObject, srcDir, buildDir string) (*ReportGenerator, error) {
-	impl, err := backend.Make(target, vm, kernelObject, srcDir, buildDir)
+func MakeReportGenerator(target *targets.Target, vm, objDir, srcDir, buildDir string) (*ReportGenerator, error) {
+	impl, err := backend.Make(target, vm, objDir)
 	if err != nil {
 		return nil, err
 	}
 	rg := &ReportGenerator{
 		target:   target,
 		srcDir:   srcDir,
-		objDir:   filepath.Dir(kernelObject),
+		objDir:   objDir,
 		buildDir: buildDir,
 		Impl:     impl,
 	}

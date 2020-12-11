@@ -30,6 +30,6 @@ type Symbol struct {
 	Symbolized bool
 }
 
-func Make(target *targets.Target, vm, kernelObject, srcDir, buildDir string) (*Impl, error) {
-	return makeELF(target, kernelObject, srcDir, buildDir)
+func Make(target *targets.Target, vm, objDir string) (*Impl, error) {
+	return makeELF(target, objDir)
 }
