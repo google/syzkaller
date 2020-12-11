@@ -32,13 +32,13 @@ func initCover(cfg *mgrconfig.Config) error {
 			initCoverError = fmt.Errorf("kernel_obj is not specified")
 			return
 		}
-		vmlinux := filepath.Join(cfg.KernelObj, cfg.SysTarget.KernelObject)
 		reportGenerator, initCoverError = cover.MakeReportGenerator(
-			cfg.SysTarget, cfg.Type, vmlinux, cfg.KernelSrc, cfg.KernelBuildSrc)
+			cfg.SysTarget, cfg.Type, cfg.KernelObj, cfg.KernelSrc, cfg.KernelBuildSrc)
 		if initCoverError != nil {
 			return
 		}
-		initCoverVMOffset, initCoverError = getVMOffset(cfg.SysTarget, vmlinux)
+		kernelObj := filepath.Join(cfg.KernelObj, cfg.SysTarget.KernelObject)
+		initCoverVMOffset, initCoverError = getVMOffset(cfg.SysTarget, kernelObj)
 	})
 	return initCoverError
 }
@@ -53,7 +53,7 @@ func coverToPCs(target *targets.Target, cov []uint32) []uint64 {
 	return pcs
 }
 
-func getVMOffset(target *targets.Target, vmlinux string) (uint32, error) {
+func getVMOffset(target *targets.Target, kernelObj string) (uint32, error) {
 	if target.OS == targets.FreeBSD {
 		return 0xffffffff, nil
 	}
@@ -61,7 +61,7 @@ func getVMOffset(target *targets.Target, vmlinux string) (uint32, error) {
 	if target.Triple != "" {
 		readelf = target.Triple + "-" + readelf
 	}
-	out, err := osutil.RunCmd(time.Hour, "", readelf, "-SW", vmlinux)
+	out, err := osutil.RunCmd(time.Hour, "", readelf, "-SW", kernelObj)
 	if err != nil {
 		return 0, err
 	}

@@ -151,7 +151,7 @@ void __sanitizer_cov_trace_pc() { printf("%llu", (long long)__builtin_return_add
 	}
 	kcovFlags := append([]string{"-c", "-w", "-x", "c", "-o", kcovObj, kcovSrc}, target.CFlags...)
 	src := filepath.Join(dir, "main.c")
-	bin := filepath.Join(dir, "bin")
+	bin := filepath.Join(dir, target.KernelObject)
 	if err := osutil.WriteFile(src, []byte(`int main() {}`)); err != nil {
 		t.Fatal(err)
 	}
@@ -179,7 +179,7 @@ func generateReport(t *testing.T, target *targets.Target, test Test) ([]byte, []
 	}
 	defer os.RemoveAll(dir)
 	bin := buildTestBinary(t, target, test, dir)
-	rg, err := MakeReportGenerator(target, "", bin, dir, dir)
+	rg, err := MakeReportGenerator(target, "", dir, dir, dir)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -11,6 +11,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"strconv"
@@ -20,7 +21,8 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-func makeELF(target *targets.Target, kernelObject, srcDir, buildDir string) (*Impl, error) {
+func makeELF(target *targets.Target, objDir string) (*Impl, error) {
+	kernelObject := filepath.Join(objDir, target.KernelObject)
 	file, err := elf.Open(kernelObject)
 	if err != nil {
 		return nil, err
