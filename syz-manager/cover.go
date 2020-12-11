@@ -4,26 +4,18 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
 	"fmt"
-	"path/filepath"
-	"strconv"
-	"strings"
 	"sync"
-	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/mgrconfig"
-	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/sys/targets"
 )
 
 var (
-	initCoverOnce     sync.Once
-	initCoverError    error
-	initCoverVMOffset uint32
-	reportGenerator   *cover.ReportGenerator
+	initCoverOnce   sync.Once
+	initCoverError  error
+	reportGenerator *cover.ReportGenerator
 )
 
 func initCover(cfg *mgrconfig.Config) error {
@@ -34,11 +26,6 @@ func initCover(cfg *mgrconfig.Config) error {
 		}
 		reportGenerator, initCoverError = cover.MakeReportGenerator(
 			cfg.SysTarget, cfg.Type, cfg.KernelObj, cfg.KernelSrc, cfg.KernelBuildSrc)
-		if initCoverError != nil {
-			return
-		}
-		kernelObj := filepath.Join(cfg.KernelObj, cfg.SysTarget.KernelObject)
-		initCoverVMOffset, initCoverError = getVMOffset(cfg.SysTarget, kernelObj)
 	})
 	return initCoverError
 }
@@ -46,49 +33,9 @@ func initCover(cfg *mgrconfig.Config) error {
 func coverToPCs(target *targets.Target, cov []uint32) []uint64 {
 	pcs := make([]uint64, 0, len(cov))
 	for _, pc := range cov {
-		fullPC := cover.RestorePC(pc, initCoverVMOffset)
+		fullPC := cover.RestorePC(pc, reportGenerator.TextOffset)
 		prevPC := cover.PreviousInstructionPC(target, fullPC)
 		pcs = append(pcs, prevPC)
 	}
 	return pcs
-}
-
-func getVMOffset(target *targets.Target, kernelObj string) (uint32, error) {
-	if target.OS == targets.FreeBSD {
-		return 0xffffffff, nil
-	}
-	readelf := "readelf"
-	if target.Triple != "" {
-		readelf = target.Triple + "-" + readelf
-	}
-	out, err := osutil.RunCmd(time.Hour, "", readelf, "-SW", kernelObj)
-	if err != nil {
-		return 0, err
-	}
-	s := bufio.NewScanner(bytes.NewReader(out))
-	var addr uint32
-	for s.Scan() {
-		ln := s.Text()
-		pieces := strings.Fields(ln)
-		for i := 0; i < len(pieces); i++ {
-			if pieces[i] != "PROGBITS" {
-				continue
-			}
-			v, err := strconv.ParseUint("0x"+pieces[i+1], 0, 64)
-			if err != nil {
-				return 0, fmt.Errorf("failed to parse addr in readelf output: %v", err)
-			}
-			if v == 0 {
-				continue
-			}
-			v32 := (uint32)(v >> 32)
-			if addr == 0 {
-				addr = v32
-			}
-			if addr != v32 {
-				return 0, fmt.Errorf("different section offsets in a single binary")
-			}
-		}
-	}
-	return addr, nil
 }
