@@ -1,0 +1,36 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Enabled on full (non-basefile) ChromeOS kernels.
+# These configs are not enabled by prepareconfig, but have lots of backports,
+# or completely ChromeOS-specific, or enabled on real devices.
+
+config:
+ - PKGLIST
+ - PKGLIST_USE_CONFIGFS
+ - ESD_FS
+ - INCREMENTAL_FS
+ - VIRTIO_FS
+ - VIRTIO_WL
+ - USB_CONFIGFS: [override]
+ - USB_CONFIGFS_UEVENT
+ - USB_CONFIGFS_SERIAL
+ - USB_CONFIGFS_ACM
+ - USB_CONFIGFS_OBEX
+ - USB_CONFIGFS_NCM
+ - USB_CONFIGFS_ECM
+ - USB_CONFIGFS_ECM_SUBSET
+ - USB_CONFIGFS_RNDIS
+ - USB_CONFIGFS_EEM
+ - USB_CONFIGFS_MASS_STORAGE
+ - USB_CONFIGFS_F_LB_SS
+ - USB_CONFIGFS_F_FS
+ - USB_CONFIGFS_F_ACC
+ - USB_CONFIGFS_F_AUDIO_SRC
+ - USB_CONFIGFS_F_UAC1
+ - USB_CONFIGFS_F_UAC1_LEGACY
+ - USB_CONFIGFS_F_UAC2
+ - USB_CONFIGFS_F_MIDI
+ - USB_CONFIGFS_F_HID
+ - USB_CONFIGFS_F_UVC
+ - USB_CONFIGFS_F_PRINTER

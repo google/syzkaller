@@ -1,0 +1,9 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Enabled on all Android kernels.
+
+config:
+ # gki_defconfig defaults to KERNEL_LZ4, but we don't have lz4 installed,
+ # and the package lz4 is not available on the syzbot distros.
+ - KERNEL_GZIP
