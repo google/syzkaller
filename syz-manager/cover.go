@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -25,18 +26,19 @@ var (
 	reportGenerator   *cover.ReportGenerator
 )
 
-func initCover(target *targets.Target, kernelObj, kernelSrc, kernelBuildSrc string) error {
+func initCover(cfg *mgrconfig.Config) error {
 	initCoverOnce.Do(func() {
-		if kernelObj == "" {
+		if cfg.KernelObj == "" {
 			initCoverError = fmt.Errorf("kernel_obj is not specified")
 			return
 		}
-		vmlinux := filepath.Join(kernelObj, target.KernelObject)
-		reportGenerator, initCoverError = cover.MakeReportGenerator(target, vmlinux, kernelSrc, kernelBuildSrc)
+		vmlinux := filepath.Join(cfg.KernelObj, cfg.SysTarget.KernelObject)
+		reportGenerator, initCoverError = cover.MakeReportGenerator(
+			cfg.SysTarget, cfg.Type, vmlinux, cfg.KernelSrc, cfg.KernelBuildSrc)
 		if initCoverError != nil {
 			return
 		}
-		initCoverVMOffset, initCoverError = getVMOffset(target, vmlinux)
+		initCoverVMOffset, initCoverError = getVMOffset(cfg.SysTarget, vmlinux)
 	})
 	return initCoverError
 }

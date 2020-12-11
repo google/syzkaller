@@ -179,7 +179,7 @@ func generateReport(t *testing.T, target *targets.Target, test Test) ([]byte, []
 	}
 	defer os.RemoveAll(dir)
 	bin := buildTestBinary(t, target, test, dir)
-	rg, err := MakeReportGenerator(target, bin, dir, dir)
+	rg, err := MakeReportGenerator(target, "", bin, dir, dir)
 	if err != nil {
 		return nil, nil, err
 	}

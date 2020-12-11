@@ -26,8 +26,8 @@ type Prog struct {
 	PCs  []uint64
 }
 
-func MakeReportGenerator(target *targets.Target, kernelObject, srcDir, buildDir string) (*ReportGenerator, error) {
-	impl, err := backend.Make(target, kernelObject, srcDir, buildDir)
+func MakeReportGenerator(target *targets.Target, vm, kernelObject, srcDir, buildDir string) (*ReportGenerator, error) {
+	impl, err := backend.Make(target, vm, kernelObject, srcDir, buildDir)
 	if err != nil {
 		return nil, err
 	}

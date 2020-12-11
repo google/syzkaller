@@ -24,7 +24,7 @@ func createCoverageFilter(cfg *mgrconfig.Config) (string, map[uint32]uint32, err
 	filter := &cfg.CovFilter
 	if len(filter.Files) != 0 || len(filter.Functions) != 0 {
 		log.Logf(0, "initializing coverage information...")
-		if err := initCover(cfg.SysTarget, cfg.KernelObj, cfg.KernelSrc, cfg.KernelBuildSrc); err != nil {
+		if err := initCover(cfg); err != nil {
 			return "", nil, err
 		}
 		if err := initFilesFuncs(pcs, filter.Files, filter.Functions); err != nil {

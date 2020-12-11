@@ -214,7 +214,7 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 	}
 	// Note: initCover is executed without mgr.mu because it takes very long time
 	// (but it only reads config and it protected by initCoverOnce).
-	if err := initCover(mgr.sysTarget, mgr.cfg.KernelObj, mgr.cfg.KernelSrc, mgr.cfg.KernelBuildSrc); err != nil {
+	if err := initCover(mgr.cfg); err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -286,7 +286,7 @@ func (mgr *Manager) httpFuncCover(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "coverage is not enabled", http.StatusInternalServerError)
 		return
 	}
-	if err := initCover(mgr.sysTarget, mgr.cfg.KernelObj, mgr.cfg.KernelSrc, mgr.cfg.KernelBuildSrc); err != nil {
+	if err := initCover(mgr.cfg); err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -392,7 +392,7 @@ func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {
 func (mgr *Manager) httpRawCover(w http.ResponseWriter, r *http.Request) {
 	// Note: initCover is executed without mgr.mu because it takes very long time
 	// (but it only reads config and it protected by initCoverOnce).
-	if err := initCover(mgr.sysTarget, mgr.cfg.KernelObj, mgr.cfg.KernelSrc, mgr.cfg.KernelBuildSrc); err != nil {
+	if err := initCover(mgr.cfg); err != nil {
 		http.Error(w, initCoverError.Error(), http.StatusInternalServerError)
 		return
 	}
