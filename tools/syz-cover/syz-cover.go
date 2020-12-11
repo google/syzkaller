@@ -38,6 +38,7 @@ func main() {
 	var (
 		flagOS             = flag.String("os", runtime.GOOS, "target os")
 		flagArch           = flag.String("arch", runtime.GOARCH, "target arch")
+		flagVM             = flag.String("vm", "", "VM type")
 		flagKernelSrc      = flag.String("kernel_src", "", "path to kernel sources")
 		flagKernelBuildSrc = flag.String("kernel_build_src", "", "path to kernel image's build dir (optional)")
 		flagKernelObj      = flag.String("kernel_obj", "", "path to kernel build/obj dir")
@@ -69,7 +70,7 @@ func main() {
 		failf("%v", err)
 	}
 	kernelObj := filepath.Join(*flagKernelObj, target.KernelObject)
-	rg, err := cover.MakeReportGenerator(target, kernelObj, *flagKernelSrc, *flagKernelBuildSrc)
+	rg, err := cover.MakeReportGenerator(target, *flagVM, kernelObj, *flagKernelSrc, *flagKernelBuildSrc)
 	if err != nil {
 		failf("%v", err)
 	}
