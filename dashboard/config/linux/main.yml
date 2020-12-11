@@ -36,4 +36,7 @@ includes:
  - kcsan.yml: [kcsan]
  - kmsan.yml: [kmsan]
  - kfence.yml: [kfence]
+ - android.yml: [android]
+ - android-subsystems.yml: [android, -baseline]
  - chromeos.yml: [chromeos]
+ - chromeos-subsystems.yml: [chromeos, -baseline]
