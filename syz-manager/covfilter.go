@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -23,11 +24,11 @@ func createCoverageFilter(cfg *mgrconfig.Config) (string, map[uint32]uint32, err
 	pcs := make(map[uint32]uint32)
 	filter := &cfg.CovFilter
 	if len(filter.Files) != 0 || len(filter.Functions) != 0 {
-		log.Logf(0, "initializing coverage information...")
-		if err := initCover(cfg); err != nil {
+		rg, err := getReportGenerator(cfg)
+		if err != nil {
 			return "", nil, err
 		}
-		if err := initFilesFuncs(pcs, filter.Files, filter.Functions); err != nil {
+		if err := initFilesFuncs(pcs, filter.Files, filter.Functions, rg); err != nil {
 			return "", nil, err
 		}
 	}
@@ -48,7 +49,7 @@ func createCoverageFilter(cfg *mgrconfig.Config) (string, map[uint32]uint32, err
 	return filename, pcs, nil
 }
 
-func initFilesFuncs(pcs map[uint32]uint32, files, funcs []string) error {
+func initFilesFuncs(pcs map[uint32]uint32, files, funcs []string, rg *cover.ReportGenerator) error {
 	funcsRegexp, err := compileRegexps(funcs)
 	if err != nil {
 		return err
@@ -59,7 +60,7 @@ func initFilesFuncs(pcs map[uint32]uint32, files, funcs []string) error {
 	}
 	fileDedup := make(map[string]bool)
 	used := make(map[*regexp.Regexp][]string)
-	for _, sym := range reportGenerator.Symbols {
+	for _, sym := range rg.Symbols {
 		matched := false
 		for _, re := range funcsRegexp {
 			if re.MatchString(sym.Name) {
