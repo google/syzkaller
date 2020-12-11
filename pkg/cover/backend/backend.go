@@ -52,5 +52,8 @@ func Make(target *targets.Target, vm, objDir, srcDir, buildDir string) (*Impl, e
 	if objDir == "" {
 		return nil, fmt.Errorf("kernel obj directory is not specified")
 	}
+	if vm == "gvisor" {
+		return makeGvisor(target, objDir, srcDir, buildDir)
+	}
 	return makeELF(target, objDir, srcDir, buildDir)
 }
