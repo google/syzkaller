@@ -29,14 +29,19 @@ func makeELF(target *targets.Target, objDir string) (*Impl, error) {
 	}
 	var coverPoints []uint64
 	var symbols []*Symbol
+	var textAddr uint64
 	errc := make(chan error, 1)
 	go func() {
 		var err error
 		var tracePC uint64
-		symbols, tracePC, err = readSymbols(file)
+		symbols, textAddr, tracePC, err = readSymbols(file)
 		if err != nil {
 			errc <- err
 			return
+		}
+		if target.OS == targets.FreeBSD {
+			// On FreeBSD .text address in ELF is 0, but .text is actually mapped at 0xffffffff.
+			textAddr = ^uint64(0)
 		}
 		if target.Arch == targets.AMD64 {
 			coverPoints, err = readCoverPoints(file, tracePC)
@@ -69,8 +74,9 @@ func makeELF(target *targets.Target, objDir string) (*Impl, error) {
 		return nil, fmt.Errorf("failed to parse DWARF (set CONFIG_DEBUG_INFO=y?)")
 	}
 	impl := &Impl{
-		Units:   units,
-		Symbols: symbols,
+		Units:      units,
+		Symbols:    symbols,
+		TextOffset: uint32(textAddr >> 32),
 		Symbolize: func(pcs []uint64) ([]symbolizer.Frame, error) {
 			return symbolize(target, kernelObject, pcs)
 		},
@@ -134,14 +140,14 @@ func buildSymbols(symbols []*Symbol, ranges []pcRange, coverPoints []uint64) []*
 	return symbols
 }
 
-func readSymbols(file *elf.File) ([]*Symbol, uint64, error) {
+func readSymbols(file *elf.File) ([]*Symbol, uint64, uint64, error) {
 	text := file.Section(".text")
 	if text == nil {
-		return nil, 0, fmt.Errorf("no .text section in the object file")
+		return nil, 0, 0, fmt.Errorf("no .text section in the object file")
 	}
 	allSymbols, err := file.Symbols()
 	if err != nil {
-		return nil, 0, fmt.Errorf("failed to read ELF symbols: %v", err)
+		return nil, 0, 0, fmt.Errorf("failed to read ELF symbols: %v", err)
 	}
 	var tracePC uint64
 	var symbols []*Symbol
@@ -159,12 +165,12 @@ func readSymbols(file *elf.File) ([]*Symbol, uint64, error) {
 		}
 	}
 	if tracePC == 0 {
-		return nil, 0, fmt.Errorf("no __sanitizer_cov_trace_pc symbol in the object file")
+		return nil, 0, 0, fmt.Errorf("no __sanitizer_cov_trace_pc symbol in the object file")
 	}
 	sort.Slice(symbols, func(i, j int) bool {
 		return symbols[i].Start < symbols[j].Start
 	})
-	return symbols, tracePC, nil
+	return symbols, text.Addr, tracePC, nil
 }
 
 func readTextRanges(file *elf.File) ([]pcRange, []*CompileUnit, error) {
