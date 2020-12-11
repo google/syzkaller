@@ -214,22 +214,24 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 	}
 	// Note: initCover is executed without mgr.mu because it takes very long time
 	// (but it only reads config and it protected by initCoverOnce).
-	if err := initCover(mgr.cfg); err != nil {
+	rg, err := getReportGenerator(mgr.cfg)
+	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
 	}
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
-	mgr.httpCoverCover(w, r, reportGenerator.DoHTML)
+	mgr.httpCoverCover(w, r, rg, rg.DoHTML)
 }
 
-func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, do func(io.Writer, []cover.Prog) error) {
+func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request,
+	rg *cover.ReportGenerator, do func(io.Writer, []cover.Prog) error) {
 	var progs []cover.Prog
 	if sig := r.FormValue("input"); sig != "" {
 		inp := mgr.corpus[sig]
 		progs = append(progs, cover.Prog{
 			Data: string(inp.Prog),
-			PCs:  coverToPCs(mgr.sysTarget, inp.Cover),
+			PCs:  coverToPCs(rg, inp.Cover),
 		})
 	} else {
 		call := r.FormValue("call")
@@ -239,7 +241,7 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, do fu
 			}
 			progs = append(progs, cover.Prog{
 				Data: string(inp.Prog),
-				PCs:  coverToPCs(mgr.sysTarget, inp.Cover),
+				PCs:  coverToPCs(rg, inp.Cover),
 			})
 		}
 	}
@@ -286,13 +288,14 @@ func (mgr *Manager) httpFuncCover(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "coverage is not enabled", http.StatusInternalServerError)
 		return
 	}
-	if err := initCover(mgr.cfg); err != nil {
+	rg, err := getReportGenerator(mgr.cfg)
+	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
 	}
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
-	mgr.httpCoverCover(w, r, reportGenerator.DoCSV)
+	mgr.httpCoverCover(w, r, rg, rg.DoCSV)
 }
 
 func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
@@ -392,8 +395,9 @@ func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {
 func (mgr *Manager) httpRawCover(w http.ResponseWriter, r *http.Request) {
 	// Note: initCover is executed without mgr.mu because it takes very long time
 	// (but it only reads config and it protected by initCoverOnce).
-	if err := initCover(mgr.cfg); err != nil {
-		http.Error(w, initCoverError.Error(), http.StatusInternalServerError)
+	rg, err := getReportGenerator(mgr.cfg)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	mgr.mu.Lock()
@@ -403,7 +407,7 @@ func (mgr *Manager) httpRawCover(w http.ResponseWriter, r *http.Request) {
 	for _, inp := range mgr.corpus {
 		cov.Merge(inp.Cover)
 	}
-	pcs := coverToPCs(mgr.sysTarget, cov.Serialize())
+	pcs := coverToPCs(rg, cov.Serialize())
 	sort.Slice(pcs, func(i, j int) bool {
 		return pcs[i] < pcs[j]
 	})

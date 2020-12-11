@@ -32,6 +32,9 @@ var (
 )
 
 func MakeReportGenerator(target *targets.Target, vm, objDir, srcDir, buildDir string) (*ReportGenerator, error) {
+	if objDir == "" {
+		return nil, fmt.Errorf("kernel obj directory is not specified")
+	}
 	impl, err := backend.Make(target, vm, objDir)
 	if err != nil {
 		return nil, err

@@ -4,36 +4,30 @@
 package main
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
-	"github.com/google/syzkaller/sys/targets"
 )
 
-var (
-	initCoverOnce   sync.Once
-	initCoverError  error
-	reportGenerator *cover.ReportGenerator
-)
+var getReportGenerator = func() func(cfg *mgrconfig.Config) (*cover.ReportGenerator, error) {
+	var once sync.Once
+	var rg *cover.ReportGenerator
+	var err error
+	return func(cfg *mgrconfig.Config) (*cover.ReportGenerator, error) {
+		once.Do(func() {
+			log.Logf(0, "initializing coverage information...")
+			rg, err = cover.MakeReportGenerator(cfg.SysTarget, cfg.Type, cfg.KernelObj, cfg.KernelSrc, cfg.KernelBuildSrc)
+		})
+		return rg, err
+	}
+}()
 
-func initCover(cfg *mgrconfig.Config) error {
-	initCoverOnce.Do(func() {
-		if cfg.KernelObj == "" {
-			initCoverError = fmt.Errorf("kernel_obj is not specified")
-			return
-		}
-		reportGenerator, initCoverError = cover.MakeReportGenerator(
-			cfg.SysTarget, cfg.Type, cfg.KernelObj, cfg.KernelSrc, cfg.KernelBuildSrc)
-	})
-	return initCoverError
-}
-
-func coverToPCs(target *targets.Target, cov []uint32) []uint64 {
+func coverToPCs(rg *cover.ReportGenerator, cov []uint32) []uint64 {
 	pcs := make([]uint64, 0, len(cov))
 	for _, pc := range cov {
-		pcs = append(pcs, reportGenerator.RestorePC(pc))
+		pcs = append(pcs, rg.RestorePC(pc))
 	}
 	return pcs
 }
