@@ -13,7 +13,6 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -21,17 +20,29 @@ import (
 )
 
 func createCoverageFilter(cfg *mgrconfig.Config) (string, map[uint32]uint32, error) {
-	pcs := make(map[uint32]uint32)
-	filter := &cfg.CovFilter
 	// Always initialize ReportGenerator because RPCServer.NewInput will need it to filter coverage.
 	rg, err := getReportGenerator(cfg)
 	if err != nil {
 		return "", nil, err
 	}
-	if err := initFilesFuncs(pcs, filter.Files, filter.Functions, rg); err != nil {
+	pcs := make(map[uint32]uint32)
+	foreachSymbol := func(apply func(string, []uint64)) {
+		for _, sym := range rg.Symbols {
+			apply(sym.Name, sym.PCs)
+		}
+	}
+	if err := covFilterAddFilter(pcs, cfg.CovFilter.Functions, foreachSymbol); err != nil {
 		return "", nil, err
 	}
-	if err := initWeightedPCs(pcs, filter.RawPCs); err != nil {
+	foreachUnit := func(apply func(string, []uint64)) {
+		for _, unit := range rg.Units {
+			apply(unit.Name, unit.PCs)
+		}
+	}
+	if err := covFilterAddFilter(pcs, cfg.CovFilter.Files, foreachUnit); err != nil {
+		return "", nil, err
+	}
+	if err := covFilterAddRawPCs(pcs, cfg.CovFilter.RawPCs); err != nil {
 		return "", nil, err
 	}
 	if len(pcs) == 0 {
@@ -48,58 +59,34 @@ func createCoverageFilter(cfg *mgrconfig.Config) (string, map[uint32]uint32, err
 	return filename, pcs, nil
 }
 
-func initFilesFuncs(pcs map[uint32]uint32, files, funcs []string, rg *cover.ReportGenerator) error {
-	funcsRegexp, err := compileRegexps(funcs)
+func covFilterAddFilter(pcs map[uint32]uint32, filters []string, foreach func(func(string, []uint64))) error {
+	res, err := compileRegexps(filters)
 	if err != nil {
 		return err
 	}
-	filesRegexp, err := compileRegexps(files)
-	if err != nil {
-		return err
-	}
-	fileDedup := make(map[string]bool)
 	used := make(map[*regexp.Regexp][]string)
-	for _, sym := range rg.Symbols {
-		matched := false
-		for _, re := range funcsRegexp {
-			if re.MatchString(sym.Name) {
-				matched = true
-				used[re] = append(used[re], sym.Name)
-				break
-			}
-		}
-		for _, re := range filesRegexp {
-			file := sym.Unit.Name
-			if re.MatchString(file) {
-				matched = true
-				if !fileDedup[file] {
-					fileDedup[file] = true
-					used[re] = append(used[re], file)
+	foreach(func(name string, add []uint64) {
+		for _, re := range res {
+			if re.MatchString(name) {
+				for _, pc := range add {
+					pcs[uint32(pc)] = 1
 				}
+				used[re] = append(used[re], name)
 				break
 			}
 		}
-		if matched {
-			for _, pc := range sym.PCs {
-				pcs[uint32(pc)] = 1
-			}
-		}
-	}
-	for _, re := range filesRegexp {
+	})
+	for _, re := range res {
 		sort.Strings(used[re])
-		log.Logf(0, "coverage file filter: %v: %v", re, used[re])
+		log.Logf(0, "coverage filter: %v: %v", re, used[re])
 	}
-	for _, re := range funcsRegexp {
-		sort.Strings(used[re])
-		log.Logf(0, "coverage func filter: %v: %v", re, used[re])
-	}
-	if len(filesRegexp)+len(funcsRegexp) != len(used) {
-		return fmt.Errorf("some coverage filters don't match anything")
+	if len(res) != len(used) {
+		return fmt.Errorf("some filters don't match anything")
 	}
 	return nil
 }
 
-func initWeightedPCs(pcs map[uint32]uint32, rawPCsFiles []string) error {
+func covFilterAddRawPCs(pcs map[uint32]uint32, rawPCsFiles []string) error {
 	re := regexp.MustCompile(`(0x[0-9a-f]+)(?:: (0x[0-9a-f]+))?`)
 	for _, f := range rawPCsFiles {
 		rawFile, err := os.Open(f)
