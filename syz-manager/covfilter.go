@@ -23,14 +23,13 @@ import (
 func createCoverageFilter(cfg *mgrconfig.Config) (string, map[uint32]uint32, error) {
 	pcs := make(map[uint32]uint32)
 	filter := &cfg.CovFilter
-	if len(filter.Files) != 0 || len(filter.Functions) != 0 {
-		rg, err := getReportGenerator(cfg)
-		if err != nil {
-			return "", nil, err
-		}
-		if err := initFilesFuncs(pcs, filter.Files, filter.Functions, rg); err != nil {
-			return "", nil, err
-		}
+	// Always initialize ReportGenerator because RPCServer.NewInput will need it to filter coverage.
+	rg, err := getReportGenerator(cfg)
+	if err != nil {
+		return "", nil, err
+	}
+	if err := initFilesFuncs(pcs, filter.Files, filter.Functions, rg); err != nil {
+		return "", nil, err
 	}
 	if err := initWeightedPCs(pcs, filter.RawPCs); err != nil {
 		return "", nil, err
