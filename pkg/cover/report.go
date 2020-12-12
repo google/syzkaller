@@ -42,11 +42,13 @@ func MakeReportGenerator(target *targets.Target, vm, objDir, srcDir, buildDir st
 }
 
 type file struct {
-	filename  string
-	lines     map[int]line
-	functions []*function
-	pcs       int
-	covered   int
+	filename   string
+	lines      map[int]line
+	functions  []*function
+	covered    []backend.Range
+	uncovered  []backend.Range
+	totalPCs   int
+	coveredPCs int
 }
 
 type function struct {
@@ -56,9 +58,8 @@ type function struct {
 }
 
 type line struct {
-	count     map[int]bool
-	prog      int
-	uncovered bool
+	progCount map[int]bool // program indices that cover this line
+	progIndex int          // example program index that covers this line
 }
 
 func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error) {
@@ -70,7 +71,7 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error
 		files[unit.Name] = &file{
 			filename: unit.Path,
 			lines:    make(map[int]line),
-			pcs:      len(unit.PCs),
+			totalPCs: len(unit.PCs),
 		}
 	}
 	progPCs := make(map[uint64]map[int]bool)
@@ -84,29 +85,27 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error
 	}
 	matchedPC := false
 	for _, frame := range rg.Frames {
-		f := getFile(files, frame.File, frame.Path)
-		ln := f.lines[frame.Line]
+		f := getFile(files, frame.Name, frame.Path)
+		ln := f.lines[frame.StartLine]
 		coveredBy := progPCs[frame.PC]
-		if len(coveredBy) != 0 {
-			// Covered frame.
-			matchedPC = true
-			if ln.count == nil {
-				ln.count = make(map[int]bool)
-				ln.prog = -1
-			}
-			for progIdx := range coveredBy {
-				ln.count[progIdx] = true
-				if ln.prog == -1 || len(progs[progIdx].Data) < len(progs[ln.prog].Data) {
-					ln.prog = progIdx
-				}
-			}
-		} else {
-			// Uncovered frame.
-			if !frame.Inline || len(ln.count) == 0 {
-				ln.uncovered = true
+		if len(coveredBy) == 0 {
+			f.uncovered = append(f.uncovered, frame.Range)
+			continue
+		}
+		// Covered frame.
+		f.covered = append(f.covered, frame.Range)
+		matchedPC = true
+		if ln.progCount == nil {
+			ln.progCount = make(map[int]bool)
+			ln.progIndex = -1
+		}
+		for progIndex := range coveredBy {
+			ln.progCount[progIndex] = true
+			if ln.progIndex == -1 || len(progs[progIndex].Data) < len(progs[ln.progIndex].Data) {
+				ln.progIndex = progIndex
 			}
 		}
-		f.lines[frame.Line] = ln
+		f.lines[frame.StartLine] = ln
 	}
 	if !matchedPC {
 		return nil, fmt.Errorf("coverage doesn't match any coverage callbacks")
@@ -115,7 +114,7 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error
 		f := files[unit.Name]
 		for _, pc := range unit.PCs {
 			if progPCs[pc] != nil {
-				f.covered++
+				f.coveredPCs++
 			}
 		}
 	}
@@ -187,8 +186,8 @@ func getFile(files map[string]*file, name, path string) *file {
 			filename: path,
 			lines:    make(map[int]line),
 			// Special mark for header files, if a file does not have coverage at all it is not shown.
-			pcs:     1,
-			covered: 1,
+			totalPCs:   1,
+			coveredPCs: 1,
 		}
 		files[name] = f
 	}

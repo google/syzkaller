@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/syzkaller/pkg/cover/backend"
 )
 
 func TestMergeDiff(t *testing.T) {
@@ -60,5 +61,60 @@ func TestMergeDiff(t *testing.T) {
 				t.Fatalf("resulting coverage is wrong: %v", res)
 			}
 		})
+	}
+}
+
+func TestPerLineCoverage(t *testing.T) {
+	const End = backend.LineEnd
+	// Start line:col - end line:col.
+	// nolint
+	covered := []backend.Range{
+		// Just covered.
+		{1, 2, 1, 10},
+		{2, 1, 4, 10},
+		// Both covered and uncovered.
+		{10, 0, 10, 10},
+		{11, 20, 11, 30},
+		{12, 0, 12, End},
+		// Broken debug data.
+		{30, 10, 29, 20},
+		{31, 20, 30, 10},
+		{32, 10, 32, 5},
+		// Double covered.
+		{40, 10, 40, 20},
+		{40, 12, 40, 18},
+		{41, 10, 41, 20},
+		{41, 15, 41, 30},
+		{42, 20, 42, 30},
+		{42, 10, 42, 25},
+	}
+	// nolint
+	uncovered := []backend.Range{
+		{10, 20, 10, 30},
+		{11, 0, 11, 20},
+		{12, 0, 12, End},
+		// Only uncovered.
+		{20, 20, 21, 10},
+	}
+	want := map[int][]lineCoverChunk{
+		1:  {{2, false, false}, {10, true, false}, {End, false, false}},
+		2:  {{1, false, false}, {End, true, false}},
+		3:  {{End, true, false}},
+		4:  {{10, true, false}, {End, false, false}},
+		10: {{10, true, false}, {20, false, false}, {30, false, true}, {End, false, false}},
+		11: {{20, false, true}, {30, true, false}, {End, false, false}},
+		12: {{End, true, true}},
+		20: {{20, false, false}, {End, false, true}},
+		21: {{10, false, true}, {End, false, false}},
+		30: {{10, false, false}, {20, true, false}, {End, false, false}},
+		31: {{20, false, false}, {End, true, false}},
+		32: {{10, false, false}, {End, true, false}},
+		40: {{10, false, false}, {20, true, false}, {End, false, false}},
+		41: {{10, false, false}, {20, true, false}, {30, true, false}, {End, false, false}},
+		42: {{10, false, false}, {20, true, false}, {30, true, false}, {End, false, false}},
+	}
+	got := perLineCoverage(covered, uncovered)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Fatal(diff)
 	}
 }

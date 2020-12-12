@@ -6,7 +6,6 @@ package backend
 import (
 	"fmt"
 
-	"github.com/google/syzkaller/pkg/symbolizer"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -34,9 +33,20 @@ type Symbol struct {
 }
 
 type Frame struct {
-	symbolizer.Frame
+	PC   uint64
+	Name string
 	Path string
+	Range
 }
+
+type Range struct {
+	StartLine int
+	StartCol  int
+	EndLine   int
+	EndCol    int
+}
+
+const LineEnd = 1 << 30
 
 func Make(target *targets.Target, vm, objDir, srcDir, buildDir string) (*Impl, error) {
 	if objDir == "" {
