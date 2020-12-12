@@ -74,11 +74,13 @@ func makeELF(target *targets.Target, objDir string) (*Impl, error) {
 		return nil, fmt.Errorf("failed to parse DWARF (set CONFIG_DEBUG_INFO=y?)")
 	}
 	impl := &Impl{
-		Units:      units,
-		Symbols:    symbols,
-		TextOffset: uint32(textAddr >> 32),
+		Units:   units,
+		Symbols: symbols,
 		Symbolize: func(pcs []uint64) ([]symbolizer.Frame, error) {
 			return symbolize(target, kernelObject, pcs)
+		},
+		RestorePC: func(pc uint32) uint64 {
+			return PreviousInstructionPC(target, RestorePC(pc, uint32(textAddr>>32)))
 		},
 	}
 	return impl, nil

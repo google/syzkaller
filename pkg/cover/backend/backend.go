@@ -9,11 +9,11 @@ import (
 )
 
 type Impl struct {
-	Units      []*CompileUnit
-	Symbols    []*Symbol
-	Frames     []symbolizer.Frame
-	TextOffset uint32 // high 32 bits of PCs
-	Symbolize  func(pcs []uint64) ([]symbolizer.Frame, error)
+	Units     []*CompileUnit
+	Symbols   []*Symbol
+	Frames    []symbolizer.Frame
+	Symbolize func(pcs []uint64) ([]symbolizer.Frame, error)
+	RestorePC func(pc uint32) uint64
 }
 
 type CompileUnit struct {
