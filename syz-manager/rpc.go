@@ -12,22 +12,19 @@ import (
 
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys/targets"
 )
 
 type RPCServer struct {
 	mgr                   RPCManagerView
+	cfg                   *mgrconfig.Config
 	port                  int
-	target                *prog.Target
-	configEnabledSyscalls []int
 	targetEnabledSyscalls map[*prog.Syscall]bool
 	coverFilter           map[uint32]uint32
-	sysTarget             *targets.Target
 	stats                 *Stats
-	sandbox               string
 	batchSize             int
 
 	mu            sync.Mutex
@@ -65,15 +62,12 @@ type RPCManagerView interface {
 
 func startRPCServer(mgr *Manager) (*RPCServer, error) {
 	serv := &RPCServer{
-		mgr:                   mgr,
-		target:                mgr.target,
-		configEnabledSyscalls: mgr.cfg.Syscalls,
-		coverFilter:           mgr.coverFilter,
-		sysTarget:             mgr.cfg.SysTarget,
-		stats:                 mgr.stats,
-		sandbox:               mgr.cfg.Sandbox,
-		fuzzers:               make(map[string]*Fuzzer),
-		rnd:                   rand.New(rand.NewSource(time.Now().UnixNano())),
+		mgr:         mgr,
+		cfg:         mgr.cfg,
+		coverFilter: mgr.coverFilter,
+		stats:       mgr.stats,
+		fuzzers:     make(map[string]*Fuzzer),
+		rnd:         rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 	serv.batchSize = 5
 	if serv.batchSize < mgr.cfg.Procs {
@@ -105,9 +99,9 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	serv.fuzzers[a.Name] = f
 	r.MemoryLeakFrames = bugFrames.memoryLeaks
 	r.DataRaceFrames = bugFrames.dataRaces
-	r.EnabledCalls = serv.configEnabledSyscalls
+	r.EnabledCalls = serv.cfg.Syscalls
 	r.GitRevision = prog.GitRevision
-	r.TargetRevision = serv.target.Revision
+	r.TargetRevision = serv.cfg.Target.Revision
 	r.EnabledCoverFilter = enabledCoverFilter
 	if serv.mgr.rotateCorpus() && serv.rnd.Intn(5) == 0 {
 		// We do rotation every other time because there are no objective
@@ -167,7 +161,7 @@ func (serv *RPCServer) rotateCorpus(f *Fuzzer, corpus []rpctype.RPCInput) *rpcty
 	f.rotatedSignal = serv.corpusSignal.Intersection(f.newMaxSignal)
 
 	result := *serv.checkResult
-	result.EnabledCalls = map[string][]int{serv.sandbox: callIDs}
+	result.EnabledCalls = map[string][]int{serv.cfg.Sandbox: callIDs}
 	return &result
 }
 
@@ -214,13 +208,13 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *int) error {
 		return fmt.Errorf("you failed")
 	}
 	serv.targetEnabledSyscalls = make(map[*prog.Syscall]bool)
-	for _, call := range a.EnabledCalls[serv.sandbox] {
-		serv.targetEnabledSyscalls[serv.target.Syscalls[call]] = true
+	for _, call := range a.EnabledCalls[serv.cfg.Sandbox] {
+		serv.targetEnabledSyscalls[serv.cfg.Target.Syscalls[call]] = true
 	}
 	serv.mgr.machineChecked(a, serv.targetEnabledSyscalls)
 	a.DisabledCalls = nil
 	serv.checkResult = a
-	serv.rotator = prog.MakeRotator(serv.target, serv.targetEnabledSyscalls, serv.rnd)
+	serv.rotator = prog.MakeRotator(serv.cfg.Target, serv.targetEnabledSyscalls, serv.rnd)
 	return nil
 }
 
@@ -228,7 +222,7 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 	inputSignal := a.Signal.Deserialize()
 	log.Logf(4, "new input from %v for syscall %v (signal=%v, cover=%v)",
 		a.Name, a.Call, inputSignal.Len(), len(a.Cover))
-	bad, disabled := checkProgram(serv.target, serv.targetEnabledSyscalls, a.RPCInput.Prog)
+	bad, disabled := checkProgram(serv.cfg.Target, serv.targetEnabledSyscalls, a.RPCInput.Prog)
 	if bad || disabled {
 		log.Logf(0, "rejecting program from fuzzer (bad=%v, disabled=%v):\n%s", bad, disabled, a.RPCInput.Prog)
 		return nil
@@ -259,7 +253,7 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 	if serv.coverFilter != nil {
 		filtered := 0
 		for _, pc := range diff {
-			prevPC := uint32(cover.PreviousInstructionPC(serv.sysTarget, uint64(pc)))
+			prevPC := uint32(cover.PreviousInstructionPC(serv.cfg.SysTarget, uint64(pc)))
 			if serv.coverFilter[prevPC] != 0 {
 				filtered++
 			}
