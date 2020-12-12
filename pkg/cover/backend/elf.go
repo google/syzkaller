@@ -293,9 +293,18 @@ func symbolize(target *targets.Target, objDir, srcDir, buildDir, obj string, pcs
 			err0 = res.err
 		}
 		for _, frame := range res.frames {
-			wrap := Frame{frame, ""}
-			wrap.File, wrap.Path = cleanPath(frame.File, objDir, srcDir, buildDir)
-			frames = append(frames, wrap)
+			name, path := cleanPath(frame.File, objDir, srcDir, buildDir)
+			frames = append(frames, Frame{
+				PC:   frame.PC,
+				Name: name,
+				Path: path,
+				Range: Range{
+					StartLine: frame.Line,
+					StartCol:  0,
+					EndLine:   frame.Line,
+					EndCol:    LineEnd,
+				},
+			})
 		}
 	}
 	if err0 != nil {

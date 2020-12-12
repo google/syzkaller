@@ -16,6 +16,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/google/syzkaller/pkg/cover/backend"
 )
 
 func (rg *ReportGenerator) DoHTML(w io.Writer, progs []Prog) error {
@@ -59,12 +61,12 @@ func (rg *ReportGenerator) DoHTML(w io.Writer, progs []Prog) error {
 			templateBase: templateBase{
 				Path:    path,
 				Name:    fname,
-				Total:   file.pcs,
-				Covered: file.covered,
+				Total:   file.totalPCs,
+				Covered: file.coveredPCs,
 			},
 		}
 		pos.Files = append(pos.Files, f)
-		if file.covered == 0 {
+		if file.coveredPCs == 0 {
 			continue
 		}
 		addFunctionCoverage(file, d)
@@ -138,35 +140,119 @@ func (rg *ReportGenerator) DoCSV(w io.Writer, progs []Prog) error {
 
 func fileContents(file *file, lines [][]byte) string {
 	var buf bytes.Buffer
+	lineCover := perLineCoverage(file.covered, file.uncovered)
+	htmlReplacer := strings.NewReplacer(">", "&gt;", "<", "&lt;", "&", "&amp;", "\t", "        ")
 	for i, ln := range lines {
-		cov, ok := file.lines[i+1]
-		prog, class, count := "", "", "     "
-		if ok {
-			if len(cov.count) != 0 {
-				if cov.prog != -1 {
-					prog = fmt.Sprintf("onclick='onProgClick(%v)'", cov.prog)
-				}
-				count = fmt.Sprintf("% 5v", len(cov.count))
-				class = "covered"
-				if cov.uncovered {
-					class = "both"
-				}
-			} else {
-				class = "uncovered"
+		prog, count := "", "     "
+		if line := file.lines[i+1]; len(line.progCount) != 0 {
+			prog = fmt.Sprintf("onclick='onProgClick(%v)'", line.progIndex)
+			count = fmt.Sprintf("% 5v", len(line.progCount))
+		}
+		buf.WriteString(fmt.Sprintf("<span class='count' %v>%v</span> ", prog, count))
+
+		start := 0
+		cover := append(lineCover[i+1], lineCoverChunk{End: backend.LineEnd})
+		for _, cov := range cover {
+			end := cov.End - 1
+			if end > len(ln) {
+				end = len(ln)
 			}
+			if end == start {
+				continue
+			}
+			chunk := htmlReplacer.Replace(string(ln[start:end]))
+			start = end
+			class := ""
+			if cov.Covered && cov.Uncovered {
+				class = "both"
+			} else if cov.Covered {
+				class = "covered"
+			} else if cov.Uncovered {
+				class = "uncovered"
+			} else {
+				buf.WriteString(chunk)
+				continue
+			}
+			buf.WriteString(fmt.Sprintf("<span class='%v'>%v</span>", class, chunk))
 		}
-		buf.WriteString(fmt.Sprintf("<span class='count' %v>%v</span>", prog, count))
-		if class == "" {
-			buf.WriteByte(' ')
-			buf.Write(ln)
-			buf.WriteByte('\n')
-		} else {
-			buf.WriteString(fmt.Sprintf("<span class='%v'> ", class))
-			buf.Write(ln)
-			buf.WriteString("</span>\n")
-		}
+		buf.WriteByte('\n')
 	}
 	return buf.String()
+}
+
+type lineCoverChunk struct {
+	End       int
+	Covered   bool
+	Uncovered bool
+}
+
+func perLineCoverage(covered, uncovered []backend.Range) map[int][]lineCoverChunk {
+	lines := make(map[int][]lineCoverChunk)
+	for _, r := range covered {
+		mergeRange(lines, r, true)
+	}
+	for _, r := range uncovered {
+		mergeRange(lines, r, false)
+	}
+	return lines
+}
+
+func mergeRange(lines map[int][]lineCoverChunk, r backend.Range, covered bool) {
+	// Don't panic on broken debug info, it is frequently broken.
+	if r.EndLine < r.StartLine {
+		r.EndLine = r.StartLine
+	}
+	if r.EndLine == r.StartLine && r.EndCol <= r.StartCol {
+		r.EndCol = backend.LineEnd
+	}
+	for line := r.StartLine; line <= r.EndLine; line++ {
+		start := 0
+		if line == r.StartLine {
+			start = r.StartCol
+		}
+		end := backend.LineEnd
+		if line == r.EndLine {
+			end = r.EndCol
+		}
+		ln := lines[line]
+		if ln == nil {
+			ln = append(ln, lineCoverChunk{End: backend.LineEnd})
+		}
+		lines[line] = mergeLine(ln, start, end, covered)
+	}
+}
+
+func mergeLine(chunks []lineCoverChunk, start, end int, covered bool) []lineCoverChunk {
+	var res []lineCoverChunk
+	chunkStart := 0
+	for _, chunk := range chunks {
+		if chunkStart >= end || chunk.End <= start {
+			res = append(res, chunk)
+		} else if covered && chunk.Covered || !covered && chunk.Uncovered {
+			res = append(res, chunk)
+		} else if chunkStart >= start && chunk.End <= end {
+			if covered {
+				chunk.Covered = true
+			} else {
+				chunk.Uncovered = true
+			}
+			res = append(res, chunk)
+		} else {
+			if chunkStart < start {
+				res = append(res, lineCoverChunk{start, chunk.Covered, chunk.Uncovered})
+			}
+			mid := end
+			if mid > chunk.End {
+				mid = chunk.End
+			}
+			res = append(res, lineCoverChunk{mid, chunk.Covered || covered, chunk.Uncovered || !covered})
+			if chunk.End > end {
+				res = append(res, lineCoverChunk{chunk.End, chunk.Covered, chunk.Uncovered})
+			}
+		}
+		chunkStart = chunk.End
+	}
+	return res
 }
 
 func addFunctionCoverage(file *file, data *templateData) {
@@ -227,14 +313,13 @@ func parseFile(fn string) ([][]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	htmlReplacer := strings.NewReplacer(">", "&gt;", "<", "&lt;", "&", "&amp;", "\t", "        ")
 	var lines [][]byte
 	for {
 		idx := bytes.IndexByte(data, '\n')
 		if idx == -1 {
 			break
 		}
-		lines = append(lines, []byte(htmlReplacer.Replace(string(data[:idx]))))
+		lines = append(lines, data[:idx])
 		data = data[idx+1:]
 	}
 	if len(data) != 0 {
