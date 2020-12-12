@@ -26,10 +26,7 @@ type Prog struct {
 	PCs  []uint64
 }
 
-var (
-	RestorePC             = backend.RestorePC
-	PreviousInstructionPC = backend.PreviousInstructionPC
-)
+var RestorePC = backend.RestorePC
 
 func MakeReportGenerator(target *targets.Target, vm, objDir, srcDir, buildDir string) (*ReportGenerator, error) {
 	if objDir == "" {

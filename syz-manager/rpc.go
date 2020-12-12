@@ -250,11 +250,15 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 	}
 	diff := serv.corpusCover.MergeDiff(a.Cover)
 	serv.stats.corpusCover.set(len(serv.corpusCover))
-	if serv.coverFilter != nil {
+	if len(diff) != 0 && serv.coverFilter != nil {
+		// Note: ReportGenerator is already initialized if coverFilter is enabled.
+		rg, err := getReportGenerator(serv.cfg)
+		if err != nil {
+			return err
+		}
 		filtered := 0
 		for _, pc := range diff {
-			prevPC := uint32(cover.PreviousInstructionPC(serv.cfg.SysTarget, uint64(pc)))
-			if serv.coverFilter[prevPC] != 0 {
+			if serv.coverFilter[uint32(rg.RestorePC(pc))] != 0 {
 				filtered++
 			}
 		}
