@@ -5,9 +5,7 @@ package cover
 
 import (
 	"fmt"
-	"path/filepath"
 	"sort"
-	"strings"
 
 	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/sys/targets"
@@ -29,10 +27,7 @@ type Prog struct {
 var RestorePC = backend.RestorePC
 
 func MakeReportGenerator(target *targets.Target, vm, objDir, srcDir, buildDir string) (*ReportGenerator, error) {
-	if objDir == "" {
-		return nil, fmt.Errorf("kernel obj directory is not specified")
-	}
-	impl, err := backend.Make(target, vm, objDir)
+	impl, err := backend.Make(target, vm, objDir, srcDir, buildDir)
 	if err != nil {
 		return nil, err
 	}
@@ -42,9 +37,6 @@ func MakeReportGenerator(target *targets.Target, vm, objDir, srcDir, buildDir st
 		objDir:   objDir,
 		buildDir: buildDir,
 		Impl:     impl,
-	}
-	for _, unit := range rg.Units {
-		unit.Name, unit.Path = rg.cleanPath(unit.Name)
 	}
 	return rg, nil
 }
@@ -92,8 +84,7 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error
 	}
 	matchedPC := false
 	for _, frame := range rg.Frames {
-		name, path := rg.cleanPath(frame.File)
-		f := getFile(files, name, path)
+		f := getFile(files, frame.File, frame.Path)
 		ln := f.lines[frame.Line]
 		coveredBy := progPCs[frame.PC]
 		if len(coveredBy) != 0 {
@@ -202,24 +193,6 @@ func getFile(files map[string]*file, name, path string) *file {
 		files[name] = f
 	}
 	return f
-}
-
-func (rg *ReportGenerator) cleanPath(path string) (string, string) {
-	filename := ""
-	switch {
-	case strings.HasPrefix(path, rg.objDir):
-		// Assume the file was built there.
-		path = strings.TrimPrefix(path, rg.objDir)
-		filename = filepath.Join(rg.objDir, path)
-	case strings.HasPrefix(path, rg.buildDir):
-		// Assume the file was moved from buildDir to srcDir.
-		path = strings.TrimPrefix(path, rg.buildDir)
-		filename = filepath.Join(rg.srcDir, path)
-	default:
-		// Assume this is relative path.
-		filename = filepath.Join(rg.srcDir, path)
-	}
-	return strings.TrimLeft(filepath.Clean(path), "/\\"), filename
 }
 
 func (rg *ReportGenerator) findSymbol(pc uint64) *backend.Symbol {

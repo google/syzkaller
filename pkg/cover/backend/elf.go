@@ -15,13 +15,14 @@ import (
 	"runtime"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/symbolizer"
 	"github.com/google/syzkaller/sys/targets"
 )
 
-func makeELF(target *targets.Target, objDir string) (*Impl, error) {
+func makeELF(target *targets.Target, objDir, srcDir, buildDir string) (*Impl, error) {
 	kernelObject := filepath.Join(objDir, target.KernelObject)
 	file, err := elf.Open(kernelObject)
 	if err != nil {
@@ -66,6 +67,7 @@ func makeELF(target *targets.Target, objDir string) (*Impl, error) {
 		if len(unit.PCs) == 0 {
 			continue // drop the unit
 		}
+		unit.Name, unit.Path = cleanPath(unit.Name, objDir, srcDir, buildDir)
 		units[nunit] = unit
 		nunit++
 	}
@@ -76,8 +78,8 @@ func makeELF(target *targets.Target, objDir string) (*Impl, error) {
 	impl := &Impl{
 		Units:   units,
 		Symbols: symbols,
-		Symbolize: func(pcs []uint64) ([]symbolizer.Frame, error) {
-			return symbolize(target, kernelObject, pcs)
+		Symbolize: func(pcs []uint64) ([]Frame, error) {
+			return symbolize(target, objDir, srcDir, buildDir, kernelObject, pcs)
 		},
 		RestorePC: func(pc uint32) uint64 {
 			return PreviousInstructionPC(target, RestorePC(pc, uint32(textAddr>>32)))
@@ -237,7 +239,7 @@ func readTextRanges(file *elf.File) ([]pcRange, []*CompileUnit, error) {
 	return ranges, units, nil
 }
 
-func symbolize(target *targets.Target, obj string, pcs []uint64) ([]symbolizer.Frame, error) {
+func symbolize(target *targets.Target, objDir, srcDir, buildDir, obj string, pcs []uint64) ([]Frame, error) {
 	procs := runtime.GOMAXPROCS(0) / 2
 	if need := len(pcs) / 1000; procs > need {
 		procs = need
@@ -284,13 +286,17 @@ func symbolize(target *targets.Target, obj string, pcs []uint64) ([]symbolizer.F
 	}
 	close(pcchan)
 	var err0 error
-	var frames []symbolizer.Frame
+	var frames []Frame
 	for p := 0; p < procs; p++ {
 		res := <-symbolizerC
 		if res.err != nil {
 			err0 = res.err
 		}
-		frames = append(frames, res.frames...)
+		for _, frame := range res.frames {
+			wrap := Frame{frame, ""}
+			wrap.File, wrap.Path = cleanPath(frame.File, objDir, srcDir, buildDir)
+			frames = append(frames, wrap)
+		}
 	}
 	if err0 != nil {
 		return nil, err0
@@ -401,6 +407,24 @@ func parseLine(callInsns, traceFuncs [][]byte, ln []byte) uint64 {
 		return 0
 	}
 	return pc
+}
+
+func cleanPath(path, objDir, srcDir, buildDir string) (string, string) {
+	filename := ""
+	switch {
+	case strings.HasPrefix(path, objDir):
+		// Assume the file was built there.
+		path = strings.TrimPrefix(path, objDir)
+		filename = filepath.Join(objDir, path)
+	case strings.HasPrefix(path, buildDir):
+		// Assume the file was moved from buildDir to srcDir.
+		path = strings.TrimPrefix(path, buildDir)
+		filename = filepath.Join(srcDir, path)
+	default:
+		// Assume this is relative path.
+		filename = filepath.Join(srcDir, path)
+	}
+	return strings.TrimLeft(filepath.Clean(path), "/\\"), filename
 }
 
 func archCallInsn(target *targets.Target) ([][]byte, [][]byte) {
