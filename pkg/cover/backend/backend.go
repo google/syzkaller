@@ -4,6 +4,8 @@
 package backend
 
 import (
+	"fmt"
+
 	"github.com/google/syzkaller/pkg/symbolizer"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -11,8 +13,8 @@ import (
 type Impl struct {
 	Units     []*CompileUnit
 	Symbols   []*Symbol
-	Frames    []symbolizer.Frame
-	Symbolize func(pcs []uint64) ([]symbolizer.Frame, error)
+	Frames    []Frame
+	Symbolize func(pcs []uint64) ([]Frame, error)
 	RestorePC func(pc uint32) uint64
 }
 
@@ -31,6 +33,14 @@ type Symbol struct {
 	Symbolized bool
 }
 
-func Make(target *targets.Target, vm, objDir string) (*Impl, error) {
-	return makeELF(target, objDir)
+type Frame struct {
+	symbolizer.Frame
+	Path string
+}
+
+func Make(target *targets.Target, vm, objDir, srcDir, buildDir string) (*Impl, error) {
+	if objDir == "" {
+		return nil, fmt.Errorf("kernel obj directory is not specified")
+	}
+	return makeELF(target, objDir, srcDir, buildDir)
 }
