@@ -28,6 +28,7 @@ func (rg *ReportGenerator) DoHTML(w io.Writer, progs []Prog) error {
 	d := &templateData{
 		Root: new(templateDir),
 	}
+	haveProgs := len(progs) > 1 || progs[0].Data != ""
 	fileOpenErr := fmt.Errorf("failed to open/locate any source file")
 	for fname, file := range files {
 		pos := d.Root
@@ -73,7 +74,7 @@ func (rg *ReportGenerator) DoHTML(w io.Writer, progs []Prog) error {
 		contents := ""
 		lines, err := parseFile(file.filename)
 		if err == nil {
-			contents = fileContents(file, lines)
+			contents = fileContents(file, lines, haveProgs)
 			fileOpenErr = nil
 		} else {
 			// We ignore individual errors of opening/locating source files
@@ -138,17 +139,19 @@ func (rg *ReportGenerator) DoCSV(w io.Writer, progs []Prog) error {
 	return writer.WriteAll(data)
 }
 
-func fileContents(file *file, lines [][]byte) string {
+func fileContents(file *file, lines [][]byte, haveProgs bool) string {
 	var buf bytes.Buffer
 	lineCover := perLineCoverage(file.covered, file.uncovered)
 	htmlReplacer := strings.NewReplacer(">", "&gt;", "<", "&lt;", "&", "&amp;", "\t", "        ")
 	for i, ln := range lines {
-		prog, count := "", "     "
-		if line := file.lines[i+1]; len(line.progCount) != 0 {
-			prog = fmt.Sprintf("onclick='onProgClick(%v)'", line.progIndex)
-			count = fmt.Sprintf("% 5v", len(line.progCount))
+		if haveProgs {
+			prog, count := "", "     "
+			if line := file.lines[i+1]; len(line.progCount) != 0 {
+				prog = fmt.Sprintf("onclick='onProgClick(%v)'", line.progIndex)
+				count = fmt.Sprintf("% 5v", len(line.progCount))
+			}
+			buf.WriteString(fmt.Sprintf("<span class='count' %v>%v</span> ", prog, count))
 		}
-		buf.WriteString(fmt.Sprintf("<span class='count' %v>%v</span> ", prog, count))
 
 		start := 0
 		cover := append(lineCover[i+1], lineCoverChunk{End: backend.LineEnd})
