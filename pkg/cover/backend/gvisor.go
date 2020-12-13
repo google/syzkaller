@@ -15,8 +15,8 @@ import (
 )
 
 func makeGvisor(target *targets.Target, objDir, srcDir, buildDir string) (*Impl, error) {
-	// pkg/build stores runsc as 'image', but a local build will have it as 'runsc'.
-	bin := filepath.Join(objDir, "image")
+	// pkg/build stores runsc as 'vmlinux' (we pretent to be linux), but a local build will have it as 'runsc'.
+	bin := filepath.Join(objDir, target.KernelObject)
 	if !osutil.IsExist(bin) {
 		bin = filepath.Join(objDir, "runsc")
 	}

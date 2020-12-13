@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type gvisor struct{}
@@ -70,13 +71,13 @@ func (gvisor gvisor) build(params *Params) error {
 	if match == nil {
 		return fmt.Errorf("failed to find the runsc binary")
 	}
-	outBinary := string(match[1])
-	outBinary = filepath.Join(params.KernelDir, filepath.FromSlash(outBinary))
+	outBinary := filepath.Join(params.KernelDir, filepath.FromSlash(string(match[1])))
 
 	if err := osutil.CopyFile(outBinary, filepath.Join(params.OutputDir, "image")); err != nil {
 		return err
 	}
-	return nil
+	sysTarget := targets.Get(params.TargetOS, params.TargetArch)
+	return osutil.CopyFile(outBinary, filepath.Join(params.OutputDir, "obj", sysTarget.KernelObject))
 }
 
 func (gvisor) clean(kernelDir, targetArch string) error {
