@@ -20,6 +20,9 @@ import (
 )
 
 func createCoverageFilter(cfg *mgrconfig.Config) (string, map[uint32]uint32, error) {
+	if len(cfg.CovFilter.Functions)+len(cfg.CovFilter.Files)+len(cfg.CovFilter.RawPCs) == 0 {
+		return "", nil, nil
+	}
 	// Always initialize ReportGenerator because RPCServer.NewInput will need it to filter coverage.
 	rg, err := getReportGenerator(cfg)
 	if err != nil {
