@@ -1264,9 +1264,7 @@ config:
  - USB_CONFIGFS_F_FS
  - USB_CONFIGFS_F_MIDI
  - USB_CONFIGFS_SERIAL
- # It's introduced in v5.5 or so, but we want it in android-5.4, but it's not present in stable-5.4.
- # A better way to express this would to add "or" operator (v5.5||android-5.4), but for now we have this.
- - USB_RAW_GADGET: [v5.4, -stable-5.4]
+ - USB_RAW_GADGET: [v5.5]
  - USB_FEW_INIT_RETRIES: [v5.10]
  - TYPEC
  - TYPEC_TCPM
