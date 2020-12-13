@@ -65,6 +65,7 @@ func (rg *ReportGenerator) DoHTML(w io.Writer, progs []Prog) error {
 				Total:   file.totalPCs,
 				Covered: file.coveredPCs,
 			},
+			HasFunctions: len(file.functions) != 0,
 		}
 		pos.Files = append(pos.Files, f)
 		if file.coveredPCs == 0 {
@@ -354,7 +355,8 @@ type templateDir struct {
 
 type templateFile struct {
 	templateBase
-	Index int
+	Index        int
+	HasFunctions bool
 }
 
 var coverTemplate = template.Must(template.New("").Parse(`
@@ -541,7 +543,8 @@ var coverTemplate = template.Must(template.New("").Parse(`
 					{{$file.Name}}
 				</a>
 				<span class="cover hover">
-					<a href="#{{$file.Path}}/func_cov" id="path/{{$file.Path}}/func_cov" onclick="onPercentClick({{$file.Index}})">
+					<a href="#{{$file.Path}}" id="path/{{$file.Path}}"
+						onclick="{{if .HasFunctions}}onPercentClick{{else}}onFileClick{{end}}({{$file.Index}})">
                                                 {{$file.Percent}}%
 					</a>
 					<span class="cover-right">of {{$file.Total}}</span>
