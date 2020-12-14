@@ -122,6 +122,7 @@ func (mgr *Manager) collectStats() []UIStat {
 			Value: fmt.Sprintf("%v / %v (%v%%)",
 				rawStats["filtered coverage"], len(mgr.coverFilter),
 				rawStats["filtered coverage"]*100/uint64(len(mgr.coverFilter))),
+			Link: "/cover?filter=yes",
 		})
 	}
 	delete(rawStats, "signal")
@@ -226,12 +227,23 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 
 func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request,
 	rg *cover.ReportGenerator, do func(io.Writer, []cover.Prog) error) {
+	convert := coverToPCs
+	if r.FormValue("filter") != "" && mgr.coverFilter != nil {
+		convert = func(rg *cover.ReportGenerator, cover []uint32) (ret []uint64) {
+			for _, pc := range coverToPCs(rg, cover) {
+				if mgr.coverFilter[uint32(pc)] != 0 {
+					ret = append(ret, pc)
+				}
+			}
+			return ret
+		}
+	}
 	var progs []cover.Prog
 	if sig := r.FormValue("input"); sig != "" {
 		inp := mgr.corpus[sig]
 		progs = append(progs, cover.Prog{
 			Data: string(inp.Prog),
-			PCs:  coverToPCs(rg, inp.Cover),
+			PCs:  convert(rg, inp.Cover),
 		})
 	} else {
 		call := r.FormValue("call")
@@ -241,7 +253,7 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request,
 			}
 			progs = append(progs, cover.Prog{
 				Data: string(inp.Prog),
-				PCs:  coverToPCs(rg, inp.Cover),
+				PCs:  convert(rg, inp.Cover),
 			})
 		}
 	}
