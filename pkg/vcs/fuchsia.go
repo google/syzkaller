@@ -91,3 +91,7 @@ func (ctx *fuchsia) ExtractFixTagsFromCommits(baseCommit, email string) ([]*Comm
 func (ctx *fuchsia) ReleaseTag(commit string) (string, error) {
 	return "", fmt.Errorf("not implemented for fuchsia")
 }
+
+func (ctx *fuchsia) Contains(commit string) (bool, error) {
+	return false, fmt.Errorf("not implemented for fuchsia")
+}

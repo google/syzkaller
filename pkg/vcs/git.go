@@ -197,6 +197,11 @@ func (git *git) initRepo(reason error) error {
 	return nil
 }
 
+func (git *git) Contains(commit string) (bool, error) {
+	_, err := git.git("merge-base", "--is-ancestor", commit, "HEAD")
+	return err == nil, nil
+}
+
 func (git *git) HeadCommit() (*Commit, error) {
 	return git.getCommit("HEAD")
 }
