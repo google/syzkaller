@@ -168,12 +168,7 @@ static void cover_collect(cover_t* cov)
 	cov->size = *(uint64*)cov->data;
 }
 
-static bool cover_check(uint32 pc)
-{
-	return true;
-}
-
-static bool cover_check(uint64 pc)
+static bool use_cover_edges(uint64 pc)
 {
 	return true;
 }
