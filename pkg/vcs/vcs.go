@@ -19,56 +19,6 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-type RecipientType int
-
-const (
-	To RecipientType = iota
-	Cc
-)
-
-func (t RecipientType) String() string {
-	return [...]string{"To", "Cc"}[t]
-}
-
-type RecipientInfo struct {
-	Address mail.Address
-	Type    RecipientType
-}
-
-type Recipients []RecipientInfo
-
-func (r Recipients) GetEmails(filter RecipientType) []string {
-	emails := []string{}
-	for _, user := range r {
-		if user.Type == filter {
-			emails = append(emails, user.Address.Address)
-		}
-	}
-	sort.Strings(emails)
-	return emails
-}
-
-func NewRecipients(emails []string, t RecipientType) Recipients {
-	r := Recipients{}
-	for _, e := range emails {
-		r = append(r, RecipientInfo{mail.Address{Address: e}, t})
-	}
-	sort.Sort(r)
-	return r
-}
-
-func (r Recipients) Len() int           { return len(r) }
-func (r Recipients) Less(i, j int) bool { return r[i].Address.Address < r[j].Address.Address }
-func (r Recipients) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
-
-func (r Recipients) ToDash() dashapi.Recipients {
-	d := dashapi.Recipients{}
-	for _, user := range r {
-		d = append(d, dashapi.RecipientInfo{Address: user.Address, Type: dashapi.RecipientType(user.Type)})
-	}
-	return d
-}
-
 type Repo interface {
 	// Poll checkouts the specified repository/branch.
 	// This involves fetching/resetting/cloning as necessary to recover from all possible problems.
@@ -146,6 +96,56 @@ type Commit struct {
 	Parents    []string
 	Date       time.Time
 	CommitDate time.Time
+}
+
+type RecipientType int
+
+const (
+	To RecipientType = iota
+	Cc
+)
+
+func (t RecipientType) String() string {
+	return [...]string{"To", "Cc"}[t]
+}
+
+type RecipientInfo struct {
+	Address mail.Address
+	Type    RecipientType
+}
+
+type Recipients []RecipientInfo
+
+func (r Recipients) GetEmails(filter RecipientType) []string {
+	emails := []string{}
+	for _, user := range r {
+		if user.Type == filter {
+			emails = append(emails, user.Address.Address)
+		}
+	}
+	sort.Strings(emails)
+	return emails
+}
+
+func NewRecipients(emails []string, t RecipientType) Recipients {
+	r := Recipients{}
+	for _, e := range emails {
+		r = append(r, RecipientInfo{mail.Address{Address: e}, t})
+	}
+	sort.Sort(r)
+	return r
+}
+
+func (r Recipients) Len() int           { return len(r) }
+func (r Recipients) Less(i, j int) bool { return r[i].Address.Address < r[j].Address.Address }
+func (r Recipients) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
+
+func (r Recipients) ToDash() dashapi.Recipients {
+	d := dashapi.Recipients{}
+	for _, user := range r {
+		d = append(d, dashapi.RecipientInfo{Address: user.Address, Type: dashapi.RecipientType(user.Type)})
+	}
+	return d
 }
 
 type BisectResult int
