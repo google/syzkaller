@@ -107,6 +107,35 @@ func TestGitRepo(t *testing.T) {
 			t.Fatal(diff)
 		}
 	}
+	{
+		type Test struct {
+			head     *Commit
+			commit   *Commit
+			contains bool
+		}
+		tests := []Test{
+			{repo2.Commits["branch2"]["1"], repo2.Commits["branch2"]["1"], true},
+			{repo2.Commits["branch2"]["1"], repo2.Commits["branch2"]["0"], true},
+			{repo2.Commits["branch2"]["1"], repo2.Commits["master"]["0"], true},
+			{repo2.Commits["branch2"]["1"], repo2.Commits["master"]["1"], false},
+			{repo2.Commits["branch2"]["1"], repo2.Commits["branch1"]["0"], false},
+			{repo2.Commits["branch2"]["1"], repo2.Commits["branch1"]["1"], false},
+			{repo2.Commits["branch2"]["0"], repo2.Commits["branch2"]["0"], true},
+			{repo2.Commits["branch2"]["0"], repo2.Commits["branch2"]["1"], false},
+			{repo2.Commits["branch2"]["0"], repo2.Commits["master"]["0"], true},
+			{repo2.Commits["branch2"]["0"], repo2.Commits["master"]["1"], false},
+		}
+		for i, test := range tests {
+			if _, err := repo.SwitchCommit(test.head.Hash); err != nil {
+				t.Fatal(err)
+			}
+			if contains, err := repo.Contains(test.commit.Hash); err != nil {
+				t.Fatal(err)
+			} else if contains != test.contains {
+				t.Errorf("test %v: got %v, want %v", i, contains, test.contains)
+			}
+		}
+	}
 }
 
 func TestMetadata(t *testing.T) {

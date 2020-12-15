@@ -106,6 +106,10 @@ type Repo interface {
 
 	// ReleaseTag returns the latest release tag that is reachable from the given commit.
 	ReleaseTag(commit string) (string, error)
+
+	// Returns true if the current tree contains the specified commit
+	// (the commit is reachable from the current HEAD).
+	Contains(commit string) (bool, error)
 }
 
 // Bisecter may be optionally implemented by Repo.
