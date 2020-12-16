@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 )
@@ -38,7 +39,7 @@ func main() {
 		}
 		target, err := prog.GetTarget(*flagOS, *flagArch)
 		if err != nil {
-			failf("failed to find target: %v", err)
+			tool.Failf("failed to find target: %v", err)
 		}
 		bench(target, args[1])
 		return
@@ -51,7 +52,7 @@ func main() {
 		var err error
 		target, err = prog.GetTarget(*flagOS, *flagArch)
 		if err != nil {
-			failf("failed to find target: %v", err)
+			tool.Failf("failed to find target: %v", err)
 		}
 	}
 	switch args[0] {
@@ -75,13 +76,13 @@ func usage() {
 func pack(dir, file string, target *prog.Target, version uint64) {
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
-		failf("failed to read dir: %v", err)
+		tool.Failf("failed to read dir: %v", err)
 	}
 	var records []db.Record
 	for _, file := range files {
 		data, err := ioutil.ReadFile(filepath.Join(dir, file.Name()))
 		if err != nil {
-			failf("failed to read file %v: %v", file.Name(), err)
+			tool.Failf("failed to read file %v: %v", file.Name(), err)
 		}
 		var seq uint64
 		key := file.Name()
@@ -95,7 +96,7 @@ func pack(dir, file string, target *prog.Target, version uint64) {
 			if target != nil {
 				p, err := target.Deserialize(data, prog.NonStrict)
 				if err != nil {
-					failf("failed to deserialize %v: %v", file.Name(), err)
+					tool.Failf("failed to deserialize %v: %v", file.Name(), err)
 				}
 				data = p.Serialize()
 				sig = hash.String(data)
@@ -109,14 +110,14 @@ func pack(dir, file string, target *prog.Target, version uint64) {
 		})
 	}
 	if err := db.Create(file, version, records); err != nil {
-		failf("%v", err)
+		tool.Fail(err)
 	}
 }
 
 func unpack(file, dir string) {
 	db, err := db.Open(file)
 	if err != nil {
-		failf("failed to open database: %v", err)
+		tool.Failf("failed to open database: %v", err)
 	}
 	osutil.MkdirAll(dir)
 	for key, rec := range db.Records {
@@ -125,7 +126,7 @@ func unpack(file, dir string) {
 			fname += fmt.Sprintf("-%v", rec.Seq)
 		}
 		if err := osutil.WriteFile(fname, rec.Val); err != nil {
-			failf("failed to output file: %v", err)
+			tool.Failf("failed to output file: %v", err)
 		}
 	}
 }
@@ -134,13 +135,13 @@ func bench(target *prog.Target, file string) {
 	start := time.Now()
 	db, err := db.Open(file)
 	if err != nil {
-		failf("failed to open database: %v", err)
+		tool.Failf("failed to open database: %v", err)
 	}
 	var corpus []*prog.Prog
 	for _, rec := range db.Records {
 		p, err := target.Deserialize(rec.Val, prog.NonStrict)
 		if err != nil {
-			failf("failed to deserialize: %v\n%s", err, rec.Val)
+			tool.Failf("failed to deserialize: %v\n%s", err, rec.Val)
 		}
 		corpus = append(corpus, p)
 	}
@@ -160,8 +161,3 @@ func bench(target *prog.Target, file string) {
 }
 
 var sink interface{}
-
-func failf(msg string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, msg+"\n", args...)
-	os.Exit(1)
-}

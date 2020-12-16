@@ -34,6 +34,7 @@ import (
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/pkg/vcs"
 )
 
@@ -58,12 +59,12 @@ const (
 func main() {
 	flag.Parse()
 	if os.Getuid() != 0 {
-		failf("image build will fail, run under root")
+		tool.Failf("image build will tool.Fail, run under root")
 	}
 	os.Setenv("SYZ_DISABLE_SANDBOXING", "yes")
 	dir, err := ioutil.TempDir("", "syz-testbuild")
 	if err != nil {
-		fail(err)
+		tool.Fail(err)
 	}
 	defer os.RemoveAll(dir)
 	cfg := &mgrconfig.Config{
@@ -86,36 +87,36 @@ func main() {
 		},
 	}
 	if err := mgrconfig.Complete(cfg); err != nil {
-		fail(err)
+		tool.Fail(err)
 	}
 	repo, err := vcs.NewRepo(*flagOS, vmType, *flagKernelSrc)
 	if err != nil {
-		fail(err)
+		tool.Fail(err)
 	}
 	bisecter := repo.(vcs.Bisecter)
 	head, err := repo.HeadCommit()
 	if err != nil {
-		fail(err)
+		tool.Fail(err)
 	}
 	log.Printf("HEAD is on %v %v", head.Hash, head.Title)
 	tags, err := bisecter.PreviousReleaseTags(head.Hash)
 	if err != nil {
-		fail(err)
+		tool.Fail(err)
 	}
 	log.Printf("tags: %v", tags)
 	kernelConfig, err := ioutil.ReadFile(*flagKernelConfig)
 	if err != nil {
-		fail(err)
+		tool.Fail(err)
 	}
 	env, err := instance.NewEnv(cfg)
 	if err != nil {
-		fail(err)
+		tool.Fail(err)
 	}
 	test(repo, bisecter, kernelConfig, env, head)
 	for _, tag := range tags {
 		com, err := repo.SwitchCommit(tag)
 		if err != nil {
-			fail(err)
+			tool.Fail(err)
 		}
 		test(repo, bisecter, kernelConfig, env, com)
 	}
@@ -124,11 +125,11 @@ func main() {
 func test(repo vcs.Repo, bisecter vcs.Bisecter, kernelConfig []byte, env instance.Env, com *vcs.Commit) {
 	bisectEnv, err := bisecter.EnvForCommit(*flagBisectBin, com.Hash, kernelConfig)
 	if err != nil {
-		fail(err)
+		tool.Fail(err)
 	}
 	log.Printf("testing: %v %v using %v", com.Hash, com.Title, bisectEnv.Compiler)
 	if err := build.Clean(*flagOS, *flagArch, vmType, *flagKernelSrc); err != nil {
-		fail(err)
+		tool.Fail(err)
 	}
 	_, _, err = env.BuildKernel(bisectEnv.Compiler, "", *flagUserspace,
 		*flagKernelCmdline, *flagKernelSysctl, bisectEnv.KernelConfig)
@@ -144,7 +145,7 @@ func test(repo vcs.Repo, bisecter vcs.Bisecter, kernelConfig []byte, env instanc
 	log.Printf("build OK")
 	results, err := env.Test(numTests, nil, nil, nil)
 	if err != nil {
-		fail(err)
+		tool.Fail(err)
 	}
 	var verdicts []string
 	for i, res := range results {
@@ -193,13 +194,4 @@ func saveLog(hash string, idx int, data []byte) {
 		return
 	}
 	osutil.WriteFile(fmt.Sprintf("%v.%v", hash, idx), data)
-}
-
-func fail(err error) {
-	failf("%v", err)
-}
-
-func failf(msg string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, msg+"\n", args...)
-	os.Exit(1)
 }
