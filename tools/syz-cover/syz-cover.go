@@ -27,9 +27,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/cmdprof"
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -43,8 +43,7 @@ func main() {
 		flagKernelObj      = flag.String("kernel_obj", "", "path to kernel build/obj dir")
 		flagExport         = flag.String("csv", "", "export coverage data in csv format (optional)")
 	)
-	flag.Parse()
-	defer cmdprof.Install()()
+	defer tool.Init()()
 
 	if len(flag.Args()) == 0 {
 		fmt.Fprintf(os.Stderr, "usage: syz-cover [flags] rawcover.file\n")

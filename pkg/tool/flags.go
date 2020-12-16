@@ -8,19 +8,10 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/log"
 )
-
-// ParseFlags parses command line flags with flag.Parse and then applies optional flags created with OptionalFlags.
-// This is intended for programmatic use only when we invoke older versions of binaries with new unsupported flags.
-func ParseFlags() {
-	if err := parseFlags(flag.CommandLine, os.Args[1:]); err != nil {
-		Fail(err)
-	}
-}
 
 type Flag struct {
 	Name  string
@@ -28,19 +19,20 @@ type Flag struct {
 }
 
 // OptionalFlags produces command line flag value that encapsulates the given flags as optional.
-// Use ParseFlags to support optional flags in the binary.
+// This is intended for programmatic use only when we invoke older versions of binaries with new unsupported flags.
+// Use tool.Init to support optional flags in the binary.
 // The format keeps flags reasonably readable ("-optional=foo=bar:baz=123"), not subject to accidental splitting
 // into multiple arguments due to spaces and supports bool/non-bool flags.
-func OptionalFlags(flags ...Flag) string {
+func OptionalFlags(flags []Flag) string {
 	return fmt.Sprintf("-%v=%v", optionalFlag, serializeFlags(flags))
 }
 
-func parseFlags(set *flag.FlagSet, args []string) error {
-	optional := set.String(optionalFlag, "", "optional flags for programmatic use only")
+func ParseFlags(set *flag.FlagSet, args []string) error {
+	flagOptional := set.String(optionalFlag, "", "optional flags for programmatic use only")
 	if err := set.Parse(args); err != nil {
 		return err
 	}
-	flags, err := deserializeFlags(*optional)
+	flags, err := deserializeFlags(*flagOptional)
 	if err != nil {
 		return err
 	}
