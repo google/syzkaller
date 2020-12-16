@@ -37,10 +37,10 @@ import (
 	"unsafe"
 
 	"github.com/google/syzkaller/pkg/ast"
-	"github.com/google/syzkaller/pkg/cmdprof"
 	"github.com/google/syzkaller/pkg/compiler"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/symbolizer"
+	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -59,8 +59,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, msg+"\n", args...)
 		os.Exit(1)
 	}
-	flag.Parse()
-	defer cmdprof.Install()()
+	defer tool.Init()()
 	var warnings []Warn
 	for arch, obj := range arches {
 		if *obj == "" {

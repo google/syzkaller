@@ -27,7 +27,7 @@ func TestParseFlags(t *testing.T) {
 		{"", &Values{false, 1, "baz"}},
 		{"-foo -bar=2", &Values{true, 2, "baz"}},
 		{"-foo -bar=2 -qux", nil},
-		{"-foo -bar=2 " + OptionalFlags(Flag{"qux", ""}), &Values{true, 2, "baz"}},
+		{"-foo -bar=2 " + OptionalFlags([]Flag{{"qux", ""}}), &Values{true, 2, "baz"}},
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
@@ -41,7 +41,7 @@ func TestParseFlags(t *testing.T) {
 			if args[0] == "" {
 				args = args[1:]
 			}
-			err := parseFlags(flags, args)
+			err := ParseFlags(flags, args)
 			if test.vals == nil {
 				if err == nil {
 					t.Fatalf("parsing did not fail")

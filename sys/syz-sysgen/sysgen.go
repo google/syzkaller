@@ -18,11 +18,11 @@ import (
 	"text/template"
 
 	"github.com/google/syzkaller/pkg/ast"
-	"github.com/google/syzkaller/pkg/cmdprof"
 	"github.com/google/syzkaller/pkg/compiler"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/serializer"
+	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -60,8 +60,7 @@ var srcDir = flag.String("src", "", "path to root of syzkaller source dir")
 var outDir = flag.String("out", "", "path to out dir")
 
 func main() {
-	flag.Parse()
-	defer cmdprof.Install()()
+	defer tool.Init()()
 
 	var OSList []string
 	for OS := range targets.List {
