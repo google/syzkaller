@@ -6,7 +6,8 @@ require (
 	cloud.google.com/go/pubsub v1.7.0
 	cloud.google.com/go/storage v1.10.0
 	github.com/Djarvur/go-err113 v0.1.0 // indirect
-	github.com/dvyukov/go-fuzz v0.0.0-20200318091601-be3528f3a813
+	github.com/dvyukov/go-fuzz v0.0.0-20201127111758-49e582c6c23d
+	github.com/elazarl/go-bindata-assetfs v1.0.1 // indirect
 	github.com/golangci/golangci-lint v1.31.0
 	github.com/golangci/misspell v0.3.5 // indirect
 	github.com/golangci/revgrep v0.0.0-20180812185044-276a5c0a1039 // indirect
@@ -23,6 +24,7 @@ require (
 	github.com/spf13/afero v1.4.0 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
+	github.com/stephens2424/writerset v1.0.2 // indirect
 	github.com/stretchr/objx v0.3.0 // indirect
 	github.com/tdakkota/asciicheck v0.0.0-20200416200610-e657995f937b // indirect
 	github.com/timakin/bodyclose v0.0.0-20200424151742-cb6215831a94 // indirect

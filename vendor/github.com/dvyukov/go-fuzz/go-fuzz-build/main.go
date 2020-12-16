@@ -62,8 +62,8 @@ func basePackagesConfig() *packages.Config {
 	cfg := new(packages.Config)
 
 	// Note that we do not set GO111MODULE here in order to respect any GO111MODULE
-	// setting by the user as we are finding dependencies. Note, however, that 
-	// we are still setting up a GOPATH to build, so we later will force 
+	// setting by the user as we are finding dependencies. Note, however, that
+	// we are still setting up a GOPATH to build, so we later will force
 	// GO111MODULE to be off when building so that we are in GOPATH mode.
 	// If the user has not set GO111MODULE, the meaning here is
 	// left up to cmd/go (defaulting to 'auto' in Go 1.11-1.13,
