@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
@@ -469,23 +470,19 @@ func main() {
 	if *flagDebug {
 		*flagVerbose = true
 	}
-	failf := func(msg string, args ...interface{}) {
-		fmt.Fprintf(os.Stderr, msg+"\n", args...)
-		os.Exit(1)
-	}
 	if *flagPopulate != "" {
 		if err := populate(*flagPopulate, *flagFS); err != nil {
-			failf("%v", err)
+			tool.Fail(err)
 		}
 		return
 	}
 	target, err := prog.GetTarget(targets.Linux, targets.AMD64)
 	if err != nil {
-		failf("%v", err)
+		tool.Fail(err)
 	}
 	images, err := generateImages(target, *flagFS, *flagList)
 	if err != nil {
-		failf("%v", err)
+		tool.Fail(err)
 	}
 	if *flagList {
 		return
@@ -493,11 +490,11 @@ func main() {
 	// Create a single template dir for file systems that need the root dir at creation time.
 	templateDir, err := ioutil.TempDir("", "syz-imagegen")
 	if err != nil {
-		failf("%v", err)
+		tool.Fail(err)
 	}
 	defer os.RemoveAll(templateDir)
 	if err := populateDir(templateDir); err != nil {
-		failf("%v", err)
+		tool.Fail(err)
 	}
 	shutdown := make(chan struct{})
 	osutil.HandleInterrupts(shutdown)

@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/compiler"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -69,30 +70,26 @@ var extractors = map[string]Extractor{
 }
 
 func main() {
-	failf := func(msg string, args ...interface{}) {
-		fmt.Fprintf(os.Stderr, msg+"\n", args...)
-		os.Exit(1)
-	}
 	flag.Parse()
 	if *flagBuild && *flagBuildDir != "" {
-		failf("-build and -builddir is an invalid combination")
+		tool.Failf("-build and -builddir is an invalid combination")
 	}
 
 	OS, archArray, files, err := archFileList(*flagOS, *flagArch, flag.Args())
 	if err != nil {
-		failf("%v", err)
+		tool.Fail(err)
 	}
 
 	extractor := extractors[OS]
 	if extractor == nil {
-		failf("unknown os: %v", OS)
+		tool.Failf("unknown os: %v", OS)
 	}
 	arches, err := createArches(OS, archArray, files)
 	if err != nil {
-		failf("%v", err)
+		tool.Fail(err)
 	}
 	if err := extractor.prepare(*flagSourceDir, *flagBuild, arches); err != nil {
-		failf("%v", err)
+		tool.Fail(err)
 	}
 
 	jobC := make(chan interface{}, len(archArray)*len(files))
@@ -135,7 +132,7 @@ func main() {
 			continue
 		}
 		if err := osutil.WriteFile(outname, data); err != nil {
-			failf("failed to write output file: %v", err)
+			tool.Failf("failed to write output file: %v", err)
 		}
 	}
 

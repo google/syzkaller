@@ -20,6 +20,7 @@ import (
 	"sort"
 
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/tool"
 )
 
 var (
@@ -68,7 +69,7 @@ func main() {
 	}
 	for _, g := range graphs {
 		if len(g.Points) == 0 {
-			failf("no data points")
+			tool.Failf("no data points")
 		}
 		sort.Sort(pointSlice(g.Points))
 		skipStart(g)
@@ -81,14 +82,14 @@ func main() {
 func readFile(fname string) (data []map[string]uint64) {
 	f, err := os.Open(fname)
 	if err != nil {
-		failf("failed to open input file: %v", err)
+		tool.Failf("failed to open input file: %v", err)
 	}
 	defer f.Close()
 	dec := json.NewDecoder(bufio.NewReader(f))
 	for dec.More() {
 		v := make(map[string]uint64)
 		if err := dec.Decode(&v); err != nil {
-			failf("failed to decode input file %v: %v", fname, err)
+			tool.Failf("failed to decode input file %v: %v", fname, err)
 		}
 		data = append(data, v)
 	}
@@ -185,18 +186,18 @@ func printFinalStats(graphs []*Graph) {
 func display(graphs []*Graph) {
 	outf, err := ioutil.TempFile("", "")
 	if err != nil {
-		failf("failed to create temp file: %v", err)
+		tool.Failf("failed to create temp file: %v", err)
 	}
 	if err := htmlTemplate.Execute(outf, graphs); err != nil {
-		failf("failed to execute template: %v", err)
+		tool.Failf("failed to execute template: %v", err)
 	}
 	outf.Close()
 	name := outf.Name() + ".html"
 	if err := osutil.Rename(outf.Name(), name); err != nil {
-		failf("failed to rename file: %v", err)
+		tool.Failf("failed to rename file: %v", err)
 	}
 	if err := exec.Command("xdg-open", name).Start(); err != nil {
-		failf("failed to start browser: %v", err)
+		tool.Failf("failed to start browser: %v", err)
 	}
 }
 
@@ -205,11 +206,6 @@ type pointSlice []Point
 func (a pointSlice) Len() int           { return len(a) }
 func (a pointSlice) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a pointSlice) Less(i, j int) bool { return a[i].Time < a[j].Time }
-
-func failf(msg string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, msg+"\n", args...)
-	os.Exit(1)
-}
 
 var htmlTemplate = template.Must(
 	template.New("").Parse(`

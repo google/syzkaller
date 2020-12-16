@@ -11,17 +11,19 @@ import (
 	"io/ioutil"
 	"os"
 	"regexp"
+
+	"github.com/google/syzkaller/pkg/tool"
 )
 
 func main() {
 	out, err := os.Create("generated.go")
 	if err != nil {
-		failf("%v", err)
+		tool.Fail(err)
 	}
 	defer out.Close()
 	data, err := ioutil.ReadFile("../../executor/common.h")
 	if err != nil {
-		failf("%v", err)
+		tool.Fail(err)
 	}
 	executorFilenames := []string{
 		"common_linux.h",
@@ -60,20 +62,15 @@ func main() {
 	fmt.Fprintf(out, "`\n")
 }
 
-func failf(msg string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, msg+"\n", args...)
-	os.Exit(1)
-}
-
 func replaceIncludes(filenames []string, location string, data []byte) []byte {
 	for _, include := range filenames {
 		contents, err := ioutil.ReadFile(location + include)
 		if err != nil {
-			failf("%v", err)
+			tool.Fail(err)
 		}
 		replace := []byte("#include \"" + include + "\"")
 		if bytes.Index(data, replace) == -1 {
-			failf("can't find %v include", include)
+			tool.Failf("can't find %v include", include)
 		}
 		data = bytes.Replace(data, replace, contents, -1)
 	}

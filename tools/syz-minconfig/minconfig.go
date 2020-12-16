@@ -10,7 +10,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -18,6 +17,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/kconfig"
+	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -32,15 +32,15 @@ func main() {
 	flag.Parse()
 	kconf, err := kconfig.Parse(targets.Get("linux", *flagArch), filepath.Join(*flagSourceDir, "Kconfig"))
 	if err != nil {
-		failf("%v", err)
+		tool.Fail(err)
 	}
 	base, err := kconfig.ParseConfig(*flagBase)
 	if err != nil {
-		failf("%v", err)
+		tool.Fail(err)
 	}
 	full, err := kconfig.ParseConfig(*flagFull)
 	if err != nil {
-		failf("%v", err)
+		tool.Fail(err)
 	}
 	pred := func(candidate *kconfig.ConfigFile) (bool, error) {
 		for _, cfg := range strings.Split(*flagConfigs, ",") {
@@ -55,12 +55,7 @@ func main() {
 	}
 	res, err := kconf.Minimize(base, full, pred, gt)
 	if err != nil {
-		failf("%v", err)
+		tool.Fail(err)
 	}
 	os.Stdout.Write(res.Serialize())
-}
-
-func failf(msg string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, msg+"\n", args...)
-	os.Exit(1)
 }

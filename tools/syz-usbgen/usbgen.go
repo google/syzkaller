@@ -13,6 +13,7 @@ import (
 	"sort"
 
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/tool"
 )
 
 func main() {
@@ -24,7 +25,7 @@ func main() {
 
 	syslog, err := ioutil.ReadFile(args[0])
 	if err != nil {
-		failf("failed to read file %v: %v", args[0], err)
+		tool.Failf("failed to read file %v: %v", args[0], err)
 	}
 
 	usbIds := extractIds(syslog, "USBID", 34)
@@ -41,7 +42,7 @@ package linux
 	output = append(output, generateIdsVar(hidIds, "hidIds")...)
 
 	if err := osutil.WriteFile(args[1], output); err != nil {
-		failf("failed to output file %v: %v", args[1], err)
+		tool.Failf("failed to output file %v: %v", args[1], err)
 	}
 }
 
@@ -68,7 +69,7 @@ func generateIdsVar(ids []string, name string) []byte {
 	for i, id := range ids {
 		decodedID, err := hex.DecodeString(id)
 		if err != nil {
-			failf("failed to decode hex string %v: %v", id, err)
+			tool.Failf("failed to decode hex string %v: %v", id, err)
 		}
 		prefix := "\t"
 		suffix := " +"
@@ -90,10 +91,5 @@ func generateIdsVar(ids []string, name string) []byte {
 func usage() {
 	fmt.Fprintf(os.Stderr, "usage:\n")
 	fmt.Fprintf(os.Stderr, "  syz-usbgen syslog.txt sys/linux/init_vusb_ids.go\n")
-	os.Exit(1)
-}
-
-func failf(msg string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, msg+"\n", args...)
 	os.Exit(1)
 }

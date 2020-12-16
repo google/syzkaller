@@ -16,16 +16,17 @@ import (
 	"github.com/google/syzkaller/pkg/ifuzz/iset"
 	"github.com/google/syzkaller/pkg/ifuzz/x86"
 	"github.com/google/syzkaller/pkg/serializer"
+	"github.com/google/syzkaller/pkg/tool"
 )
 
 // nolint: gocyclo, gocognit, funlen
 func main() {
 	if len(os.Args) != 2 {
-		failf("usage: gen instructions.txt")
+		tool.Failf("usage: gen instructions.txt")
 	}
 	f, err := os.Open(os.Args[1])
 	if err != nil {
-		failf("failed to open input file: %v", err)
+		tool.Failf("failed to open input file: %v", err)
 	}
 	defer f.Close()
 
@@ -37,7 +38,7 @@ func main() {
 	for i := 1; s.Scan(); i++ {
 		reportError := func(msg string, args ...interface{}) {
 			fmt.Fprintf(os.Stderr, "line %v: %v\n", i, s.Text())
-			failf(msg, args...)
+			tool.Failf(msg, args...)
 		}
 		line := s.Text()
 		if comment := strings.IndexByte(line, '#'); comment != -1 {
@@ -558,9 +559,4 @@ func addImm(insn *x86.Insn, imm int8) {
 		return
 	}
 	panic("too many immediates")
-}
-
-func failf(msg string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, msg+"\n", args...)
-	os.Exit(1)
 }

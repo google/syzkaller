@@ -55,10 +55,6 @@ func main() {
 	for arch := range targets.List[targets.Linux] {
 		arches[arch] = flag.String("obj-"+arch, "", arch+" kernel object file")
 	}
-	failf := func(msg string, args ...interface{}) {
-		fmt.Fprintf(os.Stderr, msg+"\n", args...)
-		os.Exit(1)
-	}
 	defer tool.Init()()
 	var warnings []Warn
 	for arch, obj := range arches {
@@ -68,7 +64,7 @@ func main() {
 		}
 		warnings1, err := check(*flagOS, arch, *obj, *flagDWARF, *flagNetlink)
 		if err != nil {
-			failf("%v", err)
+			tool.Fail(err)
 		}
 		warnings = append(warnings, warnings1...)
 		runtime.GC()

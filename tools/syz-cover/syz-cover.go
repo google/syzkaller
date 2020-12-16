@@ -61,40 +61,40 @@ func main() {
 	}
 	target := targets.Get(*flagOS, *flagArch)
 	if target == nil {
-		failf("unknown target %v/%v", *flagOS, *flagArch)
+		tool.Failf("unknown target %v/%v", *flagOS, *flagArch)
 	}
 	pcs, err := readPCs(flag.Args())
 	if err != nil {
-		failf("%v", err)
+		tool.Fail(err)
 	}
 	rg, err := cover.MakeReportGenerator(target, *flagVM, *flagKernelObj, *flagKernelSrc, *flagKernelBuildSrc)
 	if err != nil {
-		failf("%v", err)
+		tool.Fail(err)
 	}
 	progs := []cover.Prog{{PCs: pcs}}
 	buf := new(bytes.Buffer)
 	if *flagExport != "" {
 		if err := rg.DoCSV(buf, progs); err != nil {
-			failf("%v", err)
+			tool.Fail(err)
 		}
 		if err := osutil.WriteFile(*flagExport, buf.Bytes()); err != nil {
-			failf("%v", err)
+			tool.Fail(err)
 		}
 		return
 	}
 	if err := rg.DoHTML(buf, progs); err != nil {
-		failf("%v", err)
+		tool.Fail(err)
 	}
 	fn, err := osutil.TempFile("syz-cover")
 	if err != nil {
-		failf("%v", err)
+		tool.Fail(err)
 	}
 	fn += ".html"
 	if err := osutil.WriteFile(fn, buf.Bytes()); err != nil {
-		failf("%v", err)
+		tool.Fail(err)
 	}
 	if err := exec.Command("xdg-open", fn).Start(); err != nil {
-		failf("failed to start browser: %v", err)
+		tool.Failf("failed to start browser: %v", err)
 	}
 }
 
@@ -118,9 +118,4 @@ func readPCs(files []string) ([]uint64, error) {
 		}
 	}
 	return pcs, nil
-}
-
-func failf(msg string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, msg+"\n", args...)
-	os.Exit(1)
 }

@@ -6,12 +6,11 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"io/ioutil"
-	"os"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/kcidb"
+	"github.com/google/syzkaller/pkg/tool"
 )
 
 func main() {
@@ -27,30 +26,26 @@ func main() {
 		flagDashKey    = flag.String("key", "", "dashboard API key")
 		flagBug        = flag.String("bug", "", "bug ID to upload to KCIDB")
 	)
-	failf := func(msg string, args ...interface{}) {
-		fmt.Fprintf(os.Stderr, msg+"\n", args...)
-		os.Exit(1)
-	}
 	flag.Parse()
 
 	dashboard := dashapi.New(*flagDashClient, *flagDashAddr, *flagDashKey)
 	bug, err := dashboard.LoadBug(*flagBug)
 	if err != nil {
-		failf("%v", err)
+		tool.Fail(err)
 	}
 
 	cred, err := ioutil.ReadFile(*flagCred)
 	if err != nil {
-		failf("%v", err)
+		tool.Fail(err)
 	}
 	kcidb.Validate = true
 	client, err := kcidb.NewClient(context.Background(), origin, projectID, topicName, cred)
 	if err != nil {
-		failf("%v", err)
+		tool.Fail(err)
 	}
 	defer client.Close()
 
 	if err := client.Publish(bug); err != nil {
-		failf("%v", err)
+		tool.Fail(err)
 	}
 }

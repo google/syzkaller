@@ -19,6 +19,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/kconfig"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -41,23 +42,16 @@ func main() {
 		flagInstance  = flag.String("instance", "", "instance")
 	)
 	flag.Parse()
-	failf := func(msg string, args ...interface{}) {
-		fmt.Fprintf(os.Stderr, msg+"\n", args...)
-		os.Exit(1)
-	}
-	fail := func(err error) {
-		failf("%v", err)
-	}
 	if *flagSourceDir == "" {
-		failf("missing mandatory flag -sourcedir")
+		tool.Failf("missing mandatory flag -sourcedir")
 	}
 	repo, err := vcs.NewRepo(targets.Linux, "", *flagSourceDir, vcs.OptPrecious)
 	if err != nil {
-		failf("failed to create repo: %v", err)
+		tool.Failf("failed to create repo: %v", err)
 	}
 	instances, err := parseMainSpec(*flagConfig)
 	if err != nil {
-		fail(err)
+		tool.Fail(err)
 	}
 	// In order to speed up the process we generate instances that use the same kernel revision in parallel.
 	failed := false
@@ -70,12 +64,12 @@ func main() {
 		fmt.Printf("git checkout %v %v\n", inst.Kernel.Repo, inst.Kernel.Tag)
 		if _, err := repo.SwitchCommit(inst.Kernel.Tag); err != nil {
 			if _, err := repo.CheckoutCommit(inst.Kernel.Repo, inst.Kernel.Tag); err != nil {
-				failf("failed to checkout %v/%v: %v", inst.Kernel.Repo, inst.Kernel.Tag, err)
+				tool.Failf("failed to checkout %v/%v: %v", inst.Kernel.Repo, inst.Kernel.Tag, err)
 			}
 		}
 		releaseTag, err := repo.ReleaseTag("HEAD")
 		if err != nil {
-			fail(err)
+			tool.Fail(err)
 		}
 		fmt.Printf("kernel release %v\n", releaseTag)
 		// Now generate all instances that use this kernel revision in parallel (each will use own build dir).
@@ -109,10 +103,10 @@ func main() {
 		}
 	}
 	if failed {
-		failf("some configs failed")
+		tool.Failf("some configs failed")
 	}
 	if len(generated) == 0 {
-		failf("unknown instance name")
+		tool.Failf("unknown instance name")
 	}
 }
 
