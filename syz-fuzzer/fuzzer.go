@@ -7,8 +7,6 @@ import (
 	"flag"
 	"fmt"
 	"math/rand"
-	"net/http"
-	_ "net/http/pprof"
 	"os"
 	"runtime"
 	"runtime/debug"
@@ -26,6 +24,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/signal"
+	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 )
@@ -137,11 +136,10 @@ func main() {
 		flagManager = flag.String("manager", "", "manager rpc address")
 		flagProcs   = flag.Int("procs", 1, "number of parallel test processes")
 		flagOutput  = flag.String("output", "stdout", "write programs to none/stdout/dmesg/file")
-		flagPprof   = flag.String("pprof", "", "address to serve pprof profiles")
 		flagTest    = flag.Bool("test", false, "enable image testing mode")      // used by syz-ci
 		flagRunTest = flag.Bool("runtest", false, "enable program testing mode") // used by pkg/runtest
 	)
-	flag.Parse()
+	defer tool.Init()()
 	outputType := parseOutputType(*flagOutput)
 	log.Logf(0, "fuzzer started")
 
@@ -173,15 +171,6 @@ func main() {
 	if *flagTest {
 		testImage(*flagManager, checkArgs)
 		return
-	}
-
-	if *flagPprof != "" {
-		go func() {
-			err := http.ListenAndServe(*flagPprof, nil)
-			log.Fatalf("failed to serve pprof profiles: %v", err)
-		}()
-	} else {
-		runtime.MemProfileRate = 0
 	}
 
 	machineInfo, err := host.CollectMachineInfo()
