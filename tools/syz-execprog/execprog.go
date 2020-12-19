@@ -22,6 +22,7 @@ import (
 	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 )
@@ -46,7 +47,7 @@ func main() {
 		flag.PrintDefaults()
 		csource.PrintAvailableFeaturesFlags()
 	}
-	flag.Parse()
+	defer tool.Init()()
 	if len(flag.Args()) == 0 {
 		flag.Usage()
 		os.Exit(1)
