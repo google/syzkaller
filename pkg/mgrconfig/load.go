@@ -82,6 +82,7 @@ func defaultValues() *Config {
 		Sandbox:   "none",
 		RPC:       ":0",
 		Procs:     6,
+		ReloadConfig: false,
 	}
 }
 

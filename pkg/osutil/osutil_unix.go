@@ -74,15 +74,25 @@ func cleanupTempDir(path, pidfile string) bool {
 func HandleInterrupts(shutdown chan struct{}) {
 	go func() {
 		c := make(chan os.Signal, 3)
-		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-		<-c
-		close(shutdown)
-		fmt.Fprint(os.Stderr, "SIGINT: shutting down...\n")
-		<-c
-		fmt.Fprint(os.Stderr, "SIGINT: shutting down harder...\n")
-		<-c
-		fmt.Fprint(os.Stderr, "SIGINT: terminating\n")
-		os.Exit(int(syscall.SIGINT))
+		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, syscall.SIGUSR1)
+		for {
+			m := <-c
+			switch m {
+			case syscall.SIGUSR1:
+				fmt.Fprint(os.Stderr, "Reloading Config...\n")
+				//TODO : Implement mgrconfig.Config.ReloadConfig = true
+			case syscall.SIGINT, syscall.SIGTERM:
+				close(shutdown)
+				fmt.Fprint(os.Stderr, "SIGINT: shutting down...\n")
+				<-c
+				fmt.Fprint(os.Stderr, "SIGINT: shutting down harder...\n")
+				<-c
+				fmt.Fprint(os.Stderr, "SIGINT: terminating\n")
+				os.Exit(int(syscall.SIGINT))
+			default:
+				fmt.Fprint(os.Stderr, "SIGNAL Unhandled\n")
+			}
+		}
 	}()
 }
 
