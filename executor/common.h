@@ -526,7 +526,7 @@ again:
 			if (collide && (call % 2) == 0)
 				break;
 #endif
-			event_timedwait(&th->done, /*{{{CALL_TIMEOUT}}}*/);
+			event_timedwait(&th->done, /*{{{CALL_TIMEOUT_MS}}}*/);
 			break;
 		}
 	}
@@ -651,7 +651,7 @@ static void loop(void)
 			sleep_ms(1);
 #if SYZ_EXECUTOR && SYZ_EXECUTOR_USES_SHMEM
 			// Even though the test process executes exit at the end
-			// and execution time of each syscall is bounded by 20ms,
+			// and execution time of each syscall is bounded by syscall_timeout_ms (~50ms),
 			// this backup watchdog is necessary and its performance is important.
 			// The problem is that exit in the test processes can fail (sic).
 			// One observed scenario is that the test processes prohibits
@@ -659,7 +659,9 @@ static void loop(void)
 			// is that the test processes setups a userfaultfd for itself,
 			// then the main thread hangs when it wants to page in a page.
 			// Below we check if the test process still executes syscalls
-			// and kill it after 1s of inactivity.
+			// and kill it after ~1s of inactivity.
+			uint64 min_timeout_ms = program_timeout_ms * 3 / 5;
+			uint64 inactive_timeout_ms = syscall_timeout_ms * 20;
 			uint64 now = current_time_ms();
 			uint32 now_executed = __atomic_load_n(output_data, __ATOMIC_RELAXED);
 			if (executed_calls != now_executed) {
@@ -667,11 +669,15 @@ static void loop(void)
 				last_executed = now;
 			}
 			// TODO: adjust timeout for progs with syz_usb_connect call.
-			if ((now - start < 5 * 1000) && (now - start < 3 * 1000 || now - last_executed < 1000))
+			if ((now - start < program_timeout_ms) &&
+			    (now - start < min_timeout_ms || now - last_executed < inactive_timeout_ms))
+				continue;
+#elif SYZ_EXECUTOR
+			if (current_time_ms() - start < program_timeout_ms)
 				continue;
 #else
-			if (current_time_ms() - start < 5 * 1000)
-				continue;
+		if (current_time_ms() - start < /*{{{PROGRAM_TIMEOUT_MS}}}*/)
+			continue;
 #endif
 			debug("killing hanging pid %d\n", pid);
 			kill_and_wait(pid, &status);

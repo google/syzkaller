@@ -151,6 +151,11 @@ static bool flag_fault;
 static int flag_fault_call;
 static int flag_fault_nth;
 
+// Tunable timeouts, received with execute_req.
+static uint64 syscall_timeout_ms;
+static uint64 program_timeout_ms;
+static uint64 slowdown_scale;
+
 #define SYZ_EXECUTOR 1
 #include "common.h"
 
@@ -259,6 +264,9 @@ struct execute_req {
 	uint64 pid;
 	uint64 fault_call;
 	uint64 fault_nth;
+	uint64 syscall_timeout_ms;
+	uint64 program_timeout_ms;
+	uint64 slowdown_scale;
 	uint64 prog_size;
 };
 
@@ -545,6 +553,9 @@ void receive_execute()
 		fail("bad execute prog size 0x%llx", req.prog_size);
 	parse_env_flags(req.env_flags);
 	procid = req.pid;
+	syscall_timeout_ms = req.syscall_timeout_ms;
+	program_timeout_ms = req.program_timeout_ms;
+	slowdown_scale = req.slowdown_scale;
 	flag_collect_cover = req.exec_flags & (1 << 0);
 	flag_dedup_cover = req.exec_flags & (1 << 1);
 	flag_fault = req.exec_flags & (1 << 2);
@@ -725,11 +736,11 @@ retry:
 		if (call->attrs.disabled)
 			fail("executing disabled syscall %s", call->name);
 		if (prog_extra_timeout < call->attrs.prog_timeout)
-			prog_extra_timeout = call->attrs.prog_timeout;
+			prog_extra_timeout = call->attrs.prog_timeout * slowdown_scale;
 		if (strncmp(syscalls[call_num].name, "syz_usb", strlen("syz_usb")) == 0)
-			prog_extra_cover_timeout = std::max(prog_extra_cover_timeout, (uint64)500);
+			prog_extra_cover_timeout = std::max(prog_extra_cover_timeout, 500 * slowdown_scale);
 		if (strncmp(syscalls[call_num].name, "syz_80211_inject_frame", strlen("syz_80211_inject_frame")) == 0)
-			prog_extra_cover_timeout = std::max(prog_extra_cover_timeout, (uint64)300);
+			prog_extra_cover_timeout = std::max(prog_extra_cover_timeout, 300 * slowdown_scale);
 		uint64 copyout_index = read_input(&input_pos);
 		uint64 num_args = read_input(&input_pos);
 		if (num_args > kMaxArgs)
@@ -749,7 +760,9 @@ retry:
 			// Wait for call completion.
 			// Note: sys/linux knows about this 45 ms timeout when it generates timespec/timeval values.
 			// Note: pkg/csource also knows about this 45 ms per-call timeout.
-			uint64 timeout_ms = 45 + call->attrs.timeout;
+			uint64 timeout_ms = syscall_timeout_ms + call->attrs.timeout * slowdown_scale;
+			// This is because of printing pre/post call. Ideally we print everything in the main thread
+			// and then remove this (would also avoid intermixed output).
 			if (flag_debug && timeout_ms < 1000)
 				timeout_ms = 1000;
 			if (event_timedwait(&th->done, timeout_ms))
@@ -775,14 +788,12 @@ retry:
 	if (!colliding && !collide && running > 0) {
 		// Give unfinished syscalls some additional time.
 		last_scheduled = 0;
-		uint64 wait = 100;
 		uint64 wait_start = current_time_ms();
-		uint64 wait_end = wait_start + wait;
-		if (wait_end < start + 800)
-			wait_end = start + 800;
-		wait_end += prog_extra_timeout;
+		uint64 wait_end = wait_start + 2 * syscall_timeout_ms;
+		wait_end = std::max(wait_end, start + program_timeout_ms / 6);
+		wait_end = std::max(wait_end, wait_start + prog_extra_timeout);
 		while (running > 0 && current_time_ms() <= wait_end) {
-			sleep_ms(1);
+			sleep_ms(1 * slowdown_scale);
 			for (int i = 0; i < kMaxThreads; i++) {
 				thread_t* th = &threads[i];
 				if (th->executing && event_isset(&th->done))
