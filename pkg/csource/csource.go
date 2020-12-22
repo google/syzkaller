@@ -93,13 +93,14 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		replacements["SANDBOX_FUNC"] = replacements["SYSCALLS"]
 		replacements["SYSCALLS"] = "unused"
 	}
+	replacements["PROGRAM_TIMEOUT_MS"] = "5000"
 	timeoutExpr := "45"
 	for i, call := range p.Calls {
 		if timeout := call.Meta.Attrs.Timeout; timeout != 0 {
 			timeoutExpr += fmt.Sprintf(" + (call == %d ? %d : 0)", i, timeout)
 		}
 	}
-	replacements["CALL_TIMEOUT"] = timeoutExpr
+	replacements["CALL_TIMEOUT_MS"] = timeoutExpr
 	result, err := createCommonHeader(p, mmapProg, replacements, opts)
 	if err != nil {
 		return nil, err

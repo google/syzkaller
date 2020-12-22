@@ -500,13 +500,16 @@ type handshakeReply struct {
 }
 
 type executeReq struct {
-	magic     uint64
-	envFlags  uint64 // env flags
-	execFlags uint64 // exec flags
-	pid       uint64
-	faultCall uint64
-	faultNth  uint64
-	progSize  uint64
+	magic            uint64
+	envFlags         uint64 // env flags
+	execFlags        uint64 // exec flags
+	pid              uint64
+	faultCall        uint64
+	faultNth         uint64
+	syscallTimeoutMS uint64
+	programTimeoutMS uint64
+	slowdownScale    uint64
+	progSize         uint64
 	// This structure is followed by a serialized test program in encodingexec format.
 	// Both when sent over a pipe or in shared memory.
 }
@@ -722,13 +725,16 @@ func (c *command) wait() error {
 
 func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, hanged bool, err0 error) {
 	req := &executeReq{
-		magic:     inMagic,
-		envFlags:  uint64(c.config.Flags),
-		execFlags: uint64(opts.Flags),
-		pid:       uint64(c.pid),
-		faultCall: uint64(opts.FaultCall),
-		faultNth:  uint64(opts.FaultNth),
-		progSize:  uint64(len(progData)),
+		magic:            inMagic,
+		envFlags:         uint64(c.config.Flags),
+		execFlags:        uint64(opts.Flags),
+		pid:              uint64(c.pid),
+		faultCall:        uint64(opts.FaultCall),
+		faultNth:         uint64(opts.FaultNth),
+		syscallTimeoutMS: 50,
+		programTimeoutMS: 5000,
+		slowdownScale:    1,
+		progSize:         uint64(len(progData)),
 	}
 	reqData := (*[unsafe.Sizeof(*req)]byte)(unsafe.Pointer(req))[:]
 	if _, err := c.outwp.Write(reqData); err != nil {

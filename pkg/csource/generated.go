@@ -10093,7 +10093,7 @@ again:
 			if (collide && (call % 2) == 0)
 				break;
 #endif
-			event_timedwait(&th->done, /*{{{CALL_TIMEOUT}}}*/);
+			event_timedwait(&th->done, /*{{{CALL_TIMEOUT_MS}}}*/);
 			break;
 		}
 	}
@@ -10208,17 +10208,23 @@ static void loop(void)
 				break;
 			sleep_ms(1);
 #if SYZ_EXECUTOR && SYZ_EXECUTOR_USES_SHMEM
+			uint64 min_timeout_ms = program_timeout_ms * 3 / 5;
+			uint64 inactive_timeout_ms = syscall_timeout_ms * 20;
 			uint64 now = current_time_ms();
 			uint32 now_executed = __atomic_load_n(output_data, __ATOMIC_RELAXED);
 			if (executed_calls != now_executed) {
 				executed_calls = now_executed;
 				last_executed = now;
 			}
-			if ((now - start < 5 * 1000) && (now - start < 3 * 1000 || now - last_executed < 1000))
+			if ((now - start < program_timeout_ms) &&
+			    (now - start < min_timeout_ms || now - last_executed < inactive_timeout_ms))
+				continue;
+#elif SYZ_EXECUTOR
+			if (current_time_ms() - start < program_timeout_ms)
 				continue;
 #else
-			if (current_time_ms() - start < 5 * 1000)
-				continue;
+		if (current_time_ms() - start < /*{{{PROGRAM_TIMEOUT_MS}}}*/)
+			continue;
 #endif
 			debug("killing hanging pid %d\n", pid);
 			kill_and_wait(pid, &status);
