@@ -265,7 +265,7 @@ var tests = []*Test{
 		Body: func(outc chan []byte, errc chan error) {
 			for i := 0; i < 5; i++ {
 				time.Sleep(time.Second)
-				outc <- []byte(executingProgramStr1 + "\n")
+				outc <- append(executingProgram1, '\n')
 			}
 			errc <- nil
 		},
@@ -276,7 +276,7 @@ var tests = []*Test{
 		Body: func(outc chan []byte, errc chan error) {
 			for i := 0; i < 5; i++ {
 				time.Sleep(time.Second)
-				outc <- []byte(executingProgramStr2 + "\n")
+				outc <- append(executingProgram2, '\n')
 			}
 			errc <- nil
 		},
