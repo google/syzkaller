@@ -193,7 +193,6 @@ func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
 
 func (env *env) bisect() (*Result, error) {
 	cfg := env.cfg
-	var err error
 	if err := build.Clean(cfg.Manager.TargetOS, cfg.Manager.TargetVMArch,
 		cfg.Manager.Type, cfg.Manager.KernelSrc); err != nil {
 		return nil, fmt.Errorf("kernel clean failed: %v", err)
