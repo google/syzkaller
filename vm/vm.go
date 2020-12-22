@@ -346,18 +346,16 @@ func (mon *monitor) waitForOutput() {
 const (
 	maxErrorLength = 256
 
-	lostConnectionCrash  = "lost connection to test machine"
-	noOutputCrash        = "no output from test machine"
-	timeoutCrash         = "timed out"
-	executingProgramStr1 = "executing program"  // syz-fuzzer output
-	executingProgramStr2 = "executed programs:" // syz-execprog output
-	fuzzerPreemptedStr   = "SYZ-FUZZER: PREEMPTED"
-	vmDiagnosisStart     = "\nVM DIAGNOSIS:\n"
+	lostConnectionCrash = "lost connection to test machine"
+	noOutputCrash       = "no output from test machine"
+	timeoutCrash        = "timed out"
+	fuzzerPreemptedStr  = "SYZ-FUZZER: PREEMPTED"
+	vmDiagnosisStart    = "\nVM DIAGNOSIS:\n"
 )
 
 var (
-	executingProgram1 = []byte(executingProgramStr1)
-	executingProgram2 = []byte(executingProgramStr2)
+	executingProgram1 = []byte("executing program")  // syz-fuzzer output
+	executingProgram2 = []byte("executed programs:") // syz-execprog output
 
 	beforeContext = 1024 << 10
 	afterContext  = 128 << 10
