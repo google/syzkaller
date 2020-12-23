@@ -18,18 +18,23 @@ type Impl struct {
 }
 
 type CompileUnit struct {
-	Name string
+	ObjectUnit
 	Path string
-	PCs  []uint64
 }
 
 type Symbol struct {
+	ObjectUnit
 	Unit       *CompileUnit
-	Name       string
 	Start      uint64
 	End        uint64
-	PCs        []uint64
 	Symbolized bool
+}
+
+// ObjectUnit represents either CompileUnit or Symbol.
+type ObjectUnit struct {
+	Name string
+	PCs  []uint64 // PCs we can get in coverage callbacks for this unit.
+	CMPs []uint64 // PCs we can get in comparison interception callbacks for this unit.
 }
 
 type Frame struct {

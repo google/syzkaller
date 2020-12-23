@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -29,17 +30,17 @@ func createCoverageFilter(cfg *mgrconfig.Config) (string, map[uint32]uint32, err
 		return "", nil, err
 	}
 	pcs := make(map[uint32]uint32)
-	foreachSymbol := func(apply func(string, []uint64)) {
+	foreachSymbol := func(apply func(*backend.ObjectUnit)) {
 		for _, sym := range rg.Symbols {
-			apply(sym.Name, sym.PCs)
+			apply(&sym.ObjectUnit)
 		}
 	}
 	if err := covFilterAddFilter(pcs, cfg.CovFilter.Functions, foreachSymbol); err != nil {
 		return "", nil, err
 	}
-	foreachUnit := func(apply func(string, []uint64)) {
+	foreachUnit := func(apply func(*backend.ObjectUnit)) {
 		for _, unit := range rg.Units {
-			apply(unit.Name, unit.PCs)
+			apply(&unit.ObjectUnit)
 		}
 	}
 	if err := covFilterAddFilter(pcs, cfg.CovFilter.Files, foreachUnit); err != nil {
@@ -62,19 +63,24 @@ func createCoverageFilter(cfg *mgrconfig.Config) (string, map[uint32]uint32, err
 	return filename, pcs, nil
 }
 
-func covFilterAddFilter(pcs map[uint32]uint32, filters []string, foreach func(func(string, []uint64))) error {
+func covFilterAddFilter(pcs map[uint32]uint32, filters []string, foreach func(func(*backend.ObjectUnit))) error {
 	res, err := compileRegexps(filters)
 	if err != nil {
 		return err
 	}
 	used := make(map[*regexp.Regexp][]string)
-	foreach(func(name string, add []uint64) {
+	foreach(func(unit *backend.ObjectUnit) {
 		for _, re := range res {
-			if re.MatchString(name) {
-				for _, pc := range add {
+			if re.MatchString(unit.Name) {
+				// We add both coverage points and comparison interception points
+				// because executor filters comparisons as well.
+				for _, pc := range unit.PCs {
 					pcs[uint32(pc)] = 1
 				}
-				used[re] = append(used[re], name)
+				for _, pc := range unit.CMPs {
+					pcs[uint32(pc)] = 1
+				}
+				used[re] = append(used[re], unit.Name)
 				break
 			}
 		}

@@ -29,7 +29,9 @@ func makeGvisor(target *targets.Target, objDir, srcDir, buildDir string) (*Impl,
 		unit := unitMap[frame.Name]
 		if unit == nil {
 			unit = &CompileUnit{
-				Name: frame.Name,
+				ObjectUnit: ObjectUnit{
+					Name: frame.Name,
+				},
 				Path: frame.Path,
 			}
 			unitMap[frame.Name] = unit
