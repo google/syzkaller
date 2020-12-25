@@ -100,27 +100,3 @@ jobs:
           key: cache
       - name: run
         run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh syz-old-env make presubmit_old
-  fuzzit:
-    runs-on: ubuntu-latest
-    needs: [smoke]
-    steps:
-      - name: checkout
-        uses: actions/checkout@v2
-        with:
-          path: gopath/src/github.com/google/syzkaller
-      - name: cache
-        uses: actions/cache@v1
-        with:
-          path: .cache
-          key: cache
-      - name: regression
-        if: ${{ github.event_name == 'pull_request' }}
-        # We use syz-old-env because it contains Go 1.14.
-        # syz-env contains Go 1.15 and go-fuzz is broken with Go 1.15:
-        # https://github.com/dvyukov/go-fuzz/issues/294
-        run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh syz-old-env tools/fuzzit.sh local-regression
-      - name: fuzzing
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
-        env:
-          FUZZIT_API_KEY: ${{ secrets.FUZZIT_API_KEY }}
-        run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh syz-old-env tools/fuzzit.sh fuzzing
