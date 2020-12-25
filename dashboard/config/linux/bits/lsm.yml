@@ -16,6 +16,7 @@ config:
  - SECURITY_SAFESETID
  - SECURITY_LOCKDOWN_LSM
  - SECURITY_LOCKDOWN_LSM_EARLY
+ - INTEGRITY
  - INTEGRITY_SIGNATURE
  - INTEGRITY_ASYMMETRIC_KEYS
  - INTEGRITY_TRUSTED_KEYRING
@@ -29,6 +30,7 @@ config:
  - EVM
  - EVM_ADD_XATTRS
  - EVM_ATTR_FSUUID
+ - AUDIT
 
  # Note: this depends on a number of BPF-related configs, which may be not enabled.
  - BPF_LSM: [optional]
