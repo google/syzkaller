@@ -8,5 +8,3 @@ shell:
 config:
  # CMDLINE is not supported on s390, which is bad as we rely on the builtin CMDLINE for lots of things...
  - CMDLINE: [n, override]
- # Not necessary and may speed up boot.
- - RELOCATABLE: n

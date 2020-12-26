@@ -112,6 +112,7 @@ config:
  - DEBUG_FS
 
  # Required for KCOV but also eliminates unnecessary non-determinism.
+ - RELOCATABLE: n
  - RANDOMIZE_BASE: n
 
  # Print thread and CPU ids.
