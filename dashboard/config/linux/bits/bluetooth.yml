@@ -1,0 +1,29 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+config:
+ - BT
+ - BT_BREDR
+ - BT_RFCOMM
+ - BT_RFCOMM_TTY
+ - BT_BNEP
+ - BT_BNEP_MC_FILTER
+ - BT_BNEP_PROTO_FILTER
+ - BT_CMTP
+ - BT_HIDP
+ - BT_LE
+ - BT_HS
+ - BT_6LOWPAN
+ - BT_LEDS
+ - BT_MSFTEXT: [v5.5]
+ - BT_HCIBTUSB
+ - BT_HCIBTUSB_MTK
+ - BT_HCIUART
+ - BT_HCIUART_BCSP
+ - BT_HCIUART_LL
+ - BT_HCIUART_3WIRE
+ - BT_HCIUART_QCA
+ - BT_HCIUART_AG6XX
+ - BT_HCIUART_MRVL
+ - BT_HCIBFUSB
+ - BT_HCIVHCI
