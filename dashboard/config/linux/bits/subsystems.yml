@@ -15,7 +15,7 @@ config:
  - NO_HZ
  - HIGH_RES_TIMERS
  - PREEMPT
- - IRQ_TIME_ACCOUNTING: [-riscv]
+ - IRQ_TIME_ACCOUNTING: [-riscv, -s390]
  - BSD_PROCESS_ACCT
  - BSD_PROCESS_ACCT_V3
  - TASKSTATS
@@ -49,19 +49,19 @@ config:
  - NUMA: [-riscv]
  - NUMA_EMU: [x86_64]
  - KEXEC: [-riscv]
- - HIBERNATION: [-riscv]
- - PM_DEBUG
- - ACPI_DOCK: [-riscv]
+ - HIBERNATION: [-riscv, -s390]
+ - PM_DEBUG: [-s390]
+ - ACPI_DOCK: [-riscv, -s390]
  - ACPI_NFIT: [x86_64]
- - CPU_FREQ_DEFAULT_GOV_USERSPACE: [-riscv]
- - CPU_FREQ_GOV_ONDEMAND: [-riscv]
+ - CPU_FREQ_DEFAULT_GOV_USERSPACE: [-riscv, -s390]
+ - CPU_FREQ_GOV_ONDEMAND: [-riscv, -s390]
  - GOOGLE_SMI: n
  - GOOGLE_MEMCONSOLE_X86_LEGACY: n
- - GOOGLE_FIRMWARE
- - GOOGLE_COREBOOT_TABLE
- - GOOGLE_FRAMEBUFFER_COREBOOT
- - GOOGLE_MEMCONSOLE_COREBOOT
- - GOOGLE_VPD
+ - GOOGLE_FIRMWARE: [-s390]
+ - GOOGLE_COREBOOT_TABLE: [-s390]
+ - GOOGLE_FRAMEBUFFER_COREBOOT: [-s390]
+ - GOOGLE_MEMCONSOLE_COREBOOT: [-s390]
+ - GOOGLE_VPD: [-s390]
  - KVM: [-riscv]
  - KVM_INTEL: [x86_64]
  - KVM_AMD: [x86_64]
@@ -119,8 +119,8 @@ config:
  - ZSWAP
  - ZSMALLOC
  - IDLE_PAGE_TRACKING
- - ZONE_DEVICE: [-riscv]
- - DEVICE_PRIVATE: [-riscv]
+ - ZONE_DEVICE: [-riscv, -s390]
+ - DEVICE_PRIVATE: [-riscv, -s390]
  - PERCPU_STATS
  - READ_ONLY_THP_FOR_FS: [-riscv]
  - NET
@@ -479,7 +479,7 @@ config:
  - BRIDGE_VLAN_FILTERING
  - BRIDGE_IGMP_SNOOPING
  - BRIDGE_MRP: [v5.8]
- - NET_DSA
+ - NET_DSA: [-s390]
  - VLAN_8021Q
  - VLAN_8021Q_GVRP
  - VLAN_8021Q_MVRP
@@ -619,12 +619,12 @@ config:
  - CGROUP_NET_PRIO
  - BPF_JIT
  - BPF_STREAM_PARSER
- # riscv build of BPF_PRELOAD fails with missing libelf and zlib.
+ # riscv/s390 build of BPF_PRELOAD fails with missing libelf and zlib.
  # I am not sure why it needs non-host versions of these libs,
  # and it's probably possible to install them somehow, but I did not figure out how,
  # so for now this is disabled.
- - BPF_PRELOAD: [v5.10, -riscv]
- - BPF_PRELOAD_UMD: [v5.10, -riscv]
+ - BPF_PRELOAD: [v5.10, -riscv, -s390]
+ - BPF_PRELOAD_UMD: [v5.10, -riscv, -s390]
  - CAN
  - CAN_J1939
  - CAN_VCAN
@@ -737,6 +737,8 @@ config:
  - PATA_AMD
  - PATA_OLDPIIX
  - PATA_SCH
+ - ATA_SFF
+ - ATA_BMDMA
  - ATA_GENERIC
  - MD
  - MD_LINEAR
@@ -799,8 +801,8 @@ config:
  - NET_VRF
  - VSOCKMON
  - ATM_TCP
- - E100
- - E1000E
+ - E100: [-s390]
+ - E1000E: [-s390]
  - NET_VENDOR_GOOGLE
  - GVE
  - NET_VENDOR_3COM: n
@@ -901,11 +903,11 @@ config:
  - USB4: [v5.5]
  - USB4_NET: [v5.5]
  - NETDEVSIM
- - ISDN
- - ISDN_CAPI
- - MISDN
- - MISDN_DSP
- - MISDN_L1OIP
+ - ISDN: [-s390]
+ - ISDN_CAPI: [-s390]
+ - MISDN: [-s390]
+ - MISDN_DSP: [-s390]
+ - MISDN_L1OIP: [-s390]
  - INPUT_POLLDEV
  - INPUT_MOUSEDEV
  - INPUT_MOUSEDEV_PSAUX
@@ -917,15 +919,15 @@ config:
  - INPUT_MISC
  - INPUT_UINPUT
  - USERIO
- - SERIAL_8250
- - SERIAL_8250_CONSOLE
+ - SERIAL_8250: [-s390]
+ - SERIAL_8250_CONSOLE: [-s390]
  - SERIAL_8250_EXAR: n
- - SERIAL_8250_NR_UARTS: 32
- - SERIAL_8250_EXTENDED
- - SERIAL_8250_MANY_PORTS
- - SERIAL_8250_SHARE_IRQ
- - SERIAL_8250_DETECT_IRQ
- - SERIAL_8250_RSA
+ - SERIAL_8250_NR_UARTS: [32, -s390]
+ - SERIAL_8250_EXTENDED: [-s390]
+ - SERIAL_8250_MANY_PORTS: [-s390]
+ - SERIAL_8250_SHARE_IRQ: [-s390]
+ - SERIAL_8250_DETECT_IRQ: [-s390]
+ - SERIAL_8250_RSA: [-s390]
  - SERIAL_NONSTANDARD
  - ROCKETPORT
  - CYCLADES
@@ -1041,7 +1043,7 @@ config:
  - UHID
  - USB_HIDDEV
  - USB_ANNOUNCE_NEW_DEVICES
- - USB_OTG
+ - USB_OTG: [-s390]
  - USB_MON
  - USB_XHCI_HCD
  - USB_EHCI_HCD
@@ -1090,8 +1092,8 @@ config:
  - USB_FEW_INIT_RETRIES: [v5.10]
  - TYPEC
  - TYPEC_TCPM
- - TYPEC_UCSI
- - UCSI_ACPI: [-riscv]
+ - TYPEC_UCSI: [-s390]
+ - UCSI_ACPI: [-riscv, -s390]
  - INFINIBAND
  - INFINIBAND_USER_MAD
  - INFINIBAND_USER_ACCESS
@@ -1109,8 +1111,8 @@ config:
  - INFINIBAND_ISER
  - INFINIBAND_RTRS_CLIENT: [v5.5]
  - INFINIBAND_ON_DEMAND_PAGING
- - EDAC
- - RTC_CLASS
+ - EDAC: [-s390]
+ - RTC_CLASS: [-s390]
  - RTC_HCTOSYS: n
  - RTC_NVMEM: n
  - DMADEVICES
@@ -1467,8 +1469,8 @@ config:
  - CRYPTO_DEV_PADLOCK: [x86_64]
  - CRYPTO_DEV_PADLOCK_AES: [x86_64]
  - CRYPTO_DEV_PADLOCK_SHA: [x86_64]
- - CRYPTO_DEV_CCP: [-riscv]
- - CRYPTO_DEV_CCP_DD: [-riscv]
+ - CRYPTO_DEV_CCP: [-riscv, -s390]
+ - CRYPTO_DEV_CCP_DD: [-riscv, -s390]
  - CRYPTO_DEV_SP_CCP: n
  - CRYPTO_DEV_SP_PSP: n
  - CRYPTO_DEV_QAT_DH895xCC: [x86_64]
