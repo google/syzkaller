@@ -8,8 +8,6 @@ shell:
 
 config:
  - CMDLINE: [append, "root=/dev/vda console=ttyAMA0"]
- # Should speed up boot.
- - RELOCATABLE: n
 
  # These are enabled by defconfig, but we don't test them (presumably).
  # Disable them to speed up kernel boot (slow in emulation).
