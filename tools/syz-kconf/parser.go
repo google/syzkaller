@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"strconv"
 
 	"github.com/google/syzkaller/pkg/kconfig"
 	"github.com/google/syzkaller/pkg/vcs"
@@ -269,6 +270,8 @@ func parseNode(node yaml.Node) (name, val string, constraints []string, err erro
 			val = `"` + prop + `"`
 		} else if prop == "n" {
 			val = kconfig.No
+		} else if intVal, err := strconv.ParseUint(prop, 0, 64); err == nil {
+			val = fmt.Sprint(intVal)
 		} else {
 			constraints = append(constraints, prop)
 		}
