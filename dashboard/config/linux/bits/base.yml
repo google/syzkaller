@@ -39,10 +39,12 @@ config:
  # KPROBES pollute coverage and needlessly slow down execution.
  - KPROBES: n
  # Slows down execution and sometimes fuzzer actually enables it.
+ - STACK_TRACER: n
  - FUNCTION_TRACER: n
  # Slows down execution.
  - RETPOLINE: n
  - PAGE_TABLE_ISOLATION: n
+ - LATENCYTOP: n
  - SCHED_DEBUG: n
 
  # Speeds up randomness initialization.
