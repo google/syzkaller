@@ -6,6 +6,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -51,6 +52,9 @@ func main() {
 	}
 	instances, err := parseMainSpec(*flagConfig)
 	if err != nil {
+		tool.Fail(err)
+	}
+	if err := checkConfigs(instances); err != nil {
 		tool.Fail(err)
 	}
 	// In order to speed up the process we generate instances that use the same kernel revision in parallel.
@@ -108,6 +112,39 @@ func main() {
 	if len(generated) == 0 {
 		tool.Failf("unknown instance name")
 	}
+}
+
+func checkConfigs(instances []*Instance) error {
+	allFeatures := make(Features)
+	for _, inst := range instances {
+		for feat := range inst.Features {
+			allFeatures[feat] = true
+		}
+	}
+	dedup := make(map[string]bool)
+	errorString := ""
+	for _, inst := range instances {
+		for _, cfg := range inst.Configs {
+			for _, feat := range cfg.Constraints {
+				if feat[0] == '-' {
+					feat = feat[1:]
+				}
+				if allFeatures[feat] || releaseRe.MatchString(feat) {
+					continue
+				}
+				msg := fmt.Sprintf("%v:%v: unknown feature %v", cfg.File, cfg.Line, feat)
+				if dedup[msg] {
+					continue
+				}
+				dedup[msg] = true
+				errorString += "\n" + msg
+			}
+		}
+	}
+	if errorString != "" {
+		return errors.New(errorString[1:])
+	}
+	return nil
 }
 
 // Generation context for a single instance.
@@ -326,7 +363,7 @@ func (ctx *Context) setTarget() error {
 
 func (ctx *Context) setReleaseFeatures() error {
 	tag := ctx.ReleaseTag
-	match := regexp.MustCompile(`^v([0-9]+)\.([0-9]+)(?:-rc([0-9]+))?(?:\.([0-9]+))?$`).FindStringSubmatch(tag)
+	match := releaseRe.FindStringSubmatch(tag)
 	if match == nil {
 		return fmt.Errorf("bad release tag %q", tag)
 	}
@@ -346,6 +383,8 @@ func (ctx *Context) setReleaseFeatures() error {
 	}
 	return nil
 }
+
+var releaseRe = regexp.MustCompile(`^v([0-9]+)\.([0-9]+)(?:-rc([0-9]+))?(?:\.([0-9]+))?$`)
 
 func (ctx *Context) mrProper() error {
 	// Run 'make mrproper', otherwise out-of-tree build fails.
