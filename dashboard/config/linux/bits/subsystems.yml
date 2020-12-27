@@ -596,7 +596,8 @@ config:
  - DCB
  - BATMAN_ADV
  - BATMAN_ADV_NC
- - BATMAN_ADV_SYSFS
+ # TODO: removed in v5.11, but we don't have this tag in the tree yet.
+ - BATMAN_ADV_SYSFS: [-v5.10]
  - BATMAN_ADV_BATMAN_V
  - BATMAN_ADV_BLA
  - BATMAN_ADV_DAT
@@ -908,7 +909,8 @@ config:
  - MISDN: [-s390]
  - MISDN_DSP: [-s390]
  - MISDN_L1OIP: [-s390]
- - INPUT_POLLDEV
+ # TODO: removed in v5.11, but we don't have this tag in the tree yet.
+ - INPUT_POLLDEV: [-v5.10]
  - INPUT_MOUSEDEV
  - INPUT_MOUSEDEV_PSAUX
  - INPUT_JOYDEV
