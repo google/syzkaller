@@ -65,6 +65,7 @@ config:
  - KVM: [-riscv]
  - KVM_INTEL: [x86_64]
  - KVM_AMD: [x86_64]
+ - X86_SGX: [x86_64, linux-next]
  - JUMP_LABEL
  - MODULES
  - MODULE_UNLOAD
@@ -260,6 +261,7 @@ config:
  - NFT_QUEUE
  - NFT_QUOTA
  - NFT_REJECT
+ - NFT_REJECT_NETDEV: [linux-next]
  - NFT_COMPAT
  - NFT_HASH
  - NFT_FIB_INET
@@ -479,6 +481,8 @@ config:
  - BRIDGE_VLAN_FILTERING
  - BRIDGE_IGMP_SNOOPING
  - BRIDGE_MRP: [v5.8]
+ # v5.11
+ - BRIDGE_CFM: [linux-next]
  - NET_DSA: [-s390]
  - VLAN_8021Q
  - VLAN_8021Q_GVRP
@@ -620,12 +624,12 @@ config:
  - CGROUP_NET_PRIO
  - BPF_JIT
  - BPF_STREAM_PARSER
- # riscv/s390 build of BPF_PRELOAD fails with missing libelf and zlib.
+ # Cross-builds of BPF_PRELOAD fails with missing libelf and zlib.
  # I am not sure why it needs non-host versions of these libs,
  # and it's probably possible to install them somehow, but I did not figure out how,
  # so for now this is disabled.
- - BPF_PRELOAD: [v5.10, -riscv, -s390]
- - BPF_PRELOAD_UMD: [v5.10, -riscv, -s390]
+ - BPF_PRELOAD: [v5.10, x86_64]
+ - BPF_PRELOAD_UMD: [v5.10, x86_64]
  - CAN
  - CAN_J1939
  - CAN_VCAN
@@ -1320,6 +1324,8 @@ config:
  - ROOT_NFS
  - NFS_FSCACHE
  - NFS_DISABLE_UDP_SUPPORT: n
+ # v5.11
+ - NFS_V4_2_READ_PLUS: [linux-next]
  - NFSD
  - NFSD_V3_ACL
  - NFSD_V4
@@ -1341,6 +1347,8 @@ config:
  - CIFS_SMB_DIRECT
  - CIFS_FSCACHE
  - CIFS_DEBUG
+ # TODO: replace this with v5.11 once it reaches linux-next.
+ - CIFS_SWN_UPCALL: [upstream]
  - AFS_FS
  - AFS_FSCACHE
  - 9P_FS
