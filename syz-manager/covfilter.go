@@ -60,6 +60,13 @@ func createCoverageFilter(cfg *mgrconfig.Config) (string, map[uint32]uint32, err
 	if err := osutil.WriteFile(filename, bitmap); err != nil {
 		return "", nil, err
 	}
+	// After finish writing down bitmap file, for accurate filtered coverage,
+	// pcs from CMPs should be deleted.
+	for _, sym := range rg.Symbols {
+		for _, pc := range sym.CMPs {
+			delete(pcs, uint32(pc))
+		}
+	}
 	return filename, pcs, nil
 }
 
