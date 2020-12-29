@@ -751,6 +751,7 @@ var linuxStackParams = &stackParams{
 		"_trap",
 		"show_stack",
 		"dump_stack",
+		"walk_stack",
 		"dump_backtrace",
 		"warn_slowpath",
 		"warn_alloc",
