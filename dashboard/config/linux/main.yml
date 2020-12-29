@@ -2,9 +2,10 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 instances:
- - upstream-apparmor-kasan:	[linux-next, x86_64, gcc, lsm, apparmor, kasan, kfence]
- - upstream-selinux-kasan:	[linux-next, x86_64, gcc, lsm, selinux, slab, kasan, kfence]
- - upstream-smack-kasan:	[linux-next, x86_64, gcc, lsm, smack, kasan, kfence]
+ # TODO: remove v5.11 once linux-next is updated to at least v5.11-rc1.
+ - upstream-apparmor-kasan:	[linux-next, v5.11, x86_64, gcc, lsm, apparmor, kasan, kfence]
+ - upstream-selinux-kasan:	[linux-next, v5.11, x86_64, gcc, lsm, selinux, slab, kasan, kfence]
+ - upstream-smack-kasan:	[linux-next, v5.11, x86_64, gcc, lsm, smack, kasan, kfence]
  - upstream-kmsan:		[x86_64, clang, lsm, apparmor, kmsan]
  - upstream-kcsan:		[upstream, x86_64, clang, lsm, apparmor, slab, kcsan]
  - upstream-leak:		[upstream, x86_64, gcc, lsm, apparmor, slab, kmemleak]

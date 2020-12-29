@@ -65,7 +65,7 @@ config:
  - KVM: [-riscv]
  - KVM_INTEL: [x86_64]
  - KVM_AMD: [x86_64]
- - X86_SGX: [x86_64, linux-next]
+ - X86_SGX: [x86_64, v5.11]
  - JUMP_LABEL
  - MODULES
  - MODULE_UNLOAD
@@ -261,7 +261,7 @@ config:
  - NFT_QUEUE
  - NFT_QUOTA
  - NFT_REJECT
- - NFT_REJECT_NETDEV: [linux-next]
+ - NFT_REJECT_NETDEV: [v5.11]
  - NFT_COMPAT
  - NFT_HASH
  - NFT_FIB_INET
@@ -481,8 +481,7 @@ config:
  - BRIDGE_VLAN_FILTERING
  - BRIDGE_IGMP_SNOOPING
  - BRIDGE_MRP: [v5.8]
- # v5.11
- - BRIDGE_CFM: [linux-next]
+ - BRIDGE_CFM: [v5.11]
  - NET_DSA: [-s390]
  - VLAN_8021Q
  - VLAN_8021Q_GVRP
@@ -600,8 +599,7 @@ config:
  - DCB
  - BATMAN_ADV
  - BATMAN_ADV_NC
- # TODO: removed in v5.11, but we don't have this tag in the tree yet.
- - BATMAN_ADV_SYSFS: [-v5.10]
+ - BATMAN_ADV_SYSFS: [-v5.11, -linux-next]
  - BATMAN_ADV_BATMAN_V
  - BATMAN_ADV_BLA
  - BATMAN_ADV_DAT
@@ -913,8 +911,7 @@ config:
  - MISDN: [-s390]
  - MISDN_DSP: [-s390]
  - MISDN_L1OIP: [-s390]
- # TODO: removed in v5.11, but we don't have this tag in the tree yet.
- - INPUT_POLLDEV: [-v5.10]
+ - INPUT_POLLDEV: [-v5.11, -linux-next]
  - INPUT_MOUSEDEV
  - INPUT_MOUSEDEV_PSAUX
  - INPUT_JOYDEV
@@ -1324,8 +1321,7 @@ config:
  - ROOT_NFS
  - NFS_FSCACHE
  - NFS_DISABLE_UDP_SUPPORT: n
- # v5.11
- - NFS_V4_2_READ_PLUS: [linux-next]
+ - NFS_V4_2_READ_PLUS: [v5.11]
  - NFSD
  - NFSD_V3_ACL
  - NFSD_V4
@@ -1347,8 +1343,7 @@ config:
  - CIFS_SMB_DIRECT
  - CIFS_FSCACHE
  - CIFS_DEBUG
- # TODO: replace this with v5.11 once it reaches linux-next.
- - CIFS_SWN_UPCALL: [upstream]
+ - CIFS_SWN_UPCALL: [v5.11]
  - AFS_FS
  - AFS_FSCACHE
  - 9P_FS
