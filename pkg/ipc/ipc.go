@@ -547,13 +547,12 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 	}
 	dir = osutil.Abs(dir)
 
-	// Executor protects against most hangs, so we use quite large timeout here.
-	// Executor can be slow due to global locks in namespaces and other things,
-	// so let's better wait than report false misleading crashes.
-	timeout := time.Minute
-	if !config.UseForkServer {
-		// If there is no fork server, executor does not have internal timeout.
-		timeout = 5 * time.Second
+	timeout := config.Timeouts.Program
+	if config.UseForkServer {
+		// Executor has an internal timeout and protects against most hangs when fork server is enabled,
+		// so we use quite large timeout. Executor can be slow due to global locks in namespaces
+		// and other things, so let's better wait than report false misleading crashes.
+		timeout *= 10
 	}
 
 	c := &command{
@@ -697,7 +696,7 @@ func (c *command) handshake() error {
 		read <- nil
 	}()
 	// Sandbox setup can take significant time.
-	timeout := time.NewTimer(time.Minute)
+	timeout := time.NewTimer(time.Minute * c.config.Timeouts.Scale)
 	select {
 	case err := <-read:
 		timeout.Stop()
