@@ -33,7 +33,7 @@ func (gvisor gvisor) build(params *Params) error {
 	if coverageEnabled(config) {
 		coverageFiles := "//pkg/..."
 		exclusions := []string{
-			"//pkg/sentry/platform:platform", // Breaks kvm.
+			"//pkg/sentry/platform", // Breaks kvm.
 		}
 		if race {
 			// These targets use go:norace, which is not
