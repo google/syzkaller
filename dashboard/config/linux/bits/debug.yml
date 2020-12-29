@@ -4,19 +4,17 @@
 # Auxiliary debug configs that detect non-critical bugs.
 
 config:
- # Lock debugging does not seem to work properly on arm64:
- # https://groups.google.com/g/syzkaller/c/0Wpssi9zJbw/m/KbGObTC7BQAJ
- - LOCKDEP: [-arm64]
- - PROVE_LOCKING: [-arm64]
- - DEBUG_ATOMIC_SLEEP: [-arm64]
- - PROVE_RCU: [-arm64]
- - RCU_EQS_DEBUG: [-arm64]
- - DEBUG_LOCK_ALLOC: [-arm64]
- - DEBUG_RT_MUTEXES: [-arm64]
- - DEBUG_SPINLOCK: [-arm64]
- - DEBUG_MUTEXES: [-arm64]
- - DEBUG_WW_MUTEX_SLOWPATH: [-arm64]
- - DEBUG_RWSEMS: [-arm64]
+ - LOCKDEP
+ - PROVE_LOCKING
+ - DEBUG_ATOMIC_SLEEP
+ - PROVE_RCU
+ - RCU_EQS_DEBUG
+ - DEBUG_LOCK_ALLOC
+ - DEBUG_RT_MUTEXES
+ - DEBUG_SPINLOCK
+ - DEBUG_MUTEXES
+ - DEBUG_WW_MUTEX_SLOWPATH
+ - DEBUG_RWSEMS
 
  - DEBUG_VM
  - DEBUG_VM_RB
