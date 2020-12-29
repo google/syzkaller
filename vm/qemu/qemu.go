@@ -79,6 +79,7 @@ type instance struct {
 	workdir    string
 	sshkey     string
 	sshuser    string
+	timeouts   targets.Timeouts
 	port       int
 	monport    int
 	mon        net.Conn
@@ -319,6 +320,7 @@ func (pool *Pool) ctor(workdir, sshkey, sshuser string, index int) (vmimpl.Insta
 		image:      pool.env.Image,
 		debug:      pool.env.Debug,
 		os:         pool.env.OS,
+		timeouts:   pool.env.Timeouts,
 		workdir:    workdir,
 		sshkey:     sshkey,
 		sshuser:    sshuser,
@@ -476,7 +478,7 @@ func (inst *instance) boot() error {
 			}
 		}
 	}()
-	if err := vmimpl.WaitForSSH(inst.debug, 10*time.Minute, "localhost",
+	if err := vmimpl.WaitForSSH(inst.debug, 10*time.Minute*inst.timeouts.Scale, "localhost",
 		inst.sshkey, inst.sshuser, inst.os, inst.port, inst.merger.Err); err != nil {
 		bootOutputStop <- true
 		<-bootOutputStop
@@ -538,7 +540,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	if inst.debug {
 		log.Logf(0, "running command: scp %#v", args)
 	}
-	_, err := osutil.RunCmd(10*time.Minute, "", "scp", args...)
+	_, err := osutil.RunCmd(10*time.Minute*inst.timeouts.Scale, "", "scp", args...)
 	if err != nil {
 		return "", err
 	}
@@ -643,7 +645,7 @@ func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
 }
 
 func (inst *instance) ssh(args ...string) ([]byte, error) {
-	return osutil.RunCmd(time.Minute, "", "ssh", inst.sshArgs(args...)...)
+	return osutil.RunCmd(time.Minute*inst.timeouts.Scale, "", "ssh", inst.sshArgs(args...)...)
 }
 
 func (inst *instance) sshArgs(args ...string) []string {
