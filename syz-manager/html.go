@@ -42,6 +42,7 @@ func (mgr *Manager) initHTTP() {
 	http.HandleFunc("/file", mgr.httpFile)
 	http.HandleFunc("/report", mgr.httpReport)
 	http.HandleFunc("/rawcover", mgr.httpRawCover)
+	http.HandleFunc("/filterpcs", mgr.httpFilterPCs)
 	http.HandleFunc("/funccover", mgr.httpFuncCover)
 	http.HandleFunc("/input", mgr.httpInput)
 	// Browsers like to request this, without special handler this goes to / handler.
@@ -420,6 +421,43 @@ func (mgr *Manager) httpRawCover(w http.ResponseWriter, r *http.Request) {
 		cov.Merge(inp.Cover)
 	}
 	pcs := coverToPCs(rg, cov.Serialize())
+	sort.Slice(pcs, func(i, j int) bool {
+		return pcs[i] < pcs[j]
+	})
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	buf := bufio.NewWriter(w)
+	for _, pc := range pcs {
+		fmt.Fprintf(buf, "0x%x\n", pc)
+	}
+	buf.Flush()
+}
+
+func (mgr *Manager) httpFilterPCs(w http.ResponseWriter, r *http.Request) {
+	if mgr.coverFilter == nil {
+		fmt.Fprintf(w, "cover is not filtered in config.\n")
+		return
+	}
+	// Note: initCover is executed without mgr.mu because it takes very long time
+	// (but it only reads config and it protected by initCoverOnce).
+	rg, err := getReportGenerator(mgr.cfg)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
+		return
+	}
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+
+	var cov cover.Cover
+	for _, inp := range mgr.corpus {
+		cov.Merge(inp.Cover)
+	}
+	pcs := make([]uint64, 0, len(cov))
+	for _, pc := range coverToPCs(rg, cov.Serialize()) {
+		if mgr.coverFilter[uint32(pc)] != 0 {
+			pcs = append(pcs, pc)
+		}
+	}
 	sort.Slice(pcs, func(i, j int) bool {
 		return pcs[i] < pcs[j]
 	})
