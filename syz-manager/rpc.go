@@ -197,7 +197,21 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *int) error {
 	defer serv.mu.Unlock()
 
 	if serv.checkResult != nil {
-		return nil
+		return nil // another VM has already made the check
+	}
+	// Note: need to print disbled syscalls before failing due to an error.
+	// This helps to debug "all system calls are disabled".
+	if len(serv.cfg.EnabledSyscalls) != 0 && len(a.DisabledCalls[serv.cfg.Sandbox]) != 0 {
+		disabled := make(map[string]string)
+		for _, dc := range a.DisabledCalls[serv.cfg.Sandbox] {
+			disabled[serv.cfg.Target.Syscalls[dc.ID].Name] = dc.Reason
+		}
+		for _, id := range serv.cfg.Syscalls {
+			name := serv.cfg.Target.Syscalls[id].Name
+			if reason := disabled[name]; reason != "" {
+				log.Logf(0, "disabling %v: %v", name, reason)
+			}
+		}
 	}
 	if a.Error != "" {
 		log.Logf(0, "machine check failed: %v", a.Error)
@@ -205,11 +219,16 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *int) error {
 		if serv.checkFailures == 10 {
 			log.Fatalf("machine check failing")
 		}
-		return fmt.Errorf("you failed")
+		return fmt.Errorf("machine check failed: %v", a.Error)
 	}
 	serv.targetEnabledSyscalls = make(map[*prog.Syscall]bool)
 	for _, call := range a.EnabledCalls[serv.cfg.Sandbox] {
 		serv.targetEnabledSyscalls[serv.cfg.Target.Syscalls[call]] = true
+	}
+	log.Logf(0, "machine check:")
+	log.Logf(0, "%-24v: %v/%v", "syscalls", len(serv.targetEnabledSyscalls), len(serv.cfg.Target.Syscalls))
+	for _, feat := range a.Features.Supported() {
+		log.Logf(0, "%-24v: %v", feat.Name, feat.Reason)
 	}
 	serv.mgr.machineChecked(a, serv.targetEnabledSyscalls)
 	a.DisabledCalls = nil

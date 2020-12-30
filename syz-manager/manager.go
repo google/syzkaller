@@ -1061,23 +1061,6 @@ func (mgr *Manager) fuzzerConnect() ([]rpctype.RPCInput, BugFrames, bool) {
 func (mgr *Manager) machineChecked(a *rpctype.CheckArgs, enabledSyscalls map[*prog.Syscall]bool) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
-	if len(mgr.cfg.EnabledSyscalls) != 0 && len(a.DisabledCalls[mgr.cfg.Sandbox]) != 0 {
-		disabled := make(map[string]string)
-		for _, dc := range a.DisabledCalls[mgr.cfg.Sandbox] {
-			disabled[mgr.target.Syscalls[dc.ID].Name] = dc.Reason
-		}
-		for _, id := range mgr.cfg.Syscalls {
-			name := mgr.target.Syscalls[id].Name
-			if reason := disabled[name]; reason != "" {
-				log.Logf(0, "disabling %v: %v", name, reason)
-			}
-		}
-	}
-	log.Logf(0, "machine check:")
-	log.Logf(0, "%-24v: %v/%v", "syscalls", len(enabledSyscalls), len(mgr.target.Syscalls))
-	for _, feat := range a.Features.Supported() {
-		log.Logf(0, "%-24v: %v", feat.Name, feat.Reason)
-	}
 	mgr.checkResult = a
 	mgr.targetEnabledSyscalls = enabledSyscalls
 	mgr.loadCorpus()
