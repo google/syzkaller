@@ -1,6 +1,4 @@
-# TODO: this is uncorrupted ARM report.
-TITLE: BUG: unable to handle kernel paging request in corrupted
-CORRUPTED: Y
+TITLE: BUG: unable to handle kernel paging request in migrate_task_rq_fair
 
 syzkaller login: Unable to handle kernel paging request at virtual address fc14ef08
 pgd = c60b8887

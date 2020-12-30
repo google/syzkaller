@@ -403,7 +403,7 @@ func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, err
 		}
 	}
 	pc := funcStart + off
-	if !bytes.HasPrefix(line, []byte("IP:")) && !bytes.HasPrefix(line, []byte("RIP:")) {
+	if !linuxRipFrame.Match(line) {
 		// Usually we have return PCs, so we need to look at the previous instruction.
 		// But RIP lines contain the exact faulting PC.
 		pc--
@@ -438,9 +438,11 @@ func (ctx *linux) extractGuiltyFile(rep *Report) string {
 		// we would need to ignore too many files and that would be fragile.
 		// So instead we try to extract guilty file starting from the known
 		// interrupt entry point first.
-		if pos := bytes.Index(report, []byte(" apic_timer_interrupt+0x")); pos != -1 {
-			if file := ctx.extractGuiltyFileImpl(report[pos:]); file != "" {
-				return file
+		for _, interruptEnd := range []string{" apic_timer_interrupt+0x", "Exception stack"} {
+			if pos := bytes.Index(report, []byte(interruptEnd)); pos != -1 {
+				if file := ctx.extractGuiltyFileImpl(report[pos:]); file != "" {
+					return file
+				}
 			}
 		}
 	}
@@ -448,27 +450,27 @@ func (ctx *linux) extractGuiltyFile(rep *Report) string {
 }
 
 func (ctx *linux) extractGuiltyFileImpl(report []byte) string {
-	var first []byte
+	first := ""
 	for s := bufio.NewScanner(bytes.NewReader(report)); s.Scan(); {
 		match := filenameRe.FindSubmatch(s.Bytes())
 		if match == nil {
 			continue
 		}
 		file := match[1]
-		if len(first) == 0 {
+		if first == "" {
 			// Avoid producing no guilty file at all, otherwise we mail the report to nobody.
 			// It's unclear if it's better to return the first one or the last one.
 			// So far the only test we have has only one file anyway.
-			first = file
+			first = string(file)
 		}
 
 		if matchesAny(file, ctx.guiltyFileIgnores) || ctx.guiltyLineIgnore.Match(s.Bytes()) {
 			continue
 		}
-		first = file
+		first = string(file)
 		break
 	}
-	return filepath.Clean(string(first))
+	return filepath.Clean(first)
 }
 
 func (ctx *linux) getMaintainers(file string) (vcs.Recipients, error) {
@@ -518,40 +520,40 @@ func (ctx *linux) isCorrupted(title string, report []byte, format oopsFormat) (b
 	if format.title == nil {
 		return false, ""
 	}
-	// Check if the report contains stack trace.
-	if !format.noStackTrace &&
-		!bytes.Contains(report, []byte("Call Trace")) &&
-		!bytes.Contains(report, []byte("Call trace")) &&
-		!bytes.Contains(report, []byte("backtrace")) {
-		return true, "no stack trace in report"
-	}
 	if format.noStackTrace {
 		return false, ""
 	}
 	// When a report contains 'Call Trace', 'backtrace', 'Allocated' or 'Freed' keywords,
 	// it must also contain at least a single stack frame after each of them.
-	for _, key := range linuxStackKeywords {
+	hasStackTrace := false
+	for _, key := range linuxStackParams.stackStartRes {
 		match := key.FindSubmatchIndex(report)
 		if match == nil {
 			continue
 		}
+		hasStackTrace = true
 		frames := bytes.Split(report[match[0]:], []byte{'\n'})
 		if len(frames) < 4 {
 			return true, "call trace is missed"
+		}
+		numLines := 15
+		if bytes.Contains(frames[0], []byte("Stack:")) {
+			// Arm stacks contain 22 lines of memory dump before actual frames (see report 241).
+			numLines += 22
 		}
 		frames = frames[1:]
 		corrupted := true
 		// Check that at least one of the next few lines contains a frame.
 	outer:
-		for i := 0; i < 15 && i < len(frames); i++ {
-			for _, key1 := range linuxStackKeywords {
+		for i := 0; i < numLines && i < len(frames); i++ {
+			for _, key1 := range linuxStackParams.stackStartRes {
 				// Next stack trace starts.
 				if key1.Match(frames[i]) {
 					break outer
 				}
 			}
 			if bytes.Contains(frames[i], []byte("(stack is not available)")) ||
-				linuxStackFrameRe.Match(frames[i]) {
+				matchesAny(frames[i], linuxStackParams.frameRes) {
 				corrupted = false
 				break
 			}
@@ -559,6 +561,9 @@ func (ctx *linux) isCorrupted(title string, report []byte, format oopsFormat) (b
 		if corrupted {
 			return true, "no frames in a stack trace"
 		}
+	}
+	if !hasStackTrace {
+		return true, "no stack trace in report"
 	}
 	return false, ""
 }
@@ -638,6 +643,7 @@ var linuxStallAnchorFrames = []*regexp.Regexp{
 	compile("do_fast_syscall_"),  // syscall entry
 	compile("sysenter_dispatch"), // syscall entry
 	compile("tracesys_phase2"),   // syscall entry
+	compile("ret_fast_syscall"),  // arm syscall entry
 	compile("netif_receive_skb"), // net receive entry point
 	compile("do_softirq"),
 	compile("call_timer_fn"),
@@ -707,10 +713,9 @@ var linuxStallAnchorFrames = []*regexp.Regexp{
 
 // nolint: lll
 var (
-	linuxSymbolizeRe  = regexp.MustCompile(`(?:\[\<(?:[0-9a-f]+)\>\])?[ \t]+(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
-	linuxStackFrameRe = regexp.MustCompile(`^ *(?:\[\<?(?:[0-9a-f]+)\>?\] ?){0,2}[ \t]+(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
-	linuxRipFrame     = compile(`(?:IP|NIP|pc ):? (?:(?:[0-9]+:)?(?:{{PC}} +){0,2}{{FUNC}}|[0-9]+:0x[0-9a-f]+|(?:[0-9]+:)?{{PC}} +\[< *\(null\)>\] +\(null\)|[0-9]+: +\(null\))`)
-	linuxCallTrace    = compile("Call (?:T|t)race:")
+	linuxSymbolizeRe = regexp.MustCompile(`(?:\[\<(?:(?:0x)?[0-9a-f]+)\>\])?[ \t]+\(?(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)\)?`)
+	linuxRipFrame    = compile(`(?:IP|NIP|pc |PC is at):? (?:(?:[0-9]+:)?(?:{{PC}} +){0,2}{{FUNC}}|[0-9]+:0x[0-9a-f]+|(?:[0-9]+:)?{{PC}} +\[< *\(null\)>\] +\(null\)|[0-9]+: +\(null\))`)
+	linuxCallTrace   = compile(`(?:Call (?:T|t)race:)|(?:Stack: \(.* to .*\))|(?:Backtrace:)`)
 )
 
 var linuxCorruptedTitles = []*regexp.Regexp{
@@ -718,20 +723,21 @@ var linuxCorruptedTitles = []*regexp.Regexp{
 	regexp.MustCompile(`\[ *[0-9]+\.[0-9]+\]`),
 }
 
-var linuxStackKeywords = []*regexp.Regexp{
-	regexp.MustCompile(`Call (?:T|t)race`),
-	regexp.MustCompile(`Allocated:`),
-	regexp.MustCompile(`Allocated by task [0-9]+:`),
-	regexp.MustCompile(`Freed:`),
-	regexp.MustCompile(`Freed by task [0-9]+:`),
-	// Match 'backtrace:', but exclude 'stack backtrace:'
-	regexp.MustCompile(`[^k] backtrace:`),
-}
-
 var linuxStackParams = &stackParams{
-	stackStartRes: linuxStackKeywords,
+	stackStartRes: []*regexp.Regexp{
+		regexp.MustCompile(`Call (?:T|t)race`),
+		regexp.MustCompile(`Allocated:`),
+		regexp.MustCompile(`Allocated by task [0-9]+:`),
+		regexp.MustCompile(`Freed:`),
+		regexp.MustCompile(`Freed by task [0-9]+:`),
+		// Match 'backtrace:', but exclude 'stack backtrace:'
+		regexp.MustCompile(`[^k] backtrace:`),
+		regexp.MustCompile(`Backtrace:`),
+		regexp.MustCompile(`Stack: \(.* to .*\)`), // arm is all unique
+	},
 	frameRes: []*regexp.Regexp{
 		compile("^ *(?:{{PC}} ){0,2}{{FUNC}}"),
+		compile(`^ *{{PC}} \([a-zA-Z0-9_]+\) from {{PC}} \({{FUNC}}`), // arm is totally different
 	},
 	skipPatterns: []string{
 		"__sanitizer",
@@ -903,6 +909,7 @@ var linuxStackParams = &stackParams{
 	stripFramePrefixes: []string{
 		"SYSC_",
 		"SyS_",
+		"sys_",
 		"____sys_",
 		"___sys_",
 		"__sys_",
@@ -913,6 +920,7 @@ var linuxStackParams = &stackParams{
 		"__x64_",
 		"__ia32_",
 		"__arm64_",
+		"ksys_",
 	},
 }
 
@@ -1170,8 +1178,8 @@ var linuxOopses = append([]*oops{
 			},
 			{
 				title: compile("BUG: Invalid wait context"),
-				// Somehow amd64 and arm64 report this bug completely differently.
-				// This is arm64 format, but we match amd64 title to not duplicate bug reports.
+				// Somehow amd64 and arm/arm64 report this bug completely differently.
+				// This is arm/arm64 format, but we match amd64 title to not duplicate bug reports.
 				fmt: "WARNING: locking bug in %[1]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
@@ -1397,7 +1405,7 @@ var linuxOopses = append([]*oops{
 						parseStackTrace,
 					},
 					parts2: []*regexp.Regexp{
-						compile("apic_timer_interrupt"),
+						compile("(?:apic_timer_interrupt|Exception stack)"),
 						parseStackTrace,
 					},
 					skip:      []string{"apic_timer_interrupt", "rcu"},
@@ -1481,6 +1489,7 @@ var linuxOopses = append([]*oops{
 				fmt:   "BUG: unable to handle kernel paging request in %[1]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
+						linuxRipFrame,
 						linuxCallTrace,
 						parseStackTrace,
 					},
@@ -1772,6 +1781,7 @@ var linuxOopses = append([]*oops{
 				fmt:   "Internal error in %[1]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
+						linuxRipFrame,
 						linuxCallTrace,
 						parseStackTrace,
 					},
@@ -1788,6 +1798,7 @@ var linuxOopses = append([]*oops{
 				fmt:   "Unhandled fault in %[1]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
+						linuxRipFrame,
 						linuxCallTrace,
 						parseStackTrace,
 					},
@@ -1804,6 +1815,7 @@ var linuxOopses = append([]*oops{
 				fmt:   "Alignment trap in %[1]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
+						linuxRipFrame,
 						linuxCallTrace,
 						parseStackTrace,
 					},

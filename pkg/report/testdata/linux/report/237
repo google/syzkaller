@@ -1,11 +1,11 @@
-TITLE: INFO: rcu detected stall in corrupted
+TITLE: INFO: rcu detected stall in mount
 TYPE: HANG
-CORRUPTED: Y
 
 INFO: rcu_sched detected stalls on CPUs/tasks:
 	(detected by 0, t=2102 jiffies, g=84543, c=84542, q=6)
 All QSes seen, last rcu_sched kthread activity 2102 (149490-147388), jiffies_till_next_fqs=1, root ->qsmask 0x0
 syz-executor1   R  running task        0  7464   1210 0x00000003
+Backtrace: 
 [<8011218c>] (unwind_backtrace) from [<8010e300>] (show_stack+0x18/0x1c)
 [<8010e300>] (show_stack) from [<8018de80>] (rcu_check_callbacks+0x7a0/0x7a8)
 [<8018de80>] (rcu_check_callbacks) from [<80192868>] (update_process_times+0x38/0x68)
