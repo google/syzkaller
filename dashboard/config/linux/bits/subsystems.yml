@@ -26,15 +26,16 @@ config:
  - IKCONFIG
  - IKCONFIG_PROC
  - LOG_BUF_SHIFT: 18
- - NUMA_BALANCING: [-riscv]
- - NUMA_BALANCING_DEFAULT_ENABLED: [-riscv]
+ - NUMA_BALANCING: [-arm, -riscv]
+ - NUMA_BALANCING_DEFAULT_ENABLED: [-arm, -riscv]
  - CGROUPS
  - BLK_CGROUP
  - CGROUP_SCHED
+ - FAIR_GROUP_SCHED
  - CFS_BANDWIDTH
  - CGROUP_RDMA
  - CGROUP_FREEZER
- - CGROUP_HUGETLB
+ - CGROUP_HUGETLB: [-arm]
  - CPUSETS
  - CGROUP_DEVICE
  - CGROUP_CPUACCT
@@ -46,13 +47,14 @@ config:
  - PROFILING
  - PERF_EVENTS
  - SMP
- - NUMA: [-riscv]
+ - NUMA: [-arm, -riscv]
  - NUMA_EMU: [x86_64]
  - KEXEC: [-riscv]
  - HIBERNATION: [-riscv, -s390]
  - PM_DEBUG: [-s390]
- - ACPI_DOCK: [-riscv, -s390]
+ - ACPI_DOCK: [-arm, -riscv, -s390]
  - ACPI_NFIT: [x86_64]
+ - CPU_FREQ: [-riscv, -s390]
  - CPU_FREQ_DEFAULT_GOV_USERSPACE: [-riscv, -s390]
  - CPU_FREQ_GOV_ONDEMAND: [-riscv, -s390]
  - GOOGLE_SMI: n
@@ -62,7 +64,7 @@ config:
  - GOOGLE_FRAMEBUFFER_COREBOOT: [-s390]
  - GOOGLE_MEMCONSOLE_COREBOOT: [-s390]
  - GOOGLE_VPD: [-s390]
- - KVM: [-riscv]
+ - KVM: [-arm, -riscv]
  - KVM_INTEL: [x86_64]
  - KVM_AMD: [x86_64]
  - X86_SGX: [x86_64, v5.11]
@@ -109,21 +111,21 @@ config:
  - BFQ_GROUP_IOSCHED
  - BFQ_CGROUP_DEBUG
  - BINFMT_MISC
- - MEMORY_HOTPLUG: [-riscv]
- - MEMORY_HOTPLUG_DEFAULT_ONLINE: [-riscv]
- - MEMORY_HOTREMOVE: [-riscv]
+ - MEMORY_HOTPLUG: [-arm, -riscv]
+ - MEMORY_HOTPLUG_DEFAULT_ONLINE: [-arm, -riscv]
+ - MEMORY_HOTREMOVE: [-arm, -riscv]
  - KSM
- - TRANSPARENT_HUGEPAGE: [-riscv]
+ - TRANSPARENT_HUGEPAGE: [-arm, -riscv]
  - FRONTSWAP
  - CMA
  - MEM_SOFT_DIRTY: [x86_64]
  - ZSWAP
  - ZSMALLOC
  - IDLE_PAGE_TRACKING
- - ZONE_DEVICE: [-riscv, -s390]
- - DEVICE_PRIVATE: [-riscv, -s390]
+ - ZONE_DEVICE: [-arm, -riscv, -s390]
+ - DEVICE_PRIVATE: [-arm, -riscv, -s390]
  - PERCPU_STATS
- - READ_ONLY_THP_FOR_FS: [-riscv]
+ - READ_ONLY_THP_FOR_FS: [-arm, -riscv]
  - NET
  - PACKET
  - PACKET_DIAG
@@ -197,9 +199,11 @@ config:
  - INET6_ESP_OFFLOAD
  - INET6_ESPINTCP: [v5.6]
  - INET6_IPCOMP
+ - IPV6
  - IPV6_MIP6
  - IPV6_ILA
  - IPV6_VTI
+ - IPV6_SIT
  - IPV6_SIT_6RD
  - IPV6_GRE
  - IPV6_SUBTREES
@@ -1096,7 +1100,7 @@ config:
  - TYPEC
  - TYPEC_TCPM
  - TYPEC_UCSI: [-s390]
- - UCSI_ACPI: [-riscv, -s390]
+ - UCSI_ACPI: [-arm, -riscv, -s390]
  - INFINIBAND
  - INFINIBAND_USER_MAD
  - INFINIBAND_USER_ACCESS
@@ -1129,8 +1133,8 @@ config:
  - DMABUF_HEAPS_SYSTEM: [v5.5]
  - DMABUF_HEAPS_CMA: [v5.5]
  - DMA_CMA
- - VFIO: [-riscv]
- - VFIO_PCI: [-riscv]
+ - VFIO: [-arm, -riscv]
+ - VFIO_PCI: [-arm, -riscv]
  - VIRTIO_PCI
  - VIRTIO_VDPA: [v5.7]
  - VIRTIO_BALLOON
@@ -1249,7 +1253,7 @@ config:
  - F2FS_FS_ZSTD: [v5.5]
  - F2FS_FS_LZORLE: [v5.5]
  - ZONEFS_FS: [v5.6]
- - FS_DAX
+ - FS_DAX: [-arm]
  - FS_ENCRYPTION
  - FS_VERITY
  - FS_VERITY_BUILTIN_SIGNATURES
@@ -1281,9 +1285,9 @@ config:
  - EXFAT_FS
  - NTFS_FS
  - NTFS_RW
- - PROC_KCORE
+ - PROC_KCORE: [-arm]
  - TMPFS_POSIX_ACL
- - HUGETLBFS
+ - HUGETLBFS: [-arm]
  - ECRYPT_FS
  - ECRYPT_FS_MESSAGING
  - HFS_FS
@@ -1474,8 +1478,8 @@ config:
  - CRYPTO_DEV_PADLOCK: [x86_64]
  - CRYPTO_DEV_PADLOCK_AES: [x86_64]
  - CRYPTO_DEV_PADLOCK_SHA: [x86_64]
- - CRYPTO_DEV_CCP: [-riscv, -s390]
- - CRYPTO_DEV_CCP_DD: [-riscv, -s390]
+ - CRYPTO_DEV_CCP: [-arm, -riscv, -s390]
+ - CRYPTO_DEV_CCP_DD: [-arm, -riscv, -s390]
  - CRYPTO_DEV_SP_CCP: n
  - CRYPTO_DEV_SP_PSP: n
  - CRYPTO_DEV_QAT_DH895xCC: [x86_64]
@@ -1484,6 +1488,7 @@ config:
  - CRYPTO_DEV_QAT_DH895xCCVF: [x86_64]
  - CRYPTO_DEV_QAT_C3XXXVF: [x86_64]
  - CRYPTO_DEV_QAT_C62XVF: [x86_64]
+ - CRYPTO_HW
  - CRYPTO_DEV_VIRTIO
  - CRYPTO_SM2: [v5.10]
  - ASYMMETRIC_TPM_KEY_SUBTYPE

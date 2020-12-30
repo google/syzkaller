@@ -8,13 +8,13 @@ config:
  - KASAN_STACK_ENABLE: [clang]
  - KASAN_VMALLOC: [x86_64, v5.5]
  # This was historically enabled in the KASAN section without explanation.
- - SPARSEMEM_VMEMMAP
+ - SPARSEMEM_VMEMMAP: [-arm]
  # This is required to enable SPARSEMEM_VMEMMAP.
- - SPARSEMEM_MANUAL: [-s390]
+ - SPARSEMEM_MANUAL: [-arm, -s390]
 
  - UBSAN: [v5.8]
  - UBSAN_BOUNDS: [v5.8]
- - UBSAN_SANITIZE_ALL: [v5.8, -riscv]
+ - UBSAN_SANITIZE_ALL: [v5.8, -arm, -riscv]
  - UBSAN_TRAP: [n, v5.8]
  - UBSAN_MISC: [n, v5.8]
  - UBSAN_ALIGNMENT: [n, v5.8]

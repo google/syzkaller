@@ -49,7 +49,7 @@ config:
  - HW_RANDOM_INTEL: n
  - HW_RANDOM_AMD: n
  - HW_RANDOM_VIA: n
- - RANDOM_TRUST_CPU: [-riscv]
+ - RANDOM_TRUST_CPU: [-arm, -riscv]
  - RANDOM_TRUST_BOOTLOADER
 
  # For detection of supported syscalls
