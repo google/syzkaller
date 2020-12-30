@@ -98,6 +98,7 @@ type archConfig struct {
 	QemuArgs  string
 	TargetDir string // "/" by default
 	NetDev    string // default network device type (see the full list with qemu-system-x86_64 -device help)
+	RngDev    string // default rng device (optional)
 	// UseNewQemuImageOptions specifies whether the arch uses "new" QEMU image device options.
 	UseNewQemuImageOptions bool
 	CmdLine                []string
@@ -111,6 +112,7 @@ var archConfigs = map[string]*archConfig{
 		// Initialization of device e1000e failed: failed to find romfile "efi-e1000e.rom
 		// But other arches don't use e1000e, e.g. arm64 uses virtio by default.
 		NetDev: "e1000",
+		RngDev: "virtio-rng-pci",
 		CmdLine: append(linuxCmdline,
 			"root=/dev/sda",
 			"console=ttyS0",
@@ -131,6 +133,7 @@ var archConfigs = map[string]*archConfig{
 	"linux/386": {
 		Qemu:   "qemu-system-i386",
 		NetDev: "e1000",
+		RngDev: "virtio-rng-pci",
 		CmdLine: append(linuxCmdline,
 			"root=/dev/sda",
 			"console=ttyS0",
@@ -140,14 +143,18 @@ var archConfigs = map[string]*archConfig{
 		Qemu:     "qemu-system-aarch64",
 		QemuArgs: "-machine virt,virtualization=on -cpu cortex-a57",
 		NetDev:   "virtio-net-pci",
+		RngDev:   "virtio-rng-pci",
 		CmdLine: append(linuxCmdline,
 			"root=/dev/vda",
 			"console=ttyAMA0",
 		),
 	},
 	"linux/arm": {
-		Qemu:   "qemu-system-arm",
-		NetDev: "virtio-net-pci",
+		Qemu:                   "qemu-system-arm",
+		QemuArgs:               "-machine vexpress-a15 -cpu max",
+		NetDev:                 "virtio-net-device",
+		RngDev:                 "virtio-rng-device",
+		UseNewQemuImageOptions: true,
 		CmdLine: append(linuxCmdline,
 			"root=/dev/vda",
 			"console=ttyAMA0",
@@ -157,6 +164,7 @@ var archConfigs = map[string]*archConfig{
 		Qemu:     "qemu-system-mips64el",
 		QemuArgs: "-M malta -cpu MIPS64R2-generic -nodefaults",
 		NetDev:   "e1000",
+		RngDev:   "virtio-rng-pci",
 		CmdLine: append(linuxCmdline,
 			"root=/dev/sda",
 			"console=ttyS0",
@@ -166,12 +174,14 @@ var archConfigs = map[string]*archConfig{
 		Qemu:     "qemu-system-ppc64",
 		QemuArgs: "-enable-kvm -vga none",
 		NetDev:   "virtio-net-pci",
+		RngDev:   "virtio-rng-pci",
 		CmdLine:  linuxCmdline,
 	},
 	"linux/riscv64": {
 		Qemu:                   "qemu-system-riscv64",
 		QemuArgs:               "-machine virt",
 		NetDev:                 "virtio-net-pci",
+		RngDev:                 "virtio-rng-pci",
 		UseNewQemuImageOptions: true,
 		CmdLine: append(linuxCmdline,
 			"root=/dev/vda",
@@ -182,6 +192,7 @@ var archConfigs = map[string]*archConfig{
 		Qemu:     "qemu-system-s390x",
 		QemuArgs: "-M s390-ccw-virtio -cpu max,zpci=on",
 		NetDev:   "virtio-net-pci",
+		RngDev:   "virtio-rng-ccw",
 		CmdLine: append(linuxCmdline,
 			"root=/dev/vda",
 		),
@@ -190,17 +201,20 @@ var archConfigs = map[string]*archConfig{
 		Qemu:     "qemu-system-x86_64",
 		QemuArgs: "-enable-kvm",
 		NetDev:   "e1000",
+		RngDev:   "virtio-rng-pci",
 	},
 	"netbsd/amd64": {
 		Qemu:     "qemu-system-x86_64",
 		QemuArgs: "-enable-kvm",
 		NetDev:   "e1000",
+		RngDev:   "virtio-rng-pci",
 	},
 	"fuchsia/amd64": {
 		Qemu:      "qemu-system-x86_64",
 		QemuArgs:  "-enable-kvm -machine q35 -cpu host,migratable=off",
 		TargetDir: "/tmp",
 		NetDev:    "e1000",
+		RngDev:    "virtio-rng-pci",
 		CmdLine: []string{
 			"kernel.serial=legacy",
 			"kernel.halt-on-panic=true",
@@ -210,6 +224,7 @@ var archConfigs = map[string]*archConfig{
 		Qemu:     "qemu-system-x86_64",
 		QemuArgs: "-enable-kvm -cpu host,migratable=off",
 		NetDev:   "e1000",
+		RngDev:   "virtio-rng-pci",
 	},
 }
 
@@ -385,10 +400,8 @@ func (inst *instance) boot() error {
 		"-no-reboot",
 		"-name", fmt.Sprintf("VM-%v", inst.index),
 	}
-	if inst.target.Arch == targets.S390x {
-		args = append(args, "-device", "virtio-rng-ccw")
-	} else {
-		args = append(args, "-device", "virtio-rng-pci")
+	if inst.archConfig.RngDev != "" {
+		args = append(args, "-device", inst.archConfig.RngDev)
 	}
 	templateDir := filepath.Join(inst.workdir, "template")
 	args = append(args, splitArgs(inst.cfg.QemuArgs, templateDir, inst.index)...)
