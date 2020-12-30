@@ -531,18 +531,22 @@ func (ctx *linux) isCorrupted(title string, report []byte, format oopsFormat) (b
 		if match == nil {
 			continue
 		}
-		hasStackTrace = true
 		frames := bytes.Split(report[match[0]:], []byte{'\n'})
 		if len(frames) < 4 {
 			return true, "call trace is missed"
 		}
 		numLines := 15
+		corrupted := true
 		if bytes.Contains(frames[0], []byte("Stack:")) {
 			// Arm stacks contain 22 lines of memory dump before actual frames (see report 241).
 			numLines += 22
+			// More arm quirks: there are reports where "Stack:" denotes beginning of a stack,
+			// so we need to check them, but there are also reports where "Stack:" section is empty
+			// and it's immediately followed by "Backtrace:" which contains the real stack,
+			// so we can't mark the report as corrupted if "Stack:" is empty.
+			corrupted = false
 		}
 		frames = frames[1:]
-		corrupted := true
 		// Check that at least one of the next few lines contains a frame.
 	outer:
 		for i := 0; i < numLines && i < len(frames); i++ {
@@ -554,6 +558,7 @@ func (ctx *linux) isCorrupted(title string, report []byte, format oopsFormat) (b
 			}
 			if bytes.Contains(frames[i], []byte("(stack is not available)")) ||
 				matchesAny(frames[i], linuxStackParams.frameRes) {
+				hasStackTrace = true
 				corrupted = false
 				break
 			}
