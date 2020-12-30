@@ -33,6 +33,7 @@ func TestCheckRepoAddress(t *testing.T) {
 		"git://git.cmpxchg.org/linux-mmots.git":                                 true,
 		"https://anonscm.debian.org/git/kernel/linux.git":                       true,
 		"git://kernel.ubuntu.com/ubuntu/ubuntu-zesty.git":                       true,
+		"git://git.armlinux.org.uk/~rmk/linux-arm.git":                          true,
 		"http://host.xz:123/path/to/repo.git/":                                  true,
 		"https://chromium.googlesource.com/chromiumos/third_party/kernel":       true,
 		"https://fuchsia.googlesource.com":                                      true,
