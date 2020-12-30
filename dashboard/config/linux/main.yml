@@ -11,6 +11,8 @@ instances:
  - upstream-leak:		[upstream, x86_64, gcc, lsm, apparmor, slab, kmemleak]
  - upstream-usb:		[upstream, x86_64, gcc, lsm, apparmor, onlyusb, kasan]
  - upstream-arm64-kasan:	[upstream, arm64, gcc, lsm, selinux, kasan]
+ # TODO: enable kasan when it boots.
+ - upstream-arm-kasan:		[arm, gcc, lsm, selinux]
  - upstream-riscv64-kasan:	[upstream, riscv, gcc, lsm, selinux, kasan]
  - upstream-s390-kasan:		[upstream, s390, gcc, lsm, selinux, kasan]
  - stable-5.4-kasan:		[stable-5.4, x86_64, gcc, lsm, apparmor, kasan]
@@ -27,6 +29,7 @@ includes:
  - base.yml: []
  - x86_64.yml: [x86_64]
  - arm64.yml: [arm64]
+ - arm.yml: [arm]
  - riscv64.yml: [riscv]
  - s390.yml: [s390]
  - subsystems.yml: [-baseline, -onlyusb]
