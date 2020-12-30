@@ -129,6 +129,7 @@ type KcovRemoteArg struct {
 	TraceMode    uint32
 	AreaSize     uint32
 	NumHandles   uint32
+	_            uint32
 	CommonHandle uint64
 	// Handles []uint64 goes here.
 }
