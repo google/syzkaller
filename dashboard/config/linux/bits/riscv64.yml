@@ -10,3 +10,6 @@ config:
  # See the comment in x86_64.yml re these numbers.
  - RCU_CPU_STALL_TIMEOUT: 300
  - DEFAULT_HUNG_TASK_TIMEOUT: 420
+
+ # Presumably this gives more interesting coverage.
+ - BINFMT_FLAT
