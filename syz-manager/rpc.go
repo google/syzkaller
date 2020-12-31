@@ -331,7 +331,7 @@ func (serv *RPCServer) Poll(a *rpctype.PollArgs, r *rpctype.PollRes) error {
 		// Let rotated VMs run in isolation, don't send them anything.
 		return nil
 	}
-	r.MaxSignal = f.newMaxSignal.Split(500).Serialize()
+	r.MaxSignal = f.newMaxSignal.Split(2000).Serialize()
 	if a.NeedCandidates {
 		r.Candidates = serv.mgr.candidateBatch(serv.batchSize)
 	}
@@ -341,7 +341,7 @@ func (serv *RPCServer) Poll(a *rpctype.PollArgs, r *rpctype.PollRes) error {
 		// If we do it using the final batchSize, it can be very slow
 		// (batch of size 6 can take more than 10 mins for 50K corpus and slow kernel).
 		// So use a larger batch initially (we use no stats as approximation of initial pump).
-		const initialBatch = 30
+		const initialBatch = 50
 		if len(a.Stats) == 0 && batchSize < initialBatch {
 			batchSize = initialBatch
 		}
