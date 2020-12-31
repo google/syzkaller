@@ -535,21 +535,11 @@ func (ctx *linux) isCorrupted(title string, report []byte, format oopsFormat) (b
 		if len(frames) < 4 {
 			return true, "call trace is missed"
 		}
-		numLines := 15
 		corrupted := true
-		if bytes.Contains(frames[0], []byte("Stack:")) {
-			// Arm stacks contain 22 lines of memory dump before actual frames (see report 241).
-			numLines += 22
-			// More arm quirks: there are reports where "Stack:" denotes beginning of a stack,
-			// so we need to check them, but there are also reports where "Stack:" section is empty
-			// and it's immediately followed by "Backtrace:" which contains the real stack,
-			// so we can't mark the report as corrupted if "Stack:" is empty.
-			corrupted = false
-		}
 		frames = frames[1:]
 		// Check that at least one of the next few lines contains a frame.
 	outer:
-		for i := 0; i < numLines && i < len(frames); i++ {
+		for i := 0; i < 15 && i < len(frames); i++ {
 			for _, key1 := range linuxStackParams.stackStartRes {
 				// Next stack trace starts.
 				if key1.Match(frames[i]) {
@@ -720,7 +710,7 @@ var linuxStallAnchorFrames = []*regexp.Regexp{
 var (
 	linuxSymbolizeRe = regexp.MustCompile(`(?:\[\<(?:(?:0x)?[0-9a-f]+)\>\])?[ \t]+\(?(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)\)?`)
 	linuxRipFrame    = compile(`(?:IP|NIP|pc |PC is at):? (?:(?:[0-9]+:)?(?:{{PC}} +){0,2}{{FUNC}}|[0-9]+:0x[0-9a-f]+|(?:[0-9]+:)?{{PC}} +\[< *\(null\)>\] +\(null\)|[0-9]+: +\(null\))`)
-	linuxCallTrace   = compile(`(?:Call (?:T|t)race:)|(?:Stack: \(.* to .*\))|(?:Backtrace:)`)
+	linuxCallTrace   = compile(`(?:Call (?:T|t)race:)|(?:Backtrace:)`)
 )
 
 var linuxCorruptedTitles = []*regexp.Regexp{
@@ -738,7 +728,6 @@ var linuxStackParams = &stackParams{
 		// Match 'backtrace:', but exclude 'stack backtrace:'
 		regexp.MustCompile(`[^k] backtrace:`),
 		regexp.MustCompile(`Backtrace:`),
-		regexp.MustCompile(`Stack: \(.* to .*\)`), // arm is all unique
 	},
 	frameRes: []*regexp.Regexp{
 		compile("^ *(?:{{PC}} ){0,2}{{FUNC}}"),
