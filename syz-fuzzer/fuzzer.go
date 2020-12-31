@@ -254,7 +254,11 @@ func main() {
 	gateCallback := fuzzer.useBugFrames(r, *flagProcs)
 	fuzzer.gate = ipc.NewGate(2**flagProcs, gateCallback)
 
-	for i := 0; fuzzer.poll(i == 0, nil); i++ {
+	for needCandidates, more := true, true; more; needCandidates = false {
+		more = fuzzer.poll(needCandidates, nil)
+		// This loop lead to "no output" in qemu emulation, tell manager we are not dead.
+		log.Logf(0, "fetching corpus: %v, signal %v/%v (executing program)",
+			len(fuzzer.corpus), len(fuzzer.corpusSignal), len(fuzzer.maxSignal))
 	}
 	calls := make(map[*prog.Syscall]bool)
 	for _, id := range r.CheckResult.EnabledCalls[sandbox] {
@@ -266,6 +270,7 @@ func main() {
 		fuzzer.execOpts.Flags |= ipc.FlagEnableCoverageFilter
 	}
 
+	log.Logf(0, "starting %v fuzzer processes", *flagProcs)
 	for pid := 0; pid < *flagProcs; pid++ {
 		proc, err := newProc(fuzzer, pid)
 		if err != nil {
