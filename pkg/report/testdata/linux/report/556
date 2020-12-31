@@ -1,0 +1,65 @@
+TITLE: WARNING: ODEBUG bug in netdev_freemem
+
+[ 7978.980484][ T7864] ------------[ cut here ]------------
+[ 7978.984043][ T7864] WARNING: CPU: 0 PID: 7864 at lib/debugobjects.c:505 debug_print_object+0xb0/0xc4
+[ 7979.032914][ T7864] ODEBUG: free active (active state 0) object type: timer_list hint: delayed_work_timer_fn+0x0/0x28
+[ 7979.034400][ T7864] Modules linked in:
+[ 7979.054500][ T7864] Kernel panic - not syncing: panic_on_warn set ...
+[ 7979.057839][ T7864] CPU: 0 PID: 7864 Comm: kworker/u4:4 Not tainted 5.10.0-rc1+ #19
+[ 7979.060934][ T7864] Hardware name: ARM-Versatile Express
+[ 7979.062695][ T7864] Workqueue: netns cleanup_net
+[ 7979.064032][ T7864] Backtrace: 
+[ 7979.066353][ T7864] [<8367729c>] (dump_backtrace) from [<83677618>] (show_stack+0x28/0x2c)
+[ 7979.070036][ T7864]  r9:ffffffff r8:800b0093 r7:00000080 r6:00000000 r5:841ff0ac r4:00000000
+[ 7979.071836][ T7864] [<836775f0>] (show_stack) from [<8368d44c>] (dump_stack+0x124/0x170)
+[ 7979.074734][ T7864]  r5:00000000 r4:847241a4
+[ 7979.076910][ T7864] [<8368d328>] (dump_stack) from [<83677f30>] (panic+0x1fc/0x5d8)
+[ 7979.080153][ T7864]  r10:845657dc r9:ffffffff r8:845657b4 r7:0000000a r6:00000000 r5:00000001
+[ 7979.081621][ T7864]  r4:8492fb80 r3:00000000
+[ 7979.083581][ T7864] [<83677d34>] (panic) from [<8014a7fc>] (__warn+0xe0/0x1a8)
+[ 7979.086255][ T7864]  r3:00000000 r2:00000000 r1:8b691e80 r0:83f8b770
+[ 7979.088904][ T7864]  r7:00000009
+[ 7979.090083][ T7864] [<8014a71c>] (__warn) from [<836783b8>] (warn_slowpath_fmt+0xac/0xec)
+[ 7979.091363][ T7864]  r7:8143e868 r6:000001f9 r5:84089c8c r4:84089c4c
+[ 7979.092601][ T7864] [<83678310>] (warn_slowpath_fmt) from [<8143e868>] (debug_print_object+0xb0/0xc4)
+[ 7979.096072][ T7864]  r8:83705e38 r7:8405b918 r6:8acfbf30 r5:85006060 r4:8454f4f8
+[ 7979.099174][ T7864] [<8143e7b8>] (debug_print_object) from [<8144001c>] (debug_check_no_obj_freed+0x1f8/0x244)
+[ 7979.102507][ T7864]  r8:00000122 r7:8b426228 r6:83705e38 r5:8934ec2c r4:8acfbf30
+[ 7979.105586][ T7864] [<8143fe24>] (debug_check_no_obj_freed) from [<8049290c>] (slab_free_freelist_hook+0xd8/0x16c)
+[ 7979.109889][ T7864]  r10:60000113 r9:8934e000 r8:8bd2bcbc r7:8bd2bcb8 r6:00000000 r5:8934e000
+[ 7979.112642][ T7864]  r4:85801900
+[ 7979.114443][ T7864] [<80492834>] (slab_free_freelist_hook) from [<8049631c>] (kfree+0xfc/0x4b8)
+[ 7979.118058][ T7864]  r10:8454ec94 r9:8454f124 r8:00000000 r7:85801900 r6:8040c948 r5:8934e000
+[ 7979.121083][ T7864]  r4:de744620
+[ 7979.122798][ T7864] [<80496220>] (kfree) from [<8040c948>] (kvfree+0x54/0x5c)
+[ 7979.125775][ T7864]  r10:8454ec94 r9:8454f124 r8:00000000 r7:00000000 r6:8934e000 r5:00000000
+[ 7979.128950][ T7864]  r4:8934e000
+[ 7979.130897][ T7864] [<8040c8f4>] (kvfree) from [<829b9504>] (netdev_freemem+0x24/0x28)
+[ 7979.133095][ T7864]  r5:00000004 r4:8934e000
+[ 7979.135298][ T7864] [<829b94e0>] (netdev_freemem) from [<82a07e90>] (netdev_release+0x44/0x50)
+[ 7979.136416][ T7864]  r5:00000004 r4:8934e370
+[ 7979.137612][ T7864] [<82a07e4c>] (netdev_release) from [<8172a1e0>] (device_release+0x44/0xdc)
+[ 7979.139005][ T7864]  r7:00000000 r6:8ae87c00 r5:82a07e4c r4:8934e370
+[ 7979.140174][ T7864] [<8172a19c>] (device_release) from [<814d43cc>] (kobject_put+0x158/0x2f4)
+[ 7979.141318][ T7864]  r6:8b31b200 r5:84733ce8 r4:8934e370
+[ 7979.142444][ T7864] [<814d4274>] (kobject_put) from [<829b9268>] (netdev_run_todo+0x460/0x5cc)
+[ 7979.143774][ T7864]  r8:8454edbc r7:00000002 r6:8934e338 r5:00000008 r4:00000001
+[ 7979.145048][ T7864] [<829b8e08>] (netdev_run_todo) from [<829cb45c>] (rtnl_unlock+0x14/0x18)
+[ 7979.146430][ T7864]  r10:8298b8ac r9:8bd2be2c r8:8b034ac0 r7:8bd2be18 r6:8bd2be94 r5:00000000
+[ 7979.147575][ T7864]  r4:8b034a94
+[ 7979.148702][ T7864] [<829cb448>] (rtnl_unlock) from [<829a4a0c>] (default_device_exit_batch+0x1bc/0x1e8)
+[ 7979.150083][ T7864] [<829a4850>] (default_device_exit_batch) from [<8298b8a4>] (ops_exit_list+0x7c/0x84)
+[ 7979.151527][ T7864]  r9:00000000 r8:ffffff90 r7:84806824 r6:8bd2be94 r5:829a2c14 r4:829a4850
+[ 7979.152783][ T7864] [<8298b828>] (ops_exit_list) from [<8298c9b0>] (cleanup_net+0x308/0x4f0)
+[ 7979.154073][ T7864]  r7:84804dd0 r6:84804dd0 r5:00000000 r4:84806824
+[ 7979.155446][ T7864] [<8298c6a8>] (cleanup_net) from [<801800f0>] (process_one_work+0x3dc/0xe0c)
+[ 7979.157001][ T7864]  r10:8bd2a000 r9:00000000 r8:00000000 r7:85820000 r6:85816400 r5:8b96e680
+[ 7979.158096][ T7864]  r4:84804d50
+[ 7979.159299][ T7864] [<8017fd14>] (process_one_work) from [<80180b90>] (worker_thread+0x70/0x7a8)
+[ 7979.160723][ T7864]  r10:84506d00 r9:85820038 r8:84804d50 r7:00000000 r6:85820000 r5:8b96e694
+[ 7979.161681][ T7864]  r4:8b96e680
+[ 7979.162720][ T7864] [<80180b20>] (worker_thread) from [<8018c338>] (kthread+0x1d0/0x20c)
+[ 7979.164104][ T7864]  r10:8ac55e34 r9:8b96e680 r8:80180b20 r7:00000000 r6:8bd2a000 r5:00000000
+[ 7979.165133][ T7864]  r4:8b96e600
+[ 7979.166266][ T7864] [<8018c168>] (kthread) from [<8010011c>] (ret_from_fork+0x14/0x38)
+[ 7979.167523][ T7864] Exception stack(0x8bd2bfb0 to 0x8bd2bff8)
