@@ -31,6 +31,7 @@ options 	KCOV
 
 options 	KERN_TLS
 options 	TCPHPTS
+options 	RATELIMIT
 
 options 	DEBUG_VFS_LOCKS
 options 	DIAGNOSTIC
