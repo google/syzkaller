@@ -1287,9 +1287,14 @@ var linuxOopses = append([]*oops{
 				fmt:    "possible deadlock in %[1]v",
 			},
 			{
-				title:  compile("WARNING: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detecte"),
-				report: compile("WARNING: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detected(?:.*\\n)+?.*is trying to acquire(?:.*\\n)+?.*at: (?:{{PC}} +)?{{FUNC}}"),
-				fmt:    "possible deadlock in %[1]v",
+				title: compile("WARNING: .*-safe -> .*-unsafe lock order detected"),
+				fmt:   "possible deadlock in %[1]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						compile("which became (?:.*) at:"),
+						parseStackTrace,
+					},
+				},
 			},
 			{
 				title:  compile("WARNING: possible recursive locking detected"),

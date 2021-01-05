@@ -1,0 +1,363 @@
+TITLE: possible deadlock in input_event
+
+
+[  414.269022][T17509] =====================================================
+[  414.275945][T17509] WARNING: HARDIRQ-safe -> HARDIRQ-unsafe lock order detected
+[  414.283395][T17509] 5.11.0-rc1-syzkaller #0 Not tainted
+[  414.288763][T17509] -----------------------------------------------------
+[  414.295696][T17509] syz-executor.4/17509 [HC0[0]:SC0[0]:HE0:SE1] is trying to acquire:
+[  414.303773][T17509] ffff8880120b9168 (&new->fa_lock){.?.+}-{2:2}, at: kill_fasync+0x14b/0x460
+[  414.312640][T17509] 
+[  414.312640][T17509] and this task is already holding:
+[  414.320004][T17509] ffff88806a4a6028 (&client->buffer_lock){....}-{2:2}, at: evdev_pass_values.part.0+0xf6/0x970
+[  414.330538][T17509] which would create a new lock dependency:
+[  414.336470][T17509]  (&client->buffer_lock){....}-{2:2} -> (&new->fa_lock){.?.+}-{2:2}
+[  414.344585][T17509] 
+[  414.344585][T17509] but this new dependency connects a HARDIRQ-irq-safe lock:
+[  414.354037][T17509]  (&dev->event_lock){-.-.}-{2:2}
+[  414.354071][T17509] 
+[  414.354071][T17509] ... which became HARDIRQ-irq-safe at:
+[  414.367173][T17509]   lock_acquire+0x29d/0x740
+[  414.371795][T17509]   _raw_spin_lock_irqsave+0x39/0x50
+[  414.377106][T17509]   input_event+0x7b/0xb0
+[  414.388967][T17509]   psmouse_report_standard_buttons+0x2c/0x80
+[  414.395049][T17509]   psmouse_process_byte+0x1e1/0x890
+[  414.400346][T17509]   psmouse_handle_byte+0x41/0x1b0
+[  414.405725][T17509]   psmouse_interrupt+0x304/0xf00
+[  414.410769][T17509]   serio_interrupt+0x88/0x150
+[  414.415666][T17509]   i8042_interrupt+0x27a/0x520
+[  414.420546][T17509]   __handle_irq_event_percpu+0x303/0x8f0
+[  414.426328][T17509]   handle_irq_event+0x102/0x290
+[  414.431269][T17509]   handle_edge_irq+0x25f/0xd00
+[  414.436136][T17509]   asm_call_irq_on_stack+0xf/0x20
+[  414.441263][T17509]   common_interrupt+0x120/0x200
+[  414.446348][T17509]   asm_common_interrupt+0x1e/0x40
+[  414.451477][T17509]   debug_lockdep_rcu_enabled+0x0/0x30
+[  414.456947][T17509]   rcu_read_lock_sched_held+0xd/0x70
+[  414.462393][T17509]   lock_release+0x5b7/0x710
+[  414.466991][T17509]   __alloc_pages_nodemask+0x169/0x730
+[  414.472530][T17509]   alloc_pages_current+0x18c/0x2a0
+[  414.477794][T17509]   __pmd_alloc+0x3b/0x530
+[  414.482310][T17509]   handle_mm_fault+0xc4f/0x5640
+[  414.487261][T17509]   __get_user_pages+0x7ca/0x1490
+[  414.492350][T17509]   __get_user_pages_remote+0x18f/0x810
+[  414.497918][T17509]   get_user_pages_remote+0x63/0x90
+[  414.503127][T17509]   get_arg_page+0xba/0x200
+[  414.507637][T17509]   copy_string_kernel+0x1b4/0x520
+[  414.520254][T17509]   kernel_execve+0x25c/0x460
+[  414.524945][T17509]   call_usermodehelper_exec_async+0x2de/0x580
+[  414.531171][T17509]   ret_from_fork+0x1f/0x30
+[  414.535760][T17509] 
+[  414.535760][T17509] to a HARDIRQ-irq-unsafe lock:
+[  414.542912][T17509]  (&new->fa_lock){.?.+}-{2:2}
+[  414.542947][T17509] 
+[  414.542947][T17509] ... which became HARDIRQ-irq-unsafe at:
+[  414.555579][T17509] ...
+[  414.555588][T17509]   lock_acquire+0x29d/0x740
+[  414.562763][T17509]   _raw_read_lock+0x5b/0x70
+[  414.567362][T17509]   kill_fasync+0x14b/0x460
+[  414.571868][T17509]   sock_wake_async+0xd2/0x160
+[  414.576694][T17509]   sk_wake_async+0x16c/0x280
+[  414.581424][T17509]   unix_shutdown+0x3d6/0x540
+[  414.586150][T17509]   __sys_shutdown+0xf1/0x1b0
+[  414.590839][T17509]   __x64_sys_shutdown+0x50/0x70
+[  414.595792][T17509]   do_syscall_64+0x2d/0x70
+[  414.600307][T17509]   entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[  414.606305][T17509] 
+[  414.606305][T17509] other info that might help us debug this:
+[  414.606305][T17509] 
+[  414.616537][T17509] Chain exists of:
+[  414.616537][T17509]   &dev->event_lock --> &client->buffer_lock --> &new->fa_lock
+[  414.616537][T17509] 
+[  414.629933][T17509]  Possible interrupt unsafe locking scenario:
+[  414.629933][T17509] 
+[  414.638250][T17509]        CPU0                    CPU1
+[  414.643614][T17509]        ----                    ----
+[  414.648976][T17509]   lock(&new->fa_lock);
+[  414.653220][T17509]                                local_irq_disable();
+[  414.659972][T17509]                                lock(&dev->event_lock);
+[  414.667000][T17509]                                lock(&client->buffer_lock);
+[  414.674374][T17509]   <Interrupt>
+[  414.677828][T17509]     lock(&dev->event_lock);
+[  414.682509][T17509] 
+[  414.682509][T17509]  *** DEADLOCK ***
+[  414.682509][T17509] 
+[  414.690659][T17509] 7 locks held by syz-executor.4/17509:
+[  414.696203][T17509]  #0: ffff88801ceeb110 (&evdev->mutex){+.+.}-{3:3}, at: evdev_write+0x1d3/0x760
+[  414.705376][T17509]  #1: ffff888144e34230 (&dev->event_lock){-.-.}-{2:2}, at: input_inject_event+0xa6/0x310
+[  414.715845][T17509]  #2: ffffffff8b363860 (rcu_read_lock){....}-{1:2}, at: input_inject_event+0x92/0x310
+[  414.725532][T17509]  #3: ffffffff8b363860 (rcu_read_lock){....}-{1:2}, at: input_pass_values.part.0+0x0/0x700
+[  414.735653][T17509]  #4: ffffffff8b363860 (rcu_read_lock){....}-{1:2}, at: evdev_events+0x59/0x3f0
+[  414.744820][T17509]  #5: ffff88806a4a6028 (&client->buffer_lock){....}-{2:2}, at: evdev_pass_values.part.0+0xf6/0x970
+[  414.755638][T17509]  #6: ffffffff8b363860 (rcu_read_lock){....}-{1:2}, at: kill_fasync+0x3d/0x460
+[  414.764713][T17509] 
+[  414.764713][T17509] the dependencies between HARDIRQ-irq-safe lock and the holding lock:
+[  414.775126][T17509]  -> (&dev->event_lock){-.-.}-{2:2} {
+[  414.780622][T17509]     IN-HARDIRQ-W at:
+[  414.784687][T17509]                       lock_acquire+0x29d/0x740
+[  414.791030][T17509]                       _raw_spin_lock_irqsave+0x39/0x50
+[  414.798074][T17509]                       input_event+0x7b/0xb0
+[  414.804151][T17509]                       psmouse_report_standard_buttons+0x2c/0x80
+[  414.811971][T17509]                       psmouse_process_byte+0x1e1/0x890
+[  414.819054][T17509]                       psmouse_handle_byte+0x41/0x1b0
+[  414.825896][T17509]                       psmouse_interrupt+0x304/0xf00
+[  414.832172][ T9807] usb 3-1: config 0 interface 0 altsetting 0 endpoint 0x81 has an invalid bInterval 0, changing to 7
+[  414.832639][T17509]                       serio_interrupt+0x88/0x150
+[  414.832668][T17509]                       i8042_interrupt+0x27a/0x520
+[  414.846223][ T9807] usb 3-1: New USB device found, idVendor=0926, idProduct=3333, bcdDevice= 0.40
+[  414.850872][T17509]                       __handle_irq_event_percpu+0x303/0x8f0
+[  414.850900][T17509]                       handle_irq_event+0x102/0x290
+[  414.874461][ T9807] usb 3-1: New USB device strings: Mfr=0, Product=0, SerialNumber=0
+[  414.880574][T17509]                       handle_edge_irq+0x25f/0xd00
+[  414.880607][T17509]                       asm_call_irq_on_stack+0xf/0x20
+[  414.890673][T10572] usb 1-1: config 0 interface 0 altsetting 0 endpoint 0x81 has an invalid bInterval 0, changing to 7
+[  414.895128][T17509]                       common_interrupt+0x120/0x200
+[  414.895154][T17509]                       asm_common_interrupt+0x1e/0x40
+[  414.895179][T17509]                       debug_lockdep_rcu_enabled+0x0/0x30
+[  414.910689][T10572] usb 1-1: New USB device found, idVendor=0926, idProduct=3333, bcdDevice= 0.40
+[  414.912817][T17509]                       rcu_read_lock_sched_held+0xd/0x70
+[  414.912848][T17509]                       lock_release+0x5b7/0x710
+[  414.912872][T17509]                       __alloc_pages_nodemask+0x169/0x730
+[  414.921860][T10572] usb 1-1: New USB device strings: Mfr=0, Product=0, SerialNumber=0
+[  414.926365][T17509]                       alloc_pages_current+0x18c/0x2a0
+[  414.926394][T17509]                       __pmd_alloc+0x3b/0x530
+[  414.926418][T17509]                       handle_mm_fault+0xc4f/0x5640
+[  414.926441][T17509]                       __get_user_pages+0x7ca/0x1490
+[  414.926463][T17509]                       __get_user_pages_remote+0x18f/0x810
+[  414.926486][T17509]                       get_user_pages_remote+0x63/0x90
+[  414.926509][T17509]                       get_arg_page+0xba/0x200
+[  414.926532][T17509]                       copy_string_kernel+0x1b4/0x520
+[  414.926556][T17509]                       kernel_execve+0x25c/0x460
+[  414.926580][T17509]                       call_usermodehelper_exec_async+0x2de/0x580
+[  414.926604][T17509]                       ret_from_fork+0x1f/0x30
+[  414.985784][T10572] usb 1-1: config 0 descriptor??
+[  414.991282][T17509]     IN-SOFTIRQ-W at:
+[  414.991297][T17509]                       lock_acquire+0x29d/0x740
+[  414.998669][ T9807] usb 3-1: config 0 descriptor??
+[  415.005311][T17509]                       _raw_spin_lock_irqsave+0x39/0x50
+[  415.005340][T17509]                       input_event+0x7b/0xb0
+[  415.005362][T17509]                       hidinput_hid_event+0x14d3/0x18b0
+[  415.086169][T17509]                       hid_process_event+0x491/0x570
+[  415.092962][T17509]                       hid_report_raw_event+0xd86/0x1230
+[  415.100086][T17509]                       hid_input_report+0x360/0x4c0
+[  415.106777][T17509]                       hid_irq_in+0x50e/0x690
+[  415.113024][T17509]                       __usb_hcd_giveback_urb+0x2b0/0x5c0
+[  415.120283][T17509]                       usb_hcd_giveback_urb+0x367/0x410
+[  415.127295][T17509]                       dummy_timer+0x11f4/0x3280
+[  415.133838][T17509]                       call_timer_fn+0x1a5/0x6b0
+[  415.140506][T17509]                       __run_timers.part.0+0x67c/0xa50
+[  415.147522][T17509]                       run_timer_softirq+0xb3/0x1d0
+[  415.154183][T17509]                       __do_softirq+0x2a5/0x9f7
+[  415.160499][T17509]                       asm_call_irq_on_stack+0xf/0x20
+[  415.167346][T17509]                       do_softirq_own_stack+0xaa/0xd0
+[  415.174230][T17509]                       irq_exit_rcu+0x134/0x200
+[  415.180663][T17509]                       sysvec_apic_timer_interrupt+0x4d/0x100
+[  415.188192][T17509]                       asm_sysvec_apic_timer_interrupt+0x12/0x20
+[  415.195982][T17509]                       kcov_remote_stop+0x10c/0x3f0
+[  415.202733][T17509]                       hub_event+0xe27/0x42d0
+[  415.208886][T17509]                       process_one_work+0x98d/0x15f0
+[  415.215630][T17509]                       worker_thread+0x64c/0x1120
+[  415.222122][T17509]                       kthread+0x3b1/0x4a0
+[  415.228153][T17509]                       ret_from_fork+0x1f/0x30
+[  415.234393][T17509]     INITIAL USE at:
+[  415.238353][T17509]                      lock_acquire+0x29d/0x740
+[  415.244591][T17509]                      _raw_spin_lock_irqsave+0x39/0x50
+[  415.251509][T17509]                      input_inject_event+0xa6/0x310
+[  415.258177][T17509]                      led_set_brightness_nosleep+0xe6/0x1a0
+[  415.265602][T17509]                      led_set_brightness+0x134/0x170
+[  415.272367][T17509]                      led_trigger_event+0x70/0xd0
+[  415.278886][T17509]                      kbd_led_trigger_activate+0xfa/0x130
+[  415.286105][T17509]                      led_trigger_set+0x61e/0xbd0
+[  415.292589][T17509]                      led_trigger_set_default+0x1a6/0x230
+[  415.299783][T17509]                      led_classdev_register_ext+0x5b1/0x7c0
+[  415.307132][T17509]                      input_leds_connect+0x3fb/0x740
+[  415.313884][T17509]                      input_attach_handler+0x180/0x1f0
+[  415.320846][T17509]                      input_register_device.cold+0xf0/0x307
+[  415.328269][T17509]                      atkbd_connect+0x736/0xa00
+[  415.334597][T17509]                      serio_driver_probe+0x72/0xa0
+[  415.341172][T17509]                      really_probe+0x291/0xde0
+[  415.347431][T17509]                      driver_probe_device+0x26b/0x3d0
+[  415.354298][T17509]                      device_driver_attach+0x228/0x290
+[  415.361320][T17509]                      __driver_attach+0x15b/0x2f0
+[  415.367803][T17509]                      bus_for_each_dev+0x147/0x1d0
+[  415.374465][T17509]                      serio_handle_event+0x5f6/0xa30
+[  415.381239][T17509]                      process_one_work+0x98d/0x15f0
+[  415.387901][T17509]                      worker_thread+0x64c/0x1120
+[  415.394353][T17509]                      kthread+0x3b1/0x4a0
+[  415.400172][T17509]                      ret_from_fork+0x1f/0x30
+[  415.406318][T17509]   }
+[  415.408885][T17509]   ... key      at: [<ffffffff8fa50fa0>] __key.8+0x0/0x40
+[  415.416155][T17509]   ... acquired at:
+[  415.420050][T17509]    _raw_spin_lock+0x2a/0x40
+[  415.424726][T17509]    evdev_pass_values.part.0+0xf6/0x970
+[  415.430346][T17509]    evdev_events+0x28b/0x3f0
+[  415.435007][T17509]    input_to_handler+0x2a0/0x4c0
+[  415.440036][T17509]    input_pass_values.part.0+0x284/0x700
+[  415.445736][T17509]    input_handle_event+0x373/0x1440
+[  415.451003][T17509]    input_inject_event+0x2f5/0x310
+[  415.456181][T17509]    evdev_write+0x430/0x760
+[  415.460761][T17509]    vfs_write+0x28e/0xa30
+[  415.465159][T17509]    ksys_write+0x1ee/0x250
+[  415.469642][T17509]    do_syscall_64+0x2d/0x70
+[  415.474240][T17509]    entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[  415.480313][T17509] 
+[  415.482631][T17509] -> (&client->buffer_lock){....}-{2:2} {
+[  415.488363][T17509]    INITIAL USE at:
+[  415.492242][T17509]                    lock_acquire+0x29d/0x740
+[  415.499097][T17509]                    _raw_spin_lock+0x2a/0x40
+[  415.505152][T17509]                    evdev_pass_values.part.0+0xf6/0x970
+[  415.512174][T17509]                    evdev_events+0x28b/0x3f0
+[  415.518265][T17509]                    input_to_handler+0x2a0/0x4c0
+[  415.524673][T17509]                    input_pass_values.part.0+0x284/0x700
+[  415.531788][T17509]                    input_handle_event+0x373/0x1440
+[  415.538449][T17509]                    input_inject_event+0x2f5/0x310
+[  415.545024][T17509]                    evdev_write+0x430/0x760
+[  415.550993][T17509]                    vfs_write+0x28e/0xa30
+[  415.556820][T17509]                    ksys_write+0x1ee/0x250
+[  415.562715][T17509]                    do_syscall_64+0x2d/0x70
+[  415.568676][T17509]                    entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[  415.576121][T17509]  }
+[  415.578599][T17509]  ... key      at: [<ffffffff8fa51420>] __key.4+0x0/0x40
+[  415.585697][T17509]  ... acquired at:
+[  415.589483][T17509]    lock_acquire+0x29d/0x740
+[  415.594144][T17509]    _raw_read_lock+0x5b/0x70
+[  415.598843][T17509]    kill_fasync+0x14b/0x460
+[  415.603416][T17509]    evdev_pass_values.part.0+0x64e/0x970
+[  415.609128][T17509]    evdev_events+0x28b/0x3f0
+[  415.613789][T17509]    input_to_handler+0x2a0/0x4c0
+[  415.618887][T17509]    input_pass_values.part.0+0x284/0x700
+[  415.624608][T17509]    input_handle_event+0x373/0x1440
+[  415.629878][T17509]    input_inject_event+0x2f5/0x310
+[  415.635076][T17509]    evdev_write+0x430/0x760
+[  415.639653][T17509]    vfs_write+0x28e/0xa30
+[  415.644054][T17509]    ksys_write+0x1ee/0x250
+[  415.648561][T17509]    do_syscall_64+0x2d/0x70
+[  415.653140][T17509]    entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[  415.659215][T17509] 
+[  415.661518][T17509] 
+[  415.661518][T17509] the dependencies between the lock to be acquired
+[  415.661525][T17509]  and HARDIRQ-irq-unsafe lock:
+[  415.675007][T17509] -> (&new->fa_lock){.?.+}-{2:2} {
+[  415.680135][T17509]    IN-HARDIRQ-R at:
+[  415.684098][T17509]                     lock_acquire+0x29d/0x740
+[  415.691285][T17509]                     _raw_read_lock+0x36/0x70
+[  415.697422][T17509]                     kill_fasync+0x14b/0x460
+[  415.703665][T17509]                     perf_pending_event+0x221/0x310
+[  415.710372][T17509]                     irq_work_single+0x120/0x1f0
+[  415.716820][T17509]                     irq_work_run_list+0x91/0xc0
+[  415.723221][T17509]                     irq_work_run+0x54/0xd0
+[  415.729205][T17509]                     __sysvec_irq_work+0x95/0x3d0
+[  415.735698][T17509]                     sysvec_irq_work+0x48/0x100
+[  415.742018][T17509]                     asm_sysvec_irq_work+0x12/0x20
+[  415.748607][T17509]    HARDIRQ-ON-R at:
+[  415.752569][T17509]                     lock_acquire+0x29d/0x740
+[  415.758746][T17509]                     _raw_read_lock+0x5b/0x70
+[  415.764901][T17509]                     kill_fasync+0x14b/0x460
+[  415.771332][T17509]                     sock_wake_async+0xd2/0x160
+[  415.777748][T17509]                     sk_wake_async+0x16c/0x280
+[  415.783984][T17509]                     unix_shutdown+0x3d6/0x540
+[  415.790232][T17509]                     __sys_shutdown+0xf1/0x1b0
+[  415.796463][T17509]                     __x64_sys_shutdown+0x50/0x70
+[  415.802972][T17509]                     do_syscall_64+0x2d/0x70
+[  415.809146][T17509]                     entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[  415.816676][T17509]    SOFTIRQ-ON-R at:
+[  415.820676][T17509]                     lock_acquire+0x29d/0x740
+[  415.826815][T17509]                     _raw_read_lock+0x5b/0x70
+[  415.832960][T17509]                     kill_fasync+0x14b/0x460
+[  415.839032][T17509]                     sock_wake_async+0xd2/0x160
+[  415.845365][T17509]                     sk_wake_async+0x16c/0x280
+[  415.851588][T17509]                     unix_shutdown+0x3d6/0x540
+[  415.857831][T17509]                     __sys_shutdown+0xf1/0x1b0
+[  415.864086][T17509]                     __x64_sys_shutdown+0x50/0x70
+[  415.870577][T17509]                     do_syscall_64+0x2d/0x70
+[  415.876629][T17509]                     entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[  415.884168][T17509]    INITIAL USE at:
+[  415.888405][T17509]                    lock_acquire+0x29d/0x740
+[  415.894475][T17509]                    _raw_write_lock_irq+0x32/0x50
+[  415.900975][T17509]                    fasync_remove_entry+0xb6/0x1f0
+[  415.907563][T17509]                    fasync_helper+0x9e/0xb0
+[  415.913549][T17509]                    sock_fasync+0x94/0x140
+[  415.919452][T17509]                    __fput+0x70d/0x920
+[  415.924992][T17509]                    task_work_run+0xdd/0x190
+[  415.931051][T17509]                    exit_to_user_mode_prepare+0x249/0x250
+[  415.938281][T17509]                    syscall_exit_to_user_mode+0x19/0x50
+[  415.945310][T17509]                    entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[  415.955449][T17509]    INITIAL READ USE at:
+[  415.959760][T17509]                         lock_acquire+0x29d/0x740
+[  415.966251][T17509]                         _raw_read_lock+0x5b/0x70
+[  415.972746][T17509]                         kill_fasync+0x14b/0x460
+[  415.979166][T17509]                         sock_wake_async+0xd2/0x160
+[  415.985845][T17509]                         sk_wake_async+0x16c/0x280
+[  415.992425][T17509]                         unix_shutdown+0x3d6/0x540
+[  415.999028][T17509]                         __sys_shutdown+0xf1/0x1b0
+[  416.005627][T17509]                         __x64_sys_shutdown+0x50/0x70
+[  416.012496][T17509]                         do_syscall_64+0x2d/0x70
+[  416.018915][T17509]                         entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[  416.026794][T17509]  }
+[  416.029292][T17509]  ... key      at: [<ffffffff8ef8d980>] __key.0+0x0/0x40
+[  416.036430][T17509]  ... acquired at:
+[  416.040213][T17509]    lock_acquire+0x29d/0x740
+[  416.044886][T17509]    _raw_read_lock+0x5b/0x70
+[  416.049566][T17509]    kill_fasync+0x14b/0x460
+[  416.054136][T17509]    evdev_pass_values.part.0+0x64e/0x970
+[  416.059856][T17509]    evdev_events+0x28b/0x3f0
+[  416.064534][T17509]    input_to_handler+0x2a0/0x4c0
+[  416.069556][T17509]    input_pass_values.part.0+0x284/0x700
+[  416.075257][T17509]    input_handle_event+0x373/0x1440
+[  416.080525][T17509]    input_inject_event+0x2f5/0x310
+[  416.085705][T17509]    evdev_write+0x430/0x760
+[  416.090279][T17509]    vfs_write+0x28e/0xa30
+[  416.094703][T17509]    ksys_write+0x1ee/0x250
+[  416.099206][T17509]    do_syscall_64+0x2d/0x70
+[  416.103789][T17509]    entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[  416.109841][T17509] 
+[  416.112158][T17509] 
+[  416.112158][T17509] stack backtrace:
+[  416.118052][T17509] CPU: 1 PID: 17509 Comm: syz-executor.4 Not tainted 5.11.0-rc1-syzkaller #0
+[  416.126814][T17509] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  416.136854][T17509] Call Trace:
+[  416.140404][T17509]  dump_stack+0x107/0x163
+[  416.144727][T17509]  check_irq_usage.cold+0x4f5/0x6c8
+[  416.149990][T17509]  ? print_shortest_lock_dependencies+0x80/0x80
+[  416.156225][T17509]  ? check_path.constprop.0+0x22/0x40
+[  416.161590][T17509]  ? lockdep_lock+0xc6/0x200
+[  416.171037][T17509]  ? call_rcu_zapped+0xb0/0xb0
+[  416.175792][T17509]  ? lock_chain_count+0x20/0x20
+[  416.180652][T17509]  __lock_acquire+0x2af6/0x5500
+[  416.185509][T17509]  ? lockdep_hardirqs_on_prepare+0x400/0x400
+[  416.191476][T17509]  ? __lock_acquire+0x16b7/0x5500
+[  416.196486][T17509]  lock_acquire+0x29d/0x740
+[  416.200981][T17509]  ? kill_fasync+0x14b/0x460
+[  416.205556][T17509]  ? lock_release+0x710/0x710
+[  416.210245][T17509]  ? lock_release+0x710/0x710
+[  416.214908][T17509]  ? lock_release+0x710/0x710
+[  416.219573][T17509]  _raw_read_lock+0x5b/0x70
+[  416.224064][T17509]  ? kill_fasync+0x14b/0x460
+[  416.228655][T17509]  kill_fasync+0x14b/0x460
+[  416.233061][T17509]  evdev_pass_values.part.0+0x64e/0x970
+[  416.238642][T17509]  ? evdev_release+0x410/0x410
+[  416.243392][T17509]  ? __sanitizer_cov_trace_cmp4+0x1c/0x70
+[  416.249119][T17509]  evdev_events+0x28b/0x3f0
+[  416.253612][T17509]  ? evdev_pass_values.part.0+0x970/0x970
+[  416.259341][T17509]  input_to_handler+0x2a0/0x4c0
+[  416.264183][T17509]  input_pass_values.part.0+0x284/0x700
+[  416.269733][T17509]  input_handle_event+0x373/0x1440
+[  416.274832][T17509]  input_inject_event+0x2f5/0x310
+[  416.279843][T17509]  evdev_write+0x430/0x760
+[  416.284246][T17509]  ? evdev_read+0xe40/0xe40
+[  416.288736][T17509]  ? security_file_permission+0x248/0x560
+[  416.294455][T17509]  ? evdev_read+0xe40/0xe40
+[  416.298973][T17509]  vfs_write+0x28e/0xa30
+[  416.303209][T17509]  ksys_write+0x1ee/0x250
+[  416.307523][T17509]  ? __ia32_sys_read+0xb0/0xb0
+[  416.312275][T17509]  ? syscall_enter_from_user_mode+0x1d/0x50
+[  416.318177][T17509]  do_syscall_64+0x2d/0x70
+[  416.322578][T17509]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[  416.328463][T17509] RIP: 0033:0x45e219
+[  416.332358][T17509] Code: 0d b4 fb ff c3 66 2e 0f 1f 84 00 00 00 00 00 66 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 db b3 fb ff c3 66 2e 0f 1f 84 00 00 00 00
+[  416.351974][T17509] RSP: 002b:00007f6a6b9c8c68 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
+[  416.360393][T17509] RAX: ffffffffffffffda RBX: 0000000000000003 RCX: 000000000045e219
+[  416.368355][T17509] RDX: 00000000000002b8 RSI: 0000000020000040 RDI: 0000000000000007
+[  416.376482][T17509] RBP: 000000000119bfc0 R08: 0000000000000000 R09: 0000000000000000
+[  416.384445][T17509] R10: 0000000000000000 R11: 0000000000000246 R12: 000000000119bf8c
+[  416.392408][T17509] R13: 00000000016afb5f R14: 00007f6a6b9c99c0 R15: 000000000119bf8c

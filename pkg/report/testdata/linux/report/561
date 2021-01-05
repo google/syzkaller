@@ -1,0 +1,345 @@
+TITLE: possible deadlock in cgroup_rstat_updated
+
+[  594.649298][ T5097] =====================================================
+[  594.649596][ T5097] WARNING: HARDIRQ-safe -> HARDIRQ-unsafe lock order detected
+[  594.650724][ T5097] 5.10.0-rc1+ #20 Not tainted
+[  594.651079][ T5097] -----------------------------------------------------
+[  594.651602][ T5097] kworker/0:4/5097 [HC0[0]:SC0[0]:HE0:SE1] is trying to acquire:
+[  594.652340][ T5097] ff76a014 (&syncp->seq#2){+.+.}-{0:0}, at: cgroup_rstat_flush_locked+0x418/0x608
+[  594.654435][ T5097] 
+[  594.654435][ T5097] and this task is already holding:
+[  594.654776][ T5097] de5c895c (per_cpu_ptr(&cgroup_rstat_cpu_lock, cpu)){-...}-{2:2}, at: cgroup_rstat_flush_locked+0xa0/0x608
+[  594.655279][ T5097] which would create a new lock dependency:
+[  594.655513][ T5097]  (per_cpu_ptr(&cgroup_rstat_cpu_lock, cpu)){-...}-{2:2} -> (&syncp->seq#2){+.+.}-{0:0}
+[  594.656061][ T5097] 
+[  594.656061][ T5097] but this new dependency connects a HARDIRQ-irq-safe lock:
+[  594.656335][ T5097]  (per_cpu_ptr(&cgroup_rstat_cpu_lock, cpu)){-...}-{2:2}
+[  594.656433][ T5097] 
+[  594.656433][ T5097] ... which became HARDIRQ-irq-safe at:
+[  594.657091][ T5097]   lock_acquire.part.0+0xe4/0x4b0
+[  594.657383][ T5097]   lock_acquire+0x6c/0x74
+[  594.657566][ T5097]   _raw_spin_lock_irqsave+0x54/0x70
+[  594.657810][ T5097]   cgroup_rstat_updated+0x54/0xac
+[  594.658017][ T5097]   cgroup_base_stat_cputime_account_end+0x40/0x74
+[  594.658226][ T5097]   __cgroup_account_cputime_field+0x54/0x70
+[  594.658426][ T5097]   task_group_account_field+0x100/0x210
+[  594.658619][ T5097]   account_system_index_time+0x88/0x94
+[  594.658833][ T5097]   irqtime_account_process_tick+0x388/0x3b4
+[  594.659111][ T5097]   account_process_tick+0x1ac/0x1e4
+[  594.659348][ T5097]   update_process_times+0x64/0xcc
+[  594.659526][ T5097]   tick_sched_timer+0x84/0x2b0
+[  594.659726][ T5097]   __hrtimer_run_queues+0x294/0x6b4
+[  594.659980][ T5097]   hrtimer_interrupt+0x14c/0x330
+[  594.660171][ T5097]   arch_timer_handler_virt+0x30/0x38
+[  594.660383][ T5097]   handle_percpu_devid_irq+0xa4/0x19c
+[  594.660575][ T5097]   __handle_domain_irq+0xb0/0x120
+[  594.660782][ T5097]   gic_handle_irq+0x74/0x88
+[  594.661045][ T5097]   __irq_svc+0x70/0xb0
+[  594.661257][ T5097]   _raw_spin_unlock_irq+0x2c/0x60
+[  594.661455][ T5097]   cgroup_migrate_execute+0x254/0x4bc
+[  594.661712][ T5097]   cgroup_migrate+0xec/0x15c
+[  594.661995][ T5097]   cgroup_attach_task+0x22c/0x52c
+[  594.662269][ T5097]   cgroup_procs_write+0xdc/0x1f0
+[  594.662454][ T5097]   cgroup_file_write+0xa8/0x270
+[  594.662630][ T5097]   kernfs_fop_write+0xe0/0x25c
+[  594.662844][ T5097]   vfs_write+0xf8/0x398
+[  594.663007][ T5097]   ksys_write+0x6c/0xf0
+[  594.663221][ T5097]   sys_write+0x10/0x14
+[  594.663429][ T5097]   ret_fast_syscall+0x0/0x2c
+[  594.664070][ T5097]   0x7e93c548
+[  594.664312][ T5097] 
+[  594.664312][ T5097] to a HARDIRQ-irq-unsafe lock:
+[  594.664601][ T5097]  (&syncp->seq#2){+.+.}-{0:0}
+[  594.664785][ T5097] 
+[  594.664785][ T5097] ... which became HARDIRQ-irq-unsafe at:
+[  594.665297][ T5097] ...
+[  594.665412][ T5097]   lock_acquire.part.0+0xe4/0x4b0
+[  594.666092][ T5097]   lock_acquire+0x6c/0x74
+[  594.666385][ T5097]   blk_cgroup_bio_start+0x9c/0x174
+[  594.666790][ T5097]   submit_bio_checks+0x38c/0xc40
+[  594.666952][ T5097]   submit_bio_noacct+0x2c/0x3ec
+[  594.667111][ T5097]   submit_bio+0x5c/0x21c
+[  594.667289][ T5097]   submit_bh_wbc+0x190/0x1c0
+[  594.667595][ T5097]   block_read_full_page+0x514/0x5f8
+[  594.667823][ T5097]   blkdev_readpage+0x1c/0x20
+[  594.667989][ T5097]   do_read_cache_page+0x258/0x52c
+[  594.669392][ T5097]   read_cache_page+0x1c/0x24
+[  594.669736][ T5097]   read_part_sector+0x50/0x144
+[  594.669951][ T5097]   adfspart_check_ICS+0x3c/0x340
+[  594.670134][ T5097]   blk_add_partitions+0x148/0x51c
+[  594.670295][ T5097]   bdev_disk_changed+0xa0/0x134
+[  594.670496][ T5097]   __blkdev_get+0x554/0x6e4
+[  594.670720][ T5097]   blkdev_get+0x50/0xbc
+[  594.670889][ T5097]   blkdev_get_by_dev+0x30/0x40
+[  594.671108][ T5097]   __device_add_disk+0x464/0x5dc
+[  594.671329][ T5097]   device_add_disk+0x14/0x18
+[  594.671534][ T5097]   brd_init+0x138/0x1e0
+[  594.671743][ T5097]   do_one_initcall+0x90/0x5ac
+[  594.672328][ T5097]   kernel_init_freeable+0x2c8/0x32c
+[  594.672524][ T5097]   kernel_init+0x10/0x120
+[  594.672781][ T5097]   ret_from_fork+0x14/0x38
+[  594.672969][ T5097]   0x0
+[  594.673170][ T5097] 
+[  594.673170][ T5097] other info that might help us debug this:
+[  594.673170][ T5097] 
+[  594.673659][ T5097]  Possible interrupt unsafe locking scenario:
+[  594.673659][ T5097] 
+[  594.674731][ T5097]        CPU0                    CPU1
+[  594.674983][ T5097]        ----                    ----
+[  594.675170][ T5097]   lock(&syncp->seq#2);
+[  594.675432][ T5097]                                local_irq_disable();
+[  594.675626][ T5097]                                lock(per_cpu_ptr(&cgroup_rstat_cpu_lock, cpu));
+[  594.676062][ T5097]                                lock(&syncp->seq#2);
+[  594.679079][ T5097]   <Interrupt>
+[  594.680205][ T5097]     lock(per_cpu_ptr(&cgroup_rstat_cpu_lock, cpu));
+[  594.680599][ T5097] 
+[  594.680599][ T5097]  *** DEADLOCK ***
+[  594.680599][ T5097] 
+[  594.681119][ T5097] 7 locks held by kworker/0:4/5097:
+[  594.682527][ T5097]  #0: 84a032a8 ((wq_completion)cgroup_destroy){+.+.}-{0:0}, at: process_one_work+0x1f8/0x984
+[  594.683128][ T5097]  #1: 8a56def8 ((work_completion)(&css->destroy_work)#2){+.+.}-{0:0}, at: process_one_work+0x1f8/0x984
+[  594.683642][ T5097]  #2: 83539724 (cgroup_mutex){+.+.}-{3:3}, at: css_release_work_fn+0x28/0x424
+[  594.684228][ T5097]  #3: 8353c634 (cgroup_rstat_lock){....}-{2:2}, at: cgroup_rstat_flush+0x34/0x4c
+[  594.684738][ T5097]  #4: de5c895c (per_cpu_ptr(&cgroup_rstat_cpu_lock, cpu)){-...}-{2:2}, at: cgroup_rstat_flush_locked+0xa0/0x608
+[  594.685221][ T5097]  #5: 83535e9c (rcu_read_lock){....}-{1:2}, at: cgroup_rstat_flush_locked+0x3a8/0x608
+[  594.686574][ T5097]  #6: 83535e9c (rcu_read_lock){....}-{1:2}, at: blkcg_rstat_flush+0x0/0x604
+[  594.687154][ T5097] 
+[  594.687154][ T5097] the dependencies between HARDIRQ-irq-safe lock and the holding lock:
+[  594.687669][ T5097] -> (per_cpu_ptr(&cgroup_rstat_cpu_lock, cpu)){-...}-{2:2} {
+[  594.688123][ T5097]    IN-HARDIRQ-W at:
+[  594.688373][ T5097]                     lock_acquire.part.0+0xe4/0x4b0
+[  594.688593][ T5097]                     lock_acquire+0x6c/0x74
+[  594.688895][ T5097]                     _raw_spin_lock_irqsave+0x54/0x70
+[  594.689165][ T5097]                     cgroup_rstat_updated+0x54/0xac
+[  594.689385][ T5097]                     cgroup_base_stat_cputime_account_end+0x40/0x74
+[  594.689653][ T5097]                     __cgroup_account_cputime_field+0x54/0x70
+[  594.689909][ T5097]                     task_group_account_field+0x100/0x210
+[  594.690147][ T5097]                     account_system_index_time+0x88/0x94
+[  594.690367][ T5097]                     irqtime_account_process_tick+0x388/0x3b4
+[  594.690596][ T5097]                     account_process_tick+0x1ac/0x1e4
+[  594.690815][ T5097]                     update_process_times+0x64/0xcc
+[  594.691029][ T5097]                     tick_sched_timer+0x84/0x2b0
+[  594.691241][ T5097]                     __hrtimer_run_queues+0x294/0x6b4
+[  594.691459][ T5097]                     hrtimer_interrupt+0x14c/0x330
+[  594.691664][ T5097]                     arch_timer_handler_virt+0x30/0x38
+[  594.691885][ T5097]                     handle_percpu_devid_irq+0xa4/0x19c
+[  594.692102][ T5097]                     __handle_domain_irq+0xb0/0x120
+[  594.692305][ T5097]                     gic_handle_irq+0x74/0x88
+[  594.692503][ T5097]                     __irq_svc+0x70/0xb0
+[  594.692695][ T5097]                     _raw_spin_unlock_irq+0x2c/0x60
+[  594.692917][ T5097]                     cgroup_migrate_execute+0x254/0x4bc
+[  594.693155][ T5097]                     cgroup_migrate+0xec/0x15c
+[  594.693356][ T5097]                     cgroup_attach_task+0x22c/0x52c
+[  594.693568][ T5097]                     cgroup_procs_write+0xdc/0x1f0
+[  594.693796][ T5097]                     cgroup_file_write+0xa8/0x270
+[  594.693998][ T5097]                     kernfs_fop_write+0xe0/0x25c
+[  594.694191][ T5097]                     vfs_write+0xf8/0x398
+[  594.694390][ T5097]                     ksys_write+0x6c/0xf0
+[  594.694565][ T5097]                     sys_write+0x10/0x14
+[  594.694746][ T5097]                     ret_fast_syscall+0x0/0x2c
+[  594.694934][ T5097]                     0x7e93c548
+[  594.695117][ T5097]    INITIAL USE at:
+[  594.695297][ T5097]                    lock_acquire.part.0+0xe4/0x4b0
+[  594.695480][ T5097]                    lock_acquire+0x6c/0x74
+[  594.695655][ T5097]                    _raw_spin_lock_irqsave+0x54/0x70
+[  594.696404][ T5097]                    cgroup_rstat_updated+0x54/0xac
+[  594.698361][ T5097]                    cgroup_base_stat_cputime_account_end+0x40/0x74
+[  594.700546][ T5097]                    __cgroup_account_cputime_field+0x54/0x70
+[  594.702773][ T5097]                    task_group_account_field+0x100/0x210
+[  594.704613][ T5097]                    account_system_index_time+0x88/0x94
+[  594.706272][ T5097]                    irqtime_account_process_tick+0x388/0x3b4
+[  594.708716][ T5097]                    account_process_tick+0x1ac/0x1e4
+[  594.710855][ T5097]                    update_process_times+0x64/0xcc
+[  594.712726][ T5097]                    tick_sched_timer+0x84/0x2b0
+[  594.713144][ T5097]                    __hrtimer_run_queues+0x294/0x6b4
+[  594.714996][ T5097]                    hrtimer_interrupt+0x14c/0x330
+[  594.715243][ T5097]                    arch_timer_handler_virt+0x30/0x38
+[  594.715565][ T5097]                    handle_percpu_devid_irq+0xa4/0x19c
+[  594.715813][ T5097]                    __handle_domain_irq+0xb0/0x120
+[  594.716021][ T5097]                    gic_handle_irq+0x74/0x88
+[  594.716277][ T5097]                    __irq_svc+0x70/0xb0
+[  594.717626][ T5097]                    _raw_spin_unlock_irq+0x2c/0x60
+[  594.719072][ T5097]                    cgroup_migrate_execute+0x254/0x4bc
+[  594.720024][ T5097]                    cgroup_migrate+0xec/0x15c
+[  594.720240][ T5097]                    cgroup_attach_task+0x22c/0x52c
+[  594.720462][ T5097]                    cgroup_procs_write+0xdc/0x1f0
+[  594.720662][ T5097]                    cgroup_file_write+0xa8/0x270
+[  594.720858][ T5097]                    kernfs_fop_write+0xe0/0x25c
+[  594.721066][ T5097]                    vfs_write+0xf8/0x398
+[  594.721241][ T5097]                    ksys_write+0x6c/0xf0
+[  594.721415][ T5097]                    sys_write+0x10/0x14
+[  594.721584][ T5097]                    ret_fast_syscall+0x0/0x2c
+[  594.721794][ T5097]                    0x7e93c548
+[  594.721982][ T5097]  }
+[  594.722134][ T5097]  ... key      at: [<83e81c44>] __key.0+0x0/0x8
+[  594.722340][ T5097]  ... acquired at:
+[  594.722506][ T5097]    lock_acquire.part.0+0xe4/0x4b0
+[  594.722680][ T5097]    lock_acquire+0x6c/0x74
+[  594.722831][ T5097]    blkcg_rstat_flush+0x100/0x604
+[  594.722992][ T5097]    cgroup_rstat_flush_locked+0x418/0x608
+[  594.723185][ T5097]    cgroup_rstat_flush+0x40/0x4c
+[  594.723377][ T5097]    css_release_work_fn+0x74/0x424
+[  594.723563][ T5097]    process_one_work+0x2b8/0x984
+[  594.723740][ T5097]    worker_thread+0x64/0x54c
+[  594.723911][ T5097]    kthread+0x184/0x1a4
+[  594.724080][ T5097]    ret_from_fork+0x14/0x38
+[  594.724245][ T5097]    0x0
+[  594.724415][ T5097] 
+[  594.724597][ T5097] 
+[  594.724597][ T5097] the dependencies between the lock to be acquired
+[  594.724636][ T5097]  and HARDIRQ-irq-unsafe lock:
+[  594.725049][ T5097] -> (&syncp->seq#2){+.+.}-{0:0} {
+[  594.725369][ T5097]    HARDIRQ-ON-W at:
+[  594.725550][ T5097]                     lock_acquire.part.0+0xe4/0x4b0
+[  594.725768][ T5097]                     lock_acquire+0x6c/0x74
+[  594.725959][ T5097]                     blk_cgroup_bio_start+0x9c/0x174
+[  594.726197][ T5097]                     submit_bio_checks+0x38c/0xc40
+[  594.726408][ T5097]                     submit_bio_noacct+0x2c/0x3ec
+[  594.726615][ T5097]                     submit_bio+0x5c/0x21c
+[  594.726818][ T5097]                     submit_bh_wbc+0x190/0x1c0
+[  594.727021][ T5097]                     block_read_full_page+0x514/0x5f8
+[  594.727238][ T5097]                     blkdev_readpage+0x1c/0x20
+[  594.727443][ T5097]                     do_read_cache_page+0x258/0x52c
+[  594.727651][ T5097]                     read_cache_page+0x1c/0x24
+[  594.727852][ T5097]                     read_part_sector+0x50/0x144
+[  594.728057][ T5097]                     adfspart_check_ICS+0x3c/0x340
+[  594.728267][ T5097]                     blk_add_partitions+0x148/0x51c
+[  594.728495][ T5097]                     bdev_disk_changed+0xa0/0x134
+[  594.728693][ T5097]                     __blkdev_get+0x554/0x6e4
+[  594.728886][ T5097]                     blkdev_get+0x50/0xbc
+[  594.729071][ T5097]                     blkdev_get_by_dev+0x30/0x40
+[  594.729272][ T5097]                     __device_add_disk+0x464/0x5dc
+[  594.729472][ T5097]                     device_add_disk+0x14/0x18
+[  594.729679][ T5097]                     brd_init+0x138/0x1e0
+[  594.729869][ T5097]                     do_one_initcall+0x90/0x5ac
+[  594.730065][ T5097]                     kernel_init_freeable+0x2c8/0x32c
+[  594.730277][ T5097]                     kernel_init+0x10/0x120
+[  594.730465][ T5097]                     ret_from_fork+0x14/0x38
+[  594.730653][ T5097]                     0x0
+[  594.730795][ T5097]    SOFTIRQ-ON-W at:
+[  594.730971][ T5097]                     lock_acquire.part.0+0xe4/0x4b0
+[  594.731165][ T5097]                     lock_acquire+0x6c/0x74
+[  594.731354][ T5097]                     blk_cgroup_bio_start+0x9c/0x174
+[  594.731566][ T5097]                     submit_bio_checks+0x38c/0xc40
+[  594.731758][ T5097]                     submit_bio_noacct+0x2c/0x3ec
+[  594.731960][ T5097]                     submit_bio+0x5c/0x21c
+[  594.732153][ T5097]                     submit_bh_wbc+0x190/0x1c0
+[  594.732344][ T5097]                     block_read_full_page+0x514/0x5f8
+[  594.732553][ T5097]                     blkdev_readpage+0x1c/0x20
+[  594.732751][ T5097]                     do_read_cache_page+0x258/0x52c
+[  594.732956][ T5097]                     read_cache_page+0x1c/0x24
+[  594.733150][ T5097]                     read_part_sector+0x50/0x144
+[  594.733353][ T5097]                     adfspart_check_ICS+0x3c/0x340
+[  594.733560][ T5097]                     blk_add_partitions+0x148/0x51c
+[  594.749932][ T5097]                     bdev_disk_changed+0xa0/0x134
+[  594.753185][ T5097]                     __blkdev_get+0x554/0x6e4
+[  594.753484][ T5097]                     blkdev_get+0x50/0xbc
+[  594.753692][ T5097]                     blkdev_get_by_dev+0x30/0x40
+[  594.753929][ T5097]                     __device_add_disk+0x464/0x5dc
+[  594.754141][ T5097]                     device_add_disk+0x14/0x18
+[  594.754341][ T5097]                     brd_init+0x138/0x1e0
+[  594.754600][ T5097]                     do_one_initcall+0x90/0x5ac
+[  594.754803][ T5097]                     kernel_init_freeable+0x2c8/0x32c
+[  594.755014][ T5097]                     kernel_init+0x10/0x120
+[  594.755207][ T5097]                     ret_from_fork+0x14/0x38
+[  594.755453][ T5097]                     0x0
+[  594.755627][ T5097]    INITIAL USE at:
+[  594.755827][ T5097]                    lock_acquire.part.0+0xe4/0x4b0
+[  594.756036][ T5097]                    lock_acquire+0x6c/0x74
+[  594.756227][ T5097]                    blk_cgroup_bio_start+0x9c/0x174
+[  594.756459][ T5097]                    submit_bio_checks+0x38c/0xc40
+[  594.757641][ T5097]                    submit_bio_noacct+0x2c/0x3ec
+[  594.757934][ T5097]                    submit_bio+0x5c/0x21c
+[  594.765095][ T5097]                    submit_bh_wbc+0x190/0x1c0
+[  594.765406][ T5097]                    block_read_full_page+0x514/0x5f8
+[  594.765704][ T5097]                    blkdev_readpage+0x1c/0x20
+[  594.765998][ T5097]                    do_read_cache_page+0x258/0x52c
+[  594.766248][ T5097]                    read_cache_page+0x1c/0x24
+[  594.766470][ T5097]                    read_part_sector+0x50/0x144
+[  594.766730][ T5097]                    adfspart_check_ICS+0x3c/0x340
+[  594.767039][ T5097]                    blk_add_partitions+0x148/0x51c
+[  594.767286][ T5097]                    bdev_disk_changed+0xa0/0x134
+[  594.767507][ T5097]                    __blkdev_get+0x554/0x6e4
+[  594.767774][ T5097]                    blkdev_get+0x50/0xbc
+[  594.767976][ T5097]                    blkdev_get_by_dev+0x30/0x40
+[  594.768200][ T5097]                    __device_add_disk+0x464/0x5dc
+[  594.768424][ T5097]                    device_add_disk+0x14/0x18
+[  594.768634][ T5097]                    brd_init+0x138/0x1e0
+[  594.768833][ T5097]                    do_one_initcall+0x90/0x5ac
+[  594.769044][ T5097]                    kernel_init_freeable+0x2c8/0x32c
+[  594.769286][ T5097]                    kernel_init+0x10/0x120
+[  594.769509][ T5097]                    ret_from_fork+0x14/0x38
+[  594.769737][ T5097]                    0x0
+[  594.769903][ T5097]    INITIAL READ USE at:
+[  594.770115][ T5097]                         lock_acquire.part.0+0xe4/0x4b0
+[  594.770347][ T5097]                         lock_acquire+0x6c/0x74
+[  594.770554][ T5097]                         blkcg_rstat_flush+0x100/0x604
+[  594.770768][ T5097]                         cgroup_rstat_flush_locked+0x418/0x608
+[  594.770993][ T5097]                         cgroup_rstat_flush+0x40/0x4c
+[  594.771227][ T5097]                         css_release_work_fn+0x74/0x424
+[  594.771437][ T5097]                         process_one_work+0x2b8/0x984
+[  594.771649][ T5097]                         worker_thread+0x64/0x54c
+[  594.771842][ T5097]                         kthread+0x184/0x1a4
+[  594.772024][ T5097]                         ret_from_fork+0x14/0x38
+[  594.772212][ T5097]                         0x0
+[  594.772371][ T5097]  }
+[  594.772501][ T5097]  ... key      at: [<83f058a8>] __key.3+0x0/0x8
+[  594.772694][ T5097]  ... acquired at:
+[  594.772842][ T5097]    lock_acquire.part.0+0xe4/0x4b0
+[  594.773017][ T5097]    lock_acquire+0x6c/0x74
+[  594.773177][ T5097]    blkcg_rstat_flush+0x100/0x604
+[  594.773352][ T5097]    cgroup_rstat_flush_locked+0x418/0x608
+[  594.773541][ T5097]    cgroup_rstat_flush+0x40/0x4c
+[  594.773723][ T5097]    css_release_work_fn+0x74/0x424
+[  594.773900][ T5097]    process_one_work+0x2b8/0x984
+[  594.774072][ T5097]    worker_thread+0x64/0x54c
+[  594.774236][ T5097]    kthread+0x184/0x1a4
+[  594.774402][ T5097]    ret_from_fork+0x14/0x38
+[  594.774586][ T5097]    0x0
+[  594.774709][ T5097] 
+[  594.774840][ T5097] 
+[  594.774840][ T5097] stack backtrace:
+[  594.775321][ T5097] CPU: 0 PID: 5097 Comm: kworker/0:4 Not tainted 5.10.0-rc1+ #20
+[  594.775581][ T5097] Hardware name: ARM-Versatile Express
+[  594.776308][ T5097] Workqueue: cgroup_destroy css_release_work_fn
+[  594.776764][ T5097] Backtrace: 
+[  594.777147][ T5097] [<825afeb4>] (dump_backtrace) from [<825b0128>] (show_stack+0x18/0x1c)
+[  594.777571][ T5097]  r7:00000080 r6:60000093 r5:00000000 r4:83624124
+[  594.777867][ T5097] [<825b0110>] (show_stack) from [<825c0af0>] (dump_stack+0xa8/0xc8)
+[  594.778121][ T5097] [<825c0a48>] (dump_stack) from [<801a90bc>] (print_bad_irq_dependency+0x364/0x3dc)
+[  594.778390][ T5097]  r7:8a56dc50 r6:8a56dc34 r5:87e78000 r4:83cb7efc
+[  594.778604][ T5097] [<801a8d58>] (print_bad_irq_dependency) from [<801abecc>] (__lock_acquire+0x1a08/0x3158)
+[  594.778917][ T5097]  r10:87e78750 r9:87e78000 r8:82df9f08 r7:83e3ddf8 r6:82dff194 r5:87e786f0
+[  594.779181][ T5097]  r4:87e786f0
+[  594.779349][ T5097] [<801aa4c4>] (__lock_acquire) from [<801ae16c>] (lock_acquire.part.0+0xe4/0x4b0)
+[  594.779630][ T5097]  r10:00000000 r9:00000000 r8:60000093 r7:ff76a014 r6:833c9680 r5:833c9680
+[  594.779881][ T5097]  r4:8a56dca0
+[  594.780028][ T5097] [<801ae088>] (lock_acquire.part.0) from [<801ae5a4>] (lock_acquire+0x6c/0x74)
+[  594.780314][ T5097]  r10:80229498 r9:00000000 r8:00000001 r7:00000002 r6:00000000 r5:00000000
+[  594.780562][ T5097]  r4:ff76a014
+[  594.780710][ T5097] [<801ae538>] (lock_acquire) from [<80df26ec>] (blkcg_rstat_flush+0x100/0x604)
+[  594.780958][ T5097]  r10:8a6f4c00 r9:a0000093 r8:00000001 r7:ff76a014 r6:ff76a028 r5:ff76a040
+[  594.781186][ T5097]  r4:ff76a010
+[  594.781329][ T5097] [<80df25ec>] (blkcg_rstat_flush) from [<80229498>] (cgroup_rstat_flush_locked+0x418/0x608)
+[  594.781609][ T5097]  r10:8a601000 r9:8344f124 r8:00000000 r7:8353a4f8 r6:8a613200 r5:8a6011d4
+[  594.794002][ T5097]  r4:8a601000
+[  594.794241][ T5097] [<80229080>] (cgroup_rstat_flush_locked) from [<802297e8>] (cgroup_rstat_flush+0x40/0x4c)
+[  594.794628][ T5097]  r10:00000008 r9:8376475b r8:8344ec98 r7:89f53e20 r6:8361eadc r5:8a601000
+[  594.794943][ T5097]  r4:8353c624
+[  594.795179][ T5097] [<802297a8>] (cgroup_rstat_flush) from [<8021b798>] (css_release_work_fn+0x74/0x424)
+[  594.795467][ T5097]  r5:8a601000 r4:89f53e3c
+[  594.795644][ T5097] [<8021b724>] (css_release_work_fn) from [<8015b888>] (process_one_work+0x2b8/0x984)
+[  594.795915][ T5097]  r9:8376475b r8:8344ec98 r7:de5d5200 r6:de5cfb40 r5:8a490380 r4:89f53e3c
+[  594.796421][ T5097] [<8015b5d0>] (process_one_work) from [<8015bfb8>] (worker_thread+0x64/0x54c)
+[  594.796799][ T5097]  r10:00000008 r9:8a56c000 r8:83406d00 r7:de5cfb78 r6:8a490394 r5:de5cfb40
+[  594.797091][ T5097]  r4:8a490380
+[  594.797295][ T5097] [<8015bf54>] (worker_thread) from [<80164018>] (kthread+0x184/0x1a4)
+[  594.797696][ T5097]  r10:87699e64 r9:8a490380 r8:8015bf54 r7:00000000 r6:8a56c000 r5:8a48fe80
+[  594.797953][ T5097]  r4:8a490780
+[  594.798106][ T5097] [<80163e94>] (kthread) from [<8010011c>] (ret_from_fork+0x14/0x38)
+[  594.799889][ T5097] Exception stack(0x8a56dfb0 to 0x8a56dff8)
+[  594.801824][ T5097] dfa0:                                     00000000 00000000 00000000 00000000
+[  594.804653][ T5097] dfc0: 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[  594.807421][ T5097] dfe0: 00000000 00000000 00000000 00000000 00000013 00000000
+[  594.809760][ T5097]  r10:00000000 r9:00000000 r8:00000000 r7:00000000 r6:00000000 r5:80163e94
+[  594.812244][ T5097]  r4:8a48fe80
