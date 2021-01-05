@@ -10,15 +10,15 @@ import (
 )
 
 func TestNormalizePrio(t *testing.T) {
-	prios := [][]float32{
+	prios := [][]int32{
 		{2, 2, 2},
 		{1, 2, 4},
 		{1, 2, 0},
 	}
-	want := [][]float32{
-		{1, 1, 1},
-		{0.1, 0.4, 1},
-		{0.4, 1, 0.1},
+	want := [][]int32{
+		{1000, 1000, 1000},
+		{257, 505, 1000},
+		{505, 1000, 10},
 	}
 	t.Logf("had:  %+v", prios)
 	normalizePrio(prios)

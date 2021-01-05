@@ -48,13 +48,13 @@ func main() {
 	showPriorities(enabled, target.CalculatePriorities(corpus), target)
 }
 
-func showPriorities(calls []string, prios [][]float32, target *prog.Target) {
+func showPriorities(calls []string, prios [][]int32, target *prog.Target) {
 	printLine(append([]string{"CALLS"}, calls...))
 	for _, callRow := range calls {
 		line := []string{callRow}
 		for _, callCol := range calls {
 			val := prios[target.SyscallMap[callRow].ID][target.SyscallMap[callCol].ID]
-			line = append(line, fmt.Sprintf("%.2f", val))
+			line = append(line, fmt.Sprintf("%v", val))
 		}
 		printLine(line)
 	}
