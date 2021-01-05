@@ -323,7 +323,7 @@ func (mon *monitor) createReport(defaultError string) *report.Report {
 }
 
 func (mon *monitor) waitForOutput() {
-	timer := time.NewTimer(waitForOutputTimeout)
+	timer := time.NewTimer(waitForOutputTimeout * mon.inst.timeouts.Scale)
 	defer timer.Stop()
 	for {
 		select {
