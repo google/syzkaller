@@ -57,8 +57,15 @@ override the commit simply by sending another `#syz fix` command.
 
 **Note**: all commands must start from beginning of the line.
 
-**Note**: please keep `syzkaller-bugs@googlegroups.com` mailing list in CC.
-It serves as a history of what happened with each bug report.
+**Note**: please keep at least `syzkaller-bugs@googlegroups.com` mailing list in CC.
+It serves as a history of what happened with each bug report. Keepint the main kernel
+mailing list (e.g. `linux-kernel@vger.kernel.org `) in CC is useful as well so that
+it's searchable in those archives as well.
+
+**Note**: `syzbot` identifies bugs by the `HASH` in the `syzbot+HASH@` receiver email address.
+So, strictly saying, you don't need to *reply* to emails (e.g. if you did not receive them),
+you can send a new email to the `syzbot+HASH@` email address, which you can find as `Sender`
+in email archives or as `Reported-by` email on the dashboard page for each bug.
 
 <div id="testing-patches"/>
 
