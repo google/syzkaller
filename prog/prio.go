@@ -24,38 +24,27 @@ import (
 // Note: the current implementation is very basic, there is no theory behind any
 // constants.
 
-func (target *Target) CalculatePriorities(corpus []*Prog) [][]float32 {
+func (target *Target) CalculatePriorities(corpus []*Prog) [][]int32 {
 	static := target.calcStaticPriorities()
 	if len(corpus) != 0 {
 		dynamic := target.calcDynamicPrio(corpus)
 		for i, prios := range dynamic {
+			dst := static[i]
 			for j, p := range prios {
-				static[i][j] *= p
+				dst[j] = dst[j] * p / prioHigh
 			}
 		}
 	}
 	return static
 }
 
-func (target *Target) calcStaticPriorities() [][]float32 {
+func (target *Target) calcStaticPriorities() [][]int32 {
 	uses := target.calcResourceUsage()
-	prios := make([][]float32, len(target.Syscalls))
+	prios := make([][]int32, len(target.Syscalls))
 	for i := range prios {
-		prios[i] = make([]float32, len(target.Syscalls))
+		prios[i] = make([]int32, len(target.Syscalls))
 	}
-	var keys []string
-	for key := range uses {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	for _, key := range keys {
-		weights := make([]weights, 0, len(uses[key]))
-		for _, weight := range uses[key] {
-			weights = append(weights, weight)
-		}
-		sort.Slice(weights, func(i, j int) bool {
-			return weights[i].call < weights[j].call
-		})
+	for _, weights := range uses {
 		for _, w0 := range weights {
 			for _, w1 := range weights {
 				if w0.call == w1.call {
@@ -64,14 +53,14 @@ func (target *Target) calcStaticPriorities() [][]float32 {
 				}
 				// The static priority is assigned based on the direction of arguments. A higher priority will be
 				// assigned when c0 is a call that produces a resource and c1 a call that uses that resource.
-				prios[w0.call][w1.call] += w0.inout*w1.in + 0.7*w0.inout*w1.inout
+				prios[w0.call][w1.call] += w0.inout*w1.in*3/2 + w0.inout*w1.inout
 			}
 		}
 	}
 	normalizePrio(prios)
 	// The value assigned for self-priority (call wrt itself) have to be high, but not too high.
 	for c0, pp := range prios {
-		pp[c0] = 0.9
+		pp[c0] = prioHigh * 9 / 10
 	}
 	return prios
 }
@@ -83,42 +72,42 @@ func (target *Target) calcResourceUsage() map[string]map[int]weights {
 		switch a := t.(type) {
 		case *ResourceType:
 			if target.AuxResources[a.Desc.Name] {
-				noteUsage(uses, c, 0.1, ctx.Dir, "res%v", a.Desc.Name)
+				noteUsage(uses, c, 1, ctx.Dir, "res%v", a.Desc.Name)
 			} else {
 				str := "res"
 				for i, k := range a.Desc.Kind {
 					str += "-" + k
-					w := 1.0
+					w := int32(10)
 					if i < len(a.Desc.Kind)-1 {
-						w = 0.2
+						w = 2
 					}
-					noteUsage(uses, c, float32(w), ctx.Dir, str)
+					noteUsage(uses, c, w, ctx.Dir, str)
 				}
 			}
 		case *PtrType:
 			if _, ok := a.Elem.(*StructType); ok {
-				noteUsage(uses, c, 1.0, ctx.Dir, "ptrto-%v", a.Elem.Name())
+				noteUsage(uses, c, 10, ctx.Dir, "ptrto-%v", a.Elem.Name())
 			}
 			if _, ok := a.Elem.(*UnionType); ok {
-				noteUsage(uses, c, 1.0, ctx.Dir, "ptrto-%v", a.Elem.Name())
+				noteUsage(uses, c, 10, ctx.Dir, "ptrto-%v", a.Elem.Name())
 			}
 			if arr, ok := a.Elem.(*ArrayType); ok {
-				noteUsage(uses, c, 1.0, ctx.Dir, "ptrto-%v", arr.Elem.Name())
+				noteUsage(uses, c, 10, ctx.Dir, "ptrto-%v", arr.Elem.Name())
 			}
 		case *BufferType:
 			switch a.Kind {
 			case BufferBlobRand, BufferBlobRange, BufferText:
 			case BufferString:
 				if a.SubKind != "" {
-					noteUsage(uses, c, 0.2, ctx.Dir, fmt.Sprintf("str-%v", a.SubKind))
+					noteUsage(uses, c, 2, ctx.Dir, fmt.Sprintf("str-%v", a.SubKind))
 				}
 			case BufferFilename:
-				noteUsage(uses, c, 1.0, DirIn, "filename")
+				noteUsage(uses, c, 10, DirIn, "filename")
 			default:
 				panic("unknown buffer kind")
 			}
 		case *VmaType:
-			noteUsage(uses, c, 0.5, ctx.Dir, "vma")
+			noteUsage(uses, c, 5, ctx.Dir, "vma")
 		case *IntType:
 			switch a.Kind {
 			case IntPlain, IntRange:
@@ -132,11 +121,11 @@ func (target *Target) calcResourceUsage() map[string]map[int]weights {
 
 type weights struct {
 	call  int
-	in    float32
-	inout float32
+	in    int32
+	inout int32
 }
 
-func noteUsage(uses map[string]map[int]weights, c *Syscall, weight float32, dir Dir, str string, args ...interface{}) {
+func noteUsage(uses map[string]map[int]weights, c *Syscall, weight int32, dir Dir, str string, args ...interface{}) {
 	id := fmt.Sprintf(str, args...)
 	if uses[id] == nil {
 		uses[id] = make(map[int]weights)
@@ -154,17 +143,15 @@ func noteUsage(uses map[string]map[int]weights, c *Syscall, weight float32, dir 
 	uses[id][c.ID] = callWeight
 }
 
-func (target *Target) calcDynamicPrio(corpus []*Prog) [][]float32 {
-	prios := make([][]float32, len(target.Syscalls))
+func (target *Target) calcDynamicPrio(corpus []*Prog) [][]int32 {
+	prios := make([][]int32, len(target.Syscalls))
 	for i := range prios {
-		prios[i] = make([]float32, len(target.Syscalls))
+		prios[i] = make([]int32, len(target.Syscalls))
 	}
 	for _, p := range corpus {
 		for idx0, c0 := range p.Calls {
 			for _, c1 := range p.Calls[idx0+1:] {
-				id0 := c0.Meta.ID
-				id1 := c1.Meta.ID
-				prios[id0][id1] += 1.0
+				prios[c0.Meta.ID][c1.Meta.ID]++
 			}
 		}
 	}
@@ -172,43 +159,22 @@ func (target *Target) calcDynamicPrio(corpus []*Prog) [][]float32 {
 	return prios
 }
 
-// normalizePrio assigns some minimal priorities to calls with zero priority,
-// and then normalizes priorities to 0.1..1 range.
-func normalizePrio(prios [][]float32) {
+const (
+	prioLow  = 10
+	prioHigh = 1000
+)
+
+// normalizePrio normalizes priorities to [prioLow..prioHigh] range.
+func normalizePrio(prios [][]int32) {
 	for _, prio := range prios {
-		max := float32(0)
-		min := float32(1e10)
-		nzero := 0
+		max := int32(1)
 		for _, p := range prio {
 			if max < p {
 				max = p
 			}
-			if p != 0 && min > p {
-				min = p
-			}
-			if p == 0 {
-				nzero++
-			}
-		}
-		if nzero != 0 {
-			min /= 2 * float32(nzero)
-		}
-		if min == max {
-			max = 0
 		}
 		for i, p := range prio {
-			if max == 0 {
-				prio[i] = 1
-				continue
-			}
-			if p == 0 {
-				p = min
-			}
-			p = (p-min)/(max-min)*0.9 + 0.1
-			if p > 1 {
-				p = 1
-			}
-			prio[i] = p
+			prio[i] = prioLow + p*(prioHigh-prioLow)/max
 		}
 	}
 }
@@ -217,7 +183,7 @@ func normalizePrio(prios [][]float32) {
 // based on call-to-call priorities and a set of enabled syscalls.
 type ChoiceTable struct {
 	target *Target
-	runs   [][]int
+	runs   [][]int32
 	calls  []*Syscall
 }
 
@@ -252,16 +218,16 @@ func (target *Target) BuildChoiceTable(corpus []*Prog, enabled map[*Syscall]bool
 		}
 	}
 	prios := target.CalculatePriorities(corpus)
-	run := make([][]int, len(target.Syscalls))
+	run := make([][]int32, len(target.Syscalls))
 	for i := range run {
 		if !enabled[target.Syscalls[i]] {
 			continue
 		}
-		run[i] = make([]int, len(target.Syscalls))
-		sum := 0
+		run[i] = make([]int32, len(target.Syscalls))
+		var sum int32
 		for j := range run[i] {
 			if enabled[target.Syscalls[j]] {
-				sum += int(prios[i][j] * 1000)
+				sum += prios[i][j]
 			}
 			run[i][j] = sum
 		}
@@ -282,8 +248,10 @@ func (ct *ChoiceTable) choose(r *rand.Rand, bias int) int {
 		panic("disabled syscall")
 	}
 	run := ct.runs[bias]
-	x := r.Intn(run[len(run)-1]) + 1
-	res := sort.SearchInts(run, x)
+	x := int32(r.Intn(int(run[len(run)-1])) + 1)
+	res := sort.Search(len(run), func(i int) bool {
+		return run[i] >= x
+	})
 	if !ct.Enabled(res) {
 		panic("selected disabled syscall")
 	}

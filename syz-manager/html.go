@@ -823,7 +823,7 @@ type UIPrioData struct {
 
 type UIPrio struct {
 	Call string
-	Prio float32
+	Prio int32
 }
 
 var prioTemplate = html.CreatePage(`
@@ -842,7 +842,7 @@ var prioTemplate = html.CreatePage(`
 	</tr>
 	{{range $p := $.Prios}}
 	<tr>
-		<td>{{printf "%.4f" $p.Prio}}</td>
+		<td>{{printf "%5v" $p.Prio}}</td>
 		<td><a href='/prio?call={{$p.Call}}'>{{$p.Call}}</a></td>
 	</tr>
 	{{end}}
