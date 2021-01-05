@@ -482,4 +482,30 @@ make: *** [bzImage] Error 2
 		"",
 		"",
 	},
+	{`
+  HOSTCC  scripts/basic/fixdep
+  HOSTCC  scripts/kconfig/conf.o
+  HOSTCC  scripts/kconfig/confdata.o
+  HOSTCC  scripts/kconfig/expr.o
+  LEX     scripts/kconfig/lexer.lex.c
+  YACC    scripts/kconfig/parser.tab.[ch]
+  HOSTCC  scripts/kconfig/preprocess.o
+  HOSTCC  scripts/kconfig/symbol.o
+  HOSTCC  scripts/kconfig/util.o
+  HOSTCC  scripts/kconfig/lexer.lex.o
+  HOSTCC  scripts/kconfig/parser.tab.o
+  HOSTLD  scripts/kconfig/conf
+/usr/bin/env: invalid option -- 'S'
+Try '/usr/bin/env --help' for more information.
+init/Kconfig:39: syntax error
+init/Kconfig:38: invalid statement
+scripts/kconfig/Makefile:71: recipe for target 'oldconfig' failed
+make[1]: *** [oldconfig] Error 1
+Makefile:602: recipe for target 'oldconfig' failed
+make: *** [oldconfig] Error 2
+`,
+		"init/Kconfig:39: syntax error\ninit/Kconfig:38: invalid statement",
+		"",
+		"init/Kconfig",
+	},
 }

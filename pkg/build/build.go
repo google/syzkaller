@@ -257,7 +257,7 @@ func extractCauseRaw(s []byte) [][]byte {
 	dedup := make(map[string]bool)
 	for _, line := range bytes.Split(s, []byte{'\n'}) {
 		for _, pattern := range buildFailureCauses {
-			if !bytes.Contains(line, pattern.pattern) {
+			if !pattern.pattern.Match(line) {
 				continue
 			}
 			if weak && !pattern.weak {
@@ -279,21 +279,22 @@ func extractCauseRaw(s []byte) [][]byte {
 }
 
 type buildFailureCause struct {
-	pattern []byte
+	pattern *regexp.Regexp
 	weak    bool
 }
 
 var buildFailureCauses = [...]buildFailureCause{
-	{pattern: []byte(": error: ")},
-	{pattern: []byte("ERROR: ")},
-	{pattern: []byte(": fatal error: ")},
-	{pattern: []byte(": undefined reference to")},
-	{pattern: []byte(": multiple definition of")},
-	{pattern: []byte(": Permission denied")},
-	{pattern: []byte(": not found")},
-	{weak: true, pattern: []byte(": final link failed: ")},
-	{weak: true, pattern: []byte("collect2: error: ")},
-	{weak: true, pattern: []byte("FAILED: Build did NOT complete")},
+	{pattern: regexp.MustCompile(`: error: `)},
+	{pattern: regexp.MustCompile(`ERROR: `)},
+	{pattern: regexp.MustCompile(`: fatal error: `)},
+	{pattern: regexp.MustCompile(`: undefined reference to`)},
+	{pattern: regexp.MustCompile(`: multiple definition of`)},
+	{pattern: regexp.MustCompile(`: Permission denied`)},
+	{pattern: regexp.MustCompile(`: not found`)},
+	{pattern: regexp.MustCompile(`^([a-zA-Z0-9_\-/.]+):[0-9]+:([0-9]+:)?.*(error|invalid|fatal|wrong)`)},
+	{weak: true, pattern: regexp.MustCompile(`: final link failed: `)},
+	{weak: true, pattern: regexp.MustCompile(`collect2: error: `)},
+	{weak: true, pattern: regexp.MustCompile(`FAILED: Build did NOT complete`)},
 }
 
 var fileRes = []*regexp.Regexp{
