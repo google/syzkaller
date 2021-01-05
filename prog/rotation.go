@@ -150,6 +150,9 @@ func (rs *rotatorState) Select() map[*Syscall]bool {
 	// However, a resource can be handled as dependency first, but then
 	// handled as top resource again. In such case we will still add calls
 	// that use this resource.
+	if len(rs.resources) == 0 {
+		return rs.Rotator.calls
+	}
 	for {
 		if len(rs.depQueue) == 0 && len(rs.calls) >= rs.goal || len(rs.calls) >= 2*rs.goal {
 			rs.calls, _ = rs.target.transitivelyEnabled(rs.calls)

@@ -9,7 +9,20 @@ import (
 	"math/rand"
 	"sort"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
+
+func TestRotationResourceless(t *testing.T) {
+	target, rs, _ := initRandomTargetTest(t, "test", "64")
+	calls := map[*Syscall]bool{
+		target.SyscallMap["test$int"]: true,
+	}
+	got := MakeRotator(target, calls, rand.New(rs)).Select()
+	if diff := cmp.Diff(calls, got); diff != "" {
+		t.Fatal(diff)
+	}
+}
 
 func TestRotationRandom(t *testing.T) {
 	target, rs, _ := initTest(t)
