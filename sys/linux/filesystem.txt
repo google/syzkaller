@@ -12,6 +12,12 @@ mount$bpf(src const[0], dst ptr[in, filename], type ptr[in, string["bpf"]], flag
 mount$overlay(src const[0], dst ptr[in, filename], type ptr[in, string["overlay"]], flags flags[mount_flags], opts ptr[in, fs_options[overlay_options]])
 mount$binder(src const[0], dst ptr[in, filename], type ptr[in, string["binder"]], flags flags[mount_flags], opts ptr[in, fs_options[binder_options]])
 
+# A bind mount ignores the filesystem type argument, but
+# pkg/host/syscalls_linux.go:isSupportedFilesystem() requires one in
+# /proc/filesystems.  Use a common and valid filesystem string ("pipefs") to
+# pass the check.
+mount$bind(src ptr[in, filename], dst ptr[in, filename], type ptr[in, string["pipefs"]], flags flags[mount_flags], data const[0])
+
 # esdfs is ChromeOS-specific:
 # https://chromium.googlesource.com/chromiumos/third_party/kernel/+/d2c1fb9fcdb53%5E%21/
 mount$esdfs(src ptr[in, filename], dst ptr[in, filename], type ptr[in, string["esdfs"]], flags flags[mount_flags], opts ptr[in, fs_options[esdfs_options]])
