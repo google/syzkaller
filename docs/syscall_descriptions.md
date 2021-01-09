@@ -208,6 +208,16 @@ in `flags` without adding any "special" values to "help" the current fuzzer logi
 When/if the fuzzer logic changes/improves, these manual additions may become
 unnecessary, or, worse, interfere with the fuzzer ability to generate good values.
 
+<div id="order"/>
+
+### Declaration order
+
+`syzlang` does not require declaring entities before use (like C/C++ does), entities can refer to entities
+declared later (like in Go). It's recommended to declare things in the order of importance so that the reader
+sees the most important things first and then proceeds to finer and finer implementation details. For example,
+system calls usually should go before flag declarations used in these system calls. Note: this order is usually
+the exact opposite of how things are declared in C: the least important things go first.
+
 ## Description compilation internals
 
 The process of compiling the textual syscall descriptions into machine-usable
