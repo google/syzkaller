@@ -4,7 +4,7 @@
 instances:
  - upstream-apparmor-kasan:	[linux-next, x86_64, gcc, lsm, apparmor, kasan, kfence]
  - upstream-selinux-kasan:	[linux-next, x86_64, gcc, lsm, selinux, slab, kasan, kfence]
- - upstream-smack-kasan:	[linux-next, x86_64, gcc, lsm, smack, kasan, kfence]
+ - upstream-smack-kasan:	[linux-next, x86_64, clang, lsm, smack, kasan, kfence]
  - upstream-kmsan:		[x86_64, clang, lsm, apparmor, kmsan]
  - upstream-kcsan:		[upstream, x86_64, clang, lsm, apparmor, slab, kcsan]
  - upstream-leak:		[upstream, x86_64, gcc, lsm, apparmor, slab, kmemleak]
