@@ -13,8 +13,25 @@ config:
  - SPARSEMEM_MANUAL: [-arm, -s390]
 
  - UBSAN: [v5.8]
- - UBSAN_BOUNDS: [v5.8]
  - UBSAN_SANITIZE_ALL: [v5.8, -arm, -riscv]
- - UBSAN_TRAP: [n, v5.8]
- - UBSAN_MISC: [n, v5.8]
+ - UBSAN_TRAP: n
+ - UBSAN_MISC: n
+ - UBSAN_BOUNDS: [v5.8]
+ - UBSAN_SHIFT: [v5.11]
+ # Already detected well by the exception handler.
+ - UBSAN_DIV_ZERO: n
+ # Produces too many reports:
+ # https://groups.google.com/forum/#!msg/syzkaller-bugs/i0xhp3rFSmo/KwZ0r9IIBQAJ
+ - UBSAN_BOOL: n
+ # Produces too many reports:
+ # https://groups.google.com/g/syzkaller-bugs/c/b_y3xw0wvOI/m/L074F0v3BQAJ
+ - UBSAN_OBJECT_SIZE: n
+ # This does not produce any reports, which suggests that it does not work somehow.
+ - UBSAN_SIGNED_OVERFLOW: n
+ - UBSAN_UNSIGNED_OVERFLOW: n
+ # This does not produce any reports, which suggests that it does not work somehow.
+ - UBSAN_ENUM: n
+ # Presumably can produce lots of working-as-intended reports, but this wasn't checked.
  - UBSAN_ALIGNMENT: [n, v5.8]
+ # Depends on STACK_VALIDATION=n which we have enabled.
+ - UBSAN_UNREACHABLE: n
