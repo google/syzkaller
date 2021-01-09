@@ -39,14 +39,15 @@ func TestCheckRepoAddress(t *testing.T) {
 		"https://fuchsia.googlesource.com":                                      true,
 		"git@my-github.com:my/fd.git":                                           true,
 		"file:///repo/linux.git":                                                true,
+		"git://kernel/ubuntu.git":                                               true,
+		"git@my-github/fd.git":                                                  true,
+		"sso://server/repo":                                                     true,
 		"git@my-github.com:/fd.git":                                             false,
 		"gitgit@my-github:/fd.git":                                              false,
-		"git@my-github/fd.git":                                                  false,
 		"":                                                                      false,
 		"foobar":                                                                false,
 		"linux-next":                                                            false,
 		"foo://kernel.ubuntu.com/ubuntu/ubuntu-zesty.git":                       false,
-		"git://kernel/ubuntu.git":                                               false,
 		"gitgit://kernel.ubuntu.com/ubuntu/ubuntu-zesty.git":                    false,
 	})
 }

@@ -261,9 +261,9 @@ var (
 	// nolint: lll
 	gitLocalRepoRe = regexp.MustCompile(`^file:///[a-zA-Z0-9-_./~]+(/)?$`)
 	// nolint: lll
-	gitRemoteRepoRe = regexp.MustCompile(`^(git|ssh|http|https|ftp|ftps)://[a-zA-Z0-9-_]+(\.[a-zA-Z0-9-_]+)+(:[0-9]+)?(/[a-zA-Z0-9-_./~]+)?(/)?$`)
+	gitRemoteRepoRe = regexp.MustCompile(`^(git|ssh|http|https|ftp|ftps|sso)://[a-zA-Z0-9-_.]+(:[0-9]+)?(/[a-zA-Z0-9-_./~]+)?(/)?$`)
 	// nolint: lll
-	gitSSHRepoRe = regexp.MustCompile(`^(git|ssh|http|https|ftp|ftps)@[a-zA-Z0-9-_]+(\.[a-zA-Z0-9-_]+)+(:[a-zA-Z0-9-_]+)?(/[a-zA-Z0-9-_./~]+)?(/)?$`)
+	gitSSHRepoRe = regexp.MustCompile(`^(git|ssh|http|https|ftp|ftps|sso)@[a-zA-Z0-9-_.]+(:[a-zA-Z0-9-_]+)?(/[a-zA-Z0-9-_./~]+)?(/)?$`)
 	gitBranchRe  = regexp.MustCompile("^[a-zA-Z0-9-_/.]{2,200}$")
 	gitHashRe    = regexp.MustCompile("^[a-f0-9]{8,40}$")
 	releaseTagRe = regexp.MustCompile(`^v([0-9]+).([0-9]+)(?:-rc([0-9]+))?(?:\.([0-9]+))?$`)
