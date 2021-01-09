@@ -1487,11 +1487,11 @@ var linuxOopses = append([]*oops{
 		},
 	},
 	{
-		[]byte("Unable to handle kernel paging request"),
+		[]byte("Unable to handle kernel"),
 		[]oopsFormat{
 			{
-				title: compile("Unable to handle kernel paging request"),
-				fmt:   "BUG: unable to handle kernel paging request in %[1]v",
+				title: compile("Unable to handle kernel (paging request|NULL pointer dereference)"),
+				fmt:   "BUG: unable to handle kernel %[1]v in %[2]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
 						linuxRipFrame,
