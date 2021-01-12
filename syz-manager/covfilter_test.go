@@ -4,7 +4,6 @@
 package main
 
 import (
-	"encoding/binary"
 	"testing"
 
 	"github.com/google/syzkaller/sys/targets"
@@ -15,9 +14,11 @@ func TestCreateBitmap(t *testing.T) {
 		0x81000002: 1,
 		0x8120001d: 1,
 	}
-	bitmap := createCoverageBitmap(targets.Get("test", "64"), pcs)
-	start := binary.LittleEndian.Uint32(bitmap[0:])
-	size := binary.LittleEndian.Uint32(bitmap[4:])
+	target := targets.Get("test", "64")
+	order := target.HostEndian
+	bitmap := createCoverageBitmap(target, pcs)
+	start := order.Uint32(bitmap[0:])
+	size := order.Uint32(bitmap[4:])
 	if start != 0x81000000 || size != 0x200020 {
 		t.Fatalf("bad region 0x%x/0x%x", start, size)
 	}
