@@ -102,9 +102,10 @@ config:
  # This should make behavior more deterministic.
  - INIT_ON_ALLOC_DEFAULT_ON
 
- - KCOV
- - KCOV_INSTRUMENT_ALL
- - KCOV_ENABLE_COMPARISONS
+ # KCOV slows down execution too much with KASAN_HW_TAGS in qemu emulation with mte=on.
+ - KCOV: [-mte]
+ - KCOV_INSTRUMENT_ALL: [-mte]
+ - KCOV_ENABLE_COMPARISONS: [-mte]
  - DEBUG_FS
 
  # Required for KCOV but also eliminates unnecessary non-determinism.

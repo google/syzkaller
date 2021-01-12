@@ -10,6 +10,7 @@ instances:
  - upstream-leak:		[upstream, x86_64, gcc, lsm, apparmor, slab, kmemleak]
  - upstream-usb:		[upstream, x86_64, gcc, lsm, apparmor, onlyusb, kasan]
  - upstream-arm64-kasan:	[upstream, arm64, gcc, lsm, selinux, kasan]
+ - upstream-arm64-mte:		[upstream, arm64, gcc, lsm, smack, nonoise, mte]
  # TODO: enable kasan when it boots.
  - upstream-arm-kasan:		[arm, gcc, lsm, selinux]
  - upstream-riscv64-kasan:	[upstream, riscv, gcc, lsm, selinux, kasan]
@@ -44,6 +45,7 @@ includes:
  - debug.yml: [-nonoise, -kmsan, -kcsan, -kmemleak]
  - kmemleak.yml: [kmemleak]
  - kasan.yml: [kasan]
+ - mte.yml: [mte]
  - kcsan.yml: [kcsan]
  - kmsan.yml: [kmsan]
  - kfence.yml: [kfence]

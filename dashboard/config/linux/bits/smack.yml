@@ -5,7 +5,7 @@ config:
  - SECURITY_SELINUX: n
  - SECURITY_APPARMOR: n
  - SECURITY_SMACK
- - SECURITY_SMACK_NETFILTER
+ - SECURITY_SMACK_NETFILTER: [-baseline, -onlyusb]
  - EVM_EXTRA_SMACK_XATTRS
  - DEFAULT_SECURITY_SMACK
  - LSM: "lockdown,yama,safesetid,integrity,tomoyo,smack,bpf"

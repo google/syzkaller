@@ -11,7 +11,11 @@ config:
  - CMDLINE_EXTEND
  # See the comment in x86_64.yml re these numbers.
  - RCU_CPU_STALL_TIMEOUT: 300
- - DEFAULT_HUNG_TASK_TIMEOUT: 420
+ - DEFAULT_HUNG_TASK_TIMEOUT: [420, -nonoise, -kmsan, -kcsan, -kmemleak]
+
+ - ARM64_TAGGED_ADDR_ABI
+ - ARM64_PMEM
+ - ARM64_MTE
 
  # These are enabled by defconfig, but we don't test them (presumably).
  # Disable them to speed up kernel boot (slow in emulation).
