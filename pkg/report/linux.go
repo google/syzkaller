@@ -949,7 +949,7 @@ var linuxOopses = append([]*oops{
 		[]oopsFormat{
 			{
 				title:  compile("BUG: KASAN:"),
-				report: compile("BUG: KASAN: ([a-z\\-]+) in {{FUNC}}(?:.*\\n)+?.*(Read|Write) of size (?:[0-9]+)"),
+				report: compile("BUG: KASAN: ([a-z\\-]+) in {{FUNC}}(?:.*\\n)+?.*(Read|Write) (?:of size|at addr) (?:[0-9a-f]+)"),
 
 				fmt: "KASAN: %[1]v %[3]v in %[4]v",
 				stack: &stackFmt{
@@ -958,6 +958,8 @@ var linuxOopses = append([]*oops{
 						linuxCallTrace,
 						parseStackTrace,
 					},
+					// These frames are present in KASAN_HW_TAGS reports.
+					skip: []string{"kernel_fault", "tag_check", "mem_abort", "el1_abort", "el1_sync"},
 				},
 			},
 			{
