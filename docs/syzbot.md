@@ -256,6 +256,7 @@ Exact compilers used by `syzbot` can be found here:
 - [clang 8.0.0 (trunk 343298)](https://storage.googleapis.com/syzkaller/clang-kmsan-343298.tar.gz) (45MB)
 - [clang 10.0.0 (c2443155)](https://storage.googleapis.com/syzkaller/clang_install_c2443155.tar.gz)
 - [clang 11.0.0 (git ca2dcbd030e)](https://storage.googleapis.com/syzkaller/clang-11-prerelease-ca2dcbd030e.tar.xz) (682MB)
+- [clang 11.0.1](https://github.com/llvm/llvm-project/releases/tag/llvmorg-11.0.1)
 
 A QEMU-suitable Debian Stretch image can be found [here](https://storage.googleapis.com/syzkaller/stretch.img) (2 GB, compression somehow breaks it), root ssh key for it is [here](https://storage.googleapis.com/syzkaller/stretch.img.key)
 (do `chmod 0600` on it). A reference `qemu` command line to run it is as follows:
