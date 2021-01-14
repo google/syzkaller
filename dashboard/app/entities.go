@@ -204,6 +204,19 @@ const (
 	JobBisectFix
 )
 
+func (typ JobType) toDashapiReportType() dashapi.ReportType {
+	switch typ {
+	case JobTestPatch:
+		return dashapi.ReportTestPatch
+	case JobBisectCause:
+		return dashapi.ReportBisectCause
+	case JobBisectFix:
+		return dashapi.ReportBisectFix
+	default:
+		panic(fmt.Sprintf("unknown job type %v", typ))
+	}
+}
+
 type JobFlags int64
 
 const (

@@ -290,7 +290,7 @@ func TestEmailNotifObsoletedManager(t *testing.T) {
 	defer c.Close()
 
 	build := testBuild(1)
-	build.Manager = "no-fix-bisection-manager"
+	build.Manager = noFixBisectionManager
 	c.client2.UploadBuild(build)
 	crash := testCrashWithRepro(build, 1)
 	c.client2.ReportCrash(crash)

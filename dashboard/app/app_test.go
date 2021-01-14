@@ -60,16 +60,20 @@ var testConfig = &GlobalConfig{
 			},
 			Repos: []KernelRepo{
 				{
-					URL:         "git://syzkaller.org",
-					Branch:      "branch10",
-					Alias:       "repo10alias",
-					Maintainers: []string{"maintainers@repo10.org", "bugs@repo10.org"},
+					URL:    "git://syzkaller.org",
+					Branch: "branch10",
+					Alias:  "repo10alias",
+					CC: CCConfig{
+						Maintainers: []string{"maintainers@repo10.org", "bugs@repo10.org"},
+					},
 				},
 				{
-					URL:         "git://github.com/google/syzkaller",
-					Branch:      "master",
-					Alias:       "repo10alias",
-					Maintainers: []string{"maintainers@repo10.org", "bugs@repo10.org"},
+					URL:    "git://github.com/google/syzkaller",
+					Branch: "master",
+					Alias:  "repo10alias",
+					CC: CCConfig{
+						Maintainers: []string{"maintainers@repo10.org", "bugs@repo10.org"},
+					},
 				},
 			},
 			Managers: map[string]ConfigManager{
@@ -105,27 +109,38 @@ var testConfig = &GlobalConfig{
 			},
 			Repos: []KernelRepo{
 				{
-					URL:              "git://syzkaller.org",
-					Branch:           "branch10",
-					Alias:            "repo10alias",
-					CC:               []string{"always@cc.me"},
-					Maintainers:      []string{"maintainers@repo10.org", "bugs@repo10.org"},
-					BuildMaintainers: []string{"build-maintainers@repo10.org"},
+					URL:    "git://syzkaller.org",
+					Branch: "branch10",
+					Alias:  "repo10alias",
+					CC: CCConfig{
+						Always:           []string{"always@cc.me"},
+						Maintainers:      []string{"maintainers@repo10.org", "bugs@repo10.org"},
+						BuildMaintainers: []string{"build-maintainers@repo10.org"},
+					},
 				},
 				{
-					URL:         "git://syzkaller.org",
-					Branch:      "branch20",
-					Alias:       "repo20",
-					Maintainers: []string{"maintainers@repo20.org", "bugs@repo20.org"},
+					URL:    "git://syzkaller.org",
+					Branch: "branch20",
+					Alias:  "repo20",
+					CC: CCConfig{
+						Maintainers: []string{"maintainers@repo20.org", "bugs@repo20.org"},
+					},
 				},
 			},
 			Managers: map[string]ConfigManager{
-				"restricted-manager": {
+				restrictedManager: {
 					RestrictedTestingRepo:   "git://restricted.git/restricted.git",
 					RestrictedTestingReason: "you should test only on restricted.git",
 				},
-				"no-fix-bisection-manager": {
+				noFixBisectionManager: {
 					FixBisectionDisabled: true,
+				},
+				specialCCManager: {
+					CC: CCConfig{
+						Always:           []string{"always@manager.org"},
+						Maintainers:      []string{"maintainers@manager.org"},
+						BuildMaintainers: []string{"build-maintainers@manager.org"},
+					},
 				},
 			},
 			Reporting: []Reporting{
@@ -254,6 +269,10 @@ const (
 	keyUser      = "clientuserkeyclientuserkey"
 	clientPublic = "client-public"
 	keyPublic    = "clientpublickeyclientpublickey"
+
+	restrictedManager     = "restricted-manager"
+	noFixBisectionManager = "no-fix-bisection-manager"
+	specialCCManager      = "special-cc-manager"
 )
 
 func skipWithRepro(bug *Bug) FilterResult {
