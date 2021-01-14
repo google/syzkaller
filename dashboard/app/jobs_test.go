@@ -103,7 +103,10 @@ func TestJob(t *testing.T) {
 	c.expectEQ(pollResp.SyzkallerCommit, build.SyzkallerCommit)
 	c.expectEQ(pollResp.Patch, []byte(patch))
 	c.expectEQ(pollResp.ReproOpts, []byte("repro opts"))
-	c.expectEQ(pollResp.ReproSyz, []byte("repro syz"))
+	c.expectEQ(pollResp.ReproSyz, []byte(
+		"# See https://goo.gl/kgGztJ for information about syzkaller reproducers.\n"+
+			"#repro opts\n"+
+			"repro syz"))
 	c.expectEQ(pollResp.ReproC, []byte("repro C"))
 
 	pollResp2 := c.client2.pollJobs(build.Manager)
@@ -337,7 +340,7 @@ func TestJobRestrictedManager(t *testing.T) {
 	defer c.Close()
 
 	build := testBuild(1)
-	build.Manager = "restricted-manager"
+	build.Manager = restrictedManager
 	c.client2.UploadBuild(build)
 
 	crash := testCrash(build, 1)
@@ -650,7 +653,7 @@ func TestFixBisectionsDisabled(t *testing.T) {
 
 	// Upload a crash report.
 	build := testBuild(1)
-	build.Manager = "no-fix-bisection-manager"
+	build.Manager = noFixBisectionManager
 	c.client2.UploadBuild(build)
 	crash := testCrashWithRepro(build, 20)
 	c.client2.ReportCrash(crash)

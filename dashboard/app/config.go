@@ -130,6 +130,8 @@ type ConfigManager struct {
 	ObsoletingMaxPeriod time.Duration
 	// Determines if fix bisection should be disabled on this manager.
 	FixBisectionDisabled bool
+	// CC for all bugs that happened only on this manager.
+	CC CCConfig
 }
 
 // One reporting stage.
@@ -170,8 +172,13 @@ type KernelRepo struct {
 	// ReportingPriority says if we need to prefer to report crashes in this
 	// repo over crashes in repos with lower value. Must be in [0-9] range.
 	ReportingPriority int
-	// Additional CC list to add to all bugs reported on this repo.
-	CC []string
+	// CC for all bugs reported on this repo.
+	CC CCConfig
+}
+
+type CCConfig struct {
+	// Additional CC list to add to bugs unconditionally.
+	Always []string
 	// Additional CC list to add to bugs if we are mailing maintainers.
 	Maintainers []string
 	// Additional CC list to add to build/boot bugs if we are mailing maintainers.
@@ -346,11 +353,15 @@ func checkKernelRepos(ns string, cfg *Config) {
 		if prio := repo.ReportingPriority; prio < 0 || prio > 9 {
 			panic(fmt.Sprintf("%v: bad kernel repo reporting priority %v for %q", ns, prio, repo.Alias))
 		}
-		emails := append(append(append([]string{}, repo.CC...), repo.Maintainers...), repo.BuildMaintainers...)
-		for _, email := range emails {
-			if _, err := mail.ParseAddress(email); err != nil {
-				panic(fmt.Sprintf("bad email address %q: %v", email, err))
-			}
+		checkCC(&repo.CC)
+	}
+}
+
+func checkCC(cc *CCConfig) {
+	emails := append(append(append([]string{}, cc.Always...), cc.Maintainers...), cc.BuildMaintainers...)
+	for _, email := range emails {
+		if _, err := mail.ParseAddress(email); err != nil {
+			panic(fmt.Sprintf("bad email address %q: %v", email, err))
 		}
 	}
 }
@@ -420,6 +431,7 @@ func checkManager(ns, name string, mgr ConfigManager) {
 	if mgr.ObsoletingMinPeriod != 0 && mgr.ObsoletingMinPeriod < 24*time.Hour {
 		panic(fmt.Sprintf("manager %v/%v obsoleting: too low MinPeriod", ns, name))
 	}
+	checkCC(&mgr.CC)
 }
 
 func checkKcidb(ns string, kcidb *KcidbConfig) {

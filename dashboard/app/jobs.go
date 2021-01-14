@@ -393,7 +393,7 @@ func createJobResp(c context.Context, job *Job, jobKey *db.Key) (*dashapi.JobPol
 	if err != nil {
 		return nil, false, err
 	}
-	reproSyz, _, err := getText(c, textReproSyz, crash.ReproSyz)
+	reproSyz, err := loadReproSyz(c, crash)
 	if err != nil {
 		return nil, false, err
 	}
@@ -661,24 +661,13 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *db.Key, config i
 	if bugReporting == nil {
 		return nil, fmt.Errorf("job bug has no reporting %q", job.Reporting)
 	}
-	var typ dashapi.ReportType
-	switch job.Type {
-	case JobTestPatch:
-		typ = dashapi.ReportTestPatch
-	case JobBisectCause:
-		typ = dashapi.ReportBisectCause
-	case JobBisectFix:
-		typ = dashapi.ReportBisectFix
-	default:
-		return nil, fmt.Errorf("unknown job type %v", job.Type)
-	}
 	kernelRepo := kernelRepoInfo(build)
 	rep := &dashapi.BugReport{
-		Type:            typ,
+		Type:            job.Type.toDashapiReportType(),
 		Config:          reportingConfig,
 		JobID:           extJobID(jobKey),
 		ExtID:           job.ExtID,
-		CC:              append(job.CC, kernelRepo.CC...),
+		CC:              append(job.CC, kernelRepo.CC.Always...),
 		Log:             crashLog,
 		LogLink:         externalLink(c, textCrashLog, job.CrashLog),
 		Report:          report,
@@ -693,7 +682,7 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *db.Key, config i
 		PatchLink:       externalLink(c, textPatch, job.Patch),
 	}
 	if job.Type == JobBisectCause || job.Type == JobBisectFix {
-		rep.Maintainers = append(crash.Maintainers, kernelRepo.Maintainers...)
+		rep.Maintainers = append(crash.Maintainers, kernelRepo.CC.Maintainers...)
 		rep.ExtID = bugReporting.ExtID
 		if bugReporting.CC != "" {
 			rep.CC = strings.Split(bugReporting.CC, "|")
@@ -703,6 +692,12 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *db.Key, config i
 			rep.BisectCause = bisectFromJob(c, rep, job)
 		case JobBisectFix:
 			rep.BisectFix = bisectFromJob(c, rep, job)
+		}
+	}
+	if mgr := bug.managerConfig(); mgr != nil {
+		rep.CC = append(rep.CC, mgr.CC.Always...)
+		if job.Type == JobBisectCause || job.Type == JobBisectFix {
+			rep.Maintainers = append(rep.Maintainers, mgr.CC.Maintainers...)
 		}
 	}
 	// Build error output and failing VM boot log can be way too long to inline.

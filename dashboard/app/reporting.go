@@ -267,11 +267,8 @@ func (bug *Bug) obsoletePeriod() time.Duration {
 		bug.Reporting[len(bug.Reporting)-1].Reported.IsZero() {
 		min, max = config.Obsoleting.NonFinalMinPeriod, config.Obsoleting.NonFinalMaxPeriod
 	}
-	if len(bug.HappenedOn) == 1 {
-		mgr := config.Namespaces[bug.Namespace].Managers[bug.HappenedOn[0]]
-		if mgr.ObsoletingMinPeriod != 0 {
-			min, max = mgr.ObsoletingMinPeriod, mgr.ObsoletingMaxPeriod
-		}
+	if mgr := bug.managerConfig(); mgr != nil && mgr.ObsoletingMinPeriod != 0 {
+		min, max = mgr.ObsoletingMinPeriod, mgr.ObsoletingMaxPeriod
 	}
 	if period < min {
 		period = min
@@ -280,6 +277,14 @@ func (bug *Bug) obsoletePeriod() time.Duration {
 		period = max
 	}
 	return period
+}
+
+func (bug *Bug) managerConfig() *ConfigManager {
+	if len(bug.HappenedOn) != 1 {
+		return nil
+	}
+	mgr := config.Namespaces[bug.Namespace].Managers[bug.HappenedOn[0]]
+	return &mgr
 }
 
 func createNotification(c context.Context, typ dashapi.BugNotif, public bool, text string, bug *Bug,
@@ -306,13 +311,19 @@ func createNotification(c context.Context, typ dashapi.BugNotif, public bool, te
 		Title:     bug.displayTitle(),
 		Text:      text,
 		Public:    public,
-		CC:        kernelRepo.CC,
+		CC:        kernelRepo.CC.Always,
 	}
 	if public {
-		notif.Maintainers = append(crash.Maintainers, kernelRepo.Maintainers...)
+		notif.Maintainers = append(crash.Maintainers, kernelRepo.CC.Maintainers...)
 	}
 	if (public || reporting.moderation) && bugReporting.CC != "" {
 		notif.CC = append(notif.CC, strings.Split(bugReporting.CC, "|")...)
+	}
+	if mgr := bug.managerConfig(); mgr != nil {
+		notif.CC = append(notif.CC, mgr.CC.Always...)
+		if public {
+			notif.Maintainers = append(notif.Maintainers, mgr.CC.Maintainers...)
+		}
 	}
 	return notif, nil
 }
@@ -363,10 +374,7 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 		return nil, err
 	}
 	var job *Job
-	reportBisection := bug.BisectCause == BisectYes ||
-		bug.BisectCause == BisectInconclusive ||
-		bug.BisectCause == BisectHorizont
-	if reportBisection {
+	if bug.BisectCause == BisectYes || bug.BisectCause == BisectInconclusive || bug.BisectCause == BisectHorizont {
 		// If we have bisection results, report the crash/repro used for bisection.
 		job1, crash1, _, crashKey1, err := loadBisectJob(c, bug, JobBisectCause)
 		if err != nil {
@@ -397,22 +405,13 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 	if err != nil {
 		return nil, err
 	}
-	reproSyz, _, err := getText(c, textReproSyz, crash.ReproSyz)
+	reproSyz, err := loadReproSyz(c, crash)
 	if err != nil {
 		return nil, err
 	}
 	machineInfo, _, err := getText(c, textMachineInfo, crash.MachineInfo)
 	if err != nil {
 		return nil, err
-	}
-	if len(reproSyz) != 0 {
-		buf := new(bytes.Buffer)
-		buf.WriteString(syzReproPrefix)
-		if len(crash.ReproOpts) != 0 {
-			fmt.Fprintf(buf, "#%s\n", crash.ReproOpts)
-		}
-		buf.Write(reproSyz)
-		reproSyz = buf.Bytes()
 	}
 	build, err := loadBuild(c, bug.Namespace, crash.BuildID)
 	if err != nil {
@@ -434,8 +433,8 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 		LogLink:         externalLink(c, textCrashLog, crash.Log),
 		Report:          report,
 		ReportLink:      externalLink(c, textCrashReport, crash.Report),
-		CC:              kernelRepo.CC,
-		Maintainers:     append(crash.Maintainers, kernelRepo.Maintainers...),
+		CC:              kernelRepo.CC.Always,
+		Maintainers:     append(crash.Maintainers, kernelRepo.CC.Maintainers...),
 		ReproC:          reproC,
 		ReproCLink:      externalLink(c, textReproC, crash.ReproC),
 		ReproSyz:        reproSyz,
@@ -452,15 +451,36 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 		rep.CC = append(rep.CC, strings.Split(bugReporting.CC, "|")...)
 	}
 	if build.Type == BuildFailed {
-		rep.Maintainers = append(rep.Maintainers, kernelRepo.BuildMaintainers...)
+		rep.Maintainers = append(rep.Maintainers, kernelRepo.CC.BuildMaintainers...)
 	}
-	if reportBisection {
+	if mgr := bug.managerConfig(); mgr != nil {
+		rep.CC = append(rep.CC, mgr.CC.Always...)
+		rep.Maintainers = append(rep.Maintainers, mgr.CC.Maintainers...)
+		if build.Type == BuildFailed {
+			rep.Maintainers = append(rep.Maintainers, mgr.CC.BuildMaintainers...)
+		}
+	}
+	if job != nil {
 		rep.BisectCause = bisectFromJob(c, rep, job)
 	}
 	if err := fillBugReport(c, rep, bug, bugReporting, build); err != nil {
 		return nil, err
 	}
 	return rep, nil
+}
+
+func loadReproSyz(c context.Context, crash *Crash) ([]byte, error) {
+	reproSyz, _, err := getText(c, textReproSyz, crash.ReproSyz)
+	if err != nil || len(reproSyz) == 0 {
+		return nil, err
+	}
+	buf := new(bytes.Buffer)
+	buf.WriteString(syzReproPrefix)
+	if len(crash.ReproOpts) != 0 {
+		fmt.Fprintf(buf, "#%s\n", crash.ReproOpts)
+	}
+	buf.Write(reproSyz)
+	return buf.Bytes(), nil
 }
 
 // fillBugReport fills common report fields for bug and job reports.

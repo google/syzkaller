@@ -406,7 +406,6 @@ func TestEmailDup(t *testing.T) {
 	crash1.Title = "KASAN: another title"
 	c.client2.ReportCrash(crash2)
 
-	c.expectOK(c.GET("/email_poll"))
 	msg1 := c.pollEmailBug()
 	msg2 := c.pollEmailBug()
 
@@ -449,7 +448,6 @@ func TestEmailUndup(t *testing.T) {
 	crash1.Title = "KASAN: another title"
 	c.client2.ReportCrash(crash2)
 
-	c.expectOK(c.GET("/email_poll"))
 	msg1 := c.pollEmailBug()
 	msg2 := c.pollEmailBug()
 
@@ -632,7 +630,6 @@ func TestEmailUnfix(t *testing.T) {
 	crash := testCrash(build, 1)
 	c.client2.ReportCrash(crash)
 
-	c.expectOK(c.GET("/email_poll"))
 	msg := c.pollEmailBug()
 
 	c.incomingEmail(msg.Sender, "#syz fix: some commit")
@@ -648,4 +645,85 @@ func TestEmailUnfix(t *testing.T) {
 	// The bug should be still unfixed, since we unmarked it.
 	c.client2.ReportCrash(crash)
 	c.expectNoEmail()
+}
+
+func TestEmailManagerCC(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	// Test that we add manager CC.
+	build1 := testBuild(1)
+	build1.Manager = specialCCManager
+	c.client2.UploadBuild(build1)
+
+	crash := testCrash(build1, 1)
+	c.client2.ReportCrash(crash)
+
+	msg := c.pollEmailBug()
+	c.expectEQ(msg.To, []string{
+		"always@manager.org",
+		"test@syzkaller.com",
+	})
+
+	// Test that we add manager maintainers.
+	c.incomingEmail(msg.Sender, "#syz upstream")
+	msg = c.pollEmailBug()
+	c.expectEQ(msg.To, []string{
+		"always@manager.org",
+		"bugs@syzkaller.com",
+		"default@maintainers.com",
+		"maintainers@manager.org",
+	})
+
+	// Test that we add manager build maintainers.
+	build2 := testBuild(2)
+	build2.Manager = specialCCManager
+	buildErrorReq := &dashapi.BuildErrorReq{
+		Build: *build2,
+		Crash: dashapi.Crash{
+			Title:  "failed build 1",
+			Report: []byte("report\n"),
+			Log:    []byte("log\n"),
+		},
+	}
+	c.expectOK(c.client2.ReportBuildError(buildErrorReq))
+	msg = c.pollEmailBug()
+	c.expectEQ(msg.To, []string{
+		"always@manager.org",
+		"test@syzkaller.com",
+	})
+
+	c.incomingEmail(msg.Sender, "#syz upstream")
+	msg = c.pollEmailBug()
+	c.expectEQ(msg.To, []string{
+		"always@manager.org",
+		"bugs@syzkaller.com",
+		"build-maintainers@manager.org",
+		"default@maintainers.com",
+		"maintainers@manager.org",
+	})
+
+	// Test that we don't add manager CC when the crash happened on 1+ managers.
+	build3 := testBuild(3)
+	build1.Manager = specialCCManager
+	c.client2.UploadBuild(build3)
+	crash = testCrash(build3, 2)
+	c.client2.ReportCrash(crash)
+
+	build4 := testBuild(4)
+	c.client2.UploadBuild(build4)
+	crash = testCrash(build4, 2)
+	c.client2.ReportCrash(crash)
+
+	msg = c.pollEmailBug()
+	c.expectEQ(msg.To, []string{
+		"test@syzkaller.com",
+	})
+
+	c.incomingEmail(msg.Sender, "#syz upstream")
+	msg = c.pollEmailBug()
+	c.expectEQ(msg.To, []string{
+		"bugs@syzkaller.com",
+		"default@maintainers.com",
+	})
 }
