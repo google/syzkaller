@@ -32,6 +32,9 @@ type Reporter interface {
 type Report struct {
 	// Title contains a representative description of the first oops.
 	Title string
+	// Alternative titles, used for better deduplication.
+	// If two crashes have a non-empty intersection of Title/AltTitles, they are considered the same bug.
+	AltTitles []string
 	// Bug type (e.g. hang, memory leak, etc).
 	Type Type
 	// The indicative function name.
@@ -170,6 +173,9 @@ func (wrap *reporterWrapper) Parse(output []byte) *Report {
 		return nil
 	}
 	rep.Title = sanitizeTitle(replaceTable(dynamicTitleReplacement, rep.Title))
+	for i, title := range rep.AltTitles {
+		rep.AltTitles[i] = sanitizeTitle(replaceTable(dynamicTitleReplacement, title))
+	}
 	rep.Suppressed = matchesAny(rep.Output, wrap.suppressions)
 	if bytes.Contains(rep.Output, gceConsoleHangup) {
 		rep.Corrupted = true
@@ -329,6 +335,9 @@ type oopsFormat struct {
 	// Strings captured by title (or by report if present) are passed as input.
 	// If stack is not nil, extracted function name is passed as an additional last argument.
 	fmt string
+	// Alternative titles used for better crash deduplication.
+	// Format is the same as for fmt.
+	alt []string
 	// If not nil, a function name is extracted from the report and passed to fmt.
 	// If not nil but frame extraction fails, the report is considered corrupted.
 	stack        *stackFmt
@@ -398,7 +407,8 @@ func matchOops(line []byte, oops *oops, ignores []*regexp.Regexp) bool {
 	return true
 }
 
-func extractDescription(output []byte, oops *oops, params *stackParams) (desc, corrupted string, format oopsFormat) {
+func extractDescription(output []byte, oops *oops, params *stackParams) (
+	desc, corrupted string, altTitles []string, format oopsFormat) {
 	startPos := len(output)
 	matchedTitle := false
 	for _, f := range oops.formats {
@@ -438,6 +448,9 @@ func extractDescription(output []byte, oops *oops, params *stackParams) (desc, c
 			args = append(args, frame)
 		}
 		desc = fmt.Sprintf(f.fmt, args...)
+		for _, alt := range f.alt {
+			altTitles = append(altTitles, fmt.Sprintf(alt, args...))
+		}
 		format = f
 	}
 	if desc == "" {
@@ -591,8 +604,9 @@ func simpleLineParser(output []byte, oopses []*oops, params *stackParams, ignore
 	if oops == nil {
 		return nil
 	}
-	title, corrupted, _ := extractDescription(output[rep.StartPos:], oops, params)
+	title, corrupted, altTitles, _ := extractDescription(output[rep.StartPos:], oops, params)
 	rep.Title = title
+	rep.AltTitles = altTitles
 	rep.Report = output[rep.StartPos:]
 	rep.Corrupted = corrupted != ""
 	rep.CorruptedReason = corrupted

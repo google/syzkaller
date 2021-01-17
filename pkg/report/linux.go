@@ -145,17 +145,18 @@ func (ctx *linux) Parse(output []byte) *Report {
 		}
 		endPos, reportEnd, report, prefix := ctx.findReport(output, oops, startPos, context, questionable)
 		rep.EndPos = endPos
-		title, corrupted, format := extractDescription(report[:reportEnd], oops, linuxStackParams)
+		title, corrupted, altTitles, format := extractDescription(report[:reportEnd], oops, linuxStackParams)
 		if title == "" {
 			prefix = nil
 			report = output[rep.StartPos:rep.EndPos]
-			title, corrupted, format = extractDescription(report, oops, linuxStackParams)
+			title, corrupted, altTitles, format = extractDescription(report, oops, linuxStackParams)
 			if title == "" {
 				panic(fmt.Sprintf("non matching oops for %q context=%q in:\n%s\n",
 					oops.header, context, report))
 			}
 		}
 		rep.Title = title
+		rep.AltTitles = altTitles
 		rep.Corrupted = corrupted != ""
 		rep.CorruptedReason = corrupted
 		for _, line := range prefix {
