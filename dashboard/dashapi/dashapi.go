@@ -236,6 +236,7 @@ func (dash *Dashboard) UploadCommits(commits []Commit) error {
 type Crash struct {
 	BuildID     string // refers to Build.ID
 	Title       string
+	AltTitles   []string // alternative titles, used for better deduplication
 	Corrupted   bool     // report is corrupted (corrupted title, no stacks, etc)
 	Maintainers []string // deprecated in favor of Recipients
 	Recipients  Recipients
