@@ -420,6 +420,10 @@ func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
 				}
 				rep.Title = fmt.Sprintf("%v %v error: %v",
 					mgr.mgrcfg.RepoAlias, what, rep.Title)
+				// There are usually no duplicates for boot errors, so we reset AltTitles.
+				// But if we pass them, we would need to add the same prefix as for Title
+				// in order to avoid duping boot bugs with non-boot bugs.
+				rep.AltTitles = nil
 				if err := mgr.reportBuildError(rep, info, imageDir); err != nil {
 					mgr.Errorf("failed to report image error: %v", err)
 				}
@@ -453,6 +457,7 @@ func (mgr *Manager) reportBuildError(rep *report.Report, info *BuildInfo, imageD
 		Build: *build,
 		Crash: dashapi.Crash{
 			Title:      rep.Title,
+			AltTitles:  rep.AltTitles,
 			Corrupted:  false, // Otherwise they get merged with other corrupted reports.
 			Recipients: rep.Recipients.ToDash(),
 			Log:        rep.Output,
