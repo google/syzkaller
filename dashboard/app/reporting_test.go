@@ -523,3 +523,200 @@ func TestMachineInfo(t *testing.T) {
 	c.expectOK(err)
 	c.expectEQ(receivedInfo, machineInfo)
 }
+
+func TestAltTitles1(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client.UploadBuild(build)
+
+	// crash2.AltTitles matches crash1.Title.
+	crash1 := testCrash(build, 1)
+	crash2 := testCrashWithRepro(build, 2)
+	crash2.AltTitles = []string{crash1.Title}
+
+	c.client.ReportCrash(crash1)
+	rep := c.client.pollBug()
+	c.expectEQ(rep.Title, crash1.Title)
+	c.expectEQ(rep.Log, crash1.Log)
+
+	c.client.ReportCrash(crash2)
+	rep = c.client.pollBug()
+	c.expectEQ(rep.Title, crash1.Title)
+	c.expectEQ(rep.Log, crash2.Log)
+}
+
+func TestAltTitles2(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client.UploadBuild(build)
+
+	// crash2.Title matches crash1.AltTitles, but reported in opposite order.
+	crash1 := testCrash(build, 1)
+	crash2 := testCrash(build, 2)
+	crash2.AltTitles = []string{crash1.Title}
+
+	c.client.ReportCrash(crash2)
+	rep := c.client.pollBug()
+	c.expectEQ(rep.Title, crash2.Title)
+	c.expectEQ(rep.Log, crash2.Log)
+
+	c.client.ReportCrash(crash1)
+	c.client.pollBugs(0)
+}
+
+func TestAltTitles3(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client.UploadBuild(build)
+
+	// crash2.AltTitles matches crash1.AltTitles.
+	crash1 := testCrash(build, 1)
+	crash1.AltTitles = []string{"foobar"}
+	crash2 := testCrash(build, 2)
+	crash2.AltTitles = crash1.AltTitles
+
+	c.client.ReportCrash(crash1)
+	c.client.pollBugs(1)
+	c.client.ReportCrash(crash2)
+	c.client.pollBugs(0)
+}
+
+func TestAltTitles4(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client.UploadBuild(build)
+
+	// crash1.AltTitles matches crash2.AltTitles which matches crash3.AltTitles.
+	crash1 := testCrash(build, 1)
+	crash1.AltTitles = []string{"foobar1"}
+	crash2 := testCrash(build, 2)
+	crash2.AltTitles = []string{"foobar1", "foobar2"}
+	crash3 := testCrash(build, 3)
+	crash3.AltTitles = []string{"foobar2"}
+
+	c.client.ReportCrash(crash1)
+	c.client.pollBugs(1)
+	c.client.ReportCrash(crash2)
+	c.client.pollBugs(0)
+	c.client.ReportCrash(crash3)
+	c.client.pollBugs(0)
+}
+
+func TestAltTitles5(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client.UploadBuild(build)
+
+	// Test which of the possible existing bugs we choose for merging.
+	crash1 := testCrash(build, 1)
+	crash1.AltTitles = []string{"foo"}
+	c.client.ReportCrash(crash1)
+	c.client.pollBugs(1)
+
+	crash2 := testCrash(build, 2)
+	crash2.Title = "bar"
+	c.client.ReportCrash(crash2)
+	c.client.pollBugs(1)
+
+	crash3 := testCrash(build, 3)
+	c.client.ReportCrash(crash3)
+	c.client.pollBugs(1)
+	crash3.AltTitles = []string{"bar"}
+	c.client.ReportCrash(crash3)
+	c.client.pollBugs(0)
+
+	crash := testCrashWithRepro(build, 10)
+	crash.Title = "foo"
+	crash.AltTitles = []string{"bar"}
+	c.client.ReportCrash(crash)
+	rep := c.client.pollBug()
+	c.expectEQ(rep.Title, crash2.Title)
+	c.expectEQ(rep.Log, crash.Log)
+}
+
+func TestAltTitles6(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client.UploadBuild(build)
+
+	// Test which of the possible existing bugs we choose for merging in presence of closed bugs.
+	crash1 := testCrash(build, 1)
+	crash1.AltTitles = []string{"foo"}
+	c.client.ReportCrash(crash1)
+	rep := c.client.pollBug()
+	c.client.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
+	c.client.ReportCrash(crash1)
+	c.client.pollBug()
+
+	crash2 := testCrash(build, 2)
+	crash2.Title = "bar"
+	c.client.ReportCrash(crash2)
+	rep = c.client.pollBug()
+	c.client.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
+
+	c.advanceTime(24 * time.Hour)
+	crash3 := testCrash(build, 3)
+	c.client.ReportCrash(crash3)
+	c.client.pollBugs(1)
+	crash3.AltTitles = []string{"foo"}
+	c.client.ReportCrash(crash3)
+	c.client.pollBugs(0)
+
+	crash := testCrashWithRepro(build, 10)
+	crash.Title = "foo"
+	crash.AltTitles = []string{"bar"}
+	c.client.ReportCrash(crash)
+	rep = c.client.pollBug()
+	c.expectEQ(rep.Title, crash1.Title+" (2)")
+	c.expectEQ(rep.Log, crash.Log)
+}
+
+func TestAltTitles7(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client.UploadBuild(build)
+
+	// Test that bug merging is stable: if we started merging into a bug, we continue merging into that bug
+	// even if a better candidate appears.
+	crash1 := testCrash(build, 1)
+	crash1.AltTitles = []string{"foo"}
+	c.client.ReportCrash(crash1)
+	c.client.pollBug()
+
+	// This will be merged into crash1.
+	crash2 := testCrash(build, 2)
+	crash2.AltTitles = []string{"foo"}
+	c.client.ReportCrash(crash2)
+	c.client.pollBugs(0)
+
+	// Now report a better candidate.
+	crash3 := testCrash(build, 3)
+	crash3.Title = "aaa"
+	c.client.ReportCrash(crash3)
+	c.client.pollBug()
+	crash3.AltTitles = []string{crash2.Title}
+	c.client.ReportCrash(crash3)
+	c.client.pollBugs(0)
+
+	// Now report crash2 with a repro and ensure that it's still merged into crash1.
+	crash2.ReproOpts = []byte("some opts")
+	crash2.ReproSyz = []byte("getpid()")
+	c.client.ReportCrash(crash2)
+	rep := c.client.pollBug()
+	c.expectEQ(rep.Title, crash1.Title)
+	c.expectEQ(rep.Log, crash2.Log)
+}

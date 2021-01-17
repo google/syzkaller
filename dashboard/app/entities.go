@@ -73,6 +73,8 @@ type Bug struct {
 	Namespace      string
 	Seq            int64 // sequences of the bug with the same title
 	Title          string
+	MergedTitles   []string // crash titles that we already merged into this bug
+	AltTitles      []string // alternative crash titles that we may merge into this bug
 	Status         int
 	DupOf          string
 	NumCrashes     int64
@@ -125,6 +127,9 @@ type BugReporting struct {
 }
 
 type Crash struct {
+	// May be different from bug.Title due to AltTitles.
+	// May be empty for old bugs, in such case bug.Title is the right title.
+	Title       string
 	Manager     string
 	BuildID     string
 	Time        time.Time
@@ -573,4 +578,27 @@ func textLink(tag string, id int64) string {
 func timeDate(t time.Time) int {
 	year, month, day := t.Date()
 	return year*10000 + int(month)*100 + day
+}
+
+func stringInList(list []string, str string) bool {
+	for _, s := range list {
+		if s == str {
+			return true
+		}
+	}
+	return false
+}
+
+func mergeString(list []string, str string) []string {
+	if !stringInList(list, str) {
+		list = append(list, str)
+	}
+	return list
+}
+
+func mergeStringList(list, add []string) []string {
+	for _, str := range add {
+		list = mergeString(list, str)
+	}
+	return list
 }
