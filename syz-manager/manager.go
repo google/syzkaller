@@ -698,6 +698,7 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 		dc := &dashapi.Crash{
 			BuildID:     mgr.cfg.Tag,
 			Title:       crash.Title,
+			AltTitles:   crash.AltTitles,
 			Corrupted:   crash.Corrupted,
 			Recipients:  crash.Recipients.ToDash(),
 			Log:         crash.Output,
@@ -868,6 +869,7 @@ func (mgr *Manager) saveRepro(res *repro.Result, stats *repro.Stats, hub bool) {
 		dc := &dashapi.Crash{
 			BuildID:    mgr.cfg.Tag,
 			Title:      res.Report.Title,
+			AltTitles:  res.Report.AltTitles,
 			Recipients: res.Report.Recipients.ToDash(),
 			Log:        res.Report.Output,
 			Report:     res.Report.Report,
