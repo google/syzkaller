@@ -1,4 +1,5 @@
 TITLE: KASAN: use-after-free Read in cma_cancel_operation
+ALT: bad-access in cma_cancel_operation
 
 syzkaller login: [   23.820987] ==================================================================
 [   23.828498] BUG: KASAN: use-after-free in __list_del_entry_valid+0x144/0x150

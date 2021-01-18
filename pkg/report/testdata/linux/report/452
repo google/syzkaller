@@ -1,4 +1,5 @@
 TITLE: general protection fault in deliberately_dereference_bad_address
+ALT: bad-access in deliberately_dereference_bad_address
 
 [   37.352047] segment-related general protection fault: beec [#2] PREEMPT SMP KASAN PTI
 [   37.354009] CPU: 0 PID: 1858 Comm: ioctl Tainted: G      D           5.4.0-rc7+ #567

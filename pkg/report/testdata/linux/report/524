@@ -1,4 +1,5 @@
 TITLE: Internal error in ns558_init
+ALT: bad-access in ns558_init
 
 [  211.592905][    T1] Internal error: synchronous external abort: 96000010 [#1] PREEMPT SMP
 [  211.594621][    T1] Dumping ftrace buffer:

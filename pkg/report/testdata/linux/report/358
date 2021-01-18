@@ -1,4 +1,5 @@
 TITLE: general protection fault in run_timer_softirq
+ALT: bad-access in run_timer_softirq
 
 [  155.297335] kasan: CONFIG_KASAN_INLINE enabled
 [  155.302006] kasan: GPF could be caused by NULL-ptr deref or user memory access

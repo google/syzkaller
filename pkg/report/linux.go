@@ -953,8 +953,8 @@ var linuxOopses = append([]*oops{
 			{
 				title:  compile("BUG: KASAN:"),
 				report: compile("BUG: KASAN: ([a-z\\-]+) in {{FUNC}}(?:.*\\n)+?.*(Read|Write) (?:of size|at addr) (?:[0-9a-f]+)"),
-
-				fmt: "KASAN: %[1]v %[3]v in %[4]v",
+				fmt:    "KASAN: %[1]v %[3]v in %[4]v",
+				alt:    []string{"bad-access in %[4]v"},
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
 						compile("BUG: KASAN: (?:[a-z\\-]+) in {{FUNC}}"),
@@ -1019,6 +1019,7 @@ var linuxOopses = append([]*oops{
 			{
 				title: compile("BUG: (?:unable to handle kernel paging request|unable to handle page fault for address|Unable to handle kernel data access)"),
 				fmt:   "BUG: unable to handle kernel paging request in %[1]v",
+				alt:   []string{"bad-access in %[1]v"},
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
 						linuxRipFrame,
@@ -1030,6 +1031,7 @@ var linuxOopses = append([]*oops{
 			{
 				title: compile("BUG: (?:unable to handle kernel NULL pointer dereference|kernel NULL pointer dereference|Kernel NULL pointer dereference)"),
 				fmt:   "BUG: unable to handle kernel NULL pointer dereference in %[1]v",
+				alt:   []string{"bad-access in %[1]v"},
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
 						linuxRipFrame,
@@ -1497,6 +1499,7 @@ var linuxOopses = append([]*oops{
 			{
 				title: compile("Unable to handle kernel (paging request|NULL pointer dereference)"),
 				fmt:   "BUG: unable to handle kernel %[1]v in %[2]v",
+				alt:   []string{"bad-access in %[2]v"},
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
 						linuxRipFrame,
@@ -1514,6 +1517,7 @@ var linuxOopses = append([]*oops{
 			{
 				title: compile("general protection fault.*:"),
 				fmt:   "general protection fault in %[1]v",
+				alt:   []string{"bad-access in %[1]v"},
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
 						linuxRipFrame,
@@ -1645,6 +1649,7 @@ var linuxOopses = append([]*oops{
 			{
 				title: compile("kernel BUG at lib/list_debug.c"),
 				fmt:   "BUG: corrupted list in %[1]v",
+				alt:   []string{"bad-access in %[1]v"}, // also sometimes due to memory corruption/race
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
 						linuxCallTrace,
@@ -1751,6 +1756,18 @@ var linuxOopses = append([]*oops{
 				},
 			},
 			{
+				title: compile("UBSAN: array-index-out-of-bounds in"),
+				fmt:   "UBSAN: array-index-out-of-bounds in %[1]v",
+				alt:   []string{"bad-access in %[1]v"},
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						linuxCallTrace,
+						parseStackTrace,
+					},
+					skip: []string{"ubsan", "overflow"},
+				},
+			},
+			{
 				title:  compile("UBSAN:"),
 				report: compile("UBSAN: (.*?) in"),
 				fmt:    "UBSAN: %[1]v in %[2]v",
@@ -1793,6 +1810,10 @@ var linuxOopses = append([]*oops{
 			{
 				title: compile("Internal error:"),
 				fmt:   "Internal error in %[1]v",
+				// arm64 shows some crashes as "Internal error: synchronous external abort",
+				// while arm shows the same crash as "Unable to handle kernel paging request",
+				// so we need to merge them.
+				alt: []string{"bad-access in %[1]v"},
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
 						linuxRipFrame,
@@ -1810,6 +1831,9 @@ var linuxOopses = append([]*oops{
 			{
 				title: compile("Unhandled fault:"),
 				fmt:   "Unhandled fault in %[1]v",
+				// x86_64 shows NULL derefs as "general protection fault",
+				// while arm shows the same crash as "Unhandled fault: page domain fault".
+				alt: []string{"bad-access in %[1]v"},
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
 						linuxRipFrame,

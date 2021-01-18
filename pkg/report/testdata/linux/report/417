@@ -1,4 +1,5 @@
 TITLE: KASAN: use-after-free Read in usbvision_release
+ALT: bad-access in usbvision_release
 
 [  472.680102][ T9268] ==================================================================
 [  472.689737][ T9268] BUG: KASAN: use-after-free in sysfs_remove_file_ns+0x5f/0x70

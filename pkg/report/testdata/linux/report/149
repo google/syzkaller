@@ -1,4 +1,5 @@
 TITLE: KASAN: use-after-free Read in __queue_work
+ALT: bad-access in __queue_work
 
 [ 1140.689311] ==================================================================
 [ 1140.696784] BUG: KASAN: use-after-free in work_is_static_object+0x39/0x40

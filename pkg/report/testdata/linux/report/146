@@ -1,4 +1,5 @@
 TITLE: BUG: unable to handle kernel paging request in remove_wait_queue
+ALT: bad-access in remove_wait_queue
 
 [   19.572672] BUG: unable to handle kernel paging request at 0000000100000137
 [   19.572683] IP: __lock_acquire+0xd8/0x1430

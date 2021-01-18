@@ -1,4 +1,5 @@
 TITLE: BUG: unable to handle kernel paging request in _snd_timer_stop
+ALT: bad-access in _snd_timer_stop
 CORRUPTED: Y
 
 [  167.347989] Disabling lock debugging due to kernel taint
