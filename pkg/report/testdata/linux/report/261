@@ -1,4 +1,5 @@
 TITLE: KASAN: use-after-free Write in snd_timer_user_interrupt
+ALT: bad-access in snd_timer_user_interrupt
 
 [  168.248365] ==================================================================
 [  168.255760] BUG: KASAN: use-after-free in register_lock_class+0xf9c/0x1470

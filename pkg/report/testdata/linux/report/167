@@ -1,4 +1,5 @@
 TITLE: BUG: unable to handle kernel paging request in snd_pcm_oss_write
+ALT: bad-access in snd_pcm_oss_write
 
 [  522.218303] BUG: unable to handle kernel paging request at ffffc90001691000
 [  522.225453] IP: memset_erms+0x9/0x10

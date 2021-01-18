@@ -1,4 +1,5 @@
 TITLE: KASAN: use-after-free Read in shmem_disband_hugehead
+ALT: bad-access in shmem_disband_hugehead
 
 [  176.379525] ==================================================================
 [  176.386974] BUG: KASAN: use-after-free in __lock_acquire+0x462f/0x49f0 at addr ffff8800b5a9f8c0

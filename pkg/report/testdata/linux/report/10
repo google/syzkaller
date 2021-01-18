@@ -1,4 +1,5 @@
 TITLE: BUG: unable to handle kernel paging request in __call_rcu
+ALT: bad-access in __call_rcu
 CORRUPTED: Y
 
 [ 1019.110825] BUG: unable to handle kernel paging request at 00000000ffffff8a

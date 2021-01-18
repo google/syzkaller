@@ -1,4 +1,5 @@
 TITLE: Internal error in clear_page
+ALT: bad-access in clear_page
 
 [    4.227552][    T1] DMI not present or invalid.
 [    4.282443][    T1] NET: Registered protocol family 16

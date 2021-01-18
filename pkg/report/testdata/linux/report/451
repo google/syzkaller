@@ -1,4 +1,5 @@
 TITLE: general protection fault in deliberately_dereference_bad_address
+ALT: bad-access in deliberately_dereference_bad_address
 
 [   32.082291] general protection fault for non-canonical address 0xe017577ddf75b7dd: 0000 [#1] PREEMPT SMP KASAN PTI
 [   32.084238] KASAN: maybe wild-memory-access in range [0x00badbeefbadbee8-0x00badbeefbadbeef]

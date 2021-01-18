@@ -1,4 +1,5 @@
 TITLE: general protection fault in sg_remove_request
+ALT: bad-access in sg_remove_request
 
 [   27.258999] ==================================================================
 [   27.260623] kasan: CONFIG_KASAN_INLINE enabled

@@ -1,4 +1,5 @@
 TITLE: general protection fault in tipc_subscrb_subscrp_delete
+ALT: bad-access in tipc_subscrb_subscrp_delete
 
 [   41.864973] kasan: CONFIG_KASAN_INLINE enabled
 [   41.869549] kasan: GPF could be caused by NULL-ptr deref or user memory access
