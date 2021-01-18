@@ -905,7 +905,7 @@ func apiReportFailedRepro(c context.Context, ns string, r *http.Request, payload
 	}
 	req.Title = canonicalizeCrashTitle(req.Title, req.Corrupted)
 
-	bug, err := findExistingBugForCrash(c, ns, req.Title)
+	bug, err := findExistingBugForCrash(c, ns, []string{req.Title})
 	if err != nil {
 		return nil, err
 	}
@@ -946,7 +946,7 @@ func apiNeedRepro(c context.Context, ns string, r *http.Request, payload []byte)
 	}
 	req.Title = canonicalizeCrashTitle(req.Title, req.Corrupted)
 
-	bug, err := findExistingBugForCrash(c, ns, req.Title)
+	bug, err := findExistingBugForCrash(c, ns, []string{req.Title})
 	if err != nil {
 		return nil, err
 	}
@@ -1048,12 +1048,12 @@ func loadBugReport(c context.Context, bug *Bug) (*dashapi.BugReport, error) {
 	return createBugReport(c, bug, crash, crashKey, bugReporting, reporting)
 }
 
-func findExistingBugForCrash(c context.Context, ns, title string) (*Bug, error) {
+func findExistingBugForCrash(c context.Context, ns string, titles []string) (*Bug, error) {
 	// First, try to find an existing bug that we already used to report this crash title.
 	var bugs []*Bug
 	_, err := db.NewQuery("Bug").
 		Filter("Namespace=", ns).
-		Filter("MergedTitles=", title).
+		Filter("MergedTitles=", titles[0]).
 		GetAll(c, &bugs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query bugs: %v", err)
@@ -1074,21 +1074,23 @@ func findExistingBugForCrash(c context.Context, ns, title string) (*Bug, error) 
 	// This is required for incremental migration.
 	// Older bugs don't have MergedTitles, so we need to check Title as well
 	// (reportCrash will set MergedTitles later).
-	_, err = db.NewQuery("Bug").
-		Filter("Namespace=", ns).
-		Filter("Title=", title).
-		Order("-Seq").
-		Limit(1).
-		GetAll(c, &bugs)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query bugs: %v", err)
-	}
-	if len(bugs) != 0 {
-		bug := bugs[0]
-		if active, err := isActiveBug(c, bug); err != nil {
-			return nil, err
-		} else if active {
-			return bug, nil
+	for _, title := range titles {
+		_, err = db.NewQuery("Bug").
+			Filter("Namespace=", ns).
+			Filter("Title=", title).
+			Order("-Seq").
+			Limit(1).
+			GetAll(c, &bugs)
+		if err != nil {
+			return nil, fmt.Errorf("failed to query bugs: %v", err)
+		}
+		if len(bugs) != 0 {
+			bug := bugs[0]
+			if active, err := isActiveBug(c, bug); err != nil {
+				return nil, err
+			} else if active {
+				return bug, nil
+			}
 		}
 	}
 	return nil, nil
@@ -1096,7 +1098,7 @@ func findExistingBugForCrash(c context.Context, ns, title string) (*Bug, error) 
 
 func findBugForCrash(c context.Context, ns string, titles []string) (*Bug, error) {
 	// First, try to find an existing bug that we already used to report this crash title.
-	bug, err := findExistingBugForCrash(c, ns, titles[0])
+	bug, err := findExistingBugForCrash(c, ns, titles)
 	if bug != nil || err != nil {
 		return bug, err
 	}
