@@ -12,7 +12,7 @@ instances:
  - upstream-arm64-kasan:	[upstream, arm64, gcc, lsm, selinux, kasan]
  - upstream-arm64-mte:		[upstream, arm64, gcc, lsm, smack, nonoise, mte]
  # TODO: enable kasan when it boots.
- - upstream-arm-kasan:		[arm, gcc, lsm, selinux]
+ - upstream-arm-kasan:		[upstream, arm, gcc, lsm, selinux]
  - upstream-riscv64-kasan:	[upstream, riscv, gcc, lsm, selinux, kasan]
  - upstream-s390-kasan:		[upstream, s390, gcc, lsm, selinux, kasan]
  - stable-5.4-kasan:		[stable-5.4, x86_64, gcc, lsm, apparmor, kasan]

@@ -1,11 +1,6 @@
 # Copyright 2020 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-kernel:
- repo: git://git.armlinux.org.uk/~rmk/linux-arm.git
- # HEAD of for-next branch.
- tag: ecbbb88727aee7880527d4b320b4d06dde75d46d
-
 shell:
  - make vexpress_defconfig
  - make kvm_guest.config

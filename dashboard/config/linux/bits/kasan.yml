@@ -5,7 +5,8 @@ config:
  - KASAN
  - KASAN_GENERIC
  - KASAN_INLINE
- - KASAN_STACK_ENABLE: [clang]
+ - KASAN_STACK_ENABLE: [clang, -v5.11]
+ - KASAN_STACK: [clang, v5.11]
  - KASAN_VMALLOC: [x86_64, v5.5]
  # This was historically enabled in the KASAN section without explanation.
  - SPARSEMEM_VMEMMAP: [-arm]
