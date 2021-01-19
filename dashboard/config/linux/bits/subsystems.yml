@@ -950,7 +950,8 @@ config:
  - N_HDLC
  - N_GSM
  - NOZOMI
- - NULL_TTY: [-v5.10]
+ # NULL_TTY was removed in v5.10 and added back in v5.11.
+ - NULL_TTY
  - SERIAL_DEV_BUS
  - SERIAL_DEV_CTRL_TTYPORT
  - TTY_PRINTK
