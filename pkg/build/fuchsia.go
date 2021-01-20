@@ -80,8 +80,8 @@ func (fu fuchsia) build(params *Params) error {
 	}
 
 	for src, dst := range map[string]string{
-		"out/" + arch + ".zircon/kernel-" + arch + "-kasan/obj/kernel/zircon.elf": "obj/zircon.elf",
-		"out/" + arch + "/multiboot.bin":                                          "kernel",
+		"out/" + arch + "/kernel_" + arch + "-kasan/zircon.elf": "obj/zircon.elf",
+		"out/" + arch + "/multiboot.bin":                        "kernel",
 	} {
 		fullSrc := filepath.Join(params.KernelDir, filepath.FromSlash(src))
 		fullDst := filepath.Join(params.OutputDir, filepath.FromSlash(dst))
