@@ -46,6 +46,7 @@ func (fu fuchsia) build(params *Params) error {
 		"--with-base", "//bundles:tools",
 		"--with-base", "//src/testing/fuzzing/syzkaller",
 		"--variant", "kasan",
+		"--no-goma",
 	); err != nil {
 		return err
 	}
