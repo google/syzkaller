@@ -6,6 +6,22 @@ mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/ope
 
 Newer bugs comes first.
 
+- [pflog(4): construction of corrupted mbufs](https://marc.info/?l=openbsd-cvs&m=161109496230236&w=2)
+
+- [sosplice(9): stack overflow while handling broadcast packets](https://marc.info/?l=openbsd-cvs&m=161020414013356&w=2)
+
+- [pf(4): lenient validation of port ranges](https://marc.info/?l=openbsd-cvs&m=160814166024961&w=2)
+
+- [wsmux(4): NULL pointer dereference due to a race](https://marc.info/?l=openbsd-cvs&m=160724154822411&w=2)
+
+- [uvm(9): deadlock while using a vnode as the backing store](https://marc.info/?l=openbsd-cvs&m=160374171822863&w=2)
+
+- [pf(4): missing call to `NET_UNLOCK()`](https://marc.info/?l=openbsd-cvs&m=160336954005266&w=2)
+
+- [pf(4): sleeping with locks held](https://marc.info/?l=openbsd-cvs&m=160326770113745&w=2)
+
+- [mmap: lenient validation of shared mappings](https://marc.info/?l=openbsd-cvs&m=160184875108341&w=2)
+
 - [kcov(4): race during remote section removal](https://marc.info/?l=openbsd-cvs&m=159869048726340&w=2)
 
 - [sysctl(2): lenient validation of integer values](https://marc.info/?l=openbsd-cvs&m=159772809607851&w=2)
