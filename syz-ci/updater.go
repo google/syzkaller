@@ -82,7 +82,9 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 		targets[os+"/"+vmarch+"/"+arch] = true
 		files[fmt.Sprintf("bin/%v_%v/syz-fuzzer", os, vmarch)] = true
 		files[fmt.Sprintf("bin/%v_%v/syz-execprog", os, vmarch)] = true
-		files[fmt.Sprintf("bin/%v_%v/syz-executor", os, arch)] = true
+		if mgrcfg.SysTarget.ExecutorBin == "" {
+			files[fmt.Sprintf("bin/%v_%v/syz-executor", os, arch)] = true
+		}
 	}
 	syzFiles := make(map[string]bool)
 	for f := range files {
