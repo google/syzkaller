@@ -136,36 +136,21 @@ These instructions describe how to set this up on a Raspberry Pi Zero W, but any
 9. Download syzkaller, apply the patch below and build `syz-executor`:
 
 ``` c
-diff --git a/executor/common_usb.h b/executor/common_usb.h
-index e342d808..278c2f4e 100644
---- a/executor/common_usb.h
-+++ b/executor/common_usb.h
-@@ -269,9 +269,7 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
+diff --git a/executor/common_usb_linux.h b/executor/common_usb_linux.h
+index 451b2a7b..64af45c7 100644
+--- a/executor/common_usb_linux.h
++++ b/executor/common_usb_linux.h
+@@ -292,9 +292,7 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len, const ch
 
-    // TODO: consider creating two dummy_udc's per proc to increace the chance of
-    // triggering interaction between multiple USB devices within the same program.
+        // TODO: consider creating two dummy_udc's per proc to increace the chance of
+        // triggering interaction between multiple USB devices within the same program.
 -       char device[32];
 -       sprintf(&device[0], "dummy_udc.%llu", procid);
--       rv = usb_raw_init(fd, speed, "dummy_udc", &device[0]);
+-       int rv = usb_raw_init(fd, speed, "dummy_udc", &device[0]);
 +       rv = usb_raw_init(fd, speed, "20980000.usb", "20980000.usb");
-    if (rv < 0) {
-            debug("syz_usb_connect: usb_raw_init failed with %d\n", rv);
-            return rv;
-diff --git a/executor/executor.cc b/executor/executor.cc
-index 34949a01..1afcb288 100644
---- a/executor/executor.cc
-+++ b/executor/executor.cc
-@@ -604,8 +604,8 @@ retry:
-                    call_extra_cover = true;
-            }
-            if (strncmp(syscalls[call_num].name, "syz_usb_connect", strlen("syz_usb_connect")) == 0) {
--                       prog_extra_timeout = 2000;
--                       call_extra_timeout = 2000;
-+                       prog_extra_timeout = 5000;
-+                       call_extra_timeout = 5000;
-            }
-            if (strncmp(syscalls[call_num].name, "syz_usb_control_io", strlen("syz_usb_control_io")) == 0)
-                    call_extra_timeout = 300;
+        if (rv < 0) {
+                debug("syz_usb_connect: usb_raw_init failed with %d\n", rv);
+                return rv;
 ```
 
 ``` bash
@@ -216,8 +201,10 @@ cp bin/linux_arm/syz-executor ~/syz-bin/
     ``` bash
     $ cat usb.log
     r0 = syz_usb_connect(0x0, 0x24, &(0x7f00000001c0)={{0x12, 0x1, 0x0, 0x8e, 0x32, 0xf7, 0x20, 0xaf0, 0xd257, 0x4e87, 0x0, 0x0, 0x0, 0x1, [{{0x9, 0x2, 0x12, 0x1, 0x0, 0x0, 0x0, 0x0, [{{0x9, 0x4, 0xf, 0x0, 0x0, 0xff, 0xa5, 0x2c}}]}}]}}, 0x0)
-    $ sudo ./syz-bin/syz-execprog -executor ./syz-bin/syz-executor -threaded=0 -collide=0 -procs=1 -enable='' -debug usb.log
+    $ sudo ./syz-bin/syz-execprog -slowdown 3 -executor ./syz-bin/syz-executor -threaded=0 -collide=0 -procs=1 -enable='' -debug usb.log
     ```
+
+    The `slowdown` parameter is a scaling factor which can be used for increasing the syscall timeouts.
 
 18. Steps 19 through 21 are optional. You may use a UART console and a normal USB cable instead of ssh and Zero Stem.
 
