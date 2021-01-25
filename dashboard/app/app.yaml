@@ -3,6 +3,11 @@
 
 runtime: go111
 
+# With the default f1 setting, the app episodically crashes with:
+# Exceeded soft memory limit of 256 MB with 264 MB after servicing 25 requests total.
+# See https://cloud.google.com/appengine/docs/standard/go/config/appref#instance_class
+instance_class: f2
+
 inbound_services:
 - mail
 - mail_bounce
