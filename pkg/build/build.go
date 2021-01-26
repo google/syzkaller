@@ -114,28 +114,31 @@ type signer interface {
 
 func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
 	var supported = []struct {
-		OS   string
-		arch string
-		vms  []string
-		b    builder
+		OS    string
+		archs []string
+		vms   []string
+		b     builder
 	}{
-		{targets.Linux, targets.AMD64, []string{"gvisor"}, gvisor{}},
-		{targets.Linux, targets.AMD64, []string{"gce", "qemu"}, linux{}},
-		{targets.Linux, targets.PPC64LE, []string{"qemu"}, linux{}},
-		{targets.Linux, targets.S390x, []string{"qemu"}, linux{}},
-		{targets.Fuchsia, targets.AMD64, []string{"qemu"}, fuchsia{}},
-		{targets.Fuchsia, targets.ARM64, []string{"qemu"}, fuchsia{}},
-		{targets.Akaros, targets.AMD64, []string{"qemu"}, akaros{}},
-		{targets.OpenBSD, targets.AMD64, []string{"gce", "vmm"}, openbsd{}},
-		{targets.NetBSD, targets.AMD64, []string{"gce", "qemu"}, netbsd{}},
-		{targets.FreeBSD, targets.AMD64, []string{"gce", "qemu"}, freebsd{}},
-		{targets.TestOS, targets.TestArch64, []string{"qemu"}, test{}},
+		{targets.Linux, []string{targets.AMD64}, []string{"gvisor"}, gvisor{}},
+		{targets.Linux, []string{targets.AMD64}, []string{"gce", "qemu"}, linux{}},
+		{targets.Linux, []string{targets.ARM, targets.ARM64, targets.I386, targets.MIPS64LE,
+			targets.PPC64LE, targets.S390x, targets.RiscV64}, []string{"qemu"}, linux{}},
+		{targets.Fuchsia, []string{targets.AMD64, targets.ARM64}, []string{"qemu"}, fuchsia{}},
+		{targets.Akaros, []string{targets.AMD64}, []string{"qemu"}, akaros{}},
+		{targets.OpenBSD, []string{targets.AMD64}, []string{"gce", "vmm"}, openbsd{}},
+		{targets.NetBSD, []string{targets.AMD64}, []string{"gce", "qemu"}, netbsd{}},
+		{targets.FreeBSD, []string{targets.AMD64}, []string{"gce", "qemu"}, freebsd{}},
+		{targets.TestOS, []string{targets.TestArch64}, []string{"qemu"}, test{}},
 	}
 	for _, s := range supported {
-		if targetOS == s.OS && targetArch == s.arch {
-			for _, vm := range s.vms {
-				if vmType == vm {
-					return s.b, nil
+		if targetOS == s.OS {
+			for _, arch := range s.archs {
+				if targetArch == arch {
+					for _, vm := range s.vms {
+						if vmType == vm {
+							return s.b, nil
+						}
+					}
 				}
 			}
 		}
