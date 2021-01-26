@@ -13,6 +13,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"time"
@@ -65,15 +66,6 @@ func (linux linux) buildKernel(params *Params) error {
 	if err := osutil.CopyFile(configFile, outputConfig); err != nil {
 		return err
 	}
-	// We build only zImage/bzImage as we currently don't use modules.
-	var target string
-	switch params.TargetArch {
-	case targets.I386, targets.AMD64, targets.S390x:
-		target = "bzImage"
-	case targets.PPC64LE:
-		target = "zImage"
-	}
-
 	// Ensure CONFIG_GCC_PLUGIN_RANDSTRUCT doesn't prevent ccache usage.
 	// See /Documentation/kbuild/reproducible-builds.rst.
 	const seed = `const char *randstruct_seed = "e9db0ca5181da2eedb76eba144df7aba4b7f9359040ee58409765f2bdc4cb3b8";`
@@ -92,6 +84,7 @@ func (linux linux) buildKernel(params *Params) error {
 			return err
 		}
 	}
+	target := path.Base(kernelBin(params.TargetArch))
 	if err := runMake(params, target); err != nil {
 		return err
 	}
@@ -207,15 +200,26 @@ func LinuxMakeArgs(target *targets.Target, compiler, ccache, buildDir string) []
 }
 
 func kernelBin(arch string) string {
+	// We build only zImage/bzImage as we currently don't use modules.
 	switch arch {
-	case targets.I386, targets.AMD64:
+	case targets.AMD64:
 		return "arch/x86/boot/bzImage"
-	case targets.PPC64LE:
-		return "arch/powerpc/boot/zImage.pseries"
+	case targets.I386:
+		return "arch/x86/boot/bzImage"
 	case targets.S390x:
 		return "arch/s390/boot/bzImage"
+	case targets.PPC64LE:
+		return "arch/powerpc/boot/zImage.pseries"
+	case targets.ARM:
+		return "arch/arm/boot/zImage"
+	case targets.ARM64:
+		return "arch/arm64/boot/Image"
+	case targets.RiscV64:
+		return "arch/riscv/boot/Image"
+	case targets.MIPS64LE:
+		return "vmlinux"
 	default:
-		panic(fmt.Sprintf("unsupported arch %v", arch))
+		panic(fmt.Sprintf("pkg/build: unsupported arch %v", arch))
 	}
 }
 
