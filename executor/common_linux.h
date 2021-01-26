@@ -2892,7 +2892,7 @@ error_clear_loop:
 
 #if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
 // KVM is not yet supported on RISC-V
-#if !GOARCH_riscv64
+#if !GOARCH_riscv64 && !GOARCH_arm
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/kvm.h>
