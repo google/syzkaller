@@ -11,6 +11,7 @@ umount2(path ptr[in, filename], flags flags[umount_flags])
 mount$bpf(src const[0], dst ptr[in, filename], type ptr[in, string["bpf"]], flags flags[mount_flags], opts ptr[in, fs_options[bpf_options]])
 mount$overlay(src const[0], dst ptr[in, filename], type ptr[in, string["overlay"]], flags flags[mount_flags], opts ptr[in, fs_options[overlay_options]])
 mount$binder(src const[0], dst ptr[in, filename], type ptr[in, string["binder"]], flags flags[mount_flags], opts ptr[in, fs_options[binder_options]])
+mount$tmpfs(src ptr[in, string["tmp"]], dst ptr[in, filename], type ptr[in, string["tmpfs"]], flags flags[mount_flags], opts ptr[in, fs_options[tmpfs_options]])
 
 # A bind mount ignores the filesystem type argument, but
 # pkg/host/syscalls_linux.go:isSupportedFilesystem() requires one in
