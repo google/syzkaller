@@ -102,12 +102,12 @@ config:
  # This should make behavior more deterministic.
  - INIT_ON_ALLOC_DEFAULT_ON
 
- # KCOV slows down execution too much with KASAN_HW_TAGS in qemu emulation with mte=on.
+ # KCOV slows down execution too much with KASAN_HW_TAGS and in qemu emulation in general.
  # KCOV crashes on Arm:
  # https://lore.kernel.org/linux-arm-kernel/20210119130010.GA2338@C02TD0UTHF1T.local/T/#m78fdfcc41ae831f91c93ad5dabe63f7ccfb482f0
- - KCOV: [-mte, -arm]
- - KCOV_INSTRUMENT_ALL: [-mte, -arm]
- - KCOV_ENABLE_COMPARISONS: [-mte, -arm]
+ - KCOV: [-arm64, -arm]
+ - KCOV_INSTRUMENT_ALL: [-arm64, -arm]
+ - KCOV_ENABLE_COMPARISONS: [-arm64, -arm]
  - DEBUG_FS
 
  # Required for KCOV but also eliminates unnecessary non-determinism.
