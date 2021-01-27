@@ -1,4 +1,5 @@
 TITLE: KMSAN: uninit-value in anon_vma_interval_tree_insert
+ALT: bad-access in anon_vma_interval_tree_insert
 
 [  432.134926] ==================================================================
 [  432.142342] BUG: KMSAN: uninit-value in __rb_insert_augmented+0x2de/0x13f0

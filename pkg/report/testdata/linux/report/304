@@ -1,4 +1,5 @@
 TITLE: KMSAN: uninit-value in vti6_ioctl
+ALT: bad-access in vti6_ioctl
 
 syzkaller login: [   44.865333] ==================================================================
 [   44.872739] BUG: KMSAN: uninit-value in strlcpy+0x68/0x1c0

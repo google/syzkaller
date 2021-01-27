@@ -1,4 +1,5 @@
 TITLE: KMSAN: uninit-value in ip_route_output_key_hash_rcu
+ALT: bad-access in ip_route_output_key_hash_rcu
 
 setsockopt$IPT_SO_SET_ADD_COUNTERS(r1, 0x0, 0x41, &(0x7f0000000100)={'filter\x00', 0x3, [{}, {}, {}]}, 0x58)
 getsockopt$netrom_NETROM_T4(0xffffffffffffffff, 0x103, 0x6, &(0x7f00000001c0), &(0x7f0000000200)=0x4)
