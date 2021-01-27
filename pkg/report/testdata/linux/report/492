@@ -1,5 +1,5 @@
-# TODO: this should be "in hsr_announce".
 TITLE: INFO: rcu detected stall in drm_ioctl
+ALT: stall in drm_ioctl
 TYPE: HANG
 
 [ 3239.542037][    C1] rcu: INFO: rcu_preempt detected stalls on CPUs/tasks:

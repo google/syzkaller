@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in netlink_sendmsg
+ALT: stall in netlink_sendmsg
 TYPE: HANG
 
 [  480.173025] INFO: rcu_sched self-detected stall on CPU

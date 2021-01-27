@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in bpf_map_free_deferred
+ALT: stall in bpf_map_free_deferred
 TYPE: HANG
 
 isob2 login: [  709.689951] INFO: rcu_sched detected stalls on CPUs/tasks:

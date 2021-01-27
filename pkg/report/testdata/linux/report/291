@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in rmdir
+ALT: stall in rmdir
 TYPE: HANG
 
 [  539.960575] INFO: rcu_preempt detected stalls on CPUs/tasks:

@@ -1,5 +1,5 @@
-# TODO: this is not corrupted, it's just a unique rcu stall report without apic_timer_interrupt frame...
 TITLE: INFO: rcu detected stall in corrupted
+ALT: stall in corrupted
 TYPE: HANG
 CORRUPTED: Y
 

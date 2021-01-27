@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in nf_tables_getgen
+ALT: stall in nf_tables_getgen
 TYPE: HANG
 
 [  419.322115] rcu: INFO: rcu_sched self-detected stall on CPU

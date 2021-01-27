@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in mount
+ALT: stall in mount
 TYPE: HANG
 
 INFO: rcu_sched detected stalls on CPUs/tasks:

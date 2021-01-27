@@ -1,6 +1,5 @@
-# This is a bit unusual rcu stall report which we misparse now, see:
-# https://groups.google.com/d/msg/syzkaller-bugs/EtMMaRJPRHY/6B9IK2hmAgAJ
 TITLE: INFO: rcu detected stall in sys_exit_group
+ALT: stall in sys_exit_group
 TYPE: HANG
 
 [  351.648071][    C1] rcu: INFO: rcu_preempt self-detected stall on CPU

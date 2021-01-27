@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in tc_modify_qdisc
+ALT: stall in tc_modify_qdisc
 TYPE: HANG
 
 [  809.100032][    C1] rcu: INFO: rcu_preempt detected stalls on CPUs/tasks:

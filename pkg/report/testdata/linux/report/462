@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in ip_set_uadd
+ALT: stall in ip_set_uadd
 TYPE: HANG
 
 [  350.106517][    C3] rcu: INFO: rcu_preempt self-detected stall on CPU

@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in lock_is_held_type
+ALT: stall in lock_is_held_type
 TYPE: HANG
 
 [  241.671097] rcu: INFO: rcu_sched self-detected stall on CPU

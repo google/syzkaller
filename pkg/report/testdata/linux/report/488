@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in garp_join_timer_arm
+ALT: stall in garp_join_timer_arm
 TYPE: HANG
 
 [ 1829.205943] rcu: INFO: rcu_preempt self-detected stall on CPU
