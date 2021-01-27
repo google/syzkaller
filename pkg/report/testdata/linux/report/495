@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in kvm_mux_dev_ioctl
+ALT: stall in kvm_mux_dev_ioctl
 TYPE: HANG
 
 [  785.972629] rcu: INFO: rcu_sched self-detected stall on CPU

@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in io_sq_thread
+ALT: stall in io_sq_thread
 TYPE: HANG
 
 [  589.079232] rcu: INFO: rcu_sched self-detected stall on CPU

@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in sched_ttwu_pending
+ALT: stall in sched_ttwu_pending
 TYPE: HANG
 
 [  575.758025] INFO: rcu_sched detected stalls on CPUs/tasks:

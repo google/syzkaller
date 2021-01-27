@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in sys_futex
+ALT: stall in sys_futex
 TYPE: HANG
 
 [  246.173515] rcu: INFO: rcu_sched self-detected stall on CPU

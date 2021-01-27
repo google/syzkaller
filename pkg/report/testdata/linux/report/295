@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in rtnl_newlink
+ALT: stall in rtnl_newlink
 TYPE: HANG
 
 [  355.572806] INFO: rcu_sched self-detected stall on CPU

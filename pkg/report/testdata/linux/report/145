@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in ipv6_rcv
+ALT: stall in ipv6_rcv
 TYPE: HANG
 
 [  323.830017] INFO: rcu_sched detected stalls on CPUs/tasks:

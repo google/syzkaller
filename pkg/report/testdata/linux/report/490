@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in neigh_timer_handler
+ALT: stall in neigh_timer_handler
 TYPE: HANG
 
 [  366.785711] INFO: rcu_preempt self-detected stall on CPU

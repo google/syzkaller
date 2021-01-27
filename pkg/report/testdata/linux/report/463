@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in ip_set_ad
+ALT: stall in ip_set_ad
 TYPE: HANG
 
 [  160.301453] rcu: INFO: rcu_sched self-detected stall on CPU

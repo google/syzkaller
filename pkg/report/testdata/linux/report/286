@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in sctp_generate_heartbeat_event
+ALT: stall in sctp_generate_heartbeat_event
 TYPE: HANG
 
 [  486.569033] INFO: rcu_sched self-detected stall on CPU

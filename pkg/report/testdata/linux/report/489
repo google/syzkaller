@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in perf_event_mmap
+ALT: stall in perf_event_mmap
 TYPE: HANG
 
 [  943.341024] INFO: rcu_preempt self-detected stall on CPU

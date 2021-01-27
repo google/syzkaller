@@ -1063,6 +1063,7 @@ var linuxOopses = append([]*oops{
 			{
 				title: compile("BUG: soft lockup"),
 				fmt:   "BUG: soft lockup in %[1]v",
+				alt:   []string{"stall in %[1]v"},
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
 						linuxRipFrame,
@@ -1411,6 +1412,7 @@ var linuxOopses = append([]*oops{
 			{
 				title: compile("INFO: rcu_(?:preempt|sched|bh) (?:self-)?detected(?: expedited)? stall"),
 				fmt:   "INFO: rcu detected stall in %[1]v",
+				alt:   []string{"stall in %[1]v"},
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
 						compile("apic_timer_interrupt"),

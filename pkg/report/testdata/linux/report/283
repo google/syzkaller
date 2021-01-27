@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in snd_pcm_oss_release
+ALT: stall in snd_pcm_oss_release
 TYPE: HANG
 
 [  362.024021] INFO: rcu_sched self-detected stall on CPU

@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in br_handle_frame
+ALT: stall in br_handle_frame
 TYPE: HANG
 
 [  421.679143] INFO: rcu_sched self-detected stall on CPU
