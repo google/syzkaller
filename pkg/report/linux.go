@@ -1003,6 +1003,7 @@ var linuxOopses = append([]*oops{
 				title:  compile("BUG: KMSAN:"),
 				report: compile("BUG: KMSAN: ([a-z\\-]+) in {{FUNC}}"),
 				fmt:    "KMSAN: %[1]v in %[3]v",
+				alt:    []string{"bad-access in %[3]v"},
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
 						linuxCallTrace,

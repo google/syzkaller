@@ -1,4 +1,5 @@
 TITLE: KMSAN: kernel-infoleak in copy_siginfo_to_user
+ALT: bad-access in copy_siginfo_to_user
 
 [   47.389823] ==================================================================
 [   47.397223] BUG: KMSAN: kernel-infoleak in _copy_to_user+0x15d/0x1f0
