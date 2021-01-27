@@ -1,4 +1,5 @@
 TITLE: INFO: task can't die in p9_client_rpc
+ALT: hang in p9_client_rpc
 TYPE: HANG
 
 [ 1455.962139][ T1161] INFO: task syz-executor.4:21128 can't die for more than 143 seconds.

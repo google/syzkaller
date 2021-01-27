@@ -1,4 +1,5 @@
 TITLE: INFO: task hung in synchronize_rcu
+ALT: hang in synchronize_rcu
 TYPE: HANG
 
 [ 1395.402634][ T1057] INFO: task kworker/u4:8:11933 blocked for more than 143 seconds.

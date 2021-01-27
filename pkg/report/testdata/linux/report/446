@@ -1,4 +1,5 @@
 TITLE: INFO: task hung in tls_sw_free_resources_tx
+ALT: hang in tls_sw_free_resources_tx
 TYPE: HANG
 
 [  412.216359] TCP: request_sock_TCPv6: Possible SYN flooding on port 20002. Sending cookies.  Check SNMP counters.
