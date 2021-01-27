@@ -1454,6 +1454,7 @@ var linuxOopses = append([]*oops{
 			{
 				title: compile("INFO: task .* blocked for more than [0-9]+ seconds"),
 				fmt:   "INFO: task hung in %[1]v",
+				alt:   []string{"hang in %[1]v"},
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
 						linuxCallTrace,
@@ -1465,6 +1466,7 @@ var linuxOopses = append([]*oops{
 			{
 				title: compile("INFO: task .* can't die for more than .* seconds"),
 				fmt:   "INFO: task can't die in %[1]v",
+				alt:   []string{"hang in %[1]v"},
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
 						linuxCallTrace,

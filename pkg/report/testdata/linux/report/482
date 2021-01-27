@@ -1,4 +1,5 @@
 TITLE: INFO: task can't die in corrupted
+ALT: hang in corrupted
 TYPE: HANG
 CORRUPTED: Y
 
