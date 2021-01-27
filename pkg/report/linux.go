@@ -804,6 +804,7 @@ var linuxStackParams = &stackParams{
 		"refcount_dec",
 		"refcount_set",
 		"refcount_read",
+		"seqprop_assert",
 		"memcpy",
 		"memcmp",
 		"memset",
