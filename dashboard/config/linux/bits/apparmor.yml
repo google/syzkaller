@@ -10,4 +10,4 @@ config:
  - SECURITY_APPARMOR_DEBUG
  - SECURITY_APPARMOR_DEBUG_ASSERTS
  - DEFAULT_SECURITY_APPARMOR
- - LSM: "lockdown,yama,safesetid,integrity,tomoyo,apparmor,bpf"
+ - LSM: "landlock,lockdown,yama,safesetid,integrity,tomoyo,apparmor,bpf"
