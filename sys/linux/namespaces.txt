@@ -5,11 +5,13 @@ include <uapi/linux/sched.h>
 include <uapi/linux/nsfs.h>
 
 resource fd_namespace[fd]
+resource fd_userns[fd_namespace]
 
 unshare(flags flags[unshare_flags])
 setns(fd fd_namespace, type flags[ns_type])
 
 syz_open_procfs$namespace(pid pid, file ptr[in, string[procfs_namespace_file]]) fd_namespace
+syz_open_procfs$userns(pid pid, file ptr[in, string["ns/user"]]) fd_userns
 
 ioctl$NS_GET_USERNS(fd fd_namespace, cmd const[NS_GET_USERNS], arg const[0])
 ioctl$NS_GET_PARENT(fd fd_namespace, cmd const[NS_GET_PARENT], arg const[0]) fd_namespace
