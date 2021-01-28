@@ -8,4 +8,4 @@ config:
  - SECURITY_SMACK_NETFILTER: [-baseline, -onlyusb]
  - EVM_EXTRA_SMACK_XATTRS
  - DEFAULT_SECURITY_SMACK
- - LSM: "lockdown,yama,safesetid,integrity,tomoyo,smack,bpf"
+ - LSM: "landlock,lockdown,yama,safesetid,integrity,tomoyo,smack,bpf"

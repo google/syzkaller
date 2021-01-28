@@ -7,4 +7,4 @@ config:
  - SECURITY_SELINUX
  - SECURITY_SELINUX_DISABLE: n
  - DEFAULT_SECURITY_SELINUX
- - LSM: "lockdown,yama,safesetid,integrity,tomoyo,selinux,bpf"
+ - LSM: "landlock,lockdown,yama,safesetid,integrity,tomoyo,selinux,bpf"
