@@ -258,6 +258,10 @@ func loadConfig(filename string) (*Config, error) {
 	if cfg.HTTP == "" {
 		return nil, fmt.Errorf("param 'http' is empty")
 	}
+	cfg.Goroot = osutil.Abs(cfg.Goroot)
+	cfg.SyzkallerDescriptions = osutil.Abs(cfg.SyzkallerDescriptions)
+	cfg.BisectBinDir = osutil.Abs(cfg.BisectBinDir)
+	cfg.Ccache = osutil.Abs(cfg.Ccache)
 	// Manager name must not contain dots because it is used as GCE image name prefix.
 	managerNameRe := regexp.MustCompile("^[a-zA-Z0-9-_]{3,64}$")
 	var managers []*ManagerConfig
@@ -293,6 +297,13 @@ func loadConfig(filename string) (*Config, error) {
 			managercfg.HTTP = fmt.Sprintf(":%v", cfg.ManagerPort)
 			cfg.ManagerPort++
 		}
+		mgr.Compiler = osutil.Abs(mgr.Compiler)
+		mgr.Ccache = osutil.Abs(mgr.Ccache)
+		mgr.Userspace = osutil.Abs(mgr.Userspace)
+		mgr.KernelConfig = osutil.Abs(mgr.KernelConfig)
+		mgr.KernelBaselineConfig = osutil.Abs(mgr.KernelBaselineConfig)
+		mgr.KernelCmdline = osutil.Abs(mgr.KernelCmdline)
+		mgr.KernelSysctl = osutil.Abs(mgr.KernelSysctl)
 	}
 	cfg.Managers = managers
 	if len(cfg.Managers) == 0 {
