@@ -11,7 +11,7 @@ FROM debian:bullseye
 RUN apt-get update
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
 	# Build essentials:
-	gcc g++ binutils make bazel-bootstrap golang-go \
+	gcc g++ binutils make ccache bazel-bootstrap golang-go \
 	clang clang-format clang-tidy \
 	# Some common utilities:
 	unzip curl sudo procps psmisc nano vim git bzip2 dh-autoreconf software-properties-common \
