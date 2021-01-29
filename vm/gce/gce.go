@@ -163,7 +163,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	}()
 	sshKey := pool.env.SSHKey
 	sshUser := pool.env.SSHUser
-	if sshKey == "" {
+	if sshKey == "GCE" {
 		// Assuming image supports GCE ssh fanciness.
 		sshKey = gceKey
 		sshUser = "syzkaller"
