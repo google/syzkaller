@@ -2,8 +2,8 @@
 # Copyright 2016 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-# create-gce-image.sh creates a minimal bootable image suitable for syzkaller/GCE.
-# The image will have password-less root login with a key stored in key file.
+# create-gce-image.sh creates a minimal bootable image suitable for syzkaller/GCE in ./disk.raw file.
+# The script can also create/delete temp files in the current dir.
 #
 # Prerequisites:
 # - you need a user-space system, a basic Debian system can be created with:
@@ -22,11 +22,6 @@
 # then its contents will be appended to the kernel command line.
 # If MKE2FS_CONFIG env var is set, it will affect invoked mkfs.ext4.
 #
-# Outputs are (in the current dir):
-# - disk.raw: the image
-# - key: root ssh key
-# The script can also create/delete temp files in the current dir.
-#
 # The image then needs to be compressed with:
 #   tar -Sczf disk.tar.gz disk.raw
 # and uploaded to GCS with:
@@ -37,8 +32,7 @@
 #   qemu-system-x86_64 -hda disk.raw -net user,host=10.0.2.10,hostfwd=tcp::10022-:22 \
 #       -net nic -enable-kvm -m 2G -display none -serial stdio
 # once the kernel boots, you can ssh into it with:
-#   ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes \
-#       -p 10022 -i key root@localhost
+#   ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -p 10022 root@localhost
 
 set -eux
 
@@ -146,14 +140,18 @@ fi
 
 echo -en "127.0.0.1\tlocalhost\n" | sudo tee disk.mnt/etc/hosts
 echo "nameserver 8.8.8.8" | sudo tee -a disk.mnt/etc/resolve.conf
-echo "ClientAliveInterval 420" | sudo tee -a disk.mnt/etc/ssh/sshd_config
 echo "syzkaller" | sudo tee disk.mnt/etc/hostname
-rm -f key key.pub
-ssh-keygen -f key -t rsa -N ""
-sudo mkdir -p disk.mnt/root/.ssh
-sudo cp key.pub disk.mnt/root/.ssh/authorized_keys
-sudo chown root disk.mnt/root/.ssh/authorized_keys
 sudo mkdir -p disk.mnt/boot/grub
+
+# Setup ssh without key/password.
+cat << EOF | sudo tee disk.mnt/etc/ssh/sshd_config
+PermitRootLogin yes
+PasswordAuthentication yes
+PermitEmptyPasswords yes
+ClientAliveInterval 420
+EOF
+# Reset root password.
+sudo sed -i "s#^root:\*:#root::#g" disk.mnt/etc/shadow
 
 CMDLINE=""
 SYZ_CMDLINE_FILE="${SYZ_CMDLINE_FILE:-}"

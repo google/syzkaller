@@ -122,13 +122,6 @@ func (linux) createImage(params *Params, kernelPath string) error {
 	if err := osutil.CopyFile(filepath.Join(tempDir, "disk.raw"), imageFile); err != nil {
 		return err
 	}
-	keyFile := filepath.Join(params.OutputDir, "key")
-	if err := osutil.CopyFile(filepath.Join(tempDir, "key"), keyFile); err != nil {
-		return err
-	}
-	if err := os.Chmod(keyFile, 0600); err != nil {
-		return err
-	}
 	return nil
 }
 

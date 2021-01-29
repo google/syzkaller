@@ -98,14 +98,16 @@ fi
 
 echo -en "127.0.0.1\tlocalhost\n" | sudo tee disk.mnt/etc/hosts
 echo "nameserver 8.8.8.8" | sudo tee -a disk.mnt/etc/resolve.conf
-echo "ClientAliveInterval 420" | sudo tee -a disk.mnt/etc/ssh/sshd_config
 echo "syzkaller" | sudo tee disk.mnt/etc/hostname
-rm -f key key.pub
-ssh-keygen -f key -t rsa -N ""
-sudo mkdir -p disk.mnt/root/.ssh
-sudo cp key.pub disk.mnt/root/.ssh/authorized_keys
-sudo chown root disk.mnt/root/.ssh/authorized_keys
 sudo mkdir -p disk.mnt/boot/grub
+
+cat << EOF | sudo tee disk.mnt/etc/ssh/sshd_config
+PermitRootLogin yes
+PasswordAuthentication yes
+PermitEmptyPasswords yes
+ClientAliveInterval 420
+EOF
+sudo sed -i "s#^root:\*:#root::#g" disk.mnt/etc/shadow
 
 CMDLINE=""
 SYZ_CMDLINE_FILE="${SYZ_CMDLINE_FILE:-}"
