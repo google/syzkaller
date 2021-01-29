@@ -59,7 +59,7 @@ const (
 func main() {
 	flag.Parse()
 	if os.Getuid() != 0 {
-		tool.Failf("image build will tool.Fail, run under root")
+		tool.Failf("image build will fail, run under root")
 	}
 	os.Setenv("SYZ_DISABLE_SANDBOXING", "yes")
 	dir, err := ioutil.TempDir("", "syz-testbuild")
