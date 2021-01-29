@@ -297,8 +297,8 @@ func loadConfig(filename string) (*Config, error) {
 			managercfg.HTTP = fmt.Sprintf(":%v", cfg.ManagerPort)
 			cfg.ManagerPort++
 		}
-		mgr.Compiler = osutil.Abs(mgr.Compiler)
-		mgr.Ccache = osutil.Abs(mgr.Ccache)
+		// Note: we don't change Compiler/Ccache because it may be just "gcc" referring
+		// to the system binary, or pkg/build/netbsd.go uses "g++" and "clang++" as special marks.
 		mgr.Userspace = osutil.Abs(mgr.Userspace)
 		mgr.KernelConfig = osutil.Abs(mgr.KernelConfig)
 		mgr.KernelBaselineConfig = osutil.Abs(mgr.KernelBaselineConfig)
