@@ -31,20 +31,20 @@ func (linux linux) build(params *Params) error {
 		return err
 	}
 	kernelPath := filepath.Join(params.KernelDir, filepath.FromSlash(kernelBin(params.TargetArch)))
-	if fileInfo, err := os.Stat(params.UserspaceDir); err == nil && !fileInfo.IsDir() && params.VMType == "qemu" {
+	if fileInfo, err := os.Stat(params.UserspaceDir); err == nil && fileInfo.IsDir() {
+		// The old way of assembling the image from userspace dir.
+		// It should be removed once all syzbot instances are switched.
+		return linux.createImage(params, kernelPath)
+	}
+	if params.VMType == "qemu" {
 		// If UserspaceDir is a file (image) and we use qemu, we just copy image and kernel to the output dir
 		// assuming that qemu will use injected kernel boot. In this mode we also assume password/key-less ssh.
-		// In future it would be good to switch to accepting complete disk image always and just replacing
-		// kernel in it for GCE VMs (assembling image from userspace files in createImage isn't reasonable).
 		if err := osutil.CopyFile(kernelPath, filepath.Join(params.OutputDir, "kernel")); err != nil {
 			return err
 		}
 		return osutil.CopyFile(params.UserspaceDir, filepath.Join(params.OutputDir, "image"))
 	}
-	if err := linux.createImage(params, kernelPath); err != nil {
-		return err
-	}
-	return nil
+	return embedLinuxKernel(params, kernelPath)
 }
 
 func (linux linux) sign(params *Params) (string, error) {
