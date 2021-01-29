@@ -31,16 +31,6 @@ if [ "$(basename $2)" != "$KERNEL_IMAGE_BASENAME" ]; then
 	exit 1
 fi
 
-SYZ_VM_TYPE="${SYZ_VM_TYPE:-qemu}"
-if [ "$SYZ_VM_TYPE" == "qemu" ]; then
-	:
-elif [ "$SYZ_VM_TYPE" == "gce" ]; then
-	:
-else
-	echo "SYZ_VM_TYPE has unsupported value $SYZ_VM_TYPE"
-	exit 1
-fi
-
 BLOCK_DEVICE="loop"
 if [ "$(uname -a | grep Ubuntu)" != "" ]; then
 	BLOCK_DEVICE="nbd"

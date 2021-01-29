@@ -16,11 +16,6 @@
 # Usage:
 #   ./create-gce-image.sh /dir/with/user/space/system /path/to/{zImage,bzImage} [arch]
 #
-# SYZ_VM_TYPE env var controls type of target test machine. Supported values:
-# - qemu (default)
-# - gce
-#   Needs nbd support in kernel and qemu-utils (qemu-nbd) installed.
-#
 # If SYZ_SYSCTL_FILE env var is set and points to a file,
 # then its contents will be appended to the image /etc/sysctl.conf.
 # If SYZ_CMDLINE_FILE env var is set and points to a file,
@@ -68,16 +63,6 @@ esac
 
 if [ "$(basename $2)" != "$KERNEL_IMAGE_BASENAME" ]; then
 	echo "usage: create-gce-image.sh /dir/with/user/space/system /path/to/bzImage [arch]"
-	exit 1
-fi
-
-SYZ_VM_TYPE="${SYZ_VM_TYPE:-qemu}"
-if [ "$SYZ_VM_TYPE" == "qemu" ]; then
-	:
-elif [ "$SYZ_VM_TYPE" == "gce" ]; then
-	:
-else
-	echo "SYZ_VM_TYPE has unsupported value $SYZ_VM_TYPE"
 	exit 1
 fi
 
