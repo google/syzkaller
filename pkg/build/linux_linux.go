@@ -48,7 +48,7 @@ func embedLinuxKernel(params *Params, kernelPath string) error {
 		return err
 	}
 	if err := unix.Mount(loopFile+"p1", mountDir, "ext4", 0, ""); err != nil {
-		return err
+		return fmt.Errorf("mount(%vp1, %v) failed: %v", loopFile, mountDir, err)
 	}
 	defer unix.Unmount(mountDir, 0)
 	if err := osutil.CopyFile(kernelPath, filepath.Join(mountDir, "vmlinuz")); err != nil {
