@@ -317,10 +317,8 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			<th><a onclick="return sortTable(this, 'Report', reproSort)" href="#">Report</a></th>
 			<th><a onclick="return sortTable(this, 'Syz repro', reproSort)" href="#">Syz repro</a></th>
 			<th><a onclick="return sortTable(this, 'C repro', textSort)" href="#">C repro</a></th>
-			<th><a onclick="return sortTable(this, 'machine info', textSort)" href="#">VM info</a></th>
-			{{if .HasMaintainers}}
-			<th><a onclick="return sortTable(this, 'Maintainers', textSort)" href="#">Maintainers</a></th>
-			{{end}}
+			<th><a onclick="return sortTable(this, 'VM info', textSort)" href="#">VM info</a></th>
+			<th><a onclick="return sortTable(this, 'Title', textSort)" href="#">Title</a></th>
 		</tr>
 		</thead>
 		<tbody>
@@ -338,9 +336,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			<td class="repro">{{if $b.ReproSyzLink}}<a href="{{$b.ReproSyzLink}}">syz</a>{{end}}</td>
 			<td class="repro">{{if $b.ReproCLink}}<a href="{{$b.ReproCLink}}">C</a>{{end}}</td>
 			<td class="repro">{{if $b.MachineInfoLink}}<a href="{{$b.MachineInfoLink}}">info</a>{{end}}</td>
-			{{if $.HasMaintainers}}
-			<td class="maintainers" title="{{$b.Maintainers}}">{{$b.Maintainers}}</td>
-			{{end}}
+			<td class="manager">{{$b.Title}}</td>
 		</tr>
 		{{end}}
 		</tbody>
