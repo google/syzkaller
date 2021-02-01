@@ -166,6 +166,7 @@ type uiBug struct {
 }
 
 type uiCrash struct {
+	Title           string
 	Manager         string
 	Time            time.Time
 	Maintainers     string
@@ -178,9 +179,8 @@ type uiCrash struct {
 }
 
 type uiCrashTable struct {
-	Crashes        []*uiCrash
-	Caption        string
-	HasMaintainers bool
+	Crashes []*uiCrash
+	Caption string
 }
 
 type uiJob struct {
@@ -369,12 +369,6 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	crashesTable := &uiCrashTable{
 		Crashes: crashes,
 		Caption: fmt.Sprintf("Crashes (%d)", bug.NumCrashes),
-	}
-	for _, crash := range crashesTable.Crashes {
-		if crash.Maintainers != "" {
-			crashesTable.HasMaintainers = true
-			break
-		}
 	}
 	dups, err := loadDupsForBug(c, r, bug, state, managers)
 	if err != nil {
@@ -932,6 +926,7 @@ func loadFixBisectionsForBug(c context.Context, bug *Bug) ([]*uiCrash, error) {
 
 func makeUICrash(crash *Crash, build *Build) *uiCrash {
 	ui := &uiCrash{
+		Title:           crash.Title,
 		Manager:         crash.Manager,
 		Time:            crash.Time,
 		Maintainers:     strings.Join(crash.Maintainers, ", "),
