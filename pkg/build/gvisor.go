@@ -19,6 +19,10 @@ type gvisor struct{}
 var bazelTargetPath = regexp.MustCompile(`(?sm:.*^)\s*Outputs: \[(.*)\](?sm:$.*)`)
 
 func (gvisor gvisor) build(params *Params) error {
+	if params.Compiler == "" {
+		params.Compiler = "bazel"
+	}
+
 	// Bring down bazel daemon right away. We don't need it running and consuming memory.
 	defer osutil.RunCmd(10*time.Minute, params.KernelDir, params.Compiler, "shutdown")
 
