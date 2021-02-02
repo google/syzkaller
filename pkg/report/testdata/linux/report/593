@@ -1,0 +1,57 @@
+TITLE: KFENCE: use-after-free in test_use_after_free_read
+ALT: bad-access in test_use_after_free_read
+
+[    4.252938] ==================================================================
+[    4.253783] BUG: KFENCE: use-after-free read in test_use_after_free_read+0xb3/0x143
+[    4.253783] 
+[    4.254748] Use-after-free read at 0xffff8c2aae240000 (in kfence-#31):
+[    4.255440]  test_use_after_free_read+0xb3/0x143
+[    4.255936]  kunit_try_run_case+0x51/0x90
+[    4.256366]  kunit_generic_run_threadfn_adapter+0x16/0x30
+[    4.256941]  kthread+0x166/0x1a0
+[    4.257309]  ret_from_fork+0x22/0x30
+[    4.257697] 
+[    4.257865] kfence-#31 [0xffff8c2aae240000-0xffff8c2aae24001f, size=32, cache=kmalloc-32] allocated by task 114:
+[    4.258952]  test_alloc+0xf0/0x6ff
+[    4.259320]  test_use_after_free_read+0x76/0x143
+[    4.259809]  kunit_try_run_case+0x51/0x90
+[    4.260238]  kunit_generic_run_threadfn_adapter+0x16/0x30
+[    4.260807]  kthread+0x166/0x1a0
+[    4.261157]  ret_from_fork+0x22/0x30
+[    4.261540] 
+[    4.261540] freed by task 114:
+[    4.262037]  test_use_after_free_read+0xa8/0x143
+[    4.262530]  kunit_try_run_case+0x51/0x90
+[    4.262964]  kunit_generic_run_threadfn_adapter+0x16/0x30
+[    4.263539]  kthread+0x166/0x1a0
+[    4.263938]  ret_from_fork+0x22/0x30
+[    4.264371] 
+[    4.264559] CPU: 5 PID: 114 Comm: kunit_try_catch Tainted: G    B             5.11.0-rc2+ #1
+[    4.265578] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.14.0-2 04/01/2014
+[    4.266585] RIP: 0010:test_use_after_free_read+0xb3/0x143
+[    4.267244] Code: e8 a9 e8 20 ff 48 89 de 4c 89 ef e8 ee 32 31 ff eb 0d e8 97 e8 20 ff 48 89 df e8 cf f6 30 ff e8 8a e8 20 ff 48 8b 45 90 31 db <8a> 00 4c 89 65 a0 48 b8 01 00 00 00 6d 01 00 00 48 89 45 a8 8b 05
+[    4.269503] RSP: 0000:ffffa226013ffe48 EFLAGS: 00010246
+[    4.270134] RAX: ffff8c2aae240000 RBX: 0000000000000000 RCX: ffffffffa1f5c136
+[    4.271007] RDX: ffff8c2783f0dd00 RSI: 0000000000000000 RDI: 00000000ffffffff
+[    4.271871] RBP: ffffa226013ffec8 R08: ffffffffa2957020 R09: ffffffffa2957020
+[    4.272736] R10: 0000000000000017 R11: 0000000000000002 R12: ffffa22600013d48
+[    4.273601] R13: 0000000000000000 R14: 0000000000000000 R15: ffffa22600013d60
+[    4.274464] FS:  0000000000000000(0000) GS:ffff8c2aafd40000(0000) knlGS:0000000000000000
+[    4.275436] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[    4.276134] CR2: ffff8c2aae240000 CR3: 000000034740c001 CR4: 0000000000770ee0
+[    4.276994] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[    4.277859] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[    4.278717] PKRU: 55555554
+[    4.279049] Call Trace:
+[    4.279351]  ? test_double_free+0x171/0x171
+[    4.279863]  ? preempt_count_add+0x63/0xa0
+[    4.280362]  ? _raw_spin_lock_irqsave+0x14/0x40
+[    4.280912]  ? test_init_on_free+0x10/0x10
+[    4.281417]  kunit_try_run_case+0x51/0x90
+[    4.281922]  ? kunit_try_catch_throw+0x20/0x20
+[    4.282477]  kunit_generic_run_threadfn_adapter+0x16/0x30
+[    4.283143]  kthread+0x166/0x1a0
+[    4.283547]  ? __kthread_bind_mask+0x80/0x80
+[    4.284079]  ret_from_fork+0x22/0x30
+[    4.284534] ==================================================================
+

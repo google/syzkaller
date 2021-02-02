@@ -970,6 +970,7 @@ var linuxOopses = append([]*oops{
 				title:  compile("BUG: KASAN:"),
 				report: compile("BUG: KASAN: double-free or invalid-free in {{FUNC}}"),
 				fmt:    "KASAN: invalid-free in %[2]v",
+				alt:    []string{"invalid-free in %[2]v"},
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
 						compile("BUG: KASAN: double-free or invalid-free in {{FUNC}}"),
@@ -1017,6 +1018,51 @@ var linuxOopses = append([]*oops{
 				report:       compile("BUG: KCSAN: (.*)"),
 				fmt:          "KCSAN: %[1]v",
 				noStackTrace: true,
+			},
+			{
+				title: compile("BUG: KFENCE: (use-after-free|out-of-bounds) ([a-z\\-]+) in {{FUNC}}"),
+				fmt:   "KFENCE: %[1]v in %[4]v",
+				alt:   []string{"bad-access in %[4]v"},
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						compile("BUG: KFENCE: (?:[a-z\\- ]+) in {{FUNC}}"),
+						parseStackTrace,
+					},
+				},
+			},
+			{
+				title:        compile("BUG: KFENCE: invalid free in {{FUNC}}"),
+				fmt:          "KFENCE: invalid free in %[2]v",
+				alt:          []string{"invalid-free in %[2]v"},
+				noStackTrace: true,
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						compile("BUG: KFENCE: (?:[a-z\\- ]+) in {{FUNC}}"),
+						parseStackTrace,
+					},
+				},
+			},
+			{
+				title: compile("BUG: KFENCE: invalid (read|write) in {{FUNC}}"),
+				fmt:   "KFENCE: invalid %[1]v in %[3]v",
+				alt:   []string{"bad-access in %[3]v"},
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						compile("BUG: KFENCE: (?:[a-z\\- ]+) in {{FUNC}}"),
+						parseStackTrace,
+					},
+				},
+			},
+			{
+				title:        compile("BUG: KFENCE: memory corruption in {{FUNC}}"),
+				fmt:          "KFENCE: memory corruption in %[2]v",
+				noStackTrace: true,
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						compile("BUG: KFENCE: (?:[a-z\\- ]+) in {{FUNC}}"),
+						parseStackTrace,
+					},
+				},
 			},
 			{
 				title: compile("BUG: (?:unable to handle kernel paging request|unable to handle page fault for address|Unable to handle kernel data access)"),
