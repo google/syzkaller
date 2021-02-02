@@ -1,0 +1,23 @@
+TITLE: KFENCE: memory corruption in test_corruption
+
+[    4.996949] ==================================================================
+[    4.997809] BUG: KFENCE: memory corruption in test_corruption+0xb3/0x20f
+[    4.997809] 
+[    4.998745] Corrupted memory at 0xffff8c2aae24c020 [ 0x2a . . . . . . . . . . . . . . . ] (in kfence-#37):
+[    4.999848]  test_corruption+0xb3/0x20f
+[    5.000290]  kunit_try_run_case+0x51/0x90
+[    5.000751]  kunit_generic_run_threadfn_adapter+0x16/0x30
+[    5.001374]  kthread+0x166/0x1a0
+[    5.001754]  ret_from_fork+0x22/0x30
+[    5.002169] 
+[    5.002349] kfence-#37 [0xffff8c2aae24c000-0xffff8c2aae24c01f, size=32, cache=kmalloc-32] allocated by task 120:
+[    5.003501]  test_alloc+0xf0/0x6ff
+[    5.003894]  test_corruption+0x79/0x20f
+[    5.004343]  kunit_try_run_case+0x51/0x90
+[    5.004811]  kunit_generic_run_threadfn_adapter+0x16/0x30
+[    5.005435]  kthread+0x166/0x1a0
+[    5.005809]  ret_from_fork+0x22/0x30
+[    5.006221] 
+[    5.006401] CPU: 5 PID: 120 Comm: kunit_try_catch Tainted: G    B             5.11.0-rc2+ #1
+[    5.007361] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.14.0-2 04/01/2014
+[    5.008308] ==================================================================

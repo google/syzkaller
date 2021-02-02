@@ -1,0 +1,23 @@
+TITLE: KFENCE: memory corruption in kunit_try_run_case
+
+[   10.396949] ==================================================================
+[   10.397720] BUG: KFENCE: memory corruption in test_kmalloc_aligned_oob_write+0xef/0x184
+[   10.397720] 
+[   10.398697] Corrupted memory at 0xffff8c2aae2b2ff9 [ 0xac . . . . . . ] (in kfence-#88):
+[   10.399538]  test_kmalloc_aligned_oob_write+0xef/0x184
+[   10.400076]  kunit_try_run_case+0x51/0x90
+[   10.400497]  kunit_generic_run_threadfn_adapter+0x16/0x30
+[   10.401060]  kthread+0x166/0x1a0
+[   10.401413]  ret_from_fork+0x22/0x30
+[   10.401795] 
+[   10.401963] kfence-#88 [0xffff8c2aae2b2fb0-0xffff8c2aae2b2ff8, size=73, cache=kmalloc-96] allocated by task 127:
+[   10.403045]  test_alloc+0xf0/0x6ff
+[   10.403419]  test_kmalloc_aligned_oob_write+0x57/0x184
+[   10.403971]  kunit_try_run_case+0x51/0x90
+[   10.404399]  kunit_generic_run_threadfn_adapter+0x16/0x30
+[   10.404974]  kthread+0x166/0x1a0
+[   10.405328]  ret_from_fork+0x22/0x30
+[   10.405716] 
+[   10.405882] CPU: 5 PID: 127 Comm: kunit_try_catch Tainted: G    B             5.11.0-rc2+ #1
+[   10.406772] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.14.0-2 04/01/2014
+[   10.407663] ==================================================================
