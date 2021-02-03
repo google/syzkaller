@@ -760,6 +760,8 @@ var linuxStackParams = &stackParams{
 		"alloc_pages",
 		"kmalloc",
 		"kcalloc",
+		"kzalloc",
+		"krealloc",
 		"debug_object",
 		"timer_is_static_object",
 		"work_is_static_object",
