@@ -104,6 +104,34 @@ type Config struct {
 }
 
 type ManagerConfig struct {
+	// If Name is specified, syz-manager name is set to Config.Name-ManagerConfig.Name.
+	// This is old naming scheme, it does not allow to move managers between ci instances.
+	// For new naming scheme set ManagerConfig.ManagerConfig.Name instead and leave this field empty.
+	// This allows to move managers as their name does not depend on cfg.Name.
+	// Generally, if you have:
+	// {
+	//   "name": "ci",
+	//   "managers": [
+	//     {
+	//       "name": "foo",
+	//       ...
+	//     }
+	//   ]
+	// }
+	// you want to change it to:
+	// {
+	//   "name": "ci",
+	//   "managers": [
+	//     {
+	//       ...
+	//       "manager_config": {
+	//         "name": "ci-foo"
+	//       }
+	//     }
+	//   ]
+	// }
+	// and rename managers/foo to managers/ci-foo. Then this instance can be moved
+	// to another ci along with managers/ci-foo dir.
 	Name            string `json:"name"`
 	Disabled        string `json:"disabled"` // If not empty, don't build/start this manager.
 	DashboardClient string `json:"dashboard_client"`
@@ -269,15 +297,27 @@ func loadConfig(filename string) (*Config, error) {
 		if mgr.Disabled == "" {
 			managers = append(managers, mgr)
 		}
+		managercfg, err := mgrconfig.LoadPartialData(mgr.ManagerConfig)
+		if err != nil {
+			return nil, fmt.Errorf("manager config: %v", err)
+		}
+		if managercfg.Name != "" && mgr.Name != "" {
+			return nil, fmt.Errorf("both managercfg.Name=%q and mgr.Name=%q are specified",
+				managercfg.Name, mgr.Name)
+		}
+		if managercfg.Name == "" && mgr.Name == "" {
+			return nil, fmt.Errorf("no managercfg.Name nor mgr.Name are specified")
+		}
+		if managercfg.Name != "" {
+			mgr.Name = managercfg.Name
+		} else {
+			managercfg.Name = cfg.Name + "-" + mgr.Name
+		}
 		if !managerNameRe.MatchString(mgr.Name) {
 			return nil, fmt.Errorf("param 'managers[%v].name' has bad value: %q", i, mgr.Name)
 		}
 		if mgr.Branch == "" {
 			mgr.Branch = "master"
-		}
-		managercfg, err := mgrconfig.LoadPartialData(mgr.ManagerConfig)
-		if err != nil {
-			return nil, fmt.Errorf("manager %v: %v", mgr.Name, err)
 		}
 		if (mgr.Jobs.TestPatches || mgr.Jobs.PollCommits ||
 			mgr.Jobs.BisectCause || mgr.Jobs.BisectFix) &&
@@ -291,7 +331,6 @@ func loadConfig(filename string) (*Config, error) {
 			return nil, fmt.Errorf("manager %v: enabled bisection but no bisect_bin_dir", mgr.Name)
 		}
 		mgr.managercfg = managercfg
-		managercfg.Name = cfg.Name + "-" + mgr.Name
 		managercfg.Syzkaller = filepath.FromSlash("syzkaller/current")
 		if managercfg.HTTP == "" {
 			managercfg.HTTP = fmt.Sprintf(":%v", cfg.ManagerPort)
