@@ -290,63 +290,69 @@ func loadConfig(filename string) (*Config, error) {
 	cfg.SyzkallerDescriptions = osutil.Abs(cfg.SyzkallerDescriptions)
 	cfg.BisectBinDir = osutil.Abs(cfg.BisectBinDir)
 	cfg.Ccache = osutil.Abs(cfg.Ccache)
-	// Manager name must not contain dots because it is used as GCE image name prefix.
-	managerNameRe := regexp.MustCompile("^[a-zA-Z0-9-_]{3,64}$")
 	var managers []*ManagerConfig
-	for i, mgr := range cfg.Managers {
+	for _, mgr := range cfg.Managers {
 		if mgr.Disabled == "" {
 			managers = append(managers, mgr)
 		}
-		managercfg, err := mgrconfig.LoadPartialData(mgr.ManagerConfig)
-		if err != nil {
-			return nil, fmt.Errorf("manager config: %v", err)
+		if err := loadManagerConfig(cfg, mgr); err != nil {
+			return nil, err
 		}
-		if managercfg.Name != "" && mgr.Name != "" {
-			return nil, fmt.Errorf("both managercfg.Name=%q and mgr.Name=%q are specified",
-				managercfg.Name, mgr.Name)
-		}
-		if managercfg.Name == "" && mgr.Name == "" {
-			return nil, fmt.Errorf("no managercfg.Name nor mgr.Name are specified")
-		}
-		if managercfg.Name != "" {
-			mgr.Name = managercfg.Name
-		} else {
-			managercfg.Name = cfg.Name + "-" + mgr.Name
-		}
-		if !managerNameRe.MatchString(mgr.Name) {
-			return nil, fmt.Errorf("param 'managers[%v].name' has bad value: %q", i, mgr.Name)
-		}
-		if mgr.Branch == "" {
-			mgr.Branch = "master"
-		}
-		if (mgr.Jobs.TestPatches || mgr.Jobs.PollCommits ||
-			mgr.Jobs.BisectCause || mgr.Jobs.BisectFix) &&
-			(cfg.DashboardAddr == "" || cfg.DashboardClient == "") {
-			return nil, fmt.Errorf("manager %v: has jobs but no dashboard info", mgr.Name)
-		}
-		if mgr.Jobs.PollCommits && (cfg.DashboardAddr == "" || mgr.DashboardClient == "") {
-			return nil, fmt.Errorf("manager %v: commit_poll is set but no dashboard info", mgr.Name)
-		}
-		if (mgr.Jobs.BisectCause || mgr.Jobs.BisectFix) && cfg.BisectBinDir == "" {
-			return nil, fmt.Errorf("manager %v: enabled bisection but no bisect_bin_dir", mgr.Name)
-		}
-		mgr.managercfg = managercfg
-		managercfg.Syzkaller = filepath.FromSlash("syzkaller/current")
-		if managercfg.HTTP == "" {
-			managercfg.HTTP = fmt.Sprintf(":%v", cfg.ManagerPort)
-			cfg.ManagerPort++
-		}
-		// Note: we don't change Compiler/Ccache because it may be just "gcc" referring
-		// to the system binary, or pkg/build/netbsd.go uses "g++" and "clang++" as special marks.
-		mgr.Userspace = osutil.Abs(mgr.Userspace)
-		mgr.KernelConfig = osutil.Abs(mgr.KernelConfig)
-		mgr.KernelBaselineConfig = osutil.Abs(mgr.KernelBaselineConfig)
-		mgr.KernelCmdline = osutil.Abs(mgr.KernelCmdline)
-		mgr.KernelSysctl = osutil.Abs(mgr.KernelSysctl)
 	}
 	cfg.Managers = managers
 	if len(cfg.Managers) == 0 {
 		return nil, fmt.Errorf("no managers specified")
 	}
 	return cfg, nil
+}
+
+func loadManagerConfig(cfg *Config, mgr *ManagerConfig) error {
+	managercfg, err := mgrconfig.LoadPartialData(mgr.ManagerConfig)
+	if err != nil {
+		return fmt.Errorf("manager config: %v", err)
+	}
+	if managercfg.Name != "" && mgr.Name != "" {
+		return fmt.Errorf("both managercfg.Name=%q and mgr.Name=%q are specified", managercfg.Name, mgr.Name)
+	}
+	if managercfg.Name == "" && mgr.Name == "" {
+		return fmt.Errorf("no managercfg.Name nor mgr.Name are specified")
+	}
+	if managercfg.Name != "" {
+		mgr.Name = managercfg.Name
+	} else {
+		managercfg.Name = cfg.Name + "-" + mgr.Name
+	}
+	// Manager name must not contain dots because it is used as GCE image name prefix.
+	managerNameRe := regexp.MustCompile("^[a-zA-Z0-9-_]{3,64}$")
+	if !managerNameRe.MatchString(mgr.Name) {
+		return fmt.Errorf("param 'managers.name' has bad value: %q", mgr.Name)
+	}
+	if mgr.Branch == "" {
+		mgr.Branch = "master"
+	}
+	if (mgr.Jobs.TestPatches || mgr.Jobs.PollCommits ||
+		mgr.Jobs.BisectCause || mgr.Jobs.BisectFix) &&
+		(cfg.DashboardAddr == "" || cfg.DashboardClient == "") {
+		return fmt.Errorf("manager %v: has jobs but no dashboard info", mgr.Name)
+	}
+	if mgr.Jobs.PollCommits && (cfg.DashboardAddr == "" || mgr.DashboardClient == "") {
+		return fmt.Errorf("manager %v: commit_poll is set but no dashboard info", mgr.Name)
+	}
+	if (mgr.Jobs.BisectCause || mgr.Jobs.BisectFix) && cfg.BisectBinDir == "" {
+		return fmt.Errorf("manager %v: enabled bisection but no bisect_bin_dir", mgr.Name)
+	}
+	mgr.managercfg = managercfg
+	managercfg.Syzkaller = filepath.FromSlash("syzkaller/current")
+	if managercfg.HTTP == "" {
+		managercfg.HTTP = fmt.Sprintf(":%v", cfg.ManagerPort)
+		cfg.ManagerPort++
+	}
+	// Note: we don't change Compiler/Ccache because it may be just "gcc" referring
+	// to the system binary, or pkg/build/netbsd.go uses "g++" and "clang++" as special marks.
+	mgr.Userspace = osutil.Abs(mgr.Userspace)
+	mgr.KernelConfig = osutil.Abs(mgr.KernelConfig)
+	mgr.KernelBaselineConfig = osutil.Abs(mgr.KernelBaselineConfig)
+	mgr.KernelCmdline = osutil.Abs(mgr.KernelCmdline)
+	mgr.KernelSysctl = osutil.Abs(mgr.KernelSysctl)
+	return nil
 }
