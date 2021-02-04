@@ -31,7 +31,7 @@ func (gvisor gvisor) build(params *Params) error {
 	target := "//runsc:runsc"
 	race := raceEnabled(config)
 	if race {
-		args = append(args, "--features=race")
+		args = append(args, "--@io_bazel_rules_go//go/config:race")
 		target = "//runsc:runsc-race"
 	}
 	if coverageEnabled(config) {
