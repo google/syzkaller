@@ -317,6 +317,10 @@ var List = map[string]map[string]*Target{
 					return true
 				case 572: // SYS_shm_rename
 					return true
+				case 574: // SYS___realpathat
+					return true
+				case 575: // SYS_close_range
+					return true
 				}
 				return false
 			},
@@ -339,6 +343,10 @@ var List = map[string]map[string]*Target{
 				case 571: // SYS_shm_open2
 					return true
 				case 572: // SYS_shm_rename
+					return true
+				case 574: // SYS___realpathat
+					return true
+				case 575: // SYS_close_range
 					return true
 				}
 				return false
