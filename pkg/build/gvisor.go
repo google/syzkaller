@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -27,7 +28,8 @@ func (gvisor gvisor) build(params *Params) error {
 	defer osutil.RunCmd(10*time.Minute, params.KernelDir, params.Compiler, "shutdown")
 
 	config := strings.Fields(string(params.Config))
-	args := []string{"build", "--verbose_failures"}
+	args := []string{}
+
 	target := "//runsc:runsc"
 	race := raceEnabled(config)
 	if race {
@@ -57,17 +59,22 @@ func (gvisor gvisor) build(params *Params) error {
 			"--collect_code_coverage",
 			"--instrumentation_filter=" + coverageFiles}...)
 	}
-	args = append(args, target)
+	buildArgs := []string{"build", "--verbose_failures"}
+	buildArgs = append(buildArgs, args...)
+	buildArgs = append(buildArgs, target)
+	log.Logf(0, "bazel: %v", buildArgs)
 	// The 1 hour timeout is quite high. But we've seen false positives with 20 mins
 	// on the first build after bazel/deps update. Also other gvisor instances running
 	// on the same machine contribute to longer build times.
-	if _, err := osutil.RunCmd(60*time.Minute, params.KernelDir, params.Compiler, args...); err != nil {
+	if _, err := osutil.RunCmd(60*time.Minute, params.KernelDir, params.Compiler, buildArgs...); err != nil {
 		return err
 	}
 
 	// Find out a path to the runsc binary.
-	out, err := osutil.RunCmd(time.Minute, params.KernelDir, params.Compiler,
-		"aquery", fmt.Sprintf("mnemonic(\"GoLink\", %s)", target))
+	aqueryArgs := append([]string{"aquery"}, args...)
+	aqueryArgs = append(aqueryArgs, fmt.Sprintf("mnemonic(\"GoLink\", %s)", target))
+	log.Logf(0, "bazel: %v", aqueryArgs)
+	out, err := osutil.RunCmd(time.Minute, params.KernelDir, params.Compiler, aqueryArgs...)
 	if err != nil {
 		return err
 	}
