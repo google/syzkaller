@@ -23,10 +23,6 @@ import (
 	"github.com/google/syzkaller/vm/vmimpl"
 )
 
-const (
-	hostAddr = "10.0.2.10"
-)
-
 func init() {
 	vmimpl.Register("qemu", ctor, true)
 }
@@ -69,28 +65,29 @@ type Pool struct {
 }
 
 type instance struct {
-	index      int
-	cfg        *Config
-	target     *targets.Target
-	archConfig *archConfig
-	image      string
-	debug      bool
-	os         string
-	workdir    string
-	sshkey     string
-	sshuser    string
-	timeouts   targets.Timeouts
-	port       int
-	monport    int
-	mon        net.Conn
-	monEnc     *json.Encoder
-	monDec     *json.Decoder
-	rpipe      io.ReadCloser
-	wpipe      io.WriteCloser
-	qemu       *exec.Cmd
-	merger     *vmimpl.OutputMerger
-	files      map[string]string
-	diagnose   chan bool
+	index       int
+	cfg         *Config
+	target      *targets.Target
+	archConfig  *archConfig
+	image       string
+	debug       bool
+	os          string
+	workdir     string
+	sshkey      string
+	sshuser     string
+	timeouts    targets.Timeouts
+	port        int
+	monport     int
+	forwardPort int
+	mon         net.Conn
+	monEnc      *json.Encoder
+	monDec      *json.Decoder
+	rpipe       io.ReadCloser
+	wpipe       io.WriteCloser
+	qemu        *exec.Cmd
+	merger      *vmimpl.OutputMerger
+	files       map[string]string
+	diagnose    chan bool
 }
 
 type archConfig struct {
@@ -407,7 +404,7 @@ func (inst *instance) boot() error {
 	args = append(args, splitArgs(inst.cfg.QemuArgs, templateDir, inst.index)...)
 	args = append(args,
 		"-device", inst.cfg.NetDev+",netdev=net0",
-		"-netdev", fmt.Sprintf("user,id=net0,host=%v,hostfwd=tcp::%v-:22", hostAddr, inst.port))
+		"-netdev", fmt.Sprintf("user,id=net0,restrict=on,hostfwd=tcp:127.0.0.1:%v-:22", inst.port))
 	if inst.image == "9p" {
 		args = append(args,
 			"-fsdev", "local,id=fsdev0,path=/,security_model=none,readonly",
@@ -518,11 +515,16 @@ func splitArgs(str, templateDir string, index int) (args []string) {
 }
 
 func (inst *instance) Forward(port int) (string, error) {
-	addr := hostAddr
-	if inst.target.HostFuzzer {
-		addr = "127.0.0.1"
+	if port == 0 {
+		return "", fmt.Errorf("vm/qemu: forward port is zero")
 	}
-	return fmt.Sprintf("%v:%v", addr, port), nil
+	if !inst.target.HostFuzzer {
+		if inst.forwardPort != 0 {
+			return "", fmt.Errorf("vm/qemu: forward port already set")
+		}
+		inst.forwardPort = port
+	}
+	return fmt.Sprintf("localhost:%v", port), nil
 }
 
 func (inst *instance) targetDir() string {
@@ -568,11 +570,11 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	}
 	inst.merger.Add("ssh", rpipe)
 
-	sshArgs := vmimpl.SSHArgs(inst.debug, inst.sshkey, inst.port)
+	sshArgs := vmimpl.SSHArgsForward(inst.debug, inst.sshkey, inst.port, inst.forwardPort)
 	args := strings.Split(command, " ")
 	if bin := filepath.Base(args[0]); inst.target.HostFuzzer &&
 		(bin == "syz-fuzzer" || bin == "syz-execprog") {
-		// Weird mode for akaros.
+		// Weird mode for fuchsia and akaros.
 		// Fuzzer and execprog are on host (we did not copy them), so we will run them as is,
 		// but we will also wrap executor with ssh invocation.
 		for i, arg := range args {
