@@ -56,14 +56,18 @@ func WaitForSSH(debug bool, timeout time.Duration, addr, sshKey, sshUser, OS str
 }
 
 func SSHArgs(debug bool, sshKey string, port int) []string {
-	return sshArgs(debug, sshKey, "-p", port)
+	return sshArgs(debug, sshKey, "-p", port, 0)
+}
+
+func SSHArgsForward(debug bool, sshKey string, port, forwardPort int) []string {
+	return sshArgs(debug, sshKey, "-p", port, forwardPort)
 }
 
 func SCPArgs(debug bool, sshKey string, port int) []string {
-	return sshArgs(debug, sshKey, "-P", port)
+	return sshArgs(debug, sshKey, "-P", port, 0)
 }
 
-func sshArgs(debug bool, sshKey, portArg string, port int) []string {
+func sshArgs(debug bool, sshKey, portArg string, port, forwardPort int) []string {
 	args := []string{
 		portArg, fmt.Sprint(port),
 		"-F", "/dev/null",
@@ -75,6 +79,10 @@ func sshArgs(debug bool, sshKey, portArg string, port int) []string {
 	}
 	if sshKey != "" {
 		args = append(args, "-i", sshKey)
+	}
+	if forwardPort != 0 {
+		// Forward target port as part of the ssh connection (reverse proxy).
+		args = append(args, "-R", fmt.Sprintf("%v:127.0.0.1:%v", forwardPort, forwardPort))
 	}
 	if debug {
 		args = append(args, "-v")

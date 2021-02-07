@@ -368,12 +368,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		return nil, nil, err
 	}
 
-	args = vmimpl.SSHArgs(inst.debug, inst.sshKey, inst.targetPort)
-	// Forward target port as part of the ssh connection (reverse proxy)
-	if inst.forwardPort != 0 {
-		proxy := fmt.Sprintf("%v:127.0.0.1:%v", inst.forwardPort, inst.forwardPort)
-		args = append(args, "-R", proxy)
-	}
+	args = vmimpl.SSHArgsForward(inst.debug, inst.sshKey, inst.targetPort, inst.forwardPort)
 	if inst.cfg.Pstore {
 		args = append(args, "-o", "ServerAliveInterval=6")
 		args = append(args, "-o", "ServerAliveCountMax=5")
