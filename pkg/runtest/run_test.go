@@ -99,8 +99,9 @@ func test(t *testing.T, sysTarget *targets.Target) {
 }
 
 func TestParsing(t *testing.T) {
+	t.Parallel()
 	for OS, arches := range targets.List {
-		dir := filepath.Join("..", "..", "sys", OS, targets.TestOS)
+		dir := filepath.Join("..", "..", "sys", OS, "test")
 		if !osutil.IsExist(dir) {
 			continue
 		}
@@ -113,13 +114,51 @@ func TestParsing(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			sysTarget := targets.Get(target.OS, target.Arch)
 			t.Run(fmt.Sprintf("%v/%v", target.OS, target.Arch), func(t *testing.T) {
+				t.Parallel()
 				for _, file := range files {
-					if _, _, _, err := parseProg(target, dir, file); err != nil {
-						t.Errorf("failed to parse %v/%v for %v: %v", dir, file, arch, err)
+					p, requires, _, err := parseProg(target, dir, file)
+					if err != nil {
+						t.Errorf("failed to parse %v: %v", file, err)
+					}
+					if p == nil {
+						continue
+					}
+					if runtime.GOOS != sysTarget.BuildOS {
+						continue // we need at least preprocessor binary to generate sources
+					}
+					// syz_mount_image tests are very large and this test takes too long.
+					// syz-imagegen that generates does some of this testing (Deserialize/SerializeForExec).
+					if requires["manual"] {
+						continue
+					}
+					if _, err = csource.Write(p, csource.ExecutorOpts); err != nil {
+						t.Errorf("failed to generate C source for %v: %v", file, err)
 					}
 				}
 			})
+		}
+	}
+}
+
+func TestRequires(t *testing.T) {
+	{
+		requires := parseRequires([]byte("# requires: manual arch=amd64"))
+		if !checkArch(requires, "amd64") {
+			t.Fatalf("amd64 does not pass check")
+		}
+		if checkArch(requires, "riscv64") {
+			t.Fatalf("riscv64 passes check")
+		}
+	}
+	{
+		requires := parseRequires([]byte("# requires: -arch=arm64 manual -arch=riscv64"))
+		if !checkArch(requires, "amd64") {
+			t.Fatalf("amd64 does not pass check")
+		}
+		if checkArch(requires, "riscv64") {
+			t.Fatalf("riscv64 passes check")
 		}
 	}
 }

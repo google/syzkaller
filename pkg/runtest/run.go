@@ -192,9 +192,12 @@ func progFileList(dir, filter string) ([]string, error) {
 }
 
 func (ctx *Context) generateFile(progs chan *RunRequest, sandboxes []string, cover []bool, filename string) error {
-	p, requires, results, err := ctx.parseProg(filename)
+	p, requires, results, err := parseProg(ctx.Target, ctx.Dir, filename)
 	if err != nil {
 		return err
+	}
+	if p == nil {
+		return nil
 	}
 	sysTarget := targets.Get(ctx.Target.OS, ctx.Target.Arch)
 nextSandbox:
@@ -210,10 +213,9 @@ nextSandbox:
 			}
 		}
 		properties := map[string]bool{
-			"manual":                  ctx.Tests != "", // "manual" tests run only if selected by the filter explicitly.
-			"arch=" + ctx.Target.Arch: true,
-			"sandbox=" + sandbox:      true,
-			"littleendian":            ctx.Target.LittleEndian,
+			"manual":             ctx.Tests != "", // "manual" tests run only if selected by the filter explicitly.
+			"sandbox=" + sandbox: true,
+			"littleendian":       ctx.Target.LittleEndian,
 		}
 		for _, threaded := range []bool{false, true} {
 			name := name
@@ -272,33 +274,20 @@ nextSandbox:
 	return nil
 }
 
-func (ctx *Context) parseProg(filename string) (*prog.Prog, map[string]bool, *ipc.ProgInfo, error) {
-	return parseProg(ctx.Target, ctx.Dir, filename)
-}
-
 func parseProg(target *prog.Target, dir, filename string) (*prog.Prog, map[string]bool, *ipc.ProgInfo, error) {
 	data, err := ioutil.ReadFile(filepath.Join(dir, filename))
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to read %v: %v", filename, err)
 	}
+	requires := parseRequires(data)
+	// Need to check arch requirement early as some programs
+	// may fail to deserialize on some arches due to missing syscalls.
+	if !checkArch(requires, target.Arch) {
+		return nil, nil, nil, nil
+	}
 	p, err := target.Deserialize(data, prog.Strict)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to deserialize %v: %v", filename, err)
-	}
-	requires := make(map[string]bool)
-	for _, comment := range p.Comments {
-		const prefix = "requires:"
-		if !strings.HasPrefix(comment, prefix) {
-			continue
-		}
-		for _, req := range strings.Fields(comment[len(prefix):]) {
-			positive := true
-			if req[0] == '-' {
-				positive = false
-				req = req[1:]
-			}
-			requires[req] = positive
-		}
 	}
 	errnos := map[string]int{
 		"":           0,
@@ -337,6 +326,37 @@ func parseProg(target *prog.Target, dir, filename string) (*prog.Prog, map[strin
 		}
 	}
 	return p, requires, info, nil
+}
+
+func parseRequires(data []byte) map[string]bool {
+	requires := make(map[string]bool)
+	for s := bufio.NewScanner(bytes.NewReader(data)); s.Scan(); {
+		const prefix = "# requires:"
+		line := s.Text()
+		if !strings.HasPrefix(line, prefix) {
+			continue
+		}
+		for _, req := range strings.Fields(line[len(prefix):]) {
+			positive := true
+			if req[0] == '-' {
+				positive = false
+				req = req[1:]
+			}
+			requires[req] = positive
+		}
+	}
+	return requires
+}
+
+func checkArch(requires map[string]bool, arch string) bool {
+	for req, positive := range requires {
+		const prefix = "arch="
+		if strings.HasPrefix(req, prefix) &&
+			arch != req[len(prefix):] == positive {
+			return false
+		}
+	}
+	return true
 }
 
 func (ctx *Context) produceTest(progs chan *RunRequest, req *RunRequest, name string,

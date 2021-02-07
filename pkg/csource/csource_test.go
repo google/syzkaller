@@ -4,12 +4,9 @@
 package csource
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
-	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -17,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
@@ -47,18 +43,6 @@ func TestGenerate(t *testing.T) {
 	}
 }
 
-// This is the main configuration used by executor, so we want to test it as well.
-var executorOpts = Options{
-	Threaded:  true,
-	Collide:   true,
-	Repeat:    true,
-	Procs:     2,
-	Slowdown:  1,
-	Sandbox:   "none",
-	Repro:     true,
-	UseTmpDir: true,
-}
-
 func testTarget(t *testing.T, target *prog.Target, full bool) {
 	seed := time.Now().UnixNano()
 	if os.Getenv("CI") != "" {
@@ -78,7 +62,7 @@ func testTarget(t *testing.T, target *prog.Target, full bool) {
 	if !full || testing.Short() {
 		p.Calls = append(p.Calls, syzProg.Calls...)
 		opts = allOptionsSingle(target.OS)
-		opts = append(opts, executorOpts)
+		opts = append(opts, ExecutorOpts)
 	} else {
 		minimized, _ := prog.Minimize(syzProg, -1, false, func(p *prog.Prog, call int) bool {
 			return len(p.Calls) == len(syzProg.Calls)
@@ -125,51 +109,6 @@ func testOne(t *testing.T, p *prog.Prog, opts Options) {
 		t.Fatalf("%v", err)
 	}
 	defer os.Remove(bin)
-}
-
-func TestSysTests(t *testing.T) {
-	t.Parallel()
-	for _, target := range prog.AllTargets() {
-		target := target
-		sysTarget := targets.Get(target.OS, target.Arch)
-		if runtime.GOOS != sysTarget.BuildOS {
-			continue // we need at least preprocessor binary to generate sources
-		}
-		t.Run(target.OS+"/"+target.Arch, func(t *testing.T) {
-			t.Parallel()
-			dir := filepath.Join("..", "..", "sys", target.OS, targets.TestOS)
-			if !osutil.IsExist(dir) {
-				return
-			}
-			files, err := ioutil.ReadDir(dir)
-			if err != nil {
-				t.Fatalf("failed to read %v: %v", dir, err)
-			}
-			for _, finfo := range files {
-				file := filepath.Join(dir, finfo.Name())
-				if strings.HasSuffix(file, "~") || strings.HasSuffix(file, ".swp") {
-					continue
-				}
-				data, err := ioutil.ReadFile(file)
-				if err != nil {
-					t.Fatalf("failed to read %v: %v", file, err)
-				}
-				// syz_mount_image tests are very large and this test takes too long.
-				// syz-imagegen that generates does some of this testing (Deserialize/SerializeForExec).
-				if bytes.Contains(data, []byte("# requires: manual")) {
-					continue
-				}
-				p, err := target.Deserialize(data, prog.Strict)
-				if err != nil {
-					t.Fatalf("failed to parse program %v: %v", file, err)
-				}
-				_, err = Write(p, executorOpts)
-				if err != nil {
-					t.Fatalf("failed to generate C source for %v: %v", file, err)
-				}
-			}
-		})
-	}
 }
 
 func TestExecutorMacros(t *testing.T) {

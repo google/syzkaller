@@ -310,3 +310,15 @@ func PrintAvailableFeaturesFlags() {
 		fmt.Printf("  %s - %s\n", name, features[name].Description)
 	}
 }
+
+// This is the main configuration used by executor, only for testing.
+var ExecutorOpts = Options{
+	Threaded:  true,
+	Collide:   true,
+	Repeat:    true,
+	Procs:     2,
+	Slowdown:  1,
+	Sandbox:   "none",
+	Repro:     true,
+	UseTmpDir: true,
+}
