@@ -29,6 +29,7 @@ const (
 	FeatureUSBEmulation
 	FeatureVhciInjection
 	FeatureWifiEmulation
+	Feature802154Emulation
 	numFeatures
 )
 
@@ -69,6 +70,7 @@ func Check(target *prog.Target) (*Features, error) {
 		FeatureUSBEmulation:     {Name: "USB emulation", Reason: unsupported},
 		FeatureVhciInjection:    {Name: "hci packet injection", Reason: unsupported},
 		FeatureWifiEmulation:    {Name: "wifi device emulation", Reason: unsupported},
+		Feature802154Emulation:  {Name: "802.15.4 emulation", Reason: unsupported},
 	}
 	if noHostChecks(target) {
 		return res, nil
@@ -110,6 +112,9 @@ func Setup(target *prog.Target, features *Features, featureFlags csource.Feature
 	}
 	if features[FeatureUSBEmulation].Enabled {
 		args = append(args, "usb")
+	}
+	if featureFlags["ieee802154"].Enabled && features[Feature802154Emulation].Enabled {
+		args = append(args, "802154")
 	}
 	_, err := osutil.RunCmd(5*time.Minute, "", executor, args...)
 	return err

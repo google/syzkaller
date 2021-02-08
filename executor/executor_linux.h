@@ -222,4 +222,5 @@ static feature_t features[] = {
     {"kcsan", setup_kcsan},
     {"usb", setup_usb},
     {"sysctl", setup_sysctl},
+    {"802154", setup_802154},
 };

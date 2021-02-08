@@ -204,6 +204,9 @@ func createStartOptions(cfg *mgrconfig.Config, features *host.Features, crashTyp
 		if !features[host.FeatureWifiEmulation].Enabled {
 			opts.Wifi = false
 		}
+		if !features[host.Feature802154Emulation].Enabled {
+			opts.IEEE802154 = false
+		}
 	}
 	return opts
 }
@@ -966,6 +969,13 @@ var cSimplifies = append(progSimplifies, []Simplify{
 			return false
 		}
 		opts.Wifi = false
+		return true
+	},
+	func(opts *csource.Options) bool {
+		if !opts.IEEE802154 {
+			return false
+		}
+		opts.IEEE802154 = false
 		return true
 	},
 	func(opts *csource.Options) bool {

@@ -9,7 +9,7 @@ include <uapi/linux/smc.h>
 resource genl_smc_family_id[int16]
 type msghdr_nl_smc[CMD] msghdr_netlink[netlink_msg_t[genl_smc_family_id, genlmsghdr_t[CMD], smc_pnet_policy]]
 
-syz_genetlink_get_family_id$smc(name ptr[in, string["SMC_PNETID"]]) genl_smc_family_id
+syz_genetlink_get_family_id$smc(name ptr[in, string["SMC_PNETID"]], fd sock_nl_generic) genl_smc_family_id
 
 sendmsg$SMC_PNETID_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_smc[SMC_PNETID_GET]], f flags[send_flags])
 sendmsg$SMC_PNETID_ADD(fd sock_nl_generic, msg ptr[in, msghdr_nl_smc[SMC_PNETID_ADD]], f flags[send_flags])

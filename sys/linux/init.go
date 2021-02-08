@@ -40,6 +40,10 @@ func InitTarget(target *prog.Target) {
 		AF_AX25:                     target.GetConst("AF_AX25"),
 		AF_NETROM:                   target.GetConst("AF_NETROM"),
 		AF_ROSE:                     target.GetConst("AF_ROSE"),
+		AF_IEEE802154:               target.GetConst("AF_IEEE802154"),
+		AF_NETLINK:                  target.GetConst("AF_NETLINK"),
+		SOCK_RAW:                    target.GetConst("SOCK_RAW"),
+		NETLINK_GENERIC:             target.GetConst("NETLINK_GENERIC"),
 		USB_MAJOR:                   target.GetConst("USB_MAJOR"),
 		TIOCSSERIAL:                 target.GetConst("TIOCSSERIAL"),
 		TIOCGSERIAL:                 target.GetConst("TIOCGSERIAL"),
@@ -141,6 +145,10 @@ type arch struct {
 	AF_AX25                     uint64
 	AF_NETROM                   uint64
 	AF_ROSE                     uint64
+	AF_IEEE802154               uint64
+	AF_NETLINK                  uint64
+	SOCK_RAW                    uint64
+	NETLINK_GENERIC             uint64
 	USB_MAJOR                   uint64
 	TIOCSSERIAL                 uint64
 	TIOCGSERIAL                 uint64
@@ -200,8 +208,11 @@ func (arch *arch) neutralize(c *prog.Call) {
 		// Don't let it mess with arbitrary sockets in init namespace.
 		family := c.Args[0].(*prog.ConstArg)
 		switch uint64(uint32(family.Val)) {
-		case arch.AF_NFC, arch.AF_LLC, arch.AF_BLUETOOTH,
+		case arch.AF_NFC, arch.AF_LLC, arch.AF_BLUETOOTH, arch.AF_IEEE802154,
 			arch.AF_X25, arch.AF_AX25, arch.AF_NETROM, arch.AF_ROSE:
+		case arch.AF_NETLINK:
+			c.Args[1].(*prog.ConstArg).Val = arch.SOCK_RAW
+			c.Args[2].(*prog.ConstArg).Val = arch.NETLINK_GENERIC
 		default:
 			family.Val = ^uint64(0)
 		}

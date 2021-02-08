@@ -95,6 +95,7 @@ func main() {
 		USB:           features["usb"].Enabled,
 		VhciInjection: features["vhci"].Enabled,
 		Wifi:          features["wifi"].Enabled,
+		IEEE802154:    features["ieee802154"].Enabled,
 		UseTmpDir:     *flagUseTmpDir,
 		HandleSegv:    *flagHandleSegv,
 		Repro:         *flagRepro,

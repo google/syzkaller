@@ -250,6 +250,7 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"usb":         true,
 			"vhci":        true,
 			"wifi":        true,
+			"ieee802154":  true,
 			"sysctl":      true,
 		}},
 		{"none", "none", false, map[string]bool{}},
@@ -264,6 +265,7 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"usb":         true,
 			"vhci":        true,
 			"wifi":        true,
+			"ieee802154":  true,
 			"sysctl":      true,
 		}},
 		{"", "none", true, map[string]bool{}},
@@ -279,6 +281,7 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"usb":         true,
 			"vhci":        true,
 			"wifi":        true,
+			"ieee802154":  true,
 			"sysctl":      true,
 		}},
 		{"tun,net_dev", "none", true, map[string]bool{
@@ -294,6 +297,7 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"usb":         true,
 			"vhci":        true,
 			"wifi":        true,
+			"ieee802154":  true,
 			"sysctl":      true,
 		}},
 		{"close_fds", "none", true, map[string]bool{

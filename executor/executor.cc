@@ -1483,6 +1483,7 @@ void setup_features(char** enable, int n)
 {
 	// This does any one-time setup for the requested features on the machine.
 	// Note: this can be called multiple times and must be idempotent.
+	flag_debug = true;
 #if SYZ_HAVE_FEATURES
 	setup_sysctl();
 #endif

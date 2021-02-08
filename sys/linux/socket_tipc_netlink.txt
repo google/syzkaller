@@ -9,7 +9,7 @@ type tipc_net_addr int32be
 
 resource genl_tipc_family_id[int16]
 
-syz_genetlink_get_family_id$tipc(name ptr[in, string["TIPC"]]) genl_tipc_family_id
+syz_genetlink_get_family_id$tipc(name ptr[in, string["TIPC"]], fd sock_nl_generic) genl_tipc_family_id
 
 sendmsg$TIPC_CMD_SET_LINK_TOL(fd sock_nl_generic, msg ptr[in, msghdr_nl_tipc[TIPC_CMD_SET_LINK_TOL, tipc_tlv_desc[TIPC_TLV_LINK_CONFIG, tipc_link_config]]], f flags[send_flags])
 sendmsg$TIPC_CMD_SET_LINK_PRI(fd sock_nl_generic, msg ptr[in, msghdr_nl_tipc[TIPC_CMD_SET_LINK_PRI, tipc_tlv_desc[TIPC_TLV_LINK_CONFIG, tipc_link_config]]], f flags[send_flags])
@@ -102,7 +102,7 @@ tipc_aead_key {
 }
 
 resource genl_tipc2_family_id[int16]
-syz_genetlink_get_family_id$tipc2(name ptr[in, string["TIPCv2"]]) genl_tipc2_family_id
+syz_genetlink_get_family_id$tipc2(name ptr[in, string["TIPCv2"]], fd sock_nl_generic) genl_tipc2_family_id
 
 type msghdr_nl_tipc2[CMD] msghdr_netlink[netlink_msg_t[genl_tipc2_family_id, genlmsghdr_t[CMD], tipc_nl_policy]]
 

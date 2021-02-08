@@ -98,6 +98,8 @@ func (*linux) prepareArch(arch *Arch) error {
 		// security/smack/smack.h requires this to build.
 		"-e", "SECURITY",
 		"-e", "SECURITY_SMACK",
+		// include/net/nl802154.h does not define some consts without this.
+		"-e", "IEEE802154", "-e", "IEEE802154_NL802154_EXPERIMENTAL",
 	)
 	if err != nil {
 		return err

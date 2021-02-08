@@ -44,6 +44,7 @@ type Options struct {
 	USB           bool `json:"usb,omitempty"`
 	VhciInjection bool `json:"vhci,omitempty"`
 	Wifi          bool `json:"wifi,omitempty"`
+	IEEE802154    bool `json:"ieee802154,omitempty"`
 	Sysctl        bool `json:"sysctl,omitempty"`
 
 	UseTmpDir  bool `json:"tmpdir,omitempty"`
@@ -138,6 +139,7 @@ func (opts Options) checkLinuxOnly(OS string) error {
 		"USB":           &opts.USB,
 		"VhciInjection": &opts.VhciInjection,
 		"Wifi":          &opts.Wifi,
+		"ieee802154":    &opts.IEEE802154,
 		"Fault":         &opts.Fault,
 		"Leak":          &opts.Leak,
 		"Sysctl":        &opts.Sysctl,
@@ -172,6 +174,7 @@ func DefaultOpts(cfg *mgrconfig.Config) Options {
 		opts.USB = true
 		opts.VhciInjection = true
 		opts.Wifi = true
+		opts.IEEE802154 = true
 		opts.Sysctl = true
 	}
 	if cfg.Sandbox == "" || cfg.Sandbox == "setuid" {
@@ -257,6 +260,7 @@ func defaultFeatures(value bool) Features {
 		"usb":         {"setup and use /dev/raw-gadget for USB emulation", value},
 		"vhci":        {"setup and use /dev/vhci for hci packet injection", value},
 		"wifi":        {"setup and use mac80211_hwsim for wifi emulation", value},
+		"ieee802154":  {"setup and use mac802154_hwsim for emulation", value},
 		"sysctl":      {"setup sysctl's for fuzzing", value},
 	}
 }

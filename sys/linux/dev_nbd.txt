@@ -27,12 +27,12 @@ ioctl$NBD_CLEAR_QUE(fd fd_nbd, cmd const[NBD_CLEAR_QUE])
 
 type msghdr_nl_nbd[CMD] msghdr_netlink[netlink_msg_t[genl_nbd_family_id, genlmsghdr_t[CMD], nbd_attr_policy]]
 
-syz_genetlink_get_family_id$nbd(name ptr[in, string["nbd"]]) genl_nbd_family_id
+syz_genetlink_get_family_id$nbd(name ptr[in, string["nbd"]], fd sock_nl_generic_init) genl_nbd_family_id
 
-sendmsg$NBD_CMD_CONNECT(fd sock_nl_generic, msg ptr[in, msghdr_nl_nbd[NBD_CMD_CONNECT]], f flags[send_flags])
-sendmsg$NBD_CMD_DISCONNECT(fd sock_nl_generic, msg ptr[in, msghdr_nl_nbd[NBD_CMD_DISCONNECT]], f flags[send_flags])
-sendmsg$NBD_CMD_RECONFIGURE(fd sock_nl_generic, msg ptr[in, msghdr_nl_nbd[NBD_CMD_RECONFIGURE]], f flags[send_flags])
-sendmsg$NBD_CMD_STATUS(fd sock_nl_generic, msg ptr[in, msghdr_nl_nbd[NBD_CMD_STATUS]], f flags[send_flags])
+sendmsg$NBD_CMD_CONNECT(fd sock_nl_generic_init, msg ptr[in, msghdr_nl_nbd[NBD_CMD_CONNECT]], f flags[send_flags])
+sendmsg$NBD_CMD_DISCONNECT(fd sock_nl_generic_init, msg ptr[in, msghdr_nl_nbd[NBD_CMD_DISCONNECT]], f flags[send_flags])
+sendmsg$NBD_CMD_RECONFIGURE(fd sock_nl_generic_init, msg ptr[in, msghdr_nl_nbd[NBD_CMD_RECONFIGURE]], f flags[send_flags])
+sendmsg$NBD_CMD_STATUS(fd sock_nl_generic_init, msg ptr[in, msghdr_nl_nbd[NBD_CMD_STATUS]], f flags[send_flags])
 
 nbd_attr_policy [
 	NBD_ATTR_INDEX			nlattr[NBD_ATTR_INDEX, proc[0, 1, int32]]

@@ -239,6 +239,9 @@ func createProg2CArgs(bug *dashapi.BugReport, opts csource.Options, file string)
 		enable = append(enable, "wifi")
 		flags = append(flags, "-wifi")
 	}
+	if opts.IEEE802154 {
+		enable = append(enable, "wifi")
+	}
 	if !haveEnableFlag {
 		args = append(args, flags...)
 	} else if len(enable) != 0 {

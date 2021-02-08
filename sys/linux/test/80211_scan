@@ -1,7 +1,7 @@
 # requires: -sandbox=namespace
 
 r0 = socket$nl_generic(0x10, 0x3, 0x10)
-r1 = syz_genetlink_get_family_id$nl80211(&(0x7f0000000200)='nl80211\x00')
+r1 = syz_genetlink_get_family_id$nl80211(&(0x7f0000000200)='nl80211\x00', 0xffffffffffffffff)
 ioctl$sock_SIOCGIFINDEX_80211(r0, 0x8933, &(0x7f0000000700)={'wlan1\x00', <r2=>0x0})
 
 # Set station mode for wlan1.

@@ -13,7 +13,7 @@ resource genl_team_family_id[int16]
 resource ifindex_team[ifindex]
 type msghdr_nl_team[CMD] msghdr_netlink[netlink_msg_t[genl_team_family_id, genlmsghdr_t[CMD], team_nl_policy]]
 
-syz_genetlink_get_family_id$team(name ptr[in, string["team"]]) genl_team_family_id
+syz_genetlink_get_family_id$team(name ptr[in, string["team"]], fd sock_nl_generic) genl_team_family_id
 ioctl$ifreq_SIOCGIFINDEX_team(fd sock, cmd const[SIOCGIFINDEX], arg ptr[inout, ifreq_dev_t["team0", ifindex_team]])
 
 sendmsg$TEAM_CMD_NOOP(fd sock_nl_generic, msg ptr[in, msghdr_nl_team[TEAM_CMD_NOOP]], f flags[send_flags])

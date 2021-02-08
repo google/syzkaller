@@ -9,7 +9,7 @@ include <uapi/linux/ethtool_netlink.h>
 resource genl_ethtool_family_id[int16]
 type msghdr_ethtool[CMD, POLICY] msghdr_netlink[netlink_msg_t[genl_ethtool_family_id, genlmsghdr_t[CMD], POLICY]]
 
-syz_genetlink_get_family_id$ethtool(name ptr[in, string["ethtool"]]) genl_ethtool_family_id
+syz_genetlink_get_family_id$ethtool(name ptr[in, string["ethtool"]], fd sock_nl_generic) genl_ethtool_family_id
 
 sendmsg$ETHTOOL_MSG_STRSET_GET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_STRSET_GET, strset_get_policy]], f flags[send_flags])
 sendmsg$ETHTOOL_MSG_LINKINFO_GET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_LINKINFO_GET, header_only_ethnl_policy[ETHTOOL_A_LINKINFO_HEADER]]], f flags[send_flags])

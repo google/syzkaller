@@ -468,6 +468,9 @@ func (ctx *Context) createCTest(p *prog.Prog, sandbox string, threaded bool, tim
 		if ctx.Features[host.FeatureWifiEmulation].Enabled {
 			opts.Wifi = true
 		}
+		if ctx.Features[host.Feature802154Emulation].Enabled {
+			opts.IEEE802154 = true
+		}
 	}
 	src, err := csource.Write(p, opts)
 	if err != nil {
