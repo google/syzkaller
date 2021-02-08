@@ -223,9 +223,11 @@ func isSyzGenetlinkGetFamilyIDSupported(c *prog.Syscall, target *prog.Target, sa
 	if fd == -1 {
 		return false, fmt.Sprintf("socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC) failed: %v", err)
 	}
+	// TODO: try to obtain actual family ID here. It will disable whole sets of sendmsg syscalls.
 	syscall.Close(fd)
 	return true, ""
 }
+
 func isSyzMountImageSupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
 	if ok, reason := onlySandboxNone(sandbox); !ok {
 		return ok, reason

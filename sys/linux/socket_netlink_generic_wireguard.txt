@@ -15,7 +15,7 @@ resource genl_wireguard_family_id[int16]
 
 type msghdr_wireguard[CMD] msghdr_netlink[netlink_msg_t[genl_wireguard_family_id, genlmsghdr_t[CMD], device_policy]]
 
-syz_genetlink_get_family_id$wireguard(name ptr[in, string["wireguard"]]) genl_wireguard_family_id
+syz_genetlink_get_family_id$wireguard(name ptr[in, string["wireguard"]], fd sock_nl_generic) genl_wireguard_family_id
 
 sendmsg$WG_CMD_GET_DEVICE(fd sock_nl_generic, msg ptr[in, msghdr_wireguard[WG_CMD_GET_DEVICE]], f flags[send_flags])
 sendmsg$WG_CMD_SET_DEVICE(fd sock_nl_generic, msg ptr[in, msghdr_wireguard[WG_CMD_SET_DEVICE]], f flags[send_flags])

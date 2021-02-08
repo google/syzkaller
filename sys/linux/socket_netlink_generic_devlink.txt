@@ -10,7 +10,7 @@ include <uapi/linux/genetlink.h>
 include <uapi/linux/devlink.h>
 
 resource genl_devlink_family_id[int16]
-syz_genetlink_get_family_id$devlink(name ptr[in, string["devlink"]]) genl_devlink_family_id
+syz_genetlink_get_family_id$devlink(name ptr[in, string["devlink"]], fd sock_nl_generic) genl_devlink_family_id
 
 type msghdr_nl_devlink[CMD, POLICY] msghdr_netlink[netlink_msg_t[genl_devlink_family_id, genlmsghdr_t[CMD], POLICY]]
 

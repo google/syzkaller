@@ -28,7 +28,7 @@ type msghdr_nl80211_rdev[CMD, POLICY] msghdr_nl80211[CMD, nl80211_rdev_payload, 
 # TODO: fetch wiphy ids for devices created at executor initialization. Presently we're using small numbers in that hope that syzkaller will hit the right ones.
 type nl80211_wiphy int32[0:128]
 
-syz_genetlink_get_family_id$nl80211(name ptr[in, string["nl80211"]]) nl80211_family_id
+syz_genetlink_get_family_id$nl80211(name ptr[in, string["nl80211"]], fd sock_nl_generic) nl80211_family_id
 ioctl$sock_SIOCGIFINDEX_80211(fd sock, cmd const[SIOCGIFINDEX], arg ptr[inout, ifreq_dev_t[nl80211_devnames, nl80211_ifindex]])
 
 sendmsg$NL80211_CMD_GET_WIPHY(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_rdev[NL80211_CMD_GET_WIPHY, void]], f flags[send_flags])

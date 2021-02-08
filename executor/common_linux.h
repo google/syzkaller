@@ -108,7 +108,7 @@ static bool write_file(const char* file, const char* what, ...)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI || SYZ_WIFI || \
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI || SYZ_WIFI || SYZ_802154 || \
     __NR_syz_genetlink_get_family_id || __NR_syz_80211_inject_frame || __NR_syz_80211_join_ibss
 #include <arpa/inet.h>
 #include <net/if.h>
@@ -156,7 +156,7 @@ static void netlink_attr(struct nlmsg* nlmsg, int typ,
 	nlmsg->pos += NLMSG_ALIGN(attr->nla_len);
 }
 
-#if SYZ_EXECUTOR || SYZ_NET_DEVICES
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_802154
 static void netlink_nest(struct nlmsg* nlmsg, int typ)
 {
 	struct nlattr* attr = (struct nlattr*)nlmsg->pos;
@@ -203,7 +203,7 @@ static int netlink_send_ext(struct nlmsg* nlmsg, int sock,
 	return ((struct nlmsgerr*)(hdr + 1))->error;
 }
 
-#if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI || SYZ_WIFI || \
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI || SYZ_WIFI || SYZ_802154 || \
     __NR_syz_80211_join_ibss || __NR_syz_80211_inject_frame
 static int netlink_send(struct nlmsg* nlmsg, int sock)
 {
@@ -253,7 +253,7 @@ static int netlink_next_msg(struct nlmsg* nlmsg, unsigned int offset,
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_NET_DEVICES
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_802154
 static void netlink_add_device_impl(struct nlmsg* nlmsg, const char* type,
 				    const char* name)
 {
@@ -265,7 +265,9 @@ static void netlink_add_device_impl(struct nlmsg* nlmsg, const char* type,
 	netlink_nest(nlmsg, IFLA_LINKINFO);
 	netlink_attr(nlmsg, IFLA_INFO_KIND, type, strlen(type));
 }
+#endif
 
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES
 static void netlink_add_device(struct nlmsg* nlmsg, int sock, const char* type,
 			       const char* name)
 {
@@ -392,7 +394,7 @@ static void netlink_add_ipvlan(struct nlmsg* nlmsg, int sock, const char* name, 
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI || SYZ_802154
 static void netlink_device_change(struct nlmsg* nlmsg, int sock, const char* name, bool up,
 				  const char* master, const void* mac, int macsize,
 				  const char* new_name)
@@ -474,7 +476,7 @@ static void netlink_add_neigh(struct nlmsg* nlmsg, int sock, const char* name,
 #endif
 #endif
 
-#if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI || SYZ_WIFI
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI || SYZ_WIFI || SYZ_802154
 static struct nlmsg nlmsg;
 #endif
 
@@ -1296,8 +1298,6 @@ static void initialize_netdevices(void)
 	// Also init namespace contains the following devices (which presumably can't be
 	// created in non-init namespace), can we use them somehow?
 	// - ifb0/1
-	// - wpan0/1
-	// - hwsim0
 	// - teql0
 	// - eql
 	char netdevsim[16];
@@ -2634,19 +2634,21 @@ static long syz_emit_vhci(volatile long a0, volatile long a1)
 #include <errno.h>
 #include <sys/socket.h>
 
-static long syz_genetlink_get_family_id(volatile long name)
+static long syz_genetlink_get_family_id(volatile long name, volatile long sock_arg)
 {
-	struct nlmsg nlmsg_tmp;
-
-	debug("syz_genetlink_get_family_id(%s)\n", (char*)name);
-	int fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
-	if (fd == -1) {
-		debug("syz_genetlink_get_family_id: socket failed: %d\n", errno);
-		return -1;
+	debug("syz_genetlink_get_family_id(%s, %d)\n", (char*)name, (int)sock_arg);
+	int fd = sock_arg;
+	if (fd < 0) {
+		fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
+		if (fd == -1) {
+			debug("syz_genetlink_get_family_id: socket failed: %d\n", errno);
+			return -1;
+		}
 	}
-
+	struct nlmsg nlmsg_tmp;
 	int ret = netlink_query_family_id(&nlmsg_tmp, fd, (char*)name);
-	close(fd);
+	if ((int)sock_arg >= 0)
+		close(fd);
 	if (ret < 0) {
 		debug("syz_genetlink_get_family_id: netlink_query_family_id failed: %d\n", ret);
 		return -1;
@@ -4630,6 +4632,58 @@ static void setup_sysctl()
 		if (!write_file(files[i].name, files[i].data))
 			printf("write to %s failed: %s\n", files[i].name, strerror(errno));
 	}
+}
+#endif
+
+#if SYZ_EXECUTOR || SYZ_802154
+#include <net/if.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+
+#define NL802154_CMD_SET_SHORT_ADDR 11
+#define NL802154_ATTR_IFINDEX 3
+#define NL802154_ATTR_SHORT_ADDR 10
+
+static void setup_802154()
+{
+	int sock_route = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
+	if (sock_route == -1)
+		fail("socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE) failed");
+	int sock_generic = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
+	if (sock_generic < 0)
+		fail("socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC) failed");
+	int nl802154_family_id = netlink_query_family_id(&nlmsg, sock_generic, "nl802154");
+	for (int i = 0; i < 2; i++) {
+		// wpan0/1 are created by CONFIG_IEEE802154_HWSIM.
+		// sys/linux/socket_ieee802154.txt knowns about these names and consts.
+		char devname[] = "wpan0";
+		devname[strlen(devname) - 1] += i;
+		uint64 hwaddr = 0xaaaaaaaaaaaa0002 + (i << 8);
+		uint16 shortaddr = 0xaaa0 + i;
+		int ifindex = if_nametoindex(devname);
+		struct genlmsghdr genlhdr;
+		memset(&genlhdr, 0, sizeof(genlhdr));
+		genlhdr.cmd = NL802154_CMD_SET_SHORT_ADDR;
+		netlink_init(&nlmsg, nl802154_family_id, 0, &genlhdr, sizeof(genlhdr));
+		netlink_attr(&nlmsg, NL802154_ATTR_IFINDEX, &ifindex, sizeof(ifindex));
+		netlink_attr(&nlmsg, NL802154_ATTR_SHORT_ADDR, &shortaddr, sizeof(shortaddr));
+		int err = netlink_send(&nlmsg, sock_generic);
+		if (err < 0) {
+			debug("NL802154_CMD_SET_SHORT_ADDR failed: %s\n", strerror(-err));
+		}
+		netlink_device_change(&nlmsg, sock_route, devname, true, 0, &hwaddr, sizeof(hwaddr), 0);
+		if (i == 0) {
+			netlink_add_device_impl(&nlmsg, "lowpan", "lowpan0");
+			netlink_done(&nlmsg);
+			netlink_attr(&nlmsg, IFLA_LINK, &ifindex, sizeof(ifindex));
+			int err = netlink_send(&nlmsg, sock_route);
+			debug("netlink: adding device lowpan0 type lowpan link wpan0: %s\n", strerror(-err));
+			(void)err;
+		}
+	}
+	close(sock_route);
+	close(sock_generic);
 }
 #endif
 

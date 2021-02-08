@@ -55,7 +55,7 @@ sock_pair {
 }
 
 # This sockaddr type corresponds to the struct sockaddr and is 16 bytes or less.
-# TODO: add AF_APPLETALK, AF_ATMPVC, AF_X25, AF_ROSE, AF_DECnet, AF_ATMSVC, AF_IRDA, AF_IB, AF_TIPC, AF_IUCV, AF_RXRPC, AF_ISDN, AF_PHONET, AF_IEEE802154, AF_CAIF
+# TODO: add AF_APPLETALK, AF_ATMPVC, AF_ROSE, AF_DECnet, AF_ATMSVC, AF_IRDA, AF_IB, AF_IUCV
 # Note: AF_UNIX, AF_INET6, AF_PACKET, AF_ALG, AF_PPPOX sockaddr is bigger than 16 bytes
 # Note: AF_NETROM sockaddr is the same as AF_AX25
 sockaddr [
@@ -117,6 +117,7 @@ sockaddr_storage [
 	phonet		sockaddr_pn
 	ethernet	sockaddr_ethernet
 	qipcrtr		sockaddr_qrtr
+	ieee802154	sockaddr_ieee802154
 	generic		sockaddr_storage_generic
 ] [size[SOCKADDR_STORAGE_SIZE]]
 

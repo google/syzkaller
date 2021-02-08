@@ -47,7 +47,7 @@ sockaddr_l2tpip6 {
 resource genl_l2tp_family_id[int16]
 type msghdr_nl_l2tp[CMD] msghdr_netlink[netlink_msg_t[genl_l2tp_family_id, genlmsghdr_t[CMD], l2tp_nl_policy]]
 
-syz_genetlink_get_family_id$l2tp(name ptr[in, string["l2tp"]]) genl_l2tp_family_id
+syz_genetlink_get_family_id$l2tp(name ptr[in, string["l2tp"]], fd sock_nl_generic) genl_l2tp_family_id
 
 sendmsg$L2TP_CMD_NOOP(fd sock_nl_generic, msg ptr[in, msghdr_nl_l2tp[L2TP_CMD_NOOP]], f flags[send_flags])
 sendmsg$L2TP_CMD_TUNNEL_CREATE(fd sock_nl_generic, msg ptr[in, msghdr_nl_l2tp[L2TP_CMD_TUNNEL_CREATE]], f flags[send_flags])

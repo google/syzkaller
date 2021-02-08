@@ -765,6 +765,9 @@ int main(void)
 #if SYZ_USB
 	setup_usb();
 #endif
+#if SYZ_802154
+	setup_802154();
+#endif
 
 #if SYZ_HANDLE_SEGV
 	install_segv_handler();

@@ -11,7 +11,7 @@ include <uapi/linux/mptcp.h>
 resource genl_mptcp_family_id[int16]
 type msghdr_nl_mptcp[CMD] msghdr_netlink[netlink_msg_t[genl_mptcp_family_id, genlmsghdr_t[CMD], mptcp_pm_policy]]
 
-syz_genetlink_get_family_id$mptcp(name ptr[in, string["mptcp_pm"]]) genl_mptcp_family_id
+syz_genetlink_get_family_id$mptcp(name ptr[in, string["mptcp_pm"]], fd sock_nl_generic) genl_mptcp_family_id
 
 sendmsg$MPTCP_PM_CMD_ADD_ADDR(fd sock_nl_generic, msg ptr[in, msghdr_nl_mptcp[MPTCP_PM_CMD_ADD_ADDR]], f flags[send_flags])
 sendmsg$MPTCP_PM_CMD_DEL_ADDR(fd sock_nl_generic, msg ptr[in, msghdr_nl_mptcp[MPTCP_PM_CMD_DEL_ADDR]], f flags[send_flags])

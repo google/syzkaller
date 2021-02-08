@@ -12,7 +12,7 @@ include <uapi/linux/ip_vs.h>
 resource genl_ipvs_family_id[int16]
 type msghdr_nl_ipvs[CMD] msghdr_netlink[netlink_msg_t[genl_ipvs_family_id, genlmsghdr_t[CMD], ip_vs_cmd_policy]]
 
-syz_genetlink_get_family_id$ipvs(name ptr[in, string["IPVS"]]) genl_ipvs_family_id
+syz_genetlink_get_family_id$ipvs(name ptr[in, string["IPVS"]], fd sock_nl_generic) genl_ipvs_family_id
 
 sendmsg$IPVS_CMD_NEW_SERVICE(fd sock_nl_generic, msg ptr[in, msghdr_nl_ipvs[IPVS_CMD_NEW_SERVICE]], f flags[send_flags])
 sendmsg$IPVS_CMD_SET_SERVICE(fd sock_nl_generic, msg ptr[in, msghdr_nl_ipvs[IPVS_CMD_SET_SERVICE]], f flags[send_flags])

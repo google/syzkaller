@@ -33,6 +33,7 @@ func init() {
 	checkFeature[FeatureUSBEmulation] = checkUSBEmulation
 	checkFeature[FeatureVhciInjection] = checkVhciInjection
 	checkFeature[FeatureWifiEmulation] = checkWifiEmulation
+	checkFeature[Feature802154Emulation] = check802154Emulation
 }
 
 func checkCoverage() string {
@@ -231,6 +232,13 @@ func checkWifiEmulation() string {
 	}
 	// We use HWSIM_ATTR_PERM_ADDR which was added in 4.17.
 	return requireKernel(4, 17)
+}
+
+func check802154Emulation() string {
+	if err := osutil.IsAccessible("/sys/bus/platform/devices/mac802154_hwsim"); err != nil {
+		return err.Error()
+	}
+	return ""
 }
 
 func requireKernel(x, y int) string {

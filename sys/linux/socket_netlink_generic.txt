@@ -13,6 +13,20 @@ resource sock_nl_generic[sock_netlink]
 
 socket$nl_generic(domain const[AF_NETLINK], type const[SOCK_RAW], proto const[NETLINK_GENERIC]) sock_nl_generic
 
+# This is NETLINK_GENERIC created in init_net namespace. Use with extreme care.
+# It's very dangerous to use as it allows the fuzzer to bring down network connectivity
+# and destroy the machine in other ways. But it's required for ieee802154 testing and
+# some other netlink protocols that can be used only in init_net (.netnsok = false).
+# It is specifically not derived from fd/sock, so that fuzzer does not try to use it other ways.
+# However, it's still easy to abuse it since fd number is low and can easily be used
+# as the result of race or something. If this proves to be problematic, we can either
+# create a pseudo syscall that creates socket, moves it to a high fd and then changes namespace,
+# and/or create a pseudo syscall that both creates the socket and send netlink message,
+# or improve kernel to properly support namespaces for ieee802154.
+resource sock_nl_generic_init[int32]: -1
+
+syz_init_net_socket$nl_generic(domain const[AF_NETLINK], type const[SOCK_RAW], proto const[NETLINK_GENERIC]) sock_nl_generic_init
+
 sendmsg$nl_generic(fd sock_nl_generic, msg ptr[in, msghdr_nl_generic], f flags[send_flags])
 
 type msghdr_nl_generic msghdr_netlink[netlink_msg_t[netlink_random_msg_type, genlmsghdr, nl_generic_attr]]
