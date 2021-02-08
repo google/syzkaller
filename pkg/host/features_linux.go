@@ -14,6 +14,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/linux"
+	"golang.org/x/sys/unix"
 )
 
 func init() {
@@ -233,21 +234,15 @@ func checkWifiEmulation() string {
 }
 
 func requireKernel(x, y int) string {
-	info := new(syscall.Utsname)
-	if err := syscall.Uname(info); err != nil {
+	info := new(unix.Utsname)
+	if err := unix.Uname(info); err != nil {
 		return fmt.Sprintf("uname failed: %v", err)
 	}
-	var ver []byte
-	for _, b := range info.Release {
-		if b == 0 {
-			break
-		}
-		ver = append(ver, byte(b))
-	}
-	if ok, bad := matchKernelVersion(string(ver), x, y); bad {
+	ver := string(info.Release[:])
+	if ok, bad := matchKernelVersion(ver, x, y); bad {
 		return fmt.Sprintf("failed to parse kernel version (%v)", ver)
 	} else if !ok {
-		return fmt.Sprintf("kernel %v.%v required (have %s)", x, y, ver)
+		return fmt.Sprintf("kernel %v.%v required (have %v)", x, y, ver)
 	}
 	return ""
 }
