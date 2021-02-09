@@ -300,5 +300,5 @@ if you add some temporal `debug` calls to the pseudo-syscall, `syz-execprog -deb
 
 The test syntax can be checked by running:
 ```
-go test -run=TestSysTests ./pkg/csource
+go test -run=TestParsing ./pkg/runtest
 ```
