@@ -912,7 +912,9 @@ config:
  - DLCI: [-v5.10]
  - LAPBETHER
  - X25_ASY: [-v5.10]
- - IEEE802154_FAKELB
+ # IEEE802154_FAKELB is deprecated in favor of IEEE802154_HWSIM.
+ # Since it's "test-only" there is no point in using/testing it.
+ - IEEE802154_FAKELB: n
  - IEEE802154_HWSIM
  - VMXNET3
  - USB4: [v5.5]
