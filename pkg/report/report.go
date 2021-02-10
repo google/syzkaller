@@ -269,12 +269,12 @@ var dynamicTitleReplacement = []replacement{
 	{
 		// Replace that everything looks like an address with "ADDR",
 		// addresses in descriptions can't be good regardless of the oops regexps.
-		regexp.MustCompile(`([^a-zA-Z])(?:0x)?[0-9a-f]{6,}`),
+		regexp.MustCompile(`([^a-zA-Z0])(?:0x)?[0-9a-f]{6,}`),
 		"${1}ADDR",
 	},
 	{
 		// Replace that everything looks like a decimal number with "NUM".
-		regexp.MustCompile(`([^a-zA-Z])[0-9]{5,}`),
+		regexp.MustCompile(`([^a-zA-Z0-9])[0-9]{5,}`),
 		"${1}NUM",
 	},
 	{
