@@ -39,7 +39,7 @@ func (gvisor gvisor) build(params *Params) error {
 	if coverageEnabled(config) {
 		coverageFiles := "//pkg/..."
 		exclusions := []string{
-			"//pkg/sentry/platform",   // Breaks kvm.
+			"//pkg/sentry/platform", "//pkg/ring0", // Breaks kvm.
 			"//pkg/coverage:coverage", // Too slow.
 		}
 		if race {
