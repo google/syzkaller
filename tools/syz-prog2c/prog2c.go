@@ -24,6 +24,7 @@ var (
 	flagCollide    = flag.Bool("collide", false, "create collide program")
 	flagRepeat     = flag.Int("repeat", 1, "repeat program that many times (<=0 - infinitely)")
 	flagProcs      = flag.Int("procs", 1, "number of parallel processes")
+	flagSlowdown   = flag.Int("slowdown", 1, "execution slowdown caused by emulation/instrumentation")
 	flagSandbox    = flag.String("sandbox", "", "sandbox to use (none, setuid, namespace)")
 	flagProg       = flag.String("prog", "", "file with program to convert (required)")
 	flagFaultCall  = flag.Int("fault_call", -1, "inject fault into this call (0-based)")
@@ -77,6 +78,7 @@ func main() {
 		Repeat:        *flagRepeat != 1,
 		RepeatTimes:   *flagRepeat,
 		Procs:         *flagProcs,
+		Slowdown:      *flagSlowdown,
 		Sandbox:       *flagSandbox,
 		Fault:         *flagFaultCall >= 0,
 		FaultCall:     *flagFaultCall,
