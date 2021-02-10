@@ -1,0 +1,105 @@
+# Create and access multiple type of files
+#
+# Device creation requires some privileges:
+# requires: -sandbox=namespace -sandbox=setuid
+
+# Makes a character device /dev/null
+
+mknodat(0xffffffffffffff9c, &AUTO='./file0\x00', 0x21c0, 0x103)
+
+# Makes a directory.
+
+mkdirat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x1c0)
+
+# Makes a regular file.
+
+mknodat(0xffffffffffffff9c, &AUTO='./file2\x00', 0x81c0, 0x0)
+
+# Makes a socket.
+
+mknodat(0xffffffffffffff9c, &AUTO='./file3\x00', 0xc1c0, 0x0)
+
+# Makes a fifo.
+
+mknodat(0xffffffffffffff9c, &AUTO='./file4\x00', 0x11c0, 0x0)
+
+# Makes a block device /dev/loop0
+
+mknodat(0xffffffffffffff9c, &AUTO='./file5\x00', 0x61c0, 0x700)
+
+# Makes a symlink.
+
+symlinkat(&AUTO='./file2\x00', 0xffffffffffffff9c, &AUTO='./file6\x00')
+
+# Creates a ruleset to restrict all kind of file creation.
+
+r0 = landlock_create_ruleset(&AUTO={0x1fff}, AUTO, 0x0)
+prctl$PR_SET_NO_NEW_PRIVS(0x26, 0x1)
+landlock_restrict_self(r0, 0x0)
+
+# No need to close this FD for this test.
+
+# Checks LANDLOCK_ACCESS_FS_EXECUTE.
+
+execveat(0xffffffffffffff9c, &AUTO='./file2\x00', 0x0, 0x0, 0x0) # EACCES
+
+# Checks LANDLOCK_ACCESS_FS_WRITE_FILE.
+
+openat$dir(0xffffffffffffff9c, &AUTO='./file2\x00', 0x1, 0x0) # EACCES
+
+# Checks LANDLOCK_ACCESS_FS_READ_FILE.
+
+openat$dir(0xffffffffffffff9c, &AUTO='./file2\x00', 0x0, 0x0) # EACCES
+
+# Checks LANDLOCK_ACCESS_FS_READ_DIR.
+
+openat$dir(0xffffffffffffff9c, &AUTO='./file1\x00', 0x0, 0x0) # EACCES
+
+# Checks LANDLOCK_ACCESS_FS_REMOVE_DIR.
+
+unlinkat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x200) # EACCES
+
+# Checks LANDLOCK_ACCESS_FS_REMOVE_FILE.
+
+unlinkat(0xffffffffffffff9c, &AUTO='./file2\x00', 0x0) # EACCES
+
+# Checks LANDLOCK_ACCESS_FS_MAKE_CHAR.
+
+mknodat(0xffffffffffffff9c, &AUTO='./file7\x00', 0x21c0, 0x103) # EACCES
+renameat2(0xffffffffffffff9c, &AUTO='./file0\x00', 0xffffffffffffff9c, &AUTO='./file7\x00', 0x0) # EACCES
+linkat(0xffffffffffffff9c, &AUTO='./file0\x00', 0xffffffffffffff9c, &AUTO='./file7\x00', 0x0) # EACCES
+
+# Checks LANDLOCK_ACCESS_FS_MAKE_DIR.
+
+mkdirat(0xffffffffffffff9c, &AUTO='./file7\x00', 0x1c0) # EACCES
+renameat2(0xffffffffffffff9c, &AUTO='./file1\x00', 0xffffffffffffff9c, &AUTO='./file7\x00', 0x0) # EACCES
+
+# Checks LANDLOCK_ACCESS_FS_MAKE_REG.
+
+mknodat(0xffffffffffffff9c, &AUTO='./file7\x00', 0x81c0, 0x0) # EACCES
+renameat2(0xffffffffffffff9c, &AUTO='./file2\x00', 0xffffffffffffff9c, &AUTO='./file7\x00', 0x0) # EACCES
+linkat(0xffffffffffffff9c, &AUTO='./file2\x00', 0xffffffffffffff9c, &AUTO='./file7\x00', 0x0) # EACCES
+
+# Checks LANDLOCK_ACCESS_FS_MAKE_SOCK.
+
+mknodat(0xffffffffffffff9c, &AUTO='./file7\x00', 0xc1c0, 0x0) # EACCES
+renameat2(0xffffffffffffff9c, &AUTO='./file3\x00', 0xffffffffffffff9c, &AUTO='./file7\x00', 0x0) # EACCES
+linkat(0xffffffffffffff9c, &AUTO='./file3\x00', 0xffffffffffffff9c, &AUTO='./file7\x00', 0x0) # EACCES
+
+# Checks LANDLOCK_ACCESS_FS_MAKE_FIFO.
+
+mknodat(0xffffffffffffff9c, &AUTO='./file7\x00', 0x11c0, 0x0) # EACCES
+renameat2(0xffffffffffffff9c, &AUTO='./file4\x00', 0xffffffffffffff9c, &AUTO='./file7\x00', 0x0) # EACCES
+linkat(0xffffffffffffff9c, &AUTO='./file4\x00', 0xffffffffffffff9c, &AUTO='./file7\x00', 0x0) # EACCES
+
+# Checks LANDLOCK_ACCESS_FS_MAKE_BLOCK.
+
+mknodat(0xffffffffffffff9c, &AUTO='./file7\x00', 0x61c0, 0x700) # EACCES
+renameat2(0xffffffffffffff9c, &AUTO='./file5\x00', 0xffffffffffffff9c, &AUTO='./file7\x00', 0x0) # EACCES
+linkat(0xffffffffffffff9c, &AUTO='./file5\x00', 0xffffffffffffff9c, &AUTO='./file7\x00', 0x0) # EACCES
+
+# Checks LANDLOCK_ACCESS_FS_MAKE_SYM.
+
+symlinkat(&AUTO='./file2\x00', 0xffffffffffffff9c, &AUTO='./file7\x00') # EACCES
+renameat2(0xffffffffffffff9c, &AUTO='./file6\x00', 0xffffffffffffff9c, &AUTO='./file7\x00', 0x0) # EACCES
+linkat(0xffffffffffffff9c, &AUTO='./file6\x00', 0xffffffffffffff9c, &AUTO='./file7\x00', 0x0) # EACCES
