@@ -264,6 +264,7 @@ mq_unlink(name ptr[in, string])
 
 mknod(file ptr[in, filename], mode flags[mknod_mode], dev int32)
 mknod$loop(file ptr[in, filename], mode flags[mknod_mode], dev proc[1792, 2])
+mknodat$null(dirfd fd_dir, file ptr[in, filename], mode flags[mknod_mode], dev const[0x103])
 mknodat(dirfd fd_dir, file ptr[in, filename], mode flags[mknod_mode], dev int32)
 chmod(file ptr[in, filename], mode flags[open_mode])
 fchmod(fd fd, mode flags[open_mode])
