@@ -123,6 +123,9 @@ func (arch *UnixNeutralizer) Neutralize(c *prog.Call) {
 			mode.Val &^= arch.S_IFBLK
 			mode.Val |= arch.S_IFREG
 		case arch.S_IFCHR:
+			if dev.Val == 0x103 {
+				break // /dev/null
+			}
 			mode.Val &^= arch.S_IFCHR
 			mode.Val |= arch.S_IFREG
 		}
