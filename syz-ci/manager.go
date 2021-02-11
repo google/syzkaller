@@ -620,6 +620,14 @@ func (mgr *Manager) pollCommits(buildCommit string) ([]string, []dashapi.Commit,
 }
 
 func (mgr *Manager) uploadCoverReport() error {
+	// Report generation can consume lots of memory. Generate one at a time.
+	select {
+	case kernelBuildSem <- struct{}{}:
+	case <-mgr.stop:
+		return nil
+	}
+	defer func() { <-kernelBuildSem }()
+
 	// Get coverage report from manager.
 	addr := mgr.managercfg.HTTP
 	if addr != "" && addr[0] == ':' {
