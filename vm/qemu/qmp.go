@@ -6,6 +6,7 @@ package qemu
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/google/syzkaller/pkg/log"
 	"net"
 )
 
@@ -40,6 +41,13 @@ type qmpResponse struct {
 		Desc  string
 	}
 	Return interface{}
+
+	Event     string
+	Data      map[string]interface{}
+	Timestamp struct {
+		Seconds      int64
+		Microseconds int64
+	}
 }
 
 func (inst *instance) qmpConnCheck() error {
@@ -74,10 +82,14 @@ func (inst *instance) qmpConnCheck() error {
 }
 
 func (inst *instance) qmpRecv() (*qmpResponse, error) {
-	qmp := new(qmpResponse)
-	err := inst.monDec.Decode(qmp)
-
-	return qmp, err
+	for {
+		qmp := new(qmpResponse)
+		err := inst.monDec.Decode(qmp)
+		if err != nil || qmp.Event == "" {
+			return qmp, err
+		}
+		log.Logf(1, "event: %v", qmp)
+	}
 }
 
 func (inst *instance) doQmp(cmd *qmpCommand) (*qmpResponse, error) {
