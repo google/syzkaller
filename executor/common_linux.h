@@ -4636,38 +4636,40 @@ static void setup_sysctl()
 		const char* name;
 		const char* data;
 	} files[] = {
-	    // nmi_check_duration() prints "INFO: NMI handler took too long" on slow debug kernels.
-	    // It happens a lot in qemu, and the messages are frequently corrupted
-	    // (intermixed with other kernel output as they are printed from NMI)
-	    // and are not matched against the suppression in pkg/report.
-	    // This write prevents these messages from being printed.
-	    {"/sys/kernel/debug/x86/nmi_longest_ns", "10000000000"},
-	    {"/proc/sys/kernel/hung_task_check_interval_secs", "20"},
-	    // This gives more interesting coverage.
-	    {"/proc/sys/net/core/bpf_jit_enable", "1"},
-	    // bpf_jit_kallsyms and disabling bpf_jit_harden are required
-	    // for unwinding through bpf functions.
-	    {"/proc/sys/net/core/bpf_jit_kallsyms", "1"},
-	    {"/proc/sys/net/core/bpf_jit_harden", "0"},
-	    // This is to provide more useful info in crash reports.
-	    {"/proc/sys/kernel/kptr_restrict", "0"},
-	    {"/proc/sys/kernel/softlockup_all_cpu_backtrace", "1"},
-	    // This is to restrict effects of recursive exponential mounts, for details see
-	    // "mnt: Add a per mount namespace limit on the number of mounts" commit.
-	    {"/proc/sys/fs/mount-max", "100"},
-	    // Dumping all tasks to console can take too long.
-	    {"/proc/sys/vm/oom_dump_tasks", "0"},
-	    // Executor hits lots of SIGSEGVs, no point in logging them.
-	    {"/proc/sys/debug/exception-trace", "0"},
-	    {"/proc/sys/kernel/printk", "7 4 1 3"},
-	    {"/proc/sys/net/ipv4/ping_group_range", "0 65535"},
-	    // Faster gc (1 second) is intended to make tests more repeatable.
-	    {"/proc/sys/kernel/keys/gc_delay", "1"},
-	    // Huge page overcommit is disabled by default, allowing some overcommit is intended to give more coverage.
-	    {"/proc/sys/vm/nr_overcommit_hugepages", "4"},
-	    // We always want to prefer killing the allocating test process rather than somebody else
-	    // (sshd or another random test process).
-	    {"/proc/sys/vm/oom_kill_allocating_task", "1"},
+#if GOARCH_amd64 || GOARCH_386
+		// nmi_check_duration() prints "INFO: NMI handler took too long" on slow debug kernels.
+		// It happens a lot in qemu, and the messages are frequently corrupted
+		// (intermixed with other kernel output as they are printed from NMI)
+		// and are not matched against the suppression in pkg/report.
+		// This write prevents these messages from being printed.
+		{"/sys/kernel/debug/x86/nmi_longest_ns", "10000000000"},
+#endif
+		{"/proc/sys/kernel/hung_task_check_interval_secs", "20"},
+		// This gives more interesting coverage.
+		{"/proc/sys/net/core/bpf_jit_enable", "1"},
+		// bpf_jit_kallsyms and disabling bpf_jit_harden are required
+		// for unwinding through bpf functions.
+		{"/proc/sys/net/core/bpf_jit_kallsyms", "1"},
+		{"/proc/sys/net/core/bpf_jit_harden", "0"},
+		// This is to provide more useful info in crash reports.
+		{"/proc/sys/kernel/kptr_restrict", "0"},
+		{"/proc/sys/kernel/softlockup_all_cpu_backtrace", "1"},
+		// This is to restrict effects of recursive exponential mounts, for details see
+		// "mnt: Add a per mount namespace limit on the number of mounts" commit.
+		{"/proc/sys/fs/mount-max", "100"},
+		// Dumping all tasks to console can take too long.
+		{"/proc/sys/vm/oom_dump_tasks", "0"},
+		// Executor hits lots of SIGSEGVs, no point in logging them.
+		{"/proc/sys/debug/exception-trace", "0"},
+		{"/proc/sys/kernel/printk", "7 4 1 3"},
+		{"/proc/sys/net/ipv4/ping_group_range", "0 65535"},
+		// Faster gc (1 second) is intended to make tests more repeatable.
+		{"/proc/sys/kernel/keys/gc_delay", "1"},
+		// Huge page overcommit is disabled by default, allowing some overcommit is intended to give more coverage.
+		{"/proc/sys/vm/nr_overcommit_hugepages", "4"},
+		// We always want to prefer killing the allocating test process rather than somebody else
+		// (sshd or another random test process).
+		{"/proc/sys/vm/oom_kill_allocating_task", "1"},
 	};
 	for (size_t i = 0; i < sizeof(files) / sizeof(files[0]); i++) {
 		if (!write_file(files[i].name, files[i].data))
