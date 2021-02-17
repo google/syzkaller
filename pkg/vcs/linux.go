@@ -149,6 +149,8 @@ func (ctx *linux) EnvForCommit(binDir, commit string, kernelConfig []byte) (*Bis
 
 func linuxCompilerVersion(tags map[string]bool) string {
 	switch {
+	case tags["v5.9"]:
+		return "10.1.0"
 	case tags["v4.12"]:
 		return "8.1.0"
 	case tags["v4.11"]:
