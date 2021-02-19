@@ -1543,11 +1543,13 @@ void debug(const char* msg, ...)
 {
 	if (!flag_debug)
 		return;
+	int err = errno;
 	va_list args;
 	va_start(args, msg);
 	vfprintf(stderr, msg, args);
 	va_end(args);
 	fflush(stderr);
+	errno = err;
 }
 
 void debug_dump_data(const char* data, int length)

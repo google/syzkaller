@@ -2364,6 +2364,7 @@ static bool write_file(const char* file, const char* what, ...)
 #include <arpa/inet.h>
 #include <net/if.h>
 #include <netinet/in.h>
+#include <stdbool.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -2424,7 +2425,7 @@ static void netlink_done(struct nlmsg* nlmsg)
 #endif
 
 static int netlink_send_ext(struct nlmsg* nlmsg, int sock,
-			    uint16 reply_type, int* reply_len)
+			    uint16 reply_type, int* reply_len, bool dofail)
 {
 	if (nlmsg->pos > nlmsg->buf + sizeof(nlmsg->buf) || nlmsg->nesting)
 		fail("nlmsg overflow/bad nesting");
@@ -2433,36 +2434,62 @@ static int netlink_send_ext(struct nlmsg* nlmsg, int sock,
 	struct sockaddr_nl addr;
 	memset(&addr, 0, sizeof(addr));
 	addr.nl_family = AF_NETLINK;
-	unsigned n = sendto(sock, nlmsg->buf, hdr->nlmsg_len, 0, (struct sockaddr*)&addr, sizeof(addr));
-	if (n != hdr->nlmsg_len)
-		fail("short netlink write: %d/%d", n, hdr->nlmsg_len);
+	ssize_t n = sendto(sock, nlmsg->buf, hdr->nlmsg_len, 0, (struct sockaddr*)&addr, sizeof(addr));
+	if (n != (ssize_t)hdr->nlmsg_len) {
+		if (dofail)
+			fail("netlink_send_ext: short netlink write: %zd/%d", n, hdr->nlmsg_len);
+		debug("netlink_send_ext: short netlink write: %zd/%d errno=%d\n", n, hdr->nlmsg_len, errno);
+		return -1;
+	}
 	n = recv(sock, nlmsg->buf, sizeof(nlmsg->buf), 0);
 	if (reply_len)
 		*reply_len = 0;
+	if (n < 0) {
+		if (dofail)
+			fail("netlink_send_ext: netlink read failed: %zd", n);
+		debug("netlink_send_ext: netlink read failed: %zd errno=%d\n", n, errno);
+		return -1;
+	}
+	if (n < (ssize_t)sizeof(struct nlmsghdr)) {
+		errno = EINVAL;
+		if (dofail)
+			fail("netlink_send_ext: short netlink read: %zd", n);
+		debug("netlink_send_ext: short netlink read: %zd\n", n);
+		return -1;
+	}
 	if (hdr->nlmsg_type == NLMSG_DONE)
 		return 0;
-	if (n < sizeof(struct nlmsghdr))
-		fail("short netlink read: %d", n);
 	if (reply_len && hdr->nlmsg_type == reply_type) {
 		*reply_len = n;
 		return 0;
 	}
-	if (n < sizeof(struct nlmsghdr) + sizeof(struct nlmsgerr))
-		fail("short netlink read: %d", n);
-	if (hdr->nlmsg_type != NLMSG_ERROR)
-		fail("short netlink ack: %d", hdr->nlmsg_type);
-	return ((struct nlmsgerr*)(hdr + 1))->error;
+	if (n < (ssize_t)(sizeof(struct nlmsghdr) + sizeof(struct nlmsgerr))) {
+		errno = EINVAL;
+		if (dofail)
+			fail("netlink_send_ext: short netlink read: %zd", n);
+		debug("netlink_send_ext: short netlink read: %zd\n", n);
+		return -1;
+	}
+	if (hdr->nlmsg_type != NLMSG_ERROR) {
+		errno = EINVAL;
+		if (dofail)
+			fail("netlink_send_ext: short netlink ack: %d", hdr->nlmsg_type);
+		debug("netlink_send_ext: short netlink ack: %d\n", hdr->nlmsg_type);
+		return -1;
+	}
+	errno = -((struct nlmsgerr*)(hdr + 1))->error;
+	return -errno;
 }
 
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI || SYZ_WIFI || SYZ_802154 || \
     __NR_syz_80211_join_ibss || __NR_syz_80211_inject_frame
 static int netlink_send(struct nlmsg* nlmsg, int sock)
 {
-	return netlink_send_ext(nlmsg, sock, 0, NULL);
+	return netlink_send_ext(nlmsg, sock, 0, NULL, true);
 }
 #endif
 
-static int netlink_query_family_id(struct nlmsg* nlmsg, int sock, const char* family_name)
+static int netlink_query_family_id(struct nlmsg* nlmsg, int sock, const char* family_name, bool dofail)
 {
 	struct genlmsghdr genlhdr;
 	memset(&genlhdr, 0, sizeof(genlhdr));
@@ -2470,9 +2497,9 @@ static int netlink_query_family_id(struct nlmsg* nlmsg, int sock, const char* fa
 	netlink_init(nlmsg, GENL_ID_CTRL, 0, &genlhdr, sizeof(genlhdr));
 	netlink_attr(nlmsg, CTRL_ATTR_FAMILY_NAME, family_name, strnlen(family_name, GENL_NAMSIZ - 1) + 1);
 	int n = 0;
-	int err = netlink_send_ext(nlmsg, sock, GENL_ID_CTRL, &n);
+	int err = netlink_send_ext(nlmsg, sock, GENL_ID_CTRL, &n, dofail);
 	if (err < 0) {
-		debug("netlink: failed to get family id for %.*s: %s\n", GENL_NAMSIZ, family_name, strerror(-err));
+		debug("netlink: failed to get family id for %.*s: %s\n", GENL_NAMSIZ, family_name, strerror(errno));
 		return -1;
 	}
 	uint16 id = 0;
@@ -2485,6 +2512,7 @@ static int netlink_query_family_id(struct nlmsg* nlmsg, int sock, const char* fa
 	}
 	if (!id) {
 		debug("netlink: failed to parse family id for %.*s\n", GENL_NAMSIZ, family_name);
+		errno = EINVAL;
 		return -1;
 	}
 	recv(sock, nlmsg->buf, sizeof(nlmsg->buf), 0);
@@ -2525,8 +2553,9 @@ static void netlink_add_device(struct nlmsg* nlmsg, int sock, const char* type,
 	netlink_add_device_impl(nlmsg, type, name);
 	netlink_done(nlmsg);
 	int err = netlink_send(nlmsg, sock);
-	debug("netlink: adding device %s type %s: %s\n", name, type, strerror(-err));
-	(void)err;
+	if (err < 0) {
+		debug("netlink: adding device %s type %s: %s\n", name, type, strerror(errno));
+	}
 }
 
 static void netlink_add_veth(struct nlmsg* nlmsg, int sock, const char* name,
@@ -2541,8 +2570,9 @@ static void netlink_add_veth(struct nlmsg* nlmsg, int sock, const char* name,
 	netlink_done(nlmsg);
 	netlink_done(nlmsg);
 	int err = netlink_send(nlmsg, sock);
-	debug("netlink: adding device %s type veth peer %s: %s\n", name, peer, strerror(-err));
-	(void)err;
+	if (err < 0) {
+		debug("netlink: adding device %s type veth peer %s: %s\n", name, peer, strerror(errno));
+	}
 }
 
 static void netlink_add_hsr(struct nlmsg* nlmsg, int sock, const char* name,
@@ -2557,9 +2587,9 @@ static void netlink_add_hsr(struct nlmsg* nlmsg, int sock, const char* name,
 	netlink_done(nlmsg);
 	netlink_done(nlmsg);
 	int err = netlink_send(nlmsg, sock);
-	debug("netlink: adding device %s type hsr slave1 %s slave2 %s: %s\n",
-	      name, slave1, slave2, strerror(-err));
-	(void)err;
+	if (err < 0) {
+		debug("netlink: adding device %s type hsr slave1 %s slave2 %s: %s\n", name, slave1, slave2, strerror(err));
+	}
 }
 
 static void netlink_add_linked(struct nlmsg* nlmsg, int sock, const char* type, const char* name, const char* link)
@@ -2569,9 +2599,9 @@ static void netlink_add_linked(struct nlmsg* nlmsg, int sock, const char* type, 
 	int ifindex = if_nametoindex(link);
 	netlink_attr(nlmsg, IFLA_LINK, &ifindex, sizeof(ifindex));
 	int err = netlink_send(nlmsg, sock);
-	debug("netlink: adding device %s type %s link %s: %s\n",
-	      name, type, link, strerror(-err));
-	(void)err;
+	if (err < 0) {
+		debug("netlink: adding device %s type %s link %s: %s\n", name, type, link, strerror(errno));
+	}
 }
 
 static void netlink_add_vlan(struct nlmsg* nlmsg, int sock, const char* name, const char* link, uint16 id, uint16 proto)
@@ -2585,9 +2615,9 @@ static void netlink_add_vlan(struct nlmsg* nlmsg, int sock, const char* name, co
 	int ifindex = if_nametoindex(link);
 	netlink_attr(nlmsg, IFLA_LINK, &ifindex, sizeof(ifindex));
 	int err = netlink_send(nlmsg, sock);
-	debug("netlink: add %s type vlan link %s id %d: %s\n",
-	      name, link, id, strerror(-err));
-	(void)err;
+	if (err < 0) {
+		debug("netlink: add %s type vlan link %s id %d: %s\n", name, link, id, strerror(errno));
+	}
 }
 
 static void netlink_add_macvlan(struct nlmsg* nlmsg, int sock, const char* name, const char* link)
@@ -2601,9 +2631,9 @@ static void netlink_add_macvlan(struct nlmsg* nlmsg, int sock, const char* name,
 	int ifindex = if_nametoindex(link);
 	netlink_attr(nlmsg, IFLA_LINK, &ifindex, sizeof(ifindex));
 	int err = netlink_send(nlmsg, sock);
-	debug("netlink: add %s type macvlan link %s mode %d: %s\n",
-	      name, link, mode, strerror(-err));
-	(void)err;
+	if (err < 0) {
+		debug("netlink: add %s type macvlan link %s mode %d: %s\n", name, link, mode, strerror(errno));
+	}
 }
 
 static void netlink_add_geneve(struct nlmsg* nlmsg, int sock, const char* name, uint32 vni, struct in_addr* addr4, struct in6_addr* addr6)
@@ -2618,9 +2648,9 @@ static void netlink_add_geneve(struct nlmsg* nlmsg, int sock, const char* name, 
 	netlink_done(nlmsg);
 	netlink_done(nlmsg);
 	int err = netlink_send(nlmsg, sock);
-	debug("netlink: add %s type geneve vni %u: %s\n",
-	      name, vni, strerror(-err));
-	(void)err;
+	if (err < 0) {
+		debug("netlink: add %s type geneve vni %u: %s\n", name, vni, strerror(errno));
+	}
 }
 
 #define IFLA_IPVLAN_FLAGS 2
@@ -2639,9 +2669,9 @@ static void netlink_add_ipvlan(struct nlmsg* nlmsg, int sock, const char* name, 
 	int ifindex = if_nametoindex(link);
 	netlink_attr(nlmsg, IFLA_LINK, &ifindex, sizeof(ifindex));
 	int err = netlink_send(nlmsg, sock);
-	debug("netlink: add %s type ipvlan link %s mode %d: %s\n",
-	      name, link, mode, strerror(-err));
-	(void)err;
+	if (err < 0) {
+		debug("netlink: add %s type ipvlan link %s mode %d: %s\n", name, link, mode, strerror(errno));
+	}
 }
 #endif
 
@@ -2665,8 +2695,9 @@ static void netlink_device_change(struct nlmsg* nlmsg, int sock, const char* nam
 	if (macsize)
 		netlink_attr(nlmsg, IFLA_ADDRESS, mac, macsize);
 	int err = netlink_send(nlmsg, sock);
-	debug("netlink: device %s up master %s: %s\n", name, master ? master : "NULL", strerror(-err));
-	(void)err;
+	if (err < 0) {
+		debug("netlink: device %s up master %s: %s\n", name, master ? master : "NULL", strerror(errno));
+	}
 }
 #endif
 
@@ -2692,8 +2723,9 @@ static void netlink_add_addr4(struct nlmsg* nlmsg, int sock,
 	struct in_addr in_addr;
 	inet_pton(AF_INET, addr, &in_addr);
 	int err = netlink_add_addr(nlmsg, sock, dev, &in_addr, sizeof(in_addr));
-	debug("netlink: add addr %s dev %s: %s\n", addr, dev, strerror(-err));
-	(void)err;
+	if (err < 0) {
+		debug("netlink: add addr %s dev %s: %s\n", addr, dev, strerror(errno));
+	}
 }
 
 static void netlink_add_addr6(struct nlmsg* nlmsg, int sock,
@@ -2702,8 +2734,9 @@ static void netlink_add_addr6(struct nlmsg* nlmsg, int sock,
 	struct in6_addr in6_addr;
 	inet_pton(AF_INET6, addr, &in6_addr);
 	int err = netlink_add_addr(nlmsg, sock, dev, &in6_addr, sizeof(in6_addr));
-	debug("netlink: add addr %s dev %s: %s\n", addr, dev, strerror(-err));
-	(void)err;
+	if (err < 0) {
+		debug("netlink: add addr %s dev %s: %s\n", addr, dev, strerror(errno));
+	}
 }
 #endif
 
@@ -2720,9 +2753,9 @@ static void netlink_add_neigh(struct nlmsg* nlmsg, int sock, const char* name,
 	netlink_attr(nlmsg, NDA_DST, addr, addrsize);
 	netlink_attr(nlmsg, NDA_LLADDR, mac, macsize);
 	int err = netlink_send(nlmsg, sock);
-	debug("netlink: add neigh %s addr %d lladdr %d: %s\n",
-	      name, addrsize, macsize, strerror(-err));
-	(void)err;
+	if (err < 0) {
+		debug("netlink: add neigh %s addr %d lladdr %d: %s\n", name, addrsize, macsize, strerror(errno));
+	}
 }
 #endif
 #endif
@@ -2867,7 +2900,7 @@ static void netlink_devlink_netns_move(const char* bus_name, const char* dev_nam
 	if (sock == -1)
 		fail("socket(AF_NETLINK) failed");
 
-	id = netlink_query_family_id(&nlmsg, sock, DEVLINK_FAMILY_NAME);
+	id = netlink_query_family_id(&nlmsg, sock, DEVLINK_FAMILY_NAME, true);
 	if (id == -1)
 		goto error;
 
@@ -2880,7 +2913,7 @@ static void netlink_devlink_netns_move(const char* bus_name, const char* dev_nam
 	err = netlink_send(&nlmsg, sock);
 	if (err < 0) {
 		debug("netlink: failed to move devlink instance %s/%s into network namespace: %s\n",
-		      bus_name, dev_name, strerror(-err));
+		      bus_name, dev_name, strerror(errno));
 	}
 error:
 	close(sock);
@@ -2904,7 +2937,7 @@ static void initialize_devlink_ports(const char* bus_name, const char* dev_name,
 	if (rtsock == -1)
 		fail("socket(AF_NETLINK) failed");
 
-	id = netlink_query_family_id(&nlmsg, sock, DEVLINK_FAMILY_NAME);
+	id = netlink_query_family_id(&nlmsg, sock, DEVLINK_FAMILY_NAME, true);
 	if (id == -1)
 		goto error;
 
@@ -2914,9 +2947,9 @@ static void initialize_devlink_ports(const char* bus_name, const char* dev_name,
 	netlink_attr(&nlmsg, DEVLINK_ATTR_BUS_NAME, bus_name, strlen(bus_name) + 1);
 	netlink_attr(&nlmsg, DEVLINK_ATTR_DEV_NAME, dev_name, strlen(dev_name) + 1);
 
-	err = netlink_send_ext(&nlmsg, sock, id, &total_len);
+	err = netlink_send_ext(&nlmsg, sock, id, &total_len, true);
 	if (err < 0) {
-		debug("netlink: failed to get port get reply: %s\n", strerror(-err));
+		debug("netlink: failed to get port get reply: %s\n", strerror(errno));
 		goto error;
 	}
 
@@ -3055,10 +3088,9 @@ static int nl80211_set_interface(struct nlmsg* nlmsg, int sock, int nl80211_fami
 	netlink_attr(nlmsg, NL80211_ATTR_IFTYPE, &iftype, sizeof(iftype));
 	int err = netlink_send(nlmsg, sock);
 	if (err < 0) {
-		debug("nl80211_set_interface failed: %s\n", strerror(-err));
-		return -1;
+		debug("nl80211_set_interface failed: %s\n", strerror(errno));
 	}
-	return 0;
+	return err;
 }
 
 static int nl80211_join_ibss(struct nlmsg* nlmsg, int sock, int nl80211_family, uint32 ifindex, struct join_ibss_props* props)
@@ -3077,10 +3109,9 @@ static int nl80211_join_ibss(struct nlmsg* nlmsg, int sock, int nl80211_family, 
 		netlink_attr(nlmsg, NL80211_ATTR_FREQ_FIXED, NULL, 0);
 	int err = netlink_send(nlmsg, sock);
 	if (err < 0) {
-		debug("nl80211_join_ibss failed: %s\n", strerror(-err));
-		return -1;
+		debug("nl80211_join_ibss failed: %s\n", strerror(errno));
 	}
-	return 0;
+	return err;
 }
 
 static int get_ifla_operstate(struct nlmsg* nlmsg, int ifindex)
@@ -3098,11 +3129,11 @@ static int get_ifla_operstate(struct nlmsg* nlmsg, int ifindex)
 
 	netlink_init(nlmsg, RTM_GETLINK, 0, &info, sizeof(info));
 	int n;
-	int err = netlink_send_ext(nlmsg, sock, RTM_NEWLINK, &n);
+	int err = netlink_send_ext(nlmsg, sock, RTM_NEWLINK, &n, true);
 	close(sock);
 
 	if (err) {
-		debug("get_ifla_operstate: failed to query: %s\n", strerror(-err));
+		debug("get_ifla_operstate: failed to query: %s\n", strerror(errno));
 		return -1;
 	}
 
@@ -3170,10 +3201,9 @@ static int hwsim80211_create_device(struct nlmsg* nlmsg, int sock, int hwsim_fam
 	netlink_attr(nlmsg, HWSIM_ATTR_PERM_ADDR, mac_addr, ETH_ALEN);
 	int err = netlink_send(nlmsg, sock);
 	if (err < 0) {
-		debug("hwsim80211_create_device failed: %s\n", strerror(-err));
-		return -1;
+		debug("hwsim80211_create_device failed: %s\n", strerror(errno));
 	}
-	return 0;
+	return err;
 }
 
 static void initialize_wifi_devices(void)
@@ -3190,8 +3220,8 @@ static void initialize_wifi_devices(void)
 		return;
 	}
 
-	int hwsim_family_id = netlink_query_family_id(&nlmsg, sock, "MAC80211_HWSIM");
-	int nl80211_family_id = netlink_query_family_id(&nlmsg, sock, "nl80211");
+	int hwsim_family_id = netlink_query_family_id(&nlmsg, sock, "MAC80211_HWSIM", true);
+	int nl80211_family_id = netlink_query_family_id(&nlmsg, sock, "nl80211", true);
 	uint8 ssid[] = WIFI_IBSS_SSID;
 	uint8 bssid[] = WIFI_IBSS_BSSID;
 	struct join_ibss_props ibss_props = {
@@ -3338,7 +3368,7 @@ static void netlink_wireguard_setup(void)
 		return;
 	}
 
-	id = netlink_query_family_id(&nlmsg, sock, WG_GENL_NAME);
+	id = netlink_query_family_id(&nlmsg, sock, WG_GENL_NAME, true);
 	if (id == -1)
 		goto error;
 
@@ -3384,7 +3414,7 @@ static void netlink_wireguard_setup(void)
 	netlink_done(&nlmsg);
 	err = netlink_send(&nlmsg, sock);
 	if (err < 0) {
-		debug("netlink: failed to setup wireguard instance: %s\n", strerror(-err));
+		debug("netlink: failed to setup wireguard instance: %s\n", strerror(errno));
 	}
 
 	netlink_init(&nlmsg, id, 0, &genlhdr, sizeof(genlhdr));
@@ -3429,7 +3459,7 @@ static void netlink_wireguard_setup(void)
 	netlink_done(&nlmsg);
 	err = netlink_send(&nlmsg, sock);
 	if (err < 0) {
-		debug("netlink: failed to setup wireguard instance: %s\n", strerror(-err));
+		debug("netlink: failed to setup wireguard instance: %s\n", strerror(errno));
 	}
 
 	netlink_init(&nlmsg, id, 0, &genlhdr, sizeof(genlhdr));
@@ -3474,7 +3504,7 @@ static void netlink_wireguard_setup(void)
 	netlink_done(&nlmsg);
 	err = netlink_send(&nlmsg, sock);
 	if (err < 0) {
-		debug("netlink: failed to setup wireguard instance: %s\n", strerror(-err));
+		debug("netlink: failed to setup wireguard instance: %s\n", strerror(errno));
 	}
 
 error:
@@ -6012,8 +6042,10 @@ static long syz_emit_vhci(volatile long a0, volatile long a1)
 static long syz_genetlink_get_family_id(volatile long name, volatile long sock_arg)
 {
 	debug("syz_genetlink_get_family_id(%s, %d)\n", (char*)name, (int)sock_arg);
+	bool dofail = false;
 	int fd = sock_arg;
 	if (fd < 0) {
+		dofail = true;
 		fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
 		if (fd == -1) {
 			debug("syz_genetlink_get_family_id: socket failed: %d\n", errno);
@@ -6021,8 +6053,8 @@ static long syz_genetlink_get_family_id(volatile long name, volatile long sock_a
 		}
 	}
 	struct nlmsg nlmsg_tmp;
-	int ret = netlink_query_family_id(&nlmsg_tmp, fd, (char*)name);
-	if ((int)sock_arg >= 0)
+	int ret = netlink_query_family_id(&nlmsg_tmp, fd, (char*)name, dofail);
+	if ((int)sock_arg < 0)
 		close(fd);
 	if (ret < 0) {
 		debug("syz_genetlink_get_family_id: netlink_query_family_id failed: %d\n", ret);
@@ -9426,7 +9458,7 @@ static void setup_802154()
 	int sock_generic = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
 	if (sock_generic < 0)
 		fail("socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC) failed");
-	int nl802154_family_id = netlink_query_family_id(&nlmsg, sock_generic, "nl802154");
+	int nl802154_family_id = netlink_query_family_id(&nlmsg, sock_generic, "nl802154", true);
 	for (int i = 0; i < 2; i++) {
 		char devname[] = "wpan0";
 		devname[strlen(devname) - 1] += i;
@@ -9441,7 +9473,7 @@ static void setup_802154()
 		netlink_attr(&nlmsg, NL802154_ATTR_SHORT_ADDR, &shortaddr, sizeof(shortaddr));
 		int err = netlink_send(&nlmsg, sock_generic);
 		if (err < 0) {
-			debug("NL802154_CMD_SET_SHORT_ADDR failed: %s\n", strerror(-err));
+			debug("NL802154_CMD_SET_SHORT_ADDR failed: %s\n", strerror(errno));
 		}
 		netlink_device_change(&nlmsg, sock_route, devname, true, 0, &hwaddr, sizeof(hwaddr), 0);
 		if (i == 0) {
@@ -9449,8 +9481,9 @@ static void setup_802154()
 			netlink_done(&nlmsg);
 			netlink_attr(&nlmsg, IFLA_LINK, &ifindex, sizeof(ifindex));
 			int err = netlink_send(&nlmsg, sock_route);
-			debug("netlink: adding device lowpan0 type lowpan link wpan0: %s\n", strerror(-err));
-			(void)err;
+			if (err < 0) {
+				debug("netlink: adding device lowpan0 type lowpan link wpan0: %s\n", strerror(errno));
+			}
 		}
 	}
 	close(sock_route);
@@ -9723,10 +9756,9 @@ static int hwsim_register_socket(struct nlmsg* nlmsg, int sock, int hwsim_family
 	netlink_init(nlmsg, hwsim_family, 0, &genlhdr, sizeof(genlhdr));
 	int err = netlink_send(nlmsg, sock);
 	if (err < 0) {
-		debug("hwsim_register_device failed: %s\n", strerror(-err));
-		return -1;
+		debug("hwsim_register_device failed: %s\n", strerror(errno));
 	}
-	return 0;
+	return err;
 }
 
 static int hwsim_inject_frame(struct nlmsg* nlmsg, int sock, int hwsim_family, uint8* mac_addr, uint8* data, int len)
@@ -9744,10 +9776,9 @@ static int hwsim_inject_frame(struct nlmsg* nlmsg, int sock, int hwsim_family, u
 	netlink_attr(nlmsg, HWSIM_ATTR_FRAME, data, len);
 	int err = netlink_send(nlmsg, sock);
 	if (err < 0) {
-		debug("hwsim_inject_frame failed: %s\n", strerror(-err));
-		return -1;
+		debug("hwsim_inject_frame failed: %s\n", strerror(errno));
 	}
-	return 0;
+	return err;
 }
 
 static long syz_80211_inject_frame(volatile long a0, volatile long a1, volatile long a2)
@@ -9768,7 +9799,7 @@ static long syz_80211_inject_frame(volatile long a0, volatile long a1, volatile 
 		return -1;
 	}
 
-	int hwsim_family_id = netlink_query_family_id(&tmp_msg, sock, "MAC80211_HWSIM");
+	int hwsim_family_id = netlink_query_family_id(&tmp_msg, sock, "MAC80211_HWSIM", true);
 	int ret = hwsim_register_socket(&tmp_msg, sock, hwsim_family_id);
 	if (ret < 0) {
 		debug("syz_80211_inject_frame: failed to register socket, ret %d\n", ret);
@@ -9822,7 +9853,7 @@ static long syz_80211_join_ibss(volatile long a0, volatile long a1, volatile lon
 		return -1;
 	}
 
-	int nl80211_family_id = netlink_query_family_id(&tmp_msg, sock, "nl80211");
+	int nl80211_family_id = netlink_query_family_id(&tmp_msg, sock, "nl80211", true);
 	struct join_ibss_props ibss_props = {
 	    .wiphy_freq = WIFI_DEFAULT_FREQUENCY,
 	    .wiphy_freq_fixed = (mode == WIFI_JOIN_IBSS_NO_SCAN || mode == WIFI_JOIN_IBSS_BG_NO_SCAN),
