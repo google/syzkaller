@@ -41,6 +41,7 @@ linters:
     - gocognit
     - funlen
     - dupl
+    - staticcheck
     - syz-linter
   disable:
     - bodyclose
@@ -102,6 +103,9 @@ issues:
     - "exported .* should have comment"
     - "comment on .* should be of the form"
     - "at least one file in a package should have a package comment"
+    # This check gives false positives related to the standard log.Fatalf
+    # (which is strange, standard log package should be supported).#
+    - "SA5011: possible nil pointer dereference"
   exclude-rules:
     - path: (pkg/csource/generated.go|pkg/build/linux_generated.go)
       linters:
