@@ -27,7 +27,6 @@ import (
 //  - incomingCommand is called by backends to update bug statuses.
 
 const (
-	maxMailLogLen              = 1 << 20
 	maxMailReportLen           = 64 << 10
 	maxInlineError             = 16 << 10
 	notifyResendPeriod         = 14 * 24 * time.Hour
@@ -390,9 +389,6 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 	crashLog, _, err := getText(c, textCrashLog, crash.Log)
 	if err != nil {
 		return nil, err
-	}
-	if len(crashLog) > maxMailLogLen {
-		crashLog = crashLog[len(crashLog)-maxMailLogLen:]
 	}
 	report, _, err := getText(c, textCrashReport, crash.Report)
 	if err != nil {
