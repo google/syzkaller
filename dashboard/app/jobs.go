@@ -629,9 +629,6 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *db.Key, config i
 	if err != nil {
 		return nil, err
 	}
-	if len(crashLog) > maxMailLogLen {
-		crashLog = crashLog[len(crashLog)-maxMailLogLen:]
-	}
 	report, _, err := getText(c, textCrashReport, job.CrashReport)
 	if err != nil {
 		return nil, err
