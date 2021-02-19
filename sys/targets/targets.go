@@ -310,19 +310,8 @@ var List = map[string]map[string]*Target{
 			CCompiler:    "clang",
 			CFlags:       []string{"-m64"},
 			NeedSyscallDefine: func(nr uint64) bool {
-				switch nr {
-				case 482: // SYS_freebsd_12_shm_open
-					return true
-				case 571: // SYS_shm_open2
-					return true
-				case 572: // SYS_shm_rename
-					return true
-				case 574: // SYS___realpathat
-					return true
-				case 575: // SYS_close_range
-					return true
-				}
-				return false
+				// freebsd_12_shm_open, shm_open2, shm_rename, __realpathat, close_range, copy_file_range
+				return nr == 482 || nr >= 569
 			},
 		},
 		I386: {
@@ -337,19 +326,8 @@ var List = map[string]map[string]*Target{
 			CCompiler:      "clang",
 			CFlags:         []string{"-m32"},
 			NeedSyscallDefine: func(nr uint64) bool {
-				switch nr {
-				case 482: // SYS_freebsd_12_shm_open
-					return true
-				case 571: // SYS_shm_open2
-					return true
-				case 572: // SYS_shm_rename
-					return true
-				case 574: // SYS___realpathat
-					return true
-				case 575: // SYS_close_range
-					return true
-				}
-				return false
+				// freebsd_12_shm_open, shm_open2, shm_rename, __realpathat, close_range, copy_file_range
+				return nr == 482 || nr >= 569
 			},
 		},
 	},
