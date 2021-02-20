@@ -1503,6 +1503,42 @@ void setup_features(char** enable, int n)
 	}
 }
 
+#if GOOS_linux
+#include <ftw.h>
+#include <sys/vfs.h>
+
+static int nftw_callback(const char* fpath, const struct stat* sbuf, int tflag, struct FTW* ftwbuf)
+{
+	static char buffer[4096] = {};
+	static struct stat sbuf2 = {};
+
+	if (S_ISLNK(sbuf->st_mode) && strstr(fpath, "/fd/") && !stat(fpath, &sbuf2) &&
+	    (unsigned long long)sbuf2.st_blocks >= 1048576ULL / 512)
+		fprintf(stderr, "%10llu %s\n", (unsigned long long)sbuf2.st_size,
+			readlink(fpath, buffer, sizeof(buffer) - 1) > 0 ? buffer : fpath);
+	return 0;
+}
+#endif
+
+static void check_large_files(int err)
+{
+#if GOOS_linux
+	char buffer[4096] = {};
+	struct statfs sbuf = {};
+
+	if (err != ENOSPC)
+		return;
+	fprintf(stderr, "Current directory is %s\n", getcwd(buffer, sizeof(buffer) - 1));
+	statfs(".", &sbuf);
+	fprintf(stderr, "  Free blocks: %llu/%llu\n", (unsigned long long)sbuf.f_bfree, (unsigned long long)sbuf.f_blocks);
+	fprintf(stderr, "  Block size: %llu\n", (unsigned long long)sbuf.f_bsize);
+	fprintf(stderr, "  Filesystem type: %lx\n", (unsigned long)sbuf.f_type);
+	fprintf(stderr, "  Free inodes: %llu/%llu\n", (unsigned long long)sbuf.f_ffree, (unsigned long long)sbuf.f_files);
+	fprintf(stderr, "Scanning large files from /proc/\052/fd/\052\n");
+	nftw("/proc/", nftw_callback, 512, FTW_DEPTH | FTW_PHYS | FTW_MOUNT);
+#endif
+}
+
 void fail(const char* msg, ...)
 {
 	int e = errno;
@@ -1511,6 +1547,7 @@ void fail(const char* msg, ...)
 	vfprintf(stderr, msg, args);
 	va_end(args);
 	fprintf(stderr, " (errno %d)\n", e);
+	check_large_files(e);
 
 	// fail()'s are often used during the validation of kernel reactions to queries
 	// that were issued by pseudo syscalls implementations. As fault injection may
@@ -1536,6 +1573,7 @@ void exitf(const char* msg, ...)
 	vfprintf(stderr, msg, args);
 	va_end(args);
 	fprintf(stderr, " (errno %d)\n", e);
+	check_large_files(e);
 	doexit(0);
 }
 
