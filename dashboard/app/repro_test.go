@@ -41,10 +41,19 @@ func testNeedRepro1(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash, newBug 
 	needRepro, _ = c.client.NeedRepro(cid)
 	c.expectEQ(needRepro, true)
 
+	// MayBeMissing flag must not affect bugs that actually exist.
+	cidMissing := testCrashID(crash1)
+	cidMissing.MayBeMissing = true
+	needRepro, _ = c.client.NeedRepro(cidMissing)
+	c.expectEQ(needRepro, true)
+
 	crash2.ReproC = []byte("repro C")
 	resp, _ = c.client.ReportCrash(crash2)
 	c.expectEQ(resp.NeedRepro, false)
 	needRepro, _ = c.client.NeedRepro(cid)
+	c.expectEQ(needRepro, false)
+
+	needRepro, _ = c.client.NeedRepro(cidMissing)
 	c.expectEQ(needRepro, false)
 
 	resp, _ = c.client.ReportCrash(crash2)
@@ -207,4 +216,24 @@ func closedCrashImpl(c *Ctx, withRepro bool) *dashapi.Crash {
 	c.client.ReportCrash(crash)
 	c.client.pollBug()
 	return crash
+}
+
+func TestNeedReproMissing(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.makeClient(client1, key1, false)
+
+	cid := &dashapi.CrashID{
+		BuildID: "some missing build",
+		Title:   "some missing title",
+	}
+	needRepro, err := client.NeedRepro(cid)
+	c.expectNE(err, nil)
+	c.expectEQ(needRepro, false)
+
+	cid.MayBeMissing = true
+	needRepro, err = client.NeedRepro(cid)
+	c.expectEQ(err, nil)
+	c.expectEQ(needRepro, true)
 }
