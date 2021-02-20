@@ -761,11 +761,6 @@ func (mgr *Manager) needLocalRepro(crash *Crash) bool {
 	if !mgr.cfg.Reproduce || crash.Corrupted {
 		return false
 	}
-	if mgr.checkResult == nil || (mgr.checkResult.Features[host.FeatureLeak].Enabled &&
-		crash.Type != report.MemoryLeak) {
-		// Leak checking is very slow, don't bother reproducing other crashes.
-		return false
-	}
 	sig := hash.Hash([]byte(crash.Title))
 	dir := filepath.Join(mgr.crashdir, sig.String())
 	if osutil.IsExist(filepath.Join(dir, "repro.prog")) {
@@ -783,16 +778,19 @@ func (mgr *Manager) needRepro(crash *Crash) bool {
 	if crash.hub {
 		return true
 	}
+	if mgr.checkResult == nil || (mgr.checkResult.Features[host.FeatureLeak].Enabled &&
+		crash.Type != report.MemoryLeak) {
+		// Leak checking is very slow, don't bother reproducing other crashes on leak instance.
+		return false
+	}
 	if mgr.dash == nil {
 		return mgr.needLocalRepro(crash)
 	}
-	if crash.Type == report.MemoryLeak {
-		return true
-	}
 	cid := &dashapi.CrashID{
-		BuildID:   mgr.cfg.Tag,
-		Title:     crash.Title,
-		Corrupted: crash.Corrupted,
+		BuildID:      mgr.cfg.Tag,
+		Title:        crash.Title,
+		Corrupted:    crash.Corrupted,
+		MayBeMissing: crash.Type == report.MemoryLeak, // we did not send the original crash w/o repro
 	}
 	needRepro, err := mgr.dash.NeedRepro(cid)
 	if err != nil {
@@ -802,12 +800,12 @@ func (mgr *Manager) needRepro(crash *Crash) bool {
 }
 
 func (mgr *Manager) saveFailedRepro(rep *report.Report, stats *repro.Stats) {
-	if rep.Type == report.MemoryLeak {
-		// Don't send failed leak repro attempts to dashboard
-		// as we did not send the crash itself.
-		return
-	}
 	if mgr.dash != nil {
+		if rep.Type == report.MemoryLeak {
+			// Don't send failed leak repro attempts to dashboard
+			// as we did not send the crash itself.
+			return
+		}
 		cid := &dashapi.CrashID{
 			BuildID: mgr.cfg.Tag,
 			Title:   rep.Title,

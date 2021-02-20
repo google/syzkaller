@@ -951,6 +951,13 @@ func apiNeedRepro(c context.Context, ns string, r *http.Request, payload []byte)
 		return nil, err
 	}
 	if bug == nil {
+		if req.MayBeMissing {
+			// Manager does not send leak reports w/o repro to dashboard, we want to reproduce them.
+			resp := &dashapi.NeedReproResp{
+				NeedRepro: true,
+			}
+			return resp, nil
+		}
 		return nil, fmt.Errorf("%v: can't find bug for crash %q", ns, req.Title)
 	}
 	resp := &dashapi.NeedReproResp{
