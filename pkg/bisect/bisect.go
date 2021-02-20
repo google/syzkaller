@@ -455,7 +455,7 @@ func (env *env) test() (*testResult, error) {
 	}
 
 	numTests := MaxNumTests / 2
-	if env.flaky && env.numTests == 0 {
+	if env.flaky || env.numTests == 0 {
 		// Use twice as many instances if the bug is flaky and during initial testing
 		// (as we don't know yet if it's flaky or not).
 		numTests *= 2
