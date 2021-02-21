@@ -75,7 +75,12 @@ const int kCoverSize = 256 << 10;
 const int kFailStatus = 67;
 
 // Logical error (e.g. invalid input program), use as an assert() alternative.
-static NORETURN PRINTF(1, 2) void fail(const char* msg, ...);
+// If such error happens 10+ times in a row, it will be detected as a bug by syz-fuzzer.
+// syz-fuzzer will fail and syz-manager will create a bug for this.
+// Note: err is used for bug deduplication, thus distinction between err (constant message)
+// and msg (varying part).
+static NORETURN void fail(const char* err);
+static NORETURN PRINTF(2, 3) void failmsg(const char* err, const char* msg, ...);
 // Just exit (e.g. due to temporal ENOMEM error).
 static NORETURN PRINTF(1, 2) void exitf(const char* msg, ...);
 static NORETURN void doexit(int status);
@@ -524,9 +529,9 @@ void receive_handshake()
 	handshake_req req = {};
 	int n = read(kInPipeFd, &req, sizeof(req));
 	if (n != sizeof(req))
-		fail("handshake read failed: %d", n);
+		failmsg("handshake read failed", "read=%d", n);
 	if (req.magic != kInMagic)
-		fail("bad handshake magic 0x%llx", req.magic);
+		failmsg("bad handshake magic", "magic=0x%llx", req.magic);
 	parse_env_flags(req.flags);
 	procid = req.pid;
 }
@@ -548,9 +553,9 @@ void receive_execute()
 	if (read(kInPipeFd, &req, sizeof(req)) != (ssize_t)sizeof(req))
 		fail("control pipe read failed");
 	if (req.magic != kInMagic)
-		fail("bad execute request magic 0x%llx", req.magic);
+		failmsg("bad execute request magic", "magic=0x%llx", req.magic);
 	if (req.prog_size > kMaxInput)
-		fail("bad execute prog size 0x%llx", req.prog_size);
+		failmsg("bad execute prog size", "size=0x%llx", req.prog_size);
 	parse_env_flags(req.env_flags);
 	procid = req.pid;
 	syscall_timeout_ms = req.syscall_timeout_ms;
@@ -574,7 +579,8 @@ void receive_execute()
 	      flag_fault_call, flag_fault_nth, syscall_timeout_ms, program_timeout_ms, slowdown_scale,
 	      req.prog_size, flag_coverage_filter);
 	if (syscall_timeout_ms == 0 || program_timeout_ms <= syscall_timeout_ms || slowdown_scale == 0)
-		fail("bad timeouts: %llu/%llu/%llu", syscall_timeout_ms, program_timeout_ms, slowdown_scale);
+		failmsg("bad timeouts", "syscall=%llu, program=%llu, scale=%llu",
+			syscall_timeout_ms, program_timeout_ms, slowdown_scale);
 	if (SYZ_EXECUTOR_USES_SHMEM) {
 		if (req.prog_size)
 			fail("need_prog: no program");
@@ -592,7 +598,7 @@ void receive_execute()
 			break;
 	}
 	if (pos != req.prog_size)
-		fail("bad input size %lld, want %lld", pos, req.prog_size);
+		failmsg("bad input size", "size=%lld, want=%lld", pos, req.prog_size);
 }
 
 #if GOOS_akaros
@@ -681,7 +687,7 @@ retry:
 				switch (csum_kind) {
 				case arg_csum_inet: {
 					if (size != 2)
-						fail("inet checksum must be 2 bytes, not %llu", size);
+						failmsg("bag inet checksum size", "size=%llu", size);
 					debug_verbose("calculating checksum for %p\n", csum_addr);
 					struct csum_inet csum;
 					csum_inet_init(&csum);
@@ -698,16 +704,15 @@ retry:
 							NONFAILING(csum_inet_update(&csum, (const uint8*)chunk_value, chunk_size));
 							break;
 						case arg_csum_chunk_const:
-							if (chunk_size != 2 && chunk_size != 4 && chunk_size != 8) {
-								fail("bad checksum const chunk size %lld", chunk_size);
-							}
+							if (chunk_size != 2 && chunk_size != 4 && chunk_size != 8)
+								failmsg("bad checksum const chunk size", "size=%lld", chunk_size);
 							// Here we assume that const values come to us big endian.
 							debug_verbose("#%lld: const chunk, value: %llx, size: %llu\n",
 								      chunk, chunk_value, chunk_size);
 							csum_inet_update(&csum, (const uint8*)&chunk_value, chunk_size);
 							break;
 						default:
-							fail("bad checksum chunk kind %llu", chunk_kind);
+							failmsg("bad checksum chunk kind", "kind=%llu", chunk_kind);
 						}
 					}
 					uint16 csum_value = csum_inet_digest(&csum);
@@ -716,12 +721,12 @@ retry:
 					break;
 				}
 				default:
-					fail("bad checksum kind %llu", csum_kind);
+					failmsg("bad checksum kind", "kind=%llu", csum_kind);
 				}
 				break;
 			}
 			default:
-				fail("bad argument type %llu", typ);
+				failmsg("bad argument type", "type=%llu", typ);
 			}
 			continue;
 		}
@@ -735,10 +740,10 @@ retry:
 
 		// Normal syscall.
 		if (call_num >= ARRAY_SIZE(syscalls))
-			fail("invalid command number %llu", call_num);
+			failmsg("invalid syscall number", "call_num=%llu", call_num);
 		const call_t* call = &syscalls[call_num];
 		if (call->attrs.disabled)
-			fail("executing disabled syscall %s", call->name);
+			failmsg("executing disabled syscall", "syscall=%s", call->name);
 		if (prog_extra_timeout < call->attrs.prog_timeout)
 			prog_extra_timeout = call->attrs.prog_timeout * slowdown_scale;
 		if (strncmp(syscalls[call_num].name, "syz_usb", strlen("syz_usb")) == 0)
@@ -748,7 +753,7 @@ retry:
 		uint64 copyout_index = read_input(&input_pos);
 		uint64 num_args = read_input(&input_pos);
 		if (num_args > kMaxArgs)
-			fail("command has bad number of arguments %llu", num_args);
+			failmsg("command has bad number of arguments", "args=%llu", num_args);
 		uint64 args[kMaxArgs] = {};
 		for (uint64 i = 0; i < num_args; i++)
 			args[i] = read_arg(&input_pos);
@@ -856,8 +861,8 @@ thread_t* schedule_call(int call_index, int call_num, bool colliding, uint64 cop
 		exitf("out of threads");
 	thread_t* th = &threads[i];
 	if (event_isset(&th->ready) || !event_isset(&th->done) || th->executing)
-		fail("bad thread state in schedule: ready=%d done=%d executing=%d",
-		     event_isset(&th->ready), event_isset(&th->done), th->executing);
+		failmsg("bad thread state in schedule", "ready=%d done=%d executing=%d",
+			event_isset(&th->ready), event_isset(&th->done), th->executing);
 	last_scheduled = th;
 	th->colliding = colliding;
 	th->copyout_pos = pos;
@@ -925,8 +930,8 @@ void write_coverage_signal(cover_t* cov, uint32* signal_count_pos, uint32* cover
 void handle_completion(thread_t* th)
 {
 	if (event_isset(&th->ready) || !event_isset(&th->done) || !th->executing)
-		fail("bad thread state in completion: ready=%d done=%d executing=%d",
-		     event_isset(&th->ready), event_isset(&th->done), th->executing);
+		failmsg("bad thread state in completion", "ready=%d done=%d executing=%d",
+			event_isset(&th->ready), event_isset(&th->done), th->executing);
 	if (th->res != (intptr_t)-1)
 		copyout_call_results(th);
 	if (!collide && !th->colliding) {
@@ -947,7 +952,7 @@ void handle_completion(thread_t* th)
 				event_isset(&th1->ready), event_isset(&th1->done),
 				th1->call_index, (uint64)th1->res, th1->reserrno);
 		}
-		fail("running = %d", running);
+		fail("negative running");
 	}
 }
 
@@ -955,7 +960,7 @@ void copyout_call_results(thread_t* th)
 {
 	if (th->copyout_index != no_copyout) {
 		if (th->copyout_index >= kMaxCommands)
-			fail("result idx %lld overflows kMaxCommands", th->copyout_index);
+			failmsg("result overflows kMaxCommands", "index=%lld", th->copyout_index);
 		results[th->copyout_index].executed = true;
 		results[th->copyout_index].val = th->res;
 	}
@@ -965,7 +970,7 @@ void copyout_call_results(thread_t* th)
 		case instr_copyout: {
 			uint64 index = read_input(&th->copyout_pos);
 			if (index >= kMaxCommands)
-				fail("result idx %lld overflows kMaxCommands", index);
+				failmsg("result overflows kMaxCommands", "index=%lld", index);
 			char* addr = (char*)read_input(&th->copyout_pos);
 			uint64 size = read_input(&th->copyout_pos);
 			uint64 val = 0;
@@ -1008,7 +1013,7 @@ void write_call_output(thread_t* th, bool finished)
 		kcov_comparison_t* start = (kcov_comparison_t*)(th->cov.data + sizeof(uint64));
 		kcov_comparison_t* end = start + ncomps;
 		if ((char*)end > th->cov.data_end)
-			fail("too many comparisons %u", ncomps);
+			failmsg("too many comparisons", "ncomps=%u", ncomps);
 		cover_unprotect(&th->cov);
 		std::sort(start, end);
 		ncomps = std::unique(start, end) - start;
@@ -1143,7 +1148,7 @@ void execute_call(thread_t* th)
 	if (flag_coverage) {
 		cover_collect(&th->cov);
 		if (th->cov.size >= kCoverSize)
-			fail("#%d: too much cover %u", th->id, th->cov.size);
+			failmsg("too much cover", "thr=%d, cov=%u", th->id, th->cov.size);
 	}
 	th->fault_injected = false;
 
@@ -1217,7 +1222,7 @@ void copyin(char* addr, uint64 val, uint64 size, uint64 bf, uint64 bf_off, uint6
 	debug_verbose("copyin: addr=%p val=0x%llx size=%llu bf=%llu bf_off=%llu bf_len=%llu\n",
 		      addr, val, size, bf, bf_off, bf_len);
 	if (bf != binary_format_native && bf != binary_format_bigendian && (bf_off != 0 || bf_len != 0))
-		fail("bitmask for string format %llu/%llu", bf_off, bf_len);
+		failmsg("bitmask for string format", "off=%llu, len=%llu", bf_off, bf_len);
 	switch (bf) {
 	case binary_format_native:
 	case binary_format_bigendian:
@@ -1235,26 +1240,26 @@ void copyin(char* addr, uint64 val, uint64 size, uint64 bf, uint64 bf_off, uint6
 				copyin_int<uint64>(addr, val, bf, bf_off, bf_len);
 				break;
 			default:
-				fail("copyin: bad argument size %llu", size);
+				failmsg("copyin: bad argument size", "size=%llu", size);
 		});
 		break;
 	case binary_format_strdec:
 		if (size != 20)
-			fail("bad strdec size %llu", size);
+			failmsg("bad strdec size", "size=%llu", size);
 		NONFAILING(sprintf((char*)addr, "%020llu", val));
 		break;
 	case binary_format_strhex:
 		if (size != 18)
-			fail("bad strhex size %llu", size);
+			failmsg("bad strhex size", "size=%llu", size);
 		NONFAILING(sprintf((char*)addr, "0x%016llx", val));
 		break;
 	case binary_format_stroct:
 		if (size != 23)
-			fail("bad stroct size %llu", size);
+			failmsg("bad stroct size", "size=%llu", size);
 		NONFAILING(sprintf((char*)addr, "%023llo", val));
 		break;
 	default:
-		fail("unknown binary format %llu", bf);
+		failmsg("unknown binary format", "format=%llu", bf);
 	}
 }
 
@@ -1275,7 +1280,7 @@ bool copyout(char* addr, uint64 size, uint64* res)
 			    *res = *(uint64*)addr;
 			    break;
 		    default:
-			    fail("copyout: bad argument size %llu", size);
+			    failmsg("copyout: bad argument size", "size=%llu", size);
 	    });
 }
 
@@ -1287,20 +1292,20 @@ uint64 read_arg(uint64** input_posp)
 		uint64 size, bf, bf_off, bf_len;
 		uint64 val = read_const_arg(input_posp, &size, &bf, &bf_off, &bf_len);
 		if (bf != binary_format_native && bf != binary_format_bigendian)
-			fail("bad argument binary format %llu", bf);
+			failmsg("bad argument binary format", "format=%llu", bf);
 		if (bf_off != 0 || bf_len != 0)
-			fail("bad argument bitfield %llu/%llu", bf_off, bf_len);
+			failmsg("bad argument bitfield", "off=%llu, len=%llu", bf_off, bf_len);
 		return swap(val, size, bf);
 	}
 	case arg_result: {
 		uint64 meta = read_input(input_posp);
 		uint64 bf = meta >> 8;
 		if (bf != binary_format_native)
-			fail("bad result argument format %llu", bf);
+			failmsg("bad result argument format", "format=%llu", bf);
 		return read_result(input_posp);
 	}
 	default:
-		fail("bad argument type %llu", typ);
+		failmsg("bad argument type", "type=%llu", typ);
 	}
 }
 
@@ -1309,7 +1314,7 @@ uint64 swap(uint64 v, uint64 size, uint64 bf)
 	if (bf == binary_format_native)
 		return v;
 	if (bf != binary_format_bigendian)
-		fail("bad binary format in swap: %llu", bf);
+		failmsg("bad binary format in swap", "format=%llu", bf);
 	switch (size) {
 	case 2:
 		return htobe16(v);
@@ -1318,7 +1323,7 @@ uint64 swap(uint64 v, uint64 size, uint64 bf)
 	case 8:
 		return htobe64(v);
 	default:
-		fail("bad big-endian int size %llu", size);
+		failmsg("bad big-endian int size", "size=%llu", size);
 	}
 }
 
@@ -1343,7 +1348,7 @@ uint64 read_result(uint64** input_posp)
 	uint64 op_add = read_input(input_posp);
 	uint64 arg = read_input(input_posp);
 	if (idx >= kMaxCommands)
-		fail("command refers to bad result %lld", idx);
+		failmsg("command refers to bad result", "result=%lld", idx);
 	if (results[idx].executed) {
 		arg = results[idx].val;
 		if (op_div != 0)
@@ -1357,7 +1362,7 @@ uint64 read_input(uint64** input_posp, bool peek)
 {
 	uint64* input_pos = *input_posp;
 	if ((char*)input_pos >= input_data + kMaxInput)
-		fail("input command overflows input %p: [%p:%p)", input_pos, input_data, input_data + kMaxInput);
+		failmsg("input command overflows input", "pos=%p: [%p:%p)", input_pos, input_data, input_data + kMaxInput);
 	if (!peek)
 		*input_posp = input_pos + 1;
 	return *input_pos;
@@ -1367,8 +1372,8 @@ uint64 read_input(uint64** input_posp, bool peek)
 uint32* write_output(uint32 v)
 {
 	if (output_pos < output_data || (char*)output_pos >= (char*)output_data + kMaxOutput)
-		fail("output overflow: pos=%p region=[%p:%p]",
-		     output_pos, output_data, (char*)output_data + kMaxOutput);
+		failmsg("output overflow", "pos=%p region=[%p:%p]",
+			output_pos, output_data, (char*)output_data + kMaxOutput);
 	*output_pos = v;
 	return output_pos++;
 }
@@ -1376,8 +1381,8 @@ uint32* write_output(uint32 v)
 uint32* write_output_64(uint64 v)
 {
 	if (output_pos < output_data || (char*)(output_pos + 1) >= (char*)output_data + kMaxOutput)
-		fail("output overflow: pos=%p region=[%p:%p]",
-		     output_pos, output_data, (char*)output_data + kMaxOutput);
+		failmsg("output overflow", "pos=%p region=[%p:%p]",
+			output_pos, output_data, (char*)output_data + kMaxOutput);
 	*(uint64*)output_pos = v;
 	output_pos += 2;
 	return output_pos;
@@ -1393,7 +1398,7 @@ void write_completed(uint32 completed)
 void kcov_comparison_t::write()
 {
 	if (type > (KCOV_CMP_CONST | KCOV_CMP_SIZE_MASK))
-		fail("invalid kcov comp type %llx", type);
+		failmsg("invalid kcov comp type", "type=%llx", type);
 
 	// Write order: type arg1 arg2 pc.
 	write_output((uint32)type);
@@ -1499,18 +1504,21 @@ void setup_features(char** enable, int n)
 		}
 #endif
 		if (!found)
-			fail("unknown feature %s", enable[i]);
+			failmsg("setup features: unknown feature", "feature=%s", enable[i]);
 	}
 }
 
-void fail(const char* msg, ...)
+void failmsg(const char* err, const char* msg, ...)
 {
 	int e = errno;
-	va_list args;
-	va_start(args, msg);
-	vfprintf(stderr, msg, args);
-	va_end(args);
-	fprintf(stderr, " (errno %d)\n", e);
+	if (msg) {
+		va_list args;
+		va_start(args, msg);
+		vfprintf(stderr, msg, args);
+		va_end(args);
+	}
+	fprintf(stderr, " (errno %d: %s)\n", e, strerror(e));
+	fprintf(stderr, "SYZFAIL: %s\n", err);
 
 	// fail()'s are often used during the validation of kernel reactions to queries
 	// that were issued by pseudo syscalls implementations. As fault injection may
@@ -1526,6 +1534,11 @@ void fail(const char* msg, ...)
 	if (current_thread && current_thread->soft_fail_state)
 		doexit(0);
 	doexit(kFailStatus);
+}
+
+void fail(const char* err)
+{
+	failmsg(err, 0);
 }
 
 void exitf(const char* msg, ...)

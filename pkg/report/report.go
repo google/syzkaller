@@ -645,6 +645,18 @@ var (
 // But also catches crashes in Go programs in gvisor/fuchsia.
 var commonOopses = []*oops{
 	{
+		// Errors produced by executor's fail function.
+		[]byte("SYZFAIL:"),
+		[]oopsFormat{
+			{
+				title:        compile("SYZFAIL:(.*)"),
+				fmt:          "SYZFAIL:%[1]v",
+				noStackTrace: true,
+			},
+		},
+		[]*regexp.Regexp{},
+	},
+	{
 		[]byte("panic:"),
 		[]oopsFormat{
 			{

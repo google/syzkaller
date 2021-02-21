@@ -46,7 +46,7 @@ typedef struct Filter_t {
 static void push_back(Filter* filter_array, struct sock_filter filter)
 {
 	if (filter_array->count == kFilterMaxSize)
-		fail("can't add another syscall to seccomp filter: count %zu", filter_array->count);
+		failmsg("can't add another syscall to seccomp filter", "count=%zu", filter_array->count);
 	filter_array->data[filter_array->count++] = filter;
 }
 
@@ -79,9 +79,8 @@ static void install_filter(const Filter* f)
 	    (struct sock_filter*)&f->data[0],
 	};
 	// This assumes either the current process has CAP_SYS_ADMIN, or PR_SET_NO_NEW_PRIVS bit is set.
-	if (prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, &prog) < 0) {
-		fail("Could not set seccomp filter of size %zu", f->count);
-	}
+	if (prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, &prog) < 0)
+		failmsg("could not set seccomp filter", "size=%zu", f->count);
 }
 
 // Modified from the orignal Android code as we don't need dual arch support

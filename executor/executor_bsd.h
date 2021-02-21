@@ -61,7 +61,7 @@ static void cover_open(cover_t* cov, bool extra)
 	if (fd == -1)
 		fail("open of /dev/kcov failed");
 	if (dup2(fd, cov->fd) < 0)
-		fail("failed to dup2(%d, %d) cover fd", fd, cov->fd);
+		failmsg("failed to dup cover fd", "from=%d, to=%d", fd, cov->fd);
 	close(fd);
 
 #if GOOS_freebsd

@@ -218,14 +218,11 @@ static volatile long syz_usb_connect_impl(int fd, uint64 speed, uint64 dev_len,
 	analyze_usb_device(index);
 #endif
 
-	int rv = vhci_setport(fd, 1);
-	if (rv != 0) {
-		fail("syz_usb_connect: vhci_setport failed with %d", errno);
-	}
+	if (vhci_setport(fd, 1))
+		fail("syz_usb_connect: vhci_setport failed with");
 
-	rv = vhci_usb_attach(fd);
-	if (rv != 0) {
-		debug("syz_usb_connect: vhci_usb_attach failed with %d\n", rv);
+	if (vhci_usb_attach(fd)) {
+		debug("syz_usb_connect: vhci_usb_attach failed with %d\n", errno);
 		return -1;
 	}
 	debug("syz_usb_connect: vhci_usb_attach success\n");
@@ -234,8 +231,7 @@ static volatile long syz_usb_connect_impl(int fd, uint64 speed, uint64 dev_len,
 	while (!done) {
 		vhci_request_t req;
 
-		rv = vhci_usb_recv(fd, &req, sizeof(req));
-		if (rv != 0) {
+		if (vhci_usb_recv(fd, &req, sizeof(req))) {
 			debug("syz_usb_connect: vhci_usb_recv failed with %d\n", errno);
 			return -1;
 		}
@@ -285,6 +281,7 @@ static volatile long syz_usb_connect_impl(int fd, uint64 speed, uint64 dev_len,
 		else
 			memset(data, 0, response_length);
 
+		int rv = 0;
 		if (req.u.ctrl.bmRequestType & UE_DIR_IN) {
 			debug("syz_usb_connect: writing %d bytes\n", response_length);
 			if (response_length > 0) {
@@ -329,9 +326,8 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1,
 	debug_dump_data(dev, dev_len);
 
 	int fd = vhci_open();
-	if (fd < 0) {
-		fail("syz_usb_connect: vhci_open failed with %d", errno);
-	}
+	if (fd < 0)
+		fail("syz_usb_connect: vhci_open failed");
 	long res = syz_usb_connect_impl(fd, speed, dev_len, dev, descs, &lookup_connect_response_out_generic);
 	close(fd);
 	return res;
