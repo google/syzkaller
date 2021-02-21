@@ -1420,14 +1420,11 @@ static volatile long syz_usb_connect_impl(int fd, uint64 speed, uint64 dev_len,
 	analyze_usb_device(index);
 #endif
 
-	int rv = vhci_setport(fd, 1);
-	if (rv != 0) {
-		fail("syz_usb_connect: vhci_setport failed with %d", errno);
-	}
+	if (vhci_setport(fd, 1))
+		fail("syz_usb_connect: vhci_setport failed with");
 
-	rv = vhci_usb_attach(fd);
-	if (rv != 0) {
-		debug("syz_usb_connect: vhci_usb_attach failed with %d\n", rv);
+	if (vhci_usb_attach(fd)) {
+		debug("syz_usb_connect: vhci_usb_attach failed with %d\n", errno);
 		return -1;
 	}
 	debug("syz_usb_connect: vhci_usb_attach success\n");
@@ -1436,8 +1433,7 @@ static volatile long syz_usb_connect_impl(int fd, uint64 speed, uint64 dev_len,
 	while (!done) {
 		vhci_request_t req;
 
-		rv = vhci_usb_recv(fd, &req, sizeof(req));
-		if (rv != 0) {
+		if (vhci_usb_recv(fd, &req, sizeof(req))) {
 			debug("syz_usb_connect: vhci_usb_recv failed with %d\n", errno);
 			return -1;
 		}
@@ -1486,6 +1482,7 @@ static volatile long syz_usb_connect_impl(int fd, uint64 speed, uint64 dev_len,
 		else
 			memset(data, 0, response_length);
 
+		int rv = 0;
 		if (req.u.ctrl.bmRequestType & UE_DIR_IN) {
 			debug("syz_usb_connect: writing %d bytes\n", response_length);
 			if (response_length > 0) {
@@ -1530,9 +1527,8 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1,
 	debug_dump_data(dev, dev_len);
 
 	int fd = vhci_open();
-	if (fd < 0) {
-		fail("syz_usb_connect: vhci_open failed with %d", errno);
-	}
+	if (fd < 0)
+		fail("syz_usb_connect: vhci_open failed");
 	long res = syz_usb_connect_impl(fd, speed, dev_len, dev, descs, &lookup_connect_response_out_generic);
 	close(fd);
 	return res;
@@ -1570,7 +1566,7 @@ static void setup_usb(void)
 		char path[1024];
 		snprintf(path, sizeof(path), "/dev/%s", ent->d_name);
 		if (chmod(path, 0666))
-			fail("failed to chmod %s", path);
+			failmsg("failed to chmod vhci", "path=%s", path);
 	}
 
 	closedir(dir);
@@ -1598,7 +1594,7 @@ static int inject_fault(int nth)
 	en.mode = 0;
 	en.nth = nth + 2;
 	if (ioctl(fd, FAULT_IOC_ENABLE, &en) != 0)
-		fail("FAULT_IOC_ENABLE failed with nth=%d", nth);
+		failmsg("FAULT_IOC_ENABLE failed", "nth=%d", nth);
 
 	return fd;
 }
@@ -1680,7 +1676,7 @@ static void vsnprintf_check(char* str, size_t size, const char* format, va_list 
 	if (rv < 0)
 		fail("vsnprintf failed");
 	if ((size_t)rv >= size)
-		fail("vsnprintf: string '%s...' doesn't fit into buffer", str);
+		failmsg("vsnprintf: string doesn't fit into buffer", "string='%s'", str);
 }
 
 static void snprintf_check(char* str, size_t size, const char* format, ...)
@@ -1707,7 +1703,7 @@ static void execute_command(bool panic, const char* format, ...)
 	int rv = system(command);
 	if (rv) {
 		if (panic)
-			fail("command '%s' failed: %d", &command[0], rv);
+			failmsg("command failed", "command=%s: %d", &command[0], rv);
 		debug("command '%s': %d\n", &command[0], rv);
 	}
 }
@@ -1719,9 +1715,8 @@ static void initialize_tun(int tun_id)
 		return;
 #endif
 
-	if (tun_id < 0 || tun_id >= MAX_TUN) {
-		fail("tun_id out of range %d", tun_id);
-	}
+	if (tun_id < 0 || tun_id >= MAX_TUN)
+		failmsg("tun_id out of range", "tun_id=%d", tun_id);
 
 	char tun_device[sizeof(TUN_DEVICE)];
 	snprintf_check(tun_device, sizeof(tun_device), TUN_DEVICE, tun_id);
@@ -1745,7 +1740,7 @@ static void initialize_tun(int tun_id)
 #endif
 	if (tunfd == -1) {
 #if SYZ_EXECUTOR
-		fail("tun: can't open %s", tun_device);
+		failmsg("tun: can't open device", "device=%s", tun_device);
 #else
 		printf("tun: can't open %s: errno=%d\n", tun_device, errno);
 		return;
@@ -1813,7 +1808,7 @@ static int read_tun(char* data, int size)
 	if (rv < 0) {
 		if (errno == EAGAIN)
 			return -1;
-		fail("tun: read failed with %d", rv);
+		fail("tun: read failed");
 	}
 	return rv;
 }
@@ -2100,7 +2095,8 @@ static void install_segv_handler(void)
 	zx_status_t status;
 	zx_handle_t exception_channel;
 	if ((status = zx_task_create_exception_channel(zx_process_self(), 0, &exception_channel)) != ZX_OK)
-		fail("zx_task_create_exception_channel failed: %s (%d)", zx_status_get_string(status), status);
+		failmsg("zx_task_create_exception_channel failed",
+			"status=%s (%d)", zx_status_get_string(status), status);
 	pthread_t th;
 	if (pthread_create(&th, 0, ex_handler, (void*)(long)exception_channel))
 		fail("pthread_create failed");
@@ -2437,7 +2433,7 @@ static int netlink_send_ext(struct nlmsg* nlmsg, int sock,
 	ssize_t n = sendto(sock, nlmsg->buf, hdr->nlmsg_len, 0, (struct sockaddr*)&addr, sizeof(addr));
 	if (n != (ssize_t)hdr->nlmsg_len) {
 		if (dofail)
-			fail("netlink_send_ext: short netlink write: %zd/%d", n, hdr->nlmsg_len);
+			failmsg("netlink_send_ext: short netlink write", "wrote=%zd, want=%d", n, hdr->nlmsg_len);
 		debug("netlink_send_ext: short netlink write: %zd/%d errno=%d\n", n, hdr->nlmsg_len, errno);
 		return -1;
 	}
@@ -2446,14 +2442,14 @@ static int netlink_send_ext(struct nlmsg* nlmsg, int sock,
 		*reply_len = 0;
 	if (n < 0) {
 		if (dofail)
-			fail("netlink_send_ext: netlink read failed: %zd", n);
-		debug("netlink_send_ext: netlink read failed: %zd errno=%d\n", n, errno);
+			fail("netlink_send_ext: netlink read failed");
+		debug("netlink_send_ext: netlink read failed: errno=%d\n", errno);
 		return -1;
 	}
 	if (n < (ssize_t)sizeof(struct nlmsghdr)) {
 		errno = EINVAL;
 		if (dofail)
-			fail("netlink_send_ext: short netlink read: %zd", n);
+			failmsg("netlink_send_ext: short netlink read", "read=%zd", n);
 		debug("netlink_send_ext: short netlink read: %zd\n", n);
 		return -1;
 	}
@@ -2466,14 +2462,14 @@ static int netlink_send_ext(struct nlmsg* nlmsg, int sock,
 	if (n < (ssize_t)(sizeof(struct nlmsghdr) + sizeof(struct nlmsgerr))) {
 		errno = EINVAL;
 		if (dofail)
-			fail("netlink_send_ext: short netlink read: %zd", n);
+			failmsg("netlink_send_ext: short netlink read", "read=%zd", n);
 		debug("netlink_send_ext: short netlink read: %zd\n", n);
 		return -1;
 	}
 	if (hdr->nlmsg_type != NLMSG_ERROR) {
 		errno = EINVAL;
 		if (dofail)
-			fail("netlink_send_ext: short netlink ack: %d", hdr->nlmsg_type);
+			failmsg("netlink_send_ext: bad netlink ack type", "type=%d", hdr->nlmsg_type);
 		debug("netlink_send_ext: short netlink ack: %d\n", hdr->nlmsg_type);
 		return -1;
 	}
@@ -3231,19 +3227,20 @@ static void initialize_wifi_devices(void)
 		mac_addr[5] = device_id;
 		int ret = hwsim80211_create_device(&nlmsg, sock, hwsim_family_id, mac_addr);
 		if (ret < 0)
-			fail("initialize_wifi_devices: failed to create device #%d", device_id);
+			failmsg("initialize_wifi_devices: failed to create device", "device=%d", device_id);
 		char interface[6] = "wlan0";
 		interface[4] += device_id;
 
 		if (nl80211_setup_ibss_interface(&nlmsg, sock, nl80211_family_id, interface, &ibss_props) < 0)
-			fail("initialize_wifi_devices: failed set up IBSS network for #%d", device_id);
+			failmsg("initialize_wifi_devices: failed set up IBSS network", "device=%d", device_id);
 	}
 	for (int device_id = 0; device_id < WIFI_INITIAL_DEVICE_COUNT; device_id++) {
 		char interface[6] = "wlan0";
 		interface[4] += device_id;
 		int ret = await_ifla_operstate(&nlmsg, interface, IF_OPER_UP);
 		if (ret < 0)
-			fail("initialize_wifi_devices: get_ifla_operstate failed for #%d, ret %d", device_id, ret);
+			failmsg("initialize_wifi_devices: get_ifla_operstate failed",
+				"device=%d, ret=%d", device_id, ret);
 	}
 
 	close(sock);
@@ -3722,7 +3719,7 @@ static int read_tun(char* data, int size)
 	if (rv < 0) {
 		if (errno == EAGAIN || errno == EBADFD)
 			return -1;
-		fail("tun: read failed with %d", rv);
+		fail("tun read failed");
 	}
 	return rv;
 }
@@ -3944,16 +3941,14 @@ static long syz_io_uring_submit(volatile long a0, volatile long a1, volatile lon
 
 static long syz_usbip_server_init(volatile long a0)
 {
-	int socket_pair[2];
-	char buffer[100];
 	static int port_alloc[2];
 
 	int speed = (int)a0;
 	bool usb3 = (speed == USB_SPEED_SUPER);
 
-	int rc = socketpair(AF_UNIX, SOCK_STREAM, 0, socket_pair);
-	if (rc < 0)
-		fail("syz_usbip_server_init : socketpair failed: %d", rc);
+	int socket_pair[2];
+	if (socketpair(AF_UNIX, SOCK_STREAM, 0, socket_pair))
+		fail("syz_usbip_server_init: socketpair failed");
 
 	int client_fd = socket_pair[0];
 	int server_fd = socket_pair[1];
@@ -3964,6 +3959,7 @@ static long syz_usbip_server_init(volatile long a0)
 		return -1;
 	}
 	int port_num = procid * VHCI_PORTS + usb3 * VHCI_HC_PORTS + available_port_num;
+	char buffer[100];
 	sprintf(buffer, "%d %d %s %d", port_num, client_fd, "0", speed);
 
 	write_file("/sys/devices/platform/vhci_hcd.0/attach", buffer);
@@ -5885,7 +5881,7 @@ static bool process_command_pkt(int fd, char* buf, ssize_t buf_size)
 	struct hci_command_hdr* hdr = (struct hci_command_hdr*)buf;
 	if (buf_size < (ssize_t)sizeof(struct hci_command_hdr) ||
 	    hdr->plen != buf_size - sizeof(struct hci_command_hdr)) {
-		fail("invalid size: %zx", buf_size);
+		failmsg("process_command_pkt: invalid size", "suze=%zx", buf_size);
 	}
 
 	switch (hdr->opcode) {
@@ -7488,7 +7484,7 @@ static void checkpoint_iptables(struct ipt_table_desc* tables, int num_tables, i
 		case ENOPROTOOPT:
 			return;
 		}
-		fail("iptable checkpoint %d: socket failed", family);
+		failmsg("iptable checkpoint: socket(SOCK_STREAM, IPPROTO_TCP) failed", "family=%d", family);
 	}
 	for (int i = 0; i < num_tables; i++) {
 		struct ipt_table_desc* table = &tables[i];
@@ -7502,25 +7498,26 @@ static void checkpoint_iptables(struct ipt_table_desc* tables, int num_tables, i
 			case ENOPROTOOPT:
 				continue;
 			}
-			fail("iptable checkpoint %s/%d: getsockopt(IPT_SO_GET_INFO)", table->name, family);
+			failmsg("iptable checkpoint: getsockopt(IPT_SO_GET_INFO) failed",
+				"table=%s, family=%d", table->name, family);
 		}
 		debug("iptable checkpoint %s/%d: checkpoint entries=%d hooks=%x size=%d\n",
 		      table->name, family, table->info.num_entries,
 		      table->info.valid_hooks, table->info.size);
 		if (table->info.size > sizeof(table->replace.entrytable))
-			fail("iptable checkpoint %s/%d: table size is too large: %u",
-			     table->name, family, table->info.size);
+			failmsg("iptable checkpoint: table size is too large", "table=%s, family=%d, size=%u",
+				table->name, family, table->info.size);
 		if (table->info.num_entries > XT_MAX_ENTRIES)
-			fail("iptable checkpoint %s/%d: too many counters: %u",
-			     table->name, family, table->info.num_entries);
+			failmsg("iptable checkpoint: too many counters", "table=%s, family=%d, counters=%d",
+				table->name, family, table->info.num_entries);
 		struct ipt_get_entries entries;
 		memset(&entries, 0, sizeof(entries));
 		strcpy(entries.name, table->name);
 		entries.size = table->info.size;
 		optlen = sizeof(entries) - sizeof(entries.entrytable) + table->info.size;
 		if (getsockopt(fd, level, IPT_SO_GET_ENTRIES, &entries, &optlen))
-			fail("iptable checkpoint %s/%d: getsockopt(IPT_SO_GET_ENTRIES)",
-			     table->name, family);
+			failmsg("iptable checkpoint: getsockopt(IPT_SO_GET_ENTRIES) failed",
+				"table=%s, family=%d", table->name, family);
 		table->replace.valid_hooks = table->info.valid_hooks;
 		table->replace.num_entries = table->info.num_entries;
 		table->replace.size = table->info.size;
@@ -7540,7 +7537,7 @@ static void reset_iptables(struct ipt_table_desc* tables, int num_tables, int fa
 		case ENOPROTOOPT:
 			return;
 		}
-		fail("iptable %d: socket failed", family);
+		failmsg("iptable: socket(SOCK_STREAM, IPPROTO_TCP) failed", "family=%d", family);
 	}
 	for (int i = 0; i < num_tables; i++) {
 		struct ipt_table_desc* table = &tables[i];
@@ -7551,7 +7548,8 @@ static void reset_iptables(struct ipt_table_desc* tables, int num_tables, int fa
 		strcpy(info.name, table->name);
 		socklen_t optlen = sizeof(info);
 		if (getsockopt(fd, level, IPT_SO_GET_INFO, &info, &optlen))
-			fail("iptable %s/%d: getsockopt(IPT_SO_GET_INFO)", table->name, family);
+			failmsg("iptable: getsockopt(IPT_SO_GET_INFO) failed",
+				"table=%s, family=%d", table->name, family);
 		if (memcmp(&table->info, &info, sizeof(table->info)) == 0) {
 			struct ipt_get_entries entries;
 			memset(&entries, 0, sizeof(entries));
@@ -7559,7 +7557,8 @@ static void reset_iptables(struct ipt_table_desc* tables, int num_tables, int fa
 			entries.size = table->info.size;
 			optlen = sizeof(entries) - sizeof(entries.entrytable) + entries.size;
 			if (getsockopt(fd, level, IPT_SO_GET_ENTRIES, &entries, &optlen))
-				fail("iptable %s/%d: getsockopt(IPT_SO_GET_ENTRIES)", table->name, family);
+				failmsg("iptable: getsockopt(IPT_SO_GET_ENTRIES) failed",
+					"table=%s, family=%d", table->name, family);
 			if (memcmp(table->replace.entrytable, entries.entrytable, table->info.size) == 0)
 				continue;
 		}
@@ -7569,7 +7568,8 @@ static void reset_iptables(struct ipt_table_desc* tables, int num_tables, int fa
 		table->replace.counters = counters;
 		optlen = sizeof(table->replace) - sizeof(table->replace.entrytable) + table->replace.size;
 		if (setsockopt(fd, level, IPT_SO_SET_REPLACE, &table->replace, optlen))
-			fail("iptable %s/%d: setsockopt(IPT_SO_SET_REPLACE)", table->name, family);
+			failmsg("iptable: setsockopt(IPT_SO_SET_REPLACE) failed",
+				"table=%s, family=%d", table->name, family);
 	}
 	close(fd);
 }
@@ -7583,7 +7583,7 @@ static void checkpoint_arptables(void)
 		case ENOPROTOOPT:
 			return;
 		}
-		fail("arptable checkpoint: socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
+		fail("arptable checkpoint: socket(AF_INET, SOCK_STREAM, IPPROTO_TCP) failed");
 	}
 	for (unsigned i = 0; i < sizeof(arpt_tables) / sizeof(arpt_tables[0]); i++) {
 		struct arpt_table_desc* table = &arpt_tables[i];
@@ -7597,23 +7597,23 @@ static void checkpoint_arptables(void)
 			case ENOPROTOOPT:
 				continue;
 			}
-			fail("arptable checkpoint %s: getsockopt(ARPT_SO_GET_INFO)", table->name);
+			failmsg("arptable checkpoint: getsockopt(ARPT_SO_GET_INFO) failed", "table=%s", table->name);
 		}
 		debug("arptable checkpoint %s: entries=%d hooks=%x size=%d\n",
 		      table->name, table->info.num_entries, table->info.valid_hooks, table->info.size);
 		if (table->info.size > sizeof(table->replace.entrytable))
-			fail("arptable checkpoint %s: table size is too large: %u",
-			     table->name, table->info.size);
+			failmsg("arptable checkpoint: table size is too large",
+				"table=%s, size=%u", table->name, table->info.size);
 		if (table->info.num_entries > XT_MAX_ENTRIES)
-			fail("arptable checkpoint %s: too many counters: %u",
-			     table->name, table->info.num_entries);
+			failmsg("arptable checkpoint: too many counters",
+				"table=%s, counters=%u", table->name, table->info.num_entries);
 		struct arpt_get_entries entries;
 		memset(&entries, 0, sizeof(entries));
 		strcpy(entries.name, table->name);
 		entries.size = table->info.size;
 		optlen = sizeof(entries) - sizeof(entries.entrytable) + table->info.size;
 		if (getsockopt(fd, SOL_IP, ARPT_SO_GET_ENTRIES, &entries, &optlen))
-			fail("arptable checkpoint %s: getsockopt(ARPT_SO_GET_ENTRIES)", table->name);
+			failmsg("arptable checkpoint: getsockopt(ARPT_SO_GET_ENTRIES) failed", "table=%s", table->name);
 		table->replace.valid_hooks = table->info.valid_hooks;
 		table->replace.num_entries = table->info.num_entries;
 		table->replace.size = table->info.size;
@@ -7644,7 +7644,7 @@ static void reset_arptables()
 		strcpy(info.name, table->name);
 		socklen_t optlen = sizeof(info);
 		if (getsockopt(fd, SOL_IP, ARPT_SO_GET_INFO, &info, &optlen))
-			fail("arptable %s:getsockopt(ARPT_SO_GET_INFO)", table->name);
+			failmsg("arptable: getsockopt(ARPT_SO_GET_INFO) failed", "table=%s", table->name);
 		if (memcmp(&table->info, &info, sizeof(table->info)) == 0) {
 			struct arpt_get_entries entries;
 			memset(&entries, 0, sizeof(entries));
@@ -7652,7 +7652,7 @@ static void reset_arptables()
 			entries.size = table->info.size;
 			optlen = sizeof(entries) - sizeof(entries.entrytable) + entries.size;
 			if (getsockopt(fd, SOL_IP, ARPT_SO_GET_ENTRIES, &entries, &optlen))
-				fail("arptable %s: getsockopt(ARPT_SO_GET_ENTRIES)", table->name);
+				failmsg("arptable: getsockopt(ARPT_SO_GET_ENTRIES) failed", "table=%s", table->name);
 			if (memcmp(table->replace.entrytable, entries.entrytable, table->info.size) == 0)
 				continue;
 			debug("arptable %s: data changed\n", table->name);
@@ -7665,7 +7665,8 @@ static void reset_arptables()
 		table->replace.counters = counters;
 		optlen = sizeof(table->replace) - sizeof(table->replace.entrytable) + table->replace.size;
 		if (setsockopt(fd, SOL_IP, ARPT_SO_SET_REPLACE, &table->replace, optlen))
-			fail("arptable %s: setsockopt(ARPT_SO_SET_REPLACE)", table->name);
+			failmsg("arptable: setsockopt(ARPT_SO_SET_REPLACE) failed",
+				"table=%s", table->name);
 	}
 	close(fd);
 }
@@ -7734,19 +7735,21 @@ static void checkpoint_ebtables(void)
 			case ENOPROTOOPT:
 				continue;
 			}
-			fail("ebtable checkpoint %s: getsockopt(EBT_SO_GET_INIT_INFO)", table->name);
+			failmsg("ebtable checkpoint: getsockopt(EBT_SO_GET_INIT_INFO) failed",
+				"table=%s", table->name);
 		}
 		debug("ebtable checkpoint %s: entries=%d hooks=%x size=%d\n",
 		      table->name, table->replace.nentries, table->replace.valid_hooks,
 		      table->replace.entries_size);
 		if (table->replace.entries_size > sizeof(table->entrytable))
-			fail("ebtable checkpoint %s: table size is too large: %u",
-			     table->name, table->replace.entries_size);
+			failmsg("ebtable checkpoint: table size is too large", "table=%s, size=%u",
+				table->name, table->replace.entries_size);
 		table->replace.num_counters = 0;
 		table->replace.entries = table->entrytable;
 		optlen = sizeof(table->replace) + table->replace.entries_size;
 		if (getsockopt(fd, SOL_IP, EBT_SO_GET_INIT_ENTRIES, &table->replace, &optlen))
-			fail("ebtable checkpoint %s: getsockopt(EBT_SO_GET_INIT_ENTRIES)", table->name);
+			failmsg("ebtable checkpoint: getsockopt(EBT_SO_GET_INIT_ENTRIES) failed",
+				"table=%s", table->name);
 	}
 	close(fd);
 }
@@ -7771,7 +7774,7 @@ static void reset_ebtables()
 		strcpy(replace.name, table->name);
 		socklen_t optlen = sizeof(replace);
 		if (getsockopt(fd, SOL_IP, EBT_SO_GET_INFO, &replace, &optlen))
-			fail("ebtable %s: getsockopt(EBT_SO_GET_INFO)", table->name);
+			failmsg("ebtable: getsockopt(EBT_SO_GET_INFO)", "table=%s", table->name);
 		replace.num_counters = 0;
 		table->replace.entries = 0;
 		for (unsigned h = 0; h < NF_BR_NUMHOOKS; h++)
@@ -7782,7 +7785,7 @@ static void reset_ebtables()
 			replace.entries = entrytable;
 			optlen = sizeof(replace) + replace.entries_size;
 			if (getsockopt(fd, SOL_IP, EBT_SO_GET_ENTRIES, &replace, &optlen))
-				fail("ebtable %s: getsockopt(EBT_SO_GET_ENTRIES)", table->name);
+				failmsg("ebtable: getsockopt(EBT_SO_GET_ENTRIES) failed", "table=%s", table->name);
 			if (memcmp(table->entrytable, entrytable, replace.entries_size) == 0)
 				continue;
 		}
@@ -7796,7 +7799,7 @@ static void reset_ebtables()
 		table->replace.entries = table->entrytable;
 		optlen = sizeof(table->replace) + table->replace.entries_size;
 		if (setsockopt(fd, SOL_IP, EBT_SO_SET_ENTRIES, &table->replace, optlen))
-			fail("ebtable %s: setsockopt(EBT_SO_SET_ENTRIES)", table->name);
+			failmsg("ebtable: setsockopt(EBT_SO_SET_ENTRIES) failed", "table=%s", table->name);
 	}
 	close(fd);
 }
@@ -8776,7 +8779,7 @@ typedef struct Filter_t {
 static void push_back(Filter* filter_array, struct sock_filter filter)
 {
 	if (filter_array->count == kFilterMaxSize)
-		fail("can't add another syscall to seccomp filter: count %zu", filter_array->count);
+		failmsg("can't add another syscall to seccomp filter", "count=%zu", filter_array->count);
 	filter_array->data[filter_array->count++] = filter;
 }
 
@@ -8806,9 +8809,8 @@ static void install_filter(const Filter* f)
 	    (unsigned short)f->count,
 	    (struct sock_filter*)&f->data[0],
 	};
-	if (prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, &prog) < 0) {
-		fail("Could not set seccomp filter of size %zu", f->count);
-	}
+	if (prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, &prog) < 0)
+		failmsg("could not set seccomp filter", "size=%zu", f->count);
 }
 static void set_app_seccomp_filter()
 {
@@ -8847,61 +8849,49 @@ const char* const SELINUX_XATTR_NAME = "security.selinux";
 
 const gid_t UNTRUSTED_APP_GROUPS[] = {UNTRUSTED_APP_GID, AID_NET_BT_ADMIN, AID_NET_BT, AID_INET, AID_EVERYBODY};
 const size_t UNTRUSTED_APP_NUM_GROUPS = sizeof(UNTRUSTED_APP_GROUPS) / sizeof(UNTRUSTED_APP_GROUPS[0]);
-static void syz_getcon(char* context, size_t context_size)
+static void getcon(char* context, size_t context_size)
 {
 	int fd = open(SELINUX_CONTEXT_FILE, O_RDONLY);
-
 	if (fd < 0)
-		fail("getcon: Couldn't open %s", SELINUX_CONTEXT_FILE);
+		fail("getcon: couldn't open context file");
 
 	ssize_t nread = read(fd, context, context_size);
 
 	close(fd);
 
 	if (nread <= 0)
-		fail("getcon: Failed to read from %s", SELINUX_CONTEXT_FILE);
+		fail("getcon: failed to read context file");
 	if (context[nread - 1] == '\n')
 		context[nread - 1] = '\0';
 }
-static void syz_setcon(const char* context)
+static void setcon(const char* context)
 {
 	char new_context[512];
 	int fd = open(SELINUX_CONTEXT_FILE, O_WRONLY);
 
 	if (fd < 0)
-		fail("setcon: Could not open %s", SELINUX_CONTEXT_FILE);
+		fail("setcon: could not open context file");
 
 	ssize_t bytes_written = write(fd, context, strlen(context));
 	close(fd);
 
 	if (bytes_written != (ssize_t)strlen(context))
-		fail("setcon: Could not write entire context.  Wrote %zi, expected %zu", bytes_written, strlen(context));
-	syz_getcon(new_context, sizeof(new_context));
+		failmsg("setcon: could not write entire context", "wrote=%zi, expected=%zu", bytes_written, strlen(context));
+	getcon(new_context, sizeof(new_context));
 
 	if (strcmp(context, new_context) != 0)
-		fail("setcon: Failed to change to %s, context is %s", context, new_context);
+		failmsg("setcon: failed to change", "want=%s, context=%s", context, new_context);
 }
-static int syz_getfilecon(const char* path, char* context, size_t context_size)
-{
-	int length = getxattr(path, SELINUX_XATTR_NAME, context, context_size);
-
-	if (length == -1)
-		fail("getfilecon: getxattr failed");
-
-	return length;
-}
-static void syz_setfilecon(const char* path, const char* context)
+static void setfilecon(const char* path, const char* context)
 {
 	char new_context[512];
 
 	if (setxattr(path, SELINUX_XATTR_NAME, context, strlen(context) + 1, 0) != 0)
 		fail("setfilecon: setxattr failed");
-
-	if (syz_getfilecon(path, new_context, sizeof(new_context)) <= 0)
-		fail("setfilecon: getfilecon failed");
-
+	if (getxattr(path, SELINUX_XATTR_NAME, new_context, sizeof(new_context)) < 0)
+		fail("setfilecon: getxattr failed");
 	if (strcmp(context, new_context) != 0)
-		fail("setfilecon: could not set context to %s, currently %s", context, new_context);
+		failmsg("setfilecon: could not set context", "want=%s, got=%s", context, new_context);
 }
 
 #define SYZ_HAVE_SANDBOX_ANDROID 1
@@ -8928,24 +8918,24 @@ static int do_sandbox_android(void)
 #endif
 
 	if (chown(".", UNTRUSTED_APP_UID, UNTRUSTED_APP_UID) != 0)
-		fail("chmod failed");
+		fail("do_sandbox_android: chmod failed");
 
 	if (setgroups(UNTRUSTED_APP_NUM_GROUPS, UNTRUSTED_APP_GROUPS) != 0)
-		fail("setgroups failed");
+		fail("do_sandbox_android: setgroups failed");
 
 	if (setresgid(UNTRUSTED_APP_GID, UNTRUSTED_APP_GID, UNTRUSTED_APP_GID) != 0)
-		fail("setresgid failed");
+		fail("do_sandbox_android: setresgid failed");
 
 #if GOARCH_arm || GOARCH_arm64 || GOARCH_386 || GOARCH_amd64
 	set_app_seccomp_filter();
 #endif
 
 	if (setresuid(UNTRUSTED_APP_UID, UNTRUSTED_APP_UID, UNTRUSTED_APP_UID) != 0)
-		fail("setresuid failed");
+		fail("do_sandbox_android: setresuid failed");
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 
-	syz_setfilecon(".", SELINUX_LABEL_APP_DATA_FILE);
-	syz_setcon(SELINUX_CONTEXT_UNTRUSTED_APP);
+	setfilecon(".", SELINUX_LABEL_APP_DATA_FILE);
+	setcon(SELINUX_CONTEXT_UNTRUSTED_APP);
 
 	loop();
 	doexit(1);
@@ -9257,7 +9247,7 @@ static void setup_fault()
 		if (!write_file(files[i].file, files[i].val)) {
 			debug("failed to write %s: %d\n", files[i].file, errno);
 			if (files[i].fatal)
-				fail("failed to write %s", files[i].file);
+				failmsg("failed to write fault injection file", "file=%s", files[i].file);
 		}
 	}
 }
@@ -9275,12 +9265,12 @@ static void setup_fault()
 static void setup_leak()
 {
 	if (!write_file(KMEMLEAK_FILE, "scan"))
-		fail("failed to write %s", KMEMLEAK_FILE);
+		fail("failed to write(kmemleak, \"scan\")");
 	sleep(5);
 	if (!write_file(KMEMLEAK_FILE, "scan"))
-		fail("failed to write %s", KMEMLEAK_FILE);
+		fail("failed to write(kmemleak, \"scan\")");
 	if (!write_file(KMEMLEAK_FILE, "clear"))
-		fail("failed to write %s", KMEMLEAK_FILE);
+		fail("failed to write(kmemleak, \"clear\")");
 }
 
 #define SYZ_HAVE_LEAK_CHECK 1
@@ -9292,29 +9282,29 @@ static void check_leaks(void)
 {
 	int fd = open(KMEMLEAK_FILE, O_RDWR);
 	if (fd == -1)
-		fail("failed to open(\"%s\")", KMEMLEAK_FILE);
+		fail("failed to open(kmemleak)");
 	uint64 start = current_time_ms();
 	if (write(fd, "scan", 4) != 4)
-		fail("failed to write(%s, \"scan\")", KMEMLEAK_FILE);
+		fail("failed to write(kmemleak, \"scan\")");
 	sleep(1);
 	while (current_time_ms() - start < 4 * 1000)
 		sleep(1);
 	if (write(fd, "scan", 4) != 4)
-		fail("failed to write(%s, \"scan\")", KMEMLEAK_FILE);
+		fail("failed to write(kmemleak, \"scan\")");
 	static char buf[128 << 10];
 	ssize_t n = read(fd, buf, sizeof(buf) - 1);
 	if (n < 0)
-		fail("failed to read(%s)", KMEMLEAK_FILE);
+		fail("failed to read(kmemleak)");
 	int nleaks = 0;
 	if (n != 0) {
 		sleep(1);
 		if (write(fd, "scan", 4) != 4)
-			fail("failed to write(%s, \"scan\")", KMEMLEAK_FILE);
+			fail("failed to write(kmemleak, \"scan\")");
 		if (lseek(fd, 0, SEEK_SET) < 0)
-			fail("failed to lseek(%s)", KMEMLEAK_FILE);
+			fail("failed to lseek(kmemleak)");
 		n = read(fd, buf, sizeof(buf) - 1);
 		if (n < 0)
-			fail("failed to read(%s)", KMEMLEAK_FILE);
+			fail("failed to read(kmemleak)");
 		buf[n] = 0;
 		char* pos = buf;
 		char* end = buf + n;
@@ -9343,7 +9333,7 @@ static void check_leaks(void)
 		}
 	}
 	if (write(fd, "clear", 5) != 5)
-		fail("failed to write(%s, \"clear\")", KMEMLEAK_FILE);
+		fail("failed to write(kmemleak, \"clear\")");
 	close(fd);
 	if (nleaks)
 		doexit(1);
@@ -9380,7 +9370,7 @@ static void setup_kcsan_filterlist(char** frames, int nframes, bool suppress)
 {
 	int fd = open(KCSAN_DEBUGFS_FILE, O_WRONLY);
 	if (fd == -1)
-		fail("failed to open(\"%s\")", KCSAN_DEBUGFS_FILE);
+		fail("failed to open kcsan debugfs file");
 
 	printf("%s KCSAN reports in functions: ",
 	       suppress ? "suppressing" : "only showing");

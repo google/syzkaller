@@ -111,10 +111,18 @@ if (foo)
 			},
 		},
 		{
-			pattern: `\s*(fail|exitf)\(".*\\n`,
+			pattern: `(fail|exitf)\(".*\\n`,
 			message: "Don't use \\n in fail/exitf messages",
 			tests: []string{
 				`fail("some message with new line\n");`,
+			},
+		},
+		{
+			pattern: `fail(msg)?\("[^"]*%`,
+			message: "DON'T",
+			tests: []string{
+				`fail("format %s string")`,
+				`failmsg("format %s string", "format")`,
 			},
 		},
 	}

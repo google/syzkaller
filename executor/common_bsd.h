@@ -33,7 +33,7 @@ static void setup_usb(void)
 		char path[1024];
 		snprintf(path, sizeof(path), "/dev/%s", ent->d_name);
 		if (chmod(path, 0666))
-			fail("failed to chmod %s", path);
+			failmsg("failed to chmod vhci", "path=%s", path);
 	}
 
 	closedir(dir);
@@ -61,7 +61,7 @@ static int inject_fault(int nth)
 	en.mode = 0; // FAULT_MODE_NTH_ONESHOT
 	en.nth = nth + 2; // FAULT_NTH_MIN
 	if (ioctl(fd, FAULT_IOC_ENABLE, &en) != 0)
-		fail("FAULT_IOC_ENABLE failed with nth=%d", nth);
+		failmsg("FAULT_IOC_ENABLE failed", "nth=%d", nth);
 
 	return fd;
 }
@@ -149,7 +149,7 @@ static void vsnprintf_check(char* str, size_t size, const char* format, va_list 
 	if (rv < 0)
 		fail("vsnprintf failed");
 	if ((size_t)rv >= size)
-		fail("vsnprintf: string '%s...' doesn't fit into buffer", str);
+		failmsg("vsnprintf: string doesn't fit into buffer", "string='%s'", str);
 }
 
 static void snprintf_check(char* str, size_t size, const char* format, ...)
@@ -179,7 +179,7 @@ static void execute_command(bool panic, const char* format, ...)
 	int rv = system(command);
 	if (rv) {
 		if (panic)
-			fail("command '%s' failed: %d", &command[0], rv);
+			failmsg("command failed", "command=%s: %d", &command[0], rv);
 		debug("command '%s': %d\n", &command[0], rv);
 	}
 }
@@ -191,9 +191,8 @@ static void initialize_tun(int tun_id)
 		return;
 #endif // SYZ_EXECUTOR
 
-	if (tun_id < 0 || tun_id >= MAX_TUN) {
-		fail("tun_id out of range %d", tun_id);
-	}
+	if (tun_id < 0 || tun_id >= MAX_TUN)
+		failmsg("tun_id out of range", "tun_id=%d", tun_id);
 
 	char tun_device[sizeof(TUN_DEVICE)];
 	snprintf_check(tun_device, sizeof(tun_device), TUN_DEVICE, tun_id);
@@ -219,7 +218,7 @@ static void initialize_tun(int tun_id)
 #endif
 	if (tunfd == -1) {
 #if SYZ_EXECUTOR
-		fail("tun: can't open %s", tun_device);
+		failmsg("tun: can't open device", "device=%s", tun_device);
 #else
 		printf("tun: can't open %s: errno=%d\n", tun_device, errno);
 		return;
@@ -300,7 +299,7 @@ static int read_tun(char* data, int size)
 	if (rv < 0) {
 		if (errno == EAGAIN)
 			return -1;
-		fail("tun: read failed with %d", rv);
+		fail("tun: read failed");
 	}
 	return rv;
 }

@@ -119,7 +119,8 @@ static void install_segv_handler(void)
 	zx_status_t status;
 	zx_handle_t exception_channel;
 	if ((status = zx_task_create_exception_channel(zx_process_self(), 0, &exception_channel)) != ZX_OK)
-		fail("zx_task_create_exception_channel failed: %s (%d)", zx_status_get_string(status), status);
+		failmsg("zx_task_create_exception_channel failed",
+			"status=%s (%d)", zx_status_get_string(status), status);
 	pthread_t th;
 	if (pthread_create(&th, 0, ex_handler, (void*)(long)exception_channel))
 		fail("pthread_create failed");
