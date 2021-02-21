@@ -669,16 +669,21 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 		mgr.dataRaceFrames[crash.Frame] = true
 		mgr.mu.Unlock()
 	}
-	if crash.Suppressed {
-		log.Logf(0, "vm-%v: suppressed crash %v", crash.vmIndex, crash.Title)
-		mgr.stats.crashSuppressed.inc()
-		return false
-	}
-	corrupted := ""
+	flags := ""
 	if crash.Corrupted {
-		corrupted = " [corrupted]"
+		flags += " [corrupted]"
 	}
-	log.Logf(0, "vm-%v: crash: %v%v", crash.vmIndex, crash.Title, corrupted)
+	if crash.Suppressed {
+		flags += " [suppressed]"
+	}
+	log.Logf(0, "vm-%v: crash: %v%v", crash.vmIndex, crash.Title, flags)
+
+	if crash.Suppressed {
+		// Collect all of them into a single bucket so that it's possible to control and assess them,
+		// e.g. if there are some spikes in suppressed reports.
+		crash.Title = "suppressed report"
+		mgr.stats.crashSuppressed.inc()
+	}
 	if err := mgr.reporter.Symbolize(crash.Report); err != nil {
 		log.Logf(0, "failed to symbolize report: %v", err)
 	}
@@ -700,6 +705,7 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 			Title:       crash.Title,
 			AltTitles:   crash.AltTitles,
 			Corrupted:   crash.Corrupted,
+			Suppressed:  crash.Suppressed,
 			Recipients:  crash.Recipients.ToDash(),
 			Log:         crash.Output,
 			Report:      crash.Report.Report,
@@ -758,7 +764,7 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 const maxReproAttempts = 3
 
 func (mgr *Manager) needLocalRepro(crash *Crash) bool {
-	if !mgr.cfg.Reproduce || crash.Corrupted {
+	if !mgr.cfg.Reproduce || crash.Corrupted || crash.Suppressed {
 		return false
 	}
 	sig := hash.Hash([]byte(crash.Title))
@@ -790,6 +796,7 @@ func (mgr *Manager) needRepro(crash *Crash) bool {
 		BuildID:      mgr.cfg.Tag,
 		Title:        crash.Title,
 		Corrupted:    crash.Corrupted,
+		Suppressed:   crash.Suppressed,
 		MayBeMissing: crash.Type == report.MemoryLeak, // we did not send the original crash w/o repro
 	}
 	needRepro, err := mgr.dash.NeedRepro(cid)
@@ -807,8 +814,11 @@ func (mgr *Manager) saveFailedRepro(rep *report.Report, stats *repro.Stats) {
 			return
 		}
 		cid := &dashapi.CrashID{
-			BuildID: mgr.cfg.Tag,
-			Title:   rep.Title,
+			BuildID:      mgr.cfg.Tag,
+			Title:        rep.Title,
+			Corrupted:    rep.Corrupted,
+			Suppressed:   rep.Suppressed,
+			MayBeMissing: rep.Type == report.MemoryLeak,
 		}
 		if err := mgr.dash.ReportFailedRepro(cid); err != nil {
 			log.Logf(0, "failed to report failed repro to dashboard: %v", err)
@@ -868,6 +878,7 @@ func (mgr *Manager) saveRepro(res *repro.Result, stats *repro.Stats, hub bool) {
 			BuildID:    mgr.cfg.Tag,
 			Title:      res.Report.Title,
 			AltTitles:  res.Report.AltTitles,
+			Suppressed: res.Report.Suppressed,
 			Recipients: res.Report.Recipients.ToDash(),
 			Log:        res.Report.Output,
 			Report:     res.Report.Report,
