@@ -740,6 +740,7 @@ var linuxStackParams = &stackParams{
 		"kasan",
 		"__msan",
 		"kmsan",
+		"kcsan_setup_watchpoint",
 		"check_memory_region",
 		"read_word_at_a_time",
 		"print_address_description",

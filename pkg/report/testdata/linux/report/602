@@ -1,0 +1,96 @@
+TITLE: BUG: unable to handle kernel paging request in vmx_vcpu_run
+ALT: bad-access in vmx_vcpu_run
+
+[   67.921889][T10420] Not enough msr switch entries. Can't add msr abd1e896
+[   67.932797][T10420] unchecked MSR access error: WRMSR to 0x3f1 (tried to write 0x0000000000000000) at rIP: 0xffffffff81123aff (add_atomic_switch_msr+0x5f/0x500)
+[   67.947407][T10420] Call Trace:
+[   67.950679][T10420]  ? intel_pmu_pebs_disable+0x2a9/0x320
+[   67.956268][T10420]  vmx_vcpu_run+0x406/0xd40
+[   67.960803][T10420]  ? asm_sysvec_apic_timer_interrupt+0x12/0x20
+[   67.966962][T10420]  ? vmx_set_host_fs_gs+0x1e0/0x310
+[   67.972166][T10420]  ? vmx_prepare_switch_to_guest+0x2ff/0x3b0
+[   67.978133][T10420]  ? __fpregs_load_activate+0x103/0x1f0
+[   67.983662][T10420]  vcpu_enter_guest+0x1746/0x2610
+[   67.988676][T10420]  ? irqentry_exit+0x2a/0x40
+[   67.993347][T10420]  ? sysvec_apic_timer_interrupt+0x80/0x90
+[   67.999142][T10420]  ? asm_sysvec_apic_timer_interrupt+0x12/0x20
+[   68.005394][T10420]  vcpu_run+0x24f/0x6a0
+[   68.009540][T10420]  kvm_arch_vcpu_ioctl_run+0x476/0x860
+[   68.014995][T10420]  kvm_vcpu_ioctl+0x562/0x8f0
+[   68.019658][T10420]  ? tsan.module_ctor+0x10/0x10
+[   68.024494][T10420]  ? kvm_vm_ioctl_get_dirty_log+0x3f0/0x3f0
+[   68.030377][T10420]  __se_sys_ioctl+0xcb/0x140
+[   68.034975][T10420]  __x64_sys_ioctl+0x3f/0x50
+[   68.039627][T10420]  do_syscall_64+0x39/0x80
+[   68.044046][T10420]  entry_SYSCALL_64_after_hwframe+0x44/0xae
+[   68.050028][T10420] RIP: 0033:0x465ef9
+[   68.053913][T10420] Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 bc ff ff ff f7 d8 64 89 01 48
+[   68.073600][T10420] RSP: 002b:00007fe02e366188 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[   68.082071][T10420] RAX: ffffffffffffffda RBX: 000000000056bf60 RCX: 0000000000465ef9
+[   68.090165][T10420] RDX: 0000000000000000 RSI: 000000000000ae80 RDI: 0000000000000006
+[   68.098121][T10420] RBP: 00000000004bcd1c R08: 0000000000000000 R09: 0000000000000000
+[   68.106076][T10420] R10: 0000000000000000 R11: 0000000000000246 R12: 000000000056bf60
+[   68.114030][T10420] R13: 00007ffd3b0353af R14: 00007fe02e366300 R15: 0000000000022000
+[   73.419597][T10420] BUG: unable to handle page fault for address: ffffffff89c00000
+[   73.427344][T10420] #PF: supervisor read access in kernel mode
+[   73.433301][T10420] #PF: error_code(0x0000) - not-present page
+[   73.439256][T10420] PGD 762a067 P4D 762a067 PUD 762b063 PMD 0 
+[   73.445231][T10420] Oops: 0000 [#1] PREEMPT SMP
+[   73.449889][T10420] CPU: 1 PID: 10420 Comm: syz-executor.2 Not tainted 5.11.0-syzkaller #0
+[   73.458287][T10420] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   73.468329][T10420] RIP: 0010:kcsan_setup_watchpoint+0x1fb/0x470
+[   73.474492][T10420] Code: db 0f 85 4f 02 00 00 e9 54 02 00 00 41 0f b7 06 89 c2 c1 ea 08 31 ed 31 c9 eb 23 41 8b 06 89 c2 c1 ea 08 89 c1 c1 e9 10 eb 14 <49> 8b 06 89 c2 c1 ea 08 89 c1 c1 e9 10 48 89 c5 48 c1 ed 20 89 54
+[   73.494162][T10420] RSP: 0018:ffffc9000436bb20 EFLAGS: 00010046
+[   73.500211][T10420] RAX: 0000000000000000 RBX: 0000000000000040 RCX: 0000000000000000
+[   73.508180][T10420] RDX: 0000000000000000 RSI: 0000000000000007 RDI: 0000000000000002
+[   73.516132][T10420] RBP: 0000000000000000 R08: 00000000aaaaaaab R09: 0011ffff89bffff9
+[   73.524084][T10420] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000040
+[   73.532036][T10420] R13: 0000000000000000 R14: ffffffff89bffff9 R15: 0000000000000008
+[   73.539993][T10420] FS:  00007fe02e366700(0000) GS:ffff88813bd00000(0000) knlGS:0000000000000000
+[   73.548913][T10420] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   73.555481][T10420] CR2: ffffffff89c00000 CR3: 000000013964b000 CR4: 00000000001526e0
+[   73.563440][T10420] Call Trace:
+[   73.566704][T10420]  ? clear_atomic_switch_msr+0x308/0x370
+[   73.572325][T10420]  vmx_vcpu_run+0x3b5/0xd40
+[   73.576817][T10420]  ? asm_sysvec_apic_timer_interrupt+0x12/0x20
+[   73.582963][T10420]  ? vmx_set_host_fs_gs+0x1e0/0x310
+[   73.588155][T10420]  ? vmx_prepare_switch_to_guest+0x2ff/0x3b0
+[   73.594180][T10420]  ? __fpregs_load_activate+0x103/0x1f0
+[   73.599711][T10420]  vcpu_enter_guest+0x1746/0x2610
+[   73.604737][T10420]  ? irqentry_exit+0x2a/0x40
+[   73.609310][T10420]  ? sysvec_apic_timer_interrupt+0x80/0x90
+[   73.615099][T10420]  ? asm_sysvec_apic_timer_interrupt+0x12/0x20
+[   73.621271][T10420]  vcpu_run+0x24f/0x6a0
+[   73.625416][T10420]  kvm_arch_vcpu_ioctl_run+0x476/0x860
+[   73.630860][T10420]  kvm_vcpu_ioctl+0x562/0x8f0
+[   73.635521][T10420]  ? tsan.module_ctor+0x10/0x10
+[   73.640401][T10420]  ? kvm_vm_ioctl_get_dirty_log+0x3f0/0x3f0
+[   73.646282][T10420]  __se_sys_ioctl+0xcb/0x140
+[   73.650862][T10420]  __x64_sys_ioctl+0x3f/0x50
+[   73.655452][T10420]  do_syscall_64+0x39/0x80
+[   73.659851][T10420]  entry_SYSCALL_64_after_hwframe+0x44/0xae
+[   73.665791][T10420] RIP: 0033:0x465ef9
+[   73.669667][T10420] Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 bc ff ff ff f7 d8 64 89 01 48
+[   73.689332][T10420] RSP: 002b:00007fe02e366188 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[   73.697799][T10420] RAX: ffffffffffffffda RBX: 000000000056bf60 RCX: 0000000000465ef9
+[   73.705832][T10420] RDX: 0000000000000000 RSI: 000000000000ae80 RDI: 0000000000000006
+[   73.713782][T10420] RBP: 00000000004bcd1c R08: 0000000000000000 R09: 0000000000000000
+[   73.721733][T10420] R10: 0000000000000000 R11: 0000000000000246 R12: 000000000056bf60
+[   73.729687][T10420] R13: 00007ffd3b0353af R14: 00007fe02e366300 R15: 0000000000022000
+[   73.737660][T10420] Modules linked in:
+[   73.741530][T10420] CR2: ffffffff89c00000
+[   73.745679][T10420] ---[ end trace 6b32b1e3b4e49dab ]---
+[   73.751126][T10420] RIP: 0010:kcsan_setup_watchpoint+0x1fb/0x470
+[   73.757306][T10420] Code: db 0f 85 4f 02 00 00 e9 54 02 00 00 41 0f b7 06 89 c2 c1 ea 08 31 ed 31 c9 eb 23 41 8b 06 89 c2 c1 ea 08 89 c1 c1 e9 10 eb 14 <49> 8b 06 89 c2 c1 ea 08 89 c1 c1 e9 10 48 89 c5 48 c1 ed 20 89 54
+[   73.777019][T10420] RSP: 0018:ffffc9000436bb20 EFLAGS: 00010046
+[   73.783074][T10420] RAX: 0000000000000000 RBX: 0000000000000040 RCX: 0000000000000000
+[   73.791027][T10420] RDX: 0000000000000000 RSI: 0000000000000007 RDI: 0000000000000002
+[   73.798978][T10420] RBP: 0000000000000000 R08: 00000000aaaaaaab R09: 0011ffff89bffff9
+[   73.806932][T10420] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000040
+[   73.814903][T10420] R13: 0000000000000000 R14: ffffffff89bffff9 R15: 0000000000000008
+[   73.822856][T10420] FS:  00007fe02e366700(0000) GS:ffff88813bd00000(0000) knlGS:0000000000000000
+[   73.831769][T10420] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   73.838337][T10420] CR2: ffffffff89c00000 CR3: 000000013964b000 CR4: 00000000001526e0
+[   73.846293][T10420] Kernel panic - not syncing: Fatal exception
+[   73.853079][T10420] Kernel Offset: disabled
+[   73.857411][T10420] Rebooting in 86400 seconds..
