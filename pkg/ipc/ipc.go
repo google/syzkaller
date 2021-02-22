@@ -467,12 +467,11 @@ func readUint32Array(outp *[]byte, size uint32) ([]uint32, bool) {
 	if int(size)*4 > len(out) {
 		return nil, false
 	}
-	hdr := reflect.SliceHeader{
-		Data: uintptr(unsafe.Pointer(&out[0])),
-		Len:  int(size),
-		Cap:  int(size),
-	}
-	res := *(*[]uint32)(unsafe.Pointer(&hdr))
+	var res []uint32
+	hdr := (*reflect.SliceHeader)((unsafe.Pointer(&res)))
+	hdr.Data = uintptr(unsafe.Pointer(&out[0]))
+	hdr.Len = int(size)
+	hdr.Cap = int(size)
 	*outp = out[size*4:]
 	return res, true
 }
