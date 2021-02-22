@@ -29,8 +29,8 @@ if err != nil {
 	return err
 }`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForStmt(&nilValReturnChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForStmt(&nilValReturnChecker{ctx: ctx}), nil
 	})
 }
 

@@ -196,3 +196,13 @@ func mergeTypesInfo(i1, i2 *types.Info) {
 	// InitOrder
 	i1.InitOrder = append(i1.InitOrder, i2.InitOrder...)
 }
+
+// Under returns the most bottom underlying type.
+func Under(t types.Type) types.Type {
+	switch t := t.(type) {
+	case *types.Named:
+		return Under(t.Underlying())
+	default:
+		return t
+	}
+}

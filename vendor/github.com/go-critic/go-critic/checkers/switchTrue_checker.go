@@ -21,8 +21,8 @@ switch {
 case x > y:
 }`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForStmt(&switchTrueChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForStmt(&switchTrueChecker{ctx: ctx}), nil
 	})
 }
 

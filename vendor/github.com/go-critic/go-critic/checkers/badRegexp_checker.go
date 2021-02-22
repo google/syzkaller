@@ -21,13 +21,13 @@ func init() {
 	info.Before = "regexp.MustCompile(`(?:^aa|bb|cc)foo[aba]`)"
 	info.After = "regexp.MustCompile(`^(?:aa|bb|cc)foo[ab]`)"
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
 		opts := &syntax.ParserOptions{}
 		c := &badRegexpChecker{
 			ctx:    ctx,
 			parser: syntax.NewParser(opts),
 		}
-		return astwalk.WalkerForExpr(c)
+		return astwalk.WalkerForExpr(c), nil
 	})
 }
 

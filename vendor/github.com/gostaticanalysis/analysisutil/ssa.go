@@ -72,7 +72,7 @@ func returnsInBlock(b *ssa.BasicBlock, done map[*ssa.BasicBlock]bool) (rets []*s
 }
 
 // BinOp returns binary operator values which are contained in the block b.
-func BinOp(b *ssa.BasicBlock) ([]*ssa.BinOp) {
+func BinOp(b *ssa.BasicBlock) []*ssa.BinOp {
 	var binops []*ssa.BinOp
 	for _, instr := range b.Instrs {
 		if binop, ok := instr.(*ssa.BinOp); ok {
@@ -80,4 +80,67 @@ func BinOp(b *ssa.BasicBlock) ([]*ssa.BinOp) {
 		}
 	}
 	return binops
+}
+
+// Used returns an instruction which uses the value in the instructions.
+func Used(v ssa.Value, instrs []ssa.Instruction) ssa.Instruction {
+	if len(instrs) == 0 || v.Referrers() == nil {
+		return nil
+	}
+
+	for _, instr := range instrs {
+		if used := usedInInstr(v, instr); used != nil {
+			return used
+		}
+	}
+
+	return nil
+}
+
+func usedInInstr(v ssa.Value, instr ssa.Instruction) ssa.Instruction {
+	switch instr := instr.(type) {
+	case *ssa.MakeClosure:
+		return usedInClosure(v, instr)
+	default:
+		operands := instr.Operands(nil)
+		for _, x := range operands {
+			if x != nil && *x == v {
+				return instr
+			}
+		}
+	}
+
+	switch v := v.(type) {
+	case *ssa.UnOp:
+		return usedInInstr(v.X, instr)
+	}
+
+	return nil
+}
+
+func usedInClosure(v ssa.Value, instr *ssa.MakeClosure) ssa.Instruction {
+	fn, _ := instr.Fn.(*ssa.Function)
+	if fn == nil {
+		return nil
+	}
+
+	var fv *ssa.FreeVar
+	for i := range instr.Bindings {
+		if instr.Bindings[i] == v {
+			fv = fn.FreeVars[i]
+			break
+		}
+	}
+
+	if fv == nil {
+		return nil
+	}
+
+	for _, b := range fn.Blocks {
+		if used := Used(fv, b.Instrs); used != nil {
+			return used
+		}
+	}
+
+	return nil
 }

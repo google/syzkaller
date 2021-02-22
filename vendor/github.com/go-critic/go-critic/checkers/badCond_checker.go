@@ -29,8 +29,8 @@ for i := 0; i < n; i++ {
 	xs[i] = 0
 }`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForFuncDecl(&badCondChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForFuncDecl(&badCondChecker{ctx: ctx}), nil
 	})
 }
 
@@ -52,7 +52,7 @@ func (c *badCondChecker) VisitFuncDecl(decl *ast.FuncDecl) {
 }
 
 func (c *badCondChecker) checkExpr(expr ast.Expr) {
-	// TODO(Quasilyte): recognize more patterns.
+	// TODO(quasilyte): recognize more patterns.
 
 	cond := astcast.ToBinaryExpr(expr)
 	lhs := astcast.ToBinaryExpr(astutil.Unparen(cond.X))
@@ -102,7 +102,7 @@ func (c *badCondChecker) lessAndGreater(lhs, rhs *ast.BinaryExpr) bool {
 }
 
 func (c *badCondChecker) checkForStmt(stmt *ast.ForStmt) {
-	// TODO(Quasilyte): handle other kinds of bad conditionals.
+	// TODO(quasilyte): handle other kinds of bad conditionals.
 
 	init := astcast.ToAssignStmt(stmt.Init)
 	if init.Tok != token.DEFINE || len(init.Lhs) != 1 || len(init.Rhs) != 1 {

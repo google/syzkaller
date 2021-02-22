@@ -21,10 +21,10 @@ func init() {
 	info.Before = `func f(IN int, OUT *int) (ERR error) {}`
 	info.After = `func f(in int, out *int) (err error) {}`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
 		c := &captLocalChecker{ctx: ctx}
 		c.paramsOnly = info.Params.Bool("paramsOnly")
-		return astwalk.WalkerForLocalDef(c, ctx.TypesInfo)
+		return astwalk.WalkerForLocalDef(c, ctx.TypesInfo), nil
 	})
 }
 

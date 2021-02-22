@@ -21,8 +21,8 @@ tmp := *x
 *y = tmp`
 	info.After = `*x, *y = *y, *x`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForStmtList(&valSwapChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForStmtList(&valSwapChecker{ctx: ctx}), nil
 	})
 }
 

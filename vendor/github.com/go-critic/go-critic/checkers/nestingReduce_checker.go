@@ -32,10 +32,10 @@ for _, v := range a {
 	body()
 }`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
 		c := &nestingReduceChecker{ctx: ctx}
 		c.bodyWidth = info.Params.Int("bodyWidth")
-		return astwalk.WalkerForStmt(c)
+		return astwalk.WalkerForStmt(c), nil
 	})
 }
 

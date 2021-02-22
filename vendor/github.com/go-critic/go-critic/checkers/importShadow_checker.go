@@ -19,9 +19,9 @@ filepath := "foo.txt"`
 	info.After = `
 filename := "foo.txt"`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
 		ctx.Require.PkgObjects = true
-		return astwalk.WalkerForLocalDef(&importShadowChecker{ctx: ctx}, ctx.TypesInfo)
+		return astwalk.WalkerForLocalDef(&importShadowChecker{ctx: ctx}, ctx.TypesInfo), nil
 	})
 }
 

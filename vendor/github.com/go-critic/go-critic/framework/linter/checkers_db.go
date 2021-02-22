@@ -11,7 +11,7 @@ import (
 
 type checkerProto struct {
 	info        *CheckerInfo
-	constructor func(*Context) *Checker
+	constructor func(*Context) (*Checker, error)
 }
 
 // prototypes is a set of registered checkers that are not yet instantiated.
@@ -31,7 +31,7 @@ func getCheckersInfo() []*CheckerInfo {
 	return infoList
 }
 
-func addChecker(info *CheckerInfo, constructor func(*CheckerContext) FileWalker) {
+func addChecker(info *CheckerInfo, constructor func(*CheckerContext) (FileWalker, error)) {
 	if _, ok := prototypes[info.Name]; ok {
 		panic(fmt.Sprintf("checker with name %q already registered", info.Name))
 	}
@@ -68,22 +68,23 @@ func addChecker(info *CheckerInfo, constructor func(*CheckerContext) FileWalker)
 
 	proto := checkerProto{
 		info: info,
-		constructor: func(ctx *Context) *Checker {
+		constructor: func(ctx *Context) (*Checker, error) {
 			var c Checker
 			c.Info = info
 			c.ctx = CheckerContext{
 				Context: ctx,
 				printer: astfmt.NewPrinter(ctx.FileSet),
 			}
-			c.fileWalker = constructor(&c.ctx)
-			return &c
+			var err error
+			c.fileWalker, err = constructor(&c.ctx)
+			return &c, err
 		},
 	}
 
 	prototypes[info.Name] = proto
 }
 
-func newChecker(ctx *Context, info *CheckerInfo) *Checker {
+func newChecker(ctx *Context, info *CheckerInfo) (*Checker, error) {
 	proto, ok := prototypes[info.Name]
 	if !ok {
 		panic(fmt.Sprintf("checker with name %q not registered", info.Name))
@@ -116,7 +117,7 @@ func validateCheckerName(info *CheckerInfo) error {
 }
 
 func validateCheckerDocumentation(info *CheckerInfo) error {
-	// TODO(Quasilyte): validate documentation.
+	// TODO(quasilyte): validate documentation.
 	return nil
 }
 

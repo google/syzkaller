@@ -26,7 +26,7 @@ func init() {
 	//      `[[:digit:]] -> \d`
 	//      `[A-Za-z0-9_]` -> `\w`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
 		opts := &syntax.ParserOptions{
 			NoLiterals: true,
 		}
@@ -35,7 +35,7 @@ func init() {
 			parser: syntax.NewParser(opts),
 			out:    &strings.Builder{},
 		}
-		return astwalk.WalkerForExpr(c)
+		return astwalk.WalkerForExpr(c), nil
 	})
 }
 

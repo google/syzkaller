@@ -2,6 +2,8 @@
 
 [![Godoc](https://godoc.org/github.com/nishanths/exhaustive?status.svg)](https://godoc.org/github.com/nishanths/exhaustive)
 
+[![Build Status](https://travis-ci.org/nishanths/exhaustive.svg?branch=master)](https://travis-ci.org/nishanths/exhaustive)
+
 The `exhaustive` package and command line program can be used to detect
 enum switch statements that are not exhaustive.
 
@@ -29,6 +31,8 @@ The command line usage is:
 Usage: exhaustive [-flags] [packages...]
 
 Flags:
+  -check-generated
+    	check switch statements in generated files also
   -default-signifies-exhaustive
     	indicates that switch statements are to be considered exhaustive if a 'default' case
     	is present, even if all enum members aren't listed in the switch (default false)
@@ -36,8 +40,8 @@ Flags:
     	apply all suggested fixes (default false)
 
 Examples:
-  exhaustive code.org/proj/...
-  exhaustive -fix example.org/foo/pkg example.org/foo/bar
+  exhaustive github.com/foo/bar/...
+  exhaustive github.com/a/b github.com/x/y
 ```
 
 ## Example
@@ -65,11 +69,11 @@ import "token"
 func processToken(t token.Token) {
 	switch t {
 	case token.Add:
-		// ...
+		...
 	case token.Subtract:
-		// ...
+		...
 	case token.Multiply:
-		// ...
+		...
 	}
 }
 ```
@@ -79,6 +83,8 @@ Running the `exhaustive` command will print:
 ```
 calc.go:6:2: missing cases in switch of type token.Token: Quotient, Remainder
 ```
+
+Enums can also be defined using explicit constant values instead of `iota`.
 
 ## License
 

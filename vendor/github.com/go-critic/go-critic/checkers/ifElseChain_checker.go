@@ -34,8 +34,8 @@ Permits single else or else-if; repeated else-if or else + else-if
 will trigger suggestion to use switch statement.
 See [EffectiveGo#switch](https://golang.org/doc/effective_go.html#switch).`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForStmt(&ifElseChainChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForStmt(&ifElseChainChecker{ctx: ctx}), nil
 	})
 }
 

@@ -21,11 +21,11 @@ func init() {
 	info.Before = `func f(x [1024]int) {}`
 	info.After = `func f(x *[1024]int) {}`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
 		return astwalk.WalkerForFuncDecl(&hugeParamChecker{
 			ctx:           ctx,
 			sizeThreshold: int64(info.Params.Int("sizeThreshold")),
-		})
+		}), nil
 	})
 }
 
@@ -48,7 +48,7 @@ func (c *hugeParamChecker) VisitFuncDecl(decl *ast.FuncDecl) {
 func (c *hugeParamChecker) checkParams(params []*ast.Field) {
 	for _, p := range params {
 		for _, id := range p.Names {
-			typ := c.ctx.TypesInfo.TypeOf(id)
+			typ := c.ctx.TypeOf(id)
 			size := c.ctx.SizesInfo.Sizeof(typ)
 			if size >= c.sizeThreshold {
 				c.warn(id, size)

@@ -17,8 +17,8 @@ func init() {
 	info.Before = `_, err := db.Query("UPDATE ...")`
 	info.After = `_, err := db.Exec("UPDATE ...")`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForStmt(&sqlQueryChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForStmt(&sqlQueryChecker{ctx: ctx}), nil
 	})
 }
 
@@ -49,7 +49,7 @@ func (c *sqlQueryChecker) VisitStmt(stmt ast.Stmt) {
 		return
 	}
 
-	if c.typeHasExecMethod(c.ctx.TypesInfo.TypeOf(funcExpr.X)) {
+	if c.typeHasExecMethod(c.ctx.TypeOf(funcExpr.X)) {
 		c.warnAndSuggestExec(funcExpr)
 	} else {
 		c.warnRowsIgnored(funcExpr)
@@ -71,7 +71,7 @@ func (c *sqlQueryChecker) funcIsQuery(funcExpr *ast.SelectorExpr) bool {
 
 	// To avoid false positives (unrelated types can have Query method)
 	// check that the 1st returned type has Row-like name.
-	typ, ok := c.ctx.TypesInfo.TypeOf(funcExpr).Underlying().(*types.Signature)
+	typ, ok := c.ctx.TypeOf(funcExpr).Underlying().(*types.Signature)
 	if !ok || typ.Results() == nil || typ.Results().Len() != 2 {
 		return false
 	}

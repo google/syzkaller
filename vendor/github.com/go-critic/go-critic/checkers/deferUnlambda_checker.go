@@ -17,8 +17,8 @@ func init() {
 	info.Before = `defer func() { f() }()`
 	info.After = `f()`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForStmt(&deferUnlambdaChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForStmt(&deferUnlambdaChecker{ctx: ctx}), nil
 	})
 }
 

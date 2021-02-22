@@ -16,8 +16,8 @@ func init() {
 	info.Before = `copy(b, []byte(s))`
 	info.After = `copy(b, s)`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForExpr(&stringXbytes{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForExpr(&stringXbytes{ctx: ctx}), nil
 	})
 }
 
@@ -28,7 +28,7 @@ type stringXbytes struct {
 
 func (c *stringXbytes) VisitExpr(expr ast.Expr) {
 	x, ok := expr.(*ast.CallExpr)
-	if !ok || qualifiedName(x.Fun) != "copy" {
+	if !ok || qualifiedName(x.Fun) != "copy" || len(x.Args) != 2 {
 		return
 	}
 
@@ -36,7 +36,7 @@ func (c *stringXbytes) VisitExpr(expr ast.Expr) {
 
 	byteCast, ok := src.(*ast.CallExpr)
 	if ok && typep.IsTypeExpr(c.ctx.TypesInfo, byteCast.Fun) &&
-		typep.HasStringProp(c.ctx.TypesInfo.TypeOf(byteCast.Args[0])) {
+		typep.HasStringProp(c.ctx.TypeOf(byteCast.Args[0])) {
 
 		c.warn(byteCast, byteCast.Args[0])
 	}

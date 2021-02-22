@@ -61,6 +61,7 @@ func (r *MultiFileDiffReader) ReadFile() (*FileDiff, error) {
 			if e.Err == ErrNoFileHeader || e.Err == ErrExtendedHeadersEOF {
 				return nil, io.EOF
 			}
+			return nil, err
 
 		case OverflowError:
 			r.nextFileFirstLine = []byte(e)
@@ -513,9 +514,22 @@ func (r *HunksReader) ReadHunk() (*Hunk, error) {
 			r.hunk.Section = section
 		} else {
 			// Read hunk body line.
+
+			// If the line starts with `---` and the next one with `+++` we're
+			// looking at a non-extended file header and need to abort.
+			if bytes.HasPrefix(line, []byte("---")) {
+				ok, err := peekPrefix(r.reader, "+++")
+				if err != nil {
+					return r.hunk, err
+				}
+				if ok {
+					return r.hunk, &ParseError{r.line, r.offset, &ErrBadHunkLine{Line: line}}
+				}
+			}
+
+			// If the line starts with the hunk prefix, this hunk is complete.
 			if bytes.HasPrefix(line, hunkPrefix) {
-				// Saw start of new hunk, so this hunk is
-				// complete. But we've already read in the next hunk's
+				// But we've already read in the next hunk's
 				// header, so we need to be sure that the next call to
 				// ReadHunk starts with that header.
 				r.nextHunkHeaderLine = line
@@ -527,7 +541,7 @@ func (r *HunksReader) ReadHunk() (*Hunk, error) {
 				return r.hunk, nil
 			}
 
-			if len(line) >= 1 && (!linePrefix(line[0]) || bytes.HasPrefix(line, []byte("--- "))) {
+			if len(line) >= 1 && !linePrefix(line[0]) {
 				// Bad hunk header line. If we're reading a multi-file
 				// diff, this may be the end of the current
 				// file. Return a "rich" error that lets our caller
@@ -577,6 +591,19 @@ func linePrefix(c byte) bool {
 		}
 	}
 	return false
+}
+
+// peekPrefix peeks into the given reader to check whether the next
+// bytes match the given prefix.
+func peekPrefix(reader *bufio.Reader, prefix string) (bool, error) {
+	next, err := reader.Peek(len(prefix))
+	if err != nil {
+		if err == io.EOF {
+			return false, nil
+		}
+		return false, err
+	}
+	return bytes.HasPrefix(next, []byte(prefix)), nil
 }
 
 // normalizeHeader takes a header of the form:

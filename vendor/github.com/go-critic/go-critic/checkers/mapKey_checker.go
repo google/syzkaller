@@ -29,8 +29,8 @@ _ = map[string]int{
 	"bar": 2,
 }`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForExpr(&mapKeyChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForExpr(&mapKeyChecker{ctx: ctx}), nil
 	})
 }
 
@@ -47,7 +47,7 @@ func (c *mapKeyChecker) VisitExpr(expr ast.Expr) {
 		return
 	}
 
-	typ, ok := c.ctx.TypesInfo.TypeOf(lit).Underlying().(*types.Map)
+	typ, ok := c.ctx.TypeOf(lit).Underlying().(*types.Map)
 	if !ok {
 		return
 	}

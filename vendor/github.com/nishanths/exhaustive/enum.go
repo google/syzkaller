@@ -8,7 +8,42 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
-type enums map[string][]string // enum type name -> enum member names
+type enums map[string]*enumMembers // enum type name -> enum members
+
+type enumMembers struct {
+	// Names in the order encountered in the AST.
+	OrderedNames []string
+
+	// Maps name -> (constant.Value).ExactString().
+	// If a name is missing in the map, it means that it does not have a
+	// corresponding constant.Value defined in the AST.
+	NameToValue map[string]string
+
+	// Maps (constant.Value).ExactString() -> names.
+	// Names that don't have a constant.Value defined in the AST (e.g., some
+	// iota constants) will not have a corresponding entry in this map.
+	ValueToNames map[string][]string
+}
+
+func (em *enumMembers) add(name string, constVal *string) {
+	em.OrderedNames = append(em.OrderedNames, name)
+
+	if constVal != nil {
+		if em.NameToValue == nil {
+			em.NameToValue = make(map[string]string)
+		}
+		em.NameToValue[name] = *constVal
+
+		if em.ValueToNames == nil {
+			em.ValueToNames = make(map[string][]string)
+		}
+		em.ValueToNames[*constVal] = append(em.ValueToNames[*constVal], name)
+	}
+}
+
+func (em *enumMembers) numMembers() int {
+	return len(em.OrderedNames)
+}
 
 func findEnums(pass *analysis.Pass) enums {
 	pkgEnums := make(enums)
@@ -39,13 +74,14 @@ func findEnums(pass *analysis.Pass) enums {
 				if !ok {
 					continue
 				}
+
 				switch i := basic.Info(); {
 				case i&types.IsInteger != 0:
-					pkgEnums[named.Obj().Name()] = nil
+					pkgEnums[named.Obj().Name()] = &enumMembers{}
 				case i&types.IsFloat != 0:
-					pkgEnums[named.Obj().Name()] = nil
+					pkgEnums[named.Obj().Name()] = &enumMembers{}
 				case i&types.IsString != 0:
-					pkgEnums[named.Obj().Name()] = nil
+					pkgEnums[named.Obj().Name()] = &enumMembers{}
 				}
 			}
 		}
@@ -64,22 +100,33 @@ func findEnums(pass *analysis.Pass) enums {
 			for _, s := range gen.Specs {
 				// Must be ValueSpec since we've filtered on token.CONST, token.VAR.
 				v := s.(*ast.ValueSpec)
-				for _, name := range v.Names {
+				for i, name := range v.Names {
 					obj := pass.TypesInfo.Defs[name]
 					if obj == nil {
 						continue
 					}
+
 					named, ok := obj.Type().(*types.Named)
 					if !ok {
 						continue
 					}
 
-					members, ok := pkgEnums[named.Obj().Name()]
+					// Get the constant.Value representation, if any.
+					var constVal *string
+					if len(v.Values) > i {
+						value := v.Values[i]
+						if con, ok := pass.TypesInfo.Types[value]; ok && con.Value != nil {
+							str := con.Value.ExactString() // temp var to be able to take address
+							constVal = &str
+						}
+					}
+
+					em, ok := pkgEnums[named.Obj().Name()]
 					if !ok {
 						continue
 					}
-					members = append(members, obj.Name())
-					pkgEnums[named.Obj().Name()] = members
+					em.add(obj.Name(), constVal)
+					pkgEnums[named.Obj().Name()] = em
 				}
 			}
 		}
@@ -90,7 +137,7 @@ func findEnums(pass *analysis.Pass) enums {
 	// the existence of members. (The type may just be a named type,
 	// for instance.)
 	for k, v := range pkgEnums {
-		if len(v) == 0 {
+		if v.numMembers() == 0 {
 			delete(pkgEnums, k)
 		}
 	}

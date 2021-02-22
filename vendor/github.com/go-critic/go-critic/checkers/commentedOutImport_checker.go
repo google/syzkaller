@@ -24,12 +24,12 @@ import (
 	"fmt"
 )`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
 		const pattern = `(?m)^(?://|/\*)?\s*"([a-zA-Z0-9_/]+)"\s*(?:\*/)?$`
 		return &commentedOutImportChecker{
 			ctx:            ctx,
 			importStringRE: regexp.MustCompile(pattern),
-		}
+		}, nil
 	})
 }
 
@@ -41,7 +41,7 @@ type commentedOutImportChecker struct {
 }
 
 func (c *commentedOutImportChecker) WalkFile(f *ast.File) {
-	// TODO(Quasilyte): handle commented-out import spec,
+	// TODO(quasilyte): handle commented-out import spec,
 	// for example: // import "errors".
 
 	for _, decl := range f.Decls {

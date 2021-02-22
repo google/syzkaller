@@ -21,8 +21,8 @@ foo.bar(f)`
 	info.After = `f := foo{}
 f.bar()`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForExpr(&methodExprCallChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForExpr(&methodExprCallChecker{ctx: ctx}), nil
 	})
 }
 

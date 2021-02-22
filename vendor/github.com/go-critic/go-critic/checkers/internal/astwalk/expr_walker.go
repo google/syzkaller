@@ -1,6 +1,8 @@
 package astwalk
 
-import "go/ast"
+import (
+	"go/ast"
+)
 
 type exprWalker struct {
 	visitor ExprVisitor

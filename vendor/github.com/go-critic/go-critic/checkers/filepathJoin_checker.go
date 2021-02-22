@@ -17,8 +17,8 @@ func init() {
 	info.Before = `filepath.Join("dir/", filename)`
 	info.After = `filepath.Join("dir", filename)`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForExpr(&filepathJoinChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForExpr(&filepathJoinChecker{ctx: ctx}), nil
 	})
 }
 

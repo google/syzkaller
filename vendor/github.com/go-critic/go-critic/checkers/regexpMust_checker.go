@@ -18,8 +18,8 @@ func init() {
 	info.Before = `re, _ := regexp.Compile("const pattern")`
 	info.After = `re := regexp.MustCompile("const pattern")`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForExpr(&regexpMustChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForExpr(&regexpMustChecker{ctx: ctx}), nil
 	})
 }
 

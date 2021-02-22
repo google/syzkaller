@@ -19,8 +19,8 @@ func init() {
 if cond {
 }`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForStmt(&initClauseChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForStmt(&initClauseChecker{ctx: ctx}), nil
 	})
 }
 

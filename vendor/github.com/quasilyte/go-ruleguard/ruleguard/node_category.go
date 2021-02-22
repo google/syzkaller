@@ -57,6 +57,13 @@ const (
 	nodeValueSpec
 
 	nodeCategoriesCount
+
+	// Categories below are not used inside scopedRuleSet yet
+	// as categorizeNode will never produce them during the parsing.
+	// They're required for Node.Is().
+
+	nodeExpr // ast.Expr
+	nodeStmt // ast.Stmt
 )
 
 func categorizeNode(n ast.Node) nodeCategory {
@@ -152,6 +159,113 @@ func categorizeNode(n ast.Node) nodeCategory {
 	case *ast.UnaryExpr:
 		return nodeUnaryExpr
 	case *ast.ValueSpec:
+		return nodeValueSpec
+	default:
+		return nodeUnknown
+	}
+}
+
+func categorizeNodeString(s string) nodeCategory {
+	switch s {
+	case "Expr":
+		return nodeExpr
+	case "Stmt":
+		return nodeStmt
+	}
+
+	// Below is a switch from categorizeNode.
+	switch s {
+	case "ArrayType":
+		return nodeArrayType
+	case "AssignStmt":
+		return nodeAssignStmt
+	case "BasicLit":
+		return nodeBasicLit
+	case "BinaryExpr":
+		return nodeBinaryExpr
+	case "BlockStmt":
+		return nodeBlockStmt
+	case "BranchStmt":
+		return nodeBranchStmt
+	case "CallExpr":
+		return nodeCallExpr
+	case "CaseClause":
+		return nodeCaseClause
+	case "ChanType":
+		return nodeChanType
+	case "CommClause":
+		return nodeCommClause
+	case "CompositeLit":
+		return nodeCompositeLit
+	case "DeclStmt":
+		return nodeDeclStmt
+	case "DeferStmt":
+		return nodeDeferStmt
+	case "Ellipsis":
+		return nodeEllipsis
+	case "EmptyStmt":
+		return nodeEmptyStmt
+	case "ExprStmt":
+		return nodeExprStmt
+	case "ForStmt":
+		return nodeForStmt
+	case "FuncDecl":
+		return nodeFuncDecl
+	case "FuncLit":
+		return nodeFuncLit
+	case "FuncType":
+		return nodeFuncType
+	case "GenDecl":
+		return nodeGenDecl
+	case "GoStmt":
+		return nodeGoStmt
+	case "Ident":
+		return nodeIdent
+	case "IfStmt":
+		return nodeIfStmt
+	case "ImportSpec":
+		return nodeImportSpec
+	case "IncDecStmt":
+		return nodeIncDecStmt
+	case "IndexExpr":
+		return nodeIndexExpr
+	case "InterfaceType":
+		return nodeInterfaceType
+	case "KeyValueExpr":
+		return nodeKeyValueExpr
+	case "LabeledStmt":
+		return nodeLabeledStmt
+	case "MapType":
+		return nodeMapType
+	case "ParenExpr":
+		return nodeParenExpr
+	case "RangeStmt":
+		return nodeRangeStmt
+	case "ReturnStmt":
+		return nodeReturnStmt
+	case "SelectStmt":
+		return nodeSelectStmt
+	case "SelectorExpr":
+		return nodeSelectorExpr
+	case "SendStmt":
+		return nodeSendStmt
+	case "SliceExpr":
+		return nodeSliceExpr
+	case "StarExpr":
+		return nodeStarExpr
+	case "StructType":
+		return nodeStructType
+	case "SwitchStmt":
+		return nodeSwitchStmt
+	case "TypeAssertExpr":
+		return nodeTypeAssertExpr
+	case "TypeSpec":
+		return nodeTypeSpec
+	case "TypeSwitchStmt":
+		return nodeTypeSwitchStmt
+	case "UnaryExpr":
+		return nodeUnaryExpr
+	case "ValueSpec":
 		return nodeValueSpec
 	default:
 		return nodeUnknown

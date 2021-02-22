@@ -18,7 +18,7 @@ func init() {
 	info.Before = `copy(dst, dst)`
 	info.After = `copy(dst, src)`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
 		c := &dupArgChecker{ctx: ctx}
 		// newMatcherFunc returns a function that matches a call if
 		// args[xIndex] and args[yIndex] are equal.
@@ -95,7 +95,7 @@ func init() {
 
 			// TODO(quasilyte): more of these.
 		}
-		return astwalk.WalkerForExpr(c)
+		return astwalk.WalkerForExpr(c), nil
 	})
 }
 

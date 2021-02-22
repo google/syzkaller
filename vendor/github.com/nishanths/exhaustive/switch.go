@@ -20,11 +20,33 @@ func isDefaultCase(c *ast.CaseClause) bool {
 	return c.List == nil // see doc comment on field
 }
 
-func checkSwitchStatements(pass *analysis.Pass, inspect *inspector.Inspector, comments map[*ast.File]ast.CommentMap) {
+func checkSwitchStatements(
+	pass *analysis.Pass,
+	inspect *inspector.Inspector,
+	comments map[*ast.File]ast.CommentMap,
+	generated map[*ast.File]bool,
+) {
 	inspect.WithStack([]ast.Node{&ast.SwitchStmt{}}, func(n ast.Node, push bool, stack []ast.Node) bool {
 		if !push {
 			return true
 		}
+
+		file := stack[0].(*ast.File)
+
+		// Determine if file is a generated file, based on https://golang.org/s/generatedcode.
+		// If generated, don't check this file.
+		var isGenerated bool
+		if gen, ok := generated[file]; ok {
+			isGenerated = gen
+		} else {
+			isGenerated = isGeneratedFile(file)
+			generated[file] = isGenerated
+		}
+		if isGenerated && !fCheckGeneratedFiles {
+			// don't check
+			return true
+		}
+
 		sw := n.(*ast.SwitchStmt)
 		if sw.Tag == nil {
 			return true
@@ -52,14 +74,13 @@ func checkSwitchStatements(pass *analysis.Pass, inspect *inspector.Inspector, co
 			return true
 		}
 
-		enumMembers, isEnum := enums.Entries[tagType.Obj().Name()]
+		em, isEnum := enums.Enums[tagType.Obj().Name()]
 		if !isEnum {
 			// Tag's type is not a known enum.
 			return true
 		}
 
 		// Get comment map.
-		file := stack[0].(*ast.File)
 		var allComments ast.CommentMap
 		if cm, ok := comments[file]; ok {
 			allComments = cm
@@ -78,7 +99,7 @@ func checkSwitchStatements(pass *analysis.Pass, inspect *inspector.Inspector, co
 		samePkg := tagPkg == pass.Pkg
 		checkUnexported := samePkg
 
-		hitlist := hitlistFromEnumMembers(enumMembers, checkUnexported)
+		hitlist := hitlistFromEnumMembers(em, checkUnexported)
 		if len(hitlist) == 0 {
 			// can happen if external package and enum consists only of
 			// unexported members
@@ -99,7 +120,7 @@ func checkSwitchStatements(pass *analysis.Pass, inspect *inspector.Inspector, co
 					if !ok {
 						continue
 					}
-					delete(hitlist, ident.Name)
+					updateHitlist(hitlist, em, ident.Name)
 				} else {
 					selExpr, ok := e.(*ast.SelectorExpr)
 					if !ok {
@@ -115,7 +136,7 @@ func checkSwitchStatements(pass *analysis.Pass, inspect *inspector.Inspector, co
 						continue
 					}
 
-					delete(hitlist, selExpr.Sel.Name)
+					updateHitlist(hitlist, em, selExpr.Sel.Name)
 				}
 			}
 		}
@@ -124,10 +145,25 @@ func checkSwitchStatements(pass *analysis.Pass, inspect *inspector.Inspector, co
 		shouldReport := len(hitlist) > 0 && !defaultSuffices
 
 		if shouldReport {
-			reportSwitch(pass, sw, samePkg, tagType, hitlist, defaultCaseExists, file)
+			reportSwitch(pass, sw, samePkg, tagType, em, hitlist, defaultCaseExists, file)
 		}
 		return true
 	})
+}
+
+func updateHitlist(hitlist map[string]struct{}, em *enumMembers, foundName string) {
+	constVal, ok := em.NameToValue[foundName]
+	if !ok {
+		// only delete the name alone from hitlist
+		delete(hitlist, foundName)
+		return
+	}
+
+	// delete all of the same-valued names from hitlist
+	namesToDelete := em.ValueToNames[constVal]
+	for _, n := range namesToDelete {
+		delete(hitlist, n)
+	}
 }
 
 func isPackageNameIdentifier(pass *analysis.Pass, ident *ast.Ident) bool {
@@ -139,26 +175,54 @@ func isPackageNameIdentifier(pass *analysis.Pass, ident *ast.Ident) bool {
 	return ok
 }
 
-func hitlistFromEnumMembers(enumMembers []string, checkUnexported bool) map[string]struct{} {
+func hitlistFromEnumMembers(em *enumMembers, checkUnexported bool) map[string]struct{} {
 	hitlist := make(map[string]struct{})
-	for _, m := range enumMembers {
+	for _, m := range em.OrderedNames {
 		if m == "_" {
 			// blank identifier is often used to skip entries in iota lists
 			continue
 		}
-		if ast.IsExported(m) || checkUnexported {
-			hitlist[m] = struct{}{}
+		if !ast.IsExported(m) && !checkUnexported {
+			continue
 		}
+		hitlist[m] = struct{}{}
 	}
 	return hitlist
 }
 
-func reportSwitch(pass *analysis.Pass, sw *ast.SwitchStmt, samePkg bool, enumType *types.Named, missingMembers map[string]struct{}, defaultCaseExists bool, f *ast.File) {
-	missing := make([]string, 0, len(missingMembers))
+func determineMissingOutput(missingMembers map[string]struct{}, em *enumMembers) []string {
+	constValMembers := make(map[string][]string) // value -> names
+	var otherMembers []string                    // non-constant value names
+
 	for m := range missingMembers {
-		missing = append(missing, m)
+		if constVal, ok := em.NameToValue[m]; ok {
+			constValMembers[constVal] = append(constValMembers[constVal], m)
+		} else {
+			otherMembers = append(otherMembers, m)
+		}
 	}
-	sort.Strings(missing)
+
+	missingOutput := make([]string, 0, len(constValMembers)+len(otherMembers))
+	for _, names := range constValMembers {
+		sort.Strings(names)
+		missingOutput = append(missingOutput, strings.Join(names, "|"))
+	}
+	missingOutput = append(missingOutput, otherMembers...)
+	sort.Strings(missingOutput)
+	return missingOutput
+}
+
+func reportSwitch(
+	pass *analysis.Pass,
+	sw *ast.SwitchStmt,
+	samePkg bool,
+	enumType *types.Named,
+	em *enumMembers,
+	missingMembers map[string]struct{},
+	defaultCaseExists bool,
+	f *ast.File,
+) {
+	missingOutput := determineMissingOutput(missingMembers, em)
 
 	var fixes []analysis.SuggestedFix
 	if !defaultCaseExists {
@@ -170,7 +234,7 @@ func reportSwitch(pass *analysis.Pass, sw *ast.SwitchStmt, samePkg bool, enumTyp
 	pass.Report(analysis.Diagnostic{
 		Pos:            sw.Pos(),
 		End:            sw.End(),
-		Message:        fmt.Sprintf("missing cases in switch of type %s: %s", enumTypeName(enumType, samePkg), strings.Join(missing, ", ")),
+		Message:        fmt.Sprintf("missing cases in switch of type %s: %s", enumTypeName(enumType, samePkg), strings.Join(missingOutput, ", ")),
 		SuggestedFixes: fixes,
 	})
 }

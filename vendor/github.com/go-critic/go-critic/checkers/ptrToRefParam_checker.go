@@ -16,8 +16,8 @@ func init() {
 	info.Before = `func f(m *map[string]int) (*chan *int)`
 	info.After = `func f(m map[string]int) (chan *int)`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForFuncDecl(&ptrToRefParamChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForFuncDecl(&ptrToRefParamChecker{ctx: ctx}), nil
 	})
 }
 
@@ -35,7 +35,7 @@ func (c *ptrToRefParamChecker) VisitFuncDecl(fn *ast.FuncDecl) {
 
 func (c *ptrToRefParamChecker) checkParams(params []*ast.Field) {
 	for _, param := range params {
-		ptr, ok := c.ctx.TypesInfo.TypeOf(param.Type).(*types.Pointer)
+		ptr, ok := c.ctx.TypeOf(param.Type).(*types.Pointer)
 		if !ok {
 			continue
 		}

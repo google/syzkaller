@@ -22,8 +22,8 @@ import(
 	"fmt"
 )`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return &dupImportChecker{ctx: ctx}
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return &dupImportChecker{ctx: ctx}, nil
 	})
 }
 

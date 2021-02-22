@@ -31,10 +31,10 @@ func f(x int32, int16) bool {
   return x < int32(y)
 }`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
 		c := &truncateCmpChecker{ctx: ctx}
 		c.skipArchDependent = info.Params.Bool("skipArchDependent")
-		return astwalk.WalkerForExpr(c)
+		return astwalk.WalkerForExpr(c), nil
 	})
 }
 
@@ -87,11 +87,11 @@ func (c *truncateCmpChecker) checkCmp(cmpX, cmpY ast.Expr) {
 	y := cmpY
 
 	// Check that both x and y are signed or unsigned int-typed.
-	xtyp, ok := c.ctx.TypesInfo.TypeOf(x).Underlying().(*types.Basic)
+	xtyp, ok := c.ctx.TypeOf(x).Underlying().(*types.Basic)
 	if !ok || xtyp.Info()&types.IsInteger == 0 {
 		return
 	}
-	ytyp, ok := c.ctx.TypesInfo.TypeOf(y).Underlying().(*types.Basic)
+	ytyp, ok := c.ctx.TypeOf(y).Underlying().(*types.Basic)
 	if !ok || xtyp.Info() != ytyp.Info() {
 		return
 	}

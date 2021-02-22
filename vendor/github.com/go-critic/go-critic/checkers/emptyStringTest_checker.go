@@ -20,8 +20,8 @@ func init() {
 	info.After = `s == ""`
 	info.Note = "See https://dmitri.shuralyov.com/idiomatic-go#empty-string-check."
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForExpr(&emptyStringTestChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForExpr(&emptyStringTestChecker{ctx: ctx}), nil
 	})
 }
 
@@ -40,7 +40,7 @@ func (c *emptyStringTestChecker) VisitExpr(e ast.Expr) {
 		return
 	}
 	s := lenCall.Args[0]
-	if !typep.HasStringProp(c.ctx.TypesInfo.TypeOf(s)) {
+	if !typep.HasStringProp(c.ctx.TypeOf(s)) {
 		return
 	}
 	zero := astcast.ToBasicLit(cmp.Y)

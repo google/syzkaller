@@ -18,8 +18,8 @@ func init() {
 	info.Before = `strings.ToLower(x) == strings.ToLower(y)`
 	info.After = `strings.EqualFold(x, y)`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForExpr(&equalFoldChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForExpr(&equalFoldChecker{ctx: ctx}), nil
 	})
 }
 

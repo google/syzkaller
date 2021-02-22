@@ -26,8 +26,8 @@ if cond {
 	println("cond=false")
 }`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForStmt(&dupBranchBodyChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForStmt(&dupBranchBodyChecker{ctx: ctx}), nil
 	})
 }
 

@@ -34,8 +34,8 @@ default:
 	return 0
 }`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForStmt(&typeSwitchVarChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForStmt(&typeSwitchVarChecker{ctx: ctx}), nil
 	})
 }
 
