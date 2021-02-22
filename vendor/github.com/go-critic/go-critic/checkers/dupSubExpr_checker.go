@@ -25,7 +25,7 @@ sort.Slice(xs, func(i, j int) bool {
 	return xs[i].v < xs[j].v
 })`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
 		c := &dupSubExprChecker{ctx: ctx}
 
 		ops := []struct {
@@ -59,7 +59,7 @@ sort.Slice(xs, func(i, j int) bool {
 			}
 		}
 
-		return astwalk.WalkerForExpr(c)
+		return astwalk.WalkerForExpr(c), nil
 	})
 }
 
@@ -93,7 +93,7 @@ func (c *dupSubExprChecker) checkBinaryExpr(expr *ast.BinaryExpr) {
 }
 
 func (c *dupSubExprChecker) resultIsFloat(expr ast.Expr) bool {
-	typ, ok := c.ctx.TypesInfo.TypeOf(expr).(*types.Basic)
+	typ, ok := c.ctx.TypeOf(expr).(*types.Basic)
 	return ok && typ.Info()&types.IsFloat != 0
 }
 

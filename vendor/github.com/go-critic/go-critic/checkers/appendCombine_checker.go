@@ -20,8 +20,8 @@ xs = append(xs, 1)
 xs = append(xs, 2)`
 	info.After = `xs = append(xs, 1, 2)`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForStmtList(&appendCombineChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForStmtList(&appendCombineChecker{ctx: ctx}), nil
 	})
 }
 

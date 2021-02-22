@@ -7,7 +7,61 @@ import (
 	"io"
 )
 
-type Context struct {
+// Engine is the main ruleguard package API object.
+//
+// First, load some ruleguard files with Load() to build a rule set.
+// Then use Run() to execute the rules.
+//
+// It's advised to have only 1 engine per application as it does a lot of caching.
+// The Run() method is synchronized, so it can be used concurrently.
+//
+// An Engine must be created with NewEngine() function.
+type Engine struct {
+	impl *engine
+}
+
+// NewEngine creates an engine with empty rule set.
+func NewEngine() *Engine {
+	return &Engine{impl: newEngine()}
+}
+
+// Load reads a ruleguard file from r and adds it to the engine rule set.
+//
+// Load() is not thread-safe, especially if used concurrently with Run() method.
+// It's advised to Load() all ruleguard files under a critical section (like sync.Once)
+// and then use Run() to execute all of them.
+func (e *Engine) Load(ctx *ParseContext, filename string, r io.Reader) error {
+	return e.impl.Load(ctx, filename, r)
+}
+
+// Run executes all loaded rules on a given file.
+// Matched rules invoke `RunContext.Report()` method.
+//
+// Run() is thread-safe, unless used in parallel with Load(),
+// which modifies the engine state.
+func (e *Engine) Run(ctx *RunContext, f *ast.File) error {
+	return e.impl.Run(ctx, f)
+}
+
+type ParseContext struct {
+	DebugFilter  string
+	DebugImports bool
+	DebugPrint   func(string)
+
+	// GroupFilter is called for every rule group being parsed.
+	// If function returns false, that group will not be included
+	// in the resulting rules set.
+	// Nil filter accepts all rule groups.
+	GroupFilter func(string) bool
+
+	Fset *token.FileSet
+}
+
+type RunContext struct {
+	Debug        string
+	DebugImports bool
+	DebugPrint   func(string)
+
 	Types  *types.Info
 	Sizes  types.Sizes
 	Fset   *token.FileSet
@@ -21,25 +75,13 @@ type Suggestion struct {
 	Replacement []byte
 }
 
-func ParseRules(filename string, fset *token.FileSet, r io.Reader) (*GoRuleSet, error) {
-	p := newRulesParser()
-	return p.ParseFile(filename, fset, r)
-}
-
-func RunRules(ctx *Context, f *ast.File, rules *GoRuleSet) error {
-	return newRulesRunner(ctx, rules).run(f)
-}
-
 type GoRuleInfo struct {
 	// Filename is a file that defined this rule.
 	Filename string
-}
 
-type GoRuleSet struct {
-	universal *scopedGoRuleSet
-	local     *scopedGoRuleSet
-}
+	// Line is a line inside a file that defined this rule.
+	Line int
 
-func MergeRuleSets(toMerge []*GoRuleSet) *GoRuleSet {
-	return mergeRuleSets(toMerge)
+	// Group is a function name that contained this rule.
+	Group string
 }

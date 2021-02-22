@@ -25,8 +25,8 @@ y := 0xff
 // (B)
 y := 0xFF`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForExpr(&hexLiteralChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForExpr(&hexLiteralChecker{ctx: ctx}), nil
 	})
 }
 

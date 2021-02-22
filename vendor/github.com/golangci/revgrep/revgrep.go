@@ -279,9 +279,21 @@ func (c Checker) linesChanged() map[string][]pos {
 		return changes
 	}
 
-	scanner := bufio.NewScanner(c.Patch)
-	for scanner.Scan() {
-		line := scanner.Text() // TODO scanner.Bytes()
+	scanner := bufio.NewReader(c.Patch)
+	var scanErr error
+	for {
+		lineB, isPrefix, err := scanner.ReadLine()
+		if isPrefix {
+			// If a single line overflowed the buffer, don't bother processing it as
+			// it's likey part of a file and not relevant to the patch.
+			continue
+		}
+		if err != nil {
+			scanErr = err
+			break
+		}
+		line := strings.TrimRight(string(lineB), "\n")
+
 		c.debugf(line)
 		s.lineNo++
 		s.hunkPos++
@@ -313,8 +325,8 @@ func (c Checker) linesChanged() map[string][]pos {
 		}
 
 	}
-	if err := scanner.Err(); err != nil {
-		fmt.Fprintln(os.Stderr, "reading standard input:", err)
+	if scanErr != nil && scanErr != io.EOF {
+		fmt.Fprintln(os.Stderr, "reading standard input:", scanErr)
 	}
 	// record the last state
 	changes[s.file] = s.changes

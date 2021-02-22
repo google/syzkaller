@@ -18,8 +18,8 @@ func init() {
 	info.After = `bytes.Index(x, []byte(y))`
 	info.Note = `See Go issue for details: https://github.com/golang/go/issues/25864`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForExpr(&indexAllocChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForExpr(&indexAllocChecker{ctx: ctx}), nil
 	})
 }
 

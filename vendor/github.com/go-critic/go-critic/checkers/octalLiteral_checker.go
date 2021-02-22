@@ -18,7 +18,7 @@ func init() {
 	info.Before = `foo(02)`
 	info.After = `foo(2)`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
 		c := &octalLiteralChecker{
 			ctx: ctx,
 			octFriendlyPkg: map[string]bool{
@@ -26,7 +26,7 @@ func init() {
 				"io/ioutil": true,
 			},
 		}
-		return astwalk.WalkerForExpr(c)
+		return astwalk.WalkerForExpr(c), nil
 	})
 }
 

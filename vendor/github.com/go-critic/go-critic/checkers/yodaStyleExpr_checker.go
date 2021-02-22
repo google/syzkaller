@@ -18,8 +18,8 @@ func init() {
 	info.Before = `return nil != ptr`
 	info.After = `return ptr != nil`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForLocalExpr(&yodaStyleExprChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForLocalExpr(&yodaStyleExprChecker{ctx: ctx}), nil
 	})
 }
 

@@ -2,27 +2,26 @@ package ruleguard
 
 import (
 	"go/ast"
+	"go/constant"
 	"go/parser"
-	"go/printer"
 	"go/token"
 	"go/types"
 	"strconv"
 	"strings"
 )
 
-func unquoteNode(lit *ast.BasicLit) string {
-	return lit.Value[1 : len(lit.Value)-1]
-}
-
-func sprintNode(fset *token.FileSet, n ast.Node) string {
-	if fset == nil {
-		fset = token.NewFileSet()
+func findDependency(pkg *types.Package, path string) *types.Package {
+	if pkg.Path() == path {
+		return pkg
 	}
-	var buf strings.Builder
-	if err := printer.Fprint(&buf, fset, n); err != nil {
-		return ""
+	// It looks like indirect dependencies are always incomplete?
+	// If it's true, then we don't have to recurse here.
+	for _, imported := range pkg.Imports() {
+		if dep := findDependency(imported, path); dep != nil && dep.Complete() {
+			return dep
+		}
 	}
-	return buf.String()
+	return nil
 }
 
 var basicTypeByName = map[string]types.Type{
@@ -108,6 +107,17 @@ func typeFromNode(e ast.Expr) types.Type {
 	}
 
 	return nil
+}
+
+func intValueOf(info *types.Info, expr ast.Expr) constant.Value {
+	tv := info.Types[expr]
+	if tv.Value == nil {
+		return nil
+	}
+	if tv.Value.Kind() != constant.Int {
+		return nil
+	}
+	return tv.Value
 }
 
 // isPure reports whether expr is a softly safe expression and contains

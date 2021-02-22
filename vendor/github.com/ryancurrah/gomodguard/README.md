@@ -1,6 +1,10 @@
 # gomodguard
-![Codecov](https://img.shields.io/codecov/c/gh/ryancurrah/gomodguard?style=flat-square)
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/ryancurrah/gomodguard/Go?logo=Go&style=flat-square)
+[![License](https://img.shields.io/github/license/ryancurrah/gomodguard?style=flat-square)](/LICENSE)
+[![Codecov](https://img.shields.io/codecov/c/gh/ryancurrah/gomodguard?style=flat-square)](https://codecov.io/gh/ryancurrah/gomodguard)
+[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/ryancurrah/gomodguard/Go?logo=Go&style=flat-square)](https://github.com/ryancurrah/gomodguard/actions?query=workflow%3AGo)
+[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/ryancurrah/gomodguard?style=flat-square)](https://github.com/ryancurrah/gomodguard/releases/latest)
+[![Docker](https://img.shields.io/docker/pulls/ryancurrah/gomodguard?style=flat-square)](https://hub.docker.com/r/ryancurrah/gomodguard)
+[![Github Releases Stats of golangci-lint](https://img.shields.io/github/downloads/ryancurrah/gomodguard/total.svg?logo=github&style=flat-square)](https://somsubhra.com/github-release-stats/?username=ryancurrah&repository=gomodguard)
 
 <img src="https://storage.googleapis.com/gopherizeme.appspot.com/gophers/9afcc208898c763be95f046eb2f6080146607209.png" width="30%">
 
@@ -8,7 +12,7 @@ Allow and block list linter for direct Go module dependencies. This is useful fo
 
 ## Description
 
-Allowed and blocked modules are defined in a `.gomodguard.yaml` or `~/.gomodguard.yaml` file. 
+Allowed and blocked modules are defined in a `./.gomodguard.yaml` or `~/.gomodguard.yaml` file. 
 
 Modules can be allowed by module or domain name. When allowed modules are specified any modules not in the allowed configuration are blocked.
 

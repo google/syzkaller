@@ -170,7 +170,7 @@ func (f *fumpter) addNewline(at token.Pos) {
 	}
 }
 
-// removeNewlines removes all newlines between two positions, so that they end
+// removeLines removes all newlines between two positions, so that they end
 // up on the same line.
 func (f *fumpter) removeLines(fromLine, toLine int) {
 	for fromLine < toLine {
@@ -219,7 +219,10 @@ func (f *fumpter) printLength(node ast.Node) int {
 //   //extern     | C function declarations for gccgo
 //   //sys(nb)?   | syscall function wrapper prototypes
 //   //nolint     | nolint directive for golangci
-var rxCommentDirective = regexp.MustCompile(`^([a-z]+:|line\b|export\b|extern\b|sys(nb)?\b|nolint\b)`)
+//
+// Note that the "someword:" matching expects a letter afterward, such as
+// "go:generate", to prevent matching false positives like "https://site".
+var rxCommentDirective = regexp.MustCompile(`^([a-z]+:[a-z]+|line\b|export\b|extern\b|sys(nb)?\b|nolint\b)`)
 
 // visit takes either an ast.Node or a []ast.Stmt.
 func (f *fumpter) applyPre(c *astutil.Cursor) {
@@ -250,7 +253,7 @@ func (f *fumpter) applyPre(c *astutil.Cursor) {
 		for i := 0; i < len(node.Decls); {
 			newDecls = append(newDecls, node.Decls[i])
 			start, ok := node.Decls[i].(*ast.GenDecl)
-			if !ok {
+			if !ok || isCgoImport(start) {
 				i++
 				continue
 			}
@@ -258,7 +261,7 @@ func (f *fumpter) applyPre(c *astutil.Cursor) {
 			for i++; i < len(node.Decls); {
 				cont, ok := node.Decls[i].(*ast.GenDecl)
 				if !ok || cont.Tok != start.Tok || cont.Lparen != token.NoPos ||
-					f.Line(lastPos) < f.Line(cont.Pos())-1 {
+					f.Line(lastPos) < f.Line(cont.Pos())-1 || isCgoImport(cont) {
 					break
 				}
 				start.Specs = append(start.Specs, cont.Specs...)
@@ -361,11 +364,16 @@ func (f *fumpter) applyPre(c *astutil.Cursor) {
 		}
 
 		isFuncBody := false
-		switch c.Parent().(type) {
+		var cond ast.Expr
+		switch parent := c.Parent().(type) {
 		case *ast.FuncDecl:
 			isFuncBody = true
 		case *ast.FuncLit:
 			isFuncBody = true
+		case *ast.IfStmt:
+			cond = parent.Cond
+		case *ast.ForStmt:
+			cond = parent.Cond
 		}
 
 		if len(node.List) > 1 && !isFuncBody {
@@ -388,7 +396,12 @@ func (f *fumpter) applyPre(c *astutil.Cursor) {
 			}
 		}
 
-		f.removeLinesBetween(node.Lbrace, bodyPos)
+		if cond != nil && f.Line(cond.Pos()) != f.Line(cond.End()) {
+			// The body is preceded by a multi-line condition, so an
+			// empty line can help readability.
+		} else {
+			f.removeLinesBetween(node.Lbrace, bodyPos)
+		}
 		f.removeLinesBetween(bodyEnd, node.Rbrace)
 
 	case *ast.CompositeLit:
@@ -478,6 +491,13 @@ func (f *fumpter) applyPre(c *astutil.Cursor) {
 		f.stmts(node.Body)
 
 	case *ast.FieldList:
+		if node.NumFields() == 0 {
+			// Empty field lists should not contain a newline.
+			openLine := f.Line(node.Pos())
+			closeLine := f.Line(node.End())
+			f.removeLines(openLine, closeLine)
+		}
+
 		// Merging adjacent fields (e.g. parameters) is disabled by default.
 		if !f.ExtraRules {
 			break
@@ -527,6 +547,19 @@ func (f *fumpter) stmts(list []ast.Stmt) {
 func identEqual(expr ast.Expr, name string) bool {
 	id, ok := expr.(*ast.Ident)
 	return ok && id.Name == name
+}
+
+// isCgoImport returns true if the declaration is simply:
+//
+//   import "C"
+//
+// Note that parentheses do not affect the result.
+func isCgoImport(decl *ast.GenDecl) bool {
+	if decl.Tok != token.IMPORT || len(decl.Specs) != 1 {
+		return false
+	}
+	spec := decl.Specs[0].(*ast.ImportSpec)
+	return spec.Path.Value == `"C"`
 }
 
 // joinStdImports ensures that all standard library imports are together and at

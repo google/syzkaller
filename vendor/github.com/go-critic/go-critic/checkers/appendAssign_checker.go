@@ -24,8 +24,8 @@ p.negatives = append(p.negatives, y)`
 p.positives = append(p.positives, x)
 p.negatives = append(p.negatives, y)`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForStmt(&appendAssignChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForStmt(&appendAssignChecker{ctx: ctx}), nil
 	})
 }
 
@@ -81,7 +81,7 @@ func (c *appendAssignChecker) checkAppend(x ast.Expr, call *ast.CallExpr) {
 
 	switch y := call.Args[0].(type) {
 	case *ast.SliceExpr:
-		if _, ok := c.ctx.TypesInfo.TypeOf(y.X).(*types.Array); ok {
+		if _, ok := c.ctx.TypeOf(y.X).(*types.Array); ok {
 			// Arrays are frequently used as scratch storages.
 			return
 		}

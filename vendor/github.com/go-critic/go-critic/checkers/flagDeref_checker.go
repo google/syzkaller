@@ -21,7 +21,7 @@ flag.BoolVar(&b, "b", false, "b docs")`
 Dereferencing returned pointers will lead to hard to find errors
 where flag values are not updated after flag.Parse().`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
 		c := &flagDerefChecker{
 			ctx: ctx,
 			flagPtrFuncs: map[string]bool{
@@ -35,7 +35,7 @@ where flag values are not updated after flag.Parse().`
 				"flag.Uint64":   true,
 			},
 		}
-		return astwalk.WalkerForExpr(c)
+		return astwalk.WalkerForExpr(c), nil
 	})
 }
 

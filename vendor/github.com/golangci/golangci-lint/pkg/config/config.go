@@ -99,22 +99,33 @@ var DefaultExcludePatterns = []ExcludePattern{
 		Linter:  "gosec",
 		Why:     "False positive is triggered by 'src, err := ioutil.ReadFile(filename)'",
 	},
+	{
+		ID: "EXC0011",
+		Pattern: "(comment on exported (method|function|type|const)|" +
+			"should have( a package)? comment|comment should be of the form)",
+		Linter: "stylecheck",
+		Why:    "Annoying issue about not having a comment. The rare codebase has such comments",
+	},
 }
 
 func GetDefaultExcludePatternsStrings() []string {
-	return GetExcludePatternsStrings(nil)
+	ret := make([]string, len(DefaultExcludePatterns))
+	for i, p := range DefaultExcludePatterns {
+		ret[i] = p.Pattern
+	}
+	return ret
 }
 
-func GetExcludePatternsStrings(include []string) []string {
+func GetExcludePatterns(include []string) []ExcludePattern {
 	includeMap := make(map[string]bool, len(include))
 	for _, inc := range include {
 		includeMap[inc] = true
 	}
 
-	var ret []string
+	var ret []ExcludePattern
 	for _, p := range DefaultExcludePatterns {
 		if !includeMap[p.ID] {
-			ret = append(ret, p.Pattern)
+			ret = append(ret, p)
 		}
 	}
 
@@ -185,8 +196,13 @@ type LintersSettings struct {
 		Threshold int
 	}
 	Goconst struct {
-		MinStringLen        int `mapstructure:"min-len"`
-		MinOccurrencesCount int `mapstructure:"min-occurrences"`
+		MatchWithConstants  bool `mapstructure:"match-constant"`
+		MinStringLen        int  `mapstructure:"min-len"`
+		MinOccurrencesCount int  `mapstructure:"min-occurrences"`
+		ParseNumbers        bool `mapstructure:"numbers"`
+		NumberMin           int  `mapstructure:"min"`
+		NumberMax           int  `mapstructure:"max"`
+		IgnoreCalls         bool `mapstructure:"ignore-calls"`
 	}
 	Gomnd struct {
 		Settings map[string]map[string]interface{}
@@ -229,26 +245,36 @@ type LintersSettings struct {
 				Version string `mapstructure:"version"`
 				Reason  string `mapstructure:"reason"`
 			} `mapstructure:"versions"`
+			LocalReplaceDirectives bool `mapstructure:"local_replace_directives"`
 		} `mapstructure:"blocked"`
 	}
 
-	WSL         WSLSettings
-	Lll         LllSettings
-	Unparam     UnparamSettings
-	Nakedret    NakedretSettings
-	Prealloc    PreallocSettings
-	Errcheck    ErrcheckSettings
-	Gocritic    GocriticSettings
-	Godox       GodoxSettings
-	Dogsled     DogsledSettings
-	Gocognit    GocognitSettings
-	Godot       GodotSettings
-	Goheader    GoHeaderSettings
-	Testpackage TestpackageSettings
-	Nestif      NestifSettings
-	NoLintLint  NoLintLintSettings
-	Exhaustive  ExhaustiveSettings
-	Gofumpt     GofumptSettings
+	WSL              WSLSettings
+	Lll              LllSettings
+	Unparam          UnparamSettings
+	Nakedret         NakedretSettings
+	Prealloc         PreallocSettings
+	Errcheck         ErrcheckSettings
+	Gocritic         GocriticSettings
+	Godox            GodoxSettings
+	Dogsled          DogsledSettings
+	Gocognit         GocognitSettings
+	Godot            GodotSettings
+	Goheader         GoHeaderSettings
+	Testpackage      TestpackageSettings
+	Nestif           NestifSettings
+	NoLintLint       NoLintLintSettings
+	Exhaustive       ExhaustiveSettings
+	ExhaustiveStruct ExhaustiveStructSettings
+	Gofumpt          GofumptSettings
+	ErrorLint        ErrorLintSettings
+	Makezero         MakezeroSettings
+	Revive           ReviveSettings
+	Thelper          ThelperSettings
+	Forbidigo        ForbidigoSettings
+	Ifshort          IfshortSettings
+	Predeclared      PredeclaredSettings
+	Cyclop           Cyclop
 
 	Custom map[string]CustomLinterSettings
 }
@@ -333,6 +359,11 @@ type WSLSettings struct {
 }
 
 type GodotSettings struct {
+	Scope   string   `mapstructure:"scope"`
+	Exclude []string `mapstructure:"exclude"`
+	Capital bool     `mapstructure:"capital"`
+
+	// Deprecated: use `Scope` instead
 	CheckAll bool `mapstructure:"check-all"`
 }
 
@@ -353,11 +384,80 @@ type NestifSettings struct {
 }
 
 type ExhaustiveSettings struct {
+	CheckGenerated             bool `mapstructure:"check-generated"`
 	DefaultSignifiesExhaustive bool `mapstructure:"default-signifies-exhaustive"`
+}
+
+type ExhaustiveStructSettings struct {
+	StructPatterns []string `mapstructure:"struct-patterns"`
 }
 
 type GofumptSettings struct {
 	ExtraRules bool `mapstructure:"extra-rules"`
+}
+
+type ErrorLintSettings struct {
+	Errorf bool `mapstructure:"errorf"`
+}
+
+type MakezeroSettings struct {
+	Always bool
+}
+
+type ReviveSettings struct {
+	IgnoreGeneratedHeader bool `mapstructure:"ignore-generated-header"`
+	Confidence            float64
+	Severity              string
+	Rules                 []struct {
+		Name      string
+		Arguments []interface{}
+		Severity  string
+	}
+	ErrorCode   int `mapstructure:"error-code"`
+	WarningCode int `mapstructure:"warning-code"`
+	Directives  []struct {
+		Name     string
+		Severity string
+	}
+}
+
+type ThelperSettings struct {
+	Test struct {
+		First bool `mapstructure:"first"`
+		Name  bool `mapstructure:"name"`
+		Begin bool `mapstructure:"begin"`
+	} `mapstructure:"test"`
+	Benchmark struct {
+		First bool `mapstructure:"first"`
+		Name  bool `mapstructure:"name"`
+		Begin bool `mapstructure:"begin"`
+	} `mapstructure:"benchmark"`
+	TB struct {
+		First bool `mapstructure:"first"`
+		Name  bool `mapstructure:"name"`
+		Begin bool `mapstructure:"begin"`
+	} `mapstructure:"tb"`
+}
+
+type IfshortSettings struct {
+	MaxDeclLines int `mapstructure:"max-decl-lines"`
+	MaxDeclChars int `mapstructure:"max-decl-chars"`
+}
+
+type ForbidigoSettings struct {
+	Forbid               []string `mapstructure:"forbid"`
+	ExcludeGodocExamples bool     `mapstructure:"exclude-godoc-examples"`
+}
+
+type PredeclaredSettings struct {
+	Ignore    string `mapstructure:"ignore"`
+	Qualified bool   `mapstructure:"q"`
+}
+
+type Cyclop struct {
+	MaxComplexity  int     `mapstructure:"max-complexity"`
+	PackageAverage float64 `mapstructure:"package-average"`
+	SkipTests      bool    `mapstructure:"skip-tests"`
 }
 
 var defaultLintersSettings = LintersSettings{
@@ -411,10 +511,25 @@ var defaultLintersSettings = LintersSettings{
 		MinComplexity: 5,
 	},
 	Exhaustive: ExhaustiveSettings{
+		CheckGenerated:             false,
 		DefaultSignifiesExhaustive: false,
 	},
 	Gofumpt: GofumptSettings{
 		ExtraRules: false,
+	},
+	ErrorLint: ErrorLintSettings{
+		Errorf: true,
+	},
+	Ifshort: IfshortSettings{
+		MaxDeclLines: 1,
+		MaxDeclChars: 30,
+	},
+	Predeclared: PredeclaredSettings{
+		Ignore:    "",
+		Qualified: false,
+	},
+	Forbidigo: ForbidigoSettings{
+		ExcludeGodocExamples: true,
 	},
 }
 

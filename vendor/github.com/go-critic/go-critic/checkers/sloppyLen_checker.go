@@ -23,8 +23,8 @@ len(arr) < 0  // Doesn't make sense at all`
 len(arr) > 0
 len(arr) == 0`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForExpr(&sloppyLenChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForExpr(&sloppyLenChecker{ctx: ctx}), nil
 	})
 }
 

@@ -24,8 +24,8 @@ if x, ok := x.(int); ok {
 	body()
 }`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForStmt(&singleCaseSwitchChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForStmt(&singleCaseSwitchChecker{ctx: ctx}), nil
 	})
 }
 

@@ -25,8 +25,8 @@ function f(r io.Reader) interface{} {
 }
 `
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForExpr(&sloppyTypeAssertChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForExpr(&sloppyTypeAssertChecker{ctx: ctx}), nil
 	})
 }
 
@@ -41,8 +41,8 @@ func (c *sloppyTypeAssertChecker) VisitExpr(expr ast.Expr) {
 		return
 	}
 
-	toType := c.ctx.TypesInfo.TypeOf(expr)
-	fromType := c.ctx.TypesInfo.TypeOf(assert.X)
+	toType := c.ctx.TypeOf(expr)
+	fromType := c.ctx.TypeOf(assert.X)
 
 	if types.Identical(toType, fromType) {
 		c.warnIdentical(expr)

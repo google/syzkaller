@@ -34,6 +34,15 @@ type MatchData struct {
 	Values map[string]ast.Node
 }
 
+// Clone creates a pattern copy.
+func (p *Pattern) Clone() *Pattern {
+	clone := *p
+	clone.m = &matcher{}
+	*clone.m = *p.m
+	clone.m.values = make(map[string]ast.Node)
+	return &clone
+}
+
 // MatchNode calls cb if n matches a pattern.
 func (p *Pattern) MatchNode(n ast.Node, cb func(MatchData)) {
 	p.m.values = map[string]ast.Node{}

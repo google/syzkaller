@@ -2,12 +2,15 @@ package checkers
 
 import (
 	"go/ast"
+	"go/token"
 	"go/types"
 
 	"github.com/go-critic/go-critic/checkers/internal/astwalk"
+	"github.com/go-critic/go-critic/checkers/internal/lintutil"
 	"github.com/go-critic/go-critic/framework/linter"
 	"github.com/go-toolsmith/astcast"
 	"github.com/go-toolsmith/astequal"
+	"github.com/go-toolsmith/typep"
 )
 
 func init() {
@@ -18,8 +21,8 @@ func init() {
 	info.Before = `func(x int) int { return fn(x) }`
 	info.After = `fn`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForExpr(&unlambdaChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForExpr(&unlambdaChecker{ctx: ctx}), nil
 	})
 }
 
@@ -47,20 +50,38 @@ func (c *unlambdaChecker) VisitExpr(x ast.Expr) {
 	if isBuiltin(callable) {
 		return // See #762
 	}
-	if id, ok := result.Fun.(*ast.Ident); ok {
-		obj := c.ctx.TypesInfo.ObjectOf(id)
-		if _, ok := obj.(*types.Var); ok {
-			return // See #888
+	hasVars := lintutil.ContainsNode(result.Fun, func(n ast.Node) bool {
+		id, ok := n.(*ast.Ident)
+		if !ok {
+			return false
 		}
+		obj, ok := c.ctx.TypesInfo.ObjectOf(id).(*types.Var)
+		if !ok {
+			return false
+		}
+		// Permit only non-pointer struct method values.
+		return !typep.IsStruct(obj.Type().Underlying())
+	})
+	if hasVars {
+		return // See #888 #1007
 	}
-	fnType := c.ctx.TypesInfo.TypeOf(fn)
-	resultType := c.ctx.TypesInfo.TypeOf(result.Fun)
+
+	fnType := c.ctx.TypeOf(fn)
+	resultType := c.ctx.TypeOf(result.Fun)
 	if !types.Identical(fnType, resultType) {
 		return
 	}
 	// Now check that all arguments match the parameters.
 	n := 0
 	for _, params := range fn.Type.Params.List {
+		if _, ok := params.Type.(*ast.Ellipsis); ok {
+			if result.Ellipsis == token.NoPos {
+				return
+			}
+			n++
+			continue
+		}
+
 		for _, id := range params.Names {
 			if !astequal.Expr(id, result.Args[n]) {
 				return

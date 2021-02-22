@@ -22,11 +22,11 @@ func init() {
 foo(1, 2)`
 	info.After = `foo(1, 2)`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
 		return astwalk.WalkerForLocalComment(&commentedOutCodeChecker{
 			ctx:              ctx,
 			notQuiteFuncCall: regexp.MustCompile(`\w+\s+\([^)]*\)\s*$`),
-		})
+		}), nil
 	})
 }
 

@@ -22,8 +22,8 @@ x := 1
 x := 1
 print(x)`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForStmtList(&unnecessaryBlockChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForStmtList(&unnecessaryBlockChecker{ctx: ctx}), nil
 	})
 }
 

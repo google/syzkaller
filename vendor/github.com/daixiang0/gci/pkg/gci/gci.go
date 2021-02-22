@@ -26,7 +26,6 @@ var (
 	importStartFlag = []byte(`
 import (
 `)
-
 	importEndFlag = []byte(`
 )
 `)
@@ -158,17 +157,20 @@ func getPkgInfo(line string, comment bool) (string, string, string) {
 }
 
 func getPkgType(line, localFlag string) int {
-	if !strings.Contains(line, dot) {
-		return standard
-	} else if strings.Contains(line, localFlag) {
+	pkgName := strings.Trim(line, "\"\\`")
+
+	if localFlag != "" && strings.HasPrefix(pkgName, localFlag) {
 		return local
-	} else {
-		return remote
 	}
+
+	if isStandardPackage(pkgName) {
+		return standard
+	}
+
+	return remote
 }
 
 const (
-	dot       = "."
 	blank     = " "
 	indent    = "\t"
 	linebreak = "\n"

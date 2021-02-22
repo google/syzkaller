@@ -31,8 +31,8 @@ default: // <- last case (could also be the first one)
 	// ...
 }`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForStmt(&defaultCaseOrderChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForStmt(&defaultCaseOrderChecker{ctx: ctx}), nil
 	})
 }
 

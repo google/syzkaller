@@ -35,11 +35,11 @@ for i := range xs {
 	// Loop body.
 }`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
 		c := &rangeValCopyChecker{ctx: ctx}
 		c.sizeThreshold = int64(info.Params.Int("sizeThreshold"))
 		c.skipTestFuncs = info.Params.Bool("skipTestFuncs")
-		return astwalk.WalkerForStmt(c)
+		return astwalk.WalkerForStmt(c), nil
 	})
 }
 
@@ -61,7 +61,7 @@ func (c *rangeValCopyChecker) VisitStmt(stmt ast.Stmt) {
 	if !ok || rng.Value == nil {
 		return
 	}
-	typ := c.ctx.TypesInfo.TypeOf(rng.Value)
+	typ := c.ctx.TypeOf(rng.Value)
 	if typ == nil {
 		return
 	}

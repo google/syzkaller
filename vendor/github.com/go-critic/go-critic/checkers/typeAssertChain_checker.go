@@ -35,8 +35,8 @@ default:
 	// Code C, uses x.
 }`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForStmt(&typeAssertChainChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForStmt(&typeAssertChainChecker{ctx: ctx}), nil
 	})
 }
 

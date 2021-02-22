@@ -39,10 +39,10 @@ type runner struct {
 
 func NewRun(pkgs ...string) func(pass *analysis.Pass) (interface{}, error) {
 	return func(pass *analysis.Pass) (interface{}, error) {
-		pkgs = append(pkgs, "database/sql")
-		for _, pkg := range pkgs {
+		sqlPkgs := append(pkgs, "database/sql")
+		for _, pkg := range sqlPkgs {
 			r := new(runner)
-			r.sqlPkgs = pkgs
+			r.sqlPkgs = sqlPkgs
 			r.run(pass, pkg)
 		}
 		return nil, nil
@@ -107,7 +107,7 @@ func (r runner) run(pass *analysis.Pass, pkgPath string) (interface{}, error) {
 	return nil, nil
 }
 
-func (r *runner) notCheck(b *ssa.BasicBlock, i int) bool {
+func (r *runner) notCheck(b *ssa.BasicBlock, i int) (ret bool) {
 	call, ok := r.getReqCall(b.Instrs[i])
 	if !ok {
 		return false
@@ -118,14 +118,22 @@ func (r *runner) notCheck(b *ssa.BasicBlock, i int) bool {
 		if !ok {
 			continue
 		}
-
 		if len(*val.Referrers()) == 0 {
 			return true
 		}
 
 		resRefs := *val.Referrers()
-		for _, resRef := range resRefs {
+		var notCallClose func(resRef ssa.Instruction) bool
+		notCallClose = func(resRef ssa.Instruction) bool {
 			switch resRef := resRef.(type) {
+			case *ssa.Phi:
+				resRefs = append(resRefs, (*resRef.Referrers())...)
+				for _, rf := range *resRef.Referrers() {
+					if !notCallClose(rf) {
+						return false
+					}
+				}
+
 			case *ssa.Store: // Call in Closure function
 				if len(*resRef.Addr.Referrers()) == 0 {
 					return true
@@ -168,10 +176,17 @@ func (r *runner) notCheck(b *ssa.BasicBlock, i int) bool {
 						}
 					}
 				}
+
+			}
+			return true
+		}
+
+		for _, resRef := range resRefs {
+			if !notCallClose(resRef) {
+				return false
 			}
 		}
 	}
-
 	return true
 }
 
@@ -205,6 +220,7 @@ func (r *runner) getResVal(instr ssa.Instruction) (ssa.Value, bool) {
 		if types.Identical(instr.Type(), r.rowsTyp) {
 			return instr, true
 		}
+	default:
 	}
 
 	return nil, false

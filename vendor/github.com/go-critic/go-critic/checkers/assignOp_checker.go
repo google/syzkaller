@@ -19,8 +19,8 @@ func init() {
 	info.Before = `x = x * 2`
 	info.After = `x *= 2`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForStmt(&assignOpChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForStmt(&assignOpChecker{ctx: ctx}), nil
 	})
 }
 

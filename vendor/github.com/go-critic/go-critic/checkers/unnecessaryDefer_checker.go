@@ -22,8 +22,8 @@ func() {
 	os.Remove(filename)
 }`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForFuncDecl(&unnecessaryDeferChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForFuncDecl(&unnecessaryDeferChecker{ctx: ctx}), nil
 	})
 }
 

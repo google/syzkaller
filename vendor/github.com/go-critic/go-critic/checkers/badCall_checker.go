@@ -17,8 +17,8 @@ func init() {
 	info.Before = `strings.Replace(s, from, to, 0)`
 	info.After = `strings.Replace(s, from, to, -1)`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForExpr(&badCallChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForExpr(&badCallChecker{ctx: ctx}), nil
 	})
 }
 

@@ -20,8 +20,8 @@ func init() {
 	info.Before = `xs[len(xs)]`
 	info.After = `xs[len(xs)-1]`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForExpr(&offBy1Checker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForExpr(&offBy1Checker{ctx: ctx}), nil
 	})
 }
 
@@ -31,15 +31,15 @@ type offBy1Checker struct {
 }
 
 func (c *offBy1Checker) VisitExpr(e ast.Expr) {
-	// TODO(Quasilyte): handle more off-by-1 patterns.
-	// TODO(Quasilyte): check whether go/analysis can help here.
+	// TODO(quasilyte): handle more off-by-1 patterns.
+	// TODO(quasilyte): check whether go/analysis can help here.
 
 	// Detect s[len(s)] expressions that always panic.
 	// The correct form is s[len(s)-1].
 
 	indexExpr := astcast.ToIndexExpr(e)
 	indexed := indexExpr.X
-	if !typep.IsSlice(c.ctx.TypesInfo.TypeOf(indexed)) {
+	if !typep.IsSlice(c.ctx.TypeOf(indexed)) {
 		return
 	}
 	if !typep.SideEffectFree(c.ctx.TypesInfo, indexed) {

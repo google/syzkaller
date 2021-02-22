@@ -22,8 +22,8 @@ switch x {
 case ys[0], ys[1], ys[2], ys[3], ys[4]:
 }`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForStmt(&dupCaseChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForStmt(&dupCaseChecker{ctx: ctx}), nil
 	})
 }
 

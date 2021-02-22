@@ -21,8 +21,8 @@ func init() {
 	info.Before = `sort.Slice(xs, func(i, j) bool { return keys[i] < keys[j] })`
 	info.After = `sort.Slice(kv, func(i, j) bool { return kv[i].key < kv[j].key })`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForExpr(&sortSliceChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForExpr(&sortSliceChecker{ctx: ctx}), nil
 	})
 }
 
@@ -87,7 +87,7 @@ func (c *sortSliceChecker) VisitExpr(expr ast.Expr) {
 	}
 }
 
-func (c *sortSliceChecker) paramIdents(e *ast.FuncType) (*ast.Ident, *ast.Ident) {
+func (c *sortSliceChecker) paramIdents(e *ast.FuncType) (ivar, jvar *ast.Ident) {
 	// Covers both `i, j int` and `i int, j int`.
 	idents := make([]*ast.Ident, 0, 2)
 	for _, field := range e.Params.List {

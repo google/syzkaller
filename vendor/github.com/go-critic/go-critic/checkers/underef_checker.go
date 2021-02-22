@@ -28,10 +28,10 @@ v := (*a)[5] // only if a is array`
 k.field = 5
 v := a[5]`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
 		c := &underefChecker{ctx: ctx}
 		c.skipRecvDeref = info.Params.Bool("skipRecvDeref")
-		return astwalk.WalkerForExpr(c)
+		return astwalk.WalkerForExpr(c), nil
 	})
 }
 
@@ -69,7 +69,7 @@ func (c *underefChecker) VisitExpr(expr ast.Expr) {
 }
 
 func (c *underefChecker) isPtrRecvMethodCall(fn *ast.Ident) bool {
-	typ, ok := c.ctx.TypesInfo.TypeOf(fn).(*types.Signature)
+	typ, ok := c.ctx.TypeOf(fn).(*types.Signature)
 	if ok && typ != nil && typ.Recv() != nil {
 		_, ok := typ.Recv().Type().(*types.Pointer)
 		return ok
@@ -104,7 +104,7 @@ func (c *underefChecker) warnArray(expr *ast.IndexExpr) {
 
 // checkStarExpr checks if ast.StarExpr could be simplified.
 func (c *underefChecker) checkStarExpr(expr *ast.StarExpr) bool {
-	typ, ok := c.ctx.TypesInfo.TypeOf(expr.X).Underlying().(*types.Pointer)
+	typ, ok := c.ctx.TypeOf(expr.X).Underlying().(*types.Pointer)
 	if !ok {
 		return false
 	}
@@ -118,7 +118,7 @@ func (c *underefChecker) checkStarExpr(expr *ast.StarExpr) bool {
 }
 
 func (c *underefChecker) checkArray(expr *ast.StarExpr) bool {
-	typ, ok := c.ctx.TypesInfo.TypeOf(expr.X).(*types.Pointer)
+	typ, ok := c.ctx.TypeOf(expr.X).(*types.Pointer)
 	if !ok {
 		return false
 	}

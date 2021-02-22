@@ -18,8 +18,8 @@ func init() {
 	info.Before = `x := *new(bool)`
 	info.After = `x := false`
 
-	collection.AddChecker(&info, func(ctx *linter.CheckerContext) linter.FileWalker {
-		return astwalk.WalkerForExpr(&newDerefChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForExpr(&newDerefChecker{ctx: ctx}), nil
 	})
 }
 
@@ -32,7 +32,7 @@ func (c *newDerefChecker) VisitExpr(expr ast.Expr) {
 	deref := astcast.ToStarExpr(expr)
 	call := astcast.ToCallExpr(deref.X)
 	if astcast.ToIdent(call.Fun).Name == "new" {
-		typ := c.ctx.TypesInfo.TypeOf(call.Args[0])
+		typ := c.ctx.TypeOf(call.Args[0])
 		zv := lintutil.ZeroValueOf(astutil.Unparen(call.Args[0]), typ)
 		if zv != nil {
 			c.warn(expr, zv)
