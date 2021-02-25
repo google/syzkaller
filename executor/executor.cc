@@ -1511,6 +1511,7 @@ void setup_features(char** enable, int n)
 void failmsg(const char* err, const char* msg, ...)
 {
 	int e = errno;
+	fprintf(stderr, "SYZFAIL: %s\n", err);
 	if (msg) {
 		va_list args;
 		va_start(args, msg);
@@ -1518,7 +1519,6 @@ void failmsg(const char* err, const char* msg, ...)
 		va_end(args);
 	}
 	fprintf(stderr, " (errno %d: %s)\n", e, strerror(e));
-	fprintf(stderr, "SYZFAIL: %s\n", err);
 
 	// fail()'s are often used during the validation of kernel reactions to queries
 	// that were issued by pseudo syscalls implementations. As fault injection may
