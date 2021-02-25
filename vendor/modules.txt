@@ -28,8 +28,6 @@ github.com/Masterminds/semver
 github.com/OpenPeeDeeP/depguard
 # github.com/alexkohler/prealloc v0.0.0-20210204145425-77a5b5dd9799
 github.com/alexkohler/prealloc/pkg
-# github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6
-## explicit
 # github.com/ashanbrown/forbidigo v1.1.0
 github.com/ashanbrown/forbidigo/forbidigo
 # github.com/ashanbrown/makezero v0.0.0-20201205152432-7b7cdbb3025a
@@ -52,8 +50,6 @@ github.com/dvyukov/go-fuzz/go-fuzz-build
 github.com/dvyukov/go-fuzz/go-fuzz-defs
 github.com/dvyukov/go-fuzz/go-fuzz-dep
 github.com/dvyukov/go-fuzz/internal/go-fuzz-types
-# github.com/elazarl/go-bindata-assetfs v1.0.1
-## explicit
 # github.com/esimonov/ifshort v1.0.1
 github.com/esimonov/ifshort/pkg/analyzer
 # github.com/fatih/color v1.10.0
@@ -121,10 +117,6 @@ github.com/golangci/errcheck/golangci
 github.com/golangci/errcheck/internal/errcheck
 # github.com/golangci/go-misc v0.0.0-20180628070357-927a3d87b613
 github.com/golangci/go-misc/deadcode
-# github.com/golangci/goconst v0.0.0-20180610141641-041c5f2b40f3
-## explicit
-# github.com/golangci/gocyclo v0.0.0-20180528144436-0a533e8fa43d
-## explicit
 # github.com/golangci/gofmt v0.0.0-20190930125516-244bba706f1a
 github.com/golangci/gofmt/gofmt
 github.com/golangci/gofmt/goimports
@@ -165,8 +157,6 @@ github.com/golangci/maligned
 # github.com/golangci/misspell v0.3.5
 ## explicit
 github.com/golangci/misspell
-# github.com/golangci/prealloc v0.0.0-20180630174525-215b22d4de21
-## explicit
 # github.com/golangci/revgrep v0.0.0-20210208091834-cd28932614b5
 github.com/golangci/revgrep
 # github.com/golangci/unconvert v0.0.0-20180507085042-28b1c447d1f4
@@ -208,8 +198,6 @@ github.com/jingyugao/rowserrcheck/passes/rowserr
 # github.com/jirfag/go-printf-func-name v0.0.0-20200119135958-7558a9eaa5af
 ## explicit
 github.com/jirfag/go-printf-func-name/pkg/analyzer
-# github.com/jmoiron/sqlx v1.2.1-0.20190826204134-d7d95172beb5
-## explicit
 # github.com/jstemmer/go-junit-report v0.9.2-0.20191008195320-984a47ca6b0a
 ## explicit
 github.com/jstemmer/go-junit-report
@@ -300,8 +288,6 @@ github.com/quasilyte/regex/syntax
 github.com/ryancurrah/gomodguard
 # github.com/ryanrolds/sqlclosecheck v0.3.0
 github.com/ryanrolds/sqlclosecheck/pkg/analyzer
-# github.com/sclevine/agouti v3.0.0+incompatible
-## explicit
 # github.com/securego/gosec/v2 v2.6.1
 github.com/securego/gosec/v2
 github.com/securego/gosec/v2/rules
@@ -333,8 +319,6 @@ github.com/spf13/pflag
 github.com/spf13/viper
 # github.com/ssgreg/nlreturn/v2 v2.1.0
 github.com/ssgreg/nlreturn/v2/pkg/nlreturn
-# github.com/stephens2424/writerset v1.0.2
-## explicit
 # github.com/stretchr/objx v0.3.0
 ## explicit
 github.com/stretchr/objx
@@ -353,22 +337,16 @@ github.com/tetafro/godot
 github.com/timakin/bodyclose/passes/bodyclose
 # github.com/tomarrell/wrapcheck v0.0.0-20200807122107-df9e8bcb914d
 github.com/tomarrell/wrapcheck/wrapcheck
-# github.com/tommy-muehle/go-mnd v1.3.1-0.20200224220436-e6f9a994e8fa
-## explicit
 # github.com/tommy-muehle/go-mnd/v2 v2.3.1
 github.com/tommy-muehle/go-mnd/v2
 github.com/tommy-muehle/go-mnd/v2/checks
 github.com/tommy-muehle/go-mnd/v2/config
-# github.com/ugorji/go v1.1.4
-## explicit
 # github.com/ultraware/funlen v0.0.3
 github.com/ultraware/funlen
 # github.com/ultraware/whitespace v0.0.4
 github.com/ultraware/whitespace
 # github.com/uudashr/gocognit v1.0.1
 github.com/uudashr/gocognit
-# github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77
-## explicit
 # go.opencensus.io v0.22.4
 go.opencensus.io
 go.opencensus.io/internal
@@ -687,5 +665,4 @@ mvdan.cc/interfacer/check
 # mvdan.cc/lint v0.0.0-20170908181259-adc824a0674b
 mvdan.cc/lint
 # mvdan.cc/unparam v0.0.0-20200501210554-b37ab49443f7
-## explicit
 mvdan.cc/unparam/check
