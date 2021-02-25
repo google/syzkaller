@@ -38,6 +38,8 @@ func (mgr *Manager) initHTTP() {
 	http.HandleFunc("/corpus", mgr.httpCorpus)
 	http.HandleFunc("/crash", mgr.httpCrash)
 	http.HandleFunc("/cover", mgr.httpCover)
+	http.HandleFunc("/cover?type=table", mgr.httpCover)
+	http.HandleFunc("/cover?type=rawfiles", mgr.httpCover)
 	http.HandleFunc("/prio", mgr.httpPrio)
 	http.HandleFunc("/file", mgr.httpFile)
 	http.HandleFunc("/report", mgr.httpReport)
@@ -223,7 +225,14 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 	}
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
-	mgr.httpCoverCover(w, r, rg, rg.DoHTML)
+
+	if r.FormValue("type") == "table" {
+		mgr.httpCoverCover(w, r, rg, rg.DoHTMLTable)
+	} else if r.FormValue("type") == "rawfiles" {
+		mgr.httpCoverCover(w, r, rg, rg.DoCSVFiles)
+	} else {
+		mgr.httpCoverCover(w, r, rg, rg.DoHTML)
+	}
 }
 
 func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request,

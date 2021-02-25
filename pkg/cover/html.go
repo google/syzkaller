@@ -6,6 +6,7 @@ package cover
 import (
 	"bytes"
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"html"
 	"html/template"
@@ -18,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/cover/backend"
+	"github.com/google/syzkaller/pkg/osutil"
 )
 
 func (rg *ReportGenerator) DoHTML(w io.Writer, progs []Prog) error {
@@ -101,6 +103,184 @@ func (rg *ReportGenerator) DoHTML(w io.Writer, progs []Prog) error {
 
 	processDir(d.Root)
 	return coverTemplate.Execute(w, d)
+}
+
+var csvFilesHeader = []string{
+	"Filename",
+	"CoveredLines",
+	"TotalLines",
+	"CoveredPCs",
+	"TotalPCs",
+	"TotalFunctions",
+	"CoveredPCsInFunctions",
+	"TotalPCsInFunctions",
+}
+
+func (rg *ReportGenerator) convertToStats(progs []Prog) ([][]string, error) {
+	files, err := rg.prepareFileMap(progs)
+	if err != nil {
+		return nil, err
+	}
+
+	var data [][]string
+	for fname, file := range files {
+		lines, err := parseFile(file.filename)
+		if err != nil {
+			fmt.Printf("failed to open/locate %s\n", file.filename)
+			continue
+		}
+		totalFuncs := len(file.functions)
+		var coveredInFunc int
+		var pcsInFunc int
+		for _, function := range file.functions {
+			coveredInFunc += function.covered
+			pcsInFunc += function.pcs
+		}
+		totalLines := len(lines)
+		var coveredLines int
+		for _, line := range file.lines {
+			if len(line.progCount) != 0 {
+				coveredLines++
+			}
+		}
+		data = append(data, []string{
+			fname,
+			strconv.Itoa(coveredLines),
+			strconv.Itoa(totalLines),
+			strconv.Itoa(file.coveredPCs),
+			strconv.Itoa(file.totalPCs),
+			strconv.Itoa(totalFuncs),
+			strconv.Itoa(coveredInFunc),
+			strconv.Itoa(pcsInFunc),
+		})
+	}
+
+	return data, nil
+}
+
+func (rg *ReportGenerator) DoCSVFiles(w io.Writer, progs []Prog) error {
+	data, err := rg.convertToStats(progs)
+	if err != nil {
+		return err
+	}
+
+	sort.Slice(data, func(i, j int) bool {
+		if data[i][0] != data[j][0] {
+			return data[i][0] < data[j][0]
+		}
+		return data[i][1] < data[j][1]
+	})
+
+	writer := csv.NewWriter(w)
+	defer writer.Flush()
+	if err := writer.Write(csvFilesHeader); err != nil {
+		return err
+	}
+	return writer.WriteAll(data)
+}
+
+func groupCoverByFilePrefixes(datas [][]string, prefixes map[string][]string) map[string]map[string]string {
+	const zeroString = "0.00"
+	d := make(map[string]map[string]string)
+
+	for component, filters := range prefixes {
+		var coveredLines int
+		var totalLines int
+		var coveredPCsInFile int
+		var totalPCsInFile int
+		var totalFuncs int
+		var coveredPCsInFuncs int
+		var pcsInFuncs int
+		var percentLines string
+		var percentPCsInFile string
+		var percentPCsInFunc string
+
+		for _, prefix := range filters {
+			prefix = strings.TrimPrefix(prefix, "/")
+			for i := 0; i < len(datas); i++ {
+				data := datas[i]
+				if !strings.HasPrefix(data[0], prefix) {
+					continue
+				}
+				if s, err := strconv.Atoi(data[1]); err == nil {
+					coveredLines += s
+				}
+				if s, err := strconv.Atoi(data[2]); err == nil {
+					totalLines += s
+				}
+				if s, err := strconv.Atoi(data[3]); err == nil {
+					coveredPCsInFile += s
+				}
+				if s, err := strconv.Atoi(data[4]); err == nil {
+					totalPCsInFile += s
+				}
+				if s, err := strconv.Atoi(data[5]); err == nil {
+					totalFuncs += s
+				}
+				if s, err := strconv.Atoi(data[6]); err == nil {
+					coveredPCsInFuncs += s
+				}
+				if s, err := strconv.Atoi(data[7]); err == nil {
+					pcsInFuncs += s
+				}
+			}
+		}
+
+		if totalLines != 0 {
+			percentLines = fmt.Sprintf("%.2f", 100.0*float64(coveredLines)/float64(totalLines))
+		} else {
+			percentLines = zeroString
+		}
+		if totalPCsInFile != 0 {
+			percentPCsInFile = fmt.Sprintf("%.2f", 100.0*float64(coveredPCsInFile)/float64(totalPCsInFile))
+		} else {
+			percentPCsInFile = zeroString
+		}
+		if pcsInFuncs != 0 {
+			percentPCsInFunc = fmt.Sprintf("%.2f", 100.0*float64(coveredPCsInFuncs)/float64(pcsInFuncs))
+		} else {
+			percentPCsInFunc = zeroString
+		}
+
+		d[component] = map[string]string{
+			"component":  component,
+			"lines":      strconv.Itoa(coveredLines) + " / " + strconv.Itoa(totalLines) + " / " + percentLines + "%",
+			"PCsInFiles": strconv.Itoa(coveredPCsInFile) + " / " + strconv.Itoa(totalPCsInFile) + " / " + percentPCsInFile + "%",
+			"totalFuncs": strconv.Itoa(totalFuncs),
+			"PCsInFuncs": strconv.Itoa(coveredPCsInFuncs) + " / " + strconv.Itoa(pcsInFuncs) + " / " + percentPCsInFunc + "%",
+		}
+	}
+
+	return d
+}
+
+func (rg *ReportGenerator) DoHTMLTable(w io.Writer, progs []Prog) error {
+	data, err := rg.convertToStats(progs)
+	if err != nil {
+		return err
+	}
+
+	var prefixes map[string][]string
+
+	if osutil.IsExist("./driver_path_map.json") {
+		raw, err := ioutil.ReadFile("./driver_path_map.json")
+		if err != nil {
+			return err
+		}
+
+		err = json.Unmarshal(raw, &prefixes)
+		if err != nil {
+			return err
+		}
+	} else {
+		prefixes = map[string][]string{
+			"all": {"/"},
+		}
+	}
+
+	d := groupCoverByFilePrefixes(data, prefixes)
+
+	return coverTableTemplate.Execute(w, d)
 }
 
 var csvHeader = []string{
@@ -556,4 +736,64 @@ var coverTemplate = template.Must(template.New("").Parse(`
 		</span></li>
 	{{end}}
 {{end}}
+`))
+
+var coverTableTemplate = template.Must(template.New("coverTable").Parse(`
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<style>
+			body {
+				background: white;
+			}
+			#content {
+				color: rgb(70, 70, 70);
+				margin-top: 50px;
+			}
+			th, td {
+				text-align: left;
+				border: 1px solid black;
+			}
+			th {
+				background: gray;
+			}
+			tr:nth-child(2n+1) {
+				background: #CCC
+			}
+			table {
+				border-collapse: collapse;
+				border: 1px solid black;
+				margin-bottom: 20px;
+			}
+		</style>
+	</head>
+	<body>
+		<div>
+			<table>
+				<thead>
+					<tr>
+						<th>Component</th>
+						<th>Covered / Total Lines / %</th>
+						<th>Covered / Total PCs in File / %</th>
+						<th>Covered / Total PCs in Function / %</th>
+						<th>Covered Functions</th>
+					</tr>
+				</thead>
+				<tbody id="content">
+					{{range $i, $p := .}}
+					<tr>
+						<td>{{$p.component}}</td>
+						<td>{{$p.lines}}</td>
+						<td>{{$p.PCsInFiles}}</td>
+						<td>{{$p.PCsInFuncs}}</td>
+						<td>{{$p.totalFuncs}}</td>
+					</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+	</body>
+</html>
+
 `))
