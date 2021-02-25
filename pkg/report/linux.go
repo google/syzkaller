@@ -710,7 +710,7 @@ var linuxStallAnchorFrames = []*regexp.Regexp{
 // nolint: lll
 var (
 	linuxSymbolizeRe = regexp.MustCompile(`(?:\[\<(?:(?:0x)?[0-9a-f]+)\>\])?[ \t]+\(?(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)\)?`)
-	linuxRipFrame    = compile(`(?:IP|NIP|pc |PC is at):? (?:(?:[0-9]+:)?(?:{{PC}} +){0,2}{{FUNC}}|[0-9]+:0x[0-9a-f]+|(?:[0-9]+:)?{{PC}} +\[< *\(null\)>\] +\(null\)|[0-9]+: +\(null\))`)
+	linuxRipFrame    = compile(`(?:IP|NIP|pc |PC is at):? (?:(?:[0-9]+:)?(?:{{PC}} +){0,2}{{FUNC}}|(?:[0-9]+:)?0x[0-9a-f]+|(?:[0-9]+:)?{{PC}} +\[< *\(null\)>\] +\(null\)|[0-9]+: +\(null\))`)
 	linuxCallTrace   = compile(`(?:Call (?:T|t)race:)|(?:Backtrace:)`)
 )
 
