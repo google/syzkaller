@@ -20,6 +20,7 @@ func InitTarget(target *prog.Target) {
 		DIOCKILLSTATES:   target.GetConst("DIOCKILLSTATES"),
 		KERN_MAXCLUSTERS: target.GetConst("KERN_MAXCLUSTERS"),
 		KERN_MAXPROC:     target.GetConst("KERN_MAXPROC"),
+		KERN_MAXFILES:    target.GetConst("KERN_MAXFILES"),
 		KERN_MAXTHREAD:   target.GetConst("KERN_MAXTHREAD"),
 		KERN_WITNESS:     target.GetConst("KERN_WITNESS"),
 		S_IFCHR:          target.GetConst("S_IFCHR"),
@@ -42,6 +43,7 @@ type arch struct {
 	DIOCKILLSTATES   uint64
 	KERN_MAXCLUSTERS uint64
 	KERN_MAXPROC     uint64
+	KERN_MAXFILES    uint64
 	KERN_MAXTHREAD   uint64
 	KERN_WITNESS     uint64
 	S_IFCHR          uint64
@@ -248,6 +250,13 @@ func (arch *arch) neutralizeSysctlKern(mib []*prog.ConstArg) bool {
 	// syz-execprog to run out of resources.
 	if len(mib) >= 2 &&
 		mib[0].Val == arch.CTL_KERN && mib[1].Val == arch.KERN_MAXPROC {
+		return true
+	}
+
+	// Do not fiddle with root only knob kern.maxfiles, can cause the
+	// syz-execprog to run out of resources.
+	if len(mib) >= 2 &&
+		mib[0].Val == arch.CTL_KERN && mib[1].Val == arch.KERN_MAXFILES {
 		return true
 	}
 
