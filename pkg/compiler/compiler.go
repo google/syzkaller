@@ -55,12 +55,19 @@ func createCompiler(desc *ast.Description, target *targets.Target, eh ast.ErrorH
 		ptrSize:      target.PtrSize,
 		unsupported:  make(map[string]bool),
 		resources:    make(map[string]*ast.Resource),
+		overrides:    make(map[string]*ast.Override),
+		varOverrides: make(map[string]map[string]*ast.VarOverride),
 		typedefs:     make(map[string]*ast.TypeDef),
 		structs:      make(map[string]*ast.Struct),
 		intFlags:     make(map[string]*ast.IntFlags),
 		strFlags:     make(map[string]*ast.StrFlags),
 		used:         make(map[string]bool),
 		usedTypedefs: make(map[string]bool),
+		usedStructs:  make(map[string]bool),
+		ovrUsed:      make(map[string]bool),
+		ovrStructs:   make(map[string]bool),
+		ovrFlags:     make(map[string]bool),
+		ovrStrFlags:  make(map[string]bool),
 		structVarlen: make(map[string]bool),
 		structTypes:  make(map[string]prog.Type),
 		builtinConsts: map[string]uint64{
@@ -72,7 +79,9 @@ func createCompiler(desc *ast.Description, target *targets.Target, eh ast.ErrorH
 
 // Compile compiles sys description.
 func Compile(desc *ast.Description, consts map[string]uint64, target *targets.Target, eh ast.ErrorHandler) *Prog {
-	comp := createCompiler(desc.Clone(), target, eh)
+	// Applying overrides returns a new compiler
+	comp := createCompiler(desc.Clone(), target, eh).applyOverrides()
+
 	comp.typecheck()
 	// The subsequent, more complex, checks expect basic validity of the tree,
 	// in particular corrent number of type arguments. If there were errors,
@@ -123,12 +132,19 @@ type compiler struct {
 
 	unsupported  map[string]bool
 	resources    map[string]*ast.Resource
+	overrides    map[string]*ast.Override
+	varOverrides map[string]map[string]*ast.VarOverride
 	typedefs     map[string]*ast.TypeDef
 	structs      map[string]*ast.Struct
 	intFlags     map[string]*ast.IntFlags
 	strFlags     map[string]*ast.StrFlags
 	used         map[string]bool // contains used structs/resources
 	usedTypedefs map[string]bool
+	usedStructs  map[string]bool
+	ovrUsed      map[string]bool
+	ovrStructs   map[string]bool
+	ovrFlags     map[string]bool
+	ovrStrFlags  map[string]bool
 
 	structVarlen  map[string]bool
 	structTypes   map[string]prog.Type
@@ -221,6 +237,176 @@ func (comp *compiler) parseAttrArg(attr *ast.Type) uint64 {
 		return 0
 	}
 	return sz.Value
+}
+
+func (comp *compiler) applyOverrides() *compiler {
+	newComp := createCompiler(&ast.Description{}, comp.target, comp.eh)
+
+	// Temporarily ignore errors in old compiler, as they will be surfaced later
+	prevErrors := comp.errors
+	comp.eh = func(pos ast.Pos, msg string) {}
+
+	// Save list of AST nodes *before* applying typedefs
+	origDesc := comp.desc.Clone()
+
+	// Need to typecheck to resolve type descriptions
+	comp.typecheck()
+
+	newDesc := &ast.Description{}
+
+	for _, decl := range origDesc.Nodes {
+		switch n := decl.(type) {
+		case *ast.Call:
+			name := n.Name.Name
+			if ovrCall := comp.overrides[name]; ovrCall != nil {
+				// Make sure that if the only use of a type is overridden there
+				// aren't compiler errors generated for the type being unused.
+				comp.collectOverriddenNode(n)
+
+				// Mark this override as used
+				comp.ovrUsed[name] = true
+
+				// It doesn't make sense to override a call with some other type
+				newCall, ok := ovrCall.NewType.(*ast.Call)
+				if !ok {
+					_, typ, _ := ovrCall.NewType.Info()
+					newComp.error(ovrCall.Pos, "Cannot override call %v with a %v", name, typ)
+					newDesc.Nodes = append(newDesc.Nodes, n)
+					continue
+				}
+
+				// Replace old call declaration with new overridden declaration in newDesc
+				newDesc.Nodes = append(newDesc.Nodes, newCall)
+			} else if container := comp.varOverrides[name]; container != nil {
+				newCall := n.Clone().(*ast.Call)
+
+				// Iterate through arguments, checking whether there's an override for each
+				for _, arg := range newCall.Args {
+					argName := arg.Name.Name
+					if ovrParam := container[argName]; ovrParam != nil {
+						// Override function argument's type
+						comp.collectOverriddenType(arg.Type, true)
+						comp.ovrUsed[name+"."+argName] = true
+						arg.Type = ovrParam.NewVarType
+					}
+				}
+
+				// Check for `override Function.return NewReturnType`
+				if ovrRet := container["return"]; ovrRet != nil {
+					comp.collectOverriddenType(newCall.Ret, false)
+					comp.ovrUsed[name+".return"] = true
+					newCall.Ret = ovrRet.NewVarType
+				}
+
+				newDesc.Nodes = append(newDesc.Nodes, newCall)
+			} else {
+				// Add the unmodified call to newDesc, as there were no overrides for it
+				newDesc.Nodes = append(newDesc.Nodes, n)
+			}
+
+		case *ast.Struct:
+			name := n.Name.Name
+			if ovrStruct := comp.overrides[name]; ovrStruct != nil {
+				comp.collectOverriddenNode(n)
+				comp.ovrUsed[name] = true
+
+				// It doesn't make sense to override a struct with a call
+				if _, ok := ovrStruct.NewType.(*ast.Call); ok {
+					newComp.error(ovrStruct.Pos, "Cannot override struct %v with a call", name)
+					newDesc.Nodes = append(newDesc.Nodes, n)
+					continue
+				}
+
+				newDesc.Nodes = append(newDesc.Nodes, ovrStruct.NewType)
+			} else if container := comp.varOverrides[name]; container != nil {
+				newStruct := n.Clone().(*ast.Struct)
+
+				// Iterate through fields, checking whether there's an override for each
+				for _, field := range newStruct.Fields {
+					fieldName := field.Name.Name
+					if ovrField := container[fieldName]; ovrField != nil {
+						// Override struct field's type
+						comp.collectOverriddenType(field.Type, false)
+						comp.ovrUsed[name+"."+fieldName] = true
+						field.Type = ovrField.NewVarType
+					}
+				}
+
+				newDesc.Nodes = append(newDesc.Nodes, newStruct)
+			} else {
+				// Add the unmodified struct to newDesc, as there were no overrides for it
+				newDesc.Nodes = append(newDesc.Nodes, n)
+			}
+
+		case *ast.TypeDef:
+			name := n.Name.Name
+			if ovrTypeDef := comp.overrides[name]; ovrTypeDef != nil {
+				comp.collectOverriddenNode(n)
+				comp.ovrUsed[name] = true
+
+				// It doesn't make sense to override a typedef with a call
+				if _, ok := ovrTypeDef.NewType.(*ast.Call); ok {
+					newComp.error(ovrTypeDef.Pos, "Cannot override typedef %v with a call", name)
+					newDesc.Nodes = append(newDesc.Nodes, n)
+					continue
+				}
+
+				newDesc.Nodes = append(newDesc.Nodes, ovrTypeDef.NewType)
+			} else {
+				// Add the unmodified typedef to newDesc, as there were no overrides for it
+				newDesc.Nodes = append(newDesc.Nodes, n)
+			}
+
+		case *ast.Resource:
+			name := n.Name.Name
+			if ovrResource := comp.overrides[name]; ovrResource != nil {
+				comp.collectOverriddenNode(n)
+				comp.ovrUsed[name] = true
+
+				// It doesn't make sense to override a resource with a call
+				if _, ok := ovrResource.NewType.(*ast.Call); ok {
+					newComp.error(ovrResource.Pos, "Cannot override resource %v with a call", name)
+					newDesc.Nodes = append(newDesc.Nodes, n)
+					continue
+				}
+
+				newDesc.Nodes = append(newDesc.Nodes, ovrResource.NewType)
+			} else {
+				// Add the unmodified resource to newDesc, as there were no overrides for it
+				newDesc.Nodes = append(newDesc.Nodes, n)
+			}
+
+		// These are being handled so they are not added to newDesc
+		case *ast.Override, *ast.VarOverride:
+			continue
+
+		default:
+			newDesc.Nodes = append(newDesc.Nodes, decl)
+		}
+	}
+
+	// Restore original compiler's error handler function
+	comp.eh = newComp.eh
+	comp.errors = prevErrors
+
+	// Replace AST with the overridden ones
+	newComp.desc = newDesc
+
+	// Copy used sets to the new compiler
+	newComp.used, _, _ = comp.collectUsed(false)
+	newComp.usedTypedefs = comp.usedTypedefs
+	newComp.usedStructs, _, _ = comp.collectUsed(true)
+	newComp.ovrUsed = comp.ovrUsed
+	newComp.ovrStructs = comp.ovrStructs
+	newComp.ovrFlags = comp.ovrFlags
+	newComp.ovrStrFlags = comp.ovrStrFlags
+
+	// Even though they have already been processed, these will still be
+	// used during checkUnused(), so pass them on
+	newComp.overrides = comp.overrides
+	newComp.varOverrides = comp.varOverrides
+
+	return newComp
 }
 
 func (comp *compiler) getTypeDesc(t *ast.Type) *typeDesc {

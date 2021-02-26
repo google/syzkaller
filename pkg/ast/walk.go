@@ -56,6 +56,16 @@ func (n *Resource) walk(cb func(Node)) {
 	}
 }
 
+func (n *Override) walk(cb func(Node)) {
+	cb(n.NewType)
+}
+
+func (n *VarOverride) walk(cb func(Node)) {
+	cb(n.ContainerName)
+	cb(n.VarName)
+	cb(n.NewVarType)
+}
+
 func (n *TypeDef) walk(cb func(Node)) {
 	cb(n.Name)
 	for _, a := range n.Args {

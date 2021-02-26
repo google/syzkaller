@@ -104,12 +104,49 @@ func (p *parser) parseTopRecover() Node {
 			panic(err)
 		}
 	}()
-	decl := p.parseTop()
+	decl := p.parseTopWithOverride()
 	if decl == nil {
 		panic("not reachable")
 	}
 	p.consume(tokNewLine)
 	return decl
+}
+
+func (p *parser) parseTopWithOverride() Node {
+	pos0 := p.pos
+	if p.tryConsume(tokOverride) {
+		var newType Node
+
+		// Two forms to check for.
+
+		// Form 1: override ContainerName.VarName NewVarType
+		// Form 2: override NewTypeDecaration
+
+		if p.tok == tokIdent {
+			name := p.parseIdent()
+			if name.Name != "type" && p.tryConsume(tokDot) {
+				varName := p.parseIdent()
+				varType := p.parseType()
+				return &VarOverride{
+					Pos:           pos0,
+					ContainerName: name,
+					VarName:       varName,
+					NewVarType:    varType,
+				}
+			}
+
+			newType = p.parseAfterIdent(name)
+		} else {
+			newType = p.parseTop()
+		}
+
+		return &Override{
+			Pos:     pos0,
+			NewType: newType,
+		}
+	}
+
+	return p.parseTop()
 }
 
 func (p *parser) parseTop() Node {
@@ -128,19 +165,7 @@ func (p *parser) parseTop() Node {
 		return p.parseResource()
 	case tokIdent:
 		name := p.parseIdent()
-		if name.Name == "type" {
-			return p.parseTypeDef()
-		}
-		switch p.tok {
-		case tokLParen:
-			return p.parseCall(name)
-		case tokLBrace, tokLBrack:
-			return p.parseStruct(name)
-		case tokEq:
-			return p.parseFlags(name)
-		default:
-			p.expect(tokLParen, tokLBrace, tokLBrack, tokEq)
-		}
+		return p.parseAfterIdent(name)
 	case tokIllegal:
 		// Scanner has already producer an error for this one.
 		panic(errSkipLine)
@@ -246,6 +271,25 @@ func (p *parser) parseResource() *Resource {
 		Base:   base,
 		Values: values,
 	}
+}
+
+func (p *parser) parseAfterIdent(name *Ident) Node {
+	if name.Name == "type" {
+		return p.parseTypeDef()
+	}
+
+	switch p.tok {
+	case tokLParen:
+		return p.parseCall(name)
+	case tokLBrace, tokLBrack:
+		return p.parseStruct(name)
+	case tokEq:
+		return p.parseFlags(name)
+	default:
+		p.expect(tokLParen, tokLBrace, tokLBrack, tokEq)
+	}
+
+	panic("not reachable")
 }
 
 func (p *parser) parseTypeDef() *TypeDef {

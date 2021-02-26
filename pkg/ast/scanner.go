@@ -20,6 +20,7 @@ const (
 	tokIncdir
 	tokDefine
 	tokResource
+	tokOverride
 	tokString
 	tokStringHex
 	tokCExpr
@@ -35,6 +36,7 @@ const (
 	tokEq
 	tokComma
 	tokColon
+	tokDot
 
 	tokEOF
 )
@@ -50,6 +52,7 @@ var punctuation = [256]token{
 	'=':  tokEq,
 	',':  tokComma,
 	':':  tokColon,
+	'.':  tokDot,
 }
 
 var tok2str = [...]string{
@@ -60,6 +63,7 @@ var tok2str = [...]string{
 	tokIncdir:    "incdir",
 	tokDefine:    "define",
 	tokResource:  "resource",
+	tokOverride:  "override",
 	tokString:    "string",
 	tokStringHex: "hex string",
 	tokCExpr:     "CEXPR",
@@ -82,6 +86,7 @@ var keywords = map[string]token{
 	"incdir":   tokIncdir,
 	"define":   tokDefine,
 	"resource": tokResource,
+	"override": tokOverride,
 }
 
 func (tok token) String() string {

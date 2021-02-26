@@ -137,29 +137,80 @@ func (comp *compiler) checkNames() {
 					name, prev.Pos)
 			}
 			calls[name] = n
+		case *ast.Override:
+			switch n.NewType.(type) {
+			case *ast.Resource, *ast.Struct, *ast.TypeDef, *ast.Call:
+				pos, typ, name := n.NewType.Info()
+
+				if prev := comp.overrides[name]; prev != nil {
+					comp.error(pos, "override for %v %v redeclared, previously declared at %v",
+						typ, name, prev.Pos)
+				}
+				if prev := comp.varOverrides[name]; prev != nil {
+					comp.error(pos, "override for %v %v conflicts with previous var override",
+						typ, name)
+				}
+				comp.overrides[name] = n
+
+			default:
+				pos, typ, _ := n.NewType.Info()
+				comp.error(pos, "cannot override a %v", typ)
+			}
+		case *ast.VarOverride:
+			containerName := n.ContainerName.Name
+			varName := n.VarName.Name
+
+			if prev := comp.overrides[containerName]; prev != nil {
+				comp.error(n.Pos, "override for %v.%v conflicts with override previously declared at %v",
+					containerName, varName, prev.Pos)
+			}
+
+			container := comp.varOverrides[containerName]
+			if container == nil {
+				container = make(map[string]*ast.VarOverride)
+				comp.varOverrides[containerName] = container
+			}
+
+			if varName == "parent" {
+				comp.error(n.Pos, "cannot override reserved field name \"parent\" in %v",
+					containerName)
+			}
+
+			if prev := container[varName]; prev != nil {
+				comp.error(n.Pos, "override for %v.%v redeclared, previously declared at %v",
+					containerName, varName, prev.Pos)
+			}
+
+			container[varName] = n
 		}
 	}
 }
 
 func (comp *compiler) checkFields() {
 	for _, decl := range comp.desc.Nodes {
-		switch n := decl.(type) {
-		case *ast.Struct:
-			_, typ, name := n.Info()
-			comp.checkStructFields(n, typ, name)
-		case *ast.TypeDef:
-			if n.Struct != nil {
-				_, typ, _ := n.Struct.Info()
-				comp.checkStructFields(n.Struct, "template "+typ, n.Name.Name)
-			}
-		case *ast.Call:
-			name := n.Name.Name
-			comp.checkFieldGroup(n.Args, "argument", "syscall "+name)
-			if len(n.Args) > prog.MaxArgs {
-				comp.error(n.Pos, "syscall %v has %v arguments, allowed maximum is %v",
-					name, len(n.Args), prog.MaxArgs)
-			}
+		comp.checkFieldsInNode(decl)
+	}
+}
+
+func (comp *compiler) checkFieldsInNode(decl ast.Node) {
+	switch n := decl.(type) {
+	case *ast.Struct:
+		_, typ, name := n.Info()
+		comp.checkStructFields(n, typ, name)
+	case *ast.TypeDef:
+		if n.Struct != nil {
+			_, typ, _ := n.Struct.Info()
+			comp.checkStructFields(n.Struct, "template "+typ, n.Name.Name)
 		}
+	case *ast.Call:
+		name := n.Name.Name
+		comp.checkFieldGroup(n.Args, "argument", "syscall "+name)
+		if len(n.Args) > prog.MaxArgs {
+			comp.error(n.Pos, "syscall %v has %v arguments, allowed maximum is %v",
+				name, len(n.Args), prog.MaxArgs)
+		}
+	case *ast.Override:
+		comp.checkFieldsInNode(n.NewType)
 	}
 }
 
@@ -196,103 +247,123 @@ const argBase = "BASE"
 
 func (comp *compiler) checkTypedefs() {
 	for _, decl := range comp.desc.Nodes {
-		switch n := decl.(type) {
-		case *ast.TypeDef:
-			if len(n.Args) == 0 {
-				// Non-template types are fully typed, so we check them ahead of time.
-				err0 := comp.errors
-				comp.checkType(checkCtx{}, n.Type, checkIsTypedef)
-				if err0 != comp.errors {
-					// To not produce confusing errors on broken type usage.
-					delete(comp.typedefs, n.Name.Name)
+		comp.checkTypedefsInNode(decl)
+	}
+}
+
+func (comp *compiler) checkTypedefsInNode(decl ast.Node) {
+	switch n := decl.(type) {
+	case *ast.TypeDef:
+		if len(n.Args) == 0 {
+			// Non-template types are fully typed, so we check them ahead of time.
+			err0 := comp.errors
+			comp.checkType(checkCtx{}, n.Type, checkIsTypedef)
+			if err0 != comp.errors {
+				// To not produce confusing errors on broken type usage.
+				delete(comp.typedefs, n.Name.Name)
+			}
+		} else {
+			// For templates we only do basic checks of arguments.
+			names := make(map[string]bool)
+			for i, arg := range n.Args {
+				if arg.Name == argBase && i != len(n.Args)-1 {
+					comp.error(arg.Pos, "type argument BASE must be the last argument")
 				}
-			} else {
-				// For templates we only do basic checks of arguments.
-				names := make(map[string]bool)
-				for i, arg := range n.Args {
-					if arg.Name == argBase && i != len(n.Args)-1 {
-						comp.error(arg.Pos, "type argument BASE must be the last argument")
+				if names[arg.Name] {
+					comp.error(arg.Pos, "duplicate type argument %v", arg.Name)
+				}
+				names[arg.Name] = true
+				for _, c := range arg.Name {
+					if c >= 'A' && c <= 'Z' ||
+						c >= '0' && c <= '9' ||
+						c == '_' {
+						continue
 					}
-					if names[arg.Name] {
-						comp.error(arg.Pos, "duplicate type argument %v", arg.Name)
-					}
-					names[arg.Name] = true
-					for _, c := range arg.Name {
-						if c >= 'A' && c <= 'Z' ||
-							c >= '0' && c <= '9' ||
-							c == '_' {
-							continue
-						}
-						comp.error(arg.Pos, "type argument %v must be ALL_CAPS",
-							arg.Name)
-						break
-					}
+					comp.error(arg.Pos, "type argument %v must be ALL_CAPS",
+						arg.Name)
+					break
 				}
 			}
 		}
+	case *ast.Override:
+		comp.checkTypedefsInNode(n.NewType)
 	}
 }
 
 func (comp *compiler) checkTypes() {
 	for _, decl := range comp.desc.Nodes {
-		switch n := decl.(type) {
-		case *ast.Resource:
-			comp.checkType(checkCtx{}, n.Base, checkIsResourceBase)
-		case *ast.Struct:
-			comp.checkStruct(checkCtx{}, n)
-		case *ast.Call:
-			comp.checkCall(n)
-		}
+		comp.checkTypesInNode(decl)
+	}
+}
+
+func (comp *compiler) checkTypesInNode(decl ast.Node) {
+	switch n := decl.(type) {
+	case *ast.Resource:
+		comp.checkType(checkCtx{}, n.Base, checkIsResourceBase)
+	case *ast.Struct:
+		comp.checkStruct(checkCtx{}, n)
+	case *ast.Call:
+		comp.checkCall(n)
+	case *ast.Override:
+		comp.checkTypesInNode(n.NewType)
 	}
 }
 
 func (comp *compiler) checkTypeValues() {
 	for _, decl := range comp.desc.Nodes {
-		switch n := decl.(type) {
-		case *ast.Call, *ast.Struct, *ast.Resource, *ast.TypeDef:
-			comp.foreachType(decl, func(t *ast.Type, desc *typeDesc,
-				args []*ast.Type, base prog.IntTypeCommon) {
-				if desc.CheckConsts != nil {
-					desc.CheckConsts(comp, t, args, base)
-				}
-				for i, arg := range args {
-					if check := desc.Args[i].Type.CheckConsts; check != nil {
-						check(comp, arg)
-					}
-				}
-			})
-		case *ast.IntFlags:
-			allEqual := len(n.Values) >= 2
-			for _, val := range n.Values {
-				if val.Value != n.Values[0].Value {
-					allEqual = false
+		comp.checkTypeValuesInNode(decl)
+	}
+}
+
+func (comp *compiler) checkTypeValuesInNode(decl ast.Node) {
+	switch n := decl.(type) {
+	case *ast.Call, *ast.Struct, *ast.Resource, *ast.TypeDef:
+		comp.foreachType(decl, func(t *ast.Type, desc *typeDesc,
+			args []*ast.Type, base prog.IntTypeCommon) {
+			if desc.CheckConsts != nil {
+				desc.CheckConsts(comp, t, args, base)
+			}
+			for i, arg := range args {
+				if check := desc.Args[i].Type.CheckConsts; check != nil {
+					check(comp, arg)
 				}
 			}
-			if allEqual {
-				comp.error(n.Pos, "all %v values are equal %v", n.Name.Name, n.Values[0].Value)
+		})
+	case *ast.IntFlags:
+		allEqual := len(n.Values) >= 2
+		for _, val := range n.Values {
+			if val.Value != n.Values[0].Value {
+				allEqual = false
 			}
+		}
+		if allEqual {
+			comp.error(n.Pos, "all %v values are equal %v", n.Name.Name, n.Values[0].Value)
 		}
 	}
 }
 
 func (comp *compiler) checkAttributeValues() {
 	for _, decl := range comp.desc.Nodes {
-		switch n := decl.(type) {
-		case *ast.Struct:
-			for _, attr := range n.Attrs {
-				desc := structOrUnionAttrs(n)[attr.Ident]
-				if desc.CheckConsts != nil {
-					desc.CheckConsts(comp, n, attr)
-				}
+		comp.checkAttributeValuesInNode(decl)
+	}
+}
+
+func (comp *compiler) checkAttributeValuesInNode(decl ast.Node) {
+	switch n := decl.(type) {
+	case *ast.Struct:
+		for _, attr := range n.Attrs {
+			desc := structOrUnionAttrs(n)[attr.Ident]
+			if desc.CheckConsts != nil {
+				desc.CheckConsts(comp, n, attr)
 			}
-			// Check each field's attributes.
-			st := decl.(*ast.Struct)
-			for _, f := range st.Fields {
-				for _, attr := range f.Attrs {
-					desc := fieldAttrs[attr.Ident]
-					if desc.CheckConsts != nil {
-						desc.CheckConsts(comp, f, attr)
-					}
+		}
+		// Check each field's attributes.
+		st := decl.(*ast.Struct)
+		for _, f := range st.Fields {
+			for _, attr := range f.Attrs {
+				desc := fieldAttrs[attr.Ident]
+				if desc.CheckConsts != nil {
+					desc.CheckConsts(comp, f, attr)
 				}
 			}
 		}
@@ -302,13 +373,17 @@ func (comp *compiler) checkAttributeValues() {
 func (comp *compiler) checkLenTargets() {
 	warned := make(map[string]bool)
 	for _, decl := range comp.desc.Nodes {
-		switch n := decl.(type) {
-		case *ast.Call:
-			for _, arg := range n.Args {
-				checked := make(map[string]bool)
-				parents := []parentDesc{{fields: n.Args}}
-				comp.checkLenType(arg.Type, arg.Type, parents, checked, warned, true)
-			}
+		comp.checkLenTargetsInNode(decl, warned)
+	}
+}
+
+func (comp *compiler) checkLenTargetsInNode(decl ast.Node, warned map[string]bool) {
+	switch n := decl.(type) {
+	case *ast.Call:
+		for _, arg := range n.Args {
+			checked := make(map[string]bool)
+			parents := []parentDesc{{fields: n.Args}}
+			comp.checkLenType(arg.Type, arg.Type, parents, checked, warned, true)
 		}
 	}
 }
@@ -463,8 +538,20 @@ func CollectUnused(desc *ast.Description, target *targets.Target, eh ast.ErrorHa
 func (comp *compiler) collectUnused() []ast.Node {
 	var unused []ast.Node
 
-	comp.used, _, _ = comp.collectUsed(false)
+	used, _, _ := comp.collectUsed(false)
+
+	// Add used types to the (possibly empty) set of already used types
+	for k, v := range used {
+		comp.used[k] = v
+	}
+
 	structs, flags, strflags := comp.collectUsed(true)
+
+	// Add used structs to the (possibly empty) set of already used structs
+	for k, v := range structs {
+		comp.usedStructs[k] = v
+	}
+	structs = comp.usedStructs
 
 	note := func(n ast.Node) {
 		if pos, _, _ := n.Info(); pos.Builtin() {
@@ -473,6 +560,19 @@ func (comp *compiler) collectUnused() []ast.Node {
 		unused = append(unused, n)
 	}
 
+	for name, n := range comp.overrides {
+		if !comp.ovrUsed[name] {
+			note(n)
+		}
+	}
+	for containerName, container := range comp.varOverrides {
+		for varName, varType := range container {
+			name := containerName + "." + varName
+			if !comp.ovrUsed[name] {
+				note(varType)
+			}
+		}
+	}
 	for name, n := range comp.intFlags {
 		if !flags[name] {
 			note(n)
@@ -507,20 +607,58 @@ func (comp *compiler) collectUsed(all bool) (structs, flags, strflags map[string
 	flags = make(map[string]bool)
 	strflags = make(map[string]bool)
 	for _, decl := range comp.desc.Nodes {
-		switch n := decl.(type) {
-		case *ast.Call:
-			if !all && n.NR == ^uint64(0) {
-				break
-			}
-			for _, arg := range n.Args {
-				comp.collectUsedType(structs, flags, strflags, arg.Type, true)
-			}
-			if n.Ret != nil {
-				comp.collectUsedType(structs, flags, strflags, n.Ret, true)
-			}
-		}
+		comp.collectUsedNode(all, structs, flags, strflags, decl)
 	}
 	return
+}
+
+func (comp *compiler) collectUsedNode(all bool, structs, flags, strflags map[string]bool, decl ast.Node) {
+	switch n := decl.(type) {
+	case *ast.Call:
+		if !all && n.NR == ^uint64(0) {
+			break
+		}
+		for _, arg := range n.Args {
+			comp.collectUsedType(structs, flags, strflags, arg.Type, true)
+		}
+		if n.Ret != nil {
+			comp.collectUsedType(structs, flags, strflags, n.Ret, true)
+		}
+	}
+}
+
+func (comp *compiler) collectOverriddenNode(decl ast.Node) {
+	if decl == nil {
+		return
+	}
+
+	switch n := decl.(type) {
+	case *ast.Call:
+		comp.collectUsedNode(true, comp.ovrStructs, comp.ovrFlags, comp.ovrStrFlags, decl)
+
+	case *ast.Resource:
+		comp.collectOverriddenType(n.Base, false)
+
+	case *ast.TypeDef:
+		if n.Type != nil {
+			comp.collectOverriddenType(n.Type, false)
+		} else {
+			comp.collectOverriddenNode(n.Struct)
+		}
+
+	case *ast.Struct:
+		for _, field := range n.Fields {
+			comp.collectOverriddenType(field.Type, false)
+		}
+	}
+}
+
+func (comp *compiler) collectOverriddenType(t *ast.Type, isArg bool) {
+	if t == nil {
+		return
+	}
+
+	comp.collectUsedType(comp.ovrStructs, comp.ovrFlags, comp.ovrStrFlags, t, isArg)
 }
 
 func (comp *compiler) collectUsedType(structs, flags, strflags map[string]bool, t *ast.Type, isArg bool) {
@@ -556,6 +694,10 @@ func (comp *compiler) collectUsedType(structs, flags, strflags map[string]bool, 
 	}
 	_, args, _ := comp.getArgsBase(t, isArg)
 	for i, arg := range args {
+		if i >= len(desc.Args) {
+			break
+		}
+
 		if desc.Args[i].Type == typeArgType {
 			comp.collectUsedType(structs, flags, strflags, arg, desc.Args[i].IsArg)
 		}
