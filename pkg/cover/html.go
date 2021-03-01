@@ -183,7 +183,7 @@ func groupCoverByFilePrefixes(datas [][]string, prefixes map[string][]string) ma
 	const zeroString = "0.00"
 	d := make(map[string]map[string]string)
 
-	for component, filters := range prefixes {
+	for subsystem, filters := range prefixes {
 		var coveredLines int
 		var totalLines int
 		var coveredPCsInFile int
@@ -242,12 +242,12 @@ func groupCoverByFilePrefixes(datas [][]string, prefixes map[string][]string) ma
 			percentPCsInFunc = zeroString
 		}
 
-		d[component] = map[string]string{
-			"component":  component,
-			"lines":      strconv.Itoa(coveredLines) + " / " + strconv.Itoa(totalLines) + " / " + percentLines + "%",
-			"PCsInFiles": strconv.Itoa(coveredPCsInFile) + " / " + strconv.Itoa(totalPCsInFile) + " / " + percentPCsInFile + "%",
+		d[subsystem] = map[string]string{
+			"subsystem":  subsystem,
+			"lines":      fmt.Sprintf(%v / %v / %.2f%%, coveredLines, totalLines, percentLines),
+			"PCsInFiles": fmt.Sprintf(%v / %v / %.2f%%, coveredPCsInFile, totalPCsInFile, percentPCsInFile),
 			"totalFuncs": strconv.Itoa(totalFuncs),
-			"PCsInFuncs": strconv.Itoa(coveredPCsInFuncs) + " / " + strconv.Itoa(pcsInFuncs) + " / " + percentPCsInFunc + "%",
+			"PCsInFuncs": fmt.Sprintf(%v / %v / %.2f%%, coveredPCsInFuncs, pcsInFuncs, percentPCsInFunc),
 		}
 	}
 
@@ -773,7 +773,7 @@ var coverTableTemplate = template.Must(template.New("coverTable").Parse(`
 			<table>
 				<thead>
 					<tr>
-						<th>Component</th>
+						<th>Subsystem</th>
 						<th>Covered / Total Lines / %</th>
 						<th>Covered / Total PCs in File / %</th>
 						<th>Covered / Total PCs in Function / %</th>
@@ -783,7 +783,7 @@ var coverTableTemplate = template.Must(template.New("coverTable").Parse(`
 				<tbody id="content">
 					{{range $i, $p := .}}
 					<tr>
-						<td>{{$p.component}}</td>
+						<td>{{$p.subsystem}}</td>
 						<td>{{$p.lines}}</td>
 						<td>{{$p.PCsInFiles}}</td>
 						<td>{{$p.PCsInFuncs}}</td>
