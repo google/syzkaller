@@ -6,7 +6,6 @@ package cover
 import (
 	"bytes"
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	"html"
 	"html/template"
@@ -19,7 +18,6 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/cover/backend"
-	"github.com/google/syzkaller/pkg/osutil"
 )
 
 func (rg *ReportGenerator) DoHTML(w io.Writer, progs []Prog) error {
@@ -105,6 +103,17 @@ func (rg *ReportGenerator) DoHTML(w io.Writer, progs []Prog) error {
 	return coverTemplate.Execute(w, d)
 }
 
+type fileStats struct {
+	Name                  string
+	CoveredLines          int
+	TotalLines            int
+	CoveredPCs            int
+	TotalPCs              int
+	TotalFunctions        int
+	CoveredPCsInFunctions int
+	TotalPCsInFunctions   int
+}
+
 var csvFilesHeader = []string{
 	"Filename",
 	"CoveredLines",
@@ -116,13 +125,13 @@ var csvFilesHeader = []string{
 	"TotalPCsInFunctions",
 }
 
-func (rg *ReportGenerator) convertToStats(progs []Prog) ([][]string, error) {
+func (rg *ReportGenerator) convertToStats(progs []Prog) ([]fileStats, error) {
 	files, err := rg.prepareFileMap(progs)
 	if err != nil {
 		return nil, err
 	}
 
-	var data [][]string
+	var data []fileStats
 	for fname, file := range files {
 		lines, err := parseFile(file.filename)
 		if err != nil {
@@ -143,15 +152,15 @@ func (rg *ReportGenerator) convertToStats(progs []Prog) ([][]string, error) {
 				coveredLines++
 			}
 		}
-		data = append(data, []string{
-			fname,
-			strconv.Itoa(coveredLines),
-			strconv.Itoa(totalLines),
-			strconv.Itoa(file.coveredPCs),
-			strconv.Itoa(file.totalPCs),
-			strconv.Itoa(totalFuncs),
-			strconv.Itoa(coveredInFunc),
-			strconv.Itoa(pcsInFunc),
+		data = append(data, fileStats{
+			Name:                  fname,
+			CoveredLines:          coveredLines,
+			TotalLines:            totalLines,
+			CoveredPCs:            file.coveredPCs,
+			TotalPCs:              file.totalPCs,
+			TotalFunctions:        totalFuncs,
+			CoveredPCsInFunctions: coveredInFunc,
+			TotalPCsInFunctions:   pcsInFunc,
 		})
 	}
 
@@ -164,11 +173,8 @@ func (rg *ReportGenerator) DoCSVFiles(w io.Writer, progs []Prog) error {
 		return err
 	}
 
-	sort.Slice(data, func(i, j int) bool {
-		if data[i][0] != data[j][0] {
-			return data[i][0] < data[j][0]
-		}
-		return data[i][1] < data[j][1]
+	sort.SliceStable(data, func(i, j int) bool {
+		return data[i].Name < data[j].Name
 	})
 
 	writer := csv.NewWriter(w)
@@ -176,14 +182,27 @@ func (rg *ReportGenerator) DoCSVFiles(w io.Writer, progs []Prog) error {
 	if err := writer.Write(csvFilesHeader); err != nil {
 		return err
 	}
-	return writer.WriteAll(data)
+
+	var d [][]string
+	for _, dt := range data {
+		d = append(d, []string{
+			dt.Name,
+			strconv.Itoa(dt.CoveredLines),
+			strconv.Itoa(dt.TotalLines),
+			strconv.Itoa(dt.CoveredPCs),
+			strconv.Itoa(dt.TotalPCs),
+			strconv.Itoa(dt.TotalFunctions),
+			strconv.Itoa(dt.CoveredPCsInFunctions),
+			strconv.Itoa(dt.TotalPCsInFunctions),
+		})
+	}
+	return writer.WriteAll(d)
 }
 
-func groupCoverByFilePrefixes(datas [][]string, prefixes map[string][]string) map[string]map[string]string {
-	const zeroString = "0.00"
+func groupCoverByFilePrefixes(datas []fileStats, subsystems []Subsystem) map[string]map[string]string {
 	d := make(map[string]map[string]string)
 
-	for subsystem, filters := range prefixes {
+	for _, subsystem := range subsystems {
 		var coveredLines int
 		var totalLines int
 		var coveredPCsInFile int
@@ -191,63 +210,41 @@ func groupCoverByFilePrefixes(datas [][]string, prefixes map[string][]string) ma
 		var totalFuncs int
 		var coveredPCsInFuncs int
 		var pcsInFuncs int
-		var percentLines string
-		var percentPCsInFile string
-		var percentPCsInFunc string
+		var percentLines float64
+		var percentPCsInFile float64
+		var percentPCsInFunc float64
 
-		for _, prefix := range filters {
-			prefix = strings.TrimPrefix(prefix, "/")
-			for i := 0; i < len(datas); i++ {
-				data := datas[i]
-				if !strings.HasPrefix(data[0], prefix) {
+		for _, path := range subsystem.Paths {
+			for _, data := range datas {
+				if !strings.HasPrefix(data.Name, path) {
 					continue
 				}
-				if s, err := strconv.Atoi(data[1]); err == nil {
-					coveredLines += s
-				}
-				if s, err := strconv.Atoi(data[2]); err == nil {
-					totalLines += s
-				}
-				if s, err := strconv.Atoi(data[3]); err == nil {
-					coveredPCsInFile += s
-				}
-				if s, err := strconv.Atoi(data[4]); err == nil {
-					totalPCsInFile += s
-				}
-				if s, err := strconv.Atoi(data[5]); err == nil {
-					totalFuncs += s
-				}
-				if s, err := strconv.Atoi(data[6]); err == nil {
-					coveredPCsInFuncs += s
-				}
-				if s, err := strconv.Atoi(data[7]); err == nil {
-					pcsInFuncs += s
-				}
+				coveredLines += data.CoveredLines
+				totalLines += data.TotalLines
+				coveredPCsInFile += data.CoveredPCs
+				totalPCsInFile += data.TotalPCs
+				totalFuncs += data.TotalFunctions
+				coveredPCsInFuncs += data.CoveredPCsInFunctions
+				pcsInFuncs += data.TotalPCsInFunctions
 			}
 		}
 
 		if totalLines != 0 {
-			percentLines = fmt.Sprintf("%.2f", 100.0*float64(coveredLines)/float64(totalLines))
-		} else {
-			percentLines = zeroString
+			percentLines = 100.0 * float64(coveredLines) / float64(totalLines)
 		}
 		if totalPCsInFile != 0 {
-			percentPCsInFile = fmt.Sprintf("%.2f", 100.0*float64(coveredPCsInFile)/float64(totalPCsInFile))
-		} else {
-			percentPCsInFile = zeroString
+			percentPCsInFile = 100.0 * float64(coveredPCsInFile) / float64(totalPCsInFile)
 		}
 		if pcsInFuncs != 0 {
-			percentPCsInFunc = fmt.Sprintf("%.2f", 100.0*float64(coveredPCsInFuncs)/float64(pcsInFuncs))
-		} else {
-			percentPCsInFunc = zeroString
+			percentPCsInFunc = 100.0 * float64(coveredPCsInFuncs) / float64(pcsInFuncs)
 		}
 
-		d[subsystem] = map[string]string{
-			"subsystem":  subsystem,
-			"lines":      fmt.Sprintf(%v / %v / %.2f%%, coveredLines, totalLines, percentLines),
-			"PCsInFiles": fmt.Sprintf(%v / %v / %.2f%%, coveredPCsInFile, totalPCsInFile, percentPCsInFile),
+		d[subsystem.Name] = map[string]string{
+			"subsystem":  subsystem.Name,
+			"lines":      fmt.Sprintf("%v / %v / %.2f%%", coveredLines, totalLines, percentLines),
+			"PCsInFiles": fmt.Sprintf("%v / %v / %.2f%%", coveredPCsInFile, totalPCsInFile, percentPCsInFile),
 			"totalFuncs": strconv.Itoa(totalFuncs),
-			"PCsInFuncs": fmt.Sprintf(%v / %v / %.2f%%, coveredPCsInFuncs, pcsInFuncs, percentPCsInFunc),
+			"PCsInFuncs": fmt.Sprintf("%v / %v / %.2f%%", coveredPCsInFuncs, pcsInFuncs, percentPCsInFunc),
 		}
 	}
 
@@ -260,25 +257,7 @@ func (rg *ReportGenerator) DoHTMLTable(w io.Writer, progs []Prog) error {
 		return err
 	}
 
-	var prefixes map[string][]string
-
-	if osutil.IsExist("./driver_path_map.json") {
-		raw, err := ioutil.ReadFile("./driver_path_map.json")
-		if err != nil {
-			return err
-		}
-
-		err = json.Unmarshal(raw, &prefixes)
-		if err != nil {
-			return err
-		}
-	} else {
-		prefixes = map[string][]string{
-			"all": {"/"},
-		}
-	}
-
-	d := groupCoverByFilePrefixes(data, prefixes)
+	d := groupCoverByFilePrefixes(data, rg.subsystem)
 
 	return coverTableTemplate.Execute(w, d)
 }
