@@ -3,7 +3,10 @@
 
 package mgrconfig
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"github.com/google/syzkaller/pkg/cover"
+)
 
 type Config struct {
 	// Instance name (used for identification and as GCE instance prefix).
@@ -41,6 +44,12 @@ type Config struct {
 	KernelSrc string `json:"kernel_src,omitempty"`
 	// Location of the driectory where the kernel was built (if not set defaults to KernelSrc)
 	KernelBuildSrc string `json:"kernel_build_src"`
+	// Kernel subsystem with paths to each subsystem
+	//	"kernel_subsystem": [
+	//		{ "name": "sound", "path": ["sound", "techpack/audio"]},
+	//		{ "name": "mydriver": "path": ["mydriver_path"]}
+	//	]
+	KernelSubsystem []cover.Subsystem `json:"kernel_subsystem,omitempty"`
 	// Arbitrary optional tag that is saved along with crash reports (e.g. branch/commit).
 	Tag string `json:"tag,omitempty"`
 	// Location of the disk image file.

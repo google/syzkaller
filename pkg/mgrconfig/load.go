@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/config"
+	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys" // most mgrconfig users want targets too
@@ -146,6 +147,8 @@ func Complete(cfg *Config) error {
 	}
 	cfg.CompleteKernelDirs()
 
+	cfg.CompleteKernelSubsystem()
+
 	if cfg.HubClient != "" {
 		if err := checkNonEmpty(
 			cfg.Name, "name",
@@ -213,6 +216,22 @@ func (cfg *Config) CompleteKernelDirs() {
 		cfg.KernelBuildSrc = cfg.KernelSrc
 	}
 	cfg.KernelBuildSrc = osutil.Abs(cfg.KernelBuildSrc)
+}
+
+func (cfg *Config) CompleteKernelSubsystem() {
+	if len(cfg.KernelSubsystem) == 0 {
+		cfg.KernelSubsystem = []cover.Subsystem{
+			cover.Subsystem{
+				Name:  "all",
+				Paths: []string{""},
+			},
+		}
+	} else {
+		cfg.KernelSubsystem = append(cfg.KernelSubsystem, cover.Subsystem{
+			Name:  "all",
+			Paths: []string{""},
+		})
+	}
 }
 
 func (cfg *Config) checkSSHParams() error {
