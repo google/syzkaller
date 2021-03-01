@@ -27,7 +27,8 @@ type Prog struct {
 
 var RestorePC = backend.RestorePC
 
-func MakeReportGenerator(target *targets.Target, vm, objDir, srcDir, buildDir string, subsystem []Subsystem) (*ReportGenerator, error) {
+func MakeReportGenerator(target *targets.Target, vm, objDir, srcDir, buildDir string,
+	subsystem []Subsystem) (*ReportGenerator, error) {
 	impl, err := backend.Make(target, vm, objDir, srcDir, buildDir)
 	if err != nil {
 		return nil, err

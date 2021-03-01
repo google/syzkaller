@@ -221,7 +221,7 @@ func (cfg *Config) CompleteKernelDirs() {
 func (cfg *Config) CompleteKernelSubsystem() {
 	if len(cfg.KernelSubsystem) == 0 {
 		cfg.KernelSubsystem = []cover.Subsystem{
-			cover.Subsystem{
+			{
 				Name:  "all",
 				Paths: []string{""},
 			},

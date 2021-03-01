@@ -210,7 +210,7 @@ func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, corpusTemplate, data)
 }
 
-func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
+func (mgr *Manager) prepareHTMLCover(w http.ResponseWriter, r *http.Request) (*cover.ReportGenerator, error) {
 	if !mgr.cfg.Cover {
 		mgr.mu.Lock()
 		defer mgr.mu.Unlock()
@@ -221,30 +221,29 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 	rg, err := getReportGenerator(mgr.cfg)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
-		return
+		return nil, err
 	}
+
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
-	mgr.httpCoverCover(w, r, rg, rg.DoHTML)
+	return rg, nil
+}
 
+func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
+	rg, err := mgr.prepareHTMLCover(w, r)
+	if err != nil {
+		return
+	}
+
+	mgr.httpCoverCover(w, r, rg, rg.DoHTML)
 }
 
 func (mgr *Manager) httpSubsystemCover(w http.ResponseWriter, r *http.Request) {
-	if !mgr.cfg.Cover {
-		mgr.mu.Lock()
-		defer mgr.mu.Unlock()
-		mgr.httpCoverFallback(w, r)
-	}
-	// Note: initCover is executed without mgr.mu because it takes very long time
-	// (but it only reads config and it protected by initCoverOnce).
-	rg, err := getReportGenerator(mgr.cfg)
+	rg, err := mgr.prepareHTMLCover(w, r)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
 	}
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
 
 	mgr.httpCoverCover(w, r, rg, rg.DoHTMLTable)
 }
@@ -319,33 +318,38 @@ func (mgr *Manager) httpCoverFallback(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, fallbackCoverTemplate, data)
 }
 
-func (mgr *Manager) httpFuncCover(w http.ResponseWriter, r *http.Request) {
+func (mgr *Manager) prepareCSVCover(w http.ResponseWriter) (*cover.ReportGenerator, error) {
 	if !mgr.cfg.Cover {
 		http.Error(w, "coverage is not enabled", http.StatusInternalServerError)
-		return
+		return nil, fmt.Errorf("coverage is not enabled")
 	}
 	rg, err := getReportGenerator(mgr.cfg)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
-		return
+		return nil, err
 	}
+
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
+
+	return rg, nil
+}
+
+func (mgr *Manager) httpFuncCover(w http.ResponseWriter, r *http.Request) {
+	rg, err := mgr.prepareCSVCover(w)
+	if err != nil {
+		return
+	}
+
 	mgr.httpCoverCover(w, r, rg, rg.DoCSV)
 }
 
 func (mgr *Manager) httpFileCover(w http.ResponseWriter, r *http.Request) {
-	if !mgr.cfg.Cover {
-		http.Error(w, "coverage is not enabled", http.StatusInternalServerError)
-		return
-	}
-	rg, err := getReportGenerator(mgr.cfg)
+	rg, err := mgr.prepareCSVCover(w)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
 	}
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
+
 	mgr.httpCoverCover(w, r, rg, rg.DoCSVFiles)
 }
 
