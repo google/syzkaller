@@ -709,35 +709,36 @@ func loadDupsForBug(c context.Context, r *http.Request, bug *Bug, state *Reporti
 }
 
 func loadSimilarBugs(c context.Context, r *http.Request, bug *Bug, state *ReportingState) (*uiBugGroup, error) {
-	var similar []*Bug
-	_, err := db.NewQuery("Bug").
-		Filter("Title=", bug.Title).
-		GetAll(c, &similar)
-	if err != nil {
-		return nil, err
-	}
 	managers := make(map[string][]string)
 	var results []*uiBug
 	accessLevel := accessLevel(c, r)
 	domain := config.Namespaces[bug.Namespace].SimilarityDomain
-	for _, similar := range similar {
-		if accessLevel < similar.sanitizeAccess(accessLevel) {
-			continue
+	dedup := make(map[string]bool)
+	dedup[bug.keyHash()] = true
+	for _, title := range bug.AltTitles {
+		var similar []*Bug
+		_, err := db.NewQuery("Bug").
+			Filter("AltTitles=", title).
+			GetAll(c, &similar)
+		if err != nil {
+			return nil, err
 		}
-		if similar.Namespace == bug.Namespace && similar.Seq == bug.Seq {
-			continue
-		}
-		if config.Namespaces[similar.Namespace].SimilarityDomain != domain {
-			continue
-		}
-		if managers[similar.Namespace] == nil {
-			mgrs, err := managerList(c, similar.Namespace)
-			if err != nil {
-				return nil, err
+		for _, similar := range similar {
+			if accessLevel < similar.sanitizeAccess(accessLevel) ||
+				config.Namespaces[similar.Namespace].SimilarityDomain != domain ||
+				dedup[similar.keyHash()] {
+				continue
 			}
-			managers[similar.Namespace] = mgrs
+			dedup[similar.keyHash()] = true
+			if managers[similar.Namespace] == nil {
+				mgrs, err := managerList(c, similar.Namespace)
+				if err != nil {
+					return nil, err
+				}
+				managers[similar.Namespace] = mgrs
+			}
+			results = append(results, createUIBug(c, similar, state, managers[similar.Namespace]))
 		}
-		results = append(results, createUIBug(c, similar, state, managers[similar.Namespace]))
 	}
 	group := &uiBugGroup{
 		Now:           timeNow(c),
