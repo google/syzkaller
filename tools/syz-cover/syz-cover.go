@@ -28,6 +28,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/sys/targets"
@@ -67,7 +68,8 @@ func main() {
 	if err != nil {
 		tool.Fail(err)
 	}
-	rg, err := cover.MakeReportGenerator(target, *flagVM, *flagKernelObj, *flagKernelSrc, *flagKernelBuildSrc, nil)
+	rg, err := cover.MakeReportGenerator(target, *flagVM, *flagKernelObj,
+		*flagKernelSrc, *flagKernelBuildSrc, nil, nil, make(map[string]backend.KernelModule))
 	if err != nil {
 		tool.Fail(err)
 	}

@@ -5,6 +5,7 @@ package mgrconfig
 
 import (
 	"encoding/json"
+
 	"github.com/google/syzkaller/pkg/cover"
 )
 
@@ -38,8 +39,11 @@ type Config struct {
 	//	"qemu_args": "-fda {{TEMPLATE}}/fd"
 	WorkdirTemplate string `json:"workdir_template"`
 	// Directory with kernel object files (e.g. `vmlinux` for linux)
-	// (used for report symbolization and coverage reports, optional).
+	// (used for report symbolization, coverage reports and in tree modules finding, optional).
 	KernelObj string `json:"kernel_obj"`
+	// Directories for unstripped kernel module object files (optional)
+	// It's needed for out-of-tree module build in order to find ko files automatically
+	ModuleObj []string `json:"module_obj"`
 	// Kernel source directory (if not set defaults to KernelObj).
 	KernelSrc string `json:"kernel_src,omitempty"`
 	// Location of the driectory where the kernel was built (if not set defaults to KernelSrc)

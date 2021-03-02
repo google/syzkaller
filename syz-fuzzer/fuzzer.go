@@ -180,16 +180,22 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to collect machine information: %v", err)
 	}
+	modules, err := host.CollectModulesInfo()
+	if err != nil {
+		log.Fatalf("failed to collect modules info: %v", err)
+	}
 
 	log.Logf(0, "dialing manager at %v", *flagManager)
 	manager, err := rpctype.NewRPCClient(*flagManager, timeouts.Scale)
 	if err != nil {
 		log.Fatalf("failed to connect to manager: %v ", err)
 	}
+
 	log.Logf(1, "connecting to manager...")
 	a := &rpctype.ConnectArgs{
 		Name:        *flagName,
 		MachineInfo: machineInfo,
+		Modules:     modules,
 	}
 	r := &rpctype.ConnectRes{}
 	if err := manager.Call("Manager.Connect", a, r); err != nil {
@@ -198,6 +204,11 @@ func main() {
 	featureFlags, err := csource.ParseFeaturesFlags("none", "none", true)
 	if err != nil {
 		log.Fatal(err)
+	}
+	if r.CoverFilterBitmap != nil {
+		if err := osutil.WriteFile("/syz-cover-bitmap", r.CoverFilterBitmap); err != nil {
+			log.Fatalf("failed to write /syz-cover-bitmap: %v", err)
+		}
 	}
 	if r.CheckResult == nil {
 		checkArgs.gitRevision = r.GitRevision
@@ -266,7 +277,7 @@ func main() {
 	}
 	fuzzer.choiceTable = target.BuildChoiceTable(fuzzer.corpus, calls)
 
-	if r.EnabledCoverFilter {
+	if r.CoverFilterBitmap != nil {
 		fuzzer.execOpts.Flags |= ipc.FlagEnableCoverageFilter
 	}
 

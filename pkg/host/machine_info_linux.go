@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -18,6 +19,7 @@ func init() {
 		{"CPU Info", readCPUInfo},
 		{"KVM", readKVMInfo},
 	}
+	machineModulesInfo = getModulesInfo
 }
 
 func readCPUInfo(buffer *bytes.Buffer) error {
@@ -119,4 +121,22 @@ func readKVMInfo(buffer *bytes.Buffer) error {
 		buffer.WriteByte('\n')
 	}
 	return nil
+}
+
+func getModulesInfo() ([]KernelModule, error) {
+	var addr uint64
+	var modules []KernelModule
+	modulesText, _ := ioutil.ReadFile("/proc/modules")
+	re := regexp.MustCompile(`(\w+) .*(0[x|X][a-fA-F0-9]+)[^\n]*`)
+	matches := re.FindAllSubmatch(modulesText, -1)
+	for _, m := range matches {
+		if _, err := fmt.Sscanf(strings.TrimPrefix(strings.ToLower(string(m[2])), "0x"), "%x", &addr); err != nil {
+			return nil, fmt.Errorf("address parsing error in /proc/modules")
+		}
+		modules = append(modules, KernelModule{
+			Name: string(m[1]),
+			Addr: addr,
+		})
+	}
+	return modules, nil
 }

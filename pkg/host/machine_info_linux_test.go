@@ -143,6 +143,14 @@ D:	d
 	}
 }
 
+func TestGetModulesInfo(t *testing.T) {
+	modules, err := getModulesInfo()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("modules:\n%v", modules)
+}
+
 type cannedTest struct {
 	arch string
 	data string

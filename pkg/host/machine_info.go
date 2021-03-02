@@ -26,9 +26,19 @@ func CollectMachineInfo() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+func CollectModulesInfo() ([]KernelModule, error) {
+	return machineModulesInfo()
+}
+
 var machineInfoFuncs []machineInfoFunc
+var machineModulesInfo func() ([]KernelModule, error)
 
 type machineInfoFunc struct {
 	name string
 	fn   func(*bytes.Buffer) error
+}
+
+type KernelModule struct {
+	Name string
+	Addr uint64
 }
