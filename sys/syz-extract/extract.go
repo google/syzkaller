@@ -270,6 +270,8 @@ func archFileList(os, arch string, files []string) (string, []string, []string, 
 			// ION support was removed from kernel.
 			// We plan to leave the descriptions for some time as is and later remove them.
 			"dev_ion.txt": true,
+			// Not upstream, generated on unknown tree.
+			"dev_img_rogue.txt": true,
 		}
 		androidFiles := map[string]bool{
 			"dev_tlk_device.txt": true,
