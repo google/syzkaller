@@ -180,7 +180,17 @@ func generateReport(t *testing.T, target *targets.Target, test Test) ([]byte, []
 	}
 	defer os.RemoveAll(dir)
 	bin := buildTestBinary(t, target, test, dir)
-	rg, err := MakeReportGenerator(target, "", dir, dir, dir)
+	subsystem := []Subsystem{
+		{
+			Name: "sound",
+			Paths: []string{
+				"sound",
+				"techpack/audio",
+			},
+		},
+	}
+
+	rg, err := MakeReportGenerator(target, "", dir, dir, dir, subsystem)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -216,10 +226,20 @@ func generateReport(t *testing.T, target *targets.Target, test Test) ([]byte, []
 	if err := rg.DoHTML(html, test.Progs); err != nil {
 		return nil, nil, err
 	}
+	htmlTable := new(bytes.Buffer)
+	if err := rg.DoHTMLTable(htmlTable, test.Progs); err != nil {
+		return nil, nil, err
+	}
+	_ = htmlTable
 	csv := new(bytes.Buffer)
 	if err := rg.DoCSV(csv, test.Progs); err != nil {
 		return nil, nil, err
 	}
+	csvFiles := new(bytes.Buffer)
+	if err := rg.DoCSVFiles(csvFiles, test.Progs); err != nil {
+		return nil, nil, err
+	}
+	_ = csvFiles
 
 	return html.Bytes(), csv.Bytes(), nil
 }

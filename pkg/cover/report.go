@@ -12,10 +12,11 @@ import (
 )
 
 type ReportGenerator struct {
-	target   *targets.Target
-	srcDir   string
-	objDir   string
-	buildDir string
+	target    *targets.Target
+	srcDir    string
+	objDir    string
+	buildDir  string
+	subsystem []Subsystem
 	*backend.Impl
 }
 
@@ -26,17 +27,23 @@ type Prog struct {
 
 var RestorePC = backend.RestorePC
 
-func MakeReportGenerator(target *targets.Target, vm, objDir, srcDir, buildDir string) (*ReportGenerator, error) {
+func MakeReportGenerator(target *targets.Target, vm, objDir, srcDir, buildDir string,
+	subsystem []Subsystem) (*ReportGenerator, error) {
 	impl, err := backend.Make(target, vm, objDir, srcDir, buildDir)
 	if err != nil {
 		return nil, err
 	}
+	subsystem = append(subsystem, Subsystem{
+		Name:  "all",
+		Paths: []string{""},
+	})
 	rg := &ReportGenerator{
-		target:   target,
-		srcDir:   srcDir,
-		objDir:   objDir,
-		buildDir: buildDir,
-		Impl:     impl,
+		target:    target,
+		srcDir:    srcDir,
+		objDir:    objDir,
+		buildDir:  buildDir,
+		subsystem: subsystem,
+		Impl:      impl,
 	}
 	return rg, nil
 }

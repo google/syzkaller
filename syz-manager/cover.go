@@ -18,7 +18,8 @@ var getReportGenerator = func() func(cfg *mgrconfig.Config) (*cover.ReportGenera
 	return func(cfg *mgrconfig.Config) (*cover.ReportGenerator, error) {
 		once.Do(func() {
 			log.Logf(0, "initializing coverage information...")
-			rg, err = cover.MakeReportGenerator(cfg.SysTarget, cfg.Type, cfg.KernelObj, cfg.KernelSrc, cfg.KernelBuildSrc)
+			rg, err = cover.MakeReportGenerator(cfg.SysTarget, cfg.Type, cfg.KernelObj, cfg.KernelSrc,
+				cfg.KernelBuildSrc, cfg.KernelSubsystem)
 		})
 		return rg, err
 	}

@@ -67,7 +67,7 @@ func main() {
 	if err != nil {
 		tool.Fail(err)
 	}
-	rg, err := cover.MakeReportGenerator(target, *flagVM, *flagKernelObj, *flagKernelSrc, *flagKernelBuildSrc)
+	rg, err := cover.MakeReportGenerator(target, *flagVM, *flagKernelObj, *flagKernelSrc, *flagKernelBuildSrc, nil)
 	if err != nil {
 		tool.Fail(err)
 	}
