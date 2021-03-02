@@ -33,6 +33,10 @@ func MakeReportGenerator(target *targets.Target, vm, objDir, srcDir, buildDir st
 	if err != nil {
 		return nil, err
 	}
+	subsystem = append(subsystem, Subsystem{
+		Name:  "all",
+		Paths: []string{""},
+	})
 	rg := &ReportGenerator{
 		target:    target,
 		srcDir:    srcDir,
