@@ -25,6 +25,7 @@ func TestParse(t *testing.T) {
 				"mm/kasan/report.c:320\n",
 			[]Frame{
 				{
+					Module: "kernel",
 					PC:     0xffffffff8180a42e,
 					Func:   "__asan_report_load2_noabort",
 					File:   "mm/kasan/report.c",
@@ -42,6 +43,7 @@ func TestParse(t *testing.T) {
 				"mm/kasan/report.c:320\n",
 			[]Frame{
 				{
+					Module: "kernel",
 					PC:     0xffffffff8180a42d,
 					Func:   "kasan_report",
 					File:   "mm/kasan/report.c",
@@ -49,6 +51,7 @@ func TestParse(t *testing.T) {
 					Inline: true,
 				},
 				{
+					Module: "kernel",
 					PC:     0xffffffff8180a42d,
 					Func:   "__asan_report_load2_noabort",
 					File:   "mm/kasan/report.c",
@@ -64,6 +67,7 @@ func TestParse(t *testing.T) {
 				"drivers/video/console/fbcon.c:2750\n",
 			[]Frame{
 				{
+					Module: "kernel",
 					PC:     0xffffffff82fdbe0b,
 					Func:   "fbcon_invert_region",
 					File:   "drivers/video/console/fbcon.c",
@@ -93,6 +97,7 @@ func TestParse(t *testing.T) {
 				"fs/devpts/inode.c:588 (discriminator 3)\n",
 			[]Frame{
 				{
+					Module: "kernel",
 					PC:     0xffffffff81a2aff9,
 					Func:   "devpts_get_priv",
 					File:   "fs/devpts/inode.c",
@@ -153,7 +158,7 @@ func TestParse(t *testing.T) {
 	var allPCs []uint64
 	var allFrames []Frame
 	for _, addr := range addresses {
-		frames, err := symbolize(input, scanner, []uint64{addr.pc})
+		frames, err := symbolize(input, scanner, []uint64{addr.pc}, "kernel")
 		if err != nil {
 			t.Fatalf("got error: %v", err)
 		}
@@ -166,11 +171,11 @@ func TestParse(t *testing.T) {
 
 	// Symbolize PCs in 2 groups.
 	for i := 0; i <= len(addresses); i++ {
-		frames, err := symbolize(input, scanner, allPCs[:i])
+		frames, err := symbolize(input, scanner, allPCs[:i], "kernel")
 		if err != nil {
 			t.Fatalf("got error: %v", err)
 		}
-		frames2, err := symbolize(input, scanner, allPCs[i:])
+		frames2, err := symbolize(input, scanner, allPCs[i:], "kernel")
 		if err != nil {
 			t.Fatalf("got error: %v", err)
 		}
@@ -185,7 +190,7 @@ func TestParse(t *testing.T) {
 	for i := range lots {
 		lots[i] = addresses[0].pc
 	}
-	frames, err := symbolize(input, scanner, lots)
+	frames, err := symbolize(input, scanner, lots, "kernel")
 	if err != nil {
 		t.Fatalf("got error: %v", err)
 	}

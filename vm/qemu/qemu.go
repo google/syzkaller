@@ -588,6 +588,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		}
 	} else {
 		args = []string{"ssh"}
+		args = append(args, "-q")
 		args = append(args, sshArgs...)
 		args = append(args, inst.sshuser+"@localhost", "cd "+inst.targetDir()+" && "+command)
 	}
