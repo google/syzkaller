@@ -20,6 +20,7 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/gce"
@@ -88,8 +89,10 @@ type Manager struct {
 	// Maps file name to modification time.
 	usedFiles map[string]time.Time
 
-	coverFilterFilename string
-	coverFilter         map[uint32]uint32
+	modules            map[string]backend.KernelModule
+	coverFilter        map[uint32]uint32
+	coverFilterBitmap  []byte
+	modulesInitialized bool
 }
 
 const (
@@ -176,11 +179,6 @@ func RunManager(cfg *mgrconfig.Config) {
 	mgr.preloadCorpus()
 	mgr.initHTTP() // Creates HTTP server.
 	mgr.collectUsedFiles()
-
-	mgr.coverFilterFilename, mgr.coverFilter, err = createCoverageFilter(mgr.cfg)
-	if err != nil {
-		log.Fatalf("failed to create coverage filter: %v", err)
-	}
 
 	// Create RPC server for fuzzers.
 	mgr.serv, err = startRPCServer(mgr)
@@ -591,13 +589,6 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Re
 	fwdAddr, err := inst.Forward(mgr.serv.port)
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup port forwarding: %v", err)
-	}
-
-	if mgr.coverFilterFilename != "" {
-		_, err = inst.Copy(mgr.coverFilterFilename)
-		if err != nil {
-			return nil, fmt.Errorf("failed to copy coverage filter bitmap: %v", err)
-		}
 	}
 
 	fuzzerBin, err := inst.Copy(mgr.cfg.FuzzerBin)
@@ -1051,7 +1042,8 @@ func (mgr *Manager) collectSyscallInfoUnlocked() map[string]*CallCov {
 	return calls
 }
 
-func (mgr *Manager) fuzzerConnect() ([]rpctype.RPCInput, BugFrames, bool) {
+func (mgr *Manager) fuzzerConnect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) ([]rpctype.RPCInput, BugFrames,
+	map[uint32]uint32, map[string]backend.KernelModule, error) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
@@ -1068,7 +1060,24 @@ func (mgr *Manager) fuzzerConnect() ([]rpctype.RPCInput, BugFrames, bool) {
 	for frame := range mgr.dataRaceFrames {
 		dataRaceFrames = append(dataRaceFrames, frame)
 	}
-	return corpus, BugFrames{memoryLeaks: memoryLeakFrames, dataRaces: dataRaceFrames}, mgr.coverFilterFilename != ""
+	if !mgr.modulesInitialized {
+		var err error
+		modules := make(map[string]backend.KernelModule, len(a.Modules))
+		for _, rmodule := range a.Modules {
+			modules[rmodule.Name] = backend.KernelModule{
+				Name: rmodule.Name,
+				Addr: rmodule.Addr,
+			}
+		}
+		mgr.modules = modules
+		mgr.coverFilterBitmap, mgr.coverFilter, err = mgr.createCoverageFilter()
+		if err != nil {
+			log.Fatalf("failed to create coverage filter: %v", err)
+		}
+		mgr.modulesInitialized = true
+	}
+	r.CoverFilterBitmap = mgr.coverFilterBitmap
+	return corpus, BugFrames{memoryLeaks: memoryLeakFrames, dataRaces: dataRaceFrames}, mgr.coverFilter, mgr.modules, nil
 }
 
 func (mgr *Manager) machineChecked(a *rpctype.CheckArgs, enabledSyscalls map[*prog.Syscall]bool) {

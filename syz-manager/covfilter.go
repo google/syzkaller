@@ -8,26 +8,23 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
 
 	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/mgrconfig"
-	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/sys/targets"
 )
 
-func createCoverageFilter(cfg *mgrconfig.Config) (string, map[uint32]uint32, error) {
-	if len(cfg.CovFilter.Functions)+len(cfg.CovFilter.Files)+len(cfg.CovFilter.RawPCs) == 0 {
-		return "", nil, nil
+func (mgr *Manager) createCoverageFilter() ([]byte, map[uint32]uint32, error) {
+	if len(mgr.cfg.CovFilter.Functions)+len(mgr.cfg.CovFilter.Files)+len(mgr.cfg.CovFilter.RawPCs) == 0 {
+		return nil, nil, nil
 	}
 	// Always initialize ReportGenerator because RPCServer.NewInput will need it to filter coverage.
-	rg, err := getReportGenerator(cfg)
+	rg, err := getReportGenerator(mgr.cfg, mgr.modules)
 	if err != nil {
-		return "", nil, err
+		return nil, nil, err
 	}
 	pcs := make(map[uint32]uint32)
 	foreachSymbol := func(apply func(*backend.ObjectUnit)) {
@@ -35,31 +32,27 @@ func createCoverageFilter(cfg *mgrconfig.Config) (string, map[uint32]uint32, err
 			apply(&sym.ObjectUnit)
 		}
 	}
-	if err := covFilterAddFilter(pcs, cfg.CovFilter.Functions, foreachSymbol); err != nil {
-		return "", nil, err
+	if err := covFilterAddFilter(pcs, mgr.cfg.CovFilter.Functions, foreachSymbol); err != nil {
+		return nil, nil, err
 	}
 	foreachUnit := func(apply func(*backend.ObjectUnit)) {
 		for _, unit := range rg.Units {
 			apply(&unit.ObjectUnit)
 		}
 	}
-	if err := covFilterAddFilter(pcs, cfg.CovFilter.Files, foreachUnit); err != nil {
-		return "", nil, err
+	if err := covFilterAddFilter(pcs, mgr.cfg.CovFilter.Files, foreachUnit); err != nil {
+		return nil, nil, err
 	}
-	if err := covFilterAddRawPCs(pcs, cfg.CovFilter.RawPCs); err != nil {
-		return "", nil, err
+	if err := covFilterAddRawPCs(pcs, mgr.cfg.CovFilter.RawPCs); err != nil {
+		return nil, nil, err
 	}
 	if len(pcs) == 0 {
-		return "", nil, nil
+		return nil, nil, nil
 	}
-	if !cfg.SysTarget.ExecutorUsesShmem {
-		return "", nil, fmt.Errorf("coverage filter is only supported for targets that use shmem")
+	if !mgr.cfg.SysTarget.ExecutorUsesShmem {
+		return nil, nil, fmt.Errorf("coverage filter is only supported for targets that use shmem")
 	}
-	bitmap := createCoverageBitmap(cfg.SysTarget, pcs)
-	filename := filepath.Join(cfg.Workdir, "syz-cover-bitmap")
-	if err := osutil.WriteFile(filename, bitmap); err != nil {
-		return "", nil, err
-	}
+	bitmap := createCoverageBitmap(mgr.cfg.SysTarget, pcs)
 	// After finish writing down bitmap file, for accurate filtered coverage,
 	// pcs from CMPs should be deleted.
 	for _, sym := range rg.Symbols {
@@ -67,7 +60,7 @@ func createCoverageFilter(cfg *mgrconfig.Config) (string, map[uint32]uint32, err
 			delete(pcs, uint32(pc))
 		}
 	}
-	return filename, pcs, nil
+	return bitmap, pcs, nil
 }
 
 func covFilterAddFilter(pcs map[uint32]uint32, filters []string, foreach func(func(*backend.ObjectUnit))) error {

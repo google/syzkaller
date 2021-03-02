@@ -27,17 +27,18 @@ type RPCCandidate struct {
 type ConnectArgs struct {
 	Name        string
 	MachineInfo []byte
+	Modules     []host.KernelModule
 }
 
 type ConnectRes struct {
-	EnabledCalls       []int
-	GitRevision        string
-	TargetRevision     string
-	AllSandboxes       bool
-	CheckResult        *CheckArgs
-	MemoryLeakFrames   []string
-	DataRaceFrames     []string
-	EnabledCoverFilter bool
+	EnabledCalls      []int
+	GitRevision       string
+	TargetRevision    string
+	AllSandboxes      bool
+	CheckResult       *CheckArgs
+	MemoryLeakFrames  []string
+	DataRaceFrames    []string
+	CoverFilterBitmap []byte
 }
 
 type CheckArgs struct {

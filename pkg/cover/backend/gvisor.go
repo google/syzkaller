@@ -14,11 +14,19 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-func makeGvisor(target *targets.Target, objDir, srcDir, buildDir string) (*Impl, error) {
+func makeGvisor(target *targets.Target, objDir, srcDir, buildDir string,
+	modules map[string]KernelModule) (*Impl, error) {
 	// pkg/build stores runsc as 'vmlinux' (we pretent to be linux), but a local build will have it as 'runsc'.
 	bin := filepath.Join(objDir, target.KernelObject)
 	if !osutil.IsExist(bin) {
 		bin = filepath.Join(objDir, "runsc")
+	}
+	if modules == nil {
+		modules = make(map[string]KernelModule)
+	}
+	modules[""] = KernelModule{
+		Name: "",
+		Path: bin,
 	}
 	frames, err := gvisorSymbolize(bin, srcDir)
 	if err != nil {
@@ -48,6 +56,7 @@ func makeGvisor(target *targets.Target, objDir, srcDir, buildDir string) (*Impl,
 		RestorePC: func(pc uint32) uint64 {
 			return uint64(pc)
 		},
+		Modules: modules,
 	}
 	return impl, nil
 }

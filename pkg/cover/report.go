@@ -28,8 +28,8 @@ type Prog struct {
 var RestorePC = backend.RestorePC
 
 func MakeReportGenerator(target *targets.Target, vm, objDir, srcDir, buildDir string,
-	subsystem []Subsystem) (*ReportGenerator, error) {
-	impl, err := backend.Make(target, vm, objDir, srcDir, buildDir)
+	subsystem []Subsystem, moduleObj []string, modules map[string]backend.KernelModule) (*ReportGenerator, error) {
+	impl, err := backend.Make(target, vm, objDir, srcDir, buildDir, moduleObj, modules)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,13 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error
 	for _, frame := range rg.Frames {
 		f := getFile(files, frame.Name, frame.Path)
 		ln := f.lines[frame.StartLine]
-		coveredBy := progPCs[frame.PC]
+		var pc uint64
+		if frame.Module == "" {
+			pc = frame.PC
+		} else {
+			pc = frame.PC + rg.Modules[frame.Module].Addr
+		}
+		coveredBy := progPCs[pc]
 		if len(coveredBy) == 0 {
 			f.uncovered = append(f.uncovered, frame.Range)
 			continue
@@ -175,11 +181,20 @@ func (rg *ReportGenerator) lazySymbolize(progs []Prog) error {
 	if len(pcs) == 0 {
 		return nil
 	}
-	frames, err := rg.Symbolize(pcs)
-	if err != nil {
-		return err
+	groupPCs := backend.GroupPCsByModule(pcs, rg.Modules)
+	for name, pcs := range groupPCs {
+		if len(pcs) == 0 {
+			continue
+		}
+		frames, err := rg.Symbolize(pcs, rg.Modules[name].Path)
+		if err != nil {
+			return err
+		}
+		for i := range frames {
+			frames[i].Module = name
+		}
+		rg.Frames = append(rg.Frames, frames...)
 	}
-	rg.Frames = append(rg.Frames, frames...)
 	for sym := range symbolize {
 		sym.Symbolized = true
 	}
