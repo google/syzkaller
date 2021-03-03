@@ -46,7 +46,7 @@ Then, copy out the binary back to host into `bin/freebsd_amd64` dir.
 
 ## Setting up the FreeBSD VM
 
-It is easiest to start with a [snapshot image](http://ftp.freebsd.org/pub/FreeBSD/snapshots/VM-IMAGES/13.0-CURRENT/amd64/Latest/) of FreeBSD.  Fetch a QCOW2 disk image for QEMU or a raw image for GCE or bhyve.
+It is easiest to start with a [snapshot image](https://ftp.freebsd.org/pub/FreeBSD/snapshots/VM-IMAGES/14.0-CURRENT/amd64/Latest/) of FreeBSD.  Fetch a QCOW2 disk image for QEMU or a raw image for GCE or bhyve.
 Fetch a copy of the FreeBSD kernel sources and place them in `/usr/src`. You will likely need to expand the disk of the VM. Before booting the VM, run:
 ```console
 # truncate -s 15G $IMAGEFILE
