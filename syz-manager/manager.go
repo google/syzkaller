@@ -254,6 +254,11 @@ func RunManager(cfg *mgrconfig.Config) {
 	}
 
 	osutil.HandleInterrupts(vm.Shutdown)
+	ReloadConfig := mgr.cfg.ReloadConfig
+	if ReloadConfig {
+		log.Logf(0, "Config Reloaded...\n")
+		mgr.cfg.ReloadConfig = false
+	}
 	if mgr.vmPool == nil {
 		log.Logf(0, "no VMs started (type=none)")
 		log.Logf(0, "you are supposed to start syz-fuzzer manually as:")

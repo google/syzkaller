@@ -113,6 +113,9 @@ type Config struct {
 	// "android": (Android) Emulate permissions of an untrusted app.
 	Sandbox string `json:"sandbox"`
 
+	// Reload MgrConfig (default: false).
+	ReloadConfig bool `json:"reloadconfig"`
+
 	// Use KCOV coverage (default: true).
 	Cover bool `json:"cover"`
 	// Use coverage filter. Supported types of filter:
