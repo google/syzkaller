@@ -728,12 +728,13 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 	if err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(crash.Title+"\n")); err != nil {
 		log.Logf(0, "failed to write crash: %v", err)
 	}
-	// Save up to 100 reports. If we already have 100, overwrite the oldest one.
+
+	// Save up to mgr.cfg.MaxCrashLogs reports, overwrite the oldest once we've reached that number.
 	// Newer reports are generally more useful. Overwriting is also needed
 	// to be able to understand if a particular bug still happens or already fixed.
 	oldestI := 0
 	var oldestTime time.Time
-	for i := 0; i < 100; i++ {
+	for i := 0; i < mgr.cfg.MaxCrashLogs; i++ {
 		info, err := os.Stat(filepath.Join(dir, fmt.Sprintf("log%v", i)))
 		if err != nil {
 			oldestI = i
