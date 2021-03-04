@@ -952,7 +952,7 @@ void handle_completion(thread_t* th)
 				event_isset(&th1->ready), event_isset(&th1->done),
 				th1->call_index, (uint64)th1->res, th1->reserrno);
 		}
-		fail("negative running");
+		exitf("negative running");
 	}
 }
 
