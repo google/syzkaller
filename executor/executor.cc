@@ -165,7 +165,7 @@ static uint64 slowdown_scale;
 #include "common.h"
 
 const int kMaxInput = 4 << 20; // keep in sync with prog.ExecBufferSize
-const int kMaxCommands = 1000;
+const int kMaxCommands = 1000; // prog package knows about this constant (prog.execMaxCommands)
 
 const uint64 instr_eof = -1;
 const uint64 instr_copyin = -2;

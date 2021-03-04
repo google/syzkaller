@@ -498,3 +498,70 @@ func TestSerializeForExec(t *testing.T) {
 		})
 	}
 }
+
+func TestSerializeForExecOverflow(t *testing.T) {
+	target := initTargetTest(t, "test", "64")
+	type Test struct {
+		name     string
+		overflow bool
+		gen      func(w *bytes.Buffer)
+	}
+	tests := []Test{
+		{
+			name:     "few-resources",
+			overflow: false,
+			gen: func(w *bytes.Buffer) {
+				for i := 0; i < execMaxCommands-10; i++ {
+					fmt.Fprintf(w, "r%v = test$res0()\ntest$res1(r%v)\n", i, i)
+				}
+			},
+		},
+		{
+			name:     "overflow-resources",
+			overflow: true,
+			gen: func(w *bytes.Buffer) {
+				for i := 0; i < execMaxCommands+1; i++ {
+					fmt.Fprintf(w, "r%v = test$res0()\ntest$res1(r%v)\n", i, i)
+				}
+			},
+		},
+		{
+			name:     "no-verflow-buffer",
+			overflow: false,
+			gen: func(w *bytes.Buffer) {
+				fmt.Fprintf(w, "r0 = test$res0()\n")
+				for i := 0; i < 58e3; i++ {
+					fmt.Fprintf(w, "test$res1(r0)\n")
+				}
+			},
+		},
+		{
+			name:     "overflow-buffer",
+			overflow: true,
+			gen: func(w *bytes.Buffer) {
+				fmt.Fprintf(w, "r0 = test$res0()\n")
+				for i := 0; i < 59e3; i++ {
+					fmt.Fprintf(w, "test$res1(r0)\n")
+				}
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			data := new(bytes.Buffer)
+			test.gen(data)
+			p, err := target.Deserialize(data.Bytes(), Strict)
+			if err != nil {
+				t.Fatal(err)
+			}
+			buf := make([]byte, ExecBufferSize)
+			_, err = p.SerializeForExec(buf)
+			if test.overflow && err != ErrExecBufferTooSmall {
+				t.Fatalf("want overflow but got %v", err)
+			}
+			if !test.overflow && err != nil {
+				t.Fatalf("want no overflow but got %v", err)
+			}
+		})
+	}
+}
