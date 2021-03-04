@@ -159,20 +159,33 @@ func (ctx *Context) execute(pid int, env *ipc.Env, entry *prog.LogEntry) {
 	if *flagOutput {
 		ctx.logProgram(pid, entry.P, callOpts)
 	}
-	output, info, hanged, err := env.Exec(callOpts, entry.P)
-	if ctx.config.Flags&ipc.FlagDebug != 0 || err != nil {
-		log.Logf(0, "result: hanged=%v err=%v\n\n%s", hanged, err, output)
-	}
-	if info != nil {
-		ctx.printCallResults(info)
-		if *flagHints {
-			ctx.printHints(entry.P, info)
+	// This mimics the syz-fuzzer logic. This is important for reproduction.
+	for try := 0; ; try++ {
+		output, info, hanged, err := env.Exec(callOpts, entry.P)
+		if err != nil && err != prog.ErrExecBufferTooSmall {
+			if try > 10 {
+				log.Fatalf("executor failed %v times: %v\n%s", try, err, output)
+			}
+			// Don't print err/output in this case as it may contain "SYZFAIL" and we want to fail yet.
+			log.Logf(1, "executor failed, retrying")
+			time.Sleep(time.Second)
+			continue
 		}
-		if *flagCoverFile != "" {
-			ctx.dumpCoverage(*flagCoverFile, info)
+		if ctx.config.Flags&ipc.FlagDebug != 0 || err != nil {
+			log.Logf(0, "result: hanged=%v err=%v\n\n%s", hanged, err, output)
 		}
-	} else {
-		log.Logf(1, "RESULT: no calls executed")
+		if info != nil {
+			ctx.printCallResults(info)
+			if *flagHints {
+				ctx.printHints(entry.P, info)
+			}
+			if *flagCoverFile != "" {
+				ctx.dumpCoverage(*flagCoverFile, info)
+			}
+		} else {
+			log.Logf(1, "RESULT: no calls executed")
+		}
+		break
 	}
 }
 
