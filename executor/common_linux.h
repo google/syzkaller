@@ -961,6 +961,11 @@ static int nl80211_setup_ibss_interface(struct nlmsg* nlmsg, int sock, int nl802
 #endif
 
 #if SYZ_EXECUTOR || SYZ_WIFI
+#include <fcntl.h>
+#include <linux/rfkill.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
 static int hwsim80211_create_device(struct nlmsg* nlmsg, int sock, int hwsim_family, uint8 mac_addr[ETH_ALEN])
 {
 	struct genlmsghdr genlhdr;
@@ -992,6 +997,19 @@ static void initialize_wifi_devices(void)
 	if (!flag_wifi)
 		return;
 #endif
+	int rfkill = open("/dev/rfkill", O_RDWR);
+	if (rfkill == -1) {
+		if (errno != ENOENT && errno != EACCES)
+			fail("open(/dev/rfkill) failed");
+	} else {
+		struct rfkill_event event = {0};
+		event.type = RFKILL_TYPE_ALL;
+		event.op = RFKILL_OP_CHANGE_ALL;
+		if (write(rfkill, &event, sizeof(event)) != (ssize_t)(sizeof(event)))
+			fail("write(/dev/rfkill) failed");
+		close(rfkill);
+	}
+
 	uint8 mac_addr[6] = WIFI_MAC_BASE;
 	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
 	if (sock < 0) {
