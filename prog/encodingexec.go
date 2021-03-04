@@ -52,6 +52,8 @@ const (
 const (
 	ExecBufferSize = 4 << 20 // keep in sync with kMaxInput in executor.cc
 	ExecNoCopyout  = ^uint64(0)
+
+	execMaxCommands = 1000 // executor knows about this constant (kMaxCommands)
 )
 
 var ErrExecBufferTooSmall = errors.New("encodingexec: provided buffer is too small")
@@ -72,7 +74,7 @@ func (p *Prog) SerializeForExec(buffer []byte) (int, error) {
 		w.serializeCall(c)
 	}
 	w.write(execInstrEOF)
-	if w.eof {
+	if w.eof || w.copyoutSeq > execMaxCommands {
 		return 0, ErrExecBufferTooSmall
 	}
 	return len(buffer) - len(w.buf), nil
