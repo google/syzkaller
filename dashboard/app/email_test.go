@@ -203,7 +203,7 @@ report1
 			"foo@bar.com",
 			"maintainers@repo10.org",
 		})
-		c.expectEQ(msg.Subject, crash.Title)
+		c.expectEQ(msg.Subject, "[syzbot] "+crash.Title)
 		c.expectEQ(len(msg.Attachments), 0)
 		c.expectEQ(msg.Body, fmt.Sprintf(`Hello,
 
@@ -277,7 +277,7 @@ Content-Type: text/plain
 			"another@another.com", "bar@foo.com", "bugs@repo10.org",
 			"bugs@syzkaller.com", "default@maintainers.com", "foo@bar.com",
 			"maintainers@repo10.org", "new@new.com", "qux@qux.com"})
-		c.expectEQ(msg.Subject, "Re: "+crash.Title)
+		c.expectEQ(msg.Subject, "Re: [syzbot] "+crash.Title)
 		c.expectEQ(len(msg.Attachments), 0)
 		c.expectEQ(msg.Body, fmt.Sprintf(`syzbot has found a reproducer for the following issue on:
 
@@ -403,7 +403,7 @@ func TestEmailDup(t *testing.T) {
 	c.client2.ReportCrash(crash1)
 
 	crash2 := testCrash(build, 2)
-	crash1.Title = "KASAN: another title"
+	crash2.Title = "KASAN: another title"
 	c.client2.ReportCrash(crash2)
 
 	msg1 := c.pollEmailBug()
@@ -430,6 +430,46 @@ func TestEmailDup(t *testing.T) {
 	{
 		msg := c.pollEmailBug()
 		c.expectEQ(msg.Subject, crash2.Title+" (2)")
+	}
+}
+
+func TestEmailDup2(t *testing.T) {
+	for i := 0; i < 3; i++ {
+		i := i
+		t.Run(fmt.Sprint(i), func(t *testing.T) {
+			c := NewCtx(t)
+			defer c.Close()
+
+			build := testBuild(1)
+			c.client2.UploadBuild(build)
+
+			crash1 := testCrash(build, 1)
+			crash1.Title = "BUG: something bad"
+			c.client2.ReportCrash(crash1)
+			msg1 := c.pollEmailBug()
+			c.incomingEmail(msg1.Sender, "#syz upstream")
+			msg1 = c.pollEmailBug()
+			c.expectEQ(msg1.Subject, "[syzbot] BUG: something bad")
+
+			crash2 := testCrash(build, 2)
+			crash2.Title = "KASAN: another bad thing"
+			c.client2.ReportCrash(crash2)
+			msg2 := c.pollEmailBug()
+			c.incomingEmail(msg2.Sender, "#syz upstream")
+			msg2 = c.pollEmailBug()
+			c.expectEQ(msg2.Subject, "[syzbot] KASAN: another bad thing")
+
+			switch i {
+			case 0:
+				c.incomingEmail(msg2.Sender, "#syz dup: BUG: something bad")
+			case 1:
+				c.incomingEmail(msg2.Sender, "#syz dup: [syzbot] BUG: something bad")
+			default:
+				c.incomingEmail(msg2.Sender, "#syz dup: syzbot: BUG: something bad")
+				reply := c.pollEmailBug()
+				c.expectTrue(strings.Contains(reply.Body, "can't find the dup bug"))
+			}
+		})
 	}
 }
 

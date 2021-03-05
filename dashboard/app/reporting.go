@@ -706,7 +706,7 @@ func incomingCommandImpl(c context.Context, cmd *dashapi.BugUpdate) (bool, strin
 			// Email reporting passes bug title in cmd.DupOf, try to find bug by title.
 			var dup *Bug
 			dup, dupKey, err = findDupByTitle(c, bug.Namespace, cmd.DupOf)
-			if err != nil {
+			if err != nil || dup == nil {
 				return false, "can't find the dup bug", err
 			}
 			dupReporting := lastReportedReporting(dup)
@@ -1020,6 +1020,9 @@ func findDupByTitle(c context.Context, ns, title string) (*Bug, *db.Key, error) 
 	bugKey := db.NewKey(c, "Bug", bugHash, 0, nil)
 	bug := new(Bug)
 	if err := db.Get(c, bugKey, bug); err != nil {
+		if err == db.ErrNoSuchEntity {
+			return nil, nil, nil // This is not really an error, we should notify the user instead.
+		}
 		return nil, nil, fmt.Errorf("failed to get dup: %v", err)
 	}
 	return bug, bugKey, nil

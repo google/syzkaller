@@ -31,8 +31,10 @@ func TestEmailNotifUpstreamEmbargo(t *testing.T) {
 	c.advanceTime(2 * 24 * time.Hour)
 	notifUpstream := c.pollEmailBug()
 	upstreamReport := c.pollEmailBug()
+	c.expectEQ(notifUpstream.Subject, crash.Title)
 	c.expectEQ(notifUpstream.Sender, report.Sender)
 	c.expectEQ(notifUpstream.Body, "Sending this report upstream.")
+	c.expectEQ(upstreamReport.Subject, "[syzbot] "+crash.Title)
 	c.expectNE(upstreamReport.Sender, report.Sender)
 	c.expectEQ(upstreamReport.To, []string{"bugs@syzkaller.com", "default@maintainers.com"})
 }
@@ -224,6 +226,7 @@ func TestEmailNotifObsoleted(t *testing.T) {
 	if !strings.Contains(notif.Body, "Auto-closing this bug as obsolete") {
 		t.Fatalf("bad notification text: %q", notif.Body)
 	}
+	c.expectEQ(notif.Subject, crash.Title+" (2)")
 	c.expectEQ(notif.To, []string{"bugs2@syzkaller.com"})
 }
 

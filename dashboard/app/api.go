@@ -697,7 +697,7 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 		req.AltTitles = []string{req.Title}
 	} else {
 		for i, t := range req.AltTitles {
-			req.AltTitles[i] = limitLength(t, maxTextLen)
+			req.AltTitles[i] = normalizeCrashTitle(t)
 		}
 		req.AltTitles = mergeStringList([]string{req.Title}, req.AltTitles) // dedup
 	}
@@ -981,7 +981,11 @@ func canonicalizeCrashTitle(title string, corrupted, suppressed bool) string {
 		// e.g. if there are some spikes in suppressed reports.
 		return suppressedReportTitle
 	}
-	return limitLength(title, maxTextLen)
+	return normalizeCrashTitle(title)
+}
+
+func normalizeCrashTitle(title string) string {
+	return strings.TrimSpace(limitLength(title, maxTextLen))
 }
 
 func apiManagerStats(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
