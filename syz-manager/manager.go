@@ -14,7 +14,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -621,47 +620,6 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Re
 	if *flagDebug {
 		fuzzerV = 100
 		procs = 1
-	}
-
-	if mgr.sysTarget.OS == "linux" {
-		var rawBytes []byte
-		waitForOutput := func(outc <-chan []byte) {
-			timer := time.NewTimer(10 * time.Second).C
-			for {
-				select {
-				case out, ok := <-outc:
-					if !ok {
-						return
-					}
-					rawBytes = append(rawBytes, out...)
-				case <-timer:
-					return
-				}
-			}
-		}
-		outC, _, _ := inst.Run(time.Hour, mgr.vmStop, "cat /proc/modules")
-		waitForOutput(outC)
-		lines := strings.Split(string(rawBytes), "\n")
-
-		for _, line := range lines {
-			if line == "" {
-				continue
-			}
-			tokens := strings.Fields(line)
-			if len(tokens) >= 6 {
-				var addr uint64
-				_, err := fmt.Sscanf(strings.TrimPrefix(tokens[5], "0x"), "%x", &addr)
-				if err != nil {
-					continue
-				}
-				for i := 0; i < len(mgr.cfg.KernelModules); i++ {
-					if mgr.cfg.KernelModules[i].Name == tokens[0] {
-						mgr.cfg.KernelModules[i].Addr = addr
-						break
-					}
-				}
-			}
-		}
 	}
 
 	// Run the fuzzer binary.

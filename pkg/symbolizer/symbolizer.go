@@ -23,7 +23,6 @@ type Symbolizer struct {
 }
 
 type Frame struct {
-	Module string
 	PC     uint64
 	Func   string
 	File   string
@@ -44,15 +43,15 @@ func NewSymbolizer(target *targets.Target) *Symbolizer {
 }
 
 func (s *Symbolizer) Symbolize(bin string, pc uint64) ([]Frame, error) {
-	return s.SymbolizeArray("kernel", bin, []uint64{pc})
+	return s.SymbolizeArray(bin, []uint64{pc})
 }
 
-func (s *Symbolizer) SymbolizeArray(module, bin string, pcs []uint64) ([]Frame, error) {
+func (s *Symbolizer) SymbolizeArray(bin string, pcs []uint64) ([]Frame, error) {
 	sub, err := s.getSubprocess(bin)
 	if err != nil {
 		return nil, err
 	}
-	return symbolize(sub.input, sub.scanner, pcs, module)
+	return symbolize(sub.input, sub.scanner, pcs)
 }
 
 func (s *Symbolizer) Close() {
@@ -101,7 +100,7 @@ func (s *Symbolizer) getSubprocess(bin string) (*subprocess, error) {
 	return sub, nil
 }
 
-func symbolize(input *bufio.Writer, scanner *bufio.Scanner, pcs []uint64, module string) ([]Frame, error) {
+func symbolize(input *bufio.Writer, scanner *bufio.Scanner, pcs []uint64) ([]Frame, error) {
 	var frames []Frame
 	done := make(chan error, 1)
 	go func() {
@@ -117,7 +116,7 @@ func symbolize(input *bufio.Writer, scanner *bufio.Scanner, pcs []uint64, module
 		}
 		for range pcs {
 			var frames1 []Frame
-			frames1, err = parse(scanner, module)
+			frames1, err = parse(scanner)
 			if err != nil {
 				return
 			}
@@ -146,7 +145,7 @@ func symbolize(input *bufio.Writer, scanner *bufio.Scanner, pcs []uint64, module
 	return frames, nil
 }
 
-func parse(s *bufio.Scanner, module string) ([]Frame, error) {
+func parse(s *bufio.Scanner) ([]Frame, error) {
 	pc, err := strconv.ParseUint(s.Text(), 0, 64)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse pc '%v' in addr2line output: %v", s.Text(), err)
@@ -183,7 +182,6 @@ func parse(s *bufio.Scanner, module string) ([]Frame, error) {
 			continue
 		}
 		frames = append(frames, Frame{
-			Module: module,
 			PC:     pc,
 			Func:   fn,
 			File:   file,
