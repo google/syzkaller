@@ -757,6 +757,7 @@ var linuxStackParams = &stackParams{
 		"dump_backtrace",
 		"warn_slowpath",
 		"warn_alloc",
+		"warn_bogus",
 		"__warn",
 		"alloc_pages",
 		"kmalloc",
