@@ -196,7 +196,7 @@ For information about bisection process see: https://goo.gl/tpsmEJ#bisection
 			"reviewer1@kernel.org",
 			"reviewer2@kernel.org",
 		})
-		c.expectEQ(msg.Subject, crash2.Title)
+		c.expectEQ(msg.Subject, "[syzbot] "+crash2.Title)
 		c.expectEQ(msg.Body, fmt.Sprintf(`Hello,
 
 syzbot found the following issue on:
@@ -300,10 +300,11 @@ https://goo.gl/tpsmEJ#testing-patches`,
 		subjects := []string{"title3", "title1", "title5", "title3", "title5", "title1"}
 		for i := 0; i < 6; i++ {
 			msg := c.pollEmailBug()
-			c.expectEQ(msg.Subject, subjects[i])
 			if i < 3 {
+				c.expectEQ(msg.Subject, subjects[i])
 				c.expectTrue(strings.Contains(msg.Body, "Sending this report upstream."))
 			} else {
+				c.expectEQ(msg.Subject, "[syzbot] "+subjects[i])
 				c.expectTrue(strings.Contains(msg.Body, "syzbot found the following issue on"))
 			}
 		}
