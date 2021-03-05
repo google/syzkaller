@@ -5,9 +5,7 @@ package mgrconfig
 
 import (
 	"encoding/json"
-
 	"github.com/google/syzkaller/pkg/cover"
-	"github.com/google/syzkaller/pkg/cover/backend"
 )
 
 type Config struct {
@@ -42,22 +40,6 @@ type Config struct {
 	// Directory with kernel object files (e.g. `vmlinux` for linux)
 	// (used for report symbolization and coverage reports, optional).
 	KernelObj string `json:"kernel_obj"`
-	// Map of kernel modules' symbol files and load address.
-	// path is unstripped module obj path and
-	// addr (uint64) is the module load address on target,
-	// like 'button 16384 0 - Live 0xffffffffc0163000',
-	// addr is 18446744072637263872 of 0xffffffffc0163000 above.
-	// For linux target, the addr is getting from /proc/modules
-	// automatically during instance run.
-	// Example config:
-	// "kernel_modules": [
-	//	{
-	//		"name": "wlan",
-	//		"path": "../../wlan.ko.unstripped",
-	//		"addr": 18446744072637911040
-	//	}
-	// ]
-	KernelModules []backend.KernelModule `json:"kernel_modules"`
 	// Kernel source directory (if not set defaults to KernelObj).
 	KernelSrc string `json:"kernel_src,omitempty"`
 	// Location of the driectory where the kernel was built (if not set defaults to KernelSrc)

@@ -5,7 +5,6 @@ package cover
 
 import (
 	"fmt"
-	"path/filepath"
 	"sort"
 
 	"github.com/google/syzkaller/pkg/cover/backend"
@@ -18,7 +17,6 @@ type ReportGenerator struct {
 	objDir    string
 	buildDir  string
 	subsystem []Subsystem
-	modules   []backend.KernelModule
 	*backend.Impl
 }
 
@@ -30,18 +28,8 @@ type Prog struct {
 var RestorePC = backend.RestorePC
 
 func MakeReportGenerator(target *targets.Target, vm, objDir, srcDir, buildDir string,
-	subsystem []Subsystem, modules []backend.KernelModule) (*ReportGenerator, error) {
-	kernelObject := filepath.Join(objDir, target.KernelObject)
-	modules = append(modules, backend.KernelModule{
-		Name: "kernel",
-		Addr: 0,
-		Path: kernelObject,
-	})
-	sort.Slice(modules, func(i, j int) bool {
-		return modules[i].Addr > modules[j].Addr
-	})
-
-	impl, err := backend.Make(target, vm, objDir, srcDir, buildDir, modules)
+	subsystem []Subsystem) (*ReportGenerator, error) {
+	impl, err := backend.Make(target, vm, objDir, srcDir, buildDir)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +43,6 @@ func MakeReportGenerator(target *targets.Target, vm, objDir, srcDir, buildDir st
 		objDir:    objDir,
 		buildDir:  buildDir,
 		subsystem: subsystem,
-		modules:   modules,
 		Impl:      impl,
 	}
 	return rg, nil
@@ -107,20 +94,7 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error
 	for _, frame := range rg.Frames {
 		f := getFile(files, frame.Name, frame.Path)
 		ln := f.lines[frame.StartLine]
-		var pc uint64
-		if frame.Module == backend.KERNEL {
-			pc = frame.PC
-		} else {
-			idx := 0
-			for i, module := range rg.modules {
-				if module.Name == frame.Module {
-					idx = i
-					break
-				}
-			}
-			pc = frame.PC + rg.modules[idx].Addr
-		}
-		coveredBy := progPCs[pc]
+		coveredBy := progPCs[frame.PC]
 		if len(coveredBy) == 0 {
 			f.uncovered = append(f.uncovered, frame.Range)
 			continue
@@ -201,7 +175,7 @@ func (rg *ReportGenerator) lazySymbolize(progs []Prog) error {
 	if len(pcs) == 0 {
 		return nil
 	}
-	frames, err := rg.Symbolize(pcs, rg.modules)
+	frames, err := rg.Symbolize(pcs)
 	if err != nil {
 		return err
 	}
