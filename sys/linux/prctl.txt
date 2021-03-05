@@ -9,6 +9,12 @@ include <uapi/linux/capability.h>
 include <uapi/linux/securebits.h>
 include <asm/prctl.h>
 
+# Use this variant (which will always return -EINVAL) to explicitly set the 5
+# syscall arguments that will enable to properly infer callArgSizes for all
+# prctl variants.
+
+prctl$0(option const[0], arg2 const[0], arg3 const[0], arg4 const[0], arg5 const[0]) (disabled)
+
 # Only some commands break return values.
 # PR_GET_TIMERSLACK and maybe more produce random errno's.
 # When/if we have stricter enforcement of arguments for syscall variants, we may remove some of breaks_returns attributes.
