@@ -946,9 +946,12 @@ config:
  - SERIAL_8250_DETECT_IRQ: [-s390]
  - SERIAL_8250_RSA: [-s390]
  - SERIAL_NONSTANDARD
- - ROCKETPORT
- - CYCLADES
- - ISI
+ # Removed in "tty: rocket, remove the driver".
+ - ROCKETPORT: [-linux-next]
+ # Removed in "tty: cyclades, remove this orphan".
+ - CYCLADES: [-linux-next]
+ # Removed in "tty: isicom, remove this orphan".
+ - ISI: [-linux-next]
  - N_HDLC
  - N_GSM
  - NOZOMI
@@ -1272,7 +1275,6 @@ config:
  - FS_VERITY_BUILTIN_SIGNATURES
  - FANOTIFY
  - FANOTIFY_ACCESS_PERMISSIONS
- - MOUNT_NOTIFICATIONS: [linux-next]
  - WATCH_QUEUE: [v5.8]
  - KEY_NOTIFICATIONS: [v5.8]
  - QUOTA_NETLINK_INTERFACE
@@ -1445,16 +1447,18 @@ config:
  - CRYPTO_BLAKE2S: [v5.6]
  - CRYPTO_CRCT10DIF_PCLMUL: [x86_64]
  - CRYPTO_MICHAEL_MIC
- - CRYPTO_RMD128
  - CRYPTO_RMD160
- - CRYPTO_RMD256
- - CRYPTO_RMD320
+ # Removed in b21b9a5e0aef "crypto: rmd128 - remove RIPE-MD 128 hash algorithm".
+ - CRYPTO_RMD128: [-v5.12]
+ - CRYPTO_RMD256: [-v5.12]
+ - CRYPTO_RMD320: [-v5.12]
+ - CRYPTO_TGR192: [-v5.12]
+ - CRYPTO_SALSA20: [-v5.12]
  - CRYPTO_SHA1_SSSE3: [x86_64]
  - CRYPTO_SHA256_SSSE3: [x86_64]
  - CRYPTO_SHA512_SSSE3: [x86_64]
  - CRYPTO_SHA3
  - CRYPTO_SM3
- - CRYPTO_TGR192
  - CRYPTO_WP512
  - CRYPTO_GHASH_CLMUL_NI_INTEL: [x86_64]
  - CRYPTO_AES_TI
@@ -1470,7 +1474,6 @@ config:
  - CRYPTO_DES
  - CRYPTO_DES3_EDE_X86_64: [x86_64]
  - CRYPTO_KHAZAD
- - CRYPTO_SALSA20
  - CRYPTO_SEED
  - CRYPTO_SERPENT_SSE2_X86_64: [x86_64]
  - CRYPTO_SERPENT_AVX2_X86_64: [x86_64]
