@@ -68,6 +68,7 @@ config:
  - KVM: [-arm, -riscv]
  - KVM_INTEL: [x86_64]
  - KVM_AMD: [x86_64]
+ - KVM_XEN: [x86_64, v5.12]
  - X86_SGX: [x86_64, v5.11]
  - JUMP_LABEL
  - MODULES
@@ -385,6 +386,7 @@ config:
  - IP_VS_NQ
  - IP_VS_FTP
  - IP_VS_PE_SIP
+ - IP_VS_TWOS: [v5.12]
  - NFT_DUP_IPV4
  - NFT_FIB_IPV4
  - NF_TABLES_ARP
@@ -674,6 +676,7 @@ config:
  - NFC_DIGITAL
  - NFC_NCI
  - NFC_NCI_UART
+ - NFC_VIRTUAL_NCI: [v5.12]
  - NFC_HCI
  - NFC_SHDLC
  - NFC_SIM
@@ -1040,6 +1043,7 @@ config:
  - SND_DUMMY
  - SND_ALOOP
  - SND_VIRMIDI
+ - SND_VIRTIO: [linux-next]
  - SND_HDA_INTEL
  - SND_HDA_HWDEP
  - SND_HDA_INPUT_BEEP
@@ -1098,6 +1102,7 @@ config:
  - USB_SERIAL_QUALCOMM
  - USB_SERIAL_SIERRAWIRELESS
  - USB_SERIAL_OPTION
+ - USB_SERIAL_XR: [v5.12]
  - USB_ATM
  - NOP_USB_XCEIV
  - USB_SUPPORT
@@ -1158,6 +1163,7 @@ config:
  - VIRTIO_MMIO
  - VIRTIO_MMIO_CMDLINE_DEVICES
  - VDPA: [v5.5]
+ - VP_VDPA: [linux-next]
  - VHOST_NET
  - VHOST_VSOCK
  - VHOST_VDPA: [v5.5]
