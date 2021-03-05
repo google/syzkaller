@@ -28,33 +28,42 @@ func init() {
 }
 
 type Config struct {
-	Count int    `json:"count"` // number of VMs to run in parallel
-	Qemu  string `json:"qemu"`  // qemu binary name (qemu-system-arch by default)
-	// Additional command line arguments for the qemu binary.
+	// Number of VMs to run in parallel (1 by default).
+	Count int `json:"count"`
+	// QEMU binary name (optional).
+	// If not specified, qemu-system-arch is used by default.
+	Qemu string `json:"qemu"`
+	// Additional command line arguments for the QEMU binary.
+	// If not specified, the default value specifies machine type, cpu and usually contains -enable-kvm.
+	// If you provide this parameter, it needs to contain the desired machine, cpu
+	// and include -enable-kvm if necessary.
 	// "{{INDEX}}" is replaced with 0-based index of the VM (from 0 to Count-1).
 	// "{{TEMPLATE}}" is replaced with the path to a copy of workdir/template dir.
 	// "{{TCP_PORT}}" is replaced with a random free TCP port
 	QemuArgs string `json:"qemu_args"`
 	// Location of the kernel for injected boot (e.g. arch/x86/boot/bzImage, optional).
-	// This is passed to qemu as the -kernel option.
+	// This is passed to QEMU as the -kernel option.
 	Kernel string `json:"kernel"`
 	// Additional command line options for the booting kernel, for example `root=/dev/sda1`.
 	// Can only be specified with kernel.
 	Cmdline string `json:"cmdline"`
-	Initrd  string `json:"initrd"` // linux initial ramdisk. (optional)
-	// qemu image device.
-	// The default value "hda" is transformed to "-hda image" for qemu.
-	// The modern way of describing qemu hard disks is supported, so the value
-	// "drive index=0,media=disk,file=" is transformed to "-drive index=0,media=disk,file=image"
-	// for qemu.
+	// Initial ramdisk, passed via -initrd QEMU flag (optional).
+	Initrd string `json:"initrd"`
+	// QEMU image device.
+	// The default value "hda" is transformed to "-hda image" for QEMU.
+	// The modern way of describing QEMU hard disks is supported, so the value
+	// "drive index=0,media=disk,file=" is transformed to "-drive index=0,media=disk,file=image" for QEMU.
 	ImageDevice string `json:"image_device"`
-	// qemu network device type to use.
+	// QEMU network device type to use.
 	// If not specified, some default per-arch value will be used.
 	// See the full list with qemu-system-x86_64 -device help.
-	NetDev   string `json:"network_device"`
-	CPU      int    `json:"cpu"`      // number of VM CPUs
-	Mem      int    `json:"mem"`      // amount of VM memory in MiB
-	Snapshot bool   `json:"snapshot"` // For building kernels without -snapshot (for pkg/build)
+	NetDev string `json:"network_device"`
+	// Number of VM CPUs (1 by default).
+	CPU int `json:"cpu"`
+	// Amount of VM memory in MiB (1024 by default).
+	Mem int `json:"mem"`
+	// For building kernels without -snapshot for pkg/build (true by default).
+	Snapshot bool `json:"snapshot"`
 }
 
 type Pool struct {
@@ -242,6 +251,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	cfg := &Config{
 		Count:       1,
 		CPU:         1,
+		Mem:         1024,
 		ImageDevice: "hda",
 		Qemu:        archConfig.Qemu,
 		QemuArgs:    archConfig.QemuArgs,
