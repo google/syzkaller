@@ -748,17 +748,18 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 			oldestTime = info.ModTime()
 		}
 	}
-	osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("log%v", oldestI)), crash.Output)
-	if mgr.cfg.Tag != "" {
-		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("tag%v", oldestI)), []byte(mgr.cfg.Tag))
+	writeOrRemove := func(name string, data []byte) {
+		filename := filepath.Join(dir, name+fmt.Sprint(oldestI))
+		if len(data) == 0 {
+			os.Remove(filename)
+			return
+		}
+		osutil.WriteFile(filename, data)
 	}
-	if len(crash.Report.Report) > 0 {
-		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", oldestI)), crash.Report.Report)
-	}
-	if len(crash.machineInfo) > 0 {
-		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("machineInfo%v", oldestI)), crash.machineInfo)
-	}
-
+	writeOrRemove("log", crash.Output)
+	writeOrRemove("tag", []byte(mgr.cfg.Tag))
+	writeOrRemove("report", crash.Report.Report)
+	writeOrRemove("machineInfo", crash.machineInfo)
 	return mgr.needLocalRepro(crash)
 }
 
