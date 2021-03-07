@@ -22,7 +22,7 @@ readonly ISO="install${RELNO}-${ARCH}.iso"
 readonly ISO_PATCHED="install${RELNO}-${ARCH}-patched.iso"
 
 if [[ ! -f "${ISO}" ]]; then
-  curl -o "${ISO}" "https://${MIRROR}/pub/OpenBSD/${DOWNLOAD_VERSION}/${ARCH}/install${RELNO}.iso"
+  curl -o "${ISO}" "${SNAPSHOTS}${ARCH}/install${RELNO}.iso"
 fi
 
 # Create custom siteXX.tgz set.
