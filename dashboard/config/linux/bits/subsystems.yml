@@ -6,10 +6,6 @@
 # some are enabled for unknown now reasons.
 
 config:
- # 32-on-64 support (compat).
- - IA32_EMULATION: [x86_64]
- - X86_X32: [x86_64]
-
  - SYSVIPC
  - POSIX_MQUEUE
  - NO_HZ

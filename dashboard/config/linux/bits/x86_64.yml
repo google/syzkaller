@@ -44,6 +44,10 @@ config:
  - MCORE2
  - BASE_FULL
 
+ # 32-on-64 support (compat).
+ - IA32_EMULATION
+ - X86_X32: [-baseline]
+
  # Moved from legacy config, reason for enabling is unknown.
  - KALLSYMS_ABSOLUTE_PERCPU
  - X86_MSR
