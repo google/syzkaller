@@ -9429,7 +9429,6 @@ static void setup_sysctl()
 		{"/sys/kernel/debug/x86/nmi_longest_ns", "10000000000"},
 #endif
 		{"/proc/sys/kernel/hung_task_check_interval_secs", "20"},
-		{"/proc/sys/net/core/bpf_jit_enable", "1"},
 		{"/proc/sys/net/core/bpf_jit_kallsyms", "1"},
 		{"/proc/sys/net/core/bpf_jit_harden", "0"},
 		{"/proc/sys/kernel/kptr_restrict", "0"},

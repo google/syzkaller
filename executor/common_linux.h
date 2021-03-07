@@ -4645,8 +4645,6 @@ static void setup_sysctl()
 		{"/sys/kernel/debug/x86/nmi_longest_ns", "10000000000"},
 #endif
 		{"/proc/sys/kernel/hung_task_check_interval_secs", "20"},
-		// This gives more interesting coverage.
-		{"/proc/sys/net/core/bpf_jit_enable", "1"},
 		// bpf_jit_kallsyms and disabling bpf_jit_harden are required
 		// for unwinding through bpf functions.
 		{"/proc/sys/net/core/bpf_jit_kallsyms", "1"},
