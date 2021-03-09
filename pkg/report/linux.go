@@ -1555,7 +1555,7 @@ var linuxOopses = append([]*oops{
 		[]byte("Unable to handle kernel"),
 		[]oopsFormat{
 			{
-				title: compile("Unable to handle kernel (paging request|NULL pointer dereference)"),
+				title: compile("Unable to handle kernel (paging request|NULL pointer dereference|access to user memory)"),
 				fmt:   "BUG: unable to handle kernel %[1]v in %[2]v",
 				alt:   []string{"bad-access in %[2]v"},
 				stack: &stackFmt{
