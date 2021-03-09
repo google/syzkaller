@@ -221,6 +221,18 @@ locking/core
 		args: "git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git locking/core",
 	},
 	{
+		body: `#syz test: repo 	commit`,
+		cmd:  CmdTest,
+		str:  "test:",
+		args: "repo commit",
+	},
+	{
+		body: `#syz	test:	repo	commit`,
+		cmd:  CmdTest,
+		str:  "test:",
+		args: "repo commit",
+	},
+	{
 		body: `
 #syz test_5_arg_cmd arg1
 
@@ -229,6 +241,12 @@ locking/core
 arg4
 arg5
 `,
+		cmd:  cmdTest5,
+		str:  "test_5_arg_cmd",
+		args: "arg1 arg2 arg3 arg4 arg5",
+	},
+	{
+		body: `#syz test_5_arg_cmd 	arg1	 arg2 	arg3	arg4	 arg5`,
 		cmd:  cmdTest5,
 		str:  "test_5_arg_cmd",
 		args: "arg1 arg2 arg3 arg4 arg5",
