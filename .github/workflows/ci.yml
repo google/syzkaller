@@ -5,11 +5,21 @@
 # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions
 
 name: ci
-on: [push, pull_request]
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
 jobs:
   smoke:
     runs-on: ubuntu-latest
     steps:
+      - name: Cancel previous
+        uses: styfle/cancel-workflow-action@0.8.0
+        with:
+          access_token: ${{ github.token }}
       # Checks out syzkaller repo at the path.
       - name: checkout
         uses: actions/checkout@v2
