@@ -220,11 +220,11 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 		return err
 	}
 	accessLevel := accessLevel(c, r)
-	managers, err := loadManagers(c, accessLevel, hdr.Namespace)
+	manager := r.FormValue("manager")
+	managers, err := loadManagers(c, accessLevel, hdr.Namespace, manager)
 	if err != nil {
 		return err
 	}
-	manager := r.FormValue("manager")
 	groups, err := fetchNamespaceBugs(c, accessLevel, hdr.Namespace, manager)
 	if err != nil {
 		return err
@@ -303,7 +303,7 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 	if err != nil {
 		return err
 	}
-	managers, err := loadManagers(c, accessLevel, "")
+	managers, err := loadManagers(c, accessLevel, "", "")
 	if err != nil {
 		return err
 	}
@@ -958,10 +958,10 @@ func makeUIBuild(build *Build) *uiBuild {
 	}
 }
 
-func loadManagers(c context.Context, accessLevel AccessLevel, ns string) ([]*uiManager, error) {
+func loadManagers(c context.Context, accessLevel AccessLevel, ns, manager string) ([]*uiManager, error) {
 	now := timeNow(c)
 	date := timeDate(now)
-	managers, managerKeys, err := loadManagerList(c, accessLevel, ns)
+	managers, managerKeys, err := loadManagerList(c, accessLevel, ns, manager)
 	if err != nil {
 		return nil, err
 	}
@@ -1043,7 +1043,7 @@ func loadManagers(c context.Context, accessLevel AccessLevel, ns string) ([]*uiM
 	return results, nil
 }
 
-func loadManagerList(c context.Context, accessLevel AccessLevel, ns string) ([]*Manager, []*db.Key, error) {
+func loadManagerList(c context.Context, accessLevel AccessLevel, ns, manager string) ([]*Manager, []*db.Key, error) {
 	managers, keys, err := loadAllManagers(c, ns)
 	if err != nil {
 		return nil, nil, err
@@ -1056,6 +1056,9 @@ func loadManagerList(c context.Context, accessLevel AccessLevel, ns string) ([]*
 			continue
 		}
 		if ns == "" && cfg.Decommissioned {
+			continue
+		}
+		if manager != "" && manager != mgr.Name {
 			continue
 		}
 		filtered = append(filtered, mgr)
