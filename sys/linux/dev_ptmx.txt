@@ -50,7 +50,7 @@ ioctl$FIONREAD(fd fd_tty, cmd const[FIONREAD], arg ptr[out, int32])
 ioctl$TIOCOUTQ(fd fd_tty, cmd const[TIOCOUTQ], arg ptr[out, int32])
 ioctl$TCFLSH(fd fd_tty, cmd const[TCFLSH], arg intptr[TCIFLUSH:TCIOFLUSH])
 ioctl$TIOCGPTPEER(fd fd_tty, cmd const[TIOCGPTPEER], arg intptr) fd_tty
-ioctl$TIOCSTI(fd fd_tty, cmd const[TIOCSTI], arg intptr)
+ioctl$TIOCSTI(fd fd_tty, cmd const[TIOCSTI], arg ptr[in, int8])
 ioctl$TIOCCONS(fd fd_tty, cmd const[TIOCCONS])
 ioctl$TIOCSCTTY(fd fd_tty, cmd const[TIOCSCTTY], arg intptr)
 ioctl$TIOCNOTTY(fd fd_tty, cmd const[TIOCNOTTY])
