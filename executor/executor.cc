@@ -165,7 +165,7 @@ static uint64 slowdown_scale;
 #include "common.h"
 
 const int kMaxInput = 4 << 20; // keep in sync with prog.ExecBufferSize
-const int kMaxCommands = 1000;
+const int kMaxCommands = 1000; // prog package knows about this constant (prog.execMaxCommands)
 
 const uint64 instr_eof = -1;
 const uint64 instr_copyin = -2;
@@ -952,7 +952,7 @@ void handle_completion(thread_t* th)
 				event_isset(&th1->ready), event_isset(&th1->done),
 				th1->call_index, (uint64)th1->res, th1->reserrno);
 		}
-		fail("negative running");
+		exitf("negative running");
 	}
 }
 
@@ -1511,6 +1511,7 @@ void setup_features(char** enable, int n)
 void failmsg(const char* err, const char* msg, ...)
 {
 	int e = errno;
+	fprintf(stderr, "SYZFAIL: %s\n", err);
 	if (msg) {
 		va_list args;
 		va_start(args, msg);
@@ -1518,7 +1519,6 @@ void failmsg(const char* err, const char* msg, ...)
 		va_end(args);
 	}
 	fprintf(stderr, " (errno %d: %s)\n", e, strerror(e));
-	fprintf(stderr, "SYZFAIL: %s\n", err);
 
 	// fail()'s are often used during the validation of kernel reactions to queries
 	// that were issued by pseudo syscalls implementations. As fault injection may

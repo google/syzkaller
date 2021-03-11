@@ -10,4 +10,3 @@ config:
  - CMDLINE: [n, override]
  # See the comment in x86_64.yml re these numbers.
  - RCU_CPU_STALL_TIMEOUT: 300
- - DEFAULT_HUNG_TASK_TIMEOUT: 420

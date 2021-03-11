@@ -59,14 +59,16 @@ func TestJob(t *testing.T) {
 	c.expectEQ(strings.Contains(body, "syzbot has found a reproducer"), true)
 
 	c.incomingEmail(sender, "#syz test: repo",
-		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
-	body = c.pollEmailBug().Body
-	c.expectEQ(strings.Contains(body, "want 2 args"), true)
+		EmailOptFrom("test@requester.com"), EmailOptSubject("my-subject"), EmailOptCC([]string{mailingList}))
+	msg := c.pollEmailBug()
+	c.expectEQ(strings.Contains(msg.Body, "want 2 args"), true)
+	c.expectEQ(msg.Subject, "Re: my-subject")
 
 	c.incomingEmail(sender, "#syz test: repo branch commit",
-		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
-	body = c.pollEmailBug().Body
-	c.expectEQ(strings.Contains(body, "want 2 args"), true)
+		EmailOptFrom("test@requester.com"), EmailOptSubject("Re: my-subject"), EmailOptCC([]string{mailingList}))
+	msg = c.pollEmailBug()
+	c.expectEQ(strings.Contains(msg.Body, "want 2 args"), true)
+	c.expectEQ(msg.Subject, "Re: my-subject")
 
 	c.incomingEmail(sender, "#syz test: repo branch",
 		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
@@ -129,7 +131,7 @@ func TestJob(t *testing.T) {
 		msg := c.pollEmailBug()
 		to := email.MergeEmailLists([]string{"test@requester.com", "somebody@else.com", mailingList})
 		c.expectEQ(msg.To, to)
-		c.expectEQ(msg.Subject, "Re: "+crash.Title)
+		c.expectEQ(msg.Subject, "Re: [syzbot] "+crash.Title)
 		c.expectEQ(len(msg.Attachments), 0)
 		c.expectEQ(msg.Body, fmt.Sprintf(`Hello,
 
@@ -398,7 +400,7 @@ func TestBisectFixJob(t *testing.T) {
 		c.expectTrue(strings.Contains(msg.Body, "Sending this report upstream."))
 
 		msg = c.client2.pollEmailBug()
-		c.expectEQ(msg.Subject, "title1")
+		c.expectEQ(msg.Subject, "[syzbot] title1")
 		c.expectTrue(strings.Contains(msg.Body, "syzbot found the following issue"))
 	}
 
@@ -443,7 +445,7 @@ func TestBisectFixRetry(t *testing.T) {
 		c.expectTrue(strings.Contains(msg.Body, "Sending this report upstream."))
 
 		msg = c.client2.pollEmailBug()
-		c.expectEQ(msg.Subject, "title1")
+		c.expectEQ(msg.Subject, "[syzbot] title1")
 		c.expectTrue(strings.Contains(msg.Body, "syzbot found the following issue"))
 	}
 
@@ -508,7 +510,7 @@ func TestNotReportingAlreadyFixed(t *testing.T) {
 		c.expectTrue(strings.Contains(msg.Body, "Sending this report upstream."))
 
 		msg = c.client2.pollEmailBug()
-		c.expectEQ(msg.Subject, "title1")
+		c.expectEQ(msg.Subject, "[syzbot] title1")
 		c.expectTrue(strings.Contains(msg.Body, "syzbot found the following issue"))
 		sender = msg.Sender
 	}
@@ -599,7 +601,7 @@ func TestFixBisectionsListed(t *testing.T) {
 		c.expectTrue(strings.Contains(msg.Body, "Sending this report upstream."))
 
 		msg = c.client2.pollEmailBug()
-		c.expectEQ(msg.Subject, "title1")
+		c.expectEQ(msg.Subject, "[syzbot] title1")
 		c.expectTrue(strings.Contains(msg.Body, "syzbot found the following issue"))
 	}
 
@@ -677,7 +679,7 @@ func TestFixBisectionsDisabled(t *testing.T) {
 		c.expectTrue(strings.Contains(msg.Body, "Sending this report upstream."))
 
 		msg = c.client2.pollEmailBug()
-		c.expectEQ(msg.Subject, "title20")
+		c.expectEQ(msg.Subject, "[syzbot] title20")
 		c.expectTrue(strings.Contains(msg.Body, "syzbot found the following issue"))
 	}
 

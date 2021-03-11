@@ -3187,6 +3187,11 @@ static int nl80211_setup_ibss_interface(struct nlmsg* nlmsg, int sock, int nl802
 #endif
 
 #if SYZ_EXECUTOR || SYZ_WIFI
+#include <fcntl.h>
+#include <linux/rfkill.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
 static int hwsim80211_create_device(struct nlmsg* nlmsg, int sock, int hwsim_family, uint8 mac_addr[ETH_ALEN])
 {
 	struct genlmsghdr genlhdr;
@@ -3209,6 +3214,19 @@ static void initialize_wifi_devices(void)
 	if (!flag_wifi)
 		return;
 #endif
+	int rfkill = open("/dev/rfkill", O_RDWR);
+	if (rfkill == -1) {
+		if (errno != ENOENT && errno != EACCES)
+			fail("open(/dev/rfkill) failed");
+	} else {
+		struct rfkill_event event = {0};
+		event.type = RFKILL_TYPE_ALL;
+		event.op = RFKILL_OP_CHANGE_ALL;
+		if (write(rfkill, &event, sizeof(event)) != (ssize_t)(sizeof(event)))
+			fail("write(/dev/rfkill) failed");
+		close(rfkill);
+	}
+
 	uint8 mac_addr[6] = WIFI_MAC_BASE;
 	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
 	if (sock < 0) {
@@ -9407,21 +9425,22 @@ static void setup_sysctl()
 		const char* name;
 		const char* data;
 	} files[] = {
-	    {"/sys/kernel/debug/x86/nmi_longest_ns", "10000000000"},
-	    {"/proc/sys/kernel/hung_task_check_interval_secs", "20"},
-	    {"/proc/sys/net/core/bpf_jit_enable", "1"},
-	    {"/proc/sys/net/core/bpf_jit_kallsyms", "1"},
-	    {"/proc/sys/net/core/bpf_jit_harden", "0"},
-	    {"/proc/sys/kernel/kptr_restrict", "0"},
-	    {"/proc/sys/kernel/softlockup_all_cpu_backtrace", "1"},
-	    {"/proc/sys/fs/mount-max", "100"},
-	    {"/proc/sys/vm/oom_dump_tasks", "0"},
-	    {"/proc/sys/debug/exception-trace", "0"},
-	    {"/proc/sys/kernel/printk", "7 4 1 3"},
-	    {"/proc/sys/net/ipv4/ping_group_range", "0 65535"},
-	    {"/proc/sys/kernel/keys/gc_delay", "1"},
-	    {"/proc/sys/vm/nr_overcommit_hugepages", "4"},
-	    {"/proc/sys/vm/oom_kill_allocating_task", "1"},
+#if GOARCH_amd64 || GOARCH_386
+		{"/sys/kernel/debug/x86/nmi_longest_ns", "10000000000"},
+#endif
+		{"/proc/sys/kernel/hung_task_check_interval_secs", "20"},
+		{"/proc/sys/net/core/bpf_jit_kallsyms", "1"},
+		{"/proc/sys/net/core/bpf_jit_harden", "0"},
+		{"/proc/sys/kernel/kptr_restrict", "0"},
+		{"/proc/sys/kernel/softlockup_all_cpu_backtrace", "1"},
+		{"/proc/sys/fs/mount-max", "100"},
+		{"/proc/sys/vm/oom_dump_tasks", "0"},
+		{"/proc/sys/debug/exception-trace", "0"},
+		{"/proc/sys/kernel/printk", "7 4 1 3"},
+		{"/proc/sys/net/ipv4/ping_group_range", "0 65535"},
+		{"/proc/sys/kernel/keys/gc_delay", "1"},
+		{"/proc/sys/vm/nr_overcommit_hugepages", "4"},
+		{"/proc/sys/vm/oom_kill_allocating_task", "1"},
 	};
 	for (size_t i = 0; i < sizeof(files) / sizeof(files[0]); i++) {
 		if (!write_file(files[i].name, files[i].data))

@@ -3,7 +3,10 @@
 
 package mgrconfig
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"github.com/google/syzkaller/pkg/cover"
+)
 
 type Config struct {
 	// Instance name (used for identification and as GCE instance prefix).
@@ -41,6 +44,12 @@ type Config struct {
 	KernelSrc string `json:"kernel_src,omitempty"`
 	// Location of the driectory where the kernel was built (if not set defaults to KernelSrc)
 	KernelBuildSrc string `json:"kernel_build_src"`
+	// Kernel subsystem with paths to each subsystem
+	//	"kernel_subsystem": [
+	//		{ "name": "sound", "path": ["sound", "techpack/audio"]},
+	//		{ "name": "mydriver": "path": ["mydriver_path"]}
+	//	]
+	KernelSubsystem []cover.Subsystem `json:"kernel_subsystem,omitempty"`
 	// Arbitrary optional tag that is saved along with crash reports (e.g. branch/commit).
 	Tag string `json:"tag,omitempty"`
 	// Location of the disk image file.
@@ -94,6 +103,9 @@ type Config struct {
 	// It should be chosen to saturate CPU inside of the VM and maximize number of test executions,
 	// but to not oversubscribe CPU and memory too severe to not cause OOMs and false hangs/stalls.
 	Procs int `json:"procs"`
+
+	// Maximum number of logs to store per crash (default: 100).
+	MaxCrashLogs int `json:"max_crash_logs"`
 
 	// Type of sandbox to use during fuzzing:
 	// "none": don't do anything special beyond resource sandboxing, default

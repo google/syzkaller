@@ -10,7 +10,7 @@ config:
  # root=/dev/sda is not necessary correct, but it's a common setting and user arguments are appended
  # to the builtin command line, so user can always override this.
  # vsyscall=native required to run x86_64 executables on android kernels (it disables VDSO by default).
- - CMDLINE: [append, "root=/dev/sda console=ttyS0 vsyscall=native watchdog_thresh=55 workqueue.watchdog_thresh=140"]
+ - CMDLINE: [append, "root=/dev/sda console=ttyS0 vsyscall=native numa=fake=2 kvm-intel.nested=1 spec_store_bypass_disable=prctl nopcid vivid.n_devs=16 vivid.multiplanar=1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2 netrom.nr_ndevs=16 rose.rose_ndevs=16 dummy_hcd.num=8 watchdog_thresh=55 workqueue.watchdog_thresh=140"]
  - CMDLINE_BOOL
 
  # Deterministic hang/stall detection.
@@ -43,6 +43,10 @@ config:
  # Should be faster this way.
  - MCORE2
  - BASE_FULL
+
+ # 32-on-64 support (compat).
+ - IA32_EMULATION
+ - X86_X32: [-baseline]
 
  # Moved from legacy config, reason for enabling is unknown.
  - KALLSYMS_ABSOLUTE_PERCPU

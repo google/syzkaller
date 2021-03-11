@@ -6,7 +6,8 @@ shell:
  - make kvm_guest.config
 
 config:
- - CMDLINE: [append, "watchdog_thresh=165 workqueue.watchdog_thresh=420"]
+ - CMDLINE: [append, "dummy_hcd.num=2 watchdog_thresh=165 workqueue.watchdog_thresh=420"]
+ - CMDLINE_EXTEND
  # See the comment in x86_64.yml re these numbers.
  - RCU_CPU_STALL_TIMEOUT: 300
  - DEFAULT_HUNG_TASK_TIMEOUT: 420

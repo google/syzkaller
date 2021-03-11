@@ -4,6 +4,9 @@
 # Auxiliary debug configs that detect non-critical bugs.
 
 config:
+ # Instances that use nonoise also ignore WARNINGs, so they don't want panic_on_warn.
+ - CMDLINE: [append, "panic_on_warn=1"]
+
  - LOCKDEP
  - PROVE_LOCKING
  - DEBUG_ATOMIC_SLEEP
@@ -15,6 +18,7 @@ config:
  - DEBUG_MUTEXES
  - DEBUG_WW_MUTEX_SLOWPATH
  - DEBUG_RWSEMS
+ - DEBUG_IRQFLAGS: [v5.12]
 
  - DEBUG_VM
  - DEBUG_VM_RB

@@ -728,12 +728,13 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 	if err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(crash.Title+"\n")); err != nil {
 		log.Logf(0, "failed to write crash: %v", err)
 	}
-	// Save up to 100 reports. If we already have 100, overwrite the oldest one.
+
+	// Save up to mgr.cfg.MaxCrashLogs reports, overwrite the oldest once we've reached that number.
 	// Newer reports are generally more useful. Overwriting is also needed
 	// to be able to understand if a particular bug still happens or already fixed.
 	oldestI := 0
 	var oldestTime time.Time
-	for i := 0; i < 100; i++ {
+	for i := 0; i < mgr.cfg.MaxCrashLogs; i++ {
 		info, err := os.Stat(filepath.Join(dir, fmt.Sprintf("log%v", i)))
 		if err != nil {
 			oldestI = i
@@ -747,17 +748,18 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 			oldestTime = info.ModTime()
 		}
 	}
-	osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("log%v", oldestI)), crash.Output)
-	if mgr.cfg.Tag != "" {
-		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("tag%v", oldestI)), []byte(mgr.cfg.Tag))
+	writeOrRemove := func(name string, data []byte) {
+		filename := filepath.Join(dir, name+fmt.Sprint(oldestI))
+		if len(data) == 0 {
+			os.Remove(filename)
+			return
+		}
+		osutil.WriteFile(filename, data)
 	}
-	if len(crash.Report.Report) > 0 {
-		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", oldestI)), crash.Report.Report)
-	}
-	if len(crash.machineInfo) > 0 {
-		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("machineInfo%v", oldestI)), crash.machineInfo)
-	}
-
+	writeOrRemove("log", crash.Output)
+	writeOrRemove("tag", []byte(mgr.cfg.Tag))
+	writeOrRemove("report", crash.Report.Report)
+	writeOrRemove("machineInfo", crash.machineInfo)
 	return mgr.needLocalRepro(crash)
 }
 

@@ -710,7 +710,7 @@ var linuxStallAnchorFrames = []*regexp.Regexp{
 // nolint: lll
 var (
 	linuxSymbolizeRe = regexp.MustCompile(`(?:\[\<(?:(?:0x)?[0-9a-f]+)\>\])?[ \t]+\(?(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)\)?`)
-	linuxRipFrame    = compile(`(?:IP|NIP|pc |PC is at):? (?:(?:[0-9]+:)?(?:{{PC}} +){0,2}{{FUNC}}|[0-9]+:0x[0-9a-f]+|(?:[0-9]+:)?{{PC}} +\[< *\(null\)>\] +\(null\)|[0-9]+: +\(null\))`)
+	linuxRipFrame    = compile(`(?:IP|NIP|pc |PC is at):? (?:(?:[0-9]+:)?(?:{{PC}} +){0,2}{{FUNC}}|(?:[0-9]+:)?0x[0-9a-f]+|(?:[0-9]+:)?{{PC}} +\[< *\(null\)>\] +\(null\)|[0-9]+: +\(null\))`)
 	linuxCallTrace   = compile(`(?:Call (?:T|t)race:)|(?:Backtrace:)`)
 )
 
@@ -757,6 +757,7 @@ var linuxStackParams = &stackParams{
 		"dump_backtrace",
 		"warn_slowpath",
 		"warn_alloc",
+		"warn_bogus",
 		"__warn",
 		"alloc_pages",
 		"kmalloc",
@@ -1546,13 +1547,15 @@ var linuxOopses = append([]*oops{
 			compile("_INFO::"),                                       // Android can print this during boot.
 			compile("INFO: sys_.* is not present in /proc/kallsyms"), // pkg/host output in debug mode
 			compile("INFO: no syscalls can create resource"),         // pkg/host output in debug mode
+			compile("CAM_INFO:"),                                     // Android prints this.
+			compile("rmt_storage:INFO:"),                             // Android prints this.
 		},
 	},
 	{
 		[]byte("Unable to handle kernel"),
 		[]oopsFormat{
 			{
-				title: compile("Unable to handle kernel (paging request|NULL pointer dereference)"),
+				title: compile("Unable to handle kernel (paging request|NULL pointer dereference|access to user memory)"),
 				fmt:   "BUG: unable to handle kernel %[1]v in %[2]v",
 				alt:   []string{"bad-access in %[2]v"},
 				stack: &stackFmt{

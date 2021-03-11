@@ -65,6 +65,7 @@ type EmailConfig struct {
 	Email              string
 	MailMaintainers    bool
 	DefaultMaintainers []string
+	SubjectPrefix      string
 }
 
 func (cfg *EmailConfig) Type() string {
@@ -82,6 +83,9 @@ func (cfg *EmailConfig) Validate() error {
 	}
 	if cfg.MailMaintainers && len(cfg.DefaultMaintainers) == 0 {
 		return fmt.Errorf("email config: MailMaintainers is set but no DefaultMaintainers")
+	}
+	if cfg.SubjectPrefix != strings.TrimSpace(cfg.SubjectPrefix) {
+		return fmt.Errorf("email config: subject prefix %q contains leading/trailing spaces", cfg.SubjectPrefix)
 	}
 	return nil
 }
@@ -188,7 +192,7 @@ func emailSendBugNotif(c context.Context, notif *dashapi.BugNotification) error 
 		return err
 	}
 	log.Infof(c, "sending notif %v for %q to %q: %v", notif.Type, notif.Title, to, body)
-	if err := sendMailText(c, notif.Title, from, to, notif.ExtID, nil, body); err != nil {
+	if err := sendMailText(c, cfg, notif.Title, from, to, notif.ExtID, body); err != nil {
 		return err
 	}
 	cmd := &dashapi.BugUpdate{
@@ -247,9 +251,12 @@ func emailReport(c context.Context, rep *dashapi.BugReport) error {
 	if err != nil {
 		return err
 	}
-
+	body := new(bytes.Buffer)
+	if err := mailTemplates.ExecuteTemplate(body, templ, rep); err != nil {
+		return fmt.Errorf("failed to execute %v template: %v", templ, err)
+	}
 	log.Infof(c, "sending email %q to %q", rep.Title, to)
-	return sendMailTemplate(c, rep.Title, from, to, rep.ExtID, nil, templ, rep)
+	return sendMailText(c, cfg, rep.Title, from, to, rep.ExtID, body.String())
 }
 
 // handleIncomingMail is the entry point for incoming emails.
@@ -308,30 +315,32 @@ func incomingMail(c context.Context, r *http.Request) error {
 	case email.CmdNone, email.CmdUpstream, email.CmdInvalid, email.CmdUnDup:
 	case email.CmdFix:
 		if msg.CommandArgs == "" {
-			return replyTo(c, msg, "no commit title", nil)
+			return replyTo(c, msg, "no commit title")
 		}
 		cmd.FixCommits = []string{msg.CommandArgs}
 	case email.CmdUnFix:
 		cmd.ResetFixCommits = true
 	case email.CmdDup:
 		if msg.CommandArgs == "" {
-			return replyTo(c, msg, "no dup title", nil)
+			return replyTo(c, msg, "no dup title")
 		}
 		cmd.DupOf = msg.CommandArgs
+		cmd.DupOf = strings.TrimSpace(strings.TrimPrefix(cmd.DupOf, replySubjectPrefix))
+		cmd.DupOf = strings.TrimSpace(strings.TrimPrefix(cmd.DupOf, emailConfig.SubjectPrefix))
 	case email.CmdUnCC:
 		cmd.CC = []string{email.CanonicalEmail(msg.From)}
 	default:
 		if msg.Command != email.CmdUnknown {
 			log.Errorf(c, "unknown email command %v %q", msg.Command, msg.CommandStr)
 		}
-		return replyTo(c, msg, fmt.Sprintf("unknown command %q", msg.CommandStr), nil)
+		return replyTo(c, msg, fmt.Sprintf("unknown command %q", msg.CommandStr))
 	}
 	ok, reply, err := incomingCommand(c, cmd)
 	if err != nil {
 		return nil // the error was already logged
 	}
 	if !ok && reply != "" {
-		return replyTo(c, msg, reply, nil)
+		return replyTo(c, msg, reply)
 	}
 	if !mailingListInCC && msg.Command != email.CmdNone && msg.Command != email.CmdUnCC {
 		warnMailingListInCC(c, msg, mailingList)
@@ -353,12 +362,12 @@ var emailCmdToStatus = map[email.Command]dashapi.BugStatus{
 func handleTestCommand(c context.Context, msg *email.Email) error {
 	args := strings.Split(msg.CommandArgs, " ")
 	if len(args) != 2 {
-		return replyTo(c, msg, fmt.Sprintf("want 2 args (repo, branch), got %v", len(args)), nil)
+		return replyTo(c, msg, fmt.Sprintf("want 2 args (repo, branch), got %v", len(args)))
 	}
 	reply := handleTestRequest(c, msg.BugID, email.CanonicalEmail(msg.From),
 		msg.MessageID, msg.Link, msg.Patch, args[0], args[1], msg.Cc)
 	if reply != "" {
-		return replyTo(c, msg, reply, nil)
+		return replyTo(c, msg, reply)
 	}
 	return nil
 }
@@ -393,7 +402,7 @@ func loadBugInfo(c context.Context, msg *email.Email) (bug *Bug, bugReporting *B
 				log.Errorf(c, "failed to format sender email address: %v", err)
 				from = "ERROR"
 			}
-			if err := replyTo(c, msg, fmt.Sprintf(replyNoBugID, from), nil); err != nil {
+			if err := replyTo(c, msg, fmt.Sprintf(replyNoBugID, from)); err != nil {
 				log.Errorf(c, "failed to send reply: %v", err)
 			}
 		}
@@ -407,7 +416,7 @@ func loadBugInfo(c context.Context, msg *email.Email) (bug *Bug, bugReporting *B
 			log.Errorf(c, "failed to format sender email address: %v", err)
 			from = "ERROR"
 		}
-		if err := replyTo(c, msg, fmt.Sprintf(replyBadBugID, from), nil); err != nil {
+		if err := replyTo(c, msg, fmt.Sprintf(replyBadBugID, from)); err != nil {
 			log.Errorf(c, "failed to send reply: %v", err)
 		}
 		return nil, nil, nil
@@ -415,7 +424,7 @@ func loadBugInfo(c context.Context, msg *email.Email) (bug *Bug, bugReporting *B
 	bugReporting, _ = bugReportingByID(bug, msg.BugID)
 	if bugReporting == nil {
 		log.Errorf(c, "can't find bug reporting: %v", err)
-		if err := replyTo(c, msg, "Can't find the corresponding bug.", nil); err != nil {
+		if err := replyTo(c, msg, "Can't find the corresponding bug."); err != nil {
 			log.Errorf(c, "failed to send reply: %v", err)
 		}
 		return nil, nil, nil
@@ -452,41 +461,29 @@ func warnMailingListInCC(c context.Context, msg *email.Email, mailingList string
 		" in CC next time. It serves as a history of what happened with each bug report."+
 		" Thank you.",
 		msg.CommandStr, mailingList)
-	if err := replyTo(c, msg, reply, nil); err != nil {
+	if err := replyTo(c, msg, reply); err != nil {
 		log.Errorf(c, "failed to send email reply: %v", err)
 	}
 }
 
-func sendMailTemplate(c context.Context, subject, from string, to []string, replyTo string,
-	attachments []aemail.Attachment, template string, data interface{}) error {
-	body := new(bytes.Buffer)
-	if err := mailTemplates.ExecuteTemplate(body, template, data); err != nil {
-		return fmt.Errorf("failed to execute %v template: %v", template, err)
-	}
-	return sendMailText(c, subject, from, to, replyTo, attachments, body.String())
-}
-
-func sendMailText(c context.Context, subject, from string, to []string, replyTo string,
-	attachments []aemail.Attachment, body string) error {
+func sendMailText(c context.Context, cfg *EmailConfig, subject, from string, to []string, replyTo, body string) error {
 	msg := &aemail.Message{
-		Sender:      from,
-		To:          to,
-		Subject:     subject,
-		Body:        body,
-		Attachments: attachments,
+		Sender:  from,
+		To:      to,
+		Subject: subject,
+		Body:    body,
+	}
+	if cfg.SubjectPrefix != "" {
+		msg.Subject = cfg.SubjectPrefix + " " + msg.Subject
 	}
 	if replyTo != "" {
 		msg.Headers = mail.Header{"In-Reply-To": []string{replyTo}}
-		msg.Subject = replySubjectPrefix + msg.Subject
+		msg.Subject = replySubject(msg.Subject)
 	}
 	return sendEmail(c, msg)
 }
 
-func replyTo(c context.Context, msg *email.Email, reply string, attachment *aemail.Attachment) error {
-	var attachments []aemail.Attachment
-	if attachment != nil {
-		attachments = append(attachments, *attachment)
-	}
+func replyTo(c context.Context, msg *email.Email, reply string) error {
 	from, err := email.AddAddrContext(fromAddr(c), msg.BugID)
 	if err != nil {
 		return err
@@ -494,13 +491,12 @@ func replyTo(c context.Context, msg *email.Email, reply string, attachment *aema
 	log.Infof(c, "sending reply: to=%q cc=%q subject=%q reply=%q",
 		msg.From, msg.Cc, msg.Subject, reply)
 	replyMsg := &aemail.Message{
-		Sender:      from,
-		To:          []string{msg.From},
-		Cc:          msg.Cc,
-		Subject:     replySubjectPrefix + msg.Subject,
-		Body:        email.FormReply(msg.Body, reply),
-		Attachments: attachments,
-		Headers:     mail.Header{"In-Reply-To": []string{msg.MessageID}},
+		Sender:  from,
+		To:      []string{msg.From},
+		Cc:      msg.Cc,
+		Subject: replySubject(msg.Subject),
+		Body:    email.FormReply(msg.Body, reply),
+		Headers: mail.Header{"In-Reply-To": []string{msg.MessageID}},
 	}
 	return sendEmail(c, replyMsg)
 }
@@ -511,6 +507,13 @@ var sendEmail = func(c context.Context, msg *aemail.Message) error {
 		return fmt.Errorf("failed to send email: %v", err)
 	}
 	return nil
+}
+
+func replySubject(subject string) string {
+	if !strings.HasPrefix(subject, replySubjectPrefix) {
+		return replySubjectPrefix + subject
+	}
+	return subject
 }
 
 func ownEmail(c context.Context) string {

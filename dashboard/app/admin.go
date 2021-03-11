@@ -142,50 +142,76 @@ func updateBugReporting(c context.Context, w http.ResponseWriter, r *http.Reques
 	}
 	log.Warningf(c, "fetched %v bugs for namespce %v", len(bugs), ns)
 	cfg := config.Namespaces[ns]
-	transform := func(bug *Bug, index int) {
-		createBugReporting(bug, cfg)
-	}
-	var batchKeys []*db.Key
-	const batchSize = 20
+	var update []*db.Key
 	for i, bug := range bugs {
 		if len(bug.Reporting) >= len(cfg.Reporting) {
 			continue
 		}
-		batchKeys = append(batchKeys, keys[i])
-		if len(batchKeys) == batchSize {
-			if err := updateBugBatch(c, batchKeys, transform); err != nil {
-				return err
-			}
-			batchKeys = nil
-		}
+		update = append(update, keys[i])
 	}
-	if len(batchKeys) != 0 {
-		if err := updateBugBatch(c, batchKeys, transform); err != nil {
-			return err
-		}
-	}
-	return nil
+	return updateBugBatch(c, update, func(bug *Bug) {
+		createBugReporting(bug, cfg)
+	})
 }
 
-func updateBugBatch(c context.Context, keys []*db.Key, transform func(bug *Bug, index int)) error {
-	tx := func(c context.Context) error {
-		bugs := make([]*Bug, len(keys))
-		if err := db.GetMulti(c, keys, bugs); err != nil {
-			return err
+// updateBugTitles adds missing MergedTitles/AltTitles to bugs.
+// This can be used to migrate datastore to the new scheme introduced:
+// by commit fd1036219797 ("dashboard/app: merge duplicate crashes").
+func updateBugTitles(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	if accessLevel(c, r) != AccessAdmin {
+		return fmt.Errorf("admin only")
+	}
+	var keys []*db.Key
+	if err := foreachBug(c, nil, func(bug *Bug, key *db.Key) error {
+		if len(bug.MergedTitles) == 0 || len(bug.AltTitles) == 0 {
+			keys = append(keys, key)
 		}
-		for i, bug := range bugs {
-			transform(bug, i)
-		}
-		_, err := db.PutMulti(c, keys, bugs)
+		return nil
+	}); err != nil {
 		return err
 	}
-	err := db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true})
-	log.Warningf(c, "updated %v bugs: %v", len(keys), err)
-	return err
+	log.Warningf(c, "fetched %v bugs for update", len(keys))
+	return updateBugBatch(c, keys, func(bug *Bug) {
+		if len(bug.MergedTitles) == 0 {
+			bug.MergedTitles = []string{bug.Title}
+		}
+		if len(bug.AltTitles) == 0 {
+			bug.AltTitles = []string{bug.Title}
+		}
+	})
+}
+
+func updateBugBatch(c context.Context, keys []*db.Key, transform func(bug *Bug)) error {
+	for len(keys) != 0 {
+		batchSize := 20
+		if batchSize > len(keys) {
+			batchSize = len(keys)
+		}
+		batchKeys := keys[:batchSize]
+		keys = keys[batchSize:]
+
+		tx := func(c context.Context) error {
+			bugs := make([]*Bug, len(batchKeys))
+			if err := db.GetMulti(c, batchKeys, bugs); err != nil {
+				return err
+			}
+			for _, bug := range bugs {
+				transform(bug)
+			}
+			_, err := db.PutMulti(c, batchKeys, bugs)
+			return err
+		}
+		if err := db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true}); err != nil {
+			return err
+		}
+		log.Warningf(c, "updated %v bugs", len(batchKeys))
+	}
+	return nil
 }
 
 // Prevent warnings about dead code.
 var (
 	_ = dropNamespace
 	_ = updateBugReporting
+	_ = updateBugTitles
 )

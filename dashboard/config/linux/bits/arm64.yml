@@ -9,7 +9,7 @@ shell:
 config:
  # We reduce number of vivid/netrom/rose/hcd devices to 2 because we use at most 2 procs
  # with emulation and creating these devices takes time during boot.
- - CMDLINE: [append, "root=/dev/vda console=ttyAMA0 watchdog_thresh=165 workqueue.watchdog_thresh=420 vivid.n_devs=4 vivid.multiplanar=1,2,1,2 netrom.nr_ndevs=2 rose.rose_ndevs=2 dummy_hcd.num=2"]
+ - CMDLINE: [append, "root=/dev/vda console=ttyAMA0 watchdog_thresh=165 workqueue.watchdog_thresh=420 dummy_hcd.num=2"]
  - CMDLINE_EXTEND
  # See the comment in x86_64.yml re these numbers.
  - RCU_CPU_STALL_TIMEOUT: 300
@@ -45,6 +45,7 @@ config:
  - FB_IBM_GXT4500: n
  - SMS_SIANO_RC: n
  - V4L_PLATFORM_DRIVERS: n
+ - MEDIA_SUPPORT: n
  - MEDIA_CEC_SUPPORT: n
  - MEDIA_PCI_SUPPORT: n
  - MEDIA_RADIO_SUPPORT: n

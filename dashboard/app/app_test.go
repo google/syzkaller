@@ -160,6 +160,7 @@ var testConfig = &GlobalConfig{
 					Config: &EmailConfig{
 						Email:              "bugs@syzkaller.com",
 						DefaultMaintainers: []string{"default@maintainers.com"},
+						SubjectPrefix:      "[syzbot]",
 						MailMaintainers:    true,
 					},
 				},

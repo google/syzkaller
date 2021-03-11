@@ -78,12 +78,13 @@ func LoadPartialFile(filename string) (*Config, error) {
 
 func defaultValues() *Config {
 	return &Config{
-		SSHUser:   "root",
-		Cover:     true,
-		Reproduce: true,
-		Sandbox:   "none",
-		RPC:       ":0",
-		Procs:     6,
+		SSHUser:      "root",
+		Cover:        true,
+		Reproduce:    true,
+		Sandbox:      "none",
+		RPC:          ":0",
+		MaxCrashLogs: 100,
+		Procs:        6,
 	}
 }
 

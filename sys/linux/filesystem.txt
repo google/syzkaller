@@ -38,8 +38,21 @@ fsconfig$FSCONFIG_CMD_RECONFIGURE(fd fd_fscontext, cmd const[FSCONFIG_CMD_RECONF
 fsmount(fs_fd fd_fscontext, flags flags[fsmount_flags], attr_flags flags[fsmount_attr_flags]) fd
 move_mount(from_dfd fd_dir[opt], from_pathname ptr[in, filename], to_dfd fd_dir[opt], to_pathname ptr[in, filename], flags flags[move_mount_flags])
 open_tree(dfd fd_dir[opt], filename ptr[in, filename], flags flags[open_tree_flags]) fd
+mount_setattr(dfd fd_dir[opt], filename ptr[in, filename], flags flags[mount_setattr_flags], args ptr[in, mount_attr], size bytesize[args])
 
 open_tree_flags = AT_EMPTY_PATH, AT_NO_AUTOMOUNT, AT_RECURSIVE, AT_SYMLINK_NOFOLLOW, OPEN_TREE_CLONE, OPEN_TREE_CLOEXEC
+
+mount_setattr_flags = AT_EMPTY_PATH, AT_NO_AUTOMOUNT, AT_RECURSIVE, AT_SYMLINK_NOFOLLOW
+
+mount_attr {
+	attr_set	flags[mount_attr_flags, int64]
+	attr_clr	flags[mount_attr_flags, int64]
+	propagation	flags[mount_attr_propagation_flags, int64]
+	userns_fd	align64[fd_userns]
+}
+
+mount_attr_flags = MOUNT_ATTR_RDONLY, MOUNT_ATTR_NOSUID, MOUNT_ATTR_NODEV, MOUNT_ATTR_NOEXEC, MOUNT_ATTR__ATIME, MOUNT_ATTR_NODIRATIME, MOUNT_ATTR_IDMAP
+mount_attr_propagation_flags = MS_UNBINDABLE, MS_PRIVATE, MS_SLAVE, MS_SHARED
 fsmount_flags = FSMOUNT_CLOEXEC
 fsopen_flags = FSOPEN_CLOEXEC
 fspick_flags = FSPICK_CLOEXEC

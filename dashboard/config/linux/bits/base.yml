@@ -19,7 +19,7 @@ config:
  - DEBUG_KERNEL
 
  # panic=86400: prevents kernel from rebooting so that we don't get reboot output in all crash reports.
- - CMDLINE: "earlyprintk=serial oops=panic panic_on_warn=1 nmi_watchdog=panic panic=86400 net.ifnames=0 sysctl.kernel.hung_task_all_cpu_backtrace=1 ima_policy=tcb kvm-intel.nested=1 nf-conntrack-ftp.ports=20000 nf-conntrack-tftp.ports=20000 nf-conntrack-sip.ports=20000 nf-conntrack-irc.ports=20000 nf-conntrack-sane.ports=20000 vivid.n_devs=16 vivid.multiplanar=1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2 netrom.nr_ndevs=16 rose.rose_ndevs=16 spec_store_bypass_disable=prctl numa=fake=2 nopcid dummy_hcd.num=8 binder.debug_mask=0 rcupdate.rcu_expedited=1"
+ - CMDLINE: "earlyprintk=serial net.ifnames=0 sysctl.kernel.hung_task_all_cpu_backtrace=1 ima_policy=tcb nf-conntrack-ftp.ports=20000 nf-conntrack-tftp.ports=20000 nf-conntrack-sip.ports=20000 nf-conntrack-irc.ports=20000 nf-conntrack-sane.ports=20000 binder.debug_mask=0 rcupdate.rcu_expedited=1 no_hash_pointers"
 
  # This config can be used to enable any additional temporal debugging features in linux-next tree.
  - DEBUG_AID_FOR_SYZBOT: [linux-next]

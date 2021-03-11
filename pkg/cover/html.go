@@ -103,6 +103,165 @@ func (rg *ReportGenerator) DoHTML(w io.Writer, progs []Prog) error {
 	return coverTemplate.Execute(w, d)
 }
 
+type fileStats struct {
+	Name                  string
+	CoveredLines          int
+	TotalLines            int
+	CoveredPCs            int
+	TotalPCs              int
+	TotalFunctions        int
+	CoveredPCsInFunctions int
+	TotalPCsInFunctions   int
+}
+
+var csvFilesHeader = []string{
+	"Filename",
+	"CoveredLines",
+	"TotalLines",
+	"CoveredPCs",
+	"TotalPCs",
+	"TotalFunctions",
+	"CoveredPCsInFunctions",
+	"TotalPCsInFunctions",
+}
+
+func (rg *ReportGenerator) convertToStats(progs []Prog) ([]fileStats, error) {
+	files, err := rg.prepareFileMap(progs)
+	if err != nil {
+		return nil, err
+	}
+
+	var data []fileStats
+	for fname, file := range files {
+		lines, err := parseFile(file.filename)
+		if err != nil {
+			fmt.Printf("failed to open/locate %s\n", file.filename)
+			continue
+		}
+		totalFuncs := len(file.functions)
+		var coveredInFunc int
+		var pcsInFunc int
+		for _, function := range file.functions {
+			coveredInFunc += function.covered
+			pcsInFunc += function.pcs
+		}
+		totalLines := len(lines)
+		var coveredLines int
+		for _, line := range file.lines {
+			if len(line.progCount) != 0 {
+				coveredLines++
+			}
+		}
+		data = append(data, fileStats{
+			Name:                  fname,
+			CoveredLines:          coveredLines,
+			TotalLines:            totalLines,
+			CoveredPCs:            file.coveredPCs,
+			TotalPCs:              file.totalPCs,
+			TotalFunctions:        totalFuncs,
+			CoveredPCsInFunctions: coveredInFunc,
+			TotalPCsInFunctions:   pcsInFunc,
+		})
+	}
+
+	return data, nil
+}
+
+func (rg *ReportGenerator) DoCSVFiles(w io.Writer, progs []Prog) error {
+	data, err := rg.convertToStats(progs)
+	if err != nil {
+		return err
+	}
+
+	sort.SliceStable(data, func(i, j int) bool {
+		return data[i].Name < data[j].Name
+	})
+
+	writer := csv.NewWriter(w)
+	defer writer.Flush()
+	if err := writer.Write(csvFilesHeader); err != nil {
+		return err
+	}
+
+	var d [][]string
+	for _, dt := range data {
+		d = append(d, []string{
+			dt.Name,
+			strconv.Itoa(dt.CoveredLines),
+			strconv.Itoa(dt.TotalLines),
+			strconv.Itoa(dt.CoveredPCs),
+			strconv.Itoa(dt.TotalPCs),
+			strconv.Itoa(dt.TotalFunctions),
+			strconv.Itoa(dt.CoveredPCsInFunctions),
+			strconv.Itoa(dt.TotalPCsInFunctions),
+		})
+	}
+	return writer.WriteAll(d)
+}
+
+func groupCoverByFilePrefixes(datas []fileStats, subsystems []Subsystem) map[string]map[string]string {
+	d := make(map[string]map[string]string)
+
+	for _, subsystem := range subsystems {
+		var coveredLines int
+		var totalLines int
+		var coveredPCsInFile int
+		var totalPCsInFile int
+		var totalFuncs int
+		var coveredPCsInFuncs int
+		var pcsInFuncs int
+		var percentLines float64
+		var percentPCsInFile float64
+		var percentPCsInFunc float64
+
+		for _, path := range subsystem.Paths {
+			for _, data := range datas {
+				if !strings.HasPrefix(data.Name, path) {
+					continue
+				}
+				coveredLines += data.CoveredLines
+				totalLines += data.TotalLines
+				coveredPCsInFile += data.CoveredPCs
+				totalPCsInFile += data.TotalPCs
+				totalFuncs += data.TotalFunctions
+				coveredPCsInFuncs += data.CoveredPCsInFunctions
+				pcsInFuncs += data.TotalPCsInFunctions
+			}
+		}
+
+		if totalLines != 0 {
+			percentLines = 100.0 * float64(coveredLines) / float64(totalLines)
+		}
+		if totalPCsInFile != 0 {
+			percentPCsInFile = 100.0 * float64(coveredPCsInFile) / float64(totalPCsInFile)
+		}
+		if pcsInFuncs != 0 {
+			percentPCsInFunc = 100.0 * float64(coveredPCsInFuncs) / float64(pcsInFuncs)
+		}
+
+		d[subsystem.Name] = map[string]string{
+			"subsystem":  subsystem.Name,
+			"lines":      fmt.Sprintf("%v / %v / %.2f%%", coveredLines, totalLines, percentLines),
+			"PCsInFiles": fmt.Sprintf("%v / %v / %.2f%%", coveredPCsInFile, totalPCsInFile, percentPCsInFile),
+			"totalFuncs": strconv.Itoa(totalFuncs),
+			"PCsInFuncs": fmt.Sprintf("%v / %v / %.2f%%", coveredPCsInFuncs, pcsInFuncs, percentPCsInFunc),
+		}
+	}
+
+	return d
+}
+
+func (rg *ReportGenerator) DoHTMLTable(w io.Writer, progs []Prog) error {
+	data, err := rg.convertToStats(progs)
+	if err != nil {
+		return err
+	}
+
+	d := groupCoverByFilePrefixes(data, rg.subsystem)
+
+	return coverTableTemplate.Execute(w, d)
+}
+
 var csvHeader = []string{
 	"Filename",
 	"Function",
@@ -556,4 +715,64 @@ var coverTemplate = template.Must(template.New("").Parse(`
 		</span></li>
 	{{end}}
 {{end}}
+`))
+
+var coverTableTemplate = template.Must(template.New("coverTable").Parse(`
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<style>
+			body {
+				background: white;
+			}
+			#content {
+				color: rgb(70, 70, 70);
+				margin-top: 50px;
+			}
+			th, td {
+				text-align: left;
+				border: 1px solid black;
+			}
+			th {
+				background: gray;
+			}
+			tr:nth-child(2n+1) {
+				background: #CCC
+			}
+			table {
+				border-collapse: collapse;
+				border: 1px solid black;
+				margin-bottom: 20px;
+			}
+		</style>
+	</head>
+	<body>
+		<div>
+			<table>
+				<thead>
+					<tr>
+						<th>Subsystem</th>
+						<th>Covered / Total Lines / %</th>
+						<th>Covered / Total PCs in File / %</th>
+						<th>Covered / Total PCs in Function / %</th>
+						<th>Covered Functions</th>
+					</tr>
+				</thead>
+				<tbody id="content">
+					{{range $i, $p := .}}
+					<tr>
+						<td>{{$p.subsystem}}</td>
+						<td>{{$p.lines}}</td>
+						<td>{{$p.PCsInFiles}}</td>
+						<td>{{$p.PCsInFuncs}}</td>
+						<td>{{$p.totalFuncs}}</td>
+					</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+	</body>
+</html>
+
 `))

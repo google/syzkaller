@@ -151,6 +151,8 @@ func caller(skip int) string {
 
 func (c *Ctx) Close() {
 	if !c.t.Failed() {
+		// To avoid per-day reporting limits for left-over emails.
+		c.advanceTime(25 * time.Hour)
 		// Ensure that we can render main page and all bugs in the final test state.
 		c.expectOK(c.GET("/test1"))
 		c.expectOK(c.GET("/test2"))
@@ -433,18 +435,22 @@ func (client *apiClient) pollAndFailBisectJob(manager string) {
 
 type (
 	EmailOptMessageID int
+	EmailOptSubject   string
 	EmailOptFrom      string
 	EmailOptCC        []string
 )
 
 func (c *Ctx) incomingEmail(to, body string, opts ...interface{}) {
 	id := 0
+	subject := "crash1"
 	from := "default@sender.com"
 	cc := []string{"test@syzkaller.com", "bugs@syzkaller.com", "bugs2@syzkaller.com"}
 	for _, o := range opts {
 		switch opt := o.(type) {
 		case EmailOptMessageID:
 			id = int(opt)
+		case EmailOptSubject:
+			subject = string(opt)
 		case EmailOptFrom:
 			from = string(opt)
 		case EmailOptCC:
@@ -454,14 +460,14 @@ func (c *Ctx) incomingEmail(to, body string, opts ...interface{}) {
 	email := fmt.Sprintf(`Sender: %v
 Date: Tue, 15 Aug 2017 14:59:00 -0700
 Message-ID: <%v>
-Subject: crash1
+Subject: %v
 From: %v
 Cc: %v
 To: %v
 Content-Type: text/plain
 
 %v
-`, from, id, from, strings.Join(cc, ","), to, body)
+`, from, id, subject, from, strings.Join(cc, ","), to, body)
 	c.expectOK(c.POST("/_ah/mail/", email))
 }
 

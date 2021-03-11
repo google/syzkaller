@@ -20,7 +20,7 @@ func ctorOpenbsd(cfg *config) (Reporter, []string, error) {
 	}
 	suppressions := []string{
 		"panic: fifo_badop called",
-		"witness: lock order reversal:\\n(.*\\n)*.*[0-9stnd]+ 0x[0-9a-f]+ inode",
+		"witness: lock order reversal:\\n(.*\\n)*.*[0-9stnd]+ 0x[0-9a-f]+ inode(.*\\n)*.*lock order .* first seen at",
 	}
 	return ctx, suppressions, nil
 }
@@ -89,6 +89,10 @@ var openbsdOopses = append([]*oops{
 	{
 		[]byte("lock order reversal:"),
 		[]oopsFormat{
+			{
+				title: compile("lock order reversal:\\n(?:.*\\n)*lock order data .* missing"),
+				fmt:   "witness: reversal: lock order data missing",
+			},
 			{
 				title: compile("lock order reversal:\\n+.*1st {{ADDR}} ([^\\ ]+).*\\n.*2nd {{ADDR}} ([^\\ ]+)"),
 				fmt:   "witness: reversal: %[1]v %[2]v",

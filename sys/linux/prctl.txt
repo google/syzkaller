@@ -9,6 +9,12 @@ include <uapi/linux/capability.h>
 include <uapi/linux/securebits.h>
 include <asm/prctl.h>
 
+# Use this variant (which will always return -EINVAL) to explicitly set the 5
+# syscall arguments that will enable to properly infer callArgSizes for all
+# prctl variants.
+
+prctl$0(option const[0], arg2 const[0], arg3 const[0], arg4 const[0], arg5 const[0]) (disabled)
+
 # Only some commands break return values.
 # PR_GET_TIMERSLACK and maybe more produce random errno's.
 # When/if we have stricter enforcement of arguments for syscall variants, we may remove some of breaks_returns attributes.
@@ -125,7 +131,7 @@ prctl$PR_GET_FP_MODE(option const[PR_GET_FP_MODE]) (breaks_returns, ignore_retur
 
 prctl_fp_mode = PR_FP_MODE_FR, PR_FP_MODE_FRE
 
-prctl$PR_CAP_AMBIENT(option const[PR_CAP_AMBIENT], arg2 flags[prctl_cap_ambient], arg3 int32[0:CAP_LAST_CAP]) (breaks_returns, ignore_return)
+prctl$PR_CAP_AMBIENT(option const[PR_CAP_AMBIENT], arg2 flags[prctl_cap_ambient], arg3 intptr[0:CAP_LAST_CAP]) (breaks_returns, ignore_return)
 
 prctl_cap_ambient = PR_CAP_AMBIENT_IS_SET, PR_CAP_AMBIENT_RAISE, PR_CAP_AMBIENT_LOWER, PR_CAP_AMBIENT_CLEAR_ALL
 
@@ -136,6 +142,21 @@ prctl$PR_GET_SPECULATION_CTRL(option const[PR_GET_SPECULATION_CTRL], arg2 const[
 prctl$PR_SET_SPECULATION_CTRL(option const[PR_SET_SPECULATION_CTRL], arg2 const[PR_SPEC_STORE_BYPASS]) (breaks_returns, ignore_return)
 
 pr_spec_mode = PR_SPEC_ENABLE, PR_SPEC_DISABLE, PR_SPEC_FORCE_DISABLE
+
+prctl$PR_PAC_RESET_KEYS(option const[PR_PAC_RESET_KEYS], arg2 flags[prctl_pac_keys]) (breaks_returns, ignore_return)
+
+prctl_pac_keys = PR_PAC_APIAKEY, PR_PAC_APIBKEY, PR_PAC_APDAKEY, PR_PAC_APDBKEY, PR_PAC_APGAKEY
+
+prctl$PR_SET_TAGGED_ADDR_CTRL(option const[PR_SET_TAGGED_ADDR_CTRL], arg2 flags[prctl_mte_ctl]) (breaks_returns, ignore_return)
+prctl$PR_GET_TAGGED_ADDR_CTRL(option const[PR_GET_TAGGED_ADDR_CTRL]) (breaks_returns, ignore_return)
+
+prctl_mte_ctl = PR_TAGGED_ADDR_ENABLE, PR_MTE_TCF_NONE, PR_MTE_TCF_SYNC, PR_MTE_TCF_ASYNC, PR_MTE_TAG_MASK
+
+prctl$PR_SET_IO_FLUSHER(option const[PR_SET_IO_FLUSHER], arg2 boolptr) (breaks_returns, ignore_return)
+prctl$PR_GET_IO_FLUSHER(option const[PR_GET_IO_FLUSHER]) (breaks_returns, ignore_return)
+
+prctl$PR_SET_SYSCALL_USER_DISPATCH_OFF(option const[PR_SET_SYSCALL_USER_DISPATCH], mode const[PR_SYS_DISPATCH_OFF]) (breaks_returns, ignore_return)
+prctl$PR_SET_SYSCALL_USER_DISPATCH_ON(option const[PR_SET_SYSCALL_USER_DISPATCH], mode const[PR_SYS_DISPATCH_ON], offset intptr, len intptr, selector ptr[in, bool8]) (breaks_returns, ignore_return)
 
 arch_prctl$ARCH_GET_FS(code const[ARCH_GET_FS], arg ptr[out, intptr])
 arch_prctl$ARCH_GET_GS(code const[ARCH_GET_GS], arg ptr[out, intptr])

@@ -199,7 +199,7 @@ const commandPrefix = "#syz"
 func extractCommand(body string) (cmd Command, str, args string) {
 	nbody := "\n" + body
 	cmdPos := -1
-	for _, delim := range []string{" ", "-", ":"} {
+	for _, delim := range []string{" ", "\t", "-", ":"} {
 		cmdPos = strings.Index(nbody, "\n"+commandPrefix+delim)
 		if cmdPos != -1 {
 			break
@@ -210,7 +210,7 @@ func extractCommand(body string) (cmd Command, str, args string) {
 		return
 	}
 	cmdPos += len(commandPrefix) + 1
-	for cmdPos < len(body) && body[cmdPos] == ' ' {
+	for cmdPos < len(body) && (body[cmdPos] == ' ' || body[cmdPos] == '\t') {
 		cmdPos++
 	}
 	cmdEnd := strings.IndexByte(body[cmdPos:], '\n')
@@ -221,6 +221,9 @@ func extractCommand(body string) (cmd Command, str, args string) {
 		cmdEnd = cmdEnd1
 	}
 	if cmdEnd1 := strings.IndexByte(body[cmdPos:], ' '); cmdEnd1 != -1 && cmdEnd1 < cmdEnd {
+		cmdEnd = cmdEnd1
+	}
+	if cmdEnd1 := strings.IndexByte(body[cmdPos:], '\t'); cmdEnd1 != -1 && cmdEnd1 < cmdEnd {
 		cmdEnd = cmdEnd1
 	}
 	str = body[cmdPos : cmdPos+cmdEnd]
@@ -274,7 +277,7 @@ func extractArgsTokens(body string, num int) string {
 		if lineEnd == -1 {
 			lineEnd = len(body) - pos
 		}
-		line := strings.TrimSpace(body[pos : pos+lineEnd])
+		line := strings.TrimSpace(strings.Replace(body[pos:pos+lineEnd], "\t", " ", -1))
 		for {
 			line1 := strings.Replace(line, "  ", " ", -1)
 			if line == line1 {
