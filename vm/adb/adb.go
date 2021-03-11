@@ -29,8 +29,9 @@ func init() {
 }
 
 type Config struct {
-	Adb     string   `json:"adb"`     // adb binary name ("adb" by default)
-	Devices []string `json:"devices"` // list of adb device IDs to use
+	Adb      string     `json:"adb"`      // adb binary name ("adb" by default)
+	Devices  []string   `json:"devices"`  // list of adb device IDs to use
+	Commands [][]string `json:"commands"` // list of commands to run on adb connect
 
 	// Ensure that a device battery level is at 20+% before fuzzing.
 	// Sometimes we observe that a device can't charge during heavy fuzzing
@@ -114,6 +115,14 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		return nil, err
 	}
 	inst.adb("shell", "echo 0 > /proc/sys/kernel/kptr_restrict")
+
+	// Run list of commands specified in config file
+	for _, command := range pool.cfg.Commands {
+		if _, err := inst.adb(command...); err != nil {
+			return nil, err
+		}
+	}
+
 	closeInst = nil
 	return inst, nil
 }
