@@ -381,7 +381,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 					{{end}}
 				</td>
 				<td>{{optlink $job.PatchLink "patch"}}</td>
-				<td class="kernel" title="{{$job.KernelAlias}}">{{$job.KernelAlias}}</td>
+				<td class="kernel" title="{{$job.KernelAlias}}">{{link $job.KernelCommitLink $job.KernelAlias}}</td>
 				{{if not $.PerBug}}<td title="{{$job.Namespace}}/{{$job.Reporting}}">{{$job.Manager}}</td>{{end}}
 				<td class="result">
 					{{if $job.ErrorLink}}

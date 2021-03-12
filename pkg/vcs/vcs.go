@@ -342,13 +342,30 @@ func link(url, hash string, typ int) string {
 		strings.HasPrefix(url, "git://git.kernel.org/pub/scm/") {
 		url = strings.TrimPrefix(url, "git")
 		url = strings.TrimPrefix(url, "https")
+		url = "https" + url
 		switch typ {
 		case 1:
-			return "https" + url + "/tree/?id=" + hash
+			return url + "/tree/?id=" + hash
 		case 2:
-			return "https" + url + "/log/?id=" + hash
+			return url + "/log/?id=" + hash
 		default:
-			return "https" + url + "/commit/?id=" + hash
+			return url + "/commit/?id=" + hash
+		}
+	}
+	for _, cgitHost := range []string{"git.kernel.dk", "git.breakpoint.cc"} {
+		if strings.HasPrefix(url, "https://"+cgitHost) ||
+			strings.HasPrefix(url, "git://"+cgitHost) {
+			url = strings.TrimPrefix(strings.TrimPrefix(url, "git://"), "https://")
+			url = strings.TrimPrefix(url, cgitHost)
+			url = "https://" + cgitHost + "/cgit" + url
+			switch typ {
+			case 1:
+				return url + "/tree/?id=" + hash
+			case 2:
+				return url + "/log/?id=" + hash
+			default:
+				return url + "/commit/?id=" + hash
+			}
 		}
 	}
 	if strings.HasPrefix(url, "https://") && strings.Contains(url, ".googlesource.com") {

@@ -184,33 +184,33 @@ type uiCrashTable struct {
 }
 
 type uiJob struct {
-	Type            JobType
-	Flags           JobFlags
-	Created         time.Time
-	BugLink         string
-	ExternalLink    string
-	User            string
-	Reporting       string
-	Namespace       string
-	Manager         string
-	BugTitle        string
-	BugID           string
-	KernelAlias     string
-	KernelCommit    string
-	PatchLink       string
-	Attempts        int
-	Started         time.Time
-	Finished        time.Time
-	Duration        time.Duration
-	CrashTitle      string
-	CrashLogLink    string
-	CrashReportLink string
-	LogLink         string
-	ErrorLink       string
-	Commit          *uiCommit   // for conclusive bisection
-	Commits         []*uiCommit // for inconclusive bisection
-	Crash           *uiCrash
-	Reported        bool
+	Type             JobType
+	Flags            JobFlags
+	Created          time.Time
+	BugLink          string
+	ExternalLink     string
+	User             string
+	Reporting        string
+	Namespace        string
+	Manager          string
+	BugTitle         string
+	BugID            string
+	KernelAlias      string
+	KernelCommitLink string
+	PatchLink        string
+	Attempts         int
+	Started          time.Time
+	Finished         time.Time
+	Duration         time.Duration
+	CrashTitle       string
+	CrashLogLink     string
+	CrashReportLink  string
+	LogLink          string
+	ErrorLink        string
+	Commit           *uiCommit   // for conclusive bisection
+	Commits          []*uiCommit // for inconclusive bisection
+	Crash            *uiCrash
+	Reported         bool
 }
 
 // handleMain serves main page.
@@ -1097,7 +1097,13 @@ func loadTestPatchJobs(c context.Context, bug *Bug) ([]*uiJob, error) {
 	}
 	var results []*uiJob
 	for i, job := range jobs {
-		results = append(results, makeUIJob(job, keys[i], nil, nil, nil))
+		var build *Build
+		if job.BuildID != "" {
+			if build, err = loadBuild(c, bug.Namespace, job.BuildID); err != nil {
+				return nil, err
+			}
+		}
+		results = append(results, makeUIJob(job, keys[i], nil, nil, build))
 	}
 	return results, nil
 }
@@ -1151,6 +1157,11 @@ func makeUIJob(job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *
 	}
 	if crash != nil {
 		ui.Crash = makeUICrash(crash, build)
+	}
+	if build != nil {
+		ui.KernelCommitLink = vcs.CommitLink(build.KernelRepo, build.KernelCommit)
+	} else {
+		ui.KernelCommitLink = vcs.CommitLink(job.KernelRepo, job.KernelBranch)
 	}
 	return ui
 }
