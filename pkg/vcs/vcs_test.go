@@ -108,6 +108,11 @@ func TestCommitLink(t *testing.T) {
 			"https://github.com/google/syzkaller/commit/76dd003f1b102b791d8b342a1f92a6486ff56a1e",
 		},
 		{
+			"https://github.com/google/syzkaller",
+			"master",
+			"https://github.com/google/syzkaller/commit/master",
+		},
+		{
 			"https://github.com/google/syzkaller.git",
 			"76dd003f1b",
 			"https://github.com/google/syzkaller/commit/76dd003f1b",
@@ -152,6 +157,31 @@ func TestCommitLink(t *testing.T) {
 			"https://android.googlesource.com/kernel/common",
 			"",
 			"",
+		},
+		{
+			"https://linux.googlesource.com/linux/kernel/git/torvalds/linux",
+			"a40f7c63275979a11b7c146a83aa08d91c7d3ae8",
+			"https://linux.googlesource.com/linux/kernel/git/torvalds/linux/+/a40f7c63275979a11b7c146a83aa08d91c7d3ae8^!",
+		},
+		{
+			"https://linux.googlesource.com/linux/kernel/git/torvalds/linux",
+			"refs/changes/36/8736/3",
+			"https://linux.googlesource.com/linux/kernel/git/torvalds/linux/+/refs/changes/36/8736/3^!",
+		},
+		{
+			"git://git.kernel.dk/linux-block",
+			"c9387501192c24c14e5a97f97bc1f60cdd071a29",
+			"https://git.kernel.dk/cgit/linux-block/commit/?id=c9387501192c24c14e5a97f97bc1f60cdd071a29",
+		},
+		{
+			"git://git.kernel.dk/linux-block",
+			"syzbot-test",
+			"https://git.kernel.dk/cgit/linux-block/commit/?id=syzbot-test",
+		},
+		{
+			"git://git.breakpoint.cc/fw/net-next.git",
+			"06690d5c6466b604f674477b522a809673c17eff",
+			"https://git.breakpoint.cc/cgit/fw/net-next.git/commit/?id=06690d5c6466b604f674477b522a809673c17eff",
 		},
 	}
 	for _, test := range tests {
