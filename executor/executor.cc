@@ -444,7 +444,17 @@ int main(int argc, char** argv)
 			// Don't enable comps because we don't use them in the fuzzer yet.
 			cover_enable(&extra_cov, false, true);
 		}
-		init_coverage_filter();
+		char sep = '/';
+#if GOOS_windows
+		sep = '\\';
+#endif
+		char filename[1024] = {0};
+		char* end = strrchr(argv[0], sep);
+		size_t len = end - argv[0];
+		strncpy(filename, argv[0], len + 1);
+		strncat(filename, "syz-cover-bitmap", 17);
+		filename[sizeof(filename) - 1] = '\0';
+		init_coverage_filter(filename);
 	}
 
 	int status = 0;
