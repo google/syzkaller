@@ -14,13 +14,13 @@ struct cov_filter_t {
 
 static cov_filter_t* cov_filter;
 
-static void init_coverage_filter()
+static void init_coverage_filter(char* filename)
 {
-	int f = open("/syz-cover-bitmap", O_RDONLY);
+	int f = open(filename, O_RDONLY);
 	if (f < 0) {
 		// We don't fail here because we don't know yet if we should use coverage filter or not.
 		// We will receive the flag only in execute flags and will fail in coverage_filter if necessary.
-		debug("bitmap is no found, coverage filter disabled\n");
+		debug("bitmap is not found, coverage filter disabled\n");
 		return;
 	}
 	struct stat st;
@@ -55,7 +55,7 @@ static bool coverage_filter(uint64 pc)
 }
 
 #else
-static void init_coverage_filter()
+static void init_coverage_filter(char* filename)
 {
 }
 #endif

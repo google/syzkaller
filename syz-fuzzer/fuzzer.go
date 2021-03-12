@@ -206,8 +206,8 @@ func main() {
 		log.Fatal(err)
 	}
 	if r.CoverFilterBitmap != nil {
-		if err := osutil.WriteFile("/syz-cover-bitmap", r.CoverFilterBitmap); err != nil {
-			log.Fatalf("failed to write /syz-cover-bitmap: %v", err)
+		if err := osutil.WriteFile("syz-cover-bitmap", r.CoverFilterBitmap); err != nil {
+			log.Fatalf("failed to write syz-cover-bitmap: %v", err)
 		}
 	}
 	if r.CheckResult == nil {
