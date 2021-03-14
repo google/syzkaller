@@ -78,10 +78,12 @@ config:
 
 Instance features:
  - `nonoise`: disables auxiliary debug configs (lockdep, stalls, object debug, etc);
-    used on instances on which we ignore all crashes except for the main debug tool (KMSAN/KCSAN/LEAK)
-    and on instances that are too slow (some qemu emulation).
+   used on instances on which we ignore all crashes except for the main debug tool (KMSAN/KCSAN/LEAK)
+   and on instances that are too slow (some qemu emulation).
  - `reduced`: disables some generic (mostly arch-independent) kernel subsystems;
    used on slow qemu emulation instances since these subsystems are well testing on fast native instances.
+   `syz-kconf` knows about this feature and gives it special meaning: all configs in fragments enabled
+   by this feature are disabled for reduced instances.
 
 Some features/constraints are defined by `syz-kconf` itself or have special meaning:
  - `override` on a config allows to override a previous definition of the same config (otherwise it results in an error)
