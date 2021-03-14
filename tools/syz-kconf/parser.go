@@ -59,6 +59,15 @@ func (features Features) Match(constraints []string) bool {
 	return true
 }
 
+func constraintsInclude(constraints []string, what string) bool {
+	for _, feat := range constraints {
+		if feat == what {
+			return true
+		}
+	}
+	return false
+}
+
 type rawMain struct {
 	Instances []map[string][]string
 	Includes  []map[string][]string
@@ -115,14 +124,21 @@ func parseInstance(name, configDir string, features []string, includes []map[str
 	errs := new(Errors)
 	for _, include := range includes {
 		for file, features := range include {
-			if !inst.Features.Match(features) {
-				continue
-			}
 			raw, err := parseFile(filepath.Join(configDir, "bits", file))
 			if err != nil {
 				return nil, err
 			}
-			mergeFile(inst, raw, file, errs)
+			if inst.Features.Match(features) {
+				mergeFile(inst, raw, file, errs)
+			} else if inst.Features[featReduced] && constraintsInclude(features, "-"+featReduced) {
+				// For fragments that we exclude because of "reduced" config,
+				// we want to disable all configs listed there.
+				// For example, if the fragment enables config FOO, and we the defconfig
+				// also enabled FOO, we want to disable FOO to get reduced config.
+				for _, node := range raw.Config {
+					mergeConfig(inst, file, node, true, errs)
+				}
+			}
 		}
 	}
 	inst.Verbatim = bytes.TrimSpace(inst.Verbatim)
@@ -168,15 +184,22 @@ func mergeFile(inst *Instance, raw *rawFile, file string, errs *Errors) {
 	}
 	inst.Verbatim = append(append(inst.Verbatim, raw.Verbatim...), '\n')
 	for _, node := range raw.Config {
-		mergeConfig(inst, file, node, errs)
+		mergeConfig(inst, file, node, false, errs)
 	}
 }
 
-func mergeConfig(inst *Instance, file string, node yaml.Node, errs *Errors) {
+func mergeConfig(inst *Instance, file string, node yaml.Node, reduced bool, errs *Errors) {
 	name, val, constraints, err := parseNode(node)
 	if err != nil {
 		errs.push("%v:%v: %v", file, node.Line, err)
 		return
+	}
+	if reduced {
+		if val != kconfig.No && val != kconfig.Yes {
+			return
+		}
+		val = kconfig.No
+		constraints = append(constraints, featWeak)
 	}
 	cfg := &Config{
 		Name:  name,

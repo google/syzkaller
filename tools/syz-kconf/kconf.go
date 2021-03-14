@@ -31,6 +31,7 @@ const (
 	featAppend   = "append"
 	featWeak     = "weak"
 	featBaseline = "baseline"
+	featReduced  = "reduced"
 	featClang    = "clang"
 	featAndroid  = "android"
 	featChromeos = "chromeos"
