@@ -35,6 +35,7 @@ includes:
  - s390.yml: [s390]
  - subsystems.yml: [-baseline, -onlyusb]
  - subsystems_net.yml: [-baseline, -onlyusb, -reduced]
+ - crypto.yml: [-baseline, -onlyusb]
  - bpf.yml: [-baseline, -onlyusb]
  - partitions.yml: [-baseline, -onlyusb, -reduced]
  - filesystems.yml: [-baseline, -onlyusb, -reduced]
