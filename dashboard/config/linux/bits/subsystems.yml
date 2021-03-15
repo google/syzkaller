@@ -22,8 +22,10 @@ config:
  - IKCONFIG
  - IKCONFIG_PROC
  - LOG_BUF_SHIFT: 18
- - NUMA_BALANCING: [-arm, -riscv]
- - NUMA_BALANCING_DEFAULT_ENABLED: [-arm, -riscv]
+ - NUMA: [-arm]
+ - NUMA_EMU: [x86_64]
+ - NUMA_BALANCING: [-arm]
+ - NUMA_BALANCING_DEFAULT_ENABLED: [-arm]
  - CGROUPS
  - BLK_CGROUP
  - CGROUP_SCHED
@@ -43,8 +45,6 @@ config:
  - PROFILING
  - PERF_EVENTS
  - SMP
- - NUMA: [-arm, -riscv]
- - NUMA_EMU: [x86_64]
  - KEXEC: [-riscv]
  - HIBERNATION: [-riscv, -s390]
  - HIBERNATION_SNAPSHOT_DEV: [v5.10, -riscv, -s390]
