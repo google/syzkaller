@@ -14,3 +14,4 @@ config:
 
  # Presumably this gives more interesting coverage.
  - BINFMT_FLAT
+ - RISCV_BASE_PMU: [-baseline]
