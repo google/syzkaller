@@ -19,6 +19,11 @@ config:
  - ARM64_PMEM
  - ARM64_MTE
 
+ - ARCH_VEXPRESS
+ - I2C_VERSATILE
+ - CLK_SP810
+ - ICST
+
  # These are enabled by defconfig, but we don't test them (presumably).
  # Disable them to speed up kernel boot (slow in emulation).
  - PCCARD: n
@@ -111,7 +116,6 @@ config:
  - ARCH_THUNDER: n
  - ARCH_THUNDER2: n
  - ARCH_UNIPHIER: n
- - ARCH_VEXPRESS: n
  - ARCH_VISCONTI: n
  - ARCH_XGENE: n
  - ARCH_ZX: n
@@ -419,7 +423,6 @@ config:
  - I2C_TEGRA_BPMP: n
  - I2C_UNIPHIER: n
  - I2C_UNIPHIER_F: n
- - I2C_VERSATILE: n
  - I2C_WMT: n
  - I2C_OCTEON: n
  - I2C_THUNDERX: n
