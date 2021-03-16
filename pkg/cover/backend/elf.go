@@ -29,24 +29,16 @@ func init() {
 	GroupPCsByModule = groupPCsByModule
 }
 
-func makeELF(target *targets.Target, objDir, srcDir, buildDir string,
-	moduleObj []string, modules map[string]KernelModule) (*Impl, error) {
+func makeELF(target *targets.Target, srcDir, buildDir string,
+	moduleObj []string, modules []*KernelModule) (*Impl, error) {
 	var allCoverPoints [2][]uint64
 	var allSymbols []*Symbol
 	var allRanges []pcRange
 	var allUnits []*CompileUnit
 
-	if _, ok := modules[""]; !ok {
-		if target.OS == targets.Linux {
-			dirs := append([]string{objDir}, moduleObj...)
-			getKernelModules(dirs, modules)
-		}
+	if target.OS == targets.Linux {
+		getKernelModules(moduleObj, modules)
 	}
-	kernelObject := filepath.Join(objDir, target.KernelObject)
-	modules[""] = KernelModule{
-		Path: kernelObject,
-	}
-
 	for _, module := range modules {
 		if module.Path == "" {
 			continue
@@ -74,11 +66,7 @@ func makeELF(target *targets.Target, objDir, srcDir, buildDir string,
 				textAddr = ^uint64(0)
 			}
 			if module.Name == "" {
-				modules[""] = KernelModule{
-					Name: "",
-					Addr: textAddr,
-					Path: kernelObject,
-				}
+				module.Addr = textAddr
 			}
 			if target.Arch == targets.AMD64 {
 				if module.Name == "" {
@@ -135,6 +123,7 @@ func makeELF(target *targets.Target, objDir, srcDir, buildDir string,
 		if len(unit.PCs) == 0 {
 			continue // drop the unit
 		}
+		objDir := modules[0].Path // TODO: won't work for out-of-tree modules
 		unit.Name, unit.Path = cleanPath(unit.Name, objDir, srcDir, buildDir)
 		allUnits[nunit] = unit
 		nunit++
@@ -147,29 +136,30 @@ func makeELF(target *targets.Target, objDir, srcDir, buildDir string,
 		Units:   allUnits,
 		Symbols: allSymbols,
 		Symbolize: func(pcs []uint64, obj string) ([]Frame, error) {
+			objDir := modules[0].Path // TODO: won't work for out-of-tree modules
 			return symbolize(target, objDir, srcDir, buildDir, obj, pcs)
 		},
 		RestorePC: func(pc uint32) uint64 {
-			return PreviousInstructionPC(target, RestorePC(pc, uint32(modules[""].Addr>>32)))
+			return PreviousInstructionPC(target, RestorePC(pc, uint32(modules[0].Addr>>32)))
 		},
 		Modules: modules,
 	}
 	return impl, nil
 }
 
-func getKernelModules(dirs []string, modules map[string]KernelModule) {
+func getKernelModules(dirs []string, modules []*KernelModule) {
+	byName := make(map[string]*KernelModule)
+	for _, mod := range modules {
+		byName[mod.Name] = mod
+	}
 	files := findModulePaths(dirs)
 	for _, path := range files {
 		name := strings.TrimSuffix(filepath.Base(path), ".ko")
-		if module, ok := modules[name]; ok {
+		if module := byName[name]; module != nil {
 			if module.Path != "" {
 				continue
 			}
-			modules[name] = KernelModule{
-				Name: name,
-				Addr: module.Addr,
-				Path: path,
-			}
+			module.Path = path
 			continue
 		}
 		name, err := getModuleName(path)
@@ -180,15 +170,11 @@ func getKernelModules(dirs []string, modules map[string]KernelModule) {
 		if name == "" {
 			continue
 		}
-		if module, ok := modules[name]; ok {
+		if module := byName[name]; module != nil {
 			if module.Path != "" {
 				continue
 			}
-			modules[name] = KernelModule{
-				Name: name,
-				Addr: module.Addr,
-				Path: path,
-			}
+			module.Path = path
 		}
 	}
 	log.Logf(0, "kernel modules: %v", modules)
@@ -265,30 +251,26 @@ func searchModuleName(data []byte) string {
 	return string(data[pos+len(key) : end])
 }
 
-func groupPCsByModule(pcs []uint64, modules map[string]KernelModule) map[string][]uint64 {
-	var smodules []KernelModule
-	groupPCs := make(map[string][]uint64)
-	for _, module := range modules {
-		groupPCs[module.Name] = make([]uint64, 0)
-		smodules = append(smodules, module)
-	}
+func groupPCsByModule(pcs []uint64, modules []*KernelModule) map[*KernelModule][]uint64 {
+	groupPCs := make(map[*KernelModule][]uint64)
+	smodules := append([]*KernelModule{}, modules...)
 	sort.Slice(smodules, func(i, j int) bool {
 		return smodules[i].Addr > smodules[j].Addr
 	})
 	for _, pc := range pcs {
 		if pc > smodules[0].Addr {
 			if smodules[0].Name == "" {
-				groupPCs[smodules[0].Name] = append(groupPCs[smodules[0].Name], pc)
+				groupPCs[smodules[0]] = append(groupPCs[smodules[0]], pc)
 			} else {
-				groupPCs[smodules[0].Name] = append(groupPCs[smodules[0].Name], pc-smodules[0].Addr)
+				groupPCs[smodules[0]] = append(groupPCs[smodules[0]], pc-smodules[0].Addr)
 			}
 		} else {
 			for i := 0; i < len(modules)-1; i++ {
 				if pc < smodules[i].Addr && pc >= smodules[i+1].Addr {
 					if smodules[i+1].Name == "" {
-						groupPCs[smodules[i+1].Name] = append(groupPCs[smodules[i+1].Name], pc)
+						groupPCs[smodules[i+1]] = append(groupPCs[smodules[i+1]], pc)
 					} else {
-						groupPCs[smodules[i+1].Name] = append(groupPCs[smodules[i+1].Name], pc-smodules[i+1].Addr)
+						groupPCs[smodules[i+1]] = append(groupPCs[smodules[i+1]], pc-smodules[i+1].Addr)
 					}
 					break
 				}
@@ -364,7 +346,7 @@ func buildSymbols(symbols []*Symbol, ranges []pcRange, coverPoints [2][]uint64) 
 	return symbols
 }
 
-func readSymbols(file *elf.File, module KernelModule) ([]*Symbol, uint64, uint64, map[uint64]bool, error) {
+func readSymbols(file *elf.File, module *KernelModule) ([]*Symbol, uint64, uint64, map[uint64]bool, error) {
 	text := file.Section(".text")
 	if text == nil {
 		return nil, 0, 0, nil, fmt.Errorf("no .text section in the object file")
@@ -408,7 +390,7 @@ func readSymbols(file *elf.File, module KernelModule) ([]*Symbol, uint64, uint64
 	return symbols, text.Addr, tracePC, traceCmp, nil
 }
 
-func readTextRanges(file *elf.File, module KernelModule) ([]pcRange, []*CompileUnit, error) {
+func readTextRanges(file *elf.File, module *KernelModule) ([]pcRange, []*CompileUnit, error) {
 	text := file.Section(".text")
 	if text == nil {
 		return nil, nil, fmt.Errorf("no .text section in the object file")
@@ -604,7 +586,7 @@ func getRelSymbolName(file *elf.File, index uint32) (string, error) {
 // Currently it is amd64-specific: looks for e8 opcode and correct offset.
 // Running objdump on the whole object file is too slow.
 func readCoverPoints(file *elf.File, tracePC uint64, traceCmp map[uint64]bool,
-	module KernelModule) ([2][]uint64, error) {
+	module *KernelModule) ([2][]uint64, error) {
 	var pcs [2][]uint64
 	const callLen = 5
 	if module.Name == "" {

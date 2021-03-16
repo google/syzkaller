@@ -20,7 +20,6 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/cover"
-	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/gce"
@@ -89,7 +88,7 @@ type Manager struct {
 	// Maps file name to modification time.
 	usedFiles map[string]time.Time
 
-	modules            map[string]backend.KernelModule
+	modules            []host.KernelModule
 	coverFilter        map[uint32]uint32
 	coverFilterBitmap  []byte
 	modulesInitialized bool
@@ -1042,8 +1041,8 @@ func (mgr *Manager) collectSyscallInfoUnlocked() map[string]*CallCov {
 	return calls
 }
 
-func (mgr *Manager) fuzzerConnect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) ([]rpctype.RPCInput, BugFrames,
-	map[uint32]uint32, map[string]backend.KernelModule, error) {
+func (mgr *Manager) fuzzerConnect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) (
+	[]rpctype.RPCInput, BugFrames, map[uint32]uint32, error) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
@@ -1062,14 +1061,7 @@ func (mgr *Manager) fuzzerConnect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes)
 	}
 	if !mgr.modulesInitialized {
 		var err error
-		modules := make(map[string]backend.KernelModule, len(a.Modules))
-		for _, rmodule := range a.Modules {
-			modules[rmodule.Name] = backend.KernelModule{
-				Name: rmodule.Name,
-				Addr: rmodule.Addr,
-			}
-		}
-		mgr.modules = modules
+		mgr.modules = a.Modules
 		mgr.coverFilterBitmap, mgr.coverFilter, err = mgr.createCoverageFilter()
 		if err != nil {
 			log.Fatalf("failed to create coverage filter: %v", err)
@@ -1077,7 +1069,7 @@ func (mgr *Manager) fuzzerConnect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes)
 		mgr.modulesInitialized = true
 	}
 	r.CoverFilterBitmap = mgr.coverFilterBitmap
-	return corpus, BugFrames{memoryLeaks: memoryLeakFrames, dataRaces: dataRaceFrames}, mgr.coverFilter, mgr.modules, nil
+	return corpus, BugFrames{memoryLeaks: memoryLeakFrames, dataRaces: dataRaceFrames}, mgr.coverFilter, nil
 }
 
 func (mgr *Manager) machineChecked(a *rpctype.CheckArgs, enabledSyscalls map[*prog.Syscall]bool) {

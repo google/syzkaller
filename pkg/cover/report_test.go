@@ -191,7 +191,7 @@ func generateReport(t *testing.T, target *targets.Target, test Test) ([]byte, []
 		},
 	}
 
-	rg, err := MakeReportGenerator(target, "", dir, dir, dir, subsystem, nil, make(map[string]backend.KernelModule))
+	rg, err := MakeReportGenerator(target, "", dir, dir, dir, subsystem, nil, nil)
 	if err != nil {
 		return nil, nil, err
 	}
