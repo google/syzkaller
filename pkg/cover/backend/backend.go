@@ -4,8 +4,6 @@
 package backend
 
 import (
-	"fmt"
-
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -21,7 +19,7 @@ type Impl struct {
 	Frames    []Frame
 	Symbolize func(pcs []uint64, obj string) ([]Frame, error)
 	RestorePC func(pc uint32) uint64
-	Modules   map[string]KernelModule
+	Modules   []*KernelModule
 }
 
 type CompileUnit struct {
@@ -45,7 +43,7 @@ type ObjectUnit struct {
 }
 
 type Frame struct {
-	Module string
+	Module *KernelModule
 	PC     uint64
 	Name   string
 	Path   string
@@ -61,19 +59,16 @@ type Range struct {
 
 const LineEnd = 1 << 30
 
-func Make(target *targets.Target, vm, objDir, srcDir, buildDir string,
-	moduleObj []string, modules map[string]KernelModule) (*Impl, error) {
-	if objDir == "" {
-		return nil, fmt.Errorf("kernel obj directory is not specified")
-	}
+func Make(target *targets.Target, vm, srcDir, buildDir string,
+	moduleObj []string, modules []*KernelModule) (*Impl, error) {
 	if vm == "gvisor" {
-		return makeGvisor(target, objDir, srcDir, buildDir, modules)
+		return makeGvisor(target, srcDir, buildDir, modules)
 	}
-	return makeELF(target, objDir, srcDir, buildDir, moduleObj, modules)
+	return makeELF(target, srcDir, buildDir, moduleObj, modules)
 }
 
-var GroupPCsByModule = func(pcs []uint64, modules map[string]KernelModule) map[string][]uint64 {
-	groupPCs := make(map[string][]uint64)
-	groupPCs[""] = pcs
+var GroupPCsByModule = func(pcs []uint64, modules []*KernelModule) map[*KernelModule][]uint64 {
+	groupPCs := make(map[*KernelModule][]uint64)
+	groupPCs[modules[0]] = pcs
 	return groupPCs
 }

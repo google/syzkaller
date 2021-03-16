@@ -7,17 +7,17 @@ import (
 	"sync"
 
 	"github.com/google/syzkaller/pkg/cover"
-	"github.com/google/syzkaller/pkg/cover/backend"
+	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 )
 
 var getReportGenerator = func() func(cfg *mgrconfig.Config,
-	modules map[string]backend.KernelModule) (*cover.ReportGenerator, error) {
+	modules []host.KernelModule) (*cover.ReportGenerator, error) {
 	var once sync.Once
 	var rg *cover.ReportGenerator
 	var err error
-	return func(cfg *mgrconfig.Config, modules map[string]backend.KernelModule) (*cover.ReportGenerator, error) {
+	return func(cfg *mgrconfig.Config, modules []host.KernelModule) (*cover.ReportGenerator, error) {
 		once.Do(func() {
 			log.Logf(0, "initializing coverage information...")
 			rg, err = cover.MakeReportGenerator(cfg.SysTarget, cfg.Type, cfg.KernelObj, cfg.KernelSrc,

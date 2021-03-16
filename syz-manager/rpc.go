@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
-	"github.com/google/syzkaller/pkg/cover/backend"
+	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/rpctype"
@@ -22,7 +22,7 @@ import (
 type RPCServer struct {
 	mgr                   RPCManagerView
 	cfg                   *mgrconfig.Config
-	modules               map[string]backend.KernelModule
+	modules               []host.KernelModule
 	port                  int
 	targetEnabledSyscalls map[*prog.Syscall]bool
 	coverFilter           map[uint32]uint32
@@ -55,8 +55,8 @@ type BugFrames struct {
 
 // RPCManagerView restricts interface between RPCServer and Manager.
 type RPCManagerView interface {
-	fuzzerConnect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) ([]rpctype.RPCInput,
-		BugFrames, map[uint32]uint32, map[string]backend.KernelModule, error)
+	fuzzerConnect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) (
+		[]rpctype.RPCInput, BugFrames, map[uint32]uint32, error)
 	machineChecked(result *rpctype.CheckArgs, enabledSyscalls map[*prog.Syscall]bool)
 	newInput(inp rpctype.RPCInput, sign signal.Signal) bool
 	candidateBatch(size int) []rpctype.RPCCandidate
@@ -89,12 +89,12 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	log.Logf(1, "fuzzer %v connected", a.Name)
 	serv.stats.vmRestarts.inc()
 
-	corpus, bugFrames, coverFilter, modules, err := serv.mgr.fuzzerConnect(a, r)
+	corpus, bugFrames, coverFilter, err := serv.mgr.fuzzerConnect(a, r)
 	if err != nil {
 		return err
 	}
 	serv.coverFilter = coverFilter
-	serv.modules = modules
+	serv.modules = a.Modules
 
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
