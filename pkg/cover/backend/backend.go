@@ -7,18 +7,18 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-type KernelModule struct {
-	Name string
-	Path string
-	Addr uint64
-}
-
 type Impl struct {
 	Units     []*CompileUnit
 	Symbols   []*Symbol
 	Frames    []Frame
 	Symbolize func(pcs []uint64) ([]Frame, error)
 	RestorePC func(pc uint32) uint64
+}
+
+type Module struct {
+	Name string
+	Path string
+	Addr uint64
 }
 
 type CompileUnit struct {
@@ -42,7 +42,7 @@ type ObjectUnit struct {
 }
 
 type Frame struct {
-	Module *KernelModule
+	Module *Module
 	PC     uint64
 	Name   string
 	Path   string
@@ -59,7 +59,7 @@ type Range struct {
 const LineEnd = 1 << 30
 
 func Make(target *targets.Target, vm, srcDir, buildDir string,
-	moduleObj []string, modules []*KernelModule) (*Impl, error) {
+	moduleObj []string, modules []*Module) (*Impl, error) {
 	if vm == "gvisor" {
 		return makeGvisor(target, srcDir, buildDir, modules)
 	}

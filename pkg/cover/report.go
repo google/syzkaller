@@ -35,13 +35,13 @@ func MakeReportGenerator(target *targets.Target, vm, objDir, srcDir, buildDir st
 		return nil, fmt.Errorf("kernel obj directory is not specified")
 	}
 	moduleObj = append([]string{objDir}, moduleObj...)
-	modules := []*backend.KernelModule{
+	modules := []*backend.Module{
 		{
 			Path: filepath.Join(objDir, target.KernelObject),
 		},
 	}
 	for _, mod := range hostModules {
-		modules = append(modules, &backend.KernelModule{
+		modules = append(modules, &backend.Module{
 			Name: mod.Name,
 			Addr: mod.Addr,
 		})
