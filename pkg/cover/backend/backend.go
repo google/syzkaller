@@ -17,9 +17,8 @@ type Impl struct {
 	Units     []*CompileUnit
 	Symbols   []*Symbol
 	Frames    []Frame
-	Symbolize func(pcs []uint64, obj string) ([]Frame, error)
+	Symbolize func(pcs []uint64) ([]Frame, error)
 	RestorePC func(pc uint32) uint64
-	Modules   []*KernelModule
 }
 
 type CompileUnit struct {
@@ -65,10 +64,4 @@ func Make(target *targets.Target, vm, srcDir, buildDir string,
 		return makeGvisor(target, srcDir, buildDir, modules)
 	}
 	return makeELF(target, srcDir, buildDir, moduleObj, modules)
-}
-
-var GroupPCsByModule = func(pcs []uint64, modules []*KernelModule) map[*KernelModule][]uint64 {
-	groupPCs := make(map[*KernelModule][]uint64)
-	groupPCs[modules[0]] = pcs
-	return groupPCs
 }
