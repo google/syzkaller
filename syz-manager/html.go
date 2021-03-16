@@ -228,8 +228,6 @@ func (mgr *Manager) httpSubsystemCover(w http.ResponseWriter, r *http.Request) {
 func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcFlag int, isHTMLCover bool) {
 	if !mgr.cfg.Cover {
 		if isHTMLCover {
-			mgr.mu.Lock()
-			defer mgr.mu.Unlock()
 			mgr.httpCoverFallback(w, r)
 		} else {
 			http.Error(w, "coverage is not enabled", http.StatusInternalServerError)
@@ -237,9 +235,12 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 		return
 	}
 
+	// Don't hold the mutex while creating report generator and generating the report,
+	// these operations take lots of time.
 	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-	if !mgr.modulesInitialized {
+	initialized := mgr.modulesInitialized
+	mgr.mu.Unlock()
+	if !initialized {
 		http.Error(w, "coverage is not ready, please try again later after fuzzer started", http.StatusInternalServerError)
 		return
 	}
@@ -250,6 +251,7 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 		return
 	}
 
+	mgr.mu.Lock()
 	convert := coverToPCs
 	if r.FormValue("filter") != "" && mgr.coverFilter != nil {
 		convert = func(rg *cover.ReportGenerator, cover []uint32) (ret []uint64) {
@@ -280,6 +282,8 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 			})
 		}
 	}
+	mgr.mu.Unlock()
+
 	do := rg.DoHTML
 	if funcFlag == DoHTMLTable {
 		do = rg.DoHTMLTable
@@ -296,6 +300,8 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 }
 
 func (mgr *Manager) httpCoverFallback(w http.ResponseWriter, r *http.Request) {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
 	var maxSignal signal.Signal
 	for _, inp := range mgr.corpus {
 		maxSignal.Merge(inp.Signal.Deserialize())
