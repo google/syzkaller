@@ -1041,8 +1041,8 @@ func (mgr *Manager) collectSyscallInfoUnlocked() map[string]*CallCov {
 	return calls
 }
 
-func (mgr *Manager) fuzzerConnect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) (
-	[]rpctype.RPCInput, BugFrames, map[uint32]uint32, error) {
+func (mgr *Manager) fuzzerConnect(modules []host.KernelModule) (
+	[]rpctype.RPCInput, BugFrames, map[uint32]uint32, []byte, error) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
@@ -1051,25 +1051,26 @@ func (mgr *Manager) fuzzerConnect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes)
 	for _, inp := range mgr.corpus {
 		corpus = append(corpus, inp)
 	}
-	memoryLeakFrames := make([]string, 0, len(mgr.memoryLeakFrames))
-	for frame := range mgr.memoryLeakFrames {
-		memoryLeakFrames = append(memoryLeakFrames, frame)
+	frames := BugFrames{
+		memoryLeaks: make([]string, 0, len(mgr.memoryLeakFrames)),
+		dataRaces:   make([]string, 0, len(mgr.dataRaceFrames)),
 	}
-	dataRaceFrames := make([]string, 0, len(mgr.dataRaceFrames))
+	for frame := range mgr.memoryLeakFrames {
+		frames.memoryLeaks = append(frames.memoryLeaks, frame)
+	}
 	for frame := range mgr.dataRaceFrames {
-		dataRaceFrames = append(dataRaceFrames, frame)
+		frames.dataRaces = append(frames.dataRaces, frame)
 	}
 	if !mgr.modulesInitialized {
 		var err error
-		mgr.modules = a.Modules
+		mgr.modules = modules
 		mgr.coverFilterBitmap, mgr.coverFilter, err = mgr.createCoverageFilter()
 		if err != nil {
 			log.Fatalf("failed to create coverage filter: %v", err)
 		}
 		mgr.modulesInitialized = true
 	}
-	r.CoverFilterBitmap = mgr.coverFilterBitmap
-	return corpus, BugFrames{memoryLeaks: memoryLeakFrames, dataRaces: dataRaceFrames}, mgr.coverFilter, nil
+	return corpus, frames, mgr.coverFilter, mgr.coverFilterBitmap, nil
 }
 
 func (mgr *Manager) machineChecked(a *rpctype.CheckArgs, enabledSyscalls map[*prog.Syscall]bool) {
