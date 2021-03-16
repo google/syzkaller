@@ -27,11 +27,12 @@ import (
 
 func makeELF(target *targets.Target, srcDir, buildDir string,
 	moduleObj []string, modules []*Module) (*Impl, error) {
+	// Here and below index 0 refers to coverage callbacks (__sanitizer_cov_trace_pc)
+	// and index 1 refers to comparison callbacks (__sanitizer_cov_trace_cmp*).
 	var allCoverPoints [2][]uint64
 	var allSymbols []*Symbol
 	var allRanges []pcRange
 	var allUnits []*CompileUnit
-
 	if target.OS == targets.Linux {
 		getModules(moduleObj, modules)
 	}
@@ -43,20 +44,14 @@ func makeELF(target *targets.Target, srcDir, buildDir string,
 		if err != nil {
 			return nil, err
 		}
-
-		// Here and below index 0 refers to coverage callbacks (__sanitizer_cov_trace_pc)
-		// and index 1 refers to comparison callbacks (__sanitizer_cov_trace_cmp*).
-		var coverPoints [2][]uint64
-		var symbols []*Symbol
-		var textAddr uint64
 		errc := make(chan error, 1)
 		go func() {
-			symbols1, textAddr1, tracePC, traceCmp, err := readSymbols(file, module)
+			symbols, textAddr, tracePC, traceCmp, err := readSymbols(file, module)
 			if err != nil {
 				errc <- err
 				return
 			}
-			symbols, textAddr = symbols1, textAddr1
+			allSymbols = append(allSymbols, symbols...)
 			if target.OS == targets.FreeBSD {
 				// On FreeBSD .text address in ELF is 0, but .text is actually mapped at 0xffffffff.
 				textAddr = ^uint64(0)
@@ -64,6 +59,7 @@ func makeELF(target *targets.Target, srcDir, buildDir string,
 			if module.Name == "" {
 				module.Addr = textAddr
 			}
+			var coverPoints [2][]uint64
 			if target.Arch == targets.AMD64 {
 				if module.Name == "" {
 					coverPoints, err = readCoverPoints(file, tracePC, traceCmp, module)
@@ -80,6 +76,11 @@ func makeELF(target *targets.Target, srcDir, buildDir string,
 					}
 				}
 			}
+			allCoverPoints[0] = append(allCoverPoints[0], coverPoints[0]...)
+			allCoverPoints[1] = append(allCoverPoints[1], coverPoints[1]...)
+			if err == nil && module.Name == "" && len(coverPoints[0]) == 0 {
+				err = fmt.Errorf("%v doesn't contain coverage callbacks (set CONFIG_KCOV=y)", module.Path)
+			}
 			errc <- err
 		}()
 		ranges, units, err := readTextRanges(file, module)
@@ -89,14 +90,6 @@ func makeELF(target *targets.Target, srcDir, buildDir string,
 		if err := <-errc; err != nil {
 			return nil, err
 		}
-
-		if module.Name == "" && len(coverPoints[0]) == 0 {
-			return nil, fmt.Errorf("%v doesn't contain coverage callbacks (set CONFIG_KCOV=y)", module.Path)
-		}
-
-		allCoverPoints[0] = append(allCoverPoints[0], coverPoints[0]...)
-		allCoverPoints[1] = append(allCoverPoints[1], coverPoints[1]...)
-		allSymbols = append(allSymbols, symbols...)
 		allRanges = append(allRanges, ranges...)
 		allUnits = append(allUnits, units...)
 	}
@@ -350,9 +343,6 @@ func readSymbols(file *elf.File, module *Module) ([]*Symbol, uint64, uint64, map
 	if module.Name == "" && tracePC == 0 {
 		return nil, 0, 0, nil, fmt.Errorf("no __sanitizer_cov_trace_pc symbol in the object file")
 	}
-	sort.Slice(symbols, func(i, j int) bool {
-		return symbols[i].Start < symbols[j].Start
-	})
 	return symbols, text.Addr, tracePC, traceCmp, nil
 }
 
