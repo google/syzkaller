@@ -56,6 +56,8 @@ github.com/esimonov/ifshort/pkg/analyzer
 github.com/fatih/color
 # github.com/fatih/structtag v1.2.0
 github.com/fatih/structtag
+# github.com/felixge/httpsnoop v1.0.1
+github.com/felixge/httpsnoop
 # github.com/fsnotify/fsnotify v1.4.9
 github.com/fsnotify/fsnotify
 # github.com/fzipp/gocyclo v0.3.1
@@ -170,6 +172,9 @@ github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
 # github.com/googleapis/gax-go/v2 v2.0.5
 github.com/googleapis/gax-go/v2
+# github.com/gorilla/handlers v1.5.1
+## explicit
+github.com/gorilla/handlers
 # github.com/gostaticanalysis/analysisutil v0.4.1
 github.com/gostaticanalysis/analysisutil
 # github.com/gostaticanalysis/comment v1.4.1

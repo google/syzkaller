@@ -11,7 +11,6 @@ import (
 	"html/template"
 	"io"
 	"io/ioutil"
-	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -29,35 +28,36 @@ import (
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/prog"
+	"github.com/gorilla/handlers"
 )
 
 func (mgr *Manager) initHTTP() {
-	http.HandleFunc("/", mgr.httpSummary)
-	http.HandleFunc("/config", mgr.httpConfig)
-	http.HandleFunc("/syscalls", mgr.httpSyscalls)
-	http.HandleFunc("/corpus", mgr.httpCorpus)
-	http.HandleFunc("/crash", mgr.httpCrash)
-	http.HandleFunc("/cover", mgr.httpCover)
-	http.HandleFunc("/subsystemcover", mgr.httpSubsystemCover)
-	http.HandleFunc("/prio", mgr.httpPrio)
-	http.HandleFunc("/file", mgr.httpFile)
-	http.HandleFunc("/report", mgr.httpReport)
-	http.HandleFunc("/rawcover", mgr.httpRawCover)
-	http.HandleFunc("/filterpcs", mgr.httpFilterPCs)
-	http.HandleFunc("/funccover", mgr.httpFuncCover)
-	http.HandleFunc("/filecover", mgr.httpFileCover)
-	http.HandleFunc("/input", mgr.httpInput)
-	// Browsers like to request this, without special handler this goes to / handler.
-	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
+	mux := http.NewServeMux()
 
-	ln, err := net.Listen("tcp4", mgr.cfg.HTTP)
-	if err != nil {
-		log.Fatalf("failed to listen on %v: %v", mgr.cfg.HTTP, err)
-	}
-	log.Logf(0, "serving http on http://%v", ln.Addr())
+	mux.HandleFunc("/", mgr.httpSummary)
+	mux.HandleFunc("/config", mgr.httpConfig)
+	mux.HandleFunc("/syscalls", mgr.httpSyscalls)
+	mux.HandleFunc("/corpus", mgr.httpCorpus)
+	mux.HandleFunc("/crash", mgr.httpCrash)
+	mux.HandleFunc("/cover", mgr.httpCover)
+	mux.HandleFunc("/subsystemcover", mgr.httpSubsystemCover)
+	mux.HandleFunc("/prio", mgr.httpPrio)
+	mux.HandleFunc("/file", mgr.httpFile)
+	mux.HandleFunc("/report", mgr.httpReport)
+	mux.HandleFunc("/rawcover", mgr.httpRawCover)
+	mux.HandleFunc("/filterpcs", mgr.httpFilterPCs)
+	mux.HandleFunc("/funccover", mgr.httpFuncCover)
+	mux.HandleFunc("/filecover", mgr.httpFileCover)
+	mux.HandleFunc("/input", mgr.httpInput)
+	// Browsers like to request this, without special handler this goes to / handler.
+	mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
+
+	log.Logf(0, "serving http on http://%v", mgr.cfg.HTTP)
 	go func() {
-		err := http.Serve(ln, nil)
-		log.Fatalf("failed to serve http: %v", err)
+		err := http.ListenAndServe(mgr.cfg.HTTP, handlers.CompressHandler(mux))
+		if err != nil {
+			log.Fatalf("failed to listen on %v: %v", mgr.cfg.HTTP, err)
+		}
 	}()
 }
 

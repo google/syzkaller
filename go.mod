@@ -10,6 +10,7 @@ require (
 	github.com/golangci/golangci-lint v1.37.1
 	github.com/golangci/misspell v0.3.5 // indirect
 	github.com/google/go-cmp v0.5.4
+	github.com/gorilla/handlers v1.5.1
 	github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6
 	github.com/jirfag/go-printf-func-name v0.0.0-20200119135958-7558a9eaa5af // indirect
 	github.com/jstemmer/go-junit-report v0.9.2-0.20191008195320-984a47ca6b0a // indirect
