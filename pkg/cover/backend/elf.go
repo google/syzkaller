@@ -119,7 +119,7 @@ func makeELF(target *targets.Target, srcDir, buildDir string,
 		if len(unit.PCs) == 0 {
 			continue // drop the unit
 		}
-		objDir := modules[0].Path // TODO: won't work for out-of-tree modules
+		objDir := filepath.Dir(modules[0].Path) // TODO: won't work for out-of-tree modules
 		unit.Name, unit.Path = cleanPath(unit.Name, objDir, srcDir, buildDir)
 		allUnits[nunit] = unit
 		nunit++
@@ -131,8 +131,8 @@ func makeELF(target *targets.Target, srcDir, buildDir string,
 	impl := &Impl{
 		Units:   allUnits,
 		Symbols: allSymbols,
-		Symbolize: func(pcs []uint64) ([]Frame, error) {
-			return symbolize(target, srcDir, buildDir, modules, pcs)
+		Symbolize: func(pcs map[*Module][]uint64) ([]Frame, error) {
+			return symbolize(target, srcDir, buildDir, pcs)
 		},
 		RestorePC: func(pc uint32) uint64 {
 			return PreviousInstructionPC(target, RestorePC(pc, uint32(modules[0].Addr>>32)))
@@ -332,6 +332,7 @@ func readSymbols(file *elf.File, module *Module) ([]*Symbol, uint64, uint64, map
 			start += module.Addr
 		}
 		symbols = append(symbols, &Symbol{
+			Module: module,
 			ObjectUnit: ObjectUnit{
 				Name: symb.Name,
 			},
@@ -426,35 +427,10 @@ func readTextRanges(file *elf.File, module *Module) ([]pcRange, []*CompileUnit, 
 	return ranges, units, nil
 }
 
-func symbolize(target *targets.Target, srcDir, buildDir string, modules []*Module, pcs []uint64) (
-	[]Frame, error) {
-	groupPCs := make(map[*Module][]uint64)
-	smodules := append([]*Module{}, modules...)
-	sort.Slice(smodules, func(i, j int) bool {
-		return smodules[i].Addr > smodules[j].Addr
-	})
-	for _, pc := range pcs {
-		if pc > smodules[0].Addr {
-			if smodules[0].Name != "" {
-				pc -= smodules[0].Addr
-			}
-			groupPCs[smodules[0]] = append(groupPCs[smodules[0]], pc)
-		} else {
-			for i := 0; i < len(modules)-1; i++ {
-				if pc < smodules[i].Addr && pc >= smodules[i+1].Addr {
-					if smodules[i+1].Name != "" {
-						pc -= smodules[i+1].Addr
-					}
-					groupPCs[smodules[i+1]] = append(groupPCs[smodules[i+1]], pc)
-					break
-				}
-			}
-		}
-	}
+func symbolize(target *targets.Target, srcDir, buildDir string, pcs map[*Module][]uint64) ([]Frame, error) {
 	var frames []Frame
-	for mod, pcs := range groupPCs {
-		objDir := modules[0].Path // TODO: won't work for out-of-tree modules
-		frames1, err := symbolizeModule(target, objDir, srcDir, buildDir, mod, pcs)
+	for mod, pcs1 := range pcs {
+		frames1, err := symbolizeModule(target, srcDir, buildDir, mod, pcs1)
 		if err != nil {
 			return nil, err
 		}
@@ -463,8 +439,7 @@ func symbolize(target *targets.Target, srcDir, buildDir string, modules []*Modul
 	return frames, nil
 }
 
-func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string, mod *Module, pcs []uint64) (
-	[]Frame, error) {
+func symbolizeModule(target *targets.Target, srcDir, buildDir string, mod *Module, pcs []uint64) ([]Frame, error) {
 	procs := runtime.GOMAXPROCS(0) / 2
 	if need := len(pcs) / 1000; procs > need {
 		procs = need
@@ -484,6 +459,10 @@ func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string, mo
 		frames []symbolizer.Frame
 		err    error
 	}
+	var pcOffset uint64
+	if mod.Name != "" {
+		pcOffset = mod.Addr
+	}
 	symbolizerC := make(chan symbolizerResult, procs)
 	pcchan := make(chan []uint64, procs)
 	for p := 0; p < procs; p++ {
@@ -492,6 +471,9 @@ func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string, mo
 			defer symb.Close()
 			var res symbolizerResult
 			for pcs := range pcchan {
+				for i, pc := range pcs {
+					pcs[i] = pc - pcOffset
+				}
 				frames, err := symb.SymbolizeArray(mod.Path, pcs)
 				if err != nil {
 					res.err = fmt.Errorf("failed to symbolize: %v", err)
@@ -510,6 +492,7 @@ func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string, mo
 		i = end
 	}
 	close(pcchan)
+	objDir := filepath.Dir(mod.Path)
 	var err0 error
 	var frames []Frame
 	for p := 0; p < procs; p++ {
@@ -521,7 +504,7 @@ func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string, mo
 			name, path := cleanPath(frame.File, objDir, srcDir, buildDir)
 			frames = append(frames, Frame{
 				Module: mod,
-				PC:     frame.PC,
+				PC:     frame.PC + pcOffset,
 				Name:   name,
 				Path:   path,
 				Range: Range{

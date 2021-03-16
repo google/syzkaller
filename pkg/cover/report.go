@@ -110,11 +110,7 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error
 	for _, frame := range rg.Frames {
 		f := getFile(files, frame.Name, frame.Path)
 		ln := f.lines[frame.StartLine]
-		pc := frame.PC
-		if frame.Module.Name != "" {
-			pc += frame.Module.Addr
-		}
-		coveredBy := progPCs[pc]
+		coveredBy := progPCs[frame.PC]
 		if len(coveredBy) == 0 {
 			f.uncovered = append(f.uncovered, frame.Range)
 			continue
@@ -172,7 +168,7 @@ func (rg *ReportGenerator) lazySymbolize(progs []Prog) error {
 	}
 	symbolize := make(map[*backend.Symbol]bool)
 	uniquePCs := make(map[uint64]bool)
-	var pcs []uint64
+	pcs := make(map[*backend.Module][]uint64)
 	for _, prog := range progs {
 		for _, pc := range prog.PCs {
 			if uniquePCs[pc] {
@@ -180,20 +176,15 @@ func (rg *ReportGenerator) lazySymbolize(progs []Prog) error {
 			}
 			uniquePCs[pc] = true
 			sym := rg.findSymbol(pc)
-			if sym == nil {
+			if sym == nil || (sym.Symbolized || symbolize[sym]) {
 				continue
 			}
-			if !sym.Symbolized && !symbolize[sym] {
-				symbolize[sym] = true
-				pcs = append(pcs, sym.PCs...)
-			}
+			symbolize[sym] = true
+			pcs[sym.Module] = append(pcs[sym.Module], sym.PCs...)
 		}
 	}
 	if len(uniquePCs) == 0 {
 		return fmt.Errorf("no coverage collected so far")
-	}
-	if len(pcs) == 0 {
-		return nil
 	}
 	frames, err := rg.Symbolize(pcs)
 	if err != nil {
