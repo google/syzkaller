@@ -36,6 +36,7 @@ func makeELF(target *targets.Target, srcDir, buildDir string,
 	if target.OS == targets.Linux {
 		getModules(moduleObj, modules)
 	}
+	var pcBase uint64
 	for _, module := range modules {
 		if module.Path == "" {
 			continue
@@ -52,12 +53,8 @@ func makeELF(target *targets.Target, srcDir, buildDir string,
 				return
 			}
 			allSymbols = append(allSymbols, symbols...)
-			if target.OS == targets.FreeBSD {
-				// On FreeBSD .text address in ELF is 0, but .text is actually mapped at 0xffffffff.
-				textAddr = ^uint64(0)
-			}
 			if module.Name == "" {
-				module.Addr = textAddr
+				pcBase = textAddr
 			}
 			var coverPoints [2][]uint64
 			if target.Arch == targets.AMD64 {
@@ -121,6 +118,10 @@ func makeELF(target *targets.Target, srcDir, buildDir string,
 	if len(allSymbols) == 0 || len(allUnits) == 0 {
 		return nil, fmt.Errorf("failed to parse DWARF (set CONFIG_DEBUG_INFO=y?)")
 	}
+	if target.OS == targets.FreeBSD {
+		// On FreeBSD .text address in ELF is 0, but .text is actually mapped at 0xffffffff.
+		pcBase = ^uint64(0)
+	}
 	impl := &Impl{
 		Units:   allUnits,
 		Symbols: allSymbols,
@@ -128,7 +129,7 @@ func makeELF(target *targets.Target, srcDir, buildDir string,
 			return symbolize(target, srcDir, buildDir, pcs)
 		},
 		RestorePC: func(pc uint32) uint64 {
-			return PreviousInstructionPC(target, RestorePC(pc, uint32(modules[0].Addr>>32)))
+			return PreviousInstructionPC(target, RestorePC(pc, uint32(pcBase>>32)))
 		},
 	}
 	return impl, nil
@@ -320,10 +321,7 @@ func readSymbols(file *elf.File, module *Module) ([]*Symbol, uint64, uint64, map
 		if symb.Value < text.Addr || symb.Value+symb.Size > text.Addr+text.Size {
 			continue
 		}
-		start := symb.Value
-		if module.Name != "" {
-			start += module.Addr
-		}
+		start := symb.Value + module.Addr
 		symbols = append(symbols, &Symbol{
 			Module: module,
 			ObjectUnit: ObjectUnit{
@@ -403,11 +401,7 @@ func readTextRanges(file *elf.File, module *Module) ([]pcRange, []*CompileUnit, 
 					}
 				}
 			}
-			if module.Name == "" {
-				ranges = append(ranges, pcRange{r[0], r[1], unit})
-			} else {
-				ranges = append(ranges, pcRange{r[0] + module.Addr, r[1] + module.Addr, unit})
-			}
+			ranges = append(ranges, pcRange{r[0] + module.Addr, r[1] + module.Addr, unit})
 		}
 		r.SkipChildren()
 	}
@@ -449,10 +443,6 @@ func symbolizeModule(target *targets.Target, srcDir, buildDir string, mod *Modul
 		frames []symbolizer.Frame
 		err    error
 	}
-	var pcOffset uint64
-	if mod.Name != "" {
-		pcOffset = mod.Addr
-	}
 	symbolizerC := make(chan symbolizerResult, procs)
 	pcchan := make(chan []uint64, procs)
 	for p := 0; p < procs; p++ {
@@ -462,7 +452,7 @@ func symbolizeModule(target *targets.Target, srcDir, buildDir string, mod *Modul
 			var res symbolizerResult
 			for pcs := range pcchan {
 				for i, pc := range pcs {
-					pcs[i] = pc - pcOffset
+					pcs[i] = pc - mod.Addr
 				}
 				frames, err := symb.SymbolizeArray(mod.Path, pcs)
 				if err != nil {
@@ -494,7 +484,7 @@ func symbolizeModule(target *targets.Target, srcDir, buildDir string, mod *Modul
 			name, path := cleanPath(frame.File, objDir, srcDir, buildDir)
 			frames = append(frames, Frame{
 				Module: mod,
-				PC:     frame.PC + pcOffset,
+				PC:     frame.PC + mod.Addr,
 				Name:   name,
 				Path:   path,
 				Range: Range{
