@@ -351,11 +351,12 @@ func readTextRanges(file *elf.File, module *Module) ([]pcRange, []*CompileUnit, 
 	}
 	kaslr := file.Section(".rela.text") != nil
 	debugInfo, err := file.DWARF()
-	if err != nil && module.Name == "" {
+	if err != nil {
+		if module.Name != "" {
+			log.Logf(0, "ignoring module %v without DEBUG_INFO", module.Name)
+			return nil, nil, nil
+		}
 		return nil, nil, fmt.Errorf("failed to parse DWARF: %v (set CONFIG_DEBUG_INFO=y?)", err)
-	} else if err != nil {
-		log.Logf(0, "ignore module %v which doesn't have DEBUG_INFO", module.Name)
-		return nil, nil, nil
 	}
 	var ranges []pcRange
 	var units []*CompileUnit
