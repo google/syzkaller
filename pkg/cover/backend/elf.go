@@ -435,19 +435,17 @@ func symbolize(target *targets.Target, srcDir, buildDir string, modules []*Kerne
 	})
 	for _, pc := range pcs {
 		if pc > smodules[0].Addr {
-			if smodules[0].Name == "" {
-				groupPCs[smodules[0]] = append(groupPCs[smodules[0]], pc)
-			} else {
-				groupPCs[smodules[0]] = append(groupPCs[smodules[0]], pc-smodules[0].Addr)
+			if smodules[0].Name != "" {
+				pc -= smodules[0].Addr
 			}
+			groupPCs[smodules[0]] = append(groupPCs[smodules[0]], pc)
 		} else {
 			for i := 0; i < len(modules)-1; i++ {
 				if pc < smodules[i].Addr && pc >= smodules[i+1].Addr {
-					if smodules[i+1].Name == "" {
-						groupPCs[smodules[i+1]] = append(groupPCs[smodules[i+1]], pc)
-					} else {
-						groupPCs[smodules[i+1]] = append(groupPCs[smodules[i+1]], pc-smodules[i+1].Addr)
+					if smodules[i+1].Name != "" {
+						pc -= smodules[i+1].Addr
 					}
+					groupPCs[smodules[i+1]] = append(groupPCs[smodules[i+1]], pc)
 					break
 				}
 			}
