@@ -6,11 +6,6 @@ package cover
 
 type Cover map[uint32]struct{}
 
-type Subsystem struct {
-	Name  string   `json:"name"`
-	Paths []string `json:"path"`
-}
-
 func (cov *Cover) Merge(raw []uint32) {
 	c := *cov
 	if c == nil {
