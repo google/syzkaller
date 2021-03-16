@@ -195,19 +195,11 @@ func (rg *ReportGenerator) lazySymbolize(progs []Prog) error {
 	if len(pcs) == 0 {
 		return nil
 	}
-	for mod, pcs := range backend.GroupPCsByModule(pcs, rg.Modules) {
-		if len(pcs) == 0 {
-			continue
-		}
-		frames, err := rg.Symbolize(pcs, mod.Path)
-		if err != nil {
-			return err
-		}
-		for i := range frames {
-			frames[i].Module = mod
-		}
-		rg.Frames = append(rg.Frames, frames...)
+	frames, err := rg.Symbolize(pcs)
+	if err != nil {
+		return err
 	}
+	rg.Frames = append(rg.Frames, frames...)
 	for sym := range symbolize {
 		sym.Symbolized = true
 	}

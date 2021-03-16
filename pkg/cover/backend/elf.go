@@ -25,10 +25,6 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-func init() {
-	GroupPCsByModule = groupPCsByModule
-}
-
 func makeELF(target *targets.Target, srcDir, buildDir string,
 	moduleObj []string, modules []*KernelModule) (*Impl, error) {
 	var allCoverPoints [2][]uint64
@@ -135,14 +131,12 @@ func makeELF(target *targets.Target, srcDir, buildDir string,
 	impl := &Impl{
 		Units:   allUnits,
 		Symbols: allSymbols,
-		Symbolize: func(pcs []uint64, obj string) ([]Frame, error) {
-			objDir := modules[0].Path // TODO: won't work for out-of-tree modules
-			return symbolize(target, objDir, srcDir, buildDir, obj, pcs)
+		Symbolize: func(pcs []uint64) ([]Frame, error) {
+			return symbolize(target, srcDir, buildDir, modules, pcs)
 		},
 		RestorePC: func(pc uint32) uint64 {
 			return PreviousInstructionPC(target, RestorePC(pc, uint32(modules[0].Addr>>32)))
 		},
-		Modules: modules,
 	}
 	return impl, nil
 }
@@ -249,35 +243,6 @@ func searchModuleName(data []byte) string {
 		return ""
 	}
 	return string(data[pos+len(key) : end])
-}
-
-func groupPCsByModule(pcs []uint64, modules []*KernelModule) map[*KernelModule][]uint64 {
-	groupPCs := make(map[*KernelModule][]uint64)
-	smodules := append([]*KernelModule{}, modules...)
-	sort.Slice(smodules, func(i, j int) bool {
-		return smodules[i].Addr > smodules[j].Addr
-	})
-	for _, pc := range pcs {
-		if pc > smodules[0].Addr {
-			if smodules[0].Name == "" {
-				groupPCs[smodules[0]] = append(groupPCs[smodules[0]], pc)
-			} else {
-				groupPCs[smodules[0]] = append(groupPCs[smodules[0]], pc-smodules[0].Addr)
-			}
-		} else {
-			for i := 0; i < len(modules)-1; i++ {
-				if pc < smodules[i].Addr && pc >= smodules[i+1].Addr {
-					if smodules[i+1].Name == "" {
-						groupPCs[smodules[i+1]] = append(groupPCs[smodules[i+1]], pc)
-					} else {
-						groupPCs[smodules[i+1]] = append(groupPCs[smodules[i+1]], pc-smodules[i+1].Addr)
-					}
-					break
-				}
-			}
-		}
-	}
-	return groupPCs
 }
 
 type pcRange struct {
@@ -461,7 +426,47 @@ func readTextRanges(file *elf.File, module *KernelModule) ([]pcRange, []*Compile
 	return ranges, units, nil
 }
 
-func symbolize(target *targets.Target, objDir, srcDir, buildDir, obj string, pcs []uint64) ([]Frame, error) {
+func symbolize(target *targets.Target, srcDir, buildDir string, modules []*KernelModule, pcs []uint64) (
+	[]Frame, error) {
+	groupPCs := make(map[*KernelModule][]uint64)
+	smodules := append([]*KernelModule{}, modules...)
+	sort.Slice(smodules, func(i, j int) bool {
+		return smodules[i].Addr > smodules[j].Addr
+	})
+	for _, pc := range pcs {
+		if pc > smodules[0].Addr {
+			if smodules[0].Name == "" {
+				groupPCs[smodules[0]] = append(groupPCs[smodules[0]], pc)
+			} else {
+				groupPCs[smodules[0]] = append(groupPCs[smodules[0]], pc-smodules[0].Addr)
+			}
+		} else {
+			for i := 0; i < len(modules)-1; i++ {
+				if pc < smodules[i].Addr && pc >= smodules[i+1].Addr {
+					if smodules[i+1].Name == "" {
+						groupPCs[smodules[i+1]] = append(groupPCs[smodules[i+1]], pc)
+					} else {
+						groupPCs[smodules[i+1]] = append(groupPCs[smodules[i+1]], pc-smodules[i+1].Addr)
+					}
+					break
+				}
+			}
+		}
+	}
+	var frames []Frame
+	for mod, pcs := range groupPCs {
+		objDir := modules[0].Path // TODO: won't work for out-of-tree modules
+		frames1, err := symbolizeModule(target, objDir, srcDir, buildDir, mod, pcs)
+		if err != nil {
+			return nil, err
+		}
+		frames = append(frames, frames1...)
+	}
+	return frames, nil
+}
+
+func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string, mod *KernelModule, pcs []uint64) (
+	[]Frame, error) {
 	procs := runtime.GOMAXPROCS(0) / 2
 	if need := len(pcs) / 1000; procs > need {
 		procs = need
@@ -489,7 +494,7 @@ func symbolize(target *targets.Target, objDir, srcDir, buildDir, obj string, pcs
 			defer symb.Close()
 			var res symbolizerResult
 			for pcs := range pcchan {
-				frames, err := symb.SymbolizeArray(obj, pcs)
+				frames, err := symb.SymbolizeArray(mod.Path, pcs)
 				if err != nil {
 					res.err = fmt.Errorf("failed to symbolize: %v", err)
 				}
@@ -517,9 +522,10 @@ func symbolize(target *targets.Target, objDir, srcDir, buildDir, obj string, pcs
 		for _, frame := range res.frames {
 			name, path := cleanPath(frame.File, objDir, srcDir, buildDir)
 			frames = append(frames, Frame{
-				PC:   frame.PC,
-				Name: name,
-				Path: path,
+				Module: mod,
+				PC:     frame.PC,
+				Name:   name,
+				Path:   path,
 				Range: Range{
 					StartLine: frame.Line,
 					StartCol:  0,
