@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"github.com/google/syzkaller/pkg/cover/backend"
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -16,7 +17,7 @@ type ReportGenerator struct {
 	srcDir    string
 	objDir    string
 	buildDir  string
-	subsystem []Subsystem
+	subsystem []mgrconfig.Subsystem
 	*backend.Impl
 }
 
@@ -27,13 +28,13 @@ type Prog struct {
 
 var RestorePC = backend.RestorePC
 
-func MakeReportGenerator(target *targets.Target, vm, objDir, srcDir, buildDir string,
-	subsystem []Subsystem, moduleObj []string, modules map[string]backend.KernelModule) (*ReportGenerator, error) {
+func MakeReportGenerator(target *targets.Target, vm, objDir, srcDir, buildDir string, subsystem []mgrconfig.Subsystem,
+	moduleObj []string, modules map[string]backend.KernelModule) (*ReportGenerator, error) {
 	impl, err := backend.Make(target, vm, objDir, srcDir, buildDir, moduleObj, modules)
 	if err != nil {
 		return nil, err
 	}
-	subsystem = append(subsystem, Subsystem{
+	subsystem = append(subsystem, mgrconfig.Subsystem{
 		Name:  "all",
 		Paths: []string{""},
 	})

@@ -5,8 +5,6 @@ package mgrconfig
 
 import (
 	"encoding/json"
-
-	"github.com/google/syzkaller/pkg/cover"
 )
 
 type Config struct {
@@ -55,7 +53,7 @@ type Config struct {
 	//		{ "name": "sound", "path": ["sound", "techpack/audio"]},
 	//		{ "name": "mydriver": "path": ["mydriver_path"]}
 	//	]
-	KernelSubsystem []cover.Subsystem `json:"kernel_subsystem,omitempty"`
+	KernelSubsystem []Subsystem `json:"kernel_subsystem,omitempty"`
 	// Arbitrary optional tag that is saved along with crash reports (e.g. branch/commit).
 	Tag string `json:"tag,omitempty"`
 	// Location of the disk image file.
@@ -158,6 +156,11 @@ type Config struct {
 
 	// Implementation details beyond this point. Filled after parsing.
 	Derived `json:"-"`
+}
+
+type Subsystem struct {
+	Name  string   `json:"name"`
+	Paths []string `json:"path"`
 }
 
 type covFilterCfg struct {

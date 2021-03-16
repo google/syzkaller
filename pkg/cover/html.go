@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/cover/backend"
+	"github.com/google/syzkaller/pkg/mgrconfig"
 )
 
 func (rg *ReportGenerator) DoHTML(w io.Writer, progs []Prog) error {
@@ -199,7 +200,7 @@ func (rg *ReportGenerator) DoCSVFiles(w io.Writer, progs []Prog) error {
 	return writer.WriteAll(d)
 }
 
-func groupCoverByFilePrefixes(datas []fileStats, subsystems []Subsystem) map[string]map[string]string {
+func groupCoverByFilePrefixes(datas []fileStats, subsystems []mgrconfig.Subsystem) map[string]map[string]string {
 	d := make(map[string]map[string]string)
 
 	for _, subsystem := range subsystems {
