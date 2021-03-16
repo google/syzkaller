@@ -11,7 +11,7 @@ type Impl struct {
 	Units     []*CompileUnit
 	Symbols   []*Symbol
 	Frames    []Frame
-	Symbolize func(pcs []uint64) ([]Frame, error)
+	Symbolize func(pcs map[*Module][]uint64) ([]Frame, error)
 	RestorePC func(pc uint32) uint64
 }
 
@@ -28,6 +28,7 @@ type CompileUnit struct {
 
 type Symbol struct {
 	ObjectUnit
+	Module     *Module
 	Unit       *CompileUnit
 	Start      uint64
 	End        uint64
