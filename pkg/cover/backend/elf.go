@@ -26,14 +26,14 @@ import (
 )
 
 func makeELF(target *targets.Target, srcDir, buildDir string,
-	moduleObj []string, modules []*KernelModule) (*Impl, error) {
+	moduleObj []string, modules []*Module) (*Impl, error) {
 	var allCoverPoints [2][]uint64
 	var allSymbols []*Symbol
 	var allRanges []pcRange
 	var allUnits []*CompileUnit
 
 	if target.OS == targets.Linux {
-		getKernelModules(moduleObj, modules)
+		getModules(moduleObj, modules)
 	}
 	for _, module := range modules {
 		if module.Path == "" {
@@ -141,8 +141,8 @@ func makeELF(target *targets.Target, srcDir, buildDir string,
 	return impl, nil
 }
 
-func getKernelModules(dirs []string, modules []*KernelModule) {
-	byName := make(map[string]*KernelModule)
+func getModules(dirs []string, modules []*Module) {
+	byName := make(map[string]*Module)
 	for _, mod := range modules {
 		byName[mod.Name] = mod
 	}
@@ -311,7 +311,7 @@ func buildSymbols(symbols []*Symbol, ranges []pcRange, coverPoints [2][]uint64) 
 	return symbols
 }
 
-func readSymbols(file *elf.File, module *KernelModule) ([]*Symbol, uint64, uint64, map[uint64]bool, error) {
+func readSymbols(file *elf.File, module *Module) ([]*Symbol, uint64, uint64, map[uint64]bool, error) {
 	text := file.Section(".text")
 	if text == nil {
 		return nil, 0, 0, nil, fmt.Errorf("no .text section in the object file")
@@ -355,7 +355,7 @@ func readSymbols(file *elf.File, module *KernelModule) ([]*Symbol, uint64, uint6
 	return symbols, text.Addr, tracePC, traceCmp, nil
 }
 
-func readTextRanges(file *elf.File, module *KernelModule) ([]pcRange, []*CompileUnit, error) {
+func readTextRanges(file *elf.File, module *Module) ([]pcRange, []*CompileUnit, error) {
 	text := file.Section(".text")
 	if text == nil {
 		return nil, nil, fmt.Errorf("no .text section in the object file")
@@ -426,10 +426,10 @@ func readTextRanges(file *elf.File, module *KernelModule) ([]pcRange, []*Compile
 	return ranges, units, nil
 }
 
-func symbolize(target *targets.Target, srcDir, buildDir string, modules []*KernelModule, pcs []uint64) (
+func symbolize(target *targets.Target, srcDir, buildDir string, modules []*Module, pcs []uint64) (
 	[]Frame, error) {
-	groupPCs := make(map[*KernelModule][]uint64)
-	smodules := append([]*KernelModule{}, modules...)
+	groupPCs := make(map[*Module][]uint64)
+	smodules := append([]*Module{}, modules...)
 	sort.Slice(smodules, func(i, j int) bool {
 		return smodules[i].Addr > smodules[j].Addr
 	})
@@ -463,7 +463,7 @@ func symbolize(target *targets.Target, srcDir, buildDir string, modules []*Kerne
 	return frames, nil
 }
 
-func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string, mod *KernelModule, pcs []uint64) (
+func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string, mod *Module, pcs []uint64) (
 	[]Frame, error) {
 	procs := runtime.GOMAXPROCS(0) / 2
 	if need := len(pcs) / 1000; procs > need {
@@ -590,7 +590,7 @@ func getRelSymbolName(file *elf.File, index uint32) (string, error) {
 // Currently it is amd64-specific: looks for e8 opcode and correct offset.
 // Running objdump on the whole object file is too slow.
 func readCoverPoints(file *elf.File, tracePC uint64, traceCmp map[uint64]bool,
-	module *KernelModule) ([2][]uint64, error) {
+	module *Module) ([2][]uint64, error) {
 	var pcs [2][]uint64
 	const callLen = 5
 	if module.Name == "" {
