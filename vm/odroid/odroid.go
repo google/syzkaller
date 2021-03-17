@@ -113,7 +113,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	inst.ssh("mkdir -p /data/")
 
 	// Remove temp files from previous runs.
-	inst.ssh("rm -rf /data/syzkaller-*")
+	inst.ssh("rm -rf /data/syz-*")
 
 	closeInst = nil
 	return inst, nil
