@@ -18,23 +18,25 @@ import (
 	"strings"
 	"unsafe"
 
+	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/symbolizer"
 	"github.com/google/syzkaller/sys/targets"
 )
 
-func makeELF(target *targets.Target, srcDir, buildDir string,
-	moduleObj []string, modules []*Module) (*Impl, error) {
+func makeELF(target *targets.Target, objDir, srcDir, buildDir string,
+	moduleObj []string, hostModules []host.KernelModule) (*Impl, error) {
+	modules, err := discoverModules(target, objDir, moduleObj, hostModules)
+	if err != nil {
+		return nil, err
+	}
 	// Here and below index 0 refers to coverage callbacks (__sanitizer_cov_trace_pc)
 	// and index 1 refers to comparison callbacks (__sanitizer_cov_trace_cmp*).
 	var allCoverPoints [2][]uint64
 	var allSymbols []*Symbol
 	var allRanges []pcRange
 	var allUnits []*CompileUnit
-	if target.OS == targets.Linux {
-		getModules(moduleObj, modules)
-	}
 	var pcBase uint64
 	for _, module := range modules {
 		if module.Path == "" {
@@ -108,7 +110,7 @@ func makeELF(target *targets.Target, srcDir, buildDir string,
 		if len(unit.PCs) == 0 {
 			continue // drop the unit
 		}
-		objDir := filepath.Dir(modules[0].Path) // TODO: won't work for out-of-tree modules
+		// TODO: objDir won't work for out-of-tree modules.
 		unit.Name, unit.Path = cleanPath(unit.Name, objDir, srcDir, buildDir)
 		allUnits[nunit] = unit
 		nunit++

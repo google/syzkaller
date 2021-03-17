@@ -11,22 +11,44 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/sys/targets"
 )
 
-func getModules(dirs []string, modules []*Module) {
-	byName := make(map[string]*Module)
-	for _, mod := range modules {
+func discoverModules(target *targets.Target, objDir string, moduleObj []string, hostModules []host.KernelModule) (
+	[]*Module, error) {
+	modules := []*Module{
+		{Path: filepath.Join(objDir, target.KernelObject)},
+	}
+	if target.OS == targets.Linux {
+		modules1, err := discoverModulesLinux(append([]string{objDir}, moduleObj...), hostModules)
+		if err != nil {
+			return nil, err
+		}
+		modules = append(modules, modules1...)
+	} else if len(hostModules) != 0 {
+		return nil, fmt.Errorf("%v coverage does not support modules", target.OS)
+	}
+	return modules, nil
+}
+
+func discoverModulesLinux(dirs []string, hostModules []host.KernelModule) ([]*Module, error) {
+	byName := make(map[string]host.KernelModule)
+	for _, mod := range hostModules {
 		byName[mod.Name] = mod
 	}
+	var modules []*Module
 	files := findModulePaths(dirs)
 	for _, path := range files {
 		name := strings.TrimSuffix(filepath.Base(path), ".ko")
-		if module := byName[name]; module != nil {
-			if module.Path != "" {
-				continue
-			}
-			module.Path = path
+		if mod, ok := byName[name]; ok {
+			delete(byName, name)
+			modules = append(modules, &Module{
+				Name: mod.Name,
+				Addr: mod.Addr,
+				Path: path,
+			})
 			continue
 		}
 		name, err := getModuleName(path)
@@ -37,14 +59,17 @@ func getModules(dirs []string, modules []*Module) {
 		if name == "" {
 			continue
 		}
-		if module := byName[name]; module != nil {
-			if module.Path != "" {
-				continue
-			}
-			module.Path = path
+		if mod, ok := byName[name]; ok {
+			delete(byName, name)
+			modules = append(modules, &Module{
+				Name: mod.Name,
+				Addr: mod.Addr,
+				Path: path,
+			})
 		}
 	}
 	log.Logf(0, "kernel modules: %v", modules)
+	return modules, nil
 }
 
 func findModulePaths(dirs []string) []string {

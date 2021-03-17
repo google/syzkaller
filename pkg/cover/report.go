@@ -5,7 +5,6 @@ package cover
 
 import (
 	"fmt"
-	"path/filepath"
 	"sort"
 
 	"github.com/google/syzkaller/pkg/cover/backend"
@@ -30,23 +29,8 @@ type Prog struct {
 var RestorePC = backend.RestorePC
 
 func MakeReportGenerator(target *targets.Target, vm, objDir, srcDir, buildDir string, subsystem []mgrconfig.Subsystem,
-	moduleObj []string, hostModules []host.KernelModule) (*ReportGenerator, error) {
-	if objDir == "" {
-		return nil, fmt.Errorf("kernel obj directory is not specified")
-	}
-	moduleObj = append([]string{objDir}, moduleObj...)
-	modules := []*backend.Module{
-		{
-			Path: filepath.Join(objDir, target.KernelObject),
-		},
-	}
-	for _, mod := range hostModules {
-		modules = append(modules, &backend.Module{
-			Name: mod.Name,
-			Addr: mod.Addr,
-		})
-	}
-	impl, err := backend.Make(target, vm, srcDir, buildDir, moduleObj, modules)
+	moduleObj []string, modules []host.KernelModule) (*ReportGenerator, error) {
+	impl, err := backend.Make(target, vm, objDir, srcDir, buildDir, moduleObj, modules)
 	if err != nil {
 		return nil, err
 	}
