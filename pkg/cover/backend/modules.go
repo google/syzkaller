@@ -34,72 +34,59 @@ func discoverModules(target *targets.Target, objDir string, moduleObj []string, 
 }
 
 func discoverModulesLinux(dirs []string, hostModules []host.KernelModule) ([]*Module, error) {
-	byName := make(map[string]host.KernelModule)
-	for _, mod := range hostModules {
-		byName[mod.Name] = mod
+	paths, err := locateModules(dirs)
+	if err != nil {
+		return nil, err
 	}
 	var modules []*Module
-	files := findModulePaths(dirs)
-	for _, path := range files {
-		name := strings.TrimSuffix(filepath.Base(path), ".ko")
-		if mod, ok := byName[name]; ok {
-			delete(byName, name)
-			modules = append(modules, &Module{
-				Name: mod.Name,
-				Addr: mod.Addr,
-				Path: path,
-			})
+	for _, mod := range hostModules {
+		path := paths[mod.Name]
+		if path == "" {
+			log.Logf(0, "failed to discover module %v", mod.Name)
 			continue
 		}
-		name, err := getModuleName(path)
-		if err != nil {
-			log.Logf(0, "failed to get module name for %v: %v", path, err)
-			continue
-		}
-		if name == "" {
-			continue
-		}
-		if mod, ok := byName[name]; ok {
-			delete(byName, name)
-			modules = append(modules, &Module{
-				Name: mod.Name,
-				Addr: mod.Addr,
-				Path: path,
-			})
-		}
+		log.Logf(0, "module %v -> %v", mod.Name, path)
+		modules = append(modules, &Module{
+			Name: mod.Name,
+			Addr: mod.Addr,
+			Path: path,
+		})
 	}
-	log.Logf(0, "kernel modules: %v", modules)
 	return modules, nil
 }
 
-func findModulePaths(dirs []string) []string {
-	var files []string
-	for _, path := range dirs {
-		mfiles, err := walkModulePath(path)
+func locateModules(dirs []string) (map[string]string, error) {
+	paths := make(map[string]string)
+	for _, dir := range dirs {
+		err := filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
+			if err != nil || filepath.Ext(path) != ".ko" {
+				return err
+			}
+			name, err := getModuleName(path)
+			if err != nil {
+				// Extracting module name involves parsing ELF and binary data,
+				// let's not fail on it, we still have the file name,
+				// which is usually the right module name.
+				log.Logf(0, "failed to get %v module name: %v", path, err)
+				name = strings.TrimSuffix(filepath.Base(path), "."+filepath.Ext(path))
+			}
+			// Order of dirs determine priority, so don't overwrite already discovered names.
+			if name != "" && paths[name] == "" {
+				paths[name] = path
+			}
+			return nil
+		})
 		if err != nil {
-			log.Logf(0, "failed to find modules in %v: %v", path, err)
-			continue
+			return nil, err
 		}
-		files = append(files, mfiles...)
 	}
-	return files
-}
-
-func walkModulePath(dir string) ([]string, error) {
-	files := []string{}
-	err := filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
-		if filepath.Ext(path) == ".ko" {
-			files = append(files, path)
-		}
-		return nil
-	})
-	return files, err
+	return paths, nil
 }
 
 func getModuleName(path string) (string, error) {
 	file, err := elf.Open(path)
 	if err != nil {
-		return "", fmt.Errorf("failed to open %v: %v", path, err)
+		return "", err
 	}
 	defer file.Close()
 	section := file.Section(".modinfo")
@@ -108,21 +95,20 @@ func getModuleName(path string) (string, error) {
 	}
 	data, err := section.Data()
 	if err != nil {
-		return "", fmt.Errorf("failed to read .modinfo")
+		return "", fmt.Errorf("failed to read .modinfo: %v", err)
 	}
-	name := searchModuleName(data)
-	if name == "" {
-		section = file.Section(".gnu.linkonce.this_module")
-		if section == nil {
-			return "", fmt.Errorf("no .gnu.linkonce.this_module section")
-		}
-		data, err = section.Data()
-		if err != nil {
-			return "", fmt.Errorf("failed to read .gnu.linkonce.this_module: %v", err)
-		}
-		name = string(data)
+	if name := searchModuleName(data); name != "" {
+		return name, nil
 	}
-	return name, nil
+	section = file.Section(".gnu.linkonce.this_module")
+	if section == nil {
+		return "", fmt.Errorf("no .gnu.linkonce.this_module section")
+	}
+	data, err = section.Data()
+	if err != nil {
+		return "", fmt.Errorf("failed to read .gnu.linkonce.this_module: %v", err)
+	}
+	return string(data), nil
 }
 
 func searchModuleName(data []byte) string {
