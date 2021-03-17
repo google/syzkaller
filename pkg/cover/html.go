@@ -304,16 +304,20 @@ func fileContents(file *file, lines [][]byte, haveProgs bool) string {
 	var buf bytes.Buffer
 	lineCover := perLineCoverage(file.covered, file.uncovered)
 	htmlReplacer := strings.NewReplacer(">", "&gt;", "<", "&lt;", "&", "&amp;", "\t", "        ")
-	for i, ln := range lines {
+	buf.WriteString("<table><tr><td class='count'>")
+	for i := range lines {
 		if haveProgs {
 			prog, count := "", "     "
 			if line := file.lines[i+1]; len(line.progCount) != 0 {
 				prog = fmt.Sprintf("onclick='onProgClick(%v)'", line.progIndex)
 				count = fmt.Sprintf("% 5v", len(line.progCount))
+				buf.WriteString(fmt.Sprintf("<span %v>%v</span> ", prog, count))
 			}
-			buf.WriteString(fmt.Sprintf("<span class='count' %v>%v</span> ", prog, count))
+			buf.WriteByte('\n')
 		}
-
+	}
+	buf.WriteString("</td><td>")
+	for i, ln := range lines {
 		start := 0
 		cover := append(lineCover[i+1], lineCoverChunk{End: backend.LineEnd})
 		for _, cov := range cover {
@@ -341,6 +345,7 @@ func fileContents(file *file, lines [][]byte, haveProgs bool) string {
 		}
 		buf.WriteByte('\n')
 	}
+	buf.WriteString("</td></tr></table>")
 	return buf.String()
 }
 
