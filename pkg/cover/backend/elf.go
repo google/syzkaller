@@ -303,9 +303,6 @@ func readTextRanges(file *elf.File, module *Module) ([]pcRange, []*CompileUnit, 
 		}
 		r.SkipChildren()
 	}
-	sort.Slice(ranges, func(i, j int) bool {
-		return ranges[i].start < ranges[j].start
-	})
 	return ranges, units, nil
 }
 
