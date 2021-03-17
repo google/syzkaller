@@ -10,13 +10,13 @@ import (
 	"debug/elf"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"path/filepath"
 	"runtime"
 	"sort"
 	"strconv"
 	"strings"
-	"unsafe"
 
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/log"
@@ -39,40 +39,28 @@ func makeELF(target *targets.Target, objDir, srcDir, buildDir string,
 	var allUnits []*CompileUnit
 	var pcBase uint64
 	for _, module := range modules {
-		if module.Path == "" {
-			continue
-		}
 		file, err := elf.Open(module.Path)
 		if err != nil {
 			return nil, err
 		}
 		errc := make(chan error, 1)
 		go func() {
-			symbols, textAddr, tracePC, traceCmp, err := readSymbols(file, module)
+			symbols, info, err := readSymbols(file, module)
 			if err != nil {
 				errc <- err
 				return
 			}
 			allSymbols = append(allSymbols, symbols...)
 			if module.Name == "" {
-				pcBase = textAddr
+				pcBase = info.textAddr
 			}
 			var coverPoints [2][]uint64
-			if target.Arch == targets.AMD64 {
-				if module.Name == "" {
-					coverPoints, err = readCoverPoints(file, tracePC, traceCmp, module)
-				} else {
-					coverPoints, err = readCoverPoints(file, 0, nil, module)
-				}
+			if target.Arch != targets.AMD64 {
+				coverPoints, err = objdump(target, module)
+			} else if module.Name == "" {
+				coverPoints, err = readCoverPoints(file, info)
 			} else {
-				coverPoints, err = objdump(target, module.Path)
-				if module.Name != "" {
-					for i, pcs := range coverPoints {
-						for j, pc := range pcs {
-							coverPoints[i][j] = module.Addr + pc
-						}
-					}
-				}
+				coverPoints, err = readModuleCoverPoints(file, info, module)
 			}
 			allCoverPoints[0] = append(allCoverPoints[0], coverPoints[0]...)
 			allCoverPoints[1] = append(allCoverPoints[1], coverPoints[1]...)
@@ -202,43 +190,58 @@ func buildSymbols(symbols []*Symbol, ranges []pcRange, coverPoints [2][]uint64) 
 	return symbols
 }
 
-func readSymbols(file *elf.File, module *Module) ([]*Symbol, uint64, uint64, map[uint64]bool, error) {
+type symbolInfo struct {
+	textAddr    uint64
+	tracePC     uint64
+	traceCmp    map[uint64]bool
+	tracePCIdx  map[int]bool
+	traceCmpIdx map[int]bool
+}
+
+func readSymbols(file *elf.File, module *Module) ([]*Symbol, *symbolInfo, error) {
 	text := file.Section(".text")
 	if text == nil {
-		return nil, 0, 0, nil, fmt.Errorf("no .text section in the object file")
+		return nil, nil, fmt.Errorf("no .text section in the object file")
 	}
 	allSymbols, err := file.Symbols()
 	if err != nil {
-		return nil, 0, 0, nil, fmt.Errorf("failed to read ELF symbols: %v", err)
+		return nil, nil, fmt.Errorf("failed to read ELF symbols: %v", err)
 	}
-	traceCmp := make(map[uint64]bool)
-	var tracePC uint64
 	var symbols []*Symbol
-	for _, symb := range allSymbols {
-		if symb.Value < text.Addr || symb.Value+symb.Size > text.Addr+text.Size {
-			continue
+	info := &symbolInfo{
+		textAddr:    text.Addr,
+		traceCmp:    make(map[uint64]bool),
+		tracePCIdx:  make(map[int]bool),
+		traceCmpIdx: make(map[int]bool),
+	}
+	for i, symb := range allSymbols {
+		text := symb.Value >= text.Addr && symb.Value+symb.Size <= text.Addr+text.Size
+		if text {
+			start := symb.Value + module.Addr
+			symbols = append(symbols, &Symbol{
+				Module: module,
+				ObjectUnit: ObjectUnit{
+					Name: symb.Name,
+				},
+				Start: start,
+				End:   start + symb.Size,
+			})
 		}
-		start := symb.Value + module.Addr
-		symbols = append(symbols, &Symbol{
-			Module: module,
-			ObjectUnit: ObjectUnit{
-				Name: symb.Name,
-			},
-			Start: start,
-			End:   start + symb.Size,
-		})
-		if module.Name == "" && strings.HasPrefix(symb.Name, "__sanitizer_cov_trace_") {
+		if strings.HasPrefix(symb.Name, "__sanitizer_cov_trace_") {
 			if symb.Name == "__sanitizer_cov_trace_pc" {
-				tracePC = symb.Value
+				info.tracePCIdx[i] = true
+				if text {
+					info.tracePC = symb.Value
+				}
 			} else {
-				traceCmp[symb.Value] = true
+				info.traceCmpIdx[i] = true
+				if text {
+					info.traceCmp[symb.Value] = true
+				}
 			}
 		}
 	}
-	if module.Name == "" && tracePC == 0 {
-		return nil, 0, 0, nil, fmt.Errorf("no __sanitizer_cov_trace_pc symbol in the object file")
-	}
-	return symbols, text.Addr, tracePC, traceCmp, nil
+	return symbols, info, nil
 }
 
 func readTextRanges(file *elf.File, module *Module) ([]pcRange, []*CompileUnit, error) {
@@ -397,98 +400,64 @@ func symbolizeModule(target *targets.Target, srcDir, buildDir string, mod *Modul
 	return frames, nil
 }
 
-func getCovRels(file *elf.File) ([2][]elf.Rela64, error) {
-	var rRels [2][]elf.Rela64
-	rels, err := getRelocations(file)
-	if err != nil {
-		return rRels, err
-	}
-	for _, rel := range rels {
-		name, err := getRelSymbolName(file, elf.R_SYM64(rel.Info))
-		if err != nil {
-			return rRels, err
-		}
-		if strings.Contains(name, "__sanitizer_cov_trace_pc") {
-			rRels[0] = append(rRels[0], rel)
-		} else if strings.Contains(name, "__sanitizer_cov_trace_") {
-			rRels[1] = append(rRels[1], rel)
-		}
-	}
-	return rRels, nil
-}
-
-func getRelocations(file *elf.File) ([]elf.Rela64, error) {
-	var allRels []elf.Rela64
-	for _, s := range file.Sections {
-		if s.Type == 4 {
-			var rel elf.Rela64
-			r := s.Open()
-			rels := make([]elf.Rela64, s.Size/uint64(unsafe.Sizeof(rel)))
-			if err := binary.Read(r, binary.LittleEndian, rels); err != nil {
-				return allRels, err
-			}
-			allRels = append(allRels, rels...)
-		}
-	}
-	return allRels, nil
-}
-
-func getRelSymbolName(file *elf.File, index uint32) (string, error) {
-	symbols, err := file.Symbols()
-	if err != nil {
-		return "", err
-	}
-	if uint64(index-1) < uint64(len(symbols)) {
-		return symbols[index-1].Name, nil
-	}
-	return "", fmt.Errorf("out of index access")
-}
-
 // readCoverPoints finds all coverage points (calls of __sanitizer_cov_trace_*) in the object file.
 // Currently it is amd64-specific: looks for e8 opcode and correct offset.
 // Running objdump on the whole object file is too slow.
-func readCoverPoints(file *elf.File, tracePC uint64, traceCmp map[uint64]bool,
-	module *Module) ([2][]uint64, error) {
+func readCoverPoints(file *elf.File, info *symbolInfo) ([2][]uint64, error) {
 	var pcs [2][]uint64
+	if info.tracePC == 0 {
+		return pcs, fmt.Errorf("no __sanitizer_cov_trace_pc symbol in the object file")
+	}
 	const callLen = 5
-	if module.Name == "" {
-		text := file.Section(".text")
-		if text == nil {
-			return pcs, fmt.Errorf("no .text section in the object file")
+	text := file.Section(".text")
+	if text == nil {
+		return pcs, fmt.Errorf("no .text section in the object file")
+	}
+	data, err := text.Data()
+	if err != nil {
+		return pcs, fmt.Errorf("failed to read .text: %v", err)
+	}
+	end := len(data) - callLen + 1
+	for i := 0; i < end; i++ {
+		pos := bytes.IndexByte(data[i:end], 0xe8)
+		if pos == -1 {
+			break
 		}
-		data, err := text.Data()
-		if err != nil {
-			return pcs, fmt.Errorf("failed to read .text: %v", err)
+		pos += i
+		i = pos
+		off := uint64(int64(int32(binary.LittleEndian.Uint32(data[pos+1:]))))
+		pc := text.Addr + uint64(pos)
+		target := pc + off + callLen
+		if target == info.tracePC {
+			pcs[0] = append(pcs[0], pc)
+		} else if info.traceCmp[target] {
+			pcs[1] = append(pcs[1], pc)
 		}
-		end := len(data) - callLen + 1
-		for i := 0; i < end; i++ {
-			pos := bytes.IndexByte(data[i:end], 0xe8)
-			if pos == -1 {
-				break
+	}
+	return pcs, nil
+}
+
+func readModuleCoverPoints(file *elf.File, info *symbolInfo, mod *Module) ([2][]uint64, error) {
+	var pcs [2][]uint64
+	for _, s := range file.Sections {
+		if s.Type != elf.SHT_RELA { // nolint: misspell
+			continue
+		}
+		rel := new(elf.Rela64)
+		for r := s.Open(); ; {
+			if err := binary.Read(r, binary.LittleEndian, rel); err != nil {
+				if err == io.EOF {
+					break
+				}
+				return pcs, err
 			}
-			pos += i
-			i = pos
-			off := uint64(int64(int32(binary.LittleEndian.Uint32(data[pos+1:]))))
-			pc := text.Addr + uint64(pos)
-			target := pc + off + callLen
-			if target == tracePC {
+			pc := mod.Addr + rel.Off - 1
+			index := int(elf.R_SYM64(rel.Info)) - 1
+			if info.tracePCIdx[index] {
 				pcs[0] = append(pcs[0], pc)
-			} else if traceCmp[target] {
+			} else if info.traceCmpIdx[index] {
 				pcs[1] = append(pcs[1], pc)
 			}
-		}
-	} else {
-		_ = tracePC
-		_ = traceCmp
-		rels, err := getCovRels(file)
-		if err != nil {
-			return pcs, err
-		}
-		for _, rel := range rels[0] {
-			pcs[0] = append(pcs[0], module.Addr+rel.Off-1)
-		}
-		for _, rel := range rels[1] {
-			pcs[1] = append(pcs[1], module.Addr+rel.Off-1)
 		}
 	}
 	return pcs, nil
@@ -497,9 +466,9 @@ func readCoverPoints(file *elf.File, tracePC uint64, traceCmp map[uint64]bool,
 // objdump is an old, slow way of finding coverage points.
 // amd64 uses faster option of parsing binary directly (readCoverPoints).
 // TODO: use the faster approach for all other arches and drop this.
-func objdump(target *targets.Target, obj string) ([2][]uint64, error) {
+func objdump(target *targets.Target, mod *Module) ([2][]uint64, error) {
 	var pcs [2][]uint64
-	cmd := osutil.Command(target.Objdump, "-d", "--no-show-raw-insn", obj)
+	cmd := osutil.Command(target.Objdump, "-d", "--no-show-raw-insn", mod.Path)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return pcs, err
@@ -511,7 +480,7 @@ func objdump(target *targets.Target, obj string) ([2][]uint64, error) {
 	}
 	defer stderr.Close()
 	if err := cmd.Start(); err != nil {
-		return pcs, fmt.Errorf("failed to run objdump on %v: %v", obj, err)
+		return pcs, fmt.Errorf("failed to run objdump on %v: %v", mod.Path, err)
 	}
 	defer func() {
 		cmd.Process.Kill()
@@ -521,15 +490,15 @@ func objdump(target *targets.Target, obj string) ([2][]uint64, error) {
 	callInsns, traceFuncs := archCallInsn(target)
 	for s.Scan() {
 		if pc := parseLine(callInsns, traceFuncs, s.Bytes()); pc != 0 {
-			pcs[0] = append(pcs[0], pc)
+			pcs[0] = append(pcs[0], pc+mod.Addr)
 		}
 	}
 	stderrOut, _ := ioutil.ReadAll(stderr)
 	if err := cmd.Wait(); err != nil {
-		return pcs, fmt.Errorf("failed to run objdump on %v: %v\n%s", obj, err, stderrOut)
+		return pcs, fmt.Errorf("failed to run objdump on %v: %v\n%s", mod.Path, err, stderrOut)
 	}
 	if err := s.Err(); err != nil {
-		return pcs, fmt.Errorf("failed to run objdump on %v: %v\n%s", obj, err, stderrOut)
+		return pcs, fmt.Errorf("failed to run objdump on %v: %v\n%s", mod.Path, err, stderrOut)
 	}
 	return pcs, nil
 }
