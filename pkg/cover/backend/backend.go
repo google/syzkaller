@@ -4,6 +4,9 @@
 package backend
 
 import (
+	"fmt"
+
+	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -59,10 +62,13 @@ type Range struct {
 
 const LineEnd = 1 << 30
 
-func Make(target *targets.Target, vm, srcDir, buildDir string,
-	moduleObj []string, modules []*Module) (*Impl, error) {
-	if vm == "gvisor" {
-		return makeGvisor(target, srcDir, buildDir, modules)
+func Make(target *targets.Target, vm, objDir, srcDir, buildDir string,
+	moduleObj []string, modules []host.KernelModule) (*Impl, error) {
+	if objDir == "" {
+		return nil, fmt.Errorf("kernel obj directory is not specified")
 	}
-	return makeELF(target, srcDir, buildDir, moduleObj, modules)
+	if vm == "gvisor" {
+		return makeGvisor(target, objDir, srcDir, buildDir, modules)
+	}
+	return makeELF(target, objDir, srcDir, buildDir, moduleObj, modules)
 }
