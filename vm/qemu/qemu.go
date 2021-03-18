@@ -124,41 +124,29 @@ var archConfigs = map[string]*archConfig{
 		// But other arches don't use e1000e, e.g. arm64 uses virtio by default.
 		NetDev: "e1000",
 		RngDev: "virtio-rng-pci",
-		CmdLine: append(linuxCmdline,
+		CmdLine: []string{
 			"root=/dev/sda",
 			"console=ttyS0",
-			"kvm-intel.nested=1",
-			"kvm-intel.unrestricted_guest=1",
-			"kvm-intel.vmm_exclusive=1",
-			"kvm-intel.fasteoi=1",
-			"kvm-intel.ept=1",
-			"kvm-intel.flexpriority=1",
-			"kvm-intel.vpid=1",
-			"kvm-intel.emulate_invalid_guest_state=1",
-			"kvm-intel.eptad=1",
-			"kvm-intel.enable_shadow_vmcs=1",
-			"kvm-intel.pml=1",
-			"kvm-intel.enable_apicv=1",
-		),
+		},
 	},
 	"linux/386": {
 		Qemu:   "qemu-system-i386",
 		NetDev: "e1000",
 		RngDev: "virtio-rng-pci",
-		CmdLine: append(linuxCmdline,
+		CmdLine: []string{
 			"root=/dev/sda",
 			"console=ttyS0",
-		),
+		},
 	},
 	"linux/arm64": {
 		Qemu:     "qemu-system-aarch64",
 		QemuArgs: "-machine virt,virtualization=on -cpu cortex-a57",
 		NetDev:   "virtio-net-pci",
 		RngDev:   "virtio-rng-pci",
-		CmdLine: append(linuxCmdline,
+		CmdLine: []string{
 			"root=/dev/vda",
 			"console=ttyAMA0",
-		),
+		},
 	},
 	"linux/arm": {
 		Qemu:                   "qemu-system-arm",
@@ -166,27 +154,26 @@ var archConfigs = map[string]*archConfig{
 		NetDev:                 "virtio-net-device",
 		RngDev:                 "virtio-rng-device",
 		UseNewQemuImageOptions: true,
-		CmdLine: append(linuxCmdline,
+		CmdLine: []string{
 			"root=/dev/vda",
 			"console=ttyAMA0",
-		),
+		},
 	},
 	"linux/mips64le": {
 		Qemu:     "qemu-system-mips64el",
 		QemuArgs: "-M malta -cpu MIPS64R2-generic -nodefaults",
 		NetDev:   "e1000",
 		RngDev:   "virtio-rng-pci",
-		CmdLine: append(linuxCmdline,
+		CmdLine: []string{
 			"root=/dev/sda",
 			"console=ttyS0",
-		),
+		},
 	},
 	"linux/ppc64le": {
 		Qemu:     "qemu-system-ppc64",
 		QemuArgs: "-enable-kvm -vga none",
 		NetDev:   "virtio-net-pci",
 		RngDev:   "virtio-rng-pci",
-		CmdLine:  linuxCmdline,
 	},
 	"linux/riscv64": {
 		Qemu:                   "qemu-system-riscv64",
@@ -194,19 +181,19 @@ var archConfigs = map[string]*archConfig{
 		NetDev:                 "virtio-net-pci",
 		RngDev:                 "virtio-rng-pci",
 		UseNewQemuImageOptions: true,
-		CmdLine: append(linuxCmdline,
+		CmdLine: []string{
 			"root=/dev/vda",
 			"console=ttyS0",
-		),
+		},
 	},
 	"linux/s390x": {
 		Qemu:     "qemu-system-s390x",
 		QemuArgs: "-M s390-ccw-virtio -cpu max,zpci=on",
 		NetDev:   "virtio-net-pci",
 		RngDev:   "virtio-rng-ccw",
-		CmdLine: append(linuxCmdline,
+		CmdLine: []string{
 			"root=/dev/vda",
-		),
+		},
 	},
 	"freebsd/amd64": {
 		Qemu:     "qemu-system-x86_64",
@@ -237,18 +224,6 @@ var archConfigs = map[string]*archConfig{
 		NetDev:   "e1000",
 		RngDev:   "virtio-rng-pci",
 	},
-}
-
-var linuxCmdline = []string{
-	"earlyprintk=serial",
-	"oops=panic",
-	"nmi_watchdog=panic",
-	"panic_on_warn=1",
-	"panic=1",
-	"ftrace_dump_on_oops=orig_cpu",
-	"vsyscall=native",
-	"net.ifnames=0",
-	"biosdevname=0",
 }
 
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
