@@ -14,6 +14,14 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
+func TestCollectMachineInfo(t *testing.T) {
+	info, err := CollectMachineInfo()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("machine info:\n%s", info)
+}
+
 func TestReadCPUInfoLinux(t *testing.T) {
 	buf := new(bytes.Buffer)
 	if err := readCPUInfo(buf); err != nil {
