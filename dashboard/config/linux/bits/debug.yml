@@ -60,3 +60,7 @@ config:
  - RING_BUFFER_VALIDATE_TIME_DELTAS: [x86_64, v5.11]
  # The check runs episodically, so won't be attributed to a test. And can happen on any memory corruption.
  - X86_CHECK_BIOS_CORRUPTION: n
+
+ # For context see: https://groups.google.com/g/syzkaller/c/SoydtBd-dYs/m/ns67L4ApAwAJ
+ - VIRT_CPU_ACCOUNTING_GEN
+ - CONTEXT_TRACKING_FORCE
