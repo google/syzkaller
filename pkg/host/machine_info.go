@@ -27,6 +27,9 @@ func CollectMachineInfo() ([]byte, error) {
 }
 
 func CollectModulesInfo() ([]KernelModule, error) {
+	if machineModulesInfo == nil {
+		return nil, nil
+	}
 	return machineModulesInfo()
 }
 
