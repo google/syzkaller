@@ -4,6 +4,7 @@
 package qemu
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -24,6 +25,7 @@ import (
 )
 
 func init() {
+	var _ vmimpl.Infoer = (*instance)(nil)
 	vmimpl.Register("qemu", ctor, true)
 }
 
@@ -71,6 +73,7 @@ type Pool struct {
 	cfg        *Config
 	target     *targets.Target
 	archConfig *archConfig
+	version    string
 }
 
 type instance struct {
@@ -78,6 +81,8 @@ type instance struct {
 	cfg         *Config
 	target      *targets.Target
 	archConfig  *archConfig
+	version     string
+	args        []string
 	image       string
 	debug       bool
 	os          string
@@ -291,9 +296,17 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	}
 	cfg.Kernel = osutil.Abs(cfg.Kernel)
 	cfg.Initrd = osutil.Abs(cfg.Initrd)
+
+	output, err := osutil.RunCmd(time.Minute, "", cfg.Qemu, "--version")
+	if err != nil {
+		return nil, err
+	}
+	version := string(bytes.Split(output, []byte{'\n'})[0])
+
 	pool := &Pool{
 		env:        env,
 		cfg:        cfg,
+		version:    version,
 		target:     targets.Get(env.OS, env.Arch),
 		archConfig: archConfig,
 	}
@@ -339,6 +352,7 @@ func (pool *Pool) ctor(workdir, sshkey, sshuser string, index int) (vmimpl.Insta
 		cfg:        pool.cfg,
 		target:     pool.target,
 		archConfig: pool.archConfig,
+		version:    pool.version,
 		image:      pool.env.Image,
 		debug:      pool.env.Debug,
 		os:         pool.env.OS,
@@ -465,6 +479,7 @@ func (inst *instance) boot() error {
 	if inst.debug {
 		log.Logf(0, "running command: %v %#v", inst.cfg.Qemu, args)
 	}
+	inst.args = args
 	qemu := osutil.Command(inst.cfg.Qemu, args...)
 	qemu.Stdout = inst.wpipe
 	qemu.Stderr = inst.wpipe
@@ -645,6 +660,11 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		cmd.Wait()
 	}()
 	return inst.merger.Output, errc, nil
+}
+
+func (inst *instance) Info() ([]byte, error) {
+	info := fmt.Sprintf("%v\n%v %q\n", inst.version, inst.cfg.Qemu, inst.args)
+	return []byte(info), nil
 }
 
 func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {

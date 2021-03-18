@@ -59,6 +59,12 @@ type Instance interface {
 	Close()
 }
 
+// Infoer is an optional interface that can be implemented by Instance.
+type Infoer interface {
+	// MachineInfo returns additional info about the VM, e.g. VMM version/arguments.
+	Info() ([]byte, error)
+}
+
 // Env contains global constant parameters for a pool of VMs.
 type Env struct {
 	// Unique name

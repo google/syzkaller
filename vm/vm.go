@@ -143,6 +143,13 @@ func (inst *Instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	return inst.impl.Run(timeout, stop, command)
 }
 
+func (inst *Instance) Info() ([]byte, error) {
+	if ii, ok := inst.impl.(vmimpl.Infoer); ok {
+		return ii.Info()
+	}
+	return nil, nil
+}
+
 func (inst *Instance) diagnose(rep *report.Report) ([]byte, bool) {
 	if rep == nil {
 		panic("rep is nil")
