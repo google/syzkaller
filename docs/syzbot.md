@@ -420,6 +420,9 @@ which is not normally present in kernel. What was used for particularly elusive 
 is temporary merging some additional debugging code into `linux-next` under this config setting
 (e.g. more debug checks and/or debug output) and waiting for new crash reports from syzbot.
 
+One can also always run syzkaller locally on any kernel for better stress testing
+of a particular subsystem and/or patch.
+
 ## Kernel configs
 
 Kernel configs, sysctls and command line arguments that `syzbot` uses are available in [/dashboard/config](/dashboard/config).
