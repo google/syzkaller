@@ -99,7 +99,7 @@ func makeELF(target *targets.Target, objDir, srcDir, buildDir string,
 			continue // drop the unit
 		}
 		// TODO: objDir won't work for out-of-tree modules.
-		unit.Name, unit.Path = cleanPath(unit.Name, srcDir, buildDir)
+		unit.Name, unit.Path = cleanPath(unit.Name, objDir, srcDir, buildDir)
 		allUnits[nunit] = unit
 		nunit++
 	}
@@ -115,7 +115,7 @@ func makeELF(target *targets.Target, objDir, srcDir, buildDir string,
 		Units:   allUnits,
 		Symbols: allSymbols,
 		Symbolize: func(pcs map[*Module][]uint64) ([]Frame, error) {
-			return symbolize(target, srcDir, buildDir, pcs)
+			return symbolize(target, objDir, srcDir, buildDir, pcs)
 		},
 		RestorePC: func(pc uint32) uint64 {
 			return PreviousInstructionPC(target, RestorePC(pc, uint32(pcBase>>32)))
@@ -309,10 +309,10 @@ func readTextRanges(file *elf.File, module *Module) ([]pcRange, []*CompileUnit, 
 	return ranges, units, nil
 }
 
-func symbolize(target *targets.Target, srcDir, buildDir string, pcs map[*Module][]uint64) ([]Frame, error) {
+func symbolize(target *targets.Target, objDir, srcDir, buildDir string, pcs map[*Module][]uint64) ([]Frame, error) {
 	var frames []Frame
 	for mod, pcs1 := range pcs {
-		frames1, err := symbolizeModule(target, srcDir, buildDir, mod, pcs1)
+		frames1, err := symbolizeModule(target, objDir, srcDir, buildDir, mod, pcs1)
 		if err != nil {
 			return nil, err
 		}
@@ -321,7 +321,8 @@ func symbolize(target *targets.Target, srcDir, buildDir string, pcs map[*Module]
 	return frames, nil
 }
 
-func symbolizeModule(target *targets.Target, srcDir, buildDir string, mod *Module, pcs []uint64) ([]Frame, error) {
+func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string,
+	mod *Module, pcs []uint64) ([]Frame, error) {
 	procs := runtime.GOMAXPROCS(0) / 2
 	if need := len(pcs) / 1000; procs > need {
 		procs = need
@@ -378,7 +379,7 @@ func symbolizeModule(target *targets.Target, srcDir, buildDir string, mod *Modul
 			err0 = res.err
 		}
 		for _, frame := range res.frames {
-			name, path := cleanPath(frame.File, srcDir, buildDir)
+			name, path := cleanPath(frame.File, objDir, srcDir, buildDir)
 			frames = append(frames, Frame{
 				Module: mod,
 				PC:     frame.PC + mod.Addr,
@@ -450,6 +451,7 @@ func readModuleCoverPoints(file *elf.File, info *symbolInfo, mod *Module) ([2][]
 				}
 				return pcs, err
 			}
+			// Note: this assumes that call instruction is 1 byte.
 			pc := mod.Addr + rel.Off - 1
 			index := int(elf.R_SYM64(rel.Info)) - 1
 			if info.tracePCIdx[index] {
@@ -535,9 +537,13 @@ func parseLine(callInsns, traceFuncs [][]byte, ln []byte) uint64 {
 	return pc
 }
 
-func cleanPath(path, srcDir, buildDir string) (string, string) {
+func cleanPath(path, objDir, srcDir, buildDir string) (string, string) {
 	filename := ""
 	switch {
+	case strings.HasPrefix(path, objDir):
+		// Assume the file was built there.
+		path = strings.TrimPrefix(path, objDir)
+		filename = filepath.Join(objDir, path)
 	case strings.HasPrefix(path, buildDir):
 		// Assume the file was moved from buildDir to srcDir.
 		path = strings.TrimPrefix(path, buildDir)
