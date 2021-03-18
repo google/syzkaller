@@ -99,7 +99,7 @@ func makeELF(target *targets.Target, objDir, srcDir, buildDir string,
 			continue // drop the unit
 		}
 		// TODO: objDir won't work for out-of-tree modules.
-		unit.Name, unit.Path = cleanPath(unit.Name, objDir, srcDir, buildDir)
+		unit.Name, unit.Path = cleanPath(unit.Name, srcDir, buildDir)
 		allUnits[nunit] = unit
 		nunit++
 	}
@@ -370,7 +370,6 @@ func symbolizeModule(target *targets.Target, srcDir, buildDir string, mod *Modul
 		i = end
 	}
 	close(pcchan)
-	objDir := filepath.Dir(mod.Path)
 	var err0 error
 	var frames []Frame
 	for p := 0; p < procs; p++ {
@@ -379,7 +378,7 @@ func symbolizeModule(target *targets.Target, srcDir, buildDir string, mod *Modul
 			err0 = res.err
 		}
 		for _, frame := range res.frames {
-			name, path := cleanPath(frame.File, objDir, srcDir, buildDir)
+			name, path := cleanPath(frame.File, srcDir, buildDir)
 			frames = append(frames, Frame{
 				Module: mod,
 				PC:     frame.PC + mod.Addr,
@@ -536,13 +535,9 @@ func parseLine(callInsns, traceFuncs [][]byte, ln []byte) uint64 {
 	return pc
 }
 
-func cleanPath(path, objDir, srcDir, buildDir string) (string, string) {
+func cleanPath(path, srcDir, buildDir string) (string, string) {
 	filename := ""
 	switch {
-	case strings.HasPrefix(path, objDir):
-		// Assume the file was built there.
-		path = strings.TrimPrefix(path, objDir)
-		filename = filepath.Join(objDir, path)
 	case strings.HasPrefix(path, buildDir):
 		// Assume the file was moved from buildDir to srcDir.
 		path = strings.TrimPrefix(path, buildDir)
