@@ -58,7 +58,7 @@ func makeELF(target *targets.Target, objDir, srcDir, buildDir string,
 			if target.Arch != targets.AMD64 && target.Arch != targets.ARM64 {
 				coverPoints, err = objdump(target, module)
 			} else if module.Name == "" {
-				coverPoints, err = readCoverPoints(file, info, target.Arch)
+				coverPoints, err = readCoverPoints(target, file, info)
 			} else {
 				coverPoints, err = readModuleCoverPoints(file, info, module)
 			}
@@ -403,16 +403,10 @@ func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string,
 // readCoverPoints finds all coverage points (calls of __sanitizer_cov_trace_*) in the object file.
 // Currently it is [amd64|arm64]-specific: looks for opcode and correct offset.
 // Running objdump on the whole object file is too slow.
-func readCoverPoints(file *elf.File, info *symbolInfo, arch string) ([2][]uint64, error) {
+func readCoverPoints(target *targets.Target, file *elf.File, info *symbolInfo) ([2][]uint64, error) {
 	var pcs [2][]uint64
 	if info.tracePC == 0 {
 		return pcs, fmt.Errorf("no __sanitizer_cov_trace_pc symbol in the object file")
-	}
-	callLen := 5
-	opcodes := [2]byte{0xe8, 0xe8}
-	if arch == targets.ARM64 {
-		callLen = 4
-		opcodes = [2]byte{0x94, 0x97}
 	}
 	text := file.Section(".text")
 	if text == nil {
@@ -422,35 +416,44 @@ func readCoverPoints(file *elf.File, info *symbolInfo, arch string) ([2][]uint64
 	if err != nil {
 		return pcs, fmt.Errorf("failed to read .text: %v", err)
 	}
-	for i := 0; i < len(data); i++ {
-		if arch == targets.AMD64 {
-			if i > len(data)-callLen {
-				break
-			}
-		} else if arch == targets.ARM64 {
-			if i < callLen-1 {
-				continue
-			}
+	type Arch struct {
+		callLen      int
+		opcodeOffset int
+		opcodes      [2]byte
+		target       func(arch *Arch, insn []byte, pc uint64, opcode byte) uint64
+	}
+	arch := map[string]Arch{
+		targets.AMD64: {
+			callLen: 5,
+			opcodes: [2]byte{0xe8, 0xe8},
+			target: func(arch *Arch, insn []byte, pc uint64, opcode byte) uint64 {
+				off := uint64(int64(int32(binary.LittleEndian.Uint32(insn[1:]))))
+				return pc + off + uint64(arch.callLen)
+			},
+		},
+		targets.ARM64: {
+			callLen:      4,
+			opcodeOffset: 3,
+			opcodes:      [2]byte{0x94, 0x97},
+			target: func(arch *Arch, insn []byte, pc uint64, opcode byte) uint64 {
+				off := uint64(binary.LittleEndian.Uint32(insn)) & ((1 << 24) - 1)
+				if opcode == arch.opcodes[1] {
+					off |= 0xffffffffff000000
+				}
+				return pc + 4*off
+			},
+		},
+	}[target.Arch]
+	for i, opcode := range data {
+		if opcode != arch.opcodes[0] && opcode != arch.opcodes[1] {
+			continue
 		}
-		if data[i] != opcodes[0] && data[i] != opcodes[1] {
+		i -= arch.opcodeOffset
+		if i < 0 || i+arch.callLen > len(data) {
 			continue
 		}
 		pc := text.Addr + uint64(i)
-		var target uint64
-		if arch == targets.AMD64 {
-			d := data[i+1 : i+callLen]
-			off := uint64(int64(int32(binary.LittleEndian.Uint32(d))))
-			target = pc + off + uint64(callLen)
-		} else if arch == targets.ARM64 {
-			d := data[i+1-callLen : i+1]
-			off := uint64(binary.LittleEndian.Uint32(d) & ((1 << 24) - 1))
-			if data[i] == opcodes[1] {
-				off = uint64(binary.LittleEndian.Uint32(d)) | 0xffffffffff000000
-			}
-			off = 4 * off
-			pc -= (uint64(callLen) - 1)
-			target = pc + off
-		}
+		target := arch.target(&arch, data[i:], pc, opcode)
 		if target == info.tracePC {
 			pcs[0] = append(pcs[0], pc)
 		} else if info.traceCmp[target] {
