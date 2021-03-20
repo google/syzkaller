@@ -38,6 +38,9 @@ type Config struct {
 	// This option is enabled by default. Turn it off if your devices
 	// don't have battery service, or it causes problems otherwise.
 	BatteryCheck bool `json:"battery_check"`
+	// If this option is set (default), the device is rebooted after each crash.
+	// Set it to false to disable reboots.
+	TargetReboot bool `json:"target_reboot"`
 }
 
 type Pool struct {
@@ -46,6 +49,7 @@ type Pool struct {
 }
 
 type instance struct {
+	cfg     *Config
 	adbBin  string
 	device  string
 	console string
@@ -57,6 +61,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	cfg := &Config{
 		Adb:          "adb",
 		BatteryCheck: true,
+		TargetReboot: true,
 	}
 	if err := config.LoadData(env.Config, cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse adb vm config: %v", err)
@@ -89,6 +94,7 @@ func (pool *Pool) Count() int {
 
 func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	inst := &instance{
+		cfg:    pool.cfg,
 		adbBin: pool.cfg.Adb,
 		device: pool.cfg.Devices[index],
 		closed: make(chan bool),
@@ -263,15 +269,17 @@ func (inst *instance) repair() error {
 	// working, probably due to the introduction of seccomp. Therefore,
 	// we revert this to `adb shell reboot` in the meantime, until a more
 	// reliable solution can be sought out.
-	if _, err := inst.adb("shell", "reboot"); err != nil {
-		return err
-	}
-	// Now give it another 5 minutes to boot.
-	if !vmimpl.SleepInterruptible(10 * time.Second) {
-		return fmt.Errorf("shutdown in progress")
-	}
-	if err := inst.waitForSSH(); err != nil {
-		return err
+	if inst.cfg.TargetReboot {
+		if _, err := inst.adb("shell", "reboot"); err != nil {
+			return err
+		}
+		// Now give it another 5 minutes to boot.
+		if !vmimpl.SleepInterruptible(10 * time.Second) {
+			return fmt.Errorf("shutdown in progress")
+		}
+		if err := inst.waitForSSH(); err != nil {
+			return err
+		}
 	}
 	// Switch to root for userdebug builds.
 	inst.adb("root")
