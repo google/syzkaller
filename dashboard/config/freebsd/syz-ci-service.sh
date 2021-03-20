@@ -7,6 +7,7 @@
 # - chmod a+x /usr/local/etc/rc.d/syz_ci
 # - add the following to /etc/rc.conf (uncommented):
 #
+# fsck_y_enable="YES"
 # syz_ci_enable="YES"
 # syz_ci_chdir="/syzkaller"
 # syz_ci_flags="-config config-freebsd.ci"
