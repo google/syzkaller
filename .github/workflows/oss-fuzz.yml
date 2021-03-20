@@ -2,11 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 name: oss-fuzz
-# The action is broken, disable for now.
-# https://github.com/google/oss-fuzz/issues/3670
-on:
-  pull_request:
-    branches-ignore: '**'
+on: [pull_request]
 jobs:
   Fuzzing:
     runs-on: ubuntu-latest
