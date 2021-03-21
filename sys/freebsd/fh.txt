@@ -35,4 +35,4 @@ fhandle {
 	fh_fid	fid
 }
 
-getfhat_flags = AT_SYMLINK_NOFOLLOW, AT_BENEATH
+getfhat_flags = AT_SYMLINK_NOFOLLOW
