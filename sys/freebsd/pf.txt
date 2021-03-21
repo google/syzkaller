@@ -3,6 +3,7 @@
 
 include <sys/param.h>
 include <sys/socket.h>
+include <sys/counter.h>
 include <sys/cpuset.h>
 include <sys/lock.h>
 include <sys/rmlock.h>
@@ -11,6 +12,7 @@ include <sys/ioccom.h>
 include <net/if.h>
 include <net/radix.h>
 include <net/vnet.h>
+include <netinet/in.h>
 include <netpfil/pf/pf.h>
 include <netpfil/pf/pf_mtag.h>
 
