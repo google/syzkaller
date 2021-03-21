@@ -86,8 +86,14 @@ func InitTarget(target *prog.Target) {
 	case targets.AMD64:
 		target.SpecialPointers = []uint64{
 			0xffffffff81000000, // kernel text
+			0xffffffffff600000, // VSYSCALL_ADDR
 		}
-	case targets.I386, targets.ARM64, targets.ARM, targets.PPC64LE, targets.MIPS64LE, targets.S390x, targets.RiscV64:
+	case targets.RiscV64:
+		target.SpecialPointers = []uint64{
+			0xffffffe000000000, // PAGE_OFFSET
+			0xffffff0000000000, // somewhere in VMEMMAP range
+		}
+	case targets.I386, targets.ARM64, targets.ARM, targets.PPC64LE, targets.MIPS64LE, targets.S390x:
 	default:
 		panic("unknown arch")
 	}
