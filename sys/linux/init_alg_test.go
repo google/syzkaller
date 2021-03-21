@@ -215,3 +215,16 @@ func testAlg(t *testing.T, typ, name string) (ok, skip bool) {
 	}
 	return true, false
 }
+
+func TestAlgDups(t *testing.T) {
+	dups := make(map[string]bool)
+	for _, algs := range allAlgs {
+		for _, alg := range algs {
+			key := fmt.Sprintf("%v(%v)", alg.name, alg.args)
+			if dups[key] {
+				t.Errorf("duplicate alg: %+v", alg)
+			}
+			dups[key] = true
+		}
+	}
+}
