@@ -553,14 +553,7 @@ func textFilename(tag string) string {
 }
 
 func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns, manager string) ([]*uiBugGroup, error) {
-	filter := func(query *db.Query) *db.Query {
-		query = query.Filter("Namespace=", ns)
-		if manager != "" {
-			query = query.Filter("HappenedOn=", manager)
-		}
-		return query
-	}
-	bugs, _, err := loadAllBugs(c, filter)
+	bugs, err := loadVisibleBugs(c, accessLevel, ns, manager)
 	if err != nil {
 		return nil, err
 	}
@@ -576,9 +569,6 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns, manager 
 	bugMap := make(map[string]*uiBug)
 	var dups []*Bug
 	for _, bug := range bugs {
-		if bug.Status == BugStatusFixed || bug.Status == BugStatusInvalid {
-			continue
-		}
 		if accessLevel < bug.sanitizeAccess(accessLevel) {
 			continue
 		}
@@ -640,6 +630,46 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns, manager 
 		return uiGroups[i].ShowIndex > uiGroups[j].ShowIndex
 	})
 	return uiGroups, nil
+}
+
+func loadVisibleBugs(c context.Context, accessLevel AccessLevel, ns, manager string) ([]*Bug, error) {
+	// Load open and dup bugs in in 2 separate queries.
+	// Ideally we load them in one query with a suitable filter,
+	// but unfortunately status values don't allow one query (<BugStatusFixed || >BugStatusInvalid).
+	// Ideally we also have separate status for "dup of a closed bug" as we don't need to fetch them.
+	// Potentially changing "dup" to "dup of a closed bug" can be done in background.
+	// But 2 queries is still much faster than fetching all bugs and we can do this in parallel.
+	errc := make(chan error)
+	var dups []*Bug
+	go func() {
+		filter := func(query *db.Query) *db.Query {
+			query = query.Filter("Namespace=", ns).
+				Filter("Status=", BugStatusDup)
+			if manager != "" {
+				query = query.Filter("HappenedOn=", manager)
+			}
+			return query
+		}
+		var err error
+		dups, _, err = loadAllBugs(c, filter)
+		errc <- err
+	}()
+	filter := func(query *db.Query) *db.Query {
+		query = query.Filter("Namespace=", ns).
+			Filter("Status<", BugStatusFixed)
+		if manager != "" {
+			query = query.Filter("HappenedOn=", manager)
+		}
+		return query
+	}
+	bugs, _, err := loadAllBugs(c, filter)
+	if err != nil {
+		return nil, err
+	}
+	if err := <-errc; err != nil {
+		return nil, err
+	}
+	return append(bugs, dups...), nil
 }
 
 func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
