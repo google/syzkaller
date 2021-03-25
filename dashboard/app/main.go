@@ -43,6 +43,7 @@ func initHTTPHandlers() {
 		http.Handle("/"+ns+"/fixed", handlerWrapper(handleFixed))
 		http.Handle("/"+ns+"/invalid", handlerWrapper(handleInvalid))
 	}
+	http.HandleFunc("/cache_update", cacheUpdate)
 }
 
 type uiMainPage struct {

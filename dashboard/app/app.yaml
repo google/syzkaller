@@ -24,7 +24,7 @@ handlers:
 - url: /static
   static_dir: static
   secure: always
-- url: /(admin|email_poll|kcidb_poll)
+- url: /(admin|email_poll|cache_update|kcidb_poll)
   script: auto
   login: admin
   secure: always
