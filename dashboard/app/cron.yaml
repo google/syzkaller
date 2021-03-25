@@ -4,6 +4,8 @@
 cron:
 - url: /email_poll
   schedule: every 1 minutes
+- url: /cache_update
+  schedule: every 1 hour
 - url: /kcidb_poll
   schedule: every 5 minutes
 - url: /_ah/datastore_admin/backup.create?name=backup&filesystem=gs&gs_bucket_name=syzkaller-backups&kind=Bug&kind=Build&kind=Crash&kind=CrashLog&kind=CrashReport&kind=Error&kind=Job&kind=KernelConfig&kind=Manager&kind=ManagerStats&kind=Patch&kind=ReportingState&kind=ReproC&kind=ReproSyz
