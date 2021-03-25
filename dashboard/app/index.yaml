@@ -21,6 +21,11 @@ indexes:
 
 - kind: Bug
   properties:
+  - name: HappenedOn
+  - name: Status
+
+- kind: Bug
+  properties:
   - name: Namespace
   - name: Title
   - name: Seq
