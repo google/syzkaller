@@ -23,8 +23,10 @@ freebsd12_closefrom(fd fd)
 read(fd fd, buf buffer[out], count len[buf])
 readv(fd fd, vec ptr[in, array[iovec_out]], vlen len[vec])
 preadv(fd fd, vec ptr[in, array[iovec_out]], vlen len[vec], off fileoff)
+pread(fd fd, buf buffer[out], count len[buf], off fileoff)
 write(fd fd, buf buffer[in], count len[buf])
 writev(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec])
+pwrite(fd fd, buf buffer[in], count len[buf], off fileoff)
 pwritev(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec], off fileoff)
 lseek(fd fd, offset fileoff, whence flags[seek_whence])
 dup(oldfd fd) fd
@@ -35,6 +37,7 @@ fstat(fd fd, statbuf ptr[out, stat])
 freebsd11_stat(file ptr[in, filename], statbuf ptr[out, freebsd11_stat])
 freebsd11_fstat(fd fd, statbuf ptr[out, freebsd11_stat])
 freebsd11_lstat(file ptr[in, filename], statbuf ptr[out, freebsd11_stat])
+fstatat(fd fd, path ptr[in, filename], statbuf ptr[out, stat], flag flags[fstatat_flags])
 posix_fallocate(fd fd, offset fileoff, len intptr)
 posix_fadvise(fd fd, offset fileoff, len intptr, advice flags[fadvise_advice])
 pathconf(file ptr[in, filename], name flags[conf_value])
@@ -113,3 +116,4 @@ seek_whence = SEEK_SET, SEEK_CUR, SEEK_END, SEEK_DATA, SEEK_HOLE
 pipe_flags = O_NONBLOCK, O_CLOEXEC
 fadvise_advice = POSIX_FADV_NORMAL, POSIX_FADV_RANDOM, POSIX_FADV_SEQUENTIAL, POSIX_FADV_WILLNEED, POSIX_FADV_DONTNEED, POSIX_FADV_NOREUSE
 conf_value = _PC_LINK_MAX, _PC_MAX_CANON, _PC_MAX_INPUT, _PC_NAME_MAX, _PC_PATH_MAX, _PC_PIPE_BUF, _PC_CHOWN_RESTRICTED, _PC_NO_TRUNC, _PC_VDISABLE, _PC_ASYNC_IO, _PC_PRIO_IO, _PC_SYNC_IO, _PC_ALLOC_SIZE_MIN, _PC_FILESIZEBITS, _PC_REC_INCR_XFER_SIZE, _PC_REC_MAX_XFER_SIZE, _PC_REC_MIN_XFER_SIZE, _PC_REC_XFER_ALIGN, _PC_SYMLINK_MAX, _PC_ACL_EXTENDED, _PC_ACL_NFS4, _PC_ACL_PATH_MAX, _PC_CAP_PRESENT, _PC_INF_PRESENT, _PC_MAC_PRESENT, _PC_MIN_HOLE_SIZE
+fstatat_flags = AT_SYMLINK_NOFOLLOW

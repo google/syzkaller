@@ -19,6 +19,7 @@ include <sys/resource.h>
 include <time.h>
 include <signal.h>
 include <sys/wait.h>
+include <sys/time.h>
 
 syz_execute_func(text ptr[in, text[target]])
 
@@ -64,7 +65,9 @@ chflags(file ptr[in, filename], flags flags[chflags_flags])
 chflagsat(fd fd, file ptr[in, filename], flags flags[chflags_flags], atflag flags[at_flags])
 fchflags(fd fd, flags flags[chflags_flags])
 lchflags(file ptr[in, filename], flags flags[chflags_flags])
-faccessat(dirfd fd_dir, pathname ptr[in, filename], mode flags[open_mode], flags flags[faccessat_flags])
+faccessat(dirfd fd_dir, pathname ptr[in, filename], mode flags[access_mode], flags flags[faccessat_flags])
+access(pathname ptr[in, filename], mode flags[access_mode])
+profil(samples buffer[inout], size len[samples], offt intptr, scale int32)
 utimes(filename ptr[in, filename], times ptr[in, itimerval])
 futimesat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval])
 utimensat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval], flags flags[utimensat_flags])
@@ -77,10 +80,15 @@ setuid(uid uid)
 setgid(gid gid)
 getuid() uid
 geteuid() uid
+setegid(egid gid)
+seteuid(euid uid)
+getsid(pid pid) pid
+issetugid()
 setpgid(pid pid, pgid pid)
 getpgid(pid pid) pid
 getpgrp(pid pid) pid
 getpid() pid
+getppid() pid
 setreuid(ruid uid, euid uid)
 setregid(rgid gid, egid gid)
 setresuid(ruid uid, euid uid, suid uid)
@@ -89,6 +97,8 @@ getresuid(ruid ptr[out, uid], euid ptr[out, uid], suid ptr[out, uid])
 getresgid(rgid ptr[out, gid], egid ptr[out, gid], sgid ptr[out, gid])
 getgroups(size len[list], list ptr[inout, array[gid]])
 setgroups(size len[list], list ptr[in, array[gid]])
+getpriority(which flags[priority_which], who int32)
+setpriority(which flags[priority_which], who int32, prio int32)
 
 link(old ptr[in, filename], new ptr[in, filename])
 linkat(oldfd fd_dir, old ptr[in, filename], newfd fd_dir, new ptr[in, filename], flags flags[linkat_flags])
@@ -117,6 +127,7 @@ fchdir(fd fd)
 copy_file_range(infd fd, inoffp ptr[inout, fileoff[int64]], outfd fd, outoffp ptr[inout, fileoff[int64]], len int64, flags flags[copy_file_range_flags])
 __realpathat(dirfd fd, path ptr[in, filename], buf ptr[out, string], size len[buf], flags flags[realpathat_flags])
 undelete(path ptr[in, filename])
+acct(filename ptr[in, filename, opt])
 
 getrusage(who flags[rusage_who], usage ptr[out, rusage])
 getrlimit(res flags[rlimit_type], rlim ptr[out, rlimit])
@@ -132,6 +143,10 @@ getitimer(which flags[getitimer_which], cur ptr[out, itimerval])
 setitimer(which flags[getitimer_which], new ptr[in, itimerval], old ptr[out, itimerval, opt])
 exit(code intptr)
 wait4(pid pid, status ptr[out, int32, opt], options flags[wait_options], ru ptr[out, rusage, opt])
+fork() pid
+vfork() pid
+rfork(flags flags[rfork_flags])
+umask(mode flags[open_mode])
 
 thr_new(param ptr[in, thr_param], param_size bytesize[param])
 thr_self(lwpid ptr[out, lwpid])
@@ -247,6 +262,7 @@ linkat_flags = AT_SYMLINK_FOLLOW
 unlinkat_flags = 0, AT_REMOVEDIR
 flock_op = LOCK_SH, LOCK_EX, LOCK_UN, LOCK_NB
 faccessat_flags = AT_EACCESS, AT_SYMLINK_NOFOLLOW, AT_SYMLINK_FOLLOW, AT_REMOVEDIR
+access_mode = R_OK, W_OK, X_OK, F_OK
 rusage_who = RUSAGE_SELF, RUSAGE_CHILDREN, RUSAGE_THREAD
 rlimit_type = RLIMIT_AS, RLIMIT_CORE, RLIMIT_CPU, RLIMIT_DATA, RLIMIT_FSIZE, RLIMIT_MEMLOCK, RLIMIT_NOFILE, RLIMIT_NPROC, RLIMIT_RSS, RLIMIT_STACK
 clock_id = CLOCK_REALTIME, CLOCK_MONOTONIC, CLOCK_PROCESS_CPUTIME_ID, CLOCK_THREAD_CPUTIME_ID
@@ -264,6 +280,8 @@ minherit_flags = INHERIT_SHARE, INHERIT_NONE, INHERIT_COPY, INHERIT_ZERO
 copy_file_range_flags = 0
 realpathat_flags = 0
 chflags_flags = SF_APPEND, SF_ARCHIVED, SF_IMMUTABLE, SF_NOUNLINK, SF_SNAPSHOT, UF_APPEND, UF_ARCHIVE, UF_HIDDEN, UF_IMMUTABLE, UF_NODUMP, UF_NOUNLINK, UF_OFFLINE, UF_OPAQUE, UF_READONLY, UF_REPARSE, UF_SPARSE, UF_SYSTEM
+rfork_flags = RFPROC, RFNOWAIT, RFFDG, RFCFDG, RFTHREAD, RFSIGSHARE, RFMEM, RFTSIGZMB, RFLINUXTHPN
+priority_which = PRIO_PROCESS, PRIO_PGRP, PRIO_USER
 
 rtprio_functions = RTP_LOOKUP, RTP_SET
 rtprio_types = RTP_PRIO_REALTIME, RTP_PRIO_NORMAL, RTP_PRIO_IDLE
