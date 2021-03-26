@@ -87,6 +87,8 @@ config:
 
  # CONFIG_REFCOUNT_FULL was removed in fb041bb7c0a9.
  - REFCOUNT_FULL: [-v5.5]
+ # Added in 919067cc845f ("net: add CONFIG_PCPU_DEV_REFCNT") and should appear in v5.13.
+ - PCPU_DEV_REFCNT: [n, linux-next]
 
  # This config does not add any debug checks (only debug output).
  - DEBUG_KOBJECT: n
