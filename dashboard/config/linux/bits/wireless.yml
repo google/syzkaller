@@ -35,7 +35,8 @@ config:
  - ATH10K_PCI
  - ATH10K_USB
  - ATH11K: [v5.10]
- - WIMAX
+ # WIMAX was removed in 18507b8f6310 ("staging: wimax: delete from the tree.").
+ - WIMAX: n
  - WLAN
  - WLAN_VENDOR_ATMEL: n
  - WLAN_VENDOR_BROADCOM: n
