@@ -14,6 +14,7 @@ import (
 	"math/rand"
 	"net"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/log"
@@ -180,4 +181,44 @@ func UnusedTCPPort() int {
 			return port
 		}
 	}
+}
+
+// Escapes double quotes(and nested double quote escapes). Ignores any other escapes.
+// Reference: https://www.gnu.org/software/bash/manual/html_node/Double-Quotes.html
+func EscapeDoubleQuotes(inp string) string {
+	var ret strings.Builder
+	for pos := 0; pos < len(inp); pos++ {
+		// If inp[pos] is not a double quote or a backslash, just use
+		// as is.
+		if inp[pos] != '"' && inp[pos] != '\\' {
+			ret.WriteByte(inp[pos])
+			continue
+		}
+		// If it is a double quote, escape.
+		if inp[pos] == '"' {
+			ret.WriteString("\\\"")
+			continue
+		}
+		// If we detect a backslash, reescape only if what it's already escaping
+		// is a double-quotes.
+		temp := ""
+		j := pos
+		for ; j < len(inp); j++ {
+			if inp[j] == '\\' {
+				temp += string(inp[j])
+				continue
+			}
+			// If the escape corresponds to a double quotes, re-escape.
+			// Else, just use as is.
+			if inp[j] == '"' {
+				temp = temp + temp + "\\\""
+			} else {
+				temp += string(inp[j])
+			}
+			break
+		}
+		ret.WriteString(temp)
+		pos = j
+	}
+	return ret.String()
 }

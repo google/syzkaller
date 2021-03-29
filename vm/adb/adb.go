@@ -40,7 +40,8 @@ type Config struct {
 	BatteryCheck bool `json:"battery_check"`
 	// If this option is set (default), the device is rebooted after each crash.
 	// Set it to false to disable reboots.
-	TargetReboot bool `json:"target_reboot"`
+	TargetReboot  bool   `json:"target_reboot"`
+	StartupScript string `json:"startup_script"` // script to execute after each startup
 }
 
 type Pool struct {
@@ -283,7 +284,21 @@ func (inst *instance) repair() error {
 	}
 	// Switch to root for userdebug builds.
 	inst.adb("root")
-	return inst.waitForSSH()
+	inst.waitForSSH()
+	if inst.cfg.StartupScript != "" {
+		log.Logf(2, "adb: executing startup_script")
+		// Execute the contents of the StartupScript on the DUT.
+		contents, err := ioutil.ReadFile(inst.cfg.StartupScript)
+		if err != nil {
+			return fmt.Errorf("unable to read startup_script: %v", err)
+		}
+		c := string(contents)
+		if _, err := inst.adb("shell", fmt.Sprintf("sh -c \"%v\"", vmimpl.EscapeDoubleQuotes(c))); err != nil {
+			return fmt.Errorf("failed to execute startup_script: %v", err)
+		}
+		log.Logf(2, "adb: done executing startup_script")
+	}
+	return nil
 }
 
 func (inst *instance) waitForSSH() error {
