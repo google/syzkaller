@@ -3,7 +3,11 @@
 
 package isolated
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/google/syzkaller/vm/vmimpl"
+)
 
 func TestEscapeDoubleQuotes(t *testing.T) {
 	testcases := []struct {
@@ -65,7 +69,7 @@ bash -c \"bash -c \\\"ls -al\\\"\"`,
 		},
 	}
 	for i, tc := range testcases {
-		output := escapeDoubleQuotes(tc.inp)
+		output := vmimpl.EscapeDoubleQuotes(tc.inp)
 		if tc.expected != output {
 			t.Fatalf("%v: For input %v Expected escaped string %v got %v", i+1, tc.inp, tc.expected, output)
 		}
