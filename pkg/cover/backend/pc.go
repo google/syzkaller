@@ -53,6 +53,8 @@ func instructionLen(arch string) uint64 {
 		return 6
 	case targets.RiscV64:
 		return 4
+	case targets.TestArch64:
+		return 0
 	default:
 		panic(fmt.Sprintf("unknown arch %q", arch))
 	}

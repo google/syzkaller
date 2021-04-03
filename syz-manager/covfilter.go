@@ -147,6 +147,7 @@ func createCoverageBitmap(target *targets.Target, pcs map[uint32]uint32) []byte 
 	bitmap := data[8:]
 	for pc := range pcs {
 		// The lowest 4-bit is dropped.
+		pc = uint32(backend.NextInstructionPC(target, uint64(pc)))
 		pc = (pc - start) >> 4
 		bitmap[pc/8] |= (1 << (pc % 8))
 	}
