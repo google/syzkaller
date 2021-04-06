@@ -41,6 +41,7 @@ type Config struct {
 	// If this option is set (default), the device is rebooted after each crash.
 	// Set it to false to disable reboots.
 	TargetReboot  bool   `json:"target_reboot"`
+	RepairScript  string `json:"repair_script"`  // script to execute before each startup
 	StartupScript string `json:"startup_script"` // script to execute after each startup
 }
 
@@ -264,6 +265,11 @@ func (inst *instance) adb(args ...string) ([]byte, error) {
 func (inst *instance) repair() error {
 	// Assume that the device is in a bad state initially and reboot it.
 	// Ignore errors, maybe we will manage to reboot it anyway.
+	if inst.cfg.RepairScript != "" {
+		if err := inst.runScript(inst.cfg.RepairScript); err != nil {
+			return err
+		}
+	}
 	inst.waitForSSH()
 	// History: adb reboot episodically hangs, so we used a more reliable way:
 	// using syz-executor to issue reboot syscall. However, this has stopped
@@ -286,18 +292,27 @@ func (inst *instance) repair() error {
 	inst.adb("root")
 	inst.waitForSSH()
 	if inst.cfg.StartupScript != "" {
-		log.Logf(2, "adb: executing startup_script")
-		// Execute the contents of the StartupScript on the DUT.
-		contents, err := ioutil.ReadFile(inst.cfg.StartupScript)
-		if err != nil {
-			return fmt.Errorf("unable to read startup_script: %v", err)
+		if err := inst.runScript(inst.cfg.StartupScript); err != nil {
+			return err
 		}
-		c := string(contents)
-		if _, err := inst.adb("shell", fmt.Sprintf("sh -c \"%v\"", vmimpl.EscapeDoubleQuotes(c))); err != nil {
-			return fmt.Errorf("failed to execute startup_script: %v", err)
-		}
-		log.Logf(2, "adb: done executing startup_script")
 	}
+	return nil
+}
+
+func (inst *instance) runScript(script string) error {
+	log.Logf(2, "adb: executing %s", script)
+	// Execute the contents of the script.
+	contents, err := ioutil.ReadFile(script)
+	if err != nil {
+		return fmt.Errorf("unable to read %s: %v", script, err)
+	}
+	c := string(contents)
+	output, err := osutil.RunCmd(5*time.Minute, "", "sh", "-c", c)
+	if err != nil {
+		return fmt.Errorf("failed to execute %s: %v", script, err)
+	}
+	log.Logf(2, "adb: execute %s output\n%s", script, output)
+	log.Logf(2, "adb: done executing %s", script)
 	return nil
 }
 
