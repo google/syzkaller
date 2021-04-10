@@ -8,6 +8,7 @@ SYS_fhopen = 298
 SYS_fhreadlink = 567
 SYS_fhstat = 553
 SYS_fhstatfs = 558
+SYS_freebsd11_fhstatfs = 398
 SYS_getfh = 161
 SYS_getfhat = 564
 SYS_lgetfh = 160

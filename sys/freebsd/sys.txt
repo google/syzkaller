@@ -67,6 +67,7 @@ fchflags(fd fd, flags flags[chflags_flags])
 lchflags(file ptr[in, filename], flags flags[chflags_flags])
 faccessat(dirfd fd_dir, pathname ptr[in, filename], mode flags[access_mode], flags flags[faccessat_flags])
 access(pathname ptr[in, filename], mode flags[access_mode])
+eaccess(pathname ptr[in, filename], mode flags[access_mode])
 profil(samples buffer[inout], size len[samples], offt intptr, scale int32)
 utimes(filename ptr[in, filename], times ptr[in, itimerval])
 futimesat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval])
@@ -84,6 +85,7 @@ setegid(egid gid)
 seteuid(euid uid)
 getsid(pid pid) pid
 issetugid()
+setsid() pid
 setpgid(pid pid, pgid pid)
 getpgid(pid pid) pid
 getpgrp(pid pid) pid
@@ -99,6 +101,10 @@ getgroups(size len[list], list ptr[inout, array[gid]])
 setgroups(size len[list], list ptr[in, array[gid]])
 getpriority(which flags[priority_which], who int32)
 setpriority(which flags[priority_which], who int32, prio int32)
+getlogin(buf buffer[out], size len[buf])
+setlogin(buf buffer[in])
+getloginclass(buf buffer[out], size len[buf])
+setloginclass(buf buffer[in])
 
 link(old ptr[in, filename], new ptr[in, filename])
 linkat(oldfd fd_dir, old ptr[in, filename], newfd fd_dir, new ptr[in, filename], flags flags[linkat_flags])
@@ -132,6 +138,11 @@ acct(filename ptr[in, filename, opt])
 getrusage(who flags[rusage_who], usage ptr[out, rusage])
 getrlimit(res flags[rlimit_type], rlim ptr[out, rlimit])
 setrlimit(res flags[rlimit_type], rlim ptr[in, rlimit])
+
+freebsd11_statfs(path ptr[in, filename], buf ptr[out, freebsd11_statfs])
+freebsd11_fstatfs(fd fd, buf ptr[out, freebsd11_statfs])
+statfs(path ptr[in, filename], buf ptr[out, statfs])
+fstatfs(fd fd, buf ptr[out, statfs])
 
 clock_gettime(id flags[clock_id], tp ptr[out, timespec])
 clock_settime(id flags[clock_id], tp ptr[in, timespec])
