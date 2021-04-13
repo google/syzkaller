@@ -41,7 +41,10 @@ include <linux/ip.h>
 include <linux/tcp.h>
 include <linux/udp.h>
 include <linux/kcmp.h>
+include <linux/nfs.h>
 include <linux/syslog.h>
+include <linux/exportfs.h>
+include <fs/overlayfs/overlayfs.h>
 include <uapi/linux/memfd.h>
 include <uapi/linux/module.h>
 include <linux/ioprio.h>
@@ -804,11 +807,225 @@ sock_filter {
 	k	int32
 }
 
-file_handle {
-	bytes	len[parent, int32]
-	type	int32
-	handle	array[int8]
+file_handle [
+	raw				file_handle_raw
+	shmem				file_handle_t[1, fid_shmem]
+	fuse				file_handle_t[0x81, fid_fuse]
+	fuse_with_parent		file_handle_t[0x82, fid_fuse_with_parent]
+	nfs				file_handle_t[36, fid_nfs]
+	FILEID_INO32_GEN		file_handle_t[FILEID_INO32_GEN, fid_FILEID_INO32_GEN]
+	FILEID_INO32_GEN_PARENT		file_handle_t[FILEID_INO32_GEN_PARENT, fid_FILEID_INO32_GEN_PARENT]
+	FILEID_UDF_WITHOUT_PARENT	file_handle_t[FILEID_UDF_WITHOUT_PARENT, fid_FILEID_UDF_WITHOUT_PARENT]
+	FILEID_UDF_WITH_PARENT		file_handle_t[FILEID_UDF_WITH_PARENT, fid_FILEID_UDF_WITH_PARENT]
+	FILEID_BTRFS_WITH_PARENT	file_handle_t[FILEID_BTRFS_WITH_PARENT, btrfs_fid]
+	FILEID_BTRFS_WITH_PARENT_ROOT	file_handle_t[FILEID_BTRFS_WITH_PARENT, btrfs_fid]
+	FILEID_BTRFS_WITHOUT_PARENT	file_handle_t[FILEID_BTRFS_WITH_PARENT, btrfs_fid]
+	ceph_nfs_snapfh			file_handle_t[FILEID_BTRFS_WITH_PARENT, ceph_nfs_snapfh]
+	ceph_nfs_fh			file_handle_t[FILEID_INO32_GEN, ceph_nfs_fh]
+	ceph_nfs_confh			file_handle_t[FILEID_INO32_GEN_PARENT, ceph_nfs_confh]
+	GFS2_SMALL_FH_SIZE		file_handle_t[GFS2_SMALL_FH_SIZE, fid_GFS2_SMALL_FH_SIZE]
+	GFS2_LARGE_FH_SIZE		file_handle_t[GFS2_LARGE_FH_SIZE, fid_GFS2_LARGE_FH_SIZE]
+	OVL_FILEID_V0			file_handle_t[OVL_FILEID_V0, ovl_fb]
+	OVL_FILEID_V1			file_handle_t[OVL_FILEID_V1, ovl_fh]
+	FILEID_NILFS_WITHOUT_PARENT	file_handle_t[FILEID_NILFS_WITHOUT_PARENT, nilfs_fid]
+	FILEID_NILFS_WITH_PARENT	file_handle_t[FILEID_NILFS_WITH_PARENT, nilfs_fid]
+	reiserfs_2			file_handle_t[2, fid_reiserfs_2]
+	reiserfs_3			file_handle_t[3, fid_reiserfs_3]
+	reiserfs_4			file_handle_t[4, fid_reiserfs_4]
+	reiserfs_5			file_handle_t[5, fid_reiserfs_5]
+	reiserfs_6			file_handle_t[6, fid_reiserfs_6]
+	xfs				file_handle_t[0x81, xfs_fid64]
+	xfs_parent			file_handle_t[0x82, xfs_fid64]
+	orangefs			file_handle_t[1, fid_orangefs]
+	orangefs_parent			file_handle_t[2, fid_orangefs_parent]
+	isofs				file_handle_t[1, isofs_fid]
+	isofs_parent			file_handle_t[2, isofs_fid]
+	ocfs2				file_handle_t[1, fid_ocfs2]
+	ocfs2_parent			file_handle_t[2, fid_ocfs2_parent]
+] [varlen]
+
+file_handle_raw {
+	handle_bytes	bytesize[f_handle, int32]
+	handle_type	flags[fid_type, int32]
+	f_handle	align32[array[int8]]
 }
+
+type file_handle_t[TYPE, FID] {
+	handle_bytes	bytesize[f_handle, int32]
+	handle_type	const[TYPE, int32]
+	f_handle	FID
+}
+
+fid_shmem {
+	gen	int32
+	ino	int64
+} [packed]
+
+fid_fuse {
+	nodeid_hi	int32
+	nodeid_lo	int32
+	generation	int32
+}
+
+fid_fuse_with_parent {
+	base		fid_fuse
+	parent_fid	fid_fuse
+} [packed]
+
+fid_FILEID_INO32_GEN {
+	ino	int32
+	gen	int32
+}
+
+fid_FILEID_INO32_GEN_PARENT {
+	base		fid_FILEID_INO32_GEN
+	parent_ino	int32
+	parent_gen	int32
+}
+
+fid_FILEID_UDF_WITHOUT_PARENT {
+	block		int32
+	partref		int16
+	parent_partref	int16
+	generation	int32
+}
+
+fid_FILEID_UDF_WITH_PARENT {
+	base			fid_FILEID_UDF_WITHOUT_PARENT
+	parent_block		int32
+	parent_generation	int32
+}
+
+btrfs_fid {
+	objectid		int64
+	root_objectid		int64
+	gen			int32
+	parent_objectid		int64
+	parent_gen		int32
+	parent_root_objectid	int64
+} [packed]
+
+ceph_nfs_snapfh {
+	ino		int64
+	snapid		int64
+	parent_ino	int64
+	hash		int32
+} [packed]
+
+ceph_nfs_fh {
+	ino	int64
+}
+
+ceph_nfs_confh {
+	ino		int64
+	parent_ino	int64
+}
+
+fid_GFS2_SMALL_FH_SIZE {
+	no_formal_ino_hi	int32be
+	no_formal_ino_lo	int32be
+	no_addr_hi		int32be
+	no_addr_lo		int32be
+}
+
+fid_GFS2_LARGE_FH_SIZE {
+	base		fid_GFS2_SMALL_FH_SIZE
+	parent_fid	fid_GFS2_SMALL_FH_SIZE
+}
+
+define GFS2_SMALL_FH_SIZE	4
+define GFS2_LARGE_FH_SIZE	8
+
+fid_nfs {
+	fileid_hi	int32
+	fileid_lo	int32
+	type		int32
+# The total size is encoded in file_handle.handle_type, so we make this const size.
+	size		const[NFS_MAXFHSIZE, int16]
+	data		array[int8, NFS_MAXFHSIZE]
+} [align[4]]
+
+fid_reiserfs_2 {
+	objectid	int32
+	dir_id		int32
+}
+
+fid_reiserfs_3 {
+	objectid	int32
+	dir_id		int32
+	generation	int32
+}
+
+fid_reiserfs_4 {
+	objectid	int32
+	dir_id		int32
+	parent_objectid	int32
+	parent_dir_id	int32
+}
+
+fid_reiserfs_5 {
+	objectid	int32
+	dir_id		int32
+	generation	int32
+	parent_objectid	int32
+	parent_dir_id	int32
+}
+
+fid_reiserfs_6 {
+	objectid		int32
+	dir_id			int32
+	generation		int32
+	parent_objectid		int32
+	parent_dir_id		int32
+	parent_generation	int32
+}
+
+xfs_fid64 {
+	ino		int64
+	gen		int32
+	parent_ino	int64
+	parent_gen	int32
+} [align[4]]
+
+fid_orangefs {
+	khandle	array[int8, 16]
+	fs_id	int32
+}
+
+fid_orangefs_parent {
+	base		fid_orangefs
+	parent_fid	fid_orangefs
+}
+
+nilfs_fid {
+	cno		int64
+	ino		int64
+	gen		int32
+	parent_gen	int32
+	parent_ino	int64
+} [packed]
+
+isofs_fid {
+	block			int32
+	offset			int16
+	parent_offset		int16
+	generation		int32
+	parent_block		int32
+	parent_generation	int32
+}
+
+fid_ocfs2 {
+	blkno_hi	int32
+	blkno_lo	int32
+	generation	int32
+}
+
+fid_ocfs2_parent {
+	base		fid_ocfs2
+	parent_fid	fid_ocfs2
+}
+
+fid_type = FILEID_ROOT, FILEID_INO32_GEN, FILEID_INO32_GEN_PARENT, FILEID_BTRFS_WITHOUT_PARENT, FILEID_BTRFS_WITH_PARENT, FILEID_BTRFS_WITH_PARENT_ROOT, FILEID_UDF_WITHOUT_PARENT, FILEID_UDF_WITH_PARENT, FILEID_NILFS_WITHOUT_PARENT, FILEID_NILFS_WITH_PARENT, FILEID_FAT_WITHOUT_PARENT, FILEID_FAT_WITH_PARENT, FILEID_LUSTRE, FILEID_KERNFS
 
 mq_attr {
 	mq_flags	intptr

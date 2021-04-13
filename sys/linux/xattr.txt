@@ -184,6 +184,11 @@ ovl_fb {
 	fid	array[int8]
 } [packed]
 
+ovl_fh {
+	padding	array[const[0, int8], 3]
+	fb	ovl_fb
+} [packed]
+
 type uuid_t array[int8, UUID_SIZE]
 
 ovl_fb_flags = OVL_FH_FLAG_BIG_ENDIAN, OVL_FH_FLAG_ANY_ENDIAN, OVL_FH_FLAG_PATH_UPPER
