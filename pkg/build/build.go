@@ -295,6 +295,7 @@ var buildFailureCauses = [...]buildFailureCause{
 	{pattern: regexp.MustCompile(`: Permission denied`)},
 	{pattern: regexp.MustCompile(`: not found`)},
 	{pattern: regexp.MustCompile(`^([a-zA-Z0-9_\-/.]+):[0-9]+:([0-9]+:)?.*(error|invalid|fatal|wrong)`)},
+	{pattern: regexp.MustCompile(`FAILED unresolved symbol`)},
 	{weak: true, pattern: regexp.MustCompile(`: final link failed: `)},
 	{weak: true, pattern: regexp.MustCompile(`collect2: error: `)},
 	{weak: true, pattern: regexp.MustCompile(`FAILED: Build did NOT complete`)},

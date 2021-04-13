@@ -508,4 +508,13 @@ make: *** [oldconfig] Error 2
 		"",
 		"init/Kconfig",
 	},
-}
+	{`
+  LD      vmlinux
+  BTFIDS  vmlinux
+FAILED unresolved symbol dctcp_update_alpha
+make: *** [Makefile:1292: vmlinux] Error 255
+`,
+		"FAILED unresolved symbol dctcp_update_alpha",
+		"",
+		"",
+	}}
