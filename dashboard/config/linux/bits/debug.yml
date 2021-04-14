@@ -6,8 +6,12 @@
 config:
  # Instances that use nonoise also ignore WARNINGs, so they don't want panic_on_warn.
  - CMDLINE: [append, "panic_on_warn=1"]
-
  - LOCKDEP
+ - LOCKDEP_BITS: [16, linux-next]
+ - LOCKDEP_CHAINS_BITS: [17, linux-next]
+ - LOCKDEP_STACK_TRACE_BITS: [19, linux-next]
+ - LOCKDEP_STACK_TRACE_HASH_BITS: [14, linux-next]
+ - LOCKDEP_CIRCULAR_QUEUE_BITS: [12, linux-next]
  - PROVE_LOCKING
  - DEBUG_ATOMIC_SLEEP
  - PROVE_RCU
