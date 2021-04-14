@@ -295,6 +295,7 @@ func (kp *kconfigParser) parseProperty(prop string) {
 		}
 	case "option":
 		_ = kp.Ident()
+	case "modules":
 	case "optional":
 	case "default":
 		kp.parseDefaultValue()
