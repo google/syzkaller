@@ -53,10 +53,8 @@ Create a manager config `android.cfg`:
 	"workdir": "$GOPATH/src/github.com/google/syzkaller/workdir",
 	"kernel_obj": "$KERNEL",
 	"syzkaller": "$GOPATH/src/github.com/google/syzkaller",
-	"sandbox": none,
-	"procs": 1,
-	"type": "adb",
 	"cover": true,
+	"type": "adb",
 	"vm": {
 		"devices": [$DEVICES],
 		"battery_check": true
