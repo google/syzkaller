@@ -82,7 +82,16 @@ perf_event_attr {
 	context_switch			int64:1
 	write_backward			int64:1
 	namespaces			int64:1
-	__reserved_1			const[0, int64:35]
+	ksymbol				int64:1
+	bpf_event			int64:1
+	aux_output			int64:1
+	cgroup				int64:1
+	text_poke			int64:1
+	build_id			int64:1
+	inherit_thread			int64:1
+	remove_on_exec			int64:1
+	sigtrap				int64:1
+	__reserved_1			const[0, int64:26]
 
 	wakeup_events			int32
 	bp_type				flags[perf_bp_type, int32]
@@ -95,6 +104,9 @@ perf_event_attr {
 	aux_watermark			int32
 	sample_max_stack		int16
 	__reserved_2			const[0, int16]
+	aux_sample_size			int32
+	__reserved_3			const[0, int32]
+	sig_data			int64
 }
 
 perf_bp_config [
