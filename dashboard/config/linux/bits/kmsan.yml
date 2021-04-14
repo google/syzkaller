@@ -3,7 +3,7 @@
 
 kernel:
  repo: https://github.com/google/kmsan.git
- tag: kmsan-v5.11-rc7
+ tag: kmsan-v5.12-rc6
 
 config:
  - KMSAN
