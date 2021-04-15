@@ -6,7 +6,7 @@ instances:
  - upstream-selinux-kasan:	[linux-next, x86_64, gcc, lsm, selinux, slab, kasan, kfence]
  - upstream-smack-kasan:	[linux-next, x86_64, clang, bpfjit, lsm, smack, kasan, kfence]
  - upstream-kmsan:		[x86_64, clang, lsm, apparmor, nonoise, kmsan]
- - upstream-kcsan:		[upstream, x86_64, clang, bpfjit, lsm, apparmor, slab, nonoise, kcsan]
+ - upstream-kcsan:		[upstream, x86_64, clang, baseline, slab, nonoise, kcsan]
  - upstream-leak:		[upstream, x86_64, gcc, bpfjit, lsm, apparmor, slab, nonoise, kmemleak]
  - upstream-usb:		[upstream, x86_64, gcc, lsm, apparmor, onlyusb, kasan]
  - upstream-arm64-kasan:	[upstream, arm64, gcc, lsm, selinux, reduced, kasan]
