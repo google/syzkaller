@@ -270,8 +270,8 @@ tidy: descriptions
 
 lint:
 	# This should install the command from our vendor dir.
-	CGO_ENABLED=1 $(HOSTGO) install github.com/golangci/golangci-lint/cmd/golangci-lint
-	CGO_ENABLED=1 $(HOSTGO) build -buildmode=plugin -o bin/syz-linter.so ./tools/syz-linter
+	CC=gcc CGO_ENABLED=1 $(HOSTGO) install github.com/golangci/golangci-lint/cmd/golangci-lint
+	CC=gcc CGO_ENABLED=1 $(HOSTGO) build -buildmode=plugin -o bin/syz-linter.so ./tools/syz-linter
 	bin/golangci-lint run ./...
 
 presubmit:

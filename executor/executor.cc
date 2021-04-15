@@ -120,7 +120,7 @@ static uint32* output_pos;
 static uint32* write_output(uint32 v);
 static uint32* write_output_64(uint64 v);
 static void write_completed(uint32 completed);
-static uint32 hash(uint32 a);
+static uint32 hash32(uint32 a);
 static bool dedup(uint32 sig);
 #endif
 
@@ -903,7 +903,7 @@ void write_coverage_signal(cover_t* cov, uint32* signal_count_pos, uint32* cover
 		cover_data_t pc = cover_data[i];
 		uint32 sig = pc;
 		if (use_cover_edges(pc))
-			sig ^= hash(prev_pc);
+			sig ^= hash32(prev_pc);
 		bool filter = coverage_filter(pc);
 		// Ignore the edge only if both current and previous PCs are filtered out
 		// to capture all incoming and outcoming edges into the interesting code.
@@ -1176,7 +1176,7 @@ void execute_call(thread_t* th)
 }
 
 #if SYZ_EXECUTOR_USES_SHMEM
-static uint32 hash(uint32 a)
+static uint32 hash32(uint32 a)
 {
 	a = (a ^ 61) ^ (a >> 16);
 	a = a + (a << 3);

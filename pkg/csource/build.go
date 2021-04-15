@@ -50,7 +50,7 @@ func build(target *prog.Target, src []byte, file string, warn bool) (string, err
 		"-DHOSTGOOS_" + runtime.GOOS + "=1",
 	}
 	if file == "" {
-		flags = append(flags, "-x", "c", "-")
+		flags = append(flags, "-x", "c++", "-")
 	} else {
 		flags = append(flags, file)
 	}

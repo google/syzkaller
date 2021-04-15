@@ -76,6 +76,7 @@ func defineList(p, mmapProg *prog.Prog, opts Options) (defines []string) {
 			defines = append(defines, def)
 		}
 	}
+	defines = append(defines, "_GNU_SOURCE")
 	for _, c := range p.Calls {
 		defines = append(defines, "__NR_"+c.Meta.CallName)
 	}

@@ -220,7 +220,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:          8,
 			PageSize:         4 << 10,
 			LittleEndian:     true,
-			CFlags:           []string{"-m64"},
+			CFlags:           []string{"-m64", "-std=c++11"},
 			Triple:           "x86_64-linux-gnu",
 			KernelArch:       "x86_64",
 			KernelHeaderArch: "x86",
@@ -236,7 +236,7 @@ var List = map[string]map[string]*Target{
 			PageSize:         4 << 10,
 			Int64Alignment:   4,
 			LittleEndian:     true,
-			CFlags:           []string{"-m32"},
+			CFlags:           []string{"-m32", "-std=c++11"},
 			Triple:           "x86_64-linux-gnu",
 			KernelArch:       "i386",
 			KernelHeaderArch: "x86",
@@ -245,6 +245,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:          8,
 			PageSize:         4 << 10,
 			LittleEndian:     true,
+			CFlags:           []string{"-std=c++11"},
 			Triple:           "aarch64-linux-gnu",
 			KernelArch:       "arm64",
 			KernelHeaderArch: "arm64",
@@ -254,7 +255,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:          4,
 			PageSize:         4 << 10,
 			LittleEndian:     true,
-			CFlags:           []string{"-D__LINUX_ARM_ARCH__=6", "-march=armv6"},
+			CFlags:           []string{"-D__LINUX_ARM_ARCH__=6", "-march=armv6", "-std=c++11"},
 			Triple:           "arm-linux-gnueabi",
 			KernelArch:       "arm",
 			KernelHeaderArch: "arm",
@@ -263,7 +264,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:          8,
 			PageSize:         4 << 10,
 			LittleEndian:     true,
-			CFlags:           []string{"-march=mips64r2", "-mabi=64", "-EL"},
+			CFlags:           []string{"-march=mips64r2", "-mabi=64", "-EL", "-std=c++11"},
 			Triple:           "mips64el-linux-gnuabi64",
 			KernelArch:       "mips",
 			KernelHeaderArch: "mips",
@@ -272,7 +273,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:          8,
 			PageSize:         64 << 10,
 			LittleEndian:     true,
-			CFlags:           []string{"-D__powerpc64__"},
+			CFlags:           []string{"-D__powerpc64__", "-std=c++11"},
 			Triple:           "powerpc64le-linux-gnu",
 			KernelArch:       "powerpc",
 			KernelHeaderArch: "powerpc",
@@ -282,6 +283,7 @@ var List = map[string]map[string]*Target{
 			PageSize:         4 << 10,
 			DataOffset:       0xfffff000,
 			LittleEndian:     false,
+			CFlags:           []string{"-std=c++11"},
 			Triple:           "s390x-linux-gnu",
 			KernelArch:       "s390",
 			KernelHeaderArch: "s390",
@@ -297,6 +299,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:          8,
 			PageSize:         4 << 10,
 			LittleEndian:     true,
+			CFlags:           []string{"-std=c++11"},
 			Triple:           "riscv64-linux-gnu",
 			KernelArch:       "riscv",
 			KernelHeaderArch: "riscv",
@@ -436,6 +439,7 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "vmlinux",
+		CPP:                    "g++",
 		cflags:                 []string{"-static"},
 	},
 	FreeBSD: {
@@ -505,6 +509,8 @@ var (
 		"-Wparentheses",
 		"-Wunused-const-variable",
 		"-Wframe-larger-than=16384", // executor uses stacks of limited size, so no jumbo frames
+		"-Wno-unused-function",
+		"-Wno-unused-variable",
 	}
 	optionalCFlags = map[string]bool{
 		"-static":                 true, // some distributions don't have static libraries
@@ -708,15 +714,24 @@ func (target *Target) setCompiler(clang bool) {
 	}
 	target.CFlags = target.CFlags[:pos]
 	if clang {
-		target.CCompiler = "clang"
-		target.KernelCompiler = "clang"
+		if target.CPP != "" {
+			target.CCompiler = "clang++"
+			target.KernelCompiler = "clang++"
+		} else {
+			target.CCompiler = "clang"
+			target.KernelCompiler = "clang"
+		}
 		target.KernelLinker = "ld.lld"
 		if target.Triple != "" {
 			target.CFlags = append(target.CFlags, "--target="+target.Triple)
 		}
 		target.CFlags = append(target.CFlags, "-ferror-limit=0")
 	} else {
-		target.CCompiler = "gcc"
+		if target.CPP != "" {
+			target.CCompiler = "g++"
+		} else {
+			target.CCompiler = "gcc"
+		}
 		target.KernelCompiler = ""
 		target.KernelLinker = ""
 		if target.Triple != "" {
