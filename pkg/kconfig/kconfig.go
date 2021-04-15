@@ -202,7 +202,11 @@ func (kp *kconfigParser) parseLine() {
 func (kp *kconfigParser) parseMenu(cmd string) {
 	switch cmd {
 	case "source":
-		kp.includeSource(kp.QuotedString())
+		file, ok := kp.TryQuotedString()
+		if !ok {
+			file = kp.ConsumeLine()
+		}
+		kp.includeSource(file)
 	case "mainmenu":
 		kp.pushCurrent(&Menu{
 			Kind:    MenuConfig,
@@ -294,7 +298,8 @@ func (kp *kconfigParser) parseProperty(prop string) {
 			_ = kp.parseExpr()
 		}
 	case "option":
-		_ = kp.Ident()
+		// It can be 'option foo', or 'option bar="BAZ"'.
+		kp.ConsumeLine()
 	case "modules":
 	case "optional":
 	case "default":
@@ -409,5 +414,7 @@ func (kp *kconfigParser) parseDefaultValue() {
 }
 
 func (kp *kconfigParser) expandString(str string) string {
-	return strings.Replace(str, "$(SRCARCH)", kp.target.KernelHeaderArch, -1)
+	str = strings.Replace(str, "$(SRCARCH)", kp.target.KernelHeaderArch, -1)
+	str = strings.Replace(str, "$SRCARCH", kp.target.KernelHeaderArch, -1)
+	return str
 }
