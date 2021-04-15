@@ -51,11 +51,11 @@ func main() {
 	if err != nil {
 		tool.Failf("failed to create repo: %v", err)
 	}
-	instances, err := parseMainSpec(*flagConfig)
+	instances, unusedFeatures, err := parseMainSpec(*flagConfig)
 	if err != nil {
 		tool.Fail(err)
 	}
-	if err := checkConfigs(instances); err != nil {
+	if err := checkConfigs(instances, unusedFeatures); err != nil {
 		tool.Fail(err)
 	}
 	// In order to speed up the process we generate instances that use the same kernel revision in parallel.
@@ -115,8 +115,11 @@ func main() {
 	}
 }
 
-func checkConfigs(instances []*Instance) error {
+func checkConfigs(instances []*Instance, unusedFeatures []string) error {
 	allFeatures := make(Features)
+	for _, feat := range unusedFeatures {
+		allFeatures[feat] = true
+	}
 	for _, inst := range instances {
 		for feat := range inst.Features {
 			allFeatures[feat] = true
@@ -239,6 +242,7 @@ func (ctx *Context) executeShell() error {
 		args := strings.Split(shell.Cmd, " ")
 		for i := 1; i < len(args); i++ {
 			args[i] = strings.ReplaceAll(args[i], "${BUILDDIR}", ctx.BuildDir)
+			args[i] = strings.ReplaceAll(args[i], "${ARCH}", ctx.Target.KernelArch)
 		}
 		if args[0] == "make" {
 			if err := ctx.Make(args[1:]...); err != nil {

@@ -83,33 +83,41 @@ type rawFile struct {
 	Config   []yaml.Node
 }
 
-func parseMainSpec(file string) ([]*Instance, error) {
+func parseMainSpec(file string) ([]*Instance, []string, error) {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read config file: %v", err)
+		return nil, nil, fmt.Errorf("failed to read config file: %v", err)
 	}
 	dec := yaml.NewDecoder(bytes.NewReader(data))
 	dec.KnownFields(true)
 	raw := new(rawMain)
 	if err := dec.Decode(raw); err != nil {
-		return nil, fmt.Errorf("failed to parse %v: %v", file, err)
+		return nil, nil, fmt.Errorf("failed to parse %v: %v", file, err)
 	}
+	var unusedFeatures []string
 	var instances []*Instance
 	for _, inst := range raw.Instances {
 		for name, features := range inst {
+			if name == "_" {
+				unusedFeatures = features
+				continue
+			}
 			inst, err := parseInstance(name, filepath.Dir(file), features, raw.Includes)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			instances = append(instances, inst)
+			if constraintsInclude(features, featBaseline) {
+				continue
+			}
 			inst, err = parseInstance(name+"-base", filepath.Dir(file), append(features, featBaseline), raw.Includes)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			instances = append(instances, inst)
 		}
 	}
-	return instances, nil
+	return instances, unusedFeatures, nil
 }
 
 func parseInstance(name, configDir string, features []string, includes []map[string][]string) (*Instance, error) {
