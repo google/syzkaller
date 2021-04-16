@@ -17,8 +17,8 @@ instances:
  - upstream-riscv64-kasan:	[upstream, riscv, gcc, bpfjit, lsm, apparmor, reduced, kasan]
  - upstream-s390-kasan:		[upstream, s390, gcc, bpfjit, lsm, selinux, nonoise, reduced, kasan]
  - stable-5.4-kasan:		[stable-5.4, x86_64, gcc, bpfjit, lsm, apparmor, kasan]
- - android-5.4:			[android, android-5.4, x86_64, clang, onlyusb, nonoise, kasan]
- - chromeos-5.4:		[chromeos, chromeos-5.4, x86_64, onlyusb, kasan]
+ - android-5.4:			[android, android-5.4, nodefconfig, x86_64, clang, onlyusb, nonoise, kasan]
+ - chromeos-5.4:		[chromeos, chromeos-5.4, nodefconfig, x86_64, onlyusb, kasan]
 
 # These files are included from the bits/ dir.
 includes:

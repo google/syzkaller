@@ -2,8 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 shell:
- # android-5.4.yml has own defconfig.
- - make x86_64_defconfig: [-android, -chromeos]
+ - make x86_64_defconfig: [-nodefconfig]
  - make kvm_guest.config
 
 config:
@@ -73,8 +72,8 @@ config:
  - E1000
 
  - X86_ACPI_CPUFREQ
- - CPU_IDLE_GOV_HALTPOLL
- - X86_INTEL_TSX_MODE_ON
+ - CPU_IDLE_GOV_HALTPOLL: [v4.16]
+ - X86_INTEL_TSX_MODE_ON: [v4.16]
  - INTEL_IDLE
  - LEGACY_VSYSCALL_EMULATE
  - EFI: n

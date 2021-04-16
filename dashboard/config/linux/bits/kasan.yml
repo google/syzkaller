@@ -3,9 +3,9 @@
 
 config:
  - KASAN
- - KASAN_GENERIC
+ - KASAN_GENERIC: [v4.16]
  - KASAN_INLINE: [-arm]
- - KASAN_STACK_ENABLE: [clang, -v5.11]
+ - KASAN_STACK_ENABLE: [clang, v4.16, -v5.11]
  - KASAN_STACK: [clang, v5.11]
  - KASAN_VMALLOC: [v5.5, -arm, -arm64, -s390, -riscv]
  # This was historically enabled in the KASAN section without explanation.
