@@ -21,7 +21,7 @@ config:
  - DEBUG_SPINLOCK
  - DEBUG_MUTEXES
  - DEBUG_WW_MUTEX_SLOWPATH
- - DEBUG_RWSEMS
+ - DEBUG_RWSEMS: [v4.16]
  - DEBUG_IRQFLAGS: [v5.12]
 
  - DEBUG_VM
@@ -50,9 +50,10 @@ config:
  - DEBUG_OBJECTS_TIMERS
  - DEBUG_OBJECTS_WORK
  - DEBUG_OBJECTS_SELFTEST: n
- - SND_DEBUG: [-riscv, -s390]
- - SND_PCM_XRUN_DEBUG: [-riscv, -s390]
- - SND_CTL_VALIDATION: [v5.6, -riscv, -s390]
+ # Some base configs may not enable sound at all.
+ - SND_DEBUG: [-riscv, -s390, optional]
+ - SND_PCM_XRUN_DEBUG: [-riscv, -s390, optional]
+ - SND_CTL_VALIDATION: [v5.6, -riscv, -s390, optional]
  - DYNAMIC_DEBUG
  - DEBUG_PER_CPU_MAPS
  - DEBUG_SG

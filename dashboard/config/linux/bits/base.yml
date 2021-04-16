@@ -50,7 +50,7 @@ config:
  - HW_RANDOM_AMD: n
  - HW_RANDOM_VIA: n
  - RANDOM_TRUST_CPU: [-arm, -riscv]
- - RANDOM_TRUST_BOOTLOADER
+ - RANDOM_TRUST_BOOTLOADER: [v4.16]
 
  # For detection of supported syscalls
  - KALLSYMS
@@ -80,13 +80,14 @@ config:
  - HARDENED_USERCOPY_FALLBACK
  - BUG_ON_DATA_CORRUPTION
  - DEBUG_LIST
+ - DEBUG_STACKOVERFLOW: [-v5.0]
 
  # CONFIG_DEBUG_PI_LIST was renamed to CONFIG_DEBUG_PLIST in 8e18faeac3e4.
  - DEBUG_PLIST: [v5.2]
  - DEBUG_PI_LIST: [-v5.2]
 
  # CONFIG_REFCOUNT_FULL was removed in fb041bb7c0a9.
- - REFCOUNT_FULL: [-v5.5]
+ - REFCOUNT_FULL: [v4.16, -v5.5]
  # Added in 919067cc845f ("net: add CONFIG_PCPU_DEV_REFCNT") and should appear in v5.13.
  - PCPU_DEV_REFCNT: [n, linux-next]
 
@@ -97,7 +98,7 @@ config:
  - DEBUG_INFO_BTF
 
  # This should make behavior more deterministic.
- - INIT_ON_ALLOC_DEFAULT_ON
+ - INIT_ON_ALLOC_DEFAULT_ON: [v4.16]
 
  # KCOV slows down execution too much with KASAN_HW_TAGS and in qemu emulation in general.
  # KCOV crashes on Arm:
@@ -133,8 +134,8 @@ config:
  - UEVENT_HELPER_PATH: "/sbin/hotplug"
 
  # QEMU disk is usually on the generic PCI bus.
- - PCI_HOST_GENERIC
- - OF
+ - PCI_HOST_GENERIC: [v4.16]
+ - OF: [v4.16]
 
  # Options enabled to boot Debian Stretch.
  - CONFIGFS_FS
@@ -150,6 +151,8 @@ config:
 
  # Disable magic SysRq completely, as it can be reached over USB and through tty.
  - MAGIC_SYSRQ: n
+ # We don't need it and it enables MAGIC_SYSRQ and KPROBES.
+ - KGDB: n
 
  - RUNTIME_TESTING_MENU: n
 
