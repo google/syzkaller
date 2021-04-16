@@ -72,7 +72,7 @@ func main() {
 				tool.Failf("failed to checkout %v/%v: %v", inst.Kernel.Repo, inst.Kernel.Tag, err)
 			}
 		}
-		releaseTag, err := repo.ReleaseTag("HEAD")
+		releaseTag, err := releaseTag(*flagSourceDir)
 		if err != nil {
 			tool.Fail(err)
 		}
@@ -431,3 +431,21 @@ func (ctx *Context) Make(args ...string) error {
 	_, err := osutil.RunCmd(10*time.Minute, ctx.SourceDir, "make", args...)
 	return err
 }
+
+func releaseTag(dir string) (string, error) {
+	data, err := ioutil.ReadFile(filepath.Join(dir, "Makefile"))
+	if err != nil {
+		return "", err
+	}
+	return releaseTagImpl(data)
+}
+
+func releaseTagImpl(data []byte) (string, error) {
+	match := makefileReleaseRe.FindSubmatch(data)
+	if match == nil {
+		return "", fmt.Errorf("did not find VERSION/PATCHLEVEL in the kernel Makefile")
+	}
+	return fmt.Sprintf("v%s.%s", match[1], match[2]), nil
+}
+
+var makefileReleaseRe = regexp.MustCompile(`\nVERSION = ([0-9]+)(?:\n.*)*\nPATCHLEVEL = ([0-9]+)\n`)
