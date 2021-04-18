@@ -114,7 +114,7 @@ Then it can be used to wrap almost any make invocation as:
 ```
 syz-env make format
 syz-env make presubmit
-syz-env make extract SOURCEDIR=~/linux
+syz-env make extract SOURCEDIR=$(readlink -f ~/linux)
 ```
 Or other commands/scripts, e.g.:
 ```
