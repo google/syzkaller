@@ -362,6 +362,48 @@ foo(a ptr[in, array[int8, MY_PATH_MAX]])
 define MY_PATH_MAX	PATH_MAX + 2
 ```
 
+## Declare Statements
+
+Declare statements are primarily useful as a more convenient way to define
+pseudo syscalls. These statements work by adding literal sections of C++
+code from a syzkaller description file to the generated syscalls.h file
+compiled into the executor. Just write C++ code directly in your syzkaller
+definitions file like so:
+
+```
+declare `
+#include <stdint.h>
+
+typedef struct {
+	//...
+} FooPayload;
+
+typedef struct {
+	uint32_t checksum;
+	FooPayload data;
+} FooStruct;
+
+FooStruct* syz_custom_checksum(FooStruct* in) {
+	in->checksum = custom_checksum(&in->data);
+	return in;
+}
+`
+
+FooPayload {
+	#...
+}
+
+FooStruct {
+	checksum   const[0, int32]
+	data       FooPayload
+}
+
+resource fixed_FooStruct[intptr];
+syz_custom_checksum(inFoo ptr[in, FooStruct]) fixed_FooStruct
+
+target_function(fixed_FooStruct)
+```
+
 ## Misc
 
 Description files also contain `include` directives that refer to Linux kernel header files,

@@ -135,6 +135,19 @@ func (comp *compiler) genSyscall(n *ast.Call, argSizes []uint64) *prog.Syscall {
 	}
 }
 
+func (comp *compiler) genDecls() []*prog.CDecl {
+	var decls []*prog.CDecl
+	for _, decl := range comp.desc.Nodes {
+		if n, ok := decl.(*ast.Declaration); ok {
+			cdecl := &prog.CDecl{
+				Body: n.Body.Value,
+			}
+			decls = append(decls, cdecl)
+		}
+	}
+	return decls
+}
+
 type typeProxy struct {
 	typ       prog.Type
 	id        string

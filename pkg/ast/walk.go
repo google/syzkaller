@@ -48,6 +48,10 @@ func (n *Define) walk(cb func(Node)) {
 	cb(n.Value)
 }
 
+func (n *Declaration) walk(cb func(Node)) {
+	cb(n.Body)
+}
+
 func (n *Resource) walk(cb func(Node)) {
 	cb(n.Name)
 	cb(n.Base)

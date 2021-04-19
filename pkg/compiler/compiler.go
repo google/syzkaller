@@ -36,6 +36,7 @@ import (
 type Prog struct {
 	Resources []*prog.ResourceDesc
 	Syscalls  []*prog.Syscall
+	Decls     []*prog.CDecl
 	Types     []prog.Type
 	// Set of unsupported syscalls/flags.
 	Unsupported map[string]bool
@@ -101,6 +102,7 @@ func Compile(desc *ast.Description, consts map[string]uint64, target *targets.Ta
 	prg := &Prog{
 		Resources:   comp.genResources(),
 		Syscalls:    syscalls,
+		Decls:       comp.genDecls(),
 		Types:       types,
 		Unsupported: comp.unsupported,
 	}

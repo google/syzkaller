@@ -46,6 +46,13 @@ func (n *Define) Clone() Node {
 	}
 }
 
+func (n *Declaration) Clone() Node {
+	return &Declaration{
+		Pos:  n.Pos,
+		Body: n.Body.Clone().(*String),
+	}
+}
+
 func (n *Resource) Clone() Node {
 	return &Resource{
 		Pos:    n.Pos,

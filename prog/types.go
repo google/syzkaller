@@ -44,6 +44,10 @@ type SyscallAttrs struct {
 // Executor also knows about this value.
 const MaxArgs = 9
 
+type CDecl struct {
+	Body string
+}
+
 type Dir uint8
 
 const (
