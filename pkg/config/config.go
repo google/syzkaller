@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"regexp"
 
 	"github.com/google/syzkaller/pkg/osutil"
 )
@@ -24,6 +25,8 @@ func LoadFile(filename string, cfg interface{}) error {
 }
 
 func LoadData(data []byte, cfg interface{}) error {
+	// Remove comment lines starting with #.
+	data = regexp.MustCompile(`(^|\n)\s*#.*?\n`).ReplaceAll(data, nil)
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(cfg); err != nil {
