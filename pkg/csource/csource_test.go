@@ -130,3 +130,88 @@ func TestExecutorMacros(t *testing.T) {
 		}
 	}
 }
+
+func TestSource(t *testing.T) {
+	t.Parallel()
+	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	type Test struct {
+		input  string
+		output string
+	}
+	tests := []Test{
+		{
+			input: `
+r0 = csource0(0x1)
+csource1(r0)
+`,
+			output: `
+res = syscall(SYS_csource0, 1);
+if (res != -1)
+	r[0] = res;
+syscall(SYS_csource1, r[0]);
+`,
+		},
+		{
+			input: `
+csource2(&AUTO="12345678")
+csource3(&AUTO)
+csource4(&AUTO)
+csource5(&AUTO)
+`,
+			output: `
+NONFAILING(memcpy((void*)0x20000040, "\x12\x34\x56\x78", 4));
+syscall(SYS_csource2, 0x20000040ul);
+NONFAILING(*(uint8*)0x20000080 = 0);
+NONFAILING(*(uint8*)0x20000081 = 0);
+NONFAILING(*(uint8*)0x20000082 = 0);
+NONFAILING(*(uint8*)0x20000083 = 0);
+NONFAILING(*(uint8*)0x20000084 = 0);
+NONFAILING(*(uint8*)0x20000085 = 0);
+NONFAILING(*(uint8*)0x20000086 = 0);
+NONFAILING(*(uint8*)0x20000087 = 0);
+NONFAILING(*(uint8*)0x20000088 = 0);
+NONFAILING(*(uint8*)0x20000089 = 0);
+syscall(SYS_csource3, 0x20000080ul);
+NONFAILING(*(uint8*)0x200000c0 = 0xab);
+NONFAILING(*(uint8*)0x200000c1 = 0xab);
+NONFAILING(*(uint8*)0x200000c2 = 0xab);
+NONFAILING(*(uint8*)0x200000c3 = 0xab);
+NONFAILING(*(uint8*)0x200000c4 = 0xab);
+NONFAILING(*(uint8*)0x200000c5 = 0xab);
+NONFAILING(*(uint8*)0x200000c6 = 0xab);
+NONFAILING(*(uint8*)0x200000c7 = 0xab);
+NONFAILING(*(uint8*)0x200000c8 = 0xab);
+NONFAILING(*(uint8*)0x200000c9 = 0xab);
+syscall(SYS_csource4, 0x200000c0ul);
+NONFAILING(*(uint32*)0x20000100 = 0x12345678);
+NONFAILING(*(uint32*)0x20000104 = 0x12345678);
+NONFAILING(*(uint32*)0x20000108 = 0x12345678);
+NONFAILING(*(uint32*)0x2000010c = 0x12345678);
+syscall(SYS_csource5, 0x20000100ul);
+`,
+		},
+	}
+	for i, test := range tests {
+		t.Run(fmt.Sprint(i), func(t *testing.T) {
+			p, err := target.Deserialize([]byte(test.input), prog.Strict)
+			if err != nil {
+				t.Fatal(err)
+			}
+			ctx := &context{
+				target:    target,
+				sysTarget: targets.Get(target.OS, target.Arch),
+			}
+			calls, _, err := ctx.generateProgCalls(p, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := regexp.MustCompile(`(\n|^)\t`).ReplaceAllString(strings.Join(calls, ""), "\n")
+			if test.output != got {
+				t.Fatalf("input:\n%v\nwant:\n%v\ngot:\n%v", test.input, test.output, got)
+			}
+		})
+	}
+}
