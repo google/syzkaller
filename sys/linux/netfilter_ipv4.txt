@@ -120,7 +120,7 @@ ipt_getinfo {
 	name		string[ipt_tables, XT_TABLE_MAXNAMELEN]
 # The rest are output arguments.
 	valid_hooks	const[0, int32]
-	hook_entry	array[const[0, int32], NF_INET_NUMHOOKS]
+	hook_entry	array[int32, NF_INET_NUMHOOKS]
 	underflow	array[const[0, int32], NF_INET_NUMHOOKS]
 	num_entries	const[0, int32]
 	size		const[0, int32]

@@ -278,11 +278,12 @@ func TestDeserialize(t *testing.T) {
 			StrictErr: `out arg const[1, const] has non-default value: 2`,
 		},
 		{
-			In: `test$str1(&(0x7f0000000000)='foo\x00')`,
+			In:  `test$str1(&(0x7f0000000000)='foo\x00')`,
+			Out: `test$str1(&(0x7f0000000000))`,
 		},
 		{
 			In:        `test$str1(&(0x7f0000000000)='bar\x00')`,
-			Out:       `test$str1(&(0x7f0000000000)='foo\x00')`,
+			Out:       `test$str1(&(0x7f0000000000))`,
 			StrictErr: `bad string value "bar\x00", expect ["foo\x00"]`,
 		},
 		{

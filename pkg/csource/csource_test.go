@@ -160,37 +160,19 @@ csource2(&AUTO="12345678")
 csource3(&AUTO)
 csource4(&AUTO)
 csource5(&AUTO)
+csource6(&AUTO)
 `,
 			output: `
 NONFAILING(memcpy((void*)0x20000040, "\x12\x34\x56\x78", 4));
 syscall(SYS_csource2, 0x20000040ul);
-NONFAILING(*(uint8*)0x20000080 = 0);
-NONFAILING(*(uint8*)0x20000081 = 0);
-NONFAILING(*(uint8*)0x20000082 = 0);
-NONFAILING(*(uint8*)0x20000083 = 0);
-NONFAILING(*(uint8*)0x20000084 = 0);
-NONFAILING(*(uint8*)0x20000085 = 0);
-NONFAILING(*(uint8*)0x20000086 = 0);
-NONFAILING(*(uint8*)0x20000087 = 0);
-NONFAILING(*(uint8*)0x20000088 = 0);
-NONFAILING(*(uint8*)0x20000089 = 0);
+NONFAILING(memset((void*)0x20000080, 0, 10));
 syscall(SYS_csource3, 0x20000080ul);
-NONFAILING(*(uint8*)0x200000c0 = 0xab);
-NONFAILING(*(uint8*)0x200000c1 = 0xab);
-NONFAILING(*(uint8*)0x200000c2 = 0xab);
-NONFAILING(*(uint8*)0x200000c3 = 0xab);
-NONFAILING(*(uint8*)0x200000c4 = 0xab);
-NONFAILING(*(uint8*)0x200000c5 = 0xab);
-NONFAILING(*(uint8*)0x200000c6 = 0xab);
-NONFAILING(*(uint8*)0x200000c7 = 0xab);
-NONFAILING(*(uint8*)0x200000c8 = 0xab);
-NONFAILING(*(uint8*)0x200000c9 = 0xab);
+NONFAILING(memset((void*)0x200000c0, 48, 10));
 syscall(SYS_csource4, 0x200000c0ul);
-NONFAILING(*(uint32*)0x20000100 = 0x12345678);
-NONFAILING(*(uint32*)0x20000104 = 0x12345678);
-NONFAILING(*(uint32*)0x20000108 = 0x12345678);
-NONFAILING(*(uint32*)0x2000010c = 0x12345678);
+NONFAILING(memcpy((void*)0x20000100, "0101010101", 10));
 syscall(SYS_csource5, 0x20000100ul);
+NONFAILING(memcpy((void*)0x20000140, "101010101010", 12));
+syscall(SYS_csource6, 0x20000140ul);
 `,
 		},
 	}
