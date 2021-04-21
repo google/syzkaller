@@ -163,7 +163,7 @@ connect$inet(r0, &(0x7f0000000000)={0x2, 0x4594}, 0x10)
 open("\x2f\x64\x65\x76\x2f\x73\x6e\x64\x2f\x73\x65\x71", 0) = 3
 fsetxattr(3, "\x73\x65\x63\x75\x72\x69\x74\x79\x2e\x73\x65\x6c\x69\x6e\x75\x78","\x73\x79\x73", 4, 0) = 0
 `, `
-r0 = openat$sndseq(0xffffffffffffff9c, &(0x7f0000000000)='/dev/snd/seq\x00', 0x0)
+r0 = openat$sndseq(0xffffffffffffff9c, &(0x7f0000000000), 0x0)
 fsetxattr(r0, &(0x7f0000000040)=@known='security.selinux\x00', &(0x7f0000000080)='sys\x00', 0x4, 0x0)
 `,
 		}, {`
@@ -226,7 +226,7 @@ sendto$inet6(r0, &(0x7f0000000000), 0x0, 0x0, &(0x7f0000000040)={0xa, 0x4e24}, 0
 		}, {`
 open("\x2f\x64\x65\x76\x2f\x7a\x65\x72\x6f", "1") = 3
 `, `
-openat$zero(0xffffffffffffff9c, &(0x7f0000000000)='/dev/zero\x00', 0x31, 0x0)
+openat$zero(0xffffffffffffff9c, &(0x7f0000000000), 0x31, 0x0)
 `,
 		}, {`
 open("\x2f\x64\x65\x76\x2f\x6c\x6f\x6f\x70\x30", 0) = 3
@@ -246,7 +246,7 @@ syz_open_dev$usbfs(&(0x7f0000000000)='/dev/bus/usb/001/001\x00', 0xb, 0x0)
 		}, {`
 openat(0xffffffffffffff9c, "\x2f\x64\x65\x76\x2f\x7a\x65\x72\x6f", 0x31, 0) = 3
 `, `
-openat$zero(0xffffffffffffff9c, &(0x7f0000000000)='/dev/zero\x00', 0x31, 0x0)
+openat$zero(0xffffffffffffff9c, &(0x7f0000000000), 0x31, 0x0)
 `}, {`
 socket(0xa, 0x1, 0) = 3
 setsockopt(3, 0x29, 0x2a, {gr_interface=0, gr_group={sa_family=0xa, sin6_port="\x00\x00", sin6_flowinfo=` +
@@ -262,7 +262,7 @@ openat(-100, "\x2f\x64\x65\x76\x2f\x72\x74\x63\x30", 0) = 3
 ioctl(3, 0x4028700f, {enabled=0, pending=0, time={tm_sec=0, tm_min=0, tm_hour=0, tm_mday=0, tm_mon=65536,` +
 				`tm_year=20865, tm_wday=0, tm_yday=0, tm_isdst=0}}) = -1 EINVAL (Invalid argument)`,
 			`
-r0 = openat$rtc(0xffffffffffffff9c, &(0x7f0000000000)='/dev/rtc0\x00', 0x0, 0x0)
+r0 = openat$rtc(0xffffffffffffff9c, &(0x7f0000000000), 0x0, 0x0)
 ioctl$RTC_WKALM_SET(r0, 0x4028700f, &(0x7f0000000040)={0x0, 0x0, {0x0, 0x0, 0x0, 0x0, 0x10000, 0x5181}})`,
 		},
 	}

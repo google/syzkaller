@@ -518,8 +518,11 @@ func (t *BufferType) DefaultArg(dir Dir) Arg {
 		}
 		return MakeOutDataArg(t, dir, sz)
 	}
+
 	var data []byte
-	if !t.Varlen() {
+	if len(t.Values) == 1 {
+		data = []byte(t.Values[0])
+	} else if !t.Varlen() {
 		data = make([]byte, t.Size())
 	}
 	return MakeDataArg(t, dir, data)
@@ -527,14 +530,18 @@ func (t *BufferType) DefaultArg(dir Dir) Arg {
 
 func (t *BufferType) isDefaultArg(arg Arg) bool {
 	a := arg.(*DataArg)
-	if a.Size() == 0 {
-		return true
+	sz := uint64(0)
+	if !t.Varlen() {
+		sz = t.Size()
 	}
-	if a.Type().Varlen() {
+	if a.Size() != sz {
 		return false
 	}
 	if a.Dir() == DirOut {
 		return true
+	}
+	if len(t.Values) == 1 {
+		return string(a.Data()) == t.Values[0]
 	}
 	for _, v := range a.Data() {
 		if v != 0 {

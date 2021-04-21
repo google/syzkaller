@@ -4,6 +4,8 @@
 package compiler
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"sort"
 	"strconv"
@@ -247,6 +249,28 @@ var typeArray = &typeDesc{
 				Kind:       bufKind,
 				RangeBegin: begin,
 				RangeEnd:   end,
+			}
+		}
+		if ct, ok := elemType.(*prog.ConstType); ok &&
+			(ct.ArgFormat == prog.FormatNative || ct.ArgFormat == prog.FormatBigEndian) &&
+			kind == prog.ArrayRangeLen && begin == end {
+			// Special case: const string takes less space in C programs.
+			base.TypeSize = begin * ct.Size()
+			base.TypeAlign = ct.TypeAlign
+			val := make([]byte, 8)
+			if ct.ArgFormat == prog.FormatBigEndian {
+				binary.BigEndian.PutUint64(val, ct.Val)
+				val = val[8-ct.Size():]
+			} else {
+				binary.LittleEndian.PutUint64(val, ct.Val)
+				val = val[:ct.Size()]
+			}
+			val = bytes.Repeat(val, int(begin))
+			return &prog.BufferType{
+				TypeCommon: base.TypeCommon,
+				Kind:       prog.BufferString,
+				Values:     []string{string(val)},
+				NoZ:        true,
 			}
 		}
 		// TypeSize is assigned later in layoutArray.

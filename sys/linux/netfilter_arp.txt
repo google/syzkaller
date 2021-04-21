@@ -134,7 +134,7 @@ arpt_counters_info {
 arpt_getinfo {
 	name		string["filter", XT_TABLE_MAXNAMELEN]
 	valid_hooks	const[0, int32]
-	hook_entry	array[const[0, int32], NF_ARP_NUMHOOKS]
+	hook_entry	array[int32, NF_ARP_NUMHOOKS]
 	underflow	array[const[0, int32], NF_ARP_NUMHOOKS]
 	num_entries	const[0, int32]
 	size		const[0, int32]

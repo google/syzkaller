@@ -366,8 +366,13 @@ func (ctx *context) copyin(w *bytes.Buffer, csumSeq *int, copyin prog.ExecCopyin
 	case prog.ExecArgResult:
 		ctx.copyinVal(w, copyin.Addr, arg.Size, ctx.resultArgToStr(arg), arg.Format)
 	case prog.ExecArgData:
-		fmt.Fprintf(w, "\tNONFAILING(memcpy((void*)0x%x, \"%s\", %v));\n",
-			copyin.Addr, toCString(arg.Data, arg.Readable), len(arg.Data))
+		if bytes.Equal(arg.Data, bytes.Repeat(arg.Data[:1], len(arg.Data))) {
+			fmt.Fprintf(w, "\tNONFAILING(memset((void*)0x%x, %v, %v));\n",
+				copyin.Addr, arg.Data[0], len(arg.Data))
+		} else {
+			fmt.Fprintf(w, "\tNONFAILING(memcpy((void*)0x%x, \"%s\", %v));\n",
+				copyin.Addr, toCString(arg.Data, arg.Readable), len(arg.Data))
+		}
 	case prog.ExecArgCsum:
 		switch arg.Kind {
 		case prog.ExecArgCsumInet:
