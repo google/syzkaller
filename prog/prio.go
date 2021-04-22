@@ -103,6 +103,8 @@ func (target *Target) calcResourceUsage() map[string]map[int]weights {
 				}
 			case BufferFilename:
 				noteUsage(uses, c, 10, DirIn, "filename")
+			case BufferDirname:
+				noteUsage(uses, c, 10, ctx.Dir, "dirname")
 			default:
 				panic("unknown buffer kind")
 			}

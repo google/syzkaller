@@ -38,8 +38,16 @@ func CollectModulesInfo() ([]KernelModule, error) {
 	return machineModulesInfo()
 }
 
+func CollectDirsInfo() ([]string, error) {
+	if machineModulesInfo == nil {
+		return nil, nil
+	}
+	return machineDirsInfo()
+}
+
 var machineInfoFuncs []machineInfoFunc
 var machineModulesInfo func() ([]KernelModule, error)
+var machineDirsInfo func() ([]string, error)
 
 type machineInfoFunc struct {
 	name string

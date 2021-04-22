@@ -12,9 +12,11 @@ import (
 func (target *Target) Generate(rs rand.Source, ncalls int, ct *ChoiceTable) *Prog {
 	p := &Prog{
 		Target: target,
+		Files:  target.Files,
 	}
 	r := newRand(target, rs)
 	s := newState(target, ct, nil)
+	s.listFiles = p.Files
 	for len(p.Calls) < ncalls {
 		calls := r.generateCall(s, p, len(p.Calls))
 		for _, c := range calls {

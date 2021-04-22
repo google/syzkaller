@@ -58,6 +58,7 @@ include <uapi/linux/close_range.h>
 
 resource fd[int32]: -1
 resource fd_dir[fd]: AT_FDCWD
+resource fd_sys[fd]
 
 # alignptr/align32/align64 can be used when ABI uses int64/intptr to hold a smaller tqype.
 # E.g. pid/uid stored as intptr/int64.
@@ -77,6 +78,11 @@ type signalno int32[0:65]
 type signalnoptr intptr[0:65]
 
 syz_execute_func(text ptr[in, text[target]])
+
+openat$sysfs(fd const[AT_FDCWD], dir ptr[in, dirname["/sys/"]], flags flags[open_flags], mode flags[open_mode]) fd_sys
+write$sysfs(fd fd_sys, buf buffer[in], count len[buf])
+read$sysfs(fd fd_sys, buf buffer[out], count len[buf])
+close$sysfs(fd fd_sys)
 
 open(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
 # Just so that we have something that creates fd_dir resources.
