@@ -31,11 +31,6 @@ ioctl$DRM_IOCTL_MSM_SUBMITQUEUE_QUERY(fd fd_msm, cmd const[DRM_IOCTL_MSM_SUBMITQ
 mmap$DRM_MSM(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_msm, offset fileoff)
 _ = __NR_mmap2
 
-# This should be a resource for drm_syncobjs created by ioctls in
-# include/uapi/drm/drm.h, described in sys/linux/dev_dri.txt, but we need to
-# describe those ioctls first. Rename this to drm_syncobj then
-type drm_syncobj_handle int32
-
 drm_msm_gem_new {
 	size	int64
 	flags	flags[msm_gem_new_flags, int32]
@@ -96,7 +91,7 @@ drm_msm_gem_submit_bo {
 }
 
 drm_msm_gem_submit_syncobj {
-	handle	drm_syncobj_handle
+	handle	drm_syncobj
 	flags	flags[msm_gem_submit_syncobj_flags, int32]
 	point	int64
 }

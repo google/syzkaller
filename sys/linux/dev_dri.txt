@@ -359,13 +359,15 @@ drm_mode_atomic {
 
 drm_mode_atomic_flags = DRM_MODE_PAGE_FLIP_EVENT, DRM_MODE_ATOMIC_TEST_ONLY, DRM_MODE_ATOMIC_NONBLOCK, DRM_MODE_ATOMIC_ALLOW_MODESET
 
-# TODO: describe SYNCOBJ ioctls (but we don't have any DRIVER_SYNCOBJ hardware).
-#resource drm_syncobj[int32]
+resource drm_syncobj_fd[fd]
+resource drm_syncobj[int32]
 
-#ioctl$DRM_IOCTL_SYNCOBJ_CREATE(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_CREATE], arg ptr[in, drm_syncobj_create])
-#ioctl$DRM_IOCTL_SYNCOBJ_DESTROY(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_DESTROY], arg ptr[in, drm_syncobj_destroy])
-#ioctl$DRM_IOCTL_SYNCOBJ_HANDLE_TO_FD(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_HANDLE_TO_FD], arg ptr[in, XXXXX])
-#ioctl$DRM_IOCTL_SYNCOBJ_FD_TO_HANDLE(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_FD_TO_HANDLE], arg ptr[in, XXXXX])
+ioctl$DRM_IOCTL_SYNCOBJ_CREATE(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_CREATE], arg ptr[inout, drm_syncobj_create])
+ioctl$DRM_IOCTL_SYNCOBJ_DESTROY(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_DESTROY], arg ptr[inout, drm_syncobj_destroy])
+ioctl$DRM_IOCTL_SYNCOBJ_HANDLE_TO_FD(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_HANDLE_TO_FD], arg ptr[inout, drm_syncobj_handle])
+ioctl$DRM_IOCTL_SYNCOBJ_FD_TO_HANDLE(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_FD_TO_HANDLE], arg ptr[inout, drm_syncobj_handle])
+
+# TODO: Describe dma_fences so these syncobj ioctls can be described
 #ioctl$DRM_IOCTL_SYNCOBJ_TRANSFER(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_TRANSFER], arg ptr[in, XXXXX])
 #ioctl$DRM_IOCTL_SYNCOBJ_WAIT(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_WAIT], arg ptr[in, XXXXX])
 #ioctl$DRM_IOCTL_SYNCOBJ_TIMELINE_WAIT(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_TIMELINE_WAIT], arg ptr[in, XXXXX])
@@ -374,15 +376,23 @@ drm_mode_atomic_flags = DRM_MODE_PAGE_FLIP_EVENT, DRM_MODE_ATOMIC_TEST_ONLY, DRM
 #ioctl$DRM_IOCTL_SYNCOBJ_TIMELINE_SIGNAL(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_TIMELINE_SIGNAL], arg ptr[in, XXXXX])
 #ioctl$DRM_IOCTL_SYNCOBJ_QUERY(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_QUERY], arg ptr[in, XXXXX])
 
-#drm_syncobj_create {
-#	handle drm_syncobj[opt]
-#	flags	bool32
-#}
+drm_syncobj_create {
+	handle	drm_syncobj[opt]
+	flags	flags[drm_syncobj_create_flags, int32]
+}
 
-#drm_syncobj_destroy {
-#	handle drm_syncobj
-#	pad const[0, int32]
-#}
+drm_syncobj_destroy {
+	handle	drm_syncobj
+	pad	const[0, int32]
+}
+
+drm_syncobj_handle {
+	handle	drm_syncobj[opt]
+	flags	flags[drm_syncobj_handle_flags, int32]
+
+	fd	drm_syncobj_fd[opt]
+	pad	const[0, int32]
+}
 
 # TODO: describe SEQUENCE ioctls (but we don't have DRIVER_MODESET hardware).
 #ioctl$DRM_IOCTL_CRTC_GET_SEQUENCE(fd fd_dri, cmd const[DRM_IOCTL_CRTC_GET_SEQUENCE], arg ptr[in, XXXXX])
@@ -686,3 +696,6 @@ drm_buf_flags = _DRM_PAGE_ALIGN, _DRM_AGP_BUFFER, _DRM_SG_BUFFER, _DRM_FB_BUFFER
 drm_dma_flags = _DRM_DMA_BLOCK, _DRM_DMA_WHILE_LOCKED, _DRM_DMA_PRIORITY, _DRM_DMA_WAIT, _DRM_DMA_SMALLER_OK, _DRM_DMA_LARGER_OK
 drm_control_type = DRM_ADD_COMMAND, DRM_RM_COMMAND, DRM_INST_HANDLER, DRM_UNINST_HANDLER
 drm_vblank_seq_type = _DRM_VBLANK_ABSOLUTE, _DRM_VBLANK_RELATIVE, _DRM_VBLANK_HIGH_CRTC_MASK, _DRM_VBLANK_EVENT, _DRM_VBLANK_FLIP, _DRM_VBLANK_NEXTONMISS, _DRM_VBLANK_SECONDARY, _DRM_VBLANK_SIGNAL
+drm_syncobj_create_flags = DRM_SYNCOBJ_CREATE_SIGNALED
+# DRM_SYNCOBJ_HANDLE_TO_FD_FLAGS_EXPORT_SYNC_FILE is the same so we just use one
+drm_syncobj_handle_flags = DRM_SYNCOBJ_FD_TO_HANDLE_FLAGS_IMPORT_SYNC_FILE
