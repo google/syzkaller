@@ -4626,13 +4626,17 @@ static void setup_usb()
 
 #if SYZ_EXECUTOR || SYZ_SYSCTL
 #include <errno.h>
+#include <stdio.h>
 #include <string.h>
 
 static void setup_sysctl()
 {
+	char mypid[32];
+	snprintf(mypid, sizeof(mypid), "%d", getpid());
+
 	// TODO: consider moving all sysctl's into CMDLINE config later.
 	// Kernel has support for setting sysctl's via command line since 3db978d480e28 (v5.8).
-	static struct {
+	struct {
 		const char* name;
 		const char* data;
 	} files[] = {
@@ -4668,6 +4672,12 @@ static void setup_sysctl()
 		// We always want to prefer killing the allocating test process rather than somebody else
 		// (sshd or another random test process).
 		{"/proc/sys/vm/oom_kill_allocating_task", "1"},
+		// This blocks some of the ways the fuzzer can trigger a reboot.
+		// ctrl-alt-del=0 tells kernel to signal cad_pid instead of rebooting
+		// and setting cad_pid to the current pid (transient "syz-executor setup") makes it a no-op.
+		// For context see: https://groups.google.com/g/syzkaller-bugs/c/WqOY4TiRnFg/m/6P9u8lWZAQAJ
+		{"/proc/sys/kernel/ctrl-alt-del", "0"},
+		{"/proc/sys/kernel/cad_pid", mypid},
 	};
 	for (size_t i = 0; i < sizeof(files) / sizeof(files[0]); i++) {
 		if (!write_file(files[i].name, files[i].data))

@@ -9417,11 +9417,14 @@ static void setup_usb()
 
 #if SYZ_EXECUTOR || SYZ_SYSCTL
 #include <errno.h>
+#include <stdio.h>
 #include <string.h>
 
 static void setup_sysctl()
 {
-	static struct {
+	char mypid[32];
+	snprintf(mypid, sizeof(mypid), "%d", getpid());
+	struct {
 		const char* name;
 		const char* data;
 	} files[] = {
@@ -9441,6 +9444,8 @@ static void setup_sysctl()
 		{"/proc/sys/kernel/keys/gc_delay", "1"},
 		{"/proc/sys/vm/nr_overcommit_hugepages", "4"},
 		{"/proc/sys/vm/oom_kill_allocating_task", "1"},
+		{"/proc/sys/kernel/ctrl-alt-del", "0"},
+		{"/proc/sys/kernel/cad_pid", mypid},
 	};
 	for (size_t i = 0; i < sizeof(files) / sizeof(files[0]); i++) {
 		if (!write_file(files[i].name, files[i].data))
