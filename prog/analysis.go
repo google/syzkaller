@@ -21,6 +21,7 @@ type state struct {
 	strings   map[string]bool
 	ma        *memAlloc
 	va        *vmaAlloc
+	listFiles []string
 }
 
 // analyze analyzes the program p up to but not including call c.
@@ -82,7 +83,7 @@ func (s *state) analyzeImpl(c *Call, resources bool) {
 					val = val[:len(val)-1]
 				}
 				switch typ.Kind {
-				case BufferString:
+				case BufferString, BufferDirname:
 					s.strings[val] = true
 				case BufferFilename:
 					if len(val) < 3 || escapingFilename(val) {

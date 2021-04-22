@@ -601,7 +601,7 @@ const (
 )
 
 var typeString = &typeDesc{
-	Names:        []string{"string", stringnoz},
+	Names:        []string{"string", "dirname", stringnoz},
 	CanBeTypedef: true,
 	OptArgs:      2,
 	Args: []namedArg{
@@ -643,6 +643,16 @@ var typeString = &typeDesc{
 				TypeCommon: base.TypeCommon,
 				Kind:       prog.BufferFilename,
 				NoZ:        t.Ident == stringnoz,
+			}
+		}
+		if len(args) > 0 && t.Ident == "dirname" {
+			base.TypeSize = comp.stringSize(t, args)
+			vals := []string{args[0].String}
+			return &prog.BufferType{
+				TypeCommon: base.TypeCommon,
+				Kind:       prog.BufferDirname,
+				Values:     vals,
+				NoZ:        false,
 			}
 		}
 		subkind := ""

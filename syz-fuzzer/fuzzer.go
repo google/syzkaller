@@ -179,14 +179,7 @@ func main() {
 		return
 	}
 
-	machineInfo, err := host.CollectMachineInfo()
-	if err != nil {
-		log.Fatalf("failed to collect machine information: %v", err)
-	}
-	modules, err := host.CollectModulesInfo()
-	if err != nil {
-		log.Fatalf("failed to collect modules info: %v", err)
-	}
+	machineInfo, modules, files := collectMachineInfo()
 
 	log.Logf(0, "dialing manager at %v", *flagManager)
 	manager, err := rpctype.NewRPCClient(*flagManager, timeouts.Scale)
@@ -291,11 +284,29 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to create proc: %v", err)
 		}
+		proc.files = files
 		fuzzer.procs = append(fuzzer.procs, proc)
 		go proc.loop()
 	}
 
 	fuzzer.pollLoop()
+}
+
+func collectMachineInfo() ([]byte, []host.KernelModule, []string) {
+	machineInfo, err := host.CollectMachineInfo()
+	if err != nil {
+		log.Fatalf("failed to collect machine information: %v", err)
+	}
+	modules, err := host.CollectModulesInfo()
+	if err != nil {
+		log.Fatalf("failed to collect modules info: %v", err)
+	}
+	files, err := host.CollectDirsInfo()
+	if err != nil {
+		log.Fatalf("faield to collect files info: %v", err)
+	}
+
+	return machineInfo, modules, files
 }
 
 // Returns gateCallback for leak checking if enabled.
