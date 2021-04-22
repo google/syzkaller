@@ -31,6 +31,17 @@ cd $KERNEL
 make CC="$GCC/bin/gcc" defconfig
 make CC="$GCC/bin/gcc" kvmconfig
 ```
+If the following error occurs:
+```
+make[1]: *** No rule to make target 'kvmconfig'.  Stop.
+make: *** [Makefile:602: kvmconfig] Error 2
+```
+Use this command instead:
+```
+make CC="$GCC/bin/gcc" kvm_guest.config
+```
+
+
 
 Enable kernel config options required for syzkaller as described [here](kernel_configs.md).
 It's not required to enable all of them, but at the very least you need:
