@@ -83,6 +83,10 @@ sem_load="YES"
 mqueuefs_load="YES"
 __EOF__
 
+cat | sudo tee -a ${tmpdir}/etc/sysctl.conf <<__EOF__
+net.inet.tcp.udp_tunneling_port=9811
+__EOF__
+
 sudo umount $tmpdir
 sudo mdconfig -d -u ${md#md}
 `, objPrefix, params.KernelDir, confFile)
