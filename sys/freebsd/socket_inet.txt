@@ -21,7 +21,7 @@ sockaddr_in {
 
 sockaddr_storage_in {
 	addr	sockaddr_in
-	pad	array[const[0, int64], 15]
+	pad	array[const[0, int64], 14]
 }
 
 socket$inet(domain const[AF_INET], type flags[socket_type], proto int8) sock_in
