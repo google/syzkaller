@@ -84,6 +84,7 @@ mqueuefs_load="YES"
 __EOF__
 
 cat | sudo tee -a ${tmpdir}/etc/sysctl.conf <<__EOF__
+net.inet.sctp.udp_tunneling_port=9899
 net.inet.tcp.udp_tunneling_port=9811
 __EOF__
 

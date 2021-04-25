@@ -325,6 +325,11 @@ getsockopt$inet6_sctp_SCTP_GET_LOCAL_ADDRESSES(fd sock_sctp6, level const[IPPROT
 setsockopt$inet_sctp_SCTP_CONNECT_X(fd sock_sctp, level const[IPPROTO_SCTP], opt const[SCTP_CONNECT_X], val ptr[in, sctp_connectx], len ptr[inout, len[val, int32]])
 setsockopt$inet6_sctp_SCTP_CONNECT_X(fd sock_sctp6, level const[IPPROTO_SCTP], opt const[SCTP_CONNECT_X], val ptr[in, sctp_connectx], len ptr[inout, len[val, int32]])
 
+setsockopt$inet_sctp_SCTP_REMOTE_UDP_ENCAPS_PORT(fd sock_sctp, level const[IPPROTO_SCTP], opt const[SCTP_REMOTE_UDP_ENCAPS_PORT], val ptr[in, sctp_udpencaps], len len[val])
+setsockopt$inet6_sctp_SCTP_REMOTE_UDP_ENCAPS_PORT(fd sock_sctp6, level const[IPPROTO_SCTP], opt const[SCTP_REMOTE_UDP_ENCAPS_PORT], val ptr[in, sctp_udpencaps], len len[val])
+getsockopt$inet_sctp_SCTP_REMOTE_UDP_ENCAPS_PORT(fd sock_sctp, level const[IPPROTO_SCTP], opt const[SCTP_REMOTE_UDP_ENCAPS_PORT], val ptr[inout, sctp_udpencaps], len ptr[inout, len[val, int32]])
+getsockopt$inet6_sctp_SCTP_REMOTE_UDP_ENCAPS_PORT(fd sock_sctp6, level const[IPPROTO_SCTP], opt const[SCTP_REMOTE_UDP_ENCAPS_PORT], val ptr[inout, sctp_udpencaps], len ptr[inout, len[val, int32]])
+
 sctp_rtoinfo {
 	srto_assoc_id	assoc_id
 	srto_initial	int32
@@ -534,4 +539,10 @@ sctp_add_streams {
 	sas_assoc_id	assoc_id
 	sas_instrms	int16
 	sas_outstrms	int16
+}
+
+sctp_udpencaps {
+	sue_assoc_id	assoc_id
+	sue_address	sockaddr_storage_sctp
+	sue_port	int16
 }
