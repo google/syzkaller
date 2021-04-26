@@ -1128,10 +1128,6 @@ func findCrashForBug(c context.Context, bug *Bug) (*Crash, *db.Key, error) {
 		if crash.ReproSyz == 0 {
 			log.Errorf(c, "bug '%v': has syz repro, but crash without syz repro", bug.Title)
 		}
-	} else if bug.HasReport {
-		if crash.Report == 0 {
-			log.Errorf(c, "bug '%v': has report, but crash without report", bug.Title)
-		}
 	}
 	return crash, key, nil
 }
