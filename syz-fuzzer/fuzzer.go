@@ -167,10 +167,12 @@ func main() {
 	}()
 
 	checkArgs := &checkArgs{
-		target:      target,
-		sandbox:     sandbox,
-		ipcConfig:   config,
-		ipcExecOpts: execOpts,
+		target:         target,
+		sandbox:        sandbox,
+		ipcConfig:      config,
+		ipcExecOpts:    execOpts,
+		gitRevision:    prog.GitRevision,
+		targetRevision: target.Revision,
 	}
 	if *flagTest {
 		testImage(*flagManager, checkArgs)
