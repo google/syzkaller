@@ -60,7 +60,8 @@ type Fuzzer struct {
 	maxSignal    signal.Signal // max signal ever observed including flakes
 	newSignal    signal.Signal // diff of maxSignal since last sync with master
 
-	logMu sync.Mutex
+	checkResult *rpctype.CheckArgs
+	logMu       sync.Mutex
 }
 
 type FuzzerSnapshot struct {
@@ -261,6 +262,7 @@ func main() {
 		faultInjectionEnabled:    r.CheckResult.Features[host.FeatureFault].Enabled,
 		comparisonTracingEnabled: r.CheckResult.Features[host.FeatureComparisons].Enabled,
 		corpusHashes:             make(map[hash.Sig]struct{}),
+		checkResult:              r.CheckResult,
 	}
 	gateCallback := fuzzer.useBugFrames(r, *flagProcs)
 	fuzzer.gate = ipc.NewGate(2**flagProcs, gateCallback)

@@ -225,9 +225,9 @@ func checkRevisions(args *checkArgs) error {
 		return fmt.Errorf("mismatching fuzzer/executor system call descriptions: %v vs %v",
 			args.target.Revision, vers[2])
 	}
-	if args.targetRevision != "" && args.targetRevision != args.target.Revision {
-		return fmt.Errorf("mismatching manager/fuzzer system call descriptions: %v vs %v",
-			args.targetRevision, args.target.Revision)
+	if args.target.Revision != args.targetRevision {
+		return fmt.Errorf("mismatching fuzzer/manager system call descriptions: %v vs %v",
+			args.target.Revision, args.targetRevision)
 	}
 	return nil
 }
