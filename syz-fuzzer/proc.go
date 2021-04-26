@@ -280,12 +280,7 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.P
 	if opts.Flags&ipc.FlagDedupCover == 0 {
 		log.Fatalf("dedup cover is not enabled")
 	}
-	for _, call := range p.Calls {
-		if !proc.fuzzer.choiceTable.Enabled(call.Meta.ID) {
-			fmt.Printf("executing disabled syscall %v\n", call.Meta.Name)
-			panic("disabled syscall")
-		}
-	}
+	proc.checkDisabledCalls(p)
 
 	// Limit concurrency window and do leak checking once in a while.
 	ticket := proc.fuzzer.gate.Enter()
@@ -312,6 +307,25 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.P
 		}
 		log.Logf(2, "result hanged=%v: %s", hanged, output)
 		return info
+	}
+}
+
+func (proc *Proc) checkDisabledCalls(p *prog.Prog) {
+	for _, call := range p.Calls {
+		if !proc.fuzzer.choiceTable.Enabled(call.Meta.ID) {
+			fmt.Printf("executing disabled syscall %v [%v]\n", call.Meta.Name, call.Meta.ID)
+			sandbox := ipc.FlagsToSandbox(proc.fuzzer.config.Flags)
+			fmt.Printf("check result for sandbox=%v:\n", sandbox)
+			for _, id := range proc.fuzzer.checkResult.EnabledCalls[sandbox] {
+				meta := proc.fuzzer.target.Syscalls[id]
+				fmt.Printf("  %v [%v]\n", meta.Name, meta.ID)
+			}
+			fmt.Printf("choice table:\n")
+			for i, meta := range proc.fuzzer.target.Syscalls {
+				fmt.Printf("  #%v: %v [%v]: enabled=%v\n", i, meta.Name, meta.ID, proc.fuzzer.choiceTable.Enabled(meta.ID))
+			}
+			panic("disabled syscall")
+		}
 	}
 }
 

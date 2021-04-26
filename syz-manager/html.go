@@ -93,6 +93,7 @@ func (mgr *Manager) httpSyscalls(w http.ResponseWriter, r *http.Request) {
 	for c, cc := range mgr.collectSyscallInfo() {
 		data.Calls = append(data.Calls, UICallType{
 			Name:   c,
+			ID:     mgr.target.SyscallMap[c].ID,
 			Inputs: cc.count,
 			Cover:  len(cc.cov),
 		})
@@ -676,6 +677,7 @@ type UIStat struct {
 
 type UICallType struct {
 	Name   string
+	ID     int
 	Inputs int
 	Cover  int
 }
@@ -771,7 +773,7 @@ var syscallsTemplate = html.CreatePage(`
 	</tr>
 	{{range $c := $.Calls}}
 	<tr>
-		<td>{{$c.Name}}</td>
+		<td>{{$c.Name}} [{{$c.ID}}]</td>
 		<td><a href='/corpus?call={{$c.Name}}'>{{$c.Inputs}}</a></td>
 		<td><a href='/cover?call={{$c.Name}}'>{{$c.Cover}}</a></td>
 		<td><a href='/prio?call={{$c.Name}}'>prio</a></td>
