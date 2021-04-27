@@ -81,6 +81,7 @@ tcp_bbr_load="YES"
 tcp_rack_load="YES"
 sem_load="YES"
 mqueuefs_load="YES"
+cryptodev_load="YES"
 __EOF__
 
 cat | sudo tee -a ${tmpdir}/etc/sysctl.conf <<__EOF__
