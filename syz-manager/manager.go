@@ -177,6 +177,7 @@ func RunManager(cfg *mgrconfig.Config) {
 
 	mgr.preloadCorpus()
 	mgr.initHTTP() // Creates HTTP server.
+	mgr.initMetrics() // Initialise Metrics server.
 	mgr.collectUsedFiles()
 
 	// Create RPC server for fuzzers.
