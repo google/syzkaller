@@ -1,0 +1,144 @@
+FILE: fs/f2fs/recovery.c
+
+==================================================================
+BUG: KASAN: invalid-access in kmem_cache_destroy+0x34/0x174 mm/slab_common.c:492
+Read at addr fdff000022c9c040 by task syz-executor.0/5059
+Pointer tag: [fd], memory tag: [fe]
+
+CPU: 0 PID: 5059 Comm: syz-executor.0 Not tainted 5.11.0-rc6-syzkaller #0
+Hardware name: linux,dummy-virt (DT)
+Call trace:
+ dump_backtrace+0x0/0x1b0 arch/arm64/kernel/stacktrace.c:117
+ show_stack+0x1c/0x70 arch/arm64/kernel/stacktrace.c:196
+ __dump_stack lib/dump_stack.c:79 [inline]
+ dump_stack+0xd0/0x12c lib/dump_stack.c:120
+ print_address_description+0x70/0x29c mm/kasan/report.c:230
+ __kasan_report mm/kasan/report.c:396 [inline]
+ kasan_report+0x104/0x200 mm/kasan/report.c:413
+ report_tag_fault arch/arm64/mm/fault.c:311 [inline]
+ do_tag_recovery arch/arm64/mm/fault.c:325 [inline]
+ __do_kernel_fault+0x17c/0x1c0 arch/arm64/mm/fault.c:369
+ do_bad_area arch/arm64/mm/fault.c:462 [inline]
+ do_tag_check_fault+0x78/0x8c arch/arm64/mm/fault.c:717
+ do_mem_abort+0x44/0xbc arch/arm64/mm/fault.c:793
+ el1_abort+0x40/0x6c arch/arm64/kernel/entry-common.c:118
+ el1_sync_handler+0xb0/0xcc arch/arm64/kernel/entry-common.c:209
+ el1_sync+0x70/0x100 arch/arm64/kernel/entry.S:656
+ kmem_cache_destroy+0x34/0x174 mm/slab_common.c:492
+ f2fs_recover_fsync_data+0x60c/0x1cc0 fs/f2fs/recovery.c:869
+ f2fs_fill_super+0x174c/0x1e8c fs/f2fs/super.c:3804
+ mount_bdev+0x1c4/0x1f0 fs/super.c:1366
+ f2fs_mount+0x1c/0x30 fs/f2fs/super.c:3962
+ legacy_get_tree+0x34/0x64 fs/fs_context.c:592
+ vfs_get_tree+0x2c/0xf0 fs/super.c:1496
+ do_new_mount fs/namespace.c:2881 [inline]
+ path_mount+0x3e8/0xaf0 fs/namespace.c:3211
+ do_mount fs/namespace.c:3224 [inline]
+ __do_sys_mount fs/namespace.c:3432 [inline]
+ __se_sys_mount fs/namespace.c:3409 [inline]
+ __arm64_sys_mount+0x1a8/0x2fc fs/namespace.c:3409
+ __invoke_syscall arch/arm64/kernel/syscall.c:37 [inline]
+ invoke_syscall arch/arm64/kernel/syscall.c:49 [inline]
+ el0_svc_common.constprop.0+0x74/0x190 arch/arm64/kernel/syscall.c:159
+ do_el0_svc+0x78/0x90 arch/arm64/kernel/syscall.c:198
+ el0_svc+0x14/0x20 arch/arm64/kernel/entry-common.c:365
+ el0_sync_handler+0x1a8/0x1b0 arch/arm64/kernel/entry-common.c:381
+ el0_sync+0x190/0x1c0 arch/arm64/kernel/entry.S:699
+
+Allocated by task 5059:
+ stack_trace_save+0x50/0x80 kernel/stacktrace.c:121
+ kasan_save_stack+0x2c/0x60 mm/kasan/common.c:38
+ kasan_set_track mm/kasan/common.c:46 [inline]
+ set_alloc_info mm/kasan/common.c:401 [inline]
+ ____kasan_kmalloc+0xe8/0x160 mm/kasan/common.c:429
+ __kasan_slab_alloc+0x20/0x30 mm/kasan/common.c:437
+ kasan_slab_alloc include/linux/kasan.h:209 [inline]
+ slab_post_alloc_hook mm/slab.h:512 [inline]
+ slab_alloc_node mm/slub.c:2892 [inline]
+ slab_alloc mm/slub.c:2900 [inline]
+ kmem_cache_alloc+0x1b0/0x310 mm/slub.c:2905
+ kmem_cache_zalloc include/linux/slab.h:672 [inline]
+ create_cache mm/slab_common.c:246 [inline]
+ kmem_cache_create_usercopy+0x148/0x2ac mm/slab_common.c:352
+ kmem_cache_create+0x20/0x30 mm/slab_common.c:410
+ f2fs_kmem_cache_create fs/f2fs/f2fs.h:2411 [inline]
+ f2fs_recover_fsync_data+0x7c/0x1cc0 fs/f2fs/recovery.c:790
+ f2fs_fill_super+0x174c/0x1e8c fs/f2fs/super.c:3804
+ mount_bdev+0x1c4/0x1f0 fs/super.c:1366
+ f2fs_mount+0x1c/0x30 fs/f2fs/super.c:3962
+ legacy_get_tree+0x34/0x64 fs/fs_context.c:592
+ vfs_get_tree+0x2c/0xf0 fs/super.c:1496
+ do_new_mount fs/namespace.c:2881 [inline]
+ path_mount+0x3e8/0xaf0 fs/namespace.c:3211
+ do_mount fs/namespace.c:3224 [inline]
+ __do_sys_mount fs/namespace.c:3432 [inline]
+ __se_sys_mount fs/namespace.c:3409 [inline]
+ __arm64_sys_mount+0x1a8/0x2fc fs/namespace.c:3409
+ __invoke_syscall arch/arm64/kernel/syscall.c:37 [inline]
+ invoke_syscall arch/arm64/kernel/syscall.c:49 [inline]
+ el0_svc_common.constprop.0+0x74/0x190 arch/arm64/kernel/syscall.c:159
+ do_el0_svc+0x78/0x90 arch/arm64/kernel/syscall.c:198
+ el0_svc+0x14/0x20 arch/arm64/kernel/entry-common.c:365
+ el0_sync_handler+0x1a8/0x1b0 arch/arm64/kernel/entry-common.c:381
+ el0_sync+0x190/0x1c0 arch/arm64/kernel/entry.S:699
+
+Freed by task 5053:
+ stack_trace_save+0x50/0x80 kernel/stacktrace.c:121
+ kasan_save_stack+0x2c/0x60 mm/kasan/common.c:38
+ kasan_set_track+0x2c/0x40 mm/kasan/common.c:46
+ kasan_set_free_info+0x24/0x30 mm/kasan/hw_tags.c:178
+ ____kasan_slab_free.constprop.0+0x184/0x1c0 mm/kasan/common.c:362
+ __kasan_slab_free+0x14/0x20 mm/kasan/common.c:369
+ kasan_slab_free include/linux/kasan.h:192 [inline]
+ slab_free_hook mm/slub.c:1547 [inline]
+ slab_free_freelist_hook+0x9c/0x190 mm/slub.c:1580
+ slab_free mm/slub.c:3143 [inline]
+ kmem_cache_free+0xa0/0x460 mm/slub.c:3159
+ slab_kmem_cache_release+0x34/0x4c mm/slab_common.c:479
+ kmem_cache_release+0x18/0x24 mm/slub.c:5535
+ kobject_cleanup lib/kobject.c:705 [inline]
+ kobject_release lib/kobject.c:736 [inline]
+ kref_put include/linux/kref.h:65 [inline]
+ kobject_put+0x74/0x11c lib/kobject.c:753
+ sysfs_slab_release+0x2c/0x40 mm/slub.c:5657
+ shutdown_cache mm/slab_common.c:466 [inline]
+ kmem_cache_destroy+0x134/0x174 mm/slab_common.c:498
+ f2fs_recover_fsync_data+0x60c/0x1cc0 fs/f2fs/recovery.c:869
+ f2fs_fill_super+0x174c/0x1e8c fs/f2fs/super.c:3804
+ mount_bdev+0x1c4/0x1f0 fs/super.c:1366
+ f2fs_mount+0x1c/0x30 fs/f2fs/super.c:3962
+ legacy_get_tree+0x34/0x64 fs/fs_context.c:592
+ vfs_get_tree+0x2c/0xf0 fs/super.c:1496
+ do_new_mount fs/namespace.c:2881 [inline]
+ path_mount+0x3e8/0xaf0 fs/namespace.c:3211
+ do_mount fs/namespace.c:3224 [inline]
+ __do_sys_mount fs/namespace.c:3432 [inline]
+ __se_sys_mount fs/namespace.c:3409 [inline]
+ __arm64_sys_mount+0x1a8/0x2fc fs/namespace.c:3409
+ __invoke_syscall arch/arm64/kernel/syscall.c:37 [inline]
+ invoke_syscall arch/arm64/kernel/syscall.c:49 [inline]
+ el0_svc_common.constprop.0+0x74/0x190 arch/arm64/kernel/syscall.c:159
+ do_el0_svc+0x78/0x90 arch/arm64/kernel/syscall.c:198
+ el0_svc+0x14/0x20 arch/arm64/kernel/entry-common.c:365
+ el0_sync_handler+0x1a8/0x1b0 arch/arm64/kernel/entry-common.c:381
+ el0_sync+0x190/0x1c0 arch/arm64/kernel/entry.S:699
+
+The buggy address belongs to the object at ffff000022c9c000
+ which belongs to the cache kmem_cache of size 216
+The buggy address is located 64 bytes inside of
+ 216-byte region [ffff000022c9c000, ffff000022c9c0d8)
+The buggy address belongs to the page:
+page:00000000645d0634 refcount:1 mapcount:0 mapping:0000000000000000 index:0xfdff000022c9c000 pfn:0x62c9c
+flags: 0x1ffffc000000200(slab)
+raw: 01ffffc000000200 dead000000000100 dead000000000122 f6ff000004001000
+raw: fdff000022c9c000 000000008010000f 00000001ffffffff 0000000000000000
+page dumped because: kasan: bad access detected
+
+Memory state around the buggy address:
+ ffff000022c9be00: f2 f2 f2 f2 f2 f2 f2 f2 f2 f2 f2 f2 f2 f2 f2 f2
+ ffff000022c9bf00: f2 f2 f2 f2 f2 f2 f2 f2 f2 f2 f2 f2 f2 f2 f2 f2
+>ffff000022c9c000: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+                               ^
+ ffff000022c9c100: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+ ffff000022c9c200: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+==================================================================

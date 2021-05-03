@@ -73,6 +73,8 @@ func ctorLinux(cfg *config) (Reporter, []string, error) {
 		regexp.MustCompile(`^arch/.*/kernel/traps.c`),
 		regexp.MustCompile(`^arch/.*/mm/fault.c`),
 		regexp.MustCompile(`^arch/.*/mm/physaddr.c`),
+		regexp.MustCompile(`^arch/.*/kernel/stacktrace.c`),
+		regexp.MustCompile(`^arch/arm64/kernel/entry.*.c`),
 		regexp.MustCompile(`^kernel/locking/.*`),
 		regexp.MustCompile(`^kernel/panic.c`),
 		regexp.MustCompile(`^kernel/printk/printk.*.c`),
