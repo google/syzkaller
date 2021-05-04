@@ -1,5 +1,5 @@
-TITLE: INFO: rcu detected stall in kmem_cache_alloc
-ALT: stall in kmem_cache_alloc
+TITLE: INFO: rcu detected stall in __do_softirq
+ALT: stall in __do_softirq
 TYPE: HANG
 
 [ 3024.981314] rcu: INFO: rcu_preempt detected stalls on CPUs/tasks:
