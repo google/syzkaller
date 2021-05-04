@@ -766,6 +766,8 @@ var linuxStackParams = &stackParams{
 		"kcalloc",
 		"kzalloc",
 		"krealloc",
+		"kmem_cache",
+		"slab_",
 		"debug_object",
 		"timer_is_static_object",
 		"work_is_static_object",
@@ -983,7 +985,7 @@ var linuxOopses = append([]*oops{
 						linuxCallTrace,
 						parseStackTrace,
 					},
-					skip: []string{"kmem_", "slab_", "kfree", "vunmap", "vfree"},
+					skip: []string{"slab_", "kfree", "vunmap", "vfree"},
 				},
 			},
 			{
@@ -1277,7 +1279,7 @@ var linuxOopses = append([]*oops{
 				fmt:   "WARNING: ODEBUG bug in %[1]v",
 				// Skip all users of ODEBUG as well.
 				stack: warningStackFmt("debug_", "rcu", "hrtimer_", "timer_",
-					"work_", "percpu_", "kmem_", "slab_", "kfree", "vunmap",
+					"work_", "percpu_", "vunmap",
 					"vfree", "__free_", "debug_check", "kobject_"),
 			},
 			{
