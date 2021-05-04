@@ -12,6 +12,9 @@ config:
  - SPARSEMEM_VMEMMAP: [-arm]
  # This is required to enable SPARSEMEM_VMEMMAP.
  - SPARSEMEM_MANUAL: [-arm, -s390]
+ # This allows to get alloc/free stacks for UAFs on freed pages.
+ # This also needs page_owner=on in cmdline.
+ - PAGE_OWNER
 
  - UBSAN: [v5.8]
  - UBSAN_SANITIZE_ALL: [v5.8, -arm, -riscv]
