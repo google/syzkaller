@@ -104,7 +104,7 @@ func parseMainSpec(file string) ([]*Instance, []string, error) {
 			}
 			inst, err := parseInstance(name, filepath.Dir(file), features, raw.Includes)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, fmt.Errorf("%v: %v", name, err)
 			}
 			instances = append(instances, inst)
 			if constraintsInclude(features, featBaseline) {
