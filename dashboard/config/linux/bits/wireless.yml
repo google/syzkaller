@@ -53,3 +53,7 @@ config:
  - WLAN_VENDOR_TI: n
  - WLAN_VENDOR_ZYDAS: n
  - WLAN_VENDOR_QUANTENNA: n
+ - WWAN: [linux-next]
+ - WWAN_CORE: [linux-next]
+ - MHI_BUS: [linux-next]
+ - MHI_WWAN_CTRL: [linux-next]
