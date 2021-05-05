@@ -19,6 +19,7 @@ import (
 func discoverModules(target *targets.Target, objDir string, moduleObj []string, hostModules []host.KernelModule) (
 	[]*Module, error) {
 	modules := []*Module{
+		// A dummy module representing the kernel itself.
 		{Path: filepath.Join(objDir, target.KernelObject)},
 	}
 	if target.OS == targets.Linux {

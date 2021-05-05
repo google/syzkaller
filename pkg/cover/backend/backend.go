@@ -67,6 +67,9 @@ func Make(target *targets.Target, vm, objDir, srcDir, buildDir string,
 	if objDir == "" {
 		return nil, fmt.Errorf("kernel obj directory is not specified")
 	}
+	if target.OS == "darwin" {
+		return makeMachO(target, objDir, srcDir, buildDir, moduleObj, modules)
+	}
 	if vm == "gvisor" {
 		return makeGvisor(target, objDir, srcDir, buildDir, modules)
 	}
