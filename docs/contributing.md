@@ -64,7 +64,7 @@ Commit message line length is limited to 120 characters.
 
 Also:
 
-- If you commit fixes an issue, please include `Fixes #NNN` line into commit message
+- If your commit fixes an issue, please include `Fixes #NNN` line into commit message
 (where `NNN` is the issue number). This will auto-close the issue. If you need to mention
 an issue without closing it, add `Update #NNN`.
 - For syscall descriptions `*.const` files are checked-in with the `*.txt` changes
