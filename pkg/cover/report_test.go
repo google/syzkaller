@@ -44,13 +44,13 @@ func TestReportGenerator(t *testing.T) {
 			Name:     "no-coverage",
 			CFlags:   []string{"-g"},
 			AddCover: true,
-			Result:   `.* doesn't contain coverage callbacks \(set CONFIG_KCOV=y\)`,
+			Result:   `.* doesn't contain coverage callbacks \(set CONFIG_KCOV=y on linux\)`,
 		},
 		{
 			Name:     "no-debug-info",
 			CFlags:   []string{"-fsanitize-coverage=trace-pc"},
 			AddCover: true,
-			Result:   `failed to parse DWARF.*\(set CONFIG_DEBUG_INFO=y\?\)`,
+			Result:   `failed to parse DWARF.*\(set CONFIG_DEBUG_INFO=y on linux\)`,
 		},
 		{
 			Name:   "no-pcs",
