@@ -23,7 +23,7 @@ for HASH in ${HASHES}; do
 	((COMMITS+=1))
 	SUBJECT=$(git show --format="%s" --no-patch ${HASH})
 	BODY=$(git show --format="%B" --no-patch ${HASH})
-	if ! [[ ${SUBJECT} =~ ^(Revert \"|(([a-z0-9/_.-]+|Makefile|CONTRIBUTORS|README.md)(, )?)+:\ [a-z].+[^.]$) ]]; then
+	if ! [[ ${SUBJECT} =~ ^(Revert \"|(([a-z0-9/_.-]+|Makefile|CONTRIBUTORS|README.md)(, )?)+:\ [^A-Z].+[^.]$) ]]; then
 		echo "##[error]Wrong commit subject format: '${SUBJECT}'.\
  Please use 'main/affected/package: short change description'.\
  See docs/contributing.md for details."
