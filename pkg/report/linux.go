@@ -1325,6 +1325,11 @@ var linuxOopses = append([]*oops{
 					"vmalloc", "slab", "kmem"),
 			},
 			{
+				title: compile("WARNING: .*mm/vmalloc.c.*__vmalloc_node"),
+				fmt:   "WARNING: zero-size vmalloc in %[1]v",
+				stack: warningStackFmt("vmalloc"),
+			},
+			{
 				title: compile("WARNING: .* usb_submit_urb"),
 				fmt:   "WARNING in %[1]v/usb_submit_urb",
 				stack: warningStackFmt("usb_submit_urb", "usb_start_wait_urb", "usb_bulk_msg", "usb_interrupt_msg", "usb_control_msg"),
