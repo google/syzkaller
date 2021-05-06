@@ -89,12 +89,11 @@ static int fault_injected(int fd)
 
 #endif
 
-#if GOOS_openbsd
-
+#if GOOS_openbsd || GOOS_darwin
 #define __syscall syscall
+#endif // GOOS_openbsd || GOOS_darwin
 
-#if SYZ_EXECUTOR || __NR_syz_open_pts
-
+#if GOOS_openbsd && (SYZ_EXECUTOR || __NR_syz_open_pts)
 #include <termios.h>
 #include <util.h>
 
@@ -110,15 +109,18 @@ static uintptr_t syz_open_pts(void)
 		close(master);
 	return slave;
 }
-
-#endif // SYZ_EXECUTOR || __NR_syz_open_pts
-
-#endif // GOOS_openbsd
+#endif // GOOS_openbsd && (SYZ_EXECUTOR || __NR_syz_open_pts)
 
 #if SYZ_EXECUTOR || SYZ_NET_INJECTION
 
 #include <fcntl.h>
+// FIXME(HerrSpace): XNU has xnu/bsd/netinet/if_tun.h, but it's not shipped in
+// the installed header files (probably internal). It's also likely not very
+// interesting, as XNU only ships a tun driver called utun, not tap which is
+// currently required for SYZ_NET_INJECTION anyhow.
+#if !GOOS_darwin
 #include <net/if_tun.h>
+#endif // !GOOS_darwin
 #include <sys/types.h>
 
 static int tunfd = -1;
@@ -269,7 +271,7 @@ static void initialize_tun(int tun_id)
 
 #endif // SYZ_EXECUTOR || SYZ_NET_INJECTION
 
-#if SYZ_EXECUTOR || __NR_syz_emit_ethernet && SYZ_NET_INJECTION
+#if !GOOS_darwin && SYZ_EXECUTOR || __NR_syz_emit_ethernet && SYZ_NET_INJECTION
 #include <stdbool.h>
 #include <sys/uio.h>
 
@@ -287,7 +289,7 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_NET_INJECTION && (__NR_syz_extract_tcp_res || SYZ_REPEAT)
+#if !GOOS_darwin && SYZ_EXECUTOR || SYZ_NET_INJECTION && (__NR_syz_extract_tcp_res || SYZ_REPEAT)
 #include <errno.h>
 
 static int read_tun(char* data, int size)
@@ -305,14 +307,14 @@ static int read_tun(char* data, int size)
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_extract_tcp_res && SYZ_NET_INJECTION
+#if !GOOS_darwin && SYZ_EXECUTOR || __NR_syz_extract_tcp_res && SYZ_NET_INJECTION
 
 struct tcp_resources {
 	uint32 seq;
 	uint32 ack;
 };
 
-#if GOOS_freebsd
+#if GOOS_freebsd || GOOS_darwin
 #include <net/ethernet.h>
 #else
 #include <net/ethertypes.h>

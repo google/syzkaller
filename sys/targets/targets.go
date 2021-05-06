@@ -334,12 +334,17 @@ var List = map[string]map[string]*Target{
 	},
 	Darwin: {
 		AMD64: {
-			PtrSize:           8,
-			PageSize:          4 << 10,
-			DataOffset:        512 << 24,
-			LittleEndian:      true,
-			CCompiler:         "clang",
-			CFlags:            []string{"-m64"},
+			PtrSize:      8,
+			PageSize:     4 << 10,
+			DataOffset:   512 << 24,
+			LittleEndian: true,
+			CCompiler:    "clang",
+			CFlags: []string{
+				"-m64",
+				"-I", sourceDirVar + "/san",
+				// FIXME(HerrSpace): syscall was marked as deprecated on macos
+				"-Wno-deprecated-declarations",
+			},
 			NeedSyscallDefine: dontNeedSyscallDefine,
 		},
 	},

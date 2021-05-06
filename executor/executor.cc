@@ -213,6 +213,19 @@ struct cover_t {
 	uint32 size;
 	char* data;
 	char* data_end;
+	// Note: On everything but darwin the first value in data is the count of
+	// recorded PCs, followed by the PCs. We therefore set data_offset to the
+	// size of one PC.
+	// On darwin data points to an instance of the ksancov_trace struct. Here we
+	// set data_offset to the offset between data and the structs 'pcs' member,
+	// which contains the PCs.
+	intptr_t data_offset;
+	// Note: On everything but darwin this is 0, as the PCs contained in data
+	// are already correct. XNUs KSANCOV API, however, chose to always squeeze
+	// PCs into 32 bit. To make the recorded PC fit, KSANCOV substracts a fixed
+	// offset (VM_MIN_KERNEL_ADDRESS for AMD64) and then truncates the result to
+	// uint32_t. We get this from the 'offset' member in ksancov_trace.
+	intptr_t pc_offset;
 };
 
 struct thread_t {
@@ -356,6 +369,8 @@ static void setup_features(char** enable, int n);
 #include "executor_akaros.h"
 #elif GOOS_freebsd || GOOS_netbsd || GOOS_openbsd
 #include "executor_bsd.h"
+#elif GOOS_darwin
+#include "executor_darwin.h"
 #elif GOOS_windows
 #include "executor_windows.h"
 #elif GOOS_test
@@ -895,12 +910,12 @@ void write_coverage_signal(cover_t* cov, uint32* signal_count_pos, uint32* cover
 {
 	// Write out feedback signals.
 	// Currently it is code edges computed as xor of two subsequent basic block PCs.
-	cover_data_t* cover_data = ((cover_data_t*)cov->data) + 1;
+	cover_data_t* cover_data = (cover_data_t*)(cov->data + cov->data_offset);
 	uint32 nsig = 0;
 	cover_data_t prev_pc = 0;
 	bool prev_filter = true;
 	for (uint32 i = 0; i < cov->size; i++) {
-		cover_data_t pc = cover_data[i];
+		cover_data_t pc = cover_data[i] + cov->pc_offset;
 		uint32 sig = pc;
 		if (use_cover_edges(pc))
 			sig ^= hash(prev_pc);
@@ -932,7 +947,7 @@ void write_coverage_signal(cover_t* cov, uint32* signal_count_pos, uint32* cover
 	// Truncate PCs to uint32 assuming that they fit into 32-bits.
 	// True for x86_64 and arm64 without KASLR.
 	for (uint32 i = 0; i < cover_size; i++)
-		write_output(cover_data[i]);
+		write_output(cover_data[i] + cov->pc_offset);
 	*cover_count_pos = cover_size;
 }
 #endif
@@ -1098,6 +1113,8 @@ void thread_create(thread_t* th, int id)
 	th->created = true;
 	th->id = id;
 	th->executing = false;
+	th->cov.data_offset = is_kernel_64_bit ? sizeof(uint64_t) : sizeof(uint32_t);
+	th->cov.pc_offset = 0;
 	event_init(&th->ready);
 	event_init(&th->done);
 	event_set(&th->done);
