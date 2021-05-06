@@ -17,6 +17,13 @@
 
 #if GOOS_freebsd || GOOS_test && HOSTGOOS_freebsd
 #include <sys/endian.h> // for htobe*.
+#elif GOOS_darwin
+#include <libkern/OSByteOrder.h>
+#define htobe16(x) OSSwapHostToBigInt16(x)
+#define htobe32(x) OSSwapHostToBigInt32(x)
+#define htobe64(x) OSSwapHostToBigInt64(x)
+#define le16toh(x) OSSwapLittleToHostInt16(x)
+#define htole16(x) OSSwapHostToLittleInt16(x)
 #elif GOOS_windows
 #define htobe16 _byteswap_ushort
 #define htobe32 _byteswap_ulong
@@ -51,7 +58,7 @@ NORETURN void doexit(int status)
 #if SYZ_EXECUTOR || SYZ_MULTI_PROC || SYZ_REPEAT && SYZ_CGROUPS ||         \
     SYZ_NET_DEVICES || __NR_syz_mount_image || __NR_syz_read_part_table || \
     __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k ||                  \
-    (GOOS_freebsd || GOOS_openbsd || GOOS_netbsd) && SYZ_NET_INJECTION
+    (GOOS_freebsd || GOOS_darwin || GOOS_openbsd || GOOS_netbsd) && SYZ_NET_INJECTION
 static unsigned long long procid;
 #endif
 
@@ -208,7 +215,7 @@ static void use_temporary_dir(void)
 #endif
 #endif
 
-#if GOOS_akaros || GOOS_netbsd || GOOS_freebsd || GOOS_openbsd || GOOS_test
+#if GOOS_akaros || GOOS_netbsd || GOOS_freebsd || GOOS_darwin || GOOS_openbsd || GOOS_test
 #if (SYZ_EXECUTOR || SYZ_REPEAT) && SYZ_EXECUTOR_USES_FORK_SERVER && (SYZ_EXECUTOR || SYZ_USE_TMP_DIR)
 #include <dirent.h>
 #include <errno.h>
@@ -311,7 +318,7 @@ static void thread_start(void* (*fn)(void*), void* arg)
 #endif
 #endif
 
-#if GOOS_freebsd || GOOS_netbsd || GOOS_openbsd || GOOS_akaros || GOOS_test
+#if GOOS_freebsd || GOOS_darwin || GOOS_netbsd || GOOS_openbsd || GOOS_akaros || GOOS_test
 #if SYZ_EXECUTOR || SYZ_THREADED
 
 #include <pthread.h>
@@ -428,7 +435,7 @@ static uint16 csum_inet_digest(struct csum_inet* csum)
 
 #if GOOS_akaros
 #include "common_akaros.h"
-#elif GOOS_freebsd || GOOS_netbsd || GOOS_openbsd
+#elif GOOS_freebsd || GOOS_darwin || GOOS_netbsd || GOOS_openbsd
 #include "common_bsd.h"
 #elif GOOS_fuchsia
 #include "common_fuchsia.h"
@@ -442,7 +449,7 @@ static uint16 csum_inet_digest(struct csum_inet* csum)
 #error "unknown OS"
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_execute_func
+#if !GOOS_darwin && SYZ_EXECUTOR || __NR_syz_execute_func
 // syz_execute_func(text ptr[in, text[taget]])
 static long syz_execute_func(volatile long text)
 {
