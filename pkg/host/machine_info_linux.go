@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -22,7 +21,7 @@ func init() {
 		{"KVM", readKVMInfo},
 	}
 	machineModulesInfo = getModulesInfo
-	machineDirsInfo = getDirsInfo
+	machineGlobsInfo = getGlobsInfo
 }
 
 func readCPUInfo(buffer *bytes.Buffer) error {
@@ -143,41 +142,15 @@ func getModulesInfo() ([]KernelModule, error) {
 	return modules, nil
 }
 
-func getDirsInfo() ([]string, error) {
-	excludeFiles := []string{
-		"/proc/sysrq-trigger",
-	}
-	var files []string
-	err := filepath.WalkDir("/proc", func(path string, d fs.DirEntry, err error) error {
-		if d != nil && !d.IsDir() {
-			files = append(files, path)
+func getGlobsInfo(globs []string) (map[string][]string, error) {
+	files := make(map[string][]string, len(globs))
+	for _, glob := range globs {
+		matches, err := filepath.Glob(glob)
+		if err != nil {
+			return nil, err
 		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
+		files[glob] = matches
 	}
-	err = filepath.WalkDir("/sys", func(path string, d fs.DirEntry, err error) error {
-		if !d.IsDir() {
-			files = append(files, path)
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	for _, file := range excludeFiles {
-		removeFromSlice(files, file)
-	}
-	return files, nil
-}
 
-func removeFromSlice(items []string, match string) []string {
-	for i, item := range items {
-		if item == match {
-			items[i] = items[len(items)-1]
-			return items[:len(items)-1]
-		}
-	}
-	return items
+	return files, nil
 }

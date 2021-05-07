@@ -11,7 +11,6 @@ type Prog struct {
 	Target   *Target
 	Calls    []*Call
 	Comments []string
-	Files    []string
 }
 
 type Call struct {

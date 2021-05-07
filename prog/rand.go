@@ -268,25 +268,6 @@ func (r *randGen) filename(s *state, typ *BufferType) string {
 	return fn
 }
 
-func (r *randGen) filenameInDir(s *state, typ *BufferType) string {
-	if len(typ.Values) == 0 {
-		return ""
-	}
-	prefix := typ.Values[0]
-	var files []string
-	for _, f := range s.listFiles {
-		if strings.HasPrefix(f, prefix) {
-			files = append(files, f)
-		}
-	}
-	size := len(files)
-	if size != 0 {
-		i := r.Intn(size)
-		return files[i]
-	}
-	return prefix
-}
-
 func escapingFilename(file string) bool {
 	file = filepath.Clean(file)
 	return len(file) >= 1 && file[0] == '/' ||
@@ -401,7 +382,6 @@ func (r *randGen) createResource(s *state, res *ResourceType, dir Dir) (arg Arg,
 		meta := metas[r.Intn(len(metas))]
 		calls := r.generateParticularCall(s, meta)
 		s1 := newState(r.target, s.ct, nil)
-		s1.listFiles = s.listFiles
 		s1.analyze(calls[len(calls)-1])
 		// Now see if we have what we want.
 		var allres []*ResultArg
@@ -754,8 +734,8 @@ func (a *BufferType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*
 			return MakeOutDataArg(a, dir, sz), nil
 		}
 		return MakeDataArg(a, dir, []byte(r.filename(s, a))), nil
-	case BufferDirname:
-		return MakeDataArg(a, dir, []byte(r.filenameInDir(s, a))), nil
+	case BufferGlob:
+		return MakeDataArg(a, dir, r.randString(s, a)), nil
 	case BufferText:
 		if dir == DirOut {
 			return MakeOutDataArg(a, dir, uint64(r.Intn(100))), nil
@@ -827,15 +807,6 @@ func (a *UnionType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*C
 }
 
 func (a *PtrType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
-	switch t := a.Elem.(type) {
-	case *BufferType:
-		switch t.Kind {
-		case BufferDirname:
-			inner, calls := r.generateArg(s, a.Elem, a.ElemDir)
-			arg = r.allocAddr(s, a, dir, inner.Size(), inner)
-			return arg, calls
-		}
-	}
 	if r.oneOf(1000) {
 		index := r.rand(len(r.target.SpecialPointers))
 		return MakeSpecialPointerArg(a, dir, index), nil

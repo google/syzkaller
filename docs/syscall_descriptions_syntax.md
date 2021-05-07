@@ -9,7 +9,7 @@ arg = argname type
 argname = identifier
 type = typename [ "[" type-options "]" ]
 typename = "const" | "intN" | "intptr" | "flags" | "array" | "ptr" |
-	   "string" | "strconst" | "filename" | "dirname" | "len" |
+	   "string" | "strconst" | "filename" | "glob" | "len" |
 	   "bytesize" | "bytesizeN" | "bitsize" | "vma" | "proc"
 type-options = [type-opt ["," type-opt]]
 ```
@@ -38,11 +38,12 @@ rest of the type-options are type-specific:
 "string": a zero-terminated memory buffer (no pointer indirection implied), type-options:
 	either a string value in quotes for constant strings (e.g. "foo" or `deadbeef` for hex literal),
 	or a reference to string flags (special value `filename` produces file names),
-        or a dirname prefix to pick random file from vm,
 	optionally followed by a buffer size (string values will be padded with \x00 to that size)
 "stringnoz": a non-zero-terminated memory buffer (no pointer indirection implied), type-options:
 	either a string value in quotes for constant strings (e.g. "foo" or `deadbeef` for hex literal),
 	or a reference to string flags,
+"glob": glob pattern to match on target files, type-options:
+	a zero-terminated glob pattern string in quotes (e.g. "/sys/" or `/sys/**/*` for glob match),
 "fmt": a string representation of an integer (not zero-terminated), type-options:
 	format (one of "dec", "hex", "oct") and the value (a resource, int, flags, const or proc)
 	the resulting data is always fixed-size (formatted as "%020llu", "0x%016llx" or "%023llo", respectively)

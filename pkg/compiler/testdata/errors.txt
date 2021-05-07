@@ -334,6 +334,11 @@ foo$210(a ptr[in, templ11[0, 1, int8]])		### template templ11 needs 2 arguments 
 foo$211(a ptr[in, templ9])			### template templ9 needs 1 arguments instead of 0
 foo$212(a ptr[in, templ11[1]])			### template templ11 needs 2 arguments instead of 1
 
+foo$glob001(a ptr[in, glob[1]])			### unexpected int 1, string arg must be a string literal or string flags
+foo$glob002(a ptr[in, glob])			### glob only accepts 1 arg, provided 0
+foo$glob003(a ptr[in, glob["/sys", 5]])		### glob only accepts 1 arg, provided 2
+foo$glob004(a ptr[in, glob["/sys", 5, 2]])	### wrong number of arguments for type glob, expect [literal or flags], [size], [opt]
+
 # fmt
 
 foo$fmt0(a ptr[in, fmt])			### wrong number of arguments for type fmt, expect format, value

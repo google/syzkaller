@@ -252,6 +252,9 @@ foo_templ9(a ptr[in, templ_base3[int64]])
 foo_templ10(a ptr[in, templ_base4[int8]])
 foo_templ11(a ptr[in, templ_base5[42, int8]])
 
+foo_glob0(a ptr[in, glob["/sys/"]])
+foo_glob1(a ptr[in, glob["/sys/**/*"]])
+
 # Structs.
 
 s0 {

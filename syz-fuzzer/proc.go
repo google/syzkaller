@@ -32,7 +32,6 @@ type Proc struct {
 	execOptsCover     *ipc.ExecOpts
 	execOptsComps     *ipc.ExecOpts
 	execOptsNoCollide *ipc.ExecOpts
-	files             []string
 }
 
 func newProc(fuzzer *Fuzzer, pid int) (*Proc, error) {
@@ -87,14 +86,12 @@ func (proc *Proc) loop() {
 		fuzzerSnapshot := proc.fuzzer.snapshot()
 		if len(fuzzerSnapshot.corpus) == 0 || i%generatePeriod == 0 {
 			// Generate a new prog.
-			proc.fuzzer.target.Files = proc.files
 			p := proc.fuzzer.target.Generate(proc.rnd, prog.RecommendedCalls, ct)
 			log.Logf(1, "#%v: generated", proc.pid)
 			proc.execute(proc.execOpts, p, ProgNormal, StatGenerate)
 		} else {
 			// Mutate an existing prog.
 			p := fuzzerSnapshot.chooseProgram(proc.rnd).Clone()
-			p.Files = proc.files
 			p.Mutate(proc.rnd, prog.RecommendedCalls, ct, fuzzerSnapshot.corpus)
 			log.Logf(1, "#%v: mutated", proc.pid)
 			proc.execute(proc.execOpts, p, ProgNormal, StatFuzz)
@@ -213,7 +210,6 @@ func (proc *Proc) smashInput(item *WorkSmash) {
 	fuzzerSnapshot := proc.fuzzer.snapshot()
 	for i := 0; i < 100; i++ {
 		p := item.p.Clone()
-		p.Files = proc.files
 		p.Mutate(proc.rnd, prog.RecommendedCalls, proc.fuzzer.choiceTable, fuzzerSnapshot.corpus)
 		log.Logf(1, "#%v: smash mutated", proc.pid)
 		proc.execute(proc.execOpts, p, ProgNormal, StatSmash)

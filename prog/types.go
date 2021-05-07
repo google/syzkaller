@@ -481,7 +481,7 @@ const (
 	BufferString
 	BufferFilename
 	BufferText
-	BufferDirname
+	BufferGlob
 )
 
 type TextKind int

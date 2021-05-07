@@ -178,7 +178,6 @@ func (ctx *mutator) mutateArg() bool {
 			return false
 		}
 		s := analyze(ctx.ct, ctx.corpus, p, c)
-		s.listFiles = p.Files
 		arg, argCtx := ma.chooseArg(r.Rand)
 		calls, ok1 := p.Target.mutateArg(r, s, arg, argCtx, &updateSizes)
 		if !ok1 {
@@ -350,8 +349,12 @@ func (t *BufferType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []
 		}
 	case BufferFilename:
 		a.data = []byte(r.filename(s, t))
-	case BufferDirname:
-		a.data = []byte(r.filenameInDir(s, t))
+	case BufferGlob:
+		if len(t.Values) != 0 {
+			a.data = r.randString(s, t)
+		} else {
+			a.data = []byte(r.filename(s, t))
+		}
 	case BufferText:
 		data := append([]byte{}, a.Data()...)
 		a.data = r.mutateText(t.Text, data)

@@ -853,7 +853,7 @@ func encodeData(buf *bytes.Buffer, data []byte, readable, cstr bool) {
 }
 
 func isReadableDataType(typ *BufferType) bool {
-	return typ.Kind == BufferString || typ.Kind == BufferFilename || typ.Kind == BufferDirname
+	return typ.Kind == BufferString || typ.Kind == BufferFilename || typ.Kind == BufferGlob
 }
 
 func isReadableData(data []byte) bool {

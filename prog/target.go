@@ -69,8 +69,6 @@ type Target struct {
 	// The default ChoiceTable is used only by tests and utilities, so we initialize it lazily.
 	defaultOnce        sync.Once
 	defaultChoiceTable *ChoiceTable
-
-	Files []string
 }
 
 const maxSpecialPointers = 16
@@ -227,6 +225,31 @@ func (target *Target) DefaultChoiceTable() *ChoiceTable {
 		target.defaultChoiceTable = target.BuildChoiceTable(nil, nil)
 	})
 	return target.defaultChoiceTable
+}
+
+func (target *Target) GetGlobs() []string {
+	var globs []string
+	ForeachType(target.Syscalls, func(typ Type, ctx TypeCtx) {
+		switch a := typ.(type) {
+		case *BufferType:
+			if a.Kind == BufferGlob && a.SubKind != "" {
+				globs = append(globs, a.SubKind)
+			}
+		}
+	})
+
+	return globs
+}
+
+func (target *Target) UpdateGlobFilesForType(globFiles map[string][]string) {
+	ForeachType(target.Syscalls, func(typ Type, ctx TypeCtx) {
+		switch a := typ.(type) {
+		case *BufferType:
+			if a.Kind == BufferGlob && a.SubKind != "" {
+				a.Values = globFiles[a.SubKind]
+			}
+		}
+	})
 }
 
 type Gen struct {

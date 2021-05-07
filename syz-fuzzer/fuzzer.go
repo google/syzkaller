@@ -179,7 +179,7 @@ func main() {
 		return
 	}
 
-	machineInfo, modules, files := collectMachineInfo()
+	machineInfo, modules := collectMachineInfos(target)
 
 	log.Logf(0, "dialing manager at %v", *flagManager)
 	manager, err := rpctype.NewRPCClient(*flagManager, timeouts.Scale)
@@ -284,7 +284,6 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to create proc: %v", err)
 		}
-		proc.files = files
 		fuzzer.procs = append(fuzzer.procs, proc)
 		go proc.loop()
 	}
@@ -292,7 +291,7 @@ func main() {
 	fuzzer.pollLoop()
 }
 
-func collectMachineInfo() ([]byte, []host.KernelModule, []string) {
+func collectMachineInfos(target *prog.Target) ([]byte, []host.KernelModule) {
 	machineInfo, err := host.CollectMachineInfo()
 	if err != nil {
 		log.Fatalf("failed to collect machine information: %v", err)
@@ -301,12 +300,18 @@ func collectMachineInfo() ([]byte, []host.KernelModule, []string) {
 	if err != nil {
 		log.Fatalf("failed to collect modules info: %v", err)
 	}
-	files, err := host.CollectDirsInfo()
-	if err != nil {
-		log.Fatalf("faield to collect files info: %v", err)
+
+	var globFiles map[string][]string
+	globs := target.GetGlobs()
+	if len(globs) != 0 {
+		globFiles, err = host.CollectGlobsInfo(globs)
+		if err != nil {
+			log.Fatalf("faield to collect globFiles info: %v", err)
+		}
+		target.UpdateGlobFilesForType(globFiles)
 	}
 
-	return machineInfo, modules, files
+	return machineInfo, modules
 }
 
 // Returns gateCallback for leak checking if enabled.

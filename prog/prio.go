@@ -97,14 +97,12 @@ func (target *Target) calcResourceUsage() map[string]map[int]weights {
 		case *BufferType:
 			switch a.Kind {
 			case BufferBlobRand, BufferBlobRange, BufferText:
-			case BufferString:
+			case BufferString, BufferGlob:
 				if a.SubKind != "" {
 					noteUsage(uses, c, 2, ctx.Dir, fmt.Sprintf("str-%v", a.SubKind))
 				}
 			case BufferFilename:
 				noteUsage(uses, c, 10, DirIn, "filename")
-			case BufferDirname:
-				noteUsage(uses, c, 10, ctx.Dir, "dirname")
 			default:
 				panic("unknown buffer kind")
 			}
