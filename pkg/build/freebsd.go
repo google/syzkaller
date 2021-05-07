@@ -82,6 +82,8 @@ tcp_rack_load="YES"
 sem_load="YES"
 mqueuefs_load="YES"
 cryptodev_load="YES"
+
+kern.ipc.tls.enable="1"
 __EOF__
 
 cat | sudo tee -a ${tmpdir}/etc/sysctl.conf <<__EOF__
