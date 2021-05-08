@@ -1,0 +1,18 @@
+# Copyright 2021 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <fcntl.h>
+include <sys/mman.h>
+
+resource fd[int32]: 0xffffffffffffffff, AT_FDCWD
+
+open(file ptr[in, filename], flags flags[open_flags]) fd
+close(fd fd)
+mmap(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd, offset fileoff)
+munmap(addr vma, len len[addr])
+mknod(file ptr[in, filename], mode flags[mknod_mode], dev int32)
+
+open_flags = O_RDONLY
+mmap_prot = PROT_EXEC, PROT_READ, PROT_WRITE
+mmap_flags = MAP_ANONYMOUS, MAP_ANON, MAP_FILE, MAP_FIXED, MAP_HASSEMAPHORE, MAP_PRIVATE, MAP_SHARED, MAP_NOCACHE, MAP_JIT, MAP_32BIT
+mknod_mode = S_IFREG, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK
