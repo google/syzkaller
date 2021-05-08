@@ -116,6 +116,7 @@ type Timeouts struct {
 const (
 	Akaros  = "akaros"
 	FreeBSD = "freebsd"
+	Darwin  = "darwin"
 	Fuchsia = "fuchsia"
 	Linux   = "linux"
 	NetBSD  = "netbsd"
@@ -331,6 +332,17 @@ var List = map[string]map[string]*Target{
 			},
 		},
 	},
+	Darwin: {
+		AMD64: {
+			PtrSize:           8,
+			PageSize:          4 << 10,
+			DataOffset:        512 << 24,
+			LittleEndian:      true,
+			CCompiler:         "clang",
+			CFlags:            []string{"-m64"},
+			NeedSyscallDefine: dontNeedSyscallDefine,
+		},
+	},
 	NetBSD: {
 		AMD64: {
 			PtrSize:      8,
@@ -446,6 +458,28 @@ var oses = map[string]osCommon{
 		ExecutorUsesForkServer: true,
 		KernelObject:           "kernel.full",
 		CPP:                    "g++",
+		cflags:                 []string{"-static", "-lc++"},
+	},
+	Darwin: {
+		SyscallNumbers:   true,
+		Int64SyscallArgs: true,
+		SyscallPrefix:    "SYS_",
+		// Note: Seems like darwin really doesn't like MAP_FIXED. Every once in
+		// a while the mmap will fail, causing syz-manager to restart the VM. I
+		// tried mmaping in a loop on linux and darwin. On linux the mmap
+		// always works. On darwin it returns an error in bursts. It used to be
+		// pretty frequent, but now it's so seldom I just ignore it. Beware.
+		ExecutorUsesShmem: true,
+		// FIXME(HerrSpace): ForkServer is b0rked in a peculiar way. I did some
+		// printf debugging in parseOutput in ipc.go. It usually works for a
+		// few executions. Eventually the reported ncmd stops making sense and
+		// the resulting replies are partially garbage. I also looked at the
+		// executor side of things, but that's harder to track as we are just
+		// banging bytes in the shmem there and don't use structs like on the
+		// go side.
+		ExecutorUsesForkServer: false,
+		KernelObject:           "kernel.kasan",
+		CPP:                    "clang++",
 		cflags:                 []string{"-static", "-lc++"},
 	},
 	NetBSD: {
