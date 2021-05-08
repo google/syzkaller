@@ -128,6 +128,7 @@ func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
 		{targets.OpenBSD, []string{targets.AMD64}, []string{"gce", "vmm"}, openbsd{}},
 		{targets.NetBSD, []string{targets.AMD64}, []string{"gce", "qemu"}, netbsd{}},
 		{targets.FreeBSD, []string{targets.AMD64}, []string{"gce", "qemu"}, freebsd{}},
+		{targets.Darwin, []string{targets.AMD64}, []string{"qemu"}, darwin{}},
 		{targets.TestOS, []string{targets.TestArch64}, []string{"qemu"}, test{}},
 	}
 	for _, s := range supported {
