@@ -28,6 +28,9 @@ const (
 func createCommonHeader(p, mmapProg *prog.Prog, replacements map[string]string, opts Options) ([]byte, error) {
 	defines := defineList(p, mmapProg, opts)
 	sysTarget := targets.Get(p.Target.OS, p.Target.Arch)
+	// TODO(HerrSpace): -fdirectives-only isn't supported by clang. This code
+	// is relevant for producing C reproducers. Hence that doesn't work for
+	// darwin at the moment.
 	cmd := osutil.Command(sysTarget.CPP, "-nostdinc", "-undef", "-fdirectives-only", "-dDI", "-E", "-P", "-")
 	for _, def := range defines {
 		cmd.Args = append(cmd.Args, "-D"+def)
