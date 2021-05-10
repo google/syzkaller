@@ -39,6 +39,8 @@ type Report struct {
 	Type Type
 	// The indicative function name.
 	Frame string
+	// Stack frames extracted from the log
+	Frames []string
 	// Report contains whole oops text.
 	Report []byte
 	// Output contains whole raw console output as passed to Reporter.Parse.
@@ -408,7 +410,7 @@ func matchOops(line []byte, oops *oops, ignores []*regexp.Regexp) bool {
 }
 
 func extractDescription(output []byte, oops *oops, params *stackParams) (
-	desc, corrupted string, altTitles []string, format oopsFormat) {
+	desc, corrupted string, altTitles []string, frames []string, format oopsFormat) {
 	startPos := len(output)
 	matchedTitle := false
 	for _, f := range oops.formats {
@@ -438,7 +440,7 @@ func extractDescription(output []byte, oops *oops, params *stackParams) (
 		corrupted = ""
 		if f.stack != nil {
 			frame := ""
-			frame, corrupted = extractStackFrame(params, f.stack, output[match[0]:])
+			frame, corrupted, frames = extractStackFrame(params, f.stack, output[match[0]:])
 			if frame == "" {
 				frame = "corrupted"
 				if corrupted == "" {
@@ -493,7 +495,7 @@ type stackParams struct {
 	stripFramePrefixes []string
 }
 
-func extractStackFrame(params *stackParams, stack *stackFmt, output []byte) (string, string) {
+func extractStackFrame(params *stackParams, stack *stackFmt, output []byte) (string, string, []string) {
 	skip := append([]string{}, params.skipPatterns...)
 	skip = append(skip, stack.skip...)
 	var skipRe *regexp.Regexp
@@ -506,15 +508,15 @@ func extractStackFrame(params *stackParams, stack *stackFmt, output []byte) (str
 			return frames[0], ""
 		}
 	}
-	frame, corrupted := extractStackFrameImpl(params, output, skipRe, stack.parts, extractor)
+	frame, corrupted, frames := extractStackFrameImpl(params, output, skipRe, stack.parts, extractor)
 	if frame != "" || len(stack.parts2) == 0 {
-		return frame, corrupted
+		return frame, corrupted, frames
 	}
 	return extractStackFrameImpl(params, output, skipRe, stack.parts2, extractor)
 }
 
 func extractStackFrameImpl(params *stackParams, output []byte, skipRe *regexp.Regexp,
-	parts []*regexp.Regexp, extractor frameExtractor) (string, string) {
+	parts []*regexp.Regexp, extractor frameExtractor) (string, string, []string) {
 	s := bufio.NewScanner(bytes.NewReader(output))
 	var frames []string
 nextPart:
@@ -553,9 +555,11 @@ nextPart:
 		}
 	}
 	if len(frames) == 0 {
-		return "", corruptedNoFrames
+		return "", corruptedNoFrames, frames
 	}
-	return extractor(frames)
+	// directly return "extractor(frames), frames" does not match golang syntax
+	frame, corrupted := extractor(frames)
+	return frame, corrupted, frames
 }
 
 func appendStackFrame(frames []string, match [][]byte, params *stackParams, skipRe *regexp.Regexp) []string {
@@ -604,7 +608,7 @@ func simpleLineParser(output []byte, oopses []*oops, params *stackParams, ignore
 	if oops == nil {
 		return nil
 	}
-	title, corrupted, altTitles, _ := extractDescription(output[rep.StartPos:], oops, params)
+	title, corrupted, altTitles, _, _ := extractDescription(output[rep.StartPos:], oops, params)
 	rep.Title = title
 	rep.AltTitles = altTitles
 	rep.Report = output[rep.StartPos:]
