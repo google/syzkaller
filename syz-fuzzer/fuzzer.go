@@ -457,10 +457,30 @@ func (fuzzer *Fuzzer) deserializeInput(inp []byte) *prog.Prog {
 	if err != nil {
 		log.Fatalf("failed to deserialize prog: %v\n%s", err, inp)
 	}
+	fuzzer.checkDisabledCalls(p)
 	if len(p.Calls) > prog.MaxCalls {
 		return nil
 	}
 	return p
+}
+
+func (fuzzer *Fuzzer) checkDisabledCalls(p *prog.Prog) {
+	for _, call := range p.Calls {
+		if !fuzzer.choiceTable.Enabled(call.Meta.ID) {
+			fmt.Printf("executing disabled syscall %v [%v]\n", call.Meta.Name, call.Meta.ID)
+			sandbox := ipc.FlagsToSandbox(fuzzer.config.Flags)
+			fmt.Printf("check result for sandbox=%v:\n", sandbox)
+			for _, id := range fuzzer.checkResult.EnabledCalls[sandbox] {
+				meta := fuzzer.target.Syscalls[id]
+				fmt.Printf("  %v [%v]\n", meta.Name, meta.ID)
+			}
+			fmt.Printf("choice table:\n")
+			for i, meta := range fuzzer.target.Syscalls {
+				fmt.Printf("  #%v: %v [%v]: enabled=%v\n", i, meta.Name, meta.ID, fuzzer.choiceTable.Enabled(meta.ID))
+			}
+			panic("disabled syscall")
+		}
+	}
 }
 
 func (fuzzer *FuzzerSnapshot) chooseProgram(r *rand.Rand) *prog.Prog {
