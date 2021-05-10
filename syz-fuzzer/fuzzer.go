@@ -457,7 +457,11 @@ func (fuzzer *Fuzzer) deserializeInput(inp []byte) *prog.Prog {
 	if err != nil {
 		log.Fatalf("failed to deserialize prog: %v\n%s", err, inp)
 	}
-	fuzzer.checkDisabledCalls(p)
+	// We build choice table only after we received the initial corpus,
+	// so we don't check the initial corpus here, we check it later in BuildChoiceTable.
+	if fuzzer.choiceTable != nil {
+		fuzzer.checkDisabledCalls(p)
+	}
 	if len(p.Calls) > prog.MaxCalls {
 		return nil
 	}
