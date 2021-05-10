@@ -80,11 +80,18 @@ func generateProg(t *testing.T, target *Target, rs rand.Source, ct *ChoiceTable,
 // Checks that a generated program contains only enabled syscalls.
 func TestEnabledCalls(t *testing.T) {
 	target, rs, iters := initTest(t)
-	enabledCalls := map[string]bool{"open": true, "read": true, "dup3": true, "write": true, "close": true}
+	enabledCalls := make(map[string]bool)
 	enabled := make(map[*Syscall]bool)
-	for c := range enabledCalls {
-		enabled[target.SyscallMap[c]] = true
+	rnd := rand.New(rs)
+	for i := 0; i < len(target.Syscalls)/10; i++ {
+		c := target.Syscalls[rnd.Intn(len(target.Syscalls))]
+		enabled[c] = true
+		enabledCalls[c.Name] = true
 	}
+	c := target.SyscallMap["clock_gettime"]
+	enabled[c] = true
+	enabledCalls[c.Name] = true
+
 	ct := target.BuildChoiceTable(nil, enabled)
 	const tries = 10
 	for i := 0; i < tries; i++ {
