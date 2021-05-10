@@ -39,7 +39,7 @@ type Report struct {
 	Type Type
 	// The indicative function name.
 	Frame string
-	// Stack frames extracted from the log
+	// Stack frames extracted from the log.
 	Frames []string
 	// Report contains whole oops text.
 	Report []byte
@@ -557,7 +557,7 @@ nextPart:
 	if len(frames) == 0 {
 		return "", corruptedNoFrames, frames
 	}
-	// directly return "extractor(frames), frames" does not match golang syntax
+	// Directly returning "extractor(frames), frames" does not match golang syntax
 	frame, corrupted := extractor(frames)
 	return frame, corrupted, frames
 }
