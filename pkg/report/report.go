@@ -557,7 +557,7 @@ nextPart:
 	if len(frames) == 0 {
 		return "", corruptedNoFrames, frames
 	}
-	// Directly returning "extractor(frames), frames" does not match golang syntax
+	// Directly returning "extractor(frames), frames" does not match golang syntax.
 	frame, corrupted := extractor(frames)
 	return frame, corrupted, frames
 }
