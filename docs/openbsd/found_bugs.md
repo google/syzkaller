@@ -6,6 +6,20 @@ mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/ope
 
 Newer bugs comes first.
 
+- [tun(4): leaking device references](https://marc.info/?l=openbsd-cvs&m=161532031720186&w=2)
+
+- [pf(4): incorrect handling of overlapping fragments](https://marc.info/?l=openbsd-cvs&m=161399910228130&w=2 ) [ERRATA-68-014](https://ftp.openbsd.org/pub/OpenBSD/patches/6.8/common/014_pffrag.patch.sig)
+
+- [if_addgroup(9): double free of interface groups](https://marc.info/?l=openbsd-cvs&m=161296812703484&w=2)
+
+- [pf(4): `pfsync_state_import()` cannot be called with the pf state lock held](https://marc.info/?l=openbsd-cvs&m=161291389116274&w=2)
+
+- [pty(4): vnode handling regression](https://marc.info/?l=openbsd-cvs&m=161244556906196&w=2)
+
+- [kqueue: too strict assertion](https://marc.info/?l=openbsd-cvs&m=161171631607161&w=2)
+
+- [pflog(4): NULL pointer dereference](https://marc.info/?l=openbsd-cvs&m=161118513631692&w=2)
+
 - [pflog(4): construction of corrupted mbufs](https://marc.info/?l=openbsd-cvs&m=161109496230236&w=2)
 
 - [sosplice(9): stack overflow while handling broadcast packets](https://marc.info/?l=openbsd-cvs&m=161020414013356&w=2)
