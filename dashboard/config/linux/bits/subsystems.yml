@@ -196,7 +196,7 @@ config:
  - NETFILTER_INGRESS
  - NETFILTER_ADVANCED
  - NF_CONNTRACK
- - NF_LOG_NETDEV: [-linux-next]
+ - NF_LOG_NETDEV: [-v5.13]
  - NETWORK_SECMARK
  - NF_CONNTRACK_SECMARK
  - NF_CONNTRACK_ZONES
@@ -707,7 +707,7 @@ config:
  - USB4: [v5.5]
  - USB4_NET: [v5.5]
  - NETDEVSIM
- - INPUT_POLLDEV: [-v5.11, -linux-next]
+ - INPUT_POLLDEV: [-v5.11]
  - INPUT_MOUSEDEV
  - INPUT_MOUSEDEV_PSAUX
  - INPUT_JOYDEV
@@ -729,11 +729,11 @@ config:
  - SERIAL_8250_RSA: [-s390]
  - SERIAL_NONSTANDARD
  # Removed in "tty: rocket, remove the driver".
- - ROCKETPORT: [-linux-next]
+ - ROCKETPORT: [-v5.13]
  # Removed in "tty: cyclades, remove this orphan".
- - CYCLADES: [-linux-next]
+ - CYCLADES: [-v5.13]
  # Removed in "tty: isicom, remove this orphan".
- - ISI: [-linux-next]
+ - ISI: [-v5.13]
  - N_HDLC
  - N_GSM
  - NOZOMI
@@ -807,7 +807,7 @@ config:
  - SND_DUMMY
  - SND_ALOOP
  - SND_VIRMIDI
- - SND_VIRTIO: [linux-next]
+ - SND_VIRTIO: [v5.13]
  - SND_HDA_INTEL
  - SND_HDA_HWDEP
  - SND_HDA_INPUT_BEEP
@@ -921,7 +921,7 @@ config:
  - VIRTIO_MMIO
  - VIRTIO_MMIO_CMDLINE_DEVICES
  - VDPA: [v5.5]
- - VP_VDPA: [linux-next]
+ - VP_VDPA: [v5.13]
  - VHOST_NET
  - VHOST_VSOCK
  - VHOST_VDPA: [v5.5]

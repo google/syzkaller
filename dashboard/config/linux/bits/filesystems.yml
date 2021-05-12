@@ -81,8 +81,7 @@ config:
  - F2FS_FS_LZ4: [v5.5]
  - F2FS_FS_ZSTD: [v5.5]
  - F2FS_FS_LZORLE: [v5.5]
- # TODO: change to v5.11 when merged.
- - F2FS_FS_LZ4HC: [linux-next]
+ - F2FS_FS_LZ4HC: [v5.11]
 
  - OVERLAY_FS
  - OVERLAY_FS_REDIRECT_DIR
