@@ -9442,7 +9442,6 @@ static void setup_sysctl()
 		{"/proc/sys/kernel/printk", "7 4 1 3"},
 		{"/proc/sys/net/ipv4/ping_group_range", "0 65535"},
 		{"/proc/sys/kernel/keys/gc_delay", "1"},
-		{"/proc/sys/vm/nr_overcommit_hugepages", "4"},
 		{"/proc/sys/vm/oom_kill_allocating_task", "1"},
 		{"/proc/sys/kernel/ctrl-alt-del", "0"},
 		{"/proc/sys/kernel/cad_pid", mypid},
