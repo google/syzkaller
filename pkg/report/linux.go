@@ -661,6 +661,10 @@ var linuxStallAnchorFrames = []*regexp.Regexp{
 	compile("vfs_iter_write"),
 	compile("do_iter_read"),
 	compile("do_iter_write"),
+	compile("call_read_iter"),
+	compile("call_write_iter"),
+	compile("new_sync_read"),
+	compile("new_sync_write"),
 	compile("vfs_ioctl"),
 	compile("ksys_ioctl"), // vfs_ioctl may be inlined
 	compile("compat_ioctl"),
@@ -697,7 +701,6 @@ var linuxStallAnchorFrames = []*regexp.Regexp{
 	compile("^(sys_)?(socketpair|connect|ioctl)"),
 	// Page fault entry points:
 	compile("__do_fault"),
-	compile("handle_mm_fault"),
 	compile("do_page_fault"),
 	compile("^page_fault$"),
 	// exit_to_usermode_loop callbacks:
