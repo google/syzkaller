@@ -6,6 +6,9 @@ package main
 import (
 	"sync"
 	"sync/atomic"
+	"time"
+        "github.com/prometheus/client_golang/prometheus"
+        "github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 type Stat uint64
@@ -18,6 +21,7 @@ type Stats struct {
 	newInputs           Stat
 	rotatedInputs       Stat
 	execTotal           Stat
+	syz_execTotal       prometheus.Gauge
 	hubSendProgAdd      Stat
 	hubSendProgDel      Stat
 	hubSendRepro        Stat
@@ -34,6 +38,27 @@ type Stats struct {
 	namedStats map[string]uint64
 	haveHub    bool
 }
+
+
+func (mgr *Manager) initStats() {
+	mgr.stats.syz_execTotal = promauto.NewGauge(prometheus.GaugeOpts{
+                Name: "syz_execTotal",
+                Help: "Total executions so far",
+        })
+	prometheus.Register(mgr.stats.syz_execTotal)
+	mgr.fetchMetrics()
+}
+
+func (mgr *Manager) fetchMetrics() {
+	go func() {
+                for {
+			mgr.stats.syz_execTotal.Set(float64(mgr.stats.execTotal.get()))
+                        time.Sleep(2 * time.Second)
+                }
+        }()
+}
+
+
 
 func (stats *Stats) all() map[string]uint64 {
 	m := map[string]uint64{

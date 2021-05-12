@@ -2,6 +2,7 @@
 *.swp
 *.cfg
 *.tmp
+*.img
 workdir*
 
 bin/
