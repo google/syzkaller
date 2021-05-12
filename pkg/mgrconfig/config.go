@@ -14,8 +14,6 @@ type Config struct {
 	RawTarget string `json:"target"`
 	// URL that will display information about the running syz-manager process (e.g. "localhost:50000").
 	HTTP string `json:"http"`
-	// Prometheus metrics endpoint
-	METRICS string `json:"metrics"`
 	// TCP address to serve RPC for fuzzer processes (optional).
 	RPC string `json:"rpc,omitempty"`
 	// Location of a working directory for the syz-manager process. Outputs here include:
