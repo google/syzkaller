@@ -11,7 +11,7 @@ config:
  # This was historically enabled in the KASAN section without explanation.
  - SPARSEMEM_VMEMMAP: [-arm]
  # This is required to enable SPARSEMEM_VMEMMAP.
- - SPARSEMEM_MANUAL: [-arm, -s390]
+ - SPARSEMEM_MANUAL: [-arm, -arm64, -s390]
  # This allows to get alloc/free stacks for UAFs on freed pages.
  # This also needs page_owner=on in cmdline.
  - PAGE_OWNER

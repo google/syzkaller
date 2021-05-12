@@ -89,13 +89,14 @@ config:
  # CONFIG_REFCOUNT_FULL was removed in fb041bb7c0a9.
  - REFCOUNT_FULL: [v4.16, -v5.5]
  # Added in 919067cc845f ("net: add CONFIG_PCPU_DEV_REFCNT") and should appear in v5.13.
- - PCPU_DEV_REFCNT: [n, linux-next]
+ - PCPU_DEV_REFCNT: [n, v5.13]
 
  # This config does not add any debug checks (only debug output).
  - DEBUG_KOBJECT: n
 
  - DEBUG_INFO
  - DEBUG_INFO_BTF
+ - DEBUG_INFO_REDUCED: n
 
  # This should make behavior more deterministic.
  - INIT_ON_ALLOC_DEFAULT_ON: [v4.16]
