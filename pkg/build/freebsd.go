@@ -82,6 +82,13 @@ tcp_rack_load="YES"
 sem_load="YES"
 mqueuefs_load="YES"
 cryptodev_load="YES"
+cc_cdg_load="YES"
+cc_chd_load="YES"
+cc_cubic_load="YES"
+cc_dctcp_load="YES"
+cc_hd_load="YES"
+cc_htcp_load="YES"
+cc_vegas_load="YES"
 
 kern.ipc.tls.enable="1"
 __EOF__
