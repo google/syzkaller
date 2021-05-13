@@ -21,8 +21,9 @@ open(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
 open$dir(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd_dir
 openat(fd fd_dir[opt], file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
 close(fd fd)
-close_range(fd fd, max_fd fd, flags flags[close_range_flags])
-freebsd12_closefrom(fd fd)
+# Don't close fd ranges, tunfd ends up being closed as collateral damage.
+#close_range(fd fd, max_fd fd, flags flags[close_range_flags])
+#freebsd12_closefrom(fd fd)
 read(fd fd, buf buffer[out], count len[buf])
 readv(fd fd, vec ptr[in, array[iovec_out]], vlen len[vec])
 preadv(fd fd, vec ptr[in, array[iovec_out]], vlen len[vec], off fileoff)
@@ -176,7 +177,7 @@ freebsd11_statfs {
 filesystem_types = "apfs", "cd9660", "exfat", "ext2fs", "geli", "hammer", "hammer2", "hfsp", "msdosfs", "ntfs", "ufs", "zfs"
 open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, FASYNC, O_CLOEXEC, O_CREAT, O_DIRECT, O_DIRECTORY, O_EXCL, O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_SYNC, O_TRUNC, O_EXEC, O_TTY_INIT, O_VERIFY, O_PATH, O_EMPTY_PATH
 open_mode = S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
-close_range_flags = 0
+#close_range_flags = 0
 seek_whence = SEEK_SET, SEEK_CUR, SEEK_END, SEEK_DATA, SEEK_HOLE
 pipe_flags = O_NONBLOCK, O_CLOEXEC
 fadvise_advice = POSIX_FADV_NORMAL, POSIX_FADV_RANDOM, POSIX_FADV_SEQUENTIAL, POSIX_FADV_WILLNEED, POSIX_FADV_DONTNEED, POSIX_FADV_NOREUSE
