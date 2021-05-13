@@ -82,7 +82,10 @@ tcp_fastopen {
 
 getsockopt$inet_tcp_TCP_RXTLS_MODE(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_RXTLS_MODE], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
 getsockopt$inet_tcp_TCP_TXTLS_MODE(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_TXTLS_MODE], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
-setsockopt$inet_tcp_TCP_TXTLS_MODE(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_TXTLS_MODE], optval ptr[in, int32], optlen len[optval])
+setsockopt$inet_tcp_TCP_TXTLS_MODE(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_TXTLS_MODE], optval ptr[in, flags[tls_tx_mode, int32]], optlen len[optval])
+
+tls_tx_mode = TCP_TLS_MODE_NONE, TCP_TLS_MODE_SW, TCP_TLS_MODE_IFNET, TCP_TLS_MODE_TOE
+
 setsockopt$inet_tcp_TCP_TXTLS_ENABLE(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_TXTLS_ENABLE], optval ptr[in, tls_enable], optlen bytesize[optval])
 setsockopt$inet_tcp_TCP_RXTLS_ENABLE(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_RXTLS_ENABLE], optval ptr[in, tls_enable], optlen bytesize[optval])
 
