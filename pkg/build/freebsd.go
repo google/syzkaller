@@ -35,6 +35,7 @@ options 	RATELIMIT
 
 options 	DEBUG_VFS_LOCKS
 options 	DIAGNOSTIC
+options 	DEBUG_REDZONE
 `)
 	}
 	if err := osutil.WriteFile(filepath.Join(confDir, confFile), config); err != nil {
@@ -96,6 +97,7 @@ __EOF__
 cat | sudo tee -a ${tmpdir}/etc/sysctl.conf <<__EOF__
 net.inet.sctp.udp_tunneling_port=9899
 net.inet.tcp.udp_tunneling_port=9811
+vm.redzone.panic=1
 __EOF__
 
 sudo umount $tmpdir
