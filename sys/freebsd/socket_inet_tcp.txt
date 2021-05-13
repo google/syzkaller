@@ -9,6 +9,7 @@ include <sys/socket.h>
 include <sys/time.h>
 include <netinet/in.h>
 include <netinet/tcp.h>
+include <netinet/cc/cc_newreno.h>
 include <opencrypto/cryptodev.h>
 
 resource sock_tcp[sock_in]
@@ -41,6 +42,25 @@ setsockopt$inet_tcp_TCP_CONGESTION(fd sock_tcp, level const[IPPROTO_TCP], optnam
 setsockopt$inet6_tcp_TCP_CONGESTION(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_CONGESTION], optval ptr[in, string[tcp_congestion_control_alg_names]], optlen len[optval])
 
 tcp_congestion_control_alg_names = "cdg", "chd", "cubic", "dctcp", "hd", "htcp", "newreno", "vegas"
+
+setsockopt$inet_tcp_TCP_CCALGOOPT(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_CCALGOOPT], optval ptr[in, cc_opts], optlen len[optval])
+setsockopt$inet6_tcp_TCP_CCALGOOPT(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_CCALGOOPT], optval ptr[in, cc_opts], optlen len[optval])
+
+cc_opts [
+	newreno	cc_newreno_opts
+	generic	cc_generic_opts
+] [varlen]
+
+cc_newreno_opts {
+	name	flags[cc_newreno_opts_names, int32]
+	val	int32
+}
+
+cc_newreno_opts_names = CC_NEWRENO_BETA, CC_NEWRENO_BETA_ECN
+
+cc_generic_opts {
+	val	array[int8]
+}
 
 setsockopt$inet_tcp_TCP_FUNCTION_BLK(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_FUNCTION_BLK], optval ptr[in, tcp_function_set], optlen len[optval])
 setsockopt$inet6_tcp_TCP_FUNCTION_BLK(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_FUNCTION_BLK], optval ptr[in, tcp_function_set], optlen len[optval])
