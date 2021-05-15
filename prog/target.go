@@ -13,14 +13,15 @@ import (
 
 // Target describes target OS/arch pair.
 type Target struct {
-	OS           string
-	Arch         string
-	Revision     string // unique hash representing revision of the descriptions
-	PtrSize      uint64
-	PageSize     uint64
-	NumPages     uint64
-	DataOffset   uint64
-	LittleEndian bool
+	OS                string
+	Arch              string
+	Revision          string // unique hash representing revision of the descriptions
+	PtrSize           uint64
+	PageSize          uint64
+	NumPages          uint64
+	DataOffset        uint64
+	LittleEndian      bool
+	ExecutorUsesShmem bool
 
 	Syscalls  []*Syscall
 	Resources []*ResourceDesc

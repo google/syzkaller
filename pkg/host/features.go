@@ -4,6 +4,7 @@
 package host
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -80,6 +81,9 @@ func Check(target *prog.Target) (*Features, error) {
 			continue
 		}
 		if reason := check(); reason == "" {
+			if n == FeatureCoverage && !target.ExecutorUsesShmem {
+				return nil, fmt.Errorf("enabling FeatureCoverage requires enabling ExecutorUsesShmem")
+			}
 			res[n].Enabled = true
 			res[n].Reason = "enabled"
 		} else {

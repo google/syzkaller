@@ -199,13 +199,13 @@ func generate(target *targets.Target, prg *compiler.Prog, consts map[string]uint
 
 	fmt.Fprintf(out, "func init() {\n")
 	fmt.Fprintf(out, "\tRegisterTarget(&Target{"+
-		"OS: %q, Arch: %q, Revision: revision_%v, PtrSize: %v, "+
-		"PageSize: %v, NumPages: %v, DataOffset: %v, LittleEndian: %v, Syscalls: syscalls_%v, "+
-		"Resources: resources_%v, Consts: consts_%v}, "+
+		"OS: %q, Arch: %q, Revision: revision_%v, PtrSize: %v, PageSize: %v, "+
+		"NumPages: %v, DataOffset: %v, LittleEndian: %v, ExecutorUsesShmem: %v, "+
+		"Syscalls: syscalls_%v, Resources: resources_%v, Consts: consts_%v}, "+
 		"types_%v, InitTarget)\n}\n\n",
-		target.OS, target.Arch, target.Arch, target.PtrSize,
-		target.PageSize, target.NumPages, target.DataOffset,
-		target.LittleEndian, target.Arch, target.Arch, target.Arch, target.Arch)
+		target.OS, target.Arch, target.Arch, target.PtrSize, target.PageSize,
+		target.NumPages, target.DataOffset, target.LittleEndian, target.ExecutorUsesShmem,
+		target.Arch, target.Arch, target.Arch, target.Arch)
 
 	fmt.Fprintf(out, "var resources_%v = ", target.Arch)
 	serializer.Write(out, prg.Resources)
