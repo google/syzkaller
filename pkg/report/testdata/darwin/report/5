@@ -1,0 +1,26 @@
+TITLE: panic: slab_nextptr_panic: mcache.mbuf buffer ADDR in slab ADDR modified after free at offset 0: ADDR out of range [ADDR
+
+panic(cpu 0 caller 0xffffff800ac3235c): slab_nextptr_panic: mcache.mbuf buffer 0xffffffa0464b6000 in slab 0xffffffa015c843a0 modified after free at offset 0: 0xccd900000000 out of range [0xffffffa0463a3000-0xffffffa04c3a3000)
+
+Backtrace (CPU 0), Frame : Return Address
+0xffffffb050a6edd0 : 0xffffff80098a0d75 mach_kernel : _handle_debugger_trap + 0x5d5
+0xffffffb050a6ee30 : 0xffffff8009d44204 mach_kernel : _kdp_i386_trap + 0x2d4
+0xffffffb050a6ee80 : 0xffffff8009d26727 mach_kernel : _kernel_trap + 0xb27
+0xffffffb050a6ef10 : 0xffffff8009d4bf8f mach_kernel : trap_from_kernel + 0x26
+0xffffffb050a6ef30 : 0xffffff80098a0264 mach_kernel : _DebuggerTrapWithState + 0x104
+0xffffffb050a6f060 : 0xffffff80098a16d0 mach_kernel : _panic_trap_to_debugger + 0x390
+0xffffffb050a6f0d0 : 0xffffff800b1a0216 mach_kernel : _panic + 0x54
+0xffffffb050a6f140 : 0xffffff800ac3235c mach_kernel : _slab_nextptr_panic + 0x3ec
+0xffffffb050a6f1c0 : 0xffffff800ac30132 mach_kernel : _slab_alloc + 0x402
+0xffffffb050a6f250 : 0xffffff800ac0f0eb mach_kernel : _mbuf_slab_alloc + 0x1cb
+0xffffffb050a6f3b0 : 0xffffff800ab8ba0e mach_kernel : _mcache_alloc_ext + 0xa5e
+0xffffffb050a6f550 : 0xffffff800ab8c349 mach_kernel : _mcache_alloc + 0xe9
+0xffffffb050a6f610 : 0xffffff800ac105cc mach_kernel : _m_get_common + 0x3c
+0xffffffb050a6f670 : 0xffffff800ac81677 mach_kernel : _sbconcat_mbufs + 0x2e7
+0xffffffb050a6f6d0 : 0xffffff800ac8277a mach_kernel : _sbappendaddr + 0x59a
+0xffffffb050a6f7d0 : 0xffffff800aca23f0 mach_kernel : _uipc_send + 0x1080
+0xffffffb050a6f990 : 0xffffff800ac55d29 mach_kernel : _sosend + 0x2109
+0xffffffb050a6fbb0 : 0xffffff800ac92520 mach_kernel : _sendit + 0x5d0
+0xffffffb050a6fd70 : 0xffffff800ac91c8d mach_kernel : _sendto_nocancel + 0x3fd
+0xffffffb050a6fee0 : 0xffffff800ad5675f mach_kernel : _unix_syscall64 + 0x99f
+0xffffffb050a6ffa0 : 0xffffff8009d4c756 mach_kernel : _hndl_unix_scall64 + 0x16
