@@ -1,0 +1,21 @@
+TITLE: panic: pf_send_tcp: not AF_INET or AF_INET6!
+
+panic(cpu 1 caller 0xffffff801d080ed5): "pf_send_tcp: not AF_INET or AF_INET6!"@/Users/space/kernel/xnu-7195.81.3/bsd/net/pf.c:2578
+Backtrace (CPU 1), Frame : Return Address
+0xffffffb06376f0a0 : 0xffffff801c4a0d75 mach_kernel : _handle_debugger_trap + 0x5d5
+0xffffffb06376f100 : 0xffffff801c944204 mach_kernel : _kdp_i386_trap + 0x2d4
+0xffffffb06376f150 : 0xffffff801c926727 mach_kernel : _kernel_trap + 0xb27
+0xffffffb06376f1e0 : 0xffffff801c94bf8f mach_kernel : trap_from_kernel + 0x26
+0xffffffb06376f200 : 0xffffff801c4a0264 mach_kernel : _DebuggerTrapWithState + 0x104
+0xffffffb06376f330 : 0xffffff801c4a16d0 mach_kernel : _panic_trap_to_debugger + 0x390
+0xffffffb06376f3a0 : 0xffffff801dda0216 mach_kernel : _panic + 0x54
+0xffffffb06376f410 : 0xffffff801d080ed5 mach_kernel : _pf_send_tcp + 0x1215
+0xffffffb06376f5c0 : 0xffffff801d07fb8a mach_kernel : _pf_unlink_state + 0x16a
+0xffffffb06376f630 : 0xffffff801d1050ea mach_kernel : _pfioctl + 0x246a
+0xffffffb06376fa00 : 0xffffff801ce3a4ec mach_kernel : _spec_ioctl + 0x1bc
+0xffffffb06376fa70 : 0xffffff801ce102a7 mach_kernel : _VNOP_IOCTL + 0x3d7
+0xffffffb06376fb90 : 0xffffff801cde76ae mach_kernel : _vn_ioctl + 0x33e
+0xffffffb06376fc90 : 0xffffff801d662c6f mach_kernel : _fo_ioctl + 0x8f
+0xffffffb06376fcd0 : 0xffffff801d7b33cb mach_kernel : _ioctl + 0xaeb
+0xffffffb06376fee0 : 0xffffff801d95675f mach_kernel : _unix_syscall64 + 0x99f
+0xffffffb06376ffa0 : 0xffffff801c94c756 mach_kernel : _hndl_unix_scall64 + 0x16
