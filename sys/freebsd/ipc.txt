@@ -36,19 +36,17 @@ semop(semid ipc_sem, ops ptr[in, array[sembuf]], nops len[ops])
 # Since we don't have strict const enforcement, we need to apply it to all variants.
 # When/if we have stricter enforcement of arguments for syscall variants, we may remove some of the attributes.
 
-__semctl$IPC_STAT(semid ipc_sem, semnum const[0], cmd const[IPC_STAT], arg buffer[out]) (ignore_return)
-__semctl$IPC_SET(semid ipc_sem, semnum const[0], cmd const[IPC_SET], arg ptr[in, semid_ds]) (ignore_return)
+__semctl$IPC_STAT(semid ipc_sem, semnum const[0], cmd const[IPC_STAT], arg ptr[in, ptr[out, semid_ds]]) (ignore_return)
+__semctl$IPC_SET(semid ipc_sem, semnum const[0], cmd const[IPC_SET], arg ptr[in, ptr[in, semid_ds]]) (ignore_return)
 __semctl$IPC_RMID(semid ipc_sem, semnum const[0], cmd const[IPC_RMID]) (ignore_return)
-__semctl$IPC_INFO(semid ipc_sem, semnum flags[sem_sem_id], cmd const[IPC_INFO], buf buffer[out]) (ignore_return)
-__semctl$SEM_INFO(semid ipc_sem, semnum flags[sem_sem_id], cmd const[SEM_INFO], arg buffer[out]) (ignore_return)
-__semctl$SEM_STAT(semid ipc_sem, semnum flags[sem_sem_id], cmd const[SEM_STAT], arg buffer[out]) (ignore_return)
-__semctl$GETALL(semid ipc_sem, semnum const[0], cmd const[GETALL], arg buffer[out]) (ignore_return)
-__semctl$GETNCNT(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETNCNT], arg buffer[out]) (ignore_return)
-__semctl$GETPID(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETPID], arg buffer[out]) (ignore_return)
-__semctl$GETVAL(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETVAL], arg buffer[out]) (ignore_return)
-__semctl$GETZCNT(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETZCNT], arg buffer[out]) (ignore_return)
+__semctl$SEM_STAT(semid ipc_sem, semnum flags[sem_sem_id], cmd const[SEM_STAT], arg ptr[in, ptr[out, semid_ds]]) (ignore_return)
+__semctl$GETALL(semid ipc_sem, semnum const[0], cmd const[GETALL], arg ptr[in, array[int16]]) (ignore_return)
+__semctl$GETNCNT(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETNCNT]) (ignore_return)
+__semctl$GETZCNT(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETZCNT]) (ignore_return)
+__semctl$GETPID(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETPID]) (ignore_return)
+__semctl$GETVAL(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETVAL]) (ignore_return)
 __semctl$SETALL(semid ipc_sem, semnum const[0], cmd const[SETALL], arg ptr[in, array[int16]]) (ignore_return)
-__semctl$SETVAL(semid ipc_sem, semnum flags[sem_sem_id], cmd const[SETVAL], arg ptr[in, int32]) (ignore_return)
+__semctl$SETVAL(semid ipc_sem, semnum flags[sem_sem_id], cmd const[SETVAL], arg ptr[in, ptr[in, int32]]) (ignore_return)
 
 resource ipc_shm[ipc]
 resource shmaddr[intptr]: 0
@@ -97,16 +95,14 @@ shm_open2_flags = SHM_ALLOW_SEALING, SHM_GROW_ON_WRITE, SHM_LARGEPAGE
 shm_rename_flags = SHM_RENAME_EXCHANGE, SHM_RENAME_NOREPLACE
 
 ipc_perm {
-	key	int32
-	uid	uid
-	gid	gid
 	cuid	uid
 	cgid	gid
-	mode	flags[open_mode, int32]
+	uid	uid
+	gid	gid
+	mode	flags[open_mode, int16]
 	seq	int16
-	pad0	const[0, int16]
-	pad1	const[0, intptr]
-	pad2	const[0, intptr]
+	pad0	const[0, int32]
+	key	intptr
 }
 
 msqid_ds {
@@ -139,11 +135,12 @@ shmid_ds {
 
 semid_ds {
 	perm	ipc_perm
-	otime	intptr
-	ctime	intptr
-	nsems	intptr
-	pad0	const[0, intptr]
-	pad1	const[0, intptr]
+	base	intptr
+	nsems	int16
+	pad0	const[0, int16]
+	pad1	const[0, int32]
+	otime	int64
+	ctime	int64
 }
 
 sembuf {
