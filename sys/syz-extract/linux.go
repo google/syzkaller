@@ -19,9 +19,6 @@ import (
 type linux struct{}
 
 func (*linux) prepare(sourcedir string, build bool, arches []*Arch) error {
-	if sourcedir == "" {
-		return fmt.Errorf("provide path to kernel checkout via -sourcedir flag (or make extract SOURCEDIR)")
-	}
 	if build {
 		// Run 'make mrproper', otherwise out-of-tree build fails.
 		// However, it takes unreasonable amount of time,
