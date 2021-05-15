@@ -89,6 +89,10 @@ func main() {
 	if err != nil {
 		tool.Fail(err)
 	}
+	if *flagSourceDir == "" {
+		tool.Fail(fmt.Errorf("provide path to kernel checkout via -sourcedir " +
+			"flag (or make extract SOURCEDIR)"))
+	}
 	if err := extractor.prepare(*flagSourceDir, *flagBuild, arches); err != nil {
 		tool.Fail(err)
 	}
