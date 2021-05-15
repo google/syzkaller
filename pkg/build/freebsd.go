@@ -92,6 +92,7 @@ cc_htcp_load="YES"
 cc_vegas_load="YES"
 
 kern.ipc.tls.enable="1"
+vm.panic_on_oom="1"
 __EOF__
 
 cat | sudo tee -a ${tmpdir}/etc/sysctl.conf <<__EOF__
