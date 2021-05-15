@@ -30,6 +30,9 @@ Generate default configs:
 cd $KERNEL
 make CC="$GCC/bin/gcc" defconfig
 make CC="$GCC/bin/gcc" kvmconfig
+# After Linux kernel v5.10
+make CC="$GCC/bin/gcc" defconfig
+make CC="$GCC/bin/gcc" kvm_guest.config
 ```
 
 Enable kernel config options required for syzkaller as described [here](kernel_configs.md).
