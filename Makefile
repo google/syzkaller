@@ -307,6 +307,7 @@ presubmit_arch: descriptions
 	env TARGETOS=linux TARGETARCH=s390x $(MAKE) target
 	env TARGETOS=freebsd TARGETARCH=amd64 $(MAKE) target
 	env TARGETOS=freebsd TARGETARCH=386 $(MAKE) target
+	env TARGETOS=freebsd TARGETARCH=arm64 $(MAKE) target
 	env TARGETOS=netbsd TARGETARCH=amd64 $(MAKE) target
 	env TARGETOS=openbsd TARGETARCH=amd64 $(MAKE) target
 	env TARGETOS=windows TARGETARCH=amd64 $(MAKE) target

@@ -330,6 +330,16 @@ var List = map[string]map[string]*Target{
 				return nr == 482 || nr >= 569
 			},
 		},
+		ARM64: {
+			PtrSize:        8,
+			PageSize:       4 << 10,
+			LittleEndian:   true,
+			CCompiler:      "clang",
+			CFlags:		[]string{
+				"-target", "aarch64-unknown-freebsd14.0",
+				"--sysroot", "/home/at718/cheri/build/freebsd-aarch64-build/usr/home/at718/cheri/freebsd/arm64.aarch64/tmp",
+			},
+		},
 	},
 	NetBSD: {
 		AMD64: {
