@@ -7,7 +7,6 @@ include <sys/types.h>
 include <sys/socket.h>
 include <sys/sockio.h>
 include <netinet/in.h>
-include <linux/linux.h>
 
 resource sock[fd]
 type sock_port proc[20000, 4, int16be]
