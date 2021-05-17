@@ -42,6 +42,7 @@ type RPCServer struct {
 
 type Fuzzer struct {
 	name          string
+	rotated       bool
 	inputs        []rpctype.RPCInput
 	newMaxSignal  signal.Signal
 	rotatedSignal signal.Signal
@@ -166,6 +167,7 @@ func (serv *RPCServer) rotateCorpus(f *Fuzzer, corpus []rpctype.RPCInput) *rpcty
 	// Remove the corresponding signal from rotatedSignal which will
 	// be used to accept new inputs from this manager.
 	f.rotatedSignal = serv.corpusSignal.Intersection(f.newMaxSignal)
+	f.rotated = true
 
 	result := *serv.checkResult
 	result.EnabledCalls = map[string][]int{serv.cfg.Sandbox: callIDs}
@@ -261,7 +263,7 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 	// but this request is already in-flight.
 	genuine := !serv.corpusSignal.Diff(inputSignal).Empty()
 	rotated := false
-	if !genuine && f != nil && f.rotatedSignal != nil {
+	if !genuine && f != nil && f.rotated {
 		rotated = !f.rotatedSignal.Diff(inputSignal).Empty()
 	}
 	if !genuine && !rotated {
@@ -271,7 +273,7 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 		return nil
 	}
 
-	if f != nil && f.rotatedSignal != nil {
+	if f != nil && f.rotated {
 		f.rotatedSignal.Merge(inputSignal)
 	}
 	diff := serv.corpusCover.MergeDiff(a.Cover)
@@ -301,7 +303,7 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 
 		a.RPCInput.Cover = nil // Don't send coverage back to all fuzzers.
 		for _, other := range serv.fuzzers {
-			if other == f || other.rotatedSignal != nil {
+			if other == f || other.rotated {
 				continue
 			}
 			other.inputs = append(other.inputs, a.RPCInput)
@@ -328,13 +330,13 @@ func (serv *RPCServer) Poll(a *rpctype.PollArgs, r *rpctype.PollRes) error {
 		serv.maxSignal.Merge(newMaxSignal)
 		serv.stats.maxSignal.set(len(serv.maxSignal))
 		for _, f1 := range serv.fuzzers {
-			if f1 == f || f1.rotatedSignal != nil {
+			if f1 == f || f1.rotated {
 				continue
 			}
 			f1.newMaxSignal.Merge(newMaxSignal)
 		}
 	}
-	if f.rotatedSignal != nil {
+	if f.rotated {
 		// Let rotated VMs run in isolation, don't send them anything.
 		return nil
 	}
