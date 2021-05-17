@@ -6,7 +6,7 @@ In the instructions below, the `$VAR` notation (e.g. `$GCC`, `$KERNEL`, etc.) is
 
 ## GCC
 
-While you may use GCC that is available from your distro, it's preferable to get the lastest GCC from [this](/docs/syzbot.md#crash-does-not-reproduce) list. Download and unpack into `$GCC`, and you should have GCC binaries in `$GCC/bin/`
+If your distro's GCC is older, it's preferable to get the lastest GCC from [this](/docs/syzbot.md#crash-does-not-reproduce) list. Download and unpack into `$GCC`, and you should have GCC binaries in `$GCC/bin/`
 
 ``` bash
 $ ls $GCC/bin/
@@ -29,8 +29,10 @@ Generate default configs:
 ``` bash
 cd $KERNEL
 make CC="$GCC/bin/gcc" defconfig
-make CC="$GCC/bin/gcc" kvmconfig
+make CC="$GCC/bin/gcc" kvm_guest.config
 ```
+
+Note: If you are using your distro's GCC, you don't need to set `CC` in the `make` command.
 
 Enable kernel config options required for syzkaller as described [here](kernel_configs.md).
 It's not required to enable all of them, but at the very least you need:
