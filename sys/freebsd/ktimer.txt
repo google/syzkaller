@@ -27,7 +27,7 @@ sigevent_u [
 	tid		pid
 	thr		sigevent_thread
 	ke_flags	flags[evflags, int16]
-	spare		array[int64, 8]
+	spare		array[intptr, 8]
 ]
 
 sigevent_thread {
