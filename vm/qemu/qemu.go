@@ -201,6 +201,12 @@ var archConfigs = map[string]*archConfig{
 		NetDev:   "e1000",
 		RngDev:   "virtio-rng-pci",
 	},
+	"freebsd/arm64": {
+		Qemu:     "qemu-system-aarch64",
+		QemuArgs: "-machine virt,virtualization=on,gic-version=3 -cpu cortex-a57 -bios edk2-aarch64-code.fd",
+		NetDev:   "virtio-net-pci",
+		RngDev:   "virtio-rng-pci",
+	},
 	"netbsd/amd64": {
 		Qemu:     "qemu-system-x86_64",
 		QemuArgs: "-enable-kvm",
