@@ -25,7 +25,12 @@ func (*freebsd) prepare(sourcedir string, build bool, arches []*Arch) error {
 }
 
 func (*freebsd) prepareArch(arch *Arch) error {
-	if err := os.Symlink(filepath.Join(arch.sourceDir, "sys", "amd64", "include"),
+	archName := arch.target.Arch
+	// Use the the correct name for FreeBSD/i386
+	if archName == "386" {
+		archName = "i386"
+	}
+	if err := os.Symlink(filepath.Join(arch.sourceDir, "sys", archName, "include"),
 		filepath.Join(arch.buildDir, "machine")); err != nil {
 		return fmt.Errorf("failed to create link: %v", err)
 	}
@@ -45,7 +50,6 @@ func (*freebsd) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]ui
 		"-D__BSD_VISIBLE=1",
 		"-I", filepath.Join(arch.sourceDir, "sys"),
 		"-I", filepath.Join(arch.sourceDir, "sys", "sys"),
-		"-I", filepath.Join(arch.sourceDir, "sys", "amd64"),
 		"-I", arch.buildDir,
 	}
 	for _, incdir := range info.Incdirs {
@@ -56,10 +60,12 @@ func (*freebsd) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]ui
 			args = append(args, "-I"+dir)
 		}
 	}
+	args = append(args, arch.target.CFlags...)
 	params := &extractParams{
 		AddSource:     "#include <sys/syscall.h>",
 		DeclarePrintf: true,
 		TargetEndian:  arch.target.HostEndian,
 	}
-	return extract(info, "gcc", args, params)
+	cc := arch.target.CCompiler
+	return extract(info, cc, args, params)
 }
