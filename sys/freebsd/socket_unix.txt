@@ -75,8 +75,11 @@ cmsghdr_un_rights {
 cmsghdr_un_cred {
 	len	len[parent, intptr]
 	level	const[SOL_SOCKET, int32]
-	type	const[LINUX_SCM_CREDENTIALS, int32]
+	type	const[SCM_CREDS, int32]
 	pid	pid
 	uid	uid
+	euid	uid
 	gid	gid
+	ngroups	len[groups, int16]
+	groups	array[gid, CMGROUP_MAX]
 } [align[PTR_SIZE]]
