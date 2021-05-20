@@ -47,6 +47,8 @@ func (*freebsd) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]ui
 		"-D__BSD_VISIBLE=1",
 		"-I", filepath.Join(arch.sourceDir, "sys"),
 		"-I", filepath.Join(arch.sourceDir, "sys", "sys"),
+		"-I", filepath.Join(arch.sourceDir, "sys", "contrib", "ck", "include"),
+		"-I", filepath.Join(arch.sourceDir, "include"),
 		"-I", arch.buildDir,
 	}
 	for _, incdir := range info.Incdirs {
