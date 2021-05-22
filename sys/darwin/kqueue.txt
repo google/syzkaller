@@ -1,0 +1,24 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <sys/event.h>
+
+resource kqueue[fd]
+
+kqueue() kqueue
+kevent(kqueue kqueue, changelist ptr[in, array[kevent]], nchanges len[changelist], eventlist ptr[out, array[kevent]], nevents len[eventlist], timeout ptr[in, timespec])
+
+kevent {
+	ident	intptr
+	filter	flags[filters, int16]
+	flags	flags[evflags, int16]
+	fflags	flags[fflags, int32]
+	data	int64
+	udata	intptr
+	ext	array[int64, 4]
+}
+
+evflags = EV_ADD, EV_ENABLE, EV_DISABLE, EV_DISPATCH, EV_DELETE, EV_RECEIPT, EV_ONESHOT, EV_CLEAR, EV_EOF, EV_ERROR
+filters = EVFILT_READ, EVFILT_WRITE, EVFILT_AIO, EVFILT_VNODE, EVFILT_PROC, EVFILT_SIGNAL, EVFILT_TIMER, EVFILT_USER
+fflags = NOTE_LOWAT, NOTE_ATTRIB, NOTE_DELETE, NOTE_EXTEND, NOTE_LINK, NOTE_RENAME, NOTE_REVOKE, NOTE_WRITE, NOTE_EXIT, NOTE_FORK, NOTE_EXEC, NOTE_TRACK, NOTE_SECONDS, NOTE_USECONDS, NOTE_NSECONDS, NOTE_FFNOP, NOTE_FFAND, NOTE_FFOR, NOTE_FFCOPY, NOTE_FFCTRLMASK, NOTE_FFLAGSMASK, NOTE_TRIGGER

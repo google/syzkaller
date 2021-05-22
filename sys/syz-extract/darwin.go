@@ -24,6 +24,8 @@ func (*darwin) prepareArch(arch *Arch) error {
 func (*darwin) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint64, map[string]bool, error) {
 	args := []string{
 		"-nostdinc",
+		"-DPRIVATE",
+		"-DPF",
 		"-I", filepath.Join(arch.sourceDir, "bsd"),
 		"-I", filepath.Join(arch.sourceDir, "bsd", "sys"),
 		"-I", filepath.Join(arch.sourceDir, "osfmk"),
