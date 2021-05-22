@@ -10119,7 +10119,7 @@ static void use_temporary_dir(void)
 #error "unknown OS"
 #endif
 
-#if !GOOS_darwin && SYZ_EXECUTOR || __NR_syz_execute_func
+#if SYZ_EXECUTOR || __NR_syz_execute_func
 static long syz_execute_func(volatile long text)
 {
 #if defined(__GNUC__)
