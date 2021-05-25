@@ -31,9 +31,9 @@ type Stats struct {
 	corpusCoverFiltered Stat
 	corpusSignal        Stat
 	maxSignal           Stat
-	syz_exec_total      prometheus.GaugeFunc // Prometheus float64
-	syz_corpus_cover    prometheus.GaugeFunc // Prometheus float64
-	syz_crash_total     prometheus.GaugeFunc // Prometheus float64
+	syzExecTotal        prometheus.GaugeFunc // Prometheus float64.
+	syzCorpusCover      prometheus.GaugeFunc // Prometheus float64.
+	syzCrashTotal       prometheus.GaugeFunc // Prometheus float64.
 
 	mu         sync.Mutex
 	namedStats map[string]uint64
@@ -41,28 +41,28 @@ type Stats struct {
 }
 
 func (mgr *Manager) initStats() {
-	mgr.stats.syz_exec_total = promauto.NewGaugeFunc(prometheus.GaugeOpts{
+	mgr.stats.syzExecTotal = promauto.NewGaugeFunc(prometheus.GaugeOpts{
 		Name: "syz_exec_total",
 		Help: "Total executions during current execution of syz-manager",
 	},
 		func() float64 { return float64(mgr.stats.execTotal.get()) },
 	)
-	mgr.stats.syz_corpus_cover = promauto.NewGaugeFunc(prometheus.GaugeOpts{
+	mgr.stats.syzCorpusCover = promauto.NewGaugeFunc(prometheus.GaugeOpts{
 		Name: "syz_corpus_cover",
 		Help: "Corpus coverage during current execution of syz-manager",
 	},
 		func() float64 { return float64(mgr.stats.corpusCover.get()) },
 	)
-	mgr.stats.syz_crash_total = promauto.NewGaugeFunc(prometheus.GaugeOpts{
+	mgr.stats.syzCrashTotal = promauto.NewGaugeFunc(prometheus.GaugeOpts{
 		Name: "syz_crash_total",
 		Help: "Count of crashes during current execution of syz-manager",
 	},
 		func() float64 { return float64(mgr.stats.crashes.get()) },
 	)
 
-	prometheus.Register(mgr.stats.syz_exec_total)
-	prometheus.Register(mgr.stats.syz_corpus_cover)
-	prometheus.Register(mgr.stats.syz_crash_total)
+	prometheus.Register(mgr.stats.syzExecTotal)
+	prometheus.Register(mgr.stats.syzCorpusCover)
+	prometheus.Register(mgr.stats.syzCrashTotal)
 }
 
 func (stats *Stats) all() map[string]uint64 {
