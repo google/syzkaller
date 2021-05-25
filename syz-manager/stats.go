@@ -4,11 +4,10 @@
 package main
 
 import (
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"sync"
 	"sync/atomic"
-	"time"
-        "github.com/prometheus/client_golang/prometheus"
-        "github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 type Stat uint64
@@ -21,7 +20,6 @@ type Stats struct {
 	newInputs           Stat
 	rotatedInputs       Stat
 	execTotal           Stat
-	syz_execTotal       prometheus.Gauge
 	hubSendProgAdd      Stat
 	hubSendProgDel      Stat
 	hubSendRepro        Stat
@@ -33,32 +31,39 @@ type Stats struct {
 	corpusCoverFiltered Stat
 	corpusSignal        Stat
 	maxSignal           Stat
+	syz_exec_total      prometheus.GaugeFunc // Prometheus float64
+	syz_corpus_cover    prometheus.GaugeFunc // Prometheus float64
+	syz_crash_total     prometheus.GaugeFunc // Prometheus float64
 
 	mu         sync.Mutex
 	namedStats map[string]uint64
 	haveHub    bool
 }
 
-
 func (mgr *Manager) initStats() {
-	mgr.stats.syz_execTotal = promauto.NewGauge(prometheus.GaugeOpts{
-                Name: "syz_execTotal",
-                Help: "Total executions so far",
-        })
-	prometheus.Register(mgr.stats.syz_execTotal)
-	mgr.fetchMetrics()
+	mgr.stats.syz_exec_total = promauto.NewGaugeFunc(prometheus.GaugeOpts{
+		Name: "syz_exec_total",
+		Help: "Total executions during current execution of syz-manager",
+	},
+		func() float64 { return float64(mgr.stats.execTotal.get()) },
+	)
+	mgr.stats.syz_corpus_cover = promauto.NewGaugeFunc(prometheus.GaugeOpts{
+		Name: "syz_corpus_cover",
+		Help: "Corpus coverage during current execution of syz-manager",
+	},
+		func() float64 { return float64(mgr.stats.corpusCover.get()) },
+	)
+	mgr.stats.syz_crash_total = promauto.NewGaugeFunc(prometheus.GaugeOpts{
+		Name: "syz_crash_total",
+		Help: "Count of crashes during current execution of syz-manager",
+	},
+		func() float64 { return float64(mgr.stats.crashes.get()) },
+	)
+
+	prometheus.Register(mgr.stats.syz_exec_total)
+	prometheus.Register(mgr.stats.syz_corpus_cover)
+	prometheus.Register(mgr.stats.syz_crash_total)
 }
-
-func (mgr *Manager) fetchMetrics() {
-	go func() {
-                for {
-			mgr.stats.syz_execTotal.Set(float64(mgr.stats.execTotal.get()))
-                        time.Sleep(2 * time.Second)
-                }
-        }()
-}
-
-
 
 func (stats *Stats) all() map[string]uint64 {
 	m := map[string]uint64{

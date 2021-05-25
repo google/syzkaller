@@ -176,8 +176,8 @@ func RunManager(cfg *mgrconfig.Config) {
 	}
 
 	mgr.preloadCorpus()
-	mgr.initHTTP() // Creates HTTP server.
 	mgr.initStats() // Initializes prometheus variables
+	mgr.initHTTP()  // Creates HTTP server.
 	mgr.collectUsedFiles()
 
 	// Create RPC server for fuzzers.
