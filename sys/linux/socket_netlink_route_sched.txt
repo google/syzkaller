@@ -114,6 +114,7 @@ qdisc_kind_options [
 	q_pfifo_head_drop	tca_kind_options_t["pfifo_head_drop", int32]
 	q_fq			tca_kind_options_t["fq", array[fq_policy]]
 	q_fq_codel		tca_kind_options_t["fq_codel", array[fq_codel_policy]]
+	q_fq_pie		tca_kind_options_t["fq_pie", array[fq_pie_policy]]
 	q_gred			tca_kind_options_t["gred", array[gred_policy]]
 	q_hfsc			tca_kind_options_t["hfsc", hfsc_policy]
 	q_hhf			tca_kind_options_t["hhf", array[hhf_policy]]
@@ -229,6 +230,21 @@ fq_codel_policy [
 	TCA_FQ_CODEL_CE_THRESHOLD	nlattr[TCA_FQ_CODEL_CE_THRESHOLD, int32]
 	TCA_FQ_CODEL_DROP_BATCH_SIZE	nlattr[TCA_FQ_CODEL_DROP_BATCH_SIZE, int32]
 	TCA_FQ_CODEL_MEMORY_LIMIT	nlattr[TCA_FQ_CODEL_MEMORY_LIMIT, int32]
+] [varlen]
+
+fq_pie_policy [
+	TCA_FQ_PIE_LIMIT		nlattr[TCA_FQ_PIE_LIMIT, int32]
+	TCA_FQ_PIE_FLOWS		nlattr[TCA_FQ_PIE_FLOWS, int32[1:65535]]
+	TCA_FQ_PIE_TARGET		nlattr[TCA_FQ_PIE_TARGET, int32]
+	TCA_FQ_PIE_TUPDATE		nlattr[TCA_FQ_PIE_TUPDATE, int32]
+	TCA_FQ_PIE_ALPHA		nlattr[TCA_FQ_PIE_ALPHA, int32[0:32]]
+	TCA_FQ_PIE_BETA			nlattr[TCA_FQ_PIE_BETA, int32[0:32]]
+	TCA_FQ_PIE_QUANTUM		nlattr[TCA_FQ_PIE_QUANTUM, int32]
+	TCA_FQ_PIE_MEMORY_LIMIT		nlattr[TCA_FQ_PIE_MEMORY_LIMIT, int32]
+	TCA_FQ_PIE_ECN_PROB		nlattr[TCA_FQ_PIE_ECN_PROB, int32[0:100]]
+	TCA_FQ_PIE_ECN			nlattr[TCA_FQ_PIE_ECN, bool32]
+	TCA_FQ_PIE_BYTEMODE		nlattr[TCA_FQ_PIE_BYTEMODE, bool32]
+	TCA_FQ_PIE_DQ_RATE_ESTIMATOR	nlattr[TCA_FQ_PIE_DQ_RATE_ESTIMATOR, bool32]
 ] [varlen]
 
 # TODO: we should not have TCA_GRED_PARMS and TCA_GRED_STAB when do init
