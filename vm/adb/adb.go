@@ -291,6 +291,17 @@ func (inst *instance) repair() error {
 	}
 	// Switch to root for userdebug builds.
 	inst.adb("root")
+
+	// Mount debugfs.
+	if _, err := inst.adb("shell", "ls /sys/kernel/debug/kcov"); err != nil {
+		log.Logf(2, "debugfs was unmounted mounting")
+		// This prop only exist on Android 12+
+		inst.adb("shell", "setprop persist.dbg.keep_debugfs_mounted 1")
+		if _, err := inst.adb("shell", "mount -t debugfs debugfs /sys/kernel/debug "+
+			"&& chmod 0755 /sys/kernel/debug"); err != nil {
+			return err
+		}
+	}
 	inst.waitForSSH()
 	if inst.cfg.StartupScript != "" {
 		if err := inst.runScript(inst.cfg.StartupScript); err != nil {
