@@ -111,6 +111,7 @@ func (ctx netbsd) copyKernelToDisk(targetArch, vmType, outputDir, kernel string)
 			TargetOS:     targets.NetBSD,
 			TargetArch:   targetArch,
 			TargetVMArch: targetArch,
+			Timeouts:     targets.Get(targets.NetBSD, targetArch).Timeouts(1),
 		},
 	}
 	// Create a VM pool.
