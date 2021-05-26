@@ -104,7 +104,7 @@ func isSupportedKallsyms(c *prog.Syscall) (bool, string) {
 		name = newname
 	}
 	if !kallsymsSyscallSet[name] {
-		return false, fmt.Sprintf("sys_%v is not present in /proc/kallsyms", name)
+		return false, fmt.Sprintf("sys_%v is not enabled in the kernel (not present in /proc/kallsyms)", name)
 	}
 	return true, ""
 }
@@ -115,17 +115,18 @@ func isSupportedTrial(c *prog.Syscall) (bool, string) {
 	case "exit", "pause":
 		return true, ""
 	}
+	reason := fmt.Sprintf("sys_%v is not enabled in the kernel (returns ENOSYS)", c.CallName)
 	trialMu.Lock()
 	defer trialMu.Unlock()
 	if res, ok := trialSupported[c.NR]; ok {
-		return res, "ENOSYS"
+		return res, reason
 	}
 	cmd := osutil.Command(os.Args[0])
 	cmd.Env = []string{fmt.Sprintf("SYZ_TRIAL_TEST=%v", c.NR)}
 	_, err := osutil.Run(10*time.Second, cmd)
 	res := err != nil
 	trialSupported[c.NR] = res
-	return res, "ENOSYS"
+	return res, reason
 }
 
 func init() {
