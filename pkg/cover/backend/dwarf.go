@@ -25,8 +25,38 @@ import (
 type containerFns struct {
 	readSymbols           func(*Module, *symbolInfo) ([]*Symbol, error)
 	readTextData          func(*Module) ([]byte, error)
-	readModuleCoverPoints func(*Module, *symbolInfo) ([2][]uint64, error)
+	readModuleCoverPoints func(*targets.Target, *Module, *symbolInfo) ([2][]uint64, error)
 	readTextRanges        func(*Module) ([]pcRange, []*CompileUnit, error)
+}
+
+type Arch struct {
+	callLen      int
+	opcodeOffset int
+	opcodes      [2]byte
+	target       func(arch *Arch, insn []byte, pc uint64, opcode byte) uint64
+}
+
+var arches = map[string]Arch{
+	targets.AMD64: {
+		callLen: 5,
+		opcodes: [2]byte{0xe8, 0xe8},
+		target: func(arch *Arch, insn []byte, pc uint64, opcode byte) uint64 {
+			off := uint64(int64(int32(binary.LittleEndian.Uint32(insn[1:]))))
+			return pc + off + uint64(arch.callLen)
+		},
+	},
+	targets.ARM64: {
+		callLen:      4,
+		opcodeOffset: 3,
+		opcodes:      [2]byte{0x94, 0x97},
+		target: func(arch *Arch, insn []byte, pc uint64, opcode byte) uint64 {
+			off := uint64(binary.LittleEndian.Uint32(insn)) & ((1 << 24) - 1)
+			if opcode == arch.opcodes[1] {
+				off |= 0xffffffffff000000
+			}
+			return pc + 4*off
+		},
+	},
 }
 
 func makeDWARF(target *targets.Target, objDir, srcDir, buildDir string,
@@ -73,7 +103,7 @@ func makeDWARF(target *targets.Target, objDir, srcDir, buildDir string,
 				}
 				coverPoints, err = readCoverPoints(target, info, data)
 			} else {
-				coverPoints, err = fn.readModuleCoverPoints(module, info)
+				coverPoints, err = fn.readModuleCoverPoints(target, module, info)
 			}
 			allCoverPoints[0] = append(allCoverPoints[0], coverPoints[0]...)
 			allCoverPoints[1] = append(allCoverPoints[1], coverPoints[1]...)
@@ -359,38 +389,11 @@ func readCoverPoints(target *targets.Target, info *symbolInfo, data []byte) ([2]
 		return pcs, fmt.Errorf("no __sanitizer_cov_trace_pc symbol in the object file")
 	}
 
-	type Arch struct {
-		callLen      int
-		opcodeOffset int
-		opcodes      [2]byte
-		target       func(arch *Arch, insn []byte, pc uint64, opcode byte) uint64
-	}
-	arch := map[string]Arch{
-		targets.AMD64: {
-			callLen: 5,
-			opcodes: [2]byte{0xe8, 0xe8},
-			target: func(arch *Arch, insn []byte, pc uint64, opcode byte) uint64 {
-				off := uint64(int64(int32(binary.LittleEndian.Uint32(insn[1:]))))
-				return pc + off + uint64(arch.callLen)
-			},
-		},
-		targets.ARM64: {
-			callLen:      4,
-			opcodeOffset: 3,
-			opcodes:      [2]byte{0x94, 0x97},
-			target: func(arch *Arch, insn []byte, pc uint64, opcode byte) uint64 {
-				off := uint64(binary.LittleEndian.Uint32(insn)) & ((1 << 24) - 1)
-				if opcode == arch.opcodes[1] {
-					off |= 0xffffffffff000000
-				}
-				return pc + 4*off
-			},
-		},
-	}[target.Arch]
 	// Loop that's checking each instruction for the current architectures call
 	// opcode. When found, it compares the call target address with those of the
 	// __sanitizer_cov_trace_* functions we previously collected. When found,
 	// we collect the pc as a coverage point.
+	arch := arches[target.Arch]
 	for i, opcode := range data {
 		if opcode != arch.opcodes[0] && opcode != arch.opcodes[1] {
 			continue
