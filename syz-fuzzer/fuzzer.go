@@ -301,15 +301,11 @@ func collectMachineInfos(target *prog.Target) ([]byte, []host.KernelModule) {
 		log.Fatalf("failed to collect modules info: %v", err)
 	}
 
-	var globFiles map[string][]string
-	globs := target.GetGlobs()
-	if len(globs) != 0 {
-		globFiles, err = host.CollectGlobsInfo(globs)
-		if err != nil {
-			log.Fatalf("faield to collect globFiles info: %v", err)
-		}
-		target.UpdateGlobFilesForType(globFiles)
+	globFiles, err := host.CollectGlobsInfo(target.GetGlobs())
+	if err != nil {
+		log.Fatalf("faield to collect glob info: %v", err)
 	}
+	target.UpdateGlobs(globFiles)
 
 	return machineInfo, modules
 }
