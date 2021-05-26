@@ -21,6 +21,7 @@ func init() {
 		{"KVM", readKVMInfo},
 	}
 	machineModulesInfo = getModulesInfo
+	machineGlobsInfo = getGlobsInfo
 }
 
 func readCPUInfo(buffer *bytes.Buffer) error {
@@ -139,4 +140,17 @@ func getModulesInfo() ([]KernelModule, error) {
 		})
 	}
 	return modules, nil
+}
+
+func getGlobsInfo(globs []string) (map[string][]string, error) {
+	files := make(map[string][]string, len(globs))
+	for _, glob := range globs {
+		matches, err := filepath.Glob(glob)
+		if err != nil {
+			return nil, err
+		}
+		files[glob] = matches
+	}
+
+	return files, nil
 }

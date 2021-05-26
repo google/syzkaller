@@ -38,8 +38,16 @@ func CollectModulesInfo() ([]KernelModule, error) {
 	return machineModulesInfo()
 }
 
+func CollectGlobsInfo(globs []string) (map[string][]string, error) {
+	if machineModulesInfo == nil {
+		return nil, nil
+	}
+	return machineGlobsInfo(globs)
+}
+
 var machineInfoFuncs []machineInfoFunc
 var machineModulesInfo func() ([]KernelModule, error)
+var machineGlobsInfo func([]string) (map[string][]string, error)
 
 type machineInfoFunc struct {
 	name string

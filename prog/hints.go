@@ -102,7 +102,7 @@ func generateHints(compMap CompMap, arg Arg, exec func()) {
 		case BufferFilename:
 			// This can generate escaping paths and is probably not too useful anyway.
 			return
-		case BufferString:
+		case BufferString, BufferGlob:
 			if len(t.Values) != 0 {
 				// These are frequently file names or complete enumerations.
 				// Mutating these may be useful iff we intercept strcmp

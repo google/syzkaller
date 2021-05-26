@@ -734,6 +734,8 @@ func (a *BufferType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*
 			return MakeOutDataArg(a, dir, sz), nil
 		}
 		return MakeDataArg(a, dir, []byte(r.filename(s, a))), nil
+	case BufferGlob:
+		return MakeDataArg(a, dir, r.randString(s, a)), nil
 	case BufferText:
 		if dir == DirOut {
 			return MakeOutDataArg(a, dir, uint64(r.Intn(100))), nil

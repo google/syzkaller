@@ -227,6 +227,31 @@ func (target *Target) DefaultChoiceTable() *ChoiceTable {
 	return target.defaultChoiceTable
 }
 
+func (target *Target) GetGlobs() []string {
+	var globs []string
+	ForeachType(target.Syscalls, func(typ Type, ctx TypeCtx) {
+		switch a := typ.(type) {
+		case *BufferType:
+			if a.Kind == BufferGlob && a.SubKind != "" {
+				globs = append(globs, a.SubKind)
+			}
+		}
+	})
+
+	return globs
+}
+
+func (target *Target) UpdateGlobFilesForType(globFiles map[string][]string) {
+	ForeachType(target.Syscalls, func(typ Type, ctx TypeCtx) {
+		switch a := typ.(type) {
+		case *BufferType:
+			if a.Kind == BufferGlob && a.SubKind != "" {
+				a.Values = globFiles[a.SubKind]
+			}
+		}
+	})
+}
+
 type Gen struct {
 	r *randGen
 	s *state
