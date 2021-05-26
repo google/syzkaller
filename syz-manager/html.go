@@ -108,11 +108,15 @@ func (mgr *Manager) collectStats() []UIStat {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
+	configName := mgr.cfg.Name
+	if configName == "" {
+		configName = "config"
+	}
 	rawStats := mgr.stats.all()
 	head := prog.GitRevisionBase
 	stats := []UIStat{
 		{Name: "revision", Value: fmt.Sprint(head[:8]), Link: vcs.LogLink(vcs.SyzkallerRepo, head)},
-		{Name: "config", Value: mgr.cfg.Name, Link: "/config"},
+		{Name: "config", Value: configName, Link: "/config"},
 		{Name: "uptime", Value: fmt.Sprint(time.Since(mgr.startTime) / 1e9 * 1e9)},
 		{Name: "fuzzing", Value: fmt.Sprint(mgr.fuzzingTime / 60e9 * 60e9)},
 		{Name: "corpus", Value: fmt.Sprint(len(mgr.corpus)), Link: "/corpus"},
