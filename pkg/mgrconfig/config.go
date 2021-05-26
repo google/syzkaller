@@ -35,7 +35,7 @@ type Config struct {
 	//	"workdir_template": "/mytemplatedir"
 	// Then use these files in VM config:
 	//	"qemu_args": "-fda {{TEMPLATE}}/fd"
-	WorkdirTemplate string `json:"workdir_template"`
+	WorkdirTemplate string `json:"workdir_template,omitempty"`
 	// Directory with kernel object files (e.g. `vmlinux` for linux)
 	// (used for report symbolization, coverage reports and in tree modules finding, optional).
 	KernelObj string `json:"kernel_obj"`
@@ -43,11 +43,11 @@ type Config struct {
 	// KernelObj is also scanned for in-tree kernel modules and does not need to be duplicated here.
 	// Note: KASLR needs to be disabled and modules need to be pre-loaded at fixed addressses by init process.
 	// Note: the modules need to be unstripped and contain debug info.
-	ModuleObj []string `json:"module_obj"`
+	ModuleObj []string `json:"module_obj,omitempty"`
 	// Kernel source directory (if not set defaults to KernelObj).
 	KernelSrc string `json:"kernel_src,omitempty"`
 	// Location of the driectory where the kernel was built (if not set defaults to KernelSrc)
-	KernelBuildSrc string `json:"kernel_build_src"`
+	KernelBuildSrc string `json:"kernel_build_src,omitempty"`
 	// Kernel subsystem with paths to each subsystem
 	//	"kernel_subsystem": [
 	//		{ "name": "sound", "path": ["sound", "techpack/audio"]},
@@ -130,7 +130,7 @@ type Config struct {
 	// "pcs": specify raw PC table files name.
 	// Each line of the file should be: "64-bit-pc:32-bit-weight\n".
 	// eg. "0xffffffff81000000:0x10\n"
-	CovFilter covFilterCfg `json:"cover_filter"`
+	CovFilter covFilterCfg `json:"cover_filter,omitempty"`
 
 	// Reproduce, localize and minimize crashers (default: true).
 	Reproduce bool `json:"reproduce"`
@@ -164,7 +164,7 @@ type Subsystem struct {
 }
 
 type covFilterCfg struct {
-	Files     []string `json:"files"`
-	Functions []string `json:"functions"`
-	RawPCs    []string `json:"pcs"`
+	Files     []string `json:"files,omitempty"`
+	Functions []string `json:"functions,omitempty"`
+	RawPCs    []string `json:"pcs,omitempty"`
 }
