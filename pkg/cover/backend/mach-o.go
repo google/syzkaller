@@ -111,7 +111,7 @@ func machoReadTextData(module *Module) ([]byte, error) {
 	return text.Data()
 }
 
-func machoReadModuleCoverPoints(module *Module, info *symbolInfo) ([2][]uint64, error) {
+func machoReadModuleCoverPoints(target *targets.Target, module *Module, info *symbolInfo) ([2][]uint64, error) {
 	// TODO: Linux/ELF supports module symbols. We should probably also do that
 	// for XNU/Mach-O. To maximize code re-use we already have a lot of the
 	// plumbing for module support. I think we mainly miss an equivalent to

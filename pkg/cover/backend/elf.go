@@ -127,12 +127,13 @@ func elfReadTextData(module *Module) ([]byte, error) {
 	return text.Data()
 }
 
-func elfReadModuleCoverPoints(module *Module, info *symbolInfo) ([2][]uint64, error) {
+func elfReadModuleCoverPoints(target *targets.Target, module *Module, info *symbolInfo) ([2][]uint64, error) {
 	var pcs [2][]uint64
 	file, err := elf.Open(module.Path)
 	if err != nil {
 		return pcs, err
 	}
+	offset := uint64(arches[target.Arch].opcodeOffset)
 	for _, s := range file.Sections {
 		if s.Type != elf.SHT_RELA { // nolint: misspell
 			continue
@@ -148,6 +149,7 @@ func elfReadModuleCoverPoints(module *Module, info *symbolInfo) ([2][]uint64, er
 			// Note: this assumes that call instruction is 1 byte.
 			pc := module.Addr + rel.Off - 1
 			index := int(elf.R_SYM64(rel.Info)) - 1
+			pc -= offset
 			if info.tracePCIdx[index] {
 				pcs[0] = append(pcs[0], pc)
 			} else if info.traceCmpIdx[index] {
