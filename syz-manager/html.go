@@ -29,6 +29,8 @@ import (
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/prog"
 	"github.com/gorilla/handlers"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func (mgr *Manager) initHTTP() {
@@ -36,6 +38,7 @@ func (mgr *Manager) initHTTP() {
 
 	mux.HandleFunc("/", mgr.httpSummary)
 	mux.HandleFunc("/config", mgr.httpConfig)
+	mux.HandleFunc("/metrics", promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}).ServeHTTP)
 	mux.HandleFunc("/syscalls", mgr.httpSyscalls)
 	mux.HandleFunc("/corpus", mgr.httpCorpus)
 	mux.HandleFunc("/crash", mgr.httpCrash)

@@ -6,6 +6,9 @@ package main
 import (
 	"sync"
 	"sync/atomic"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 type Stat uint64
@@ -33,6 +36,28 @@ type Stats struct {
 	mu         sync.Mutex
 	namedStats map[string]uint64
 	haveHub    bool
+}
+
+func (mgr *Manager) initStats() {
+	// Prometheus Instrumentation https://prometheus.io/docs/guides/go-application .
+	prometheus.Register(promauto.NewGaugeFunc(prometheus.GaugeOpts{
+		Name: "syz_exec_total",
+		Help: "Total executions during current execution of syz-manager",
+	},
+		func() float64 { return float64(mgr.stats.execTotal.get()) },
+	))
+	prometheus.Register(promauto.NewGaugeFunc(prometheus.GaugeOpts{
+		Name: "syz_corpus_cover",
+		Help: "Corpus coverage during current execution of syz-manager",
+	},
+		func() float64 { return float64(mgr.stats.corpusCover.get()) },
+	))
+	prometheus.Register(promauto.NewGaugeFunc(prometheus.GaugeOpts{
+		Name: "syz_crash_total",
+		Help: "Count of crashes during current execution of syz-manager",
+	},
+		func() float64 { return float64(mgr.stats.crashes.get()) },
+	))
 }
 
 func (stats *Stats) all() map[string]uint64 {
