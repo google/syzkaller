@@ -142,15 +142,14 @@ func getModulesInfo() ([]KernelModule, error) {
 	return modules, nil
 }
 
-func getGlobsInfo(globs []string) (map[string][]string, error) {
+func getGlobsInfo(globs map[string]bool) (map[string][]string, error) {
 	files := make(map[string][]string, len(globs))
-	for _, glob := range globs {
+	for glob := range globs {
 		matches, err := filepath.Glob(glob)
 		if err != nil {
 			return nil, err
 		}
 		files[glob] = matches
 	}
-
 	return files, nil
 }

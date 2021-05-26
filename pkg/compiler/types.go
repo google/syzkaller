@@ -613,14 +613,8 @@ var typeString = &typeDesc{
 		if t.Ident == stringnoz && len(args) > 1 {
 			comp.error(args[0].Pos, "fixed-size string can't be non-zero-terminated")
 		}
-		if t.Ident == glob {
-			pos := t.Pos
-			if len(args) > 0 {
-				pos = args[0].Pos
-			}
-			if len(args) != 1 {
-				comp.error(pos, "glob only accepts 1 arg, provided %v", len(args))
-			}
+		if t.Ident == glob && len(args) != 1 {
+			comp.error(t.Pos, "glob only accepts 1 arg, provided %v", len(args))
 		}
 	},
 	CheckConsts: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {

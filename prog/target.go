@@ -227,25 +227,24 @@ func (target *Target) DefaultChoiceTable() *ChoiceTable {
 	return target.defaultChoiceTable
 }
 
-func (target *Target) GetGlobs() []string {
-	var globs []string
+func (target *Target) GetGlobs() map[string]bool {
+	globs := make(map[string]bool)
 	ForeachType(target.Syscalls, func(typ Type, ctx TypeCtx) {
 		switch a := typ.(type) {
 		case *BufferType:
-			if a.Kind == BufferGlob && a.SubKind != "" {
-				globs = append(globs, a.SubKind)
+			if a.Kind == BufferGlob {
+				globs[a.SubKind] = true
 			}
 		}
 	})
-
 	return globs
 }
 
-func (target *Target) UpdateGlobFilesForType(globFiles map[string][]string) {
+func (target *Target) UpdateGlobs(globFiles map[string][]string) {
 	ForeachType(target.Syscalls, func(typ Type, ctx TypeCtx) {
 		switch a := typ.(type) {
 		case *BufferType:
-			if a.Kind == BufferGlob && a.SubKind != "" {
+			if a.Kind == BufferGlob {
 				a.Values = globFiles[a.SubKind]
 			}
 		}
