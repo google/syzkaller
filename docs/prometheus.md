@@ -1,9 +1,9 @@
-## syzkaller metrics
+# Prometheus metrics
 
-syz-manager metrics are exposed at the URI : http://<syz-manager-http-uri>/metrics
-The prefix for metrics of importance is `syz_`
+syz-manager metrics are exposed at the URI `/metrics` on the http endpoint.
+Currently exported prometheus metrics from the manager are `syz_exec_total`, `syz_corpus_cover` and `syz_crash_total`.
 
-These metrics are exported in prometheus format and can be ingested using following prometheus client configuration:
+These metrics can be ingested using following prometheus client configuration:
 ```
 scrape_configs:
 - job_name: syzkaller
@@ -14,8 +14,3 @@ scrape_configs:
 ```
 
 Values are reset to zero at syz-manager restart and only reflect for current execution of syz-manager.
-
----
-
-References
-1. https://prometheus.io/docs/guides/go-application/
