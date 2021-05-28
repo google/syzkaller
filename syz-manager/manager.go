@@ -1084,6 +1084,10 @@ func (mgr *Manager) fuzzerConnect(modules []host.KernelModule) (
 	return corpus, frames, mgr.coverFilter, mgr.coverFilterBitmap, nil
 }
 
+func (mgr *Manager) isModuleInitialized() bool {
+	return mgr.modulesInitialized
+}
+
 func (mgr *Manager) machineChecked(a *rpctype.CheckArgs, enabledSyscalls map[*prog.Syscall]bool) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
@@ -1104,10 +1108,10 @@ func (mgr *Manager) newInput(inp rpctype.RPCInput, sign signal.Signal) bool {
 		// The input is already present, but possibly with diffent signal/coverage/call.
 		sign.Merge(old.Signal.Deserialize())
 		old.Signal = sign.Serialize()
-		var cov cover.Cover
-		cov.Merge(old.Cover)
-		cov.Merge(inp.Cover)
-		old.Cover = cov.Serialize()
+		var cov cover.CoverOffsets
+		cov.Merge(old.Offsets)
+		cov.Merge(inp.Offsets)
+		old.Offsets = cov.Serialize()
 		mgr.corpus[sig] = old
 	} else {
 		mgr.corpus[sig] = inp

@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -139,6 +140,21 @@ func getModulesInfo() ([]KernelModule, error) {
 			Addr: addr,
 		})
 	}
+	text, _ := ioutil.ReadFile("/proc/kallsyms")
+	re = regexp.MustCompile(`([a-fA-F0-9]+) T _text\n`)
+	for _, m := range re.FindAllSubmatch(text, -1) {
+		addr, err := strconv.ParseUint("0x" + string(m[1]), 0, 64)
+		if err != nil {
+			return nil, fmt.Errorf("address parsing error in /proc/kallsyms: %v", err)
+		}
+		modules = append(modules, KernelModule{
+			Name: "",
+			Addr: addr,
+		})
+	}
+	sort.Slice(modules, func(i, j int) bool {
+		return modules[i].Addr < modules[j].Addr
+	})
 	return modules, nil
 }
 

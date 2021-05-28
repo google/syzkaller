@@ -22,12 +22,14 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/html"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/gorilla/handlers"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -262,8 +264,8 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 	mgr.mu.Lock()
 	convert := coverToPCs
 	if r.FormValue("filter") != "" && mgr.coverFilter != nil {
-		convert = func(rg *cover.ReportGenerator, cover []uint32) (ret []uint64) {
-			for _, pc := range coverToPCs(rg, cover) {
+		convert = func(target *targets.Target, modules []host.KernelModule, rg *cover.ReportGenerator, cover map[string][]uint32) (ret []uint64) {
+			for _, pc := range coverToPCs(target, modules, rg, cover) {
 				if mgr.coverFilter[uint32(pc)] != 0 {
 					ret = append(ret, pc)
 				}
@@ -276,7 +278,7 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 		inp := mgr.corpus[sig]
 		progs = append(progs, cover.Prog{
 			Data: string(inp.Prog),
-			PCs:  convert(rg, inp.Cover),
+			PCs:  convert(mgr.sysTarget, mgr.modules, rg, inp.Offsets),
 		})
 	} else {
 		call := r.FormValue("call")
@@ -286,7 +288,7 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 			}
 			progs = append(progs, cover.Prog{
 				Data: string(inp.Prog),
-				PCs:  convert(rg, inp.Cover),
+				PCs:  convert(mgr.sysTarget, mgr.modules, rg, inp.Offsets),
 			})
 		}
 	}
@@ -453,11 +455,11 @@ func (mgr *Manager) httpRawCover(w http.ResponseWriter, r *http.Request) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
-	var cov cover.Cover
+	var cov cover.CoverOffsets
 	for _, inp := range mgr.corpus {
-		cov.Merge(inp.Cover)
+		cov.Merge(inp.Offsets)
 	}
-	pcs := coverToPCs(rg, cov.Serialize())
+	pcs := coverToPCs(mgr.sysTarget, mgr.modules, rg, cov.Serialize())
 	sort.Slice(pcs, func(i, j int) bool {
 		return pcs[i] < pcs[j]
 	})
@@ -485,12 +487,12 @@ func (mgr *Manager) httpFilterPCs(w http.ResponseWriter, r *http.Request) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
-	var cov cover.Cover
+	var cov cover.CoverOffsets
 	for _, inp := range mgr.corpus {
-		cov.Merge(inp.Cover)
+		cov.Merge(inp.Offsets)
 	}
 	pcs := make([]uint64, 0, len(cov))
-	for _, pc := range coverToPCs(rg, cov.Serialize()) {
+	for _, pc := range coverToPCs(mgr.sysTarget, mgr.modules, rg, cov.Serialize()) {
 		if mgr.coverFilter[uint32(pc)] != 0 {
 			pcs = append(pcs, pc)
 		}

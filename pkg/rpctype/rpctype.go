@@ -16,6 +16,7 @@ type RPCInput struct {
 	Prog   []byte
 	Signal signal.Serial
 	Cover  []uint32
+	Offsets map[string][]uint32
 }
 
 type RPCCandidate struct {
