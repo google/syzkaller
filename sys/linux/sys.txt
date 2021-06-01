@@ -78,7 +78,8 @@ type signalnoptr intptr[0:65]
 
 syz_execute_func(text ptr[in, text[target]])
 
-openat$sysfs(fd const[AT_FDCWD], dir ptr[in, glob["/sys/**/*"]], flags flags[open_flags], mode flags[open_mode]) fd
+# Exclude /sys/power/state as reported in https://lkml.org/lkml/2021/5/27/653
+openat$sysfs(fd const[AT_FDCWD], dir ptr[in, glob["/sys/**/*:-/sys/power/state"]], flags flags[open_flags], mode flags[open_mode]) fd
 
 open(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
 # Just so that we have something that creates fd_dir resources.
