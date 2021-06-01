@@ -19,7 +19,7 @@ define SIGEVENT_SIZE	sizeof(struct sigevent)
 sigevent {
 	notify	flags[sigev_notify, int32]
 	signo	signalno
-	val	const[0, intptr]
+	val	sigval
 	u	sigevent_u
 } [size[SIGEVENT_SIZE]]
 
@@ -39,5 +39,12 @@ itimerspec {
 	interv	timespec
 	value	timespec
 }
+
+sigval [
+	sival_int	int32
+	sival_ptr	intptr
+	sigval_int	int32
+	sigval_ptr	intptr
+]
 
 sigev_notify = SIGEV_NONE, SIGEV_SIGNAL, SIGEV_THREAD, SIGEV_KEVENT, SIGEV_THREAD_ID
