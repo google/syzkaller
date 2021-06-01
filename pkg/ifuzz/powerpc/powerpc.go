@@ -173,3 +173,7 @@ func (imap insnSetMap) ld64(reg uint, v uint64) []byte {
 
 	return ret
 }
+
+func (imap insnSetMap) sc(lev uint) []byte {
+	return imap["sc"].enc(map[string]uint{"LEV": lev})
+}
