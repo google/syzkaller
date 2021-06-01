@@ -9,6 +9,11 @@ import (
 	"github.com/google/syzkaller/pkg/ifuzz/iset"
 )
 
+const (
+	// Valid hcall humbers at the momemt are: 4..0x450.
+	MaxHcall = 0x450 // MAX_HCALL
+)
+
 // nolint:dupl
 func (insnset *InsnSet) initPseudo() {
 	insnset.Insns = append(insnset.Insns, &Insn{
@@ -63,11 +68,12 @@ func (gen *generator) byte(v []byte) {
 }
 
 func (gen *generator) sc(lev uint) {
+	imap := gen.imap
+
 	n := gen.r.Intn(9)
-	// Valid hcall humbers at the momemt are: 4..0x450
-	gen.byte(gen.imap.ld64(3, uint64(gen.r.Intn(4+(0x450-4)/4))))
+	gen.byte(imap.ld64(3, uint64(gen.r.Intn(4+(MaxHcall-4)/4))))
 	for i := 4; i < n+4; i++ {
-		gen.byte(gen.imap.ld64(uint(i), gen.r.Uint64()))
+		gen.byte(imap.ld64(uint(i), gen.r.Uint64()))
 	}
-	gen.byte(gen.imap["sc"].enc(map[string]uint{"LEV": lev}))
+	gen.byte(imap.sc(lev))
 }
