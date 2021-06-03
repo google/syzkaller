@@ -4,8 +4,6 @@
 // This file is shared between executor and csource package.
 
 // Implementation of syz_kvm_setup_cpu pseudo-syscall.
-// See Intel Software Developer’s Manual Volume 3: System Programming Guide
-// for details on what happens here.
 
 #include "kvm.h"
 
