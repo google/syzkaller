@@ -21,6 +21,8 @@ include <signal.h>
 include <sys/wait.h>
 include <sys/time.h>
 
+type signo int32[0:SIGRTMAX]
+
 syz_execute_func(text ptr[in, text[target]])
 
 sf_hdtr {
@@ -148,6 +150,14 @@ clock_gettime(id flags[clock_id], tp ptr[out, timespec])
 clock_settime(id flags[clock_id], tp ptr[in, timespec])
 clock_getres(id flags[clock_id], tp ptr[out, timespec])
 clock_nanosleep(id flags[clock_id], flags flags[timer_flags], rqtp ptr[in, timespec], rmtp ptr[out, timespec, opt])
+sigaction(signo signo, act ptr[in, sigaction], oact ptr[out, sigaction, opt])
+sigprocmask(how flags[sigprocmask_how], set ptr[in, sigset, opt], oset ptr[out, sigset, opt])
+sigsuspend(sigmask ptr[in, sigset])
+sigpending(set ptr[out, sigset])
+sigtimedwait(set ptr[in, sigset], info ptr[out, siginfo, opt], timeout ptr[in, timespec])
+sigwaitinfo(set ptr[in, sigset], info ptr[out, siginfo, opt])
+sigwait(set ptr[in, sigset], sig intptr)
+sigqueue(pid pid, signo signo, value sigval)
 sigaltstack(ss vma, oss ptr[out, intptr, opt])
 nanosleep(req ptr[in, timespec], rem ptr[out, timespec, opt])
 getitimer(which flags[getitimer_which], cur ptr[out, itimerval])
@@ -174,8 +184,56 @@ pollfd {
 	revents	const[0, int16]
 }
 
+sigaction {
+	sigaction_u	ptr[in, text[target]]
+	sa_flags	flags[sigaction_flags, int32]
+	sa_mask		sigset
+}
+
 sigset {
-	mask	int64
+	mask	array[int32, _SIG_WORDS]
+}
+
+siginfo {
+	si_signo	int32
+	si_errno	int32
+	si_code		int32
+	si_pid		pid
+	si_uid		uid
+	si_status	int32
+	si_addr		intptr
+	si_value	sigval
+	reason		reason
+}
+
+reason [
+	fault	fault_r
+	timer	timer_r
+	mesgq	mesgq_r
+	poll	poll_r
+	spare	spare_r
+]
+
+fault_r {
+	trapno	int32
+}
+
+timer_r {
+	timerid	int32
+	overrun	int32
+}
+
+mesgq_r {
+	mqd	int32
+}
+
+poll_r {
+	band	intptr
+}
+
+spare_r {
+	spare1	intptr
+	spare2	array[int32, 7]
 }
 
 timespec {
@@ -297,3 +355,5 @@ priority_which = PRIO_PROCESS, PRIO_PGRP, PRIO_USER
 rtprio_functions = RTP_LOOKUP, RTP_SET
 rtprio_types = RTP_PRIO_REALTIME, RTP_PRIO_NORMAL, RTP_PRIO_IDLE
 thr_flags = THR_SUSPENDED, THR_SYSTEM_SCOPE
+sigprocmask_how = SIG_BLOCK, SIG_UNBLOCK, SIG_SETMASK
+sigaction_flags = SA_NOCLDSTOP, SA_NOCLDWAIT, SA_ONSTACK, SA_NODEFER, SA_RESETHAND, SA_RESTART, SA_SIGINFO
