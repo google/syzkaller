@@ -100,3 +100,49 @@ func (cfg *Config) IsCompatible(insn Insn) bool {
 	}
 	return true
 }
+
+func GenerateInt(cfg *Config, r *rand.Rand, size int) uint64 {
+	if size != 1 && size != 2 && size != 4 && size != 8 {
+		panic("bad arg size")
+	}
+	var v uint64
+	switch x := r.Intn(60); {
+	case x < 10:
+		v = uint64(r.Intn(1 << 4))
+	case x < 20:
+		v = uint64(r.Intn(1 << 16))
+	case x < 25:
+		v = uint64(r.Int63()) % (1 << 32)
+	case x < 30:
+		v = uint64(r.Int63())
+	case x < 40:
+		v = SpecialNumbers[r.Intn(len(SpecialNumbers))]
+		if r.Intn(5) == 0 {
+			v += uint64(r.Intn(33)) - 16
+		}
+	case x < 50 && len(cfg.MemRegions) != 0:
+		mem := cfg.MemRegions[r.Intn(len(cfg.MemRegions))]
+		switch x := r.Intn(100); {
+		case x < 25:
+			v = mem.Start
+		case x < 50:
+			v = mem.Start + mem.Size
+		case x < 75:
+			v = mem.Start + mem.Size/2
+		default:
+			v = mem.Start + uint64(r.Int63())%mem.Size
+		}
+		if r.Intn(10) == 0 {
+			v += uint64(r.Intn(33)) - 16
+		}
+	default:
+		v = uint64(r.Intn(1 << 8))
+	}
+	if r.Intn(50) == 0 {
+		v = uint64(-int64(v))
+	}
+	if r.Intn(50) == 0 && size != 1 {
+		v &^= 1<<12 - 1
+	}
+	return v
+}
