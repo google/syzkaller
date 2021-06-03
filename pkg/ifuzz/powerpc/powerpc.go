@@ -38,10 +38,12 @@ type Insn struct {
 	generator func(cfg *iset.Config, r *rand.Rand) []byte
 }
 
+type insnSetMap map[string]*Insn
+
 type InsnSet struct {
 	Insns     []*Insn
 	modeInsns iset.ModeInsns
-	insnMap   map[string]*Insn
+	insnMap   insnSetMap
 }
 
 func (insnset *InsnSet) GetInsns(mode iset.Mode, typ iset.Type) []iset.Insn {

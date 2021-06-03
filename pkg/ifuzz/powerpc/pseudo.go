@@ -44,7 +44,7 @@ func (insnset *InsnSet) initPseudo() {
 }
 
 type generator struct {
-	imap map[string]*Insn
+	imap insnSetMap
 	mode iset.Mode
 	r    *rand.Rand
 	text []byte
