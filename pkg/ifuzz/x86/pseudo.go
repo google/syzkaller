@@ -31,7 +31,7 @@ var pseudo = []*Insn{
 		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
 			gen := makeGen(cfg, r)
 			msr := msrs[r.Intn(len(msrs))]
-			v := generateInt(cfg, r, 8)
+			v := iset.GenerateInt(cfg, r, 8)
 			gen.mov32(regECX, msr)
 			gen.mov32(regEAX, uint32(v>>0))
 			gen.mov32(regEDX, uint32(v>>32))
@@ -60,7 +60,7 @@ var pseudo = []*Insn{
 		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
 			gen := makeGen(cfg, r)
 			addr, port, size := pciAddrPort(r)
-			val := generateInt(cfg, r, 4)
+			val := iset.GenerateInt(cfg, r, 4)
 			gen.out32(0xcf8, addr)
 			gen.out(port, uint32(val), size)
 			return gen.text
@@ -86,7 +86,7 @@ var pseudo = []*Insn{
 		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
 			gen := makeGen(cfg, r)
 			port := ports[r.Intn(len(ports))]
-			val := generateInt(cfg, r, 4)
+			val := iset.GenerateInt(cfg, r, 4)
 			gen.out(port, uint32(val), r.Intn(3))
 			return gen.text
 		},
@@ -137,7 +137,7 @@ var pseudo = []*Insn{
 			br := uint8(r.Intn(4))
 			loc := uint32(r.Intn(4))
 			typ := uint32(r.Intn(16))
-			addr := generateInt(cfg, r, 8)
+			addr := iset.GenerateInt(cfg, r, 8)
 			if cfg.Mode == iset.ModeLong64 {
 				gen.mov64(regRAX, addr)
 			} else {
@@ -159,7 +159,7 @@ var pseudo = []*Insn{
 			gen := makeGen(cfg, r)
 			sel := randSelector(r)
 			if cfg.Mode == iset.ModeReal16 {
-				sel = uint16(generateInt(cfg, r, 8)) >> 4
+				sel = uint16(iset.GenerateInt(cfg, r, 8)) >> 4
 			}
 			reg := uint8(r.Intn(6))
 			gen.mov16(regAX, sel)
@@ -175,7 +175,7 @@ var pseudo = []*Insn{
 		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
 			gen := makeGen(cfg, r)
 			sel := randSelector(r)
-			off := generateInt(cfg, r, 4)
+			off := iset.GenerateInt(cfg, r, 4)
 			if cfg.Mode == iset.ModeLong64 {
 				gen.mov32toSPaddr(uint32(sel), 0)
 				gen.mov32toSPaddr(uint32(off), 2)
@@ -224,8 +224,8 @@ var pseudo = []*Insn{
 		Pseudo: true,
 		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
 			gen := makeGen(cfg, r)
-			limit := uint32(generateInt(cfg, r, 2))
-			base := uint32(generateInt(cfg, r, 4))
+			limit := uint32(iset.GenerateInt(cfg, r, 2))
+			base := uint32(iset.GenerateInt(cfg, r, 4))
 			gen.mov32toSPaddr(limit, 0)
 			gen.mov32toSPaddr(base, 2)
 			gen.mov32toSPaddr(0, 6)
@@ -249,8 +249,8 @@ var pseudo = []*Insn{
 			case 0:
 				gen.mov32(regEAX, 1) // KVM_HC_VAPIC_POLL_IRQ
 			case 1:
-				gen.mov32(regEAX, 5)                              // KVM_HC_KICK_CPU
-				gen.mov32(regECX, uint32(generateInt(cfg, r, 4))) // APIC ID
+				gen.mov32(regEAX, 5)                                   // KVM_HC_KICK_CPU
+				gen.mov32(regECX, uint32(iset.GenerateInt(cfg, r, 4))) // APIC ID
 			default:
 				panic("bad")
 			}
