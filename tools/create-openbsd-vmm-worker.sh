@@ -130,7 +130,7 @@ growisofs -M "${ISO_PATCHED}" -l -R -graft-points \
 
 # Initialize disk image.
 rm -f worker_disk.raw
-qemu-img create -f raw worker_disk.raw 1G
+qemu-img create -f raw worker_disk.raw 1500M
 
 # Run the installer to create the disk image.
 expect 2>&1 <<EOF | tee install_log
