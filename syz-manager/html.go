@@ -41,6 +41,7 @@ func (mgr *Manager) initHTTP() {
 	mux.HandleFunc("/metrics", promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}).ServeHTTP)
 	mux.HandleFunc("/syscalls", mgr.httpSyscalls)
 	mux.HandleFunc("/corpus", mgr.httpCorpus)
+	mux.HandleFunc("/corpus.db", mgr.httpDownloadCorpus)
 	mux.HandleFunc("/crash", mgr.httpCrash)
 	mux.HandleFunc("/cover", mgr.httpCover)
 	mux.HandleFunc("/subsystemcover", mgr.httpSubsystemCover)
@@ -216,6 +217,22 @@ func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
 		return a.Short < b.Short
 	})
 	executeTemplate(w, corpusTemplate, data)
+}
+
+func (mgr *Manager) httpDownloadCorpus(w http.ResponseWriter, r *http.Request) {
+	corpus := filepath.Join(mgr.cfg.Workdir, "corpus.db")
+	file, err := os.Open(corpus)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to open corpus : %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer file.Close()
+	buf, err := ioutil.ReadAll(file)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to read corpus : %v", err), http.StatusInternalServerError)
+		return
+	}
+	w.Write(buf)
 }
 
 const (
