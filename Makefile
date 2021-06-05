@@ -67,8 +67,8 @@ GITREVDATE=$(shell git log -n 1 --format="%cd" --date=format:%Y%m%d-%H%M%S)
 # If you need that, build manually without these flags.
 GOFLAGS := "-ldflags=-s -w -X github.com/google/syzkaller/prog.GitRevision=$(REV) -X 'github.com/google/syzkaller/prog.gitRevisionDate=$(GITREVDATE)'"
 
-GOHOSTFLAGS := $(GOFLAGS)
-GOTARGETFLAGS := $(GOFLAGS)
+GOHOSTFLAGS ?= $(GOFLAGS)
+GOTARGETFLAGS ?= $(GOFLAGS)
 ifneq ("$(GOTAGS)", "")
 	GOHOSTFLAGS += "-tags=$(GOTAGS)"
 endif
