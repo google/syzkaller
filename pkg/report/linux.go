@@ -764,7 +764,7 @@ var linuxStackParams = &stackParams{
 		"warn_alloc",
 		"warn_bogus",
 		"__warn",
-		"alloc_pages",
+		"alloc_page",
 		"kmalloc",
 		"kcalloc",
 		"kzalloc",
