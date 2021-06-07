@@ -141,6 +141,12 @@ func createCRepro(bug *dashapi.BugReport) error {
 	if _, err := repo.SwitchCommit(bug.SyzkallerCommit); err != nil {
 		return fmt.Errorf("failed to checkout commit %v: %v", bug.SyzkallerCommit, err)
 	}
+	// At some points we checked-in generated descriptions, at some  they are not tracked.
+	// Also, new arches were added. This can cause build breakages when switching
+	// to random commits. But don't clean whole tree as it will drop all local files/dirs.
+	if _, err := osutil.RunCmd(time.Hour, *flagSyzkallerDir, "git", "clean", "-fdx", "./sys/"); err != nil {
+		return err
+	}
 	if _, err := osutil.RunCmd(time.Hour, *flagSyzkallerDir, "make", "prog2c"); err != nil {
 		return err
 	}
@@ -154,7 +160,7 @@ func createCRepro(bug *dashapi.BugReport) error {
 	return err
 }
 
-// Although liter complains about this function, it does not seem complex.
+// Although linter complains about this function, it does not seem complex.
 // nolint: gocyclo
 func createProg2CArgs(bug *dashapi.BugReport, opts csource.Options, file string) []string {
 	haveEnableFlag := containsCommit("dfd609eca1871f01757d6b04b19fc273c87c14e5")
