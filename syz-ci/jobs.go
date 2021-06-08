@@ -60,10 +60,17 @@ func (jp *JobProcessor) loop() {
 loop:
 	for {
 		// Check jp.stop separately first, otherwise if stop signal arrives during a job execution,
-		// we can grab the next one with 50% probability.
+		// we can still grab the next job with 50% probability.
 		select {
 		case <-jp.stop:
 			break loop
+		default:
+		}
+		// Similar for commit polling: if we grab 2-3 bisect jobs in a row,
+		// it can delay commit polling by days.
+		select {
+		case <-commitTicker.C:
+			jp.pollCommits()
 		default:
 		}
 		select {
