@@ -28,6 +28,9 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
 	g++-mips64el-linux-gnuabi64 g++-s390x-linux-gnu g++-riscv64-linux-gnu \
 	libc6-dev-i386 libc6-dev-i386-amd64-cross lib32gcc-10-dev lib32stdc++-10-dev
 
+# Not really GRTE, but it's enough to run some scripts that hardcode the path.
+RUN mkdir -p /usr/grte/v5/bin && ln -s /usr/bin/python3 /usr/grte/v5/bin/python2.7
+
 # pkg/osutil uses syzkaller user for sandboxing.
 RUN useradd syzkaller
 RUN echo "export PS1='\n\W🤖 '" >> /root/.bashrc
