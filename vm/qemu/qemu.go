@@ -201,6 +201,13 @@ var archConfigs = map[string]*archConfig{
 		NetDev:   "e1000",
 		RngDev:   "virtio-rng-pci",
 	},
+	"darwin/amd64": {
+		Qemu:      "qemu-system-x86_64",
+		QemuArgs:  "-enable-kvm -machine q35 -cpu host,migratable=off",
+		TargetDir: "/tmp",
+		NetDev:    "e1000-82545em",
+		RngDev:    "virtio-rng-pci",
+	},
 	"netbsd/amd64": {
 		Qemu:     "qemu-system-x86_64",
 		QemuArgs: "-enable-kvm",
