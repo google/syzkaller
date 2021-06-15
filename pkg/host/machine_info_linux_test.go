@@ -7,11 +7,14 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -382,32 +385,37 @@ power management:
 }
 
 func TestGetGlobsInfo(t *testing.T) {
-	if err := osutil.MkdirAll("globstest/a/b/c/d"); err != nil {
+	dir, err := ioutil.TempDir("", "syz-host-globstest")
+	if err != nil {
 		t.Fatal(err)
 	}
-	if err := osutil.MkdirAll("globstest/a/b/c/e"); err != nil {
+	defer os.RemoveAll(dir)
+	if err := osutil.MkdirAll(filepath.Join(dir, "a", "b", "c", "d")); err != nil {
 		t.Fatal(err)
 	}
-	if err := osutil.MkdirAll("globstest/a/c/d"); err != nil {
+	if err := osutil.MkdirAll(filepath.Join(dir, "a", "b", "c", "e")); err != nil {
 		t.Fatal(err)
 	}
-	if err := osutil.MkdirAll("globstest/a/c/e"); err != nil {
+	if err := osutil.MkdirAll(filepath.Join(dir, "a", "c", "d")); err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll("globstest")
+	if err := osutil.MkdirAll(filepath.Join(dir, "a", "c", "e")); err != nil {
+		t.Fatal(err)
+	}
 
+	glob := filepath.Join(dir, "a/**/*") + ":-" + filepath.Join(dir, "a/c/e")
 	globs := map[string]bool{
-		"globstest/a/**/*:-globstest/a/c/e": true,
+		glob: true,
 	}
 	infos, err := getGlobsInfo(globs)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, files := range infos {
-		for _, file := range files {
-			if file == "globstest/a/c/e" {
-				t.Fatal("failed to exclude globstest/a/c/e")
-			}
-		}
+	want := []string{
+		filepath.Join(dir, "a/b/c"),
+		filepath.Join(dir, "a/c/d"),
+	}
+	if diff := cmp.Diff(infos[glob], want); diff != "" {
+		t.Fatal(diff)
 	}
 }
