@@ -104,8 +104,9 @@ func handleAPI(c context.Context, r *http.Request) (reply interface{}, err error
 	client := r.PostFormValue("client")
 	method := r.PostFormValue("method")
 	log.Infof(c, "api %q from %q", method, client)
+	subj := determineAuthSubj(c, r.Header["Authorization"])
 	// Somewhat confusingly the "key" parameter is the password.
-	ns, err := checkClient(c, client, r.PostFormValue("key"))
+	ns, err := checkClient(client, r.PostFormValue("key"), subj)
 	if err != nil {
 		if client != "" {
 			log.Errorf(c, "%v", err)
@@ -141,28 +142,6 @@ func handleAPI(c context.Context, r *http.Request) (reply interface{}, err error
 		return nil, fmt.Errorf("method %q must be called within a namespace", method)
 	}
 	return nsHandler(c, ns, r, payload)
-}
-
-func checkClient(c context.Context, name0, password0 string) (string, error) {
-	for name, password := range config.Clients {
-		if name == name0 {
-			if password != password0 {
-				return "", ErrAccess
-			}
-			return "", nil
-		}
-	}
-	for ns, cfg := range config.Namespaces {
-		for name, password := range cfg.Clients {
-			if name == name0 {
-				if password != password0 {
-					return "", ErrAccess
-				}
-				return ns, nil
-			}
-		}
-	}
-	return "", ErrAccess
 }
 
 func apiLogError(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
