@@ -1,6 +1,29 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Relies on tokeninfo because it is properly documented:
+// https://developers.google.com/identity/protocols/oauth2/openid-connect#validatinganidtoken
+
+// The client
+// The VM that wants to invoke the API:
+// 1) Gets a token from the metainfo server with this http request:
+//      curl -sH 'Metadata-Flavor: Google' 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?audience=https://syzkaller.appspot.com/api'
+// 2) Invokes /api with header 'Authorization: Bearer <token>'
+
+// Maybe we can use
+// https://pkg.go.dev/golang.org/x/oauth2/google
+
+// The AppEngine api server:
+// 1) Receive the token, invokes this http request:
+//      curl -s "https://oauth2.googleapis.com/tokeninfo?id_token=<token>"
+// 2) Checks the resulting JSON having the expected audience and expiration.
+// 3) Looks up the permissions in the config using the value of sub.
+//
+// https://cloud.google.com/iap/docs/signed-headers-howto#retrieving_the_user_identity from the IAP docs agrees to trust sub.
+
+// TODO: private key caching and local verification?
+//
+
 package main
 
 import (
