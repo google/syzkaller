@@ -13,5 +13,6 @@ import (
 	_ "github.com/google/syzkaller/sys/netbsd/gen"
 	_ "github.com/google/syzkaller/sys/openbsd/gen"
 	_ "github.com/google/syzkaller/sys/test/gen"
+	_ "github.com/google/syzkaller/sys/trusty/gen"
 	_ "github.com/google/syzkaller/sys/windows/gen"
 )
