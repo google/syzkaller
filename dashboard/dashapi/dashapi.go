@@ -561,6 +561,10 @@ const (
 	ReportBisectFix                     // Fix bisection result for an already reported bug.
 )
 
+const (
+	DashboardAudience = "https://syzkaller.appspot.com/api"
+)
+
 func (dash *Dashboard) Query(method string, req, reply interface{}) error {
 	if dash.logger != nil {
 		dash.logger("API(%v): %#v", method, req)
