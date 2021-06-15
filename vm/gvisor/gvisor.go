@@ -316,8 +316,20 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 			signal(err)
 			return
 		}
-		cmd.Process.Kill()
-		cmd.Wait()
+		log.Logf(1, "stopping %s", inst.name)
+		w := make(chan bool)
+		go func() {
+			select {
+			case <-w:
+				return
+			case <-time.After(time.Minute):
+				cmd.Process.Kill()
+			}
+		}()
+		osutil.Run(time.Minute, inst.runscCmd("kill", inst.name, "9"))
+		err := cmd.Wait()
+		close(w)
+		log.Logf(1, "%s exited with %s", inst.name, err)
 	}()
 	return inst.merger.Output, errc, nil
 }
