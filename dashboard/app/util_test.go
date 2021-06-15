@@ -72,8 +72,8 @@ func NewCtx(t *testing.T) *Ctx {
 		mockedTime: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		emailSink:  make(chan *aemail.Message, 100),
 	}
-	c.client = c.makeClient(client1, key1, true)
-	c.client2 = c.makeClient(client2, key2, true)
+	c.client = c.makeClient(client1, password1, true)
+	c.client2 = c.makeClient(client2, password2, true)
 	registerContext(r, c)
 	return c
 }
