@@ -104,6 +104,7 @@ func handleAPI(c context.Context, r *http.Request) (reply interface{}, err error
 	client := r.PostFormValue("client")
 	method := r.PostFormValue("method")
 	log.Infof(c, "api %q from %q", method, client)
+	// Somewhat confusingly the "key" parameter is the password.
 	ns, err := checkClient(c, client, r.PostFormValue("key"))
 	if err != nil {
 		if client != "" {
@@ -142,19 +143,19 @@ func handleAPI(c context.Context, r *http.Request) (reply interface{}, err error
 	return nsHandler(c, ns, r, payload)
 }
 
-func checkClient(c context.Context, name0, key0 string) (string, error) {
-	for name, key := range config.Clients {
+func checkClient(c context.Context, name0, password0 string) (string, error) {
+	for name, password := range config.Clients {
 		if name == name0 {
-			if key != key0 {
+			if password != password0 {
 				return "", ErrAccess
 			}
 			return "", nil
 		}
 	}
 	for ns, cfg := range config.Namespaces {
-		for name, key := range cfg.Clients {
+		for name, password := range cfg.Clients {
 			if name == name0 {
-				if key != key0 {
+				if password != password0 {
 					return "", ErrAccess
 				}
 				return ns, nil

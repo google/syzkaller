@@ -222,7 +222,7 @@ func TestNeedReproMissing(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
-	client := c.makeClient(client1, key1, false)
+	client := c.makeClient(client1, password1, false)
 
 	cid := &dashapi.CrashID{
 		BuildID: "some missing build",

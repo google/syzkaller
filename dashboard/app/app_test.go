@@ -56,7 +56,7 @@ var testConfig = &GlobalConfig{
 			Key:                   "test1keytest1keytest1key",
 			FixBisectionAutoClose: true,
 			Clients: map[string]string{
-				client1: key1,
+				client1: password1,
 			},
 			Repos: []KernelRepo{
 				{
@@ -105,7 +105,7 @@ var testConfig = &GlobalConfig{
 			AccessLevel: AccessAdmin,
 			Key:         "test2keytest2keytest2key",
 			Clients: map[string]string{
-				client2: key2,
+				client2: password2,
 			},
 			Repos: []KernelRepo{
 				{
@@ -262,8 +262,8 @@ var testConfig = &GlobalConfig{
 const (
 	client1      = "client1"
 	client2      = "client2"
-	key1         = "client1keyclient1keyclient1key"
-	key2         = "client2keyclient2keyclient2key"
+	password1    = "client1keyclient1keyclient1key"
+	password2    = "client2keyclient2keyclient2key"
 	clientAdmin  = "client-admin"
 	keyAdmin     = "clientadminkeyclientadminkey"
 	clientUser   = "client-user"
@@ -355,8 +355,8 @@ func TestApp(t *testing.T) {
 
 	c.expectOK(c.GET("/test1"))
 
-	apiClient1 := c.makeClient(client1, key1, false)
-	apiClient2 := c.makeClient(client2, key2, false)
+	apiClient1 := c.makeClient(client1, password1, false)
+	apiClient2 := c.makeClient(client2, password2, false)
 	c.expectFail("unknown api method", apiClient1.Query("unsupported_method", nil, nil))
 	c.client.LogError("name", "msg %s", "arg")
 
@@ -367,8 +367,8 @@ func TestApp(t *testing.T) {
 
 	// Some bad combinations of client/key.
 	c.expectFail("unauthorized", c.makeClient(client1, "", false).Query("upload_build", build, nil))
-	c.expectFail("unauthorized", c.makeClient("unknown", key1, false).Query("upload_build", build, nil))
-	c.expectFail("unauthorized", c.makeClient(client1, key2, false).Query("upload_build", build, nil))
+	c.expectFail("unauthorized", c.makeClient("unknown", password1, false).Query("upload_build", build, nil))
+	c.expectFail("unauthorized", c.makeClient(client1, password2, false).Query("upload_build", build, nil))
 
 	crash1 := testCrash(build, 1)
 	c.client.ReportCrash(crash1)
