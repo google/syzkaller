@@ -7,6 +7,8 @@ kernel:
 
 config:
  - KMSAN
+ # Crash the kernel after the first KMSAN report.
+ - CMDLINE: [append, "panic_on_kmsan=1"]
 
  # Avoid reboot loop in instrumented kernel:
  - PREEMPT_NONE
