@@ -98,6 +98,9 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<th><a onclick="return sortTable(this, 'Count', numSort)" href="#">Count</a></th>
 		<th><a onclick="return sortTable(this, 'Last', timeSort)" href="#">Last</a></th>
 		<th><a onclick="return sortTable(this, 'Reported', timeSort)" href="#">Reported</a></th>
+		{{if $.DispLastAct}}
+		<th><a onclick="return sortTable(this, 'Last activity', timeSort, desc=true)" href="#">Last activity</a></th>
+		{{end}}
 		{{if $.ShowPatch}}
 			<th><a onclick="return sortTable(this, 'Closed', timeSort)" href="#">Closed</a></th>
 			<th><a onclick="return sortTable(this, 'Patch', textSort)" href="#">Patch</a></th>
@@ -127,6 +130,9 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 					{{formatLateness $.Now $b.ReportedTime}}
 				{{end}}
 			</td>
+			{{if $.DispLastAct}}
+			<td class="stat">{{formatLateness $.Now $b.LastActivity}}</td>
+			{{end}}
 			{{if $.ShowPatch}}
 				<td class="stat">{{formatLateness $.Now $b.ClosedTime}}</td>
 				<td class="commit_list">{{template "fix_commits" $b.Commits}}</td>
