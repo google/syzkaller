@@ -136,6 +136,7 @@ type uiBugGroup struct {
 	ShowStatus    bool
 	ShowIndex     int
 	Bugs          []*uiBug
+	DispLastAct   bool
 }
 
 type uiJobList struct {
@@ -164,6 +165,7 @@ type uiBug struct {
 	PatchedOn      []string
 	MissingOn      []string
 	NumManagers    int
+	LastActivity   time.Time
 }
 
 type uiCrash struct {
@@ -229,6 +231,9 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 	groups, err := fetchNamespaceBugs(c, accessLevel, hdr.Namespace, manager)
 	if err != nil {
 		return err
+	}
+	for _, group := range groups {
+		group.DispLastAct = true
 	}
 	data := &uiMainPage{
 		Header:         hdr,
@@ -846,6 +851,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 		ExternalLink:   link,
 		CreditEmail:    creditEmail,
 		NumManagers:    len(managers),
+		LastActivity:   bug.LastActivity,
 	}
 	updateBugBadness(c, uiBug)
 	if len(bug.Commits) != 0 {
