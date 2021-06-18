@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -66,6 +67,7 @@ func (s *Symbolizer) Close() {
 
 func (s *Symbolizer) checkBinSupport(addr2line string) error {
 	cmd := exec.Command(addr2line, "--help")
+	cmd.Env = append(os.Environ(), "LC_ALL=C")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("addr2line execution failed: %s", err)
