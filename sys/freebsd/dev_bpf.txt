@@ -11,7 +11,7 @@ include <net/bpf.h>
 
 resource fd_bpf[fd]
 
-openat$bpd(fd const[AT_FDCWD], file ptr[in, string["/dev/bpf"]], flags flags[open_flags], mode const[0]) fd_bpf
+openat$bpf(fd const[AT_FDCWD], file ptr[in, string["/dev/bpf"]], flags flags[open_flags], mode const[0]) fd_bpf
 
 define BIOCGDLTLIST32	3221766777
 define BIOCSRTIMEOUT32	2148024941
