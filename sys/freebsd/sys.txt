@@ -20,6 +20,7 @@ include <time.h>
 include <signal.h>
 include <sys/wait.h>
 include <sys/time.h>
+include <sys/specialfd.h>
 
 type signo int32[0:SIGRTMAX]
 
@@ -136,6 +137,7 @@ copy_file_range(infd fd, inoffp ptr[inout, fileoff[int64]], outfd fd, outoffp pt
 __realpathat(dirfd fd, path ptr[in, filename], buf ptr[out, string], size len[buf], flags flags[realpathat_flags])
 undelete(path ptr[in, filename])
 acct(filename ptr[in, filename, opt])
+__specialfd$eventfd(type const[SPECIALFD_EVENTFD], req ptr[in, eventfd], len len[req]) fd
 
 getrusage(who flags[rusage_who], usage ptr[out, rusage])
 getrlimit(res flags[rlimit_type], rlim ptr[out, rlimit])
@@ -322,6 +324,11 @@ flock {
 linger {
 	onoff	int32
 	linger	int32
+}
+
+eventfd {
+	initval	int32
+	flags	int32
 }
 
 pollfd_events = POLLIN, POLLPRI, POLLOUT, POLLERR, POLLHUP, POLLNVAL, POLLRDNORM, POLLRDBAND, POLLWRNORM, POLLWRBAND, POLLINIGNEOF
