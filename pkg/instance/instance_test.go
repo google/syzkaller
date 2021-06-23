@@ -141,3 +141,38 @@ func TestExecprogCmd(t *testing.T) {
 		t.Errorf("bad slowdown: %v, want: %v", *flagSlowdown, 10)
 	}
 }
+
+func TestRunnerCmd(t *testing.T) {
+	flags := flag.NewFlagSet("", flag.ContinueOnError)
+	flagFwdAddr := flags.String("addr", "", "verifier rpc address")
+	flagOS := flags.String("os", "", "target OS")
+	flagArch := flags.String("arch", "", "target architecture")
+	flagPool := flags.Int("pool", 0, "index of pool that started VM")
+	flagVM := flags.Int("vm", 0, "index of VM that started the Runner")
+
+	cmdLine := RunnerCmd(os.Args[0], "localhost:1234", targets.Linux, targets.AMD64, 0, 0)
+	args := strings.Split(cmdLine, " ")[1:]
+	if err := flags.Parse(args); err != nil {
+		t.Fatalf("error parsing flags: %v, want: nil", err)
+	}
+
+	if got, want := *flagFwdAddr, "localhost:1234"; got != want {
+		t.Errorf("bad addr: %q, want: %q", got, want)
+	}
+
+	if got, want := *flagOS, targets.Linux; got != want {
+		t.Errorf("bad os: %q, want %q", got, want)
+	}
+
+	if got, want := *flagArch, targets.AMD64; got != want {
+		t.Errorf("bad arch: %q, want: %q", got, want)
+	}
+
+	if got, want := *flagPool, 0; got != want {
+		t.Errorf("bad pool index: %d, want: %d", got, want)
+	}
+
+	if got, want := *flagVM, 0; got != want {
+		t.Errorf("bad vm index: %d, want: %d", got, want)
+	}
+}

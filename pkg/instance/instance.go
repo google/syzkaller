@@ -499,3 +499,7 @@ var MakeBin = func() string {
 	}
 	return "make"
 }()
+
+func RunnerCmd(prog, fwdAddr, os, arch string, poolIdx, vmIdx int) string {
+	return fmt.Sprintf("%s -addr=%s -os=%s -arch=%s -pool=%v -vm=%v", prog, fwdAddr, os, arch, poolIdx, vmIdx)
+}
