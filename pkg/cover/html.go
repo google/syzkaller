@@ -4,6 +4,7 @@
 package cover
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/csv"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
+	"net/http"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -102,6 +104,25 @@ func (rg *ReportGenerator) DoHTML(w io.Writer, progs []Prog) error {
 
 	processDir(d.Root)
 	return coverTemplate.Execute(w, d)
+}
+
+func (rg *ReportGenerator) DoRawCoverFiles(w http.ResponseWriter, progs []Prog) error {
+	if err := rg.lazySymbolize(progs); err != nil {
+		return err
+	}
+	sort.Slice(rg.Frames, func(i, j int) bool {
+		return rg.Frames[i].PC < rg.Frames[j].PC
+	})
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	buf := bufio.NewWriter(w)
+	fmt.Fprintf(buf, "PC,Module,Offset,Filename,StartLine,EndLine\n")
+	for _, frame := range rg.Frames {
+		offset := frame.PC - frame.Module.Addr
+		fmt.Fprintf(buf, "0x%x,%v,0x%x,%v,%v\n", frame.PC, frame.Module.Name, offset, frame.Name, frame.StartLine)
+	}
+	buf.Flush()
+	return nil
 }
 
 type fileStats struct {
