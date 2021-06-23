@@ -60,3 +60,27 @@ func TestParseFlags(t *testing.T) {
 		})
 	}
 }
+
+func TestCfgsFlagString(t *testing.T) {
+	cfgs := &CfgsFlag{"a", "b", "c"}
+	if got, want := cfgs.String(), "[a b c]"; got != want {
+		t.Errorf("cfgs.String got: %s, want: %s", got, want)
+	}
+}
+
+func TestCfgsFlagSet(t *testing.T) {
+	cfgs := &CfgsFlag{}
+	if err := cfgs.Set("a, b, c"); err != nil {
+		t.Fatalf("cfgs.Set got: %v, want: nil", err)
+	}
+	if diff := cmp.Diff(*cfgs, CfgsFlag{"a", "b", "c"}); diff != "" {
+		t.Errorf("*cfgs mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestCfgsFlagAlreadySet(t *testing.T) {
+	cfgs := &CfgsFlag{"a", "b", "c"}
+	if err := cfgs.Set("a, b, c"); err == nil {
+		t.Errorf("cfgs.Set got: nil, want: error")
+	}
+}
