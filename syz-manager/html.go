@@ -49,6 +49,7 @@ func (mgr *Manager) initHTTP() {
 	mux.HandleFunc("/file", mgr.httpFile)
 	mux.HandleFunc("/report", mgr.httpReport)
 	mux.HandleFunc("/rawcover", mgr.httpRawCover)
+	mux.HandleFunc("/rawcoverfiles", mgr.httpRawCoverFiles)
 	mux.HandleFunc("/filterpcs", mgr.httpFilterPCs)
 	mux.HandleFunc("/funccover", mgr.httpFuncCover)
 	mux.HandleFunc("/filecover", mgr.httpFileCover)
@@ -240,6 +241,7 @@ const (
 	DoHTMLTable
 	DoCSV
 	DoCSVFiles
+	DoRawCoverFiles
 )
 
 func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
@@ -316,6 +318,13 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 		do = rg.DoCSV
 	} else if funcFlag == DoCSVFiles {
 		do = rg.DoCSVFiles
+	} else if funcFlag == DoRawCoverFiles {
+		if err := rg.DoRawCoverFiles(w, progs); err != nil {
+			http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
+			return
+		}
+		runtime.GC()
+		return
 	}
 	if err := do(w, progs); err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
@@ -485,6 +494,10 @@ func (mgr *Manager) httpRawCover(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(buf, "0x%x\n", pc)
 	}
 	buf.Flush()
+}
+
+func (mgr *Manager) httpRawCoverFiles(w http.ResponseWriter, r *http.Request) {
+	mgr.httpCoverCover(w, r, DoRawCoverFiles, false)
 }
 
 func (mgr *Manager) httpFilterPCs(w http.ResponseWriter, r *http.Request) {
