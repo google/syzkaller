@@ -6,6 +6,7 @@ package tool
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"flag"
 	"fmt"
 	"strings"
@@ -121,4 +122,25 @@ func flagUnescape(s string) (string, error) {
 		buf.WriteByte(ch)
 	}
 	return buf.String(), nil
+}
+
+// CfgsFlag allows passing a list of configuration files to the
+// same flag and provides parsing utilities.
+type CfgsFlag []string
+
+// String correctly converts the flag values into a string which is required to // parse them afterwards.
+func (cfgs *CfgsFlag) String() string {
+	return fmt.Sprint(*cfgs)
+}
+
+// Set is used by flag.Parse to correctly parse the command line arguments.
+func (cfgs *CfgsFlag) Set(value string) error {
+	if len(*cfgs) > 0 {
+		return errors.New("configs flag were already set")
+	}
+	for _, cfg := range strings.Split(value, ",") {
+		cfg = strings.TrimSpace(cfg)
+		*cfgs = append(*cfgs, cfg)
+	}
+	return nil
 }
