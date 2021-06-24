@@ -75,7 +75,7 @@ func main() {
 	progs := []cover.Prog{{PCs: pcs}}
 	buf := new(bytes.Buffer)
 	if *flagExport != "" {
-		if err := rg.DoCSV(buf, progs); err != nil {
+		if err := rg.DoCSV(buf, progs, nil); err != nil {
 			tool.Fail(err)
 		}
 		if err := osutil.WriteFile(*flagExport, buf.Bytes()); err != nil {
@@ -83,7 +83,7 @@ func main() {
 		}
 		return
 	}
-	if err := rg.DoHTML(buf, progs); err != nil {
+	if err := rg.DoHTML(buf, progs, nil); err != nil {
 		tool.Fail(err)
 	}
 	fn, err := osutil.TempFile("syz-cover")
