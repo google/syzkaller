@@ -342,7 +342,8 @@ test: descriptions
 	$(GO) test -short -coverprofile=.coverage.txt ./...
 
 clean:
-	rm -rf ./bin .descriptions sys/*/gen executor/defs.h executor/syscalls.h
+	rm -rf ./bin .descriptions executor/defs.h executor/syscalls.h
+	find sys/*/gen -type f -not -name empty.go -delete
 
 # For a tupical Ubuntu/Debian distribution.
 # We use "|| true" for apt-get install because packages are all different on different distros.
