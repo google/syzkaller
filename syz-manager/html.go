@@ -4,7 +4,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -242,6 +241,8 @@ const (
 	DoCSV
 	DoCSVFiles
 	DoRawCoverFiles
+	DoRawCover
+	DoFilterPCs
 )
 
 func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
@@ -279,23 +280,12 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 	}
 
 	mgr.mu.Lock()
-	convert := coverToPCs
-	if r.FormValue("filter") != "" && mgr.coverFilter != nil {
-		convert = func(rg *cover.ReportGenerator, cover []uint32) (ret []uint64) {
-			for _, pc := range coverToPCs(rg, cover) {
-				if mgr.coverFilter[uint32(pc)] != 0 {
-					ret = append(ret, pc)
-				}
-			}
-			return ret
-		}
-	}
 	var progs []cover.Prog
 	if sig := r.FormValue("input"); sig != "" {
 		inp := mgr.corpus[sig]
 		progs = append(progs, cover.Prog{
 			Data: string(inp.Prog),
-			PCs:  convert(rg, inp.Cover),
+			PCs:  coverToPCs(rg, inp.Cover),
 		})
 	} else {
 		call := r.FormValue("call")
@@ -305,11 +295,31 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 			}
 			progs = append(progs, cover.Prog{
 				Data: string(inp.Prog),
-				PCs:  convert(rg, inp.Cover),
+				PCs:  coverToPCs(rg, inp.Cover),
 			})
 		}
 	}
 	mgr.mu.Unlock()
+
+	var coverFilter map[uint32]uint32
+	if r.FormValue("filter") != "" {
+		coverFilter = mgr.coverFilter
+	}
+
+	if funcFlag == DoRawCoverFiles {
+		if err := rg.DoRawCoverFiles(w, progs, coverFilter); err != nil {
+			http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
+			return
+		}
+		runtime.GC()
+		return
+	} else if funcFlag == DoRawCover {
+		rg.DoRawCover(w, progs, coverFilter)
+		return
+	} else if funcFlag == DoFilterPCs {
+		rg.DoFilterPCs(w, progs, coverFilter)
+		return
+	}
 
 	do := rg.DoHTML
 	if funcFlag == DoHTMLTable {
@@ -318,15 +328,9 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 		do = rg.DoCSV
 	} else if funcFlag == DoCSVFiles {
 		do = rg.DoCSVFiles
-	} else if funcFlag == DoRawCoverFiles {
-		if err := rg.DoRawCoverFiles(w, progs); err != nil {
-			http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
-			return
-		}
-		runtime.GC()
-		return
 	}
-	if err := do(w, progs); err != nil {
+
+	if err := do(w, progs, coverFilter); err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -469,31 +473,7 @@ func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {
 }
 
 func (mgr *Manager) httpRawCover(w http.ResponseWriter, r *http.Request) {
-	// Note: initCover is executed without mgr.mu because it takes very long time
-	// (but it only reads config and it protected by initCoverOnce).
-	rg, err := getReportGenerator(mgr.cfg, mgr.modules)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-
-	var cov cover.Cover
-	for _, inp := range mgr.corpus {
-		cov.Merge(inp.Cover)
-	}
-	pcs := coverToPCs(rg, cov.Serialize())
-	sort.Slice(pcs, func(i, j int) bool {
-		return pcs[i] < pcs[j]
-	})
-
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	buf := bufio.NewWriter(w)
-	for _, pc := range pcs {
-		fmt.Fprintf(buf, "0x%x\n", pc)
-	}
-	buf.Flush()
+	mgr.httpCoverCover(w, r, DoRawCover, false)
 }
 
 func (mgr *Manager) httpRawCoverFiles(w http.ResponseWriter, r *http.Request) {
@@ -505,36 +485,7 @@ func (mgr *Manager) httpFilterPCs(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "cover is not filtered in config.\n")
 		return
 	}
-	// Note: initCover is executed without mgr.mu because it takes very long time
-	// (but it only reads config and it protected by initCoverOnce).
-	rg, err := getReportGenerator(mgr.cfg, mgr.modules)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
-		return
-	}
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-
-	var cov cover.Cover
-	for _, inp := range mgr.corpus {
-		cov.Merge(inp.Cover)
-	}
-	pcs := make([]uint64, 0, len(cov))
-	for _, pc := range coverToPCs(rg, cov.Serialize()) {
-		if mgr.coverFilter[uint32(pc)] != 0 {
-			pcs = append(pcs, pc)
-		}
-	}
-	sort.Slice(pcs, func(i, j int) bool {
-		return pcs[i] < pcs[j]
-	})
-
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	buf := bufio.NewWriter(w)
-	for _, pc := range pcs {
-		fmt.Fprintf(buf, "0x%x\n", pc)
-	}
-	buf.Flush()
+	mgr.httpCoverCover(w, r, DoFilterPCs, false)
 }
 
 func (mgr *Manager) collectCrashes(workdir string) ([]*UICrashType, error) {

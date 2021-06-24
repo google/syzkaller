@@ -40,7 +40,9 @@ func elfReadSymbols(module *Module, info *symbolInfo) ([]*Symbol, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read ELF symbols: %v", err)
 	}
-	info.textAddr = text.Addr
+	if module.Name == "" {
+		info.textAddr = text.Addr
+	}
 	var symbols []*Symbol
 	for i, symb := range allSymbols {
 		text := symb.Value >= text.Addr && symb.Value+symb.Size <= text.Addr+text.Size
@@ -133,7 +135,8 @@ func elfReadModuleCoverPoints(target *targets.Target, module *Module, info *symb
 	if err != nil {
 		return pcs, err
 	}
-	offset := uint64(arches[target.Arch].opcodeOffset)
+	callRelocType := arches[target.Arch].callRelocType
+	relaOffset := arches[target.Arch].relaOffset
 	for _, s := range file.Sections {
 		if s.Type != elf.SHT_RELA { // nolint: misspell
 			continue
@@ -146,10 +149,11 @@ func elfReadModuleCoverPoints(target *targets.Target, module *Module, info *symb
 				}
 				return pcs, err
 			}
-			// Note: this assumes that call instruction is 1 byte.
-			pc := module.Addr + rel.Off - 1
+			if (rel.Info & 0xffffffff) != callRelocType {
+				continue
+			}
+			pc := module.Addr + rel.Off - relaOffset
 			index := int(elf.R_SYM64(rel.Info)) - 1
-			pc -= offset
 			if info.tracePCIdx[index] {
 				pcs[0] = append(pcs[0], pc)
 			} else if info.traceCmpIdx[index] {
