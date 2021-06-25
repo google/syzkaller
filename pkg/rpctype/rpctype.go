@@ -24,6 +24,11 @@ type RPCCandidate struct {
 	Smashed   bool
 }
 
+type RPCProg struct {
+	Prog    []byte
+	ProgIdx int
+}
+
 type ConnectArgs struct {
 	Name        string
 	MachineInfo []byte
@@ -70,6 +75,33 @@ type PollRes struct {
 	Candidates []RPCCandidate
 	NewInputs  []RPCInput
 	MaxSignal  signal.Serial
+}
+
+type RunnerConnectArgs struct {
+	Pool, VM int
+}
+
+// NextExchangeArgs contains the data passed from client to server namely
+// identification information of the VM and program execution results.
+type NextExchangeArgs struct {
+	// Pool/VM are used to identify the instance on which the client is running.
+	Pool, VM int
+	// ProgIdx is used to uniquely identify the program for which the client is
+	// sending results.
+	ProgIdx int
+	// Hanged is set to true if the program for which we are sending results
+	// was killed due to hanging.
+	Hanged bool
+	// Info contains information about the execution of each system call in the
+	// program.
+	Info ipc.ProgInfo
+}
+
+// NextExchaneRes contains the data passed from server to client namely
+// programs  to execute on the VM.
+type NextExchangeRes struct {
+	// RPCProg contains the serialized program that will be sent to the client.
+	RPCProg
 }
 
 type HubConnectArgs struct {
