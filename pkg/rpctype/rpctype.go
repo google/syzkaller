@@ -47,6 +47,7 @@ type CheckArgs struct {
 	EnabledCalls  map[string][]int
 	DisabledCalls map[string][]SyscallReason
 	Features      *host.Features
+	GlobFiles     map[string][]string
 }
 
 type SyscallReason struct {

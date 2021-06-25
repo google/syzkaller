@@ -227,6 +227,7 @@ func main() {
 			log.Fatalf("%v", r.CheckResult.Error)
 		}
 	} else {
+		target.UpdateGlobs(r.CheckResult.GlobFiles)
 		if err = host.Setup(target, r.CheckResult.Features, featureFlags, config.Executor); err != nil {
 			log.Fatal(err)
 		}
@@ -300,13 +301,6 @@ func collectMachineInfos(target *prog.Target) ([]byte, []host.KernelModule) {
 	if err != nil {
 		log.Fatalf("failed to collect modules info: %v", err)
 	}
-
-	globFiles, err := host.CollectGlobsInfo(target.GetGlobs())
-	if err != nil {
-		log.Fatalf("faield to collect glob info: %v", err)
-	}
-	target.UpdateGlobs(globFiles)
-
 	return machineInfo, modules
 }
 
