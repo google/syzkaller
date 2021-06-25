@@ -1089,6 +1089,7 @@ func (mgr *Manager) machineChecked(a *rpctype.CheckArgs, enabledSyscalls map[*pr
 	defer mgr.mu.Unlock()
 	mgr.checkResult = a
 	mgr.targetEnabledSyscalls = enabledSyscalls
+	mgr.target.UpdateGlobs(a.GlobFiles)
 	mgr.loadCorpus()
 	mgr.firstConnect = time.Now()
 }

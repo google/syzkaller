@@ -503,7 +503,7 @@ type BufferType struct {
 	RangeEnd   uint64   // for BufferBlobRange kind
 	Text       TextKind // for BufferText
 	SubKind    string
-	Values     []string // possible values for BufferString kind
+	Values     []string // possible values for BufferString and BufferGlob kind
 	NoZ        bool     // non-zero terminated BufferString/BufferFilename
 }
 
