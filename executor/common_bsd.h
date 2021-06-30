@@ -73,6 +73,7 @@ static int fault_injected(int fd)
 	struct fault_ioc_disable dis;
 	int res;
 
+	info.scope = FAULT_SCOPE_LWP;
 	if (ioctl(fd, FAULT_IOC_GETINFO, &info) != 0)
 		fail("FAULT_IOC_GETINFO failed");
 	res = (info.nfaults > 0);
