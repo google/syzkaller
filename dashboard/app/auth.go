@@ -29,31 +29,42 @@ package main
 import (
 	"encoding/json"
 	"io/ioutil"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
-	"golang.org/x/net/context"
-	"google.golang.org/appengine/log"
 )
 
 const (
-	tokenInfoEndpoint = "https://oauth2.googleapis.com/tokeninfo"
+	// The official google oauth2 endpoint.
+	googleTokenInfoEndpoint = "https://oauth2.googleapis.com/tokeninfo"
 	// Used in the config map as a prefix to distinguish auth identifiers from secret passwords
 	// (which contain arbitrary strings, that can't have this prefix).
 	oauthMagic = "OauthSubject:"
 )
 
-type jwtClaims struct {
-	subject    string  `json:sub`
-	expiration float64 `json:exp`
-	audience   string  `json:aud`
+// Represent a verification backend.
+type authEndpoint struct {
+	// URL supporting tokeninfo auth2 protocol.
+	url string
+	// TODO(blackgnezdo): cache tokens with a bit of care for concurrency.
 }
 
-func queryTokenInfo(tokenValue string) (*jwtClaims, error) {
-	resp, err := http.PostForm(tokenInfoEndpoint, url.Values{"id_token": {tokenValue}})
+func mkAuthEndpoint(u string) authEndpoint {
+	return authEndpoint{url: u}
+}
+
+type jwtClaims struct {
+	Subject    string  `json:"sub"`
+	Expiration float64 `json:"exp"`
+	Audience   string  `json:"aud"`
+}
+
+func (auth *authEndpoint) queryTokenInfo(tokenValue string) (*jwtClaims, error) {
+	resp, err := http.PostForm(auth.url, url.Values{"id_token": {tokenValue}})
 	if err != nil {
 		return nil, err
 	}
@@ -72,28 +83,27 @@ func queryTokenInfo(tokenValue string) (*jwtClaims, error) {
 // Returns the verified subject value based on the provided header
 // value or "" if it can't be determined. A valid result starts with
 // oauthMagic.
-func determineAuthSubj(c context.Context, authHeader []string) string {
-	if len(authHeader) != 1 || !strings.HasPrefix("Bearer", authHeader[0]) {
+func (auth *authEndpoint) determineAuthSubj(authHeader []string) (string, error) {
+	if len(authHeader) != 1 || !strings.HasPrefix(authHeader[0], "Bearer") {
 		// This is a normal case when the client uses a password.
-		return ""
+		return "", nil
 	}
 	// Values past this point are real authentication attempts. Whether
 	// or not they are valid is the question.
 	tokenValue := strings.TrimSpace(strings.TrimPrefix(authHeader[0], "Bearer"))
-	claims, err := queryTokenInfo(tokenValue)
+	claims, err := auth.queryTokenInfo(tokenValue)
 	if err != nil {
-		log.Errorf(c, "Failed token validation %v", err)
-		return ""
+		return "", err
 	}
-	if claims.audience != dashapi.DashboardAudience {
-		log.Errorf(c, "Unexpected audience %v", claims.audience)
-		return ""
+	if claims.Audience != dashapi.DashboardAudience {
+		err := fmt.Errorf("Unexpected audience %v", claims.Audience)
+		return "", err
 	}
-	if claims.expiration < float64(time.Now().Unix()) {
-		log.Errorf(c, "Token past expiration %v", claims.expiration)
-		return ""
+	if claims.Expiration < float64(time.Now().Unix()) {
+		err := fmt.Errorf("Token past expiration %v", claims.Expiration)
+		return "", err
 	}
-	return oauthMagic + claims.subject
+	return oauthMagic + claims.Subject, nil
 }
 
 // Verifies that the given credentials are acceptable and returns the
