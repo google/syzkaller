@@ -124,11 +124,12 @@ func flagUnescape(s string) (string, error) {
 	return buf.String(), nil
 }
 
-// CfgsFlag allows passing a list of configuration files to the
-// same flag and provides parsing utilities.
+// CfgsFlag allows passing a list of configuration files to the same flag and
+// provides parsing utilities.
 type CfgsFlag []string
 
-// String correctly converts the flag values into a string which is required to // parse them afterwards.
+// String correctly converts the flag values into a string which is required to
+// parse them afterwards.
 func (cfgs *CfgsFlag) String() string {
 	return fmt.Sprint(*cfgs)
 }
