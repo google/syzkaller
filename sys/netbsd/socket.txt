@@ -29,6 +29,10 @@ getsockname(fd sock, addr ptr[out, sockaddr_storage], addrlen ptr[inout, len[add
 compat_43_ogetsockname(fdec sock, asa buffer[out], alen ptr[inout, len[asa, int32]])
 getpeername(fd sock, peer ptr[out, sockaddr_storage], peerlen ptr[inout, len[peer, int32]])
 compat_43_ogetpeername(fdes sock, asa buffer[out], alen ptr[inout, len[asa, int32]])
+compat_43_osend(s sock, msg buffer[in], len len[msg], f flags[send_flags])
+compat_43_orecv(s sock, msg buffer[out], len len[msg], f flags[recv_flags])
+compat_43_osendmsg(s sock, msg buffer[in], f flags[send_flags])
+compat_43_orecvmsg(s sock, msg ptr[inout, recv_omsghdr], f flags[recv_flags])
 
 sendmsg(fd sock, msg ptr[in, send_msghdr], f flags[send_flags])
 sendmmsg(s sock, mmsg ptr[inout, send_mmsghdr], len len[mmsg], f flags[send_flags], timeout ptr[in, timespec, opt])
@@ -90,6 +94,15 @@ recv_msghdr {
 	msg_control	buffer[out]
 	msg_controllen	len[msg_control, intptr]
 	msg_flags	const[0, int32]
+}
+
+recv_omsghdr {
+	msg_name		ptr[out, sockaddr_storage, opt]
+	msg_namelen		len[msg_name, int32]
+	msg_iov			ptr[in, iovec_out]
+	msg_iovlen		len[msg_iov, int32]
+	msg_accrights		buffer[out]
+	msg_accrightslen	len[msg_accrights, int32]
 }
 
 cmsghdr {
