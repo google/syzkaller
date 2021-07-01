@@ -22,6 +22,7 @@ PROT_EXEC = amd64:4
 PROT_NONE = amd64:0
 PROT_READ = amd64:1
 PROT_WRITE = amd64:2
+SYS_compat_43_ommap = amd64:71
 SYS_madvise = amd64:75
 SYS_mlock = amd64:203
 SYS_mlockall = amd64:242

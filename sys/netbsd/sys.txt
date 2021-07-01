@@ -26,18 +26,30 @@ syz_execute_func(text ptr[in, text[target]])
 pipe(pipefd ptr[out, pipefd])
 
 compat_12_stat12(file ptr[in, filename], ub ptr[out, stat12])
+compat_30___stat13(path ptr[in, filename], ub ptr[out, stat13])
+compat_50___stat30(path ptr[in, filename], ub ptr[out, stat30])
 compat_43_stat43(file ptr[in, filename], ua ptr[out, stat43])
 __stat50(file ptr[in, filename], ua ptr[out, stat])
+
 compat_12_lstat12(file ptr[in, filename], ub ptr[out, stat12])
+compat_30___lstat13(path ptr[in, filename], ub ptr[out, stat13])
+compat_50___lstat30(path ptr[in, filename], ub ptr[out, stat30])
 compat_43_lstat43(file ptr[in, filename], ua ptr[out, stat43])
 __lstat50(file ptr[in, filename], ua ptr[out, stat])
+
 compat_12_fstat12(fd fd, sb ptr[out, stat12])
+compat_30___fstat13(fd fd, sb ptr[out, stat13])
+compat_50___fstat30(fd fd, sb ptr[out, stat30])
 compat_43_fstat43(fd fd, sb ptr[out, stat43])
 __fstat50(fd fd, sb ptr[out, stat])
+
 compat_20_statfs(path ptr[in, filename], buf ptr[out, statfs12])
 compat_20_fstatfs(fd fd, buf ptr[out, statfs12])
 fstatat(fd fd, path ptr[in, filename], buf ptr[out, stat], flag flags[fstatat_flags])
 profil(samples buffer[inout], size len[samples], offt intptr, scale int32)
+
+compat_43_ogetdirentries(fd fd, buf buffer[out], count int32, basep ptr[in, intptr])
+compat_12_getdirentries(fd fd, buf buffer[out], count int32, basep ptr[in, intptr])
 
 compat_09_ouname(name ptr[out, outsname])
 
@@ -84,6 +96,12 @@ chown(file ptr[in, filename], uid uid, gid gid)
 lchown(file ptr[in, filename], uid uid, gid gid)
 fchown(fd fd, uid uid, gid gid)
 fchownat(dirfd fd_dir, file ptr[in, filename], uid uid, gid gid, flags flags[at_flags])
+__posix_chown(path ptr[in, filename], uid uid, gid gid)
+__posix_fchown(path ptr[in, filename], uid uid, gid gid)
+__posix_lchown(fd fd, uid uid, gid gid)
+__posix_rename(from ptr[in, filename], to ptr[in, filename])
+__posix_fadvise50(fd fd, pad const[0], offset intptr, len intptr, advice flags[fadvise_flags])
+
 access(pathname ptr[in, filename], mode flags[access_mode])
 chflags(file ptr[in, filename], flags flags[chflags_flags])
 fchflags(fd fd, flags flags[chflags_flags])
@@ -98,6 +116,8 @@ __utimes50(filename ptr[in, filename], times ptr[in, timeval])
 __futimes50(fd fd, times ptr[in, timeval])
 __lutimes50(link ptr[in, filename], times ptr[in, timeval])
 utimensat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval], flags flags[utimensat_flags])
+
+undelete(path ptr[in, filename])
 
 execve(file ptr[in, filename], argv ptr[in, array[ptr[in, string]]], envp ptr[in, array[ptr[in, string]]])
 
@@ -124,6 +144,13 @@ getsid(pid pid) pid
 #setsid() pid		#Unsure about effects on test process
 setpriority(which flags[priority_which], who pid, prio int32)
 getpriority(which flags[priority_which], who pid)
+
+compat_43_ogethostid()
+compat_43_osethostid(hostid int32)
+compat_09_ogetdomainname(domainname buffer[out], len len[domainname])
+compat_09_osetdomainname(domainname buffer[in], len len[domainname])
+compat_43_ogethostname(hostname buffer[out], len len[hostname])
+compat_43_osethostname(hostname buffer[in], len len[hostname])
 
 link(old ptr[in, filename], new ptr[in, filename])
 linkat(oldfd fd_dir, old ptr[in, filename], newfd fd_dir, new ptr[in, filename], flags flags[linkat_flags])
@@ -375,6 +402,7 @@ fcntl_flags = FD_CLOEXEC
 fcntl_status = O_APPEND, O_ASYNC, O_NONBLOCK, O_DSYNC, O_RSYNC, O_ALT_IO, O_DIRECT, O_NOSIGPIPE
 minherit_flags = MAP_INHERIT_COPY, MAP_INHERIT_NONE, MAP_INHERIT_SHARE, MAP_INHERIT_ZERO
 flock_type = F_RDLCK, F_WRLCK, F_UNLCK
+fadvise_flags = POSIX_FADV_NORMAL, POSIX_FADV_RANDOM, POSIX_FADV_SEQUENTIAL, POSIX_FADV_WILLNEED, POSIX_FADV_DONTNEED, POSIX_FADV_NOREUSE
 chflags_flags = SF_APPEND, SF_IMMUTABLE, SF_ARCHIVED, UF_OPAQUE, UF_APPEND, UF_IMMUTABLE, UF_NODUMP
 clone_flags = CLONE_CSIGNAL, CLONE_VM, CLONE_FS, CLONE_FILES, CLONE_SIGHAND, CLONE_PTRACE, CLONE_VFORK
 sa_flags = SA_ONSTACK, SA_RESTART, SA_RESETHAND, SA_NODEFER, SA_NOCLDSTOP, SA_NOCLDWAIT, SA_SIGINFO, SA_NOKERNINFO, SA_ALLBITS
