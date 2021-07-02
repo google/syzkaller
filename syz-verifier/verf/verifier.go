@@ -21,25 +21,60 @@ type Result struct {
 	Info ipc.ProgInfo
 }
 
-// Verify checks whether the Results of the same program, executed on different
-// kernels are the same. If that's the case, it returns true, otherwise it
-// returns false.
-func Verify(res []*Result, prog *prog.Prog) bool {
-	for i := 1; i < len(res); i++ {
-		if !VerifyErrnos(res[0].Info.Calls, res[i].Info.Calls) {
-			return false
-		}
-	}
-	return true
+type ResultReport struct {
+	// Prog is the serialized program.
+	Prog string
+	// Reports contains information about each system call.
+	Reports []CallReport
 }
 
-// VerifyErrnos checks whether the returned system call errnos of the same
-// program, executed on two different kernels, are the same.
-func VerifyErrnos(c1, c2 []ipc.CallInfo) bool {
-	for idx, c := range c1 {
-		if c.Errno != c2[idx].Errno {
-			return false
+type CallReport struct {
+	// Call is the name of the system call.
+	Call string
+	// Errno is a map between pools and the errno returned by executing the
+	// system call on a VM spawned by the respective pool.
+	Errnos map[int]int
+	// Flags is a map between pools and call flags (see pkg/ipc/ipc.go).
+	Flags map[int]ipc.CallFlags
+	// Mismatch is set to true if the returned error codes were not the same.
+	Mismatch bool
+}
+
+// Verify checks whether the Results of the same program, executed on different
+// kernels are the same. If that's not the case, it returns a ResultReport
+// which highlights the differences.
+func Verify(res []*Result, prog *prog.Prog) *ResultReport {
+	rr := &ResultReport{
+		Prog: string(prog.Serialize()),
+	}
+	c0 := res[0].Info.Calls
+	for idx, c := range c0 {
+		cr := CallReport{
+			Call:   prog.Calls[idx].Meta.Name,
+			Errnos: map[int]int{res[0].Pool: c.Errno},
+			Flags:  map[int]ipc.CallFlags{res[0].Pool: c.Flags},
+		}
+		rr.Reports = append(rr.Reports, cr)
+	}
+
+	var send bool
+	for i := 1; i < len(res); i++ {
+		resi := res[i]
+		ci := resi.Info.Calls
+		for idx, c := range ci {
+			if c.Errno != c0[idx].Errno {
+				rr.Reports[idx].Mismatch = true
+				send = true
+			}
+
+			cr := rr.Reports[idx]
+			cr.Errnos[resi.Pool] = c.Errno
+			cr.Flags[resi.Pool] = c.Flags
 		}
 	}
-	return true
+
+	if send {
+		return rr
+	}
+	return nil
 }
