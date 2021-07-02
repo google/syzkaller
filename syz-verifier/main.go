@@ -4,9 +4,11 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"math/rand"
 	"net"
+	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
@@ -23,6 +25,10 @@ import (
 	"github.com/google/syzkaller/vm"
 )
 
+const (
+	maxResultReports = 100
+)
+
 // Verifier TODO.
 type Verifier struct {
 	pools  map[int]*poolInfo
@@ -35,6 +41,7 @@ type Verifier struct {
 	// grouped by OS/Arch
 	workdir     string
 	crashdir    string
+	resultsdir  string
 	target      *prog.Target
 	runnerBin   string
 	executorBin string
@@ -62,7 +69,7 @@ type poolInfo struct {
 	cfg      *mgrconfig.Config
 	pool     *vm.Pool
 	Reporter report.Reporter
-	//  vmRunners keep track of what programs have been sent to each Runner.
+	//  vmRunners keeps track of what programs have been sent to each Runner.
 	//  There is one Runner executing per VM instance.
 	vmRunners map[int][]*progInfo
 	// progs stores the programs that haven't been sent to this kernel yet but
@@ -141,6 +148,9 @@ func main() {
 		osutil.MkdirAll(filepath.Join(crashdir, targetPath))
 	}
 
+	resultsdir := filepath.Join(workdir, "results")
+	osutil.MkdirAll(resultsdir)
+
 	for idx, pi := range pools {
 		var err error
 		pi.Reporter, err = report.NewReporter(pi.cfg)
@@ -159,6 +169,7 @@ func main() {
 	vrf := &Verifier{
 		workdir:     workdir,
 		crashdir:    crashdir,
+		resultsdir:  resultsdir,
 		pools:       pools,
 		target:      target,
 		choiceTable: target.BuildChoiceTable(nil, calls),
@@ -250,21 +261,83 @@ func (srv *RPCServer) NextExchange(a *rpctype.NextExchangeArgs, r *rpctype.NextE
 			Hanged: a.Hanged,
 			Info:   a.Info,
 		}
-		if srv.newResult(res, a.ProgIdx) {
-			for idx, prog := range srv.progs {
-				if a.ProgIdx == prog.idx {
-					if !verf.Verify(prog.res, prog.prog) {
-						log.Printf("mismatch found for %+v", prog.prog)
-					}
-					delete(srv.progs, idx)
-				}
-			}
+
+		prog := srv.progs[a.ProgIdx]
+		if srv.newResult(res, prog) {
+			srv.vrf.processResults(prog.res, prog.prog)
+			delete(srv.progs, a.ProgIdx)
 		}
 	}
 
 	prog, pi := srv.newProgram(a.Pool, a.VM)
 	r.RPCProg = rpctype.RPCProg{Prog: prog, ProgIdx: pi}
 	return nil
+}
+
+// newResult is called when a Runner sends a new Result. It returns true if all
+// Results from the corresponding programs have been received and they can be
+// sent for verification. Otherwise, it returns false.
+func (srv *RPCServer) newResult(res *verf.Result, prog *progInfo) bool {
+	prog.res = append(prog.res, res)
+	delete(prog.left, res.Pool)
+	return len(prog.left) == 0
+}
+
+// processResults will send a set of complete results for verification and, in
+// case differences are found, it will store a result report highlighting those
+// in th workdir/results directory. If writing the results fails, it returns an
+// error.
+func (vrf *Verifier) processResults(res []*verf.Result, prog *prog.Prog) {
+	rr := verf.Verify(res, prog)
+	if rr == nil {
+		return
+	}
+
+	oldest := 0
+	var oldestTime time.Time
+	for i := 0; i < maxResultReports; i++ {
+		info, err := os.Stat(filepath.Join(vrf.resultsdir, fmt.Sprintf("result-%d", i)))
+		if err != nil {
+			// There are only i-1 report files so the i-th one
+			// can be created.
+			oldest = i
+			break
+		}
+
+		// Otherwise, search for the oldest report file to
+		// overwrite as newer result reports are more useful.
+		if oldestTime.IsZero() || info.ModTime().Before(oldestTime) {
+			oldest = i
+			oldestTime = info.ModTime()
+		}
+	}
+
+	err := osutil.WriteFile(filepath.Join(vrf.resultsdir, fmt.Sprintf("result-%d", oldest)), createReport(rr))
+	if err != nil {
+		log.Printf("failed to write result-%d file, err %v", oldest, err)
+	}
+
+	log.Printf("result-%d written successfully", oldest)
+}
+
+func createReport(rr *verf.ResultReport) []byte {
+	data := fmt.Sprintf("Errno mismatches found for program:\n%s\n", rr.Prog)
+	data += "CALL REPORTS FOUND BELOW\n"
+
+	for _, cr := range rr.Reports {
+		data += fmt.Sprintf("Report for call: %s", cr.Call)
+
+		if cr.Mismatch {
+			data += " - MISMATCH FOUND"
+		}
+		data += "\n"
+		for pool, errno := range cr.Errnos {
+			data += fmt.Sprintf("Pool: %d, Errno: %d, Flag: %d\n", pool, errno, cr.Flags[pool])
+		}
+		data += "\n"
+	}
+
+	return []byte(data)
 }
 
 // newProgram returns a new program for the Runner identified by poolIdx and
@@ -298,20 +371,6 @@ func (vrf *Verifier) generate() (*prog.Prog, int) {
 	return vrf.target.Generate(vrf.rnd, prog.RecommendedCalls, vrf.choiceTable), vrf.progIdx
 }
 
-// newResult is called when a Runner sends a new Result. It returns true if all
-// Results from the corresponding programs have been received and they can be
-// sent for verification. Otherwise, it returns false.
-func (srv *RPCServer) newResult(res *verf.Result, idx int) bool {
-	for _, prog := range srv.progs {
-		if prog.idx == idx {
-			prog.res = append(prog.res, res)
-			delete(prog.left, res.Pool)
-			return len(prog.left) == 0
-		}
-	}
-	return false
-}
-
 // cleanup is called when a vm.Instance crashes.
 func (srv *RPCServer) cleanup(poolIdx, vmIdx int) {
 	srv.mu.Lock()
@@ -321,9 +380,7 @@ func (srv *RPCServer) cleanup(poolIdx, vmIdx int) {
 	for idx, prog := range progs {
 		delete(prog.left, poolIdx)
 		if len(prog.left) == 0 {
-			if !verf.Verify(prog.res, prog.prog) {
-				log.Printf("mismatch found for %+v", prog.prog)
-			}
+			srv.vrf.processResults(prog.res, prog.prog)
 			delete(srv.progs, idx)
 			continue
 		}
