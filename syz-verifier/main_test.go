@@ -3,11 +3,16 @@
 package main
 
 import (
+	"log"
 	"math/rand"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/syzkaller/pkg/ipc"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/syz-verifier/verf"
@@ -123,7 +128,7 @@ func TestNewResult(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			setup(t)
-			gotReady := srv.newResult(&test.res, test.idx)
+			gotReady := srv.newResult(&test.res, srv.progs[test.idx])
 			if test.wantReady != gotReady {
 				t.Errorf("srv.newResult: got %v want %v", gotReady, test.wantReady)
 			}
@@ -152,4 +157,68 @@ func TestConnect(t *testing.T) {
 	}
 }
 
-// TODO: add integration tests for NewExchange and cleanup.
+func makeResult(pool int, errnos []int) *verf.Result {
+	r := &verf.Result{Pool: pool, Info: ipc.ProgInfo{Calls: []ipc.CallInfo{}}}
+	for _, e := range errnos {
+		r.Info.Calls = append(r.Info.Calls, ipc.CallInfo{Errno: e})
+	}
+	return r
+}
+
+func TestProcessResults(t *testing.T) {
+	p := "breaks_returns()\n" +
+		"minimize$0(0x1, 0x1)\n" +
+		"test$res0()\n"
+	tests := []struct {
+		name       string
+		res        []*verf.Result
+		prog       string
+		wantExist  bool
+		wantResIdx int
+	}{
+		{
+			name: "report written",
+			res: []*verf.Result{
+				makeResult(1, []int{1, 3, 2}),
+				makeResult(4, []int{1, 3, 5}),
+			},
+			wantExist: true,
+		},
+		{
+			name: "no report written",
+			res: []*verf.Result{
+				makeResult(2, []int{11, 33, 22}),
+				makeResult(3, []int{11, 33, 22}),
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			target := prog.InitTargetTest(t, "test", "64")
+			prog, err := target.Deserialize([]byte(p), prog.Strict)
+			if err != nil {
+				t.Fatalf("failed to deserialise test program: %v", err)
+			}
+
+			resultsdir := "test"
+			err = osutil.MkdirAll(resultsdir)
+			if err != nil {
+				t.Fatalf("failed to create results directory: %v", err)
+			}
+			vrf := Verifier{}
+			vrf.resultsdir, err = filepath.Abs(resultsdir)
+			if err != nil {
+				t.Fatalf("failed to get absolute path of resultsdir: %v", err)
+			}
+			resultFile := filepath.Join(vrf.resultsdir, "result-3")
+
+			vrf.processResults(test.res, prog)
+
+			if got, want := osutil.IsExist(resultFile), test.wantExist; got != want {
+				log.Printf("%v", test.wantExist)
+				t.Errorf("osutil.IsExist report file: got %v want %v", got, want)
+			}
+			os.Remove(filepath.Join(vrf.resultsdir, "result-3"))
+		})
+	}
+}
