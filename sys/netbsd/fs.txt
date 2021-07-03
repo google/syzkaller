@@ -58,17 +58,17 @@ compat_90_fstatvfs1(fd fd, buf ptr[out, statvfs90], f flags[vfs_flags])
 compat_30_getfh(path ptr[in, filename], fhp ptr[out, compat_30_fhandle])
 __getfh30(fname ptr[in, filename], fhp buffer[out], fh_size ptr[in, intptr])
 compat_30_fhopen(fhp ptr[in, compat_30_fhandle], f flags[fhopen_flags]) fd
-__fhopen40(fhp buffer[in], fh_size intptr, f flags[fhopen_flags]) fd
+__fhopen40(fhp buffer[in], fh_size len[fhp], f flags[fhopen_flags]) fd
 compat_30_fhstat(fhp ptr[in, compat_30_fhandle], sb ptr[out, stat13])
 compat_30___fhstat30(fhp ptr[in, compat_30_fhandle], sb ptr[out, stat30])
-__fhstat50(fhp buffer[in], fh_size intptr, sb ptr[out, stat])
+__fhstat50(fhp buffer[in], fh_size len[fhp], sb ptr[out, stat])
 compat_30_fhstatvfs1(fhp ptr[in, compat_30_fhandle], buf ptr[out, statvfs90], f flags[vfs_flags])
-compat_90_fhstatvfs1(fhp buffer[in], fh_size intptr, buf ptr[out, statvfs90], f flags[vfs_flags])
-__fhstatvfs190(fhp buffer[in], fh_size intptr, buf ptr[out, statvfs], f flags[vfs_flags])
-compat_90_getvfsstat(buf ptr[out, statvfs90], bufsize intptr[opt], f flags[vfs_flags])
-__getvfsstat90(buf ptr[out, statvfs], bufsize intptr[opt], flags flags[vfs_flags])
+compat_90_fhstatvfs1(fhp buffer[in], fh_size len[fhp], buf ptr[out, statvfs90], f flags[vfs_flags])
+__fhstatvfs190(fhp buffer[in], fh_size len[fhp], buf ptr[out, statvfs], f flags[vfs_flags])
+compat_90_getvfsstat(buf ptr[out, statvfs90, opt], bufsize len[buf], f flags[vfs_flags])
+__getvfsstat90(buf ptr[out, statvfs, opt], bufsize len[buf], flags flags[vfs_flags])
 
-compat_20_getfsstat(buf ptr[out, statfs12], size intptr, f flags[getfsstat_flags])
+compat_20_getfsstat(buf ptr[out, statfs12, opt], size len[buf], f flags[getfsstat_flags])
 
 pipefd {
 	rfd	fd
