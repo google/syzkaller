@@ -32,6 +32,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -57,10 +58,20 @@ func mkAuthEndpoint(u string) authEndpoint {
 	return authEndpoint{url: u}
 }
 
+// The JSON representaion of JWT claims.
+type jwtClaimsParse struct {
+	Subject  string `json:"sub"`
+	Audience string `json:"aud"`
+	// The field in the JSON is a string but contains a UNIX time.
+	Expiration string `json:"exp"`
+}
+
+// The typed representation of JWT claims.
 type jwtClaims struct {
-	Subject    string  `json:"sub"`
-	Expiration float64 `json:"exp"`
-	Audience   string  `json:"aud"`
+	Subject  string
+	Audience string
+	// The app uses the typed value.
+	Expiration time.Time
 }
 
 func (auth *authEndpoint) queryTokenInfo(tokenValue string) (*jwtClaims, error) {
@@ -73,11 +84,20 @@ func (auth *authEndpoint) queryTokenInfo(tokenValue string) (*jwtClaims, error) 
 	if err != nil {
 		return nil, err
 	}
-	claims := new(jwtClaims)
+	claims := new(jwtClaimsParse)
 	if err = json.Unmarshal(body, claims); err != nil {
 		return nil, err
 	}
-	return claims, nil
+	expInt, err := strconv.ParseInt(claims.Expiration, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	r := jwtClaims{
+		Subject:    claims.Subject,
+		Audience:   claims.Audience,
+		Expiration: time.Unix(expInt, 0),
+	}
+	return &r, nil
 }
 
 // Returns the verified subject value based on the provided header
@@ -96,10 +116,10 @@ func (auth *authEndpoint) determineAuthSubj(authHeader []string) (string, error)
 		return "", err
 	}
 	if claims.Audience != dashapi.DashboardAudience {
-		err := fmt.Errorf("Unexpected audience %v", claims.Audience)
+		err := fmt.Errorf("Unexpected audience %v %v", claims.Audience, claims)
 		return "", err
 	}
-	if claims.Expiration < float64(time.Now().Unix()) {
+	if claims.Expiration.Before(time.Now()) {
 		err := fmt.Errorf("Token past expiration %v", claims.Expiration)
 		return "", err
 	}

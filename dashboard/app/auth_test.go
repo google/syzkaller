@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"net/http"
 	"net/http/httptest"
@@ -10,13 +11,13 @@ import (
 	"time"
 )
 
-func dayFromNow() float64 {
-	return float64(time.Now().AddDate(0, 0, 1).Unix())
-}
-
 func reponseFor(t *testing.T, claims jwtClaims) (*httptest.Server, authEndpoint) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		bytes, err := json.Marshal(claims)
+		bytes, err := json.Marshal(jwtClaimsParse{
+			Subject:    claims.Subject,
+			Audience:   claims.Audience,
+			Expiration: fmt.Sprint(claims.Expiration.Unix()),
+		})
 		if err != nil {
 			t.Fatalf("Marshal %v", err)
 		}
@@ -30,8 +31,8 @@ func TestBearerValid(t *testing.T) {
 	magic := "ValidSubj"
 	ts, dut := reponseFor(t, jwtClaims{
 		Subject:    magic,
-		Expiration: dayFromNow(),
 		Audience:   dashapi.DashboardAudience,
+		Expiration: time.Now().AddDate(0, 0, 1),
 	})
 	defer ts.Close()
 
@@ -47,7 +48,7 @@ func TestBearerValid(t *testing.T) {
 func TestBearerWrongAudience(t *testing.T) {
 	ts, dut := reponseFor(t, jwtClaims{
 		Subject:    "irrelevant",
-		Expiration: dayFromNow(),
+		Expiration: time.Now().AddDate(0, 0, 1),
 		Audience:   "junk",
 	})
 	defer ts.Close()
@@ -61,7 +62,7 @@ func TestBearerWrongAudience(t *testing.T) {
 func TestBearerExpired(t *testing.T) {
 	ts, dut := reponseFor(t, jwtClaims{
 		Subject:    "irrelevant",
-		Expiration: -1234,
+		Expiration: time.Now().AddDate(0, 0, -1),
 		Audience:   dashapi.DashboardAudience,
 	})
 	defer ts.Close()
