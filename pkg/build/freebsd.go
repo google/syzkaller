@@ -29,7 +29,6 @@ ident		SYZKALLER
 options 	COVERAGE
 options 	KCOV
 
-options 	KERN_TLS
 options 	TCPHPTS
 options 	RATELIMIT
 
