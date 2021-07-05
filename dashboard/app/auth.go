@@ -7,29 +7,27 @@
 // The client
 // The VM that wants to invoke the API:
 // 1) Gets a token from the metainfo server with this http request:
-//      curl -sH 'Metadata-Flavor: Google' 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?audience=https://syzkaller.appspot.com/api'
+//      META=http://metadata.google.internal/computeMetadata/v1
+//      AUD=https://syzkaller.appspot.com/api
+//      curl -sH 'Metadata-Flavor: Google' \
+//           "$META/instance/service-accounts/default/identity?audience=$AUD"
 // 2) Invokes /api with header 'Authorization: Bearer <token>'
-
-// Maybe we can use
-// https://pkg.go.dev/golang.org/x/oauth2/google
-
+//
 // The AppEngine api server:
 // 1) Receive the token, invokes this http request:
 //      curl -s "https://oauth2.googleapis.com/tokeninfo?id_token=<token>"
 // 2) Checks the resulting JSON having the expected audience and expiration.
 // 3) Looks up the permissions in the config using the value of sub.
 //
-// https://cloud.google.com/iap/docs/signed-headers-howto#retrieving_the_user_identity from the IAP docs agrees to trust sub.
-
-// TODO: private key caching and local verification?
-//
+// https://cloud.google.com/iap/docs/signed-headers-howto#retrieving_the_user_identity
+// from the IAP docs agrees to trust sub.
 
 package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -58,7 +56,7 @@ func mkAuthEndpoint(u string) authEndpoint {
 	return authEndpoint{url: u}
 }
 
-// The JSON representaion of JWT claims.
+// The JSON representation of JWT claims.
 type jwtClaimsParse struct {
 	Subject  string `json:"sub"`
 	Audience string `json:"aud"`
@@ -116,11 +114,11 @@ func (auth *authEndpoint) determineAuthSubj(authHeader []string) (string, error)
 		return "", err
 	}
 	if claims.Audience != dashapi.DashboardAudience {
-		err := fmt.Errorf("Unexpected audience %v %v", claims.Audience, claims)
+		err := fmt.Errorf("unexpected audience %v %v", claims.Audience, claims)
 		return "", err
 	}
 	if claims.Expiration.Before(time.Now()) {
-		err := fmt.Errorf("Token past expiration %v", claims.Expiration)
+		err := fmt.Errorf("token past expiration %v", claims.Expiration)
 		return "", err
 	}
 	return oauthMagic + claims.Subject, nil
@@ -128,9 +126,9 @@ func (auth *authEndpoint) determineAuthSubj(authHeader []string) (string, error)
 
 // Verifies that the given credentials are acceptable and returns the
 // corresponding namespace.
-func checkClient(name0, secretPassword, oauthSubject string) (string, error) {
+func checkClient(conf *GlobalConfig, name0, secretPassword, oauthSubject string) (string, error) {
 	checkAuth := func(ns, a string) (string, error) {
-		if strings.HasPrefix(oauthMagic, a) && a == oauthSubject {
+		if strings.HasPrefix(a, oauthMagic) && a == oauthSubject {
 			return ns, nil
 		}
 		if a != secretPassword {
@@ -138,12 +136,12 @@ func checkClient(name0, secretPassword, oauthSubject string) (string, error) {
 		}
 		return ns, nil
 	}
-	for name, authenticator := range config.Clients {
+	for name, authenticator := range conf.Clients {
 		if name == name0 {
 			return checkAuth("", authenticator)
 		}
 	}
-	for ns, cfg := range config.Namespaces {
+	for ns, cfg := range conf.Namespaces {
 		for name, authenticator := range cfg.Clients {
 			if name == name0 {
 				return checkAuth(ns, authenticator)
