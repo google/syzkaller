@@ -97,7 +97,9 @@ config:
  - DEBUG_KOBJECT: n
 
  - DEBUG_INFO
- - DEBUG_INFO_BTF
+ # CONFIG_DEBUG_INFO_BTF breaks the build since 5.14 merge window:
+ #    https://lkml.kernel.org/r/YOLzFecogWmdZ5Hc@infradead.org
+ - DEBUG_INFO_BTF: [-v5.13]
  - DEBUG_INFO_REDUCED: n
 
  # This should make behavior more deterministic.
