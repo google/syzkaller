@@ -111,7 +111,7 @@ func handleAPI(c context.Context, r *http.Request) (reply interface{}, err error
 		return nil, err
 	}
 	// Somewhat confusingly the "key" parameter is the password.
-	ns, err := checkClient(client, r.PostFormValue("key"), subj)
+	ns, err := checkClient(config, client, r.PostFormValue("key"), subj)
 	if err != nil {
 		if client != "" {
 			log.Errorf(c, "%v", err)
