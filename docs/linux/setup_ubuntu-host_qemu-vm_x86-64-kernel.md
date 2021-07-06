@@ -61,6 +61,13 @@ Since enabling these options results in more sub options being available, we nee
 make CC="$GCC/bin/gcc" olddefconfig
 ```
 
+You might also be interested in disabling the Predictable Network Interface Names mechanism. This can be disabled either in the syzkaller configuration (see details [here](troubleshooting.md)) or by updating these kernel configuration parameters:
+
+```
+CONFIG_CMDLINE_BOOL=y
+CONFIG_CMDLINE="net.ifnames=0"
+```
+
 Build the kernel:
 
 ```
