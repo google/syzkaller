@@ -28,6 +28,7 @@ include "./GENERIC"
 ident		SYZKALLER
 options 	COVERAGE
 options 	KCOV
+options 	KASAN
 
 options 	TCPHPTS
 options 	RATELIMIT
