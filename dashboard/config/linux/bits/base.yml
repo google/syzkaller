@@ -120,6 +120,9 @@ config:
  # Print thread and CPU ids.
  - PRINTK_CALLER
  - PRINTK_TIME
+ # Some kernel oops'es are large. Largest observed for a stack overflow is ~42KB.
+ # There are 2 such buffers per CPU (safe and nmi), so this adds 128KB per CPU.
+ - PRINTK_SAFE_LOG_BUF_SHIFT: 16
 
  # Fault injection.
  - FAULT_INJECTION
