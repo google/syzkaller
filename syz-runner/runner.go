@@ -30,14 +30,17 @@ func main() {
 	flagOS := flag.String("os", runtime.GOOS, "target OS")
 	flagArch := flag.String("arch", runtime.GOARCH, "target arch")
 	flag.Parse()
+
 	target, err := prog.GetTarget(*flagOS, *flagArch)
 	if err != nil {
 		log.Fatalf("failed to configure target: %v", err)
 	}
+
 	config, opts, err := ipcconfig.Default(target)
 	if err != nil {
-		log.Fatalf("%v", err)
+		log.Fatalf("failed to create default ipc config: %v", err)
 	}
+
 	timeouts := config.Timeouts
 	vrf, err := rpctype.NewRPCClient(*flagAddr, timeouts.Scale)
 	if err != nil {
