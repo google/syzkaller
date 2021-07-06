@@ -65,6 +65,13 @@ It is recommended to disable the following config (and required if your kernel d
 # CONFIG_RANDOMIZE_BASE is not set
 ```
 
+It is also recommended to disable the Predictable Network Interface Names mechanism. This can be done
+either via syzkaller configuration (see details [here](troubleshooting.md)) or by adjusting the following configs:
+```
+CONFIG_CMDLINE_BOOL=y
+CONFIG_CMDLINE="net.ifnames=0"
+```
+
 ## Bug detection configs
 
 Syzkaller is meant to be used with

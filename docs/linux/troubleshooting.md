@@ -27,6 +27,42 @@ Here are some things to check if there are problems running syzkaller.
      CONFIG_E1000=y
      CONFIG_E1000E=y
      ```
+ - If the virtual machine reports that it has "Failed to start Raise network interfaces" or (which
+   is a consequence of that) syzkaller is unable to connect to the virtual machines, try to disable
+   the Predictable Network Interface Names mechanism. There are two ways to achieve this:
+    - Add the following two lines to the kernel configuration file and recompile the kernel.
+      ```
+      CONFIG_CMDLINE_BOOL=y
+      CONFIG_CMDLINE="net.ifnames=0"
+      ```
+    - Add the following line to the VM's properties inside the syzkaller manager configuration:
+      ```
+      "cmdline": "net.ifnames=0"
+      ```
+
+      The resulting configuration may look like this:
+      ```json
+      {
+        "target": "linux/amd64",
+        "http": "127.0.0.1:56741",
+        "workdir": "$GOPATH/src/github.com/google/syzkaller/workdir",
+        "kernel_obj": "$KERNEL",
+        "image": "$IMAGE/stretch.img",
+        "sshkey": "$IMAGE/stretch.id_rsa",
+        "syzkaller": "$GOPATH/src/github.com/google/syzkaller",
+        "procs": 8,
+        "type": "qemu",
+        "vm": {
+            "count": 4,
+            "kernel": "$KERNEL/arch/x86/boot/bzImage",
+            "cmdline": "net.ifnames=0",
+            "cpu": 2,
+            "mem": 2048
+        }
+      }
+      ```
+
+      This is, however, not guaranteed to work across all virtualization technologies.
 
  - Check that the `CONFIG_KCOV` option is available inside the VM:
     - `ls /sys/kernel/debug       # Check debugfs mounted`
