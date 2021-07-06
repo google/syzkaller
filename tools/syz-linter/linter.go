@@ -145,7 +145,7 @@ var (
 	noPeriodComment   = regexp.MustCompile(`^// [A-Z][a-z].+[a-z]$`)
 	lowerCaseComment  = regexp.MustCompile(`^// [a-z]+ `)
 	onelineExceptions = regexp.MustCompile(`// want \"|http:|https:`)
-	specialComment    = regexp.MustCompile(`//go:generate|// nolint:`)
+	specialComment    = regexp.MustCompile(`//go:generate|//go:build|// nolint:`)
 )
 
 // checkStringLenCompare checks for string len comparisons with 0.

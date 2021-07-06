@@ -7,6 +7,7 @@
 //	-I $INTELXED/build/obj" CGO_LDFLAGS="$INTELXED/build/obj/libxed.a" \
 //	go test -v -tags xed
 
+//go:build xed
 // +build xed
 
 package x86
