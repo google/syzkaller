@@ -2,6 +2,7 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // As we use syscall package:
+//go:build linux
 // +build linux
 
 // syz-imagegen generates sys/linux/test/syz_mount_image_* test files.
