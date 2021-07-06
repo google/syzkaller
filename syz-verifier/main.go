@@ -206,7 +206,7 @@ func main() {
 					log.Fatalf("failed to copy executor binary: %v", err)
 				}
 
-				cmd := instance.RunnerCmd(runnerBin, fwdAddr, vrf.target.OS, vrf.target.Arch, idx, 0)
+				cmd := instance.RunnerCmd(runnerBin, fwdAddr, vrf.target.OS, vrf.target.Arch, idx, 0, false, false)
 				outc, errc, err := inst.Run(pi.cfg.Timeouts.VMRunningTime, vrf.vmStop, cmd)
 				if err != nil {
 					log.Fatalf("failed to start runner: %v", err)
