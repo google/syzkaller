@@ -95,10 +95,10 @@ chmod +x create-image.sh
 
 The result should be `$IMAGE/stretch.img` disk image.
 
-If you would like to generate an image with Debian Wheezy, instead of Stretch, do:
+If you would like to generate an image with Debian Buster, instead of Stretch, do:
 
 ``` bash
-./create-image.sh --distribution wheezy
+./create-image.sh --distribution buster
 ```
 
 Sometimes it's useful to have some additional packages and tools available in the VM even though they are not required to run syzkaller. To install a set of tools we find useful do (feel free to edit the list of tools in the script):
