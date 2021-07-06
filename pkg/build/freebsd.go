@@ -35,7 +35,6 @@ options 	RATELIMIT
 
 options 	DEBUG_VFS_LOCKS
 options 	DIAGNOSTIC
-options 	DEBUG_REDZONE
 `)
 	}
 	if err := osutil.WriteFile(filepath.Join(confDir, confFile), config); err != nil {
