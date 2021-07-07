@@ -29,8 +29,6 @@ type ResultReport struct {
 }
 
 type CallReport struct {
-	// Call is the name of the system call.
-	Call string
 	// Errno is a map between pools and the errno returned by executing the
 	// system call on a VM spawned by the respective pool.
 	Errnos map[int]int
@@ -48,9 +46,8 @@ func Verify(res []*Result, prog *prog.Prog) *ResultReport {
 		Prog: string(prog.Serialize()),
 	}
 	c0 := res[0].Info.Calls
-	for idx, c := range c0 {
+	for _, c := range c0 {
 		cr := CallReport{
-			Call:   prog.Calls[idx].Meta.Name,
 			Errnos: map[int]int{res[0].Pool: c.Errno},
 			Flags:  map[int]ipc.CallFlags{res[0].Pool: c.Flags},
 		}

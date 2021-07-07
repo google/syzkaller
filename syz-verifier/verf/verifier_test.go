@@ -43,9 +43,9 @@ func TestVerify(t *testing.T) {
 			want: &ResultReport{
 				Prog: p,
 				Reports: []CallReport{
-					{Call: "breaks_returns", Errnos: map[int]int{1: 1, 4: 1}, Flags: map[int]ipc.CallFlags{1: 1, 4: 1}},
-					{Call: "minimize$0", Errnos: map[int]int{1: 3, 4: 3}, Flags: map[int]ipc.CallFlags{1: 3, 4: 3}},
-					{Call: "test$res0", Errnos: map[int]int{1: 2, 4: 5}, Flags: map[int]ipc.CallFlags{1: 7, 4: 3}, Mismatch: true},
+					{Errnos: map[int]int{1: 1, 4: 1}, Flags: map[int]ipc.CallFlags{1: 1, 4: 1}},
+					{Errnos: map[int]int{1: 3, 4: 3}, Flags: map[int]ipc.CallFlags{1: 3, 4: 3}},
+					{Errnos: map[int]int{1: 2, 4: 5}, Flags: map[int]ipc.CallFlags{1: 7, 4: 3}, Mismatch: true},
 				},
 			},
 		},
