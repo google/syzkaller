@@ -333,15 +333,10 @@ func (c *Ctx) makeClient(client, key string, failOnErrors bool) *apiClient {
 		registerContext(r, c)
 		w := httptest.NewRecorder()
 		http.DefaultServeMux.ServeHTTP(w, r)
-		// Later versions of Go have a nice w.Result method,
-		// but we stuck on 1.6 on appengine.
-		if w.Body == nil {
-			w.Body = new(bytes.Buffer)
-		}
 		res := &http.Response{
 			StatusCode: w.Code,
 			Status:     http.StatusText(w.Code),
-			Body:       ioutil.NopCloser(bytes.NewReader(w.Body.Bytes())),
+			Body:       ioutil.NopCloser(w.Result().Body),
 		}
 		return res, nil
 	}
