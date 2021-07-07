@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -312,7 +313,8 @@ func (vrf *Verifier) processResults(res []*verf.Result, prog *prog.Prog) {
 		}
 	}
 
-	err := osutil.WriteFile(filepath.Join(vrf.resultsdir, fmt.Sprintf("result-%d", oldest)), createReport(rr))
+	err := osutil.WriteFile(filepath.Join(vrf.resultsdir,
+		fmt.Sprintf("result-%d", oldest)), createReport(rr, len(vrf.pools)))
 	if err != nil {
 		log.Printf("failed to write result-%d file, err %v", oldest, err)
 	}
@@ -320,20 +322,29 @@ func (vrf *Verifier) processResults(res []*verf.Result, prog *prog.Prog) {
 	log.Printf("result-%d written successfully", oldest)
 }
 
-func createReport(rr *verf.ResultReport) []byte {
-	data := fmt.Sprintf("Errno mismatches found for program:\n%s\n", rr.Prog)
-	data += "CALL REPORTS FOUND BELOW\n"
+func createReport(rr *verf.ResultReport, pools int) []byte {
+	calls := strings.Split(rr.Prog, "\n")
+	calls = calls[:len(calls)-1]
 
-	for _, cr := range rr.Reports {
-		data += fmt.Sprintf("Report for call: %s", cr.Call)
-
+	data := "ERRNO mismatches found for program:\n\n"
+	for idx, cr := range rr.Reports {
+		tick := "[=]"
 		if cr.Mismatch {
-			data += " - MISMATCH FOUND"
+			tick = "[!]"
 		}
-		data += "\n"
-		for pool, errno := range cr.Errnos {
-			data += fmt.Sprintf("Pool: %d, Errno: %d, Flag: %d\n", pool, errno, cr.Flags[pool])
+		data += fmt.Sprintf("%s %s\n", tick, calls[idx])
+
+		// Ensure results are ordered by pool index.
+		for i := 0; i < pools; i++ {
+			errno, ok := cr.Errnos[i]
+			if !ok {
+				// VM crashed so we don't have reports from this pool.
+				continue
+			}
+
+			data += fmt.Sprintf("\t↳ Pool: %d, Errno: %d, Flag: %d\n", i, errno, cr.Flags[i])
 		}
+
 		data += "\n"
 	}
 

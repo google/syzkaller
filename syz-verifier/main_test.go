@@ -3,7 +3,6 @@
 package main
 
 import (
-	"log"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -170,11 +169,10 @@ func TestProcessResults(t *testing.T) {
 		"minimize$0(0x1, 0x1)\n" +
 		"test$res0()\n"
 	tests := []struct {
-		name       string
-		res        []*verf.Result
-		prog       string
-		wantExist  bool
-		wantResIdx int
+		name      string
+		res       []*verf.Result
+		prog      string
+		wantExist bool
 	}{
 		{
 			name: "report written",
@@ -215,10 +213,36 @@ func TestProcessResults(t *testing.T) {
 			vrf.processResults(test.res, prog)
 
 			if got, want := osutil.IsExist(resultFile), test.wantExist; got != want {
-				log.Printf("%v", test.wantExist)
 				t.Errorf("osutil.IsExist report file: got %v want %v", got, want)
 			}
 			os.Remove(filepath.Join(vrf.resultsdir, "result-3"))
 		})
+	}
+}
+
+func TestCreateReport(t *testing.T) {
+	rr := verf.ResultReport{
+		Prog: "breaks_returns()\n" +
+			"minimize$0(0x1, 0x1)\n" +
+			"test$res0()\n",
+		Reports: []verf.CallReport{
+			{Errnos: map[int]int{1: 1, 2: 1, 3: 1}, Flags: map[int]ipc.CallFlags{1: 1, 2: 1, 3: 1}},
+			{Errnos: map[int]int{1: 3, 2: 3, 3: 3}, Flags: map[int]ipc.CallFlags{1: 3, 2: 3, 3: 3}},
+			{Errnos: map[int]int{1: 2, 2: 5, 3: 22}, Flags: map[int]ipc.CallFlags{1: 7, 2: 3, 3: 1}, Mismatch: true},
+		},
+	}
+	got := string(createReport(&rr, 3))
+	want := "ERRNO mismatches found for program:\n\n" +
+		"[=] breaks_returns()\n" +
+		"\t↳ Pool: 1, Errno: 1, Flag: 1\n" +
+		"\t↳ Pool: 2, Errno: 1, Flag: 1\n\n" +
+		"[=] minimize$0(0x1, 0x1)\n" +
+		"\t↳ Pool: 1, Errno: 3, Flag: 3\n" +
+		"\t↳ Pool: 2, Errno: 3, Flag: 3\n\n" +
+		"[!] test$res0()\n" +
+		"\t↳ Pool: 1, Errno: 2, Flag: 7\n" +
+		"\t↳ Pool: 2, Errno: 5, Flag: 3\n\n"
+	if got != want {
+		t.Errorf("createReport: got %q want %q", got, want)
 	}
 }
