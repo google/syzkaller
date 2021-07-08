@@ -3,9 +3,11 @@
 package main
 
 import (
+	"bytes"
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -188,8 +190,12 @@ func TestConnect(t *testing.T) {
 		Pool: 1,
 		VM:   1,
 	}
-	if err := srv.Connect(a, nil); err != nil {
+	r := &rpctype.RunnerConnectRes{}
+	if err := srv.Connect(a, r); err != nil {
 		t.Fatalf("srv.Connect failed: %v", err)
+	}
+	if diff := cmp.Diff(&rpctype.RunnerConnectRes{CheckUnsupportedCalls: true}, r); diff != "" {
+		t.Errorf("Connect result mismatch (-want +got):\n%s", diff)
 	}
 	want, got := map[int][]*progInfo{
 		0: {{idx: 1, left: map[int]bool{1: true, 2: true}}},
@@ -197,6 +203,172 @@ func TestConnect(t *testing.T) {
 	}, srv.pools[a.Pool].vmRunners
 	if diff := cmp.Diff(want, got, cmp.AllowUnexported(progInfo{})); diff != "" {
 		t.Errorf("srv.progs[a.Name] mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestFinalizeCallSet(t *testing.T) {
+	target, err := prog.GetTarget("test", "64")
+	if err != nil {
+		t.Fatalf("failed to initialise test target: %v", err)
+	}
+
+	vrf := Verifier{
+		target: target,
+		reasons: map[*prog.Syscall]string{
+			target.SyscallMap["test$res0"]:  "foo",
+			target.SyscallMap["minimize$0"]: "bar",
+		},
+		calls: map[*prog.Syscall]bool{
+			target.SyscallMap["minimize$0"]: true,
+			target.SyscallMap["test$res0"]:  true,
+			target.SyscallMap["disabled1"]:  true,
+		},
+	}
+
+	out := bytes.Buffer{}
+	vrf.finalizeCallSet(&out)
+	wantLines := []string{
+		"Calls not supported by kernels:\n",
+		"\ttest$res0: foo\n",
+		"\tminimize$0: bar\n",
+	}
+	output := out.String()
+	for _, line := range wantLines {
+		if !strings.Contains(output, line) {
+			t.Errorf("finalizeCallSet: %q missing in reported output", line)
+		}
+	}
+
+	wantCalls, gotCalls := map[*prog.Syscall]bool{
+		target.SyscallMap["disabled1"]: true,
+	}, vrf.calls
+	if diff := cmp.Diff(wantCalls, gotCalls); diff != "" {
+		t.Errorf("srv.calls mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestUpdateUnsupported(t *testing.T) {
+	target, err := prog.GetTarget("test", "64")
+	if err != nil {
+		t.Fatalf("failed to initialise test target: %v", err)
+	}
+
+	tests := []struct {
+		name           string
+		vrf            Verifier
+		wantPools      map[int]*poolInfo
+		wantCalls      map[*prog.Syscall]bool
+		wantNotChecked int
+		nilCT          bool
+	}{
+		{
+			name:           "choice table not generated",
+			vrf:            Verifier{pools: map[int]*poolInfo{0: {}, 1: {}}},
+			wantPools:      map[int]*poolInfo{0: {checked: true}, 1: {}},
+			wantNotChecked: 1,
+			wantCalls: map[*prog.Syscall]bool{
+				target.SyscallMap["minimize$0"]:     true,
+				target.SyscallMap["breaks_returns"]: true,
+				target.SyscallMap["test$res0"]:      true,
+			},
+			nilCT: true,
+		},
+		{
+			name:           "choice table generated",
+			vrf:            Verifier{pools: map[int]*poolInfo{0: {}}},
+			wantPools:      map[int]*poolInfo{0: {checked: true}},
+			wantNotChecked: 0,
+			wantCalls: map[*prog.Syscall]bool{
+				target.SyscallMap["minimize$0"]:     true,
+				target.SyscallMap["breaks_returns"]: true,
+			},
+			nilCT: false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.vrf.target = target
+			test.vrf.reasons = make(map[*prog.Syscall]string)
+			test.vrf.calls = map[*prog.Syscall]bool{
+				target.SyscallMap["minimize$0"]:     true,
+				target.SyscallMap["breaks_returns"]: true,
+				target.SyscallMap["test$res0"]:      true,
+			}
+			srv, err := startRPCServer(&test.vrf)
+			if err != nil {
+				t.Fatalf("failed to initialise RPC server: %v", err)
+			}
+
+			a := &rpctype.UpdateUnsupportedArgs{
+				Pool: 0,
+				UnsupportedCalls: []rpctype.SyscallReason{
+					{ID: 137, Reason: "foo"},
+					{ID: 2, Reason: "bar"},
+				}}
+			if err := srv.UpdateUnsupported(a, nil); err != nil {
+				t.Fatalf("srv.UpdateUnsupported failed: %v", err)
+			}
+
+			if diff := cmp.Diff(test.wantPools, srv.pools, cmp.AllowUnexported(poolInfo{})); diff != "" {
+				t.Errorf("srv.pools mismatch (-want +got):\n%s", diff)
+			}
+
+			wantReasons := map[*prog.Syscall]string{
+				target.SyscallMap["test$res0"]: "foo",
+			}
+			if diff := cmp.Diff(wantReasons, test.vrf.reasons); diff != "" {
+				t.Errorf("srv.reasons mismatch (-want +got):\n%s", diff)
+			}
+
+			if diff := cmp.Diff(test.wantCalls, test.vrf.calls); diff != "" {
+				t.Errorf("srv.calls mismatch (-want +got):\n%s", diff)
+			}
+
+			if want, got := test.wantNotChecked, srv.notChecked; want != got {
+				t.Errorf("srv.notChecked: got %d want %d", got, want)
+			}
+
+			if want, got := test.nilCT, test.vrf.choiceTable == nil; want != got {
+				t.Errorf("vrf.choiceTable == nil: want nil, got: %v", srv.vrf.choiceTable)
+			}
+		})
+	}
+}
+
+func TestUpdateUnsupportedNotCalledTwice(t *testing.T) {
+	vrf := Verifier{
+		pools: map[int]*poolInfo{
+			0: {vmRunners: map[int][]*progInfo{0: nil, 1: nil}, checked: false},
+			1: {vmRunners: map[int][]*progInfo{}, checked: false},
+		},
+	}
+	srv, err := startRPCServer(&vrf)
+	if err != nil {
+		t.Fatalf("failed to initialise RPC server: %v", err)
+	}
+	a := &rpctype.UpdateUnsupportedArgs{Pool: 0}
+
+	if err := srv.UpdateUnsupported(a, nil); err != nil {
+		t.Fatalf("srv.UpdateUnsupported failed: %v", err)
+	}
+	if want, got := 1, srv.notChecked; want != got {
+		t.Errorf("srv.notChecked: got %d want %d", got, want)
+	}
+
+	if err := srv.UpdateUnsupported(a, nil); err != nil {
+		t.Fatalf("srv.UpdateUnsupported failed: %v", err)
+	}
+	if want, got := 1, srv.notChecked; want != got {
+		t.Fatalf("srv.UpdateUnsupported called twice")
+	}
+
+	wantPools := map[int]*poolInfo{
+		0: {vmRunners: map[int][]*progInfo{0: nil, 1: nil}, checked: true},
+		1: {vmRunners: map[int][]*progInfo{}, checked: false},
+	}
+	if diff := cmp.Diff(wantPools, srv.pools, cmp.AllowUnexported(poolInfo{}, progInfo{})); diff != "" {
+		t.Errorf("srv.pools mismatch (-want +got):\n%s", diff)
 	}
 }
 
