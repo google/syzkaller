@@ -46,11 +46,21 @@ func (insnset *InsnSet) initPseudo() {
 			return gen.text
 		},
 	})
+	insnset.Insns = append(insnset.Insns, &Insn{
+		Name:   "PSEUDO_rtas",
+		Priv:   true,
+		Pseudo: true,
+		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
+			gen := makeGen(insnset, cfg, r)
+			gen.rtas()
+			return gen.text
+		},
+	})
 }
 
 type generator struct {
 	imap insnSetMap
-	mode iset.Mode
+	cfg  *iset.Config
 	r    *rand.Rand
 	text []byte
 }
@@ -58,7 +68,7 @@ type generator struct {
 func makeGen(insnset *InsnSet, cfg *iset.Config, r *rand.Rand) *generator {
 	return &generator{
 		imap: insnset.insnMap,
-		mode: cfg.Mode,
+		cfg:  cfg,
 		r:    r,
 	}
 }
@@ -76,4 +86,22 @@ func (gen *generator) sc(lev uint) {
 		gen.byte(imap.ld64(uint(i), gen.r.Uint64()))
 	}
 	gen.byte(imap.sc(lev))
+}
+
+func (gen *generator) rtas() {
+	imap := gen.imap
+
+	addr := iset.GenerateInt(gen.cfg, gen.r, 8)
+	token := uint32(gen.r.Intn(8) << 24) // There are only 4 tokens handled by KVM and it is BigEndian.
+	reg := uint(iset.GenerateInt(gen.cfg, gen.r, 4))
+
+	gen.byte(imap.ldgpr32(reg, reg+uint(1), addr, token))
+	for i := 0; i < gen.r.Intn(4)+1; i++ {
+		gen.byte(imap.ldgpr32(reg, reg+uint(1), addr+uint64(i*4),
+			uint32(iset.GenerateInt(gen.cfg, gen.r, 4))))
+	}
+	gen.byte(imap.ld64(3, 0xF000)) // 0xF000 is a custom H_RTAS hypercall
+	gen.byte(imap.ld64(4, addr))
+
+	gen.byte(imap.sc(1))
 }
