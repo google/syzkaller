@@ -7325,6 +7325,16 @@ struct kvm_text {
 	uintptr_t size;
 };
 
+static int kvmppc_define_rtas_kernel_token(int vmfd, unsigned token, const char* func)
+{
+	struct kvm_rtas_token_args args;
+
+	args.token = token;
+	strncpy(args.name, func, sizeof(args.name) - 1);
+
+	return ioctl(vmfd, KVM_PPC_RTAS_DEFINE_TOKEN, &args);
+}
+
 static int kvmppc_get_one_reg(int cpufd, uint64 id, void* target)
 {
 	struct kvm_one_reg reg = {.id = id, .addr = (uintptr_t)target};
@@ -7576,6 +7586,10 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 		};
 		ioctl(vmfd, KVM_ENABLE_CAP, &cap);
 	}
+	kvmppc_define_rtas_kernel_token(vmfd, 1, "ibm,set-xive");
+	kvmppc_define_rtas_kernel_token(vmfd, 2, "ibm,get-xive");
+	kvmppc_define_rtas_kernel_token(vmfd, 3, "ibm,int-on");
+	kvmppc_define_rtas_kernel_token(vmfd, 4, "ibm,int-off");
 
 	dump_text(host_mem, regs.pc, 8, debug_inst_opcode);
 	dump_text(host_mem, BOOK3S_INTERRUPT_DECREMENTER, 16, debug_inst_opcode);

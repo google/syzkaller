@@ -174,6 +174,33 @@ func (imap insnSetMap) ld64(reg uint, v uint64) []byte {
 	return ret
 }
 
+func (imap insnSetMap) ld32(reg uint, v uint32) []byte {
+	ret := make([]byte, 0)
+
+	ret = append(ret, imap["addis"].enc(map[string]uint{
+		"RT": reg,
+		"RA": 0, // In "addis", '0' means 0, not GPR0
+		"SI": uint((v >> 16) & 0xffff)})...)
+	ret = append(ret, imap["ori"].enc(map[string]uint{
+		"RA": reg,
+		"RS": reg,
+		"UI": uint(v & 0xffff)})...)
+
+	return ret
+}
+
+func (imap insnSetMap) ldgpr32(regaddr, regval uint, addr uint64, v uint32) []byte {
+	ret := make([]byte, 0)
+
+	ret = append(ret, imap.ld64(regaddr, addr)...)
+	ret = append(ret, imap.ld32(regval, v)...)
+	ret = append(ret, imap["stw"].enc(map[string]uint{
+		"RA": regaddr,
+		"RS": regval})...)
+
+	return ret
+}
+
 func (imap insnSetMap) sc(lev uint) []byte {
 	return imap["sc"].enc(map[string]uint{"LEV": lev})
 }
