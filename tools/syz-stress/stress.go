@@ -1,6 +1,12 @@
 // Copyright 2015 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// syz-stress executes random programs locally.
+// A user needs to start a VM manually, copy syz-stress and run it.
+// syz-stress will execute random programs infinitely until it's stopped or it crashes the kernel underneath.
+// If it's given a corpus of programs, it will alternate between executing random programs and mutated
+// programs from the corpus. Running syz-stress can be used as an intermediate step when porting syzkaller
+// to a new OS, or to test on a machine that is not supported by the vm package (syz-manager cannot be used).
 package main
 
 import (
