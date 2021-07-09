@@ -223,12 +223,13 @@ func TestFinalizeCallSet(t *testing.T) {
 			target.SyscallMap["test$res0"]:  true,
 			target.SyscallMap["disabled1"]:  true,
 		},
+		reportReasons: true,
 	}
 
 	out := bytes.Buffer{}
 	vrf.finalizeCallSet(&out)
 	wantLines := []string{
-		"Calls not supported by kernels:\n",
+		"The following calls have been disabled:\n",
 		"\ttest$res0: foo\n",
 		"\tminimize$0: bar\n",
 	}
@@ -255,7 +256,7 @@ func TestUpdateUnsupported(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		vrf            Verifier
+		vrfPools       map[int]*poolInfo
 		wantPools      map[int]*poolInfo
 		wantCalls      map[*prog.Syscall]bool
 		wantNotChecked int
@@ -263,19 +264,20 @@ func TestUpdateUnsupported(t *testing.T) {
 	}{
 		{
 			name:           "choice table not generated",
-			vrf:            Verifier{pools: map[int]*poolInfo{0: {}, 1: {}}},
+			vrfPools:       map[int]*poolInfo{0: {}, 1: {}},
 			wantPools:      map[int]*poolInfo{0: {checked: true}, 1: {}},
 			wantNotChecked: 1,
 			wantCalls: map[*prog.Syscall]bool{
 				target.SyscallMap["minimize$0"]:     true,
 				target.SyscallMap["breaks_returns"]: true,
 				target.SyscallMap["test$res0"]:      true,
+				target.SyscallMap["test$union0"]:    true,
 			},
 			nilCT: true,
 		},
 		{
 			name:           "choice table generated",
-			vrf:            Verifier{pools: map[int]*poolInfo{0: {}}},
+			vrfPools:       map[int]*poolInfo{0: {}},
 			wantPools:      map[int]*poolInfo{0: {checked: true}},
 			wantNotChecked: 0,
 			wantCalls: map[*prog.Syscall]bool{
@@ -288,14 +290,19 @@ func TestUpdateUnsupported(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			test.vrf.target = target
-			test.vrf.reasons = make(map[*prog.Syscall]string)
-			test.vrf.calls = map[*prog.Syscall]bool{
-				target.SyscallMap["minimize$0"]:     true,
-				target.SyscallMap["breaks_returns"]: true,
-				target.SyscallMap["test$res0"]:      true,
+			vrf := Verifier{
+				target:        target,
+				pools:         test.vrfPools,
+				reasons:       make(map[*prog.Syscall]string),
+				reportReasons: true,
+				calls: map[*prog.Syscall]bool{
+					target.SyscallMap["minimize$0"]:     true,
+					target.SyscallMap["breaks_returns"]: true,
+					target.SyscallMap["test$res0"]:      true,
+					target.SyscallMap["test$union0"]:    true,
+				},
 			}
-			srv, err := startRPCServer(&test.vrf)
+			srv, err := startRPCServer(&vrf)
 			if err != nil {
 				t.Fatalf("failed to initialise RPC server: %v", err)
 			}
@@ -305,6 +312,7 @@ func TestUpdateUnsupported(t *testing.T) {
 				UnsupportedCalls: []rpctype.SyscallReason{
 					{ID: 137, Reason: "foo"},
 					{ID: 2, Reason: "bar"},
+					{ID: 151, Reason: "tar"},
 				}}
 			if err := srv.UpdateUnsupported(a, nil); err != nil {
 				t.Fatalf("srv.UpdateUnsupported failed: %v", err)
@@ -315,13 +323,14 @@ func TestUpdateUnsupported(t *testing.T) {
 			}
 
 			wantReasons := map[*prog.Syscall]string{
-				target.SyscallMap["test$res0"]: "foo",
+				target.SyscallMap["test$res0"]:   "foo",
+				target.SyscallMap["test$union0"]: "tar",
 			}
-			if diff := cmp.Diff(wantReasons, test.vrf.reasons); diff != "" {
+			if diff := cmp.Diff(wantReasons, vrf.reasons); diff != "" {
 				t.Errorf("srv.reasons mismatch (-want +got):\n%s", diff)
 			}
 
-			if diff := cmp.Diff(test.wantCalls, test.vrf.calls); diff != "" {
+			if diff := cmp.Diff(test.wantCalls, vrf.calls); diff != "" {
 				t.Errorf("srv.calls mismatch (-want +got):\n%s", diff)
 			}
 
@@ -329,7 +338,7 @@ func TestUpdateUnsupported(t *testing.T) {
 				t.Errorf("srv.notChecked: got %d want %d", got, want)
 			}
 
-			if want, got := test.nilCT, test.vrf.choiceTable == nil; want != got {
+			if want, got := test.nilCT, vrf.choiceTable == nil; want != got {
 				t.Errorf("vrf.choiceTable == nil: want nil, got: %v", srv.vrf.choiceTable)
 			}
 		})

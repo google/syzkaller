@@ -41,18 +41,19 @@ type Verifier struct {
 	// - <workdir>/corpus.db: corpus with interesting programs
 	// - <workdir>/<OS-Arch>/instance-x: per VM instance temporary files
 	// grouped by OS/Arch
-	workdir     string
-	crashdir    string
-	resultsdir  string
-	target      *prog.Target
-	runnerBin   string
-	executorBin string
-	choiceTable *prog.ChoiceTable
-	rnd         *rand.Rand
-	progIdx     int
-	addr        string
-	calls       map[*prog.Syscall]bool
-	reasons     map[*prog.Syscall]string
+	workdir       string
+	crashdir      string
+	resultsdir    string
+	target        *prog.Target
+	runnerBin     string
+	executorBin   string
+	choiceTable   *prog.ChoiceTable
+	rnd           *rand.Rand
+	progIdx       int
+	addr          string
+	calls         map[*prog.Syscall]bool
+	reasons       map[*prog.Syscall]string
+	reportReasons bool
 }
 
 // RPCServer is a wrapper around the rpc.Server. It communicates with  Runners,
@@ -79,8 +80,10 @@ type poolInfo struct {
 	//  There is one Runner executing per VM instance.
 	vmRunners map[int][]*progInfo
 	// progs stores the programs that haven't been sent to this kernel yet but
-	// have been sent to at least one kernel.
-	progs   []*progInfo
+	// have been sent to at least one other kernel.
+	progs []*progInfo
+	// checked is set to true when the set of system calls not supported on the
+	// kernel is known.
 	checked bool
 }
 
@@ -169,22 +172,24 @@ func main() {
 	}
 
 	calls := make(map[*prog.Syscall]bool)
+
 	for _, id := range cfg.Syscalls {
 		calls[target.Syscalls[id]] = true
 	}
 
 	vrf := &Verifier{
-		workdir:     workdir,
-		crashdir:    crashdir,
-		resultsdir:  resultsdir,
-		pools:       pools,
-		target:      target,
-		calls:       calls,
-		reasons:     make(map[*prog.Syscall]string),
-		rnd:         rand.New(rand.NewSource(time.Now().UnixNano() + 1e12)),
-		runnerBin:   runnerBin,
-		executorBin: execBin,
-		addr:        addr,
+		workdir:       workdir,
+		crashdir:      crashdir,
+		resultsdir:    resultsdir,
+		pools:         pools,
+		target:        target,
+		calls:         calls,
+		reasons:       make(map[*prog.Syscall]string),
+		rnd:           rand.New(rand.NewSource(time.Now().UnixNano() + 1e12)),
+		runnerBin:     runnerBin,
+		executorBin:   execBin,
+		addr:          addr,
+		reportReasons: len(cfg.EnabledSyscalls) != 0 || len(cfg.DisabledSyscalls) != 0,
 	}
 
 	srv, err := startRPCServer(vrf)
@@ -278,7 +283,6 @@ func (srv *RPCServer) UpdateUnsupported(a *rpctype.UpdateUnsupportedArgs, r *int
 	for _, unsupported := range a.UnsupportedCalls {
 		if c := vrf.target.Syscalls[unsupported.ID]; vrf.calls[c] {
 			vrf.reasons[c] = unsupported.Reason
-			break
 		}
 	}
 
@@ -297,29 +301,30 @@ func (srv *RPCServer) UpdateUnsupported(a *rpctype.UpdateUnsupportedArgs, r *int
 // is missing some transitive dependencies). The resulting set of system calls
 // will be used to build the prog.ChoiceTable.
 func (vrf *Verifier) finalizeCallSet(w io.Writer) {
-	if len(vrf.reasons) > 0 {
-		fmt.Fprintln(w, "Calls not supported by kernels:")
-	}
-	for c, reason := range vrf.reasons {
-		fmt.Fprintf(w, "\t%v: %v\n", c.Name, reason)
+	for c := range vrf.reasons {
 		delete(vrf.calls, c)
 	}
 
 	// Find and report to the user all the system calls that need to be
 	// disabled due to missing dependencies.
 	_, disabled := vrf.target.TransitivelyEnabledCalls(vrf.calls)
-
-	if len(disabled) > 0 {
-		fmt.Fprintln(w, "Calls removed due to missing transitive dependencies:")
-	}
 	for c, reason := range disabled {
-		fmt.Fprintf(w, "\tsyscall %v: %v\n", c.Name, reason)
+		vrf.reasons[c] = reason
 		delete(vrf.calls, c)
 	}
 
 	if len(vrf.calls) == 0 {
 		log.Fatal("All enabled system calls are missing dependencies or not" +
 			" supported by some kernels, exiting syz-verifier.")
+	}
+
+	if !vrf.reportReasons {
+		return
+	}
+
+	fmt.Fprintln(w, "The following calls have been disabled:")
+	for c, reason := range vrf.reasons {
+		fmt.Fprintf(w, "\t%v: %v\n", c.Name, reason)
 	}
 }
 

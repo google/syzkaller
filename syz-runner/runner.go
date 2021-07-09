@@ -77,7 +77,7 @@ func main() {
 		for c, reason := range unsupported {
 			calls = append(calls, rpctype.SyscallReason{
 				ID:     c.ID,
-				Reason: fmt.Sprintf("Pool %d: %s", rn.pool, reason)})
+				Reason: fmt.Sprintf("%s (not supported on kernel %d)", reason, rn.pool)})
 		}
 		a := &rpctype.UpdateUnsupportedArgs{Pool: rn.pool, UnsupportedCalls: calls}
 		if err := vrf.Call("Verifier.UpdateUnsupported", a, nil); err != nil {
