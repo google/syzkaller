@@ -129,6 +129,14 @@ var freebsdOopses = append([]*oops{
 				title: compile("panic: pfi_dynaddr_setup: dyn is 0x[0-9a-f]+\\n"),
 				fmt:   "panic: pfi_dynaddr_setup: non-NULL dyn",
 			},
+			{
+				title: compile("(panic: ASan: Invalid access, [0-9]+-byte (?:read|write)) at {{ADDR}},.*\\n(?:.*\\n)+?" +
+					"KDB: stack backtrace:\\n" +
+					"(?:[a-zA-Z0-9_]+\\(\\) at [a-zA-Z0-9_]+\\+0x.*\\n)*" +
+					"__asan_.*\\(\\) at [a-zA-Z0-9_+/ ]+\\n" +
+					"([a-zA-Z0-9_]+)\\(\\) at [a-zA-Z0-9_+/ ]+\\+0x.*\\n"),
+				fmt: "%[1]v in %[2]v",
+			},
 		},
 		[]*regexp.Regexp{},
 	},
