@@ -38,7 +38,11 @@ type JobProcessor struct {
 	syzkallerBranch string
 }
 
-func newJobProcessor(cfg *Config, managers []*Manager, stop, shutdownPending chan struct{}) *JobProcessor {
+func newJobProcessor(cfg *Config, managers []*Manager, stop, shutdownPending chan struct{}) (*JobProcessor, error) {
+	dash, err := dashapi.New(cfg.DashboardClient, cfg.DashboardAddr, cfg.DashboardKey)
+	if err != nil {
+		return nil, err
+	}
 	return &JobProcessor{
 		cfg:             cfg,
 		name:            fmt.Sprintf("%v-job", cfg.Name),
@@ -46,10 +50,10 @@ func newJobProcessor(cfg *Config, managers []*Manager, stop, shutdownPending cha
 		knownCommits:    make(map[string]bool),
 		stop:            stop,
 		shutdownPending: shutdownPending,
-		dash:            dashapi.New(cfg.DashboardClient, cfg.DashboardAddr, cfg.DashboardKey),
+		dash:            dash,
 		syzkallerRepo:   cfg.SyzkallerRepo,
 		syzkallerBranch: cfg.SyzkallerBranch,
-	}
+	}, nil
 }
 
 func (jp *JobProcessor) loop() {

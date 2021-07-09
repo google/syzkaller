@@ -30,7 +30,7 @@ type Dashboard struct {
 	errorHandler func(error)
 }
 
-func New(client, addr, key string) *Dashboard {
+func New(client, addr, key string) (*Dashboard, error) {
 	return NewCustom(client, addr, key, http.NewRequest, http.DefaultClient.Do, nil, nil)
 }
 
@@ -41,7 +41,7 @@ type (
 )
 
 func NewCustom(client, addr, key string, ctor RequestCtor, doer RequestDoer,
-	logger RequestLogger, errorHandler func(error)) *Dashboard {
+	logger RequestLogger, errorHandler func(error)) (*Dashboard, error) {
 	return &Dashboard{
 		Client:       client,
 		Addr:         addr,
@@ -50,7 +50,7 @@ func NewCustom(client, addr, key string, ctor RequestCtor, doer RequestDoer,
 		doer:         doer,
 		logger:       logger,
 		errorHandler: errorHandler,
-	}
+	}, nil
 }
 
 // Build describes all aspects of a kernel build.

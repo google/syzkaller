@@ -187,7 +187,10 @@ func RunManager(cfg *mgrconfig.Config) {
 	}
 
 	if cfg.DashboardAddr != "" {
-		mgr.dash = dashapi.New(cfg.DashboardClient, cfg.DashboardAddr, cfg.DashboardKey)
+		mgr.dash, err = dashapi.New(cfg.DashboardClient, cfg.DashboardAddr, cfg.DashboardKey)
+		if err != nil {
+			log.Fatalf("failed to create dashapi connection: %v", err)
+		}
 	}
 
 	go func() {

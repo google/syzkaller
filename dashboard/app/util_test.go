@@ -348,9 +348,13 @@ func (c *Ctx) makeClient(client, key string, failOnErrors bool) *apiClient {
 			c.t.Fatalf("\n%v: %v", caller(2), err)
 		}
 	}
+	dash, err := dashapi.NewCustom(client, "", key, c.inst.NewRequest, doer, logger, errorHandler)
+	if err != nil {
+		panic(fmt.Sprintf("Impossible error: %v", err))
+	}
 	return &apiClient{
 		Ctx:       c,
-		Dashboard: dashapi.NewCustom(client, "", key, c.inst.NewRequest, doer, logger, errorHandler),
+		Dashboard: dash,
 	}
 }
 
