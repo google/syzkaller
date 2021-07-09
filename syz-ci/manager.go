@@ -85,7 +85,8 @@ type Manager struct {
 
 func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}, debug bool) (*Manager, error) {
 	dir := osutil.Abs(filepath.Join("managers", mgrcfg.Name))
-	if err := osutil.MkdirAll(dir); err != nil {
+	err := osutil.MkdirAll(dir)
+	if err != nil {
 		log.Fatal(err)
 	}
 	if mgrcfg.RepoAlias == "" {
@@ -94,7 +95,10 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}, debug
 
 	var dash *dashapi.Dashboard
 	if cfg.DashboardAddr != "" && mgrcfg.DashboardClient != "" {
-		dash = dashapi.New(mgrcfg.DashboardClient, cfg.DashboardAddr, mgrcfg.DashboardKey)
+		dash, err = dashapi.New(mgrcfg.DashboardClient, cfg.DashboardAddr, mgrcfg.DashboardKey)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Assume compiler and config don't change underneath us.

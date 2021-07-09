@@ -303,7 +303,11 @@ func (upd *SyzUpdater) uploadBuildError(commit *vcs.Commit, buildErr error) {
 			log.Logf(0, "not uploading build error fr %v: no dashboard", mgrcfg.Name)
 			continue
 		}
-		dash := dashapi.New(mgrcfg.DashboardClient, upd.dashboardAddr, mgrcfg.DashboardKey)
+		dash, err := dashapi.New(mgrcfg.DashboardClient, upd.dashboardAddr, mgrcfg.DashboardKey)
+		if err != nil {
+			log.Logf(0, "failed to report build error for %v: %v", mgrcfg.Name, err)
+			return
+		}
 		managercfg := mgrcfg.managercfg
 		req := &dashapi.BuildErrorReq{
 			Build: dashapi.Build{

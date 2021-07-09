@@ -28,8 +28,11 @@ func main() {
 	)
 	flag.Parse()
 
-	dashboard := dashapi.New(*flagDashClient, *flagDashAddr, *flagDashKey)
-	bug, err := dashboard.LoadBug(*flagBug)
+	dash, err := dashapi.New(*flagDashClient, *flagDashAddr, *flagDashKey)
+	if err != nil {
+		tool.Fail(err)
+	}
+	bug, err := dash.LoadBug(*flagBug)
 	if err != nil {
 		tool.Fail(err)
 	}

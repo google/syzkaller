@@ -39,7 +39,10 @@ func main() {
 	if err := os.MkdirAll(*flagOutputDir, 0755); err != nil {
 		log.Fatalf("failed to create output dir: %v", err)
 	}
-	dash := dashapi.New(*flagAPIClient, *flagDashboard, *flagAPIKey)
+	dash, err := dashapi.New(*flagAPIClient, *flagDashboard, *flagAPIKey)
+	if err != nil {
+		log.Fatalf("dashapi failed: %v", err)
+	}
 	resp, err := dash.BugList()
 	if err != nil {
 		log.Fatalf("api call failed: %v", err)

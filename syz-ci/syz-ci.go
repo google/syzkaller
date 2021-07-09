@@ -229,7 +229,10 @@ func main() {
 		}
 	}
 
-	jp := newJobProcessor(cfg, managers, stop, shutdownPending)
+	jp, err := newJobProcessor(cfg, managers, stop, shutdownPending)
+	if err != nil {
+		log.Fatalf("failed to create dashapi connection %v", err)
+	}
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
