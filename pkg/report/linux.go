@@ -1239,9 +1239,11 @@ var linuxOopses = append([]*oops{
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
 						linuxRipFrame,
+						linuxCallTrace,
+						parseStackTrace,
 					},
+					extractor: linuxStallFrameExtractor,
 				},
-				noStackTrace: true,
 			},
 			{
 				title: compile("BUG: Invalid wait context"),

@@ -1,0 +1,746 @@
+TITLE: BUG: stack guard page was hit in rtnl_newlink
+
+[ 2331.755198][    C0] BUG: stack guard page was hit at ffffc9001a6e7fe8 (stack is ffffc9001a6e8000..ffffc9001a6effff)
+[ 2331.755221][    C0] kernel stack overflow (double-fault): 0000 [#1] PREEMPT SMP KASAN
+[ 2331.755233][    C0] CPU: 0 PID: 9061 Comm: syz-executor.4 Tainted: G        W         5.13.0-syzkaller #0
+[ 2331.755246][    C0] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 2331.755256][    C0] RIP: 0010:arch_stack_walk+0x57/0xe0
+[ 2331.755268][    C0] Code: 0f 84 84 00 00 00 48 8b b1 80 00 00 00 4c 89 e7 ff d3 84 c0 74 58 49 8b 8d 98 00 00 00 48 8d bd 78 ff ff ff 4c 89 ea 4c 89 f6 <e8> 24 aa 07 00 8b 95 78 ff ff ff 85 d2 75 21 eb 33 4c 89 e7 ff d3
+[ 2331.755285][    C0] RSP: 0018:ffffc9001a6e7ff0 EFLAGS: 00010246
+[ 2331.755301][    C0] RAX: ffff888170d88000 RBX: ffffffff8163fc30 RCX: ffffc9001a6e8078
+[ 2331.755312][    C0] RDX: 0000000000000000 RSI: ffff888170d88000 RDI: ffffc9001a6e7ff0
+[ 2331.755323][    C0] RBP: ffffc9001a6e8078 R08: 0000000000002000 R09: ffffed102b604c00
+[ 2331.755334][    C0] R10: ffffffff81346f2a R11: 000000000000003f R12: ffffc9001a6e80a8
+[ 2331.755345][    C0] R13: 0000000000000000 R14: ffff888170d88000 R15: 0000000000000000
+[ 2331.755356][    C0] FS:  00007fae3a1d6700(0000) GS:ffff8880b9c00000(0000) knlGS:0000000000000000
+[ 2331.755367][    C0] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[ 2331.755377][    C0] CR2: ffffc9001a6e7fe8 CR3: 00000001a2d9b000 CR4: 00000000001506f0
+[ 2331.755388][    C0] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[ 2331.755399][    C0] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[ 2331.755408][    C0] Call Trace:
+[ 2331.755414][    C0]  ? netdev_next_lower_dev_rcu+0x80/0xb0
+[ 2331.755421][    C0]  ? kfree+0xeb/0x670
+[ 2331.755428][    C0]  stack_trace_save+0x8c/0xc0
+[ 2331.755435][    C0]  ? stack_trace_consume_entry+0x160/0x160
+[ 2331.755443][    C0]  ? arch_stack_walk+0x5c/0xe0
+[ 2331.755450][    C0]  ? memset+0x20/0x40
+[ 2331.755457][    C0]  ? __snmp6_fill_stats64.constprop.0+0x1f9/0x260
+[ 2331.755465][    C0]  kasan_save_stack+0x1b/0x40
+[ 2331.755472][    C0]  ? bond_get_stats+0x379/0x4d0
+[ 2331.755479][    C0]  ? if6_seq_show+0x190/0x190
+[ 2331.755486][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.755493][    C0]  ? lock_release+0x522/0x720
+[ 2331.755500][    C0]  ? debug_check_no_obj_freed+0x20c/0x420
+[ 2331.755508][    C0]  ? lock_downgrade+0x6e0/0x6e0
+[ 2331.755515][    C0]  ? rwlock_bug.part.0+0x90/0x90
+[ 2331.755522][    C0]  ? memset+0x20/0x40
+[ 2331.755529][    C0]  ? _raw_spin_unlock_irqrestore+0x50/0x70
+[ 2331.755537][    C0]  ? trace_hardirqs_on+0x5b/0x1c0
+[ 2331.755545][    C0]  ? _raw_spin_unlock_irqrestore+0x3d/0x70
+[ 2331.755554][    C0]  ? debug_check_no_obj_freed+0x20c/0x420
+[ 2331.755562][    C0]  ? __sanitizer_cov_trace_const_cmp1+0x22/0x80
+[ 2331.755571][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.755578][    C0]  kasan_set_track+0x1c/0x30
+[ 2331.755585][    C0]  kasan_set_free_info+0x20/0x30
+[ 2331.755592][    C0]  __kasan_slab_free+0xfb/0x130
+[ 2331.755600][    C0]  slab_free_freelist_hook+0xdf/0x240
+[ 2331.755607][    C0]  kfree+0xeb/0x670
+[ 2331.755614][    C0]  ? pskb_expand_head+0xb0b/0x1060
+[ 2331.755621][    C0]  ? __sanitizer_cov_trace_const_cmp1+0x22/0x80
+[ 2331.755630][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.755638][    C0]  ? __phys_addr+0xc4/0x140
+[ 2331.755645][    C0]  pskb_expand_head+0xb0b/0x1060
+[ 2331.755652][    C0]  netlink_trim+0x1ea/0x240
+[ 2331.755659][    C0]  netlink_broadcast_filtered+0x65/0xdc0
+[ 2331.755667][    C0]  ? rtmsg_ifinfo_build_skb+0xcd/0x1a0
+[ 2331.755674][    C0]  nlmsg_notify+0x90/0x250
+[ 2331.755681][    C0]  rtnetlink_event+0x193/0x1d0
+[ 2331.755688][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.755696][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.755705][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.755712][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.755720][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.755728][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.755735][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.755742][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.755750][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.755757][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.755766][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.755773][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.755781][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.755789][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.755798][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.755806][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.755814][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.755842][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.755849][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.755856][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.755864][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.755872][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.755880][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.755888][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.755896][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.755903][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.755911][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.755919][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.755926][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.755934][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.755941][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.755949][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.755958][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.755966][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.755975][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.755983][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.755991][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.755998][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.756006][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.756014][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.756021][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.756030][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.756038][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.756046][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.756053][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.756061][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.756068][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.756075][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.756083][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.756091][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.756098][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.756107][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.756115][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.756123][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.756131][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.756139][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.756147][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.756160][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.756167][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.756175][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.756184][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.756191][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.756200][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.756207][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.756214][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.756222][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.756229][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.756237][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.756245][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.756253][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.756262][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.756270][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.756279][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.756287][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.756295][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.756303][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.756310][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.756317][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.756326][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.756333][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.756341][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.756349][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.756355][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.756362][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.756369][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.756376][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.756384][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.756390][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.756398][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.756406][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.756414][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.756421][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.756429][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.756437][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.756444][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.756452][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.756459][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.756467][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.756475][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.756482][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.756490][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.756497][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.756505][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.756513][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.756520][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.756528][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.756535][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.756542][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.756550][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.756558][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.756565][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.756573][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.756581][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.756588][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.756595][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.756602][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.756611][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.756618][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.756626][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.756633][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.756640][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.756647][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.756654][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.756661][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.756669][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.756676][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.756683][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.756691][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.756699][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.756707][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.756714][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.756722][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.756730][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.756737][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.756745][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.756753][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.756761][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.756769][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.756777][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.756783][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.756790][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.756799][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.756805][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.756812][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.756819][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.756827][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.756835][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.756843][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.756852][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.756877][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.756886][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.756893][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.756900][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.756908][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.756917][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.756925][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.756933][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.756941][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.756960][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.756967][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.756974][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.756981][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.756988][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.756996][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.757002][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.757011][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.757019][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.757027][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.757035][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.757043][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.757059][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.757066][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.757073][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.757081][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.757089][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.757097][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.757105][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.757112][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.757119][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.757127][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.757134][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.757141][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.757149][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.757160][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.757168][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.757176][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.757185][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.757192][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.757200][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.757207][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.757215][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.757222][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.757230][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.757237][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.757245][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.757253][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.757259][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.757267][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.757275][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.757282][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.757289][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.757297][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.757304][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.757313][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.757320][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.757328][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.757336][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.757344][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.757352][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.757359][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.757367][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.757375][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.757383][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.757390][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.757398][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.757406][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.757413][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.757421][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.757427][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.757435][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.757443][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.757450][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.757458][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.757466][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.757474][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.757481][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.757488][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.757495][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.757502][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.757509][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.757518][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.757525][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.757534][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.757543][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.757550][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.757557][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.757565][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.757573][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.757581][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.757588][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.757596][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.757604][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.757612][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.757620][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.757628][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.757637][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.757644][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.757651][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.757658][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.757665][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.757673][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.757682][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.757690][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.757697][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.757705][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.757713][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.757720][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.757728][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.757735][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.757743][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.757751][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.757759][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.757768][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.757776][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.757785][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.757792][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.757800][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.757807][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.757816][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.757824][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.757832][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.757841][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.757854][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.757862][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.757870][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.757877][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.757885][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.757892][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.757918][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.757927][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.757936][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.757945][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.757953][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.757962][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.757970][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.757978][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.757986][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.757995][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.758004][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.758012][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.758020][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.758028][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.758035][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.758043][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.758051][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.758059][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.758067][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.758075][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.758084][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.758092][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.758100][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.758109][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.758117][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.758125][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.758133][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.758141][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.758155][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.758163][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.758171][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.758180][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.758187][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.758195][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.758203][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.758210][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.758218][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.758226][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.758234][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.758243][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.758252][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.758261][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.758269][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.758277][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.758285][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.758293][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.758301][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.758310][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.758318][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.758326][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.758335][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.758342][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.758350][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.758357][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.758365][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.758373][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.758380][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.758389][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.758398][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.758406][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.758415][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.758423][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.758431][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.758439][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.758447][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.758455][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.758463][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.758471][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.758479][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.758488][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.758495][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.758503][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.758511][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.758519][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.758527][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.758535][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.758543][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.758552][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.758561][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.758569][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.758576][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.758584][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.758591][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.758598][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.758606][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.758613][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.758621][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.758629][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.758637][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.758645][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.758652][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.758660][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.758667][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.758675][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.758683][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.758691][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.758699][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.758707][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.758716][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.758724][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.758732][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.758740][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.758748][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.758755][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.758763][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.758771][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.758779][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.758787][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.758794][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.758802][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.758809][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.758817][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.758824][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.758832][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.758839][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.758848][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.758856][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.758864][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.758872][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.758880][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.758888][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.758895][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.758902][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.758911][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.758920][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.758928][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.758936][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.758943][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.758950][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.758959][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.758966][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.758973][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.758981][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.758986][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.758994][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.759002][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.759010][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.759018][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.759026][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.759034][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.759041][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.759063][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.759071][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.759079][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.759088][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.759096][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.759103][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.759110][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.759118][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.759125][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.759132][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.759162][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.759170][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.759179][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.759186][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.759195][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.759202][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.759211][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.759219][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.759226][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.759233][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.759241][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.759249][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.759257][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.759265][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.759272][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.759280][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.759287][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.759295][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.759302][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.759310][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.759317][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.759326][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.759334][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.759342][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.759350][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.759359][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.759366][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.759373][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.759381][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.759390][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.759397][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.759405][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.759413][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.759421][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.759428][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.759436][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.759443][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.759451][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.759458][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.759466][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.759475][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.759484][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.759491][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.759499][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.759507][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.759516][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.759523][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.759530][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.759539][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.759547][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.759555][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.759562][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.759570][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.759578][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.759587][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.759593][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.759601][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.759609][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.759617][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.759625][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.759634][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.759643][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.759651][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.759659][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.759666][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.759673][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.759681][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.759689][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.759696][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.759704][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.759713][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.759720][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.759728][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.759736][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.759743][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.759751][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.759759][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.759768][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.759777][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.759785][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.759794][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.759802][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.759811][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.759819][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.759826][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.759835][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.759843][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.759851][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.759859][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.759869][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.759878][    C0]  ? finish_task_switch.isra.0+0x232/0xa50
+[ 2331.759886][    C0]  ? trace_hardirqs_on+0x5b/0x1c0
+[ 2331.759894][    C0]  ? finish_task_switch.isra.0+0x232/0xa50
+[ 2331.759902][    C0]  ? __switch_to+0x57c/0x1100
+[ 2331.759910][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.759918][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.759926][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.759935][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.759943][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.759952][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.759960][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.759968][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.759976][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.759984][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.759992][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.760000][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.760009][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.760018][    C0]  ? cfg80211_netdev_notifier_call+0x171/0x1270
+[ 2331.760026][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.760034][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.760042][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.760049][    C0]  ? kfree_skbmem+0xef/0x1b0
+[ 2331.760056][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.760064][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.760072][    C0]  ? lock_acquire+0x442/0x510
+[ 2331.760080][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.760089][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.760098][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.760106][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.760114][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.760123][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.760130][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.760138][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.760146][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.760160][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.760168][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.760189][    C0]  ? __wake_up_common+0x650/0x650
+[ 2331.760197][    C0]  ? cfg80211_register_netdevice+0x320/0x320
+[ 2331.760205][    C0]  ? __sanitizer_cov_trace_const_cmp4+0x1c/0x70
+[ 2331.760214][    C0]  ? asm_sysvec_apic_timer_interrupt+0x12/0x20
+[ 2331.760222][    C0]  ? trace_hardirqs_on+0x5b/0x1c0
+[ 2331.760230][    C0]  netdev_change_features+0x61/0xb0
+[ 2331.760237][    C0]  ? netdev_update_features+0xd0/0xd0
+[ 2331.760246][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.760255][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.760263][    C0]  ? netdev_lower_get_next_private+0x80/0xb0
+[ 2331.760271][    C0]  bond_compute_features+0x56c/0xaa0
+[ 2331.760279][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.760288][    C0]  ? bond_fix_features+0x2f0/0x2f0
+[ 2331.760295][    C0]  bond_netdev_event+0x5d6/0xa80
+[ 2331.760302][    C0]  notifier_call_chain+0xb5/0x200
+[ 2331.760310][    C0]  call_netdevice_notifiers_info+0xb5/0x130
+[ 2331.760319][    C0]  __netdev_update_features+0x95d/0x17d0
+[ 2331.760327][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.760335][    C0]  ? udp_tunnel_nic_netdevice_event+0x15f/0x1a20
+[ 2331.760344][    C0]  ? __sanitizer_cov_trace_const_cmp4+0x1c/0x70
+[ 2331.760352][    C0]  ? ip6_route_dev_notify+0xdc/0x7a0
+[ 2331.760360][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.760368][    C0]  ? netdev_increment_features+0x87/0xa0
+[ 2331.760376][    C0]  __netdev_update_features+0x906/0x17d0
+[ 2331.760384][    C0]  ? dev_change_xdp_fd+0x300/0x300
+[ 2331.760393][    C0]  ? __netdev_adjacent_dev_insert+0xa50/0xa50
+[ 2331.760401][    C0]  ? __sanitizer_cov_trace_const_cmp4+0x1c/0x70
+[ 2331.760410][    C0]  ? nbp_switchdev_mark_set+0x12d/0x3f0
+[ 2331.760417][    C0]  dev_disable_lro+0x8d/0x3e0
+[ 2331.760424][    C0]  ? register_netdev+0x50/0x50
+[ 2331.760432][    C0]  ? mutex_is_locked+0xe/0x40
+[ 2331.760440][    C0]  ? __sanitizer_cov_trace_const_cmp4+0x1c/0x70
+[ 2331.760448][    C0]  ? netdev_is_rx_handler_busy+0x82/0x140
+[ 2331.760456][    C0]  br_add_if+0xa4e/0x1c70
+[ 2331.760463][    C0]  ? mutex_is_locked+0xe/0x40
+[ 2331.760470][    C0]  ? br_del_slave+0x20/0x20
+[ 2331.760476][    C0]  do_set_master+0x1c8/0x220
+[ 2331.760483][    C0]  __rtnl_newlink+0x13af/0x1760
+[ 2331.760490][    C0]  ? __kernel_text_address+0x9/0x30
+[ 2331.760498][    C0]  ? rtnl_setlink+0x3c0/0x3c0
+[ 2331.760505][    C0]  ? arch_stack_walk+0x93/0xe0
+[ 2331.760512][    C0]  ? lock_release+0x522/0x720
+[ 2331.760519][    C0]  ? is_bpf_text_address+0xa9/0x160
+[ 2331.760527][    C0]  ? lock_downgrade+0x6e0/0x6e0
+[ 2331.760534][    C0]  ? unwind_next_frame+0xec8/0x1ce0
+[ 2331.760542][    C0]  ? entry_SYSCALL_64_after_hwframe+0x44/0xae
+[ 2331.760551][    C0]  ? __sanitizer_cov_trace_cmp4+0x1c/0x70
+[ 2331.760559][    C0]  ? bpf_ksym_find+0x171/0x1c0
+[ 2331.760566][    C0]  ? is_bpf_text_address+0xcb/0x160
+[ 2331.760574][    C0]  ? kernel_text_address+0xbd/0xf0
+[ 2331.760581][    C0]  ? __kernel_text_address+0x9/0x30
+[ 2331.760589][    C0]  ? unwind_get_return_address+0x51/0x90
+[ 2331.760598][    C0]  ? create_prof_cpu_mask+0x20/0x20
+[ 2331.760605][    C0]  ? arch_stack_walk+0x93/0xe0
+[ 2331.760612][    C0]  ? lock_release+0x522/0x720
+[ 2331.760619][    C0]  ? fs_reclaim_release+0x9c/0xf0
+[ 2331.760627][    C0]  ? lock_downgrade+0x6e0/0x6e0
+[ 2331.760634][    C0]  ? rtnetlink_rcv_msg+0x3f9/0xb70
+[ 2331.760641][    C0]  rtnl_newlink+0x64/0xa0
+[ 2331.760649][    C0]  ? __rtnl_newlink+0x1760/0x1760
+[ 2331.760656][    C0]  rtnetlink_rcv_msg+0x44e/0xb70
+[ 2331.760663][    C0]  ? rtnl_newlink+0xa0/0xa0
+[ 2331.760670][    C0]  ? do_syscall_64+0x35/0xb0
+[ 2331.760677][    C0]  ? entry_SYSCALL_64_after_hwframe+0x44/0xae
+[ 2331.760686][    C0]  ? __sanitizer_cov_trace_cmp8+0x1d/0x70
+[ 2331.760694][    C0]  ? __sanitizer_cov_trace_switch+0x63/0xf0
+[ 2331.760702][    C0]  ? netdev_core_pick_tx+0x2e0/0x2e0
+[ 2331.760710][    C0]  ? lock_acquire+0x350/0x510
+[ 2331.760717][    C0]  netlink_rcv_skb+0x153/0x420
+[ 2331.760724][    C0]  ? rtnl_newlink+0xa0/0xa0
+[ 2331.760731][    C0]  ? netlink_ack+0xa60/0xa60
+[ 2331.760738][    C0]  ? netlink_deliver_tap+0x227/0xba0
+[ 2331.760746][    C0]  ? netlink_deliver_tap+0x236/0xba0
+[ 2331.760753][    C0]  netlink_unicast+0x533/0x7d0
+[ 2331.760760][    C0]  ? netlink_attachskb+0x890/0x890
+[ 2331.760767][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.760775][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.760783][    C0]  ? __phys_addr_symbol+0x2c/0x70
+[ 2331.760791][    C0]  ? __sanitizer_cov_trace_cmp8+0x1d/0x70
+[ 2331.760798][    C0]  ? __check_object_size+0x16e/0x3f0
+[ 2331.760805][    C0]  netlink_sendmsg+0x85b/0xda0
+[ 2331.760812][    C0]  ? netlink_unicast+0x7d0/0x7d0
+[ 2331.760820][    C0]  ? __sanitizer_cov_trace_const_cmp4+0x1c/0x70
+[ 2331.760829][    C0]  ? netlink_unicast+0x7d0/0x7d0
+[ 2331.760836][    C0]  sock_sendmsg+0xcf/0x120
+[ 2331.760842][    C0]  ____sys_sendmsg+0x6e8/0x810
+[ 2331.760849][    C0]  ? kernel_sendmsg+0x50/0x50
+[ 2331.760856][    C0]  ? do_recvmmsg+0x6d0/0x6d0
+[ 2331.760863][    C0]  ? futex_wait_restart+0x200/0x200
+[ 2331.760870][    C0]  ? fs_reclaim_release+0x9c/0xf0
+[ 2331.760877][    C0]  ? lock_release+0x522/0x720
+[ 2331.760885][    C0]  ? fs_reclaim_release+0x9c/0xf0
+[ 2331.760892][    C0]  ? lock_downgrade+0x6e0/0x6e0
+[ 2331.760898][    C0]  ___sys_sendmsg+0xf3/0x170
+[ 2331.760905][    C0]  ? sendmsg_copy_msghdr+0x160/0x160
+[ 2331.760912][    C0]  ? __fget_files+0x266/0x3d0
+[ 2331.760918][    C0]  ? lock_downgrade+0x6e0/0x6e0
+[ 2331.760925][    C0]  ? __might_fault+0xd3/0x180
+[ 2331.760933][    C0]  ? futex_exit_release+0x220/0x220
+[ 2331.760940][    C0]  ? __fget_files+0x288/0x3d0
+[ 2331.760946][    C0]  ? __fget_light+0xea/0x280
+[ 2331.760953][    C0]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2331.760962][    C0]  __sys_sendmsg+0xe5/0x1b0
+[ 2331.760968][    C0]  ? __sys_sendmsg_sock+0x30/0x30
+[ 2331.760976][    C0]  ? syscall_enter_from_user_mode+0x21/0x70
+[ 2331.760984][    C0]  ? trace_hardirqs_on+0x5b/0x1c0
+[ 2331.760991][    C0]  do_syscall_64+0x35/0xb0
+[ 2331.760998][    C0]  entry_SYSCALL_64_after_hwframe+0x44/0xae
+[ 2331.761006][    C0] RIP: 0033:0x4665d9
+[ 2331.761016][    C0] Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 bc ff ff ff f7 d8 64 89 01 48
+[ 2331.761034][    C0] RSP: 002b:00007fae3a1d6188 EFLAGS: 00000246 ORIG_RAX: 000000000000002e
+[ 2331.761053][    C0] RAX: ffffffffffffffda RBX: 000000000056c038 RCX: 00000000004665d9
+[ 2331.761063][    C0] RDX: 0000000000000000 RSI: 0000000020000300 RDI: 0000000000000007
+[ 2331.761074][    C0] RBP: 00000000004bfcb9 R08: 0000000000000000 R09: 0000000000000000
+[ 2331.761084][    C0] R10: 0000000000000000 R11: 0000000000000246 R12: 000000000056c038
+[ 2331.761094][    C0] R13: 00007fff95e3765f R14: 00007fae3a1d6300 R15: 0000000000022000
+[ 2331.761103][    C0] Modules linked in:
+[ 2331.977170][ T9165] x_tables: ip6_tables: realm match: used from hooks PREROUTING, but only valid from INPUT/FORWARD/OUTPUT/POSTROUTING
+[ 2331.980837][    C0] ---[ end trace 0e3920d6a9af969b ]---
+[ 2331.980848][    C0] RIP: 0010:arch_stack_walk+0x57/0xe0
+[ 2331.980859][    C0] Code: 0f 84 84 00 00 00 48 8b b1 80 00 00 00 4c 89 e7 ff d3 84 c0 74 58 49 8b 8d 98 00 00 00 48 8d bd 78 ff ff ff 4c 89 ea 4c 89 f6 <e8> 24 aa 07 00 8b 95 78 ff ff ff 85 d2 75 21 eb 33 4c 89 e7 ff d3
+[ 2331.980876][    C0] RSP: 0018:ffffc9001a6e7ff0 EFLAGS: 00010246
+[ 2331.980890][    C0] RAX: ffff888170d88000 RBX: ffffffff8163fc30 RCX: ffffc9001a6e8078
+[ 2331.980899][    C0] RDX: 0000000000000000 RSI: ffff888170d88000 RDI: ffffc9001a6e7ff0
+[ 2331.980908][    C0] RBP: ffffc9001a6e8078 R08: 0000000000002000 R09: ffffed102b604c00
+[ 2331.980918][    C0] R10: ffffffff81346f2a R11: 000000000000003f R12: ffffc9001a6e80a8
+[ 2331.980927][    C0] R13: 0000000000000000 R14: ffff888170d88000 R15: 0000000000000000
+[ 2331.980949][    C0] FS:  00007fae3a1d6700(0000) GS:ffff8880b9c00000(0000) knlGS:0000000000000000
+[ 2331.980958][    C0] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[ 2331.980965][    C0] CR2: ffffc9001a6e7fe8 CR3: 00000001a2d9b000 CR4: 00000000001506f0
+[ 2331.980975][    C0] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[ 2331.980983][    C0] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[ 2331.980992][    C0] Kernel panic - not syncing: Fatal exception in interrupt
+[ 2331.987130][    C0] Kernel Offset: disabled
