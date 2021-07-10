@@ -40,8 +40,17 @@ type (
 	RequestLogger func(msg string, args ...interface{})
 )
 
+// key == "" indicates that the ambient GCE service account authority
+// should be used as a bearer token.
 func NewCustom(client, addr, key string, ctor RequestCtor, doer RequestDoer,
 	logger RequestLogger, errorHandler func(error)) (*Dashboard, error) {
+	if key == "" {
+		token, err := retrieveJwtToken(ctor, doer)
+		if err != nil {
+			return nil, err
+		}
+		doer = atachJwtToken(ctor, doer, token)
+	}
 	return &Dashboard{
 		Client:       client,
 		Addr:         addr,

@@ -366,7 +366,7 @@ func TestApp(t *testing.T) {
 	c.client.UploadBuild(build)
 
 	// Some bad combinations of client/key.
-	c.expectFail("unauthorized", c.makeClient(client1, "", false).Query("upload_build", build, nil))
+	c.expectFail("unauthorized", c.makeClient(client1, "borked", false).Query("upload_build", build, nil))
 	c.expectFail("unauthorized", c.makeClient("unknown", password1, false).Query("upload_build", build, nil))
 	c.expectFail("unauthorized", c.makeClient(client1, password2, false).Query("upload_build", build, nil))
 
