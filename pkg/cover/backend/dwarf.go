@@ -66,7 +66,7 @@ var arches = map[string]Arch{
 }
 
 func makeDWARF(target *targets.Target, objDir, srcDir, buildDir string,
-	moduleObj []string, hostModules []host.KernelModule, fn *containerFns) (
+	moduleObj []string, hostModules []host.KernelModule, fn *containerFns, cleanRules []string) (
 	*Impl, error) {
 	modules, err := discoverModules(target, objDir, moduleObj, hostModules)
 	if err != nil {
@@ -148,7 +148,7 @@ func makeDWARF(target *targets.Target, objDir, srcDir, buildDir string,
 			continue // drop the unit
 		}
 		// TODO: objDir won't work for out-of-tree modules.
-		unit.Name, unit.Path = cleanPath(unit.Name, objDir, srcDir, buildDir)
+		unit.Name, unit.Path = cleanPath(unit.Name, objDir, srcDir, buildDir, cleanRules)
 		allUnits[nunit] = unit
 		nunit++
 	}
@@ -164,7 +164,7 @@ func makeDWARF(target *targets.Target, objDir, srcDir, buildDir string,
 		Units:   allUnits,
 		Symbols: allSymbols,
 		Symbolize: func(pcs map[*Module][]uint64) ([]Frame, error) {
-			return symbolize(target, objDir, srcDir, buildDir, pcs)
+			return symbolize(target, objDir, srcDir, buildDir, pcs, cleanRules)
 		},
 		RestorePC: func(pc uint32) uint64 {
 			return PreviousInstructionPC(target, RestorePC(pc, uint32(pcBase>>32)))
@@ -295,7 +295,7 @@ func readTextRanges(debugInfo *dwarf.Data, module *Module, pcFix pcFixFn) (
 }
 
 func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string,
-	mod *Module, pcs []uint64) ([]Frame, error) {
+	mod *Module, pcs []uint64, cleanRules []string) ([]Frame, error) {
 	procs := runtime.GOMAXPROCS(0) / 2
 	if need := len(pcs) / 1000; procs > need {
 		procs = need
@@ -352,7 +352,7 @@ func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string,
 			err0 = res.err
 		}
 		for _, frame := range res.frames {
-			name, path := cleanPath(frame.File, objDir, srcDir, buildDir)
+			name, path := cleanPath(frame.File, objDir, srcDir, buildDir, cleanRules)
 			frames = append(frames, Frame{
 				Module: mod,
 				PC:     frame.PC + mod.Addr,
@@ -374,10 +374,10 @@ func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string,
 }
 
 func symbolize(target *targets.Target, objDir, srcDir, buildDir string,
-	pcs map[*Module][]uint64) ([]Frame, error) {
+	pcs map[*Module][]uint64, cleanRules []string) ([]Frame, error) {
 	var frames []Frame
 	for mod, pcs1 := range pcs {
-		frames1, err := symbolizeModule(target, objDir, srcDir, buildDir, mod, pcs1)
+		frames1, err := symbolizeModule(target, objDir, srcDir, buildDir, mod, pcs1, cleanRules)
 		if err != nil {
 			return nil, err
 		}
@@ -419,7 +419,7 @@ func readCoverPoints(target *targets.Target, info *symbolInfo, data []byte) ([2]
 	return pcs, nil
 }
 
-func cleanPath(path, objDir, srcDir, buildDir string) (string, string) {
+func cleanPath(path, objDir, srcDir, buildDir string, cleanRules []string) (string, string) {
 	filename := ""
 	switch {
 	case strings.HasPrefix(path, objDir):
@@ -430,7 +430,21 @@ func cleanPath(path, objDir, srcDir, buildDir string) (string, string) {
 		// Assume the file was moved from buildDir to srcDir.
 		path = strings.TrimPrefix(path, buildDir)
 		filename = filepath.Join(srcDir, path)
-	default:
+	}
+	if filename == "" {
+		// Assume out-of-tree modules need to apply clean rules.
+		for _, rule := range cleanRules {
+			tokens := strings.Split(rule, ":")
+			old := tokens[0]
+			new := tokens[1]
+			if strings.HasPrefix(path, old) {
+				path = strings.Replace(path, old, new, 1)
+				filename = filepath.Join(srcDir, path)
+				break
+			}
+		}
+	}
+	if filename == "" {
 		// Assume this is relative path.
 		filename = filepath.Join(srcDir, path)
 	}
