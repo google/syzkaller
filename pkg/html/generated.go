@@ -119,8 +119,7 @@ table td, table th {
 .list_table .tag {
 	font-family: monospace;
 	font-size: 8pt;
-	width: 40pt;
-	max-width: 40pt;
+	max-width: 60pt;
 }
 
 .list_table .opts {
