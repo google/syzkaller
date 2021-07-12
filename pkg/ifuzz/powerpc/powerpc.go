@@ -35,6 +35,7 @@ type Insn struct {
 	Opcode uint32
 	Mask   uint32
 
+	insnMap   *insnSetMap
 	generator func(cfg *iset.Config, r *rand.Rand) []byte
 }
 
@@ -72,27 +73,23 @@ func encodeBits(n uint, f InsnBits) uint32 {
 	return uint32((n & mask) << (31 - (f.Start + f.Length - 1)))
 }
 
-func (insn *Insn) EncodeParam(v map[string]uint, r *rand.Rand) []byte {
-	insn32 := insn.Opcode
-	for reg, bits := range insn.Fields {
-		if val, ok := v[reg]; ok {
-			insn32 |= encodeBits(val, bits)
-		} else if r != nil {
-			insn32 |= encodeBits(uint(r.Intn(1<<16)), bits)
-		}
-	}
-
-	ret := make([]byte, 4)
-	binary.LittleEndian.PutUint32(ret, insn32)
-	return ret
-}
-
 func (insn Insn) Encode(cfg *iset.Config, r *rand.Rand) []byte {
 	if insn.Pseudo {
 		return insn.generator(cfg, r)
 	}
 
-	return insn.EncodeParam(nil, r)
+	ret := make([]byte, 0)
+	insn32 := insn.Opcode
+	for reg, bits := range insn.Fields {
+		field := uint(r.Intn(1 << 16))
+		insn32 |= encodeBits(field, bits)
+		if len(cfg.MemRegions) != 0 && (reg == "RA" || reg == "RB") {
+			val := iset.GenerateInt(cfg, r, 8)
+			ret = append(ret, insn.insnMap.ld64(field, val)...)
+		}
+	}
+
+	return append(ret, uint32toBytes(insn32)...)
 }
 
 func Register(insns []*Insn) {
@@ -105,6 +102,7 @@ func Register(insns []*Insn) {
 	}
 	for _, insn := range insnset.Insns {
 		insnset.insnMap[insn.Name] = insn
+		insn.insnMap = &insnset.insnMap
 	}
 	insnset.initPseudo()
 	for _, insn := range insnset.Insns {
@@ -122,4 +120,56 @@ func (insn Insn) mode() iset.Mode {
 		return (1 << iset.ModeLong64)
 	}
 	return (1 << iset.ModeLong64) | (1 << iset.ModeProt32)
+}
+
+func uint32toBytes(v uint32) []byte {
+	ret := make([]byte, 4)
+	binary.LittleEndian.PutUint32(ret, v)
+
+	return ret
+}
+
+func (insn *Insn) enc(v map[string]uint) []byte {
+	insn32 := insn.Opcode
+	for reg, bits := range insn.Fields {
+		if val, ok := v[reg]; ok {
+			insn32 |= encodeBits(val, bits)
+		}
+	}
+	return uint32toBytes(insn32)
+}
+
+func (imap insnSetMap) ld64(reg uint, v uint64) []byte {
+	ret := make([]byte, 0)
+
+	// This is a widely used macro to load immediate on ppc64
+	// #define LOAD64(rn,name)
+	//	addis   rn,0,name##@highest \ lis     rn,name##@highest
+	//	ori     rn,rn,name##@higher
+	//	rldicr  rn,rn,32,31
+	//	oris    rn,rn,name##@h
+	//	ori     rn,rn,name##@l
+	ret = append(ret, imap["addis"].enc(map[string]uint{
+		"RT": reg,
+		"RA": 0, // In "addis", '0' means 0, not GPR0 .
+		"SI": uint((v >> 48) & 0xffff)})...)
+	ret = append(ret, imap["ori"].enc(map[string]uint{
+		"RA": reg,
+		"RS": reg,
+		"UI": uint((v >> 32) & 0xffff)})...)
+	ret = append(ret, imap["rldicr"].enc(map[string]uint{
+		"RA": reg,
+		"RS": reg,
+		"SH": 32,
+		"ME": 31})...)
+	ret = append(ret, imap["oris"].enc(map[string]uint{
+		"RA": reg,
+		"RS": reg,
+		"UI": uint((v >> 16) & 0xffff)})...)
+	ret = append(ret, imap["ori"].enc(map[string]uint{
+		"RA": reg,
+		"RS": reg,
+		"UI": uint(v & 0xffff)})...)
+
+	return ret
 }
