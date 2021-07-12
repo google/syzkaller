@@ -803,7 +803,7 @@ Report: <a href="/report?id={{.ID}}">{{.Triaged}}</a>
 			{{end}}
 		</td>
 		<td class="time {{if not $c.Active}}inactive{{end}}">{{formatTime $c.Time}}</td>
-		<td class="tag {{if not $c.Active}}inactive{{end}}" title="{{$c.Tag}}">{{formatShortHash $c.Tag}}</td>
+		<td class="tag {{if not $c.Active}}inactive{{end}}" title="{{$c.Tag}}">{{formatTagHash $c.Tag}}</td>
 	</tr>
 	{{end}}
 </table>

@@ -155,7 +155,7 @@ Date:   Wed Feb 9 04:05:06 2000 +0000
     kernel: add a bug
 
 bisection log:  %[2]v
-start commit:   11111111 kernel_commit_title1
+start commit:   111111111111 kernel_commit_title1
 git tree:       repo1 branch1
 final oops:     %[3]v
 console output: %[4]v
@@ -201,7 +201,7 @@ For information about bisection process see: https://goo.gl/tpsmEJ#bisection
 
 syzbot found the following issue on:
 
-HEAD commit:    11111111 kernel_commit_title1
+HEAD commit:    111111111111 kernel_commit_title1
 git tree:       repo1 branch1
 console output: %[2]v
 kernel config:  %[3]v
@@ -396,7 +396,7 @@ Date:   Wed Feb 9 04:05:06 2000 +0000
     kernel: add a fix
 
 bisection log:  %[2]v
-start commit:   11111111 kernel_commit_title1
+start commit:   111111111111 kernel_commit_title1
 git tree:       repo1 branch1
 final oops:     %[3]v
 console output: %[4]v
@@ -481,11 +481,11 @@ func TestBisectCauseInconclusive(t *testing.T) {
 		c.expectEQ(len(msg.Attachments), 0)
 		c.expectEQ(msg.Body, fmt.Sprintf(`Bisection is inconclusive: the first bad commit could be any of:
 
-11111111 kernel: break build
-22222222 kernel: now add a bug to the broken build
+111111111111 kernel: break build
+222222222222 kernel: now add a bug to the broken build
 
 bisection log:  %[2]v
-start commit:   11111111 kernel_commit_title1
+start commit:   111111111111 kernel_commit_title1
 git tree:       repo1 branch1
 kernel config:  %[3]v
 dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
@@ -510,7 +510,7 @@ For information about bisection process see: https://goo.gl/tpsmEJ#bisection
 
 syzbot found the following issue on:
 
-HEAD commit:    11111111 kernel_commit_title1
+HEAD commit:    111111111111 kernel_commit_title1
 git tree:       repo1 branch1
 console output: %[2]v
 kernel config:  %[3]v
@@ -521,8 +521,8 @@ C reproducer:   %[5]v
 
 Bisection is inconclusive: the first bad commit could be any of:
 
-11111111 kernel: break build
-22222222 kernel: now add a bug to the broken build
+111111111111 kernel: break build
+222222222222 kernel: now add a bug to the broken build
 
 bisection log:  %[6]v
 
@@ -701,7 +701,7 @@ func TestBisectCauseAncient(t *testing.T) {
 		c.expectEQ(msg.Body, fmt.Sprintf(`Bisection is inconclusive: the issue happens on the oldest tested release.
 
 bisection log:  %[2]v
-oldest commit:  11111111 kernel_commit_title1
+oldest commit:  111111111111 kernel_commit_title1
 git tree:       repo1 branch1
 final oops:     %[3]v
 console output: %[4]v
@@ -729,7 +729,7 @@ For information about bisection process see: https://goo.gl/tpsmEJ#bisection
 
 syzbot found the following issue on:
 
-HEAD commit:    11111111 kernel_commit_title1
+HEAD commit:    111111111111 kernel_commit_title1
 git tree:       repo1 branch1
 console output: %[2]v
 kernel config:  %[3]v
