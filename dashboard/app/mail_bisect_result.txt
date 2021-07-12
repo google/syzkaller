@@ -8,11 +8,11 @@ Date:   {{formatKernelTime $bisect.Commit.Date}}
     {{$bisect.Commit.Title}}
 {{else if $bisect.Commits}}Bisection is inconclusive: the {{if $bisect.Fix}}fix{{else}}first bad{{end}} commit could be any of:
 {{range $com := $bisect.Commits}}
-{{formatShortHash $com.Hash}} {{$com.Title}}{{end}}
+{{formatTagHash $com.Hash}} {{$com.Title}}{{end}}
 {{else}}Bisection is inconclusive: the issue happens on the {{if $bisect.Fix}}latest{{else}}oldest{{end}} tested release.
 {{end}}
 bisection log:  {{$bisect.LogLink}}
-{{if $bisect.Commit}}start commit:   {{else if $bisect.Commits}}start commit:   {{else}}{{if $bisect.Fix}}latest commit:  {{else}}oldest commit:  {{end}}{{end}}{{formatShortHash $br.KernelCommit}} {{formatCommitTableTitle $br.KernelCommitTitle}}
+{{if $bisect.Commit}}start commit:   {{else if $bisect.Commits}}start commit:   {{else}}{{if $bisect.Fix}}latest commit:  {{else}}oldest commit:  {{end}}{{end}}{{formatTagHash $br.KernelCommit}} {{formatCommitTableTitle $br.KernelCommitTitle}}
 git tree:       {{$br.KernelRepoAlias}}
 {{if $bisect.CrashReportLink}}final oops:     {{$bisect.CrashReportLink}}
 {{end}}{{if $bisect.CrashLogLink}}console output: {{$bisect.CrashLogLink}}

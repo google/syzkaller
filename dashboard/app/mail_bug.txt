@@ -4,7 +4,7 @@ Hello,
 {{end -}}
 syzbot {{if .First}}found{{else}}has found a reproducer for{{end}} the following issue on:
 
-HEAD commit:    {{formatShortHash .KernelCommit}} {{formatCommitTableTitle .KernelCommitTitle}}
+HEAD commit:    {{formatTagHash .KernelCommit}} {{formatCommitTableTitle .KernelCommitTitle}}
 git tree:       {{.KernelRepoAlias}}
 {{if .LogLink}}console output: {{.LogLink}}
 {{end}}{{if .KernelConfigLink}}kernel config:  {{.KernelConfigLink}}
@@ -26,7 +26,7 @@ Date:   {{formatKernelTime .BisectCause.Commit.Date}}
     {{.BisectCause.Commit.Title}}
 {{else if .BisectCause.Commits}}Bisection is inconclusive: the first bad commit could be any of:
 {{range $com := .BisectCause.Commits}}
-{{formatShortHash $com.Hash}} {{$com.Title}}{{end}}
+{{formatTagHash $com.Hash}} {{$com.Title}}{{end}}
 {{else}}Bisection is inconclusive: the issue happens on the oldest tested release.
 {{end}}
 bisection log:  {{.BisectCause.LogLink}}

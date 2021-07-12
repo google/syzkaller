@@ -170,7 +170,7 @@ func formatTagHash(v string) string {
 func formatCommitTableTitle(v string) string {
 	// This function is very specific to how we format tables in text emails.
 	// Truncate commit title so that whole line fits into 78 chars.
-	const commitTitleLen = 51
+	const commitTitleLen = 47
 	if len(v) <= commitTitleLen {
 		return v
 	}

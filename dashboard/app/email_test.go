@@ -49,7 +49,7 @@ func TestEmailReport(t *testing.T) {
 
 syzbot found the following issue on:
 
-HEAD commit:    11111111 kernel_commit_title1
+HEAD commit:    111111111111 kernel_commit_title1
 git tree:       repo1 branch1
 console output: %[2]v
 kernel config:  %[3]v
@@ -158,7 +158,7 @@ For more options, visit https://groups.google.com/d/optout.
 		c.expectEQ(msg.Headers["In-Reply-To"], []string{"<1234>"})
 		c.expectEQ(msg.Body, fmt.Sprintf(`syzbot has found a reproducer for the following issue on:
 
-HEAD commit:    10101010 a really long title, longer than 80 chars, really..
+HEAD commit:    101010101010 a really long title, longer than 80 chars, re..
 git tree:       repo10alias
 console output: %[3]v
 kernel config:  %[4]v
@@ -209,7 +209,7 @@ report1
 
 syzbot found the following issue on:
 
-HEAD commit:    10101010 a really long title, longer than 80 chars, really..
+HEAD commit:    101010101010 a really long title, longer than 80 chars, re..
 git tree:       repo10alias
 console output: %[3]v
 kernel config:  %[4]v
@@ -281,7 +281,7 @@ Content-Type: text/plain
 		c.expectEQ(len(msg.Attachments), 0)
 		c.expectEQ(msg.Body, fmt.Sprintf(`syzbot has found a reproducer for the following issue on:
 
-HEAD commit:    10101010 a really long title, longer than 80 chars, really..
+HEAD commit:    101010101010 a really long title, longer than 80 chars, re..
 git tree:       repo10alias
 console output: %[4]v
 kernel config:  %[5]v
