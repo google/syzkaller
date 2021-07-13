@@ -174,7 +174,7 @@ static int test_kvm()
 			return res;
 	}
 #elif GOARCH_ppc64le
-	for (unsigned i = 0; i < (1 << 1); ++i) {
+	for (unsigned i = 0; i < (1 << 5); ++i) {
 		res = test_one(8, kvm_ppc64_mr, sizeof(kvm_ppc64_mr) - 1, i, KVM_EXIT_DEBUG, true);
 		if (res)
 			return res;

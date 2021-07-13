@@ -38,14 +38,50 @@
 #define BITS_PER_LONG 64
 #define PPC_BITLSHIFT(be) (BITS_PER_LONG - 1 - (be))
 #define PPC_BIT(bit) (1ULL << PPC_BITLSHIFT(bit))
+#define PPC_BITMASK(bs, be) ((PPC_BIT(bs) - PPC_BIT(be)) | PPC_BIT(bs))
+
+#define RADIX_PTE_INDEX_SIZE 5 // size: 8B <<  5 = 256B, maps 2^5  x   64K =   2MB
+#define RADIX_PMD_INDEX_SIZE 9 // size: 8B <<  9 =  4KB, maps 2^9  x   2MB =   1GB
+#define RADIX_PUD_INDEX_SIZE 9 // size: 8B <<  9 =  4KB, maps 2^9  x   1GB = 512GB
+#define RADIX_PGD_INDEX_SIZE 13 // size: 8B << 13 = 64KB, maps 2^13 x 512GB =   4PB
 
 #define cpu_to_be32(x) __builtin_bswap32(x)
+#define cpu_to_be64(x) __builtin_bswap64(x)
+#define be64_to_cpu(x) __builtin_bswap64(x)
+
 #define LPCR_ILE PPC_BIT(38)
+#define LPCR_UPRT PPC_BIT(41) // Use Process Table
+#define LPCR_EVIRT PPC_BIT(42) // Enhanced Virtualisation
+#define LPCR_HR PPC_BIT(43) // Host Radix
 #ifndef KVM_REG_PPC_LPCR_64
 #define KVM_REG_PPC_LPCR_64 (KVM_REG_PPC | KVM_REG_SIZE_U64 | 0xb5)
 #endif
+
+#define PRTB_SIZE_SHIFT 12 // log2((64 << 10) / 16)
+#define PATB_GR (1UL << 63) // guest uses radix; must match HR
+#define PATB_HR (1UL << 63)
+#define PRTB_MASK 0x0ffffffffffff000UL
+
+#define ALIGNUP(p, q) ((void*)(((unsigned long)(p) + (q)-1) & ~((q)-1)))
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+
 #ifndef KVM_REG_PPC_DEC_EXPIRY
 #define KVM_REG_PPC_DEC_EXPIRY (KVM_REG_PPC | KVM_REG_SIZE_U64 | 0xbe)
+#endif
+
+#ifndef KVM_PPC_CONFIGURE_V3_MMU
+// Available with KVM_CAP_PPC_RADIX_MMU or KVM_CAP_PPC_HASH_MMU_V3
+#define KVM_PPC_CONFIGURE_V3_MMU _IOW(KVMIO, 0xaf, struct kvm_ppc_mmuv3_cfg)
+
+// For KVM_PPC_CONFIGURE_V3_MMU
+struct kvm_ppc_mmuv3_cfg {
+	__u64 flags;
+	__u64 process_table; // second doubleword of partition table entry
+};
+
+// Flag values for KVM_PPC_CONFIGURE_V3_MMU
+#define KVM_PPC_MMUV3_RADIX 1 // 1 = radix mode, 0 = HPT
+#define KVM_PPC_MMUV3_GTSE 2 // global translation shootdown enb
 #endif
 
 struct kvm_text {
@@ -95,6 +131,10 @@ static void dump_text(const char* mem, unsigned start, unsigned cw, uint32 debug
 
 // Flags
 #define KVM_SETUP_PPC64_LE (1 << 0) // Little endian
+#define KVM_SETUP_PPC64_IR (1 << 1) // Paging for instructions
+#define KVM_SETUP_PPC64_DR (1 << 2) // Paging for data
+#define KVM_SETUP_PPC64_PR (1 << 3) // Run with MSR_PR (==usermode)
+#define KVM_SETUP_PPC64_PID1 (1 << 4) // Set PID=1 i.e. not kernel's PID
 
 // syz_kvm_setup_cpu(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text, 1]], ntext len[text], flags flags[kvm_setup_flags_ppc64], opts ptr[in, array[kvm_setup_opt, 0:2]], nopt len[opts])
 static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6, volatile long a7)
@@ -113,6 +153,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 	(void)text_count; // fuzzer can spoof count and we need just 1 text, so ignore text_count
 	const void* text = 0;
 	uintptr_t text_size = 0;
+	uint64 pid = 0;
 	uint64 lpcr = 0;
 	NONFAILING(text = text_array_ptr[0].text);
 	NONFAILING(text_size = text_array_ptr[0].size);
@@ -142,6 +183,20 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 	regs.msr = PPC_BIT(0); // MSR_SF == Sixty Four == 64bit
 	if (flags & KVM_SETUP_PPC64_LE)
 		regs.msr |= PPC_BIT(63); // Little endian
+
+	// PR == "problem state" == non priveledged == userspace
+	if (flags & KVM_SETUP_PPC64_PR) {
+		regs.msr |= PPC_BIT(49);
+		// When PR=1, the hardware enforces IR and DR as well.
+		flags |= KVM_SETUP_PPC64_IR | KVM_SETUP_PPC64_DR | KVM_SETUP_PPC64_PID1;
+	}
+
+	if (flags & KVM_SETUP_PPC64_IR)
+		regs.msr |= PPC_BIT(58); // IR - MMU=on for instructions
+	if (flags & KVM_SETUP_PPC64_DR)
+		regs.msr |= PPC_BIT(59); // DR - MMU=on for data
+	if (flags & KVM_SETUP_PPC64_PID1)
+		pid = 1;
 
 	// KVM HV on POWER is hard to force to exit, it will bounce between
 	// the fault handlers in KVM and the VM. Forcing all exception
@@ -188,6 +243,95 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 	// Exception vector occupy 128K, including "System Call Vectored"
 	gpa_off = 128 << 10;
 
+	// Set up a radix page table, the hash mode is not supported
+	if (flags & (KVM_SETUP_PPC64_IR | KVM_SETUP_PPC64_DR)) {
+		uintptr_t process_tb_off = gpa_off;
+		unsigned long process_tb_size = 1UL << (PRTB_SIZE_SHIFT + 4);
+		struct prtb_entry {
+			__be64 prtb0;
+			__be64 prtb1;
+		}* process_tb = (struct prtb_entry*)(host_mem + gpa_off);
+
+		memset(process_tb, 0xcc, process_tb_size);
+
+		// PRTB_SIZE_SHIFT is defined to use 64K for the process table
+		gpa_off += process_tb_size;
+
+		unsigned long *pgd, *pud, *pmd, *pte, i;
+
+		// Create 4 level page table, just like Linux does for PAGE_SIZE==64K,
+		// put each level to a separate page including the last level which won't
+		// need more than as we only allocate 24 pages for the entire VM.
+		uintptr_t pgd_off = gpa_off;
+		pgd = (unsigned long*)(host_mem + pgd_off);
+		gpa_off += page_size;
+		uintptr_t pud_off = gpa_off;
+		pud = (unsigned long*)(host_mem + pud_off);
+		gpa_off += page_size;
+		uintptr_t pmd_off = gpa_off;
+		pmd = (unsigned long*)(host_mem + pmd_off);
+		gpa_off += page_size;
+		uintptr_t pte_off = gpa_off;
+		pte = (unsigned long*)(host_mem + pte_off);
+		gpa_off += page_size;
+
+		memset(pgd, 0, page_size);
+		memset(pud, 0, page_size);
+		memset(pmd, 0, page_size);
+		memset(pte, 0, page_size);
+		pgd[0] = cpu_to_be64(PPC_BIT(0) | // Valid
+				     (pud_off & PPC_BITMASK(4, 55)) |
+				     RADIX_PUD_INDEX_SIZE);
+		pud[0] = cpu_to_be64(PPC_BIT(0) | // Valid
+				     (pmd_off & PPC_BITMASK(4, 55)) |
+				     RADIX_PMD_INDEX_SIZE);
+		pmd[0] = cpu_to_be64(PPC_BIT(0) | // Valid
+				     (pte_off & PPC_BITMASK(4, 55)) |
+				     RADIX_PTE_INDEX_SIZE);
+
+		// Map all 24 pages and allow write+execute for better coverage.
+		for (i = 0; i < 24; ++i)
+			pte[i] = cpu_to_be64(PPC_BIT(0) | // Valid
+					     PPC_BIT(1) | // Leaf
+					     ((i * page_size) & PPC_BITMASK(7, 51)) |
+					     PPC_BIT(55) | // Reference
+					     PPC_BIT(56) | // Change
+					     PPC_BIT(61) | // Read permitted
+					     PPC_BIT(62) | // Write permitted
+					     PPC_BIT(63)); // Execute permitted
+
+		const long max_shift = 52;
+		const unsigned long rts = (max_shift - 31) & 0x1f;
+		const unsigned long rts1 = (rts >> 3) << PPC_BITLSHIFT(2);
+		const unsigned long rts2 = (rts & 7) << PPC_BITLSHIFT(58);
+
+		process_tb[0].prtb0 = cpu_to_be64(PATB_HR | rts1 | pgd_off | rts2 | RADIX_PGD_INDEX_SIZE);
+		if (pid)
+			process_tb[pid].prtb0 = cpu_to_be64(PATB_HR | rts1 | pgd_off | rts2 | RADIX_PGD_INDEX_SIZE);
+
+		// PATB_GR is not in the spec but KVM HV wants it for some reason
+		struct kvm_ppc_mmuv3_cfg cfg = {
+		    .flags = KVM_PPC_MMUV3_RADIX | KVM_PPC_MMUV3_GTSE,
+		    .process_table = (process_tb_off & PRTB_MASK) | (PRTB_SIZE_SHIFT - 12) | PATB_GR,
+		};
+		if (ioctl(vmfd, KVM_PPC_CONFIGURE_V3_MMU, &cfg))
+			return -1;
+
+		lpcr |= LPCR_UPRT | LPCR_HR;
+#ifdef DEBUG
+		printf("MMUv3: flags=%lx %016lx\n", cfg.flags, cfg.process_table);
+		printf("PTRB0=%016lx PGD0=%016lx PUD0=%016lx PMD0=%016lx\n",
+		       be64_to_cpu((unsigned long)process_tb[0].prtb0), be64_to_cpu((unsigned long)pgd[0]),
+		       be64_to_cpu((unsigned long)pud[0]), be64_to_cpu((unsigned long)pmd[0]));
+		printf("PTEs @%lx:\n  %016lx %016lx %016lx %016lx\n  %016lx %016lx %016lx %016lx\n",
+		       pte_off,
+		       be64_to_cpu((unsigned long)pte[0]), be64_to_cpu((unsigned long)pte[1]),
+		       be64_to_cpu((unsigned long)pte[2]), be64_to_cpu((unsigned long)pte[3]),
+		       be64_to_cpu((unsigned long)pte[4]), be64_to_cpu((unsigned long)pte[5]),
+		       be64_to_cpu((unsigned long)pte[6]), be64_to_cpu((unsigned long)pte[7]));
+#endif
+	}
+
 	memcpy(host_mem + gpa_off, text, text_size);
 	regs.pc = gpa_off;
 
@@ -213,6 +357,8 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 	if (ioctl(cpufd, KVM_SET_REGS, &regs))
 		return -1;
 	if (kvmppc_set_one_reg(cpufd, KVM_REG_PPC_LPCR_64, &lpcr))
+		return -1;
+	if (kvmppc_set_one_reg(cpufd, KVM_REG_PPC_PID, &pid))
 		return -1;
 
 		// Hypercalls need to be enable so we enable them all here to
