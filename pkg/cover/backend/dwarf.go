@@ -272,6 +272,7 @@ func readTextRanges(debugInfo *dwarf.Data, module *Module, pcFix pcFixFn) (
 			ObjectUnit: ObjectUnit{
 				Name: attrName.(string),
 			},
+			Module: module,
 		}
 		units = append(units, unit)
 		ranges1, err := debugInfo.Ranges(ent)

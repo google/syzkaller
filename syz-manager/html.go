@@ -44,6 +44,7 @@ func (mgr *Manager) initHTTP() {
 	mux.HandleFunc("/crash", mgr.httpCrash)
 	mux.HandleFunc("/cover", mgr.httpCover)
 	mux.HandleFunc("/subsystemcover", mgr.httpSubsystemCover)
+	mux.HandleFunc("/modulecover", mgr.httpModuleCover)
 	mux.HandleFunc("/prio", mgr.httpPrio)
 	mux.HandleFunc("/file", mgr.httpFile)
 	mux.HandleFunc("/report", mgr.httpReport)
@@ -238,6 +239,7 @@ func (mgr *Manager) httpDownloadCorpus(w http.ResponseWriter, r *http.Request) {
 const (
 	DoHTML int = iota
 	DoHTMLTable
+	DoModuleCover
 	DoCSV
 	DoCSVFiles
 	DoRawCoverFiles
@@ -251,6 +253,10 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 
 func (mgr *Manager) httpSubsystemCover(w http.ResponseWriter, r *http.Request) {
 	mgr.httpCoverCover(w, r, DoHTMLTable, true)
+}
+
+func (mgr *Manager) httpModuleCover(w http.ResponseWriter, r *http.Request) {
+	mgr.httpCoverCover(w, r, DoModuleCover, true)
 }
 
 func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcFlag int, isHTMLCover bool) {
@@ -324,6 +330,8 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 	do := rg.DoHTML
 	if funcFlag == DoHTMLTable {
 		do = rg.DoHTMLTable
+	} else if funcFlag == DoModuleCover {
+		do = rg.DoModuleCover
 	} else if funcFlag == DoCSV {
 		do = rg.DoCSV
 	} else if funcFlag == DoCSVFiles {
