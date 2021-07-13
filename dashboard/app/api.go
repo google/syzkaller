@@ -105,7 +105,7 @@ func handleAPI(c context.Context, r *http.Request) (reply interface{}, err error
 	method := r.PostFormValue("method")
 	log.Infof(c, "api %q from %q", method, client)
 	auth := makeAuthEndpoint(googleTokenInfoEndpoint)
-	subj, err := auth.determineAuthSubj(r.Header["Authorization"])
+	subj, err := auth.determineAuthSubj(timeNow(c), r.Header["Authorization"])
 	if err != nil {
 		return nil, err
 	}
