@@ -6,12 +6,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/google/syzkaller/dashboard/dashapi"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/google/syzkaller/dashboard/dashapi"
 )
 
 func reponseFor(t *testing.T, claims jwtClaims) (*httptest.Server, authEndpoint) {
@@ -27,7 +28,7 @@ func reponseFor(t *testing.T, claims jwtClaims) (*httptest.Server, authEndpoint)
 		w.Header()["Content-Type"] = []string{"application/json"}
 		w.Write(bytes)
 	}))
-	return ts, mkAuthEndpoint(ts.URL)
+	return ts, makeAuthEndpoint(ts.URL)
 }
 
 func TestBearerValid(t *testing.T) {

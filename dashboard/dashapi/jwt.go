@@ -1,4 +1,4 @@
-// Copyright 2017 syzkaller project authors. All rights reserved.
+// Copyright 2021 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 package dashapi
@@ -26,7 +26,7 @@ func extractJwtExpiration(token string) (time.Time, error) {
 	if len(pieces) != 3 {
 		return time.Time{}, fmt.Errorf("unexpected number of JWT components %v", len(pieces))
 	}
-	decoded, err := base64.URLEncoding.WithPadding(base64.NoPadding).DecodeString(pieces[1])
+	decoded, err := base64.RawURLEncoding.DecodeString(pieces[1])
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -59,7 +59,7 @@ func retrieveJwtToken(ctor RequestCtor, doer RequestDoer) (*expiringToken, error
 	}
 	token := string(data)
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed metadata get %v: %s", resp.Status, data)
+		return nil, fmt.Errorf("failed metadata get %v: %s", resp.Status, token)
 	}
 	expiration, err := extractJwtExpiration(token)
 	if err != nil {
@@ -80,6 +80,7 @@ func atachJwtToken(ctor RequestCtor, doer RequestDoer, token *expiringToken) Req
 			t, err := retrieveJwtToken(ctor, doer)
 			if err != nil {
 				// Can't get a new token, so returning the error preemptively.
+				lock.Unlock()
 				return nil, err
 			}
 			*token = *t

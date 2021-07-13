@@ -1,4 +1,4 @@
-// Copyright 2017 syzkaller project authors. All rights reserved.
+// Copyright 2021 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // Relies on tokeninfo because it is properly documented:
@@ -52,7 +52,7 @@ type authEndpoint struct {
 	// TODO(blackgnezdo): cache tokens with a bit of care for concurrency.
 }
 
-func mkAuthEndpoint(u string) authEndpoint {
+func makeAuthEndpoint(u string) authEndpoint {
 	return authEndpoint{url: u}
 }
 
