@@ -5,6 +5,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"math/rand"
 	"net"
@@ -40,26 +41,31 @@ type Verifier struct {
 	// - <workdir>/corpus.db: corpus with interesting programs
 	// - <workdir>/<OS-Arch>/instance-x: per VM instance temporary files
 	// grouped by OS/Arch
-	workdir     string
-	crashdir    string
-	resultsdir  string
-	target      *prog.Target
-	runnerBin   string
-	executorBin string
-	choiceTable *prog.ChoiceTable
-	rnd         *rand.Rand
-	progIdx     int
-	addr        string
+	workdir       string
+	crashdir      string
+	resultsdir    string
+	target        *prog.Target
+	runnerBin     string
+	executorBin   string
+	choiceTable   *prog.ChoiceTable
+	rnd           *rand.Rand
+	progIdx       int
+	addr          string
+	calls         map[*prog.Syscall]bool
+	reasons       map[*prog.Syscall]string
+	reportReasons bool
 }
 
 // RPCServer is a wrapper around the rpc.Server. It communicates with  Runners,
 // generates programs and sends complete Results for verification.
 type RPCServer struct {
-	vrf   *Verifier
-	port  int
-	mu    sync.Mutex
-	pools map[int]*poolInfo
-	progs map[int]*progInfo
+	vrf        *Verifier
+	port       int
+	mu         sync.Mutex
+	cond       *sync.Cond
+	pools      map[int]*poolInfo
+	progs      map[int]*progInfo
+	notChecked int
 }
 
 // poolInfo contains kernel-specific information for spawning virtual machines
@@ -74,8 +80,11 @@ type poolInfo struct {
 	//  There is one Runner executing per VM instance.
 	vmRunners map[int][]*progInfo
 	// progs stores the programs that haven't been sent to this kernel yet but
-	// have been sent to at least one kernel.
+	// have been sent to at least one other kernel.
 	progs []*progInfo
+	// checked is set to true when the set of system calls not supported on the
+	// kernel is known.
+	checked bool
 }
 
 type progInfo struct {
@@ -163,21 +172,24 @@ func main() {
 	}
 
 	calls := make(map[*prog.Syscall]bool)
+
 	for _, id := range cfg.Syscalls {
 		calls[target.Syscalls[id]] = true
 	}
 
 	vrf := &Verifier{
-		workdir:     workdir,
-		crashdir:    crashdir,
-		resultsdir:  resultsdir,
-		pools:       pools,
-		target:      target,
-		choiceTable: target.BuildChoiceTable(nil, calls),
-		rnd:         rand.New(rand.NewSource(time.Now().UnixNano() + 1e12)),
-		runnerBin:   runnerBin,
-		executorBin: execBin,
-		addr:        addr,
+		workdir:       workdir,
+		crashdir:      crashdir,
+		resultsdir:    resultsdir,
+		pools:         pools,
+		target:        target,
+		calls:         calls,
+		reasons:       make(map[*prog.Syscall]string),
+		rnd:           rand.New(rand.NewSource(time.Now().UnixNano() + 1e12)),
+		runnerBin:     runnerBin,
+		executorBin:   execBin,
+		addr:          addr,
+		reportReasons: len(cfg.EnabledSyscalls) != 0 || len(cfg.DisabledSyscalls) != 0,
 	}
 
 	srv, err := startRPCServer(vrf)
@@ -224,10 +236,12 @@ func main() {
 
 func startRPCServer(vrf *Verifier) (*RPCServer, error) {
 	srv := &RPCServer{
-		vrf:   vrf,
-		pools: vrf.pools,
-		progs: make(map[int]*progInfo),
+		vrf:        vrf,
+		pools:      vrf.pools,
+		progs:      make(map[int]*progInfo),
+		notChecked: len(vrf.pools),
 	}
+	srv.cond = sync.NewCond(&srv.mu)
 
 	s, err := rpctype.NewRPCServer(vrf.addr, "Verifier", srv)
 	if err != nil {
@@ -242,12 +256,76 @@ func startRPCServer(vrf *Verifier) (*RPCServer, error) {
 }
 
 // Connect notifies the RPCServer that a new Runner was started.
-func (srv *RPCServer) Connect(a *rpctype.RunnerConnectArgs, r *int) error {
+func (srv *RPCServer) Connect(a *rpctype.RunnerConnectArgs, r *rpctype.RunnerConnectRes) error {
 	srv.mu.Lock()
 	defer srv.mu.Unlock()
 	pool, vm := a.Pool, a.VM
 	srv.pools[pool].vmRunners[vm] = nil
+	r.CheckUnsupportedCalls = !srv.pools[pool].checked
 	return nil
+}
+
+// UpdateUnsupported communicates to the server the list of system calls not
+// supported by the kernel corresponding to this pool and updates the list of
+// enabled system calls. This function is called once for each kernel.
+// When all kernels have reported the list of unsupported system calls, the
+// choice table will be created using only the system calls supported by all
+// kernels.
+func (srv *RPCServer) UpdateUnsupported(a *rpctype.UpdateUnsupportedArgs, r *int) error {
+	srv.mu.Lock()
+	defer srv.mu.Unlock()
+	if srv.pools[a.Pool].checked {
+		return nil
+	}
+	srv.pools[a.Pool].checked = true
+	vrf := srv.vrf
+
+	for _, unsupported := range a.UnsupportedCalls {
+		if c := vrf.target.Syscalls[unsupported.ID]; vrf.calls[c] {
+			vrf.reasons[c] = unsupported.Reason
+		}
+	}
+
+	srv.notChecked--
+	if srv.notChecked == 0 {
+		vrf.finalizeCallSet(os.Stdout)
+		vrf.choiceTable = vrf.target.BuildChoiceTable(nil, vrf.calls)
+		srv.cond.Signal()
+	}
+	return nil
+}
+
+// finalizeCallSet removes the system calls that are not supported from the set
+// of enabled system calls and reports the reason to the io.Writer (either
+// because the call is not supported by one of the kernels or because the call
+// is missing some transitive dependencies). The resulting set of system calls
+// will be used to build the prog.ChoiceTable.
+func (vrf *Verifier) finalizeCallSet(w io.Writer) {
+	for c := range vrf.reasons {
+		delete(vrf.calls, c)
+	}
+
+	// Find and report to the user all the system calls that need to be
+	// disabled due to missing dependencies.
+	_, disabled := vrf.target.TransitivelyEnabledCalls(vrf.calls)
+	for c, reason := range disabled {
+		vrf.reasons[c] = reason
+		delete(vrf.calls, c)
+	}
+
+	if len(vrf.calls) == 0 {
+		log.Fatal("All enabled system calls are missing dependencies or not" +
+			" supported by some kernels, exiting syz-verifier.")
+	}
+
+	if !vrf.reportReasons {
+		return
+	}
+
+	fmt.Fprintln(w, "The following calls have been disabled:")
+	for c, reason := range vrf.reasons {
+		fmt.Fprintf(w, "\t%v: %v\n", c.Name, reason)
+	}
 }
 
 // NextExchange is called when a Runner requests a new program to execute and,
@@ -282,6 +360,11 @@ func (srv *RPCServer) NextExchange(a *rpctype.NextExchangeArgs, r *rpctype.NextE
 			srv.vrf.processResults(prog.res, prog.prog)
 			delete(srv.progs, a.ProgIdx)
 		}
+	}
+
+	if srv.notChecked > 0 {
+		// Runner is blocked until the choice table is created.
+		srv.cond.Wait()
 	}
 
 	prog, pi := srv.newProgram(a.Pool, a.VM)

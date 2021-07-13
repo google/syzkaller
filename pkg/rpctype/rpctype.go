@@ -82,6 +82,23 @@ type RunnerConnectArgs struct {
 	Pool, VM int
 }
 
+type RunnerConnectRes struct {
+	// CheckUnsupportedCalls is set to true if the Runner needs to query the kernel
+	// for unsupported system calls and report them back to the server.
+	CheckUnsupportedCalls bool
+}
+
+// UpdateUnsupportedArgs contains the data passed from client to server in an
+// UpdateSupported call, namely the system calls not supported by the client's
+// kernel.
+type UpdateUnsupportedArgs struct {
+	// Pool is used to identify the checked kernel.
+	Pool int
+	// UnsupportedCalls contains the ID's of system calls not supported by the
+	// client and the reason for this.
+	UnsupportedCalls []SyscallReason
+}
+
 // NextExchangeArgs contains the data passed from client to server namely
 // identification information of the VM and program execution results.
 type NextExchangeArgs struct {

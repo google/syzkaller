@@ -4,9 +4,11 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"runtime"
 
+	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
 	"github.com/google/syzkaller/pkg/rpctype"
@@ -60,16 +62,35 @@ func main() {
 		Pool: rn.pool,
 		VM:   rn.vm,
 	}
-	if err := vrf.Call("Verifier.Connect", a, nil); err != nil {
+	r := &rpctype.RunnerConnectRes{}
+	if err := vrf.Call("Verifier.Connect", a, r); err != nil {
 		log.Fatalf("failed to connect to verifier: %v", err)
 	}
 
-	r := &rpctype.NextExchangeRes{}
-	if err := rn.vrf.Call("Verifier.NextExchange", &rpctype.NextExchangeArgs{Pool: rn.pool, VM: rn.vm}, r); err != nil {
+	if r.CheckUnsupportedCalls {
+		_, unsupported, err := host.DetectSupportedSyscalls(target, ipc.FlagsToSandbox(config.Flags))
+		if err != nil {
+			log.Fatalf("failed to get unsupported system calls: %v", err)
+		}
+
+		calls := make([]rpctype.SyscallReason, 0)
+		for c, reason := range unsupported {
+			calls = append(calls, rpctype.SyscallReason{
+				ID:     c.ID,
+				Reason: fmt.Sprintf("%s (not supported on kernel %d)", reason, rn.pool)})
+		}
+		a := &rpctype.UpdateUnsupportedArgs{Pool: rn.pool, UnsupportedCalls: calls}
+		if err := vrf.Call("Verifier.UpdateUnsupported", a, nil); err != nil {
+			log.Fatalf("failed to send unsupported system calls: %v", err)
+		}
+	}
+
+	res := &rpctype.NextExchangeRes{}
+	if err := rn.vrf.Call("Verifier.NextExchange", &rpctype.NextExchangeArgs{Pool: rn.pool, VM: rn.vm}, res); err != nil {
 		log.Fatalf("failed to get initial program: %v", err)
 	}
 
-	rn.Run(r.Prog, r.ProgIdx)
+	rn.Run(res.Prog, res.ProgIdx)
 }
 
 // Run is responsible for requesting new programs from the verifier, executing them and then sending back the Result.
