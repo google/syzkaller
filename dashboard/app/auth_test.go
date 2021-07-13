@@ -32,15 +32,16 @@ func reponseFor(t *testing.T, claims jwtClaims) (*httptest.Server, authEndpoint)
 }
 
 func TestBearerValid(t *testing.T) {
+	tm := time.Now()
 	magic := "ValidSubj"
 	ts, dut := reponseFor(t, jwtClaims{
 		Subject:    magic,
 		Audience:   dashapi.DashboardAudience,
-		Expiration: time.Now().AddDate(0, 0, 1),
+		Expiration: tm.AddDate(0, 0, 1),
 	})
 	defer ts.Close()
 
-	got, err := dut.determineAuthSubj([]string{"Bearer x"})
+	got, err := dut.determineAuthSubj(tm, []string{"Bearer x"})
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
@@ -50,28 +51,30 @@ func TestBearerValid(t *testing.T) {
 }
 
 func TestBearerWrongAudience(t *testing.T) {
+	tm := time.Now()
 	ts, dut := reponseFor(t, jwtClaims{
 		Subject:    "irrelevant",
-		Expiration: time.Now().AddDate(0, 0, 1),
+		Expiration: tm.AddDate(0, 0, 1),
 		Audience:   "junk",
 	})
 	defer ts.Close()
 
-	_, err := dut.determineAuthSubj([]string{"Bearer x"})
+	_, err := dut.determineAuthSubj(tm, []string{"Bearer x"})
 	if !strings.HasPrefix(err.Error(), "unexpected audience") {
 		t.Fatalf("Unexpected error %v", err)
 	}
 }
 
 func TestBearerExpired(t *testing.T) {
+	tm := time.Now()
 	ts, dut := reponseFor(t, jwtClaims{
 		Subject:    "irrelevant",
-		Expiration: time.Now().AddDate(0, 0, -1),
+		Expiration: tm.AddDate(0, 0, -1),
 		Audience:   dashapi.DashboardAudience,
 	})
 	defer ts.Close()
 
-	_, err := dut.determineAuthSubj([]string{"Bearer x"})
+	_, err := dut.determineAuthSubj(tm, []string{"Bearer x"})
 	if !strings.HasPrefix(err.Error(), "token past expiration") {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -80,7 +83,7 @@ func TestBearerExpired(t *testing.T) {
 func TestMissingHeader(t *testing.T) {
 	ts, dut := reponseFor(t, jwtClaims{})
 	defer ts.Close()
-	got, err := dut.determineAuthSubj([]string{})
+	got, err := dut.determineAuthSubj(time.Now(), []string{})
 	if err != nil || got != "" {
 		t.Errorf("Unexpected error %v %v", got, err)
 	}
@@ -89,7 +92,7 @@ func TestMissingHeader(t *testing.T) {
 func TestBadHeader(t *testing.T) {
 	ts, dut := reponseFor(t, jwtClaims{})
 	defer ts.Close()
-	got, err := dut.determineAuthSubj([]string{"bad"})
+	got, err := dut.determineAuthSubj(time.Now(), []string{"bad"})
 	if err != nil || got != "" {
 		t.Errorf("Unexpected error %v %v", got, err)
 	}

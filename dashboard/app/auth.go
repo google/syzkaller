@@ -100,8 +100,9 @@ func (auth *authEndpoint) queryTokenInfo(tokenValue string) (*jwtClaims, error) 
 
 // Returns the verified subject value based on the provided header
 // value or "" if it can't be determined. A valid result starts with
-// oauthMagic.
-func (auth *authEndpoint) determineAuthSubj(authHeader []string) (string, error) {
+// oauthMagic. The now parameter is the current time to compare the
+// claims against.
+func (auth *authEndpoint) determineAuthSubj(now time.Time, authHeader []string) (string, error) {
 	if len(authHeader) != 1 || !strings.HasPrefix(authHeader[0], "Bearer") {
 		// This is a normal case when the client uses a password.
 		return "", nil
@@ -117,7 +118,7 @@ func (auth *authEndpoint) determineAuthSubj(authHeader []string) (string, error)
 		err := fmt.Errorf("unexpected audience %v %v", claims.Audience, claims)
 		return "", err
 	}
-	if claims.Expiration.Before(time.Now()) {
+	if claims.Expiration.Before(now) {
 		err := fmt.Errorf("token past expiration %v", claims.Expiration)
 		return "", err
 	}
