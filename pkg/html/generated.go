@@ -155,7 +155,6 @@ table td, table th {
 
 .list_table .stat {
 	width: 55pt;
-	max-width: 55pt;
 	font-family: monospace;
 	text-align: right;
 }
