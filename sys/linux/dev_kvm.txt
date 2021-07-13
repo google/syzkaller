@@ -299,9 +299,13 @@ define KVM_SETUP_VIRT86	(1<<4)
 define KVM_SETUP_SMM	(1<<5)
 define KVM_SETUP_VM	(1<<6)
 
-kvm_setup_flags_ppc64 = KVM_SETUP_PPC64_LE
+kvm_setup_flags_ppc64 = KVM_SETUP_PPC64_LE, KVM_SETUP_PPC64_IR, KVM_SETUP_PPC64_DR, KVM_SETUP_PPC64_PR, KVM_SETUP_PPC64_PID1
 
 define KVM_SETUP_PPC64_LE	(1<<0) # Little endian
+define KVM_SETUP_PPC64_IR	(1<<1) # Paging for instructions
+define KVM_SETUP_PPC64_DR	(1<<2) # Paging for data
+define KVM_SETUP_PPC64_PR	(1<<3) # Run with MSR_PR (==usermode)
+define KVM_SETUP_PPC64_PID1	(1<<4) # Set PID=1 i.e. not kernel's PID
 
 kvm_guest_debug {
 	ctrl	flags[kvm_guest_debug_flags, int32]
