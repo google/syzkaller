@@ -26,7 +26,8 @@ type Module struct {
 
 type CompileUnit struct {
 	ObjectUnit
-	Path string
+	Path   string
+	Module *Module
 }
 
 type Symbol struct {
