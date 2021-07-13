@@ -21,7 +21,7 @@ var (
 	srv *RPCServer
 )
 
-func setup(t *testing.T) {
+func createTestServer(t *testing.T) {
 	target, err := prog.GetTarget("test", "64")
 	if err != nil {
 		t.Fatalf("failed to initialise test target: %v", err)
@@ -32,68 +32,97 @@ func setup(t *testing.T) {
 		rnd:         rand.New(rand.NewSource(time.Now().UnixNano())),
 		progIdx:     3,
 	}
+	vrf.resultsdir = makeTestResultDirectory(t)
 	srv, err = startRPCServer(&vrf)
 	if err != nil {
 		t.Fatalf("failed to initialise RPC server: %v", err)
 	}
-	srv.pools = map[int]*poolInfo{
-		1: {
-			vmRunners: map[int][]*progInfo{
-				0: {&progInfo{idx: 1, left: map[int]bool{1: true, 2: true}}},
-			},
-			progs: []*progInfo{{idx: 3, left: map[int]bool{1: true}}},
-		},
-		2: {vmRunners: map[int][]*progInfo{
-			2: {&progInfo{idx: 1, left: map[int]bool{1: true, 2: true}}},
-		},
-			progs: []*progInfo{},
-		},
+}
+
+func getTestProgram(t *testing.T) *prog.Prog {
+	p := "breaks_returns()\n" +
+		"minimize$0(0x1, 0x1)\n" +
+		"test$res0()\n"
+	target := prog.InitTargetTest(t, "test", "64")
+	prog, err := target.Deserialize([]byte(p), prog.Strict)
+	if err != nil {
+		t.Fatalf("failed to deserialise test program: %v", err)
 	}
-	srv.progs = map[int]*progInfo{
-		1: {idx: 1, left: map[int]bool{1: true, 2: true}},
-		3: {idx: 3, left: map[int]bool{1: true}},
+	return prog
+}
+
+func makeTestResultDirectory(t *testing.T) string {
+	resultsdir := "test"
+	err := osutil.MkdirAll(resultsdir)
+	if err != nil {
+		t.Fatalf("failed to create results directory: %v", err)
 	}
+	resultsdir, err = filepath.Abs(resultsdir)
+	if err != nil {
+		t.Fatalf("failed to get absolute path of resultsdir: %v", err)
+	}
+	return resultsdir
+}
+
+func makeResult(pool int, errnos []int) *verf.Result {
+	r := &verf.Result{Pool: pool, Info: ipc.ProgInfo{Calls: []ipc.CallInfo{}}}
+	for _, e := range errnos {
+		r.Info.Calls = append(r.Info.Calls, ipc.CallInfo{Errno: e})
+	}
+	return r
 }
 
 func TestNewProgram(t *testing.T) {
 	tests := []struct {
-		name                             string
-		pool, vm, retProgIdx, vrfProgIdx int
-		progs                            map[int]*progInfo
+		name                           string
+		pool, vm, retProgIdx, srvProgs int
 	}{
 		{
-			name:       "NewProgram doesn't generate new program",
+			name:       "doesn't generate new program",
 			pool:       1,
 			vm:         1,
 			retProgIdx: 3,
-			vrfProgIdx: 3,
-			progs: map[int]*progInfo{
-				1: {idx: 1, left: map[int]bool{1: true, 2: true}},
-				3: {idx: 3, left: map[int]bool{2: true}},
-			},
+			srvProgs:   2,
 		},
 		{
-			name:       "NewProgram generates new program",
+			name:       "generates new program",
 			pool:       2,
 			vm:         2,
 			retProgIdx: 4,
-			vrfProgIdx: 4,
-			progs: map[int]*progInfo{
-				1: {idx: 1, left: map[int]bool{1: true, 2: true}},
-				3: {idx: 3, left: map[int]bool{2: true}},
-				4: {idx: 4, left: map[int]bool{1: true, 2: true}},
-			},
+			srvProgs:   3,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			setup(t)
+			createTestServer(t)
+			srv.pools = map[int]*poolInfo{
+				1: {
+					vmRunners: map[int][]*progInfo{
+						0: {{
+							idx: 1, left: map[int]bool{1: true, 2: true}}},
+					},
+					progs: []*progInfo{{
+						idx: 3, left: map[int]bool{1: true}}},
+				},
+				2: {vmRunners: map[int][]*progInfo{
+					2: {{
+						idx: 1, left: map[int]bool{1: true, 2: true}}},
+				},
+					progs: []*progInfo{},
+				},
+			}
+			srv.progs = map[int]*progInfo{
+				1: {idx: 1, left: map[int]bool{1: true, 2: true}},
+				3: {idx: 3, left: map[int]bool{1: true}},
+			}
+
 			_, gotProgIdx := srv.newProgram(test.pool, test.vm)
 			if gotProgIdx != test.retProgIdx {
 				t.Errorf("srv.newProgram returned idx: got %d, want %d", gotProgIdx, test.retProgIdx)
 			}
-			if srv.vrf.progIdx != test.vrfProgIdx {
-				t.Errorf("srv.progIdx: got %d, want %d", srv.vrf.progIdx, test.vrfProgIdx)
+
+			if got, want := len(srv.progs), test.srvProgs; got != want {
+				t.Errorf("len(srv.progs): got %d, want %d", got, want)
 			}
 		})
 	}
@@ -126,7 +155,13 @@ func TestNewResult(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			setup(t)
+			createTestServer(t)
+			srv.progs = map[int]*progInfo{
+				1: {idx: 1,
+					left: map[int]bool{1: true, 2: true}},
+				3: {idx: 3,
+					left: map[int]bool{1: true}},
+			}
 			gotReady := srv.newResult(&test.res, srv.progs[test.idx])
 			if test.wantReady != gotReady {
 				t.Errorf("srv.newResult: got %v want %v", gotReady, test.wantReady)
@@ -139,7 +174,16 @@ func TestNewResult(t *testing.T) {
 }
 
 func TestConnect(t *testing.T) {
-	setup(t)
+	createTestServer(t)
+	srv.pools = map[int]*poolInfo{
+		1: {
+			vmRunners: map[int][]*progInfo{
+				0: {{
+					idx: 1, left: map[int]bool{1: true, 2: true}}},
+			},
+			progs: []*progInfo{{
+				idx: 3, left: map[int]bool{1: true}}},
+		}}
 	a := &rpctype.RunnerConnectArgs{
 		Pool: 1,
 		VM:   1,
@@ -148,7 +192,7 @@ func TestConnect(t *testing.T) {
 		t.Fatalf("srv.Connect failed: %v", err)
 	}
 	want, got := map[int][]*progInfo{
-		0: {&progInfo{idx: 1, left: map[int]bool{1: true, 2: true}}},
+		0: {{idx: 1, left: map[int]bool{1: true, 2: true}}},
 		1: nil,
 	}, srv.pools[a.Pool].vmRunners
 	if diff := cmp.Diff(want, got, cmp.AllowUnexported(progInfo{})); diff != "" {
@@ -156,18 +200,7 @@ func TestConnect(t *testing.T) {
 	}
 }
 
-func makeResult(pool int, errnos []int) *verf.Result {
-	r := &verf.Result{Pool: pool, Info: ipc.ProgInfo{Calls: []ipc.CallInfo{}}}
-	for _, e := range errnos {
-		r.Info.Calls = append(r.Info.Calls, ipc.CallInfo{Errno: e})
-	}
-	return r
-}
-
 func TestProcessResults(t *testing.T) {
-	p := "breaks_returns()\n" +
-		"minimize$0(0x1, 0x1)\n" +
-		"test$res0()\n"
 	tests := []struct {
 		name      string
 		res       []*verf.Result
@@ -192,22 +225,9 @@ func TestProcessResults(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			target := prog.InitTargetTest(t, "test", "64")
-			prog, err := target.Deserialize([]byte(p), prog.Strict)
-			if err != nil {
-				t.Fatalf("failed to deserialise test program: %v", err)
-			}
-
-			resultsdir := "test"
-			err = osutil.MkdirAll(resultsdir)
-			if err != nil {
-				t.Fatalf("failed to create results directory: %v", err)
-			}
-			vrf := Verifier{}
-			vrf.resultsdir, err = filepath.Abs(resultsdir)
-			if err != nil {
-				t.Fatalf("failed to get absolute path of resultsdir: %v", err)
-			}
+			prog := getTestProgram(t)
+			vrf := Verifier{
+				resultsdir: makeTestResultDirectory(t)}
 			resultFile := filepath.Join(vrf.resultsdir, "result-3")
 
 			vrf.processResults(test.res, prog)
@@ -244,5 +264,94 @@ func TestCreateReport(t *testing.T) {
 		"\t↳ Pool: 2, Errno: 5, Flag: 3\n\n"
 	if got != want {
 		t.Errorf("createReport: got %q want %q", got, want)
+	}
+}
+
+func TestCleanup(t *testing.T) {
+	prog := getTestProgram(t)
+	tests := []struct {
+		name       string
+		progs      map[int]*progInfo
+		wantProg   *progInfo
+		progExists bool
+		fileExists bool
+	}{
+		{
+			name: "results not ready for verification",
+			progs: map[int]*progInfo{
+				4: {
+					idx:  4,
+					left: map[int]bool{0: true, 1: true, 2: true},
+				}},
+			wantProg: &progInfo{
+				idx:  4,
+				left: map[int]bool{1: true, 2: true},
+			},
+			fileExists: false,
+		},
+		{
+			name: "results sent for verification, no report generated",
+			progs: map[int]*progInfo{
+				4: {
+					idx:  4,
+					left: map[int]bool{0: true},
+					prog: prog,
+					res: []*verf.Result{
+						makeResult(1, []int{11, 33, 22}),
+						makeResult(2, []int{11, 33, 22}),
+					},
+				}},
+			fileExists: false,
+		},
+		{
+			name: "results sent for verification, report generation",
+			progs: map[int]*progInfo{
+				4: {
+					idx:  4,
+					left: map[int]bool{0: true},
+					prog: prog,
+					res: []*verf.Result{
+						makeResult(1, []int{11, 33, 44}),
+						makeResult(2, []int{11, 33, 22}),
+					},
+				}},
+			fileExists: true,
+		},
+		{
+			name: "not enough results to send for verification",
+			progs: map[int]*progInfo{
+				4: {
+					idx:  4,
+					left: map[int]bool{0: true},
+					res: []*verf.Result{
+						makeResult(2, []int{11, 33, 22}),
+					},
+				}},
+			wantProg:   nil,
+			fileExists: false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			createTestServer(t)
+			srv.progs = test.progs
+			srv.pools = map[int]*poolInfo{
+				0: {vmRunners: map[int][]*progInfo{
+					0: {srv.progs[4]}},
+				}}
+			resultFile := filepath.Join(srv.vrf.resultsdir, "result-0")
+
+			srv.cleanup(0, 0)
+
+			prog := srv.progs[4]
+			if diff := cmp.Diff(test.wantProg, prog, cmp.AllowUnexported(progInfo{})); diff != "" {
+				t.Errorf("srv.progs[4] mismatch (-want +got):\n%s", diff)
+			}
+
+			if got, want := osutil.IsExist(resultFile), test.fileExists; got != want {
+				t.Errorf("osutil.IsExist report file: got %v want %v", got, want)
+			}
+			os.Remove(filepath.Join(srv.vrf.resultsdir, "result-0"))
+		})
 	}
 }

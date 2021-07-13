@@ -255,7 +255,6 @@ func (srv *RPCServer) Connect(a *rpctype.RunnerConnectArgs, r *int) error {
 func (srv *RPCServer) NextExchange(a *rpctype.NextExchangeArgs, r *rpctype.NextExchangeRes) error {
 	srv.mu.Lock()
 	defer srv.mu.Unlock()
-
 	if a.Info.Calls != nil {
 		res := &verf.Result{
 			Pool:   a.Pool,
@@ -264,6 +263,21 @@ func (srv *RPCServer) NextExchange(a *rpctype.NextExchangeArgs, r *rpctype.NextE
 		}
 
 		prog := srv.progs[a.ProgIdx]
+		if prog == nil {
+			// This case can happen if both of the below conditions are true:
+			// 1. a Runner calls Verifier.NextExchange, then crashes,
+			// its corresponding Pool being the only one that hasn't
+			// sent results for the program yet
+			// 2.the cleanup call for the crash got the server's mutex before
+			// the NextExchange call.
+			// As the pool was the only one still in prog.left, the cleanup
+			// call has already removed prog from srv.progs by the time the
+			// NextExchange call gets the server's mutex  which is why the
+			// variable is nil. As the results for this program have already
+			// been sent for verification (if more than 2), we discard this one.
+			return nil
+		}
+
 		if srv.newResult(res, prog) {
 			srv.vrf.processResults(prog.res, prog.prog)
 			delete(srv.progs, a.ProgIdx)
@@ -388,11 +402,17 @@ func (srv *RPCServer) cleanup(poolIdx, vmIdx int) {
 	defer srv.mu.Unlock()
 	progs := srv.pools[poolIdx].vmRunners[vmIdx]
 	delete(srv.pools[poolIdx].vmRunners, vmIdx)
-	for idx, prog := range progs {
+	for _, prog := range progs {
 		delete(prog.left, poolIdx)
 		if len(prog.left) == 0 {
-			srv.vrf.processResults(prog.res, prog.prog)
-			delete(srv.progs, idx)
+			if len(prog.res) > 1 {
+				// It might happen that all pools crashed (or all except one)
+				// while executing this program. We only send results for
+				// verification if at least two pools have returned results.
+				// TODO: consider logging this program or retrying execution
+				srv.vrf.processResults(prog.res, prog.prog)
+			}
+			delete(srv.progs, prog.idx)
 			continue
 		}
 	}
