@@ -7,8 +7,8 @@
 // See Intel Software Developer’s Manual Volume 3: System Programming Guide
 // for details on what happens here.
 
-#include "kvm.S.h"
 #include "kvm.h"
+#include "kvm_amd64.S.h"
 
 #ifndef KVM_SMI
 #define KVM_SMI _IO(KVMIO, 0xb7)
