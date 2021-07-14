@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/syz-verifier/stats"
 	"github.com/google/syzkaller/syz-verifier/verf"
 )
 
@@ -35,6 +36,7 @@ func createTestServer(t *testing.T) {
 		progIdx:     3,
 	}
 	vrf.resultsdir = makeTestResultDirectory(t)
+	vrf.stats = getTestStats()
 	srv, err = startRPCServer(&vrf)
 	if err != nil {
 		t.Fatalf("failed to initialise RPC server: %v", err)
@@ -51,6 +53,16 @@ func getTestProgram(t *testing.T) *prog.Prog {
 		t.Fatalf("failed to deserialise test program: %v", err)
 	}
 	return prog
+}
+
+func getTestStats() *stats.Stats {
+	return &stats.Stats{
+		Calls: map[string]*stats.CallStats{
+			"breaks_returns": {Name: "breaks_returns"},
+			"minimize$0":     {Name: "minimize$0"},
+			"test$res0":      {Name: "test$res0"},
+		},
+	}
 }
 
 func makeTestResultDirectory(t *testing.T) string {
@@ -387,6 +399,7 @@ func TestProcessResults(t *testing.T) {
 		res       []*verf.Result
 		prog      string
 		wantExist bool
+		wantStats *stats.Stats
 	}{
 		{
 			name: "report written",
@@ -395,6 +408,22 @@ func TestProcessResults(t *testing.T) {
 				makeResult(4, []int{1, 3, 5}),
 			},
 			wantExist: true,
+			wantStats: &stats.Stats{
+				TotalMismatches: 1,
+				Calls: map[string]*stats.CallStats{
+					"breaks_returns": {
+						Name:        "breaks_returns",
+						Occurrences: 1},
+					"minimize$0": {
+						Name:        "minimize$0",
+						Occurrences: 1},
+					"test$res0": {
+						Name:        "test$res0",
+						Occurrences: 1,
+						Mismatches:  1,
+					},
+				},
+			},
 		},
 		{
 			name: "no report written",
@@ -402,21 +431,41 @@ func TestProcessResults(t *testing.T) {
 				makeResult(2, []int{11, 33, 22}),
 				makeResult(3, []int{11, 33, 22}),
 			},
+			wantStats: &stats.Stats{
+				Calls: map[string]*stats.CallStats{
+					"breaks_returns": {
+						Name:        "breaks_returns",
+						Occurrences: 1},
+					"minimize$0": {
+						Name:        "minimize$0",
+						Occurrences: 1},
+					"test$res0": {
+						Name:        "test$res0",
+						Occurrences: 1,
+					},
+				},
+			},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			prog := getTestProgram(t)
 			vrf := Verifier{
-				resultsdir: makeTestResultDirectory(t)}
-			resultFile := filepath.Join(vrf.resultsdir, "result-3")
+				resultsdir: makeTestResultDirectory(t),
+				stats:      getTestStats(),
+			}
+			resultFile := filepath.Join(vrf.resultsdir, "result-0")
 
 			vrf.processResults(test.res, prog)
+
+			if diff := cmp.Diff(test.wantStats, vrf.stats); diff != "" {
+				t.Errorf("vrf.stats mismatch (-want +got):\n%s", diff)
+			}
 
 			if got, want := osutil.IsExist(resultFile), test.wantExist; got != want {
 				t.Errorf("osutil.IsExist report file: got %v want %v", got, want)
 			}
-			os.Remove(filepath.Join(vrf.resultsdir, "result-3"))
+			os.Remove(filepath.Join(vrf.resultsdir, "result-0"))
 		})
 	}
 }
@@ -427,12 +476,23 @@ func TestCreateReport(t *testing.T) {
 			"minimize$0(0x1, 0x1)\n" +
 			"test$res0()\n",
 		Reports: []verf.CallReport{
-			{Errnos: map[int]int{1: 1, 2: 1, 3: 1}, Flags: map[int]ipc.CallFlags{1: 1, 2: 1, 3: 1}},
-			{Errnos: map[int]int{1: 3, 2: 3, 3: 3}, Flags: map[int]ipc.CallFlags{1: 3, 2: 3, 3: 3}},
-			{Errnos: map[int]int{1: 2, 2: 5, 3: 22}, Flags: map[int]ipc.CallFlags{1: 7, 2: 3, 3: 1}, Mismatch: true},
+			{Call: "breaks_returns", Errnos: map[int]int{1: 1, 2: 1, 3: 1},
+				Flags: map[int]ipc.CallFlags{1: 1, 2: 1, 3: 1}},
+			{Call: "minimize$0", Errnos: map[int]int{1: 3, 2: 3, 3: 3},
+				Flags: map[int]ipc.CallFlags{1: 3, 2: 3, 3: 3}},
+			{Call: "test$res0", Errnos: map[int]int{1: 2, 2: 5, 3: 22},
+				Flags: map[int]ipc.CallFlags{1: 7, 2: 3, 3: 1}, Mismatch: true},
 		},
 	}
-	got := string(createReport(&rr, 3))
+	got := string(createReport(&rr, 3,
+		&stats.Stats{
+			TotalMismatches: 10,
+			Calls: map[string]*stats.CallStats{
+				"test$res0":      {Name: "test$res0", Mismatches: 2, Occurrences: 4},
+				"breaks_returns": {Name: "breaks_returns", Mismatches: 0, Occurrences: 3},
+				"minimize$0":     {Name: "minimize$0", Mismatches: 1, Occurrences: 2},
+			},
+		}))
 	want := "ERRNO mismatches found for program:\n\n" +
 		"[=] breaks_returns()\n" +
 		"\t↳ Pool: 1, Errno: 1, Flag: 1\n" +
@@ -443,8 +503,8 @@ func TestCreateReport(t *testing.T) {
 		"[!] test$res0()\n" +
 		"\t↳ Pool: 1, Errno: 2, Flag: 7\n" +
 		"\t↳ Pool: 2, Errno: 5, Flag: 3\n\n"
-	if got != want {
-		t.Errorf("createReport: got %q want %q", got, want)
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Errorf("createReport: (-want +got):\n%s", diff)
 	}
 }
 
@@ -454,6 +514,7 @@ func TestCleanup(t *testing.T) {
 		name       string
 		progs      map[int]*progInfo
 		wantProg   *progInfo
+		wantStats  *stats.Stats
 		progExists bool
 		fileExists bool
 	}{
@@ -467,6 +528,13 @@ func TestCleanup(t *testing.T) {
 			wantProg: &progInfo{
 				idx:  4,
 				left: map[int]bool{1: true, 2: true},
+			},
+			wantStats: &stats.Stats{
+				Calls: map[string]*stats.CallStats{
+					"breaks_returns": {Name: "breaks_returns"},
+					"minimize$0":     {Name: "minimize$0"},
+					"test$res0":      {Name: "test$res0"},
+				},
 			},
 			fileExists: false,
 		},
@@ -482,6 +550,13 @@ func TestCleanup(t *testing.T) {
 						makeResult(2, []int{11, 33, 22}),
 					},
 				}},
+			wantStats: &stats.Stats{
+				Calls: map[string]*stats.CallStats{
+					"breaks_returns": {Name: "breaks_returns", Occurrences: 1},
+					"minimize$0":     {Name: "minimize$0", Occurrences: 1},
+					"test$res0":      {Name: "test$res0", Occurrences: 1},
+				},
+			},
 			fileExists: false,
 		},
 		{
@@ -496,6 +571,14 @@ func TestCleanup(t *testing.T) {
 						makeResult(2, []int{11, 33, 22}),
 					},
 				}},
+			wantStats: &stats.Stats{
+				TotalMismatches: 1,
+				Calls: map[string]*stats.CallStats{
+					"breaks_returns": {Name: "breaks_returns", Occurrences: 1},
+					"minimize$0":     {Name: "minimize$0", Occurrences: 1},
+					"test$res0":      {Name: "test$res0", Occurrences: 1, Mismatches: 1},
+				},
+			},
 			fileExists: true,
 		},
 		{
@@ -508,6 +591,13 @@ func TestCleanup(t *testing.T) {
 						makeResult(2, []int{11, 33, 22}),
 					},
 				}},
+			wantStats: &stats.Stats{
+				Calls: map[string]*stats.CallStats{
+					"breaks_returns": {Name: "breaks_returns"},
+					"minimize$0":     {Name: "minimize$0"},
+					"test$res0":      {Name: "test$res0"},
+				},
+			},
 			wantProg:   nil,
 			fileExists: false,
 		},
@@ -527,6 +617,10 @@ func TestCleanup(t *testing.T) {
 			prog := srv.progs[4]
 			if diff := cmp.Diff(test.wantProg, prog, cmp.AllowUnexported(progInfo{})); diff != "" {
 				t.Errorf("srv.progs[4] mismatch (-want +got):\n%s", diff)
+			}
+
+			if diff := cmp.Diff(test.wantStats, srv.vrf.stats); diff != "" {
+				t.Errorf("srv.vrf.stats mismatch (-want +got):\n%s", diff)
 			}
 
 			if got, want := osutil.IsExist(resultFile), test.fileExists; got != want {
