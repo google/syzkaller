@@ -141,28 +141,24 @@ func elfReadModuleCoverPoints(target *targets.Target, module *Module, info *symb
 	}
 	callRelocType := arches[target.Arch].callRelocType
 	relaOffset := arches[target.Arch].relaOffset
-	for _, s := range file.Sections {
-		if s.Type != elf.SHT_RELA { // nolint: misspell
+	s := file.Section(".rela.text")
+	rel := new(elf.Rela64)
+	for r := s.Open(); ; {
+		if err := binary.Read(r, binary.LittleEndian, rel); err != nil {
+			if err == io.EOF {
+				break
+			}
+			return pcs, err
+		}
+		if (rel.Info & 0xffffffff) != callRelocType {
 			continue
 		}
-		rel := new(elf.Rela64)
-		for r := s.Open(); ; {
-			if err := binary.Read(r, binary.LittleEndian, rel); err != nil {
-				if err == io.EOF {
-					break
-				}
-				return pcs, err
-			}
-			if (rel.Info & 0xffffffff) != callRelocType {
-				continue
-			}
-			pc := module.Addr + rel.Off - relaOffset
-			index := int(elf.R_SYM64(rel.Info)) - 1
-			if info.tracePCIdx[index] {
-				pcs[0] = append(pcs[0], pc)
-			} else if info.traceCmpIdx[index] {
-				pcs[1] = append(pcs[1], pc)
-			}
+		pc := module.Addr + rel.Off - relaOffset
+		index := int(elf.R_SYM64(rel.Info)) - 1
+		if info.tracePCIdx[index] {
+			pcs[0] = append(pcs[0], pc)
+		} else if info.traceCmpIdx[index] {
+			pcs[1] = append(pcs[1], pc)
 		}
 	}
 	return pcs, nil
