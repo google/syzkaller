@@ -41,7 +41,7 @@ one. These header files are defined in [gen.go](../pkg/csource/gen.go):
             "common_usb.h",
             "android/android_seccomp.h",
             "kvm.h",
-            "kvm.S.h",
+            "kvm_amd64.S.h",
     }
 
 For instance, if our new pseudo-syscall is Linux-specific, then

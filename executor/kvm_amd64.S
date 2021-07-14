@@ -1,7 +1,7 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// kvm_gen.cc generates machine code from this file and saves it into kvm.S.h.
+// kvm_gen.cc generates machine code from this file and saves it into kvm_amd64.S.h.
 
 // +build
 
