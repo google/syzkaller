@@ -16,7 +16,7 @@ import (
 
 type akaros struct{}
 
-func (ctx akaros) build(params *Params) error {
+func (ctx akaros) build(params Params) error {
 	configFile := filepath.Join(params.KernelDir, ".config")
 	if err := osutil.WriteFile(configFile, params.Config); err != nil {
 		return fmt.Errorf("failed to write config file: %v", err)

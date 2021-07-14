@@ -19,7 +19,7 @@ type gvisor struct{}
 
 var bazelTargetPath = regexp.MustCompile(`(?sm:.*^)\s*Outputs: \[(.*)\](?sm:$.*)`)
 
-func (gvisor gvisor) build(params *Params) error {
+func (gvisor gvisor) build(params Params) error {
 	if params.Compiler == "" {
 		params.Compiler = "bazel"
 	}

@@ -22,7 +22,7 @@ import (
 
 type netbsd struct{}
 
-func (ctx netbsd) build(params *Params) error {
+func (ctx netbsd) build(params Params) error {
 	const kernelName = "GENERIC_SYZKALLER"
 	confDir := fmt.Sprintf("%v/sys/arch/%v/conf", params.KernelDir, params.TargetArch)
 	compileDir := fmt.Sprintf("%v/sys/arch/%v/compile/obj/%v", params.KernelDir, params.TargetArch, kernelName)

@@ -15,7 +15,7 @@ import (
 
 type openbsd struct{}
 
-func (ctx openbsd) build(params *Params) error {
+func (ctx openbsd) build(params Params) error {
 	const kernelName = "SYZKALLER"
 	confDir := fmt.Sprintf("%v/sys/arch/%v/conf", params.KernelDir, params.TargetArch)
 	compileDir := fmt.Sprintf("%v/sys/arch/%v/compile/%v", params.KernelDir, params.TargetArch, kernelName)

@@ -16,7 +16,7 @@ import (
 
 type freebsd struct{}
 
-func (ctx freebsd) build(params *Params) error {
+func (ctx freebsd) build(params Params) error {
 	confDir := fmt.Sprintf("%v/sys/%v/conf/", params.KernelDir, params.TargetArch)
 	confFile := "SYZKALLER"
 

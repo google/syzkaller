@@ -26,7 +26,7 @@ type linux struct{}
 
 var _ signer = linux{}
 
-func (linux linux) build(params *Params) error {
+func (linux linux) build(params Params) error {
 	if err := linux.buildKernel(params); err != nil {
 		return err
 	}
@@ -47,11 +47,11 @@ func (linux linux) build(params *Params) error {
 	return embedLinuxKernel(params, kernelPath)
 }
 
-func (linux linux) sign(params *Params) (string, error) {
+func (linux linux) sign(params Params) (string, error) {
 	return elfBinarySignature(filepath.Join(params.OutputDir, "obj", "vmlinux"))
 }
 
-func (linux linux) buildKernel(params *Params) error {
+func (linux linux) buildKernel(params Params) error {
 	configFile := filepath.Join(params.KernelDir, ".config")
 	if err := linux.writeFile(configFile, params.Config); err != nil {
 		return fmt.Errorf("failed to write config file: %v", err)
@@ -96,7 +96,7 @@ func (linux linux) buildKernel(params *Params) error {
 	return nil
 }
 
-func (linux) createImage(params *Params, kernelPath string) error {
+func (linux) createImage(params Params, kernelPath string) error {
 	tempDir, err := ioutil.TempDir("", "syz-build")
 	if err != nil {
 		return err
@@ -162,7 +162,7 @@ func runMakeImpl(arch, compiler, ccache, kernelDir string, addArgs ...string) er
 	return err
 }
 
-func runMake(params *Params, addArgs ...string) error {
+func runMake(params Params, addArgs ...string) error {
 	return runMakeImpl(params.TargetArch, params.Compiler, params.Ccache, params.KernelDir, addArgs...)
 }
 

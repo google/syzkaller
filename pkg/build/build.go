@@ -51,7 +51,7 @@ type Params struct {
 // behavior. Binary equal builds, or builds that differ only in e.g. debug info,
 // have the same ID. The ID may be empty if OS implementation does not have
 // a way to calculate such IDs.
-func Image(params *Params) (string, error) {
+func Image(params Params) (string, error) {
 	builder, err := getBuilder(params.TargetOS, params.TargetArch, params.VMType)
 	if err != nil {
 		return "", err
@@ -104,12 +104,12 @@ func (err *KernelError) Error() string {
 }
 
 type builder interface {
-	build(params *Params) error
+	build(params Params) error
 	clean(kernelDir, targetArch string) error
 }
 
 type signer interface {
-	sign(params *Params) (string, error)
+	sign(params Params) (string, error)
 }
 
 func getBuilder(targetOS, targetArch, vmType string) (builder, error) {

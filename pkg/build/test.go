@@ -5,7 +5,7 @@ package build
 
 type test struct{}
 
-func (tb test) build(params *Params) error {
+func (tb test) build(params Params) error {
 	return nil
 }
 
