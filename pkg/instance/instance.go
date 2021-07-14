@@ -108,7 +108,7 @@ func (env *env) BuildSyzkaller(repoURL, commit string) error {
 func (env *env) BuildKernel(compilerBin, ccacheBin, userspaceDir, cmdlineFile, sysctlFile string, kernelConfig []byte) (
 	string, string, error) {
 	imageDir := filepath.Join(env.cfg.Workdir, "image")
-	params := &build.Params{
+	params := build.Params{
 		TargetOS:     env.cfg.TargetOS,
 		TargetArch:   env.cfg.TargetVMArch,
 		VMType:       env.cfg.Type,

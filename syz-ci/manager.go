@@ -304,7 +304,7 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 	if err := config.SaveFile(filepath.Join(tmpDir, "tag"), info); err != nil {
 		return fmt.Errorf("failed to write tag file: %v", err)
 	}
-	params := &build.Params{
+	params := build.Params{
 		TargetOS:     mgr.managercfg.TargetOS,
 		TargetArch:   mgr.managercfg.TargetVMArch,
 		VMType:       mgr.managercfg.Type,

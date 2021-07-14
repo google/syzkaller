@@ -34,7 +34,7 @@ func main() {
 	if err != nil {
 		tool.Fail(err)
 	}
-	params := &build.Params{
+	params := build.Params{
 		TargetOS:     *flagOS,
 		TargetArch:   *flagArch,
 		VMType:       "gce",

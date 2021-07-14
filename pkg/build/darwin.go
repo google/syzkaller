@@ -9,7 +9,7 @@ import (
 
 type darwin struct{}
 
-func (ctx darwin) build(params *Params) error {
+func (ctx darwin) build(params Params) error {
 	// TODO(HerrSpace): Implement this.
 	return fmt.Errorf("pkg/build: darwin.build not implemented")
 }

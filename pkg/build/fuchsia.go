@@ -27,7 +27,7 @@ func syzRoot() (string, error) {
 	return filepath.Abs(filepath.Join(filepath.Dir(selfPath), "../.."))
 }
 
-func (fu fuchsia) build(params *Params) error {
+func (fu fuchsia) build(params Params) error {
 	syzDir, err := syzRoot()
 	if err != nil {
 		return err

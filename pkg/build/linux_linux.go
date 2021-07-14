@@ -22,7 +22,7 @@ import (
 // - ssh works without password (we don't copy the key)
 // - cmdline file is not supported (should be moved to kernel config)
 // - the kernel is stored in the image in /vmlinuz file.
-func embedLinuxKernel(params *Params, kernelPath string) error {
+func embedLinuxKernel(params Params, kernelPath string) error {
 	if params.CmdlineFile != "" {
 		return fmt.Errorf("cmdline file is not supported for linux images")
 	}
