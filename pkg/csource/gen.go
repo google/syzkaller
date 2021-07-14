@@ -42,6 +42,7 @@ func main() {
 		"android/android_seccomp.h",
 		"kvm.h",
 		"kvm_amd64.S.h",
+		"kvm_ppc64le.S.h",
 	}
 	data = replaceIncludes(executorFilenames, "../../executor/", data)
 	androidFilenames := []string{
