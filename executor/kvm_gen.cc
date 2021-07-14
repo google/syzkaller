@@ -29,6 +29,10 @@ int main()
 	PRINT(kvm_asm64_init_vm);
 	PRINT(kvm_asm64_vm_exit);
 	PRINT(kvm_asm64_cpl3);
+#elif GOARCH_ppc64le
+	PRINT(kvm_ppc64_mr);
+	PRINT(kvm_ppc64_ld);
+	PRINT(kvm_ppc64_recharge_dec);
 #endif
 	return 0;
 }

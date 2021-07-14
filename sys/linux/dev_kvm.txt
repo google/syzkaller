@@ -157,7 +157,7 @@ kvm_x86_rflags = 1, 2, 4, 16, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 
 # The interface is designed for extensibility so that addition of new options does not invalidate all existing programs.
 syz_kvm_setup_cpu$x86(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text_x86, 1]], ntext len[text], flags flags[kvm_setup_flags], opts ptr[in, array[kvm_setup_opt_x86, 0:2]], nopt len[opts])
 syz_kvm_setup_cpu$arm64(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text_arm64, 1]], ntext len[text], flags const[0], opts ptr[in, array[kvm_setup_opt_arm64, 1]], nopt len[opts])
-syz_kvm_setup_cpu$ppc64(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text_ppc64, 1]], ntext len[text], flags const[0], opts ptr[in, array[kvm_setup_opt_ppc64, 1]], nopt len[opts])
+syz_kvm_setup_cpu$ppc64(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text_ppc64, 1]], ntext len[text], flags flags[kvm_setup_flags_ppc64], opts ptr[in, array[kvm_setup_opt_ppc64, 1]], nopt len[opts])
 
 kvm_text_x86 [
 	textreal	kvm_text_x86_real
@@ -298,6 +298,10 @@ define KVM_SETUP_CPL3	(1<<3)
 define KVM_SETUP_VIRT86	(1<<4)
 define KVM_SETUP_SMM	(1<<5)
 define KVM_SETUP_VM	(1<<6)
+
+kvm_setup_flags_ppc64 = KVM_SETUP_PPC64_LE
+
+define KVM_SETUP_PPC64_LE	(1<<0) # Little endian
 
 kvm_guest_debug {
 	ctrl	flags[kvm_guest_debug_flags, int32]

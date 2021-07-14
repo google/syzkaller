@@ -84,6 +84,12 @@ static int test_one(int text_type, const char* text, int text_size, int flags, u
 		dump_cpu_state(cpufd, (char*)vm_mem);
 		return 1;
 	}
+#elif GOARCH_ppc64le
+	if (check_rax && regs.gpr[3] != 0xbadc0de) {
+		printf("wrong result: gps[3]=0x%llx\n", (long long)regs.gpr[3]);
+		dump_cpu_state(cpufd, (char*)vm_mem);
+		return 1;
+	}
 #endif
 	munmap(vm_mem, vm_mem_size);
 	munmap(cpu_mem, cpu_mem_size);
@@ -167,6 +173,15 @@ static int test_kvm()
 		if ((res = test_one(32, text_rsm, sizeof(text_rsm) - 1, KVM_SETUP_SMM, KVM_EXIT_HLT, false)))
 			return res;
 	}
+#elif GOARCH_ppc64le
+	for (unsigned i = 0; i < (1 << 1); ++i) {
+		res = test_one(8, kvm_ppc64_mr, sizeof(kvm_ppc64_mr) - 1, i, KVM_EXIT_DEBUG, true);
+		if (res)
+			return res;
+		res = test_one(8, kvm_ppc64_ld, sizeof(kvm_ppc64_ld) - 1, i, KVM_EXIT_DEBUG, true);
+		if (res)
+			return res;
+	}
 #else
 	// Keeping gcc happy
 	const char text8[] = "\x66\xb8\xde\xc0\xad\x0b";
@@ -234,5 +249,17 @@ static void dump_cpu_state(int cpufd, char* vm_mem)
 			       ((long long*)vm_mem)[i], ((long long*)vm_mem)[i + 1], ((long long*)vm_mem)[i + 2], ((long long*)vm_mem)[i + 3]);
 		}
 	}
+#elif GOARCH_ppc64 || GOARCH_ppc64le
+	printf("NIP %016lx\n", regs.pc);
+	printf("MSR %016lx\n", regs.msr);
+	printf("GPR00 %016lx %016lx %016lx %016lx\n", regs.gpr[0], regs.gpr[1], regs.gpr[2], regs.gpr[3]);
+	printf("GPR04 %016lx %016lx %016lx %016lx\n", regs.gpr[4], regs.gpr[5], regs.gpr[6], regs.gpr[7]);
+	printf("GPR08 %016lx %016lx %016lx %016lx\n", regs.gpr[8], regs.gpr[9], regs.gpr[10], regs.gpr[11]);
+	printf("GPR12 %016lx %016lx %016lx %016lx\n", regs.gpr[12], regs.gpr[13], regs.gpr[14], regs.gpr[15]);
+	printf("GPR16 %016lx %016lx %016lx %016lx\n", regs.gpr[16], regs.gpr[17], regs.gpr[18], regs.gpr[19]);
+	printf("GPR20 %016lx %016lx %016lx %016lx\n", regs.gpr[20], regs.gpr[21], regs.gpr[22], regs.gpr[23]);
+	printf("GPR24 %016lx %016lx %016lx %016lx\n", regs.gpr[24], regs.gpr[25], regs.gpr[26], regs.gpr[27]);
+	printf("GPR28 %016lx %016lx %016lx %016lx\n", regs.gpr[28], regs.gpr[29], regs.gpr[30], regs.gpr[31]);
+	printf(" SRR0 %016lx  SRR1 %016lx\n", regs.srr0, regs.srr1);
 #endif
 }
