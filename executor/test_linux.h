@@ -43,7 +43,7 @@ static int test_one(int text_type, const char* text, int text_size, int flags, u
 		printf("cpu mmap failed (%d)\n", errno);
 		return 1;
 	}
-	int vm_mem_size = 96 << 10;
+	int vm_mem_size = 24 * SYZ_PAGE_SIZE; // Allocate what executor allocates for vma[24]
 	void* vm_mem = mmap(0, vm_mem_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 	if (vm_mem == MAP_FAILED) {
 		printf("mmap failed (%d)\n", errno);
@@ -57,8 +57,11 @@ static int test_one(int text_type, const char* text, int text_size, int flags, u
 		printf("syz_kvm_setup_cpu failed (%d)\n", errno);
 		return 1;
 	}
-	if (ioctl(cpufd, KVM_RUN, 0)) {
-		printf("KVM_RUN failed (%d)\n", errno);
+
+	int ret = ioctl(cpufd, KVM_RUN, 0);
+	// KVM_RUN returns positive values on PPC64
+	if (ret < 0) {
+		printf("KVM_RUN returned %d, errno=%d\n", ret, errno);
 		return 1;
 	}
 	struct kvm_regs regs;
@@ -107,10 +110,10 @@ static int test_kvm()
 	// if (res = test_one(32, text32_div0, sizeof(text32_div0)-1, 0, KVM_EXIT_HLT, true))
 	//	return res;
 
+#ifdef GOARCH_amd64
 	const char text8[] = "\x66\xb8\xde\xc0\xad\x0b";
 	if ((res = test_one(8, text8, sizeof(text8) - 1, 0, KVM_EXIT_HLT, true)))
 		return res;
-#ifdef GOARCH_amd64
 	if ((res = test_one(8, text8, sizeof(text8) - 1, KVM_SETUP_VIRT86, KVM_EXIT_SHUTDOWN, true)))
 		return res;
 	if ((res = test_one(8, text8, sizeof(text8) - 1, KVM_SETUP_VIRT86 | KVM_SETUP_PAGING, KVM_EXIT_SHUTDOWN, true)))
@@ -164,6 +167,11 @@ static int test_kvm()
 		if ((res = test_one(32, text_rsm, sizeof(text_rsm) - 1, KVM_SETUP_SMM, KVM_EXIT_HLT, false)))
 			return res;
 	}
+#else
+	// Keeping gcc happy
+	const char text8[] = "\x66\xb8\xde\xc0\xad\x0b";
+	if ((res = test_one(8, text8, sizeof(text8) - 1, 0, KVM_EXIT_HLT, true)))
+		return res;
 #endif
 
 	return 0;
@@ -193,7 +201,6 @@ static void dump_seg(const char* name, struct kvm_segment* seg)
 
 static void dump_cpu_state(int cpufd, char* vm_mem)
 {
-#ifdef GOARCH_amd64
 	struct kvm_sregs sregs;
 	if (ioctl(cpufd, KVM_GET_SREGS, &sregs)) {
 		printf("KVM_GET_SREGS failed (%d)\n", errno);
@@ -204,6 +211,7 @@ static void dump_cpu_state(int cpufd, char* vm_mem)
 		printf("KVM_GET_REGS failed (%d)\n", errno);
 		return;
 	}
+#ifdef GOARCH_amd64
 	printf("RIP=0x%llx RAX=0x%llx RDX=0x%llx RCX=0x%llx RBX=0x%llx CF=%d ZF=%d\n",
 	       regs.rip, regs.rax, regs.rdx, regs.rcx, regs.rbx, !!(regs.rflags & (1 << 0)), !!(regs.rflags & (1 << 6)));
 	printf("CR0=0x%llx CR2=0x%llx CR4=0x%llx EFER=0x%llx\n",
