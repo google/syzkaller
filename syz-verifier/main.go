@@ -23,6 +23,7 @@ import (
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/syz-verifier/stats"
 	"github.com/google/syzkaller/syz-verifier/verf"
 	"github.com/google/syzkaller/vm"
 )
@@ -54,6 +55,7 @@ type Verifier struct {
 	calls         map[*prog.Syscall]bool
 	reasons       map[*prog.Syscall]string
 	reportReasons bool
+	stats         *stats.Stats
 }
 
 // RPCServer is a wrapper around the rpc.Server. It communicates with  Runners,
@@ -174,7 +176,8 @@ func main() {
 	calls := make(map[*prog.Syscall]bool)
 
 	for _, id := range cfg.Syscalls {
-		calls[target.Syscalls[id]] = true
+		c := target.Syscalls[id]
+		calls[c] = true
 	}
 
 	vrf := &Verifier{
@@ -289,6 +292,7 @@ func (srv *RPCServer) UpdateUnsupported(a *rpctype.UpdateUnsupportedArgs, r *int
 	srv.notChecked--
 	if srv.notChecked == 0 {
 		vrf.finalizeCallSet(os.Stdout)
+		vrf.stats = stats.InitStats(vrf.calls, os.Stdout)
 		vrf.choiceTable = vrf.target.BuildChoiceTable(nil, vrf.calls)
 		srv.cond.Signal()
 	}
@@ -386,6 +390,9 @@ func (srv *RPCServer) newResult(res *verf.Result, prog *progInfo) bool {
 // in th workdir/results directory. If writing the results fails, it returns an
 // error.
 func (vrf *Verifier) processResults(res []*verf.Result, prog *prog.Prog) {
+	for _, c := range prog.Calls {
+		vrf.stats.Calls[c.Meta.Name].Occurrences++
+	}
 	rr := verf.Verify(res, prog)
 	if rr == nil {
 		return
@@ -411,7 +418,7 @@ func (vrf *Verifier) processResults(res []*verf.Result, prog *prog.Prog) {
 	}
 
 	err := osutil.WriteFile(filepath.Join(vrf.resultsdir,
-		fmt.Sprintf("result-%d", oldest)), createReport(rr, len(vrf.pools)))
+		fmt.Sprintf("result-%d", oldest)), createReport(rr, len(vrf.pools), vrf.stats))
 	if err != nil {
 		log.Printf("failed to write result-%d file, err %v", oldest, err)
 	}
@@ -419,15 +426,18 @@ func (vrf *Verifier) processResults(res []*verf.Result, prog *prog.Prog) {
 	log.Printf("result-%d written successfully", oldest)
 }
 
-func createReport(rr *verf.ResultReport, pools int) []byte {
+func createReport(rr *verf.ResultReport, pools int, s *stats.Stats) []byte {
 	calls := strings.Split(rr.Prog, "\n")
 	calls = calls[:len(calls)-1]
 
 	data := "ERRNO mismatches found for program:\n\n"
 	for idx, cr := range rr.Reports {
+		cs := s.Calls[cr.Call]
 		tick := "[=]"
 		if cr.Mismatch {
 			tick = "[!]"
+			cs.Mismatches++
+			s.TotalMismatches++
 		}
 		data += fmt.Sprintf("%s %s\n", tick, calls[idx])
 
