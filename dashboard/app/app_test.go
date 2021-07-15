@@ -57,6 +57,7 @@ var testConfig = &GlobalConfig{
 			FixBisectionAutoClose: true,
 			Clients: map[string]string{
 				client1: password1,
+				"oauth": oauthMagic + "111111122222222",
 			},
 			Repos: []KernelRepo{
 				{
