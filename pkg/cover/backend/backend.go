@@ -64,15 +64,15 @@ type Range struct {
 const LineEnd = 1 << 30
 
 func Make(target *targets.Target, vm, objDir, srcDir, buildDir string,
-	moduleObj []string, modules []host.KernelModule) (*Impl, error) {
+	moduleObj []string, modules []host.KernelModule, cleanRules []string) (*Impl, error) {
 	if objDir == "" {
 		return nil, fmt.Errorf("kernel obj directory is not specified")
 	}
 	if target.OS == "darwin" {
-		return makeMachO(target, objDir, srcDir, buildDir, moduleObj, modules)
+		return makeMachO(target, objDir, srcDir, buildDir, moduleObj, modules, cleanRules)
 	}
 	if vm == "gvisor" {
 		return makeGvisor(target, objDir, srcDir, buildDir, modules)
 	}
-	return makeELF(target, objDir, srcDir, buildDir, moduleObj, modules)
+	return makeELF(target, objDir, srcDir, buildDir, moduleObj, modules, cleanRules)
 }

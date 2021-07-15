@@ -29,8 +29,8 @@ type Prog struct {
 var RestorePC = backend.RestorePC
 
 func MakeReportGenerator(target *targets.Target, vm, objDir, srcDir, buildDir string, subsystem []mgrconfig.Subsystem,
-	moduleObj []string, modules []host.KernelModule) (*ReportGenerator, error) {
-	impl, err := backend.Make(target, vm, objDir, srcDir, buildDir, moduleObj, modules)
+	moduleObj []string, modules []host.KernelModule, cleanRules []string) (*ReportGenerator, error) {
+	impl, err := backend.Make(target, vm, objDir, srcDir, buildDir, moduleObj, modules, cleanRules)
 	if err != nil {
 		return nil, err
 	}
