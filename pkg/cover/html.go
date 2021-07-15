@@ -148,16 +148,37 @@ func (rg *ReportGenerator) DoRawCoverFiles(w http.ResponseWriter, progs []Prog, 
 	if err := rg.lazySymbolize(progs); err != nil {
 		return err
 	}
+	var pcs []uint64
+	uniquePCs := make(map[uint64]bool)
+	for _, prog := range progs {
+		for _, pc := range prog.PCs {
+			if uniquePCs[pc] {
+				continue
+			}
+			uniquePCs[pc] = true
+			pcs = append(pcs, pc)
+		}
+	}
+	sort.Slice(pcs, func(i, j int) bool {
+		return pcs[i] < pcs[j]
+	})
 	sort.Slice(rg.Frames, func(i, j int) bool {
 		return rg.Frames[i].PC < rg.Frames[j].PC
 	})
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	buf := bufio.NewWriter(w)
-	fmt.Fprintf(buf, "PC,Module,Offset,Filename,StartLine\n")
-	for _, frame := range rg.Frames {
-		offset := frame.PC - frame.Module.Addr
-		fmt.Fprintf(buf, "0x%x,%v,0x%x,%v,%v\n", frame.PC, frame.Module.Name, offset, frame.Name, frame.StartLine)
+	fmt.Fprintf(buf, "PC,framePC,Module,Offset,Filename,StartLine\n")
+	idx := 0
+	for _, pc := range pcs {
+		for ; idx < len(rg.Frames); idx++ {
+			frame := rg.Frames[idx]
+			if pc == frame.PC {
+				offset := frame.PC - frame.Module.Addr
+				fmt.Fprintf(buf, "0x%x,%v,0x%x,%v,%v\n", pc, frame.Module.Name, offset, frame.Name, frame.StartLine)
+				break
+			}
+		}
 	}
 	buf.Flush()
 	return nil
