@@ -202,7 +202,7 @@ type KcidbConfig struct {
 var (
 	namespaceNameRe = regexp.MustCompile("^[a-zA-Z0-9-_.]{4,32}$")
 	clientNameRe    = regexp.MustCompile("^[a-zA-Z0-9-_.]{4,100}$")
-	clientKeyRe     = regexp.MustCompile("^[a-zA-Z0-9]{16,128}$")
+	clientKeyRe     = regexp.MustCompile("^([a-zA-Z0-9]{16,128})|(" + regexp.QuoteMeta(oauthMagic) + ".*)$")
 )
 
 type (
