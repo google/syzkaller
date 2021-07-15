@@ -20,8 +20,8 @@ func TestCanned(t *testing.T) {
 	}
 	for _, file := range files {
 		t.Run(file, func(t *testing.T) {
-			cfg := new(Config)
-			if err := config.LoadFile(file, cfg); err != nil {
+			cfg, err := LoadFile(file)
+			if err != nil {
 				t.Fatal(err)
 			}
 			var vmCfg interface{}
