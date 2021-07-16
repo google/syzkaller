@@ -36,7 +36,8 @@ func TestReportCallStats(t *testing.T) {
 			call: "foo",
 			report: "statistics for foo:\n" +
 				"\t↳ mismatches of foo / occurrences of foo: 2 / 8 (25.00 %)\n" +
-				"\t↳ mismatches of foo / total number of mismatches: 2 / 10 (20.00 %)\n" + "\t↳ 2 distinct states identified\n",
+				"\t↳ mismatches of foo / total number of mismatches: 2 / 10 (20.00 %)\n" +
+				"\t↳ 2 distinct states identified: [3 11]\n",
 		},
 	}
 
@@ -60,13 +61,16 @@ func TestReportGlobalStats(t *testing.T) {
 			"executed: 10 / 20 (50.00 %)\n\n"+
 			"statistics for bar:\n"+
 			"\t↳ mismatches of bar / occurrences of bar: 5 / 6 (83.33 %)\n"+
-			"\t↳ mismatches of bar / total number of mismatches: 5 / 10 (50.00 %)\n"+"\t↳ 2 distinct states identified\n\n"+
+			"\t↳ mismatches of bar / total number of mismatches: 5 / 10 (50.00 %)\n"+
+			"\t↳ 2 distinct states identified: [10 22]\n\n"+
 			"statistics for tar:\n"+
 			"\t↳ mismatches of tar / occurrences of tar: 3 / 4 (75.00 %)\n"+
-			"\t↳ mismatches of tar / total number of mismatches: 3 / 10 (30.00 %)\n"+"\t↳ 3 distinct states identified\n\n"+
+			"\t↳ mismatches of tar / total number of mismatches: 3 / 10 (30.00 %)\n"+
+			"\t↳ 3 distinct states identified: [31 100 101]\n\n"+
 			"statistics for foo:\n"+
 			"\t↳ mismatches of foo / occurrences of foo: 2 / 8 (25.00 %)\n"+
-			"\t↳ mismatches of foo / total number of mismatches: 2 / 10 (20.00 %)\n"+"\t↳ 2 distinct states identified\n\n"
+			"\t↳ mismatches of foo / total number of mismatches: 2 / 10 (20.00 %)\n"+
+			"\t↳ 2 distinct states identified: [3 11]\n\n"
 
 	if diff := cmp.Diff(got, want); diff != "" {
 		t.Errorf("s.ReportGlobalStats mismatch (-want +got):\n%s", diff)

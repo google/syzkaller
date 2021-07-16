@@ -51,6 +51,10 @@ func InitStats(calls map[*prog.Syscall]bool, w io.Writer) *Stats {
 	signal.Notify(c, os.Interrupt)
 	go func() {
 		<-c
+		if s.TotalMismatches < 0 {
+			fmt.Fprint(w, "No mismatches occurred until syz-verifier was stopped.")
+			os.Exit(0)
+		}
 		s.ReportGlobalStats(w)
 		os.Exit(0)
 	}()
@@ -69,8 +73,9 @@ func (s *Stats) ReportCallStats(call string) string {
 		"\t↳ mismatches of %s / occurrences of %s: %d / %d (%0.2f %%)\n"+
 		"\t↳ mismatches of %s / total number of mismatches: "+
 		"%d / %d (%0.2f %%)\n"+
-		"\t↳ %d distinct states identified\n", name, name, name, m, o,
-		getPercentage(m, o), name, m, s.TotalMismatches, getPercentage(m, s.TotalMismatches), len(cs.States))
+		"\t↳ %d distinct states identified: %v\n", name, name, name, m, o,
+		getPercentage(m, o), name, m, s.TotalMismatches,
+		getPercentage(m, s.TotalMismatches), len(cs.States), s.getOrderedStates(name))
 	return data
 }
 
@@ -112,4 +117,14 @@ func (s *Stats) getOrderedStats() []*CallStats {
 	})
 
 	return css
+}
+
+func (s *Stats) getOrderedStates(call string) []int {
+	states := s.Calls[call].States
+	ss := make([]int, 0, len(states))
+	for s := range states {
+		ss = append(ss, s)
+	}
+	sort.Ints(ss)
+	return ss
 }
