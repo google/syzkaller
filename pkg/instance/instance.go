@@ -29,7 +29,7 @@ import (
 
 type Env interface {
 	BuildSyzkaller(string, string) error
-	BuildKernel(string, string, string, string, string, []byte) (string, string, error)
+	BuildKernel(string, string, string, string, string, []byte) (string, build.ImageDetails, error)
 	Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]error, error)
 }
 
@@ -106,7 +106,7 @@ func (env *env) BuildSyzkaller(repoURL, commit string) error {
 }
 
 func (env *env) BuildKernel(compilerBin, ccacheBin, userspaceDir, cmdlineFile, sysctlFile string, kernelConfig []byte) (
-	string, string, error) {
+	string, build.ImageDetails, error) {
 	imageDir := filepath.Join(env.cfg.Workdir, "image")
 	params := build.Params{
 		TargetOS:     env.cfg.TargetOS,
@@ -121,18 +121,18 @@ func (env *env) BuildKernel(compilerBin, ccacheBin, userspaceDir, cmdlineFile, s
 		SysctlFile:   sysctlFile,
 		Config:       kernelConfig,
 	}
-	kernelSign, err := build.Image(params)
+	details, err := build.Image(params)
 	if err != nil {
-		return "", "", err
+		return "", details, err
 	}
 	if err := SetConfigImage(env.cfg, imageDir, true); err != nil {
-		return "", "", err
+		return "", details, err
 	}
 	kernelConfigFile := filepath.Join(imageDir, "kernel.config")
 	if !osutil.IsExist(kernelConfigFile) {
 		kernelConfigFile = ""
 	}
-	return kernelConfigFile, kernelSign, nil
+	return kernelConfigFile, details, nil
 }
 
 func SetConfigImage(cfg *mgrconfig.Config, imageDir string, reliable bool) error {

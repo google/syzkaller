@@ -410,24 +410,23 @@ func (env *env) build() (*vcs.Commit, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	compilerID, err := build.CompilerIdentity(bisectEnv.Compiler)
-	if err != nil {
-		return nil, "", err
-	}
-	env.log("testing commit %v with %v", current.Hash, compilerID)
+	env.log("testing commit %v", current.Hash)
 	buildStart := time.Now()
 	mgr := env.cfg.Manager
 	if err := build.Clean(mgr.TargetOS, mgr.TargetVMArch, mgr.Type, mgr.KernelSrc); err != nil {
 		return nil, "", fmt.Errorf("kernel clean failed: %v", err)
 	}
 	kern := &env.cfg.Kernel
-	_, kernelSign, err := env.inst.BuildKernel(bisectEnv.Compiler, env.cfg.Ccache, kern.Userspace,
+	_, imageDetails, err := env.inst.BuildKernel(bisectEnv.Compiler, env.cfg.Ccache, kern.Userspace,
 		kern.Cmdline, kern.Sysctl, bisectEnv.KernelConfig)
-	if kernelSign != "" {
-		env.log("kernel signature: %v", kernelSign)
+	if imageDetails.CompilerID != "" {
+		env.log("compiler: %v", imageDetails.CompilerID)
+	}
+	if imageDetails.Signature != "" {
+		env.log("kernel signature: %v", imageDetails.Signature)
 	}
 	env.buildTime += time.Since(buildStart)
-	return current, kernelSign, err
+	return current, imageDetails.Signature, err
 }
 
 func (env *env) test() (*testResult, error) {
