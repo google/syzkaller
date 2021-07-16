@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/instance"
@@ -34,18 +35,19 @@ func (env *testEnv) BuildSyzkaller(repo, commit string) error {
 }
 
 func (env *testEnv) BuildKernel(compilerBin, cCache, userspaceDir, cmdlineFile, sysctlFile string,
-	kernelConfig []byte) (string, string, error) {
+	kernelConfig []byte) (string, build.ImageDetails, error) {
 	commit := env.headCommit()
 	configHash := hash.String(kernelConfig)
-	kernelSign := fmt.Sprintf("%v-%v", commit, configHash)
+	details := build.ImageDetails{}
+	details.Signature = fmt.Sprintf("%v-%v", commit, configHash)
 	if commit >= env.test.sameBinaryStart && commit <= env.test.sameBinaryEnd {
-		kernelSign = "same-sign-" + configHash
+		details.Signature = "same-sign-" + configHash
 	}
 	env.config = string(kernelConfig)
 	if env.config == "baseline-fails" {
-		return "", kernelSign, fmt.Errorf("failure")
+		return "", details, fmt.Errorf("failure")
 	}
-	return "", kernelSign, nil
+	return "", details, nil
 }
 
 func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]error, error) {

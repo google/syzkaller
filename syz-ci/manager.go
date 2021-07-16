@@ -70,7 +70,6 @@ type Manager struct {
 	kernelDir  string
 	currentDir string
 	latestDir  string
-	compilerID string
 	configTag  string
 	configData []byte
 	cfg        *Config
@@ -101,11 +100,6 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}, debug
 		}
 	}
 
-	// Assume compiler and config don't change underneath us.
-	compilerID, err := build.CompilerIdentity(mgrcfg.Compiler)
-	if err != nil {
-		return nil, err
-	}
 	var configData []byte
 	if mgrcfg.KernelConfig != "" {
 		if configData, err = ioutil.ReadFile(mgrcfg.KernelConfig); err != nil {
@@ -124,7 +118,6 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}, debug
 		kernelDir:  kernelDir,
 		currentDir: filepath.Join(dir, "current"),
 		latestDir:  filepath.Join(dir, "latest"),
-		compilerID: compilerID,
 		configTag:  hash.String(configData),
 		configData: configData,
 		cfg:        cfg,
@@ -220,7 +213,6 @@ func (mgr *Manager) pollAndBuild(lastCommit string, latestInfo *BuildInfo) (
 		if commit.Hash != lastCommit &&
 			(latestInfo == nil ||
 				commit.Hash != latestInfo.KernelCommit ||
-				mgr.compilerID != latestInfo.CompilerID ||
 				mgr.configTag != latestInfo.KernelConfigTag) {
 			lastCommit = commit.Hash
 			select {
@@ -275,16 +267,16 @@ func (mgr *Manager) checkLatest() *BuildInfo {
 	return info
 }
 
-func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
+func (mgr *Manager) createBuildInfo(kernelCommit *vcs.Commit, compilerID string) *BuildInfo {
 	var tagData []byte
 	tagData = append(tagData, mgr.name...)
 	tagData = append(tagData, kernelCommit.Hash...)
-	tagData = append(tagData, mgr.compilerID...)
+	tagData = append(tagData, compilerID...)
 	tagData = append(tagData, mgr.configTag...)
-	info := &BuildInfo{
+	return &BuildInfo{
 		Time:              time.Now(),
 		Tag:               hash.String(tagData),
-		CompilerID:        mgr.compilerID,
+		CompilerID:        compilerID,
 		KernelRepo:        mgr.mgrcfg.Repo,
 		KernelBranch:      mgr.mgrcfg.Branch,
 		KernelCommit:      kernelCommit.Hash,
@@ -292,7 +284,9 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 		KernelCommitDate:  kernelCommit.CommitDate,
 		KernelConfigTag:   mgr.configTag,
 	}
+}
 
+func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 	// We first form the whole image in tmp dir and then rename it to latest.
 	tmpDir := mgr.latestDir + ".tmp"
 	if err := os.RemoveAll(tmpDir); err != nil {
@@ -300,9 +294,6 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 	}
 	if err := osutil.MkdirAll(tmpDir); err != nil {
 		return fmt.Errorf("failed to create tmp dir: %v", err)
-	}
-	if err := config.SaveFile(filepath.Join(tmpDir, "tag"), info); err != nil {
-		return fmt.Errorf("failed to write tag file: %v", err)
 	}
 	params := build.Params{
 		TargetOS:     mgr.managercfg.TargetOS,
@@ -317,7 +308,9 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 		SysctlFile:   mgr.mgrcfg.KernelSysctl,
 		Config:       mgr.configData,
 	}
-	if _, err := build.Image(params); err != nil {
+	details, err := build.Image(params)
+	info := mgr.createBuildInfo(kernelCommit, details.CompilerID)
+	if err != nil {
 		rep := &report.Report{
 			Title: fmt.Sprintf("%v build error", mgr.mgrcfg.RepoAlias),
 		}
@@ -336,6 +329,10 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 			mgr.Errorf("failed to report image error: %v", err)
 		}
 		return fmt.Errorf("kernel build failed: %v", err)
+	}
+
+	if err := config.SaveFile(filepath.Join(tmpDir, "tag"), info); err != nil {
+		return fmt.Errorf("failed to write tag file: %v", err)
 	}
 
 	if err := mgr.testImage(tmpDir, info); err != nil {
