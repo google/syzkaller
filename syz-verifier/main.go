@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/google/syzkaller/pkg/instance"
@@ -465,7 +466,11 @@ func createReport(rr *verf.ResultReport, pools int) []byte {
 				continue
 			}
 
-			data += fmt.Sprintf("\t↳ Pool: %d, Errno: %d, Flag: %d\n", i, errno, cr.Flags[i])
+			errnoDesc := "success"
+			if errno != 0 {
+				errnoDesc = syscall.Errno(errno).Error()
+			}
+			data += fmt.Sprintf("\t↳ Pool: %d, Flag: %d, Errno: %d (%s)\n", i, cr.Flags[i], errno, errnoDesc)
 		}
 
 		data += "\n"

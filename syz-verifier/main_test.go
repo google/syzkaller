@@ -481,14 +481,14 @@ func TestCreateReport(t *testing.T) {
 	got := string(createReport(&rr, 3))
 	want := "ERRNO mismatches found for program:\n\n" +
 		"[=] breaks_returns()\n" +
-		"\t↳ Pool: 1, Errno: 1, Flag: 1\n" +
-		"\t↳ Pool: 2, Errno: 1, Flag: 1\n\n" +
+		"\t↳ Pool: 1, Flag: 1, Errno: 1 (operation not permitted)\n" +
+		"\t↳ Pool: 2, Flag: 1, Errno: 1 (operation not permitted)\n\n" +
 		"[=] minimize$0(0x1, 0x1)\n" +
-		"\t↳ Pool: 1, Errno: 3, Flag: 3\n" +
-		"\t↳ Pool: 2, Errno: 3, Flag: 3\n\n" +
+		"\t↳ Pool: 1, Flag: 3, Errno: 3 (no such process)\n" +
+		"\t↳ Pool: 2, Flag: 3, Errno: 3 (no such process)\n\n" +
 		"[!] test$res0()\n" +
-		"\t↳ Pool: 1, Errno: 2, Flag: 7\n" +
-		"\t↳ Pool: 2, Errno: 5, Flag: 3\n\n"
+		"\t↳ Pool: 1, Flag: 7, Errno: 2 (no such file or directory)\n" +
+		"\t↳ Pool: 2, Flag: 3, Errno: 5 (input/output error)\n\n"
 	if diff := cmp.Diff(got, want); diff != "" {
 		t.Errorf("createReport: (-want +got):\n%s", diff)
 	}
