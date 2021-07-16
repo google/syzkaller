@@ -284,13 +284,17 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 		if err != nil {
 			return err
 		}
-		filtered := 0
+		var pcs []uint64
 		for _, pc := range diff {
-			if serv.coverFilter[uint32(rg.RestorePC(pc))] != 0 {
-				filtered++
-			}
+			pcs = append(pcs, rg.RestorePC(pc))
 		}
-		serv.stats.corpusCoverFiltered.add(filtered)
+		progs := []cover.Prog{
+			{
+				PCs: pcs,
+			},
+		}
+		progs = rg.FixupPCs(serv.cfg.Target.Arch, progs, serv.coverFilter)
+		serv.stats.corpusCoverFiltered.add(len(progs[0].PCs))
 	}
 	serv.stats.newInputs.inc()
 	if rotated {
