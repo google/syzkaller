@@ -411,6 +411,7 @@ func (srv *RPCServer) newResult(res *verf.Result, prog *progInfo) bool {
 // in th workdir/results directory. If writing the results fails, it returns an
 // error.
 func (vrf *Verifier) processResults(res []*verf.Result, prog *prog.Prog) {
+	vrf.stats.Progs++
 	rr := verf.Verify(res, prog, vrf.stats)
 	if rr == nil {
 		return

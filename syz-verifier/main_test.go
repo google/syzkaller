@@ -417,6 +417,7 @@ func TestProcessResults(t *testing.T) {
 			wantExist: true,
 			wantStats: &stats.Stats{
 				TotalMismatches: 1,
+				Progs:           1,
 				Calls: map[string]*stats.CallStats{
 					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[int]bool{}),
 					"test$res0":      makeCallStats("test$res0", 1, 1, map[int]bool{2: true, 5: true}),
@@ -431,6 +432,7 @@ func TestProcessResults(t *testing.T) {
 				makeResult(3, []int{11, 33, 22}),
 			},
 			wantStats: &stats.Stats{
+				Progs: 1,
 				Calls: map[string]*stats.CallStats{
 					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[int]bool{}),
 					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[int]bool{}),
@@ -529,6 +531,7 @@ func TestCleanup(t *testing.T) {
 					},
 				}},
 			wantStats: &stats.Stats{
+				Progs: 1,
 				Calls: map[string]*stats.CallStats{
 					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[int]bool{}),
 					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[int]bool{}),
@@ -551,6 +554,7 @@ func TestCleanup(t *testing.T) {
 				}},
 			wantStats: &stats.Stats{
 				TotalMismatches: 1,
+				Progs:           1,
 				Calls: map[string]*stats.CallStats{
 					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[int]bool{}),
 					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[int]bool{}),
