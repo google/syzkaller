@@ -390,10 +390,7 @@ func (srv *RPCServer) newResult(res *verf.Result, prog *progInfo) bool {
 // in th workdir/results directory. If writing the results fails, it returns an
 // error.
 func (vrf *Verifier) processResults(res []*verf.Result, prog *prog.Prog) {
-	for _, c := range prog.Calls {
-		vrf.stats.Calls[c.Meta.Name].Occurrences++
-	}
-	rr := verf.Verify(res, prog)
+	rr := verf.Verify(res, prog, vrf.stats)
 	if rr == nil {
 		return
 	}
@@ -418,7 +415,7 @@ func (vrf *Verifier) processResults(res []*verf.Result, prog *prog.Prog) {
 	}
 
 	err := osutil.WriteFile(filepath.Join(vrf.resultsdir,
-		fmt.Sprintf("result-%d", oldest)), createReport(rr, len(vrf.pools), vrf.stats))
+		fmt.Sprintf("result-%d", oldest)), createReport(rr, len(vrf.pools)))
 	if err != nil {
 		log.Printf("failed to write result-%d file, err %v", oldest, err)
 	}
@@ -426,18 +423,15 @@ func (vrf *Verifier) processResults(res []*verf.Result, prog *prog.Prog) {
 	log.Printf("result-%d written successfully", oldest)
 }
 
-func createReport(rr *verf.ResultReport, pools int, s *stats.Stats) []byte {
+func createReport(rr *verf.ResultReport, pools int) []byte {
 	calls := strings.Split(rr.Prog, "\n")
 	calls = calls[:len(calls)-1]
 
 	data := "ERRNO mismatches found for program:\n\n"
 	for idx, cr := range rr.Reports {
-		cs := s.Calls[cr.Call]
 		tick := "[=]"
 		if cr.Mismatch {
 			tick = "[!]"
-			cs.Mismatches++
-			s.TotalMismatches++
 		}
 		data += fmt.Sprintf("%s %s\n", tick, calls[idx])
 
