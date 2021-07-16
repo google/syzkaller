@@ -57,6 +57,7 @@ type Verifier struct {
 	reasons       map[*prog.Syscall]string
 	reportReasons bool
 	stats         *stats.Stats
+	statsWrite    io.Writer
 }
 
 // RPCServer is a wrapper around the rpc.Server. It communicates with  Runners,
@@ -104,6 +105,8 @@ func main() {
 	var cfgs tool.CfgsFlag
 	flag.Var(&cfgs, "configs", "list of kernel-specific comma-sepatated configuration files ")
 	flagDebug := flag.Bool("debug", false, "dump all VM output to console")
+	flagStats := flag.String("stats", "", "where stats will be written when"+
+		"execution of syz-verifier finishes, defaults to stdout")
 	flag.Parse()
 	pools := make(map[int]*poolInfo)
 	for idx, cfg := range cfgs {
@@ -163,6 +166,18 @@ func main() {
 
 	resultsdir := filepath.Join(workdir, "results")
 	osutil.MkdirAll(resultsdir)
+
+	var sw io.Writer
+	var err error
+	if *flagStats == "" {
+		sw = os.Stdout
+	} else {
+		statsFile := filepath.Join(workdir, *flagStats)
+		sw, err = os.Create(statsFile)
+		if err != nil {
+			log.Fatalf("failed to create stats output file: %v", err)
+		}
+	}
 
 	for idx, pi := range pools {
 		var err error
@@ -298,7 +313,7 @@ func (srv *RPCServer) UpdateUnsupported(a *rpctype.UpdateUnsupportedArgs, r *int
 	srv.notChecked--
 	if srv.notChecked == 0 {
 		vrf.finalizeCallSet(os.Stdout)
-		vrf.stats = stats.InitStats(vrf.calls, os.Stdout)
+		vrf.stats = stats.InitStats(vrf.calls, vrf.statsWrite)
 		vrf.choiceTable = vrf.target.BuildChoiceTable(nil, vrf.calls)
 		srv.cond.Signal()
 	}
