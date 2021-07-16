@@ -112,7 +112,7 @@ func (s *Stats) getOrderedStats() []*CallStats {
 	}
 
 	sort.Slice(css, func(i, j int) bool {
-		return css[i].Mismatches > css[j].Mismatches
+		return getPercentage(css[i].Mismatches, css[i].Occurrences) > getPercentage(css[j].Mismatches, css[j].Occurrences)
 	})
 
 	return css
