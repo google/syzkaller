@@ -8,6 +8,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/syz-verifier/stats"
 )
 
 func makeResult(pool int, errnos []int, flags []int) *Result {
@@ -18,21 +19,39 @@ func makeResult(pool int, errnos []int, flags []int) *Result {
 	return r
 }
 
+func getTestStats() *stats.Stats {
+	return &stats.Stats{
+		Calls: map[string]*stats.CallStats{
+			"breaks_returns": {Name: "breaks_returns", States: map[int]bool{}},
+			"minimize$0":     {Name: "minimize$0", States: map[int]bool{}},
+			"test$res0":      {Name: "test$res0", States: map[int]bool{}},
+		},
+	}
+}
+
 func TestVerify(t *testing.T) {
 	p := "breaks_returns()\n" +
 		"minimize$0(0x1, 0x1)\n" +
 		"test$res0()\n"
 	tests := []struct {
-		name string
-		res  []*Result
-		want *ResultReport
+		name       string
+		res        []*Result
+		wantReport *ResultReport
+		wantStats  *stats.Stats
 	}{
 		{
 			name: "mismatches not found in results",
 			res: []*Result{
 				makeResult(2, []int{11, 33, 22}, []int{1, 3, 3}),
 				makeResult(4, []int{11, 33, 22}, []int{1, 3, 3})},
-			want: nil,
+			wantReport: nil,
+			wantStats: &stats.Stats{
+				Calls: map[string]*stats.CallStats{
+					"breaks_returns": {Name: "breaks_returns", Occurrences: 1, States: map[int]bool{11: true}},
+					"minimize$0":     {Name: "minimize$0", Occurrences: 1, States: map[int]bool{33: true}},
+					"test$res0":      {Name: "test$res0", Occurrences: 1, States: map[int]bool{22: true}},
+				},
+			},
 		},
 		{
 			name: "mismatches found in results",
@@ -40,7 +59,7 @@ func TestVerify(t *testing.T) {
 				makeResult(1, []int{1, 3, 2}, []int{1, 3, 7}),
 				makeResult(4, []int{1, 3, 5}, []int{1, 3, 3}),
 			},
-			want: &ResultReport{
+			wantReport: &ResultReport{
 				Prog: p,
 				Reports: []CallReport{
 					{Call: "breaks_returns", Errnos: map[int]int{1: 1, 4: 1},
@@ -49,6 +68,14 @@ func TestVerify(t *testing.T) {
 						Flags: map[int]ipc.CallFlags{1: 3, 4: 3}},
 					{Call: "test$res0", Errnos: map[int]int{1: 2, 4: 5},
 						Flags: map[int]ipc.CallFlags{1: 7, 4: 3}, Mismatch: true},
+				},
+			},
+			wantStats: &stats.Stats{
+				TotalMismatches: 1,
+				Calls: map[string]*stats.CallStats{
+					"breaks_returns": {Name: "breaks_returns", Occurrences: 1, States: map[int]bool{1: true}},
+					"minimize$0":     {Name: "minimize$0", Occurrences: 1, States: map[int]bool{3: true}},
+					"test$res0":      {Name: "test$res0", Occurrences: 1, Mismatches: 1, States: map[int]bool{2: true, 5: true}},
 				},
 			},
 		},
@@ -61,9 +88,13 @@ func TestVerify(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to deserialise test program: %v", err)
 			}
-			got := Verify(test.res, prog)
-			if diff := cmp.Diff(test.want, got); diff != "" {
-				t.Errorf("Verify mismatch (-want +got):\n%s", diff)
+			stats := getTestStats()
+			got := Verify(test.res, prog, stats)
+			if diff := cmp.Diff(test.wantReport, got); diff != "" {
+				t.Errorf("Verify report mismatch (-want +got):\n%s", diff)
+			}
+			if diff := cmp.Diff(test.wantStats, stats); diff != "" {
+				t.Errorf("Verify stats mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

@@ -58,11 +58,18 @@ func getTestProgram(t *testing.T) *prog.Prog {
 func getTestStats() *stats.Stats {
 	return &stats.Stats{
 		Calls: map[string]*stats.CallStats{
-			"breaks_returns": {Name: "breaks_returns"},
-			"minimize$0":     {Name: "minimize$0"},
-			"test$res0":      {Name: "test$res0"},
+			"breaks_returns": {Name: "breaks_returns", States: map[int]bool{}},
+			"minimize$0":     {Name: "minimize$0", States: map[int]bool{}},
+			"test$res0":      {Name: "test$res0", States: map[int]bool{}},
 		},
 	}
+}
+
+func makeCallStats(name string, occurrences, mismatches int, states map[int]bool) *stats.CallStats {
+	return &stats.CallStats{Name: name,
+		Occurrences: occurrences,
+		Mismatches:  mismatches,
+		States:      states}
 }
 
 func makeTestResultDirectory(t *testing.T) string {
@@ -411,17 +418,9 @@ func TestProcessResults(t *testing.T) {
 			wantStats: &stats.Stats{
 				TotalMismatches: 1,
 				Calls: map[string]*stats.CallStats{
-					"breaks_returns": {
-						Name:        "breaks_returns",
-						Occurrences: 1},
-					"minimize$0": {
-						Name:        "minimize$0",
-						Occurrences: 1},
-					"test$res0": {
-						Name:        "test$res0",
-						Occurrences: 1,
-						Mismatches:  1,
-					},
+					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[int]bool{1: true}),
+					"test$res0":      makeCallStats("test$res0", 1, 1, map[int]bool{2: true, 5: true}),
+					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[int]bool{3: true}),
 				},
 			},
 		},
@@ -433,16 +432,9 @@ func TestProcessResults(t *testing.T) {
 			},
 			wantStats: &stats.Stats{
 				Calls: map[string]*stats.CallStats{
-					"breaks_returns": {
-						Name:        "breaks_returns",
-						Occurrences: 1},
-					"minimize$0": {
-						Name:        "minimize$0",
-						Occurrences: 1},
-					"test$res0": {
-						Name:        "test$res0",
-						Occurrences: 1,
-					},
+					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[int]bool{11: true}),
+					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[int]bool{33: true}),
+					"test$res0":      makeCallStats("test$res0", 1, 0, map[int]bool{22: true}),
 				},
 			},
 		},
@@ -484,15 +476,7 @@ func TestCreateReport(t *testing.T) {
 				Flags: map[int]ipc.CallFlags{1: 7, 2: 3, 3: 1}, Mismatch: true},
 		},
 	}
-	got := string(createReport(&rr, 3,
-		&stats.Stats{
-			TotalMismatches: 10,
-			Calls: map[string]*stats.CallStats{
-				"test$res0":      {Name: "test$res0", Mismatches: 2, Occurrences: 4},
-				"breaks_returns": {Name: "breaks_returns", Mismatches: 0, Occurrences: 3},
-				"minimize$0":     {Name: "minimize$0", Mismatches: 1, Occurrences: 2},
-			},
-		}))
+	got := string(createReport(&rr, 3))
 	want := "ERRNO mismatches found for program:\n\n" +
 		"[=] breaks_returns()\n" +
 		"\t↳ Pool: 1, Errno: 1, Flag: 1\n" +
@@ -529,13 +513,7 @@ func TestCleanup(t *testing.T) {
 				idx:  4,
 				left: map[int]bool{1: true, 2: true},
 			},
-			wantStats: &stats.Stats{
-				Calls: map[string]*stats.CallStats{
-					"breaks_returns": {Name: "breaks_returns"},
-					"minimize$0":     {Name: "minimize$0"},
-					"test$res0":      {Name: "test$res0"},
-				},
-			},
+			wantStats:  getTestStats(),
 			fileExists: false,
 		},
 		{
@@ -552,9 +530,9 @@ func TestCleanup(t *testing.T) {
 				}},
 			wantStats: &stats.Stats{
 				Calls: map[string]*stats.CallStats{
-					"breaks_returns": {Name: "breaks_returns", Occurrences: 1},
-					"minimize$0":     {Name: "minimize$0", Occurrences: 1},
-					"test$res0":      {Name: "test$res0", Occurrences: 1},
+					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[int]bool{11: true}),
+					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[int]bool{33: true}),
+					"test$res0":      makeCallStats("test$res0", 1, 0, map[int]bool{22: true}),
 				},
 			},
 			fileExists: false,
@@ -574,9 +552,9 @@ func TestCleanup(t *testing.T) {
 			wantStats: &stats.Stats{
 				TotalMismatches: 1,
 				Calls: map[string]*stats.CallStats{
-					"breaks_returns": {Name: "breaks_returns", Occurrences: 1},
-					"minimize$0":     {Name: "minimize$0", Occurrences: 1},
-					"test$res0":      {Name: "test$res0", Occurrences: 1, Mismatches: 1},
+					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[int]bool{11: true}),
+					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[int]bool{33: true}),
+					"test$res0":      makeCallStats("test$res0", 1, 1, map[int]bool{22: true, 44: true}),
 				},
 			},
 			fileExists: true,
@@ -591,13 +569,7 @@ func TestCleanup(t *testing.T) {
 						makeResult(2, []int{11, 33, 22}),
 					},
 				}},
-			wantStats: &stats.Stats{
-				Calls: map[string]*stats.CallStats{
-					"breaks_returns": {Name: "breaks_returns"},
-					"minimize$0":     {Name: "minimize$0"},
-					"test$res0":      {Name: "test$res0"},
-				},
-			},
+			wantStats:  getTestStats(),
 			wantProg:   nil,
 			fileExists: false,
 		},

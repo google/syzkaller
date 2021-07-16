@@ -34,7 +34,7 @@ type CallStats struct {
 	// Occurrences is the number of times the system call appeared in a
 	// verified program.
 	Occurrences int
-	// States stores all possible kernel return values identified for the 
+	// States stores all possible kernel return values identified for the
 	// system call.
 	States map[int]bool
 }
@@ -44,7 +44,7 @@ type CallStats struct {
 func InitStats(calls map[*prog.Syscall]bool, w io.Writer) *Stats {
 	s := &Stats{Calls: make(map[string]*CallStats)}
 	for c := range calls {
-		s.Calls[c.Name] = &CallStats{Name: c.Name}
+		s.Calls[c.Name] = &CallStats{Name: c.Name, States: make(map[int]bool)}
 	}
 
 	c := make(chan os.Signal)
