@@ -59,7 +59,6 @@ func Verify(res []*Result, prog *prog.Prog, s *stats.Stats) *ResultReport {
 		rr.Reports = append(rr.Reports, cr)
 		cs := s.Calls[call]
 		cs.Occurrences++
-		cs.States[c.Errno] = true
 	}
 
 	var send bool
@@ -76,6 +75,7 @@ func Verify(res []*Result, prog *prog.Prog, s *stats.Stats) *ResultReport {
 				s.TotalMismatches++
 				cs.Mismatches++
 				cs.States[c.Errno] = true
+				cs.States[c0[idx].Errno] = true
 			}
 
 			cr.Errnos[resi.Pool] = c.Errno

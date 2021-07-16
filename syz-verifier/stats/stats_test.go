@@ -17,7 +17,7 @@ func getTestStats() *Stats {
 			"foo": {"foo", 2, 8, map[int]bool{11: true, 3: true}},
 			"bar": {"bar", 5, 6, map[int]bool{10: true, 22: true}},
 			"tar": {"tar", 3, 4, map[int]bool{31: true, 100: true, 101: true}},
-			"biz": {"biz", 0, 2, map[int]bool{4: true}},
+			"biz": {"biz", 0, 2, map[int]bool{}},
 		},
 	}
 }

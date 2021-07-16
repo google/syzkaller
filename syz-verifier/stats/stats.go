@@ -34,8 +34,7 @@ type CallStats struct {
 	// Occurrences is the number of times the system call appeared in a
 	// verified program.
 	Occurrences int
-	// States stores all possible kernel return values identified for the
-	// system call.
+	// States stores the kernel return values that caused mismatches.
 	States map[int]bool
 }
 
