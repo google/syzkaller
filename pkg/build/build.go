@@ -75,7 +75,7 @@ func Image(params Params) (details ImageDetails, err error) {
 			return
 		}
 	}
-	err = builder.build(params)
+	details.CompilerID, err = builder.build(params)
 	if err != nil {
 		err = extractRootCause(err, params.TargetOS, params.KernelDir)
 		return
@@ -120,7 +120,7 @@ func (err *KernelError) Error() string {
 }
 
 type builder interface {
-	build(params Params) error
+	build(params Params) (string, error)
 	clean(kernelDir, targetArch string) error
 }
 

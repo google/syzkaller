@@ -15,25 +15,25 @@ import (
 
 type openbsd struct{}
 
-func (ctx openbsd) build(params Params) error {
+func (ctx openbsd) build(params Params) (compilerID string, err error) {
 	const kernelName = "SYZKALLER"
 	confDir := fmt.Sprintf("%v/sys/arch/%v/conf", params.KernelDir, params.TargetArch)
 	compileDir := fmt.Sprintf("%v/sys/arch/%v/compile/%v", params.KernelDir, params.TargetArch, kernelName)
 
-	if err := osutil.WriteFile(filepath.Join(confDir, kernelName), params.Config); err != nil {
-		return err
+	if err = osutil.WriteFile(filepath.Join(confDir, kernelName), params.Config); err != nil {
+		return
 	}
 
-	if err := osutil.MkdirAll(compileDir); err != nil {
-		return err
+	if err = osutil.MkdirAll(compileDir); err != nil {
+		return
 	}
 	makefile := []byte(".include \"../Makefile.inc\"\n")
-	if err := osutil.WriteFile(filepath.Join(compileDir, "Makefile"), makefile); err != nil {
-		return err
+	if err = osutil.WriteFile(filepath.Join(compileDir, "Makefile"), makefile); err != nil {
+		return
 	}
 	for _, tgt := range []string{"clean", "obj", "config", "all"} {
-		if err := ctx.make(compileDir, tgt); err != nil {
-			return err
+		if err = ctx.make(compileDir, tgt); err != nil {
+			return
 		}
 	}
 	for _, s := range []struct{ dir, src, dst string }{
@@ -44,15 +44,15 @@ func (ctx openbsd) build(params Params) error {
 	} {
 		fullSrc := filepath.Join(s.dir, s.src)
 		fullDst := filepath.Join(params.OutputDir, s.dst)
-		if err := osutil.CopyFile(fullSrc, fullDst); err != nil {
-			return fmt.Errorf("failed to copy %v -> %v: %v", fullSrc, fullDst, err)
+		if err = osutil.CopyFile(fullSrc, fullDst); err != nil {
+			return "", fmt.Errorf("failed to copy %v -> %v: %v", fullSrc, fullDst, err)
 		}
 	}
 	if params.VMType == "gce" {
-		return ctx.copyFilesToImage(
+		err = ctx.copyFilesToImage(
 			filepath.Join(params.UserspaceDir, "overlay"), params.OutputDir)
 	}
-	return nil
+	return
 }
 
 func (ctx openbsd) clean(kernelDir, targetArch string) error {

@@ -19,9 +19,14 @@ type gvisor struct{}
 
 var bazelTargetPath = regexp.MustCompile(`(?sm:.*^)\s*Outputs: \[(.*)\](?sm:$.*)`)
 
-func (gvisor gvisor) build(params Params) error {
+func (gvisor gvisor) build(params Params) (compilerID string, err error) {
 	if params.Compiler == "" {
 		params.Compiler = "bazel"
+	}
+
+	compilerID, err = CompilerIdentity(compilerID)
+	if err != nil {
+		return
 	}
 
 	// Bring down bazel daemon right away. We don't need it running and consuming memory.
@@ -66,8 +71,8 @@ func (gvisor gvisor) build(params Params) error {
 	// The 1 hour timeout is quite high. But we've seen false positives with 20 mins
 	// on the first build after bazel/deps update. Also other gvisor instances running
 	// on the same machine contribute to longer build times.
-	if _, err := osutil.RunCmd(60*time.Minute, params.KernelDir, params.Compiler, buildArgs...); err != nil {
-		return err
+	if _, err = osutil.RunCmd(60*time.Minute, params.KernelDir, params.Compiler, buildArgs...); err != nil {
+		return
 	}
 
 	// Find out a path to the runsc binary.
@@ -76,20 +81,21 @@ func (gvisor gvisor) build(params Params) error {
 	log.Logf(0, "bazel: %v", aqueryArgs)
 	out, err := osutil.RunCmd(time.Minute, params.KernelDir, params.Compiler, aqueryArgs...)
 	if err != nil {
-		return err
+		return
 	}
 
 	match := bazelTargetPath.FindSubmatch(out)
 	if match == nil {
-		return fmt.Errorf("failed to find the runsc binary")
+		return "", fmt.Errorf("failed to find the runsc binary")
 	}
 	outBinary := filepath.Join(params.KernelDir, filepath.FromSlash(string(match[1])))
 
-	if err := osutil.CopyFile(outBinary, filepath.Join(params.OutputDir, "image")); err != nil {
-		return err
+	if err = osutil.CopyFile(outBinary, filepath.Join(params.OutputDir, "image")); err != nil {
+		return
 	}
 	sysTarget := targets.Get(params.TargetOS, params.TargetArch)
-	return osutil.CopyFile(outBinary, filepath.Join(params.OutputDir, "obj", sysTarget.KernelObject))
+	err = osutil.CopyFile(outBinary, filepath.Join(params.OutputDir, "obj", sysTarget.KernelObject))
+	return
 }
 
 func (gvisor) clean(kernelDir, targetArch string) error {
