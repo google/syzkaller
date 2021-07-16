@@ -52,6 +52,7 @@ type Verifier struct {
 	rnd           *rand.Rand
 	progIdx       int
 	addr          string
+	srv           *RPCServer
 	calls         map[*prog.Syscall]bool
 	reasons       map[*prog.Syscall]string
 	reportReasons bool
@@ -193,14 +194,19 @@ func main() {
 		executorBin:   execBin,
 		addr:          addr,
 		reportReasons: len(cfg.EnabledSyscalls) != 0 || len(cfg.DisabledSyscalls) != 0,
+		statsWrite:    sw,
 	}
 
-	srv, err := startRPCServer(vrf)
+	vrf.srv, err = startRPCServer(vrf)
 	if err != nil {
 		log.Fatalf("failed to initialise RPC server: %v", err)
 	}
 
-	for idx, pi := range pools {
+	vrf.startInstances()
+}
+
+func (vrf *Verifier) startInstances() {
+	for idx, pi := range vrf.pools {
 		go func(pi *poolInfo, idx int) {
 			for { // TODO: implement support for multiple VMs per Pool.
 				inst, err := pi.pool.Create(0)
@@ -208,7 +214,7 @@ func main() {
 					log.Fatalf("failed to create instance: %v", err)
 				}
 
-				fwdAddr, err := inst.Forward(srv.port)
+				fwdAddr, err := inst.Forward(vrf.srv.port)
 				if err != nil {
 					log.Fatalf("failed to set up port forwarding: %v", err)
 				}
@@ -229,7 +235,7 @@ func main() {
 				}
 
 				inst.MonitorExecution(outc, errc, pi.Reporter, vm.ExitTimeout)
-				srv.cleanup(idx, 0)
+				vrf.srv.cleanup(idx, 0)
 			}
 		}(pi, idx)
 	}
