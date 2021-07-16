@@ -11,8 +11,8 @@ import (
 	"os"
 	"os/signal"
 	"sort"
-	"time"
 	"syscall"
+	"time"
 
 	"github.com/google/syzkaller/prog"
 )
