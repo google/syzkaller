@@ -12,6 +12,7 @@ import (
 	"os/signal"
 	"sort"
 	"time"
+	"syscall"
 
 	"github.com/google/syzkaller/prog"
 )
@@ -126,12 +127,21 @@ func (s *Stats) getOrderedStats() []*CallStats {
 	return css
 }
 
-func (s *Stats) getOrderedStates(call string) []int {
+func (s *Stats) getOrderedStates(call string) []string {
 	states := s.Calls[call].States
 	ss := make([]int, 0, len(states))
 	for s := range states {
 		ss = append(ss, s)
 	}
 	sort.Ints(ss)
-	return ss
+
+	descs := make([]string, 0, len(states))
+	for _, s := range ss {
+		desc := "succes"
+		if s != 0 {
+			desc = syscall.Errno(s).Error()
+		}
+		descs = append(descs, fmt.Sprintf("%d (%s)", s, desc))
+	}
+	return descs
 }
