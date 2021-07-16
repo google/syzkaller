@@ -15,6 +15,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"time"
 
@@ -28,6 +29,11 @@ func (linux linux) build(params Params) (ImageDetails, error) {
 	if err := linux.buildKernel(params); err != nil {
 		return ImageDetails{}, err
 	}
+	compilerID, err := queryLinuxCompiler(params.KernelDir)
+	if err != nil {
+		return ImageDetails{}, err
+	}
+
 	kernelPath := filepath.Join(params.KernelDir, filepath.FromSlash(kernelBin(params.TargetArch)))
 	if fileInfo, err := os.Stat(params.UserspaceDir); err == nil && fileInfo.IsDir() {
 		// The old way of assembling the image from userspace dir.
@@ -52,7 +58,8 @@ func (linux linux) build(params Params) (ImageDetails, error) {
 		return ImageDetails{}, err
 	}
 	return ImageDetails{
-		Signature: signature,
+		Signature:  signature,
+		CompilerID: compilerID,
 	}, nil
 }
 
@@ -219,6 +226,20 @@ func kernelBin(arch string) string {
 	default:
 		panic(fmt.Sprintf("pkg/build: unsupported arch %v", arch))
 	}
+}
+
+var linuxCompilerRegexp = regexp.MustCompile(`#define\s+LINUX_COMPILER\s+"(.*)"`)
+
+func queryLinuxCompiler(kernelDir string) (string, error) {
+	bytes, err := ioutil.ReadFile(filepath.Join(kernelDir, "include", "generated", "compile.h"))
+	if err != nil {
+		return "", err
+	}
+	result := linuxCompilerRegexp.FindSubmatch(bytes)
+	if result == nil {
+		return "", fmt.Errorf("include/generated/compile.h does not contain build information")
+	}
+	return string(result[1]), nil
 }
 
 // elfBinarySignature calculates signature of an elf binary aiming at runtime behavior
