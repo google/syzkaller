@@ -12,12 +12,12 @@ import (
 
 func getTestStats() *Stats {
 	return &Stats{
-		TotalMismatches: 11,
+		TotalMismatches: 10,
 		Calls: map[string]*CallStats{
-			"foo": {"foo", 2, 8},
-			"bar": {"bar", 5, 6},
-			"tar": {"tar", 3, 4},
-			"biz": {"biz", 0, 2},
+			"foo": {"foo", 2, 8, map[int]bool{11: true, 3: true}},
+			"bar": {"bar", 5, 6, map[int]bool{10: true, 22: true}},
+			"tar": {"tar", 3, 4, map[int]bool{31: true, 100: true, 101: true}},
+			"biz": {"biz", 0, 2, map[int]bool{4: true}},
 		},
 	}
 }
@@ -36,7 +36,7 @@ func TestReportCallStats(t *testing.T) {
 			call: "foo",
 			report: "statistics for foo:\n" +
 				"\t↳ mismatches of foo / occurrences of foo: 2 / 8 (25.00 %)\n" +
-				"\t↳ mismatches of foo / total number of mismatches: 2 / 11 (18.18 %)\n",
+				"\t↳ mismatches of foo / total number of mismatches: 2 / 10 (20.00 %)\n" + "\t↳ 2 distinct states identified\n",
 		},
 	}
 
@@ -57,16 +57,16 @@ func TestReportGlobalStats(t *testing.T) {
 	s.ReportGlobalStats(&out)
 	got, want := out.String(),
 		"total number of mismatches / total number of calls "+
-			"executed: 11 / 20 (55.00 %)\n\n"+
+			"executed: 10 / 20 (50.00 %)\n\n"+
 			"statistics for bar:\n"+
 			"\t↳ mismatches of bar / occurrences of bar: 5 / 6 (83.33 %)\n"+
-			"\t↳ mismatches of bar / total number of mismatches: 5 / 11 (45.45 %)\n\n"+
+			"\t↳ mismatches of bar / total number of mismatches: 5 / 10 (50.00 %)\n"+"\t↳ 2 distinct states identified\n\n"+
 			"statistics for tar:\n"+
 			"\t↳ mismatches of tar / occurrences of tar: 3 / 4 (75.00 %)\n"+
-			"\t↳ mismatches of tar / total number of mismatches: 3 / 11 (27.27 %)\n\n"+
+			"\t↳ mismatches of tar / total number of mismatches: 3 / 10 (30.00 %)\n"+"\t↳ 3 distinct states identified\n\n"+
 			"statistics for foo:\n"+
 			"\t↳ mismatches of foo / occurrences of foo: 2 / 8 (25.00 %)\n"+
-			"\t↳ mismatches of foo / total number of mismatches: 2 / 11 (18.18 %)\n\n"
+			"\t↳ mismatches of foo / total number of mismatches: 2 / 10 (20.00 %)\n"+"\t↳ 2 distinct states identified\n\n"
 
 	if diff := cmp.Diff(got, want); diff != "" {
 		t.Errorf("s.ReportGlobalStats mismatch (-want +got):\n%s", diff)

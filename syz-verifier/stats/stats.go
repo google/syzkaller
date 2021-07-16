@@ -34,6 +34,9 @@ type CallStats struct {
 	// Occurrences is the number of times the system call appeared in a
 	// verified program.
 	Occurrences int
+	// States stores all possible kernel return values identified for the 
+	// system call.
+	States map[int]bool
 }
 
 // InitStats creates a stats object that will report verification
@@ -65,8 +68,9 @@ func (s *Stats) ReportCallStats(call string) string {
 	data := fmt.Sprintf("statistics for %s:\n"+
 		"\t↳ mismatches of %s / occurrences of %s: %d / %d (%0.2f %%)\n"+
 		"\t↳ mismatches of %s / total number of mismatches: "+
-		"%d / %d (%0.2f %%)\n", name, name, name, m, o,
-		getPercentage(m, o), name, m, s.TotalMismatches, getPercentage(m, s.TotalMismatches))
+		"%d / %d (%0.2f %%)\n"+
+		"\t↳ %d distinct states identified\n", name, name, name, m, o,
+		getPercentage(m, o), name, m, s.TotalMismatches, getPercentage(m, s.TotalMismatches), len(cs.States))
 	return data
 }
 
