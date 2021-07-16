@@ -47,9 +47,9 @@ func TestVerify(t *testing.T) {
 			wantReport: nil,
 			wantStats: &stats.Stats{
 				Calls: map[string]*stats.CallStats{
-					"breaks_returns": {Name: "breaks_returns", Occurrences: 1, States: map[int]bool{11: true}},
-					"minimize$0":     {Name: "minimize$0", Occurrences: 1, States: map[int]bool{33: true}},
-					"test$res0":      {Name: "test$res0", Occurrences: 1, States: map[int]bool{22: true}},
+					"breaks_returns": {Name: "breaks_returns", Occurrences: 1, States: map[int]bool{}},
+					"minimize$0":     {Name: "minimize$0", Occurrences: 1, States: map[int]bool{}},
+					"test$res0":      {Name: "test$res0", Occurrences: 1, States: map[int]bool{}},
 				},
 			},
 		},
@@ -73,8 +73,8 @@ func TestVerify(t *testing.T) {
 			wantStats: &stats.Stats{
 				TotalMismatches: 1,
 				Calls: map[string]*stats.CallStats{
-					"breaks_returns": {Name: "breaks_returns", Occurrences: 1, States: map[int]bool{1: true}},
-					"minimize$0":     {Name: "minimize$0", Occurrences: 1, States: map[int]bool{3: true}},
+					"breaks_returns": {Name: "breaks_returns", Occurrences: 1, States: map[int]bool{}},
+					"minimize$0":     {Name: "minimize$0", Occurrences: 1, States: map[int]bool{}},
 					"test$res0":      {Name: "test$res0", Occurrences: 1, Mismatches: 1, States: map[int]bool{2: true, 5: true}},
 				},
 			},

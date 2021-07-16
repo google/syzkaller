@@ -418,9 +418,9 @@ func TestProcessResults(t *testing.T) {
 			wantStats: &stats.Stats{
 				TotalMismatches: 1,
 				Calls: map[string]*stats.CallStats{
-					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[int]bool{1: true}),
+					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[int]bool{}),
 					"test$res0":      makeCallStats("test$res0", 1, 1, map[int]bool{2: true, 5: true}),
-					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[int]bool{3: true}),
+					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[int]bool{}),
 				},
 			},
 		},
@@ -432,9 +432,9 @@ func TestProcessResults(t *testing.T) {
 			},
 			wantStats: &stats.Stats{
 				Calls: map[string]*stats.CallStats{
-					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[int]bool{11: true}),
-					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[int]bool{33: true}),
-					"test$res0":      makeCallStats("test$res0", 1, 0, map[int]bool{22: true}),
+					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[int]bool{}),
+					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[int]bool{}),
+					"test$res0":      makeCallStats("test$res0", 1, 0, map[int]bool{}),
 				},
 			},
 		},
@@ -530,9 +530,9 @@ func TestCleanup(t *testing.T) {
 				}},
 			wantStats: &stats.Stats{
 				Calls: map[string]*stats.CallStats{
-					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[int]bool{11: true}),
-					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[int]bool{33: true}),
-					"test$res0":      makeCallStats("test$res0", 1, 0, map[int]bool{22: true}),
+					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[int]bool{}),
+					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[int]bool{}),
+					"test$res0":      makeCallStats("test$res0", 1, 0, map[int]bool{}),
 				},
 			},
 			fileExists: false,
@@ -552,8 +552,8 @@ func TestCleanup(t *testing.T) {
 			wantStats: &stats.Stats{
 				TotalMismatches: 1,
 				Calls: map[string]*stats.CallStats{
-					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[int]bool{11: true}),
-					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[int]bool{33: true}),
+					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[int]bool{}),
+					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[int]bool{}),
 					"test$res0":      makeCallStats("test$res0", 1, 1, map[int]bool{22: true, 44: true}),
 				},
 			},
