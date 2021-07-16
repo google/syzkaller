@@ -12,6 +12,7 @@ import (
 
 func getTestStats() *Stats {
 	return &Stats{
+		Progs:           24,
 		TotalMismatches: 10,
 		Calls: map[string]*CallStats{
 			"foo": {"foo", 2, 8, map[int]bool{11: true, 3: true}},
@@ -55,10 +56,11 @@ func TestReportCallStats(t *testing.T) {
 func TestReportGlobalStats(t *testing.T) {
 	s := getTestStats()
 	out := bytes.Buffer{}
-	s.ReportGlobalStats(&out)
+	s.ReportGlobalStats(&out, float64(10))
 	got, want := out.String(),
 		"total number of mismatches / total number of calls "+
 			"executed: 10 / 20 (50.00 %)\n\n"+
+			"programs / minute: 2.40\n\n"+
 			"statistics for bar:\n"+
 			"\t↳ mismatches of bar / occurrences of bar: 5 / 6 (83.33 %)\n"+
 			"\t↳ mismatches of bar / total number of mismatches: 5 / 10 (50.00 %)\n"+

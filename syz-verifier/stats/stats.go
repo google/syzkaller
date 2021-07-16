@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"sort"
+	"time"
 
 	"github.com/google/syzkaller/prog"
 )
@@ -21,6 +22,8 @@ type Stats struct {
 	// Calls stores statistics for all supported system calls.
 	Calls           map[string]*CallStats
 	TotalMismatches int
+	Progs           int
+	StartTime       time.Time
 }
 
 // CallStats stores information used to generate statistics for the
@@ -41,7 +44,10 @@ type CallStats struct {
 // InitStats creates a stats object that will report verification
 // statistics when an os.Interrupt occurs.
 func InitStats(calls map[*prog.Syscall]bool, w io.Writer) *Stats {
-	s := &Stats{Calls: make(map[string]*CallStats)}
+	s := &Stats{
+		Calls:     make(map[string]*CallStats),
+		StartTime: time.Now(),
+	}
 	for c := range calls {
 		s.Calls[c.Name] = &CallStats{Name: c.Name, States: make(map[int]bool)}
 	}
@@ -50,11 +56,12 @@ func InitStats(calls map[*prog.Syscall]bool, w io.Writer) *Stats {
 	signal.Notify(c, os.Interrupt)
 	go func() {
 		<-c
+		dt := time.Since(s.StartTime).Minutes()
 		if s.TotalMismatches < 0 {
 			fmt.Fprint(w, "No mismatches occurred until syz-verifier was stopped.")
 			os.Exit(0)
 		}
-		s.ReportGlobalStats(w)
+		s.ReportGlobalStats(w, dt)
 		os.Exit(0)
 	}()
 
@@ -85,10 +92,11 @@ func getPercentage(value, total int) float64 {
 // ReportGlobalStats creates a report with statistics about all the
 // supported system calls for which errno mismatches were identified in
 // the verified programs, shown in decreasing order.
-func (s *Stats) ReportGlobalStats(w io.Writer) {
+func (s *Stats) ReportGlobalStats(w io.Writer, deltaTime float64) {
 	tc := s.totalCallsExecuted()
 	fmt.Fprintf(w, "total number of mismatches / total number of calls "+
 		"executed: %d / %d (%0.2f %%)\n\n", s.TotalMismatches, tc, getPercentage(s.TotalMismatches, tc))
+	fmt.Fprintf(w, "programs / minute: %0.2f\n\n", float64(s.Progs)/deltaTime)
 	cs := s.getOrderedStats()
 	for _, c := range cs {
 		fmt.Fprintf(w, "%s\n", s.ReportCallStats(c.Name))
