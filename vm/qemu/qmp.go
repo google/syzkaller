@@ -4,25 +4,11 @@
 package qemu
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"net"
 )
-
-type qmpVersion struct {
-	Package string
-	QEMU    struct {
-		Major int
-		Micro int
-		Minor int
-	}
-}
-
-type qmpBanner struct {
-	QMP struct {
-		Version qmpVersion
-	}
-}
 
 type qmpCommand struct {
 	Execute   string      `json:"execute"`
@@ -42,6 +28,15 @@ type qmpResponse struct {
 	Return interface{}
 }
 
+type qmpEvent struct {
+	Event     string
+	Data      map[string]interface{}
+	Timestamp struct {
+		Seconds      int64
+		Microseconds int64
+	}
+}
+
 func (inst *instance) qmpConnCheck() error {
 	if inst.mon != nil {
 		return nil
@@ -53,29 +48,45 @@ func (inst *instance) qmpConnCheck() error {
 		return err
 	}
 
-	monDec := json.NewDecoder(conn)
+	scanner := bufio.NewScanner(conn)
 	monEnc := json.NewEncoder(conn)
 
-	var banner qmpBanner
-	if err := monDec.Decode(&banner); err != nil {
-		return err
-	}
+	inst.mon = conn
+	inst.scanner = scanner
+
+	inst.qmpRecv()
 
 	inst.monEnc = monEnc
-	inst.monDec = monDec
 	if _, err := inst.doQmp(&qmpCommand{Execute: "qmp_capabilities"}); err != nil {
 		inst.monEnc = nil
-		inst.monDec = nil
+		inst.mon = nil
+		inst.scanner = nil
 		return err
 	}
-	inst.mon = conn
 
 	return nil
 }
 
 func (inst *instance) qmpRecv() (*qmpResponse, error) {
 	qmp := new(qmpResponse)
-	err := inst.monDec.Decode(qmp)
+	var err error
+
+	for inst.scanner.Scan() {
+		var qe qmpEvent
+		b := inst.scanner.Bytes()
+		err = json.Unmarshal(b, &qe)
+		if err != nil {
+			continue
+		}
+		if qe.Event == "" {
+			err = json.Unmarshal(b, qmp)
+			if err != nil {
+				continue
+			} else {
+				break
+			}
+		}
+	}
 
 	return qmp, err
 }
@@ -93,7 +104,7 @@ func (inst *instance) qmp(cmd *qmpCommand) (interface{}, error) {
 	}
 	resp, err := inst.doQmp(cmd)
 	if err != nil {
-		return resp.Return, err
+		return nil, err
 	}
 	if resp.Error.Desc != "" {
 		return resp.Return, fmt.Errorf("error %v", resp.Error)

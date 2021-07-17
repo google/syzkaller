@@ -4,6 +4,7 @@
 package qemu
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -95,7 +96,7 @@ type instance struct {
 	forwardPort int
 	mon         net.Conn
 	monEnc      *json.Encoder
-	monDec      *json.Decoder
+	scanner     *bufio.Scanner
 	rpipe       io.ReadCloser
 	wpipe       io.WriteCloser
 	qemu        *exec.Cmd
