@@ -31,6 +31,17 @@ cd $KERNEL
 make CC="$GCC/bin/gcc" defconfig
 make CC="$GCC/bin/gcc" kvm_guest.config
 ```
+If the following error occurs:
+```
+make[1]: *** No rule to make target 'kvmconfig'.  Stop.
+make: *** [Makefile:602: kvmconfig] Error 2
+```
+Use this command instead:
+```
+make CC="$GCC/bin/gcc" kvm_guest.config
+```
+
+
 
 Note: If you are using your distro's GCC, you don't need to set `CC` in the `make` command.
 
