@@ -4,6 +4,7 @@
 include <sys/types.h>
 include <sys/fstypes.h>
 include <sys/mount.h>
+include <sys/statvfs.h>
 include <sys/param.h>
 include <sys/stat.h>
 include <sys/ucred.h>
@@ -44,11 +45,30 @@ dup2(oldfd fd, newfd fd) fd
 dup3(oldfd fd, newfd fd, flags flags[dup_flags]) fd
 pipe2(pipefd ptr[out, pipefd], flags flags[pipe_flags])
 
+pathconf(file ptr[in, filename], name flags[conf_value])
+fpathconf(fd fd, name flags[conf_value])
+
 compat_40_mount(type ptr[in, string[filesystem_types]], path ptr[in, filename], flags flags[mount_flags], data buffer[in])
 __mount50(type ptr[in, string[filesystem_types]], path ptr[in, filename], flags flags[mount_flags], data buffer[in], len len[data])
 unmount(path ptr[in, filename], flags flags[mount_flags])
 
-compat_20_getfsstat(buf ptr[out, statfs12], size intptr, f flags[getfsstat_flags])
+compat_90_statvfs1(path ptr[in, filename], buf ptr[out, statvfs90], f flags[vfs_flags])
+compat_90_fstatvfs1(fd fd, buf ptr[out, statvfs90], f flags[vfs_flags])
+
+compat_30_getfh(path ptr[in, filename], fhp ptr[out, compat_30_fhandle])
+__getfh30(fname ptr[in, filename], fhp buffer[out], fh_size ptr[in, intptr])
+compat_30_fhopen(fhp ptr[in, compat_30_fhandle], f flags[fhopen_flags]) fd
+__fhopen40(fhp buffer[in], fh_size len[fhp], f flags[fhopen_flags]) fd
+compat_30_fhstat(fhp ptr[in, compat_30_fhandle], sb ptr[out, stat13])
+compat_30___fhstat30(fhp ptr[in, compat_30_fhandle], sb ptr[out, stat30])
+__fhstat50(fhp buffer[in], fh_size len[fhp], sb ptr[out, stat])
+compat_30_fhstatvfs1(fhp ptr[in, compat_30_fhandle], buf ptr[out, statvfs90], f flags[vfs_flags])
+compat_90_fhstatvfs1(fhp buffer[in], fh_size len[fhp], buf ptr[out, statvfs90], f flags[vfs_flags])
+__fhstatvfs190(fhp buffer[in], fh_size len[fhp], buf ptr[out, statvfs], f flags[vfs_flags])
+compat_90_getvfsstat(buf ptr[out, statvfs90, opt], bufsize len[buf], f flags[vfs_flags])
+__getvfsstat90(buf ptr[out, statvfs, opt], bufsize len[buf], flags flags[vfs_flags])
+
+compat_20_getfsstat(buf ptr[out, statfs12, opt], size len[buf], f flags[getfsstat_flags])
 
 pipefd {
 	rfd	fd
@@ -66,24 +86,23 @@ iovec_out {
 }
 
 stat {
-	dev		dev
-	mode		mode
-	ino		ino
-	nlink		nlink
-	uid		uid
-	gid		gid
-	rdev		dev
-	atim		timespec
-	mtim		timespec
-	ctim		timespec
-	birthtim	timespec
-	size		int64
-	blocks		int64
-	blksize		int32
-	flags		int32
-	gen		int32
-	spare1		int32
-	spare2		int32
+	st_dev		dev
+	st_mode		mode
+	st_ino		ino
+	st_nlink	nlink
+	st_uid		uid
+	st_gid		gid
+	st_rdev		dev
+	st_atim		timespec
+	st_mtim		timespec
+	st_ctim		timespec
+	st_birthtim	timespec
+	st_size		intptr
+	st_blocks	intptr
+	st_blksize	int32
+	st_flags	int32
+	st_gen		int32
+	st_spare	array[int32, 2]
 }
 
 stat12 {
@@ -104,6 +123,46 @@ stat12 {
 	gen	int32
 	lspare	int32
 	qspare	array[int64, 2]
+}
+
+stat13 {
+	st_dev		int32
+	st_ino		int32
+	st_mode		mode
+	st_nlink	nlink
+	st_uid		int32
+	st_gid		int32
+	st_rdev		int32
+	st_atim		timespec50
+	st_mtim		timespec50
+	st_ctim		timespec50
+	st_size		intptr
+	st_blocks	intptr
+	st_blksize	int32
+	st_flags	int32
+	st_gen		int32
+	st_spare0	int32
+	st_birthtim	timespec50
+}
+
+stat30 {
+	st_dev		int32
+	st_mode		mode
+	st_ino		intptr
+	st_nlink	nlink
+	st_uid		int32
+	st_gid		int32
+	st_rdev		int32
+	st_atim		timespec50
+	st_mtim		timespec50
+	st_ctim		timespec50
+	st_birthtim	timespec50
+	st_size		intptr
+	st_blocks	intptr
+	st_blksize	int32
+	st_flags	int32
+	st_gen		int32
+	st_spare	array[int32, 2]
 }
 
 stat43 {
@@ -152,6 +211,72 @@ fsid_t {
 	val	array[int32, 2]
 }
 
+compat_30_fhandle {
+	fh_fsid	fsid_t
+	fh_fid	compat_30_fid
+}
+
+compat_30_fid {
+	fid_len		int16
+	fid_reserved	int16
+	fid_data	array[int8, 16]
+}
+
+statvfs90 {
+	f_flag		flags[statvfs_flags, int64]
+	f_bsize		intptr
+	f_frsize	intptr
+	f_iosize	intptr
+	f_blocks	intptr
+	f_bfree		intptr
+	f_bavail	intptr
+	f_bresvd	intptr
+	f_files		intptr
+	f_ffree		intptr
+	f_favail	intptr
+	f_fresvd	intptr
+	f_syncreads	intptr
+	f_syncwrites	intptr
+	f_asyncreads	intptr
+	f_asyncwrites	intptr
+	f_fsidx		fsid_t
+	f_fsid		intptr
+	f_namemax	intptr
+	f_owner		int32
+	f_spare		array[int32, 4]
+	f_fstypename	array[int8, 32]
+	f_mntonname	array[int8, 1024]
+	f_mntfromname	array[int8, 1024]
+}
+
+statvfs {
+	f_flag		flags[statvfs_flags, int64]
+	f_bsize		intptr
+	f_frsize	intptr
+	f_iosize	intptr
+	f_blocks	intptr
+	f_bfree		intptr
+	f_bavail	intptr
+	f_bresvd	intptr
+	f_files		intptr
+	f_ffree		intptr
+	f_favail	intptr
+	f_fresvd	intptr
+	f_syncreads	intptr
+	f_syncwrites	intptr
+	f_asyncreads	intptr
+	f_asyncwrites	intptr
+	f_fsidx		fsid_t
+	f_fsid		intptr
+	f_namemax	intptr
+	f_owner		int32
+	f_spare		array[intptr, 4]
+	f_fstypename	array[int8, 32]
+	f_mntonname	array[int8, 1024]
+	f_mntfromname	array[int8, 1024]
+	f_mntfromlabel	array[int8, 1024]
+}
+
 filesystem_types = "ffs", "nfs", "mfs", "msdos", "lfs", "fdesc", "null", "overlay", "umap", "kernfs", "procfs", "afs", "cd9660", "union", "adosfs", "ext2fs", "coda", "filecore", "ntfs", "smbfs", "ptyfs", "tmpfs", "udf", "sysvbfs", "puffs", "hfs", "efs", "zfs", "nilfs", "rumpfs", "v7fs", "autofs"
 open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, O_CREAT, O_TRUNC, O_EXCL, O_SHLOCK, O_EXLOCK, O_NOFOLLOW, O_CLOEXEC, O_NOSIGPIPE, O_DSYNC, O_SYNC, O_RSYNC, O_ALT_IO, O_NOCTTY, O_DIRECT, O_DIRECTORY, O_ASYNC
 open_mode = S_IRWXU, S_IRUSR, S_IWUSR, S_IXUSR, S_IRWXG, S_IRGRP, S_IWGRP, S_IXGRP, S_IRWXO, S_IROTH, S_IWOTH, S_IXOTH, S_ISUID, S_ISGID, S_ISVTX
@@ -159,3 +284,7 @@ seek_whence = SEEK_SET, SEEK_CUR, SEEK_END
 pipe_flags = O_NONBLOCK, O_CLOEXEC, O_NOSIGPIPE
 mount_flags = MNT_RDONLY, MNT_SYNCHRONOUS, MNT_NOEXEC, MNT_NOSUID, MNT_NODEV, MNT_UNION, MNT_ASYNC, MNT_NOCOREDUMP, MNT_RELATIME, MNT_IGNORE, MNT_DISCARD, MNT_EXTATTR, MNT_LOG, MNT_NOATIME, MNT_AUTOMOUNTED, MNT_SYMPERM, MNT_NODEVMTIME, MNT_SOFTDEP, MNT_EXRDONLY, MNT_EXPORTED, MNT_DEFEXPORTED, MNT_EXPORTANON, MNT_EXKERB, MNT_EXNORESPORT, MNT_EXPUBLIC, MNT_LOCAL, MNT_QUOTA, MNT_ROOTFS
 getfsstat_flags = MNT_NOWAIT, MNT_WAIT, MNT_LAZY
+conf_value = _PC_LINK_MAX, _PC_MAX_CANON, _PC_MAX_INPUT, _PC_NAME_MAX, _PC_PATH_MAX, _PC_PIPE_BUF, _PC_CHOWN_RESTRICTED, _PC_NO_TRUNC, _PC_VDISABLE, _PC_SYNC_IO, _PC_FILESIZEBITS, _PC_SYMLINK_MAX, _PC_2_SYMLINKS, _PC_ACL_EXTENDED, _PC_MIN_HOLE_SIZE, _PC_ACL_PATH_MAX, _PC_ACL_NFS4
+fhopen_flags = O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, O_TRUNC, O_EXCL, O_SHLOCK, O_EXLOCK, O_NOFOLLOW, O_CLOEXEC, O_NOSIGPIPE, O_DSYNC, O_SYNC, O_RSYNC, O_ALT_IO, O_NOCTTY, O_DIRECT, O_DIRECTORY, O_ASYNC
+vfs_flags = ST_NOWAIT, ST_WAIT
+statvfs_flags = ST_RDONLY, ST_NOEXEC, ST_NOSUID, ST_NODEV, ST_UNION, ST_SYNCHRONOUS, ST_ASYNC, ST_NOCOREDUMP, ST_NOATIME, ST_SYMPERM, ST_NODEVMTIME, ST_LOG, ST_LOCAL, ST_QUOTA, ST_ROOTFS, ST_EXRDONLY, ST_EXPORTED, ST_DEFEXPORTED, ST_EXPORTANON, ST_EXKERB, ST_EXNORESPORT, ST_EXPUBLIC
