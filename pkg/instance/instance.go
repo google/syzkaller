@@ -500,8 +500,7 @@ var MakeBin = func() string {
 	return "make"
 }()
 
-func RunnerCmd(prog, fwdAddr, os, arch string, poolIdx, vmIdx int, collide, threaded bool) string {
+func RunnerCmd(prog, fwdAddr, os, arch string, poolIdx, vmIdx int, collide, threaded, newEnv bool) string {
 	return fmt.Sprintf("%s -addr=%s -os=%s -arch=%s -pool=%d -vm=%d "+
-		"-collide=%t -threaded=%t", prog, fwdAddr, os, arch, poolIdx, vmIdx,
-		collide, threaded)
+		"-collide=%t -threaded=%t -new-env=%t", prog, fwdAddr, os, arch, poolIdx, vmIdx, collide, threaded, newEnv)
 }

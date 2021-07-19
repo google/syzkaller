@@ -59,6 +59,7 @@ type Verifier struct {
 	reportReasons bool
 	stats         *stats.Stats
 	statsWrite    io.Writer
+	newEnv        bool
 }
 
 // RPCServer is a wrapper around the rpc.Server. It communicates with  Runners,
@@ -108,7 +109,9 @@ func main() {
 	flagDebug := flag.Bool("debug", false, "dump all VM output to console")
 	flagStats := flag.String("stats", "", "where stats will be written when"+
 		"execution of syz-verifier finishes, defaults to stdout")
+	flagEnv := flag.Bool("new-env", true, "create a new environment for each program")
 	flag.Parse()
+
 	pools := make(map[int]*poolInfo)
 	for idx, cfg := range cfgs {
 		var err error
@@ -211,6 +214,7 @@ func main() {
 		addr:          addr,
 		reportReasons: len(cfg.EnabledSyscalls) != 0 || len(cfg.DisabledSyscalls) != 0,
 		statsWrite:    sw,
+		newEnv:        *flagEnv,
 	}
 
 	vrf.srv, err = startRPCServer(vrf)
@@ -244,7 +248,7 @@ func (vrf *Verifier) startInstances() {
 					log.Fatalf("failed to copy executor binary: %v", err)
 				}
 
-				cmd := instance.RunnerCmd(runnerBin, fwdAddr, vrf.target.OS, vrf.target.Arch, idx, 0, false, false)
+				cmd := instance.RunnerCmd(runnerBin, fwdAddr, vrf.target.OS, vrf.target.Arch, idx, 0, false, false, vrf.newEnv)
 				outc, errc, err := inst.Run(pi.cfg.Timeouts.VMRunningTime, vrf.vmStop, cmd)
 				if err != nil {
 					log.Fatalf("failed to start runner: %v", err)

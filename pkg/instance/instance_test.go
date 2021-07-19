@@ -151,8 +151,9 @@ func TestRunnerCmd(t *testing.T) {
 	flagVM := flags.Int("vm", 0, "index of VM that started the Runner")
 	flagCollide := flags.Bool("collide", true, "collide syscalls to provoke data races")
 	flagThreaded := flags.Bool("threaded", true, "use threaded mode in executor")
+	flagEnv := flags.Bool("new-env", true, "create a new environment for each program")
 
-	cmdLine := RunnerCmd(os.Args[0], "localhost:1234", targets.Linux, targets.AMD64, 0, 0, false, false)
+	cmdLine := RunnerCmd(os.Args[0], "localhost:1234", targets.Linux, targets.AMD64, 0, 0, false, false, false)
 	args := strings.Split(cmdLine, " ")[1:]
 	if err := flags.Parse(args); err != nil {
 		t.Fatalf("error parsing flags: %v, want: nil", err)
@@ -184,5 +185,9 @@ func TestRunnerCmd(t *testing.T) {
 
 	if got, want := *flagThreaded, false; got != want {
 		t.Errorf("bad threaded: %t, want: %t", got, want)
+	}
+
+	if got, want := *flagEnv, false; got != want {
+		t.Errorf("bad new-env: %t, want: %t", got, want)
 	}
 }

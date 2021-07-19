@@ -23,6 +23,7 @@ type Runner struct {
 	opts     *ipc.ExecOpts
 	config   *ipc.Config
 	pool, vm int
+	newEnv   bool
 }
 
 func main() {
@@ -31,6 +32,8 @@ func main() {
 	flagAddr := flag.String("addr", "", "verifier rpc address")
 	flagOS := flag.String("os", runtime.GOOS, "target OS")
 	flagArch := flag.String("arch", runtime.GOARCH, "target arch")
+	flagEnv := flag.Bool("new-env", true, "create a new environment for each program")
+
 	flag.Parse()
 
 	target, err := prog.GetTarget(*flagOS, *flagArch)
@@ -56,6 +59,7 @@ func main() {
 		config: config,
 		pool:   *flagPool,
 		vm:     *flagVM,
+		newEnv: *flagEnv,
 	}
 
 	a := &rpctype.RunnerConnectArgs{
@@ -97,9 +101,10 @@ func main() {
 // TODO: Implement functionality to execute several programs at once and send back a slice of results.
 func (rn *Runner) Run(firstProg []byte, idx int) {
 	p, pIdx := firstProg, idx
+
 	env, err := ipc.MakeEnv(rn.config, 0)
 	if err != nil {
-		log.Fatalf("failed to create execution environment: %v", err)
+		log.Fatalf("failed to create initial execution environment: %v", err)
 	}
 
 	for {
@@ -112,6 +117,7 @@ func (rn *Runner) Run(firstProg []byte, idx int) {
 		if err != nil {
 			log.Fatalf("failed to execute the program: %v", err)
 		}
+
 		a := &rpctype.NextExchangeArgs{
 			Pool:    rn.pool,
 			VM:      rn.vm,
@@ -125,5 +131,19 @@ func (rn *Runner) Run(firstProg []byte, idx int) {
 		}
 		p = r.Prog
 		pIdx = r.ProgIdx
+
+		if !rn.newEnv {
+			continue
+		}
+
+		err = env.Close()
+		if err != nil {
+			log.Fatalf("failed to close the execution environment: %v", err)
+		}
+
+		env, err = ipc.MakeEnv(rn.config, 0)
+		if err != nil {
+			log.Fatalf("failed to create new execution environmentL %v", err)
+		}
 	}
 }
