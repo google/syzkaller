@@ -26,18 +26,24 @@ type ResultReport struct {
 	// Prog is the serialized program.
 	Prog string
 	// Reports contains information about each system call.
-	Reports []CallReport
+	Reports []*CallReport
 }
 
 type CallReport struct {
+	// Call is the name of the system call.
 	Call string
-	// Errno is a map between pools and the errno returned by executing the
-	// system call on a VM spawned by the respective pool.
-	Errnos map[int]int
-	// Flags is a map between pools and call flags (see pkg/ipc/ipc.go).
-	Flags map[int]ipc.CallFlags
+	// States is a map between pools and their return state when executing the system call.
+	States map[int]ReturnState
 	// Mismatch is set to true if the returned error codes were not the same.
 	Mismatch bool
+}
+
+// ReturnState stores the results of executing a system call.
+type ReturnState struct {
+	// Errno is returned by executing the system call.
+	Errno int
+	// Flags stores the call flags (see pkg/ipc/ipc.go).
+	Flags ipc.CallFlags
 }
 
 // Verify checks whether the Results of the same program, executed on different
@@ -47,39 +53,40 @@ func Verify(res []*Result, prog *prog.Prog, s *stats.Stats) *ResultReport {
 	rr := &ResultReport{
 		Prog: string(prog.Serialize()),
 	}
-	c0 := res[0].Info.Calls
-	for idx, c := range c0 {
-		call := prog.Calls[idx].Meta.Name
-		cr := CallReport{
-			Call:   call,
-			Errnos: map[int]int{res[0].Pool: c.Errno},
-			Flags:  map[int]ipc.CallFlags{res[0].Pool: c.Flags},
+
+	// Build the CallReport for each system call in the program.
+	for idx, call := range prog.Calls {
+		cn := call.Meta.Name
+		s.Calls[cn].Occurrences++
+
+		cr := &CallReport{
+			Call:   cn,
+			States: map[int]ReturnState{},
 		}
 
+		for _, r := range res {
+			ci := r.Info.Calls[idx]
+			cr.States[r.Pool] = ReturnState{ci.Errno, ci.Flags}
+		}
 		rr.Reports = append(rr.Reports, cr)
-		cs := s.Calls[call]
-		cs.Occurrences++
 	}
 
 	var send bool
-	for i := 1; i < len(res); i++ {
-		resi := res[i]
-		ci := resi.Info.Calls
-		for idx, c := range ci {
-			cr := rr.Reports[idx]
-			cs := s.Calls[cr.Call]
-			if c.Errno != c0[idx].Errno {
-				rr.Reports[idx].Mismatch = true
+	pool0 := res[0].Pool
+	for _, cr := range rr.Reports {
+		cs := s.Calls[cr.Call]
+		for _, state := range cr.States {
+			// For each CallReport verify the ReturnStates from all the pools
+			// that executed the program are the same
+			if errno0 := cr.States[pool0].Errno; errno0 != state.Errno {
+				cr.Mismatch = true
 				send = true
 
 				s.TotalMismatches++
 				cs.Mismatches++
-				cs.States[c.Errno] = true
-				cs.States[c0[idx].Errno] = true
+				cs.States[state.Errno] = true
+				cs.States[errno0] = true
 			}
-
-			cr.Errnos[resi.Pool] = c.Errno
-			cr.Flags[resi.Pool] = c.Flags
 		}
 	}
 

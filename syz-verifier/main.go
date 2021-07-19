@@ -464,17 +464,17 @@ func createReport(rr *verf.ResultReport, pools int) []byte {
 
 		// Ensure results are ordered by pool index.
 		for i := 0; i < pools; i++ {
-			errno, ok := cr.Errnos[i]
+			state, ok := cr.States[i]
 			if !ok {
 				// VM crashed so we don't have reports from this pool.
 				continue
 			}
 
 			errnoDesc := "success"
-			if errno != 0 {
-				errnoDesc = syscall.Errno(errno).Error()
+			if state.Errno != 0 {
+				errnoDesc = syscall.Errno(state.Errno).Error()
 			}
-			data += fmt.Sprintf("\t↳ Pool: %d, Flag: %d, Errno: %d (%s)\n", i, cr.Flags[i], errno, errnoDesc)
+			data += fmt.Sprintf("\t↳ Pool: %d, Flags: %d, Errno: %d (%s)\n", i, state.Flags, state.Errno, errnoDesc)
 		}
 
 		data += "\n"
