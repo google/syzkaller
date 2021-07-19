@@ -469,26 +469,33 @@ func TestCreateReport(t *testing.T) {
 		Prog: "breaks_returns()\n" +
 			"minimize$0(0x1, 0x1)\n" +
 			"test$res0()\n",
-		Reports: []verf.CallReport{
-			{Call: "breaks_returns", Errnos: map[int]int{1: 1, 2: 1, 3: 1},
-				Flags: map[int]ipc.CallFlags{1: 1, 2: 1, 3: 1}},
-			{Call: "minimize$0", Errnos: map[int]int{1: 3, 2: 3, 3: 3},
-				Flags: map[int]ipc.CallFlags{1: 3, 2: 3, 3: 3}},
-			{Call: "test$res0", Errnos: map[int]int{1: 2, 2: 5, 3: 22},
-				Flags: map[int]ipc.CallFlags{1: 7, 2: 3, 3: 1}, Mismatch: true},
+		Reports: []*verf.CallReport{
+			{Call: "breaks_returns", States: map[int]verf.ReturnState{
+				1: {Errno: 1, Flags: 1},
+				2: {Errno: 1, Flags: 1},
+				3: {Errno: 1, Flags: 1}}},
+			{Call: "minimize$0", States: map[int]verf.ReturnState{
+				1: {Errno: 3, Flags: 3},
+				2: {Errno: 3, Flags: 3},
+				3: {Errno: 3, Flags: 3}}},
+			{Call: "test$res0", States: map[int]verf.ReturnState{
+				1: {Errno: 2, Flags: 7},
+				2: {Errno: 5, Flags: 3},
+				3: {Errno: 22, Flags: 1}},
+				Mismatch: true},
 		},
 	}
 	got := string(createReport(&rr, 3))
 	want := "ERRNO mismatches found for program:\n\n" +
 		"[=] breaks_returns()\n" +
-		"\t↳ Pool: 1, Flag: 1, Errno: 1 (operation not permitted)\n" +
-		"\t↳ Pool: 2, Flag: 1, Errno: 1 (operation not permitted)\n\n" +
+		"\t↳ Pool: 1, Flags: 1, Errno: 1 (operation not permitted)\n" +
+		"\t↳ Pool: 2, Flags: 1, Errno: 1 (operation not permitted)\n\n" +
 		"[=] minimize$0(0x1, 0x1)\n" +
-		"\t↳ Pool: 1, Flag: 3, Errno: 3 (no such process)\n" +
-		"\t↳ Pool: 2, Flag: 3, Errno: 3 (no such process)\n\n" +
+		"\t↳ Pool: 1, Flags: 3, Errno: 3 (no such process)\n" +
+		"\t↳ Pool: 2, Flags: 3, Errno: 3 (no such process)\n\n" +
 		"[!] test$res0()\n" +
-		"\t↳ Pool: 1, Flag: 7, Errno: 2 (no such file or directory)\n" +
-		"\t↳ Pool: 2, Flag: 3, Errno: 5 (input/output error)\n\n"
+		"\t↳ Pool: 1, Flags: 7, Errno: 2 (no such file or directory)\n" +
+		"\t↳ Pool: 2, Flags: 3, Errno: 5 (input/output error)\n\n"
 	if diff := cmp.Diff(got, want); diff != "" {
 		t.Errorf("createReport: (-want +got):\n%s", diff)
 	}

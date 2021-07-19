@@ -56,18 +56,15 @@ func TestVerify(t *testing.T) {
 		{
 			name: "mismatches found in results",
 			res: []*Result{
-				makeResult(1, []int{1, 3, 2}, []int{1, 3, 7}),
-				makeResult(4, []int{1, 3, 5}, []int{1, 3, 3}),
+				makeResult(1, []int{1, 3, 2}, []int{4, 7, 7}),
+				makeResult(4, []int{1, 3, 5}, []int{4, 7, 3}),
 			},
 			wantReport: &ResultReport{
 				Prog: p,
-				Reports: []CallReport{
-					{Call: "breaks_returns", Errnos: map[int]int{1: 1, 4: 1},
-						Flags: map[int]ipc.CallFlags{1: 1, 4: 1}},
-					{Call: "minimize$0", Errnos: map[int]int{1: 3, 4: 3},
-						Flags: map[int]ipc.CallFlags{1: 3, 4: 3}},
-					{Call: "test$res0", Errnos: map[int]int{1: 2, 4: 5},
-						Flags: map[int]ipc.CallFlags{1: 7, 4: 3}, Mismatch: true},
+				Reports: []*CallReport{
+					{Call: "breaks_returns", States: map[int]ReturnState{1: {1, 4}, 4: {1, 4}}},
+					{Call: "minimize$0", States: map[int]ReturnState{1: {3, 7}, 4: {3, 7}}},
+					{Call: "test$res0", States: map[int]ReturnState{1: {2, 7}, 4: {5, 3}}, Mismatch: true},
 				},
 			},
 			wantStats: &stats.Stats{
