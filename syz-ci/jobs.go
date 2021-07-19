@@ -311,7 +311,6 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 	switch req.Type {
 	case dashapi.JobTestPatch:
 		mgrcfg.Name += "-test-job"
-		resp.Build.CompilerID = mgr.compilerID
 		resp.Build.KernelRepo = req.KernelRepo
 		resp.Build.KernelBranch = req.KernelBranch
 		resp.Build.KernelCommit = "[unknown]"
@@ -548,11 +547,12 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 		[]byte("# CONFIG_DEBUG_INFO_BTF is not set"), -1)
 
 	log.Logf(0, "job: building kernel...")
-	kernelConfig, _, err := env.BuildKernel(mgr.mgrcfg.Compiler, mgr.mgrcfg.Ccache, mgr.mgrcfg.Userspace,
+	kernelConfig, details, err := env.BuildKernel(mgr.mgrcfg.Compiler, mgr.mgrcfg.Ccache, mgr.mgrcfg.Userspace,
 		mgr.mgrcfg.KernelCmdline, mgr.mgrcfg.KernelSysctl, req.KernelConfig)
 	if err != nil {
 		return err
 	}
+	resp.Build.CompilerID = details.CompilerID
 	if kernelConfig != "" {
 		resp.Build.KernelConfig, err = ioutil.ReadFile(kernelConfig)
 		if err != nil {

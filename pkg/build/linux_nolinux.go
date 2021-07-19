@@ -10,6 +10,6 @@ import (
 	"errors"
 )
 
-func embedLinuxKernel(params *Params, kernelPath string) error {
+func embedLinuxKernel(params Params, kernelPath string) error {
 	return errors.New("building linux image is only supported on linux")
 }

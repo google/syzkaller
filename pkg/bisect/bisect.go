@@ -421,13 +421,13 @@ func (env *env) build() (*vcs.Commit, string, error) {
 		return nil, "", fmt.Errorf("kernel clean failed: %v", err)
 	}
 	kern := &env.cfg.Kernel
-	_, kernelSign, err := env.inst.BuildKernel(bisectEnv.Compiler, env.cfg.Ccache, kern.Userspace,
+	_, imageDetails, err := env.inst.BuildKernel(bisectEnv.Compiler, env.cfg.Ccache, kern.Userspace,
 		kern.Cmdline, kern.Sysctl, bisectEnv.KernelConfig)
-	if kernelSign != "" {
-		env.log("kernel signature: %v", kernelSign)
+	if imageDetails.Signature != "" {
+		env.log("kernel signature: %v", imageDetails.Signature)
 	}
 	env.buildTime += time.Since(buildStart)
-	return current, kernelSign, err
+	return current, imageDetails.Signature, err
 }
 
 func (env *env) test() (*testResult, error) {

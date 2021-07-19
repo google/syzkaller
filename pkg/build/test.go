@@ -5,8 +5,8 @@ package build
 
 type test struct{}
 
-func (tb test) build(params *Params) error {
-	return nil
+func (tb test) build(params Params) (string, error) {
+	return "", nil
 }
 
 func (tb test) clean(string, string) error {
