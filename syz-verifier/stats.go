@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/signal"
 	"sort"
-	"syscall"
 	"time"
 
 	"github.com/google/syzkaller/prog"
@@ -36,8 +35,8 @@ type CallStats struct {
 	// Occurrences is the number of times the system call appeared in a
 	// verified program.
 	Occurrences int
-	// States stores the kernel return values that caused mismatches.
-	States map[int]bool
+	// States stores the kernel return state that caused mismatches.
+	States map[ReturnState]bool
 }
 
 // InitStats creates a stats object that will report verification
@@ -48,7 +47,9 @@ func InitStats(calls map[*prog.Syscall]bool, w io.Writer) *Stats {
 		StartTime: time.Now(),
 	}
 	for c := range calls {
-		s.Calls[c.Name] = &CallStats{Name: c.Name, States: make(map[int]bool)}
+		s.Calls[c.Name] = &CallStats{
+			Name:   c.Name,
+			States: make(map[ReturnState]bool)}
 	}
 
 	c := make(chan os.Signal)
@@ -127,19 +128,17 @@ func (s *Stats) getOrderedStats() []*CallStats {
 
 func (s *Stats) getOrderedStates(call string) []string {
 	states := s.Calls[call].States
-	ss := make([]int, 0, len(states))
+	ss := make([]ReturnState, 0, len(states))
 	for s := range states {
 		ss = append(ss, s)
 	}
-	sort.Ints(ss)
+	sort.Slice(ss, func(i, j int) bool {
+		return ss[i].Errno < ss[j].Errno
+	})
 
 	descs := make([]string, 0, len(states))
 	for _, s := range ss {
-		desc := "succes"
-		if s != 0 {
-			desc = syscall.Errno(s).Error()
-		}
-		descs = append(descs, fmt.Sprintf("%d (%s)", s, desc))
+		descs = append(descs, s.String())
 	}
 	return descs
 }

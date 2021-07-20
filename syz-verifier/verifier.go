@@ -4,6 +4,9 @@
 package main
 
 import (
+	"fmt"
+	"syscall"
+
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/prog"
 )
@@ -43,6 +46,19 @@ type ReturnState struct {
 	Flags ipc.CallFlags
 }
 
+func (s ReturnState) String() string {
+	state := ""
+	if s.Flags != 0 {
+		state += fmt.Sprintf("Flags: %d, ", s.Flags)
+	}
+	errDesc := "success"
+	if s.Errno != 0 {
+		errDesc = syscall.Errno(s.Errno).Error()
+	}
+	state += fmt.Sprintf("Errno: %d (%s)\n", s.Errno, errDesc)
+	return state
+}
+
 // Verify checks whether the Results of the same program, executed on different
 // kernels are the same. If that's not the case, it returns a ResultReport
 // which highlights the differences.
@@ -75,14 +91,14 @@ func Verify(res []*Result, prog *prog.Prog, s *Stats) *ResultReport {
 		for _, state := range cr.States {
 			// For each CallReport verify the ReturnStates from all the pools
 			// that executed the program are the same
-			if errno0 := cr.States[pool0].Errno; errno0 != state.Errno {
+			if state0 := cr.States[pool0]; state0 != state {
 				cr.Mismatch = true
 				send = true
 
 				s.TotalMismatches++
 				cs.Mismatches++
-				cs.States[state.Errno] = true
-				cs.States[errno0] = true
+				cs.States[state] = true
+				cs.States[state0] = true
 			}
 		}
 	}

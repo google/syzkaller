@@ -14,10 +14,10 @@ func dummyStats() *Stats {
 		Progs:           24,
 		TotalMismatches: 10,
 		Calls: map[string]*CallStats{
-			"foo": {"foo", 2, 8, map[int]bool{1: true, 3: true}},
-			"bar": {"bar", 5, 6, map[int]bool{10: true, 22: true}},
-			"tar": {"tar", 3, 4, map[int]bool{5: true, 17: true, 31: true}},
-			"biz": {"biz", 0, 2, map[int]bool{}},
+			"foo": {"foo", 2, 8, map[ReturnState]bool{{Errno: 1}: true, {Errno: 3}: true}},
+			"bar": {"bar", 5, 6, map[ReturnState]bool{{Errno: 10}: true, {Errno: 22}: true}},
+			"tar": {"tar", 3, 4, map[ReturnState]bool{{Errno: 5}: true, {Errno: 17}: true, {Errno: 31}: true}},
+			"biz": {"biz", 0, 2, map[ReturnState]bool{}},
 		},
 	}
 }
@@ -38,7 +38,7 @@ func TestReportCallStats(t *testing.T) {
 				"\t↳ mismatches of foo / occurrences of foo: 2 / 8 (25.00 %)\n" +
 				"\t↳ mismatches of foo / total number of mismatches: 2 / 10 (20.00 %)\n" +
 				"\t↳ 2 distinct states identified: " +
-				"[1 (operation not permitted) 3 (no such process)]\n",
+				"[Errno: 1 (operation not permitted)\n Errno: 3 (no such process)\n]\n",
 		},
 	}
 
@@ -65,17 +65,17 @@ func TestReportGlobalStats(t *testing.T) {
 			"\t↳ mismatches of bar / occurrences of bar: 5 / 6 (83.33 %)\n"+
 			"\t↳ mismatches of bar / total number of mismatches: 5 / 10 (50.00 %)\n"+
 			"\t↳ 2 distinct states identified: "+
-			"[10 (no child processes) 22 (invalid argument)]\n\n"+
+			"[Errno: 10 (no child processes)\n Errno: 22 (invalid argument)\n]\n\n"+
 			"statistics for tar:\n"+
 			"\t↳ mismatches of tar / occurrences of tar: 3 / 4 (75.00 %)\n"+
 			"\t↳ mismatches of tar / total number of mismatches: 3 / 10 (30.00 %)\n"+
 			"\t↳ 3 distinct states identified: "+
-			"[5 (input/output error) 17 (file exists) 31 (too many links)]\n\n"+
+			"[Errno: 5 (input/output error)\n Errno: 17 (file exists)\n Errno: 31 (too many links)\n]\n\n"+
 			"statistics for foo:\n"+
 			"\t↳ mismatches of foo / occurrences of foo: 2 / 8 (25.00 %)\n"+
 			"\t↳ mismatches of foo / total number of mismatches: 2 / 10 (20.00 %)\n"+
 			"\t↳ 2 distinct states identified: "+
-			"[1 (operation not permitted) 3 (no such process)]\n\n"
+			"[Errno: 1 (operation not permitted)\n Errno: 3 (no such process)\n]\n\n"
 
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("s.ReportGlobalStats mismatch (-want +got):\n%s", diff)

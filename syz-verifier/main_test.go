@@ -341,9 +341,9 @@ func TestProcessResults(t *testing.T) {
 				TotalMismatches: 1,
 				Progs:           1,
 				Calls: map[string]*CallStats{
-					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[int]bool{}),
-					"test$res0":      makeCallStats("test$res0", 1, 1, map[int]bool{2: true, 5: true}),
-					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[int]bool{}),
+					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[ReturnState]bool{}),
+					"test$res0":      makeCallStats("test$res0", 1, 1, map[ReturnState]bool{{Errno: 2}: true, {Errno: 5}: true}),
+					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[ReturnState]bool{}),
 				},
 			},
 		},
@@ -356,9 +356,9 @@ func TestProcessResults(t *testing.T) {
 			wantStats: &Stats{
 				Progs: 1,
 				Calls: map[string]*CallStats{
-					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[int]bool{}),
-					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[int]bool{}),
-					"test$res0":      makeCallStats("test$res0", 1, 0, map[int]bool{}),
+					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[ReturnState]bool{}),
+					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[ReturnState]bool{}),
+					"test$res0":      makeCallStats("test$res0", 1, 0, map[ReturnState]bool{}),
 				},
 			},
 		},
@@ -462,9 +462,9 @@ func TestCleanup(t *testing.T) {
 			wantStats: &Stats{
 				Progs: 1,
 				Calls: map[string]*CallStats{
-					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[int]bool{}),
-					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[int]bool{}),
-					"test$res0":      makeCallStats("test$res0", 1, 0, map[int]bool{}),
+					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[ReturnState]bool{}),
+					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[ReturnState]bool{}),
+					"test$res0":      makeCallStats("test$res0", 1, 0, map[ReturnState]bool{}),
 				},
 			},
 			fileExists: false,
@@ -485,9 +485,9 @@ func TestCleanup(t *testing.T) {
 				TotalMismatches: 1,
 				Progs:           1,
 				Calls: map[string]*CallStats{
-					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[int]bool{}),
-					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[int]bool{}),
-					"test$res0":      makeCallStats("test$res0", 1, 1, map[int]bool{22: true, 44: true}),
+					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[ReturnState]bool{}),
+					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[ReturnState]bool{}),
+					"test$res0":      makeCallStats("test$res0", 1, 1, map[ReturnState]bool{{Errno: 22}: true, {Errno: 44}: true}),
 				},
 			},
 			fileExists: true,
