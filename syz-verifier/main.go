@@ -95,9 +95,9 @@ type progInfo struct {
 	idx        int
 	serialized []byte
 	res        []*Result
-	// left contains the indices of kernels that haven't sent results for this
-	// program yet.
-	left map[int]bool
+
+	// done is set to true if the program was already verified.
+	done bool
 }
 
 func main() {
@@ -375,15 +375,15 @@ func (srv *RPCServer) NextExchange(a *rpctype.NextExchangeArgs, r *rpctype.NextE
 			// sent results for the program yet
 			// 2.the cleanup call for the crash got the server's mutex before
 			// the NextExchange call.
-			// As the pool was the only one still in prog.left, the cleanup
-			// call has already removed prog from srv.progs by the time the
-			// NextExchange call gets the server's mutex  which is why the
+			// As the pool was the only one that hasn't sent the result, the
+			// cleanup call has already removed prog from srv.progs by the time
+			// the NextExchange call gets the server's mutex, which is why the
 			// variable is nil. As the results for this program have already
-			// been sent for verification (if more than 2), we discard this one.
+			// been sent for verification, we discard this one.
 			return nil
 		}
 
-		if srv.newResult(res, prog) {
+		if prog.done = srv.newResult(res, prog); prog.done {
 			srv.vrf.processResults(prog.res, prog.prog)
 			delete(srv.progs, a.ProgIdx)
 		}
@@ -404,8 +404,7 @@ func (srv *RPCServer) NextExchange(a *rpctype.NextExchangeArgs, r *rpctype.NextE
 // sent for verification. Otherwise, it returns false.
 func (srv *RPCServer) newResult(res *Result, prog *progInfo) bool {
 	prog.res = append(prog.res, res)
-	delete(prog.left, res.Pool)
-	return len(prog.left) == 0
+	return len(prog.res) == len(srv.pools)
 }
 
 // processResults will send a set of complete results for verification and, in
@@ -467,7 +466,7 @@ func createReport(rr *ResultReport, pools int) []byte {
 				continue
 			}
 
-			data += fmt.Sprintf("\t↳ Pool: %d, %s", i, state.String())
+			data += fmt.Sprintf("\t↳ Pool: %d, %s\n", i, state)
 		}
 
 		data += "\n"
@@ -486,12 +485,9 @@ func (srv *RPCServer) newProgram(poolIdx, vmIdx int) ([]byte, int) {
 			prog:       prog,
 			idx:        progIdx,
 			serialized: prog.Serialize(),
-			res:        make([]*Result, 0),
-			left:       make(map[int]bool),
 		}
-		for idx, pool := range srv.pools {
+		for _, pool := range srv.pools {
 			pool.progs = append(pool.progs, pi)
-			pi.left[idx] = true
 		}
 		srv.progs[progIdx] = pi
 	}
@@ -514,15 +510,12 @@ func (srv *RPCServer) cleanup(poolIdx, vmIdx int) {
 	progs := srv.pools[poolIdx].vmRunners[vmIdx]
 	delete(srv.pools[poolIdx].vmRunners, vmIdx)
 	for _, prog := range progs {
-		delete(prog.left, poolIdx)
-		if len(prog.left) == 0 {
-			if len(prog.res) > 1 {
-				// It might happen that all pools crashed (or all except one)
-				// while executing this program. We only send results for
-				// verification if at least two pools have returned results.
-				// TODO: consider logging this program or retrying execution
-				srv.vrf.processResults(prog.res, prog.prog)
-			}
+		if prog.done {
+			continue
+		}
+
+		if prog.done = srv.newResult(&Result{Pool: poolIdx, Crashed: true}, prog); prog.done {
+			srv.vrf.processResults(prog.res, prog.prog)
 			delete(srv.progs, prog.idx)
 			continue
 		}

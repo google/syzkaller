@@ -128,17 +128,10 @@ func (s *Stats) getOrderedStats() []*CallStats {
 
 func (s *Stats) getOrderedStates(call string) []string {
 	states := s.Calls[call].States
-	ss := make([]ReturnState, 0, len(states))
+	ss := make([]string, 0, len(states))
 	for s := range states {
-		ss = append(ss, s)
+		ss = append(ss, fmt.Sprintf("%q", s))
 	}
-	sort.Slice(ss, func(i, j int) bool {
-		return ss[i].Errno < ss[j].Errno
-	})
-
-	descs := make([]string, 0, len(states))
-	for _, s := range ss {
-		descs = append(descs, s.String())
-	}
-	return descs
+	sort.Strings(ss)
+	return ss
 }
