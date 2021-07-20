@@ -75,7 +75,7 @@ func Image(params Params) (details ImageDetails, err error) {
 			return
 		}
 	}
-	err = builder.build(params)
+	details, err = builder.build(params)
 	if err != nil {
 		err = extractRootCause(err, params.TargetOS, params.KernelDir)
 		return
@@ -83,12 +83,6 @@ func Image(params Params) (details ImageDetails, err error) {
 	if key := filepath.Join(params.OutputDir, "key"); osutil.IsExist(key) {
 		if err := os.Chmod(key, 0600); err != nil {
 			return details, fmt.Errorf("failed to chmod 0600 %v: %v", key, err)
-		}
-	}
-	if signer, ok := builder.(signer); ok {
-		details.Signature, err = signer.sign(params)
-		if err != nil {
-			return
 		}
 	}
 	if details.CompilerID == "" {
@@ -120,12 +114,8 @@ func (err *KernelError) Error() string {
 }
 
 type builder interface {
-	build(params Params) error
+	build(params Params) (ImageDetails, error)
 	clean(kernelDir, targetArch string) error
-}
-
-type signer interface {
-	sign(params Params) (string, error)
 }
 
 func getBuilder(targetOS, targetArch, vmType string) (builder, error) {

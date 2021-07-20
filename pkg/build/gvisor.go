@@ -19,7 +19,7 @@ type gvisor struct{}
 
 var bazelTargetPath = regexp.MustCompile(`(?sm:.*^)\s*Outputs: \[(.*)\](?sm:$.*)`)
 
-func (gvisor gvisor) build(params Params) error {
+func (gvisor gvisor) build(params Params) (ImageDetails, error) {
 	if params.Compiler == "" {
 		params.Compiler = "bazel"
 	}
@@ -67,7 +67,7 @@ func (gvisor gvisor) build(params Params) error {
 	// on the first build after bazel/deps update. Also other gvisor instances running
 	// on the same machine contribute to longer build times.
 	if _, err := osutil.RunCmd(60*time.Minute, params.KernelDir, params.Compiler, buildArgs...); err != nil {
-		return err
+		return ImageDetails{}, err
 	}
 
 	// Find out a path to the runsc binary.
@@ -76,20 +76,20 @@ func (gvisor gvisor) build(params Params) error {
 	log.Logf(0, "bazel: %v", aqueryArgs)
 	out, err := osutil.RunCmd(time.Minute, params.KernelDir, params.Compiler, aqueryArgs...)
 	if err != nil {
-		return err
+		return ImageDetails{}, err
 	}
 
 	match := bazelTargetPath.FindSubmatch(out)
 	if match == nil {
-		return fmt.Errorf("failed to find the runsc binary")
+		return ImageDetails{}, fmt.Errorf("failed to find the runsc binary")
 	}
 	outBinary := filepath.Join(params.KernelDir, filepath.FromSlash(string(match[1])))
 
 	if err := osutil.CopyFile(outBinary, filepath.Join(params.OutputDir, "image")); err != nil {
-		return err
+		return ImageDetails{}, err
 	}
 	sysTarget := targets.Get(params.TargetOS, params.TargetArch)
-	return osutil.CopyFile(outBinary, filepath.Join(params.OutputDir, "obj", sysTarget.KernelObject))
+	return ImageDetails{}, osutil.CopyFile(outBinary, filepath.Join(params.OutputDir, "obj", sysTarget.KernelObject))
 }
 
 func (gvisor) clean(kernelDir, targetArch string) error {

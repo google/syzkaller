@@ -16,7 +16,7 @@ import (
 
 type freebsd struct{}
 
-func (ctx freebsd) build(params Params) error {
+func (ctx freebsd) build(params Params) (ImageDetails, error) {
 	confDir := fmt.Sprintf("%v/sys/%v/conf/", params.KernelDir, params.TargetArch)
 	confFile := "SYZKALLER"
 
@@ -38,16 +38,16 @@ options 	DIAGNOSTIC
 `)
 	}
 	if err := osutil.WriteFile(filepath.Join(confDir, confFile), config); err != nil {
-		return err
+		return ImageDetails{}, err
 	}
 
 	objPrefix := filepath.Join(params.KernelDir, "obj")
 	if err := ctx.make(params.KernelDir, objPrefix, "kernel-toolchain", "-DNO_CLEAN"); err != nil {
-		return err
+		return ImageDetails{}, err
 	}
 	if err := ctx.make(params.KernelDir, objPrefix, "buildkernel", "WITH_EXTRA_TCP_STACKS=",
 		fmt.Sprintf("KERNCONF=%v", confFile)); err != nil {
-		return err
+		return ImageDetails{}, err
 	}
 
 	kernelObjDir := filepath.Join(objPrefix, params.KernelDir,
@@ -60,7 +60,7 @@ options 	DIAGNOSTIC
 		fullSrc := filepath.Join(s.dir, s.src)
 		fullDst := filepath.Join(params.OutputDir, s.dst)
 		if err := osutil.CopyFile(fullSrc, fullDst); err != nil {
-			return fmt.Errorf("failed to copy %v -> %v: %v", fullSrc, fullDst, err)
+			return ImageDetails{}, fmt.Errorf("failed to copy %v -> %v: %v", fullSrc, fullDst, err)
 		}
 	}
 
@@ -105,9 +105,9 @@ sudo mdconfig -d -u ${md#md}
 `, objPrefix, params.KernelDir, confFile)
 
 	if debugOut, err := osutil.RunCmd(10*time.Minute, params.OutputDir, "/bin/sh", "-c", script); err != nil {
-		return fmt.Errorf("error copying kernel: %v\n%v", err, debugOut)
+		return ImageDetails{}, fmt.Errorf("error copying kernel: %v\n%v", err, debugOut)
 	}
-	return nil
+	return ImageDetails{}, nil
 }
 
 func (ctx freebsd) clean(kernelDir, targetArch string) error {

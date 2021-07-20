@@ -9,9 +9,9 @@ import (
 
 type darwin struct{}
 
-func (ctx darwin) build(params Params) error {
+func (ctx darwin) build(params Params) (ImageDetails, error) {
 	// TODO(HerrSpace): Implement this.
-	return fmt.Errorf("pkg/build: darwin.build not implemented")
+	return ImageDetails{}, fmt.Errorf("pkg/build: darwin.build not implemented")
 }
 
 func (ctx darwin) clean(kernelDir, targetArch string) error {
