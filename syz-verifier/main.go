@@ -24,8 +24,6 @@ import (
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/syz-verifier/stats"
-	"github.com/google/syzkaller/syz-verifier/verf"
 	"github.com/google/syzkaller/vm"
 )
 
@@ -57,7 +55,7 @@ type Verifier struct {
 	calls         map[*prog.Syscall]bool
 	reasons       map[*prog.Syscall]string
 	reportReasons bool
-	stats         *stats.Stats
+	stats         *Stats
 	statsWrite    io.Writer
 	newEnv        bool
 }
@@ -97,7 +95,7 @@ type progInfo struct {
 	prog       *prog.Prog
 	idx        int
 	serialized []byte
-	res        []*verf.Result
+	res        []*Result
 	// left contains the indices of kernels that haven't sent results for this
 	// program yet.
 	left map[int]bool
@@ -318,7 +316,7 @@ func (srv *RPCServer) UpdateUnsupported(a *rpctype.UpdateUnsupportedArgs, r *int
 	srv.notChecked--
 	if srv.notChecked == 0 {
 		vrf.finalizeCallSet(os.Stdout)
-		vrf.stats = stats.InitStats(vrf.calls, vrf.statsWrite)
+		vrf.stats = InitStats(vrf.calls, vrf.statsWrite)
 		vrf.choiceTable = vrf.target.BuildChoiceTable(nil, vrf.calls)
 		srv.cond.Signal()
 	}
@@ -364,7 +362,7 @@ func (srv *RPCServer) NextExchange(a *rpctype.NextExchangeArgs, r *rpctype.NextE
 	srv.mu.Lock()
 	defer srv.mu.Unlock()
 	if a.Info.Calls != nil {
-		res := &verf.Result{
+		res := &Result{
 			Pool:   a.Pool,
 			Hanged: a.Hanged,
 			Info:   a.Info,
@@ -405,7 +403,7 @@ func (srv *RPCServer) NextExchange(a *rpctype.NextExchangeArgs, r *rpctype.NextE
 // newResult is called when a Runner sends a new Result. It returns true if all
 // Results from the corresponding programs have been received and they can be
 // sent for verification. Otherwise, it returns false.
-func (srv *RPCServer) newResult(res *verf.Result, prog *progInfo) bool {
+func (srv *RPCServer) newResult(res *Result, prog *progInfo) bool {
 	prog.res = append(prog.res, res)
 	delete(prog.left, res.Pool)
 	return len(prog.left) == 0
@@ -415,9 +413,9 @@ func (srv *RPCServer) newResult(res *verf.Result, prog *progInfo) bool {
 // case differences are found, it will store a result report highlighting those
 // in th workdir/results directory. If writing the results fails, it returns an
 // error.
-func (vrf *Verifier) processResults(res []*verf.Result, prog *prog.Prog) {
+func (vrf *Verifier) processResults(res []*Result, prog *prog.Prog) {
 	vrf.stats.Progs++
-	rr := verf.Verify(res, prog, vrf.stats)
+	rr := Verify(res, prog, vrf.stats)
 	if rr == nil {
 		return
 	}
@@ -450,7 +448,7 @@ func (vrf *Verifier) processResults(res []*verf.Result, prog *prog.Prog) {
 	log.Printf("result-%d written successfully", oldest)
 }
 
-func createReport(rr *verf.ResultReport, pools int) []byte {
+func createReport(rr *ResultReport, pools int) []byte {
 	calls := strings.Split(rr.Prog, "\n")
 	calls = calls[:len(calls)-1]
 
@@ -493,7 +491,7 @@ func (srv *RPCServer) newProgram(poolIdx, vmIdx int) ([]byte, int) {
 			prog:       prog,
 			idx:        progIdx,
 			serialized: prog.Serialize(),
-			res:        make([]*verf.Result, 0),
+			res:        make([]*Result, 0),
 			left:       make(map[int]bool),
 		}
 		for idx, pool := range srv.pools {

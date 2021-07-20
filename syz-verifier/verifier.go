@@ -1,14 +1,11 @@
 // Copyright 2021 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// Package verf contains utilities for verifying the execution of the same
-// program on different kernels yield the same results.
-package verf
+package main
 
 import (
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/syz-verifier/stats"
 )
 
 // Result stores the results of executing a program.
@@ -49,7 +46,7 @@ type ReturnState struct {
 // Verify checks whether the Results of the same program, executed on different
 // kernels are the same. If that's not the case, it returns a ResultReport
 // which highlights the differences.
-func Verify(res []*Result, prog *prog.Prog, s *stats.Stats) *ResultReport {
+func Verify(res []*Result, prog *prog.Prog, s *Stats) *ResultReport {
 	rr := &ResultReport{
 		Prog: string(prog.Serialize()),
 	}

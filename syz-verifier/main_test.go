@@ -4,94 +4,16 @@ package main
 
 import (
 	"bytes"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/syz-verifier/stats"
-	"github.com/google/syzkaller/syz-verifier/verf"
 )
-
-var (
-	srv *RPCServer
-)
-
-func createTestServer(t *testing.T) {
-	target, err := prog.GetTarget("test", "64")
-	if err != nil {
-		t.Fatalf("failed to initialise test target: %v", err)
-	}
-	vrf := Verifier{
-		target:      target,
-		choiceTable: target.DefaultChoiceTable(),
-		rnd:         rand.New(rand.NewSource(time.Now().UnixNano())),
-		progIdx:     3,
-	}
-	vrf.resultsdir = makeTestResultDirectory(t)
-	vrf.stats = getTestStats()
-	srv, err = startRPCServer(&vrf)
-	if err != nil {
-		t.Fatalf("failed to initialise RPC server: %v", err)
-	}
-}
-
-func getTestProgram(t *testing.T) *prog.Prog {
-	p := "breaks_returns()\n" +
-		"minimize$0(0x1, 0x1)\n" +
-		"test$res0()\n"
-	target := prog.InitTargetTest(t, "test", "64")
-	prog, err := target.Deserialize([]byte(p), prog.Strict)
-	if err != nil {
-		t.Fatalf("failed to deserialise test program: %v", err)
-	}
-	return prog
-}
-
-func getTestStats() *stats.Stats {
-	return &stats.Stats{
-		Calls: map[string]*stats.CallStats{
-			"breaks_returns": {Name: "breaks_returns", States: map[int]bool{}},
-			"minimize$0":     {Name: "minimize$0", States: map[int]bool{}},
-			"test$res0":      {Name: "test$res0", States: map[int]bool{}},
-		},
-	}
-}
-
-func makeCallStats(name string, occurrences, mismatches int, states map[int]bool) *stats.CallStats {
-	return &stats.CallStats{Name: name,
-		Occurrences: occurrences,
-		Mismatches:  mismatches,
-		States:      states}
-}
-
-func makeTestResultDirectory(t *testing.T) string {
-	resultsdir := "test"
-	err := osutil.MkdirAll(resultsdir)
-	if err != nil {
-		t.Fatalf("failed to create results directory: %v", err)
-	}
-	resultsdir, err = filepath.Abs(resultsdir)
-	if err != nil {
-		t.Fatalf("failed to get absolute path of resultsdir: %v", err)
-	}
-	return resultsdir
-}
-
-func makeResult(pool int, errnos []int) *verf.Result {
-	r := &verf.Result{Pool: pool, Info: ipc.ProgInfo{Calls: []ipc.CallInfo{}}}
-	for _, e := range errnos {
-		r.Info.Calls = append(r.Info.Calls, ipc.CallInfo{Errno: e})
-	}
-	return r
-}
 
 func TestNewProgram(t *testing.T) {
 	tests := []struct {
@@ -115,7 +37,7 @@ func TestNewProgram(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			createTestServer(t)
+			srv := createTestServer(t)
 			srv.pools = map[int]*poolInfo{
 				1: {
 					vmRunners: map[int][]*progInfo{
@@ -153,21 +75,21 @@ func TestNewResult(t *testing.T) {
 	tests := []struct {
 		name      string
 		idx       int
-		res       verf.Result
+		res       Result
 		left      map[int]bool
 		wantReady bool
 	}{
 		{
 			name:      "Results ready for verification",
 			idx:       3,
-			res:       verf.Result{Pool: 1},
+			res:       Result{Pool: 1},
 			wantReady: true,
 			left:      map[int]bool{},
 		},
 		{
 			name:      "No results ready for verification",
 			idx:       1,
-			res:       verf.Result{Pool: 1},
+			res:       Result{Pool: 1},
 			wantReady: false,
 			left: map[int]bool{
 				2: true,
@@ -176,7 +98,7 @@ func TestNewResult(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			createTestServer(t)
+			srv := createTestServer(t)
 			srv.progs = map[int]*progInfo{
 				1: {idx: 1,
 					left: map[int]bool{1: true, 2: true}},
@@ -195,7 +117,7 @@ func TestNewResult(t *testing.T) {
 }
 
 func TestConnect(t *testing.T) {
-	createTestServer(t)
+	srv := createTestServer(t)
 	srv.pools = map[int]*poolInfo{
 		1: {
 			vmRunners: map[int][]*progInfo{
@@ -403,22 +325,22 @@ func TestUpdateUnsupportedNotCalledTwice(t *testing.T) {
 func TestProcessResults(t *testing.T) {
 	tests := []struct {
 		name      string
-		res       []*verf.Result
+		res       []*Result
 		prog      string
 		wantExist bool
-		wantStats *stats.Stats
+		wantStats *Stats
 	}{
 		{
 			name: "report written",
-			res: []*verf.Result{
+			res: []*Result{
 				makeResult(1, []int{1, 3, 2}),
 				makeResult(4, []int{1, 3, 5}),
 			},
 			wantExist: true,
-			wantStats: &stats.Stats{
+			wantStats: &Stats{
 				TotalMismatches: 1,
 				Progs:           1,
-				Calls: map[string]*stats.CallStats{
+				Calls: map[string]*CallStats{
 					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[int]bool{}),
 					"test$res0":      makeCallStats("test$res0", 1, 1, map[int]bool{2: true, 5: true}),
 					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[int]bool{}),
@@ -427,13 +349,13 @@ func TestProcessResults(t *testing.T) {
 		},
 		{
 			name: "no report written",
-			res: []*verf.Result{
+			res: []*Result{
 				makeResult(2, []int{11, 33, 22}),
 				makeResult(3, []int{11, 33, 22}),
 			},
-			wantStats: &stats.Stats{
+			wantStats: &Stats{
 				Progs: 1,
-				Calls: map[string]*stats.CallStats{
+				Calls: map[string]*CallStats{
 					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[int]bool{}),
 					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[int]bool{}),
 					"test$res0":      makeCallStats("test$res0", 1, 0, map[int]bool{}),
@@ -446,7 +368,7 @@ func TestProcessResults(t *testing.T) {
 			prog := getTestProgram(t)
 			vrf := Verifier{
 				resultsdir: makeTestResultDirectory(t),
-				stats:      getTestStats(),
+				stats:      emptyTestStats(),
 			}
 			resultFile := filepath.Join(vrf.resultsdir, "result-0")
 
@@ -465,20 +387,20 @@ func TestProcessResults(t *testing.T) {
 }
 
 func TestCreateReport(t *testing.T) {
-	rr := verf.ResultReport{
+	rr := ResultReport{
 		Prog: "breaks_returns()\n" +
 			"minimize$0(0x1, 0x1)\n" +
 			"test$res0()\n",
-		Reports: []*verf.CallReport{
-			{Call: "breaks_returns", States: map[int]verf.ReturnState{
+		Reports: []*CallReport{
+			{Call: "breaks_returns", States: map[int]ReturnState{
 				1: {Errno: 1, Flags: 1},
 				2: {Errno: 1, Flags: 1},
 				3: {Errno: 1, Flags: 1}}},
-			{Call: "minimize$0", States: map[int]verf.ReturnState{
+			{Call: "minimize$0", States: map[int]ReturnState{
 				1: {Errno: 3, Flags: 3},
 				2: {Errno: 3, Flags: 3},
 				3: {Errno: 3, Flags: 3}}},
-			{Call: "test$res0", States: map[int]verf.ReturnState{
+			{Call: "test$res0", States: map[int]ReturnState{
 				1: {Errno: 2, Flags: 7},
 				2: {Errno: 5, Flags: 3},
 				3: {Errno: 22, Flags: 1}},
@@ -507,7 +429,7 @@ func TestCleanup(t *testing.T) {
 		name       string
 		progs      map[int]*progInfo
 		wantProg   *progInfo
-		wantStats  *stats.Stats
+		wantStats  *Stats
 		progExists bool
 		fileExists bool
 	}{
@@ -522,7 +444,7 @@ func TestCleanup(t *testing.T) {
 				idx:  4,
 				left: map[int]bool{1: true, 2: true},
 			},
-			wantStats:  getTestStats(),
+			wantStats:  emptyTestStats(),
 			fileExists: false,
 		},
 		{
@@ -532,14 +454,14 @@ func TestCleanup(t *testing.T) {
 					idx:  4,
 					left: map[int]bool{0: true},
 					prog: prog,
-					res: []*verf.Result{
+					res: []*Result{
 						makeResult(1, []int{11, 33, 22}),
 						makeResult(2, []int{11, 33, 22}),
 					},
 				}},
-			wantStats: &stats.Stats{
+			wantStats: &Stats{
 				Progs: 1,
-				Calls: map[string]*stats.CallStats{
+				Calls: map[string]*CallStats{
 					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[int]bool{}),
 					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[int]bool{}),
 					"test$res0":      makeCallStats("test$res0", 1, 0, map[int]bool{}),
@@ -554,15 +476,15 @@ func TestCleanup(t *testing.T) {
 					idx:  4,
 					left: map[int]bool{0: true},
 					prog: prog,
-					res: []*verf.Result{
+					res: []*Result{
 						makeResult(1, []int{11, 33, 44}),
 						makeResult(2, []int{11, 33, 22}),
 					},
 				}},
-			wantStats: &stats.Stats{
+			wantStats: &Stats{
 				TotalMismatches: 1,
 				Progs:           1,
-				Calls: map[string]*stats.CallStats{
+				Calls: map[string]*CallStats{
 					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[int]bool{}),
 					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[int]bool{}),
 					"test$res0":      makeCallStats("test$res0", 1, 1, map[int]bool{22: true, 44: true}),
@@ -576,18 +498,18 @@ func TestCleanup(t *testing.T) {
 				4: {
 					idx:  4,
 					left: map[int]bool{0: true},
-					res: []*verf.Result{
+					res: []*Result{
 						makeResult(2, []int{11, 33, 22}),
 					},
 				}},
-			wantStats:  getTestStats(),
+			wantStats:  emptyTestStats(),
 			wantProg:   nil,
 			fileExists: false,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			createTestServer(t)
+			srv := createTestServer(t)
 			srv.progs = test.progs
 			srv.pools = map[int]*poolInfo{
 				0: {vmRunners: map[int][]*progInfo{

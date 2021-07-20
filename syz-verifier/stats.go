@@ -1,9 +1,7 @@
 // Copyright 2021 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// Package stats contains utilities that aid gathering statistics of
-// system call mismatches in the verified programs.
-package stats
+package main
 
 import (
 	"fmt"

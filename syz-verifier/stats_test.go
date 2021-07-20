@@ -1,7 +1,6 @@
 // Copyright 2021 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
-
-package stats
+package main
 
 import (
 	"bytes"
@@ -10,7 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func getTestStats() *Stats {
+func dummyStats() *Stats {
 	return &Stats{
 		Progs:           24,
 		TotalMismatches: 10,
@@ -44,7 +43,7 @@ func TestReportCallStats(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		s := getTestStats()
+		s := dummyStats()
 		t.Run(test.name, func(t *testing.T) {
 			got, want := s.ReportCallStats(test.call), test.report
 			if diff := cmp.Diff(want, got); diff != "" {
@@ -55,7 +54,7 @@ func TestReportCallStats(t *testing.T) {
 }
 
 func TestReportGlobalStats(t *testing.T) {
-	s := getTestStats()
+	s := dummyStats()
 	out := bytes.Buffer{}
 	s.ReportGlobalStats(&out, float64(10))
 	got, want := out.String(),
