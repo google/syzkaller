@@ -71,6 +71,10 @@ func makeResult(pool int, errnos []int, flags ...int) *Result {
 	return r
 }
 
+func makeResultCrashed(pool int) *Result {
+	return &Result{Pool: pool, Crashed: true}
+}
+
 func emptyTestStats() *Stats {
 	return &Stats{
 		Calls: map[string]*CallStats{
@@ -86,4 +90,16 @@ func makeCallStats(name string, occurrences, mismatches int, states map[ReturnSt
 		Occurrences: occurrences,
 		Mismatches:  mismatches,
 		States:      states}
+}
+
+func returnState(errno int, flags ...int) ReturnState {
+	rs := ReturnState{Errno: errno}
+	if flags != nil {
+		rs.Flags = ipc.CallFlags(flags[0])
+	}
+	return rs
+}
+
+func crashedReturnState() ReturnState {
+	return ReturnState{Crashed: true}
 }

@@ -41,22 +41,19 @@ func TestNewProgram(t *testing.T) {
 			srv.pools = map[int]*poolInfo{
 				1: {
 					vmRunners: map[int][]*progInfo{
-						0: {{
-							idx: 1, left: map[int]bool{1: true, 2: true}}},
+						0: {{idx: 1}},
 					},
-					progs: []*progInfo{{
-						idx: 3, left: map[int]bool{1: true}}},
+					progs: []*progInfo{{idx: 3}},
 				},
 				2: {vmRunners: map[int][]*progInfo{
-					2: {{
-						idx: 1, left: map[int]bool{1: true, 2: true}}},
-				},
+					2: {{idx: 1}}},
 					progs: []*progInfo{},
 				},
 			}
+
 			srv.progs = map[int]*progInfo{
-				1: {idx: 1, left: map[int]bool{1: true, 2: true}},
-				3: {idx: 3, left: map[int]bool{1: true}},
+				1: {idx: 1},
+				3: {idx: 3},
 			}
 
 			_, gotProgIdx := srv.newProgram(test.pool, test.vm)
@@ -76,7 +73,6 @@ func TestNewResult(t *testing.T) {
 		name      string
 		idx       int
 		res       Result
-		left      map[int]bool
 		wantReady bool
 	}{
 		{
@@ -84,33 +80,25 @@ func TestNewResult(t *testing.T) {
 			idx:       3,
 			res:       Result{Pool: 1},
 			wantReady: true,
-			left:      map[int]bool{},
 		},
 		{
 			name:      "No results ready for verification",
 			idx:       1,
 			res:       Result{Pool: 1},
 			wantReady: false,
-			left: map[int]bool{
-				2: true,
-			},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			srv := createTestServer(t)
 			srv.progs = map[int]*progInfo{
-				1: {idx: 1,
-					left: map[int]bool{1: true, 2: true}},
-				3: {idx: 3,
-					left: map[int]bool{1: true}},
+				1: {idx: 1},
+				3: {idx: 3, res: []*Result{{Pool: 2}}},
 			}
+			srv.pools = map[int]*poolInfo{1: {}, 2: {}}
 			gotReady := srv.newResult(&test.res, srv.progs[test.idx])
 			if test.wantReady != gotReady {
 				t.Errorf("srv.newResult: got %v want %v", gotReady, test.wantReady)
-			}
-			if diff := cmp.Diff(test.left, srv.progs[test.idx].left); diff != "" {
-				t.Errorf("srv.left mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -122,10 +110,10 @@ func TestConnect(t *testing.T) {
 		1: {
 			vmRunners: map[int][]*progInfo{
 				0: {{
-					idx: 1, left: map[int]bool{1: true, 2: true}}},
+					idx: 1}},
 			},
 			progs: []*progInfo{{
-				idx: 3, left: map[int]bool{1: true}}},
+				idx: 3}},
 		}}
 	a := &rpctype.RunnerConnectArgs{
 		Pool: 1,
@@ -139,7 +127,7 @@ func TestConnect(t *testing.T) {
 		t.Errorf("Connect result mismatch (-want +got):\n%s", diff)
 	}
 	want, got := map[int][]*progInfo{
-		0: {{idx: 1, left: map[int]bool{1: true, 2: true}}},
+		0: {{idx: 1}},
 		1: nil,
 	}, srv.pools[a.Pool].vmRunners
 	if diff := cmp.Diff(want, got, cmp.AllowUnexported(progInfo{})); diff != "" {
@@ -393,17 +381,17 @@ func TestCreateReport(t *testing.T) {
 			"test$res0()\n",
 		Reports: []*CallReport{
 			{Call: "breaks_returns", States: map[int]ReturnState{
-				1: {Errno: 1, Flags: 1},
-				2: {Errno: 1, Flags: 1},
-				3: {Errno: 1, Flags: 1}}},
+				1: returnState(1, 1),
+				2: returnState(1, 1),
+				3: returnState(1, 1)}},
 			{Call: "minimize$0", States: map[int]ReturnState{
-				1: {Errno: 3, Flags: 3},
-				2: {Errno: 3, Flags: 3},
-				3: {Errno: 3, Flags: 3}}},
+				1: returnState(3, 3),
+				2: returnState(3, 3),
+				3: returnState(3, 3)}},
 			{Call: "test$res0", States: map[int]ReturnState{
-				1: {Errno: 2, Flags: 7},
-				2: {Errno: 5, Flags: 3},
-				3: {Errno: 22, Flags: 1}},
+				1: returnState(2, 7),
+				2: returnState(5, 3),
+				3: returnState(22, 1)},
 				Mismatch: true},
 		},
 	}
@@ -437,12 +425,11 @@ func TestCleanup(t *testing.T) {
 			name: "results not ready for verification",
 			progs: map[int]*progInfo{
 				4: {
-					idx:  4,
-					left: map[int]bool{0: true, 1: true, 2: true},
+					idx: 4,
 				}},
 			wantProg: &progInfo{
-				idx:  4,
-				left: map[int]bool{1: true, 2: true},
+				idx: 4,
+				res: []*Result{makeResultCrashed(0)},
 			},
 			wantStats:  emptyTestStats(),
 			fileExists: false,
@@ -452,11 +439,10 @@ func TestCleanup(t *testing.T) {
 			progs: map[int]*progInfo{
 				4: {
 					idx:  4,
-					left: map[int]bool{0: true},
 					prog: prog,
 					res: []*Result{
-						makeResult(1, []int{11, 33, 22}),
-						makeResult(2, []int{11, 33, 22}),
+						makeResultCrashed(1),
+						makeResultCrashed(2),
 					},
 				}},
 			wantStats: &Stats{
@@ -474,7 +460,6 @@ func TestCleanup(t *testing.T) {
 			progs: map[int]*progInfo{
 				4: {
 					idx:  4,
-					left: map[int]bool{0: true},
 					prog: prog,
 					res: []*Result{
 						makeResult(1, []int{11, 33, 44}),
@@ -482,29 +467,25 @@ func TestCleanup(t *testing.T) {
 					},
 				}},
 			wantStats: &Stats{
-				TotalMismatches: 1,
+				TotalMismatches: 3,
 				Progs:           1,
 				Calls: map[string]*CallStats{
-					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[ReturnState]bool{}),
-					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[ReturnState]bool{}),
-					"test$res0":      makeCallStats("test$res0", 1, 1, map[ReturnState]bool{{Errno: 22}: true, {Errno: 44}: true}),
+					"breaks_returns": makeCallStats("breaks_returns", 1, 1,
+						map[ReturnState]bool{
+							crashedReturnState(): true,
+							returnState(11):      true}),
+					"minimize$0": makeCallStats("minimize$0", 1, 1,
+						map[ReturnState]bool{
+							crashedReturnState(): true,
+							returnState(33):      true}),
+					"test$res0": makeCallStats("test$res0", 1, 1,
+						map[ReturnState]bool{
+							crashedReturnState(): true,
+							returnState(22):      true,
+							returnState(44):      true}),
 				},
 			},
 			fileExists: true,
-		},
-		{
-			name: "not enough results to send for verification",
-			progs: map[int]*progInfo{
-				4: {
-					idx:  4,
-					left: map[int]bool{0: true},
-					res: []*Result{
-						makeResult(2, []int{11, 33, 22}),
-					},
-				}},
-			wantStats:  emptyTestStats(),
-			wantProg:   nil,
-			fileExists: false,
 		},
 	}
 	for _, test := range tests {
@@ -514,7 +495,7 @@ func TestCleanup(t *testing.T) {
 			srv.pools = map[int]*poolInfo{
 				0: {vmRunners: map[int][]*progInfo{
 					0: {srv.progs[4]}},
-				}}
+				}, 1: {}, 2: {}}
 			resultFile := filepath.Join(srv.vrf.resultsdir, "result-0")
 
 			srv.cleanup(0, 0)

@@ -21,6 +21,67 @@ func TestVerify(t *testing.T) {
 		wantStats  *Stats
 	}{
 		{
+			name: "only crashes",
+			res: []*Result{
+				makeResultCrashed(1),
+				makeResultCrashed(4),
+			},
+			wantReport: nil,
+			wantStats: &Stats{
+				Calls: map[string]*CallStats{
+					"breaks_returns": {Name: "breaks_returns", Occurrences: 1, States: map[ReturnState]bool{}},
+					"minimize$0":     {Name: "minimize$0", Occurrences: 1, States: map[ReturnState]bool{}},
+					"test$res0":      {Name: "test$res0", Occurrences: 1, States: map[ReturnState]bool{}},
+				},
+			},
+		},
+		{
+			name: "mismatches because results and crashes",
+			res: []*Result{
+				makeResultCrashed(1),
+				makeResult(2, []int{11, 33, 22}, []int{1, 3, 3}...),
+				makeResult(4, []int{11, 33, 22}, []int{1, 3, 3}...),
+			},
+			wantReport: &ResultReport{
+				Prog: p,
+				Reports: []*CallReport{
+					{Call: "breaks_returns", States: map[int]ReturnState{
+						1: crashedReturnState(),
+						2: returnState(11, 1),
+						4: returnState(11, 1)},
+						Mismatch: true},
+					{Call: "minimize$0", States: map[int]ReturnState{
+						1: crashedReturnState(),
+						2: returnState(33, 3),
+						4: returnState(33, 3)},
+						Mismatch: true},
+					{Call: "test$res0", States: map[int]ReturnState{
+						1: crashedReturnState(),
+						2: returnState(22, 3),
+						4: returnState(22, 3)},
+						Mismatch: true},
+				},
+			},
+			wantStats: &Stats{
+				TotalMismatches: 6,
+				Calls: map[string]*CallStats{
+					"breaks_returns": {Name: "breaks_returns", Occurrences: 1, Mismatches: 2, States: map[ReturnState]bool{
+						crashedReturnState(): true,
+						returnState(11, 1):   true,
+					}},
+					"minimize$0": {Name: "minimize$0", Occurrences: 1,
+						Mismatches: 2, States: map[ReturnState]bool{
+							crashedReturnState(): true,
+							returnState(33, 3):   true,
+						}},
+					"test$res0": {Name: "test$res0", Occurrences: 1,
+						Mismatches: 2, States: map[ReturnState]bool{
+							crashedReturnState(): true,
+							returnState(22, 3):   true}},
+				},
+			},
+		},
+		{
 			name: "mismatches not found in results",
 			res: []*Result{
 				makeResult(2, []int{11, 33, 22}, []int{1, 3, 3}...),
@@ -43,9 +104,9 @@ func TestVerify(t *testing.T) {
 			wantReport: &ResultReport{
 				Prog: p,
 				Reports: []*CallReport{
-					{Call: "breaks_returns", States: map[int]ReturnState{1: {1, 4}, 4: {1, 4}}},
-					{Call: "minimize$0", States: map[int]ReturnState{1: {3, 7}, 4: {3, 7}}},
-					{Call: "test$res0", States: map[int]ReturnState{1: {2, 7}, 4: {5, 3}}, Mismatch: true},
+					{Call: "breaks_returns", States: map[int]ReturnState{1: {Errno: 1, Flags: 4}, 4: {Errno: 1, Flags: 4}}},
+					{Call: "minimize$0", States: map[int]ReturnState{1: {Errno: 3, Flags: 7}, 4: {Errno: 3, Flags: 7}}},
+					{Call: "test$res0", States: map[int]ReturnState{1: {Errno: 2, Flags: 7}, 4: {Errno: 5, Flags: 3}}, Mismatch: true},
 				},
 			},
 			wantStats: &Stats{

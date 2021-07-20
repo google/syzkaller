@@ -20,6 +20,8 @@ type Result struct {
 	// Info contains information about the execution of each system call
 	// in the generated programs.
 	Info ipc.ProgInfo
+	// Crashed is set to true if a crash occurred while executing the program.
+	Crashed bool
 }
 
 type ResultReport struct {
@@ -44,18 +46,24 @@ type ReturnState struct {
 	Errno int
 	// Flags stores the call flags (see pkg/ipc/ipc.go).
 	Flags ipc.CallFlags
+	// Crashed is set to true if the kernel crashed while executing the program
+	// that contains the system call.
+	Crashed bool
 }
 
 func (s ReturnState) String() string {
 	state := ""
-	if s.Flags != 0 {
-		state += fmt.Sprintf("Flags: %d, ", s.Flags)
+
+	if s.Crashed {
+		return "Crashed"
 	}
+
+	state += fmt.Sprintf("Flags: %d, ", s.Flags)
 	errDesc := "success"
 	if s.Errno != 0 {
 		errDesc = syscall.Errno(s.Errno).Error()
 	}
-	state += fmt.Sprintf("Errno: %d (%s)\n", s.Errno, errDesc)
+	state += fmt.Sprintf("Errno: %d (%s)", s.Errno, errDesc)
 	return state
 }
 
@@ -78,8 +86,13 @@ func Verify(res []*Result, prog *prog.Prog, s *Stats) *ResultReport {
 		}
 
 		for _, r := range res {
+			if r.Crashed {
+				cr.States[r.Pool] = ReturnState{Crashed: true}
+				continue
+			}
+
 			ci := r.Info.Calls[idx]
-			cr.States[r.Pool] = ReturnState{ci.Errno, ci.Flags}
+			cr.States[r.Pool] = ReturnState{Errno: ci.Errno, Flags: ci.Flags}
 		}
 		rr.Reports = append(rr.Reports, cr)
 	}
@@ -91,8 +104,8 @@ func Verify(res []*Result, prog *prog.Prog, s *Stats) *ResultReport {
 
 		mismatch := false
 		for _, state := range cr.States {
-			// For each CallReport verify the ReturnStates from all the pools
-			// that executed the program are the same
+			// For each CallReport, verify whether the ReturnStates from all
+			// the pools that executed the program are the same
 			if state0 := cr.States[pool0]; state0 != state {
 				cr.Mismatch = true
 				send = true
