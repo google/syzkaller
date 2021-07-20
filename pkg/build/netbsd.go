@@ -22,23 +22,23 @@ import (
 
 type netbsd struct{}
 
-func (ctx netbsd) build(params Params) error {
+func (ctx netbsd) build(params Params) (ImageDetails, error) {
 	const kernelName = "GENERIC_SYZKALLER"
 	confDir := fmt.Sprintf("%v/sys/arch/%v/conf", params.KernelDir, params.TargetArch)
 	compileDir := fmt.Sprintf("%v/sys/arch/%v/compile/obj/%v", params.KernelDir, params.TargetArch, kernelName)
 
 	if err := osutil.WriteFile(filepath.Join(confDir, kernelName), params.Config); err != nil {
-		return err
+		return ImageDetails{}, err
 	}
 
 	// Clear the tools.
 	if _, err := osutil.RunCmd(5*time.Minute, params.KernelDir, "rm", "-rf", "obj/"); err != nil {
-		return err
+		return ImageDetails{}, err
 	}
 
 	// Clear the build files.
 	if _, err := osutil.RunCmd(5*time.Minute, params.KernelDir, "rm", "-rf", compileDir); err != nil {
-		return err
+		return ImageDetails{}, err
 	}
 
 	if strings.HasSuffix(params.Compiler, "clang++") {
@@ -46,24 +46,24 @@ func (ctx netbsd) build(params Params) error {
 		if _, err := osutil.RunCmd(60*time.Minute, params.KernelDir, "./build.sh", "-m", params.TargetArch,
 			"-U", "-j"+strconv.Itoa(runtime.NumCPU()), "-V", "MKCTF=no",
 			"-V", "MKLLVM=yes", "-V", "MKGCC=no", "-V", "HAVE_LLVM=yes", "tools"); err != nil {
-			return err
+			return ImageDetails{}, err
 		}
 
 		// Build kernel.
 		if _, err := osutil.RunCmd(20*time.Minute, params.KernelDir, "./build.sh", "-m", params.TargetArch,
 			"-U", "-j"+strconv.Itoa(runtime.NumCPU()), "-V", "MKCTF=no",
 			"-V", "MKLLVM=yes", "-V", "MKGCC=no", "-V", "HAVE_LLVM=yes", "kernel="+kernelName); err != nil {
-			return err
+			return ImageDetails{}, err
 		}
 	} else if strings.HasSuffix(params.Compiler, "g++") {
 		if _, err := osutil.RunCmd(30*time.Minute, params.KernelDir, "./build.sh", "-m", params.TargetArch,
 			"-U", "-j"+strconv.Itoa(runtime.NumCPU()), "-V", "MKCTF=no", "tools"); err != nil {
-			return err
+			return ImageDetails{}, err
 		}
 
 		if _, err := osutil.RunCmd(20*time.Minute, params.KernelDir, "./build.sh", "-m", params.TargetArch,
 			"-U", "-j"+strconv.Itoa(runtime.NumCPU()), "-V", "MKCTF=no", "kernel="+kernelName); err != nil {
-			return err
+			return ImageDetails{}, err
 		}
 	}
 
@@ -75,14 +75,14 @@ func (ctx netbsd) build(params Params) error {
 		fullSrc := filepath.Join(s.dir, s.src)
 		fullDst := filepath.Join(params.OutputDir, s.dst)
 		if err := osutil.CopyFile(fullSrc, fullDst); err != nil {
-			return fmt.Errorf("failed to copy %v -> %v: %v", fullSrc, fullDst, err)
+			return ImageDetails{}, fmt.Errorf("failed to copy %v -> %v: %v", fullSrc, fullDst, err)
 		}
 	}
 	keyFile := filepath.Join(params.OutputDir, "key")
 	if err := os.Chmod(keyFile, 0600); err != nil {
-		return fmt.Errorf("failed to chmod 0600 %v: %v", keyFile, err)
+		return ImageDetails{}, fmt.Errorf("failed to chmod 0600 %v: %v", keyFile, err)
 	}
-	return ctx.copyKernelToDisk(params.TargetArch, params.VMType, params.OutputDir,
+	return ImageDetails{}, ctx.copyKernelToDisk(params.TargetArch, params.VMType, params.OutputDir,
 		filepath.Join(compileDir, "netbsd"))
 }
 
