@@ -74,14 +74,14 @@ func makeResult(pool int, errnos []int, flags ...int) *Result {
 func emptyTestStats() *Stats {
 	return &Stats{
 		Calls: map[string]*CallStats{
-			"breaks_returns": {Name: "breaks_returns", States: map[int]bool{}},
-			"minimize$0":     {Name: "minimize$0", States: map[int]bool{}},
-			"test$res0":      {Name: "test$res0", States: map[int]bool{}},
+			"breaks_returns": {Name: "breaks_returns", States: map[ReturnState]bool{}},
+			"minimize$0":     {Name: "minimize$0", States: map[ReturnState]bool{}},
+			"test$res0":      {Name: "test$res0", States: map[ReturnState]bool{}},
 		},
 	}
 }
 
-func makeCallStats(name string, occurrences, mismatches int, states map[int]bool) *CallStats {
+func makeCallStats(name string, occurrences, mismatches int, states map[ReturnState]bool) *CallStats {
 	return &CallStats{Name: name,
 		Occurrences: occurrences,
 		Mismatches:  mismatches,
