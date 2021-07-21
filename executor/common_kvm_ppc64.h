@@ -84,6 +84,10 @@ struct kvm_ppc_mmuv3_cfg {
 #define KVM_PPC_MMUV3_GTSE 2 // global translation shootdown enb
 #endif
 
+#ifndef KVM_CAP_PPC_NESTED_HV
+#define KVM_CAP_PPC_NESTED_HV 160
+#endif
+
 struct kvm_text {
 	uintptr_t typ;
 	const void* text;
@@ -120,6 +124,16 @@ static int kvm_vcpu_enable_cap(int cpufd, uint32 capability)
 	    .cap = capability,
 	};
 	return ioctl(cpufd, KVM_ENABLE_CAP, &cap);
+}
+
+static int kvm_vm_enable_cap(int vmfd, uint32 capability, uint64 p1, uint64 p2)
+{
+	struct kvm_enable_cap cap = {
+	    .cap = capability,
+	    .flags = 0,
+	    .args = {p1, p2},
+	};
+	return ioctl(vmfd, KVM_ENABLE_CAP, &cap);
 }
 
 static void dump_text(const char* mem, unsigned start, unsigned cw, uint32 debug_inst_opcode)
@@ -169,6 +183,9 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 	NONFAILING(text_size = text_array_ptr[0].size);
 
 	if (kvm_vcpu_enable_cap(cpufd, KVM_CAP_PPC_PAPR))
+		return -1;
+
+	if (kvm_vm_enable_cap(vmfd, KVM_CAP_PPC_NESTED_HV, true, 0))
 		return -1;
 
 	for (uintptr_t i = 0; i < guest_mem_size / page_size; i++) {
