@@ -142,6 +142,10 @@ func elfReadModuleCoverPoints(target *targets.Target, module *Module, info *symb
 	callRelocType := arches[target.Arch].callRelocType
 	relaOffset := arches[target.Arch].relaOffset
 	s := file.Section(".rela.text")
+	if s == nil {
+		log.Logf(1, "module %v doesn't have .rela.text section\n", module.Name)
+		return pcs, nil
+	}
 	rel := new(elf.Rela64)
 	for r := s.Open(); ; {
 		if err := binary.Read(r, binary.LittleEndian, rel); err != nil {
