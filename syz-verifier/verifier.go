@@ -88,18 +88,24 @@ func Verify(res []*Result, prog *prog.Prog, s *Stats) *ResultReport {
 	pool0 := res[0].Pool
 	for _, cr := range rr.Reports {
 		cs := s.Calls[cr.Call]
+
+		mismatch := false
 		for _, state := range cr.States {
 			// For each CallReport verify the ReturnStates from all the pools
 			// that executed the program are the same
 			if state0 := cr.States[pool0]; state0 != state {
 				cr.Mismatch = true
 				send = true
+				mismatch = true
 
-				s.TotalMismatches++
-				cs.Mismatches++
 				cs.States[state] = true
 				cs.States[state0] = true
 			}
+		}
+
+		if mismatch {
+			cs.Mismatches++
+			s.TotalMismatches++
 		}
 	}
 
