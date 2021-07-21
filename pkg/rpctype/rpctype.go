@@ -12,10 +12,11 @@ import (
 )
 
 type RPCInput struct {
-	Call   string
-	Prog   []byte
-	Signal signal.Serial
-	Cover  []uint32
+	Call    string
+	Prog    []byte
+	Signal  signal.Serial
+	Cover   []uint32
+	Offsets map[string][]uint32
 }
 
 type RPCCandidate struct {
@@ -33,7 +34,7 @@ type RPCProg struct {
 type ConnectArgs struct {
 	Name        string
 	MachineInfo []byte
-	Modules     []host.KernelModule
+	Modules     []*host.KernelModule
 }
 
 type ConnectRes struct {

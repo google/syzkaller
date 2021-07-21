@@ -88,7 +88,7 @@ type Manager struct {
 	// Maps file name to modification time.
 	usedFiles map[string]time.Time
 
-	modules            []host.KernelModule
+	modules            []*host.KernelModule
 	coverFilter        map[uint32]uint32
 	coverFilterBitmap  []byte
 	modulesInitialized bool
@@ -994,7 +994,7 @@ func (mgr *Manager) minimizeCorpus() {
 			// Empirically, real coverage for the most saturated syscalls is ~30-60
 			// per program (even when we have a thousand of them). For explosion
 			// case coverage tend to be much lower (~0.3-5 per program).
-			if info.count < 3000 && len(info.cov)/info.count >= 10 {
+			if info.count < 3000 && info.offsets.CountOffsets()/info.count >= 10 {
 				continue
 			}
 		} else {
@@ -1027,7 +1027,7 @@ func (mgr *Manager) minimizeCorpus() {
 
 type CallCov struct {
 	count int
-	cov   cover.Cover
+	offsets   cover.Offsets
 }
 
 func (mgr *Manager) collectSyscallInfo() map[string]*CallCov {
@@ -1050,12 +1050,12 @@ func (mgr *Manager) collectSyscallInfoUnlocked() map[string]*CallCov {
 		}
 		cc := calls[inp.Call]
 		cc.count++
-		cc.cov.Merge(inp.Cover)
+		cc.offsets.Merge(inp.Offsets)
 	}
 	return calls
 }
 
-func (mgr *Manager) fuzzerConnect(modules []host.KernelModule) (
+func (mgr *Manager) fuzzerConnect(modules []*host.KernelModule) (
 	[]rpctype.RPCInput, BugFrames, map[uint32]uint32, []byte, error) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
@@ -1087,6 +1087,10 @@ func (mgr *Manager) fuzzerConnect(modules []host.KernelModule) (
 	return corpus, frames, mgr.coverFilter, mgr.coverFilterBitmap, nil
 }
 
+func (mgr *Manager) isModuleInitialized() bool {
+	return mgr.modulesInitialized
+}
+
 func (mgr *Manager) machineChecked(a *rpctype.CheckArgs, enabledSyscalls map[*prog.Syscall]bool) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
@@ -1108,10 +1112,10 @@ func (mgr *Manager) newInput(inp rpctype.RPCInput, sign signal.Signal) bool {
 		// The input is already present, but possibly with diffent signal/coverage/call.
 		sign.Merge(old.Signal.Deserialize())
 		old.Signal = sign.Serialize()
-		var cov cover.Cover
-		cov.Merge(old.Cover)
-		cov.Merge(inp.Cover)
-		old.Cover = cov.Serialize()
+		var co cover.Offsets
+		co.Merge(old.Offsets)
+		co.Merge(inp.Offsets)
+		old.Offsets = co.Serialize()
 		mgr.corpus[sig] = old
 	} else {
 		mgr.corpus[sig] = inp

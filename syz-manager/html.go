@@ -100,7 +100,7 @@ func (mgr *Manager) httpSyscalls(w http.ResponseWriter, r *http.Request) {
 			Name:   c,
 			ID:     mgr.target.SyscallMap[c].ID,
 			Inputs: cc.count,
-			Cover:  len(cc.cov),
+			Cover:  cc.offsets.CountOffsets(),
 		})
 	}
 	sort.Slice(data.Calls, func(i, j int) bool {
@@ -204,10 +204,14 @@ func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, fmt.Sprintf("failed to deserialize program: %v", err), http.StatusInternalServerError)
 			return
 		}
+		count := 0
+		for _, offsets := range inp.Offsets {
+			count += len(offsets)
+		}
 		data.Inputs = append(data.Inputs, &UIInput{
 			Sig:   sig,
 			Short: p.String(),
-			Cover: len(inp.Cover),
+			Cover: count,
 		})
 	}
 	sort.Slice(data.Inputs, func(i, j int) bool {
@@ -291,7 +295,7 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 		inp := mgr.corpus[sig]
 		progs = append(progs, cover.Prog{
 			Data: string(inp.Prog),
-			PCs:  coverToPCs(rg, inp.Cover),
+			PCs:  offsetsToPCs(mgr.sysTarget, mgr.modules, rg, inp.Offsets),
 		})
 	} else {
 		call := r.FormValue("call")
@@ -301,7 +305,7 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 			}
 			progs = append(progs, cover.Prog{
 				Data: string(inp.Prog),
-				PCs:  coverToPCs(rg, inp.Cover),
+				PCs:  offsetsToPCs(mgr.sysTarget, mgr.modules, rg, inp.Offsets),
 			})
 		}
 	}

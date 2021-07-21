@@ -16,31 +16,40 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-func discoverModules(target *targets.Target, objDir string, moduleObj []string, hostModules []host.KernelModule) (
+func discoverModules(target *targets.Target, objDir string, moduleObj []string, hostModules []*host.KernelModule) (
 	[]*Module, error) {
 	modules := []*Module{
 		// A dummy module representing the kernel itself.
 		{Path: filepath.Join(objDir, target.KernelObject)},
 	}
 	if target.OS == targets.Linux {
+		for _, module := range hostModules {
+			if module.Name == "" {
+				modules[0].Addr = module.Addr
+				break
+			}
+		}
 		modules1, err := discoverModulesLinux(append([]string{objDir}, moduleObj...), hostModules)
 		if err != nil {
 			return nil, err
 		}
 		modules = append(modules, modules1...)
-	} else if len(hostModules) != 0 {
+	} else if len(hostModules) != 1 {
 		return nil, fmt.Errorf("%v coverage does not support modules", target.OS)
 	}
 	return modules, nil
 }
 
-func discoverModulesLinux(dirs []string, hostModules []host.KernelModule) ([]*Module, error) {
+func discoverModulesLinux(dirs []string, hostModules []*host.KernelModule) ([]*Module, error) {
 	paths, err := locateModules(dirs)
 	if err != nil {
 		return nil, err
 	}
 	var modules []*Module
 	for _, mod := range hostModules {
+		if mod.Name == "" {
+			continue
+		}
 		path := paths[mod.Name]
 		if path == "" {
 			log.Logf(0, "failed to discover module %v", mod.Name)

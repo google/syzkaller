@@ -125,8 +125,8 @@ func readKVMInfo(buffer *bytes.Buffer) error {
 	return nil
 }
 
-func getModulesInfo() ([]KernelModule, error) {
-	var modules []KernelModule
+func getModulesInfo() ([]*KernelModule, error) {
+	var modules []*KernelModule
 	modulesText, _ := ioutil.ReadFile("/proc/modules")
 	re := regexp.MustCompile(`(\w+) .*(0[x|X][a-fA-F0-9]+)[^\n]*`)
 	for _, m := range re.FindAllSubmatch(modulesText, -1) {
@@ -134,7 +134,7 @@ func getModulesInfo() ([]KernelModule, error) {
 		if err != nil {
 			return nil, fmt.Errorf("address parsing error in /proc/modules: %v", err)
 		}
-		modules = append(modules, KernelModule{
+		modules = append(modules, &KernelModule{
 			Name: string(m[1]),
 			Addr: addr,
 		})

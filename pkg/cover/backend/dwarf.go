@@ -66,7 +66,7 @@ var arches = map[string]Arch{
 }
 
 func makeDWARF(target *targets.Target, objDir, srcDir, buildDir string,
-	moduleObj []string, hostModules []host.KernelModule, fn *containerFns) (
+	moduleObj []string, hostModules []*host.KernelModule, fn *containerFns) (
 	*Impl, error) {
 	modules, err := discoverModules(target, objDir, moduleObj, hostModules)
 	if err != nil {

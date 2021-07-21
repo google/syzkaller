@@ -15,7 +15,7 @@ import (
 )
 
 func makeMachO(target *targets.Target, objDir, srcDir, buildDir string,
-	moduleObj []string, hostModules []host.KernelModule) (*Impl, error) {
+	moduleObj []string, hostModules []*host.KernelModule) (*Impl, error) {
 	return makeDWARF(target, objDir, srcDir, buildDir, moduleObj, hostModules,
 		&containerFns{
 			readSymbols:           machoReadSymbols,

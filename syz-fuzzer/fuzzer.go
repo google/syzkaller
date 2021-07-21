@@ -292,7 +292,7 @@ func main() {
 	fuzzer.pollLoop()
 }
 
-func collectMachineInfos(target *prog.Target) ([]byte, []host.KernelModule) {
+func collectMachineInfos(target *prog.Target) ([]byte, []*host.KernelModule) {
 	machineInfo, err := host.CollectMachineInfo()
 	if err != nil {
 		log.Fatalf("failed to collect machine information: %v", err)
