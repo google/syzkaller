@@ -95,6 +95,8 @@ type progInfo struct {
 	idx        int
 	serialized []byte
 	res        []*Result
+	// received stores the number of results received for this program.
+	received int
 }
 
 type runnerProgs map[int]*progInfo
@@ -401,8 +403,9 @@ func (srv *RPCServer) NextExchange(a *rpctype.NextExchangeArgs, r *rpctype.NextE
 // Results from the corresponding programs have been received and they can be
 // sent for verification. Otherwise, it returns false.
 func (srv *RPCServer) newResult(res *Result, prog *progInfo) bool {
-	prog.res = append(prog.res, res)
-	return len(prog.res) == len(srv.pools)
+	prog.res[res.Pool] = res
+	prog.received++
+	return prog.received == len(srv.pools)
 }
 
 // processResults will send a set of complete results for verification and, in
@@ -458,12 +461,7 @@ func createReport(rr *ResultReport, pools int) []byte {
 
 		// Ensure results are ordered by pool index.
 		for i := 0; i < pools; i++ {
-			state, ok := cr.States[i]
-			if !ok {
-				// VM crashed so we don't have reports from this pool.
-				continue
-			}
-
+			state := cr.States[i]
 			data += fmt.Sprintf("\t↳ Pool: %d, %s\n", i, state)
 		}
 
@@ -483,6 +481,7 @@ func (srv *RPCServer) newProgram(poolIdx, vmIdx int) ([]byte, int) {
 			prog:       prog,
 			idx:        progIdx,
 			serialized: prog.Serialize(),
+			res:        make([]*Result, len(srv.pools)),
 		}
 		for _, pool := range srv.pools {
 			pool.progs = append(pool.progs, pi)

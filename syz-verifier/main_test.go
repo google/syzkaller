@@ -72,31 +72,37 @@ func TestNewResult(t *testing.T) {
 	tests := []struct {
 		name      string
 		idx       int
-		res       Result
 		wantReady bool
 	}{
 		{
 			name:      "Results ready for verification",
 			idx:       3,
-			res:       Result{Pool: 1},
 			wantReady: true,
 		},
 		{
 			name:      "No results ready for verification",
 			idx:       1,
-			res:       Result{Pool: 1},
 			wantReady: false,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			srv := createTestServer(t)
+			srv.pools = map[int]*poolInfo{0: {}, 1: {}}
 			srv.progs = map[int]*progInfo{
-				1: {idx: 1},
-				3: {idx: 3, res: []*Result{{Pool: 2}}},
+				1: {idx: 1,
+					res: make([]*Result, 2),
+				},
+				3: {idx: 3,
+					res: func() []*Result {
+						res := make([]*Result, 2)
+						res[1] = &Result{Pool: 1}
+						return res
+					}(),
+					received: 1,
+				},
 			}
-			srv.pools = map[int]*poolInfo{1: {}, 2: {}}
-			gotReady := srv.newResult(&test.res, srv.progs[test.idx])
+			gotReady := srv.newResult(&Result{Pool: 0}, srv.progs[test.idx])
 			if test.wantReady != gotReady {
 				t.Errorf("srv.newResult: got %v want %v", gotReady, test.wantReady)
 			}
@@ -320,8 +326,8 @@ func TestProcessResults(t *testing.T) {
 		{
 			name: "report written",
 			res: []*Result{
-				makeResult(1, []int{1, 3, 2}),
-				makeResult(4, []int{1, 3, 5}),
+				makeResult(0, []int{1, 3, 2}),
+				makeResult(1, []int{1, 3, 5}),
 			},
 			wantExist: true,
 			wantStats: &Stats{
@@ -337,8 +343,8 @@ func TestProcessResults(t *testing.T) {
 		{
 			name: "no report written",
 			res: []*Result{
-				makeResult(2, []int{11, 33, 22}),
-				makeResult(3, []int{11, 33, 22}),
+				makeResult(0, []int{11, 33, 22}),
+				makeResult(1, []int{11, 33, 22}),
 			},
 			wantStats: &Stats{
 				Progs: 1,
@@ -380,31 +386,34 @@ func TestCreateReport(t *testing.T) {
 			"test$res0()\n",
 		Reports: []*CallReport{
 			{Call: "breaks_returns", States: map[int]ReturnState{
+				0: returnState(1, 1),
 				1: returnState(1, 1),
-				2: returnState(1, 1),
-				3: returnState(1, 1)}},
+				2: returnState(1, 1)}},
 			{Call: "minimize$0", States: map[int]ReturnState{
+				0: returnState(3, 3),
 				1: returnState(3, 3),
-				2: returnState(3, 3),
-				3: returnState(3, 3)}},
+				2: returnState(3, 3)}},
 			{Call: "test$res0", States: map[int]ReturnState{
-				1: returnState(2, 7),
-				2: returnState(5, 3),
-				3: returnState(22, 1)},
+				0: returnState(2, 7),
+				1: returnState(5, 3),
+				2: returnState(22, 1)},
 				Mismatch: true},
 		},
 	}
 	got := string(createReport(&rr, 3))
 	want := "ERRNO mismatches found for program:\n\n" +
 		"[=] breaks_returns()\n" +
+		"\t↳ Pool: 0, Flags: 1, Errno: 1 (operation not permitted)\n" +
 		"\t↳ Pool: 1, Flags: 1, Errno: 1 (operation not permitted)\n" +
 		"\t↳ Pool: 2, Flags: 1, Errno: 1 (operation not permitted)\n\n" +
 		"[=] minimize$0(0x1, 0x1)\n" +
+		"\t↳ Pool: 0, Flags: 3, Errno: 3 (no such process)\n" +
 		"\t↳ Pool: 1, Flags: 3, Errno: 3 (no such process)\n" +
 		"\t↳ Pool: 2, Flags: 3, Errno: 3 (no such process)\n\n" +
 		"[!] test$res0()\n" +
-		"\t↳ Pool: 1, Flags: 7, Errno: 2 (no such file or directory)\n" +
-		"\t↳ Pool: 2, Flags: 3, Errno: 5 (input/output error)\n\n"
+		"\t↳ Pool: 0, Flags: 7, Errno: 2 (no such file or directory)\n" +
+		"\t↳ Pool: 1, Flags: 3, Errno: 5 (input/output error)\n" +
+		"\t↳ Pool: 2, Flags: 1, Errno: 22 (invalid argument)\n\n"
 	if diff := cmp.Diff(got, want); diff != "" {
 		t.Errorf("createReport: (-want +got):\n%s", diff)
 	}
@@ -424,11 +433,17 @@ func TestCleanup(t *testing.T) {
 			name: "results not ready for verification",
 			progs: map[int]*progInfo{
 				4: {
-					idx: 4,
+					idx:      4,
+					received: 0,
+					res: func() []*Result {
+						res := make([]*Result, 3)
+						return res
+					}(),
 				}},
 			wantProg: &progInfo{
-				idx: 4,
-				res: []*Result{makeResultCrashed(0)},
+				idx:      4,
+				received: 1,
+				res:      []*Result{makeResultCrashed(0), nil, nil},
 			},
 			wantStats:  emptyTestStats(),
 			fileExists: false,
@@ -437,12 +452,15 @@ func TestCleanup(t *testing.T) {
 			name: "results sent for verification, no report generated",
 			progs: map[int]*progInfo{
 				4: {
-					idx:  4,
-					prog: prog,
-					res: []*Result{
-						makeResultCrashed(1),
-						makeResultCrashed(2),
-					},
+					idx:      4,
+					prog:     prog,
+					received: 2,
+					res: func() []*Result {
+						res := make([]*Result, 3)
+						res[1] = makeResultCrashed(1)
+						res[2] = makeResultCrashed(2)
+						return res
+					}(),
 				}},
 			wantStats: &Stats{
 				Progs: 1,
@@ -458,12 +476,15 @@ func TestCleanup(t *testing.T) {
 			name: "results sent for verification, report generation",
 			progs: map[int]*progInfo{
 				4: {
-					idx:  4,
-					prog: prog,
-					res: []*Result{
-						makeResult(1, []int{11, 33, 44}),
-						makeResult(2, []int{11, 33, 22}),
-					},
+					idx:      4,
+					prog:     prog,
+					received: 2,
+					res: func() []*Result {
+						res := make([]*Result, 3)
+						res[1] = makeResult(1, []int{11, 33, 44})
+						res[2] = makeResult(2, []int{11, 33, 22})
+						return res
+					}(),
 				}},
 			wantStats: &Stats{
 				TotalMismatches: 3,
