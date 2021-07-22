@@ -138,6 +138,7 @@ func (target *Target) lazyInit() {
 }
 
 func (target *Target) initTarget() {
+	checkMaxCallID(len(target.Syscalls) - 1)
 	target.ConstMap = make(map[string]uint64)
 	for _, c := range target.Consts {
 		target.ConstMap[c.Name] = c.Value

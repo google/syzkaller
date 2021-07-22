@@ -195,7 +195,10 @@ const (
 	fallbackSignalErrnoBlocked
 	fallbackSignalCtor
 	fallbackSignalFlags
-	fallbackCallMask = 0x1fff
+	// This allows us to have 2M syscalls and leaves 8 bits for 256 errno values.
+	// Linux currently have 133 errno's. Larger errno values will be truncated,
+	// which is acceptable for fallback coverage.
+	fallbackCallMask = 0x1fffff
 )
 
 func (p *Prog) FallbackSignal(info []CallInfo) {
@@ -297,15 +300,19 @@ func DecodeFallbackSignal(s uint32) (callID, errno int) {
 }
 
 func encodeFallbackSignal(typ, id, aux int) uint32 {
+	checkMaxCallID(id)
 	if typ & ^7 != 0 {
 		panic(fmt.Sprintf("bad fallback signal type %v", typ))
 	}
-	if id & ^fallbackCallMask != 0 {
-		panic(fmt.Sprintf("bad call id in fallback signal %v", id))
-	}
-	return uint32(typ) | uint32(id&fallbackCallMask)<<3 | uint32(aux)<<16
+	return uint32(typ) | uint32(id&fallbackCallMask)<<3 | uint32(aux)<<24
 }
 
 func decodeFallbackSignal(s uint32) (typ, id, aux int) {
-	return int(s & 7), int((s >> 3) & fallbackCallMask), int(s >> 16)
+	return int(s & 7), int((s >> 3) & fallbackCallMask), int(s >> 24)
+}
+
+func checkMaxCallID(id int) {
+	if id & ^fallbackCallMask != 0 {
+		panic(fmt.Sprintf("too many syscalls, have %v, max supported %v", id, fallbackCallMask+1))
+	}
 }
