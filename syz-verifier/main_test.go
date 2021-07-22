@@ -40,13 +40,13 @@ func TestNewProgram(t *testing.T) {
 			srv := createTestServer(t)
 			srv.pools = map[int]*poolInfo{
 				1: {
-					vmRunners: map[int][]*progInfo{
-						0: {{idx: 1}},
+					vmRunners: map[int]runnerProgs{
+						1: {1: {}},
 					},
 					progs: []*progInfo{{idx: 3}},
 				},
-				2: {vmRunners: map[int][]*progInfo{
-					2: {{idx: 1}}},
+				2: {vmRunners: map[int]runnerProgs{
+					2: {1: {}}},
 					progs: []*progInfo{},
 				},
 			}
@@ -108,9 +108,8 @@ func TestConnect(t *testing.T) {
 	srv := createTestServer(t)
 	srv.pools = map[int]*poolInfo{
 		1: {
-			vmRunners: map[int][]*progInfo{
-				0: {{
-					idx: 1}},
+			vmRunners: map[int]runnerProgs{
+				0: {1: {idx: 1}},
 			},
 			progs: []*progInfo{{
 				idx: 3}},
@@ -126,9 +125,9 @@ func TestConnect(t *testing.T) {
 	if diff := cmp.Diff(&rpctype.RunnerConnectRes{CheckUnsupportedCalls: true}, r); diff != "" {
 		t.Errorf("Connect result mismatch (-want +got):\n%s", diff)
 	}
-	want, got := map[int][]*progInfo{
-		0: {{idx: 1}},
-		1: nil,
+	want, got := map[int]runnerProgs{
+		0: {1: {idx: 1}},
+		1: {},
 	}, srv.pools[a.Pool].vmRunners
 	if diff := cmp.Diff(want, got, cmp.AllowUnexported(progInfo{})); diff != "" {
 		t.Errorf("srv.progs[a.Name] mismatch (-want +got):\n%s", diff)
@@ -277,8 +276,8 @@ func TestUpdateUnsupported(t *testing.T) {
 func TestUpdateUnsupportedNotCalledTwice(t *testing.T) {
 	vrf := Verifier{
 		pools: map[int]*poolInfo{
-			0: {vmRunners: map[int][]*progInfo{0: nil, 1: nil}, checked: false},
-			1: {vmRunners: map[int][]*progInfo{}, checked: false},
+			0: {vmRunners: map[int]runnerProgs{0: nil, 1: nil}, checked: false},
+			1: {vmRunners: map[int]runnerProgs{}, checked: false},
 		},
 	}
 	srv, err := startRPCServer(&vrf)
@@ -302,8 +301,8 @@ func TestUpdateUnsupportedNotCalledTwice(t *testing.T) {
 	}
 
 	wantPools := map[int]*poolInfo{
-		0: {vmRunners: map[int][]*progInfo{0: nil, 1: nil}, checked: true},
-		1: {vmRunners: map[int][]*progInfo{}, checked: false},
+		0: {vmRunners: map[int]runnerProgs{0: nil, 1: nil}, checked: true},
+		1: {vmRunners: map[int]runnerProgs{}, checked: false},
 	}
 	if diff := cmp.Diff(wantPools, srv.pools, cmp.AllowUnexported(poolInfo{}, progInfo{})); diff != "" {
 		t.Errorf("srv.pools mismatch (-want +got):\n%s", diff)
@@ -493,8 +492,8 @@ func TestCleanup(t *testing.T) {
 			srv := createTestServer(t)
 			srv.progs = test.progs
 			srv.pools = map[int]*poolInfo{
-				0: {vmRunners: map[int][]*progInfo{
-					0: {srv.progs[4]}},
+				0: {vmRunners: map[int]runnerProgs{
+					0: {4: srv.progs[4]}},
 				}, 1: {}, 2: {}}
 			resultFile := filepath.Join(srv.vrf.resultsdir, "result-0")
 
