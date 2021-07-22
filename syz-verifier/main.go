@@ -81,7 +81,7 @@ type poolInfo struct {
 	Reporter report.Reporter
 	//  vmRunners keeps track of what programs have been sent to each Runner.
 	//  There is one Runner executing per VM instance.
-	vmRunners map[int][]*progInfo
+	vmRunners map[int]runnerProgs
 	// progs stores the programs that haven't been sent to this kernel yet but
 	// have been sent to at least one other kernel.
 	progs []*progInfo
@@ -95,10 +95,9 @@ type progInfo struct {
 	idx        int
 	serialized []byte
 	res        []*Result
-
-	// done is set to true if the program was already verified.
-	done bool
 }
+
+type runnerProgs map[int]*progInfo
 
 func main() {
 	var cfgs tool.CfgsFlag
@@ -186,8 +185,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to create reporter for instance-%d: %v", idx, err)
 		}
-		pi.vmRunners = make(map[int][]*progInfo)
-		pi.progs = make([]*progInfo, 0)
+		pi.vmRunners = make(map[int]runnerProgs)
 	}
 
 	calls := make(map[*prog.Syscall]bool)
@@ -230,7 +228,6 @@ func (vrf *Verifier) startInstances() {
 				if err != nil {
 					log.Fatalf("failed to create instance: %v", err)
 				}
-
 				fwdAddr, err := inst.Forward(vrf.srv.port)
 				if err != nil {
 					log.Fatalf("failed to set up port forwarding: %v", err)
@@ -286,7 +283,7 @@ func (srv *RPCServer) Connect(a *rpctype.RunnerConnectArgs, r *rpctype.RunnerCon
 	srv.mu.Lock()
 	defer srv.mu.Unlock()
 	pool, vm := a.Pool, a.VM
-	srv.pools[pool].vmRunners[vm] = nil
+	srv.pools[pool].vmRunners[vm] = make(runnerProgs)
 	r.CheckUnsupportedCalls = !srv.pools[pool].checked
 	return nil
 }
@@ -383,9 +380,10 @@ func (srv *RPCServer) NextExchange(a *rpctype.NextExchangeArgs, r *rpctype.NextE
 			return nil
 		}
 
-		if prog.done = srv.newResult(res, prog); prog.done {
+		if srv.newResult(res, prog) {
 			srv.vrf.processResults(prog.res, prog.prog)
 			delete(srv.progs, a.ProgIdx)
+			delete(srv.pools[a.Pool].vmRunners[a.VM], a.ProgIdx)
 		}
 	}
 
@@ -492,7 +490,7 @@ func (srv *RPCServer) newProgram(poolIdx, vmIdx int) ([]byte, int) {
 		srv.progs[progIdx] = pi
 	}
 	p := pool.progs[0]
-	pool.vmRunners[vmIdx] = append(pool.vmRunners[vmIdx], p)
+	pool.vmRunners[vmIdx][p.idx] = p
 	pool.progs = pool.progs[1:]
 	return p.serialized, p.idx
 }
@@ -508,15 +506,12 @@ func (srv *RPCServer) cleanup(poolIdx, vmIdx int) {
 	srv.mu.Lock()
 	defer srv.mu.Unlock()
 	progs := srv.pools[poolIdx].vmRunners[vmIdx]
-	delete(srv.pools[poolIdx].vmRunners, vmIdx)
-	for _, prog := range progs {
-		if prog.done {
-			continue
-		}
 
-		if prog.done = srv.newResult(&Result{Pool: poolIdx, Crashed: true}, prog); prog.done {
+	for _, prog := range progs {
+		if srv.newResult(&Result{Pool: poolIdx, Crashed: true}, prog) {
 			srv.vrf.processResults(prog.res, prog.prog)
 			delete(srv.progs, prog.idx)
+			delete(srv.pools[poolIdx].vmRunners[vmIdx], prog.idx)
 			continue
 		}
 	}
