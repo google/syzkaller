@@ -4,7 +4,12 @@
 package report
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
+	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -228,5 +233,196 @@ func TestLinuxSymbolizeLine(t *testing.T) {
 				t.Errorf("want %q\n\t     get %q", test.result, string(result))
 			}
 		})
+	}
+}
+
+func prepareLinuxReporter(t *testing.T, arch string) *linux {
+	config := &config{
+		target: targets.Get(targets.Linux, arch),
+	}
+	reporter, _, err := ctorLinux(config)
+	if err != nil {
+		t.Errorf("Failed to create a reporter instance %#v", arch)
+	}
+	return reporter.(*linux)
+}
+
+func TestParseLinuxOpcodes(t *testing.T) {
+	type opcodeTest struct {
+		arch   string
+		input  string
+		output *parsedOpcodes
+	}
+
+	tests := []opcodeTest{
+		// LE tests.
+		{
+			arch:  targets.AMD64,
+			input: "31 c0 <e8> f5 bf f7 ff",
+			output: &parsedOpcodes{
+				rawBytes: []byte{0x31, 0xc0, 0xe8, 0xf5, 0xbf, 0xf7, 0xff},
+				offset:   2,
+			},
+		},
+		{
+			arch:  targets.AMD64,
+			input: "c031 <f5e8> f7bf fff7 00ff",
+			output: &parsedOpcodes{
+				rawBytes: []byte{0x31, 0xc0, 0xe8, 0xf5, 0xbf, 0xf7, 0xf7, 0xff, 0xff, 0x00},
+				offset:   2,
+			},
+		},
+		{
+			arch:  targets.AMD64,
+			input: "(33221100) 77665544",
+			output: &parsedOpcodes{
+				rawBytes: []byte{0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77},
+				offset:   0,
+			},
+		},
+		// BE tests.
+		{
+			arch:  targets.S390x,
+			input: "31 c0 <e8> f5 bf f7 ff",
+			output: &parsedOpcodes{
+				rawBytes: []byte{0x31, 0xc0, 0xe8, 0xf5, 0xbf, 0xf7, 0xff},
+				offset:   2,
+			},
+		},
+		{
+			arch:  targets.S390x,
+			input: "31c0 <e8f5> bff5 f7ff ff00",
+			output: &parsedOpcodes{
+				rawBytes: []byte{0x31, 0xc0, 0xe8, 0xf5, 0xbf, 0xf5, 0xf7, 0xff, 0xff, 0x00},
+				offset:   2,
+			},
+		},
+		{
+			arch:  targets.S390x,
+			input: "<00112233> 44556677",
+			output: &parsedOpcodes{
+				rawBytes: []byte{0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77},
+				offset:   0,
+			},
+		},
+		// ARM Thumb tests.
+		{
+			arch:  targets.ARM,
+			input: "0011 (2233) 4455",
+			output: &parsedOpcodes{
+				rawBytes:       []byte{0x11, 0x00, 0x33, 0x22, 0x55, 0x44},
+				decompileFlags: FlagForceArmThumbMode,
+				offset:         2,
+			},
+		},
+		{
+			arch:  targets.ARM,
+			input: "(33221100) 77665544",
+			output: &parsedOpcodes{
+				rawBytes: []byte{0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77},
+				offset:   0,
+			},
+		},
+		// Bad input tests.
+		{
+			arch:   targets.AMD64,
+			input:  "00 11 22 33",
+			output: nil,
+		},
+		{
+			arch:   targets.AMD64,
+			input:  "aa bb <cc> zz",
+			output: nil,
+		},
+		{
+			arch:   targets.AMD64,
+			input:  "<00> 11 22 <33>",
+			output: nil,
+		},
+		{
+			arch:   targets.AMD64,
+			input:  "aa  <bb>",
+			output: nil,
+		},
+		{
+			arch:   targets.AMD64,
+			input:  "001122 334455",
+			output: nil,
+		},
+		{
+			arch:   targets.AMD64,
+			input:  "0011223344556677",
+			output: nil,
+		},
+	}
+
+	for idx, test := range tests {
+		test := test // Capturing the value.
+		t.Run(fmt.Sprintf("%s/%v", test.arch, idx), func(t *testing.T) {
+			t.Parallel()
+			reporter := prepareLinuxReporter(t, test.arch)
+			ret, err := reporter.parseOpcodes(test.input)
+			if test.output == nil && err == nil {
+				t.Errorf("Expected an error on input %#v", test)
+			} else if test.output != nil && err != nil {
+				t.Errorf("Unexpected error %v on input %#v", err, test.input)
+			} else if test.output != nil && !reflect.DeepEqual(ret, *test.output) {
+				t.Errorf("Expected: %#v, got: %#v", test.output, ret)
+			}
+		})
+	}
+}
+
+func TestDisassemblyInReports(t *testing.T) {
+	archPath := filepath.Join("testdata", "linux", "decompile")
+	subFolders, err := ioutil.ReadDir(archPath)
+	if err != nil {
+		t.Fatalf("disassembly reports failed: %v", err)
+	}
+
+	for _, obj := range subFolders {
+		if !obj.IsDir() {
+			continue
+		}
+		reporter := prepareLinuxReporter(t, obj.Name())
+
+		if reporter.target.BrokenCompiler != "" {
+			t.Skip("skipping the test due to broken cross-compiler:\n" + reporter.target.BrokenCompiler)
+		}
+
+		testPath := filepath.Join(archPath, obj.Name())
+		testFiles, err := ioutil.ReadDir(testPath)
+		if err != nil {
+			t.Fatalf("failed to list tests for %v: %v", obj.Name(), err)
+		}
+
+		for _, file := range testFiles {
+			if !strings.HasSuffix(file.Name(), ".in") {
+				continue
+			}
+			filePath := filepath.Join(testPath, strings.TrimSuffix(file.Name(), ".in"))
+			t.Run(obj.Name()+"/"+file.Name(), func(t *testing.T) {
+				testDisassembly(t, reporter, filePath)
+			})
+		}
+	}
+}
+
+func testDisassembly(t *testing.T, reporter *linux, testFilePrefix string) {
+	t.Parallel()
+
+	input, err := ioutil.ReadFile(testFilePrefix + ".in")
+	if err != nil {
+		t.Fatalf("failed to read input file: %v", err)
+	}
+
+	output, err := ioutil.ReadFile(testFilePrefix + ".out")
+	if err != nil {
+		t.Fatalf("failed to read output file: %v", err)
+	}
+
+	result := reporter.decompileReportOpcodes(input)
+	if !bytes.Equal(output, result) {
+		t.Fatalf("Expected:\n%s\nGot:\n%s\n", output, result)
 	}
 }

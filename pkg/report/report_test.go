@@ -331,6 +331,7 @@ func forEachFile(t *testing.T, dir string, fn func(t *testing.T, reporter *Repor
 			Derived: mgrconfig.Derived{
 				TargetOS:   os,
 				TargetArch: targets.AMD64,
+				SysTarget:  targets.Get(os, targets.AMD64),
 			},
 		}
 		reporter, err := NewReporter(cfg)
