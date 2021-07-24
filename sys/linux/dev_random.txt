@@ -5,7 +5,7 @@ include <linux/random.h>
 
 resource fd_random[fd]
 
-openat$random(fd const[AT_FDCWD], file ptr[in, string["/dev/urandom"]], flags flags[open_flags], mode const[0]) fd_random
+openat$random(fd const[AT_FDCWD], file ptr[in, string["/dev/random"]], flags flags[open_flags], mode const[0]) fd_random
 openat$urandom(fd const[AT_FDCWD], file ptr[in, string["/dev/urandom"]], flags flags[open_flags], mode const[0]) fd_random
 
 ioctl$RNDGETENTCNT(fd fd_random, cmd const[RNDGETENTCNT], arg ptr[out, int32])
