@@ -33,6 +33,7 @@ type Target struct {
 	KernelLinker     string // override LD when running kernel make
 	KernelArch       string
 	KernelHeaderArch string
+	ModuleLoadOffset int
 	BrokenCompiler   string
 	// NeedSyscallDefine is used by csource package to decide when to emit __NR_* defines.
 	NeedSyscallDefine  func(nr uint64) bool

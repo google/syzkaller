@@ -318,7 +318,7 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 				PCs: pcs,
 			},
 		}
-		progs = rg.FixupPCs(serv.cfg.Target.Arch, progs, serv.coverFilter)
+		progs = rg.FixupPCs(serv.cfg.SysTarget, progs, serv.coverFilter)
 		serv.stats.corpusCoverFiltered.add(len(progs[0].PCs))
 	}
 	serv.stats.newInputs.inc()

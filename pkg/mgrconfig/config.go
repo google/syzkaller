@@ -150,6 +150,9 @@ type Config struct {
 
 	// Type of virtual machine to use, e.g. "qemu", "gce", "android", "isolated", etc.
 	Type string `json:"type"`
+	// ModuleLoadOffset value, when PLT enabled for modules, some arm64 device has 0x18 offset for symbols
+	// while some other device has 0x24 offset
+	ModuleLoadOffset int `json:"module_load_offset"`
 	// VM-type-specific parameters.
 	// Parameters for concrete types are in Config type in vm/TYPE/TYPE.go, e.g. vm/qemu/qemu.go.
 	VM json.RawMessage `json:"vm"`
