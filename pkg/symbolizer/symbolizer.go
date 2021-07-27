@@ -72,7 +72,7 @@ func (s *Symbolizer) checkBinSupport(addr2line string) error {
 	if err != nil {
 		return fmt.Errorf("addr2line execution failed: %s", err)
 	}
-	if !bytes.Contains(out, []byte("supported targets:")) {
+	if !useLLVM && !bytes.Contains(out, []byte("supported targets:")) {
 		return fmt.Errorf("addr2line output didn't contain supported targets")
 	}
 	if s.target.OS == targets.Darwin && s.target.Arch == targets.AMD64 &&
@@ -87,8 +87,10 @@ func (s *Symbolizer) getSubprocess(bin string) (*subprocess, error) {
 		return sub, nil
 	}
 	addr2line := "addr2line"
-	if s.target.Triple != "" {
+	if s.target.Triple != "" && !useLLVM {
 		addr2line = s.target.Triple + "-" + addr2line
+	} else if useLLVM {
+		addr2line = "llvm-" + addr2line
 	}
 	err := s.checkBinSupport(addr2line)
 	if err != nil {
@@ -103,6 +105,10 @@ func (s *Symbolizer) getSubprocess(bin string) (*subprocess, error) {
 	if err != nil {
 		stdin.Close()
 		return nil, err
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		stderr.Close()
 	}
 	if err := cmd.Start(); err != nil {
 		stdin.Close()
@@ -220,3 +226,7 @@ func parse(s *bufio.Scanner) ([]Frame, error) {
 	}
 	return frames, nil
 }
+
+var (
+	useLLVM = os.Getenv("SYZ_LLVM") != ""
+)
