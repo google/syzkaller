@@ -35,6 +35,7 @@ type ConnectArgs struct {
 	Name        string
 	MachineInfo []byte
 	Modules     []*host.KernelModule
+	ModuleLoadOffset int
 }
 
 type ConnectRes struct {

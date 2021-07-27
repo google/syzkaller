@@ -32,14 +32,7 @@ func (rg *ReportGenerator) FixupPCs(target *targets.Target, progs []Prog, coverF
 	// so there is X bytes offset from module load address for .text section
 	// we need to remove the X bytes offset in order to correct module symbol address.
 	// On some chip, the offset is 0x18 while some newer chip is 0x24,
-	// so it needs to be checked for each new chip,
-	// (haven't find an auto way to check it since first symbol in module is different),
-	// for example, to decide the value, it can be done by:
-	// 1. get first exported symbol in module elf file
-	// 2. get the above symbol load address on target device, like grep /proc/kallsyms
-	// 3. get the module load address on target device
-	// 4. get the module load offset by subtract module load address from symbol load address
-	// Once the offset checked, it can be set in config file.
+	// so for linux, auto detects the offset by subtract module load address from first loaded symbol in module.
 	if target.Arch == targets.ARM64 && target.ModuleLoadOffset != 0 {
 		for i, prog := range nProgs {
 			var nPCs []uint64

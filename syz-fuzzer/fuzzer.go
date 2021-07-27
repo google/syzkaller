@@ -179,7 +179,7 @@ func main() {
 		return
 	}
 
-	machineInfo, modules := collectMachineInfos(target)
+	machineInfo, modules, moduleLoadOffset := collectMachineInfos(target)
 
 	log.Logf(0, "dialing manager at %v", *flagManager)
 	manager, err := rpctype.NewRPCClient(*flagManager, timeouts.Scale)
@@ -192,6 +192,7 @@ func main() {
 		Name:        *flagName,
 		MachineInfo: machineInfo,
 		Modules:     modules,
+		ModuleLoadOffset: moduleLoadOffset,
 	}
 	r := &rpctype.ConnectRes{}
 	if err := manager.Call("Manager.Connect", a, r); err != nil {
@@ -292,16 +293,16 @@ func main() {
 	fuzzer.pollLoop()
 }
 
-func collectMachineInfos(target *prog.Target) ([]byte, []*host.KernelModule) {
+func collectMachineInfos(target *prog.Target) ([]byte, []*host.KernelModule, int) {
 	machineInfo, err := host.CollectMachineInfo()
 	if err != nil {
 		log.Fatalf("failed to collect machine information: %v", err)
 	}
-	modules, err := host.CollectModulesInfo()
+	modules, moduleLoadOffset, err := host.CollectModulesInfo()
 	if err != nil {
 		log.Fatalf("failed to collect modules info: %v", err)
 	}
-	return machineInfo, modules
+	return machineInfo, modules, moduleLoadOffset
 }
 
 // Returns gateCallback for leak checking if enabled.

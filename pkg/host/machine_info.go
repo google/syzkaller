@@ -31,9 +31,9 @@ func CollectMachineInfo() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func CollectModulesInfo() ([]*KernelModule, error) {
+func CollectModulesInfo() ([]*KernelModule, int, error) {
 	if machineModulesInfo == nil {
-		return nil, nil
+		return nil, 0, nil
 	}
 	return machineModulesInfo()
 }
@@ -46,7 +46,7 @@ func CollectGlobsInfo(globs map[string]bool) (map[string][]string, error) {
 }
 
 var machineInfoFuncs []machineInfoFunc
-var machineModulesInfo func() ([]*KernelModule, error)
+var machineModulesInfo func() ([]*KernelModule, int, error)
 var machineGlobsInfo func(map[string]bool) (map[string][]string, error)
 
 type machineInfoFunc struct {

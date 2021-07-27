@@ -98,6 +98,7 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	})
 	if !serv.mgr.isModuleInitialized() {
 		serv.modules = a.Modules
+		serv.cfg.SysTarget.ModuleLoadOffset = a.ModuleLoadOffset
 	}
 
 	corpus, bugFrames, coverFilter, coverBitmap, err := serv.mgr.fuzzerConnect(a.Modules)

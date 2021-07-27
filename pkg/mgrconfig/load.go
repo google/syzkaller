@@ -102,7 +102,6 @@ func loadPartial(cfg *Config) (*Config, error) {
 	if cfg.SysTarget == nil {
 		return nil, fmt.Errorf("unsupported OS/arch: %v/%v", cfg.TargetOS, cfg.TargetVMArch)
 	}
-	cfg.SysTarget.ModuleLoadOffset = cfg.ModuleLoadOffset
 	return cfg, nil
 }
 

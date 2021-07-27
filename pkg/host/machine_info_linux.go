@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -125,21 +126,47 @@ func readKVMInfo(buffer *bytes.Buffer) error {
 	return nil
 }
 
-func getModulesInfo() ([]*KernelModule, error) {
+func getModulesInfo() ([]*KernelModule, int, error) {
 	var modules []*KernelModule
 	modulesText, _ := ioutil.ReadFile("/proc/modules")
 	re := regexp.MustCompile(`(\w+) .*(0[x|X][a-fA-F0-9]+)[^\n]*`)
 	for _, m := range re.FindAllSubmatch(modulesText, -1) {
 		addr, err := strconv.ParseUint(string(m[2]), 0, 64)
 		if err != nil {
-			return nil, fmt.Errorf("address parsing error in /proc/modules: %v", err)
+			return nil, 0, fmt.Errorf("address parsing error in /proc/modules: %v", err)
 		}
 		modules = append(modules, &KernelModule{
 			Name: string(m[1]),
 			Addr: addr,
 		})
 	}
-	return modules, nil
+	sort.Slice(modules, func(i, j int) bool {
+		return modules[i].Addr < modules[j].Addr
+	})
+	moduleLoadOffset, err := getModuleLoadOffset(modules[0])
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get module load offset: %v", err)
+	}
+	return modules, moduleLoadOffset, nil
+}
+
+func getModuleLoadOffset(module *KernelModule) (int, error) {
+	moduleLoadOffset := 0
+	var addresses []uint64
+	moduleSymbolText, _ := ioutil.ReadFile("/proc/kallsyms")
+	re := regexp.MustCompile(fmt.Sprintf(`([a-fA-F0-9]+) .*\[%s\]`, module.Name))
+	for _, m := range re.FindAllSubmatch(moduleSymbolText, -1) {
+		addr, err := strconv.ParseUint("0x"+string(m[1]), 0, 64)
+		if err != nil {
+			return 0, fmt.Errorf("address parsing error in /proc/kallsyms: %v", err)
+		}
+		addresses = append(addresses, addr)
+	}
+	sort.Slice(addresses, func(i, j int) bool {
+		return addresses[i] < addresses[j]
+	})
+	moduleLoadOffset = int(addresses[0] - module.Addr)
+	return moduleLoadOffset, nil
 }
 
 func getGlobsInfo(globs map[string]bool) (map[string][]string, error) {
