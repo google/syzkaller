@@ -101,7 +101,8 @@ func MakeCache(ctor func(method, url string, body io.Reader) (*http.Request, err
 
 // Get returns a potentially cached value of the token or renews as
 // necessary. The now parameter provides the current time for cache
-// expiration.
+// expiration. The returned value is suitable for Authorization header
+// and syz-hub Key requests.
 func (cache *TokenCache) Get(now time.Time) (string, error) {
 	cache.lock.Lock()
 	defer cache.lock.Unlock()
@@ -118,5 +119,5 @@ func (cache *TokenCache) Get(now time.Time) (string, error) {
 		}
 		cache.token = t
 	}
-	return cache.token.value, nil
+	return "Bearer " + cache.token.value, nil
 }

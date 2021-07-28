@@ -135,6 +135,8 @@ func (hub *Hub) verifyKey(key, expectedKey string) error {
 		if subj != expectedKey {
 			return fmt.Errorf("bad token")
 		}
+		// Success due to correct token.
+		return nil
 	}
 	if key != expectedKey {
 		return fmt.Errorf("bad password")
