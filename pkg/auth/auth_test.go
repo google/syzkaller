@@ -11,8 +11,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/google/syzkaller/dashboard/dashapi"
 )
 
 func reponseFor(t *testing.T, claims jwtClaims) (*httptest.Server, Endpoint) {
@@ -36,7 +34,7 @@ func TestBearerValid(t *testing.T) {
 	magic := "ValidSubj"
 	ts, dut := reponseFor(t, jwtClaims{
 		Subject:    magic,
-		Audience:   dashapi.DashboardAudience,
+		Audience:   DashboardAudience,
 		Expiration: tm.AddDate(0, 0, 1),
 	})
 	defer ts.Close()
@@ -70,7 +68,7 @@ func TestBearerExpired(t *testing.T) {
 	ts, dut := reponseFor(t, jwtClaims{
 		Subject:    "irrelevant",
 		Expiration: tm.AddDate(0, 0, -1),
-		Audience:   dashapi.DashboardAudience,
+		Audience:   DashboardAudience,
 	})
 	defer ts.Close()
 
