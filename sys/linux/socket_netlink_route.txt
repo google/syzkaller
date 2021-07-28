@@ -29,7 +29,6 @@ include <uapi/linux/ila.h>
 include <uapi/linux/seg6_iptunnel.h>
 include <uapi/linux/seg6_local.h>
 include <uapi/linux/rpl_iptunnel.h>
-include <net/caif/caif_hsi.h>
 
 resource sock_nl_route[sock_netlink]
 type netns_id int32[0:4]
@@ -310,7 +309,6 @@ ifla_info_policy [
 	macsec		ifla_info_policy_t["macsec", IFLA_INFO_DATA, array[macsec_rtnl_policy]]
 	lowpan		ifla_info_policy_t["lowpan", IFLA_INFO_DATA, void]
 	ipoib		ifla_info_policy_t["ipoib", IFLA_INFO_DATA, array[ipoib_policy]]
-	cfhsi		ifla_info_policy_t["cfhsi", IFLA_INFO_DATA, array[caif_hsi_policy]]
 	geneve		ifla_info_policy_t["geneve", IFLA_INFO_DATA, array[geneve_policy]]
 	wireguard	ifla_info_policy_t["wireguard", IFLA_INFO_DATA, void]
 ] [varlen]
@@ -329,15 +327,6 @@ geneve_policy [
 	IFLA_GENEVE_UDP_ZERO_CSUM6_RX	nlattr[IFLA_GENEVE_UDP_ZERO_CSUM6_RX, bool8]
 	IFLA_GENEVE_TTL_INHERIT		nlattr[IFLA_GENEVE_TTL_INHERIT, bool8]
 	IFLA_GENEVE_DF			nlattr[IFLA_GENEVE_DF, int8]
-] [varlen]
-
-caif_hsi_policy [
-	__IFLA_CAIF_HSI_INACTIVITY_TOUT		nlattr[__IFLA_CAIF_HSI_INACTIVITY_TOUT, int32]
-	__IFLA_CAIF_HSI_AGGREGATION_TOUT	nlattr[__IFLA_CAIF_HSI_AGGREGATION_TOUT, int32]
-	__IFLA_CAIF_HSI_HEAD_ALIGN		nlattr[__IFLA_CAIF_HSI_HEAD_ALIGN, int32]
-	__IFLA_CAIF_HSI_TAIL_ALIGN		nlattr[__IFLA_CAIF_HSI_TAIL_ALIGN, int32]
-	__IFLA_CAIF_HSI_QHIGH_WATERMARK		nlattr[__IFLA_CAIF_HSI_QHIGH_WATERMARK, int32]
-	__IFLA_CAIF_HSI_QLOW_WATERMARK		nlattr[__IFLA_CAIF_HSI_QLOW_WATERMARK, int32]
 ] [varlen]
 
 ipoib_policy [
