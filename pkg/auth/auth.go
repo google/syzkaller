@@ -22,7 +22,9 @@
 // https://cloud.google.com/iap/docs/signed-headers-howto#retrieving_the_user_identity
 // from the IAP docs agrees to trust sub.
 
-package main
+// Package auth contains authentication related code supporting secret
+// passwords and oauth2 tokens on GCE.
+package auth
 
 import (
 	"encoding/json"
@@ -39,21 +41,21 @@ import (
 
 const (
 	// The official google oauth2 endpoint.
-	googleTokenInfoEndpoint = "https://oauth2.googleapis.com/tokeninfo"
+	GoogleTokenInfoEndpoint = "https://oauth2.googleapis.com/tokeninfo"
 	// Used in the config map as a prefix to distinguish auth identifiers from secret passwords
 	// (which contain arbitrary strings, that can't have this prefix).
-	oauthMagic = "OauthSubject:"
+	OauthMagic = "OauthSubject:"
 )
 
 // Represent a verification backend.
-type authEndpoint struct {
+type Endpoint struct {
 	// URL supporting tokeninfo auth2 protocol.
 	url string
 	// TODO(blackgnezdo): cache tokens with a bit of care for concurrency.
 }
 
-func makeAuthEndpoint(u string) authEndpoint {
-	return authEndpoint{url: u}
+func MakeEndpoint(u string) Endpoint {
+	return Endpoint{url: u}
 }
 
 // The JSON representation of JWT claims.
@@ -72,7 +74,7 @@ type jwtClaims struct {
 	Expiration time.Time
 }
 
-func (auth *authEndpoint) queryTokenInfo(tokenValue string) (*jwtClaims, error) {
+func (auth *Endpoint) queryTokenInfo(tokenValue string) (*jwtClaims, error) {
 	resp, err := http.PostForm(auth.url, url.Values{"id_token": {tokenValue}})
 	if err != nil {
 		return nil, err
@@ -100,9 +102,10 @@ func (auth *authEndpoint) queryTokenInfo(tokenValue string) (*jwtClaims, error) 
 
 // Returns the verified subject value based on the provided header
 // value or "" if it can't be determined. A valid result starts with
-// oauthMagic. The now parameter is the current time to compare the
-// claims against.
-func (auth *authEndpoint) determineAuthSubj(now time.Time, authHeader []string) (string, error) {
+// auth.OauthMagic. The now parameter is the current time to compare the
+// claims against. The authHeader is styled as is typical for HTTP headers
+// which carry the tokens prefixed by "Bearer " string.
+func (auth *Endpoint) DetermineAuthSubj(now time.Time, authHeader []string) (string, error) {
 	if len(authHeader) != 1 || !strings.HasPrefix(authHeader[0], "Bearer") {
 		// This is a normal case when the client uses a password.
 		return "", nil
@@ -122,5 +125,5 @@ func (auth *authEndpoint) determineAuthSubj(now time.Time, authHeader []string) 
 		err := fmt.Errorf("token past expiration %v", claims.Expiration)
 		return "", err
 	}
-	return oauthMagic + claims.Subject, nil
+	return OauthMagic + claims.Subject, nil
 }

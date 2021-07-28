@@ -17,6 +17,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/auth"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/sys/targets"
@@ -104,8 +105,8 @@ func handleAPI(c context.Context, r *http.Request) (reply interface{}, err error
 	client := r.PostFormValue("client")
 	method := r.PostFormValue("method")
 	log.Infof(c, "api %q from %q", method, client)
-	auth := makeAuthEndpoint(googleTokenInfoEndpoint)
-	subj, err := auth.determineAuthSubj(timeNow(c), r.Header["Authorization"])
+	auth := auth.MakeEndpoint(auth.GoogleTokenInfoEndpoint)
+	subj, err := auth.DetermineAuthSubj(timeNow(c), r.Header["Authorization"])
 	if err != nil {
 		return nil, err
 	}
@@ -1351,7 +1352,7 @@ func GetEmails(r dashapi.Recipients, filter dashapi.RecipientType) []string {
 // corresponding namespace.
 func checkClient(conf *GlobalConfig, name0, secretPassword, oauthSubject string) (string, error) {
 	checkAuth := func(ns, a string) (string, error) {
-		if strings.HasPrefix(a, oauthMagic) && a == oauthSubject {
+		if strings.HasPrefix(a, auth.OauthMagic) && a == oauthSubject {
 			return ns, nil
 		}
 		if a != secretPassword {
