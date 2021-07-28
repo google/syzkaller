@@ -88,7 +88,7 @@ func TestAuth(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%q/%q/%q", test.client, test.key, test.manager), func(t *testing.T) {
-			manager, err := hub.auth(test.client, test.key, test.manager)
+			manager, err := hub.checkManager(test.client, test.key, test.manager)
 			if !test.ok && err == nil {
 				t.Fatalf("auth is expected to fail, but it did not")
 			}

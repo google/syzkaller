@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/google/syzkaller/pkg/auth"
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/rpctype"
@@ -33,6 +35,7 @@ type Hub struct {
 	mu   sync.Mutex
 	st   *state.State
 	keys map[string]string
+	auth auth.Endpoint
 }
 
 func main() {
@@ -50,6 +53,7 @@ func main() {
 	hub := &Hub{
 		st:   st,
 		keys: make(map[string]string),
+		auth: auth.MakeEndpoint(auth.GoogleTokenInfoEndpoint),
 	}
 	for _, mgr := range cfg.Clients {
 		hub.keys[mgr.Name] = mgr.Key
@@ -66,7 +70,7 @@ func main() {
 }
 
 func (hub *Hub) Connect(a *rpctype.HubConnectArgs, r *int) error {
-	name, err := hub.auth(a.Client, a.Key, a.Manager)
+	name, err := hub.checkManager(a.Client, a.Key, a.Manager)
 	if err != nil {
 		return err
 	}
@@ -83,7 +87,7 @@ func (hub *Hub) Connect(a *rpctype.HubConnectArgs, r *int) error {
 }
 
 func (hub *Hub) Sync(a *rpctype.HubSyncArgs, r *rpctype.HubSyncRes) error {
-	name, err := hub.auth(a.Client, a.Key, a.Manager)
+	name, err := hub.checkManager(a.Client, a.Key, a.Manager)
 	if err != nil {
 		return err
 	}
@@ -122,8 +126,31 @@ func (hub *Hub) Sync(a *rpctype.HubSyncArgs, r *rpctype.HubSyncRes) error {
 	return nil
 }
 
-func (hub *Hub) auth(client, key, manager string) (string, error) {
-	if expectedKey, ok := hub.keys[client]; !ok || key != expectedKey {
+func (hub *Hub) verifyKey(key, expectedKey string) error {
+	if strings.HasPrefix(expectedKey, auth.OauthMagic) {
+		subj, err := hub.auth.DetermineAuthSubj(time.Now(), []string{key})
+		if err != nil {
+			return err
+		}
+		if subj != expectedKey {
+			return fmt.Errorf("bad token")
+		}
+	}
+	if key != expectedKey {
+		return fmt.Errorf("bad password")
+	}
+	// Success due to correct password.
+	return nil
+}
+
+// Returns the verified manager identity or error.
+func (hub *Hub) checkManager(client, key, manager string) (string, error) {
+	expectedKey, ok := hub.keys[client]
+	if !ok {
+		log.Logf(0, "connect from unauthorized client %v", client)
+		return "", fmt.Errorf("unauthorized manager")
+	}
+	if err := hub.verifyKey(key, expectedKey); err != nil {
 		log.Logf(0, "connect from unauthorized client %v", client)
 		return "", fmt.Errorf("unauthorized manager")
 	}
