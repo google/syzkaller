@@ -124,30 +124,3 @@ func (auth *authEndpoint) determineAuthSubj(now time.Time, authHeader []string) 
 	}
 	return oauthMagic + claims.Subject, nil
 }
-
-// Verifies that the given credentials are acceptable and returns the
-// corresponding namespace.
-func checkClient(conf *GlobalConfig, name0, secretPassword, oauthSubject string) (string, error) {
-	checkAuth := func(ns, a string) (string, error) {
-		if strings.HasPrefix(a, oauthMagic) && a == oauthSubject {
-			return ns, nil
-		}
-		if a != secretPassword {
-			return ns, ErrAccess
-		}
-		return ns, nil
-	}
-	for name, authenticator := range conf.Clients {
-		if name == name0 {
-			return checkAuth("", authenticator)
-		}
-	}
-	for ns, cfg := range conf.Namespaces {
-		for name, authenticator := range cfg.Clients {
-			if name == name0 {
-				return checkAuth(ns, authenticator)
-			}
-		}
-	}
-	return "", ErrAccess
-}
