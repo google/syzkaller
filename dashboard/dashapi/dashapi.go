@@ -17,7 +17,6 @@ import (
 	"net/url"
 	"reflect"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/google/syzkaller/pkg/auth"
@@ -47,45 +46,30 @@ type (
 // should be used as a bearer token.
 func NewCustom(client, addr, key string, ctor RequestCtor, doer RequestDoer,
 	logger RequestLogger, errorHandler func(error)) (*Dashboard, error) {
+	wrappedDoer := doer
 	if key == "" {
-		token, err := auth.RetrieveJwtToken(ctor, doer)
+		tokenCache, err := auth.MakeCache(ctor, doer)
 		if err != nil {
 			return nil, err
 		}
-		doer = attachJwtToken(ctor, doer, token)
+		wrappedDoer = func(req *http.Request) (*http.Response, error) {
+			if token, err := tokenCache.Get(time.Now()); err == nil {
+				req.Header.Add("Authorization", "Bearer "+token)
+				return doer(req)
+			} else {
+				return nil, err
+			}
+		}
 	}
 	return &Dashboard{
 		Client:       client,
 		Addr:         addr,
 		Key:          key,
 		ctor:         ctor,
-		doer:         doer,
+		doer:         wrappedDoer,
 		logger:       logger,
 		errorHandler: errorHandler,
 	}, nil
-}
-
-// Augments the given doer with an authorization header carrying the
-// given token. The token gets refreshed when it becomes stale.
-func attachJwtToken(ctor RequestCtor, doer RequestDoer, token *auth.ExpiringToken) RequestDoer {
-	lock := sync.Mutex{}
-	return func(req *http.Request) (*http.Response, error) {
-		lock.Lock()
-		if token.Expiration.Before(time.Now()) {
-			// Keeping the lock while making http request is dubious, but
-			// making multiple concurrent requests is not any better.
-			t, err := auth.RetrieveJwtToken(ctor, doer)
-			if err != nil {
-				// Can't get a new token, so returning the error preemptively.
-				lock.Unlock()
-				return nil, err
-			}
-			*token = *t
-		}
-		req.Header.Add("Authorization", "Bearer "+token.Token)
-		lock.Unlock()
-		return doer(req)
-	}
 }
 
 // Build describes all aspects of a kernel build.
