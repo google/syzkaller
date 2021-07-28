@@ -1,7 +1,7 @@
-// Copyright 2017 syzkaller project authors. All rights reserved.
+// Copyright 2021 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package main
+package auth
 
 import (
 	"encoding/json"
@@ -15,7 +15,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 )
 
-func reponseFor(t *testing.T, claims jwtClaims) (*httptest.Server, authEndpoint) {
+func reponseFor(t *testing.T, claims jwtClaims) (*httptest.Server, Endpoint) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		bytes, err := json.Marshal(jwtClaimsParse{
 			Subject:    claims.Subject,
@@ -28,7 +28,7 @@ func reponseFor(t *testing.T, claims jwtClaims) (*httptest.Server, authEndpoint)
 		w.Header()["Content-Type"] = []string{"application/json"}
 		w.Write(bytes)
 	}))
-	return ts, makeAuthEndpoint(ts.URL)
+	return ts, MakeEndpoint(ts.URL)
 }
 
 func TestBearerValid(t *testing.T) {
@@ -41,7 +41,7 @@ func TestBearerValid(t *testing.T) {
 	})
 	defer ts.Close()
 
-	got, err := dut.determineAuthSubj(tm, []string{"Bearer x"})
+	got, err := dut.DetermineAuthSubj(tm, []string{"Bearer x"})
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
@@ -59,7 +59,7 @@ func TestBearerWrongAudience(t *testing.T) {
 	})
 	defer ts.Close()
 
-	_, err := dut.determineAuthSubj(tm, []string{"Bearer x"})
+	_, err := dut.DetermineAuthSubj(tm, []string{"Bearer x"})
 	if !strings.HasPrefix(err.Error(), "unexpected audience") {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -74,7 +74,7 @@ func TestBearerExpired(t *testing.T) {
 	})
 	defer ts.Close()
 
-	_, err := dut.determineAuthSubj(tm, []string{"Bearer x"})
+	_, err := dut.DetermineAuthSubj(tm, []string{"Bearer x"})
 	if !strings.HasPrefix(err.Error(), "token past expiration") {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -83,7 +83,7 @@ func TestBearerExpired(t *testing.T) {
 func TestMissingHeader(t *testing.T) {
 	ts, dut := reponseFor(t, jwtClaims{})
 	defer ts.Close()
-	got, err := dut.determineAuthSubj(time.Now(), []string{})
+	got, err := dut.DetermineAuthSubj(time.Now(), []string{})
 	if err != nil || got != "" {
 		t.Errorf("Unexpected error %v %v", got, err)
 	}
@@ -92,7 +92,7 @@ func TestMissingHeader(t *testing.T) {
 func TestBadHeader(t *testing.T) {
 	ts, dut := reponseFor(t, jwtClaims{})
 	defer ts.Close()
-	got, err := dut.determineAuthSubj(time.Now(), []string{"bad"})
+	got, err := dut.DetermineAuthSubj(time.Now(), []string{"bad"})
 	if err != nil || got != "" {
 		t.Errorf("Unexpected error %v %v", got, err)
 	}

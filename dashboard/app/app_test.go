@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/auth"
 	"github.com/google/syzkaller/sys/targets"
 	"google.golang.org/appengine/user"
 )
@@ -57,7 +58,7 @@ var testConfig = &GlobalConfig{
 			FixBisectionAutoClose: true,
 			Clients: map[string]string{
 				client1: password1,
-				"oauth": oauthMagic + "111111122222222",
+				"oauth": auth.OauthMagic + "111111122222222",
 			},
 			Repos: []KernelRepo{
 				{

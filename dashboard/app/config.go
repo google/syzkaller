@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/auth"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/vcs"
 )
@@ -202,7 +203,7 @@ type KcidbConfig struct {
 var (
 	namespaceNameRe = regexp.MustCompile("^[a-zA-Z0-9-_.]{4,32}$")
 	clientNameRe    = regexp.MustCompile("^[a-zA-Z0-9-_.]{4,100}$")
-	clientKeyRe     = regexp.MustCompile("^([a-zA-Z0-9]{16,128})|(" + regexp.QuoteMeta(oauthMagic) + ".*)$")
+	clientKeyRe     = regexp.MustCompile("^([a-zA-Z0-9]{16,128})|(" + regexp.QuoteMeta(auth.OauthMagic) + ".*)$")
 )
 
 type (
