@@ -110,14 +110,14 @@ hci_command_hdr_un [
 	io_capability_reply		hci_command_packet_t[HCI_OP_IO_CAPABILITY_REPLY, hci_cp_io_capability_reply]
 	le_accept_cis			hci_command_packet_t[HCI_OP_LE_ACCEPT_CIS, hci_cp_le_accept_cis]
 	le_add_to_resolv_list		hci_command_packet_t[HCI_OP_LE_ADD_TO_RESOLV_LIST, hci_cp_le_add_to_resolv_list]
-	le_add_to_white_list		hci_command_packet_t[HCI_OP_LE_ADD_TO_WHITE_LIST, hci_cp_le_add_to_white_list]
+	le_add_to_accept_list		hci_command_packet_t[HCI_OP_LE_ADD_TO_ACCEPT_LIST, hci_cp_le_add_to_accept_list]
 	le_conn_param_req_neg_reply	hci_command_packet_t[HCI_OP_LE_CONN_PARAM_REQ_NEG_REPLY, hci_cp_le_conn_param_req_neg_reply]
 	le_conn_param_req_reply		hci_command_packet_t[HCI_OP_LE_CONN_PARAM_REQ_REPLY, hci_cp_le_conn_param_req_reply]
 	le_conn_update			hci_command_packet_t[HCI_OP_LE_CONN_UPDATE, hci_cp_le_conn_update]
 	le_create_cis			hci_command_packet_t[HCI_OP_LE_CREATE_CIS, hci_cp_le_create_cis]
 	le_create_conn			hci_command_packet_t[HCI_OP_LE_CREATE_CONN, hci_cp_le_create_conn]
 	le_del_from_resolv_list		hci_command_packet_t[HCI_OP_LE_DEL_FROM_RESOLV_LIST, hci_cp_le_del_from_resolv_list]
-	le_del_from_white_list		hci_command_packet_t[HCI_OP_LE_DEL_FROM_WHITE_LIST, hci_cp_le_del_from_white_list]
+	le_del_from_accept_list		hci_command_packet_t[HCI_OP_LE_DEL_FROM_ACCEPT_LIST, hci_cp_le_del_from_accept_list]
 	le_ext_create_conn		hci_command_packet_t[HCI_OP_LE_EXT_CREATE_CONN, hci_cp_le_ext_create_conn]
 	le_ltk_neg_reply		hci_command_packet_t[HCI_OP_LE_LTK_NEG_REPLY, hci_cp_le_ltk_neg_reply]
 	le_ltk_reply			hci_command_packet_t[HCI_OP_LE_LTK_REPLY, hci_cp_le_ltk_reply]
@@ -170,8 +170,8 @@ hci_command_hdr_un [
 	remote_oob_ext_data_reply	hci_command_packet_t[HCI_OP_REMOTE_OOB_EXT_DATA_REPLY, hci_cp_remote_oob_ext_data_reply]
 	role_discovery			hci_command_packet_t[HCI_OP_ROLE_DISCOVERY, hci_cp_role_discovery]
 	set_conn_encrypt		hci_command_packet_t[HCI_OP_SET_CONN_ENCRYPT, hci_cp_set_conn_encrypt]
-	set_csb				hci_command_packet_t[HCI_OP_SET_CSB, hci_cp_set_csb]
-	set_csb_data			hci_command_packet_t[HCI_OP_SET_CSB_DATA, hci_cp_set_csb_data]
+	set_cpb				hci_command_packet_t[HCI_OP_SET_CPB, hci_cp_set_cpb]
+	set_cpb_data			hci_command_packet_t[HCI_OP_SET_CPB_DATA, hci_cp_set_cpb_data]
 	set_reserved_lt_addr		hci_command_packet_t[HCI_OP_SET_RESERVED_LT_ADDR, hci_cp_set_reserved_lt_addr]
 	setup_sync_conn			hci_command_packet_t[HCI_OP_SETUP_SYNC_CONN, hci_cp_setup_sync_conn]
 	sniff_mode			hci_command_packet_t[HCI_OP_SNIFF_MODE, hci_cp_sniff_mode]
@@ -335,7 +335,7 @@ hci_cp_le_add_to_resolv_list {
 	local_irk	array[int8, 16]
 } [packed]
 
-hci_cp_le_add_to_white_list {
+hci_cp_le_add_to_accept_list {
 	bdaddr_type	int8
 	bdaddr		bdaddr_t
 } [packed]
@@ -390,7 +390,7 @@ hci_cp_le_del_from_resolv_list {
 	bdaddr		bdaddr_t
 } [packed]
 
-hci_cp_le_del_from_white_list {
+hci_cp_le_del_from_accept_list {
 	bdaddr_type	int8
 	bdaddr		bdaddr_t
 } [packed]
@@ -694,17 +694,17 @@ hci_cp_set_conn_encrypt {
 	encrypt	int8
 } [packed]
 
-hci_cp_set_csb {
+hci_cp_set_cpb {
 	enable		int8
 	lt_addr		int8
 	lpo_allowed	int8
 	packet_type	int16
 	interval_min	int16
 	interval_max	int16
-	csb_sv_tout	int16
+	cpb_sv_tout	int16
 } [packed]
 
-hci_cp_set_csb_data {
+hci_cp_set_cpb_data {
 	lt_addr		int8
 	fragment	int8
 	data_length	int8
@@ -932,7 +932,7 @@ hci_ev_cmd_complete_un [
 	hci_rp_le_read_num_supported_adv_sets	hci_ev_cmd_complete_t[HCI_OP_LE_READ_NUM_SUPPORTED_ADV_SETS, hci_rp_le_read_num_supported_adv_sets]
 	hci_rp_le_read_resolv_list_size		hci_ev_cmd_complete_t[HCI_OP_LE_READ_RESOLV_LIST_SIZE, hci_rp_le_read_resolv_list_size]
 	hci_rp_le_read_supported_states		hci_ev_cmd_complete_t[HCI_OP_LE_READ_SUPPORTED_STATES, hci_rp_le_read_supported_states]
-	hci_rp_le_read_white_list_size		hci_ev_cmd_complete_t[HCI_OP_LE_READ_WHITE_LIST_SIZE, hci_rp_le_read_white_list_size]
+	hci_rp_le_read_accept_list_size		hci_ev_cmd_complete_t[HCI_OP_LE_READ_ACCEPT_LIST_SIZE, hci_rp_le_read_accept_list_size]
 	hci_rp_le_set_cig_params		hci_ev_cmd_complete_t[HCI_OP_LE_SET_CIG_PARAMS, hci_rp_le_set_cig_params]
 	hci_rp_le_set_data_len			hci_ev_cmd_complete_t[HCI_OP_LE_SET_DATA_LEN, hci_rp_le_set_data_len]
 	hci_rp_le_set_ext_adv_params		hci_ev_cmd_complete_t[HCI_OP_LE_SET_EXT_ADV_PARAMS, hci_rp_le_set_ext_adv_params]
@@ -971,8 +971,8 @@ hci_ev_cmd_complete_un [
 	hci_rp_read_tx_power			hci_ev_cmd_complete_t[HCI_OP_READ_TX_POWER, hci_rp_read_tx_power]
 	hci_rp_read_voice_setting		hci_ev_cmd_complete_t[HCI_OP_READ_VOICE_SETTING, hci_rp_read_voice_setting]
 	hci_rp_role_discovery			hci_ev_cmd_complete_t[HCI_OP_ROLE_DISCOVERY, hci_rp_role_discovery]
-	hci_rp_set_csb				hci_ev_cmd_complete_t[HCI_OP_SET_CSB, hci_rp_set_csb]
-	hci_rp_set_csb_data			hci_ev_cmd_complete_t[HCI_OP_SET_CSB_DATA, hci_rp_set_csb_data]
+	hci_rp_set_cpb				hci_ev_cmd_complete_t[HCI_OP_SET_CPB, hci_rp_set_cpb]
+	hci_rp_set_cpb_data			hci_ev_cmd_complete_t[HCI_OP_SET_CPB_DATA, hci_rp_set_cpb_data]
 	hci_rp_set_reserved_lt_addr		hci_ev_cmd_complete_t[HCI_OP_SET_RESERVED_LT_ADDR, hci_rp_set_reserved_lt_addr]
 	hci_rp_user_confirm_reply		hci_ev_cmd_complete_t[HCI_OP_USER_CONFIRM_REPLY, hci_rp_user_confirm_reply]
 	hci_rp_write_auth_payload_to		hci_ev_cmd_complete_t[HCI_OP_WRITE_AUTH_PAYLOAD_TO, hci_rp_write_auth_payload_to]
@@ -1004,9 +1004,9 @@ hci_ev_cmd_complete_un [
 	HCI_OP_LE_SET_ADV_ENABLE		hci_ev_cmd_complete_t[HCI_OP_LE_SET_ADV_ENABLE, int8]
 	HCI_OP_LE_SET_SCAN_PARAM		hci_ev_cmd_complete_t[HCI_OP_LE_SET_SCAN_PARAM, int8]
 	HCI_OP_LE_SET_SCAN_ENABLE		hci_ev_cmd_complete_t[HCI_OP_LE_SET_SCAN_ENABLE, int8]
-	HCI_OP_LE_CLEAR_WHITE_LIST		hci_ev_cmd_complete_t[HCI_OP_LE_CLEAR_WHITE_LIST, int8]
-	HCI_OP_LE_ADD_TO_WHITE_LIST		hci_ev_cmd_complete_t[HCI_OP_LE_ADD_TO_WHITE_LIST, int8]
-	HCI_OP_LE_DEL_FROM_WHITE_LIST		hci_ev_cmd_complete_t[HCI_OP_LE_DEL_FROM_WHITE_LIST, int8]
+	HCI_OP_LE_CLEAR_ACCEPT_LIST		hci_ev_cmd_complete_t[HCI_OP_LE_CLEAR_ACCEPT_LIST, int8]
+	HCI_OP_LE_ADD_TO_ACCEPT_LIST		hci_ev_cmd_complete_t[HCI_OP_LE_ADD_TO_ACCEPT_LIST, int8]
+	HCI_OP_LE_DEL_FROM_ACCEPT_LIST		hci_ev_cmd_complete_t[HCI_OP_LE_DEL_FROM_ACCEPT_LIST, int8]
 	HCI_OP_LE_WRITE_DEF_DATA_LEN		hci_ev_cmd_complete_t[HCI_OP_LE_WRITE_DEF_DATA_LEN, int8]
 	HCI_OP_LE_ADD_TO_RESOLV_LIST		hci_ev_cmd_complete_t[HCI_OP_LE_ADD_TO_RESOLV_LIST, int8]
 	HCI_OP_LE_DEL_FROM_RESOLV_LIST		hci_ev_cmd_complete_t[HCI_OP_LE_DEL_FROM_RESOLV_LIST, int8]
@@ -1552,7 +1552,7 @@ hci_rp_le_read_supported_states {
 	le_states	array[int8, 8]
 } [packed]
 
-hci_rp_le_read_white_list_size {
+hci_rp_le_read_accept_list_size {
 	status	int8
 	size	int8
 } [packed]
@@ -1787,13 +1787,13 @@ hci_rp_role_discovery {
 	role	int8
 } [packed]
 
-hci_rp_set_csb {
+hci_rp_set_cpb {
 	status		int8
 	lt_addr		int8
 	interval	int16
 } [packed]
 
-hci_rp_set_csb_data {
+hci_rp_set_cpb_data {
 	status	int8
 	lt_addr	int8
 } [packed]
