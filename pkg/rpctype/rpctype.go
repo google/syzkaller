@@ -125,7 +125,8 @@ type NextExchangeRes struct {
 type HubConnectArgs struct {
 	// Client/Key are used for authentication.
 	Client string
-	Key    string
+	// The key may be a secret password or the oauth token prefixed by "Bearer ".
+	Key string
 	// Manager name, must start with Client.
 	Manager string
 	// See pkg/mgrconfig.Config.HubDomain.
