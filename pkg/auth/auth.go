@@ -35,8 +35,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/google/syzkaller/dashboard/dashapi"
 )
 
 const (
@@ -117,7 +115,7 @@ func (auth *Endpoint) DetermineAuthSubj(now time.Time, authHeader []string) (str
 	if err != nil {
 		return "", err
 	}
-	if claims.Audience != dashapi.DashboardAudience {
+	if claims.Audience != DashboardAudience {
 		err := fmt.Errorf("unexpected audience %v %v", claims.Audience, claims)
 		return "", err
 	}

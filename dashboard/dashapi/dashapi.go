@@ -17,7 +17,10 @@ import (
 	"net/url"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
+
+	"github.com/google/syzkaller/pkg/auth"
 )
 
 type Dashboard struct {
@@ -45,11 +48,11 @@ type (
 func NewCustom(client, addr, key string, ctor RequestCtor, doer RequestDoer,
 	logger RequestLogger, errorHandler func(error)) (*Dashboard, error) {
 	if key == "" {
-		token, err := retrieveJwtToken(ctor, doer)
+		token, err := auth.RetrieveJwtToken(ctor, doer)
 		if err != nil {
 			return nil, err
 		}
-		doer = atachJwtToken(ctor, doer, token)
+		doer = attachJwtToken(ctor, doer, token)
 	}
 	return &Dashboard{
 		Client:       client,
@@ -60,6 +63,29 @@ func NewCustom(client, addr, key string, ctor RequestCtor, doer RequestDoer,
 		logger:       logger,
 		errorHandler: errorHandler,
 	}, nil
+}
+
+// Augments the given doer with an authorization header carrying the
+// given token. The token gets refreshed when it becomes stale.
+func attachJwtToken(ctor RequestCtor, doer RequestDoer, token *auth.ExpiringToken) RequestDoer {
+	lock := sync.Mutex{}
+	return func(req *http.Request) (*http.Response, error) {
+		lock.Lock()
+		if token.Expiration.Before(time.Now()) {
+			// Keeping the lock while making http request is dubious, but
+			// making multiple concurrent requests is not any better.
+			t, err := auth.RetrieveJwtToken(ctor, doer)
+			if err != nil {
+				// Can't get a new token, so returning the error preemptively.
+				lock.Unlock()
+				return nil, err
+			}
+			*token = *t
+		}
+		req.Header.Add("Authorization", "Bearer "+token.Token)
+		lock.Unlock()
+		return doer(req)
+	}
 }
 
 // Build describes all aspects of a kernel build.
@@ -568,10 +594,6 @@ const (
 	ReportTestPatch                     // Patch testing result.
 	ReportBisectCause                   // Cause bisection result for an already reported bug.
 	ReportBisectFix                     // Fix bisection result for an already reported bug.
-)
-
-const (
-	DashboardAudience = "https://syzkaller.appspot.com/api"
 )
 
 func (dash *Dashboard) Query(method string, req, reply interface{}) error {
