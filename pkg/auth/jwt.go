@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -18,9 +19,9 @@ const (
 	DashboardAudience = "https://syzkaller.appspot.com/api"
 )
 
-type ExpiringToken struct {
-	Token      string
-	Expiration time.Time
+type expiringToken struct {
+	value      string
+	expiration time.Time
 }
 
 // Returns the unverified expiration value from the given JWT token.
@@ -43,12 +44,16 @@ func extractJwtExpiration(token string) (time.Time, error) {
 	return time.Unix(claims.Expiration, 0), nil
 }
 
+type (
+	// The types of ctor and doer are the same as in http.NewRequest and
+	// http.DefaultClient.Do.
+	requestCtor func(method, url string, body io.Reader) (*http.Request, error)
+	requestDoer func(req *http.Request) (*http.Response, error)
+)
+
 // Queries the metadata server and returns the bearer token of the
 // service account. The token is scoped for the official dashboard.
-// The types of ctor and doer are the same as in http.NewRequest and
-// http.DefaultClient.Do.
-func RetrieveJwtToken(ctor func(method, url string, body io.Reader) (*http.Request, error),
-	doer func(req *http.Request) (*http.Response, error)) (*ExpiringToken, error) {
+func retrieveJwtToken(ctor requestCtor, doer requestDoer) (*expiringToken, error) {
 	const v1meta = "http://metadata.google.internal/computeMetadata/v1"
 	req, err := ctor("GET", v1meta+"/instance/service-accounts/default/identity?audience="+DashboardAudience, nil)
 	if err != nil {
@@ -72,5 +77,46 @@ func RetrieveJwtToken(ctor func(method, url string, body io.Reader) (*http.Reque
 	if err != nil {
 		return nil, err
 	}
-	return &ExpiringToken{token, expiration}, nil
+	return &expiringToken{token, expiration}, nil
+}
+
+// TokenCache keeps the tokens for reuse by Get.
+type TokenCache struct {
+	lock  sync.Mutex
+	token *expiringToken
+	ctor  requestCtor
+	doer  requestDoer
+}
+
+// MakeCache creates a new cache or returns an error if tokens aren't
+// available.
+func MakeCache(ctor func(method, url string, body io.Reader) (*http.Request, error),
+	doer func(req *http.Request) (*http.Response, error)) (*TokenCache, error) {
+	token, err := retrieveJwtToken(ctor, doer)
+	if err != nil {
+		return nil, err
+	}
+	return &TokenCache{sync.Mutex{}, token, ctor, doer}, nil
+}
+
+// Get returns a potentially cached value of the token or renews as
+// necessary. The now parameter provides the current time for cache
+// expiration.
+func (cache *TokenCache) Get(now time.Time) (string, error) {
+	cache.lock.Lock()
+	defer cache.lock.Unlock()
+	// A typical token returned by metadata server is valid for an hour.
+	// Refreshing a minute early should give the recipient plenty of time
+	// to verify the token.
+	if cache.token.expiration.Sub(now) < time.Minute {
+		// Keeping the lock while making http request is dubious, but
+		// making multiple concurrent requests is not any better.
+		t, err := retrieveJwtToken(cache.ctor, cache.doer)
+		if err != nil {
+			// Can't get a new token, so returning the error preemptively.
+			return "", err
+		}
+		cache.token = t
+	}
+	return cache.token.value, nil
 }
