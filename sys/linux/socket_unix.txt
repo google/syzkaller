@@ -18,9 +18,11 @@ accept$unix(fd sock_unix, peer ptr[out, sockaddr_un, opt], peerlen ptr[inout, le
 accept4$unix(fd sock_unix, peer ptr[out, sockaddr_un, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_unix
 
 sendto$unix(fd sock_unix, buf buffer[in], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_un, opt], addrlen len[addr])
-sendmsg$unix(fd sock_unix, msg ptr[in, msghdr_un], f flags[send_flags])
-sendmmsg$unix(fd sock_unix, mmsg ptr[in, array[msghdr_un]], vlen len[mmsg], f flags[send_flags])
+sendmsg$unix(fd sock_unix, msg ptr[in, send_msghdr_un], f flags[send_flags])
+sendmmsg$unix(fd sock_unix, mmsg ptr[in, array[send_mmsghdr_un]], vlen len[mmsg], f flags[send_flags])
 recvfrom$unix(fd sock_unix, buf buffer[out], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr_un, opt], addrlen len[addr])
+recvmsg$unix(fd sock_unix, msg ptr[inout, recv_msghdr_un], f flags[recv_flags])
+recvmmsg$unix(fd sock_unix, mmsg ptr[in, array[recv_mmsghdr_un]], vlen len[mmsg], f flags[recv_flags], timeout ptr[in, timespec, opt])
 getsockname$unix(fd sock_unix, addr ptr[out, sockaddr_un], addrlen ptr[inout, len[addr, int32]])
 getpeername$unix(fd sock_unix, peer ptr[out, sockaddr_un], peerlen ptr[inout, len[peer, int32]])
 
@@ -48,14 +50,34 @@ sockaddr_un_abstract {
 	id	int32[20000:20004]
 }
 
-msghdr_un {
-	addr	ptr[in, sockaddr_un]
+send_msghdr_un {
+	addr	ptr[in, sockaddr_un, opt]
 	addrlen	len[addr, int32]
 	vec	ptr[in, array[iovec_in]]
 	vlen	len[vec, intptr]
 	ctrl	ptr[in, array[cmsghdr_un], opt]
 	ctrllen	bytesize[ctrl, intptr]
 	f	flags[send_flags, int32]
+}
+
+send_mmsghdr_un {
+	msg_hdr	send_msghdr_un
+	msg_len	const[0, int32]
+}
+
+recv_msghdr_un {
+	addr	ptr[out, sockaddr_un, opt]
+	addrlen	len[addr, int32]
+	vec	ptr[in, array[iovec_out]]
+	vlen	len[vec, intptr]
+	ctrl	ptr[out, array[cmsghdr_un], opt]
+	ctrllen	bytesize[ctrl, intptr]
+	f	const[0, int32]
+}
+
+recv_mmsghdr_un {
+	msg_hdr	recv_msghdr_un
+	msg_len	const[0, int32]
 }
 
 cmsghdr_un [
