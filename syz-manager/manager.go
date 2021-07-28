@@ -1138,7 +1138,7 @@ func (mgr *Manager) candidateBatch(size int) []rpctype.RPCCandidate {
 		if mgr.phase == phaseLoadedCorpus {
 			if mgr.cfg.HubClient != "" {
 				mgr.phase = phaseTriagedCorpus
-				go mgr.hubSyncLoop()
+				go mgr.hubSyncLoop(pickGetter(mgr.cfg.HubKey))
 			} else {
 				mgr.phase = phaseTriagedHub
 			}

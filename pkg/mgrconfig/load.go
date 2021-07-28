@@ -151,7 +151,6 @@ func Complete(cfg *Config) error {
 		if err := checkNonEmpty(
 			cfg.Name, "name",
 			cfg.HubAddr, "hub_addr",
-			cfg.HubKey, "hub_key",
 		); err != nil {
 			return err
 		}

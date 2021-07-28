@@ -8,9 +8,12 @@ import (
 	"flag"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"path/filepath"
 	"runtime"
+	"time"
 
+	"github.com/google/syzkaller/pkg/auth"
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/prog"
@@ -55,9 +58,20 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to connect to hub: %v", err)
 	}
+	key := *flagHubKey
+	if *flagHubKey == "" {
+		tokenCache, err := auth.MakeCache(http.NewRequest, http.DefaultClient.Do)
+		if err != nil {
+			log.Fatalf("failed to make auth cache %v", err)
+		}
+		key, err = tokenCache.Get(time.Now())
+		if err != nil {
+			log.Fatalf("failed to get a token %v", err)
+		}
+	}
 	connectArgs := &rpctype.HubConnectArgs{
 		Client:  *flagHubClient,
-		Key:     *flagHubKey,
+		Key:     key,
 		Manager: *flagHubManager,
 		Fresh:   false,
 		Calls:   nil,
@@ -70,7 +84,7 @@ func main() {
 	if len(repros) != 0 {
 		syncArgs := &rpctype.HubSyncArgs{
 			Client:  *flagHubClient,
-			Key:     *flagHubKey,
+			Key:     key,
 			Manager: *flagHubManager,
 			Repros:  repros,
 		}
@@ -82,7 +96,7 @@ func main() {
 	for *flagDrain {
 		syncArgs := &rpctype.HubSyncArgs{
 			Client:     *flagHubClient,
-			Key:        *flagHubKey,
+			Key:        key,
 			Manager:    *flagHubManager,
 			NeedRepros: true,
 		}

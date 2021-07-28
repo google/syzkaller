@@ -53,12 +53,12 @@ func NewCustom(client, addr, key string, ctor RequestCtor, doer RequestDoer,
 			return nil, err
 		}
 		wrappedDoer = func(req *http.Request) (*http.Response, error) {
-			if token, err := tokenCache.Get(time.Now()); err == nil {
-				req.Header.Add("Authorization", "Bearer "+token)
-				return doer(req)
-			} else {
+			token, err := tokenCache.Get(time.Now())
+			if err != nil {
 				return nil, err
 			}
+			req.Header.Add("Authorization", token)
+			return doer(req)
 		}
 	}
 	return &Dashboard{
