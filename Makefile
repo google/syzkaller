@@ -369,6 +369,7 @@ install_prerequisites:
 	[ -z "$(shell which python)" -a -n "$(shell which python3)" ] && sudo apt-get install -y -q python-is-python3 || true
 	sudo apt-get install -y -q clang-tidy || true
 	sudo apt-get install -y -q clang clang-format ragel
+	sudo apt-get install -y -q llvm || true
 	GO111MODULE=off go get -u golang.org/x/tools/cmd/goyacc
 
 check_copyright:
