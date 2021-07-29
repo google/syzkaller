@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/cover/backend"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -172,16 +173,19 @@ func (rg *ReportGenerator) DoRawCoverFiles(w http.ResponseWriter, progs []Prog, 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	buf := bufio.NewWriter(w)
 	fmt.Fprintf(buf, "PC,framePC,Module,Offset,Filename,StartLine\n")
-	idx := 0
 	for _, pc := range pcs {
-		for ; idx < len(rg.Frames); idx++ {
-			frame := rg.Frames[idx]
-			if pc == frame.PC {
-				offset := frame.PC - frame.Module.Addr
-				fmt.Fprintf(buf, "0x%x,%v,0x%x,%v,%v\n", pc, frame.Module.Name, offset, frame.Name, frame.StartLine)
-				break
-			}
+		idx := sort.Search(len(rg.Frames), func(i int) bool {
+			return pc < rg.Frames[i].PC
+		})
+		if idx == len(rg.Frames) {
+			continue
 		}
+		frame := rg.Frames[idx-1]
+		if pc != frame.PC {
+			log.Logf(0, "DoRawCoverFiles: pc (%v) != frame.PC (%v) \n", pc, frame.PC)
+		}
+		offset := frame.PC - frame.Module.Addr
+		fmt.Fprintf(buf, "0x%x,%v,0x%x,%v,%v\n", pc, frame.Module.Name, offset, frame.Name, frame.StartLine)
 	}
 	buf.Flush()
 	return nil
