@@ -71,6 +71,12 @@ func testTarget(t *testing.T, target *prog.Target, full bool) {
 		opts = allOptionsPermutations(target.OS)
 	}
 	for opti, opts := range opts {
+		if testing.Short() && opts.HandleSegv {
+			// HandleSegv can radically increase compilation time/memory consumption on large programs.
+			// For example, for one program captured from this test enabling HandleSegv increases
+			// compilation time from 1.94s to 104.73s and memory consumption from 136MB to 8116MB.
+			continue
+		}
 		opts := opts
 		t.Run(fmt.Sprintf("%v", opti), func(t *testing.T) {
 			t.Parallel()
