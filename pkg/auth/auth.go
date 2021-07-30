@@ -78,6 +78,9 @@ func (auth *Endpoint) queryTokenInfo(tokenValue string) (*jwtClaims, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("verification failed %v", resp.StatusCode)
+	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -116,7 +119,7 @@ func (auth *Endpoint) DetermineAuthSubj(now time.Time, authHeader []string) (str
 		return "", err
 	}
 	if claims.Audience != DashboardAudience {
-		err := fmt.Errorf("unexpected audience %v %v", claims.Audience, claims)
+		err := fmt.Errorf("unexpected audience %v", claims.Audience)
 		return "", err
 	}
 	if claims.Expiration.Before(now) {

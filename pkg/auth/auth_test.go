@@ -95,3 +95,15 @@ func TestBadHeader(t *testing.T) {
 		t.Errorf("Unexpected error %v %v", got, err)
 	}
 }
+
+func TestBadHttpStatus(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(400)
+	}))
+	defer ts.Close()
+	dut := MakeEndpoint(ts.URL)
+	got, err := dut.DetermineAuthSubj(time.Now(), []string{"Bearer x"})
+	if err == nil || !strings.HasSuffix(err.Error(), "400") || got != "" {
+		t.Errorf("Unexpected error %v %v", got, err)
+	}
+}
