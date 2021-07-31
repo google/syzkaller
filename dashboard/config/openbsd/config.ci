@@ -1,0 +1,83 @@
+{
+	"name": "ci-openbsd",
+	"http": ":8080",
+	"manager_port_start": 50010,
+	"dashboard_addr": "https://syzkaller.appspot.com",
+	"dashboard_client": "ci-openbsd-ci",
+	"hub_addr": "ci-hub.c.syzkaller.internal:50001",
+	"cover_upload_path": "gs://syzkaller/cover",
+	"syzkaller_repo": "https://github.com/google/syzkaller.git",
+	"managers": [
+		{
+			"name": "main",
+			"dashboard_client": "ci-openbsd",
+			"repo": "https://github.com/openbsd/src.git",
+			"repo_alias": "openbsd",
+			"userspace": "/syzkaller/userspace",
+			"kernel_config": "/syzkaller/config/openbsd/sp",
+			"jobs": {
+				"poll_commits": true,
+				"test_patches": true
+			},
+			"manager_config": {
+				"target": "openbsd/amd64",
+				"cover": true,
+				"reproduce": false,
+				"procs": 2,
+				"type": "gce",
+				"vm": {
+					"count": 10,
+					"machine_type": "e2-small",
+					"gcs_path": "syzkaller/disks"
+				}
+			}
+		},
+		{
+			"name": "multicore",
+			"dashboard_client": "ci-openbsd",
+			"repo": "https://github.com/openbsd/src.git",
+			"repo_alias": "multicore",
+			"userspace": "/syzkaller/userspace-multicore",
+			"kernel_config": "/syzkaller/config/openbsd/mp",
+			"jobs": {
+				"test_patches": true
+			},
+			"manager_config": {
+				"target": "openbsd/amd64",
+				"cover": true,
+				"reproduce": false,
+				"procs": 2,
+				"type": "gce",
+				"vm": {
+					"count": 10,
+					"machine_type": "e2-highcpu-2",
+					"gcs_path": "syzkaller/disks"
+				}
+			}
+		},
+		{
+			"name": "setuid",
+			"dashboard_client": "ci-openbsd",
+			"repo": "https://github.com/openbsd/src.git",
+			"repo_alias": "multicore",
+			"userspace": "/syzkaller/userspace",
+			"kernel_config": "/syzkaller/config/openbsd/mp",
+			"jobs": {
+				"test_patches": true
+			},
+			"manager_config": {
+				"target": "openbsd/amd64",
+				"sandbox": "setuid",
+				"cover": true,
+				"reproduce": false,
+				"procs": 2,
+				"type": "gce",
+				"vm": {
+					"count": 10,
+					"machine_type": "e2-highcpu-2",
+					"gcs_path": "syzkaller/disks"
+				}
+			}
+		}
+	]
+}
