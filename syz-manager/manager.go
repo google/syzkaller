@@ -49,7 +49,7 @@ type Manager struct {
 	vmPool         *vm.Pool
 	target         *prog.Target
 	sysTarget      *targets.Target
-	reporter       report.Reporter
+	reporter       *report.Reporter
 	crashdir       string
 	serv           *RPCServer
 	corpusDB       *db.DB

@@ -7,7 +7,7 @@ import (
 	"regexp"
 )
 
-func ctorDarwin(cfg *config) (Reporter, []string, error) {
+func ctorDarwin(cfg *config) (reporterImpl, []string, error) {
 	symbolizeRes := []*regexp.Regexp{}
 	ctx, err := ctorBSD(cfg, darwinOopses, symbolizeRes)
 	return ctx, nil, err

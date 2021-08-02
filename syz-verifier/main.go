@@ -83,7 +83,7 @@ type RPCServer struct {
 type poolInfo struct {
 	cfg      *mgrconfig.Config
 	pool     *vm.Pool
-	Reporter report.Reporter
+	Reporter *report.Reporter
 	//  runners keeps track of what programs have been sent to each Runner.
 	//  There is one Runner executing per VM instance.
 	runners map[int]runnerProgs

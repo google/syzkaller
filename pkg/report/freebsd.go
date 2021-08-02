@@ -12,7 +12,7 @@ type freebsd struct {
 	*config
 }
 
-func ctorFreebsd(cfg *config) (Reporter, []string, error) {
+func ctorFreebsd(cfg *config) (reporterImpl, []string, error) {
 	ctx := &freebsd{
 		config: cfg,
 	}

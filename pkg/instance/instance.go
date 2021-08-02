@@ -243,7 +243,7 @@ func (env *env) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]error, e
 type inst struct {
 	cfg           *mgrconfig.Config
 	optionalFlags bool
-	reporter      report.Reporter
+	reporter      *report.Reporter
 	vmPool        *vm.Pool
 	vm            *vm.Instance
 	vmIndex       int

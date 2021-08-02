@@ -166,7 +166,7 @@ func storeCrash(cfg *mgrconfig.Config, rep *report.Report) {
 	}
 }
 
-func runInstance(cfg *mgrconfig.Config, reporter report.Reporter,
+func runInstance(cfg *mgrconfig.Config, reporter *report.Reporter,
 	vmPool *vm.Pool, index int, timeout time.Duration, runType FileType) *report.Report {
 	log.Printf("vm-%v: starting", index)
 	inst, err := vmPool.Create(index)

@@ -44,7 +44,7 @@ type Stats struct {
 
 type context struct {
 	target       *targets.Target
-	reporter     report.Reporter
+	reporter     *report.Reporter
 	crashTitle   string
 	crashType    report.Type
 	instances    chan *instance
@@ -63,7 +63,7 @@ type instance struct {
 	executorBin string
 }
 
-func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, reporter report.Reporter,
+func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, reporter *report.Reporter,
 	vmPool *vm.Pool, vmIndexes []int) (*Result, *Stats, error) {
 	if len(vmIndexes) == 0 {
 		return nil, nil, fmt.Errorf("no VMs provided")

@@ -7,7 +7,7 @@ import (
 	"regexp"
 )
 
-func ctorOpenbsd(cfg *config) (Reporter, []string, error) {
+func ctorOpenbsd(cfg *config) (reporterImpl, []string, error) {
 	symbolizeRes := []*regexp.Regexp{
 		// stack
 		regexp.MustCompile(` at ([A-Za-z0-9_]+)\+0x([0-9a-f]+)`),

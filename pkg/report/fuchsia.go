@@ -38,7 +38,7 @@ var (
 	}
 )
 
-func ctorFuchsia(cfg *config) (Reporter, []string, error) {
+func ctorFuchsia(cfg *config) (reporterImpl, []string, error) {
 	ctx := &fuchsia{
 		config: cfg,
 	}

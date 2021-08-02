@@ -23,7 +23,7 @@ type bsd struct {
 	symbols      map[string][]symbolizer.Symbol
 }
 
-func ctorBSD(cfg *config, oopses []*oops, symbolizeRes []*regexp.Regexp) (Reporter, error) {
+func ctorBSD(cfg *config, oopses []*oops, symbolizeRes []*regexp.Regexp) (reporterImpl, error) {
 	var symbols map[string][]symbolizer.Symbol
 	kernelObject := ""
 	if cfg.kernelObj != "" {

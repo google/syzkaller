@@ -179,7 +179,7 @@ const (
 // Exit says which exit modes should be considered as errors/OK.
 // Returns a non-symbolized crash report, or nil if no error happens.
 func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
-	reporter report.Reporter, exit ExitCondition) (rep *report.Report) {
+	reporter *report.Reporter, exit ExitCondition) (rep *report.Report) {
 	mon := &monitor{
 		inst:     inst,
 		outc:     outc,
@@ -266,7 +266,7 @@ type monitor struct {
 	inst     *Instance
 	outc     <-chan []byte
 	errc     <-chan error
-	reporter report.Reporter
+	reporter *report.Reporter
 	exit     ExitCondition
 	output   []byte
 	matchPos int
