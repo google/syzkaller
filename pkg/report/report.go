@@ -12,12 +12,13 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
 )
 
-type Reporter interface {
+type reporterImpl interface {
 	// ContainsCrash searches kernel console output for oops messages.
 	ContainsCrash(output []byte) bool
 
@@ -27,6 +28,12 @@ type Reporter interface {
 
 	// Symbolize symbolizes rep.Report and fills in Maintainers.
 	Symbolize(rep *Report) error
+}
+
+type Reporter struct {
+	impl         reporterImpl
+	suppressions []*regexp.Regexp
+	typ          string
 }
 
 type Report struct {
@@ -90,7 +97,7 @@ func (t Type) String() string {
 }
 
 // NewReporter creates reporter for the specified OS/Type.
-func NewReporter(cfg *mgrconfig.Config) (Reporter, error) {
+func NewReporter(cfg *mgrconfig.Config) (*Reporter, error) {
 	typ := cfg.TargetOS
 	if cfg.Type == "gvisor" {
 		typ = cfg.Type
@@ -118,7 +125,7 @@ func NewReporter(cfg *mgrconfig.Config) (Reporter, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &reporterWrapper{rep, supps, typ}, nil
+	return &Reporter{rep, supps, typ}, nil
 }
 
 const (
@@ -148,7 +155,7 @@ type config struct {
 	ignores        []*regexp.Regexp
 }
 
-type fn func(cfg *config) (Reporter, []string, error)
+type fn func(cfg *config) (reporterImpl, []string, error)
 
 func compileRegexps(list []string) ([]*regexp.Regexp, error) {
 	compiled := make([]*regexp.Regexp, len(list))
@@ -162,14 +169,8 @@ func compileRegexps(list []string) ([]*regexp.Regexp, error) {
 	return compiled, nil
 }
 
-type reporterWrapper struct {
-	Reporter
-	suppressions []*regexp.Regexp
-	typ          string
-}
-
-func (wrap *reporterWrapper) Parse(output []byte) *Report {
-	rep := wrap.Reporter.Parse(output)
+func (reporter *Reporter) Parse(output []byte) *Report {
+	rep := reporter.impl.Parse(output)
 	if rep == nil {
 		return nil
 	}
@@ -177,7 +178,7 @@ func (wrap *reporterWrapper) Parse(output []byte) *Report {
 	for i, title := range rep.AltTitles {
 		rep.AltTitles[i] = sanitizeTitle(replaceTable(dynamicTitleReplacement, title))
 	}
-	rep.Suppressed = matchesAny(rep.Output, wrap.suppressions)
+	rep.Suppressed = matchesAny(rep.Output, reporter.suppressions)
 	if bytes.Contains(rep.Output, gceConsoleHangup) {
 		rep.Corrupted = true
 	}
@@ -195,6 +196,19 @@ func (wrap *reporterWrapper) Parse(output []byte) *Report {
 		rep.EndPos = rep.SkipPos
 	}
 	return rep
+}
+
+func (reporter *Reporter) ContainsCrash(output []byte) bool {
+	return reporter.impl.ContainsCrash(output)
+}
+
+func (reporter *Reporter) Symbolize(rep *Report) error {
+	return reporter.impl.Symbolize(rep)
+}
+
+// We need this method to enable comparisons though go-cmp.
+func (reporter Reporter) Equal(other Reporter) bool {
+	return cmp.Equal(reporter, other, cmp.AllowUnexported(Reporter{}))
 }
 
 func extractReportType(rep *Report) Type {
@@ -219,13 +233,13 @@ func extractReportType(rep *Report) Type {
 	return Unknown
 }
 
-func IsSuppressed(reporter Reporter, output []byte) bool {
-	return matchesAny(output, reporter.(*reporterWrapper).suppressions) ||
+func IsSuppressed(reporter *Reporter, output []byte) bool {
+	return matchesAny(output, reporter.suppressions) ||
 		bytes.Contains(output, gceConsoleHangup)
 }
 
 // ParseAll returns all successive reports in output.
-func ParseAll(reporter Reporter, output []byte) (reports []*Report) {
+func ParseAll(reporter *Reporter, output []byte) (reports []*Report) {
 	for {
 		rep := reporter.Parse(output)
 		if rep == nil {

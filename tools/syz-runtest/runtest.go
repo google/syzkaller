@@ -132,7 +132,7 @@ func main() {
 type Manager struct {
 	cfg              *mgrconfig.Config
 	vmPool           *vm.Pool
-	reporter         report.Reporter
+	reporter         *report.Reporter
 	requests         chan *runtest.RunRequest
 	checkResult      *rpctype.CheckArgs
 	checkResultReady chan bool

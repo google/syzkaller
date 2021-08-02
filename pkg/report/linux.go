@@ -33,7 +33,7 @@ type linux struct {
 	eoi                   []byte
 }
 
-func ctorLinux(cfg *config) (Reporter, []string, error) {
+func ctorLinux(cfg *config) (reporterImpl, []string, error) {
 	var symbols map[string][]symbolizer.Symbol
 	vmlinux := ""
 	if cfg.kernelObj != "" {

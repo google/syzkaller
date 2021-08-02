@@ -42,7 +42,7 @@ type ParseTest struct {
 	Report     []byte
 }
 
-func testParseFile(t *testing.T, reporter Reporter, fn string) {
+func testParseFile(t *testing.T, reporter *Reporter, fn string) {
 	data, err := ioutil.ReadFile(fn)
 	if err != nil {
 		t.Fatal(err)
@@ -151,7 +151,7 @@ func parseHeaderLine(t *testing.T, test *ParseTest, ln string) {
 	}
 }
 
-func testParseImpl(t *testing.T, reporter Reporter, test *ParseTest) {
+func testParseImpl(t *testing.T, reporter *Reporter, test *ParseTest) {
 	rep := reporter.Parse(test.Log)
 	containsCrash := reporter.ContainsCrash(test.Log)
 	expectCrash := (test.Title != "")
@@ -203,7 +203,7 @@ func testParseImpl(t *testing.T, reporter Reporter, test *ParseTest) {
 	checkReport(t, reporter, rep, test)
 }
 
-func checkReport(t *testing.T, reporter Reporter, rep *Report, test *ParseTest) {
+func checkReport(t *testing.T, reporter *Reporter, rep *Report, test *ParseTest) {
 	if test.HasReport && !bytes.Equal(rep.Report, test.Report) {
 		t.Fatalf("extracted wrong report:\n%s\nwant:\n%s", rep.Report, test.Report)
 	}
@@ -277,7 +277,7 @@ func TestGuiltyFile(t *testing.T) {
 	forEachFile(t, "guilty", testGuiltyFile)
 }
 
-func testGuiltyFile(t *testing.T, reporter Reporter, fn string) {
+func testGuiltyFile(t *testing.T, reporter *Reporter, fn string) {
 	data, err := ioutil.ReadFile(fn)
 	if err != nil {
 		t.Fatal(err)
@@ -322,7 +322,7 @@ func testGuiltyFile(t *testing.T, reporter Reporter, fn string) {
 	}
 }
 
-func forEachFile(t *testing.T, dir string, fn func(t *testing.T, reporter Reporter, fn string)) {
+func forEachFile(t *testing.T, dir string, fn func(t *testing.T, reporter *Reporter, fn string)) {
 	for os := range ctors {
 		if os == targets.Windows {
 			continue // not implemented

@@ -13,7 +13,7 @@ import (
 func Fuzz(data []byte) int {
 	res := 0
 	for os, reporter := range fuzzReporters {
-		typ := reporter.(*reporterWrapper).typ
+		typ := reporter.typ
 		containsCrash := reporter.ContainsCrash(data)
 		rep := reporter.Parse(data)
 		if containsCrash != (rep != nil) {
@@ -64,8 +64,8 @@ func Fuzz(data []byte) int {
 	return res
 }
 
-var fuzzReporters = func() map[string]Reporter {
-	reporters := make(map[string]Reporter)
+var fuzzReporters = func() map[string]*Reporter {
+	reporters := make(map[string]*Reporter)
 	for os := range ctors {
 		if os == targets.Windows {
 			continue
@@ -80,7 +80,7 @@ var fuzzReporters = func() map[string]Reporter {
 		if err != nil {
 			panic(err)
 		}
-		if _, ok := reporter.(*stub); ok {
+		if _, ok := reporter.impl.(*stub); ok {
 			continue
 		}
 		reporters[os] = reporter

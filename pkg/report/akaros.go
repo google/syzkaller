@@ -20,7 +20,7 @@ type akaros struct {
 	objfile string
 }
 
-func ctorAkaros(cfg *config) (Reporter, []string, error) {
+func ctorAkaros(cfg *config) (reporterImpl, []string, error) {
 	ctx := &akaros{
 		config: cfg,
 	}

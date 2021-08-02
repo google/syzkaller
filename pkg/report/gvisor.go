@@ -12,7 +12,7 @@ type gvisor struct {
 	*config
 }
 
-func ctorGvisor(cfg *config) (Reporter, []string, error) {
+func ctorGvisor(cfg *config) (reporterImpl, []string, error) {
 	ctx := &gvisor{
 		config: cfg,
 	}

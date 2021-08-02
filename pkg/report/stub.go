@@ -7,7 +7,7 @@ type stub struct {
 	*config
 }
 
-func ctorStub(cfg *config) (Reporter, []string, error) {
+func ctorStub(cfg *config) (reporterImpl, []string, error) {
 	ctx := &stub{
 		config: cfg,
 	}
