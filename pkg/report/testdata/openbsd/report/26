@@ -1,4 +1,4 @@
-TITLE: soreceive 1
+TITLE: soreceive NUM
 
 panic: receive 1: so 0xfffffd805e563640, so_type 3, sb_cc 33
 Stopped at      db_enter+0x18:  addq    $0x8,%rsp

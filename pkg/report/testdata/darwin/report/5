@@ -1,4 +1,4 @@
-TITLE: panic: slab_nextptr_panic: mcache.mbuf buffer ADDR in slab ADDR modified after free at offset 0: ADDR out of range [ADDR
+TITLE: panic: slab_nextptr_panic: mcache.mbuf buffer ADDR in slab ADDR modified after free at offset NUM: ADDR out of range [AD
 
 panic(cpu 0 caller 0xffffff800ac3235c): slab_nextptr_panic: mcache.mbuf buffer 0xffffffa0464b6000 in slab 0xffffffa015c843a0 modified after free at offset 0: 0xccd900000000 out of range [0xffffffa0463a3000-0xffffffa04c3a3000)
 

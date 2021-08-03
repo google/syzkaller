@@ -1,4 +1,4 @@
-TITLE: panic: executor 2: failed: event already set (errno 0)
+TITLE: panic: executor NUM: failed: event already set (errno NUM)
 
 panic: executor 2: failed: event already set (errno 0)
 child failed (errno 2)

@@ -1,4 +1,4 @@
-TITLE: Fatal trap 12: page fault while in kernel mode in atrtc_settime
+TITLE: Fatal trap NUM: page fault while in kernel mode in atrtc_settime
 
 Fatal trap 12: page fault while in kernel mode
 cpuid = 0; apic id = 00

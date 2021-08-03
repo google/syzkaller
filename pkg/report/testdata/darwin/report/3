@@ -1,4 +1,4 @@
-TITLE: panic: zalloc: default.kalloc.4096 retry fail 6
+TITLE: panic: zalloc: default.kalloc.NUM retry fail NUM
 
 panic(cpu 1 caller 0xffffff8009da2f32): "zalloc: default.kalloc.4096 (357 elements) retry fail 6"@/Users/space/kernel/xnu-7195.81.3/osfmk/kern/zalloc.c:3413
 Backtrace (CPU 1), Frame : Return Address

@@ -1,0 +1,25 @@
+TITLE: kernel panic: VFS: Unable to mount root fs on unknown-block(NUM,NUM)
+CORRUPTED: N
+
+
+[    7.588873][    T1] Kernel panic - not syncing: VFS: Unable to mount root fs on unknown-block(0,0)
+[    7.591093][    T1] CPU: 0 PID: 1 Comm: swapper/0 Not tainted 5.13.0-syzkaller #0
+[    7.592511][    T1] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[    7.594827][    T1] Call Trace:
+[    7.595731][    T1]  dump_stack_lvl+0xcd/0x134
+[    7.596755][    T1]  panic+0x306/0x73d
+[    7.597535][    T1]  ? __warn_printk+0xf3/0xf3
+[    7.598935][    T1]  mount_block_root+0x3f8/0x4dd
+[    7.600581][    T1]  ? init_rootfs+0x59/0x59
+[    7.601603][    T1]  ? memcpy+0x39/0x60
+[    7.602547][    T1]  mount_root+0x1af/0x1f5
+[    7.603323][    T1]  ? mount_block_root+0x4dd/0x4dd
+[    7.604170][    T1]  ? memcpy+0x39/0x60
+[    7.605058][    T1]  prepare_namespace+0x1ff/0x234
+[    7.606115][    T1]  kernel_init_freeable+0x71f/0x737
+[    7.607467][    T1]  ? rest_init+0x400/0x400
+[    7.609009][    T1]  kernel_init+0x1a/0x1d0
+[    7.610261][    T1]  ? rest_init+0x400/0x400
+[    7.611325][    T1]  ret_from_fork+0x1f/0x30
+[    7.614266][    T1] Kernel Offset: disabled
+[    7.615575][    T1] Rebooting in 86400 seconds..

@@ -1,4 +1,4 @@
-TITLE: INFO: Allocated in fasync_helper age=1 cpu=1 pid=6024
+TITLE: INFO: Allocated in fasync_helper age=NUM cpu=NUM pid=NUM
 CORRUPTED: Y
 
 ** 4491 printk messages dropped ** [   50.750742] INFO: Allocated in fasync_helper+0x29/0x90 age=1 cpu=1 pid=6024

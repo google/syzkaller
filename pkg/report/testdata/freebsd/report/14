@@ -1,4 +1,4 @@
-TITLE: panic: ASan: Invalid access, 16-byte read in aesni_encrypt_icm
+TITLE: panic: ASan: Invalid access, NUM-byte read in aesni_encrypt_icm
 
 panic: ASan: Invalid access, 16-byte read at 0xfffffe000793dd20, RedZonePartial(5)
 cpuid = 0
