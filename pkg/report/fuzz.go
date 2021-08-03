@@ -50,8 +50,8 @@ func Fuzz(data []byte) int {
 				typ, rep.SkipPos, rep.StartPos, rep.EndPos))
 		}
 		// If we parse from StartPos, we must find the same report.
-		rep1 := reporter.Parse(data[rep.StartPos:])
-		if rep1 == nil || rep1.Title != rep.Title || rep1.StartPos != 0 {
+		rep1 := reporter.ParseFrom(data, rep.StartPos)
+		if rep1 == nil || rep1.Title != rep.Title || rep1.StartPos != rep.StartPos {
 			title, startPos := "", -1
 			if rep1 != nil {
 				title, startPos = rep1.Title, rep1.StartPos

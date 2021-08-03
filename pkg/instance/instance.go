@@ -264,7 +264,7 @@ func (inst *inst) test() error {
 			rep := inst.reporter.Parse(testErr.Output)
 			if rep != nil && rep.Type == report.UnexpectedReboot {
 				// Avoid detecting any boot crash as "unexpected kernel reboot".
-				rep = inst.reporter.Parse(testErr.Output[rep.SkipPos:])
+				rep = inst.reporter.ParseFrom(testErr.Output, rep.SkipPos)
 			}
 			if rep == nil {
 				rep = &report.Report{
