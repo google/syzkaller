@@ -1,4 +1,4 @@
-TITLE: Fatal trap 12: page fault while in kernel mode in sctp_sosend
+TITLE: Fatal trap NUM: page fault while in kernel mode in sctp_sosend
 
 Fatal trap 12: page fault while in kernel mode
 cpuid = 3; apic id = 03

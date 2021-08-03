@@ -1,4 +1,4 @@
-TITLE: INFO: Allocated in fasync_helper age=1 cpu=1 pid=6024
+TITLE: INFO: Allocated in fasync_helper age=NUM cpu=NUM pid=NUM
 CORRUPTED: Y
 
 [   50.636894] audit_printk_skb: 210 callbacks suppressed

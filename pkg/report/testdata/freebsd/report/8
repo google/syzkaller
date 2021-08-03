@@ -1,4 +1,4 @@
-TITLE: Fatal trap 12: page fault in inp_freemoptions
+TITLE: Fatal trap NUM: page fault in inp_freemoptions
 
 Fatal trap 12: page fault while in kernel mode
 cpuid = 0; apic id = 00

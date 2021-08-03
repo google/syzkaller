@@ -267,7 +267,11 @@ type replacement struct {
 
 func replaceTable(replacements []replacement, str string) string {
 	for _, repl := range replacements {
-		str = repl.match.ReplaceAllString(str, repl.replacement)
+		for stop := false; !stop; {
+			newStr := repl.match.ReplaceAllString(str, repl.replacement)
+			stop = newStr == str
+			str = newStr
+		}
 	}
 	return str
 }
@@ -290,19 +294,14 @@ var dynamicTitleReplacement = []replacement{
 		"${1}ADDR",
 	},
 	{
-		// Replace that everything looks like a decimal number with "NUM".
-		regexp.MustCompile(`([^a-zA-Z0-9])[0-9]{5,}`),
-		"${1}NUM",
-	},
-	{
 		// Replace IP addresses.
 		regexp.MustCompile(`([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})`),
 		"IP",
 	},
 	{
 		// Replace that everything looks like a file line number with "LINE".
-		regexp.MustCompile(`(:[0-9]+)+`),
-		":LINE",
+		regexp.MustCompile(`(\.\w+)(:[0-9]+)+`),
+		"${1}:LINE",
 	},
 	{
 		// Replace all raw references to runctions (e.g. "ip6_fragment+0x1052/0x2d80")
@@ -314,6 +313,13 @@ var dynamicTitleReplacement = []replacement{
 		// CPU numbers are not interesting.
 		regexp.MustCompile(`CPU#[0-9]+`),
 		"CPU",
+	},
+	{
+		// Replace with "NUM" everything that looks like a decimal number and has not
+		// been replaced yet. It might require multiple replacement executions as the
+		// matching substrings may overlap (e.g. "0,1,2").
+		regexp.MustCompile(`(\W)(\d+)(\W|$)`),
+		"${1}NUM${3}",
 	},
 }
 

@@ -1,4 +1,4 @@
-TITLE: assert failed: pmap->pm_obj[i].uo_npages == 0
+TITLE: assert failed: pmap->pm_obj[i].uo_npages == NUM
 
 panic: kernel diagnostic assertion "pmap->pm_obj[i].uo_npages == 0" failed: file "/extra/netbsd-src/sys/arch/x86/x86/pmap.c", line 2368 
 cpu0: Begin traceback...

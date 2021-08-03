@@ -1,4 +1,4 @@
-TITLE: panic: Kernel trap type 14=page fault
+TITLE: panic: Kernel trap type NUM=page fault
 
 panic(cpu 1 caller 0xffffff8002928989): Kernel trap at 0xffffff80021020ba, type 14=page fault, registers:
 CR0: 0x000000008001003b, CR2: 0x0000000000000000, CR3: 0x0000000008b71000, CR4: 0x00000000000406e0

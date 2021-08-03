@@ -1,4 +1,4 @@
-TITLE: assert "pg->wire_count == 1" failed in vfs_biomem.c
+TITLE: assert "pg->wire_count == NUM" failed in vfs_biomem.c
 
 panic: kernel diagnostic assertion "pg->wire_count == 1" failed: file "/syzkaller/managers/main/kernel/sys/kern/vfs_biomem.c", line 329
 Stopped at      db_enter+0xa:   popq    %rbp

@@ -1,4 +1,4 @@
-TITLE: INFO: Freed in fasync_free_rcu age=57 cpu=0 pid=NUM
+TITLE: INFO: Freed in fasync_free_rcu age=NUM cpu=NUM pid=NUM
 CORRUPTED: Y
 
 [   96.002194] nla_parse: 25 callbacks suppressed

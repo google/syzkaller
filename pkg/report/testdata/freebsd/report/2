@@ -1,4 +1,4 @@
-TITLE: Fatal trap 9: general protection fault while in kernel mode in udp_close
+TITLE: Fatal trap NUM: general protection fault while in kernel mode in udp_close
 
 Fatal trap 9: general protection fault while in kernel mode
 cpuid = 0; apic id = 00

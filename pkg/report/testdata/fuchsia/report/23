@@ -1,4 +1,4 @@
-TITLE: ASSERT FAILED: thread_resched_disable_count() > 0
+TITLE: ASSERT FAILED: thread_resched_disable_count() > NUM
 
 ZIRCON KERNEL PANIC
 panic (caller 0xffffffff00150518 frame 0xffffff953a957d50): DEBUG ASSERT FAILED at (kernel/include/kernel/thread.h:452): thread

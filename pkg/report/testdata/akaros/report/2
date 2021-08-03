@@ -1,4 +1,4 @@
-TITLE: assertion failed: rpi->gp_acked + 1 == READ_ONCE(rsp->gpnum)
+TITLE: assertion failed: rpi->gp_acked + NUM == READ_ONCE(rsp->gpnum)
 
 kernel panic at kern/src/rcu.c:325, from core 3: assertion failed: rpi->gp_acked + 1 == READ_ONCE(rsp->gpnum)
 

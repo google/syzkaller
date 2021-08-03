@@ -1,4 +1,4 @@
-TITLE: panic: ASan: Invalid access, 1-byte write in strlcpy
+TITLE: panic: ASan: Invalid access, NUM-byte write in strlcpy
 
 panic: ASan: Invalid access, 1-byte write at 0xfffffe0057414be0, MallocRedZone(fb)
 cpuid = 1

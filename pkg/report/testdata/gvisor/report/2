@@ -1,4 +1,4 @@
-TITLE: panic: ptrace set regs (&{R15:LINE R14:LINE R13:LINE R12:LINE Rbp:ADDR Rbx:ADDR R11:LINE R10:LINE R9:LINE R8:LINE Rax:LI
+TITLE: panic: ptrace set regs (&{R15:NUM R14:NUM R13:NUM R12:NUM Rbp:ADDR Rbx:ADDR R11:NUM R10:NUM R9:NUM R8:NUM Rax:NUM Rcx:AD
 SUPPRESSED: Y
 
 D1212 09:34:24.562123   58684 x:0] [   1] Restarting syscall 202 after errno 512: interrupted by signal 17
