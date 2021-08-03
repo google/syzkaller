@@ -12,7 +12,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
@@ -170,10 +169,17 @@ func compileRegexps(list []string) ([]*regexp.Regexp, error) {
 }
 
 func (reporter *Reporter) Parse(output []byte) *Report {
-	rep := reporter.impl.Parse(output)
+	return reporter.ParseFrom(output, 0)
+}
+
+func (reporter *Reporter) ParseFrom(output []byte, minReportPos int) *Report {
+	rep := reporter.impl.Parse(output[minReportPos:])
 	if rep == nil {
 		return nil
 	}
+	rep.Output = output
+	rep.StartPos += minReportPos
+	rep.EndPos += minReportPos
 	rep.Title = sanitizeTitle(replaceTable(dynamicTitleReplacement, rep.Title))
 	for i, title := range rep.AltTitles {
 		rep.AltTitles[i] = sanitizeTitle(replaceTable(dynamicTitleReplacement, title))
@@ -187,7 +193,7 @@ func (reporter *Reporter) Parse(output []byte) *Report {
 		rep.Frame = match[1]
 	}
 	rep.SkipPos = len(output)
-	if pos := bytes.IndexByte(output[rep.StartPos:], '\n'); pos != -1 {
+	if pos := bytes.IndexByte(rep.Output[rep.StartPos:], '\n'); pos != -1 {
 		rep.SkipPos = rep.StartPos + pos
 	}
 	if rep.EndPos < rep.SkipPos {
@@ -204,11 +210,6 @@ func (reporter *Reporter) ContainsCrash(output []byte) bool {
 
 func (reporter *Reporter) Symbolize(rep *Report) error {
 	return reporter.impl.Symbolize(rep)
-}
-
-// We need this method to enable comparisons though go-cmp.
-func (reporter Reporter) Equal(other Reporter) bool {
-	return cmp.Equal(reporter, other, cmp.AllowUnexported(Reporter{}))
 }
 
 func extractReportType(rep *Report) Type {
@@ -240,13 +241,14 @@ func IsSuppressed(reporter *Reporter, output []byte) bool {
 
 // ParseAll returns all successive reports in output.
 func ParseAll(reporter *Reporter, output []byte) (reports []*Report) {
+	skipPos := 0
 	for {
-		rep := reporter.Parse(output)
+		rep := reporter.ParseFrom(output, skipPos)
 		if rep == nil {
 			return
 		}
 		reports = append(reports, rep)
-		output = output[rep.SkipPos:]
+		skipPos = rep.SkipPos
 	}
 }
 

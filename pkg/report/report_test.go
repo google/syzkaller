@@ -233,12 +233,12 @@ func checkReport(t *testing.T, reporter *Reporter, rep *Report, test *ParseTest)
 	}
 	if rep.StartPos != 0 {
 		// If we parse from StartPos, we must find the same report.
-		rep1 := reporter.Parse(test.Log[rep.StartPos:])
-		if rep1 == nil || rep1.Title != rep.Title || rep1.StartPos != 0 {
+		rep1 := reporter.ParseFrom(test.Log, rep.StartPos)
+		if rep1 == nil || rep1.Title != rep.Title || rep1.StartPos != rep.StartPos {
 			t.Fatalf("did not find the same report from rep.StartPos=%v", rep.StartPos)
 		}
 		// If we parse from EndPos, we must not find the same report.
-		rep2 := reporter.Parse(test.Log[rep.EndPos:])
+		rep2 := reporter.ParseFrom(test.Log, rep.EndPos)
 		if rep2 != nil && rep2.Title == rep.Title {
 			t.Fatalf("found the same report after rep.EndPos=%v", rep.EndPos)
 		}
