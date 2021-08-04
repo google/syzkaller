@@ -45,6 +45,10 @@ func elfReadSymbols(module *Module, info *symbolInfo) ([]*Symbol, error) {
 	}
 	var symbols []*Symbol
 	for i, symb := range allSymbols {
+		if symb.Info&0xf != uint8(elf.STT_FUNC) && symb.Info&0xf != uint8(elf.STT_NOTYPE) {
+			// Only save STT_FUNC, STT_NONE otherwise some symb range inside another symb range.
+			continue
+		}
 		text := symb.Value >= text.Addr && symb.Value+symb.Size <= text.Addr+text.Size
 		if text {
 			start := symb.Value + module.Addr
