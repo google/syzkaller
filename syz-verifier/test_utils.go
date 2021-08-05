@@ -24,6 +24,7 @@ func createTestServer(t *testing.T) *RPCServer {
 		choiceTable: target.DefaultChoiceTable(),
 		rnd:         rand.New(rand.NewSource(time.Now().UnixNano())),
 		progIdx:     3,
+		reruns:      1,
 	}
 	vrf.resultsdir = makeTestResultDirectory(t)
 	vrf.stats = emptyTestStats()

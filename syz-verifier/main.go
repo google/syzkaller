@@ -57,18 +57,20 @@ type Verifier struct {
 	stats         *Stats
 	statsWrite    io.Writer
 	newEnv        bool
+	reruns        int
 }
 
 // RPCServer is a wrapper around the rpc.Server. It communicates with  Runners,
 // generates programs and sends complete Results for verification.
 type RPCServer struct {
-	vrf        *Verifier
-	port       int
-	mu         sync.Mutex
-	cond       *sync.Cond
-	pools      map[int]*poolInfo
-	progs      map[int]*progInfo
-	notChecked int
+	vrf             *Verifier
+	port            int
+	mu              sync.Mutex
+	cond            *sync.Cond
+	pools           map[int]*poolInfo
+	progs           map[int]*progInfo
+	notChecked      int
+	rerunsAvailable *sync.Cond
 }
 
 // poolInfo contains kernel-specific information for spawning virtual machines
@@ -79,12 +81,14 @@ type poolInfo struct {
 	cfg      *mgrconfig.Config
 	pool     *vm.Pool
 	Reporter report.Reporter
-	//  vmRunners keeps track of what programs have been sent to each Runner.
+	//  runners keeps track of what programs have been sent to each Runner.
 	//  There is one Runner executing per VM instance.
-	vmRunners map[int]runnerProgs
+	runners map[int]runnerProgs
 	// progs stores the programs that haven't been sent to this kernel yet but
 	// have been sent to at least one other kernel.
 	progs []*progInfo
+	// toRerun stores the programs that still need to be rerun by this kernel.
+	toRerun []*progInfo
 	// checked is set to true when the set of system calls not supported on the
 	// kernel is known.
 	checked bool
@@ -94,9 +98,12 @@ type progInfo struct {
 	prog       *prog.Prog
 	idx        int
 	serialized []byte
-	res        []*Result
+	res        [][]*Result
 	// received stores the number of results received for this program.
 	received int
+
+	runIdx int
+	report *ResultReport
 }
 
 type runnerProgs map[int]*progInfo
@@ -108,6 +115,7 @@ func main() {
 	flagStats := flag.String("stats", "", "where stats will be written when"+
 		"execution of syz-verifier finishes, defaults to stdout")
 	flagEnv := flag.Bool("new-env", true, "create a new environment for each program")
+	flagReruns := flag.Int("rerun", 3, "number of time program is rerun when a mismatch is found")
 	flag.Parse()
 
 	pools := make(map[int]*poolInfo)
@@ -187,7 +195,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to create reporter for instance-%d: %v", idx, err)
 		}
-		pi.vmRunners = make(map[int]runnerProgs)
+		pi.runners = make(map[int]runnerProgs)
 	}
 
 	calls := make(map[*prog.Syscall]bool)
@@ -212,6 +220,7 @@ func main() {
 		reportReasons: len(cfg.EnabledSyscalls) != 0 || len(cfg.DisabledSyscalls) != 0,
 		statsWrite:    sw,
 		newEnv:        *flagEnv,
+		reruns:        *flagReruns,
 	}
 
 	vrf.srv, err = startRPCServer(vrf)
@@ -267,6 +276,7 @@ func startRPCServer(vrf *Verifier) (*RPCServer, error) {
 		notChecked: len(vrf.pools),
 	}
 	srv.cond = sync.NewCond(&srv.mu)
+	srv.rerunsAvailable = sync.NewCond(&srv.mu)
 
 	s, err := rpctype.NewRPCServer(vrf.addr, "Verifier", srv)
 	if err != nil {
@@ -285,7 +295,7 @@ func (srv *RPCServer) Connect(a *rpctype.RunnerConnectArgs, r *rpctype.RunnerCon
 	srv.mu.Lock()
 	defer srv.mu.Unlock()
 	pool, vm := a.Pool, a.VM
-	srv.pools[pool].vmRunners[vm] = make(runnerProgs)
+	srv.pools[pool].runners[vm] = make(runnerProgs)
 	r.CheckUnsupportedCalls = !srv.pools[pool].checked
 	return nil
 }
@@ -359,16 +369,20 @@ func (vrf *Verifier) finalizeCallSet(w io.Writer) {
 func (srv *RPCServer) NextExchange(a *rpctype.NextExchangeArgs, r *rpctype.NextExchangeRes) error {
 	srv.mu.Lock()
 	defer srv.mu.Unlock()
+
+	var res *Result
+	var prog *progInfo
 	if a.Info.Calls != nil {
-		res := &Result{
+		res = &Result{
 			Pool:   a.Pool,
 			Hanged: a.Hanged,
 			Info:   a.Info,
+			RunIdx: a.RunIdx,
 		}
 
-		prog := srv.progs[a.ProgIdx]
+		prog = srv.progs[a.ProgIdx]
 		if prog == nil {
-			// This case can happen if both of the below conditions are true:
+			// This case can happen if both conditions are true:
 			// 1. a Runner calls Verifier.NextExchange, then crashes,
 			// its corresponding Pool being the only one that hasn't
 			// sent results for the program yet
@@ -382,10 +396,11 @@ func (srv *RPCServer) NextExchange(a *rpctype.NextExchangeArgs, r *rpctype.NextE
 			return nil
 		}
 
+		delete(srv.pools[a.Pool].runners[a.VM], prog.idx)
 		if srv.newResult(res, prog) {
-			srv.vrf.processResults(prog.res, prog.prog)
-			delete(srv.progs, a.ProgIdx)
-			delete(srv.pools[a.Pool].vmRunners[a.VM], a.ProgIdx)
+			if srv.vrf.processResults(prog) {
+				delete(srv.progs, prog.idx)
+			}
 		}
 	}
 
@@ -394,8 +409,8 @@ func (srv *RPCServer) NextExchange(a *rpctype.NextExchangeArgs, r *rpctype.NextE
 		srv.cond.Wait()
 	}
 
-	prog, pi := srv.newProgram(a.Pool, a.VM)
-	r.RPCProg = rpctype.RPCProg{Prog: prog, ProgIdx: pi}
+	newProg, pi, ri := srv.newProgram(a.Pool, a.VM)
+	r.RPCProg = rpctype.RPCProg{Prog: newProg, ProgIdx: pi, RunIdx: ri}
 	return nil
 }
 
@@ -403,20 +418,56 @@ func (srv *RPCServer) NextExchange(a *rpctype.NextExchangeArgs, r *rpctype.NextE
 // Results from the corresponding programs have been received and they can be
 // sent for verification. Otherwise, it returns false.
 func (srv *RPCServer) newResult(res *Result, prog *progInfo) bool {
-	prog.res[res.Pool] = res
+	ri := prog.runIdx
+	if prog.res[ri][res.Pool] != nil {
+		return false
+	}
+	prog.res[ri][res.Pool] = res
 	prog.received++
 	return prog.received == len(srv.pools)
 }
 
 // processResults will send a set of complete results for verification and, in
-// case differences are found, it will store a result report highlighting those
-// in th workdir/results directory. If writing the results fails, it returns an
-// error.
-func (vrf *Verifier) processResults(res []*Result, prog *prog.Prog) {
-	vrf.stats.Progs++
-	rr := Verify(res, prog, vrf.stats)
-	if rr == nil {
-		return
+// case differences are found, it will start the rerun process for the program
+// (if reruns are enabled). If every rerun produces the same results, the result
+// report will be printed to persistent storage. Otherwise, the program is
+// discarded as flaky.
+func (vrf *Verifier) processResults(prog *progInfo) bool {
+	// TODO: Simplify this if clause.
+	if prog.runIdx == 0 {
+		vrf.stats.TotalProgs++
+		prog.report = Verify(prog.res[0], prog.prog, vrf.stats)
+		if prog.report == nil {
+			return true
+		}
+	} else {
+		if !VerifyRerun(prog.res[prog.runIdx], prog.report) {
+			vrf.stats.FlakyProgs++
+			log.Printf("flaky results dected: %d", vrf.stats.FlakyProgs)
+			return true
+		}
+	}
+
+	if prog.runIdx < vrf.reruns-1 {
+		vrf.srv.newRun(prog)
+		return false
+	}
+
+	rr := prog.report
+	vrf.stats.MismatchingProgs++
+
+	for _, cr := range rr.Reports {
+		if !cr.Mismatch {
+			break
+		}
+		vrf.stats.Calls[cr.Call].Mismatches++
+		vrf.stats.TotalMismatches++
+		for _, state := range cr.States {
+			if state0 := cr.States[0]; state0 != state {
+				vrf.stats.Calls[cr.Call].States[state] = true
+				vrf.stats.Calls[cr.Call].States[state0] = true
+			}
+		}
 	}
 
 	oldest := 0
@@ -445,6 +496,16 @@ func (vrf *Verifier) processResults(res []*Result, prog *prog.Prog) {
 	}
 
 	log.Printf("result-%d written successfully", oldest)
+	return true
+}
+
+func (srv *RPCServer) newRun(p *progInfo) {
+	p.runIdx++
+	p.received = 0
+	p.res[p.runIdx] = make([]*Result, len(srv.pools))
+	for _, pool := range srv.pools {
+		pool.toRerun = append(pool.toRerun, p)
+	}
 }
 
 func createReport(rr *ResultReport, pools int) []byte {
@@ -473,25 +534,34 @@ func createReport(rr *ResultReport, pools int) []byte {
 
 // newProgram returns a new program for the Runner identified by poolIdx and
 // vmIdx and the program's index.
-func (srv *RPCServer) newProgram(poolIdx, vmIdx int) ([]byte, int) {
+func (srv *RPCServer) newProgram(poolIdx, vmIdx int) ([]byte, int, int) {
 	pool := srv.pools[poolIdx]
+
+	if len(pool.toRerun) != 0 {
+		p := pool.toRerun[0]
+		pool.runners[vmIdx][p.idx] = p
+		pool.toRerun = pool.toRerun[1:]
+		return p.serialized, p.idx, p.runIdx
+	}
+
 	if len(pool.progs) == 0 {
 		prog, progIdx := srv.vrf.generate()
 		pi := &progInfo{
 			prog:       prog,
 			idx:        progIdx,
 			serialized: prog.Serialize(),
-			res:        make([]*Result, len(srv.pools)),
+			res:        make([][]*Result, srv.vrf.reruns),
 		}
+		pi.res[0] = make([]*Result, len(srv.pools))
 		for _, pool := range srv.pools {
 			pool.progs = append(pool.progs, pi)
 		}
 		srv.progs[progIdx] = pi
 	}
 	p := pool.progs[0]
-	pool.vmRunners[vmIdx][p.idx] = p
+	pool.runners[vmIdx][p.idx] = p
 	pool.progs = pool.progs[1:]
-	return p.serialized, p.idx
+	return p.serialized, p.idx, p.runIdx
 }
 
 // generate will return a newly generated program and its index.
@@ -504,13 +574,13 @@ func (vrf *Verifier) generate() (*prog.Prog, int) {
 func (srv *RPCServer) cleanup(poolIdx, vmIdx int) {
 	srv.mu.Lock()
 	defer srv.mu.Unlock()
-	progs := srv.pools[poolIdx].vmRunners[vmIdx]
+	progs := srv.pools[poolIdx].runners[vmIdx]
 
 	for _, prog := range progs {
 		if srv.newResult(&Result{Pool: poolIdx, Crashed: true}, prog) {
-			srv.vrf.processResults(prog.res, prog.prog)
+			srv.vrf.processResults(prog)
 			delete(srv.progs, prog.idx)
-			delete(srv.pools[poolIdx].vmRunners[vmIdx], prog.idx)
+			delete(srv.pools[poolIdx].runners[vmIdx], prog.idx)
 			continue
 		}
 	}

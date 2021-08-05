@@ -18,10 +18,12 @@ import (
 // of the verification process.
 type Stats struct {
 	// Calls stores statistics for all supported system calls.
-	Calls           map[string]*CallStats
-	TotalMismatches int
-	Progs           int
-	StartTime       time.Time
+	Calls            map[string]*CallStats
+	TotalMismatches  int
+	TotalProgs       int
+	FlakyProgs       int
+	MismatchingProgs int
+	StartTime        time.Time
 }
 
 // CallStats stores information used to generate statistics for the
@@ -96,7 +98,11 @@ func (s *Stats) ReportGlobalStats(w io.Writer, deltaTime float64) {
 	tc := s.totalCallsExecuted()
 	fmt.Fprintf(w, "total number of mismatches / total number of calls "+
 		"executed: %d / %d (%0.2f %%)\n\n", s.TotalMismatches, tc, getPercentage(s.TotalMismatches, tc))
-	fmt.Fprintf(w, "programs / minute: %0.2f\n\n", float64(s.Progs)/deltaTime)
+	fmt.Fprintf(w, "programs / minute: %0.2f\n\n", float64(s.TotalProgs)/deltaTime)
+	fmt.Fprintf(w, "true mismatching programs: %d / total number of programs: %d (%0.2f %%)\n",
+		s.MismatchingProgs, s.TotalProgs, getPercentage(s.MismatchingProgs, s.TotalProgs))
+	fmt.Fprintf(w, "flaky programs: %d / total number of programs: %d (%0.2f %%)\n\n",
+		s.FlakyProgs, s.TotalProgs, getPercentage(s.FlakyProgs, s.TotalProgs))
 	cs := s.getOrderedStats()
 	for _, c := range cs {
 		fmt.Fprintf(w, "%s\n", s.ReportCallStats(c.Name))

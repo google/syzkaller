@@ -40,12 +40,12 @@ func TestNewProgram(t *testing.T) {
 			srv := createTestServer(t)
 			srv.pools = map[int]*poolInfo{
 				1: {
-					vmRunners: map[int]runnerProgs{
+					runners: map[int]runnerProgs{
 						1: {1: {}},
 					},
 					progs: []*progInfo{{idx: 3}},
 				},
-				2: {vmRunners: map[int]runnerProgs{
+				2: {runners: map[int]runnerProgs{
 					2: {1: {}}},
 					progs: []*progInfo{},
 				},
@@ -56,7 +56,7 @@ func TestNewProgram(t *testing.T) {
 				3: {idx: 3},
 			}
 
-			_, gotProgIdx := srv.newProgram(test.pool, test.vm)
+			_, gotProgIdx, _ := srv.newProgram(test.pool, test.vm)
 			if gotProgIdx != test.retProgIdx {
 				t.Errorf("srv.newProgram returned idx: got %d, want %d", gotProgIdx, test.retProgIdx)
 			}
@@ -91,12 +91,17 @@ func TestNewResult(t *testing.T) {
 			srv.pools = map[int]*poolInfo{0: {}, 1: {}}
 			srv.progs = map[int]*progInfo{
 				1: {idx: 1,
-					res: make([]*Result, 2),
+					res: func() [][]*Result {
+						res := make([][]*Result, 1)
+						res[0] = make([]*Result, 2)
+						return res
+					}(),
 				},
 				3: {idx: 3,
-					res: func() []*Result {
-						res := make([]*Result, 2)
-						res[1] = &Result{Pool: 1}
+					res: func() [][]*Result {
+						res := make([][]*Result, 1)
+						res[0] = make([]*Result, 2)
+						res[0][1] = &Result{Pool: 1}
 						return res
 					}(),
 					received: 1,
@@ -114,7 +119,7 @@ func TestConnect(t *testing.T) {
 	srv := createTestServer(t)
 	srv.pools = map[int]*poolInfo{
 		1: {
-			vmRunners: map[int]runnerProgs{
+			runners: map[int]runnerProgs{
 				0: {1: {idx: 1}},
 			},
 			progs: []*progInfo{{
@@ -134,7 +139,7 @@ func TestConnect(t *testing.T) {
 	want, got := map[int]runnerProgs{
 		0: {1: {idx: 1}},
 		1: {},
-	}, srv.pools[a.Pool].vmRunners
+	}, srv.pools[a.Pool].runners
 	if diff := cmp.Diff(want, got, cmp.AllowUnexported(progInfo{})); diff != "" {
 		t.Errorf("srv.progs[a.Name] mismatch (-want +got):\n%s", diff)
 	}
@@ -282,8 +287,8 @@ func TestUpdateUnsupported(t *testing.T) {
 func TestUpdateUnsupportedNotCalledTwice(t *testing.T) {
 	vrf := Verifier{
 		pools: map[int]*poolInfo{
-			0: {vmRunners: map[int]runnerProgs{0: nil, 1: nil}, checked: false},
-			1: {vmRunners: map[int]runnerProgs{}, checked: false},
+			0: {runners: map[int]runnerProgs{0: nil, 1: nil}, checked: false},
+			1: {runners: map[int]runnerProgs{}, checked: false},
 		},
 	}
 	srv, err := startRPCServer(&vrf)
@@ -307,8 +312,8 @@ func TestUpdateUnsupportedNotCalledTwice(t *testing.T) {
 	}
 
 	wantPools := map[int]*poolInfo{
-		0: {vmRunners: map[int]runnerProgs{0: nil, 1: nil}, checked: true},
-		1: {vmRunners: map[int]runnerProgs{}, checked: false},
+		0: {runners: map[int]runnerProgs{0: nil, 1: nil}, checked: true},
+		1: {runners: map[int]runnerProgs{}, checked: false},
 	}
 	if diff := cmp.Diff(wantPools, srv.pools, cmp.AllowUnexported(poolInfo{}, progInfo{})); diff != "" {
 		t.Errorf("srv.pools mismatch (-want +got):\n%s", diff)
@@ -332,7 +337,7 @@ func TestProcessResults(t *testing.T) {
 			wantExist: true,
 			wantStats: &Stats{
 				TotalMismatches: 1,
-				Progs:           1,
+				TotalProgs:      1,
 				Calls: map[string]*CallStats{
 					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[ReturnState]bool{}),
 					"test$res0":      makeCallStats("test$res0", 1, 1, map[ReturnState]bool{{Errno: 2}: true, {Errno: 5}: true}),
@@ -347,7 +352,7 @@ func TestProcessResults(t *testing.T) {
 				makeResult(1, []int{11, 33, 22}),
 			},
 			wantStats: &Stats{
-				Progs: 1,
+				TotalProgs: 1,
 				Calls: map[string]*CallStats{
 					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[ReturnState]bool{}),
 					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[ReturnState]bool{}),
@@ -359,13 +364,20 @@ func TestProcessResults(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			prog := getTestProgram(t)
+			pi := &progInfo{
+				prog: prog,
+				res: func() [][]*Result {
+					res := make([][]*Result, 1)
+					res[0] = test.res
+					return res
+				}()}
 			vrf := Verifier{
 				resultsdir: makeTestResultDirectory(t),
 				stats:      emptyTestStats(),
 			}
 			resultFile := filepath.Join(vrf.resultsdir, "result-0")
 
-			vrf.processResults(test.res, prog)
+			vrf.processResults(pi)
 
 			if diff := cmp.Diff(test.wantStats, vrf.stats); diff != "" {
 				t.Errorf("vrf.stats mismatch (-want +got):\n%s", diff)
@@ -435,15 +447,16 @@ func TestCleanup(t *testing.T) {
 				4: {
 					idx:      4,
 					received: 0,
-					res: func() []*Result {
-						res := make([]*Result, 3)
+					res: func() [][]*Result {
+						res := make([][]*Result, 1)
+						res[0] = make([]*Result, 3)
 						return res
 					}(),
 				}},
 			wantProg: &progInfo{
 				idx:      4,
 				received: 1,
-				res:      []*Result{makeResultCrashed(0), nil, nil},
+				res:      [][]*Result{{makeResultCrashed(0), nil, nil}},
 			},
 			wantStats:  emptyTestStats(),
 			fileExists: false,
@@ -455,15 +468,16 @@ func TestCleanup(t *testing.T) {
 					idx:      4,
 					prog:     prog,
 					received: 2,
-					res: func() []*Result {
-						res := make([]*Result, 3)
-						res[1] = makeResultCrashed(1)
-						res[2] = makeResultCrashed(2)
+					res: func() [][]*Result {
+						res := make([][]*Result, 1)
+						res[0] = make([]*Result, 3)
+						res[0][1] = makeResultCrashed(1)
+						res[0][2] = makeResultCrashed(2)
 						return res
 					}(),
 				}},
 			wantStats: &Stats{
-				Progs: 1,
+				TotalProgs: 1,
 				Calls: map[string]*CallStats{
 					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[ReturnState]bool{}),
 					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[ReturnState]bool{}),
@@ -479,16 +493,18 @@ func TestCleanup(t *testing.T) {
 					idx:      4,
 					prog:     prog,
 					received: 2,
-					res: func() []*Result {
-						res := make([]*Result, 3)
-						res[1] = makeResult(1, []int{11, 33, 44})
-						res[2] = makeResult(2, []int{11, 33, 22})
+					res: func() [][]*Result {
+						res := make([][]*Result, 1)
+						res[0] = make([]*Result, 3)
+						res[0][1] = makeResult(1, []int{11, 33, 44})
+						res[0][2] = makeResult(2, []int{11, 33, 22})
 						return res
 					}(),
 				}},
 			wantStats: &Stats{
-				TotalMismatches: 3,
-				Progs:           1,
+				TotalMismatches:  3,
+				TotalProgs:       1,
+				MismatchingProgs: 1,
 				Calls: map[string]*CallStats{
 					"breaks_returns": makeCallStats("breaks_returns", 1, 1,
 						map[ReturnState]bool{
@@ -513,7 +529,7 @@ func TestCleanup(t *testing.T) {
 			srv := createTestServer(t)
 			srv.progs = test.progs
 			srv.pools = map[int]*poolInfo{
-				0: {vmRunners: map[int]runnerProgs{
+				0: {runners: map[int]runnerProgs{
 					0: {4: srv.progs[4]}},
 				}, 1: {}, 2: {}}
 			resultFile := filepath.Join(srv.vrf.resultsdir, "result-0")

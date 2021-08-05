@@ -27,6 +27,7 @@ type RPCCandidate struct {
 type RPCProg struct {
 	Prog    []byte
 	ProgIdx int
+	RunIdx  int
 }
 
 type ConnectArgs struct {
@@ -113,6 +114,8 @@ type NextExchangeArgs struct {
 	// Info contains information about the execution of each system call in the
 	// program.
 	Info ipc.ProgInfo
+	// RunIdx is the number of times this program has been run on the kernel.
+	RunIdx int
 }
 
 // NextExchaneRes contains the data passed from server to client namely

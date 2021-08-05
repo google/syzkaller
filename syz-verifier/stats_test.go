@@ -11,8 +11,10 @@ import (
 
 func dummyStats() *Stats {
 	return &Stats{
-		Progs:           24,
-		TotalMismatches: 10,
+		TotalProgs:       24,
+		TotalMismatches:  10,
+		FlakyProgs:       4,
+		MismatchingProgs: 6,
 		Calls: map[string]*CallStats{
 			"foo": {"foo", 2, 8, map[ReturnState]bool{
 				returnState(1, 7): true,
@@ -69,6 +71,8 @@ func TestReportGlobalStats(t *testing.T) {
 		"total number of mismatches / total number of calls "+
 			"executed: 10 / 20 (50.00 %)\n\n"+
 			"programs / minute: 2.40\n\n"+
+			"true mismatching programs: 6 / total number of programs: 24 (25.00 %)\n"+
+			"flaky programs: 4 / total number of programs: 24 (16.67 %)\n\n"+
 			"statistics for bar:\n"+
 			"\t↳ mismatches of bar / occurrences of bar: 5 / 6 (83.33 %)\n"+
 			"\t↳ mismatches of bar / total number of mismatches: 5 / 10 (50.00 %)\n"+
