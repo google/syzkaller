@@ -52,6 +52,7 @@ lpathconf(file ptr[in, filename], name flags[conf_value])
 fpathconf(fd fd, name flags[conf_value])
 unmount(path ptr[in, filename], flags flags[mount_flags])
 mount(type ptr[in, string[filesystem_types]], path ptr[in, filename], flags flags[mount_flags], data buffer[in])
+fspacectl(fd fd, cmd flags[spacectl_cmd], rgsr ptr[in, spacectl_range], flags flags[spacectl_flags], rmsr ptr[out, spacectl_range])
 
 pipefd {
 	rfd	fd
@@ -174,6 +175,11 @@ freebsd11_statfs {
 	mntfrom		array[int8, 88]
 }
 
+spacectl_range {
+	offset	int64
+	len	int64
+}
+
 filesystem_types = "apfs", "cd9660", "exfat", "ext2fs", "geli", "hammer", "hammer2", "hfsp", "msdosfs", "ntfs", "ufs", "zfs"
 open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, FASYNC, O_CLOEXEC, O_CREAT, O_DIRECT, O_DIRECTORY, O_EXCL, O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_SYNC, O_TRUNC, O_EXEC, O_TTY_INIT, O_VERIFY, O_PATH, O_EMPTY_PATH
 open_mode = S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
@@ -185,3 +191,5 @@ conf_value = _PC_LINK_MAX, _PC_MAX_CANON, _PC_MAX_INPUT, _PC_NAME_MAX, _PC_PATH_
 fstatat_flags = AT_SYMLINK_NOFOLLOW, AT_EMPTY_PATH
 mount_flags = MNT_RDONLY, MNT_SYNCHRONOUS, MNT_NOEXEC, MNT_NOSUID, MNT_ASYNC, MNT_NOATIME, MNT_SNAPSHOT, MNT_SUIDDIR, MNT_FORCE, MNT_NOCLUSTERR, MNT_NOCLUSTERW, MNT_NFS4ACLS, MNT_SOFTDEP, MNT_NOSYMFOLLOW, MNT_GJOURNAL, MNT_MULTILABEL, MNT_ACLS, MNT_EXRDONLY, MNT_EXPORTED, MNT_DEFEXPORTED, MNT_EXPORTANON
 getfsstat_flags = MNT_WAIT, MNT_NOWAIT
+spacectl_flags = 0
+spacectl_cmd = SPACECTL_DEALLOC
