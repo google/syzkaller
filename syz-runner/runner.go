@@ -33,7 +33,6 @@ func main() {
 	flagOS := flag.String("os", runtime.GOOS, "target OS")
 	flagArch := flag.String("arch", runtime.GOARCH, "target arch")
 	flagEnv := flag.Bool("new-env", true, "create a new environment for each program")
-
 	flag.Parse()
 
 	target, err := prog.GetTarget(*flagOS, *flagArch)
@@ -94,13 +93,13 @@ func main() {
 		log.Fatalf("failed to get initial program: %v", err)
 	}
 
-	rn.Run(res.Prog, res.ProgIdx)
+	rn.Run(res.Prog, res.ProgIdx, res.RunIdx)
 }
 
 // Run is responsible for requesting new programs from the verifier, executing them and then sending back the Result.
 // TODO: Implement functionality to execute several programs at once and send back a slice of results.
-func (rn *Runner) Run(firstProg []byte, idx int) {
-	p, pIdx := firstProg, idx
+func (rn *Runner) Run(firstProg []byte, idx, runIdx int) {
+	p, pIdx, rIdx := firstProg, idx, runIdx
 
 	env, err := ipc.MakeEnv(rn.config, 0)
 	if err != nil {
@@ -124,13 +123,14 @@ func (rn *Runner) Run(firstProg []byte, idx int) {
 			ProgIdx: pIdx,
 			Hanged:  hanged,
 			Info:    *info,
+			RunIdx:  rIdx,
 		}
+
 		r := &rpctype.NextExchangeRes{}
 		if err := rn.vrf.Call("Verifier.NextExchange", a, r); err != nil {
 			log.Fatalf("failed to make exchange with verifier: %v", err)
 		}
-		p = r.Prog
-		pIdx = r.ProgIdx
+		p, pIdx, rIdx = r.Prog, r.ProgIdx, r.RunIdx
 
 		if !rn.newEnv {
 			continue

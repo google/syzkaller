@@ -22,6 +22,8 @@ type Result struct {
 	Info ipc.ProgInfo
 	// Crashed is set to true if a crash occurred while executing the program.
 	Crashed bool
+
+	RunIdx int
 }
 
 type ResultReport struct {
@@ -67,9 +69,29 @@ func (s ReturnState) String() string {
 	return state
 }
 
+// VeifyRerun compares the results obtained from rerunning a program with what
+// was reported in the initial result report.
+func VerifyRerun(res []*Result, rr *ResultReport) bool {
+	for idx, cr := range rr.Reports {
+		for _, r := range res {
+			var state ReturnState
+			if r.Crashed {
+				state = ReturnState{Crashed: true}
+			} else {
+				ci := r.Info.Calls[idx]
+				state = ReturnState{Errno: ci.Errno, Flags: ci.Flags}
+			}
+			if state != cr.States[r.Pool] {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // Verify checks whether the Results of the same program, executed on different
-// kernels are the same. If that's not the case, it returns a ResultReport
-// which highlights the differences.
+// kernels, are the same. If that's not the case, it returns a ResultReport,
+// highlighting the differences.
 func Verify(res []*Result, prog *prog.Prog, s *Stats) *ResultReport {
 	rr := &ResultReport{
 		Prog: string(prog.Serialize()),
@@ -100,25 +122,13 @@ func Verify(res []*Result, prog *prog.Prog, s *Stats) *ResultReport {
 	var send bool
 	pool0 := res[0].Pool
 	for _, cr := range rr.Reports {
-		cs := s.Calls[cr.Call]
-
-		mismatch := false
 		for _, state := range cr.States {
 			// For each CallReport, verify whether the ReturnStates from all
 			// the pools that executed the program are the same
 			if state0 := cr.States[pool0]; state0 != state {
 				cr.Mismatch = true
 				send = true
-				mismatch = true
-
-				cs.States[state] = true
-				cs.States[state0] = true
 			}
-		}
-
-		if mismatch {
-			cs.Mismatches++
-			s.TotalMismatches++
 		}
 	}
 
