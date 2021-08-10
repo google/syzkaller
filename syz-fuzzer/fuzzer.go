@@ -189,9 +189,9 @@ func main() {
 
 	log.Logf(1, "connecting to manager...")
 	a := &rpctype.ConnectArgs{
-		Name:        *flagName,
-		MachineInfo: machineInfo,
-		Modules:     modules,
+		Name:             *flagName,
+		MachineInfo:      machineInfo,
+		Modules:          modules,
 		ModuleLoadOffset: moduleLoadOffset,
 	}
 	r := &rpctype.ConnectRes{}

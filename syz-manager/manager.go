@@ -1026,8 +1026,8 @@ func (mgr *Manager) minimizeCorpus() {
 }
 
 type CallCov struct {
-	count int
-	offsets   cover.Offsets
+	count   int
+	offsets cover.Offsets
 }
 
 func (mgr *Manager) collectSyscallInfo() map[string]*CallCov {
@@ -1083,12 +1083,26 @@ func (mgr *Manager) fuzzerConnect(modules []*host.KernelModule) (
 			log.Fatalf("failed to create coverage filter: %v", err)
 		}
 		mgr.modulesInitialized = true
+		return corpus, frames, mgr.coverFilter, mgr.coverFilterBitmap, nil
 	}
-	return corpus, frames, mgr.coverFilter, mgr.coverFilterBitmap, nil
+	rg, err := getReportGenerator(mgr.cfg, mgr.modules)
+	if err != nil {
+		return nil, frames, nil, nil, err
+	}
+	// mgr.modules save the modules of first connected fuzzer
+	// modules is the modules of following connected fuzzer
+	filter := getNewBitmapFilter(rg, mgr.coverFilter, mgr.modules, modules)
+	bitmap := createCoverageBitmap(mgr.cfg.SysTarget, filter)
+
+	return corpus, frames, mgr.coverFilter, bitmap, nil
 }
 
 func (mgr *Manager) isModuleInitialized() bool {
 	return mgr.modulesInitialized
+}
+
+func (mgr *Manager) isCoverFilterEnabled() bool {
+	return len(mgr.cfg.CovFilter.Functions)+len(mgr.cfg.CovFilter.Files)+len(mgr.cfg.CovFilter.RawPCs) != 0
 }
 
 func (mgr *Manager) machineChecked(a *rpctype.CheckArgs, enabledSyscalls map[*prog.Syscall]bool) {

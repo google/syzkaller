@@ -34,7 +34,7 @@ func discoverModules(target *targets.Target, objDir string, moduleObj []string, 
 			return nil, err
 		}
 		modules = append(modules, modules1...)
-	} else if len(hostModules) != 1 {
+	} else if len(hostModules) != 0 {
 		return nil, fmt.Errorf("%v coverage does not support modules", target.OS)
 	}
 	return modules, nil

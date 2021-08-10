@@ -143,7 +143,7 @@ func elfReadModuleCoverPoints(target *targets.Target, module *Module, info *symb
 	relaOffset := arches[target.Arch].relaOffset
 	s := file.Section(".rela.text")
 	if s == nil {
-		log.Logf(1, "module %v doesn't have .rela.text section\n", module.Name)
+		log.Logf(1, "module %v doesn't have .rela.text section", module.Name)
 		return pcs, nil
 	}
 	rel := new(elf.Rela64)

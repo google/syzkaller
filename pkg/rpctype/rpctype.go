@@ -32,9 +32,9 @@ type RPCProg struct {
 }
 
 type ConnectArgs struct {
-	Name        string
-	MachineInfo []byte
-	Modules     []*host.KernelModule
+	Name             string
+	MachineInfo      []byte
+	Modules          []*host.KernelModule
 	ModuleLoadOffset int
 }
 

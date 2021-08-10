@@ -65,6 +65,7 @@ type RPCManagerView interface {
 	candidateBatch(size int) []rpctype.RPCCandidate
 	rotateCorpus() bool
 	isModuleInitialized() bool
+	isCoverFilterEnabled() bool
 }
 
 func startRPCServer(mgr *Manager) (*RPCServer, error) {
@@ -105,7 +106,9 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	if err != nil {
 		return err
 	}
-	serv.coverFilter = coverFilter
+	if serv.coverFilter == nil {
+		serv.coverFilter = coverFilter
+	}
 
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
@@ -312,7 +315,7 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 	for _, offsets := range diff {
 		dcount += len(offsets)
 	}
-	if dcount !=0 && serv.coverFilter != nil {
+	if dcount != 0 && serv.coverFilter != nil {
 		pcs := offsetsToPCs(serv.cfg.SysTarget, serv.modules, rg, diff)
 		progs := []cover.Prog{
 			{
@@ -348,13 +351,33 @@ func parseRPCInput(rg *cover.ReportGenerator, modules []*host.KernelModule, inp 
 	for _, pc := range inp.Cover {
 		pc1 := rg.RestorePC(pc)
 		if len(modules) < 2 {
-			offsets[""] = append(offsets[""], uint32(pc))
+			offsets[""] = append(offsets[""], pc)
 			continue
 		}
 		name, offset := findModuleOffset(pc1, modules)
 		offsets[name] = append(offsets[name], offset)
 	}
 	return offsets
+}
+
+func getNewBitmapFilter(rg *cover.ReportGenerator, pcs map[uint32]uint32,
+	modules1, modules2 []*host.KernelModule) map[uint32]uint32 {
+	if len(modules1) < 2 {
+		return pcs
+	}
+	pcs1 := make(map[uint32]uint32)
+	for pc := range pcs {
+		pc1 := rg.RestorePC(pc)
+		name, offset1 := findModuleOffset(pc1, modules1)
+		for _, module := range modules2 {
+			if name == module.Name {
+				pc2 := uint32(module.Addr + uint64(offset1))
+				pcs1[pc2] = 1
+				break
+			}
+		}
+	}
+	return pcs1
 }
 
 func findModuleOffset(pc uint64, modules []*host.KernelModule) (string, uint32) {

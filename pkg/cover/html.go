@@ -182,7 +182,7 @@ func (rg *ReportGenerator) DoRawCoverFiles(w http.ResponseWriter, progs []Prog, 
 		}
 		frame := rg.Frames[idx-1]
 		if pc != frame.PC {
-			log.Logf(0, "DoRawCoverFiles: pc (%v) != frame.PC (%v) \n", pc, frame.PC)
+			log.Logf(0, "pc (%v) != frame.PC (%v), possible mismatch object with flashed build", pc, frame.PC)
 		}
 		offset := frame.PC - frame.Module.Addr
 		fmt.Fprintf(buf, "0x%x,%v,0x%x,%v,%v\n", pc, frame.Module.Name, offset, frame.Name, frame.StartLine)
