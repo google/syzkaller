@@ -253,6 +253,14 @@ func isSyzIoUringSupported(c *prog.Syscall, target *prog.Target, sandbox string)
 	return isSupportedSyscall(ioUringSyscall, target)
 }
 
+func isSyzMemcpySupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
+	ret, msg := isSyzIoUringSupported(c, target, sandbox)
+	if ret {
+		return ret, msg
+	}
+	return isSyzKvmSetupCPUSupported(c, target, sandbox)
+}
+
 func isBtfVmlinuxSupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
 	if err := osutil.IsAccessible("/sys/kernel/btf/vmlinux"); err != nil {
 		return false, err.Error()
@@ -299,14 +307,12 @@ var syzkallSupport = map[string]func(*prog.Syscall, *prog.Target, string) (bool,
 	"syz_io_uring_submit":         isSyzIoUringSupported,
 	"syz_io_uring_complete":       isSyzIoUringSupported,
 	"syz_io_uring_setup":          isSyzIoUringSupported,
-	// syz_memcpy_off is only used for io_uring descriptions, thus, enable it
-	// only if io_uring syscalls are enabled.
-	"syz_memcpy_off":         isSyzIoUringSupported,
-	"syz_btf_id_by_name":     isBtfVmlinuxSupported,
-	"syz_fuse_handle_req":    isSyzFuseSupported,
-	"syz_80211_inject_frame": isWifiEmulationSupported,
-	"syz_80211_join_ibss":    isWifiEmulationSupported,
-	"syz_usbip_server_init":  isSyzUsbIPSupported,
+	"syz_memcpy_off":              isSyzMemcpySupported,
+	"syz_btf_id_by_name":          isBtfVmlinuxSupported,
+	"syz_fuse_handle_req":         isSyzFuseSupported,
+	"syz_80211_inject_frame":      isWifiEmulationSupported,
+	"syz_80211_join_ibss":         isWifiEmulationSupported,
+	"syz_usbip_server_init":       isSyzUsbIPSupported,
 }
 
 func isSupportedSyzkall(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {

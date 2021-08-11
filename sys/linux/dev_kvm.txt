@@ -193,6 +193,19 @@ syz_kvm_setup_cpu$x86(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in
 syz_kvm_setup_cpu$arm64(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text_arm64, 1]], ntext len[text], flags const[0], opts ptr[in, array[kvm_setup_opt_arm64, 1]], nopt len[opts])
 syz_kvm_setup_cpu$ppc64(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text_ppc64, 1]], ntext len[text], flags flags[kvm_setup_flags_ppc64], opts ptr[in, array[kvm_setup_opt_ppc64, 1]], nopt len[opts])
 
+resource kvm_run_ptr[int64]
+define KVM_RUN_SIZE	sizeof(struct kvm_run)
+mmap$KVM_VCPU(addr vma, len const[KVM_RUN_SIZE], prot flags[mmap_prot], flags flags[mmap_flags], cpufd fd_kvmcpu, offset const[0]) kvm_run_ptr
+_ = __NR_mmap2
+
+define KVM_EXIT_MMIO_OFFSET	offsetof(struct kvm_run, mmio)
+define KVM_EXIT_MMIO_SIZE	sizeof_field(struct kvm_run, mmio)
+syz_memcpy_off$KVM_EXIT_MMIO(dst kvm_run_ptr, off const[KVM_EXIT_MMIO_OFFSET], src ptr[in, array[int8, KVM_EXIT_MMIO_SIZE]], src_off const[0], nbytes len[src])
+
+define KVM_EXIT_HYPERCALL_OFFSET	offsetof(struct kvm_run, hypercall)
+define KVM_EXIT_HYPERCALL_SIZE	sizeof_field(struct kvm_run, hypercall)
+syz_memcpy_off$KVM_EXIT_HYPERCALL(dst kvm_run_ptr, off const[KVM_EXIT_HYPERCALL_OFFSET], src ptr[in, array[int8, KVM_EXIT_HYPERCALL_SIZE]], src_off const[0], nbytes len[src])
+
 kvm_text_x86 [
 	textreal	kvm_text_x86_real
 	text16		kvm_text_x86_16
