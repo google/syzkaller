@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -374,6 +375,10 @@ func TestParseLinuxOpcodes(t *testing.T) {
 }
 
 func TestDisassemblyInReports(t *testing.T) {
+	if runtime.GOOS != targets.Linux {
+		t.Skipf("the test is meant to be run only under Linux")
+	}
+
 	archPath := filepath.Join("testdata", "linux", "decompile")
 	subFolders, err := ioutil.ReadDir(archPath)
 	if err != nil {
