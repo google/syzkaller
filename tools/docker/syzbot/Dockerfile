@@ -11,7 +11,7 @@ FROM debian:bullseye
 RUN apt-get update
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
 	# Build essentials:
-	gcc g++ binutils make ccache bazel-bootstrap golang-go \
+	gcc g++ binutils make ccache golang-go \
 	clang clang-format clang-tidy \
 	# Some common utilities:
 	unzip curl sudo procps psmisc nano vim git bzip2 dh-autoreconf software-properties-common \
@@ -26,10 +26,17 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
 	# Cross-compilation:
 	g++-arm-linux-gnueabi g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu \
 	g++-mips64el-linux-gnuabi64 g++-s390x-linux-gnu g++-riscv64-linux-gnu \
-	libc6-dev-i386 libc6-dev-i386-amd64-cross lib32gcc-10-dev lib32stdc++-10-dev
+	libc6-dev-i386 libc6-dev-i386-amd64-cross lib32gcc-10-dev lib32stdc++-10-dev \
+	apt-transport-https curl gnupg python-is-python3
 
 # Not really GRTE, but it's enough to run some scripts that hardcode the path.
 RUN mkdir -p /usr/grte/v5/bin && ln -s /usr/bin/python3 /usr/grte/v5/bin/python2.7
+
+# Install bazel
+RUN echo "deb [arch=amd64] http://storage.googleapis.com/bazel-apt stable jdk1.8" | \
+	sudo tee /etc/apt/sources.list.d/bazel.list && \
+	curl https://bazel.build/bazel-release.pub.gpg | sudo apt-key add -
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y -q bazel
 
 # pkg/osutil uses syzkaller user for sandboxing.
 RUN useradd syzkaller
