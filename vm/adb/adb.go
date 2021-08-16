@@ -15,6 +15,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -29,9 +30,15 @@ func init() {
 	vmimpl.Register("adb", ctor, false)
 }
 
+type Device struct {
+	Serial  string `json:"serial"`  // device serial to connect
+	Console string `json:"console"` // console device name (e.g. "/dev/pts/0")
+}
+
 type Config struct {
 	Adb     string   `json:"adb"`     // adb binary name ("adb" by default)
-	Devices []string `json:"devices"` // list of adb device IDs to use
+	Devices []Device `json:"devices"` // list of adb devices to use
+	CvdDir  string   `json:"cvd_dir"` // cvd directory path of cuttlefish
 
 	// Ensure that a device battery level is at 20+% before fuzzing.
 	// Sometimes we observe that a device can't charge during heavy fuzzing
@@ -77,7 +84,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	}
 	devRe := regexp.MustCompile("[0-9A-F]+")
 	for _, dev := range cfg.Devices {
-		if !devRe.MatchString(dev) {
+		if !devRe.MatchString(dev.Serial) {
 			return nil, fmt.Errorf("invalid adb device id '%v'", dev)
 		}
 	}
@@ -96,12 +103,14 @@ func (pool *Pool) Count() int {
 }
 
 func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
+	device := pool.cfg.Devices[index]
 	inst := &instance{
-		cfg:    pool.cfg,
-		adbBin: pool.cfg.Adb,
-		device: pool.cfg.Devices[index],
-		closed: make(chan bool),
-		debug:  pool.env.Debug,
+		cfg:     pool.cfg,
+		adbBin:  pool.cfg.Adb,
+		device:  device.Serial,
+		console: device.Console,
+		closed:  make(chan bool),
+		debug:   pool.env.Debug,
 	}
 	closeInst := inst
 	defer func() {
@@ -112,7 +121,10 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	if err := inst.repair(); err != nil {
 		return nil, err
 	}
-	inst.console = findConsole(inst.adbBin, inst.device)
+	if inst.console == "" {
+		inst.console = findConsole(inst.adbBin, inst.device)
+	}
+	log.Logf(0, "associating adb device %v with console %v", inst.device, inst.console)
 	if pool.cfg.BatteryCheck {
 		if err := inst.checkBatteryLevel(); err != nil {
 			return nil, err
@@ -158,7 +170,6 @@ func findConsole(adb, dev string) string {
 	}
 	devToConsole[dev] = con
 	consoleToDev[con] = dev
-	log.Logf(0, "associating adb device %v with console %v", dev, con)
 	return con
 }
 
@@ -411,11 +422,48 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	return vmDst, nil
 }
 
+// Check if the device is cuttlefish on remote vm.
+func isRemoteCuttlefish(dev string) (bool, string) {
+	if !strings.Contains(dev, ":") {
+		return false, ""
+	}
+	ip := strings.Split(dev, ":")[0]
+	if ip == "0.0.0.0" || ip == "127.0.0.1" {
+		return false, ip
+	}
+	return true, ip
+}
+
 func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (
 	<-chan []byte, <-chan error, error) {
 	var tty io.ReadCloser
 	var err error
-	if inst.console == "adb" {
+
+	if ok, ip := isRemoteCuttlefish(inst.device); ok {
+		log.Logf(0, "running on remote cuttlefish: %v", ip)
+		conRpipe, conWpipe, err := osutil.LongPipe()
+		if err != nil {
+			return nil, nil, err
+		}
+		conAddr := "vsoc-01@" + ip
+		con := osutil.Command("ssh", "-t", conAddr, "screen", inst.console)
+		con.Env = []string{}
+		con.Stdout = conWpipe
+		con.Stderr = conWpipe
+		if _, err := con.StdinPipe(); err != nil {
+			conRpipe.Close()
+			conWpipe.Close()
+			return nil, nil, err
+		}
+		if err := con.Start(); err != nil {
+			conRpipe.Close()
+			conWpipe.Close()
+			return nil, nil, fmt.Errorf("failed to connect to console server: %v", err)
+		}
+		tty = conRpipe
+		conWpipe.Close()
+
+	} else if inst.console == "adb" {
 		tty, err = vmimpl.OpenAdbConsole(inst.adbBin, inst.device)
 	} else {
 		tty, err = vmimpl.OpenConsole(inst.console)
