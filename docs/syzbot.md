@@ -245,7 +245,20 @@ then the program needs to be built with `-m32` flag.
 If the reproducer exits quickly, try to run it several times, or in a loop.
 There can be some races involved.
 
-Exact compilers used by `syzbot` can be found here:
+Latest compiler used by syzbot is contained in `gcr.io/syzkaller/syzbot:gcc-10.2.1` docker image.
+For in-tree kernel build in current directory it can be used as follows:
+
+```
+docker pull gcr.io/syzkaller/syzbot:gcc-10.2.1
+docker run -it --user $(id -u ${USER}):$(id -g ${USER}) \
+	--volume "$PWD:/syzkaller/pwd" --workdir /syzkaller/pwd \
+	gcr.io/syzkaller/syzbot:gcc-10.2.1
+make
+```
+
+For an out-of-tree build one needs to proxy more host directories using `--volume` flag.
+
+Older compilers used by `syzbot` can be found here:
 - [gcc 7.1.1 20170620](https://storage.googleapis.com/syzkaller/gcc-7.tar.gz) (245MB)
 - [gcc 8.0.1 20180301](https://storage.googleapis.com/syzkaller/gcc-8.0.1-20180301.tar.gz) (286MB)
 - [gcc 8.0.1 20180412](https://storage.googleapis.com/syzkaller/gcc-8.0.1-20180412.tar.gz) (33MB)
