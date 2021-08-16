@@ -258,30 +258,26 @@ Exact compilers used by `syzbot` can be found here:
 - [clang 11.0.0 (git ca2dcbd030e)](https://storage.googleapis.com/syzkaller/clang-11-prerelease-ca2dcbd030e.tar.xz) (682MB)
 - [clang 11.0.1](https://github.com/llvm/llvm-project/releases/tag/llvmorg-11.0.1)
 
-A QEMU-suitable Debian Stretch image can be found [here](https://storage.googleapis.com/syzkaller/stretch.img) (2 GB, compression somehow breaks it), root ssh key for it is [here](https://storage.googleapis.com/syzkaller/stretch.img.key)
-(do `chmod 0600` on it). A reference `qemu` command line to run it is as follows:
+A QEMU-suitable Debian Stretch image can be found
+[here](https://storage.googleapis.com/syzkaller/images/stretch-amd64.img.gz) (241 MB).
+A reference `qemu` command line to run it is as follows:
 ```
 qemu-system-x86_64 -smp 2 -m 4G -enable-kvm -cpu host \
     -net nic -net user,hostfwd=tcp::10022-:22 \
     -kernel arch/x86/boot/bzImage -nographic \
     -device virtio-scsi-pci,id=scsi \
     -device scsi-hd,bus=scsi.0,drive=d0 \
-    -drive file=stretch.img,format=raw,if=none,id=d0 \
-    -append "root=/dev/sda console=ttyS0 earlyprintk=serial \
-      oops=panic panic_on_warn=1 panic=86400 kvm-intel.nested=1 \
-      security=apparmor ima_policy=tcb workqueue.watchdog_thresh=140 \
-      nf-conntrack-ftp.ports=20000 nf-conntrack-tftp.ports=20000 \
-      nf-conntrack-sip.ports=20000 nf-conntrack-irc.ports=20000 \
-      nf-conntrack-sane.ports=20000 vivid.n_devs=16 \
-      vivid.multiplanar=1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2 \
-      spec_store_bypass_disable=prctl nopcid"
+    -drive file=stretch-amd64.img,format=raw,if=none,id=d0 \
+    -append "root=/dev/sda1 console=ttyS0 earlyprintk=serial"
 ```
 And then you can ssh into it using:
 ```
-ssh -p 10022 -i stretch.img.key root@localhost
+ssh -p 10022 root@localhost
 ```
 
-Note: before March 25th 2020 Debian Wheezy image was used for testing, so some of the bugs reported before that date might only be reproducible on Wheezy. That image is [here](https://storage.googleapis.com/syzkaller/wheezy.img) and the key for it is [here](https://storage.googleapis.com/syzkaller/wheezy.img.key).
+Note: before March 25th 2020 Debian Wheezy image was used for testing, so some of the bugs reported before that date
+might only be reproducible on Wheezy. That image is [here](https://storage.googleapis.com/syzkaller/wheezy.img)
+and the key for it is [here](https://storage.googleapis.com/syzkaller/wheezy.img.key).
 
 ## No reproducer at all?
 
