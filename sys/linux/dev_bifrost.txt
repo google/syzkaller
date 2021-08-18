@@ -18,6 +18,8 @@ resource fd_fence[fd]
 resource fd_hwcnt[fd]
 
 openat$bifrost(fd const[AT_FDCWD], file ptr[in, string["/dev/bifrost"]], flags flags[open_flags], mode const[0]) fd_bifrost
+# Device name on Android
+openat$mali(fd const[AT_FDCWD], file ptr[in, string["/dev/mali0"]], flags flags[open_flags], mode const[0]) fd_bifrost
 
 mmap$bifrost(addr const[0], len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_bifrost, offset fileoff) user_addr
 _ = __NR_mmap2
