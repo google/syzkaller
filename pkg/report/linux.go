@@ -444,18 +444,41 @@ type parsedOpcodes struct {
 	offset         int
 }
 
+type decompiledOpcodes struct {
+	opcodes           []DecompiledOpcode
+	trappingOpcodeIdx int
+	leftBytesCut      int
+}
+
 // processOpcodes converts a string representation of opcodes used by the Linux kernel into
-// the human-readable representation of the machine instructions, that surround the one
-// that crashed the kernel.
-// It returns the lines of the resulting description, the number of bytes that had to be skipped
-// so that it starts on an instruction boundary and an error object that is non-null in case of
-// severe problems.
-func (ctx *linux) processOpcodes(codeSlice string) ([]string, int, error) {
+// a sequence of the machine instructions, that surround the one that crashed the kernel.
+// If the input does not start on a boundary of an instruction, it is attempted to adjust the
+// strting position.
+// The method returns an error if it did not manage to correctly decompile the opcodes or
+// of the decompiled code is not of interest to the reader (e.g. it is a user-space code).
+func (ctx *linux) processOpcodes(codeSlice string) (*decompiledOpcodes, error) {
 	parsed, err := ctx.parseOpcodes(codeSlice)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
+	decompiled, err := ctx.decompileWithOffset(parsed)
+	if err != nil {
+		return nil, err
+	}
+
+	if linuxSkipTrapInstrRe.MatchString(decompiled.opcodes[decompiled.trappingOpcodeIdx].Instruction) {
+		// For some reports (like WARNINGs) the trapping instruction is an intentionally
+		// invalid instruction. Decompilation of such code only allows to see the
+		// mechanism, through which the kernel implements such assertions and does not
+		// aid in finding the real issue.
+		return nil, fmt.Errorf("these opcodes are not of interest")
+	}
+
+	return decompiled, nil
+}
+
+func (ctx *linux) decompileWithOffset(parsed parsedOpcodes) (*decompiledOpcodes, error) {
 	// It is not guaranteed that the fragment of opcodes starts exactly at the boundary
 	// of a machine instruction. In order to simplify debugging process, we are trying
 	// to find the right starting position.
@@ -465,15 +488,14 @@ func (ctx *linux) processOpcodes(codeSlice string) ([]string, int, error) {
 	// to invoke the decompiler.
 	const opcodeAdjustmentLimit = 8
 
-	var currentBestReport []string
-	var currentBestOffset int
+	var bestResult *decompiledOpcodes
 
 	for leftCut := 0; leftCut <= parsed.offset && leftCut < opcodeAdjustmentLimit; leftCut++ {
 		newBytes := parsed.rawBytes[leftCut:]
 		newOffset := parsed.offset - leftCut
 		instructions, err := DecompileOpcodes(newBytes, parsed.decompileFlags, ctx.target)
 		if err != nil {
-			return nil, 0, err
+			return nil, err
 		}
 
 		// We only want to return the response, where there exists a decoded instruction that
@@ -482,10 +504,10 @@ func (ctx *linux) processOpcodes(codeSlice string) ([]string, int, error) {
 		// unrecognized (bad) instuctions - this serves as an indicator of a valid result.
 
 		hasBad := false
-		hasTargetOffset := false
-		for _, instruction := range instructions {
+		trappingIdx := -1
+		for idx, instruction := range instructions {
 			if instruction.Offset == newOffset {
-				hasTargetOffset = true
+				trappingIdx = idx
 			}
 			if instruction.Offset >= newOffset {
 				// Do not take into account instructions after the target offset. Once
@@ -495,25 +517,26 @@ func (ctx *linux) processOpcodes(codeSlice string) ([]string, int, error) {
 			hasBad = hasBad || instruction.IsBad
 		}
 
-		if !hasTargetOffset {
+		if trappingIdx < 0 {
 			continue
 		}
 
-		if !hasBad || currentBestReport == nil {
-			currentBestReport = ctx.formatDecodedFragment(instructions, newOffset)
-			currentBestOffset = leftCut
+		if !hasBad || bestResult == nil {
+			bestResult = &decompiledOpcodes{
+				opcodes:           instructions,
+				trappingOpcodeIdx: trappingIdx,
+				leftBytesCut:      leftCut,
+			}
 			if !hasBad {
 				// The best offset is already found.
 				break
 			}
 		}
 	}
-
-	if currentBestReport == nil {
-		return nil, 0, fmt.Errorf("unable to align decompiled code and the trapping instruction offset")
+	if bestResult == nil {
+		return nil, fmt.Errorf("unable to align decompiled code and the trapping instruction offset")
 	}
-
-	return currentBestReport, currentBestOffset, nil
+	return bestResult, nil
 }
 
 func (ctx *linux) parseOpcodes(codeSlice string) (parsedOpcodes, error) {
@@ -583,37 +606,40 @@ func (ctx *linux) parseOpcodes(codeSlice string) (parsedOpcodes, error) {
 	}, nil
 }
 
-func (ctx *linux) formatDecodedFragment(instructions []DecompiledOpcode, offset int) []string {
-	output := []string{}
-
-	for _, element := range instructions {
-		if element.Offset == offset {
-			output = append(output, element.FullDescription+" <-- trapping instruction")
-		} else {
-			output = append(output, element.FullDescription)
-		}
-	}
-
-	return output
-}
-
+// decompileReportOpcodes detects the most meaningful "Code: " lines from the report, decompiles
+// them and appends a human-readable listing to the end of the report.
 func (ctx *linux) decompileReportOpcodes(report []byte) []byte {
-	// For now, we only pick the first "Code: ..." line in the report.
-	// It seems to cover most of the cases, however, it might be reasonable
-	// to also consider the exact crash type.
-	match := linuxCodeRe.FindSubmatch(report)
-	if match == nil {
-		return report
+	// Iterate over all "Code: " lines and pick the first that could be decompiled
+	// that might be of interest to the user.
+	var decompiled *decompiledOpcodes
+	var prevLine []byte
+	for s := bufio.NewScanner(bytes.NewReader(report)); s.Scan(); prevLine = append([]byte{}, s.Bytes()...) {
+		// We want to avoid decompiling code from user-space as it is not of big interest during
+		// debugging kernel problems.
+		// For now this check only works for x86/amd64, but Linux on other architectures supported
+		// by syzkaller does not seem to include user-space code in its oops messages.
+		if linuxUserSegmentRe.Match(prevLine) {
+			continue
+		}
+		match := linuxCodeRe.FindSubmatch(s.Bytes())
+		if match == nil {
+			continue
+		}
+		decompiledLine, err := ctx.processOpcodes(string(match[1]))
+		if err != nil {
+			continue
+		}
+		decompiled = decompiledLine
+		break
 	}
 
-	description, skippedBytes, err := ctx.processOpcodes(string(match[1]))
-	if err != nil {
+	if decompiled == nil {
 		return report
 	}
 
 	skipInfo := ""
-	if skippedBytes > 0 {
-		skipInfo = fmt.Sprintf(", %v bytes skipped", skippedBytes)
+	if decompiled.leftBytesCut > 0 {
+		skipInfo = fmt.Sprintf(", %v bytes skipped", decompiled.leftBytesCut)
 	}
 
 	// The decompiled instructions are intentionally put to the bottom of the report instead
@@ -621,10 +647,18 @@ func (ctx *linux) decompileReportOpcodes(report []byte) []byte {
 	// the most important information at the top of the report, so that it is visible from
 	// the syzbot dashboard without scrolling.
 	headLine := fmt.Sprintf("----------------\nCode disassembly (best guess)%v:\n", skipInfo)
-
 	report = append(report, headLine...)
-	report = append(report, strings.Join(description, "\n")...)
-	return append(report, "\n"...)
+
+	for idx, opcode := range decompiled.opcodes {
+		line := opcode.FullDescription
+		if idx == decompiled.trappingOpcodeIdx {
+			line = fmt.Sprintf("*%s <-- trapping instruction\n", line[1:])
+		} else {
+			line += "\n"
+		}
+		report = append(report, line...)
+	}
+	return report
 }
 
 func (ctx *linux) extractGuiltyFile(rep *Report) string {
@@ -908,10 +942,12 @@ var linuxStallAnchorFrames = []*regexp.Regexp{
 
 // nolint: lll
 var (
-	linuxSymbolizeRe = regexp.MustCompile(`(?:\[\<(?:(?:0x)?[0-9a-f]+)\>\])?[ \t]+\(?(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)\)?`)
-	linuxRipFrame    = compile(`(?:IP|NIP|pc |PC is at):? (?:(?:[0-9]+:)?(?:{{PC}} +){0,2}{{FUNC}}|(?:[0-9]+:)?0x[0-9a-f]+|(?:[0-9]+:)?{{PC}} +\[< *\(null\)>\] +\(null\)|[0-9]+: +\(null\))`)
-	linuxCallTrace   = compile(`(?:Call (?:T|t)race:)|(?:Backtrace:)`)
-	linuxCodeRe      = regexp.MustCompile(`(?m)^\s*Code\:\s+((?:[A-Fa-f0-9\(\)\<\>]{2,8}\s*)*)\s*$`)
+	linuxSymbolizeRe     = regexp.MustCompile(`(?:\[\<(?:(?:0x)?[0-9a-f]+)\>\])?[ \t]+\(?(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)\)?`)
+	linuxRipFrame        = compile(`(?:IP|NIP|pc |PC is at):? (?:(?:[0-9]+:)?(?:{{PC}} +){0,2}{{FUNC}}|(?:[0-9]+:)?0x[0-9a-f]+|(?:[0-9]+:)?{{PC}} +\[< *\(null\)>\] +\(null\)|[0-9]+: +\(null\))`)
+	linuxCallTrace       = compile(`(?:Call (?:T|t)race:)|(?:Backtrace:)`)
+	linuxCodeRe          = regexp.MustCompile(`(?m)^\s*Code\:\s+((?:[A-Fa-f0-9\(\)\<\>]{2,8}\s*)*)\s*$`)
+	linuxSkipTrapInstrRe = regexp.MustCompile(`^ud2|brk\s+#0x800$`)
+	linuxUserSegmentRe   = regexp.MustCompile(`^RIP:\s+0033:`)
 )
 
 var linuxCorruptedTitles = []*regexp.Regexp{
