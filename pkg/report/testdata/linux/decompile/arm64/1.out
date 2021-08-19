@@ -53,4 +53,4 @@ Code disassembly (best guess):
    4:	f2df7fe1 	movk	x1, #0xfbff, lsl #32
    8:	f2ffffe1 	movk	x1, #0xffff, lsl #48
    c:	8b010273 	add	x19, x19, x1
-  10:	39000274 	strb	w20, [x19] <-- trapping instruction
+* 10:	39000274 	strb	w20, [x19] <-- trapping instruction

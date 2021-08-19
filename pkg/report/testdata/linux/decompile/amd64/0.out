@@ -46,21 +46,3 @@ RDX: 0000000000000012 RSI: 0000000020000140 RDI: 0000000000000003
 RBP: 00007f66b70031d0 R08: 0000000000000000 R09: 0000000000000000
 R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000002
 R13: 0000000000a9fb1f R14: 00007f66b7003300 R15: 0000000000022000
-----------------
-Code disassembly (best guess), 2 bytes skipped:
-   0:	ff 4c 89 ef          	decl   -0x11(%rcx,%rcx,4)
-   4:	89 44 24 28          	mov    %eax,0x28(%rsp)
-   8:	e8 75 c8 f6 fd       	callq  0xfdf6c882
-   d:	8b 44 24 28          	mov    0x28(%rsp),%eax
-  11:	e9 7a fb ff ff       	jmpq   0xfffffb90
-  16:	4c 89 ef             	mov    %r13,%rdi
-  19:	e8 f4 c7 f6 fd       	callq  0xfdf6c812
-  1e:	e9 e0 fb ff ff       	jmpq   0xfffffc03
-  23:	e8 4a a8 b0 fd       	callq  0xfdb0a872
-  28:	0f 0b                	ud2 <-- trapping instruction
-  2a:	e9 97 fb ff ff       	jmpq   0xfffffbc6
-  2f:	4c 89 ff             	mov    %r15,%rdi
-  32:	e8 0b c8 f6 fd       	callq  0xfdf6c842
-  37:	e9 b1 f6 ff ff       	jmpq   0xfffff6ed
-  3c:	48                   	rex.W
-  3d:	8b                   	.byte 0x8b

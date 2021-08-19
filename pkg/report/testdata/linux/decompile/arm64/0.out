@@ -40,10 +40,3 @@ Call trace:
  work_pending+0xc/0x3d4
 Code: cb000260 d34cfc00 97fcf6fe 35fffc20 (d4210000) 
 ---[ end trace 9cab793efd001cad ]---
-----------------
-Code disassembly (best guess):
-   0:	cb000260 	sub	x0, x19, x0
-   4:	d34cfc00 	lsr	x0, x0, #12
-   8:	97fcf6fe 	bl	0xfffffffffff3dc00
-   c:	35fffc20 	cbnz	w0, 0xffffffffffffff90
-  10:	d4210000 	brk	#0x800 <-- trapping instruction

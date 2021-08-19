@@ -173,7 +173,7 @@ Code disassembly (best guess):
   1d:	e8 50 84 35 00       	callq  0x358472
   22:	fb                   	sti
   23:	65 8b 05 88 91 bc 7e 	mov    %gs:0x7ebc9188(%rip),%eax        # 0x7ebc91b2
-  2a:	85 c0                	test   %eax,%eax <-- trapping instruction
+* 2a:	85 c0                	test   %eax,%eax <-- trapping instruction
   2c:	74 58                	je     0x86
   2e:	5b                   	pop    %rbx
   2f:	5d                   	pop    %rbp
