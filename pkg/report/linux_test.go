@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/symbolizer"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -421,12 +422,16 @@ func testDisassembly(t *testing.T, reporter *linux, testFilePrefix string) {
 		t.Fatalf("failed to read input file: %v", err)
 	}
 
+	result := reporter.decompileReportOpcodes(input)
+	if *flagUpdate {
+		osutil.WriteFile(testFilePrefix+".out", result)
+	}
+
 	output, err := ioutil.ReadFile(testFilePrefix + ".out")
 	if err != nil {
 		t.Fatalf("failed to read output file: %v", err)
 	}
 
-	result := reporter.decompileReportOpcodes(input)
 	if !bytes.Equal(output, result) {
 		t.Fatalf("Expected:\n%s\nGot:\n%s\n", output, result)
 	}

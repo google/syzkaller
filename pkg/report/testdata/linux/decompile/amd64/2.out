@@ -171,15 +171,15 @@ Code disassembly (best guess):
   13:	bf 01 00 00 00       	mov    $0x1,%edi
   18:	e8 15 2a 09 00       	callq  0x92a32
   1d:	e8 50 84 35 00       	callq  0x358472
-  22:	fb                   	sti    
+  22:	fb                   	sti
   23:	65 8b 05 88 91 bc 7e 	mov    %gs:0x7ebc9188(%rip),%eax        # 0x7ebc91b2
   2a:	85 c0                	test   %eax,%eax <-- trapping instruction
   2c:	74 58                	je     0x86
   2e:	5b                   	pop    %rbx
   2f:	5d                   	pop    %rbp
-  30:	c3                   	retq   
+  30:	c3                   	retq
   31:	65 8b 05 d6 98 bc 7e 	mov    %gs:0x7ebc98d6(%rip),%eax        # 0x7ebc990e
   38:	85 c0                	test   %eax,%eax
   3a:	75 a2                	jne    0xffffffde
-  3c:	0f 0b                	ud2    
+  3c:	0f 0b                	ud2
   3e:	eb 9e                	jmp    0xffffffde

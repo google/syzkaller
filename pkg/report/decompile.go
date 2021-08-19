@@ -10,6 +10,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/osutil"
@@ -28,6 +29,7 @@ const objdumpCallTimeout = 10 * time.Second
 type DecompiledOpcode struct {
 	Offset          int
 	IsBad           bool
+	Instruction     string
 	FullDescription string
 }
 
@@ -80,11 +82,12 @@ func objdumpParseOutput(rawOutput []byte) []DecompiledOpcode {
 		if err != nil {
 			continue
 		}
-		const objdumpBadCommand = "(bad)"
+		const objdumpBadInstruction = "(bad)"
 		ret = append(ret, DecompiledOpcode{
 			Offset:          int(offset),
-			IsBad:           result[3] == objdumpBadCommand,
-			FullDescription: result[0],
+			IsBad:           result[3] == objdumpBadInstruction,
+			Instruction:     result[3],
+			FullDescription: strings.TrimRight(result[0], " \t"),
 		})
 	}
 	return ret

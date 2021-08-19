@@ -26,22 +26,27 @@ Disassembly of section .data:
 	expected := []DecompiledOpcode{
 		{
 			Offset:          0,
+			Instruction:     "push   %ebp",
 			FullDescription: "   0:   55                      push   %ebp",
 		},
 		{
 			Offset:          1,
+			Instruction:     "push   %ebx",
 			FullDescription: "   1:   53                      push   %ebx",
 		},
 		{
 			Offset:          2,
+			Instruction:     "xor    %eax,%eax",
 			FullDescription: "   2:   31 c0                   xor    %eax,%eax",
 		},
 		{
 			Offset:          4,
+			Instruction:     "call   0xfff7bffe",
 			FullDescription: "   4:   e8 f5 bf f7 ff          call   0xfff7bffe",
 		},
 		{
 			Offset:          9,
+			Instruction:     "(bad)",
 			IsBad:           true,
 			FullDescription: "   9:   ff                      (bad)",
 		},
