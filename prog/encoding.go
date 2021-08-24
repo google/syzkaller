@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -78,7 +79,36 @@ func (ctx *serializer) call(c *Call) {
 		}
 		ctx.arg(a)
 	}
-	ctx.printf(")\n")
+	ctx.printf(")")
+
+	defaultProps := DefaultCallProps()
+	anyChangedProps := false
+	c.Props.ForeachProp(func(name, key string, value reflect.Value) {
+		defaultValue := reflect.ValueOf(defaultProps).FieldByName(name)
+		if reflect.DeepEqual(value.Interface(), defaultValue.Interface()) {
+			return
+		}
+
+		if !anyChangedProps {
+			ctx.printf(" (")
+			anyChangedProps = true
+		} else {
+			ctx.printf(", ")
+		}
+
+		ctx.printf(key)
+		switch kind := value.Kind(); kind {
+		case reflect.Int:
+			ctx.printf(": %d", value.Int())
+		default:
+			panic("unable to serialize call prop of type " + kind.String())
+		}
+	})
+	if anyChangedProps {
+		ctx.printf(")")
+	}
+
+	ctx.printf("\n")
 }
 
 func (ctx *serializer) arg(arg Arg) {
@@ -286,7 +316,13 @@ func (p *parser) parseProg() (*Prog, error) {
 			}
 		}
 		p.Parse(')')
-		p.SkipWs()
+
+		if !p.EOF() && p.Char() == '(' {
+			p.Parse('(')
+			c.Props = p.parseCallProps()
+			p.Parse(')')
+		}
+
 		if !p.EOF() {
 			if p.Char() != '#' {
 				return nil, fmt.Errorf("tailing data (line #%v)", p.l)
@@ -312,6 +348,43 @@ func (p *parser) parseProg() (*Prog, error) {
 		prog.Comments = append(prog.Comments, p.comment)
 	}
 	return prog, nil
+}
+
+func (p *parser) parseCallProps() CallProps {
+	nameToValue := map[string]reflect.Value{}
+	callProps := DefaultCallProps()
+	callProps.ForeachProp(func(_, key string, value reflect.Value) {
+		nameToValue[key] = value
+	})
+
+	for p.e == nil && p.Char() != ')' {
+		propName := p.Ident()
+		value, ok := nameToValue[propName]
+		if !ok {
+			p.eatExcessive(true, "unknown call property: %s", propName)
+			if p.Char() == ',' {
+				p.Parse(',')
+			}
+			continue
+		}
+		switch kind := value.Kind(); kind {
+		case reflect.Int:
+			p.Parse(':')
+			strVal := p.Ident()
+			intV, err := strconv.ParseInt(strVal, 0, 64)
+			if err != nil {
+				p.strictFailf("invalid int value: %s", strVal)
+			} else {
+				value.SetInt(intV)
+			}
+		default:
+			panic("unable to handle call props of type " + kind.String())
+		}
+		if p.Char() != ')' {
+			p.Parse(',')
+		}
+	}
+	return callProps
 }
 
 func (p *parser) parseArg(typ Type, dir Dir) (Arg, error) {

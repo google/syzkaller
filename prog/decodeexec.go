@@ -5,6 +5,7 @@ package prog
 
 import (
 	"fmt"
+	"reflect"
 )
 
 type ExecProg struct {
@@ -14,6 +15,7 @@ type ExecProg struct {
 
 type ExecCall struct {
 	Meta    *Syscall
+	Props   CallProps
 	Index   uint64
 	Args    []ExecArg
 	Copyin  []ExecCopyin
@@ -119,6 +121,7 @@ func (dec *execDecoder) parse() {
 				dec.setErr(fmt.Errorf("bad syscall %v", instr))
 				return
 			}
+			dec.readCallProps(&dec.call.Props)
 			dec.call.Meta = dec.target.Syscalls[instr]
 			dec.call.Index = dec.read()
 			for i := dec.read(); i > 0; i-- {
@@ -132,6 +135,18 @@ func (dec *execDecoder) parse() {
 			}
 		}
 	}
+}
+
+func (dec *execDecoder) readCallProps(props *CallProps) {
+	props.ForeachProp(func(_, _ string, value reflect.Value) {
+		arg := dec.read()
+		switch kind := value.Kind(); kind {
+		case reflect.Int:
+			value.SetInt(int64(arg))
+		default:
+			panic("Unsupported (yet) kind: " + kind.String())
+		}
+	})
 }
 
 func (dec *execDecoder) readArg() ExecArg {

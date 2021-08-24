@@ -54,6 +54,27 @@ func TestSerializeForExec(t *testing.T) {
 		buf[7] = byte(v >> 56)
 		return HostEndian.Uint64(buf)
 	}
+
+	join := func(objects ...interface{}) []uint64 {
+		ret := []uint64{}
+		for _, val := range objects {
+			switch v := val.(type) {
+			case uint64:
+				ret = append(ret, v)
+			case int:
+				ret = append(ret, uint64(v))
+			case []uint64:
+				ret = append(ret, v...)
+			default:
+				panic(fmt.Sprintf("unsupported object type %T", v))
+			}
+		}
+		return ret
+	}
+
+	defaultCallPropsSlice := []uint64{
+		0xFFFFFFFFFFFFFFFF,
+	}
 	tests := []struct {
 		prog       string
 		serialized []uint64
@@ -61,215 +82,244 @@ func TestSerializeForExec(t *testing.T) {
 	}{
 		{
 			"test()",
-			[]uint64{
-				callID("test"), ExecNoCopyout, 0,
+			join(
+				callID("test"), defaultCallPropsSlice,
+				ExecNoCopyout, 0,
 				execInstrEOF,
-			},
+			),
 			&ExecProg{
 				Calls: []ExecCall{
 					{
 						Meta:  target.SyscallMap["test"],
 						Index: ExecNoCopyout,
+						Props: DefaultCallProps(),
 					},
 				},
 			},
 		},
 		{
 			"test$int(0x1, 0x2, 0x3, 0x4, 0x5)",
-			[]uint64{
-				callID("test$int"), ExecNoCopyout, 5,
+			join(
+				callID("test$int"), defaultCallPropsSlice,
+				ExecNoCopyout, 5,
 				execArgConst, 8, 1,
 				execArgConst, 1, 2,
 				execArgConst, 2, 3,
 				execArgConst, 4, 4,
 				execArgConst, 8, 5,
 				execInstrEOF,
-			},
+			),
+			nil,
+		},
+		{
+			"test() (fail_nth: 3)",
+			join(
+				callID("test"),
+				3,
+				ExecNoCopyout, 0,
+				execInstrEOF,
+			),
 			nil,
 		},
 		{
 			"test$align0(&(0x7f0000000000)={0x1, 0x2, 0x3, 0x4, 0x5})",
-			[]uint64{
-				execInstrCopyin, dataOffset + 0, execArgConst, 2, 1,
-				execInstrCopyin, dataOffset + 4, execArgConst, 4, 2,
-				execInstrCopyin, dataOffset + 8, execArgConst, 1, 3,
-				execInstrCopyin, dataOffset + 10, execArgConst, 2, 4,
-				execInstrCopyin, dataOffset + 16, execArgConst, 8, 5,
-				callID("test$align0"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
+			join(
+				execInstrCopyin, dataOffset+0, execArgConst, 2, 1,
+				execInstrCopyin, dataOffset+4, execArgConst, 4, 2,
+				execInstrCopyin, dataOffset+8, execArgConst, 1, 3,
+				execInstrCopyin, dataOffset+10, execArgConst, 2, 4,
+				execInstrCopyin, dataOffset+16, execArgConst, 8, 5,
+				callID("test$align0"), defaultCallPropsSlice,
+				ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
 				execInstrEOF,
-			},
+			),
 			nil,
 		},
 		{
 			"test$align1(&(0x7f0000000000)={0x1, 0x2, 0x3, 0x4, 0x5})",
-			[]uint64{
-				execInstrCopyin, dataOffset + 0, execArgConst, 2, 1,
-				execInstrCopyin, dataOffset + 2, execArgConst, 4, 2,
-				execInstrCopyin, dataOffset + 6, execArgConst, 1, 3,
-				execInstrCopyin, dataOffset + 7, execArgConst, 2, 4,
-				execInstrCopyin, dataOffset + 9, execArgConst, 8, 5,
-				callID("test$align1"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
+			join(
+				execInstrCopyin, dataOffset+0, execArgConst, 2, 1,
+				execInstrCopyin, dataOffset+2, execArgConst, 4, 2,
+				execInstrCopyin, dataOffset+6, execArgConst, 1, 3,
+				execInstrCopyin, dataOffset+7, execArgConst, 2, 4,
+				execInstrCopyin, dataOffset+9, execArgConst, 8, 5,
+				callID("test$align1"), defaultCallPropsSlice,
+				ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
 				execInstrEOF,
-			},
+			),
 			nil,
 		},
 		{
 			"test$align2(&(0x7f0000000000)={0x42, {[0x43]}, {[0x44]}})",
-			[]uint64{
-				execInstrCopyin, dataOffset + 0, execArgConst, 1, 0x42,
-				execInstrCopyin, dataOffset + 1, execArgConst, 2, 0x43,
-				execInstrCopyin, dataOffset + 4, execArgConst, 2, 0x44,
-				callID("test$align2"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
+			join(
+				execInstrCopyin, dataOffset+0, execArgConst, 1, 0x42,
+				execInstrCopyin, dataOffset+1, execArgConst, 2, 0x43,
+				execInstrCopyin, dataOffset+4, execArgConst, 2, 0x44,
+				callID("test$align2"), defaultCallPropsSlice,
+				ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
 				execInstrEOF,
-			},
+			),
 			nil,
 		},
 		{
 			"test$align3(&(0x7f0000000000)={0x42, {0x43}, {0x44}})",
-			[]uint64{
-				execInstrCopyin, dataOffset + 0, execArgConst, 1, 0x42,
-				execInstrCopyin, dataOffset + 1, execArgConst, 1, 0x43,
-				execInstrCopyin, dataOffset + 4, execArgConst, 1, 0x44,
-				callID("test$align3"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
+			join(
+				execInstrCopyin, dataOffset+0, execArgConst, 1, 0x42,
+				execInstrCopyin, dataOffset+1, execArgConst, 1, 0x43,
+				execInstrCopyin, dataOffset+4, execArgConst, 1, 0x44,
+				callID("test$align3"), defaultCallPropsSlice,
+				ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
 				execInstrEOF,
-			},
+			),
 			nil,
 		},
 		{
 			"test$align4(&(0x7f0000000000)={{0x42, 0x43}, 0x44})",
-			[]uint64{
-				execInstrCopyin, dataOffset + 0, execArgConst, 1, 0x42,
-				execInstrCopyin, dataOffset + 1, execArgConst, 2, 0x43,
-				execInstrCopyin, dataOffset + 4, execArgConst, 1, 0x44,
-				callID("test$align4"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
+			join(
+				execInstrCopyin, dataOffset+0, execArgConst, 1, 0x42,
+				execInstrCopyin, dataOffset+1, execArgConst, 2, 0x43,
+				execInstrCopyin, dataOffset+4, execArgConst, 1, 0x44,
+				callID("test$align4"), defaultCallPropsSlice,
+				ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
 				execInstrEOF,
-			},
+			),
 			nil,
 		},
 		{
 			"test$align5(&(0x7f0000000000)={{0x42, []}, {0x43, [0x44, 0x45, 0x46]}, 0x47})",
-			[]uint64{
-				execInstrCopyin, dataOffset + 0, execArgConst, 8, 0x42,
-				execInstrCopyin, dataOffset + 8, execArgConst, 8, 0x43,
-				execInstrCopyin, dataOffset + 16, execArgConst, 2, 0x44,
-				execInstrCopyin, dataOffset + 18, execArgConst, 2, 0x45,
-				execInstrCopyin, dataOffset + 20, execArgConst, 2, 0x46,
-				execInstrCopyin, dataOffset + 22, execArgConst, 1, 0x47,
-				callID("test$align5"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
+			join(
+				execInstrCopyin, dataOffset+0, execArgConst, 8, 0x42,
+				execInstrCopyin, dataOffset+8, execArgConst, 8, 0x43,
+				execInstrCopyin, dataOffset+16, execArgConst, 2, 0x44,
+				execInstrCopyin, dataOffset+18, execArgConst, 2, 0x45,
+				execInstrCopyin, dataOffset+20, execArgConst, 2, 0x46,
+				execInstrCopyin, dataOffset+22, execArgConst, 1, 0x47,
+				callID("test$align5"), defaultCallPropsSlice,
+				ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
 				execInstrEOF,
-			},
+			),
 			nil,
 		},
 		{
 			"test$align6(&(0x7f0000000000)={0x42, [0x43]})",
-			[]uint64{
-				execInstrCopyin, dataOffset + 0, execArgConst, 1, 0x42,
-				execInstrCopyin, dataOffset + 4, execArgConst, 4, 0x43,
-				callID("test$align6"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
+			join(
+				execInstrCopyin, dataOffset+0, execArgConst, 1, 0x42,
+				execInstrCopyin, dataOffset+4, execArgConst, 4, 0x43,
+				callID("test$align6"), defaultCallPropsSlice,
+				ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
 				execInstrEOF,
-			},
+			),
 			nil,
 		},
 		{
 			"test$union0(&(0x7f0000000000)={0x1, @f2=0x2})",
-			[]uint64{
-				execInstrCopyin, dataOffset + 0, execArgConst, 8, 1,
-				execInstrCopyin, dataOffset + 8, execArgConst, 1, 2,
-				callID("test$union0"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
+			join(
+				execInstrCopyin, dataOffset+0, execArgConst, 8, 1,
+				execInstrCopyin, dataOffset+8, execArgConst, 1, 2,
+				callID("test$union0"), defaultCallPropsSlice,
+				ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
 				execInstrEOF,
-			},
+			),
 			nil,
 		},
 		{
 			"test$union1(&(0x7f0000000000)={@f1=0x42, 0x43})",
-			[]uint64{
-				execInstrCopyin, dataOffset + 0, execArgConst, 4, 0x42,
-				execInstrCopyin, dataOffset + 8, execArgConst, 1, 0x43,
-				callID("test$union1"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
+			join(
+				execInstrCopyin, dataOffset+0, execArgConst, 4, 0x42,
+				execInstrCopyin, dataOffset+8, execArgConst, 1, 0x43,
+				callID("test$union1"), defaultCallPropsSlice,
+				ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
 				execInstrEOF,
-			},
+			),
 			nil,
 		},
 		{
 			"test$union2(&(0x7f0000000000)={@f1=0x42, 0x43})",
-			[]uint64{
-				execInstrCopyin, dataOffset + 0, execArgConst, 4, 0x42,
-				execInstrCopyin, dataOffset + 4, execArgConst, 1, 0x43,
-				callID("test$union2"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
+			join(
+				execInstrCopyin, dataOffset+0, execArgConst, 4, 0x42,
+				execInstrCopyin, dataOffset+4, execArgConst, 1, 0x43,
+				callID("test$union2"), defaultCallPropsSlice,
+				ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
 				execInstrEOF,
-			},
+			),
 			nil,
 		},
 		{
 			"test$array0(&(0x7f0000000000)={0x1, [@f0=0x2, @f1=0x3], 0x4})",
-			[]uint64{
-				execInstrCopyin, dataOffset + 0, execArgConst, 1, 1,
-				execInstrCopyin, dataOffset + 1, execArgConst, 2, 2,
-				execInstrCopyin, dataOffset + 3, execArgConst, 8, 3,
-				execInstrCopyin, dataOffset + 11, execArgConst, 8, 4,
-				callID("test$array0"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
+			join(
+				execInstrCopyin, dataOffset+0, execArgConst, 1, 1,
+				execInstrCopyin, dataOffset+1, execArgConst, 2, 2,
+				execInstrCopyin, dataOffset+3, execArgConst, 8, 3,
+				execInstrCopyin, dataOffset+11, execArgConst, 8, 4,
+				callID("test$array0"), defaultCallPropsSlice,
+				ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
 				execInstrEOF,
-			},
+			),
 			nil,
 		},
 		{
 			"test$array1(&(0x7f0000000000)={0x42, \"0102030405\"})",
-			[]uint64{
-				execInstrCopyin, dataOffset + 0, execArgConst, 1, 0x42,
-				execInstrCopyin, dataOffset + 1, execArgData, 5, letoh64(0x0504030201),
-				callID("test$array1"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
+			join(
+				execInstrCopyin, dataOffset+0, execArgConst, 1, 0x42,
+				execInstrCopyin, dataOffset+1, execArgData, 5, letoh64(0x0504030201),
+				callID("test$array1"), defaultCallPropsSlice,
+				ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
 				execInstrEOF,
-			},
+			),
 			nil,
 		},
 		{
 			"test$array2(&(0x7f0000000000)={0x42, \"aaaaaaaabbbbbbbbccccccccdddddddd\", 0x43})",
-			[]uint64{
-				execInstrCopyin, dataOffset + 0, execArgConst, 2, 0x42,
-				execInstrCopyin, dataOffset + 2, execArgData, 16, letoh64(0xbbbbbbbbaaaaaaaa), letoh64(0xddddddddcccccccc),
-				execInstrCopyin, dataOffset + 18, execArgConst, 2, 0x43,
-				callID("test$array2"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
+			join(
+				execInstrCopyin, dataOffset+0, execArgConst, 2, 0x42,
+				execInstrCopyin, dataOffset+2, execArgData, 16, letoh64(0xbbbbbbbbaaaaaaaa), letoh64(0xddddddddcccccccc),
+				execInstrCopyin, dataOffset+18, execArgConst, 2, 0x43,
+				callID("test$array2"), defaultCallPropsSlice,
+				ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
 				execInstrEOF,
-			},
+			),
 			nil,
 		},
 		{
 			"test$end0(&(0x7f0000000000)={0x42, 0x42, 0x42, 0x42})",
-			[]uint64{
-				execInstrCopyin, dataOffset + 0, execArgConst, 1, 0x42,
-				execInstrCopyin, dataOffset + 1, execArgConst, 2 | 1<<8, 0x42,
-				execInstrCopyin, dataOffset + 3, execArgConst, 4 | 1<<8, 0x42,
-				execInstrCopyin, dataOffset + 7, execArgConst, 8 | 1<<8, 0x42,
-				callID("test$end0"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
+			join(
+				execInstrCopyin, dataOffset+0, execArgConst, 1, 0x42,
+				execInstrCopyin, dataOffset+1, execArgConst, 2|1<<8, 0x42,
+				execInstrCopyin, dataOffset+3, execArgConst, 4|1<<8, 0x42,
+				execInstrCopyin, dataOffset+7, execArgConst, 8|1<<8, 0x42,
+				callID("test$end0"), defaultCallPropsSlice,
+				ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
 				execInstrEOF,
-			},
+			),
 			nil,
 		},
 		{
 			"test$end1(&(0x7f0000000000)={0xe, 0x42, 0x1})",
-			[]uint64{
-				execInstrCopyin, dataOffset + 0, execArgConst, 2 | 1<<8, 0xe,
-				execInstrCopyin, dataOffset + 2, execArgConst, 4 | 1<<8, 0x42,
-				execInstrCopyin, dataOffset + 6, execArgConst, 8 | 1<<8, 0x1,
-				callID("test$end1"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
+			join(
+				execInstrCopyin, dataOffset+0, execArgConst, 2|1<<8, 0xe,
+				execInstrCopyin, dataOffset+2, execArgConst, 4|1<<8, 0x42,
+				execInstrCopyin, dataOffset+6, execArgConst, 8|1<<8, 0x1,
+				callID("test$end1"), defaultCallPropsSlice,
+				ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
 				execInstrEOF,
-			},
+			),
 			nil,
 		},
 		{
 			"test$bf0(&(0x7f0000000000)={0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42})",
-			[]uint64{
-				execInstrCopyin, dataOffset + 0, execArgConst, 2 | 0<<16 | 10<<24, 0x42,
-				execInstrCopyin, dataOffset + 8, execArgConst, 8, 0x42,
-				execInstrCopyin, dataOffset + 16, execArgConst, 2 | 0<<16 | 5<<24, 0x42,
-				execInstrCopyin, dataOffset + 16, execArgConst, 2 | 5<<16 | 6<<24, 0x42,
-				execInstrCopyin, dataOffset + 16, execArgConst, 4 | 11<<16 | 15<<24, 0x42,
-				execInstrCopyin, dataOffset + 20, execArgConst, 2 | 0<<16 | 11<<24, 0x42,
-				execInstrCopyin, dataOffset + 22, execArgConst, 2 | 1<<8 | 0<<16 | 11<<24, 0x42,
-				execInstrCopyin, dataOffset + 24, execArgConst, 1, 0x42,
-				callID("test$bf0"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
+			join(
+				execInstrCopyin, dataOffset+0, execArgConst, 2|0<<16|10<<24, 0x42,
+				execInstrCopyin, dataOffset+8, execArgConst, 8, 0x42,
+				execInstrCopyin, dataOffset+16, execArgConst, 2|0<<16|5<<24, 0x42,
+				execInstrCopyin, dataOffset+16, execArgConst, 2|5<<16|6<<24, 0x42,
+				execInstrCopyin, dataOffset+16, execArgConst, 4|11<<16|15<<24, 0x42,
+				execInstrCopyin, dataOffset+20, execArgConst, 2|0<<16|11<<24, 0x42,
+				execInstrCopyin, dataOffset+22, execArgConst, 2|1<<8|0<<16|11<<24, 0x42,
+				execInstrCopyin, dataOffset+24, execArgConst, 1, 0x42,
+				callID("test$bf0"), defaultCallPropsSlice,
+				ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
 				execInstrEOF,
-			},
+			),
 			&ExecProg{
 				Calls: []ExecCall{
 					{
@@ -281,6 +331,7 @@ func TestSerializeForExec(t *testing.T) {
 								Value: dataOffset,
 							},
 						},
+						Props: DefaultCallProps(),
 						Copyin: []ExecCopyin{
 							{
 								Addr: dataOffset + 0,
@@ -358,108 +409,118 @@ func TestSerializeForExec(t *testing.T) {
 		},
 		{
 			"test$bf1(&(0x7f0000000000)={{0x42, 0x42, 0x42}, 0x42})",
-			[]uint64{
-				execInstrCopyin, dataOffset + 0, execArgConst, 4 | 0<<16 | 10<<24, 0x42,
-				execInstrCopyin, dataOffset + 0, execArgConst, 4 | 10<<16 | 10<<24, 0x42,
-				execInstrCopyin, dataOffset + 0, execArgConst, 4 | 20<<16 | 10<<24, 0x42,
-				execInstrCopyin, dataOffset + 4, execArgConst, 1, 0x42,
-				callID("test$bf1"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
+			join(
+				execInstrCopyin, dataOffset+0, execArgConst, 4|0<<16|10<<24, 0x42,
+				execInstrCopyin, dataOffset+0, execArgConst, 4|10<<16|10<<24, 0x42,
+				execInstrCopyin, dataOffset+0, execArgConst, 4|20<<16|10<<24, 0x42,
+				execInstrCopyin, dataOffset+4, execArgConst, 1, 0x42,
+				callID("test$bf1"), defaultCallPropsSlice,
+				ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
 				execInstrEOF,
-			},
+			),
 			nil,
 		},
 		{
 			"test$res1(0xffff)",
-			[]uint64{
-				callID("test$res1"), ExecNoCopyout, 1, execArgConst, 4, 0xffff,
+			join(
+				callID("test$res1"), defaultCallPropsSlice,
+				ExecNoCopyout, 1, execArgConst, 4, 0xffff,
 				execInstrEOF,
-			},
+			),
 			nil,
 		},
 		{
 			"test$opt3(0x0)",
-			[]uint64{
-				callID("test$opt3"), ExecNoCopyout, 1, execArgConst, 8 | 4<<32, 0x64,
+			join(
+				callID("test$opt3"), defaultCallPropsSlice,
+				ExecNoCopyout, 1, execArgConst, 8|4<<32, 0x64,
 				execInstrEOF,
-			},
+			),
 			nil,
 		},
 		{
 			// Special value that translates to 0 for all procs.
 			"test$opt3(0xffffffffffffffff)",
-			[]uint64{
-				callID("test$opt3"), ExecNoCopyout, 1, execArgConst, 8, 0,
+			join(
+				callID("test$opt3"), defaultCallPropsSlice,
+				ExecNoCopyout, 1, execArgConst, 8, 0,
 				execInstrEOF,
-			},
+			),
 			nil,
 		},
 		{
 			// NULL pointer must be encoded os 0.
 			"test$opt1(0x0)",
-			[]uint64{
-				callID("test$opt1"), ExecNoCopyout, 1, execArgConst, 8, 0,
+			join(
+				callID("test$opt1"), defaultCallPropsSlice,
+				ExecNoCopyout, 1, execArgConst, 8, 0,
 				execInstrEOF,
-			},
+			),
 			nil,
 		},
 		{
 			"test$align7(&(0x7f0000000000)={{0x1, 0x2, 0x3, 0x4, 0x5, 0x6}, 0x42})",
-			[]uint64{
-				execInstrCopyin, dataOffset + 0, execArgConst, 1 | 0<<16 | 1<<24, 0x1,
-				execInstrCopyin, dataOffset + 0, execArgConst, 1 | 1<<16 | 1<<24, 0x2,
-				execInstrCopyin, dataOffset + 0, execArgConst, 1 | 2<<16 | 1<<24, 0x3,
-				execInstrCopyin, dataOffset + 0, execArgConst, 2 | 3<<16 | 1<<24, 0x4,
-				execInstrCopyin, dataOffset + 0, execArgConst, 2 | 4<<16 | 1<<24, 0x5,
-				execInstrCopyin, dataOffset + 0, execArgConst, 2 | 5<<16 | 1<<24, 0x6,
-				execInstrCopyin, dataOffset + 8, execArgConst, 1, 0x42,
-				callID("test$align7"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
+			join(
+				execInstrCopyin, dataOffset+0, execArgConst, 1|0<<16|1<<24, 0x1,
+				execInstrCopyin, dataOffset+0, execArgConst, 1|1<<16|1<<24, 0x2,
+				execInstrCopyin, dataOffset+0, execArgConst, 1|2<<16|1<<24, 0x3,
+				execInstrCopyin, dataOffset+0, execArgConst, 2|3<<16|1<<24, 0x4,
+				execInstrCopyin, dataOffset+0, execArgConst, 2|4<<16|1<<24, 0x5,
+				execInstrCopyin, dataOffset+0, execArgConst, 2|5<<16|1<<24, 0x6,
+				execInstrCopyin, dataOffset+8, execArgConst, 1, 0x42,
+				callID("test$align7"), defaultCallPropsSlice,
+				ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
 				execInstrEOF,
-			},
+			),
 			nil,
 		},
 		{
 			"test$excessive_fields1(0x0)",
-			[]uint64{
-				callID("test$excessive_fields1"), ExecNoCopyout, 1, execArgConst, ptrSize, 0x0,
+			join(
+				callID("test$excessive_fields1"), defaultCallPropsSlice,
+				ExecNoCopyout, 1, execArgConst, ptrSize, 0x0,
 				execInstrEOF,
-			},
+			),
 			nil,
 		},
 		{
 			"test$excessive_fields1(0xffffffffffffffff)",
-			[]uint64{
-				callID("test$excessive_fields1"), ExecNoCopyout, 1, execArgConst, ptrSize, 0xffffffffffffffff,
+			join(
+				callID("test$excessive_fields1"), defaultCallPropsSlice,
+				ExecNoCopyout, 1, execArgConst, ptrSize, uint64(0xffffffffffffffff),
 				execInstrEOF,
-			},
+			),
 			nil,
 		},
 		{
 			"test$excessive_fields1(0xfffffffffffffffe)",
-			[]uint64{
-				callID("test$excessive_fields1"), ExecNoCopyout, 1, execArgConst, ptrSize, 0x9999999999999999,
+			join(
+				callID("test$excessive_fields1"), defaultCallPropsSlice,
+				ExecNoCopyout, 1, execArgConst, ptrSize, uint64(0x9999999999999999),
 				execInstrEOF,
-			},
+			),
 			nil,
 		},
 		{
 			"test$csum_ipv4_tcp(&(0x7f0000000000)={{0x0, 0x1, 0x2}, {{0x0}, \"ab\"}})",
-			[]uint64{
-				execInstrCopyin, dataOffset + 0, execArgConst, 2, 0x0,
-				execInstrCopyin, dataOffset + 2, execArgConst, 4 | 1<<8, 0x1,
-				execInstrCopyin, dataOffset + 6, execArgConst, 4 | 1<<8, 0x2,
-				execInstrCopyin, dataOffset + 10, execArgConst, 2, 0x0,
-				execInstrCopyin, dataOffset + 12, execArgData, 1, letoh64(0xab),
-				execInstrCopyin, dataOffset + 10, execArgCsum, 2, ExecArgCsumInet, 5,
-				ExecArgCsumChunkData, dataOffset + 2, 4,
-				ExecArgCsumChunkData, dataOffset + 6, 4,
+			join(
+				execInstrCopyin, dataOffset+0, execArgConst, 2, 0x0,
+				execInstrCopyin, dataOffset+2, execArgConst, 4|1<<8, 0x1,
+				execInstrCopyin, dataOffset+6, execArgConst, 4|1<<8, 0x2,
+				execInstrCopyin, dataOffset+10, execArgConst, 2, 0x0,
+				execInstrCopyin, dataOffset+12, execArgData, 1, letoh64(0xab),
+				execInstrCopyin, dataOffset+10, execArgCsum, 2, ExecArgCsumInet, 5,
+				ExecArgCsumChunkData, dataOffset+2, 4,
+				ExecArgCsumChunkData, dataOffset+6, 4,
 				ExecArgCsumChunkConst, 0x0600, 2,
 				ExecArgCsumChunkConst, 0x0300, 2,
-				ExecArgCsumChunkData, dataOffset + 10, 3,
-				execInstrCopyin, dataOffset + 0, execArgCsum, 2, ExecArgCsumInet, 1,
-				ExecArgCsumChunkData, dataOffset + 0, 10,
-				callID("test$csum_ipv4_tcp"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
+				ExecArgCsumChunkData, dataOffset+10, 3,
+				execInstrCopyin, dataOffset+0, execArgCsum, 2, ExecArgCsumInet, 1,
+				ExecArgCsumChunkData, dataOffset+0, 10,
+				callID("test$csum_ipv4_tcp"), defaultCallPropsSlice,
+				ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
 				execInstrEOF,
-			},
+			),
 			nil,
 		},
 	}
@@ -530,7 +591,7 @@ func TestSerializeForExecOverflow(t *testing.T) {
 			overflow: false,
 			gen: func(w *bytes.Buffer) {
 				fmt.Fprintf(w, "r0 = test$res0()\n")
-				for i := 0; i < 58e3; i++ {
+				for i := 0; i < 42e3; i++ {
 					fmt.Fprintf(w, "test$res1(r0)\n")
 				}
 			},
