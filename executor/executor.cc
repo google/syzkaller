@@ -241,6 +241,7 @@ struct thread_t {
 	int call_num;
 	int num_args;
 	intptr_t args[kMaxArgs];
+	call_props_t call_props;
 	intptr_t res;
 	uint32 reserrno;
 	bool fault_injected;
@@ -341,7 +342,7 @@ struct feature_t {
 	void (*setup)();
 };
 
-static thread_t* schedule_call(int call_index, int call_num, bool colliding, uint64 copyout_index, uint64 num_args, uint64* args, uint64* pos);
+static thread_t* schedule_call(int call_index, int call_num, bool colliding, uint64 copyout_index, uint64 num_args, uint64* args, uint64* pos, call_props_t call_props);
 static void handle_completion(thread_t* th);
 static void copyout_call_results(thread_t* th);
 static void write_call_output(thread_t* th, bool finished);
@@ -673,6 +674,8 @@ retry:
 	int call_index = 0;
 	uint64 prog_extra_timeout = 0;
 	uint64 prog_extra_cover_timeout = 0;
+	call_props_t call_props;
+
 	for (;;) {
 		uint64 call_num = read_input(&input_pos);
 		if (call_num == instr_eof)
@@ -766,6 +769,7 @@ retry:
 		// Normal syscall.
 		if (call_num >= ARRAY_SIZE(syscalls))
 			failmsg("invalid syscall number", "call_num=%llu", call_num);
+		read_call_props_t(call_props, read_input(&input_pos, false));
 		const call_t* call = &syscalls[call_num];
 		if (call->attrs.disabled)
 			failmsg("executing disabled syscall", "syscall=%s", call->name);
@@ -785,7 +789,7 @@ retry:
 		for (uint64 i = num_args; i < kMaxArgs; i++)
 			args[i] = 0;
 		thread_t* th = schedule_call(call_index++, call_num, colliding, copyout_index,
-					     num_args, args, input_pos);
+					     num_args, args, input_pos, call_props);
 
 		if (colliding && (call_index % 2) == 0) {
 			// Don't wait for every other call.
@@ -868,7 +872,7 @@ retry:
 	}
 }
 
-thread_t* schedule_call(int call_index, int call_num, bool colliding, uint64 copyout_index, uint64 num_args, uint64* args, uint64* pos)
+thread_t* schedule_call(int call_index, int call_num, bool colliding, uint64 copyout_index, uint64 num_args, uint64* args, uint64* pos, call_props_t call_props)
 {
 	// Find a spare thread to execute the call.
 	int i = 0;
@@ -897,6 +901,7 @@ thread_t* schedule_call(int call_index, int call_num, bool colliding, uint64 cop
 	th->call_index = call_index;
 	th->call_num = call_num;
 	th->num_args = num_args;
+	th->call_props = call_props;
 	for (int i = 0; i < kMaxArgs; i++)
 		th->args[i] = args[i];
 	event_set(&th->ready);

@@ -6,7 +6,7 @@
 
 // Exec format is an sequence of uint64's which encodes a sequence of calls.
 // The sequence is terminated by a speciall call execInstrEOF.
-// Each call is (call ID, copyout index, number of arguments, arguments...).
+// Each call is (call ID, call props, copyout index, number of arguments, arguments...).
 // Each argument is (type, size, value).
 // There are 4 types of arguments:
 //  - execArgConst: value is const value
@@ -22,6 +22,7 @@ package prog
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"sort"
 )
 
@@ -89,6 +90,8 @@ func (w *execContext) serializeCall(c *Call) {
 	w.writeChecksums()
 	// Generate the call itself.
 	w.write(uint64(c.Meta.ID))
+	// Generate call properties fragment.
+	w.writeCallProps(c.Props)
 	if c.Ret != nil && len(c.Ret.uses) != 0 {
 		if _, ok := w.args[c.Ret]; ok {
 			panic("argInfo is already created for return value")
@@ -103,6 +106,7 @@ func (w *execContext) serializeCall(c *Call) {
 	for _, arg := range c.Args {
 		w.writeArg(arg)
 	}
+
 	// Generate copyout instructions that persist interesting return values.
 	w.writeCopyout(c)
 }
@@ -122,6 +126,17 @@ type argInfo struct {
 	Addr uint64 // physical addr
 	Idx  uint64 // copyout instruction index
 	Ret  bool
+}
+
+func (w *execContext) writeCallProps(props CallProps) {
+	props.ForeachProp(func(_, _ string, value reflect.Value) {
+		switch kind := value.Kind(); kind {
+		case reflect.Int:
+			w.write(uint64(value.Int()))
+		default:
+			panic("Unsupported (yet) kind: " + kind.String())
+		}
+	})
 }
 
 func (w *execContext) writeCopyin(c *Call) {
