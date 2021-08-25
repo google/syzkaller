@@ -105,9 +105,7 @@ func (co Offsets) Serialize() map[string][]uint32 {
 func (co Offsets) CountOffsets() int {
 	var count int
 	for _, offs := range co {
-		for range offs {
-			count++
-		}
+		count += len(offs)
 	}
 	return count
 }

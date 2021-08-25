@@ -152,20 +152,21 @@ func getModulesInfo() ([]*KernelModule, int, error) {
 
 func getModuleLoadOffset(module *KernelModule) (int, error) {
 	moduleLoadOffset := 0
-	var addresses []uint64
-	moduleSymbolText, _ := ioutil.ReadFile("/proc/kallsyms")
-	re := regexp.MustCompile(fmt.Sprintf(`([a-fA-F0-9]+) .*\[%s\]`, module.Name))
-	for _, m := range re.FindAllSubmatch(moduleSymbolText, -1) {
-		addr, err := strconv.ParseUint("0x"+string(m[1]), 0, 64)
-		if err != nil {
-			return 0, fmt.Errorf("address parsing error in /proc/kallsyms: %v", err)
-		}
-		addresses = append(addresses, addr)
+	moduleTextAddrText, err := ioutil.ReadFile(fmt.Sprintf("/sys/module/%s/sections/.text", module.Name))
+	if err != nil {
+		// Ignore open error which only exists during make test.
+		return 0, nil
 	}
-	sort.Slice(addresses, func(i, j int) bool {
-		return addresses[i] < addresses[j]
-	})
-	moduleLoadOffset = int(addresses[0] - module.Addr)
+	re := regexp.MustCompile(`(0x[a-fA-F0-9]+)`)
+	m := re.FindSubmatch(moduleTextAddrText)
+	if m == nil {
+		return 0, fmt.Errorf("no match module text address for %v", module.Name)
+	}
+	addr, err := strconv.ParseUint(string(m[1]), 0, 64)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse module text address for %v", module.Name)
+	}
+	moduleLoadOffset = int(addr - module.Addr)
 	return moduleLoadOffset, nil
 }
 
