@@ -1113,8 +1113,6 @@ void thread_create(thread_t* th, int id)
 	th->created = true;
 	th->id = id;
 	th->executing = false;
-	th->cov.data_offset = is_kernel_64_bit ? sizeof(uint64_t) : sizeof(uint32_t);
-	th->cov.pc_offset = 0;
 	event_init(&th->ready);
 	event_init(&th->done);
 	event_set(&th->done);
