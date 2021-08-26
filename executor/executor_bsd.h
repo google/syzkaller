@@ -99,6 +99,8 @@ static void cover_open(cover_t* cov, bool extra)
 		fail("cover mmap failed");
 	cov->data = (char*)mmap_ptr;
 	cov->data_end = cov->data + mmap_alloc_size;
+	cov->data_offset = is_kernel_64_bit ? sizeof(uint64_t) : sizeof(uint32_t);
+	cov->pc_offset = 0;
 }
 
 static void cover_protect(cover_t* cov)
