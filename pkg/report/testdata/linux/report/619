@@ -1,0 +1,9 @@
+TITLE: 
+
+[  144.247612][T11794] IPv6: ADDRCONF(NETDEV_CHANGE): lo: link becomes ready
+[  144.274089][T11803] =======================================================
+[  144.274089][T11803] WARNING: The mand mount option has been deprecated and
+[  144.274089][T11803]          and is ignored by this kernel. Remove the mand
+[  144.274089][T11803]          option from the mount to silence this warning.
+[  144.274089][T11803] =======================================================
+[  144.408423][T11794] IPv6: ADDRCONF(NETDEV_CHANGE): vcan0: link becomes ready

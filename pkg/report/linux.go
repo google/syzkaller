@@ -1675,7 +1675,7 @@ var linuxOopses = append([]*oops{
 		[]*regexp.Regexp{
 			compile("WARNING: /etc/ssh/moduli does not exist, using fixed modulus"), // printed by sshd
 			compile("WARNING: workqueue cpumask: online intersect > possible intersect"),
-			compile("WARNING: the mand mount option is being deprecated"),
+			compile("WARNING: [Tt]he mand mount option (is being|has been) deprecated"),
 		},
 	},
 	{
