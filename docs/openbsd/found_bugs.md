@@ -6,6 +6,10 @@ mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/ope
 
 Newer bugs comes first.
 
+- [kqueue: missing locking](https://marc.info/?l=openbsd-cvs&m=162338580619514&w=2)
+
+- [socketpair: lock ordering problem](https://marc.info/?l=openbsd-cvs&m=162092535010623&w=2)
+
 - [tun(4): leaking device references](https://marc.info/?l=openbsd-cvs&m=161532031720186&w=2)
 
 - [pf(4): incorrect handling of overlapping fragments](https://marc.info/?l=openbsd-cvs&m=161399910228130&w=2 ) [ERRATA-68-014](https://ftp.openbsd.org/pub/OpenBSD/patches/6.8/common/014_pffrag.patch.sig)
