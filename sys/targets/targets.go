@@ -484,8 +484,11 @@ var oses = map[string]osCommon{
 		// go side.
 		ExecutorUsesForkServer: false,
 		KernelObject:           "kernel.kasan",
-		CPP:                    "clang++",
-		cflags:                 []string{"-static", "-lc++"},
+		// Note: We need a real g++ here, not the symlink to clang++ common on
+		// macOS systems. Homebrews gcc package suffixes these with the gcc
+		// version to avoid conflicting with the macOS symlink. Currently -11.
+		CPP:    "g++-11",
+		cflags: []string{"-lc++"},
 	},
 	NetBSD: {
 		BuildOS:                Linux,
