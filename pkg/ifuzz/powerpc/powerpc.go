@@ -80,10 +80,15 @@ func (insn Insn) Encode(cfg *iset.Config, r *rand.Rand) []byte {
 
 	ret := make([]byte, 0)
 	insn32 := insn.Opcode
+	if len(cfg.MemRegions) != 0 {
+		// The PowerISA pdf parser could have missed some fields,
+		// randomize them there.
+		insn32 |= r.Uint32() & ^insn.Mask
+	}
 	for reg, bits := range insn.Fields {
 		field := uint(r.Intn(1 << 16))
 		insn32 |= encodeBits(field, bits)
-		if len(cfg.MemRegions) != 0 && (reg == "RA" || reg == "RB") {
+		if len(cfg.MemRegions) != 0 && (reg == "RA" || reg == "RB" || reg == "RS") {
 			val := iset.GenerateInt(cfg, r, 8)
 			ret = append(ret, insn.insnMap.ld64(field, val)...)
 		}
