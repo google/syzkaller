@@ -466,14 +466,9 @@ var oses = map[string]osCommon{
 		cflags:                 []string{"-static", "-lc++"},
 	},
 	Darwin: {
-		SyscallNumbers:   true,
-		Int64SyscallArgs: true,
-		SyscallPrefix:    "SYS_",
-		// Note: Seems like darwin really doesn't like MAP_FIXED. Every once in
-		// a while the mmap will fail, causing syz-manager to restart the VM. I
-		// tried mmaping in a loop on linux and darwin. On linux the mmap
-		// always works. On darwin it returns an error in bursts. It used to be
-		// pretty frequent, but now it's so seldom I just ignore it. Beware.
+		SyscallNumbers:    true,
+		Int64SyscallArgs:  true,
+		SyscallPrefix:     "SYS_",
 		ExecutorUsesShmem: true,
 		// FIXME(HerrSpace): ForkServer is b0rked in a peculiar way. I did some
 		// printf debugging in parseOutput in ipc.go. It usually works for a
