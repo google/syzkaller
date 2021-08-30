@@ -76,6 +76,33 @@ func (t *tty) Close() error {
 	return nil
 }
 
+func OpenRemoteKernelLog(ip string, console string) (rc io.ReadCloser, err error) {
+	rpipe, wpipe, err := osutil.LongPipe()
+	if err != nil {
+		return nil, err
+	}
+	conAddr := "vsoc-01@" + ip
+	cmd := osutil.Command("ssh", conAddr, "tail", "-f", console)
+	cmd.Stdout = wpipe
+	cmd.Stderr = wpipe
+	if _, err := cmd.StdinPipe(); err != nil {
+		rpipe.Close()
+		wpipe.Close()
+		return nil, err
+	}
+	if err := cmd.Start(); err != nil {
+		rpipe.Close()
+		wpipe.Close()
+		return nil, fmt.Errorf("failed to connect to console server: %v", err)
+	}
+	wpipe.Close()
+	con := &remoteCon{
+		cmd:   cmd,
+		rpipe: rpipe,
+	}
+	return con, nil
+}
+
 // Open dmesg remotely.
 func OpenRemoteConsole(bin string, args ...string) (rc io.ReadCloser, err error) {
 	rpipe, wpipe, err := osutil.LongPipe()

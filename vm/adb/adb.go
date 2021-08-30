@@ -38,7 +38,6 @@ type Device struct {
 type Config struct {
 	Adb     string   `json:"adb"`     // adb binary name ("adb" by default)
 	Devices []Device `json:"devices"` // list of adb devices to use
-	CvdDir  string   `json:"cvd_dir"` // cvd directory path of cuttlefish
 
 	// Ensure that a device battery level is at 20+% before fuzzing.
 	// Sometimes we observe that a device can't charge during heavy fuzzing
@@ -430,29 +429,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	var err error
 
 	if ok, ip := isRemoteCuttlefish(inst.device); ok {
-		log.Logf(0, "running on remote cuttlefish: %v", ip)
-		conRpipe, conWpipe, err := osutil.LongPipe()
-		if err != nil {
-			return nil, nil, err
-		}
-		conAddr := "vsoc-01@" + ip
-		con := osutil.Command("ssh", "-t", conAddr, "screen", inst.console)
-		con.Env = []string{}
-		con.Stdout = conWpipe
-		con.Stderr = conWpipe
-		if _, err := con.StdinPipe(); err != nil {
-			conRpipe.Close()
-			conWpipe.Close()
-			return nil, nil, err
-		}
-		if err := con.Start(); err != nil {
-			conRpipe.Close()
-			conWpipe.Close()
-			return nil, nil, fmt.Errorf("failed to connect to console server: %v", err)
-		}
-		tty = conRpipe
-		conWpipe.Close()
-
+		tty, err = vmimpl.OpenRemoteKernelLog(ip, inst.console)
 	} else if inst.console == "adb" {
 		tty, err = vmimpl.OpenAdbConsole(inst.adbBin, inst.device)
 	} else {
