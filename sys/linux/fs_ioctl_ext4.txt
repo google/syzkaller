@@ -12,6 +12,13 @@ ioctl$EXT4_IOC_ALLOC_DA_BLKS(fd fd, cmd const[EXT4_IOC_ALLOC_DA_BLKS])
 ioctl$EXT4_IOC_MOVE_EXT(fd fd, cmd const[EXT4_IOC_MOVE_EXT], arg ptr[in, move_extent])
 ioctl$EXT4_IOC_SWAP_BOOT(fd fd, cmd const[EXT4_IOC_SWAP_BOOT])
 ioctl$EXT4_IOC_PRECACHE_EXTENTS(fd fd, cmd const[EXT4_IOC_PRECACHE_EXTENTS])
+ioctl$EXT4_IOC_CLEAR_ES_CACHE(fd fd, cmd const[EXT4_IOC_CLEAR_ES_CACHE])
+ioctl$EXT4_IOC_GETSTATE(fd fd, cmd const[EXT4_IOC_GETSTATE], arg ptr[out, flags[ext4_state_flags, int32]])
+ioctl$EXT4_IOC_GET_ES_CACHE(fd fd, cmd const[EXT4_IOC_GET_ES_CACHE], args ptr[inout, fiemap])
+ioctl$EXT4_IOC_CHECKPOINT(fd fd, cmd const[EXT4_IOC_CHECKPOINT], arg ptr[in, flags[ext4_checkpoint_flags, int32]])
+
+ext4_state_flags = EXT4_STATE_FLAG_EXT_PRECACHED, EXT4_STATE_FLAG_NEW, EXT4_STATE_FLAG_NEWENTRY, EXT4_STATE_FLAG_DA_ALLOC_CLOSE
+ext4_checkpoint_flags = EXT4_IOC_CHECKPOINT_FLAG_DISCARD, EXT4_IOC_CHECKPOINT_FLAG_ZEROOUT, EXT4_IOC_CHECKPOINT_FLAG_DRY_RUN
 
 # EXT4_IOC_SHUTDOWN on root fs effectively brings the machine down in weird ways.
 # Fortunately, the value does not conflict with any other ioctl commands for now.
