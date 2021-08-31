@@ -291,7 +291,7 @@ func (inst *instance) repair() error {
 	}
 	// Switch to root for userdebug builds.
 	inst.adb("root")
-
+	inst.waitForSSH()
 	// Mount debugfs.
 	if _, err := inst.adb("shell", "ls /sys/kernel/debug/kcov"); err != nil {
 		log.Logf(2, "debugfs was unmounted mounting")
@@ -302,7 +302,6 @@ func (inst *instance) repair() error {
 			return err
 		}
 	}
-	inst.waitForSSH()
 	if inst.cfg.StartupScript != "" {
 		if err := inst.runScript(inst.cfg.StartupScript); err != nil {
 			return err
