@@ -127,6 +127,7 @@ func ctorLinux(cfg *config) (reporterImpl, []string, error) {
 		"lowmemorykiller: Killing 'syz-fuzzer'",
 		"lowmemorykiller: Killing 'sshd'",
 		"INIT: PANIC: segmentation violation!",
+		"\\*\\*\\* stack smashing detected \\*\\*\\*: terminated",
 	}
 	return ctx, suppressions, nil
 }
