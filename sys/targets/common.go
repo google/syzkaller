@@ -21,25 +21,21 @@ func MakePosixMmap(target *prog.Target, exec, contain bool) func() []*prog.Call 
 	size := target.NumPages * target.PageSize
 	const invalidFD = ^uint64(0)
 	makeMmap := func(addr, size, prot uint64) *prog.Call {
-		args := []prog.Arg{
+		call := prog.MakeCall(meta, []prog.Arg{
 			prog.MakeVmaPointerArg(meta.Args[0].Type, prog.DirIn, addr, size),
 			prog.MakeConstArg(meta.Args[1].Type, prog.DirIn, size),
 			prog.MakeConstArg(meta.Args[2].Type, prog.DirIn, prot),
 			prog.MakeConstArg(meta.Args[3].Type, prog.DirIn, flags),
 			prog.MakeResultArg(meta.Args[4].Type, prog.DirIn, nil, invalidFD),
-		}
-		i := len(args)
+		})
+		i := len(call.Args)
 		// Some targets have a padding argument between fd and offset.
 		if len(meta.Args) > 6 {
-			args = append(args, prog.MakeConstArg(meta.Args[i].Type, prog.DirIn, 0))
+			call.Args = append(call.Args, prog.MakeConstArg(meta.Args[i].Type, prog.DirIn, 0))
 			i++
 		}
-		args = append(args, prog.MakeConstArg(meta.Args[i].Type, prog.DirIn, 0))
-		return &prog.Call{
-			Meta: meta,
-			Args: args,
-			Ret:  prog.MakeReturnArg(meta.Ret),
-		}
+		call.Args = append(call.Args, prog.MakeConstArg(meta.Args[i].Type, prog.DirIn, 0))
+		return call
 	}
 	return func() []*prog.Call {
 		if contain {
@@ -58,14 +54,10 @@ func MakeSyzMmap(target *prog.Target) func() []*prog.Call {
 	size := target.NumPages * target.PageSize
 	return func() []*prog.Call {
 		return []*prog.Call{
-			{
-				Meta: meta,
-				Args: []prog.Arg{
-					prog.MakeVmaPointerArg(meta.Args[0].Type, prog.DirIn, 0, size),
-					prog.MakeConstArg(meta.Args[1].Type, prog.DirIn, size),
-				},
-				Ret: prog.MakeReturnArg(meta.Ret),
-			},
+			prog.MakeCall(meta, []prog.Arg{
+				prog.MakeVmaPointerArg(meta.Args[0].Type, prog.DirIn, 0, size),
+				prog.MakeConstArg(meta.Args[1].Type, prog.DirIn, size),
+			}),
 		}
 	}
 }

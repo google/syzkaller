@@ -340,14 +340,10 @@ func (arch *arch) generateTimespec(g *prog.Gen, typ0 prog.Type, dir prog.Dir, ol
 		})
 		var tpaddr prog.Arg
 		tpaddr, calls = g.Alloc(ptrArgType, prog.DirIn, tp)
-		gettime := &prog.Call{
-			Meta: meta,
-			Args: []prog.Arg{
-				prog.MakeConstArg(meta.Args[0].Type, prog.DirIn, arch.CLOCK_REALTIME),
-				tpaddr,
-			},
-			Ret: prog.MakeReturnArg(meta.Ret),
-		}
+		gettime := prog.MakeCall(meta, []prog.Arg{
+			prog.MakeConstArg(meta.Args[0].Type, prog.DirIn, arch.CLOCK_REALTIME),
+			tpaddr,
+		})
 		calls = append(calls, gettime)
 		sec := prog.MakeResultArg(typ.Fields[0].Type, dir, tp.Inner[0].(*prog.ResultArg), 0)
 		nsec := prog.MakeResultArg(typ.Fields[1].Type, dir, tp.Inner[1].(*prog.ResultArg), 0)

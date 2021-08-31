@@ -263,11 +263,8 @@ func (p *parser) parseProg() (*Prog, error) {
 		if meta == nil {
 			return nil, fmt.Errorf("unknown syscall %v", name)
 		}
-		c := &Call{
-			Meta:    meta,
-			Ret:     MakeReturnArg(meta.Ret),
-			Comment: p.comment,
-		}
+		c := MakeCall(meta, nil)
+		c.Comment = p.comment
 		prog.Calls = append(prog.Calls, c)
 		p.Parse('(')
 		for i := 0; p.Char() != ')'; i++ {
