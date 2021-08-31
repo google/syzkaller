@@ -32,15 +32,11 @@ func (arch *arch) makeMmap() []*prog.Call {
 	meta := arch.virtualAllocSyscall
 	size := arch.target.NumPages * arch.target.PageSize
 	return []*prog.Call{
-		{
-			Meta: meta,
-			Args: []prog.Arg{
-				prog.MakeVmaPointerArg(meta.Args[0].Type, prog.DirIn, 0, size),
-				prog.MakeConstArg(meta.Args[1].Type, prog.DirIn, size),
-				prog.MakeConstArg(meta.Args[2].Type, prog.DirIn, arch.MEM_COMMIT|arch.MEM_RESERVE),
-				prog.MakeConstArg(meta.Args[3].Type, prog.DirIn, arch.PAGE_EXECUTE_READWRITE),
-			},
-			Ret: prog.MakeReturnArg(meta.Ret),
-		},
+		prog.MakeCall(meta, []prog.Arg{
+			prog.MakeVmaPointerArg(meta.Args[0].Type, prog.DirIn, 0, size),
+			prog.MakeConstArg(meta.Args[1].Type, prog.DirIn, size),
+			prog.MakeConstArg(meta.Args[2].Type, prog.DirIn, arch.MEM_COMMIT|arch.MEM_RESERVE),
+			prog.MakeConstArg(meta.Args[3].Type, prog.DirIn, arch.PAGE_EXECUTE_READWRITE),
+		}),
 	}
 }

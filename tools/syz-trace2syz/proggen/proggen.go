@@ -102,14 +102,13 @@ func genProg(trace *parser.Trace, target *prog.Target) *prog.Prog {
 func (ctx *context) genCall() *prog.Call {
 	log.Logf(3, "parsing call: %s", ctx.currentStraceCall.CallName)
 	straceCall := ctx.currentStraceCall
-	ctx.currentSyzCall = new(prog.Call)
-	ctx.currentSyzCall.Meta = ctx.Select(straceCall)
-	syzCall := ctx.currentSyzCall
-	if ctx.currentSyzCall.Meta == nil {
+	meta := ctx.Select(straceCall)
+	if meta == nil {
 		log.Logf(2, "skipping call: %s which has no matching description", ctx.currentStraceCall.CallName)
 		return nil
 	}
-	syzCall.Ret = prog.MakeReturnArg(syzCall.Meta.Ret)
+	ctx.currentSyzCall = prog.MakeCall(meta, nil)
+	syzCall := ctx.currentSyzCall
 
 	for i := range syzCall.Meta.Args {
 		var strArg parser.IrType

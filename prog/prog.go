@@ -20,6 +20,14 @@ type Call struct {
 	Comment string
 }
 
+func MakeCall(meta *Syscall, args []Arg) *Call {
+	return &Call{
+		Meta: meta,
+		Args: args,
+		Ret:  MakeReturnArg(meta.Ret),
+	}
+}
+
 type Arg interface {
 	Type() Type
 	Dir() Dir
