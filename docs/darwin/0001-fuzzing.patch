@@ -1,0 +1,96 @@
+From 5ae86092cc5b4306a2145c56085e07f2eb5ddbe6 Mon Sep 17 00:00:00 2001
+From: Patrick Meyer <git@the-space.agency>
+Date: Wed, 1 Sep 2021 14:26:36 -0700
+Subject: [PATCH] fuzzing
+
+---
+ makedefs/MakeInc.def     | 8 +++++++-
+ osfmk/i386/cpu_threads.c | 1 +
+ osfmk/i386/cpuid.c       | 4 +++-
+ san/kasan.c              | 1 +
+ san/ksancov.h            | 4 ++--
+ 5 files changed, 14 insertions(+), 4 deletions(-)
+
+diff --git a/makedefs/MakeInc.def b/makedefs/MakeInc.def
+index bf2b6f8..dd509fa 100644
+--- a/makedefs/MakeInc.def
++++ b/makedefs/MakeInc.def
+@@ -175,7 +175,13 @@ WARNFLAGS_STD := \
+ 	-Wno-used-but-marked-unused \
+ 	-Wno-variadic-macros \
+ 	-Wno-vla \
+-	-Wno-zero-length-array
++	-Wno-zero-length-array \
++	-Wno-void-pointer-to-int-cast \
++	-Wno-pointer-to-int-cast \
++	-Wno-suggest-override \
++	-Wno-suggest-destructor-override \
++	-Wno-unreachable-code
++	# ^ last one is required for qemu hacks
+ 
+ # When a new clang has new warnings disable them here until the kernel is fixed.
+ WARNFLAGS_STD := $(WARNFLAGS_STD) \
+diff --git a/osfmk/i386/cpu_threads.c b/osfmk/i386/cpu_threads.c
+index f9317b1..2e705ff 100644
+--- a/osfmk/i386/cpu_threads.c
++++ b/osfmk/i386/cpu_threads.c
+@@ -1019,6 +1019,7 @@ cpu_thread_halt(void)
+ void
+ x86_validate_topology(void)
+ {
++	return;
+ 	x86_pkg_t           *pkg;
+ 	x86_die_t           *die;
+ 	x86_core_t          *core;
+diff --git a/osfmk/i386/cpuid.c b/osfmk/i386/cpuid.c
+index 90844be..e0ceea4 100644
+--- a/osfmk/i386/cpuid.c
++++ b/osfmk/i386/cpuid.c
+@@ -861,7 +861,9 @@ cpuid_set_generic_info(i386_cpu_info_t *info_p)
+ static uint32_t
+ cpuid_set_cpufamily(i386_cpu_info_t *info_p)
+ {
+-	uint32_t cpufamily = CPUFAMILY_UNKNOWN;
++	uint32_t cpufamily = CPUFAMILY_INTEL_PENRYN;
++	info_p->cpuid_cpufamily = cpufamily;
++	return cpufamily;
+ 
+ 	switch (info_p->cpuid_family) {
+ 	case 6:
+diff --git a/san/kasan.c b/san/kasan.c
+index 004393d..e0fde9a 100644
+--- a/san/kasan.c
++++ b/san/kasan.c
+@@ -1467,6 +1467,7 @@ UNUSED_ABI(__asan_version_mismatch_check_apple_1000, void);
+ UNUSED_ABI(__asan_version_mismatch_check_apple_1001, void);
+ UNUSED_ABI(__asan_version_mismatch_check_apple_clang_1100, void);
+ UNUSED_ABI(__asan_version_mismatch_check_apple_clang_1200, void);
++UNUSED_ABI(__asan_version_mismatch_check_apple_clang_1205, void);
+ 
+ void OS_NORETURN UNSUPPORTED_API(__asan_init_v5, void);
+ void OS_NORETURN UNSUPPORTED_API(__asan_register_globals, uptr a, uptr b);
+diff --git a/san/ksancov.h b/san/ksancov.h
+index d2a836b..7659e66 100644
+--- a/san/ksancov.h
++++ b/san/ksancov.h
+@@ -180,7 +180,7 @@ ksancov_map(int fd, uintptr_t *buf, size_t *sz)
+ 		*sz = mc.sz;
+ 	}
+ 
+-	struct ksancov_trace *trace = (void *)mc.ptr;
++	struct ksancov_trace *trace = (ksancov_trace *)mc.ptr;
+ 	assert(trace->magic == KSANCOV_TRACE_MAGIC ||
+ 	    trace->magic == KSANCOV_COUNTERS_MAGIC);
+ 
+@@ -203,7 +203,7 @@ ksancov_map_edgemap(int fd, uintptr_t *buf, size_t *sz)
+ 		*sz = mc.sz;
+ 	}
+ 
+-	struct ksancov_trace *trace = (void *)mc.ptr;
++	struct ksancov_trace *trace = (ksancov_trace *)mc.ptr;
+ 	assert(trace->magic == KSANCOV_EDGEMAP_MAGIC);
+ 
+ 	return 0;
+-- 
+2.30.1 (Apple Git-130)
+
