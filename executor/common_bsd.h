@@ -215,7 +215,7 @@ static void initialize_tun(int tun_id)
 	tunfd = open(tun_device, O_RDWR | O_NONBLOCK);
 #if GOOS_freebsd
 	if ((tunfd < 0) && (errno == ENOENT)) {
-		execute_command(0, "kldload -q if_tap");
+		execute_command(0, "kldload -q if_tuntap");
 		tunfd = open(tun_device, O_RDWR | O_NONBLOCK);
 	}
 #endif
