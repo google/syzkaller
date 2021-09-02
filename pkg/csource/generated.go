@@ -1734,7 +1734,7 @@ static void initialize_tun(int tun_id)
 	execute_command(0, "ifconfig %s destroy", tun_iface);
 	execute_command(0, "ifconfig %s create", tun_iface);
 #else
-	execute_command(0, "ifconfig %s destroy", tun_device);
+	execute_command(0, "ifconfig %s destroy", tun_iface);
 #endif
 
 	tunfd = open(tun_device, O_RDWR | O_NONBLOCK);
