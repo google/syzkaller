@@ -56,6 +56,9 @@ type Config struct {
 	// The modern way of describing QEMU hard disks is supported, so the value
 	// "drive index=0,media=disk,file=" is transformed to "-drive index=0,media=disk,file=image" for QEMU.
 	ImageDevice string `json:"image_device"`
+	// EFI images containing the EFI itself, as well as this VMs EFI variables.
+	EfiCodeDevice string `json:"efi_code_device"`
+	EfiVarsDevice string `json:"efi_vars_device"`
 	// QEMU network device type to use.
 	// If not specified, some default per-arch value will be used.
 	// See the full list with qemu-system-x86_64 -device help.
@@ -66,6 +69,8 @@ type Config struct {
 	Mem int `json:"mem"`
 	// For building kernels without -snapshot for pkg/build (true by default).
 	Snapshot bool `json:"snapshot"`
+	// Magic key used to dongle macOS to the device.
+	AppleSmcOsk string `json:"apple_smc_osk"`
 }
 
 type Pool struct {
@@ -202,8 +207,12 @@ var archConfigs = map[string]*archConfig{
 		RngDev:   "virtio-rng-pci",
 	},
 	"darwin/amd64": {
-		Qemu:      "qemu-system-x86_64",
-		QemuArgs:  "-enable-kvm -machine q35 -cpu host,migratable=off",
+		Qemu: "qemu-system-x86_64",
+		QemuArgs: strings.Join([]string{
+			"-accel hvf -machine q35 ",
+			"-cpu Penryn,vendor=GenuineIntel,+invtsc,vmware-cpuid-freq=on,",
+			"+pcid,+ssse3,+sse4.2,+popcnt,+avx,+aes,+xsave,+xsaveopt,check ",
+		}, ""),
 		TargetDir: "/tmp",
 		NetDev:    "e1000-82545em",
 		RngDev:    "virtio-rng-pci",
@@ -456,6 +465,21 @@ func (inst *instance) boot() error {
 		args = append(args,
 			"-kernel", inst.cfg.Kernel,
 			"-append", strings.Join(cmdline, " "),
+		)
+	}
+	if inst.cfg.EfiCodeDevice != "" {
+		args = append(args,
+			"-drive", "if=pflash,format=raw,readonly=on,file="+inst.cfg.EfiCodeDevice,
+		)
+	}
+	if inst.cfg.EfiVarsDevice != "" {
+		args = append(args,
+			"-drive", "if=pflash,format=raw,readonly=on,file="+inst.cfg.EfiVarsDevice,
+		)
+	}
+	if inst.cfg.AppleSmcOsk != "" {
+		args = append(args,
+			"-device", "isa-applesmc,osk="+inst.cfg.AppleSmcOsk,
 		)
 	}
 	if inst.debug {

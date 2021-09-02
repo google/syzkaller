@@ -250,7 +250,9 @@ make HOSTOS=darwin HOSTARCH=amd64 TARGETOS=darwin TARGETARCH=amd64 SOURCEDIR=/Us
         "count": 2,
         "cpu": 2,
         "mem": 4096,
-        "qemu_args": "-device isa-applesmc,osk=<YOUR_APPLE_SMC_HERE> -accel hvf -machine q35 -cpu Penryn,vendor=GenuineIntel,+invtsc,vmware-cpuid-freq=on,+pcid,+ssse3,+sse4.2,+popcnt,+avx,+aes,+xsave,+xsaveopt,check -drive if=pflash,format=raw,readonly=on,file=/usr/local/share/OVMF/OVMF_CODE.fd -drive if=pflash,format=raw,readonly=on,file=/usr/local/share/OVMF/OVMF_VARS.fd"
+        "efi_code_device": "/usr/local/share/OVMF/OVMF_CODE.fd",
+        "efi_vars_device": "/usr/local/share/OVMF/OVMF_VARS.fd",
+        "apple_smc_osk": "<YOUR_APPLE_SMC_HERE>"
     }
 }
 ```
