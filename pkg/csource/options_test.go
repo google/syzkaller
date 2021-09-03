@@ -27,7 +27,7 @@ func TestParseOptions(t *testing.T) {
 func TestParseOptionsCanned(t *testing.T) {
 	// Dashboard stores csource options with syzkaller reproducers,
 	// so we need to be able to parse old formats.
-	// nolint: lll
+	// nolint: lll, dupl
 	canned := map[string]Options{
 		`{"threaded":true,"collide":true,"repeat":true,"procs":10,"sandbox":"namespace",
 		"fault":true,"fault_call":1,"fault_nth":2,"tun":true,"tmpdir":true,"cgroups":true,
@@ -39,9 +39,6 @@ func TestParseOptionsCanned(t *testing.T) {
 			Procs:        10,
 			Slowdown:     1,
 			Sandbox:      "namespace",
-			Fault:        true,
-			FaultCall:    1,
-			FaultNth:     2,
 			NetInjection: true,
 			NetDevices:   true,
 			NetReset:     true,
@@ -51,6 +48,11 @@ func TestParseOptionsCanned(t *testing.T) {
 			UseTmpDir:    true,
 			HandleSegv:   true,
 			Repro:        true,
+			LegacyOptions: LegacyOptions{
+				Fault:     true,
+				FaultCall: 1,
+				FaultNth:  2,
+			},
 		},
 		`{"threaded":true,"collide":true,"repeat":true,"procs":10,"sandbox":"android",
 		"fault":true,"fault_call":1,"fault_nth":2,"tun":true,"tmpdir":true,"cgroups":true,
@@ -62,9 +64,6 @@ func TestParseOptionsCanned(t *testing.T) {
 			Procs:        10,
 			Slowdown:     1,
 			Sandbox:      "android",
-			Fault:        true,
-			FaultCall:    1,
-			FaultNth:     2,
 			NetInjection: true,
 			NetDevices:   true,
 			NetReset:     true,
@@ -74,6 +73,11 @@ func TestParseOptionsCanned(t *testing.T) {
 			UseTmpDir:    true,
 			HandleSegv:   true,
 			Repro:        true,
+			LegacyOptions: LegacyOptions{
+				Fault:     true,
+				FaultCall: 1,
+				FaultNth:  2,
+			},
 		},
 		"{Threaded:true Collide:true Repeat:true Procs:1 Sandbox:none Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true HandleSegv:true WaitRepeat:true Debug:false Repro:false}": {
 			Threaded:     true,
@@ -82,9 +86,6 @@ func TestParseOptionsCanned(t *testing.T) {
 			Procs:        1,
 			Slowdown:     1,
 			Sandbox:      "none",
-			Fault:        false,
-			FaultCall:    -1,
-			FaultNth:     0,
 			NetInjection: true,
 			Cgroups:      false,
 			BinfmtMisc:   false,
@@ -92,6 +93,11 @@ func TestParseOptionsCanned(t *testing.T) {
 			UseTmpDir:    true,
 			HandleSegv:   true,
 			Repro:        false,
+			LegacyOptions: LegacyOptions{
+				Fault:     false,
+				FaultCall: -1,
+				FaultNth:  0,
+			},
 		},
 		"{Threaded:true Collide:true Repeat:true Procs:1 Sandbox: Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true HandleSegv:true WaitRepeat:true Debug:false Repro:false}": {
 			Threaded:     true,
@@ -100,9 +106,6 @@ func TestParseOptionsCanned(t *testing.T) {
 			Procs:        1,
 			Slowdown:     1,
 			Sandbox:      "",
-			Fault:        false,
-			FaultCall:    -1,
-			FaultNth:     0,
 			NetInjection: true,
 			Cgroups:      false,
 			BinfmtMisc:   false,
@@ -110,6 +113,11 @@ func TestParseOptionsCanned(t *testing.T) {
 			UseTmpDir:    true,
 			HandleSegv:   true,
 			Repro:        false,
+			LegacyOptions: LegacyOptions{
+				Fault:     false,
+				FaultCall: -1,
+				FaultNth:  0,
+			},
 		},
 		"{Threaded:false Collide:true Repeat:true Procs:1 Sandbox:namespace Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true EnableCgroups:true HandleSegv:true WaitRepeat:true Debug:false Repro:false}": {
 			Threaded:     false,
@@ -118,9 +126,6 @@ func TestParseOptionsCanned(t *testing.T) {
 			Procs:        1,
 			Slowdown:     1,
 			Sandbox:      "namespace",
-			Fault:        false,
-			FaultCall:    -1,
-			FaultNth:     0,
 			NetInjection: true,
 			Cgroups:      true,
 			BinfmtMisc:   false,
@@ -128,6 +133,11 @@ func TestParseOptionsCanned(t *testing.T) {
 			UseTmpDir:    true,
 			HandleSegv:   true,
 			Repro:        false,
+			LegacyOptions: LegacyOptions{
+				Fault:     false,
+				FaultCall: -1,
+				FaultNth:  0,
+			},
 		},
 	}
 	for data, want := range canned {
@@ -211,9 +221,7 @@ func enumerateField(OS string, opt Options, field int) []Options {
 			fld.SetInt(val)
 			opts = append(opts, opt)
 		}
-	} else if fldName == "FaultCall" {
-		opts = append(opts, opt)
-	} else if fldName == "FaultNth" {
+	} else if fldName == "LegacyOptions" {
 		opts = append(opts, opt)
 	} else if fld.Kind() == reflect.Bool {
 		for _, v := range []bool{false, true} {

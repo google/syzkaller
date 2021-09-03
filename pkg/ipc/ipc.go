@@ -50,7 +50,6 @@ type ExecFlags uint64
 const (
 	FlagCollectCover         ExecFlags = 1 << iota // collect coverage
 	FlagDedupCover                                 // deduplicate coverage in executor
-	FlagInjectFault                                // inject a fault in this execution (see ExecOpts)
 	FlagCollectComps                               // collect KCOV comparisons
 	FlagThreaded                                   // use multiple threads to mitigate blocked syscalls
 	FlagCollide                                    // collide syscalls to provoke data races
@@ -58,9 +57,7 @@ const (
 )
 
 type ExecOpts struct {
-	Flags     ExecFlags
-	FaultCall int // call index for fault injection (0-based)
-	FaultNth  int // fault n-th operation in the call (0-based)
+	Flags ExecFlags
 }
 
 // Config is the configuration for Env.
@@ -509,8 +506,6 @@ type executeReq struct {
 	envFlags         uint64 // env flags
 	execFlags        uint64 // exec flags
 	pid              uint64
-	faultCall        uint64
-	faultNth         uint64
 	syscallTimeoutMS uint64
 	programTimeoutMS uint64
 	slowdownScale    uint64
@@ -733,8 +728,6 @@ func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, hanged b
 		envFlags:         uint64(c.config.Flags),
 		execFlags:        uint64(opts.Flags),
 		pid:              uint64(c.pid),
-		faultCall:        uint64(opts.FaultCall),
-		faultNth:         uint64(opts.FaultNth),
 		syscallTimeoutMS: uint64(c.config.Timeouts.Syscall / time.Millisecond),
 		programTimeoutMS: uint64(c.config.Timeouts.Program / time.Millisecond),
 		slowdownScale:    uint64(c.config.Timeouts.Scale),

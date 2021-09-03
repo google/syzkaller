@@ -26,10 +26,6 @@ type Options struct {
 	Slowdown    int    `json:"slowdown"`
 	Sandbox     string `json:"sandbox"`
 
-	Fault     bool `json:"fault,omitempty"` // inject fault into FaultCall/FaultNth
-	FaultCall int  `json:"fault_call,omitempty"`
-	FaultNth  int  `json:"fault_nth,omitempty"`
-
 	Leak bool `json:"leak,omitempty"` // do leak checking
 
 	// These options allow for a more fine-tuned control over the generated C code.
@@ -54,6 +50,14 @@ type Options struct {
 	// which allows to detect hangs.
 	Repro bool `json:"repro,omitempty"`
 	Trace bool `json:"trace,omitempty"`
+	LegacyOptions
+}
+
+// These are legacy options, they remain only for the sake of backward compatibility.
+type LegacyOptions struct {
+	Fault     bool `json:"fault,omitempty"`
+	FaultCall int  `json:"fault_call,omitempty"`
+	FaultNth  int  `json:"fault_nth,omitempty"`
 }
 
 // Check checks if the opts combination is valid or not.

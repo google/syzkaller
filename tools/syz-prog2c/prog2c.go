@@ -27,8 +27,6 @@ var (
 	flagSlowdown   = flag.Int("slowdown", 1, "execution slowdown caused by emulation/instrumentation")
 	flagSandbox    = flag.String("sandbox", "", "sandbox to use (none, setuid, namespace)")
 	flagProg       = flag.String("prog", "", "file with program to convert (required)")
-	flagFaultCall  = flag.Int("fault_call", -1, "inject fault into this call (0-based)")
-	flagFaultNth   = flag.Int("fault_nth", 0, "inject fault on n-th operation (0-based)")
 	flagHandleSegv = flag.Bool("segv", false, "catch and ignore SIGSEGV")
 	flagUseTmpDir  = flag.Bool("tmpdir", false, "create a temporary dir and execute inside it")
 	flagTrace      = flag.Bool("trace", false, "trace syscall results")
@@ -80,9 +78,6 @@ func main() {
 		Procs:         *flagProcs,
 		Slowdown:      *flagSlowdown,
 		Sandbox:       *flagSandbox,
-		Fault:         *flagFaultCall >= 0,
-		FaultCall:     *flagFaultCall,
-		FaultNth:      *flagFaultNth,
 		Leak:          *flagLeak,
 		NetInjection:  features["tun"].Enabled,
 		NetDevices:    features["net_dev"].Enabled,

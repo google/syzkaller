@@ -35,8 +35,6 @@ var (
 	flagProcs     = flag.Int("procs", 1, "number of parallel processes to execute programs")
 	flagOutput    = flag.Bool("output", false, "write programs and results to stdout")
 	flagHints     = flag.Bool("hints", false, "do a hints-generation run")
-	flagFaultCall = flag.Int("fault_call", -1, "inject fault into this call (0-based)")
-	flagFaultNth  = flag.Int("fault_nth", 0, "inject fault on n-th operation (0-based)")
 	flagEnable    = flag.String("enable", "none", "enable only listed additional features")
 	flagDisable   = flag.String("disable", "none", "enable all additional features except listed")
 )
@@ -149,13 +147,6 @@ func (ctx *Context) execute(pid int, env *ipc.Env, entry *prog.LogEntry) {
 	defer ctx.gate.Leave(ticket)
 
 	callOpts := ctx.execOpts
-	if *flagFaultCall == -1 && entry.Fault {
-		newOpts := *ctx.execOpts
-		newOpts.Flags |= ipc.FlagInjectFault
-		newOpts.FaultCall = entry.FaultCall
-		newOpts.FaultNth = entry.FaultNth
-		callOpts = &newOpts
-	}
 	if *flagOutput {
 		ctx.logProgram(pid, entry.P, callOpts)
 	}
@@ -190,14 +181,9 @@ func (ctx *Context) execute(pid int, env *ipc.Env, entry *prog.LogEntry) {
 }
 
 func (ctx *Context) logProgram(pid int, p *prog.Prog, callOpts *ipc.ExecOpts) {
-	strOpts := ""
-	if callOpts.Flags&ipc.FlagInjectFault != 0 {
-		strOpts = fmt.Sprintf(" (fault-call:%v fault-nth:%v)",
-			callOpts.FaultCall, callOpts.FaultNth)
-	}
 	data := p.Serialize()
 	ctx.logMu.Lock()
-	log.Logf(0, "executing program %v%v:\n%s", pid, strOpts, data)
+	log.Logf(0, "executing program %v:\n%s", pid, data)
 	ctx.logMu.Unlock()
 }
 
@@ -318,11 +304,6 @@ func createConfig(target *prog.Target, features *host.Features, featuresFlags cs
 	}
 	if features[host.FeatureExtraCoverage].Enabled {
 		config.Flags |= ipc.FlagExtraCover
-	}
-	if *flagFaultCall >= 0 {
-		execOpts.Flags |= ipc.FlagInjectFault
-		execOpts.FaultCall = *flagFaultCall
-		execOpts.FaultNth = *flagFaultNth
 	}
 	if featuresFlags["tun"].Enabled && features[host.FeatureNetInjection].Enabled {
 		config.Flags |= ipc.FlagEnableTun

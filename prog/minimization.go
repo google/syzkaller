@@ -28,7 +28,7 @@ func Minimize(p0 *Prog, callIndex0 int, crash bool, pred0 func(*Prog, int) bool)
 	// Try to remove all calls except the last one one-by-one.
 	p0, callIndex0 = removeCalls(p0, callIndex0, crash, pred)
 
-	// Try to minimize individual args.
+	// Try to minimize individual calls.
 	for i := 0; i < len(p0.Calls); i++ {
 		ctx := &minimizeArgsCtx{
 			target:     p0.Target,
@@ -46,6 +46,7 @@ func Minimize(p0 *Prog, callIndex0 int, crash bool, pred0 func(*Prog, int) bool)
 				goto again
 			}
 		}
+		p0 = minimizeCallProps(p0, i, callIndex0, pred)
 	}
 
 	if callIndex0 != -1 {
@@ -75,6 +76,21 @@ func removeCalls(p0 *Prog, callIndex0 int, crash bool, pred func(*Prog, int) boo
 		callIndex0 = callIndex
 	}
 	return p0, callIndex0
+}
+
+func minimizeCallProps(p0 *Prog, callIndex, callIndex0 int, pred func(*Prog, int) bool) *Prog {
+	props := p0.Calls[callIndex].Props
+
+	// Try to drop fault injection.
+	if props.FailNth > 0 {
+		p := p0.Clone()
+		p.Calls[callIndex].Props.FailNth = 0
+		if pred(p, callIndex0) {
+			p0 = p
+		}
+	}
+
+	return p0
 }
 
 type minimizeArgsCtx struct {

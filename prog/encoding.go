@@ -81,11 +81,9 @@ func (ctx *serializer) call(c *Call) {
 	}
 	ctx.printf(")")
 
-	defaultProps := DefaultCallProps()
 	anyChangedProps := false
 	c.Props.ForeachProp(func(name, key string, value reflect.Value) {
-		defaultValue := reflect.ValueOf(defaultProps).FieldByName(name)
-		if reflect.DeepEqual(value.Interface(), defaultValue.Interface()) {
+		if value.IsZero() {
 			return
 		}
 
@@ -352,7 +350,7 @@ func (p *parser) parseProg() (*Prog, error) {
 
 func (p *parser) parseCallProps() CallProps {
 	nameToValue := map[string]reflect.Value{}
-	callProps := DefaultCallProps()
+	callProps := CallProps{}
 	callProps.ForeachProp(func(_, key string, value reflect.Value) {
 		nameToValue[key] = value
 	})

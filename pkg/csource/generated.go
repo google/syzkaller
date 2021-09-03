@@ -238,10 +238,16 @@ static void __attribute__((noinline)) remove_dir(const char* dir)
 #endif
 
 #if !GOOS_linux && !GOOS_netbsd
-#if SYZ_EXECUTOR
+#if SYZ_EXECUTOR || SYZ_FAULT
 static int inject_fault(int nth)
 {
 	return 0;
+}
+#endif
+
+#if SYZ_FAULT
+static void setup_fault()
+{
 }
 #endif
 
@@ -1600,7 +1606,7 @@ static int inject_fault(int nth)
 
 	en.scope = FAULT_SCOPE_LWP;
 	en.mode = 0;
-	en.nth = nth + 2;
+	en.nth = nth + 1;
 	if (ioctl(fd, FAULT_IOC_ENABLE, &en) != 0)
 		failmsg("FAULT_IOC_ENABLE failed", "nth=%d", nth);
 
@@ -9348,7 +9354,7 @@ static int inject_fault(int nth)
 	if (fd == -1)
 		exitf("failed to open /proc/thread-self/fail-nth");
 	char buf[16];
-	sprintf(buf, "%d", nth + 1);
+	sprintf(buf, "%d", nth);
 	if (write(fd, buf, strlen(buf)) != (ssize_t)strlen(buf))
 		exitf("failed to write /proc/thread-self/fail-nth");
 	return fd;

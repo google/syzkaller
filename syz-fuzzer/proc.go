@@ -217,13 +217,11 @@ func (proc *Proc) smashInput(item *WorkSmash) {
 }
 
 func (proc *Proc) failCall(p *prog.Prog, call int) {
-	for nth := 0; nth < 100; nth++ {
+	for nth := 1; nth <= 100; nth++ {
 		log.Logf(1, "#%v: injecting fault into call %v/%v", proc.pid, call, nth)
-		opts := *proc.execOpts
-		opts.Flags |= ipc.FlagInjectFault
-		opts.FaultCall = call
-		opts.FaultNth = nth
-		info := proc.executeRaw(&opts, p, StatSmash)
+		newProg := p.Clone()
+		newProg.Calls[call].Props.FailNth = nth
+		info := proc.executeRaw(proc.execOpts, newProg, StatSmash)
 		if info != nil && len(info.Calls) > call && info.Calls[call].Flags&ipc.CallFaultInjected == 0 {
 			break
 		}
@@ -316,10 +314,6 @@ func (proc *Proc) logProgram(opts *ipc.ExecOpts, p *prog.Prog) {
 	}
 
 	data := p.Serialize()
-	strOpts := ""
-	if opts.Flags&ipc.FlagInjectFault != 0 {
-		strOpts = fmt.Sprintf(" (fault-call:%v fault-nth:%v)", opts.FaultCall, opts.FaultNth)
-	}
 
 	// The following output helps to understand what program crashed kernel.
 	// It must not be intermixed.
@@ -327,25 +321,22 @@ func (proc *Proc) logProgram(opts *ipc.ExecOpts, p *prog.Prog) {
 	case OutputStdout:
 		now := time.Now()
 		proc.fuzzer.logMu.Lock()
-		fmt.Printf("%02v:%02v:%02v executing program %v%v:\n%s\n",
+		fmt.Printf("%02v:%02v:%02v executing program %v:\n%s\n",
 			now.Hour(), now.Minute(), now.Second(),
-			proc.pid, strOpts, data)
+			proc.pid, data)
 		proc.fuzzer.logMu.Unlock()
 	case OutputDmesg:
 		fd, err := syscall.Open("/dev/kmsg", syscall.O_WRONLY, 0)
 		if err == nil {
 			buf := new(bytes.Buffer)
-			fmt.Fprintf(buf, "syzkaller: executing program %v%v:\n%s\n",
-				proc.pid, strOpts, data)
+			fmt.Fprintf(buf, "syzkaller: executing program %v:\n%s\n",
+				proc.pid, data)
 			syscall.Write(fd, buf.Bytes())
 			syscall.Close(fd)
 		}
 	case OutputFile:
 		f, err := os.Create(fmt.Sprintf("%v-%v.prog", proc.fuzzer.name, proc.pid))
 		if err == nil {
-			if strOpts != "" {
-				fmt.Fprintf(f, "#%v\n", strOpts)
-			}
 			f.Write(data)
 			f.Close()
 		}

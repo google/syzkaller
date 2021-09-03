@@ -351,12 +351,6 @@ func (ctx *context) extractProgSingle(entries []*prog.LogEntry, duration time.Du
 
 	opts := ctx.startOpts
 	for _, ent := range entries {
-		opts.Fault = ent.Fault
-		opts.FaultCall = ent.FaultCall
-		opts.FaultNth = ent.FaultNth
-		if opts.FaultCall < 0 || opts.FaultCall >= len(ent.P.Calls) {
-			opts.FaultCall = len(ent.P.Calls) - 1
-		}
 		crashed, err := ctx.testProg(ent.P, duration, opts)
 		if err != nil {
 			return nil, err
@@ -409,8 +403,6 @@ func (ctx *context) extractProgBisect(entries []*prog.LogEntry, baseDuration tim
 		prog.Calls = append(prog.Calls, entry.P.Calls...)
 	}
 	dur := duration(len(entries)) * 3 / 2
-
-	// Execute the program without fault injection.
 	crashed, err := ctx.testProg(prog, dur, opts)
 	if err != nil {
 		return nil, err
@@ -425,32 +417,6 @@ func (ctx *context) extractProgBisect(entries []*prog.LogEntry, baseDuration tim
 		return res, nil
 	}
 
-	// Try with fault injection.
-	calls := 0
-	for _, entry := range entries {
-		if entry.Fault {
-			opts.FaultCall = calls + entry.FaultCall
-			opts.FaultNth = entry.FaultNth
-			if entry.FaultCall < 0 || entry.FaultCall >= len(entry.P.Calls) {
-				opts.FaultCall = calls + len(entry.P.Calls) - 1
-			}
-			crashed, err := ctx.testProg(prog, dur, opts)
-			if err != nil {
-				return nil, err
-			}
-			if crashed {
-				res := &Result{
-					Prog:     prog,
-					Duration: dur,
-					Opts:     opts,
-				}
-				ctx.reproLogf(3, "bisect: concatenation succeeded with fault injection")
-				return res, nil
-			}
-		}
-		calls += len(entry.P.Calls)
-	}
-
 	ctx.reproLogf(3, "bisect: concatenation failed")
 	return nil, nil
 }
@@ -463,11 +429,7 @@ func (ctx *context) minimizeProg(res *Result) (*Result, error) {
 		ctx.stats.MinimizeProgTime = time.Since(start)
 	}()
 
-	call := -1
-	if res.Opts.Fault {
-		call = res.Opts.FaultCall
-	}
-	res.Prog, res.Opts.FaultCall = prog.Minimize(res.Prog, call, true,
+	res.Prog, _ = prog.Minimize(res.Prog, -1, true,
 		func(p1 *prog.Prog, callIndex int) bool {
 			crashed, err := ctx.testProg(p1, res.Duration, res.Opts)
 			if err != nil {
@@ -482,12 +444,13 @@ func (ctx *context) minimizeProg(res *Result) (*Result, error) {
 
 // Simplify repro options (threaded, collide, sandbox, etc).
 func (ctx *context) simplifyProg(res *Result) (*Result, error) {
-	ctx.reproLogf(2, "simplifying guilty program")
+	ctx.reproLogf(2, "simplifying guilty program options")
 	start := time.Now()
 	defer func() {
 		ctx.stats.SimplifyProgTime = time.Since(start)
 	}()
 
+	// Do further simplifications.
 	for _, simplify := range progSimplifies {
 		opts := res.Opts
 		if !simplify(&opts) || !checkOpts(&opts, ctx.timeouts, res.Duration) {
@@ -580,11 +543,6 @@ func checkOpts(opts *csource.Options, timeouts targets.Timeouts, timeout time.Du
 
 func (ctx *context) testProg(p *prog.Prog, duration time.Duration, opts csource.Options) (crashed bool, err error) {
 	entry := prog.LogEntry{P: p}
-	if opts.Fault {
-		entry.Fault = true
-		entry.FaultCall = opts.FaultCall
-		entry.FaultNth = opts.FaultNth
-	}
 	return ctx.testProgs([]*prog.LogEntry{&entry}, duration, opts)
 }
 
@@ -610,9 +568,6 @@ func (ctx *context) testProgs(entries []*prog.LogEntry, duration time.Duration, 
 		return false, fmt.Errorf("failed to copy to VM: %v", err)
 	}
 
-	if !opts.Fault {
-		opts.FaultCall = -1
-	}
 	program := entries[0].P.String()
 	if len(entries) > 1 {
 		program = "["
@@ -820,11 +775,7 @@ func chunksToStr(chunks [][]*prog.LogEntry) string {
 func encodeEntries(entries []*prog.LogEntry) []byte {
 	buf := new(bytes.Buffer)
 	for _, ent := range entries {
-		opts := ""
-		if ent.Fault {
-			opts = fmt.Sprintf(" (fault-call:%v fault-nth:%v)", ent.FaultCall, ent.FaultNth)
-		}
-		fmt.Fprintf(buf, "executing program %v%v:\n%v", ent.Proc, opts, string(ent.P.Serialize()))
+		fmt.Fprintf(buf, "executing program %v:\n%v", ent.Proc, string(ent.P.Serialize()))
 	}
 	return buf.Bytes()
 }
@@ -832,15 +783,6 @@ func encodeEntries(entries []*prog.LogEntry) []byte {
 type Simplify func(opts *csource.Options) bool
 
 var progSimplifies = []Simplify{
-	func(opts *csource.Options) bool {
-		if !opts.Fault {
-			return false
-		}
-		opts.Fault = false
-		opts.FaultCall = 0
-		opts.FaultNth = 0
-		return true
-	},
 	func(opts *csource.Options) bool {
 		if !opts.Collide {
 			return false

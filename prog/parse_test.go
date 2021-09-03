@@ -30,7 +30,7 @@ gettid()
 	if ent.Proc != 0 {
 		t.Fatalf("proc %v, want 0", ent.Proc)
 	}
-	if ent.Fault || ent.FaultCall != 0 || ent.FaultNth != 0 {
+	if ent.P.HasFaultInjection() {
 		t.Fatalf("fault injection enabled")
 	}
 	want := "getpid-gettid"
@@ -67,7 +67,7 @@ func TestParseMulti(t *testing.T) {
 		t.Fatalf("bad procs")
 	}
 	for i, ent := range entries {
-		if ent.Fault || ent.FaultCall != 0 || ent.FaultNth != 0 {
+		if ent.P.HasFaultInjection() {
 			t.Fatalf("prog %v has fault injection enabled", i)
 		}
 	}
@@ -123,14 +123,14 @@ getpid()
 		t.Fatalf("got %v programs, want 1", len(entries))
 	}
 	ent := entries[0]
-	if !ent.Fault {
-		t.Fatalf("fault injection is not enabled")
+	faultCall := ent.P.Calls[1]
+	normalCall := ent.P.Calls[0]
+	if faultCall.Props.FailNth != 56 {
+		// We want 56 (not 55!) because the number is now not 0-based.
+		t.Fatalf("fault nth on the 2nd call: got %v, want 56", faultCall.Props.FailNth)
 	}
-	if ent.FaultCall != 1 {
-		t.Fatalf("fault call: got %v, want 1", ent.FaultCall)
-	}
-	if ent.FaultNth != 55 {
-		t.Fatalf("fault nth: got %v, want 55", ent.FaultNth)
+	if normalCall.Props.FailNth != 0 {
+		t.Fatalf("fault nth on the 1st call: got %v, want 0", normalCall.Props.FailNth)
 	}
 	want := "gettid-getpid"
 	got := ent.P.String()

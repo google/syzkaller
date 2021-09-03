@@ -151,11 +151,6 @@ static bool flag_coverage_filter;
 // If true, then executor should write the comparisons data to fuzzer.
 static bool flag_comparisons;
 
-// Inject fault into flag_fault_nth-th operation in flag_fault_call-th syscall.
-static bool flag_fault;
-static int flag_fault_call;
-static int flag_fault_nth;
-
 // Tunable timeouts, received with execute_req.
 static uint64 syscall_timeout_ms;
 static uint64 program_timeout_ms;
@@ -170,6 +165,7 @@ const int kMaxCommands = 1000; // prog package knows about this constant (prog.e
 const uint64 instr_eof = -1;
 const uint64 instr_copyin = -2;
 const uint64 instr_copyout = -3;
+const uint64 instr_setprops = -4;
 
 const uint64 arg_const = 0;
 const uint64 arg_result = 1;
@@ -281,8 +277,6 @@ struct execute_req {
 	uint64 env_flags;
 	uint64 exec_flags;
 	uint64 pid;
-	uint64 fault_call;
-	uint64 fault_nth;
 	uint64 syscall_timeout_ms;
 	uint64 program_timeout_ms;
 	uint64 slowdown_scale;
@@ -589,21 +583,17 @@ void receive_execute()
 	slowdown_scale = req.slowdown_scale;
 	flag_collect_cover = req.exec_flags & (1 << 0);
 	flag_dedup_cover = req.exec_flags & (1 << 1);
-	flag_fault = req.exec_flags & (1 << 2);
-	flag_comparisons = req.exec_flags & (1 << 3);
-	flag_threaded = req.exec_flags & (1 << 4);
-	flag_collide = req.exec_flags & (1 << 5);
-	flag_coverage_filter = req.exec_flags & (1 << 6);
-	flag_fault_call = req.fault_call;
-	flag_fault_nth = req.fault_nth;
+	flag_comparisons = req.exec_flags & (1 << 2);
+	flag_threaded = req.exec_flags & (1 << 3);
+	flag_collide = req.exec_flags & (1 << 4);
+	flag_coverage_filter = req.exec_flags & (1 << 5);
 	if (!flag_threaded)
 		flag_collide = false;
-	debug("[%llums] exec opts: procid=%llu threaded=%d collide=%d cover=%d comps=%d dedup=%d fault=%d/%d/%d"
+	debug("[%llums] exec opts: procid=%llu threaded=%d collide=%d cover=%d comps=%d dedup=%d"
 	      " timeouts=%llu/%llu/%llu prog=%llu filter=%d\n",
 	      current_time_ms() - start_time_ms, procid, flag_threaded, flag_collide,
-	      flag_collect_cover, flag_comparisons, flag_dedup_cover, flag_fault,
-	      flag_fault_call, flag_fault_nth, syscall_timeout_ms, program_timeout_ms, slowdown_scale,
-	      req.prog_size, flag_coverage_filter);
+	      flag_collect_cover, flag_comparisons, flag_dedup_cover, syscall_timeout_ms,
+	      program_timeout_ms, slowdown_scale, req.prog_size, flag_coverage_filter);
 	if (syscall_timeout_ms == 0 || program_timeout_ms <= syscall_timeout_ms || slowdown_scale == 0)
 		failmsg("bad timeouts", "syscall=%llu, program=%llu, scale=%llu",
 			syscall_timeout_ms, program_timeout_ms, slowdown_scale);
@@ -674,7 +664,9 @@ retry:
 	int call_index = 0;
 	uint64 prog_extra_timeout = 0;
 	uint64 prog_extra_cover_timeout = 0;
+	bool has_fault_injection = false;
 	call_props_t call_props;
+	memset(&call_props, 0, sizeof(call_props));
 
 	for (;;) {
 		uint64 call_num = read_input(&input_pos);
@@ -765,11 +757,14 @@ retry:
 			// The copyout will happen when/if the call completes.
 			continue;
 		}
+		if (call_num == instr_setprops) {
+			read_call_props_t(call_props, read_input(&input_pos, false));
+			continue;
+		}
 
 		// Normal syscall.
 		if (call_num >= ARRAY_SIZE(syscalls))
 			failmsg("invalid syscall number", "call_num=%llu", call_num);
-		read_call_props_t(call_props, read_input(&input_pos, false));
 		const call_t* call = &syscalls[call_num];
 		if (call->attrs.disabled)
 			failmsg("executing disabled syscall", "syscall=%s", call->name);
@@ -779,6 +774,7 @@ retry:
 			prog_extra_cover_timeout = std::max(prog_extra_cover_timeout, 500 * slowdown_scale);
 		if (strncmp(syscalls[call_num].name, "syz_80211_inject_frame", strlen("syz_80211_inject_frame")) == 0)
 			prog_extra_cover_timeout = std::max(prog_extra_cover_timeout, 300 * slowdown_scale);
+		has_fault_injection |= (call_props.fail_nth > 0);
 		uint64 copyout_index = read_input(&input_pos);
 		uint64 num_args = read_input(&input_pos);
 		if (num_args > kMaxArgs)
@@ -819,6 +815,7 @@ retry:
 			event_set(&th->done);
 			handle_completion(th);
 		}
+		memset(&call_props, 0, sizeof(call_props));
 	}
 
 	if (!colliding && !collide && running > 0) {
@@ -865,7 +862,7 @@ retry:
 		}
 	}
 
-	if (flag_collide && !flag_fault && !colliding && !collide) {
+	if (flag_collide && !colliding && !has_fault_injection && !collide) {
 		debug("enabling collider\n");
 		collide = colliding = true;
 		goto retry;
@@ -1154,10 +1151,10 @@ void execute_call(thread_t* th)
 
 	int fail_fd = -1;
 	th->soft_fail_state = false;
-	if (flag_fault && th->call_index == flag_fault_call) {
+	if (th->call_props.fail_nth > 0) {
 		if (collide)
 			fail("both collide and fault injection are enabled");
-		fail_fd = inject_fault(flag_fault_nth);
+		fail_fd = inject_fault(th->call_props.fail_nth);
 		th->soft_fail_state = true;
 	}
 
@@ -1182,7 +1179,7 @@ void execute_call(thread_t* th)
 	}
 	th->fault_injected = false;
 
-	if (flag_fault && th->call_index == flag_fault_call) {
+	if (th->call_props.fail_nth > 0) {
 		th->fault_injected = fault_injected(fail_fd);
 	}
 
@@ -1190,7 +1187,7 @@ void execute_call(thread_t* th)
 	      th->id, current_time_ms() - start_time_ms, call->name, (uint64)th->res, th->reserrno);
 	if (flag_coverage)
 		debug("cover=%u ", th->cov.size);
-	if (flag_fault && th->call_index == flag_fault_call)
+	if (th->call_props.fail_nth > 0)
 		debug("fault=%d ", th->fault_injected);
 	debug("\n");
 }
