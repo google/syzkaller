@@ -10,19 +10,17 @@ import (
 
 // LogEntry describes one program in execution log.
 type LogEntry struct {
-	P         *Prog
-	Proc      int  // index of parallel proc
-	Start     int  // start offset in log
-	End       int  // end offset in log
-	Fault     bool // program was executed with fault injection in FaultCall/FaultNth
-	FaultCall int
-	FaultNth  int
+	P     *Prog
+	Proc  int // index of parallel proc
+	Start int // start offset in log
+	End   int // end offset in log
 }
 
 func (target *Target) ParseLog(data []byte) []*LogEntry {
 	var entries []*LogEntry
 	ent := &LogEntry{}
 	var cur []byte
+	faultCall, faultNth := -1, -1
 	for pos := 0; pos < len(data); {
 		nl := bytes.IndexByte(data[pos:], '\n')
 		if nl == -1 {
@@ -38,15 +36,17 @@ func (target *Target) ParseLog(data []byte) []*LogEntry {
 			if ent.P != nil && len(ent.P.Calls) != 0 {
 				ent.End = pos0
 				entries = append(entries, ent)
+				faultCall, faultNth = -1, -1
 			}
 			ent = &LogEntry{
 				Proc:  proc,
 				Start: pos0,
 			}
-			if faultCall, ok := extractInt(line, "fault-call:"); ok {
-				ent.Fault = true
-				ent.FaultCall = faultCall
-				ent.FaultNth, _ = extractInt(line, "fault-nth:")
+			// We no longer print it this way, but we still parse such fragments to preserve
+			// the backward compatibility.
+			if parsedFaultCall, ok := extractInt(line, "fault-call:"); ok {
+				faultCall = parsedFaultCall
+				faultNth, _ = extractInt(line, "fault-nth:")
 			}
 			cur = nil
 			continue
@@ -55,10 +55,17 @@ func (target *Target) ParseLog(data []byte) []*LogEntry {
 			continue
 		}
 		tmp := append(cur, line...)
+
 		p, err := target.Deserialize(tmp, NonStrict)
 		if err != nil {
 			continue
 		}
+
+		if faultCall >= 0 && faultCall < len(p.Calls) {
+			// We add 1 because now the property is 1-based.
+			p.Calls[faultCall].Props.FailNth = faultNth + 1
+		}
+
 		cur = tmp
 		ent.P = p
 	}

@@ -6,7 +6,7 @@
 
 // Exec format is an sequence of uint64's which encodes a sequence of calls.
 // The sequence is terminated by a speciall call execInstrEOF.
-// Each call is (call ID, call props, copyout index, number of arguments, arguments...).
+// Each call is (call ID, copyout index, number of arguments, arguments...).
 // Each argument is (type, size, value).
 // There are 4 types of arguments:
 //  - execArgConst: value is const value
@@ -30,6 +30,7 @@ const (
 	execInstrEOF = ^uint64(iota)
 	execInstrCopyin
 	execInstrCopyout
+	execInstrSetProps
 )
 
 const (
@@ -88,10 +89,12 @@ func (w *execContext) serializeCall(c *Call) {
 	// Generate checksum calculation instructions starting from the last one,
 	// since checksum values can depend on values of the latter ones
 	w.writeChecksums()
+	if !reflect.DeepEqual(c.Props, CallProps{}) {
+		// Push call properties.
+		w.writeCallProps(c.Props)
+	}
 	// Generate the call itself.
 	w.write(uint64(c.Meta.ID))
-	// Generate call properties fragment.
-	w.writeCallProps(c.Props)
 	if c.Ret != nil && len(c.Ret.uses) != 0 {
 		if _, ok := w.args[c.Ret]; ok {
 			panic("argInfo is already created for return value")
@@ -129,6 +132,7 @@ type argInfo struct {
 }
 
 func (w *execContext) writeCallProps(props CallProps) {
+	w.write(execInstrSetProps)
 	props.ForeachProp(func(_, _ string, value reflect.Value) {
 		switch kind := value.Kind(); kind {
 		case reflect.Int:

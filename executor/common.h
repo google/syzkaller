@@ -271,10 +271,16 @@ static void __attribute__((noinline)) remove_dir(const char* dir)
 #endif
 
 #if !GOOS_linux && !GOOS_netbsd
-#if SYZ_EXECUTOR
+#if SYZ_EXECUTOR || SYZ_FAULT
 static int inject_fault(int nth)
 {
 	return 0;
+}
+#endif
+
+#if SYZ_FAULT
+static void setup_fault()
+{
 }
 #endif
 

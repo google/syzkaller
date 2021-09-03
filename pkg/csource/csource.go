@@ -203,8 +203,8 @@ func (ctx *context) generateCalls(p prog.ExecProg, trace bool) ([]string, []uint
 			ctx.copyin(w, &csumSeq, copyin)
 		}
 
-		if ctx.opts.Fault && ctx.opts.FaultCall == ci {
-			fmt.Fprintf(w, "\tinject_fault(%v);\n", ctx.opts.FaultNth)
+		if call.Props.FailNth > 0 {
+			fmt.Fprintf(w, "\tinject_fault(%v);\n", call.Props.FailNth)
 		}
 		// Call itself.
 		callName := call.Meta.CallName

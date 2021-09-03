@@ -327,6 +327,10 @@ func TestDeserialize(t *testing.T) {
 			Out:       `test$opt2(0x0) (fail_nth: 1)`,
 			StrictErr: `unknown call property: non_existing_prop`,
 		},
+		{
+			In:  `test$opt2(0x0) (fail_nth: 0)`,
+			Out: `test$opt2(0x0)`,
+		},
 	})
 }
 
@@ -409,11 +413,11 @@ func TestSerializeCallProps(t *testing.T) {
 	tests := []SerializeCallPropsTest{
 		{
 			"serialize0(0x0)\n",
-			[]CallProps{DefaultCallProps()},
+			[]CallProps{{}},
 		},
 		{
 			"serialize0(0x0) ()\n",
-			[]CallProps{DefaultCallProps()},
+			[]CallProps{{}},
 		},
 		{
 			"serialize0(0x0) (fail_nth: 5)\n",

@@ -188,8 +188,8 @@ func main() {
 		data.CallAttrs = append(data.CallAttrs, prog.CppName(attrs.Field(i).Name))
 	}
 
-	defaultProps := prog.DefaultCallProps()
-	defaultProps.ForeachProp(func(name, _ string, value reflect.Value) {
+	props := prog.CallProps{}
+	props.ForeachProp(func(name, _ string, value reflect.Value) {
 		data.CallProps = append(data.CallProps, CallPropDescription{
 			Type: value.Kind().String(),
 			Name: prog.CppName(name),

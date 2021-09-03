@@ -480,17 +480,23 @@ func ExecprogCmd(execprog, executor, OS, arch, sandbox string, repeat, threaded,
 		osArg = " -os=" + OS
 	}
 	optionalArg := ""
+
+	if faultCall >= 0 {
+		optionalArg = fmt.Sprintf(" -fault_call=%v -fault_nth=%v",
+			faultCall, faultNth)
+	}
+
 	if optionalFlags {
-		optionalArg = " " + tool.OptionalFlags([]tool.Flag{
+		optionalArg += " " + tool.OptionalFlags([]tool.Flag{
 			{Name: "slowdown", Value: fmt.Sprint(slowdown)},
 		})
 	}
+
 	return fmt.Sprintf("%v -executor=%v -arch=%v%v -sandbox=%v"+
-		" -procs=%v -repeat=%v -threaded=%v -collide=%v -cover=0"+
-		" -fault_call=%v -fault_nth=%v%v %v",
+		" -procs=%v -repeat=%v -threaded=%v -collide=%v -cover=0%v %v",
 		execprog, executor, arch, osArg, sandbox,
 		procs, repeatCount, threaded, collide,
-		faultCall, faultNth, optionalArg, progFile)
+		optionalArg, progFile)
 }
 
 var MakeBin = func() string {

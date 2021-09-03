@@ -58,6 +58,10 @@ func testTarget(t *testing.T, target *prog.Target, full bool) {
 	// Testing 2 programs takes too long since we have lots of options permutations and OS/arch.
 	// So we use the as-is in short tests and minimized version in full tests.
 	syzProg := target.GenerateAllSyzProg(rs)
+	if len(syzProg.Calls) > 0 {
+		// Test fault injection generation as well.
+		p.Calls[0].Props.FailNth = 1
+	}
 	var opts []Options
 	if !full || testing.Short() {
 		p.Calls = append(p.Calls, syzProg.Calls...)

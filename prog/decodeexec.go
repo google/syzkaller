@@ -115,13 +115,14 @@ func (dec *execDecoder) parse() {
 		case execInstrEOF:
 			dec.commitCall()
 			return
+		case execInstrSetProps:
+			dec.readCallProps(&dec.call.Props)
 		default:
 			dec.commitCall()
 			if instr >= uint64(len(dec.target.Syscalls)) {
 				dec.setErr(fmt.Errorf("bad syscall %v", instr))
 				return
 			}
-			dec.readCallProps(&dec.call.Props)
 			dec.call.Meta = dec.target.Syscalls[instr]
 			dec.call.Index = dec.read()
 			for i := dec.read(); i > 0; i-- {

@@ -22,12 +22,6 @@ type CallProps struct {
 	FailNth int `key:"fail_nth"`
 }
 
-func DefaultCallProps() CallProps {
-	return CallProps{
-		FailNth: -1,
-	}
-}
-
 type Call struct {
 	Meta    *Syscall
 	Args    []Arg
@@ -38,10 +32,9 @@ type Call struct {
 
 func MakeCall(meta *Syscall, args []Arg) *Call {
 	return &Call{
-		Meta:  meta,
-		Args:  args,
-		Ret:   MakeReturnArg(meta.Ret),
-		Props: DefaultCallProps(),
+		Meta: meta,
+		Args: args,
+		Ret:  MakeReturnArg(meta.Ret),
 	}
 }
 
