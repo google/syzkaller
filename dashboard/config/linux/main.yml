@@ -60,3 +60,4 @@ includes:
  - android-subsystems.yml: [android, -baseline]
  - chromeos.yml: [chromeos]
  - chromeos-subsystems.yml: [chromeos, -baseline]
+ - nowerror.yml: [clang]
