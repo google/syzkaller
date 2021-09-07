@@ -54,6 +54,6 @@ config:
  - WLAN_VENDOR_ZYDAS: n
  - WLAN_VENDOR_QUANTENNA: n
  - WWAN: [v5.13]
- - WWAN_CORE: [v5.13]
+ - WWAN_CORE: [v5.13, -v5.14]
  - MHI_BUS: [v5.13]
  - MHI_WWAN_CTRL: [v5.13]
