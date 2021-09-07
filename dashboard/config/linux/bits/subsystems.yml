@@ -1047,7 +1047,7 @@ config:
  - CRC4
  - CRC7
  - SCHEDSTATS
- - RAW_DRIVER
+ - RAW_DRIVER: [-v5.14]
  - THERMAL: [v5.8]
  - THERMAL_NETLINK: [v5.8]
  - VMWARE_VMCI: [x86_64]

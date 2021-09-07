@@ -40,7 +40,7 @@ config:
  - CAIF_USB
  - CAIF_DRIVERS: [v5.5]
  - CAIF_TTY
- - CAIF_HSI
+ - CAIF_HSI: [-v5.14]
  - CAIF_VIRTIO
 
  - BRIDGE
