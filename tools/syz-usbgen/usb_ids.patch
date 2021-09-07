@@ -1,25 +1,28 @@
-commit ea0efe3b58049ad27b63e95e73af92ae8e75b3f3
-Author: Andrey Konovalov <andreyknvl@google.com>
-Date:   Wed Sep 27 17:06:15 2017 +0200
+From a5c949b813199bc14e264e1440358e95b96954c9 Mon Sep 17 00:00:00 2001
+From: Pavel Skripkin <paskripkin@gmail.com>
+Date: Tue, 7 Sep 2021 22:55:33 +0300
+Subject: [PATCH] usb: dump usb device ids on hid enumeration
 
-    usb: dump usb device ids on hid enumeration
-    
-    Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
-    Change-Id: I9ba9626fe77c5a1b818d274b39c26fef9010d865
+Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
+Signed-off-by: Pavel Skripkin <paskripkin@gmail.com>
+---
+ drivers/hid/hid-core.c | 105 +++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 105 insertions(+)
 
 diff --git a/drivers/hid/hid-core.c b/drivers/hid/hid-core.c
-index 63fdbf09b044..99237de8e20a 100644
+index 7db332139f7d..e1231e2b1610 100644
 --- a/drivers/hid/hid-core.c
 +++ b/drivers/hid/hid-core.c
-@@ -27,6 +27,7 @@
+@@ -27,6 +27,8 @@
  #include <linux/vmalloc.h>
  #include <linux/sched.h>
  #include <linux/semaphore.h>
 +#include <linux/usb.h>
++#include "../usb/core/usb.h"
  
  #include <linux/hid.h>
  #include <linux/hiddev.h>
-@@ -2117,11 +2118,120 @@ static void hid_free_dynids(struct hid_driver *hdrv)
+@@ -2192,11 +2194,114 @@ static void hid_free_dynids(struct hid_driver *hdrv)
  	spin_unlock(&hdrv->dyn_lock);
  }
  
@@ -97,12 +100,6 @@ index 63fdbf09b044..99237de8e20a 100644
 +	spin_unlock(&drv->dynids.lock);
 +}
 +
-+static inline int is_usb_device_driver(struct device_driver *drv)
-+{
-+	return container_of(drv, struct usbdrv_wrap, driver)->
-+			for_devices;
-+}
-+
 +static int usb_device_id_dump_driver(struct device_driver *drv, void *data)
 +{
 +	struct usb_driver *usb_drv;
@@ -140,3 +137,6 @@ index 63fdbf09b044..99237de8e20a 100644
  	spin_lock(&hdrv->dyn_lock);
  	list_for_each_entry(dynid, &hdrv->dyn_list, list) {
  		if (hid_match_one_id(hdev, &dynid->id)) {
+-- 
+2.33.0
+
