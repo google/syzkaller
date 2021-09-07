@@ -96,7 +96,7 @@ config:
  - MEM_SOFT_DIRTY: [x86_64]
  - ZSWAP
  - ZSMALLOC
- - IDLE_PAGE_TRACKING
+ - IDLE_PAGE_TRACKING: [-v5.14] # TODO: -v5.15 when released
  - ZONE_DEVICE: [-arm, -riscv, -s390]
  - DEVICE_PRIVATE: [-arm, -riscv, -s390]
  - PERCPU_STATS
