@@ -451,9 +451,10 @@ static uint16 csum_inet_digest(struct csum_inet* csum)
 
 #if SYZ_EXECUTOR || __NR_syz_execute_func
 // syz_execute_func(text ptr[in, text[taget]])
-static long syz_execute_func(volatile long text)
+static long syz_execute_func(long text_in)
 {
-	// Here we just to random code which is inherently unsafe.
+	volatile long text = text_in;
+	// Here we jump to random code which is inherently unsafe.
 	// But we only care about coverage in the output region.
 	// The following code tries to remove left-over pointers in registers
 	// from the reach of the random code, otherwise it's known to reach
