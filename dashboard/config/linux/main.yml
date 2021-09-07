@@ -14,8 +14,8 @@ instances:
  # TODO: enable kasan when it works, currently Go binaries hang on KASAN kernel:
  # https://lore.kernel.org/linux-arm-kernel/CACT4Y+YdJoNTqnBSELcEbcbVsKBtJfYUc7_GSXbUQfAJN3JyRg@mail.gmail.com/
  - upstream-arm-kasan:		[upstream, arm, gcc, bpfjit, lsm, selinux, reduced]
- - upstream-riscv64-kasan:	[upstream, riscv, gcc, bpfjit, lsm, apparmor, reduced, kasan]
- - upstream-s390-kasan:		[upstream, s390, gcc, bpfjit, lsm, selinux, nonoise, reduced, kasan]
+ - upstream-riscv64-kasan:	[upstream, riscv, gcc, bpfjit, lsm, apparmor, reduced, kasan, kfence]
+ - upstream-s390-kasan:		[upstream, s390, gcc, bpfjit, lsm, selinux, nonoise, reduced, kasan, kfence]
  - stable-5.4-kasan:		[stable-5.4, x86_64, gcc, bpfjit, lsm, apparmor, kasan]
  - android-5.4:			[android, android-5.4, nodefconfig, x86_64, clang, onlyusb, nonoise, kasan]
  - chromeos-5.4:		[chromeos, chromeos-5.4, nodefconfig, x86_64, onlyusb, kasan]
