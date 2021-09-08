@@ -83,6 +83,10 @@ func generateIdsVar(ids []string, name string) []byte {
 		output = append(output, []byte(outputID)...)
 	}
 
+	if len(ids) == 0 {
+		output = append(output, []byte("\"\"")...)
+	}
+
 	fmt.Printf("%v %s ids written\n", len(ids), name)
 
 	return output
