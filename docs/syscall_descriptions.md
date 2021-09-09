@@ -274,8 +274,8 @@ of the descriptions correctness. The fuzzer may get around some bugs in the desc
 from what the descriptions say, but it makes it considerably harder for the fuzzer to progress.
 
 Tests stored in `sys/OS/test/*` provide a more direct testing of the descriptions. Each test is just
-a program with checked syscall return values. The syntax of the programs is not currently documented,
-but look at the [existing examples](/sys/linux/test) and at the program [deserialization code](/prog/encoding.go).
+a program with checked syscall return values. The syntax of the programs is briefly described [here](program_syntax.md).
+You can also look at the [existing examples](/sys/linux/test) and at the program [deserialization code](/prog/encoding.go).
 `AUTO` keyword can be used as a value for consts and pointers, for pointers it will lead to
 some reasonable sequential allocation of memory addresses.
 
