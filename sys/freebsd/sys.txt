@@ -138,6 +138,7 @@ __realpathat(dirfd fd, path ptr[in, filename], buf ptr[out, string], size len[bu
 undelete(path ptr[in, filename])
 acct(filename ptr[in, filename, opt])
 __specialfd$eventfd(type const[SPECIALFD_EVENTFD], req ptr[in, eventfd], len len[req]) fd
+setfib(fib int32)
 
 getrusage(who flags[rusage_who], usage ptr[out, rusage])
 getrlimit(res flags[rlimit_type], rlim ptr[out, rlimit])

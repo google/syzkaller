@@ -189,6 +189,7 @@ SYS_select = 93
 SYS_sendfile = 393
 SYS_setegid = 182
 SYS_seteuid = 183
+SYS_setfib = 175
 SYS_setgid = 181
 SYS_setgroups = 80
 SYS_setitimer = 83
