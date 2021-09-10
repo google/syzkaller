@@ -75,6 +75,7 @@ SYS_freebsd11_stat = 188
 SYS_fspacectl = 580
 SYS_fstat = 551
 SYS_fstatat = 552
+SYS_getdirentries = 554
 SYS_getfsstat = 557
 SYS_lpathconf = 513
 SYS_lseek = 478

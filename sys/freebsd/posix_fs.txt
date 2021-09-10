@@ -53,6 +53,7 @@ fpathconf(fd fd, name flags[conf_value])
 unmount(path ptr[in, filename], flags flags[mount_flags])
 mount(type ptr[in, string[filesystem_types]], path ptr[in, filename], flags flags[mount_flags], data buffer[in])
 fspacectl(fd fd, cmd flags[spacectl_cmd], rgsr ptr[in, spacectl_range], flags flags[spacectl_flags], rmsr ptr[out, spacectl_range])
+getdirentries(fd fd_dir, buf buffer[out], nbytes len[buf], basep ptr[out, int64])
 
 pipefd {
 	rfd	fd
