@@ -76,7 +76,9 @@ func (t *tty) Close() error {
 	return nil
 }
 
-func OpenRemoteKernelLog(ip string, console string) (rc io.ReadCloser, err error) {
+// OpenRemoteKernelLog accesses to the host where Android VM runs on, not Android VM itself.
+// The host stores all kernel outputs of Android VM so in case of crashes nothing will be lost.
+func OpenRemoteKernelLog(ip, console string) (rc io.ReadCloser, err error) {
 	rpipe, wpipe, err := osutil.LongPipe()
 	if err != nil {
 		return nil, err
