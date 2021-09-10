@@ -8,6 +8,7 @@ package adb
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -36,8 +37,8 @@ type Device struct {
 }
 
 type Config struct {
-	Adb     string   `json:"adb"`     // adb binary name ("adb" by default)
-	Devices []Device `json:"devices"` // list of adb devices to use
+	Adb     string            `json:"adb"`     // adb binary name ("adb" by default)
+	Devices []json.RawMessage `json:"devices"` // list of adb devices to use
 
 	// Ensure that a device battery level is at 20+% before fuzzing.
 	// Sometimes we observe that a device can't charge during heavy fuzzing
@@ -66,6 +67,25 @@ type instance struct {
 	debug   bool
 }
 
+var (
+	androidSerial = "^[0-9A-Z]+$"
+	cuttlefishID  = `^(?:[0-9]{1,3}\.){3}[0-9]{1,3}\:(?:[0-9]{1,5})$` // IP:port
+)
+
+func loadDevice(data []byte) (*Device, error) {
+	devObj := &Device{}
+	var devStr string
+	err1 := config.LoadData(data, devObj)
+	err2 := config.LoadData(data, &devStr)
+	if err1 != nil && err2 != nil {
+		return nil, fmt.Errorf("failed to parse adb vm config: %v %v", err1, err2)
+	}
+	if err2 == nil {
+		devObj.Serial = devStr
+	}
+	return devObj, nil
+}
+
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	cfg := &Config{
 		Adb:          "adb",
@@ -81,10 +101,15 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if len(cfg.Devices) == 0 {
 		return nil, fmt.Errorf("no adb devices specified")
 	}
-	devRe := regexp.MustCompile("[0-9A-F]+")
+	// Device should be either regular serial number, or a valid Cuttlefish ID.
+	devRe := regexp.MustCompile(fmt.Sprintf("%s|%s", androidSerial, cuttlefishID))
 	for _, dev := range cfg.Devices {
-		if !devRe.MatchString(dev.Serial) {
-			return nil, fmt.Errorf("invalid adb device id '%v'", dev)
+		device, err := loadDevice(dev)
+		if err != nil {
+			return nil, err
+		}
+		if !devRe.MatchString(device.Serial) {
+			return nil, fmt.Errorf("invalid adb device id '%v'", device.Serial)
 		}
 	}
 	if env.Debug {
@@ -102,7 +127,10 @@ func (pool *Pool) Count() int {
 }
 
 func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
-	device := pool.cfg.Devices[index]
+	device, err := loadDevice(pool.cfg.Devices[index])
+	if err != nil {
+		return nil, err
+	}
 	inst := &instance{
 		cfg:     pool.cfg,
 		adbBin:  pool.cfg.Adb,
