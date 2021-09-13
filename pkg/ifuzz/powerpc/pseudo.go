@@ -81,7 +81,18 @@ func (gen *generator) sc(lev uint) {
 	imap := gen.imap
 
 	n := gen.r.Intn(9)
-	gen.byte(imap.ld64(3, uint64(gen.r.Intn(4+(MaxHcall-4)/4))))
+	hcrange := gen.r.Intn(3)
+	offset := 4
+	maxhc := MaxHcall
+	if hcrange == 1 {
+		offset = 0xf000
+		maxhc = 0xf810
+	} else if hcrange == 2 {
+		offset = 0xef00
+		maxhc = 0xef20
+	}
+	hc := gen.r.Intn((maxhc-offset)/4)*4 + offset
+	gen.byte(imap.ld64(3, uint64(hc)))
 	for i := 4; i < n+4; i++ {
 		gen.byte(imap.ld64(uint(i), gen.r.Uint64()))
 	}

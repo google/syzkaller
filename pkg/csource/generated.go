@@ -7595,14 +7595,14 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 	if (kvmppc_set_one_reg(cpufd, KVM_REG_PPC_PID, &pid))
 		return -1;
 #define MAX_HCALL 0x450
-	for (unsigned hcall = 4; hcall < MAX_HCALL; hcall += 4) {
-		struct kvm_enable_cap cap = {
-		    .cap = KVM_CAP_PPC_ENABLE_HCALL,
-		    .flags = 0,
-		    .args = {hcall, 1},
-		};
-		ioctl(vmfd, KVM_ENABLE_CAP, &cap);
-	}
+	for (unsigned hcall = 4; hcall < MAX_HCALL; hcall += 4)
+		kvm_vm_enable_cap(vmfd, KVM_CAP_PPC_ENABLE_HCALL, hcall, 1);
+
+	for (unsigned hcall = 0xf000; hcall < 0xf810; hcall += 4)
+		kvm_vm_enable_cap(vmfd, KVM_CAP_PPC_ENABLE_HCALL, hcall, 1);
+
+	for (unsigned hcall = 0xef00; hcall < 0xef20; hcall += 4)
+		kvm_vm_enable_cap(vmfd, KVM_CAP_PPC_ENABLE_HCALL, hcall, 1);
 	kvmppc_define_rtas_kernel_token(vmfd, 1, "ibm,set-xive");
 	kvmppc_define_rtas_kernel_token(vmfd, 2, "ibm,get-xive");
 	kvmppc_define_rtas_kernel_token(vmfd, 3, "ibm,int-on");
