@@ -31,7 +31,7 @@ type Insn struct {
 	M64    bool // true if the instruction is 64bit _only_.
 	Priv   bool
 	Pseudo bool
-	Fields map[string]InsnBits // for ra/rb/rt/si/...
+	Fields map[string][]InsnBits // for ra/rb/rt/si/...
 	Opcode uint32
 	Mask   uint32
 
@@ -68,9 +68,15 @@ func (insnset *InsnSet) DecodeExt(mode iset.Mode, text []byte) (int, error) {
 	return 0, fmt.Errorf("no external decoder")
 }
 
-func encodeBits(n uint, f InsnBits) uint32 {
-	mask := uint(1<<f.Length) - 1
-	return uint32((n & mask) << (31 - (f.Start + f.Length - 1)))
+func encodeBits(n uint, ff []InsnBits) uint32 {
+	ret := uint32(0)
+	for _, f := range ff {
+		mask := uint(1<<f.Length) - 1
+		field := uint32((n & mask) << (31 - (f.Start + f.Length - 1)))
+		ret = ret | field
+		n = n >> f.Length
+	}
+	return ret
 }
 
 func (insn Insn) Encode(cfg *iset.Config, r *rand.Rand) []byte {
