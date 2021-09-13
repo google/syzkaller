@@ -12,6 +12,8 @@ import (
 const (
 	// Valid hcall humbers at the momemt are: 4..0x450.
 	MaxHcall = 0x450 // MAX_HCALL
+	SprnSrr0 = 0x01A // pc for rfid (SPRN_SRR0)
+	SprnSrr1 = 0x01B // msr for rfid (SPRN_SRR1)
 )
 
 // nolint:dupl
@@ -53,6 +55,16 @@ func (insnset *InsnSet) initPseudo() {
 		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
 			gen := makeGen(insnset, cfg, r)
 			gen.rtas()
+			return gen.text
+		},
+	})
+	insnset.Insns = append(insnset.Insns, &Insn{
+		Name:   "PSEUDO_rfid",
+		Priv:   true,
+		Pseudo: true,
+		generator: func(cfg *iset.Config, r *rand.Rand) []byte {
+			gen := makeGen(insnset, cfg, r)
+			gen.rfid()
 			return gen.text
 		},
 	})
@@ -115,4 +127,19 @@ func (gen *generator) rtas() {
 	gen.byte(imap.ld64(4, addr))
 
 	gen.byte(imap.sc(1))
+}
+
+func (gen *generator) rfid() {
+	imap := gen.imap
+	tmpreg := uint(gen.r.Intn(32))
+
+	// SRR0 contains a PC
+	gen.byte(imap.ld64(tmpreg, iset.GenerateInt(gen.cfg, gen.r, 8)))
+	gen.byte(imap["mtspr"].enc(map[string]uint{"RS": tmpreg, "SPR": SprnSrr0}))
+
+	// SRR1 contains an MSR
+	gen.byte(imap.ld64(tmpreg, gen.r.Uint64()))
+	gen.byte(imap["mtspr"].enc(map[string]uint{"RS": tmpreg, "SPR": SprnSrr1}))
+
+	gen.byte(imap["rfid"].enc(map[string]uint{}))
 }
