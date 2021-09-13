@@ -114,11 +114,13 @@ func (*linux) prepareArch(arch *Arch) error {
 
 func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint64, map[string]bool, error) {
 	if strings.HasSuffix(info.File, "_kvm.txt") &&
-		(arch.target.Arch == targets.ARM || arch.target.Arch == targets.RiscV64) {
-		// Hack: KVM is not supported on ARM anymore. We may want some more official support
-		// for marking descriptions arch-specific, but so far this combination is the only
-		// one. For riscv64, KVM is not supported yet but might be in the future.
-		// Note: syz-sysgen also ignores this file for arm and riscv64.
+		arch.target.Arch != targets.I386 && arch.target.Arch != targets.AMD64 {
+		// Hack:
+		// include/uapi/linux/kvm.h has definitions that can only be compiled under i386
+		// and amd64 (e.g. KVM_SET_CPUID). On all other arches they generate build errors
+		// and therefore this tool is not able to proceed.
+		// TODO: remove this once #2754 is resolved.
+		// Note: syz-sysgen also ignores this file.
 		return nil, nil, nil
 	}
 	headerArch := arch.target.KernelHeaderArch

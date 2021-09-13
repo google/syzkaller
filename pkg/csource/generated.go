@@ -6639,7 +6639,7 @@ struct kvm_opt {
 #define KVM_SETUP_VIRT86 (1 << 4)
 #define KVM_SETUP_SMM (1 << 5)
 #define KVM_SETUP_VM (1 << 6)
-static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6, volatile long a7)
+static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6, volatile long a7)
 {
 	const int vmfd = a0;
 	const int cpufd = a1;
@@ -7181,7 +7181,7 @@ struct kvm_opt {
 	uint64 typ;
 	uint64 val;
 };
-static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6, volatile long a7)
+static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6, volatile long a7)
 {
 	const int vmfd = a0;
 	const int cpufd = a1;
@@ -7378,7 +7378,7 @@ static void dump_text(const char* mem, unsigned start, unsigned cw, uint32 debug
 #define KVM_SETUP_PPC64_DR (1 << 2)
 #define KVM_SETUP_PPC64_PR (1 << 3)
 #define KVM_SETUP_PPC64_PID1 (1 << 4)
-static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6, volatile long a7)
+static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6, volatile long a7)
 {
 	const int vmfd = a0;
 	const int cpufd = a1;
@@ -7602,7 +7602,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 }
 
 #elif !GOARCH_arm
-static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6, volatile long a7)
+static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6, volatile long a7)
 {
 	return 0;
 }
