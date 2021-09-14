@@ -35,16 +35,24 @@ func extract(info *compiler.ConstInfo, cc string, args []string, params *extract
 		Includes:      info.Includes,
 		Values:        info.Consts,
 	}
+	bin := ""
+	missingIncludes := make(map[string]bool)
 	undeclared := make(map[string]bool)
-	bin, out, err := compile(cc, args, data)
-	if err != nil {
+	valMap := make(map[string]bool)
+	for _, val := range info.Consts {
+		valMap[val] = true
+	}
+	for {
+		bin1, out, err := compile(cc, args, data)
+		if err == nil {
+			bin = bin1
+			break
+		}
 		// Some consts and syscall numbers are not defined on some archs.
 		// Figure out from compiler output undefined consts,
 		// and try to compile again without them.
-		valMap := make(map[string]bool)
-		for _, val := range info.Consts {
-			valMap[val] = true
-		}
+		// May need to try multiple times because some severe errors terminate compilation.
+		tryAgain := false
 		for _, errMsg := range []string{
 			`error: [‘']([a-zA-Z0-9_]+)[’'] undeclared`,
 			`note: in expansion of macro [‘']([a-zA-Z0-9_]+)[’']`,
@@ -55,10 +63,15 @@ func extract(info *compiler.ConstInfo, cc string, args []string, params *extract
 			matches := re.FindAllSubmatch(out, -1)
 			for _, match := range matches {
 				val := string(match[1])
-				if valMap[val] {
+				if valMap[val] && !undeclared[val] {
 					undeclared[val] = true
+					tryAgain = true
 				}
 			}
+		}
+		if !tryAgain {
+			return nil, nil, fmt.Errorf("failed to run compiler: %v %v\n%v\n%s",
+				cc, args, err, out)
 		}
 		data.Values = nil
 		for _, v := range info.Consts {
@@ -67,15 +80,18 @@ func extract(info *compiler.ConstInfo, cc string, args []string, params *extract
 			}
 			data.Values = append(data.Values, v)
 		}
-		bin, out, err = compile(cc, args, data)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to run compiler: %v %v\n%v\n%s",
-				cc, args, err, out)
+		data.Includes = nil
+		for _, v := range info.Includes {
+			if missingIncludes[v] {
+				continue
+			}
+			data.Includes = append(data.Includes, v)
 		}
 	}
 	defer os.Remove(bin)
 
 	var flagVals []uint64
+	var err error
 	if data.ExtractFromELF {
 		flagVals, err = extractFromELF(bin, params.TargetEndian)
 	} else {

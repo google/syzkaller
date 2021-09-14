@@ -117,8 +117,7 @@ func main() {
 				if OS == targets.Linux && (job.Target.Arch == targets.ARM || job.Target.Arch == targets.RiscV64) {
 					// Hack: KVM is not supported on ARM anymore. On riscv64 it
 					// is not supported yet but might be in the future.
-					// Note: syz-extract ignores this file on all arches except
-					// i386 and amd64 (due to const extraction problems).
+					// Note: syz-extract also ignores this file for arm and riscv64.
 					top = descriptions.Filter(func(n ast.Node) bool {
 						pos, _, _ := n.Info()
 						return !strings.HasSuffix(pos.File, "_kvm.txt")
