@@ -96,6 +96,7 @@ func main() {
 		VhciInjection: features["vhci"].Enabled,
 		Wifi:          features["wifi"].Enabled,
 		IEEE802154:    features["ieee802154"].Enabled,
+		Sysctl:        features["sysctl"].Enabled,
 		UseTmpDir:     *flagUseTmpDir,
 		HandleSegv:    *flagHandleSegv,
 		Repro:         *flagRepro,
