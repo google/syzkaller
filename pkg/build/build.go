@@ -76,6 +76,14 @@ func Image(params Params) (details ImageDetails, err error) {
 		}
 	}
 	details, err = builder.build(params)
+	if details.CompilerID == "" {
+		// Fill in the compiler info even if the build failed.
+		var idErr error
+		details.CompilerID, idErr = compilerIdentity(params.Compiler)
+		if err == nil {
+			err = idErr
+		} // Try to preserve the build error otherwise.
+	}
 	if err != nil {
 		err = extractRootCause(err, params.TargetOS, params.KernelDir)
 		return
@@ -83,12 +91,6 @@ func Image(params Params) (details ImageDetails, err error) {
 	if key := filepath.Join(params.OutputDir, "key"); osutil.IsExist(key) {
 		if err := os.Chmod(key, 0600); err != nil {
 			return details, fmt.Errorf("failed to chmod 0600 %v: %v", key, err)
-		}
-	}
-	if details.CompilerID == "" {
-		details.CompilerID, err = compilerIdentity(params.Compiler)
-		if err != nil {
-			return
 		}
 	}
 	return
