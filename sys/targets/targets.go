@@ -205,7 +205,7 @@ var List = map[string]map[string]*Target{
 		TestArch32ForkShmem: {
 			PtrSize:  4,
 			PageSize: 4 << 10,
-			CFlags:   []string{"-m32", "-static"},
+			CFlags:   []string{"-m32", "-static-pie"},
 			osCommon: osCommon{
 				SyscallNumbers:         true,
 				Int64SyscallArgs:       true,
@@ -355,7 +355,7 @@ var List = map[string]map[string]*Target{
 			LittleEndian: true,
 			CFlags: []string{
 				"-m64",
-				"-static",
+				"-static-pie",
 				"--sysroot", sourceDirVar + "/dest/",
 			},
 			CCompiler: sourceDirVar + "/tools/bin/x86_64--netbsd-g++",
@@ -367,7 +367,7 @@ var List = map[string]map[string]*Target{
 			PageSize:     4 << 10,
 			LittleEndian: true,
 			CCompiler:    "c++",
-			CFlags:       []string{"-m64", "-static", "-lutil"},
+			CFlags:       []string{"-m64", "-static-pie", "-lutil"},
 			NeedSyscallDefine: func(nr uint64) bool {
 				switch nr {
 				case 8: // SYS___tfork
@@ -453,7 +453,7 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "vmlinux",
-		cflags:                 []string{"-static"},
+		cflags:                 []string{"-static-pie"},
 	},
 	FreeBSD: {
 		SyscallNumbers:         true,
@@ -463,7 +463,7 @@ var oses = map[string]osCommon{
 		ExecutorUsesForkServer: true,
 		KernelObject:           "kernel.full",
 		CPP:                    "g++",
-		cflags:                 []string{"-static", "-lc++"},
+		cflags:                 []string{"-static-pie", "-lc++"},
 	},
 	Darwin: {
 		SyscallNumbers:    true,
@@ -545,8 +545,12 @@ var (
 	}
 	optionalCFlags = map[string]bool{
 		"-static":                 true, // some distributions don't have static libraries
+		"-static-pie":             true, // this flag is also not supported everywhere
 		"-Wunused-const-variable": true, // gcc 5 does not support this flag
 		"-fsanitize=address":      true, // some OSes don't have ASAN
+	}
+	fallbackCFlags = map[string]string{
+		"-static-pie": "-static", // if an ASLR static binary is impossible, build just a static one
 	}
 )
 
@@ -786,10 +790,20 @@ func (target *Target) lazyInit() {
 			return
 		}
 	}
+
+	flagsToCheck := append([]string{}, target.CFlags...)
+	for _, value := range fallbackCFlags {
+		flagsToCheck = append(flagsToCheck, value)
+	}
+
 	flags := make(map[string]*bool)
 	var wg sync.WaitGroup
-	for _, flag := range target.CFlags {
+	for _, flag := range flagsToCheck {
 		if !optionalCFlags[flag] {
+			continue
+		}
+		_, exists := flags[flag]
+		if exists {
 			continue
 		}
 		res := new(bool)
@@ -801,13 +815,21 @@ func (target *Target) lazyInit() {
 		}(flag)
 	}
 	wg.Wait()
-	for i := 0; i < len(target.CFlags); i++ {
-		if res := flags[target.CFlags[i]]; res != nil && !*res {
-			copy(target.CFlags[i:], target.CFlags[i+1:])
-			target.CFlags = target.CFlags[:len(target.CFlags)-1]
-			i--
+	newCFlags := []string{}
+	for _, flag := range target.CFlags {
+		for {
+			if res := flags[flag]; res == nil || *res {
+				// The flag is either verified to be supported or must be supported.
+				newCFlags = append(newCFlags, flag)
+			} else if fallback := fallbackCFlags[flag]; fallback != "" {
+				// The flag is not supported, but probably we can replace it by another one.
+				flag = fallback
+				continue
+			}
+			break
 		}
 	}
+	target.CFlags = newCFlags
 	// Check that the compiler is actually functioning. It may be present, but still broken.
 	// Common for Linux distros, over time we've seen:
 	//	Error: alignment too large: 15 assumed
