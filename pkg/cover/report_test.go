@@ -143,16 +143,52 @@ func testReportGenerator(t *testing.T, target *targets.Target, test Test) {
 	_ = rep
 }
 
+const kcovCode = `
+#ifdef ASLR_BASE
+#define _GNU_SOURCE
+#endif
+
+#include <stdio.h>
+
+#ifdef ASLR_BASE
+#include <dlfcn.h>
+#include <link.h>
+#include <stddef.h>
+
+void* aslr_base() {
+       struct link_map* map = NULL;
+       void* handle = dlopen(NULL, RTLD_LAZY | RTLD_NOLOAD);
+       if (handle != NULL) {
+              dlinfo(handle, RTLD_DI_LINKMAP, &map);
+              dlclose(handle);
+       }
+       return map ? map->l_addr : NULL;
+}
+#else
+void* aslr_base() { return NULL; }
+#endif
+
+void __sanitizer_cov_trace_pc() { printf("%llu", (long long)(__builtin_return_address(0) - aslr_base())); }
+`
+
 func buildTestBinary(t *testing.T, target *targets.Target, test Test, dir string) string {
 	kcovSrc := filepath.Join(dir, "kcov.c")
 	kcovObj := filepath.Join(dir, "kcov.o")
-	if err := osutil.WriteFile(kcovSrc, []byte(`
-#include <stdio.h>
-void __sanitizer_cov_trace_pc() { printf("%llu", (long long)__builtin_return_address(0)); }
-`)); err != nil {
+	if err := osutil.WriteFile(kcovSrc, []byte(kcovCode)); err != nil {
 		t.Fatal(err)
 	}
-	kcovFlags := append([]string{"-c", "-w", "-x", "c", "-o", kcovObj, kcovSrc}, target.CFlags...)
+
+	aslrDefine := "-DNO_ASLR_BASE"
+	if target.OS == targets.Linux || target.OS == targets.OpenBSD ||
+		target.OS == targets.FreeBSD || target.OS == targets.NetBSD {
+		aslrDefine = "-DASLR_BASE"
+	}
+	aslrExtraLibs := []string{}
+	if target.OS == targets.Linux {
+		aslrExtraLibs = []string{"-ldl"}
+	}
+
+	kcovFlags := append([]string{"-c", "-w", "-x", "c", "-o", kcovObj, kcovSrc, aslrDefine}, target.CFlags...)
 	src := filepath.Join(dir, "main.c")
 	bin := filepath.Join(dir, target.KernelObject)
 	if err := osutil.WriteFile(src, []byte(`int main() {}`)); err != nil {
@@ -161,7 +197,9 @@ void __sanitizer_cov_trace_pc() { printf("%llu", (long long)__builtin_return_add
 	if _, err := osutil.RunCmd(time.Hour, "", target.CCompiler, kcovFlags...); err != nil {
 		t.Fatal(err)
 	}
-	flags := append(append([]string{"-w", "-o", bin, src, kcovObj}, target.CFlags...), test.CFlags...)
+
+	linkOrder := append([]string{src, kcovObj}, aslrExtraLibs...)
+	flags := append(append(append([]string{"-w", "-o", bin}, linkOrder...), target.CFlags...), test.CFlags...)
 	if _, err := osutil.RunCmd(time.Hour, "", target.CCompiler, flags...); err != nil {
 		errText := err.Error()
 		errText = strings.ReplaceAll(errText, "‘", "'")
