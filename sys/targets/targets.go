@@ -367,7 +367,8 @@ var List = map[string]map[string]*Target{
 			PageSize:     4 << 10,
 			LittleEndian: true,
 			CCompiler:    "c++",
-			CFlags:       []string{"-m64", "-static-pie", "-lutil"},
+			// PIE is enabled on OpenBSD by default, so no need for -static-pie.
+			CFlags: []string{"-m64", "-static", "-lutil"},
 			NeedSyscallDefine: func(nr uint64) bool {
 				switch nr {
 				case 8: // SYS___tfork
