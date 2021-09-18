@@ -460,7 +460,7 @@ func isSupportedOpenFile(c *prog.Syscall, filenameArg int, modes []int) (bool, s
 		return true, ""
 	}
 	if len(modes) == 0 {
-		modes = []int{syscall.O_RDONLY, syscall.O_WRONLY, syscall.O_RDWR}
+		modes = []int{syscall.O_RDONLY, syscall.O_WRONLY, syscall.O_RDWR, syscall.O_RDONLY | syscall.O_NONBLOCK}
 	}
 	var err error
 	for _, mode := range modes {
