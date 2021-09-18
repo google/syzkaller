@@ -9,7 +9,14 @@ include <uapi/linux/fd.h>
 
 resource fd_floppy[fd]
 
-syz_open_dev$floppy(dev ptr[in, string["/dev/fd#"]], id intptr, flags flags[open_flags]) fd_floppy
+# O_ACCMODE is used for ioctl-only opens, see FMODE_WRITE_IOCTL
+# https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/fs.h?h=v5.14#n129
+# Examples:
+# - https://sources.debian.org/src/fdutils/5.6-2/src/floppycontrol.c/?hl=289#L289
+# - https://sources.debian.org/src/fdutils/5.6-2/src/diskd.c/?hl=90#L90
+fd_open_flags = O_WRONLY, O_RDWR, O_ACCMODE, O_APPEND, FASYNC, O_CLOEXEC, O_DIRECT, O_NOATIME, O_NONBLOCK, O_SYNC, O_TRUNC
+
+syz_open_dev$floppy(dev ptr[in, string["/dev/fd#"]], id intptr, flags flags[fd_open_flags]) fd_floppy
 
 ioctl$FLOPPY_FDEJECT(fd fd_floppy, cmd const[FDEJECT])
 ioctl$FLOPPY_FDCLRPRM(fd fd_floppy, cmd const[FDCLRPRM])
