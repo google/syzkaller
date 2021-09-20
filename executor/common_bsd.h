@@ -43,6 +43,7 @@ static void setup_usb(void)
 #if SYZ_EXECUTOR || SYZ_FAULT
 #include <fcntl.h>
 #include <sys/fault.h>
+#include <sys/stat.h>
 static void setup_fault(void)
 {
 	if (chmod("/dev/fault", 0666))
