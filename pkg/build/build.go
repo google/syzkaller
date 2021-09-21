@@ -162,11 +162,12 @@ func compilerIdentity(compiler string) (string, error) {
 
 	bazel := strings.HasSuffix(compiler, "bazel")
 
-	arg := "--version"
+	arg, timeout := "--version", time.Minute
 	if bazel {
-		arg = ""
+		// Bazel episodically fails with 1 min timeout.
+		arg, timeout = "", 10*time.Minute
 	}
-	output, err := osutil.RunCmd(time.Minute, "", compiler, arg)
+	output, err := osutil.RunCmd(timeout, "", compiler, arg)
 	if err != nil {
 		return "", err
 	}
