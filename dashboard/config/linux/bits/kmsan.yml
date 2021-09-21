@@ -10,6 +10,10 @@ config:
  # Crash the kernel after the first KMSAN report.
  - CMDLINE: [append, "panic_on_kmsan=1"]
 
+ # Ensure we do not auto-initialize heap allocations.
+ - INIT_ON_ALLOC_DEFAULT_ON: n
+ - INIT_ON_FREE_DEFAULT_ON: n
+
  # Avoid reboot loop in instrumented kernel:
  - PREEMPT_NONE
  - PREEMPT: [n, weak]
