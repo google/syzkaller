@@ -19,7 +19,6 @@ import (
 // Dashboard also provides serialized Options along with syzkaller reproducers.
 type Options struct {
 	Threaded    bool   `json:"threaded,omitempty"`
-	Collide     bool   `json:"collide,omitempty"`
 	Repeat      bool   `json:"repeat,omitempty"`
 	RepeatTimes int    `json:"repeat_times,omitempty"` // if non-0, repeat that many times
 	Procs       int    `json:"procs"`
@@ -55,6 +54,7 @@ type Options struct {
 
 // These are legacy options, they remain only for the sake of backward compatibility.
 type LegacyOptions struct {
+	Collide   bool `json:"collide,omitempty"`
 	Fault     bool `json:"fault,omitempty"`
 	FaultCall int  `json:"fault_call,omitempty"`
 	FaultNth  int  `json:"fault_nth,omitempty"`
@@ -158,7 +158,6 @@ func (opts Options) checkLinuxOnly(OS string) error {
 func DefaultOpts(cfg *mgrconfig.Config) Options {
 	opts := Options{
 		Threaded:   true,
-		Collide:    true,
 		Repeat:     true,
 		Procs:      cfg.Procs,
 		Slowdown:   cfg.Timeouts.Slowdown,
@@ -322,7 +321,6 @@ func PrintAvailableFeaturesFlags() {
 // This is the main configuration used by executor, only for testing.
 var ExecutorOpts = Options{
 	Threaded:  true,
-	Collide:   true,
 	Repeat:    true,
 	Procs:     2,
 	Slowdown:  1,

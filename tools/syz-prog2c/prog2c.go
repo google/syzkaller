@@ -21,7 +21,6 @@ var (
 	flagArch       = flag.String("arch", runtime.GOARCH, "target arch")
 	flagBuild      = flag.Bool("build", false, "also build the generated program")
 	flagThreaded   = flag.Bool("threaded", false, "create threaded program")
-	flagCollide    = flag.Bool("collide", false, "create collide program")
 	flagRepeat     = flag.Int("repeat", 1, "repeat program that many times (<=0 - infinitely)")
 	flagProcs      = flag.Int("procs", 1, "number of parallel processes")
 	flagSlowdown   = flag.Int("slowdown", 1, "execution slowdown caused by emulation/instrumentation")
@@ -72,7 +71,6 @@ func main() {
 	}
 	opts := csource.Options{
 		Threaded:      *flagThreaded,
-		Collide:       *flagCollide,
 		Repeat:        *flagRepeat != 1,
 		RepeatTimes:   *flagRepeat,
 		Procs:         *flagProcs,

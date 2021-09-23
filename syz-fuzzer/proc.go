@@ -24,14 +24,14 @@ import (
 
 // Proc represents a single fuzzing process (executor).
 type Proc struct {
-	fuzzer            *Fuzzer
-	pid               int
-	env               *ipc.Env
-	rnd               *rand.Rand
-	execOpts          *ipc.ExecOpts
-	execOptsCover     *ipc.ExecOpts
-	execOptsComps     *ipc.ExecOpts
-	execOptsNoCollide *ipc.ExecOpts
+	fuzzer          *Fuzzer
+	pid             int
+	env             *ipc.Env
+	rnd             *rand.Rand
+	execOpts        *ipc.ExecOpts
+	execOptsCollide *ipc.ExecOpts
+	execOptsCover   *ipc.ExecOpts
+	execOptsComps   *ipc.ExecOpts
 }
 
 func newProc(fuzzer *Fuzzer, pid int) (*Proc, error) {
@@ -40,21 +40,21 @@ func newProc(fuzzer *Fuzzer, pid int) (*Proc, error) {
 		return nil, err
 	}
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano() + int64(pid)*1e12))
-	execOptsNoCollide := *fuzzer.execOpts
-	execOptsNoCollide.Flags &= ^ipc.FlagCollide
-	execOptsCover := execOptsNoCollide
+	execOptsCollide := *fuzzer.execOpts
+	execOptsCollide.Flags &= ^ipc.FlagCollectSignal
+	execOptsCover := *fuzzer.execOpts
 	execOptsCover.Flags |= ipc.FlagCollectCover
-	execOptsComps := execOptsNoCollide
+	execOptsComps := *fuzzer.execOpts
 	execOptsComps.Flags |= ipc.FlagCollectComps
 	proc := &Proc{
-		fuzzer:            fuzzer,
-		pid:               pid,
-		env:               env,
-		rnd:               rnd,
-		execOpts:          fuzzer.execOpts,
-		execOptsCover:     &execOptsCover,
-		execOptsComps:     &execOptsComps,
-		execOptsNoCollide: &execOptsNoCollide,
+		fuzzer:          fuzzer,
+		pid:             pid,
+		env:             env,
+		rnd:             rnd,
+		execOpts:        fuzzer.execOpts,
+		execOptsCollide: &execOptsCollide,
+		execOptsCover:   &execOptsCover,
+		execOptsComps:   &execOptsComps,
 	}
 	return proc, nil
 }
@@ -88,13 +88,13 @@ func (proc *Proc) loop() {
 			// Generate a new prog.
 			p := proc.fuzzer.target.Generate(proc.rnd, prog.RecommendedCalls, ct)
 			log.Logf(1, "#%v: generated", proc.pid)
-			proc.execute(proc.execOpts, p, ProgNormal, StatGenerate)
+			proc.executeAndCollide(proc.execOpts, p, ProgNormal, StatGenerate)
 		} else {
 			// Mutate an existing prog.
 			p := fuzzerSnapshot.chooseProgram(proc.rnd).Clone()
 			p.Mutate(proc.rnd, prog.RecommendedCalls, ct, fuzzerSnapshot.corpus)
 			log.Logf(1, "#%v: mutated", proc.pid)
-			proc.execute(proc.execOpts, p, ProgNormal, StatFuzz)
+			proc.executeAndCollide(proc.execOpts, p, ProgNormal, StatFuzz)
 		}
 	}
 }
@@ -145,7 +145,7 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 		item.p, item.call = prog.Minimize(item.p, item.call, false,
 			func(p1 *prog.Prog, call1 int) bool {
 				for i := 0; i < minimizeAttempts; i++ {
-					info := proc.execute(proc.execOptsNoCollide, p1, ProgNormal, StatMinimize)
+					info := proc.execute(proc.execOpts, p1, ProgNormal, StatMinimize)
 					if !reexecutionSuccess(info, &item.info, call1) {
 						// The call was not executed or failed.
 						continue
@@ -212,7 +212,7 @@ func (proc *Proc) smashInput(item *WorkSmash) {
 		p := item.p.Clone()
 		p.Mutate(proc.rnd, prog.RecommendedCalls, proc.fuzzer.choiceTable, fuzzerSnapshot.corpus)
 		log.Logf(1, "#%v: smash mutated", proc.pid)
-		proc.execute(proc.execOpts, p, ProgNormal, StatSmash)
+		proc.executeAndCollide(proc.execOpts, p, ProgNormal, StatSmash)
 	}
 }
 
@@ -272,6 +272,23 @@ func (proc *Proc) enqueueCallTriage(p *prog.Prog, flags ProgTypes, callIndex int
 		info:  info,
 		flags: flags,
 	})
+}
+
+func (proc *Proc) executeAndCollide(execOpts *ipc.ExecOpts, p *prog.Prog, flags ProgTypes, stat Stat) {
+	proc.execute(execOpts, p, flags, stat)
+
+	if proc.execOptsCollide.Flags&ipc.FlagThreaded == 0 {
+		// We cannot collide syscalls without being in the threaded mode.
+		return
+	}
+	const collideIterations = 2
+	for i := 0; i < collideIterations; i++ {
+		proc.executeRaw(proc.execOptsCollide, proc.randomCollide(p), StatCollide)
+	}
+}
+
+func (proc *Proc) randomCollide(origP *prog.Prog) *prog.Prog {
+	return prog.AssignRandomAsync(origP, proc.rnd)
 }
 
 func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.ProgInfo {

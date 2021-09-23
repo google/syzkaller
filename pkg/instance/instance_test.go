@@ -91,12 +91,15 @@ func TestExecprogCmd(t *testing.T) {
 	flagFaultNth := flags.Int("fault_nth", 0, "inject fault on n-th operation (0-based)")
 	flagExecutor := flags.String("executor", "./syz-executor", "path to executor binary")
 	flagThreaded := flags.Bool("threaded", true, "use threaded mode in executor")
-	flagCollide := flags.Bool("collide", true, "collide syscalls to provoke data races")
+	// In the older syzkaller versions `collide` flag defaulted to `true`, but in this
+	// test we can change it to false (new default), because syzkaller always explicitly
+	// sets this flag and never relies on the default value.
+	flagCollide := flags.Bool("collide", false, "collide syscalls to provoke data races")
 	flagSignal := flags.Bool("cover", false, "collect feedback signals (coverage)")
 	flagSandbox := flags.String("sandbox", "none", "sandbox for fuzzing (none/setuid/namespace)")
 	flagSlowdown := flags.Int("slowdown", 1, "")
 	cmdLine := ExecprogCmd(os.Args[0], "/myexecutor", targets.FreeBSD, targets.I386,
-		"namespace", true, false, false, 7, 2, 3, true, 10, "myprog")
+		"namespace", true, false, true, 7, 2, 3, true, 10, "myprog")
 	args := strings.Split(cmdLine, " ")[1:]
 	if err := tool.ParseFlags(flags, args); err != nil {
 		t.Fatal(err)
@@ -134,8 +137,8 @@ func TestExecprogCmd(t *testing.T) {
 	if *flagThreaded {
 		t.Errorf("bad threaded: %v, want: %v", *flagThreaded, false)
 	}
-	if *flagCollide {
-		t.Errorf("bad collide: %v, want: %v", *flagCollide, false)
+	if !*flagCollide {
+		t.Errorf("bad collide: %v, want: %v", *flagCollide, true)
 	}
 	if *flagSlowdown != 10 {
 		t.Errorf("bad slowdown: %v, want: %v", *flagSlowdown, 10)

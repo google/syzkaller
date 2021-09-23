@@ -134,12 +134,18 @@ type argInfo struct {
 func (w *execContext) writeCallProps(props CallProps) {
 	w.write(execInstrSetProps)
 	props.ForeachProp(func(_, _ string, value reflect.Value) {
+		var uintVal uint64
 		switch kind := value.Kind(); kind {
 		case reflect.Int:
-			w.write(uint64(value.Int()))
+			uintVal = uint64(value.Int())
+		case reflect.Bool:
+			if value.Bool() {
+				uintVal = 1
+			}
 		default:
 			panic("Unsupported (yet) kind: " + kind.String())
 		}
+		w.write(uintVal)
 	})
 }
 

@@ -87,7 +87,7 @@ func TestExecute(t *testing.T) {
 	bin := buildExecutor(t, target)
 	defer os.Remove(bin)
 
-	flags := []ExecFlags{0, FlagThreaded, FlagThreaded | FlagCollide}
+	flags := []ExecFlags{0, FlagThreaded}
 	for _, flag := range flags {
 		t.Logf("testing flags 0x%x\n", flag)
 		cfg := &Config{
