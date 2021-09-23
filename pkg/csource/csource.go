@@ -115,6 +115,17 @@ func (ctx *context) generateSource() ([]byte, error) {
 		}
 	}
 	replacements["CALL_TIMEOUT_MS"] = timeoutExpr
+	if ctx.p.RequiredFeatures().Async {
+		conditions := []string{}
+		for idx, call := range ctx.p.Calls {
+			if !call.Props.Async {
+				continue
+			}
+			conditions = append(conditions, fmt.Sprintf("call == %v", idx))
+		}
+		replacements["ASYNC_CONDITIONS"] = strings.Join(conditions, " || ")
+	}
+
 	result, err := createCommonHeader(ctx.p, mmapProg, replacements, ctx.opts)
 	if err != nil {
 		return nil, err

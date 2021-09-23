@@ -145,6 +145,10 @@ func (dec *execDecoder) readCallProps(props *CallProps) {
 		switch kind := value.Kind(); kind {
 		case reflect.Int:
 			value.SetInt(int64(arg))
+		case reflect.Bool:
+			if arg == 1 {
+				value.SetBool(true)
+			}
 		default:
 			panic("Unsupported (yet) kind: " + kind.String())
 		}

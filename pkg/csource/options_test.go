@@ -34,7 +34,6 @@ func TestParseOptionsCanned(t *testing.T) {
 		"netdev":true,"resetnet":true,
 		"segv":true,"waitrepeat":true,"debug":true,"repro":true}`: {
 			Threaded:     true,
-			Collide:      true,
 			Repeat:       true,
 			Procs:        10,
 			Slowdown:     1,
@@ -49,6 +48,7 @@ func TestParseOptionsCanned(t *testing.T) {
 			HandleSegv:   true,
 			Repro:        true,
 			LegacyOptions: LegacyOptions{
+				Collide:   true,
 				Fault:     true,
 				FaultCall: 1,
 				FaultNth:  2,
@@ -59,7 +59,6 @@ func TestParseOptionsCanned(t *testing.T) {
 		"netdev":true,"resetnet":true,
 		"segv":true,"waitrepeat":true,"debug":true,"repro":true}`: {
 			Threaded:     true,
-			Collide:      true,
 			Repeat:       true,
 			Procs:        10,
 			Slowdown:     1,
@@ -74,6 +73,7 @@ func TestParseOptionsCanned(t *testing.T) {
 			HandleSegv:   true,
 			Repro:        true,
 			LegacyOptions: LegacyOptions{
+				Collide:   true,
 				Fault:     true,
 				FaultCall: 1,
 				FaultNth:  2,
@@ -81,7 +81,6 @@ func TestParseOptionsCanned(t *testing.T) {
 		},
 		"{Threaded:true Collide:true Repeat:true Procs:1 Sandbox:none Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true HandleSegv:true WaitRepeat:true Debug:false Repro:false}": {
 			Threaded:     true,
-			Collide:      true,
 			Repeat:       true,
 			Procs:        1,
 			Slowdown:     1,
@@ -94,6 +93,7 @@ func TestParseOptionsCanned(t *testing.T) {
 			HandleSegv:   true,
 			Repro:        false,
 			LegacyOptions: LegacyOptions{
+				Collide:   true,
 				Fault:     false,
 				FaultCall: -1,
 				FaultNth:  0,
@@ -101,7 +101,6 @@ func TestParseOptionsCanned(t *testing.T) {
 		},
 		"{Threaded:true Collide:true Repeat:true Procs:1 Sandbox: Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true HandleSegv:true WaitRepeat:true Debug:false Repro:false}": {
 			Threaded:     true,
-			Collide:      true,
 			Repeat:       true,
 			Procs:        1,
 			Slowdown:     1,
@@ -114,6 +113,7 @@ func TestParseOptionsCanned(t *testing.T) {
 			HandleSegv:   true,
 			Repro:        false,
 			LegacyOptions: LegacyOptions{
+				Collide:   true,
 				Fault:     false,
 				FaultCall: -1,
 				FaultNth:  0,
@@ -121,7 +121,6 @@ func TestParseOptionsCanned(t *testing.T) {
 		},
 		"{Threaded:false Collide:true Repeat:true Procs:1 Sandbox:namespace Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true EnableCgroups:true HandleSegv:true WaitRepeat:true Debug:false Repro:false}": {
 			Threaded:     false,
-			Collide:      true,
 			Repeat:       true,
 			Procs:        1,
 			Slowdown:     1,
@@ -134,6 +133,7 @@ func TestParseOptionsCanned(t *testing.T) {
 			HandleSegv:   true,
 			Repro:        false,
 			LegacyOptions: LegacyOptions{
+				Collide:   true,
 				Fault:     false,
 				FaultCall: -1,
 				FaultNth:  0,

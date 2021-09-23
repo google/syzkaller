@@ -10457,10 +10457,6 @@ static void loop(void)
 	fprintf(stderr, "### start\n");
 #endif
 	int i, call, thread;
-#if SYZ_COLLIDE
-	int collide = 0;
-again:
-#endif
 	for (call = 0; call < /*{{{NUM_CALLS}}}*/; call++) {
 		for (thread = 0; thread < (int)(sizeof(threads) / sizeof(threads[0])); thread++) {
 			struct thread_t* th = &threads[thread];
@@ -10477,8 +10473,8 @@ again:
 			th->call = call;
 			__atomic_fetch_add(&running, 1, __ATOMIC_RELAXED);
 			event_set(&th->ready);
-#if SYZ_COLLIDE
-			if (collide && (call % 2) == 0)
+#if SYZ_ASYNC
+			if (/*{{{ASYNC_CONDITIONS}}}*/)
 				break;
 #endif
 			event_timedwait(&th->done, /*{{{CALL_TIMEOUT_MS}}}*/);
@@ -10489,12 +10485,6 @@ again:
 		sleep_ms(1);
 #if SYZ_HAVE_CLOSE_FDS
 	close_fds();
-#endif
-#if SYZ_COLLIDE
-	if (!collide) {
-		collide = 1;
-		goto again;
-	}
 #endif
 }
 #endif

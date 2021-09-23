@@ -5,6 +5,7 @@ package prog
 
 import (
 	"fmt"
+	"reflect"
 )
 
 // Minimize minimizes program p into an equivalent program using the equivalence
@@ -27,6 +28,9 @@ func Minimize(p0 *Prog, callIndex0 int, crash bool, pred0 func(*Prog, int) bool)
 
 	// Try to remove all calls except the last one one-by-one.
 	p0, callIndex0 = removeCalls(p0, callIndex0, crash, pred)
+
+	// Try to reset all call props to their default values.
+	p0 = resetCallProps(p0, callIndex0, pred)
 
 	// Try to minimize individual calls.
 	for i := 0; i < len(p0.Calls); i++ {
@@ -78,6 +82,23 @@ func removeCalls(p0 *Prog, callIndex0 int, crash bool, pred func(*Prog, int) boo
 	return p0, callIndex0
 }
 
+func resetCallProps(p0 *Prog, callIndex0 int, pred func(*Prog, int) bool) *Prog {
+	// Try to reset all call props to their default values.
+	// This should be reasonable for many progs.
+	p := p0.Clone()
+	anyDifferent := false
+	for idx := range p.Calls {
+		if !reflect.DeepEqual(p.Calls[idx].Props, CallProps{}) {
+			p.Calls[idx].Props = CallProps{}
+			anyDifferent = true
+		}
+	}
+	if anyDifferent && pred(p, callIndex0) {
+		return p
+	}
+	return p0
+}
+
 func minimizeCallProps(p0 *Prog, callIndex, callIndex0 int, pred func(*Prog, int) bool) *Prog {
 	props := p0.Calls[callIndex].Props
 
@@ -85,6 +106,15 @@ func minimizeCallProps(p0 *Prog, callIndex, callIndex0 int, pred func(*Prog, int
 	if props.FailNth > 0 {
 		p := p0.Clone()
 		p.Calls[callIndex].Props.FailNth = 0
+		if pred(p, callIndex0) {
+			p0 = p
+		}
+	}
+
+	// Try to drop async.
+	if props.Async {
+		p := p0.Clone()
+		p.Calls[callIndex].Props.Async = false
 		if pred(p, callIndex0) {
 			p0 = p
 		}

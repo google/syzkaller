@@ -79,7 +79,6 @@ func TestBisect(t *testing.T) {
 func TestSimplifies(t *testing.T) {
 	opts := csource.Options{
 		Threaded:     true,
-		Collide:      true,
 		Repeat:       true,
 		Procs:        10,
 		Sandbox:      "namespace",

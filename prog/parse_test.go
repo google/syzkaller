@@ -30,7 +30,7 @@ gettid()
 	if ent.Proc != 0 {
 		t.Fatalf("proc %v, want 0", ent.Proc)
 	}
-	if ent.P.HasFaultInjection() {
+	if ent.P.RequiredFeatures().FaultInjection {
 		t.Fatalf("fault injection enabled")
 	}
 	want := "getpid-gettid"
@@ -67,7 +67,7 @@ func TestParseMulti(t *testing.T) {
 		t.Fatalf("bad procs")
 	}
 	for i, ent := range entries {
-		if ent.P.HasFaultInjection() {
+		if ent.P.RequiredFeatures().FaultInjection {
 			t.Fatalf("prog %v has fault injection enabled", i)
 		}
 	}

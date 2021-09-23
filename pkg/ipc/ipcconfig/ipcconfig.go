@@ -14,7 +14,6 @@ import (
 var (
 	flagExecutor = flag.String("executor", "./syz-executor", "path to executor binary")
 	flagThreaded = flag.Bool("threaded", true, "use threaded mode in executor")
-	flagCollide  = flag.Bool("collide", true, "collide syscalls to provoke data races")
 	flagSignal   = flag.Bool("cover", false, "collect feedback signals (coverage)")
 	flagSandbox  = flag.String("sandbox", "none", "sandbox for fuzzing (none/setuid/namespace/android)")
 	flagDebug    = flag.Bool("debug", false, "debug output from executor")
@@ -46,8 +45,8 @@ func Default(target *prog.Target) (*ipc.Config, *ipc.ExecOpts, error) {
 	if *flagThreaded {
 		opts.Flags |= ipc.FlagThreaded
 	}
-	if *flagCollide {
-		opts.Flags |= ipc.FlagCollide
+	if *flagSignal {
+		opts.Flags |= ipc.FlagCollectSignal
 	}
 
 	return c, opts, nil

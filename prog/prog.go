@@ -19,7 +19,8 @@ type Prog struct {
 // IMPORTANT: keep the exact values of "key" tag for existing props unchanged,
 // otherwise the backwards compatibility would be broken.
 type CallProps struct {
-	FailNth int `key:"fail_nth"`
+	FailNth int  `key:"fail_nth"`
+	Async   bool `key:"async"`
 }
 
 type Call struct {

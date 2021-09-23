@@ -177,8 +177,10 @@ func createProg2CArgs(bug *dashapi.BugReport, opts csource.Options, file string)
 		"-prog", file,
 		"-sandbox", opts.Sandbox,
 		fmt.Sprintf("-segv=%v", opts.HandleSegv),
-		fmt.Sprintf("-collide=%v", opts.Collide),
 		fmt.Sprintf("-threaded=%v", opts.Threaded),
+	}
+	if opts.Collide {
+		args = append(args, "-collide")
 	}
 	if haveOSFlag {
 		args = append(args, "-os", *flagOS)

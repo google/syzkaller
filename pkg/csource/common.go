@@ -91,23 +91,23 @@ func defineList(p, mmapProg *prog.Prog, opts Options) (defines []string) {
 
 func commonDefines(p *prog.Prog, opts Options) map[string]bool {
 	sysTarget := targets.Get(p.Target.OS, p.Target.Arch)
-	bitmasks, csums := prog.RequiredFeatures(p)
+	features := p.RequiredFeatures()
 	return map[string]bool{
 		"GOOS_" + p.Target.OS:           true,
 		"GOARCH_" + p.Target.Arch:       true,
 		"HOSTGOOS_" + runtime.GOOS:      true,
-		"SYZ_USE_BITMASKS":              bitmasks,
-		"SYZ_USE_CHECKSUMS":             csums,
+		"SYZ_USE_BITMASKS":              features.Bitmasks,
+		"SYZ_USE_CHECKSUMS":             features.Csums,
 		"SYZ_SANDBOX_NONE":              opts.Sandbox == sandboxNone,
 		"SYZ_SANDBOX_SETUID":            opts.Sandbox == sandboxSetuid,
 		"SYZ_SANDBOX_NAMESPACE":         opts.Sandbox == sandboxNamespace,
 		"SYZ_SANDBOX_ANDROID":           opts.Sandbox == sandboxAndroid,
 		"SYZ_THREADED":                  opts.Threaded,
-		"SYZ_COLLIDE":                   opts.Collide,
+		"SYZ_ASYNC":                     features.Async,
 		"SYZ_REPEAT":                    opts.Repeat,
 		"SYZ_REPEAT_TIMES":              opts.RepeatTimes > 1,
 		"SYZ_MULTI_PROC":                opts.Procs > 1,
-		"SYZ_FAULT":                     p.HasFaultInjection(),
+		"SYZ_FAULT":                     features.FaultInjection,
 		"SYZ_LEAK":                      opts.Leak,
 		"SYZ_NET_INJECTION":             opts.NetInjection,
 		"SYZ_NET_DEVICES":               opts.NetDevices,
