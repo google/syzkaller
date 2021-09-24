@@ -4,6 +4,16 @@ These are the instructions on how to fuzz the x86-64 kernel in a QEMU with Ubunt
 
 In the instructions below, the `$VAR` notation (e.g. `$GCC`, `$KERNEL`, etc.) is used to denote paths to directories that are either created when executing the instructions (e.g. when unpacking GCC archive, a directory will be created), or that you have to create yourself before running the instructions. Substitute the values for those variables manually.
 
+
+## Install Prerequisites
+
+Command:
+``` bash
+sudo apt update
+sudo apt install make gcc flex bison libncurses-dev libelf-dev libssl-dev
+```
+
+
 ## GCC
 
 If your distro's GCC is older, it's preferable to get the lastest GCC from [this](/docs/syzbot.md#crash-does-not-reproduce) list. Download and unpack into `$GCC`, and you should have GCC binaries in `$GCC/bin/`
@@ -83,10 +93,10 @@ make CC="$GCC/bin/gcc" -j64
 Now you should have `vmlinux` (kernel binary) and `bzImage` (packed kernel image):
 
 ``` bash
-$ ls $KERNEL/vmlinux
-$KERNEL/vmlinux
-$ ls $KERNEL/arch/x86/boot/bzImage
-$KERNEL/arch/x86/boot/bzImage
+ls $KERNEL/vmlinux
+# sample output - $KERNEL/vmlinux
+ls $KERNEL/arch/x86/boot/bzImage
+# sample output - $KERNEL/arch/x86/boot/bzImage
 ```
 
 ## Image
