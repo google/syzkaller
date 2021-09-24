@@ -8,8 +8,14 @@ In the instructions below, the `$VAR` notation (e.g. `$GCC`, `$KERNEL`, etc.) is
 
 If your distro's GCC is older, it's preferable to get the lastest GCC from [this](/docs/syzbot.md#crash-does-not-reproduce) list. Download and unpack into `$GCC`, and you should have GCC binaries in `$GCC/bin/`
 
+>**Ubuntu 20.04 LTS**: You can ignore this section. GCC is up-to-date.
+
+Command:
 ``` bash
-$ ls $GCC/bin/
+ls $GCC/bin/
+```
+Sample output:
+``` bash
 cpp     gcc-ranlib  x86_64-pc-linux-gnu-gcc        x86_64-pc-linux-gnu-gcc-ranlib
 gcc     gcov        x86_64-pc-linux-gnu-gcc-9.0.0
 gcc-ar  gcov-dump   x86_64-pc-linux-gnu-gcc-ar
