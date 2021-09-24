@@ -129,15 +129,20 @@ ls $KERNEL/arch/x86/boot/bzImage
 
 ## Image
 
-Install debootstrap:
+### Install debootstrap
 
+Command:
 ``` bash
-sudo apt-get install debootstrap
+sudo apt install debootstrap
 ```
 
-To create a Debian Stretch Linux image with the minimal set of required packages do:
+### Create Debian Stretch Linux image
 
+Create a Debian Stretch Linux image with the minimal set of required packages.
+
+Command:
 ```
+mkdir $IMAGE
 cd $IMAGE/
 wget https://raw.githubusercontent.com/google/syzkaller/master/tools/create-image.sh -O create-image.sh
 chmod +x create-image.sh
@@ -146,20 +151,25 @@ chmod +x create-image.sh
 
 The result should be `$IMAGE/stretch.img` disk image.
 
-If you would like to generate an image with Debian Buster, instead of Stretch, do:
+### OR Create Debian Buster Linux image
 
+Command:
 ``` bash
 ./create-image.sh --distribution buster
 ```
 
+### Image exatra tools
+
 Sometimes it's useful to have some additional packages and tools available in the VM even though they are not required to run syzkaller. To install a set of tools we find useful do (feel free to edit the list of tools in the script):
 
+Command:
 ``` bash
 ./create-image.sh --feature full
 ```
 
 To install perf (not required to run syzkaller; requires `$KERNEL` to point to the kernel sources):
 
+Command:
 ``` bash
 ./create-image.sh --add-perf
 ```
