@@ -23,37 +23,48 @@ If your distro's GCC is older, it's preferable to get the lastest GCC from [this
 Command:
 ``` bash
 ls $GCC/bin/
-```
-Sample output:
-``` bash
-cpp     gcc-ranlib  x86_64-pc-linux-gnu-gcc        x86_64-pc-linux-gnu-gcc-ranlib
-gcc     gcov        x86_64-pc-linux-gnu-gcc-9.0.0
-gcc-ar  gcov-dump   x86_64-pc-linux-gnu-gcc-ar
-gcc-nm  gcov-tool   x86_64-pc-linux-gnu-gcc-nm
+# Sample output:
+# cpp     gcc-ranlib  x86_64-pc-linux-gnu-gcc        x86_64-pc-linux-gnu-gcc-ranlib
+# gcc     gcov        x86_64-pc-linux-gnu-gcc-9.0.0
+# gcc-ar  gcov-dump   x86_64-pc-linux-gnu-gcc-ar
+# gcc-nm  gcov-tool   x86_64-pc-linux-gnu-gcc-nm
 ```
 
 ## Kernel
 
-Checkout Linux kernel source:
+### Checkout Linux Kernel source
 
+Command:
 ``` bash
-git clone git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git $KERNEL
+git clone --branch v5.14 git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git $KERNEL
 ```
 
-Generate default configs:
+>We recommend to start with the latest stable version. v5.14 is an example here.
 
+### Generate default configs
+
+Command:
+``` bash
+cd $KERNEL
+make defconfig
+make kvm_guest.config
+```
+
+Or if you want to specify a compiler.
+
+Command:
 ``` bash
 cd $KERNEL
 make CC="$GCC/bin/gcc" defconfig
 make CC="$GCC/bin/gcc" kvm_guest.config
 ```
 
-Note: If you are using your distro's GCC, you don't need to set `CC` in the `make` command.
+### Enable required config options
 
 Enable kernel config options required for syzkaller as described [here](kernel_configs.md).
 It's not required to enable all of them, but at the very least you need:
 
-```
+``` make
 # Coverage collection.
 CONFIG_KCOV=y
 
@@ -73,25 +84,42 @@ Edit `.config` file manually and enable them (or do that through `make menuconfi
 
 Since enabling these options results in more sub options being available, we need to regenerate config:
 
+Command:
+``` bash
+make olddefconfig
+```
+
+Or if you want to specify a compiler.
+
+Command:
 ``` bash
 make CC="$GCC/bin/gcc" olddefconfig
 ```
 
 You might also be interested in disabling the Predictable Network Interface Names mechanism. This can be disabled either in the syzkaller configuration (see details [here](troubleshooting.md)) or by updating these kernel configuration parameters:
 
-```
+``` make
 CONFIG_CMDLINE_BOOL=y
 CONFIG_CMDLINE="net.ifnames=0"
 ```
 
-Build the kernel:
+### Build the Kernel
 
+Command:
 ```
-make CC="$GCC/bin/gcc" -j64
+make -j`nproc`
+```
+
+Or if you want to specify a compiler.
+
+Command:
+```
+make CC="$GCC/bin/gcc" -j`nproc`
 ```
 
 Now you should have `vmlinux` (kernel binary) and `bzImage` (packed kernel image):
 
+Command:
 ``` bash
 ls $KERNEL/vmlinux
 # sample output - $KERNEL/vmlinux
