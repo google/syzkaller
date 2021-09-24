@@ -178,14 +178,18 @@ For additional options of `create-image.sh`, please refer to `./create-image.sh 
 
 ## QEMU
 
-Install `QEMU`:
+### Install QEMU
 
+Command:
 ``` bash
-sudo apt-get install qemu-system-x86
+sudo apt install qemu-system-x86
 ```
 
-Make sure the kernel boots and `sshd` starts:
+### Verify
 
+Make sure the kernel boots and `sshd` starts.
+
+Command:
 ``` bash
 qemu-system-x86_64 \
 	-m 2G \
@@ -220,17 +224,21 @@ Booting the kernel.
 [ ok ] Starting OpenBSD Secure Shell server: sshd.
 ```
 
-After that you should be able to ssh to QEMU instance in another terminal:
+After that you should be able to ssh to QEMU instance in another terminal.
 
+Command:
 ``` bash
 ssh -i $IMAGE/stretch.id_rsa -p 10021 -o "StrictHostKeyChecking no" root@localhost
 ```
+
+### Troubleshooting
 
 If this fails with "too many tries", ssh may be passing default keys before
 the one explicitly passed with `-i`. Append option `-o "IdentitiesOnly yes"`.
 
 To kill the running QEMU instance press `Ctrl+A` and then `X` or run:
 
+Command:
 ``` bash
 kill $(cat vm.pid)
 ```
