@@ -464,7 +464,8 @@ var oses = map[string]osCommon{
 		ExecutorUsesForkServer: true,
 		KernelObject:           "kernel.full",
 		CPP:                    "g++",
-		cflags:                 []string{"-static-pie", "-lc++"},
+		// FreeBSD is missing toolchain support for static PIEs.
+		cflags: []string{"-static", "-lc++"},
 	},
 	Darwin: {
 		SyscallNumbers:    true,
