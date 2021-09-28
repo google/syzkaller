@@ -7,30 +7,30 @@ execution log with several programs.
 1. Setup Go toolchain (if you don't yet have it, you need version 1.13 or higher):
 Download latest Go distribution from (https://golang.org/dl/). Unpack it to `$HOME/goroot`.
 ``` bash
-$ export GOROOT=$HOME/goroot
-$ export GOPATH=$HOME/gopath
+export GOROOT=$HOME/goroot
+export GOPATH=$HOME/gopath
 ```
 
 2. Download syzkaller sources:
 ``` bash
-$ go get -u -d github.com/google/syzkaller/prog
+go get -u -d github.com/google/syzkaller/prog
 ```
 
 3. Build necessary syzkaller binaries:
 ``` bash
-$ cd $GOPATH/src/github.com/google/syzkaller
-$ make
+cd $GOPATH/src/github.com/google/syzkaller
+make
 ```
 
 4. Copy binaries and the program to test machine (substitute target `linux_amd64`
 as necessary):
 ``` bash
-$ scp -P 10022 -i stretch.img.key bin/linux_amd64/syz-execprog bin/linux_amd64/syz-executor program root@localhost:
+scp -P 10022 -i stretch.img.key bin/linux_amd64/syz-execprog bin/linux_amd64/syz-executor program root@localhost:
 ```
 
 5. Run the program on the test machine:
 ``` bash
-$ ./syz-execprog -repeat=0 -procs=8 program
+./syz-execprog -repeat=0 -procs=8 program
 ```
 
 Several useful `syz-execprog` flags:
