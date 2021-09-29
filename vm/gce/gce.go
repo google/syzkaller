@@ -135,7 +135,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	name := fmt.Sprintf("%v-%v", pool.env.Name, index)
 	// Create SSH key for the instance.
 	gceKey := filepath.Join(workdir, "key")
-	keygen := osutil.Command("ssh-keygen", "-t", "rsa", "-b", "2048", "-N", "", "-C", "syzkaller", "-f", gceKey)
+	keygen := osutil.Command("ssh-keygen", "-t", "ed25519", "-N", "", "-C", "syzkaller", "-f", gceKey)
 	if out, err := keygen.CombinedOutput(); err != nil {
 		return nil, fmt.Errorf("failed to execute ssh-keygen: %v\n%s", err, out)
 	}
@@ -400,6 +400,9 @@ func (pool *Pool) getSerialPortOutput(name, gceKey string) ([]byte, error) {
 	conAddr := fmt.Sprintf("%v.%v.%v.syzkaller.port=1.replay-lines=10000@ssh-serialport.googleapis.com",
 		pool.GCE.ProjectID, pool.GCE.ZoneID, name)
 	conArgs := append(vmimpl.SSHArgs(pool.env.Debug, gceKey, 9600), conAddr)
+	// TODO(blackgnezdo): Remove this once ssh-serialport.googleapis.com stops using
+	// host key algorithm: ssh-rsa.
+	conArgs = append(conArgs, "-o", "HostKeyAlgorithms=+ssh-rsa")
 	con := osutil.Command("ssh", conArgs...)
 	con.Env = []string{}
 	con.Stdout = conWpipe
