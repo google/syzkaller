@@ -93,10 +93,10 @@ func (inst *instance) qmp(cmd *qmpCommand) (interface{}, error) {
 	}
 	resp, err := inst.doQmp(cmd)
 	if err != nil {
-		return resp.Return, err
+		return nil, err
 	}
 	if resp.Error.Desc != "" {
-		return resp.Return, fmt.Errorf("error %v", resp.Error)
+		return nil, fmt.Errorf("error %v", resp.Error)
 	}
 	if resp.Return == nil {
 		return nil, fmt.Errorf(`no "return" nor "error" in [%v]`, resp)
