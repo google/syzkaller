@@ -308,13 +308,13 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 			} else if merr, ok := err.(vmimpl.MergerError); ok && merr.R == conRpipe {
 				// Console connection must never fail. If it does, it's either
 				// instance preemption or a GCE bug. In either case, not a kernel bug.
-				log.Logf(1, "%v: gce console connection failed with %v", inst.name, merr.Err)
+				log.Logf(0, "%v: gce console connection failed with %v", inst.name, merr.Err)
 				err = vmimpl.ErrTimeout
 			} else {
 				// Check if the instance was terminated due to preemption or host maintenance.
 				time.Sleep(5 * time.Second) // just to avoid any GCE races
 				if !inst.GCE.IsInstanceRunning(inst.name) {
-					log.Logf(1, "%v: ssh exited but instance is not running", inst.name)
+					log.Logf(0, "%v: ssh exited but instance is not running", inst.name)
 					err = vmimpl.ErrTimeout
 				}
 			}
