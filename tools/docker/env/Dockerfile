@@ -8,7 +8,7 @@ FROM debian:buster
 LABEL homepage="https://github.com/google/syzkaller"
 
 RUN dpkg --add-architecture i386 && \
-	apt-get update && \
+	apt-get update --allow-releaseinfo-change && \
 	DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
 	sudo make nano git curl ca-certificates clang-format clang-tidy binutils g++ clang \
 	g++-arm-linux-gnueabi g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu \

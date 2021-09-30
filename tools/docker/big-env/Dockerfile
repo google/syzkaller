@@ -31,7 +31,7 @@ FROM gcr.io/syzkaller/env
 #	create-image.sh -a s390x -d buster
 
 RUN dpkg --add-architecture i386 && \
-	apt-get update && \
+	apt-get update --allow-releaseinfo-change && \
 	DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
 	# required to build root images.
 	debootstrap ssh-tools qemu-user-static \
