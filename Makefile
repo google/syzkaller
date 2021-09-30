@@ -327,6 +327,12 @@ presubmit_arch: descriptions
 presubmit_big: descriptions
 	# This target runs on CI in syz-big-env,
 	# so we test packages that need GCloud SDK or OS toolchains.
+ifneq (, $(shell which go1.12))
+	# Test Appengine app build locally with Go 1.12 (syz-big-env has it).
+	# The actual build happens with Go 1.11, but local build fails with 1.11,
+	# so we use 1.12 as the best working approximation.
+	GO111MODULE=off go1.12 install ./dashboard/app
+endif
 	$(GO) test -short -coverprofile=.coverage.txt ./dashboard/app ./pkg/csource ./pkg/cover
 
 presubmit_race: descriptions
