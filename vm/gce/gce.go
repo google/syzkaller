@@ -224,6 +224,8 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	conAddr := fmt.Sprintf("%v.%v.%v.syzkaller.port=1@ssh-serialport.googleapis.com",
 		inst.GCE.ProjectID, inst.GCE.ZoneID, inst.name)
 	conArgs := append(vmimpl.SSHArgs(inst.debug, inst.gceKey, 9600), conAddr)
+	// TODO: remove this later (see also a comment in getSerialPortOutput).
+	conArgs = append(conArgs, "-o", "HostKeyAlgorithms=+ssh-rsa")
 	con := osutil.Command("ssh", conArgs...)
 	con.Env = []string{}
 	con.Stdout = conWpipe
