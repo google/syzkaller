@@ -407,6 +407,11 @@ int main(int argc, char** argv)
 	if (argc == 2 && strcmp(argv[1], "test") == 0)
 		return run_tests();
 
+	if (argc < 2 || strcmp(argv[1], "exec") != 0) {
+		fprintf(stderr, "unknown command");
+		return 1;
+	}
+
 	start_time_ms = current_time_ms();
 
 	os_init(argc, argv, (char*)SYZ_DATA_OFFSET, SYZ_NUM_PAGES * SYZ_PAGE_SIZE);

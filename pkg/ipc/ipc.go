@@ -188,7 +188,7 @@ func MakeEnv(config *Config, pid int) (*Env, error) {
 		out:     outmem,
 		inFile:  inf,
 		outFile: outf,
-		bin:     strings.Split(config.Executor, " "),
+		bin:     append(strings.Split(config.Executor, " "), "exec"),
 		pid:     pid,
 		config:  config,
 	}
