@@ -83,7 +83,8 @@ func (ctx *serializer) call(c *Call) {
 
 	anyChangedProps := false
 	c.Props.ForeachProp(func(name, key string, value reflect.Value) {
-		if value.IsZero() {
+		// reflect.Value.IsZero is added in go1.13, not available in Appengine SDK.
+		if reflect.DeepEqual(value.Interface(), reflect.Zero(value.Type()).Interface()) {
 			return
 		}
 
