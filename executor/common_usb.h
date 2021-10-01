@@ -117,9 +117,8 @@ static struct usb_device_index* add_usb_index(int fd, const char* dev, size_t de
 static struct usb_device_index* lookup_usb_index(int fd)
 {
 	for (int i = 0; i < USB_MAX_FDS; i++) {
-		if (__atomic_load_n(&usb_devices[i].fd, __ATOMIC_ACQUIRE) == fd) {
+		if (__atomic_load_n(&usb_devices[i].fd, __ATOMIC_ACQUIRE) == fd)
 			return &usb_devices[i].index;
-		}
 	}
 	return NULL;
 }

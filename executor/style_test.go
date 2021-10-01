@@ -36,6 +36,22 @@ if (foo)
 			},
 		},
 		{
+			pattern:     `\) {\n[^\n}]+?\n\t*}\n`,
+			suppression: "debug|__except",
+			message:     "Don't use single-line compound statements (remove {})",
+			tests: []string{
+				`
+if (foo) {
+	bar();
+}
+`, `
+	while (x + y) {
+		foo(a, y);
+	}
+`,
+			},
+		},
+		{
 			// These are also not properly stripped by pkg/csource.
 			pattern: `/\*[^{]`,
 			message: "Don't use /* */ block comments. Use // line comments instead",
@@ -146,18 +162,24 @@ if (foo)
 			re := regexp.MustCompile(check.pattern)
 			supp := regexp.MustCompile(check.suppression)
 			for _, match := range re.FindAllIndex(data, -1) {
-				// Locate the last line of the match, that's where we assume the error is.
 				end := match[1] - 1
 				for end != len(data) && data[end] != '\n' {
 					end++
 				}
-				start := end - 1
+				// Match suppressions against all lines of the match.
+				start := match[0] - 1
 				for start != 0 && data[start-1] != '\n' {
 					start--
 				}
 				if check.suppression != "" && supp.Match(data[start:end]) {
 					continue
 				}
+				// Locate the last line of the match, that's where we assume the error is.
+				start = end - 1
+				for start != 0 && data[start-1] != '\n' {
+					start--
+				}
+
 				line := bytes.Count(data[:start], []byte{'\n'}) + 1
 				t.Errorf("\nexecutor/%v:%v: %v\n%s\n", file, line, check.message, data[start:end])
 			}

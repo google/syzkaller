@@ -195,9 +195,8 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 		memreg.guest_phys_addr = i * page_size;
 		memreg.memory_size = page_size;
 		memreg.userspace_addr = (uintptr_t)host_mem + i * page_size;
-		if (ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &memreg)) {
+		if (ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &memreg))
 			return -1;
-		}
 	}
 
 	struct kvm_regs regs;
