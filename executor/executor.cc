@@ -1179,9 +1179,8 @@ void execute_call(thread_t* th)
 	}
 	th->fault_injected = false;
 
-	if (th->call_props.fail_nth > 0) {
+	if (th->call_props.fail_nth > 0)
 		th->fault_injected = fault_injected(fail_fd);
-	}
 
 	debug("#%d [%llums] <- %s=0x%llx errno=%d ",
 	      th->id, current_time_ms() - start_time_ms, call->name, (uint64)th->res, th->reserrno);

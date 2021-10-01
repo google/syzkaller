@@ -2512,9 +2512,8 @@ static bool process_command_pkt(int fd, char* buf, ssize_t buf_size)
 {
 	struct hci_command_hdr* hdr = (struct hci_command_hdr*)buf;
 	if (buf_size < (ssize_t)sizeof(struct hci_command_hdr) ||
-	    hdr->plen != buf_size - sizeof(struct hci_command_hdr)) {
+	    hdr->plen != buf_size - sizeof(struct hci_command_hdr))
 		failmsg("process_command_pkt: invalid size", "suze=%zx", buf_size);
-	}
 
 	switch (hdr->opcode) {
 	case HCI_OP_WRITE_SCAN_ENABLE: {

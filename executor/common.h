@@ -102,9 +102,8 @@ static void segv_handler(int sig, siginfo_t* info, void* ctx)
 	// address of the faulting instruction rather than zero as other
 	// operating systems seem to do.  However, such faults should always be
 	// ignored.
-	if (sig == SIGBUS) {
+	if (sig == SIGBUS)
 		valid = 1;
-	}
 #endif
 	if (skip && valid) {
 		debug("SIGSEGV on %p, skipping\n", (void*)addr);
@@ -689,9 +688,8 @@ static void loop(void)
 			if (current_time_ms() - start < program_timeout_ms)
 				continue;
 #else
-		if (current_time_ms() - start < /*{{{PROGRAM_TIMEOUT_MS}}}*/) {
+		if (current_time_ms() - start < /*{{{PROGRAM_TIMEOUT_MS}}}*/)
 			continue;
-		}
 #endif
 			debug("killing hanging pid %d\n", pid);
 			kill_and_wait(pid, &status);

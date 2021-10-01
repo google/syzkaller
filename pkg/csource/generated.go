@@ -85,9 +85,8 @@ static void segv_handler(int sig, siginfo_t* info, void* ctx)
 	int skip = __atomic_load_n(&skip_segv, __ATOMIC_RELAXED) != 0;
 	int valid = addr < prog_start || addr > prog_end;
 #if GOOS_freebsd || (GOOS_test && HOSTGOOS_freebsd)
-	if (sig == SIGBUS) {
+	if (sig == SIGBUS)
 		valid = 1;
-	}
 #endif
 	if (skip && valid) {
 		debug("SIGSEGV on %p, skipping\n", (void*)addr);
@@ -693,9 +692,8 @@ static struct usb_device_index* add_usb_index(int fd, const char* dev, size_t de
 static struct usb_device_index* lookup_usb_index(int fd)
 {
 	for (int i = 0; i < USB_MAX_FDS; i++) {
-		if (__atomic_load_n(&usb_devices[i].fd, __ATOMIC_ACQUIRE) == fd) {
+		if (__atomic_load_n(&usb_devices[i].fd, __ATOMIC_ACQUIRE) == fd)
 			return &usb_devices[i].index;
-		}
 	}
 	return NULL;
 }
@@ -4375,9 +4373,8 @@ static struct usb_device_index* add_usb_index(int fd, const char* dev, size_t de
 static struct usb_device_index* lookup_usb_index(int fd)
 {
 	for (int i = 0; i < USB_MAX_FDS; i++) {
-		if (__atomic_load_n(&usb_devices[i].fd, __ATOMIC_ACQUIRE) == fd) {
+		if (__atomic_load_n(&usb_devices[i].fd, __ATOMIC_ACQUIRE) == fd)
 			return &usb_devices[i].index;
-		}
 	}
 	return NULL;
 }
@@ -5911,9 +5908,8 @@ static bool process_command_pkt(int fd, char* buf, ssize_t buf_size)
 {
 	struct hci_command_hdr* hdr = (struct hci_command_hdr*)buf;
 	if (buf_size < (ssize_t)sizeof(struct hci_command_hdr) ||
-	    hdr->plen != buf_size - sizeof(struct hci_command_hdr)) {
+	    hdr->plen != buf_size - sizeof(struct hci_command_hdr))
 		failmsg("process_command_pkt: invalid size", "suze=%zx", buf_size);
-	}
 
 	switch (hdr->opcode) {
 	case HCI_OP_WRITE_SCAN_ENABLE: {
@@ -7433,9 +7429,8 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 		memreg.guest_phys_addr = i * page_size;
 		memreg.memory_size = page_size;
 		memreg.userspace_addr = (uintptr_t)host_mem + i * page_size;
-		if (ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &memreg)) {
+		if (ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &memreg))
 			return -1;
-		}
 	}
 
 	struct kvm_regs regs;
@@ -10573,9 +10568,8 @@ static void loop(void)
 			if (current_time_ms() - start < program_timeout_ms)
 				continue;
 #else
-		if (current_time_ms() - start < /*{{{PROGRAM_TIMEOUT_MS}}}*/) {
+		if (current_time_ms() - start < /*{{{PROGRAM_TIMEOUT_MS}}}*/)
 			continue;
-		}
 #endif
 			debug("killing hanging pid %d\n", pid);
 			kill_and_wait(pid, &status);
