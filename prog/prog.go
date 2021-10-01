@@ -404,7 +404,7 @@ func removeArg(arg0 Arg) {
 }
 
 // removeCall removes call idx from p.
-func (p *Prog) removeCall(idx int) {
+func (p *Prog) RemoveCall(idx int) {
 	c := p.Calls[idx]
 	for _, arg := range c.Args {
 		removeArg(arg)

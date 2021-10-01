@@ -68,7 +68,7 @@ func removeCalls(p0 *Prog, callIndex0 int, crash bool, pred func(*Prog, int) boo
 			callIndex--
 		}
 		p := p0.Clone()
-		p.removeCall(i)
+		p.RemoveCall(i)
 		if !pred(p, callIndex) {
 			continue
 		}
