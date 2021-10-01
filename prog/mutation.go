@@ -79,7 +79,7 @@ func (ctx *mutator) splice() bool {
 	idx := r.Intn(len(p.Calls))
 	p.Calls = append(p.Calls[:idx], append(p0c.Calls, p.Calls[idx:]...)...)
 	for i := len(p.Calls) - 1; i >= ctx.ncalls; i-- {
-		p.removeCall(i)
+		p.RemoveCall(i)
 	}
 	return true
 }
@@ -141,7 +141,7 @@ func (ctx *mutator) insertCall() bool {
 	calls := r.generateCall(s, p, idx)
 	p.insertBefore(c, calls)
 	for len(p.Calls) > ctx.ncalls {
-		p.removeCall(idx)
+		p.RemoveCall(idx)
 	}
 	return true
 }
@@ -153,7 +153,7 @@ func (ctx *mutator) removeCall() bool {
 		return false
 	}
 	idx := r.Intn(len(p.Calls))
-	p.removeCall(idx)
+	p.RemoveCall(idx)
 	return true
 }
 
@@ -188,7 +188,7 @@ func (ctx *mutator) mutateArg() bool {
 		idx += len(calls)
 		for len(p.Calls) > ctx.ncalls {
 			idx--
-			p.removeCall(idx)
+			p.RemoveCall(idx)
 		}
 		if idx < 0 || idx >= len(p.Calls) || p.Calls[idx] != c {
 			panic(fmt.Sprintf("wrong call index: idx=%v calls=%v p.Calls=%v ncalls=%v",

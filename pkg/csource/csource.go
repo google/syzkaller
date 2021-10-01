@@ -48,6 +48,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		calls:     make(map[string]uint64),
 	}
 
+	ctx.filterCalls()
 	calls, vars, err := ctx.generateProgCalls(ctx.p, opts.Trace)
 	if err != nil {
 		return nil, err
@@ -121,11 +122,37 @@ type context struct {
 	calls     map[string]uint64 // CallName -> NR
 }
 
+// This is a kludge, but we keep it here until a better approach is implemented.
+// TODO: untie syz_emit_ethernet/syz_extract_tcp_res and NetInjection. And also
+// untie VhciInjection and syz_emit_vhci. Then we could remove this method.
+func (ctx *context) filterCalls() {
+	p := ctx.p
+	for i := 0; i < len(p.Calls); {
+		call := p.Calls[i]
+		callName := call.Meta.CallName
+		emitCall := (ctx.opts.NetInjection ||
+			callName != "syz_emit_ethernet" &&
+				callName != "syz_extract_tcp_res") &&
+			(ctx.opts.VhciInjection || callName != "syz_emit_vhci")
+		if emitCall {
+			i++
+			continue
+		}
+		// Remove the call.
+		if ctx.p == p {
+			// We lazily clone the program to avoid unnecessary copying.
+			p = ctx.p.Clone()
+		}
+		p.RemoveCall(i)
+	}
+	ctx.p = p
+}
+
 func (ctx *context) generateSyscalls(calls []string, hasVars bool) string {
 	opts := ctx.opts
 	buf := new(bytes.Buffer)
 	if !opts.Threaded && !opts.Collide {
-		if hasVars || opts.Trace {
+		if len(calls) > 0 && (hasVars || opts.Trace) {
 			fmt.Fprintf(buf, "\tintptr_t res = 0;\n")
 		}
 		if opts.Repro {
@@ -137,7 +164,7 @@ func (ctx *context) generateSyscalls(calls []string, hasVars bool) string {
 		for _, c := range calls {
 			fmt.Fprintf(buf, "%s", c)
 		}
-	} else {
+	} else if len(calls) > 0 {
 		if hasVars || opts.Trace {
 			fmt.Fprintf(buf, "\tintptr_t res = 0;\n")
 		}
@@ -207,20 +234,10 @@ func (ctx *context) generateCalls(p prog.ExecProg, trace bool) ([]string, []uint
 			fmt.Fprintf(w, "\tinject_fault(%v);\n", call.Props.FailNth)
 		}
 		// Call itself.
-		callName := call.Meta.CallName
 		resCopyout := call.Index != prog.ExecNoCopyout
 		argCopyout := len(call.Copyout) != 0
-		emitCall := (ctx.opts.NetInjection ||
-			callName != "syz_emit_ethernet" &&
-				callName != "syz_extract_tcp_res") &&
-			(ctx.opts.VhciInjection || callName != "syz_emit_vhci")
-		// TODO: if we don't emit the call we must also not emit copyin, copyout and fault injection.
-		// However, simply skipping whole iteration breaks tests due to unused static functions.
-		if emitCall {
-			ctx.emitCall(w, call, ci, resCopyout || argCopyout, trace)
-		} else if trace {
-			fmt.Fprintf(w, "\t(void)res;\n")
-		}
+
+		ctx.emitCall(w, call, ci, resCopyout || argCopyout, trace)
 
 		// Copyout.
 		if resCopyout || argCopyout {
