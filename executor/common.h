@@ -661,7 +661,8 @@ static void loop(void)
 			if (waitpid(-1, &status, WNOHANG | WAIT_FLAGS) == pid)
 				break;
 			sleep_ms(1);
-#if SYZ_EXECUTOR && SYZ_EXECUTOR_USES_SHMEM
+#if SYZ_EXECUTOR
+#if SYZ_EXECUTOR_USES_SHMEM
 			// Even though the test process executes exit at the end
 			// and execution time of each syscall is bounded by syscall_timeout_ms (~50ms),
 			// this backup watchdog is necessary and its performance is important.
@@ -684,12 +685,13 @@ static void loop(void)
 			if ((now - start < program_timeout_ms) &&
 			    (now - start < min_timeout_ms || now - last_executed < inactive_timeout_ms))
 				continue;
-#elif SYZ_EXECUTOR
+#else
 			if (current_time_ms() - start < program_timeout_ms)
 				continue;
+#endif
 #else
-		if (current_time_ms() - start < /*{{{PROGRAM_TIMEOUT_MS}}}*/)
-			continue;
+			if (current_time_ms() - start < /*{{{PROGRAM_TIMEOUT_MS}}}*/)
+				continue;
 #endif
 			debug("killing hanging pid %d\n", pid);
 			kill_and_wait(pid, &status);
