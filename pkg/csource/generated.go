@@ -10552,7 +10552,8 @@ static void loop(void)
 			if (waitpid(-1, &status, WNOHANG | WAIT_FLAGS) == pid)
 				break;
 			sleep_ms(1);
-#if SYZ_EXECUTOR && SYZ_EXECUTOR_USES_SHMEM
+#if SYZ_EXECUTOR
+#if SYZ_EXECUTOR_USES_SHMEM
 			uint64 min_timeout_ms = program_timeout_ms * 3 / 5;
 			uint64 inactive_timeout_ms = syscall_timeout_ms * 20;
 			uint64 now = current_time_ms();
@@ -10564,12 +10565,13 @@ static void loop(void)
 			if ((now - start < program_timeout_ms) &&
 			    (now - start < min_timeout_ms || now - last_executed < inactive_timeout_ms))
 				continue;
-#elif SYZ_EXECUTOR
+#else
 			if (current_time_ms() - start < program_timeout_ms)
 				continue;
+#endif
 #else
-		if (current_time_ms() - start < /*{{{PROGRAM_TIMEOUT_MS}}}*/)
-			continue;
+			if (current_time_ms() - start < /*{{{PROGRAM_TIMEOUT_MS}}}*/)
+				continue;
 #endif
 			debug("killing hanging pid %d\n", pid);
 			kill_and_wait(pid, &status);
