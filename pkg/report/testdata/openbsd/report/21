@@ -1,14 +1,14 @@
-TITLE: panic: fifo_badop called
+TITLE: panic: vop_generic_badop
 SUPPRESSED: Y
 
-panic: fifo_badop called
+panic: vop_generic_badop
 Stopped at      db_enter+0x18:  addq    $0x8,%rsp
     TID    PID    UID     PRFLAGS     PFLAGS  CPU  COMMAND
 *329264   5452  32767        0x10          0    0  syz-executor.0
  160940   6886  32767        0x10          0    1K syz-executor.1
 db_enter() at db_enter+0x18
 panic() at panic+0x15c
-fifo_badop(ffff800024f473f8) at fifo_badop+0x14
+vop_generic_badop(ffff800024f473f8) at vop_generic_badop+0x14
 VOP_STRATEGY(fffffd806fc48700) at VOP_STRATEGY+0x99
 bwrite(fffffd806fc48700) at bwrite+0x1b9
 VOP_BWRITE(fffffd806fc48700) at VOP_BWRITE+0x4a
@@ -25,11 +25,11 @@ ddb{0}>
 ddb{0}> set $lines = 0
 ddb{0}> set $maxwidth = 0
 ddb{0}> show panic
-fifo_badop called
+vop_generic_badop
 ddb{0}> trace
 db_enter() at db_enter+0x18
 panic() at panic+0x15c
-fifo_badop(ffff800024f473f8) at fifo_badop+0x14
+vop_generic_badop(ffff800024f473f8) at vop_generic_badop+0x14
 VOP_STRATEGY(fffffd806fc48700) at VOP_STRATEGY+0x99
 bwrite(fffffd806fc48700) at bwrite+0x1b9
 VOP_BWRITE(fffffd806fc48700) at VOP_BWRITE+0x4a

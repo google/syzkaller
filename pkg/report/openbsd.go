@@ -19,7 +19,7 @@ func ctorOpenbsd(cfg *config) (reporterImpl, []string, error) {
 		return nil, nil, err
 	}
 	suppressions := []string{
-		"panic: fifo_badop called",
+		"panic: vop_generic_badop",
 		"witness: lock order reversal:\\n(.*\\n)*.*[0-9stnd]+ 0x[0-9a-f]+ inode(.*\\n)*.*lock order .* first seen at",
 	}
 	return ctx, suppressions, nil
