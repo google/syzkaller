@@ -61,5 +61,16 @@ RUN go get golang.org/dl/go1.12@latest
 # so we need to use HOME value we will be using later.
 RUN HOME=/syzkaller go1.12 download
 
+# Debian Buster provides only clang-7 which is quite old,
+# in particular it does not detect some warnings that later fire on OpenBSD.
+# Install clang-14 from https://apt.llvm.org.
+RUN apt-get install -y -q gnupg software-properties-common apt-transport-https
+RUN curl https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+RUN add-apt-repository "deb http://apt.llvm.org/buster/ llvm-toolchain-buster main"
+RUN apt-get update --allow-releaseinfo-change
+RUN apt-get remove -y -q clang-7
+RUN apt-get install -y -q --no-install-recommends clang-14
+RUN apt autoremove -y -q
+
 RUN echo "export PS1='syz-big-env🈶 '" > /syzkaller/.bashrc
 ENV SYZ_BIG_ENV yes
