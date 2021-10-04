@@ -236,7 +236,14 @@ func generateReport(t *testing.T, target *targets.Target, test Test) ([]byte, []
 	}
 	if test.AddCover {
 		var pcs []uint64
-		if output, err := osutil.RunCmd(time.Minute, "", bin); err == nil {
+		// Sanitizers crash when installing signal handlers with static libc.
+		const sanitizerOptions = "handle_segv=0:handle_sigbus=0:handle_sigfpe=0"
+		cmd := osutil.Command(bin)
+		cmd.Env = append([]string{
+			"UBSAN_OPTIONS=" + sanitizerOptions,
+			"ASAN_OPTIONS=" + sanitizerOptions,
+		}, os.Environ()...)
+		if output, err := osutil.Run(time.Minute, cmd); err == nil {
 			pc, err := strconv.ParseUint(string(output), 10, 64)
 			if err != nil {
 				t.Fatal(err)
