@@ -33,6 +33,7 @@ import (
 type Test struct {
 	Name     string
 	CFlags   []string
+	LDFlags  []string
 	Progs    []Prog
 	AddCover bool
 	Result   string
@@ -72,8 +73,8 @@ func TestReportGenerator(t *testing.T) {
 		{
 			Name:     "good-pie",
 			AddCover: true,
-			CFlags: []string{"-fsanitize-coverage=trace-pc", "-g", "-fpie", "-pie",
-				"-Wl,--section-start=.text=0x33300000"},
+			CFlags:   []string{"-fsanitize-coverage=trace-pc", "-g", "-fpie"},
+			LDFlags:  []string{"-pie", "-Wl,--section-start=.text=0x33300000"},
 			Supports: func(target *targets.Target) bool {
 				return target.OS == targets.Fuchsia ||
 					// Fails with "relocation truncated to fit: R_AARCH64_CALL26 against symbol `memcpy'".
@@ -86,8 +87,8 @@ func TestReportGenerator(t *testing.T) {
 			// This produces a binary that resembles CONFIG_RANDOMIZE_BASE=y.
 			// Symbols and .text section has addresses around 0x33300000,
 			// but debug info has all PC ranges around 0 address.
-			CFlags: []string{"-fsanitize-coverage=trace-pc", "-g", "-fpie", "-pie",
-				"-Wl,--section-start=.text=0x33300000,--emit-relocs"},
+			CFlags:  []string{"-fsanitize-coverage=trace-pc", "-g", "-fpie"},
+			LDFlags: []string{"-pie", "-Wl,--section-start=.text=0x33300000,--emit-relocs"},
 			Supports: func(target *targets.Target) bool {
 				return target.OS == targets.Fuchsia ||
 					target.OS == targets.Linux && target.Arch != targets.ARM64 &&
@@ -188,8 +189,9 @@ func buildTestBinary(t *testing.T, target *targets.Target, test Test, dir string
 		aslrExtraLibs = []string{"-ldl"}
 	}
 
-	kcovFlags := append([]string{"-c", "-w", "-x", "c", "-o", kcovObj, kcovSrc, aslrDefine}, target.CFlags...)
+	kcovFlags := append([]string{"-c", "-fpie", "-w", "-x", "c", "-o", kcovObj, kcovSrc, aslrDefine}, target.CFlags...)
 	src := filepath.Join(dir, "main.c")
+	obj := filepath.Join(dir, "main.o")
 	bin := filepath.Join(dir, target.KernelObject)
 	if err := osutil.WriteFile(src, []byte(`int main() {}`)); err != nil {
 		t.Fatal(err)
@@ -198,15 +200,48 @@ func buildTestBinary(t *testing.T, target *targets.Target, test Test, dir string
 		t.Fatal(err)
 	}
 
-	linkOrder := append([]string{src, kcovObj}, aslrExtraLibs...)
-	flags := append(append(append([]string{"-w", "-o", bin}, linkOrder...), target.CFlags...), test.CFlags...)
-	if _, err := osutil.RunCmd(time.Hour, "", target.CCompiler, flags...); err != nil {
+	// We used to compile and link with a single compiler invocation,
+	// but clang has a bug that it tries to link in ubsan runtime when
+	// -fsanitize-coverage=trace-pc is provided during linking and
+	// ubsan runtime is missing for arm/arm64/riscv arches in the llvm packages.
+	// So we first compile with -fsanitize-coverage and then link w/o it.
+	cflags := append(append([]string{"-w", "-c", "-o", obj, src}, target.CFlags...), test.CFlags...)
+	if _, err := osutil.RunCmd(time.Hour, "", target.CCompiler, cflags...); err != nil {
 		errText := err.Error()
 		errText = strings.ReplaceAll(errText, "‘", "'")
 		errText = strings.ReplaceAll(errText, "’", "'")
 		if strings.Contains(errText, "error: unrecognized command line option '-fsanitize-coverage=trace-pc'") &&
 			(os.Getenv("SYZ_BIG_ENV") == "" || target.OS == targets.Akaros) {
 			t.Skip("skipping test, -fsanitize-coverage=trace-pc is not supported")
+		}
+		t.Fatal(err)
+	}
+
+	ldflags := append(append(append([]string{"-o", bin, obj, kcovObj}, aslrExtraLibs...),
+		target.CFlags...), test.LDFlags...)
+	staticIdx, pieIdx := -1, -1
+	for i, arg := range ldflags {
+		switch arg {
+		case "-static":
+			staticIdx = i
+		case "-pie":
+			pieIdx = i
+		}
+	}
+	if target.OS == targets.Fuchsia && pieIdx != -1 {
+		// Fuchsia toolchain fails when given -pie:
+		// clang-12: error: argument unused during compilation: '-pie'
+		ldflags[pieIdx] = ldflags[len(ldflags)-1]
+		ldflags = ldflags[:len(ldflags)-1]
+	} else if pieIdx != -1 && staticIdx != -1 {
+		// -static and -pie are incompatible during linking.
+		ldflags[staticIdx] = ldflags[len(ldflags)-1]
+		ldflags = ldflags[:len(ldflags)-1]
+	}
+	if _, err := osutil.RunCmd(time.Hour, "", target.CCompiler, ldflags...); err != nil {
+		// Arm linker in the big-env image has a bug when linking a clang-produced files.
+		if regexp.MustCompile(`arm-linux-gnueabi.* assertion fail`).MatchString(err.Error()) {
+			t.Skipf("skipping test, broken arm linker (%v)", err)
 		}
 		t.Fatal(err)
 	}
