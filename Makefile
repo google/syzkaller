@@ -303,7 +303,7 @@ presubmit_arch: descriptions
 	env HOSTOS=openbsd HOSTARCH=amd64 $(MAKE) host
 	env HOSTOS=darwin HOSTARCH=amd64 $(MAKE) host
 	env TARGETOS=linux TARGETARCH=amd64 $(MAKE) target
-	env TARGETOS=linux TARGETARCH=amd64 SYZ_CLANG=yes $(MAKE) target
+	env TARGETOS=linux TARGETARCH=amd64 SYZ_CLANG=yes $(MAKE) executor
 	env TARGETOS=linux TARGETARCH=386 $(MAKE) target
 	env TARGETOS=linux TARGETARCH=arm64 $(MAKE) target
 	env TARGETOS=linux TARGETARCH=arm $(MAKE) target
@@ -333,7 +333,12 @@ ifneq (, $(shell which go1.12))
 	# so we use 1.12 as the best working approximation.
 	GO111MODULE=off go1.12 install ./dashboard/app
 endif
-	$(GO) test -short -coverprofile=.coverage.txt ./dashboard/app ./pkg/csource ./pkg/cover
+	# Run tests with clang on Linux.
+	# big-env also contains toolchains for NetBSD/Fuchsia/Akaros,
+	# but these OSes use fixed toolchains and are not affected by SYZ_CLANG=yes.
+	# This way we get maximum coverage: smoke run tests Linux/gcc,
+	# while this run tests Linux/clang + the additional OSes.
+	SYZ_CLANG=yes $(GO) test -short -coverprofile=.coverage.txt ./dashboard/app ./pkg/csource ./pkg/cover
 
 presubmit_race: descriptions
 	# -race requires cgo
