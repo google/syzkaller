@@ -135,6 +135,15 @@ func TestData(t *testing.T) {
 func TestFuzz(t *testing.T) {
 	t.Parallel()
 	for _, data := range []string{
+		`
+type p b[L]
+type b[L]{
+	e b[3:L]
+	e b[2:L]
+	e b[1[L]]
+	k b[H]
+	k b[Q]
+}`,
 		"d~^gB̉`i\u007f?\xb0.",
 		"da[",
 		"define\x98define(define\x98define\x98define\x98define\x98define)define\tdefin",

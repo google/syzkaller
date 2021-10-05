@@ -318,13 +318,17 @@ type parentDesc struct {
 	fields []*ast.Field
 }
 
-func parentTargetName(s *ast.Struct) string {
-	parentName := s.Name.Name
-	if pos := strings.IndexByte(parentName, '['); pos != -1 {
-		// For template parents name is "struct_name[ARG1, ARG2]", strip the part after '['.
-		parentName = parentName[:pos]
+// templateName return the part before '[' for full template names.
+func templateBase(name string) string {
+	if pos := strings.IndexByte(name, '['); pos != -1 {
+		return name[:pos]
 	}
-	return parentName
+	return name
+}
+
+func parentTargetName(s *ast.Struct) string {
+	// For template parents name is "struct_name[ARG1, ARG2]", strip the part after '['.
+	return templateBase(s.Name.Name)
 }
 
 func (comp *compiler) checkLenType(t0, t *ast.Type, parents []parentDesc,
@@ -915,22 +919,23 @@ func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, flags checkFlag
 			comp.checkTypeArg(t, t.Args[len(t.Args)-1], typeArgBase)
 		}
 	}
+	recursion := 0
 	fullTypeName := ast.SerializeNode(t)
-	for i, prev := range ctx.instantiationStack {
-		if prev == fullTypeName {
-			ctx.instantiationStack = append(ctx.instantiationStack, fullTypeName)
-			path := ""
-			for j := i; j < len(ctx.instantiationStack); j++ {
-				if j != i {
-					path += " -> "
-				}
-				path += ctx.instantiationStack[j]
-			}
-			comp.error(t.Pos, "type instantiation loop: %v", path)
-			return
-		}
-	}
 	ctx.instantiationStack = append(ctx.instantiationStack, fullTypeName)
+	for i, prev := range ctx.instantiationStack[:len(ctx.instantiationStack)-1] {
+		if typedefName == templateBase(prev) {
+			recursion++
+			if recursion > 10 {
+				comp.error(t.Pos, "type instantiation recursion: %v", strings.Join(ctx.instantiationStack, " -> "))
+				return
+			}
+		}
+		if prev != fullTypeName {
+			continue
+		}
+		comp.error(t.Pos, "type instantiation loop: %v", strings.Join(ctx.instantiationStack[i:], " -> "))
+		return
+	}
 	nargs := len(typedef.Args)
 	args := t.Args
 	if nargs != len(t.Args) {
@@ -958,7 +963,11 @@ func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, flags checkFlag
 			if !comp.instantiate(inst, typedef.Args, args) {
 				return
 			}
+			err0 := comp.errors
 			comp.checkStruct(*ctx, inst)
+			if err0 != comp.errors {
+				return
+			}
 			comp.desc.Nodes = append(comp.desc.Nodes, inst)
 			comp.structs[fullTypeName] = inst
 		}
