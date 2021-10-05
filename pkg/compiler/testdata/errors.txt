@@ -247,6 +247,9 @@ type type12 proc[123, 2, int16, opt]
 type type13 ptr[in, typestruct13]
 type type14 flags[type0, int32]
 type type15 const[0, type0]	### unexpected value type0 for base type argument of const type, expect [int8 int16 int32 int64 int16be int32be int64be intptr]
+type type16 type17		### type instantiation loop: type16 -> type16
+type type17 type18		### unknown type type16
+type type18 type16		### unknown type type16
 type bool8 int8[0:1]		### type bool8 redeclared, previously declared as type alias at builtins
 
 typestruct11 {
@@ -338,6 +341,23 @@ type TR[A, B] {
 	f TR[A, A[B]]		### type instantiation recursion: TR[X, Y] -> TR[X, X[Y]] -> TR[X, X[X[Y]]] -> TR[X, X[X[X[Y]]]] -> TR[X, X[X[X[X[Y]]]]] -> TR[X, X[X[X[X[X[Y]]]]]] -> TR[X, X[X[X[X[X[X[Y]]]]]]] -> TR[X, X[X[X[X[X[X[X[Y]]]]]]]] -> TR[X, X[X[X[X[X[X[X[X[Y]]]]]]]]] -> TR[X, X[X[X[X[X[X[X[X[X[Y]]]]]]]]]] -> TR[X, X[X[X[X[X[X[X[X[X[X[Y]]]]]]]]]]] -> TR[X, X[X[X[X[X[X[X[X[X[X[X[Y]]]]]]]]]]]]
 }
 type TU TR[X, Y]
+
+type TT1[A] {
+	f0 templ_base0[A]
+	f1 TT2[A]
+}
+
+type TT2[A] {
+	f1 templ_base0[A]
+	f2 TT3[A]
+}
+
+type TT3[A] {
+	f1 templ_base0[A]
+	f2 TT1[A]				### type instantiation loop: TT1[int8] -> TT2[int8] -> TT3[int8] -> TT1[int8]
+}
+
+foo$213(a ptr[in, TT1[int8]])
 
 foo$glob001(a ptr[in, glob[1]])			### unexpected int 1, string arg must be a string literal or string flags
 foo$glob002(a ptr[in, glob])			### glob only accepts 1 arg, provided 0
