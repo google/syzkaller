@@ -902,12 +902,25 @@ func (comp *compiler) checkTypeArgs(t *ast.Type, desc *typeDesc, flags checkFlag
 
 func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, flags checkFlags) {
 	typedefName := t.Ident
+	typedef := comp.typedefs[typedefName]
+	fullTypeName := ast.SerializeNode(t)
+	if comp.brokenTypedefs[fullTypeName] {
+		// We've already produced some errors for this exact type instantiation.
+		// Don't produce duplicates, also helps to prevent exponential
+		// slowdown due to some cases of recursion. But increment the number
+		// of errors so that callers can understand that we did not succeed.
+		comp.errors++
+		return
+	}
 	comp.usedTypedefs[typedefName] = true
+	err0 := comp.errors
+	defer func() {
+		comp.brokenTypedefs[fullTypeName] = err0 != comp.errors
+	}()
 	if len(t.Colon) != 0 {
 		comp.error(t.Pos, "type alias %v with ':'", t.Ident)
 		return
 	}
-	typedef := comp.typedefs[typedefName]
 	// Handling optional BASE argument.
 	if len(typedef.Args) > 0 && typedef.Args[len(typedef.Args)-1].Name == argBase {
 		if flags&checkIsArg != 0 && len(t.Args) == len(typedef.Args)-1 {
@@ -920,7 +933,6 @@ func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, flags checkFlag
 		}
 	}
 	recursion := 0
-	fullTypeName := ast.SerializeNode(t)
 	ctx.instantiationStack = append(ctx.instantiationStack, fullTypeName)
 	for i, prev := range ctx.instantiationStack[:len(ctx.instantiationStack)-1] {
 		if typedefName == templateBase(prev) {
@@ -963,7 +975,6 @@ func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, flags checkFlag
 			if !comp.instantiate(inst, typedef.Args, args) {
 				return
 			}
-			err0 := comp.errors
 			comp.checkStruct(*ctx, inst)
 			if err0 != comp.errors {
 				return
