@@ -334,6 +334,11 @@ foo$210(a ptr[in, templ11[0, 1, int8]])		### template templ11 needs 2 arguments 
 foo$211(a ptr[in, templ9])			### template templ9 needs 1 arguments instead of 0
 foo$212(a ptr[in, templ11[1]])			### template templ11 needs 2 arguments instead of 1
 
+type TR[A, B] {
+	f TR[A, A[B]]		### type instantiation recursion: TR[X, Y] -> TR[X, X[Y]] -> TR[X, X[X[Y]]] -> TR[X, X[X[X[Y]]]] -> TR[X, X[X[X[X[Y]]]]] -> TR[X, X[X[X[X[X[Y]]]]]] -> TR[X, X[X[X[X[X[X[Y]]]]]]] -> TR[X, X[X[X[X[X[X[X[Y]]]]]]]] -> TR[X, X[X[X[X[X[X[X[X[Y]]]]]]]]] -> TR[X, X[X[X[X[X[X[X[X[X[Y]]]]]]]]]] -> TR[X, X[X[X[X[X[X[X[X[X[X[Y]]]]]]]]]]] -> TR[X, X[X[X[X[X[X[X[X[X[X[X[Y]]]]]]]]]]]]
+}
+type TU TR[X, Y]
+
 foo$glob001(a ptr[in, glob[1]])			### unexpected int 1, string arg must be a string literal or string flags
 foo$glob002(a ptr[in, glob])			### glob only accepts 1 arg, provided 0
 foo$glob003(a ptr[in, glob["/sys", 5]])		### glob only accepts 1 arg, provided 2
