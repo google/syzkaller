@@ -49,20 +49,21 @@ func createCompiler(desc *ast.Description, target *targets.Target, eh ast.ErrorH
 	}
 	desc.Nodes = append(builtinDescs.Clone().Nodes, desc.Nodes...)
 	comp := &compiler{
-		desc:         desc,
-		target:       target,
-		eh:           eh,
-		ptrSize:      target.PtrSize,
-		unsupported:  make(map[string]bool),
-		resources:    make(map[string]*ast.Resource),
-		typedefs:     make(map[string]*ast.TypeDef),
-		structs:      make(map[string]*ast.Struct),
-		intFlags:     make(map[string]*ast.IntFlags),
-		strFlags:     make(map[string]*ast.StrFlags),
-		used:         make(map[string]bool),
-		usedTypedefs: make(map[string]bool),
-		structVarlen: make(map[string]bool),
-		structTypes:  make(map[string]prog.Type),
+		desc:           desc,
+		target:         target,
+		eh:             eh,
+		ptrSize:        target.PtrSize,
+		unsupported:    make(map[string]bool),
+		resources:      make(map[string]*ast.Resource),
+		typedefs:       make(map[string]*ast.TypeDef),
+		structs:        make(map[string]*ast.Struct),
+		intFlags:       make(map[string]*ast.IntFlags),
+		strFlags:       make(map[string]*ast.StrFlags),
+		used:           make(map[string]bool),
+		usedTypedefs:   make(map[string]bool),
+		brokenTypedefs: make(map[string]bool),
+		structVarlen:   make(map[string]bool),
+		structTypes:    make(map[string]prog.Type),
 		builtinConsts: map[string]uint64{
 			"PTR_SIZE": target.PtrSize,
 		},
@@ -121,14 +122,15 @@ type compiler struct {
 	warnings []warn
 	ptrSize  uint64
 
-	unsupported  map[string]bool
-	resources    map[string]*ast.Resource
-	typedefs     map[string]*ast.TypeDef
-	structs      map[string]*ast.Struct
-	intFlags     map[string]*ast.IntFlags
-	strFlags     map[string]*ast.StrFlags
-	used         map[string]bool // contains used structs/resources
-	usedTypedefs map[string]bool
+	unsupported    map[string]bool
+	resources      map[string]*ast.Resource
+	typedefs       map[string]*ast.TypeDef
+	structs        map[string]*ast.Struct
+	intFlags       map[string]*ast.IntFlags
+	strFlags       map[string]*ast.StrFlags
+	used           map[string]bool // contains used structs/resources
+	usedTypedefs   map[string]bool
+	brokenTypedefs map[string]bool
 
 	structVarlen  map[string]bool
 	structTypes   map[string]prog.Type
