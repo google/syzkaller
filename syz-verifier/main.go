@@ -113,7 +113,7 @@ type runnerProgs map[int]*progInfo
 
 func main() {
 	var cfgs tool.CfgsFlag
-	flag.Var(&cfgs, "configs", "list of kernel-specific comma-sepatated configuration files ")
+	flag.Var(&cfgs, "configs", "[MANDATORY] list of at least two kernel-specific comma-sepatated configuration files")
 	flagDebug := flag.Bool("debug", false, "dump all VM output to console")
 	flagStats := flag.String("stats", "", "where stats will be written when"+
 		"execution of syz-verifier finishes, defaults to stdout")
