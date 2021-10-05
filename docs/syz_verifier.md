@@ -60,8 +60,7 @@ make verifier runner executor
 
 To start using the tool, separate configuration files need to be created for
 each kernel you want to include in the verification. An example of Linux
-configs can be found [here](/docs/linux/
-setup_ubuntu-host_qemu-vm_x86-64-kernel.md#syzkaller). The configuration files
+configs can be found [here](/docs/linux/setup_ubuntu-host_qemu-vm_x86-64-kernel.md#syzkaller). The configuration files
 are identical to those used by `syz-manager`.
 
 If you want to generate programs from a specific set of system calls, these can
