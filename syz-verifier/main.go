@@ -136,6 +136,11 @@ func main() {
 		pools[idx] = pi
 	}
 
+	if len(pools) < 2 {
+		flag.Usage()
+		os.Exit(1)
+	}
+
 	cfg := pools[0].cfg
 	workdir, target, sysTarget, addr := cfg.Workdir, cfg.Target, cfg.SysTarget, cfg.RPC
 	for idx := 1; idx < len(pools); idx++ {
