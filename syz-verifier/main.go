@@ -268,6 +268,8 @@ func (vrf *Verifier) startInstances() {
 				}
 
 				inst.MonitorExecution(outc, errc, pi.Reporter, vm.ExitTimeout)
+
+				inst.Close()
 				vrf.srv.cleanup(idx, 0)
 			}
 		}(pi, idx)
