@@ -167,6 +167,10 @@ func Complete(cfg *Config) error {
 			return err
 		}
 	}
+	if cfg.FuzzingVMs < 0 {
+		return fmt.Errorf("fuzzing_vms cannot be less than 0")
+	}
+
 	var err error
 	cfg.Syscalls, err = ParseEnabledSyscalls(cfg.Target, cfg.EnabledSyscalls, cfg.DisabledSyscalls)
 	if err != nil {

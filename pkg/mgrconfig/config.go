@@ -135,6 +135,12 @@ type Config struct {
 	// Reproduce, localize and minimize crashers (default: true).
 	Reproduce bool `json:"reproduce"`
 
+	// The number of VMs that are reserved to only perform fuzzing and nothing else.
+	// Can be helpful e.g. to ensure that the pool of fuzzing VMs is never exhaused and
+	// the manager continues fuzzing no matter how many new bugs are encountered.
+	// By default the value is 0, i.e. all VMs can be used for all purposes.
+	FuzzingVMs int `json:"fuzzing_vms,omitempty"`
+
 	// List of syscalls to test (optional). For example:
 	//	"enable_syscalls": [ "mmap", "openat$ashmem", "ioctl$ASHMEM*" ]
 	EnabledSyscalls []string `json:"enable_syscalls,omitempty"`

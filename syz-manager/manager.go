@@ -287,8 +287,9 @@ func (mgr *Manager) vmLoop() {
 	log.Logf(0, "wait for the connection from test machine...")
 	instancesPerRepro := 4
 	vmCount := mgr.vmPool.Count()
-	if instancesPerRepro > vmCount {
-		instancesPerRepro = vmCount
+	maxReproVMs := vmCount - mgr.cfg.FuzzingVMs
+	if instancesPerRepro > maxReproVMs && maxReproVMs > 0 {
+		instancesPerRepro = maxReproVMs
 	}
 	bootInstance := make(chan int)
 	go func() {
@@ -329,8 +330,8 @@ func (mgr *Manager) vmLoop() {
 			len(pendingRepro), len(reproducing), len(reproQueue))
 
 		canRepro := func() bool {
-			return phase >= phaseTriagedHub &&
-				len(reproQueue) != 0 && reproInstances+instancesPerRepro <= vmCount
+			return phase >= phaseTriagedHub && len(reproQueue) != 0 &&
+				reproInstances+instancesPerRepro <= maxReproVMs
 		}
 
 		if shutdown != nil {
