@@ -116,6 +116,7 @@ func (dec *execDecoder) parse() {
 			dec.commitCall()
 			return
 		case execInstrSetProps:
+			dec.commitCall()
 			dec.readCallProps(&dec.call.Props)
 		default:
 			dec.commitCall()
