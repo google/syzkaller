@@ -242,38 +242,46 @@ func main() {
 func (vrf *Verifier) startInstances() {
 	for idx, pi := range vrf.pools {
 		go func(pi *poolInfo, idx int) {
-			for { // TODO: implement support for multiple VMs per Pool.
-				inst, err := pi.pool.Create(0)
-				if err != nil {
-					log.Fatalf("failed to create instance: %v", err)
-				}
-				fwdAddr, err := inst.Forward(vrf.srv.port)
-				if err != nil {
-					log.Fatalf("failed to set up port forwarding: %v", err)
-				}
+			for {
+				// TODO: implement support for multiple VMs per Pool.
 
-				runnerBin, err := inst.Copy(vrf.runnerBin)
-				if err != nil {
-					log.Fatalf(" failed to copy runner binary: %v", err)
-				}
-				_, err = inst.Copy(vrf.executorBin)
-				if err != nil {
-					log.Fatalf("failed to copy executor binary: %v", err)
-				}
-
-				cmd := instance.RunnerCmd(runnerBin, fwdAddr, vrf.target.OS, vrf.target.Arch, idx, 0, false, false, vrf.newEnv)
-				outc, errc, err := inst.Run(pi.cfg.Timeouts.VMRunningTime, vrf.vmStop, cmd)
-				if err != nil {
-					log.Fatalf("failed to start runner: %v", err)
-				}
-
-				inst.MonitorExecution(outc, errc, pi.Reporter, vm.ExitTimeout)
-				vrf.srv.cleanup(idx, 0)
+				vrf.createAndManageInstance(pi, idx)
 			}
 		}(pi, idx)
 	}
 
 	select {}
+}
+
+func (vrf *Verifier) createAndManageInstance(pi *poolInfo, idx int) {
+	inst, err := pi.pool.Create(0)
+	if err != nil {
+		log.Fatalf("failed to create instance: %v", err)
+	}
+	defer inst.Close()
+	defer vrf.srv.cleanup(idx, 0)
+
+	fwdAddr, err := inst.Forward(vrf.srv.port)
+	if err != nil {
+		log.Fatalf("failed to set up port forwarding: %v", err)
+	}
+
+	runnerBin, err := inst.Copy(vrf.runnerBin)
+	if err != nil {
+		log.Fatalf(" failed to copy runner binary: %v", err)
+	}
+	_, err = inst.Copy(vrf.executorBin)
+	if err != nil {
+		log.Fatalf("failed to copy executor binary: %v", err)
+	}
+
+	cmd := instance.RunnerCmd(runnerBin, fwdAddr, vrf.target.OS, vrf.target.Arch, idx, 0, false, false, vrf.newEnv)
+	outc, errc, err := inst.Run(pi.cfg.Timeouts.VMRunningTime, vrf.vmStop, cmd)
+	if err != nil {
+		log.Fatalf("failed to start runner: %v", err)
+	}
+
+	inst.MonitorExecution(outc, errc, pi.Reporter, vm.ExitTimeout)
 }
 
 func startRPCServer(vrf *Verifier) (*RPCServer, error) {
