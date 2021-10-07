@@ -3473,7 +3473,7 @@ static void setup_cgroups()
 	if (mkdir("/syzcgroup/cpu", 0777)) {
 		debug("mkdir(/syzcgroup/cpu) failed: %d\n", errno);
 	}
-	if (mount("none", "/syzcgroup/cpu", "cgroup", 0, "cpuset,cpuacct,perf_event,hugetlb")) {
+	if (mount("none", "/syzcgroup/cpu", "cgroup", 0, "cpuset,cpuacct,perf_event,hugetlb,rlimit")) {
 		debug("mount(cgroup cpu) failed: %d\n", errno);
 	}
 	write_file("/syzcgroup/cpu/cgroup.clone_children", "1");
@@ -3484,7 +3484,7 @@ static void setup_cgroups()
 	if (mkdir("/syzcgroup/net", 0777)) {
 		debug("mkdir(/syzcgroup/net) failed: %d\n", errno);
 	}
-	if (mount("none", "/syzcgroup/net", "cgroup", 0, "net_cls,net_prio,devices,freezer")) {
+	if (mount("none", "/syzcgroup/net", "cgroup", 0, "net,net_cls,net_prio,devices,blkio,freezer")) {
 		debug("mount(cgroup net) failed: %d\n", errno);
 	}
 	if (chmod("/syzcgroup/net", 0777)) {
