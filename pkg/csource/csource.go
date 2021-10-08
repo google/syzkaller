@@ -47,20 +47,31 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		sysTarget: targets.Get(p.Target.OS, p.Target.Arch),
 		calls:     make(map[string]uint64),
 	}
+	return ctx.generateSource()
+}
 
+type context struct {
+	p         *prog.Prog
+	opts      Options
+	target    *prog.Target
+	sysTarget *targets.Target
+	calls     map[string]uint64 // CallName -> NR
+}
+
+func (ctx *context) generateSource() ([]byte, error) {
 	ctx.filterCalls()
-	calls, vars, err := ctx.generateProgCalls(ctx.p, opts.Trace)
+	calls, vars, err := ctx.generateProgCalls(ctx.p, ctx.opts.Trace)
 	if err != nil {
 		return nil, err
 	}
 
-	mmapProg := p.Target.DataMmapProg()
+	mmapProg := ctx.p.Target.DataMmapProg()
 	mmapCalls, _, err := ctx.generateProgCalls(mmapProg, false)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, c := range append(mmapProg.Calls, p.Calls...) {
+	for _, c := range append(mmapProg.Calls, ctx.p.Calls...) {
 		ctx.calls[c.Meta.CallName] = c.Meta.NR
 	}
 
@@ -77,34 +88,34 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	}
 
 	sandboxFunc := "loop();"
-	if opts.Sandbox != "" {
-		sandboxFunc = "do_sandbox_" + opts.Sandbox + "();"
+	if ctx.opts.Sandbox != "" {
+		sandboxFunc = "do_sandbox_" + ctx.opts.Sandbox + "();"
 	}
 	replacements := map[string]string{
-		"PROCS":           fmt.Sprint(opts.Procs),
-		"REPEAT_TIMES":    fmt.Sprint(opts.RepeatTimes),
-		"NUM_CALLS":       fmt.Sprint(len(p.Calls)),
+		"PROCS":           fmt.Sprint(ctx.opts.Procs),
+		"REPEAT_TIMES":    fmt.Sprint(ctx.opts.RepeatTimes),
+		"NUM_CALLS":       fmt.Sprint(len(ctx.p.Calls)),
 		"MMAP_DATA":       strings.Join(mmapCalls, ""),
 		"SYSCALL_DEFINES": ctx.generateSyscallDefines(),
 		"SANDBOX_FUNC":    sandboxFunc,
 		"RESULTS":         varsBuf.String(),
 		"SYSCALLS":        ctx.generateSyscalls(calls, len(vars) != 0),
 	}
-	if !opts.Threaded && !opts.Repeat && opts.Sandbox == "" {
+	if !ctx.opts.Threaded && !ctx.opts.Repeat && ctx.opts.Sandbox == "" {
 		// This inlines syscalls right into main for the simplest case.
 		replacements["SANDBOX_FUNC"] = replacements["SYSCALLS"]
 		replacements["SYSCALLS"] = "unused"
 	}
-	timeouts := ctx.sysTarget.Timeouts(opts.Slowdown)
+	timeouts := ctx.sysTarget.Timeouts(ctx.opts.Slowdown)
 	replacements["PROGRAM_TIMEOUT_MS"] = fmt.Sprint(int(timeouts.Program / time.Millisecond))
 	timeoutExpr := fmt.Sprint(int(timeouts.Syscall / time.Millisecond))
-	for i, call := range p.Calls {
+	for i, call := range ctx.p.Calls {
 		if timeout := call.Meta.Attrs.Timeout; timeout != 0 {
 			timeoutExpr += fmt.Sprintf(" + (call == %v ? %v : 0)", i, timeout*uint64(timeouts.Scale))
 		}
 	}
 	replacements["CALL_TIMEOUT_MS"] = timeoutExpr
-	result, err := createCommonHeader(p, mmapProg, replacements, opts)
+	result, err := createCommonHeader(ctx.p, mmapProg, replacements, ctx.opts)
 	if err != nil {
 		return nil, err
 	}
@@ -112,14 +123,6 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	result = append([]byte(header), result...)
 	result = ctx.postProcess(result)
 	return result, nil
-}
-
-type context struct {
-	p         *prog.Prog
-	opts      Options
-	target    *prog.Target
-	sysTarget *targets.Target
-	calls     map[string]uint64 // CallName -> NR
 }
 
 // This is a kludge, but we keep it here until a better approach is implemented.
