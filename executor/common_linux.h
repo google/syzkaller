@@ -3447,9 +3447,37 @@ static void reset_net_namespace(void)
 
 #if SYZ_EXECUTOR || (SYZ_CGROUPS && (SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID))
 #include <fcntl.h>
+#include <string.h>
 #include <sys/mount.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+
+static void mount_cgroups(const char* dir, const char** controllers, int count)
+{
+	if (mkdir(dir, 0777)) {
+		debug("mkdir(%s) failed: %d\n", dir, errno);
+	}
+	// First, probe one-by-one to understand what controllers are present.
+	char enabled[128] = {0};
+	int i = 0;
+	for (; i < count; i++) {
+		if (mount("none", dir, "cgroup", 0, controllers[i])) {
+			debug("mount(%s, %s) failed: %d\n", dir, controllers[i], errno);
+			continue;
+		}
+		umount(dir);
+		strcat(enabled, ",");
+		strcat(enabled, controllers[i]);
+	}
+	if (enabled[0] == 0)
+		return;
+	// Now mount all at once.
+	if (mount("none", dir, "cgroup", 0, enabled + 1))
+		failmsg("mount cgroup failed", "(%s, %s): %d\n", dir, enabled + 1, errno);
+	if (chmod(dir, 0777)) {
+		debug("chmod(%s) failed: %d\n", dir, errno);
+	}
+}
 
 static void setup_cgroups()
 {
@@ -3457,6 +3485,17 @@ static void setup_cgroups()
 	if (!flag_cgroups)
 		return;
 #endif
+	// We want to cover both cgroup and cgroup2.
+	// Each resource controller can be bound to only one of them,
+	// so to cover both we divide all controllers into 3 arbitrary groups.
+	// One group is then bound to cgroup2/unified, and 2 other groups
+	// are bound to 2 cgroup hierarchies.
+	// Note: we need to enable controllers one-by-one for both cgroup and cgroup2.
+	// If we enable all at the same time and one of them fails (b/c of older kernel
+	// or not enabled configs), then all will fail.
+	const char* unified_controllers[] = {"+cpu", "+memory", "+io", "+pids", "+rdma"};
+	const char* net_controllers[] = {"net", "net_cls", "net_prio", "devices", "blkio", "freezer"};
+	const char* cpu_controllers[] = {"cpuset", "cpuacct", "perf_event", "hugetlb", "rlimit"};
 	if (mkdir("/syzcgroup", 0777)) {
 		debug("mkdir(/syzcgroup) failed: %d\n", errno);
 	}
@@ -3469,27 +3508,19 @@ static void setup_cgroups()
 	if (chmod("/syzcgroup/unified", 0777)) {
 		debug("chmod(/syzcgroup/unified) failed: %d\n", errno);
 	}
-	write_file("/syzcgroup/unified/cgroup.subtree_control", "+cpu +memory +io +pids +rdma");
-	if (mkdir("/syzcgroup/cpu", 0777)) {
-		debug("mkdir(/syzcgroup/cpu) failed: %d\n", errno);
+	int unified_control = open("/syzcgroup/unified/cgroup.subtree_control", O_WRONLY);
+	if (unified_control != -1) {
+		unsigned i;
+		for (i = 0; i < sizeof(unified_controllers) / sizeof(unified_controllers[0]); i++)
+			if (write(unified_control, unified_controllers[i], strlen(unified_controllers[i])) < 0) {
+				debug("write(cgroup.subtree_control, %s) failed: %d\n", unified_controllers[i], errno);
+			}
+		close(unified_control);
 	}
-	if (mount("none", "/syzcgroup/cpu", "cgroup", 0, "cpuset,cpuacct,perf_event,hugetlb,rlimit")) {
-		debug("mount(cgroup cpu) failed: %d\n", errno);
-	}
+	mount_cgroups("/syzcgroup/net", net_controllers, sizeof(net_controllers) / sizeof(net_controllers[0]));
+	mount_cgroups("/syzcgroup/cpu", cpu_controllers, sizeof(cpu_controllers) / sizeof(cpu_controllers[0]));
 	write_file("/syzcgroup/cpu/cgroup.clone_children", "1");
 	write_file("/syzcgroup/cpu/cpuset.memory_pressure_enabled", "1");
-	if (chmod("/syzcgroup/cpu", 0777)) {
-		debug("chmod(/syzcgroup/cpu) failed: %d\n", errno);
-	}
-	if (mkdir("/syzcgroup/net", 0777)) {
-		debug("mkdir(/syzcgroup/net) failed: %d\n", errno);
-	}
-	if (mount("none", "/syzcgroup/net", "cgroup", 0, "net,net_cls,net_prio,devices,blkio,freezer")) {
-		debug("mount(cgroup net) failed: %d\n", errno);
-	}
-	if (chmod("/syzcgroup/net", 0777)) {
-		debug("chmod(/syzcgroup/net) failed: %d\n", errno);
-	}
 }
 
 #if SYZ_EXECUTOR || SYZ_REPEAT
