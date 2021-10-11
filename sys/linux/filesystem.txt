@@ -12,6 +12,8 @@ mount$bpf(src const[0], dst ptr[in, filename], type ptr[in, string["bpf"]], flag
 mount$overlay(src const[0], dst ptr[in, filename], type ptr[in, string["overlay"]], flags flags[mount_flags], opts ptr[in, fs_options[overlay_options]])
 mount$binder(src const[0], dst ptr[in, filename], type ptr[in, string["binder"]], flags flags[mount_flags], opts ptr[in, fs_options[binder_options]])
 mount$tmpfs(src const[0], dst ptr[in, filename], type ptr[in, string["tmpfs"]], flags flags[mount_flags], opts ptr[in, fs_options[tmpfs_options]])
+mount$cgroup(src const[0], dst ptr[in, filename], type ptr[in, string["cgroup"]], flags flags[mount_flags], opts ptr[in, fs_options[cgroup_options]])
+mount$cgroup2(src const[0], dst ptr[in, filename], type ptr[in, string["cgroup2"]], flags flags[mount_flags], opts ptr[in, fs_options[cgroup2_options]])
 
 # A bind mount ignores the filesystem type argument, but
 # pkg/host/syscalls_linux.go:isSupportedFilesystem() requires one in
@@ -903,6 +905,23 @@ esdfs_options [
 ] [varlen]
 
 esdfs_derive = "none", "legacy", "unified", "multi", "public"
+
+cgroup_options [
+	all		stringnoz["all"]
+	clone_children	stringnoz["clone_children"]
+	cpuset_v2_mode	stringnoz["cpuset_v2_mode"]
+	name		fs_opt_str["name"]
+	none		stringnoz["none"]
+	noprefix	stringnoz["noprefix"]
+	release_agent	fs_opt_filename["release_agent"]
+	xattr		stringnoz["xattr"]
+] [varlen]
+
+cgroup2_options [
+	nsdelegate		stringnoz["nsdelegate"]
+	memory_localevents	stringnoz["memory_localevents"]
+	memory_recursiveprot	stringnoz["memory_recursiveprot"]
+] [varlen]
 
 codepage_nums = "1250", "1251", "1255", "437", "737", "775", "850", "852", "855", "857", "860", "861", "862", "863", "864", "865", "866", "869", "874", "932", "936", "949", "950"
 codepages_names = "macceltic", "maccenteuro", "maccroatian", "maccyrillic", "macgaelic", "macgreek", "maciceland", "macinuit", "macroman", "macromanian", "macturkish", "ascii", "default", "cp1250", "cp1251", "cp1255", "cp437", "cp737", "cp775", "cp850", "cp852", "cp855", "cp857", "cp860", "cp861", "cp862", "cp863", "cp864", "cp865", "cp866", "cp869", "cp874", "cp932", "cp936", "cp949", "cp950", "euc-jp", "iso8859-13", "iso8859-14", "iso8859-15", "iso8859-1", "iso8859-2", "iso8859-3", "iso8859-4", "iso8859-5", "iso8859-6", "iso8859-7", "iso8859-9", "koi8-r", "koi8-ru", "koi8-u", "utf8", "none"
