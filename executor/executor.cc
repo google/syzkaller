@@ -1522,6 +1522,7 @@ void setup_features(char** enable, int n)
 	flag_debug = true;
 #if SYZ_HAVE_FEATURES
 	setup_sysctl();
+	setup_cgroups();
 #endif
 	for (int i = 0; i < n; i++) {
 		bool found = false;

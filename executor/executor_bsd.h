@@ -179,4 +179,8 @@ static feature_t features[] = {
 static void setup_sysctl(void)
 {
 }
+
+static void setup_cgroups(void)
+{
+}
 #endif
