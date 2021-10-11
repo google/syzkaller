@@ -9,7 +9,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"math/rand"
 	"net"
 	"os"
@@ -20,6 +19,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/instance"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
@@ -299,7 +299,7 @@ func startRPCServer(vrf *Verifier) (*RPCServer, error) {
 		return nil, err
 	}
 
-	log.Printf("serving rpc on tcp://%v", s.Addr())
+	log.Logf(0, "serving rpc on tcp://%v", s.Addr())
 	srv.port = s.Addr().(*net.TCPAddr).Port
 
 	go s.Serve()
@@ -366,7 +366,7 @@ func (vrf *Verifier) finalizeCallSet(w io.Writer) {
 	}
 
 	if len(vrf.calls) == 0 {
-		log.Fatal("All enabled system calls are missing dependencies or not" +
+		log.Logf(0, "All enabled system calls are missing dependencies or not"+
 			" supported by some kernels, exiting syz-verifier.")
 	}
 
@@ -459,7 +459,7 @@ func (vrf *Verifier) processResults(prog *progInfo) bool {
 	} else {
 		if !VerifyRerun(prog.res[prog.runIdx], prog.report) {
 			vrf.stats.FlakyProgs++
-			log.Printf("flaky results dected: %d", vrf.stats.FlakyProgs)
+			log.Logf(0, "flaky results detected: %d", vrf.stats.FlakyProgs)
 			return true
 		}
 	}
@@ -508,10 +508,10 @@ func (vrf *Verifier) processResults(prog *progInfo) bool {
 	err := osutil.WriteFile(filepath.Join(vrf.resultsdir,
 		fmt.Sprintf("result-%d", oldest)), createReport(rr, len(vrf.pools)))
 	if err != nil {
-		log.Printf("failed to write result-%d file, err %v", oldest, err)
+		log.Logf(0, "failed to write result-%d file, err %v", oldest, err)
 	}
 
-	log.Printf("result-%d written successfully", oldest)
+	log.Logf(0, "result-%d written successfully", oldest)
 	return true
 }
 
