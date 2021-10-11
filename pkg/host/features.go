@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -120,7 +121,8 @@ func Setup(target *prog.Target, features *Features, featureFlags csource.Feature
 	if featureFlags["ieee802154"].Enabled && features[Feature802154Emulation].Enabled {
 		args = append(args, "802154")
 	}
-	_, err := osutil.RunCmd(5*time.Minute, "", executor, args...)
+	output, err := osutil.RunCmd(5*time.Minute, "", executor, args...)
+	log.Logf(1, "executor %v\n%s", args, output)
 	return err
 }
 
