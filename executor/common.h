@@ -763,6 +763,9 @@ int main(void)
 #if SYZ_SYSCTL
 	setup_sysctl();
 #endif
+#if SYZ_CGROUPS
+	setup_cgroups();
+#endif
 #if SYZ_BINFMT_MISC
 	setup_binfmt_misc();
 #endif

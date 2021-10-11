@@ -8128,10 +8128,6 @@ static void mount_cgroups(const char* dir, const char** controllers, int count)
 
 static void setup_cgroups()
 {
-#if SYZ_EXECUTOR
-	if (!flag_cgroups)
-		return;
-#endif
 	const char* unified_controllers[] = {"+cpu", "+memory", "+io", "+pids", "+rdma"};
 	const char* net_controllers[] = {"net", "net_cls", "net_prio", "devices", "blkio", "freezer"};
 	const char* cpu_controllers[] = {"cpuset", "cpuacct", "perf_event", "hugetlb", "rlimit"};
@@ -8260,9 +8256,6 @@ static void setup_common()
 	if (mount(0, "/sys/fs/fuse/connections", "fusectl", 0, 0)) {
 		debug("mount(fusectl) failed: %d\n", errno);
 	}
-#if SYZ_EXECUTOR || SYZ_CGROUPS
-	setup_cgroups();
-#endif
 }
 
 #include <sched.h>
@@ -10659,6 +10652,9 @@ int main(void)
 
 #if SYZ_SYSCTL
 	setup_sysctl();
+#endif
+#if SYZ_CGROUPS
+	setup_cgroups();
 #endif
 #if SYZ_BINFMT_MISC
 	setup_binfmt_misc();

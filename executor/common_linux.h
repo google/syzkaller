@@ -3481,10 +3481,6 @@ static void mount_cgroups(const char* dir, const char** controllers, int count)
 
 static void setup_cgroups()
 {
-#if SYZ_EXECUTOR
-	if (!flag_cgroups)
-		return;
-#endif
 	// We want to cover both cgroup and cgroup2.
 	// Each resource controller can be bound to only one of them,
 	// so to cover both we divide all controllers into 3 arbitrary groups.
@@ -3636,9 +3632,6 @@ static void setup_common()
 	if (mount(0, "/sys/fs/fuse/connections", "fusectl", 0, 0)) {
 		debug("mount(fusectl) failed: %d\n", errno);
 	}
-#if SYZ_EXECUTOR || SYZ_CGROUPS
-	setup_cgroups();
-#endif
 }
 
 #include <sched.h>
