@@ -89,13 +89,19 @@ func (insn Insn) Encode(cfg *iset.Config, r *rand.Rand) []byte {
 	}
 
 	ret := make([]byte, 0)
-	insn32 := insn.Opcode
+	ret = append(ret, insn.encodeOpcode(cfg, r, insn.Opcode, insn.Mask, insn.Fields)...)
+	return ret
+}
+
+func (insn Insn) encodeOpcode(cfg *iset.Config, r *rand.Rand, opcode, mask uint32, f []InsnField) []byte {
+	ret := make([]byte, 0)
+	insn32 := opcode
 	if len(cfg.MemRegions) != 0 {
 		// The PowerISA pdf parser could have missed some fields,
 		// randomize them there.
-		insn32 |= r.Uint32() & ^insn.Mask
+		insn32 |= r.Uint32() & ^mask
 	}
-	for _, f := range insn.Fields {
+	for _, f := range f {
 		field := uint(r.Intn(1 << 16))
 		insn32 |= encodeBits(field, f.Bits)
 		if len(cfg.MemRegions) != 0 && (f.Name == "RA" || f.Name == "RB" || f.Name == "RS") {
@@ -142,7 +148,13 @@ func uint32toBytes(v uint32) []byte {
 }
 
 func (insn *Insn) enc(v map[string]uint) []byte {
-	insn32 := insn.Opcode
+	ret := make([]byte, 0)
+	ret = append(ret, insn.encOpcode(v, insn.Opcode, insn.Fields)...)
+	return ret
+}
+
+func (insn *Insn) encOpcode(v map[string]uint, opcode uint32, f []InsnField) []byte {
+	insn32 := opcode
 	for _, f := range insn.Fields {
 		if val, ok := v[f.Name]; ok {
 			insn32 |= encodeBits(val, f.Bits)
