@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	"html"
 	"regexp"
 	"testing"
 	"time"
@@ -510,14 +511,14 @@ func TestMachineInfo(t *testing.T) {
 	bugLinkRegex := regexp.MustCompile(`<a href="(/bug\?id=[^"]+)">title1</a>`)
 	bugLinkSubmatch := bugLinkRegex.FindSubmatch(indexPage)
 	c.expectEQ(len(bugLinkSubmatch), 2)
-	bugURL := string(bugLinkSubmatch[1])
+	bugURL := html.UnescapeString(string(bugLinkSubmatch[1]))
 
 	bugPage, err := c.AuthGET(AccessAdmin, bugURL)
 	c.expectOK(err)
 	infoLinkRegex := regexp.MustCompile(`<a href="(/text\?tag=MachineInfo[^"]+)">info</a>`)
 	infoLinkSubmatch := infoLinkRegex.FindSubmatch(bugPage)
 	c.expectEQ(len(infoLinkSubmatch), 2)
-	infoURL := string(infoLinkSubmatch[1])
+	infoURL := html.UnescapeString(string(infoLinkSubmatch[1]))
 
 	receivedInfo, err := c.AuthGET(AccessAdmin, infoURL)
 	c.expectOK(err)
