@@ -108,7 +108,7 @@ eth_payload {
 
 # https://en.wikipedia.org/wiki/Ethernet_frame#Ethernet_II
 
-ether_types = ETH_P_LOOP, ETH_P_PUP, ETH_P_PUPAT, ETH_P_TSN, ETH_P_IP, ETH_P_X25, ETH_P_ARP, ETH_P_IEEEPUP, ETH_P_IEEEPUPAT, ETH_P_BATMAN, ETH_P_DEC, ETH_P_DNA_DL, ETH_P_DNA_RC, ETH_P_DNA_RT, ETH_P_LAT, ETH_P_DIAG, ETH_P_CUST, ETH_P_SCA, ETH_P_TEB, ETH_P_RARP, ETH_P_ATALK, ETH_P_AARP, ETH_P_8021Q, ETH_P_ERSPAN, ETH_P_ERSPAN2, ETH_P_IPX, ETH_P_IPV6, ETH_P_PAUSE, ETH_P_SLOW, ETH_P_WCCP, ETH_P_MPLS_UC, ETH_P_MPLS_MC, ETH_P_ATMMPOA, ETH_P_PPP_DISC, ETH_P_PPP_SES, ETH_P_LINK_CTL, ETH_P_ATMFATE, ETH_P_PAE, ETH_P_AOE, ETH_P_8021AD, ETH_P_802_EX1, ETH_P_TIPC, ETH_P_MACSEC, ETH_P_8021AH, ETH_P_MVRP, ETH_P_1588, ETH_P_NCSI, ETH_P_PRP, ETH_P_FCOE, ETH_P_TDLS, ETH_P_FIP, ETH_P_80221, ETH_P_HSR, ETH_P_LOOPBACK, ETH_P_QINQ1, ETH_P_QINQ2, ETH_P_QINQ3, ETH_P_EDSA, ETH_P_AF_IUCV, ETH_P_802_3_MIN, ETH_P_802_3, ETH_P_AX25, ETH_P_ALL, ETH_P_802_2, ETH_P_SNAP, ETH_P_DDCMP, ETH_P_WAN_PPP, ETH_P_PPP_MP, ETH_P_LOCALTALK, ETH_P_CAN, ETH_P_CANFD, ETH_P_PPPTALK, ETH_P_TR_802_2, ETH_P_MOBITEX, ETH_P_CONTROL, ETH_P_IRDA, ETH_P_ECONET, ETH_P_HDLC, ETH_P_ARCNET, ETH_P_DSA, ETH_P_TRAILER, ETH_P_PHONET, ETH_P_IEEE802154, ETH_P_CAIF, ETH_P_XDSA, ETH_P_MAP
+ether_types = ETH_P_LOOP, ETH_P_PUP, ETH_P_PUPAT, ETH_P_TSN, ETH_P_IP, ETH_P_X25, ETH_P_ARP, ETH_P_IEEEPUP, ETH_P_IEEEPUPAT, ETH_P_BATMAN, ETH_P_DEC, ETH_P_DNA_DL, ETH_P_DNA_RC, ETH_P_DNA_RT, ETH_P_LAT, ETH_P_DIAG, ETH_P_CUST, ETH_P_SCA, ETH_P_TEB, ETH_P_RARP, ETH_P_ATALK, ETH_P_AARP, ETH_P_8021Q, ETH_P_ERSPAN, ETH_P_ERSPAN2, ETH_P_IPV6, ETH_P_PAUSE, ETH_P_SLOW, ETH_P_WCCP, ETH_P_MPLS_UC, ETH_P_MPLS_MC, ETH_P_ATMMPOA, ETH_P_PPP_DISC, ETH_P_PPP_SES, ETH_P_LINK_CTL, ETH_P_ATMFATE, ETH_P_PAE, ETH_P_AOE, ETH_P_8021AD, ETH_P_802_EX1, ETH_P_TIPC, ETH_P_MACSEC, ETH_P_8021AH, ETH_P_MVRP, ETH_P_1588, ETH_P_NCSI, ETH_P_PRP, ETH_P_FCOE, ETH_P_TDLS, ETH_P_FIP, ETH_P_80221, ETH_P_HSR, ETH_P_LOOPBACK, ETH_P_QINQ1, ETH_P_QINQ2, ETH_P_QINQ3, ETH_P_EDSA, ETH_P_AF_IUCV, ETH_P_802_3_MIN, ETH_P_802_3, ETH_P_AX25, ETH_P_ALL, ETH_P_802_2, ETH_P_SNAP, ETH_P_DDCMP, ETH_P_WAN_PPP, ETH_P_PPP_MP, ETH_P_LOCALTALK, ETH_P_CAN, ETH_P_CANFD, ETH_P_PPPTALK, ETH_P_TR_802_2, ETH_P_MOBITEX, ETH_P_CONTROL, ETH_P_IRDA, ETH_P_ECONET, ETH_P_HDLC, ETH_P_ARCNET, ETH_P_DSA, ETH_P_TRAILER, ETH_P_PHONET, ETH_P_IEEE802154, ETH_P_CAIF, ETH_P_XDSA, ETH_P_MAP
 
 eth2_packet [
 	generic	eth2_packet_generic
@@ -117,7 +117,6 @@ eth2_packet [
 	ipv6	eth2_packet_t[ETH_P_IPV6, ipv6_packet]
 	llc	eth2_packet_t[ETH_P_802_2, llc_packet]
 	llc_tr	eth2_packet_t[ETH_P_TR_802_2, llc_packet]
-	ipx	eth2_packet_t[ETH_P_IPX, ipx_packet]
 	x25	eth2_packet_t[ETH_P_X25, x25_packet]
 	mpls_uc	eth2_packet_t[ETH_P_MPLS_UC, mpls_packet]
 	mpls_mc	eth2_packet_t[ETH_P_MPLS_MC, mpls_packet]
@@ -175,7 +174,7 @@ type arp_packet_t[HTYPE, PTYPE, ADDR] {
 include <uapi/linux/llc.h>
 
 # Adding '1' as a SAP value since the lower bit in SAP has a special meaning.
-sap_values = 1, LLC_SAP_NULL, LLC_SAP_LLC, LLC_SAP_SNA, LLC_SAP_PNM, LLC_SAP_IP, LLC_SAP_BSPAN, LLC_SAP_MMS, LLC_SAP_8208, LLC_SAP_3COM, LLC_SAP_PRO, LLC_SAP_SNAP, LLC_SAP_BANYAN, LLC_SAP_IPX, LLC_SAP_NETBEUI, LLC_SAP_LANMGR, LLC_SAP_IMPL, LLC_SAP_DISC, LLC_SAP_OSI, LLC_SAP_LAR, LLC_SAP_RM, LLC_SAP_GLOBAL
+sap_values = 1, LLC_SAP_NULL, LLC_SAP_LLC, LLC_SAP_SNA, LLC_SAP_PNM, LLC_SAP_IP, LLC_SAP_BSPAN, LLC_SAP_MMS, LLC_SAP_8208, LLC_SAP_3COM, LLC_SAP_PRO, LLC_SAP_SNAP, LLC_SAP_BANYAN, LLC_SAP_NETBEUI, LLC_SAP_LANMGR, LLC_SAP_IMPL, LLC_SAP_DISC, LLC_SAP_OSI, LLC_SAP_LAR, LLC_SAP_RM, LLC_SAP_GLOBAL
 
 llc_generic_packet {
 	dsap	flags[sap_values, int8]
@@ -205,49 +204,6 @@ llc_packet {
 #	length	len[payload, int16be]
 	payload	llc_payload
 } [packed]
-
-################################################################################
-###################################### IPX #####################################
-################################################################################
-
-# http://www.networksorcery.com/enp/protocol/ipx.htm
-# https://en.wikipedia.org/wiki/Internetwork_Packet_Exchange#IPX_packet_structure
-
-include <net/ipx.h>
-
-ipx_network [
-	random		int32be
-	current		const[0x0, int32be]
-	broadcast	const[0xffffffff, int32be]
-]
-
-ipx_node [
-	random		array[int8, 6]
-	current		array[const[0x0, int8], 6]
-	broadcast	array[const[0xff, int8], 6]
-]
-
-ipx_addr {
-	network	ipx_network
-	node	ipx_node
-	socket	int16be
-} [packed]
-
-ipx_packet_types = IPX_TYPE_UNKNOWN, IPX_TYPE_RIP, IPX_TYPE_SAP, IPX_TYPE_SPX, IPX_TYPE_NCP, IPX_TYPE_PPROP
-
-ipx_packet {
-	csum		const[0xffff, int16be]
-	length		len[parent, int16be]
-	control		int8
-	type		flags[ipx_packet_types, int8]
-	dst_addr	ipx_addr
-	src_addr	ipx_addr
-	payload		array[int8]
-} [packed]
-
-# TODO: setup ipx on virtual interfaces in executor
-# TODO: describe particular ipx types
-# TODO: open ipx sockets from userspace
 
 ################################################################################
 ###################################### x25 #####################################

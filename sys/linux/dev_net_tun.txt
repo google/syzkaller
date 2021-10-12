@@ -67,7 +67,6 @@ tun_payload [
 	ipv6	ipv6_packet
 	arp	arp_packet
 	llc	llc_packet
-	ipx	ipx_packet
 	x25	x25_packet
 	mpls	mpls_packet
 ] [varlen]
