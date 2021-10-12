@@ -3,17 +3,17 @@
 
 # See /tools/docker/README.md for details.
 
-FROM debian:buster
+FROM debian:bullseye
 
 LABEL homepage="https://github.com/google/syzkaller"
 
-RUN dpkg --add-architecture i386 && \
-	apt-get update --allow-releaseinfo-change && \
-	DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
-	sudo make nano git curl ca-certificates clang-format clang-tidy binutils g++ clang \
+RUN apt-get update --allow-releaseinfo-change
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
+	sudo make python nano git curl ca-certificates \
+	clang-format clang-tidy binutils g++ clang \
 	g++-arm-linux-gnueabi g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu \
 	g++-mips64el-linux-gnuabi64 g++-s390x-linux-gnu g++-riscv64-linux-gnu \
-	libc6-dev:i386 linux-libc-dev:i386 lib32gcc-8-dev lib32stdc++-8-dev \
+	libc6-dev-i386 libc6-dev-i386-amd64-cross lib32gcc-10-dev lib32stdc++-10-dev \
 	# These are needed to build Linux kernel:
 	flex bison bc libelf-dev libssl-dev \
 	# qemu-user is required to run alien arch binaries in pkg/cover tests.
@@ -23,7 +23,7 @@ RUN dpkg --add-architecture i386 && \
 	apt-get clean autoclean && \
 	rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/*
 
-RUN curl https://dl.google.com/go/go1.16.linux-amd64.tar.gz | tar -C /usr/local -xz
+RUN curl https://dl.google.com/go/go1.17.linux-amd64.tar.gz | tar -C /usr/local -xz
 ENV PATH /usr/local/go/bin:/gopath/bin:$PATH
 ENV GOPATH /gopath
 
