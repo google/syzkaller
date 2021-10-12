@@ -1,6 +1,7 @@
 # Copyright 2021 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+include <uapi/linux/fcntl.h>
 include <uapi/linux/vtpm_proxy.h>
 
 resource fd_vtpm[fd]
