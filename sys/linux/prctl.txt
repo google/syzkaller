@@ -2,6 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 include <linux/errno.h>
+include <linux/pid.h>
 include <linux/sched/coredump.h>
 include <uapi/linux/prctl.h>
 include <uapi/linux/seccomp.h>
@@ -157,6 +158,10 @@ prctl$PR_GET_IO_FLUSHER(option const[PR_GET_IO_FLUSHER]) (breaks_returns, ignore
 
 prctl$PR_SET_SYSCALL_USER_DISPATCH_OFF(option const[PR_SET_SYSCALL_USER_DISPATCH], mode const[PR_SYS_DISPATCH_OFF]) (breaks_returns, ignore_return)
 prctl$PR_SET_SYSCALL_USER_DISPATCH_ON(option const[PR_SET_SYSCALL_USER_DISPATCH], mode const[PR_SYS_DISPATCH_ON], offset intptr, len intptr, selector ptr[in, bool8]) (breaks_returns, ignore_return)
+
+prctl$PR_SCHED_CORE(option const[PR_SCHED_CORE], cmd intptr[0:PR_SCHED_CORE_MAX], pid pid, type flags[pid_type], uaddr ptr[out, int64, opt]) (breaks_returns, ignore_return)
+
+pid_type = PIDTYPE_PID, PIDTYPE_TGID, PIDTYPE_PGID, PIDTYPE_SID
 
 arch_prctl$ARCH_GET_FS(code const[ARCH_GET_FS], arg ptr[out, intptr])
 arch_prctl$ARCH_GET_GS(code const[ARCH_GET_GS], arg ptr[out, intptr])
