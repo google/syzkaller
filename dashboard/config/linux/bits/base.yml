@@ -79,7 +79,7 @@ config:
  - SCHED_STACK_END_CHECK
  - FORTIFY_SOURCE: [-riscv, -clang]
  - HARDENED_USERCOPY
- - HARDENED_USERCOPY_FALLBACK
+ - HARDENED_USERCOPY_FALLBACK: [-v5.15]
  - BUG_ON_DATA_CORRUPTION
  - DEBUG_LIST
  - DEBUG_STACKOVERFLOW: [-v5.0]
@@ -103,7 +103,7 @@ config:
  - DEBUG_INFO_REDUCED: n
 
  # This should make behavior more deterministic.
- - INIT_ON_ALLOC_DEFAULT_ON: [v4.16]
+ - INIT_ON_ALLOC_DEFAULT_ON: [v4.16, -kmsan]
 
  # KCOV slows down execution too much with KASAN_HW_TAGS and in qemu emulation in general.
  # KCOV crashes on Arm:
