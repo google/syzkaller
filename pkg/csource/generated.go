@@ -8129,9 +8129,9 @@ static void mount_cgroups(const char* dir, const char** controllers, int count)
 
 static void setup_cgroups()
 {
-	const char* unified_controllers[] = {"+cpu", "+memory", "+io", "+pids", "+rdma"};
-	const char* net_controllers[] = {"net", "net_cls", "net_prio", "devices", "blkio", "freezer"};
-	const char* cpu_controllers[] = {"cpuset", "cpuacct", "perf_event", "hugetlb", "rlimit"};
+	const char* unified_controllers[] = {"+cpu", "+memory", "+io", "+pids"};
+	const char* net_controllers[] = {"net", "net_prio", "devices", "blkio", "freezer"};
+	const char* cpu_controllers[] = {"cpuset", "cpuacct", "hugetlb", "rlimit"};
 	if (mkdir("/syzcgroup", 0777)) {
 		debug("mkdir(/syzcgroup) failed: %d\n", errno);
 	}
