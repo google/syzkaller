@@ -3493,9 +3493,9 @@ static void setup_cgroups()
 	// Note: we need to enable controllers one-by-one for both cgroup and cgroup2.
 	// If we enable all at the same time and one of them fails (b/c of older kernel
 	// or not enabled configs), then all will fail.
-	const char* unified_controllers[] = {"+cpu", "+memory", "+io", "+pids", "+rdma"};
-	const char* net_controllers[] = {"net", "net_cls", "net_prio", "devices", "blkio", "freezer"};
-	const char* cpu_controllers[] = {"cpuset", "cpuacct", "perf_event", "hugetlb", "rlimit"};
+	const char* unified_controllers[] = {"+cpu", "+memory", "+io", "+pids"};
+	const char* net_controllers[] = {"net", "net_prio", "devices", "blkio", "freezer"};
+	const char* cpu_controllers[] = {"cpuset", "cpuacct", "hugetlb", "rlimit"};
 	if (mkdir("/syzcgroup", 0777)) {
 		debug("mkdir(/syzcgroup) failed: %d\n", errno);
 	}
