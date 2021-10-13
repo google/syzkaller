@@ -3472,8 +3472,12 @@ static void mount_cgroups(const char* dir, const char** controllers, int count)
 	if (enabled[0] == 0)
 		return;
 	// Now mount all at once.
-	if (mount("none", dir, "cgroup", 0, enabled + 1))
-		failmsg("mount cgroup failed", "(%s, %s): %d\n", dir, enabled + 1, errno);
+	if (mount("none", dir, "cgroup", 0, enabled + 1)) {
+		// In systemd/stretch images this is failing with EBUSY
+		// (systemd starts messing with these mounts?),
+		// so we don't fail, but just log the error.
+		debug("mount(%s, %s) failed: %d\n", dir, enabled + 1, errno);
+	}
 	if (chmod(dir, 0777)) {
 		debug("chmod(%s) failed: %d\n", dir, errno);
 	}
