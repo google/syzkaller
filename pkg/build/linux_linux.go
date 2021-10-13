@@ -51,7 +51,7 @@ func embedLinuxKernel(params Params, kernelPath string) error {
 		return fmt.Errorf("mount(%vp1, %v) failed: %v", loopFile, mountDir, err)
 	}
 	defer unix.Unmount(mountDir, 0)
-	if err := osutil.CopyFile(kernelPath, filepath.Join(mountDir, "vmlinuz")); err != nil {
+	if err := copyKernel(mountDir, kernelPath); err != nil {
 		return err
 	}
 	if params.SysctlFile != "" {
@@ -63,6 +63,18 @@ func embedLinuxKernel(params Params, kernelPath string) error {
 		return err
 	}
 	return osutil.CopyFile(imageFile, filepath.Join(params.OutputDir, "image"))
+}
+
+func copyKernel(mountDir, kernelPath string) error {
+	// Try several common locations where the kernel can be.
+	for _, targetPath := range []string{"boot/vmlinuz", "boot/bzImage", "vmlinuz", "bzImage"} {
+		fullPath := filepath.Join(mountDir, filepath.FromSlash(targetPath))
+		if !osutil.IsExist(fullPath) {
+			continue
+		}
+		return osutil.CopyFile(kernelPath, fullPath)
+	}
+	return fmt.Errorf("did not find kernel in the template image")
 }
 
 func linuxSetupLoop(imageFile string) (int, string, error) {
