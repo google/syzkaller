@@ -6,6 +6,16 @@ mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/ope
 
 Newer bugs comes first.
 
+- [vnd(4): unintended nesting of devices](https://marc.info/?l=openbsd-cvs&m=163379079731494&w=2)
+
+- [route(4): NULL pointer dereference](https://marc.info/?l=openbsd-cvs&m=163103086932150&w=2)
+
+- [vmm(4): missing locking](https://marc.info/?l=openbsd-cvs&m=163084761315043&w=2)
+
+- [vmm(4): missing locking](https://marc.info/?l=openbsd-cvs&m=163066962908920&w=2)
+
+- [vmm(4): lock ordering problem](https://marc.info/?l=openbsd-cvs&m=163050503012931&w=2 )
+
 - [kqueue: missing locking](https://marc.info/?l=openbsd-cvs&m=162338580619514&w=2)
 
 - [socketpair: lock ordering problem](https://marc.info/?l=openbsd-cvs&m=162092535010623&w=2)
