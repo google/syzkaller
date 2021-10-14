@@ -16,24 +16,24 @@ func TestVerify(t *testing.T) {
 		"test$res0()\n"
 	tests := []struct {
 		name       string
-		res        []*Result
+		res        []*ExecResult
 		wantReport *ResultReport
 		wantStats  []*CallStats
 	}{
 		{
 			name: "only crashes",
-			res: []*Result{
-				makeResultCrashed(1),
-				makeResultCrashed(4),
+			res: []*ExecResult{
+				makeExecResultCrashed(1),
+				makeExecResultCrashed(4),
 			},
 			wantReport: nil,
 		},
 		{
 			name: "mismatches because results and crashes",
-			res: []*Result{
-				makeResultCrashed(1),
-				makeResult(2, []int{11, 33, 22}, []int{1, 3, 3}...),
-				makeResult(4, []int{11, 33, 22}, []int{1, 3, 3}...),
+			res: []*ExecResult{
+				makeExecResultCrashed(1),
+				makeExecResult(2, []int{11, 33, 22}, []int{1, 3, 3}...),
+				makeExecResult(4, []int{11, 33, 22}, []int{1, 3, 3}...),
 			},
 			wantReport: &ResultReport{
 				Prog: p,
@@ -58,16 +58,16 @@ func TestVerify(t *testing.T) {
 		},
 		{
 			name: "mismatches not found in results",
-			res: []*Result{
-				makeResult(2, []int{11, 33, 22}, []int{1, 3, 3}...),
-				makeResult(4, []int{11, 33, 22}, []int{1, 3, 3}...)},
+			res: []*ExecResult{
+				makeExecResult(2, []int{11, 33, 22}, []int{1, 3, 3}...),
+				makeExecResult(4, []int{11, 33, 22}, []int{1, 3, 3}...)},
 			wantReport: nil,
 		},
 		{
 			name: "mismatches found in results",
-			res: []*Result{
-				makeResult(1, []int{1, 3, 2}, []int{4, 7, 7}...),
-				makeResult(4, []int{1, 3, 5}, []int{4, 7, 3}...),
+			res: []*ExecResult{
+				makeExecResult(1, []int{1, 3, 2}, []int{4, 7, 7}...),
+				makeExecResult(4, []int{1, 3, 5}, []int{4, 7, 3}...),
 			},
 			wantReport: &ResultReport{
 				Prog: p,

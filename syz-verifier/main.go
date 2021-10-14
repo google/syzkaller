@@ -62,8 +62,6 @@ type Verifier struct {
 	reruns        int
 }
 
-
-
 // poolInfo contains kernel-specific information for spawning virtual machines
 // and reporting crashes. It also keeps track of the Runners executing on
 // spawned VMs, what programs have been sent to each Runner and what programs
@@ -89,7 +87,7 @@ type progInfo struct {
 	prog       *prog.Prog
 	idx        int
 	serialized []byte
-	res        [][]*Result
+	res        [][]*ExecResult
 	// received stores the number of results received for this program.
 	received int
 

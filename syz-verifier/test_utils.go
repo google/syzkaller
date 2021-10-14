@@ -60,8 +60,8 @@ func makeTestResultDirectory(t *testing.T) string {
 	return resultsdir
 }
 
-func makeResult(pool int, errnos []int, flags ...int) *Result {
-	r := &Result{Pool: pool, Info: ipc.ProgInfo{Calls: []ipc.CallInfo{}}}
+func makeExecResult(pool int, errnos []int, flags ...int) *ExecResult {
+	r := &ExecResult{Pool: pool, Info: ipc.ProgInfo{Calls: []ipc.CallInfo{}}}
 	for _, e := range errnos {
 		r.Info.Calls = append(r.Info.Calls, ipc.CallInfo{Errno: e})
 	}
@@ -72,8 +72,8 @@ func makeResult(pool int, errnos []int, flags ...int) *Result {
 	return r
 }
 
-func makeResultCrashed(pool int) *Result {
-	return &Result{Pool: pool, Crashed: true}
+func makeExecResultCrashed(pool int) *ExecResult {
+	return &ExecResult{Pool: pool, Crashed: true}
 }
 
 func emptyTestStats() *Stats {
