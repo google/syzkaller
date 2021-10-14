@@ -91,23 +91,23 @@ func TestNewResult(t *testing.T) {
 			srv.pools = map[int]*poolInfo{0: {}, 1: {}}
 			srv.progs = map[int]*progInfo{
 				1: {idx: 1,
-					res: func() [][]*Result {
-						res := make([][]*Result, 1)
-						res[0] = make([]*Result, 2)
+					res: func() [][]*ExecResult {
+						res := make([][]*ExecResult, 1)
+						res[0] = make([]*ExecResult, 2)
 						return res
 					}(),
 				},
 				3: {idx: 3,
-					res: func() [][]*Result {
-						res := make([][]*Result, 1)
-						res[0] = make([]*Result, 2)
-						res[0][1] = &Result{Pool: 1}
+					res: func() [][]*ExecResult {
+						res := make([][]*ExecResult, 1)
+						res[0] = make([]*ExecResult, 2)
+						res[0][1] = &ExecResult{Pool: 1}
 						return res
 					}(),
 					received: 1,
 				},
 			}
-			gotReady := srv.newResult(&Result{Pool: 0}, srv.progs[test.idx])
+			gotReady := srv.newResult(&ExecResult{Pool: 0}, srv.progs[test.idx])
 			if test.wantReady != gotReady {
 				t.Errorf("srv.newResult: got %v want %v", gotReady, test.wantReady)
 			}
@@ -323,16 +323,16 @@ func TestUpdateUnsupportedNotCalledTwice(t *testing.T) {
 func TestProcessResults(t *testing.T) {
 	tests := []struct {
 		name      string
-		res       []*Result
+		res       []*ExecResult
 		prog      string
 		wantExist bool
 		wantStats *Stats
 	}{
 		{
 			name: "report written",
-			res: []*Result{
-				makeResult(0, []int{1, 3, 2}),
-				makeResult(1, []int{1, 3, 5}),
+			res: []*ExecResult{
+				makeExecResult(0, []int{1, 3, 2}),
+				makeExecResult(1, []int{1, 3, 5}),
 			},
 			wantExist: true,
 			wantStats: &Stats{
@@ -347,9 +347,9 @@ func TestProcessResults(t *testing.T) {
 		},
 		{
 			name: "no report written",
-			res: []*Result{
-				makeResult(0, []int{11, 33, 22}),
-				makeResult(1, []int{11, 33, 22}),
+			res: []*ExecResult{
+				makeExecResult(0, []int{11, 33, 22}),
+				makeExecResult(1, []int{11, 33, 22}),
 			},
 			wantStats: &Stats{
 				TotalProgs: 1,
@@ -366,8 +366,8 @@ func TestProcessResults(t *testing.T) {
 			prog := getTestProgram(t)
 			pi := &progInfo{
 				prog: prog,
-				res: func() [][]*Result {
-					res := make([][]*Result, 1)
+				res: func() [][]*ExecResult {
+					res := make([][]*ExecResult, 1)
 					res[0] = test.res
 					return res
 				}()}
@@ -447,16 +447,16 @@ func TestCleanup(t *testing.T) {
 				4: {
 					idx:      4,
 					received: 0,
-					res: func() [][]*Result {
-						res := make([][]*Result, 1)
-						res[0] = make([]*Result, 3)
+					res: func() [][]*ExecResult {
+						res := make([][]*ExecResult, 1)
+						res[0] = make([]*ExecResult, 3)
 						return res
 					}(),
 				}},
 			wantProg: &progInfo{
 				idx:      4,
 				received: 1,
-				res:      [][]*Result{{makeResultCrashed(0), nil, nil}},
+				res:      [][]*ExecResult{{makeExecResultCrashed(0), nil, nil}},
 			},
 			wantStats:  emptyTestStats(),
 			fileExists: false,
@@ -468,11 +468,11 @@ func TestCleanup(t *testing.T) {
 					idx:      4,
 					prog:     prog,
 					received: 2,
-					res: func() [][]*Result {
-						res := make([][]*Result, 1)
-						res[0] = make([]*Result, 3)
-						res[0][1] = makeResultCrashed(1)
-						res[0][2] = makeResultCrashed(2)
+					res: func() [][]*ExecResult {
+						res := make([][]*ExecResult, 1)
+						res[0] = make([]*ExecResult, 3)
+						res[0][1] = makeExecResultCrashed(1)
+						res[0][2] = makeExecResultCrashed(2)
 						return res
 					}(),
 				}},
@@ -493,11 +493,11 @@ func TestCleanup(t *testing.T) {
 					idx:      4,
 					prog:     prog,
 					received: 2,
-					res: func() [][]*Result {
-						res := make([][]*Result, 1)
-						res[0] = make([]*Result, 3)
-						res[0][1] = makeResult(1, []int{11, 33, 44})
-						res[0][2] = makeResult(2, []int{11, 33, 22})
+					res: func() [][]*ExecResult {
+						res := make([][]*ExecResult, 1)
+						res[0] = make([]*ExecResult, 3)
+						res[0][1] = makeExecResult(1, []int{11, 33, 44})
+						res[0][2] = makeExecResult(2, []int{11, 33, 22})
 						return res
 					}(),
 				}},

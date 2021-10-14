@@ -11,8 +11,8 @@ import (
 	"github.com/google/syzkaller/prog"
 )
 
-// Result stores the results of executing a program.
-type Result struct {
+// ExecResult stores the results of executing a program.
+type ExecResult struct {
 	// Pool is the index of the pool.
 	Pool int
 	// Hanged is set to true when a program was killed due to hanging.
@@ -71,7 +71,7 @@ func (s ReturnState) String() string {
 
 // VeifyRerun compares the results obtained from rerunning a program with what
 // was reported in the initial result report.
-func VerifyRerun(res []*Result, rr *ResultReport) bool {
+func VerifyRerun(res []*ExecResult, rr *ResultReport) bool {
 	for idx, cr := range rr.Reports {
 		for _, r := range res {
 			var state ReturnState
@@ -92,7 +92,7 @@ func VerifyRerun(res []*Result, rr *ResultReport) bool {
 // Verify checks whether the Results of the same program, executed on different
 // kernels, are the same. If that's not the case, it returns a ResultReport,
 // highlighting the differences.
-func Verify(res []*Result, prog *prog.Prog, s *Stats) *ResultReport {
+func Verify(res []*ExecResult, prog *prog.Prog, s *Stats) *ResultReport {
 	rr := &ResultReport{
 		Prog: string(prog.Serialize()),
 	}

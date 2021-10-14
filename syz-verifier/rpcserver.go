@@ -97,10 +97,10 @@ func (srv *RPCServer) NextExchange(a *rpctype.NextExchangeArgs, r *rpctype.NextE
 	srv.mu.Lock()
 	defer srv.mu.Unlock()
 
-	var res *Result
+	var res *ExecResult
 	var prog *progInfo
 	if a.Info.Calls != nil {
-		res = &Result{
+		res = &ExecResult{
 			Pool:   a.Pool,
 			Hanged: a.Hanged,
 			Info:   a.Info,
@@ -144,7 +144,7 @@ func (srv *RPCServer) NextExchange(a *rpctype.NextExchangeArgs, r *rpctype.NextE
 // newResult is called when a Runner sends a new Result. It returns true if all
 // Results from the corresponding programs have been received and they can be
 // sent for verification. Otherwise, it returns false.
-func (srv *RPCServer) newResult(res *Result, prog *progInfo) bool {
+func (srv *RPCServer) newResult(res *ExecResult, prog *progInfo) bool {
 	ri := prog.runIdx
 	if prog.res[ri][res.Pool] != nil {
 		return false
@@ -157,7 +157,7 @@ func (srv *RPCServer) newResult(res *Result, prog *progInfo) bool {
 func (srv *RPCServer) newRun(p *progInfo) {
 	p.runIdx++
 	p.received = 0
-	p.res[p.runIdx] = make([]*Result, len(srv.pools))
+	p.res[p.runIdx] = make([]*ExecResult, len(srv.pools))
 	for _, pool := range srv.pools {
 		pool.toRerun = append(pool.toRerun, p)
 	}
@@ -181,9 +181,9 @@ func (srv *RPCServer) newProgram(poolIdx, vmIdx int) ([]byte, int, int) {
 			prog:       prog,
 			idx:        progIdx,
 			serialized: prog.Serialize(),
-			res:        make([][]*Result, srv.vrf.reruns),
+			res:        make([][]*ExecResult, srv.vrf.reruns),
 		}
-		pi.res[0] = make([]*Result, len(srv.pools))
+		pi.res[0] = make([]*ExecResult, len(srv.pools))
 		for _, pool := range srv.pools {
 			pool.progs = append(pool.progs, pi)
 		}
@@ -202,7 +202,7 @@ func (srv *RPCServer) cleanup(poolIdx, vmIdx int) {
 	progs := srv.pools[poolIdx].runners[vmIdx]
 
 	for _, prog := range progs {
-		if srv.newResult(&Result{Pool: poolIdx, Crashed: true}, prog) {
+		if srv.newResult(&ExecResult{Pool: poolIdx, Crashed: true}, prog) {
 			srv.vrf.processResults(prog)
 			delete(srv.progs, prog.idx)
 			delete(srv.pools[poolIdx].runners[vmIdx], prog.idx)
