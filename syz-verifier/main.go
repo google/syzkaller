@@ -2,16 +2,18 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // package main starts the syz-verifier tool. High-level documentation can be
-// found in docs/syz_verfier.md.
+// found in docs/syz_verifier.md.
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"math/rand"
 	"net"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -239,6 +241,31 @@ func main() {
 	vrf.startInstances()
 }
 
+// SetPrintStatAtSIGINT asks Stats object to report verification
+// statistics when an os.Interrupt occurs and Exit().
+func (vrf *Verifier) SetPrintStatAtSIGINT() error {
+	if vrf.stats == nil {
+		return errors.New("verifier.stats is nil")
+	}
+
+	osSignalChannel := make(chan os.Signal)
+	signal.Notify(osSignalChannel, os.Interrupt)
+
+	go func() {
+		<-osSignalChannel
+		defer os.Exit(0)
+
+		totalExecutionTime := time.Since(vrf.stats.StartTime).Minutes()
+		if vrf.stats.TotalMismatches < 0 {
+			fmt.Fprint(vrf.statsWrite, "No mismatches occurred until syz-verifier was stopped.")
+		}else{
+			fmt.Fprintf(vrf.statsWrite, vrf.stats.GetTextDescription(totalExecutionTime))
+		}
+	}()
+
+	return nil
+}
+
 func (vrf *Verifier) startInstances() {
 	for idx, pi := range vrf.pools {
 		go func(pi *poolInfo, idx int) {
@@ -282,6 +309,8 @@ func (vrf *Verifier) createAndManageInstance(pi *poolInfo, idx int) {
 	}
 
 	inst.MonitorExecution(outc, errc, pi.Reporter, vm.ExitTimeout)
+
+	log.Logf(0, "reboot the VM in pool %d", idx)
 }
 
 func startRPCServer(vrf *Verifier) (*RPCServer, error) {
@@ -340,7 +369,10 @@ func (srv *RPCServer) UpdateUnsupported(a *rpctype.UpdateUnsupportedArgs, r *int
 	srv.notChecked--
 	if srv.notChecked == 0 {
 		vrf.finalizeCallSet(os.Stdout)
-		vrf.stats = InitStats(vrf.calls, vrf.statsWrite)
+
+		vrf.stats = InitStats(vrf.calls)
+		vrf.SetPrintStatAtSIGINT()
+
 		vrf.choiceTable = vrf.target.BuildChoiceTable(nil, vrf.calls)
 		srv.cond.Signal()
 	}

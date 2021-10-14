@@ -5,10 +5,8 @@ package main
 
 import (
 	"fmt"
-	"io"
-	"os"
-	"os/signal"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/prog"
@@ -31,7 +29,7 @@ type Stats struct {
 type CallStats struct {
 	// Name is the system call name.
 	Name string
-	// Mismatches stores the number of errno mismatches identifed in the
+	// Mismatches stores the number of errno mismatches identified in the
 	// verified programs for this system call.
 	Mismatches int
 	// Occurrences is the number of times the system call appeared in a
@@ -41,85 +39,71 @@ type CallStats struct {
 	States map[ReturnState]bool
 }
 
-// InitStats creates a stats object that will report verification
-// statistics when an os.Interrupt occurs.
-func InitStats(calls map[*prog.Syscall]bool, w io.Writer) *Stats {
-	s := &Stats{
+// InitStats creates a stats object.
+func InitStats(calls map[*prog.Syscall]bool) *Stats {
+	stats := &Stats{
 		Calls:     make(map[string]*CallStats),
 		StartTime: time.Now(),
 	}
-	for c := range calls {
-		s.Calls[c.Name] = &CallStats{
-			Name:   c.Name,
+
+	for syscall := range calls {
+		stats.Calls[syscall.Name] = &CallStats{
+			Name:   syscall.Name,
 			States: make(map[ReturnState]bool)}
 	}
 
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt)
-	go func() {
-		<-c
-		dt := time.Since(s.StartTime).Minutes()
-		if s.TotalMismatches < 0 {
-			fmt.Fprint(w, "No mismatches occurred until syz-verifier was stopped.")
-			os.Exit(0)
-		}
-		s.ReportGlobalStats(w, dt)
-		os.Exit(0)
-	}()
-
-	return s
-}
-
-// ReportCallStats creates a report with the current statistics for call.
-func (s *Stats) ReportCallStats(call string) string {
-	cs, ok := s.Calls[call]
-	if !ok {
-		return ""
-	}
-	name, m, o := cs.Name, cs.Mismatches, cs.Occurrences
-	data := fmt.Sprintf("statistics for %s:\n"+
-		"\t↳ mismatches of %s / occurrences of %s: %d / %d (%0.2f %%)\n"+
-		"\t↳ mismatches of %s / total number of mismatches: "+
-		"%d / %d (%0.2f %%)\n"+
-		"\t↳ %d distinct states identified: %v\n", name, name, name, m, o,
-		getPercentage(m, o), name, m, s.TotalMismatches,
-		getPercentage(m, s.TotalMismatches), len(cs.States), s.getOrderedStates(name))
-	return data
-}
-
-func getPercentage(value, total int) float64 {
-	return float64(value) / float64(total) * 100
+	return stats
 }
 
 // ReportGlobalStats creates a report with statistics about all the
 // supported system calls for which errno mismatches were identified in
 // the verified programs, shown in decreasing order.
-func (s *Stats) ReportGlobalStats(w io.Writer, deltaTime float64) {
-	tc := s.totalCallsExecuted()
-	fmt.Fprintf(w, "total number of mismatches / total number of calls "+
-		"executed: %d / %d (%0.2f %%)\n\n", s.TotalMismatches, tc, getPercentage(s.TotalMismatches, tc))
-	fmt.Fprintf(w, "programs / minute: %0.2f\n\n", float64(s.TotalProgs)/deltaTime)
-	fmt.Fprintf(w, "true mismatching programs: %d / total number of programs: %d (%0.2f %%)\n",
-		s.MismatchingProgs, s.TotalProgs, getPercentage(s.MismatchingProgs, s.TotalProgs))
-	fmt.Fprintf(w, "flaky programs: %d / total number of programs: %d (%0.2f %%)\n\n",
-		s.FlakyProgs, s.TotalProgs, getPercentage(s.FlakyProgs, s.TotalProgs))
-	cs := s.getOrderedStats()
+func (stats *Stats) GetTextDescription(deltaTime float64) string {
+	var result strings.Builder
+
+	tc := stats.totalCallsExecuted()
+	fmt.Fprintf(&result, "total number of mismatches / total number of calls "+
+		"executed: %d / %d (%0.2f %%)\n\n", stats.TotalMismatches, tc, getPercentage(stats.TotalMismatches, tc))
+	fmt.Fprintf(&result, "programs / minute: %0.2f\n\n", float64(stats.TotalProgs)/deltaTime)
+	fmt.Fprintf(&result, "true mismatching programs: %d / total number of programs: %d (%0.2f %%)\n",
+		stats.MismatchingProgs, stats.TotalProgs, getPercentage(stats.MismatchingProgs, stats.TotalProgs))
+	fmt.Fprintf(&result, "flaky programs: %d / total number of programs: %d (%0.2f %%)\n\n",
+		stats.FlakyProgs, stats.TotalProgs, getPercentage(stats.FlakyProgs, stats.TotalProgs))
+	cs := stats.getOrderedStats()
 	for _, c := range cs {
-		fmt.Fprintf(w, "%s\n", s.ReportCallStats(c.Name))
+		fmt.Fprintf(&result, "%s\n", stats.getCallStatsTextDescription(c.Name))
 	}
+
+	return result.String()
 }
 
-func (s *Stats) totalCallsExecuted() int {
+// getCallStatsTextDescription creates a report with the current statistics for call.
+func (stats *Stats) getCallStatsTextDescription(call string) string {
+	syscallStat, ok := stats.Calls[call]
+	if !ok {
+		return ""
+	}
+	syscallName, mismatches, occurrences := syscallStat.Name, syscallStat.Mismatches, syscallStat.Occurrences
+	return fmt.Sprintf("statistics for %s:\n"+
+		"\t↳ mismatches of %s / occurrences of %s: %d / %d (%0.2f %%)\n"+
+		"\t↳ mismatches of %s / total number of mismatches: "+
+		"%d / %d (%0.2f %%)\n"+
+		"\t↳ %d distinct states identified: %v\n", syscallName, syscallName, syscallName, mismatches, occurrences,
+		getPercentage(mismatches, occurrences), syscallName, mismatches, stats.TotalMismatches,
+		getPercentage(mismatches, stats.TotalMismatches), len(syscallStat.States), stats.getOrderedStates(syscallName))
+}
+
+func (stats *Stats) totalCallsExecuted() int {
 	t := 0
-	for _, cs := range s.Calls {
+	for _, cs := range stats.Calls {
 		t += cs.Occurrences
 	}
 	return t
 }
 
-func (s *Stats) getOrderedStats() []*CallStats {
+func (stats *Stats) getOrderedStats() []*CallStats {
 	css := make([]*CallStats, 0)
-	for _, cs := range s.Calls {
+	for _, cs := range stats.Calls {
 		if cs.Mismatches > 0 {
 			css = append(css, cs)
 		}
@@ -132,12 +116,16 @@ func (s *Stats) getOrderedStats() []*CallStats {
 	return css
 }
 
-func (s *Stats) getOrderedStates(call string) []string {
-	states := s.Calls[call].States
+func (stats *Stats) getOrderedStates(call string) []string {
+	states := stats.Calls[call].States
 	ss := make([]string, 0, len(states))
 	for s := range states {
 		ss = append(ss, fmt.Sprintf("%q", s))
 	}
 	sort.Strings(ss)
 	return ss
+}
+
+func getPercentage(value, total int) float64 {
+	return float64(value) / float64(total) * 100
 }
