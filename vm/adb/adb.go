@@ -69,7 +69,7 @@ type instance struct {
 
 var (
 	androidSerial = "^[0-9A-Z]+$"
-	cuttlefishID  = `^(?:[0-9]{1,3}\.){3}[0-9]{1,3}\:(?:[0-9]{1,5})$` // IP:port
+	ipAddress     = `^(?:localhost|(?:[0-9]{1,3}\.){3}[0-9]{1,3})\:(?:[0-9]{1,5})$` // cuttlefish or remote_device_proxy
 )
 
 func loadDevice(data []byte) (*Device, error) {
@@ -102,7 +102,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		return nil, fmt.Errorf("no adb devices specified")
 	}
 	// Device should be either regular serial number, or a valid Cuttlefish ID.
-	devRe := regexp.MustCompile(fmt.Sprintf("%s|%s", androidSerial, cuttlefishID))
+	devRe := regexp.MustCompile(fmt.Sprintf("%s|%s", androidSerial, ipAddress))
 	for _, dev := range cfg.Devices {
 		device, err := loadDevice(dev)
 		if err != nil {
