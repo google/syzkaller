@@ -62,9 +62,10 @@ func (*linux) prepareArch(arch *Arch) error {
 #define va_copy __builtin_va_copy
 #define __va_copy __builtin_va_copy
 `,
-		"asm/a.out.h": "",
-		"asm/prctl.h": "",
-		"asm/mce.h":   "",
+		"asm/a.out.h":    "",
+		"asm/prctl.h":    "",
+		"asm/mce.h":      "",
+		"uapi/asm/msr.h": "",
 	} {
 		fullPath := filepath.Join(arch.buildDir, "syzkaller", hdr)
 		if err := osutil.MkdirAll(filepath.Dir(fullPath)); err != nil {
