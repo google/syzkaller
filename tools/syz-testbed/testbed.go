@@ -4,6 +4,7 @@
 // syz-testbed automatically checks out, builds and sets up a number of syzkaller instances.
 // This might be very helpful e.g. when gauging the effect of new changes on the total syzkaller
 // performance.
+// For details see docs/syz_testbed.md.
 
 package main
 
