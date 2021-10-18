@@ -124,11 +124,15 @@ func usernameToID(what string) (uint32, error) {
 	return uint32(id), nil
 }
 
-func setPdeathsig(cmd *exec.Cmd) {
+func setPdeathsig(cmd *exec.Cmd, hardKill bool) {
 	if cmd.SysProcAttr == nil {
 		cmd.SysProcAttr = new(syscall.SysProcAttr)
 	}
-	cmd.SysProcAttr.Pdeathsig = syscall.SIGKILL
+	if hardKill {
+		cmd.SysProcAttr.Pdeathsig = syscall.SIGKILL
+	} else {
+		cmd.SysProcAttr.Pdeathsig = syscall.SIGTERM
+	}
 	// We will kill the whole process group.
 	cmd.SysProcAttr.Setpgid = true
 }

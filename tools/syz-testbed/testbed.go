@@ -90,8 +90,6 @@ func main() {
 	}
 
 	log.Printf("------------------")
-	// TODO: consider approaches to let managers finish gracefully.
-	// Otherwise they may e.g. leak GCE instances.
 	for _, co := range checkouts {
 		for _, instance := range co.Instances {
 			go runInstance(instance)
@@ -135,7 +133,7 @@ func runInstance(info InstanceInfo) {
 	if err != nil {
 		tool.Failf("[%s] failed to create logfile: %s", info.Name, err)
 	}
-	cmd := osutil.Command(info.ExecCommand, info.ExecCommandArgs...)
+	cmd := osutil.GraciousCommand(info.ExecCommand, info.ExecCommandArgs...)
 	cmd.Stdout = logfile
 	cmd.Stderr = logfile
 	err = cmd.Start()

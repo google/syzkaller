@@ -44,7 +44,7 @@ func SandboxChown(file string) error {
 	return nil
 }
 
-func setPdeathsig(cmd *exec.Cmd) {
+func setPdeathsig(cmd *exec.Cmd, hardKill bool) {
 }
 
 func killPgroup(cmd *exec.Cmd) {
