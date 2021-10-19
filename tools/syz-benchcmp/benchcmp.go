@@ -19,11 +19,13 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
 )
 
 var (
+	flagAll  = flag.Bool("all", false, "draw graphs for all variables")
+	flagOut  = flag.String("out", "", "file to save graphs to; if empty, a random name will be generated")
+	flagOver = flag.String("over", "fuzzing", "the variable that lies on the X axis")
 	flagSkip = flag.Int("skip", -30, "skip that many seconds after start (skip first 20% by default)")
 )
 
@@ -46,27 +48,50 @@ func main() {
 		os.Exit(1)
 	}
 
-	graphs := []*Graph{
-		{Name: "cover"},
-		{Name: "corpus"},
-		{Name: "exec total"},
-		{Name: "crash types"},
+	var allowedGraphs map[string]bool
+	if !*flagAll {
+		allowedGraphs = map[string]bool{
+			"coverage":    true,
+			"corpus":      true,
+			"exec total":  true,
+			"crash types": true,
+		}
 	}
+	points := make(map[string][]Point)
+	headers := []string{}
 	for i, fname := range flag.Args() {
+		headers = append(headers, filepath.Base(fname))
 		data := readFile(fname)
 		addExecSpeed(data)
-		for _, g := range graphs {
-			g.Headers = append(g.Headers, filepath.Base(fname))
-			for _, v := range data {
+		for _, record := range data {
+			for key, value := range record {
 				pt := Point{
-					Time: v["fuzzing"],
+					Time: record[*flagOver],
 					Vals: make([]uint64, len(flag.Args())),
 				}
-				pt.Vals[i] = v[g.Name]
-				g.Points = append(g.Points, pt)
+				pt.Vals[i] = value
+				points[key] = append(points[key], pt)
 			}
 		}
 	}
+	graphs := []*Graph{}
+	for key, points := range points {
+		if allowedGraphs != nil && !allowedGraphs[key] {
+			continue
+		}
+		if key == *flagOver {
+			// This graph would be meaningless - just a straight line.
+			continue
+		}
+		graphs = append(graphs, &Graph{
+			Name:    key,
+			Headers: headers,
+			Points:  points,
+		})
+	}
+	sort.Slice(graphs, func(i, j int) bool {
+		return graphs[i].Name < graphs[j].Name
+	})
 	for _, g := range graphs {
 		if len(g.Points) == 0 {
 			tool.Failf("no data points")
@@ -106,7 +131,7 @@ func addExecSpeed(data []map[string]uint64) {
 		cur := data[i]
 		prev := data[i-window]
 		dx := cur["exec total"] - prev["exec total"]
-		dt := cur["fuzzing"] - prev["fuzzing"]
+		dt := cur[*flagOver] - prev[*flagOver]
 		cur["exec speed"] = dx * 1000 / dt
 	}
 }
@@ -183,20 +208,41 @@ func printFinalStats(graphs []*Graph) {
 	}
 }
 
-func display(graphs []*Graph) {
-	outf, err := ioutil.TempFile("", "")
-	if err != nil {
-		tool.Failf("failed to create temp file: %v", err)
+var axisTitles = map[string]string{
+	"fuzzing": "Time, sec",
+}
+
+func getAxisTitle() string {
+	value, ok := axisTitles[*flagOver]
+	if ok {
+		return value
 	}
-	if err := htmlTemplate.Execute(outf, graphs); err != nil {
+	return *flagOver
+}
+
+func display(graphs []*Graph) {
+	var outf *os.File
+	var err error
+	if *flagOut == "" {
+		outf, err = ioutil.TempFile("", "*.html")
+		if err != nil {
+			tool.Failf("failed to create temp file: %v", err)
+		}
+	} else {
+		outf, err = os.Create(*flagOut)
+		if err != nil {
+			tool.Failf("failed to create file: %v", err)
+		}
+	}
+	vars := map[string]interface{}{
+		"Graphs":     graphs,
+		"HAxisTitle": getAxisTitle(),
+	}
+	if err := htmlTemplate.Execute(outf, vars); err != nil {
 		tool.Failf("failed to execute template: %v", err)
 	}
 	outf.Close()
-	name := outf.Name() + ".html"
-	if err := osutil.Rename(outf.Name(), name); err != nil {
-		tool.Failf("failed to rename file: %v", err)
-	}
-	if err := exec.Command("xdg-open", name).Start(); err != nil {
+	if err := exec.Command("xdg-open", outf.Name()).Start(); err != nil {
 		tool.Failf("failed to start browser: %v", err)
 	}
 }
@@ -218,7 +264,7 @@ var htmlTemplate = template.Must(
       google.load("visualization", "1", {packages:["corechart"]});
       google.setOnLoadCallback(drawCharts);
       function drawCharts() {
-        {{range $id, $graph := .}}
+        {{range $id, $graph := .Graphs}}
         {
           var data = new google.visualization.DataTable();
           data.addColumn({type: 'number'});
@@ -237,7 +283,7 @@ var htmlTemplate = template.Must(
               height: document.documentElement.clientHeight * 0.48,
               legend: {position: "in"},
               focusTarget: "category",
-              hAxis: {title: "Time, sec"},
+              hAxis: {title: "{{$.HAxisTitle}}"},
               chartArea: {left: "5%", top: "5%", width: "90%", height:"85%"}
             })
         }
@@ -246,16 +292,7 @@ var htmlTemplate = template.Must(
     </script>
 </head>
 <body>
-  <table style="width: 100%; height: 98vh">
-    <tr>
-      <td style="width: 50%"> <div id="graph_div_0"></div> </td>
-      <td style="width: 50%"> <div id="graph_div_2"></div> </td>
-    </tr>
-    <tr>
-      <td style="width: 50%"> <div id="graph_div_1"></div> </td>
-      <td style="width: 50%"> <div id="graph_div_3"></div> </td>
-    </tr>
-  </table>
+   {{range $id, $graph := .Graphs}}<div id="graph_div_{{$id}}" style="width:50%;display:inline-block;"></div>{{end}}
 </body>
 </html>
 `))
