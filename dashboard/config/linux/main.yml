@@ -18,6 +18,7 @@ instances:
  - upstream-s390-kasan:		[upstream, s390, gcc, bpfjit, lsm, selinux, nonoise, reduced, kasan, kfence]
  - stable-5.4-kasan:		[stable-5.4, x86_64, gcc, bpfjit, lsm, apparmor, kasan]
  - android-5.4:			[android, android-5.4, nodefconfig, x86_64, clang, onlyusb, nonoise, kasan]
+ - android-5.10:		[android, android-5.10, nodefconfig, x86_64, clang, onlyusb, nonoise, kasan]
  - chromeos-5.4:		[chromeos, chromeos-5.4, nodefconfig, x86_64, onlyusb, kasan]
 
 # These files are included from the bits/ dir.
@@ -26,6 +27,7 @@ includes:
  - linux-next.yml: [linux-next]
  - stable-5.4.yml: [stable-5.4]
  - android-5.4.yml: [android-5.4]
+ - android-5.10.yml: [android-5.10]
  - chromeos-5.4.yml: [chromeos-5.4]
  - base.yml: []
  - x86_64.yml: [x86_64]
