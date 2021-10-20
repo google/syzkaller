@@ -1,0 +1,71 @@
+# Copyright 2021 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <sys/procctl.h>
+include <sys/wait.h>
+
+procctl$PROC_SPROTECT(idtype flags[idtype], id pid, cmd const[PROC_SPROTECT], data ptr[in, int32])
+
+procctl$PROC_REAP_ACQUIRE(idtype flags[idtype], id pid, cmd const[PROC_REAP_ACQUIRE], data const[0])
+procctl$PROC_REAP_RELEASE(idtype flags[idtype], id pid, cmd const[PROC_REAP_RELEASE], data const[0])
+procctl$PROC_REAP_STATUS(idtype flags[idtype], id pid, cmd const[PROC_REAP_STATUS], data ptr[out, reaper_status])
+procctl$PROC_REAP_GETPIDS(idtype flags[idtype], id pid, cmd const[PROC_REAP_GETPIDS], data ptr[in, reaper_pids])
+procctl$PROC_REAP_KILL(idtype flags[idtype], id pid, cmd const[PROC_REAP_KILL], data ptr[inout, reaper_kill])
+
+reaper_status {
+	flags		int32
+	children	int32
+	descendants	int32
+	reaper		pid
+	pid		pid
+	pad		array[const[0, int32], 15]
+}
+
+reaper_pidinfo {
+	pid	pid
+	subtree	pid
+	flags	int32
+	pad	array[const[0, int32], 15]
+}
+
+reaper_pids {
+	count	len[pids, int32]
+	pad	array[const[0, int32], 15]
+	pids	ptr[in, array[reaper_pidinfo]]
+}
+
+reaper_kill {
+	sig	int32
+	flags	int32
+	subtree	pid
+	killed	int32
+	fpid	pid
+	pad	array[const[0, int32], 15]
+}
+
+procctl$PROC_TRACE_CTL(idtype flags[idtype], id pid, cmd const[PROC_TRACE_CTL], data ptr[in, int32])
+procctl$PROC_TRACE_STATUS(idtype flags[idtype], id pid, cmd const[PROC_TRACE_STATUS], data ptr[out, int32])
+
+procctl$PROC_TRAPCAP_CTL(idtype flags[idtype], id pid, cmd const[PROC_TRAPCAP_CTL], data ptr[in, int32])
+procctl$PROC_TRAPCAP_STATUS(idtype flags[idtype], id pid, cmd const[PROC_TRAPCAP_STATUS], data ptr[out, int32])
+
+procctl$PROC_PDEATHSIG_CTL(idtype flags[idtype], id pid, cmd const[PROC_PDEATHSIG_CTL], data ptr[in, int32])
+procctl$PROC_PDEATHSIG_STATUS(idtype flags[idtype], id pid, cmd const[PROC_PDEATHSIG_STATUS], data ptr[out, int32])
+
+procctl$PROC_ASLR_CTL(idtype flags[idtype], id pid, cmd const[PROC_ASLR_CTL], data ptr[in, int32])
+procctl$PROC_ASLR_STATUS(idtype flags[idtype], id pid, cmd const[PROC_ASLR_STATUS], data ptr[out, int32])
+
+procctl$PROC_PROTMAX_CTL(idtype flags[idtype], id pid, cmd const[PROC_PROTMAX_CTL], data ptr[in, int32])
+procctl$PROC_PROTMAX_STATUS(idtype flags[idtype], id pid, cmd const[PROC_PROTMAX_STATUS], data ptr[out, int32])
+
+procctl$PROC_STACKGAP_CTL(idtype flags[idtype], id pid, cmd const[PROC_STACKGAP_CTL], data ptr[in, int32])
+procctl$PROC_STACKGAP_STATUS(idtype flags[idtype], id pid, cmd const[PROC_STACKGAP_STATUS], data ptr[out, int32])
+
+procctl$PROC_NO_NEW_PRIVS_CTL(idtype flags[idtype], id pid, cmd const[PROC_NO_NEW_PRIVS_CTL], data ptr[in, int32])
+procctl$PROC_NO_NEW_PRIVS_STATUS(idtype flags[idtype], id pid, cmd const[PROC_NO_NEW_PRIVS_STATUS], data ptr[out, int32])
+
+procctl$PROC_WXMAP_CTL(idtype flags[idtype], id pid, cmd const[PROC_WXMAP_CTL], data ptr[in, int32])
+procctl$PROC_WXMAP_STATUS(idtype flags[idtype], id pid, cmd const[PROC_WXMAP_STATUS], data ptr[out, int32])
+
+idtype = P_PID, P_PGID
