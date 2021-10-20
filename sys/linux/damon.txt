@@ -1,0 +1,65 @@
+include <uapi/linux/fcntl.h>
+include <uapi/linux/mount.h>
+
+
+resource fd_target_ids[fd]
+resource fd_attrs[fd]
+resource fd_monitor_on[fd]
+resource fd_init_regions[fd]
+
+resource d_pid[pid]
+
+# mount debugfs to enable interface
+mount$damon_debugfs(src const[0], dst ptr[in, string["/sys/kernel/debug/damon"]], type ptr[in, string["debugfs"]], flags flags[mount_flags], data const[0])
+
+getpid$damon() d_pid
+
+
+# open damon debugfs files
+open$target_ids(file ptr[in, string["/sys/kernel/debug/damon/target_ids"]], flags flags[open_flags], mode flags[open_mode]) fd_target_ids
+open$attrs(file ptr[in, string["sys/kernel/debug/damon/attrs"]], flags flags[open_flags], mode flags[open_mode]) fd_attrs
+open$init_regions(file ptr[in, string["sys/kernel/debug/damon/init_regions"]], flags flags[open_flags], mode flags[open_mode]) fd_init_regions
+open$monitor_on(file ptr[in, string["/sys/kernel/debug/damon/monitor_on"]], flags flags[open_flags], mode flags[open_mode]) fd_monitor_on
+
+
+# write to previously opened fds
+write$target_ids(fd fd_target_ids, buf ptr[in, target_id_input], count len[buf])
+write$attrs(fd fd_attrs, buf ptr[in, attrs], count len[buf])
+write$init_regions(fd fd_init_regions, buf ptr[in, init_regions], count len[buf])
+write$monitor_on(fd fd_monitor_on, buf ptr[in, string["on"]], count len[buf])
+
+
+
+target_id_input {
+	paddr	optional[string["paddr\n"]]
+	pids	array[target_pid]
+} [packed]
+
+target_pid {
+	space	string[" "]
+	pid	    d_pid
+}
+
+attrs {
+	sampl_interval		attr
+	aggr_interval		attr
+	reg_upd_interval	attr
+	min	    		    attr
+	max			        attr
+} [packed]
+
+attr {
+	space	string[" "]
+	val	    int64
+}
+
+init_regions {
+	target	target_pid
+	start	addr
+	end	    addr
+} [packed]
+
+addr {
+	space	string[" "]
+	val	    int64
+}
