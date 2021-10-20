@@ -158,8 +158,12 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		}
 	}
 	// Remove temp files from previous runs.
-	if _, err := inst.adb("shell", "rm -Rf /data/syzkaller*"); err != nil {
-		return nil, err
+	// rm chokes on bad symlinks so we must remove them first
+	if _, err := inst.adb("shell", "ls /data/syzkaller*"); err == nil {
+		if _, err := inst.adb("shell", "find /data/syzkaller* -type l -exec unlink {} \\;"+
+			" && rm -Rf /data/syzkaller*"); err != nil {
+			return nil, err
+		}
 	}
 	inst.adb("shell", "echo 0 > /proc/sys/kernel/kptr_restrict")
 	closeInst = nil
