@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -285,17 +286,19 @@ func ListDir(dir string) ([]string, error) {
 	return f.Readdirnames(-1)
 }
 
-var wd string
-
-func init() {
-	var err error
-	wd, err = os.Getwd()
-	if err != nil {
-		panic(fmt.Sprintf("failed to get wd: %v", err))
-	}
-}
+var (
+	wd     string
+	wdOnce sync.Once
+)
 
 func Abs(path string) string {
+	wdOnce.Do(func() {
+		var err error
+		wd, err = os.Getwd()
+		if err != nil {
+			panic(fmt.Sprintf("failed to get wd: %v", err))
+		}
+	})
 	if wd1, err := os.Getwd(); err == nil && wd1 != wd {
 		panic(fmt.Sprintf("wd changed: %q -> %q", wd, wd1))
 	}
