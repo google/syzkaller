@@ -4,8 +4,8 @@
 package main
 
 import (
+	"io/ioutil"
 	"math/rand"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -48,16 +48,11 @@ func getTestProgram(t *testing.T) *prog.Prog {
 }
 
 func makeTestResultDirectory(t *testing.T) string {
-	resultsdir := "test"
-	err := osutil.MkdirAll(resultsdir)
+	dir, err := ioutil.TempDir("", "syz-verifier")
 	if err != nil {
 		t.Fatalf("failed to create results directory: %v", err)
 	}
-	resultsdir, err = filepath.Abs(resultsdir)
-	if err != nil {
-		t.Fatalf("failed to get absolute path of resultsdir: %v", err)
-	}
-	return resultsdir
+	return osutil.Abs(dir)
 }
 
 func makeExecResult(pool int, errnos []int, flags ...int) *ExecResult {
