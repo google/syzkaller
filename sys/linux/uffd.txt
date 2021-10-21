@@ -15,12 +15,14 @@ ioctl$UFFDIO_UNREGISTER(fd fd_uffd, cmd const[UFFDIO_UNREGISTER], arg ptr[in, uf
 ioctl$UFFDIO_WAKE(fd fd_uffd, cmd const[UFFDIO_WAKE], arg ptr[in, uffdio_range])
 ioctl$UFFDIO_COPY(fd fd_uffd, cmd const[UFFDIO_COPY], arg ptr[in, uffdio_copy])
 ioctl$UFFDIO_ZEROPAGE(fd fd_uffd, cmd const[UFFDIO_ZEROPAGE], arg ptr[in, uffdio_zeropage])
+ioctl$UFFDIO_WRITEPROTECT(fd fd_uffd, cmd const[UFFDIO_WRITEPROTECT], arg ptr[in, uffdio_writeprotect])
+ioctl$UFFDIO_CONTINUE(fd fd_uffd, cmd const[UFFDIO_CONTINUE], arg ptr[in, uffdio_continue])
 
-userfaultfd_flags = O_NONBLOCK, O_CLOEXEC
-uffdio_register_mode = UFFDIO_REGISTER_MODE_MISSING, UFFDIO_REGISTER_MODE_WP
-uffdio_copy_mode = UFFDIO_COPY_MODE_DONTWAKE
+userfaultfd_flags = O_NONBLOCK, O_CLOEXEC, UFFD_USER_MODE_ONLY
+uffdio_register_mode = UFFDIO_REGISTER_MODE_MISSING, UFFDIO_REGISTER_MODE_WP, UFFDIO_REGISTER_MODE_MINOR
+uffdio_copy_mode = UFFDIO_COPY_MODE_DONTWAKE, UFFDIO_COPY_MODE_WP
 uffdio_zero_mode = UFFDIO_ZEROPAGE_MODE_DONTWAKE
-uffdio_features = UFFD_FEATURE_PAGEFAULT_FLAG_WP, UFFD_FEATURE_EVENT_FORK, UFFD_FEATURE_EVENT_REMAP, UFFD_FEATURE_EVENT_REMOVE, UFFD_FEATURE_MISSING_HUGETLBFS, UFFD_FEATURE_MISSING_SHMEM, UFFD_FEATURE_EVENT_UNMAP
+uffdio_features = UFFD_FEATURE_PAGEFAULT_FLAG_WP, UFFD_FEATURE_EVENT_FORK, UFFD_FEATURE_EVENT_REMAP, UFFD_FEATURE_EVENT_REMOVE, UFFD_FEATURE_MISSING_HUGETLBFS, UFFD_FEATURE_MISSING_SHMEM, UFFD_FEATURE_EVENT_UNMAP, UFFD_FEATURE_SIGBUS, UFFD_FEATURE_THREAD_ID, UFFD_FEATURE_MINOR_HUGETLBFS, UFFD_FEATURE_MINOR_SHMEM
 
 uffdio_api {
 	api	const[UFFD_API, int64]
@@ -52,3 +54,18 @@ uffdio_zeropage {
 	mode	flags[uffdio_zero_mode, int64]
 	zeropg	const[0, int64]
 }
+
+uffdio_writeprotect {
+	range	uffdio_range
+	mode	flags[uffdio_writeprotect_mode, int64]
+}
+
+uffdio_writeprotect_mode = UFFDIO_WRITEPROTECT_MODE_WP, UFFDIO_WRITEPROTECT_MODE_DONTWAKE
+
+uffdio_continue {
+	range	uffdio_range
+	mode	flags[uffdio_continue_mode, int64]
+	mapped	int64	(out)
+}
+
+uffdio_continue_mode = UFFDIO_CONTINUE_MODE_DONTWAKE
