@@ -44,8 +44,19 @@ getsockopt$inet6_tcp_TCP_ZEROCOPY_RECEIVE(fd sock_tcp6, level const[IPPROTO_TCP]
 tcp_zerocopy_receive {
 	address		vma64
 	length		len[address, int32]
-	recv_skip_hint	const[0, int32]
+	recv_skip_hint	int32	(out)
+	inq		int32	(out)
+	err		int32	(out)
+	copybuf_address	ptr64[out, array[int8]]
+	copybuf_len	bytesize[copybuf_address, int32]
+	flags		flags[tcp_zerocopy_receive_flags, int32]
+	msg_control	ptr64[out, array[int8]]
+	msg_controllen	bytesize[msg_control, int64]
+	msg_flags	int32	(out)
+	reserved	const[0, int32]
 }
+
+tcp_zerocopy_receive_flags = TCP_RECEIVE_ZEROCOPY_FLAG_TLB_CLEAN_HINT
 
 # Specific TCP socket options
 
