@@ -727,6 +727,7 @@ __NR_preadv = 69, 386:333, amd64:295, arm:361, mips64le:5289, ppc64le:320, s390x
 __NR_preadv2 = 286, 386:378, amd64:327, arm:392, mips64le:5321, ppc64le:380, s390x:376
 __NR_prlimit64 = 261, 386:340, amd64:302, arm:369, mips64le:5297, ppc64le:325, s390x:334
 __NR_process_madvise = 440, mips64le:5440
+__NR_process_mrelease = 448, mips64le:5448
 __NR_process_vm_readv = 270, 386:347, amd64:310, arm:376, mips64le:5304, ppc64le:351, s390x:340
 __NR_process_vm_writev = 271, 386:348, amd64:311, arm:377, mips64le:5305, ppc64le:352, s390x:341
 __NR_pselect6 = 72, 386:308, amd64:270, arm:335, mips64le:5260, ppc64le:280, s390x:301
