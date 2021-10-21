@@ -611,6 +611,7 @@ __NR_epoll_create = 386:254, amd64:213, arm:250, arm64:riscv64:???, mips64le:520
 __NR_epoll_create1 = 20, 386:329, amd64:291, arm:357, mips64le:5285, ppc64le:315, s390x:327
 __NR_epoll_ctl = 21, 386:255, amd64:233, arm:251, mips64le:5208, ppc64le:237, s390x:250
 __NR_epoll_pwait = 22, 386:319, amd64:281, arm:346, mips64le:5272, ppc64le:303, s390x:312
+__NR_epoll_pwait2 = 441, mips64le:5441
 __NR_epoll_wait = 386:256, amd64:232, arm:252, arm64:riscv64:???, mips64le:5209, ppc64le:238, s390x:251
 __NR_eventfd = 386:323, amd64:284, arm:351, arm64:riscv64:???, mips64le:5278, ppc64le:307, s390x:318
 __NR_eventfd2 = 19, 386:328, amd64:290, arm:356, mips64le:5284, ppc64le:314, s390x:323

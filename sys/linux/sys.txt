@@ -141,7 +141,8 @@ epoll_ctl$EPOLL_CTL_ADD(epfd fd_epoll, op const[EPOLL_CTL_ADD], fd fd, ev ptr[in
 epoll_ctl$EPOLL_CTL_MOD(epfd fd_epoll, op const[EPOLL_CTL_MOD], fd fd, ev ptr[in, epoll_event])
 epoll_ctl$EPOLL_CTL_DEL(epfd fd_epoll, op const[EPOLL_CTL_DEL], fd fd)
 epoll_wait(epfd fd_epoll, events ptr[out, array[epoll_event]], maxevents len[events], timeout int32)
-epoll_pwait(epfd fd_epoll, events ptr[out, array[epoll_event]], maxevents len[events], timeout int32, sigmask ptr[in, sigset_t], size len[sigmask])
+epoll_pwait(epfd fd_epoll, events ptr[out, array[epoll_event]], maxevents len[events], timeout int32, sigmask ptr[in, sigset_t], size bytesize[sigmask])
+epoll_pwait2(epfd fd_epoll, events ptr[out, array[epoll_event]], maxevents len[events], timeout ptr[in, timespec], sigmask ptr[in, sigset_t], size bytesize[sigmask])
 
 resource fd_timer[fd]
 signalfd(fd fd, mask ptr[in, sigset_t], size len[mask]) fd
