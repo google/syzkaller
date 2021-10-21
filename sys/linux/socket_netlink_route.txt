@@ -29,6 +29,7 @@ include <uapi/linux/ila.h>
 include <uapi/linux/seg6_iptunnel.h>
 include <uapi/linux/seg6_local.h>
 include <uapi/linux/rpl_iptunnel.h>
+include <uapi/linux/batman_adv.h>
 
 resource sock_nl_route[sock_netlink]
 type netns_id int32[0:4]
@@ -311,7 +312,15 @@ ifla_info_policy [
 	ipoib		ifla_info_policy_t["ipoib", IFLA_INFO_DATA, array[ipoib_policy]]
 	geneve		ifla_info_policy_t["geneve", IFLA_INFO_DATA, array[geneve_policy]]
 	wireguard	ifla_info_policy_t["wireguard", IFLA_INFO_DATA, void]
+	batadv		ifla_info_policy_t["batadv", IFLA_INFO_DATA, array[batadv_policy]]
 ] [varlen]
+
+batadv_policy [
+	IFLA_BATADV_ALGO_NAME	nlattr[IFLA_BATADV_ALGO_NAME, stringnoz[batadv_algo]]
+] [varlen]
+
+# See batadv_algo_ops/batadv_algo_register.
+batadv_algo = "BATMAN_V", "BATMAN_IV"
 
 geneve_policy [
 	IFLA_GENEVE_ID			nlattr[IFLA_GENEVE_ID, int32[0:4]]
