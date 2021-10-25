@@ -61,7 +61,7 @@ case "$IMG_ARCH" in
 		PARTDEV=$DISKDEV"p1"
 		;;
 	ppc64le)
-		echo -en "g\nn\n1\n2048\n16383\nt\n7\nn\n2\n\n\nw\n" | sudo fdisk $DISKDEV
+		echo -en "o\nn\np\n1\n2048\n16383\na\nt\n41\nn\np\n2\n\n\nw\n" | sudo fdisk $DISKDEV
 		PARTDEV=$DISKDEV"p2"
 		;;
 esac
@@ -143,9 +143,9 @@ terminal_output console
 set timeout=0
 menuentry 'linux' --class gnu-linux --class gnu --class os {
 	insmod gzio
-	insmod part_gpt
+	insmod part_msdos
 	insmod ext2
-	set root='(ieee1275/disk,gpt2)'
+	set root='(ieee1275/disk,msdos2)'
 	linux /vmlinuz root=/dev/sda2 console=ttyS0 earlyprintk=serial oops=panic panic_on_warn=1 nmi_watchdog=panic panic=86400 net.ifnames=0 $CMDLINE
 }
 EOF
