@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"sort"
@@ -433,7 +434,25 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 			}
 		}
 	}
+
+	if isJSONRequested(r) {
+		return writeJSONVersionOf(w, data)
+	}
+
 	return serveTemplate(w, "bug.html", data)
+}
+
+func isJSONRequested(request *http.Request) bool {
+	return request.FormValue("json") == "1"
+}
+
+func writeJSONVersionOf(writer http.ResponseWriter, bugPage *uiBugPage) error {
+	data, err := json.Marshal(GetExtAPIDescrForBugPage(bugPage))
+	if err != nil {
+		return err
+	}
+	_, err = writer.Write(data)
+	return err
 }
 
 func findBugByID(c context.Context, r *http.Request) (*Bug, error) {
