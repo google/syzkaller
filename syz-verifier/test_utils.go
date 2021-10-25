@@ -6,6 +6,7 @@ package main
 import (
 	"io/ioutil"
 	"math/rand"
+	"os"
 	"testing"
 	"time"
 
@@ -52,6 +53,9 @@ func makeTestResultDirectory(t *testing.T) string {
 	if err != nil {
 		t.Fatalf("failed to create results directory: %v", err)
 	}
+	t.Cleanup(func() {
+		os.RemoveAll(dir)
+	})
 	return osutil.Abs(dir)
 }
 
