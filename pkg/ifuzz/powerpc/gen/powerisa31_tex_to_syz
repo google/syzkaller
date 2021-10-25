@@ -1,0 +1,265 @@
+#! /usr/bin/env python3
+
+# Copyright 2021 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+import re
+import os
+import sys
+import pprint
+import subprocess
+
+pp = pprint.PrettyPrinter(indent = 0, compact = True, width = 300)
+pe = pprint.PrettyPrinter(indent = 0, compact = True, width = 300, stream = sys.stderr)
+
+def read_file(fname):
+	if not os.access(fname, os.O_RDONLY):
+		return []
+	f = open(fname, 'r')
+	ret = f.read()
+	ret = ret.split("\n")[:-1]
+	f.close()
+	return ret
+
+def get_layouts(layout_file):
+	layout_content = read_file(layout_file)
+	cur_layout = ""
+	last_comment = ""
+	layouts = {}
+	for i in range(len(layout_content)):
+		cur = layout_content[i]
+		if len(cur) > 0 and cur[0] == '%':
+			last_comment = re.sub(r'(^%|bits.*$)', "", cur).strip()
+			continue
+		# \newcommand{\layoutiform}[4]{
+		l = re.match(r'\\newcommand{\\(layout\w+)}.*{', cur)
+		if l:
+			cur_layout = l.group(1)
+			layouts[cur_layout] = last_comment
+			continue
+	return layouts
+
+def add_insns(st, l):
+	if len(l) != 1 and len(l) != 2:
+		pe.pprint("!!!Error: broken layout {} for {}".format(l, st))
+		sys.exit(-1)
+	r = {}
+# These lines enable/disable prefixed instrustions
+	if len(l) != 1:
+		return r
+	for ins in st:
+		tmp = ins[0].split(" ", 1)
+		r[tmp[0]] = ins[1]
+		r[tmp[0]]["layout"] = l
+		if len(tmp) > 1:
+			r[tmp[0]]["par"] = tmp[1]
+	return r
+
+def sanitize_layout(a, b):
+	a = a.strip().split(" ")
+	b = re.findall(r'{([^}]*)}', b)
+	aa = []
+	bb = []
+	b_ = 0
+	for a1 in a:
+		tmp = re.match(r'(\d+)<(\S+)>', a1)
+		if tmp:
+			aa += [int(tmp.group(1), 10)]
+			bb += [tmp.group(2)]
+			continue
+		aa += [int(a1, 10)]
+		bb += [re.sub(r'[{}]+', "", b[b_])]
+		b_ += 1
+	if b_ != len(b) or len(aa) != len(bb):
+		pe.pprint("!!!error: broken layout {} --- {} --- {}".format(aa, bb, b_))
+		sys.exit(-1)
+	return aa, bb
+
+def find_insns(tex_file, layouts):
+	tex_content = read_file(tex_file)
+	cur_insn_name = ""
+	cur_insn = {}
+	ret = {}
+	layout = []
+	insns_stack = []
+	for i in range(len(tex_content)):
+		cur = tex_content[i]
+		# \instrsyntax{pmxvf16ger2np AT,XA,XB,XMSK,YMSK,PMSK}
+		l = re.match(r'\\instrsyntax{(.*)}', cur)
+		if l:
+			if insns_stack != [] and layout != []:
+				ret.update(add_insns(insns_stack, layout))
+				insns_stack = []
+				layout = []
+
+			cur_insn_name = l.group(1)
+			insns_stack += [(cur_insn_name, {"loc": "{}:{}".format(tex_file.rsplit("/", 1)[-1], i)})]
+			continue
+		if not insns_stack:
+			continue
+
+		# \layoutxxiiidform{59}{AT}{//}{A}{B}{82}{AX}{BX}{/}
+		l = re.match(r'\\(layout\w+)(.*)$', cur)
+		if l:
+			if len(layout) > 2:
+				pe.pprint("! Wrong layout")
+				sys.exit(-1)
+			layout += [sanitize_layout(layouts[l.group(1)], l.group(2))]
+
+	if layout:
+		ret.update(add_insns(insns_stack, layout))
+
+	return ret
+
+def collect_priv(tex_file, insns):
+	tex_cont = read_file(tex_file)
+	for i in range(len(tex_cont)):
+		cur = tex_cont[i]
+		ins = cur.split('}', 1)[0]
+		if ins not in insns:
+			continue
+		l = re.match(r'^{}}}.+\\small (P|H|HV|HV\/P|UV|64)}}&.*'.format(ins), cur)
+		if not l:
+			continue
+		insns[ins]["Priv"] = True
+
+def ppcmask(val, start, len):
+	return (val & ((1 << len) - 1)) << (31 - (start + len - 1))
+
+fixed_cases = {}
+def add_fixed(field, ins):
+	global fixed_cases
+	if field not in fixed_cases:
+		fixed_cases[field] = []
+	fixed_cases[field] += [ins]
+def print_fixed():
+	pe.pprint(fixed_cases)
+
+def generate_go(insns):
+	def generate_opcode(ins, layout):
+		opcode = 0
+		opmask = 0
+		fields = ""
+		pos = 0
+		bits = 0
+		fields = {}
+		for i in range(len(layout[0])):
+			pos += bits
+			bits = layout[0][i]
+
+			# "pnop" is special
+			if layout[1][i].replace('any value\\textsuperscript*', '') == '':
+				continue
+
+			if layout[1][i].replace('/', '') == '':
+				opmask |= ppcmask(0xffffffff, pos, layout[0][i])
+				continue
+
+			if layout[1][i].replace('?', '') == '':
+				opmask |= ppcmask(0xffffffff, pos, layout[0][i])
+				continue
+
+			try:
+				num = int(layout[1][i], 10)
+				opcode |= ppcmask(num, pos, layout[0][i])
+				opmask |= ppcmask(0xffffffff, pos, layout[0][i])
+				continue
+			except:
+				pass
+
+			if 'par' in ival:
+				tmp = re.match(r'.*{}=(\d).*'.format(layout[1][i]), ival['par'])
+				if tmp:
+					opcode |= ppcmask(int(tmp.group(1), 10), pos, layout[0][i])
+					opmask |= ppcmask(0xffffffff, pos, layout[0][i])
+					continue
+
+			if layout[1][i] not in fields:
+				fields[layout[1][i]] = []
+			fields[layout[1][i]] += [(pos, layout[0][i])]
+
+		# Fix up fields
+		for f in fields:
+			if (ins in ['mtvsrbmi', 'addpcis', 'xvtstdcdp', 'xvtstdcsp', 'mftb'] and
+				f in [
+				"b0", "b1", "b2", # mtvsrbmi
+				"dx", "dc", "dm", # xvtstdcdp
+				"d0", "d1", "d2", # addpcis
+				"tbr", # mftb
+				]):
+				add_fixed(f, ins)
+				continue
+			if (ins in ['extswsli', 'extswsli.', 'rldic', 'rldic.', 'rldicl', 'rldicl.', 'rldicr', 'rldicr.', 'rldimi', 'rldimi.', 'sradi', 'sradi.'] and
+				f in ["sh"] and fields[f] == [(16, 5), (30, 1)]):
+				add_fixed(f, ins)
+				continue
+			if (ins in ['rldcl', 'rldcl.', 'rldic', 'rldic.', 'rldicl', 'rldicl.', 'rldimi', 'rldimi.', 'rldcr', 'rldcr.', 'rldicr', 'rldicr.'] and
+				f in ["me", "mb"] and fields[f] == [(21, 6)]): # rldicr
+				add_fixed(f, ins)
+				fields[f] = [(21, 5), (26, 1)]
+				continue
+			if ins in ['mfspr', 'mtspr'] and f == "spr" and fields[f] == [(11, 10)]: # mfspr
+				add_fixed(f, ins)
+				fields[f] = [(16, 5), (11, 5)]
+				continue
+			if re.match(r'[a-z]+', f):
+				add_fixed(f, ins)
+				continue
+
+		fields_str = ""
+		for fkey, fval_ in sorted(fields.items()):
+			fields_str += '{'
+			fields_str += 'Name: "{}", Bits: []powerpc.InsnBits'.format(fkey)
+			fields_str += '{'
+			for fval in fval_:
+				fields_str += '{{{}, {}}}, '.format(fval[0], fval[1])
+				if int(fval[1]) == 0:
+					pe.pprint("!Wrong length!")
+					sys.exit(-1)
+			fields_str = fields_str[:-2] + '}}, '
+
+		return opcode, opmask, fields_str[:-2]
+
+	for ins, ival in sorted(insns.items()):#, key: lambda x: insns[x].opcode):
+		tmp = '\t{Name: "'
+		tmp += ins
+		tmp += '", '
+		if len(ival['layout']) >= 1:
+			opcode, opmask, fields = generate_opcode(ins, ival['layout'][0])
+			if "Priv" in ival:
+				tmp += 'Opcode: 0x{:08x}, Mask: 0x{:08x}, Priv: true, Fields: []powerpc.InsnField{{{}}}'.format(opcode, opmask, fields)
+			else:
+				tmp += 'Opcode: 0x{:08x}, Mask: 0x{:08x}, Fields: []powerpc.InsnField{{{}}}'.format(opcode, opmask, fields)
+
+		tmp += "},"
+		print(tmp)
+
+isa_dir = sys.argv[1]
+layouts = get_layouts(isa_dir + '/ilayouts.tex')
+texfiles = subprocess.check_output(["find", isa_dir, "-iname", "*.tex"]).decode("utf-8").split("\n")[:-1]
+
+insns = {}
+for tex in texfiles:
+	insns.update(find_insns(tex, layouts))
+
+collect_priv(isa_dir + "/Appendices/PPC_ApInstMnem.tex", insns)
+
+print('// Code generated by {}. DO NOT EDIT.'.format(sys.argv[0]))
+print('')
+print('//go:build !codeanalysis')
+print('// +build !codeanalysis')
+print('')
+print('package generated')
+print('')
+print('import "github.com/google/syzkaller/pkg/ifuzz/powerpc"')
+print('')
+print('func init() {')
+print('\tpowerpc.Register(insns)')
+print('}')
+print('')
+print('var insns = []*powerpc.Insn{')
+generate_go(insns)
+print("}")
+
+pe.pprint("Processed {} instructions".format(len(insns)))
+print_fixed()

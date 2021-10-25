@@ -103,6 +103,10 @@ func (insn Insn) encodeOpcode(cfg *iset.Config, r *rand.Rand, opcode, mask uint3
 	}
 	for _, f := range f {
 		field := uint(r.Intn(1 << 16))
+		if f.Name == "Ap" || f.Name == "FRAp" || f.Name == "FRBp" || f.Name == "FRTp" || f.Name == "FRSp" {
+			// These are pairs and have to be even numbers.
+			field &^= 1
+		}
 		insn32 |= encodeBits(field, f.Bits)
 		if len(cfg.MemRegions) != 0 && (f.Name == "RA" || f.Name == "RB" || f.Name == "RS") {
 			val := iset.GenerateInt(cfg, r, 8)
