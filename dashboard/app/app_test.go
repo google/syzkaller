@@ -355,7 +355,8 @@ func TestApp(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
-	c.expectOK(c.GET("/test1"))
+	_, err := c.GET("/test1")
+	c.expectOK(err)
 
 	apiClient1 := c.makeClient(client1, password1, false)
 	apiClient2 := c.makeClient(client2, password2, false)
