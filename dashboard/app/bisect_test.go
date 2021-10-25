@@ -1034,7 +1034,7 @@ func TestBugBisectionResults(t *testing.T) {
 
 	// Ensure expected results show up on web UI
 	url := fmt.Sprintf("/bug?id=%v", keys[0].StringID())
-	content, err := c.httpRequest("GET", url, "", AccessAdmin)
+	content, err := c.GET(url)
 	c.expectEQ(err, nil)
 	c.expectTrue(bytes.Contains(content, []byte("Cause bisection: introduced by")))
 	c.expectTrue(bytes.Contains(content, []byte("kernel: add a bug")))
@@ -1091,7 +1091,7 @@ func TestBugBisectionStatus(t *testing.T) {
 	c.expectEQ(err, nil)
 	c.expectEQ(len(bugs), 1)
 	url := fmt.Sprintf("/%v", bugs[0].Namespace)
-	content, err := c.httpRequest("GET", url, "", AccessAdmin)
+	content, err := c.GET(url)
 	c.expectEQ(err, nil)
 	c.expectTrue(bytes.Contains(content, []byte("done")))
 
@@ -1136,7 +1136,7 @@ func TestBugBisectionStatus(t *testing.T) {
 		},
 	}
 	c.expectOK(c.client2.JobDone(done))
-	content, err = c.httpRequest("GET", url, "", AccessAdmin)
+	content, err = c.GET(url)
 	c.expectEQ(err, nil)
 	c.expectTrue(bytes.Contains(content, []byte("done")))
 
