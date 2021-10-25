@@ -1160,7 +1160,7 @@ var linuxStackParams = &stackParams{
 		"____sys_",
 		"___sys_",
 		"__sys_",
-		"__se_sys_",
+		"__se_",
 		"__do_sys_",
 		"compat_SYSC_",
 		"compat_SyS_",
