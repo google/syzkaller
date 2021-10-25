@@ -204,9 +204,8 @@ func (c *Ctx) AuthGET(access AccessLevel, url string) ([]byte, error) {
 }
 
 // POST sends admin-authorized HTTP POST requestd to the app.
-func (c *Ctx) POST(url, body string) error {
-	_, err := c.httpRequest("POST", url, body, AccessAdmin)
-	return err
+func (c *Ctx) POST(url, body string) ([]byte, error) {
+	return c.httpRequest("POST", url, body, AccessAdmin)
 }
 
 func (c *Ctx) httpRequest(method, url, body string, access AccessLevel) ([]byte, error) {
@@ -475,7 +474,8 @@ Content-Type: text/plain
 
 %v
 `, from, id, subject, from, strings.Join(cc, ","), to, body)
-	c.expectOK(c.POST("/_ah/mail/", email))
+	_, err := c.POST("/_ah/mail/", email)
+	c.expectOK(err)
 }
 
 func initMocks() {
