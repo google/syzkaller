@@ -447,7 +447,10 @@ func isJSONRequested(request *http.Request) bool {
 }
 
 func writeJSONVersionOf(writer http.ResponseWriter, bugPage *uiBugPage) error {
-	data, err := json.Marshal(GetExtAPIDescrForBugPage(bugPage))
+	data, err := json.MarshalIndent(
+		GetExtAPIDescrForBugPage(bugPage),
+		"",
+		"\t")
 	if err != nil {
 		return err
 	}
