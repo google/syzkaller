@@ -28,7 +28,6 @@ type InsnBits struct {
 
 type Insn struct {
 	Name   string
-	M64    bool // true if the instruction is 64bit _only_.
 	Priv   bool
 	Pseudo bool
 	Fields map[string][]InsnBits // for ra/rb/rt/si/...
@@ -127,9 +126,6 @@ func (insn *Insn) Info() (string, iset.Mode, bool, bool) {
 }
 
 func (insn Insn) mode() iset.Mode {
-	if insn.M64 {
-		return (1 << iset.ModeLong64)
-	}
 	return (1 << iset.ModeLong64) | (1 << iset.ModeProt32)
 }
 

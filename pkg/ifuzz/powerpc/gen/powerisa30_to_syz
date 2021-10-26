@@ -173,8 +173,6 @@ print("Offset = {}, opcodes on pages {}..{} (phys pages {}..{})".format(pageoffs
 
 def add_mode_priv(mode, priv):
 	ret = ""
-	if "64" in mode:
-		ret += ", M64: true"
 	if "P" in priv or "H" in priv:
 		ret += ", Priv: true"
 	return ret
