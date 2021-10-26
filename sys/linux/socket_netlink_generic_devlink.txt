@@ -35,6 +35,10 @@ sendmsg$DEVLINK_CMD_SB_TC_POOL_BIND_GET(fd sock_nl_generic, msg ptr[in, msghdr_n
 sendmsg$DEVLINK_CMD_SB_TC_POOL_BIND_SET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_SB_TC_POOL_BIND_SET, devlink_sb_tc_pool_bind_set_policy]], f flags[send_flags])
 sendmsg$DEVLINK_CMD_SB_OCC_SNAPSHOT(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_SB_OCC_SNAPSHOT, devlink_sb_occ_snapshot_policy]], f flags[send_flags])
 sendmsg$DEVLINK_CMD_SB_OCC_MAX_CLEAR(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_SB_OCC_MAX_CLEAR, devlink_sb_occ_max_clear_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_RATE_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_RATE_GET, devlink_nl_rate_get_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_RATE_SET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_RATE_SET, devlink_nl_rate_set_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_RATE_NEW(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_RATE_NEW, devlink_nl_rate_set_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_RATE_DEL(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_RATE_DEL, devlink_nl_rate_get_policy]], f flags[send_flags])
 
 devlink_devname {
 	prefix	stringnoz["netdevsim"]
@@ -188,3 +192,24 @@ devlink_sb_occ_max_clear_policy {
 	handle			devlink_handle
 	DEVLINK_ATTR_SB_INDEX	nlattr[DEVLINK_ATTR_SB_INDEX, int32]
 } [packed, align[4]]
+
+devlink_rate_node_name [
+	name1	string["firstname"]
+	name2	string["secondname"]
+	random	array[int8]
+] [varlen]
+
+devlink_nl_rate_get_policy [
+	handle				devlink_handle
+	DEVLINK_ATTR_RATE_NODE_NAME	nlattr[DEVLINK_ATTR_RATE_NODE_NAME, devlink_rate_node_name]
+	DEVLINK_ATTR_PORT_INDEX		nlattr[DEVLINK_ATTR_PORT_INDEX, int32[0:3]]
+] [varlen]
+
+devlink_nl_rate_set_policy [
+	handle					devlink_handle
+	DEVLINK_ATTR_RATE_NODE_NAME		nlattr[DEVLINK_ATTR_RATE_NODE_NAME, devlink_rate_node_name]
+	DEVLINK_ATTR_PORT_INDEX			nlattr[DEVLINK_ATTR_PORT_INDEX, int32[0:3]]
+	DEVLINK_ATTR_RATE_TX_SHARE		nlattr[DEVLINK_ATTR_RATE_TX_SHARE, int64]
+	DEVLINK_ATTR_RATE_TX_MAX		nlattr[DEVLINK_ATTR_RATE_TX_MAX, int64]
+	DEVLINK_ATTR_RATE_PARENT_NODE_NAME	nlattr[DEVLINK_ATTR_RATE_PARENT_NODE_NAME, devlink_rate_node_name]
+] [varlen]
