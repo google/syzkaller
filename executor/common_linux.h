@@ -3630,12 +3630,39 @@ static void initialize_cgroups()
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID
 #include <errno.h>
 #include <sys/mount.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 static void setup_common()
 {
 	if (mount(0, "/sys/fs/fuse/connections", "fusectl", 0, 0)) {
 		debug("mount(fusectl) failed: %d\n", errno);
 	}
+}
+
+static void setup_binderfs()
+{
+	// NOTE: this function must be called after chroot.
+	// Bind an instance of binderfs specific just to this executor - it will
+	// only be visible in its mount namespace and will help isolate binder
+	// devices during fuzzing.
+	// These commands will just silently fail if binderfs is not supported.
+	// Ideally it should have been added as a separate feature (with lots of
+	// minor changes throughout the code base), but it seems to be an overkill
+	// for just 2 simple lines of code.
+	if (mkdir("/dev/binderfs", 0777)) {
+		debug("mkdir(/dev/binderfs) failed: %d\n", errno);
+	}
+
+	if (mount("binder", "/dev/binderfs", "binder", 0, NULL)) {
+		debug("mount of binder at /dev/binderfs failed: %d\n", errno);
+	}
+#if !SYZ_EXECUTOR && !SYZ_USE_TMP_DIR
+	// Do a local symlink right away.
+	if (symlink("/dev/binderfs", "./binderfs")) {
+		debug("symlink(/dev/binderfs, ./binderfs) failed: %d\n", errno);
+	}
+#endif
 }
 
 #include <sched.h>
@@ -3809,6 +3836,7 @@ static int do_sandbox_none(void)
 #if SYZ_EXECUTOR || SYZ_WIFI
 	initialize_wifi_devices();
 #endif
+	setup_binderfs();
 	loop();
 	doexit(1);
 }
@@ -3852,6 +3880,7 @@ static int do_sandbox_setuid(void)
 #if SYZ_EXECUTOR || SYZ_WIFI
 	initialize_wifi_devices();
 #endif
+	setup_binderfs();
 
 	const int nobody = 65534;
 	if (setgroups(0, NULL))
@@ -3967,6 +3996,7 @@ static int namespace_sandbox_proc(void* arg)
 		fail("chroot failed");
 	if (chdir("/"))
 		fail("chdir failed");
+	setup_binderfs();
 	drop_caps();
 
 	loop();
@@ -4147,6 +4177,7 @@ static int do_sandbox_android(void)
 	setfilecon(".", SELINUX_LABEL_APP_DATA_FILE);
 	setcon(SELINUX_CONTEXT_UNTRUSTED_APP);
 
+	setup_binderfs();
 	loop();
 	doexit(1);
 }
@@ -4430,6 +4461,7 @@ static void reset_loop()
 
 #if SYZ_EXECUTOR || SYZ_REPEAT
 #include <sys/prctl.h>
+#include <unistd.h>
 
 #define SYZ_HAVE_SETUP_TEST 1
 static void setup_test()
@@ -4445,6 +4477,12 @@ static void setup_test()
 	// Read all remaining packets from tun to better
 	// isolate consequently executing programs.
 	flush_tun();
+#endif
+#if SYZ_EXECUTOR || SYZ_USE_TMP_DIR
+	// Add a binderfs symlink to the tmp folder.
+	if (symlink("/dev/binderfs", "./binderfs")) {
+		debug("symlink(/dev/binderfs, ./binderfs) failed: %d", errno);
+	}
 #endif
 }
 #endif

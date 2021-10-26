@@ -1,6 +1,6 @@
-r0 = syz_open_dev$binderN(&AUTO='/dev/binder#\x00', 0x0, 0x2)
+r0 = openat$binderfs(0xffffffffffffff9c, &(0x7f00000000c0)='./binderfs/binder0\x00', 0x0, 0x0)
 ioctl$BINDER_SET_CONTEXT_MGR_EXT(r0, AUTO, &AUTO={AUTO, 0x100, 0x0, 0x0})
 mmap$binder(&(0x7f00000a0000), 0x2000, 0x1, 0x11, r0, 0x0)
-r1 = syz_open_dev$binderN(&AUTO='/dev/binder#\x00', 0x0, 0x2)
+r1 = openat$binderfs(0xffffffffffffff9c, &(0x7f00000000c0)='./binderfs/binder1\x00', 0x0, 0x0)
 mmap$binder(&(0x7f00000c0000), 0x2000, 0x1, 0x11, r1, 0x0)
 ioctl$BINDER_WRITE_READ(r1, AUTO, &AUTO={AUTO, AUTO, &AUTO=[@transaction_sg={AUTO, {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, AUTO, AUTO, &AUTO={@flat=@binder={AUTO, 0x0, 0x0, 0x0}, @fd={AUTO, AUTO, r0, AUTO, 0x0}, @ptr={AUTO, 0x0, &AUTO=""/10, AUTO, 0x0, 0x0}}, &AUTO={AUTO, AUTO, AUTO}}, 0x10}], AUTO, AUTO, &AUTO})
