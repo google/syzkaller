@@ -355,7 +355,8 @@ func TestApp(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
-	c.expectOK(c.GET("/test1"))
+	_, err := c.GET("/test1")
+	c.expectOK(err)
 
 	apiClient1 := c.makeClient(client1, password1, false)
 	apiClient2 := c.makeClient(client2, password2, false)
@@ -415,7 +416,7 @@ func TestRedirects(t *testing.T) {
 	checkRedirect(c, AccessAdmin, "/", "/admin", http.StatusFound)
 	checkLoginRedirect(c, AccessPublic, "/access-user") // not accessible namespace
 
-	_, err := c.httpRequest("GET", "/access-user", "", AccessUser)
+	_, err := c.AuthGET(AccessUser, "/access-user")
 	c.expectOK(err)
 }
 
@@ -428,7 +429,7 @@ func checkLoginRedirect(c *Ctx, accessLevel AccessLevel, url string) {
 }
 
 func checkRedirect(c *Ctx, accessLevel AccessLevel, from, to string, status int) {
-	_, err := c.httpRequest("GET", from, "", accessLevel)
+	_, err := c.AuthGET(accessLevel, from)
 	c.expectNE(err, nil)
 	httpErr, ok := err.(HTTPError)
 	c.expectTrue(ok)

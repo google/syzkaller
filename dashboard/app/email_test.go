@@ -106,7 +106,8 @@ To view this discussion on the web visit https://groups.google.com/d/msgid/syzka
 For more options, visit https://groups.google.com/d/optout.
 `, sender0)
 
-	c.expectOK(c.POST("/_ah/mail/", incoming1))
+	_, err := c.POST("/_ah/mail/", incoming1)
+	c.expectOK(err)
 
 	// Emulate that somebody sends us our own email back without quoting.
 	// We used to extract "#syz fix: exact-commit-title" from it.
@@ -252,7 +253,8 @@ Content-Type: text/plain
 +more people
 `, sender1)
 
-	c.expectOK(c.POST("/_ah/mail/", incoming3))
+	_, err = c.POST("/_ah/mail/", incoming3)
+	c.expectOK(err)
 
 	// Now upload a C reproducer.
 	crash.ReproC = []byte("int main() {}")
@@ -315,7 +317,8 @@ Content-Type: text/plain
 #syz bad-command
 `, sender1)
 
-	c.expectOK(c.POST("/_ah/mail/", incoming4))
+	_, err = c.POST("/_ah/mail/", incoming4)
+	c.expectOK(err)
 
 	{
 		msg := c.pollEmailBug()
@@ -387,7 +390,8 @@ Content-Type: text/plain
 
 #syz upstream
 `, sender)
-	c.expectOK(c.POST("/_ah/mail/", incoming1))
+	_, err := c.POST("/_ah/mail/", incoming1)
+	c.expectOK(err)
 }
 
 // Basic dup scenario: mark one bug as dup of another.

@@ -589,7 +589,7 @@ func TestFixBisectionsListed(t *testing.T) {
 	c.expectEQ(err, nil)
 	c.expectEQ(len(bugs), 1)
 	url := fmt.Sprintf("/bug?id=%v", keys[0].StringID())
-	content, err := c.httpRequest("GET", url, "", AccessAdmin)
+	content, err := c.GET(url)
 	c.expectEQ(err, nil)
 	c.expectTrue(!bytes.Contains(content, []byte("All fix bisections")))
 
@@ -623,7 +623,7 @@ func TestFixBisectionsListed(t *testing.T) {
 	c.client2.expectOK(c.client2.JobDone(done))
 
 	// Check the bug page and ensure that a bisection is listed out.
-	content, err = c.httpRequest("GET", url, "", AccessAdmin)
+	content, err = c.GET(url)
 	c.expectEQ(err, nil)
 	c.expectTrue(bytes.Contains(content, []byte("Fix bisection attempts")))
 
@@ -643,7 +643,7 @@ func TestFixBisectionsListed(t *testing.T) {
 	c.client2.expectOK(c.client2.JobDone(done))
 
 	// Check the bug page and ensure that no bisections are listed out.
-	content, err = c.httpRequest("GET", url, "", AccessAdmin)
+	content, err = c.GET(url)
 	c.expectEQ(err, nil)
 	c.expectTrue(!bytes.Contains(content, []byte("All fix bisections")))
 }
