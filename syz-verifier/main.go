@@ -188,4 +188,6 @@ func main() {
 	}
 
 	vrf.startInstances()
+
+	select {}
 }
