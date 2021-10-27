@@ -436,6 +436,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	}
 
 	if isJSONRequested(r) {
+		w.Header().Set("Content-Type", "application/json")
 		return writeJSONVersionOf(w, data)
 	}
 

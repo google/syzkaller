@@ -200,15 +200,29 @@ func (c *Ctx) GET(url string) ([]byte, error) {
 
 // AuthGET sends HTTP GET request to the app with the specified authorization.
 func (c *Ctx) AuthGET(access AccessLevel, url string) ([]byte, error) {
-	return c.httpRequest("GET", url, "", access)
+	w, err := c.httpRequest("GET", url, "", access)
+	if err != nil {
+		return nil, err
+	}
+	return w.Body.Bytes(), nil
 }
 
 // POST sends admin-authorized HTTP POST requestd to the app.
 func (c *Ctx) POST(url, body string) ([]byte, error) {
-	return c.httpRequest("POST", url, body, AccessAdmin)
+	w, err := c.httpRequest("POST", url, body, AccessAdmin)
+	if err != nil {
+		return nil, err
+	}
+	return w.Body.Bytes(), nil
 }
 
-func (c *Ctx) httpRequest(method, url, body string, access AccessLevel) ([]byte, error) {
+// ContentType returns the response Content-Type header value.
+func (c *Ctx) ContentType(url string) (string, error) {
+	w, err := c.httpRequest("HEAD", url, "", AccessAdmin)
+	return (w.Header()["Content-Type"][0]), err
+}
+
+func (c *Ctx) httpRequest(method, url, body string, access AccessLevel) (*httptest.ResponseRecorder, error) {
 	c.t.Logf("%v: %v", method, url)
 	r, err := c.inst.NewRequest(method, url, strings.NewReader(body))
 	if err != nil {
@@ -231,7 +245,7 @@ func (c *Ctx) httpRequest(method, url, body string, access AccessLevel) ([]byte,
 	if w.Code != http.StatusOK {
 		return nil, HTTPError{w.Code, w.Body.String(), w.Result().Header}
 	}
-	return w.Body.Bytes(), nil
+	return w, nil
 }
 
 type HTTPError struct {

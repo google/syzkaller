@@ -60,7 +60,10 @@ func TestJSONAPIIntegration(t *testing.T) {
 
 func checkBugPageJSONIs(c *Ctx, ID string, expectedContent []byte) {
 	url := fmt.Sprintf("/bug?extid=%v&json=1", ID)
-	actualContent, _ := c.client.GET(url)
 
+	contentType, _ := c.client.ContentType(url)
+	c.expectEQ(contentType, "application/json")
+
+	actualContent, _ := c.client.GET(url)
 	c.expectEQ(string(actualContent), string(expectedContent))
 }
