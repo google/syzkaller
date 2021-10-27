@@ -176,8 +176,19 @@ func processJob(job *Job, descriptions *ast.Description, constFile *compiler.Con
 		// is not supported yet but might be in the future.
 		// Note: syz-extract also ignores this file for arm and riscv64.
 		top = descriptions.Filter(func(n ast.Node) bool {
-			pos, _, _ := n.Info()
-			return !strings.HasSuffix(pos.File, "_kvm.txt")
+			pos, typ, name := n.Info()
+			if !strings.HasSuffix(pos.File, "_kvm.txt") {
+				return true
+			}
+			switch n.(type) {
+			case *ast.Resource, *ast.Struct, *ast.Call, *ast.TypeDef:
+				// Mimic what pkg/compiler would do with unsupported entries.
+				// This is required to keep the unsupported diagnostic below working
+				// for kvm entries, otherwise it will not think that kvm entries
+				// are not supported on all architectures.
+				job.Unsupported[typ+" "+name] = true
+			}
+			return false
 		})
 	}
 	if job.Target.OS == targets.TestOS {
