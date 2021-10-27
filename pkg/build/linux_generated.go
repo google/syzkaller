@@ -145,7 +145,7 @@ menuentry 'linux' --class gnu-linux --class gnu --class os {
 	insmod gzio
 	insmod part_msdos
 	insmod ext2
-	set root='(ieee1275/disk,msdos2)'
+	search -f --set /vmlinuz
 	linux /vmlinuz root=/dev/sda2 console=ttyS0 earlyprintk=serial oops=panic panic_on_warn=1 nmi_watchdog=panic panic=86400 net.ifnames=0 $CMDLINE
 }
 EOF
