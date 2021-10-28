@@ -9261,7 +9261,7 @@ retry:
 #if SYZ_EXECUTOR
 	if (!flag_sandbox_android)
 #endif
-		while (umount2(dir, MNT_DETACH) == 0) {
+		while (umount2(dir, MNT_DETACH | UMOUNT_NOFOLLOW) == 0) {
 			debug("umount(%s)\n", dir);
 		}
 #endif
@@ -9282,7 +9282,7 @@ retry:
 #if SYZ_EXECUTOR
 		if (!flag_sandbox_android)
 #endif
-			while (umount2(filename, MNT_DETACH) == 0) {
+			while (umount2(filename, MNT_DETACH | UMOUNT_NOFOLLOW) == 0) {
 				debug("umount(%s)\n", filename);
 			}
 #endif
@@ -9319,7 +9319,7 @@ retry:
 			if (!flag_sandbox_android) {
 #endif
 				debug("umount(%s)\n", filename);
-				if (umount2(filename, MNT_DETACH))
+				if (umount2(filename, MNT_DETACH | UMOUNT_NOFOLLOW))
 					exitf("umount(%s) failed", filename);
 #if SYZ_EXECUTOR
 			}
@@ -9353,7 +9353,7 @@ retry:
 				if (!flag_sandbox_android) {
 #endif
 					debug("umount(%s)\n", dir);
-					if (umount2(dir, MNT_DETACH))
+					if (umount2(dir, MNT_DETACH | UMOUNT_NOFOLLOW))
 						exitf("umount(%s) failed", dir);
 #if SYZ_EXECUTOR
 				}
