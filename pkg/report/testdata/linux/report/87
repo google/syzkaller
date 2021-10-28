@@ -1,4 +1,5 @@
-TITLE: BUG: Dentry still in use [unmount of proc proc]
+TITLE: BUG: Dentry still in use in unmount
+ALT: BUG: Dentry still in use [unmount of proc proc]
 CORRUPTED: Y
 
 [ 1722.511384] Buffer I/O error on dev loop0, logical block 6, async page read

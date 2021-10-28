@@ -1,0 +1,45 @@
+TITLE: BUG: Dentry still in use in unmount
+ALT: BUG: Dentry still in use [unmount of ext4 loop4]
+
+[  538.260174][  T380] BUG: Dentry ffff88810e2ca880{i=0,n=.index}  still in use (1) [unmount of ext4 loop4]
+[  538.269909][  T380] ------------[ cut here ]------------
+[  538.275440][  T380] WARNING: CPU: 0 PID: 380 at fs/dcache.c:1616 umount_check+0x18d/0x1d0
+[  538.283763][  T380] Modules linked in:
+[  538.287637][  T380] CPU: 0 PID: 380 Comm: syz-executor.4 Not tainted 5.10.75-syzkaller-01082-g234d53d2bb60 #0
+[  538.297700][  T380] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  538.307767][  T380] RIP: 0010:umount_check+0x18d/0x1d0
+[  538.313077][  T380] Code: 8b 0b 49 81 c6 f8 03 00 00 48 c7 c7 40 43 2e 85 4c 89 e6 48 8b 55 d0 4c 89 e1 45 89 f8 31 c0 41 56 e8 ae d9 9e ff 48 83 c4 08 <0f> 0b e9 f1 fe ff ff 89 d9 80 e1 07 80 c1 03 38 c1 0f 8c c9 fe ff
+[  538.332707][  T380] RSP: 0018:ffffc90000c17c78 EFLAGS: 00010286
+[  538.338767][  T380] RAX: 0000000000000054 RBX: ffffffff86690d40 RCX: 1ac6a6c183bf7800
+[  538.346748][  T380] RDX: 0000000000000000 RSI: 0000000000000002 RDI: 0000000000000000
+[  538.354733][  T380] RBP: ffffc90000c17ca8 R08: ffffffff81545368 R09: ffffed103ee095d8
+[  538.362724][  T380] R10: ffffed103ee095d8 R11: 0000000000000000 R12: ffff88810e2ca880
+[  538.370710][  T380] R13: dffffc0000000000 R14: ffff88811418b3f8 R15: 0000000000000001
+[  538.378712][  T380] FS:  0000555555a05400(0000) GS:ffff8881f7000000(0000) knlGS:0000000000000000
+[  538.387662][  T380] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  538.394282][  T380] CR2: 0000555555a0eb38 CR3: 000000015393a000 CR4: 00000000003506b0
+[  538.402274][  T380] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  538.410230][  T380] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  538.418207][  T380] Call Trace:
+[  538.421508][  T380]  d_walk+0x309/0x540
+[  538.429611][  T380]  shrink_dcache_for_umount+0x8e/0x1b0
+[  538.435070][  T380]  generic_shutdown_super+0x66/0x2c0
+[  538.440337][  T380]  kill_block_super+0x80/0xe0
+[  538.445022][  T380]  deactivate_locked_super+0xb0/0x100
+[  538.450387][  T380]  deactivate_super+0xa5/0xd0
+[  538.455082][  T380]  cleanup_mnt+0x45f/0x510
+[  538.459503][  T380]  __cleanup_mnt+0x19/0x20
+[  538.463929][  T380]  task_work_run+0x147/0x1b0
+[  538.476023][  T380]  exit_to_user_mode_prepare+0xc3/0xe0
+[  538.481503][  T380]  syscall_exit_to_user_mode+0x24/0x40
+[  538.486940][  T380]  do_syscall_64+0x3d/0x70
+[  538.491359][  T380]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[  538.497240][  T380] RIP: 0033:0x7fcf5ff66ea7
+[  538.501670][  T380] Code: ff ff ff f7 d8 64 89 01 48 83 c8 ff c3 66 0f 1f 44 00 00 31 f6 e9 09 00 00 00 66 0f 1f 84 00 00 00 00 00 b8 a6 00 00 00 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 bc ff ff ff f7 d8 64 89 01 48
+[  538.521303][  T380] RSP: 002b:00007ffd21f85038 EFLAGS: 00000246 ORIG_RAX: 00000000000000a6
+[  538.529715][  T380] RAX: 0000000000000000 RBX: 0000000000000000 RCX: 00007fcf5ff66ea7
+[  538.537701][  T380] RDX: 00007ffd21f8510b RSI: 0000000000000002 RDI: 00007ffd21f85100
+[  538.545676][  T380] RBP: 00007ffd21f85100 R08: 00000000ffffffff R09: 00007ffd21f84ed0
+[  538.553653][  T380] R10: 0000555555a06b83 R11: 0000000000000246 R12: 00007fcf5ffbf035
+[  538.561633][  T380] R13: 00007ffd21f861c0 R14: 0000555555a06b00 R15: 00007ffd21f86200
+[  538.569581][  T380] ---[ end trace 2b38e9427bb5b5b0 ]---
