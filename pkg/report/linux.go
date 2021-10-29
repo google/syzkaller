@@ -1406,8 +1406,13 @@ var linuxOopses = append([]*oops{
 				noStackTrace: true,
 			},
 			{
-				title: compile("BUG: Dentry .* still in use \\([0-9]+\\) \\[unmount of ([^\\]]+)\\]"),
-				fmt:   "BUG: Dentry still in use [unmount of %[1]v]",
+				// Kernel includes filesystem type and block device name into the message.
+				// We used to include them, but block devices are plain harmful (loop0/1/2),
+				// and filesystem type also leads to duplicates. So now we exclude them.
+				title:  compile("BUG: Dentry .* still in use"),
+				report: compile("BUG: Dentry .* still in use \\([0-9]+\\) \\[(unmount) of ([^\\]]+)\\]"),
+				fmt:    "BUG: Dentry still in use in %[1]v",
+				alt:    []string{"BUG: Dentry still in use [%[1]v of %[2]v]"},
 			},
 			{
 				title: compile("BUG: Bad page state"),

@@ -1,0 +1,40 @@
+# Copyright 2021 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/fcntl.h>
+include <linux/unistd.h>
+include <linux/android/binderfs.h>
+
+# ./binderfs will be mounted by syz-executor, but let's also see how a single process
+# operates with multiple ones.
+binderfs_mountpoint = "./binderfs", "./binderfs2"
+
+# Control paths.
+binderfs_ctrlpath = "./binderfs/binder-control", "./binderfs2/binder-control"
+
+# Device names.
+binderfs_devname = "binder0", "binder1", "custom0", "custom1"
+
+# Unfortunately, syzlang does not currently favor string concatenation for open (and related) syscalls. So we concatenate it manually.
+binderfs_devpath = "./binderfs/binder0", "./binderfs/binder1", "./binderfs/custom0", "./binderfs/custom1", "./binderfs2/binder0", "./binderfs2/binder1", "./binderfs2/custom0", "./binderfs2/custom1"
+
+mkdirat$binderfs(fd const[AT_FDCWD], path ptr[in, string[binderfs_mountpoint]], mode const[0x1ff])
+mount$binderfs(src ptr[in, string["binder"]], dst ptr[in, string[binderfs_mountpoint]], type ptr[in, string["binder"]], flags flags[mount_flags], opts ptr[in, fs_options[binderfs_options]])
+unlinkat$binderfs_device(fd const[AT_FDCWD], path ptr[in, string[binderfs_devpath]])
+
+binderfs_options [
+	max	fs_opt_oct["max", int32]
+	stats	stringnoz["stats=global"]
+] [varlen]
+
+define BINDERFS_NAME_LEN	BINDERFS_MAX_NAME + 1
+
+binderfs_device {
+	name	string[binderfs_devname, BINDERFS_NAME_LEN]	(in)
+	major	int32	(out)
+	minor	int32	(out)
+}
+
+resource fd_binderfs_ctrl[fd]
+openat$binderfs_ctrl(fd const[AT_FDCWD], file ptr[in, string[binderfs_ctrlpath]], flags flags[binder_open_flags], mode const[0]) fd_binderfs_ctrl
+ioctl$BINDER_CTL_ADD(fd fd_binderfs_ctrl, cmd const[BINDER_CTL_ADD], arg ptr[inout, binderfs_device])

@@ -196,9 +196,6 @@ cat >$1/etc/udev/rules.d/50-syzkaller.rules <<EOF
 ATTR{name}=="vim2m", SYMLINK+="vim2m"
 SUBSYSTEMS=="pci", DRIVERS=="i915", SYMLINK+="i915"
 EOF
-for i in {0..31}; do
-	echo "KERNEL==\"binder$i\", NAME=\"binder$i\", MODE=\"0666\"" >> $1/etc/udev/rules.d/50-syzkaller.rules
-done
 
 # Override default grub config with timeout 0.
 cat >$1/boot/grub/grub.cfg <<EOF
