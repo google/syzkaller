@@ -1,6 +1,7 @@
 # Research work based on syzkaller
 
 _newer first_
+* [Snowboard: Finding Kernel Concurrency Bugs through Systematic Inter-thread Communication Analysis](https://dl.acm.org/doi/10.1145/3477132.3483549)
 * [Undo Workarounds for Kernel Bugs](https://www.usenix.org/system/files/sec21fall-talebi.pdf) ([source code](https://trusslab.github.io/hecaton))
 * [HFL: Hybrid Fuzzing on the Linux Kernel](https://www.ndss-symposium.org/wp-content/uploads/2020/02/24018-paper.pdf)
 * [A Novel Dynamic Analysis Infrastructure to Instrument Untrusted Execution Flow Across User-Kernel Spaces](https://www.computer.org/csdl/proceedings-article/sp/2021/893400a402/1mbmHSlbmvK)
