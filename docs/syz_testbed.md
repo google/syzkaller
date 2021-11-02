@@ -44,7 +44,7 @@ other. The tool automates checking out syzkaller repos, building them, running
 }
 ```
 
-When run with such a configuration file, `syz-testbench` will do the following:
+When run with such a configuration file, `syz-testbed` will do the following:
 1. Check out the `master` branch of `https://github.com/google/syzkaller.git`
    into `/tmp/workdir/checkouts/first/`.
    2. Generate two independent config files for that syzkaller. They will have
