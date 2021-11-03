@@ -86,8 +86,6 @@ func (vrf *Verifier) startInstances() {
 			}
 		}(pi, idx)
 	}
-
-	select {}
 }
 
 func (vrf *Verifier) createAndManageInstance(pi *poolInfo, idx int) {
