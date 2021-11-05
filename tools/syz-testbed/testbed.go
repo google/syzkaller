@@ -33,6 +33,8 @@ type TestbedConfig struct {
 	Name          string           `json:"name"`           // name of the testbed
 	MaxInstances  int              `json:"max_instances"`  // max # of simultaneously running instances
 	RunTime       DurationConfig   `json:"run_time"`       // lifetime of an instance (default "24h")
+	HTTP          string           `json:"http"`           // on which port to set up a simple web dashboard
+	BenchCmp      string           `json:"benchcmp"`       // path to the syz-benchcmp executable
 	Corpus        string           `json:"corpus"`         // path to the corpus file
 	Workdir       string           `json:"workdir"`        // instances will be checked out there
 	ManagerConfig json.RawMessage  `json:"manager_config"` // base manager config
@@ -80,13 +82,16 @@ func main() {
 		tool.Failf("failed to parse manager config: %s", err)
 	}
 	if managerCfg.HTTP == "" {
-		managerCfg.HTTP = "0.0.0.0:0"
+		// Actually we don't care much about the specific ports of syz-managers.
+		managerCfg.HTTP = ":0"
 	}
 
 	ctx := TestbedContext{
 		Config:        cfg,
 		ManagerConfig: managerCfg,
 	}
+	go ctx.setupHTTPServer()
+
 	for _, checkoutCfg := range cfg.Checkouts {
 		co, err := ctx.NewCheckout(&checkoutCfg)
 		if err != nil {
@@ -158,7 +163,6 @@ func (ctx *TestbedContext) saveStatView(view StatView) error {
 		"checkout_stats.csv": (StatView).StatsTable,
 		"instance_stats.csv": (StatView).InstanceStatsTable,
 	}
-
 	for fileName, genFunc := range tableStats {
 		table, err := genFunc(view)
 		if err == nil {
@@ -167,14 +171,11 @@ func (ctx *TestbedContext) saveStatView(view StatView) error {
 			log.Printf("some error: %s", err)
 		}
 	}
-	for _, group := range view.Groups {
-		fileName := fmt.Sprintf("avg_%v.txt", group.Name)
-		group.SaveAvgBenchFile(filepath.Join(benchDir, fileName))
-	}
-	return nil
+	_, err = view.SaveAvgBenches(benchDir)
+	return err
 }
 
-func (ctx *TestbedContext) saveTestbedStats(file string) error {
+func (ctx *TestbedContext) TestbedStatsTable() [][]string {
 	table := [][]string{
 		{"Checkout", "Running", "Completed", "Until reset"},
 	}
@@ -190,7 +191,7 @@ func (ctx *TestbedContext) saveTestbedStats(file string) error {
 			until,
 		})
 	}
-	return SaveTableAsCsv(table, file)
+	return table
 }
 
 func (ctx *TestbedContext) SaveStats() error {
@@ -207,7 +208,8 @@ func (ctx *TestbedContext) SaveStats() error {
 			return err
 		}
 	}
-	return ctx.saveTestbedStats(filepath.Join(ctx.Config.Workdir, "testbed.csv"))
+	table := ctx.TestbedStatsTable()
+	return SaveTableAsCsv(table, filepath.Join(ctx.Config.Workdir, "testbed.csv"))
 }
 
 func (ctx *TestbedContext) generateInstances(count int) ([]*Instance, error) {
@@ -325,6 +327,9 @@ func checkConfig(cfg *TestbedConfig) error {
 	}
 	if cfg.MaxInstances < 1 {
 		return fmt.Errorf("max_instances cannot be less than 1")
+	}
+	if cfg.BenchCmp != "" && !osutil.IsExist(cfg.BenchCmp) {
+		return fmt.Errorf("benchmp path is specified, but %s does not exist", cfg.BenchCmp)
 	}
 	cfg.Corpus = osutil.Abs(cfg.Corpus)
 	names := make(map[string]bool)
