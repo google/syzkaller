@@ -177,6 +177,7 @@ func main() {
 		executorBin:   execBin,
 		addr:          addr,
 		reportReasons: len(cfg.EnabledSyscalls) != 0 || len(cfg.DisabledSyscalls) != 0,
+		stats:         MakeStats(),
 		statsWrite:    sw,
 		newEnv:        *flagEnv,
 		reruns:        *flagReruns,
@@ -188,6 +189,12 @@ func main() {
 	}
 
 	vrf.startInstances()
+
+	monitor := MakeMonitor()
+	monitor.SetStatsTracking(vrf.stats)
+	// TODO: move binding address to configuration
+	log.Logf(0, "run the Monitor at http://127.0.0.1:8080/")
+	go monitor.ListenAndServe("127.0.0.1:8080")
 
 	select {}
 }

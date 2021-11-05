@@ -240,6 +240,7 @@ func TestUpdateUnsupported(t *testing.T) {
 					target.SyscallMap["test$res0"]:      true,
 					target.SyscallMap["test$union0"]:    true,
 				},
+				stats: MakeStats(),
 			}
 			srv, err := startRPCServer(&vrf)
 			if err != nil {
