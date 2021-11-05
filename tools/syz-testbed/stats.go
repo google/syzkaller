@@ -230,6 +230,19 @@ func (group *RunResultGroup) SaveAvgBenchFile(fileName string) error {
 	return nil
 }
 
+func (view *StatView) SaveAvgBenches(benchDir string) ([]string, error) {
+	files := []string{}
+	for _, group := range view.Groups {
+		fileName := filepath.Join(benchDir, fmt.Sprintf("avg_%v.txt", group.Name))
+		err := group.SaveAvgBenchFile(fileName)
+		if err != nil {
+			return nil, err
+		}
+		files = append(files, fileName)
+	}
+	return files, nil
+}
+
 func SaveTableAsCsv(table [][]string, fileName string) error {
 	f, err := os.Create(fileName)
 	if err != nil {
