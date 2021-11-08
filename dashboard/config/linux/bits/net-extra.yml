@@ -2,7 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 # This file includes more esoteric network subsystems that are not enabled on slower qemu instances.
-# Things like TCP/IP are enabled in subsystems.yml so that they are enabled on qemu instances.
+# Things like TCP/IP are enabled in net.yml so that they are enabled on qemu instances.
 
 config:
  - TIPC
