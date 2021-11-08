@@ -59,6 +59,7 @@ ioctl$CDROM_CLEAR_OPTIONS(fd fd_cdrom, cmd const[CDROM_CLEAR_OPTIONS], arg flags
 ioctl$CDROM_SELECT_SPEED(fd fd_cdrom, cmd const[CDROM_SELECT_SPEED], speed intptr)
 ioctl$CDROM_SELECT_DISK(fd fd_cdrom, cmd const[CDROM_SELECT_SPEED], disk intptr)
 ioctl$CDROM_MEDIA_CHANGED(fd fd_cdrom, cmd const[CDROM_MEDIA_CHANGED], slot intptr)
+ioctl$CDROM_TIMED_MEDIA_CHANGE(fd fd_cdrom, cmd const[CDROM_TIMED_MEDIA_CHANGE], arg ptr[inout, cdrom_timed_media_change_info])
 ioctl$CDROM_DISC_STATUS(fd fd_cdrom, cmd const[CDROM_DISC_STATUS])
 ioctl$CDROM_CHANGER_NSLOTS(fd fd_cdrom, cmd const[CDROM_CHANGER_NSLOTS])
 ioctl$CDROM_LOCKDOOR(fd fd_cdrom, cmd const[CDROM_LOCKDOOR], lock boolptr)
@@ -335,10 +336,16 @@ request_sense {
 	asb		array[int8, 46]
 }
 
+cdrom_timed_media_change_info {
+	last_media_change	int64
+	media_flags		flags[media_flags, int64]
+}
+
 cdrom_options = CDO_AUTO_CLOSE, CDO_AUTO_EJECT, CDO_USE_FFLAGS, CDO_LOCK, CDO_CHECK_TYPE
 cdrom_format = CDROM_MSF, CDROM_LBA
 dvd_struct_type = DVD_STRUCT_PHYSICAL, DVD_STRUCT_COPYRIGHT, DVD_STRUCT_DISCKEY, DVD_STRUCT_BCA, DVD_STRUCT_MANUFACT
 dvd_authinfo_type = DVD_LU_SEND_AGID, DVD_LU_SEND_KEY1, DVD_LU_SEND_CHALLENGE, DVD_LU_SEND_TITLE_KEY, DVD_LU_SEND_ASF, DVD_HOST_SEND_CHALLENGE, DVD_HOST_SEND_KEY2, DVD_INVALIDATE_AGID, DVD_LU_SEND_RPC_STATE, DVD_LU_SEND_RPC_STATE
 cdrom_data_direction = CGC_DATA_UNKNOWN, CGC_DATA_WRITE, CGC_DATA_READ, CGC_DATA_NONE
+media_flags = MEDIA_CHANGED_FLAG
 
 define CDROM_MSF_OUT_STUB_SIZE	CD_FRAMESIZE_RAWER-6
