@@ -1,34 +1,34 @@
 # syz-testbed
 
-`syz-testbed` is the tool that simplifies the process of evaluating the effect
-the performance of different syzkaller versions (or configurations) against each
+`syz-testbed` is the tool that simplifies the process of evaluating the
+performance of different syzkaller versions (or configurations) against each
 other. The tool automates checking out syzkaller repos, building them, running
 `syz-manager`s and collecting/summarizing their results.
 
 ## Configuring syz-testbed
 
-`syz-testbed` takes a JSON config file as its input. An example of such a file:
+`syz-testbed` requires a JSON config file. An example of such a file:
 
 ```json
 {
   "workdir": "/tmp/syz-testbed-workdir/",
   "corpus": "/tmp/corpus.db",
+  "max_instances": 5,
+  "run_time": "24h",
+  "http": "0.0.0.0:50000",
   "checkouts": [
     {
       "name": "first",
       "repo": "https://github.com/google/syzkaller.git",
-      "count": 2
     },
     {
       "name": "second",
       "repo": "https://github.com/google/syzkaller.git",
       "branch": "some-dev-branch",
-      "count": 2
     }
   ],
   "manager_config": {
 	  "target": "linux/amd64",
-	  "http": "0.0.0.0:50000",
 	  "kernel_obj": "/tmp/linux-stable",
 	  "image": "/tmp/kernel-image/stretch.img",
 	  "sshkey": "/tmp/kernel-image/stretch.id_rsa",
@@ -44,60 +44,86 @@ other. The tool automates checking out syzkaller repos, building them, running
 }
 ```
 
-When run with such a configuration file, `syz-testbed` will do the following:
+Given such a configuration file, `syz-testbed` will do the following:
 1. Check out the `master` branch of `https://github.com/google/syzkaller.git`
-   into `/tmp/workdir/checkouts/first/`.
-   2. Generate two independent config files for that syzkaller. They will have
-   separate `workdir`'s (`/tmp/syz-testbed-workdir/checkouts/first/workdir_1/`
-   and ``/tmp/syz-testbed-workdir/checkouts/first/workdir_2`), separate names
-   (`first-1` and `first-2`) and separate ports (50000 and
-   50001). `/tmp/corpus.db` is copied into each of the work directories and will
-   be used by `syz-manager`s as the initial corpus.
-3. Build syzkaller at `/tmp/syz-testbed-workdir/first/`.
-4. Check out the `some-dev-branch` of
-   `https://github.com/google/syzkaller.git` into
-   `/tmp/syz-testbed-workdir/second/`.
-5. Do the same as was done in the steps 2 and 3, but for the `second` folder.
-6. The resulting directory structure looks as follows
+   into `/tmp/syz-testbed-workdir/checkouts/first/` and build it.
+2. Check out the `some-dev-branch` of `https://github.com/google/syzkaller.git`
+   into `/tmp/syz-testbed-workdir/checkouts/second/` and build it.
+3. Set up and run 3 instances of `first` and 2 instances of `second`
+(`max_instances = 5`).
 
+The directory structure looks as follows:
 ```
 /tmp/syz-testbed-workdir/
 └── checkouts
     ├── first
 <...>
+    │   ├── syz_0.cnf
     │   ├── syz_1.cnf
-    │   ├── syz_2.cnf
+    │   ├── syz_4.cnf
 <...>
+    │   ├── workdir_0
     │   ├── workdir_1
-    │   └── workdir_2
+    │   └── workdir_4
     └── second
 <...>
-        ├── syz_1.cnf
         ├── syz_2.cnf
+        ├── syz_3.cnf
 <...>
-        ├── workdir_1
-        └── workdir_2
+        ├── workdir_2
+        └── workdir_3
 ```
+4. After 24 hours (as `run_hours` is 24), stop those 5 instances.
+5. Create and run 2 instances of `first` and 3 instances of `second`.
+6. <Repeat those steps over and over>
 
-7. Finally `syz-testbed` runs all the `syz-manager` instances it has
-   prepared. The config file above results in 4 instances: 2 belonging the
-   `first` checkout and 2 belonging to the `second` one.
+The tool stops after receiving a SIGINT (e.g. after Ctrl+C) or a SIGTERM
+signal. Also, if one of the instances has exited due to some error, this also
+stops the whole experiment.
 
-Right after the 7th step `syz-testbed` begins to collect and aggregate the data
-from the running syzkaller instances.
+## Web interface
+
+The tool has a simple web interface that displays the current information about
+the experiment (the number of active and finished instances, the time until
+instances are stopped, etc.) and the latest statistics collected from the
+`syz-manager`s.
+
+If the `benchmp` parameter points to the `syz-benchcmp` executable, then the web
+interface can also generate graphs of various parameters over time or the number
+of executions.
+
+In order to enable the interface, set the `http` parameter to the IP address and
+port to which `syz-testbed` should bind. E.g. `"http": "0.0.0.0:50000"`.
+
+## Statistics
+
+`syz-testbed` provides two "views" of the statistics:
+1. `complete` - only includes data from the finished instances (i.e. those that
+   have been running for `run_hours`).
+2. `all` - also includes the data from the currently active instances. The
+   statistics from the finished instances is winded back to match the current
+   uptime of the active instances.
+
+Therefore, the statistics is laid out the following way.
 
 ```bash
 $ tree -L 2 /tmp/syz-testbed-workdir/
 /tmp/syz-testbed-workdir/
-├── benches
-│   ├── avg_first.txt
-│   └── avg_second.txt
-├── bugs.csv
-├── checkouts
-│   ├── first
-│   └── second
-├── checkout_stats.csv
-└── instance_stats.csv
+├── stats_all
+│   ├── benches
+│   │   ├── avg_first.txt
+│   │   ├── avg_second.txt
+│   ├── bugs.csv
+│   ├── checkout_stats.csv
+│   └── instance_stats.csv
+├── stats_completed
+│   ├── benches
+│   │   ├── avg_first.txt
+│   │   ├── avg_second.txt
+│   ├── bugs.csv
+│   ├── checkout_stats.csv
+│   └── instance_stats.csv
+└── testbed.csv
 ```
 
 1. `bugs.csv` contains all the bugs found by the running instances. If a single
