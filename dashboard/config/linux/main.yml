@@ -53,6 +53,7 @@ includes:
  - smack.yml: [smack]
  - slab.yml: [slab]
  - debug.yml: [-nonoise, -kmsan, -kcsan, -kmemleak]
+ - lockdep.yml: [-nonoise, -kmsan, -kcsan, -kmemleak]
  - kmemleak.yml: [kmemleak]
  - kasan.yml: [kasan]
  - mte.yml: [mte]
