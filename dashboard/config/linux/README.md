@@ -105,13 +105,14 @@ are used in config minization procedure.
 The only exception to the declarative nature of the process is USB configs. They are added procedurally, see
 `addUSBConfigs` function for details.
 
-While `syz-kconf` switches between `gcc` and `clang` compilers automatically, the compilers themselves are not
-part of `syz-kconf` and are supposed to be installed on the system. `gcc` should be version 9+ and `clang`
-should be 11+.
+`syz-kconf` switches between `gcc` and `clang` compilers automatically and is supposed to be used with
+[syz-env](/docs/contributing.md#using-syz-env), which provides correct versions of the compilers.
 
 To update kernel configs:
  - change config fragments as necessary (e.g. add additional configs to [subsystems.yml](bits/subsystems.yml) along
    with minimal kernel version)
- - run `make configs SOURCEDIR=/path/to/existing/linux/checkout` (note: it will be mrproper-ed)
+ - run `syz-env make configs SOURCEDIR=/path/to/existing/linux/checkout`
+   (note: it will be mrproper-ed and a number of remotes will be added)
+   (see [this](/docs/contributing.md#using-syz-env) on how to setup/use `syz-env`)
  - check in config fragments and changed kernel configs and send a PR
  - changes will be deployed to `syzbot` within a day after merging
