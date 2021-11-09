@@ -426,7 +426,7 @@ config:
  - VIRTIO_NET
  - NLMON
  - NET_VRF
- - VSOCKMON
+ - VSOCKMON: [-onlynet]
  - E100: [-s390]
  - E1000E: [-s390]
  - NET_VENDOR_GOOGLE
