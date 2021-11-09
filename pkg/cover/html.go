@@ -523,7 +523,7 @@ func fileContents(file *file, lines [][]byte, haveProgs bool) string {
 		if haveProgs {
 			prog, count := "", "     "
 			if line := file.lines[i+1]; len(line.progCount) != 0 {
-				prog = fmt.Sprintf("onclick='onProgClick(%v)'", line.progIndex)
+				prog = fmt.Sprintf("onclick='onProgClick(%v, this)'", line.progIndex)
 				count = fmt.Sprintf("% 5v", len(line.progCount))
 				buf.WriteString(fmt.Sprintf("<span %v>%v</span> ", prog, count))
 			}
@@ -848,6 +848,7 @@ var coverTemplate = template.Must(template.New("").Parse(`
 			</ul>
 		</div>
 		<div id="right_pane" class="split right">
+			<button class="nested" id="close-btn" onclick="onCloseClick()">X</button>
 			{{range $i, $f := .Contents}}
 				<pre class="file" id="contents_{{$i}}">{{$f}}</pre>
 			{{end}}
@@ -880,26 +881,47 @@ var coverTemplate = template.Must(template.New("").Parse(`
 		}
 	})();
 	var visible;
+	var contentIdx;
+	var currentPC;
         function onPercentClick(index) {
 		if (visible)
 			visible.style.display = 'none';
 		visible = document.getElementById("function_" + index);
 		visible.style.display = 'block';
 		document.getElementById("right_pane").scrollTo(0, 0);
+		toggleCloseBtn();
 	}
 	function onFileClick(index) {
 		if (visible)
 			visible.style.display = 'none';
 		visible = document.getElementById("contents_" + index);
 		visible.style.display = 'block';
+		contentIdx = index;
 		document.getElementById("right_pane").scrollTo(0, 0);
+		toggleCloseBtn();
 	}
-	function onProgClick(index) {
+	function toggleCloseBtn(showBtn) {
+		let display = 'none';
+		if (showBtn)
+			display	= 'block';
+		document.getElementById("close-btn").style.display = display;
+	}
+	function onProgClick(index, span) {
 		if (visible)
 			visible.style.display = 'none';
 		visible = document.getElementById("prog_" + index);
 		visible.style.display = 'block';
 		document.getElementById("right_pane").scrollTo(0, 0);
+		currentPC = span;
+		toggleCloseBtn(true);
+	}
+	function onCloseClick() {
+		if (visible)
+			visible.style.display = 'none';
+		visible = document.getElementById("contents_" + contentIdx);
+		visible.style.display = 'block';
+		toggleCloseBtn();
+		currentPC.scrollIntoView();
 	}
 	</script>
 </html>
