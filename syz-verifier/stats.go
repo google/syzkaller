@@ -39,20 +39,22 @@ type CallStats struct {
 	States map[ReturnState]bool
 }
 
-// InitStats creates a stats object.
-func InitStats(calls map[*prog.Syscall]bool) *Stats {
-	stats := &Stats{
-		Calls:     make(map[string]*CallStats),
-		StartTime: time.Now(),
+// MakeStats creates a stats object.
+func MakeStats() *Stats {
+	return &Stats{
+		Calls: make(map[string]*CallStats),
 	}
+}
+
+// SetSyscallMask initializes the allowed syscall list.
+func (stats *Stats) SetSyscallMask(calls map[*prog.Syscall]bool) {
+	stats.StartTime = time.Now()
 
 	for syscall := range calls {
 		stats.Calls[syscall.Name] = &CallStats{
 			Name:   syscall.Name,
 			States: make(map[ReturnState]bool)}
 	}
-
-	return stats
 }
 
 // ReportGlobalStats creates a report with statistics about all the

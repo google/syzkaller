@@ -82,7 +82,7 @@ func (srv *RPCServer) UpdateUnsupported(a *rpctype.UpdateUnsupportedArgs, r *int
 	if srv.notChecked == 0 {
 		vrf.finalizeCallSet(os.Stdout)
 
-		vrf.stats = InitStats(vrf.calls)
+		vrf.stats.SetSyscallMask(vrf.calls)
 		vrf.SetPrintStatAtSIGINT()
 
 		vrf.choiceTable = vrf.target.BuildChoiceTable(nil, vrf.calls)
