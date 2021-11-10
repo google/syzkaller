@@ -27,7 +27,7 @@ accept4$vsock_stream(fd sock_vsock_stream, addr ptr[in, sockaddr_vm], addrlen le
 setsockopt$SO_VM_SOCKETS_BUFFER_SIZE(fd sock_vsock_stream, level const[AF_VSOCK], opt const[SO_VM_SOCKETS_BUFFER_SIZE], val ptr[in, int64], len len[val])
 setsockopt$SO_VM_SOCKETS_BUFFER_MAX_SIZE(fd sock_vsock_stream, level const[AF_VSOCK], opt const[SO_VM_SOCKETS_BUFFER_MAX_SIZE], val ptr[in, int64], len len[val])
 setsockopt$SO_VM_SOCKETS_BUFFER_MIN_SIZE(fd sock_vsock_stream, level const[AF_VSOCK], opt const[SO_VM_SOCKETS_BUFFER_MIN_SIZE], val ptr[in, int64], len len[val])
-setsockopt$SO_VM_SOCKETS_CONNECT_TIMEOUT(fd sock_vsock_stream, level const[AF_VSOCK], opt const[SO_VM_SOCKETS_CONNECT_TIMEOUT], val ptr[in, timeval], len len[val])
+setsockopt$SO_VM_SOCKETS_CONNECT_TIMEOUT_OLD(fd sock_vsock_stream, level const[AF_VSOCK], opt const[SO_VM_SOCKETS_CONNECT_TIMEOUT_OLD], val ptr[in, timeval], len len[val])
 
 socket$vsock_dgram(domain const[AF_VSOCK], type const[SOCK_DGRAM], proto const[0]) sock_vsock_dgram
 bind$vsock_dgram(fd sock_vsock_dgram, addr ptr[in, sockaddr_vm], addrlen len[addr])
