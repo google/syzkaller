@@ -3,6 +3,11 @@
 
 # Errors that happen during type checking phase.
 
+#include "something"		### confusing comment faking a directive (rephrase if it's intentional)
+#define FOO BAR			### confusing comment faking a directive (rephrase if it's intentional)
+# include "something"		### confusing comment faking a directive (rephrase if it's intentional)
+#	incdir "dir"		### confusing comment faking a directive (rephrase if it's intentional)
+
 foo$0(x fileoff, y int8, z buffer[in])
 foo$1(x "bar")			### unexpected string "bar", expect type
 foo$2(x 123, y "bar")		### unexpected int 123, expect type	### unexpected string "bar", expect type
