@@ -169,18 +169,28 @@ func (group RunResultGroup) AvgStatRecords() []map[string]uint64 {
 }
 
 func (view StatView) StatsTable() ([][]string, error) {
-	// Map: stats key x group name -> value.
-	cells := make(map[string]map[string]string)
+	// Ensure that everything is at the same point in time.
+	avgs := make(map[string][]map[string]uint64)
+	commonLength := 0
 	for _, group := range view.Groups {
-		avgBench := group.AvgStatRecords()
-		if len(avgBench) == 0 {
+		records := group.AvgStatRecords()
+		if len(records) == 0 {
 			continue
 		}
-		for key, value := range avgBench[len(avgBench)-1] {
+		if commonLength > len(records) || commonLength == 0 {
+			commonLength = len(records)
+		}
+		avgs[group.Name] = records
+	}
+
+	// Map: stats key x group name -> value.
+	cells := make(map[string]map[string]string)
+	for name, avg := range avgs {
+		for key, value := range avg[commonLength-1] {
 			if _, ok := cells[key]; !ok {
 				cells[key] = make(map[string]string)
 			}
-			cells[key][group.Name] = fmt.Sprintf("%d", value)
+			cells[key][name] = fmt.Sprintf("%d", value)
 		}
 	}
 	title := []string{""}
