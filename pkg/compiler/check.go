@@ -8,6 +8,7 @@ package compiler
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ast"
@@ -16,6 +17,7 @@ import (
 )
 
 func (comp *compiler) typecheck() {
+	comp.checkComments()
 	comp.checkDirectives()
 	comp.checkNames()
 	comp.checkFields()
@@ -32,6 +34,18 @@ func (comp *compiler) check() {
 	comp.checkConstructors()
 	comp.checkVarlens()
 	comp.checkDupConsts()
+}
+
+func (comp *compiler) checkComments() {
+	confusingComment := regexp.MustCompile(`^\s*(include|incdir|define)`)
+	for _, decl := range comp.desc.Nodes {
+		switch n := decl.(type) {
+		case *ast.Comment:
+			if confusingComment.MatchString(n.Text) {
+				comp.error(n.Pos, "confusing comment faking a directive (rephrase if it's intentional)")
+			}
+		}
+	}
 }
 
 func (comp *compiler) checkDirectives() {
