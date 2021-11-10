@@ -39,6 +39,10 @@ type Insn struct {
 	Opcode uint32
 	Mask   uint32
 
+	FieldsSuffix []InsnField
+	OpcodeSuffix uint32
+	MaskSuffix   uint32
+
 	insnMap   *insnSetMap
 	generator func(cfg *iset.Config, r *rand.Rand) []byte
 }
@@ -51,6 +55,16 @@ type InsnSet struct {
 	insnMap   insnSetMap
 }
 
+const (
+	prefixShift  = 32 - 6
+	prefixMask   = uint32(0x3f) << prefixShift
+	prefixOpcode = uint32(1) << prefixShift
+)
+
+func (insn Insn) isPrefixed() bool {
+	return insn.Opcode&prefixMask == prefixOpcode
+}
+
 func (insnset *InsnSet) GetInsns(mode iset.Mode, typ iset.Type) []iset.Insn {
 	return insnset.modeInsns[mode][typ]
 }
@@ -60,6 +74,28 @@ func (insnset *InsnSet) Decode(mode iset.Mode, text []byte) (int, error) {
 		return 0, errors.New("must be at least 4 bytes")
 	}
 	insn32 := binary.LittleEndian.Uint32(text)
+	if insn32&prefixMask == prefixOpcode {
+		insn2 := uint32(0)
+		for _, ins := range insnset.Insns {
+			if !ins.isPrefixed() || ins.Mask&insn32 != ins.Opcode {
+				continue
+			}
+			if len(text) < 8 {
+				return 0, errors.New("prefixed instruction must be at least 8 bytes")
+			}
+			insn2 = binary.LittleEndian.Uint32(text[4:])
+			for _, ins := range insnset.Insns {
+				if !ins.isPrefixed() {
+					continue
+				}
+				if ins.MaskSuffix&insn2 == ins.OpcodeSuffix {
+					return 8, nil
+				}
+			}
+			break
+		}
+		return 0, fmt.Errorf("unrecognised prefixed instruction %08x %08x", insn32, insn2)
+	}
 	for _, ins := range insnset.Insns {
 		if ins.Mask&insn32 == ins.Opcode {
 			return 4, nil
@@ -90,6 +126,9 @@ func (insn Insn) Encode(cfg *iset.Config, r *rand.Rand) []byte {
 
 	ret := make([]byte, 0)
 	ret = append(ret, insn.encodeOpcode(cfg, r, insn.Opcode, insn.Mask, insn.Fields)...)
+	if insn.isPrefixed() {
+		ret = append(ret, insn.encodeOpcode(cfg, r, insn.OpcodeSuffix, insn.MaskSuffix, insn.FieldsSuffix)...)
+	}
 	return ret
 }
 
@@ -154,6 +193,9 @@ func uint32toBytes(v uint32) []byte {
 func (insn *Insn) enc(v map[string]uint) []byte {
 	ret := make([]byte, 0)
 	ret = append(ret, insn.encOpcode(v, insn.Opcode, insn.Fields)...)
+	if insn.isPrefixed() {
+		ret = append(ret, insn.encOpcode(v, insn.OpcodeSuffix, insn.FieldsSuffix)...)
+	}
 	return ret
 }
 
