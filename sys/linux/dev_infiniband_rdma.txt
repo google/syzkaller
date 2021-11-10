@@ -31,7 +31,6 @@ type ah_handle int32
 type mr_lkey int32
 type qp_number int32
 
-# defines
 define IB_USER_VERBS_EX_CMD_QUERY_DEVICE	0x80000001
 define IB_USER_VERBS_EX_CMD_CREATE_FLOW	0x80000032
 define IB_USER_VERBS_EX_CMD_DESTROY_FLOW	0x80000033

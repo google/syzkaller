@@ -7,7 +7,6 @@ include <sys/socket.h>
 include <netinet/in.h>
 include <net/route.h>
 include <netinet6/ip6_mroute.h>
-# include <compat/linux/common/linux_socket.h>
 include <sys/sockio.h>
 
 # IPv6 sockets
