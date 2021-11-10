@@ -6,7 +6,6 @@
 include <sys/types.h>
 include <sys/socket.h>
 include <netinet/in.h>
-# include <compat/linux/common/linux_socket.h>
 
 resource sock_unix[sock]
 

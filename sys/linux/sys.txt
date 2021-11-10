@@ -1303,23 +1303,22 @@ _ = KCOV_INIT_TRACE, KCOV_ENABLE, KCOV_DISABLE, KCOV_TRACE_PC, KCOV_TRACE_CMP, P
 # Hardcode KCOV_REMOTE_ENABLE value for amd64 until new kcov patches reach mainline.
 define KCOV_REMOTE_ENABLE	1075340134
 
-# Not yet implemented syscalls
-#define __NR_umask 95
-#define __NR_vhangup 153
-#define __NR__sysctl 156
-#define __NR_adjtimex 159
-#define __NR_swapon 167
-#define __NR_swapoff 168
-#define __NR_quotactl 179
-#define __NR_nfsservctl 180
-#define __NR_getcpu 309
+# Not yet implemented syscalls:
+# umask
+# vhangup
+# _sysctl
+# adjtimex
+# swapon
+# swapoff
+# nfsservctl
+# getcpu
 
-# Probably no sense in calling there.
-# Also affect system-wide state, so not reproducble anyway.
-#define __NR_gettimeofday 96
-#define __NR_settimeofday 164
-#define __NR_reboot 169
-#define __NR_sethostname 170
-#define __NR_setdomainname 171
-#define __NR_sched_get_priority_max 146
-#define __NR_sched_get_priority_min 147
+# Probably no sense in calling these.
+# Also affect system-wide state, so not reproducible anyway.
+# gettimeofday
+# settimeofday
+# reboot
+# sethostname
+# setdomainname
+# sched_get_priority_max
+# sched_get_priority_min
