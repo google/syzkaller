@@ -93,7 +93,7 @@ var insns = []*powerpc.Insn{
 	{Name: "cntlzd.", Opcode: 0x7c000075, Mask: 0xfc00ffff, Fields: []powerpc.InsnField{{Name: "RA", Bits: []powerpc.InsnBits{{11, 5}}}, {Name: "RS", Bits: []powerpc.InsnBits{{6, 5}}}}},
 	{Name: "cntlzdm", Opcode: 0x7c000076, Mask: 0xfc0007ff, Fields: []powerpc.InsnField{{Name: "RA", Bits: []powerpc.InsnBits{{11, 5}}}, {Name: "RB", Bits: []powerpc.InsnBits{{16, 5}}}, {Name: "RS", Bits: []powerpc.InsnBits{{6, 5}}}}},
 	{Name: "cntlzw", Opcode: 0x7c000034, Mask: 0xfc00ffff, Fields: []powerpc.InsnField{{Name: "RA", Bits: []powerpc.InsnBits{{11, 5}}}, {Name: "RS", Bits: []powerpc.InsnBits{{6, 5}}}}},
-	{Name: "cntlzw.", Opcode: 0x7c000034, Mask: 0xfc00ffff, Fields: []powerpc.InsnField{{Name: "RA", Bits: []powerpc.InsnBits{{11, 5}}}, {Name: "RS", Bits: []powerpc.InsnBits{{6, 5}}}}},
+	{Name: "cntlzw.", Opcode: 0x7c000035, Mask: 0xfc00ffff, Fields: []powerpc.InsnField{{Name: "RA", Bits: []powerpc.InsnBits{{11, 5}}}, {Name: "RS", Bits: []powerpc.InsnBits{{6, 5}}}}},
 	{Name: "cnttzd", Opcode: 0x7c000474, Mask: 0xfc00ffff, Fields: []powerpc.InsnField{{Name: "RA", Bits: []powerpc.InsnBits{{11, 5}}}, {Name: "RS", Bits: []powerpc.InsnBits{{6, 5}}}}},
 	{Name: "cnttzd.", Opcode: 0x7c000475, Mask: 0xfc00ffff, Fields: []powerpc.InsnField{{Name: "RA", Bits: []powerpc.InsnBits{{11, 5}}}, {Name: "RS", Bits: []powerpc.InsnBits{{6, 5}}}}},
 	{Name: "cnttzdm", Opcode: 0x7c000476, Mask: 0xfc0007ff, Fields: []powerpc.InsnField{{Name: "RA", Bits: []powerpc.InsnBits{{11, 5}}}, {Name: "RB", Bits: []powerpc.InsnBits{{16, 5}}}, {Name: "RS", Bits: []powerpc.InsnBits{{6, 5}}}}},
