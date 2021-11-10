@@ -181,7 +181,7 @@ def ppcmask(val, s, l):
 	return (val & ((1 << l) - 1)) << (31 - (s + l - 1))
 
 def do_sorted_opcodes(fmt_map, ins_stat):
-	ins_num = 0
+	ins_out = []
 
 	for i in range(opcodes_first_page, opcodes_last_page):
 		tmp = read_pdf_page(i + pageoffset)[1:-1] # skip header and page number
@@ -229,8 +229,7 @@ def do_sorted_opcodes(fmt_map, ins_stat):
 			if re.match(r'^[01]+$', ins0_5 + ins6_10 + ins11_15 + ins16_20 + ins21_25 + ins26_31):
 				outp = 'Name: "{}", Opcode: 0x{:08x}, Mask: 0xFFFFFFFF'.format(mnem, opcode_, opcodemask_)
 				outp += add_mode_priv(mode, priv)
-				print("\t{" + outp + "},")
-				ins_num += 1
+				ins_out += ["\t{" + outp + "},"]
 				continue
 
 			if mnem in isa_pagenum_correction:
@@ -374,21 +373,23 @@ def do_sorted_opcodes(fmt_map, ins_stat):
 
 				outp += "Opcode: 0x{:08x}, Mask: 0x{:08x}".format(opcode, opcodemask)
 				outp += add_mode_priv(mode, priv)
-				outp += ", Fields: map[string][]powerpc.InsnBits{"
+				outp += ", Fields: []powerpc.InsnField{"
 				if len(bits) > 0:
 					for k, bb in sorted(bits.items()):
-						outp += '"{}": {{'.format(k)
+						outp += '{{Name: "{}", Bits: []powerpc.InsnBits{{'.format(k)
 						outptmp = ""
 						for v in bb:
-							outptmp += 'powerpc.InsnBits{{{}, {}}}, '.format(v[0], v[1])
-						outp += outptmp[:-2] + '}, '
+							outptmp += '{{{}, {}}}, '.format(v[0], v[1])
+						outp +=	outptmp[:-2] + '}}, '
 					outp = outp[:-2]
 				outp += "}"
 				outp += "},"
-				print(outp)
-				ins_num += 1
+				ins_out += [outp]
 
-	return ins_num
+	for outp in sorted(ins_out):
+		print(outp)
+
+	return len(ins_out)
 
 ins_stat = {}
 fmt_map = {}

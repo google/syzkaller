@@ -26,11 +26,16 @@ type InsnBits struct {
 	Length uint
 }
 
+type InsnField struct {
+	Name string
+	Bits []InsnBits
+}
+
 type Insn struct {
 	Name   string
 	Priv   bool
 	Pseudo bool
-	Fields map[string][]InsnBits // for ra/rb/rt/si/...
+	Fields []InsnField // for ra/rb/rt/si/...
 	Opcode uint32
 	Mask   uint32
 
@@ -90,10 +95,10 @@ func (insn Insn) Encode(cfg *iset.Config, r *rand.Rand) []byte {
 		// randomize them there.
 		insn32 |= r.Uint32() & ^insn.Mask
 	}
-	for reg, bits := range insn.Fields {
+	for _, f := range insn.Fields {
 		field := uint(r.Intn(1 << 16))
-		insn32 |= encodeBits(field, bits)
-		if len(cfg.MemRegions) != 0 && (reg == "RA" || reg == "RB" || reg == "RS") {
+		insn32 |= encodeBits(field, f.Bits)
+		if len(cfg.MemRegions) != 0 && (f.Name == "RA" || f.Name == "RB" || f.Name == "RS") {
 			val := iset.GenerateInt(cfg, r, 8)
 			ret = append(ret, insn.insnMap.ld64(field, val)...)
 		}
@@ -138,9 +143,9 @@ func uint32toBytes(v uint32) []byte {
 
 func (insn *Insn) enc(v map[string]uint) []byte {
 	insn32 := insn.Opcode
-	for reg, bits := range insn.Fields {
-		if val, ok := v[reg]; ok {
-			insn32 |= encodeBits(val, bits)
+	for _, f := range insn.Fields {
+		if val, ok := v[f.Name]; ok {
+			insn32 |= encodeBits(val, f.Bits)
 		}
 	}
 	return uint32toBytes(insn32)
