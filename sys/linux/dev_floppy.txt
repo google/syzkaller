@@ -6,6 +6,7 @@
 # 2) "cmdline": " -fda FLOPPY.img " in syzkaller configuration
 
 include <uapi/linux/fd.h>
+include <uapi/linux/fcntl.h>
 
 resource fd_floppy[fd]
 
