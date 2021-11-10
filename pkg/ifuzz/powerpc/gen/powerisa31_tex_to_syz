@@ -45,8 +45,8 @@ def add_insns(st, l):
 		sys.exit(-1)
 	r = {}
 # These lines enable/disable prefixed instrustions
-	if len(l) != 1:
-		return r
+#	if len(l) != 1:
+#		return r
 	for ins in st:
 		tmp = ins[0].split(" ", 1)
 		r[tmp[0]] = ins[1]
@@ -230,6 +230,9 @@ def generate_go(insns):
 				tmp += 'Opcode: 0x{:08x}, Mask: 0x{:08x}, Priv: true, Fields: []powerpc.InsnField{{{}}}'.format(opcode, opmask, fields)
 			else:
 				tmp += 'Opcode: 0x{:08x}, Mask: 0x{:08x}, Fields: []powerpc.InsnField{{{}}}'.format(opcode, opmask, fields)
+		if len(ival['layout']) == 2:
+			opcode, opmask, fields = generate_opcode(ins, ival['layout'][1])
+			tmp += ',\n\t\tOpcodeSuffix: 0x{:08x}, MaskSuffix: 0x{:08x}, FieldsSuffix: []powerpc.InsnField{{{}}}'.format(opcode, opmask, fields)
 
 		tmp += "},"
 		print(tmp)
