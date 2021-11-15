@@ -363,7 +363,9 @@ type oopsFormat struct {
 	alt []string
 	// If not nil, a function name is extracted from the report and passed to fmt.
 	// If not nil but frame extraction fails, the report is considered corrupted.
-	stack        *stackFmt
+	stack *stackFmt
+	// Disable stack report corruption checking as it would expect one of stackStartRes to be
+	// present, but this format does not comply with that.
 	noStackTrace bool
 	corrupted    bool
 }
