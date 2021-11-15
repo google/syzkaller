@@ -217,6 +217,17 @@ func (ctx *linux) findFirstOops(output []byte) (oops *oops, startPos int, contex
 	return
 }
 
+// This method decides if the report prefix is already long enough to be cut on "Kernel panic - not
+// syncing: panic_on_kmsan set ...".
+func (ctx *linux) reportMinLines(oopsLine []byte) int {
+	if bytes.Contains(oopsLine, []byte("BUG: KMSAN:")) {
+		// KMSAN reports do not have the "Call trace" and some of the other lines which are
+		// present e.g. in KASAN reports. So we use a lower threshold for them.
+		return 16
+	}
+	return 22
+}
+
 // Yes, it is complex, but all state and logic are tightly coupled. It's unclear how to simplify it.
 // nolint: gocyclo, gocognit
 func (ctx *linux) findReport(output []byte, oops *oops, startPos int, context string, useQuestionable bool) (
@@ -231,6 +242,7 @@ func (ctx *linux) findReport(output []byte, oops *oops, startPos int, context st
 	secondReportPos := 0
 	textLines := 0
 	skipText, cpuTraceback := false, false
+	oopsLine := []byte{}
 	for pos, next := 0, 0; pos < len(output); pos = next + 1 {
 		next = bytes.IndexByte(output[pos:], '\n')
 		if next != -1 {
@@ -250,10 +262,14 @@ func (ctx *linux) findReport(output []byte, oops *oops, startPos int, context st
 			}
 			continue
 		}
-		oopsLine := pos == startPos
+		isOopsLine := pos == startPos
+		if isOopsLine {
+			oopsLine = line
+		}
+
 		for _, oops1 := range linuxOopses {
 			if !matchOops(line, oops1, ctx.ignores) {
-				if !oopsLine && secondReportPos == 0 {
+				if !isOopsLine && secondReportPos == 0 {
 					for _, pattern := range ctx.infoMessagesWithStack {
 						if bytes.Contains(line, pattern) {
 							secondReportPos = pos
@@ -264,13 +280,13 @@ func (ctx *linux) findReport(output []byte, oops *oops, startPos int, context st
 				continue
 			}
 			endPos = next
-			if !oopsLine && secondReportPos == 0 {
+			if !isOopsLine && secondReportPos == 0 {
 				if !matchesAny(line, ctx.reportStartIgnores) {
 					secondReportPos = pos
 				}
 			}
 		}
-		if !oopsLine && (questionable ||
+		if !isOopsLine && (questionable ||
 			context1 != context && (!cpuTraceback || !ctx.cpuContext.MatchString(context1))) {
 			continue
 		}
@@ -283,9 +299,9 @@ func (ctx *linux) findReport(output []byte, oops *oops, startPos int, context st
 			// from other CPUs regardless of what is the current context.
 			// Otherwise we will throw traceback away because it does not match the oops context.
 			cpuTraceback = true
-		} else if textLines > 22 &&
-			(bytes.Contains(line, []byte("Kernel panic - not syncing")) ||
-				bytes.Contains(line, []byte("WARNING: possible circular locking dependency detected"))) {
+		} else if (bytes.Contains(line, []byte("Kernel panic - not syncing")) ||
+			bytes.Contains(line, []byte("WARNING: possible circular locking dependency detected"))) &&
+			textLines > ctx.reportMinLines(oopsLine) {
 			// If panic_on_warn set, then we frequently have 2 stacks:
 			// one for the actual report (or maybe even more than one),
 			// and then one for panic caused by panic_on_warn. This makes
@@ -301,7 +317,7 @@ func (ctx *linux) findReport(output []byte, oops *oops, startPos int, context st
 			skipText = true
 			skipLine = true
 		}
-		if !oopsLine && skipLine {
+		if !isOopsLine && skipLine {
 			continue
 		}
 		report = append(report, stripped...)
@@ -1251,10 +1267,15 @@ var linuxOopses = append([]*oops{
 				alt:    []string{"bad-access in %[3]v"},
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
+						parseStackTrace,
+					},
+					parts2: []*regexp.Regexp{
+						// For backwards compatibility - KMSAN used to include the Call Trace line.
 						linuxCallTrace,
 						parseStackTrace,
 					},
 				},
+				noStackTrace: true,
 			},
 			{
 				title:        compile("BUG: KCSAN:"),
