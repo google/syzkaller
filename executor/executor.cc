@@ -113,11 +113,35 @@ static void reply_handshake();
 #endif
 
 #if SYZ_EXECUTOR_USES_SHMEM
-const int kMaxOutput = 16 << 20;
+// The output region is the only thing in executor process for which consistency matters.
+// If it is corrupted ipc package will fail to parse its contents and panic.
+// But fuzzer constantly invents new ways of how to currupt the region,
+// so we map the region at a (hopefully) hard to guess address with random offset,
+// surrounded by unmapped pages.
+// The address chosen must also work on 32-bit kernels with 1GB user address space.
+const uint64 kOutputBase = 0x1b2bc20000ull;
+
+#if SYZ_EXECUTOR_USES_FORK_SERVER
+// Allocating (and forking) virtual memory for each executed process is expensive, so we only mmap
+// the amount we might possibly need for the specific received prog.
+const int kMaxOutputComparisons = 14 << 20; // executions with comparsions enabled are usually < 1% of all executions
+const int kMaxOutputCoverage = 6 << 20; // coverage is needed in ~ up to 1/3 of all executions (depending on corpus rotation)
+const int kMaxOutputSignal = 4 << 20; // signal collection is always required
+const int kInitialOutput = kMaxOutputSignal; // the minimal size to be allocated in the parent process
+#else
+// We don't fork and allocate the memory only once, so prepare for the worst case.
+const int kInitialOutput = 14 << 20;
+#endif
+
+// TODO: allocate a smaller amount of memory in the parent once we merge the patches that enable
+// prog execution with neither signal nor coverage. Likely 64kb will be enough in that case.
+
 const int kInFd = 3;
 const int kOutFd = 4;
 static uint32* output_data;
 static uint32* output_pos;
+static int output_size;
+static void mmap_output(int size);
 static uint32* write_output(uint32 v);
 static uint32* write_output_64(uint64 v);
 static void write_completed(uint32 completed);
@@ -423,25 +447,18 @@ int main(int argc, char** argv)
 #if SYZ_EXECUTOR_USES_SHMEM
 	if (mmap(&input_data[0], kMaxInput, PROT_READ, MAP_PRIVATE | MAP_FIXED, kInFd, 0) != &input_data[0])
 		fail("mmap of input file failed");
-	// The output region is the only thing in executor process for which consistency matters.
-	// If it is corrupted ipc package will fail to parse its contents and panic.
-	// But fuzzer constantly invents new ways of how to currupt the region,
-	// so we map the region at a (hopefully) hard to guess address with random offset,
-	// surrounded by unmapped pages.
-	// The address chosen must also work on 32-bit kernels with 1GB user address space.
-	void* preferred = (void*)(0x1b2bc20000ull + (1 << 20) * (getpid() % 128));
-	output_data = (uint32*)mmap(preferred, kMaxOutput,
-				    PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, kOutFd, 0);
-	if (output_data != preferred)
-		fail("mmap of output file failed");
 
+	mmap_output(kInitialOutput);
 	// Prevent test programs to mess with these fds.
 	// Due to races in collider mode, a program can e.g. ftruncate one of these fds,
 	// which will cause fuzzer to crash.
 	close(kInFd);
+#if !SYZ_EXECUTOR_USES_FORK_SERVER
 	close(kOutFd);
 #endif
-
+	// For SYZ_EXECUTOR_USES_FORK_SERVER, close(kOutFd) is invoked in the forked child,
+	// after the program has been received.
+#endif
 	use_temporary_dir();
 	install_segv_handler();
 	setup_control_pipes();
@@ -514,6 +531,33 @@ int main(int argc, char** argv)
 	return status;
 #endif
 }
+
+#if SYZ_EXECUTOR_USES_SHMEM
+// This method can be invoked as many times as one likes - MMAP_FIXED can overwrite the previous
+// mapping without any problems. The only precondition - kOutFd must not be closed.
+static void mmap_output(int size)
+{
+	if (size <= output_size)
+		return;
+	if (size % SYZ_PAGE_SIZE != 0)
+		failmsg("trying to mmap output area that is not divisible by page size", "page=%d,area=%d", SYZ_PAGE_SIZE, size);
+	uint32* mmap_at = NULL;
+	if (output_data == NULL) {
+		// It's the first time we map output region - generate its location.
+		output_data = mmap_at = (uint32*)(kOutputBase + (1 << 20) * (getpid() % 128));
+	} else {
+		// We are expanding the mmapped region. Adjust the parameters to avoid mmapping already
+		// mmapped area as much as possible.
+		// There exists a mremap call that could have helped, but it's purely Linux-specific.
+		mmap_at = (uint32*)((char*)(output_data) + output_size);
+	}
+	void* result = mmap(mmap_at, size - output_size,
+			    PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, kOutFd, output_size);
+	if (result != mmap_at)
+		fail("mmap of output file failed");
+	output_size = size;
+}
+#endif
 
 void setup_control_pipes()
 {
@@ -648,6 +692,22 @@ void reply_execute(int status)
 		fail("control pipe write failed");
 }
 
+#if SYZ_EXECUTOR_USES_SHMEM
+void realloc_output_data()
+{
+#if SYZ_EXECUTOR_USES_FORK_SERVER
+	if (flag_comparisons)
+		mmap_output(kMaxOutputComparisons);
+	else if (flag_collect_cover)
+		mmap_output(kMaxOutputCoverage);
+	else if (flag_coverage)
+		mmap_output(kMaxOutputSignal);
+	if (close(kOutFd) < 0)
+		fail("failed to close kOutFd");
+#endif
+}
+#endif
+
 // execute_one executes program stored in input_data.
 void execute_one()
 {
@@ -656,6 +716,7 @@ void execute_one()
 	// where 0x920000 was exactly collide address, so every iteration reset collide to 0.
 	bool colliding = false;
 #if SYZ_EXECUTOR_USES_SHMEM
+	realloc_output_data();
 	output_pos = output_data;
 	write_output(0); // Number of executed syscalls (updated later).
 #endif
@@ -1420,18 +1481,18 @@ uint64 read_input(uint64** input_posp, bool peek)
 #if SYZ_EXECUTOR_USES_SHMEM
 uint32* write_output(uint32 v)
 {
-	if (output_pos < output_data || (char*)output_pos >= (char*)output_data + kMaxOutput)
+	if (output_pos < output_data || (char*)output_pos >= (char*)output_data + output_size)
 		failmsg("output overflow", "pos=%p region=[%p:%p]",
-			output_pos, output_data, (char*)output_data + kMaxOutput);
+			output_pos, output_data, (char*)output_data + output_size);
 	*output_pos = v;
 	return output_pos++;
 }
 
 uint32* write_output_64(uint64 v)
 {
-	if (output_pos < output_data || (char*)(output_pos + 1) >= (char*)output_data + kMaxOutput)
+	if (output_pos < output_data || (char*)(output_pos + 1) >= (char*)output_data + output_size)
 		failmsg("output overflow", "pos=%p region=[%p:%p]",
-			output_pos, output_data, (char*)output_data + kMaxOutput);
+			output_pos, output_data, (char*)output_data + output_size);
 	*(uint64*)output_pos = v;
 	output_pos += 2;
 	return output_pos;
@@ -1492,7 +1553,7 @@ bool kcov_comparison_t::ignore() const
 		// First of all, we want avert fuzzer from our output region.
 		// Without this fuzzer manages to discover and corrupt it.
 		uint64 out_start = (uint64)output_data;
-		uint64 out_end = out_start + kMaxOutput;
+		uint64 out_end = out_start + output_size;
 		if (arg1 >= out_start && arg1 <= out_end)
 			return true;
 		if (arg2 >= out_start && arg2 <= out_end)
