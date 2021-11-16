@@ -1,0 +1,143 @@
+TITLE: KASAN: slab-out-of-bounds Read in ext4_group_desc_csum
+ALT: bad-access in ext4_group_desc_csum
+
+[ 2255.673591][T32756] ==================================================================
+[ 2255.682349][T32756] BUG: KASAN: slab-out-of-bounds in crc16+0xcb/0xe0
+[ 2255.688994][T32756] Read of size 1 at addr ffff88803a42e048 by task syz-executor.2/32756
+[ 2255.697266][T32756] 
+[ 2255.699600][T32756] CPU: 0 PID: 32756 Comm: syz-executor.2 Not tainted 5.15.0-next-20211109-syzkaller #0
+[ 2255.709254][T32756] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 2255.719337][T32756] Call Trace:
+[ 2255.722649][T32756]  <TASK>
+[ 2255.725617][T32756]  dump_stack_lvl+0xcd/0x134
+[ 2255.730273][T32756]  print_address_description.constprop.0.cold+0x8d/0x320
+[ 2255.737599][T32756]  ? crc16+0xcb/0xe0
+[ 2255.741525][T32756]  ? crc16+0xcb/0xe0
+[ 2255.745449][T32756]  kasan_report.cold+0x83/0xdf
+[ 2255.750248][T32756]  ? crc16+0xcb/0xe0
+[ 2255.754185][T32756]  crc16+0xcb/0xe0
+[ 2255.757948][T32756]  ext4_group_desc_csum+0x646/0x9c0
+[ 2255.763309][T32756]  ? ext4_lazyinit_thread+0x1730/0x1730
+[ 2255.768895][T32756]  ? __sanitizer_cov_trace_const_cmp4+0x1c/0x70
+[ 2255.775176][T32756]  ? ext4_inode_bitmap_csum_set+0x2b7/0x480
+[ 2255.781267][T32756]  ? ext4_inode_bitmap_csum_verify+0x4b0/0x4b0
+[ 2255.787526][T32756]  ext4_group_desc_csum_set+0xc7/0x2a0
+[ 2255.793002][T32756]  __ext4_new_inode+0x14e8/0x5ba0
+[ 2255.798061][T32756]  ? ext4_mark_inode_used+0x1a70/0x1a70
+[ 2255.803637][T32756]  ? _raw_spin_unlock+0x24/0x40
+[ 2255.808506][T32756]  ? ext4_create+0x447/0x4d0
+[ 2255.813167][T32756]  ext4_create+0x2d6/0x4d0
+[ 2255.817615][T32756]  ? ext4_symlink+0xd40/0xd40
+[ 2255.825945][T32756]  ? __sanitizer_cov_trace_const_cmp4+0x1c/0x70
+[ 2255.832201][T32756]  ? security_inode_permission+0xc5/0xf0
+[ 2255.837843][T32756]  ? __sanitizer_cov_trace_const_cmp4+0x1c/0x70
+[ 2255.844085][T32756]  ? ext4_symlink+0xd40/0xd40
+[ 2255.848768][T32756]  lookup_open.isra.0+0xfe4/0x13d0
+[ 2255.853901][T32756]  ? lookup_fast+0x6d0/0x6d0
+[ 2255.858533][T32756]  ? __sanitizer_cov_trace_const_cmp4+0x1c/0x70
+[ 2255.864806][T32756]  path_openat+0x9b8/0x2750
+[ 2255.869323][T32756]  ? path_lookupat+0x860/0x860
+[ 2255.874104][T32756]  ? perf_trace_lock+0xeb/0x4d0
+[ 2255.878952][T32756]  ? check_path.constprop.0+0x50/0x50
+[ 2255.884331][T32756]  ? check_path.constprop.0+0x50/0x50
+[ 2255.890162][T32756]  do_filp_open+0x1aa/0x400
+[ 2255.894668][T32756]  ? may_open_dev+0xf0/0xf0
+[ 2255.899177][T32756]  ? alloc_fd+0x2f0/0x670
+[ 2255.903513][T32756]  ? rwlock_bug.part.0+0x90/0x90
+[ 2255.908452][T32756]  ? __sanitizer_cov_trace_const_cmp8+0x1d/0x70
+[ 2255.914693][T32756]  ? _find_next_bit+0x1e3/0x260
+[ 2255.919549][T32756]  ? _raw_spin_unlock+0x24/0x40
+[ 2255.924406][T32756]  ? alloc_fd+0x2f0/0x670
+[ 2255.928748][T32756]  do_sys_openat2+0x16d/0x4d0
+[ 2255.933614][T32756]  ? find_held_lock+0x2d/0x110
+[ 2255.938379][T32756]  ? build_open_flags+0x6f0/0x6f0
+[ 2255.943416][T32756]  ? __context_tracking_exit+0xb8/0xe0
+[ 2255.948979][T32756]  ? lock_downgrade+0x6e0/0x6e0
+[ 2255.954017][T32756]  ? lock_downgrade+0x6e0/0x6e0
+[ 2255.958877][T32756]  __x64_sys_creat+0xc9/0x120
+[ 2255.963561][T32756]  ? __x64_compat_sys_openat+0x1f0/0x1f0
+[ 2255.969202][T32756]  ? syscall_enter_from_user_mode+0x21/0x70
+[ 2255.975098][T32756]  ? lockdep_hardirqs_on+0x79/0x100
+[ 2255.980388][T32756]  do_syscall_64+0x35/0xb0
+[ 2255.984803][T32756]  entry_SYSCALL_64_after_hwframe+0x44/0xae
+[ 2255.990698][T32756] RIP: 0033:0x7f47d529fae9
+[ 2255.995115][T32756] Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 bc ff ff ff f7 d8 64 89 01 48
+[ 2256.014719][T32756] RSP: 002b:00007f47d2815188 EFLAGS: 00000246 ORIG_RAX: 0000000000000055
+[ 2256.023130][T32756] RAX: ffffffffffffffda RBX: 00007f47d53b2f60 RCX: 00007f47d529fae9
+[ 2256.031185][T32756] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000020000400
+[ 2256.039163][T32756] RBP: 00007f47d52f9f45 R08: 0000000000000000 R09: 0000000000000000
+[ 2256.047139][T32756] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+[ 2256.055286][T32756] R13: 00007ffc02a2c6ef R14: 00007f47d2815300 R15: 0000000000022000
+[ 2256.063282][T32756]  </TASK>
+[ 2256.066294][T32756] 
+[ 2256.068608][T32756] Allocated by task 31139:
+[ 2256.073011][T32756]  kasan_save_stack+0x1e/0x50
+[ 2256.077693][T32756]  __kasan_slab_alloc+0x90/0xc0
+[ 2256.082550][T32756]  kmem_cache_alloc+0x202/0x3a0
+[ 2256.087410][T32756]  __inet_hash_connect+0x8b7/0x1190
+[ 2256.092684][T32756]  dccp_v4_connect+0xc44/0x16a0
+[ 2256.097592][T32756]  __inet_stream_connect+0x8cf/0xed0
+[ 2256.102883][T32756]  inet_stream_connect+0x53/0xa0
+[ 2256.107818][T32756]  __sys_connect_file+0x155/0x1a0
+[ 2256.112842][T32756]  io_connect+0x15f/0x690
+[ 2256.117171][T32756]  io_issue_sqe+0xc64/0x7010
+[ 2256.121759][T32756]  io_submit_sqes+0x1bca/0x8a20
+[ 2256.126616][T32756]  __do_sys_io_uring_enter+0xf6e/0x1f50
+[ 2256.132160][T32756]  do_syscall_64+0x35/0xb0
+[ 2256.136572][T32756]  entry_SYSCALL_64_after_hwframe+0x44/0xae
+[ 2256.142468][T32756] 
+[ 2256.144782][T32756] The buggy address belongs to the object at ffff88803a42e000
+[ 2256.144782][T32756]  which belongs to the cache dccp_bind_bucket of size 72
+[ 2256.159359][T32756] The buggy address is located 0 bytes to the right of
+[ 2256.159359][T32756]  72-byte region [ffff88803a42e000, ffff88803a42e048)
+[ 2256.173236][T32756] The buggy address belongs to the page:
+[ 2256.178853][T32756] page:ffffea0000e90b80 refcount:1 mapcount:0 mapping:0000000000000000 index:0x0 pfn:0x3a42e
+[ 2256.188997][T32756] flags: 0xfff00000000200(slab|node=0|zone=1|lastcpupid=0x7ff)
+[ 2256.196640][T32756] raw: 00fff00000000200 dead000000000100 dead000000000122 ffff88814ac2bb40
+[ 2256.205489][T32756] raw: 0000000000000000 0000000000200020 00000001ffffffff 0000000000000000
+[ 2256.214076][T32756] page dumped because: kasan: bad access detected
+[ 2256.220578][T32756] page_owner tracks the page as allocated
+[ 2256.226371][T32756] page last allocated via order 0, migratetype Unmovable, gfp_mask 0x12a20(GFP_ATOMIC|__GFP_NOWARN|__GFP_NORETRY), pid 26283, ts 2064035128689, free_ts 2063994647722
+[ 2256.242871][T32756]  get_page_from_freelist+0xa72/0x2f50
+[ 2256.248336][T32756]  __alloc_pages+0x1b2/0x500
+[ 2256.252921][T32756]  alloc_pages+0x1a7/0x300
+[ 2256.257423][T32756]  new_slab+0x32d/0x4a0
+[ 2256.261576][T32756]  ___slab_alloc+0x918/0xfe0
+[ 2256.266164][T32756]  __slab_alloc.constprop.0+0x4d/0xa0
+[ 2256.271536][T32756]  kmem_cache_alloc+0x35c/0x3a0
+[ 2256.276388][T32756]  __inet_hash_connect+0x8b7/0x1190
+[ 2256.281591][T32756]  dccp_v4_connect+0xc44/0x16a0
+[ 2256.286441][T32756]  __inet_stream_connect+0x8cf/0xed0
+[ 2256.291726][T32756]  inet_stream_connect+0x53/0xa0
+[ 2256.296658][T32756]  __sys_connect_file+0x155/0x1a0
+[ 2256.301682][T32756]  io_connect+0x15f/0x690
+[ 2256.306036][T32756]  io_issue_sqe+0xc64/0x7010
+[ 2256.310631][T32756]  io_submit_sqes+0x1bca/0x8a20
+[ 2256.315489][T32756]  __do_sys_io_uring_enter+0xf6e/0x1f50
+[ 2256.321132][T32756] page last free stack trace:
+[ 2256.325889][T32756]  free_pcp_prepare+0x374/0x870
+[ 2256.330741][T32756]  free_unref_page_list+0x1a9/0xfa0
+[ 2256.336224][T32756]  release_pages+0x3f4/0x1480
+[ 2256.341160][T32756]  tlb_finish_mmu+0x165/0x8c0
+[ 2256.345864][T32756]  exit_mmap+0x1ea/0x630
+[ 2256.350163][T32756]  __mmput+0x122/0x4b0
+[ 2256.354249][T32756]  mmput+0x56/0x60
+[ 2256.357974][T32756]  do_exit+0xb27/0x2b40
+[ 2256.362130][T32756]  do_group_exit+0x125/0x310
+[ 2256.366727][T32756]  get_signal+0x47d/0x2220
+[ 2256.371184][T32756]  arch_do_signal_or_restart+0x2a9/0x1c40
+[ 2256.376904][T32756]  exit_to_user_mode_prepare+0x17d/0x290
+[ 2256.382543][T32756]  syscall_exit_to_user_mode+0x19/0x60
+[ 2256.388111][T32756]  do_syscall_64+0x42/0xb0
+[ 2256.392616][T32756]  entry_SYSCALL_64_after_hwframe+0x44/0xae
+[ 2256.398517][T32756] 
+[ 2256.400830][T32756] Memory state around the buggy address:
+[ 2256.406448][T32756]  ffff88803a42df00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[ 2256.414501][T32756]  ffff88803a42df80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[ 2256.422560][T32756] >ffff88803a42e000: 00 00 00 00 00 00 00 00 00 fc fc fc fc fc fc fc
+[ 2256.430615][T32756]                                               ^
+[ 2256.437108][T32756]  ffff88803a42e080: 00 00 00 00 00 00 00 00 00 fc fc fc fc fc fc fc
+[ 2256.445187][T32756]  ffff88803a42e100: 00 00 00 00 00 00 00 00 00 fc fc fc fc fc fc fc
+[ 2256.453425][T32756] ==================================================================
+[ 2256.461645][T32756] Disabling lock debugging due to kernel taint
+[ 2256.468716][T32756] Kernel panic - not syncing: panic_on_warn set ...
