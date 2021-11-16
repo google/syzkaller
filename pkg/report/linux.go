@@ -1164,6 +1164,7 @@ var linuxStackParams = &stackParams{
 		"logic_in",
 		"logic_out",
 		"^crc\\d+",
+		"__might_resched",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
