@@ -96,33 +96,28 @@ func LongPipe() (io.ReadCloser, io.WriteCloser, error) {
 	return r, w, err
 }
 
+// ProcessExitStatus returns process exit status.
+// This is here only because of fuchsia that does not implement WaitStatus.
+func ProcessExitStatus(ps *os.ProcessState) int {
+	return ps.Sys().(syscall.WaitStatus).ExitStatus()
+}
+
 // CreateMemMappedFile creates a temp file with the requested size and maps it into memory.
 func CreateMemMappedFile(size int) (f *os.File, mem []byte, err error) {
-	f, err = ioutil.TempFile("./", "syzkaller-shm")
+	f, err = CreateSharedMemFile(size)
 	if err != nil {
-		err = fmt.Errorf("failed to create temp file: %v", err)
 		return
 	}
 	if err = f.Truncate(int64(size)); err != nil {
-		err = fmt.Errorf("failed to truncate shm file: %v", err)
-		f.Close()
-		os.Remove(f.Name())
+		err = fmt.Errorf("failed to truncate shared mem file: %v", err)
+		CloseSharedMemFile(f)
 		return
 	}
-	f.Close()
-	fname := f.Name()
-	f, err = os.OpenFile(f.Name(), os.O_RDWR, DefaultFilePerm)
-	if err != nil {
-		err = fmt.Errorf("failed to open shm file: %v", err)
-		os.Remove(fname)
-		return
-	}
+
 	mem, err = syscall.Mmap(int(f.Fd()), 0, size, syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
 	if err != nil {
 		err = fmt.Errorf("failed to mmap shm file: %v", err)
-		f.Close()
-		os.Remove(f.Name())
-		return
+		CloseSharedMemFile(f)
 	}
 	return
 }
@@ -130,22 +125,13 @@ func CreateMemMappedFile(size int) (f *os.File, mem []byte, err error) {
 // CloseMemMappedFile destroys memory mapping created by CreateMemMappedFile.
 func CloseMemMappedFile(f *os.File, mem []byte) error {
 	err1 := syscall.Munmap(mem)
-	err2 := f.Close()
-	err3 := os.Remove(f.Name())
+	err2 := CloseSharedMemFile(f)
 	switch {
 	case err1 != nil:
 		return err1
 	case err2 != nil:
 		return err2
-	case err3 != nil:
-		return err3
 	default:
 		return nil
 	}
-}
-
-// ProcessExitStatus returns process exit status.
-// This is here only because of fuchsia that does not implement WaitStatus.
-func ProcessExitStatus(ps *os.ProcessState) int {
-	return ps.Sys().(syscall.WaitStatus).ExitStatus()
 }
