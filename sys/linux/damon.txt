@@ -1,65 +1,97 @@
 include <uapi/linux/fcntl.h>
 include <uapi/linux/mount.h>
 
+resource fd_damon_target_ids[fd]
+resource fd_damon_attrs[fd]
+resource fd_damon_monitor_on[fd]
+resource fd_damon_init_regions[fd]
+resource fd_damon_schemes[fd]
+resource fd_damon_kdamond_pid[fd]
+resource fd_damon_mk_contexts[fd]
+resource fd_damon_rm_contexts[fd]
 
-resource fd_target_ids[fd]
-resource fd_attrs[fd]
-resource fd_monitor_on[fd]
-resource fd_init_regions[fd]
+openat$damon_target_ids(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/debug/damon/target_ids"]], flags flags[open_flags], mode flags[open_mode]) fd_damon_target_ids
+openat$damon_attrs(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/debug/damon/attrs"]], flags flags[open_flags], mode flags[open_mode]) fd_damon_attrs
+openat$damon_init_regions(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/debug/damon/init_regions"]], flags flags[open_flags], mode flags[open_mode]) fd_damon_init_regions
+openat$damon_monitor_on(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/debug/damon/monitor_on"]], flags flags[open_flags], mode flags[open_mode]) fd_damon_monitor_on
+openat$damon_schemes(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/debug/damon/schemes"]], flags flags[open_flags], mode flags[open_mode]) fd_damon_schemes
+openat$damon_kdamond_pid(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/debug/damon/kdamond_pid"]], flags flags[open_flags], mode flags[open_mode]) fd_damon_kdamond_pid
+openat$damon_mk_contexts(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/debug/damon/mk_contexts"]], flags flags[open_flags], mode flags[open_mode]) fd_damon_mk_contexts
+openat$damon_rm_contexts(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/debug/damon/rm_contexts"]], flags flags[open_flags], mode flags[open_mode]) fd_damon_rm_contexts
 
-resource d_pid[pid]
+write$damon_target_ids(fd fd_damon_target_ids, buf ptr[in, damon_target_id_input], count len[buf])
+write$damon_attrs(fd fd_damon_attrs, buf ptr[in, damon_attrs], count len[buf])
+write$damon_init_regions(fd fd_damon_init_regions, buf ptr[in, damon_init_regions], count len[buf])
+write$damon_monitor_on(fd fd_damon_monitor_on, buf ptr[in, string["on"]], count len[buf])
+write$damon_schemes(fd fd_damon_schemes, buf ptr[in, damon_schemes], count len[buf])
+write$damon_mk_contexts(fd fd_damon_mk_contexts, buf ptr[in, damon_contexts], count len[buf])
+write$damon_rm_contexts(fd fd_damon_rm_contexts, buf ptr[in, damon_contexts], count len[buf])
 
-# mount debugfs to enable interface
-mount$damon_debugfs(src const[0], dst ptr[in, string["/sys/kernel/debug/damon"]], type ptr[in, string["debugfs"]], flags flags[mount_flags], data const[0])
-
-getpid$damon() d_pid
-
-
-# open damon debugfs files
-open$target_ids(file ptr[in, string["/sys/kernel/debug/damon/target_ids"]], flags flags[open_flags], mode flags[open_mode]) fd_target_ids
-open$attrs(file ptr[in, string["sys/kernel/debug/damon/attrs"]], flags flags[open_flags], mode flags[open_mode]) fd_attrs
-open$init_regions(file ptr[in, string["sys/kernel/debug/damon/init_regions"]], flags flags[open_flags], mode flags[open_mode]) fd_init_regions
-open$monitor_on(file ptr[in, string["/sys/kernel/debug/damon/monitor_on"]], flags flags[open_flags], mode flags[open_mode]) fd_monitor_on
-
-
-# write to previously opened fds
-write$target_ids(fd fd_target_ids, buf ptr[in, target_id_input], count len[buf])
-write$attrs(fd fd_attrs, buf ptr[in, attrs], count len[buf])
-write$init_regions(fd fd_init_regions, buf ptr[in, init_regions], count len[buf])
-write$monitor_on(fd fd_monitor_on, buf ptr[in, string["on"]], count len[buf])
+read$damon_target_ids(fd fd_damon_target_ids, buf ptr[out, array[int8]], count len[buf])
+read$damon_init_regions(fd fd_damon_init_regions, buf ptr[out, array[int8]], count len[buf])
+read$damon_attrs(fd fd_damon_attrs, buf ptr[out, array[int8]], count len[buf])
+read$damon_monitor_on(fd fd_damon_monitor_on, buf ptr[out, array[int8]], count len[buf])
+read$damon_schemes(fd fd_damon_schemes, buf ptr[out, array[int8]], count len[buf])
+read$damon_kdamond_pid(fd fd_damon_kdamond_pid, buf ptr[out, array[int8]], count len[buf])
+read$damon_mk_contexts(fd fd_damon_mk_contexts, buf ptr[in, array[string]], count len[buf])
+read$damon_rm_contexts(fd fd_damon_rm_contexts, buf ptr[in, array[string]], count len[buf])
 
 
+close$damon_target_ids(fd fd_damon_target_ids)
+close$damon_init_regions(fd fd_damon_init_regions)
+close$damon_attrs(fd fd_damon_attrs)
+close$damon_monitor_on(fd fd_damon_monitor_on)
+close$damon_schemes(fd fd_damon_schemes)
+close$damon_mk_contexts(fd fd_damon_mk_contexts)
+close$damon_rm_contexts(fd fd_damon_rm_contexts)
 
-target_id_input {
+
+damon_schemes {
+	min_size	int32
+	max_size	int32
+	min_acc		int32
+	max_acc		int32
+	min_age		int32
+	max_age		int32
+	action		int32
+} [packed]
+
+
+damon_target_id_input {
 	paddr	optional[string["paddr\n"]]
-	pids	array[target_pid]
+	pids	array[damon_target_pid]
 } [packed]
 
-target_pid {
-	space	string[" "]
-	pid	    d_pid
+damon_target_pid {
+	space	stringnoz[" "]
+	pid	pid
 }
 
-attrs {
-	sampl_interval		attr
-	aggr_interval		attr
-	reg_upd_interval	attr
-	min	    		    attr
-	max			        attr
+damon_attrs {
+	sampl_interval		damon_attr
+	aggr_interval		damon_attr
+	reg_upd_interval	damon_attr
+	min			damon_attr
+	max			damon_attr
 } [packed]
 
-attr {
-	space	string[" "]
-	val	    int64
+damon_attr {
+	space	stringnoz[" "]
+	val	fmt[dec, int32]
 }
 
-init_regions {
-	target	target_pid
-	start	addr
-	end	    addr
+damon_init_regions {
+	target	damon_target_pid
+	start	damon_addr
+	end	damon_addr
 } [packed]
 
-addr {
-	space	string[" "]
-	val	    int64
+damon_addr {
+	space	stringnoz[" "]
+	val	fmt[dec, int64]
+}
+
+damon_contexts {
+	space		stringnoz[" "]
+	dir_name	stringnoz
 }
