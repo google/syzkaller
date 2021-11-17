@@ -1,3 +1,6 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
 include <uapi/linux/fcntl.h>
 include <uapi/linux/mount.h>
 
@@ -36,7 +39,6 @@ read$damon_kdamond_pid(fd fd_damon_kdamond_pid, buf ptr[out, array[int8]], count
 read$damon_mk_contexts(fd fd_damon_mk_contexts, buf ptr[in, array[string]], count len[buf])
 read$damon_rm_contexts(fd fd_damon_rm_contexts, buf ptr[in, array[string]], count len[buf])
 
-
 close$damon_target_ids(fd fd_damon_target_ids)
 close$damon_init_regions(fd fd_damon_init_regions)
 close$damon_attrs(fd fd_damon_attrs)
@@ -44,7 +46,6 @@ close$damon_monitor_on(fd fd_damon_monitor_on)
 close$damon_schemes(fd fd_damon_schemes)
 close$damon_mk_contexts(fd fd_damon_mk_contexts)
 close$damon_rm_contexts(fd fd_damon_rm_contexts)
-
 
 damon_schemes {
 	min_size	int32
@@ -55,7 +56,6 @@ damon_schemes {
 	max_age		int32
 	action		int32
 } [packed]
-
 
 damon_target_id_input {
 	paddr	optional[string["paddr\n"]]
