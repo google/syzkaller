@@ -721,3 +721,45 @@ func TestAltTitles7(t *testing.T) {
 	c.expectEQ(rep.Title, crash1.Title)
 	c.expectEQ(rep.Log, crash2.Log)
 }
+
+func TestDetachExternalTracker(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client.UploadBuild(build)
+
+	crash1 := testCrash(build, 1)
+	c.client.ReportCrash(crash1)
+
+	// Get single report for "test" type.
+	resp, _ := c.client.ReportingPollBugs("test")
+	c.expectEQ(len(resp.Reports), 1)
+	rep1 := resp.Reports[0]
+	c.expectNE(rep1.ID, "")
+	c.expectEQ(string(rep1.Config), `{"Index":1}`)
+
+	// Signal detach_reporting for current bug.
+	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+		ID:         rep1.ID,
+		Status:     dashapi.BugStatusUpstream,
+		ReproLevel: dashapi.ReproLevelNone,
+		Link:       "http://URI/1",
+		CrashID:    rep1.CrashID,
+	})
+	c.expectEQ(reply.OK, true)
+
+	// Now add syz repro to check it doesn't use first reporting.
+	crash1.ReproOpts = []byte("some opts")
+	crash1.ReproSyz = []byte("getpid()")
+	c.client.ReportCrash(crash1)
+
+	// Fetch bug and check reporting path (Config) is different.
+	rep2 := c.client.pollBug()
+	c.expectNE(rep2.ID, "")
+	c.expectEQ(string(rep2.Config), `{"Index":2}`)
+
+	closed, _ := c.client.ReportingPollClosed([]string{rep1.ID, rep2.ID})
+	c.expectEQ(len(closed), 1)
+	c.expectEQ(closed[0], rep1.ID)
+}
