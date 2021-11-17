@@ -10,15 +10,17 @@ import (
 	"time"
 
 	syz_instance "github.com/google/syzkaller/pkg/instance"
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
 )
 
 type Checkout struct {
-	Path      string
-	Name      string
-	Running   []*Instance
-	Completed []*RunResult
+	Path          string
+	Name          string
+	ManagerConfig *mgrconfig.Config
+	Running       []*Instance
+	Completed     []*RunResult
 }
 
 func (checkout *Checkout) ArchiveRunning() error {
@@ -33,10 +35,11 @@ func (checkout *Checkout) ArchiveRunning() error {
 	return nil
 }
 
-func (ctx *TestbedContext) NewCheckout(config *CheckoutConfig) (*Checkout, error) {
+func (ctx *TestbedContext) NewCheckout(config *CheckoutConfig, mgrConfig *mgrconfig.Config) (*Checkout, error) {
 	checkout := &Checkout{
-		Name: config.Name,
-		Path: filepath.Join(ctx.Config.Workdir, "checkouts", config.Name),
+		Name:          config.Name,
+		Path:          filepath.Join(ctx.Config.Workdir, "checkouts", config.Name),
+		ManagerConfig: mgrConfig,
 	}
 	log.Printf("[%s] Checking out", checkout.Name)
 	if osutil.IsExist(checkout.Path) {
