@@ -108,7 +108,7 @@ func (ctx *TestbedContext) NewInstance(checkout *Checkout, mgrName string) (*Ins
 	}
 
 	log.Printf("[%s] Generating syz-manager config", name)
-	managerCfg := *ctx.ManagerConfig
+	managerCfg := *checkout.ManagerConfig
 	managerCfg.Name = mgrName
 	managerCfg.Workdir = workdir
 	managerCfg.Syzkaller = checkout.Path

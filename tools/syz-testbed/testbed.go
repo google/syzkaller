@@ -46,14 +46,14 @@ type DurationConfig struct {
 }
 
 type CheckoutConfig struct {
-	Name   string `json:"name"`
-	Repo   string `json:"repo"`
-	Branch string `json:"branch"`
+	Name          string          `json:"name"`
+	Repo          string          `json:"repo"`
+	Branch        string          `json:"branch"`
+	ManagerConfig json.RawMessage `json:"manager_config"` // a patch to manager config
 }
 
 type TestbedContext struct {
 	Config         *TestbedConfig
-	ManagerConfig  *mgrconfig.Config
 	Checkouts      []*Checkout
 	NextRestart    time.Time
 	NextCheckoutID int
@@ -76,24 +76,14 @@ func main() {
 	if err != nil {
 		tool.Failf("invalid config: %s", err)
 	}
-
-	managerCfg, err := mgrconfig.LoadPartialData(cfg.ManagerConfig)
-	if err != nil {
-		tool.Failf("failed to parse manager config: %s", err)
-	}
-	if managerCfg.HTTP == "" {
-		// Actually we don't care much about the specific ports of syz-managers.
-		managerCfg.HTTP = ":0"
-	}
-
 	ctx := TestbedContext{
-		Config:        cfg,
-		ManagerConfig: managerCfg,
+		Config: cfg,
 	}
 	go ctx.setupHTTPServer()
 
 	for _, checkoutCfg := range cfg.Checkouts {
-		co, err := ctx.NewCheckout(&checkoutCfg)
+		mgrCfg := ctx.MakeMgrConfig(cfg.ManagerConfig, checkoutCfg.ManagerConfig)
+		co, err := ctx.NewCheckout(&checkoutCfg, mgrCfg)
 		if err != nil {
 			tool.Failf("checkout failed: %s", err)
 		}
@@ -115,6 +105,22 @@ func main() {
 	}()
 
 	ctx.Loop(shutdown)
+}
+
+func (ctx *TestbedContext) MakeMgrConfig(base, patch json.RawMessage) *mgrconfig.Config {
+	mergedConfig, err := config.MergeJSONData(base, patch)
+	if err != nil {
+		tool.Failf("failed to apply a patch to the base manager config: %s", err)
+	}
+	mgrCfg, err := mgrconfig.LoadPartialData(mergedConfig)
+	if err != nil {
+		tool.Failf("failed to parse base manager config: %s", err)
+	}
+	if mgrCfg.HTTP == "" {
+		// Actually, we don't care much about the specific ports of syz-managers.
+		mgrCfg.HTTP = ":0"
+	}
+	return mgrCfg
 }
 
 func (ctx *TestbedContext) GetStatViews() ([]StatView, error) {
