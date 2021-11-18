@@ -62,8 +62,15 @@ if [ ! "$(docker info -f "{{println .SecurityOptions}}" | grep rootless)" ]; the
 	DOCKERARGS+=" --user $(id -u ${USER}):$(id -g ${USER})"
 fi
 
-# Update docker image
-docker pull -q gcr.io/syzkaller/${IMAGE}
+
+# Build or update docker image
+if [ ! -z "$SYZ_ENV_BUILD" ]; then
+	IMAGE_NAME="syz-$IMAGE"
+	docker build "$SCRIPT_DIR/docker/$IMAGE" --tag "$IMAGE_NAME" ${BUILDARGS[@]}
+else
+	IMAGE_NAME="gcr.io/syzkaller/$IMAGE"
+	docker pull -q "$IMAGE_NAME"
+fi
 
 # Run everything as the host user, this is important for created/modified files.
 docker run \
@@ -82,4 +89,4 @@ docker run \
 	--env GITHUB_PR_COMMITS \
 	--env CI \
 	${DOCKERARGS[@]} \
-	gcr.io/syzkaller/${IMAGE} -c "$COMMAND"
+	"$IMAGE_NAME" -c "$COMMAND"

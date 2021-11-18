@@ -151,6 +151,12 @@ docker pull docker.pkg.github.com/google/syzkaller/env
 docker tag docker.pkg.github.com/google/syzkaller/env gcr.io/syzkaller/env
 ```
 
+You can also build the container from the respective `Dockerfile` by setting the `SYZ_ENV_BUILD` environment variable, i.e.:
+```
+SYZ_ENV_BUILD=1 syz-env
+```
+This can be useful to test local changes that have not been pushed to the registry yet.
+
 ### Using [act](https://github.com/nektos/act)
 .github/workflows has more tests compared to `syz-env make presubmit`. To have the same tests as the workflow, we can run these workflow jobs locally.
 ```
