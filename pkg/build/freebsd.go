@@ -89,6 +89,7 @@ cc_dctcp_load="YES"
 cc_hd_load="YES"
 cc_htcp_load="YES"
 cc_vegas_load="YES"
+filemon_load="YES"
 
 kern.ipc.tls.enable="1"
 vm.panic_on_oom="1"
