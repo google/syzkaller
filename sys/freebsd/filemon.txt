@@ -1,0 +1,13 @@
+# Copyright 2021 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <ioccom.h>
+include <fcntl.h>
+include <dev/filemon/filemon.h>
+
+resource fd_filemon[fd]
+
+openat$filemon(fd const[AT_FDCWD], file ptr[in, string["/dev/filemon"]], flags flags[open_flags], mode const[0]) fd_filemon
+
+ioctl$FILEMON_SET_FD(fd fd_filemon, cmd const[FILEMON_SET_FD], arg ptr[in, fd])
+ioctl$FILEMON_SET_PID(fd fd_filemon, cmd const[FILEMON_SET_PID], arg ptr[in, pid])
