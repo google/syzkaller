@@ -23,6 +23,12 @@ msgrcv(msqid ipc_msq, msgp ptr[out, msgbuf], sz len[msgp], typ flags[msgbuf_type
 msgctl$IPC_STAT(msqid ipc_msq, cmd const[IPC_STAT], buf buffer[out])
 msgctl$IPC_SET(msqid ipc_msq, cmd const[IPC_SET], buf ptr[in, msqid_ds])
 msgctl$IPC_RMID(msqid ipc_msq, cmd const[IPC_RMID])
+compat_14_msgctl$IPC_STAT(msqid ipc_msq, cmd const[IPC_STAT], buf ptr[out, msqid_ds14])
+compat_14_msgctl$IPC_SET(msqid ipc_msq, cmd const[IPC_SET], buf ptr[in, msqid_ds14])
+compat_14_msgctl$IPC_RMID(msqid ipc_msq, cmd const[IPC_RMID])
+compat_50___msgctl13$IPC_STAT(msqid ipc_msq, cmd const[IPC_STAT], buf ptr[out, msqid_ds13])
+compat_50___msgctl13$IPC_SET(msqid ipc_msq, cmd const[IPC_SET], buf ptr[in, msqid_ds13])
+compat_50___msgctl13$IPC_RMID(msqid ipc_msq, cmd const[IPC_RMID])
 
 resource ipc_sem[ipc]
 semget(key proc[2039359027, 4], nsems flags[sem_sem_id], flags flags[semget_flags]) ipc_sem
@@ -38,6 +44,36 @@ semctl$GETVAL(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETVAL], arg bu
 semctl$GETZCNT(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETZCNT], arg buffer[out])
 semctl$SETALL(semid ipc_sem, semnum const[0], cmd const[SETALL], arg ptr[in, array[int16]])
 semctl$SETVAL(semid ipc_sem, semnum flags[sem_sem_id], cmd const[SETVAL], arg ptr[in, int32])
+compat_14___semctl$IPC_STAT(semid ipc_sem, semnum const[0], cmd const[IPC_STAT], arg ptr[out, __semun])
+compat_14___semctl$IPC_SET(semid ipc_sem, semnum const[0], cmd const[IPC_SET], arg ptr[in, __semun])
+compat_14___semctl$IPC_RMID(semid ipc_sem, semnum const[0], cmd const[IPC_RMID])
+compat_14___semctl$SETALL(semid ipc_sem, semnum const[0], cmd const[SETALL], arg ptr[in, __semun])
+compat_14___semctl$GETALL(semid ipc_sem, semnum const[0], cmd const[GETALL], arg ptr[out, __semun])
+compat_14___semctl$GETZCNT(semid ipc_sem, semnum const[0], cmd const[GETZCNT])
+compat_14___semctl$GETNCNT(semid ipc_sem, semnum const[0], cmd const[GETNCNT])
+compat_14___semctl$GETPID(semid ipc_sem, semnum const[0], cmd const[GETPID])
+compat_14___semctl$SETVAL(semid ipc_sem, semnum const[0], cmd const[SETVAL], arg ptr[in, __semun])
+compat_14___semctl$GETVAL(semid ipc_sem, semnum const[0], cmd const[GETVAL])
+compat_50_____semctl13$IPC_STAT(semid ipc_sem, semnum const[0], cmd const[IPC_STAT], arg ptr[out, __semun])
+compat_50_____semctl13$IPC_SET(semid ipc_sem, semnum const[0], cmd const[IPC_SET], arg ptr[in, __semun])
+compat_50_____semctl13$IPC_RMID(semid ipc_sem, semnum const[0], cmd const[IPC_RMID])
+compat_50_____semctl13$SETALL(semid ipc_sem, semnum const[0], cmd const[SETALL], arg ptr[in, __semun])
+compat_50_____semctl13$GETALL(semid ipc_sem, semnum const[0], cmd const[GETALL], arg ptr[out, __semun])
+compat_50_____semctl13$GETZCNT(semid ipc_sem, semnum const[0], cmd const[GETZCNT])
+compat_50_____semctl13$GETNCNT(semid ipc_sem, semnum const[0], cmd const[GETNCNT])
+compat_50_____semctl13$GETPID(semid ipc_sem, semnum const[0], cmd const[GETPID])
+compat_50_____semctl13$SETVAL(semid ipc_sem, semnum const[0], cmd const[SETVAL], arg ptr[in, __semun])
+compat_50_____semctl13$GETVAL(semid ipc_sem, semnum const[0], cmd const[GETVAL])
+____semctl50$IPC_STAT(semid ipc_sem, semnum const[0], cmd const[IPC_STAT], arg ptr[out, __semun])
+____semctl50$IPC_SET(semid ipc_sem, semnum const[0], cmd const[IPC_SET], arg ptr[in, __semun])
+____semctl50$IPC_RMID(semid ipc_sem, semnum const[0], cmd const[IPC_RMID])
+____semctl50$SETALL(semid ipc_sem, semnum const[0], cmd const[SETALL], arg ptr[in, __semun])
+____semctl50$GETALL(semid ipc_sem, semnum const[0], cmd const[GETALL], arg ptr[out, __semun])
+____semctl50$GETZCNT(semid ipc_sem, semnum const[0], cmd const[GETZCNT])
+____semctl50$GETNCNT(semid ipc_sem, semnum const[0], cmd const[GETNCNT])
+____semctl50$GETPID(semid ipc_sem, semnum const[0], cmd const[GETPID])
+____semctl50$SETVAL(semid ipc_sem, semnum const[0], cmd const[SETVAL], arg ptr[in, __semun])
+____semctl50$GETVAL(semid ipc_sem, semnum const[0], cmd const[GETVAL])
 
 resource ipc_shm[ipc]
 resource shmaddr[intptr]: 0
@@ -52,6 +88,16 @@ shmctl$IPC_RMID(shmid ipc_shm, cmd const[IPC_RMID])
 shmctl$SHM_LOCK(shmid ipc_shm, cmd const[SHM_LOCK])
 shmctl$SHM_UNLOCK(shmid ipc_shm, cmd const[SHM_UNLOCK])
 shmdt(addr shmaddr)
+compat_14_shmctl$IPC_STAT(shmid ipc_shm, cmd const[IPC_STAT], buf ptr[out, shmid_ds14])
+compat_14_shmctl$IPC_SET(shmid ipc_shm, cmd const[IPC_SET], buf ptr[in, shmid_ds14])
+compat_14_shmctl$IPC_RMID(shmid ipc_shm, cmd const[IPC_RMID])
+compat_14_shmctl$SHM_LOCK(shmid ipc_shm, cmd const[SHM_LOCK])
+compat_14_shmctl$SHM_UNLOCK(shmid ipc_shm, cmd const[SHM_UNLOCK])
+compat_50___shmctl13$IPC_STAT(shmid ipc_shm, cmd const[IPC_STAT], buf ptr[out, shmid_ds13])
+compat_50___shmctl13$IPC_SET(shmid ipc_shm, cmd const[IPC_SET], buf ptr[in, shmid_ds13])
+compat_50___shmctl13$IPC_RMID(shmid ipc_shm, cmd const[IPC_RMID])
+compat_50___shmctl13$SHM_LOCK(shmid ipc_shm, cmd const[SHM_LOCK])
+compat_50___shmctl13$SHM_UNLOCK(shmid ipc_shm, cmd const[SHM_UNLOCK])
 
 msgget_flags = IPC_CREAT, IPC_EXCL, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 msgbuf_type = 0, 1, 2, 3
@@ -123,3 +169,107 @@ msgbuf {
 	typ	flags[msgbuf_type, intptr]
 	data	array[int8]
 } [packed]
+
+shmid_ds14 {
+	shm_perm	ipc_perm14
+	shm_segsz	int32
+	shm_lpid	int32
+	shm_cpid	int32
+	shm_nattch	int16
+	shm_atime	int32
+	shm_dtime	int32
+	shm_ctime	int32
+	shm_internal	buffer[in]
+}
+
+shmid_ds13 {
+	shm_perm	ipc_perm
+	shm_segsz	intptr
+	shm_lpid	int32
+	shm_cpid	int32
+	shm_nattch	int32
+	shm_atime	intptr
+	shm_dtime	intptr
+	shm_ctime	intptr
+	_shm_internal	buffer[in]
+}
+
+semid_ds13 {
+	sem_perm	ipc_perm13
+	sem_nsems	int16
+	sem_otime	intptr
+	sem_ctime	intptr
+	_sem_base	ptr[inout, __sem]
+}
+
+ipc_perm13 {
+	uid	uid
+	gid	gid
+	cuid	int32
+	cgid	int32
+	mode	flags[open_mode, int32]
+	_seq	int16
+	_key	intptr
+}
+
+__sem {
+	semval	int16
+	sempid	int32
+	semncnt	int16
+	semzcnt	int16
+}
+
+__semun [
+	val	int32
+	buf	ptr[inout, semid_ds13]
+	array	ptr[inout, int16]
+]
+
+msqid_ds14 {
+	msg_perm	ipc_perm14
+	msg_first	ptr[inout, __msg]
+	msg_last	ptr[inout, __msg]
+	msg_cbytes	intptr
+	msg_qnum	intptr
+	msg_qbytes	intptr
+	msg_lspid	int32
+	msg_lrpid	int32
+	msg_stime	int32
+	msg_pad1	const[0, intptr]
+	msg_rtime	int32
+	msg_pad2	const[0, intptr]
+	msg_ctime	int32
+	msg_pad3	const[0, intptr]
+	msg_pad4	array[intptr, 4]
+}
+
+msqid_ds13 {
+	msg_perm	ipc_perm
+	msg_qnum	intptr
+	msg_qbytes	intptr
+	msg_lspid	int32
+	msg_lrpid	int32
+	msg_stime	intptr
+	msg_rtime	intptr
+	msg_ctime	intptr
+	_msg_first	ptr[in, __msg]
+	_msg_last	ptr[in, __msg]
+	_msg_cbytes	intptr
+}
+
+ipc_perm14 {
+	cuid	int16
+	cgid	int16
+	uid	int16
+	gid	int16
+	mode	flags[open_mode, int16]
+	seq	int16
+	key	intptr
+}
+
+__msg {
+	msg_next	ptr[inout, __msg, opt]
+	msg_type	intptr
+	msg_ts		int16
+	msg_spot	int16
+}
