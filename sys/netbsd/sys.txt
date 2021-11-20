@@ -20,6 +20,9 @@ include <sys/ptrace.h>
 include <sys/sched.h>
 include <sys/signal.h>
 include <sys/spawn.h>
+include <sys/module.h>
+include <sys/swap.h>
+include <sys/ras.h>
 
 syz_execute_func(text ptr[in, text[target]])
 
@@ -188,6 +191,21 @@ getrlimit(res flags[rlimit_type], rlp ptr[out, rlimit])
 compat_43_ogetrlimit(res flags[rlimit_type], rlp ptr[out, orlimit])
 setrlimit(res flags[rlimit_type], rlp ptr[in, rlimit])
 compat_43_osetrlimit(res flags[rlimit_type], rlp ptr[in, orlimit])
+
+rasctl(addr buffer[in], len intptr, op flags[rasctl_flags])
+
+swapctl$SWAP_NSWAP(cmd const[SWAP_NSWAP])
+swapctl$SWAP_STATS(cmd const[SWAP_STATS], arg ptr[out, swapent], misc int32)
+swapctl$SWAP_ON(cmd const[SWAP_ON], arg buffer[in], misc int32)
+swapctl$SWAP_OFF(cmd const[SWAP_OFF], arg buffer[in])
+swapctl$SWAP_CTL(cmd const[SWAP_CTL], arg buffer[in], misc int32)
+swapctl$SWAP_DUMPDEV(cmd const[SWAP_DUMPDEV], arg buffer[in], misc int32)
+swapctl$SWAP_GETDUMPDEV(cmd const[SWAP_GETDUMPDEV], arg dev, misc int32)
+
+modctl$MODCTL_LOAD(cmd const[MODCTL_LOAD], arg ptr[in, modctl_load])
+modctl$MODCTL_UNLOAD(cmd const[MODCTL_UNLOAD], arg buffer[in])
+modctl$MODCTL_STAT(cmd const[MODCTL_STAT], arg ptr[out, iovec_out])
+modctl$MODCTL_EXISTS(cmd const[MODCTL_EXISTS], arg int32)
 
 compat_50_clock_gettime(id flags[clock_id], tp ptr[out, timespec50])
 compat_50_clock_settime(id flags[clock_id], tp ptr[in, timespec50])
@@ -377,6 +395,22 @@ sched_param {
 	sched_priority	int32
 }
 
+swapent {
+	dev		intptr
+	flags		flags[swapent_flags, int32]
+	nblks		int32
+	inuse		int32
+	priority	int32
+	path		buffer[in]
+}
+
+modctl_load {
+	fname		buffer[in]
+	flags		flags[modctl_flags, int32]
+	props		buffer[in]
+	propslen	len[props, intptr]
+}
+
 fstatat_flags = AT_SYMLINK_NOFOLLOW, AT_SYMLINK_FOLLOW, AT_EACCESS, AT_REMOVEDIR
 pollfd_events = POLLIN, POLLPRI, POLLOUT, POLLERR, POLLHUP, POLLNVAL, POLLRDNORM, POLLRDBAND, POLLWRNORM, POLLWRBAND
 mknod_mode = S_IFREG, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
@@ -407,3 +441,6 @@ chflags_flags = SF_APPEND, SF_IMMUTABLE, SF_ARCHIVED, UF_OPAQUE, UF_APPEND, UF_I
 clone_flags = CLONE_CSIGNAL, CLONE_VM, CLONE_FS, CLONE_FILES, CLONE_SIGHAND, CLONE_PTRACE, CLONE_VFORK
 sa_flags = SA_ONSTACK, SA_RESTART, SA_RESETHAND, SA_NODEFER, SA_NOCLDSTOP, SA_NOCLDWAIT, SA_SIGINFO, SA_NOKERNINFO, SA_ALLBITS
 dup_flags = O_CLOEXEC, O_NONBLOCK, O_NOSIGPIPE
+rasctl_flags = RAS_INSTALL, RAS_PURGE, RAS_PURGE_ALL
+swapent_flags = SWF_INUSE, SWF_ENABLE, SWF_BUSY, SWF_FAKE
+modctl_flags = MODCTL_NO_PROP, MODCTL_LOAD_FORCE
