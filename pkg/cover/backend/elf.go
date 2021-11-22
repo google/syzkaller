@@ -15,8 +15,9 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
+// nolint:dupl
 func makeELF(target *targets.Target, objDir, srcDir, buildDir string,
-	moduleObj []string, hostModules []host.KernelModule) (*Impl, error) {
+	moduleObj []string, hostModules []host.KernelModule, cleanRules []string) (*Impl, error) {
 	return makeDWARF(target, objDir, srcDir, buildDir, moduleObj, hostModules,
 		&containerFns{
 			readSymbols:           elfReadSymbols,
@@ -24,6 +25,7 @@ func makeELF(target *targets.Target, objDir, srcDir, buildDir string,
 			readModuleCoverPoints: elfReadModuleCoverPoints,
 			readTextRanges:        elfReadTextRanges,
 		},
+		cleanRules,
 	)
 }
 
