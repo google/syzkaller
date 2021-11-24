@@ -67,6 +67,23 @@ var arches = map[string]Arch{
 
 func makeDWARF(target *targets.Target, objDir, srcDir, buildDir string,
 	moduleObj []string, hostModules []host.KernelModule, fn *containerFns) (
+	impl *Impl, err error) {
+	defer func() {
+		// It turns out that the DWARF-parsing library in Go crashes while parsing DWARF 5 data.
+		// As GCC11 uses DWARF 5 by default, we can expect larger number of problems with
+		// syzkallers compiled using old go versions.
+		// So we just catch the panic and turn it into a meaningful error message.
+		if recErr := recover(); recErr != nil {
+			impl = nil
+			err = fmt.Errorf("panic occurred while parsing DWARF "+
+				"(possible remedy: use go1.16+ which support DWARF 5 debug data): %s", recErr)
+		}
+	}()
+	impl, err = makeDWARFUnsafe(target, objDir, srcDir, buildDir, moduleObj, hostModules, fn)
+	return
+}
+func makeDWARFUnsafe(target *targets.Target, objDir, srcDir, buildDir string,
+	moduleObj []string, hostModules []host.KernelModule, fn *containerFns) (
 	*Impl, error) {
 	modules, err := discoverModules(target, objDir, moduleObj, hostModules)
 	if err != nil {
