@@ -48,13 +48,13 @@ close$damon_mk_contexts(fd fd_damon_mk_contexts)
 close$damon_rm_contexts(fd fd_damon_rm_contexts)
 
 damon_schemes {
-	min_size	int32
-	max_size	int32
-	min_acc		int32
-	max_acc		int32
-	min_age		int32
-	max_age		int32
-	action		int32
+	min_size	fmt[dec, int32]
+	max_size	fmt[dec, int32]
+	min_acc		fmt[dec, int32]
+	max_acc		fmt[dec, int32]
+	min_age		fmt[dec, int32]
+	max_age		fmt[dec, int32]
+	action		fmt[dec, int32]
 } [packed]
 
 damon_target_id_input {
@@ -64,7 +64,7 @@ damon_target_id_input {
 
 damon_target_pid {
 	space	stringnoz[" "]
-	pid	pid
+	pid	fmt[hex, pid]
 }
 
 damon_attrs {
