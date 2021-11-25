@@ -163,8 +163,7 @@ func (ctx *TestbedContext) saveStatView(view StatView) error {
 	if err != nil {
 		return fmt.Errorf("failed to create %s: %s", benchDir, err)
 	}
-
-	tableStats := map[string]func(view StatView) ([][]string, error){
+	tableStats := map[string]func(view StatView) (*Table, error){
 		"bugs.csv":           (StatView).GenerateBugTable,
 		"checkout_stats.csv": (StatView).StatsTable,
 		"instance_stats.csv": (StatView).InstanceStatsTable,
@@ -172,30 +171,27 @@ func (ctx *TestbedContext) saveStatView(view StatView) error {
 	for fileName, genFunc := range tableStats {
 		table, err := genFunc(view)
 		if err == nil {
-			SaveTableAsCsv(table, filepath.Join(dir, fileName))
+			table.SaveAsCsv(filepath.Join(dir, fileName))
 		} else {
-			log.Printf("some error: %s", err)
+			log.Printf("stat generation error: %s", err)
 		}
 	}
 	_, err = view.SaveAvgBenches(benchDir)
 	return err
 }
 
-func (ctx *TestbedContext) TestbedStatsTable() [][]string {
-	table := [][]string{
-		{"Checkout", "Running", "Completed", "Until reset"},
-	}
+func (ctx *TestbedContext) TestbedStatsTable() *Table {
+	table := NewTable("Checkout", "Running", "Completed", "Until reset")
 	for _, checkout := range ctx.Checkouts {
 		until := "-"
 		if ctx.NextRestart.After(time.Now()) {
 			until = time.Until(ctx.NextRestart).Round(time.Second).String()
 		}
-		table = append(table, []string{
-			checkout.Name,
+		table.AddRow(checkout.Name,
 			fmt.Sprintf("%d", len(checkout.Running)),
 			fmt.Sprintf("%d", len(checkout.Completed)),
 			until,
-		})
+		)
 	}
 	return table
 }
@@ -215,7 +211,7 @@ func (ctx *TestbedContext) SaveStats() error {
 		}
 	}
 	table := ctx.TestbedStatsTable()
-	return SaveTableAsCsv(table, filepath.Join(ctx.Config.Workdir, "testbed.csv"))
+	return table.SaveAsCsv(filepath.Join(ctx.Config.Workdir, "testbed.csv"))
 }
 
 func (ctx *TestbedContext) generateInstances(count int) ([]*Instance, error) {
