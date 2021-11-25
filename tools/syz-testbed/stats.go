@@ -4,7 +4,6 @@
 package main
 
 import (
-	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -128,28 +127,21 @@ func summarizeBugs(groups []RunResultGroup) ([]*BugSummary, error) {
 
 // For each checkout, take the union of sets of bugs found by each instance.
 // Then output these unions as a single table.
-func (view StatView) GenerateBugTable() ([][]string, error) {
-	table := [][]string{}
-	titles := []string{""}
+func (view StatView) GenerateBugTable() (*Table, error) {
+	table := NewTable("Bug")
 	for _, group := range view.Groups {
-		titles = append(titles, group.Name)
+		table.AddColumn(group.Name)
 	}
 	summaries, err := summarizeBugs(view.Groups)
 	if err != nil {
 		return nil, err
 	}
-
-	table = append(table, titles)
 	for _, bug := range summaries {
-		row := []string{bug.title}
 		for _, group := range view.Groups {
-			val := ""
 			if bug.found[group.Name] {
-				val = "YES"
+				table.Set(bug.title, group.Name, "YES")
 			}
-			row = append(row, val)
 		}
-		table = append(table, row)
 	}
 	return table, nil
 }
@@ -189,7 +181,7 @@ func (group RunResultGroup) groupNthRecord(i int) map[string]*stats.Sample {
 	return groupSamples(records)
 }
 
-func (view StatView) StatsTable() ([][]string, error) {
+func (view StatView) StatsTable() (*Table, error) {
 	commonLen := 0
 	for _, group := range view.Groups {
 		minLen := group.minResultLength()
@@ -200,12 +192,11 @@ func (view StatView) StatsTable() ([][]string, error) {
 			commonLen = minLen
 		}
 	}
-	if commonLen == 0 {
-		return nil, fmt.Errorf("not enough stat records")
-	}
 	// Map: stats key x group name -> value.
+	table := NewTable("Property")
 	cells := make(map[string]map[string]string)
 	for _, group := range view.Groups {
+		table.AddColumn(group.Name)
 		if group.minResultLength() == 0 {
 			// Skip empty groups.
 			continue
@@ -215,25 +206,13 @@ func (view StatView) StatsTable() ([][]string, error) {
 			if _, ok := cells[key]; !ok {
 				cells[key] = make(map[string]string)
 			}
-			cells[key][group.Name] = fmt.Sprintf("%d", int64(sample.Median()))
+			table.Set(key, group.Name, NewValueCell(sample))
 		}
-	}
-	title := []string{""}
-	for _, group := range view.Groups {
-		title = append(title, group.Name)
-	}
-	table := [][]string{title}
-	for key, valuesMap := range cells {
-		row := []string{key}
-		for _, group := range view.Groups {
-			row = append(row, valuesMap[group.Name])
-		}
-		table = append(table, row)
 	}
 	return table, nil
 }
 
-func (view StatView) InstanceStatsTable() ([][]string, error) {
+func (view StatView) InstanceStatsTable() (*Table, error) {
 	newView := StatView{}
 	for _, group := range view.Groups {
 		for i, result := range group.Results {
@@ -276,13 +255,4 @@ func (view *StatView) SaveAvgBenches(benchDir string) ([]string, error) {
 		files = append(files, fileName)
 	}
 	return files, nil
-}
-
-func SaveTableAsCsv(table [][]string, fileName string) error {
-	f, err := os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	return csv.NewWriter(f).WriteAll(table)
 }

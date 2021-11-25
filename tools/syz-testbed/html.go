@@ -12,7 +12,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"sort"
 	"time"
 
 	"github.com/google/syzkaller/pkg/html"
@@ -103,12 +102,12 @@ func (ctx *TestbedContext) httpGraph(w http.ResponseWriter, r *http.Request) {
 
 type uiStatView struct {
 	Name  string
-	Table [][]string
+	Table *Table
 }
 
 type uiMainPage struct {
 	Name    string
-	Summary [][]string
+	Summary *Table
 	Views   []uiStatView
 }
 
@@ -125,12 +124,6 @@ func (ctx *TestbedContext) httpMain(w http.ResponseWriter, r *http.Request) {
 			log.Printf("stat table generation failed: %s", err)
 			continue
 		}
-		sort.SliceStable(table, func(i, j int) bool {
-			if len(table[i]) == 0 || len(table[j]) == 0 {
-				return i < j
-			}
-			return table[i][0] < table[j][0]
-		})
 		uiViews = append(uiViews, uiStatView{
 			Name:  view.Name,
 			Table: table,
@@ -167,11 +160,18 @@ var mainTemplate = html.CreatePage(`
 {{define "Table"}}
 {{if .}}
 <table class="list_table">
-	{{range $c := .}}
 	<tr>
-	{{range $v := $c}}
-		<td>{{$v}}</td>
+	<th>{{.TopLeftHeader}}</th>
+	{{range $c := .ColumnHeaders}}
+		<th>{{$c}}</th>
 	{{end}}
+	</tr>
+	{{range $r := .SortedRows}}
+	<tr>
+		<td>{{$r}}</td>
+		{{range $c := $.ColumnHeaders}}
+			<td>{{$.Get $r $c}}</td>
+		{{end}}
 	</tr>
 	{{end}}
 </table>
