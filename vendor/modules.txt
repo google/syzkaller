@@ -414,6 +414,11 @@ golang.org/x/oauth2/google
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
+# golang.org/x/perf v0.0.0-20211012211434-03971e389cd3
+## explicit
+golang.org/x/perf/benchstat
+golang.org/x/perf/internal/stats
+golang.org/x/perf/storage/benchfmt
 # golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
