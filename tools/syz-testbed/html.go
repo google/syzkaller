@@ -39,8 +39,39 @@ func (ctx *TestbedContext) setupHTTPServer() {
 	}()
 }
 
-func (ctx *TestbedContext) httpGraph(w http.ResponseWriter, r *http.Request) {
+func (ctx *TestbedContext) getCurrentStatView(r *http.Request) (*StatView, error) {
+	views, err := ctx.GetStatViews()
+	if err != nil {
+		return nil, err
+	}
+	if len(views) == 0 {
+		return nil, fmt.Errorf("no stat views available")
+	}
 	viewName := r.FormValue("view")
+	if viewName != "" {
+		var targetView *StatView
+		for _, view := range views {
+			if view.Name == viewName {
+				targetView = &view
+				break
+			}
+		}
+		if targetView == nil {
+			return nil, fmt.Errorf("the requested view is not found")
+		}
+		return targetView, nil
+	}
+	// No specific view is requested.
+	// First try to find the first non-empty one.
+	for _, view := range views {
+		if !view.IsEmpty() {
+			return &view, nil
+		}
+	}
+	return &views[0], nil
+}
+
+func (ctx *TestbedContext) httpGraph(w http.ResponseWriter, r *http.Request) {
 	over := r.FormValue("over")
 
 	if ctx.Config.BenchCmp == "" {
@@ -48,20 +79,9 @@ func (ctx *TestbedContext) httpGraph(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	views, err := ctx.GetStatViews()
+	targetView, err := ctx.getCurrentStatView(r)
 	if err != nil {
-		http.Error(w, "failed to retrieve stat views", http.StatusInternalServerError)
-		return
-	}
-	var targetView *StatView
-	for _, view := range views {
-		if view.Name == viewName {
-			targetView = &view
-			break
-		}
-	}
-	if targetView == nil {
-		http.Error(w, "the requested view was not found", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("%s", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -106,33 +126,38 @@ type uiStatView struct {
 }
 
 type uiMainPage struct {
-	Name    string
-	Summary *Table
-	Views   []uiStatView
+	Name       string
+	Summary    *Table
+	Views      []StatView
+	ActiveView uiStatView
 }
 
 func (ctx *TestbedContext) httpMain(w http.ResponseWriter, r *http.Request) {
-	uiViews := []uiStatView{}
+	activeView, err := ctx.getCurrentStatView(r)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("%s", err), http.StatusInternalServerError)
+		return
+	}
+
 	views, err := ctx.GetStatViews()
 	if err != nil {
-		log.Printf("%s", err)
-		views = nil
+		http.Error(w, fmt.Sprintf("%s", err), http.StatusInternalServerError)
+		return
 	}
-	for _, view := range views {
-		table, err := view.StatsTable()
-		if err != nil {
-			log.Printf("stat table generation failed: %s", err)
-			continue
-		}
-		uiViews = append(uiViews, uiStatView{
-			Name:  view.Name,
-			Table: table,
-		})
+
+	uiView := uiStatView{Name: activeView.Name}
+	table, err := activeView.StatsTable()
+	if err != nil {
+		log.Printf("stat table generation failed: %s", err)
+	} else {
+		uiView.Table = table
 	}
+
 	data := &uiMainPage{
-		Name:    ctx.Config.Name,
-		Summary: ctx.TestbedStatsTable(),
-		Views:   uiViews,
+		Name:       ctx.Config.Name,
+		Summary:    ctx.TestbedStatsTable(),
+		Views:      views,
+		ActiveView: uiView,
 	}
 
 	executeTemplate(w, mainTemplate, data)
@@ -154,8 +179,40 @@ var mainTemplate = html.CreatePage(`
 <head>
 	<title>{{.Name }} syzkaller</title>
 	{{HEAD}}
+<style>
+
+</style>
 </head>
 <body>
+
+<header id="topbar">
+	<table class="position_table">
+		<tbody>
+		<tr><td>
+		<h1><a href="/">syz-testbed "{{.Name }}"</a></h1>
+		</td></tr>
+		</tbody>
+	</table>
+	<table class="position_table">
+	<tbody>
+	<td class="navigation">
+Views:
+{{with $main := .}}
+{{range $view := .Views}}
+<a
+{{if eq $view.Name $main.ActiveView.Name}}
+class="navigation_tab_selected"
+{{else}}
+class="navigation_tab"
+{{end}}
+href="?view={{$view.Name}}">█ {{$view.Name}}</a>
+&nbsp;
+{{end}}
+{{end}}
+	</td>
+	</tbody>
+	</table>
+</header>
 
 {{define "Table"}}
 {{if .}}
@@ -178,15 +235,12 @@ var mainTemplate = html.CreatePage(`
 {{end}}
 {{end}}
 
-<b>{{.Name }} syz-testbed</b>
 {{template "Table" .Summary}}
 
-{{range $view := .Views}}
-<b>Stat view "{{$view.Name}}"</b><br />
-<a href="/graph?view={{$view.Name}}&over=fuzzing">Graph over time</a> /
-<a href="/graph?view={{$view.Name}}&over=exec+total">Graph over executions</a> <br />
-{{template "Table" .Table}}
-{{end}}
+<b>Stat view "{{$.ActiveView.Name}}"</b><br />
+<a href="/graph?view={{.ActiveView.Name}}&over=fuzzing">Graph over time</a> /
+<a href="/graph?view={{.ActiveView.Name}}&over=exec+total">Graph over executions</a> <br />
+{{template "Table" .ActiveView.Table}}
 
 </body>
 </html>
