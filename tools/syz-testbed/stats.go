@@ -256,3 +256,12 @@ func (view *StatView) SaveAvgBenches(benchDir string) ([]string, error) {
 	}
 	return files, nil
 }
+
+func (view *StatView) IsEmpty() bool {
+	for _, group := range view.Groups {
+		if group.minResultLength() > 0 {
+			return false
+		}
+	}
+	return true
+}

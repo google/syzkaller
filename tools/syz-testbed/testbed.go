@@ -130,10 +130,9 @@ func (ctx *TestbedContext) GetStatViews() ([]StatView, error) {
 		running := []*RunResult{}
 		for _, instance := range checkout.Running {
 			result, err := instance.FetchResult()
-			if err != nil {
-				return nil, err
+			if err == nil {
+				running = append(running, result)
 			}
-			running = append(running, result)
 		}
 		groupsCompleted = append(groupsCompleted, RunResultGroup{
 			Name:    checkout.Name,
@@ -146,12 +145,12 @@ func (ctx *TestbedContext) GetStatViews() ([]StatView, error) {
 	}
 	return []StatView{
 		{
-			Name:   "all",
-			Groups: groupsAll,
-		},
-		{
 			Name:   "completed",
 			Groups: groupsCompleted,
+		},
+		{
+			Name:   "all",
+			Groups: groupsAll,
 		},
 	}, nil
 }
