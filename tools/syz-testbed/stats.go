@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/stats"
 )
 
 type BugInfo struct {
@@ -23,8 +24,11 @@ type BugInfo struct {
 type RunResult struct {
 	Workdir     string
 	Bugs        []BugInfo
-	StatRecords []map[string]uint64
+	StatRecords []StatRecord
 }
+
+// A snapshot of syzkaller statistics at a particular time.
+type StatRecord map[string]uint64
 
 // The grouping of single instance results. Taken by all stat generating routines.
 type RunResultGroup struct {
@@ -59,16 +63,16 @@ func collectBugs(workdir string) ([]BugInfo, error) {
 	return bugs, nil
 }
 
-func readBenches(benchFile string) ([]map[string]uint64, error) {
+func readBenches(benchFile string) ([]StatRecord, error) {
 	f, err := os.Open(benchFile)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
 	dec := json.NewDecoder(f)
-	ret := []map[string]uint64{}
+	ret := []StatRecord{}
 	for dec.More() {
-		curr := make(map[string]uint64)
+		curr := make(StatRecord)
 		if err := dec.Decode(&curr); err == nil {
 			ret = append(ret, curr)
 		}
@@ -76,18 +80,17 @@ func readBenches(benchFile string) ([]map[string]uint64, error) {
 	return ret, nil
 }
 
-func avgBenches(infos []map[string]uint64) map[string]uint64 {
-	ret := make(map[string]uint64)
-	if len(infos) == 0 {
-		return ret
-	}
-	for _, stat := range infos {
-		for key, value := range stat {
-			ret[key] += value
+// The input are stat snapshots of different instances taken at the same time.
+// This function groups those data points per stat types (e.g. exec total, crashes, etc.).
+func groupSamples(records []StatRecord) map[string]*stats.Sample {
+	ret := make(map[string]*stats.Sample)
+	for _, record := range records {
+		for key, value := range record {
+			if ret[key] == nil {
+				ret[key] = &stats.Sample{}
+			}
+			ret[key].Xs = append(ret[key].Xs, float64(value))
 		}
-	}
-	for key, value := range ret {
-		ret[key] = value / uint64(len(infos))
 	}
 	return ret
 }
@@ -153,44 +156,66 @@ func (view StatView) GenerateBugTable() ([][]string, error) {
 
 func (group RunResultGroup) AvgStatRecords() []map[string]uint64 {
 	ret := []map[string]uint64{}
-	for i := 0; ; i++ {
-		toAvg := []map[string]uint64{}
-		for _, result := range group.Results {
-			if i < len(result.StatRecords) {
-				toAvg = append(toAvg, result.StatRecords[i])
-			}
+	commonLen := group.minResultLength()
+	for i := 0; i < commonLen; i++ {
+		record := make(map[string]uint64)
+		for key, value := range group.groupNthRecord(i) {
+			record[key] = uint64(value.Median())
 		}
-		if len(toAvg) != len(group.Results) || len(toAvg) == 0 {
-			break
-		}
-		ret = append(ret, avgBenches(toAvg))
+		ret = append(ret, record)
 	}
 	return ret
 }
 
+func (group RunResultGroup) minResultLength() int {
+	if len(group.Results) == 0 {
+		return 0
+	}
+	ret := len(group.Results[0].StatRecords)
+	for _, result := range group.Results {
+		currLen := len(result.StatRecords)
+		if currLen < ret {
+			ret = currLen
+		}
+	}
+	return ret
+}
+
+func (group RunResultGroup) groupNthRecord(i int) map[string]*stats.Sample {
+	records := []StatRecord{}
+	for _, result := range group.Results {
+		records = append(records, result.StatRecords[i])
+	}
+	return groupSamples(records)
+}
+
 func (view StatView) StatsTable() ([][]string, error) {
-	// Ensure that everything is at the same point in time.
-	avgs := make(map[string][]map[string]uint64)
-	commonLength := 0
+	commonLen := 0
 	for _, group := range view.Groups {
-		records := group.AvgStatRecords()
-		if len(records) == 0 {
+		minLen := group.minResultLength()
+		if minLen == 0 {
 			continue
 		}
-		if commonLength > len(records) || commonLength == 0 {
-			commonLength = len(records)
+		if minLen < commonLen || commonLen == 0 {
+			commonLen = minLen
 		}
-		avgs[group.Name] = records
 	}
-
+	if commonLen == 0 {
+		return nil, fmt.Errorf("not enough stat records")
+	}
 	// Map: stats key x group name -> value.
 	cells := make(map[string]map[string]string)
-	for name, avg := range avgs {
-		for key, value := range avg[commonLength-1] {
+	for _, group := range view.Groups {
+		if group.minResultLength() == 0 {
+			// Skip empty groups.
+			continue
+		}
+		samples := group.groupNthRecord(commonLen - 1)
+		for key, sample := range samples {
 			if _, ok := cells[key]; !ok {
 				cells[key] = make(map[string]string)
 			}
-			cells[key][name] = fmt.Sprintf("%d", value)
+			cells[key][group.Name] = fmt.Sprintf("%d", int64(sample.Median()))
 		}
 	}
 	title := []string{""}
