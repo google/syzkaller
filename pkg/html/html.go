@@ -8,6 +8,7 @@ package html
 import (
 	"fmt"
 	"html/template"
+	"reflect"
 	"strings"
 	texttemplate "text/template"
 	"time"
@@ -46,6 +47,7 @@ var Funcs = template.FuncMap{
 	"formatCommitTableTitle": formatCommitTableTitle,
 	"formatList":             formatStringList,
 	"selectBisect":           selectBisect,
+	"dereference":            dereferencePointer,
 }
 
 func selectBisect(rep *dashapi.BugReport) *dashapi.BisectResult {
@@ -179,4 +181,15 @@ func formatCommitTableTitle(v string) string {
 
 func formatStringList(list []string) string {
 	return strings.Join(list, ", ")
+}
+
+func dereferencePointer(v interface{}) interface{} {
+	reflectValue := reflect.ValueOf(v)
+	if !reflectValue.IsNil() && reflectValue.Kind() == reflect.Ptr {
+		elem := reflectValue.Elem()
+		if elem.CanInterface() {
+			return elem.Interface()
+		}
+	}
+	return v
 }
