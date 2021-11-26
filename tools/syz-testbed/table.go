@@ -24,10 +24,10 @@ type Table struct {
 }
 
 type ValueCell struct {
-	Value     float64
-	Sample    *stats.Sample
-	ValueDiff *float64
-	PValue    *float64
+	Value         float64
+	Sample        *stats.Sample
+	PercentChange *float64
+	PValue        *float64
 }
 
 func NewValueCell(sample *stats.Sample) *ValueCell {
@@ -118,4 +118,41 @@ func (t *Table) SaveAsCsv(fileName string) error {
 	}
 	defer f.Close()
 	return csv.NewWriter(f).WriteAll(t.ToStrings())
+}
+
+func (t *Table) SetRelativeValues(baseColumn string) error {
+	for rowName, row := range t.Cells {
+		baseCell := t.Get(rowName, baseColumn)
+		if baseCell == nil {
+			return fmt.Errorf("base column %s not found in row %s", baseColumn, rowName)
+		}
+		baseValueCell, ok := baseCell.(*ValueCell)
+		if !ok {
+			return fmt.Errorf("base column cell is not a ValueCell, %T", baseCell)
+		}
+		baseSample := baseValueCell.Sample.RemoveOutliers()
+		for column, cell := range row {
+			if column == baseColumn {
+				continue
+			}
+			valueCell, ok := cell.(*ValueCell)
+			if !ok {
+				continue
+			}
+			if baseValueCell.Value != 0 {
+				valueDiff := valueCell.Value - baseValueCell.Value
+				valueCell.PercentChange = new(float64)
+				*valueCell.PercentChange = valueDiff / baseValueCell.Value * 100
+			}
+
+			cellSample := valueCell.Sample.RemoveOutliers()
+			pval, err := stats.UTest(baseSample, cellSample)
+			if err == nil {
+				// Sometimes it fails because there are too few samples.
+				valueCell.PValue = new(float64)
+				*valueCell.PValue = pval
+			}
+		}
+	}
+	return nil
 }

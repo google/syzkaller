@@ -11,6 +11,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
@@ -120,14 +121,21 @@ func (ctx *TestbedContext) httpGraph(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
+type uiTable struct {
+	Table     *Table
+	ColumnURL func(string) string
+	RowURL    func(string) string
+	Extra     bool
+}
+
 type uiStatView struct {
 	Name  string
-	Table *Table
+	Table uiTable
 }
 
 type uiMainPage struct {
 	Name       string
-	Summary    *Table
+	Summary    uiTable
 	Views      []StatView
 	ActiveView uiStatView
 }
@@ -144,18 +152,34 @@ func (ctx *TestbedContext) httpMain(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("%s", err), http.StatusInternalServerError)
 		return
 	}
-
 	uiView := uiStatView{Name: activeView.Name}
 	table, err := activeView.StatsTable()
 	if err != nil {
 		log.Printf("stat table generation failed: %s", err)
 	} else {
-		uiView.Table = table
+		baseColumn := r.FormValue("base_column")
+		if baseColumn != "" {
+			err := table.SetRelativeValues(baseColumn)
+			if err != nil {
+				log.Printf("failed to execute SetRelativeValues: %s", err)
+			}
+		}
+
+		uiView.Table = uiTable{
+			Table: table,
+			Extra: baseColumn != "",
+			ColumnURL: func(column string) string {
+				if column == baseColumn {
+					return ""
+				}
+				return "/?view=" + url.QueryEscape(activeView.Name) + "&base_column=" + url.QueryEscape(column)
+			},
+		}
 	}
 
 	data := &uiMainPage{
 		Name:       ctx.Config.Name,
-		Summary:    ctx.TestbedStatsTable(),
+		Summary:    uiTable{Table: ctx.TestbedStatsTable()},
 		Views:      views,
 		ActiveView: uiView,
 	}
@@ -179,9 +203,14 @@ var mainTemplate = html.CreatePage(`
 <head>
 	<title>{{.Name }} syzkaller</title>
 	{{HEAD}}
-<style>
-
-</style>
+	<style>
+	.positive-delta {
+		color:darkgreen;
+	}
+	.negative-delta {
+		color:darkred;
+	}
+	</style>
 </head>
 <body>
 
@@ -214,20 +243,61 @@ href="?view={{$view.Name}}">█ {{$view.Name}}</a>
 	</table>
 </header>
 
-{{define "Table"}}
-{{if .}}
+{{define "PrintValue"}}
+	{{if or (lt . -100.0) (gt . 100.0)}}
+		{{printf "%.0f" .}}
+	{{else}}
+		{{printf "%.1f" .}}
+	{{end}}
+{{end}}
+
+{{define "PrintExtra"}}
+	{{if .PercentChange}}
+		{{$numVal := (dereference .PercentChange)}}
+		{{if ge $numVal 0.0}}
+			<span class="positive-delta">
+		{{else}}
+			<span class="negative-delta">
+		{{end}}
+		{{printf "%+.1f" $numVal}}%
+		</span>
+	{{end}}
+	{{if .PValue}}
+		p={{printf "%.2f" (dereference .PValue)}}
+	{{end}}
+{{end}}
+
+{{define "PrintTable"}}
+{{$uiTable := .}}
+{{if .Table}}
 <table class="list_table">
 	<tr>
-	<th>{{.TopLeftHeader}}</th>
-	{{range $c := .ColumnHeaders}}
-		<th>{{$c}}</th>
+	<th>{{.Table.TopLeftHeader}}</th>
+	{{range $c := .Table.ColumnHeaders}}
+		<th>
+		{{$url := ""}}
+                {{if $uiTable.ColumnURL}}{{$url = (call $uiTable.ColumnURL $c)}}{{end}}
+			{{if $url}}<a href="{{$url}}">{{$c}}</a>
+			{{else}}
+			{{$c}}
+			{{end}}
+		</th>
+		{{if $uiTable.Extra}}
+		<th>Δ</th>
+		{{end}}
 	{{end}}
 	</tr>
-	{{range $r := .SortedRows}}
+	{{range $r := .Table.SortedRows}}
 	<tr>
 		<td>{{$r}}</td>
-		{{range $c := $.ColumnHeaders}}
-			<td>{{$.Get $r $c}}</td>
+		{{range $c := $uiTable.Table.ColumnHeaders}}
+			{{$cell := ($uiTable.Table.Get $r $c)}}
+			{{if and $cell $uiTable.Extra}}
+			<td>{{template "PrintValue" $cell.Value}}</td>
+			<td>{{template "PrintExtra" $cell}}</td>
+			{{else}}
+			<td>{{$cell}}</td>
+			{{end}}
 		{{end}}
 	</tr>
 	{{end}}
@@ -235,12 +305,12 @@ href="?view={{$view.Name}}">█ {{$view.Name}}</a>
 {{end}}
 {{end}}
 
-{{template "Table" .Summary}}
+{{template "PrintTable" .Summary}}
 
 <b>Stat view "{{$.ActiveView.Name}}"</b><br />
-<a href="/graph?view={{.ActiveView.Name}}&over=fuzzing">Graph over time</a> /
-<a href="/graph?view={{.ActiveView.Name}}&over=exec+total">Graph over executions</a> <br />
-{{template "Table" .ActiveView.Table}}
+<a href="/graph?view={{$.ActiveView.Name}}&over=fuzzing">Graph over time</a> /
+<a href="/graph?view={{$.ActiveView.Name}}&over=exec+total">Graph over executions</a> <br />
+{{template "PrintTable" $.ActiveView.Table}}
 
 </body>
 </html>
