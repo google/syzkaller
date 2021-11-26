@@ -64,7 +64,7 @@ damon_target_id_input {
 
 damon_target_pid {
 	space	stringnoz[" "]
-	pid	fmt[hex, pid]
+	pid	fmt[dec, pid]
 }
 
 damon_attrs {
