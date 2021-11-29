@@ -148,9 +148,9 @@ kvm_asm64_init_vm:
 	vmwrite %rax, %rdx;	\
 	/**/
 
-	VMSET_LIMITED(0x00004000, $0x3f, 0x481) // Pin-based VM-execution controls
-	//VMSET_LIMITED(0x00004002, $0x61999e84, 0x482) // Primary processor-based VM-execution controls
-	VMSET(0x00004002, $0xf3999e84)
+	VMSET_LIMITED(0x00004000, $0, 0x481) // Pin-based VM-execution controls
+	VMSET_LIMITED(0x00004002, $0, 0x482) // Primary processor-based VM-execution controls
+
 	VMSET(0x0000401E, $((1<<0) | (1<<7))) // Secondary processor-based VM-execution controls
 	VMSET_LIMITED(0x0000400C, $0x36fff, 0x483) // VM-exit controls (F6FFF)
 	VMSET_LIMITED(0x00004012, $0x17ff, 0x484) // VM-entry controls (51FF)
