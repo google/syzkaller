@@ -141,6 +141,14 @@ if (foo) {
 				`failmsg("format %s string", "format")`,
 			},
 		},
+		{
+			pattern: `ifn?def\s+SYZ_`,
+			message: "SYZ_* are always defined, use #if instead of #ifdef",
+			tests: []string{
+				`#ifndef SYZ_EXECUTOR_USES_FORK_SERVER`,
+				`#ifdef SYZ_EXECUTOR_USES_FORK_SERVER`,
+			},
+		},
 	}
 	for _, check := range checks {
 		re := regexp.MustCompile(check.pattern)
