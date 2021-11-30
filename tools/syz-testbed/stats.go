@@ -182,26 +182,47 @@ func (group RunResultGroup) groupNthRecord(i int) map[string]*stats.Sample {
 }
 
 func (view StatView) StatsTable() (*Table, error) {
-	commonLen := 0
+	return view.AlignedStatsTable("uptime")
+}
+
+func (view StatView) AlignedStatsTable(field string) (*Table, error) {
+	// We assume that the stats values are nonnegative.
+	var commonValue float64
 	for _, group := range view.Groups {
 		minLen := group.minResultLength()
 		if minLen == 0 {
 			continue
 		}
-		if minLen < commonLen || commonLen == 0 {
-			commonLen = minLen
+		sampleGroup := group.groupNthRecord(minLen - 1)
+		sample, ok := sampleGroup[field]
+		if !ok {
+			return nil, fmt.Errorf("field %v is not found", field)
+		}
+		currValue := sample.Median()
+		if currValue < commonValue || commonValue == 0 {
+			commonValue = currValue
 		}
 	}
-	// Map: stats key x group name -> value.
 	table := NewTable("Property")
 	cells := make(map[string]map[string]string)
 	for _, group := range view.Groups {
 		table.AddColumn(group.Name)
-		if group.minResultLength() == 0 {
+		minLen := group.minResultLength()
+		if minLen == 0 {
 			// Skip empty groups.
 			continue
 		}
-		samples := group.groupNthRecord(commonLen - 1)
+		// Unwind the samples so that they are aligned on the field value.
+		var samples map[string]*stats.Sample
+		for i := minLen - 1; i >= 0; i-- {
+			candidate := group.groupNthRecord(i)
+			// TODO: consider data interpolation.
+			if candidate[field].Median() >= commonValue {
+				samples = candidate
+			} else {
+				break
+			}
+		}
 		for key, sample := range samples {
 			if _, ok := cells[key]; !ok {
 				cells[key] = make(map[string]string)
