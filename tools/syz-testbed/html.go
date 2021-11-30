@@ -25,6 +25,7 @@ func (ctx *TestbedContext) setupHTTPServer() {
 
 	mux.HandleFunc("/", ctx.httpMain)
 	mux.HandleFunc("/graph", ctx.httpGraph)
+	mux.HandleFunc("/favicon.ico", ctx.httpFavicon)
 
 	listener, err := net.Listen("tcp", ctx.Config.HTTP)
 	if err != nil {
@@ -38,6 +39,10 @@ func (ctx *TestbedContext) setupHTTPServer() {
 			log.Fatalf("failed to listen on %v: %v", ctx.Config.HTTP, err)
 		}
 	}()
+}
+
+func (ctx *TestbedContext) httpFavicon(w http.ResponseWriter, r *http.Request) {
+	http.Error(w, "Not Found", http.StatusNotFound)
 }
 
 func (ctx *TestbedContext) getCurrentStatView(r *http.Request) (*StatView, error) {
