@@ -126,6 +126,7 @@ type uiTable struct {
 	ColumnURL func(string) string
 	RowURL    func(string) string
 	Extra     bool
+	AlignedBy string
 }
 
 type uiStatView struct {
@@ -153,7 +154,12 @@ func (ctx *TestbedContext) httpMain(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	uiView := uiStatView{Name: activeView.Name}
-	table, err := activeView.StatsTable()
+
+	alignBy := r.FormValue("align")
+	if alignBy == "" {
+		alignBy = "fuzzing"
+	}
+	table, err := activeView.AlignedStatsTable(alignBy)
 	if err != nil {
 		log.Printf("stat table generation failed: %s", err)
 	} else {
@@ -172,8 +178,23 @@ func (ctx *TestbedContext) httpMain(w http.ResponseWriter, r *http.Request) {
 				if column == baseColumn {
 					return ""
 				}
-				return "/?view=" + url.QueryEscape(activeView.Name) + "&base_column=" + url.QueryEscape(column)
+				v := url.Values{}
+				v.Set("view", activeView.Name)
+				v.Set("base_column", column)
+				v.Set("align", alignBy)
+				return "/?" + v.Encode()
 			},
+			RowURL: func(row string) string {
+				if row == alignBy {
+					return ""
+				}
+				v := url.Values{}
+				v.Set("view", activeView.Name)
+				v.Set("base_column", baseColumn)
+				v.Set("align", row)
+				return "/?" + v.Encode()
+			},
+			AlignedBy: alignBy,
 		}
 	}
 
@@ -270,6 +291,9 @@ href="?view={{$view.Name}}">█ {{$view.Name}}</a>
 {{define "PrintTable"}}
 {{$uiTable := .}}
 {{if .Table}}
+{{if $uiTable.AlignedBy}}
+	The data are aligned by {{$uiTable.AlignedBy}} <br />
+{{end}}
 <table class="list_table">
 	<tr>
 	<th>{{.Table.TopLeftHeader}}</th>
@@ -289,7 +313,14 @@ href="?view={{$view.Name}}">█ {{$view.Name}}</a>
 	</tr>
 	{{range $r := .Table.SortedRows}}
 	<tr>
-		<td>{{$r}}</td>
+		<td>
+		{{$url := ""}}
+                {{if $uiTable.RowURL}}{{$url = (call $uiTable.RowURL $r)}}{{end}}
+			{{if $url}}<a href="{{$url}}">{{$r}}</a>
+			{{else}}
+			{{$r}}
+			{{end}}
+		</td>
 		{{range $c := $uiTable.Table.ColumnHeaders}}
 			{{$cell := ($uiTable.Table.Get $r $c)}}
 			{{if and $cell $uiTable.Extra}}
