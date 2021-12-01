@@ -144,6 +144,9 @@ func commonHeader(c context.Context, r *http.Request, w http.ResponseWriter, ns 
 			}
 			continue
 		}
+		if cfg.Decommissioned {
+			continue
+		}
 		if ns1 == ns {
 			found = true
 		}
