@@ -55,3 +55,19 @@ func AssignRandomAsync(origProg *Prog, rand *rand.Rand) *Prog {
 
 	return prog
 }
+
+var rerunSteps = []int{32, 64}
+
+func AssignRandomRerun(prog *Prog, rand *rand.Rand) {
+	for i := 0; i+1 < len(prog.Calls); i++ {
+		if !prog.Calls[i].Props.Async || rand.Intn(4) != 0 {
+			continue
+		}
+		// We assign rerun to consecutive pairs of calls, where the first call is async.
+		// TODO: consider assigning rerun also to non-collided progs.
+		rerun := rerunSteps[rand.Intn(len(rerunSteps))]
+		prog.Calls[i].Props.Rerun = rerun
+		prog.Calls[i+1].Props.Rerun = rerun
+		i++
+	}
+}

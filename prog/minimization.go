@@ -120,6 +120,15 @@ func minimizeCallProps(p0 *Prog, callIndex, callIndex0 int, pred func(*Prog, int
 		}
 	}
 
+	// Try to drop rerun.
+	if props.Rerun > 0 {
+		p := p0.Clone()
+		p.Calls[callIndex].Props.Rerun = 0
+		if pred(p, callIndex0) {
+			p0 = p
+		}
+	}
+
 	return p0
 }
 

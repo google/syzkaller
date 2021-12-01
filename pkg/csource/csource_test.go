@@ -70,12 +70,15 @@ func testTarget(t *testing.T, target *prog.Target, full bool) {
 		p.Calls = append(p.Calls, minimized.Calls...)
 		opts = allOptionsPermutations(target.OS)
 	}
-	// Test fault injection and async call generation as well.
+	// Test various call properties.
 	if len(p.Calls) > 0 {
 		p.Calls[0].Props.FailNth = 1
 	}
 	if len(p.Calls) > 1 {
 		p.Calls[1].Props.Async = true
+	}
+	if len(p.Calls) > 2 {
+		p.Calls[2].Props.Rerun = 4
 	}
 	for opti, opts := range opts {
 		if testing.Short() && opts.HandleSegv {

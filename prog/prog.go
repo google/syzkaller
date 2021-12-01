@@ -21,6 +21,7 @@ type Prog struct {
 type CallProps struct {
 	FailNth int  `key:"fail_nth"`
 	Async   bool `key:"async"`
+	Rerun   int  `key:"rerun"`
 }
 
 type Call struct {
