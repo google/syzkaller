@@ -8,12 +8,18 @@ import (
 )
 
 func (p *Prog) Clone() *Prog {
+	newargs := make(map[*ResultArg]*ResultArg)
 	p1 := &Prog{
 		Target: p.Target,
-		Calls:  make([]*Call, len(p.Calls)),
+		Calls:  cloneCalls(p.Calls, newargs),
 	}
-	newargs := make(map[*ResultArg]*ResultArg)
-	for ci, c := range p.Calls {
+	p1.debugValidate()
+	return p1
+}
+
+func cloneCalls(origCalls []*Call, newargs map[*ResultArg]*ResultArg) []*Call {
+	calls := make([]*Call, len(origCalls))
+	for ci, c := range origCalls {
 		c1 := new(Call)
 		c1.Meta = c.Meta
 		if c.Ret != nil {
@@ -24,10 +30,9 @@ func (p *Prog) Clone() *Prog {
 			c1.Args[ai] = clone(arg, newargs)
 		}
 		c1.Props = c.Props
-		p1.Calls[ci] = c1
+		calls[ci] = c1
 	}
-	p1.debugValidate()
-	return p1
+	return calls
 }
 
 func clone(arg Arg, newargs map[*ResultArg]*ResultArg) Arg {
@@ -67,15 +72,20 @@ func clone(arg Arg, newargs map[*ResultArg]*ResultArg) Arg {
 		*a1 = *a
 		arg1 = a1
 		if a1.Res != nil {
-			r := newargs[a1.Res]
-			a1.Res = r
+			r := a1.Res
+			if newargs != nil {
+				r = newargs[a1.Res]
+				a1.Res = r
+			}
 			if r.uses == nil {
 				r.uses = make(map[*ResultArg]bool)
 			}
 			r.uses[a1] = true
 		}
 		a1.uses = nil // filled when we clone the referent
-		newargs[a] = a1
+		if newargs != nil {
+			newargs[a] = a1
+		}
 	default:
 		panic(fmt.Sprintf("bad arg kind: %#v", arg))
 	}

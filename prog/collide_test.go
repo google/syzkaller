@@ -82,3 +82,69 @@ r4 = dup(r3)
 		t.Fatalf("not a single async was assigned")
 	}
 }
+
+func TestDoubleExecCollide(t *testing.T) {
+	tests := []struct {
+		os         string
+		arch       string
+		orig       string
+		duplicated string
+		shouldFail bool
+	}{
+		{
+			"linux", "amd64",
+			`r0 = openat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x42, 0x1ff)
+r1 = dup(r0)
+r2 = dup(r1)
+r3 = dup(r2)
+r4 = dup(r2)
+r5 = dup(r3)
+`,
+			`r0 = openat(0xffffffffffffff9c, &(0x7f0000000040)='./file1\x00', 0x42, 0x1ff)
+r1 = dup(r0)
+r2 = dup(r1)
+r3 = dup(r2)
+dup(r2)
+dup(r3)
+openat(0xffffffffffffff9c, &(0x7f0000000040)='./file1\x00', 0x42, 0x1ff)
+dup(r0)
+dup(r1)
+dup(r2)
+dup(r2)
+dup(r3)
+`,
+			false,
+		},
+	}
+	_, rs, iters := initTest(t)
+	r := rand.New(rs)
+	for _, test := range tests {
+		target, err := GetTarget(test.os, test.arch)
+		if err != nil {
+			t.Fatal(err)
+		}
+		p, err := target.Deserialize([]byte(test.orig), Strict)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i := 0; i < iters; i++ {
+			collided, err := DoubleExecCollide(p, r)
+			if test.shouldFail && err == nil {
+				t.Fatalf("expected to fail, but it hasn't")
+			} else if !test.shouldFail && err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			if test.duplicated != "" {
+				woProps := collided.Clone()
+				for _, c := range woProps.Calls {
+					c.Props = CallProps{}
+				}
+				serialized := string(woProps.Serialize())
+				if serialized != test.duplicated {
+					t.Fatalf("expected:%s\ngot:%s\n", test.duplicated, serialized)
+				}
+			}
+			// TODO: also test the `async` assignment.
+		}
+	}
+}
