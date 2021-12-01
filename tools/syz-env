@@ -56,6 +56,7 @@ fi
 
 # Run everything as the host user, this is important for created/modified files.
 docker run \
+	--rm \
 	--user $(id -u ${USER}):$(id -g ${USER}) \
 	--volume "$SCRIPT_DIR/..:/syzkaller/gopath/src/github.com/google/syzkaller" \
 	--volume "$HOME/.cache:/syzkaller/.cache" \
