@@ -253,6 +253,14 @@ func (ctx *context) generateCalls(p prog.ExecProg, trace bool) ([]string, []uint
 
 		ctx.emitCall(w, call, ci, resCopyout || argCopyout, trace)
 
+		if call.Props.Rerun > 0 {
+			// TODO: remove this legacy C89-style definition once we figure out what to do with Akaros.
+			fmt.Fprintf(w, "\t{\n\tint i;\n")
+			fmt.Fprintf(w, "\tfor(i = 0; i < %v; i++) {\n", call.Props.Rerun)
+			// Rerun invocations should not affect the result value.
+			ctx.emitCall(w, call, ci, false, false)
+			fmt.Fprintf(w, "\t\t}\n\t}\n")
+		}
 		// Copyout.
 		if resCopyout || argCopyout {
 			ctx.copyout(w, call, resCopyout)

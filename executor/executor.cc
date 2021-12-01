@@ -1226,6 +1226,8 @@ void execute_call(thread_t* th)
 	int fail_fd = -1;
 	th->soft_fail_state = false;
 	if (th->call_props.fail_nth > 0) {
+		if (th->call_props.rerun > 0)
+			fail("both fault injection and rerun are enabled for the same call");
 		fail_fd = inject_fault(th->call_props.fail_nth);
 		th->soft_fail_state = true;
 	}
@@ -1254,12 +1256,19 @@ void execute_call(thread_t* th)
 	if (th->call_props.fail_nth > 0)
 		th->fault_injected = fault_injected(fail_fd);
 
+	// If required, run the syscall some more times.
+	// But let's still return res, errno and coverage from the first execution.
+	for (int i = 0; i < th->call_props.rerun; i++)
+		NONFAILING(execute_syscall(call, th->args));
+
 	debug("#%d [%llums] <- %s=0x%llx errno=%d ",
 	      th->id, current_time_ms() - start_time_ms, call->name, (uint64)th->res, th->reserrno);
 	if (flag_coverage)
 		debug("cover=%u ", th->cov.size);
 	if (th->call_props.fail_nth > 0)
 		debug("fault=%d ", th->fault_injected);
+	if (th->call_props.rerun > 0)
+		debug("rerun=%d ", th->call_props.rerun);
 	debug("\n");
 }
 

@@ -288,7 +288,11 @@ func (proc *Proc) executeAndCollide(execOpts *ipc.ExecOpts, p *prog.Prog, flags 
 }
 
 func (proc *Proc) randomCollide(origP *prog.Prog) *prog.Prog {
-	return prog.AssignRandomAsync(origP, proc.rnd)
+	p := prog.AssignRandomAsync(origP, proc.rnd)
+	if proc.rnd.Intn(2) != 0 {
+		prog.AssignRandomRerun(p, proc.rnd)
+	}
+	return p
 }
 
 func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.ProgInfo {
