@@ -147,6 +147,14 @@ static void cover_collect(cover_t* cov)
 		cov->size = *(uint32*)cov->data;
 }
 
+static void cover_reserve_fd(cover_t* cov)
+{
+	int fd = open("/dev/null", O_RDONLY);
+	if (fd < 0)
+		fail("failed to open /dev/null");
+	dup2(fd, cov->fd);
+}
+
 static bool use_cover_edges(uint32 pc)
 {
 	return true;

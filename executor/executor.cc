@@ -68,6 +68,7 @@ typedef unsigned char uint8;
 const int kMaxFd = 250;
 const int kMaxThreads = 32;
 const int kPreallocCoverThreads = 3; // the number of kcov instances to be set up during init
+const int kReserveCoverFds = 16; // a compromise between extra fds and the likely neded kcov instances
 const int kInPipeFd = kMaxFd - 1; // remapped from stdin
 const int kOutPipeFd = kMaxFd - 2; // remapped from stdout
 const int kCoverFd = kOutPipeFd - kMaxThreads;
@@ -470,10 +471,14 @@ int main(int argc, char** argv)
 	if (flag_coverage) {
 		for (int i = 0; i < kMaxThreads; i++) {
 			threads[i].cov.fd = kCoverFd + i;
-			// Pre-setup coverage collection for some threads. This should be enough for almost
-			// all programs, for the remaning few ones coverage will be set up when it's needed.
-			if (i < kPreallocCoverThreads)
+			if (i < kPreallocCoverThreads) {
+				// Pre-setup coverage collection for some threads. This should be enough for almost
+				// all programs, for the remaning few ones coverage will be set up when it's needed.
 				thread_setup_cover(&threads[i]);
+			} else if (i < kReserveCoverFds) {
+				// Ensure that these fds won't be taken during fuzzing or by init routines.
+				cover_reserve_fd(&threads[i].cov);
+			}
 		}
 		cover_open(&extra_cov, true);
 		cover_protect(&extra_cov);
