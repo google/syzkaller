@@ -206,6 +206,16 @@ func (ctx *TestbedContext) httpMainBugTable(urlPrefix string, view *StatView, r 
 	}, nil
 }
 
+func (ctx *TestbedContext) httpMainBugCountsTable(urlPrefix string, view *StatView, r *http.Request) (*uiTable, error) {
+	table, err := view.GenerateBugCountsTable()
+	if err != nil {
+		return nil, fmt.Errorf("bug counts table generation failed: %s", err)
+	}
+	return &uiTable{
+		Table: table,
+	}, nil
+}
+
 func (ctx *TestbedContext) httpMain(w http.ResponseWriter, r *http.Request) {
 	activeView, err := ctx.getCurrentStatView(r)
 	if err != nil {
@@ -225,8 +235,9 @@ func (ctx *TestbedContext) httpMain(w http.ResponseWriter, r *http.Request) {
 	}
 	uiView := uiStatView{Name: activeView.Name}
 	uiView.TableTypes = map[string]uiTableType{
-		"stats": uiTableType{"Statistics", ctx.httpMainStatsTable, genTableURL("stats")},
-		"bugs":  uiTableType{"Bugs", ctx.httpMainBugTable, genTableURL("bugs")},
+		"stats":      {"Statistics", ctx.httpMainStatsTable, genTableURL("stats")},
+		"bugs":       {"Bugs", ctx.httpMainBugTable, genTableURL("bugs")},
+		"bug_counts": {"Bug Counts", ctx.httpMainBugCountsTable, genTableURL("bug_counts")},
 	}
 	uiView.ActiveTableType = r.FormValue("table")
 	if uiView.ActiveTableType == "" {
