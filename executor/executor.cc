@@ -67,8 +67,7 @@ typedef unsigned char uint8;
 // Some common_OS.h files know about this constant for RLIMIT_NOFILE.
 const int kMaxFd = 250;
 const int kMaxThreads = 32;
-const int kPreallocCoverThreads = 3; // the number of kcov instances to be set up during init
-const int kReserveCoverFds = 16; // a compromise between extra fds and the likely neded kcov instances
+const int kPreMmapCoverThreads = 3; // the number of kcov instances to mmap during init
 const int kInPipeFd = kMaxFd - 1; // remapped from stdin
 const int kOutPipeFd = kMaxFd - 2; // remapped from stdout
 const int kCoverFd = kOutPipeFd - kMaxThreads;
@@ -233,6 +232,7 @@ struct call_t {
 struct cover_t {
 	int fd;
 	uint32 size;
+	uint32 mmap_alloc_size;
 	char* data;
 	char* data_end;
 	// Note: On everything but darwin the first value in data is the count of
@@ -268,7 +268,6 @@ struct thread_t {
 	uint32 reserrno;
 	bool fault_injected;
 	cover_t cov;
-	bool cov_initialized;
 	bool soft_fail_state;
 };
 
@@ -370,7 +369,7 @@ static void write_call_output(thread_t* th, bool finished);
 static void write_extra_output();
 static void execute_call(thread_t* th);
 static void thread_create(thread_t* th, int id, bool need_coverage);
-static void thread_setup_cover(thread_t* th);
+static void thread_mmap_cover(thread_t* th);
 static void* worker_thread(void* arg);
 static uint64 read_input(uint64** input_posp, bool peek = false);
 static uint64 read_arg(uint64** input_posp);
@@ -471,16 +470,15 @@ int main(int argc, char** argv)
 	if (flag_coverage) {
 		for (int i = 0; i < kMaxThreads; i++) {
 			threads[i].cov.fd = kCoverFd + i;
-			if (i < kPreallocCoverThreads) {
-				// Pre-setup coverage collection for some threads. This should be enough for almost
+			cover_open(&threads[i].cov, false);
+			if (i < kPreMmapCoverThreads) {
+				// Pre-mmap coverage collection for some threads. This should be enough for almost
 				// all programs, for the remaning few ones coverage will be set up when it's needed.
-				thread_setup_cover(&threads[i]);
-			} else if (i < kReserveCoverFds) {
-				// Ensure that these fds won't be taken during fuzzing or by init routines.
-				cover_reserve_fd(&threads[i].cov);
+				thread_mmap_cover(&threads[i]);
 			}
 		}
 		cover_open(&extra_cov, true);
+		cover_mmap(&extra_cov);
 		cover_protect(&extra_cov);
 		if (flag_extra_coverage) {
 			// Don't enable comps because we don't use them in the fuzzer yet.
@@ -1194,7 +1192,7 @@ void thread_create(thread_t* th, int id, bool need_coverage)
 	// Lazily set up coverage collection.
 	// It is assumed that actually it's already initialized - with a few rare exceptions.
 	if (need_coverage)
-		thread_setup_cover(th);
+		thread_mmap_cover(th);
 	event_init(&th->ready);
 	event_init(&th->done);
 	event_set(&th->done);
@@ -1202,13 +1200,12 @@ void thread_create(thread_t* th, int id, bool need_coverage)
 		thread_start(worker_thread, th);
 }
 
-void thread_setup_cover(thread_t* th)
+void thread_mmap_cover(thread_t* th)
 {
-	if (th->cov_initialized)
+	if (th->cov.data != NULL)
 		return;
-	cover_open(&th->cov, false);
+	cover_mmap(&th->cov);
 	cover_protect(&th->cov);
-	th->cov_initialized = true;
 }
 
 void* worker_thread(void* arg)
