@@ -134,9 +134,17 @@ type uiTable struct {
 	AlignedBy string
 }
 
+type uiTableType struct {
+	Title     string
+	Generator func(urlPrefix string, view *StatView, r *http.Request) (*uiTable, error)
+	URL       string
+}
+
 type uiStatView struct {
-	Name  string
-	Table uiTable
+	Name            string
+	TableTypes      map[string]uiTableType
+	ActiveTableType string
+	ActiveTable     *uiTable
 }
 
 type uiMainPage struct {
@@ -146,63 +154,94 @@ type uiMainPage struct {
 	ActiveView uiStatView
 }
 
+func (ctx *TestbedContext) httpMainStatsTable(urlPrefix string, view *StatView, r *http.Request) (*uiTable, error) {
+	alignBy := r.FormValue("align")
+	if alignBy == "" {
+		alignBy = "fuzzing"
+	}
+	table, err := view.AlignedStatsTable(alignBy)
+	if err != nil {
+		return nil, fmt.Errorf("stat table generation failed: %s", err)
+	}
+	baseColumn := r.FormValue("base_column")
+	if baseColumn != "" {
+		err := table.SetRelativeValues(baseColumn)
+		if err != nil {
+			log.Printf("failed to execute SetRelativeValues: %s", err)
+		}
+	}
+
+	return &uiTable{
+		Table: table,
+		Extra: baseColumn != "",
+		ColumnURL: func(column string) string {
+			if column == baseColumn {
+				return ""
+			}
+			v := url.Values{}
+			v.Set("base_column", column)
+			v.Set("align", alignBy)
+			return urlPrefix + v.Encode()
+		},
+		RowURL: func(row string) string {
+			if row == alignBy {
+				return ""
+			}
+			v := url.Values{}
+			v.Set("base_column", baseColumn)
+			v.Set("align", row)
+			return urlPrefix + v.Encode()
+		},
+		AlignedBy: alignBy,
+	}, nil
+}
+
+func (ctx *TestbedContext) httpMainBugTable(urlPrefix string, view *StatView, r *http.Request) (*uiTable, error) {
+	table, err := view.GenerateBugTable()
+	if err != nil {
+		return nil, fmt.Errorf("stat table generation failed: %s", err)
+	}
+	return &uiTable{
+		Table: table,
+	}, nil
+}
+
 func (ctx *TestbedContext) httpMain(w http.ResponseWriter, r *http.Request) {
 	activeView, err := ctx.getCurrentStatView(r)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("%s", err), http.StatusInternalServerError)
 		return
 	}
-
 	views, err := ctx.GetStatViews()
 	if err != nil {
 		http.Error(w, fmt.Sprintf("%s", err), http.StatusInternalServerError)
 		return
 	}
+	genTableURL := func(tableType string) string {
+		v := url.Values{}
+		v.Set("view", activeView.Name)
+		v.Set("table", tableType)
+		return "/?" + v.Encode()
+	}
 	uiView := uiStatView{Name: activeView.Name}
-
-	alignBy := r.FormValue("align")
-	if alignBy == "" {
-		alignBy = "fuzzing"
+	uiView.TableTypes = map[string]uiTableType{
+		"stats": uiTableType{"Statistics", ctx.httpMainStatsTable, genTableURL("stats")},
+		"bugs":  uiTableType{"Bugs", ctx.httpMainBugTable, genTableURL("bugs")},
 	}
-	table, err := activeView.AlignedStatsTable(alignBy)
+	uiView.ActiveTableType = r.FormValue("table")
+	if uiView.ActiveTableType == "" {
+		uiView.ActiveTableType = "stats"
+	}
+	tableType, found := uiView.TableTypes[uiView.ActiveTableType]
+	if !found {
+		http.Error(w, fmt.Sprintf("%s", err), http.StatusInternalServerError)
+		return
+	}
+	uiView.ActiveTable, err = tableType.Generator(tableType.URL+"&", activeView, r)
 	if err != nil {
-		log.Printf("stat table generation failed: %s", err)
-	} else {
-		baseColumn := r.FormValue("base_column")
-		if baseColumn != "" {
-			err := table.SetRelativeValues(baseColumn)
-			if err != nil {
-				log.Printf("failed to execute SetRelativeValues: %s", err)
-			}
-		}
-
-		uiView.Table = uiTable{
-			Table: table,
-			Extra: baseColumn != "",
-			ColumnURL: func(column string) string {
-				if column == baseColumn {
-					return ""
-				}
-				v := url.Values{}
-				v.Set("view", activeView.Name)
-				v.Set("base_column", column)
-				v.Set("align", alignBy)
-				return "/?" + v.Encode()
-			},
-			RowURL: func(row string) string {
-				if row == alignBy {
-					return ""
-				}
-				v := url.Values{}
-				v.Set("view", activeView.Name)
-				v.Set("base_column", baseColumn)
-				v.Set("align", row)
-				return "/?" + v.Encode()
-			},
-			AlignedBy: alignBy,
-		}
+		http.Error(w, fmt.Sprintf("%s", err), http.StatusInternalServerError)
+		return
 	}
-
 	data := &uiMainPage{
 		Name:       ctx.Config.Name,
 		Summary:    uiTable{Table: ctx.TestbedStatsTable()},
@@ -342,11 +381,21 @@ href="?view={{$view.Name}}">█ {{$view.Name}}</a>
 {{end}}
 
 {{template "PrintTable" .Summary}}
-
-<b>Stat view "{{$.ActiveView.Name}}"</b><br />
+{{$activeView := $.ActiveView}}
+<h2>Stat view "{{$activeView.Name}}"</h2>
+<b>Tables:
+{{range $typeKey, $type := $activeView.TableTypes}}
+	{{if eq $typeKey $activeView.ActiveTableType}}
+		{{$type.Title}}
+	{{else}}
+		<a href="{{$type.URL}}">{{$type.Title}}</a>
+	{{end}}
+	&nbsp;
+{{end}}
+</b> <br />
 <a href="/graph?view={{$.ActiveView.Name}}&over=fuzzing">Graph over time</a> /
 <a href="/graph?view={{$.ActiveView.Name}}&over=exec+total">Graph over executions</a> <br />
-{{template "PrintTable" $.ActiveView.Table}}
+{{template "PrintTable" $.ActiveView.ActiveTable}}
 
 </body>
 </html>
