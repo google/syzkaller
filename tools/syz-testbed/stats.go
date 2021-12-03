@@ -95,8 +95,9 @@ func groupSamples(records []StatRecord) map[string]*stats.Sample {
 }
 
 type BugSummary struct {
-	title string
-	found map[string]bool
+	title        string
+	found        map[string]bool
+	resultsCount map[string]int // the number of run results that have found this bug
 }
 
 // If there are several instances belonging to a single checkout, we're interested in the
@@ -109,12 +110,14 @@ func summarizeBugs(groups []RunResultGroup) ([]*BugSummary, error) {
 				summary := bugsMap[bug.Title]
 				if summary == nil {
 					summary = &BugSummary{
-						title: bug.Title,
-						found: make(map[string]bool),
+						title:        bug.Title,
+						found:        make(map[string]bool),
+						resultsCount: make(map[string]int),
 					}
 					bugsMap[bug.Title] = summary
 				}
 				summary.found[group.Name] = true
+				summary.resultsCount[group.Name]++
 			}
 		}
 	}
@@ -140,6 +143,28 @@ func (view StatView) GenerateBugTable() (*Table, error) {
 		for _, group := range view.Groups {
 			if bug.found[group.Name] {
 				table.Set(bug.title, group.Name, "YES")
+			}
+		}
+	}
+	return table, nil
+}
+
+func (view StatView) GenerateBugCountsTable() (*Table, error) {
+	table := NewTable("Bug")
+	for _, group := range view.Groups {
+		table.AddColumn(group.Name)
+	}
+	summaries, err := summarizeBugs(view.Groups)
+	if err != nil {
+		return nil, err
+	}
+	for _, bug := range summaries {
+		for _, group := range view.Groups {
+			if bug.found[group.Name] {
+				count := bug.resultsCount[group.Name]
+				percent := float64(count) / float64(len(group.Results)) * 100.0
+				value := fmt.Sprintf("%v (%.1f%%)", count, percent)
+				table.Set(bug.title, group.Name, value)
 			}
 		}
 	}
