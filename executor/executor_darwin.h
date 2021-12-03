@@ -68,10 +68,14 @@ static void cover_open(cover_t* cov, bool extra)
 	// and we don't care about the counters/nedges modes in XNU.
 	if (ksancov_mode_trace(cov->fd, max_entries))
 		fail("ioctl init trace write failed");
+}
 
+static void cover_mmap(cover_t* cov)
+{
+	if (cov->data != NULL)
+		fail("cover_mmap invoked on an already mmapped cover_t object");
 	uintptr_t mmap_ptr = 0;
-	size_t mmap_alloc_size = 0;
-	if (ksancov_map(cov->fd, &mmap_ptr, &mmap_alloc_size))
+	if (ksancov_map(cov->fd, &mmap_ptr, &cov->mmap_alloc_size))
 		fail("cover mmap failed");
 
 	// Sanity check to make sure our assumptions in the max_entries calculation
@@ -80,7 +84,7 @@ static void cover_open(cover_t* cov, bool extra)
 		fail("mmap allocation size larger than anticipated");
 
 	cov->data = (char*)mmap_ptr;
-	cov->data_end = cov->data + mmap_alloc_size;
+	cov->data_end = cov->data + cov->mmap_alloc_size;
 }
 
 static void cover_protect(cover_t* cov)
@@ -120,12 +124,4 @@ static void cover_collect(cover_t* cov)
 static bool use_cover_edges(uint64 pc)
 {
 	return true;
-}
-
-static void cover_reserve_fd(cover_t* cov)
-{
-	int fd = open("/dev/null", O_RDONLY);
-	if (fd < 0)
-		fail("failed to open /dev/null");
-	dup2(fd, cov->fd);
 }

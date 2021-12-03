@@ -85,14 +85,7 @@ static void cover_open(cover_t* cov, bool extra)
 	const int cover_size = extra ? kExtraCoverSize : kCoverSize;
 	if (ioctl(cov->fd, kcov_init_trace, cover_size))
 		fail("cover init trace write failed");
-	size_t mmap_alloc_size = cover_size * (is_kernel_64_bit ? 8 : 4);
-	cov->data = (char*)mmap(NULL, mmap_alloc_size,
-				PROT_READ | PROT_WRITE, MAP_SHARED, cov->fd, 0);
-	if (cov->data == MAP_FAILED)
-		fail("cover mmap failed");
-	cov->data_end = cov->data + mmap_alloc_size;
-	cov->data_offset = is_kernel_64_bit ? sizeof(uint64_t) : sizeof(uint32_t);
-	cov->pc_offset = 0;
+	cov->mmap_alloc_size = cover_size * (is_kernel_64_bit ? 8 : 4);
 }
 
 static void cover_protect(cover_t* cov)
@@ -101,6 +94,21 @@ static void cover_protect(cover_t* cov)
 
 static void cover_unprotect(cover_t* cov)
 {
+}
+
+static void cover_mmap(cover_t* cov)
+{
+	if (cov->data != NULL)
+		fail("cover_mmap invoked on an already mmapped cover_t object");
+	if (cov->mmap_alloc_size == 0)
+		fail("cover_t structure is corrupted");
+	cov->data = (char*)mmap(NULL, cov->mmap_alloc_size,
+				PROT_READ | PROT_WRITE, MAP_SHARED, cov->fd, 0);
+	if (cov->data == MAP_FAILED)
+		exitf("cover mmap failed");
+	cov->data_end = cov->data + cov->mmap_alloc_size;
+	cov->data_offset = is_kernel_64_bit ? sizeof(uint64_t) : sizeof(uint32_t);
+	cov->pc_offset = 0;
 }
 
 static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
@@ -145,14 +153,6 @@ static void cover_collect(cover_t* cov)
 		cov->size = *(uint64*)cov->data;
 	else
 		cov->size = *(uint32*)cov->data;
-}
-
-static void cover_reserve_fd(cover_t* cov)
-{
-	int fd = open("/dev/null", O_RDONLY);
-	if (fd < 0)
-		fail("failed to open /dev/null");
-	dup2(fd, cov->fd);
 }
 
 static bool use_cover_edges(uint32 pc)
