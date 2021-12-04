@@ -1494,7 +1494,7 @@ var linuxOopses = append([]*oops{
 				},
 			},
 			{
-				title: compile("BUG: stack guard page was hit at"),
+				title: compile("BUG: .*stack guard page was hit at"),
 				fmt:   "BUG: stack guard page was hit in %[1]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
