@@ -567,7 +567,7 @@ static void initialize_tun(void)
 	}
 	// Remap tun onto higher fd number to hide it from fuzzer and to keep
 	// fd numbers stable regardless of whether tun is opened or not (also see kMaxFd).
-	const int kTunFd = 240;
+	const int kTunFd = 200;
 	if (dup2(tunfd, kTunFd) < 0)
 		fail("dup2(tunfd, kTunFd) failed");
 	close(tunfd);
@@ -632,7 +632,7 @@ static void initialize_tun(void)
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI
-const int kInitNetNsFd = 239; // see kMaxFd
+const int kInitNetNsFd = 201; // see kMaxFd
 #endif
 
 #if SYZ_EXECUTOR || SYZ_DEVLINK_PCI || SYZ_NET_DEVICES
@@ -2582,7 +2582,7 @@ static void initialize_vhci()
 
 	// Remap vhci onto higher fd number to hide it from fuzzer and to keep
 	// fd numbers stable regardless of whether vhci is opened or not (also see kMaxFd).
-	const int kVhciFd = 241;
+	const int kVhciFd = 202;
 	if (dup2(vhci_fd, kVhciFd) < 0)
 		fail("dup2(vhci_fd, kVhciFd) failed");
 	close(vhci_fd);
