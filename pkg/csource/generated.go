@@ -1757,7 +1757,7 @@ static void initialize_tun(int tun_id)
 		return;
 #endif
 	}
-	const int kTunFd = 240;
+	const int kTunFd = 200;
 	if (dup2(tunfd, kTunFd) < 0)
 		fail("dup2(tunfd, kTunFd) failed");
 	close(tunfd);
@@ -2823,7 +2823,7 @@ static void initialize_tun(void)
 		return;
 #endif
 	}
-	const int kTunFd = 240;
+	const int kTunFd = 200;
 	if (dup2(tunfd, kTunFd) < 0)
 		fail("dup2(tunfd, kTunFd) failed");
 	close(tunfd);
@@ -2875,7 +2875,7 @@ static void initialize_tun(void)
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI
-const int kInitNetNsFd = 239;
+const int kInitNetNsFd = 201;
 #endif
 
 #if SYZ_EXECUTOR || SYZ_DEVLINK_PCI || SYZ_NET_DEVICES
@@ -5973,7 +5973,7 @@ static void initialize_vhci()
 	vhci_fd = open("/dev/vhci", O_RDWR);
 	if (vhci_fd == -1)
 		fail("open /dev/vhci failed");
-	const int kVhciFd = 241;
+	const int kVhciFd = 202;
 	if (dup2(vhci_fd, kVhciFd) < 0)
 		fail("dup2(vhci_fd, kVhciFd) failed");
 	close(vhci_fd);
