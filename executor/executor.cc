@@ -72,6 +72,7 @@ const int kReserveCoverFds = 16; // a compromise between extra fds and the likel
 const int kInPipeFd = kMaxFd - 1; // remapped from stdin
 const int kOutPipeFd = kMaxFd - 2; // remapped from stdout
 const int kCoverFd = kOutPipeFd - kMaxThreads;
+const int kExtraCoverFd = kCoverFd - 1;
 const int kMaxArgs = 9;
 const int kCoverSize = 256 << 10;
 const int kFailStatus = 67;
@@ -480,6 +481,7 @@ int main(int argc, char** argv)
 				cover_reserve_fd(&threads[i].cov);
 			}
 		}
+		extra_cov.fd = kExtraCoverFd;
 		cover_open(&extra_cov, true);
 		cover_protect(&extra_cov);
 		if (flag_extra_coverage) {
