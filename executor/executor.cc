@@ -71,6 +71,7 @@ const int kPreMmapCoverThreads = 3; // the number of kcov instances to mmap duri
 const int kInPipeFd = kMaxFd - 1; // remapped from stdin
 const int kOutPipeFd = kMaxFd - 2; // remapped from stdout
 const int kCoverFd = kOutPipeFd - kMaxThreads;
+const int kExtraCoverFd = kCoverFd - 1;
 const int kMaxArgs = 9;
 const int kCoverSize = 256 << 10;
 const int kFailStatus = 67;
@@ -477,6 +478,7 @@ int main(int argc, char** argv)
 				thread_mmap_cover(&threads[i]);
 			}
 		}
+		extra_cov.fd = kExtraCoverFd;
 		cover_open(&extra_cov, true);
 		cover_mmap(&extra_cov);
 		cover_protect(&extra_cov);
