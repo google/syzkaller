@@ -537,6 +537,22 @@ int main(int argc, char** argv)
 #endif
 }
 
+// On Linux, coverage instances may only be mmapped once. To overcome that,
+// we recreate those that were mmapped during fuzzing.
+static void repair_coverage_collection()
+{
+	if (!flag_coverage)
+		return;
+#if SYZ_HAVE_COVER_REPAIR
+	for (int i = kPreMmapCoverThreads; i < kMaxThreads; i++) {
+		// cover_t instances are used in the order of their location in the threads array.
+		// So, instances that might need reparation come first and then come all the others.
+		if (!cover_repair(&threads[i].cov, false))
+			return;
+	}
+#endif
+}
+
 #if SYZ_EXECUTOR_USES_SHMEM
 // This method can be invoked as many times as one likes - MMAP_FIXED can overwrite the previous
 // mapping without any problems. The only precondition - kOutFd must not be closed.

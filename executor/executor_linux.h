@@ -111,6 +111,34 @@ static void cover_mmap(cover_t* cov)
 	cov->pc_offset = 0;
 }
 
+#define SYZ_HAVE_COVER_REPAIR 1
+static bool cover_repair(cover_t* cov, bool extra)
+{
+	// As of now (December 2021) the KCOV implementation is Linux does not permit
+	// multiple mmaps. The first mmap succeeds, but all the subsequent ones fail.
+	// But we still want to delay unneeded mmaps.
+	// So, the strategy is as follows.
+	// Some kcov instances are mmapped by the parent process. There's no need to repair them.
+	// Otherwise, an instance becomes unusable after it has been mmapped once. We need to detect
+	// and repair it. These are rare occasions, so in total there will anyway be a noticeable
+	// performance boost.
+	// We cannot defer kcov instance creation to child processes becase the kcov device may be
+	// inaccessible inside a sandbox.
+	if (ioctl(cov->fd, KCOV_ENABLE, KCOV_TRACE_PC)) {
+		// KCOV_ENABLE fails with EINVAL when it has not been mmapped yet.
+		if (errno == EINVAL)
+			return false;
+		// If there's another error, then the kcov instance has probably been damaged
+		// during fuzzing. It's better to also recreate it in such a case.
+	} else {
+		// Stop coverage collection if we occasionally started it.
+		ioctl(cov->fd, KCOV_DISABLE);
+	}
+	close(cov->fd);
+	cover_open(cov, extra);
+	return true;
+}
+
 static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
 {
 	unsigned int kcov_mode = collect_comps ? KCOV_TRACE_CMP : KCOV_TRACE_PC;

@@ -9480,8 +9480,15 @@ static void setup_loop()
 
 #if SYZ_EXECUTOR || SYZ_REPEAT && (SYZ_NET_RESET || __NR_syz_mount_image || __NR_syz_read_part_table)
 #define SYZ_HAVE_RESET_LOOP 1
+
+#if SYZ_EXECUTOR
+static void repair_coverage_collection();
+#endif
 static void reset_loop()
 {
+#if SYZ_EXECUTOR
+	repair_coverage_collection();
+#endif
 #if SYZ_EXECUTOR || __NR_syz_mount_image || __NR_syz_read_part_table
 	char buf[64];
 	snprintf(buf, sizeof(buf), "/dev/loop%llu", procid);
