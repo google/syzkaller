@@ -412,6 +412,9 @@ func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bo
 	if ctx.Features[host.FeatureExtraCoverage].Enabled {
 		cfg.Flags |= ipc.FlagExtraCover
 	}
+	if ctx.Features[host.FeatureDelayKcovMmap].Enabled {
+		cfg.Flags |= ipc.FlagDelayKcovMmap
+	}
 	if ctx.Features[host.FeatureNetInjection].Enabled {
 		cfg.Flags |= ipc.FlagEnableTun
 	}

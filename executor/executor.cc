@@ -67,7 +67,6 @@ typedef unsigned char uint8;
 // Some common_OS.h files know about this constant for RLIMIT_NOFILE.
 const int kMaxFd = 250;
 const int kMaxThreads = 32;
-const int kPreMmapCoverThreads = 3; // the number of kcov instances to mmap during init
 const int kInPipeFd = kMaxFd - 1; // remapped from stdin
 const int kOutPipeFd = kMaxFd - 2; // remapped from stdout
 const int kCoverFd = kOutPipeFd - kMaxThreads;
@@ -75,6 +74,11 @@ const int kExtraCoverFd = kCoverFd - 1;
 const int kMaxArgs = 9;
 const int kCoverSize = 256 << 10;
 const int kFailStatus = 67;
+
+// Two approaches of dealing with kcov memory.
+const int kCoverOptimizedCount = 12; // the number of kcov instances to be opened inside main()
+const int kCoverOptimizedPreMmap = 3; // this many will be mmapped inside main(), others - when needed.
+const int kCoverDefaultCount = 5; // otherwise we only init kcov instances inside main()
 
 // Logical error (e.g. invalid input program), use as an assert() alternative.
 // If such error happens 10+ times in a row, it will be detected as a bug by syz-fuzzer.
@@ -167,6 +171,7 @@ static bool flag_close_fds;
 static bool flag_devlink_pci;
 static bool flag_vhci_injection;
 static bool flag_wifi;
+static bool flag_delay_kcov_mmap;
 
 static bool flag_collect_cover;
 static bool flag_dedup_cover;
@@ -469,10 +474,17 @@ int main(int argc, char** argv)
 	receive_execute();
 #endif
 	if (flag_coverage) {
-		for (int i = 0; i < kMaxThreads; i++) {
+		int create_count = kCoverDefaultCount, mmap_count = create_count;
+		if (flag_delay_kcov_mmap) {
+			create_count = kCoverOptimizedCount;
+			mmap_count = kCoverOptimizedPreMmap;
+		}
+		if (create_count > kMaxThreads)
+			create_count = kMaxThreads;
+		for (int i = 0; i < create_count; i++) {
 			threads[i].cov.fd = kCoverFd + i;
 			cover_open(&threads[i].cov, false);
-			if (i < kPreMmapCoverThreads) {
+			if (i < mmap_count) {
 				// Pre-mmap coverage collection for some threads. This should be enough for almost
 				// all programs, for the remaning few ones coverage will be set up when it's needed.
 				thread_mmap_cover(&threads[i]);
@@ -600,6 +612,7 @@ void parse_env_flags(uint64 flags)
 	flag_devlink_pci = flags & (1 << 11);
 	flag_vhci_injection = flags & (1 << 12);
 	flag_wifi = flags & (1 << 13);
+	flag_delay_kcov_mmap = flags & (1 << 14);
 }
 
 #if SYZ_EXECUTOR_USES_FORK_SERVER
@@ -1193,8 +1206,11 @@ void thread_create(thread_t* th, int id, bool need_coverage)
 	th->executing = false;
 	// Lazily set up coverage collection.
 	// It is assumed that actually it's already initialized - with a few rare exceptions.
-	if (need_coverage)
+	if (need_coverage) {
+		if (!th->cov.fd)
+			fail("out of opened kcov threads");
 		thread_mmap_cover(th);
+	}
 	event_init(&th->ready);
 	event_init(&th->done);
 	event_set(&th->done);
@@ -1206,6 +1222,8 @@ void thread_mmap_cover(thread_t* th)
 {
 	if (th->cov.data != NULL)
 		return;
+	if (!flag_delay_kcov_mmap)
+		fail("out of mmapped kcov threads");
 	cover_mmap(&th->cov);
 	cover_protect(&th->cov);
 }

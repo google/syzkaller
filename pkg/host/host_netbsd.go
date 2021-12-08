@@ -23,6 +23,7 @@ func init() {
 	checkFeature[FeatureComparisons] = unconditionallyEnabled
 	checkFeature[FeatureUSBEmulation] = checkUSBEmulation
 	checkFeature[FeatureExtraCoverage] = checkUSBEmulation
+	checkFeature[FeatureDelayKcovMmap] = unconditionallyEnabled
 	checkFeature[FeatureFault] = checkFault
 }
 

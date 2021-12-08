@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"regexp"
 	"runtime"
+	"runtime/debug"
 	"strconv"
 	"syscall"
 	"unsafe"
@@ -21,6 +22,7 @@ func init() {
 	checkFeature[FeatureCoverage] = checkCoverage
 	checkFeature[FeatureComparisons] = checkComparisons
 	checkFeature[FeatureExtraCoverage] = checkExtraCoverage
+	checkFeature[FeatureDelayKcovMmap] = checkDelayKcovMmap
 	checkFeature[FeatureSandboxSetuid] = unconditionallyEnabled
 	checkFeature[FeatureSandboxNamespace] = checkSandboxNamespace
 	checkFeature[FeatureSandboxAndroid] = checkSandboxAndroid
@@ -57,6 +59,39 @@ func checkExtraCoverage() (reason string) {
 	return checkCoverageFeature(FeatureExtraCoverage)
 }
 
+func checkDelayKcovMmap() string {
+	// The kcov implementation in Linux (currently) does not adequately handle subsequent
+	// mmap invocations on the same descriptor. When that problem is fixed, we want
+	// syzkaller to differentiate between distributions as this allows to noticeably speed
+	// up fuzzing.
+	return checkCoverageFeature(FeatureDelayKcovMmap)
+}
+
+func kcovTestMmap(fd int, coverSize uintptr) (reason string) {
+	mem, err := syscall.Mmap(fd, 0, int(coverSize*unsafe.Sizeof(uintptr(0))),
+		syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
+	if err != nil {
+		return fmt.Sprintf("KCOV mmap failed: %v", err)
+	}
+	defer func() {
+		if err := syscall.Munmap(mem); err != nil {
+			reason = fmt.Sprintf("munmap failed: %v", err)
+		}
+	}()
+	// Now the tricky part - mmap may say it has succeeded, but the memory is
+	// in fact not allocated.
+	// We try to access it. If go does not panic, everything is fine.
+	prevValue := debug.SetPanicOnFault(true)
+	defer debug.SetPanicOnFault(prevValue)
+	defer func() {
+		if r := recover(); r != nil {
+			reason = "mmap returned an invalid pointer"
+		}
+	}()
+	mem[0] = 0
+	return ""
+}
+
 func checkCoverageFeature(feature int) (reason string) {
 	if reason = checkDebugFS(); reason != "" {
 		return reason
@@ -80,16 +115,15 @@ func checkCoverageFeature(feature int) (reason string) {
 	if errno != 0 {
 		return fmt.Sprintf("ioctl(KCOV_INIT_TRACE) failed: %v", errno)
 	}
-	mem, err := syscall.Mmap(fd, 0, int(coverSize*unsafe.Sizeof(uintptr(0))),
-		syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
-	if err != nil {
-		return fmt.Sprintf("KCOV mmap failed: %v", err)
+	if reason = kcovTestMmap(fd, coverSize); reason != "" {
+		return reason
 	}
-	defer func() {
-		if err := syscall.Munmap(mem); err != nil {
-			reason = fmt.Sprintf("munmap failed: %v", err)
+	disableKcov := func() {
+		_, _, errno = syscall.Syscall(syscall.SYS_IOCTL, uintptr(fd), linux.KCOV_DISABLE, 0)
+		if errno != 0 {
+			reason = fmt.Sprintf("ioctl(KCOV_DISABLE) failed: %v", errno)
 		}
-	}()
+	}
 	switch feature {
 	case FeatureComparisons:
 		_, _, errno = syscall.Syscall(syscall.SYS_IOCTL,
@@ -100,6 +134,7 @@ func checkCoverageFeature(feature int) (reason string) {
 			}
 			return fmt.Sprintf("ioctl(KCOV_TRACE_CMP) failed: %v", errno)
 		}
+		defer disableKcov()
 	case FeatureExtraCoverage:
 		arg := KcovRemoteArg{
 			TraceMode:    uint32(linux.KCOV_TRACE_PC),
@@ -115,15 +150,14 @@ func checkCoverageFeature(feature int) (reason string) {
 			}
 			return fmt.Sprintf("ioctl(KCOV_REMOTE_ENABLE) failed: %v", errno)
 		}
+		defer disableKcov()
+	case FeatureDelayKcovMmap:
+		if reason = kcovTestMmap(fd, coverSize); reason != "" {
+			return reason
+		}
 	default:
 		panic("unknown feature in checkCoverageFeature")
 	}
-	defer func() {
-		_, _, errno = syscall.Syscall(syscall.SYS_IOCTL, uintptr(fd), linux.KCOV_DISABLE, 0)
-		if errno != 0 {
-			reason = fmt.Sprintf("ioctl(KCOV_DISABLE) failed: %v", errno)
-		}
-	}()
 	return ""
 }
 
