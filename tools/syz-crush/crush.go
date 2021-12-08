@@ -52,7 +52,7 @@ func main() {
 		log.Fatal(err)
 	}
 	if *flagRestartTime == 0 {
-		*flagRestartTime *= cfg.Timeouts.VMRunningTime
+		*flagRestartTime = cfg.Timeouts.VMRunningTime
 	}
 	if *flagInfinite {
 		log.Printf("running infinitely and restarting VM every %v", *flagRestartTime)
