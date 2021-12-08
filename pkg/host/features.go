@@ -19,6 +19,7 @@ const (
 	FeatureCoverage = iota
 	FeatureComparisons
 	FeatureExtraCoverage
+	FeatureDelayKcovMmap
 	FeatureSandboxSetuid
 	FeatureSandboxNamespace
 	FeatureSandboxAndroid
@@ -60,6 +61,7 @@ func Check(target *prog.Target) (*Features, error) {
 		FeatureCoverage:         {Name: "code coverage", Reason: unsupported},
 		FeatureComparisons:      {Name: "comparison tracing", Reason: unsupported},
 		FeatureExtraCoverage:    {Name: "extra coverage", Reason: unsupported},
+		FeatureDelayKcovMmap:    {Name: "delay kcov mmap", Reason: unsupported},
 		FeatureSandboxSetuid:    {Name: "setuid sandbox", Reason: unsupported},
 		FeatureSandboxNamespace: {Name: "namespace sandbox", Reason: unsupported},
 		FeatureSandboxAndroid:   {Name: "Android sandbox", Reason: unsupported},

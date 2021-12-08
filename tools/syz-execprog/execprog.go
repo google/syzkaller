@@ -305,6 +305,9 @@ func createConfig(target *prog.Target, features *host.Features, featuresFlags cs
 	if features[host.FeatureExtraCoverage].Enabled {
 		config.Flags |= ipc.FlagExtraCover
 	}
+	if features[host.FeatureDelayKcovMmap].Enabled {
+		config.Flags |= ipc.FlagDelayKcovMmap
+	}
 	if featuresFlags["tun"].Enabled && features[host.FeatureNetInjection].Enabled {
 		config.Flags |= ipc.FlagEnableTun
 	}

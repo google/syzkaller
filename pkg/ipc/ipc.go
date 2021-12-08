@@ -42,6 +42,7 @@ const (
 	FlagEnableDevlinkPCI                         // setup devlink PCI device
 	FlagEnableVhciInjection                      // setup and use /dev/vhci for hci packet injection
 	FlagEnableWifi                               // setup and use mac80211_hwsim for wifi emulation
+	FlagDelayKcovMmap                            // manage kcov memory in an optimized way
 )
 
 // Per-exec flags for ExecOpts.Flags.

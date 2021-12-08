@@ -32,6 +32,7 @@ func init() {
 	checkFeature[FeatureCoverage] = unconditionallyEnabled
 	checkFeature[FeatureComparisons] = unconditionallyEnabled
 	checkFeature[FeatureExtraCoverage] = unconditionallyEnabled
+	checkFeature[FeatureDelayKcovMmap] = unconditionallyEnabled
 	checkFeature[FeatureNetInjection] = unconditionallyEnabled
 	checkFeature[FeatureSandboxSetuid] = unconditionallyEnabled
 }
