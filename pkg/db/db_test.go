@@ -5,6 +5,7 @@ package db
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"reflect"
@@ -115,6 +116,22 @@ func TestLarge(t *testing.T) {
 	}
 	if len(db.Records) != nrec {
 		t.Fatalf("wrong record count: %v, want %v", len(db.Records), nrec)
+	}
+}
+
+func TestOpenInvalid(t *testing.T) {
+	f, err := ioutil.TempFile("", "syz-db-test")
+	if err != nil {
+		t.Error(err)
+	}
+
+	defer f.Close()
+	defer os.Remove(f.Name())
+	if _, err := f.Write([]byte(`some invalid data`)); err != nil {
+		t.Error(err)
+	}
+	if _, err := Open(f.Name()); err == nil {
+		t.Fatal("opened invalid db")
 	}
 }
 
