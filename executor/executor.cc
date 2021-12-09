@@ -1222,8 +1222,6 @@ void thread_mmap_cover(thread_t* th)
 {
 	if (th->cov.data != NULL)
 		return;
-	if (!flag_delay_kcov_mmap)
-		fail("out of mmapped kcov threads");
 	cover_mmap(&th->cov);
 	cover_protect(&th->cov);
 }
