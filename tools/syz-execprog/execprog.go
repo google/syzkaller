@@ -59,8 +59,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	entries := loadPrograms(target, flag.Args())
-	if len(entries) == 0 {
+	progs := loadPrograms(target, flag.Args())
+	if len(progs) == 0 {
 		return
 	}
 	features, err := host.Check(target)
@@ -87,7 +87,7 @@ func main() {
 		}
 	}
 	ctx := &Context{
-		entries:  entries,
+		progs:    progs,
 		config:   config,
 		execOpts: execOpts,
 		gate:     ipc.NewGate(2**flagProcs, gateCallback),
@@ -108,7 +108,7 @@ func main() {
 }
 
 type Context struct {
-	entries   []*prog.LogEntry
+	progs     []*prog.Prog
 	config    *ipc.Config
 	execOpts  *ipc.ExecOpts
 	gate      *ipc.Gate
@@ -133,26 +133,26 @@ func (ctx *Context) run(pid int) {
 		default:
 		}
 		idx := ctx.getProgramIndex()
-		if ctx.repeat > 0 && idx >= len(ctx.entries)*ctx.repeat {
+		if ctx.repeat > 0 && idx >= len(ctx.progs)*ctx.repeat {
 			return
 		}
-		entry := ctx.entries[idx%len(ctx.entries)]
+		entry := ctx.progs[idx%len(ctx.progs)]
 		ctx.execute(pid, env, entry)
 	}
 }
 
-func (ctx *Context) execute(pid int, env *ipc.Env, entry *prog.LogEntry) {
+func (ctx *Context) execute(pid int, env *ipc.Env, p *prog.Prog) {
 	// Limit concurrency window.
 	ticket := ctx.gate.Enter()
 	defer ctx.gate.Leave(ticket)
 
 	callOpts := ctx.execOpts
 	if *flagOutput {
-		ctx.logProgram(pid, entry.P, callOpts)
+		ctx.logProgram(pid, p, callOpts)
 	}
 	// This mimics the syz-fuzzer logic. This is important for reproduction.
 	for try := 0; ; try++ {
-		output, info, hanged, err := env.Exec(callOpts, entry.P)
+		output, info, hanged, err := env.Exec(callOpts, p)
 		if err != nil && err != prog.ErrExecBufferTooSmall {
 			if try > 10 {
 				log.Fatalf("executor failed %v times: %v\n%s", try, err, output)
@@ -168,7 +168,7 @@ func (ctx *Context) execute(pid int, env *ipc.Env, entry *prog.LogEntry) {
 		if info != nil {
 			ctx.printCallResults(info)
 			if *flagHints {
-				ctx.printHints(entry.P, info)
+				ctx.printHints(p, info)
 			}
 			if *flagCoverFile != "" {
 				ctx.dumpCoverage(*flagCoverFile, info)
@@ -261,7 +261,7 @@ func (ctx *Context) getProgramIndex() int {
 	ctx.posMu.Lock()
 	idx := ctx.pos
 	ctx.pos++
-	if idx%len(ctx.entries) == 0 && time.Since(ctx.lastPrint) > 5*time.Second {
+	if idx%len(ctx.progs) == 0 && time.Since(ctx.lastPrint) > 5*time.Second {
 		log.Logf(0, "executed programs: %v", idx)
 		ctx.lastPrint = time.Now()
 	}
@@ -269,17 +269,19 @@ func (ctx *Context) getProgramIndex() int {
 	return idx
 }
 
-func loadPrograms(target *prog.Target, files []string) []*prog.LogEntry {
-	var entries []*prog.LogEntry
+func loadPrograms(target *prog.Target, files []string) []*prog.Prog {
+	var progs []*prog.Prog
 	for _, fn := range files {
 		data, err := ioutil.ReadFile(fn)
 		if err != nil {
 			log.Fatalf("failed to read log file: %v", err)
 		}
-		entries = append(entries, target.ParseLog(data)...)
+		for _, entry := range target.ParseLog(data) {
+			progs = append(progs, entry.P)
+		}
 	}
-	log.Logf(0, "parsed %v programs", len(entries))
-	return entries
+	log.Logf(0, "parsed %v programs", len(progs))
+	return progs
 }
 
 func createConfig(target *prog.Target, features *host.Features, featuresFlags csource.Features) (
