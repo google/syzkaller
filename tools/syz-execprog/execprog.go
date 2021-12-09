@@ -17,6 +17,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
@@ -41,7 +42,7 @@ var (
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "usage: execprog [flags] file-with-programs+\n")
+		fmt.Fprintf(os.Stderr, "usage: execprog [flags] file-with-programs-or-corpus.db+\n")
 		flag.PrintDefaults()
 		csource.PrintAvailableFeaturesFlags()
 	}
@@ -272,6 +273,16 @@ func (ctx *Context) getProgramIndex() int {
 func loadPrograms(target *prog.Target, files []string) []*prog.Prog {
 	var progs []*prog.Prog
 	for _, fn := range files {
+		if corpus, err := db.Open(fn); err == nil {
+			for _, rec := range corpus.Records {
+				p, err := target.Deserialize(rec.Val, prog.NonStrict)
+				if err != nil {
+					continue
+				}
+				progs = append(progs, p)
+			}
+			continue
+		}
 		data, err := ioutil.ReadFile(fn)
 		if err != nil {
 			log.Fatalf("failed to read log file: %v", err)
