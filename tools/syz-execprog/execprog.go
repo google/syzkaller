@@ -33,7 +33,7 @@ var (
 	flagArch      = flag.String("arch", runtime.GOARCH, "target arch")
 	flagCoverFile = flag.String("coverfile", "", "write coverage to the file")
 	flagRepeat    = flag.Int("repeat", 1, "repeat execution that many times (0 for infinite loop)")
-	flagProcs     = flag.Int("procs", 1, "number of parallel processes to execute programs")
+	flagProcs     = flag.Int("procs", 2*runtime.NumCPU(), "number of parallel processes to execute programs")
 	flagOutput    = flag.Bool("output", false, "write programs and results to stdout")
 	flagHints     = flag.Bool("hints", false, "do a hints-generation run")
 	flagEnable    = flag.String("enable", "none", "enable only listed additional features")
