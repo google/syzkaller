@@ -19,7 +19,6 @@ import (
 	"os"
 
 	"github.com/google/syzkaller/pkg/hash"
-	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 )
@@ -46,9 +45,13 @@ func Open(filename string) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	db.Version, db.Records, db.uncompacted = deserializeDB(bufio.NewReader(f))
-	f.Close()
+	defer f.Close()
+	db.Version, db.Records, db.uncompacted, err = deserializeDB(bufio.NewReader(f))
+	if err != nil {
+		return nil, err
+	}
 	if len(db.Records) == 0 || db.uncompacted/10*9 > len(db.Records) {
+		f.Close() // compact will rewrite the file, so close our descriptor
 		if err := db.compact(); err != nil {
 			return nil, err
 		}
@@ -176,11 +179,11 @@ func serializeRecord(w *bytes.Buffer, key string, val []byte, seq uint64) {
 	}
 }
 
-func deserializeDB(r *bufio.Reader) (version uint64, records map[string]Record, uncompacted int) {
+func deserializeDB(r *bufio.Reader) (version uint64, records map[string]Record, uncompacted int, err0 error) {
 	records = make(map[string]Record)
 	ver, err := deserializeHeader(r)
 	if err != nil {
-		log.Logf(0, "failed to deserialize database header: %v", err)
+		err0 = fmt.Errorf("failed to deserialize database header: %v", err)
 		return
 	}
 	version = ver
@@ -190,7 +193,7 @@ func deserializeDB(r *bufio.Reader) (version uint64, records map[string]Record, 
 			return
 		}
 		if err != nil {
-			log.Logf(0, "failed to deserialize database record: %v", err)
+			err0 = fmt.Errorf("failed to deserialize database record: %v", err)
 			return
 		}
 		uncompacted++
