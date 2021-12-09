@@ -141,7 +141,7 @@ var kernelBuildSem = make(chan struct{}, 1)
 func (mgr *Manager) loop() {
 	lastCommit := ""
 	nextBuildTime := time.Now()
-	var managerRestartTime, coverUploadTime time.Time
+	var managerRestartTime, artifactUploadTime time.Time
 	latestInfo := mgr.checkLatest()
 	if latestInfo != nil && time.Since(latestInfo.Time) < kernelRebuildPeriod/2 &&
 		mgr.managercfg.TargetOS != targets.Fuchsia {
@@ -167,10 +167,17 @@ loop:
 			lastCommit, latestInfo, rebuildAfter = mgr.pollAndBuild(lastCommit, latestInfo)
 			nextBuildTime = time.Now().Add(rebuildAfter)
 		}
-		if !coverUploadTime.IsZero() && time.Now().After(coverUploadTime) {
-			coverUploadTime = time.Time{}
-			if err := mgr.uploadCoverReport(); err != nil {
-				mgr.Errorf("failed to upload cover report: %v", err)
+		if !artifactUploadTime.IsZero() && time.Now().After(artifactUploadTime) {
+			artifactUploadTime = time.Time{}
+			if mgr.managercfg.Cover && mgr.cfg.CoverUploadPath != "" {
+				if err := mgr.uploadCoverReport(); err != nil {
+					mgr.Errorf("failed to upload cover report: %v", err)
+				}
+			}
+			if mgr.cfg.CorpusUploadPath != "" {
+				if err := mgr.uploadCorpus(); err != nil {
+					mgr.Errorf("failed to upload corpus: %v", err)
+				}
 			}
 		}
 
@@ -183,8 +190,8 @@ loop:
 		if latestInfo != nil && (latestInfo.Time != managerRestartTime || mgr.cmd == nil) {
 			managerRestartTime = latestInfo.Time
 			mgr.restartManager()
-			if mgr.cmd != nil && mgr.managercfg.Cover && mgr.cfg.CoverUploadPath != "" {
-				coverUploadTime = time.Now().Add(6 * time.Hour)
+			if mgr.cmd != nil {
+				artifactUploadTime = time.Now().Add(6 * time.Hour)
 			}
 		}
 
@@ -640,45 +647,59 @@ func (mgr *Manager) uploadCoverReport() error {
 	}
 	defer resp.Body.Close()
 	// Upload coverage report.
-	coverUploadURL, err := url.Parse(mgr.cfg.CoverUploadPath)
-	if err != nil {
-		return fmt.Errorf("failed to parse cover upload path: %v", err)
-	}
-	coverUploadURL.Path = path.Join(coverUploadURL.Path, mgr.name+".html")
-	coverUploadURLStr := coverUploadURL.String()
-	log.Logf(0, "%v: uploading cover report to %v", mgr.name, coverUploadURLStr)
-	if strings.HasPrefix(coverUploadURLStr, "gs://") {
-		return uploadCoverReportGCS(strings.TrimPrefix(coverUploadURLStr, "gs://"), resp.Body)
-	} else if strings.HasPrefix(coverUploadURLStr, "http://") ||
-		strings.HasPrefix(coverUploadURLStr, "https://") {
-		return uploadCoverReportHTTPPut(coverUploadURLStr, resp.Body)
-	} else { // Use GCS as default to maintain backwards compatibility.
-		return uploadCoverReportGCS(coverUploadURLStr, resp.Body)
-	}
+	return uploadFile(mgr.cfg.CoverUploadPath, mgr.name+".html", resp.Body)
 }
 
-func uploadCoverReportGCS(coverUploadURL string, coverReport io.Reader) error {
+func (mgr *Manager) uploadCorpus() error {
+	f, err := os.Open(filepath.Join(mgr.workDir, "corpus.db"))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return uploadFile(mgr.cfg.CorpusUploadPath, mgr.name+"-corpus.db", f)
+}
+
+func uploadFile(dstPath, name string, file io.Reader) error {
+	URL, err := url.Parse(dstPath)
+	if err != nil {
+		return fmt.Errorf("failed to parse upload path: %v", err)
+	}
+	URL.Path = path.Join(URL.Path, name)
+	URLStr := URL.String()
+	log.Logf(0, "uploading %v to %v", name, URLStr)
+	if strings.HasPrefix(URLStr, "gs://") {
+		return uploadFileGCS(strings.TrimPrefix(URLStr, "gs://"), file)
+	}
+	if strings.HasPrefix(URLStr, "http://") ||
+		strings.HasPrefix(URLStr, "https://") {
+		return uploadFileHTTPPut(URLStr, file)
+	}
+	// Use GCS as default to maintain backwards compatibility.
+	return uploadFileGCS(URLStr, file)
+}
+
+func uploadFileGCS(URL string, file io.Reader) error {
 	GCS, err := gcs.NewClient()
 	if err != nil {
 		return fmt.Errorf("failed to create GCS client: %v", err)
 	}
 	defer GCS.Close()
-	gcsWriter, err := GCS.FileWriter(coverUploadURL)
+	gcsWriter, err := GCS.FileWriter(URL)
 	if err != nil {
 		return fmt.Errorf("failed to create GCS writer: %v", err)
 	}
-	if _, err := io.Copy(gcsWriter, coverReport); err != nil {
+	if _, err := io.Copy(gcsWriter, file); err != nil {
 		gcsWriter.Close()
 		return fmt.Errorf("failed to copy report: %v", err)
 	}
 	if err := gcsWriter.Close(); err != nil {
 		return fmt.Errorf("failed to close gcs writer: %v", err)
 	}
-	return GCS.Publish(coverUploadURL)
+	return GCS.Publish(URL)
 }
 
-func uploadCoverReportHTTPPut(coverUploadURL string, coverReport io.Reader) error {
-	req, err := http.NewRequest(http.MethodPut, coverUploadURL, coverReport)
+func uploadFileHTTPPut(URL string, file io.Reader) error {
+	req, err := http.NewRequest(http.MethodPut, URL, file)
 	if err != nil {
 		return fmt.Errorf("failed to create HTTP PUT request: %v", err)
 	}
