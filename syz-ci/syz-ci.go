@@ -91,12 +91,15 @@ type Config struct {
 	SyzkallerBranch string `json:"syzkaller_branch"` // Defaults to "master".
 	// Dir with additional syscall descriptions (.txt and .const files).
 	SyzkallerDescriptions string `json:"syzkaller_descriptions"`
-	// Protocol-specific path to upload coverage reports from managers (optional).
+	// Path to upload coverage reports from managers (optional).
 	// Supported protocols: GCS (gs://) and HTTP PUT (http:// or https://).
-	CoverUploadPath string           `json:"cover_upload_path"`
-	BisectBinDir    string           `json:"bisect_bin_dir"`
-	Ccache          string           `json:"ccache"`
-	Managers        []*ManagerConfig `json:"managers"`
+	CoverUploadPath string `json:"cover_upload_path"`
+	// Path to upload corpus.db from managers (optional).
+	// Supported protocols: GCS (gs://) and HTTP PUT (http:// or https://).
+	CorpusUploadPath string           `json:"corpus_upload_path"`
+	BisectBinDir     string           `json:"bisect_bin_dir"`
+	Ccache           string           `json:"ccache"`
+	Managers         []*ManagerConfig `json:"managers"`
 	// Poll period for jobs in seconds (optional, defaults to 10 seconds)
 	JobPollPeriod int `json:"job_poll_period"`
 	// Poll period for commits in seconds (optional, defaults to 3600 seconds)
