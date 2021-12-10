@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -38,6 +39,10 @@ type RPCServer struct {
 	rotator       *prog.Rotator
 	rnd           *rand.Rand
 	checkFailures int
+
+	mabSSRewards   map[hash.Sig]float64
+	mabSSTimeTotal int64
+	mabSSCovTotal  int
 }
 
 type Fuzzer struct {
@@ -66,11 +71,12 @@ type RPCManagerView interface {
 
 func startRPCServer(mgr *Manager) (*RPCServer, error) {
 	serv := &RPCServer{
-		mgr:     mgr,
-		cfg:     mgr.cfg,
-		stats:   mgr.stats,
-		fuzzers: make(map[string]*Fuzzer),
-		rnd:     rand.New(rand.NewSource(time.Now().UnixNano())),
+		mgr:          mgr,
+		cfg:          mgr.cfg,
+		stats:        mgr.stats,
+		fuzzers:      make(map[string]*Fuzzer),
+		rnd:          rand.New(rand.NewSource(time.Now().UnixNano())),
+		mabSSRewards: make(map[hash.Sig]float64),
 	}
 	serv.batchSize = 5
 	if serv.batchSize < mgr.cfg.Procs {
@@ -356,6 +362,12 @@ func (serv *RPCServer) Poll(a *rpctype.PollArgs, r *rpctype.PollRes) error {
 		}
 		for i := 0; i < batchSize && len(f.inputs) > 0; i++ {
 			last := len(f.inputs) - 1
+			// Send the reward of input if applicable.
+			sig := hash.Hash(f.inputs[last].Prog)
+			if reward, ok := serv.mabSSRewards[sig]; ok {
+				f.inputs[last].MABSSReward = reward
+				log.Logf(4, "MAB SS sending input %v with reward %v", sig.String(), reward)
+			}
 			r.NewInputs = append(r.NewInputs, f.inputs[last])
 			f.inputs[last] = rpctype.RPCInput{}
 			f.inputs = f.inputs[:last]
@@ -364,6 +376,23 @@ func (serv *RPCServer) Poll(a *rpctype.PollArgs, r *rpctype.PollRes) error {
 			f.inputs = nil
 		}
 	}
+	// Update server's reward table for MAB seed selection.
+	for sig, reward := range a.MABSSRewardDiff {
+		if _, ok := serv.mabSSRewards[sig]; !ok {
+			serv.mabSSRewards[sig] = 0.0
+		}
+		serv.mabSSRewards[sig] += reward
+		log.Logf(4, "MAB SS reward update %v: %v", sig.String(), reward)
+	}
+	// TODO(Daimeng): Send server-side reward update to fuzzer, when there are
+	// multiple fuzzers.
+
+	// Total time and coverage.
+	serv.mabSSTimeTotal += a.MABSSTimeDiff
+	serv.mabSSCovTotal += a.MABSSCovDiff
+	r.MABSSTimeTotal = serv.mabSSTimeTotal
+	r.MABSSCovTotal = serv.mabSSCovTotal
+
 	log.Logf(4, "poll from %v: candidates=%v inputs=%v maxsignal=%v",
 		a.Name, len(r.Candidates), len(r.NewInputs), len(r.MaxSignal.Elems))
 	return nil

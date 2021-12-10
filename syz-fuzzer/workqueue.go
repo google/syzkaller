@@ -57,6 +57,7 @@ type WorkCandidate struct {
 // During smashing these programs receive a one-time special attention
 // (emit faults, collect comparison hints, etc).
 type WorkSmash struct {
+	pidx int
 	p    *prog.Prog
 	call int
 }

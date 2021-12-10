@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/ipc"
+	"github.com/google/syzkaller/pkg/learning"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/signal"
@@ -59,6 +60,13 @@ func newProc(fuzzer *Fuzzer, pid int) (*Proc, error) {
 	return proc, nil
 }
 
+func (proc *Proc) doGenerate(ct *prog.ChoiceTable) {
+	// Generate a new prog.
+	p := proc.fuzzer.target.Generate(proc.rnd, prog.RecommendedCalls, ct)
+	log.Logf(1, "#%v: generated", proc.pid)
+	proc.execute(proc.execOpts, p, ProgNormal, StatGenerate)
+}
+
 func (proc *Proc) loop() {
 	generatePeriod := 100
 	if proc.fuzzer.config.Flags&ipc.FlagSignal == 0 {
@@ -83,18 +91,34 @@ func (proc *Proc) loop() {
 		}
 
 		ct := proc.fuzzer.choiceTable
-		fuzzerSnapshot := proc.fuzzer.snapshot()
-		if len(fuzzerSnapshot.corpus) == 0 || i%generatePeriod == 0 {
-			// Generate a new prog.
-			p := proc.fuzzer.target.Generate(proc.rnd, prog.RecommendedCalls, ct)
-			log.Logf(1, "#%v: generated", proc.pid)
-			proc.execute(proc.execOpts, p, ProgNormal, StatGenerate)
+		// Avoid taking unnecessary snapshots and involve mutexes.
+		if i%generatePeriod == 0 {
+			proc.doGenerate(ct)
+		} else if proc.fuzzer.mabSSEnabled {
+			// Use MAB engine to pick a prog.
+			// There is no need to use snapshot here as MAB engine has its own lock.
+			// Also, the size of proc.fuzzer.corpus can only increase.
+			pidx, pr, corpusSnapshot := proc.fuzzer.mabSS.Choose(proc.rnd)
+			if pidx < 0 {
+				proc.doGenerate(ct)
+			} else {
+				p := corpusSnapshot[pidx]
+				p.Mutate(proc.rnd, prog.RecommendedCalls, ct, corpusSnapshot)
+				log.Logf(1, "#%v: mutated program %v, pr=%v", proc.pid, pidx, pr)
+				_, result := proc.execute(proc.execOpts, p, ProgNormal, StatFuzz)
+				proc.fuzzer.mabSS.Update(pidx, result, pr)
+			}
 		} else {
-			// Mutate an existing prog.
-			p := fuzzerSnapshot.chooseProgram(proc.rnd).Clone()
-			p.Mutate(proc.rnd, prog.RecommendedCalls, ct, fuzzerSnapshot.corpus)
-			log.Logf(1, "#%v: mutated", proc.pid)
-			proc.execute(proc.execOpts, p, ProgNormal, StatFuzz)
+			fuzzerSnapshot := proc.fuzzer.snapshot()
+			if len(fuzzerSnapshot.corpus) == 0 {
+				proc.doGenerate(ct)
+			} else {
+				// Mutate an existing prog.
+				p := fuzzerSnapshot.chooseProgram(proc.rnd).Clone()
+				p.Mutate(proc.rnd, prog.RecommendedCalls, ct, fuzzerSnapshot.corpus)
+				log.Logf(1, "#%v: mutated", proc.pid)
+				proc.execute(proc.execOpts, p, ProgNormal, StatFuzz)
+			}
 		}
 	}
 }
@@ -145,7 +169,7 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 		item.p, item.call = prog.Minimize(item.p, item.call, false,
 			func(p1 *prog.Prog, call1 int) bool {
 				for i := 0; i < minimizeAttempts; i++ {
-					info := proc.execute(proc.execOptsNoCollide, p1, ProgNormal, StatMinimize)
+					info, _ := proc.execute(proc.execOptsNoCollide, p1, ProgNormal, StatMinimize)
 					if !reexecutionSuccess(info, &item.info, call1) {
 						// The call was not executed or failed.
 						continue
@@ -170,10 +194,10 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 		Cover:  inputCover.Serialize(),
 	})
 
-	proc.fuzzer.addInputToCorpus(item.p, inputSignal, sig)
+	pidx := proc.fuzzer.addInputToCorpus(item.p, inputSignal, sig, 0.0)
 
 	if item.flags&ProgSmashed == 0 {
-		proc.fuzzer.workQueue.enqueue(&WorkSmash{item.p, item.call})
+		proc.fuzzer.workQueue.enqueue(&WorkSmash{pidx, item.p, item.call})
 	}
 }
 
@@ -212,7 +236,16 @@ func (proc *Proc) smashInput(item *WorkSmash) {
 		p := item.p.Clone()
 		p.Mutate(proc.rnd, prog.RecommendedCalls, proc.fuzzer.choiceTable, fuzzerSnapshot.corpus)
 		log.Logf(1, "#%v: smash mutated", proc.pid)
-		proc.execute(proc.execOpts, p, ProgNormal, StatSmash)
+		_, result := proc.execute(proc.execOpts, p, ProgNormal, StatSmash)
+		// If MAB seed scheduling enabled, do not mutate for 100 times.
+		// Let MAB decide when to mutate new seeds.
+		if proc.fuzzer.mabSSEnabled {
+			proc.fuzzer.mabSS.Update(item.pidx, result, 1.0)
+			if proc.fuzzer.mabSS.GetRawReward(item.pidx) < 0.0 {
+				log.Logf(1, "#%v: MAB SS smash mutated %v times", proc.pid, i+1)
+				return
+			}
+		}
 	}
 }
 
@@ -231,7 +264,7 @@ func (proc *Proc) failCall(p *prog.Prog, call int) {
 func (proc *Proc) executeHintSeed(p *prog.Prog, call int) {
 	log.Logf(1, "#%v: collecting comparisons", proc.pid)
 	// First execute the original program to dump comparisons from KCOV.
-	info := proc.execute(proc.execOptsComps, p, ProgNormal, StatSeed)
+	info, _ := proc.execute(proc.execOptsComps, p, ProgNormal, StatSeed)
 	if info == nil {
 		return
 	}
@@ -245,19 +278,23 @@ func (proc *Proc) executeHintSeed(p *prog.Prog, call int) {
 	})
 }
 
-func (proc *Proc) execute(execOpts *ipc.ExecOpts, p *prog.Prog, flags ProgTypes, stat Stat) *ipc.ProgInfo {
+func (proc *Proc) execute(execOpts *ipc.ExecOpts, p *prog.Prog, flags ProgTypes,
+	stat Stat) (*ipc.ProgInfo, learning.ExecResult) {
 	info := proc.executeRaw(execOpts, p, stat)
+	var ret learning.ExecResult
 	if info == nil {
-		return nil
+		return nil, ret
 	}
-	calls, extra := proc.fuzzer.checkNewSignal(p, info)
+	calls, extra, cov := proc.fuzzer.checkNewSignal(p, info)
+	ret.Coverage = cov
+	ret.TimeExec = info.Time
 	for _, callIndex := range calls {
 		proc.enqueueCallTriage(p, flags, callIndex, info.Calls[callIndex])
 	}
 	if extra {
 		proc.enqueueCallTriage(p, flags, -1, info.Extra)
 	}
-	return info
+	return info, ret
 }
 
 func (proc *Proc) enqueueCallTriage(p *prog.Prog, flags ProgTypes, callIndex int, info ipc.CallInfo) {

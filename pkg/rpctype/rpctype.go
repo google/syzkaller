@@ -6,16 +6,18 @@
 package rpctype
 
 import (
+	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/signal"
 )
 
 type RPCInput struct {
-	Call   string
-	Prog   []byte
-	Signal signal.Serial
-	Cover  []uint32
+	Call        string
+	Prog        []byte
+	Signal      signal.Serial
+	Cover       []uint32
+	MABSSReward float64
 }
 
 type RPCCandidate struct {
@@ -71,12 +73,19 @@ type PollArgs struct {
 	NeedCandidates bool
 	MaxSignal      signal.Serial
 	Stats          map[string]uint64
+	// Seed selection reward update from the fuzzer since last poll().
+	MABSSRewardDiff map[hash.Sig]float64
+	MABSSTimeDiff   int64
+	MABSSCovDiff    int
 }
 
 type PollRes struct {
 	Candidates []RPCCandidate
 	NewInputs  []RPCInput
 	MaxSignal  signal.Serial
+
+	MABSSTimeTotal int64
+	MABSSCovTotal  int
 }
 
 type RunnerConnectArgs struct {
