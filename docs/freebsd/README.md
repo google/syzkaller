@@ -40,7 +40,7 @@ make manager fuzzer execprog TARGETOS=freebsd
 ```
 To build C `syz-executor` binary, copy `executor/*` files to a FreeBSD machine and build there with:
 ```
-c++ executor/executor_freebsd.cc -o syz-executor -O1 -lpthread -DGOOS=\"freebsd\" -DGIT_REVISION=\"CURRENT_GIT_REVISION\"
+c++ executor/executor.cc -o syz-executor -O1 -lpthread -DGOOS_freebsd=1 -DGOARCH_amd64=1 -DGIT_REVISION=\"CURRENT_GIT_REVISION\"
 ```
 Then, copy out the binary back to host into `bin/freebsd_amd64` dir.
 
