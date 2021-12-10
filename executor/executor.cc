@@ -78,7 +78,7 @@ const int kFailStatus = 67;
 // Two approaches of dealing with kcov memory.
 const int kCoverOptimizedCount = 12; // the number of kcov instances to be opened inside main()
 const int kCoverOptimizedPreMmap = 3; // this many will be mmapped inside main(), others - when needed.
-const int kCoverDefaultCount = 5; // otherwise we only init kcov instances inside main()
+const int kCoverDefaultCount = 6; // otherwise we only init kcov instances inside main()
 
 // Logical error (e.g. invalid input program), use as an assert() alternative.
 // If such error happens 10+ times in a row, it will be detected as a bug by syz-fuzzer.
@@ -1208,7 +1208,7 @@ void thread_create(thread_t* th, int id, bool need_coverage)
 	// It is assumed that actually it's already initialized - with a few rare exceptions.
 	if (need_coverage) {
 		if (!th->cov.fd)
-			fail("out of opened kcov threads");
+			exitf("out of opened kcov threads");
 		thread_mmap_cover(th);
 	}
 	event_init(&th->ready);
