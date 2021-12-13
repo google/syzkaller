@@ -291,7 +291,8 @@ func handleGraphFuzzing(c context.Context, w http.ResponseWriter, r *http.Reques
 		Managers: createCheckBox(r, "Instances", allManagers),
 		Metrics: createCheckBox(r, "Metrics", []string{
 			"MaxCorpus", "MaxCover", "MaxPCs", "TotalFuzzingTime",
-			"TotalCrashes", "CrashTypes", "SuppressedCrashes", "TotalExecs"}),
+			"TotalCrashes", "CrashTypes", "SuppressedCrashes", "TotalExecs",
+			"ExecsPerSec"}),
 		Months: createSlider(r, "Months", 1, 36),
 	}
 	data.Graph, err = createManagersGraph(c, hdr.Namespace, data.Managers.vals, data.Metrics.vals, data.Months.Val*30)
@@ -340,7 +341,7 @@ func createManagersGraph(c context.Context, ns string, selManagers, selMetrics [
 				val := extractMetric(stat, metric)
 				graph.Columns[dayIndex].Vals[mgrIndex*len(selMetrics)+metricIndex] = uiGraphValue{
 					Val:  float32(val),
-					Hint: fmt.Sprint(val),
+					Hint: fmt.Sprintf("%.2f", val),
 				}
 			}
 		}
@@ -370,24 +371,30 @@ func createManagersGraph(c context.Context, ns string, selManagers, selMetrics [
 	return graph, nil
 }
 
-func extractMetric(stat *ManagerStats, metric string) int64 {
+func extractMetric(stat *ManagerStats, metric string) float64 {
 	switch metric {
 	case "MaxCorpus":
-		return stat.MaxCorpus
+		return float64(stat.MaxCorpus)
 	case "MaxCover":
-		return stat.MaxCover
+		return float64(stat.MaxCover)
 	case "MaxPCs":
-		return stat.MaxPCs
+		return float64(stat.MaxPCs)
 	case "TotalFuzzingTime":
-		return int64(stat.TotalFuzzingTime)
+		return float64(stat.TotalFuzzingTime)
 	case "TotalCrashes":
-		return stat.TotalCrashes
+		return float64(stat.TotalCrashes)
 	case "CrashTypes":
-		return stat.CrashTypes
+		return float64(stat.CrashTypes)
 	case "SuppressedCrashes":
-		return stat.SuppressedCrashes
+		return float64(stat.SuppressedCrashes)
 	case "TotalExecs":
-		return stat.TotalExecs
+		return float64(stat.TotalExecs)
+	case "ExecsPerSec":
+		timeSec := float64(stat.TotalFuzzingTime) / 1e9
+		if timeSec == 0 {
+			return 0
+		}
+		return float64(stat.TotalExecs) / timeSec
 	default:
 		panic(fmt.Sprintf("unknown metric %q", metric))
 	}
