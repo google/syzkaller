@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/google/syzkaller/pkg/kconfig"
 	"github.com/google/syzkaller/pkg/vcs"
@@ -190,7 +191,9 @@ func mergeFile(inst *Instance, raw *rawFile, file string, errs *Errors) {
 			Constraints: constraints,
 		})
 	}
-	inst.Verbatim = append(append(inst.Verbatim, raw.Verbatim...), '\n')
+	if raw.Verbatim != "" {
+		inst.Verbatim = append(append(inst.Verbatim, strings.TrimSpace(raw.Verbatim)...), '\n')
+	}
 	for _, node := range raw.Config {
 		mergeConfig(inst, file, node, false, errs)
 	}
