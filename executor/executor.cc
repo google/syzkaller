@@ -871,10 +871,10 @@ void execute_one()
 		thread_t* th = schedule_call(call_index++, call_num, copyout_index,
 					     num_args, args, input_pos, call_props);
 
-		if (call_props.async) {
-			if (!flag_threaded)
-				fail("SYZFAIL: unable to do an async call in a non-threaded mode");
+		if (call_props.async && flag_threaded) {
 			// Don't wait for an async call to finish. We'll wait at the end.
+			// If we're not in the threaded mode, just ignore the async flag - during repro simplification syzkaller
+			// will anyway try to make it non-threaded.
 		} else if (flag_threaded) {
 			// Wait for call completion.
 			uint64 timeout_ms = syscall_timeout_ms + call->attrs.timeout * slowdown_scale;
