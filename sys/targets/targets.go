@@ -148,8 +148,8 @@ func GetEx(OS, arch string, clang bool) *Target {
 	if target == nil {
 		return nil
 	}
+	target.init.Do(target.lazyInit)
 	if clang == useClang {
-		target.init.Do(target.lazyInit)
 		return target
 	}
 	target.initOther.Do(func() {
