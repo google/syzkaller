@@ -62,7 +62,7 @@ func Run(timeout time.Duration, cmd *exec.Cmd) ([]byte, error) {
 	if err != nil {
 		text := fmt.Sprintf("failed to run %q: %v", cmd.Args, err)
 		if <-timedout {
-			text = fmt.Sprintf("timedout %q", cmd.Args)
+			text = fmt.Sprintf("timedout after %v %q", timeout, cmd.Args)
 		}
 		exitCode := 0
 		if exitErr, ok := err.(*exec.ExitError); ok {

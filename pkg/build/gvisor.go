@@ -74,7 +74,7 @@ func (gvisor gvisor) build(params Params) (ImageDetails, error) {
 	aqueryArgs := append([]string{"aquery"}, args...)
 	aqueryArgs = append(aqueryArgs, fmt.Sprintf("mnemonic(\"GoLink\", %s)", target))
 	log.Logf(0, "bazel: %v", aqueryArgs)
-	out, err := osutil.RunCmd(time.Minute, params.KernelDir, params.Compiler, aqueryArgs...)
+	out, err := osutil.RunCmd(10*time.Minute, params.KernelDir, params.Compiler, aqueryArgs...)
 	if err != nil {
 		return ImageDetails{}, err
 	}
