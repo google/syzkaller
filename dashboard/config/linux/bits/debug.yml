@@ -3,6 +3,15 @@
 
 # Auxiliary debug configs that detect non-critical bugs.
 
+# These configs are only in net-next at this point,
+# but we don't have a special config for net-next built on net-next.
+# TODO: once it reaches mainline change to:
+# - NET_DEV_REFCNT_TRACKER: [v5.17]
+# - NET_NS_REFCNT_TRACKER: [v5.17]
+verbatim: |
+ CONFIG_NET_DEV_REFCNT_TRACKER=y
+ CONFIG_NET_NS_REFCNT_TRACKER=y
+
 config:
  # Instances that use nonoise also ignore WARNINGs, so they don't want panic_on_warn.
  - CMDLINE: [append, "panic_on_warn=1"]
