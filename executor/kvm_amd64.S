@@ -148,135 +148,135 @@ kvm_asm64_init_vm:
 	vmwrite %rax, %rdx;	\
 	/**/
 
-	VMSET_LIMITED(0x00004000, $0, 0x481) // Pin-based VM-execution controls
-	VMSET_LIMITED(0x00004002, $0, 0x482) // Primary processor-based VM-execution controls
+	VMSET_LIMITED(PIN_BASED_VM_EXECUTION_CONTROLS, $0, IA32_VMX_PINBASED_CTLS)
+	VMSET_LIMITED(PRIMARY_PROCESSOR_BASED_VM_EXECUTION_CONTROLS, $0, IA32_VMX_PROCBASED_CTLS)
 
-	VMSET(0x0000401E, $((1<<0) | (1<<7))) // Secondary processor-based VM-execution controls
-	VMSET_LIMITED(0x0000400C, $0x36fff, 0x483) // VM-exit controls (F6FFF)
-	VMSET_LIMITED(0x00004012, $0x17ff, 0x484) // VM-entry controls (51FF)
+	VMSET(SECONDARY_PROCESSOR_BASED_VM_EXECUTION_CONTROLS, $((1<<0) | (1<<7)))
+	VMSET_LIMITED(VM_EXIT_CONTROLS, $0x36fff, IA32_VMX_EXIT_CTLS) // VM-exit controls (F6FFF)
+	VMSET_LIMITED(VM_ENTRY_CONTROLS, $0x17ff, IA32_VMX_ENTRY_CTLS) // VM-entry controls (51FF)
 
-	VMSET(0x00002C04, $0) // Host IA32_PERF_GLOBAL_CTR
-	VMSET(0x00002800, $0xffffffffffffffff) // VMCS link pointer
+	VMSET(HOST_IA32_PERF_GLOBAL_CTRL_FULL, $0)
+	VMSET(VMCS_LINK_POINTER_FULL, $0xffffffffffffffff)
 
-	VMSET(0x00000C02, $SEL_CS64) // host CS
+	VMSET(HOST_CS_SELECTOR, $SEL_CS64)
 
 	mov $SEL_DS64, %rax
-	mov $0x00000C00, %rdx // host ES
+	mov $HOST_ES_SELECTOR, %rdx
 	vmwrite %rax, %rdx
-	mov $0x00000C04, %rdx // host SS
+	mov $HOST_SS_SELECTOR, %rdx
 	vmwrite %rax, %rdx
-	mov $0x00000C06, %rdx // host DS
+	mov $HOST_DS_SELECTOR, %rdx
 	vmwrite %rax, %rdx
-	mov $0x00000C08, %rdx // host FS
+	mov $HOST_FS_SELECTOR, %rdx
 	vmwrite %rax, %rdx
-	mov $0x00000C0A, %rdx // host GS
+	mov $HOST_GS_SELECTOR, %rdx
 	vmwrite %rax, %rdx
 	mov $SEL_TSS64, %rax
-	mov $0x00000C0C, %rdx // host TR
+	mov $HOST_TR_SELECTOR, %rdx
 	vmwrite %rax, %rdx
 
-	VMSET(0x00002C02, $0x500) // host EFER
+	VMSET(HOST_IA32_EFER_FULL, $0x500)
 
-	VMSET(0x00004C00, $SEL_CS64) // Host IA32_SYSENTER_CS
-	VMSET(0x00006C10, $0) // Host IA32_SYSENTER_ESP
-	VMSET(0x00006C12, $0) // Host IA32_SYSENTER_EIP
+	VMSET(HOST_IA32_SYSENTER_CS, $SEL_CS64)
+	VMSET(HOST_IA32_SYSENTER_ESP, $0)
+	VMSET(HOST_IA32_SYSENTER_EIP, $0)
 
 	mov %cr0, %rax
-	VMSET(0x00006C00, %rax) // host CR0
+	VMSET(HOST_CR0, %rax)
 	mov %cr3, %rax
-	VMSET(0x00006C02, %rax) // host CR3
+	VMSET(HOST_CR3, %rax)
 	mov %cr4, %rax
-	VMSET(0x00006C04, %rax) // host CR4
+	VMSET(HOST_CR4, %rax)
 
-	VMSET(0x00006C06, $0) // host FS base
-	VMSET(0x00006C08, $0) // host GS base
-	VMSET(0x00006C0A, $ADDR_VAR_TSS64) // host TR base
+	VMSET(HOST_FS_BASE, $0)
+	VMSET(HOST_GS_BASE, $0)
+	VMSET(HOST_TR_BASE, $ADDR_VAR_TSS64)
 
-	VMSET(0x00006C0C, $ADDR_GDT) // host GDTR base
-	VMSET(0x00006C0E, $ADDR_VAR_IDT) // host IDTR base
+	VMSET(HOST_GDTR_BASE, $ADDR_GDT)
+	VMSET(HOST_IDTR_BASE, $ADDR_VAR_IDT)
 
-	VMSET(0x00006C14, $0) // host RSP
-	VMSET(0x00006C16, ADDR_VAR_VMEXIT_PTR) // host RIP
+	VMSET(HOST_RSP, $0)
+	VMSET(HOST_RIP, ADDR_VAR_VMEXIT_PTR)
 
-	VMSET(0x00000000, $1) // VPID
-	VMSET(0x00000002, $0) // Posted-interrupt notification vector
-	//VMSET(0x00000004, $0) // EPTP index
+	VMSET(VPID, $1)
+	VMSET(POSTED_INTERRUPT_NOTIFICATION_VECTOR, $0)
+	//VMSET(EPTP_INDEX, $0)
 
-	VMSET(0x00002000, $0) // Address of I/O bitmap A
-	VMSET(0x00002002, $0) // Address of I/O bitmap B
-	VMSET(0x00002004, $0) // Address of MSR bitmaps
-	VMSET(0x00002006, $0) // VM-exit MSR-store address
+	VMSET(ADDRESS_OF_IO_BITMAP_A_FULL, $0)
+	VMSET(ADDRESS_OF_IO_BITMAP_B_FULL, $0)
+	VMSET(ADDRESS_OF_MSR_BITMAPS_FULL, $0)
+	VMSET(VM_EXIT_MSR_STORE_ADDRESS_FULL, $0)
 
 	mov $0x277, %rcx
 	rdmsr
 	shl $32, %rdx
 	or %rdx, %rax
-	VMSET(0x00002C00, %rax) // Host IA32_PAT
+	VMSET(HOST_IA32_PAT_FULL, %rax)
 
-	VMSET(0x00004004, $0) // Exception bitmap
-	VMSET(0x0000400A, $0) // CR3-target count
-	VMSET(0x0000400E, $0) // VM-exit MSR-store count
-	VMSET(0x00004010, $0) // VM-exit MSR-load count
-	VMSET(0x00004016, $0) // VM-entry interruption-information field
-	VMSET(0x00004014, $0) // VM-entry MSR-load count
+	VMSET(EXCEPTION_BITMAP, $0)
+	VMSET(CR3_TARGET_COUNT, $0)
+	VMSET(VM_EXIT_MSR_STORE_COUNT, $0)
+	VMSET(VM_EXIT_MSR_LOAD_COUNT, $0)
+	VMSET(VM_ENTRY_INTERRUPTION_INFORMATION_FIELD, $0)
+	VMSET(VM_ENTRY_MSR_LOAD_COUNT, $0)
 
-	VMSET(0x00006000, $0xffffffffffffffff) // CR0 guest/host mask
-	VMSET(0x00006002, $0xffffffffffffffff) // CR4 guest/host mask
+	VMSET(CR0_GUEST_HOST_MASK, $0xffffffffffffffff)
+	VMSET(CR4_GUEST_HOST_MASK, $0xffffffffffffffff)
 
-	VMSET(0x0000201C, $0) // EOI-exit bitmap 0
-	VMSET(0x0000201E, $0) // EOI-exit bitmap 1
-	VMSET(0x00002020, $0) // EOI-exit bitmap 2
-	VMSET(0x00002022, $0) // EOI-exit bitmap 3
+	VMSET(EOI_EXIT_BITMAP_0, $0)
+	VMSET(EOI_EXIT_BITMAP_1, $0)
+	VMSET(EOI_EXIT_BITMAP_2, $0)
+	VMSET(EOI_EXIT_BITMAP_3, $0)
 
-	VMSET(0x00000800, $SEL_DS64) // Guest ES selector
-	VMSET(0x00000802, $SEL_CS64) // Guest CS selector
-	VMSET(0x00000804, $SEL_DS64) // Guest SS selector
-	VMSET(0x00000806, $SEL_DS64) // Guest DS selector
-	VMSET(0x00000808, $SEL_DS64) // Guest FS selector
-	VMSET(0x0000080A, $SEL_DS64) // Guest GS selector
-	VMSET(0x0000080C, $0) // Guest LDTR selector
-	VMSET(0x0000080E, $SEL_TSS64) // Guest TR selector
+	VMSET(GUEST_ES_SELECTOR, $SEL_DS64)
+	VMSET(GUEST_CS_SELECTOR, $SEL_CS64)
+	VMSET(GUEST_SS_SELECTOR, $SEL_DS64)
+	VMSET(GUEST_DS_SELECTOR, $SEL_DS64)
+	VMSET(GUEST_FS_SELECTOR, $SEL_DS64)
+	VMSET(GUEST_GS_SELECTOR, $SEL_DS64)
+	VMSET(GUEST_LDTR_SELECTOR, $0)
+	VMSET(GUEST_TR_SELECTOR, $SEL_TSS64)
 
-	VMSET(0x00006812, $0) // Guest LDTR base
-	VMSET(0x00006814, $ADDR_VAR_TSS64) // Guest TR base
-	VMSET(0x00006816, $ADDR_GDT) // Guest GDTR base
-	VMSET(0x00006818, $ADDR_VAR_IDT) // Guest IDTR base
+	VMSET(GUEST_LDTR_BASE, $0)
+	VMSET(GUEST_TR_BASE, $ADDR_VAR_TSS64)
+	VMSET(GUEST_GDTR_BASE, $ADDR_GDT)
+	VMSET(GUEST_IDTR_BASE, $ADDR_VAR_IDT)
 
-	VMSET(0x00004800, $0xfffff) // Guest ES limit
-	VMSET(0x00004802, $0xfffff) // Guest CS limit
-	VMSET(0x00004804, $0xfffff) // Guest SS limit
-	VMSET(0x00004806, $0xfffff) // Guest DS limit
-	VMSET(0x00004808, $0xfffff) // Guest FS limit
-	VMSET(0x0000480A, $0xfffff) // Guest GS limit
-	VMSET(0x0000480C, $0) // Guest LDTR limit
-	VMSET(0x0000480E, $0x1fff) // Guest TR limit
-	VMSET(0x00004810, $0x1fff) // Guest GDTR limit
-	VMSET(0x00004812, $0x1fff) // Guest IDTR limit
+	VMSET(GUEST_ES_LIMIT, $0xfffff)
+	VMSET(GUEST_CS_LIMIT, $0xfffff)
+	VMSET(GUEST_SS_LIMIT, $0xfffff)
+	VMSET(GUEST_DS_LIMIT, $0xfffff)
+	VMSET(GUEST_FS_LIMIT, $0xfffff)
+	VMSET(GUEST_GS_LIMIT, $0xfffff)
+	VMSET(GUEST_LDTR_LIMIT, $0)
+	VMSET(GUEST_TR_LIMIT, $0x1fff)
+	VMSET(GUEST_GDTR_LIMIT, $0x1fff)
+	VMSET(GUEST_IDTR_LIMIT, $0x1fff)
 
-	VMSET(0x00004814, $0x4093) // Guest ES access rights
-	VMSET(0x00004816, $0x209b) // Guest CS access rights
-	VMSET(0x00004818, $0x4093) // Guest SS access rights
-	VMSET(0x0000481A, $0x4093) // Guest DS access rights
-	VMSET(0x0000481C, $0x4093) // Guest FS access rights
-	VMSET(0x0000481E, $0x4093) // Guest GS access rights
-	VMSET(0x00004820, $0x82) // Guest LDTR access rights
-	VMSET(0x00004822, $0x8b) // Guest TR access rights
+	VMSET(GUEST_ES_ACCESS_RIGHTS, $0x4093)
+	VMSET(GUEST_CS_ACCESS_RIGHTS, $0x209b)
+	VMSET(GUEST_SS_ACCESS_RIGHTS, $0x4093)
+	VMSET(GUEST_DS_ACCESS_RIGHTS, $0x4093)
+	VMSET(GUEST_FS_ACCESS_RIGHTS, $0x4093)
+	VMSET(GUEST_GS_ACCESS_RIGHTS, $0x4093)
+	VMSET(GUEST_LDTR_ACCESS_RIGHTS, $0x82)
+	VMSET(GUEST_TR_ACCESS_RIGHTS, $0x8b)
 
-	VMSET(0x0000681C, $0) // Guest RSP
-	VMSET(0x0000681E, $ADDR_VAR_USER_CODE) // Guest RIP
-	VMSET(0x00006820, $((1<<1))) // Guest RFLAGS
-	VMSET(0x00002806, $0x500) // Guest IA32_EFER
-	VMSET(0x0000280A, $0) // Guest PDPTE0
-	VMSET(0x0000280C, $0) // Guest PDPTE1
-	VMSET(0x0000280E, $0) // Guest PDPTE2
-	VMSET(0x00002810, $0) // Guest PDPTE3
+	VMSET(GUEST_RSP, $0)
+	VMSET(GUEST_RIP, $ADDR_VAR_USER_CODE)
+	VMSET(GUEST_RFLAGS, $((1<<1)))
+	VMSET(GUEST_IA32_EFER_FULL, $0x500)
+	VMSET(GUEST_PDPTE0_FULL, $0)
+	VMSET(GUEST_PDPTE1_FULL, $0)
+	VMSET(GUEST_PDPTE2_FULL, $0)
+	VMSET(GUEST_PDPTE3_FULL, $0)
 
 	mov %cr0, %rax
-	VMSET(0x00006800, %rax) // Guest CR0
+	VMSET(GUEST_CR0, %rax) // Guest CR0
 	mov %cr3, %rax
-	VMSET(0x00006802, %rax) // Guest CR3
+	VMSET(GUEST_CR3, %rax) // Guest CR3
 	mov %cr4, %rax
-	VMSET(0x00006804, %rax) // Guest CR4
+	VMSET(GUEST_CR4, %rax) // Guest CR4
 
 	// Write 1 additional random field.
 	mov $ADDR_VAR_VMWRITE_FLD, %rax
@@ -300,13 +300,13 @@ kvm_asm64_init_vm_end:
 kvm_asm64_vm_exit:
 .code64
 	//vmresume
-	mov $0x00004400, %rbx // VM-instruction error
+	mov $VM_INSTRUCTION_ERROR, %rbx
 	vmread %rbx, %rdx
-	mov $0x00004402, %rbx // Exit reason
+	mov $EXIT_REASON, %rbx
 	vmread %rbx, %rcx
-	mov $0x00006400, %rax // Exit qualification
+	mov $EXIT_QUALIFICATION, %rax
 	vmread %rax, %rax
-	mov $0x0000681E, %rbx // Guest RIP
+	mov $GUEST_RIP, %rbx
 	vmread %rbx, %rbx
 	hlt
 kvm_asm64_vm_exit_end:
