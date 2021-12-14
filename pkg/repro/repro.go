@@ -631,6 +631,9 @@ func (ctx *context) testImpl(inst *vm.Instance, command string, duration time.Du
 		ctx.reproLogf(2, "program did not crash")
 		return false, nil
 	}
+	if err := ctx.reporter.Symbolize(rep); err != nil {
+		return false, fmt.Errorf("failed to symbolize report: %v", err)
+	}
 	if rep.Suppressed {
 		ctx.reproLogf(2, "suppressed program crash: %v", rep.Title)
 		return false, nil

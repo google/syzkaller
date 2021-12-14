@@ -664,6 +664,9 @@ func (mgr *Manager) emailCrash(crash *Crash) {
 }
 
 func (mgr *Manager) saveCrash(crash *Crash) bool {
+	if err := mgr.reporter.Symbolize(crash.Report); err != nil {
+		log.Logf(0, "failed to symbolize report: %v", err)
+	}
 	if crash.Type == report.MemoryLeak {
 		mgr.mu.Lock()
 		mgr.memoryLeakFrames[crash.Frame] = true
@@ -688,9 +691,6 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 		// e.g. if there are some spikes in suppressed reports.
 		crash.Title = "suppressed report"
 		mgr.stats.crashSuppressed.inc()
-	}
-	if err := mgr.reporter.Symbolize(crash.Report); err != nil {
-		log.Logf(0, "failed to symbolize report: %v", err)
 	}
 
 	mgr.stats.crashes.inc()

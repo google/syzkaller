@@ -153,6 +153,10 @@ type Config struct {
 	// Completely ignore reports matching these regexps (don't save nor reboot),
 	// must match the first line of crash message.
 	Ignores []string `json:"ignores,omitempty"`
+	// List of regexps to select bugs of interest.
+	// If this list is not empty and none of the regexps match a bug, it's suppressed.
+	// Regexps are matched against bug title, guilty file and maintainer emails.
+	Interests []string `json:"interests,omitempty"`
 
 	// Type of virtual machine to use, e.g. "qemu", "gce", "android", "isolated", etc.
 	Type string `json:"type"`

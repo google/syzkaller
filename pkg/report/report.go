@@ -30,9 +30,10 @@ type reporterImpl interface {
 }
 
 type Reporter struct {
+	typ          string
 	impl         reporterImpl
 	suppressions []*regexp.Regexp
-	typ          string
+	interests    []*regexp.Regexp
 }
 
 type Report struct {
@@ -109,6 +110,10 @@ func NewReporter(cfg *mgrconfig.Config) (*Reporter, error) {
 	if err != nil {
 		return nil, err
 	}
+	interests, err := compileRegexps(cfg.Interests)
+	if err != nil {
+		return nil, err
+	}
 	config := &config{
 		target:         cfg.SysTarget,
 		kernelSrc:      cfg.KernelSrc,
@@ -124,7 +129,13 @@ func NewReporter(cfg *mgrconfig.Config) (*Reporter, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Reporter{rep, supps, typ}, nil
+	reporter := &Reporter{
+		typ:          typ,
+		impl:         rep,
+		suppressions: supps,
+		interests:    interests,
+	}
+	return reporter, nil
 }
 
 const (
@@ -209,7 +220,34 @@ func (reporter *Reporter) ContainsCrash(output []byte) bool {
 }
 
 func (reporter *Reporter) Symbolize(rep *Report) error {
-	return reporter.impl.Symbolize(rep)
+	if err := reporter.impl.Symbolize(rep); err != nil {
+		return err
+	}
+	if !reporter.isInteresting(rep) {
+		rep.Suppressed = true
+	}
+	return nil
+}
+
+func (reporter *Reporter) isInteresting(rep *Report) bool {
+	if len(reporter.interests) == 0 {
+		return true
+	}
+	if matchesAnyString(rep.Title, reporter.interests) ||
+		matchesAnyString(rep.guiltyFile, reporter.interests) {
+		return true
+	}
+	for _, title := range rep.AltTitles {
+		if matchesAnyString(title, reporter.interests) {
+			return true
+		}
+	}
+	for _, recipient := range rep.Recipients {
+		if matchesAnyString(recipient.Address.Address, reporter.interests) {
+			return true
+		}
+	}
+	return false
 }
 
 func extractReportType(rep *Report) Type {
@@ -641,6 +679,15 @@ func simpleLineParser(output []byte, oopses []*oops, params *stackParams, ignore
 func matchesAny(line []byte, res []*regexp.Regexp) bool {
 	for _, re := range res {
 		if re.Match(line) {
+			return true
+		}
+	}
+	return false
+}
+
+func matchesAnyString(str string, res []*regexp.Regexp) bool {
+	for _, re := range res {
+		if re.MatchString(str) {
 			return true
 		}
 	}
