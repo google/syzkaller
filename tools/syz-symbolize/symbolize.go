@@ -15,6 +15,7 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/pkg/vcs"
 )
 
@@ -39,26 +40,22 @@ func main() {
 		"target": "` + *flagOS + "/" + *flagArch + `"
 	}`))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		os.Exit(1)
+		tool.Fail(err)
 	}
 	cfg.CompleteKernelDirs()
 	reporter, err := report.NewReporter(cfg)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to create reporter: %v\n", err)
-		os.Exit(1)
+		tool.Failf("failed to create reporter: %v", err)
 	}
 	text, err := ioutil.ReadFile(flag.Args()[0])
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to open input file: %v\n", err)
-		os.Exit(1)
+		tool.Failf("failed to open input file: %v", err)
 	}
 	reps := report.ParseAll(reporter, text)
 	if len(reps) == 0 {
 		rep := &report.Report{Report: text}
 		if err := reporter.Symbolize(rep); err != nil {
-			fmt.Fprintf(os.Stderr, "failed to symbolize report: %v\n", err)
-			os.Exit(1)
+			tool.Failf("failed to symbolize report: %v", err)
 		}
 		os.Stdout.Write(rep.Report)
 		return
@@ -86,19 +83,16 @@ func saveCrash(rep *report.Report, path string) {
 	dir := filepath.Join(path, id)
 	osutil.MkdirAll(dir)
 	if err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(rep.Title+"\n")); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to write description: %v\n", err)
-		os.Exit(1)
+		tool.Failf("failed to write description: %v", err)
 	}
 
 	if err := osutil.WriteFile(filepath.Join(dir, "log"), rep.Output); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to write log: %v\n", err)
-		os.Exit(1)
+		tool.Failf("failed to write log: %v", err)
 	}
 
 	if len(rep.Report) > 0 {
 		if err := osutil.WriteFile(filepath.Join(dir, "report"), rep.Report); err != nil {
-			fmt.Fprintf(os.Stderr, "failed to write report: %v\n", err)
-			os.Exit(1)
+			tool.Failf("failed to write report: %v", err)
 		}
 	}
 }
