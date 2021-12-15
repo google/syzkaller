@@ -17,10 +17,10 @@ import (
 type Stats struct {
 	// Calls stores statistics for all supported system calls.
 	Calls            map[string]*CallStats
-	TotalMismatches  int
-	TotalProgs       int
-	FlakyProgs       int
-	MismatchingProgs int
+	TotalMismatches  int64
+	TotalProgs       int64
+	FlakyProgs       int64
+	MismatchingProgs int64
 	StartTime        time.Time
 }
 
@@ -31,10 +31,10 @@ type CallStats struct {
 	Name string
 	// Mismatches stores the number of errno mismatches identified in the
 	// verified programs for this system call.
-	Mismatches int
+	Mismatches int64
 	// Occurrences is the number of times the system call appeared in a
 	// verified program.
-	Occurrences int
+	Occurrences int64
 	// States stores the kernel return state that caused mismatches.
 	States map[ReturnState]bool
 }
@@ -95,8 +95,8 @@ func (stats *Stats) getCallStatsTextDescription(call string) string {
 		getPercentage(mismatches, stats.TotalMismatches), len(syscallStat.States), stats.getOrderedStates(syscallName))
 }
 
-func (stats *Stats) totalCallsExecuted() int {
-	t := 0
+func (stats *Stats) totalCallsExecuted() int64 {
+	var t int64
 	for _, cs := range stats.Calls {
 		t += cs.Occurrences
 	}
@@ -128,6 +128,6 @@ func (stats *Stats) getOrderedStates(call string) []string {
 	return ss
 }
 
-func getPercentage(value, total int) float64 {
+func getPercentage(value, total int64) float64 {
 	return float64(value) / float64(total) * 100
 }

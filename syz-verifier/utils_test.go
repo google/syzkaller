@@ -85,7 +85,7 @@ func emptyTestStats() *Stats {
 	}
 }
 
-func makeCallStats(name string, occurrences, mismatches int, states map[ReturnState]bool) *CallStats {
+func makeCallStats(name string, occurrences, mismatches int64, states map[ReturnState]bool) *CallStats {
 	return &CallStats{Name: name,
 		Occurrences: occurrences,
 		Mismatches:  mismatches,
