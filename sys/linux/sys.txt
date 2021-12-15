@@ -293,9 +293,9 @@ utimes(filename ptr[in, filename], times ptr[in, itimerval])
 futimesat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval])
 utimensat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval], flags flags[utimensat_flags])
 
-fork() pid (breaks_returns)
-clone(flags flags[clone_flags], sp buffer[in], parentid ptr[out, int32], childtid ptr[out, int32], tls buffer[in]) (breaks_returns)
-clone3(args ptr[in, clone_args], size bytesize[args]) pid (breaks_returns)
+fork() pid (breaks_returns, forks)
+clone(flags flags[clone_flags], sp buffer[in], parentid ptr[out, int32], childtid ptr[out, int32], tls buffer[in]) (breaks_returns, forks)
+clone3(args ptr[in, clone_args], size bytesize[args]) pid (breaks_returns, forks)
 
 clone_args {
 	flags		flags[clone3_flags, int64]

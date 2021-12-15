@@ -224,6 +224,16 @@ NORETURN void doexit(int status)
 	}
 }
 
+#define SYZ_HAVE_DOEXIT_THREAD 1
+// See the comment in execute_call().
+static NORETURN void doexit_thread(int status)
+{
+	volatile unsigned i;
+	syscall(__NR_exit, status);
+	for (i = 0;; i++) {
+	}
+}
+
 #define SYZ_HAVE_FEATURES 1
 static feature_t features[] = {
     {"leak", setup_leak},

@@ -1232,6 +1232,7 @@ void* worker_thread(void* arg)
 void execute_call(thread_t* th)
 {
 	const call_t* call = &syscalls[th->call_num];
+	intptr_t res;
 	debug("#%d [%llums] -> %s(",
 	      th->id, current_time_ms() - start_time_ms, call->name);
 	for (int i = 0; i < th->num_args; i++) {
@@ -1254,9 +1255,18 @@ void execute_call(thread_t* th)
 		cover_reset(&th->cov);
 	// For pseudo-syscalls and user-space functions NONFAILING can abort before assigning to th->res.
 	// Arrange for res = -1 and errno = EFAULT result for such case.
-	th->res = -1;
+	res = -1;
 	errno = EFAULT;
-	NONFAILING(th->res = execute_syscall(call, th->args));
+	NONFAILING(res = execute_syscall(call, th->args));
+#if SYZ_HAVE_DOEXIT_THREAD
+	if (call->attrs.forks && res == 0) {
+		// We're in the child process. Exit to prevent fork bombs.
+		// Note that we should not do exit_group here because if we created only a thread, then whole
+		// process will be killed. But with a plain exit it will work fine in both cases.
+		doexit_thread(0);
+	}
+#endif
+	th->res = res;
 	th->reserrno = errno;
 	// Our pseudo-syscalls may misbehave.
 	if ((th->res == -1 && th->reserrno == 0) || call->attrs.ignore_return)

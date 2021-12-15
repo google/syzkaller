@@ -38,6 +38,7 @@ type SyscallAttrs struct {
 	ProgTimeout   uint64
 	IgnoreReturn  bool
 	BreaksReturns bool
+	Forks         bool
 }
 
 // MaxArgs is maximum number of syscall arguments.
