@@ -358,7 +358,7 @@ const (
 )
 
 var (
-	executingProgram1 = []byte("executing program")  // syz-fuzzer output
+	executingProgram1 = []byte("executing program")  // syz-fuzzer, syz-runner output
 	executingProgram2 = []byte("executed programs:") // syz-execprog output
 
 	beforeContext = 1024 << 10
