@@ -70,9 +70,9 @@ type Manager struct {
 	phase                 int
 	targetEnabledSyscalls map[*prog.Syscall]bool
 
-	candidates       []rpctype.RPCCandidate // untriaged inputs from corpus and hub
+	candidates       []rpctype.Candidate // untriaged inputs from corpus and hub
 	disabledHashes   map[string]struct{}
-	corpus           map[string]rpctype.RPCInput
+	corpus           map[string]rpctype.Input
 	seeds            [][]byte
 	newRepros        [][]byte
 	lastMinCorpus    int
@@ -162,7 +162,7 @@ func RunManager(cfg *mgrconfig.Config) {
 		startTime:        time.Now(),
 		stats:            &Stats{haveHub: cfg.HubClient != ""},
 		crashTypes:       make(map[string]bool),
-		corpus:           make(map[string]rpctype.RPCInput),
+		corpus:           make(map[string]rpctype.Input),
 		disabledHashes:   make(map[string]struct{}),
 		memoryLeakFrames: make(map[string]bool),
 		dataRaceFrames:   make(map[string]bool),
@@ -534,7 +534,7 @@ func (mgr *Manager) loadProg(data []byte, minimized, smashed bool) bool {
 		mgr.disabledHashes[hash.String(data)] = struct{}{}
 		return true
 	}
-	mgr.candidates = append(mgr.candidates, rpctype.RPCCandidate{
+	mgr.candidates = append(mgr.candidates, rpctype.Candidate{
 		Prog:      data,
 		Minimized: minimized,
 		Smashed:   smashed,
@@ -948,7 +948,7 @@ func (mgr *Manager) getMinimizedCorpus() (corpus, repros [][]byte) {
 	return
 }
 
-func (mgr *Manager) addNewCandidates(candidates []rpctype.RPCCandidate) {
+func (mgr *Manager) addNewCandidates(candidates []rpctype.Candidate) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 	mgr.candidates = append(mgr.candidates, candidates...)
@@ -968,11 +968,11 @@ func (mgr *Manager) minimizeCorpus() {
 			Context: inp,
 		})
 	}
-	newCorpus := make(map[string]rpctype.RPCInput)
+	newCorpus := make(map[string]rpctype.Input)
 	// Note: inputs are unsorted (based on map iteration).
 	// This gives some intentional non-determinism during minimization.
 	for _, ctx := range signal.Minimize(inputs) {
-		inp := ctx.(rpctype.RPCInput)
+		inp := ctx.(rpctype.Input)
 		newCorpus[hash.String(inp.Prog)] = inp
 	}
 	log.Logf(1, "minimized corpus: %v -> %v", len(mgr.corpus), len(newCorpus))
@@ -1057,12 +1057,12 @@ func (mgr *Manager) collectSyscallInfoUnlocked() map[string]*CallCov {
 }
 
 func (mgr *Manager) fuzzerConnect(modules []host.KernelModule) (
-	[]rpctype.RPCInput, BugFrames, map[uint32]uint32, []byte, error) {
+	[]rpctype.Input, BugFrames, map[uint32]uint32, []byte, error) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
 	mgr.minimizeCorpus()
-	corpus := make([]rpctype.RPCInput, 0, len(mgr.corpus))
+	corpus := make([]rpctype.Input, 0, len(mgr.corpus))
 	for _, inp := range mgr.corpus {
 		corpus = append(corpus, inp)
 	}
@@ -1098,7 +1098,7 @@ func (mgr *Manager) machineChecked(a *rpctype.CheckArgs, enabledSyscalls map[*pr
 	mgr.firstConnect = time.Now()
 }
 
-func (mgr *Manager) newInput(inp rpctype.RPCInput, sign signal.Signal) bool {
+func (mgr *Manager) newInput(inp rpctype.Input, sign signal.Signal) bool {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 	if mgr.saturatedCalls[inp.Call] {
@@ -1124,14 +1124,14 @@ func (mgr *Manager) newInput(inp rpctype.RPCInput, sign signal.Signal) bool {
 	return true
 }
 
-func (mgr *Manager) candidateBatch(size int) []rpctype.RPCCandidate {
+func (mgr *Manager) candidateBatch(size int) []rpctype.Candidate {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
-	var res []rpctype.RPCCandidate
+	var res []rpctype.Candidate
 	for i := 0; i < size && len(mgr.candidates) > 0; i++ {
 		last := len(mgr.candidates) - 1
 		res = append(res, mgr.candidates[last])
-		mgr.candidates[last] = rpctype.RPCCandidate{}
+		mgr.candidates[last] = rpctype.Candidate{}
 		mgr.candidates = mgr.candidates[:last]
 	}
 	if len(mgr.candidates) == 0 {

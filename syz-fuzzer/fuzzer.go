@@ -425,17 +425,17 @@ func (fuzzer *Fuzzer) poll(needCandidates bool, stats map[string]uint64) bool {
 	return len(r.NewInputs) != 0 || len(r.Candidates) != 0 || maxSignal.Len() != 0
 }
 
-func (fuzzer *Fuzzer) sendInputToManager(inp rpctype.RPCInput) {
+func (fuzzer *Fuzzer) sendInputToManager(inp rpctype.Input) {
 	a := &rpctype.NewInputArgs{
-		Name:     fuzzer.name,
-		RPCInput: inp,
+		Name:  fuzzer.name,
+		Input: inp,
 	}
 	if err := fuzzer.manager.Call("Manager.NewInput", a, nil); err != nil {
 		log.Fatalf("Manager.NewInput call failed: %v", err)
 	}
 }
 
-func (fuzzer *Fuzzer) addInputFromAnotherFuzzer(inp rpctype.RPCInput) {
+func (fuzzer *Fuzzer) addInputFromAnotherFuzzer(inp rpctype.Input) {
 	p := fuzzer.deserializeInput(inp.Prog)
 	if p == nil {
 		return
@@ -445,7 +445,7 @@ func (fuzzer *Fuzzer) addInputFromAnotherFuzzer(inp rpctype.RPCInput) {
 	fuzzer.addInputToCorpus(p, sign, sig)
 }
 
-func (fuzzer *Fuzzer) addCandidateInput(candidate rpctype.RPCCandidate) {
+func (fuzzer *Fuzzer) addCandidateInput(candidate rpctype.Candidate) {
 	p := fuzzer.deserializeInput(candidate.Prog)
 	if p == nil {
 		return

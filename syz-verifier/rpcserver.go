@@ -137,7 +137,7 @@ func (srv *RPCServer) NextExchange(a *rpctype.NextExchangeArgs, r *rpctype.NextE
 	}
 
 	newProg, pi, ri := srv.newProgram(a.Pool, a.VM)
-	r.RPCProg = rpctype.RPCProg{Prog: newProg, ProgIdx: pi, RunIdx: ri}
+	r.Prog = rpctype.Prog{Bytes: newProg, ProgIdx: pi, RunIdx: ri}
 	return nil
 }
 
