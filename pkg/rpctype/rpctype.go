@@ -11,21 +11,21 @@ import (
 	"github.com/google/syzkaller/pkg/signal"
 )
 
-type RPCInput struct {
+type Input struct {
 	Call   string
 	Prog   []byte
 	Signal signal.Serial
 	Cover  []uint32
 }
 
-type RPCCandidate struct {
+type Candidate struct {
 	Prog      []byte
 	Minimized bool
 	Smashed   bool
 }
 
-type RPCProg struct {
-	Prog    []byte
+type Prog struct {
+	Bytes   []byte
 	ProgIdx int
 	RunIdx  int
 }
@@ -63,7 +63,7 @@ type SyscallReason struct {
 
 type NewInputArgs struct {
 	Name string
-	RPCInput
+	Input
 }
 
 type PollArgs struct {
@@ -74,8 +74,8 @@ type PollArgs struct {
 }
 
 type PollRes struct {
-	Candidates []RPCCandidate
-	NewInputs  []RPCInput
+	Candidates []Candidate
+	NewInputs  []Input
 	MaxSignal  signal.Serial
 }
 
@@ -121,8 +121,8 @@ type NextExchangeArgs struct {
 // NextExchaneRes contains the data passed from server to client namely
 // programs  to execute on the VM.
 type NextExchangeRes struct {
-	// RPCProg contains the serialized program that will be sent to the client.
-	RPCProg
+	// Prog contains the serialized program that will be sent to the client.
+	Prog
 }
 
 type HubConnectArgs struct {

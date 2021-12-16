@@ -72,7 +72,7 @@ type HubConnector struct {
 // HubManagerView restricts interface between HubConnector and Manager.
 type HubManagerView interface {
 	getMinimizedCorpus() (corpus, repros [][]byte)
-	addNewCandidates(candidates []rpctype.RPCCandidate)
+	addNewCandidates(candidates []rpctype.Candidate)
 }
 
 func (hc *HubConnector) loop() {
@@ -201,7 +201,7 @@ func (hc *HubConnector) sync(hub *rpctype.RPCClient, corpus [][]byte) error {
 }
 
 func (hc *HubConnector) processProgs(inputs []rpctype.HubInput) (minimized, smashed, dropped int) {
-	candidates := make([]rpctype.RPCCandidate, 0, len(inputs))
+	candidates := make([]rpctype.Candidate, 0, len(inputs))
 	for _, inp := range inputs {
 		bad, disabled := checkProgram(hc.target, hc.enabledCalls, inp.Prog)
 		if bad || disabled {
@@ -217,7 +217,7 @@ func (hc *HubConnector) processProgs(inputs []rpctype.HubInput) (minimized, smas
 		if smash {
 			smashed++
 		}
-		candidates = append(candidates, rpctype.RPCCandidate{
+		candidates = append(candidates, rpctype.Candidate{
 			Prog:      inp.Prog,
 			Minimized: min,
 			Smashed:   smash,

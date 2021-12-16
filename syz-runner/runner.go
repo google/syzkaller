@@ -93,7 +93,7 @@ func main() {
 		log.Fatalf("failed to get initial program: %v", err)
 	}
 
-	rn.Run(res.Prog, res.ProgIdx, res.RunIdx)
+	rn.Run(res.Prog.Bytes, res.ProgIdx, res.RunIdx)
 }
 
 // Run is responsible for requesting new programs from the verifier, executing them and then sending back the Result.
@@ -131,7 +131,7 @@ func (rn *Runner) Run(firstProg []byte, idx, runIdx int) {
 		if err := rn.vrf.Call("Verifier.NextExchange", a, r); err != nil {
 			log.Fatalf("failed to make exchange with verifier: %v", err)
 		}
-		p, pIdx, rIdx = r.Prog, r.ProgIdx, r.RunIdx
+		p, pIdx, rIdx = r.Prog.Bytes, r.ProgIdx, r.RunIdx
 
 		if !rn.newEnv {
 			continue
