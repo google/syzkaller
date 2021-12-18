@@ -45,6 +45,7 @@ cat >etc/sysctl.conf <<EOF
 ddb.max_line=0
 ddb.max_width=0
 hw.smt=1
+kern.allowdt=1
 EOF
 
 cat >etc/installurl <<EOF
