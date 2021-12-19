@@ -26,6 +26,9 @@ type btf_opt_type_id int32[0:5]
 type btf_name_off int32[1:16]
 type btf_opt_name_off int32[0:16]
 
+# NEED: offset in bpf_prog_t:fd_array. We can't express this, so we just use a small index.
+type map_fd_id int32[0:16]
+
 bpf$MAP_CREATE(cmd const[BPF_MAP_CREATE], arg ptr[in, bpf_map_create_arg], size len[arg]) fd_bpf_map
 bpf$MAP_LOOKUP_ELEM(cmd const[BPF_MAP_LOOKUP_ELEM], arg ptr[in, bpf_map_lookup_arg], size len[arg])
 bpf$MAP_UPDATE_ELEM(cmd const[BPF_MAP_UPDATE_ELEM], arg ptr[in, bpf_map_update_arg], size len[arg])
@@ -185,6 +188,8 @@ type bpf_prog_t[TYPE, ATTACH_TYPE, BTF_ID, PROG_FD] {
 	line_info_cnt		len[line_info, int32]
 	attach_btf_id		BTF_ID
 	attach_prog_fd		PROG_FD
+	pad			const[0, int32]
+	fd_array		ptr64[in, array[fd_bpf_map], opt]
 }
 
 type bpf_prog bpf_prog_t[flags[bpf_prog_type, int32], flags[bpf_attach_type, int32], bpf_btf_id[opt], fd_bpf_prog[opt]]
@@ -218,17 +223,19 @@ bpf_framed_program {
 } [packed]
 
 bpf_insn [
-	generic	bpf_insn_generic
-	ldst	bpf_insn_ldst
-	alu	bpf_insn_alu
-	jmp	bpf_insn_jmp
-	call	bpf_insn_call_helper
-	func	bpf_insn_call_func
-	exit	bpf_insn_exit
-	initr0	bpf_insn_init_r0
-	map	bpf_insn_map
-	map_val	bpf_insn_map_value
-	btf_id	bpf_insn_btf_id
+	generic		bpf_insn_generic
+	ldst		bpf_insn_ldst
+	alu		bpf_insn_alu
+	jmp		bpf_insn_jmp
+	call		bpf_insn_call_helper
+	func		bpf_insn_call_func
+	exit		bpf_insn_exit
+	initr0		bpf_insn_init_r0
+	map_fd		bpf_insn_map_fd
+	map_idx		bpf_insn_map_idx
+	map_val		bpf_insn_map_value
+	map_idx_val	bpf_insn_map_idx_value
+	btf_id		bpf_insn_btf_id
 ] [varlen]
 
 bpf_insn_generic {
@@ -358,12 +365,24 @@ bpf_insn_init_r0 {
 	imm2	int32
 }
 
-bpf_insn_map {
+bpf_insn_map_fd {
 	code	const[bpf_insn_load_imm_dw, int8]
 	dst	flags[bpf_reg, int8:4]
 	src	const[BPF_PSEUDO_MAP_FD, int8:4]
 	off	const[0, int16]
 	imm	fd_bpf_map
+	code2	const[0, int8]
+	regs2	const[0, int8]
+	off2	const[0, int16]
+	imm2	const[0, int32]
+}
+
+bpf_insn_map_idx {
+	code	const[bpf_insn_load_imm_dw, int8]
+	dst	flags[bpf_reg, int8:4]
+	src	const[BPF_PSEUDO_MAP_IDX, int8:4]
+	off	const[0, int16]
+	imm	map_fd_id
 	code2	const[0, int8]
 	regs2	const[0, int8]
 	off2	const[0, int16]
@@ -376,6 +395,18 @@ bpf_insn_map_value {
 	src	const[BPF_PSEUDO_MAP_VALUE, int8:4]
 	off	const[0, int16]
 	imm	fd_bpf_map
+	code2	const[0, int8]
+	regs2	const[0, int8]
+	off2	const[0, int16]
+	imm2	int32
+}
+
+bpf_insn_map_idx_value {
+	code	const[bpf_insn_load_imm_dw, int8]
+	dst	flags[bpf_reg, int8:4]
+	src	const[BPF_PSEUDO_MAP_IDX_VALUE, int8:4]
+	off	const[0, int16]
+	imm	map_fd_id
 	code2	const[0, int8]
 	regs2	const[0, int8]
 	off2	const[0, int16]
