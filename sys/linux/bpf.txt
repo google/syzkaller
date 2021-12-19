@@ -69,7 +69,12 @@ bpf$LINK_GET_NEXT_ID(cmd const[BPF_LINK_GET_NEXT_ID], arg ptr[inout, bpf_link_ge
 bpf$LINK_DETACH(cmd const[BPF_LINK_DETACH], arg ptr[in, fd_bpf_link], size len[arg])
 bpf$PROG_BIND_MAP(cmd const[BPF_PROG_BIND_MAP], arg ptr[in, bpf_prog_bind_map_arg], size len[arg])
 
-bpf_map_create_arg {
+bpf_map_create_arg [
+	base		bpf_map_create_arg_base
+	bloom_filter	bpf_map_create_arg_bf
+]
+
+bpf_map_create_arg_base {
 	type			flags[bpf_map_type, int32]
 	ksize			int32
 	vsize			int32
@@ -83,6 +88,24 @@ bpf_map_create_arg {
 	btf_key_type_id		btf_opt_type_id
 	btf_value_type_id	btf_opt_type_id
 	btf_vmlinux_type_id	btf_opt_type_id
+	map_extra		const[0, int64]
+}
+
+bpf_map_create_arg_bf {
+	type			const[BPF_MAP_TYPE_BLOOM_FILTER, int32]
+	ksize			int32
+	vsize			int32
+	max			int32
+	flags			flags[map_flags, int32]
+	inner			fd_bpf_map[opt]
+	node			int32
+	map_name		array[const[0, int8], BPF_OBJ_NAME_LEN]
+	map_ifindex		ifindex[opt]
+	btf_fd			fd_btf[opt]
+	btf_key_type_id		btf_opt_type_id
+	btf_value_type_id	btf_opt_type_id
+	btf_vmlinux_type_id	btf_opt_type_id
+	map_extra		int64[0:15]
 }
 
 bpf_map_get_fd_by_id_arg {
