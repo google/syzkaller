@@ -236,6 +236,7 @@ bpf_insn [
 	map_val		bpf_insn_map_value
 	map_idx_val	bpf_insn_map_idx_value
 	btf_id		bpf_insn_btf_id
+	cb_func		bpf_insn_cb_func
 ] [varlen]
 
 bpf_insn_generic {
@@ -411,6 +412,19 @@ bpf_insn_map_idx_value {
 	regs2	const[0, int8]
 	off2	const[0, int16]
 	imm2	int32
+}
+
+bpf_insn_cb_func {
+	code	const[bpf_insn_load_imm_dw, int8]
+	dst	flags[bpf_reg, int8:4]
+	src	const[BPF_PSEUDO_FUNC, int8:4]
+	off	const[0, int16]
+# NEED: to limit the call offset to the program size, we'd need support for path expressions inside ranges of values.
+	imm	int32[-8:8]
+	code2	const[0, int8]
+	regs2	const[0, int8]
+	off2	const[0, int16]
+	imm2	const[0, int32]
 }
 
 bpf_insn_btf_id {
