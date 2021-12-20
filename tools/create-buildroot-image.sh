@@ -166,10 +166,7 @@ selinuxfs /sys/fs/selinux selinuxfs defaults 0 0
 fusectl /sys/fs/fuse/connections fusectl defaults 0 0
 pstore /sys/fs/pstore pstore defaults 0 0
 bpf /sys/fs/bpf bpf defaults 0 0
-mqueue /dev/mqueue mqueue defaults 0 0
-hugetlbfs /dev/hugepages hugetlbfs defaults 0 0
 tracefs /sys/kernel/tracing tracefs defaults 0 0
-fuse.lxcfs /var/lib/lxcfs fuse.lxcfs defaults 0 0
 EOF
 
 # Setup ssh without key/password.
