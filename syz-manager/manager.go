@@ -846,9 +846,6 @@ func (mgr *Manager) saveFailedRepro(rep *report.Report, stats *repro.Stats) {
 
 func (mgr *Manager) saveRepro(res *repro.Result, stats *repro.Stats, hub bool) {
 	rep := res.Report
-	if err := mgr.reporter.Symbolize(rep); err != nil {
-		log.Logf(0, "failed to symbolize repro: %v", err)
-	}
 	opts := fmt.Sprintf("# %+v\n", res.Opts)
 	prog := res.Prog.Serialize()
 

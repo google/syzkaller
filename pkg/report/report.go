@@ -67,6 +67,8 @@ type Report struct {
 	guiltyFile string
 	// reportPrefixLen is length of additional prefix lines that we added before actual crash report.
 	reportPrefixLen int
+	// symbolized is set if the report is symbolized.
+	symbolized bool
 }
 
 type Type int
@@ -220,6 +222,10 @@ func (reporter *Reporter) ContainsCrash(output []byte) bool {
 }
 
 func (reporter *Reporter) Symbolize(rep *Report) error {
+	if rep.symbolized {
+		panic("Symbolize is called twice")
+	}
+	rep.symbolized = true
 	if err := reporter.impl.Symbolize(rep); err != nil {
 		return err
 	}
