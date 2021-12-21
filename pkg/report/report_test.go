@@ -18,6 +18,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -338,10 +339,14 @@ func forEachFile(t *testing.T, dir string, fn func(t *testing.T, reporter *Repor
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, file := range readDir(t, filepath.Join("testdata", os, dir)) {
-			t.Run(fmt.Sprintf("%v/%v", os, filepath.Base(file)), func(t *testing.T) {
-				fn(t, reporter, file)
-			})
+		// There is little point in re-parsing all test files in race mode.
+		// Just make sure there are no obvious races by running few reports from "all" dir.
+		if !testutil.RaceEnabled {
+			for _, file := range readDir(t, filepath.Join("testdata", os, dir)) {
+				t.Run(fmt.Sprintf("%v/%v", os, filepath.Base(file)), func(t *testing.T) {
+					fn(t, reporter, file)
+				})
+			}
 		}
 		for _, file := range readDir(t, filepath.Join("testdata", "all", dir)) {
 			t.Run(fmt.Sprintf("%v/all/%v", os, filepath.Base(file)), func(t *testing.T) {
