@@ -14,6 +14,7 @@ import (
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 	_ "github.com/google/syzkaller/sys/test/gen" // pull in the test target
@@ -100,7 +101,12 @@ func test(t *testing.T, sysTarget *targets.Target) {
 
 func TestParsing(t *testing.T) {
 	t.Parallel()
+	// Test only one target in race mode (we have gazillion of auto-generated Linux test).
+	raceTarget := targets.Get(targets.TestOS, targets.TestArch64)
 	for OS, arches := range targets.List {
+		if testutil.RaceEnabled && OS != raceTarget.OS {
+			continue
+		}
 		dir := filepath.Join("..", "..", "sys", OS, "test")
 		if !osutil.IsExist(dir) {
 			continue
@@ -110,6 +116,9 @@ func TestParsing(t *testing.T) {
 			t.Fatal(err)
 		}
 		for arch := range arches {
+			if testutil.RaceEnabled && arch != raceTarget.Arch {
+				continue
+			}
 			target, err := prog.GetTarget(OS, arch)
 			if err != nil {
 				t.Fatal(err)
