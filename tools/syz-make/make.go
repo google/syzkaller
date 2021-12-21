@@ -42,6 +42,14 @@ func impl() ([]Var, error) {
 		return nil, fmt.Errorf("unknown target %v/%v", targetOS, targetArch)
 	}
 	parallelism := runtime.NumCPU()
+	if os.Getenv("CI") != "" {
+		// Github actions VMs have 2 vCPUs (Standard_DS2_v2 class). So we don't get lots of speed up
+		// from make parallelism, but we are getting memory oversubscription and duplicated work
+		// because make invokes multiple go commands that potentially build same packages in parallel.
+		// Go command itself parallelizes compiler and test invocations. So disable make parallelism
+		// to avoid OOM kills.
+		parallelism = 1
+	}
 	if runtime.GOOS == targets.OpenBSD {
 		// Avoids too much concurrency on OpenBSD which can't handle this much.
 		parallelism = 1
