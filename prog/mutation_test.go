@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"math/rand"
 	"testing"
+
+	"github.com/google/syzkaller/pkg/testutil"
 )
 
 func TestMutationFlags(t *testing.T) {
@@ -81,7 +83,7 @@ mutate_integer(0x0, 0x1, 0x1, 0x1, 0x0, 0x1, 0x0, 0x0, 0x1)`,
 }
 
 func TestMutateArgument(t *testing.T) {
-	if raceEnabled {
+	if testutil.RaceEnabled {
 		t.Skip("skipping in race mode, too slow")
 	}
 	tests := [][2]string{
@@ -391,7 +393,7 @@ func BenchmarkGenerate(b *testing.B) {
 }
 
 func runMutationTests(t *testing.T, tests [][2]string, valid bool) {
-	if raceEnabled {
+	if testutil.RaceEnabled {
 		t.Skip("skipping in race mode, too slow")
 	}
 	target := initTargetTest(t, "test", "64")
