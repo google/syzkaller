@@ -14,10 +14,24 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
 )
+
+func init() {
+	// csource tests consume too much memory under race detector (>1GB),
+	// and periodically timeout on Travis. So we skip them.
+	if testutil.RaceEnabled {
+		for _, arg := range os.Args[1:] {
+			if strings.Contains(arg, "-test.short") {
+				fmt.Printf("skipping race testing in short mode\n")
+				os.Exit(0)
+			}
+		}
+	}
+}
 
 func TestGenerate(t *testing.T) {
 	t.Parallel()

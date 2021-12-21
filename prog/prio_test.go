@@ -7,6 +7,8 @@ import (
 	"math/rand"
 	"reflect"
 	"testing"
+
+	"github.com/google/syzkaller/pkg/testutil"
 )
 
 func TestNormalizePrio(t *testing.T) {
@@ -69,7 +71,7 @@ func TestStaticPriorities(t *testing.T) {
 }
 
 func TestPrioDeterminism(t *testing.T) {
-	if raceEnabled {
+	if testutil.RaceEnabled {
 		t.Skip("skipping in race mode, too slow")
 	}
 	target, rs, iters := initTest(t)

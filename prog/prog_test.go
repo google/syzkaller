@@ -9,6 +9,8 @@ import (
 	"math/rand"
 	"strings"
 	"testing"
+
+	"github.com/google/syzkaller/pkg/testutil"
 )
 
 func TestGeneration(t *testing.T) {
@@ -142,7 +144,7 @@ func TestVmaType(t *testing.T) {
 // deserialized for another arch. This happens when managers exchange
 // programs via hub.
 func TestCrossTarget(t *testing.T) {
-	if raceEnabled {
+	if testutil.RaceEnabled {
 		t.Skip("skipping in race mode, too slow")
 	}
 	t.Parallel()

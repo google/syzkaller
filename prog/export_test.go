@@ -9,6 +9,8 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/google/syzkaller/pkg/testutil"
 )
 
 // Export guts for testing.
@@ -37,7 +39,7 @@ func iterCount() int {
 	if testing.Short() {
 		iters /= 10
 	}
-	if raceEnabled {
+	if testutil.RaceEnabled {
 		iters /= 10
 	}
 	return iters
@@ -88,7 +90,7 @@ func skipTargetRace(t *testing.T, target *Target) {
 	// Race execution is slow and we are getting timeouts on CI.
 	// For tests that run for all targets, leave only 2 targets,
 	// this should be enough to detect some races.
-	if raceEnabled && (target.OS != "test" || target.Arch != "64" && target.Arch != "32") {
+	if testutil.RaceEnabled && (target.OS != "test" || target.Arch != "64" && target.Arch != "32") {
 		t.Skip("skipping all but test/64 targets in race mode")
 	}
 }

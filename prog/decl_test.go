@@ -6,10 +6,12 @@ package prog
 import (
 	"strings"
 	"testing"
+
+	"github.com/google/syzkaller/pkg/testutil"
 )
 
 func TestResourceCtors(t *testing.T) {
-	if testing.Short() && raceEnabled {
+	if testing.Short() && testutil.RaceEnabled {
 		t.Skip("too slow")
 	}
 	testEachTarget(t, func(t *testing.T, target *Target) {
