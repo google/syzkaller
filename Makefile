@@ -104,7 +104,8 @@ endif
 	format format_go format_cpp format_sys \
 	tidy test test_race \
 	check_copyright check_language check_whitespace check_links check_diff check_commits check_shebang \
-	presubmit presubmit_smoke presubmit_build presubmit_arch presubmit_big presubmit_race presubmit_old
+	presubmit presubmit_aux presubmit_build presubmit_arch_linux presubmit_arch_freebsd presubmit_arch_other \
+	presubmit_arch_executor presubmit_big presubmit_race presubmit_old
 
 all: host target
 host: manager runtest repro mutate prog2c db upgrade
@@ -281,29 +282,28 @@ lint:
 	bin/golangci-lint run ./...
 
 presubmit:
-	$(MAKE) presubmit_smoke
-	$(MAKE) presubmit_arch
+	$(MAKE) presubmit_aux
+	$(MAKE) presubmit_build
+	$(MAKE) presubmit_arch_linux
+	$(MAKE) presubmit_arch_freebsd
+	$(MAKE) presubmit_arch_other
+	$(MAKE) presubmit_arch_executor
 	$(MAKE) presubmit_race
 
-presubmit_smoke:
+presubmit_aux:
 	$(MAKE) generate
-	$(MAKE) -j100 check_commits check_diff check_copyright check_language check_whitespace check_links check_shebang presubmit_build tidy
-	$(MAKE) test
+	$(MAKE) -j100 check_commits check_diff check_copyright check_language check_whitespace check_links check_shebang tidy
 
-presubmit_build:
+presubmit_build: descriptions
 	# Run go build before lint for better error messages if build is broken.
 	# This does not check build of test files, but running go test takes too long (even for building).
 	$(GO) build ./...
 	$(MAKE) lint
+	$(MAKE) test
 
-presubmit_arch: descriptions
+presubmit_arch_linux: descriptions
 	env HOSTOS=linux HOSTARCH=amd64 $(MAKE) host
-	env HOSTOS=freebsd HOSTARCH=amd64 $(MAKE) host
-	env HOSTOS=netbsd HOSTARCH=amd64 $(MAKE) host
-	env HOSTOS=openbsd HOSTARCH=amd64 $(MAKE) host
-	env HOSTOS=darwin HOSTARCH=amd64 $(MAKE) host
 	env TARGETOS=linux TARGETARCH=amd64 $(MAKE) target
-	env TARGETOS=linux TARGETARCH=amd64 SYZ_CLANG=yes $(MAKE) executor
 	env TARGETOS=linux TARGETARCH=386 $(MAKE) target
 	env TARGETOS=linux TARGETARCH=arm64 $(MAKE) target
 	env TARGETOS=linux TARGETARCH=arm $(MAKE) target
@@ -311,14 +311,29 @@ presubmit_arch: descriptions
 	env TARGETOS=linux TARGETARCH=ppc64le $(MAKE) target
 	env TARGETOS=linux TARGETARCH=riscv64 $(MAKE) target
 	env TARGETOS=linux TARGETARCH=s390x $(MAKE) target
+
+presubmit_arch_freebsd: descriptions
+	env HOSTOS=freebsd HOSTARCH=amd64 $(MAKE) host
 	env TARGETOS=freebsd TARGETARCH=amd64 $(MAKE) target
 	env TARGETOS=freebsd TARGETARCH=386 $(MAKE) target
+
+presubmit_arch_other: descriptions
+	env HOSTOS=netbsd HOSTARCH=amd64 $(MAKE) host
+	env HOSTOS=openbsd HOSTARCH=amd64 $(MAKE) host
+	env HOSTOS=darwin HOSTARCH=amd64 $(MAKE) host
 	env TARGETOS=netbsd TARGETARCH=amd64 $(MAKE) target
 	env TARGETOS=openbsd TARGETARCH=amd64 $(MAKE) target
 	env TARGETOS=windows TARGETARCH=amd64 $(MAKE) target
+
+presubmit_arch_executor: descriptions
+	env TARGETOS=linux TARGETARCH=amd64 SYZ_CLANG=yes $(MAKE) executor
 	env TARGETOS=akaros TARGETARCH=amd64 $(MAKE) executor
 	env TARGETOS=fuchsia TARGETARCH=amd64 $(MAKE) executor
 	env TARGETOS=fuchsia TARGETARCH=arm64 $(MAKE) executor
+	env TARGETOS=test TARGETARCH=64 $(MAKE) executor
+	env TARGETOS=test TARGETARCH=64_fork $(MAKE) executor
+	env TARGETOS=test TARGETARCH=32_shmem $(MAKE) executor
+	env TARGETOS=test TARGETARCH=32_fork_shmem $(MAKE) executor
 	env TARGETOS=test TARGETARCH=64 $(MAKE) executor
 	env TARGETOS=test TARGETARCH=64_fork $(MAKE) executor
 	env TARGETOS=test TARGETARCH=32_shmem $(MAKE) executor

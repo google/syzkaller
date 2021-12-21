@@ -7,7 +7,7 @@
 name: ci
 on: [push, pull_request]
 jobs:
-  smoke:
+  aux:
     runs-on: ubuntu-latest
     steps:
       # Checks out syzkaller repo at the path.
@@ -25,13 +25,27 @@ jobs:
         with:
           path: .cache
           key: cache
-      # Run make presubmit_smoke.
+      # Run make presubmit_aux.
       - name: run
         env:
           GITHUB_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           GITHUB_PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           GITHUB_PR_COMMITS: ${{ github.event.pull_request.commits }}
-        run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh syz-env make presubmit_smoke
+        run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh syz-env make presubmit_aux
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+        with:
+          path: gopath/src/github.com/google/syzkaller
+      - name: cache
+        uses: actions/cache@v1
+        with:
+          path: .cache
+          key: cache
+      - name: run
+        run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh syz-env make presubmit_build
       # Upload coverage report to codecov.io. For reference see:
       # https://github.com/codecov/codecov-action/blob/master/README.md
       - name: codecov
@@ -60,6 +74,9 @@ jobs:
           flags: dashboard
   arch:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [presubmit_arch_linux, presubmit_arch_freebsd, presubmit_arch_other, presubmit_arch_executor]
     steps:
       - name: checkout
         uses: actions/checkout@v2
@@ -71,7 +88,7 @@ jobs:
           path: .cache
           key: cache
       - name: run
-        run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh syz-big-env make presubmit_arch
+        run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh syz-big-env make ${{ matrix.target }}
   race:
     runs-on: ubuntu-latest
     steps:
