@@ -11,7 +11,7 @@ FROM debian:bullseye
 RUN apt-get update --allow-releaseinfo-change
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
 	# Build essentials:
-	gcc g++ binutils make ccache golang-go \
+	gcc g++ binutils make ccache \
 	clang clang-format clang-tidy \
 	# Some common utilities:
 	unzip curl sudo procps psmisc nano vim git bzip2 dh-autoreconf software-properties-common \
@@ -28,6 +28,9 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
 	g++-mips64el-linux-gnuabi64 g++-s390x-linux-gnu g++-riscv64-linux-gnu \
 	libc6-dev-i386 libc6-dev-i386-amd64-cross lib32gcc-10-dev lib32stdc++-10-dev \
 	apt-transport-https curl gnupg python-is-python3
+
+RUN curl https://dl.google.com/go/go1.17.linux-amd64.tar.gz | tar -C /usr/local -xz
+ENV PATH /usr/local/go/bin:$PATH
 
 # Not really GRTE, but it's enough to run some scripts that hardcode the path.
 RUN mkdir -p /usr/grte/v5/bin && ln -s /usr/bin/python3 /usr/grte/v5/bin/python2.7
