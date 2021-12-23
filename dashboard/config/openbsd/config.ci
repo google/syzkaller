@@ -23,7 +23,7 @@
 				"target": "openbsd/amd64",
 				"cover": true,
 				"reproduce": false,
-				"procs": 2,
+				"procs": 8,
 				"type": "gce",
 				"vm": {
 					"count": 10,
@@ -46,7 +46,7 @@
 				"target": "openbsd/amd64",
 				"cover": true,
 				"reproduce": false,
-				"procs": 2,
+				"procs": 8,
 				"type": "gce",
 				"vm": {
 					"count": 10,
@@ -70,7 +70,7 @@
 				"sandbox": "setuid",
 				"cover": true,
 				"reproduce": false,
-				"procs": 2,
+				"procs": 8,
 				"type": "gce",
 				"vm": {
 					"count": 10,
