@@ -538,6 +538,6 @@ config:
  - THERMAL_NETLINK: [v5.8]
  - VMWARE_VMCI: [x86_64]
  - W1: n
- - DAMON
- - DAMON-VADDR
- - DAMON-DBGFS
+ - DAMON: [v5.15]
+ - DAMON_VADDR: [v5.15]
+ - DAMON_DBGFS: [v5.15]
