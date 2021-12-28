@@ -3,6 +3,7 @@ module github.com/google/syzkaller
 go 1.14
 
 require (
+	cloud.google.com/go v0.66.0
 	cloud.google.com/go/pubsub v1.7.0
 	cloud.google.com/go/storage v1.10.0
 	github.com/Djarvur/go-err113 v0.1.0 // indirect
@@ -33,6 +34,7 @@ require (
 	golang.org/x/tools v0.1.0
 	google.golang.org/api v0.32.0
 	google.golang.org/appengine v1.6.6
+	google.golang.org/genproto v0.0.0-20200925023002-c2d885f95484
 	gopkg.in/ini.v1 v1.61.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
 )
