@@ -1,6 +1,7 @@
 # 4d63.com/gochecknoglobals v0.0.0-20201008074935-acfc0b28355a
 4d63.com/gochecknoglobals/checknoglobals
 # cloud.google.com/go v0.66.0
+## explicit
 cloud.google.com/go
 cloud.google.com/go/compute/metadata
 cloud.google.com/go/iam
@@ -8,6 +9,7 @@ cloud.google.com/go/internal
 cloud.google.com/go/internal/optional
 cloud.google.com/go/internal/trace
 cloud.google.com/go/internal/version
+cloud.google.com/go/secretmanager/apiv1
 # cloud.google.com/go/pubsub v1.7.0
 ## explicit
 cloud.google.com/go/pubsub
@@ -554,7 +556,9 @@ google.golang.org/appengine/socket
 google.golang.org/appengine/urlfetch
 google.golang.org/appengine/user
 # google.golang.org/genproto v0.0.0-20200925023002-c2d885f95484
+## explicit
 google.golang.org/genproto/googleapis/api/annotations
+google.golang.org/genproto/googleapis/cloud/secretmanager/v1
 google.golang.org/genproto/googleapis/iam/v1
 google.golang.org/genproto/googleapis/pubsub/v1
 google.golang.org/genproto/googleapis/rpc/code
