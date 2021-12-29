@@ -16,6 +16,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -356,4 +357,8 @@ func (ctx *Context) apiCall(fn func() error) error {
 		}
 		return err
 	}
+}
+
+func IsGcpEnvironment() bool {
+	return strings.HasPrefix(os.Getenv("SERVER_SOFTWARE"), "Google App Engine")
 }

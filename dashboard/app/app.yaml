@@ -34,3 +34,12 @@ handlers:
 - url: /(|api|bug|text|x/.+|.*)
   script: auto
   secure: always
+
+readiness_check:
+  # https://cloud.google.com/appengine/docs/flexible/custom-runtimes/configuring-your-app-with-app-yaml#readiness_checks
+  path: "/readiness_check"
+  check_interval_sec: 5
+  timeout_sec: 4
+  failure_threshold: 2
+  success_threshold: 2
+  app_start_timeout_sec: 300

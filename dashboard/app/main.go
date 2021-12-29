@@ -15,6 +15,7 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
+	"github.com/google/syzkaller/pkg/gce"
 	"github.com/google/syzkaller/pkg/html"
 	"github.com/google/syzkaller/pkg/vcs"
 	"golang.org/x/net/context"
@@ -30,6 +31,7 @@ func initHTTPHandlers() {
 	http.Handle("/bug", handlerWrapper(handleBug))
 	http.Handle("/text", handlerWrapper(handleText))
 	http.Handle("/admin", handlerWrapper(handleAdmin))
+	http.Handle("/readiness_check", handlerWrapper(handleReadinessCheck))
 	http.Handle("/x/.config", handlerWrapper(handleTextX(textKernelConfig)))
 	http.Handle("/x/log.txt", handlerWrapper(handleTextX(textCrashLog)))
 	http.Handle("/x/report.txt", handlerWrapper(handleTextX(textCrashReport)))
@@ -333,6 +335,15 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 		MemcacheStats: memcacheStats,
 	}
 	return serveTemplate(w, "admin.html", data)
+}
+
+// handleReadinessCheck is used by the GCP to verify container readiness.
+// The traffic could be migrated to the initialized containers only.
+func handleReadinessCheck(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	if !gce.IsGcpEnvironment() {
+		return nil
+	}
+	return nil
 }
 
 // handleBug serves page about a single bug (which is passed in id argument).

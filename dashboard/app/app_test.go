@@ -351,6 +351,14 @@ func testCrashID(crash *dashapi.Crash) *dashapi.CrashID {
 	}
 }
 
+func TestReadinessCheck(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	_, err := c.GET("/readiness_check")
+	c.expectOK(err)
+}
+
 func TestApp(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
