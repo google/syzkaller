@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/log"
@@ -22,6 +23,8 @@ var (
 	flagConfig = flag.String("config", "", "manager configuration file (manager.cfg)")
 	flagCount  = flag.Int("count", 0, "number of VMs to use (overrides config count param)")
 	flagDebug  = flag.Bool("debug", false, "print debug output")
+	flagOutput = flag.String("output", filepath.Join(".", "repro.txt"), "output description file (output.txt)")
+	flagCRepro = flag.String("crepro", filepath.Join(".", "repro.c"), "output c file (repro.c)")
 )
 
 func main() {
@@ -76,7 +79,15 @@ func main() {
 	}
 
 	fmt.Printf("opts: %+v crepro: %v\n\n", res.Opts, res.CRepro)
-	fmt.Printf("%s\n", res.Prog.Serialize())
+
+	progSerialized := res.Prog.Serialize()
+	fmt.Printf("%s\n", progSerialized)
+	if err = osutil.WriteFile(*flagOutput, progSerialized); err == nil {
+		fmt.Printf("program saved to %s\n", *flagOutput)
+	} else {
+		log.Logf(0, "failed to write prog to file: %v", err)
+	}
+
 	if res.CRepro {
 		src, err := csource.Write(res.Prog, res.Opts)
 		if err != nil {
@@ -86,5 +97,11 @@ func main() {
 			src = formatted
 		}
 		fmt.Printf("%s\n", src)
+
+		if err := osutil.WriteFile(*flagCRepro, src); err == nil {
+			fmt.Printf("C file saved to %s\n", *flagCRepro)
+		} else {
+			log.Logf(0, "failed to write C repro to file: %v", err)
+		}
 	}
 }
