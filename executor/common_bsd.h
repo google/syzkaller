@@ -136,16 +136,24 @@ static int tunfd = -1;
 #define MAX_TUN 4
 #endif
 
-// All patterns are non-expanding given values < MAX_TUN.
+// Because the interface and device name contain an int, use MAXINT to determine
+// the maximum size of the string.
+// Since on *BSD  sizeof(int) is 4, MAXINT is 2147483647.
 #define TUN_IFACE "tap%d"
+#define MAX_TUN_IFACE_SIZE sizeof("tap2147483647")
 #define TUN_DEVICE "/dev/tap%d"
+#define MAX_TUN_DEVICE_SIZE sizeof("/dev/tap2147483647")
 
 #define LOCAL_MAC "aa:aa:aa:aa:aa:aa"
 #define REMOTE_MAC "aa:aa:aa:aa:aa:bb"
 #define LOCAL_IPV4 "172.20.%d.170"
+#define MAX_LOCAL_IPV4_SIZE sizeof("172.20.255.170")
 #define REMOTE_IPV4 "172.20.%d.187"
-#define LOCAL_IPV6 "fe80::%02hxaa"
-#define REMOTE_IPV6 "fe80::%02hxbb"
+#define MAX_REMOTE_IPV4_SIZE sizeof("172.20.255.187")
+#define LOCAL_IPV6 "fe80::%02xaa"
+#define MAX_LOCAL_IPV6_SIZE sizeof("fe80::ffaa")
+#define REMOTE_IPV6 "fe80::%02xbb"
+#define MAX_REMOTE_IPV6_SIZE sizeof("fe80::ffbb")
 
 static void vsnprintf_check(char* str, size_t size, const char* format, va_list args)
 {
@@ -198,10 +206,10 @@ static void initialize_tun(int tun_id)
 	if (tun_id < 0 || tun_id >= MAX_TUN)
 		failmsg("tun_id out of range", "tun_id=%d", tun_id);
 
-	char tun_device[sizeof(TUN_DEVICE)];
+	char tun_device[MAX_TUN_DEVICE_SIZE];
 	snprintf_check(tun_device, sizeof(tun_device), TUN_DEVICE, tun_id);
 
-	char tun_iface[sizeof(TUN_IFACE)];
+	char tun_iface[MAX_TUN_IFACE_SIZE];
 	snprintf_check(tun_iface, sizeof(tun_iface), TUN_IFACE, tun_id);
 
 #if GOOS_netbsd
@@ -249,24 +257,24 @@ static void initialize_tun(int tun_id)
 #endif
 
 	// Setting up a static ip for the interface
-	char local_ipv4[sizeof(LOCAL_IPV4)];
+	char local_ipv4[MAX_LOCAL_IPV4_SIZE];
 	snprintf_check(local_ipv4, sizeof(local_ipv4), LOCAL_IPV4, tun_id);
 	execute_command(1, "ifconfig %s inet %s netmask 255.255.255.0", tun_iface, local_ipv4);
 
 	// Creates an ARP table entry for the remote ip and MAC address
 	char remote_mac[sizeof(REMOTE_MAC)];
-	char remote_ipv4[sizeof(REMOTE_IPV4)];
+	char remote_ipv4[MAX_REMOTE_IPV4_SIZE];
 	snprintf_check(remote_mac, sizeof(remote_mac), REMOTE_MAC);
 	snprintf_check(remote_ipv4, sizeof(remote_ipv4), REMOTE_IPV4, tun_id);
 	execute_command(0, "arp -s %s %s", remote_ipv4, remote_mac);
 
 	// Set up a static ipv6 address for the interface
-	char local_ipv6[sizeof(LOCAL_IPV6)];
+	char local_ipv6[MAX_LOCAL_IPV6_SIZE];
 	snprintf_check(local_ipv6, sizeof(local_ipv6), LOCAL_IPV6, tun_id);
 	execute_command(1, "ifconfig %s inet6 %s", tun_iface, local_ipv6);
 
 	// Registers an NDP entry for the remote MAC with the remote ipv6 address
-	char remote_ipv6[sizeof(REMOTE_IPV6)];
+	char remote_ipv6[MAX_REMOTE_IPV6_SIZE];
 	snprintf_check(remote_ipv6, sizeof(remote_ipv6), REMOTE_IPV6, tun_id);
 	execute_command(0, "ndp -s %s%%%s %s", remote_ipv6, tun_iface, remote_mac);
 }
