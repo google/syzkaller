@@ -146,6 +146,10 @@ var openbsdOopses = append([]*oops{
 				title: compile("kernel: page fault trap, code=0.*\\nStopped at[ ]+([^\\+]+)"),
 				fmt:   "uvm_fault: %[1]v",
 			},
+			{
+				title: compile("kernel: protection fault trap, code=0.*\\nStopped at[ ]+([^\\+]+)"),
+				fmt:   "protection_fault: %[1]v",
+			},
 		},
 		[]*regexp.Regexp{
 			compile("reorder_kernel"),
