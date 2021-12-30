@@ -1668,6 +1668,9 @@ static int tunfd = -1;
 #if GOOS_netbsd
 #define MAX_TUN 64
 
+#elif GOOS_freebsd
+#define MAX_TUN 256
+
 #else
 #define MAX_TUN 4
 #endif
