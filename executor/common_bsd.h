@@ -131,6 +131,11 @@ static int tunfd = -1;
 // Increased number of tap and tun devices if image script is used
 #define MAX_TUN 64
 
+#elif GOOS_freebsd
+// The maximum number of tun devices is limited by the way IP addresses
+// are assigned. Based on this, the limit is 256.
+#define MAX_TUN 256
+
 #else
 // Maximum number of tun devices in the default install.
 #define MAX_TUN 4
