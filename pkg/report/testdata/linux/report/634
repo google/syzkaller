@@ -1,0 +1,110 @@
+TITLE: KMSAN: kernel-infoleak in urandom_read_nowarn
+ALT: bad-access in urandom_read_nowarn
+
+[  600.161674][ T9046] =====================================================
+[  600.168788][ T9046] BUG: KMSAN: kernel-infoleak in _copy_to_user+0x1c9/0x270
+[  600.176027][ T9046]  _copy_to_user+0x1c9/0x270
+[  600.180651][ T9046]  urandom_read_nowarn+0x57b/0xb10
+[  600.185814][ T9046]  __x64_sys_getrandom+0x34a/0x460
+[  600.191004][ T9046]  do_syscall_64+0x54/0xd0
+[  600.195447][ T9046]  entry_SYSCALL_64_after_hwframe+0x44/0xae
+[  600.201384][ T9046] 
+[  600.203707][ T9046] Uninit was stored to memory at:
+[  600.208784][ T9046]  chacha_permute+0x12db/0x1400
+[  600.213671][ T9046]  chacha_block_generic+0xe7/0xb20
+[  600.218823][ T9046]  _extract_crng+0x34d/0x4e0
+[  600.223440][ T9046]  _get_random_bytes+0x358/0x5b0
+[  600.228417][ T9046]  get_random_bytes+0x11e/0x300
+[  600.233308][ T9046]  nsim_dev_trap_report_work+0x4f4/0x1120
+[  600.239214][ T9046]  process_one_work+0xdc2/0x1820
+[  600.244263][ T9046]  worker_thread+0x10f1/0x2290
+[  600.249046][ T9046]  kthread+0x721/0x850
+[  600.253146][ T9046]  ret_from_fork+0x1f/0x30
+[  600.257619][ T9046] 
+[  600.259974][ T9046] Uninit was stored to memory at:
+[  600.265068][ T9046]  chacha_block_generic+0xc3/0xb20
+[  600.270221][ T9046]  _extract_crng+0x34d/0x4e0
+[  600.274832][ T9046]  _get_random_bytes+0x358/0x5b0
+[  600.279806][ T9046]  get_random_bytes+0x11e/0x300
+[  600.284695][ T9046]  nsim_dev_trap_report_work+0x4f4/0x1120
+[  600.290450][ T9046]  process_one_work+0xdc2/0x1820
+[  600.295430][ T9046]  worker_thread+0x10f1/0x2290
+[  600.300214][ T9046]  kthread+0x721/0x850
+[  600.304309][ T9046]  ret_from_fork+0x1f/0x30
+[  600.308757][ T9046] 
+[  600.311080][ T9046] Uninit was stored to memory at:
+[  600.316146][ T9046]  crng_reseed+0x638/0xfb0
+[  600.320583][ T9046]  _extract_crng+0x1fc/0x4e0
+[  600.325199][ T9046]  _get_random_bytes+0x358/0x5b0
+[  600.330174][ T9046]  get_random_bytes+0x11e/0x300
+[  600.335063][ T9046]  nsim_dev_trap_report_work+0x4f4/0x1120
+[  600.340819][ T9046]  process_one_work+0xdc2/0x1820
+[  600.345795][ T9046]  worker_thread+0x10f1/0x2290
+[  600.350586][ T9046]  kthread+0x721/0x850
+[  600.354702][ T9046]  ret_from_fork+0x1f/0x30
+[  600.359146][ T9046] 
+[  600.361728][ T9046] Uninit was stored to memory at:
+[  600.366809][ T9046]  chacha_block_generic+0x87a/0xb20
+[  600.372220][ T9046]  _extract_crng+0x34d/0x4e0
+[  600.376833][ T9046]  crng_reseed+0x136/0xfb0
+[  600.381272][ T9046]  _extract_crng+0x1fc/0x4e0
+[  600.385881][ T9046]  _get_random_bytes+0x358/0x5b0
+[  600.391290][ T9046]  get_random_bytes+0x11e/0x300
+[  600.396174][ T9046]  nsim_dev_trap_report_work+0x4f4/0x1120
+[  600.401928][ T9046]  process_one_work+0xdc2/0x1820
+[  600.406903][ T9046]  worker_thread+0x10f1/0x2290
+[  600.411684][ T9046]  kthread+0x721/0x850
+[  600.415789][ T9046]  ret_from_fork+0x1f/0x30
+[  600.420231][ T9046] 
+[  600.422549][ T9046] Uninit was stored to memory at:
+[  600.427628][ T9046]  chacha_permute+0x12db/0x1400
+[  600.432511][ T9046]  chacha_block_generic+0xe7/0xb20
+[  600.437668][ T9046]  _extract_crng+0x34d/0x4e0
+[  600.442276][ T9046]  crng_reseed+0x136/0xfb0
+[  600.446815][ T9046]  _extract_crng+0x1fc/0x4e0
+[  600.451422][ T9046]  _get_random_bytes+0x358/0x5b0
+[  600.456397][ T9046]  get_random_bytes+0x11e/0x300
+[  600.461303][ T9046]  nsim_dev_trap_report_work+0x4f4/0x1120
+[  600.467150][ T9046]  process_one_work+0xdc2/0x1820
+[  600.472129][ T9046]  worker_thread+0x10f1/0x2290
+[  600.476923][ T9046]  kthread+0x721/0x850
+[  600.481016][ T9046]  ret_from_fork+0x1f/0x30
+[  600.485456][ T9046] 
+[  600.487775][ T9046] Uninit was stored to memory at:
+[  600.492878][ T9046]  chacha_block_generic+0xc3/0xb20
+[  600.498023][ T9046]  _extract_crng+0x34d/0x4e0
+[  600.502630][ T9046]  crng_reseed+0x136/0xfb0
+[  600.507062][ T9046]  _extract_crng+0x1fc/0x4e0
+[  600.511679][ T9046]  _get_random_bytes+0x358/0x5b0
+[  600.516659][ T9046]  get_random_bytes+0x11e/0x300
+[  600.521545][ T9046]  nsim_dev_trap_report_work+0x4f4/0x1120
+[  600.527308][ T9046]  process_one_work+0xdc2/0x1820
+[  600.532287][ T9046]  worker_thread+0x10f1/0x2290
+[  600.537073][ T9046]  kthread+0x721/0x850
+[  600.541172][ T9046]  ret_from_fork+0x1f/0x30
+[  600.545618][ T9046] 
+[  600.547939][ T9046] Uninit was stored to memory at:
+[  600.553004][ T9046]  crng_reseed+0x638/0xfb0
+[  600.557439][ T9046]  _extract_crng+0x1fc/0x4e0
+[  600.562047][ T9046]  crng_reseed+0x136/0xfb0
+[  600.566481][ T9046]  _extract_crng+0x1fc/0x4e0
+[  600.571091][ T9046]  _get_random_bytes+0x358/0x5b0
+[  600.576065][ T9046]  get_random_bytes+0x11e/0x300
+[  600.580950][ T9046]  nsim_dev_trap_report_work+0x4f4/0x1120
+[  600.586706][ T9046]  process_one_work+0xdc2/0x1820
+[  600.591682][ T9046]  worker_thread+0x10f1/0x2290
+[  600.596465][ T9046]  kthread+0x721/0x850
+[  600.600558][ T9046]  ret_from_fork+0x1f/0x30
+[  600.605006][ T9046] 
+[  600.607338][ T9046] Local variable buf created at:
+[  600.612357][ T9046]  crng_reseed+0x6c/0xfb0
+[  600.616702][ T9046]  _extract_crng+0x1fc/0x4e0
+[  600.621308][ T9046] 
+[  600.623631][ T9046] Bytes 0-15 of 16 are uninitialized
+[  600.628919][ T9046] Memory access of size 16 starts at ffff8881233afe10
+[  600.635681][ T9046] Data copied to user address 0000561367a3f9b0
+[  600.641831][ T9046] 
+[  600.644152][ T9046] CPU: 0 PID: 9046 Comm: systemd-udevd Not tainted 5.16.0-rc3-syzkaller #0
+[  600.652762][ T9046] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  600.662842][ T9046] =====================================================
+
