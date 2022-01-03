@@ -1257,11 +1257,16 @@ var linuxOopses = append([]*oops{
 				fmt:    "KMSAN: kernel-usb-infoleak in %[2]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
+						parseStackTrace,
+					},
+					parts2: []*regexp.Regexp{
+						// For backwards compatibility - KMSAN used to include the Call Trace line.
 						linuxCallTrace,
 						parseStackTrace,
 					},
 					skip: []string{"usb_submit_urb", "usb_start_wait_urb", "usb_bulk_msg", "usb_interrupt_msg", "usb_control_msg"},
 				},
+				noStackTrace: true,
 			},
 			{
 				title:  compile("BUG: KMSAN:"),
