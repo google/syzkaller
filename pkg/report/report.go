@@ -432,7 +432,7 @@ type stackFmt struct {
 	extractor frameExtractor
 }
 
-type frameExtractor func(frames []string) (frame, corrupted string)
+type frameExtractor func(frames []string) string
 
 var parseStackTrace *regexp.Regexp
 
@@ -506,15 +506,13 @@ func extractDescription(output []byte, oops *oops, params *stackParams) (
 		}
 		corrupted = ""
 		if f.stack != nil {
-			frame := ""
-			frame, corrupted = extractStackFrame(params, f.stack, output[match[0]:])
-			if frame == "" {
-				frame = "corrupted"
-				if corrupted == "" {
-					corrupted = "extracted no stack frame"
-				}
+			frames, ok := extractStackFrame(params, f.stack, output[match[0]:])
+			if !ok {
+				corrupted = corruptedNoFrames
 			}
-			args = append(args, frame)
+			for _, frame := range frames {
+				args = append(args, frame)
+			}
 		}
 		desc = fmt.Sprintf(f.fmt, args...)
 		for _, alt := range f.alt {
@@ -562,40 +560,68 @@ type stackParams struct {
 	stripFramePrefixes []string
 }
 
-func extractStackFrame(params *stackParams, stack *stackFmt, output []byte) (string, string) {
+func extractStackFrame(params *stackParams, stack *stackFmt, output []byte) ([]string, bool) {
 	skip := append([]string{}, params.skipPatterns...)
 	skip = append(skip, stack.skip...)
 	var skipRe *regexp.Regexp
 	if len(skip) != 0 {
 		skipRe = regexp.MustCompile(strings.Join(skip, "|"))
 	}
-	extractor := stack.extractor
-	if extractor == nil {
-		extractor = func(frames []string) (string, string) {
-			return frames[0], ""
+	extractor := func(frames []string) string {
+		if len(frames) == 0 {
+			return ""
 		}
+		if stack.extractor == nil {
+			return frames[0]
+		}
+		return stack.extractor(frames)
 	}
-	frame, corrupted := extractStackFrameImpl(params, output, skipRe, stack.parts, extractor)
-	if frame != "" || len(stack.parts2) == 0 {
-		return frame, corrupted
+	frames, ok := extractStackFrameImpl(params, output, skipRe, stack.parts, extractor)
+	if ok || len(stack.parts2) == 0 {
+		return frames, ok
 	}
 	return extractStackFrameImpl(params, output, skipRe, stack.parts2, extractor)
 }
 
 func extractStackFrameImpl(params *stackParams, output []byte, skipRe *regexp.Regexp,
-	parts []*regexp.Regexp, extractor frameExtractor) (string, string) {
+	parts []*regexp.Regexp, extractor frameExtractor) ([]string, bool) {
 	s := bufio.NewScanner(bytes.NewReader(output))
-	var frames []string
+	var frames, results []string
+	ok := true
+	numStackTraces := 0
 nextPart:
-	for _, part := range parts {
+	for partIdx := 0; ; partIdx++ {
+		if partIdx == len(parts) || parts[partIdx] == parseStackTrace && numStackTraces > 0 {
+			keyFrame := extractor(frames)
+			if keyFrame == "" {
+				keyFrame, ok = "corrupted", false
+			}
+			results = append(results, keyFrame)
+			frames = nil
+		}
+		if partIdx == len(parts) {
+			break
+		}
+		part := parts[partIdx]
 		if part == parseStackTrace {
+			numStackTraces++
 			for s.Scan() {
 				ln := s.Bytes()
 				if matchesAny(ln, params.corruptedLines) {
-					break nextPart
+					ok = false
+					continue nextPart
 				}
 				if matchesAny(ln, params.stackStartRes) {
 					continue nextPart
+				}
+
+				if partIdx != len(parts)-1 {
+					match := parts[partIdx+1].FindSubmatch(ln)
+					if match != nil {
+						frames = appendStackFrame(frames, match, params, skipRe)
+						partIdx++
+						continue nextPart
+					}
 				}
 				var match [][]byte
 				for _, re := range params.frameRes {
@@ -610,7 +636,8 @@ nextPart:
 			for s.Scan() {
 				ln := s.Bytes()
 				if matchesAny(ln, params.corruptedLines) {
-					break nextPart
+					ok = false
+					continue nextPart
 				}
 				match := part.FindSubmatch(ln)
 				if match == nil {
@@ -621,10 +648,7 @@ nextPart:
 			}
 		}
 	}
-	if len(frames) == 0 {
-		return "", corruptedNoFrames
-	}
-	return extractor(frames)
+	return results, ok
 }
 
 func appendStackFrame(frames []string, match [][]byte, params *stackParams, skipRe *regexp.Regexp) []string {
