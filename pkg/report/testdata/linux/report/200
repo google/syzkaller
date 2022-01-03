@@ -1,5 +1,5 @@
-TITLE: general protection fault in corrupted
-ALT: bad-access in corrupted
+TITLE: general protection fault in __alloc_skb
+ALT: bad-access in __alloc_skb
 CORRUPTED: Y
 
 [   73.452724] FAULT_INJECTION: forcing a failure.

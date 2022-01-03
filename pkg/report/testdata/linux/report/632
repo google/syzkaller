@@ -1,5 +1,7 @@
 TITLE: KMSAN: uninit-value in __perf_event_task_sched_in
 ALT: bad-access in __perf_event_task_sched_in
+ALT: KMSAN origin in corrupted
+CORRUPTED: Y
 
 [ 1307.507727][    T0] =====================================================
 [ 1307.507800][    T5] kmsan_internal_set_shadow_origin: not memsetting 24 bytes starting at ffff8881024001a0, because the shadow is NULL

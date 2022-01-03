@@ -811,7 +811,7 @@ func (ctx *linux) isCorrupted(title string, report []byte, format oopsFormat) (b
 	return false, ""
 }
 
-func linuxStallFrameExtractor(frames []string) (string, string) {
+func linuxStallFrameExtractor(frames []string) string {
 	// During rcu stalls and cpu lockups kernel loops in some part of code,
 	// usually across several functions. When the stall is detected, traceback
 	// points to a random stack within the looping code. We generally take
@@ -831,14 +831,14 @@ func linuxStallFrameExtractor(frames []string) (string, string) {
 				// (there can be several variations on the next one).
 				prev = "smp_call_function"
 			}
-			return prev, ""
+			return prev
 		}
 		prev = frame
 	}
-	return "", "did not find any anchor frame"
+	return ""
 }
 
-func linuxHangTaskFrameExtractor(frames []string) (string, string) {
+func linuxHangTaskFrameExtractor(frames []string) string {
 	// The problem with task hung reports is that they manifest at random victim stacks,
 	// rather at the root cause stack. E.g. if there is something wrong with RCU subsystem,
 	// we are getting hangs all over the kernel on all synchronize_* calls.
@@ -859,7 +859,7 @@ func linuxHangTaskFrameExtractor(frames []string) (string, string) {
 				if replacement != "" {
 					frame = replacement
 				}
-				return frame, ""
+				return frame
 			}
 		}
 	}
@@ -872,9 +872,9 @@ nextFrame:
 				continue nextFrame
 			}
 		}
-		return frame, ""
+		return frame
 	}
-	return "", "all frames are skipped"
+	return ""
 }
 
 var linuxStallAnchorFrames = []*regexp.Regexp{
@@ -982,6 +982,7 @@ var linuxStackParams = &stackParams{
 		// Match 'backtrace:', but exclude 'stack backtrace:'
 		regexp.MustCompile(`[^k] backtrace:`),
 		regexp.MustCompile(`Backtrace:`),
+		regexp.MustCompile(`Uninit was stored to memory at`),
 	},
 	frameRes: []*regexp.Regexp{
 		compile("^ *(?:{{PC}} ){0,2}{{FUNC}}"),
@@ -1255,11 +1256,14 @@ var linuxOopses = append([]*oops{
 				title:  compile("BUG: KMSAN: kernel-usb-infoleak"),
 				report: compile("BUG: KMSAN: kernel-usb-infoleak in {{FUNC}}"),
 				fmt:    "KMSAN: kernel-usb-infoleak in %[2]v",
+				alt:    []string{"KMSAN origin in %[3]v"},
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
 						parseStackTrace,
+						compile("(Local variable .* created at:|Uninit was created at:)"),
+						parseStackTrace,
 					},
-					skip: []string{"usb_submit_urb", "usb_start_wait_urb", "usb_bulk_msg", "usb_interrupt_msg", "usb_control_msg"},
+					skip: []string{"alloc_skb", "usb_submit_urb", "usb_start_wait_urb", "usb_bulk_msg", "usb_interrupt_msg", "usb_control_msg"},
 				},
 				noStackTrace: true,
 			},
@@ -1267,11 +1271,17 @@ var linuxOopses = append([]*oops{
 				title:  compile("BUG: KMSAN:"),
 				report: compile("BUG: KMSAN: ([a-z\\-]+) in {{FUNC}}"),
 				fmt:    "KMSAN: %[1]v in %[3]v",
-				alt:    []string{"bad-access in %[3]v"},
+				alt: []string{
+					"bad-access in %[3]v",
+					"KMSAN origin in %[4]v",
+				},
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
 						parseStackTrace,
+						compile("(Local variable .* created at:|Uninit was created at:)"),
+						parseStackTrace,
 					},
+					skip: []string{"alloc_skb"},
 				},
 				noStackTrace: true,
 			},

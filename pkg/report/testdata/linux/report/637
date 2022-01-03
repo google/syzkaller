@@ -1,4 +1,5 @@
 TITLE: KMSAN: kernel-usb-infoleak in hif_usb_send
+ALT: KMSAN origin in htc_connect_service
 
 [  180.463142][ T3569] =====================================================
 [  180.470227][ T3569] BUG: KMSAN: kernel-usb-infoleak in usb_submit_urb+0x6c1/0x2aa0
