@@ -1259,11 +1259,6 @@ var linuxOopses = append([]*oops{
 					parts: []*regexp.Regexp{
 						parseStackTrace,
 					},
-					parts2: []*regexp.Regexp{
-						// For backwards compatibility - KMSAN used to include the Call Trace line.
-						linuxCallTrace,
-						parseStackTrace,
-					},
 					skip: []string{"usb_submit_urb", "usb_start_wait_urb", "usb_bulk_msg", "usb_interrupt_msg", "usb_control_msg"},
 				},
 				noStackTrace: true,
@@ -1275,11 +1270,6 @@ var linuxOopses = append([]*oops{
 				alt:    []string{"bad-access in %[3]v"},
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
-						parseStackTrace,
-					},
-					parts2: []*regexp.Regexp{
-						// For backwards compatibility - KMSAN used to include the Call Trace line.
-						linuxCallTrace,
 						parseStackTrace,
 					},
 				},
