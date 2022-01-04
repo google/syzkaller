@@ -1093,6 +1093,9 @@ resource ANYRES64[int64]: -1, 0
 
 syz_builtin0(a ptr[in, ANYPTRS]) (disabled)
 syz_builtin1(a ptr[out, ANYUNION]) (disabled)
+syz_builtin2() ANYRES16 (disabled)
+syz_builtin3() ANYRES32 (disabled)
+syz_builtin4() ANYRES64 (disabled)
 `
 
 func init() {

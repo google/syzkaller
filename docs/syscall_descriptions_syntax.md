@@ -228,6 +228,10 @@ test_struct {
 }
 ```
 
+Each resource type must be "produced" (used as an output) by at least one syscall
+(outside of unions and optional pointers) and "consumed" (used as an input)
+by at least one syscall.
+
 ## Type Aliases
 
 Complex types that are often repeated can be given short type aliases using the

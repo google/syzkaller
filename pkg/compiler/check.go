@@ -632,10 +632,10 @@ func (comp *compiler) checkConstructors() {
 		switch n := decl.(type) {
 		case *ast.Call:
 			for _, arg := range n.Args {
-				comp.checkTypeCtors(arg.Type, prog.DirIn, true, ctors, inputs, checked)
+				comp.checkTypeCtors(arg.Type, prog.DirIn, true, true, ctors, inputs, checked)
 			}
 			if n.Ret != nil {
-				comp.checkTypeCtors(n.Ret, prog.DirOut, true, ctors, inputs, checked)
+				comp.checkTypeCtors(n.Ret, prog.DirOut, true, true, ctors, inputs, checked)
 			}
 		}
 	}
@@ -658,16 +658,19 @@ func (comp *compiler) checkConstructors() {
 	}
 }
 
-func (comp *compiler) checkTypeCtors(t *ast.Type, dir prog.Dir, isArg bool,
+func (comp *compiler) checkTypeCtors(t *ast.Type, dir prog.Dir, isArg, canCreate bool,
 	ctors, inputs map[string]bool, checked map[structDir]bool) {
-	desc := comp.getTypeDesc(t)
+	desc, args, base := comp.getArgsBase(t, isArg)
+	if base.IsOptional {
+		canCreate = false
+	}
 	if desc == typeResource {
 		// TODO(dvyukov): consider changing this to "dir == prog.DirOut".
 		// We have few questionable cases where resources can be created
 		// only by inout struct fields. These structs should be split
 		// into two different structs: one is in and second is out.
 		// But that will require attaching dir to individual fields.
-		if dir != prog.DirIn {
+		if canCreate && dir != prog.DirIn {
 			r := comp.resources[t.Ident]
 			for r != nil && !ctors[r.Name.Name] {
 				ctors[r.Name.Name] = true
@@ -685,6 +688,9 @@ func (comp *compiler) checkTypeCtors(t *ast.Type, dir prog.Dir, isArg bool,
 	}
 	if desc == typeStruct {
 		s := comp.structs[t.Ident]
+		if s.IsUnion {
+			canCreate = false
+		}
 		name := s.Name.Name
 		key := structDir{name, dir}
 		if checked[key] {
@@ -696,17 +702,16 @@ func (comp *compiler) checkTypeCtors(t *ast.Type, dir prog.Dir, isArg bool,
 			if !fldHasDir {
 				fldDir = dir
 			}
-			comp.checkTypeCtors(fld.Type, fldDir, false, ctors, inputs, checked)
+			comp.checkTypeCtors(fld.Type, fldDir, false, canCreate, ctors, inputs, checked)
 		}
 		return
 	}
 	if desc == typePtr {
 		dir = genDir(t.Args[0])
 	}
-	_, args, _ := comp.getArgsBase(t, isArg)
 	for i, arg := range args {
 		if desc.Args[i].Type == typeArgType {
-			comp.checkTypeCtors(arg, dir, desc.Args[i].IsArg, ctors, inputs, checked)
+			comp.checkTypeCtors(arg, dir, desc.Args[i].IsArg, canCreate, ctors, inputs, checked)
 		}
 	}
 }
