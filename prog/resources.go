@@ -46,7 +46,13 @@ func (target *Target) populateResourceCtors() {
 	// Find resources that are created by each call.
 	callsResources := make([][]*ResourceDesc, len(target.Syscalls))
 	ForeachType(target.Syscalls, func(typ Type, ctx *TypeCtx) {
+		if typ.Optional() {
+			ctx.Stop = true
+			return
+		}
 		switch typ1 := typ.(type) {
+		case *UnionType:
+			ctx.Stop = true
 		case *ResourceType:
 			if ctx.Dir != DirIn {
 				callsResources[ctx.Meta.ID] = append(callsResources[ctx.Meta.ID], typ1.Desc)
