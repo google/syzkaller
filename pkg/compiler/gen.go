@@ -379,7 +379,8 @@ func (comp *compiler) layoutStructFields(t *prog.StructType, varlen, packed bool
 	t.Fields = comp.finalizeStructFields(t, newFields, varlen, structAlign, byteOffset, bitOffset)
 }
 
-func (comp *compiler) finalizeStructFields(t *prog.StructType, fields []prog.Field, varlen bool, structAlign, byteOffset, bitOffset uint64) []prog.Field {
+func (comp *compiler) finalizeStructFields(t *prog.StructType, fields []prog.Field, varlen bool,
+	structAlign, byteOffset, bitOffset uint64) []prog.Field {
 	if bitOffset != 0 {
 		pad := roundup(bitOffset, 8) / 8
 		byteOffset += pad
