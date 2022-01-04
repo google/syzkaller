@@ -147,7 +147,7 @@ func (comp *compiler) generateTypes(syscalls []*prog.Syscall) []prog.Type {
 	// Replace all Type's in the descriptions with Ref's
 	// and prepare a sorted array of corresponding real types.
 	proxies := make(map[string]*typeProxy)
-	prog.ForeachTypePost(syscalls, func(typ prog.Type, ctx prog.TypeCtx) {
+	prog.ForeachTypePost(syscalls, func(typ prog.Type, ctx *prog.TypeCtx) {
 		if _, ok := typ.(prog.Ref); ok {
 			return
 		}
@@ -195,7 +195,7 @@ func (comp *compiler) generateTypes(syscalls []*prog.Syscall) []prog.Type {
 func (comp *compiler) layoutTypes(syscalls []*prog.Syscall) {
 	// Calculate struct/union/array sizes, add padding to structs, mark bitfields.
 	padded := make(map[prog.Type]bool)
-	prog.ForeachTypePost(syscalls, func(typ prog.Type, _ prog.TypeCtx) {
+	prog.ForeachTypePost(syscalls, func(typ prog.Type, _ *prog.TypeCtx) {
 		comp.layoutType(typ, padded)
 	})
 }
