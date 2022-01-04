@@ -205,7 +205,7 @@ func restoreLinks(syscalls []*Syscall, resources []*ResourceDesc, types []Type) 
 		resourceMap[res.Name] = res
 	}
 
-	ForeachType(syscalls, func(typ Type, ctx TypeCtx) {
+	ForeachType(syscalls, func(typ Type, ctx *TypeCtx) {
 		if ref, ok := typ.(Ref); ok {
 			typ = types[ref]
 			*ctx.Ptr = typ
@@ -230,7 +230,7 @@ func (target *Target) DefaultChoiceTable() *ChoiceTable {
 
 func (target *Target) GetGlobs() map[string]bool {
 	globs := make(map[string]bool)
-	ForeachType(target.Syscalls, func(typ Type, ctx TypeCtx) {
+	ForeachType(target.Syscalls, func(typ Type, ctx *TypeCtx) {
 		switch a := typ.(type) {
 		case *BufferType:
 			if a.Kind == BufferGlob {
@@ -242,7 +242,7 @@ func (target *Target) GetGlobs() map[string]bool {
 }
 
 func (target *Target) UpdateGlobs(globFiles map[string][]string) {
-	ForeachType(target.Syscalls, func(typ Type, ctx TypeCtx) {
+	ForeachType(target.Syscalls, func(typ Type, ctx *TypeCtx) {
 		switch a := typ.(type) {
 		case *BufferType:
 			if a.Kind == BufferGlob {

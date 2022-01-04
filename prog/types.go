@@ -678,23 +678,23 @@ type TypeCtx struct {
 	Ptr  *Type
 }
 
-func ForeachType(syscalls []*Syscall, f func(t Type, ctx TypeCtx)) {
+func ForeachType(syscalls []*Syscall, f func(t Type, ctx *TypeCtx)) {
 	for _, meta := range syscalls {
 		foreachTypeImpl(meta, true, f)
 	}
 }
 
-func ForeachTypePost(syscalls []*Syscall, f func(t Type, ctx TypeCtx)) {
+func ForeachTypePost(syscalls []*Syscall, f func(t Type, ctx *TypeCtx)) {
 	for _, meta := range syscalls {
 		foreachTypeImpl(meta, false, f)
 	}
 }
 
-func ForeachCallType(meta *Syscall, f func(t Type, ctx TypeCtx)) {
+func ForeachCallType(meta *Syscall, f func(t Type, ctx *TypeCtx)) {
 	foreachTypeImpl(meta, true, f)
 }
 
-func foreachTypeImpl(meta *Syscall, preorder bool, f func(t Type, ctx TypeCtx)) {
+func foreachTypeImpl(meta *Syscall, preorder bool, f func(t Type, ctx *TypeCtx)) {
 	// Note: we specifically don't create seen in ForeachType.
 	// It would prune recursion more (across syscalls), but lots of users need to
 	// visit each struct per-syscall (e.g. prio, used resources).
@@ -702,7 +702,7 @@ func foreachTypeImpl(meta *Syscall, preorder bool, f func(t Type, ctx TypeCtx)) 
 	var rec func(*Type, Dir)
 	rec = func(ptr *Type, dir Dir) {
 		if preorder {
-			f(*ptr, TypeCtx{Meta: meta, Dir: dir, Ptr: ptr})
+			f(*ptr, &TypeCtx{Meta: meta, Dir: dir, Ptr: ptr})
 		}
 		switch a := (*ptr).(type) {
 		case *PtrType:
@@ -733,7 +733,7 @@ func foreachTypeImpl(meta *Syscall, preorder bool, f func(t Type, ctx TypeCtx)) 
 			panic("unknown type")
 		}
 		if !preorder {
-			f(*ptr, TypeCtx{Meta: meta, Dir: dir, Ptr: ptr})
+			f(*ptr, &TypeCtx{Meta: meta, Dir: dir, Ptr: ptr})
 		}
 	}
 	for i := range meta.Args {
