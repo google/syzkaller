@@ -676,6 +676,7 @@ type TypeCtx struct {
 	Meta *Syscall
 	Dir  Dir
 	Ptr  *Type
+	Stop bool // If set by the callback, subtypes of this type are not visited.
 }
 
 func ForeachType(syscalls []*Syscall, f func(t Type, ctx *TypeCtx)) {
@@ -701,8 +702,12 @@ func foreachTypeImpl(meta *Syscall, preorder bool, f func(t Type, ctx *TypeCtx))
 	seen := make(map[Type]bool)
 	var rec func(*Type, Dir)
 	rec = func(ptr *Type, dir Dir) {
+		ctx := &TypeCtx{Meta: meta, Dir: dir, Ptr: ptr}
 		if preorder {
-			f(*ptr, &TypeCtx{Meta: meta, Dir: dir, Ptr: ptr})
+			f(*ptr, ctx)
+			if ctx.Stop {
+				return
+			}
 		}
 		switch a := (*ptr).(type) {
 		case *PtrType:
@@ -733,7 +738,10 @@ func foreachTypeImpl(meta *Syscall, preorder bool, f func(t Type, ctx *TypeCtx))
 			panic("unknown type")
 		}
 		if !preorder {
-			f(*ptr, &TypeCtx{Meta: meta, Dir: dir, Ptr: ptr})
+			f(*ptr, ctx)
+			if ctx.Stop {
+				panic("Stop is set in post-order iteration")
+			}
 		}
 	}
 	for i := range meta.Args {
