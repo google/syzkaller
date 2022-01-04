@@ -19,9 +19,9 @@ import (
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/html"
 	"golang.org/x/net/context"
-	"google.golang.org/appengine"
-	"google.golang.org/appengine/log"
-	aemail "google.golang.org/appengine/mail"
+	"google.golang.org/appengine/v2"
+	"google.golang.org/appengine/v2/log"
+	aemail "google.golang.org/appengine/v2/mail"
 )
 
 // Email reporting interface.

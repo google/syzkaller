@@ -3,6 +3,7 @@
 package grpc_lb_v1
 
 import (
+	context "context"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -10,64 +11,123 @@ import (
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
+// Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// LoadBalancerService is the service API for LoadBalancer service.
-// Fields should be assigned to their respective handler implementations only before
-// RegisterLoadBalancerService is called.  Any unassigned fields will result in the
-// handler for that method returning an Unimplemented error.
-type LoadBalancerService struct {
+// LoadBalancerClient is the client API for LoadBalancer service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type LoadBalancerClient interface {
 	// Bidirectional rpc to get a list of servers.
-	BalanceLoad func(LoadBalancer_BalanceLoadServer) error
+	BalanceLoad(ctx context.Context, opts ...grpc.CallOption) (LoadBalancer_BalanceLoadClient, error)
 }
 
-func (s *LoadBalancerService) balanceLoad(_ interface{}, stream grpc.ServerStream) error {
-	if s.BalanceLoad == nil {
-		return status.Errorf(codes.Unimplemented, "method BalanceLoad not implemented")
+type loadBalancerClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewLoadBalancerClient(cc grpc.ClientConnInterface) LoadBalancerClient {
+	return &loadBalancerClient{cc}
+}
+
+func (c *loadBalancerClient) BalanceLoad(ctx context.Context, opts ...grpc.CallOption) (LoadBalancer_BalanceLoadClient, error) {
+	stream, err := c.cc.NewStream(ctx, &LoadBalancer_ServiceDesc.Streams[0], "/grpc.lb.v1.LoadBalancer/BalanceLoad", opts...)
+	if err != nil {
+		return nil, err
 	}
-	return s.BalanceLoad(&loadBalancerBalanceLoadServer{stream})
+	x := &loadBalancerBalanceLoadClient{stream}
+	return x, nil
 }
 
-// RegisterLoadBalancerService registers a service implementation with a gRPC server.
-func RegisterLoadBalancerService(s grpc.ServiceRegistrar, srv *LoadBalancerService) {
-	sd := grpc.ServiceDesc{
-		ServiceName: "grpc.lb.v1.LoadBalancer",
-		Methods:     []grpc.MethodDesc{},
-		Streams: []grpc.StreamDesc{
-			{
-				StreamName:    "BalanceLoad",
-				Handler:       srv.balanceLoad,
-				ServerStreams: true,
-				ClientStreams: true,
-			},
-		},
-		Metadata: "grpc/lb/v1/load_balancer.proto",
+type LoadBalancer_BalanceLoadClient interface {
+	Send(*LoadBalanceRequest) error
+	Recv() (*LoadBalanceResponse, error)
+	grpc.ClientStream
+}
+
+type loadBalancerBalanceLoadClient struct {
+	grpc.ClientStream
+}
+
+func (x *loadBalancerBalanceLoadClient) Send(m *LoadBalanceRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *loadBalancerBalanceLoadClient) Recv() (*LoadBalanceResponse, error) {
+	m := new(LoadBalanceResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
 	}
-
-	s.RegisterService(&sd, nil)
+	return m, nil
 }
 
-// NewLoadBalancerService creates a new LoadBalancerService containing the
-// implemented methods of the LoadBalancer service in s.  Any unimplemented
-// methods will result in the gRPC server returning an UNIMPLEMENTED status to the client.
-// This includes situations where the method handler is misspelled or has the wrong
-// signature.  For this reason, this function should be used with great care and
-// is not recommended to be used by most users.
-func NewLoadBalancerService(s interface{}) *LoadBalancerService {
-	ns := &LoadBalancerService{}
-	if h, ok := s.(interface {
-		BalanceLoad(LoadBalancer_BalanceLoadServer) error
-	}); ok {
-		ns.BalanceLoad = h.BalanceLoad
-	}
-	return ns
-}
-
-// UnstableLoadBalancerService is the service API for LoadBalancer service.
-// New methods may be added to this interface if they are added to the service
-// definition, which is not a backward-compatible change.  For this reason,
-// use of this type is not recommended.
-type UnstableLoadBalancerService interface {
+// LoadBalancerServer is the server API for LoadBalancer service.
+// All implementations should embed UnimplementedLoadBalancerServer
+// for forward compatibility
+type LoadBalancerServer interface {
 	// Bidirectional rpc to get a list of servers.
 	BalanceLoad(LoadBalancer_BalanceLoadServer) error
+}
+
+// UnimplementedLoadBalancerServer should be embedded to have forward compatible implementations.
+type UnimplementedLoadBalancerServer struct {
+}
+
+func (UnimplementedLoadBalancerServer) BalanceLoad(LoadBalancer_BalanceLoadServer) error {
+	return status.Errorf(codes.Unimplemented, "method BalanceLoad not implemented")
+}
+
+// UnsafeLoadBalancerServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to LoadBalancerServer will
+// result in compilation errors.
+type UnsafeLoadBalancerServer interface {
+	mustEmbedUnimplementedLoadBalancerServer()
+}
+
+func RegisterLoadBalancerServer(s grpc.ServiceRegistrar, srv LoadBalancerServer) {
+	s.RegisterService(&LoadBalancer_ServiceDesc, srv)
+}
+
+func _LoadBalancer_BalanceLoad_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(LoadBalancerServer).BalanceLoad(&loadBalancerBalanceLoadServer{stream})
+}
+
+type LoadBalancer_BalanceLoadServer interface {
+	Send(*LoadBalanceResponse) error
+	Recv() (*LoadBalanceRequest, error)
+	grpc.ServerStream
+}
+
+type loadBalancerBalanceLoadServer struct {
+	grpc.ServerStream
+}
+
+func (x *loadBalancerBalanceLoadServer) Send(m *LoadBalanceResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *loadBalancerBalanceLoadServer) Recv() (*LoadBalanceRequest, error) {
+	m := new(LoadBalanceRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// LoadBalancer_ServiceDesc is the grpc.ServiceDesc for LoadBalancer service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var LoadBalancer_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "grpc.lb.v1.LoadBalancer",
+	HandlerType: (*LoadBalancerServer)(nil),
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "BalanceLoad",
+			Handler:       _LoadBalancer_BalanceLoad_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+	},
+	Metadata: "grpc/lb/v1/load_balancer.proto",
 }

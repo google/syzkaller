@@ -17,8 +17,8 @@ import (
 	"github.com/google/syzkaller/pkg/html"
 	"github.com/google/syzkaller/sys/targets"
 	"golang.org/x/net/context"
-	db "google.golang.org/appengine/datastore"
-	"google.golang.org/appengine/log"
+	db "google.golang.org/appengine/v2/datastore"
+	"google.golang.org/appengine/v2/log"
 )
 
 // Backend-independent reporting logic.

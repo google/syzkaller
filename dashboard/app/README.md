@@ -22,7 +22,11 @@ production use.
 The app also needs one or more [syz-ci](/syz-ci/syz-ci.go) instances running elsewhere. The `syz-ci` instances
 do the actual fuzzing, bisection, patch testing, etc.
 
-The app can be deployed with `gcloud app deploy/update`, refer to the docs for more details.
+The app can be deployed with `GO111MODULE=off gcloud beta app deploy ./dashboard/app/app.yaml` command:
+1. GO111MODULE=off is needed to deploy the package, not module.
+2. "beta app" instead of "app" is needed to support the "app_engine_apis: true" flag in yaml file.
+3. [optional flag] "--no-promote" let you to test the app firs and migrate the traffic to it later.
+4. [optional flag] "--verbosity=info" let you to see what files are going to be deployed.
 
 The app tests can be run with:
 ```

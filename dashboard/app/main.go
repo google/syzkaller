@@ -8,19 +8,26 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"cloud.google.com/go/logging"
+	"cloud.google.com/go/logging/logadmin"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/html"
 	"github.com/google/syzkaller/pkg/vcs"
 	"golang.org/x/net/context"
-	db "google.golang.org/appengine/datastore"
-	"google.golang.org/appengine/log"
-	"google.golang.org/appengine/memcache"
+	"google.golang.org/api/iterator"
+	"google.golang.org/appengine/v2"
+	db "google.golang.org/appengine/v2/datastore"
+	"google.golang.org/appengine/v2/log"
+	"google.golang.org/appengine/v2/memcache"
+	proto "google.golang.org/genproto/googleapis/appengine/logging/v1"
+	ltype "google.golang.org/genproto/googleapis/logging/type"
 )
 
 // This file contains web UI http handlers.
@@ -1230,47 +1237,70 @@ func makeUIJob(job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *
 }
 
 func fetchErrorLogs(c context.Context) ([]byte, error) {
-	const (
-		minLogLevel  = 3
-		maxLines     = 100
-		maxLineLen   = 1000
-		reportPeriod = 7 * 24 * time.Hour
-	)
-	q := &log.Query{
-		StartTime:     time.Now().Add(-reportPeriod),
-		AppLogs:       true,
-		ApplyMinLevel: true,
-		MinLevel:      minLogLevel,
+	if !appengine.IsAppEngine() {
+		return nil, nil
 	}
-	result := q.Run(c)
-	var lines []string
-	for i := 0; i < maxLines; i++ {
-		rec, err := result.Next()
-		if rec == nil {
+
+	const (
+		maxLines   = 100
+		maxLineLen = 1000
+	)
+
+	projID := os.Getenv("GOOGLE_CLOUD_PROJECT")
+
+	adminClient, err := logadmin.NewClient(c, projID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create the logging client: %v", err)
+	}
+	defer adminClient.Close()
+
+	const name = "appengine.googleapis.com%2Frequest_log"
+
+	lastWeek := time.Now().Add(-1 * 7 * 24 * time.Hour).Format(time.RFC3339)
+	iter := adminClient.Entries(c,
+		logadmin.Filter(
+			fmt.Sprintf(`logName = "projects/%s/logs/%s" AND timestamp > "%s" AND severity>="ERROR"`,
+				projID, name, lastWeek)),
+		logadmin.NewestFirst(),
+	)
+
+	var entries []*logging.Entry
+	for len(entries) < maxLines {
+		entry, err := iter.Next()
+		if err == iterator.Done {
 			break
 		}
 		if err != nil {
-			entry := fmt.Sprintf("ERROR FETCHING LOGS: %v\n", err)
-			lines = append(lines, entry)
-			break
+			return nil, err
 		}
-		for _, al := range rec.AppLogs {
-			if al.Level < minLogLevel {
+		entries = append(entries, entry)
+	}
+
+	var lines []string
+	for _, entry := range entries {
+		requestLog := entry.Payload.(*proto.RequestLog)
+		for _, logLine := range requestLog.Line {
+			if logLine.GetSeverity() < ltype.LogSeverity_ERROR {
 				continue
 			}
-			text := strings.Replace(al.Message, "\n", " ", -1)
-			text = strings.Replace(text, "\r", "", -1)
-			if len(text) > maxLineLen {
-				text = text[:maxLineLen]
+			line := fmt.Sprintf("%v: %v %v %v \"%v\"",
+				entry.Timestamp.Format(time.Stamp),
+				requestLog.GetStatus(),
+				requestLog.GetMethod(),
+				requestLog.GetResource(),
+				logLine.GetLogMessage())
+
+			line = strings.Replace(line, "\n", " ", -1)
+			line = strings.Replace(line, "\r", "", -1)
+			if len(line) > maxLineLen {
+				line = line[:maxLineLen]
 			}
-			res := ""
-			if !strings.Contains(rec.Resource, "method=log_error") {
-				res = fmt.Sprintf(" (%v)", rec.Resource)
-			}
-			entry := fmt.Sprintf("%v: %v%v\n", al.Time.Format("Jan 02 15:04"), text, res)
-			lines = append(lines, entry)
+
+			line = line + "\n"
+			lines = append(lines, line)
 		}
 	}
+
 	buf := new(bytes.Buffer)
 	for i := len(lines) - 1; i >= 0; i-- {
 		buf.WriteString(lines[i])

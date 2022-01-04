@@ -25,11 +25,11 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"golang.org/x/net/context"
-	"google.golang.org/appengine"
-	"google.golang.org/appengine/aetest"
-	db "google.golang.org/appengine/datastore"
-	aemail "google.golang.org/appengine/mail"
-	"google.golang.org/appengine/user"
+	"google.golang.org/appengine/v2"
+	"google.golang.org/appengine/v2/aetest"
+	db "google.golang.org/appengine/v2/datastore"
+	aemail "google.golang.org/appengine/v2/mail"
+	"google.golang.org/appengine/v2/user"
 )
 
 type Ctx struct {

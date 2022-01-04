@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"golang.org/x/net/context"
-	db "google.golang.org/appengine/datastore"
+	db "google.golang.org/appengine/v2/datastore"
 )
 
 type uiKernelHealthPage struct {

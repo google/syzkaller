@@ -1,7 +1,8 @@
 # Copyright 2017 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-runtime: go111
+runtime: go116
+app_engine_apis: true
 
 # With the default f1 setting, the app episodically crashes with:
 # Exceeded soft memory limit of 256 MB with 264 MB after servicing 25 requests total.

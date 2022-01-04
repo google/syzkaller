@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"golang.org/x/net/context"
-	"google.golang.org/appengine/log"
+	"google.golang.org/appengine/v2/log"
 )
 
 // Interface with external reporting systems.
