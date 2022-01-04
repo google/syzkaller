@@ -184,10 +184,10 @@ resource r112[int8]		### resource r112 can't be created (never mentioned as a sy
 resource r113[int8]
 resource r114[int8]
 resource r115[int8]		### resource r115 can't be created (never mentioned as a syscall return value or output argument/field)
-resource r116[int8]		### resource r116 is never used as an input(such resources are not useful)
-resource r117[int8]		### resource r117 is never used as an input(such resources are not useful)
-resource r118[int8]		### resource r118 is never used as an input(such resources are not useful)
-resource r119[int8]		### resource r119 is never used as an input(such resources are not useful)
+resource r116[int8]		### resource r116 is never used as an input (such resources are not useful)
+resource r117[int8]		### resource r117 is never used as an input (such resources are not useful)
+resource r118[int8]		### resource r118 is never used as an input (such resources are not useful)
+resource r119[int8]		### resource r119 is never used as an input (such resources are not useful)
 resource r120[int8]		### resource r120 can't be created (never mentioned as a syscall return value or output argument/field)
 
 foo$300(a0 r100, a1 r101, a2 r102, a3 r103, a4 r104, a5 r105, a6 r106, a7 r107, a8 r108)
