@@ -4,6 +4,7 @@
 package prog
 
 import (
+	"math/rand"
 	"strings"
 	"testing"
 
@@ -113,5 +114,52 @@ func TestClockGettime(t *testing.T) {
 	if len(trans)+10 > len(calls) || len(trans)+len(disabled) != len(calls) || len(trans) == 0 {
 		t.Fatalf("clock_gettime did not disable enough calls: before %v, after %v, disabled %v",
 			len(calls), len(trans), len(disabled))
+	}
+}
+
+func TestCreateResourceRotation(t *testing.T) {
+	target, rs, _ := initTest(t)
+	allCalls := make(map[*Syscall]bool)
+	for _, call := range target.Syscalls {
+		allCalls[call] = true
+	}
+	rotator := MakeRotator(target, allCalls, rand.New(rs))
+	testCreateResource(t, target, rotator.Select(), rs)
+}
+
+func TestCreateResourceHalf(t *testing.T) {
+	target, rs, _ := initTest(t)
+	r := rand.New(rs)
+	var halfCalls map[*Syscall]bool
+	for len(halfCalls) == 0 {
+		halfCalls = make(map[*Syscall]bool)
+		for _, call := range target.Syscalls {
+			if r.Intn(10) == 0 {
+				halfCalls[call] = true
+			}
+		}
+		halfCalls, _ = target.TransitivelyEnabledCalls(halfCalls)
+	}
+	testCreateResource(t, target, halfCalls, rs)
+}
+
+func testCreateResource(t *testing.T, target *Target, calls map[*Syscall]bool, rs rand.Source) {
+	r := newRand(target, rs)
+	r.inGenerateResource = true
+	ct := target.BuildChoiceTable(nil, calls)
+	for call := range calls {
+		t.Logf("testing call %v", call.Name)
+		ForeachCallType(call, func(typ Type, ctx *TypeCtx) {
+			if res, ok := typ.(*ResourceType); ok && ctx.Dir != DirOut {
+				s := newState(target, ct, nil)
+				arg, calls := r.createResource(s, res, DirIn)
+				if arg == nil && !res.Optional() {
+					t.Fatalf("failed to create resource %v", res.Name())
+				}
+				if arg != nil && len(calls) == 0 {
+					t.Fatalf("created resource %v, but got no calls", res.Name())
+				}
+			}
+		})
 	}
 }

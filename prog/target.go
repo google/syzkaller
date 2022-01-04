@@ -151,8 +151,6 @@ func (target *Target) initTarget() {
 	for i, c := range target.Syscalls {
 		c.ID = i
 		target.SyscallMap[c.Name] = c
-		c.inputResources = target.getInputResources(c)
-		c.outputResources = target.getOutputResources(c)
 	}
 
 	target.populateResourceCtors()
