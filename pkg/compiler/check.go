@@ -652,7 +652,7 @@ func (comp *compiler) checkConstructors() {
 			}
 			if !inputs[name] {
 				comp.error(n.Pos, "resource %v is never used as an input"+
-					"(such resources are not useful)", name)
+					" (such resources are not useful)", name)
 			}
 		}
 	}
