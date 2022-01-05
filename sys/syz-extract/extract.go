@@ -272,9 +272,6 @@ func archFileList(os, arch string, files []string) (string, []string, []string, 
 			// Not upstream, generated on:
 			// https://chromium.googlesource.com/chromiumos/third_party/kernel d2a8a1eb8b86
 			"dev_bifrost.txt": true,
-			// ION support was removed from kernel.
-			// We plan to leave the descriptions for some time as is and later remove them.
-			"dev_ion.txt": true,
 			// Not upstream, generated on unknown tree.
 			"dev_img_rogue.txt": true,
 		}
