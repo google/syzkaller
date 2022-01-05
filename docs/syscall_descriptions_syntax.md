@@ -129,8 +129,31 @@ structname "{" "\n"
 ```
 
 Fields can have attributes specified in parentheses after the field, independent
-of their type. The only attribute is direction (`in/out/inout`). For the field for
-which it is specified, the direction attributes on the upper levels are overridden.
+of their type. `in/out/inout` attribute specify per-field direction, for example:
+
+```
+foo {
+	field0	const[1, int32]	(in)
+	field1	int32		(inout)
+	field2	fd		(out)
+}
+```
+
+`out_overlay` attribute allows to have separate input and output layouts for the struct.
+Fields before the `out_overlay` field are input, fields starting from `out_overlay` are output.
+Input and output fields overlap in memory (both start from the beginning of the struct in memory).
+For example:
+
+```
+foo {
+	in0	const[1, int32]
+	in1	flags[bar, int8]
+	in2	ptr[in, string]
+	out0	fd	(out_overlay)
+	out1	int32
+}
+```
+
 
 Structs can have attributes specified in square brackets after the struct.
 Attributes are:

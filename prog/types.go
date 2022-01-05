@@ -621,8 +621,9 @@ func (t *PtrType) isDefaultArg(arg Arg) bool {
 
 type StructType struct {
 	TypeCommon
-	Fields    []Field
-	AlignAttr uint64
+	Fields       []Field
+	AlignAttr    uint64
+	OverlayField int // index of the field marked with out_overlay attribute (0 if no attribute)
 }
 
 func (t *StructType) String() string {

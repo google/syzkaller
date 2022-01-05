@@ -236,18 +236,19 @@ func (target *Target) squashResult(arg *ResultArg, elems *[]Arg) {
 }
 
 func (target *Target) squashGroup(arg *GroupArg, elems *[]Arg) {
-	var pad uint64
-	if typ, ok := arg.Type().(*StructType); ok && typ.Varlen() && typ.AlignAttr != 0 {
-		var fieldsSize uint64
-		for _, fld := range arg.Inner {
-			fieldsSize += fld.Size()
-		}
-		if fieldsSize%typ.AlignAttr != 0 {
-			pad = typ.AlignAttr - fieldsSize%typ.AlignAttr
-		}
+	overlayField := 0
+	if typ, ok := arg.Type().(*StructType); ok {
+		overlayField = typ.OverlayField
 	}
-	var bitfield uint64
-	for _, fld := range arg.Inner {
+	var bitfield, fieldsSize uint64
+	for i, fld := range arg.Inner {
+		if i != 0 && i == overlayField {
+			// We don't squash overlay fields.
+			// Theoretically we could produce a squashed struct with overlay as well,
+			// but it's quite complex to do.
+			break
+		}
+		fieldsSize += fld.Size()
 		// Squash bitfields separately.
 		if fld.Type().IsBitfield() {
 			bfLen := fld.Type().BitfieldLength()
@@ -271,7 +272,8 @@ func (target *Target) squashGroup(arg *GroupArg, elems *[]Arg) {
 		}
 		target.squashPtrImpl(fld, elems)
 	}
-	if pad != 0 {
+	// Add padding either due to dynamic alignment or overlay fields.
+	if pad := arg.Size() - fieldsSize; pad != 0 {
 		elem := target.ensureDataElem(elems)
 		elem.data = append(elem.Data(), make([]byte, pad)...)
 	}

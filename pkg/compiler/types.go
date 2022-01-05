@@ -19,6 +19,7 @@ type typeDesc struct {
 	Names        []string
 	CanBeTypedef bool       // can be type alias target?
 	CantBeOpt    bool       // can't be marked as opt?
+	CantBeOut    bool       // can't be used as an explicitly output argument
 	NeedBase     bool       // needs base type when used as field?
 	MaxColon     int        // max number of colons (int8:2) on fields
 	OptArgs      int        // number of optional arguments in Args array
@@ -164,6 +165,7 @@ func getIntAlignment(comp *compiler, base prog.IntTypeCommon) uint64 {
 var typePtr = &typeDesc{
 	Names:        []string{"ptr", "ptr64"},
 	CanBeArgRet:  canBeArg,
+	CantBeOut:    true,
 	CanBeTypedef: true,
 	Args:         []namedArg{{Name: "direction", Type: typeArgDir}, {Name: "type", Type: typeArgType}},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
@@ -289,6 +291,7 @@ var typeLen = &typeDesc{
 	Names:       []string{"len", "bytesize", "bytesize2", "bytesize4", "bytesize8", "bitsize", "offsetof"},
 	CanBeArgRet: canBeArg,
 	CantBeOpt:   true,
+	CantBeOut:   true,
 	NeedBase:    true,
 	Args:        []namedArg{{Name: "len target", Type: typeArgLenTarget}},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
@@ -325,6 +328,7 @@ var typeConst = &typeDesc{
 	CanBeArgRet:  canBeArg,
 	CanBeTypedef: true,
 	CantBeOpt:    true,
+	CantBeOut:    true,
 	NeedBase:     true,
 	Args:         []namedArg{{Name: "value", Type: typeArgInt}},
 	CheckConsts: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
@@ -367,6 +371,7 @@ var typeFlags = &typeDesc{
 	CanBeArgRet:  canBeArg,
 	CanBeTypedef: true,
 	CantBeOpt:    true,
+	CantBeOut:    true,
 	NeedBase:     true,
 	Args:         []namedArg{{Name: "flags", Type: typeArgFlags}},
 	CheckConsts: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
@@ -469,6 +474,7 @@ var typeCsum = &typeDesc{
 	Names:     []string{"csum"},
 	NeedBase:  true,
 	CantBeOpt: true,
+	CantBeOut: true,
 	OptArgs:   1,
 	Args: []namedArg{
 		{Name: "csum target", Type: typeArgLenTarget},
@@ -517,6 +523,7 @@ func genCsumKind(t *ast.Type) prog.CsumKind {
 var typeProc = &typeDesc{
 	Names:        []string{"proc"},
 	CanBeArgRet:  canBeArg,
+	CantBeOut:    true,
 	CanBeTypedef: true,
 	NeedBase:     true,
 	Args: []namedArg{
@@ -555,6 +562,7 @@ var typeProc = &typeDesc{
 var typeText = &typeDesc{
 	Names:     []string{"text"},
 	CantBeOpt: true,
+	CantBeOut: true,
 	Args:      []namedArg{{Name: "kind", Type: typeArgTextType}},
 	Varlen: func(comp *compiler, t *ast.Type, args []*ast.Type) bool {
 		return true
@@ -754,6 +762,7 @@ var typeFmt = &typeDesc{
 	Names:        []string{"fmt"},
 	CanBeTypedef: true,
 	CantBeOpt:    true,
+	CantBeOut:    true,
 	Args: []namedArg{
 		{Name: "format", Type: typeFmtFormat},
 		{Name: "value", Type: typeArgType, IsArg: true},
@@ -908,7 +917,7 @@ func init() {
 		}
 		// Need to cache type in structTypes before generating fields to break recursion.
 		comp.structTypes[t.Ident] = typ
-		fields := comp.genFieldArray(s.Fields, make([]uint64, len(s.Fields)))
+		fields, overlayField := comp.genFieldArray(s.Fields, make([]uint64, len(s.Fields)))
 		switch typ1 := typ.(type) {
 		case *prog.UnionType:
 			typ1.Fields = fields
@@ -919,6 +928,9 @@ func init() {
 			}
 		case *prog.StructType:
 			typ1.Fields = fields
+			if overlayField >= 0 {
+				typ1.OverlayField = overlayField
+			}
 			attrs := comp.parseAttrs(structAttrs, s, s.Attrs)
 			if align := attrs[attrAlign]; align != 0 {
 				typ1.TypeAlign = align
