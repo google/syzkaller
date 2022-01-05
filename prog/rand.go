@@ -417,8 +417,8 @@ func (r *randGen) createResource(s *state, res *ResourceType, dir Dir) (arg Arg,
 	for _, meta := range metas {
 		ctors = append(ctors, meta.Name)
 	}
-	panic(fmt.Sprintf("failed to create a resource %v with %v",
-		res.Desc.Kind[0], strings.Join(ctors, ", ")))
+	panic(fmt.Sprintf("failed to create a resource %v (%v) with %v",
+		kind, res.Desc.Kind[0], strings.Join(ctors, ", ")))
 }
 
 func (r *randGen) generateText(kind TextKind) []byte {
