@@ -10,9 +10,9 @@ import (
 
 	"github.com/google/syzkaller/pkg/kcidb"
 	"golang.org/x/net/context"
-	"google.golang.org/appengine"
-	db "google.golang.org/appengine/datastore"
-	"google.golang.org/appengine/log"
+	"google.golang.org/appengine/v2"
+	db "google.golang.org/appengine/v2/datastore"
+	"google.golang.org/appengine/v2/log"
 )
 
 func initKcidb() {

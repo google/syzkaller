@@ -15,9 +15,9 @@ import (
 
 	"github.com/google/syzkaller/pkg/html"
 	"golang.org/x/net/context"
-	"google.golang.org/appengine"
-	"google.golang.org/appengine/log"
-	"google.golang.org/appengine/user"
+	"google.golang.org/appengine/v2"
+	"google.golang.org/appengine/v2/log"
+	"google.golang.org/appengine/v2/user"
 )
 
 // This file contains common middleware for UI handlers (auth, html templates, etc).

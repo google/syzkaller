@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
-	"google.golang.org/appengine/user"
+	"google.golang.org/appengine/v2/user"
 )
 
 // TestAccessConfig checks that access level were properly assigned throughout the config.

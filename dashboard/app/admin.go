@@ -8,8 +8,8 @@ import (
 	"net/http"
 
 	"golang.org/x/net/context"
-	db "google.golang.org/appengine/datastore"
-	"google.golang.org/appengine/log"
+	db "google.golang.org/appengine/v2/datastore"
+	"google.golang.org/appengine/v2/log"
 )
 
 // dropNamespace drops all entities related to a single namespace.

@@ -12,7 +12,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/hash"
 	"golang.org/x/net/context"
-	db "google.golang.org/appengine/datastore"
+	db "google.golang.org/appengine/v2/datastore"
 )
 
 // This file contains definitions of entities stored in datastore.
