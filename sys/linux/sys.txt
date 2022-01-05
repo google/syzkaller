@@ -621,7 +621,6 @@ openat$hpet(fd const[AT_FDCWD], file ptr[in, string["/dev/hpet"]], flags flags[o
 openat$autofs(fd const[AT_FDCWD], file ptr[in, string["/dev/autofs"]], flags flags[open_flags], mode const[0]) fd_autofs
 openat$keychord(fd const[AT_FDCWD], file ptr[in, string["/dev/keychord"]], flags flags[open_flags], mode const[0]) fd
 openat$zygote(fd const[AT_FDCWD], file ptr[in, string["/dev/socket/zygote"]], flags flags[open_flags], mode const[0]) fd
-openat$sw_sync(fd const[AT_FDCWD], file ptr[in, string["/dev/sw_sync"]], flags flags[open_flags], mode const[0]) fd
 openat$pktcdvd(fd const[AT_FDCWD], file ptr[in, string["/dev/pktcdvd/control"]], flags flags[open_flags], mode const[0]) fd
 openat$lightnvm(fd const[AT_FDCWD], file ptr[in, string["/dev/lightnvm/control"]], flags flags[open_flags], mode const[0]) fd
 openat$xenevtchn(fd const[AT_FDCWD], file ptr[in, string["/dev/xen/evtchn"]], flags flags[open_flags], mode const[0]) fd
