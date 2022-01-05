@@ -223,12 +223,21 @@ func (arg *GroupArg) Size() uint64 {
 	}
 	switch typ := typ0.(type) {
 	case *StructType:
-		var size uint64
-		for _, fld := range arg.Inner {
-			size += fld.Size()
-		}
-		if typ.AlignAttr != 0 && size%typ.AlignAttr != 0 {
-			size += typ.AlignAttr - size%typ.AlignAttr
+		var size, offset uint64
+		for i, fld := range arg.Inner {
+			if i == typ.OverlayField {
+				offset = 0
+			}
+			offset += fld.Size()
+			// Add dynamic alignment at the end and before the overlay part.
+			if i+1 == len(arg.Inner) || i+1 == typ.OverlayField {
+				if typ.AlignAttr != 0 && offset%typ.AlignAttr != 0 {
+					offset += typ.AlignAttr - offset%typ.AlignAttr
+				}
+			}
+			if size < offset {
+				size = offset
+			}
 		}
 		return size
 	case *ArrayType:

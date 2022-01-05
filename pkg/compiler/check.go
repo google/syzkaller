@@ -182,12 +182,32 @@ func (comp *compiler) checkStructFields(n *ast.Struct, typ, name string) {
 	if len(n.Fields) < 1 {
 		comp.error(n.Pos, "%v %v has no fields, need at least 1 field", typ, name)
 	}
-	for _, f := range n.Fields {
+	hasDirections, hasOutOverlay := false, false
+	for fieldIdx, f := range n.Fields {
 		attrs := comp.parseAttrs(fieldAttrs, f, f.Attrs)
-
-		if attrs[attrIn]+attrs[attrOut]+attrs[attrInOut] > 1 {
+		dirCount := attrs[attrIn] + attrs[attrOut] + attrs[attrInOut]
+		if dirCount != 0 {
+			hasDirections = true
+		}
+		if dirCount > 1 {
 			_, typ, _ := f.Info()
 			comp.error(f.Pos, "%v has multiple direction attributes", typ)
+		}
+		if attrs[attrOutOverlay] > 0 {
+			if n.IsUnion {
+				_, typ, name := f.Info()
+				comp.error(f.Pos, "unknown %v %v attribute %v", typ, name, attrOutOverlay.Name)
+			}
+			if fieldIdx == 0 {
+				comp.error(f.Pos, "%v attribute must not be specified on the first field", attrOutOverlay.Name)
+			}
+			if hasOutOverlay || attrs[attrOutOverlay] > 1 {
+				comp.error(f.Pos, "multiple %v attributes", attrOutOverlay.Name)
+			}
+			hasOutOverlay = true
+		}
+		if hasDirections && hasOutOverlay {
+			comp.error(f.Pos, "mix of direction and %v attributes is not supported", attrOutOverlay.Name)
 		}
 	}
 }
@@ -301,12 +321,22 @@ func (comp *compiler) checkAttributeValues() {
 			}
 			// Check each field's attributes.
 			st := decl.(*ast.Struct)
+			hasOutOverlay := false
 			for _, f := range st.Fields {
+				isOut := hasOutOverlay
 				for _, attr := range f.Attrs {
 					desc := fieldAttrs[attr.Ident]
 					if desc.CheckConsts != nil {
 						desc.CheckConsts(comp, f, attr)
 					}
+					switch attr.Ident {
+					case attrOutOverlay.Name:
+						hasOutOverlay = true
+						isOut = true
+					}
+				}
+				if isOut && comp.getTypeDesc(f.Type).CantBeOut {
+					comp.error(f.Pos, "%v type must not be used as output", f.Type.Ident)
 				}
 			}
 		}

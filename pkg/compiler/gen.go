@@ -66,7 +66,7 @@ func (comp *compiler) collectCallArgSizes() map[string][]uint64 {
 				argSizes = append(argSizes, comp.ptrSize)
 			}
 			desc, _, _ := comp.getArgsBase(arg.Type, true)
-			typ := comp.genField(arg, comp.ptrSize)
+			typ := comp.genField(arg, comp.ptrSize, prog.DirInOut)
 			// Ignore all types with base (const, flags). We don't have base in syscall args.
 			// Also ignore resources and pointers because fd can be 32-bits and pointer 64-bits,
 			// and then there is no way to fix this.
@@ -124,12 +124,13 @@ func (comp *compiler) genSyscall(n *ast.Call, argSizes []uint64) *prog.Syscall {
 			fld.SetBool(val != 0)
 		}
 	}
+	fields, _ := comp.genFieldArray(n.Args, argSizes)
 	return &prog.Syscall{
 		Name:        n.Name.Name,
 		CallName:    n.CallName,
 		NR:          n.NR,
 		MissingArgs: len(argSizes) - len(n.Args),
-		Args:        comp.genFieldArray(n.Args, argSizes),
+		Args:        fields,
 		Ret:         ret,
 		Attrs:       attrs,
 	}
@@ -271,8 +272,15 @@ func (comp *compiler) layoutStruct(t *prog.StructType) {
 	comp.layoutStructFields(t, varlen, attrs[attrPacked] != 0)
 	t.TypeSize = 0
 	if !varlen {
-		for _, f := range t.Fields {
-			t.TypeSize += f.Size()
+		var size uint64
+		for i, f := range t.Fields {
+			if i == t.OverlayField {
+				size = 0
+			}
+			size += f.Size()
+			if t.TypeSize < size {
+				t.TypeSize = size
+			}
 		}
 		sizeAttr, hasSize := attrs[attrSize]
 		if hasSize {
@@ -291,9 +299,17 @@ func (comp *compiler) layoutStruct(t *prog.StructType) {
 
 func (comp *compiler) layoutStructFields(t *prog.StructType, varlen, packed bool) {
 	var newFields []prog.Field
+	overlayField0 := t.OverlayField
 	var structAlign, byteOffset, bitOffset uint64
 	for i, field := range t.Fields {
 		f := field.Type
+		if i == overlayField0 {
+			// We layout fields before overlay and the overlay fields effectively as 2 independent structs.
+			// So if we starting overlay, add any trailign padding/finalize bitfield layout and reset state.
+			newFields = comp.finalizeStructFields(t, newFields, varlen, structAlign, byteOffset, bitOffset)
+			t.OverlayField = len(newFields) // update overlay field index after we added paddings
+			structAlign, byteOffset, bitOffset = 0, 0, 0
+		}
 		fieldAlign := uint64(1)
 		if !packed {
 			fieldAlign = f.Alignment()
@@ -367,9 +383,9 @@ func (comp *compiler) finalizeStructFields(t *prog.StructType, fields []prog.Fie
 	if bitOffset != 0 {
 		pad := roundup(bitOffset, 8) / 8
 		byteOffset += pad
-		i := len(t.Fields)
-		if i != 0 && t.Fields[i-1].IsBitfield() {
-			setBitfieldTypeSize(t.Fields[i-1].Type, pad)
+		i := len(fields)
+		if i != 0 && fields[i-1].IsBitfield() {
+			setBitfieldTypeSize(fields[i-1].Type, pad)
 		} else {
 			fields = append(fields, genPad(pad))
 		}
@@ -437,12 +453,26 @@ func genPad(size uint64) prog.Field {
 	}
 }
 
-func (comp *compiler) genFieldArray(fields []*ast.Field, argSizes []uint64) []prog.Field {
+func (comp *compiler) genFieldArray(fields []*ast.Field, argSizes []uint64) ([]prog.Field, int) {
+	outOverlay := -1
+	for i, f := range fields {
+		attrs := comp.parseAttrs(fieldAttrs, f, f.Attrs)
+		if attrs[attrOutOverlay] > 0 {
+			outOverlay = i
+		}
+	}
 	var res []prog.Field
 	for i, f := range fields {
-		res = append(res, comp.genField(f, argSizes[i]))
+		overlayDir := prog.DirInOut
+		if outOverlay != -1 {
+			overlayDir = prog.DirIn
+			if i >= outOverlay {
+				overlayDir = prog.DirOut
+			}
+		}
+		res = append(res, comp.genField(f, argSizes[i], overlayDir))
 	}
-	return res
+	return res, outOverlay
 }
 
 func (comp *compiler) genFieldDir(f *ast.Field) (prog.Dir, bool) {
@@ -459,8 +489,11 @@ func (comp *compiler) genFieldDir(f *ast.Field) (prog.Dir, bool) {
 	}
 }
 
-func (comp *compiler) genField(f *ast.Field, argSize uint64) prog.Field {
-	dir, hasDir := comp.genFieldDir(f)
+func (comp *compiler) genField(f *ast.Field, argSize uint64, overlayDir prog.Dir) prog.Field {
+	dir, hasDir := overlayDir, true
+	if overlayDir == prog.DirInOut {
+		dir, hasDir = comp.genFieldDir(f)
+	}
 
 	return prog.Field{
 		Name:         f.Name.Name,

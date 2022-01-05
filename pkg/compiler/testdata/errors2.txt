@@ -386,3 +386,15 @@ s405 {
 	f3	int64:16[-65541:-10]	### int range [18446744073709486075:18446744073709551606] is too large for base type of size 16
 	f4	int16:8[-255:0]		### int range [18446744073709551361:0] is too large for base type of size 8
 }
+
+# Field attributes.
+
+foo$overlay(a ptr[in, struct$overlay0])
+
+struct$overlay0 {
+	f0	int32
+	f1	const[0, int32]	(out_overlay)	### const type must not be used as output
+	f2	ptr[in, int32]			### ptr type must not be used as output
+	f3	proc[0, 1, int32]		### proc type must not be used as output
+	f4	bytesize[f1, int32]		### bytesize type must not be used as output
+}

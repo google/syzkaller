@@ -15,7 +15,7 @@ const (
 )
 
 func (target *Target) assignSizes(args []Arg, fields []Field, parentsMap map[Arg]Arg,
-	syscallArgs []Arg, syscallFields []Field, autos map[Arg]bool) {
+	syscallArgs []Arg, syscallFields []Field, autos map[Arg]bool, overlayField int) {
 	for _, arg := range args {
 		if arg = InnerArg(arg); arg == nil {
 			continue // Pointer to optional len field, no need to fill in value.
@@ -32,9 +32,9 @@ func (target *Target) assignSizes(args []Arg, fields []Field, parentsMap map[Arg
 		}
 		a := arg.(*ConstArg)
 		if typ.Path[0] == SyscallRef {
-			target.assignSize(a, nil, typ.Path[1:], syscallArgs, syscallFields, parentsMap)
+			target.assignSize(a, nil, typ.Path[1:], syscallArgs, syscallFields, parentsMap, 0)
 		} else {
-			target.assignSize(a, a, typ.Path, args, fields, parentsMap)
+			target.assignSize(a, a, typ.Path, args, fields, parentsMap, overlayField)
 		}
 	}
 }
@@ -42,15 +42,18 @@ func (target *Target) assignSizes(args []Arg, fields []Field, parentsMap map[Arg
 func (target *Target) assignSizeStruct(dst *ConstArg, buf Arg, path []string, parentsMap map[Arg]Arg) {
 	arg := buf.(*GroupArg)
 	typ := arg.Type().(*StructType)
-	target.assignSize(dst, buf, path, arg.Inner, typ.Fields, parentsMap)
+	target.assignSize(dst, buf, path, arg.Inner, typ.Fields, parentsMap, typ.OverlayField)
 }
 
 func (target *Target) assignSize(dst *ConstArg, pos Arg, path []string, args []Arg,
-	fields []Field, parentsMap map[Arg]Arg) {
+	fields []Field, parentsMap map[Arg]Arg, overlayField int) {
 	elem := path[0]
 	path = path[1:]
 	var offset uint64
 	for i, buf := range args {
+		if i == overlayField {
+			offset = 0
+		}
 		if elem != fields[i].Name {
 			offset += buf.Size()
 			continue
@@ -140,11 +143,11 @@ func (target *Target) assignSizesArray(args []Arg, fields []Field, autos map[Arg
 			}
 		})
 	}
-	target.assignSizes(args, fields, parentsMap, args, fields, autos)
+	target.assignSizes(args, fields, parentsMap, args, fields, autos, 0)
 	for _, arg := range args {
 		ForeachSubArg(arg, func(arg Arg, _ *ArgCtx) {
 			if typ, ok := arg.Type().(*StructType); ok {
-				target.assignSizes(arg.(*GroupArg).Inner, typ.Fields, parentsMap, args, fields, autos)
+				target.assignSizes(arg.(*GroupArg).Inner, typ.Fields, parentsMap, args, fields, autos, typ.OverlayField)
 			}
 		})
 	}
