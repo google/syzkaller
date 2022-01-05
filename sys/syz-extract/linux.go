@@ -65,6 +65,7 @@ func (*linux) prepareArch(arch *Arch) error {
 		"asm/a.out.h":    "",
 		"asm/prctl.h":    "",
 		"asm/mce.h":      "",
+		"asm/msr.h":      "",
 		"uapi/asm/msr.h": "",
 	} {
 		fullPath := filepath.Join(arch.buildDir, "syzkaller", hdr)
