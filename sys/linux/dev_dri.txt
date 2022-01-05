@@ -359,16 +359,18 @@ drm_mode_atomic {
 
 drm_mode_atomic_flags = DRM_MODE_PAGE_FLIP_EVENT, DRM_MODE_ATOMIC_TEST_ONLY, DRM_MODE_ATOMIC_NONBLOCK, DRM_MODE_ATOMIC_ALLOW_MODESET
 
-resource drm_syncobj_fd[fd]
+resource fd_drm_syncobj[fd]
 resource drm_syncobj[int32]
 resource drm_syncpoint[int64]
 
 # See https://www.kernel.org/doc/html/latest/gpu/drm-mm.html#drm-sync-objects
 # for more details
 ioctl$DRM_IOCTL_SYNCOBJ_CREATE(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_CREATE], arg ptr[inout, drm_syncobj_create])
-ioctl$DRM_IOCTL_SYNCOBJ_DESTROY(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_DESTROY], arg ptr[inout, drm_syncobj_destroy])
-ioctl$DRM_IOCTL_SYNCOBJ_HANDLE_TO_FD(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_HANDLE_TO_FD], arg ptr[inout, drm_syncobj_handle])
-ioctl$DRM_IOCTL_SYNCOBJ_FD_TO_HANDLE(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_FD_TO_HANDLE], arg ptr[inout, drm_syncobj_handle])
+ioctl$DRM_IOCTL_SYNCOBJ_DESTROY(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_DESTROY], arg ptr[in, drm_syncobj_destroy])
+ioctl$DRM_IOCTL_SYNCOBJ_HANDLE_TO_FD_SYNC_FILE(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_HANDLE_TO_FD], arg ptr[inout, drm_syncobj_handle_to_sync_file])
+ioctl$DRM_IOCTL_SYNCOBJ_HANDLE_TO_FD_FD(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_HANDLE_TO_FD], arg ptr[inout, drm_syncobj_handle_to_fd])
+ioctl$DRM_IOCTL_SYNCOBJ_FD_TO_HANDLE_SYNC_FILE(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_FD_TO_HANDLE], arg ptr[inout, drm_syncobj_handle_from_sync_file])
+ioctl$DRM_IOCTL_SYNCOBJ_FD_TO_HANDLE_FD(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_FD_TO_HANDLE], arg ptr[inout, drm_syncobj_handle_from_fd])
 ioctl$DRM_IOCTL_SYNCOBJ_TRANSFER(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_TRANSFER], arg ptr[inout, drm_syncobj_transfer])
 ioctl$DRM_IOCTL_SYNCOBJ_WAIT(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_WAIT], arg ptr[inout, drm_syncobj_wait])
 ioctl$DRM_IOCTL_SYNCOBJ_TIMELINE_WAIT(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_TIMELINE_WAIT], arg ptr[inout, drm_syncobj_timeline_wait])
@@ -378,8 +380,8 @@ ioctl$DRM_IOCTL_SYNCOBJ_TIMELINE_SIGNAL(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_T
 ioctl$DRM_IOCTL_SYNCOBJ_QUERY(fd fd_dri, cmd const[DRM_IOCTL_SYNCOBJ_QUERY], arg ptr[inout, drm_syncobj_timeline_array])
 
 drm_syncobj_create {
-	handle	drm_syncobj[opt]
-	flags	flags[drm_syncobj_create_flags, int32]
+	handle	drm_syncobj	(out)
+	flags	flags[drm_syncobj_create_flags, int32]	(in)
 }
 
 drm_syncobj_destroy {
@@ -387,11 +389,31 @@ drm_syncobj_destroy {
 	pad	const[0, int32]
 }
 
-drm_syncobj_handle {
-	handle	drm_syncobj[opt]
-	flags	flags[drm_syncobj_handle_flags, int32]
+drm_syncobj_handle_to_sync_file {
+	handle	drm_syncobj	(in)
+	flags	const[DRM_SYNCOBJ_HANDLE_TO_FD_FLAGS_EXPORT_SYNC_FILE, int32]
+	fd	fd_sync_file	(out)
+	pad	const[0, int32]
+}
 
-	fd	drm_syncobj_fd[opt]
+drm_syncobj_handle_to_fd {
+	handle	drm_syncobj	(in)
+	flags	const[0, int32]
+	fd	fd_drm_syncobj	(out)
+	pad	const[0, int32]
+}
+
+drm_syncobj_handle_from_sync_file {
+	handle	drm_syncobj	(out)
+	flags	const[DRM_SYNCOBJ_FD_TO_HANDLE_FLAGS_IMPORT_SYNC_FILE, int32]
+	fd	fd_sync_file	(in)
+	pad	const[0, int32]
+}
+
+drm_syncobj_handle_from_fd {
+	handle	drm_syncobj	(out)
+	flags	const[0, int32]
+	fd	fd_drm_syncobj	(in)
 	pad	const[0, int32]
 }
 
@@ -739,7 +761,5 @@ drm_dma_flags = _DRM_DMA_BLOCK, _DRM_DMA_WHILE_LOCKED, _DRM_DMA_PRIORITY, _DRM_D
 drm_control_type = DRM_ADD_COMMAND, DRM_RM_COMMAND, DRM_INST_HANDLER, DRM_UNINST_HANDLER
 drm_vblank_seq_type = _DRM_VBLANK_ABSOLUTE, _DRM_VBLANK_RELATIVE, _DRM_VBLANK_HIGH_CRTC_MASK, _DRM_VBLANK_EVENT, _DRM_VBLANK_FLIP, _DRM_VBLANK_NEXTONMISS, _DRM_VBLANK_SECONDARY, _DRM_VBLANK_SIGNAL
 drm_syncobj_create_flags = DRM_SYNCOBJ_CREATE_SIGNALED
-# DRM_SYNCOBJ_HANDLE_TO_FD_FLAGS_EXPORT_SYNC_FILE is the same so we just use one
-drm_syncobj_handle_flags = DRM_SYNCOBJ_FD_TO_HANDLE_FLAGS_IMPORT_SYNC_FILE
 drm_syncobj_wait_flags = DRM_SYNCOBJ_WAIT_FLAGS_WAIT_ALL, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_FOR_SUBMIT, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE
 drm_syncobj_query_flags = DRM_SYNCOBJ_QUERY_FLAGS_LAST_SUBMITTED
