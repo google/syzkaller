@@ -151,7 +151,7 @@ fscrypt_key_specifier__by_identifier {
 # 'fscrypt_add_key_arg::key_spec.identifier' is an output field.  The version of
 # fscrypt_key_specifier below has per-field directions set to represent this.
 fscrypt_key_specifier__for_add_key [
-	desc	fscrypt_key_specifier__by_descriptor	(in)
+	desc	fscrypt_key_specifier__by_descriptor
 	id	fscrypt_key_specifier__by_identifier_for_add_key
 ]
 
