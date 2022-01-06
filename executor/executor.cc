@@ -1279,14 +1279,16 @@ void execute_call(thread_t* th)
 	for (int i = 0; i < th->call_props.rerun; i++)
 		NONFAILING(execute_syscall(call, th->args));
 
-	debug("#%d [%llums] <- %s=0x%llx errno=%d ",
-	      th->id, current_time_ms() - start_time_ms, call->name, (uint64)th->res, th->reserrno);
+	debug("#%d [%llums] <- %s=0x%llx",
+	      th->id, current_time_ms() - start_time_ms, call->name, (uint64)th->res);
+	if (th->res == (intptr_t)-1)
+		debug(" errno=%d", th->reserrno);
 	if (flag_coverage)
-		debug("cover=%u ", th->cov.size);
+		debug(" cover=%u", th->cov.size);
 	if (th->call_props.fail_nth > 0)
-		debug("fault=%d ", th->fault_injected);
+		debug(" fault=%d", th->fault_injected);
 	if (th->call_props.rerun > 0)
-		debug("rerun=%d ", th->call_props.rerun);
+		debug(" rerun=%d", th->call_props.rerun);
 	debug("\n");
 }
 
