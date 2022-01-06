@@ -332,6 +332,8 @@ func (comp *compiler) checkAttributeValues() {
 					switch attr.Ident {
 					case attrOutOverlay.Name:
 						hasOutOverlay = true
+						fallthrough
+					case attrOut.Name, attrInOut.Name:
 						isOut = true
 					}
 				}
