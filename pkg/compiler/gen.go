@@ -360,6 +360,10 @@ func (comp *compiler) layoutStructFields(t *prog.StructType, varlen, packed bool
 			byteOffset += f.Size()
 		}
 	}
+	t.Fields = comp.finalizeStructFields(t, newFields, varlen, structAlign, byteOffset, bitOffset)
+}
+
+func (comp *compiler) finalizeStructFields(t *prog.StructType, fields []prog.Field, varlen bool, structAlign, byteOffset, bitOffset uint64) []prog.Field {
 	if bitOffset != 0 {
 		pad := roundup(bitOffset, 8) / 8
 		byteOffset += pad
@@ -367,7 +371,7 @@ func (comp *compiler) layoutStructFields(t *prog.StructType, varlen, packed bool
 		if i != 0 && t.Fields[i-1].IsBitfield() {
 			setBitfieldTypeSize(t.Fields[i-1].Type, pad)
 		} else {
-			newFields = append(newFields, genPad(pad))
+			fields = append(fields, genPad(pad))
 		}
 	}
 
@@ -376,9 +380,9 @@ func (comp *compiler) layoutStructFields(t *prog.StructType, varlen, packed bool
 	}
 	if !varlen && structAlign != 0 && byteOffset%structAlign != 0 {
 		pad := structAlign - byteOffset%structAlign
-		newFields = append(newFields, genPad(pad))
+		fields = append(fields, genPad(pad))
 	}
-	t.Fields = newFields
+	return fields
 }
 
 func roundup(v, a uint64) uint64 {

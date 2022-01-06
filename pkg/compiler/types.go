@@ -909,25 +909,26 @@ func init() {
 		// Need to cache type in structTypes before generating fields to break recursion.
 		comp.structTypes[t.Ident] = typ
 		fields := comp.genFieldArray(s.Fields, make([]uint64, len(s.Fields)))
-		if s.IsUnion {
-			typ.(*prog.UnionType).Fields = fields
+		switch typ1 := typ.(type) {
+		case *prog.UnionType:
+			typ1.Fields = fields
 			for _, f := range fields {
-				if a := f.Type.Alignment(); typ.(*prog.UnionType).TypeAlign < a {
-					typ.(*prog.UnionType).TypeAlign = a
+				if a := f.Type.Alignment(); typ1.TypeAlign < a {
+					typ1.TypeAlign = a
 				}
 			}
-		} else {
-			typ.(*prog.StructType).Fields = fields
+		case *prog.StructType:
+			typ1.Fields = fields
 			attrs := comp.parseAttrs(structAttrs, s, s.Attrs)
 			if align := attrs[attrAlign]; align != 0 {
-				typ.(*prog.StructType).TypeAlign = align
+				typ1.TypeAlign = align
 			} else if attrs[attrPacked] != 0 {
-				typ.(*prog.StructType).TypeAlign = 1
+				typ1.TypeAlign = 1
 			} else {
 				for _, f := range fields {
 					a := f.Type.Alignment()
-					if typ.(*prog.StructType).TypeAlign < a {
-						typ.(*prog.StructType).TypeAlign = a
+					if typ1.TypeAlign < a {
+						typ1.TypeAlign = a
 					}
 				}
 			}
