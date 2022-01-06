@@ -28,10 +28,10 @@ var (
 	attrInOut      = &attrDesc{Name: "inout"}
 	attrOutOverlay = &attrDesc{Name: "out_overlay"}
 
-	structAttrs = makeAttrs(attrPacked, attrSize, attrAlign)
-	unionAttrs  = makeAttrs(attrVarlen, attrSize)
-	fieldAttrs  = makeAttrs(attrIn, attrOut, attrInOut, attrOutOverlay)
-	callAttrs   = make(map[string]*attrDesc)
+	structAttrs      = makeAttrs(attrPacked, attrSize, attrAlign)
+	unionAttrs       = makeAttrs(attrVarlen, attrSize)
+	structFieldAttrs = makeAttrs(attrIn, attrOut, attrInOut, attrOutOverlay)
+	callAttrs        = make(map[string]*attrDesc)
 )
 
 func init() {

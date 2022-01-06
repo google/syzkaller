@@ -168,11 +168,9 @@ Unions are described as:
 
 ```
 unionname "[" "\n"
-	(fieldname type ("(" fieldattribute* ")")? "\n")+
+	(fieldname type "\n")+
 "]" ("[" attribute* "]")?
 ```
-
-Field attributes are as defined for [structs](#structs).
 
 Unions can have attributes specified in square brackets after the union.
 Attributes are:

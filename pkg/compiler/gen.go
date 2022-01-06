@@ -456,7 +456,7 @@ func genPad(size uint64) prog.Field {
 func (comp *compiler) genFieldArray(fields []*ast.Field, argSizes []uint64) ([]prog.Field, int) {
 	outOverlay := -1
 	for i, f := range fields {
-		attrs := comp.parseAttrs(fieldAttrs, f, f.Attrs)
+		attrs := comp.parseAttrs(structFieldAttrs, f, f.Attrs)
 		if attrs[attrOutOverlay] > 0 {
 			outOverlay = i
 		}
@@ -476,7 +476,7 @@ func (comp *compiler) genFieldArray(fields []*ast.Field, argSizes []uint64) ([]p
 }
 
 func (comp *compiler) genFieldDir(f *ast.Field) (prog.Dir, bool) {
-	attrs := comp.parseAttrs(fieldAttrs, f, f.Attrs)
+	attrs := comp.parseAttrs(structFieldAttrs, f, f.Attrs)
 	switch {
 	case attrs[attrIn] != 0:
 		return prog.DirIn, true
