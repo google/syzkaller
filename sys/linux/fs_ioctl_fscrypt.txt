@@ -180,7 +180,7 @@ fscrypt_add_key_arg {
 
 fscrypt_remove_key_arg {
 	key_spec		fscrypt_key_specifier	(in)
-	removal_status_flags	const[0, int32]	(out)
+	removal_status_flags	int32	(out)
 	reserved		array[const[0, int32], 5]	(in)
 }
 
@@ -188,8 +188,8 @@ fscrypt_get_key_status_arg {
 	key_spec	fscrypt_key_specifier	(in)
 	reserved	array[const[0, int32], 6]	(in)
 
-	status		const[0, int32]	(out)
-	status_flags	const[0, int32]	(out)
-	user_count	const[0, int32]	(out)
+	status		int32	(out)
+	status_flags	int32	(out)
+	user_count	int32	(out)
 	out_reserved	array[const[0, int32], 13]	(out)
 }

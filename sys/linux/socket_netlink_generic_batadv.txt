@@ -33,8 +33,8 @@ sendmsg$BATADV_CMD_SET_VLAN(fd sock_nl_generic, msg ptr[in, msghdr_batadv[BATADV
 resource batadv_mesh_ifindex[ifindex]
 resource batadv_hard_ifindex[ifindex]
 
-ioctl$ifreq_SIOCGIFINDEX_batadv_mesh(fd sock, cmd const[SIOCGIFINDEX], arg ptr[inout, ifreq_dev_t["batadv0", batadv_mesh_ifindex]])
-ioctl$ifreq_SIOCGIFINDEX_batadv_hard(fd sock, cmd const[SIOCGIFINDEX], arg ptr[inout, ifreq_dev_t[batadv_hard_ifindex_names, batadv_hard_ifindex]])
+ioctl$ifreq_SIOCGIFINDEX_batadv_mesh(fd sock, cmd const[SIOCGIFINDEX], arg ptr[out, ifreq_dev_t["batadv0", batadv_mesh_ifindex]])
+ioctl$ifreq_SIOCGIFINDEX_batadv_hard(fd sock, cmd const[SIOCGIFINDEX], arg ptr[out, ifreq_dev_t[batadv_hard_ifindex_names, batadv_hard_ifindex]])
 
 batadv_hard_ifindex_names = "batadv_slave_0", "batadv_slave_1"
 

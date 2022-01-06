@@ -51,7 +51,7 @@ getsockopt$SO_J1939_PROMISC(fd sock_can_j1939, level const[SOL_CAN_J1939], opt c
 getsockopt$SO_J1939_ERRQUEUE(fd sock_can_j1939, level const[SOL_CAN_J1939], opt const[SO_J1939_ERRQUEUE], val ptr[out, int32], len ptr[inout, bytesize[val, int32]])
 getsockopt$SO_J1939_SEND_PRIO(fd sock_can_j1939, level const[SOL_CAN_J1939], opt const[SO_J1939_SEND_PRIO], val ptr[out, int32], len ptr[inout, bytesize[val, int32]])
 
-ioctl$ifreq_SIOCGIFINDEX_vcan(fd sock, cmd const[SIOCGIFINDEX], arg ptr[inout, ifreq_dev_t[vcan_device_names, ifindex_vcan]])
+ioctl$ifreq_SIOCGIFINDEX_vcan(fd sock, cmd const[SIOCGIFINDEX], arg ptr[out, ifreq_dev_t[vcan_device_names, ifindex_vcan]])
 vcan_device_names = "vcan0", "vxcan0", "vxcan1"
 
 sockaddr_can {

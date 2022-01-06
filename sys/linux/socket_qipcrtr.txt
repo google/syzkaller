@@ -52,7 +52,7 @@ getpeername$qrtr(fd sock_qrtr, peer ptr[out, sockaddr_qrtr], peerlen ptr[inout, 
 # ioctls
 ioctl$sock_qrtr_TIOCOUTQ(fd sock_qrtr, cmd const[TIOCOUTQ], arg ptr[out, int64])
 ioctl$sock_qrtr_TIOCINQ(fd sock_qrtr, cmd const[TIOCINQ], arg ptr[out, int64])
-ioctl$sock_qrtr_SIOCGIFADDR(fd sock_qrtr, cmd const[SIOCGIFADDR], arg ptr[inout, ifreq_t[sockaddr_qrtr]])
+ioctl$sock_qrtr_SIOCGIFADDR(fd sock_qrtr, cmd const[SIOCGIFADDR], arg ptr[out, ifreq_t[sockaddr_qrtr]])
 
 # sendmsg, recvmsg, [send|recv]_msghdr
 sendmsg$qrtr(fd sock_qrtr, msg ptr[in, send_msghdr_qrtr], msglen len[msg])

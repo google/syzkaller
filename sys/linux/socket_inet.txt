@@ -151,22 +151,22 @@ ioctl$sock_inet_SIOCDARP(fd sock_in, cmd const[SIOCDARP], arg ptr[in, arpreq_in]
 ioctl$sock_inet_SIOCGARP(fd sock_in, cmd const[SIOCGARP], arg ptr[inout, arpreq_in])
 ioctl$sock_inet_SIOCSARP(fd sock_in, cmd const[SIOCSARP], arg ptr[in, arpreq_in])
 
-ioctl$sock_inet_SIOCGIFADDR(fd sock, cmd const[SIOCGIFADDR], arg ptr[inout, ifreq_t[sockaddr_in]])
-ioctl$sock_inet_SIOCSIFADDR(fd sock, cmd const[SIOCSIFADDR], arg ptr[inout, ifreq_t[sockaddr_in]])
+ioctl$sock_inet_SIOCGIFADDR(fd sock, cmd const[SIOCGIFADDR], arg ptr[out, ifreq_t[sockaddr_in]])
+ioctl$sock_inet_SIOCSIFADDR(fd sock, cmd const[SIOCSIFADDR], arg ptr[in, ifreq_t[sockaddr_in]])
 
-ioctl$sock_inet_SIOCGIFBRDADDR(fd sock, cmd const[SIOCGIFBRDADDR], arg ptr[inout, ifreq_t[sockaddr_in]])
-ioctl$sock_inet_SIOCSIFBRDADDR(fd sock, cmd const[SIOCSIFBRDADDR], arg ptr[inout, ifreq_t[sockaddr_in]])
+ioctl$sock_inet_SIOCGIFBRDADDR(fd sock, cmd const[SIOCGIFBRDADDR], arg ptr[out, ifreq_t[sockaddr_in]])
+ioctl$sock_inet_SIOCSIFBRDADDR(fd sock, cmd const[SIOCSIFBRDADDR], arg ptr[in, ifreq_t[sockaddr_in]])
 
-ioctl$sock_inet_SIOCGIFNETMASK(fd sock, cmd const[SIOCGIFNETMASK], arg ptr[inout, ifreq_t[sockaddr_in]])
+ioctl$sock_inet_SIOCGIFNETMASK(fd sock, cmd const[SIOCGIFNETMASK], arg ptr[out, ifreq_t[sockaddr_in]])
 ioctl$sock_inet_SIOCSIFNETMASK(fd sock, cmd const[SIOCSIFNETMASK], arg ptr[inout, ifreq_t[sockaddr_in]])
 
-ioctl$sock_inet_SIOCGIFDSTADDR(fd sock, cmd const[SIOCGIFDSTADDR], arg ptr[inout, ifreq_t[sockaddr_in]])
-ioctl$sock_inet_SIOCSIFDSTADDR(fd sock, cmd const[SIOCSIFDSTADDR], arg ptr[inout, ifreq_t[sockaddr_in]])
+ioctl$sock_inet_SIOCGIFDSTADDR(fd sock, cmd const[SIOCGIFDSTADDR], arg ptr[out, ifreq_t[sockaddr_in]])
+ioctl$sock_inet_SIOCSIFDSTADDR(fd sock, cmd const[SIOCSIFDSTADDR], arg ptr[in, ifreq_t[sockaddr_in]])
 
-ioctl$sock_inet_SIOCGIFPFLAGS(fd sock, cmd const[SIOCGIFPFLAGS], arg ptr[inout, ifreq_t[int32]])
-ioctl$sock_inet_SIOCSIFPFLAGS(fd sock, cmd const[SIOCSIFPFLAGS], arg ptr[inout, ifreq_t[int32]])
+ioctl$sock_inet_SIOCGIFPFLAGS(fd sock, cmd const[SIOCGIFPFLAGS], arg ptr[out, ifreq_t[int32]])
+ioctl$sock_inet_SIOCSIFPFLAGS(fd sock, cmd const[SIOCSIFPFLAGS], arg ptr[in, ifreq_t[int32]])
 
-ioctl$sock_inet_SIOCSIFFLAGS(fd sock, cmd const[SIOCSIFFLAGS], arg ptr[inout, ifreq_t[flags[ifru_flags, int16]]])
+ioctl$sock_inet_SIOCSIFFLAGS(fd sock, cmd const[SIOCSIFFLAGS], arg ptr[in, ifreq_t[flags[ifru_flags, int16]]])
 
 rt_flags = RTF_UP, RTF_GATEWAY, RTF_HOST, RTF_REINSTATE, RTF_DYNAMIC, RTF_MODIFIED, RTF_MTU, RTF_WINDOW, RTF_IRTT, RTF_REJECT
 
