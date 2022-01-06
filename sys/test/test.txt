@@ -853,10 +853,10 @@ syz_r102_in_recur1 {
 	f0	r102	(in)
 }
 
-syz_r103_r104_u [
+syz_r103_r104_u {
 	opt0	r103	(out)
 	opt1	r104	(in)
-]
+}
 
 syz_r103_r104_s {
 	opt0	r103	(out)

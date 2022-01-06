@@ -127,36 +127,20 @@ kbase_ioctl_get_gpuprops {
 	flags	const[0, int32]
 }
 
-kbase_ioctl_mem_alloc_in {
+kbase_ioctl_mem_alloc {
 	va_pages	int64
 	commit_pages	int64
 	extent		int64
 	flags		flags[base_mem_alloc_flags, int64]
+	out_flags	int64	(out_overlay)
+	gpu_va		gpu_addr
 }
 
-kbase_ioctl_mem_alloc_out {
-	flags	int64
-	gpu_va	gpu_addr
-}
-
-kbase_ioctl_mem_alloc [
-	in	kbase_ioctl_mem_alloc_in	(in)
-	out	kbase_ioctl_mem_alloc_out	(out)
-]
-
-kbase_ioctl_mem_query_in {
+kbase_ioctl_mem_query {
 	gpu_addr	gpu_addr
 	query		flags[kbase_ioctl_mem_query_flags, int64]
+	value		int64	(out_overlay)
 }
-
-kbase_ioctl_mem_query_out {
-	value	int64
-}
-
-kbase_ioctl_mem_query [
-	in	kbase_ioctl_mem_query_in	(in)
-	out	kbase_ioctl_mem_query_out	(out)
-]
 
 kbase_ioctl_mem_free {
 	gpu_addr	gpu_addr
@@ -223,19 +207,11 @@ kbase_ioctl_mem_sync {
 	padding		array[const[0, int8], 7]
 }
 
-kbase_ioctl_mem_find_cpu_offset [
-	in	kbase_ioctl_mem_find_cpu_offset_in	(in)
-	out	kbase_ioctl_mem_find_cpu_offset_out	(out)
-]
-
-kbase_ioctl_mem_find_cpu_offset_in {
+kbase_ioctl_mem_find_cpu_offset {
 	gpu_addr	gpu_addr
 	cpu_addr	user_addr
 	size		int64
-}
-
-kbase_ioctl_mem_find_cpu_offset_out {
-	offset	int64
+	offset		int64	(out_overlay)
 }
 
 kbase_ioctl_get_context_id {
@@ -251,20 +227,13 @@ kbase_ioctl_mem_commit {
 	pages		int64
 }
 
-kbase_ioctl_mem_alias [
-	in	kbase_ioctl_mem_alias_in	(in)
-	out	kbase_ioctl_mem_alias_out	(out)
-]
-
-kbase_ioctl_mem_alias_in {
+kbase_ioctl_mem_alias {
 	flags		flags[base_mem_alloc_flags, int64]
 	stride		int64
 	nents		len[aliasing_info, int64]
 	aliasing_info	ptr64[in, array[base_mem_aliasing_info]]
-}
 
-kbase_ioctl_mem_alias_out {
-	flags		int64
+	out_flags	int64	(out_overlay)
 	gpu_va		gpu_addr
 	va_pages	int64
 }
@@ -275,20 +244,13 @@ base_mem_aliasing_info {
 	length	int64
 }
 
-kbase_ioctl_mem_import [
-	in	kbase_ioctl_mem_import_in	(in)
-	out	kbase_ioctl_mem_import_out	(out)
-]
+kbase_ioctl_mem_import {
+	flags		flags[base_mem_alloc_flags, int64]
+	phandle		int64
+	type		flags[base_mem_import_type, int32]
+	padding		const[0, int32]
 
-kbase_ioctl_mem_import_in {
-	flags	flags[base_mem_alloc_flags, int64]
-	phandle	int64
-	type	flags[base_mem_import_type, int32]
-	padding	const[0, int32]
-}
-
-kbase_ioctl_mem_import_out {
-	flags		int64
+	out_flags	int64	(out_overlay)
 	gpu_va		gpu_addr
 	va_pages	int64
 }
@@ -323,39 +285,23 @@ kbase_ioctl_sticky_resource_unmap {
 	address	ptr64[in, array[int64]]
 }
 
-kbase_ioctl_mem_find_gpu_start_and_offset [
-	in	kbase_ioctl_mem_find_gpu_start_and_offset_in	(in)
-	out	kbase_ioctl_mem_find_gpu_start_and_offset_out	(out)
-]
-
-kbase_ioctl_mem_find_gpu_start_and_offset_in {
+kbase_ioctl_mem_find_gpu_start_and_offset {
 	gpu_addr	gpu_addr
 	size		int64
-}
-
-kbase_ioctl_mem_find_gpu_start_and_offset_out {
-	start	gpu_addr
-	offset	int64
+	start		gpu_addr	(out_overlay)
+	offset		int64
 }
 
 kbase_ioctl_mem_exec_init {
 	va_pages	int64
 }
 
-kbase_ioctl_get_cpu_gpu_timeinfo [
-	in	kbase_ioctl_get_cpu_gpu_timeinfo_in	(in)
-	out	kbase_ioctl_get_cpu_gpu_timeinfo_out	(out)
-]
-
-kbase_ioctl_get_cpu_gpu_timeinfo_in {
+kbase_ioctl_get_cpu_gpu_timeinfo {
 	request_flags	flags[base_timerequest_allowed_flags, int32]
 	paddings	array[const[0, int8], 7]
-}
-
-kbase_ioctl_get_cpu_gpu_timeinfo_out {
-	sec		int64
+	sec		int64	(out_overlay)
 	nsec		int32
-	padding		const[0, int32]
+	padding		int32
 	timestamp	int64
 	cycle_counter	int64
 }

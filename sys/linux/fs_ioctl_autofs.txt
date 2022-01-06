@@ -80,19 +80,11 @@ autofs_args_askumount {
 
 autofs_type = AUTOFS_TYPE_ANY, AUTOFS_TYPE_INDIRECT, AUTOFS_TYPE_DIRECT, AUTOFS_TYPE_OFFSET
 
-autofs_args_ismountpoint_in {
+autofs_args_ismountpoint {
 	type	flags[autofs_type, int32]
+	devid	int32	(out_overlay)
+	magic	int32
 }
-
-autofs_args_ismountpoint_out {
-	devid	int32	(out)
-	magic	int32	(out)
-}
-
-autofs_args_ismountpoint [
-	in_args		autofs_args_ismountpoint_in	(in)
-	out_args	autofs_args_ismountpoint_out	(out)
-]
 
 # autofs_dev_ioctl struct has a union of command-specific structs, so we must pad it to
 # the maximum size.
