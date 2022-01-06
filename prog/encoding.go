@@ -411,6 +411,8 @@ func (p *parser) parseArg(typ Type, dir Dir) (Arg, error) {
 	if r != "" {
 		if res, ok := arg.(*ResultArg); ok {
 			p.vars[r] = res
+		} else {
+			p.strictFailf("variable %v doesn't refers to a resource", r)
 		}
 	}
 	return arg, nil
