@@ -52,7 +52,7 @@ resource ieee802154_ifindex[int32]
 type msghdr_nl802154[CMD, POLICY] msghdr_netlink[netlink_msg_t[genl_nl802154_family_id, genlmsghdr_t[CMD], POLICY]]
 
 syz_genetlink_get_family_id$nl802154(name ptr[in, string["nl802154"]], fd sock_nl_generic_init) genl_nl802154_family_id
-ioctl$sock_SIOCGIFINDEX_802154(fd sock_nl_generic_init, cmd const[SIOCGIFINDEX], arg ptr[inout, ifreq_dev_t[ieee802154_dev_names, ieee802154_ifindex]])
+ioctl$sock_SIOCGIFINDEX_802154(fd sock_nl_generic_init, cmd const[SIOCGIFINDEX], arg ptr[out, ifreq_dev_t[ieee802154_dev_names, ieee802154_ifindex]])
 
 sendmsg$NL802154_CMD_GET_WPAN_PHY(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_GET_WPAN_PHY, nl802154_policy_GET_WPAN_PHY]], f flags[send_flags])
 sendmsg$NL802154_CMD_GET_INTERFACE(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_GET_INTERFACE, nl802154_policy_GET_INTERFACE]], f flags[send_flags])

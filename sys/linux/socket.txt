@@ -283,7 +283,7 @@ ifreq_ioctls = SIOCGIFNAME, SIOCSIFLINK, SIOCGIFFLAGS, SIOCSIFFLAGS, SIOCGIFADDR
 
 ioctl$sock_ifreq(fd sock, cmd flags[ifreq_ioctls], arg ptr[inout, ifreq])
 
-ioctl$sock_SIOCGIFINDEX(fd sock, cmd const[SIOCGIFINDEX], arg ptr[inout, ifreq_t[ifindex]])
+ioctl$sock_SIOCGIFINDEX(fd sock, cmd const[SIOCGIFINDEX], arg ptr[out, ifreq_t[ifindex]])
 
 ioctl$sock_SIOCGIFBR(fd sock, cmd const[SIOCGIFBR], arg ptr[inout, brctl_arg])
 ioctl$sock_SIOCSIFBR(fd sock, cmd const[SIOCSIFBR], arg ptr[inout, brctl_arg])
@@ -326,7 +326,7 @@ resource ifindex[int32]
 
 type ifreq_dev_t[DEVNAME, ELEM] {
 	ifr_ifrn	string[DEVNAME, IFNAMSIZ]	(in)
-	elem		ELEM	(out)
+	elem		ELEM
 } [size[IFREQ_SIZE]]
 
 type ifreq_t[ELEM] ifreq_dev_t[devnames, ELEM]
