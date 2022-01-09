@@ -1278,7 +1278,7 @@ ib_uverbs_flow_attr {
 
 create_flow_cmd_ex {
 	comp_mask	const[0x0, int32]
-	qp_handle	qp_handle
+	qp_handle	qp_handle	(in)
 	flow_attr	ib_uverbs_flow_attr
 }
 
@@ -1295,7 +1295,7 @@ create_flow_cmd {
 	provider_in_words	const[0x0, int16]
 	provider_out_words	const[0x0, int16]
 	reserved		const[0x0, int32]
-	flow_ex			create_flow_cmd_ex
+	flow_ex			create_flow_cmd_ex	(in)
 }
 
 destroy_flow_cmd {
@@ -1314,7 +1314,11 @@ destroy_flow_cmd {
 
 ib_uverbs_attr_flags = UVERBS_ATTR_F_MANDATORY
 ib_read_counters_flags = IB_UVERBS_READ_COUNTERS_PREFER_CACHED
-resource vcontext_handle[int32]
+
+# This used to be a resource, but it's unclear what is supposed to create this resource,
+# so for now it's downgraded to just int.
+# resource vcontext_handle[int32]
+type vcontext_handle int32
 
 ib_uverbs_create_counters_cmd {
 	length		bytesize8[ib_uverbs_create_counters_cmd, int16]
@@ -1334,7 +1338,7 @@ ib_uverbs_create_counters_cmd {
 	reserved3	const[0x0, int16]
 # TODO: Is the following field really optional, or, is opt used as a workaround?
 # Now that we have per-field directions, this can be fixed if it is the second case.
-	vcontext_handle	vcontext_handle[opt]
+	vcontext_handle	vcontext_handle
 	more_data	int32
 }
 
@@ -1371,7 +1375,7 @@ ib_uverbs_read_counters_cmd {
 	len0		int16
 	flags0		flags[ib_uverbs_attr_flags, int16]
 	reserved2	const[0x0, int16]
-	vcontext_handle	vcontext_handle
+	vcontext_handle	vcontext_handle	(in)
 	more_data0	int32
 
 	attr_id1	const[UVERBS_ATTR_READ_COUNTERS_BUFF, int16]
@@ -1467,4 +1471,4 @@ write$DESTROY_RWQ_IND_TBL(fd fd_rdma, buf ptr[inout, destroy_rwq_ind_table_cmd],
 
 # create_flow
 write$CREATE_FLOW(fd fd_rdma, buf ptr[inout, create_flow_cmd], len len[buf])
-write$DESTROY_FLOW(fd fd_rdma, buf ptr[inout, destroy_flow_cmd], len len[buf])
+write$DESTROY_FLOW(fd fd_rdma, buf ptr[in, destroy_flow_cmd], len len[buf])
