@@ -1,0 +1,151 @@
+TITLE: KASAN: use-after-free Write in put_ucounts
+ALT: bad-access in put_ucounts
+
+[  728.071420][    C1] ==================================================================
+[  728.080235][    C1] BUG: KASAN: use-after-free in _atomic_dec_and_lock_irqsave+0x27/0x150
+[  728.088617][    C1] Write of size 4 at addr ffff88801a88331c by task syz-executor.2/14951
+[  728.097015][    C1] 
+[  728.099363][    C1] CPU: 1 PID: 14951 Comm: syz-executor.2 Not tainted 5.16.0-rc8-next-20220110-syzkaller #0
+[  728.109375][    C1] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  728.119465][    C1] Call Trace:
+[  728.122774][    C1]  <IRQ>
+[  728.125649][    C1]  dump_stack_lvl+0xcd/0x134
+[  728.130295][    C1]  print_address_description.constprop.0.cold+0xa5/0x3e0
+[  728.149516][    C1]  kasan_report.cold+0x83/0xdf
+[  728.160370][    C1]  kasan_check_range+0x13d/0x180
+[  728.165446][    C1]  _atomic_dec_and_lock_irqsave+0x27/0x150
+[  728.171318][    C1]  put_ucounts+0x73/0x1c0
+[  728.190908][    C1]  put_cred_rcu+0x27a/0x520
+[  728.195465][    C1]  rcu_core+0x7b8/0x1540
+[  728.211667][    C1]  __do_softirq+0x29b/0x9c2
+[  728.216305][    C1]  do_softirq.part.0+0xde/0x130
+[  728.221226][    C1]  </IRQ>
+[  728.224182][    C1]  <TASK>
+[  728.232615][    C1]  __local_bh_enable_ip+0x102/0x120
+[  728.237884][    C1]  ip_finish_output2+0x7d0/0x2170
+[  728.257691][    C1]  __ip_finish_output+0x396/0x640
+[  728.262854][    C1]  ip_finish_output+0x32/0x200
+[  728.267673][    C1]  ip_output+0x196/0x310
+[  728.271971][    C1]  ip_send_skb+0xd4/0x260
+[  728.276352][    C1]  udp_send_skb+0x6d2/0x11a0
+[  728.281051][    C1]  udp_sendmsg+0x1bad/0x2730
+[  728.317838][    C1]  inet_sendmsg+0x99/0xe0
+[  728.327399][    C1]  sock_sendmsg+0xcf/0x120
+[  728.331868][    C1]  ____sys_sendmsg+0x331/0x810
+[  728.351275][    C1]  ___sys_sendmsg+0xf3/0x170
+[  728.382122][    C1]  __sys_sendmmsg+0x195/0x470
+[  728.413238][    C1]  __x64_sys_sendmmsg+0x99/0x100
+[  728.424196][    C1]  do_syscall_64+0x35/0xb0
+[  728.428663][    C1]  entry_SYSCALL_64_after_hwframe+0x44/0xae
+[  728.434617][    C1] RIP: 0033:0x7f8f1428be99
+[  728.439070][    C1] Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 bc ff ff ff f7 d8 64 89 01 48
+[  728.458720][    C1] RSP: 002b:00007f8f12c01168 EFLAGS: 00000246 ORIG_RAX: 0000000000000133
+[  728.467179][    C1] RAX: ffffffffffffffda RBX: 00007f8f1439ef60 RCX: 00007f8f1428be99
+[  728.475200][    C1] RDX: 0400000000000075 RSI: 0000000020007fc0 RDI: 0000000000000004
+[  728.483218][    C1] RBP: 00007f8f142e5ff1 R08: 0000000000000000 R09: 0000000000000000
+[  728.491335][    C1] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+[  728.499350][    C1] R13: 00007ffff6e7fccf R14: 00007f8f12c01300 R15: 0000000000022000
+[  728.507385][    C1]  </TASK>
+[  728.510436][    C1] 
+[  728.512788][    C1] Allocated by task 14958:
+[  728.517222][    C1]  kasan_save_stack+0x1e/0x40
+[  728.521945][    C1]  __kasan_kmalloc+0xa9/0xd0
+[  728.526580][    C1]  alloc_ucounts+0x1c3/0x590
+[  728.531225][    C1]  set_cred_ucounts+0x163/0x320
+[  728.536121][    C1]  copy_creds+0x708/0xb50
+[  728.540499][    C1]  copy_process+0x1440/0x7300
+[  728.545210][    C1]  kernel_clone+0xe7/0xab0
+[  728.549671][    C1]  __do_sys_clone+0xc8/0x110
+[  728.554312][    C1]  do_syscall_64+0x35/0xb0
+[  728.558767][    C1]  entry_SYSCALL_64_after_hwframe+0x44/0xae
+[  728.564720][    C1] 
+[  728.567070][    C1] Freed by task 10609:
+[  728.571191][    C1]  kasan_save_stack+0x1e/0x40
+[  728.575903][    C1]  kasan_set_track+0x21/0x30
+[  728.580610][    C1]  kasan_set_free_info+0x20/0x30
+[  728.585572][    C1]  ____kasan_slab_free+0x166/0x1a0
+[  728.590700][    C1]  slab_free_freelist_hook+0x8b/0x1c0
+[  728.596165][    C1]  kfree+0xce/0x380
+[  728.600005][    C1]  put_ucounts+0x153/0x1c0
+[  728.604450][    C1]  do_dec_rlimit_put_ucounts+0xfb/0x1a0
+[  728.610143][    C1]  flush_sigqueue+0x18e/0x280
+[  728.614881][    C1]  release_task+0xbd0/0x17e0
+[  728.619521][    C1]  wait_consider_task+0x2fa6/0x3b80
+[  728.624747][    C1]  do_wait+0x6ca/0xce0
+[  728.628922][    C1]  kernel_wait4+0x14c/0x260
+[  728.633446][    C1]  __do_sys_wait4+0x13f/0x150
+[  728.638143][    C1]  do_syscall_64+0x35/0xb0
+[  728.642665][    C1]  entry_SYSCALL_64_after_hwframe+0x44/0xae
+[  728.648670][    C1] 
+[  728.650994][    C1] Last potentially related work creation:
+[  728.656705][    C1]  kasan_save_stack+0x1e/0x40
+[  728.661392][    C1]  __kasan_record_aux_stack+0xbe/0xd0
+[  728.666781][    C1]  call_rcu+0x99/0x730
+[  728.670856][    C1]  neigh_parms_release+0x205/0x290
+[  728.676118][    C1]  addrconf_ifdown.isra.0+0x1003/0x1630
+[  728.681774][    C1]  addrconf_notify+0xeb/0x1ba0
+[  728.686576][    C1]  notifier_call_chain+0xb5/0x200
+[  728.691615][    C1]  call_netdevice_notifiers_info+0xb5/0x130
+[  728.697539][    C1]  unregister_netdevice_many+0x964/0x1850
+[  728.703271][    C1]  default_device_exit_batch+0x2fa/0x3c0
+[  728.708912][    C1]  ops_exit_list+0x10d/0x160
+[  728.713514][    C1]  cleanup_net+0x4ea/0xb00
+[  728.717942][    C1]  process_one_work+0x9ac/0x1650
+[  728.722979][    C1]  worker_thread+0x657/0x1110
+[  728.727685][    C1]  kthread+0x2e9/0x3a0
+[  728.731861][    C1]  ret_from_fork+0x1f/0x30
+[  728.736346][    C1] 
+[  728.738673][    C1] Second to last potentially related work creation:
+[  728.745258][    C1]  kasan_save_stack+0x1e/0x40
+[  728.749951][    C1]  __kasan_record_aux_stack+0xbe/0xd0
+[  728.755349][    C1]  insert_work+0x48/0x370
+[  728.759687][    C1]  __queue_work+0x5ca/0xf30
+[  728.764199][    C1]  queue_work_on+0xee/0x110
+[  728.768710][    C1]  call_usermodehelper_exec+0x347/0x4c0
+[  728.774281][    C1]  __request_module+0x430/0xa60
+[  728.779206][    C1]  dev_load+0x1c8/0x200
+[  728.783430][    C1]  dev_ioctl+0x2a8/0xed0
+[  728.787681][    C1]  sock_do_ioctl+0x15a/0x230
+[  728.792283][    C1]  sock_ioctl+0x2f1/0x640
+[  728.796627][    C1]  __x64_sys_ioctl+0x193/0x200
+[  728.801434][    C1]  do_syscall_64+0x35/0xb0
+[  728.805885][    C1]  entry_SYSCALL_64_after_hwframe+0x44/0xae
+[  728.811830][    C1] 
+[  728.814157][    C1] The buggy address belongs to the object at ffff88801a883300
+[  728.814157][    C1]  which belongs to the cache kmalloc-192 of size 192
+[  728.828218][    C1] The buggy address is located 28 bytes inside of
+[  728.828218][    C1]  192-byte region [ffff88801a883300, ffff88801a8833c0)
+[  728.841424][    C1] The buggy address belongs to the page:
+[  728.847069][    C1] page:ffffea00006a20c0 refcount:1 mapcount:0 mapping:0000000000000000 index:0x0 pfn:0x1a883
+[  728.858012][    C1] flags: 0xfff00000000200(slab|node=0|zone=1|lastcpupid=0x7ff)
+[  728.865587][    C1] raw: 00fff00000000200 ffffea00007a12c0 dead000000000003 ffff888010c41a00
+[  728.874196][    C1] raw: 0000000000000000 0000000000100010 00000001ffffffff 0000000000000000
+[  728.882780][    C1] page dumped because: kasan: bad access detected
+[  728.889196][    C1] page_owner tracks the page as allocated
+[  728.894909][    C1] page last allocated via order 0, migratetype Unmovable, gfp_mask 0x12c00(GFP_NOIO|__GFP_NOWARN|__GFP_NORETRY), pid 10, ts 8225558335, free_ts 0
+[  728.909682][    C1]  get_page_from_freelist+0xa72/0x2f40
+[  728.915162][    C1]  __alloc_pages+0x1b2/0x500
+[  728.919765][    C1]  new_slab+0xaf/0x380
+[  728.923854][    C1]  ___slab_alloc+0x6be/0xd60
+[  728.928472][    C1]  __slab_alloc.constprop.0+0x4d/0xa0
+[  728.933889][    C1]  kmem_cache_alloc_node_trace+0x116/0x300
+[  728.939721][    C1]  blk_alloc_flush_queue+0x91/0x320
+[  728.945007][    C1]  blk_mq_realloc_hw_ctxs+0xd4e/0x1460
+[  728.950505][    C1]  blk_mq_init_allocated_queue+0x3ca/0x1370
+[  728.956409][    C1]  __blk_mq_alloc_disk+0xcb/0x1c0
+[  728.961482][    C1]  floppy_alloc_disk+0x3d/0x390
+[  728.966396][    C1]  floppy_async_init+0x2ec/0x2055
+[  728.971477][    C1]  async_run_entry_fn+0x9d/0x550
+[  728.976433][    C1]  process_one_work+0x9ac/0x1650
+[  728.981467][    C1]  worker_thread+0x657/0x1110
+[  728.986159][    C1]  kthread+0x2e9/0x3a0
+[  728.990342][    C1] page_owner free stack trace missing
+[  728.995707][    C1] 
+[  728.998031][    C1] Memory state around the buggy address:
+[  729.003679][    C1]  ffff88801a883200: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[  729.011748][    C1]  ffff88801a883280: 00 00 00 00 fc fc fc fc fc fc fc fc fc fc fc fc
+[  729.019817][    C1] >ffff88801a883300: fa fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  729.027907][    C1]                             ^
+[  729.032760][    C1]  ffff88801a883380: fb fb fb fb fb fb fb fb fc fc fc fc fc fc fc fc
+[  729.040825][    C1]  ffff88801a883400: fa fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  729.048887][    C1] ==================================================================
