@@ -1058,6 +1058,7 @@ var linuxStackParams = &stackParams{
 		"mutex_remove_waiter",
 		"osq_lock",
 		"osq_unlock",
+		"atomic_dec",
 		"__wake_up",
 		"refcount_add",
 		"refcount_sub",
