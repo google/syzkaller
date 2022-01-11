@@ -1,0 +1,1 @@
+bad-struct-size: resume_swap_area: syz=16 kernel=12 [amd64,arm,arm64]

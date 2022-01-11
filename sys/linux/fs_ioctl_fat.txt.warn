@@ -1,0 +1,7 @@
+bad-struct-size: __fat_dirent: syz=272 kernel=268 [386]
+bad-struct-size: __fat_dirent: syz=280 kernel=268 [arm]
+bad-field-offset: __fat_dirent.d_off: syz=8 kernel=4 [arm,386,arm]
+bad-field-offset: __fat_dirent.d_reclen: syz=12 kernel=8 [386]
+bad-field-offset: __fat_dirent.d_reclen: syz=16 kernel=8 [arm]
+bad-field-offset: __fat_dirent.d_name: syz=14 kernel=10 [386]
+bad-field-offset: __fat_dirent.d_name: syz=18 kernel=10 [arm]

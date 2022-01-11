@@ -1,0 +1,8 @@
+bad-field-number: media_entity_desc: syz=1 kernel=10
+bad-field-number: media_links_enum: syz=3 kernel=4
+bad-struct-size: media_links_enum: syz=12 kernel=28 [386,arm]
+bad-struct-size: media_links_enum: syz=24 kernel=40 [amd64,arm64]
+bad-field-number: media_v2_pad: syz=6 kernel=5
+bad-field-size: media_v2_pad.index: syz=2 kernel=4
+bad-field-offset: media_v2_pad.index_pad/reserved: syz=14 kernel=16
+bad-field-size: media_v2_pad.index_pad/reserved: syz=2 kernel=16

@@ -1,5 +1,3 @@
-bad-field-number: tcp_zerocopy_receive: syz=3 kernel=5
-bad-struct-size: tcp_zerocopy_receive: syz=16 kernel=24
 no-such-struct: sockaddr_storage_tcp
 no-such-struct: tcp_repair_opt_mss
 no-such-struct: tcp_repair_opt_window
