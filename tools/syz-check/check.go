@@ -206,7 +206,13 @@ func checkImpl(structs map[string]*dwarf.StructType, structTypes []prog.Type,
 		if astStruct == nil {
 			continue
 		}
-		warns, err := checkStruct(typ, astStruct, structs[name])
+		// In some cases we split a single struct into multiple ones
+		// (more precise description), so try to match our foo$bar with kernel foo.
+		kernelStruct := structs[name]
+		if delim := strings.LastIndexByte(name, '$'); kernelStruct == nil && delim != -1 {
+			kernelStruct = structs[name[:delim]]
+		}
+		warns, err := checkStruct(typ, astStruct, kernelStruct)
 		if err != nil {
 			return nil, err
 		}
@@ -406,21 +412,12 @@ func checkNetlinkStruct(locs map[string]*ast.Struct, symbols map[string][]symbol
 	if !isNetlinkPolicy(fields) {
 		return nil, nil
 	}
-	kernelName := name
-	var ss []symbolizer.Symbol
-	// In some cases we split a single policy into multiple ones
-	// (more precise description), so try to match our foo_bar_baz
-	// with kernel foo_bar and foo as well.
-	for kernelName != "" {
+	// In some cases we split a single policy into multiple ones (more precise description),
+	// so try to match our foo$bar with with kernel foo as well.
+	kernelName, ss := name, symbols[name]
+	if delim := strings.LastIndexByte(name, '$'); len(ss) == 0 && delim != -1 {
+		kernelName = name[:delim]
 		ss = symbols[kernelName]
-		if len(ss) != 0 {
-			break
-		}
-		underscore := strings.LastIndexByte(kernelName, '_')
-		if underscore == -1 {
-			break
-		}
-		kernelName = kernelName[:underscore]
 	}
 	if len(ss) == 0 {
 		return []Warn{{pos: astStruct.Pos, typ: WarnNoNetlinkPolicy, msg: name}}, nil
