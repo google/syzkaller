@@ -52,7 +52,7 @@ Newer bugs comes first.
 
 - [kcov(4): race during remote section removal](https://marc.info/?l=openbsd-cvs&m=159869048726340&w=2)
 
-- [sysctl(2): lenient validation of integer values](https://marc.info/?l=openbsd-cvs&m=159772809607851&w=2)
+- [sysctl: lenient validation of integer values](https://marc.info/?l=openbsd-cvs&m=159772809607851&w=2)
 
 - [inet6(4): lenient validation in `in6_ioctl_change_ifaddr()`](https://marc.info/?l=openbsd-cvs&m=159656077206976&w=2)
 
@@ -60,7 +60,7 @@ Newer bugs comes first.
 
 - [pty(4): machine lockup due to expensive retyping](https://marc.info/?l=openbsd-cvs&m=159473720602522&w=2)
 
-- [sysctl(2): lenient validation of `net.inet.tcp.synbucketlimit`](https://marc.info/?l=openbsd-cvs&m=159249199005451&w=2)
+- [sysctl: lenient validation of `net.inet.tcp.synbucketlimit`](https://marc.info/?l=openbsd-cvs&m=159249199005451&w=2)
 
 - [tty(4): infinite sleep during close](https://marc.info/?l=openbsd-cvs&m=158892312627663&w=2)
 
