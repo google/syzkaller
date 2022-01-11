@@ -145,11 +145,8 @@ with [syz-check](/tools/syz-check/check.go).
 
 For example, if there is an existing enum `v4l2_buf_type` in the kernel headers,
 use this name for flags in descriptions as well. The same for structs, unions,
-fields, etc. For syscall variants, use the command name after the `$` sign.
+fields, etc. For syscall and struct variants, append the variant name after the `$` sign.
 For example, `fcntl$F_GET_RW_HINT`, `ioctl$FIOCLEX`, `setsockopt$SO_TIMESTAMP`.
-
-If you need to describe several variants of the same kernel struct, the naming
-convention understood by `syz-check` is `<ORIGINAL_KERNEL_NAME>_some_suffix`.
 
 <div id="ordering"/>
 
