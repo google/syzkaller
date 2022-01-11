@@ -6,6 +6,38 @@ mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/ope
 
 Newer bugs comes first.
 
+- [pppx(4): variable confusion](https://marc.info/?l=openbsd-cvs&m=164087429912026&w=2)
+
+- [wscons(4): double free](https://marc.info/?l=openbsd-cvs&m=164084727201849&w=2)
+
+- [pppx(4): concurrent access of partially initialized softc](https://marc.info/?l=openbsd-cvs&m=164082533927977&w=2)
+
+- [kcov(4): disallow file descriptor send/receive](https://marc.info/?l=openbsd-cvs&m=164076207103501&w=2)
+
+- [pf(4): NULL pointer dereference](https://marc.info/?l=openbsd-cvs&m=164052742928360&w=2)
+
+- [vnd(4): missing locking](https://marc.info/?l=openbsd-cvs&m=164025412309248&w=2)
+
+- [sysctl: state changed after sleeping](https://marc.info/?l=openbsd-cvs&m=164021158325071&w=2)
+
+- [mlock: double free](https://marc.info/?l=openbsd-cvs&m=164012526116825&w=2)
+
+- [shmat: propagate error instead of panicking on allocation failure](https://marc.info/?l=openbsd-cvs&m=164006713618898&w=2)
+
+- [vnd(4): state changed after sleeping](https://marc.info/?l=openbsd-cvs&m=164006704118875&w=2)
+
+- [dt(4): too strict assertion](https://marc.info/?l=openbsd-cvs&m=164003929408900&w=2)
+
+- [uvm(9): NULL pointer dereference](https://marc.info/?l=openbsd-cvs&m=163975066621151&w=2)
+
+- [pf(4): division by zero](https://marc.info/?l=openbsd-cvs&m=163962008918189&w=2)
+
+- [multicast(4): NULL pointer dereference](https://marc.info/?l=openbsd-cvs&m=163958385427172&w=2)
+
+- [inet6(4): NULL pointer dereference](https://marc.info/?l=openbsd-cvs&m=163940579227165&w=2)
+
+- [vmm(4): missing locking](https://marc.info/?l=openbsd-cvs&m=163886391905123&w=2)
+
 - [vnd(4): unintended nesting of devices](https://marc.info/?l=openbsd-cvs&m=163379079731494&w=2)
 
 - [route(4): NULL pointer dereference](https://marc.info/?l=openbsd-cvs&m=163103086932150&w=2)
@@ -14,7 +46,9 @@ Newer bugs comes first.
 
 - [vmm(4): missing locking](https://marc.info/?l=openbsd-cvs&m=163066962908920&w=2)
 
-- [vmm(4): lock ordering problem](https://marc.info/?l=openbsd-cvs&m=163050503012931&w=2 )
+- [pf(4): use-after-free](https://marc.info/?l=openbsd-cvs&m=159828307919706&w=2)
+
+- [vmm(4): lock ordering problem](https://marc.info/?l=openbsd-cvs&m=163050503012931&w=2)
 
 - [kqueue: missing locking](https://marc.info/?l=openbsd-cvs&m=162338580619514&w=2)
 
@@ -22,7 +56,7 @@ Newer bugs comes first.
 
 - [tun(4): leaking device references](https://marc.info/?l=openbsd-cvs&m=161532031720186&w=2)
 
-- [pf(4): incorrect handling of overlapping fragments](https://marc.info/?l=openbsd-cvs&m=161399910228130&w=2 ) [ERRATA-68-014](https://ftp.openbsd.org/pub/OpenBSD/patches/6.8/common/014_pffrag.patch.sig)
+- [pf(4): incorrect handling of overlapping fragments](https://marc.info/?l=openbsd-cvs&m=161399910228130&w=2) [ERRATA-68-014](https://ftp.openbsd.org/pub/OpenBSD/patches/6.8/common/014_pffrag.patch.sig)
 
 - [if_addgroup(9): double free of interface groups](https://marc.info/?l=openbsd-cvs&m=161296812703484&w=2)
 
@@ -110,7 +144,7 @@ Newer bugs comes first.
 
 - [VOP_LOCK(9): threads not observing exclusive lock](https://marc.info/?l=openbsd-cvs&m=156684581030011&w=2)
 
-- [ip6(4): don't use the flow of the first fragment to store ECN data](https://marc.info/?l=openbsd-cvs&m=156684528429904&w=2 )
+- [ip6(4): don't use the flow of the first fragment to store ECN data](https://marc.info/?l=openbsd-cvs&m=156684528429904&w=2)
 
 - [acct: `vn_close(9)` race](https://marc.info/?l=openbsd-cvs&m=156585417104888&w=2)
 
