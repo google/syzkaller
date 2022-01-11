@@ -25,7 +25,7 @@ adf_user_cfg_ctl_data {
 
 adf_user_cfg_section {
 	name	string[qat_section_name, ADF_CFG_MAX_SECTION_LEN_IN_BYTES]
-	params	adf_ptr64[adf_user_cfg_key_val]
+	params	adf_ptr64[adf_user_cfg_key_val_u]
 	next	adf_ptr64[adf_user_cfg_section]
 } [packed]
 
@@ -33,16 +33,16 @@ qat_section_name = "GENERAL", "KERNEL", "Accelerator", "Accelerator0", "Accelera
 
 # Key-values
 
-adf_user_cfg_key_val [
-	adf_dec	adf_user_cfg_key_val_t[ADF_DEC, adf_user_cfg_val_dec]
-	adf_hex	adf_user_cfg_key_val_t[ADF_HEX, adf_user_cfg_val_hex]
-	adf_str	adf_user_cfg_key_val_t[ADF_STR, adf_user_cfg_val_str]
+adf_user_cfg_key_val_u [
+	adf_dec	adf_user_cfg_key_val[ADF_DEC, adf_user_cfg_val_dec]
+	adf_hex	adf_user_cfg_key_val[ADF_HEX, adf_user_cfg_val_hex]
+	adf_str	adf_user_cfg_key_val[ADF_STR, adf_user_cfg_val_str]
 ]
 
-type adf_user_cfg_key_val_t[TYPE, VAL] {
+type adf_user_cfg_key_val[TYPE, VAL] {
 	key	adf_user_cfg_key
 	val	VAL
-	next	adf_ptr64[adf_user_cfg_key_val]
+	next	adf_ptr64[adf_user_cfg_key_val_u]
 	type	const[TYPE, int32]
 } [packed]
 

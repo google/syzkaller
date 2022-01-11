@@ -1,12 +1,2 @@
-no-such-struct: autofs_args_protover
-no-such-struct: autofs_args_protosubver
-no-such-struct: autofs_args_openmount
-no-such-struct: autofs_args_ready
-no-such-struct: autofs_args_fail
-no-such-struct: autofs_args_setpipefd
-no-such-struct: autofs_args_timeout
-no-such-struct: autofs_args_requester
-no-such-struct: autofs_args_expire
-no-such-struct: autofs_args_askumount
 no-such-struct: autofs_dev_ioctl_base
 bad-field-size: autofs_dev_ioctl.base/ver_major: syz=24 kernel=4

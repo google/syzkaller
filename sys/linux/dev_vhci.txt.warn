@@ -13,14 +13,6 @@ no-such-struct: hci_event_hdr_t
 no-such-struct: hci_ev_le_meta_t
 no-such-struct: hci_ev_cmd_complete_t
 compiler: len target reports refer to an array with variable-size elements (do you mean bytesize?)
-bad-field-size: hci_ev_le_ext_adv_report.evt_type/num: syz=2 kernel=1
-bad-field-offset: hci_ev_le_ext_adv_report.bdaddr_type/info: syz=2 kernel=1
-bad-field-size: hci_ev_le_ext_adv_report.bdaddr_type/info: syz=1 kernel=0
-bad-struct-size: hci_rp_delete_stored_link_key: syz=2 kernel=3
-bad-field-size: hci_rp_delete_stored_link_key.num_keys: syz=1 kernel=2
-bad-struct-size: hci_rp_read_stored_link_key: syz=3 kernel=5
-bad-field-size: hci_rp_read_stored_link_key.max_keys: syz=1 kernel=2
-bad-field-offset: hci_rp_read_stored_link_key.num_keys: syz=2 kernel=3
-bad-field-size: hci_rp_read_stored_link_key.num_keys: syz=1 kernel=2
+compiler: len target info refer to an array with variable-size elements (do you mean bytesize?)
 no-such-struct: inquiry_info_with_rssi
 no-such-struct: inquiry_info_with_rssi_and_pscan_mode

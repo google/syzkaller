@@ -604,9 +604,12 @@ kvm_vcpu_events {
 }
 
 kvm_clock_data {
-	clock	int64
-	flags	int32
-	pad	array[const[0, int32], 9]
+	clock		int64
+	flags		int32
+	pad0		int32
+	realtime	int64
+	host_tsc	int64
+	pad		array[const[0, int32], 4]
 }
 
 kvm_xen_hvm_config {

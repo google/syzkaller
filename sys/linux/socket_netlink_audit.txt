@@ -28,16 +28,17 @@ sendmsg$AUDIT_TTY_GET(fd sock_nl_audit, msg nl_audit_msg[AUDIT_TTY_GET, void], f
 sendmsg$AUDIT_TTY_SET(fd sock_nl_audit, msg nl_audit_msg[AUDIT_TTY_SET, audit_tty_status], f flags[send_flags])
 
 audit_status {
-	mask			flags[audit_status_mask, int32]
-	enabled			bool32
-	failure			flags[audit_fail_action, int32]
-	pid			pid
-	rate_limit		int32
-	backlog_limit		int32
-	lost			int32
-	backlog			int32
-	feature_bitmap		const[0, int32]
-	backlog_wait_time	int32
+	mask				flags[audit_status_mask, int32]
+	enabled				bool32
+	failure				flags[audit_fail_action, int32]
+	pid				pid
+	rate_limit			int32
+	backlog_limit			int32
+	lost				int32
+	backlog				int32
+	feature_bitmap			const[0, int32]
+	backlog_wait_time		int32
+	backlog_wait_time_actual	int32
 }
 
 audit_status_mask = AUDIT_STATUS_ENABLED, AUDIT_STATUS_FAILURE, AUDIT_STATUS_PID, AUDIT_STATUS_RATE_LIMIT, AUDIT_STATUS_BACKLOG_LIMIT, AUDIT_STATUS_BACKLOG_WAIT_TIME, AUDIT_STATUS_LOST

@@ -31,4 +31,4 @@ ioctl$SNAPSHOT_SET_SWAP_AREA(fd fd_snapshot, cmd const[SNAPSHOT_SET_SWAP_AREA], 
 resume_swap_area {
 	offset	int64
 	dev	int32
-}
+} [packed]

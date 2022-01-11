@@ -1,5 +1,17 @@
 no-such-struct: io_uring_sqe_u
-no-such-struct: io_uring_sqe_t
+bad-field-number: io_uring_sqe: syz=10 kernel=13
+bad-field-size: io_uring_sqe.off/: syz=4 kernel=8
+bad-field-offset: io_uring_sqe.addr/: syz=12 kernel=16 [386,arm]
+bad-field-size: io_uring_sqe.addr/: syz=4 kernel=8
+bad-field-offset: io_uring_sqe.len: syz=16 kernel=24 [386,arm]
+bad-field-offset: io_uring_sqe.len: syz=20 kernel=24
+bad-field-offset: io_uring_sqe.misc_flags/: syz=20 kernel=28 [386,arm]
+bad-field-offset: io_uring_sqe.misc_flags/: syz=24 kernel=28
+bad-field-offset: io_uring_sqe.user_data: syz=24 kernel=32 [386,arm]
+bad-field-offset: io_uring_sqe.user_data: syz=28 kernel=32 [386]
+bad-field-offset: io_uring_sqe.misc/: syz=32 kernel=40 [386,arm]
+bad-field-offset: io_uring_sqe.misc/: syz=36 kernel=40 [386]
+bad-field-size: io_uring_sqe.misc/: syz=24 kernel=2
 no-such-struct: io_uring_sqe_readv
 no-such-struct: io_uring_sqe_read
 no-such-struct: io_uring_sqe_recv

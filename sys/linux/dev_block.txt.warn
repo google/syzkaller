@@ -1,2 +1,0 @@
-bad-field-number: blk_zone: syz=8 kernel=10
-bad-field-size: blk_zone.reserved/resv: syz=36 kernel=4

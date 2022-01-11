@@ -221,15 +221,17 @@ fq_policy [
 ] [varlen]
 
 fq_codel_policy [
-	TCA_FQ_CODEL_TARGET		nlattr[TCA_FQ_CODEL_TARGET, int32]
-	TCA_FQ_CODEL_LIMIT		nlattr[TCA_FQ_CODEL_LIMIT, int32]
-	TCA_FQ_CODEL_INTERVAL		nlattr[TCA_FQ_CODEL_INTERVAL, int32]
-	TCA_FQ_CODEL_ECN		nlattr[TCA_FQ_CODEL_ECN, int32[0:1]]
-	TCA_FQ_CODEL_FLOWS		nlattr[TCA_FQ_CODEL_FLOWS, int32]
-	TCA_FQ_CODEL_QUANTUM		nlattr[TCA_FQ_CODEL_QUANTUM, int32]
-	TCA_FQ_CODEL_CE_THRESHOLD	nlattr[TCA_FQ_CODEL_CE_THRESHOLD, int32]
-	TCA_FQ_CODEL_DROP_BATCH_SIZE	nlattr[TCA_FQ_CODEL_DROP_BATCH_SIZE, int32]
-	TCA_FQ_CODEL_MEMORY_LIMIT	nlattr[TCA_FQ_CODEL_MEMORY_LIMIT, int32]
+	TCA_FQ_CODEL_TARGET			nlattr[TCA_FQ_CODEL_TARGET, int32]
+	TCA_FQ_CODEL_LIMIT			nlattr[TCA_FQ_CODEL_LIMIT, int32]
+	TCA_FQ_CODEL_INTERVAL			nlattr[TCA_FQ_CODEL_INTERVAL, int32]
+	TCA_FQ_CODEL_ECN			nlattr[TCA_FQ_CODEL_ECN, int32[0:1]]
+	TCA_FQ_CODEL_FLOWS			nlattr[TCA_FQ_CODEL_FLOWS, int32]
+	TCA_FQ_CODEL_QUANTUM			nlattr[TCA_FQ_CODEL_QUANTUM, int32]
+	TCA_FQ_CODEL_CE_THRESHOLD		nlattr[TCA_FQ_CODEL_CE_THRESHOLD, int32]
+	TCA_FQ_CODEL_DROP_BATCH_SIZE		nlattr[TCA_FQ_CODEL_DROP_BATCH_SIZE, int32]
+	TCA_FQ_CODEL_MEMORY_LIMIT		nlattr[TCA_FQ_CODEL_MEMORY_LIMIT, int32]
+	TCA_FQ_CODEL_CE_THRESHOLD_SELECTOR	nlattr[TCA_FQ_CODEL_CE_THRESHOLD_SELECTOR, int8]
+	TCA_FQ_CODEL_CE_THRESHOLD_MASK		nlattr[TCA_FQ_CODEL_CE_THRESHOLD_MASK, int8]
 ] [varlen]
 
 fq_pie_policy [
@@ -330,10 +332,12 @@ pie_policy [
 ] [varlen]
 
 red_policy [
-	TCA_RED_PARMS	nlattr[TCA_RED_PARMS, tc_red_qopt]
-	TCA_RED_STAB	nlattr[TCA_RED_STAB, array[int8, 256]]
-	TCA_RED_MAX_P	nlattr[TCA_RED_MAX_P, int32]
-	TCA_RED_FLAGS	nlattr[TCA_RED_FLAGS, nla_bitfield32[red_supported_flags]]
+	TCA_RED_PARMS			nlattr[TCA_RED_PARMS, tc_red_qopt]
+	TCA_RED_STAB			nlattr[TCA_RED_STAB, array[int8, 256]]
+	TCA_RED_MAX_P			nlattr[TCA_RED_MAX_P, int32]
+	TCA_RED_FLAGS			nlattr[TCA_RED_FLAGS, nla_bitfield32[red_supported_flags]]
+	TCA_RED_EARLY_DROP_BLOCK	nlattr[TCA_RED_EARLY_DROP_BLOCK, int32]
+	TCA_RED_MARK_BLOCK		nlattr[TCA_RED_MARK_BLOCK, int32]
 ] [varlen]
 
 red_supported_flags = TC_RED_HISTORIC_FLAGS, TC_RED_NODROP
@@ -633,6 +637,7 @@ htb_policy$class [
 	TCA_HTB_RTAB	nlattr[TCA_HTB_RTAB, array[int32, 256]]
 	TCA_HTB_RATE64	nlattr[TCA_HTB_RATE64, int64]
 	TCA_HTB_CEIL64	nlattr[TCA_HTB_CEIL64, int64]
+	TCA_HTB_OFFLOAD	nlattr[TCA_HTB_OFFLOAD, void]
 ] [varlen]
 
 qfq_policy [
@@ -835,10 +840,10 @@ erspan_opt_policy [
 ] [varlen]
 
 mpls_opts [
-	TCA_FLOWER_KEY_MPLS_OPTS_LSE	nlattr[TCA_FLOWER_KEY_MPLS_OPTS_LSE, mpls_opts_lse]
+	TCA_FLOWER_KEY_MPLS_OPTS_LSE	nlnest[TCA_FLOWER_KEY_MPLS_OPTS_LSE, array[mpls_stack_entry_policy]]
 ] [varlen]
 
-mpls_opts_lse [
+mpls_stack_entry_policy [
 	TCA_FLOWER_KEY_MPLS_OPT_LSE_DEPTH	nlattr[TCA_FLOWER_KEY_MPLS_OPT_LSE_DEPTH, int8[1:FLOW_DIS_MPLS_MAX]]
 	TCA_FLOWER_KEY_MPLS_OPT_LSE_TTL		nlattr[TCA_FLOWER_KEY_MPLS_OPT_LSE_TTL, int8]
 	TCA_FLOWER_KEY_MPLS_OPT_LSE_BOS		nlattr[TCA_FLOWER_KEY_MPLS_OPT_LSE_BOS, int8[0:MPLS_BOS_MASK]]
@@ -1323,7 +1328,7 @@ tcf_em_cmp {
 }
 
 tcf_em_nbyte {
-	off	int32
+	off	int16
 	len	bytesize[payload, int16:12]
 	layer	flags[tcf_layers, int8:4]
 	payload	array[int8, 0:10]

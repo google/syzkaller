@@ -28,9 +28,10 @@ media_entity_desc {
 } [size[MEDIA_ENTITY_DESC_SIZE]]
 
 media_links_enum {
-	entity	media_entity_id	(in)
-	pads	ptr[out, array[media_pad_desc, 2]]
-	links	ptr[out, array[media_link_desc, 2]]
+	entity		media_entity_id	(in)
+	pads		ptr[out, array[media_pad_desc, 2]]
+	links		ptr[out, array[media_link_desc, 2]]
+	reserved	array[const[0, int32], 4]
 }
 
 media_link_desc {
@@ -89,8 +90,7 @@ media_v2_pad {
 	flags		int32
 # The v1 pad indexes are int16, so we use int16 as resource base,
 # but v2 pad indexes are int32, so we need the pad.
-	index		media_pad_index
-	index_pad	const[0, int16]
+	index		padto32[media_pad_index]
 	reserved	array[int32, 4]
 } [packed]
 

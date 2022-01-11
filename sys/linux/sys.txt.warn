@@ -1,6 +1,8 @@
 no-such-struct: alignptr
 no-such-struct: align32
 no-such-struct: align64
+no-such-struct: padto32
+no-such-struct: padto64
 compiler: unsupported syscall: open due to missing const __NR_open [arm64]
 compiler: unsupported syscall: creat due to missing const __NR_creat [arm64]
 compiler: unsupported syscall: dup2 due to missing const __NR_dup2 [arm64]

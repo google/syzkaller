@@ -899,7 +899,7 @@ hci_ev_le_meta_un [
 	hci_ev_le_data_len_change	hci_ev_le_meta_t[HCI_EV_LE_DATA_LEN_CHANGE, hci_ev_le_data_len_change]
 	hci_ev_le_direct_adv_info	hci_ev_le_meta_t[HCI_EV_LE_DIRECT_ADV_REPORT, hci_ev_le_direct_adv_info]
 	hci_ev_le_enh_conn_complete	hci_ev_le_meta_t[HCI_EV_LE_ENHANCED_CONN_COMPLETE, hci_ev_le_enh_conn_complete]
-	hci_ev_le_ext_adv_report	hci_ev_le_meta_t[HCI_EV_LE_EXT_ADV_REPORT, hci_ev_le_ext_adv_report_t]
+	hci_ev_le_ext_adv_report	hci_ev_le_meta_t[HCI_EV_LE_EXT_ADV_REPORT, hci_ev_le_ext_adv_report]
 	hci_ev_le_ltk_req		hci_ev_le_meta_t[HCI_EV_LE_LTK_REQ, hci_ev_le_ltk_req]
 	hci_ev_le_phy_update_complete	hci_ev_le_meta_t[HCI_EV_LE_PHY_UPDATE_COMPLETE, hci_ev_le_phy_update_complete]
 	hci_ev_le_remote_conn_param_req	hci_ev_le_meta_t[HCI_EV_LE_REMOTE_CONN_PARAM_REQ, hci_ev_le_remote_conn_param_req]
@@ -1220,13 +1220,13 @@ hci_ev_le_enh_conn_complete {
 	clk_accurancy		int8
 } [packed]
 
-hci_ev_le_ext_adv_report_t {
-	num_reports	len[reports, int8]
-	reports		array[hci_ev_le_ext_adv_report]
+hci_ev_le_ext_adv_report {
+	num	len[info, int8]
+	info	array[hci_ev_le_ext_adv_info]
 } [packed]
 
-hci_ev_le_ext_adv_report {
-	evt_type		flags[hci_legacy_adv_evt_type, int16]
+hci_ev_le_ext_adv_info {
+	type			flags[hci_legacy_adv_evt_type, int16]
 	bdaddr_type		flags[bdaddr_types, int8]
 	bdaddr			bdaddr_t
 	primary_phy		int8
@@ -1478,7 +1478,7 @@ hci_rp_delete_reserved_lt_addr {
 
 hci_rp_delete_stored_link_key {
 	status		int8
-	num_keys	int8
+	num_keys	int16
 } [packed]
 
 hci_rp_le_ltk_neg_reply {
@@ -1766,8 +1766,8 @@ hci_rp_read_ssp_mode {
 
 hci_rp_read_stored_link_key {
 	status		int8
-	max_keys	int8
-	num_keys	int8
+	max_keys	int16
+	num_keys	int16
 } [packed]
 
 hci_rp_read_tx_power {

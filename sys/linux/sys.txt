@@ -59,7 +59,7 @@ include <uapi/linux/close_range.h>
 resource fd[int32]: -1
 resource fd_dir[fd]: AT_FDCWD
 
-# alignptr/align32/align64 can be used when ABI uses int64/intptr to hold a smaller tqype.
+# alignptr/align32/align64/padto64 can be used when ABI uses int64/intptr to hold a smaller type.
 # E.g. pid/uid stored as intptr/int64.
 type alignptr[T] {
 	v	T
@@ -72,6 +72,14 @@ type align32[T] {
 type align64[T] {
 	v	T
 } [align[8]]
+
+type padto32[T] {
+	v	T
+} [size[4]]
+
+type padto64[T] {
+	v	T
+} [size[8]]
 
 type signalno int32[0:65]
 type signalnoptr intptr[0:65]

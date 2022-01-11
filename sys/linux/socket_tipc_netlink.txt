@@ -178,10 +178,12 @@ tipc_nl_media_policy [
 ] [varlen]
 
 tipc_nl_node_policy [
-	TIPC_NLA_NODE_ADDR	nlattr[TIPC_NLA_NODE_ADDR, int32]
-	TIPC_NLA_NODE_UP	nlattr[TIPC_NLA_NODE_UP, void]
-	TIPC_NLA_NODE_ID	nlattr[TIPC_NLA_NODE_ID, array[int8]]
-	TIPC_NLA_NODE_KEY	nlattr[TIPC_NLA_NODE_KEY, tipc_aead_key]
+	TIPC_NLA_NODE_ADDR		nlattr[TIPC_NLA_NODE_ADDR, int32]
+	TIPC_NLA_NODE_UP		nlattr[TIPC_NLA_NODE_UP, void]
+	TIPC_NLA_NODE_ID		nlattr[TIPC_NLA_NODE_ID, array[int8]]
+	TIPC_NLA_NODE_KEY		nlattr[TIPC_NLA_NODE_KEY, tipc_aead_key]
+	TIPC_NLA_NODE_KEY_MASTER	nlattr[TIPC_NLA_NODE_KEY_MASTER, void]
+	TIPC_NLA_NODE_REKEYING		nlattr[TIPC_NLA_NODE_REKEYING, int32]
 ] [varlen]
 
 tipc_nl_net_policy [
