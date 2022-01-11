@@ -51,10 +51,6 @@ config:
  - FB_IBM_GXT4500: n
  - SMS_SIANO_RC: n
  - V4L_PLATFORM_DRIVERS: n
- - MEDIA_SUPPORT: n
- - MEDIA_CEC_SUPPORT: n
- - MEDIA_PCI_SUPPORT: n
- - MEDIA_RADIO_SUPPORT: n
  - SPI: n
  - SSB: n
  - MMC: n
@@ -323,8 +319,6 @@ config:
  - VEXPRESS_CONFIG: n
  - DA8XX_MSTPRI: n
  - FSL_MC_BUS: n
- - MHI_BUS: n
- - MHI_BUS_DEBUG: n
 
  # Disable whole menu "I2C Hardware Bus support"
  - I2C_ALI1535: n
