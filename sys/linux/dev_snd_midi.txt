@@ -43,7 +43,8 @@ snd_rawmidi_params {
 	buffer_size		intptr
 	avail_min		intptr
 	no_active_sensing	int32:1
-	reserved		array[const[0, int8], 16]
+	mode			int32
+	reserved		array[const[0, int8], 12]
 }
 
 snd_rawmidi_status32 {

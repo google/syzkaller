@@ -46,7 +46,7 @@ vmci_datagram {
 }
 
 vmci_datagram_snd_rcv_info {
-	addr	ptr[in, vmci_datagram]
+	addr	ptr64[in, vmci_datagram]
 	len	len[addr, int32]
 	result	int32
 }
@@ -95,11 +95,11 @@ vmci_ctx_info {
 }
 
 vmci_ctx_chkpt_buf_info {
-	cpt_buf		ptr[in, array[int32, 1024]]
+	cpt_buf		ptr64[in, array[int32, 1024]]
 	cpt_type	flags[vmci_cpt_state, int32]
 	buf_size	len[cpt_buf, int32]
 	result		int32
-	_pad		int32
+	_pad		const[0, int32]
 }
 
 vmci_set_notify_info {

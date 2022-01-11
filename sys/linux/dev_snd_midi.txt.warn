@@ -1,4 +1,0 @@
-bad-field-number: snd_rawmidi_params: syz=5 kernel=6
-bad-field-offset: snd_rawmidi_params.reserved/mode: syz=13 kernel=16 [386,arm]
-bad-field-offset: snd_rawmidi_params.reserved/mode: syz=25 kernel=28 [amd64,arm64]
-bad-field-size: snd_rawmidi_params.reserved/mode: syz=16 kernel=4

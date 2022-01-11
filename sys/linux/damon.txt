@@ -20,7 +20,7 @@ openat$damon_kdamond_pid(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/de
 openat$damon_mk_contexts(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/debug/damon/mk_contexts"]], flags flags[open_flags], mode flags[open_mode]) fd_damon_contexts
 openat$damon_rm_contexts(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/debug/damon/rm_contexts"]], flags flags[open_flags], mode flags[open_mode]) fd_damon_contexts
 
-write$damon_target_ids(fd fd_damon_target_ids, buf ptr[in, damon_target_id_input], count len[buf])
+write$damon_target_ids(fd fd_damon_target_ids, buf ptr[in, damon_target_id_input], count bytesize[buf])
 write$damon_attrs(fd fd_damon_attrs, buf ptr[in, damon_attrs], count len[buf])
 write$damon_init_regions(fd fd_damon_init_regions, buf ptr[in, damon_init_regions], count len[buf])
 write$damon_monitor_on(fd fd_damon_monitor_on, buf ptr[in, string["on"]], count len[buf])

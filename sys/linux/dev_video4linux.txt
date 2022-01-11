@@ -49,14 +49,14 @@ ioctl$VIDIOC_S_FMT(fd fd_video, cmd const[VIDIOC_S_FMT], arg ptr[inout, v4l2_for
 ioctl$VIDIOC_REQBUFS(fd fd_video, cmd const[VIDIOC_REQBUFS], arg ptr[inout, v4l2_requestbuffers[v4l2_buf_type]])
 # This variant serves as fd_v4l2_buffer constructor.
 # Potentially more ioctl can create fd_v4l2_buffer, but the kernel code is hard to understand.
-ioctl$VIDIOC_QUERYBUF_DMABUF(fd fd_video, cmd const[VIDIOC_QUERYBUF], arg ptr[inout, v4l2_buffer_t[v4l2_buf_type, V4L2_MEMORY_DMABUF, fd_v4l2_buffer]])
-ioctl$VIDIOC_QUERYBUF(fd fd_video, cmd const[VIDIOC_QUERYBUF], arg ptr[inout, v4l2_buffer[v4l2_buf_type]])
+ioctl$VIDIOC_QUERYBUF_DMABUF(fd fd_video, cmd const[VIDIOC_QUERYBUF], arg ptr[inout, v4l2_buffer[v4l2_buf_type, V4L2_MEMORY_DMABUF, fd_v4l2_buffer]])
+ioctl$VIDIOC_QUERYBUF(fd fd_video, cmd const[VIDIOC_QUERYBUF], arg ptr[inout, v4l2_buffer_t[v4l2_buf_type]])
 ioctl$VIDIOC_G_FBUF(fd fd_video, cmd const[VIDIOC_G_FBUF], arg ptr[inout, v4l2_framebuffer])
 ioctl$VIDIOC_S_FBUF(fd fd_video, cmd const[VIDIOC_S_FBUF], arg ptr[in, v4l2_framebuffer])
 ioctl$VIDIOC_OVERLAY(fd fd_video, cmd const[VIDIOC_OVERLAY], arg ptr[in, int32])
-ioctl$VIDIOC_QBUF(fd fd_video, cmd const[VIDIOC_QBUF], arg ptr[inout, v4l2_buffer[v4l2_buf_type]])
+ioctl$VIDIOC_QBUF(fd fd_video, cmd const[VIDIOC_QBUF], arg ptr[inout, v4l2_buffer_t[v4l2_buf_type]])
 ioctl$VIDIOC_EXPBUF(fd fd_video, cmd const[VIDIOC_EXPBUF], arg ptr[inout, v4l2_exportbuffer[v4l2_buf_type]])
-ioctl$VIDIOC_DQBUF(fd fd_video, cmd const[VIDIOC_DQBUF], arg ptr[inout, v4l2_buffer[v4l2_buf_type]])
+ioctl$VIDIOC_DQBUF(fd fd_video, cmd const[VIDIOC_DQBUF], arg ptr[inout, v4l2_buffer_t[v4l2_buf_type]])
 ioctl$VIDIOC_STREAMON(fd fd_video, cmd const[VIDIOC_STREAMON], arg ptr[in, int32])
 ioctl$VIDIOC_STREAMOFF(fd fd_video, cmd const[VIDIOC_STREAMOFF], arg ptr[in, int32])
 ioctl$VIDIOC_G_PARM(fd fd_video, cmd const[VIDIOC_G_PARM], arg ptr[inout, v4l2_streamparm])
@@ -116,7 +116,7 @@ ioctl$VIDIOC_DQEVENT(fd fd_video, cmd const[VIDIOC_DQEVENT], arg ptr[out, v4l2_e
 ioctl$VIDIOC_SUBSCRIBE_EVENT(fd fd_video, cmd const[VIDIOC_SUBSCRIBE_EVENT], arg ptr[in, v4l2_event_subscription])
 ioctl$VIDIOC_UNSUBSCRIBE_EVENT(fd fd_video, cmd const[VIDIOC_UNSUBSCRIBE_EVENT], arg ptr[in, v4l2_event_subscription])
 ioctl$VIDIOC_CREATE_BUFS(fd fd_video, cmd const[VIDIOC_CREATE_BUFS], arg ptr[inout, v4l2_create_buffers[v4l2_buf_type]])
-ioctl$VIDIOC_PREPARE_BUF(fd fd_video, cmd const[VIDIOC_PREPARE_BUF], arg ptr[inout, v4l2_buffer[v4l2_buf_type]])
+ioctl$VIDIOC_PREPARE_BUF(fd fd_video, cmd const[VIDIOC_PREPARE_BUF], arg ptr[inout, v4l2_buffer_t[v4l2_buf_type]])
 ioctl$VIDIOC_G_SELECTION(fd fd_video, cmd const[VIDIOC_G_SELECTION], arg ptr[inout, v4l2_selection])
 ioctl$VIDIOC_S_SELECTION(fd fd_video, cmd const[VIDIOC_S_SELECTION], arg ptr[inout, v4l2_selection])
 ioctl$VIDIOC_DECODER_CMD(fd fd_video, cmd const[VIDIOC_DECODER_CMD], arg ptr[inout, v4l2_decoder_cmd])
@@ -272,22 +272,23 @@ type v4l2_requestbuffers[BUF_TYPE] {
 	type		flags[BUF_TYPE, int32]
 	memory		flags[v4l2_memory, int32]
 	capabilities	const[0, int32]
-	reserved	const[0, int32]
+	flags		int8
+	reserved	array[const[0, int8], 3]
 }
 
-type v4l2_buffer[BUF_TYPE] [
-	mmap			v4l2_buffer_t[BUF_TYPE, V4L2_MEMORY_MMAP, intptr]
-	userptr			v4l2_buffer_t[BUF_TYPE, V4L2_MEMORY_USERPTR, ptr[out, int8]]
-	overlay			v4l2_buffer_t[BUF_TYPE, V4L2_MEMORY_OVERLAY, int32]
-	fd			v4l2_buffer_t[BUF_TYPE, V4L2_MEMORY_DMABUF, fd_v4l2_buffer[opt]]
-	multiplanar_mmap	v4l2_buffer_t[BUF_TYPE, V4L2_MEMORY_MMAP, ptr[inout, array[v4l2_plane[intptr], 2]]]
-	multiplanar_userptr	v4l2_buffer_t[BUF_TYPE, V4L2_MEMORY_USERPTR, array[v4l2_plane[ptr[out, int8]], 2]]
-	multiplanar_overlay	v4l2_buffer_t[BUF_TYPE, V4L2_MEMORY_OVERLAY, array[v4l2_plane[int32], 2]]
-	multiplanar_fd		v4l2_buffer_t[BUF_TYPE, V4L2_MEMORY_DMABUF, array[v4l2_plane[fd_v4l2_buffer[opt]], 2]]
+type v4l2_buffer_t[BUF_TYPE] [
+	mmap			v4l2_buffer[BUF_TYPE, V4L2_MEMORY_MMAP, intptr]
+	userptr			v4l2_buffer[BUF_TYPE, V4L2_MEMORY_USERPTR, ptr[out, int8]]
+	overlay			v4l2_buffer[BUF_TYPE, V4L2_MEMORY_OVERLAY, int32]
+	fd			v4l2_buffer[BUF_TYPE, V4L2_MEMORY_DMABUF, fd_v4l2_buffer[opt]]
+	multiplanar_mmap	v4l2_buffer[BUF_TYPE, V4L2_MEMORY_MMAP, ptr[inout, array[v4l2_plane[intptr], 2]]]
+	multiplanar_userptr	v4l2_buffer[BUF_TYPE, V4L2_MEMORY_USERPTR, ptr[inout, array[v4l2_plane[ptr[out, int8]], 2]]]
+	multiplanar_overlay	v4l2_buffer[BUF_TYPE, V4L2_MEMORY_OVERLAY, ptr[inout, array[v4l2_plane[int32], 2]]]
+	multiplanar_fd		v4l2_buffer[BUF_TYPE, V4L2_MEMORY_DMABUF, ptr[inout, array[v4l2_plane[fd_v4l2_buffer[opt]], 2]]]
 ]
 
 # TODO: The field directions needs to be defined. Recursively v4l2_plane, v4l2_plane_union needs checking.
-type v4l2_buffer_t[BUF_TYPE, MEM_TYPE, ARG_TYPE] {
+type v4l2_buffer[BUF_TYPE, MEM_TYPE, ARG_TYPE] {
 	index		int32
 	type		flags[BUF_TYPE, int32]
 	bytesused	len[type, int32]
