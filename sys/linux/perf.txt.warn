@@ -1,5 +1,4 @@
-bad-field-number: perf_event_attr: syz=50 kernel=53
-bad-struct-size: perf_event_attr: syz=112 kernel=120
+bad-field-number: perf_event_attr: syz=62 kernel=59
 bad-field-size: perf_event_attr.config0/config: syz=1 kernel=8
 bad-field-offset: perf_event_attr.config1/: syz=9 kernel=16
 bad-field-size: perf_event_attr.config1/: syz=1 kernel=8
@@ -44,20 +43,41 @@ bad-bitfield: perf_event_attr.use_clockid/ksymbol: size/offset: syz=1/25 kernel=
 bad-bitfield: perf_event_attr.context_switch/bpf_event: size/offset: syz=1/26 kernel=1/30
 bad-bitfield: perf_event_attr.write_backward/aux_output: size/offset: syz=1/27 kernel=1/31
 bad-bitfield: perf_event_attr.namespaces/cgroup: size/offset: syz=1/28 kernel=1/32
-bad-bitfield: perf_event_attr.__reserved_1: size/offset: syz=35/29 kernel=31/33
-bad-field-size: perf_event_attr.bp_config/: syz=16 kernel=8
-bad-field-offset: perf_event_attr.branch_sample_type/: syz=72 kernel=64
-bad-field-offset: perf_event_attr.sample_regs_user/branch_sample_type: syz=80 kernel=72
-bad-field-offset: perf_event_attr.sample_stack_user/sample_regs_user: syz=88 kernel=80
-bad-field-size: perf_event_attr.sample_stack_user/sample_regs_user: syz=4 kernel=8
-bad-field-offset: perf_event_attr.clockid/sample_stack_user: syz=92 kernel=88
-bad-field-offset: perf_event_attr.sample_regs_intr/clockid: syz=96 kernel=92
-bad-field-size: perf_event_attr.sample_regs_intr/clockid: syz=8 kernel=4
-bad-field-offset: perf_event_attr.aux_watermark/sample_regs_intr: syz=104 kernel=96
-bad-field-size: perf_event_attr.aux_watermark/sample_regs_intr: syz=4 kernel=8
-bad-field-offset: perf_event_attr.sample_max_stack/aux_watermark: syz=108 kernel=104
-bad-field-size: perf_event_attr.sample_max_stack/aux_watermark: syz=2 kernel=4
-bad-field-offset: perf_event_attr.__reserved_2/sample_max_stack: syz=110 kernel=108
+bad-bitfield: perf_event_attr.ksymbol/text_poke: size/offset: syz=1/29 kernel=1/33
+bad-bitfield: perf_event_attr.bpf_event/build_id: size/offset: syz=1/30 kernel=1/34
+bad-bitfield: perf_event_attr.aux_output/inherit_thread: size/offset: syz=1/31 kernel=1/35
+bad-bitfield: perf_event_attr.cgroup/remove_on_exec: size/offset: syz=1/32 kernel=1/36
+bad-bitfield: perf_event_attr.text_poke/sigtrap: size/offset: syz=1/33 kernel=1/37
+bad-bitfield: perf_event_attr.build_id/__reserved_1: size/offset: syz=1/34 kernel=26/38
+bad-bitfield: perf_event_attr.inherit_thread/: size/offset: syz=1/35 kernel=0/0
+bad-field-offset: perf_event_attr.inherit_thread/: syz=40 kernel=48
+bad-field-size: perf_event_attr.inherit_thread/: syz=8 kernel=4
+bad-bitfield: perf_event_attr.remove_on_exec/bp_type: size/offset: syz=1/36 kernel=0/0
+bad-field-offset: perf_event_attr.remove_on_exec/bp_type: syz=40 kernel=52
+bad-field-size: perf_event_attr.remove_on_exec/bp_type: syz=8 kernel=4
+bad-bitfield: perf_event_attr.sigtrap/: size/offset: syz=1/37 kernel=0/0
+bad-field-offset: perf_event_attr.sigtrap/: syz=40 kernel=56
+bad-bitfield: perf_event_attr.__reserved_1/: size/offset: syz=26/38 kernel=0/0
+bad-field-offset: perf_event_attr.__reserved_1/: syz=40 kernel=64
+bad-field-offset: perf_event_attr.wakeup_events/branch_sample_type: syz=48 kernel=72
+bad-field-size: perf_event_attr.wakeup_events/branch_sample_type: syz=4 kernel=8
+bad-field-offset: perf_event_attr.bp_type/sample_regs_user: syz=52 kernel=80
+bad-field-size: perf_event_attr.bp_type/sample_regs_user: syz=4 kernel=8
+bad-field-offset: perf_event_attr.bp_config/sample_stack_user: syz=56 kernel=88
+bad-field-size: perf_event_attr.bp_config/sample_stack_user: syz=16 kernel=4
+bad-field-offset: perf_event_attr.branch_sample_type/clockid: syz=72 kernel=92
+bad-field-size: perf_event_attr.branch_sample_type/clockid: syz=8 kernel=4
+bad-field-offset: perf_event_attr.sample_regs_user/sample_regs_intr: syz=80 kernel=96
+bad-field-offset: perf_event_attr.sample_stack_user/aux_watermark: syz=88 kernel=104
+bad-field-offset: perf_event_attr.clockid/sample_max_stack: syz=92 kernel=108
+bad-field-size: perf_event_attr.clockid/sample_max_stack: syz=4 kernel=2
+bad-field-offset: perf_event_attr.sample_regs_intr/__reserved_2: syz=96 kernel=110
+bad-field-size: perf_event_attr.sample_regs_intr/__reserved_2: syz=8 kernel=2
+bad-field-offset: perf_event_attr.aux_watermark/aux_sample_size: syz=104 kernel=112
+bad-field-offset: perf_event_attr.sample_max_stack/__reserved_3: syz=108 kernel=116
+bad-field-size: perf_event_attr.sample_max_stack/__reserved_3: syz=2 kernel=4
+bad-field-offset: perf_event_attr.__reserved_2/sig_data: syz=110 kernel=120
+bad-field-size: perf_event_attr.__reserved_2/sig_data: syz=2 kernel=8
 no-such-struct: perf_bp_config
 no-such-struct: perf_bp
 no-such-struct: perf_config_ext

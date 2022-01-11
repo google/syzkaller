@@ -1,0 +1,9 @@
+no-such-struct: evrec
+no-such-struct: evrec_short_parm1
+no-such-struct: evrec_note_note
+no-such-struct: midi_note
+no-such-struct: evrec_timer_time
+no-such-struct: evrec_extended_p1
+no-such-struct: evrec_voice_note
+no-such-struct: evrec_raw
+no-such-struct: evrec_generic

@@ -1,5 +1,35 @@
+no-such-struct: msg_nl80211_payload
 no-such-struct: nl80211_wdev
-bad-netlink-attr: nl80211_policy_cmd_key.NL80211_ATTR_KEY_DATA_WEP104: duplicate attribute
+no-such-struct: mntr_flags_policy
+bad-netlink-attr: nl80211_policy$cmd_key.NL80211_ATTR_KEY_DATA_WEP104: duplicate attribute
 bad-netlink-attr: nl80211_key_policy.NL80211_KEY_DATA_WEP104: duplicate attribute
+bad-netlink-attr: he_obss_pd_policy: missing attributes: [3 4 5 6]
+no-such-struct: he_obss_pd_policy
 no-such-netlink-policy: nl80211_tx_rates_policy
+no-such-struct: nl80211_ht_rate
+bad-netlink-attr: nl80211_txattr_policy: missing attributes: [5 6 7]
+bad-netlink-attr: nl80211_meshconf_params_policy: missing attributes: [30 31]
 no-such-netlink-policy: nl80211_rates_policy
+bad-netlink-attr: nl80211_match_band_rssi_policy: missing attributes: [5]
+bad-netlink-attr: nl80211_policy$join_ibss.NL80211_ATTR_HIDDEN_SSID: bad size -1, expect 4
+bad-netlink-attr: nl80211_policy$crypto_settings.NL80211_ATTR_PMK: bad size 254, expect max 64
+bad-netlink-attr: nl80211_policy$connect.NL80211_ATTR_WIPHY_EDMG_CHANNELS: bad min value 0, expect 1
+bad-netlink-attr: nl80211_policy$connect.NL80211_ATTR_WIPHY_EDMG_BW_CONFIG: bad min value 0, expect 4
+bad-netlink-attr: nl80211_pmsr_ftm_req_attr_policy: missing attributes: [12]
+no-such-netlink-policy: nl80211_psmr_peer_attr_policy
+bad-netlink-attr: nl80211_pmsr_attr_policy.NL80211_PMSR_ATTR_PEERS: unhandled type NLA_NESTED_ARRAY
+no-such-struct: nl80211_policy$del_nan_func
+no-such-struct: nl80211_policy$probe_client
+no-such-struct: nl80211_policy$set_mcast_rate
+no-such-struct: nl80211_policy$set_mcast_to_ucast
+no-such-struct: nl80211_policy$set_noack_map
+no-such-struct: nl80211_policy$del_pmk
+bad-netlink-attr: nl80211_policy$setdel_pmksa.NL80211_ATTR_FILS_CACHE_ID: bad min value 0, expect 2
+no-such-struct: nl80211_policy$cookie
+no-such-struct: nl80211_policy$power_save
+no-such-struct: nl80211_qos_map_dscp_exception
+no-such-netlink-policy: nl80211_cqm
+no-such-struct: nl80211_policy$set_wds_peer
+bad-netlink-attr: nl80211_tid_config_attr_policy.NL80211_TID_CONFIG_ATTR_RETRY_SHORT: bad max value 255, expect 0
+bad-netlink-attr: nl80211_tid_config_attr_policy.NL80211_TID_CONFIG_ATTR_RETRY_LONG: bad max value 255, expect 0
+bad-netlink-attr: nl80211_policy$set_tid_config.NL80211_ATTR_TID_CONFIG: unhandled type NLA_NESTED_ARRAY

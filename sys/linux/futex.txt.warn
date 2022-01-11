@@ -1,1 +1,1 @@
-no-such-struct: futex_wait_block
+no-such-struct: futex_waitv_struct

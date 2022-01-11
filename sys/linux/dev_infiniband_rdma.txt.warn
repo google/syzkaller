@@ -55,7 +55,7 @@ no-such-struct: kern_send_wr
 no-such-struct: post_send_resp
 no-such-struct: post_recv_resp
 no-such-struct: create_srq_resp
-no-such-struct: mlx5_ib_create_srq_resp
+no-such-struct: mlx5_ib_create_srq_resp [386,amd64,arm]
 no-such-struct: mlx5_create_srq_cmd
 no-such-struct: query_srq_resp
 no-such-struct: destroy_srq_resp
