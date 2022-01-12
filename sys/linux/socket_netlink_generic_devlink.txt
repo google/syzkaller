@@ -46,20 +46,20 @@ devlink_devname {
 	z	const[0, int8]
 } [packed]
 
-devlink_nl_policy_nsim {
+devlink_nl_policy$nsim {
 	DEVLINK_ATTR_BUS_NAME	nlattr[DEVLINK_ATTR_BUS_NAME, string["netdevsim"]]
 	DEVLINK_ATTR_DEV_NAME	nlattr[DEVLINK_ATTR_DEV_NAME, devlink_devname]
 } [packed, align[4]]
 
-devlink_nl_policy_pci {
+devlink_nl_policy$pci {
 	DEVLINK_ATTR_BUS_NAME	nlattr[DEVLINK_ATTR_BUS_NAME, string["pci"]]
 # 0000:00:10.0 is a fixed pci address what is moved from initial network namespace by initialize_devlink()
 	DEVLINK_ATTR_DEV_NAME	nlattr[DEVLINK_ATTR_DEV_NAME, string["0000:00:10.0"]]
 } [packed, align[4]]
 
 devlink_handle [
-	nsim	devlink_nl_policy_nsim
-	pci	devlink_nl_policy_pci
+	nsim	devlink_nl_policy$nsim
+	pci	devlink_nl_policy$pci
 ] [varlen]
 
 devlink_port_handle {
@@ -68,7 +68,7 @@ devlink_port_handle {
 	DEVLINK_ATTR_PORT_INDEX	nlattr[DEVLINK_ATTR_PORT_INDEX, int32[0:3]]
 } [packed, align[4]]
 
-devlink_nl_policy_reload [
+devlink_nl_policy$reload [
 	DEVLINK_ATTR_NETNS_PID	nlattr[DEVLINK_ATTR_NETNS_PID, pid]
 	DEVLINK_ATTR_NETNS_FD	nlattr[DEVLINK_ATTR_NETNS_FD, fd_namespace]
 	DEVLINK_ATTR_NETNS_ID	nlattr[DEVLINK_ATTR_NETNS_ID, netns_id]
@@ -76,7 +76,7 @@ devlink_nl_policy_reload [
 
 devlink_reload_policy {
 	handle	devlink_handle
-	arg	devlink_nl_policy_reload
+	arg	devlink_nl_policy$reload
 } [packed, align[4]]
 
 devlink_port_get_policy {

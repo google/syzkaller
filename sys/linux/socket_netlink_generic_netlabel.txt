@@ -85,16 +85,16 @@ netlbl_cipsov4_genl_policy [
 	NLBL_CIPSOV4_A_DOI		nlattr[NLBL_CIPSOV4_A_DOI, flags[cipso_doi, int32]]
 	NLBL_CIPSOV4_A_MTYPE		nlattr[NLBL_CIPSOV4_A_MTYPE, flags[cipsov4_type, int32]]
 	NLBL_CIPSOV4_A_TAGLST		nlnest[NLBL_CIPSOV4_A_TAGLST, array[nlattr[NLBL_CIPSOV4_A_TAG, flags[cipsov4_tags, int8]]]]
-	NLBL_CIPSOV4_A_MLSLVLLST	nlnest[NLBL_CIPSOV4_A_MLSLVLLST, array[nlnest[NLBL_CIPSOV4_A_MLSLVL, array[netlbl_cipsov4_genl_policy_mlslvl]]]]
-	NLBL_CIPSOV4_A_MLSCATLST	nlnest[NLBL_CIPSOV4_A_MLSCATLST, array[nlnest[NLBL_CIPSOV4_A_MLSCAT, array[netlbl_cipsov4_genl_policy_mlscat]]]]
+	NLBL_CIPSOV4_A_MLSLVLLST	nlnest[NLBL_CIPSOV4_A_MLSLVLLST, array[nlnest[NLBL_CIPSOV4_A_MLSLVL, array[netlbl_cipsov4_genl_policy$mlslvl]]]]
+	NLBL_CIPSOV4_A_MLSCATLST	nlnest[NLBL_CIPSOV4_A_MLSCATLST, array[nlnest[NLBL_CIPSOV4_A_MLSCAT, array[netlbl_cipsov4_genl_policy$mlscat]]]]
 ] [varlen]
 
-netlbl_cipsov4_genl_policy_mlslvl [
+netlbl_cipsov4_genl_policy$mlslvl [
 	NLBL_CIPSOV4_A_MLSLVLLOC	nlattr[NLBL_CIPSOV4_A_MLSLVLLOC, int32[0:CIPSO_V4_MAX_LOC_LVLS]]
 	NLBL_CIPSOV4_A_MLSLVLREM	nlattr[NLBL_CIPSOV4_A_MLSLVLREM, int32[0:CIPSO_V4_MAX_REM_LVLS]]
 ] [varlen]
 
-netlbl_cipsov4_genl_policy_mlscat [
+netlbl_cipsov4_genl_policy$mlscat [
 	NLBL_CIPSOV4_A_MLSCATLOC	nlattr[NLBL_CIPSOV4_A_MLSCATLOC, int32[0:CIPSO_V4_MAX_LOC_CATS]]
 	NLBL_CIPSOV4_A_MLSCATREM	nlattr[NLBL_CIPSOV4_A_MLSCATREM, int32[0:CIPSO_V4_MAX_REM_CATS]]
 ] [varlen]
