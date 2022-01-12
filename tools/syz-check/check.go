@@ -213,6 +213,9 @@ func checkImpl(structs map[string]*dwarf.StructType, structTypes []prog.Type,
 		if astStruct == nil {
 			continue
 		}
+		if _, ok := isNetlinkPolicy(typ); ok {
+			continue // netlink policies are not structs even if we describe them as structs
+		}
 		// In some cases we split a single struct into multiple ones
 		// (more precise description), so try to match our foo$bar with kernel foo.
 		kernelStruct := structs[name]
@@ -409,14 +412,8 @@ func checkNetlinkStruct(locs map[string]*ast.Struct, symbols map[string][]symbol
 	if astStruct == nil {
 		return nil, nil
 	}
-	var fields []prog.Field
-	switch t := typ.(type) {
-	case *prog.StructType:
-		fields = t.Fields
-	case *prog.UnionType:
-		fields = t.Fields
-	}
-	if !isNetlinkPolicy(fields) {
+	fields, ok := isNetlinkPolicy(typ)
+	if !ok {
 		return nil, nil
 	}
 	// In some cases we split a single policy into multiple ones (more precise description),
@@ -513,7 +510,16 @@ func checkMissingAttrs(checkedAttrs map[string]*checkAttr) []Warn {
 	return warnings
 }
 
-func isNetlinkPolicy(fields []prog.Field) bool {
+func isNetlinkPolicy(typ prog.Type) ([]prog.Field, bool) {
+	var fields []prog.Field
+	switch t := typ.(type) {
+	case *prog.StructType:
+		fields = t.Fields
+	case *prog.UnionType:
+		fields = t.Fields
+	default:
+		return nil, false
+	}
 	haveAttr := false
 	for _, fld := range fields {
 		field := fld.Type
@@ -527,19 +533,12 @@ func isNetlinkPolicy(fields []prog.Field) bool {
 		if arr, ok := field.(*prog.ArrayType); ok {
 			field = arr.Elem
 		}
-		if field1, ok := field.(*prog.StructType); ok {
-			if isNetlinkPolicy(field1.Fields) {
-				continue
-			}
+		if _, ok := isNetlinkPolicy(field); ok {
+			continue
 		}
-		if field1, ok := field.(*prog.UnionType); ok {
-			if isNetlinkPolicy(field1.Fields) {
-				continue
-			}
-		}
-		return false
+		return nil, false
 	}
-	return haveAttr
+	return fields, haveAttr
 }
 
 const (

@@ -1,3 +1,1 @@
 bad-netlink-attr: ct_nla_policy: missing attributes: [25 26]
-no-such-struct: cta_ip_nla_policy$ipv4
-no-such-struct: cta_ip_nla_policy$ipv6

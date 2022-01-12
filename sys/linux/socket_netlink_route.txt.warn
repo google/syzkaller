@@ -1,7 +1,6 @@
 bad-netlink-attr: ifla_policy.IFLA_IFALIASn: duplicate attribute
 no-such-netlink-policy: ifla_af_spec_policy
 bad-netlink-attr: ifla_info_policy$t: missing attributes: [4]
-no-such-struct: ifla_info_policy$t
 no-such-netlink-policy: batadv_policy
 bad-netlink-attr: macvlan_policy: missing attributes: [6 7]
 bad-netlink-attr: hsr_policy: missing attributes: [7]
@@ -19,7 +18,6 @@ no-such-netlink-policy: fib6_rule_policy
 bad-netlink-attr: nda_policy: missing attributes: [12 13 14]
 bad-netlink-attr: nda_policy.NDA_DST_IPV6: duplicate attribute
 bad-netlink-attr: nda_policy.NDA_DST_MAC: duplicate attribute
-no-such-struct: br_vlan_db_dump_pol
 bad-netlink-attr: br_vlan_db_policy: missing attributes: [6]
 no-such-netlink-policy: br_mdb_policy
 no-such-struct: br_mdb_entry_sub
