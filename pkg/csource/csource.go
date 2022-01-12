@@ -116,6 +116,7 @@ func (ctx *context) generateSource() ([]byte, error) {
 	timeouts := ctx.sysTarget.Timeouts(ctx.opts.Slowdown)
 	replacements["PROGRAM_TIMEOUT_MS"] = fmt.Sprint(int(timeouts.Program / time.Millisecond))
 	timeoutExpr := fmt.Sprint(int(timeouts.Syscall / time.Millisecond))
+	replacements["BASE_CALL_TIMEOUT_MS"] = timeoutExpr
 	for i, call := range ctx.p.Calls {
 		if timeout := call.Meta.Attrs.Timeout; timeout != 0 {
 			timeoutExpr += fmt.Sprintf(" + (call == %v ? %v : 0)", i, timeout*uint64(timeouts.Scale))
