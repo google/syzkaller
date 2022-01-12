@@ -65,6 +65,7 @@ if (foo) {
 				"These should be guarded by #ifndef __NR_foo, but this is dependent on the host " +
 				"and may break on other machines (after pkg/csource processing).\n" +
 				"Define sys_foo constants instead.",
+			commonOnly: true,
 			tests: []string{
 				`
 #ifndef __NR_io_uring_setup
