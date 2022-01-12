@@ -460,6 +460,7 @@ var oses = map[string]osCommon{
 		PseudoSyscallDeps: map[string][]string{
 			"syz_read_part_table": []string{"memfd_create"},
 			"syz_mount_image":     []string{"memfd_create"},
+			"syz_io_uring_setup":  []string{"io_uring_setup"},
 		},
 		cflags: []string{"-static-pie"},
 	},
