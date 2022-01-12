@@ -71,6 +71,14 @@ func isSupportedSyscall(c *prog.Syscall, target *prog.Target) (bool, string) {
 	return isSupportedTrial(c)
 }
 
+func isSupportedSyscallName(name string, target *prog.Target) (bool, string) {
+	syscall := target.SyscallMap[name]
+	if syscall == nil {
+		return false, fmt.Sprintf("sys_%v is not present in the target", name)
+	}
+	return isSupportedSyscall(syscall, target)
+}
+
 func parseKallsyms(kallsyms []byte, arch string) map[string]bool {
 	set := make(map[string]bool)
 	var re *regexp.Regexp
@@ -245,12 +253,7 @@ func isSyzReadPartTableSupported(c *prog.Syscall, target *prog.Target, sandbox s
 }
 
 func isSyzIoUringSupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
-	ioUringSyscallName := "io_uring_setup"
-	ioUringSyscall := target.SyscallMap[ioUringSyscallName]
-	if ioUringSyscall == nil {
-		return false, fmt.Sprintf("sys_%v is not present in the target", ioUringSyscallName)
-	}
-	return isSupportedSyscall(ioUringSyscall, target)
+	return isSupportedSyscallName("io_uring_setup", target)
 }
 
 func isSyzMemcpySupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
@@ -316,6 +319,12 @@ var syzkallSupport = map[string]func(*prog.Syscall, *prog.Target, string) (bool,
 }
 
 func isSupportedSyzkall(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
+	sysTarget := targets.Get(target.OS, target.Arch)
+	for _, depCall := range sysTarget.PseudoSyscallDeps[c.CallName] {
+		if ok, reason := isSupportedSyscallName(depCall, target); !ok {
+			return ok, reason
+		}
+	}
 	if isSupported, ok := syzkallSupport[c.CallName]; ok {
 		return isSupported(c, target, sandbox)
 	}
