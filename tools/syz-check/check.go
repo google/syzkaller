@@ -413,7 +413,7 @@ func checkNetlinkStruct(locs map[string]*ast.Struct, symbols map[string][]symbol
 		return nil, nil
 	}
 	// In some cases we split a single policy into multiple ones (more precise description),
-	// so try to match our foo$bar with with kernel foo as well.
+	// so try to match our foo$bar with kernel foo as well.
 	kernelName, ss := name, symbols[name]
 	if delim := strings.LastIndexByte(name, '$'); len(ss) == 0 && delim != -1 {
 		kernelName = name[:delim]
