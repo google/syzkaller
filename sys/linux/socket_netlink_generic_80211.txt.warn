@@ -15,10 +15,8 @@ bad-netlink-attr: nl80211_policy$connect.NL80211_ATTR_WIPHY_EDMG_CHANNELS: bad m
 bad-netlink-attr: nl80211_policy$connect.NL80211_ATTR_WIPHY_EDMG_BW_CONFIG: bad min value 0, expect 4
 bad-netlink-attr: nl80211_pmsr_ftm_req_attr_policy: missing attributes: [12]
 no-such-netlink-policy: nl80211_psmr_peer_attr_policy
-bad-netlink-attr: nl80211_pmsr_attr_policy.NL80211_PMSR_ATTR_PEERS: unhandled type NLA_NESTED_ARRAY
 bad-netlink-attr: nl80211_policy$setdel_pmksa.NL80211_ATTR_FILS_CACHE_ID: bad min value 0, expect 2
 no-such-struct: nl80211_qos_map_dscp_exception
 no-such-netlink-policy: nl80211_cqm
 bad-netlink-attr: nl80211_tid_config_attr_policy.NL80211_TID_CONFIG_ATTR_RETRY_SHORT: bad max value 255, expect 0
 bad-netlink-attr: nl80211_tid_config_attr_policy.NL80211_TID_CONFIG_ATTR_RETRY_LONG: bad max value 255, expect 0
-bad-netlink-attr: nl80211_policy$set_tid_config.NL80211_ATTR_TID_CONFIG: unhandled type NLA_NESTED_ARRAY

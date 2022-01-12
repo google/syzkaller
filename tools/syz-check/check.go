@@ -632,25 +632,33 @@ func checkNetlinkAttr(typ *prog.StructType, policy nlaPolicy) string {
 	return ""
 }
 
-func minTypeSize(typ prog.Type) int {
-	if !typ.Varlen() {
-		return int(typ.Size())
+func minTypeSize(t prog.Type) int {
+	if !t.Varlen() {
+		return int(t.Size())
 	}
-	if str, ok := typ.(*prog.StructType); ok {
+	switch typ := t.(type) {
+	case *prog.StructType:
 		// Some struct args has trailing arrays, but are only checked for min size.
 		// Try to get some estimation for min size of this struct.
 		size := 0
-		for _, field := range str.Fields {
+		for _, field := range typ.Fields {
 			if !field.Varlen() {
 				size += int(field.Size())
 			}
 		}
 		return size
-	}
-	if arr, ok := typ.(*prog.ArrayType); ok {
-		if arr.Kind == prog.ArrayRangeLen && !arr.Elem.Varlen() {
-			return int(arr.RangeBegin * arr.Elem.Size())
+	case *prog.ArrayType:
+		if typ.Kind == prog.ArrayRangeLen && !typ.Elem.Varlen() {
+			return int(typ.RangeBegin * typ.Elem.Size())
 		}
+	case *prog.UnionType:
+		size := 0
+		for _, field := range typ.Fields {
+			if size1 := minTypeSize(field.Type); size1 != -1 && size > size1 || size == 0 {
+				size = size1
+			}
+		}
+		return size
 	}
 	return -1
 }
@@ -670,7 +678,9 @@ func checkAttrType(typ *prog.StructType, payload prog.Type, policy nlaPolicy) st
 			return "should be nlattr[nla_bitfield32]"
 		}
 	case NLA_NESTED_ARRAY:
-		return "unhandled type NLA_NESTED_ARRAY"
+		if _, ok := payload.(*prog.ArrayType); !ok {
+			return "expect array"
+		}
 	case NLA_REJECT:
 		return "NLA_REJECT attribute will always be rejected"
 	}
