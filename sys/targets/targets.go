@@ -457,7 +457,11 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "vmlinux",
-		cflags:                 []string{"-static-pie"},
+		PseudoSyscallDeps: map[string][]string{
+			"syz_read_part_table": []string{"memfd_create"},
+			"syz_mount_image":     []string{"memfd_create"},
+		},
+		cflags: []string{"-static-pie"},
 	},
 	FreeBSD: {
 		SyscallNumbers:         true,
