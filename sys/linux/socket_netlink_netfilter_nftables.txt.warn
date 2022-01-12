@@ -11,5 +11,4 @@ bad-netlink-attr: nft_verdict_policy: missing attributes: [3]
 bad-netlink-attr: nft_obj_policy: missing attributes: [8]
 bad-netlink-attr: nft_bitwise_policy: missing attributes: [6 7]
 bad-netlink-attr: nft_dynset_policy: missing attributes: [10]
-no-such-struct: nft_flow_offload_policy
 bad-netlink-attr: nft_socket_policy: missing attributes: [3]
