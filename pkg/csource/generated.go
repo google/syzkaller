@@ -6118,24 +6118,6 @@ struct fs_image_segment {
 #define IMAGE_MAX_SEGMENTS 4096
 #define IMAGE_MAX_SIZE (129 << 20)
 
-#if GOARCH_386
-#define sys_memfd_create 356
-#elif GOARCH_amd64
-#define sys_memfd_create 319
-#elif GOARCH_arm
-#define sys_memfd_create 385
-#elif GOARCH_arm64
-#define sys_memfd_create 279
-#elif GOARCH_ppc64le
-#define sys_memfd_create 360
-#elif GOARCH_mips64le
-#define sys_memfd_create 314
-#elif GOARCH_s390x
-#define sys_memfd_create 350
-#elif GOARCH_riscv64
-#define sys_memfd_create 279
-#endif
-
 static unsigned long fs_image_segment_check(unsigned long size, unsigned long nsegs, struct fs_image_segment* segs)
 {
 	if (nsegs > IMAGE_MAX_SEGMENTS)
@@ -6158,7 +6140,7 @@ static int setup_loop_device(long unsigned size, long unsigned nsegs, struct fs_
 	int err = 0, loopfd = -1;
 
 	size = fs_image_segment_check(size, nsegs, segs);
-	int memfd = syscall(sys_memfd_create, "syzkaller", 0);
+	int memfd = syscall(__NR_memfd_create, "syzkaller", 0);
 	if (memfd == -1) {
 		err = errno;
 		goto error;
