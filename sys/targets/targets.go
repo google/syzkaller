@@ -76,6 +76,9 @@ type osCommon struct {
 	KernelObject string
 	// Name of cpp(1) executable.
 	CPP string
+	// Syscalls on which pseudo syscalls depend. Syzkaller will make sure that __NR* or SYS* definitions
+	// for those syscalls are enabled.
+	PseudoSyscallDeps map[string][]string
 	// Common CFLAGS for this OS.
 	cflags []string
 }

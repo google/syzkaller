@@ -73,6 +73,13 @@ func (ctx *context) generateSource() ([]byte, error) {
 
 	for _, c := range append(mmapProg.Calls, ctx.p.Calls...) {
 		ctx.calls[c.Meta.CallName] = c.Meta.NR
+		for _, dep := range ctx.sysTarget.PseudoSyscallDeps[c.Meta.CallName] {
+			depCall := ctx.target.SyscallMap[dep]
+			if depCall == nil {
+				panic(dep + " is specified in PseudoSyscallDeps, but not present")
+			}
+			ctx.calls[depCall.CallName] = depCall.NR
+		}
 	}
 
 	varsBuf := new(bytes.Buffer)
