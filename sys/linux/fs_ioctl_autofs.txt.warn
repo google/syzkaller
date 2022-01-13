@@ -8,6 +8,5 @@ no-such-struct: autofs_args_timeout
 no-such-struct: autofs_args_requester
 no-such-struct: autofs_args_expire
 no-such-struct: autofs_args_askumount
-no-such-struct: autofs_args_ismountpoint
 no-such-struct: autofs_dev_ioctl_base
 bad-field-size: autofs_dev_ioctl.base/ver_major: syz=24 kernel=4
