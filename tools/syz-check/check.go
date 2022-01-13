@@ -251,6 +251,14 @@ func checkStruct(typ prog.Type, astStruct *ast.Struct, str *dwarf.StructType) ([
 	if _, ok := typ.(*prog.UnionType); ok || str.Kind == "union" {
 		return warnings, nil
 	}
+	// Ignore structs with out_overlay attribute.
+	// They are never described in the kernel as a simple struct.
+	// We could only match and check fields based on some common conventions,
+	// but since we have very few of them it's unclear what are these conventions
+	// and implementing something complex will have low RoI.
+	if typ.(*prog.StructType).OverlayField != 0 {
+		return warnings, nil
+	}
 	// TODO: we could also check enums (elements match corresponding flags in syzkaller).
 	// TODO: we could also check values of literal constants (dwarf should have that, right?).
 	// TODO: handle nested structs/unions, e.g.:
@@ -638,6 +646,12 @@ func minTypeSize(t prog.Type) int {
 	}
 	switch typ := t.(type) {
 	case *prog.StructType:
+		if typ.OverlayField != 0 {
+			// Overlayed structs are not supported here
+			// (and should not be used in netlink).
+			// Make this always produce a warning.
+			return -1
+		}
 		// Some struct args has trailing arrays, but are only checked for min size.
 		// Try to get some estimation for min size of this struct.
 		size := 0
