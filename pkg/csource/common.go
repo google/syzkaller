@@ -31,7 +31,7 @@ func createCommonHeader(p, mmapProg *prog.Prog, replacements map[string]string, 
 	// Note: -fdirectives-only isn't supported by clang. This code is relevant
 	// for producing C++ reproducers. Hence reproducers don't work when setting
 	// CPP in targets.go to clang++ at the moment.
-	cmd := osutil.Command(sysTarget.CPP, "-nostdinc", "-undef", "-fdirectives-only", "-dDI", "-E", "-P", "-")
+	cmd := osutil.Command(sysTarget.CPP, "-nostdinc", "-undef", "-fdirectives-only", "-dDI", "-E", "-P", "-CC", "-")
 	for _, def := range defines {
 		cmd.Args = append(cmd.Args, "-D"+def)
 	}
