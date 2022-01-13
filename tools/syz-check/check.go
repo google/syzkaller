@@ -8,7 +8,14 @@
 //		-obj-386 /linux_386/vmlinux -obj-arm /linux_arm/vmlinux
 //
 // The vmlinux files should include debug info, enable all relevant configs (since we parse dwarf),
-// and be compiled with -fno-eliminate-unused-debug-types -fno-eliminate-unused-debug-symbols flags.
+// and be compiled with -gdwarf-3 -fno-eliminate-unused-debug-types -fno-eliminate-unused-debug-symbols flags.
+// -gdwarf-3 is required because version 4 changes the way bitfields are encoded and Go before 1.18
+// does not support then new encoding and at least earlier versions mis-handle it, see:
+// https://go-review.googlesource.com/c/go/+/328709/comments/edf0619d_daec236f
+//
+// Use the following configs for kernels (x86_64 config for i386 as well):
+// upstream-apparmor-kasan.config, upstream-arm-full.config, upstream-arm64-full.config
+//
 // You may check only one arch as well (but then don't commit changes to warn files):
 //
 //	$ syz-check -obj-amd64 /linux_amd64/vmlinux
