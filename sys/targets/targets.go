@@ -862,7 +862,7 @@ func (target *Target) lazyInit() {
 }
 
 func checkFlagSupported(target *Target, flag string) bool {
-	cmd := exec.Command(target.CCompiler, "-x", "c++", "-", "-o", "/dev/null", flag)
+	cmd := exec.Command(target.CCompiler, "-x", "c++", "-", "-o", "/dev/null", "-Werror", flag)
 	cmd.Stdin = strings.NewReader(simpleProg)
 	return cmd.Run() == nil
 }
