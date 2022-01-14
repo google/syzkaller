@@ -554,12 +554,18 @@ var (
 		"-Wparentheses",
 		"-Wunused-const-variable",
 		"-Wframe-larger-than=16384", // executor uses stacks of limited size, so no jumbo frames
+		"-Wno-stringop-overflow",
+		"-Wno-array-bounds",
+		"-Wno-format-overflow",
 	}
 	optionalCFlags = map[string]bool{
 		"-static":                 true, // some distributions don't have static libraries
 		"-static-pie":             true, // this flag is also not supported everywhere
 		"-Wunused-const-variable": true, // gcc 5 does not support this flag
 		"-fsanitize=address":      true, // some OSes don't have ASAN
+		"-Wno-stringop-overflow":  true,
+		"-Wno-array-bounds":       true,
+		"-Wno-format-overflow":    true,
 	}
 	fallbackCFlags = map[string]string{
 		"-static-pie": "-static", // if an ASLR static binary is impossible, build just a static one
