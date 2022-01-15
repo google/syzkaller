@@ -64,7 +64,7 @@ Metadata-Flavor: Google
 
 EOF2
 )
-  cd /dev && for i in `jot - 0 7`; do sh MAKEDEV tun$i; done
+  cd /dev && for i in `jot - 0 7`; do sh MAKEDEV tap$i; done
 EOF
 
 chmod +x install.site
