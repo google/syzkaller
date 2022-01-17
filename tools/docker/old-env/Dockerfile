@@ -7,7 +7,7 @@ FROM ubuntu:16.04
 
 LABEL homepage="https://github.com/google/syzkaller"
 
-RUN dpkg --add-architecture i386 && apt-get update --allow-releaseinfo-change
+RUN dpkg --add-architecture i386 && apt-get update
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
 	sudo make nano git curl ca-certificates gnupg \
 	apt-transport-https software-properties-common g++ \
@@ -27,7 +27,7 @@ ENV GOPATH /gopath
 # The distro-provided clang is too old for Go fuzzing.
 RUN curl https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
 RUN add-apt-repository "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-10 main"
-RUN apt-get update --allow-releaseinfo-change
+RUN apt-get update
 RUN apt-get install -y -q --no-install-recommends clang-10
 RUN ln -s /usr/bin/clang-10 /usr/bin/clang
 
