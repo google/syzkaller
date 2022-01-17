@@ -23,13 +23,13 @@ RUN curl https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz | tar -C /usr/loca
 ENV PATH /usr/local/go/bin:/gopath/bin:$PATH
 ENV GOPATH /gopath
 
-# Install clang-10 from llvm.org.
+# Install clang-12 from llvm.org.
 # The distro-provided clang is too old for Go fuzzing.
 RUN curl https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
-RUN add-apt-repository "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-10 main"
+RUN add-apt-repository "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-12 main"
 RUN apt-get update
-RUN apt-get install -y -q --no-install-recommends clang-10
-RUN ln -s /usr/bin/clang-10 /usr/bin/clang
+RUN apt-get install -y -q --no-install-recommends clang-12
+RUN ln -s /usr/bin/clang-12 /usr/bin/clang
 
 # Pre-create dirs for syz-env.
 # This is necessary to make docker work with the current user,
