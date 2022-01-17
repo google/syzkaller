@@ -39,6 +39,7 @@ func main() {
 		"common_usb_linux.h",
 		"common_usb_netbsd.h",
 		"common_usb.h",
+		"common_ext.h",
 		"android/android_seccomp.h",
 		"kvm.h",
 		"kvm_amd64.S.h",

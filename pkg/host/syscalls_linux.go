@@ -327,6 +327,14 @@ func isSupportedSyzkall(c *prog.Syscall, target *prog.Target, sandbox string) (b
 			return ok, reason
 		}
 	}
+	if strings.HasPrefix(c.CallName, "syz_ext_") {
+		// Non-mainline pseudo-syscalls in executor/common_ext.h can't have the checking function
+		// and are assumed to be unconditionally supported.
+		if syzkallSupport[c.CallName] != nil {
+			panic("syz_ext_ prefix is reserved for non-mainline pseudo-syscalls")
+		}
+		return true, ""
+	}
 	if isSupported, ok := syzkallSupport[c.CallName]; ok {
 		return isSupported(c, target, sandbox)
 	}
