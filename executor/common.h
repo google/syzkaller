@@ -458,6 +458,8 @@ static uint16 csum_inet_digest(struct csum_inet* csum)
 #error "unknown OS"
 #endif
 
+#include "common_ext.h"
+
 #if SYZ_EXECUTOR || __NR_syz_execute_func
 // syz_execute_func(text ptr[in, text[taget]])
 static long syz_execute_func(volatile long text)

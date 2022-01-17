@@ -10440,6 +10440,7 @@ static void use_temporary_dir(void)
 #error "unknown OS"
 #endif
 
+
 #if SYZ_EXECUTOR || __NR_syz_execute_func
 static long syz_execute_func(volatile long text)
 {
