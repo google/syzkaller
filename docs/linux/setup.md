@@ -47,8 +47,8 @@ See [Go: Download and install](https://golang.org/doc/install) for other options
 To download and build `syzkaller`:
 
 ``` bash
-go get -u -d github.com/google/syzkaller/prog
-cd gopath/src/github.com/google/syzkaller/
+git clone https://github.com/google/syzkaller
+cd syzkaller
 make
 ```
 
