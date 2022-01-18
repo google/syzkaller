@@ -85,14 +85,13 @@ in the same commit.
 [github.com/google/syzkaller](https://github.com/google/syzkaller) and press `Fork` button in the top-right corner of
 the page. This will create `https://github.com/YOUR_GITHUB_USERNAME/syzkaller` repository.
 
-- Checkout main syzkaller repository if you have not already. To work with `go` command the checkout must be under
-`$GOPATH`. The simplest way to do it is to run `go get -u -d github.com/google/syzkaller/prog`, this will checkout
-the repository in `$GOPATH/src/github.com/google/syzkaller`.
+- Checkout main syzkaller repository if you have not already. The simplest way to do it is to run `git clone https://github.com/google/syzkaller`, this will checkout
+the repository in the current working directory.
 - Remember to `export PATH=$GOPATH/bin:$PATH` if you have not already.
 - Then add your repository as an additional origin:
 
     ```shell
-    cd $GOPATH/src/github.com/google/syzkaller
+    cd syzkaller
     git remote add my-origin https://github.com/YOUR_GITHUB_USERNAME/syzkaller.git
     git fetch my-origin
     git checkout -b my-branch my-origin/master

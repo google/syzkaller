@@ -31,8 +31,8 @@ Variables used throughout the instructions:
 2. Clone repository:
 
    ```sh
-   $ go get -u -d github.com/google/syzkaller/prog
-   $ cd ~/go/src/github.com/google/syzkaller
+   $ git clone https://github.com/google/syzkaller
+   $ cd syzkaller
    $ gmake all
    ```
 

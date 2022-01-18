@@ -154,8 +154,8 @@ index 451b2a7b..64af45c7 100644
 ```
 
 ``` bash
-go get -u -d github.com/google/syzkaller/prog
-cd ~/gopath/src/github.com/google/syzkaller
+git clone https://github.com/google/syzkaller
+cd syzkaller
 # Put the patch above into ./syzkaller.patch
 git apply ./syzkaller.patch
 make executor
