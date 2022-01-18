@@ -464,7 +464,7 @@ rt_sigtimedwait(these ptr[in, sigset_t], info ptr[out, siginfo, opt], ts ptr[in,
 rt_sigsuspend(new ptr[in, sigset_t], sigsetsize len[new])
 rt_sigqueueinfo(pid pid, sig signalno, info ptr[in, siginfo])
 rt_tgsigqueueinfo(gid pid, tid pid, sig signalno, info ptr[in, siginfo])
-sigaltstack(ss vma, oss ptr[out, intptr, opt])
+sigaltstack(ss ptr[in, sigaltstack], oss ptr[out, sigaltstack, opt])
 tgkill(gid pid, tid pid, sig signalno)
 tkill(tid pid, sig signalno)
 pause()
@@ -1094,6 +1094,14 @@ sigaction {
 	sa_restorer	ptr[in, text[target]]
 	sa_mask		sigset_t
 }
+
+sigaltstack {
+	ss_sp		ptr[out, array[int8]]
+	ss_flags	flags[sigaltstack_flags, int32]
+	ss_size		bytesize[ss_sp, intptr]
+}
+
+sigaltstack_flags = SS_ONSTACK, SS_DISABLE, SS_AUTODISARM
 
 tms {
 	utime	intptr
