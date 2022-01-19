@@ -51,6 +51,10 @@ NORETURN void doexit(int status)
 	for (;;) {
 	}
 }
+NORETURN void doexit_thread(int status)
+{
+	doexit(status);
+}
 #endif
 
 #if SYZ_EXECUTOR || SYZ_MULTI_PROC || SYZ_REPEAT && SYZ_CGROUPS ||         \
@@ -70,6 +74,7 @@ static unsigned long long procid;
 #include <sys/syscall.h>
 #endif
 
+static __thread int clone_ongoing;
 static __thread int skip_segv;
 static __thread jmp_buf segv_env;
 
@@ -83,6 +88,11 @@ static void recover(void)
 
 static void segv_handler(int sig, siginfo_t* info, void* ctx)
 {
+
+	if (__atomic_load_n(&clone_ongoing, __ATOMIC_RELAXED) != 0) {
+		doexit_thread(sig);
+	}
+
 	uintptr_t addr = (uintptr_t)info->si_addr;
 	const uintptr_t prog_start = 1 << 20;
 	const uintptr_t prog_end = 100 << 20;
@@ -10182,8 +10192,12 @@ static long syz_80211_join_ibss(volatile long a0, volatile long a1, volatile lon
 
 static long handle_clone_ret(long ret)
 {
-	if (ret != 0)
+	if (ret != 0) {
+#if SYZ_EXECUTOR || SYZ_HANDLE_SEGV
+		__atomic_store_n(&clone_ongoing, 0, __ATOMIC_RELAXED);
+#endif
 		return ret;
+	}
 	usleep(USLEEP_FORKED_CHILD);
 	syscall(__NR_exit, 0);
 	while (1) {
@@ -10196,6 +10210,9 @@ static long syz_clone(volatile long flags, volatile long stack, volatile long st
 		      volatile long ptid, volatile long ctid, volatile long tls)
 {
 	long sp = (stack + stack_len) & ~15;
+#if SYZ_EXECUTOR || SYZ_HANDLE_SEGV
+	__atomic_store_n(&clone_ongoing, 1, __ATOMIC_RELAXED);
+#endif
 	long ret = (long)syscall(__NR_clone, flags & ~CLONE_VM, sp, ptid, ctid, tls);
 	return handle_clone_ret(ret);
 }
@@ -10215,6 +10232,9 @@ static long syz_clone3(volatile long a0, volatile long a1)
 	memcpy(&clone_args, (void*)a0, copy_size);
 	uint64* flags = (uint64*)&clone_args;
 	*flags &= ~CLONE_VM;
+#if SYZ_EXECUTOR || SYZ_HANDLE_SEGV
+	__atomic_store_n(&clone_ongoing, 1, __ATOMIC_RELAXED);
+#endif
 	return handle_clone_ret((long)syscall(__NR_clone3, &clone_args, copy_size));
 }
 

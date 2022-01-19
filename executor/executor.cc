@@ -90,6 +90,7 @@ static NORETURN PRINTF(2, 3) void failmsg(const char* err, const char* msg, ...)
 // Just exit (e.g. due to temporal ENOMEM error).
 static NORETURN PRINTF(1, 2) void exitf(const char* msg, ...);
 static NORETURN void doexit(int status);
+static NORETURN void doexit_thread(int status);
 
 // Print debug output that is visible when running syz-manager/execprog with -debug flag.
 // Debug output is supposed to be relatively high-level (syscalls executed, return values, timing, etc)
