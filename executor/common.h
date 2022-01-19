@@ -57,6 +57,11 @@ NORETURN void doexit(int status)
 	for (;;) {
 	}
 }
+NORETURN void doexit_thread(int status)
+{
+	// For BSD systems, _exit seems to do exactly what's needed.
+	doexit(status);
+}
 #endif
 
 #if SYZ_EXECUTOR || SYZ_MULTI_PROC || SYZ_REPEAT && SYZ_CGROUPS ||         \
@@ -76,6 +81,7 @@ static unsigned long long procid;
 #include <sys/syscall.h>
 #endif
 
+static __thread int clone_ongoing;
 static __thread int skip_segv;
 static __thread jmp_buf segv_env;
 
@@ -95,6 +101,17 @@ static void segv_handler(int sig, siginfo_t* info, void* ctx)
 	// We additionally opportunistically check that the faulty address
 	// is not within executable data region, because such accesses can corrupt
 	// output region and then fuzzer will fail on corrupted data.
+
+	if (__atomic_load_n(&clone_ongoing, __ATOMIC_RELAXED) != 0) {
+		// During clone, we always exit on a SEGV. If we do not, then
+		// it might prevent us from running child-specific code. E.g.
+		// if an invalid stack is passed to the clone() call, then it
+		// will trigger a seg fault, which in turn causes the child to
+		// jump over the NONFAILING macro and continue execution in
+		// parallel with the parent.
+		doexit_thread(sig);
+	}
+
 	uintptr_t addr = (uintptr_t)info->si_addr;
 	const uintptr_t prog_start = 1 << 20;
 	const uintptr_t prog_end = 100 << 20;

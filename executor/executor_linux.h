@@ -224,6 +224,17 @@ NORETURN void doexit(int status)
 	}
 }
 
+// If we need to kill just a single thread (e.g. after cloning), exit_group is not
+// the right choice - it will kill all threads, which might eventually lead to
+// unnecessary SYZFAIL errors.
+NORETURN void doexit_thread(int status)
+{
+	volatile unsigned i;
+	syscall(__NR_exit, status);
+	for (i = 0;; i++) {
+	}
+}
+
 #define SYZ_HAVE_FEATURES 1
 static feature_t features[] = {
     {"leak", setup_leak},

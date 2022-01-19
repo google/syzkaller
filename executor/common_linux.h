@@ -5226,8 +5226,12 @@ static long syz_80211_join_ibss(volatile long a0, volatile long a1, volatile lon
 
 static long handle_clone_ret(long ret)
 {
-	if (ret != 0)
+	if (ret != 0) {
+#if SYZ_EXECUTOR || SYZ_HANDLE_SEGV
+		__atomic_store_n(&clone_ongoing, 0, __ATOMIC_RELAXED);
+#endif
 		return ret;
+	}
 	// Exit if we're in the child process - not all kernels provide the proper means
 	// to prevent fork-bombs.
 	// But first sleep for some time. This will hopefully foster IPC fuzzing.
@@ -5247,6 +5251,9 @@ static long syz_clone(volatile long flags, volatile long stack, volatile long st
 {
 	// ABI requires 16-byte stack alignment.
 	long sp = (stack + stack_len) & ~15;
+#if SYZ_EXECUTOR || SYZ_HANDLE_SEGV
+	__atomic_store_n(&clone_ongoing, 1, __ATOMIC_RELAXED);
+#endif
 	// Clear the CLONE_VM flag. Otherwise it'll very likely corrupt syz-executor.
 	long ret = (long)syscall(__NR_clone, flags & ~CLONE_VM, sp, ptid, ctid, tls);
 	return handle_clone_ret(ret);
@@ -5270,6 +5277,9 @@ static long syz_clone3(volatile long a0, volatile long a1)
 	// As in syz_clone, clear the CLONE_VM flag. Flags are in the first 8-byte integer field.
 	uint64* flags = (uint64*)&clone_args;
 	*flags &= ~CLONE_VM;
+#if SYZ_EXECUTOR || SYZ_HANDLE_SEGV
+	__atomic_store_n(&clone_ongoing, 1, __ATOMIC_RELAXED);
+#endif
 	return handle_clone_ret((long)syscall(__NR_clone3, &clone_args, copy_size));
 }
 
