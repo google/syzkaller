@@ -130,8 +130,61 @@ func TestOpenInvalid(t *testing.T) {
 	if _, err := f.Write([]byte(`some invalid data`)); err != nil {
 		t.Error(err)
 	}
-	if _, err := Open(f.Name()); err == nil {
+	if db, err := Open(f.Name()); err == nil {
 		t.Fatal("opened invalid db")
+	} else if db == nil {
+		t.Fatal("db is nil")
+	}
+}
+
+func TestOpenInaccessible(t *testing.T) {
+	f, err := ioutil.TempFile("", "syz-db-test")
+	if err != nil {
+		t.Error(err)
+	}
+	f.Close()
+	os.Chmod(f.Name(), 0)
+	defer os.Chmod(f.Name(), 0777)
+	defer os.Remove(f.Name())
+	if db, err := Open(f.Name()); err == nil {
+		t.Fatal("opened inaccessible db")
+	} else if db != nil {
+		t.Fatal("db is not nil")
+	}
+}
+
+func TestOpenCorrupted(t *testing.T) {
+	fn := tempFile(t)
+	defer os.Remove(fn)
+	db, err := Open(fn)
+	if err != nil {
+		t.Fatalf("failed to open db: %v", err)
+	}
+	// Write 1000 records, then wipe half of the file and test that we
+	// (1) get an error, (2) still get 450-550 records.
+	for i := 0; i < 1000; i++ {
+		db.Save(fmt.Sprintf("%v", i), []byte{byte(i)}, 0)
+	}
+	if err := db.Flush(); err != nil {
+		t.Fatalf("failed to flush db: %v", err)
+	}
+	data, err := ioutil.ReadFile(fn)
+	if err != nil {
+		t.Fatalf("failed to read db: %v", err)
+	}
+	for i := len(data) / 2; i < len(data); i++ {
+		data[i] = 0
+	}
+	if err := osutil.WriteFile(fn, data); err != nil {
+		t.Fatalf("failed to write db: %v", err)
+	}
+	db, err = Open(fn)
+	if err == nil {
+		t.Fatalf("no error for corrutped db")
+	}
+	t.Logf("records %v, error: %v", len(db.Records), err)
+	if len(db.Records) < 450 || len(db.Records) > 550 {
+		t.Fatalf("wrong record count: %v", len(db.Records))
 	}
 }
 
