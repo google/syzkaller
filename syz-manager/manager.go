@@ -446,7 +446,10 @@ func (mgr *Manager) preloadCorpus() {
 	log.Logf(0, "loading corpus...")
 	corpusDB, err := db.Open(filepath.Join(mgr.cfg.Workdir, "corpus.db"))
 	if err != nil {
-		log.Fatalf("failed to open corpus database: %v", err)
+		if corpusDB == nil {
+			log.Fatalf("failed to open corpus database: %v", err)
+		}
+		log.Logf(0, "read %v inputs from corpus and got error: %v", len(corpusDB.Records), err)
 	}
 	mgr.corpusDB = corpusDB
 
