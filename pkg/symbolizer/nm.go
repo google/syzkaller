@@ -28,7 +28,7 @@ func (s *Symbolizer) ReadRodataSymbols(bin string) (map[string][]Symbol, error) 
 func read(target *targets.Target, bin string, text bool) (map[string][]Symbol, error) {
 	file, err := elf.Open(bin)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to open ELF file %v: %v", bin, err)
 	}
 	allSymbols, err := file.Symbols()
 	if err != nil {
