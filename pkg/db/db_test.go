@@ -138,6 +138,9 @@ func TestOpenInvalid(t *testing.T) {
 }
 
 func TestOpenInaccessible(t *testing.T) {
+	if os.Getuid() == 0 {
+		t.Skip("opening inaccessible file won't fail under root")
+	}
 	f, err := ioutil.TempFile("", "syz-db-test")
 	if err != nil {
 		t.Error(err)
