@@ -61,11 +61,6 @@ const (
 	devFdMajor  = 22
 	devNullDevT = 0x0202
 
-	// kCoverFd in executor/executor.cc.
-	kcovFdMinorMin = 232
-	// kOutPipeFd in executor/executor.cc.
-	kcovFdMinorMax = 248
-
 	// Mask covering all valid rlimit resources.
 	rlimitMask = 0xf
 )
@@ -80,11 +75,11 @@ func devminor(dev uint64) uint64 {
 	return (dev & 0xff) | ((dev & 0xffff0000) >> 8)
 }
 
-func isKcovFd(dev uint64) bool {
+func isExecutorFd(dev uint64) bool {
 	major := devmajor(dev)
 	minor := devminor(dev)
 
-	return major == devFdMajor && minor >= kcovFdMinorMin && minor < kcovFdMinorMax
+	return major == devFdMajor && minor >= 200
 }
 
 func (arch *arch) neutralize(c *prog.Call) {
@@ -130,12 +125,14 @@ func (arch *arch) neutralize(c *prog.Call) {
 			mode.Val |= arch.S_IFCHR
 		}
 
-		// Prevent /dev/fd/X devices from getting created where X maps
-		// to an open kcov fd. They interfere with kcov data collection
-		// and cause corpus explosion.
+		// Prevent certain /dev/fd/X devices from getting created since
+		// they belong to the executor. It's especially dangerous to let
+		// the executor interact with kcov file descriptors since it can
+		// interfere with the coverage collection and cause corpus
+		// explosion.
 		// https://groups.google.com/d/msg/syzkaller/_IRWeAjVoy4/Akl2XMZTDAAJ
 		dev := c.Args[argStart+mknodDev].(*prog.ConstArg)
-		if isKcovFd(dev.Val) {
+		if isExecutorFd(dev.Val) {
 			dev.Val = devNullDevT
 		}
 
