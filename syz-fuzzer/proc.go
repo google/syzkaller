@@ -25,6 +25,7 @@ import (
 // Proc represents a single fuzzing process (executor).
 type Proc struct {
 	fuzzer          *Fuzzer
+	wq              *GroupWorkQueue
 	pid             int
 	env             *ipc.Env
 	rnd             *rand.Rand
@@ -34,7 +35,7 @@ type Proc struct {
 	execOptsComps   *ipc.ExecOpts
 }
 
-func newProc(fuzzer *Fuzzer, pid int) (*Proc, error) {
+func newProc(fuzzer *Fuzzer, pid int, wq *GroupWorkQueue) (*Proc, error) {
 	env, err := ipc.MakeEnv(fuzzer.config, pid)
 	if err != nil {
 		return nil, err
@@ -55,6 +56,7 @@ func newProc(fuzzer *Fuzzer, pid int) (*Proc, error) {
 		execOptsCollide: &execOptsCollide,
 		execOptsCover:   &execOptsCover,
 		execOptsComps:   &execOptsComps,
+		wq:              wq,
 	}
 	return proc, nil
 }
@@ -67,7 +69,7 @@ func (proc *Proc) loop() {
 		generatePeriod = 2
 	}
 	for i := 0; ; i++ {
-		item := proc.fuzzer.workQueue.dequeue()
+		item := proc.wq.dequeue()
 		if item != nil {
 			switch item := item.(type) {
 			case *WorkTriage:
@@ -173,7 +175,7 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 	proc.fuzzer.addInputToCorpus(item.p, inputSignal, sig)
 
 	if item.flags&ProgSmashed == 0 {
-		proc.fuzzer.workQueue.enqueue(&WorkSmash{item.p, item.call})
+		proc.wq.enqueue(&WorkSmash{item.p, item.call})
 	}
 }
 
@@ -266,7 +268,7 @@ func (proc *Proc) enqueueCallTriage(p *prog.Prog, flags ProgTypes, callIndex int
 	// None of the caller use Cover, so just nil it instead of detaching.
 	// Note: triage input uses executeRaw to get coverage.
 	info.Cover = nil
-	proc.fuzzer.workQueue.enqueue(&WorkTriage{
+	proc.wq.enqueue(&WorkTriage{
 		p:     p.Clone(),
 		call:  callIndex,
 		info:  info,

@@ -37,7 +37,7 @@ type Fuzzer struct {
 	execOpts          *ipc.ExecOpts
 	procs             []*Proc
 	gate              *ipc.Gate
-	workQueue         *WorkQueue
+	workQueue         *GlobalWorkQueue
 	needPoll          chan struct{}
 	choiceTable       *prog.ChoiceTable
 	stats             [StatCount]uint64
@@ -255,7 +255,7 @@ func main() {
 		outputType:               outputType,
 		config:                   config,
 		execOpts:                 execOpts,
-		workQueue:                newWorkQueue(*flagProcs, needPoll),
+		workQueue:                newGlobalWorkQueue(*flagProcs, needPoll),
 		needPoll:                 needPoll,
 		manager:                  manager,
 		target:                   target,
@@ -284,17 +284,27 @@ func main() {
 		fuzzer.execOpts.Flags |= ipc.FlagEnableCoverageFilter
 	}
 
-	log.Logf(0, "starting %v fuzzer processes", *flagProcs)
-	for pid := 0; pid < *flagProcs; pid++ {
-		proc, err := newProc(fuzzer, pid)
+	fuzzer.startProcs(*flagProcs)
+	fuzzer.pollLoop()
+}
+
+func (fuzzer *Fuzzer) startProcs(count int) {
+	log.Logf(0, "starting %v fuzzer processes", count)
+	var wq *GroupWorkQueue
+	for pid := 0; pid < count; pid++ {
+		// Distribute procs to work queue groups.
+		// Join the 1-proc residue, if it exists, to the previous group.
+		const procsPerGroup = 2
+		if pid%procsPerGroup == 0 && (wq == nil || pid+1 < count) {
+			wq = newGroupWorkQueue(fuzzer.workQueue)
+		}
+		proc, err := newProc(fuzzer, pid, wq)
 		if err != nil {
 			log.Fatalf("failed to create proc: %v", err)
 		}
 		fuzzer.procs = append(fuzzer.procs, proc)
 		go proc.loop()
 	}
-
-	fuzzer.pollLoop()
 }
 
 func collectMachineInfos(target *prog.Target) ([]byte, []host.KernelModule) {
