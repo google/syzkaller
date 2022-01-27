@@ -30,6 +30,7 @@ var (
 
 type TestbedConfig struct {
 	Name          string           `json:"name"`           // name of the testbed
+	Target        string           `json:"target"`         // what application to test
 	MaxInstances  int              `json:"max_instances"`  // max # of simultaneously running instances
 	RunTime       DurationConfig   `json:"run_time"`       // lifetime of an instance (default "24h")
 	HTTP          string           `json:"http"`           // on which port to set up a simple web dashboard
@@ -54,16 +55,17 @@ type CheckoutConfig struct {
 type TestbedContext struct {
 	Config         *TestbedConfig
 	Checkouts      []*Checkout
-	NextRestart    time.Time
 	NextCheckoutID int
 	NextInstanceID int
-	statMutex      sync.Mutex
+	Target         TestbedTarget
+	mu             sync.Mutex
 }
 
 func main() {
 	flag.Parse()
 	cfg := &TestbedConfig{
 		Name:    "testbed",
+		Target:  "syz-manager",
 		RunTime: DurationConfig{24 * time.Hour},
 	}
 	err := config.LoadFile(*flagConfig, &cfg)
@@ -77,6 +79,7 @@ func main() {
 	}
 	ctx := TestbedContext{
 		Config: cfg,
+		Target: targetConstructors[cfg.Target](cfg),
 	}
 	go ctx.setupHTTPServer()
 
@@ -123,20 +126,15 @@ func (ctx *TestbedContext) GetStatViews() ([]StatView, error) {
 	groupsCompleted := []RunResultGroup{}
 	groupsAll := []RunResultGroup{}
 	for _, checkout := range ctx.Checkouts {
-		running := []*RunResult{}
-		for _, instance := range checkout.Running {
-			result, err := instance.FetchResult()
-			if err == nil {
-				running = append(running, result)
-			}
-		}
+		running := checkout.GetRunningResults()
+		completed := checkout.GetCompletedResults()
 		groupsCompleted = append(groupsCompleted, RunResultGroup{
 			Name:    checkout.Name,
-			Results: checkout.Completed,
+			Results: completed,
 		})
 		groupsAll = append(groupsAll, RunResultGroup{
 			Name:    checkout.Name,
-			Results: append(checkout.Completed, running...),
+			Results: append(completed, running...),
 		})
 	}
 	return []StatView{
@@ -151,56 +149,35 @@ func (ctx *TestbedContext) GetStatViews() ([]StatView, error) {
 	}, nil
 }
 
-func (ctx *TestbedContext) saveStatView(view StatView) error {
-	dir := filepath.Join(ctx.Config.Workdir, "stats_"+view.Name)
-	benchDir := filepath.Join(dir, "benches")
-	err := osutil.MkdirAll(benchDir)
-	if err != nil {
-		return fmt.Errorf("failed to create %s: %s", benchDir, err)
-	}
-	tableStats := map[string]func(view StatView) (*Table, error){
-		"bugs.csv":           (StatView).GenerateBugTable,
-		"checkout_stats.csv": (StatView).StatsTable,
-		"instance_stats.csv": (StatView).InstanceStatsTable,
-	}
-	for fileName, genFunc := range tableStats {
-		table, err := genFunc(view)
-		if err == nil {
-			table.SaveAsCsv(filepath.Join(dir, fileName))
-		} else {
-			log.Printf("stat generation error: %s", err)
-		}
-	}
-	_, err = view.SaveAvgBenches(benchDir)
-	return err
-}
-
 func (ctx *TestbedContext) TestbedStatsTable() *Table {
-	table := NewTable("Checkout", "Running", "Completed", "Until reset")
+	table := NewTable("Checkout", "Running", "Completed", "Last started")
 	for _, checkout := range ctx.Checkouts {
-		until := "-"
-		if ctx.NextRestart.After(time.Now()) {
-			until = time.Until(ctx.NextRestart).Round(time.Second).String()
+		checkout.mu.Lock()
+		last := ""
+		if !checkout.LastRunning.IsZero() {
+			last = time.Since(checkout.LastRunning).Round(time.Second).String()
 		}
 		table.AddRow(checkout.Name,
 			fmt.Sprintf("%d", len(checkout.Running)),
 			fmt.Sprintf("%d", len(checkout.Completed)),
-			until,
+			last,
 		)
+		checkout.mu.Unlock()
 	}
 	return table
 }
 
 func (ctx *TestbedContext) SaveStats() error {
 	// Preventing concurrent saving of the stats.
-	ctx.statMutex.Lock()
-	defer ctx.statMutex.Unlock()
+	ctx.mu.Lock()
+	defer ctx.mu.Unlock()
 	views, err := ctx.GetStatViews()
 	if err != nil {
 		return err
 	}
 	for _, view := range views {
-		err := ctx.saveStatView(view)
+		dir := filepath.Join(ctx.Config.Workdir, "stats_"+view.Name)
+		err := ctx.Target.SaveStatView(view, dir)
 		if err != nil {
 			return err
 		}
@@ -209,81 +186,66 @@ func (ctx *TestbedContext) SaveStats() error {
 	return table.SaveAsCsv(filepath.Join(ctx.Config.Workdir, "testbed.csv"))
 }
 
-func (ctx *TestbedContext) generateInstances(count int) ([]*Instance, error) {
+func (ctx *TestbedContext) Slot(slotID int, stop chan struct{}, ret chan error) {
 	// It seems that even gracefully finished syz-managers can leak GCE instances.
-	// To allow for that strange behavior, let's reuse syz-manager names, so that
-	// they will in turn reuse the names of the leaked GCE instances.
-	instances := []*Instance{}
-	for idx := 1; idx <= count; idx++ {
-		checkout := ctx.Checkouts[ctx.NextCheckoutID]
-		ctx.NextCheckoutID = (ctx.NextCheckoutID + 1) % len(ctx.Checkouts)
-		instance, err := ctx.NewInstance(checkout, fmt.Sprintf("%s-%d", ctx.Config.Name, idx))
+	// To allow for that strange behavior, let's reuse syz-manager names in each slot,
+	// so that its VMs will in turn reuse the names of the leaked ones.
+	slotName := fmt.Sprintf("%s-%d", ctx.Config.Name, slotID)
+	for {
+		checkout, instance, err := ctx.Target.NewJob(slotName, ctx.Checkouts)
 		if err != nil {
-			return nil, err
+			ret <- fmt.Errorf("failed to create instance: %s", err)
+			return
 		}
-		checkout.Running = append(checkout.Running, instance)
-		instances = append(instances, instance)
+		checkout.AddRunning(instance)
+		retChannel := make(chan error)
+		go func() {
+			retChannel <- instance.Run()
+		}()
+
+		var retErr error
+		select {
+		case <-stop:
+			instance.Stop()
+			<-retChannel
+			retErr = fmt.Errorf("instance was killed")
+		case retErr = <-retChannel:
+		}
+
+		// For now, we only archive instances that finished normally (ret == nil).
+		// syz-testbed will anyway stop after such an error, so it's not a problem
+		// that they remain in Running.
+		if retErr != nil {
+			ret <- retErr
+			return
+		}
+		err = checkout.ArchiveInstance(instance)
+		if err != nil {
+			ret <- fmt.Errorf("a call to ArchiveInstance failed: %s", err)
+			return
+		}
 	}
-	return instances, nil
 }
 
 // Create instances, run them, stop them, archive them, and so on...
 func (ctx *TestbedContext) Loop(stop chan struct{}) {
-	duration := ctx.Config.RunTime.Duration
-	mustStop := false
-	for !mustStop {
-		log.Printf("setting up instances")
-		instances, err := ctx.generateInstances(ctx.Config.MaxInstances)
-		if err != nil {
-			tool.Failf("failed to set up intances: %s", err)
-		}
-		log.Printf("starting instances")
-		instanceStatuses := make(chan error, len(instances))
-		var wg sync.WaitGroup
-		for _, inst := range instances {
-			wg.Add(1)
-			go func(instance *Instance) {
-				instanceStatuses <- instance.Run()
-				wg.Done()
-			}(inst)
-		}
+	stopAll := make(chan struct{})
+	errors := make(chan error)
+	for i := 0; i < ctx.Config.MaxInstances; i++ {
+		go ctx.Slot(i, stopAll, errors)
+	}
 
-		ctx.NextRestart = time.Now().Add(duration)
-		select {
-		case err := <-instanceStatuses:
-			// Syz-managers are not supposed to stop under normal circumstances.
-			// If one of them did stop, there must have been a very good reason to.
-			// For now, we just shut down the whole experiment in such a case.
-			log.Printf("an instance has failed (%s), stopping everything", err)
-			mustStop = true
-		case <-stop:
-			log.Printf("stopping the experiment")
-			mustStop = true
-		case <-time.After(duration):
-			log.Printf("run period has finished")
-		}
-
-		// Wait for all instances to finish.
-		for _, instance := range instances {
-			instance.Stop()
-		}
-		wg.Wait()
-
-		// Only mark instances completed if they've indeed been running the whole iteration.
-		if !mustStop {
-			for _, checkout := range ctx.Checkouts {
-				err = checkout.ArchiveRunning()
-				if err != nil {
-					tool.Failf("ArchiveRunning error: %s", err)
-				}
-			}
-		}
-
-		log.Printf("collecting statistics")
-		err = ctx.SaveStats()
-		if err != nil {
-			log.Printf("stats saving error: %s", err)
-		}
+	exited := 0
+	select {
+	case <-stop:
+		log.Printf("stopping the experiment")
+	case err := <-errors:
+		exited = 1
+		log.Printf("an instance has failed (%s), stopping everything", err)
+	}
+	close(stopAll)
+	for ; exited < ctx.Config.MaxInstances; exited++ {
+		<-errors
 	}
 }
 
@@ -302,6 +264,7 @@ func (d *DurationConfig) UnmarshalJSON(data []byte) error {
 	}
 	return err
 }
+
 func (d *DurationConfig) MarshalJSON() ([]byte, error) {
 	return json.Marshal(d.String())
 }
@@ -327,6 +290,9 @@ func checkConfig(cfg *TestbedConfig) error {
 	}
 	if cfg.BenchCmp != "" && !osutil.IsExist(cfg.BenchCmp) {
 		return fmt.Errorf("benchmp path is specified, but %s does not exist", cfg.BenchCmp)
+	}
+	if _, ok := targetConstructors[cfg.Target]; !ok {
+		return fmt.Errorf("unknown target %s", cfg.Target)
 	}
 	cfg.Corpus = osutil.Abs(cfg.Corpus)
 	names := make(map[string]bool)

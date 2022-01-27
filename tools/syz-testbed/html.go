@@ -166,10 +166,16 @@ type uiMainPage struct {
 }
 
 func (ctx *TestbedContext) getTableTypes() []uiTableType {
-	typeList := []uiTableType{
+	allTypeList := []uiTableType{
 		{HTMLStatsTable, "Statistics", ctx.httpMainStatsTable},
 		{HTMLBugsTable, "Bugs", ctx.genSimpleTableController((StatView).GenerateBugTable, true)},
 		{HTMLBugCountsTable, "Bug Counts", ctx.genSimpleTableController((StatView).GenerateBugCountsTable, false)},
+	}
+	typeList := []uiTableType{}
+	for _, t := range allTypeList {
+		if ctx.Target.SupportsHTMLView(t.Key) {
+			typeList = append(typeList, t)
+		}
 	}
 	return typeList
 }
