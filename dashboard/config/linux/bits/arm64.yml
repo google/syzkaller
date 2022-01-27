@@ -23,7 +23,8 @@ config:
  - ARCH_VEXPRESS
  - I2C_VERSATILE
  - CLK_SP810
- - ICST
+ - ICST: [-v5.16]
+ - CLK_ICST: [v5.16]
 
  # These are enabled by defconfig, but we don't test them (presumably).
  # Disable them to speed up kernel boot (slow in emulation).
