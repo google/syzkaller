@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
+	"sync"
 	"time"
 
 	syz_instance "github.com/google/syzkaller/pkg/instance"
@@ -16,23 +17,52 @@ import (
 )
 
 type Checkout struct {
-	Path          string
-	Name          string
+	Path string
+	Name string
+
 	ManagerConfig json.RawMessage
-	Running       []*Instance
-	Completed     []*RunResult
+	Running       map[Instance]bool
+	Completed     []RunResult
+	LastRunning   time.Time
+	mu            sync.Mutex
 }
 
-func (checkout *Checkout) ArchiveRunning() error {
-	for _, instance := range checkout.Running {
-		result, err := instance.FetchResult()
-		if err != nil {
-			return err
-		}
-		checkout.Completed = append(checkout.Completed, result)
+func (checkout *Checkout) AddRunning(instance Instance) {
+	checkout.mu.Lock()
+	defer checkout.mu.Unlock()
+	checkout.Running[instance] = true
+	checkout.LastRunning = time.Now()
+}
+
+func (checkout *Checkout) ArchiveInstance(instance Instance) error {
+	checkout.mu.Lock()
+	defer checkout.mu.Unlock()
+	result, err := instance.FetchResult()
+	if err != nil {
+		return err
 	}
-	checkout.Running = []*Instance{}
+	checkout.Completed = append(checkout.Completed, result)
+	delete(checkout.Running, instance)
 	return nil
+}
+
+func (checkout *Checkout) GetRunningResults() []RunResult {
+	checkout.mu.Lock()
+	defer checkout.mu.Unlock()
+	running := []RunResult{}
+	for instance := range checkout.Running {
+		result, err := instance.FetchResult()
+		if err == nil {
+			running = append(running, result)
+		}
+	}
+	return running
+}
+
+func (checkout *Checkout) GetCompletedResults() []RunResult {
+	checkout.mu.Lock()
+	defer checkout.mu.Unlock()
+	return append([]RunResult{}, checkout.Completed...)
 }
 
 func (ctx *TestbedContext) NewCheckout(config *CheckoutConfig, mgrConfig json.RawMessage) (*Checkout, error) {
@@ -40,6 +70,7 @@ func (ctx *TestbedContext) NewCheckout(config *CheckoutConfig, mgrConfig json.Ra
 		Name:          config.Name,
 		Path:          filepath.Join(ctx.Config.Workdir, "checkouts", config.Name),
 		ManagerConfig: mgrConfig,
+		Running:       make(map[Instance]bool),
 	}
 	log.Printf("[%s] Checking out", checkout.Name)
 	if osutil.IsExist(checkout.Path) {

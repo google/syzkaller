@@ -19,9 +19,10 @@ type BugInfo struct {
 	Title string
 }
 
+type RunResult interface{}
+
 // The information collected from a syz-manager instance.
-type RunResult struct {
-	Workdir     string
+type SyzManagerResult struct {
 	Bugs        []BugInfo
 	StatRecords []StatRecord
 }
@@ -32,7 +33,7 @@ type StatRecord map[string]uint64
 // The grouping of single instance results. Taken by all stat generating routines.
 type RunResultGroup struct {
 	Name    string
-	Results []*RunResult
+	Results []RunResult
 }
 
 // Different "views" of the statistics, e.g. only completed instances or completed + running.
@@ -105,7 +106,7 @@ type BugSummary struct {
 func summarizeBugs(groups []RunResultGroup) ([]*BugSummary, error) {
 	bugsMap := make(map[string]*BugSummary)
 	for _, group := range groups {
-		for _, result := range group.Results {
+		for _, result := range group.SyzManagerResults() {
 			for _, bug := range result.Bugs {
 				summary := bugsMap[bug.Title]
 				if summary == nil {
@@ -171,6 +172,17 @@ func (view StatView) GenerateBugCountsTable() (*Table, error) {
 	return table, nil
 }
 
+func (group RunResultGroup) SyzManagerResults() []*SyzManagerResult {
+	ret := []*SyzManagerResult{}
+	for _, rawRes := range group.Results {
+		res, ok := rawRes.(*SyzManagerResult)
+		if ok {
+			ret = append(ret, res)
+		}
+	}
+	return ret
+}
+
 func (group RunResultGroup) AvgStatRecords() []map[string]uint64 {
 	ret := []map[string]uint64{}
 	commonLen := group.minResultLength()
@@ -188,8 +200,9 @@ func (group RunResultGroup) minResultLength() int {
 	if len(group.Results) == 0 {
 		return 0
 	}
-	ret := len(group.Results[0].StatRecords)
-	for _, result := range group.Results {
+	results := group.SyzManagerResults()
+	ret := len(results[0].StatRecords)
+	for _, result := range results {
 		currLen := len(result.StatRecords)
 		if currLen < ret {
 			ret = currLen
@@ -200,7 +213,7 @@ func (group RunResultGroup) minResultLength() int {
 
 func (group RunResultGroup) groupNthRecord(i int) map[string]*stats.Sample {
 	records := []StatRecord{}
-	for _, result := range group.Results {
+	for _, result := range group.SyzManagerResults() {
 		records = append(records, result.StatRecords[i])
 	}
 	return groupSamples(records)
@@ -264,7 +277,7 @@ func (view StatView) InstanceStatsTable() (*Table, error) {
 		for i, result := range group.Results {
 			newView.Groups = append(newView.Groups, RunResultGroup{
 				Name:    fmt.Sprintf("%s-%d", group.Name, i),
-				Results: []*RunResult{result},
+				Results: []RunResult{result},
 			})
 		}
 	}
