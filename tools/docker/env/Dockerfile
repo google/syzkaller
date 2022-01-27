@@ -35,6 +35,11 @@ RUN mkdir -p /syzkaller/gopath/src/github.com/google/syzkaller && \
 	mkdir -p /syzkaller/.cache && \
 	chmod -R 0777 /syzkaller
 
+# Download and install the custom Clang required to build KMSAN.
+# TODO(@ramosian-glider): switch to stable Clang once KMSAN is upstreamed.
+RUN curl https://storage.googleapis.com/syzkaller/clang-2b554920f11c-patched.tar.gz | tar -C /syzkaller -xz
+RUN ln -s /syzkaller/clang-2b554920f11c-patched /syzkaller/clang-kmsan
+
 # The default Docker prompt is too ugly and takes the whole line:
 # I have no name!@0f3331d2fb54:~/gopath/src/github.com/google/syzkaller$
 RUN echo "export PS1='syz-env🈴 '" > /syzkaller/.bashrc
