@@ -32,6 +32,12 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
 RUN curl https://dl.google.com/go/go1.17.linux-amd64.tar.gz | tar -C /usr/local -xz
 ENV PATH /usr/local/go/bin:$PATH
 
+# Download and install the custom Clang required to build KMSAN.
+# TODO(@ramosian-glider): switch to stable Clang once KMSAN is upstreamed.
+RUN mkdir -p /syzkaller
+RUN curl https://storage.googleapis.com/syzkaller/clang-2b554920f11c-patched.tar.gz | tar -C /syzkaller -xz
+RUN ln -s /syzkaller/clang-2b554920f11c-patched /syzkaller/clang-kmsan
+
 # Not really GRTE, but it's enough to run some scripts that hardcode the path.
 RUN mkdir -p /usr/grte/v5/bin && ln -s /usr/bin/python3 /usr/grte/v5/bin/python2.7
 
