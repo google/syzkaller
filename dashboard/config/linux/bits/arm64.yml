@@ -48,7 +48,6 @@ config:
  - DRM_LIMA: n
  - DRM_PANFROST: n
  - DRM_LEGACY: n
- - FB_SMSCUFX: n
  - FB_IBM_GXT4500: n
  - SMS_SIANO_RC: n
  - V4L_PLATFORM_DRIVERS: n
