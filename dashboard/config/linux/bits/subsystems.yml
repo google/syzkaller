@@ -59,7 +59,6 @@ config:
  - GOOGLE_MEMCONSOLE_X86_LEGACY: n
  - GOOGLE_FIRMWARE: [-s390]
  - GOOGLE_COREBOOT_TABLE: [-s390]
- - GOOGLE_FRAMEBUFFER_COREBOOT: [-s390]
  - GOOGLE_MEMCONSOLE_COREBOOT: [-s390]
  - GOOGLE_VPD: [-s390]
  - KVM: [-arm, -riscv]
@@ -283,16 +282,22 @@ config:
  - DRM_BOCHS
  - DRM_VIRTIO_GPU
  - DRM_CIRRUS_QEMU
+ # Note: SIMPLEDRM driver will be kicked out if we have the real DRM driver enabled
+ # (and we most likely have, see above). So most likely it won't be tested and
+ # and we have separate configs with real drivers and with SIMPLEDRM.
+ - DRM_SIMPLEDRM: [v5.14]
+ - FB
  - FB_TILEBLITTING
- - FB_CIRRUS
+ - FB_CIRRUS: n
  - FB_VGA16: [x86_64]
- - FB_UVESA
+ - FB_UVESA: n
  - FB_VESA: [x86_64]
  - FB_HGA: n
- - FB_I740
- - FB_UDL
+ - FB_I740: n
+ - FB_UDL: n
  - FB_VIRTUAL
- - FB_SIMPLE
+ - FB_SIMPLE: n
+ - FB_SMSCUFX: n
  - VGA_CONSOLE: [x86_64]
  - FRAMEBUFFER_CONSOLE
  - FRAMEBUFFER_CONSOLE_ROTATION
