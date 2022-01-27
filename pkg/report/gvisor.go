@@ -31,6 +31,7 @@ func ctorGvisor(cfg *config) (reporterImpl, []string, error) {
 		"race: limit on 8128 simultaneously alive goroutines is exceeded, dying",
 		"ERROR: ThreadSanitizer", // Go race failing due to OOM.
 		"FATAL: ThreadSanitizer",
+		"ThreadSanitizer: clock allocator overflow \\(65536\\*1024\\). Dying.",
 	}
 	return ctx, suppressions, nil
 }

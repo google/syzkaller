@@ -163,6 +163,8 @@ prctl$PR_SCHED_CORE(option const[PR_SCHED_CORE], cmd intptr[0:PR_SCHED_CORE_MAX]
 
 pid_type = PIDTYPE_PID, PIDTYPE_TGID, PIDTYPE_PGID, PIDTYPE_SID
 
+prctl$PR_SET_VMA(option const[PR_SET_VMA], cmd const[PR_SET_VMA_ANON_NAME], addr vma, size bytesize[addr], name ptr[in, string]) (breaks_returns, ignore_return)
+
 arch_prctl$ARCH_GET_FS(code const[ARCH_GET_FS], arg ptr[out, intptr])
 arch_prctl$ARCH_GET_GS(code const[ARCH_GET_GS], arg ptr[out, intptr])
 arch_prctl$ARCH_SET_GS(code const[ARCH_SET_GS], arg ptr[out, intptr])
