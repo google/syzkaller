@@ -132,7 +132,8 @@ config:
  - NVDIMM_PFN: [x86_64]
  - NVDIMM_DAX: [x86_64]
  - OF_PMEM: [x86_64]
- - DAX_DRIVER: [x86_64]
+ - DAX: [x86_64]
+ - DEV_DAX: [x86_64]
  - BLK_DEV_NULL_BLK
  - BLK_DEV_NULL_BLK_FAULT_INJECTION
  - BLK_DEV_FD: [x86_64]
@@ -140,7 +141,7 @@ config:
  - BLK_DEV_LOOP
  # Loop device per test process.
  - BLK_DEV_LOOP_MIN_COUNT: 16
- - BLK_DEV_CRYPTOLOOP
+ - BLK_DEV_CRYPTOLOOP: [-v5.16]
  - BLK_DEV_NBD
  - BLK_DEV_RAM
  - ATA_OVER_ETH
@@ -540,4 +541,5 @@ config:
  - W1: n
  - DAMON: [v5.15]
  - DAMON_VADDR: [v5.15]
+ - DAMON_PADDR: [v5.16]
  - DAMON_DBGFS: [v5.15]

@@ -9,9 +9,9 @@ config:
  - KASAN_STACK: [clang, v5.11]
  - KASAN_VMALLOC: [v5.5, -arm, -arm64, -s390, -riscv]
  # This was historically enabled in the KASAN section without explanation.
- - SPARSEMEM_VMEMMAP: [-arm]
+ - SPARSEMEM_VMEMMAP: [-arm, -riscv]
  # This is required to enable SPARSEMEM_VMEMMAP.
- - SPARSEMEM_MANUAL: [-arm, -arm64, -s390]
+ - SPARSEMEM_MANUAL: [-arm, -arm64, -s390, -v5.17]
  # This allows to get alloc/free stacks for UAFs on freed pages.
  # This also needs page_owner=on in cmdline.
  - PAGE_OWNER
