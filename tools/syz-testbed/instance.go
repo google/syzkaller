@@ -63,7 +63,10 @@ func (inst *Instance) Run() error {
 }
 
 func (inst *Instance) Stop() {
-	inst.stopChannel <- true
+	select {
+	case inst.stopChannel <- true:
+	default:
+	}
 }
 
 func (inst *Instance) FetchResult() (*RunResult, error) {
