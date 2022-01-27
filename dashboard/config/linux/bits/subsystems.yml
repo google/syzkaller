@@ -90,6 +90,7 @@ config:
  - MEMORY_HOTPLUG: [-arm, -riscv]
  - MEMORY_HOTPLUG_DEFAULT_ONLINE: [-arm, -riscv]
  - MEMORY_HOTREMOVE: [-arm, -riscv]
+ - ANON_VMA_NAME: [v5.17]
  - KSM
  - TRANSPARENT_HUGEPAGE: [-arm, -riscv]
  - FRONTSWAP
@@ -543,3 +544,4 @@ config:
  - DAMON_VADDR: [v5.15]
  - DAMON_PADDR: [v5.16]
  - DAMON_DBGFS: [v5.15]
+ - DAMON_RECLAIM: [v5.17]
