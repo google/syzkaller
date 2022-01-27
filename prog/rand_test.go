@@ -110,7 +110,7 @@ func TestEnabledCalls(t *testing.T) {
 func TestSizeGenerateConstArg(t *testing.T) {
 	target, rs, iters := initRandomTargetTest(t, "test", "64")
 	r := newRand(target, rs)
-	ForeachType(target.Syscalls, func(typ Type, ctx TypeCtx) {
+	ForeachType(target.Syscalls, func(typ Type, ctx *TypeCtx) {
 		if _, ok := typ.(*IntType); !ok {
 			return
 		}

@@ -12,8 +12,6 @@ resource fd_msm[fd]
 # https://www.kernel.org/doc/html/latest/gpu/drm-kms.html for more details)
 # Once fences are described this should be updated to an fd_drm_fence.
 
-resource fd_msm_fence[fd]
-
 openat$msm(fd const[AT_FDCWD], file ptr[in, string["/dev/msm"]], flags flags[open_flags], mode const[0]) fd_msm
 
 ioctl$DRM_IOCTL_MSM_GET_PARAM(fd fd_msm, cmd const[DRM_IOCTL_MSM_GET_PARAM], arg ptr[inout, drm_msm_param])
@@ -103,7 +101,7 @@ drm_msm_gem_submit {
 	nr_cmds		len[cmds, int32]
 	bos		ptr64[in, array[drm_msm_gem_submit_bo]]
 	cmds		ptr64[in, array[drm_msm_gem_submit_cmd]]
-	fence_fd	fd_msm_fence[opt]
+	fence_fd	fd_sync_file[opt]
 	queueid		int32
 	in_syncobjs	ptr64[in, array[drm_msm_gem_submit_syncobj]]
 	out_syncobjs	ptr64[in, array[drm_msm_gem_submit_syncobj]]

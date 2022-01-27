@@ -287,7 +287,14 @@ s5 {
 	f_inout1	int32[0:1]	(inout)
 }
 
-foo_s0(a ptr[in, s0], b ptr[in, s1], c ptr[in, s2], d ptr[in, s4], e ptr[in, s5])
+s6 {
+	f0	int32
+	f1	r0
+	f2	int32	(out_overlay)
+	f3	r0
+}
+
+foo_s0(a ptr[in, s0], b ptr[in, s1], c ptr[in, s2], d ptr[in, s4], e ptr[in, s5], f ptr[in, s6])
 
 # Unions.
 

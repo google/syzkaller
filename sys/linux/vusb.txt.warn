@@ -54,6 +54,4 @@ no-such-struct: usb_config_descriptor_ath9k
 no-such-struct: usb_interface_descriptor_ath9k
 no-such-struct: usb_endpoint_descriptors_ath9k
 no-such-struct: htc_ready_frame
-no-such-struct: htc_ready_msg
 no-such-struct: htc_conn_svc_rsp_frame
-no-such-struct: htc_conn_svc_rspmsg

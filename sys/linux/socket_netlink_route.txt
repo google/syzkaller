@@ -107,8 +107,8 @@ netlink_msg_route [
 	bridge_setlink		netlink_msg[RTM_SETLINK, ifinfomsg[AF_BRIDGE], ifla_policy]
 	bridge_dellink		netlink_msg[RTM_DELLINK, ifinfomsg[AF_BRIDGE], ifla_policy]
 	bridge_getvlan		netlink_msg[RTM_GETVLAN, br_vlan_msg[AF_BRIDGE], br_vlan_db_dump_pol]
-	bridge_newvlan		netlink_msg[RTM_NEWVLAN, br_vlan_msg[AF_BRIDGE], br_vlan_db_policy_container]
-	bridge_delvlan		netlink_msg[RTM_DELVLAN, br_vlan_msg[AF_BRIDGE], br_vlan_db_policy_container]
+	bridge_newvlan		netlink_msg[RTM_NEWVLAN, br_vlan_msg[AF_BRIDGE], br_vlan_db_policy$container]
+	bridge_delvlan		netlink_msg[RTM_DELVLAN, br_vlan_msg[AF_BRIDGE], br_vlan_db_policy$container]
 
 	RTM_GETMDB		netlink_msg[RTM_GETMDB, br_port_msg[AF_BRIDGE], void]
 	RTM_NEWMDB		netlink_msg[RTM_NEWMDB, br_port_msg[AF_BRIDGE], br_mdb_policy]
@@ -272,47 +272,47 @@ ifal_policy [
 	IFAL_LABEL	nlattr[IFAL_LABEL, flags[ifal_labels, int32]]
 ] [varlen]
 
-type ifla_info_policy_t[TYPE, DATA_TYPE, DATA] {
+type ifla_info_policy$t[TYPE, DATA_TYPE, DATA] {
 	IFLA_INFO_KIND	nlattr[IFLA_INFO_KIND, string[TYPE]]
 	IFLA_INFO_DATA	nlnest[DATA_TYPE, DATA]
 }
 
 # TODO: can, dummy, geneve, ifb, netdevsim, nlmon, vrf, vxlan
 ifla_info_policy [
-	bond		ifla_info_policy_t["bond", IFLA_INFO_DATA, array[bond_policy]]
-	bond_slave	ifla_info_policy_t["bond_slave", IFLA_INFO_SLAVE_DATA, bond_slave_policy]
-	bridge		ifla_info_policy_t["bridge", IFLA_INFO_DATA, array[br_policy]]
-	bridge_slave	ifla_info_policy_t["bridge_slave", IFLA_INFO_SLAVE_DATA, array[br_port_policy]]
-	gre		ifla_info_policy_t["gre", IFLA_INFO_DATA, array[ipgre_policy]]
-	gretap		ifla_info_policy_t["gretap", IFLA_INFO_DATA, array[ipgre_policy]]
-	erspan		ifla_info_policy_t["erspan", IFLA_INFO_DATA, array[ipgre_policy]]
-	ip6gre		ifla_info_policy_t["ip6gre", IFLA_INFO_DATA, array[ip6gre_policy]]
-	ip6gretap	ifla_info_policy_t["ip6gretap", IFLA_INFO_DATA, array[ip6gre_policy]]
-	ip6erspan	ifla_info_policy_t["ip6erspan", IFLA_INFO_DATA, array[ip6gre_policy]]
-	ipip		ifla_info_policy_t["ipip", IFLA_INFO_DATA, array[ipip_policy]]
-	ipip6		ifla_info_policy_t["ip6tnl", IFLA_INFO_DATA, array[ip6_tnl_policy]]
-	sit		ifla_info_policy_t["sit", IFLA_INFO_DATA, array[ipip6_policy]]
-	veth		ifla_info_policy_t["veth", IFLA_INFO_DATA, optional[veth_policy]]
-	vti		ifla_info_policy_t["vti", IFLA_INFO_DATA, array[vti_policy]]
-	ip6vti		ifla_info_policy_t["ip6vti", IFLA_INFO_DATA, array[vti6_policy]]
+	bond		ifla_info_policy$t["bond", IFLA_INFO_DATA, array[bond_policy]]
+	bond_slave	ifla_info_policy$t["bond_slave", IFLA_INFO_SLAVE_DATA, bond_slave_policy]
+	bridge		ifla_info_policy$t["bridge", IFLA_INFO_DATA, array[br_policy]]
+	bridge_slave	ifla_info_policy$t["bridge_slave", IFLA_INFO_SLAVE_DATA, array[br_port_policy]]
+	gre		ifla_info_policy$t["gre", IFLA_INFO_DATA, array[ipgre_policy]]
+	gretap		ifla_info_policy$t["gretap", IFLA_INFO_DATA, array[ipgre_policy]]
+	erspan		ifla_info_policy$t["erspan", IFLA_INFO_DATA, array[ipgre_policy]]
+	ip6gre		ifla_info_policy$t["ip6gre", IFLA_INFO_DATA, array[ip6gre_policy]]
+	ip6gretap	ifla_info_policy$t["ip6gretap", IFLA_INFO_DATA, array[ip6gre_policy]]
+	ip6erspan	ifla_info_policy$t["ip6erspan", IFLA_INFO_DATA, array[ip6gre_policy]]
+	ipip		ifla_info_policy$t["ipip", IFLA_INFO_DATA, array[ipip_policy]]
+	ipip6		ifla_info_policy$t["ip6tnl", IFLA_INFO_DATA, array[ip6_tnl_policy]]
+	sit		ifla_info_policy$t["sit", IFLA_INFO_DATA, array[ipip6_policy]]
+	veth		ifla_info_policy$t["veth", IFLA_INFO_DATA, optional[veth_policy]]
+	vti		ifla_info_policy$t["vti", IFLA_INFO_DATA, array[vti_policy]]
+	ip6vti		ifla_info_policy$t["ip6vti", IFLA_INFO_DATA, array[vti6_policy]]
 # TODO: this should be a net device fd. How does one even obtain these?
-	ppp		ifla_info_policy_t["ppp", IFLA_INFO_DATA, nlattr[IFLA_PPP_DEV_FD, fd]]
+	ppp		ifla_info_policy$t["ppp", IFLA_INFO_DATA, nlattr[IFLA_PPP_DEV_FD, fd]]
 # This is not an array[gtp_policy] intentionally, gtp_policy is a struct.
-	gtp		ifla_info_policy_t["gtp", IFLA_INFO_DATA, gtp_policy]
-	hsr		ifla_info_policy_t["hsr", IFLA_INFO_DATA, array[hsr_policy]]
-	xfrm		ifla_info_policy_t["xfrm", IFLA_INFO_DATA, array[xfrmi_policy]]
-	vcan		ifla_info_policy_t["vcan", IFLA_INFO_DATA, void]
-	vxcan		ifla_info_policy_t["vxcan", IFLA_INFO_DATA, optional[nlattr[VXCAN_INFO_PEER, peer_info]]]
-	vlan		ifla_info_policy_t["vlan", IFLA_INFO_DATA, array[vlan_policy]]
-	ipvlan		ifla_info_policy_t["ipvlan", IFLA_INFO_DATA, array[ipvlan_nl_policy]]
-	macvlan		ifla_info_policy_t["macvlan", IFLA_INFO_DATA, array[macvlan_policy]]
-	macvtap		ifla_info_policy_t["macvtap", IFLA_INFO_DATA, void]
-	macsec		ifla_info_policy_t["macsec", IFLA_INFO_DATA, array[macsec_rtnl_policy]]
-	lowpan		ifla_info_policy_t["lowpan", IFLA_INFO_DATA, void]
-	ipoib		ifla_info_policy_t["ipoib", IFLA_INFO_DATA, array[ipoib_policy]]
-	geneve		ifla_info_policy_t["geneve", IFLA_INFO_DATA, array[geneve_policy]]
-	wireguard	ifla_info_policy_t["wireguard", IFLA_INFO_DATA, void]
-	batadv		ifla_info_policy_t["batadv", IFLA_INFO_DATA, array[batadv_policy]]
+	gtp		ifla_info_policy$t["gtp", IFLA_INFO_DATA, gtp_policy]
+	hsr		ifla_info_policy$t["hsr", IFLA_INFO_DATA, array[hsr_policy]]
+	xfrm		ifla_info_policy$t["xfrm", IFLA_INFO_DATA, array[xfrmi_policy]]
+	vcan		ifla_info_policy$t["vcan", IFLA_INFO_DATA, void]
+	vxcan		ifla_info_policy$t["vxcan", IFLA_INFO_DATA, optional[nlattr[VXCAN_INFO_PEER, peer_info]]]
+	vlan		ifla_info_policy$t["vlan", IFLA_INFO_DATA, array[vlan_policy]]
+	ipvlan		ifla_info_policy$t["ipvlan", IFLA_INFO_DATA, array[ipvlan_nl_policy]]
+	macvlan		ifla_info_policy$t["macvlan", IFLA_INFO_DATA, array[macvlan_policy]]
+	macvtap		ifla_info_policy$t["macvtap", IFLA_INFO_DATA, void]
+	macsec		ifla_info_policy$t["macsec", IFLA_INFO_DATA, array[macsec_rtnl_policy]]
+	lowpan		ifla_info_policy$t["lowpan", IFLA_INFO_DATA, void]
+	ipoib		ifla_info_policy$t["ipoib", IFLA_INFO_DATA, array[ipoib_policy]]
+	geneve		ifla_info_policy$t["geneve", IFLA_INFO_DATA, array[geneve_policy]]
+	wireguard	ifla_info_policy$t["wireguard", IFLA_INFO_DATA, void]
+	batadv		ifla_info_policy$t["batadv", IFLA_INFO_DATA, array[batadv_policy]]
 ] [varlen]
 
 batadv_policy [
@@ -375,6 +375,7 @@ macvlan_policy [
 	IFLA_MACVLAN_MACADDR_MODE	nlattr[IFLA_MACVLAN_MACADDR_MODE, flags[macvlan_macaddr_mode, int32]]
 	IFLA_MACVLAN_MACADDR		nlattr[IFLA_MACVLAN_MACADDR, mac_addr]
 	IFLA_MACVLAN_MACADDR_DATA	nlnest[IFLA_MACVLAN_MACADDR_DATA, array[nlattr[IFLA_MACVLAN_MACADDR, mac_addr]]]
+	IFLA_MACVLAN_BC_QUEUE_LEN	nlattr[IFLA_MACVLAN_BC_QUEUE_LEN, int32]
 ] [varlen]
 
 macvlan_mode = MACVLAN_MODE_PRIVATE, MACVLAN_MODE_VEPA, MACVLAN_MODE_BRIDGE, MACVLAN_MODE_PASSTHRU, MACVLAN_MODE_SOURCE
@@ -416,6 +417,7 @@ hsr_policy [
 	IFLA_HSR_VERSION		nlattr[IFLA_HSR_VERSION, int8]
 	IFLA_HSR_SUPERVISION_ADDR	nlattr[IFLA_HSR_SUPERVISION_ADDR, mac_addr]
 	IFLA_HSR_SEQ_NR			nlattr[IFLA_HSR_SEQ_NR, int16]
+	IFLA_HSR_PROTOCOL		nlattr[IFLA_HSR_PROTOCOL, int8[0:HSR_PROTOCOL_MAX]]
 ] [varlen]
 
 bond_policy [
@@ -445,6 +447,8 @@ bond_policy [
 	IFLA_BOND_AD_USER_PORT_KEY	nlattr[IFLA_BOND_AD_USER_PORT_KEY, int16]
 	IFLA_BOND_AD_ACTOR_SYSTEM	nlattr[IFLA_BOND_AD_ACTOR_SYSTEM, ipv4_addr]
 	IFLA_BOND_TLB_DYNAMIC_LB	nlattr[IFLA_BOND_TLB_DYNAMIC_LB, int8]
+	IFLA_BOND_PEER_NOTIF_DELAY	nlattr[IFLA_BOND_PEER_NOTIF_DELAY, int32]
+	IFLA_BOND_AD_LACP_ACTIVE	nlattr[IFLA_BOND_AD_LACP_ACTIVE, int8]
 ] [varlen]
 
 bond_slave_policy [
@@ -484,29 +488,40 @@ br_policy [
 	IFLA_BR_MCAST_STATS_ENABLED		nlattr[IFLA_BR_MCAST_STATS_ENABLED, bool8]
 	IFLA_BR_MCAST_IGMP_VERSION		nlattr[IFLA_BR_MCAST_IGMP_VERSION, int8]
 	IFLA_BR_MCAST_MLD_VERSION		nlattr[IFLA_BR_MCAST_MLD_VERSION, int8]
+	IFLA_BR_VLAN_STATS_PER_PORT		nlattr[IFLA_BR_VLAN_STATS_PER_PORT, bool8]
+	IFLA_BR_MULTI_BOOLOPT			nlattr[IFLA_BR_MULTI_BOOLOPT, br_boolopt_multi]
 ] [varlen]
 
+br_boolopt_multi {
+	optval	flags[br_boolopt_id, int32]
+	optmask	flags[br_boolopt_id, int32]
+}
+
+br_boolopt_id = BR_BOOLOPT_NO_LL_LEARN, BR_BOOLOPT_MCAST_VLAN_SNOOPING
+
 br_port_policy [
-	IFLA_BRPORT_STATE		nlattr[IFLA_BRPORT_STATE, int8[0:4]]
-	IFLA_BRPORT_COST		nlattr[IFLA_BRPORT_COST, int32]
-	IFLA_BRPORT_PRIORITY		nlattr[IFLA_BRPORT_PRIORITY, int16]
-	IFLA_BRPORT_MODE		nlattr[IFLA_BRPORT_MODE, int8[0:1]]
-	IFLA_BRPORT_GUARD		nlattr[IFLA_BRPORT_GUARD, int8[0:1]]
-	IFLA_BRPORT_PROTECT		nlattr[IFLA_BRPORT_PROTECT, int8[0:1]]
-	IFLA_BRPORT_FAST_LEAVE		nlattr[IFLA_BRPORT_FAST_LEAVE, int8[0:1]]
-	IFLA_BRPORT_LEARNING		nlattr[IFLA_BRPORT_LEARNING, int8[0:1]]
-	IFLA_BRPORT_UNICAST_FLOOD	nlattr[IFLA_BRPORT_UNICAST_FLOOD, int8[0:1]]
-	IFLA_BRPORT_PROXYARP		nlattr[IFLA_BRPORT_PROXYARP, int8[0:1]]
-	IFLA_BRPORT_PROXYARP_WIFI	nlattr[IFLA_BRPORT_PROXYARP_WIFI, int8[0:1]]
-	IFLA_BRPORT_MULTICAST_ROUTER	nlattr[IFLA_BRPORT_MULTICAST_ROUTER, int8[0:3]]
-	IFLA_BRPORT_MCAST_TO_UCAST	nlattr[IFLA_BRPORT_MCAST_TO_UCAST, int8[0:1]]
-	IFLA_BRPORT_MCAST_FLOOD		nlattr[IFLA_BRPORT_MCAST_FLOOD, int8[0:1]]
-	IFLA_BRPORT_BCAST_FLOOD		nlattr[IFLA_BRPORT_BCAST_FLOOD, int8[0:1]]
-	IFLA_BRPORT_VLAN_TUNNEL		nlattr[IFLA_BRPORT_VLAN_TUNNEL, int8[0:1]]
-	IFLA_BRPORT_GROUP_FWD_MASK	nlattr[IFLA_BRPORT_GROUP_FWD_MASK, int16]
-	IFLA_BRPORT_NEIGH_SUPPRESS	nlattr[IFLA_BRPORT_NEIGH_SUPPRESS, int8[0:1]]
-	IFLA_BRPORT_ISOLATED		nlattr[IFLA_BRPORT_ISOLATED, int8[0:1]]
-	IFLA_BRPORT_FLUSH		nlattr[IFLA_BRPORT_FLUSH, void]
+	IFLA_BRPORT_STATE			nlattr[IFLA_BRPORT_STATE, int8[0:4]]
+	IFLA_BRPORT_COST			nlattr[IFLA_BRPORT_COST, int32]
+	IFLA_BRPORT_PRIORITY			nlattr[IFLA_BRPORT_PRIORITY, int16]
+	IFLA_BRPORT_MODE			nlattr[IFLA_BRPORT_MODE, int8[0:1]]
+	IFLA_BRPORT_GUARD			nlattr[IFLA_BRPORT_GUARD, int8[0:1]]
+	IFLA_BRPORT_PROTECT			nlattr[IFLA_BRPORT_PROTECT, int8[0:1]]
+	IFLA_BRPORT_FAST_LEAVE			nlattr[IFLA_BRPORT_FAST_LEAVE, int8[0:1]]
+	IFLA_BRPORT_LEARNING			nlattr[IFLA_BRPORT_LEARNING, int8[0:1]]
+	IFLA_BRPORT_UNICAST_FLOOD		nlattr[IFLA_BRPORT_UNICAST_FLOOD, int8[0:1]]
+	IFLA_BRPORT_PROXYARP			nlattr[IFLA_BRPORT_PROXYARP, int8[0:1]]
+	IFLA_BRPORT_PROXYARP_WIFI		nlattr[IFLA_BRPORT_PROXYARP_WIFI, int8[0:1]]
+	IFLA_BRPORT_MULTICAST_ROUTER		nlattr[IFLA_BRPORT_MULTICAST_ROUTER, int8[0:3]]
+	IFLA_BRPORT_MCAST_TO_UCAST		nlattr[IFLA_BRPORT_MCAST_TO_UCAST, int8[0:1]]
+	IFLA_BRPORT_MCAST_FLOOD			nlattr[IFLA_BRPORT_MCAST_FLOOD, int8[0:1]]
+	IFLA_BRPORT_BCAST_FLOOD			nlattr[IFLA_BRPORT_BCAST_FLOOD, int8[0:1]]
+	IFLA_BRPORT_VLAN_TUNNEL			nlattr[IFLA_BRPORT_VLAN_TUNNEL, int8[0:1]]
+	IFLA_BRPORT_GROUP_FWD_MASK		nlattr[IFLA_BRPORT_GROUP_FWD_MASK, int16]
+	IFLA_BRPORT_NEIGH_SUPPRESS		nlattr[IFLA_BRPORT_NEIGH_SUPPRESS, int8[0:1]]
+	IFLA_BRPORT_ISOLATED			nlattr[IFLA_BRPORT_ISOLATED, int8[0:1]]
+	IFLA_BRPORT_FLUSH			nlattr[IFLA_BRPORT_FLUSH, void]
+	IFLA_BRPORT_BACKUP_PORT			nlattr[IFLA_BRPORT_BACKUP_PORT, ifindex]
+	IFLA_BRPORT_MCAST_EHT_HOSTS_LIMIT	nlattr[IFLA_BRPORT_MCAST_EHT_HOSTS_LIMIT, int32]
 ] [varlen]
 
 ipgre_policy [
@@ -567,7 +582,7 @@ peer_info {
 #	policy optional[ifla_policy]
 }
 
-vti_policy_common [
+vti_policy$common [
 	IFLA_VTI_LINK	nlattr[IFLA_VTI_LINK, ifindex]
 	IFLA_VTI_IKEY	nlattr[IFLA_VTI_IKEY, int32]
 	IFLA_VTI_OKEY	nlattr[IFLA_VTI_OKEY, int32]
@@ -577,13 +592,13 @@ vti_policy_common [
 vti_policy [
 	IFLA_VTI_LOCAL		nlattr[IFLA_VTI_LOCAL, ipv4_addr]
 	IFLA_VTI_REMOTE		nlattr[IFLA_VTI_REMOTE, ipv4_addr]
-	vti_common_policy	array[vti_policy_common]
+	vti_common_policy	array[vti_policy$common]
 ] [varlen]
 
 vti6_policy [
 	IFLA_VTI_LOCAL		nlattr[IFLA_VTI_LOCAL, ipv6_addr]
 	IFLA_VTI_REMOTE		nlattr[IFLA_VTI_REMOTE, ipv6_addr]
-	vti_common_policy	array[vti_policy_common]
+	vti_common_policy	array[vti_policy$common]
 ] [varlen]
 
 ipip_policy [
@@ -642,19 +657,23 @@ ip6_tnl_policy [
 ipip6_ip_proto = IPPROTO_IPV6, IPPROTO_IPIP, IPPROTO_MPLS
 
 ifa_ipv4_policy [
-	IFA_LOCAL	nlattr[IFA_LOCAL, ipv4_addr]
-	IFA_ADDRESS	nlattr[IFA_ADDRESS, ipv4_addr]
-	IFA_BROADCAST	nlattr[IFA_BROADCAST, ipv4_addr]
-	IFA_LABEL	nlattr[IFA_LABEL, devname]
-	IFA_CACHEINFO	nlattr[IFA_CACHEINFO, ifa_cacheinfo]
-	IFA_FLAGS	nlattr[IFA_FLAGS, flags[ifa_flags, int32]]
+	IFA_LOCAL		nlattr[IFA_LOCAL, ipv4_addr]
+	IFA_ADDRESS		nlattr[IFA_ADDRESS, ipv4_addr]
+	IFA_BROADCAST		nlattr[IFA_BROADCAST, ipv4_addr]
+	IFA_LABEL		nlattr[IFA_LABEL, devname]
+	IFA_CACHEINFO		nlattr[IFA_CACHEINFO, ifa_cacheinfo]
+	IFA_FLAGS		nlattr[IFA_FLAGS, flags[ifa_flags, int32]]
+	IFA_RT_PRIORITY		nlattr[IFA_RT_PRIORITY, int32]
+	IFA_TARGET_NETNSID	nlattr[IFA_TARGET_NETNSID, netns_id]
 ] [varlen]
 
 ifa_ipv6_policy [
-	IFA_ADDRESS	nlattr[IFA_ADDRESS, ipv6_addr]
-	IFA_LOCAL	nlattr[IFA_LOCAL, ipv6_addr]
-	IFA_CACHEINFO	nlattr[IFA_CACHEINFO, ifa_cacheinfo]
-	IFA_FLAGS	nlattr[IFA_FLAGS, flags[ifa_flags, int32]]
+	IFA_ADDRESS		nlattr[IFA_ADDRESS, ipv6_addr]
+	IFA_LOCAL		nlattr[IFA_LOCAL, ipv6_addr]
+	IFA_CACHEINFO		nlattr[IFA_CACHEINFO, ifa_cacheinfo]
+	IFA_FLAGS		nlattr[IFA_FLAGS, flags[ifa_flags, int32]]
+	IFA_RT_PRIORITY		nlattr[IFA_RT_PRIORITY, int32]
+	IFA_TARGET_NETNSID	nlattr[IFA_TARGET_NETNSID, netns_id]
 ] [varlen]
 
 rtm_ipv4_policy [
@@ -673,7 +692,14 @@ rtm_ipv4_policy [
 	RTA_ENCAP	nlnest[RTA_ENCAP, lwtunnel_policy]
 	RTA_UID		nlattr[RTA_UID, uid]
 	RTA_MARK	nlattr[RTA_MARK, int32]
+	RTA_TABLE	nlattr[RTA_TABLE, int32]
+	RTA_IP_PROTO	nlattr[RTA_IP_PROTO, flags[rta_ip_protos, int8]]
+	RTA_SPORT	nlattr[RTA_SPORT, sock_port]
+	RTA_DPORT	nlattr[RTA_DPORT, sock_port]
+	RTA_NH_ID	nlattr[RTA_NH_ID, int32]
 ] [varlen]
+
+rta_ip_protos = IPPROTO_TCP, IPPROTO_UDP, IPPROTO_ICMP, IPPROTO_ICMPV6
 
 rtm_ipv6_policy [
 	RTA_GATEWAY	nlattr[RTA_GATEWAY, ipv6_addr]
@@ -797,6 +823,14 @@ nda_policy [
 	NDA_LINK_NETNSID	nlattr[NDA_LINK_NETNSID, int32]
 	NDA_SRC_VNI		nlattr[NDA_SRC_VNI, int32]
 	NDA_FLAGS_EXT		nlattr[NDA_FLAGS_EXT, flags[ndm_ext_flags, int32]]
+	NDA_PROTOCOL		nlattr[NDA_PROTOCOL, int8]
+	NDA_NH_ID		nlattr[NDA_NH_ID, int32]
+	NDA_FDB_EXT_ATTRS	nlnest[NDA_FDB_EXT_ATTRS, array[br_nda_fdb_pol]]
+] [varlen]
+
+br_nda_fdb_pol [
+	NFEA_ACTIVITY_NOTIFY	nlattr[NFEA_ACTIVITY_NOTIFY, int8]
+	NFEA_DONT_REFRESH	nlattr[NFEA_DONT_REFRESH, void]
 ] [varlen]
 
 nda_cacheinfo {
@@ -824,15 +858,16 @@ br_vlan_db_dump_pol [
 	BRIDGE_VLANDB_DUMP_FLAGS	nlattr[BRIDGE_VLANDB_DUMP_FLAGS, flags[br_vlan_dumpflags, int32]]
 ]
 
-br_vlan_db_policy_container [
+br_vlan_db_policy$container [
 	BRIDGE_VLANDB_ENTRY	nlnest[BRIDGE_VLANDB_ENTRY, br_vlan_db_policy]
 ] [varlen]
 
 br_vlan_db_policy [
-	BRIDGE_VLANDB_ENTRY_INFO	nlattr[BRIDGE_VLANDB_ENTRY_INFO, bridge_vlan_info]
-	BRIDGE_VLANDB_ENTRY_RANGE	nlattr[BRIDGE_VLANDB_ENTRY_RANGE, int16[BRIDGE_VLAN_INFO_RANGE_BEGIN:BRIDGE_VLAN_INFO_RANGE_END]]
-	BRIDGE_VLANDB_ENTRY_STATE	nlattr[BRIDGE_VLANDB_ENTRY_STATE, flags[br_vlan_state_options, int8]]
-	BRIDGE_VLANDB_ENTRY_TUNNEL_INFO	nlnest[BRIDGE_VLANDB_ENTRY_TUNNEL_INFO, br_vlandb_tinfo_pol]
+	BRIDGE_VLANDB_ENTRY_INFO		nlattr[BRIDGE_VLANDB_ENTRY_INFO, bridge_vlan_info]
+	BRIDGE_VLANDB_ENTRY_RANGE		nlattr[BRIDGE_VLANDB_ENTRY_RANGE, int16[BRIDGE_VLAN_INFO_RANGE_BEGIN:BRIDGE_VLAN_INFO_RANGE_END]]
+	BRIDGE_VLANDB_ENTRY_STATE		nlattr[BRIDGE_VLANDB_ENTRY_STATE, flags[br_vlan_state_options, int8]]
+	BRIDGE_VLANDB_ENTRY_TUNNEL_INFO		nlnest[BRIDGE_VLANDB_ENTRY_TUNNEL_INFO, br_vlandb_tinfo_pol]
+	BRIDGE_VLANDB_ENTRY_MCAST_ROUTER	nlattr[BRIDGE_VLANDB_ENTRY_MCAST_ROUTER, int8]
 ] [varlen]
 
 bridge_vlan_info {
@@ -887,9 +922,16 @@ rtm_nh_policy_new [
 	NHA_ENCAP_TYPE	nlattr[NHA_ENCAP_TYPE, flags[lwtunnel_encap_types, int16]]
 	NHA_ENCAP	nlnest[NHA_ENCAP, lwtunnel_policy]
 	NHA_FDB		nlattr[NHA_FDB, void]
+	NHA_RES_GROUP	nlnest[NHA_RES_GROUP, array[rtm_nh_res_policy_new]]
 ] [varlen]
 
 type rtm_nh_policy_del nlattr[NHA_ID, rtm_nh_id]
+
+rtm_nh_res_policy_new [
+	NHA_RES_GROUP_BUCKETS		nlattr[NHA_RES_GROUP_BUCKETS, int16]
+	NHA_RES_GROUP_IDLE_TIMER	nlattr[NHA_RES_GROUP_IDLE_TIMER, int32]
+	NHA_RES_GROUP_UNBALANCED_TIMER	nlattr[NHA_RES_GROUP_UNBALANCED_TIMER, int32]
+] [varlen]
 
 nexthop_grp {
 	id	int32[0:2]
@@ -1063,7 +1105,7 @@ lwtunnel_policy [
 	SEG6_LOCAL_NH6		nlattr[SEG6_LOCAL_NH6, ipv6_addr]
 	SEG6_LOCAL_IIF		nlattr[SEG6_LOCAL_IIF, int32]
 	SEG6_LOCAL_OIF		nlattr[SEG6_LOCAL_OIF, int32]
-	SEG6_LOCAL_BPF		nlnest[SEG6_LOCAL_BPF, bpf_prog_policy_seg6_local]
+	SEG6_LOCAL_BPF		nlnest[SEG6_LOCAL_BPF, bpf_prog_policy$seg6_local]
 
 	RPL_IPTUNNEL_SRH	nlattr[RPL_IPTUNNEL_SRH, ipv6_rpl_sr_hdr]
 ] [varlen]
@@ -1071,22 +1113,22 @@ lwtunnel_policy [
 lwtunnel_ip_flags = TUNNEL_GENEVE_OPT, TUNNEL_VXLAN_OPT, TUNNEL_ERSPAN_OPT
 
 ip_opts_policy [
-	LWTUNNEL_IP_OPTS_GENEVE	nlnest[LWTUNNEL_IP_OPTS_GENEVE, geneve_opt_policy_lwt]
-	LWTUNNEL_IP_OPTS_VXLAN	nlnest[LWTUNNEL_IP_OPTS_VXLAN, vxlan_opt_policy_lwt]
-	LWTUNNEL_IP_OPTS_ERSPAN	nlnest[LWTUNNEL_IP_OPTS_ERSPAN, erspan_opt_policy_lwt]
+	LWTUNNEL_IP_OPTS_GENEVE	nlnest[LWTUNNEL_IP_OPTS_GENEVE, geneve_opt_policy$lwt]
+	LWTUNNEL_IP_OPTS_VXLAN	nlnest[LWTUNNEL_IP_OPTS_VXLAN, vxlan_opt_policy$lwt]
+	LWTUNNEL_IP_OPTS_ERSPAN	nlnest[LWTUNNEL_IP_OPTS_ERSPAN, erspan_opt_policy$lwt]
 ] [varlen]
 
-geneve_opt_policy_lwt [
+geneve_opt_policy$lwt [
 	LWTUNNEL_IP_OPT_GENEVE_CLASS	nlattr[LWTUNNEL_IP_OPT_GENEVE_CLASS, int16be]
 	LWTUNNEL_IP_OPT_GENEVE_TYPE	nlattr[LWTUNNEL_IP_OPT_GENEVE_TYPE, int8]
 	LWTUNNEL_IP_OPT_GENEVE_DATA	nlattr[LWTUNNEL_IP_OPT_GENEVE_DATA, array[int8, 0:128]]
 ] [varlen]
 
-vxlan_opt_policy_lwt [
+vxlan_opt_policy$lwt [
 	LWTUNNEL_IP_OPT_VXLAN_GBP	nlattr[LWTUNNEL_IP_OPT_VXLAN_GBP, int32]
 ] [varlen]
 
-erspan_opt_policy_lwt [
+erspan_opt_policy$lwt [
 	LWTUNNEL_IP_OPT_ERSPAN_VER	nlattr[LWTUNNEL_IP_OPT_ERSPAN_VER, int8[1:2]]
 	LWTUNNEL_IP_OPT_ERSPAN_INDEX	nlattr[LWTUNNEL_IP_OPT_ERSPAN_INDEX, int32be]
 	LWTUNNEL_IP_OPT_ERSPAN_DIR	nlattr[LWTUNNEL_IP_OPT_ERSPAN_DIR, int8]
@@ -1098,7 +1140,7 @@ bpf_prog_policy [
 	LWT_BPF_PROG_NAME	nlattr[LWT_BPF_PROG_NAME, string]
 ] [varlen]
 
-bpf_prog_policy_seg6_local [
+bpf_prog_policy$seg6_local [
 	SEG6_LOCAL_BPF_PROG		nlattr[SEG6_LOCAL_BPF_PROG, fd_bpf_prog]
 	SEG6_LOCAL_BPF_PROG_NAME	nlattr[SEG6_LOCAL_BPF_PROG_NAME, string]
 ] [varlen]
@@ -1125,9 +1167,9 @@ seg6_tuninfo {
 } [packed]
 
 seg6_iptunnel_encap {
-	mode	flags[seg6_iptun_mode, int8]
+	mode	flags[seg6_iptun_mode, int32]
 	srh	ipv6_sr_hdr
-} [packed]
+}
 
 seg6_iptun_mode = SEG6_IPTUN_MODE_INLINE, SEG6_IPTUN_MODE_ENCAP, SEG6_IPTUN_MODE_L2ENCAP
 
@@ -1200,4 +1242,4 @@ br_mdb_entry_state = MDB_TEMPORARY, MDB_PERMANENT
 br_mdb_entry_flags = MDB_FLAGS_OFFLOAD, MDB_FLAGS_FAST_LEAVE
 br_mdb_entry_sub_proto = ETH_P_IP, ETH_P_IPV6
 rtnh_flags = RTNH_F_DEAD, RTNH_F_PERVASIVE, RTNH_F_ONLINK, RTNH_F_OFFLOAD, RTNH_F_LINKDOWN, RTNH_F_UNRESOLVED
-nha_group_types = NEXTHOP_GRP_TYPE_MPATH
+nha_group_types = NEXTHOP_GRP_TYPE_MPATH, NEXTHOP_GRP_TYPE_RES

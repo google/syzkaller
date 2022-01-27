@@ -235,7 +235,15 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 		}
 		for _, f := range files {
 			src := filepath.Join(upd.descriptions, f.Name())
-			dst := filepath.Join(upd.syzkallerDir, "sys", targets.Linux, f.Name())
+			dst := ""
+			switch filepath.Ext(src) {
+			case ".txt", ".const":
+				dst = filepath.Join(upd.syzkallerDir, "sys", targets.Linux, f.Name())
+			case ".h":
+				dst = filepath.Join(upd.syzkallerDir, "executor", f.Name())
+			default:
+				continue
+			}
 			if err := osutil.CopyFile(src, dst); err != nil {
 				return err
 			}

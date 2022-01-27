@@ -182,12 +182,32 @@ func (comp *compiler) checkStructFields(n *ast.Struct, typ, name string) {
 	if len(n.Fields) < 1 {
 		comp.error(n.Pos, "%v %v has no fields, need at least 1 field", typ, name)
 	}
-	for _, f := range n.Fields {
-		attrs := comp.parseAttrs(fieldAttrs, f, f.Attrs)
-
-		if attrs[attrIn]+attrs[attrOut]+attrs[attrInOut] > 1 {
+	hasDirections, hasOutOverlay := false, false
+	for fieldIdx, f := range n.Fields {
+		if n.IsUnion {
+			comp.parseAttrs(nil, f, f.Attrs)
+			continue
+		}
+		attrs := comp.parseAttrs(structFieldAttrs, f, f.Attrs)
+		dirCount := attrs[attrIn] + attrs[attrOut] + attrs[attrInOut]
+		if dirCount != 0 {
+			hasDirections = true
+		}
+		if dirCount > 1 {
 			_, typ, _ := f.Info()
 			comp.error(f.Pos, "%v has multiple direction attributes", typ)
+		}
+		if attrs[attrOutOverlay] > 0 {
+			if fieldIdx == 0 {
+				comp.error(f.Pos, "%v attribute must not be specified on the first field", attrOutOverlay.Name)
+			}
+			if hasOutOverlay || attrs[attrOutOverlay] > 1 {
+				comp.error(f.Pos, "multiple %v attributes", attrOutOverlay.Name)
+			}
+			hasOutOverlay = true
+		}
+		if hasDirections && hasOutOverlay {
+			comp.error(f.Pos, "mix of direction and %v attributes is not supported", attrOutOverlay.Name)
 		}
 	}
 }
@@ -301,12 +321,24 @@ func (comp *compiler) checkAttributeValues() {
 			}
 			// Check each field's attributes.
 			st := decl.(*ast.Struct)
+			hasOutOverlay := false
 			for _, f := range st.Fields {
+				isOut := hasOutOverlay
 				for _, attr := range f.Attrs {
-					desc := fieldAttrs[attr.Ident]
+					desc := structFieldAttrs[attr.Ident]
 					if desc.CheckConsts != nil {
 						desc.CheckConsts(comp, f, attr)
 					}
+					switch attr.Ident {
+					case attrOutOverlay.Name:
+						hasOutOverlay = true
+						fallthrough
+					case attrOut.Name, attrInOut.Name:
+						isOut = true
+					}
+				}
+				if isOut && comp.getTypeDesc(f.Type).CantBeOut {
+					comp.error(f.Pos, "%v type must not be used as output", f.Type.Ident)
 				}
 			}
 		}
@@ -600,10 +632,10 @@ func (comp *compiler) checkConstructors() {
 		switch n := decl.(type) {
 		case *ast.Call:
 			for _, arg := range n.Args {
-				comp.checkTypeCtors(arg.Type, prog.DirIn, true, ctors, inputs, checked)
+				comp.checkTypeCtors(arg.Type, prog.DirIn, true, true, ctors, inputs, checked)
 			}
 			if n.Ret != nil {
-				comp.checkTypeCtors(n.Ret, prog.DirOut, true, ctors, inputs, checked)
+				comp.checkTypeCtors(n.Ret, prog.DirOut, true, true, ctors, inputs, checked)
 			}
 		}
 	}
@@ -620,22 +652,25 @@ func (comp *compiler) checkConstructors() {
 			}
 			if !inputs[name] {
 				comp.error(n.Pos, "resource %v is never used as an input"+
-					"(such resources are not useful)", name)
+					" (such resources are not useful)", name)
 			}
 		}
 	}
 }
 
-func (comp *compiler) checkTypeCtors(t *ast.Type, dir prog.Dir, isArg bool,
+func (comp *compiler) checkTypeCtors(t *ast.Type, dir prog.Dir, isArg, canCreate bool,
 	ctors, inputs map[string]bool, checked map[structDir]bool) {
-	desc := comp.getTypeDesc(t)
+	desc, args, base := comp.getArgsBase(t, isArg)
+	if base.IsOptional {
+		canCreate = false
+	}
 	if desc == typeResource {
 		// TODO(dvyukov): consider changing this to "dir == prog.DirOut".
 		// We have few questionable cases where resources can be created
 		// only by inout struct fields. These structs should be split
 		// into two different structs: one is in and second is out.
 		// But that will require attaching dir to individual fields.
-		if dir != prog.DirIn {
+		if canCreate && dir != prog.DirIn {
 			r := comp.resources[t.Ident]
 			for r != nil && !ctors[r.Name.Name] {
 				ctors[r.Name.Name] = true
@@ -653,6 +688,9 @@ func (comp *compiler) checkTypeCtors(t *ast.Type, dir prog.Dir, isArg bool,
 	}
 	if desc == typeStruct {
 		s := comp.structs[t.Ident]
+		if s.IsUnion {
+			canCreate = false
+		}
 		name := s.Name.Name
 		key := structDir{name, dir}
 		if checked[key] {
@@ -664,17 +702,16 @@ func (comp *compiler) checkTypeCtors(t *ast.Type, dir prog.Dir, isArg bool,
 			if !fldHasDir {
 				fldDir = dir
 			}
-			comp.checkTypeCtors(fld.Type, fldDir, false, ctors, inputs, checked)
+			comp.checkTypeCtors(fld.Type, fldDir, false, canCreate, ctors, inputs, checked)
 		}
 		return
 	}
 	if desc == typePtr {
 		dir = genDir(t.Args[0])
 	}
-	_, args, _ := comp.getArgsBase(t, isArg)
 	for i, arg := range args {
 		if desc.Args[i].Type == typeArgType {
-			comp.checkTypeCtors(arg, dir, desc.Args[i].IsArg, ctors, inputs, checked)
+			comp.checkTypeCtors(arg, dir, desc.Args[i].IsArg, canCreate, ctors, inputs, checked)
 		}
 	}
 }

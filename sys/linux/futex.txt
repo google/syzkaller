@@ -17,13 +17,13 @@ robust_list {
 	next	ptr[in, robust_list, opt]
 }
 
-futex_waitv(addr ptr[in, array[futex_waitv_struct, 0:FUTEX_WAITV_MAX_INDEX]], val len[addr], flg const[0], timeout ptr[in, timespec], clockid flags[futex_clock_id])
+futex_waitv(addr ptr[in, array[futex_waitv, 0:FUTEX_WAITV_MAX_INDEX]], val len[addr], flg const[0], timeout ptr[in, timespec], clockid flags[futex_clock_id])
 
-futex_waitv_struct {
+futex_waitv {
 	val		int64
-	uaddr		ptr[in, int64]
-	flgs		flags[struct_flags_op, int32]
-	reserved	const[0, int32]
+	uaddr		ptr64[in, int64]
+	flags		flags[struct_flags_op, int32]
+	__reserved	const[0, int32]
 }
 
 futex_op = FUTEX_WAIT, FUTEX_WAKE, FUTEX_FD, FUTEX_REQUEUE, FUTEX_CMP_REQUEUE, FUTEX_WAKE_OP, FUTEX_LOCK_PI, FUTEX_UNLOCK_PI, FUTEX_TRYLOCK_PI, FUTEX_WAIT_BITSET, FUTEX_WAKE_BITSET, FUTEX_WAIT_REQUEUE_PI, FUTEX_CMP_REQUEUE_PI, FUTEX_LOCK_PI2, FUTEX_PRIVATE_FLAG, FUTEX_CLOCK_REALTIME

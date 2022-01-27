@@ -67,7 +67,7 @@ func (target *Target) calcStaticPriorities() [][]int32 {
 
 func (target *Target) calcResourceUsage() map[string]map[int]weights {
 	uses := make(map[string]map[int]weights)
-	ForeachType(target.Syscalls, func(t Type, ctx TypeCtx) {
+	ForeachType(target.Syscalls, func(t Type, ctx *TypeCtx) {
 		c := ctx.Meta
 		switch a := t.(type) {
 		case *ResourceType:

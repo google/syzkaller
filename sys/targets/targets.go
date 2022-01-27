@@ -76,6 +76,9 @@ type osCommon struct {
 	KernelObject string
 	// Name of cpp(1) executable.
 	CPP string
+	// Syscalls on which pseudo syscalls depend. Syzkaller will make sure that __NR* or SYS* definitions
+	// for those syscalls are enabled.
+	PseudoSyscallDeps map[string][]string
 	// Common CFLAGS for this OS.
 	cflags []string
 }
@@ -454,7 +457,14 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "vmlinux",
-		cflags:                 []string{"-static-pie"},
+		PseudoSyscallDeps: map[string][]string{
+			"syz_read_part_table": {"memfd_create"},
+			"syz_mount_image":     {"memfd_create"},
+			"syz_io_uring_setup":  {"io_uring_setup"},
+			"syz_clone3":          {"clone3", "exit"},
+			"syz_clone":           {"clone", "exit"},
+		},
+		cflags: []string{"-static-pie"},
 	},
 	FreeBSD: {
 		SyscallNumbers:         true,
@@ -544,12 +554,18 @@ var (
 		"-Wparentheses",
 		"-Wunused-const-variable",
 		"-Wframe-larger-than=16384", // executor uses stacks of limited size, so no jumbo frames
+		"-Wno-stringop-overflow",
+		"-Wno-array-bounds",
+		"-Wno-format-overflow",
 	}
 	optionalCFlags = map[string]bool{
 		"-static":                 true, // some distributions don't have static libraries
 		"-static-pie":             true, // this flag is also not supported everywhere
 		"-Wunused-const-variable": true, // gcc 5 does not support this flag
 		"-fsanitize=address":      true, // some OSes don't have ASAN
+		"-Wno-stringop-overflow":  true,
+		"-Wno-array-bounds":       true,
+		"-Wno-format-overflow":    true,
 	}
 	fallbackCFlags = map[string]string{
 		"-static-pie": "-static", // if an ASLR static binary is impossible, build just a static one
@@ -852,7 +868,7 @@ func (target *Target) lazyInit() {
 }
 
 func checkFlagSupported(target *Target, flag string) bool {
-	cmd := exec.Command(target.CCompiler, "-x", "c++", "-", "-o", "/dev/null", flag)
+	cmd := exec.Command(target.CCompiler, "-x", "c++", "-", "-o", "/dev/null", "-Werror", flag)
 	cmd.Stdin = strings.NewReader(simpleProg)
 	return cmd.Run() == nil
 }

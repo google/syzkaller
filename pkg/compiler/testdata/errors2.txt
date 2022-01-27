@@ -184,18 +184,20 @@ resource r112[int8]		### resource r112 can't be created (never mentioned as a sy
 resource r113[int8]
 resource r114[int8]
 resource r115[int8]		### resource r115 can't be created (never mentioned as a syscall return value or output argument/field)
-resource r116[int8]		### resource r116 is never used as an input(such resources are not useful)
-resource r117[int8]		### resource r117 is never used as an input(such resources are not useful)
-resource r118[int8]		### resource r118 is never used as an input(such resources are not useful)
-resource r119[int8]		### resource r119 is never used as an input(such resources are not useful)
+resource r116[int8]		### resource r116 is never used as an input (such resources are not useful)
+resource r117[int8]		### resource r117 is never used as an input (such resources are not useful)
+resource r118[int8]		### resource r118 is never used as an input (such resources are not useful)
+resource r119[int8]		### resource r119 is never used as an input (such resources are not useful)
 resource r120[int8]		### resource r120 can't be created (never mentioned as a syscall return value or output argument/field)
-resource r121[int8]
+resource r121[int8]		### resource r121 can't be created (never mentioned as a syscall return value or output argument/field)
 
 foo$300(a0 r100, a1 r101, a2 r102, a3 r103, a4 r104, a5 r105, a6 r106, a7 r107, a8 r108)
-foo$301(a0 r109, a1 r110, a2 r111, a3 r112, a4 r113, a5 r114, a6 r115, a7 r120, a8 r121)
+foo$301(a0 r109, a1 r110, a2 r111, a3 r112, a4 r113, a5 r114, a6 r115, a7 r120)
 foo$302(a ptr[out, array[r103]], b ptr[in, s300], c r107) r104
 foo$303(a ptr[in, s302], b ptr[in, s303], c ptr[in, s304], d ptr[out, s305], e ptr[inout, s306], f ptr[inout, s307], g ptr[in, s308], h ptr[out, s310])
-foo$304(a ptr[out, r117], b ptr[in, s312], c ptr[in, s313], d ptr[inout, u100]) r116
+foo$304(a ptr[out, r117], b ptr[in, s312], c ptr[in, s313]) r116
+foo$305(a0 r121)
+foo$306(a0 ptr[out, u315])
 
 s300 {
 	f1	ptr[inout, s301]
@@ -267,9 +269,9 @@ s314 {
 	f1	r119	(out)
 }
 
-u100 [
-	f1	r120	(in)
-	f2	r121	(out)
+u315 [
+	f1	r121
+	f2	int32
 ]
 
 # TODO: Two instances of the same resource might exist in the same structure as
@@ -385,4 +387,23 @@ s405 {
 	f2	int16:8[0:256]		### int range [0:256] is too large for base type of size 8
 	f3	int64:16[-65541:-10]	### int range [18446744073709486075:18446744073709551606] is too large for base type of size 16
 	f4	int16:8[-255:0]		### int range [18446744073709551361:0] is too large for base type of size 8
+}
+
+# Field attributes.
+
+foo$overlay(a ptr[in, struct$overlay0], b ptr[in, struct$out0])
+
+struct$overlay0 {
+	f0	int32
+	f1	const[0, int32]	(out_overlay)	### const type must not be used as output
+	f2	ptr[in, int32]			### ptr type must not be used as output
+	f3	proc[0, 1, int32]		### proc type must not be used as output
+	f4	bytesize[f1, int32]		### bytesize type must not be used as output
+}
+
+struct$out0 {
+	f0	const[0, int32]	(out)		### const type must not be used as output
+	f1	ptr[in, int32] (out)		### ptr type must not be used as output
+	f2	proc[0, 1, int32] (out)		### proc type must not be used as output
+	f3	bytesize[f1, int32] (out)	### bytesize type must not be used as output
 }

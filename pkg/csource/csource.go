@@ -73,6 +73,13 @@ func (ctx *context) generateSource() ([]byte, error) {
 
 	for _, c := range append(mmapProg.Calls, ctx.p.Calls...) {
 		ctx.calls[c.Meta.CallName] = c.Meta.NR
+		for _, dep := range ctx.sysTarget.PseudoSyscallDeps[c.Meta.CallName] {
+			depCall := ctx.target.SyscallMap[dep]
+			if depCall == nil {
+				panic(dep + " is specified in PseudoSyscallDeps, but not present")
+			}
+			ctx.calls[depCall.CallName] = depCall.NR
+		}
 	}
 
 	varsBuf := new(bytes.Buffer)
@@ -109,6 +116,7 @@ func (ctx *context) generateSource() ([]byte, error) {
 	timeouts := ctx.sysTarget.Timeouts(ctx.opts.Slowdown)
 	replacements["PROGRAM_TIMEOUT_MS"] = fmt.Sprint(int(timeouts.Program / time.Millisecond))
 	timeoutExpr := fmt.Sprint(int(timeouts.Syscall / time.Millisecond))
+	replacements["BASE_CALL_TIMEOUT_MS"] = timeoutExpr
 	for i, call := range ctx.p.Calls {
 		if timeout := call.Meta.Attrs.Timeout; timeout != 0 {
 			timeoutExpr += fmt.Sprintf(" + (call == %v ? %v : 0)", i, timeout*uint64(timeouts.Scale))
@@ -540,6 +548,8 @@ func (ctx *context) postProcess(result []byte) []byte {
 	}
 	result = bytes.Replace(result, []byte("NORETURN"), nil, -1)
 	result = bytes.Replace(result, []byte("doexit("), []byte("exit("), -1)
+	// TODO: Figure out what would be the right replacement for doexit_thread().
+	result = bytes.Replace(result, []byte("doexit_thread("), []byte("exit("), -1)
 	result = regexp.MustCompile(`PRINTF\(.*?\)`).ReplaceAll(result, nil)
 	result = regexp.MustCompile(`\t*debug\((.*\n)*?.*\);\n`).ReplaceAll(result, nil)
 	result = regexp.MustCompile(`\t*debug_dump_data\((.*\n)*?.*\);\n`).ReplaceAll(result, nil)

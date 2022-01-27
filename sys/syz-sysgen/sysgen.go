@@ -35,6 +35,11 @@ type SyscallData struct {
 	Attrs    []uint64
 }
 
+type Define struct {
+	Name  string
+	Value string
+}
+
 type ArchData struct {
 	Revision   string
 	ForkServer int
@@ -44,6 +49,7 @@ type ArchData struct {
 	NumPages   uint64
 	DataOffset uint64
 	Calls      []SyscallData
+	Defines    []Define
 }
 
 type OSData struct {
@@ -277,6 +283,7 @@ func generateExecutorSyscalls(target *targets.Target, syscalls []*prog.Syscall, 
 	if target.ExecutorUsesShmem {
 		data.Shmem = 1
 	}
+	defines := make(map[string]string)
 	for _, c := range syscalls {
 		var attrVals []uint64
 		attrs := reflect.ValueOf(c.Attrs)
@@ -300,10 +307,25 @@ func generateExecutorSyscalls(target *targets.Target, syscalls []*prog.Syscall, 
 			}
 		}
 		data.Calls = append(data.Calls, newSyscallData(target, c, attrVals[:last+1]))
+		// Some syscalls might not be present on the compiling machine, so we
+		// generate definitions for them.
+		if target.SyscallNumbers && !strings.HasPrefix(c.CallName, "syz_") &&
+			target.NeedSyscallDefine(c.NR) {
+			defines[target.SyscallPrefix+c.CallName] = fmt.Sprintf("%d", c.NR)
+		}
 	}
 	sort.Slice(data.Calls, func(i, j int) bool {
 		return data.Calls[i].Name < data.Calls[j].Name
 	})
+	// Get a sorted list of definitions.
+	defineNames := []string{}
+	for key := range defines {
+		defineNames = append(defineNames, key)
+	}
+	sort.Strings(defineNames)
+	for _, key := range defineNames {
+		data.Defines = append(data.Defines, Define{key, defines[key]})
+	}
 	return data
 }
 
@@ -380,7 +402,10 @@ struct call_props_t { {{range $attr := $.CallProps}}
 #define SYZ_PAGE_SIZE {{.PageSize}}
 #define SYZ_NUM_PAGES {{.NumPages}}
 #define SYZ_DATA_OFFSET {{.DataOffset}}
+{{range $c := $arch.Defines}}#ifndef {{$c.Name}}
+#define {{$c.Name}} {{$c.Value}}
 #endif
+{{end}}#endif
 {{end}}
 #endif
 {{end}}

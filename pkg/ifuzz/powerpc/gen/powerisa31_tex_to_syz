@@ -21,81 +21,97 @@ def read_file(fname):
 	f.close()
 	return ret
 
+# Returns map<str, str>:  'layoutxxivbform': ([6, 5, 5, 5, 5, 2, 1, 1, 1, 1],
+#	[None, 'T', A', 'B', 'C', None, 'CX', 'AX', 'BX'm 'TX'])
 def get_layouts(layout_file):
 	layout_content = read_file(layout_file)
-	cur_layout = ""
 	last_comment = ""
 	layouts = {}
-	for i in range(len(layout_content)):
-		cur = layout_content[i]
+	for cur in layout_content:
 		if len(cur) > 0 and cur[0] == '%':
 			last_comment = re.sub(r'(^%|bits.*$)', "", cur).strip()
 			continue
-		# \newcommand{\layoutiform}[4]{
 		l = re.match(r'\\newcommand{\\(layout\w+)}.*{', cur)
 		if l:
-			cur_layout = l.group(1)
-			layouts[cur_layout] = last_comment
-			continue
+			a = last_comment.split(" ")
+			pos = []
+			names = []
+			for a1 in a:
+				tmp = re.match(r'(\d+)<(\S+)>', a1)
+				if tmp:
+					pos += [int(tmp.group(1), 10)]
+					names += [tmp.group(2)]
+					continue
+				pos += [int(a1, 10)]
+				names += [None]
+			layouts[l.group(1)] = (pos, names)
+#	pe.pprint(layouts)
 	return layouts
 
-def add_insns(st, l):
-	if len(l) != 1 and len(l) != 2:
-		pe.pprint("!!!Error: broken layout {} for {}".format(l, st))
-		sys.exit(-1)
-	r = {}
-# These lines enable/disable prefixed instrustions
-#	if len(l) != 1:
-#		return r
-	for ins in st:
-		tmp = ins[0].split(" ", 1)
-		r[tmp[0]] = ins[1]
-		r[tmp[0]]["layout"] = l
-		if len(tmp) > 1:
-			r[tmp[0]]["par"] = tmp[1]
-	return r
-
-def sanitize_layout(a, b):
-	a = a.strip().split(" ")
-	b = re.findall(r'{([^}]*)}', b)
-	aa = []
+# Expands names of fields
+# (list<n>, list<n>), string -> list<n>
+def complete_layout(layout, insn_layout):
 	bb = []
 	b_ = 0
-	for a1 in a:
-		tmp = re.match(r'(\d+)<(\S+)>', a1)
-		if tmp:
-			aa += [int(tmp.group(1), 10)]
-			bb += [tmp.group(2)]
+	b = re.findall(r'{([^}]*)}', insn_layout)
+	for i in range(len(layout[0])):
+		if layout[1][i]:
+			bb += [layout[1][i]]
 			continue
-		aa += [int(a1, 10)]
-		bb += [re.sub(r'[{}]+', "", b[b_])]
-		b_ += 1
-	if b_ != len(b) or len(aa) != len(bb):
-		pe.pprint("!!!error: broken layout {} --- {} --- {}".format(aa, bb, b_))
-		sys.exit(-1)
-	return aa, bb
 
+		# "pnop" is special: {any value\textsuperscript{*}
+		tmpname = re.sub(r'([{}?]+|any value\\textsuperscript{\*)', "", b[b_])
+		tmpname = re.sub(r'/+', '/', tmpname)
+		bb += [tmpname]
+		b_ += 1
+	return bb
+
+# Finds instructions in a latex file
+# Returns map<str, list>:
+# 'addc.': [([6, 5, 5, 5, 1, 9, 1], ['31', 'RT', 'RA', 'RB', 'OE', '10', 'Rc'], [-1, -1, -1, -1, 0, -1, 1])],
+# layouts: array of tuples
 def find_insns(tex_file, layouts):
+
+	def add_insns(insn_list, layout):
+		if len(layout) != 1 and len(layout) != 2:
+			pe.pprint("!!!Error: broken layout {} for {}".format(layout, insn_list))
+			sys.exit(-1)
+		r = {}
+		for ins in insn_list:
+			tmp = ins.split(" ", 1)
+
+			ll = []
+			for l in layout:
+				par = []
+				for j in range(len(l[1])):
+					defval = -1
+					# This is dealing with OE/Rc from "addc. RT,RA,RB (OE=0 Rc=1)"
+					if len(tmp) > 1 and ('?' not in l[1][j]):
+						ptmp = re.match(r'.*{}=(\d).*'.format(l[1][j]), tmp[1])
+						if ptmp:
+							defval = int(ptmp.group(1), 10)
+					par += [defval]
+				ll += [(l[0], l[1], par)]
+			pe.pprint("{}".format(tmp[0]))
+			r[tmp[0]] = ll
+		return r
+
 	tex_content = read_file(tex_file)
-	cur_insn_name = ""
-	cur_insn = {}
 	ret = {}
 	layout = []
-	insns_stack = []
-	for i in range(len(tex_content)):
-		cur = tex_content[i]
+	insn_list = []
+	for cur in tex_content:
 		# \instrsyntax{pmxvf16ger2np AT,XA,XB,XMSK,YMSK,PMSK}
 		l = re.match(r'\\instrsyntax{(.*)}', cur)
 		if l:
-			if insns_stack != [] and layout != []:
-				ret.update(add_insns(insns_stack, layout))
-				insns_stack = []
+			if insn_list != [] and layout != []:
+				ret.update(add_insns(insn_list, layout))
+				insn_list = []
 				layout = []
 
-			cur_insn_name = l.group(1)
-			insns_stack += [(cur_insn_name, {"loc": "{}:{}".format(tex_file.rsplit("/", 1)[-1], i)})]
+			insn_list += [l.group(1)]
 			continue
-		if not insns_stack:
+		if not insn_list:
 			continue
 
 		# \layoutxxiiidform{59}{AT}{//}{A}{B}{82}{AX}{BX}{/}
@@ -104,134 +120,110 @@ def find_insns(tex_file, layouts):
 			if len(layout) > 2:
 				pe.pprint("! Wrong layout")
 				sys.exit(-1)
-			layout += [sanitize_layout(layouts[l.group(1)], l.group(2))]
+			layout += [(layouts[l.group(1)][0],
+				complete_layout(layouts[l.group(1)], l.group(2)))]
 
 	if layout:
-		ret.update(add_insns(insns_stack, layout))
+		ret.update(add_insns(insn_list, layout))
 
 	return ret
 
+# Extracts priv. flag from Table H.1: Power ISA Instruction Set Sorted by Mnemonic
+# Returns priv insns list
 def collect_priv(tex_file, insns):
 	tex_cont = read_file(tex_file)
-	for i in range(len(tex_cont)):
-		cur = tex_cont[i]
-		ins = cur.split('}', 1)[0]
-		if ins not in insns:
+	ret = []
+	cur = ""
+	for tcur in tex_cont:
+		if tcur != '\hline':
+			cur += tcur
 			continue
-		l = re.match(r'^{}}}.+\\small (P|H|HV|HV\/P|UV|64)}}&.*'.format(ins), cur)
-		if not l:
-			continue
-		insns[ins]["Priv"] = True
+		# Merge all lines between \hline and split by tab (which '&' in latex)
+		cur = re.sub(r'\\&', 'AND', cur) # but '&' may occur in the instruction name
+		tmp = cur.split('&')
+		if len(tmp) == 11:
+			ins = re.sub(r'.*{([^{}]+)}$', r'\1', tmp[5])
+			if ins in insns:
+				if re.match(r'.+{(P|H|HV|HV\/P|UV|64)}$', tmp[7]):
+					ret += [ins]
+			cur = ""
+	return ret
 
-def ppcmask(val, start, len):
-	return (val & ((1 << len) - 1)) << (31 - (start + len - 1))
+def generate_go(insns, priv):
+	def ppcmask(val, start, len):
+		return (val & ((1 << len) - 1)) << (31 - (start + len - 1))
 
-fixed_cases = {}
-def add_fixed(field, ins):
-	global fixed_cases
-	if field not in fixed_cases:
-		fixed_cases[field] = []
-	fixed_cases[field] += [ins]
-def print_fixed():
-	pe.pprint(fixed_cases)
-
-def generate_go(insns):
 	def generate_opcode(ins, layout):
+		pos_, names_, defval_ = layout[0], layout[1], layout[2]
 		opcode = 0
 		opmask = 0
-		fields = ""
 		pos = 0
 		bits = 0
 		fields = {}
-		for i in range(len(layout[0])):
+		for i in range(len(pos_)):
 			pos += bits
-			bits = layout[0][i]
+			bits = pos_[i]
 
-			# "pnop" is special
-			if layout[1][i].replace('any value\\textsuperscript*', '') == '':
+			# Fields marked `/` must be 0
+			if names_[i] == '/':
+				opmask |= ppcmask(0xffffffff, pos, pos_[i])
 				continue
 
-			if layout[1][i].replace('/', '') == '':
-				opmask |= ppcmask(0xffffffff, pos, layout[0][i])
-				continue
-
-			if layout[1][i].replace('?', '') == '':
-				opmask |= ppcmask(0xffffffff, pos, layout[0][i])
+			if names_[i] == '':
 				continue
 
 			try:
-				num = int(layout[1][i], 10)
-				opcode |= ppcmask(num, pos, layout[0][i])
-				opmask |= ppcmask(0xffffffff, pos, layout[0][i])
+				num = int(names_[i], 10)
+				opcode |= ppcmask(num, pos, pos_[i])
+				opmask |= ppcmask(0xffffffff, pos, pos_[i])
 				continue
 			except:
 				pass
 
-			if 'par' in ival:
-				tmp = re.match(r'.*{}=(\d).*'.format(layout[1][i]), ival['par'])
-				if tmp:
-					opcode |= ppcmask(int(tmp.group(1), 10), pos, layout[0][i])
-					opmask |= ppcmask(0xffffffff, pos, layout[0][i])
-					continue
+			if defval_[i] >= 0:
+				opcode |= ppcmask(defval_[i], pos, pos_[i])
+				opmask |= ppcmask(0xffffffff, pos, pos_[i])
+				continue
 
-			if layout[1][i] not in fields:
-				fields[layout[1][i]] = []
-			fields[layout[1][i]] += [(pos, layout[0][i])]
+			fval = [(pos, pos_[i])]
+			if (ins in ['rldcl', 'rldcl.', 'rldic', 'rldic.', 'rldicl', 'rldicl.',
+				'rldimi', 'rldimi.', 'rldcr', 'rldcr.', 'rldicr', 'rldicr.'] and
+				names_[i] in ["me", "mb"] and fval == [(21, 6)]):
+				fval = [(21, 5), (26, 1)]
+			elif ins in ['mfspr', 'mtspr'] and names_[i] == "spr" and fval == [(11, 10)]:
+				fval = [(16, 5), (11, 5)]
+
+			if names_[i] not in fields:
+				fields[names_[i]] = []
+			fields[names_[i]] += fval
+
 
 		# Fix up fields
-		for f in fields:
-			if (ins in ['mtvsrbmi', 'addpcis', 'xvtstdcdp', 'xvtstdcsp', 'mftb'] and
-				f in [
-				"b0", "b1", "b2", # mtvsrbmi
-				"dx", "dc", "dm", # xvtstdcdp
-				"d0", "d1", "d2", # addpcis
-				"tbr", # mftb
-				]):
-				add_fixed(f, ins)
-				continue
-			if (ins in ['extswsli', 'extswsli.', 'rldic', 'rldic.', 'rldicl', 'rldicl.', 'rldicr', 'rldicr.', 'rldimi', 'rldimi.', 'sradi', 'sradi.'] and
-				f in ["sh"] and fields[f] == [(16, 5), (30, 1)]):
-				add_fixed(f, ins)
-				continue
-			if (ins in ['rldcl', 'rldcl.', 'rldic', 'rldic.', 'rldicl', 'rldicl.', 'rldimi', 'rldimi.', 'rldcr', 'rldcr.', 'rldicr', 'rldicr.'] and
-				f in ["me", "mb"] and fields[f] == [(21, 6)]): # rldicr
-				add_fixed(f, ins)
-				fields[f] = [(21, 5), (26, 1)]
-				continue
-			if ins in ['mfspr', 'mtspr'] and f == "spr" and fields[f] == [(11, 10)]: # mfspr
-				add_fixed(f, ins)
-				fields[f] = [(16, 5), (11, 5)]
-				continue
-			if re.match(r'[a-z]+', f):
-				add_fixed(f, ins)
-				continue
-
 		fields_str = ""
-		for fkey, fval_ in sorted(fields.items()):
+		for f, fval in sorted(fields.items()):
 			fields_str += '{'
-			fields_str += 'Name: "{}", Bits: []powerpc.InsnBits'.format(fkey)
+			fields_str += 'Name: "{}", Bits: []powerpc.InsnBits'.format(f)
 			fields_str += '{'
-			for fval in fval_:
-				fields_str += '{{{}, {}}}, '.format(fval[0], fval[1])
-				if int(fval[1]) == 0:
+			for ff in fval:
+				fields_str += '{{{}, {}}}, '.format(ff[0], ff[1])
+				if ff[1] == 0:
 					pe.pprint("!Wrong length!")
 					sys.exit(-1)
 			fields_str = fields_str[:-2] + '}}, '
 
 		return opcode, opmask, fields_str[:-2]
 
-	for ins, ival in sorted(insns.items()):#, key: lambda x: insns[x].opcode):
+	for ins, ival in sorted(insns.items()):
 		tmp = '\t{Name: "'
 		tmp += ins
 		tmp += '", '
-		if len(ival['layout']) >= 1:
-			opcode, opmask, fields = generate_opcode(ins, ival['layout'][0])
-			if "Priv" in ival:
-				tmp += 'Opcode: 0x{:08x}, Mask: 0x{:08x}, Priv: true, Fields: []powerpc.InsnField{{{}}}'.format(opcode, opmask, fields)
-			else:
-				tmp += 'Opcode: 0x{:08x}, Mask: 0x{:08x}, Fields: []powerpc.InsnField{{{}}}'.format(opcode, opmask, fields)
-		if len(ival['layout']) == 2:
-			opcode, opmask, fields = generate_opcode(ins, ival['layout'][1])
+		if len(ival) >= 1:
+			opcode, opmask, fields = generate_opcode(ins, ival[0])
+			tmp += 'Opcode: 0x{:08x}, Mask: 0x{:08x}, Fields: []powerpc.InsnField{{{}}}'.format(opcode, opmask, fields)
+			if ins in priv:
+				tmp += ', Priv: true'
+		if len(ival) == 2:
+			opcode, opmask, fields = generate_opcode(ins, ival[1])
 			tmp += ',\n\t\tOpcodeSuffix: 0x{:08x}, MaskSuffix: 0x{:08x}, FieldsSuffix: []powerpc.InsnField{{{}}}'.format(opcode, opmask, fields)
 
 		tmp += "},"
@@ -244,8 +236,6 @@ texfiles = subprocess.check_output(["find", isa_dir, "-iname", "*.tex"]).decode(
 insns = {}
 for tex in texfiles:
 	insns.update(find_insns(tex, layouts))
-
-collect_priv(isa_dir + "/Appendices/PPC_ApInstMnem.tex", insns)
 
 print('// Code generated by {}. DO NOT EDIT.'.format(sys.argv[0]))
 print('')
@@ -261,8 +251,7 @@ print('\tpowerpc.Register(insns)')
 print('}')
 print('')
 print('var insns = []*powerpc.Insn{')
-generate_go(insns)
+generate_go(insns, collect_priv(isa_dir + "/Appendices/PPC_ApInstMnem.tex", insns))
 print("}")
 
 pe.pprint("Processed {} instructions".format(len(insns)))
-print_fixed()

@@ -132,22 +132,29 @@ func foreachArgImpl(arg Arg, ctx *ArgCtx, f func(Arg, *ArgCtx)) {
 	}
 	switch a := arg.(type) {
 	case *GroupArg:
+		overlayField := 0
 		if typ, ok := a.Type().(*StructType); ok {
 			ctx.Parent = &a.Inner
 			ctx.Fields = typ.Fields
+			overlayField = typ.OverlayField
 		}
 		var totalSize uint64
-		for _, arg1 := range a.Inner {
+		for i, arg1 := range a.Inner {
+			if i == overlayField {
+				ctx.Offset = ctx0.Offset
+			}
 			foreachArgImpl(arg1, ctx, f)
 			size := arg1.Size()
 			ctx.Offset += size
-			totalSize += size
+			if totalSize < ctx.Offset {
+				totalSize = ctx.Offset - ctx0.Offset
+			}
 		}
 		claimedSize := a.Size()
 		varlen := a.Type().Varlen()
 		if varlen && totalSize > claimedSize || !varlen && totalSize != claimedSize {
 			panic(fmt.Sprintf("bad group arg size %v, should be <= %v for %#v type %#v",
-				totalSize, claimedSize, a, a.Type()))
+				totalSize, claimedSize, a, a.Type().Name()))
 		}
 	case *PointerArg:
 		if a.Res != nil {

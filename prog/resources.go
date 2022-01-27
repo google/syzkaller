@@ -45,14 +45,34 @@ func (target *Target) calcResourceCtors(res *ResourceDesc, precise bool) []*Sysc
 func (target *Target) populateResourceCtors() {
 	// Find resources that are created by each call.
 	callsResources := make([][]*ResourceDesc, len(target.Syscalls))
-	ForeachType(target.Syscalls, func(typ Type, ctx TypeCtx) {
-		switch typ1 := typ.(type) {
-		case *ResourceType:
-			if ctx.Dir != DirIn {
-				callsResources[ctx.Meta.ID] = append(callsResources[ctx.Meta.ID], typ1.Desc)
+	for _, meta := range target.Syscalls {
+		dedup := make(map[*ResourceDesc]bool)
+		ForeachCallType(meta, func(typ Type, ctx *TypeCtx) {
+			if typ.Optional() {
+				ctx.Stop = true
+				return
 			}
-		}
-	})
+			switch typ1 := typ.(type) {
+			case *UnionType:
+				ctx.Stop = true
+			case *ResourceType:
+				if ctx.Dir == DirIn || dedup[typ1.Desc] {
+					break
+				}
+				dedup[typ1.Desc] = true
+				callsResources[meta.ID] = append(callsResources[meta.ID], typ1.Desc)
+				meta.outputResources = append(meta.outputResources, typ1.Desc)
+			}
+		})
+	}
+
+	if c := target.SyscallMap["clock_gettime"]; c != nil {
+		c.outputResources = append(c.outputResources, timespecRes)
+	}
+
+	for _, c := range target.Syscalls {
+		c.inputResources = target.getInputResources(c)
+	}
 
 	// Populate resource ctors accounting for resource compatibility.
 	for _, res := range target.Resources {
@@ -123,38 +143,25 @@ func isCompatibleResourceImpl(dst, src []string, precise bool) bool {
 }
 
 func (target *Target) getInputResources(c *Syscall) []*ResourceDesc {
+	dedup := make(map[*ResourceDesc]bool)
 	var resources []*ResourceDesc
-	ForeachCallType(c, func(typ Type, ctx TypeCtx) {
+	ForeachCallType(c, func(typ Type, ctx *TypeCtx) {
 		if ctx.Dir == DirOut {
 			return
 		}
 		switch typ1 := typ.(type) {
 		case *ResourceType:
-			if !typ1.IsOptional {
+			if !typ1.IsOptional && !dedup[typ1.Desc] {
+				dedup[typ1.Desc] = true
 				resources = append(resources, typ1.Desc)
 			}
 		case *StructType:
-			if target.OS == "linux" && (typ1.Name() == "timespec" || typ1.Name() == "timeval") {
+			if target.OS == "linux" && !dedup[timespecRes] && (typ1.Name() == "timespec" || typ1.Name() == "timeval") {
+				dedup[timespecRes] = true
 				resources = append(resources, timespecRes)
 			}
 		}
 	})
-	return resources
-}
-
-func (target *Target) getOutputResources(c *Syscall) []*ResourceDesc {
-	var resources []*ResourceDesc
-	ForeachCallType(c, func(typ Type, ctx TypeCtx) {
-		switch typ1 := typ.(type) {
-		case *ResourceType:
-			if ctx.Dir != DirIn {
-				resources = append(resources, typ1.Desc)
-			}
-		}
-	})
-	if c.CallName == "clock_gettime" {
-		resources = append(resources, timespecRes)
-	}
 	return resources
 }
 
@@ -163,23 +170,20 @@ func (target *Target) transitivelyEnabled(enabled map[*Syscall]bool) (map[*Sysca
 	canCreate := make(map[string]bool, len(enabled))
 	for {
 		n := len(supported)
+	nextCall:
 		for c := range enabled {
 			if supported[c] {
 				continue
 			}
-			ready := true
 			for _, res := range c.inputResources {
 				if !canCreate[res.Name] {
-					ready = false
-					break
+					continue nextCall
 				}
 			}
-			if ready {
-				supported[c] = true
-				for _, res := range c.outputResources {
-					for _, kind := range res.Kind {
-						canCreate[kind] = true
-					}
+			supported[c] = true
+			for _, res := range c.outputResources {
+				for _, kind := range res.Kind {
+					canCreate[kind] = true
 				}
 			}
 		}

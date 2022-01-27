@@ -391,3 +391,29 @@ struct$perfielddir {
 	f5	int32	(out, inout)	### arg/field has multiple direction attributes
 	f6	int32	(in, out, inout)	### arg/field has multiple direction attributes
 }
+
+struct$overlay0 {
+	f0	int32	(out_overlay)	### out_overlay attribute must not be specified on the first field
+	f1	int32	(out_overlay)	### multiple out_overlay attributes
+}
+
+struct$overlay1 {
+	f0	int32
+	f1	int32	(out_overlay, out_overlay)	### duplicate arg/field f1 attribute out_overlay
+	f2	int32	(out_overlay)	### multiple out_overlay attributes
+}
+
+struct$overlay2 {
+	f0	int32	(in)
+	f1	int32	(out_overlay)	### mix of direction and out_overlay attributes is not supported
+}
+
+union$overlay0 [
+	f0	int32
+	f1	int32	(out_overlay)	### unknown arg/field f1 attribute out_overlay
+]
+
+union$directions [
+	f1	int32	(in)	### unknown arg/field f1 attribute in
+	f2	int32	(out)	### unknown arg/field f2 attribute out
+]

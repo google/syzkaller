@@ -37,6 +37,9 @@ type Record struct {
 	Seq uint64
 }
 
+// Open opens the specified database file.
+// If the database is corrupted and reading failed, then it returns an non-nil db
+// with whatever records were recovered and a non-nil error at the same time.
 func Open(filename string) (*DB, error) {
 	db := &DB{
 		filename: filename,
@@ -46,17 +49,15 @@ func Open(filename string) (*DB, error) {
 		return nil, err
 	}
 	defer f.Close()
-	db.Version, db.Records, db.uncompacted, err = deserializeDB(bufio.NewReader(f))
-	if err != nil {
+	// Deserialization error is considered a "soft" error,
+	// but compact below ensures that the file is at least writable.
+	var deserializeErr error
+	db.Version, db.Records, db.uncompacted, deserializeErr = deserializeDB(bufio.NewReader(f))
+	f.Close() // compact will rewrite the file, so close our descriptor
+	if err := db.compact(); err != nil {
 		return nil, err
 	}
-	if len(db.Records) == 0 || db.uncompacted/10*9 > len(db.Records) {
-		f.Close() // compact will rewrite the file, so close our descriptor
-		if err := db.compact(); err != nil {
-			return nil, err
-		}
-	}
-	return db, nil
+	return db, deserializeErr
 }
 
 func (db *DB) Save(key string, val []byte, seq uint64) {

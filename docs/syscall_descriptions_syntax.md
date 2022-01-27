@@ -129,8 +129,31 @@ structname "{" "\n"
 ```
 
 Fields can have attributes specified in parentheses after the field, independent
-of their type. The only attribute is direction (`in/out/inout`). For the field for
-which it is specified, the direction attributes on the upper levels are overridden.
+of their type. `in/out/inout` attribute specify per-field direction, for example:
+
+```
+foo {
+	field0	const[1, int32]	(in)
+	field1	int32		(inout)
+	field2	fd		(out)
+}
+```
+
+`out_overlay` attribute allows to have separate input and output layouts for the struct.
+Fields before the `out_overlay` field are input, fields starting from `out_overlay` are output.
+Input and output fields overlap in memory (both start from the beginning of the struct in memory).
+For example:
+
+```
+foo {
+	in0	const[1, int32]
+	in1	flags[bar, int8]
+	in2	ptr[in, string]
+	out0	fd	(out_overlay)
+	out1	int32
+}
+```
+
 
 Structs can have attributes specified in square brackets after the struct.
 Attributes are:
@@ -145,11 +168,9 @@ Unions are described as:
 
 ```
 unionname "[" "\n"
-	(fieldname type ("(" fieldattribute* ")")? "\n")+
+	(fieldname type "\n")+
 "]" ("[" attribute* "]")?
 ```
-
-Field attributes are as defined for [structs](#structs).
 
 Unions can have attributes specified in square brackets after the union.
 Attributes are:
@@ -206,6 +227,10 @@ test_struct {
 	field1	my_resource_2	(in)
 }
 ```
+
+Each resource type must be "produced" (used as an output) by at least one syscall
+(outside of unions and optional pointers) and "consumed" (used as an input)
+by at least one syscall.
 
 ## Type Aliases
 

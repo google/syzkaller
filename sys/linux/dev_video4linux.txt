@@ -17,10 +17,7 @@ include <uapi/linux/v4l2-controls.h>
 include <uapi/linux/media.h>
 
 resource fd_video[fd]
-resource fd_dmabuf[fd]
 resource fd_v4l2_buffer[fd]
-resource fd_media[fd]
-resource fd_request[fd]
 
 syz_open_dev$video(dev ptr[in, string["/dev/video#"]], id intptr, flags flags[open_flags]) fd_video
 syz_open_dev$video4linux(dev ptr[in, string["/dev/v4l-subdev#"]], id intptr, flags flags[open_flags]) fd_video
@@ -50,13 +47,16 @@ ioctl$VIDIOC_ENUM_FMT(fd fd_video, cmd const[VIDIOC_ENUM_FMT], arg ptr[inout, v4
 ioctl$VIDIOC_G_FMT(fd fd_video, cmd const[VIDIOC_G_FMT], arg ptr[inout, v4l2_format[v4l2_buf_type]])
 ioctl$VIDIOC_S_FMT(fd fd_video, cmd const[VIDIOC_S_FMT], arg ptr[inout, v4l2_format[v4l2_buf_type]])
 ioctl$VIDIOC_REQBUFS(fd fd_video, cmd const[VIDIOC_REQBUFS], arg ptr[inout, v4l2_requestbuffers[v4l2_buf_type]])
-ioctl$VIDIOC_QUERYBUF(fd fd_video, cmd const[VIDIOC_QUERYBUF], arg ptr[inout, v4l2_buffer[v4l2_buf_type]])
+# This variant serves as fd_v4l2_buffer constructor.
+# Potentially more ioctl can create fd_v4l2_buffer, but the kernel code is hard to understand.
+ioctl$VIDIOC_QUERYBUF_DMABUF(fd fd_video, cmd const[VIDIOC_QUERYBUF], arg ptr[inout, v4l2_buffer[v4l2_buf_type, V4L2_MEMORY_DMABUF, fd_v4l2_buffer]])
+ioctl$VIDIOC_QUERYBUF(fd fd_video, cmd const[VIDIOC_QUERYBUF], arg ptr[inout, v4l2_buffer_t[v4l2_buf_type]])
 ioctl$VIDIOC_G_FBUF(fd fd_video, cmd const[VIDIOC_G_FBUF], arg ptr[inout, v4l2_framebuffer])
 ioctl$VIDIOC_S_FBUF(fd fd_video, cmd const[VIDIOC_S_FBUF], arg ptr[in, v4l2_framebuffer])
 ioctl$VIDIOC_OVERLAY(fd fd_video, cmd const[VIDIOC_OVERLAY], arg ptr[in, int32])
-ioctl$VIDIOC_QBUF(fd fd_video, cmd const[VIDIOC_QBUF], arg ptr[inout, v4l2_buffer[v4l2_buf_type]])
+ioctl$VIDIOC_QBUF(fd fd_video, cmd const[VIDIOC_QBUF], arg ptr[inout, v4l2_buffer_t[v4l2_buf_type]])
 ioctl$VIDIOC_EXPBUF(fd fd_video, cmd const[VIDIOC_EXPBUF], arg ptr[inout, v4l2_exportbuffer[v4l2_buf_type]])
-ioctl$VIDIOC_DQBUF(fd fd_video, cmd const[VIDIOC_DQBUF], arg ptr[inout, v4l2_buffer[v4l2_buf_type]])
+ioctl$VIDIOC_DQBUF(fd fd_video, cmd const[VIDIOC_DQBUF], arg ptr[inout, v4l2_buffer_t[v4l2_buf_type]])
 ioctl$VIDIOC_STREAMON(fd fd_video, cmd const[VIDIOC_STREAMON], arg ptr[in, int32])
 ioctl$VIDIOC_STREAMOFF(fd fd_video, cmd const[VIDIOC_STREAMOFF], arg ptr[in, int32])
 ioctl$VIDIOC_G_PARM(fd fd_video, cmd const[VIDIOC_G_PARM], arg ptr[inout, v4l2_streamparm])
@@ -116,7 +116,7 @@ ioctl$VIDIOC_DQEVENT(fd fd_video, cmd const[VIDIOC_DQEVENT], arg ptr[out, v4l2_e
 ioctl$VIDIOC_SUBSCRIBE_EVENT(fd fd_video, cmd const[VIDIOC_SUBSCRIBE_EVENT], arg ptr[in, v4l2_event_subscription])
 ioctl$VIDIOC_UNSUBSCRIBE_EVENT(fd fd_video, cmd const[VIDIOC_UNSUBSCRIBE_EVENT], arg ptr[in, v4l2_event_subscription])
 ioctl$VIDIOC_CREATE_BUFS(fd fd_video, cmd const[VIDIOC_CREATE_BUFS], arg ptr[inout, v4l2_create_buffers[v4l2_buf_type]])
-ioctl$VIDIOC_PREPARE_BUF(fd fd_video, cmd const[VIDIOC_PREPARE_BUF], arg ptr[inout, v4l2_buffer[v4l2_buf_type]])
+ioctl$VIDIOC_PREPARE_BUF(fd fd_video, cmd const[VIDIOC_PREPARE_BUF], arg ptr[inout, v4l2_buffer_t[v4l2_buf_type]])
 ioctl$VIDIOC_G_SELECTION(fd fd_video, cmd const[VIDIOC_G_SELECTION], arg ptr[inout, v4l2_selection])
 ioctl$VIDIOC_S_SELECTION(fd fd_video, cmd const[VIDIOC_S_SELECTION], arg ptr[inout, v4l2_selection])
 ioctl$VIDIOC_DECODER_CMD(fd fd_video, cmd const[VIDIOC_DECODER_CMD], arg ptr[inout, v4l2_decoder_cmd])
@@ -146,8 +146,10 @@ ioctl$VIDIOC_SUBDEV_ENUM_DV_TIMINGS(fd fd_video, cmd const[VIDIOC_SUBDEV_ENUM_DV
 ioctl$VIDIOC_SUBDEV_QUERY_DV_TIMINGS(fd fd_video, cmd const[VIDIOC_SUBDEV_QUERY_DV_TIMINGS], arg ptr[out, v4l2_dv_timings])
 ioctl$VIDIOC_SUBDEV_DV_TIMINGS_CAP(fd fd_video, cmd const[VIDIOC_SUBDEV_DV_TIMINGS_CAP], arg ptr[inout, v4l2_dv_timings_cap])
 
-ioctl$MEDIA_IOC_REQUEST_ALLOC(fd fd_media, cmd const[MEDIA_IOC_REQUEST_ALLOC], arg ptr[out, fd_request])
-ioctl$MEDIA_REQUEST_IOC_QUEUE(fd fd_request, cmd const[MEDIA_REQUEST_IOC_QUEUE], arg const[0])
+# Generally we don't specify close on resources,
+# but fd_v4l2_buffer is not used as input anywhere else (why is it needed?).
+# So this is added to prevent compilation errors.
+close$fd_v4l2_buffer(fd fd_v4l2_buffer)
 
 v4l2_capability {
 	driver		array[int8, 16]
@@ -270,12 +272,23 @@ type v4l2_requestbuffers[BUF_TYPE] {
 	type		flags[BUF_TYPE, int32]
 	memory		flags[v4l2_memory, int32]
 	capabilities	const[0, int32]
-	reserved	const[0, int32]
+	flags		int8
+	reserved	array[const[0, int8], 3]
 }
 
-# TODO: The field directions needs to be defined. Recursively, v4l2_buffer_union,
-# v4l2_plane, v4l2_plane_union needs checking.
-type v4l2_buffer[BUF_TYPE] {
+type v4l2_buffer_t[BUF_TYPE] [
+	mmap			v4l2_buffer[BUF_TYPE, V4L2_MEMORY_MMAP, intptr]
+	userptr			v4l2_buffer[BUF_TYPE, V4L2_MEMORY_USERPTR, ptr[out, int8]]
+	overlay			v4l2_buffer[BUF_TYPE, V4L2_MEMORY_OVERLAY, int32]
+	fd			v4l2_buffer[BUF_TYPE, V4L2_MEMORY_DMABUF, fd_v4l2_buffer[opt]]
+	multiplanar_mmap	v4l2_buffer[BUF_TYPE, V4L2_MEMORY_MMAP, ptr[inout, array[v4l2_plane[intptr], 2]]]
+	multiplanar_userptr	v4l2_buffer[BUF_TYPE, V4L2_MEMORY_USERPTR, ptr[inout, array[v4l2_plane[ptr[out, int8]], 2]]]
+	multiplanar_overlay	v4l2_buffer[BUF_TYPE, V4L2_MEMORY_OVERLAY, ptr[inout, array[v4l2_plane[int32], 2]]]
+	multiplanar_fd		v4l2_buffer[BUF_TYPE, V4L2_MEMORY_DMABUF, ptr[inout, array[v4l2_plane[fd_v4l2_buffer[opt]], 2]]]
+]
+
+# TODO: The field directions needs to be defined. Recursively v4l2_plane, v4l2_plane_union needs checking.
+type v4l2_buffer[BUF_TYPE, MEM_TYPE, ARG_TYPE] {
 	index		int32
 	type		flags[BUF_TYPE, int32]
 	bytesused	len[type, int32]
@@ -284,19 +297,12 @@ type v4l2_buffer[BUF_TYPE] {
 	timestamp	timeval
 	timecode	v4l2_timecode
 	sequence	int32
-	memory		flags[v4l2_memory, int32]
-	m		v4l2_buffer_union
+	memory		const[MEM_TYPE, int32]
+	m		alignptr[ARG_TYPE]	(out)
 	length		int32
 	reserved2	const[0, int32]
 	request_fd	fd_request[opt]
 }
-
-v4l2_buffer_union [
-	offset	int32
-	userptr	intptr
-	planes	ptr[inout, v4l2_plane]
-	fd	fd_v4l2_buffer[opt]
-]
 
 v4l2_timecode {
 	type		flags[v4l2_timecode_type, int32]
@@ -308,19 +314,13 @@ v4l2_timecode {
 	userbits	array[int8, 4]
 }
 
-v4l2_plane {
+type v4l2_plane[ARG_TYPE] {
 	bytesused	int32
 	length		int32
-	m		v4l2_plane_union
+	m		alignptr[ARG_TYPE]
 	data_offset	int32
 	reserved	array[const[0, int32], 11]
 }
-
-v4l2_plane_union [
-	mem_offset	int32
-	userptr		intptr
-	fd		fd_v4l2_buffer[opt]
-]
 
 v4l2_framebuffer {
 	capability	flags[v4l2_framebuffer_capability, int32]
@@ -345,9 +345,7 @@ type v4l2_exportbuffer[BUF_TYPE] {
 	index		int32
 	plane		int32
 	flags		flags[pipe_flags, int32]
-# TODO: This should've been out, look into the problem. Otherwise, the resource is
-# never used.
-	fd		fd_dmabuf[opt]
+	fd		fd_dma_buf	(out)
 	reserved	array[const[0, int32], 11]
 }
 
@@ -503,7 +501,7 @@ v4l2_ext_controls {
 	ctrl_class	flags[v4l2_ext_ctrl_class, int32]
 	count		int32
 	error_idx	int32
-	request_fd	fd[opt]	(in)
+	request_fd	fd_request[opt]	(in)
 	reserved	const[0, int32]
 	controls	ptr[inout, v4l2_ext_control]
 }

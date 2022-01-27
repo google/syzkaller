@@ -7,9 +7,6 @@ no-such-struct: vlan_tag_ad
 no-such-struct: vlan_tag_q
 no-such-struct: eth2_packet_t
 no-such-struct: arp_packet_t
-no-such-struct: ipx_network
-no-such-struct: ipx_node
-no-such-struct: ipx_addr
 no-such-struct: ipv4_addr_t
 no-such-struct: ipv4_addr_initdev
 no-such-struct: ipv4_addr

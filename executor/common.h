@@ -43,6 +43,10 @@ typedef signed int ssize_t;
 #include <errno.h>
 #endif
 
+#if !SYZ_EXECUTOR
+/*{{{SYSCALL_DEFINES}}}*/
+#endif
+
 #if SYZ_EXECUTOR && !GOOS_linux
 #if !GOOS_windows
 #include <unistd.h>
@@ -52,6 +56,11 @@ NORETURN void doexit(int status)
 	_exit(status);
 	for (;;) {
 	}
+}
+NORETURN void doexit_thread(int status)
+{
+	// For BSD systems, _exit seems to do exactly what's needed.
+	doexit(status);
 }
 #endif
 
@@ -72,6 +81,7 @@ static unsigned long long procid;
 #include <sys/syscall.h>
 #endif
 
+static __thread int clone_ongoing;
 static __thread int skip_segv;
 static __thread jmp_buf segv_env;
 
@@ -91,6 +101,17 @@ static void segv_handler(int sig, siginfo_t* info, void* ctx)
 	// We additionally opportunistically check that the faulty address
 	// is not within executable data region, because such accesses can corrupt
 	// output region and then fuzzer will fail on corrupted data.
+
+	if (__atomic_load_n(&clone_ongoing, __ATOMIC_RELAXED) != 0) {
+		// During clone, we always exit on a SEGV. If we do not, then
+		// it might prevent us from running child-specific code. E.g.
+		// if an invalid stack is passed to the clone() call, then it
+		// will trigger a seg fault, which in turn causes the child to
+		// jump over the NONFAILING macro and continue execution in
+		// parallel with the parent.
+		doexit_thread(sig);
+	}
+
 	uintptr_t addr = (uintptr_t)info->si_addr;
 	const uintptr_t prog_start = 1 << 20;
 	const uintptr_t prog_end = 100 << 20;
@@ -454,6 +475,8 @@ static uint16 csum_inet_digest(struct csum_inet* csum)
 #error "unknown OS"
 #endif
 
+#include "common_ext.h"
+
 #if SYZ_EXECUTOR || __NR_syz_execute_func
 // syz_execute_func(text ptr[in, text[taget]])
 static long syz_execute_func(volatile long text)
@@ -713,7 +736,6 @@ static void loop(void)
 #endif
 
 #if !SYZ_EXECUTOR
-/*{{{SYSCALL_DEFINES}}}*/
 
 /*{{{RESULTS}}}*/
 

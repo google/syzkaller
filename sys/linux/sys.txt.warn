@@ -1,6 +1,8 @@
 no-such-struct: alignptr
 no-such-struct: align32
 no-such-struct: align64
+no-such-struct: padto32
+no-such-struct: padto64
 compiler: unsupported syscall: open due to missing const __NR_open [arm64]
 compiler: unsupported syscall: creat due to missing const __NR_creat [arm64]
 compiler: unsupported syscall: dup2 due to missing const __NR_dup2 [arm64]
@@ -20,6 +22,7 @@ compiler: unsupported syscall: epoll_wait due to missing const __NR_epoll_wait [
 compiler: unsupported syscall: signalfd due to missing const __NR_signalfd [arm64]
 compiler: unsupported syscall: eventfd due to missing const __NR_eventfd [arm64]
 compiler: unsupported syscall: fadvise64 due to missing const __NR_fadvise64 [arm]
+compiler: unsupported syscall: memfd_secret due to missing const __NR_memfd_secret [arm]
 compiler: unsupported syscall: mknod due to missing const __NR_mknod [arm64]
 compiler: unsupported syscall: chmod due to missing const __NR_chmod [arm64]
 compiler: unsupported syscall: chown due to missing const __NR_chown [arm64]
@@ -27,6 +30,7 @@ compiler: unsupported syscall: lchown due to missing const __NR_lchown [arm64]
 compiler: unsupported syscall: utime due to missing const __NR_utime [arm,arm64]
 compiler: unsupported syscall: utimes due to missing const __NR_utimes [arm64]
 compiler: unsupported syscall: futimesat due to missing const __NR_futimesat [arm64]
+compiler: unsupported syscall: fork due to missing const __NR_fork [arm64]
 compiler: unsupported syscall: getpgrp due to missing const __NR_getpgrp [arm64]
 compiler: unsupported syscall: link due to missing const __NR_link [arm64]
 compiler: unsupported syscall: symlink due to missing const __NR_symlink [arm64]
@@ -49,6 +53,8 @@ compiler: unsupported syscall: alarm due to missing const __NR_alarm [arm,arm64]
 compiler: unsupported syscall: set_thread_area due to missing const __NR_set_thread_area [arm,arm64]
 compiler: unsupported syscall: get_thread_area due to missing const __NR_get_thread_area [arm,arm64]
 compiler: unsupported syscall: modify_ldt due to missing const __NR_modify_ldt [arm,arm64]
+compiler: unsupported syscall: riscv_flush_icache due to missing const __NR_riscv_flush_icache
+no-such-struct: tcp_mem_values
 no-such-struct: pipefd
 bad-field-number: stat: syz=20 kernel=18 [386,amd64,arm]
 bad-struct-size: stat: syz=128 kernel=144 [amd64]
@@ -106,6 +112,29 @@ no-such-struct: cap_data
 bad-struct-size: epoll_event: syz=12 kernel=16 [arm,arm64]
 bad-field-offset: epoll_event.data: syz=4 kernel=8 [arm,arm64]
 no-such-struct: fd_set
+no-such-struct: file_handle_t
+no-such-struct: fid_shmem
+no-such-struct: fid_fuse
+no-such-struct: fid_fuse_with_parent
+no-such-struct: fid_FILEID_INO32_GEN
+no-such-struct: fid_FILEID_INO32_GEN_PARENT
+no-such-struct: fid_FILEID_UDF_WITHOUT_PARENT
+no-such-struct: fid_FILEID_UDF_WITH_PARENT
+no-such-struct: fid_GFS2_SMALL_FH_SIZE
+no-such-struct: fid_GFS2_LARGE_FH_SIZE
+no-such-struct: fid_nfs
+no-such-struct: fid_reiserfs_2
+no-such-struct: fid_reiserfs_3
+no-such-struct: fid_reiserfs_4
+no-such-struct: fid_reiserfs_5
+no-such-struct: fid_reiserfs_6
+bad-struct-size: xfs_fid64: syz=28 kernel=24 [amd64,arm,arm64]
+bad-field-offset: xfs_fid64.parent_ino: syz=16 kernel=12 [amd64,arm,arm64]
+bad-field-offset: xfs_fid64.parent_gen: syz=24 kernel=20 [amd64,arm,arm64]
+no-such-struct: fid_orangefs
+no-such-struct: fid_orangefs_parent
+no-such-struct: fid_ocfs2
+no-such-struct: fid_ocfs2_parent
 bad-field-number: siginfo: syz=3 kernel=1
 bad-field-size: siginfo.signo/: syz=4 kernel=128
 no-such-struct: timex

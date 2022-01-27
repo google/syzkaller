@@ -22,7 +22,7 @@ sendmsg$WG_CMD_SET_DEVICE(fd sock_nl_generic, msg ptr[in, msghdr_wireguard[WG_CM
 
 setsockopt$SO_BINDTODEVICE_wg(fd sock, level const[SOL_SOCKET], optname const[SO_BINDTODEVICE], optval ptr[in, string[wireguard_devname]], optlen len[optval])
 
-ioctl$ifreq_SIOCGIFINDEX_wireguard(fd sock, cmd const[SIOCGIFINDEX], arg ptr[inout, ifreq_dev_t[wireguard_devname, wireguard_ifindex]])
+ioctl$ifreq_SIOCGIFINDEX_wireguard(fd sock, cmd const[SIOCGIFINDEX], arg ptr[out, ifreq_dev_t[wireguard_devname, wireguard_ifindex]])
 
 device_policy [
 	WGDEVICE_A_IFINDEX	nlattr[WGDEVICE_A_IFINDEX, wireguard_ifindex]
@@ -46,17 +46,17 @@ peer_policy [
 ] [varlen]
 
 allowedip_policy [
-	ipv4	allowedip_policy_ipv4
-	ipv6	allowedip_policy_ipv6
+	ipv4	allowedip_policy$ipv4
+	ipv6	allowedip_policy$ipv6
 ] [varlen]
 
-allowedip_policy_ipv4 {
+allowedip_policy$ipv4 {
 	WGALLOWEDIP_A_FAMILY	nlattr[WGALLOWEDIP_A_FAMILY, const[AF_INET, int16]]
 	WGALLOWEDIP_A_IPADDR	nlattr[WGALLOWEDIP_A_IPADDR, ipv4_addr]
 	WGALLOWEDIP_A_CIDR_MASK	nlattr[WGALLOWEDIP_A_CIDR_MASK, int8[0:3]]
 } [packed]
 
-allowedip_policy_ipv6 {
+allowedip_policy$ipv6 {
 	WGALLOWEDIP_A_FAMILY	nlattr[WGALLOWEDIP_A_FAMILY, const[AF_INET6, int16]]
 	WGALLOWEDIP_A_IPADDR	nlattr[WGALLOWEDIP_A_IPADDR, ipv6_addr]
 	WGALLOWEDIP_A_CIDR_MASK	nlattr[WGALLOWEDIP_A_CIDR_MASK, int8[0:3]]

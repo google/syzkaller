@@ -621,8 +621,9 @@ func (t *PtrType) isDefaultArg(arg Arg) bool {
 
 type StructType struct {
 	TypeCommon
-	Fields    []Field
-	AlignAttr uint64
+	Fields       []Field
+	AlignAttr    uint64
+	OverlayField int // index of the field marked with out_overlay attribute (0 if no attribute)
 }
 
 func (t *StructType) String() string {
@@ -675,33 +676,38 @@ type TypeCtx struct {
 	Meta *Syscall
 	Dir  Dir
 	Ptr  *Type
+	Stop bool // If set by the callback, subtypes of this type are not visited.
 }
 
-func ForeachType(syscalls []*Syscall, f func(t Type, ctx TypeCtx)) {
+func ForeachType(syscalls []*Syscall, f func(t Type, ctx *TypeCtx)) {
 	for _, meta := range syscalls {
 		foreachTypeImpl(meta, true, f)
 	}
 }
 
-func ForeachTypePost(syscalls []*Syscall, f func(t Type, ctx TypeCtx)) {
+func ForeachTypePost(syscalls []*Syscall, f func(t Type, ctx *TypeCtx)) {
 	for _, meta := range syscalls {
 		foreachTypeImpl(meta, false, f)
 	}
 }
 
-func ForeachCallType(meta *Syscall, f func(t Type, ctx TypeCtx)) {
+func ForeachCallType(meta *Syscall, f func(t Type, ctx *TypeCtx)) {
 	foreachTypeImpl(meta, true, f)
 }
 
-func foreachTypeImpl(meta *Syscall, preorder bool, f func(t Type, ctx TypeCtx)) {
+func foreachTypeImpl(meta *Syscall, preorder bool, f func(t Type, ctx *TypeCtx)) {
 	// Note: we specifically don't create seen in ForeachType.
 	// It would prune recursion more (across syscalls), but lots of users need to
 	// visit each struct per-syscall (e.g. prio, used resources).
 	seen := make(map[Type]bool)
 	var rec func(*Type, Dir)
 	rec = func(ptr *Type, dir Dir) {
+		ctx := &TypeCtx{Meta: meta, Dir: dir, Ptr: ptr}
 		if preorder {
-			f(*ptr, TypeCtx{Meta: meta, Dir: dir, Ptr: ptr})
+			f(*ptr, ctx)
+			if ctx.Stop {
+				return
+			}
 		}
 		switch a := (*ptr).(type) {
 		case *PtrType:
@@ -732,7 +738,10 @@ func foreachTypeImpl(meta *Syscall, preorder bool, f func(t Type, ctx TypeCtx)) 
 			panic("unknown type")
 		}
 		if !preorder {
-			f(*ptr, TypeCtx{Meta: meta, Dir: dir, Ptr: ptr})
+			f(*ptr, ctx)
+			if ctx.Stop {
+				panic("Stop is set in post-order iteration")
+			}
 		}
 	}
 	for i := range meta.Args {

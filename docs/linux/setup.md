@@ -27,18 +27,14 @@ If you encounter any troubles, check the [troubleshooting](/docs/troubleshooting
 
 ### Go and syzkaller
 
-`syzkaller` is written in [Go](https://golang.org), and `Go 1.13+`
-toolchain is required for build. *Note:* `Go 1.14` is required for contributors,
-as `Go 1.13` may change `go.mod` file. The toolchain can be installed with:
+`syzkaller` is written in [Go](https://golang.org), and `Go 1.16+` toolchain is required for build.
+Generally we aim at supporting 2 latest releases of Go.
+The toolchain can be installed with:
 
 ```
-wget https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz
-tar -xf go1.14.2.linux-amd64.tar.gz
-mv go goroot
-mkdir gopath
-export GOPATH=`pwd`/gopath
-export GOROOT=`pwd`/goroot
-export PATH=$GOPATH/bin:$PATH
+wget https://dl.google.com/go/go1.17.6.linux-amd64.tar.gz
+tar -xf go1.17.6.linux-amd64.tar.gz
+export GOROOT=`pwd`/go
 export PATH=$GOROOT/bin:$PATH
 ```
 
@@ -47,8 +43,8 @@ See [Go: Download and install](https://golang.org/doc/install) for other options
 To download and build `syzkaller`:
 
 ``` bash
-go get -u -d github.com/google/syzkaller/prog
-cd gopath/src/github.com/google/syzkaller/
+git clone https://github.com/google/syzkaller
+cd syzkaller
 make
 ```
 
@@ -56,11 +52,6 @@ As the result compiled binaries should appear in the `bin/` dir.
 
 Note: if you want to do cross-OS/arch testing, you need to specify `TARGETOS`,
 `TARGETVMARCH` and `TARGETARCH` arguments to `make`. See the [Makefile](/Makefile) for details.
-
-Note: older versions of Go toolchain formatted code in a slightly
-[different way](https://github.com/golang/go/issues/25161).
-So if you are seeing unrelated code formatting diffs after running `make generate`
-or `make format`, you may be using `Go 1.10` or older. In such case update to `Go 1.13+`.
 
 ### Environment
 

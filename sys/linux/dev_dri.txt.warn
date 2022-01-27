@@ -1,4 +1,0 @@
-no-such-struct: drm_unique_in
-no-such-struct: drm_unique_out
-no-such-struct: drm_wait_vblank
-bad-field-size: drm_mode_modeinfo.vrefr/vrefresh: syz=2 kernel=4

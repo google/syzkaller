@@ -59,7 +59,7 @@ include <uapi/linux/close_range.h>
 resource fd[int32]: -1
 resource fd_dir[fd]: AT_FDCWD
 
-# alignptr/align32/align64 can be used when ABI uses int64/intptr to hold a smaller tqype.
+# alignptr/align32/align64/padto64 can be used when ABI uses int64/intptr to hold a smaller type.
 # E.g. pid/uid stored as intptr/int64.
 type alignptr[T] {
 	v	T
@@ -72,6 +72,14 @@ type align32[T] {
 type align64[T] {
 	v	T
 } [align[8]]
+
+type padto32[T] {
+	v	T
+} [size[4]]
+
+type padto64[T] {
+	v	T
+} [size[8]]
 
 type signalno int32[0:65]
 type signalnoptr intptr[0:65]
@@ -157,6 +165,7 @@ eventfd2(initval int32, flags flags[eventfd_flags]) fd_event
 read$eventfd(fd fd_event, val ptr[out, int64], len len[val])
 write$eventfd(fd fd_event, val ptr[in, int64], len len[val])
 
+brk(brk intptr)
 mmap(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd, offset intptr[0:0xffffffff, 0x1000])
 munmap(addr vma, len len[addr])
 mremap(addr vma, len len[addr], newlen len[newaddr], flags flags[mremap_flags], newaddr vma)
@@ -293,9 +302,14 @@ utimes(filename ptr[in, filename], times ptr[in, itimerval])
 futimesat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval])
 utimensat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval], flags flags[utimensat_flags])
 
-fork() pid (breaks_returns)
-clone(flags flags[clone_flags], sp buffer[in], parentid ptr[out, int32], childtid ptr[out, int32], tls buffer[in]) (breaks_returns)
-clone3(args ptr[in, clone_args], size bytesize[args]) pid (breaks_returns)
+# Small trick - syzkaller cannot give the proper stack pointer to clone(), but we can do it with the aid of pseudo syscalls.
+syz_clone(flags flags[clone_flags], stack buffer[in], stack_len bytesize[stack], parentid ptr[out, int32], childtid ptr[out, int32], tls buffer[in]) pid
+
+syz_clone3(args ptr[in, clone_args], size bytesize[args]) pid
+
+# We need these disabled definitions to simplify the presence and the NR checking.
+clone(flags flags[clone_flags], sp buffer[in], parentid ptr[out, int32], childtid ptr[out, int32], tls buffer[in]) (breaks_returns, disabled)
+clone3(args ptr[in, clone_args], size bytesize[args]) pid (breaks_returns, disabled)
 
 clone_args {
 	flags		flags[clone3_flags, int64]
@@ -451,7 +465,7 @@ rt_sigtimedwait(these ptr[in, sigset_t], info ptr[out, siginfo, opt], ts ptr[in,
 rt_sigsuspend(new ptr[in, sigset_t], sigsetsize len[new])
 rt_sigqueueinfo(pid pid, sig signalno, info ptr[in, siginfo])
 rt_tgsigqueueinfo(gid pid, tid pid, sig signalno, info ptr[in, siginfo])
-sigaltstack(ss vma, oss ptr[out, intptr, opt])
+sigaltstack(ss ptr[in, sigaltstack], oss ptr[out, sigaltstack, opt])
 tgkill(gid pid, tid pid, sig signalno)
 tkill(tid pid, sig signalno)
 pause()
@@ -610,7 +624,6 @@ openat$vcsu(fd const[AT_FDCWD], file ptr[in, string["/dev/vcsu"]], flags flags[o
 syz_open_dev$vcsu(dev ptr[in, string["/dev/vcsu#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$ircomm(dev ptr[in, string["/dev/ircomm#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$audion(dev ptr[in, string["/dev/audio#"]], id intptr, flags flags[open_flags]) fd
-syz_open_dev$media(dev ptr[in, string["/dev/media#"]], id intptr, flags flags[open_flags]) fd_media
 
 openat$null(fd const[AT_FDCWD], file ptr[in, string["/dev/null"]], flags flags[open_flags], mode const[0]) fd
 openat$zero(fd const[AT_FDCWD], file ptr[in, string["/dev/zero"]], flags flags[open_flags], mode const[0]) fd
@@ -621,7 +634,6 @@ openat$hpet(fd const[AT_FDCWD], file ptr[in, string["/dev/hpet"]], flags flags[o
 openat$autofs(fd const[AT_FDCWD], file ptr[in, string["/dev/autofs"]], flags flags[open_flags], mode const[0]) fd_autofs
 openat$keychord(fd const[AT_FDCWD], file ptr[in, string["/dev/keychord"]], flags flags[open_flags], mode const[0]) fd
 openat$zygote(fd const[AT_FDCWD], file ptr[in, string["/dev/socket/zygote"]], flags flags[open_flags], mode const[0]) fd
-openat$sw_sync(fd const[AT_FDCWD], file ptr[in, string["/dev/sw_sync"]], flags flags[open_flags], mode const[0]) fd
 openat$pktcdvd(fd const[AT_FDCWD], file ptr[in, string["/dev/pktcdvd/control"]], flags flags[open_flags], mode const[0]) fd
 openat$lightnvm(fd const[AT_FDCWD], file ptr[in, string["/dev/lightnvm/control"]], flags flags[open_flags], mode const[0]) fd
 openat$xenevtchn(fd const[AT_FDCWD], file ptr[in, string["/dev/xen/evtchn"]], flags flags[open_flags], mode const[0]) fd
@@ -1083,6 +1095,14 @@ sigaction {
 	sa_restorer	ptr[in, text[target]]
 	sa_mask		sigset_t
 }
+
+sigaltstack {
+	ss_sp		ptr[out, array[int8]]
+	ss_flags	flags[sigaltstack_flags, int32]
+	ss_size		bytesize[ss_sp, intptr]
+}
+
+sigaltstack_flags = SS_ONSTACK, SS_DISABLE, SS_AUTODISARM
 
 tms {
 	utime	intptr

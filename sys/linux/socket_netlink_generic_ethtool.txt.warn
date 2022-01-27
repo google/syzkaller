@@ -1,1 +1,2 @@
-bad-netlink-attr: linkmodes_set_policy: missing attributes: [7]
+no-such-netlink-policy: header_only_ethnl_policy
+bad-netlink-attr: ethnl_rings_set_policy: missing attributes: [10]

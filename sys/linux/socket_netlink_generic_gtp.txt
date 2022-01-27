@@ -36,10 +36,10 @@ gtp_genl_policy [
 gtp_policy {
 	IFLA_GTP_FD0	nlattr[IFLA_GTP_FD0, sock_udp]
 	IFLA_GTP_FD1	nlattr[IFLA_GTP_FD1, sock_udp]
-	var		array[gtp_policy_var]
+	var		array[gtp_policy$var]
 }
 
-gtp_policy_var [
+gtp_policy$var [
 	IFLA_GTP_FD0		nlattr[IFLA_GTP_FD0, sock_udp6]
 	IFLA_GTP_FD1		nlattr[IFLA_GTP_FD1, sock_udp6]
 	IFLA_GTP_PDP_HASHSIZE	nlattr[IFLA_GTP_PDP_HASHSIZE, int32]

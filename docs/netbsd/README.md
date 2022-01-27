@@ -30,8 +30,8 @@ At this point you should have a NetBSD distribution in `$HOME/netbsd/dest`.
 
 2. Clone the syzkaller repository.
 	```sh
-	host$ go get -u -d github.com/google/syzkaller/prog
-	host$ cd ~/go/src/github.com/google/syzkaller
+	host$ git clone https://github.com/google/syzkaller
+	host$ cd syzkaller
 	```
 
 3. Compile syzkaller for NetBSD.

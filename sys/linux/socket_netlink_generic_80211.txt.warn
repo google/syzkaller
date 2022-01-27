@@ -1,5 +1,12 @@
+no-such-struct: msg_nl80211_payload
 no-such-struct: nl80211_wdev
-bad-netlink-attr: nl80211_policy_cmd_key.NL80211_ATTR_KEY_DATA_WEP104: duplicate attribute
+bad-netlink-attr: nl80211_policy$cmd_key.NL80211_ATTR_KEY_DATA_WEP104: duplicate attribute
 bad-netlink-attr: nl80211_key_policy.NL80211_KEY_DATA_WEP104: duplicate attribute
 no-such-netlink-policy: nl80211_tx_rates_policy
+no-such-struct: nl80211_ht_rate
 no-such-netlink-policy: nl80211_rates_policy
+bad-netlink-attr: nl80211_policy$join_ibss.NL80211_ATTR_HIDDEN_SSID: bad size -1, expect 4
+bad-netlink-attr: nl80211_policy$setdel_pmksa.NL80211_ATTR_FILS_CACHE_ID: bad min value 0, expect 2
+no-such-struct: nl80211_qos_map_dscp_exception
+bad-netlink-attr: nl80211_tid_config_attr_policy.NL80211_TID_CONFIG_ATTR_RETRY_SHORT: bad max value 255, expect 0
+bad-netlink-attr: nl80211_tid_config_attr_policy.NL80211_TID_CONFIG_ATTR_RETRY_LONG: bad max value 255, expect 0

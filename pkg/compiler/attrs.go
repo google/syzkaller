@@ -19,18 +19,19 @@ type attrDesc struct {
 }
 
 var (
-	attrPacked = &attrDesc{Name: "packed"}
-	attrVarlen = &attrDesc{Name: "varlen"}
-	attrSize   = &attrDesc{Name: "size", HasArg: true}
-	attrAlign  = &attrDesc{Name: "align", HasArg: true}
-	attrIn     = &attrDesc{Name: "in"}
-	attrOut    = &attrDesc{Name: "out"}
-	attrInOut  = &attrDesc{Name: "inout"}
+	attrPacked     = &attrDesc{Name: "packed"}
+	attrVarlen     = &attrDesc{Name: "varlen"}
+	attrSize       = &attrDesc{Name: "size", HasArg: true}
+	attrAlign      = &attrDesc{Name: "align", HasArg: true}
+	attrIn         = &attrDesc{Name: "in"}
+	attrOut        = &attrDesc{Name: "out"}
+	attrInOut      = &attrDesc{Name: "inout"}
+	attrOutOverlay = &attrDesc{Name: "out_overlay"}
 
-	structAttrs = makeAttrs(attrPacked, attrSize, attrAlign)
-	unionAttrs  = makeAttrs(attrVarlen, attrSize)
-	fieldAttrs  = makeAttrs(attrIn, attrOut, attrInOut)
-	callAttrs   = make(map[string]*attrDesc)
+	structAttrs      = makeAttrs(attrPacked, attrSize, attrAlign)
+	unionAttrs       = makeAttrs(attrVarlen, attrSize)
+	structFieldAttrs = makeAttrs(attrIn, attrOut, attrInOut, attrOutOverlay)
+	callAttrs        = make(map[string]*attrDesc)
 )
 
 func init() {

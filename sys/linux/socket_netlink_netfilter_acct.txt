@@ -21,10 +21,10 @@ nfnl_acct_policy [
 	NFACCT_PKTS	nlnetw[NFACCT_PKTS, int64be]
 	NFACCT_FLAGS	nlnetw[NFACCT_FLAGS, flags[nfnl_acct_flags, int32be]]
 	NFACCT_QUOTA	nlnetw[NFACCT_QUOTA, int64be]
-	NFACCT_FILTER	nlnest[NFACCT_FILTER, array[filter_policy_acct]]
+	NFACCT_FILTER	nlnest[NFACCT_FILTER, array[filter_policy$acct]]
 ] [varlen]
 
-filter_policy_acct [
+filter_policy$acct [
 	NFACCT_FILTER_MASK	nlnetw[NFACCT_FILTER_MASK, int32be]
 	NFACCT_FILTER_VALUE	nlnetw[NFACCT_FILTER_VALUE, int32be]
 ] [varlen]

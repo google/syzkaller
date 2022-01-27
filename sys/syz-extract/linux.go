@@ -65,6 +65,7 @@ func (*linux) prepareArch(arch *Arch) error {
 		"asm/a.out.h":    "",
 		"asm/prctl.h":    "",
 		"asm/mce.h":      "",
+		"asm/msr.h":      "",
 		"uapi/asm/msr.h": "",
 	} {
 		fullPath := filepath.Join(arch.buildDir, "syzkaller", hdr)
@@ -88,6 +89,8 @@ func (*linux) prepareArch(arch *Arch) error {
 		// powerpc arch is configured to be big-endian by default, but we want little-endian powerpc.
 		// Since all of our archs are little-endian for now, we just blindly switch it.
 		"-d", "CPU_BIG_ENDIAN", "-e", "CPU_LITTLE_ENDIAN",
+		// s390 enables BTF in defconfig, but our packaged toolchains can't build it.
+		"-d", "DEBUG_INFO_BTF",
 		// Without CONFIG_NETFILTER kernel does not build.
 		"-e", "NETFILTER",
 		// include/net/mptcp.h is the only header in kernel that guards some

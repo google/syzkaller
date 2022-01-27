@@ -37,6 +37,10 @@ typedef signed int ssize_t;
 #include <errno.h>
 #endif
 
+#if !SYZ_EXECUTOR
+/*{{{SYSCALL_DEFINES}}}*/
+#endif
+
 #if SYZ_EXECUTOR && !GOOS_linux
 #if !GOOS_windows
 #include <unistd.h>
@@ -46,6 +50,10 @@ NORETURN void doexit(int status)
 	_exit(status);
 	for (;;) {
 	}
+}
+NORETURN void doexit_thread(int status)
+{
+	doexit(status);
 }
 #endif
 
@@ -66,6 +74,7 @@ static unsigned long long procid;
 #include <sys/syscall.h>
 #endif
 
+static __thread int clone_ongoing;
 static __thread int skip_segv;
 static __thread jmp_buf segv_env;
 
@@ -79,6 +88,11 @@ static void recover(void)
 
 static void segv_handler(int sig, siginfo_t* info, void* ctx)
 {
+
+	if (__atomic_load_n(&clone_ongoing, __ATOMIC_RELAXED) != 0) {
+		doexit_thread(sig);
+	}
+
 	uintptr_t addr = (uintptr_t)info->si_addr;
 	const uintptr_t prog_start = 1 << 20;
 	const uintptr_t prog_end = 100 << 20;
@@ -1667,10 +1681,10 @@ static int tunfd = -1;
 
 #if GOOS_netbsd
 #define MAX_TUN 64
-
 #elif GOOS_freebsd
 #define MAX_TUN 256
-
+#elif GOOS_openbsd
+#define MAX_TUN 8
 #else
 #define MAX_TUN 4
 #endif
@@ -3904,12 +3918,6 @@ struct io_uring_params {
 
 #include <sys/mman.h>
 #include <unistd.h>
-
-#if GOARCH_mips64le
-#define sys_io_uring_setup 5425
-#else
-#define sys_io_uring_setup 425
-#endif
 static long syz_io_uring_setup(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5)
 {
 	uint32 entries = (uint32)a0;
@@ -3919,7 +3927,7 @@ static long syz_io_uring_setup(volatile long a0, volatile long a1, volatile long
 	void** ring_ptr_out = (void**)a4;
 	void** sqes_ptr_out = (void**)a5;
 
-	uint32 fd_io_uring = syscall(sys_io_uring_setup, entries, setup_params);
+	uint32 fd_io_uring = syscall(__NR_io_uring_setup, entries, setup_params);
 	uint32 sq_ring_sz = setup_params->sq_off.array + setup_params->sq_entries * sizeof(uint32);
 	uint32 cq_ring_sz = setup_params->cq_off.cqes + setup_params->cq_entries * SIZEOF_IO_URING_CQE;
 	uint32 ring_sz = sq_ring_sz > cq_ring_sz ? sq_ring_sz : cq_ring_sz;
@@ -6114,24 +6122,6 @@ struct fs_image_segment {
 #define IMAGE_MAX_SEGMENTS 4096
 #define IMAGE_MAX_SIZE (129 << 20)
 
-#if GOARCH_386
-#define sys_memfd_create 356
-#elif GOARCH_amd64
-#define sys_memfd_create 319
-#elif GOARCH_arm
-#define sys_memfd_create 385
-#elif GOARCH_arm64
-#define sys_memfd_create 279
-#elif GOARCH_ppc64le
-#define sys_memfd_create 360
-#elif GOARCH_mips64le
-#define sys_memfd_create 314
-#elif GOARCH_s390x
-#define sys_memfd_create 350
-#elif GOARCH_riscv64
-#define sys_memfd_create 279
-#endif
-
 static unsigned long fs_image_segment_check(unsigned long size, unsigned long nsegs, struct fs_image_segment* segs)
 {
 	if (nsegs > IMAGE_MAX_SEGMENTS)
@@ -6154,7 +6144,7 @@ static int setup_loop_device(long unsigned size, long unsigned nsegs, struct fs_
 	int err = 0, loopfd = -1;
 
 	size = fs_image_segment_check(size, nsegs, segs);
-	int memfd = syscall(sys_memfd_create, "syzkaller", 0);
+	int memfd = syscall(__NR_memfd_create, "syzkaller", 0);
 	if (memfd == -1) {
 		err = errno;
 		goto error;
@@ -10193,6 +10183,63 @@ static long syz_80211_join_ibss(volatile long a0, volatile long a1, volatile lon
 
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_clone || __NR_syz_clone3
+#if SYZ_EXECUTOR
+#define USLEEP_FORKED_CHILD (3 * syscall_timeout_ms * 1000)
+#else
+#define USLEEP_FORKED_CHILD (3 * /*{{{BASE_CALL_TIMEOUT_MS}}}*/ *1000)
+#endif
+
+static long handle_clone_ret(long ret)
+{
+	if (ret != 0) {
+#if SYZ_EXECUTOR || SYZ_HANDLE_SEGV
+		__atomic_store_n(&clone_ongoing, 0, __ATOMIC_RELAXED);
+#endif
+		return ret;
+	}
+	usleep(USLEEP_FORKED_CHILD);
+	syscall(__NR_exit, 0);
+	while (1) {
+	}
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_clone
+static long syz_clone(volatile long flags, volatile long stack, volatile long stack_len,
+		      volatile long ptid, volatile long ctid, volatile long tls)
+{
+	long sp = (stack + stack_len) & ~15;
+#if SYZ_EXECUTOR || SYZ_HANDLE_SEGV
+	__atomic_store_n(&clone_ongoing, 1, __ATOMIC_RELAXED);
+#endif
+	long ret = (long)syscall(__NR_clone, flags & ~CLONE_VM, sp, ptid, ctid, tls);
+	return handle_clone_ret(ret);
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_clone3
+#include <linux/sched.h>
+#include <sched.h>
+
+#define MAX_CLONE_ARGS_BYTES 256
+static long syz_clone3(volatile long a0, volatile long a1)
+{
+	unsigned long copy_size = a1;
+	if (copy_size < sizeof(uint64) || copy_size > MAX_CLONE_ARGS_BYTES)
+		return -1;
+	char clone_args[MAX_CLONE_ARGS_BYTES];
+	memcpy(&clone_args, (void*)a0, copy_size);
+	uint64* flags = (uint64*)&clone_args;
+	*flags &= ~CLONE_VM;
+#if SYZ_EXECUTOR || SYZ_HANDLE_SEGV
+	__atomic_store_n(&clone_ongoing, 1, __ATOMIC_RELAXED);
+#endif
+	return handle_clone_ret((long)syscall(__NR_clone3, &clone_args, copy_size));
+}
+
+#endif
+
 #elif GOOS_test
 
 #include <stdlib.h>
@@ -10412,6 +10459,7 @@ static void use_temporary_dir(void)
 #else
 #error "unknown OS"
 #endif
+
 
 #if SYZ_EXECUTOR || __NR_syz_execute_func
 static long syz_execute_func(volatile long text)
@@ -10643,7 +10691,6 @@ static void loop(void)
 #endif
 
 #if !SYZ_EXECUTOR
-/*{{{SYSCALL_DEFINES}}}*/
 
 /*{{{RESULTS}}}*/
 

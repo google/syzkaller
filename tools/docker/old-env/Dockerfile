@@ -7,7 +7,7 @@ FROM ubuntu:16.04
 
 LABEL homepage="https://github.com/google/syzkaller"
 
-RUN dpkg --add-architecture i386 && apt-get update --allow-releaseinfo-change
+RUN dpkg --add-architecture i386 && apt-get update
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
 	sudo make nano git curl ca-certificates gnupg \
 	apt-transport-https software-properties-common g++ \
@@ -19,17 +19,17 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends
 	apt-get clean autoclean && \
 	rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/*
 
-RUN curl https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz | tar -C /usr/local -xz
+RUN curl https://dl.google.com/go/go1.16.13.linux-amd64.tar.gz | tar -C /usr/local -xz
 ENV PATH /usr/local/go/bin:/gopath/bin:$PATH
 ENV GOPATH /gopath
 
-# Install clang-10 from llvm.org.
+# Install clang-12 from llvm.org.
 # The distro-provided clang is too old for Go fuzzing.
 RUN curl https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
-RUN add-apt-repository "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-10 main"
-RUN apt-get update --allow-releaseinfo-change
-RUN apt-get install -y -q --no-install-recommends clang-10
-RUN ln -s /usr/bin/clang-10 /usr/bin/clang
+RUN add-apt-repository "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-12 main"
+RUN apt-get update
+RUN apt-get install -y -q --no-install-recommends clang-12
+RUN ln -s /usr/bin/clang-12 /usr/bin/clang
 
 # Pre-create dirs for syz-env.
 # This is necessary to make docker work with the current user,

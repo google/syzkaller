@@ -250,9 +250,9 @@ func TestUpdateUnsupported(t *testing.T) {
 			a := &rpctype.UpdateUnsupportedArgs{
 				Pool: 0,
 				UnsupportedCalls: []rpctype.SyscallReason{
-					{ID: 137, Reason: "foo"},
-					{ID: 2, Reason: "bar"},
-					{ID: 151, Reason: "tar"},
+					{ID: target.SyscallMap["test$res0"].ID, Reason: "foo"},
+					{ID: target.SyscallMap["csource1"].ID, Reason: "bar"},
+					{ID: target.SyscallMap["test$union0"].ID, Reason: "tar"},
 				}}
 			if err := srv.UpdateUnsupported(a, nil); err != nil {
 				t.Fatalf("srv.UpdateUnsupported failed: %v", err)

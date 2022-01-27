@@ -11,41 +11,45 @@ syz_compare_int$3(n const[3], v0 intptr, v1 intptr, v2 intptr)
 syz_compare_int$4(n const[4], v0 intptr, v1 intptr, v2 intptr, v3 intptr)
 
 compare_data [
-	align0	align0
-	bf0	syz_bf_struct0
-	bf1	syz_bf_struct1
-	bf2	syz_bf_struct2
-	bf3	syz_bf_struct3
-	bf4	syz_bf_align[syz_bf_struct4]
-	bf5	syz_bf_align[syz_bf_struct5]
-	bf6	syz_bf_align[syz_bf_struct6]
-	bf7	syz_bf_align[syz_bf_struct7]
-	bf8	syz_bf_align[syz_bf_struct8]
-	bf9	syz_bf_align[syz_bf_struct9]
-	bf10	syz_bf_align[syz_bf_struct10]
-	bf11	syz_bf_align[syz_bf_struct11]
-	bf12	syz_bf_align[syz_bf_struct12]
-	bf13	syz_bf_align[syz_bf_struct13]
-	bf14	syz_bf_align[syz_bf_struct14]
-	bf15	syz_bf_align[syz_bf_struct15]
-	bf16	syz_bf_align[syz_bf_struct16]
-	bf17	syz_bf_align[syz_bf_struct17]
-	bf18	syz_bf_align[syz_bf_struct18]
-	bf19	syz_bf_align[syz_bf_struct19]
-	bf20	syz_bf_align[syz_bf_struct20]
-	bf21	syz_bf_align[syz_bf_struct21]
-	bf22	syz_bf_align[syz_bf_struct22]
-	bf23	syz_bf_align[syz_bf_struct23]
-	bf24	syz_bf_align[syz_bf_struct24]
-	bf25	syz_bf_align[syz_bf_struct25]
-	str	string
-	blob	array[int8]
-	arr16be	array[int16be]
-	nla	array[compare_nla]
-	fmt0	fmt[oct, int32]
-	fmt1	fmt[dec, int32]
-	fmt2	fmt[hex, int32]
-	fmt3	fmt[dec, flags[flags_with_one_value]]
+	align0		align0
+	bf0		syz_bf_struct0
+	bf1		syz_bf_struct1
+	bf2		syz_bf_struct2
+	bf3		syz_bf_struct3
+	bf4		syz_bf_align[syz_bf_struct4]
+	bf5		syz_bf_align[syz_bf_struct5]
+	bf6		syz_bf_align[syz_bf_struct6]
+	bf7		syz_bf_align[syz_bf_struct7]
+	bf8		syz_bf_align[syz_bf_struct8]
+	bf9		syz_bf_align[syz_bf_struct9]
+	bf10		syz_bf_align[syz_bf_struct10]
+	bf11		syz_bf_align[syz_bf_struct11]
+	bf12		syz_bf_align[syz_bf_struct12]
+	bf13		syz_bf_align[syz_bf_struct13]
+	bf14		syz_bf_align[syz_bf_struct14]
+	bf15		syz_bf_align[syz_bf_struct15]
+	bf16		syz_bf_align[syz_bf_struct16]
+	bf17		syz_bf_align[syz_bf_struct17]
+	bf18		syz_bf_align[syz_bf_struct18]
+	bf19		syz_bf_align[syz_bf_struct19]
+	bf20		syz_bf_align[syz_bf_struct20]
+	bf21		syz_bf_align[syz_bf_struct21]
+	bf22		syz_bf_align[syz_bf_struct22]
+	bf23		syz_bf_align[syz_bf_struct23]
+	bf24		syz_bf_align[syz_bf_struct24]
+	bf25		syz_bf_align[syz_bf_struct25]
+	str		string
+	blob		array[int8]
+	arr16be		array[int16be]
+	nla		array[compare_nla]
+	fmt0		fmt[oct, int32]
+	fmt1		fmt[dec, int32]
+	fmt2		fmt[hex, int32]
+	fmt3		fmt[dec, flags[flags_with_one_value]]
+	overlayres	overlayres
+	overlay0	overlay0
+	overlay1	overlay1
+	overlay2	overlay2
 ] [varlen]
 
 flags_with_one_value = 0
@@ -240,4 +244,40 @@ syz_bf_struct25 {
 type syz_bf_align[T] {
 	f0	int8
 	f1	T
+}
+
+resource overlayres8[int8]
+resource overlayres16[int16]
+resource overlayres32[int32]
+resource overlayres64[int64]
+
+overlay_ctor(a ptr[out, overlayres8], b ptr[out, overlayres16], c ptr[out, overlayres32], d ptr[out, overlayres64])
+overlay_uses(a overlayres8, b overlayres16, c overlayres32, d overlayres64)
+
+overlayres [
+	res8	overlayres8
+	res16	overlayres16
+	res32	overlayres32
+	res64	overlayres64
+] [varlen]
+
+overlay0 {
+	i0	int32
+	i1	int32
+	o0	overlayres32	(out_overlay)
+	o1	overlayres32
+}
+
+overlay1 {
+	i0	int32
+	i1	int8
+	o0	overlayres8	(out_overlay)
+	o1	overlayres16
+}
+
+overlay2 {
+	i0	int32
+	i1	int32
+	o0	overlayres64	(out_overlay)
+	o1	overlayres64
 }

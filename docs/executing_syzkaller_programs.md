@@ -13,7 +13,7 @@ export GOPATH=$HOME/gopath
 
 2. Download syzkaller sources:
 ``` bash
-GO111MODULE=off go get -u -d github.com/google/syzkaller/prog
+git clone https://github.com/google/syzkaller
 ```
 
 Note that your syzkaller revision must be the same as the one that generated the
@@ -21,7 +21,7 @@ program you're trying to execute.
 
 3. Build necessary syzkaller binaries:
 ``` bash
-cd $GOPATH/src/github.com/google/syzkaller
+cd syzkaller
 make
 ```
 

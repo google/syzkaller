@@ -67,7 +67,9 @@ blk_zone {
 	cond		int8
 	non_seq		int8
 	reset		int8
-	reserved	array[const[0, int8], 36]
+	resv		array[const[0, int8], 4]
+	capacity	int64
+	reserved	array[const[0, int8], 24]
 }
 
 blk_zone_range {

@@ -14,7 +14,7 @@ resource ifindex_team[ifindex]
 type msghdr_nl_team[CMD] msghdr_netlink[netlink_msg_t[genl_team_family_id, genlmsghdr_t[CMD], team_nl_policy]]
 
 syz_genetlink_get_family_id$team(name ptr[in, string["team"]], fd sock_nl_generic) genl_team_family_id
-ioctl$ifreq_SIOCGIFINDEX_team(fd sock, cmd const[SIOCGIFINDEX], arg ptr[inout, ifreq_dev_t["team0", ifindex_team]])
+ioctl$ifreq_SIOCGIFINDEX_team(fd sock, cmd const[SIOCGIFINDEX], arg ptr[out, ifreq_dev_t["team0", ifindex_team]])
 
 sendmsg$TEAM_CMD_NOOP(fd sock_nl_generic, msg ptr[in, msghdr_nl_team[TEAM_CMD_NOOP]], f flags[send_flags])
 sendmsg$TEAM_CMD_OPTIONS_SET(fd sock_nl_generic, msg ptr[in, msghdr_nl_team[TEAM_CMD_OPTIONS_SET]], f flags[send_flags])
@@ -32,12 +32,12 @@ type team_nl_option_policy[NAME, TYPE, DATA] {
 	TEAM_ATTR_OPTION_DATA	nlattr[TEAM_ATTR_OPTION_DATA, DATA]
 } [packed, align[4]]
 
-type team_nl_option_policy_per_port[NAME, TYPE, DATA] {
+type team_nl_option_policy$per_port[NAME, TYPE, DATA] {
 	opt				team_nl_option_policy[NAME, TYPE, DATA]
 	TEAM_ATTR_OPTION_PORT_IFINDEX	nlattr[TEAM_ATTR_OPTION_PORT_IFINDEX, ifindex]
 } [packed, align[4]]
 
-type team_nl_option_policy_array[NAME, TYPE, DATA, SIZE] {
+type team_nl_option_policy$array[NAME, TYPE, DATA, SIZE] {
 	opt				team_nl_option_policy[NAME, TYPE, DATA]
 	TEAM_ATTR_OPTION_ARRAY_INDEX	nlattr[TEAM_ATTR_OPTION_ARRAY_INDEX, int32[0:SIZE]]
 } [packed, align[4]]
@@ -49,17 +49,17 @@ team_attr_option [
 	mcast_rejoin_count		team_nl_option_policy["mcast_rejoin_count", NLA_U32, int32]
 	mcast_rejoin_interval		team_nl_option_policy["mcast_rejoin_interval", NLA_U32, int32]
 # TODO: NLA_FLAG value is determined by presence of TEAM_ATTR_OPTION_DATA attr, but we always pass it.
-	enabled				team_nl_option_policy_per_port["enabled", NLA_FLAG, void]
-	user_linkup			team_nl_option_policy_per_port["user_linkup", NLA_FLAG, void]
-	user_linkup_enabled		team_nl_option_policy_per_port["user_linkup_enabled", NLA_FLAG, void]
-	priority			team_nl_option_policy_per_port["priority", NLA_S32, int32]
-	queue_id			team_nl_option_policy_per_port["queue_id", NLA_U32, int32]
+	enabled				team_nl_option_policy$per_port["enabled", NLA_FLAG, void]
+	user_linkup			team_nl_option_policy$per_port["user_linkup", NLA_FLAG, void]
+	user_linkup_enabled		team_nl_option_policy$per_port["user_linkup_enabled", NLA_FLAG, void]
+	priority			team_nl_option_policy$per_port["priority", NLA_S32, int32]
+	queue_id			team_nl_option_policy$per_port["queue_id", NLA_U32, int32]
 	activeport			team_nl_option_policy["activeport", NLA_U32, ifindex]
 	bpf_hash_func			team_nl_option_policy["bpf_hash_func", NLA_BINARY, array[sock_filter]]
 	lb_tx_method			team_nl_option_policy["lb_tx_method", NLA_STRING, string[team_attr_option_lb_tx_method]]
-	lb_tx_hash_to_port_mapping	team_nl_option_policy_array["lb_tx_hash_to_port_mapping", NLA_U32, ifindex, 256]
-	lb_hash_stats			team_nl_option_policy_array["lb_hash_stats", NLA_BINARY, int32, 256]
-	lb_port_stats			team_nl_option_policy_per_port["lb_port_stats", NLA_BINARY, int32]
+	lb_tx_hash_to_port_mapping	team_nl_option_policy$array["lb_tx_hash_to_port_mapping", NLA_U32, ifindex, 256]
+	lb_hash_stats			team_nl_option_policy$array["lb_hash_stats", NLA_BINARY, int32, 256]
+	lb_port_stats			team_nl_option_policy$per_port["lb_port_stats", NLA_BINARY, int32]
 	lb_stats_refresh_interval	team_nl_option_policy["lb_stats_refresh_interval", NLA_U32, int32]
 ] [varlen]
 

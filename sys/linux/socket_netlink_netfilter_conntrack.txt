@@ -7,6 +7,7 @@ include <uapi/linux/netfilter.h>
 include <uapi/linux/netfilter/nfnetlink.h>
 include <uapi/linux/netfilter/nfnetlink_conntrack.h>
 include <uapi/linux/netfilter/nf_conntrack_common.h>
+include <net/netfilter/nf_internals.h>
 
 type msghdr_conntrack[CMD, POLICY] msghdr_netlink[netlink_msg_netfilter_t[NFNL_SUBSYS_CTNETLINK, CMD, POLICY]]
 
@@ -43,6 +44,8 @@ ct_nla_policy [
 	CTA_SEQ_ADJ_ORIG	nlnest[CTA_SEQ_ADJ_ORIG, array[seqadj_policy]]
 	CTA_SEQ_ADJ_REPLY	nlnest[CTA_SEQ_ADJ_REPLY, array[seqadj_policy]]
 	CTA_SYNPROXY		nlnest[CTA_SYNPROXY, array[synproxy_policy]]
+	CTA_FILTER		nlnest[CTA_FILTER, array[cta_filter_nla_policy]]
+	CTA_STATUS_MASK		nlnetw[CTA_STATUS_MASK, int32be]
 ] [varlen]
 
 seqadj_policy [
@@ -58,16 +61,16 @@ tuple_nla_policy [
 ] [varlen]
 
 cta_ip_nla_policy [
-	ipv4	cta_ip_nla_policy_ipv4
-	ipv6	cta_ip_nla_policy_ipv6
+	ipv4	cta_ip_nla_policy$ipv4
+	ipv6	cta_ip_nla_policy$ipv6
 ] [varlen]
 
-cta_ip_nla_policy_ipv4 {
+cta_ip_nla_policy$ipv4 {
 	CTA_IP_V4_SRC	nlattr[CTA_IP_V4_SRC, ipv4_addr]
 	CTA_IP_V4_DST	nlattr[CTA_IP_V4_DST, ipv4_addr]
 }
 
-cta_ip_nla_policy_ipv6 {
+cta_ip_nla_policy$ipv6 {
 	CTA_IP_V6_SRC	nlattr[CTA_IP_V6_SRC, ipv6_addr]
 	CTA_IP_V6_DST	nlattr[CTA_IP_V6_DST, ipv6_addr]
 }
@@ -122,5 +125,11 @@ synproxy_policy [
 	CTA_SYNPROXY_TSOFF	nlnetw[CTA_SYNPROXY_TSOFF, int32be]
 ] [varlen]
 
+cta_filter_nla_policy [
+	CTA_FILTER_ORIG_FLAGS	nlattr[CTA_FILTER_ORIG_FLAGS, flags[cta_filter_flags, int32]]
+	CTA_FILTER_REPLY_FLAGS	nlattr[CTA_FILTER_REPLY_FLAGS, flags[cta_filter_flags, int32]]
+] [varlen]
+
 conntrack_proto = IPPROTO_UDP, IPPROTO_TCP, IPPROTO_ICMP, IPPROTO_DCCP, IPPROTO_SCTP, IPPROTO_UDPLITE, IPPROTO_GRE, IPPROTO_ICMPV6
 ip_conntrack_status = IPS_SEEN_REPLY, IPS_ASSURED, IPS_FIXED_TIMEOUT, IPS_UNTRACKED, IPS_HELPER
+cta_filter_flags = CTA_FILTER_F_CTA_IP_SRC, CTA_FILTER_F_CTA_IP_DST, CTA_FILTER_F_CTA_TUPLE_ZONE, CTA_FILTER_F_CTA_PROTO_NUM, CTA_FILTER_F_CTA_PROTO_SRC_PORT, CTA_FILTER_F_CTA_PROTO_DST_PORT, CTA_FILTER_F_CTA_PROTO_ICMP_TYPE, CTA_FILTER_F_CTA_PROTO_ICMP_CODE, CTA_FILTER_F_CTA_PROTO_ICMP_ID, CTA_FILTER_F_CTA_PROTO_ICMPV6_TYPE, CTA_FILTER_F_CTA_PROTO_ICMPV6_CODE, CTA_FILTER_F_CTA_PROTO_ICMPV6_ID

@@ -11,30 +11,30 @@ type msghdr_ethtool[CMD, POLICY] msghdr_netlink[netlink_msg_t[genl_ethtool_famil
 
 syz_genetlink_get_family_id$ethtool(name ptr[in, string["ethtool"]], fd sock_nl_generic) genl_ethtool_family_id
 
-sendmsg$ETHTOOL_MSG_STRSET_GET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_STRSET_GET, strset_get_policy]], f flags[send_flags])
+sendmsg$ETHTOOL_MSG_STRSET_GET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_STRSET_GET, ethnl_strset_get_policy]], f flags[send_flags])
 sendmsg$ETHTOOL_MSG_LINKINFO_GET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_LINKINFO_GET, header_only_ethnl_policy[ETHTOOL_A_LINKINFO_HEADER]]], f flags[send_flags])
-sendmsg$ETHTOOL_MSG_LINKINFO_SET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_LINKINFO_SET, linkinfo_set_policy]], f flags[send_flags])
+sendmsg$ETHTOOL_MSG_LINKINFO_SET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_LINKINFO_SET, ethnl_linkinfo_set_policy]], f flags[send_flags])
 sendmsg$ETHTOOL_MSG_LINKMODES_GET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_LINKMODES_GET, header_only_ethnl_policy[ETHTOOL_A_LINKMODES_HEADER]]], f flags[send_flags])
-sendmsg$ETHTOOL_MSG_LINKMODES_SET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_LINKMODES_SET, linkmodes_set_policy]], f flags[send_flags])
+sendmsg$ETHTOOL_MSG_LINKMODES_SET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_LINKMODES_SET, ethnl_linkmodes_set_policy]], f flags[send_flags])
 sendmsg$ETHTOOL_MSG_LINKSTATE_GET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_LINKSTATE_GET, header_only_ethnl_policy[ETHTOOL_A_LINKSTATE_HEADER]]], f flags[send_flags])
 sendmsg$ETHTOOL_MSG_DEBUG_GET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_DEBUG_GET, header_only_ethnl_policy[ETHTOOL_A_DEBUG_HEADER]]], f flags[send_flags])
-sendmsg$ETHTOOL_MSG_DEBUG_SET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_DEBUG_SET, debug_set_policy]], f flags[send_flags])
+sendmsg$ETHTOOL_MSG_DEBUG_SET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_DEBUG_SET, ethnl_debug_set_policy]], f flags[send_flags])
 sendmsg$ETHTOOL_MSG_WOL_GET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_WOL_GET, header_only_ethnl_policy[ETHTOOL_A_WOL_HEADER]]], f flags[send_flags])
-sendmsg$ETHTOOL_MSG_WOL_SET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_WOL_SET, wol_set_policy]], f flags[send_flags])
+sendmsg$ETHTOOL_MSG_WOL_SET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_WOL_SET, ethnl_wol_set_policy]], f flags[send_flags])
 sendmsg$ETHTOOL_MSG_FEATURES_GET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_FEATURES_GET, header_only_ethnl_policy[ETHTOOL_A_FEATURES_HEADER]]], f flags[send_flags])
-sendmsg$ETHTOOL_MSG_FEATURES_SET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_FEATURES_SET, features_set_policy]], f flags[send_flags])
+sendmsg$ETHTOOL_MSG_FEATURES_SET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_FEATURES_SET, ethnl_features_set_policy]], f flags[send_flags])
 sendmsg$ETHTOOL_MSG_PRIVFLAGS_GET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_PRIVFLAGS_GET, header_only_ethnl_policy[ETHTOOL_A_PRIVFLAGS_HEADER]]], f flags[send_flags])
-sendmsg$ETHTOOL_MSG_PRIVFLAGS_SET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_PRIVFLAGS_SET, privflags_set_policy]], f flags[send_flags])
+sendmsg$ETHTOOL_MSG_PRIVFLAGS_SET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_PRIVFLAGS_SET, ethnl_privflags_set_policy]], f flags[send_flags])
 sendmsg$ETHTOOL_MSG_RINGS_GET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_RINGS_GET, header_only_ethnl_policy[ETHTOOL_A_RINGS_HEADER]]], f flags[send_flags])
-sendmsg$ETHTOOL_MSG_RINGS_SET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_RINGS_SET, rings_set_policy]], f flags[send_flags])
+sendmsg$ETHTOOL_MSG_RINGS_SET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_RINGS_SET, ethnl_rings_set_policy]], f flags[send_flags])
 sendmsg$ETHTOOL_MSG_CHANNELS_GET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_CHANNELS_GET, header_only_ethnl_policy[ETHTOOL_A_CHANNELS_HEADER]]], f flags[send_flags])
-sendmsg$ETHTOOL_MSG_CHANNELS_SET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_CHANNELS_SET, channels_set_policy]], f flags[send_flags])
+sendmsg$ETHTOOL_MSG_CHANNELS_SET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_CHANNELS_SET, ethnl_channels_set_policy]], f flags[send_flags])
 sendmsg$ETHTOOL_MSG_COALESCE_GET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_COALESCE_GET, header_only_ethnl_policy[ETHTOOL_A_COALESCE_HEADER]]], f flags[send_flags])
-sendmsg$ETHTOOL_MSG_COALESCE_SET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_COALESCE_SET, coalesce_set_policy]], f flags[send_flags])
+sendmsg$ETHTOOL_MSG_COALESCE_SET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_COALESCE_SET, ethnl_coalesce_set_policy]], f flags[send_flags])
 sendmsg$ETHTOOL_MSG_PAUSE_GET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_PAUSE_GET, header_only_ethnl_policy[ETHTOOL_A_PAUSE_HEADER]]], f flags[send_flags])
-sendmsg$ETHTOOL_MSG_PAUSE_SET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_PAUSE_SET, pause_set_policy]], f flags[send_flags])
+sendmsg$ETHTOOL_MSG_PAUSE_SET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_PAUSE_SET, ethnl_pause_set_policy]], f flags[send_flags])
 sendmsg$ETHTOOL_MSG_EEE_GET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_EEE_GET, header_only_ethnl_policy[ETHTOOL_A_EEE_HEADER]]], f flags[send_flags])
-sendmsg$ETHTOOL_MSG_EEE_SET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_EEE_SET, eee_set_policy]], f flags[send_flags])
+sendmsg$ETHTOOL_MSG_EEE_SET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_EEE_SET, ethnl_eee_set_policy]], f flags[send_flags])
 sendmsg$ETHTOOL_MSG_TSINFO_GET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_TSINFO_GET, header_only_ethnl_policy[ETHTOOL_A_TSINFO_HEADER]]], f flags[send_flags])
 
 ethnl_header_policy [
@@ -63,7 +63,7 @@ bit_policy [
 	ETHTOOL_A_BITSET_BIT_NAME	nlattr[ETHTOOL_A_BITSET_BIT_NAME, string]
 ] [varlen]
 
-strset_get_policy [
+ethnl_strset_get_policy [
 	ETHTOOL_A_STRSET_HEADER		nlnest[ETHTOOL_A_STRSET_HEADER, array[ethnl_header_policy]]
 	ETHTOOL_A_STRSET_STRINGSETS	nlnest[ETHTOOL_A_STRSET_STRINGSETS, array[nlnest[ETHTOOL_A_STRINGSETS_STRINGSET, array[get_stringset_policy]]]]
 	ETHTOOL_A_STRSET_COUNTS_ONLY	nlattr[ETHTOOL_A_STRSET_COUNTS_ONLY, void]
@@ -73,43 +73,48 @@ get_stringset_policy [
 	ETHTOOL_A_STRINGSET_ID	nlattr[ETHTOOL_A_STRINGSET_ID, flags[ethtool_stringset, int32]]
 ] [varlen]
 
-linkinfo_set_policy [
+ethnl_linkinfo_set_policy [
 	ETHTOOL_A_LINKINFO_HEADER	nlnest[ETHTOOL_A_LINKINFO_HEADER, array[ethnl_header_policy]]
 	ETHTOOL_A_LINKINFO_PORT		nlattr[ETHTOOL_A_LINKINFO_PORT, int8]
 	ETHTOOL_A_LINKINFO_PHYADDR	nlattr[ETHTOOL_A_LINKINFO_PHYADDR, int8]
 	ETHTOOL_A_LINKINFO_TP_MDIX_CTRL	nlattr[ETHTOOL_A_LINKINFO_TP_MDIX_CTRL, int8]
 ] [varlen]
 
-linkmodes_set_policy [
-	ETHTOOL_A_LINKMODES_HEADER	nlnest[ETHTOOL_A_LINKMODES_HEADER, array[ethnl_header_policy]]
-	ETHTOOL_A_LINKMODES_AUTONEG	nlattr[ETHTOOL_A_LINKMODES_AUTONEG, int8]
-	ETHTOOL_A_LINKMODES_DUPLEX	nlattr[ETHTOOL_A_LINKMODES_DUPLEX, int8]
-	ETHTOOL_A_LINKMODES_SPEED	nlattr[ETHTOOL_A_LINKMODES_SPEED, int32]
-	ETHTOOL_A_LINKMODES_OURS	nlnest[ETHTOOL_A_LINKMODES_OURS, array[bitset_policy]]
+ethnl_linkmodes_set_policy [
+	ETHTOOL_A_LINKMODES_HEADER		nlnest[ETHTOOL_A_LINKMODES_HEADER, array[ethnl_header_policy]]
+	ETHTOOL_A_LINKMODES_AUTONEG		nlattr[ETHTOOL_A_LINKMODES_AUTONEG, int8]
+	ETHTOOL_A_LINKMODES_DUPLEX		nlattr[ETHTOOL_A_LINKMODES_DUPLEX, int8]
+	ETHTOOL_A_LINKMODES_SPEED		nlattr[ETHTOOL_A_LINKMODES_SPEED, int32]
+	ETHTOOL_A_LINKMODES_OURS		nlnest[ETHTOOL_A_LINKMODES_OURS, array[bitset_policy]]
+	ETHTOOL_A_LINKMODES_MASTER_SLAVE_CFG	nlattr[ETHTOOL_A_LINKMODES_MASTER_SLAVE_CFG, flags[eth_master_slave_cfg, int8]]
+	ETHTOOL_A_LINKMODES_LANES		nlattr[ETHTOOL_A_LINKMODES_LANES, flags[eth_link_lanes, int32]]
 ] [varlen]
 
-debug_set_policy [
+eth_master_slave_cfg = MASTER_SLAVE_CFG_MASTER_PREFERRED, MASTER_SLAVE_CFG_SLAVE_PREFERRED, MASTER_SLAVE_CFG_MASTER_FORCE, MASTER_SLAVE_CFG_SLAVE_FORCE
+eth_link_lanes = 1, 2, 4, 8
+
+ethnl_debug_set_policy [
 	ETHTOOL_A_DEBUG_HEADER	nlnest[ETHTOOL_A_DEBUG_HEADER, array[ethnl_header_policy]]
 	ETHTOOL_A_DEBUG_MSGMASK	nlnest[ETHTOOL_A_DEBUG_MSGMASK, array[bitset_policy]]
 ] [varlen]
 
-wol_set_policy [
+ethnl_wol_set_policy [
 	ETHTOOL_A_WOL_HEADER	nlnest[ETHTOOL_A_WOL_HEADER, array[ethnl_header_policy]]
 	ETHTOOL_A_WOL_MODES	nlnest[ETHTOOL_A_WOL_MODES, array[bitset_policy]]
 	ETHTOOL_A_WOL_SOPASS	nlattr[ETHTOOL_A_WOL_SOPASS, array[int8]]
 ] [varlen]
 
-features_set_policy [
+ethnl_features_set_policy [
 	ETHTOOL_A_FEATURES_HEADER	nlnest[ETHTOOL_A_FEATURES_HEADER, array[ethnl_header_policy]]
 	ETHTOOL_A_FEATURES_WANTED	nlnest[ETHTOOL_A_FEATURES_WANTED, array[bitset_policy]]
 ] [varlen]
 
-privflags_set_policy [
+ethnl_privflags_set_policy [
 	ETHTOOL_A_PRIVFLAGS_HEADER	nlnest[ETHTOOL_A_PRIVFLAGS_HEADER, array[ethnl_header_policy]]
 	ETHTOOL_A_PRIVFLAGS_FLAGS	nlnest[ETHTOOL_A_PRIVFLAGS_FLAGS, array[bitset_policy]]
 ] [varlen]
 
-rings_set_policy [
+ethnl_rings_set_policy [
 	ETHTOOL_A_RINGS_HEADER		nlnest[ETHTOOL_A_RINGS_HEADER, array[ethnl_header_policy]]
 	ETHTOOL_A_RINGS_RX		nlattr[ETHTOOL_A_RINGS_RX, int32]
 	ETHTOOL_A_RINGS_RX_MINI		nlattr[ETHTOOL_A_RINGS_RX_MINI, int32]
@@ -117,7 +122,7 @@ rings_set_policy [
 	ETHTOOL_A_RINGS_TX		nlattr[ETHTOOL_A_RINGS_TX, int32]
 ] [varlen]
 
-channels_set_policy [
+ethnl_channels_set_policy [
 	ETHTOOL_A_CHANNELS_HEADER		nlnest[ETHTOOL_A_CHANNELS_HEADER, array[ethnl_header_policy]]
 	ETHTOOL_A_CHANNELS_RX_COUNT		nlattr[ETHTOOL_A_CHANNELS_RX_COUNT, int32]
 	ETHTOOL_A_CHANNELS_TX_COUNT		nlattr[ETHTOOL_A_CHANNELS_TX_COUNT, int32]
@@ -125,7 +130,7 @@ channels_set_policy [
 	ETHTOOL_A_CHANNELS_COMBINED_COUNT	nlattr[ETHTOOL_A_CHANNELS_COMBINED_COUNT, int32]
 ] [varlen]
 
-coalesce_set_policy [
+ethnl_coalesce_set_policy [
 	ETHTOOL_A_COALESCE_HEADER		nlnest[ETHTOOL_A_COALESCE_HEADER, array[ethnl_header_policy]]
 	ETHTOOL_A_COALESCE_RX_USECS		nlattr[ETHTOOL_A_COALESCE_RX_USECS, int32]
 	ETHTOOL_A_COALESCE_RX_MAX_FRAMES	nlattr[ETHTOOL_A_COALESCE_RX_MAX_FRAMES, int32]
@@ -149,16 +154,18 @@ coalesce_set_policy [
 	ETHTOOL_A_COALESCE_TX_USECS_HIGH	nlattr[ETHTOOL_A_COALESCE_TX_USECS_HIGH, int32]
 	ETHTOOL_A_COALESCE_TX_MAX_FRAMES_HIGH	nlattr[ETHTOOL_A_COALESCE_TX_MAX_FRAMES_HIGH, int32]
 	ETHTOOL_A_COALESCE_RATE_SAMPLE_INTERVAL	nlattr[ETHTOOL_A_COALESCE_RATE_SAMPLE_INTERVAL, int32]
+	ETHTOOL_A_COALESCE_USE_CQE_MODE_TX	nlattr[ETHTOOL_A_COALESCE_USE_CQE_MODE_TX, bool8]
+	ETHTOOL_A_COALESCE_USE_CQE_MODE_RX	nlattr[ETHTOOL_A_COALESCE_USE_CQE_MODE_RX, bool8]
 ] [varlen]
 
-pause_set_policy [
+ethnl_pause_set_policy [
 	ETHTOOL_A_PAUSE_HEADER	nlnest[ETHTOOL_A_PAUSE_HEADER, array[ethnl_header_policy]]
 	ETHTOOL_A_PAUSE_AUTONEG	nlattr[ETHTOOL_A_PAUSE_AUTONEG, bool8]
 	ETHTOOL_A_PAUSE_RX	nlattr[ETHTOOL_A_PAUSE_RX, bool8]
 	ETHTOOL_A_PAUSE_TX	nlattr[ETHTOOL_A_PAUSE_TX, bool8]
 ] [varlen]
 
-eee_set_policy [
+ethnl_eee_set_policy [
 	ETHTOOL_A_EEE_HEADER		nlnest[ETHTOOL_A_EEE_HEADER, array[ethnl_header_policy]]
 	ETHTOOL_A_EEE_MODES_OURS	nlnest[ETHTOOL_A_EEE_MODES_OURS, array[bitset_policy]]
 	ETHTOOL_A_EEE_ENABLED		nlattr[ETHTOOL_A_EEE_ENABLED, bool8]

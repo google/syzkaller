@@ -71,6 +71,14 @@ func isSupportedSyscall(c *prog.Syscall, target *prog.Target) (bool, string) {
 	return isSupportedTrial(c)
 }
 
+func isSupportedSyscallName(name string, target *prog.Target) (bool, string) {
+	syscall := target.SyscallMap[name]
+	if syscall == nil {
+		return false, fmt.Sprintf("sys_%v is not present in the target", name)
+	}
+	return isSupportedSyscall(syscall, target)
+}
+
 func parseKallsyms(kallsyms []byte, arch string) map[string]bool {
 	set := make(map[string]bool)
 	var re *regexp.Regexp
@@ -245,12 +253,7 @@ func isSyzReadPartTableSupported(c *prog.Syscall, target *prog.Target, sandbox s
 }
 
 func isSyzIoUringSupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
-	ioUringSyscallName := "io_uring_setup"
-	ioUringSyscall := target.SyscallMap[ioUringSyscallName]
-	if ioUringSyscall == nil {
-		return false, fmt.Sprintf("sys_%v is not present in the target", ioUringSyscallName)
-	}
-	return isSupportedSyscall(ioUringSyscall, target)
+	return isSupportedSyscallName("io_uring_setup", target)
 }
 
 func isSyzMemcpySupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
@@ -313,9 +316,25 @@ var syzkallSupport = map[string]func(*prog.Syscall, *prog.Target, string) (bool,
 	"syz_80211_inject_frame":      isWifiEmulationSupported,
 	"syz_80211_join_ibss":         isWifiEmulationSupported,
 	"syz_usbip_server_init":       isSyzUsbIPSupported,
+	"syz_clone":                   alwaysSupported,
+	"syz_clone3":                  alwaysSupported,
 }
 
 func isSupportedSyzkall(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
+	sysTarget := targets.Get(target.OS, target.Arch)
+	for _, depCall := range sysTarget.PseudoSyscallDeps[c.CallName] {
+		if ok, reason := isSupportedSyscallName(depCall, target); !ok {
+			return ok, reason
+		}
+	}
+	if strings.HasPrefix(c.CallName, "syz_ext_") {
+		// Non-mainline pseudo-syscalls in executor/common_ext.h can't have the checking function
+		// and are assumed to be unconditionally supported.
+		if syzkallSupport[c.CallName] != nil {
+			panic("syz_ext_ prefix is reserved for non-mainline pseudo-syscalls")
+		}
+		return true, ""
+	}
 	if isSupported, ok := syzkallSupport[c.CallName]; ok {
 		return isSupported(c, target, sandbox)
 	}

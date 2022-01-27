@@ -17,6 +17,9 @@ include <net/netfilter/nf_tables.h>
 include <net/xfrm.h>
 
 type msghdr_nf_tables[CMD, POLICY] msghdr_netlink[netlink_msg_netfilter_t[NFNL_SUBSYS_NFTABLES, CMD, POLICY]]
+# TODO: we should obtain them from somewhere, probably from other netlink messages,
+# but we can't extract output netlink attributes.
+type nft_chain_id int32be
 
 sendmsg$NFT_MSG_GETTABLE(fd sock_nl_netfilter, msg ptr[in, msghdr_nf_tables[NFT_MSG_GETTABLE, nft_table_policy]], f flags[send_flags])
 sendmsg$NFT_MSG_GETCHAIN(fd sock_nl_netfilter, msg ptr[in, msghdr_nf_tables[NFT_MSG_GETCHAIN, nft_chain_policy]], f flags[send_flags])
@@ -62,7 +65,7 @@ nft_batch_message [
 	NFT_MSG_DELSET		netlink_msg_netfilter_t[NFNL_SUBSYS_NFTABLES, NFT_MSG_DELSET, nft_set_policy]
 	NFT_MSG_NEWSETELEM	netlink_msg_netfilter_t[NFNL_SUBSYS_NFTABLES, NFT_MSG_NEWSETELEM, nft_set_elem_list_policy]
 	NFT_MSG_DELSETELEM	netlink_msg_netfilter_t[NFNL_SUBSYS_NFTABLES, NFT_MSG_DELSETELEM, nft_set_elem_list_policy]
-	NFT_MSG_NEWOBJ		netlink_msg_netfilter_tt[NFNL_SUBSYS_NFTABLES, NFT_MSG_NEWOBJ, nft_obj_policy_new]
+	NFT_MSG_NEWOBJ		netlink_msg_netfilter_tt[NFNL_SUBSYS_NFTABLES, NFT_MSG_NEWOBJ, nft_obj_policy$new]
 	NFT_MSG_DELOBJ		netlink_msg_netfilter_t[NFNL_SUBSYS_NFTABLES, NFT_MSG_DELOBJ, nft_obj_policy]
 	NFT_MSG_NEWFLOWTABLE	netlink_msg_netfilter_t[NFNL_SUBSYS_NFTABLES, NFT_MSG_NEWFLOWTABLE, nft_flowtable_policy]
 	NFT_MSG_DELFLOWTABLE	netlink_msg_netfilter_t[NFNL_SUBSYS_NFTABLES, NFT_MSG_DELFLOWTABLE, nft_flowtable_policy]
@@ -80,6 +83,7 @@ nft_table_policy [
 	NFTA_TABLE_NAME		nlattr[NFTA_TABLE_NAME, string[nft_table_name]]
 	NFTA_TABLE_FLAGS	nlnetw[NFTA_TABLE_FLAGS, flags[nft_table_flags, int32be]]
 	NFTA_TABLE_HANDLE	nlnetw[NFTA_TABLE_HANDLE, nft_handle]
+	NFTA_TABLE_USERDATA	nlattr[NFTA_TABLE_USERDATA, array[int8, 0:NFT_USERDATA_MAXLEN]]
 ] [varlen]
 
 nft_table_name = "syz0", "syz1"
@@ -94,6 +98,8 @@ nft_chain_policy [
 	NFTA_CHAIN_TYPE		nlattr[NFTA_CHAIN_TYPE, string[nft_chain_type]]
 	NFTA_CHAIN_COUNTERS	nlnest[NFTA_CHAIN_COUNTERS, array[nft_counter_policy]]
 	NFTA_CHAIN_FLAGS	nlnetw[NFTA_CHAIN_FLAGS, flags[nft_chain_flags, int32be]]
+	NFTA_CHAIN_ID		nlnetw[NFTA_CHAIN_ID, nft_chain_id]
+	NFTA_CHAIN_USERDATA	nlattr[NFTA_CHAIN_USERDATA, array[int8, 0:NFT_USERDATA_MAXLEN]]
 ] [varlen]
 
 nft_chain_name = "syz0", "syz1", "syz2"
@@ -115,12 +121,13 @@ nft_rule_policy [
 	NFTA_RULE_TABLE		nlattr[NFTA_RULE_TABLE, string[nft_table_name]]
 	NFTA_RULE_CHAIN		nlattr[NFTA_RULE_CHAIN, string[nft_chain_name]]
 	NFTA_RULE_HANDLE	nlnetw[NFTA_RULE_HANDLE, nft_handle]
-	NFTA_RULE_EXPRESSIONS	nlnest[NFTA_RULE_EXPRESSIONS, array[nlnest[NFTA_LIST_ELEM, array[nft_expr_policy]]]]
+	NFTA_RULE_EXPRESSIONS	nlnest[NFTA_RULE_EXPRESSIONS, array[nlnest[NFTA_LIST_ELEM, nft_expr_policy]]]
 	NFTA_RULE_COMPAT	nlnest[NFTA_RULE_COMPAT, array[nft_rule_compat_policy]]
 	NFTA_RULE_POSITION	nlnetw[NFTA_RULE_POSITION, nft_handle]
 	NFTA_RULE_USERDATA	nlnetw[NFTA_RULE_USERDATA, array[int8]]
 	NFTA_RULE_ID		nlnetw[NFTA_RULE_ID, nft_rule_id]
 	NFTA_RULE_POSITION_ID	nlnetw[NFTA_RULE_POSITION_ID, nft_rule_id]
+	NFTA_RULE_CHAIN_ID	nlnetw[NFTA_RULE_CHAIN_ID, nft_chain_id]
 ] [varlen]
 
 type nft_rule_id int32be[0:3]
@@ -151,6 +158,7 @@ nft_set_policy [
 	NFTA_SET_OBJ_TYPE	nlnetw[NFTA_SET_OBJ_TYPE, flags[nft_obj_type, int32be]]
 	NFTA_SET_HANDLE		nlnetw[NFTA_SET_HANDLE, nft_handle]
 	NFTA_SET_EXPR		nlnest[NFTA_SET_EXPR, nft_expr_policy]
+	NFTA_SET_EXPRESSIONS	nlnest[NFTA_SET_EXPRESSIONS, array[nlnest[NFTA_LIST_ELEM, nft_expr_policy]]]
 ] [varlen]
 
 type nft_set_id int32be[0:3]
@@ -189,6 +197,7 @@ nft_set_elem_policy [
 	NFTA_SET_ELEM_EXPR		nlnest[NFTA_SET_ELEM_EXPR, void]
 	NFTA_SET_ELEM_OBJREF		nlattr[NFTA_SET_ELEM_OBJREF, string[nft_obj_name]]
 	NFTA_SET_ELEM_KEY_END		nlnest[NFTA_SET_ELEM_KEY_END, array[nft_data_policy]]
+	NFTA_SET_ELEM_EXPRESSIONS	nlnest[NFTA_SET_ELEM_EXPRESSIONS, array[nlnest[NFTA_LIST_ELEM, nft_expr_policy]]]
 ] [varlen]
 
 nft_set_elem_flags = NFT_SET_ELEM_INTERVAL_END
@@ -201,18 +210,20 @@ nft_data_policy [
 nft_verdict_policy [
 	NFTA_VERDICT_CODE	nlnest[NFTA_VERDICT_CODE, flags[nft_verdicts, int32be]]
 	NFTA_VERDICT_CHAIN	nlattr[NFTA_VERDICT_CHAIN, string[nft_chain_name]]
+	NFTA_VERDICT_CHAIN_ID	nlnetw[NFTA_VERDICT_CHAIN_ID, nft_chain_id]
 ] [varlen]
 
 nft_verdicts = 0, NF_DROP_VERDICT, NF_ACCEPT_VERDICT, NF_STOLEN_VERDICT, NF_QUEUE_VERDICT, NF_REPEAT_VERDICT, NFT_CONTINUE, NFT_BREAK, NFT_JUMP, NFT_GOTO, NFT_RETURN
 
 nft_obj_policy [
-	NFTA_OBJ_TABLE	nlattr[NFTA_OBJ_TABLE, string[nft_table_name]]
-	NFTA_OBJ_NAME	nlattr[NFTA_OBJ_NAME, string[nft_obj_name]]
-	NFTA_OBJ_TYPE	nlnetw[NFTA_OBJ_TYPE, flags[nft_obj_type, int32be]]
-	NFTA_OBJ_HANDLE	nlnetw[NFTA_OBJ_HANDLE, nft_handle]
+	NFTA_OBJ_TABLE		nlattr[NFTA_OBJ_TABLE, string[nft_table_name]]
+	NFTA_OBJ_NAME		nlattr[NFTA_OBJ_NAME, string[nft_obj_name]]
+	NFTA_OBJ_TYPE		nlnetw[NFTA_OBJ_TYPE, flags[nft_obj_type, int32be]]
+	NFTA_OBJ_HANDLE		nlnetw[NFTA_OBJ_HANDLE, nft_handle]
+	NFTA_OBJ_USERDATA	nlattr[NFTA_OBJ_USERDATA, array[int8, 0:NFT_USERDATA_MAXLEN]]
 ] [varlen]
 
-type nft_obj_policy_new_t[TYPE, POLICY] [
+type nft_obj_policy$new_t[TYPE, POLICY] [
 	NFTA_OBJ_TABLE	nlattr[NFTA_OBJ_TABLE, string[nft_table_name]]
 	NFTA_OBJ_NAME	nlattr[NFTA_OBJ_NAME, string[nft_obj_name]]
 	NFTA_OBJ_TYPE	nlnetw[NFTA_OBJ_TYPE, const[TYPE, int32be]]
@@ -220,17 +231,17 @@ type nft_obj_policy_new_t[TYPE, POLICY] [
 	NFTA_OBJ_HANDLE	nlnetw[NFTA_OBJ_HANDLE, nft_handle]
 ] [varlen]
 
-nft_obj_policy_new [
-	NFT_OBJECT_SECMARK	nft_obj_policy_new_t[NFT_OBJECT_SECMARK, nft_secmark_policy]
-	NFT_OBJECT_CONNLIMIT	nft_obj_policy_new_t[NFT_OBJECT_CONNLIMIT, nft_connlimit_policy]
-	NFT_OBJECT_COUNTER	nft_obj_policy_new_t[NFT_OBJECT_COUNTER, nft_counter_policy]
-	NFT_OBJECT_CT_TIMEOUT	nft_obj_policy_new_t[NFT_OBJECT_CT_TIMEOUT, nft_ct_timeout_policy]
-	NFT_OBJECT_CT_HELPER	nft_obj_policy_new_t[NFT_OBJECT_CT_HELPER, nft_ct_helper_policy]
-	NFT_OBJECT_CT_EXPECT	nft_obj_policy_new_t[NFT_OBJECT_CT_EXPECT, nft_ct_expect_policy]
-	NFT_OBJECT_LIMIT	nft_obj_policy_new_t[NFT_OBJECT_LIMIT, nft_limit_policy]
-	NFT_OBJECT_QUOTA	nft_obj_policy_new_t[NFT_OBJECT_QUOTA, nft_quota_policy]
-	NFT_OBJECT_SYNPROXY	nft_obj_policy_new_t[NFT_OBJECT_SYNPROXY, nft_synproxy_policy]
-	NFT_OBJECT_TUNNEL	nft_obj_policy_new_t[NFT_OBJECT_TUNNEL, nft_tunnel_key_policy]
+nft_obj_policy$new [
+	NFT_OBJECT_SECMARK	nft_obj_policy$new_t[NFT_OBJECT_SECMARK, nft_secmark_policy]
+	NFT_OBJECT_CONNLIMIT	nft_obj_policy$new_t[NFT_OBJECT_CONNLIMIT, nft_connlimit_policy]
+	NFT_OBJECT_COUNTER	nft_obj_policy$new_t[NFT_OBJECT_COUNTER, nft_counter_policy]
+	NFT_OBJECT_CT_TIMEOUT	nft_obj_policy$new_t[NFT_OBJECT_CT_TIMEOUT, nft_ct_timeout_policy]
+	NFT_OBJECT_CT_HELPER	nft_obj_policy$new_t[NFT_OBJECT_CT_HELPER, nft_ct_helper_policy]
+	NFT_OBJECT_CT_EXPECT	nft_obj_policy$new_t[NFT_OBJECT_CT_EXPECT, nft_ct_expect_policy]
+	NFT_OBJECT_LIMIT	nft_obj_policy$new_t[NFT_OBJECT_LIMIT, nft_limit_policy]
+	NFT_OBJECT_QUOTA	nft_obj_policy$new_t[NFT_OBJECT_QUOTA, nft_quota_policy]
+	NFT_OBJECT_SYNPROXY	nft_obj_policy$new_t[NFT_OBJECT_SYNPROXY, nft_synproxy_policy]
+	NFT_OBJECT_TUNNEL	nft_obj_policy$new_t[NFT_OBJECT_TUNNEL, nft_tunnel_key_policy]
 ] [varlen]
 
 nft_obj_name = "syz0", "syz1", "syz2"
@@ -446,7 +457,11 @@ nft_bitwise_policy [
 	NFTA_BITWISE_LEN	nlnetw[NFTA_BITWISE_LEN, int32be]
 	NFTA_BITWISE_MASK	nlnest[NFTA_BITWISE_MASK, array[nft_data_policy]]
 	NFTA_BITWISE_XOR	nlnest[NFTA_BITWISE_XOR, array[nft_data_policy]]
+	NFTA_BITWISE_OP		nlnetw[NFTA_BITWISE_OP, flags[nft_bitwise_ops, int32be]]
+	NFTA_BITWISE_DATA	nlnest[NFTA_BITWISE_DATA, array[nft_data_policy]]
 ] [varlen]
+
+nft_bitwise_ops = NFT_BITWISE_BOOL, NFT_BITWISE_LSHIFT, NFT_BITWISE_RSHIFT
 
 nft_byteorder_policy [
 	NFTA_BYTEORDER_SREG	nlnetw[NFTA_BYTEORDER_SREG, flags[nft_registers, int32be]]
@@ -473,9 +488,10 @@ nft_dynset_policy [
 	NFTA_DYNSET_SREG_KEY	nlnetw[NFTA_DYNSET_SREG_KEY, flags[nft_registers, int32be]]
 	NFTA_DYNSET_SREG_DATA	nlnetw[NFTA_DYNSET_SREG_DATA, flags[nft_registers, int32be]]
 	NFTA_DYNSET_TIMEOUT	nlnetw[NFTA_DYNSET_TIMEOUT, int64be]
-# TODO: we need whole nft_expr_policy here instead of just lookup, but it will lead to recursion.
+# TODO: we need whole nft_expr_policy here and in NFTA_DYNSET_EXPRESSIONS instead of just lookup, but it will lead to recursion.
 	NFTA_DYNSET_EXPR	nlnest[NFTA_DYNSET_EXPR, nft_expr_policy_t["lookup", nft_lookup_policy]]
 	NFTA_DYNSET_FLAGS	nlnetw[NFTA_DYNSET_FLAGS, flags[nft_dynset_flags, int32be]]
+	NFTA_DYNSET_EXPRESSIONS	nlnest[NFTA_DYNSET_EXPRESSIONS, array[nlnest[NFTA_LIST_ELEM, nft_lookup_policy]]]
 ] [varlen]
 
 nft_dynset_ops = NFT_DYNSET_OP_ADD, NFT_DYNSET_OP_UPDATE, NFT_DYNSET_OP_DELETE
@@ -662,6 +678,7 @@ nft_redir_policy [
 nft_socket_policy [
 	NFTA_SOCKET_KEY		nlnetw[NFTA_SOCKET_KEY, flags[nft_socket_keys, int32be]]
 	NFTA_SOCKET_DREG	nlnetw[NFTA_SOCKET_DREG, flags[nft_registers, int32be]]
+	NFTA_SOCKET_LEVEL	nlattr[NFTA_SOCKET_LEVEL, int32be[0:255]]
 ] [varlen]
 
 nft_socket_keys = NFT_SOCKET_TRANSPARENT, NFT_SOCKET_MARK

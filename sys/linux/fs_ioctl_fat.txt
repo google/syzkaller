@@ -6,7 +6,7 @@ include <uapi/linux/msdos_fs.h>
 
 __fat_dirent {
 	d_ino		intptr
-	d_off		int64
+	d_off		intptr
 	d_reclen	len[d_name, int16]
 	d_name		string[filename, 256]
 }

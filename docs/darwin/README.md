@@ -218,12 +218,11 @@ Shut down your VM now. We'll let syzkaller boot it back up soon.
 ```
 export GOPATH=/Users/user/go
 export PATH=$GOPATH/bin:$PATH
-export GO111MODULE=off
 ```
 - Relogin and build syzkaller like this:
 ```
-go get -u -d github.com/google/syzkaller/prog
-cd go/src/github.com/google/syzkaller
+git clone https://github.com/google/syzkaller
+cd syzkaller
 make HOSTOS=darwin HOSTARCH=amd64 TARGETOS=darwin TARGETARCH=amd64 SOURCEDIR=/Users/user/115/src/Users/user/kernel/xnu-7195.141.2
 ```
 
