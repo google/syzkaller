@@ -19,6 +19,7 @@ import (
 type Instance struct {
 	Name      string
 	Kernel    Kernel
+	Compiler  string
 	Verbatim  []byte
 	Shell     []Shell
 	Features  Features
@@ -79,6 +80,7 @@ type rawFile struct {
 		Repo string
 		Tag  string
 	}
+	Compiler string
 	Shell    []yaml.Node
 	Verbatim string
 	Config   []yaml.Node
@@ -180,6 +182,12 @@ func mergeFile(inst *Instance, raw *rawFile, file string, errs *Errors) {
 			errs.push("%v: kernel is set twice", file)
 		}
 		inst.Kernel = raw.Kernel
+	}
+	if raw.Compiler != "" {
+		if inst.Compiler != "" {
+			errs.push("%v: compiler is set twice", file)
+		}
+		inst.Compiler = raw.Compiler
 	}
 	for _, node := range raw.Shell {
 		cmd, _, constraints, err := parseNode(node)
