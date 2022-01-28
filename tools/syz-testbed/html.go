@@ -134,10 +134,18 @@ type uiTable struct {
 	AlignedBy string
 }
 
+const (
+	HTMLStatsTable     = "stats"
+	HTMLBugsTable      = "bugs"
+	HTMLBugCountsTable = "bug_counts"
+)
+
+type uiTableGenerator = func(urlPrefix string, view StatView, r *http.Request) (*uiTable, error)
+
 type uiTableType struct {
+	Key       string
 	Title     string
-	Generator func(urlPrefix string, view *StatView, r *http.Request) (*uiTable, error)
-	URL       string
+	Generator uiTableGenerator
 }
 
 type uiStatView struct {
@@ -145,6 +153,7 @@ type uiStatView struct {
 	TableTypes      map[string]uiTableType
 	ActiveTableType string
 	ActiveTable     *uiTable
+	GenTableURL     func(uiTableType) string
 }
 
 type uiMainPage struct {
@@ -154,7 +163,28 @@ type uiMainPage struct {
 	ActiveView uiStatView
 }
 
-func (ctx *TestbedContext) httpMainStatsTable(urlPrefix string, view *StatView, r *http.Request) (*uiTable, error) {
+func (ctx *TestbedContext) getTableTypes() []uiTableType {
+	typeList := []uiTableType{
+		{HTMLStatsTable, "Statistics", ctx.httpMainStatsTable},
+		{HTMLBugsTable, "Bugs", ctx.genSimpleTableController((StatView).GenerateBugTable)},
+		{HTMLBugCountsTable, "Bug Counts", ctx.genSimpleTableController((StatView).GenerateBugCountsTable)},
+	}
+	return typeList
+}
+
+func (ctx *TestbedContext) genSimpleTableController(method func(view StatView) (*Table, error)) uiTableGenerator {
+	return func(urlPrefix string, view StatView, r *http.Request) (*uiTable, error) {
+		table, err := method(view)
+		if err != nil {
+			return nil, fmt.Errorf("table generation failed: %s", err)
+		}
+		return &uiTable{
+			Table: table,
+		}, nil
+	}
+}
+
+func (ctx *TestbedContext) httpMainStatsTable(urlPrefix string, view StatView, r *http.Request) (*uiTable, error) {
 	alignBy := r.FormValue("align")
 	if alignBy == "" {
 		alignBy = "fuzzing"
@@ -196,26 +226,6 @@ func (ctx *TestbedContext) httpMainStatsTable(urlPrefix string, view *StatView, 
 	}, nil
 }
 
-func (ctx *TestbedContext) httpMainBugTable(urlPrefix string, view *StatView, r *http.Request) (*uiTable, error) {
-	table, err := view.GenerateBugTable()
-	if err != nil {
-		return nil, fmt.Errorf("stat table generation failed: %s", err)
-	}
-	return &uiTable{
-		Table: table,
-	}, nil
-}
-
-func (ctx *TestbedContext) httpMainBugCountsTable(urlPrefix string, view *StatView, r *http.Request) (*uiTable, error) {
-	table, err := view.GenerateBugCountsTable()
-	if err != nil {
-		return nil, fmt.Errorf("bug counts table generation failed: %s", err)
-	}
-	return &uiTable{
-		Table: table,
-	}, nil
-}
-
 func (ctx *TestbedContext) httpMain(w http.ResponseWriter, r *http.Request) {
 	activeView, err := ctx.getCurrentStatView(r)
 	if err != nil {
@@ -227,28 +237,32 @@ func (ctx *TestbedContext) httpMain(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("%s", err), http.StatusInternalServerError)
 		return
 	}
-	genTableURL := func(tableType string) string {
-		v := url.Values{}
-		v.Set("view", activeView.Name)
-		v.Set("table", tableType)
-		return "/?" + v.Encode()
-	}
 	uiView := uiStatView{Name: activeView.Name}
-	uiView.TableTypes = map[string]uiTableType{
-		"stats":      {"Statistics", ctx.httpMainStatsTable, genTableURL("stats")},
-		"bugs":       {"Bugs", ctx.httpMainBugTable, genTableURL("bugs")},
-		"bug_counts": {"Bug Counts", ctx.httpMainBugCountsTable, genTableURL("bug_counts")},
+	tableTypes := ctx.getTableTypes()
+	if len(tableTypes) == 0 {
+		http.Error(w, "No tables are available", http.StatusInternalServerError)
+		return
+	}
+	uiView.TableTypes = map[string]uiTableType{}
+	for _, table := range tableTypes {
+		uiView.TableTypes[table.Key] = table
 	}
 	uiView.ActiveTableType = r.FormValue("table")
 	if uiView.ActiveTableType == "" {
-		uiView.ActiveTableType = "stats"
+		uiView.ActiveTableType = tableTypes[0].Key
 	}
 	tableType, found := uiView.TableTypes[uiView.ActiveTableType]
 	if !found {
 		http.Error(w, fmt.Sprintf("%s", err), http.StatusInternalServerError)
 		return
 	}
-	uiView.ActiveTable, err = tableType.Generator(tableType.URL+"&", activeView, r)
+	uiView.GenTableURL = func(t uiTableType) string {
+		v := url.Values{}
+		v.Set("view", activeView.Name)
+		v.Set("table", t.Key)
+		return "/?" + v.Encode()
+	}
+	uiView.ActiveTable, err = tableType.Generator(uiView.GenTableURL(tableType)+"&", *activeView, r)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("%s", err), http.StatusInternalServerError)
 		return
@@ -399,7 +413,7 @@ href="?view={{$view.Name}}">█ {{$view.Name}}</a>
 	{{if eq $typeKey $activeView.ActiveTableType}}
 		{{$type.Title}}
 	{{else}}
-		<a href="{{$type.URL}}">{{$type.Title}}</a>
+		<a href="{{call $activeView.GenTableURL $type}}">{{$type.Title}}</a>
 	{{end}}
 	&nbsp;
 {{end}}
