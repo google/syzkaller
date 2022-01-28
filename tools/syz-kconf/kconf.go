@@ -425,7 +425,9 @@ func (ctx *Context) Make(args ...string) error {
 	if ctx.Target.Triple != "" {
 		args = append(args, "CROSS_COMPILE="+ctx.Target.Triple+"-")
 	}
-	if ctx.Target.KernelCompiler != "" {
+	if ctx.Inst.Compiler != "" {
+		args = append(args, "CC="+ctx.Inst.Compiler)
+	} else if ctx.Target.KernelCompiler != "" {
 		args = append(args, "CC="+ctx.Target.KernelCompiler)
 	}
 	_, err := osutil.RunCmd(10*time.Minute, ctx.SourceDir, "make", args...)
