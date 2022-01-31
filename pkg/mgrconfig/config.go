@@ -141,6 +141,11 @@ type Config struct {
 	// By default the value is 0, i.e. all VMs can be used for all purposes.
 	FuzzingVMs int `json:"fuzzing_vms,omitempty"`
 
+	// Keep existing programs in the corpus even if they no longer pass syscall filters.
+	// By default it is true, as this is the desired behavior when executing syzkaller
+	// locally.
+	PreserveCorpus bool `json:"preserve_corpus"`
+
 	// List of syscalls to test (optional). For example:
 	//	"enable_syscalls": [ "mmap", "openat$ashmem", "ioctl$ASHMEM*" ]
 	EnabledSyscalls []string `json:"enable_syscalls,omitempty"`

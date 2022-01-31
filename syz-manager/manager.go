@@ -531,10 +531,12 @@ func (mgr *Manager) loadProg(data []byte, minimized, smashed bool) bool {
 		return false
 	}
 	if disabled {
-		// This program contains a disabled syscall.
-		// We won't execute it, but remember its hash so
-		// it is not deleted during minimization.
-		mgr.disabledHashes[hash.String(data)] = struct{}{}
+		if mgr.cfg.PreserveCorpus {
+			// This program contains a disabled syscall.
+			// We won't execute it, but remember its hash so
+			// it is not deleted during minimization.
+			mgr.disabledHashes[hash.String(data)] = struct{}{}
+		}
 		return true
 	}
 	mgr.candidates = append(mgr.candidates, rpctype.Candidate{
