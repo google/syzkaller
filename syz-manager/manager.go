@@ -444,7 +444,7 @@ func (mgr *Manager) vmLoop() {
 
 func (mgr *Manager) preloadCorpus() {
 	log.Logf(0, "loading corpus...")
-	corpusDB, err := db.Open(filepath.Join(mgr.cfg.Workdir, "corpus.db"))
+	corpusDB, err := db.Open(filepath.Join(mgr.cfg.Workdir, "corpus.db"), true)
 	if err != nil {
 		if corpusDB == nil {
 			log.Fatalf("failed to open corpus database: %v", err)

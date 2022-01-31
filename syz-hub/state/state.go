@@ -102,7 +102,7 @@ func (st *State) Flush() {
 
 func loadDB(file, name string, progs bool) (*db.DB, uint64, error) {
 	log.Logf(0, "reading %v...", name)
-	db, err := db.Open(file)
+	db, err := db.Open(file, true)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to open %v database: %v", name, err)
 	}
@@ -198,7 +198,7 @@ func (st *State) Connect(name, domain string, fresh bool, calls []string, corpus
 
 	os.Remove(mgr.corpusFile)
 	var err error
-	mgr.Corpus, err = db.Open(mgr.corpusFile)
+	mgr.Corpus, err = db.Open(mgr.corpusFile, true)
 	if err != nil {
 		log.Logf(0, "failed to open corpus database: %v", err)
 		return err
