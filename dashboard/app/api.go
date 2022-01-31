@@ -726,7 +726,6 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 		if err := db.Get(c, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to get bug: %v", err)
 		}
-		bug.NumCrashes++
 		bug.LastTime = now
 		if save {
 			bug.LastSavedCrash = now
@@ -741,6 +740,7 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 		if len(req.Report) != 0 {
 			bug.HasReport = true
 		}
+		bug.increaseCrashStats(now)
 		bug.HappenedOn = mergeString(bug.HappenedOn, build.Manager)
 		// Migration of older entities (for new bugs Title is always in MergedTitles).
 		bug.MergedTitles = mergeString(bug.MergedTitles, bug.Title)

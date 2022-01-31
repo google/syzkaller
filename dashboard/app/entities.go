@@ -21,7 +21,8 @@ const (
 	maxTextLen   = 200
 	MaxStringLen = 1024
 
-	maxCrashes = 40
+	maxCrashes        = 40
+	maxBugHistoryDays = 365 * 5
 )
 
 type Manager struct {
@@ -101,6 +102,12 @@ type Bug struct {
 	// bit 0 - the bug is published
 	// bit 1 - don't want to publish it (syzkaller build/test errors)
 	KcidbStatus int64
+	DailyStats  []BugDailyStats
+}
+
+type BugDailyStats struct {
+	Date       int // YYYYMMDD
+	CrashCount int
 }
 
 type Commit struct {
@@ -531,6 +538,25 @@ func (bug *Bug) getCommitInfo(i int) Commit {
 		return bug.CommitInfo[i]
 	}
 	return Commit{}
+}
+
+func (bug *Bug) increaseCrashStats(now time.Time) {
+	bug.NumCrashes++
+	date := timeDate(now)
+	if len(bug.DailyStats) == 0 || bug.DailyStats[len(bug.DailyStats)-1].Date < date {
+		bug.DailyStats = append(bug.DailyStats, BugDailyStats{date, 1})
+	} else {
+		// It is theoretically possible that this method might get into a situation, when
+		// the latest saved date is later than now. But we assume that this can only happen
+		// in a small window around the start of the day and it is better to attribute a
+		// crash to the next day than to get a mismatch between NumCrashes and the sum of
+		// CrashCount.
+		bug.DailyStats[len(bug.DailyStats)-1].CrashCount++
+	}
+
+	if len(bug.DailyStats) > maxBugHistoryDays {
+		bug.DailyStats = bug.DailyStats[len(bug.DailyStats)-maxBugHistoryDays:]
+	}
 }
 
 func markCrashReported(c context.Context, crashID int64, bugKey *db.Key, now time.Time) error {
