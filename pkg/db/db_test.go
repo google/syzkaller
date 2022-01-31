@@ -17,7 +17,7 @@ import (
 func TestBasic(t *testing.T) {
 	fn := tempFile(t)
 	defer os.Remove(fn)
-	db, err := Open(fn)
+	db, err := Open(fn, false)
 	if err != nil {
 		t.Fatalf("failed to open db: %v", err)
 	}
@@ -42,7 +42,7 @@ func TestBasic(t *testing.T) {
 	if !reflect.DeepEqual(db.Records, want) {
 		t.Fatalf("bad db after flush: %v, want: %v", db.Records, want)
 	}
-	db, err = Open(fn)
+	db, err = Open(fn, false)
 	if err != nil {
 		t.Fatalf("failed to open db: %v", err)
 	}
@@ -54,7 +54,7 @@ func TestBasic(t *testing.T) {
 func TestModify(t *testing.T) {
 	fn := tempFile(t)
 	defer os.Remove(fn)
-	db, err := Open(fn)
+	db, err := Open(fn, false)
 	if err != nil {
 		t.Fatalf("failed to open db: %v", err)
 	}
@@ -83,7 +83,7 @@ func TestModify(t *testing.T) {
 	if !reflect.DeepEqual(db.Records, want) {
 		t.Fatalf("bad db after flush: %v, want: %v", db.Records, want)
 	}
-	db, err = Open(fn)
+	db, err = Open(fn, false)
 	if err != nil {
 		t.Fatalf("failed to open db: %v", err)
 	}
@@ -95,7 +95,7 @@ func TestModify(t *testing.T) {
 func TestLarge(t *testing.T) {
 	fn := tempFile(t)
 	defer os.Remove(fn)
-	db, err := Open(fn)
+	db, err := Open(fn, false)
 	if err != nil {
 		t.Fatalf("failed to open db: %v", err)
 	}
@@ -110,7 +110,7 @@ func TestLarge(t *testing.T) {
 	if err := db.Flush(); err != nil {
 		t.Fatalf("failed to flush db: %v", err)
 	}
-	db, err = Open(fn)
+	db, err = Open(fn, false)
 	if err != nil {
 		t.Fatalf("failed to open db: %v", err)
 	}
@@ -130,7 +130,7 @@ func TestOpenInvalid(t *testing.T) {
 	if _, err := f.Write([]byte(`some invalid data`)); err != nil {
 		t.Error(err)
 	}
-	if db, err := Open(f.Name()); err == nil {
+	if db, err := Open(f.Name(), true); err == nil {
 		t.Fatal("opened invalid db")
 	} else if db == nil {
 		t.Fatal("db is nil")
@@ -149,7 +149,7 @@ func TestOpenInaccessible(t *testing.T) {
 	os.Chmod(f.Name(), 0)
 	defer os.Chmod(f.Name(), 0777)
 	defer os.Remove(f.Name())
-	if db, err := Open(f.Name()); err == nil {
+	if db, err := Open(f.Name(), false); err == nil {
 		t.Fatal("opened inaccessible db")
 	} else if db != nil {
 		t.Fatal("db is not nil")
@@ -159,7 +159,7 @@ func TestOpenInaccessible(t *testing.T) {
 func TestOpenCorrupted(t *testing.T) {
 	fn := tempFile(t)
 	defer os.Remove(fn)
-	db, err := Open(fn)
+	db, err := Open(fn, false)
 	if err != nil {
 		t.Fatalf("failed to open db: %v", err)
 	}
@@ -181,7 +181,7 @@ func TestOpenCorrupted(t *testing.T) {
 	if err := osutil.WriteFile(fn, data); err != nil {
 		t.Fatalf("failed to write db: %v", err)
 	}
-	db, err = Open(fn)
+	db, err = Open(fn, true)
 	if err == nil {
 		t.Fatalf("no error for corrutped db")
 	}

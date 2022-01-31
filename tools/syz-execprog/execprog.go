@@ -289,7 +289,7 @@ func (ctx *Context) getProgramIndex() int {
 func loadPrograms(target *prog.Target, files []string) []*prog.Prog {
 	var progs []*prog.Prog
 	for _, fn := range files {
-		if corpus, err := db.Open(fn); err == nil {
+		if corpus, err := db.Open(fn, false); err == nil {
 			for _, rec := range corpus.Records {
 				p, err := target.Deserialize(rec.Val, prog.NonStrict)
 				if err != nil {

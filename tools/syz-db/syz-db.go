@@ -115,7 +115,7 @@ func pack(dir, file string, target *prog.Target, version uint64) {
 }
 
 func unpack(file, dir string) {
-	db, err := db.Open(file)
+	db, err := db.Open(file, false)
 	if err != nil {
 		tool.Failf("failed to open database: %v", err)
 	}
@@ -133,7 +133,7 @@ func unpack(file, dir string) {
 
 func bench(target *prog.Target, file string) {
 	start := time.Now()
-	db, err := db.Open(file)
+	db, err := db.Open(file, false)
 	if err != nil {
 		tool.Failf("failed to open database: %v", err)
 	}
