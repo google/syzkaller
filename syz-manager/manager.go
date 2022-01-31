@@ -536,6 +536,18 @@ func (mgr *Manager) loadProg(data []byte, minimized, smashed bool) bool {
 			// We won't execute it, but remember its hash so
 			// it is not deleted during minimization.
 			mgr.disabledHashes[hash.String(data)] = struct{}{}
+		} else {
+			// We cut out the disabled syscalls and let syz-fuzzer retriage and
+			// minimize what remains from the prog. The original prog will be
+			// deleted from the corpus.
+			leftover := programLeftover(mgr.target, mgr.targetEnabledSyscalls, data)
+			if len(leftover) > 0 {
+				mgr.candidates = append(mgr.candidates, rpctype.Candidate{
+					Prog:      leftover,
+					Minimized: false,
+					Smashed:   smashed,
+				})
+			}
 		}
 		return true
 	}
@@ -545,6 +557,22 @@ func (mgr *Manager) loadProg(data []byte, minimized, smashed bool) bool {
 		Smashed:   smashed,
 	})
 	return true
+}
+
+func programLeftover(target *prog.Target, enabled map[*prog.Syscall]bool, data []byte) []byte {
+	p, err := target.Deserialize(data, prog.NonStrict)
+	if err != nil {
+		panic(fmt.Sprintf("subsequent deserialization failed: %s", data))
+	}
+	for i := 0; i < len(p.Calls); {
+		c := p.Calls[i]
+		if !enabled[c.Meta] {
+			p.RemoveCall(i)
+			continue
+		}
+		i++
+	}
+	return p.Serialize()
 }
 
 func checkProgram(target *prog.Target, enabled map[*prog.Syscall]bool, data []byte) (bad, disabled bool) {
