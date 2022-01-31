@@ -385,13 +385,24 @@ func TestApp(t *testing.T) {
 	c.client.pollBug()
 
 	// Provoke purgeOldCrashes.
-	for i := 0; i < 30; i++ {
+	const purgeTestIters = 30
+	for i := 0; i < purgeTestIters; i++ {
+		// Also test how daily counts work.
+		if i == purgeTestIters/2 {
+			c.advanceTime(48 * time.Hour)
+		}
 		crash := testCrash(build, 3)
 		crash.Log = []byte(fmt.Sprintf("log%v", i))
 		crash.Report = []byte(fmt.Sprintf("report%v", i))
 		c.client.ReportCrash(crash)
 	}
-	c.client.pollBug()
+	rep := c.client.pollBug()
+	bug, _, _ := c.loadBug(rep.ID)
+	c.expectNE(bug, nil)
+	c.expectEQ(bug.DailyStats, []BugDailyStats{
+		{20000101, purgeTestIters / 2},
+		{20000103, purgeTestIters / 2},
+	})
 
 	cid := &dashapi.CrashID{
 		BuildID: "build1",
