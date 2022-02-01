@@ -507,6 +507,13 @@ func (mgr *Manager) writeConfig(buildTag string) (string, error) {
 	}
 	mgrcfg.Tag = buildTag
 	mgrcfg.Workdir = mgr.workDir
+	// There's not much point in keeping disabled progs in the syz-ci corpuses.
+	// If the syscalls on some instance are enabled again, syz-hub will provide
+	// it with the missing progs over time.
+	// And, on the other hand, PreserveCorpus=false lets us disable syscalls in
+	// the least destructive way for the rest of the corpus - calls will be cut
+	// out the of programs and the leftovers will be retriaged.
+	mgrcfg.PreserveCorpus = false
 	if err := instance.SetConfigImage(mgrcfg, mgr.currentDir, false); err != nil {
 		return "", err
 	}
