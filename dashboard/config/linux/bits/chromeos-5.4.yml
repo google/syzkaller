@@ -3,7 +3,8 @@
 
 kernel:
  repo: https://chromium.googlesource.com/chromiumos/third_party/kernel
- tag: 3a36438201f3
+ # HEAD of chromeos-5.4 branch.
+ tag: 659b005fb0dcc1747094201a14945a6af734be50
 
 shell:
  - chromeos/scripts/prepareconfig chromiumos-x86_64 ${BUILDDIR}/.config
