@@ -27,5 +27,6 @@ git tree:       {{.KernelRepoAlias}}
 compiler:       {{.CompilerID}}
 {{if .UserSpaceArch}}userspace arch: {{.UserSpaceArch}}
 {{end}}{{if .PatchLink}}patch:          {{.PatchLink}}
-{{end}}{{if and (not .CrashTitle) (not .Error)}}
+{{else}}
+Note: no patches were applied.{{end}}{{if and (not .CrashTitle) (not .Error)}}
 Note: testing is done by a robot and is best-effort only.{{end}}

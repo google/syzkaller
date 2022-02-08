@@ -327,6 +327,7 @@ kernel config:  %[2]v
 dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 compiler:       compiler2
 
+Note: no patches were applied.
 Note: testing is done by a robot and is best-effort only.
 `, extBugID, kernelConfigLink))
 		c.checkURLContents(kernelConfigLink, testBuild.KernelConfig)
