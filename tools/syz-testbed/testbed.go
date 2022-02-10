@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/config"
-	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/pkg/vcs"
@@ -107,18 +106,15 @@ func main() {
 	ctx.Loop(shutdown)
 }
 
-func (ctx *TestbedContext) MakeMgrConfig(base, patch json.RawMessage) *mgrconfig.Config {
-	mergedConfig, err := config.MergeJSONData(base, patch)
+func (ctx *TestbedContext) MakeMgrConfig(base, patch json.RawMessage) json.RawMessage {
+	mgrCfg, err := config.MergeJSONs(base, patch)
 	if err != nil {
 		tool.Failf("failed to apply a patch to the base manager config: %s", err)
 	}
-	mgrCfg, err := mgrconfig.LoadPartialData(mergedConfig)
+	// We don't care much about the specific ports of syz-managers.
+	mgrCfg, err = config.PatchJSON(mgrCfg, map[string]interface{}{"HTTP": ":0"})
 	if err != nil {
-		tool.Failf("failed to parse base manager config: %s", err)
-	}
-	if mgrCfg.HTTP == "" {
-		// Actually, we don't care much about the specific ports of syz-managers.
-		mgrCfg.HTTP = ":0"
+		tool.Failf("failed to assign empty HTTP value: %s", err)
 	}
 	return mgrCfg
 }
