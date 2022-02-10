@@ -38,8 +38,9 @@ func (inst *Instance) Run() error {
 	cmd.Stderr = logfile
 
 	complete := make(chan error)
+	cmd.Start()
 	go func() {
-		complete <- cmd.Run()
+		complete <- cmd.Wait()
 	}()
 
 	select {
