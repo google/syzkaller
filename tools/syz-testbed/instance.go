@@ -20,7 +20,6 @@ type Instance struct {
 	Workdir         string
 	BenchFile       string
 	LogFile         string
-	HTTP            string
 	ExecCommand     string
 	ExecCommandArgs []string
 	stopChannel     chan bool
@@ -111,11 +110,16 @@ func (ctx *TestbedContext) NewInstance(checkout *Checkout, mgrName string) (*Ins
 	}
 
 	log.Printf("[%s] Generating syz-manager config", name)
-	managerCfg := *checkout.ManagerConfig
-	managerCfg.Name = mgrName
-	managerCfg.Workdir = workdir
-	managerCfg.Syzkaller = checkout.Path
-	err = config.SaveFile(managerCfgPath, managerCfg)
+	managerCfg, err := config.PatchJSON(checkout.ManagerConfig, map[string]interface{}{
+		"name":      mgrName,
+		"workdir":   workdir,
+		"syzkaller": checkout.Path,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to patch mgr config")
+	}
+
+	err = osutil.WriteFile(managerCfgPath, managerCfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save manager config to %s: %s", managerCfgPath, err)
 	}
@@ -125,7 +129,6 @@ func (ctx *TestbedContext) NewInstance(checkout *Checkout, mgrName string) (*Ins
 		Workdir:         workdir,
 		BenchFile:       bench,
 		LogFile:         logFile,
-		HTTP:            managerCfg.HTTP,
 		ExecCommand:     filepath.Join(checkout.Path, "bin", "syz-manager"),
 		ExecCommandArgs: []string{"-config", managerCfgPath, "-bench", bench},
 		stopChannel:     make(chan bool, 1),

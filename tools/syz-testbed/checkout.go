@@ -4,13 +4,13 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"path/filepath"
 	"time"
 
 	syz_instance "github.com/google/syzkaller/pkg/instance"
-	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
 )
@@ -18,7 +18,7 @@ import (
 type Checkout struct {
 	Path          string
 	Name          string
-	ManagerConfig *mgrconfig.Config
+	ManagerConfig json.RawMessage
 	Running       []*Instance
 	Completed     []*RunResult
 }
@@ -35,7 +35,7 @@ func (checkout *Checkout) ArchiveRunning() error {
 	return nil
 }
 
-func (ctx *TestbedContext) NewCheckout(config *CheckoutConfig, mgrConfig *mgrconfig.Config) (*Checkout, error) {
+func (ctx *TestbedContext) NewCheckout(config *CheckoutConfig, mgrConfig json.RawMessage) (*Checkout, error) {
 	checkout := &Checkout{
 		Name:          config.Name,
 		Path:          filepath.Join(ctx.Config.Workdir, "checkouts", config.Name),

@@ -9,7 +9,7 @@ import (
 
 // Unfortunately, if we want to apply a JSON patch to some configuration, we cannot just unmarshal
 // it twice - in that case json.RawMessage objects will be completely replaced, but not merged.
-func MergeJSONData(left, right []byte) ([]byte, error) {
+func MergeJSONs(left, right []byte) ([]byte, error) {
 	vLeft, err := parseFragment(left)
 	if err != nil {
 		return nil, err
@@ -18,8 +18,17 @@ func MergeJSONData(left, right []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	merged := mergeRecursive(vLeft, vRight)
-	return json.Marshal(merged)
+	return json.Marshal(mergeRecursive(vLeft, vRight))
+}
+
+// Recursively apply a patch to a raw JSON data.
+// Patch is supposed to be a map, which possibly nests other map objects.
+func PatchJSON(left []byte, patch map[string]interface{}) ([]byte, error) {
+	vLeft, err := parseFragment(left)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(mergeRecursive(vLeft, patch))
 }
 
 func parseFragment(input []byte) (parsed interface{}, err error) {
