@@ -142,7 +142,7 @@ func (view StatView) GenerateBugTable() (*Table, error) {
 	for _, bug := range summaries {
 		for _, group := range view.Groups {
 			if bug.found[group.Name] {
-				table.Set(bug.title, group.Name, "YES")
+				table.Set(bug.title, group.Name, NewBoolCell(true))
 			}
 		}
 	}
