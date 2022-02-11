@@ -34,9 +34,9 @@ ENV PATH /usr/local/go/bin:$PATH
 
 # Download and install the custom Clang required to build KMSAN.
 # TODO(@ramosian-glider): switch to stable Clang once KMSAN is upstreamed.
-RUN mkdir -p /syzkaller
-RUN curl https://storage.googleapis.com/syzkaller/clang-2b554920f11c-patched.tar.gz | tar -C /syzkaller -xz
-RUN ln -s /syzkaller/clang-2b554920f11c-patched /syzkaller/clang-kmsan
+ENV CLANG_KMSAN_VER 38e16e1cebb8
+RUN curl https://storage.googleapis.com/syzkaller/clang-${CLANG_KMSAN_VER}.tar.gz | tar -C /usr/local/ -xz
+RUN ln -s /usr/local/clang-${CLANG_KMSAN_VER} /usr/local/clang-kmsan
 
 # Not really GRTE, but it's enough to run some scripts that hardcode the path.
 RUN mkdir -p /usr/grte/v5/bin && ln -s /usr/bin/python3 /usr/grte/v5/bin/python2.7
