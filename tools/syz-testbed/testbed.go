@@ -33,6 +33,7 @@ type TestbedConfig struct {
 	Target        string           `json:"target"`         // what application to test
 	MaxInstances  int              `json:"max_instances"`  // max # of simultaneously running instances
 	RunTime       DurationConfig   `json:"run_time"`       // lifetime of an instance (default "24h")
+	InputLogs     string           `json:"input_logs"`     // folder with logs to be processed by syz-repro
 	HTTP          string           `json:"http"`           // on which port to set up a simple web dashboard
 	BenchCmp      string           `json:"benchcmp"`       // path to the syz-benchcmp executable
 	Corpus        string           `json:"corpus"`         // path to the corpus file

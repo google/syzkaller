@@ -18,6 +18,7 @@ type Instance interface {
 	Run() error
 	Stop()
 	FetchResult() (RunResult, error)
+	Uptime() time.Duration
 }
 
 // The essential information about an active instance.
@@ -26,6 +27,8 @@ type InstanceCommon struct {
 	LogFile         string
 	ExecCommand     string
 	ExecCommandArgs []string
+	StartedAt       time.Time
+	StoppedAt       time.Time
 	stopChannel     chan bool
 }
 
@@ -45,14 +48,15 @@ func (inst *InstanceCommon) Run() error {
 	}
 
 	complete := make(chan error)
+	inst.StartedAt = time.Now()
 	cmd.Start()
 	go func() {
 		complete <- cmd.Wait()
 	}()
 
 	select {
-	case <-complete:
-		return nil
+	case err := <-complete:
+		return err
 	case <-inst.stopChannel:
 		// TODO: handle other OSes?
 		cmd.Process.Signal(os.Interrupt)
@@ -65,8 +69,9 @@ func (inst *InstanceCommon) Run() error {
 			cmd.Process.Kill()
 			<-complete
 		}
-		return nil
 	}
+	inst.StoppedAt = time.Now()
+	return nil
 }
 
 func (inst *InstanceCommon) Stop() {
@@ -74,6 +79,13 @@ func (inst *InstanceCommon) Stop() {
 	case inst.stopChannel <- true:
 	default:
 	}
+}
+
+func (inst *InstanceCommon) Uptime() time.Duration {
+	if !inst.StartedAt.IsZero() && inst.StoppedAt.IsZero() {
+		return time.Since(inst.StartedAt)
+	}
+	return inst.StoppedAt.Sub(inst.StartedAt)
 }
 
 type SyzManagerInstance struct {
@@ -173,5 +185,58 @@ func (t *SyzManagerTarget) newSyzManagerInstance(slotName, uniqName string, chec
 		},
 		SyzkallerInfo: *common,
 		RunTime:       t.config.RunTime.Duration,
+	}, nil
+}
+
+type SyzReproInstance struct {
+	InstanceCommon
+	SyzkallerInfo
+	Input      *SyzReproInput
+	ReproFile  string
+	CReproFile string
+	// TODO: we also want to extract source and new bug titles
+}
+
+func (inst *SyzReproInstance) FetchResult() (RunResult, error) {
+	return &SyzReproResult{
+		Input:       inst.Input,
+		ReproFound:  osutil.IsExist(inst.ReproFile),
+		CReproFound: osutil.IsExist(inst.CReproFile),
+		Duration:    inst.Uptime(),
+	}, nil
+}
+
+func (t *SyzReproTarget) newSyzReproInstance(slotName, uniqName string, input *SyzReproInput,
+	checkout *Checkout) (Instance, error) {
+	folder := filepath.Join(checkout.Path, fmt.Sprintf("run-%s", uniqName))
+	common, err := SetupSyzkallerInstance(slotName, folder, checkout)
+	if err != nil {
+		return nil, err
+	}
+
+	reproFile := filepath.Join(folder, "repro.txt")
+	cReproFile := filepath.Join(folder, "crepro.txt")
+	newExecLog := filepath.Join(folder, "execution-log.txt")
+	err = osutil.CopyFile(input.Path, newExecLog)
+	if err != nil {
+		return nil, err
+	}
+	return &SyzReproInstance{
+		InstanceCommon: InstanceCommon{
+			Name:        uniqName,
+			LogFile:     filepath.Join(folder, "log.txt"),
+			ExecCommand: filepath.Join(checkout.Path, "bin", "syz-repro"),
+			ExecCommandArgs: []string{
+				"-config", common.CfgFile,
+				"-output", reproFile,
+				"-crepro", cReproFile,
+				newExecLog,
+			},
+			stopChannel: make(chan bool, 1),
+		},
+		SyzkallerInfo: *common,
+		Input:         input,
+		ReproFile:     reproFile,
+		CReproFile:    cReproFile,
 	}, nil
 }
