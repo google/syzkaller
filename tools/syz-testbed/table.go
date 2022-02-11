@@ -30,6 +30,11 @@ type ValueCell struct {
 	PValue        *float64
 }
 
+type RatioCell struct {
+	TrueCount  int
+	TotalCount int
+}
+
 func NewValueCell(sample *stats.Sample) *ValueCell {
 	return &ValueCell{Value: sample.Median(), Sample: sample}
 }
@@ -40,6 +45,14 @@ func (c *ValueCell) String() string {
 		return fmt.Sprintf("%.1f", c.Value)
 	}
 	return fmt.Sprintf("%.0f", math.Round(c.Value))
+}
+
+func NewRatioCell(trueCount, totalCount int) *RatioCell {
+	return &RatioCell{trueCount, totalCount}
+}
+
+func (c *RatioCell) String() string {
+	return fmt.Sprintf("%d / %d", c.TrueCount, c.TotalCount)
 }
 
 func NewTable(topLeft string, columns ...string) *Table {
