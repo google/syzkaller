@@ -35,6 +35,10 @@ type RatioCell struct {
 	TotalCount int
 }
 
+type BoolCell struct {
+	Value bool
+}
+
 func NewValueCell(sample *stats.Sample) *ValueCell {
 	return &ValueCell{Value: sample.Median(), Sample: sample}
 }
@@ -53,6 +57,19 @@ func NewRatioCell(trueCount, totalCount int) *RatioCell {
 
 func (c *RatioCell) String() string {
 	return fmt.Sprintf("%d / %d", c.TrueCount, c.TotalCount)
+}
+
+func NewBoolCell(value bool) *BoolCell {
+	return &BoolCell{
+		Value: value,
+	}
+}
+
+func (c *BoolCell) String() string {
+	if c.Value {
+		return "YES"
+	}
+	return "NO"
 }
 
 func NewTable(topLeft string, columns ...string) *Table {
