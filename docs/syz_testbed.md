@@ -13,6 +13,7 @@ other. The tool automates checking out syzkaller repos, building them, running
 {
   "workdir": "/tmp/syz-testbed-workdir/",
   "corpus": "/tmp/corpus.db",
+  "target": "syzkaller",
   "max_instances": 5,
   "run_time": "24h",
   "http": "0.0.0.0:50000",
@@ -56,22 +57,28 @@ The directory structure looks as follows:
 ```
 /tmp/syz-testbed-workdir/
 └── checkouts
-    ├── first
-<...>
-    │   ├── syz_0.cnf
-    │   ├── syz_1.cnf
-    │   ├── syz_4.cnf
-<...>
-    │   ├── workdir_0
-    │   ├── workdir_1
-    │   └── workdir_4
-    └── second
-<...>
-        ├── syz_2.cnf
-        ├── syz_3.cnf
-<...>
-        ├── workdir_2
-        └── workdir_3
+    ├── first
+    │   ├── run-first-0
+    │   │   ├── log.txt
+    │   │   ├── manager.cfg
+    │   │   └── workdir
+    │   ├── run-first-1
+    │   │   ├── log.txt
+    │   │   ├── manager.cfg
+    │   │   └── workdir
+    │   └── run-first-4
+    │   │   ├── log.txt
+    │   │   ├── manager.cfg
+    │   │   └── workdir
+    └── second
+        ├── run-second-2
+        │   ├── log.txt
+        │   ├── manager.cfg
+        │   └── workdir
+        └── run-second-3
+            ├── log.txt
+            ├── manager.cfg
+            └── workdir
 ```
 4. After 24 hours (as `run_hours` is 24), stop those 5 instances.
 5. Create and run 2 instances of `first` and 3 instances of `second`.
@@ -162,3 +169,30 @@ $ ./syz-testbed -config config.json
 ```
 
 Stopping the `syz-testbed` process results in stopping all the syzkaller instances.
+
+## Testing syz-repro
+
+`syz-testbed` can also be used to test syzkaller's ability to reproduce bugs. To do
+so, set the `target` property in the `syz-testbed`'s config file to `syz-repro`.
+
+One can also specify the source of the crash log files. This is either just a folder,
+whose files will be treated accordingly or it can be a syzkaller's workdir.
+`input_logs` must point to the folde with crash logs - `syz-testbed` will traverse
+it and treat each file as an input. Otherwise, `input_workdir` must be used.
+
+For example:
+```json
+  "repro_config": {
+    "input_workdir": "/tmp/some-syzkaller-workdir",
+    "crashes_per_bug": 2,
+    "skip_bugs": ["SYZFAIL", "no output", "corrupted", "lost connection"]
+  },
+```
+
+In this case, `syz-testbed` will traverse all bugs found by the syzkaller, skip
+those that match "SYZFAIL", "no output", "corrupted" or "lost connection", then
+pick 2 random crash logs for each such bug for later processing.
+
+`syz-testbed` will check out and compile the specified syzkaller instances and will
+go on executing their `syz-repro`s on each picked up crash log file, as long as
+the tool is not stopped.
