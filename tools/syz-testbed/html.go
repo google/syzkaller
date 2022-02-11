@@ -137,9 +137,13 @@ type uiTable struct {
 }
 
 const (
-	HTMLStatsTable     = "stats"
-	HTMLBugsTable      = "bugs"
-	HTMLBugCountsTable = "bug_counts"
+	HTMLStatsTable         = "stats"
+	HTMLBugsTable          = "bugs"
+	HTMLBugCountsTable     = "bug_counts"
+	HTMLReprosTable        = "repros"
+	HTMLCReprosTable       = "crepros"
+	HTMLReproAttemptsTable = "repro_attempts"
+	HTMLReproDurationTable = "repro_duration"
 )
 
 type uiTableGenerator = func(urlPrefix string, view StatView, r *http.Request) (*uiTable, error)
@@ -170,6 +174,10 @@ func (ctx *TestbedContext) getTableTypes() []uiTableType {
 		{HTMLStatsTable, "Statistics", ctx.httpMainStatsTable},
 		{HTMLBugsTable, "Bugs", ctx.genSimpleTableController((StatView).GenerateBugTable, true)},
 		{HTMLBugCountsTable, "Bug Counts", ctx.genSimpleTableController((StatView).GenerateBugCountsTable, false)},
+		{HTMLReprosTable, "Repros", ctx.genSimpleTableController((StatView).GenerateReproSuccessTable, true)},
+		{HTMLCReprosTable, "C Repros", ctx.genSimpleTableController((StatView).GenerateCReproSuccessTable, true)},
+		{HTMLReproAttemptsTable, "All Repros", ctx.genSimpleTableController((StatView).GenerateReproAttemptsTable, false)},
+		{HTMLReproDurationTable, "Duration", ctx.genSimpleTableController((StatView).GenerateReproDurationTable, true)},
 	}
 	typeList := []uiTableType{}
 	for _, t := range allTypeList {

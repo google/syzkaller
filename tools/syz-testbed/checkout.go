@@ -12,7 +12,10 @@ import (
 	"time"
 
 	syz_instance "github.com/google/syzkaller/pkg/instance"
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/pkg/tool"
 	"github.com/google/syzkaller/pkg/vcs"
 )
 
@@ -24,7 +27,26 @@ type Checkout struct {
 	Running       map[Instance]bool
 	Completed     []RunResult
 	LastRunning   time.Time
+	reporter      *report.Reporter
 	mu            sync.Mutex
+}
+
+func (checkout *Checkout) GetReporter() *report.Reporter {
+	checkout.mu.Lock()
+	defer checkout.mu.Unlock()
+	if checkout.reporter == nil {
+		// Unfortunately, we have no other choice but to parse the config to use our own parser.
+		// TODO: add some tool to syzkaller that would just parse logs and then execute it here?
+		mgrCfg, err := mgrconfig.LoadPartialData(checkout.ManagerConfig)
+		if err != nil {
+			tool.Failf("failed to parse mgr config for %s: %s", checkout.Name, err)
+		}
+		checkout.reporter, err = report.NewReporter(mgrCfg)
+		if err != nil {
+			tool.Failf("failed to get reporter for %s: %s", checkout.Name, err)
+		}
+	}
+	return checkout.reporter
 }
 
 func (checkout *Checkout) AddRunning(instance Instance) {

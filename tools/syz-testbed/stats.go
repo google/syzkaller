@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/stats"
@@ -25,6 +26,13 @@ type RunResult interface{}
 type SyzManagerResult struct {
 	Bugs        []BugInfo
 	StatRecords []StatRecord
+}
+
+type SyzReproResult struct {
+	Input       *SyzReproInput
+	ReproFound  bool
+	CReproFound bool
+	Duration    time.Duration
 }
 
 // A snapshot of syzkaller statistics at a particular time.
@@ -183,6 +191,17 @@ func (group RunResultGroup) SyzManagerResults() []*SyzManagerResult {
 	return ret
 }
 
+func (group RunResultGroup) SyzReproResults() []*SyzReproResult {
+	ret := []*SyzReproResult{}
+	for _, rawRes := range group.Results {
+		res, ok := rawRes.(*SyzReproResult)
+		if ok {
+			ret = append(ret, res)
+		}
+	}
+	return ret
+}
+
 func (group RunResultGroup) AvgStatRecords() []map[string]uint64 {
 	ret := []map[string]uint64{}
 	commonLen := group.minResultLength()
@@ -284,6 +303,99 @@ func (view StatView) InstanceStatsTable() (*Table, error) {
 	return newView.StatsTable()
 }
 
+// How often we find a repro to each crash log.
+func (view StatView) GenerateReproSuccessTable() (*Table, error) {
+	table := NewTable("Bug")
+	for _, group := range view.Groups {
+		table.AddColumn(group.Name)
+	}
+	for _, group := range view.Groups {
+		for _, result := range group.SyzReproResults() {
+			title := result.Input.Title
+			cell, _ := table.Get(title, group.Name).(*RatioCell)
+			if cell == nil {
+				cell = NewRatioCell(0, 0)
+			}
+			cell.TotalCount++
+			if result.ReproFound {
+				cell.TrueCount++
+			}
+			table.Set(title, group.Name, cell)
+		}
+	}
+	return table, nil
+}
+
+// What share of found repros also have a C repro.
+func (view StatView) GenerateCReproSuccessTable() (*Table, error) {
+	table := NewTable("Bug")
+	for _, group := range view.Groups {
+		table.AddColumn(group.Name)
+	}
+	for _, group := range view.Groups {
+		for _, result := range group.SyzReproResults() {
+			if !result.ReproFound {
+				continue
+			}
+			title := result.Input.Title
+			cell, _ := table.Get(title, group.Name).(*RatioCell)
+			if cell == nil {
+				cell = NewRatioCell(0, 0)
+			}
+			cell.TotalCount++
+			if result.CReproFound {
+				cell.TrueCount++
+			}
+			table.Set(title, group.Name, cell)
+		}
+	}
+	return table, nil
+}
+
+// What share of found repros also have a C repro.
+func (view StatView) GenerateReproDurationTable() (*Table, error) {
+	table := NewTable("Bug")
+	for _, group := range view.Groups {
+		table.AddColumn(group.Name)
+	}
+	for _, group := range view.Groups {
+		samples := make(map[string]*stats.Sample)
+		for _, result := range group.SyzReproResults() {
+			title := result.Input.Title
+			var sample *stats.Sample
+			sample, ok := samples[title]
+			if !ok {
+				sample = &stats.Sample{}
+				samples[title] = sample
+			}
+			sample.Xs = append(sample.Xs, result.Duration.Seconds())
+		}
+
+		for title, sample := range samples {
+			table.Set(title, group.Name, NewValueCell(sample))
+		}
+	}
+	return table, nil
+}
+
+// List all repro attempts.
+func (view StatView) GenerateReproAttemptsTable() (*Table, error) {
+	table := NewTable("Result #", "Bug", "Checkout", "Repro found", "C repro found", "Duration")
+	for gid, group := range view.Groups {
+		for rid, result := range group.SyzReproResults() {
+			table.AddRow(
+				fmt.Sprintf("%d-%d", gid, rid),
+				result.Input.Title,
+				group.Name,
+				NewBoolCell(result.ReproFound),
+				NewBoolCell(result.CReproFound),
+				result.Duration.Round(time.Second).String(),
+			)
+		}
+	}
+	return table, nil
+}
+
 // Average bench files of several instances into a single bench file.
 func (group *RunResultGroup) SaveAvgBenchFile(fileName string) error {
 	f, err := os.Create(fileName)
@@ -318,7 +430,7 @@ func (view *StatView) SaveAvgBenches(benchDir string) ([]string, error) {
 
 func (view *StatView) IsEmpty() bool {
 	for _, group := range view.Groups {
-		if group.minResultLength() > 0 {
+		if len(group.Results) > 0 {
 			return false
 		}
 	}
