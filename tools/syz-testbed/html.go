@@ -131,6 +131,7 @@ type uiTable struct {
 	ColumnURL func(string) string
 	RowURL    func(string) string
 	Extra     bool
+	HasFooter bool
 	AlignedBy string
 }
 
@@ -166,20 +167,22 @@ type uiMainPage struct {
 func (ctx *TestbedContext) getTableTypes() []uiTableType {
 	typeList := []uiTableType{
 		{HTMLStatsTable, "Statistics", ctx.httpMainStatsTable},
-		{HTMLBugsTable, "Bugs", ctx.genSimpleTableController((StatView).GenerateBugTable)},
-		{HTMLBugCountsTable, "Bug Counts", ctx.genSimpleTableController((StatView).GenerateBugCountsTable)},
+		{HTMLBugsTable, "Bugs", ctx.genSimpleTableController((StatView).GenerateBugTable, true)},
+		{HTMLBugCountsTable, "Bug Counts", ctx.genSimpleTableController((StatView).GenerateBugCountsTable, false)},
 	}
 	return typeList
 }
 
-func (ctx *TestbedContext) genSimpleTableController(method func(view StatView) (*Table, error)) uiTableGenerator {
+func (ctx *TestbedContext) genSimpleTableController(method func(view StatView) (*Table, error),
+	hasFooter bool) uiTableGenerator {
 	return func(urlPrefix string, view StatView, r *http.Request) (*uiTable, error) {
 		table, err := method(view)
 		if err != nil {
 			return nil, fmt.Errorf("table generation failed: %s", err)
 		}
 		return &uiTable{
-			Table: table,
+			Table:     table,
+			HasFooter: hasFooter,
 		}, nil
 	}
 }
@@ -364,7 +367,7 @@ href="?view={{$view.Name}}">█ {{$view.Name}}</a>
 	The data are aligned by {{$uiTable.AlignedBy}} <br />
 {{end}}
 <table class="list_table">
-	<tr>
+	<thead><tr>
 	<th>{{.Table.TopLeftHeader}}</th>
 	{{range $c := .Table.ColumnHeaders}}
 		<th>
@@ -379,7 +382,8 @@ href="?view={{$view.Name}}">█ {{$view.Name}}</a>
 		<th>Δ</th>
 		{{end}}
 	{{end}}
-	</tr>
+	</tr></thead>
+	<tbody>
 	{{range $r := .Table.SortedRows}}
 	<tr>
 		<td>
@@ -401,6 +405,15 @@ href="?view={{$view.Name}}">█ {{$view.Name}}</a>
 		{{end}}
 	</tr>
 	{{end}}
+	{{if $uiTable.HasFooter}}
+		<tr>
+			<td>-</td>
+			{{range $c := $uiTable.Table.ColumnHeaders}}
+				<td>{{$uiTable.Table.GetFooterValue $c}}</td>
+			{{end}}
+		</tr>
+	{{end}}
+	</tbody>
 </table>
 {{end}}
 {{end}}
