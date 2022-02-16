@@ -1,6 +1,13 @@
 # Research work based on syzkaller
 
 _newer first_
+* [SyzVegas: Beating Kernel Fuzzing Odds with Reinforcement Learning](https://www.usenix.org/conference/usenixsecurity21/presentation/wang-daimeng)
+* [SyzScope: Revealing High-Risk Security Impacts of Fuzzer-Exposed Bugs in Linux kernel](https://www.usenix.org/conference/usenixsecurity22/presentation/zou)
+* [Rtkaller: State-aware Task Generation for RTOS Fuzzing](http://www.wingtecher.com/themes/WingTecherResearch/assets/papers/emsoft21.pdf)
+* [BSOD: Binary-only Scalable fuzzing Of device Drivers](https://dmnk.co/raid21-bsod.pdf)
+* [Torpedo: A Fuzzing Framework for Discovering Adversarial Container Workloads](https://vtechworks.lib.vt.edu/handle/10919/104159)
+* [A Novel Dynamic Analysis Infrastructure to Instrument Untrusted Execution Flow Across User-Kernel Spaces](https://ieeexplore.ieee.org/abstract/document/9519439)
+* [Healer](https://github.com/SunHao-0/healer) is a kernel fuzzer inspired by syzkaller. ([pdf](http://www.wingtecher.com/themes/WingTecherResearch/assets/papers/healer-sosp21.pdf))
 * [SyzGen: Automated Generation of Syscall Specification of Closed-Source macOS Drivers](https://www.cs.ucr.edu/~zhiyunq/pub/ccs21_syzgen.pdf) ([source code](https://github.com/seclab-ucr/SyzGen_setup))
 * [Snowboard: Finding Kernel Concurrency Bugs through Systematic Inter-thread Communication Analysis](https://dl.acm.org/doi/10.1145/3477132.3483549)
 * [Undo Workarounds for Kernel Bugs](https://www.usenix.org/system/files/sec21fall-talebi.pdf) ([source code](https://trusslab.github.io/hecaton))
@@ -29,7 +36,6 @@ _newer first_
 # Other kernel fuzzing work
 
 * [CoLaFUZE: Coverage-Guided and Layout-Aware Fuzzing for Android Drivers](https://www.jstage.jst.go.jp/article/transinf/E104.D/11/E104.D_2021NGP0005/_pdf)
-* [Healer](https://github.com/SunHao-0/healer) is a kernel fuzzer inspired by syzkaller.
 * [KRACE: Data Race Fuzzing for Kernel File Systems](https://www.cc.gatech.edu/~mxu80/pubs/xu:krace.pdf)
 * [trinity](https://github.com/kernelslacker/trinity)
 * [kAFL: Hardware-Assisted Feedback Fuzzing for OS Kernels](https://www.usenix.org/system/files/conference/usenixsecurity17/sec17-schumilo.pdf) (bridges AFL and Intel PT)
