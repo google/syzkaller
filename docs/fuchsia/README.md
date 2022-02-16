@@ -1,8 +1,8 @@
 # Fuchsia support
 
 For information about checking out and building Fuchsia see
-[Getting Started](https://fuchsia.googlesource.com/fuchsia/+/master/docs/getting_started.md)
-and [Source Code](https://fuchsia.googlesource.com/fuchsia/+/master/docs/development/source_code/README.md).
+[Getting Started](https://fuchsia.dev/fuchsia-src/get-started)
+and [Source Code](https://fuchsia.dev/fuchsia-src/get-started/get_fuchsia_source).
 
 ## Prerequisites
 
