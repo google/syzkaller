@@ -80,7 +80,7 @@ static void cover_mmap(cover_t* cov)
 
 	// Sanity check to make sure our assumptions in the max_entries calculation
 	// hold up.
-	if (mmap_alloc_size > kCoverSize)
+	if (cov->mmap_alloc_size > kCoverSize)
 		fail("mmap allocation size larger than anticipated");
 
 	cov->data = (char*)mmap_ptr;
