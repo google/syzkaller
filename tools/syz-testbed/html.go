@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"embed"
 	"fmt"
 	"html/template"
 	"io/ioutil"
@@ -277,12 +278,12 @@ func (ctx *TestbedContext) httpMain(w http.ResponseWriter, r *http.Request) {
 		ActiveView: uiView,
 	}
 
-	executeTemplate(w, mainTemplate, data)
+	executeTemplate(w, mainTemplate, "testbed.html", data)
 }
 
-func executeTemplate(w http.ResponseWriter, templ *template.Template, data interface{}) {
+func executeTemplate(w http.ResponseWriter, templ *template.Template, name string, data interface{}) {
 	buf := new(bytes.Buffer)
-	if err := templ.Execute(buf, data); err != nil {
+	if err := templ.ExecuteTemplate(buf, name, data); err != nil {
 		log.Printf("failed to execute template: %v", err)
 		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
 		return
@@ -290,151 +291,6 @@ func executeTemplate(w http.ResponseWriter, templ *template.Template, data inter
 	w.Write(buf.Bytes())
 }
 
-var mainTemplate = html.CreatePage(`
-<!doctype html>
-<html>
-<head>
-	<title>{{.Name }} syzkaller</title>
-	{{HEAD}}
-	<style>
-	.positive-delta {
-		color:darkgreen;
-	}
-	.negative-delta {
-		color:darkred;
-	}
-	</style>
-</head>
-<body>
-
-<header id="topbar">
-	<table class="position_table">
-		<tbody>
-		<tr><td>
-		<h1><a href="/">syz-testbed "{{.Name }}"</a></h1>
-		</td></tr>
-		</tbody>
-	</table>
-	<table class="position_table">
-	<tbody>
-	<td class="navigation">
-Views:
-{{with $main := .}}
-{{range $view := .Views}}
-<a
-{{if eq $view.Name $main.ActiveView.Name}}
-class="navigation_tab_selected"
-{{else}}
-class="navigation_tab"
-{{end}}
-href="?view={{$view.Name}}">█ {{$view.Name}}</a>
-&nbsp;
-{{end}}
-{{end}}
-	</td>
-	</tbody>
-	</table>
-</header>
-
-{{define "PrintValue"}}
-	{{if or (lt . -100.0) (gt . 100.0)}}
-		{{printf "%.0f" .}}
-	{{else}}
-		{{printf "%.1f" .}}
-	{{end}}
-{{end}}
-
-{{define "PrintExtra"}}
-	{{if .PercentChange}}
-		{{$numVal := (dereference .PercentChange)}}
-		{{if ge $numVal 0.0}}
-			<span class="positive-delta">
-		{{else}}
-			<span class="negative-delta">
-		{{end}}
-		{{printf "%+.1f" $numVal}}%
-		</span>
-	{{end}}
-	{{if .PValue}}
-		p={{printf "%.2f" (dereference .PValue)}}
-	{{end}}
-{{end}}
-
-{{define "PrintTable"}}
-{{$uiTable := .}}
-{{if .Table}}
-{{if $uiTable.AlignedBy}}
-	The data are aligned by {{$uiTable.AlignedBy}} <br />
-{{end}}
-<table class="list_table">
-	<thead><tr>
-	<th>{{.Table.TopLeftHeader}}</th>
-	{{range $c := .Table.ColumnHeaders}}
-		<th>
-		{{$url := ""}}
-                {{if $uiTable.ColumnURL}}{{$url = (call $uiTable.ColumnURL $c)}}{{end}}
-			{{if $url}}<a href="{{$url}}">{{$c}}</a>
-			{{else}}
-			{{$c}}
-			{{end}}
-		</th>
-		{{if $uiTable.Extra}}
-		<th>Δ</th>
-		{{end}}
-	{{end}}
-	</tr></thead>
-	<tbody>
-	{{range $r := .Table.SortedRows}}
-	<tr>
-		<td>
-		{{$url := ""}}
-                {{if $uiTable.RowURL}}{{$url = (call $uiTable.RowURL $r)}}{{end}}
-			{{if $url}}<a href="{{$url}}">{{$r}}</a>
-			{{else}}
-			{{$r}}
-			{{end}}
-		</td>
-		{{range $c := $uiTable.Table.ColumnHeaders}}
-			{{$cell := ($uiTable.Table.Get $r $c)}}
-			{{if and $cell $uiTable.Extra}}
-			<td>{{template "PrintValue" $cell.Value}}</td>
-			<td>{{template "PrintExtra" $cell}}</td>
-			{{else}}
-			<td>{{$cell}}</td>
-			{{end}}
-		{{end}}
-	</tr>
-	{{end}}
-	{{if $uiTable.HasFooter}}
-		<tr>
-			<td>-</td>
-			{{range $c := $uiTable.Table.ColumnHeaders}}
-				<td>{{$uiTable.Table.GetFooterValue $c}}</td>
-			{{end}}
-		</tr>
-	{{end}}
-	</tbody>
-</table>
-{{end}}
-{{end}}
-
-{{template "PrintTable" .Summary}}
-{{$activeView := $.ActiveView}}
-<h2>Stat view "{{$activeView.Name}}"</h2>
-<b>Tables:
-{{range $typeKey, $type := $activeView.TableTypes}}
-	{{if eq $typeKey $activeView.ActiveTableType}}
-		{{$type.Title}}
-	{{else}}
-		<a href="{{call $activeView.GenTableURL $type}}">{{$type.Title}}</a>
-	{{end}}
-	&nbsp;
-{{end}}
-</b> <br />
-<a href="/graph?view={{$.ActiveView.Name}}&over=fuzzing">Graph over time</a> /
-<a href="/graph?view={{$.ActiveView.Name}}&over=exec+total">Graph over executions</a> <br />
-{{template "PrintTable" $.ActiveView.ActiveTable}}
-
-</body>
-</html>
-`)
+//go:embed templates
+var testbedTemplates embed.FS
+var mainTemplate = html.CreateFromFS(testbedTemplates, "templates/*.html")
