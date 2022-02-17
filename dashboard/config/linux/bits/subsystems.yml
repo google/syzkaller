@@ -92,6 +92,7 @@ config:
  - ANON_VMA_NAME: [v5.17]
  - KSM
  - TRANSPARENT_HUGEPAGE: [-arm, -riscv]
+ - TRANSPARENT_HUGEPAGE_MADVISE: [-arm, -riscv]
  - FRONTSWAP
  - CMA
  - MEM_SOFT_DIRTY: [x86_64]
