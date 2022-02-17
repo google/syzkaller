@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+<head>
+	<title>{{.Name }} syzkaller</title>
+	{{template "syz-head"}}
+	<style>
+	.positive-delta {
+		color:darkgreen;
+	}
+	.negative-delta {
+		color:darkred;
+	}
+	</style>
+</head>
+<body>
+  <header id="topbar">
+    <table class="position_table">
+      <tbody>
+	<tr>
+          <td>
+	    <h1>
+              <a href="/">syz-testbed "{{.Name }}"</a></h1>
+	  </td>
+        </tr>
+      </tbody>
+    </table>
+    <table class="position_table">
+      <tbody>
+	<td class="navigation">
+Views:
+{{with $main := .}}
+{{range $view := .Views}}
+<a
+{{if eq $view.Name $main.ActiveView.Name}}
+class="navigation_tab_selected"
+{{else}}
+class="navigation_tab"
+{{end}}
+href="?view={{$view.Name}}">█ {{$view.Name}}</a>
+&nbsp;
+{{end}}
+{{end}}
+	</td>
+      </tbody>
+    </table>
+  </header>
+
+  {{template "table.html" .Summary}}
+  {{$activeView := $.ActiveView}}
+  <h2>Stat view "{{$activeView.Name}}"</h2>
+  <b>Tables:
+    {{range $typeKey, $type := $activeView.TableTypes}}
+    {{if eq $typeKey $activeView.ActiveTableType}}
+    {{$type.Title}}
+    {{else}}
+    <a href="{{call $activeView.GenTableURL $type}}">{{$type.Title}}</a>
+    {{end}}
+    &nbsp;
+    {{end}}
+  </b> <br />
+  <a href="/graph?view={{$.ActiveView.Name}}&over=fuzzing">Graph over time</a> /
+  <a href="/graph?view={{$.ActiveView.Name}}&over=exec+total">Graph over executions</a> <br />
+  {{template "table.html" $.ActiveView.ActiveTable}}
+</body>
+</html>
