@@ -53,6 +53,7 @@ func initHTTPHandlers() {
 		http.Handle("/"+ns+"/graph/bugs", handlerWrapper(handleKernelHealthGraph))
 		http.Handle("/"+ns+"/graph/lifetimes", handlerWrapper(handleGraphLifetimes))
 		http.Handle("/"+ns+"/graph/fuzzing", handlerWrapper(handleGraphFuzzing))
+		http.Handle("/"+ns+"/graph/crashes", handlerWrapper(handleGraphCrashes))
 	}
 	http.HandleFunc("/cache_update", cacheUpdate)
 }

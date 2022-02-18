@@ -226,6 +226,7 @@ aside {
 	border: 1px solid #aaa;
 	border-radius: 5px;
 	margin-bottom: 5px;
+	margin-top: 5px;
 }
 
 .panel h1 {
@@ -238,6 +239,10 @@ aside {
 	padding: 5px;
 	border: 0;
 	width: 100%;
+}
+
+.panel label {
+	margin-left: 7px;
 }
 
 .main-content {
@@ -262,4 +267,20 @@ aside {
 
 #graph_div {
 	height: 85vh;
+}
+
+
+.input-values {
+	margin-left: 7px;
+	margin-bottom: 7px;
+}
+
+.input-group {
+	margin-top: 7px;
+	margin-bottom: 7px;
+	display: block;
+}
+
+.input-group button {
+	width: 20pt;
 }

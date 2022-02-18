@@ -6,6 +6,9 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"net/url"
+	"regexp"
+	"sort"
 	"strconv"
 	"time"
 
@@ -40,6 +43,15 @@ type uiManagersPage struct {
 	Graph    *uiGraph
 }
 
+type uiCrashesPage struct {
+	Header      *uiHeader
+	Graph       *uiGraph
+	Regexps     *uiMultiInput
+	GraphMonths *uiSlider
+	TableDays   *uiSlider
+	Table       *uiCrashPageTable
+}
+
 type uiGraph struct {
 	Headers []string
 	Columns []uiGraphColumn
@@ -53,6 +65,19 @@ type uiGraphColumn struct {
 type uiGraphValue struct {
 	Val  float32
 	Hint string
+}
+
+type uiCrashPageTable struct {
+	Title string
+	Rows  []*uiCrashSummary
+}
+
+type uiCrashSummary struct {
+	Title     string
+	Link      string
+	Count     int
+	Share     float32
+	GraphLink string
 }
 
 type uiCheckbox struct {
@@ -74,6 +99,12 @@ type uiSlider struct {
 	Val     int
 	Min     int
 	Max     int
+}
+
+type uiMultiInput struct {
+	ID      string
+	Caption string
+	Vals    []string
 }
 
 // nolint: dupl
@@ -436,4 +467,152 @@ func createSlider(r *http.Request, caption string, min, max int) *uiSlider {
 		ui.Val = val
 	}
 	return ui
+}
+
+func createMultiInput(r *http.Request, id, caption string) *uiMultiInput {
+	filteredValues := []string{}
+	for _, val := range r.Form[id] {
+		if val == "" {
+			continue
+		}
+		filteredValues = append(filteredValues, val)
+	}
+	return &uiMultiInput{
+		ID:      id,
+		Caption: caption,
+		Vals:    filteredValues,
+	}
+}
+
+func handleGraphCrashes(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	accessLevel := accessLevel(c, r)
+	if accessLevel != AccessAdmin {
+		return ErrAccess
+	}
+	hdr, err := commonHeader(c, r, w, "")
+	if err != nil {
+		return err
+	}
+	r.ParseForm()
+
+	data := &uiCrashesPage{
+		Header:      hdr,
+		Regexps:     createMultiInput(r, "regexp", "Regexps"),
+		GraphMonths: createSlider(r, "Months", 1, 36),
+		TableDays:   createSlider(r, "Days", 1, 30),
+	}
+
+	bugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
+		return query.Filter("Namespace=", hdr.Namespace)
+	})
+	if err != nil {
+		return err
+	}
+	if len(data.Regexps.Vals) == 0 {
+		// If no data is passed, then at least show the graph for important crash types.
+		data.Regexps.Vals = []string{"^KASAN", "^KMSAN", "^KCSAN", "^SYZFAIL"}
+	}
+	if r.Form["show-graph"] != nil {
+		data.Graph, err = createCrashesGraph(c, hdr.Namespace, data.Regexps.Vals, data.GraphMonths.Val*30, bugs)
+		if err != nil {
+			return err
+		}
+	} else {
+		data.Table = createCrashesTable(c, hdr.Namespace, data.TableDays.Val, bugs)
+	}
+	return serveTemplate(w, "graph_crashes.html", data)
+}
+
+func createCrashesTable(c context.Context, ns string, days int, bugs []*Bug) *uiCrashPageTable {
+	const dayDuration = 24 * time.Hour
+	startDay := timeNow(c).Add(time.Duration(-days+1) * dayDuration)
+	table := &uiCrashPageTable{
+		Title: fmt.Sprintf("Top crashers of the last %d day(s)", days),
+	}
+	totalCount := 0
+	for _, bug := range bugs {
+		count := 0
+		for _, s := range bug.dailyStatsTail(startDay) {
+			count += s.CrashCount
+		}
+		if count == 0 {
+			continue
+		}
+		totalCount += count
+		titleRegexp := regexp.QuoteMeta(bug.Title)
+		table.Rows = append(table.Rows, &uiCrashSummary{
+			Title:     bug.Title,
+			Link:      bugLink(bug.keyHash()),
+			GraphLink: "?show-graph=1&Months=1&regexp=" + url.QueryEscape(titleRegexp),
+			Count:     count,
+		})
+	}
+	for id := range table.Rows {
+		table.Rows[id].Share = float32(table.Rows[id].Count) / float32(totalCount) * 100.0
+	}
+	// Order by descending crash count.
+	sort.SliceStable(table.Rows, func(i, j int) bool {
+		return table.Rows[i].Count > table.Rows[j].Count
+	})
+	return table
+}
+
+func createCrashesGraph(c context.Context, ns string, regexps []string, days int, bugs []*Bug) (*uiGraph, error) {
+	const dayDuration = 24 * time.Hour
+	graph := &uiGraph{Headers: regexps}
+	startDay := timeNow(c).Add(time.Duration(-days) * dayDuration)
+	// Step 1: fill the whole table with empty values.
+	dateToIdx := make(map[int]int)
+	for date := 0; date <= days; date++ {
+		day := startDay.Add(time.Duration(date) * dayDuration)
+		dateToIdx[timeDate(day)] = date
+		col := uiGraphColumn{Hint: day.Format("02-01-2006")}
+		for range regexps {
+			col.Vals = append(col.Vals, uiGraphValue{Hint: "-"})
+		}
+		graph.Columns = append(graph.Columns, col)
+	}
+	// Step 2: fill in crash counts.
+	totalCounts := make(map[int]int)
+	for _, bug := range bugs {
+		for _, stat := range bug.dailyStatsTail(startDay) {
+			pos, ok := dateToIdx[stat.Date]
+			if !ok {
+				continue
+			}
+			totalCounts[pos] += stat.CrashCount
+		}
+	}
+	for regexpID, val := range regexps {
+		r, err := regexp.Compile(val)
+		if err != nil {
+			return nil, err
+		}
+		for _, bug := range bugs {
+			if !r.MatchString(bug.Title) {
+				continue
+			}
+			for _, stat := range bug.DailyStats {
+				pos, ok := dateToIdx[stat.Date]
+				if !ok {
+					continue
+				}
+				graph.Columns[pos].Vals[regexpID].Val += float32(stat.CrashCount)
+			}
+		}
+	}
+	// Step 3: convert abs values to percents.
+	for date := 0; date <= days; date++ {
+		count := totalCounts[date]
+		if count == 0 {
+			continue
+		}
+		for id := range graph.Columns[date].Vals {
+			value := &graph.Columns[date].Vals[id]
+			abs := value.Val
+			value.Val = abs / float32(count) * 100.0
+			value.Hint = fmt.Sprintf("%.1f%% (%.0f)", value.Val, abs)
+		}
+	}
+	return graph, nil
 }

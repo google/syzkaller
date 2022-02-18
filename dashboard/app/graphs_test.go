@@ -105,4 +105,9 @@ func TestManagersGraphs(t *testing.T) {
 	c.expectOK(err)
 	// TODO: check reply
 	_ = reply
+
+	reply, err = c.AuthGET(AccessAdmin, "/test2/graph/crashes")
+	c.expectOK(err)
+	// TODO: check reply
+	_ = reply
 }

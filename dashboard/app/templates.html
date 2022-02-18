@@ -69,7 +69,9 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/lifetimes" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/graph/lifetimes'>
 						<span style="color:DarkOrange;">📈</span> Bug Lifetimes</a>
 					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/fuzzing" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/graph/fuzzing'>
-						<span style="color:DarkOrange;">📈</span> Fuzzing</a>
+					  <span style="color:DarkOrange;">📈</span> Fuzzing</a>
+					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/crashes" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/graph/crashes'>
+						<span style="color:DarkOrange;">📈</span> Crashes</a> 
 					{{end}}
 				</td>
 			</tr>
@@ -437,5 +439,25 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<label for="{{.ID}}">{{.Caption}}:</label>
 		<input type="range" name="{{.ID}}" min="{{.Min}}" max="{{.Max}}" value="{{.Val}}" oninput="document.getElementById('{{.ID}}-val').innerHTML = this.value">
 		<i id="{{.ID}}-val">{{.Val}}</i>
+	</div>
+{{end}}
+
+{{/* Multiple text fields */}}
+{{define "input-multi-text"}}
+	<div class="panel">
+		<h1>{{.Caption}}:</h1>
+		<div class="input-values">
+			{{$input := .}}
+			{{range .Vals}}
+			<span class="input-group">
+				<input type="text" name="{{$input.ID}}" value="{{.}}" /> <button onclick="deleteInputGroup(this)" type="button">x</button>
+			</span>
+			{{else}}
+			<span class="input-group">
+				<input type="text" name="{{$input.ID}}" value="" /> <button onclick="deleteInputGroup(this)" type="button">x</button>
+			</span>
+			{{end}}
+			<button onclick="addInputGroup(this)">Add one more</button>
+		</div>
 	</div>
 {{end}}

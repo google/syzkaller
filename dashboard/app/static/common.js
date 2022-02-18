@@ -61,3 +61,41 @@ function timeSort(v) {
 		return parseInt(v) * 60 * 24;
 	return 1000000000;
 }
+
+
+
+function findAncestorByClass (el, cls) {
+	while ((el = el.parentElement) && !el.classList.contains(cls));
+	return el;
+}
+
+function deleteInputGroup(node) {
+	group = findAncestorByClass(node, "input-group")
+	values = findAncestorByClass(group, "input-values")
+	if (!values) {
+		return false
+	}
+	count = values.querySelectorAll('.input-group').length
+	if (count == 1) {
+		// If it's the only input, just clear it.
+		input = group.querySelector('input')
+		input.value = ""
+	} else {
+		group.remove()
+	}
+	return false
+}
+
+function addInputGroup(node) {
+	values = findAncestorByClass(node, "input-values")
+	groups = values.querySelectorAll(".input-group")
+	if (groups.length == 0) {
+		// Something strange has happened.
+		return false
+	}
+	lastGroup = groups[groups.length - 1]
+	newGroup = lastGroup.cloneNode(true)
+	newGroup.querySelector('input').value = ""
+	values.insertBefore(newGroup, lastGroup.nextSibling)
+	return false
+}

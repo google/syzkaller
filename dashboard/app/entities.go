@@ -559,6 +559,17 @@ func (bug *Bug) increaseCrashStats(now time.Time) {
 	}
 }
 
+func (bug *Bug) dailyStatsTail(from time.Time) []BugDailyStats {
+	startDate := timeDate(from)
+	startPos := len(bug.DailyStats)
+	for ; startPos > 0; startPos-- {
+		if bug.DailyStats[startPos-1].Date < startDate {
+			break
+		}
+	}
+	return bug.DailyStats[startPos:]
+}
+
 func markCrashReported(c context.Context, crashID int64, bugKey *db.Key, now time.Time) error {
 	crash := new(Crash)
 	crashKey := db.NewKey(c, "Crash", "", crashID, bugKey)
