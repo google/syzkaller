@@ -72,6 +72,8 @@ var (
 		(1 << 16) - 1, (1 << 16), (1 << 16) + 1,
 		(1 << 31) - 1, (1 << 31), (1 << 31) + 1,
 		(1 << 32) - 1, (1 << 32), (1 << 32) + 1,
+		(1 << 63) - 1, (1 << 63), (1 << 63) + 1,
+		(1 << 64) - 1,
 	}
 	// The indexes (exclusive) for the maximum specialInts values that fit in 1, 2, ... 8 bytes.
 	specialIntIndex [9]int
