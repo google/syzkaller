@@ -18,21 +18,21 @@ resource user_key[key]
 # key of type "fscrypt-provisioning"
 resource fscrypt_provisioning_key[key]
 
-add_key(type ptr[in, string[key_type]], desc ptr[in, key_desc], payload ptr[in, array[int8], opt], paylen len[payload], keyring keyring[opt]) key
-add_key$keyring(type ptr[in, string["keyring"]], desc ptr[in, key_desc], payload const[0], paylen const[0], keyring keyring[opt]) keyring
-add_key$user(type ptr[in, string["user"]], desc ptr[in, key_desc], payload buffer[in], paylen len[payload], keyring keyring[opt]) user_key
-add_key$fscrypt_provisioning(type ptr[in, string["fscrypt-provisioning"]], desc ptr[in, key_desc], payload ptr[in, fscrypt_provisioning_key_payload], paylen len[payload], keyring keyring[opt]) fscrypt_provisioning_key
+add_key(type ptr[in, string[key_type]], desc ptr[in, key_descz], payload ptr[in, array[int8], opt], paylen len[payload], keyring keyring[opt]) key
+add_key$keyring(type ptr[in, string["keyring"]], desc ptr[in, key_descz], payload const[0], paylen const[0], keyring keyring[opt]) keyring
+add_key$user(type ptr[in, string["user"]], desc ptr[in, key_descz], payload buffer[in], paylen len[payload], keyring keyring[opt]) user_key
+add_key$fscrypt_provisioning(type ptr[in, string["fscrypt-provisioning"]], desc ptr[in, key_descz], payload ptr[in, fscrypt_provisioning_key_payload], paylen len[payload], keyring keyring[opt]) fscrypt_provisioning_key
 add_key$fscrypt_v1(type ptr[in, string["logon"]], desc ptr[in, fscrypt_v1_key_description], payload ptr[in, fscrypt_v1_key_payload], paylen len[payload], keyring keyring[opt]) key
-request_key(type ptr[in, string[key_type]], desc ptr[in, key_desc], callout ptr[in, string], keyring keyring[opt]) key
+request_key(type ptr[in, string[key_type]], desc ptr[in, key_descz], callout ptr[in, string], keyring keyring[opt]) key
 keyctl$get_keyring_id(code const[KEYCTL_GET_KEYRING_ID], key key, create intptr)
-keyctl$join(code const[KEYCTL_JOIN_SESSION_KEYRING], session ptr[in, key_desc, opt])
+keyctl$join(code const[KEYCTL_JOIN_SESSION_KEYRING], session ptr[in, key_descz, opt])
 keyctl$update(code const[KEYCTL_UPDATE], key key, payload ptr[in, array[int8], opt], paylen len[payload])
 keyctl$revoke(code const[KEYCTL_REVOKE], key key)
 keyctl$describe(code const[KEYCTL_DESCRIBE], key key, desc buffer[out], len len[desc])
 keyctl$clear(code const[KEYCTL_CLEAR], keyring keyring)
 keyctl$link(code const[KEYCTL_LINK], key key, keyring keyring)
 keyctl$unlink(code const[KEYCTL_UNLINK], key key, keyring keyring)
-keyctl$search(code const[KEYCTL_SEARCH], key key, type ptr[in, string[key_type]], desc ptr[in, key_desc], destination keyring)
+keyctl$search(code const[KEYCTL_SEARCH], key key, type ptr[in, string[key_type]], desc ptr[in, key_descz], destination keyring)
 keyctl$read(code const[KEYCTL_READ], key key, payload buffer[out], len len[payload])
 keyctl$chown(code const[KEYCTL_CHOWN], key key, uid uid, gid gid)
 # perm is a mask of KEY_POS_VIEW, etc consants, but they cover almost whole int32.
@@ -69,8 +69,12 @@ key_type = "asymmetric", "big_key", "blacklist", "ceph", "cifs.idmap", "cifs.spn
 key_desc {
 	prefix	stringnoz["syz"]
 	id	proc[' ', 4, int8]
+} [packed]
+
+key_descz {
+	key	key_desc
 	z	const[0, int8]
-}
+} [packed]
 
 keyctl_dh_params {
 	private	user_key
