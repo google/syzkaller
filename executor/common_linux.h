@@ -2678,11 +2678,8 @@ static long syz_emit_vhci(volatile long a0, volatile long a1)
 static long syz_genetlink_get_family_id(volatile long name, volatile long sock_arg)
 {
 	debug("syz_genetlink_get_family_id(%s, %d)\n", (char*)name, (int)sock_arg);
-	// We can't trust the socket passed by the fuzzer, it may be not a netlink at all.
-	bool dofail = false;
 	int fd = sock_arg;
 	if (fd < 0) {
-		dofail = true;
 		fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
 		if (fd == -1) {
 			debug("syz_genetlink_get_family_id: socket failed: %d\n", errno);
@@ -2690,7 +2687,7 @@ static long syz_genetlink_get_family_id(volatile long name, volatile long sock_a
 		}
 	}
 	struct nlmsg nlmsg_tmp;
-	int ret = netlink_query_family_id(&nlmsg_tmp, fd, (char*)name, dofail);
+	int ret = netlink_query_family_id(&nlmsg_tmp, fd, (char*)name, false);
 	if ((int)sock_arg < 0)
 		close(fd);
 	if (ret < 0) {
