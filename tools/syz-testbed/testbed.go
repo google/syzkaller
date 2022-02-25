@@ -33,11 +33,11 @@ type TestbedConfig struct {
 	Target        string           `json:"target"`         // what application to test
 	MaxInstances  int              `json:"max_instances"`  // max # of simultaneously running instances
 	RunTime       DurationConfig   `json:"run_time"`       // lifetime of an instance (default "24h")
-	InputLogs     string           `json:"input_logs"`     // folder with logs to be processed by syz-repro
 	HTTP          string           `json:"http"`           // on which port to set up a simple web dashboard
 	BenchCmp      string           `json:"benchcmp"`       // path to the syz-benchcmp executable
 	Corpus        string           `json:"corpus"`         // path to the corpus file
 	Workdir       string           `json:"workdir"`        // instances will be checked out there
+	ReproConfig   ReproTestConfig  `json:"repro_config"`   // syz-repro benchmarking config
 	ManagerConfig json.RawMessage  `json:"manager_config"` // base manager config
 	Checkouts     []CheckoutConfig `json:"checkouts"`
 }
@@ -51,6 +51,13 @@ type CheckoutConfig struct {
 	Repo          string          `json:"repo"`
 	Branch        string          `json:"branch"`
 	ManagerConfig json.RawMessage `json:"manager_config"` // a patch to manager config
+}
+
+type ReproTestConfig struct {
+	InputLogs     string   `json:"input_logs"`      // take crash logs from a folder
+	InputWorkdir  string   `json:"input_workdir"`   // take crash logs from a syzkaller's workdir
+	CrashesPerBug int      `json:"crashes_per_bug"` // how many crashes must be taken from each bug
+	SkipBugs      []string `json:"skip_bugs"`       // crashes to exclude from the workdir, list of regexps
 }
 
 type TestbedContext struct {
@@ -68,6 +75,9 @@ func main() {
 		Name:    "testbed",
 		Target:  "syz-manager",
 		RunTime: DurationConfig{24 * time.Hour},
+		ReproConfig: ReproTestConfig{
+			CrashesPerBug: 1,
+		},
 	}
 	err := config.LoadFile(*flagConfig, &cfg)
 	if err != nil {
@@ -270,6 +280,19 @@ func (d *DurationConfig) MarshalJSON() ([]byte, error) {
 	return json.Marshal(d.String())
 }
 
+func checkReproTestConfig(cfg *ReproTestConfig) error {
+	if cfg.InputLogs != "" && !osutil.IsExist(cfg.InputLogs) {
+		return fmt.Errorf("input_log folder does not exist: %v", cfg.InputLogs)
+	}
+	if cfg.InputWorkdir != "" && !osutil.IsExist(cfg.InputWorkdir) {
+		return fmt.Errorf("input_workdir folder does not exist: %v", cfg.InputWorkdir)
+	}
+	if cfg.CrashesPerBug < 1 {
+		return fmt.Errorf("crashes_per_bug cannot be less than 1: %d", cfg.CrashesPerBug)
+	}
+	return nil
+}
+
 func checkConfig(cfg *TestbedConfig) error {
 	testbedNameRe := regexp.MustCompile(`^[0-9a-z\-]{1,20}$`)
 	if !testbedNameRe.MatchString(cfg.Name) {
@@ -294,6 +317,9 @@ func checkConfig(cfg *TestbedConfig) error {
 	}
 	if _, ok := targetConstructors[cfg.Target]; !ok {
 		return fmt.Errorf("unknown target %s", cfg.Target)
+	}
+	if err = checkReproTestConfig(&cfg.ReproConfig); err != nil {
+		return err
 	}
 	cfg.Corpus = osutil.Abs(cfg.Corpus)
 	names := make(map[string]bool)

@@ -7,9 +7,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sync"
+	"time"
 
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/tool"
@@ -36,28 +39,64 @@ var targetConstructors = map[string]func(cfg *TestbedConfig) TestbedTarget{
 		}
 	},
 	"syz-repro": func(cfg *TestbedConfig) TestbedTarget {
-		inputs := []*SyzReproInput{}
-		if cfg.InputLogs != "" {
-			err := filepath.Walk(cfg.InputLogs, func(path string, info os.FileInfo, err error) error {
+		inputFiles := []string{}
+		reproConfig := cfg.ReproConfig
+		if reproConfig.InputLogs != "" {
+			err := filepath.Walk(reproConfig.InputLogs, func(path string, info os.FileInfo, err error) error {
 				if err != nil {
 					return err
 				}
 				if !info.IsDir() {
-					inputs = append(inputs, &SyzReproInput{
-						Path:  path,
-						runBy: make(map[*Checkout]int),
-					})
+					inputFiles = append(inputFiles, path)
 				}
 				return nil
 			})
 			if err != nil {
 				tool.Failf("failed to read logs file directory: %s", err)
 			}
-			// TODO: shuffle?
+		} else if reproConfig.InputWorkdir != "" {
+			skipRegexps := []*regexp.Regexp{}
+			for _, reStr := range reproConfig.SkipBugs {
+				skipRegexps = append(skipRegexps, regexp.MustCompile(reStr))
+			}
+			bugs, err := collectBugs(reproConfig.InputWorkdir)
+			if err != nil {
+				tool.Failf("failed to read workdir: %s", err)
+			}
+			r := rand.New(rand.NewSource(int64(time.Now().Nanosecond())))
+			for _, bug := range bugs {
+				skip := false
+				for _, re := range skipRegexps {
+					if re.MatchString(bug.Title) {
+						skip = true
+						break
+					}
+				}
+				if skip {
+					continue
+				}
+				logs := append([]string{}, bug.Logs...)
+				for i := 0; i < reproConfig.CrashesPerBug && len(logs) > 0; i++ {
+					randID := r.Intn(len(logs))
+					logs[len(logs)-1], logs[randID] = logs[randID], logs[len(logs)-1]
+					inputFiles = append(inputFiles, logs[len(logs)-1])
+					logs = logs[:len(logs)-1]
+				}
+			}
+		}
+		inputs := []*SyzReproInput{}
+		log.Printf("picked up crash files:")
+		for _, path := range inputFiles {
+			log.Printf("- %s", path)
+			inputs = append(inputs, &SyzReproInput{
+				Path:  path,
+				runBy: make(map[*Checkout]int),
+			})
 		}
 		if len(inputs) == 0 {
 			tool.Failf("no inputs given")
 		}
+		// TODO: shuffle?
 		return &SyzReproTarget{
 			config:     cfg,
 			dedupTitle: make(map[string]int),
