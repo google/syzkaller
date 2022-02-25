@@ -18,6 +18,7 @@ import (
 
 type BugInfo struct {
 	Title string
+	Logs  []string
 }
 
 type RunResult interface{}
@@ -61,12 +62,24 @@ func collectBugs(workdir string) ([]BugInfo, error) {
 	}
 	bugs := []BugInfo{}
 	for _, dir := range dirs {
-		titleBytes, err := ioutil.ReadFile(filepath.Join(crashdir, dir, "description"))
+		bugFolder := filepath.Join(crashdir, dir)
+		titleBytes, err := ioutil.ReadFile(filepath.Join(bugFolder, "description"))
 		if err != nil {
 			return nil, err
 		}
-		title := strings.TrimSpace(string(titleBytes))
-		bugs = append(bugs, BugInfo{title})
+		bug := BugInfo{
+			Title: strings.TrimSpace(string(titleBytes)),
+		}
+		files, err := ioutil.ReadDir(bugFolder)
+		if err != nil {
+			return nil, err
+		}
+		for _, f := range files {
+			if strings.HasPrefix(f.Name(), "log") {
+				bug.Logs = append(bug.Logs, filepath.Join(bugFolder, f.Name()))
+			}
+		}
+		bugs = append(bugs, bug)
 	}
 	return bugs, nil
 }
