@@ -48,6 +48,7 @@ func (hub *Hub) httpSummary(w http.ResponseWriter, r *http.Request) {
 		total.RecvRepros += mgr.RecvRepros
 		data.Managers = append(data.Managers, UIManager{
 			Name:       name,
+			HTTP:       mgr.HTTP,
 			Domain:     mgr.Domain,
 			Corpus:     len(mgr.Corpus.Records),
 			Added:      mgr.Added,
@@ -79,6 +80,7 @@ type UISummaryData struct {
 
 type UIManager struct {
 	Name       string
+	HTTP       string
 	Domain     string
 	Corpus     int
 	Added      int
@@ -104,6 +106,7 @@ var summaryTemplate = compileTemplate(`
 	<caption>Managers:</caption>
 	<tr>
 		<th>Name</th>
+		<th>URL</th>
 		<th>Domain</th>
 		<th>Corpus</th>
 		<th>Added</th>
@@ -116,6 +119,7 @@ var summaryTemplate = compileTemplate(`
 	{{range $m := $.Managers}}
 	<tr>
 		<td>{{$m.Name}}</td>
+		<td><a href="{{$m.HTTP}}">{{$m.HTTP}}</a></td>
 		<td>{{$m.Domain}}</td>
 		<td>{{$m.Corpus}}</td>
 		<td>{{$m.Added}}</td>

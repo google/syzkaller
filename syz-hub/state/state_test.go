@@ -38,7 +38,7 @@ func (ts *TestState) Reload() {
 
 func (ts *TestState) Connect(name, domain string, fresh bool, calls []string, corpus [][]byte) {
 	ts.t.Helper()
-	if err := ts.state.Connect(name, domain, fresh, calls, corpus); err != nil {
+	if err := ts.state.Connect(name, "", domain, fresh, calls, corpus); err != nil {
 		ts.t.Fatalf("Connect failed: %v", err)
 	}
 }
