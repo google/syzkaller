@@ -78,9 +78,9 @@ func (hub *Hub) Connect(a *rpctype.HubConnectArgs, r *int) error {
 	hub.mu.Lock()
 	defer hub.mu.Unlock()
 
-	log.Logf(0, "connect from %v: domain=%v fresh=%v calls=%v corpus=%v",
-		name, a.Domain, a.Fresh, len(a.Calls), len(a.Corpus))
-	if err := hub.st.Connect(name, a.Domain, a.Fresh, a.Calls, a.Corpus); err != nil {
+	log.Logf(0, "connect from %v (%v): domain=%v fresh=%v calls=%v corpus=%v",
+		name, a.HTTP, a.Domain, a.Fresh, len(a.Calls), len(a.Corpus))
+	if err := hub.st.Connect(name, a.HTTP, a.Domain, a.Fresh, a.Calls, a.Corpus); err != nil {
 		log.Logf(0, "connect error: %v", err)
 		return err
 	}
