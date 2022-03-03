@@ -36,6 +36,7 @@ type State struct {
 type Manager struct {
 	name          string
 	dir           string
+	HTTP          string
 	Domain        string
 	corpusSeq     uint64
 	reproSeq      uint64
@@ -208,7 +209,7 @@ func (st *State) PurgeOldManagers() error {
 	return nil
 }
 
-func (st *State) Connect(name, domain string, fresh bool, calls []string, corpus [][]byte) error {
+func (st *State) Connect(name, http, domain string, fresh bool, calls []string, corpus [][]byte) error {
 	mgr := st.Managers[name]
 	if mgr == nil {
 		var err error
@@ -217,6 +218,7 @@ func (st *State) Connect(name, domain string, fresh bool, calls []string, corpus
 			return err
 		}
 	}
+	mgr.HTTP = http
 	mgr.Connected = time.Now()
 	mgr.Domain = domain
 	writeFile(mgr.domainFile, []byte(mgr.Domain))
