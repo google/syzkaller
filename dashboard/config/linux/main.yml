@@ -70,5 +70,6 @@ includes:
  - kfence.yml: [kfence]
  - android.yml: [android]
  - android-subsystems.yml: [android, -baseline]
+ - android-5.10-late.yml: [android-5.10]
  - chromeos.yml: [chromeos]
  - chromeos-subsystems.yml: [chromeos, -baseline]
