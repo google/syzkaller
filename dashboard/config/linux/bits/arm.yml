@@ -26,6 +26,8 @@ config:
 
  # The other one (UNWINDER_ARM) leads to unparsable oopses (no indication of stack start).
  - UNWINDER_FRAME_POINTER
+ # Print PCs in stack traces otherwise we fail to parse oopses.
+ - BACKTRACE_VERBOSE
 
  # Presumably this gives more interesting coverage.
  - HIGHMEM
