@@ -70,8 +70,12 @@ func main() {
 		log.Fatalf("failed to connect to verifier: %v", err)
 	}
 
+	enabled := make(map[*prog.Syscall]bool)
+	for _, c := range target.Syscalls {
+		enabled[c] = true
+	}
 	if r.CheckUnsupportedCalls {
-		_, unsupported, err := host.DetectSupportedSyscalls(target, ipc.FlagsToSandbox(config.Flags))
+		_, unsupported, err := host.DetectSupportedSyscalls(target, ipc.FlagsToSandbox(config.Flags), enabled)
 		if err != nil {
 			log.Fatalf("failed to get unsupported system calls: %v", err)
 		}

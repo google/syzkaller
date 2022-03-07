@@ -186,30 +186,23 @@ func buildCallList(target *prog.Target, enabled []string) map[*prog.Syscall]bool
 		}
 		return calls
 	}
-	calls, disabled, err := host.DetectSupportedSyscalls(target, "none")
-	if err != nil {
-		log.Fatalf("failed to detect host supported syscalls: %v", err)
-	}
+
+	enabledSyscalls := make(map[*prog.Syscall]bool)
 	if len(enabled) != 0 {
 		syscallsIDs, err := mgrconfig.ParseEnabledSyscalls(target, enabled, nil)
 		if err != nil {
 			log.Fatalf("failed to parse enabled syscalls: %v", err)
 		}
-		enabledSyscalls := make(map[*prog.Syscall]bool)
 		for _, id := range syscallsIDs {
 			enabledSyscalls[target.Syscalls[id]] = true
 		}
-		for c := range calls {
-			if !enabledSyscalls[c] {
-				delete(calls, c)
-			}
-		}
-		for c := range disabled {
-			if !enabledSyscalls[c] {
-				delete(disabled, c)
-			}
-		}
 	}
+
+	calls, disabled, err := host.DetectSupportedSyscalls(target, "none", enabledSyscalls)
+	if err != nil {
+		log.Fatalf("failed to detect host supported syscalls: %v", err)
+	}
+
 	for c, reason := range disabled {
 		log.Logf(0, "unsupported syscall: %v: %v", c.Name, reason)
 	}

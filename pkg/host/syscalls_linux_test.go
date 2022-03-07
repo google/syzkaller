@@ -22,10 +22,6 @@ func TestSupportedSyscalls(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	supp, _, err := DetectSupportedSyscalls(target, "none")
-	if err != nil {
-		t.Skipf("skipping: %v", err)
-	}
 	// These are safe to execute with invalid arguments.
 	safe := []string{
 		"memfd_create",
@@ -37,18 +33,26 @@ func TestSupportedSyscalls(t *testing.T) {
 		"write",
 		"stat",
 	}
+	enabled := make(map[*prog.Syscall]bool)
 	for _, name := range safe {
 		c := target.SyscallMap[name]
 		if c == nil {
 			t.Fatalf("can't find syscall '%v'", name)
 		}
+		enabled[c] = true
+	}
+	supp, _, err := DetectSupportedSyscalls(target, "none", enabled)
+	if err != nil {
+		t.Skipf("skipping: %v", err)
+	}
+	for c := range enabled {
 		a := ^uintptr(0) - 4097 // hopefully invalid
 		_, _, err := syscall.Syscall6(uintptr(c.NR), a, a, a, a, a, a)
 		if err == 0 {
-			t.Fatalf("%v did not fail", name)
+			t.Fatalf("%v did not fail", c.Name)
 		}
 		if ok := err != syscall.ENOSYS; ok != supp[c] {
-			t.Fatalf("syscall %v: perse=%v kallsyms=%v", name, ok, supp[c])
+			t.Fatalf("syscall %v: perse=%v kallsyms=%v", c.Name, ok, supp[c])
 		}
 	}
 }

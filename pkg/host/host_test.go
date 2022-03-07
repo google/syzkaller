@@ -23,8 +23,12 @@ func TestDetectSupportedSyscalls(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			enabled := make(map[*prog.Syscall]bool)
+			for _, c := range target.Syscalls {
+				enabled[c] = true
+			}
 			// Dump for manual inspection.
-			supp, disabled, err := DetectSupportedSyscalls(target, "none")
+			supp, disabled, err := DetectSupportedSyscalls(target, "none", enabled)
 			if err != nil {
 				t.Fatal(err)
 			}

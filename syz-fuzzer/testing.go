@@ -294,7 +294,8 @@ func buildCallList(target *prog.Target, enabledCalls []int, sandbox string) (
 			calls[c] = true
 		}
 	}
-	_, unsupported, err := host.DetectSupportedSyscalls(target, sandbox)
+
+	_, unsupported, err := host.DetectSupportedSyscalls(target, sandbox, calls)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to detect host supported syscalls: %v", err)
 	}

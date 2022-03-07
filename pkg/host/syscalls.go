@@ -10,7 +10,7 @@ import (
 
 // DetectSupportedSyscalls returns list on supported and unsupported syscalls on the host.
 // For unsupported syscalls it also returns reason as to why it is unsupported.
-func DetectSupportedSyscalls(target *prog.Target, sandbox string) (
+func DetectSupportedSyscalls(target *prog.Target, sandbox string, enabled map[*prog.Syscall]bool) (
 	map[*prog.Syscall]bool, map[*prog.Syscall]string, error) {
 	log.Logf(1, "detecting supported syscalls")
 	supported := make(map[*prog.Syscall]bool)
@@ -32,6 +32,9 @@ func DetectSupportedSyscalls(target *prog.Target, sandbox string) (
 			case c.Attrs.Disabled:
 				ok = false
 				reason = disabledAttribute
+			case !enabled[c]:
+				ok = false
+				reason = "not in set of enabled calls"
 			case c.CallName == "syz_execute_func":
 				// syz_execute_func caused multiple problems:
 				// 1. First it lead to corpus explosion. The program used existing values in registers
