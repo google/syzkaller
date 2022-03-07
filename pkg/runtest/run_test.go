@@ -58,7 +58,11 @@ func test(t *testing.T, sysTarget *targets.Target) {
 	if err != nil {
 		t.Fatalf("failed to detect host features: %v", err)
 	}
-	calls, _, err := host.DetectSupportedSyscalls(target, "none")
+	enabled := make(map[*prog.Syscall]bool)
+	for _, c := range target.Syscalls {
+		enabled[c] = true
+	}
+	calls, _, err := host.DetectSupportedSyscalls(target, "none", enabled)
 	if err != nil {
 		t.Fatalf("failed to detect supported syscalls: %v", err)
 	}
