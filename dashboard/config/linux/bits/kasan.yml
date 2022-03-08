@@ -4,7 +4,8 @@
 config:
  - KASAN
  - KASAN_GENERIC: [v4.16]
- - KASAN_INLINE: [-arm]
+ # TODO: KASAN_INLINE is now broken for riscv+gcc. Revert -riscv once it is fixed.
+ - KASAN_INLINE: [-arm, -riscv]
  - KASAN_STACK_ENABLE: [clang, v4.16, -v5.11]
  - KASAN_STACK: [clang, v5.11]
  - KASAN_VMALLOC: [v5.5, -arm, -arm64, -s390, -riscv]
