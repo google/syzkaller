@@ -267,8 +267,6 @@ func archFileList(os, arch string, files []string) (string, []string, []string, 
 		manualFiles := map[string]bool{
 			// Not upstream, generated on https://github.com/multipath-tcp/mptcp_net-next
 			"vnet_mptcp.txt": true,
-			// Was in linux-next, but then was removed, fate is unknown.
-			"dev_watch_queue.txt": true,
 			// Not upstream, generated on:
 			// https://chromium.googlesource.com/chromiumos/third_party/kernel d2a8a1eb8b86
 			"dev_bifrost.txt": true,
