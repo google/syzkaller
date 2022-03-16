@@ -53,6 +53,7 @@ include <uapi/linux/kcov.h>
 include <uapi/linux/membarrier.h>
 include <uapi/linux/capability.h>
 include <uapi/linux/seccomp.h>
+include <uapi/linux/watch_queue.h>
 include <kernel/sched/sched.h>
 include <uapi/linux/close_range.h>
 
@@ -1233,7 +1234,7 @@ mmap_flags = MAP_SHARED, MAP_PRIVATE, MAP_32BIT, MAP_ANONYMOUS, MAP_DENYWRITE, M
 mremap_flags = MREMAP_MAYMOVE, MREMAP_FIXED, MREMAP_DONTUNMAP
 mbind_mode = MPOL_DEFAULT, MPOL_BIND, MPOL_INTERLEAVE, MPOL_PREFERRED, MPOL_F_STATIC_NODES, MPOL_F_RELATIVE_NODES
 mbind_flags = MPOL_MF_STRICT, MPOL_MF_MOVE, MPOL_MF_MOVE_ALL
-pipe_flags = O_NONBLOCK, O_CLOEXEC, O_DIRECT
+pipe_flags = O_NONBLOCK, O_CLOEXEC, O_DIRECT, O_NOTIFICATION_PIPE
 mlock_flags = MLOCK_ONFAULT
 mlockall_flags = MCL_CURRENT, MCL_FUTURE, MCL_ONFAULT
 dup_flags = O_CLOEXEC

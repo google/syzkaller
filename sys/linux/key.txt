@@ -58,6 +58,7 @@ keyctl$KEYCTL_PKEY_VERIFY(code const[KEYCTL_PKEY_VERIFY], params ptr[in, keyctl_
 keyctl$KEYCTL_RESTRICT_KEYRING(code const[KEYCTL_RESTRICT_KEYRING], key key, type ptr[in, string[key_type], opt], restriction ptr[in, key_restriction, opt])
 keyctl$KEYCTL_MOVE(code const[KEYCTL_MOVE], key key, from_keyring keyring, to_keyring keyring, flags flags[keyctl_move_flags])
 keyctl$KEYCTL_CAPABILITIES(code const[KEYCTL_CAPABILITIES], buffer ptr[out, array[int8]], buflen len[buffer])
+keyctl$KEYCTL_WATCH_KEY(code const[KEYCTL_WATCH_KEY], id key, watch_queue_fd fd_watch_queue, watch_id intptr[0:0xff])
 
 reqkey_keyring = KEY_REQKEY_DEFL_NO_CHANGE, KEY_REQKEY_DEFL_DEFAULT, KEY_REQKEY_DEFL_THREAD_KEYRING, KEY_REQKEY_DEFL_PROCESS_KEYRING, KEY_REQKEY_DEFL_SESSION_KEYRING, KEY_REQKEY_DEFL_USER_KEYRING, KEY_REQKEY_DEFL_USER_SESSION_KEYRING, KEY_REQKEY_DEFL_GROUP_KEYRING, KEY_REQKEY_DEFL_REQUESTOR_KEYRING
 keyctl_move_flags = KEYCTL_MOVE_EXCL
