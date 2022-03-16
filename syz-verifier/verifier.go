@@ -12,11 +12,14 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/vm"
 )
@@ -31,24 +34,172 @@ type Verifier struct {
 	// - <workdir>/corpus.db: corpus with interesting programs
 	// - <workdir>/<OS-Arch>/instance-x: per VM instance temporary files
 	// grouped by OS/Arch
-	workdir       string
-	crashdir      string
-	resultsdir    string
-	target        *prog.Target
-	runnerBin     string
-	executorBin   string
-	choiceTable   *prog.ChoiceTable
-	rnd           *rand.Rand
-	progIdx       int
-	addr          string
-	srv           *RPCServer
-	calls         map[*prog.Syscall]bool
-	reasons       map[*prog.Syscall]string
-	reportReasons bool
-	stats         *Stats
-	statsWrite    io.Writer
-	newEnv        bool
-	reruns        int
+	workdir           string
+	crashdir          string
+	resultsdir        string
+	target            *prog.Target
+	runnerBin         string
+	executorBin       string
+	progGeneratorInit sync.WaitGroup
+	choiceTable       *prog.ChoiceTable
+	progIdx           int
+	addr              string
+	srv               *RPCServer
+	calls             map[*prog.Syscall]bool
+	reasons           map[*prog.Syscall]string
+	reportReasons     bool
+	stats             *Stats
+	statsWrite        io.Writer
+	newEnv            bool
+	reruns            int
+
+	// We use single queue for every kernel environment.
+	tasksMutex     sync.Mutex
+	onTaskAdded    *sync.Cond
+	kernelEnvTasks [][]*ExecTaskQueue
+}
+
+func (vrf *Verifier) Init() {
+	vrf.progGeneratorInit.Add(1)
+
+	vrf.onTaskAdded = sync.NewCond(&vrf.tasksMutex)
+
+	vrf.kernelEnvTasks = make([][]*ExecTaskQueue, len(vrf.pools))
+	for i := range vrf.kernelEnvTasks {
+		vrf.kernelEnvTasks[i] = make([]*ExecTaskQueue, EnvironmentsCount)
+		for j := range vrf.kernelEnvTasks[i] {
+			vrf.kernelEnvTasks[i][j] = MakeExecTaskQueue()
+		}
+	}
+
+	srv, err := startRPCServer(vrf)
+	if err != nil {
+		log.Fatalf("failed to initialise RPC server: %v", err)
+	}
+	vrf.srv = srv
+}
+
+func (vrf *Verifier) StartProgramsAnalysis() {
+	go func() {
+		vrf.progGeneratorInit.Wait()
+
+		type AnalysisResult struct {
+			Diff []*ExecResult
+			Prog *prog.Prog
+		}
+
+		results := make(chan *AnalysisResult)
+		go func() {
+			for result := range results {
+				if result.Diff != nil {
+					vrf.SaveDiffResults(result.Diff, result.Prog)
+				}
+			}
+		}()
+
+		for i := 0; i < 100; i++ {
+			go func() {
+				for {
+					prog := vrf.generate()
+					results <- &AnalysisResult{
+						vrf.TestProgram(prog),
+						prog,
+					}
+				}
+			}()
+		}
+	}()
+}
+
+func (vrf *Verifier) GetRunnerTask(kernel int, existing EnvDescr) *rpctype.ExecTask {
+	vrf.tasksMutex.Lock()
+	defer vrf.tasksMutex.Unlock()
+
+	for {
+		for env := existing; env >= AnyEnvironment; env-- {
+			if task, ok := vrf.kernelEnvTasks[kernel][env].PopTask(); ok {
+				return task.ToRPC()
+			}
+		}
+
+		vrf.onTaskAdded.Wait()
+	}
+}
+
+func PutExecResult(result *ExecResult) {
+	c := GetExecResultChan(result.ExecTaskID)
+	c <- result
+}
+
+// TestProgram return the results slice if some exec diff was found.
+func (vrf *Verifier) TestProgram(prog *prog.Prog) (result []*ExecResult) {
+	steps := []EnvDescr{
+		NewEnvironment,
+		NewEnvironment,
+	}
+
+	defer atomic.AddInt64(&vrf.stats.TotalProgs, 1)
+
+	for i, env := range steps {
+		stepRes, err := vrf.Run(prog, env)
+		if err != nil {
+			return
+		}
+		vrf.AddCallsExecutionStat(stepRes, prog)
+		if stepRes[0].IsEqual(stepRes[1]) {
+			if i != 0 {
+				atomic.AddInt64(&vrf.stats.FlakyProgs, 1)
+			}
+			return
+		}
+		if i == len(steps)-1 {
+			atomic.AddInt64(&vrf.stats.MismatchingProgs, 1)
+			return stepRes
+		}
+	}
+	return
+}
+
+// Run sends the program for verification to execution queues and return
+// result once it's ready.
+// In case of time-out, return (nil, error).
+func (vrf *Verifier) Run(prog *prog.Prog, env EnvDescr) (result []*ExecResult, err error) {
+	totalKernels := len(vrf.kernelEnvTasks)
+	result = make([]*ExecResult, totalKernels)
+
+	wg := sync.WaitGroup{}
+	wg.Add(totalKernels)
+	for i := 0; i < totalKernels; i++ {
+		i := i
+		q := vrf.kernelEnvTasks[i][env]
+
+		go func() {
+			defer wg.Done()
+			task := MakeExecTask(prog)
+			defer DeleteExecTask(task)
+
+			vrf.tasksMutex.Lock()
+			q.PushTask(task)
+			vrf.onTaskAdded.Signal()
+			vrf.tasksMutex.Unlock()
+
+			result[i] = <-task.ExecResultChan
+		}()
+	}
+	wg.Wait()
+
+	for _, item := range result {
+		if item == nil {
+			err = errors.New("something went wrong and we exit w/o results")
+			return nil, err
+		}
+		if item.Error != nil {
+			err = item.Error
+			return nil, err
+		}
+	}
+
+	return result, nil
 }
 
 // SetPrintStatAtSIGINT asks Stats object to report verification
@@ -77,24 +228,24 @@ func (vrf *Verifier) SetPrintStatAtSIGINT() error {
 }
 
 func (vrf *Verifier) startInstances() {
-	for idx, pi := range vrf.pools {
-		go func(pi *poolInfo, idx int) {
+	for poolID, pi := range vrf.pools {
+		go func(pi *poolInfo, poolID int) {
 			for {
 				// TODO: implement support for multiple VMs per Pool.
 
-				vrf.createAndManageInstance(pi, idx)
+				vrf.createAndManageInstance(pi, poolID)
 			}
-		}(pi, idx)
+		}(pi, poolID)
 	}
 }
 
-func (vrf *Verifier) createAndManageInstance(pi *poolInfo, idx int) {
+func (vrf *Verifier) createAndManageInstance(pi *poolInfo, poolID int) {
 	inst, err := pi.pool.Create(0)
 	if err != nil {
 		log.Fatalf("failed to create instance: %v", err)
 	}
 	defer inst.Close()
-	defer vrf.srv.cleanup(idx, 0)
+	defer vrf.srv.cleanup(poolID, 0)
 
 	fwdAddr, err := inst.Forward(vrf.srv.port)
 	if err != nil {
@@ -110,7 +261,7 @@ func (vrf *Verifier) createAndManageInstance(pi *poolInfo, idx int) {
 		log.Fatalf("failed to copy executor binary: %v", err)
 	}
 
-	cmd := instance.RunnerCmd(runnerBin, fwdAddr, vrf.target.OS, vrf.target.Arch, idx, 0, false, vrf.newEnv)
+	cmd := instance.RunnerCmd(runnerBin, fwdAddr, vrf.target.OS, vrf.target.Arch, poolID, 0, false, vrf.newEnv)
 	outc, errc, err := inst.Run(pi.cfg.Timeouts.VMRunningTime, vrf.vmStop, cmd)
 	if err != nil {
 		log.Fatalf("failed to start runner: %v", err)
@@ -118,7 +269,7 @@ func (vrf *Verifier) createAndManageInstance(pi *poolInfo, idx int) {
 
 	inst.MonitorExecution(outc, errc, pi.Reporter, vm.ExitTimeout)
 
-	log.Logf(0, "reboot the VM in pool %d", idx)
+	log.Logf(0, "reboot the VM in pool %d", poolID)
 }
 
 // finalizeCallSet removes the system calls that are not supported from the set
@@ -154,41 +305,16 @@ func (vrf *Verifier) finalizeCallSet(w io.Writer) {
 	}
 }
 
-// processResults will send a set of complete results for verification and, in
-// case differences are found, it will start the rerun process for the program
-// (if reruns are enabled). If every rerun produces the same results, the result
-// report will be printed to persistent storage. Otherwise, the program is
-// discarded as flaky.
-func (vrf *Verifier) processResults(prog *progInfo) bool {
-	// TODO: Simplify this if clause.
-	if prog.runIdx == 0 {
-		vrf.stats.TotalProgs++
-		prog.report = Verify(prog.res[0], prog.prog, vrf.stats)
-		if prog.report == nil {
-			return true
-		}
-	} else {
-		if !VerifyRerun(prog.res[prog.runIdx], prog.report) {
-			vrf.stats.FlakyProgs++
-			log.Logf(0, "flaky results detected: %d", vrf.stats.FlakyProgs)
-			return true
-		}
-	}
-
-	if prog.runIdx < vrf.reruns-1 {
-		vrf.srv.newRun(prog)
-		return false
-	}
-
-	rr := prog.report
-	vrf.stats.MismatchingProgs++
-
+func (vrf *Verifier) AddCallsExecutionStat(results []*ExecResult, program *prog.Prog) {
+	rr := CompareResults(results, program)
 	for _, cr := range rr.Reports {
+		atomic.AddInt64(&vrf.stats.Calls[cr.Call].Occurrences, 1)
+
 		if !cr.Mismatch {
-			break
+			continue
 		}
-		vrf.stats.Calls[cr.Call].Mismatches++
-		vrf.stats.TotalMismatches++
+		atomic.AddInt64(&vrf.stats.Calls[cr.Call].Mismatches, 1)
+		atomic.AddInt64(&vrf.stats.TotalMismatches, 1)
 		for _, state := range cr.States {
 			if state0 := cr.States[0]; state0 != state {
 				vrf.stats.Calls[cr.Call].States[state] = true
@@ -196,6 +322,11 @@ func (vrf *Verifier) processResults(prog *progInfo) bool {
 			}
 		}
 	}
+}
+
+// SaveDiffResults extract diff and save result on the persistent storage.
+func (vrf *Verifier) SaveDiffResults(results []*ExecResult, program *prog.Prog) bool {
+	rr := CompareResults(results, program)
 
 	oldest := 0
 	var oldestTime time.Time
@@ -226,10 +357,12 @@ func (vrf *Verifier) processResults(prog *progInfo) bool {
 	return true
 }
 
-// generate will return a newly generated program and its index.
-func (vrf *Verifier) generate() (*prog.Prog, int) {
-	vrf.progIdx++
-	return vrf.target.Generate(vrf.rnd, prog.RecommendedCalls, vrf.choiceTable), vrf.progIdx
+// generate returns a newly generated program or error.
+func (vrf *Verifier) generate() *prog.Prog {
+	vrf.progGeneratorInit.Wait()
+
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano() + 1e12))
+	return vrf.target.Generate(rnd, prog.RecommendedCalls, vrf.choiceTable)
 }
 
 func createReport(rr *ResultReport, pools int) []byte {
