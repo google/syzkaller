@@ -10,10 +10,10 @@ import (
 
 func dummyStats() *Stats {
 	return &Stats{
-		TotalProgs:       24,
-		TotalMismatches:  10,
-		FlakyProgs:       4,
-		MismatchingProgs: 6,
+		TotalProgs:          24,
+		TotalCallMismatches: 10,
+		FlakyProgs:          4,
+		MismatchingProgs:    6,
 		Calls: map[string]*CallStats{
 			"foo": {"foo", 2, 8, map[ReturnState]bool{
 				returnState(1, 7): true,

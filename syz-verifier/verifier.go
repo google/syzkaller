@@ -143,6 +143,7 @@ func (vrf *Verifier) TestProgram(prog *prog.Prog) (result []*ExecResult) {
 	for i, env := range steps {
 		stepRes, err := vrf.Run(prog, env)
 		if err != nil {
+			atomic.AddInt64(&vrf.stats.ExecErrorProgs, 1)
 			return
 		}
 		vrf.AddCallsExecutionStat(stepRes, prog)
@@ -217,7 +218,7 @@ func (vrf *Verifier) SetPrintStatAtSIGINT() error {
 		defer os.Exit(0)
 
 		totalExecutionTime := time.Since(vrf.stats.StartTime).Minutes()
-		if vrf.stats.TotalMismatches < 0 {
+		if vrf.stats.TotalCallMismatches < 0 {
 			fmt.Fprint(vrf.statsWrite, "No mismatches occurred until syz-verifier was stopped.")
 		} else {
 			fmt.Fprintf(vrf.statsWrite, "%s", vrf.stats.GetTextDescription(totalExecutionTime))
@@ -314,7 +315,7 @@ func (vrf *Verifier) AddCallsExecutionStat(results []*ExecResult, program *prog.
 			continue
 		}
 		atomic.AddInt64(&vrf.stats.Calls[cr.Call].Mismatches, 1)
-		atomic.AddInt64(&vrf.stats.TotalMismatches, 1)
+		atomic.AddInt64(&vrf.stats.TotalCallMismatches, 1)
 		for _, state := range cr.States {
 			if state0 := cr.States[0]; state0 != state {
 				vrf.stats.Calls[cr.Call].States[state] = true
