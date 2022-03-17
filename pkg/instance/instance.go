@@ -81,9 +81,12 @@ func (env *env) BuildSyzkaller(repoURL, commit string) error {
 	env.optionalFlags = optionalFlags
 	cmd := osutil.Command(MakeBin, "target")
 	cmd.Dir = cfg.Syzkaller
-	cmd.Env = append([]string{}, os.Environ()...)
+	goEnvOptions := []string{
+		"GOPATH=" + cfg.Syzkaller[:srcIndex],
+		"GO111MODULE=auto",
+	}
+	cmd.Env = append(append([]string{}, os.Environ()...), goEnvOptions...)
 	cmd.Env = append(cmd.Env,
-		"GOPATH="+cfg.Syzkaller[:srcIndex],
 		"TARGETOS="+cfg.TargetOS,
 		"TARGETVMARCH="+cfg.TargetVMArch,
 		"TARGETARCH="+cfg.TargetArch,
@@ -96,7 +99,7 @@ func (env *env) BuildSyzkaller(repoURL, commit string) error {
 	if _, err := osutil.Run(time.Hour, cmd); err != nil {
 		goEnvCmd := osutil.Command("go", "env")
 		goEnvCmd.Dir = cfg.Syzkaller
-		goEnvCmd.Env = append(append([]string{}, os.Environ()...), "GOPATH="+cfg.Syzkaller[:srcIndex])
+		goEnvCmd.Env = append(append([]string{}, os.Environ()...), goEnvOptions...)
 		goEnvOut, goEnvErr := osutil.Run(time.Hour, goEnvCmd)
 		gitStatusOut, gitStatusErr := osutil.RunCmd(time.Hour, cfg.Syzkaller, "git", "status")
 		return fmt.Errorf("syzkaller build failed: %v\ngo env (err=%v)\n%s\ngit status (err=%v)\n%s",
