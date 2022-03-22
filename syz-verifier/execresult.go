@@ -21,9 +21,34 @@ type ExecResult struct {
 	// in the generated programs.
 	Info ipc.ProgInfo
 	// Crashed is set to true if a crash occurred while executing the program.
+	// TODO: is not used properly. Crashes are just an errors now.
 	Crashed bool
+	// Source task ID is used to route result back to the caller.
+	ExecTaskID int64
+	// To signal the processing errors.
+	Error error
+}
 
-	RunIdx int
+func (l *ExecResult) IsEqual(r *ExecResult) bool {
+	if l.Crashed || r.Crashed {
+		return false
+	}
+
+	lCalls := l.Info.Calls
+	rCalls := r.Info.Calls
+
+	if len(lCalls) != len(rCalls) {
+		return false
+	}
+
+	for i := 0; i < len(lCalls); i++ {
+		if lCalls[i].Errno != rCalls[i].Errno ||
+			lCalls[i].Flags != rCalls[i].Flags {
+			return false
+		}
+	}
+
+	return true
 }
 
 type ResultReport struct {
@@ -31,6 +56,8 @@ type ResultReport struct {
 	Prog string
 	// Reports contains information about each system call.
 	Reports []*CallReport
+	// Mismatch says whether the Reports differ.
+	Mismatch bool
 }
 
 type CallReport struct {
@@ -69,30 +96,10 @@ func (s ReturnState) String() string {
 	return state
 }
 
-// VeifyRerun compares the results obtained from rerunning a program with what
-// was reported in the initial result report.
-func VerifyRerun(res []*ExecResult, rr *ResultReport) bool {
-	for idx, cr := range rr.Reports {
-		for _, r := range res {
-			var state ReturnState
-			if r.Crashed {
-				state = ReturnState{Crashed: true}
-			} else {
-				ci := r.Info.Calls[idx]
-				state = ReturnState{Errno: ci.Errno, Flags: ci.Flags}
-			}
-			if state != cr.States[r.Pool] {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-// Verify checks whether the Results of the same program, executed on different
-// kernels, are the same. If that's not the case, it returns a ResultReport,
-// highlighting the differences.
-func Verify(res []*ExecResult, prog *prog.Prog, s *Stats) *ResultReport {
+// CompareResults checks whether the ExecResult of the same program,
+// executed on different kernels, are the same.
+// It returns s ResultReport, highlighting the differences.
+func CompareResults(res []*ExecResult, prog *prog.Prog) *ResultReport {
 	rr := &ResultReport{
 		Prog: string(prog.Serialize()),
 	}
@@ -100,7 +107,6 @@ func Verify(res []*ExecResult, prog *prog.Prog, s *Stats) *ResultReport {
 	// Build the CallReport for each system call in the program.
 	for idx, call := range prog.Calls {
 		cn := call.Meta.Name
-		s.Calls[cn].Occurrences++
 
 		cr := &CallReport{
 			Call:   cn,
@@ -119,7 +125,6 @@ func Verify(res []*ExecResult, prog *prog.Prog, s *Stats) *ResultReport {
 		rr.Reports = append(rr.Reports, cr)
 	}
 
-	var send bool
 	pool0 := res[0].Pool
 	for _, cr := range rr.Reports {
 		for _, state := range cr.States {
@@ -127,13 +132,10 @@ func Verify(res []*ExecResult, prog *prog.Prog, s *Stats) *ResultReport {
 			// the pools that executed the program are the same
 			if state0 := cr.States[pool0]; state0 != state {
 				cr.Mismatch = true
-				send = true
+				rr.Mismatch = true
 			}
 		}
 	}
 
-	if send {
-		return rr
-	}
-	return nil
+	return rr
 }

@@ -5,35 +5,32 @@ package main
 
 import (
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 )
 
-func createTestServer(t *testing.T) *RPCServer {
+func createTestVerifier(t *testing.T) *Verifier {
 	target, err := prog.GetTarget("test", "64")
 	if err != nil {
 		t.Fatalf("failed to initialise test target: %v", err)
 	}
-	vrf := Verifier{
+	vrf := &Verifier{
 		target:      target,
 		choiceTable: target.DefaultChoiceTable(),
-		rnd:         rand.New(rand.NewSource(time.Now().UnixNano())),
 		progIdx:     3,
 		reruns:      1,
 	}
 	vrf.resultsdir = makeTestResultDirectory(t)
 	vrf.stats = emptyTestStats()
-	srv, err := startRPCServer(&vrf)
+	vrf.srv, err = startRPCServer(vrf)
 	if err != nil {
 		t.Fatalf("failed to initialise RPC server: %v", err)
 	}
-	return srv
+	return vrf
 }
 
 func getTestProgram(t *testing.T) *prog.Prog {
