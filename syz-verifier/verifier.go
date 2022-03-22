@@ -229,23 +229,24 @@ func (vrf *Verifier) SetPrintStatAtSIGINT() error {
 
 func (vrf *Verifier) startInstances() {
 	for poolID, pi := range vrf.pools {
-		go func(pi *poolInfo, poolID int) {
-			for {
-				// TODO: implement support for multiple VMs per Pool.
-
-				vrf.createAndManageInstance(pi, poolID)
-			}
-		}(pi, poolID)
+		totalInstances := pi.pool.Count()
+		for vmID := 0; vmID < totalInstances; vmID++ {
+			go func(pi *poolInfo, poolID, vmID int) {
+				for {
+					vrf.createAndManageInstance(pi, poolID, vmID)
+				}
+			}(pi, poolID, vmID)
+		}
 	}
 }
 
-func (vrf *Verifier) createAndManageInstance(pi *poolInfo, poolID int) {
-	inst, err := pi.pool.Create(0)
+func (vrf *Verifier) createAndManageInstance(pi *poolInfo, poolID, vmID int) {
+	inst, err := pi.pool.Create(vmID)
 	if err != nil {
 		log.Fatalf("failed to create instance: %v", err)
 	}
 	defer inst.Close()
-	defer vrf.srv.cleanup(poolID, 0)
+	defer vrf.srv.cleanup(poolID, vmID)
 
 	fwdAddr, err := inst.Forward(vrf.srv.port)
 	if err != nil {
