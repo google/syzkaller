@@ -205,7 +205,7 @@ func TestSaveDiffResults(t *testing.T) {
 			},
 			wantExist: true,
 			wantStats: &Stats{
-				TotalMismatches: 1,
+				TotalCallMismatches: 1,
 				Calls: map[string]*CallStats{
 					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[ReturnState]bool{}),
 					"test$res0":      makeCallStats("test$res0", 1, 1, map[ReturnState]bool{{Errno: 2}: true, {Errno: 5}: true}),

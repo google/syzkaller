@@ -16,12 +16,13 @@ import (
 // of the verification process.
 type Stats struct {
 	// Calls stores statistics for all supported system calls.
-	Calls            map[string]*CallStats
-	TotalMismatches  int64
-	TotalProgs       int64
-	FlakyProgs       int64
-	MismatchingProgs int64
-	StartTime        time.Time
+	Calls               map[string]*CallStats
+	TotalCallMismatches int64
+	TotalProgs          int64
+	ExecErrorProgs      int64
+	FlakyProgs          int64
+	MismatchingProgs    int64
+	StartTime           time.Time
 }
 
 // CallStats stores information used to generate statistics for the
@@ -65,7 +66,7 @@ func (stats *Stats) GetTextDescription(deltaTime float64) string {
 
 	tc := stats.totalCallsExecuted()
 	fmt.Fprintf(&result, "total number of mismatches / total number of calls "+
-		"executed: %d / %d (%0.2f %%)\n\n", stats.TotalMismatches, tc, getPercentage(stats.TotalMismatches, tc))
+		"executed: %d / %d (%0.2f %%)\n\n", stats.TotalCallMismatches, tc, getPercentage(stats.TotalCallMismatches, tc))
 	fmt.Fprintf(&result, "programs / minute: %0.2f\n\n", float64(stats.TotalProgs)/deltaTime)
 	fmt.Fprintf(&result, "true mismatching programs: %d / total number of programs: %d (%0.2f %%)\n",
 		stats.MismatchingProgs, stats.TotalProgs, getPercentage(stats.MismatchingProgs, stats.TotalProgs))
@@ -91,8 +92,8 @@ func (stats *Stats) getCallStatsTextDescription(call string) string {
 		"\t↳ mismatches of %s / total number of mismatches: "+
 		"%d / %d (%0.2f %%)\n"+
 		"\t↳ %d distinct states identified: %v\n", syscallName, syscallName, syscallName, mismatches, occurrences,
-		getPercentage(mismatches, occurrences), syscallName, mismatches, stats.TotalMismatches,
-		getPercentage(mismatches, stats.TotalMismatches), len(syscallStat.States), stats.getOrderedStates(syscallName))
+		getPercentage(mismatches, occurrences), syscallName, mismatches, stats.TotalCallMismatches,
+		getPercentage(mismatches, stats.TotalCallMismatches), len(syscallStat.States), stats.getOrderedStates(syscallName))
 }
 
 func (stats *Stats) totalCallsExecuted() int64 {
