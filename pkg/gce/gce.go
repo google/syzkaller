@@ -97,7 +97,8 @@ func NewContext() (*Context, error) {
 	return ctx, nil
 }
 
-func (ctx *Context) CreateInstance(name, machineType, image, sshkey string, preemptible bool) (string, error) {
+func (ctx *Context) CreateInstance(name, machineType, image, sshkey string,
+	preemptible, displayDevice bool) (string, error) {
 	prefix := "https://www.googleapis.com/compute/v1/projects/" + ctx.ProjectID
 	sshkeyAttr := "syzkaller:" + sshkey
 	oneAttr := "1"
@@ -141,7 +142,7 @@ func (ctx *Context) CreateInstance(name, machineType, image, sshkey string, pree
 			OnHostMaintenance: "TERMINATE",
 		},
 		DisplayDevice: &compute.DisplayDevice{
-			EnableDisplay: true,
+			EnableDisplay: displayDevice,
 		},
 	}
 retry:
