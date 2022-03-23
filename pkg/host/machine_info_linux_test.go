@@ -7,8 +7,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -385,11 +383,7 @@ power management:
 }
 
 func TestGetGlobsInfo(t *testing.T) {
-	dir, err := ioutil.TempDir("", "syz-host-globstest")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 	if err := osutil.MkdirAll(filepath.Join(dir, "a", "b", "c", "d")); err != nil {
 		t.Fatal(err)
 	}

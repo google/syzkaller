@@ -11,7 +11,6 @@ package cover
 import (
 	"bytes"
 	"encoding/csv"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -249,11 +248,7 @@ func buildTestBinary(t *testing.T, target *targets.Target, test Test, dir string
 }
 
 func generateReport(t *testing.T, target *targets.Target, test Test) ([]byte, []byte, error) {
-	dir, err := ioutil.TempDir("", "syz-cover-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 	bin := buildTestBinary(t, target, test, dir)
 	subsystem := []mgrconfig.Subsystem{
 		{

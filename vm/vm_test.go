@@ -6,8 +6,6 @@ package vm
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"testing"
 	"time"
 
@@ -333,11 +331,7 @@ func TestMonitorExecution(t *testing.T) {
 }
 
 func testMonitorExecution(t *testing.T, test *Test) {
-	dir, err := ioutil.TempDir("", "syz-vm-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 	cfg := &mgrconfig.Config{
 		Derived: mgrconfig.Derived{
 			TargetOS:     targets.Linux,

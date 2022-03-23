@@ -109,11 +109,7 @@ CONST5_SOME_UNDEFINED2 = 100, arch3:???
 		}
 	}
 	{
-		dir, err := ioutil.TempDir("", "syz-const")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.RemoveAll(dir)
+		dir := t.TempDir()
 		for name, arch := range arches {
 			file := filepath.Join(dir, "consts_"+name+".const")
 			if err := ioutil.WriteFile(file, []byte(arch.oldFormat), 0600); err != nil {
