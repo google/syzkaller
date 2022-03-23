@@ -658,9 +658,23 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Re
 	atomic.AddUint32(&mgr.numFuzzing, 1)
 	defer atomic.AddUint32(&mgr.numFuzzing, ^uint32(0))
 
-	cmd := instance.FuzzerCmd(fuzzerBin, executorBin, instanceName,
-		mgr.cfg.TargetOS, mgr.cfg.TargetArch, fwdAddr, mgr.cfg.Sandbox, procs, fuzzerV,
-		mgr.cfg.Cover, *flagDebug, false, false, true, mgr.cfg.Timeouts.Slowdown)
+	args := &instance.FuzzerCmdArgs{
+		Fuzzer:    fuzzerBin,
+		Executor:  executorBin,
+		Name:      instanceName,
+		OS:        mgr.cfg.TargetOS,
+		Arch:      mgr.cfg.TargetArch,
+		FwdAddr:   fwdAddr,
+		Sandbox:   mgr.cfg.Sandbox,
+		Procs:     procs,
+		Verbosity: fuzzerV,
+		Cover:     mgr.cfg.Cover,
+		Debug:     *flagDebug,
+		Test:      false,
+		Runtest:   false,
+		Slowdown:  mgr.cfg.Timeouts.Slowdown,
+	}
+	cmd := instance.FuzzerCmd(args)
 	outc, errc, err := inst.Run(mgr.cfg.Timeouts.VMRunningTime, mgr.vmStop, cmd)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to run fuzzer: %v", err)
