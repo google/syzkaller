@@ -63,7 +63,8 @@ func (rg *ReportGenerator) DoHTML(w io.Writer, progs []Prog, coverFilter map[uin
 		return err
 	}
 	d := &templateData{
-		Root: new(templateDir),
+		Root:     new(templateDir),
+		RawCover: rg.rawCoverEnabled,
 	}
 	haveProgs := len(progs) > 1 || progs[0].Data != ""
 	fileOpenErr := fmt.Errorf("failed to open/locate any source file")
@@ -133,7 +134,10 @@ func (rg *ReportGenerator) DoHTML(w io.Writer, progs []Prog, coverFilter map[uin
 		return fileOpenErr
 	}
 	for _, prog := range progs {
-		d.Progs = append(d.Progs, template.HTML(html.EscapeString(prog.Data)))
+		d.Progs = append(d.Progs, templateProg{
+			Sig:     prog.Sig,
+			Content: template.HTML(html.EscapeString(prog.Data)),
+		})
 	}
 
 	processDir(d.Root)
@@ -163,19 +167,23 @@ func (rg *ReportGenerator) DoRawCoverFiles(w http.ResponseWriter, progs []Prog, 
 func (rg *ReportGenerator) DoRawCover(w http.ResponseWriter, progs []Prog, coverFilter map[uint32]uint32) {
 	progs = fixUpPCs(rg.target.Arch, progs, coverFilter)
 	var pcs []uint64
-	uniquePCs := make(map[uint64]bool)
-	for _, prog := range progs {
-		for _, pc := range prog.PCs {
-			if uniquePCs[pc] {
-				continue
+	if len(progs) == 1 && rg.rawCoverEnabled {
+		pcs = append([]uint64{}, progs[0].PCs...)
+	} else {
+		uniquePCs := make(map[uint64]bool)
+		for _, prog := range progs {
+			for _, pc := range prog.PCs {
+				if uniquePCs[pc] {
+					continue
+				}
+				uniquePCs[pc] = true
+				pcs = append(pcs, pc)
 			}
-			uniquePCs[pc] = true
-			pcs = append(pcs, pc)
 		}
+		sort.Slice(pcs, func(i, j int) bool {
+			return pcs[i] < pcs[j]
+		})
 	}
-	sort.Slice(pcs, func(i, j int) bool {
-		return pcs[i] < pcs[j]
-	})
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	buf := bufio.NewWriter(w)
@@ -718,8 +726,14 @@ func parseFile(fn string) ([][]byte, error) {
 type templateData struct {
 	Root      *templateDir
 	Contents  []template.HTML
-	Progs     []template.HTML
+	Progs     []templateProg
 	Functions []template.HTML
+	RawCover  bool
+}
+
+type templateProg struct {
+	Sig     string
+	Content template.HTML
 }
 
 type templateBase struct {
@@ -852,8 +866,12 @@ var coverTemplate = template.Must(template.New("").Parse(`
 			{{range $i, $f := .Contents}}
 				<pre class="file" id="contents_{{$i}}">{{$f}}</pre>
 			{{end}}
+			{{$base := .}}
 			{{range $i, $p := .Progs}}
-				<pre class="file" id="prog_{{$i}}">{{$p}}</pre>
+				<pre class="file" id="prog_{{$i}}">
+{{if $base.RawCover}}<a href="/debuginput?sig={{$p.Sig}}">[raw coverage]</a><br />{{end}}
+{{$p.Content}}
+</pre>
 			{{end}}
 			{{range $i, $p := .Functions}}
 				<div class="function list" id="function_{{$i}}">{{$p}}</div>
