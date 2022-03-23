@@ -437,39 +437,57 @@ func (inst *inst) testProgram(command string, testTime time.Duration) error {
 	return &CrashError{Report: rep}
 }
 
-func FuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox string, procs, verbosity int,
-	cover, debug, test, runtest, optionalFlags bool, slowdown int) string {
+type FuzzerCmdArgs struct {
+	Fuzzer    string
+	Executor  string
+	Name      string
+	OS        string
+	Arch      string
+	FwdAddr   string
+	Sandbox   string
+	Procs     int
+	Verbosity int
+	Cover     bool
+	Debug     bool
+	Test      bool
+	Runtest   bool
+	Slowdown  int
+}
+
+func FuzzerCmd(args *FuzzerCmdArgs) string {
 	osArg := ""
-	if targets.Get(OS, arch).HostFuzzer {
+	if targets.Get(args.OS, args.Arch).HostFuzzer {
 		// Only these OSes need the flag, because the rest assume host OS.
 		// But speciying OS for all OSes breaks patch testing on syzbot
 		// because old execprog does not have os flag.
-		osArg = " -os=" + OS
+		osArg = " -os=" + args.OS
 	}
 	runtestArg := ""
-	if runtest {
+	if args.Runtest {
 		runtestArg = " -runtest"
 	}
 	verbosityArg := ""
-	if verbosity != 0 {
-		verbosityArg = fmt.Sprintf(" -vv=%v", verbosity)
+	if args.Verbosity != 0 {
+		verbosityArg = fmt.Sprintf(" -vv=%v", args.Verbosity)
 	}
 	optionalArg := ""
-	if optionalFlags {
+	if args.Slowdown > 0 {
 		optionalArg = " " + tool.OptionalFlags([]tool.Flag{
-			{Name: "slowdown", Value: fmt.Sprint(slowdown)},
+			{Name: "slowdown", Value: fmt.Sprint(args.Slowdown)},
 		})
 	}
 	return fmt.Sprintf("%v -executor=%v -name=%v -arch=%v%v -manager=%v -sandbox=%v"+
 		" -procs=%v -cover=%v -debug=%v -test=%v%v%v%v",
-		fuzzer, executor, name, arch, osArg, fwdAddr, sandbox,
-		procs, cover, debug, test, runtestArg, verbosityArg, optionalArg)
+		args.Fuzzer, args.Executor, args.Name, args.Arch, osArg, args.FwdAddr, args.Sandbox,
+		args.Procs, args.Cover, args.Debug, args.Test, runtestArg, verbosityArg, optionalArg)
 }
 
 func OldFuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox string, procs int,
 	cover, test, optionalFlags bool, slowdown int) string {
-	return FuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox, procs, 0, cover, false, test, false,
-		optionalFlags, slowdown)
+	return FuzzerCmd(&FuzzerCmdArgs{Fuzzer: fuzzer, Executor: executor, Name: name,
+		OS: OS, Arch: arch, FwdAddr: fwdAddr, Sandbox: sandbox, Procs: procs,
+		Verbosity: 0, Cover: cover, Debug: false, Test: test, Runtest: false,
+		Slowdown: slowdown})
 }
 
 func ExecprogCmd(execprog, executor, OS, arch, sandbox string, repeat, threaded, collide bool,
