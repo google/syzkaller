@@ -94,11 +94,17 @@ type Manager struct {
 	modulesInitialized bool
 }
 
+type CorpusItemUpdate struct {
+	CallID   int
+	RawCover []uint32
+}
+
 type CorpusItem struct {
-	Call   string
-	Prog   []byte
-	Signal signal.Serial
-	Cover  []uint32
+	Call    string
+	Prog    []byte
+	Signal  signal.Serial
+	Cover   []uint32
+	Updates []CorpusItemUpdate
 }
 
 func (item *CorpusItem) RPCInput() rpctype.Input {
@@ -689,6 +695,7 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Re
 		Test:      false,
 		Runtest:   false,
 		Slowdown:  mgr.cfg.Timeouts.Slowdown,
+		RawCover:  mgr.cfg.RawCover,
 	}
 	cmd := instance.FuzzerCmd(args)
 	outc, errc, err := inst.Run(mgr.cfg.Timeouts.VMRunningTime, mgr.vmStop, cmd)
@@ -1164,6 +1171,10 @@ func (mgr *Manager) newInput(inp rpctype.Input, sign signal.Signal) bool {
 	if mgr.saturatedCalls[inp.Call] {
 		return false
 	}
+	update := CorpusItemUpdate{
+		CallID:   inp.CallID,
+		RawCover: inp.RawCover,
+	}
 	sig := hash.String(inp.Prog)
 	if old, ok := mgr.corpus[sig]; ok {
 		// The input is already present, but possibly with diffent signal/coverage/call.
@@ -1173,13 +1184,19 @@ func (mgr *Manager) newInput(inp rpctype.Input, sign signal.Signal) bool {
 		cov.Merge(old.Cover)
 		cov.Merge(inp.Cover)
 		old.Cover = cov.Serialize()
+		const maxUpdates = 32
+		old.Updates = append(old.Updates, update)
+		if len(old.Updates) > maxUpdates {
+			old.Updates = old.Updates[:maxUpdates]
+		}
 		mgr.corpus[sig] = old
 	} else {
 		mgr.corpus[sig] = CorpusItem{
-			Call:   inp.Call,
-			Prog:   inp.Prog,
-			Signal: inp.Signal,
-			Cover:  inp.Cover,
+			Call:    inp.Call,
+			Prog:    inp.Prog,
+			Signal:  inp.Signal,
+			Cover:   inp.Cover,
+			Updates: []CorpusItemUpdate{update},
 		}
 		mgr.corpusDB.Save(sig, inp.Prog, 0)
 		if err := mgr.corpusDB.Flush(); err != nil {

@@ -452,6 +452,7 @@ type FuzzerCmdArgs struct {
 	Test      bool
 	Runtest   bool
 	Slowdown  int
+	RawCover  bool
 }
 
 func FuzzerCmd(args *FuzzerCmdArgs) string {
@@ -470,11 +471,16 @@ func FuzzerCmd(args *FuzzerCmdArgs) string {
 	if args.Verbosity != 0 {
 		verbosityArg = fmt.Sprintf(" -vv=%v", args.Verbosity)
 	}
-	optionalArg := ""
+	flags := []tool.Flag{}
 	if args.Slowdown > 0 {
-		optionalArg = " " + tool.OptionalFlags([]tool.Flag{
-			{Name: "slowdown", Value: fmt.Sprint(args.Slowdown)},
-		})
+		flags = append(flags, tool.Flag{Name: "slowdown", Value: fmt.Sprint(args.Slowdown)})
+	}
+	if args.RawCover {
+		flags = append(flags, tool.Flag{Name: "raw_cover", Value: "true"})
+	}
+	optionalArg := ""
+	if len(flags) > 0 {
+		optionalArg += " " + tool.OptionalFlags(flags)
 	}
 	return fmt.Sprintf("%v -executor=%v -name=%v -arch=%v%v -manager=%v -sandbox=%v"+
 		" -procs=%v -cover=%v -debug=%v -test=%v%v%v%v",
