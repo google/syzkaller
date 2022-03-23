@@ -122,6 +122,7 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 	)
 	// Compute input coverage and non-flaky signal for minimization.
 	notexecuted := 0
+	rawCover := []uint32{}
 	for i := 0; i < signalRuns; i++ {
 		info := proc.executeRaw(proc.execOptsCover, item.p, StatTriage)
 		if !reexecutionSuccess(info, &item.info, item.call) {
@@ -133,6 +134,9 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 			continue
 		}
 		thisSignal, thisCover := getSignalAndCover(item.p, info, item.call)
+		if len(rawCover) == 0 && proc.fuzzer.fetchRawCover {
+			rawCover = append([]uint32{}, thisCover...)
+		}
 		newSignal = newSignal.Intersection(thisSignal)
 		// Without !minimized check manager starts losing some considerable amount
 		// of coverage after each restart. Mechanics of this are not completely clear.
@@ -164,10 +168,12 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 
 	log.Logf(2, "added new input for %v to corpus:\n%s", logCallName, data)
 	proc.fuzzer.sendInputToManager(rpctype.Input{
-		Call:   callName,
-		Prog:   data,
-		Signal: inputSignal.Serialize(),
-		Cover:  inputCover.Serialize(),
+		Call:     callName,
+		CallID:   item.call,
+		Prog:     data,
+		Signal:   inputSignal.Serialize(),
+		Cover:    inputCover.Serialize(),
+		RawCover: rawCover,
 	})
 
 	proc.fuzzer.addInputToCorpus(item.p, inputSignal, sig)
@@ -303,9 +309,6 @@ func (proc *Proc) randomCollide(origP *prog.Prog) *prog.Prog {
 }
 
 func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.ProgInfo {
-	if opts.Flags&ipc.FlagDedupCover == 0 {
-		log.Fatalf("dedup cover is not enabled")
-	}
 	proc.fuzzer.checkDisabledCalls(p)
 
 	// Limit concurrency window and do leak checking once in a while.

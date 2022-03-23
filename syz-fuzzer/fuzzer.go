@@ -48,6 +48,7 @@ type Fuzzer struct {
 
 	faultInjectionEnabled    bool
 	comparisonTracingEnabled bool
+	fetchRawCover            bool
 
 	corpusMu     sync.RWMutex
 	corpus       []*prog.Prog
@@ -138,14 +139,15 @@ func main() {
 	debug.SetGCPercent(50)
 
 	var (
-		flagName    = flag.String("name", "test", "unique name for manager")
-		flagOS      = flag.String("os", runtime.GOOS, "target OS")
-		flagArch    = flag.String("arch", runtime.GOARCH, "target arch")
-		flagManager = flag.String("manager", "", "manager rpc address")
-		flagProcs   = flag.Int("procs", 1, "number of parallel test processes")
-		flagOutput  = flag.String("output", "stdout", "write programs to none/stdout/dmesg/file")
-		flagTest    = flag.Bool("test", false, "enable image testing mode")      // used by syz-ci
-		flagRunTest = flag.Bool("runtest", false, "enable program testing mode") // used by pkg/runtest
+		flagName     = flag.String("name", "test", "unique name for manager")
+		flagOS       = flag.String("os", runtime.GOOS, "target OS")
+		flagArch     = flag.String("arch", runtime.GOARCH, "target arch")
+		flagManager  = flag.String("manager", "", "manager rpc address")
+		flagProcs    = flag.Int("procs", 1, "number of parallel test processes")
+		flagOutput   = flag.String("output", "stdout", "write programs to none/stdout/dmesg/file")
+		flagTest     = flag.Bool("test", false, "enable image testing mode")      // used by syz-ci
+		flagRunTest  = flag.Bool("runtest", false, "enable program testing mode") // used by pkg/runtest
+		flagRawCover = flag.Bool("raw_cover", false, "fetch raw coverage")
 	)
 	defer tool.Init()()
 	outputType := parseOutputType(*flagOutput)
@@ -159,6 +161,9 @@ func main() {
 	config, execOpts, err := ipcconfig.Default(target)
 	if err != nil {
 		log.Fatalf("failed to create default ipc config: %v", err)
+	}
+	if *flagRawCover {
+		execOpts.Flags &^= ipc.FlagDedupCover
 	}
 	timeouts := config.Timeouts
 	sandbox := ipc.FlagsToSandbox(config.Flags)
@@ -264,6 +269,7 @@ func main() {
 		comparisonTracingEnabled: r.CheckResult.Features[host.FeatureComparisons].Enabled,
 		corpusHashes:             make(map[hash.Sig]struct{}),
 		checkResult:              r.CheckResult,
+		fetchRawCover:            *flagRawCover,
 	}
 	gateCallback := fuzzer.useBugFrames(r, *flagProcs)
 	fuzzer.gate = ipc.NewGate(2**flagProcs, gateCallback)
