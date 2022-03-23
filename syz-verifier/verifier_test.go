@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -204,14 +205,16 @@ func TestSaveDiffResults(t *testing.T) {
 				makeExecResult(1, []int{1, 3, 5}),
 			},
 			wantExist: true,
-			wantStats: &Stats{
-				TotalCallMismatches: 1,
-				Calls: map[string]*CallStats{
-					"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[ReturnState]bool{}),
-					"test$res0":      makeCallStats("test$res0", 1, 1, map[ReturnState]bool{{Errno: 2}: true, {Errno: 5}: true}),
-					"minimize$0":     makeCallStats("minimize$0", 1, 0, map[ReturnState]bool{}),
+			wantStats: (&Stats{
+				TotalCallMismatches: StatUint64{1, nil},
+				Calls: StatMapStringToCallStats{
+					mapStringToCallStats: mapStringToCallStats{
+						"breaks_returns": makeCallStats("breaks_returns", 1, 0, map[ReturnState]bool{}),
+						"test$res0":      makeCallStats("test$res0", 1, 1, map[ReturnState]bool{{Errno: 2}: true, {Errno: 5}: true}),
+						"minimize$0":     makeCallStats("minimize$0", 1, 0, map[ReturnState]bool{}),
+					},
 				},
-			},
+			}).Init(),
 		},
 	}
 	for _, test := range tests {
@@ -226,7 +229,15 @@ func TestSaveDiffResults(t *testing.T) {
 			vrf.AddCallsExecutionStat(test.res, prog)
 			vrf.SaveDiffResults(test.res, prog)
 
-			if diff := cmp.Diff(test.wantStats, vrf.stats); diff != "" {
+			if diff := cmp.Diff(test.wantStats,
+				vrf.stats,
+				cmp.AllowUnexported(
+					Stats{},
+					StatUint64{},
+					StatTime{},
+					sync.Mutex{},
+					StatMapStringToCallStats{},
+				)); diff != "" {
 				t.Errorf("vrf.stats mismatch (-want +got):\n%s", diff)
 			}
 
