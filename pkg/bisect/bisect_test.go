@@ -5,8 +5,6 @@ package bisect
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
 	"strconv"
 	"testing"
 
@@ -84,10 +82,7 @@ func (env *testEnv) headCommit() int {
 }
 
 func createTestRepo(t *testing.T) string {
-	baseDir, err := ioutil.TempDir("", "syz-bisect-test")
-	if err != nil {
-		t.Fatal(err)
-	}
+	baseDir := t.TempDir()
 	repo := vcs.CreateTestRepo(t, baseDir, "")
 	if !repo.SupportsBisection() {
 		t.Skip("bisection is unsupported by git (probably too old version)")
@@ -432,17 +427,17 @@ func TestBisectionResults(t *testing.T) {
 	// Creating new repos takes majority of the test time,
 	// so we reuse them across tests.
 	repoCache := make(chan string, len(bisectionTests))
-	t.Run("group", func(t *testing.T) {
+	t.Run("group", func(tt *testing.T) {
 		for _, test := range bisectionTests {
 			test := test
-			t.Run(test.name, func(t *testing.T) {
+			tt.Run(test.name, func(t *testing.T) {
 				t.Parallel()
 				checkTest(t, test)
 				repoDir := ""
 				select {
 				case repoDir = <-repoCache:
 				default:
-					repoDir = createTestRepo(t)
+					repoDir = createTestRepo(tt)
 				}
 				defer func() {
 					repoCache <- repoDir
@@ -485,14 +480,6 @@ func TestBisectionResults(t *testing.T) {
 			})
 		}
 	})
-	for {
-		select {
-		case dir := <-repoCache:
-			os.RemoveAll(dir)
-		default:
-			return
-		}
-	}
 }
 
 func checkTest(t *testing.T, test BisectionTest) {

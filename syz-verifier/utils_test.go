@@ -4,8 +4,6 @@
 package main
 
 import (
-	"io/ioutil"
-	"os"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/ipc"
@@ -46,14 +44,7 @@ func getTestProgram(t *testing.T) *prog.Prog {
 }
 
 func makeTestResultDirectory(t *testing.T) string {
-	dir, err := ioutil.TempDir("", "syz-verifier")
-	if err != nil {
-		t.Fatalf("failed to create results directory: %v", err)
-	}
-	t.Cleanup(func() {
-		os.RemoveAll(dir)
-	})
-	return osutil.Abs(dir)
+	return osutil.Abs(t.TempDir())
 }
 
 func makeExecResult(pool int, errnos []int, flags ...int) *ExecResult {

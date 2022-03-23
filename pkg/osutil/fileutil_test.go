@@ -5,8 +5,6 @@ package osutil
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
@@ -16,11 +14,7 @@ import (
 func TestProcessTempDir(t *testing.T) {
 	for try := 0; try < 10; try++ {
 		func() {
-			tmp, err := ioutil.TempDir("", "syz")
-			if err != nil {
-				t.Fatalf("failed to create a temp dir: %v", err)
-			}
-			defer os.RemoveAll(tmp)
+			tmp := t.TempDir()
 			const P = 16
 			// Pre-create half of the instances with stale pid.
 			var dirs []string

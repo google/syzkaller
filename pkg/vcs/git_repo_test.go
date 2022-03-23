@@ -5,7 +5,6 @@ package vcs
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -22,11 +21,7 @@ func init() {
 
 func TestGitRepo(t *testing.T) {
 	t.Parallel()
-	baseDir, err := ioutil.TempDir("", "syz-git-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(baseDir)
+	baseDir := t.TempDir()
 	repo1 := CreateTestRepo(t, baseDir, "repo1")
 	repo2 := CreateTestRepo(t, baseDir, "repo2")
 	repo := newGit(filepath.Join(baseDir, "repo"), nil, nil)
@@ -140,11 +135,7 @@ func TestGitRepo(t *testing.T) {
 
 func TestMetadata(t *testing.T) {
 	t.Parallel()
-	repoDir, err := ioutil.TempDir("", "syz-git-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(repoDir)
+	repoDir := t.TempDir()
 	repo := MakeTestRepo(t, repoDir)
 	prevHash := ""
 	for i, test := range metadataTests {
@@ -329,11 +320,7 @@ Comment out an assertion that's now bogus and add a comment.
 
 func TestBisect(t *testing.T) {
 	t.Parallel()
-	repoDir, err := ioutil.TempDir("", "syz-git-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(repoDir)
+	repoDir := t.TempDir()
 	repo := MakeTestRepo(t, repoDir)
 	var commits []string
 	for i := 0; i < 5; i++ {
