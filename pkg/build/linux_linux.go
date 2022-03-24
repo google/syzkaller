@@ -67,7 +67,7 @@ func embedLinuxKernel(params Params, kernelPath string) error {
 
 func copyKernel(mountDir, kernelPath string) error {
 	// Try several common locations where the kernel can be.
-	for _, targetPath := range []string{"boot/vmlinuz", "boot/bzImage", "vmlinuz", "bzImage"} {
+	for _, targetPath := range []string{"boot/vmlinuz", "boot/bzImage", "vmlinuz", "bzImage", "Image.gz"} {
 		fullPath := filepath.Join(mountDir, filepath.FromSlash(targetPath))
 		if !osutil.IsExist(fullPath) {
 			continue

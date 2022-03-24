@@ -217,7 +217,7 @@ func kernelBin(arch string) string {
 	case targets.ARM:
 		return "arch/arm/boot/zImage"
 	case targets.ARM64:
-		return "arch/arm64/boot/Image"
+		return "arch/arm64/boot/Image.gz"
 	case targets.RiscV64:
 		return "arch/riscv/boot/Image"
 	case targets.MIPS64LE:
