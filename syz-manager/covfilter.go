@@ -26,6 +26,9 @@ func (mgr *Manager) createCoverageFilter() ([]byte, map[uint32]uint32, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	if len(mgr.cfg.CovFilter.Functions)+len(mgr.cfg.CovFilter.Files)+len(mgr.cfg.CovFilter.RawPCs) == 0 {
+		return nil, nil, nil
+	}
 	pcs := make(map[uint32]uint32)
 	foreachSymbol := func(apply func(*backend.ObjectUnit)) {
 		for _, sym := range rg.Symbols {

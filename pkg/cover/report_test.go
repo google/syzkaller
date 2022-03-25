@@ -305,20 +305,20 @@ func generateReport(t *testing.T, target *targets.Target, test Test) ([]byte, []
 		test.Progs = append(test.Progs, Prog{Data: "main", PCs: pcs})
 	}
 	html := new(bytes.Buffer)
-	if err := rg.DoHTML(html, test.Progs, nil); err != nil {
+	if err := rg.DoHTML(html, test.Progs, nil, 0); err != nil {
 		return nil, nil, err
 	}
 	htmlTable := new(bytes.Buffer)
-	if err := rg.DoHTMLTable(htmlTable, test.Progs, nil); err != nil {
+	if err := rg.DoHTMLTable(htmlTable, test.Progs, nil, 0); err != nil {
 		return nil, nil, err
 	}
 	_ = htmlTable
 	csv := new(bytes.Buffer)
-	if err := rg.DoCSV(csv, test.Progs, nil); err != nil {
+	if err := rg.DoCSV(csv, test.Progs, nil, 0); err != nil {
 		return nil, nil, err
 	}
 	csvFiles := new(bytes.Buffer)
-	if err := rg.DoCSVFiles(csvFiles, test.Progs, nil); err != nil {
+	if err := rg.DoCSVFiles(csvFiles, test.Progs, nil, 0); err != nil {
 		return nil, nil, err
 	}
 	_ = csvFiles

@@ -29,7 +29,7 @@ type Prog struct {
 var RestorePC = backend.RestorePC
 
 func MakeReportGenerator(target *targets.Target, vm, objDir, srcDir, buildDir string, subsystem []mgrconfig.Subsystem,
-	moduleObj []string, modules []host.KernelModule) (*ReportGenerator, error) {
+	moduleObj []string, modules []*host.KernelModule) (*ReportGenerator, error) {
 	impl, err := backend.Make(target, vm, objDir, srcDir, buildDir, moduleObj, modules)
 	if err != nil {
 		return nil, err
@@ -119,14 +119,33 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error
 	if !matchedPC {
 		return nil, fmt.Errorf("coverage doesn't match any coverage callbacks")
 	}
-	for _, unit := range rg.Units {
-		f := files[unit.Name]
-		for _, pc := range unit.PCs {
-			if progPCs[pc] != nil {
-				f.coveredPCs++
+
+	var pcs []uint64
+	uniquePCs := make(map[uint64]bool)
+	for _, prog := range progs {
+		for _, pc := range prog.PCs {
+			if !uniquePCs[pc] {
+				uniquePCs[pc] = true
+				pcs = append(pcs, pc)
 			}
 		}
 	}
+	sort.Slice(pcs, func(i, j int) bool {
+		return pcs[i] < pcs[j]
+	})
+	for _, pc := range pcs {
+		idx := sort.Search(len(rg.Frames), func(i int) bool {
+			return pc < rg.Frames[i].PC
+		})
+		if idx == 0 {
+			continue
+		}
+		frame := rg.Frames[idx-1]
+		if f, ok := files[frame.Name]; ok {
+			f.coveredPCs++
+		}
+	}
+
 	for _, s := range rg.Symbols {
 		fun := &function{
 			name: s.Name,
@@ -186,6 +205,9 @@ func (rg *ReportGenerator) lazySymbolize(progs []Prog) error {
 		}
 	}
 	rg.Frames = finalFrames
+	sort.Slice(rg.Frames, func(i, j int) bool {
+		return rg.Frames[i].PC < rg.Frames[j].PC
+	})
 	for sym := range symbolize {
 		sym.Symbolized = true
 	}

@@ -317,17 +317,17 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 	}
 
 	if funcFlag == DoRawCoverFiles {
-		if err := rg.DoRawCoverFiles(w, progs, coverFilter); err != nil {
+		if err := rg.DoRawCoverFiles(w, progs, coverFilter, mgr.moduleLoadOffset); err != nil {
 			http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 			return
 		}
 		runtime.GC()
 		return
 	} else if funcFlag == DoRawCover {
-		rg.DoRawCover(w, progs, coverFilter)
+		rg.DoRawCover(w, progs, coverFilter, mgr.moduleLoadOffset)
 		return
 	} else if funcFlag == DoFilterPCs {
-		rg.DoFilterPCs(w, progs, coverFilter)
+		rg.DoFilterPCs(w, progs, coverFilter, mgr.moduleLoadOffset)
 		return
 	}
 
@@ -342,7 +342,7 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request, funcF
 		do = rg.DoCSVFiles
 	}
 
-	if err := do(w, progs, coverFilter); err != nil {
+	if err := do(w, progs, coverFilter, mgr.moduleLoadOffset); err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
 	}

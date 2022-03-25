@@ -157,11 +157,12 @@ D:	d
 }
 
 func TestGetModulesInfo(t *testing.T) {
-	modules, err := getModulesInfo()
+	modules, moduleLoadOffset, err := getModulesInfo()
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Logf("modules:\n%v", modules)
+	t.Logf("module load offset: %v\n", moduleLoadOffset)
 }
 
 type cannedTest struct {

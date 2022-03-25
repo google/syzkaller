@@ -16,6 +16,7 @@ type Impl struct {
 	Frames    []Frame
 	Symbolize func(pcs map[*Module][]uint64) ([]Frame, error)
 	RestorePC func(pc uint32) uint64
+	BaseAddr  uint64
 }
 
 type Module struct {
@@ -64,7 +65,7 @@ type Range struct {
 const LineEnd = 1 << 30
 
 func Make(target *targets.Target, vm, objDir, srcDir, buildDir string,
-	moduleObj []string, modules []host.KernelModule) (*Impl, error) {
+	moduleObj []string, modules []*host.KernelModule) (*Impl, error) {
 	if objDir == "" {
 		return nil, fmt.Errorf("kernel obj directory is not specified")
 	}

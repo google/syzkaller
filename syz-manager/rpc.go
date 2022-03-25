@@ -22,22 +22,23 @@ import (
 type RPCServer struct {
 	mgr                   RPCManagerView
 	cfg                   *mgrconfig.Config
-	modules               []host.KernelModule
+	modules               []*host.KernelModule
 	port                  int
 	targetEnabledSyscalls map[*prog.Syscall]bool
 	coverFilter           map[uint32]uint32
 	stats                 *Stats
 	batchSize             int
 
-	mu            sync.Mutex
-	fuzzers       map[string]*Fuzzer
-	checkResult   *rpctype.CheckArgs
-	maxSignal     signal.Signal
-	corpusSignal  signal.Signal
-	corpusCover   cover.Cover
-	rotator       *prog.Rotator
-	rnd           *rand.Rand
-	checkFailures int
+	mu               sync.Mutex
+	fuzzers          map[string]*Fuzzer
+	checkResult      *rpctype.CheckArgs
+	maxSignal        signal.Signal
+	corpusSignal     signal.Signal
+	corpusCover      cover.Cover
+	rotator          *prog.Rotator
+	rnd              *rand.Rand
+	checkFailures    int
+	moduleLoadOffset int
 }
 
 type Fuzzer struct {
@@ -56,12 +57,13 @@ type BugFrames struct {
 
 // RPCManagerView restricts interface between RPCServer and Manager.
 type RPCManagerView interface {
-	fuzzerConnect([]host.KernelModule) (
+	fuzzerConnect([]*host.KernelModule) (
 		[]rpctype.Input, BugFrames, map[uint32]uint32, []byte, error)
 	machineChecked(result *rpctype.CheckArgs, enabledSyscalls map[*prog.Syscall]bool)
 	newInput(inp rpctype.Input, sign signal.Signal) bool
 	candidateBatch(size int) []rpctype.Candidate
 	rotateCorpus() bool
+	setModuleLoadOffset(int)
 }
 
 func startRPCServer(mgr *Manager) (*RPCServer, error) {
@@ -95,7 +97,8 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 		return err
 	}
 	serv.coverFilter = coverFilter
-	serv.modules = a.Modules
+	serv.moduleLoadOffset = a.ModuleLoadOffset
+	serv.mgr.setModuleLoadOffset(a.ModuleLoadOffset)
 
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
@@ -284,13 +287,17 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 		if err != nil {
 			return err
 		}
-		filtered := 0
+		var pcs []uint64
 		for _, pc := range diff {
-			if serv.coverFilter[uint32(rg.RestorePC(pc))] != 0 {
-				filtered++
-			}
+			pcs = append(pcs, rg.RestorePC(pc))
 		}
-		serv.stats.corpusCoverFiltered.add(filtered)
+		progs := []cover.Prog{
+			{
+				PCs: pcs,
+			},
+		}
+		progs = rg.FixupPCs(progs, serv.coverFilter, serv.moduleLoadOffset)
+		serv.stats.corpusCoverFiltered.add(len(progs[0].PCs))
 	}
 	serv.stats.newInputs.inc()
 	if rotated {

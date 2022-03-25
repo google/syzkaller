@@ -15,7 +15,7 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-func makeGvisor(target *targets.Target, objDir, srcDir, buildDir string, modules []host.KernelModule) (*Impl, error) {
+func makeGvisor(target *targets.Target, objDir, srcDir, buildDir string, modules []*host.KernelModule) (*Impl, error) {
 	if len(modules) != 0 {
 		return nil, fmt.Errorf("gvisor coverage does not support modules")
 	}
