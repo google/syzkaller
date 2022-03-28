@@ -6,7 +6,8 @@ Here are the common files and some general edits that need to be made in order t
 
 `executor/executor.cc`
 
-This file is mainly responsible for executing the syscalls programs, and managing the threads in which the programs run. It also contains the `init_os` function which is responsible for mapping a virtual address space for the calling process, and “execute_syscall” which is responsible for executing system calls for a particular OS kernel. `init_os`and `execute_syscall` are implemented in files in which their names follow a pattern `executor_os_name.h` where os_name can be linux, fuschia, windows, karos, etc. 
+This file is mainly responsible for executing the syscalls programs, and managing the
+threads in which the programs run. It also contains the `init_os` function which is responsible for mapping a virtual address space for the calling process, and “execute_syscall” which is responsible for executing system calls for a particular OS kernel. `init_os`and `execute_syscall` are implemented in files in which their names follow a pattern `executor_os_name.h` where os_name can be linux, fuschia, windows, karos, etc.
 
 `executor_os_name.h` also contains functions related to that operating system such as functions that allow it to gather coverage information, detect bitness, etc. (Example: [executor_linux.h](/executor/executor_linux.h) ).
 
@@ -31,8 +32,8 @@ Creating a file that reports build errors  for the targeted kernel under `pkg/re
 
 - Adding the new kernel name with already existing supported kernels to the file `targets.go` which is located under`“sys/targets`.
 
-- Adding the new kernel name with already existing supported kernels to the file `qemo.go` which is located under `vm/qemu`
+- Adding the new kernel name with already existing supported kernels to the file `qemo.go` which is located under `vm/qemu`.
 
 ## Syzkaller description & pseudo-syscalls
 
-Check [descriptions](/docs/syscall_descriptions.md), and [pseudo-syscalls](docs/pseudo_syscalls.md).
+Check [descriptions](/docs/syscall_descriptions.md), and [pseudo-syscalls](/docs/pseudo_syscalls.md).
