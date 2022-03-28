@@ -1400,6 +1400,17 @@ var linuxOopses = append([]*oops{
 				fmt:    "BUG: still has locks held in %[1]v",
 			},
 			{
+				title: compile("BUG: scheduling while atomic"),
+				fmt:   "BUG: scheduling while atomic in %[1]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						linuxCallTrace,
+						parseStackTrace,
+					},
+					skip: []string{"schedule"},
+				},
+			},
+			{
 				title:        compile("BUG: lock held when returning to user space"),
 				report:       compile("BUG: lock held when returning to user space(?:.*\\n)+?.*leaving the kernel with locks still held(?:.*\\n)+?.*at: (?:{{PC}} +)?{{FUNC}}"),
 				fmt:          "BUG: lock held when returning to user space in %[1]v",

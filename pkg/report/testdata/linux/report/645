@@ -1,0 +1,30 @@
+TITLE: BUG: scheduling while atomic in exit_to_user_mode_prepare
+
+[   75.726516][ T8444] BUG: scheduling while atomic: syz-executor607/8444/0x00000002
+[   75.734225][ T8444] no locks held by syz-executor607/8444.
+[   75.740182][ T8444] Modules linked in:
+[   75.744168][ T8444] Preemption disabled at:
+[   75.744175][ T8444] [<ffffffff812aa3e4>] kernel_fpu_begin_mask+0x64/0x260
+[   75.755491][ T8444] Kernel panic - not syncing: scheduling while atomic
+[   75.762311][ T8444] CPU: 1 PID: 8444 Comm: syz-executor607 Not tainted 5.13.0-rc6-syzkaller #0
+[   75.771148][ T8444] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   75.781401][ T8444] Call Trace:
+[   75.784670][ T8444]  dump_stack+0x141/0x1d7
+[   75.788994][ T8444]  panic+0x306/0x73d
+[   75.812611][ T8444]  __schedule_bug.cold+0x10c/0x143
+[   75.817935][ T8444]  __schedule+0x19df/0x23e0
+[   75.834439][ T8444]  schedule+0xcf/0x270
+[   75.838618][ T8444]  exit_to_user_mode_prepare+0x14d/0x290
+[   75.844397][ T8444]  irqentry_exit_to_user_mode+0x5/0x40
+[   75.850148][ T8444]  exc_page_fault+0xc6/0x180
+[   75.859686][ T8444]  asm_exc_page_fault+0x1e/0x30
+[   75.864612][ T8444] RIP: 0033:0x408e15
+[   75.868562][ T8444] Code: 0a 00 00 74 08 84 c9 0f 85 46 02 00 00 45 31 e4 0f 1f 44 00 00 64 8b 04 25 18 00 00 00 ba 01 00 00 00 85 c0 0f 85 d5 01 00 00 <0f> b1 15 2c 80 0a 00 4c 8b 33 4d 85 f6 75 3b e9 72 01 00 00 0f 1f
+[   75.888181][ T8444] RSP: 002b:00007ffd234882e0 EFLAGS: 00010246
+[   75.894287][ T8444] RAX: 0000000000000000 RBX: 00000000004ae108 RCX: 0000000000000001
+[   75.902250][ T8444] RDX: 0000000000000001 RSI: 00000000004ae108 RDI: 0000000000000001
+[   75.910406][ T8444] RBP: 0000000000000001 R08: 0000000000000000 R09: 00007ffd234884c8
+[   75.918484][ T8444] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+[   75.926587][ T8444] R13: 0000000000000001 R14: 00000000004ae018 R15: 0000000000400488
+[   75.936892][ T8444] Kernel Offset: disabled
+[   75.941360][ T8444] Rebooting in 86400 seconds..

@@ -1,0 +1,101 @@
+TITLE: BUG: scheduling while atomic in simple_recursive_removal
+
+[ 3151.929899][    C1] BUG: scheduling while atomic: syz-executor.0/5582/0x00000101
+[ 3151.931982][    C1] Modules linked in:
+[ 3151.933288][    C1] Preemption disabled at:
+[ 3151.933312][    C1] [<80201270>] __do_softirq+0x68/0x480
+[ 3151.934052][    C1] Kernel panic - not syncing: scheduling while atomic
+[ 3151.934499][    C1] CPU: 1 PID: 5582 Comm: syz-executor.0 Not tainted 5.17.0-syzkaller #0
+[ 3151.934699][    C1] Hardware name: ARM-Versatile Express
+[ 3151.934849][    C1] Backtrace: frame pointer underflow
+[ 3151.935058][    C1] [<816d8460>] (dump_backtrace) from [<816d8790>] (show_stack+0x18/0x1c)
+[ 3151.935287][    C1]  r7:81d67c90 r6:82222b24 r5:60000193 r4:81d72818
+[ 3151.935420][    C1] [<816d8778>] (show_stack) from [<816e1128>] (dump_stack_lvl+0x48/0x54)
+[ 3151.935619][    C1] [<816e10e0>] (dump_stack_lvl) from [<816e114c>] (dump_stack+0x18/0x1c)
+[ 3151.935824][    C1]  r5:00000000 r4:82442d14
+[ 3151.935937][    C1] [<816e1134>] (dump_stack) from [<816d932c>] (panic+0x11c/0x360)
+[ 3151.936123][    C1] [<816d9210>] (panic) from [<802757bc>] (__schedule_bug+0x9c/0xb0)
+[ 3151.936398][    C1]  r3:8220c488 r2:00000000 r1:00000000 r0:81d67c90
+[ 3151.936547][    C1]  r7:84093980
+[ 3151.936646][    C1] [<80275720>] (__schedule_bug) from [<816f6340>] (__schedule+0x7e8/0xa2c)
+[ 3151.937015][    C1]  r5:ddde5a80 r4:00000000
+[ 3151.937337][    C1] [<816f5b58>] (__schedule) from [<816f65d8>] (schedule+0x54/0xbc)
+[ 3151.938451][    C1]  r10:82cf0908 r9:82cf08f8 r8:00000002 r7:df805d64 r6:82cf0908 r5:82cf0904
+[ 3151.939265][    C1]  r4:84093980
+[ 3151.939845][    C1] [<816f6584>] (schedule) from [<816f9364>] (rwsem_down_write_slowpath+0x2a4/0x608)
+[ 3151.940136][    C1]  r5:82cf0904 r4:84093980
+[ 3151.940253][    C1] [<816f90c0>] (rwsem_down_write_slowpath) from [<816f9778>] (down_write+0x4c/0x50)
+[ 3151.940499][    C1]  r10:837695c8 r9:82cf08f8 r8:837695a0 r7:00000000 r6:82cf0870 r5:83769550
+[ 3151.940704][    C1]  r4:82c372a8
+[ 3151.940847][    C1] [<816f972c>] (down_write) from [<804c4268>] (simple_recursive_removal+0x198/0x378)
+[ 3151.941265][    C1] [<804c40d0>] (simple_recursive_removal) from [<80656bdc>] (debugfs_remove+0x40/0x54)
+[ 3151.941509][    C1]  r10:85334cec r9:0000000a r8:df805f00 r7:00000000 r6:81e9bfdc r5:83a310b8
+[ 3151.942054][    C1]  r4:83769550
+[ 3151.942293][    C1] [<80656b9c>] (debugfs_remove) from [<8071f154>] (blk_release_queue+0x7c/0xc8)
+[ 3151.942835][    C1]  r5:83a310b8 r4:83a30f9c
+[ 3151.942990][    C1] [<8071f0d8>] (blk_release_queue) from [<8080db4c>] (kobject_put+0xc8/0x204)
+[ 3151.943238][    C1]  r5:8233b364 r4:83a30f9c
+[ 3151.943357][    C1] [<8080da84>] (kobject_put) from [<8071c738>] (blk_put_queue+0x14/0x18)
+[ 3151.943582][    C1]  r7:85334cb0 r6:85334c00 r5:85334cb0 r4:824c4af8
+[ 3151.943735][    C1] [<8071c724>] (blk_put_queue) from [<8073eecc>] (blkg_free.part.0+0x54/0x70)
+[ 3151.943967][    C1] [<8073ee78>] (blkg_free.part.0) from [<807400c4>] (__blkg_release+0x7c/0x150)
+[ 3151.944204][    C1]  r7:81803c84 r6:824c4b00 r5:85334c00 r4:00000000
+[ 3151.944366][    C1] [<80740048>] (__blkg_release) from [<802cb2c0>] (rcu_core+0x4c8/0xa48)
+[ 3151.944695][    C1]  r7:81803c84 r6:00000001 r5:00000000 r4:84093980
+[ 3151.944868][    C1] [<802cadf8>] (rcu_core) from [<802cb850>] (rcu_core_si+0x10/0x14)
+[ 3151.945099][    C1]  r10:84093980 r9:00000100 r8:00000002 r7:ecdd1fb0 r6:00000009 r5:00000002
+[ 3151.945299][    C1]  r4:822040a4
+[ 3151.945396][    C1] [<802cb840>] (rcu_core_si) from [<80201374>] (__do_softirq+0x16c/0x480)
+[ 3151.945769][    C1] [<80201208>] (__do_softirq) from [<8024b1e8>] (irq_exit+0x9c/0xe8)
+[ 3151.946374][    C1]  r10:7eb5a4a4 r9:76f216d0 r8:00000000 r7:ecdd1fb0 r6:81f1f2c0 r5:81f1f2d8
+[ 3151.946945][    C1]  r4:820a8700
+[ 3151.947043][    C1] [<8024b14c>] (irq_exit) from [<816f3a48>] (generic_handle_arch_irq+0x7c/0x80)
+[ 3151.947686][    C1]  r5:81f1f2d8 r4:820a7138
+[ 3151.947862][    C1] [<816f39cc>] (generic_handle_arch_irq) from [<808037a0>] (call_with_stack+0x1c/0x20)
+[ 3151.948208][    C1]  r9:76f216d0 r8:820a0044 r7:84093980 r6:ffffffff r5:20000010 r4:000164b8
+[ 3151.948403][    C1] [<80803784>] (call_with_stack) from [<80200ed0>] (__irq_usr+0x70/0x80)
+[ 3151.948630][    C1] Exception stack(0xecdd1fb0 to 0xecdd1ff8)
+[ 3151.949055][    C1] 1fa0:                                     ffffffff 00000026 000001b8 00000000
+[ 3151.949552][    C1] 1fc0: 00000000 4d648db5 00000665 00000000 7eb5a312 76f216d0 7eb5a4a4 76f2120c
+[ 3151.950001][    C1] 1fe0: 20000b00 20000b00 000164b8 000164b8 20000010 ffffffff
+[ 3151.950880][    C0] CPU0: stopping
+[ 3151.951385][    C0] CPU: 0 PID: 2234 Comm: syz-executor.1 Not tainted 5.17.0-syzkaller #0
+[ 3151.951934][    C0] Hardware name: ARM-Versatile Express
+[ 3151.952276][    C0] Backtrace: frame pointer underflow
+[ 3151.952706][    C0] [<816d8460>] (dump_backtrace) from [<816d8790>] (show_stack+0x18/0x1c)
+[ 3151.953356][    C0]  r7:00000014 r6:00000000 r5:60000193 r4:81d72818
+[ 3151.953887][    C0] [<816d8778>] (show_stack) from [<816e1128>] (dump_stack_lvl+0x48/0x54)
+[ 3151.954428][    C0] [<816e10e0>] (dump_stack_lvl) from [<816e114c>] (dump_stack+0x18/0x1c)
+[ 3151.954972][    C0]  r5:8280cb80 r4:00000004
+[ 3151.955234][    C0] [<816e1134>] (dump_stack) from [<80210584>] (do_handle_IPI+0x388/0x3b4)
+[ 3151.955840][    C0] [<802101fc>] (do_handle_IPI) from [<802105d0>] (ipi_handler+0x20/0x28)
+[ 3151.956484][    C0]  r9:84076780 r8:df801f68 r7:00000014 r6:8190933c r5:8280cb80 r4:82886a00
+[ 3151.956962][    C0] [<802105b0>] (ipi_handler) from [<802b94b4>] (handle_percpu_devid_irq+0x9c/0x2d4)
+[ 3151.957485][    C0] [<802b9418>] (handle_percpu_devid_irq) from [<802b2bf0>] (generic_handle_domain_irq+0x48/0x8c)
+[ 3151.958129][    C0]  r10:00000072 r9:84076780 r8:00000000 r7:df80a00c r6:84076780 r5:00000004
+[ 3151.958632][    C0]  r4:82888000 r3:802b9418
+[ 3151.958877][    C0] [<802b2ba8>] (generic_handle_domain_irq) from [<808221cc>] (gic_handle_irq+0x68/0x7c)
+[ 3151.959476][    C0]  r7:df80a00c r6:820a7144 r5:df80a000 r4:8220ccec
+[ 3151.959823][    C0] [<80822164>] (gic_handle_irq) from [<816f3a2c>] (generic_handle_arch_irq+0x60/0x80)
+[ 3151.960395][    C0]  r7:df9a1e30 r6:81f1f2c0 r5:81f1f2d8 r4:820a7138
+[ 3151.960788][    C0] [<816f39cc>] (generic_handle_arch_irq) from [<808037a0>] (call_with_stack+0x1c/0x20)
+[ 3151.961463][    C0]  r9:84076780 r8:00000004 r7:df9a1e64 r6:ffffffff r5:60000013 r4:816fcbb0
+[ 3151.961956][    C0] [<80803784>] (call_with_stack) from [<80200b84>] (__irq_svc+0x84/0xac)
+[ 3151.962477][    C0] Exception stack(0xdf9a1e30 to 0xdf9a1e78)
+[ 3151.962860][    C0] 1e20:                                     82a7c014 df9a1efc 00000000 00000000
+[ 3151.963357][    C0] 1e40: df9a1efc 82a7c014 00000000 84076780 00000004 82204040 00000072 df9a1ea4
+[ 3151.963851][    C0] 1e60: df9a1ea8 df9a1e80 802992b0 816fcbb0 60000013 ffffffff
+[ 3151.964303][    C0] [<8029928c>] (add_wait_queue) from [<802489ec>] (do_wait+0x54/0x348)
+[ 3151.964782][    C0]  r9:82204040 r8:00000004 r7:84076780 r6:00000000 r5:7edb95b0 r4:df9a1ee4
+[ 3151.965262][    C0] [<80248998>] (do_wait) from [<80249fbc>] (kernel_wait4+0x8c/0x124)
+[ 3151.965638][    C0]  r10:00000072 r9:84076780 r8:00000004 r7:00000000 r6:00000000 r5:7edb95b0
+[ 3151.966198][    C0]  r4:40000005
+[ 3151.966466][    C0] [<80249f30>] (kernel_wait4) from [<8024a190>] (sys_wait4+0x9c/0xac)
+[ 3151.967026][    C0]  r8:802002a4 r7:00000072 r6:00002dd4 r5:00000000 r4:ffffffff
+[ 3151.967553][    C0] [<8024a0f4>] (sys_wait4) from [<80200060>] (ret_fast_syscall+0x0/0x1c)
+[ 3151.968124][    C0] Exception stack(0xdf9a1fa8 to 0xdf9a1ff0)
+[ 3151.968551][    C0] 1fa0:                   ffffffff 01d694c0 ffffffff 7edb95b0 40000001 00000000
+[ 3151.969129][    C0] 1fc0: ffffffff 01d694c0 00002dd4 00000072 00120000 7edb9604 00120000 000001f4
+[ 3151.969760][    C0] 1fe0: 0000000d 7edb9520 00049a54 00049a70
+[ 3151.970246][    C0]  r5:01d694c0 r4:ffffffff
+[ 3151.971384][    C1] Rebooting in 86400 seconds..
