@@ -66,6 +66,12 @@ func MakeExecTask(prog *prog.Prog) *ExecTask {
 	return task
 }
 
+func ExecTasksQueued() int {
+	ChanMapMutex.Lock()
+	defer ChanMapMutex.Unlock()
+	return len(TaskIDToExecResultChan)
+}
+
 func DeleteExecTask(task *ExecTask) {
 	ChanMapMutex.Lock()
 	defer ChanMapMutex.Unlock()
