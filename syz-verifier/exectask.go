@@ -66,12 +66,6 @@ func MakeExecTask(prog *prog.Prog) *ExecTask {
 	return task
 }
 
-func ExecTasksQueued() int {
-	ChanMapMutex.Lock()
-	defer ChanMapMutex.Unlock()
-	return len(TaskIDToExecResultChan)
-}
-
 func DeleteExecTask(task *ExecTask) {
 	ChanMapMutex.Lock()
 	defer ChanMapMutex.Unlock()
@@ -94,28 +88,22 @@ func MakeExecTaskQueue() *ExecTaskQueue {
 // ExecTaskQueue respects the pq.priority. Internally it is a thread-safe PQ.
 type ExecTaskQueue struct {
 	pq ExecTaskPriorityQueue
-	mu sync.Mutex
 }
 
 // PopTask return false if no tasks are available.
 func (q *ExecTaskQueue) PopTask() (*ExecTask, bool) {
-	q.mu.Lock()
-	defer q.mu.Unlock()
 	if q.pq.Len() == 0 {
 		return nil, false
 	}
+
 	return heap.Pop(&q.pq).(*ExecTask), true
 }
 
 func (q *ExecTaskQueue) PushTask(task *ExecTask) {
-	q.mu.Lock()
-	defer q.mu.Unlock()
 	heap.Push(&q.pq, task)
 }
 
 func (q *ExecTaskQueue) Len() int {
-	q.mu.Lock()
-	defer q.mu.Unlock()
 	return q.pq.Len()
 }
 
