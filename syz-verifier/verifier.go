@@ -317,8 +317,7 @@ func (vrf *Verifier) AddCallsExecutionStat(results []*ExecResult, program *prog.
 		if !cr.Mismatch {
 			continue
 		}
-		vrf.stats.Calls.IncMismatches(cr.Call)
-		vrf.stats.TotalCallMismatches.Inc()
+		vrf.stats.IncCallMismatches(cr.Call)
 		for _, state := range cr.States {
 			if state0 := cr.States[0]; state0 != state {
 				vrf.stats.Calls.AddState(cr.Call, state)
