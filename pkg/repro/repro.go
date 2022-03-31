@@ -6,17 +6,15 @@ package repro
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"sort"
 	"sync"
 	"time"
 
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/host"
-	instancePkg "github.com/google/syzkaller/pkg/instance"
+	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
-	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -42,25 +40,23 @@ type Stats struct {
 	SimplifyCTime    time.Duration
 }
 
+type reproInstance struct {
+	index    int
+	execProg *instance.ExecProgInstance
+}
+
 type context struct {
 	target       *targets.Target
 	reporter     *report.Reporter
 	crashTitle   string
 	crashType    report.Type
-	instances    chan *instance
+	instances    chan *reproInstance
 	bootRequests chan int
 	testTimeouts []time.Duration
 	startOpts    csource.Options
 	stats        *Stats
 	report       *report.Report
 	timeouts     targets.Timeouts
-}
-
-type instance struct {
-	*vm.Instance
-	index       int
-	execprogBin string
-	executorBin string
 }
 
 func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, reporter *report.Reporter,
@@ -103,7 +99,7 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, report
 		reporter:     reporter,
 		crashTitle:   crashTitle,
 		crashType:    crashType,
-		instances:    make(chan *instance, len(vmIndexes)),
+		instances:    make(chan *reproInstance, len(vmIndexes)),
 		bootRequests: make(chan int, len(vmIndexes)),
 		testTimeouts: testTimeouts,
 		startOpts:    createStartOptions(cfg, features, crashType),
@@ -118,7 +114,7 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, report
 		go func() {
 			defer wg.Done()
 			for vmIndex := range ctx.bootRequests {
-				var inst *instance
+				var inst *instance.ExecProgInstance
 				maxTry := 3
 				for try := 0; try < maxTry; try++ {
 					select {
@@ -128,7 +124,8 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, report
 					default:
 					}
 					var err error
-					inst, err = ctx.initInstance(cfg, vmPool, vmIndex)
+					inst, err = instance.CreateExecProgInstance(vmPool, vmIndex, cfg,
+						reporter, &instance.OptionalConfig{Logf: ctx.reproLogf})
 					if err != nil {
 						ctx.reproLogf(0, "failed to init instance: %v", err)
 						time.Sleep(10 * time.Second)
@@ -139,7 +136,7 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, report
 				if inst == nil {
 					break
 				}
-				ctx.instances <- inst
+				ctx.instances <- &reproInstance{execProg: inst, index: vmIndex}
 			}
 		}()
 	}
@@ -150,7 +147,7 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, report
 	defer func() {
 		close(ctx.bootRequests)
 		for inst := range ctx.instances {
-			inst.Close()
+			inst.execProg.VMInstance.Close()
 		}
 	}()
 
@@ -209,32 +206,6 @@ func createStartOptions(cfg *mgrconfig.Config, features *host.Features, crashTyp
 		}
 	}
 	return opts
-}
-
-func (ctx *context) initInstance(cfg *mgrconfig.Config, vmPool *vm.Pool, vmIndex int) (*instance, error) {
-	vmInst, err := vmPool.Create(vmIndex)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create VM: %v", err)
-	}
-	execprogBin, err := vmInst.Copy(cfg.ExecprogBin)
-	if err != nil {
-		vmInst.Close()
-		return nil, fmt.Errorf("failed to copy to VM: %v", err)
-	}
-	executorBin := ctx.target.ExecutorBin
-	if executorBin == "" {
-		executorBin, err = vmInst.Copy(cfg.ExecutorBin)
-		if err != nil {
-			vmInst.Close()
-			return nil, fmt.Errorf("failed to copy to VM: %v", err)
-		}
-	}
-	return &instance{
-		Instance:    vmInst,
-		index:       vmIndex,
-		execprogBin: execprogBin,
-		executorBin: executorBin,
-	}, nil
 }
 
 func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, error) {
@@ -546,28 +517,47 @@ func (ctx *context) testProg(p *prog.Prog, duration time.Duration, opts csource.
 	return ctx.testProgs([]*prog.LogEntry{&entry}, duration, opts)
 }
 
-func (ctx *context) testProgs(entries []*prog.LogEntry, duration time.Duration, opts csource.Options) (
-	crashed bool, err error) {
+func (ctx *context) testWithInstance(callback func(inst *instance.ExecProgInstance) (rep *instance.RunResult,
+	err error)) (bool, error) {
 	inst := <-ctx.instances
 	if inst == nil {
 		return false, fmt.Errorf("all VMs failed to boot")
 	}
 	defer ctx.returnInstance(inst)
-	if len(entries) == 0 {
-		return false, fmt.Errorf("no programs to execute")
-	}
-
-	pstr := encodeEntries(entries)
-	progFile, err := osutil.WriteTempFile(pstr)
+	result, err := callback(inst.execProg)
 	if err != nil {
 		return false, err
 	}
-	defer os.Remove(progFile)
-	vmProgFile, err := inst.Copy(progFile)
-	if err != nil {
-		return false, fmt.Errorf("failed to copy to VM: %v", err)
+	rep := result.Report
+	if rep == nil {
+		return false, nil
 	}
+	if rep.Suppressed {
+		ctx.reproLogf(2, "suppressed program crash: %v", rep.Title)
+		return false, nil
+	}
+	if ctx.crashType == report.MemoryLeak && rep.Type != report.MemoryLeak {
+		ctx.reproLogf(2, "not a leak crash: %v", rep.Title)
+		return false, nil
+	}
+	ctx.report = rep
+	return true, nil
+}
 
+func encodeEntries(entries []*prog.LogEntry) []byte {
+	buf := new(bytes.Buffer)
+	for _, ent := range entries {
+		fmt.Fprintf(buf, "executing program %v:\n%v", ent.Proc, string(ent.P.Serialize()))
+	}
+	return buf.Bytes()
+}
+
+func (ctx *context) testProgs(entries []*prog.LogEntry, duration time.Duration, opts csource.Options) (
+	crashed bool, err error) {
+	if len(entries) == 0 {
+		return false, fmt.Errorf("no programs to execute")
+	}
+	pstr := encodeEntries(entries)
 	program := entries[0].P.String()
 	if len(entries) > 1 {
 		program = "["
@@ -579,77 +569,22 @@ func (ctx *context) testProgs(entries []*prog.LogEntry, duration time.Duration, 
 		}
 		program += "]"
 	}
-
-	command := instancePkg.ExecprogCmd(inst.execprogBin, inst.executorBin,
-		ctx.target.OS, ctx.target.Arch, opts.Sandbox, opts.Repeat,
-		opts.Threaded, opts.Collide, opts.Procs, -1, -1, true, ctx.timeouts.Slowdown, vmProgFile)
 	ctx.reproLogf(2, "testing program (duration=%v, %+v): %s", duration, opts, program)
 	ctx.reproLogf(3, "detailed listing:\n%s", pstr)
-	return ctx.testImpl(inst.Instance, command, duration)
+	return ctx.testWithInstance(func(inst *instance.ExecProgInstance) (*instance.RunResult, error) {
+		return inst.RunSyzProg(pstr, duration, opts)
+	})
 }
 
 func (ctx *context) testCProg(p *prog.Prog, duration time.Duration, opts csource.Options) (crashed bool, err error) {
-	src, err := csource.Write(p, opts)
-	if err != nil {
-		return false, err
-	}
-	bin, err := csource.BuildNoWarn(p.Target, src)
-	if err != nil {
-		return false, err
-	}
-	defer os.Remove(bin)
-	ctx.reproLogf(2, "testing compiled C program (duration=%v, %+v): %s", duration, opts, p)
-	crashed, err = ctx.testBin(bin, duration)
-	if err != nil {
-		return false, err
-	}
-	return crashed, nil
+	return ctx.testWithInstance(func(inst *instance.ExecProgInstance) (*instance.RunResult, error) {
+		return inst.RunCProg(p, duration, opts)
+	})
 }
 
-func (ctx *context) testBin(bin string, duration time.Duration) (crashed bool, err error) {
-	inst := <-ctx.instances
-	if inst == nil {
-		return false, fmt.Errorf("all VMs failed to boot")
-	}
-	defer ctx.returnInstance(inst)
-
-	bin, err = inst.Copy(bin)
-	if err != nil {
-		return false, fmt.Errorf("failed to copy to VM: %v", err)
-	}
-	return ctx.testImpl(inst.Instance, bin, duration)
-}
-
-func (ctx *context) testImpl(inst *vm.Instance, command string, duration time.Duration) (crashed bool, err error) {
-	outc, errc, err := inst.Run(duration, nil, command)
-	if err != nil {
-		return false, fmt.Errorf("failed to run command in VM: %v", err)
-	}
-	rep := inst.MonitorExecution(outc, errc, ctx.reporter,
-		vm.ExitTimeout|vm.ExitNormal|vm.ExitError)
-	if rep == nil {
-		ctx.reproLogf(2, "program did not crash")
-		return false, nil
-	}
-	if err := ctx.reporter.Symbolize(rep); err != nil {
-		return false, fmt.Errorf("failed to symbolize report: %v", err)
-	}
-	if rep.Suppressed {
-		ctx.reproLogf(2, "suppressed program crash: %v", rep.Title)
-		return false, nil
-	}
-	if ctx.crashType == report.MemoryLeak && rep.Type != report.MemoryLeak {
-		ctx.reproLogf(2, "not a leak crash: %v", rep.Title)
-		return false, nil
-	}
-	ctx.report = rep
-	ctx.reproLogf(2, "program crashed: %v", rep.Title)
-	return true, nil
-}
-
-func (ctx *context) returnInstance(inst *instance) {
+func (ctx *context) returnInstance(inst *reproInstance) {
 	ctx.bootRequests <- inst.index
-	inst.Close()
+	inst.execProg.VMInstance.Close()
 }
 
 func (ctx *context) reproLogf(level int, format string, args ...interface{}) {
@@ -773,14 +708,6 @@ func chunksToStr(chunks [][]*prog.LogEntry) string {
 	}
 	log += "]"
 	return log
-}
-
-func encodeEntries(entries []*prog.LogEntry) []byte {
-	buf := new(bytes.Buffer)
-	for _, ent := range entries {
-		fmt.Fprintf(buf, "executing program %v:\n%v", ent.Proc, string(ent.P.Serialize()))
-	}
-	return buf.Bytes()
 }
 
 type Simplify func(opts *csource.Options) bool

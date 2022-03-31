@@ -78,23 +78,10 @@ func main() {
 	runType := LogFile
 	if strings.HasSuffix(reproduceMe, ".c") {
 		runType = CProg
-	}
-	if runType == CProg {
-		execprog, err := ioutil.ReadFile(reproduceMe)
-		if err != nil {
-			log.Fatalf("error reading source file from '%s'", reproduceMe)
-		}
-
-		cfg.ExecprogBin, err = csource.BuildNoWarn(cfg.Target, execprog)
-		if err != nil {
-			log.Fatalf("failed to build source file: %v", err)
-		}
-
-		log.Printf("compiled csource %v to cprog: %v", reproduceMe, cfg.ExecprogBin)
+		log.Printf("reproducing from C source file: %v", reproduceMe)
 	} else {
 		log.Printf("reproducing from log file: %v", reproduceMe)
 	}
-
 	log.Printf("booting %v test machines...", vmPool.Count())
 	runDone := make(chan *report.Report)
 	var shutdown, stoppedWorkers uint32
@@ -169,54 +156,37 @@ func storeCrash(cfg *mgrconfig.Config, rep *report.Report) {
 func runInstance(cfg *mgrconfig.Config, reporter *report.Reporter,
 	vmPool *vm.Pool, index int, timeout time.Duration, runType FileType) *report.Report {
 	log.Printf("vm-%v: starting", index)
-	inst, err := vmPool.Create(index)
+	optArgs := &instance.OptionalConfig{
+		ExitCondition: vm.ExitTimeout,
+	}
+	var err error
+	inst, err := instance.CreateExecProgInstance(vmPool, index, cfg, reporter, optArgs)
 	if err != nil {
-		log.Printf("failed to create instance: %v", err)
+		log.Printf("failed to set up instance: %v", err)
 		return nil
 	}
-	defer inst.Close()
-
-	execprogBin, err := inst.Copy(cfg.ExecprogBin)
-	if err != nil {
-		log.Printf("failed to copy execprog: %v", err)
-		return nil
-	}
-
-	cmd := ""
+	defer inst.VMInstance.Close()
+	file := flag.Args()[0]
+	var res *instance.RunResult
 	if runType == LogFile {
-		// If SyzExecutorCmd is provided, it means that syz-executor is already in
-		// the image, so no need to copy it.
-		executorBin := cfg.SysTarget.ExecutorBin
-		if executorBin == "" {
-			executorBin, err = inst.Copy(cfg.ExecutorBin)
-			if err != nil {
-				log.Printf("failed to copy executor: %v", err)
-				return nil
-			}
-		}
-		logFile, err := inst.Copy(flag.Args()[0])
-		if err != nil {
-			log.Printf("failed to copy log: %v", err)
-			return nil
-		}
-
-		cmd = instance.ExecprogCmd(execprogBin, executorBin, cfg.TargetOS, cfg.TargetArch, cfg.Sandbox,
-			true, true, true, cfg.Procs, -1, -1, true, cfg.Timeouts.Slowdown, logFile)
+		opts := csource.DefaultOpts(cfg)
+		opts.Repeat, opts.Threaded = true, true
+		res, err = inst.RunSyzProgFile(file, timeout, opts)
 	} else {
-		cmd = execprogBin
+		var src []byte
+		src, err = ioutil.ReadFile(file)
+		if err != nil {
+			log.Fatalf("error reading source file from '%s'", file)
+		}
+		res, err = inst.RunCProgRaw(src, cfg.Target, timeout)
 	}
-
-	outc, errc, err := inst.Run(timeout, nil, cmd)
 	if err != nil {
-		log.Printf("failed to run execprog: %v", err)
+		log.Printf("failed to execute program: %v", err)
 		return nil
 	}
-
-	log.Printf("vm-%v: crushing...", index)
-	rep := inst.MonitorExecution(outc, errc, reporter, vm.ExitTimeout)
-	if rep != nil {
-		log.Printf("vm-%v: crash: %v", index, rep.Title)
-		return rep
+	if res.Report != nil {
+		log.Printf("vm-%v: crash: %v", index, res.Report.Title)
+		return res.Report
 	}
 	log.Printf("vm-%v: running long enough, stopping", index)
 	return nil
