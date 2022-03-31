@@ -7,7 +7,7 @@ Here are the common parts of syzkaller to edit in order to make syzkaller suppor
 For each OS, there is this file `executor/executor_GOOS.h` where GOOS is the OS name. This file contains two important functions:
 
 - `os_init` which is responsible for mapping a virtual address space for the calling process,
-- `execute_syscall` which is responsible for executing system calls for a particular OS kernel. 
+- `execute_syscall` which is responsible for executing system calls for a particular OS kernel.
 
 These two functions, are called in `executor/executor.cc`, which is mainly responsible for executing the syscalls programs, and managing the threads in which the programs run.
 
