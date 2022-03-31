@@ -48,8 +48,8 @@ type Config struct {
 }
 
 type Pool struct {
-	Env *vmimpl.Env
-	Cfg *Config
+	env *vmimpl.Env
+	cfg *Config
 	GCE *gce.Context
 }
 
@@ -122,19 +122,19 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		}
 	}
 	pool := &Pool{
-		Cfg: cfg,
-		Env: env,
+		cfg: cfg,
+		env: env,
 		GCE: GCE,
 	}
 	return pool, nil
 }
 
 func (pool *Pool) Count() int {
-	return pool.Cfg.Count
+	return pool.cfg.Count
 }
 
 func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
-	name := fmt.Sprintf("%v-%v", pool.Env.Name, index)
+	name := fmt.Sprintf("%v-%v", pool.env.Name, index)
 	// Create SSH key for the instance.
 	gceKey := filepath.Join(workdir, "key")
 	keygen := osutil.Command("ssh-keygen", "-t", "ed25519", "-N", "", "-C", "syzkaller", "-f", gceKey)
@@ -151,8 +151,8 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		return nil, err
 	}
 	log.Logf(0, "creating instance: %v", name)
-	ip, err := pool.GCE.CreateInstance(name, pool.Cfg.MachineType, pool.Cfg.GCEImage,
-		string(gceKeyPub), pool.Cfg.Preemptible, pool.Cfg.DisplayDevice)
+	ip, err := pool.GCE.CreateInstance(name, pool.cfg.MachineType, pool.cfg.GCEImage,
+		string(gceKeyPub), pool.cfg.Preemptible, pool.cfg.DisplayDevice)
 	if err != nil {
 		return nil, err
 	}
@@ -163,16 +163,16 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 			pool.GCE.DeleteInstance(name, true)
 		}
 	}()
-	sshKey := pool.Env.SSHKey
-	sshUser := pool.Env.SSHUser
+	sshKey := pool.env.SSHKey
+	sshUser := pool.env.SSHUser
 	if sshKey == "GCE" {
 		// Assuming image supports GCE ssh fanciness.
 		sshKey = gceKey
 		sshUser = "syzkaller"
 	}
 	log.Logf(0, "wait instance to boot: %v (%v)", name, ip)
-	if err := vmimpl.WaitForSSH(pool.Env.Debug, 5*time.Minute, ip,
-		sshKey, sshUser, pool.Env.OS, 22, nil); err != nil {
+	if err := vmimpl.WaitForSSH(pool.env.Debug, 5*time.Minute, ip,
+		sshKey, sshUser, pool.env.OS, 22, nil); err != nil {
 		output, outputErr := pool.getSerialPortOutput(name, gceKey)
 		if outputErr != nil {
 			output = []byte(fmt.Sprintf("failed to get boot output: %v", outputErr))
@@ -181,9 +181,9 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	}
 	ok = true
 	inst := &instance{
-		env:     pool.Env,
-		cfg:     pool.Cfg,
-		debug:   pool.Env.Debug,
+		env:     pool.env,
+		cfg:     pool.cfg,
+		debug:   pool.env.Debug,
 		GCE:     pool.GCE,
 		name:    name,
 		ip:      ip,
@@ -403,7 +403,7 @@ func (pool *Pool) getSerialPortOutput(name, gceKey string) ([]byte, error) {
 	defer conWpipe.Close()
 	conAddr := fmt.Sprintf("%v.%v.%v.syzkaller.port=1.replay-lines=10000@ssh-serialport.googleapis.com",
 		pool.GCE.ProjectID, pool.GCE.ZoneID, name)
-	conArgs := append(vmimpl.SSHArgs(pool.Env.Debug, gceKey, 9600), conAddr)
+	conArgs := append(vmimpl.SSHArgs(pool.env.Debug, gceKey, 9600), conAddr)
 	// TODO(blackgnezdo): Remove this once ssh-serialport.googleapis.com stops using
 	// host key algorithm: ssh-rsa.
 	conArgs = append(conArgs, "-o", "HostKeyAlgorithms=+ssh-rsa")
