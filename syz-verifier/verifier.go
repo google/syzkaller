@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/google/syzkaller/pkg/instance"
@@ -141,23 +140,23 @@ func (vrf *Verifier) TestProgram(prog *prog.Prog) (result []*ExecResult) {
 		NewEnvironment,
 	}
 
-	defer atomic.AddInt64(&vrf.stats.TotalProgs, 1)
+	defer vrf.stats.TotalProgs.Inc()
 
 	for i, env := range steps {
 		stepRes, err := vrf.Run(prog, env)
 		if err != nil {
-			atomic.AddInt64(&vrf.stats.ExecErrorProgs, 1)
+			vrf.stats.ExecErrorProgs.Inc()
 			return
 		}
 		vrf.AddCallsExecutionStat(stepRes, prog)
 		if stepRes[0].IsEqual(stepRes[1]) {
 			if i != 0 {
-				atomic.AddInt64(&vrf.stats.FlakyProgs, 1)
+				vrf.stats.FlakyProgs.Inc()
 			}
 			return
 		}
 		if i == len(steps)-1 {
-			atomic.AddInt64(&vrf.stats.MismatchingProgs, 1)
+			vrf.stats.MismatchingProgs.Inc()
 			return stepRes
 		}
 	}
@@ -220,8 +219,8 @@ func (vrf *Verifier) SetPrintStatAtSIGINT() error {
 		<-osSignalChannel
 		defer os.Exit(0)
 
-		totalExecutionTime := time.Since(vrf.stats.StartTime).Minutes()
-		if vrf.stats.TotalCallMismatches < 0 {
+		totalExecutionTime := time.Since(vrf.stats.StartTime.Get()).Minutes()
+		if !vrf.stats.MismatchesFound() {
 			fmt.Fprint(vrf.statsWrite, "No mismatches occurred until syz-verifier was stopped.")
 		} else {
 			fmt.Fprintf(vrf.statsWrite, "%s", vrf.stats.GetTextDescription(totalExecutionTime))
@@ -313,17 +312,17 @@ func (vrf *Verifier) finalizeCallSet(w io.Writer) {
 func (vrf *Verifier) AddCallsExecutionStat(results []*ExecResult, program *prog.Prog) {
 	rr := CompareResults(results, program)
 	for _, cr := range rr.Reports {
-		atomic.AddInt64(&vrf.stats.Calls[cr.Call].Occurrences, 1)
+		vrf.stats.Calls.IncCallOccurrenceCount(cr.Call)
 
 		if !cr.Mismatch {
 			continue
 		}
-		atomic.AddInt64(&vrf.stats.Calls[cr.Call].Mismatches, 1)
-		atomic.AddInt64(&vrf.stats.TotalCallMismatches, 1)
+		vrf.stats.Calls.IncMismatches(cr.Call)
+		vrf.stats.TotalCallMismatches.Inc()
 		for _, state := range cr.States {
 			if state0 := cr.States[0]; state0 != state {
-				vrf.stats.Calls[cr.Call].States[state] = true
-				vrf.stats.Calls[cr.Call].States[state0] = true
+				vrf.stats.Calls.AddState(cr.Call, state)
+				vrf.stats.Calls.AddState(cr.Call, state0)
 			}
 		}
 	}

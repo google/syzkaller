@@ -64,16 +64,18 @@ func makeExecResultCrashed(pool int) *ExecResult {
 }
 
 func emptyTestStats() *Stats {
-	return &Stats{
-		Calls: map[string]*CallStats{
-			"breaks_returns": {Name: "breaks_returns", States: map[ReturnState]bool{}},
-			"minimize$0":     {Name: "minimize$0", States: map[ReturnState]bool{}},
-			"test$res0":      {Name: "test$res0", States: map[ReturnState]bool{}},
+	return (&Stats{
+		Calls: StatMapStringToCallStats{
+			mapStringToCallStats: mapStringToCallStats{
+				"breaks_returns": {Name: "breaks_returns", States: map[ReturnState]bool{}},
+				"minimize$0":     {Name: "minimize$0", States: map[ReturnState]bool{}},
+				"test$res0":      {Name: "test$res0", States: map[ReturnState]bool{}},
+			},
 		},
-	}
+	}).Init()
 }
 
-func makeCallStats(name string, occurrences, mismatches int64, states map[ReturnState]bool) *CallStats {
+func makeCallStats(name string, occurrences, mismatches uint64, states map[ReturnState]bool) *CallStats {
 	return &CallStats{Name: name,
 		Occurrences: occurrences,
 		Mismatches:  mismatches,
