@@ -91,7 +91,7 @@ func (srv *RPCServer) UpdateUnsupported(a *rpctype.UpdateUnsupportedArgs, r *int
 func (srv *RPCServer) NextExchange(a *rpctype.NextExchangeArgs, r *rpctype.NextExchangeRes) error {
 	if a.Info.Calls != nil {
 		srv.stopWaitResult(a.Pool, a.VM, a.ExecTaskID)
-		PutExecResult(&ExecResult{
+		srv.vrf.PutExecResult(&ExecResult{
 			Pool:       a.Pool,
 			Hanged:     a.Hanged,
 			Info:       a.Info,
@@ -140,7 +140,7 @@ func (srv *RPCServer) cleanup(poolID, vmID int) {
 
 	// Signal error for every VM related task and let upper level logic to process it.
 	for taskID := range srv.vmTasksInProgress[vmTasksKey(poolID, vmID)] {
-		PutExecResult(&ExecResult{
+		srv.vrf.PutExecResult(&ExecResult{
 			Pool:       poolID,
 			ExecTaskID: taskID,
 			Crashed:    true,

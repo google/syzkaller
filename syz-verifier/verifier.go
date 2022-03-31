@@ -57,6 +57,7 @@ type Verifier struct {
 	tasksMutex     sync.Mutex
 	onTaskAdded    *sync.Cond
 	kernelEnvTasks [][]*ExecTaskQueue
+	taskFactory    *ExecTaskFactory
 }
 
 func (vrf *Verifier) Init() {
@@ -77,6 +78,8 @@ func (vrf *Verifier) Init() {
 		log.Fatalf("failed to initialise RPC server: %v", err)
 	}
 	vrf.srv = srv
+
+	vrf.taskFactory = MakeExecTaskFactory()
 }
 
 func (vrf *Verifier) StartProgramsAnalysis() {
@@ -126,8 +129,8 @@ func (vrf *Verifier) GetRunnerTask(kernel int, existing EnvDescr) *rpctype.ExecT
 	}
 }
 
-func PutExecResult(result *ExecResult) {
-	c := GetExecResultChan(result.ExecTaskID)
+func (vrf *Verifier) PutExecResult(result *ExecResult) {
+	c := vrf.taskFactory.GetExecResultChan(result.ExecTaskID)
 	c <- result
 }
 
@@ -176,8 +179,8 @@ func (vrf *Verifier) Run(prog *prog.Prog, env EnvDescr) (result []*ExecResult, e
 
 		go func() {
 			defer wg.Done()
-			task := MakeExecTask(prog)
-			defer DeleteExecTask(task)
+			task := vrf.taskFactory.MakeExecTask(prog)
+			defer vrf.taskFactory.DeleteExecTask(task)
 
 			vrf.tasksMutex.Lock()
 			q.PushTask(task)
