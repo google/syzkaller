@@ -34,21 +34,26 @@ func (l *ExecResult) IsEqual(r *ExecResult) bool {
 		return false
 	}
 
-	lCalls := l.Info.Calls
-	rCalls := r.Info.Calls
-
-	if len(lCalls) != len(rCalls) {
+	if len(l.Info.Calls) != len(r.Info.Calls) {
 		return false
 	}
+
+	return -1 == l.FirstDiffCallNumber(r)
+}
+
+// FirstDiffCallNumber return x, false if no diff exists.
+func (l *ExecResult) FirstDiffCallNumber(r *ExecResult) int {
+	lCalls := l.Info.Calls
+	rCalls := r.Info.Calls
 
 	for i := 0; i < len(lCalls); i++ {
 		if lCalls[i].Errno != rCalls[i].Errno ||
 			lCalls[i].Flags != rCalls[i].Flags {
-			return false
+			return i
 		}
 	}
 
-	return true
+	return -1
 }
 
 type ResultReport struct {

@@ -142,6 +142,7 @@ func (vrf *Verifier) TestProgram(prog *prog.Prog) (result []*ExecResult) {
 
 	defer vrf.stats.TotalProgs.Inc()
 
+	var results [][]*ExecResult
 	for i, env := range steps {
 		stepRes, err := vrf.Run(prog, env)
 		if err != nil {
@@ -155,12 +156,22 @@ func (vrf *Verifier) TestProgram(prog *prog.Prog) (result []*ExecResult) {
 			}
 			return
 		}
-		if i == len(steps)-1 {
-			vrf.stats.MismatchingProgs.Inc()
-			return stepRes
+		results = append(results, stepRes)
+	}
+
+	// Check all the results on the same kernel are equal (stability check).
+	for i := 1; i < len(results); i++ {
+		curRes := results[i]
+		prevRes := results[i-1]
+		if !prevRes[0].IsEqual(curRes[0]) ||
+			!prevRes[1].IsEqual(curRes[1]) {
+			vrf.stats.FlakyProgs.Inc()
+			return
 		}
 	}
-	return
+
+	vrf.stats.MismatchingProgs.Inc()
+	return results[len(results)-1]
 }
 
 // Run sends the program for verification to execution queues and return
