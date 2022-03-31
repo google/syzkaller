@@ -360,30 +360,22 @@ func (inst *inst) testInstance() error {
 }
 
 func (inst *inst) testRepro() error {
-	cfg := inst.cfg
+	var err error
+	execProg, err := SetupExecProg(inst.vm, inst.cfg, inst.reporter, &OptionalConfig{
+		OldFlagsCompatMode: !inst.optionalFlags,
+	})
+	if err != nil {
+		return err
+	}
+	transformError := func(res *RunResult, err error) error {
+		if err != nil && res.Report != nil {
+			return &CrashError{Report: res.Report}
+		}
+		return err
+	}
 	if len(inst.reproSyz) > 0 {
-		execprogBin, err := inst.vm.Copy(cfg.ExecprogBin)
-		if err != nil {
-			return &TestError{Title: fmt.Sprintf("failed to copy test binary to VM: %v", err)}
-		}
-		// If ExecutorBin is provided, it means that syz-executor is already in the image,
-		// so no need to copy it.
-		executorBin := cfg.SysTarget.ExecutorBin
-		if executorBin == "" {
-			executorBin, err = inst.vm.Copy(inst.cfg.ExecutorBin)
-			if err != nil {
-				return &TestError{Title: fmt.Sprintf("failed to copy test binary to VM: %v", err)}
-			}
-		}
-		progFile := filepath.Join(cfg.Workdir, "repro.prog")
-		if err := osutil.WriteFile(progFile, inst.reproSyz); err != nil {
-			return fmt.Errorf("failed to write temp file: %v", err)
-		}
-		vmProgFile, err := inst.vm.Copy(progFile)
-		if err != nil {
-			return &TestError{Title: fmt.Sprintf("failed to copy test binary to VM: %v", err)}
-		}
-		opts, err := csource.DeserializeOptions(inst.reproOpts)
+		var opts csource.Options
+		opts, err = csource.DeserializeOptions(inst.reproOpts)
 		if err != nil {
 			return err
 		}
@@ -394,47 +386,17 @@ func (inst *inst) testRepro() error {
 		if opts.Sandbox == "" {
 			opts.Sandbox = "none"
 		}
-		if !opts.Fault {
-			opts.FaultCall = -1
-		}
-		cmdSyz := ExecprogCmd(execprogBin, executorBin, cfg.TargetOS, cfg.TargetArch, opts.Sandbox,
-			true, true, opts.Collide, cfg.Procs, opts.FaultCall, opts.FaultNth, inst.optionalFlags,
-			cfg.Timeouts.Slowdown, vmProgFile)
-		if err := inst.testProgram(cmdSyz, cfg.Timeouts.NoOutputRunningTime); err != nil {
-			return err
-		}
+		opts.Repeat, opts.Threaded = true, true
+		err = transformError(execProg.RunSyzProg(inst.reproSyz,
+			inst.cfg.Timeouts.NoOutputRunningTime, opts))
 	}
-	if len(inst.reproC) == 0 {
-		return nil
+	if err == nil && len(inst.reproC) > 0 {
+		// We should test for more than full "no output" timeout, but the problem is that C reproducers
+		// don't print anything, so we will get a false "no output" crash.
+		err = transformError(execProg.RunCProgRaw(inst.reproC, inst.cfg.Target,
+			inst.cfg.Timeouts.NoOutput/2))
 	}
-	bin, err := csource.BuildNoWarn(cfg.Target, inst.reproC)
-	if err != nil {
-		return err
-	}
-	defer os.Remove(bin)
-	vmBin, err := inst.vm.Copy(bin)
-	if err != nil {
-		return &TestError{Title: fmt.Sprintf("failed to copy test binary to VM: %v", err)}
-	}
-	// We should test for more than full "no output" timeout, but the problem is that C reproducers
-	// don't print anything, so we will get a false "no output" crash.
-	return inst.testProgram(vmBin, cfg.Timeouts.NoOutput/2)
-}
-
-func (inst *inst) testProgram(command string, testTime time.Duration) error {
-	outc, errc, err := inst.vm.Run(testTime, nil, command)
-	if err != nil {
-		return fmt.Errorf("failed to run binary in VM: %v", err)
-	}
-	rep := inst.vm.MonitorExecution(outc, errc, inst.reporter,
-		vm.ExitTimeout|vm.ExitNormal|vm.ExitError)
-	if rep == nil {
-		return nil
-	}
-	if err := inst.reporter.Symbolize(rep); err != nil {
-		log.Logf(0, "failed to symbolize report: %v", err)
-	}
-	return &CrashError{Report: rep}
+	return err
 }
 
 type OptionalFuzzerArgs struct {
