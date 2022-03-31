@@ -14,30 +14,18 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/syzkaller/pkg/config"
-	"github.com/google/syzkaller/pkg/gce"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/vm/vmimpl"
-
-	gcevm "github.com/google/syzkaller/vm/gce"
 )
 
 func init() {
 	vmimpl.Register("cuttlefish", ctor, true)
 }
 
-type Config struct {
-	Count       int    `json:"count"`        // number of VMs to use
-	MachineType string `json:"machine_type"` // GCE machine type (e.g. "n1-standard-4")
-	GCEImage    string `json:"gce_image"`    // pre-created GCE image to use
-	Preemptible bool   `json:"preemptible"`  // use preemptible VMs if available (defaults to true)
-}
-
 type Pool struct {
-	cfg     *Config
 	env     *vmimpl.Env
-	gcePool *gcevm.Pool
+	gcePool vmimpl.Pool
 }
 
 type instance struct {
@@ -46,52 +34,14 @@ type instance struct {
 }
 
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
-	log.Logf(0, "cuttlefish.ctor()")
-	if env.Name == "" {
-		return nil, fmt.Errorf("config param name is empty (required for GCE)")
-	}
-	cfg := &Config{
-		Count:       1,
-		Preemptible: true,
-	}
-	if err := config.LoadData(env.Config, cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse gce vm config: %v", err)
-	}
-	if cfg.Count < 1 || cfg.Count > 1000 {
-		return nil, fmt.Errorf("invalid config param count: %v, want [1, 1000]", cfg.Count)
-	}
-	if env.Debug && cfg.Count > 1 {
-		log.Logf(0, "limiting number of VMs from %v to 1 in debug mode", cfg.Count)
-		cfg.Count = 1
-	}
-	if cfg.MachineType == "" {
-		return nil, fmt.Errorf("machine_type parameter is empty")
-	}
-	if cfg.GCEImage == "" {
-		return nil, fmt.Errorf("gce_image parameter is empty")
-	}
-
-	ctx, err := gce.NewContext()
+	gcePool, err := vmimpl.Types["gce"].Ctor(env)
 	if err != nil {
-		return nil, fmt.Errorf("failed to init gce: %v", err)
+		return nil, fmt.Errorf("failed to create underlying GCE pool: %s", err)
 	}
-	log.Logf(0, "GCE initialized: running on %v, internal IP %v, project %v, zone %v, net %v/%v",
-		ctx.Instance, ctx.InternalIP, ctx.ProjectID, ctx.ZoneID, ctx.Network, ctx.Subnetwork)
 
 	pool := &Pool{
-		cfg: cfg,
-		env: env,
-		// This nested gcevm.Pool object will let us re-use the existing Create() function.
-		gcePool: &gcevm.Pool{
-			Env: env,
-			Cfg: &gcevm.Config{
-				Count:       cfg.Count,
-				MachineType: cfg.MachineType,
-				GCEImage:    cfg.GCEImage,
-				Preemptible: cfg.Preemptible,
-			},
-			GCE: ctx,
-		},
+		env:     env,
+		gcePool: gcePool,
 	}
 
 	return pool, nil
@@ -99,11 +49,10 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 
 func (pool *Pool) Count() int {
 	log.Logf(0, "cuttlefish.pool.Count()")
-	return pool.cfg.Count
+	return pool.gcePool.Count()
 }
 
 func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
-	log.Logf(0, "cuttlefish.pool.Create(%s, %d)", workdir, index)
 	gceInst, err := pool.gcePool.Create(workdir, index)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create underlying gce instance: %s", err)
@@ -148,19 +97,19 @@ func (inst *instance) runOnHost(timeout time.Duration, cmd string) error {
 			return nil
 		case out, ok := <-outc:
 			if ok && inst.debug {
-				log.Logf(0, string(out))
+				log.Logf(1, "%s", out)
 			}
 		}
 	}
 }
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
-	log.Logf(0, "cuttlefish.instance.Copy(%s)", hostSrc)
+	log.Logf(1, "cuttlefish.instance.Copy(%s)", hostSrc)
 	return "", fmt.Errorf("not implemented")
 }
 
 func (inst *instance) Forward(port int) (string, error) {
-	log.Logf(0, "cuttlefish.instance.Forward(%d)", port)
+	log.Logf(1, "cuttlefish.instance.Forward(%d)", port)
 	return "", fmt.Errorf("not implemented")
 }
 
@@ -172,11 +121,11 @@ func (inst *instance) Close() {
 
 func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (
 	<-chan []byte, <-chan error, error) {
-	log.Logf(0, "cuttlefish.instance.Run(%s)", command)
+	log.Logf(1, "cuttlefish.instance.Run(%s)", command)
 	return nil, nil, fmt.Errorf("not implemented")
 }
 
 func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
-	log.Logf(0, "cuttlefish.instance.Diagnose()")
+	log.Logf(1, "cuttlefish.instance.Diagnose()")
 	return nil, false
 }
