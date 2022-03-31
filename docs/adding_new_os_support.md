@@ -1,6 +1,6 @@
 # Adding new OS support
 
-Here are the common parts of syzkaller to edit in order to make syzkaller support a new OS kernel. However, there are some specific changes that may be required for a given kernel (for example, gathering coverage from a given kernel, or some errors that might pop up and give a hint about what to tweak).
+Here are the common parts of syzkaller to edit in order to make syzkaller support a new OS kernel. However, there may be some specific changes that will be required for a given kernel (for example, gathering coverage from a given kernel, or some errors that might pop up and give a hint about what to tweak).
 
 ## syz-executor
 
