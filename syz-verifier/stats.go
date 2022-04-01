@@ -60,12 +60,6 @@ func (stat *StatMapStringToCallStats) IncCallOccurrenceCount(key string) {
 	stat.mu.Unlock()
 }
 
-func (stat *StatMapStringToCallStats) IncMismatches(key string) {
-	stat.mu.Lock()
-	stat.mapStringToCallStats[key].Mismatches++
-	stat.mu.Unlock()
-}
-
 func (stat *StatMapStringToCallStats) AddState(key string, state ReturnState) {
 	stat.mu.Lock()
 	stat.mapStringToCallStats[key].States[state] = true
@@ -134,6 +128,13 @@ func (stats *Stats) Init() *Stats {
 
 func (stats *Stats) MismatchesFound() bool {
 	return stats.TotalCallMismatches.Get() != 0
+}
+
+func (stats *Stats) IncCallMismatches(key string) {
+	stats.mu.Lock()
+	defer stats.mu.Unlock()
+	stats.Calls.mapStringToCallStats[key].Mismatches++
+	stats.TotalCallMismatches.uint64++
 }
 
 // CallStats stores information used to generate statistics for the
