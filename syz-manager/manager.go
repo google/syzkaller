@@ -296,7 +296,8 @@ type RunResult struct {
 type ReproResult struct {
 	instances []int
 	report0   *report.Report // the original report we started reproducing
-	res       *repro.Result
+	repro     *repro.Result
+	strace    *repro.StraceResult
 	stats     *repro.Stats
 	err       error
 	hub       bool // repro came from hub
@@ -361,7 +362,7 @@ func (mgr *Manager) vmLoop() {
 				atomic.AddUint32(&mgr.numReproducing, 1)
 				log.Logf(1, "loop: starting repro of '%v' on instances %+v", crash.Title, vmIndexes)
 				go func() {
-					reproDone <- mgr.runRepro(crash, vmIndexes)
+					reproDone <- mgr.runRepro(crash, vmIndexes, instances.Put)
 				}()
 			}
 			for !canRepro() {
@@ -409,23 +410,22 @@ func (mgr *Manager) vmLoop() {
 			atomic.AddUint32(&mgr.numReproducing, ^uint32(0))
 			crepro := false
 			title := ""
-			if res.res != nil {
-				crepro = res.res.CRepro
-				title = res.res.Report.Title
+			if res.repro != nil {
+				crepro = res.repro.CRepro
+				title = res.repro.Report.Title
 			}
 			log.Logf(1, "loop: repro on %+v finished '%v', repro=%v crepro=%v desc='%v'",
-				res.instances, res.report0.Title, res.res != nil, crepro, title)
+				res.instances, res.report0.Title, res.repro != nil, crepro, title)
 			if res.err != nil {
 				log.Logf(0, "repro failed: %v", res.err)
 			}
 			delete(reproducing, res.report0.Title)
-			instances.Put(res.instances...)
-			if res.res == nil {
+			if res.repro == nil {
 				if !res.hub {
 					mgr.saveFailedRepro(res.report0, res.stats)
 				}
 			} else {
-				mgr.saveRepro(res.res, res.stats, res.hub)
+				mgr.saveRepro(res)
 			}
 		case <-shutdown:
 			log.Logf(1, "loop: shutting down...")
@@ -448,17 +448,39 @@ func (mgr *Manager) vmLoop() {
 	}
 }
 
-func (mgr *Manager) runRepro(crash *Crash, vmIndexes []int) *ReproResult {
+func (mgr *Manager) runRepro(crash *Crash, vmIndexes []int, putInstances func(...int)) *ReproResult {
 	features := mgr.checkResult.Features
 	res, stats, err := repro.Run(crash.Output, mgr.cfg, features, mgr.reporter, mgr.vmPool, vmIndexes)
-	return &ReproResult{
+	ret := &ReproResult{
 		instances: vmIndexes,
 		report0:   crash.Report,
-		res:       res,
+		repro:     res,
 		stats:     stats,
 		err:       err,
 		hub:       crash.hub,
 	}
+	if err != nil && res != nil && mgr.cfg.StraceBin != "" {
+		// We need only one instance to get strace output, release the rest.
+		putInstances(vmIndexes[1:]...)
+		defer putInstances(vmIndexes[0])
+
+		const straceAttempts = 2
+		for i := 1; i <= straceAttempts; i++ {
+			strace := repro.RunStrace(res, mgr.cfg, mgr.reporter, mgr.vmPool, vmIndexes[0])
+			sameBug := strace.IsSameBug(res)
+			log.Logf(0, "strace run attempt %d/%d for '%s': same bug %v, error %v",
+				i, straceAttempts, res.Report.Title, sameBug, strace.Error)
+			// We only want to save strace output if it resulted in the same bug.
+			// Otherwise, it will be hard to reproduce on syzbot and will confuse users.
+			if sameBug {
+				ret.strace = strace
+				break
+			}
+		}
+	} else {
+		putInstances(vmIndexes...)
+	}
+	return ret
 }
 
 type ResourcePool struct {
@@ -973,23 +995,23 @@ func (mgr *Manager) saveFailedRepro(rep *report.Report, stats *repro.Stats) {
 	}
 }
 
-func (mgr *Manager) saveRepro(res *repro.Result, stats *repro.Stats, hub bool) {
-	rep := res.Report
-	opts := fmt.Sprintf("# %+v\n", res.Opts)
-	prog := res.Prog.Serialize()
+func (mgr *Manager) saveRepro(res *ReproResult) {
+	repro := res.repro
+	opts := fmt.Sprintf("# %+v\n", repro.Opts)
+	prog := repro.Prog.Serialize()
 
 	// Append this repro to repro list to send to hub if it didn't come from hub originally.
-	if !hub {
+	if !res.hub {
 		progForHub := []byte(fmt.Sprintf("# %+v\n# %v\n# %v\n%s",
-			res.Opts, res.Report.Title, mgr.cfg.Tag, prog))
+			repro.Opts, repro.Report.Title, mgr.cfg.Tag, prog))
 		mgr.mu.Lock()
 		mgr.newRepros = append(mgr.newRepros, progForHub)
 		mgr.mu.Unlock()
 	}
 
 	var cprogText []byte
-	if res.CRepro {
-		cprog, err := csource.Write(res.Prog, res.Opts)
+	if repro.CRepro {
+		cprog, err := csource.Write(repro.Prog, repro.Opts)
 		if err == nil {
 			formatted, err := csource.Format(cprog)
 			if err == nil {
@@ -1007,16 +1029,25 @@ func (mgr *Manager) saveRepro(res *repro.Result, stats *repro.Stats, hub bool) {
 		// 2. Repro re-tried 3 times and still got corrupted report at the end,
 		//    so maybe corrupted report detection is broken.
 		// 3. Reproduction is expensive so it's good to persist the result.
+
+		report := repro.Report
+		output := report.Output
+		if res.strace != nil {
+			// If syzkaller managed to successfully run the repro with strace, send
+			// the report and the output generated under strace.
+			report = res.strace.Report
+			output = res.strace.Output
+		}
 		dc := &dashapi.Crash{
 			BuildID:    mgr.cfg.Tag,
-			Title:      res.Report.Title,
-			AltTitles:  res.Report.AltTitles,
-			Suppressed: res.Report.Suppressed,
-			Recipients: res.Report.Recipients.ToDash(),
-			Log:        res.Report.Output,
-			Report:     res.Report.Report,
-			ReproOpts:  res.Opts.Serialize(),
-			ReproSyz:   res.Prog.Serialize(),
+			Title:      report.Title,
+			AltTitles:  report.AltTitles,
+			Suppressed: report.Suppressed,
+			Recipients: report.Recipients.ToDash(),
+			Log:        output,
+			Report:     report.Report,
+			ReproOpts:  repro.Opts.Serialize(),
+			ReproSyz:   repro.Prog.Serialize(),
 			ReproC:     cprogText,
 		}
 		if _, err := mgr.dash.ReportCrash(dc); err != nil {
@@ -1028,6 +1059,7 @@ func (mgr *Manager) saveRepro(res *repro.Result, stats *repro.Stats, hub bool) {
 		}
 	}
 
+	rep := repro.Report
 	dir := filepath.Join(mgr.crashdir, hash.String([]byte(rep.Title)))
 	osutil.MkdirAll(dir)
 
@@ -1047,7 +1079,17 @@ func (mgr *Manager) saveRepro(res *repro.Result, stats *repro.Stats, hub bool) {
 	if len(cprogText) > 0 {
 		osutil.WriteFile(filepath.Join(dir, "repro.cprog"), cprogText)
 	}
-	saveReproStats(filepath.Join(dir, "repro.stats"), stats)
+	if res.strace != nil {
+		// Unlike dashboard reporting, we save strace output separately from the original log.
+		if res.strace.Error != nil {
+			osutil.WriteFile(filepath.Join(dir, "strace.error"),
+				[]byte(fmt.Sprintf("%v", res.strace.Error)))
+		}
+		if len(res.strace.Output) > 0 {
+			osutil.WriteFile(filepath.Join(dir, "strace.log"), res.strace.Output)
+		}
+	}
+	saveReproStats(filepath.Join(dir, "repro.stats"), res.stats)
 }
 
 func saveReproStats(filename string, stats *repro.Stats) {
