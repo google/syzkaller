@@ -9126,6 +9126,21 @@ static void set_app_seccomp_filter()
 	install_filter(&f);
 }
 
+#if GOARCH_amd64 || GOARCH_386
+int mkdir(const char* path, mode_t mode)
+{
+	return mkdirat(AT_FDCWD, path, mode);
+}
+int rmdir(const char* path)
+{
+	return unlinkat(AT_FDCWD, path, AT_REMOVEDIR);
+}
+int symlink(const char* old_path, const char* new_path)
+{
+	return symlinkat(old_path, AT_FDCWD, new_path);
+}
+#endif
+
 #endif
 #include <fcntl.h>
 #include <grp.h>

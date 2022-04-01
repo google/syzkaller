@@ -101,3 +101,23 @@ static void set_app_seccomp_filter()
 	// Will fail() if anything fails.
 	install_filter(&f);
 }
+
+#if GOARCH_amd64 || GOARCH_386
+// In bionic mkdir calls mkdirat, there is no seccomp hole for mkdir.
+int mkdir(const char* path, mode_t mode)
+{
+	return mkdirat(AT_FDCWD, path, mode);
+}
+
+// In bionic unlinkat calls mkdirat, there is no seccomp hole for rmdir.
+int rmdir(const char* path)
+{
+	return unlinkat(AT_FDCWD, path, AT_REMOVEDIR);
+}
+
+// In bionic symlink calls symlinkat, there is no seccomp hole for symlink.
+int symlink(const char* old_path, const char* new_path)
+{
+	return symlinkat(old_path, AT_FDCWD, new_path);
+}
+#endif
