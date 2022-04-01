@@ -609,6 +609,7 @@ func readCrash(workdir, dir string, repros map[string]bool, start time.Time, ful
 	var crashes []*UICrash
 	reproAttempts := 0
 	hasRepro, hasCRepro := false, false
+	strace := ""
 	reports := make(map[string]bool)
 	for _, f := range files {
 		if strings.HasPrefix(f, "log") {
@@ -627,6 +628,8 @@ func readCrash(workdir, dir string, repros map[string]bool, start time.Time, ful
 		} else if f == "repro.report" {
 		} else if f == "repro0" || f == "repro1" || f == "repro2" {
 			reproAttempts++
+		} else if f == "strace.log" {
+			strace = filepath.Join("crashes", dir, f)
 		}
 	}
 
@@ -658,6 +661,7 @@ func readCrash(workdir, dir string, repros map[string]bool, start time.Time, ful
 		ID:          dir,
 		Count:       len(crashes),
 		Triaged:     triaged,
+		Strace:      strace,
 		Crashes:     crashes,
 	}
 }
@@ -713,6 +717,7 @@ type UICrashType struct {
 	ID          string
 	Count       int
 	Triaged     string
+	Strace      string
 	Crashes     []*UICrash
 }
 
@@ -793,6 +798,9 @@ var summaryTemplate = html.CreatePage(`
 		<td>
 			{{if $c.Triaged}}
 				<a href="/report?id={{$c.ID}}">{{$c.Triaged}}</a>
+			{{end}}
+			{{if $c.Strace}}
+				<a href="/file?name={{$c.Strace}}">Strace</a>
 			{{end}}
 		</td>
 	</tr>

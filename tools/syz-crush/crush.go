@@ -31,6 +31,7 @@ var (
 	flagDebug       = flag.Bool("debug", false, "dump all VM output to console")
 	flagRestartTime = flag.Duration("restart_time", 0, "how long to run the test")
 	flagInfinite    = flag.Bool("infinite", true, "by default test is run for ever, -infinite=false to stop on crash")
+	flagStrace      = flag.Bool("strace", false, "run under strace (binary must be set in the config file")
 )
 
 type FileType int
@@ -58,6 +59,9 @@ func main() {
 		log.Printf("running infinitely and restarting VM every %v", *flagRestartTime)
 	} else {
 		log.Printf("running until crash is found or till %v", *flagRestartTime)
+	}
+	if *flagStrace && cfg.StraceBin == "" {
+		log.Fatalf("strace_bin must not be empty in order to run with -strace")
 	}
 
 	vmPool, err := vm.Create(cfg, *flagDebug)
@@ -159,6 +163,9 @@ func runInstance(cfg *mgrconfig.Config, reporter *report.Reporter,
 	log.Printf("vm-%v: starting", index)
 	optArgs := &instance.OptionalConfig{
 		ExitCondition: vm.ExitTimeout,
+	}
+	if *flagStrace {
+		optArgs.StraceBin = cfg.StraceBin
 	}
 	var err error
 	inst, err := instance.CreateExecProgInstance(vmPool, index, cfg, reporter, optArgs)

@@ -13,6 +13,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm"
 )
 
@@ -23,6 +24,7 @@ type OptionalConfig struct {
 	Logf               ExecutorLogger
 	OldFlagsCompatMode bool
 	BeforeContextLen   int
+	StraceBin          string
 }
 
 type ExecProgInstance struct {
@@ -62,6 +64,14 @@ func SetupExecProg(vmInst *vm.Instance, mgrCfg *mgrconfig.Config, reporter *repo
 	}
 	if opt != nil {
 		ret.OptionalConfig = *opt
+		if ret.StraceBin != "" {
+			var err error
+			ret.StraceBin, err = vmInst.Copy(ret.StraceBin)
+			if err != nil {
+				vmInst.Close()
+				return nil, &TestError{Title: fmt.Sprintf("failed to copy strace bin: %v", err)}
+			}
+		}
 	}
 	if ret.Logf == nil {
 		ret.Logf = func(int, string, ...interface{}) {}
@@ -87,6 +97,19 @@ func CreateExecProgInstance(vmPool *vm.Pool, vmIndex int, mgrCfg *mgrconfig.Conf
 }
 
 func (inst *ExecProgInstance) runCommand(command string, duration time.Duration) (*RunResult, error) {
+	var prefixOutput []byte
+	if inst.StraceBin != "" {
+		filterCalls := ""
+		switch inst.mgrCfg.SysTarget.OS {
+		case targets.Linux:
+			// wait4 and nanosleep generate a lot of noise, especially when running syz-executor.
+			// We cut them on the VM side in order to decrease load on the network and to use
+			// the limited buffer size wisely.
+			filterCalls = ` -e \!wait4,clock_nanosleep,nanosleep`
+		}
+		command = inst.StraceBin + filterCalls + ` -s 100 -x -f ` + command
+		prefixOutput = []byte(fmt.Sprintf("%s\n\n<...>\n", command))
+	}
 	outc, errc, err := inst.VMInstance.Run(duration, nil, command)
 	if err != nil {
 		return nil, fmt.Errorf("failed to run command in VM: %v", err)
@@ -94,6 +117,9 @@ func (inst *ExecProgInstance) runCommand(command string, duration time.Duration)
 	result := &RunResult{
 		ExecutionResult: *inst.VMInstance.MonitorExecutionRaw(outc, errc,
 			inst.reporter, inst.ExitCondition, inst.BeforeContextLen),
+	}
+	if len(prefixOutput) > 0 {
+		result.RawOutput = append(prefixOutput, result.RawOutput...)
 	}
 	if result.Report == nil {
 		inst.Logf(2, "program did not crash")
