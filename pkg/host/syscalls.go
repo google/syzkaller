@@ -27,6 +27,7 @@ func DetectSupportedSyscalls(target *prog.Target, sandbox string, enabled map[*p
 		}
 	} else {
 		for _, c := range target.Syscalls {
+			log.Logf(1, "TESTING "+c.Name)
 			ok, reason := false, ""
 			switch {
 			case c.Attrs.Disabled:
@@ -35,7 +36,7 @@ func DetectSupportedSyscalls(target *prog.Target, sandbox string, enabled map[*p
 			case !enabled[c]:
 				ok = false
 				reason = "not in set of enabled calls"
-			case c.CallName == "syz_execute_func":
+			case c.CallName == "syz_execute_func" || c.Name == "openat$vhost_vsock":
 				// syz_execute_func caused multiple problems:
 				// 1. First it lead to corpus explosion. The program used existing values in registers
 				// to pollute output area. We tried to zero registers (though, not reliably).
@@ -53,9 +54,11 @@ func DetectSupportedSyscalls(target *prog.Target, sandbox string, enabled map[*p
 				ok = false
 				reason = "always disabled for now"
 			default:
+				log.Logf(1, "CHECKING IF SUPPORTED "+c.Name)
 				ok, reason = isSupported(c, target, sandbox)
 			}
 			if ok {
+				log.Logf(1, "Supported "+c.Name)
 				supported[c] = true
 			} else {
 				if reason == "" {
