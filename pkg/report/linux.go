@@ -1003,6 +1003,7 @@ var linuxStackParams = &stackParams{
 		"invalid_op",
 		"report_bug",
 		"fixup_bug",
+		"print_report",
 		"do_error",
 		"invalid_op",
 		"_trap",
@@ -1398,6 +1399,17 @@ var linuxOopses = append([]*oops{
 				title:  compile("BUG: .*still has locks held!"),
 				report: compile("BUG: .*still has locks held!(?:.*\\n)+?.*{{PC}} +{{FUNC}}"),
 				fmt:    "BUG: still has locks held in %[1]v",
+			},
+			{
+				title: compile("BUG: scheduling while atomic"),
+				fmt:   "BUG: scheduling while atomic in %[1]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						linuxCallTrace,
+						parseStackTrace,
+					},
+					skip: []string{"schedule"},
+				},
 			},
 			{
 				title:        compile("BUG: lock held when returning to user space"),

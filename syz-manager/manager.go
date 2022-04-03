@@ -72,7 +72,7 @@ type Manager struct {
 
 	candidates       []rpctype.Candidate // untriaged inputs from corpus and hub
 	disabledHashes   map[string]struct{}
-	corpus           map[string]rpctype.Input
+	corpus           map[string]CorpusItem
 	seeds            [][]byte
 	newRepros        [][]byte
 	lastMinCorpus    int
@@ -92,6 +92,28 @@ type Manager struct {
 	coverFilter        map[uint32]uint32
 	coverFilterBitmap  []byte
 	modulesInitialized bool
+}
+
+type CorpusItemUpdate struct {
+	CallID   int
+	RawCover []uint32
+}
+
+type CorpusItem struct {
+	Call    string
+	Prog    []byte
+	Signal  signal.Serial
+	Cover   []uint32
+	Updates []CorpusItemUpdate
+}
+
+func (item *CorpusItem) RPCInput() rpctype.Input {
+	return rpctype.Input{
+		Call:   item.Call,
+		Prog:   item.Prog,
+		Signal: item.Signal,
+		Cover:  item.Cover,
+	}
 }
 
 const (
@@ -162,7 +184,7 @@ func RunManager(cfg *mgrconfig.Config) {
 		startTime:        time.Now(),
 		stats:            &Stats{haveHub: cfg.HubClient != ""},
 		crashTypes:       make(map[string]bool),
-		corpus:           make(map[string]rpctype.Input),
+		corpus:           make(map[string]CorpusItem),
 		disabledHashes:   make(map[string]struct{}),
 		memoryLeakFrames: make(map[string]bool),
 		dataRaceFrames:   make(map[string]bool),
@@ -658,9 +680,24 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Re
 	atomic.AddUint32(&mgr.numFuzzing, 1)
 	defer atomic.AddUint32(&mgr.numFuzzing, ^uint32(0))
 
-	cmd := instance.FuzzerCmd(fuzzerBin, executorBin, instanceName,
-		mgr.cfg.TargetOS, mgr.cfg.TargetArch, fwdAddr, mgr.cfg.Sandbox, procs, fuzzerV,
-		mgr.cfg.Cover, *flagDebug, false, false, true, mgr.cfg.Timeouts.Slowdown)
+	args := &instance.FuzzerCmdArgs{
+		Fuzzer:    fuzzerBin,
+		Executor:  executorBin,
+		Name:      instanceName,
+		OS:        mgr.cfg.TargetOS,
+		Arch:      mgr.cfg.TargetArch,
+		FwdAddr:   fwdAddr,
+		Sandbox:   mgr.cfg.Sandbox,
+		Procs:     procs,
+		Verbosity: fuzzerV,
+		Cover:     mgr.cfg.Cover,
+		Debug:     *flagDebug,
+		Test:      false,
+		Runtest:   false,
+		Slowdown:  mgr.cfg.Timeouts.Slowdown,
+		RawCover:  mgr.cfg.RawCover,
+	}
+	cmd := instance.FuzzerCmd(args)
 	outc, errc, err := inst.Run(mgr.cfg.Timeouts.VMRunningTime, mgr.vmStop, cmd)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to run fuzzer: %v", err)
@@ -998,11 +1035,11 @@ func (mgr *Manager) minimizeCorpus() {
 			Context: inp,
 		})
 	}
-	newCorpus := make(map[string]rpctype.Input)
+	newCorpus := make(map[string]CorpusItem)
 	// Note: inputs are unsorted (based on map iteration).
 	// This gives some intentional non-determinism during minimization.
 	for _, ctx := range signal.Minimize(inputs) {
-		inp := ctx.(rpctype.Input)
+		inp := ctx.(CorpusItem)
 		newCorpus[hash.String(inp.Prog)] = inp
 	}
 	log.Logf(1, "minimized corpus: %v -> %v", len(mgr.corpus), len(newCorpus))
@@ -1094,7 +1131,7 @@ func (mgr *Manager) fuzzerConnect(modules []host.KernelModule) (
 	mgr.minimizeCorpus()
 	corpus := make([]rpctype.Input, 0, len(mgr.corpus))
 	for _, inp := range mgr.corpus {
-		corpus = append(corpus, inp)
+		corpus = append(corpus, inp.RPCInput())
 	}
 	frames := BugFrames{
 		memoryLeaks: make([]string, 0, len(mgr.memoryLeakFrames)),
@@ -1134,6 +1171,10 @@ func (mgr *Manager) newInput(inp rpctype.Input, sign signal.Signal) bool {
 	if mgr.saturatedCalls[inp.Call] {
 		return false
 	}
+	update := CorpusItemUpdate{
+		CallID:   inp.CallID,
+		RawCover: inp.RawCover,
+	}
 	sig := hash.String(inp.Prog)
 	if old, ok := mgr.corpus[sig]; ok {
 		// The input is already present, but possibly with diffent signal/coverage/call.
@@ -1143,9 +1184,20 @@ func (mgr *Manager) newInput(inp rpctype.Input, sign signal.Signal) bool {
 		cov.Merge(old.Cover)
 		cov.Merge(inp.Cover)
 		old.Cover = cov.Serialize()
+		const maxUpdates = 32
+		old.Updates = append(old.Updates, update)
+		if len(old.Updates) > maxUpdates {
+			old.Updates = old.Updates[:maxUpdates]
+		}
 		mgr.corpus[sig] = old
 	} else {
-		mgr.corpus[sig] = inp
+		mgr.corpus[sig] = CorpusItem{
+			Call:    inp.Call,
+			Prog:    inp.Prog,
+			Signal:  inp.Signal,
+			Cover:   inp.Cover,
+			Updates: []CorpusItemUpdate{update},
+		}
 		mgr.corpusDB.Save(sig, inp.Prog, 0)
 		if err := mgr.corpusDB.Flush(); err != nil {
 			log.Logf(0, "failed to save corpus database: %v", err)

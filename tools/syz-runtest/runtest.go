@@ -173,9 +173,23 @@ func (mgr *Manager) boot(name string, index int) (*report.Report, error) {
 			return nil, fmt.Errorf("failed to copy binary: %v", err)
 		}
 	}
-	cmd := instance.FuzzerCmd(fuzzerBin, executorBin, name,
-		mgr.cfg.TargetOS, mgr.cfg.TargetArch, fwdAddr, mgr.cfg.Sandbox, mgr.cfg.Procs, 0,
-		mgr.cfg.Cover, mgr.debug, false, true, true, mgr.cfg.Timeouts.Slowdown)
+	args := &instance.FuzzerCmdArgs{
+		Fuzzer:    fuzzerBin,
+		Executor:  executorBin,
+		Name:      name,
+		OS:        mgr.cfg.TargetOS,
+		Arch:      mgr.cfg.TargetArch,
+		FwdAddr:   fwdAddr,
+		Sandbox:   mgr.cfg.Sandbox,
+		Procs:     mgr.cfg.Procs,
+		Verbosity: 0,
+		Cover:     mgr.cfg.Cover,
+		Debug:     mgr.debug,
+		Test:      false,
+		Runtest:   true,
+		Slowdown:  mgr.cfg.Timeouts.Slowdown,
+	}
+	cmd := instance.FuzzerCmd(args)
 	outc, errc, err := inst.Run(time.Hour, mgr.vmStop, cmd)
 	if err != nil {
 		return nil, fmt.Errorf("failed to run fuzzer: %v", err)

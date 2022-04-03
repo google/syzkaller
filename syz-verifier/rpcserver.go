@@ -4,6 +4,7 @@
 package main
 
 import (
+	"errors"
 	"net"
 	"os"
 	"sync"
@@ -15,25 +16,22 @@ import (
 // RPCServer is a wrapper around the rpc.Server. It communicates with  Runners,
 // generates programs and sends complete Results for verification.
 type RPCServer struct {
-	vrf             *Verifier
-	port            int
-	mu              sync.Mutex
-	cond            *sync.Cond
-	pools           map[int]*poolInfo
-	progs           map[int]*progInfo
-	notChecked      int
-	rerunsAvailable *sync.Cond
+	vrf  *Verifier
+	port int
+
+	// protects next variables
+	mu sync.Mutex
+	// used to count the pools w/o UnsupportedCalls result
+	notChecked int
+	// vmTasks store the per-VM currently assigned tasks Ids
+	vmTasksInProgress map[int]map[int64]bool
 }
 
 func startRPCServer(vrf *Verifier) (*RPCServer, error) {
 	srv := &RPCServer{
 		vrf:        vrf,
-		pools:      vrf.pools,
-		progs:      make(map[int]*progInfo),
 		notChecked: len(vrf.pools),
 	}
-	srv.cond = sync.NewCond(&srv.mu)
-	srv.rerunsAvailable = sync.NewCond(&srv.mu)
 
 	s, err := rpctype.NewRPCServer(vrf.addr, "Verifier", srv)
 	if err != nil {
@@ -49,11 +47,7 @@ func startRPCServer(vrf *Verifier) (*RPCServer, error) {
 
 // Connect notifies the RPCServer that a new Runner was started.
 func (srv *RPCServer) Connect(a *rpctype.RunnerConnectArgs, r *rpctype.RunnerConnectRes) error {
-	srv.mu.Lock()
-	defer srv.mu.Unlock()
-	pool, vm := a.Pool, a.VM
-	srv.pools[pool].runners[vm] = make(runnerProgs)
-	r.CheckUnsupportedCalls = !srv.pools[pool].checked
+	r.CheckUnsupportedCalls = !srv.vrf.pools[a.Pool].checked
 	return nil
 }
 
@@ -66,10 +60,11 @@ func (srv *RPCServer) Connect(a *rpctype.RunnerConnectArgs, r *rpctype.RunnerCon
 func (srv *RPCServer) UpdateUnsupported(a *rpctype.UpdateUnsupportedArgs, r *int) error {
 	srv.mu.Lock()
 	defer srv.mu.Unlock()
-	if srv.pools[a.Pool].checked {
+
+	if srv.vrf.pools[a.Pool].checked {
 		return nil
 	}
-	srv.pools[a.Pool].checked = true
+	srv.vrf.pools[a.Pool].checked = true
 	vrf := srv.vrf
 
 	for _, unsupported := range a.UnsupportedCalls {
@@ -86,7 +81,7 @@ func (srv *RPCServer) UpdateUnsupported(a *rpctype.UpdateUnsupportedArgs, r *int
 		vrf.SetPrintStatAtSIGINT()
 
 		vrf.choiceTable = vrf.target.BuildChoiceTable(nil, vrf.calls)
-		srv.cond.Signal()
+		vrf.progGeneratorInit.Done()
 	}
 	return nil
 }
@@ -94,119 +89,63 @@ func (srv *RPCServer) UpdateUnsupported(a *rpctype.UpdateUnsupportedArgs, r *int
 // NextExchange is called when a Runner requests a new program to execute and,
 // potentially, wants to send a new Result to the RPCServer.
 func (srv *RPCServer) NextExchange(a *rpctype.NextExchangeArgs, r *rpctype.NextExchangeRes) error {
-	srv.mu.Lock()
-	defer srv.mu.Unlock()
-
-	var res *ExecResult
-	var prog *progInfo
 	if a.Info.Calls != nil {
-		res = &ExecResult{
-			Pool:   a.Pool,
-			Hanged: a.Hanged,
-			Info:   a.Info,
-			RunIdx: a.RunIdx,
-		}
-
-		prog = srv.progs[a.ProgIdx]
-		if prog == nil {
-			// This case can happen if both conditions are true:
-			// 1. a Runner calls Verifier.NextExchange, then crashes,
-			// its corresponding Pool being the only one that hasn't
-			// sent results for the program yet
-			// 2.the cleanup call for the crash got the server's mutex before
-			// the NextExchange call.
-			// As the pool was the only one that hasn't sent the result, the
-			// cleanup call has already removed prog from srv.progs by the time
-			// the NextExchange call gets the server's mutex, which is why the
-			// variable is nil. As the results for this program have already
-			// been sent for verification, we discard this one.
-			return nil
-		}
-
-		delete(srv.pools[a.Pool].runners[a.VM], prog.idx)
-		if srv.newResult(res, prog) {
-			if srv.vrf.processResults(prog) {
-				delete(srv.progs, prog.idx)
-			}
-		}
+		srv.stopWaitResult(a.Pool, a.VM, a.ExecTaskID)
+		srv.vrf.PutExecResult(&ExecResult{
+			Pool:       a.Pool,
+			Hanged:     a.Hanged,
+			Info:       a.Info,
+			ExecTaskID: a.ExecTaskID,
+		})
 	}
 
-	if srv.notChecked > 0 {
-		// Runner is blocked until the choice table is created.
-		srv.cond.Wait()
-	}
+	// TODO: NewEnvironment is the currently hardcoded logic. Relax it.
+	task := srv.vrf.GetRunnerTask(a.Pool, NewEnvironment)
+	srv.startWaitResult(a.Pool, a.VM, task.ID)
+	r.ExecTask = *task
 
-	newProg, pi, ri := srv.newProgram(a.Pool, a.VM)
-	r.Prog = rpctype.Prog{Bytes: newProg, ProgIdx: pi, RunIdx: ri}
 	return nil
 }
 
-// newResult is called when a Runner sends a new Result. It returns true if all
-// Results from the corresponding programs have been received and they can be
-// sent for verification. Otherwise, it returns false.
-func (srv *RPCServer) newResult(res *ExecResult, prog *progInfo) bool {
-	ri := prog.runIdx
-	if prog.res[ri][res.Pool] != nil {
-		return false
-	}
-	prog.res[ri][res.Pool] = res
-	prog.received++
-	return prog.received == len(srv.pools)
+func vmTasksKey(poolID, vmID int) int {
+	return poolID*1000 + vmID
 }
 
-func (srv *RPCServer) newRun(p *progInfo) {
-	p.runIdx++
-	p.received = 0
-	p.res[p.runIdx] = make([]*ExecResult, len(srv.pools))
-	for _, pool := range srv.pools {
-		pool.toRerun = append(pool.toRerun, p)
+func (srv *RPCServer) startWaitResult(poolID, vmID int, taskID int64) {
+	srv.mu.Lock()
+	defer srv.mu.Unlock()
+
+	if srv.vmTasksInProgress == nil {
+		srv.vmTasksInProgress = make(map[int]map[int64]bool)
 	}
+
+	if srv.vmTasksInProgress[vmTasksKey(poolID, vmID)] == nil {
+		srv.vmTasksInProgress[vmTasksKey(poolID, vmID)] =
+			make(map[int64]bool)
+	}
+
+	srv.vmTasksInProgress[vmTasksKey(poolID, vmID)][taskID] = true
 }
 
-// newProgram returns a new program for the Runner identified by poolIdx and
-// vmIdx and the program's index.
-func (srv *RPCServer) newProgram(poolIdx, vmIdx int) ([]byte, int, int) {
-	pool := srv.pools[poolIdx]
-
-	if len(pool.toRerun) != 0 {
-		p := pool.toRerun[0]
-		pool.runners[vmIdx][p.idx] = p
-		pool.toRerun = pool.toRerun[1:]
-		return p.serialized, p.idx, p.runIdx
-	}
-
-	if len(pool.progs) == 0 {
-		prog, progIdx := srv.vrf.generate()
-		pi := &progInfo{
-			prog:       prog,
-			idx:        progIdx,
-			serialized: prog.Serialize(),
-			res:        make([][]*ExecResult, srv.vrf.reruns),
-		}
-		pi.res[0] = make([]*ExecResult, len(srv.pools))
-		for _, pool := range srv.pools {
-			pool.progs = append(pool.progs, pi)
-		}
-		srv.progs[progIdx] = pi
-	}
-	p := pool.progs[0]
-	pool.runners[vmIdx][p.idx] = p
-	pool.progs = pool.progs[1:]
-	return p.serialized, p.idx, p.runIdx
+func (srv *RPCServer) stopWaitResult(poolID, vmID int, taskID int64) {
+	srv.mu.Lock()
+	defer srv.mu.Unlock()
+	delete(srv.vmTasksInProgress[vmTasksKey(poolID, vmID)], taskID)
 }
 
 // cleanup is called when a vm.Instance crashes.
-func (srv *RPCServer) cleanup(poolIdx, vmIdx int) {
+func (srv *RPCServer) cleanup(poolID, vmID int) {
 	srv.mu.Lock()
 	defer srv.mu.Unlock()
-	progs := srv.pools[poolIdx].runners[vmIdx]
 
-	for _, prog := range progs {
-		if srv.newResult(&ExecResult{Pool: poolIdx, Crashed: true}, prog) {
-			srv.vrf.processResults(prog)
-			delete(srv.progs, prog.idx)
-			delete(srv.pools[poolIdx].runners[vmIdx], prog.idx)
-			continue
-		}
+	// Signal error for every VM related task and let upper level logic to process it.
+	for taskID := range srv.vmTasksInProgress[vmTasksKey(poolID, vmID)] {
+		srv.vrf.PutExecResult(&ExecResult{
+			Pool:       poolID,
+			ExecTaskID: taskID,
+			Crashed:    true,
+			Error:      errors.New("VM crashed during the task execution"),
+		})
 	}
+	delete(srv.vmTasksInProgress, vmTasksKey(poolID, vmID))
 }

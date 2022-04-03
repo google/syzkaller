@@ -4,8 +4,6 @@
 package state
 
 import (
-	"io/ioutil"
-	"os"
 	"sort"
 	"testing"
 
@@ -21,20 +19,12 @@ type TestState struct {
 
 func MakeTestState(t *testing.T) *TestState {
 	t.Parallel()
-	dir, err := ioutil.TempDir("", "syz-hub-state-test")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
-	}
+	dir := t.TempDir()
 	state, err := Make(dir)
 	if err != nil {
-		os.RemoveAll(dir)
 		t.Fatalf("failed to make state: %v", err)
 	}
 	return &TestState{t, dir, state}
-}
-
-func (ts *TestState) Close() {
-	os.RemoveAll(ts.dir)
 }
 
 func (ts *TestState) Reload() {
@@ -86,7 +76,6 @@ func (ts *TestState) PendingRepro(name string) []byte {
 
 func TestBasic(t *testing.T) {
 	st := MakeTestState(t)
-	defer st.Close()
 
 	if _, _, _, err := st.state.Sync("foo", nil, nil); err == nil {
 		t.Fatalf("synced with unconnected manager")
@@ -98,7 +87,6 @@ func TestBasic(t *testing.T) {
 
 func TestRepro(t *testing.T) {
 	st := MakeTestState(t)
-	defer st.Close()
 
 	st.Connect("foo", "", false, []string{"open", "read", "write"}, nil)
 	st.Connect("bar", "", false, []string{"open", "read", "close"}, nil)
@@ -137,7 +125,6 @@ func TestRepro(t *testing.T) {
 
 func TestDomain(t *testing.T) {
 	st := MakeTestState(t)
-	defer st.Close()
 
 	st.Connect("client0", "", false, []string{"open"}, nil)
 	st.Connect("client1", "domain1", false, []string{"open"}, nil)

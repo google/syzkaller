@@ -8,11 +8,9 @@ package main
 import (
 	"flag"
 	"io"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"strconv"
-	"time"
 
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -35,32 +33,10 @@ type poolInfo struct {
 	cfg      *mgrconfig.Config
 	pool     *vm.Pool
 	Reporter *report.Reporter
-	//  runners keeps track of what programs have been sent to each Runner.
-	//  There is one Runner executing per VM instance.
-	runners map[int]runnerProgs
-	// progs stores the programs that haven't been sent to this kernel yet but
-	// have been sent to at least one other kernel.
-	progs []*progInfo
-	// toRerun stores the programs that still need to be rerun by this kernel.
-	toRerun []*progInfo
 	// checked is set to true when the set of system calls not supported on the
 	// kernel is known.
 	checked bool
 }
-
-type progInfo struct {
-	prog       *prog.Prog
-	idx        int
-	serialized []byte
-	res        [][]*ExecResult
-	// received stores the number of results received for this program.
-	received int
-
-	runIdx int
-	report *ResultReport
-}
-
-type runnerProgs map[int]*progInfo
 
 func main() {
 	var cfgs tool.CfgsFlag
@@ -154,7 +130,6 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to create reporter for instance-%d: %v", idx, err)
 		}
-		pi.runners = make(map[int]runnerProgs)
 	}
 
 	calls := make(map[*prog.Syscall]bool)
@@ -172,7 +147,6 @@ func main() {
 		target:        target,
 		calls:         calls,
 		reasons:       make(map[*prog.Syscall]string),
-		rnd:           rand.New(rand.NewSource(time.Now().UnixNano() + 1e12)),
 		runnerBin:     runnerBin,
 		executorBin:   execBin,
 		addr:          addr,
@@ -183,15 +157,14 @@ func main() {
 		reruns:        *flagReruns,
 	}
 
-	vrf.srv, err = startRPCServer(vrf)
-	if err != nil {
-		log.Fatalf("failed to initialise RPC server: %v", err)
-	}
+	vrf.Init()
 
+	vrf.StartProgramsAnalysis()
 	vrf.startInstances()
 
 	monitor := MakeMonitor()
 	monitor.SetStatsTracking(vrf.stats)
+
 	// TODO: move binding address to configuration
 	log.Logf(0, "run the Monitor at http://127.0.0.1:8080/")
 	go monitor.ListenAndServe("127.0.0.1:8080")

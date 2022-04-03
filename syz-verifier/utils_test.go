@@ -4,36 +4,31 @@
 package main
 
 import (
-	"io/ioutil"
-	"math/rand"
-	"os"
 	"testing"
-	"time"
 
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 )
 
-func createTestServer(t *testing.T) *RPCServer {
+func createTestVerifier(t *testing.T) *Verifier {
 	target, err := prog.GetTarget("test", "64")
 	if err != nil {
 		t.Fatalf("failed to initialise test target: %v", err)
 	}
-	vrf := Verifier{
+	vrf := &Verifier{
 		target:      target,
 		choiceTable: target.DefaultChoiceTable(),
-		rnd:         rand.New(rand.NewSource(time.Now().UnixNano())),
 		progIdx:     3,
 		reruns:      1,
 	}
 	vrf.resultsdir = makeTestResultDirectory(t)
 	vrf.stats = emptyTestStats()
-	srv, err := startRPCServer(&vrf)
+	vrf.srv, err = startRPCServer(vrf)
 	if err != nil {
 		t.Fatalf("failed to initialise RPC server: %v", err)
 	}
-	return srv
+	return vrf
 }
 
 func getTestProgram(t *testing.T) *prog.Prog {
@@ -49,14 +44,7 @@ func getTestProgram(t *testing.T) *prog.Prog {
 }
 
 func makeTestResultDirectory(t *testing.T) string {
-	dir, err := ioutil.TempDir("", "syz-verifier")
-	if err != nil {
-		t.Fatalf("failed to create results directory: %v", err)
-	}
-	t.Cleanup(func() {
-		os.RemoveAll(dir)
-	})
-	return osutil.Abs(dir)
+	return osutil.Abs(t.TempDir())
 }
 
 func makeExecResult(pool int, errnos []int, flags ...int) *ExecResult {
@@ -76,16 +64,18 @@ func makeExecResultCrashed(pool int) *ExecResult {
 }
 
 func emptyTestStats() *Stats {
-	return &Stats{
-		Calls: map[string]*CallStats{
-			"breaks_returns": {Name: "breaks_returns", States: map[ReturnState]bool{}},
-			"minimize$0":     {Name: "minimize$0", States: map[ReturnState]bool{}},
-			"test$res0":      {Name: "test$res0", States: map[ReturnState]bool{}},
+	return (&Stats{
+		Calls: StatMapStringToCallStats{
+			mapStringToCallStats: mapStringToCallStats{
+				"breaks_returns": {Name: "breaks_returns", States: map[ReturnState]bool{}},
+				"minimize$0":     {Name: "minimize$0", States: map[ReturnState]bool{}},
+				"test$res0":      {Name: "test$res0", States: map[ReturnState]bool{}},
+			},
 		},
-	}
+	}).Init()
 }
 
-func makeCallStats(name string, occurrences, mismatches int64, states map[ReturnState]bool) *CallStats {
+func makeCallStats(name string, occurrences, mismatches uint64, states map[ReturnState]bool) *CallStats {
 	return &CallStats{Name: name,
 		Occurrences: occurrences,
 		Mismatches:  mismatches,

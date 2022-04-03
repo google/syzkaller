@@ -9,26 +9,28 @@ import (
 )
 
 func dummyStats() *Stats {
-	return &Stats{
-		TotalProgs:       24,
-		TotalMismatches:  10,
-		FlakyProgs:       4,
-		MismatchingProgs: 6,
-		Calls: map[string]*CallStats{
-			"foo": {"foo", 2, 8, map[ReturnState]bool{
-				returnState(1, 7): true,
-				returnState(3, 7): true}},
-			"bar": {"bar", 5, 6, map[ReturnState]bool{
-				crashedReturnState(): true,
-				returnState(10, 7):   true,
-				returnState(22, 7):   true}},
-			"tar": {"tar", 3, 4, map[ReturnState]bool{
-				returnState(31, 7): true,
-				returnState(17, 7): true,
-				returnState(5, 7):  true}},
-			"biz": {"biz", 0, 2, map[ReturnState]bool{}},
+	return (&Stats{
+		TotalProgs:          StatUint64{uint64: 24},
+		TotalCallMismatches: StatUint64{uint64: 10},
+		FlakyProgs:          StatUint64{uint64: 4},
+		MismatchingProgs:    StatUint64{uint64: 6},
+		Calls: StatMapStringToCallStats{
+			mapStringToCallStats: mapStringToCallStats{
+				"foo": {"foo", 2, 8, map[ReturnState]bool{
+					returnState(1, 7): true,
+					returnState(3, 7): true}},
+				"bar": {"bar", 5, 6, map[ReturnState]bool{
+					crashedReturnState(): true,
+					returnState(10, 7):   true,
+					returnState(22, 7):   true}},
+				"tar": {"tar", 3, 4, map[ReturnState]bool{
+					returnState(31, 7): true,
+					returnState(17, 7): true,
+					returnState(5, 7):  true}},
+				"biz": {"biz", 0, 2, map[ReturnState]bool{}},
+			},
 		},
-	}
+	}).Init()
 }
 
 func TestGetCallStatsTextDescription(t *testing.T) {

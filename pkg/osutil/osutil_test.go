@@ -5,7 +5,6 @@ package osutil
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -81,11 +80,7 @@ func TestCopyFiles(t *testing.T) {
 		t.Run(fnName, func(t *testing.T) {
 			for i, test := range tests {
 				t.Run(fmt.Sprint(i), func(t *testing.T) {
-					dir, err := ioutil.TempDir("", "syz-osutil-test")
-					if err != nil {
-						t.Fatal(err)
-					}
-					defer os.RemoveAll(dir)
+					dir := t.TempDir()
 					src := filepath.Join(dir, "src")
 					dst := filepath.Join(dir, "dst")
 					for _, file := range test.files {

@@ -43,24 +43,27 @@ func (monitor *Monitor) initHTTPHandlers() {
 
 // statsJSON provides information for the "/api/stats.json" render.
 type statsJSON struct {
-	StartTime        time.Time
-	TotalMismatches  int64
-	TotalProgs       int64
-	FlakyProgs       int64
-	MismatchingProgs int64
-	AverExecSpeed    int64
+	StartTime           time.Time
+	TotalCallMismatches uint64
+	TotalProgs          uint64
+	ExecErrorProgs      uint64
+	FlakyProgs          uint64
+	MismatchingProgs    uint64
+	AverExecSpeed       uint64
 }
 
 // handleStats renders the statsJSON object.
 func (monitor *Monitor) renderStats() interface{} {
 	stats := monitor.externalStats
+
 	return &statsJSON{
-		StartTime:        stats.StartTime,
-		TotalMismatches:  stats.TotalMismatches,
-		TotalProgs:       stats.TotalProgs,
-		FlakyProgs:       stats.FlakyProgs,
-		MismatchingProgs: stats.MismatchingProgs,
-		AverExecSpeed:    60 * stats.TotalProgs / int64(1+time.Since(stats.StartTime).Seconds()),
+		StartTime:           stats.StartTime.Get(),
+		TotalCallMismatches: stats.TotalCallMismatches.Get(),
+		TotalProgs:          stats.TotalProgs.Get(),
+		ExecErrorProgs:      stats.ExecErrorProgs.Get(),
+		FlakyProgs:          stats.FlakyProgs.Get(),
+		MismatchingProgs:    stats.MismatchingProgs.Get(),
+		AverExecSpeed:       60 * stats.TotalProgs.Get() / uint64(1+time.Since(stats.StartTime.Get()).Seconds()),
 	}
 }
 

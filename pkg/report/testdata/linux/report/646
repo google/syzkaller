@@ -1,0 +1,140 @@
+TITLE: KASAN: use-after-free Read in tty_release
+ALT: bad-access in tty_release
+
+[  477.354012][T18348] ==================================================================
+[  477.362261][T18348] BUG: KASAN: use-after-free in __wake_up_common+0x255/0x4e0
+[  477.369746][T18348] Read of size 8 at addr ffff88801a663430 by task syz-executor.3/18348
+[  477.377990][T18348] 
+[  477.380305][T18348] CPU: 0 PID: 18348 Comm: syz-executor.3 Tainted: G        W         5.17.0-syzkaller-13532-gb4a5ea09b293 #0
+[  477.391824][T18348] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  477.401861][T18348] Call Trace:
+[  477.405123][T18348]  <TASK>
+[  477.408040][T18348]  dump_stack_lvl+0x1dc/0x2d8
+[  477.412810][T18348]  ? show_regs_print_info+0x12/0x12
+[  477.417990][T18348]  ? _printk+0xcf/0x118
+[  477.422161][T18348]  ? wake_up_klogd+0xb2/0xf0
+[  477.426751][T18348]  ? log_buf_vmcoreinfo_setup+0x498/0x498
+[  477.432456][T18348]  ? _printk+0xcf/0x118
+[  477.436602][T18348]  print_address_description+0x65/0x4b0
+[  477.442193][T18348]  print_report+0xf4/0x200
+[  477.446590][T18348]  ? lock_acquire+0xa5/0x4d0
+[  477.451165][T18348]  ? __rwlock_init+0x140/0x140
+[  477.455910][T18348]  ? __wake_up_common+0x255/0x4e0
+[  477.460928][T18348]  kasan_report+0x109/0x140
+[  477.465414][T18348]  ? __wake_up_common+0x255/0x4e0
+[  477.470415][T18348]  ? _raw_spin_lock_irqsave+0xdd/0x120
+[  477.475904][T18348]  __wake_up_common+0x255/0x4e0
+[  477.480740][T18348]  __wake_up+0x115/0x1c0
+[  477.484962][T18348]  ? __wake_up_bit+0x280/0x280
+[  477.489705][T18348]  ? _raw_spin_unlock+0x40/0x40
+[  477.494537][T18348]  ? tty_kref_put+0x183/0x1b0
+[  477.499236][T18348]  ? tty_port_close+0xf2/0x140
+[  477.504018][T18348]  tty_release+0x4a9/0xef0
+[  477.508440][T18348]  ? tty_release_struct+0xd0/0xd0
+[  477.513445][T18348]  __fput+0x3f6/0x860
+[  477.517450][T18348]  task_work_run+0x146/0x1c0
+[  477.522065][T18348]  exit_to_user_mode_prepare+0x1d2/0x1f0
+[  477.527733][T18348]  ? trace_irq_disable_rcuidle+0x11/0x170
+[  477.533461][T18348]  syscall_exit_to_user_mode+0x2e/0x70
+[  477.538919][T18348]  entry_SYSCALL_64_after_hwframe+0x44/0xae
+[  477.544834][T18348] RIP: 0033:0x7f395483bc8b
+[  477.549238][T18348] Code: 0f 05 48 3d 00 f0 ff ff 77 45 c3 0f 1f 40 00 48 83 ec 18 89 7c 24 0c e8 63 fc ff ff 8b 7c 24 0c 41 89 c0 b8 03 00 00 00 0f 05 <48> 3d 00 f0 ff ff 77 35 44 89 c7 89 44 24 0c e8 a1 fc ff ff 8b 44
+[  477.568831][T18348] RSP: 002b:00007ffe41873890 EFLAGS: 00000293 ORIG_RAX: 0000000000000003
+[  477.577227][T18348] RAX: 0000000000000000 RBX: 0000000000000005 RCX: 00007f395483bc8b
+[  477.585181][T18348] RDX: 00007f39549a0b80 RSI: ffffffffffffffff RDI: 0000000000000004
+[  477.593136][T18348] RBP: 00007f395499d960 R08: 0000000000000000 R09: 00007f39549a0b88
+[  477.601262][T18348] R10: 00007ffe41873990 R11: 0000000000000293 R12: 0000000000074866
+[  477.609305][T18348] R13: 00007ffe41873990 R14: 00007f395499bf60 R15: 0000000000000032
+[  477.617263][T18348]  </TASK>
+[  477.620263][T18348] 
+[  477.622571][T18348] Allocated by task 18344:
+[  477.626962][T18348]  ____kasan_kmalloc+0xdc/0x110
+[  477.631798][T18348]  kmem_cache_alloc_trace+0x9d/0x330
+[  477.637122][T18348]  io_arm_poll_handler+0x3bd/0x710
+[  477.642268][T18348]  __io_queue_sqe+0x23d/0x10b0
+[  477.647039][T18348]  io_submit_sqes+0x12da/0xbb40
+[  477.651876][T18348]  __se_sys_io_uring_enter+0x31f/0x2f00
+[  477.657417][T18348]  do_syscall_64+0x2b/0x50
+[  477.661889][T18348]  entry_SYSCALL_64_after_hwframe+0x44/0xae
+[  477.667816][T18348] 
+[  477.670126][T18348] Freed by task 8:
+[  477.673824][T18348]  kasan_set_track+0x4c/0x70
+[  477.678398][T18348]  kasan_set_free_info+0x1f/0x40
+[  477.683318][T18348]  ____kasan_slab_free+0x136/0x1e0
+[  477.688431][T18348]  slab_free_freelist_hook+0x12e/0x1a0
+[  477.693885][T18348]  kfree+0xc6/0x390
+[  477.697675][T18348]  io_ring_ctx_free+0x48d/0xfee
+[  477.702504][T18348]  io_ring_exit_work+0x64d/0x6ba
+[  477.707422][T18348]  process_one_work+0x83c/0x11a0
+[  477.712339][T18348]  worker_thread+0xa6c/0x1290
+[  477.717005][T18348]  kthread+0x2a3/0x2d0
+[  477.721051][T18348]  ret_from_fork+0x1f/0x30
+[  477.725477][T18348] 
+[  477.727782][T18348] Last potentially related work creation:
+[  477.733558][T18348]  kasan_save_stack+0x3b/0x60
+[  477.738213][T18348]  __kasan_record_aux_stack+0xb2/0xc0
+[  477.743562][T18348]  kvfree_call_rcu+0x119/0x880
+[  477.748304][T18348]  cfg80211_update_known_bss+0x174/0x9a0
+[  477.753974][T18348]  cfg80211_bss_update+0x17a/0x2170
+[  477.759176][T18348]  cfg80211_inform_bss_frame_data+0x9e2/0x2190
+[  477.765306][T18348]  ieee80211_bss_info_update+0x75b/0xbe0
+[  477.770997][T18348]  ieee80211_ibss_rx_queued_mgmt+0x1690/0x2b30
+[  477.777129][T18348]  ieee80211_iface_work+0x713/0xca0
+[  477.782342][T18348]  process_one_work+0x83c/0x11a0
+[  477.787265][T18348]  worker_thread+0xa6c/0x1290
+[  477.791921][T18348]  kthread+0x2a3/0x2d0
+[  477.795969][T18348]  ret_from_fork+0x1f/0x30
+[  477.800365][T18348] 
+[  477.802666][T18348] The buggy address belongs to the object at ffff88801a663400
+[  477.802666][T18348]  which belongs to the cache kmalloc-96 of size 96
+[  477.816526][T18348] The buggy address is located 48 bytes inside of
+[  477.816526][T18348]  96-byte region [ffff88801a663400, ffff88801a663460)
+[  477.829603][T18348] 
+[  477.831906][T18348] The buggy address belongs to the physical page:
+[  477.838304][T18348] page:ffffea00006998c0 refcount:1 mapcount:0 mapping:0000000000000000 index:0x0 pfn:0x1a663
+[  477.848431][T18348] flags: 0xfff00000000200(slab|node=0|zone=1|lastcpupid=0x7ff)
+[  477.855961][T18348] raw: 00fff00000000200 ffffea0000456c80 dead000000000005 ffff888011441780
+[  477.864535][T18348] raw: 0000000000000000 0000000000200020 00000001ffffffff 0000000000000000
+[  477.873369][T18348] page dumped because: kasan: bad access detected
+[  477.879770][T18348] page_owner tracks the page as allocated
+[  477.885460][T18348] page last allocated via order 0, migratetype Unmovable, gfp_mask 0x112c40(GFP_NOFS|__GFP_NOWARN|__GFP_NORETRY|__GFP_HARDWALL), pid 3602, tgid 3602 (syz-executor.0), ts 55856330390, free_ts 55843896899
+[  477.905318][T18348]  get_page_from_freelist+0x708/0xa80
+[  477.910707][T18348]  __alloc_pages+0x255/0x580
+[  477.915273][T18348]  alloc_slab_page+0x70/0xf0
+[  477.919838][T18348]  allocate_slab+0x5d/0x380
+[  477.924317][T18348]  ___slab_alloc+0x40e/0xcc0
+[  477.928895][T18348]  __kmalloc+0x2eb/0x380
+[  477.933150][T18348]  tomoyo_encode2+0x25a/0x560
+[  477.937874][T18348]  tomoyo_realpath_from_path+0x5c3/0x610
+[  477.943491][T18348]  tomoyo_path_perm+0x238/0x660
+[  477.948338][T18348]  tomoyo_path_rmdir+0xcc/0x100
+[  477.953178][T18348]  security_path_rmdir+0xc3/0x140
+[  477.958256][T18348]  do_rmdir+0x2d1/0x6e0
+[  477.962419][T18348]  __x64_sys_rmdir+0x45/0x50
+[  477.966986][T18348]  do_syscall_64+0x2b/0x50
+[  477.971413][T18348]  entry_SYSCALL_64_after_hwframe+0x44/0xae
+[  477.977284][T18348] page last free stack trace:
+[  477.981932][T18348]  free_pcp_prepare+0xcfc/0xe70
+[  477.986773][T18348]  free_unref_page_list+0x140/0xa10
+[  477.991956][T18348]  release_pages+0x2aa1/0x2d40
+[  477.996780][T18348]  tlb_flush_mmu+0x780/0x910
+[  478.001394][T18348]  tlb_finish_mmu+0xcb/0x200
+[  478.005977][T18348]  exit_mmap+0x1dc/0x530
+[  478.010228][T18348]  __mmput+0x111/0x3a0
+[  478.014349][T18348]  exit_mm+0x211/0x2f0
+[  478.018403][T18348]  do_exit+0x566/0x20c0
+[  478.022541][T18348]  do_group_exit+0x2af/0x2b0
+[  478.027154][T18348]  get_signal+0x23bd/0x23c0
+[  478.031651][T18348]  arch_do_signal_or_restart+0x8e/0x740
+[  478.037230][T18348]  exit_to_user_mode_prepare+0x128/0x1f0
+[  478.042845][T18348]  syscall_exit_to_user_mode+0x2e/0x70
+[  478.048283][T18348]  entry_SYSCALL_64_after_hwframe+0x44/0xae
+[  478.054155][T18348] 
+[  478.056459][T18348] Memory state around the buggy address:
+[  478.062067][T18348]  ffff88801a663300: 00 00 00 00 00 00 00 00 00 00 00 00 fc fc fc fc
+[  478.070103][T18348]  ffff88801a663380: 00 00 00 00 00 00 00 00 03 fc fc fc fc fc fc fc
+[  478.078141][T18348] >ffff88801a663400: fa fb fb fb fb fb fb fb fb fb fb fb fc fc fc fc
+[  478.086176][T18348]                                      ^
+[  478.091789][T18348]  ffff88801a663480: fa fb fb fb fb fb fb fb fb fb fb fb fc fc fc fc
+[  478.099845][T18348]  ffff88801a663500: fa fb fb fb fb fb fb fb fb fb fb fb fc fc fc fc
+[  478.107881][T18348] ==================================================================
