@@ -48,7 +48,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 }
 
 func (pool *Pool) Count() int {
-	log.Logf(0, "cuttlefish.pool.Count()")
+	log.Logf(1, "cuttlefish.pool.Count()")
 	return pool.gcePool.Count()
 }
 
