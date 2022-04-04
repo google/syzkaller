@@ -48,7 +48,6 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 }
 
 func (pool *Pool) Count() int {
-	log.Logf(1, "cuttlefish.pool.Count()")
 	return pool.gcePool.Count()
 }
 
@@ -104,12 +103,10 @@ func (inst *instance) runOnHost(timeout time.Duration, cmd string) error {
 }
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
-	log.Logf(1, "cuttlefish.instance.Copy(%s)", hostSrc)
 	return "", fmt.Errorf("not implemented")
 }
 
 func (inst *instance) Forward(port int) (string, error) {
-	log.Logf(1, "cuttlefish.instance.Forward(%d)", port)
 	return "", fmt.Errorf("not implemented")
 }
 
@@ -121,11 +118,9 @@ func (inst *instance) Close() {
 
 func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (
 	<-chan []byte, <-chan error, error) {
-	log.Logf(1, "cuttlefish.instance.Run(%s)", command)
 	return nil, nil, fmt.Errorf("not implemented")
 }
 
 func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
-	log.Logf(1, "cuttlefish.instance.Diagnose()")
 	return nil, false
 }
