@@ -45,7 +45,9 @@ config:
 
  # 32-on-64 support (compat).
  - IA32_EMULATION
- - X86_X32: [-baseline]
+ # X86_X32 renamed to X86_X32_ABI in v5.18
+ - X86_X32: [-baseline, -v5.18]
+ - X86_X32_ABI: [-baseline, v5.18]
 
  # Moved from legacy config, reason for enabling is unknown.
  - KALLSYMS_ABSOLUTE_PERCPU
