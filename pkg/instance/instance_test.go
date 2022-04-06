@@ -33,7 +33,7 @@ func TestFuzzerCmd(t *testing.T) {
 	flagDebug := flags.Bool("debug", false, "debug output from executor")
 	flagV := flags.Int("v", 0, "verbosity")
 	cmdLine := OldFuzzerCmd(os.Args[0], "/myexecutor", "myname", targets.Linux, targets.I386, "localhost:1234",
-		"namespace", 3, true, true, false, 0)
+		"namespace", 3, true, true, false, 5)
 	args := strings.Split(cmdLine, " ")[1:]
 	if err := flags.Parse(args); err != nil {
 		t.Fatal(err)
