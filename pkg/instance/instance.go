@@ -437,6 +437,11 @@ func (inst *inst) testProgram(command string, testTime time.Duration) error {
 	return &CrashError{Report: rep}
 }
 
+type OptionalFuzzerArgs struct {
+	Slowdown int
+	RawCover bool
+}
+
 type FuzzerCmdArgs struct {
 	Fuzzer    string
 	Executor  string
@@ -451,8 +456,7 @@ type FuzzerCmdArgs struct {
 	Debug     bool
 	Test      bool
 	Runtest   bool
-	Slowdown  int
-	RawCover  bool
+	Optional  *OptionalFuzzerArgs
 }
 
 func FuzzerCmd(args *FuzzerCmdArgs) string {
@@ -471,16 +475,13 @@ func FuzzerCmd(args *FuzzerCmdArgs) string {
 	if args.Verbosity != 0 {
 		verbosityArg = fmt.Sprintf(" -vv=%v", args.Verbosity)
 	}
-	flags := []tool.Flag{}
-	if args.Slowdown > 0 {
-		flags = append(flags, tool.Flag{Name: "slowdown", Value: fmt.Sprint(args.Slowdown)})
-	}
-	if args.RawCover {
-		flags = append(flags, tool.Flag{Name: "raw_cover", Value: "true"})
-	}
 	optionalArg := ""
-	if len(flags) > 0 {
-		optionalArg += " " + tool.OptionalFlags(flags)
+	if args.Optional != nil {
+		flags := []tool.Flag{
+			{Name: "slowdown", Value: fmt.Sprint(args.Optional.Slowdown)},
+			{Name: "raw_cover", Value: fmt.Sprint(args.Optional.RawCover)},
+		}
+		optionalArg = " " + tool.OptionalFlags(flags)
 	}
 	return fmt.Sprintf("%v -executor=%v -name=%v -arch=%v%v -manager=%v -sandbox=%v"+
 		" -procs=%v -cover=%v -debug=%v -test=%v%v%v%v",
@@ -490,10 +491,14 @@ func FuzzerCmd(args *FuzzerCmdArgs) string {
 
 func OldFuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox string, procs int,
 	cover, test, optionalFlags bool, slowdown int) string {
+	var optional *OptionalFuzzerArgs
+	if optionalFlags {
+		optional = &OptionalFuzzerArgs{Slowdown: slowdown}
+	}
 	return FuzzerCmd(&FuzzerCmdArgs{Fuzzer: fuzzer, Executor: executor, Name: name,
 		OS: OS, Arch: arch, FwdAddr: fwdAddr, Sandbox: sandbox, Procs: procs,
 		Verbosity: 0, Cover: cover, Debug: false, Test: test, Runtest: false,
-		Slowdown: slowdown})
+		Optional: optional})
 }
 
 func ExecprogCmd(execprog, executor, OS, arch, sandbox string, repeat, threaded, collide bool,
