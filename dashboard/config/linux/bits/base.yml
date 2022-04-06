@@ -106,6 +106,8 @@ config:
  - DEBUG_KOBJECT: n
 
  - DEBUG_INFO
+ # One of DEBUG_INFO_DWARF_* is required to enable DEBUG_INFO in v5.18.
+ - DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT: [v5.18]
  # CONFIG_DEBUG_INFO_BTF breaks the build since 5.14 merge window:
  #    https://lkml.kernel.org/r/YOLzFecogWmdZ5Hc@infradead.org
  - DEBUG_INFO_BTF: [-v5.13]
