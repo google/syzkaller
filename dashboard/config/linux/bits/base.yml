@@ -26,6 +26,9 @@ config:
  - EXPERT
  - DEBUG_KERNEL
 
+ # Continuous fuzzing is more important than breaking on warnings.
+ - WERROR: n
+
  # panic=86400: prevents kernel from rebooting so that we don't get reboot output in all crash reports.
  # Huge page overcommit is disabled by default, allowing some overcommit
  # with vm.nr_overcommit_hugepages is intended to give more coverage.
