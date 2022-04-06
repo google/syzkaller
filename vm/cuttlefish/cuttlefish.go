@@ -12,11 +12,16 @@ package cuttlefish
 
 import (
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/vm/vmimpl"
+)
+
+const (
+	deviceRoot = "/data/fuzz"
 )
 
 func init() {
@@ -103,7 +108,19 @@ func (inst *instance) runOnHost(timeout time.Duration, cmd string) error {
 }
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
-	return "", fmt.Errorf("not implemented")
+	gceDst, err := inst.gceInst.Copy(hostSrc)
+	if err != nil {
+		return "", fmt.Errorf("error copying to worker instance: %s", err)
+	}
+
+	deviceDst := filepath.Join(deviceRoot, filepath.Base(hostSrc))
+	pushCmd := fmt.Sprintf("adb push %s %s", gceDst, deviceDst)
+
+	if err := inst.runOnHost(5*time.Minute, pushCmd); err != nil {
+		return "", fmt.Errorf("error pushing to device: %s", err)
+	}
+
+	return deviceDst, nil
 }
 
 func (inst *instance) Forward(port int) (string, error) {
@@ -111,14 +128,12 @@ func (inst *instance) Forward(port int) (string, error) {
 }
 
 func (inst *instance) Close() {
-	// Stop Cuttlefish before shutting down the GCE instance.
-	inst.runOnHost(10*time.Minute, "./bin/stop_cvd")
 	inst.gceInst.Close()
 }
 
 func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (
 	<-chan []byte, <-chan error, error) {
-	return nil, nil, fmt.Errorf("not implemented")
+	return inst.gceInst.Run(timeout, stop, fmt.Sprintf("adb shell %s", command))
 }
 
 func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
