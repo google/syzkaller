@@ -4007,6 +4007,35 @@ static int do_sandbox_namespace(void)
 #include <sys/syscall.h>
 
 #include "android/android_seccomp.h"
+
+#if GOARCH_amd64 || GOARCH_386
+// Syz-executor is linked against glibc when fuzzing runs on Cuttlefish x86-x64.
+// However Android blocks calls into mkdir, rmdir, symlink which causes
+// syz-executor to crash. When fuzzing runs on Android device this issue
+// is not observed, because syz-executor is linked against Bionic. Under
+// the hood Bionic invokes mkdirat, inlinkat and symlinkat, which are
+// allowed by seccomp-bpf.
+// This issue may exist not only in Android, but also in Linux in general
+// where seccomp filtering is enforced.
+//
+// This trick makes linker believe it matched the correct version of mkdir,
+// rmdir, symlink. So now behavior is the same across ARM and non-ARM builds.
+inline int mkdir(const char* path, mode_t mode)
+{
+	return mkdirat(AT_FDCWD, path, mode);
+}
+
+inline int rmdir(const char* path)
+{
+	return unlinkat(AT_FDCWD, path, AT_REMOVEDIR);
+}
+
+inline int symlink(const char* old_path, const char* new_path)
+{
+	return symlinkat(old_path, AT_FDCWD, new_path);
+}
+#endif
+
 #endif
 #include <fcntl.h> // open(2)
 #include <grp.h> // setgroups
