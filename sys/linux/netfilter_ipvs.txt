@@ -1,0 +1,163 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# IP Virtual Server support.
+
+include <linux/socket.h>
+include <uapi/linux/fcntl.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/genetlink.h>
+include <uapi/linux/ip_vs.h>
+
+resource genl_ipvs_family_id[int16]
+type msghdr_nl_ipvs[CMD] msghdr_netlink[netlink_msg_t[genl_ipvs_family_id, genlmsghdr_t[CMD], ip_vs_cmd_policy]]
+
+syz_genetlink_get_family_id$ipvs(name ptr[in, string["IPVS"]], fd sock_nl_generic) genl_ipvs_family_id
+
+sendmsg$IPVS_CMD_NEW_SERVICE(fd sock_nl_generic, msg ptr[in, msghdr_nl_ipvs[IPVS_CMD_NEW_SERVICE]], f flags[send_flags])
+sendmsg$IPVS_CMD_SET_SERVICE(fd sock_nl_generic, msg ptr[in, msghdr_nl_ipvs[IPVS_CMD_SET_SERVICE]], f flags[send_flags])
+sendmsg$IPVS_CMD_DEL_SERVICE(fd sock_nl_generic, msg ptr[in, msghdr_nl_ipvs[IPVS_CMD_DEL_SERVICE]], f flags[send_flags])
+sendmsg$IPVS_CMD_GET_SERVICE(fd sock_nl_generic, msg ptr[in, msghdr_nl_ipvs[IPVS_CMD_GET_SERVICE]], f flags[send_flags])
+sendmsg$IPVS_CMD_NEW_DEST(fd sock_nl_generic, msg ptr[in, msghdr_nl_ipvs[IPVS_CMD_NEW_DEST]], f flags[send_flags])
+sendmsg$IPVS_CMD_SET_DEST(fd sock_nl_generic, msg ptr[in, msghdr_nl_ipvs[IPVS_CMD_SET_DEST]], f flags[send_flags])
+sendmsg$IPVS_CMD_DEL_DEST(fd sock_nl_generic, msg ptr[in, msghdr_nl_ipvs[IPVS_CMD_DEL_DEST]], f flags[send_flags])
+sendmsg$IPVS_CMD_GET_DEST(fd sock_nl_generic, msg ptr[in, msghdr_nl_ipvs[IPVS_CMD_GET_DEST]], f flags[send_flags])
+sendmsg$IPVS_CMD_NEW_DAEMON(fd sock_nl_generic, msg ptr[in, msghdr_nl_ipvs[IPVS_CMD_NEW_DAEMON]], f flags[send_flags])
+sendmsg$IPVS_CMD_DEL_DAEMON(fd sock_nl_generic, msg ptr[in, msghdr_nl_ipvs[IPVS_CMD_DEL_DAEMON]], f flags[send_flags])
+sendmsg$IPVS_CMD_GET_DAEMON(fd sock_nl_generic, msg ptr[in, msghdr_nl_ipvs[IPVS_CMD_GET_DAEMON]], f flags[send_flags])
+sendmsg$IPVS_CMD_SET_CONFIG(fd sock_nl_generic, msg ptr[in, msghdr_nl_ipvs[IPVS_CMD_SET_CONFIG]], f flags[send_flags])
+sendmsg$IPVS_CMD_GET_CONFIG(fd sock_nl_generic, msg ptr[in, msghdr_nl_ipvs[IPVS_CMD_GET_CONFIG]], f flags[send_flags])
+sendmsg$IPVS_CMD_SET_INFO(fd sock_nl_generic, msg ptr[in, msghdr_nl_ipvs[IPVS_CMD_SET_INFO]], f flags[send_flags])
+sendmsg$IPVS_CMD_GET_INFO(fd sock_nl_generic, msg ptr[in, msghdr_nl_ipvs[IPVS_CMD_GET_INFO]], f flags[send_flags])
+sendmsg$IPVS_CMD_ZERO(fd sock_nl_generic, msg ptr[in, msghdr_nl_ipvs[IPVS_CMD_ZERO]], f flags[send_flags])
+sendmsg$IPVS_CMD_FLUSH(fd sock_nl_generic, msg ptr[in, msghdr_nl_ipvs[IPVS_CMD_FLUSH]], f flags[send_flags])
+
+setsockopt$IP_VS_SO_SET_ADD(fd sock_in, level const[SOL_IP], opt const[IP_VS_SO_SET_ADD], val ptr[in, ip_vs_service_user], len len[val])
+setsockopt$IP_VS_SO_SET_EDIT(fd sock_in, level const[SOL_IP], opt const[IP_VS_SO_SET_EDIT], val ptr[in, ip_vs_service_user], len len[val])
+setsockopt$IP_VS_SO_SET_DEL(fd sock_in, level const[SOL_IP], opt const[IP_VS_SO_SET_DEL], val ptr[in, ip_vs_service_user], len len[val])
+setsockopt$IP_VS_SO_SET_FLUSH(fd sock_in, level const[SOL_IP], opt const[IP_VS_SO_SET_FLUSH], val const[0], len const[0])
+setsockopt$IP_VS_SO_SET_ADDDEST(fd sock_in, level const[SOL_IP], opt const[IP_VS_SO_SET_ADDDEST], val ptr[in, ip_vs_svcdest_user], len len[val])
+setsockopt$IP_VS_SO_SET_DELDEST(fd sock_in, level const[SOL_IP], opt const[IP_VS_SO_SET_DELDEST], val ptr[in, ip_vs_svcdest_user], len len[val])
+setsockopt$IP_VS_SO_SET_EDITDEST(fd sock_in, level const[SOL_IP], opt const[IP_VS_SO_SET_EDITDEST], val ptr[in, ip_vs_svcdest_user], len len[val])
+setsockopt$IP_VS_SO_SET_TIMEOUT(fd sock_in, level const[SOL_IP], opt const[IP_VS_SO_SET_TIMEOUT], val ptr[in, ip_vs_timeout_user], len len[val])
+setsockopt$IP_VS_SO_SET_STARTDAEMON(fd sock_in, level const[SOL_IP], opt const[IP_VS_SO_SET_STARTDAEMON], val ptr[in, ip_vs_daemon_user], len len[val])
+setsockopt$IP_VS_SO_SET_STOPDAEMON(fd sock_in, level const[SOL_IP], opt const[IP_VS_SO_SET_STOPDAEMON], val ptr[in, ip_vs_daemon_user], len len[val])
+setsockopt$IP_VS_SO_SET_ZERO(fd sock_in, level const[SOL_IP], opt const[IP_VS_SO_SET_ZERO], val ptr[in, ip_vs_service_user], len len[val])
+
+getsockopt$IP_VS_SO_GET_VERSION(fd sock, level const[SOL_IP], opt const[IP_VS_SO_GET_VERSION], val ptr[out, array[int8, 64]], len ptr[inout, len[val, int32]])
+getsockopt$IP_VS_SO_GET_INFO(fd sock, level const[SOL_IP], opt const[IP_VS_SO_GET_INFO], val ptr[out, array[int8, IP_VS_GETINFO_SIZE]], len ptr[inout, len[val, int32]])
+getsockopt$IP_VS_SO_GET_SERVICES(fd sock, level const[SOL_IP], opt const[IP_VS_SO_GET_SERVICES], val ptr[out, array[int8]], len ptr[inout, len[val, int32]])
+getsockopt$IP_VS_SO_GET_SERVICE(fd sock, level const[SOL_IP], opt const[IP_VS_SO_GET_SERVICE], val ptr[out, array[int8, IP_VS_SERVICE_ENTRY_SIZE]], len ptr[inout, len[val, int32]])
+getsockopt$IP_VS_SO_GET_DESTS(fd sock, level const[SOL_IP], opt const[IP_VS_SO_GET_DESTS], val ptr[out, array[int8]], len ptr[inout, len[val, int32]])
+getsockopt$IP_VS_SO_GET_TIMEOUT(fd sock, level const[SOL_IP], opt const[IP_VS_SO_GET_TIMEOUT], val ptr[out, array[int8, IP_VS_TIMEOUT_SIZE]], len ptr[inout, len[val, int32]])
+getsockopt$IP_VS_SO_GET_DAEMON(fd sock, level const[SOL_IP], opt const[IP_VS_SO_GET_DAEMON], val ptr[out, array[int8, IP_VS_DAEMON_SIZE]], len ptr[inout, len[val, int32]])
+
+ip_vs_cmd_policy [
+	IPVS_CMD_ATTR_SERVICE		nlnest[IPVS_CMD_ATTR_SERVICE, array[ip_vs_svc_policy]]
+	IPVS_CMD_ATTR_DEST		nlnest[IPVS_CMD_ATTR_DEST, array[ip_vs_dest_policy]]
+	IPVS_CMD_ATTR_DAEMON		nlnest[IPVS_CMD_ATTR_DAEMON, array[ip_vs_daemon_policy]]
+	IPVS_CMD_ATTR_TIMEOUT_TCP	nlattr[IPVS_CMD_ATTR_TIMEOUT_TCP, int32]
+	IPVS_CMD_ATTR_TIMEOUT_TCP_FIN	nlattr[IPVS_CMD_ATTR_TIMEOUT_TCP_FIN, int32]
+	IPVS_CMD_ATTR_TIMEOUT_UDP	nlattr[IPVS_CMD_ATTR_TIMEOUT_UDP, int32]
+] [varlen]
+
+ip_vs_svc_policy [
+	IPVS_SVC_ATTR_AF		nlattr[IPVS_SVC_ATTR_AF, flags[ip_vs_af, int16]]
+	IPVS_SVC_ATTR_PROTOCOL		nlattr[IPVS_SVC_ATTR_PROTOCOL, flags[ipv6_types, int16]]
+	IPVS_SVC_ATTR_ADDR		nlattr[IPVS_SVC_ATTR_ADDR, nf_inet_addr]
+	IPVS_SVC_ATTR_PORT		nlattr[IPVS_SVC_ATTR_PORT, sock_port]
+	IPVS_SVC_ATTR_FWMARK		nlattr[IPVS_SVC_ATTR_FWMARK, int32[0:4]]
+	IPVS_SVC_ATTR_SCHED_NAME	nlattr[IPVS_SVC_ATTR_SCHED_NAME, string[ipvs_sched_names]]
+	IPVS_SVC_ATTR_PE_NAME		nlattr[IPVS_SVC_ATTR_PE_NAME, string[ipvs_pe_names]]
+	IPVS_SVC_ATTR_FLAGS		nlattr[IPVS_SVC_ATTR_FLAGS, ip_vs_flags]
+	IPVS_SVC_ATTR_TIMEOUT		nlattr[IPVS_SVC_ATTR_TIMEOUT, int32]
+	IPVS_SVC_ATTR_NETMASK		nlattr[IPVS_SVC_ATTR_NETMASK, int32[0:128]]
+] [varlen]
+
+ip_vs_daemon_policy [
+	IPVS_DAEMON_ATTR_STATE		nlattr[IPVS_DAEMON_ATTR_STATE, flags[ipvs_daemon_states, int32]]
+	IPVS_DAEMON_ATTR_MCAST_IFN	nlattr[IPVS_DAEMON_ATTR_MCAST_IFN, devname]
+	IPVS_DAEMON_ATTR_SYNC_ID	nlattr[IPVS_DAEMON_ATTR_SYNC_ID, int32[0:4]]
+	IPVS_DAEMON_ATTR_SYNC_MAXLEN	nlattr[IPVS_DAEMON_ATTR_SYNC_MAXLEN, int16]
+	IPVS_DAEMON_ATTR_MCAST_GROUP	nlattr[IPVS_DAEMON_ATTR_MCAST_GROUP, ipv4_addr]
+	IPVS_DAEMON_ATTR_MCAST_GROUP6	nlattr[IPVS_DAEMON_ATTR_MCAST_GROUP6, ipv6_addr]
+	IPVS_DAEMON_ATTR_MCAST_PORT	nlattr[IPVS_DAEMON_ATTR_MCAST_PORT, sock_port]
+	IPVS_DAEMON_ATTR_MCAST_TTL	nlattr[IPVS_DAEMON_ATTR_MCAST_TTL, int8]
+] [varlen]
+
+ip_vs_dest_policy [
+	IPVS_DEST_ATTR_ADDR		nlattr[IPVS_DEST_ATTR_ADDR, nf_inet_addr]
+	IPVS_DEST_ATTR_PORT		nlattr[IPVS_DEST_ATTR_PORT, sock_port]
+	IPVS_DEST_ATTR_FWD_METHOD	nlattr[IPVS_DEST_ATTR_FWD_METHOD, flags[ipvs_fwd_methods, int32]]
+	IPVS_DEST_ATTR_WEIGHT		nlattr[IPVS_DEST_ATTR_WEIGHT, int32]
+	IPVS_DEST_ATTR_U_THRESH		nlattr[IPVS_DEST_ATTR_U_THRESH, int32]
+	IPVS_DEST_ATTR_L_THRESH		nlattr[IPVS_DEST_ATTR_L_THRESH, int32]
+	IPVS_DEST_ATTR_ACTIVE_CONNS	nlattr[IPVS_DEST_ATTR_ACTIVE_CONNS, int32]
+	IPVS_DEST_ATTR_INACT_CONNS	nlattr[IPVS_DEST_ATTR_INACT_CONNS, int32]
+	IPVS_DEST_ATTR_PERSIST_CONNS	nlattr[IPVS_DEST_ATTR_PERSIST_CONNS, int32]
+	IPVS_DEST_ATTR_ADDR_FAMILY	nlattr[IPVS_DEST_ATTR_ADDR_FAMILY, flags[ip_vs_af, int16]]
+	IPVS_DEST_ATTR_TUN_TYPE		nlattr[IPVS_DEST_ATTR_TUN_TYPE, flags[ipvs_tun_type, int8]]
+	IPVS_DEST_ATTR_TUN_PORT		nlattr[IPVS_DEST_ATTR_TUN_PORT, sock_port]
+	IPVS_DEST_ATTR_TUN_FLAGS	nlattr[IPVS_DEST_ATTR_TUN_FLAGS, int16]
+] [varlen]
+
+ipvs_tun_type = IP_VS_CONN_F_TUNNEL_TYPE_IPIP, IP_VS_CONN_F_TUNNEL_TYPE_GUE
+
+ip_vs_flags {
+	flags	flags[ip_vs_flags, int32]
+	mask	flags[ip_vs_flags, int32]
+}
+
+ip_vs_service_user {
+	protocol	flags[ipv6_types, int16]
+	addr		ipv4_addr
+	port		sock_port
+	fwmark		int32[0:4]
+	sched_name	string[ipvs_sched_names, IP_VS_SCHEDNAME_MAXLEN]
+	flags		flags[ip_vs_flags, int32]
+	timeout		int32
+	netmask		int32be[0:128]
+}
+
+ip_vs_dest_user {
+	addr		ipv4_addr
+	port		sock_port
+	conn_flags	flags[ipvs_conn_flags, int32]
+	weight		int32
+	u_threshold	int32
+	l_threshold	int32
+}
+
+ip_vs_svcdest_user {
+	s	ip_vs_service_user
+	d	ip_vs_dest_user
+}
+
+ip_vs_timeout_user {
+	tcp_timeout	int32
+	tcp_fin_timeout	int32
+	udp_timeout	int32
+}
+
+ip_vs_daemon_user {
+	state		flags[ipvs_daemon_states, int32]
+	mcast_ifn	devname
+	syncid		int32[0:4]
+}
+
+openat$ipvs(fd const[AT_FDCWD], file ptr[in, string[ipvs_proc_files]], flags const[O_RDWR], mode const[0]) fd
+
+ipvs_proc_files = "/proc/sys/net/ipv4/vs/sync_qlen_max", "/proc/sys/net/ipv4/vs/sync_refresh_period", "/proc/sys/net/ipv4/vs/sync_retries", "/proc/sys/net/ipv4/vs/sync_sock_size", "/proc/sys/net/ipv4/vs/sync_threshold", "/proc/sys/net/ipv4/vs/sync_version", "/proc/sys/net/ipv4/vs/am_droprate", "/proc/sys/net/ipv4/vs/amemthresh", "/proc/sys/net/ipv4/vs/backup_only", "/proc/sys/net/ipv4/vs/cache_bypass", "/proc/sys/net/ipv4/vs/conn_reuse_mode", "/proc/sys/net/ipv4/vs/conntrack", "/proc/sys/net/ipv4/vs/drop_entry", "/proc/sys/net/ipv4/vs/drop_packet", "/proc/sys/net/ipv4/vs/expire_nodest_conn", "/proc/sys/net/ipv4/vs/expire_quiescent_template", "/proc/sys/net/ipv4/vs/ignore_tunneled", "/proc/sys/net/ipv4/vs/lblc_expiration", "/proc/sys/net/ipv4/vs/lblcr_expiration", "/proc/sys/net/ipv4/vs/nat_icmp_send", "/proc/sys/net/ipv4/vs/pmtu_disc", "/proc/sys/net/ipv4/vs/schedule_icmp", "/proc/sys/net/ipv4/vs/secure_tcp", "/proc/sys/net/ipv4/vs/sloppy_sctp", "/proc/sys/net/ipv4/vs/sloppy_tcp", "/proc/sys/net/ipv4/vs/snat_reroute", "/proc/sys/net/ipv4/vs/sync_persist_mode", "/proc/sys/net/ipv4/vs/sync_ports"
+
+ip_vs_af = AF_INET, AF_INET6
+ipvs_sched_names = "none", "dh", "fo", "lblc", "lblcr", "lc", "nq", "ovf", "rr", "sed", "sh", "wlc", "wrr"
+ipvs_pe_names = "sip"
+ipvs_daemon_states = IP_VS_STATE_NONE, IP_VS_STATE_MASTER, IP_VS_STATE_BACKUP
+ip_vs_flags = IP_VS_SVC_F_PERSISTENT, IP_VS_SVC_F_HASHED, IP_VS_SVC_F_ONEPACKET, IP_VS_SVC_F_SCHED1, IP_VS_SVC_F_SCHED2, IP_VS_SVC_F_SCHED3
+ipvs_fwd_methods = IP_VS_CONN_F_MASQ, IP_VS_CONN_F_LOCALNODE, IP_VS_CONN_F_TUNNEL, IP_VS_CONN_F_DROUTE, IP_VS_CONN_F_BYPASS
+ipvs_conn_flags = IP_VS_CONN_F_MASQ, IP_VS_CONN_F_LOCALNODE, IP_VS_CONN_F_TUNNEL, IP_VS_CONN_F_DROUTE, IP_VS_CONN_F_BYPASS, IP_VS_CONN_F_ONE_PACKET, IP_VS_CONN_F_NFCT
+
+define IP_VS_GETINFO_SIZE	sizeof(struct ip_vs_getinfo)
+define IP_VS_SERVICE_ENTRY_SIZE	sizeof(struct ip_vs_service_entry)
+define IP_VS_TIMEOUT_SIZE	sizeof(struct ip_vs_timeout_user)
+define IP_VS_DAEMON_SIZE	2 * sizeof(struct ip_vs_daemon_user)

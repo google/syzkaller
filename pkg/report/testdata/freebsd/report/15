@@ -1,0 +1,22 @@
+TITLE: panic: ASan: Invalid access, NUM-byte write in strlcpy
+
+panic: ASan: Invalid access, 1-byte write at 0xfffffe0057414be0, MallocRedZone(fb)
+cpuid = 1
+time = 1625849194
+KDB: stack backtrace:
+db_trace_self_wrapper() at db_trace_self_wrapper+0xc7/frame 0xfffffe00998907d0
+kdb_backtrace() at kdb_backtrace+0xd3/frame 0xfffffe0099890930
+vpanic() at vpanic+0x2c5/frame 0xfffffe0099890a10
+panic() at panic+0xb5/frame 0xfffffe0099890ad0
+__asan_load1_noabort() at __asan_load1_noabort+0x11a/frame 0xfffffe0099890b90
+strlcpy() at strlcpy+0xbc/frame 0xfffffe0099890bd0
+pfioctl() at pfioctl+0x628/frame 0xfffffe00998922b0
+devfs_ioctl() at devfs_ioctl+0x22a/frame 0xfffffe0099892390
+VOP_IOCTL_APV() at VOP_IOCTL_APV+0xb0/frame 0xfffffe00998923d0
+vn_ioctl() at vn_ioctl+0x215/frame 0xfffffe0099892720
+devfs_ioctl_f() at devfs_ioctl_f+0x71/frame 0xfffffe0099892770
+kern_ioctl() at kern_ioctl+0x62e/frame 0xfffffe0099892870
+sys_ioctl() at sys_ioctl+0x3b6/frame 0xfffffe00998929f0
+amd64_syscall() at amd64_syscall+0x425/frame 0xfffffe0099892bf0
+fast_syscall_common() at fast_syscall_common+0xf8/frame 0xfffffe0099892bf0
+--- syscall (198, FreeBSD ELF64, nosys), rip = 0x287eda, rsp = 0x7fffdfffdf08, rbp = 0x7fffdfffdf70 ---

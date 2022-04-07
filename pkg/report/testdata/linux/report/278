@@ -1,0 +1,61 @@
+TITLE: INFO: rcu detected stall in sys_futex
+ALT: stall in sys_futex
+TYPE: HANG
+
+[  246.173515] rcu: INFO: rcu_sched self-detected stall on CPU
+[  246.179319] rcu: 	1-...!: (1 ticks this GP) idle=2e6/1/0x4000000000000002 softirq=21091/21091 fqs=0 
+[  246.188580] rcu: 	 (t=110325 jiffies g=45621 q=219)
+[  246.193603] rcu: rcu_sched kthread starved for 110325 jiffies! g45621 f0x0 RCU_GP_WAIT_FQS(5) ->state=0x402 ->cpu=1
+[  246.204159] rcu: RCU grace-period kthread stack dump:
+[  246.209334] rcu_sched       I23480    10      2 0x80000000
+[  246.214997] Call Trace:
+[  246.217708]  __schedule+0x87c/0x1ec0
+[  246.247401]  schedule+0xfb/0x450
+[  246.277246]  schedule_timeout+0x140/0x260
+[  246.294402]  rcu_gp_kthread+0x743/0x1d20
+[  246.481639]  kthread+0x35a/0x420
+[  246.493143]  ret_from_fork+0x3a/0x50
+[  246.496878] NMI backtrace for cpu 1
+[  246.500524] CPU: 1 PID: 4356 Comm: syz-fuzzer Not tainted 4.18.0-rc7-next-20180803+ #31
+[  246.508667] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  246.518010] Call Trace:
+[  246.520578]  <IRQ>
+[  246.522762]  dump_stack+0x1c9/0x2b4
+[  246.540779]  nmi_cpu_backtrace.cold.3+0x48/0x88
+[  246.550627]  nmi_trigger_cpumask_backtrace+0x151/0x192
+[  246.555897]  arch_trigger_cpumask_backtrace+0x14/0x20
+[  246.561086]  rcu_dump_cpu_stacks+0x175/0x1c2
+[  246.570531]  print_cpu_stall.cold.78+0x2fb/0x59c
+[  246.596748]  rcu_check_callbacks+0xd93/0x1660
+[  246.719004]  update_process_times+0x2d/0x70
+[  246.723352]  tick_sched_handle+0x9f/0x180
+[  246.727495]  tick_sched_timer+0x45/0x130
+[  246.731565]  __hrtimer_run_queues+0x3eb/0x10c0
+[  246.776185]  hrtimer_interrupt+0x2f3/0x750
+[  246.780455]  smp_apic_timer_interrupt+0x165/0x730
+[  246.807990]  apic_timer_interrupt+0xf/0x20
+[  246.812208]  </IRQ>
+[  246.814441] RIP: 0010:_raw_spin_unlock_irq+0x56/0x70
+[  246.838429] RSP: 0018:ffff8801ad6ef090 EFLAGS: 00000286 ORIG_RAX: ffffffffffffff13
+[  246.846148] RAX: dffffc0000000000 RBX: ffff8801db12ca40 RCX: ffffffff81606487
+[  246.853406] RDX: 1ffffffff0fe361f RSI: 0000000000000004 RDI: ffffffff87f1b0f8
+[  246.860677] RBP: ffff8801ad6ef098 R08: ffffed003b625949 R09: ffffed003b625948
+[  246.867934] R10: ffffed003b625948 R11: ffff8801db12ca43 R12: ffff8801ad502180
+[  246.875212] R13: ffff8801d9f18380 R14: ffff88019c2e98c0 R15: dffffc0000000000
+[  246.886921]  finish_task_switch+0x1d3/0x870
+[  246.965692]  __schedule+0x884/0x1ec0
+[  247.014854]  schedule+0xfb/0x450
+[  247.049482]  futex_wait_queue_me+0x3f9/0x840
+[  247.100651]  futex_wait+0x45b/0xa20
+[  247.125352]  do_futex+0x336/0x27d0
+[  247.229783]  __x64_sys_futex+0x472/0x6a0
+[  247.247689]  do_syscall_64+0x1b9/0x820
+[  247.280793]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  247.285980] RIP: 0033:0x45ddf3
+[  247.308057] RSP: 002b:000000c420035e80 EFLAGS: 00000246 ORIG_RAX: 00000000000000ca
+[  247.315756] RAX: ffffffffffffffda RBX: 0000000000000000 RCX: 000000000045ddf3
+2018/08/03 14:36:29 Manager.Poll call failed: connection is shut down
+[  247.323013] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000001448298
+[  247.330271] RBP: 000000c420035ec8 R08: 0000000000000000 R09: 0000000000000000
+[  247.337529] R10: 000000c420035eb8 R11: 0000000000000246 R12: 0000000000430130
+[  247.344791] R13: 00000000000000f1 R14: 0000000000000011 R15: 0000000000000000

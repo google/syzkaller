@@ -1,0 +1,9 @@
+TITLE: FATAL ERROR: error getting processes for container: error executing in sandbox: EOF
+
+r1 = creat(&(0x7f0000000800)='./file0\x00', 0x80)
+accept(r1, &(0x7f0000000b00)=@rc, &(0x7f0000000b80)=0x80)
+
+W0622 12:13:40.386697    9726 x:0] FATAL ERROR: error getting processes for container: error executing in sandbox: EOF
+error getting processes for container: error executing in sandbox: EOF
+W0622 12:13:40.386737    9188 x:0] FATAL ERROR: error running container: err waiting on container "syzkaller": EOF
+error running container: err waiting on container "syzkaller": EOF

@@ -1,0 +1,61 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/fcntl.h>
+include <linux/loop.h>
+
+resource fd_loop[fd_block]
+syz_open_dev$loop(dev ptr[in, string["/dev/loop#"]], id intptr, flags flags[open_flags]) fd_loop
+
+ioctl$LOOP_SET_FD(fd fd_loop, cmd const[LOOP_SET_FD], arg fd)
+ioctl$LOOP_CHANGE_FD(fd fd_loop, cmd const[LOOP_CHANGE_FD], arg fd)
+ioctl$LOOP_CLR_FD(fd fd_loop, cmd const[LOOP_CLR_FD])
+ioctl$LOOP_SET_STATUS(fd fd_loop, cmd const[LOOP_SET_STATUS], arg ptr[in, loop_info])
+ioctl$LOOP_SET_STATUS64(fd fd_loop, cmd const[LOOP_SET_STATUS64], arg ptr[in, loop_info64])
+ioctl$LOOP_GET_STATUS(fd fd_loop, cmd const[LOOP_GET_STATUS], arg ptr[out, loop_info])
+ioctl$LOOP_GET_STATUS64(fd fd_loop, cmd const[LOOP_GET_STATUS64], arg ptr[out, loop_info64])
+ioctl$LOOP_SET_CAPACITY(fd fd_loop, cmd const[LOOP_SET_CAPACITY])
+ioctl$LOOP_SET_DIRECT_IO(fd fd_loop, cmd const[LOOP_SET_DIRECT_IO], arg intptr)
+ioctl$LOOP_SET_BLOCK_SIZE(fd fd_loop, cmd const[LOOP_SET_BLOCK_SIZE], arg intptr)
+
+resource fd_loop_ctrl[fd]
+resource fd_loop_num[intptr]: 0, 1, 2, 10, 11, 12
+openat$loop_ctrl(fd const[AT_FDCWD], file ptr[in, string["/dev/loop-control"]], flags flags[open_flags], mode const[0]) fd_loop_ctrl
+ioctl$LOOP_CTL_GET_FREE(fd fd_loop_ctrl, cmd const[LOOP_CTL_GET_FREE]) fd_loop_num
+ioctl$LOOP_CTL_ADD(fd fd_loop_ctrl, cmd const[LOOP_CTL_ADD], num fd_loop_num)
+ioctl$LOOP_CTL_REMOVE(fd fd_loop_ctrl, cmd const[LOOP_CTL_REMOVE], num fd_loop_num)
+
+lo_encrypt_type = LO_CRYPT_NONE, LO_CRYPT_XOR, LO_CRYPT_DES, LO_CRYPT_FISH2, LO_CRYPT_BLOW, LO_CRYPT_CAST128, LO_CRYPT_IDEA, LO_CRYPT_DUMMY, LO_CRYPT_SKIPJACK, LO_CRYPT_CRYPTOAPI
+lo_flags = LO_FLAGS_READ_ONLY, LO_FLAGS_AUTOCLEAR, LO_FLAGS_PARTSCAN, LO_FLAGS_DIRECT_IO
+
+loop_info {
+	lo_number	const[0, int32]
+# NEED: on amd64 lo_device/lo_rdevice (__kernel_old_dev_t) is long, on 386 it's short...
+	lo_device	alignptr[const[0, int16]]
+	lo_inode	const[0, intptr]
+	lo_rdevice	alignptr[const[0, int16]]
+	lo_offset	int32
+	lo_enc_type	flags[lo_encrypt_type, int32]
+	lo_enc_key_size	int32[0:LO_KEY_SIZE]
+	lo_flags	flags[lo_flags, int32]
+	lo_name		array[int8, LO_NAME_SIZE]
+	lo_enc_key	array[int8, LO_KEY_SIZE]
+	lo_init		array[intptr, 2]
+	reserved	const[0, int32]
+}
+
+loop_info64 {
+	lo_device	const[0, int64]
+	lo_inode	const[0, int64]
+	lo_rdevice	const[0, int64]
+	lo_offset	int64
+	lo_sizelimit	int64
+	lo_number	const[0, int32]
+	lo_enc_type	flags[lo_encrypt_type, int32]
+	lo_enc_key_size	int32[0:LO_KEY_SIZE]
+	lo_flags	flags[lo_flags, int32]
+	lo_file_name	array[int8, LO_NAME_SIZE]
+	lo_crypt_name	array[int8, LO_NAME_SIZE]
+	lo_enc_key	array[int8, LO_KEY_SIZE]
+	lo_init		array[int64, 2]
+}

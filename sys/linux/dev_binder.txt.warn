@@ -1,0 +1,43 @@
+no-such-struct: binder_cmd_transaction
+no-such-struct: binder_cmd_reply
+no-such-struct: binder_cmd_transaction_sg
+no-such-struct: binder_cmd_reply_sg
+bad-field-number: binder_transaction_data: syz=11 kernel=9
+bad-field-size: binder_transaction_data.handle/target: syz=4 kernel=8
+bad-field-offset: binder_transaction_data.pad/cookie: syz=4 kernel=8
+bad-field-offset: binder_transaction_data.cookie/code: syz=8 kernel=16
+bad-field-size: binder_transaction_data.cookie/code: syz=8 kernel=4
+bad-field-offset: binder_transaction_data.code/flags: syz=16 kernel=20
+bad-field-offset: binder_transaction_data.flags/sender_pid: syz=20 kernel=24
+bad-field-offset: binder_transaction_data.sender_pid/sender_euid: syz=24 kernel=28
+bad-field-offset: binder_transaction_data.sender_euid/data_size: syz=28 kernel=32
+bad-field-size: binder_transaction_data.sender_euid/data_size: syz=4 kernel=8
+bad-field-offset: binder_transaction_data.data_size/offsets_size: syz=32 kernel=40
+bad-field-offset: binder_transaction_data.offsets_size/data: syz=40 kernel=48
+bad-field-size: binder_transaction_data.offsets_size/data: syz=8 kernel=16
+no-such-struct: binder_offsets
+no-such-struct: flat_binder_object_t
+bad-field-number: binder_fd_object: syz=5 kernel=4
+bad-field-size: binder_fd_object.fd/: syz=4 kernel=8
+bad-field-offset: binder_fd_object.pad2/cookie: syz=12 kernel=16
+bad-field-size: binder_fd_object.pad2/cookie: syz=4 kernel=8
+bad-field-number: binder_fd_array_object: syz=4 kernel=5
+bad-struct-size: binder_fd_array_object: syz=28 kernel=32 [386]
+bad-field-offset: binder_fd_array_object.num_fds/pad: syz=8 kernel=4
+bad-field-offset: binder_fd_array_object.parnt/num_fds: syz=12 kernel=8 [386]
+bad-field-offset: binder_fd_array_object.parnt/num_fds: syz=16 kernel=8 [amd64,arm,arm64]
+bad-field-offset: binder_fd_array_object.parent_offset/parent: syz=20 kernel=16 [386]
+bad-field-offset: binder_fd_array_object.parent_offset/parent: syz=24 kernel=16 [amd64,arm,arm64]
+no-such-struct: binder_cmd_free_buffer
+no-such-struct: binder_cmd_increfs
+no-such-struct: binder_cmd_acquire
+no-such-struct: binder_cmd_release
+no-such-struct: binder_cmd_decrefs
+no-such-struct: binder_cmd_increfs_done
+no-such-struct: binder_cmd_acquire_done
+no-such-struct: binder_cmd_register_looper
+no-such-struct: binder_cmd_enter_looper
+no-such-struct: binder_cmd_exit_looper
+no-such-struct: binder_cmd_request_death
+no-such-struct: binder_cmd_clear_death
+no-such-struct: binder_cmd_dead_binder_done

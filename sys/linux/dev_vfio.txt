@@ -1,0 +1,50 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# NOTE: This is an incomplete description for the VFIO system calls because no groups were added in the container. The desired coverage was not reached.
+
+# https://www.kernel.org/doc/Documentation/vfio.txt
+# https://elixir.bootlin.com/linux/latest/source/drivers/vfio/vfio.c
+# https://elixir.bootlin.com/linux/latest/source/include/uapi/linux/vfio.h
+# https://elixir.bootlin.com/linux/latest/source/drivers/vfio/vfio_iommu_type1.c
+
+include <uapi/linux/fcntl.h>
+include <uapi/linux/vfio.h>
+
+resource fd_vfio[fd]
+
+openat$vfio(fd const[AT_FDCWD], file ptr[in, string["/dev/vfio/vfio"]], flags flags[open_flags], mode const[0]) fd_vfio
+
+ioctl$VFIO_GET_API_VERSION(fd fd_vfio, cmd const[VFIO_GET_API_VERSION])
+ioctl$VFIO_CHECK_EXTENSION(fd fd_vfio, cmd const[VFIO_CHECK_EXTENSION], arg flags[iommu_flags])
+ioctl$VFIO_SET_IOMMU(fd fd_vfio, cmd const[VFIO_SET_IOMMU], arg flags[iommu_flags])
+
+ioctl$VFIO_IOMMU_GET_INFO(fd fd_vfio, cmd const[VFIO_IOMMU_GET_INFO], arg ptr[inout, vfio_iommu_type1_info])
+ioctl$VFIO_IOMMU_MAP_DMA(fd fd_vfio, cmd const[VFIO_IOMMU_MAP_DMA], arg ptr[in, vfio_iommu_type1_dma_map])
+ioctl$VFIO_IOMMU_UNMAP_DMA(fd fd_vfio, cmd const[VFIO_IOMMU_UNMAP_DMA], arg ptr[in, vfio_iommu_type1_dma_unmap])
+
+vfio_iommu_type1_info {
+	argsz		len[parent, int32]
+	flags		const[0, int32]
+	iova_pgsizes	const[0, int64]
+	cap_offset	int32
+}
+
+vfio_iommu_type1_dma_map {
+	argsz	len[parent, int32]
+	flags	flags[vfio_dma_flags, int32]
+	vaddr	int64
+	iova	int64
+	size	int64
+}
+
+vfio_iommu_type1_dma_unmap {
+	argsz	len[parent, int32]
+	flags	flags[vfio_dma_flags, int32]
+	iova	int64
+	size	int64
+	data	array[int8]
+}
+
+iommu_flags = VFIO_TYPE1_IOMMU, VFIO_SPAPR_TCE_IOMMU, VFIO_TYPE1v2_IOMMU, VFIO_DMA_CC_IOMMU, VFIO_EEH, VFIO_TYPE1_NESTING_IOMMU, VFIO_SPAPR_TCE_v2_IOMMU, VFIO_NOIOMMU_IOMMU
+vfio_dma_flags = VFIO_DMA_MAP_FLAG_READ, VFIO_DMA_MAP_FLAG_WRITE

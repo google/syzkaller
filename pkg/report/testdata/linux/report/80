@@ -1,0 +1,3 @@
+TITLE: WARNING: kernel stack regs has bad 'bp' value
+
+[  163.314570] WARNING: kernel stack regs at ffff8801d100fea8 in syz-executor1:16059 has bad 'bp' value ffff8801d100ff28

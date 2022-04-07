@@ -1,0 +1,48 @@
+TITLE: INFO: rcu detected stall in smp_call_function
+ALT: stall in smp_call_function
+TYPE: HANG
+
+[  420.341960] INFO: rcu_preempt detected stalls on CPUs/tasks:
+[  420.347923] 	(detected by 1, t=10502 jiffies, g=9244, c=9243, q=178)
+[  420.354558] All QSes seen, last rcu_preempt kthread activity 10502 (4294979208-4294968706), jiffies_till_next_fqs=1, root ->qsmask 0x0
+[  420.366779] kworker/u4:2    R  running task    25560    32      2 0x00000008
+[  420.374291] Workqueue: writeback wb_workfn (flush-8:0)
+[  420.379821]  ffff8801db307ca0 ffffffff814249f9 0000000100000582 0000000100002e88
+[  420.387871]  dffffc0000000000 ffff8801db322880 ffffffff846e0300 ffff8801db307d70
+[  420.395936]  ffffffff8143035a 0000000000000000 ffffffff846def20 ffffffff846e0a18
+[  420.403962] Call Trace:
+[  420.406526]  <IRQ> [  420.408595]  [<ffffffff814249f9>] sched_show_task.cold.127+0x1c9/0x279
+[  420.415289]  [<ffffffff8143035a>] rcu_check_callbacks.cold.79+0xc70/0xd27
+[  420.422204]  [<ffffffff812a0ac0>] update_process_times+0x30/0x70
+[  420.428339]  [<ffffffff812cc695>] tick_sched_handle.isra.14+0x55/0xf0
+[  420.434904]  [<ffffffff812cceb2>] tick_sched_timer+0x72/0x120
+[  420.446992]  [<ffffffff812a4775>] __hrtimer_run_queues+0x375/0xe50
+[  420.478026]  [<ffffffff812a5cb1>] hrtimer_interrupt+0x1b1/0x430
+[  420.484071]  [<ffffffff810b2384>] local_apic_timer_interrupt+0x74/0xa0
+[  420.490726]  [<ffffffff83a0249c>] smp_apic_timer_interrupt+0x7c/0xa0
+[  420.497210]  [<ffffffff839fe630>] apic_timer_interrupt+0xa0/0xb0
+[  420.503332]  <EOI> [  420.505397]  [<ffffffff812da9eb>] ? smp_call_function_single+0x11b/0x360
+[  420.518914]  [<ffffffff812da9eb>] smp_call_function_single+0x11b/0x360
+[  420.561741]  [<ffffffff812db9ba>] smp_call_function_many+0x57a/0x6a0
+[  420.579966]  [<ffffffff810ed4a4>] native_flush_tlb_others+0xd4/0x510
+[  420.597680]  [<ffffffff810ed9ec>] flush_tlb_mm_range+0x10c/0x440
+[  420.603832]  [<ffffffff81500cdc>] ptep_clear_flush+0xec/0x110
+[  420.609706]  [<ffffffff814f05d0>] page_mkclean_one+0x100/0x220
+[  420.622141]  [<ffffffff814ee6f2>] rmap_walk_file+0x2c2/0x780
+[  420.634853]  [<ffffffff814f614d>] rmap_walk+0xed/0x180
+[  420.640112]  [<ffffffff814f6876>] page_mkclean+0x196/0x1d0
+[  420.672156]  [<ffffffff814586e0>] clear_page_dirty_for_io+0x200/0x4e0
+[  420.678721]  [<ffffffff8173c337>] mpage_submit_page+0x77/0x240
+[  420.684675]  [<ffffffff8173c8b2>] mpage_process_page_bufs+0x3b2/0x490
+[  420.691270]  [<ffffffff8173ff6f>] mpage_prepare_extent_to_map+0x52f/0x9a0
+[  420.717326]  [<ffffffff8174f609>] ext4_writepages+0xdb9/0x2e50
+[  420.749218]  [<ffffffff8145ef2f>] do_writepages+0xef/0x1d0
+[  420.767364]  [<ffffffff81601fa9>] __writeback_single_inode+0xd9/0x1020
+[  420.774030]  [<ffffffff81603a3c>] writeback_sb_inodes+0x4ac/0xe70
+[  420.798721]  [<ffffffff816044fb>] __writeback_inodes_wb+0xfb/0x1e0
+[  420.805040]  [<ffffffff81604c82>] wb_writeback+0x512/0xbd0
+[  420.824129]  [<ffffffff8160df6e>] wb_workfn+0x20e/0xdb0
+[  420.841940]  [<ffffffff8118d181>] process_one_work+0x7e1/0x1500
+[  420.860701]  [<ffffffff8118df76>] worker_thread+0xd6/0x10a0
+[  420.872096]  [<ffffffff8119d0ed>] kthread+0x26d/0x300
+[  420.900433]  [<ffffffff839fce9c>] ret_from_fork+0x5c/0x70

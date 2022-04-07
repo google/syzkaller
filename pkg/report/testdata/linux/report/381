@@ -1,0 +1,14 @@
+TITLE: WARNING: ath10k USB support is incomplete, don't expect anything to work!
+
+usb 5-1: config 0 has no interface number 0
+usb 5-1: config 0 interface 24 altsetting 0 has an invalid endpoint with address 0x0, skipping
+usb 5-1: New USB device found, idVendor=13b1, idProduct=0042, bcdDevice=b7.f3
+usb 5-1: New USB device strings: Mfr=0, Product=0, SerialNumber=0
+usb 5-1: config 0 descriptor??
+usb 5-1: WARNING: ath10k USB support is incomplete, don't expect anything to work!
+usb 5-1: new high-speed USB device number 109 using dummy_hcd
+usb 5-1: Using ep0 maxpacket: 8
+usb 5-1: config 0 has an invalid interface number: 24 but max is 0
+usb 5-1: config 0 has an invalid descriptor of length 255, skipping remainder of the config
+usb 5-1: config 0 has no interface number 0
+usb 5-1: config 0 interface 24 altsetting 0 has an invalid endpoint with address 0x0, skipping

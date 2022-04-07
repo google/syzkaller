@@ -1,0 +1,88 @@
+TITLE: BUG: sleeping function called from invalid context in line6_pcm_acquire
+
+[   76.428565][    C0] BUG: sleeping function called from invalid context at kernel/locking/mutex.c:908
+[   76.432834][    C0] in_atomic(): 1, irqs_disabled(): 0, pid: 464, name: kworker/0:2
+[   76.434131][    C0] 5 locks held by kworker/0:2/464:
+[   76.434877][    C0]  #0: 00000000fd931363 ((wq_completion)usb_hub_wq){+.+.}, at: process_one_work+0x81f/0x1580
+[   76.436391][    C0]  #1: 0000000053ecad07 ((work_completion)(&hub->events)){+.+.}, at: process_one_work+0x853/0x1580
+[   76.437937][    C0]  #2: 00000000984fcdae (&dev->mutex){....}, at: hub_event+0x18a/0x3b00
+[   76.439279][    C0]  #3: 000000003e057dcf (&dev->mutex){....}, at: __device_attach+0x80/0x3a0
+[   76.440557][    C0]  #4: 000000002d02a2de ((&toneport->timer)){+.-.}, at: call_timer_fn+0xce/0x5f0
+[   76.441933][    C0] CPU: 0 PID: 464 Comm: kworker/0:2 Not tainted 5.1.0-rc3-00007-g43151d6c3fce #282
+[   76.443600][    C0] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+[   76.445118][    C0] Workqueue: usb_hub_wq hub_event
+[   76.445833][    C0] Call Trace:
+[   76.446326][    C0]  <IRQ>
+[   76.446734][    C0]  dump_stack+0xe8/0x16e
+[   76.447389][    C0]  ___might_sleep.cold+0x11c/0x136
+[   76.448256][    C0]  __mutex_lock+0xcd/0x12b0
+[   76.448983][    C0]  ? __lock_acquire+0x2186/0x37c0
+[   76.449996][    C0]  ? line6_pcm_acquire+0x35/0x210
+[   76.451003][    C0]  ? mutex_trylock+0x1b0/0x1b0
+[   76.451947][    C0]  ? mark_held_locks+0xe0/0xe0
+[   76.452928][    C0]  ? line6_pcm_acquire+0x35/0x210
+[   76.453911][    C0]  line6_pcm_acquire+0x35/0x210
+[   76.454816][    C0]  call_timer_fn+0x161/0x5f0
+[   76.455733][    C0]  ? snd_toneport_source_info+0x160/0x160
+[   76.456813][    C0]  ? process_timeout+0x40/0x40
+[   76.457746][    C0]  ? snd_toneport_source_info+0x160/0x160
+[   76.458861][    C0]  run_timer_softirq+0x58b/0x1400
+[   76.459867][    C0]  ? add_timer+0x990/0x990
+[   76.460703][    C0]  __do_softirq+0x22a/0x8cd
+[   76.461326][    C0]  irq_exit+0x187/0x1b0
+[   76.462110][    C0]  smp_apic_timer_interrupt+0xfe/0x4a0
+[   76.463078][    C0]  apic_timer_interrupt+0xf/0x20
+[   76.463829][    C0]  </IRQ>
+[   76.464263][    C0] RIP: 0010:memset_erms+0x9/0x10
+[   76.465032][    C0] Code: c1 e9 03 40 0f b6 f6 48 b8 01 01 01 01 01 01 01 01 48 0f af c6 f3 48 ab 89 d1 f3 aa 4c 89 c8 c3 90 49 89 f9 40 88 f0 48 89 d1 <f3> aa 4c 89 c8 c3 90 49 89 fa 40 0f b6 ce 48 b8 01 01 01 01 01 01
+[   76.468570][    C0] RSP: 0018:ffff88806436f548 EFLAGS: 00010246 ORIG_RAX: ffffffffffffff13
+[   76.470355][    C0] RAX: 0000000000000000 RBX: ffff88806ac02600 RCX: 0000000000000010
+[   76.471868][    C0] RDX: 0000000000000010 RSI: 0000000000000000 RDI: ffff88803c409000
+[   76.473127][    C0] RBP: ffff88806ac02600 R08: ffff8880642b9880 R09: ffff88803c409000
+[   76.474569][    C0] R10: ffffed100d605c27 R11: ffff88806b02e13b R12: ffff88803c408000
+[   76.476251][    C0] R13: 0000000000000004 R14: 0000000000000007 R15: ffffea0000f10200
+[   76.477868][    C0]  ? get_random_u32+0x13a/0x300
+[   76.478898][    C0]  kasan_init_slab_obj+0x21/0x30
+[   76.479863][    C0]  setup_object.isra.0+0x1e/0xa0
+[   76.480892][    C0]  new_slab+0x1f4/0x730
+[   76.481692][    C0]  ? __lock_acquire+0x522/0x37c0
+[   76.482651][    C0]  ___slab_alloc+0x4b4/0x620
+[   76.483604][    C0]  ? kobject_uevent_env+0x21a/0x13d0
+[   76.484521][    C0]  ? fault_create_debugfs_attr+0x1e0/0x1e0
+[   76.485404][    C0]  ? kobject_uevent_env+0x21a/0x13d0
+[   76.486243][    C0]  ? __slab_alloc+0x46/0x90
+[   76.486932][    C0]  __slab_alloc+0x46/0x90
+[   76.487566][    C0]  ? kobject_uevent_env+0x21a/0x13d0
+[   76.488399][    C0]  kmem_cache_alloc_trace+0x226/0x290
+[   76.489215][    C0]  ? dev_uevent_filter+0xe0/0xe0
+[   76.490133][    C0]  kobject_uevent_env+0x21a/0x13d0
+[   76.490858][    C0]  ? up_read+0x130/0x180
+[   76.491562][    C0]  ? blocking_notifier_call_chain+0x59/0xb0
+[   76.492461][    C0]  driver_bound+0x1b9/0x320
+[   76.493098][    C0]  really_probe+0x373/0xb10
+[   76.493808][    C0]  driver_probe_device+0x21d/0x350
+[   76.494604][    C0]  __device_attach_driver+0x1d8/0x290
+[   76.495417][    C0]  ? driver_allows_async_probing+0x160/0x160
+[   76.496334][    C0]  bus_for_each_drv+0x163/0x1e0
+[   76.497115][    C0]  ? bus_rescan_devices+0x30/0x30
+[   76.497891][    C0]  ? _raw_spin_unlock_irqrestore+0x4b/0x60
+[   76.498694][    C0]  ? lockdep_hardirqs_on+0x37e/0x580
+[   76.499557][    C0]  __device_attach+0x223/0x3a0
+[   76.500320][    C0]  ? device_bind_driver+0xe0/0xe0
+[   76.501047][    C0]  ? kobject_uevent_env+0x295/0x13d0
+[   76.501851][    C0]  bus_probe_device+0x1f1/0x2a0
+[   76.502633][    C0]  ? blocking_notifier_call_chain+0x59/0xb0
+[   76.503594][    C0]  device_add+0xad2/0x16e0
+[   76.504231][    C0]  ? get_device_parent.isra.0+0x560/0x560
+[   76.505155][    C0]  usb_new_device.cold+0x537/0xccf
+[   76.505994][    C0]  hub_event+0x138e/0x3b00
+[   76.506703][    C0]  ? hub_port_debounce+0x350/0x350
+[   76.507500][    C0]  ? _raw_spin_unlock_irq+0x29/0x40
+[   76.508338][    C0]  process_one_work+0x90f/0x1580
+[   76.509117][    C0]  ? wq_pool_ids_show+0x300/0x300
+[   76.509965][    C0]  ? do_raw_spin_lock+0x11f/0x290
+[   76.510876][    C0]  worker_thread+0x7b0/0xe20
+[   76.511682][    C0]  ? process_one_work+0x1580/0x1580
+[   76.512516][    C0]  kthread+0x313/0x420
+[   76.513175][    C0]  ? kthread_park+0x1a0/0x1a0
+[   76.514026][    C0]  ret_from_fork+0x3a/0x50

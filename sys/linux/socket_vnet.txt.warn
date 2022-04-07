@@ -1,0 +1,8 @@
+bad-field-number: sockaddr_vm: syz=5 kernel=6
+bad-field-size: sockaddr_vm.svm_zero/svm_flags: syz=4 kernel=1
+no-such-struct: vmaddr_cid
+no-such-struct: vmaddr_cid64
+bad-field-size: vhost_msg.iotlb/: syz=28 kernel=64 [386]
+bad-field-size: vhost_msg.iotlb/: syz=32 kernel=64 [amd64,arm,arm64]
+bad-field-size: vhost_msg_v2.iotlb/: syz=28 kernel=64 [386]
+bad-field-size: vhost_msg_v2.iotlb/: syz=32 kernel=64 [amd64,arm,arm64]

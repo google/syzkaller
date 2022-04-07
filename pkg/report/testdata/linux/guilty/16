@@ -1,0 +1,18 @@
+FILE: ipc/util.c
+
+------------[ cut here ]------------
+WARNING: CPU: 1 PID: 7733 at mm/vmalloc.c:1473 __vunmap+0x1ca/0x300 mm/vmalloc.c:1472()
+Trying to vfree() bad address (ffff8800b3254fc0)
+Kernel panic - not syncing: panic_on_warn set ...
+
+Call Trace:
+ [<ffffffff81c8f6cd>] __dump_stack lib/dump_stack.c:15 [inline]
+ [<ffffffff81c8f6cd>] dump_stack+0xc1/0x124 lib/dump_stack.c:51
+ [<ffffffff815f5f34>] __panic+0x11f/0x30b kernel/panic.c:179
+ [<ffffffff815f61da>] panic_saved_regs+0xba/0xba kernel/panic.c:280
+ [<ffffffff812b148f>] warn_slowpath_common+0x12f/0x150 kernel/panic.c:642
+ [<ffffffff812b1560>] warn_slowpath_fmt+0xb0/0xe0 kernel/panic.c:658
+ [<ffffffff816d015a>] __vunmap+0x1ca/0x300 mm/vmalloc.c:1472
+ [<ffffffff816d0355>] vfree+0x55/0xe0 mm/vmalloc.c:1533
+ [<ffffffff81b26404>] ipc_free+0x44/0x50 ipc/util.c:420
+ [<ffffffff81b3203d>] semctl_main+0x20d/0x1ba0 ipc/sem.c:1496

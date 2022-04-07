@@ -1,0 +1,33 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+language: go
+version: "1.11"
+base: ubuntu:16.04
+checkout: github.com/google/syzkaller
+targets:
+  - name: report
+    harness:
+      function: Fuzz
+      package: github.com/google/syzkaller/pkg/report
+      build_tags: syz_target
+  - name: compiler
+    harness:
+      function: Fuzz
+      package: github.com/google/syzkaller/pkg/compiler
+      build_tags: syz_target
+  - name: trace2syz
+    harness:
+      function: Fuzz
+      package: github.com/google/syzkaller/tools/syz-trace2syz/proggen
+      build_tags: syz_target syz_os_linux syz_arch_amd64
+  - name: prog-Deserialize
+    harness:
+      function: FuzzDeserialize
+      package: github.com/google/syzkaller/prog/test
+      build_tags: syz_target,syz_os_test,syz_arch_64
+  - name: prog-ParseLog
+    harness:
+      function: FuzzParseLog
+      package: github.com/google/syzkaller/prog/test
+      build_tags: syz_target,syz_os_test,syz_arch_64

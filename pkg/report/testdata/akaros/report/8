@@ -1,0 +1,25 @@
+TITLE: kernel warning in statcheck
+
+kernel warning at kern/src/ns/convM2D.c:52, from core 2: nbuf 213, STAT_FIX_LEN_9P 49 BIT16SZ 2, GBIT16(buf) 0 
+
+Stack Backtrace on Core 2:
+
+#01 [<0xffffffffc200a2dc>] in backtrace
+
+#02 [<0xffffffffc2009b94>] in _warn
+
+#03 [<0xffffffffc2034c5d>] in statcheck
+
+#04 [<0xffffffffc203df08>] in validstat
+
+#05 [<0xffffffffc203ef6e>] in sysfwstat
+
+#06 [<0xffffffffc2055cc0>] in sys_fwstat
+
+#07 [<0xffffffffc2059459>] in syscall
+
+#08 [<0xffffffffc2059624>] in run_local_syscall
+
+#09 [<0xffffffffc2059b59>] in prep_syscalls
+
+#10 [<0xffffffffc20ab41a>] in sysenter_callwrapper

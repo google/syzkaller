@@ -1,0 +1,61 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <stddef.h>
+include <sys/types.h>
+include <sys/param.h>
+include <sys/socket.h>
+include <netinet/in.h>
+include <net/route.h>
+include <netinet6/ip6_mroute.h>
+include <compat/linux/common/linux_socket.h>
+include <sys/sockio.h>
+
+# IPv6 sockets
+
+resource sock_in6[sock]
+
+sockaddr_in6 {
+	family	const[AF_INET6, int16]
+	port	sock_port
+	flow	int32
+	scope	int32
+}
+
+socket$inet6(domain const[AF_INET6], type flags[socket_type], proto int8) sock_in6
+accept$inet6(fd sock_in6, peer ptr[out, sockaddr_in6, opt], peerlen ptr[inout, len[peer, int32]]) sock_in6
+bind$inet6(fd sock_in6, addr ptr[in, sockaddr_in6], addrlen len[addr])
+connect$inet6(fd sock_in6, addr ptr[in, sockaddr_in6], addrlen len[addr])
+sendto$inet6(fd sock_in6, buf buffer[in], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_in6, opt], addrlen len[addr])
+recvfrom$inet6(fd sock_in6, buf buffer[out], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr_in6, opt], addrlen len[addr])
+getsockname$inet6(fd sock_in6, addr ptr[out, sockaddr_in6], addrlen ptr[inout, len[addr, int32]])
+getpeername$inet6(fd sock_in6, peer ptr[out, sockaddr_in6], peerlen ptr[inout, len[peer, int32]])
+
+# Generic IPv6 options
+
+# Specific IPv6 options
+
+# TODO: IPV6_HOPOPTS, IPV6_RTHDRDSTOPTS, IPV6_RTHDR, IPV6_DSTOPTS
+# TODO: IPV6_PATHMTU
+# TODO: IP6T_SO_GET_REVISION_MATCH, IP6T_SO_GET_REVISION_TARGET
+
+setsockopt$inet6_MRT6_ADD_MIF(fd sock_in6, level const[IPPROTO_IPV6], optname const[MRT6_ADD_MIF], optval ptr[in, mif6ctl], optlen len[optval])
+setsockopt$inet6_MRT6_ADD_MFC(fd sock_in6, level const[IPPROTO_IPV6], optname const[MRT6_ADD_MFC], optval ptr[in, mf6cctl], optlen len[optval])
+setsockopt$inet6_MRT6_DEL_MFC(fd sock_in6, level const[IPPROTO_IPV6], optname const[MRT6_DEL_MFC], optval ptr[in, mf6cctl], optlen len[optval])
+
+mif6ctl {
+	mif6c_mifi	int16
+	mif6c_flags	flags[mif6c_flags, int8]
+	vifc_threshold	int8
+	mif6c_pifi	int16
+	vifc_rate_limit	int32
+}
+
+mif6c_flags = MIFF_REGISTER
+
+mf6cctl {
+	mf6cc_origin	sockaddr_in6
+	mf6cc_mcastgrp	sockaddr_in6
+	mf6cc_parent	int16
+	mf6cc_ifset	array[int32, 8]
+}

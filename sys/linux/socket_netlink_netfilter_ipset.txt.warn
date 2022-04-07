@@ -1,0 +1,4 @@
+no-such-struct: ip_set_req_get_set_byname
+no-such-struct: ip_set_req_get_set_byindex
+no-such-netlink-policy: ip_set_type_create_policy
+no-such-netlink-policy: ip_set_type_adt_policy

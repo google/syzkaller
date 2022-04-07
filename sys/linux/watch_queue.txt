@@ -1,0 +1,33 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/fcntl.h>
+include <linux/ioctl.h>
+include <uapi/linux/watch_queue.h>
+
+resource fd_watch_queue[fd]
+
+pipe2$watch_queue(pipefd ptr[out, pipefd$watch_queue], flags const[O_NOTIFICATION_PIPE])
+read$watch_queue(fd fd_watch_queue, buf buffer[out], count len[buf])
+ioctl$IOC_WATCH_QUEUE_SET_SIZE(fd fd_watch_queue, cmd const[IOC_WATCH_QUEUE_SET_SIZE], arg flags[watch_queue_size])
+ioctl$IOC_WATCH_QUEUE_SET_FILTER(fd fd_watch_queue, cmd const[IOC_WATCH_QUEUE_SET_FILTER], arg ptr[in, watch_notification_filter])
+
+pipefd$watch_queue {
+	rfd	fd_watch_queue
+	wfd	fd
+}
+
+watch_notification_filter {
+	nr_filters	len[filters, int32]
+	__reserved	const[0, int32]
+	filters		array[watch_notification_type_filter]
+}
+
+watch_notification_type_filter {
+	type		int32
+	info_filter	int32
+	info_mask	int32
+	subtype_filter	array[int32, 8]
+}
+
+watch_queue_size = 1, 2, 4, 8, 16

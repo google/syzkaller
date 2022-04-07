@@ -1,0 +1,54 @@
+TITLE: BUG: unable to handle kernel paging request in remove_wait_queue
+ALT: bad-access in remove_wait_queue
+
+[   19.572672] BUG: unable to handle kernel paging request at 0000000100000137
+[   19.572683] IP: __lock_acquire+0xd8/0x1430
+[   19.572685] PGD 0 P4D 0 
+[   19.572688] Oops: 0002 [#1] SMP
+[   19.572691] Dumping ftrace buffer:
+[   19.572693]    (ftrace buffer empty)
+[   19.572694] Modules linked in:
+[   19.572698] CPU: 1 PID: 3131 Comm: syzkaller331655 Not tainted 4.15.0-rc3-next-20171214+ #67
+[   19.572700] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   19.572703] RIP: 0010:__lock_acquire+0xd8/0x1430
+[   19.572705] RSP: 0018:ffffc9000190bb90 EFLAGS: 00010006
+[   19.572707] RAX: 00000000ffffffff RBX: 0000000000000000 RCX: 0000000000000000
+[   19.572708] RDX: 0000000000000000 RSI: 0000000000000000 RDI: ffff8802143518b8
+[   19.572710] RBP: ffffc9000190bc60 R08: 0000000000000001 R09: ffffffff8121b4f4
+[   19.572712] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
+[   19.572713] R13: ffff880213514240 R14: 0000000000000001 R15: ffff8802143518b8
+[   19.572716] FS:  000000000149c880(0000) GS:ffff88021fd00000(0000) knlGS:0000000000000000
+[   19.572717] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   19.572719] CR2: 0000000100000137 CR3: 000000000301e003 CR4: 00000000001606e0
+[   19.572724] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   19.572725] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   19.572726] Call Trace:
+[   19.572732]  lock_acquire+0xbf/0x220
+[   19.572735]  ? lock_acquire+0xbf/0x220
+[   19.572739]  ? remove_wait_queue+0x14/0x60
+[   19.572745]  ? ep_unregister_pollwait.isra.7+0x105/0x1f0
+[   19.572749]  _raw_spin_lock_irqsave+0x56/0x70
+[   19.572752]  ? remove_wait_queue+0x14/0x60
+[   19.572755]  remove_wait_queue+0x14/0x60
+[   19.572758]  ep_unregister_pollwait.isra.7+0x79/0x1f0
+[   19.572762]  ep_remove+0x22/0x180
+[   19.572765]  eventpoll_release_file+0x63/0xa0
+[   19.572774]  __fput+0x232/0x270
+[   19.572778]  ____fput+0x15/0x20
+[   19.572783]  task_work_run+0xa3/0xe0
+[   19.572787]  do_exit+0x3e6/0x1050
+[   19.572793]  ? security_file_ioctl+0x51/0x80
+[   19.572797]  do_group_exit+0x60/0x100
+[   19.572800]  SyS_exit_group+0x18/0x20
+[   19.572805]  entry_SYSCALL_64_fastpath+0x1f/0x96
+[   19.572807] RIP: 0033:0x4444f9
+[   19.572809] RSP: 002b:00007ffee7715938 EFLAGS: 00000202 ORIG_RAX: 00000000000000e7
+[   19.572813] RAX: ffffffffffffffda RBX: 0000000000000000 RCX: 00000000004444f9
+[   19.572815] RDX: 00000000004444f9 RSI: 0000000000000000 RDI: 0000000000000000
+[   19.572816] RBP: 00000000006cf018 R08: 0000000000000000 R09: 0000000000000000
+[   19.572818] R10: 0000000000000000 R11: 0000000000000202 R12: 0000000000000000
+[   19.572819] R13: 0000000000401e00 R14: 0000000000000000 R15: 0000000000000000
+[   19.572822] Code: ff ff e8 6c db ff ff 48 85 c0 4c 8b 8d 60 ff ff ff 44 8b 9d 48 ff ff ff 44 8b 95 40 ff ff ff 8b 8d 3c ff ff ff 0f 84 6d 03 00 00 <f0> ff 80 38 01 00 00 8b 1d 33 4e d4 02 45 8b 85 68 08 00 00 85 
+[   19.572867] RIP: __lock_acquire+0xd8/0x1430 RSP: ffffc9000190bb90
+[   19.572868] CR2: 0000000100000137
+[   19.572872] ---[ end trace 43b4a0602d494b9e ]---

@@ -1,0 +1,42 @@
+TITLE: WARNING: locking bug in l2cap_sock_teardown_cb
+
+[  393.531131][   T12] ------------[ cut here ]------------
+[  393.536719][   T12] DEBUG_LOCKS_WARN_ON(1)
+[  393.536783][   T12] WARNING: CPU: 0 PID: 12 at kernel/locking/lockdep.c:167 hlock_class+0xe0/0xf5
+[  393.550017][   T12] Kernel panic - not syncing: panic_on_warn set ...
+[  393.556606][   T12] CPU: 0 PID: 12 Comm: kworker/0:1 Not tainted 5.4.83-syzkaller-11737-g599480d3622e #0
+[  393.566226][   T12] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  393.576305][   T12] Workqueue: events l2cap_chan_timeout
+[  393.581764][   T12] Call Trace:
+[  393.585060][   T12]  dump_stack+0xef/0x160
+[  393.589308][   T12]  panic+0x29f/0x6bb
+[  393.614825][   T12]  __warn+0x157/0x1ae
+[  393.623226][   T12]  report_bug+0x1f3/0x24e
+[  393.627557][   T12]  fixup_bug+0x3e/0x77
+[  393.631625][   T12]  do_error_trap+0xbb/0x127
+[  393.640548][   T12]  do_invalid_op+0x3a/0x3f
+[  393.649387][   T12]  invalid_op+0x23/0x30
+[  393.653547][   T12] RIP: 0010:hlock_class+0xe0/0xf5
+[  393.658570][   T12] Code: 74 0c 48 c7 c7 f0 b4 ff 85 e8 49 29 32 00 83 3d 3e 86 df 04 00 75 15 48 c7 c6 a0 39 47 84 48 c7 c7 e0 39 47 84 e8 70 79 d7 02 <0f> 0b 31 c0 eb 0d 48 69 c3 b0 00 00 00 48 05 40 01 18 87 5b c3 41
+[  393.678197][   T12] RSP: 0000:ffff8881f5e47a50 EFLAGS: 00010086
+[  393.684259][   T12] RAX: 0000000000000000 RBX: 0000000000001744 RCX: 0000000000000000
+[  393.692229][   T12] RDX: 00000016f5e34bc0 RSI: ffffffff8122420f RDI: ffffed103ebc8f3c
+[  393.700225][   T12] RBP: ffff8881f5e35578 R08: fffffbfff0aa1639 R09: 0000000000000001
+[  393.708198][   T12] R10: ffff8881f5e34bc0 R11: 0000000000000000 R12: 0000000000000002
+[  393.716170][   T12] R13: 0000000000000004 R14: ffff8881f5e34bc0 R15: ffff8881f5e3559a
+[  393.730241][   T12]  mark_lock+0xd4/0x3cc
+[  393.734403][   T12]  __lock_acquire+0x762/0x1c66
+[  393.756918][   T12]  lock_acquire+0x22e/0x27f
+[  393.766286][   T12]  _raw_spin_lock_bh+0x2f/0x39
+[  393.775902][   T12]  lock_sock_nested+0x3c/0xfb
+[  393.780585][   T12]  l2cap_sock_teardown_cb+0x151/0x589
+[  393.785968][   T12]  l2cap_chan_del+0x10a/0x48a
+[  393.790649][   T12]  l2cap_chan_close+0x5cc/0x665
+[  393.800270][   T12]  l2cap_chan_timeout+0x1a4/0x218
+[  393.805321][   T12]  process_one_work+0x78b/0xc69
+[  393.819511][   T12]  worker_thread+0x5a0/0x6ed
+[  393.824132][   T12]  kthread+0x31b/0x32f
+[  393.838313][   T12]  ret_from_fork+0x24/0x30
+[  393.843340][   T12] Kernel Offset: disabled
+[  393.847804][   T12] Rebooting in 86400 seconds..
+

@@ -1,0 +1,106 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/fcntl.h>
+
+resource fd_cgroup[fd]
+resource fd_cgroup_type[fd]
+resource fd_cgroup_subtree[fd]
+resource fd_cgroup_int[fd]
+resource fd_cgroup_pid[fd]
+resource fd_cgroup_netprio_ifpriomap[fd]
+resource fd_cgroup_devices[fd]
+resource fd_cgroup_freezer_state[fd]
+resource fd_cgroup_pressure[fd]
+
+mkdirat$cgroup_root(fd const[AT_FDCWD], path ptr[in, string[cgroup_dirs]], mode const[0x1ff])
+mkdirat$cgroup(fd fd_cgroup, path ptr[in, string[cgroup_names]], mode const[0x1ff])
+openat$cgroup_root(fd const[AT_FDCWD], file ptr[in, string[cgroup_dirs]], flags const[CGROUP_OPEN_FLAGS], mode const[0]) fd_cgroup
+openat$cgroup(fd fd_cgroup, file ptr[in, string[cgroup_names]], flags const[CGROUP_OPEN_FLAGS], mode const[0]) fd_cgroup
+openat$cgroup_ro(fd fd_cgroup, file ptr[in, string[cgroup_ctrl_read]], flags const[O_RDONLY], mode const[0]) fd
+openat$cgroup_int(fd fd_cgroup, file ptr[in, string[cgroup_ctrl_int]], flags const[O_RDWR], mode const[0]) fd_cgroup_int
+openat$cgroup_procs(fd fd_cgroup, file ptr[in, string[cgroup_proc_files]], flags const[O_RDWR], mode const[0]) fd_cgroup_pid
+openat$cgroup_subtree(fd fd_cgroup, file ptr[in, string["cgroup.subtree_control"]], flags const[O_RDWR], mode const[0]) fd_cgroup_subtree
+openat$cgroup_type(fd fd_cgroup, file ptr[in, string["cgroup.type"]], flags const[O_RDWR], mode const[0]) fd_cgroup_type
+openat$cgroup_pressure(fd fd_cgroup, file ptr[in, string[cgroup_pressure_files]], flags const[O_RDWR], mode const[0]) fd_cgroup_pressure
+write$cgroup_int(fd fd_cgroup_int, buf ptr[in, fmt[hex, int64]], len bytesize[buf])
+write$cgroup_pid(fd fd_cgroup_pid, buf ptr[in, fmt[hex, pid]], len bytesize[buf])
+write$cgroup_subtree(fd fd_cgroup_subtree, buf ptr[in, cgroup_subtree], len bytesize[buf])
+write$cgroup_type(fd fd_cgroup_type, buf ptr[in, string["threaded"]], len bytesize[buf])
+write$cgroup_pressure(fd fd_cgroup_pressure, buf ptr[in, cgroup_pressure], len bytesize[buf])
+
+cgroup_subtree {
+	controls	array[cgroup_control]
+} [packed]
+
+cgroup_control {
+	sign	flags[cgroup_control_signs, int8]
+	subsys	stringnoz[cgroup_subsystems]
+	sp	const[' ', int8]
+} [packed]
+
+cgroup_dirs = "./cgroup/syz0", "./cgroup/syz1", "./cgroup.cpu/syz0", "./cgroup.cpu/syz1", "./cgroup.net/syz0", "./cgroup.net/syz1"
+cgroup_names = "syz0", "syz1"
+cgroup_paths = "./cgroup/syz0", "./cgroup.cpu/syz0", "./cgroup.net/syz0", "./cgroup/syz1", "./cgroup.cpu/syz1", "./cgroup.net/syz1"
+cgroup_control_signs = '+', '-'
+cgroup_subsystems = "cpu", "memory", "io", "pids", "rdma", "net", "net_cls", "net_prio", "devices", "blkio", "freezer", "cpuset", "cpuacct", "perf_event", "hugetlb", "rlimit"
+cgroup_proc_files = "cgroup.procs", "cgroup.threads", "tasks"
+cgroup_ctrl_read = "cgroup.controllers", "cgroup.events", "cgroup.freeze", "cgroup.kill", "cgroup.stat", "cpu.stat", "io.stat", "memory.current", "memory.events", "memory.events.local", "memory.stat", "memory.swap.current", "memory.swap.events", "memory.numa_stat", "pids.current", "pids.events", "rdma.current", "cpuacct.stat", "cpuacct.usage_all", "cpuacct.usage_percpu", "cpuacct.usage_percpu_sys", "cpuacct.usage_percpu_user", "cpuacct.usage_sys", "cpuacct.usage_user", "cpuset.effective_cpus", "cpuset.effective_mems", "cpuset.memory_pressure", "cpuset.memory_pressure_enabled", "net_prio.prioidx", "devices.list", "freezer.state", "freezer.self_freezing", "freezer.parent_freezing", "hugetlb.2MB.usage_in_bytes", "hugetlb.2MB.rsvd.usage_in_bytes", "hugetlb.1GB.usage_in_bytes", "hugetlb.1GB.rsvd.usage_in_bytes", "blkio.bfq.avg_queue_size", "blkio.bfq.dequeue", "blkio.bfq.empty_time", "blkio.bfq.group_wait_time", "blkio.bfq.idle_time", "blkio.bfq.io_merged", "blkio.bfq.io_merged_recursive", "blkio.bfq.io_queued", "blkio.bfq.io_queued_recursive", "blkio.bfq.io_service_bytes", "blkio.bfq.io_service_bytes_recursive", "blkio.bfq.io_service_time", "blkio.bfq.io_service_time_recursive", "blkio.bfq.io_serviced", "blkio.bfq.io_serviced_recursive", "blkio.bfq.io_wait_time", "blkio.bfq.io_wait_time_recursive", "blkio.bfq.sectors", "blkio.bfq.sectors_recursive", "blkio.bfq.time", "blkio.bfq.time_recursive", "blkio.throttle.io_service_bytes", "blkio.throttle.io_service_bytes_recursive", "blkio.throttle.io_serviced", "blkio.throttle.io_serviced_recursive"
+cgroup_ctrl_int = "cgroup.max.depth", "cgroup.max.descendants", "cpu.weight", "cpu.weight.nice", "io.bfq.weight", "io.latency", "io.max", "io.weight", "memory.high", "memory.low", "memory.max", "memory.min", "memory.swap.max", "memory.swap.high", "memory.swap.max", "memory.oom.group", "pids.max", "rdma.max", "cgroup.clone_children", "cpuacct.usage", "cpuset.cpu_exclusive", "cpuset.cpus", "cpuset.mem_exclusive", "cpuset.mem_hardwall", "cpuset.memory_migrate", "cpuset.memory_spread_page", "cpuset.memory_spread_slab", "cpuset.mems", "cpuset.sched_load_balance", "cpuset.sched_relax_domain_level", "hugetlb.2MB.failcnt", "hugetlb.2MB.limit_in_bytes", "hugetlb.2MB.max_usage_in_bytes", "hugetlb.2MB.rsvd.failcnt", "hugetlb.2MB.rsvd.limit_in_bytes", "hugetlb.2MB.rsvd.max_usage_in_bytes", "hugetlb.1GB.failcnt", "hugetlb.1GB.limit_in_bytes", "hugetlb.1GB.max_usage_in_bytes", "hugetlb.1GB.rsvd.failcnt", "hugetlb.1GB.rsvd.limit_in_bytes", "hugetlb.1GB.rsvd.max_usage_in_bytes", "net_cls.classid", "notify_on_release", "cpu.idle", "cpu.max", "cpu.max.burst", "blkio.reset_stats", "blkio.throttle.read_bps_device", "blkio.throttle.read_iops_device", "blkio.throttle.write_bps_device", "blkio.throttle.write_iops_device"
+cgroup_pressure_files = "cpu.pressure", "io.pressure", "memory.pressure"
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# net_prio (.ifpriomap)
+cgroup_netprio_ifpriomap {
+	dev		stringnoz[devnames]
+	space		const[0x32, int8]
+	prio		int8['0':'9']
+	null_term	string[""]
+} [packed]
+
+openat$cgroup_netprio_ifpriomap(fd fd_cgroup, file ptr[in, string["net_prio.ifpriomap"]], flags const[O_RDWR], mode const[0]) fd_cgroup_netprio_ifpriomap
+write$cgroup_netprio_ifpriomap(fd fd_cgroup_netprio_ifpriomap, buf ptr[in, cgroup_netprio_ifpriomap], len bytesize[buf])
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# devices (.allow, .deny)
+cgroup_devices_files = "devices.allow", "devices.deny"
+
+# device types: (a)ll, (c)har, (b)lock
+cgroup_devices_type = "a", "c", "b"
+
+# access: (r)ead, (w)rite, (m)knod, or a combination of them
+cgroup_devices_access = "r", "w", "m", "rw", "rm", "wm", "rwm"
+
+# TODO: device_major_minor is in form MAJOR:MINOR, where '*' is used for all.
+#       It is non-trivial to describe valid MAJOR:MINOR as MAJOR takes values from
+#       a wide range while not all such devices might exist in the system.
+cgroup_devices_towrite {
+	dev			stringnoz[cgroup_devices_type]
+	device_major_minor	stringnoz[" *:* "]
+	access			string[cgroup_devices_access]
+} [packed]
+
+openat$cgroup_devices(fd fd_cgroup, file ptr[in, string[cgroup_devices_files]], flags const[O_RDWR], mode const[0]) fd_cgroup_devices
+write$cgroup_devices(fd fd_cgroup_devices, buf ptr[in, cgroup_devices_towrite], len bytesize[buf])
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# freezer (.state)
+cgroup_freezer_states = "THAWED", "FREEZING", "FROZEN"
+openat$cgroup_freezer_state(fd fd_cgroup, file ptr[in, string["freezer.state"]], flags const[O_RDWR], mode const[0]) fd_cgroup_freezer_state
+write$cgroup_freezer_state(fd fd_cgroup_freezer_state, buf ptr[in, string[cgroup_freezer_states]], len bytesize[buf])
+
+define CGROUP_OPEN_FLAGS	O_RDWR | O_PATH
+
+cgroup_pressure {
+	type		stringnoz[cgroup_pressure_types]
+	sp0		const[' ', int8]
+	threshold_us	fmt[dec, int64]
+	sp1		const[' ', int8]
+	window_us	fmt[dec, int64]
+	z		const[0, int8]
+}
+
+cgroup_pressure_types = "full", "some"

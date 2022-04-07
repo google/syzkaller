@@ -1,0 +1,50 @@
+TITLE: BUG: scheduling while atomic in simple_recursive_removal
+
+[ 4782.045066][    C0] BUG: scheduling while atomic: syz-executor.1/9519/0x00000102
+[ 4782.046355][    C0] Modules linked in:
+[ 4782.048445][    C0] CPU: 0 PID: 9519 Comm: syz-executor.1 Not tainted 5.17.0-syzkaller-04443-ged4643521e6a #0
+[ 4782.050336][    C0] Hardware name: linux,dummy-virt (DT)
+[ 4782.051577][    C0] Call trace:
+[ 4782.052261][    C0]  dump_backtrace.part.0+0xcc/0xe0
+[ 4782.055208][    C0]  show_stack+0x18/0x6c
+[ 4782.056391][    C0]  dump_stack_lvl+0x68/0x84
+[ 4782.057194][    C0]  dump_stack+0x18/0x34
+[ 4782.057971][    C0]  __schedule_bug+0x60/0x80
+[ 4782.058771][    C0]  __schedule+0x74c/0x7f0
+[ 4782.059564][    C0]  schedule+0x54/0xd0
+[ 4782.060394][    C0]  rwsem_down_write_slowpath+0x29c/0x5a0
+[ 4782.061477][    C0]  down_write+0x58/0x64
+[ 4782.062300][    C0]  simple_recursive_removal+0x124/0x270
+[ 4782.063271][    C0]  debugfs_remove+0x5c/0x80
+[ 4782.064113][    C0]  blk_release_queue+0x7c/0xf0
+[ 4782.065350][    C0]  kobject_put+0x98/0x114
+[ 4782.066223][    C0]  blk_put_queue+0x14/0x20
+[ 4782.067140][    C0]  blkg_free.part.0+0x54/0x80
+[ 4782.067916][    C0]  __blkg_release+0x44/0x70
+[ 4782.068711][    C0]  rcu_core+0x324/0x590
+[ 4782.069539][    C0]  rcu_core_si+0x10/0x20
+[ 4782.070304][    C0]  _stext+0x124/0x2a0
+[ 4782.071098][    C0]  __irq_exit_rcu+0xe4/0x100
+[ 4782.072162][    C0]  irq_exit_rcu+0x10/0x1c
+[ 4782.072918][    C0]  el1_interrupt+0x38/0x64
+[ 4782.073646][    C0]  el1h_64_irq_handler+0x18/0x24
+[ 4782.074581][    C0]  el1h_64_irq+0x64/0x68
+[ 4782.075380][    C0]  preempt_schedule_irq+0x3c/0x130
+[ 4782.076197][    C0]  el1_interrupt+0x4c/0x64
+[ 4782.076962][    C0]  el1h_64_irq_handler+0x18/0x24
+[ 4782.077743][    C0]  el1h_64_irq+0x64/0x68
+[ 4782.078483][    C0]  vprintk+0x0/0xe4
+[ 4782.079303][    C0]  start_creating.part.0+0x144/0x160
+[ 4782.080094][    C0]  debugfs_create_dir+0x48/0x1e4
+[ 4782.080846][    C0]  blk_register_queue+0xa4/0x23c
+[ 4782.081713][    C0]  device_add_disk+0x214/0x36c
+[ 4782.082501][    C0]  loop_add+0x24c/0x2c4
+[ 4782.083226][    C0]  loop_control_ioctl+0xac/0x204
+[ 4782.083959][    C0]  __arm64_sys_ioctl+0xa8/0xf0
+[ 4782.085127][    C0]  invoke_syscall+0x48/0x114
+[ 4782.085934][    C0]  el0_svc_common.constprop.0+0x44/0xec
+[ 4782.086883][    C0]  do_el0_svc+0x6c/0x84
+[ 4782.087634][    C0]  el0_svc+0x44/0xb0
+[ 4782.088376][    C0]  el0t_64_sync_handler+0x1a4/0x1b0
+[ 4782.089226][    C0]  el0t_64_sync+0x198/0x19c
+[ 4782.180612][    C0] ------------[ cut here ]------------

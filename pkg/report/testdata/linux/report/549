@@ -1,0 +1,49 @@
+TITLE: INFO: rcu detected stall in openat2
+ALT: stall in openat2
+TYPE: HANG
+
+rcu: INFO: rcu_sched self-detected stall on CPU
+rcu: 	0-...!: (2099 ticks this GP) idle=4c6/1/0x40000002 softirq=6646/6646 fqs=126 
+	(t=2100 jiffies g=11589 q=1)
+rcu: rcu_sched kthread starved for 1848 jiffies! g11589 f0x0 RCU_GP_WAIT_FQS(5) ->state=0x0 ->cpu=0
+rcu: 	Unless rcu_sched kthread gets sufficient CPU time, OOM is now expected behavior.
+rcu: RCU grace-period kthread stack dump:
+task:rcu_sched       state:R  running task     stack:    0 pid:   10 ppid:     2 flags:0x00000000
+Backtrace: 
+[<80c1e5e8>] (__schedule) from [<80c1eb20>] (schedule+0x60/0xdc)
+[<80c1eb20>] (schedule) from [<80c2287c>] (schedule_timeout+0xac/0x1e8)
+[<80c2287c>] (schedule_timeout) from [<801c2674>] (rcu_gp_kthread+0x580/0x1020)
+[<801c2674>] (rcu_gp_kthread) from [<8016e220>] (kthread+0x174/0x18c)
+[<8016e220>] (kthread) from [<80100168>] (ret_from_fork+0x14/0x2c)
+Exception stack(0x814fbfb0 to 0x814fbff8)
+bfa0:                                     00000000 00000000 00000000 00000000
+bfc0: 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+bfe0: 00000000 00000000 00000000 00000000 00000013 00000000
+NMI backtrace for cpu 0
+CPU: 0 PID: 1760 Comm: syz-executor.0 Not tainted 5.10.2 #10
+Hardware name: ARM-Versatile Express
+[<80118054>] (unwind_backtrace) from [<80110ce4>] (show_stack+0x20/0x24)
+[<80110ce4>] (show_stack) from [<80c16564>] (dump_stack+0x104/0x138)
+[<80c16564>] (dump_stack) from [<80692150>] (nmi_cpu_backtrace+0x10c/0x148)
+[<80692150>] (nmi_cpu_backtrace) from [<806922e8>] (nmi_trigger_cpumask_backtrace+0x15c/0x1c4)
+[<806922e8>] (nmi_trigger_cpumask_backtrace) from [<80c124b4>] (rcu_dump_cpu_stacks+0xcc/0x110)
+[<80c124b4>] (rcu_dump_cpu_stacks) from [<801c39e4>] (rcu_sched_clock_irq+0x6e4/0x98c)
+[<801c39e4>] (rcu_sched_clock_irq) from [<801d1124>] (update_process_times+0x94/0xf0)
+[<801d1124>] (update_process_times) from [<801e8104>] (tick_periodic+0x58/0xfc)
+[<801e8104>] (tick_periodic) from [<801e8684>] (tick_handle_periodic+0x30/0xd0)
+[<801e8684>] (tick_handle_periodic) from [<809dd6a4>] (arch_timer_handler_virt+0x48/0x58)
+[<809dd6a4>] (arch_timer_handler_virt) from [<801ae97c>] (handle_percpu_devid_irq+0x90/0x2ec)
+[<801ae97c>] (handle_percpu_devid_irq) from [<801a59ec>] (__handle_domain_irq+0xb8/0x124)
+[<801a59ec>] (__handle_domain_irq) from [<806ab444>] (gic_handle_irq+0xb0/0xe8)
+[<806ab444>] (gic_handle_irq) from [<80100b6c>] (__irq_svc+0x6c/0x90)
+Exception stack(0x91883f00 to 0x91883f48)
+3f00: 20b35644 7effffff 00040000 00000055 00000000 1f4cabd4 20000100 20000118
+3f20: 91882000 00000000 000001b5 75e4fc9c 00000051 91883f50 80616f68 80616f94
+3f40: 60000013 ffffffff
+[<80100b6c>] (__irq_svc) from [<80616f94>] (check_zeroed_user+0x140/0x1dc)
+[<80616f94>] (check_zeroed_user) from [<80321578>] (sys_openat2+0x124/0x170)
+[<80321578>] (sys_openat2) from [<80100080>] (ret_fast_syscall+0x0/0x54)
+Exception stack(0x91883fa8 to 0x91883ff0)
+3fa0:                   00000000 00000000 ffffff9c 200000c0 20000100 20000118
+3fc0: 00000000 00000000 00000000 000001b5 7e80d732 75e50160 75e4fca0 75e4fc9c
+3fe0: 75e4fae8 75e4fad8 000152e8 0004ed10

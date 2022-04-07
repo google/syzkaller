@@ -1,0 +1,50 @@
+# Creates a new mount point.
+#
+# Mounting requires some privileges:
+# requires: -sandbox=setuid
+
+mkdirat(0xffffffffffffff9c, &AUTO='./file0\x00', 0x1c0)
+mount$tmpfs(0x0, &AUTO='./file0\x00', &AUTO='tmpfs\x00', 0x0, 0x0)
+mkdirat(0xffffffffffffff9c, &AUTO='./file0/file0\x00', 0x1c0)
+
+# Creates a simple directory.
+
+mkdirat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x1c0)
+
+# Creates a ruleset with a reference to this mount point.
+
+r0 = landlock_create_ruleset(&AUTO={0x100}, AUTO, 0x0)
+r1 = openat$dir(0xffffffffffffff9c, &AUTO='./file0\x00', 0x200000, 0x0)
+landlock_add_rule$LANDLOCK_RULE_PATH_BENEATH(r0, AUTO, &AUTO={0x100, r1}, 0x0)
+
+# Add a second inode to cover both iput() calls.
+
+r2 = openat$dir(0xffffffffffffff9c, &AUTO='./file0/file0\x00', 0x200000, 0x0)
+landlock_add_rule$LANDLOCK_RULE_PATH_BENEATH(r0, AUTO, &AUTO={0x100, r2}, 0x0)
+
+# Removes other references to the mount point.
+
+close(r2)
+close(r1)
+umount2(&AUTO='./file0\x00', 0x0)
+
+# Extends this ruleset with a reference to a simple directory.
+
+r3 = openat$dir(0xffffffffffffff9c, &AUTO='./file1\x00', 0x200000, 0x0)
+landlock_add_rule$LANDLOCK_RULE_PATH_BENEATH(r0, AUTO, &AUTO={0x100, r3}, 0x0)
+
+# No need to close r3 for this test.
+
+# Enforces the ruleset tied to a deleted superblock.
+
+prctl$PR_SET_NO_NEW_PRIVS(0x26, 0x1)
+landlock_restrict_self(r0, 0x0)
+close(r0)
+
+# Creates a file: allowed by the ruleset.
+
+mknodat(0xffffffffffffff9c, &AUTO='./file1/file0\x00', 0x81c0, 0x0)
+
+# Tries to create a file: denied by the ruleset.
+
+mknodat(0xffffffffffffff9c, &AUTO='./file2\x00', 0x81c0, 0x0) # EACCES

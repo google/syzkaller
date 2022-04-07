@@ -1,0 +1,73 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_XDP support.
+
+include <linux/net.h>
+include <linux/socket.h>
+include <uapi/linux/if_xdp.h>
+
+resource sock_xdp[sock]
+
+socket$xdp(domain const[AF_XDP], type const[SOCK_RAW], proto const[0]) sock_xdp
+bind$xdp(fd sock_xdp, addr ptr[in, sockaddr_xdp_bind], len bytesize[addr])
+sendmsg$xdp(fd sock_xdp, msg ptr[in, msghdr_xdp], f flags[send_flags])
+mmap$xdp(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd sock_xdp, offset flags[xdp_mmap_offsets])
+
+setsockopt$XDP_RX_RING(fd sock_xdp, level const[SOL_XDP], opt const[XDP_RX_RING], val ptr[in, flags[xdp_ring_sizes, int32]], len bytesize[val])
+setsockopt$XDP_TX_RING(fd sock_xdp, level const[SOL_XDP], opt const[XDP_TX_RING], val ptr[in, flags[xdp_ring_sizes, int32]], len bytesize[val])
+setsockopt$XDP_UMEM_FILL_RING(fd sock_xdp, level const[SOL_XDP], opt const[XDP_UMEM_FILL_RING], val ptr[in, flags[xdp_ring_sizes, int32]], len bytesize[val])
+setsockopt$XDP_UMEM_COMPLETION_RING(fd sock_xdp, level const[SOL_XDP], opt const[XDP_UMEM_COMPLETION_RING], val ptr[in, flags[xdp_ring_sizes, int32]], len bytesize[val])
+setsockopt$XDP_UMEM_REG(fd sock_xdp, level const[SOL_XDP], opt const[XDP_UMEM_REG], val ptr[in, xdp_umem_reg], len bytesize[val])
+
+getsockopt$XDP_MMAP_OFFSETS(fd sock_xdp, level const[SOL_XDP], opt const[XDP_MMAP_OFFSETS], val ptr[out, array[int8, XDP_MMAP_OFFSETS_SIZE]], len ptr[in, bytesize[val, int32]])
+getsockopt$XDP_STATISTICS(fd sock_xdp, level const[SOL_XDP], opt const[XDP_STATISTICS], val ptr[out, array[int8, XDP_STATISTICS_SIZE]], len ptr[in, bytesize[val, int32]])
+
+xdp_mmap_offsets = XDP_PGOFF_RX_RING, XDP_PGOFF_TX_RING, XDP_UMEM_PGOFF_FILL_RING, XDP_UMEM_PGOFF_COMPLETION_RING
+xdp_ring_sizes = 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 1048576, 2097152, 16777216
+
+sockaddr_xdp {
+	sxdp_family		const[AF_XDP, int16]
+	sxdp_flags		flags[sxdp_flags, int16]
+	sxdp_ifindex		ifindex
+	sxdp_queue_id		int32[0:64]
+	sxdp_shared_umem_fd	const[0, int32]
+}
+
+sockaddr_xdp_bind {
+	sxdp_family		const[AF_XDP, int16]
+	sxdp_flags		flags[sxdp_flags, int16]
+	sxdp_ifindex		ifindex
+	sxdp_queue_id		int32[0:64]
+	sxdp_shared_umem_fd	sock_xdp[opt]
+}
+
+sxdp_flags = XDP_SHARED_UMEM, XDP_COPY, XDP_ZEROCOPY, XDP_USE_NEED_WAKEUP
+
+msghdr_xdp {
+	msg_name	ptr[in, sockaddr_xdp, opt]
+	msg_namelen	len[msg_name, int32]
+	msg_iov		ptr[in, array[iovec_in]]
+	msg_iovlen	len[msg_iov, intptr]
+	msg_control	const[0, intptr]
+	msg_controllen	const[0, intptr]
+	msg_flags	flags[send_flags, int32]
+}
+
+xdp_umem_reg {
+	addr		ptr64[out, array[int8]]
+	len		flags[xdp_umem_sizes, int64]
+	chunk_size	flags[xdp_umem_chunk_sizes, int32]
+	headroom	int32
+	flags		flags[xdp_umem_flags, int32]
+}
+
+xdp_umem_sizes = 4096, 8192, 16384, 32768, 65536, 131072, 1048576, 2097152, 16777216
+xdp_umem_chunk_sizes = 2048, 4096
+xdp_umem_flags = XDP_UMEM_UNALIGNED_CHUNK_FLAG, XDP_UMEM_USES_NEED_WAKEUP
+
+define XDP_UMEM_USES_NEED_WAKEUP	(1 << 1)
+define XDP_MMAP_OFFSETS_SIZE	sizeof(struct xdp_mmap_offsets)
+define XDP_STATISTICS_SIZE	sizeof(struct xdp_statistics)
+
+_ = __NR_mmap2

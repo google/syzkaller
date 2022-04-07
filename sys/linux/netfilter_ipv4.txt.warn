@@ -1,0 +1,4 @@
+no-such-struct: ipt_entry_underflow
+no-such-struct: ipt_entry_underflow_matches
+no-such-struct: ipt_ip_or_uncond
+no-such-struct: xt_osf_info

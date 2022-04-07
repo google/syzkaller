@@ -1,0 +1,10 @@
+TITLE: panic: error initializing first thread: resource temporarily unavailable
+SUPPRESSED: Y
+
+panic: error initializing first thread: resource temporarily unavailable
+
+goroutine 3009138 [running]:
+gvisor.googlesource.com/gvisor/pkg/sentry/platform/ptrace.newSubprocess.func1(0xc00070ab80, 0xc001514900, 0xc001514960)
+	pkg/sentry/platform/ptrace/subprocess.go:166 +0x364
+created by gvisor.googlesource.com/gvisor/pkg/sentry/platform/ptrace.newSubprocess
+	pkg/sentry/platform/ptrace/subprocess.go:147 +0x213

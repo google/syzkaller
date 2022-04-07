@@ -1,0 +1,36 @@
+TITLE: KCSAN: data-race in find_next_bit / rcu_report_exp_cpu_mult
+TYPE: DATARACE
+FRAME: find_next_bit
+
+[   44.377931][    C4] ==================================================================
+[   44.379001][    C4] BUG: KCSAN: data-race in find_next_bit / rcu_report_exp_cpu_mult
+[   44.379966][    C4] 
+[   44.380268][    C4] read to 0xffffffff85a7f140 of 8 bytes by task 1082 on cpu 7:
+[   44.381409][    C4]  find_next_bit+0x57/0xe0
+[   44.381969][    C4]  sync_rcu_exp_select_node_cpus+0x28e/0x510
+[   44.382748][    C4]  sync_rcu_exp_select_cpus+0x30c/0x590
+[   44.383468][    C4]  wait_rcu_exp_gp+0x25/0x40
+[   44.384066][    C4]  process_one_work+0x3d4/0x890
+[   44.384704][    C4]  worker_thread+0xa0/0x800
+[   44.385296][    C4]  kthread+0x1d4/0x200
+[   44.385831][    C4]  ret_from_fork+0x1f/0x30
+[   44.386391][    C4] 
+[   44.386691][    C4] write to 0xffffffff85a7f140 of 8 bytes by interrupt on cpu 4:
+[   44.387656][    C4]  rcu_report_exp_cpu_mult+0x4f/0xa0
+[   44.388333][    C4]  rcu_report_exp_rdp+0x6c/0x90
+[   44.388954][    C4]  rcu_exp_handler+0xe5/0x190
+[   44.389545][    C4]  flush_smp_call_function_queue+0x190/0x2a0
+[   44.390327][    C4]  generic_smp_call_function_single_interrupt+0x1c/0x49
+[   44.391267][    C4]  smp_call_function_single_interrupt+0x71/0x1c0
+[   44.392120][    C4]  call_function_single_interrupt+0xf/0x20
+[   44.392902][    C4]  __kcsan_check_watchpoint+0x2e/0x180
+[   44.393638][    C4]  __tsan_write4+0x18/0x40
+[   44.394244][    C4]  vsnprintf+0x23a/0xb40
+[   44.394819][    C4]  seq_vprintf+0xaa/0xf0
+[   44.395392][    C4]  seq_printf+0x6c/0x90
+[   44.395951][    C4]  s_show+0x189/0x1b0
+[   44.396484][    C4] 
+[   44.396800][    C4] Reported by Kernel Concurrency Sanitizer on:
+[   44.397634][    C4] CPU: 4 PID: 6252 Comm: syz-fuzzer Not tainted 5.3.0+ #3
+[   44.398597][    C4] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
+[   44.399836][    C4] ==================================================================

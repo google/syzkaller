@@ -1,0 +1,7 @@
+no-such-struct: fuse_notify
+no-such-struct: fuse_in
+no-such-struct: fuse_out_t
+bad-field-number: fuse_init_out: syz=11 kernel=12
+bad-field-size: fuse_init_out.unused/flags2: syz=32 kernel=4
+no-such-struct: fuse_create_open_out
+no-such-struct: syz_fuse_req_out

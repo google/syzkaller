@@ -1,0 +1,38 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+config:
+ - SECURITY
+ - SECURITY_NETWORK
+ - SECURITY_NETWORK_XFRM: [-baseline]
+ - SECURITY_PATH
+ - SECURITY_INFINIBAND: [optional]
+
+ - SECURITY_TOMOYO
+ # The default setting of 1024 causes significant slowdown (see issue #2892).
+ - SECURITY_TOMOYO_MAX_ACCEPT_ENTRY: 64
+ - SECURITY_TOMOYO_MAX_AUDIT_LOG: 32
+ - SECURITY_TOMOYO_INSECURE_BUILTIN_SETTING
+ - SECURITY_YAMA
+ - SECURITY_SAFESETID
+ - SECURITY_LANDLOCK: [v5.13]
+ - SECURITY_LOCKDOWN_LSM
+ - SECURITY_LOCKDOWN_LSM_EARLY
+ - INTEGRITY
+ - INTEGRITY_SIGNATURE
+ - INTEGRITY_ASYMMETRIC_KEYS
+ - INTEGRITY_TRUSTED_KEYRING
+ - IMA
+ - IMA_DEFAULT_HASH_SHA256
+ - IMA_READ_POLICY
+ - IMA_WRITE_POLICY
+ - IMA_APPRAISE
+ - IMA_APPRAISE_MODSIG
+ - IMA_TRUSTED_KEYRING: n
+ - EVM
+ - EVM_ADD_XATTRS
+ - EVM_ATTR_FSUUID
+ - AUDIT
+
+ # Note: this depends on a number of BPF-related configs, which may be not enabled.
+ - BPF_LSM: [optional]

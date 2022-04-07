@@ -1,0 +1,20 @@
+TITLE: panic: in6p_route_copyout: wrong or corrupted route
+
+panic(cpu 1 caller 0xffffff80186da902): "in6p_route_copyout: wrong or corrupted route: 0xffffff8ae77ba750"@/Users/space/kernel/xnu-7195.81.3/bsd/netinet6/in6_pcb.c:1450
+Backtrace (CPU 1), Frame : Return Address
+0xffffffb05e78ec10 : 0xffffff80176a0d75 mach_kernel : _handle_debugger_trap + 0x5d5
+0xffffffb05e78ec70 : 0xffffff8017b44204 mach_kernel : _kdp_i386_trap + 0x2d4
+0xffffffb05e78ecc0 : 0xffffff8017b26727 mach_kernel : _kernel_trap + 0xb27
+0xffffffb05e78ed50 : 0xffffff8017b4bf8f mach_kernel : trap_from_kernel + 0x26
+0xffffffb05e78ed70 : 0xffffff80176a0264 mach_kernel : _DebuggerTrapWithState + 0x104
+0xffffffb05e78eea0 : 0xffffff80176a16d0 mach_kernel : _panic_trap_to_debugger + 0x390
+0xffffffb05e78ef10 : 0xffffff8018fa0216 mach_kernel : _panic + 0x54
+0xffffffb05e78ef80 : 0xffffff80186da902 mach_kernel : _in6p_route_copyout + 0x112
+0xffffffb05e78efb0 : 0xffffff8018509fca mach_kernel : _tcp_ip_output + 0x8ca
+0xffffffb05e78f2c0 : 0xffffff8018501708 mach_kernel : _tcp_output + 0xa858
+0xffffffb05e78fb90 : 0xffffff8018555e20 mach_kernel : _tcp_connect_complete + 0x80
+0xffffffb05e78fbd0 : 0xffffff801854a7f8 mach_kernel : _tcp6_usr_connect + 0x518
+0xffffffb05e78fcb0 : 0xffffff8018a518e0 mach_kernel : _soconnectlock + 0x610
+0xffffffb05e78fd10 : 0xffffff8018a8ea5d mach_kernel : _connect_nocancel + 0x55d
+0xffffffb05e78fee0 : 0xffffff8018b5675f mach_kernel : _unix_syscall64 + 0x99f
+0xffffffb05e78ffa0 : 0xffffff8017b4c756 mach_kernel : _hndl_unix_scall64 + 0x16

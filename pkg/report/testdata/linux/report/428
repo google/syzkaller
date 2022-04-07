@@ -1,0 +1,27 @@
+TITLE: KCSAN: data-race in e1000_clean_rx_irq
+TYPE: DATARACE
+FRAME: e1000_clean_rx_irq
+
+[   44.381409][    C4]  ==================================================================
+[   44.381969][    C4]  BUG: KCSAN: data-race in e1000_clean_rx_irq+0x551/0xb10
+[   44.382748][    C4]  
+[   44.383468][    C4]  race at unknown origin, with read to 0xffff933db8a2ae6c of 1 bytes by interrupt on cpu 0:
+[   44.384066][    C4]   e1000_clean_rx_irq+0x551/0xb10
+[   44.384704][    C4]   e1000_clean+0x533/0xda0
+[   44.385296][    C4]   net_rx_action+0x329/0x900
+[   44.385831][    C4]   __do_softirq+0xdb/0x2db
+[   44.386391][    C4]   irq_exit+0x9b/0xa0
+[   44.386691][    C4]   do_IRQ+0x9c/0xf0
+[   44.387656][    C4]   ret_from_intr+0x0/0x18
+[   44.388333][    C4]   default_idle+0x3f/0x220
+[   44.388954][    C4]   arch_cpu_idle+0x21/0x30
+[   44.389545][    C4]   do_idle+0x1df/0x230
+[   44.390327][    C4]   cpu_startup_entry+0x14/0x20
+[   44.391267][    C4]   rest_init+0xc5/0xcb
+[   44.392120][    C4]   arch_call_rest_init+0x13/0x2b
+[   44.392902][    C4]   start_kernel+0x6db/0x700
+[   44.393638][    C4]  
+[   44.394244][    C4]  Reported by Kernel Concurrency Sanitizer on:
+[   44.394819][    C4]  CPU: 0 PID: 0 Comm: swapper/0 Not tainted 5.3.0-rc7+ #2
+[   44.395392][    C4]  Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
+[   44.395951][    C4]  ==================================================================

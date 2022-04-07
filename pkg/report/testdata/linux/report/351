@@ -1,0 +1,186 @@
+TITLE: INFO: trying to register non-static key in vkms_atomic_crtc_destroy_state
+
+[  309.975408][T12234] INFO: trying to register non-static key.
+[  309.981253][T12234] the code is fine but needs lockdep annotation.
+[  309.987574][T12234] turning off the locking correctness validator.
+[  309.993905][T12234] CPU: 0 PID: 12234 Comm: syz-executor0 Not tainted 4.20.0-next-20190103 #5
+[  310.002579][T12234] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  310.012642][T12234] Call Trace:
+[  310.015950][T12234]  dump_stack+0x1db/0x2d0
+[  310.020290][T12234]  ? dump_stack_print_info.cold+0x20/0x20
+[  310.026085][T12234]  ? vprintk_func+0x86/0x189
+[  310.030686][T12234]  register_lock_class+0x19dc/0x1e60
+[  310.035994][T12234]  ? __sanitizer_cov_trace_cmp4+0x16/0x20
+[  310.041826][T12234]  ? bpf_prog_kallsyms_find+0xca/0x4b0
+[  310.047294][T12234]  ? check_noncircular+0x20/0x20
+[  310.052276][T12234]  ? module_enable_ro.part.0+0xe0/0xe0
+[  310.057752][T12234]  ? __bpf_trace_xdp_cpumap_enqueue+0x40/0x40
+[  310.063935][T12234]  ? check_preemption_disabled+0x48/0x290
+[  310.065615][T12227] ------------[ cut here ]------------
+[  310.069666][T12234]  ? lock_downgrade+0x910/0x910
+[  310.075104][T12227] downgrading a read lock
+[  310.075198][T12227] WARNING: CPU: 1 PID: 12227 at kernel/locking/lockdep.c:3553 lock_downgrade+0x4d2/0x910
+[  310.079943][T12234]  ? check_noncircular+0x20/0x20
+[  310.084251][T12227] Kernel panic - not syncing: panic_on_warn set ...
+[  310.094051][T12234]  ? rcu_read_unlock_special+0x380/0x380
+[  310.111136][T12234]  ? check_noncircular+0x20/0x20
+[  310.116071][T12234]  ? print_usage_bug+0xd0/0xd0
+[  310.120839][T12234]  ? is_bpf_text_address+0xd3/0x170
+[  310.126094][T12234]  ? kernel_text_address+0x73/0xf0
+[  310.131206][T12234]  ? __kernel_text_address+0xd/0x40
+[  310.136396][T12234]  __lock_acquire+0x149/0x4a10
+[  310.141157][T12234]  ? print_usage_bug+0xd0/0xd0
+[  310.145914][T12234]  ? print_usage_bug+0xd0/0xd0
+[  310.150672][T12234]  ? add_lock_to_list.isra.0+0x1c9/0x450
+[  310.156312][T12234]  ? mark_held_locks+0x100/0x100
+[  310.161243][T12234]  ? __lock_acquire+0x572/0x4a10
+[  310.166177][T12234]  ? __lock_acquire+0x24ed/0x4a10
+[  310.171194][T12234]  ? trace_hardirqs_off_caller+0x300/0x300
+[  310.176997][T12234]  ? mark_held_locks+0x100/0x100
+[  310.181944][T12234]  ? mark_held_locks+0x100/0x100
+[  310.186888][T12234]  ? mark_held_locks+0x100/0x100
+[  310.191904][T12234]  ? mark_held_locks+0x100/0x100
+[  310.196848][T12234]  ? add_lock_to_list.isra.0+0x450/0x450
+[  310.202482][T12234]  ? add_lock_to_list.isra.0+0x450/0x450
+[  310.208132][T12234]  ? print_usage_bug+0xd0/0xd0
+[  310.212965][T12234]  ? try_wait_for_completion+0x146/0x190
+[  310.218598][T12234]  lock_acquire+0x1db/0x570
+[  310.223181][T12234]  ? __flush_work+0x762/0xa20
+[  310.227863][T12234]  ? lock_release+0xc40/0xc40
+[  310.232621][T12234]  ? try_wait_for_completion+0x146/0x190
+[  310.238247][T12234]  ? trace_hardirqs_off_caller+0x300/0x300
+[  310.244047][T12234]  ? lockdep_hardirqs_on+0x415/0x5d0
+[  310.249329][T12234]  __flush_work+0x787/0xa20
+[  310.253830][T12234]  ? __flush_work+0x762/0xa20
+[  310.258506][T12234]  ? insert_work+0x620/0x620
+[  310.263089][T12234]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  310.269322][T12234]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  310.275561][T12234]  ? check_preemption_disabled+0x48/0x290
+[  310.281274][T12234]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  310.287508][T12234]  ? refcount_sub_and_test_checked+0x1f4/0x2e0
+[  310.294100][T12234]  ? refcount_dec_if_one+0x180/0x180
+[  310.299465][T12234]  ? __drm_atomic_helper_crtc_destroy_state+0xf3/0x340
+[  310.306322][T12234]  flush_work+0x18/0x20
+[  310.310523][T12234]  vkms_atomic_crtc_destroy_state+0x2d/0x40
+[  310.316439][T12234]  drm_atomic_state_default_clear+0x37c/0xd60
+[  310.322508][T12234]  drm_atomic_state_clear+0x9d/0xc0
+[  310.327713][T12234]  __drm_atomic_state_free+0x3c/0xf0
+[  310.333016][T12234]  drm_atomic_helper_set_config+0xe5/0x160
+[  310.338874][T12234]  drm_mode_setcrtc+0x73c/0x1870
+[  310.343835][T12234]  ? fixup_owner+0x250/0x250
+[  310.348430][T12234]  ? drm_mode_getcrtc+0x870/0x870
+[  310.353449][T12234]  ? drm_unbind_agp+0x20/0x20
+[  310.358118][T12234]  ? drm_unbind_agp+0x20/0x20
+[  310.362789][T12234]  ? drm_dev_unregister+0x480/0x480
+[  310.368050][T12234]  ? drm_lease_owner+0x45/0x60
+[  310.372822][T12234]  ? drm_is_current_master+0x5c/0x140
+[  310.378192][T12234]  drm_ioctl_kernel+0x278/0x340
+[  310.383125][T12234]  ? drm_mode_getcrtc+0x870/0x870
+[  310.388156][T12234]  ? drm_setversion+0x8c0/0x8c0
+[  310.393006][T12234]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[  310.399237][T12234]  ? _copy_from_user+0xdd/0x150
+[  310.404180][T12234]  drm_ioctl+0x592/0xb50
+[  310.408419][T12234]  ? drm_mode_getcrtc+0x870/0x870
+[  310.413452][T12234]  ? drm_version+0x3d0/0x3d0
+[  310.418044][T12234]  ? ksys_dup3+0x660/0x660
+[  310.422456][T12234]  ? lock_release+0xc40/0xc40
+[  310.427132][T12234]  ? drm_version+0x3d0/0x3d0
+[  310.431789][T12234]  do_vfs_ioctl+0x107b/0x17d0
+[  310.436472][T12234]  ? ioctl_preallocate+0x2f0/0x2f0
+[  310.441580][T12234]  ? __fget_light+0x2db/0x420
+[  310.446253][T12234]  ? fget_raw+0x20/0x20
+[  310.450450][T12234]  ? put_timespec64+0x115/0x1b0
+[  310.455311][T12234]  ? nsecs_to_jiffies+0x30/0x30
+[  310.460157][T12234]  ? do_syscall_64+0x8c/0x800
+[  310.464829][T12234]  ? do_syscall_64+0x8c/0x800
+[  310.469497][T12234]  ? lockdep_hardirqs_on+0x415/0x5d0
+[  310.474775][T12234]  ? security_file_ioctl+0x93/0xc0
+[  310.479878][T12234]  ksys_ioctl+0xab/0xd0
+[  310.484027][T12234]  __x64_sys_ioctl+0x73/0xb0
+[  310.488626][T12234]  do_syscall_64+0x1a3/0x800
+[  310.493221][T12234]  ? syscall_return_slowpath+0x5f0/0x5f0
+[  310.498848][T12234]  ? prepare_exit_to_usermode+0x232/0x3b0
+[  310.504569][T12234]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  310.510115][T12234]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  310.515997][T12234] RIP: 0033:0x457ec9
+[  310.519886][T12234] Code: 6d b7 fb ff c3 66 2e 0f 1f 84 00 00 00 00 00 66 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 3b b7 fb ff c3 66 2e 0f 1f 84 00 00 00 00
+[  310.539486][T12234] RSP: 002b:00007fdcfce8bc78 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[  310.547886][T12234] RAX: ffffffffffffffda RBX: 0000000000000003 RCX: 0000000000457ec9
+[  310.555870][T12234] RDX: 0000000020000180 RSI: 00000000c06864a2 RDI: 0000000000000003
+[  310.563831][T12234] RBP: 000000000073bf00 R08: 0000000000000000 R09: 0000000000000000
+18:57:54 executing program 2:
+r0 = memfd_create(&(0x7f0000000400)='/dev/snH/seq\x00', 0x0)
+r1 = syz_open_dev$sndseq(&(0x7f0000000700)='/dev/snd/seq\x00', 0x0, 0x1)
+socketpair$unix(0x1, 0x1, 0x0, &(0x7f00000000c0)={0xffffffffffffffff, <r2=>0xffffffffffffffff})
+ioctl$PERF_EVENT_IOC_ENABLE(r2, 0x8912, 0x400200)
+r3 = dup2(r1, r0)
+ioctl$SNDRV_SEQ_IOCTL_CREATE_QUEUE(r3, 0xc08c5332, &(0x7f0000000140)={0x0, 0x0, 0x0, 'queue0\x00'})
+write$sndseq(r0, &(0x7f0000000000)=[{0x0, 0x22, 0x0, 0x7000, @tick, {}, {}, @connect}], 0xffffff76)
+
+[  310.571792][T12234] R10: 0000000000000000 R11: 0000000000000246 R12: 00007fdcfce8c6d4
+[  310.579753][T12234] R13: 00000000004bfbf5 R14: 00000000004d1180 R15: 00000000ffffffff
+[  310.587742][T12227] CPU: 1 PID: 12227 Comm: blkid Not tainted 4.20.0-next-20190103 #5
+[  310.595732][T12227] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  310.605783][T12227] Call Trace:
+[  310.609071][T12227]  dump_stack+0x1db/0x2d0
+[  310.613400][T12227]  ? dump_stack_print_info.cold+0x20/0x20
+[  310.619116][T12227]  ? lock_downgrade+0x450/0x910
+[  310.624035][T12227]  panic+0x2cb/0x65c
+[  310.627926][T12227]  ? add_taint.cold+0x16/0x16
+[  310.632591][T12227]  ? lock_downgrade+0x4d2/0x910
+[  310.637437][T12227]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  310.643662][T12227]  ? __probe_kernel_read+0x1f4/0x250
+[  310.648945][T12227]  ? __warn.cold+0x5/0x48
+[  310.653266][T12227]  ? __warn+0xe8/0x1d0
+[  310.657322][T12227]  ? lock_downgrade+0x4d2/0x910
+[  310.662160][T12227]  __warn.cold+0x20/0x48
+[  310.666394][T12227]  ? lock_downgrade+0x4d2/0x910
+[  310.671240][T12227]  report_bug+0x263/0x2b0
+[  310.675638][T12227]  do_error_trap+0x11b/0x200
+[  310.680248][T12227]  do_invalid_op+0x37/0x50
+[  310.684651][T12227]  ? lock_downgrade+0x4d2/0x910
+[  310.689499][T12227]  invalid_op+0x14/0x20
+[  310.693643][T12227] RIP: 0010:lock_downgrade+0x4d2/0x910
+[  310.699099][T12227] Code: 00 00 00 fc ff df 41 c6 04 06 f8 e9 1f ff ff ff 48 c7 c7 80 a7 4b 88 4c 89 8d 58 ff ff ff 48 89 85 60 ff ff ff e8 ee 14 e7 ff <0f> 0b 48 8b 85 60 ff ff ff 4c 8d 5d d8 4c 89 f1 48 ba 00 00 00 00
+[  310.718702][T12227] RSP: 0018:ffff88804ebe7bb8 EFLAGS: 00010082
+[  310.724791][T12227] RAX: 0000000000000000 RBX: 1ffff11009d7cf7d RCX: 0000000000000000
+[  310.732763][T12227] RDX: 0000000000000000 RSI: ffffffff81685116 RDI: 0000000000000006
+[  310.740723][T12227] RBP: ffff88804ebe7c70 R08: ffff88809fee0340 R09: fffffbfff1333291
+[  310.748702][T12227] R10: fffffbfff1333290 R11: ffffffff89999483 R12: ffff88809fee0340
+[  310.756676][T12227] R13: ffffffff8b56ca20 R14: ffff88804ebe7c08 R15: 0000000000000001
+[  310.764676][T12227]  ? vprintk_func+0x86/0x189
+[  310.769284][T12227]  ? lock_downgrade+0x4d2/0x910
+[  310.774213][T12227]  ? __do_munmap+0xc5a/0xef0
+[  310.778796][T12227]  ? lock_set_class+0x820/0x820
+[  310.783632][T12227]  ? lock_acquire+0x1db/0x570
+[  310.788297][T12227]  ? __vm_munmap+0xfa/0x1f0
+[  310.792807][T12227]  ? __sanitizer_cov_trace_cmp8+0x18/0x20
+[  310.798573][T12227]  ? userfaultfd_unmap_prep+0x456/0x5e0
+[  310.804112][T12227]  downgrade_write+0x76/0x270
+[  310.808787][T12227]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  310.815012][T12227]  ? up_read+0x2b0/0x2b0
+[  310.819246][T12227]  ? __sanitizer_cov_trace_cmp8+0x18/0x20
+[  310.824954][T12227]  ? vma_compute_subtree_gap+0x158/0x230
+[  310.830578][T12227]  ? __sanitizer_cov_trace_cmp8+0x18/0x20
+[  310.836294][T12227]  __do_munmap+0xc5a/0xef0
+[  310.840720][T12227]  __vm_munmap+0x139/0x1f0
+[  310.845130][T12227]  ? __do_munmap+0xef0/0xef0
+[  310.849717][T12227]  ? __ia32_sys_fallocate+0xf0/0xf0
+[  310.854918][T12227]  ? trace_hardirqs_off_caller+0x300/0x300
+[  310.860720][T12227]  __x64_sys_munmap+0x67/0x80
+[  310.865404][T12227]  do_syscall_64+0x1a3/0x800
+[  310.869992][T12227]  ? syscall_return_slowpath+0x5f0/0x5f0
+[  310.875610][T12227]  ? lockdep_sys_exit+0x49/0x5c
+[  310.880449][T12227]  ? prepare_exit_to_usermode+0x232/0x3b0
+[  310.886162][T12227]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  310.891710][T12227]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  310.897593][T12227] RIP: 0033:0x7f1f7d36b417
+[  310.901999][T12227] Code: f0 ff ff 73 01 c3 48 8d 0d 8a ad 20 00 31 d2 48 29 c2 89 11 48 83 c8 ff eb eb 90 90 90 90 90 90 90 90 90 b8 0b 00 00 00 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 8d 0d 5d ad 20 00 31 d2 48 29 c2 89
+[  310.921594][T12227] RSP: 002b:00007fff5b16d428 EFLAGS: 00000203 ORIG_RAX: 000000000000000b
+[  310.929997][T12227] RAX: ffffffffffffffda RBX: 00007f1f7d5761c8 RCX: 00007f1f7d36b417
+[  310.937958][T12227] RDX: 000000000010ca00 RSI: 00000000000033ef RDI: 00007f1f7d56e000
+[  310.946012][T12227] RBP: 00007fff5b16d590 R08: 0000000000000001 R09: 0000000000000007
+[  310.953974][T12227] R10: 00007f1f7d365a0b R11: 0000000000000203 R12: 00000000f0148fdd
+[  310.961934][T12227] R13: 000000a7f0148fdd R14: 000000a7f00574e2 R15: 00007f1f7d56b740
+[  310.971437][T12227] Kernel Offset: disabled
+[  310.975758][T12227] Rebooting in 86400 seconds..

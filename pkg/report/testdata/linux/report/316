@@ -1,0 +1,27 @@
+# TODO: the arm64 crash has different capitalization for "Call trace:",
+# so we don't recognize it as a stack trace.
+TITLE: kernel panic: corrupted stack end in corrupted
+CORRUPTED: Y
+
+[ 2231.649459] Kernel panic - not syncing: corrupted stack end detected inside scheduler
+[ 2231.657307] CPU: 185 PID: 11718 Comm: dbus-daemon Kdump: loaded Tainted: G        W         4.20.0-rc2+ #4
+[ 2231.676788] Call trace:
+[ 2231.679273]  dump_backtrace+0x0/0x2c8
+[ 2231.682950]  show_stack+0x24/0x30
+[ 2231.686273]  dump_stack+0x118/0x19c
+[ 2231.689765]  panic+0x1b8/0x31c
+[ 2231.692822]  schedule+0x0/0x240
+[ 2231.695963]  preempt_schedule_common+0x3c/0x78
+[ 2231.700406]  _cond_resched+0xfc/0x108
+[ 2231.704077]  kmem_cache_alloc+0x2e0/0x3f8
+[ 2231.708102]  selinux_inode_alloc_security+0xc4/0x1b0
+[ 2231.713080]  security_inode_alloc+0x44/0x70
+[ 2231.717267]  inode_init_always+0x270/0x4b8
+[ 2231.721364]  alloc_inode+0x50/0xd0
+[ 2231.724768]  new_inode_pseudo+0x84/0x120
+[ 2231.728691]  sock_alloc+0x30/0x108
+[ 2231.732093]  __sock_create+0x154/0x560
+[ 2231.735843]  __sys_socket+0xc8/0x178
+[ 2231.739429]  __arm64_sys_socket+0x4c/0x60
+[ 2231.743460]  el0_svc_handler+0xd4/0x198
+[ 2231.747295]  el0_svc+0x8/0xc

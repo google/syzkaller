@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# syz-env is a wrapper around gcr.io/syzkaller/env container,
+# which includes all tools necessary to develop/test syzkaller.
+# It's recommended to create an alias for this script:
+#
+#	alias syz-env="$(go env GOPATH)/src/github.com/google/syzkaller/tools/syz-env"
+#
+# Then it can be used to wrap almost any make invocation as:
+#
+#	syz-env make format
+#	syz-env make presubmit
+#	syz-env make extract SOURCEDIR=~/linux
+#
+# Or you may run the shell inside of the container with just syz-env.
+#
+# Note: this way everything runs inside of the container
+# and uses all tools bundled in the container rather than host tools.
+#
+# Note: syz-env assumes a sudo-less Docker is installed, see:
+# https://docs.docker.com/engine/install
+# https://docs.docker.com/engine/install/linux-postinstall
+# (Googlers see go/docker).
+
+COMMAND=""
+DOCKERARGS=()
+for ARG in "$@"; do
+	while IFS='=' read KEY VAL; do
+		# If we have a kernel path passed in, we mount it in the container
+		# at /syzkaller/kernel and fix up SOURCEDIR argument.
+		if [ "$KEY" == "SOURCEDIR" ]; then
+			DOCKERARGS+=" --volume $VAL:/syzkaller/kernel"
+			COMMAND+=" SOURCEDIR=/syzkaller/kernel"
+		else
+			COMMAND+=" $ARG"
+		fi
+	done <<< "$ARG"
+done
+if [ "$CI" == "" ]; then
+	# This gives interactive shell and allows to abort commands with Ctrl+C.
+	DOCKERARGS+=" -it"
+fi
+if [ "$COMMAND" == "" ]; then
+	COMMAND="bash"
+fi
+
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)"
+IMAGE="env"
+if [ "$(basename -- "$0")" == "syz-big-env" ]; then
+	IMAGE="big-env"
+elif [ "$(basename -- "$0")" == "syz-old-env" ]; then
+        IMAGE="old-env"
+fi
+
+# Run everything as the host user, this is important for created/modified files.
+docker run \
+	--rm \
+	--user $(id -u ${USER}):$(id -g ${USER}) \
+	--volume "$SCRIPT_DIR/..:/syzkaller/gopath/src/github.com/google/syzkaller" \
+	--volume "$HOME/.cache:/syzkaller/.cache" \
+	--volume "/var/run/docker.sock":"/var/run/docker.sock" \
+	--workdir /syzkaller/gopath/src/github.com/google/syzkaller \
+	--env HOME=/syzkaller \
+	--env GOPATH=/syzkaller/gopath:/gopath \
+	--env FUZZIT_API_KEY \
+	--env GITHUB_REF \
+	--env GITHUB_SHA \
+	--env GITHUB_PR_HEAD_SHA \
+	--env GITHUB_PR_BASE_SHA \
+	--env GITHUB_PR_COMMITS \
+	--env CI \
+	${DOCKERARGS[@]} \
+	gcr.io/syzkaller/${IMAGE} -c "$COMMAND"

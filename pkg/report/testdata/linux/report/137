@@ -1,0 +1,43 @@
+TITLE: BUG: using __this_cpu_read() in preemptible code in ipcomp_init_state
+
+[   45.718728] BUG: using __this_cpu_read() in preemptible [00000000] code: syz-executor6/6976
+[   45.727291] caller is __this_cpu_preempt_check+0x1c/0x20
+[   45.732732] CPU: 1 PID: 6976 Comm: syz-executor6 Not tainted 4.9.69-g3f1d77c #108
+[   45.740334] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   45.749670]  ffff8801ce54f6d8 ffffffff81d90a29 0000000000000001 ffffffff83c17800
+[   45.757680]  ffffffff83f42ec0 ffff8801c8f98000 0000000000000003 ffff8801ce54f718
+[   45.765691]  ffffffff81df79f4 ffff8801ce54f730 ffffffff83f42ec0 dffffc0000000000
+[   45.773790] Call Trace:
+[   45.776364]  [<ffffffff81d90a29>] dump_stack+0xc1/0x128
+[   45.793029] sg_write: data in/out 327644/32 bytes for SCSI command 0x4-- guessing data in;
+[   45.781730]  [<ffffffff81df79f4>] check_preemption_disabled+0x1d4/0x200
+[   45.793029]    program syz-executor0 not setting count and/or reply_len properly
+[   45.788474]  [<ffffffff81df7a5c>] __this_cpu_preempt_check+0x1c/0x20
+[   45.793029] sg_write: data in/out 327644/32 bytes for SCSI command 0x4-- guessing data in;
+[   45.793029]    program syz-executor0 not setting count and/or reply_len properly
+[   45.811687]  [<ffffffff833f4098>] ipcomp_init_state+0x188/0x930
+[   45.817731]  [<ffffffff81232151>] ? __lock_is_held+0xa1/0xf0
+[   45.823504]  [<ffffffff833604c0>] ipcomp4_init_state+0xb0/0x7d0
+[   45.829539]  [<ffffffff833d2797>] __xfrm_init_state+0x3e7/0xb30
+[   45.835578]  [<ffffffff833d2efa>] xfrm_init_state+0x1a/0x20
+[   45.841288]  [<ffffffff8356cc69>] pfkey_add+0x1fb9/0x3470
+[   45.846796]  [<ffffffff8356acb0>] ? pfkey_delete+0x360/0x360
+[   45.852564]  [<ffffffff83562020>] ? pfkey_seq_stop+0x80/0x80
+[   45.858330]  [<ffffffff82eea81a>] ? __skb_clone+0x24a/0x7d0
+[   45.864019]  [<ffffffff8356acb0>] ? pfkey_delete+0x360/0x360
+[   45.869795]  [<ffffffff8356470e>] pfkey_process+0x61e/0x730
+[   45.875484]  [<ffffffff835640f0>] ? pfkey_send_new_mapping+0x11b0/0x11b0
+[   45.882301]  [<ffffffff81238c4b>] ? trace_hardirqs_on_caller+0x38b/0x590
+[   45.889111]  [<ffffffff83565fb9>] pfkey_sendmsg+0x3a9/0x760
+[   45.894791]  [<ffffffff83565c10>] ? pfkey_spdget+0x820/0x820
+[   45.900561]  [<ffffffff82ecfb9a>] sock_sendmsg+0xca/0x110
+[   45.906069]  [<ffffffff82ed1791>] ___sys_sendmsg+0x6d1/0x7e0
+[   45.911839]  [<ffffffff82ed10c0>] ? copy_msghdr_from_user+0x550/0x550
+[   45.918828]  [<ffffffff81df785b>] ? check_preemption_disabled+0x3b/0x200
+[   45.925635]  [<ffffffff815cd641>] ? __fget+0x201/0x3a0
+[   45.930877]  [<ffffffff815cd668>] ? __fget+0x228/0x3a0
+[   45.936126]  [<ffffffff815cd487>] ? __fget+0x47/0x3a0
+[   45.941292]  [<ffffffff81df785b>] ? check_preemption_disabled+0x3b/0x200
+[   45.948107]  [<ffffffff815cd9a8>] ? __fget_light+0x188/0x1e0
+[   45.953872]  [<ffffffff815cda18>] ? __fdget+0x18/0x20
+[   45.959030]  [<ffffffff82ed37c6>] __sys_sendmsg+0xd6/0x190

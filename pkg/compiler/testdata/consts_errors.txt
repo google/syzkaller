@@ -1,0 +1,10 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <foo/bar.h>
+incdir </foo>
+include <foo/bar.h>			### duplicate include "foo/bar.h"
+incdir </foo>				### duplicate incdir "/foo"
+
+define D0	0
+define D0	1			### duplicate define D0

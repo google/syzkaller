@@ -1,0 +1,24 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_INET and AF_INET6: UDP-Lite support
+
+include <sys/types.h>
+include <sys/socket.h>
+include <netinet/in.h>
+include <netinet/udplite.h>
+
+resource sock_udplite[sock_in]
+
+socket$inet_udplite(domain const[AF_INET], type const[SOCK_DGRAM], proto const[IPPROTO_UDPLITE]) sock_udplite
+
+resource sock_udplite6[sock_in6]
+
+socket$inet6_udplite(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[IPPROTO_UDPLITE]) sock_udplite6
+
+udplite_option_types = UDPLITE_RECV_CSCOV, UDPLITE_SEND_CSCOV
+
+getsockopt$inet_udplite(fd sock_udplite, level const[IPPROTO_UDPLITE], optname flags[udplite_option_types], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet_udplite(fd sock_udplite, level const[IPPROTO_UDPLITE], optname flags[udplite_option_types], optval ptr[in, int32], optlen len[optval])
+getsockopt$inet6_udplite(fd sock_udplite6, level const[IPPROTO_UDPLITE], optname flags[udplite_option_types], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet6_udplite(fd sock_udplite6, level const[IPPROTO_UDPLITE], optname flags[udplite_option_types], optval ptr[in, int32], optlen len[optval])

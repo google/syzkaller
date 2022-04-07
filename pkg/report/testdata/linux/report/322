@@ -1,0 +1,48 @@
+TITLE: kernel panic: stack is corrupted in ip6_xmit
+
+[  122.900948] Kernel panic - not syncing: stack-protector: Kernel stack is corrupted in: ffffffff8343632e
+[  122.900948] 
+[  122.911966] CPU: 1 PID: 7987 Comm: syz-executor1 Not tainted 4.4.153-g5e24b4e #90
+[  122.919579] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  122.928927]  0000000000000000 4e89b9f42d2c5391 ffff8801d7e476e0 ffffffff81e162ed
+[  122.937002]  ffffffff83a44c60 00000000ffffffff ffff8801ca3dbe80 ffff8801d7e47a20
+[  122.945072]  0000000000000000 ffff8801d7e477a0 ffffffff8140d474 0000000041b58ab3
+[  122.953181] Call Trace:
+[  122.955761]  [<ffffffff81e162ed>] dump_stack+0xc1/0x124
+[  122.961127]  [<ffffffff8140d474>] panic+0x19e/0x38d
+[  122.966141]  [<ffffffff8140d2d6>] ? add_taint.cold.4+0x16/0x16
+[  122.972109]  [<ffffffff830cb730>] ? nf_iterate+0x210/0x210
+[  122.977740]  [<ffffffff8343632e>] ? ip6_xmit+0x18ae/0x1a00
+[  122.983367]  [<ffffffff8343632e>] ? ip6_xmit+0x18ae/0x1a00
+[  122.988991]  [<ffffffff81132bc2>] __stack_chk_fail+0x22/0x30
+[  122.994784]  [<ffffffff8343632e>] ip6_xmit+0x18ae/0x1a00
+[  123.000229]  [<ffffffff838cbe15>] ? _raw_spin_unlock_irqrestore+0x45/0x70
+[  123.007148]  [<ffffffff83434a80>] ? ip6_finish_output2+0x1ca0/0x1ca0
+[  123.013650]  [<ffffffff8122c7a2>] ? __lock_is_held+0xa2/0xf0
+[  123.019479]  [<ffffffff831f2581>] ? ipv4_dst_check+0x111/0x160
+[  123.025462]  [<ffffffff8342fde0>] ? ip6_append_data+0x2b0/0x2b0
+[  123.031521]  [<ffffffff834f63c5>] inet6_csk_xmit+0x245/0x490
+[  123.037335]  [<ffffffff834f627f>] ? inet6_csk_xmit+0xff/0x490
+[  123.043233]  [<ffffffff834f6180>] ? inet6_csk_update_pmtu+0x160/0x160
+[  123.049815]  [<ffffffff83564ab3>] ? udp6_set_csum+0xd3/0xa70
+[  123.055628]  [<ffffffff835a5a0c>] l2tp_xmit_skb+0xb9c/0xe80
+[  123.061351]  [<ffffffff835b1f60>] pppol2tp_sendmsg+0x4e0/0x7d0
+[  123.067330]  [<ffffffff81c7663f>] ? selinux_socket_sendmsg+0x3f/0x50
+[  123.073832]  [<ffffffff835b1a80>] ? pppol2tp_release+0x310/0x310
+[  123.079979]  [<ffffffff82f2757c>] sock_sendmsg+0xcc/0x110
+[  123.085521]  [<ffffffff82f277e3>] sock_write_iter+0x223/0x3b0
+[  123.091406]  [<ffffffff82f275c0>] ? sock_sendmsg+0x110/0x110
+[  123.097206]  [<ffffffff81e5172f>] ? iov_iter_init+0xaf/0x1d0
+[  123.103001]  [<ffffffff815228cd>] __vfs_write+0x30d/0x3f0
+[  123.108536]  [<ffffffff815225c0>] ? __vfs_read+0x3e0/0x3e0
+[  123.114162]  [<ffffffff81c6f122>] ? selinux_file_permission+0x2f2/0x450
+[  123.120917]  [<ffffffff81523dc0>] ? rw_verify_area+0x100/0x300
+[  123.127146]  [<ffffffff815244b1>] vfs_write+0x191/0x4e0
+[  123.132511]  [<ffffffff81526ab9>] SyS_write+0xd9/0x1c0
+[  123.137786]  [<ffffffff815269e0>] ? SyS_read+0x1c0/0x1c0
+[  123.143243]  [<ffffffff81003044>] ? lockdep_sys_exit_thunk+0x12/0x14
+[  123.149736]  [<ffffffff838cc865>] entry_SYSCALL_64_fastpath+0x22/0x9e
+[  123.156741] Dumping ftrace buffer:
+[  123.160329]    (ftrace buffer empty)
+[  123.164020] Kernel Offset: disabled
+[  123.167641] Rebooting in 86400 seconds..

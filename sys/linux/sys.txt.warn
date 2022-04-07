@@ -1,0 +1,141 @@
+no-such-struct: alignptr
+no-such-struct: align32
+no-such-struct: align64
+no-such-struct: padto32
+no-such-struct: padto64
+compiler: unsupported syscall: open due to missing const __NR_open [arm64]
+compiler: unsupported syscall: creat due to missing const __NR_creat [arm64]
+compiler: unsupported syscall: dup2 due to missing const __NR_dup2 [arm64]
+compiler: unsupported syscall: pipe due to missing const __NR_pipe [arm64]
+compiler: unsupported syscall: sendfile64 due to missing const __NR_sendfile64 [amd64,arm64]
+compiler: unsupported syscall: stat due to missing const __NR_stat [arm64]
+compiler: unsupported syscall: lstat due to missing const __NR_lstat [arm64]
+compiler: unsupported syscall: newfstatat due to missing const __NR_newfstatat [386,arm]
+compiler: unsupported syscall: stat64 due to missing const __NR_stat64 [amd64,arm64]
+compiler: unsupported syscall: lstat64 due to missing const __NR_lstat64 [amd64,arm64]
+compiler: unsupported syscall: fstat64 due to missing const __NR_fstat64 [amd64,arm64]
+compiler: unsupported syscall: fstatat64 due to missing const __NR_fstatat64 [amd64,arm64]
+compiler: unsupported syscall: poll due to missing const __NR_poll [arm64]
+compiler: unsupported syscall: select due to missing const __NR_select [arm,arm64]
+compiler: unsupported syscall: epoll_create due to missing const __NR_epoll_create [arm64]
+compiler: unsupported syscall: epoll_wait due to missing const __NR_epoll_wait [arm64]
+compiler: unsupported syscall: signalfd due to missing const __NR_signalfd [arm64]
+compiler: unsupported syscall: eventfd due to missing const __NR_eventfd [arm64]
+compiler: unsupported syscall: fadvise64 due to missing const __NR_fadvise64 [arm]
+compiler: unsupported syscall: memfd_secret due to missing const __NR_memfd_secret [arm]
+compiler: unsupported syscall: mknod due to missing const __NR_mknod [arm64]
+compiler: unsupported syscall: chmod due to missing const __NR_chmod [arm64]
+compiler: unsupported syscall: chown due to missing const __NR_chown [arm64]
+compiler: unsupported syscall: lchown due to missing const __NR_lchown [arm64]
+compiler: unsupported syscall: utime due to missing const __NR_utime [arm,arm64]
+compiler: unsupported syscall: utimes due to missing const __NR_utimes [arm64]
+compiler: unsupported syscall: futimesat due to missing const __NR_futimesat [arm64]
+compiler: unsupported syscall: fork due to missing const __NR_fork [arm64]
+compiler: unsupported syscall: getpgrp due to missing const __NR_getpgrp [arm64]
+compiler: unsupported syscall: link due to missing const __NR_link [arm64]
+compiler: unsupported syscall: symlink due to missing const __NR_symlink [arm64]
+compiler: unsupported syscall: unlink due to missing const __NR_unlink [arm64]
+compiler: unsupported syscall: readlink due to missing const __NR_readlink [arm64]
+compiler: unsupported syscall: rename due to missing const __NR_rename [arm64]
+compiler: unsupported syscall: mkdir due to missing const __NR_mkdir [arm64]
+compiler: unsupported syscall: rmdir due to missing const __NR_rmdir [arm64]
+compiler: unsupported syscall: sync_file_range due to missing const __NR_sync_file_range [arm]
+compiler: unsupported syscall: getdents due to missing const __NR_getdents [arm64]
+compiler: unsupported syscall: sysfs due to missing const __NR_sysfs [arm64]
+compiler: unsupported syscall: uselib due to missing const __NR_uselib [arm64]
+compiler: unsupported syscall: ustat due to missing const __NR_ustat [arm64]
+compiler: unsupported syscall: getrlimit due to missing const __NR_getrlimit [arm]
+compiler: unsupported syscall: iopl due to missing const __NR_iopl [arm,arm64]
+compiler: unsupported syscall: ioperm due to missing const __NR_ioperm [arm,arm64]
+compiler: unsupported syscall: time due to missing const __NR_time [arm,arm64]
+compiler: unsupported syscall: pause due to missing const __NR_pause [arm64]
+compiler: unsupported syscall: alarm due to missing const __NR_alarm [arm,arm64]
+compiler: unsupported syscall: set_thread_area due to missing const __NR_set_thread_area [arm,arm64]
+compiler: unsupported syscall: get_thread_area due to missing const __NR_get_thread_area [arm,arm64]
+compiler: unsupported syscall: modify_ldt due to missing const __NR_modify_ldt [arm,arm64]
+compiler: unsupported syscall: riscv_flush_icache due to missing const __NR_riscv_flush_icache
+no-such-struct: tcp_mem_values
+no-such-struct: pipefd
+bad-field-number: stat: syz=20 kernel=18 [386,amd64,arm]
+bad-struct-size: stat: syz=128 kernel=144 [amd64]
+bad-struct-size: stat: syz=80 kernel=64 [386,arm]
+bad-field-size: stat.st_mode/st_nlink: syz=4 kernel=8 [amd64]
+bad-field-size: stat.st_mode: syz=4 kernel=2 [386,arm]
+bad-field-offset: stat.st_nlink/st_mode: syz=20 kernel=24 [amd64]
+bad-field-offset: stat.st_nlink: syz=12 kernel=10 [386,arm]
+bad-field-size: stat.st_nlink: syz=4 kernel=2 [386,arm]
+bad-field-offset: stat.st_uid: syz=16 kernel=12 [386,arm]
+bad-field-offset: stat.st_uid: syz=24 kernel=28 [amd64]
+bad-field-size: stat.st_uid: syz=4 kernel=2 [386,arm]
+bad-field-offset: stat.st_gid: syz=20 kernel=14 [386,arm]
+bad-field-offset: stat.st_gid: syz=28 kernel=32 [amd64]
+bad-field-size: stat.st_gid: syz=4 kernel=2 [386,arm]
+bad-field-offset: stat.st_rdev/__pad0: syz=32 kernel=36 [amd64]
+bad-field-offset: stat.st_rdev: syz=24 kernel=16 [386,arm]
+bad-field-size: stat.st_rdev/__pad0: syz=8 kernel=4 [amd64]
+bad-field-offset: stat.__pad1/st_size: syz=28 kernel=20 [386,arm]
+bad-field-offset: stat.st_size/st_blksize: syz=32 kernel=24 [386,arm]
+bad-field-offset: stat.st_blksize/st_blocks: syz=36 kernel=28 [386,arm]
+bad-field-size: stat.st_blksize: syz=4 kernel=8 [amd64]
+bad-field-offset: stat.__pad2/st_atime: syz=40 kernel=32 [386,arm]
+bad-field-offset: stat.__pad2/st_blocks: syz=60 kernel=64 [amd64]
+bad-field-size: stat.__pad2/st_blocks: syz=4 kernel=8 [amd64]
+bad-field-offset: stat.st_blocks/st_atime: syz=64 kernel=72 [amd64]
+bad-field-offset: stat.st_blocks/st_atime_nsec: syz=44 kernel=36 [386,arm]
+bad-field-offset: stat.st_atime/st_atime_nsec: syz=72 kernel=80 [amd64]
+bad-field-offset: stat.st_atime/st_mtime: syz=48 kernel=40 [386,arm]
+bad-field-offset: stat.st_atime_nsec/st_mtime: syz=80 kernel=88 [amd64]
+bad-field-offset: stat.st_atime_nsec/st_mtime_nsec: syz=52 kernel=44 [386,arm]
+bad-field-offset: stat.st_mtime/st_ctime: syz=56 kernel=48 [386,arm]
+bad-field-offset: stat.st_mtime/st_mtime_nsec: syz=88 kernel=96 [amd64]
+bad-field-offset: stat.st_mtime_nsec/st_ctime: syz=96 kernel=104 [amd64]
+bad-field-offset: stat.st_mtime_nsec/st_ctime_nsec: syz=60 kernel=52 [386,arm]
+bad-field-offset: stat.st_ctime/__unused4: syz=64 kernel=56 [386,arm]
+bad-field-offset: stat.st_ctime/st_ctime_nsec: syz=104 kernel=112 [amd64]
+bad-field-offset: stat.st_ctime_nsec/__unused5: syz=68 kernel=60 [386,arm]
+bad-field-offset: stat.st_ctime_nsec/__unused: syz=112 kernel=120 [amd64]
+bad-field-size: stat.st_ctime_nsec/__unused: syz=8 kernel=24 [amd64]
+bad-field-number: statx: syz=21 kernel=23
+bad-field-size: statx.__spare2/stx_mnt_id: syz=112 kernel=8
+compiler: unsupported type: stat64 due to missing const STAT64_SIZE [amd64]
+no-such-struct: sigset_size
+no-such-struct: timespec
+no-such-struct: timeval
+no-such-struct: itimerspec
+no-such-struct: itimerval
+bad-field-size: sigevent.u/_sigev_un: syz=16 kernel=48 [amd64,arm64]
+bad-field-size: sigevent.u/_sigev_un: syz=8 kernel=52 [386,arm]
+no-such-struct: sigevent_u
+no-such-struct: sigevent_thread
+no-such-struct: cap_header
+no-such-struct: cap_data
+bad-struct-size: epoll_event: syz=12 kernel=16 [arm,arm64]
+bad-field-offset: epoll_event.data: syz=4 kernel=8 [arm,arm64]
+no-such-struct: fd_set
+no-such-struct: file_handle_t
+no-such-struct: fid_shmem
+no-such-struct: fid_fuse
+no-such-struct: fid_fuse_with_parent
+no-such-struct: fid_FILEID_INO32_GEN
+no-such-struct: fid_FILEID_INO32_GEN_PARENT
+no-such-struct: fid_FILEID_UDF_WITHOUT_PARENT
+no-such-struct: fid_FILEID_UDF_WITH_PARENT
+no-such-struct: fid_GFS2_SMALL_FH_SIZE
+no-such-struct: fid_GFS2_LARGE_FH_SIZE
+no-such-struct: fid_nfs
+no-such-struct: fid_reiserfs_2
+no-such-struct: fid_reiserfs_3
+no-such-struct: fid_reiserfs_4
+no-such-struct: fid_reiserfs_5
+no-such-struct: fid_reiserfs_6
+bad-struct-size: xfs_fid64: syz=28 kernel=24 [amd64,arm,arm64]
+bad-field-offset: xfs_fid64.parent_ino: syz=16 kernel=12 [amd64,arm,arm64]
+bad-field-offset: xfs_fid64.parent_gen: syz=24 kernel=20 [amd64,arm,arm64]
+no-such-struct: fid_orangefs
+no-such-struct: fid_orangefs_parent
+no-such-struct: fid_ocfs2
+no-such-struct: fid_ocfs2_parent
+bad-field-number: siginfo: syz=3 kernel=1
+bad-field-size: siginfo.signo/: syz=4 kernel=128
+no-such-struct: timex
+bad-field-number: user_desc: syz=10 kernel=9 [386]

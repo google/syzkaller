@@ -1,0 +1,88 @@
+no-such-struct: ieee80211_fixed_mac_addr
+no-such-struct: ieee80211_mac_addr
+no-such-struct: ieee80211_bssid
+bad-field-number: ieee80211_rate: syz=2 kernel=4
+bad-struct-size: ieee80211_rate: syz=1 kernel=12
+bad-bitfield: ieee80211_rate.label/flags: size/offset: syz=7/0 kernel=0/0
+bad-field-size: ieee80211_rate.label/flags: syz=1 kernel=4
+bad-bitfield: ieee80211_rate.mandatory/bitrate: size/offset: syz=1/7 kernel=0/0
+bad-field-offset: ieee80211_rate.mandatory/bitrate: syz=0 kernel=4
+bad-field-size: ieee80211_rate.mandatory/bitrate: syz=1 kernel=2
+no-such-struct: ieee80211_beacon_interval
+no-such-struct: ieee80211_assoc_id
+no-such-struct: ieee80211_frequency_mhz
+bad-field-number: ieee80211_mcs_info: syz=10 kernel=4
+bad-field-size: ieee80211_mcs_info.rx_bitmask_1/rx_mask: syz=8 kernel=10
+bad-bitfield: ieee80211_mcs_info.rx_bitmask_2/rx_highest: size/offset: syz=13/0 kernel=0/0
+bad-field-offset: ieee80211_mcs_info.rx_bitmask_2/rx_highest: syz=8 kernel=10
+bad-field-size: ieee80211_mcs_info.rx_bitmask_2/rx_highest: syz=8 kernel=2
+bad-bitfield: ieee80211_mcs_info.reserved/tx_params: size/offset: syz=3/5 kernel=0/0
+bad-field-offset: ieee80211_mcs_info.reserved/tx_params: syz=9 kernel=12
+bad-field-size: ieee80211_mcs_info.reserved/tx_params: syz=8 kernel=1
+bad-bitfield: ieee80211_mcs_info.rx_highest_dr/reserved: size/offset: syz=10/0 kernel=0/0
+bad-field-offset: ieee80211_mcs_info.rx_highest_dr/reserved: syz=10 kernel=13
+bad-field-size: ieee80211_mcs_info.rx_highest_dr/reserved: syz=8 kernel=3
+bad-field-number: ieee80211_ht_cap: syz=8 kernel=6
+bad-bitfield: ieee80211_ht_cap.a_mpdu_exponent/ampdu_params_info: size/offset: syz=2/0 kernel=0/0
+bad-bitfield: ieee80211_ht_cap.a_mpdu_min_spacing/mcs: size/offset: syz=3/2 kernel=0/0
+bad-field-offset: ieee80211_ht_cap.a_mpdu_min_spacing/mcs: syz=2 kernel=3
+bad-field-size: ieee80211_ht_cap.a_mpdu_min_spacing/mcs: syz=1 kernel=16
+bad-bitfield: ieee80211_ht_cap.a_mpdu_reserved/extended_ht_cap_info: size/offset: syz=3/5 kernel=0/0
+bad-field-offset: ieee80211_ht_cap.a_mpdu_reserved/extended_ht_cap_info: syz=2 kernel=19
+bad-field-size: ieee80211_ht_cap.a_mpdu_reserved/extended_ht_cap_info: syz=1 kernel=2
+bad-field-offset: ieee80211_ht_cap.mcs/tx_BF_cap_info: syz=3 kernel=21
+bad-field-size: ieee80211_ht_cap.mcs/tx_BF_cap_info: syz=16 kernel=4
+bad-field-offset: ieee80211_ht_cap.extended_ht_cap_info/antenna_selection_info: syz=19 kernel=25
+bad-field-size: ieee80211_ht_cap.extended_ht_cap_info/antenna_selection_info: syz=2 kernel=1
+no-such-struct: ieee80211_duration
+no-such-struct: ieee80211_seq_control
+no-such-struct: ieee80211_block_ack_ssc
+no-such-struct: ieee80211_qos_control
+no-such-struct: ieee80211_operating_mode
+no-such-struct: ieee80211_sm_power_control
+no-such-struct: ieee80211_ht_control_80211n
+no-such-struct: ieee80211_ht_control
+no-such-struct: ieee80211_append_ht_control
+no-such-struct: ieee80211_fc
+no-such-struct: ieee80211_control_fc
+no-such-struct: ieee80211_generic_ie
+no-such-struct: ieee80211_ie_cf_payload
+no-such-struct: ieee80211_ie_erp_payload
+no-such-struct: ieee80211_ie_channel_switch_annce_payload
+compiler: len target params refer to an array with variable-size elements (do you mean bytesize?)
+no-such-struct: ieee80211_ie_ext_channel_switch_annce_payload
+no-such-struct: ieee80211_ie_link_id_payload
+no-such-struct: ieee80211_ie_channel_switch_timing_payload
+no-such-struct: ieee80211_ie_mesh_config_payload
+no-such-struct: ieee80211_ie_mesh_channel_switch_payload
+no-such-struct: ieee80211_preq_flags
+no-such-struct: ieee80211_preq_target_flags
+no-such-struct: ieee80211_preq_target
+no-such-struct: ieee80211_ae_flags
+no-such-struct: ieee80211_ie_prep_payload_generic
+compiler: len target dest_list refer to an array with variable-size elements (do you mean bytesize?)
+no-such-struct: ieee80211_ie_perr_dest_generic
+no-such-struct: ieee80211_rann_flags
+no-such-struct: ieee80211_ie_rann_payload
+no-such-struct: ieee80211_data_gen_hdr
+no-such-struct: ieee80211_pre_mgmt_header
+no-such-struct: ieee80211_mgmt_action_raw
+no-such-struct: ieee80211_mgmt_action_addba_req
+no-such-struct: ieee80211_block_ack_param_set
+no-such-struct: ieee80211_mgmt_action_addba_resp
+no-such-struct: ieee80211_mgmt_action_delba
+no-such-struct: ieee80211_delba_param_set
+no-such-struct: ieee80211_mgmt_action_tdls_cfm
+no-such-struct: ieee80211_mgmt_action_tdls_chsw_resp
+no-such-struct: ieee80211_mgmt_action_tdls_disc_req
+no-such-struct: ieee80211_mgmt_action_group_id
+no-such-struct: ieee80211_ctrl_rts
+no-such-struct: ieee80211_ctrl_cts
+no-such-struct: ieee80211_ctrl_ack
+no-such-struct: ieee80211_ctrl_cf_end
+no-such-struct: ieee80211_ctrl_cf_end_cf_ack
+no-such-struct: ieee80211_ctrl_pspoll
+no-such-struct: ieee80211_ctrl_bar_control
+no-such-struct: ieee80211_ctrl_bar_info
+no-such-struct: ieee80211_ctrl_bar_simple_req
+no-such-struct: ieee80211_ctrl_ba_single

@@ -1,0 +1,92 @@
+TITLE: KFENCE: use-after-free in find_uprobe
+ALT: bad-access in find_uprobe
+
+[  221.211609][ T9991] ==================================================================
+[  221.219706][ T9991] BUG: KFENCE: use-after-free read in memcmp+0x57/0x150
+[  221.219706][ T9991] 
+[  221.229282][ T9991] Use-after-free read at 0xffff88823bc8cf68 (in kfence-#69):
+[  221.236645][ T9991]  memcpy+0x57/0x150
+[  221.236645][ T9991]  find_uprobe+0x57/0x150
+[  221.236676][ T9991]  uprobe_apply+0x26/0x130
+[  221.236701][ T9991]  uprobe_perf_close+0x41e/0x6f0
+[  221.236726][ T9991]  trace_uprobe_register+0x3e7/0x880
+[  221.236750][ T9991]  perf_uprobe_destroy+0x98/0x130
+[  221.236772][ T9991]  _free_event+0x2ee/0x1380
+[  221.271061][ T9991]  perf_event_release_kernel+0xa24/0xe00
+[  221.276812][ T9991]  perf_release+0x33/0x40
+[  221.281146][ T9991]  __fput+0x283/0x920
+[  221.285136][ T9991]  task_work_run+0xdd/0x190
+[  221.289648][ T9991]  exit_to_user_mode_prepare+0x249/0x250
+[  221.295289][ T9991]  syscall_exit_to_user_mode+0x19/0x50
+[  221.300765][ T9991]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[  221.306667][ T9991] 
+[  221.308981][ T9991] kfence-#69 [0xffff88823bc8ce00-0xffff88823bc8cfa7, size=424, cache=kmalloc-512] allocated by task 9997:
+[  221.320273][ T9991]  __uprobe_register+0x19c/0x850
+[  221.325219][ T9991]  probe_event_enable+0x357/0xa00
+[  221.330249][ T9991]  trace_uprobe_register+0x443/0x880
+[  221.335544][ T9991]  perf_trace_event_init+0x549/0xa20
+[  221.340833][ T9991]  perf_uprobe_init+0x16f/0x210
+[  221.345687][ T9991]  perf_uprobe_event_init+0xff/0x1c0
+[  221.351154][ T9991]  perf_try_init_event+0x12a/0x560
+[  221.356278][ T9991]  perf_event_alloc.part.0+0xe3b/0x3960
+[  221.361830][ T9991]  __do_sys_perf_event_open+0x647/0x2e60
+[  221.367488][ T9991]  do_syscall_64+0x2d/0x70
+[  221.371915][ T9991]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[  221.377815][ T9991] 
+[  221.377815][ T9991] freed by task 9997:
+[  221.383987][ T9991]  put_uprobe+0x13b/0x190
+[  221.388320][ T9991]  uprobe_apply+0xfc/0x130
+[  221.392745][ T9991]  trace_uprobe_register+0x5c9/0x880
+[  221.398040][ T9991]  perf_trace_event_init+0x17a/0xa20
+[  221.403332][ T9991]  perf_uprobe_init+0x16f/0x210
+[  221.408186][ T9991]  perf_uprobe_event_init+0xff/0x1c0
+[  221.413482][ T9991]  perf_try_init_event+0x12a/0x560
+[  221.418594][ T9991]  perf_event_alloc.part.0+0xe3b/0x3960
+[  221.424147][ T9991]  __do_sys_perf_event_open+0x647/0x2e60
+[  221.429786][ T9991]  do_syscall_64+0x2d/0x70
+[  221.434212][ T9991]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[  221.440115][ T9991] 
+[  221.442441][ T9991] CPU: 1 PID: 9991 Comm: syz-executor.4 Not tainted 5.11.0-rc6-next-20210201-syzkaller #0
+[  221.452339][ T9991] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  221.462394][ T9991] RIP: 0010:find_uprobe+0x57/0x150
+[  221.467522][ T9991] Code: 00 00 48 bd 00 00 00 00 00 fc ff df e8 c2 3d df ff 49 8d bc 24 68 01 00 00 48 89 f8 48 c1 e8 03 80 3c 28 00 0f 85 d0 00 00 00 <49> 8b 9c 24 68 01 00 00 49 39 dd 72 76 e8 97 3d df ff 49 39 dd 0f
+[  221.487136][ T9991] RSP: 0018:ffffc900022dfbf0 EFLAGS: 00010246
+[  221.493198][ T9991] RAX: 1ffff110477919ed RBX: ffff888012f58d70 RCX: 0000000000000000
+[  221.501190][ T9991] RDX: ffff88801e21d400 RSI: ffffffff819396ee RDI: ffff88823bc8cf68
+[  221.509163][ T9991] RBP: dffffc0000000000 R08: 0000000000000001 R09: 0000000000000003
+[  221.517337][ T9991] R10: fffff5200045bf70 R11: 0000000000000001 R12: ffff88823bc8ce00
+[  221.525312][ T9991] R13: ffff88806e946738 R14: 0000000000000000 R15: ffffed10025eb1b0
+[  221.533292][ T9991] FS:  0000000002787400(0000) GS:ffff8880b9f00000(0000) knlGS:0000000000000000
+[  221.542233][ T9991] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  221.548825][ T9991] CR2: ffff88823bc8cf68 CR3: 00000000255bc000 CR4: 00000000001506e0
+[  221.556801][ T9991] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  221.564769][ T9991] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  221.572830][ T9991] Call Trace:
+[  221.576109][ T9991]  uprobe_apply+0x26/0x130
+[  221.580545][ T9991]  uprobe_perf_close+0x41e/0x6f0
+[  221.585518][ T9991]  trace_uprobe_register+0x3e7/0x880
+[  221.590815][ T9991]  ? rcu_read_lock_sched_held+0x3a/0x70
+[  221.596367][ T9991]  ? kfree+0x69a/0x7b0
+[  221.600449][ T9991]  perf_uprobe_destroy+0x98/0x130
+[  221.605485][ T9991]  ? perf_uprobe_init+0x210/0x210
+[  221.610518][ T9991]  _free_event+0x2ee/0x1380
+[  221.615032][ T9991]  perf_event_release_kernel+0xa24/0xe00
+[  221.620691][ T9991]  ? fsnotify_first_mark+0x1f0/0x1f0
+[  221.625989][ T9991]  ? __perf_event_exit_context+0x170/0x170
+[  221.631814][ T9991]  ? __sanitizer_cov_trace_const_cmp2+0x22/0x80
+[  221.638068][ T9991]  perf_release+0x33/0x40
+[  221.642406][ T9991]  __fput+0x283/0x920
+[  221.646397][ T9991]  ? perf_event_release_kernel+0xe00/0xe00
+[  221.652216][ T9991]  task_work_run+0xdd/0x190
+[  221.656732][ T9991]  exit_to_user_mode_prepare+0x249/0x250
+[  221.662377][ T9991]  syscall_exit_to_user_mode+0x19/0x50
+[  221.667856][ T9991]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[  221.673760][ T9991] RIP: 0033:0x418e1b
+[  221.677655][ T9991] Code: 0f 05 48 3d 00 f0 ff ff 77 45 c3 0f 1f 40 00 48 83 ec 18 89 7c 24 0c e8 63 fc ff ff 8b 7c 24 0c 41 89 c0 b8 03 00 00 00 0f 05 <48> 3d 00 f0 ff ff 77 35 44 89 c7 89 44 24 0c e8 a1 fc ff ff 8b 44
+[  221.697266][ T9991] RSP: 002b:00007ffd31e83ed0 EFLAGS: 00000293 ORIG_RAX: 0000000000000003
+[  221.705689][ T9991] RAX: 0000000000000000 RBX: 0000000000000007 RCX: 0000000000418e1b
+[  221.713665][ T9991] RDX: 0000000000000000 RSI: 0000000000574938 RDI: 0000000000000006
+[  221.721639][ T9991] RBP: 0000000000000001 R08: 0000000000000000 R09: 0000001b317278a8
+[  221.729614][ T9991] R10: 00007ffd31e83fc0 R11: 0000000000000293 R12: 00000000000003e8
+[  221.737588][ T9991] R13: 0000000000035f54 R14: 000000000056bf60 R15: 000000000056bf60
+[  221.745571][ T9991] ==================================================================

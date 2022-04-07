@@ -1,0 +1,3 @@
+TITLE: UBSan: Undefined behavior
+
+[     1.000003] UBSan: Undefined Behavior in /media/k4iz3n/event1/kWork/src/sys/dev/acpi/acpica/OsdHardware.c:265:17, left shift of 255 by 24 places cannot be represented in type 'int'

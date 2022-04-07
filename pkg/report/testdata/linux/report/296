@@ -1,0 +1,38 @@
+TITLE: BUG: soft lockup in mount
+ALT: stall in mount
+TYPE: HANG
+
+[  848.443720] NMI watchdog: BUG: soft lockup - CPU#1 stuck for 123s! [syz-executor694:3996]
+[  848.452125] Modules linked in:
+[  848.455412] irq event stamp: 933704
+[  848.459142] hardirqs last  enabled at (933703): [<ffffffff839f9669>] restore_regs_and_iret+0x0/0x1d
+[  848.468415] hardirqs last disabled at (933704): [<ffffffff839fa62b>] apic_timer_interrupt+0x9b/0xb0
+[  848.477698] softirqs last  enabled at (921172): [<ffffffff839ffb1c>] __do_softirq+0x46c/0x937
+[  848.486386] softirqs last disabled at (921163): [<ffffffff8114b237>] irq_exit+0x147/0x190
+[  848.496037] CPU: 1 PID: 3996 Comm: syz-executor694 Not tainted 4.9.111-g03c70fe #10
+[  848.503812] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  848.513416] task: ffff8801d8ac3000 task.stack: ffff8801b70a0000
+[  848.519454] RIP: 0010:[<ffffffff8160fc09>]  [<ffffffff8160fc09>] change_mnt_propagation+0xa9/0xbd0
+[  848.528820] RSP: 0018:ffff8801b70a7af0  EFLAGS: 00000246
+[  848.534258] RAX: ffff8801d8ac3000 RBX: ffff8801cda6e400 RCX: ffff8801cda6e468
+[  848.541526] RDX: 1ffff1003723a2c4 RSI: ffffffff8160fbe8 RDI: ffff8801b91d1620
+[  848.548806] RBP: ffff8801b70a7b50 R08: ffff8801cda6e468 R09: 0000000000000001
+[  848.556086] R10: 0000000000000000 R11: 1ffff1003b15872c R12: dffffc0000000000
+[  848.563348] R13: ffff8801b91d1600 R14: ffff8801d9c47340 R15: ffffed0039b4dc84
+[  848.570605] FS:  0000000000000000(0000) GS:ffff8801db300000(0063) knlGS:00000000f7667b40
+[  848.578828] CS:  0010 DS: 002b ES: 002b CR0: 0000000080050033
+[  848.584692] CR2: 00000000f76cadb0 CR3: 00000001ca4fa000 CR4: 00000000001606f0
+[  848.592068] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  848.599318] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  848.606567] Stack:
+[  848.608707]  ffff8801b70a7b20 ffffffff815db8af 0000000000000000 ffff8801cda6e4f0
+[  848.616764]  ffff8801cda6e420 ffff8801cda6e4e0 00040000b70a7b50 ffff8801cda6e490
+[  848.624800]  dffffc0000000000 ffff8801cda6e400 ffff8801d9c469a0 ffff8801b70a7bf0
+[  848.632818] Call Trace:
+[  848.641493]  [<ffffffff815dbfd6>] umount_tree+0x326/0x820
+[  848.652638]  [<ffffffff815e41e0>] attach_recursive_mnt+0x750/0x8f0
+[  848.675872]  [<ffffffff815e44ef>] graft_tree+0x16f/0x1f0
+[  848.681308]  [<ffffffff815e6eaf>] do_mount+0x1f5f/0x2740
+[  848.724324]  [<ffffffff8168c3ec>] compat_SyS_mount+0x4fc/0xff0
+[  848.743149]  [<ffffffff81006da7>] do_fast_syscall_32+0x2f7/0x870
+[  848.755940]  [<ffffffff839fa3d0>] entry_SYSENTER_compat+0x90/0xa2

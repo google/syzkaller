@@ -1,0 +1,75 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/asm/ioctl.h>
+include <uapi/linux/fcntl.h>
+include <uapi/linux/time.h>
+include <uapi/sound/asound.h>
+include <uapi/sound/firewire.h>
+
+resource fd_snd_hw[fd]
+
+syz_open_dev$sndhw(dev ptr[in, string["/dev/snd/hwC#D#"]], id intptr, flags flags[open_flags]) fd_snd_hw
+read$sndhw(fd fd_snd_hw, buffer ptr[out, array[int8]], count bytesize[buffer])
+write$sndhw(fd fd_snd_hw, buffer ptr[in, array[int8]], count bytesize[buffer])
+
+# This syscall requires actual firewire hardware.
+write$sndhw_fireworks(fd fd_snd_hw, buffer ptr[in, snd_efw_transaction], count bytesize[buffer])
+
+ioctl$SNDRV_HWDEP_IOCTL_PVERSION(fd fd_snd_hw, cmd const[SNDRV_HWDEP_IOCTL_PVERSION], arg ptr[out, int32])
+ioctl$SNDRV_HWDEP_IOCTL_INFO(fd fd_snd_hw, cmd const[SNDRV_HWDEP_IOCTL_INFO], arg ptr[out, snd_hwdep_info])
+ioctl$SNDRV_HWDEP_IOCTL_DSP_STATUS(fd fd_snd_hw, cmd const[SNDRV_HWDEP_IOCTL_DSP_STATUS], arg ptr[out, snd_hwdep_dsp_status])
+ioctl$SNDRV_HWDEP_IOCTL_DSP_LOAD(fd fd_snd_hw, cmd const[SNDRV_HWDEP_IOCTL_DSP_LOAD], arg ptr[in, snd_hwdep_dsp_image])
+
+# These ioctls require actual firewire hardware.
+ioctl$SNDRV_FIREWIRE_IOCTL_GET_INFO(fd fd_snd_hw, cmd const[SNDRV_FIREWIRE_IOCTL_GET_INFO], arg ptr[out, snd_firewire_get_info])
+ioctl$SNDRV_FIREWIRE_IOCTL_LOCK(fd fd_snd_hw, cmd const[SNDRV_FIREWIRE_IOCTL_LOCK])
+ioctl$SNDRV_FIREWIRE_IOCTL_UNLOCK(fd fd_snd_hw, cmd const[SNDRV_FIREWIRE_IOCTL_UNLOCK])
+ioctl$SNDRV_FIREWIRE_IOCTL_TASCAM_STATE(fd fd_snd_hw, cmd const[SNDRV_FIREWIRE_IOCTL_TASCAM_STATE], arg ptr[out, snd_firewire_tascam_state])
+
+snd_hwdep_info {
+	device		int32
+	card		int32
+	id		array[int8, 64]
+	name		array[int8, 80]
+	iface		int32[SNDRV_HWDEP_IFACE_OPL2:SNDRV_HWDEP_IFACE_LAST]
+	reserved	array[int8, 64]
+}
+
+snd_hwdep_dsp_status {
+	version		int32
+	id		array[int8, 32]
+	num_dsps	int32
+	dsp_loaded	int32
+	chip_ready	int32
+	reserved	array[int8, 16]
+}
+
+snd_hwdep_dsp_image {
+	index		int32[0:31]
+	name		array[int8, 64]
+	image		ptr[in, array[int8]]
+	length		bytesize[image, intptr]
+	driver_data	intptr
+}
+
+snd_firewire_get_info {
+	type		int32[SNDRV_FIREWIRE_TYPE_DICE:SNDRV_FIREWIRE_TYPE_FIREFACE]
+	index		int32
+	quid		array[int32be, 2]
+	device_name	array[int8, 16]
+}
+
+snd_firewire_tascam_state {
+	data	array[int32be, SNDRV_FIREWIRE_TASCAM_STATE_COUNT]
+}
+
+snd_efw_transaction {
+	length		int32be
+	version		int32be
+	seqnum		int32be[0:SND_EFW_TRANSACTION_USER_SEQNUM_MAX]
+	category	int32be
+	command		int32be
+	status		int32be
+	params		array[int32be]
+}

@@ -1,0 +1,12 @@
+TITLE: memory leak in ext4_mb_init
+TYPE: LEAK
+
+2018/01/09 14:28:48 BUG: memory leak
+unreferenced object 0xffff880133c63800 (size 1024):
+  comm "exe", pid 1521, jiffies 4294894652
+  backtrace:
+    [<ffffffff810f8f36>] create_object+0x126/0x2b0
+    [<ffffffff810f91d5>] kmemleak_alloc+0x25/0x60
+    [<ffffffff810f32a3>] __kmalloc+0x113/0x200
+    [<ffffffff811aa061>] ext4_mb_init+0x1b1/0x570
+    [<ffffffff8119b3d2>] ext4_fill_super+0x1de2/0x26d0

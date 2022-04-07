@@ -1,0 +1,54 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+shell:
+ - make vexpress_defconfig
+ - make kvm_guest.config
+
+config:
+ # We reduce number of vivid/netrom/rose/hcd devices to 2 because we use at most 2 procs
+ # with emulation and creating these devices takes time during boot.
+ - CMDLINE: [append, "root=/dev/vda console=ttyAMA0 vmalloc=512M watchdog_thresh=165 workqueue.watchdog_thresh=420 sysctl.net.core.netdev_unregister_timeout_secs=420 dummy_hcd.num=2"]
+ - CMDLINE_EXTEND
+ # See the comment in x86_64.yml re these numbers.
+ - RCU_CPU_STALL_TIMEOUT: 300
+ - DEFAULT_HUNG_TASK_TIMEOUT: 420
+
+ # If we enable KASAN, we may want the following configs as well.
+ # KASAN_INLINE leads to a too large kernel image which is mishandled by qemu or kernel and does not boot:
+ # https://lore.kernel.org/linux-arm-kernel/20210119130010.GA2338@C02TD0UTHF1T.local/T/#m78fdfcc41ae831f91c93ad5dabe63f7ccfb482f0
+ # - KASAN_OUTLINE
+ # - CC_OPTIMIZE_FOR_SIZE
+
+ # ARM_LPAE=y/n are two major and very different MMUs used on ARM32 systems.
+ # Currently we only test ARM_LPAE=y, but if we have another instance, it would be useful to use ARM_LPAE=n.
+ - ARM_LPAE
+
+ # The other one (UNWINDER_ARM) leads to unparsable oopses (no indication of stack start).
+ - UNWINDER_FRAME_POINTER
+ # Print PCs in stack traces otherwise we fail to parse oopses.
+ - BACKTRACE_VERBOSE
+
+ # Presumably this gives more interesting coverage.
+ - HIGHMEM
+ - HIGHPTE
+ - DEBUG_HIGHMEM
+ - BOUNCE
+ - BIG_LITTLE
+ - BL_SWITCHER
+ - ARM_BIG_LITTLE_CPUIDLE
+ - VFP
+ - NEON
+ - KERNEL_MODE_NEON
+ - VMSPLIT_2G
+ - WQ_POWER_EFFICIENT_DEFAULT
+ - ENERGY_MODEL: [-baseline, -onlyusb]
+ - PARAVIRT_TIME_ACCOUNTING
+ - ARM_VEXPRESS_SPC_CPUFREQ: [-baseline, -onlyusb]
+ - BINFMT_ELF_FDPIC
+ - BINFMT_FLAT
+ - BINFMT_FLAT_OLD
+ - BINFMT_ZFLAT
+ - BINFMT_SHARED_FLAT
+ - CAN_KVASER_PCIEFD: [-baseline, -onlyusb]
+ - CRC_T10DIF

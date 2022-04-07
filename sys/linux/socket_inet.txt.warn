@@ -1,0 +1,10 @@
+bad-field-number: sockaddr_in: syz=3 kernel=4
+no-such-struct: sockaddr_storage_in
+bad-field-size: ip_msfilter.imsf_multiaddr/: syz=4 kernel=20
+no-such-struct: group_req_in
+no-such-struct: group_source_req_in
+no-such-struct: rtentry_in
+no-such-struct: sockaddr_ethernet
+no-such-struct: arpreq_in
+no-such-struct: msghdr_inet
+no-such-struct: mmsghdr_inet

@@ -1,0 +1,63 @@
+TITLE: KASAN: stack-out-of-bounds Read in do_ip_vs_set_ctl
+ALT: bad-access in do_ip_vs_set_ctl
+
+[   29.725847] ==================================================================
+[   29.733228] BUG: KASAN: stack-out-of-bounds in strnlen+0xc1/0xd0
+[   29.739348] Read of size 1 at addr ffff8801d0877d04 by task syzkaller968690/3469
+[   29.746852] 
+[   29.748450] CPU: 0 PID: 3469 Comm: syzkaller968690 Not tainted 4.4.107-g610c835 #12
+[   29.756215] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   29.765533]  0000000000000000 32c3afb9a0a8afa3 ffff8801d0877758 ffffffff81d0457d
+[   29.773491]  ffffea0007421dc0 ffff8801d0877d04 0000000000000000 ffff8801d0877d04
+[   29.781439]  ffffffff856b29c0 ffff8801d0877790 ffffffff814fbb23 ffff8801d0877d04
+[   29.789383] Call Trace:
+[   29.791936]  [<ffffffff81d0457d>] dump_stack+0xc1/0x124
+[   29.797264]  [<ffffffff814fbb23>] print_address_description+0x73/0x260
+[   29.803894]  [<ffffffff814fc035>] kasan_report+0x285/0x370
+[   29.809501]  [<ffffffff81d1ff51>] ? strnlen+0xc1/0xd0
+[   29.814660]  [<ffffffff814fc134>] __asan_report_load1_noabort+0x14/0x20
+[   29.821378]  [<ffffffff81d1ff51>] strnlen+0xc1/0xd0
+[   29.826357]  [<ffffffff81d27bdc>] string.isra.4+0x4c/0x240
+[   29.831946]  [<ffffffff81d232c8>] ? format_decode+0x118/0xa50
+[   29.837796]  [<ffffffff81d2d086>] vsnprintf+0x766/0x15f0
+[   29.843211]  [<ffffffff81d2c920>] ? pointer.isra.22+0xa00/0xa00
+[   29.849234]  [<ffffffff81d2df3d>] vscnprintf+0x2d/0x60
+[   29.854483]  [<ffffffff81266f8b>] vprintk_emit+0xdb/0x850
+[   29.859985]  [<ffffffff8123364f>] ? mark_held_locks+0xaf/0x100
+[   29.865919]  [<ffffffff81267728>] vprintk+0x28/0x30
+[   29.870900]  [<ffffffff8126774d>] vprintk_default+0x1d/0x30
+[   29.876574]  [<ffffffff8141839d>] printk+0xb7/0xe2
+[   29.881471]  [<ffffffff814182e6>] ? pm_qos_get_value.part.4+0xb/0xb
+[   29.887842]  [<ffffffff8376a7e0>] ? __ww_mutex_lock+0x14f0/0x14f0
+[   29.894042]  [<ffffffff830982e7>] do_ip_vs_set_ctl+0x9b7/0xba0
+[   29.899979]  [<ffffffff83097930>] ? ip_vs_genl_set_cmd+0x9a0/0x9a0
+[   29.906261]  [<ffffffff8122cf91>] ? __lock_is_held+0xa1/0xf0
+[   29.912026]  [<ffffffff8123364f>] ? mark_held_locks+0xaf/0x100
+[   29.917969]  [<ffffffff8376adb4>] ? mutex_lock_nested+0x5d4/0x850
+[   29.924167]  [<ffffffff81233a2b>] ? trace_hardirqs_on_caller+0x38b/0x590
+[   29.930981]  [<ffffffff8376e359>] ? mutex_unlock+0x9/0x10
+[   29.936498]  [<ffffffff82f97007>] ? nf_sockopt_find.constprop.0+0x1a7/0x220
+[   29.943560]  [<ffffffff82f971a7>] nf_setsockopt+0x67/0xc0
+[   29.949061]  [<ffffffff830fe561>] ip_setsockopt+0xa1/0xb0
+[   29.954565]  [<ffffffff831a4395>] udp_setsockopt+0x45/0x80
+[   29.960164]  [<ffffffff82df2b55>] sock_common_setsockopt+0x95/0xd0
+[   29.966447]  [<ffffffff82defc20>] SyS_setsockopt+0x160/0x250
+[   29.972213]  [<ffffffff8148979e>] ? vmacache_update+0xfe/0x130
+[   29.978148]  [<ffffffff82defac0>] ? SyS_recv+0x40/0x40
+[   29.983401]  [<ffffffff83774884>] ? retint_user+0x18/0x20
+[   29.988906]  [<ffffffff81003017>] ? trace_hardirqs_on_thunk+0x17/0x19
+[   29.995456]  [<ffffffff83773d36>] entry_SYSCALL_64_fastpath+0x16/0x76
+[   30.002009] 
+[   30.003601] The buggy address belongs to the page:
+[   30.008501] page:ffffea0007421dc0 count:0 mapcount:0 mapping:          (null) index:0x0
+[   30.016606] flags: 0x8000000000000000()
+[   30.020657] page dumped because: kasan: bad access detected
+[   30.026328] 
+[   30.027920] Memory state around the buggy address:
+[   30.032815]  ffff8801d0877c00: 00 00 00 00 00 04 f2 f2 f2 f2 f2 f2 00 00 00 00
+[   30.040141]  ffff8801d0877c80: 00 00 00 00 f2 f2 f2 f2 00 00 00 00 00 00 00 00
+[   30.047473] >ffff8801d0877d00: 04 f2 f2 f2 00 00 00 00 00 00 00 00 00 00 00 00
+[   30.054794]                    ^
+[   30.058125]  ffff8801d0877d80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[   30.065461]  ffff8801d0877e00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[   30.072794] ==================================================================

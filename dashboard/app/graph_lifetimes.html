@@ -1,0 +1,66 @@
+{{/*
+Copyright 2020 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+Bug lifetimes graph.
+*/}}
+
+<!doctype html>
+<html>
+<head>
+	<title>{{.Header.Namespace}} bug lifetimes</title>
+	{{template "head" .Header}}
+
+	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+	<script type="text/javascript">
+		google.load("visualization", "1", {packages:["corechart"]});
+		google.setOnLoadCallback(drawCharts);
+		function drawCharts() {
+			var data = new google.visualization.DataTable();
+			data.addColumn('datetime', '-');
+			data.addColumn('number', 'fixed');
+			data.addColumn('number', 'fixed (>year)');
+			data.addColumn('number', 'not fixed');
+			data.addColumn('number', 'introduced');
+			data.addColumn('number', 'introduced (>year)');
+			data.addRows([
+				{{range $.Lifetimes}}
+					[new Date("{{formatJSTime .Reported}}"),
+						{{- if .Fixed}}{{.Fixed}}{{else}}null{{end}},
+						{{- if .Fixed1y}}{{.Fixed1y}}{{else}}null{{end}},
+						{{- if .NotFixed}}{{.NotFixed}}{{else}}null{{end}},
+						{{- if .Introduced}}{{.Introduced}}{{else}}null{{end}},
+						{{- if .Introduced1y}}{{.Introduced1y}}{{else}}null{{end}}],
+				{{- end}}
+			]);
+			new google.visualization.ScatterChart(document.getElementById('graph_div')).
+				draw(data, {
+					width: "100%",
+					pointSize: 2,
+					chartArea: {width: '90%', height: '85%'},
+					legend: {position: 'top'},
+					axisTitlesPosition: 'out',
+					hAxis: {out: 'textPosition', title: 'bug reported on'},
+					vAxis: {textPosition: 'out', title: '# days'},
+					explorer: {
+						axis: 'horizontal',
+						actions: ['dragToZoom', 'rightClickToReset'],
+						keepInBounds: true,
+						maxZoomIn: 0.1,
+					},
+					series: [
+						{color: "#26ba1c"},
+						{color: "#15870e"},
+						{color: "#ff0000"},
+						{color: "#f060c7"},
+						{color: "#ff0000"},
+					],
+				})
+		}
+	</script>
+</head>
+<body>
+	{{template "header" .Header}}
+	<div id="graph_div"></div>
+</body>
+</html>

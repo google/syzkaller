@@ -1,0 +1,88 @@
+TITLE: WARNING: ODEBUG bug in netdev_freemem
+
+[  775.101040][  T126] ------------[ cut here ]------------
+[  775.104725][  T126] ODEBUG: free active (active state 0) object type: timer_list hint: delayed_work_timer_fn+0x0/0x90
+[  775.112723][  T126] WARNING: CPU: 0 PID: 126 at lib/debugobjects.c:505 debug_print_object+0x188/0x268
+[  775.114654][  T126] Modules linked in:
+[  775.116483][  T126] CPU: 0 PID: 126 Comm: kworker/u8:3 Not tainted 5.9.0-12994-gf9893351acae #15
+[  775.117494][  T126] Hardware name: linux,dummy-virt (DT)
+[  775.124422][  T126] Workqueue: netns cleanup_net
+[  775.126620][  T126] pstate: 80000005 (Nzcv daif -PAN -UAO -TCO BTYPE=--)
+[  775.127924][  T126] pc : debug_print_object+0x188/0x268
+[  775.129340][  T126] lr : debug_print_object+0x188/0x268
+[  775.130352][  T126] sp : ffff000040ddf5b0
+[  775.131234][  T126] x29: ffff000040ddf5b0 x28: ffff0000403d97e0 
+[  775.132846][  T126] x27: ffffa000177229c0 x26: dfffa00000000000 
+[  775.134179][  T126] x25: ffffa00010362e48 x24: ffffa00017bfdb40 
+[  775.135492][  T126] x23: ffffa000177229c0 x22: 0000000000000003 
+[  775.136916][  T126] x21: ffffa00017bfd340 x20: ffffa00019590218 
+[  775.138465][  T126] x19: ffff0000403d97e0 x18: ffff00006a1ce448 
+[  775.140281][  T126] x17: 0000000000000000 x16: 0000000000000000 
+[  775.142963][  T126] x15: 0000000000000001 x14: ffff000040dd0000 
+[  775.144556][  T126] x13: 0000000000000001 x12: ffff80000d439ca4 
+[  775.147130][  T126] x11: 1fffe0000d439ca3 x10: ffff80000d439ca3 
+[  775.149382][  T126] x9 : dfffa00000000000 x8 : ffff00006a1ce51b 
+[  775.150784][  T126] x7 : 0000000000000001 x6 : ffff00006a1ce518 
+[  775.152146][  T126] x5 : ffff000040dd0000 x4 : 0000000000000000 
+[  775.153573][  T126] x3 : ffffa000102ef6b0 x2 : ffff8000081bbe7e 
+[  775.154824][  T126] x1 : ec91fe872c83d400 x0 : 0000000000000000 
+[  775.156705][  T126] Call trace:
+[  775.158009][  T126]  debug_print_object+0x188/0x268
+[  775.159058][  T126]  debug_check_no_obj_freed+0x200/0x438
+[  775.160743][  T126]  slab_free_freelist_hook+0x174/0x1f8
+[  775.161760][  T126]  kfree+0x12c/0x4b8
+[  775.162627][  T126]  kvfree+0x60/0x78
+[  775.163497][  T126]  netdev_freemem+0x4c/0x68
+[  775.164302][  T126]  netdev_release+0x84/0xb0
+[  775.165232][  T126]  device_release+0x8c/0x1f0
+[  775.166582][  T126]  kobject_put+0x1a4/0x570
+[  775.167636][  T126]  netdev_run_todo+0x5f8/0x8b0
+[  775.168683][  T126]  rtnl_unlock+0x14/0x20
+[  775.170440][  T126]  default_device_exit_batch+0x294/0x330
+[  775.172526][  T126]  ops_exit_list.isra.0+0xe4/0x148
+[  775.173426][  T126]  cleanup_net+0x444/0x880
+[  775.174258][  T126]  process_one_work+0x898/0x1af8
+[  775.175130][  T126]  worker_thread+0x3e8/0xc28
+[  775.175946][  T126]  kthread+0x30c/0x408
+[  775.176830][  T126]  ret_from_fork+0x10/0x30
+[  775.178544][  T126] Kernel panic - not syncing: panic_on_warn set ...
+[  775.179936][  T126] CPU: 0 PID: 126 Comm: kworker/u8:3 Not tainted 5.9.0-12994-gf9893351acae #15
+[  775.180903][  T126] Hardware name: linux,dummy-virt (DT)
+[  775.181830][  T126] Workqueue: netns cleanup_net
+[  775.182920][  T126] Call trace:
+[  775.183708][  T126]  dump_backtrace+0x0/0x4d0
+[  775.184523][  T126]  show_stack+0x2c/0x80
+[  775.185469][  T126]  dump_stack+0x1b0/0x254
+[  775.187194][  T126]  panic+0x3d0/0x7fc
+[  775.188630][  T126]  __warn+0x254/0x2e8
+[  775.189853][  T126]  report_bug+0x240/0x398
+[  775.190728][  T126]  bug_handler+0x48/0xb8
+[  775.192571][  T126]  brk_handler+0x15c/0x2a8
+[  775.193482][  T126]  do_debug_exception+0x204/0x6d0
+[  775.194321][  T126]  el1_sync_handler+0x174/0x260
+[  775.195145][  T126]  el1_sync+0x80/0x100
+[  775.196072][  T126]  debug_print_object+0x188/0x268
+[  775.197021][  T126]  debug_check_no_obj_freed+0x200/0x438
+[  775.198072][  T126]  slab_free_freelist_hook+0x174/0x1f8
+[  775.199157][  T126]  kfree+0x12c/0x4b8
+[  775.200018][  T126]  kvfree+0x60/0x78
+[  775.200908][  T126]  netdev_freemem+0x4c/0x68
+[  775.201774][  T126]  netdev_release+0x84/0xb0
+[  775.202683][  T126]  device_release+0x8c/0x1f0
+[  775.203555][  T126]  kobject_put+0x1a4/0x570
+[  775.204412][  T126]  netdev_run_todo+0x5f8/0x8b0
+[  775.205295][  T126]  rtnl_unlock+0x14/0x20
+[  775.207013][  T126]  default_device_exit_batch+0x294/0x330
+[  775.209076][  T126]  ops_exit_list.isra.0+0xe4/0x148
+[  775.210660][  T126]  cleanup_net+0x444/0x880
+[  775.211567][  T126]  process_one_work+0x898/0x1af8
+[  775.212461][  T126]  worker_thread+0x3e8/0xc28
+[  775.213349][  T126]  kthread+0x30c/0x408
+[  775.213905][  T126]  ret_from_fork+0x10/0x30
+[  775.216521][  T126] SMP: stopping secondary CPUs
+[  775.220505][  T126] Dumping ftrace buffer:
+[  775.224102][  T126]    (ftrace buffer empty)
+[  775.226537][  T126] Kernel Offset: disabled
+[  775.228303][  T126] CPU features: 0x0240022,61002082
+[  775.229604][  T126] Memory Limit: none
+[  775.233306][  T126] Rebooting in 1 seconds..

@@ -1,0 +1,20 @@
+TITLE: UBSAN: undefined-behaviour in precalculate_color
+
+[  272.036692][T20797] ================================================================================
+[  272.038351][T20797] UBSAN: Undefined behaviour in drivers/media/common/v4l2-tpg/v4l2-tpg-core.c:942:56
+[  272.039831][T20797] index 6380 is out of range for type 's8 [257]'
+[  272.041030][T20797] CPU: 0 PID: 20797 Comm: vivid-000-vid-c Not tainted 5.4.0-next-20191128+ #3
+[  272.042524][T20797] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
+[  272.044323][T20797] Call Trace:
+[  272.044991][T20797]  dump_stack+0x1b1/0x22a
+[  272.045953][T20797]  ubsan_epilogue+0xe/0x2b
+[  272.046809][T20797]  __ubsan_handle_out_of_bounds.cold.13+0x39/0x44
+[  272.047991][T20797]  precalculate_color+0x304e/0x3830
+[  272.049943][T20797]  tpg_recalc+0x53e/0x2f60
+[  272.056041][T20797]  tpg_calc_text_basep+0xa7/0x370
+[  272.056773][T20797]  vivid_fillbuff+0x1e52/0x45a0
+[  272.063019][T20797]  vivid_thread_vid_cap_tick+0x8e0/0x2410
+[  272.068063][T20797]  vivid_thread_vid_cap+0x5ee/0xab0
+[  272.070172][T20797]  kthread+0x365/0x450
+[  272.071590][T20797]  ret_from_fork+0x24/0x30
+[  272.132381][T20797] ================================================================================

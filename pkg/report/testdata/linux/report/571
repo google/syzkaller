@@ -1,0 +1,121 @@
+TITLE: KASAN: invalid-access Read in __run_timers
+ALT: bad-access in __run_timers
+
+[  931.917437][    C0] ==================================================================
+[  931.918594][    C0] BUG: KASAN: invalid-access in __run_timers.part.0+0xc0/0x224
+[  931.920471][    C0] Read at addr 03ff00002b8b2da0 by task syz-executor.1/5829
+[  931.921704][    C0] Pointer tag: [03], memory tag: [f5]
+[  931.922867][    C0] 
+[  931.923821][    C0] CPU: 0 PID: 5829 Comm: syz-executor.1 Not tainted 5.11.0-rc3 #36
+[  931.925048][    C0] Hardware name: linux,dummy-virt (DT)
+[  931.926129][    C0] Call trace:
+[  931.926804][    C0]  dump_backtrace+0x0/0x1a4
+[  931.927655][    C0]  show_stack+0x1c/0x70
+[  931.928442][    C0]  dump_stack+0xd0/0x12c
+[  931.929236][    C0]  print_address_description+0x70/0x29c
+[  931.930143][    C0]  kasan_report+0x104/0x200
+[  931.930964][    C0]  __do_kernel_fault+0x17c/0x1c0
+[  931.931823][    C0]  do_tag_check_fault+0x6c/0x80
+[  931.932661][    C0]  do_mem_abort+0x44/0xb4
+[  931.933436][    C0]  el1_abort+0x40/0x6c
+[  931.934216][    C0]  el1_sync_handler+0xb0/0xcc
+[  931.935048][    C0]  el1_sync+0x70/0x100
+[  931.935815][    C0]  __run_timers.part.0+0xc0/0x224
+[  931.936736][    C0]  run_timer_softirq+0x40/0x7c
+[  931.937564][    C0]  _stext+0x12c/0x2b4
+[  931.938369][    C0]  irq_exit+0xe0/0x100
+[  931.939151][    C0]  __handle_domain_irq+0x84/0xe0
+[  931.940007][    C0]  gic_handle_irq+0x54/0xdc
+[  931.940821][    C0]  el1_irq+0xb4/0x180
+[  931.941584][    C0]  _raw_spin_unlock_irqrestore+0x10/0x50
+[  931.942494][    C0]  wake_up_q+0x68/0xd0
+[  931.943269][    C0]  __mutex_unlock_slowpath.constprop.0+0xf0/0x180
+[  931.944231][    C0]  mutex_unlock+0x40/0x60
+[  931.945027][    C0]  __rtnl_unlock+0x2c/0x5c
+[  931.945836][    C0]  netdev_run_todo+0x64/0x384
+[  931.946742][    C0]  rtnetlink_rcv_msg+0x124/0x33c
+[  931.947600][    C0]  netlink_rcv_skb+0x58/0x120
+[  931.948434][    C0]  rtnetlink_rcv+0x1c/0x2c
+[  931.949236][    C0]  netlink_unicast+0x25c/0x320
+[  931.950070][    C0]  netlink_sendmsg+0x1d4/0x3e4
+[  931.950905][    C0]  sock_sendmsg+0x58/0x6c
+[  931.951709][    C0]  __sys_sendto+0xd0/0x13c
+[  931.952508][    C0]  __arm64_sys_sendto+0x2c/0x40
+[  931.953346][    C0]  el0_svc_common.constprop.0+0x74/0x190
+[  931.954258][    C0]  do_el0_svc+0x78/0x90
+[  931.955037][    C0]  el0_svc+0x14/0x20
+[  931.955798][    C0]  el0_sync_handler+0x1a8/0x1b0
+[  931.956708][    C0]  el0_sync+0x190/0x1c0
+[  931.957651][    C0] 
+[  931.958256][    C0] Allocated by task 5829:
+[  931.959107][    C0]  stack_trace_save+0x50/0x80
+[  931.959965][    C0]  kasan_save_stack+0x2c/0x60
+[  931.960765][    C0]  ____kasan_kmalloc+0xe8/0x160
+[  931.961592][    C0]  __kasan_kmalloc+0x18/0x24
+[  931.962400][    C0]  __kmalloc+0x20c/0x37c
+[  931.963179][    C0]  batadv_hash_new+0x90/0x114
+[  931.963990][    C0]  batadv_originator_init+0x3c/0xbc
+[  931.964845][    C0]  batadv_mesh_init+0xac/0x140
+[  931.965662][    C0]  batadv_softif_init_late+0x108/0x180
+[  931.966592][    C0]  register_netdevice+0xdc/0x544
+[  931.967439][    C0]  batadv_softif_newlink+0x3c/0x54
+[  931.968288][    C0]  __rtnl_newlink+0x5ec/0x820
+[  931.969122][    C0]  rtnl_newlink+0x74/0xa4
+[  931.969903][    C0]  rtnetlink_rcv_msg+0x11c/0x33c
+[  931.970736][    C0]  netlink_rcv_skb+0x58/0x120
+[  931.971560][    C0]  rtnetlink_rcv+0x1c/0x2c
+[  931.972346][    C0]  netlink_unicast+0x25c/0x320
+[  931.973159][    C0]  netlink_sendmsg+0x1d4/0x3e4
+[  931.973963][    C0]  sock_sendmsg+0x58/0x6c
+[  931.974741][    C0]  __sys_sendto+0xd0/0x13c
+[  931.975531][    C0]  __arm64_sys_sendto+0x2c/0x40
+[  931.976378][    C0]  el0_svc_common.constprop.0+0x74/0x190
+[  931.977290][    C0]  do_el0_svc+0x78/0x90
+[  931.978060][    C0]  el0_svc+0x14/0x20
+[  931.978803][    C0]  el0_sync_handler+0x1a8/0x1b0
+[  931.979639][    C0]  el0_sync+0x190/0x1c0
+[  931.980479][    C0] 
+[  931.981036][    C0] Freed by task 5074:
+[  931.981726][    C0]  stack_trace_save+0x50/0x80
+[  931.982545][    C0]  kasan_save_stack+0x2c/0x60
+[  931.983370][    C0]  kasan_set_track+0x2c/0x40
+[  931.984180][    C0]  kasan_set_free_info+0x24/0x30
+[  931.985020][    C0]  ____kasan_slab_free.constprop.0+0x184/0x1c0
+[  931.985969][    C0]  __kasan_slab_free+0x14/0x20
+[  931.986879][    C0]  slab_free_freelist_hook+0x9c/0x190
+[  931.987757][    C0]  kfree+0x328/0x4a0
+[  931.988534][    C0]  kvfree+0x40/0x50
+[  931.989308][    C0]  netdev_freemem+0x1c/0x30
+[  931.990136][    C0]  netdev_release+0x34/0x4c
+[  931.990942][    C0]  device_release+0x38/0x94
+[  931.991751][    C0]  kobject_put+0x74/0x11c
+[  931.992538][    C0]  netdev_run_todo+0x2dc/0x384
+[  931.993361][    C0]  rtnl_unlock+0x14/0x20
+[  931.994140][    C0]  default_device_exit_batch+0x168/0x1a0
+[  931.995075][    C0]  ops_exit_list+0x64/0x80
+[  931.995888][    C0]  cleanup_net+0x23c/0x3b4
+[  931.996815][    C0]  process_one_work+0x1d8/0x360
+[  931.997680][    C0]  worker_thread+0x74/0x440
+[  931.998496][    C0]  kthread+0x178/0x180
+[  931.999290][    C0]  ret_from_fork+0x10/0x30
+[  932.000142][    C0] 
+[  932.000652][    C0] The buggy address belongs to the object at ffff00002b8b2000
+[  932.000652][    C0]  which belongs to the cache kmalloc-4k of size 4096
+[  932.002288][    C0] The buggy address is located 3488 bytes inside of
+[  932.002288][    C0]  4096-byte region [ffff00002b8b2000, ffff00002b8b3000)
+[  932.003975][    C0] The buggy address belongs to the page:
+[  932.004959][    C0] page:00000000561704e0 refcount:1 mapcount:0 mapping:0000000000000000 index:0x0 pfn:0x6b8b0
+[  932.006499][    C0] head:00000000561704e0 order:3 compound_mapcount:0 compound_pincount:0
+[  932.007721][    C0] flags: 0x1ffffc000010200(slab|head)
+[  932.009061][    C0] raw: 01ffffc000010200 0000000000000000 0000000100000001 f0ff000004001900
+[  932.010354][    C0] raw: 0000000000000000 0000000000040004 00000001ffffffff 0000000000000000
+[  932.011573][    C0] page dumped because: kasan: bad access detected
+[  932.012582][    C0] 
+[  932.013124][    C0] Memory state around the buggy address:
+[  932.014206][    C0]  ffff00002b8b2b00: f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5
+[  932.015432][    C0]  ffff00002b8b2c00: f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5
+[  932.016671][    C0] >ffff00002b8b2d00: f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5
+[  932.017771][    C0]                                                  ^
+[  932.018857][    C0]  ffff00002b8b2e00: f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5
+[  932.020044][    C0]  ffff00002b8b2f00: f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5
+[  932.021191][    C0] ==================================================================

@@ -1,0 +1,43 @@
+FILE: kernel/bpf/arraymap.c
+
+kasan: CONFIG_KASAN_INLINE enabled
+kasan: GPF could be caused by NULL-ptr deref or user memory access
+general protection fault: 0000 [#1] SMP KASAN
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Modules linked in:
+CPU: 3 PID: 5124 Comm: kworker/3:3 Not tainted 4.12.0-rc3+ #370
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+Workqueue: events bpf_map_free_deferred
+task: ffff880065321700 task.stack: ffff880065380000
+RIP: 0010:css_put include/linux/cgroup.h:354 [inline]
+RIP: 0010:cgroup_put include/linux/cgroup.h:373 [inline]
+RIP: 0010:cgroup_fd_array_put_ptr+0x88/0x370 kernel/bpf/arraymap.c:535
+RSP: 0018:ffff880065387378 EFLAGS: 00010202
+RAX: 000000002000000d RBX: 1ffff1000ca70e71 RCX: 1ffffffff0a1912c
+RDX: 0000000000000000 RSI: 1ffff1000ca643e6 RDI: 0000000100000069
+RBP: ffff880065387450 R08: ffffffff85b0b9e0 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000000 R12: 00000000fffffffd
+R13: ffff880065387428 R14: dffffc0000000000 R15: ffffffff850c8920
+FS:  0000000000000000(0000) GS:ffff88006df00000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000000020014000 CR3: 00000000231ae000 CR4: 00000000000006e0
+Call Trace:
+ fd_array_map_delete_elem kernel/bpf/arraymap.c:374 [inline]
+ bpf_fd_array_map_clear+0x144/0x260 kernel/bpf/arraymap.c:410
+ cgroup_fd_array_free+0x15/0x20 kernel/bpf/arraymap.c:540
+ bpf_map_free_deferred+0xac/0xd0 kernel/bpf/syscall.c:124
+ process_one_work+0xc03/0x1bd0 kernel/workqueue.c:2097
+ worker_thread+0x223/0x1860 kernel/workqueue.c:2231
+ kthread+0x35e/0x430 kernel/kthread.c:231
+ ret_from_fork+0x2a/0x40 arch/x86/entry/entry_64.S:424
+Code: 04 00 f2 f2 f2 c7 40 08 f2 f2 f2 f2 c7 40 0c 00 f2 f2 f2 c7 40 10 f3 f3 f3 f3 e8 a4 dc f0 ff 49 8d 7c 24 6c 48 89 f8 48 c1 e8 03 <42> 0f b6 14 30 48 89 f8 83 e0 07 83 c0 03 38 d0 7c 08 84 d2 0f 
+RIP: css_put include/linux/cgroup.h:354 [inline] RSP: ffff880065387378
+RIP: cgroup_put include/linux/cgroup.h:373 [inline] RSP: ffff880065387378
+RIP: cgroup_fd_array_put_ptr+0x88/0x370 kernel/bpf/arraymap.c:535 RSP: ffff880065387378
+---[ end trace 6192ca3b51b170a8 ]---
+Kernel panic - not syncing: Fatal exception
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Kernel Offset: disabled
+Rebooting in 86400 seconds..

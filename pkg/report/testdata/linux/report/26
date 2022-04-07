@@ -1,0 +1,81 @@
+TITLE: possible deadlock in blkdev_reread_part
+
+[  127.525803] ======================================================
+[  127.532093] WARNING: possible circular locking dependency detected
+[  127.538376] 4.14.0-rc1+ #1 Not tainted
+[  127.542228] ------------------------------------------------------
+[  127.548509] syz-executor0/22269 is trying to acquire lock:
+[  127.554094]  (&bdev->bd_mutex){+.+.}, at: [<ffffffff8232bf0e>] blkdev_reread_part+0x1e/0x40
+[  127.562560] 
+[  127.562560] but task is already holding lock:
+[  127.568495]  (&lo->lo_ctl_mutex#2){+.+.}, at: [<ffffffff83542c29>] lo_compat_ioctl+0x109/0x140
+[  127.577221] 
+[  127.577221] which lock already depends on the new lock.
+[  127.577221] 
+[  127.585502] 
+[  127.585502] the existing dependency chain (in reverse order) is:
+[  127.593087] 
+[  127.593087] -> #1 (&lo->lo_ctl_mutex#2){+.+.}:
+[  127.599124]        __lock_acquire+0x328f/0x4620
+[  127.603759]        lock_acquire+0x1d5/0x580
+[  127.608048]        __mutex_lock+0x16f/0x1870
+[  127.612421]        mutex_lock_nested+0x16/0x20
+[  127.616972]        lo_release+0x6b/0x180
+[  127.621000]        __blkdev_put+0x602/0x7c0
+[  127.625288]        blkdev_put+0x85/0x4f0
+[  127.629314]        blkdev_close+0x91/0xc0
+[  127.633425]        __fput+0x333/0x7f0
+[  127.637192]        ____fput+0x15/0x20
+[  127.640960]        task_work_run+0x199/0x270
+[  127.645333]        exit_to_usermode_loop+0x2a6/0x300
+[  127.650404]        syscall_return_slowpath+0x42f/0x500
+[  127.655651]        entry_SYSCALL_64_fastpath+0xbc/0xbe
+[  127.660888] 
+[  127.660888] -> #0 (&bdev->bd_mutex){+.+.}:
+[  127.666578]        check_prev_add+0x865/0x1520
+[  127.671134]        __lock_acquire+0x328f/0x4620
+[  127.675778]        lock_acquire+0x1d5/0x580
+[  127.680067]        __mutex_lock+0x16f/0x1870
+[  127.684441]        mutex_lock_nested+0x16/0x20
+[  127.688991]        blkdev_reread_part+0x1e/0x40
+[  127.693629]        loop_reread_partitions+0x12f/0x1a0
+[  127.698783]        loop_set_status+0x9ba/0xf60
+[  127.703333]        loop_set_status_compat+0x92/0xf0
+[  127.708315]        lo_compat_ioctl+0x114/0x140
+[  127.712863]        compat_blkdev_ioctl+0x3ba/0x1850
+[  127.717848]        compat_SyS_ioctl+0x1da/0x3300
+[  127.722570]        do_fast_syscall_32+0x3f2/0xeed
+[  127.727378]        entry_SYSENTER_compat+0x51/0x60
+[  127.732268] 
+[  127.732268] other info that might help us debug this:
+[  127.732268] 
+[  127.740375]  Possible unsafe locking scenario:
+[  127.740375] 
+[  127.746396]        CPU0                    CPU1
+[  127.751028]        ----                    ----
+[  127.755664]   lock(&lo->lo_ctl_mutex#2);
+[  127.759694]                                lock(&bdev->bd_mutex);
+[  127.765892]                                lock(&lo->lo_ctl_mutex#2);
+[  127.772438]   lock(&bdev->bd_mutex);
+[  127.776120] 
+[  127.776120]  *** DEADLOCK ***
+[  127.776120] 
+[  127.782144] 1 lock held by syz-executor0/22269:
+[  127.786775]  #0:  (&lo->lo_ctl_mutex#2){+.+.}, at: [<ffffffff83542c29>] lo_compat_ioctl+0x109/0x140
+[  127.795934] 
+[  127.795934] stack backtrace:
+[  127.800405] CPU: 0 PID: 22269 Comm: syz-executor0 Not tainted 4.14.0-rc1+ #1
+[  127.807556] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  127.816876] Call Trace:
+[  127.819433]  dump_stack+0x194/0x257
+[  127.831436]  print_circular_bug+0x503/0x710
+[  127.844570]  check_prev_add+0x865/0x1520
+[  127.961665]  lock_acquire+0x1d5/0x580
+...
+[  128.182847]  entry_SYSENTER_compat+0x51/0x60
+[  128.187221] RIP: 0023:0xf7fd5c79
+[  128.190551] RSP: 002b:00000000f77d105c EFLAGS: 00000296 ORIG_RAX: 0000000000000036
+[  128.198227] RAX: ffffffffffffffda RBX: 0000000000000016 RCX: 0000000000004c02
+[  128.205464] RDX: 00000000202e3000 RSI: 0000000000000000 RDI: 0000000000000000
+[  128.212700] RBP: 0000000000000000 R08: 0000000000000000 R09: 0000000000000000
+[  128.219935] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000

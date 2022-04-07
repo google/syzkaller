@@ -1,0 +1,52 @@
+TITLE: INFO: rcu detected stall in mount
+ALT: stall in mount
+TYPE: HANG
+
+INFO: rcu_sched detected stalls on CPUs/tasks:
+	(detected by 0, t=2102 jiffies, g=84543, c=84542, q=6)
+All QSes seen, last rcu_sched kthread activity 2102 (149490-147388), jiffies_till_next_fqs=1, root ->qsmask 0x0
+syz-executor1   R  running task        0  7464   1210 0x00000003
+Backtrace: 
+[<8011218c>] (unwind_backtrace) from [<8010e300>] (show_stack+0x18/0x1c)
+[<8010e300>] (show_stack) from [<8018de80>] (rcu_check_callbacks+0x7a0/0x7a8)
+[<8018de80>] (rcu_check_callbacks) from [<80192868>] (update_process_times+0x38/0x68)
+[<80192868>] (update_process_times) from [<801a2724>] (tick_periodic+0x48/0xcc)
+[<801a2724>] (tick_periodic) from [<801a2968>] (tick_handle_periodic+0x2c/0x9c)
+[<801a2968>] (tick_handle_periodic) from [<80787640>] (arch_timer_handler_virt+0x34/0x4c)
+[<80787640>] (arch_timer_handler_virt) from [<80182b0c>] (handle_percpu_devid_irq+0x88/0x168)
+[<80182b0c>] (handle_percpu_devid_irq) from [<8017c65c>] (generic_handle_irq+0x38/0x4c)
+[<8017c65c>] (generic_handle_irq) from [<8017cd50>] (__handle_domain_irq+0x6c/0xd8)
+[<8017cd50>] (__handle_domain_irq) from [<805eb204>] (gic_handle_irq+0x60/0xc0)
+[<805eb204>] (gic_handle_irq) from [<80101a0c>] (__irq_svc+0x6c/0x90)
+Exception stack(0x96737cd8 to 0x96737d20)
+7cc0:                                                       80f1911c 60030013
+7ce0: 96737d48 00002218 96737d3c fffffe00 80f1911c 9679af10 97071d00 00000000
+7d00: 00000001 80f645a8 00000000 96737d28 8016fb5c 80b2f268 00030013 ffffffff
+[<80101a0c>] (__irq_svc) from [<80b2f268>] (_raw_spin_unlock_irqrestore+0x1c/0x20)
+[<80b2f268>] (_raw_spin_unlock_irqrestore) from [<8016fb5c>] (prepare_to_wait_event+0x68/0x104)
+[<8016fb5c>] (prepare_to_wait_event) from [<803b18e8>] (nfs_wait_client_init_complete.part.3+0x4c/0x84)
+[<803b18e8>] (nfs_wait_client_init_complete.part.3) from [<803b1d64>] (nfs_get_client+0x2b0/0x488)
+[<803b1d64>] (nfs_get_client) from [<803b1fe4>] (nfs_create_server+0xa8/0x468)
+[<803b1fe4>] (nfs_create_server) from [<803beaa4>] (nfs_try_mount+0x44/0x2c0)
+[<803beaa4>] (nfs_try_mount) from [<803be594>] (nfs_fs_mount+0x418/0x76c)
+[<803be594>] (nfs_fs_mount) from [<8026b930>] (mount_fs+0x34/0xe4)
+[<8026b930>] (mount_fs) from [<8028eaf4>] (vfs_kern_mount.part.3+0x50/0x114)
+[<8028eaf4>] (vfs_kern_mount.part.3) from [<802918b8>] (do_mount+0x260/0xf98)
+[<802918b8>] (do_mount) from [<80292a90>] (ksys_mount+0x9c/0x100)
+[<80292a90>] (ksys_mount) from [<80101000>] (ret_fast_syscall+0x0/0x54)
+Exception stack(0x96737fa8 to 0x96737ff0)
+7fa0:                   2000a000 00000000 20144000 20343ff8 2015d000 00000000
+7fc0: 2000a000 00000000 00000000 00000015 75f8f7e4 00061b14 000007ba 000003dd
+7fe0: 75f8eb10 75f8eb00 00013291 000358c2
+rcu_sched kthread starved for 2102 jiffies! g84543 c84542 f0x2 RCU_GP_WAIT_FQS(3) ->state=0x0 ->cpu=0
+RCU grace-period kthread stack dump:
+rcu_sched       R  running task        0     9      2 0x00000000
+[<80b2ad34>] (__schedule) from [<80b2b144>] (schedule+0x40/0xa0)
+[<80b2b144>] (schedule) from [<80b2e4d4>] (schedule_timeout+0x120/0x1ac)
+[<80b2e4d4>] (schedule_timeout) from [<8018c188>] (rcu_gp_kthread+0x588/0x8c0)
+[<8018c188>] (rcu_gp_kthread) from [<80156c74>] (kthread+0x168/0x174)
+[<80156c74>] (kthread) from [<801010e8>] (ret_from_fork+0x14/0x2c)
+Exception stack(0x9f46ffb0 to 0x9f46fff8)
+ffa0:                                     00000000 00000000 00000000 00000000
+ffc0: 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+ffe0: 00000000 00000000 00000000 00000000 00000013 00000000

@@ -1,0 +1,363 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <drm/i915_drm.h>
+
+resource fd_i915[fd]
+
+# Some ioctls are mapped to drm_noop, so don't list them here.
+# https://elixir.bootlin.com/linux/latest/source/drivers/gpu/drm/i915/i915_drv.c#L1774
+
+# The unlisted ioctls are :
+# INIT, FLUSH, FLIP, BATCHBUFFER, IRQ_EMIT, IRQ_WAIT, SETPARAM, ALLOC, FREE, INIT_HEAP, CMDBUFFER, DESTROY_HEAP,
+# SET_VBLANK_PIPE, GET_VBLANK_PIPE, VBLANK_SWAP, HWS_ADDR, GEM_INIT, GEM_ENTERVT, GEM_LEAVEVT, GET_SPRITE_COLORKEY
+
+openat$i915(fd const[AT_FDCWD], file ptr[in, string["/dev/i915"]], flags flags[open_flags], mode const[0]) fd_i915
+
+ioctl$DRM_IOCTL_I915_GETPARAM(fd fd_i915, cmd const[DRM_IOCTL_I915_GETPARAM], arg ptr[inout, drm_i915_getparam])
+ioctl$DRM_IOCTL_I915_GEM_EXECBUFFER(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_EXECBUFFER], arg ptr[in, drm_i915_gem_execbuffer])
+ioctl$DRM_IOCTL_I915_GEM_EXECBUFFER2(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_EXECBUFFER2], arg ptr[in, drm_i915_gem_execbuffer2])
+ioctl$DRM_IOCTL_I915_GEM_EXECBUFFER2_WR(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_EXECBUFFER2_WR], arg ptr[inout, drm_i915_gem_execbuffer2])
+ioctl$DRM_IOCTL_I915_GEM_PIN(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_PIN], arg ptr[inout, drm_i915_gem_pin])
+ioctl$DRM_IOCTL_I915_GEM_UNPIN(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_UNPIN], arg ptr[in, drm_i915_gem_unpin])
+ioctl$DRM_IOCTL_I915_GEM_BUSY(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_BUSY], arg ptr[inout, drm_i915_gem_busy])
+ioctl$DRM_IOCTL_I915_GEM_SET_CACHING(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_SET_CACHING], arg ptr[in, drm_i915_gem_caching])
+ioctl$DRM_IOCTL_I915_GEM_GET_CACHING(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_GET_CACHING], arg ptr[inout, drm_i915_gem_caching])
+ioctl$DRM_IOCTL_I915_GEM_THROTTLE(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_THROTTLE], arg const[0])
+ioctl$DRM_IOCTL_I915_GEM_CREATE(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_CREATE], arg ptr[inout, drm_i915_gem_create])
+ioctl$DRM_IOCTL_I915_GEM_PREAD(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_PREAD], arg ptr[in, drm_i915_gem_pread])
+ioctl$DRM_IOCTL_I915_GEM_PWRITE(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_PWRITE], arg ptr[in, drm_i915_gem_pwrite])
+ioctl$DRM_IOCTL_I915_GEM_MMAP(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_MMAP], arg ptr[inout, drm_i915_gem_mmap])
+ioctl$DRM_IOCTL_I915_GEM_MMAP_GTT(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_MMAP_GTT], arg ptr[inout, drm_i915_gem_mmap_gtt])
+ioctl$DRM_IOCTL_I915_GEM_MMAP_OFFSET(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_MMAP_GTT], arg ptr[inout, drm_i915_gem_mmap_offset])
+ioctl$DRM_IOCTL_I915_GEM_SET_DOMAIN(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_SET_DOMAIN], arg ptr[in, drm_i915_gem_set_domain])
+ioctl$DRM_IOCTL_I915_GEM_SW_FINISH(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_SW_FINISH], arg ptr[in, drm_i915_gem_sw_finish])
+ioctl$DRM_IOCTL_I915_GEM_SET_TILING(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_SET_TILING], arg ptr[inout, drm_i915_gem_set_tiling])
+ioctl$DRM_IOCTL_I915_GEM_GET_TILING(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_GET_TILING], arg ptr[out, drm_i915_gem_get_tiling])
+ioctl$DRM_IOCTL_I915_GEM_GET_APERTURE(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_GET_APERTURE], arg ptr[out, drm_i915_gem_get_aperture])
+ioctl$DRM_IOCTL_I915_GET_PIPE_FROM_CRTC_ID(fd fd_i915, cmd const[DRM_IOCTL_I915_GET_PIPE_FROM_CRTC_ID], arg ptr[out, drm_i915_get_pipe_from_crtc_id])
+ioctl$DRM_IOCTL_I915_GEM_MADVISE(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_MADVISE], arg ptr[in, drm_i915_gem_madvise])
+ioctl$DRM_IOCTL_I915_OVERLAY_PUT_IMAGE(fd fd_i915, cmd const[DRM_IOCTL_I915_OVERLAY_PUT_IMAGE], arg ptr[in, drm_intel_overlay_put_image])
+ioctl$DRM_IOCTL_I915_OVERLAY_ATTRS(fd fd_i915, cmd const[DRM_IOCTL_I915_OVERLAY_ATTRS], arg ptr[in, drm_intel_overlay_attrs])
+ioctl$DRM_IOCTL_I915_SET_SPRITE_COLORKEY(fd fd_i915, cmd const[DRM_IOCTL_I915_SET_SPRITE_COLORKEY], arg ptr[in, drm_intel_sprite_colorkey])
+ioctl$DRM_IOCTL_I915_GEM_WAIT(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_WAIT], arg ptr[inout, drm_i915_gem_wait])
+ioctl$DRM_IOCTL_I915_GEM_CONTEXT_CREATE(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_CONTEXT_CREATE], arg ptr[in, drm_i915_gem_context_create])
+ioctl$DRM_IOCTL_I915_GEM_CONTEXT_DESTROY(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_CONTEXT_DESTROY], arg ptr[in, drm_i915_gem_context_destroy])
+ioctl$DRM_IOCTL_I915_REG_READ(fd fd_i915, cmd const[DRM_IOCTL_I915_REG_READ], arg ptr[inout, drm_i915_reg_read])
+ioctl$DRM_IOCTL_I915_GET_RESET_STATS(fd fd_i915, cmd const[DRM_IOCTL_I915_GET_RESET_STATS], arg ptr[inout, drm_i915_reset_stats])
+ioctl$DRM_IOCTL_I915_GEM_CONTEXT_GETPARAM(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_CONTEXT_GETPARAM], arg ptr[in, drm_i915_gem_context_param])
+ioctl$DRM_IOCTL_I915_GEM_CONTEXT_SETPARAM(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_CONTEXT_SETPARAM], arg ptr[inout, drm_i915_gem_context_param])
+ioctl$DRM_IOCTL_I915_PERF_ADD_CONFIG(fd fd_i915, cmd const[DRM_IOCTL_I915_PERF_ADD_CONFIG], arg ptr[in, drm_i915_perf_oa_config])
+ioctl$DRM_IOCTL_I915_GEM_USERPTR(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_USERPTR], arg ptr[inout, drm_i915_gem_userptr])
+ioctl$DRM_IOCTL_I915_PERF_REMOVE_CONFIG(fd fd_i915, cmd const[DRM_IOCTL_I915_PERF_REMOVE_CONFIG], arg ptr[out, int64])
+ioctl$DRM_IOCTL_I915_QUERY(fd fd_i915, cmd const[DRM_IOCTL_I915_QUERY], arg ptr[inout, drm_i915_query])
+ioctl$DRM_IOCTL_I915_GEM_VM_CREATE(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_VM_CREATE], arg ptr[inout, drm_i915_gem_vm_control])
+ioctl$DRM_IOCTL_I915_GEM_VM_DESTROY(fd fd_i915, cmd const[DRM_IOCTL_I915_GEM_VM_DESTROY], arg ptr[out, drm_i915_gem_vm_control])
+
+# TODO: This ioctl returns an fd which itself has more operations:
+# https://elixir.bootlin.com/linux/v5.8-rc4/source/drivers/gpu/drm/i915/i915_perf.c#L3315
+ioctl$DRM_IOCTL_I915_PERF_OPEN(fd fd_i915, cmd const[DRM_IOCTL_I915_PERF_OPEN], arg ptr[in, drm_i915_perf_open_param])
+
+mmap$DRM_I915(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_i915, offset fileoff)
+_ = __NR_mmap2
+
+type i915_gem_ctx_id int32
+type i915_handle int32
+
+drm_i915_gem_busy {
+	handle	i915_handle
+	busy	int32
+}
+
+drm_i915_gem_caching {
+	handle	i915_handle
+	caching	int32
+}
+
+drm_i915_gem_context_create {
+	ctx_id	i915_gem_ctx_id
+	pad	const[0, int32]
+}
+
+drm_i915_gem_context_destroy {
+	ctx_id	i915_gem_ctx_id
+	pad	const[0, int32]
+}
+
+drm_i915_gem_context_param {
+	ctx_id	i915_gem_ctx_id
+	size	int32
+	param	flags[i915_gem_param_flags, int64]
+	value	int64
+}
+
+drm_i915_gem_create {
+	size	int64
+	handle	i915_handle
+	pad	const[0, int32]
+}
+
+drm_i915_gem_execbuffer {
+	buffers_ptr		ptr64[in, array[drm_i915_gem_exec_object]]
+	buffer_count		len[buffers_ptr, int32]
+	batch_start_offset	int32
+	batch_len		int32
+	DR1			int32
+	DR4			int32
+	num_cliprects		len[cliprects_ptr, int32]
+	cliprects_ptr		ptr64[in, array[drm_clip_rect]]
+}
+
+drm_i915_gem_exec_object {
+	handle			int32
+	relocation_count	len[relocs_ptr, int32]
+	relocs_ptr		ptr64[in, array[drm_i915_gem_relocation_entry]]
+	alignment		int64
+	offset			int64
+}
+
+drm_i915_gem_relocation_entry {
+	target_handle	int32
+	delta		int32
+	offset		int64
+	presumed_offset	int64
+	read_domains	int32
+	write_domain	int32
+}
+
+drm_i915_gem_execbuffer2 {
+	buffers_ptr		ptr64[in, array[drm_i915_gem_exec_object2]]
+	buffer_count		len[buffers_ptr, int32]
+	batch_start_offset	int32
+	batch_len		int32
+	DR1			int32
+	DR4			int32
+	num_cliprects		len[cliprects_ptr, int32]
+	cliprects_ptr		ptr64[in, array[drm_clip_rect]]
+	flags			flags[i915_execbuf2_flags, int64]
+	rsvd1			int64
+	rsvd2			int64
+}
+
+drm_i915_gem_exec_object2 {
+	handle			i915_handle
+	relocation_count	len[relocs_ptr, int32]
+	relocs_ptr		ptr64[in, array[drm_i915_gem_relocation_entry]]
+	alignment		int64
+	offset			int64
+	flags			int64
+	rsvd1			int64
+	rsvd2			int64
+}
+
+drm_i915_gem_get_aperture {
+	aper_size		int64
+	aper_available_size	int64
+}
+
+drm_i915_gem_get_tiling {
+	handle			i915_handle
+	tiling_mode		int32
+	swizzle_mode		int32
+	phys_swizzle_mode	int32
+}
+
+drm_i915_gem_madvise {
+	handle		i915_handle
+	madv		flags[i915_madv_flags, int32]
+	retained	bool32
+}
+
+drm_i915_gem_mmap {
+	handle		i915_handle
+	pad		const[0, int32]
+	offset		int64
+	size		int64
+	addr_ptr	ptr64[out, int8]
+	flags		flags[i915_mmap_flags, int64]
+}
+
+drm_i915_gem_mmap_gtt {
+	handle	i915_handle
+	pad	const[0, int32]
+	offset	int64
+}
+
+drm_i915_gem_mmap_offset {
+	handle		i915_handle
+	pad		const[0, int32]
+	offset		int64
+	flags		flags[i915_gem_mmap_offset_flags, int64]
+	extensions	int64
+}
+
+drm_i915_gem_pin {
+	handle		i915_handle
+	pad		const[0, int32]
+	alignment	int64
+	offset		int64
+}
+
+drm_i915_gem_pread {
+	handle		i915_handle
+	pad		const[0, int32]
+	offset		int64
+	size		len[data_ptr, int64]
+	data_ptr	ptr64[in, array[int8]]
+}
+
+drm_i915_gem_pwrite {
+	handle		i915_handle
+	pad		const[0, int32]
+	offset		int64
+	size		len[data_ptr, int64]
+	data_ptr	ptr64[in, array[int8]]
+}
+
+drm_i915_gem_set_domain {
+	handle		i915_handle
+	read_domains	int32
+	write_domain	int32
+}
+
+drm_i915_gem_set_tiling {
+	handle		i915_handle
+	tiling_mode	int32
+	stride		int32
+	swizzle_mode	int32
+}
+
+drm_i915_gem_sw_finish {
+	handle	i915_handle
+}
+
+drm_i915_gem_unpin {
+	handle	i915_handle
+	pad	const[0, int32]
+}
+
+drm_i915_gem_userptr {
+	user_ptr	ptr64[in, array[int8]]
+	user_size	len[user_ptr, int64]
+	flags		flags[i915_userptr, int32]
+	handle		i915_gem_ctx_id
+}
+
+drm_i915_gem_vm_control {
+	extensions	int64
+	flags		int32
+	vm_id		int32
+}
+
+drm_i915_gem_wait {
+	bo_handle	i915_handle
+	flags		const[0, int32]
+	timeout_ns	int64
+}
+
+drm_i915_get_pipe_from_crtc_id {
+	crtc_id	drm_crtc_id
+	pipe	int32
+}
+
+drm_i915_getparam {
+	param	flags[i915_getparam_flags, int32]
+	value	intptr
+}
+
+drm_i915_perf_oa_config {
+	uuid			array[int8, 36]
+	n_mux_regs		int32
+	n_boolean_regs		int32
+	n_flex_regs		int32
+	mux_regs_ptr		int64
+	boolean_regs_ptr	int64
+	flex_regs_ptr		int64
+}
+
+drm_i915_perf_open_param {
+	flags		flags[i915_perf_flags, int32]
+	num_properties	len[properties_ptr, int32]
+	properties_ptr	ptr64[in, array[int8]]
+}
+
+drm_i915_query {
+	num_items	int32
+	flags		int32
+	items_ptr	ptr64[out, drm_i915_query_item]
+}
+
+drm_i915_query_item {
+	query_id	flags[i915_query, int64]
+	length		len[data_ptr, int32]
+	flags		flags[i915_query_perf_flags, int32]
+	data_ptr	ptr64[out, int32]
+}
+
+drm_i915_reg_read {
+	offset	int64
+	val	const[0, int64]
+}
+
+drm_i915_reset_stats {
+	ctx_id		i915_gem_ctx_id
+	flags		int32
+	reset_count	const[0, int32]
+	batch_active	const[0, int32]
+	batch_pending	const[0, int32]
+	pad		const[0, int32]
+}
+
+drm_intel_overlay_attrs {
+	flags		flags[i915_overlay_flags, int32]
+	color_key	int32
+	brightness	int32
+	contrast	int32
+	saturation	int32
+	gamma0		int32
+	gamma1		int32
+	gamma2		int32
+	gamma3		int32
+	gamma4		int32
+	gamma5		int32
+}
+
+drm_intel_overlay_put_image {
+	flags		flags[i915_overlay_flags, int32]
+	bo_handle	int32
+	stride_Y	int16
+	stride_UV	int16
+	offset_Y	int32
+	offset_U	int32
+	offset_V	int32
+	src_width	int16
+	src_height	int16
+	src_scan_width	int16
+	src_scan_height	int16
+	crtc_id		drm_crtc_id
+	dst_x		int16
+	dst_y		int16
+	dst_width	int16
+	dst_height	int16
+}
+
+drm_intel_sprite_colorkey {
+	plane_id	int32
+	min_value	int32
+	channel_mask	int32
+	max_value	int32
+	flags		flags[i915_colorkey_flags, int32]
+}
+
+i915_colorkey_flags = 0, I915_SET_COLORKEY_NONE, I915_SET_COLORKEY_DESTINATION, I915_SET_COLORKEY_SOURCE
+i915_mmap_flags = 0, I915_MMAP_WC
+i915_madv_flags = I915_MADV_WILLNEED, I915_MADV_DONTNEED, __I915_MADV_PURGED
+i915_query = DRM_I915_QUERY_TOPOLOGY_INFO, DRM_I915_QUERY_ENGINE_INFO
+i915_userptr = I915_USERPTR_READ_ONLY, I915_USERPTR_UNSYNCHRONIZED
+i915_execbuf2_flags = I915_EXEC_DEFAULT, I915_EXEC_RENDER, I915_EXEC_BSD, I915_EXEC_BLT, I915_EXEC_VEBOX, I915_EXEC_CONSTANTS_REL_GENERAL, I915_EXEC_CONSTANTS_ABSOLUTE, I915_EXEC_CONSTANTS_REL_SURFACE, I915_EXEC_GEN7_SOL_RESET, I915_EXEC_SECURE, I915_EXEC_IS_PINNED, I915_EXEC_NO_RELOC, I915_EXEC_HANDLE_LUT, I915_EXEC_BSD_DEFAULT, I915_EXEC_RESOURCE_STREAMER, I915_EXEC_FENCE_IN, I915_EXEC_BATCH_FIRST, I915_EXEC_FENCE_ARRAY, I915_EXEC_FENCE_SUBMIT
+i915_gem_param_flags = I915_CONTEXT_PARAM_BAN_PERIOD, I915_CONTEXT_PARAM_NO_ZEROMAP, I915_CONTEXT_PARAM_GTT_SIZE, I915_CONTEXT_PARAM_NO_ERROR_CAPTURE, I915_CONTEXT_PARAM_BANNABLE
+i915_gem_mmap_offset_flags = I915_MMAP_OFFSET_GTT, I915_MMAP_OFFSET_WC, I915_MMAP_OFFSET_WB, I915_MMAP_OFFSET_UC
+i915_getparam_flags = I915_PARAM_IRQ_ACTIVE, I915_PARAM_ALLOW_BATCHBUFFER, I915_PARAM_LAST_DISPATCH, I915_PARAM_CHIPSET_ID, I915_PARAM_HAS_GEM, I915_PARAM_NUM_FENCES_AVAIL, I915_PARAM_HAS_OVERLAY, I915_PARAM_HAS_PAGEFLIPPING, I915_PARAM_HAS_EXECBUF2, I915_PARAM_HAS_BSD, I915_PARAM_HAS_BLT, I915_PARAM_HAS_RELAXED_FENCING, I915_PARAM_HAS_COHERENT_RINGS, I915_PARAM_HAS_EXEC_CONSTANTS, I915_PARAM_HAS_RELAXED_DELTA, I915_PARAM_HAS_GEN7_SOL_RESET, I915_PARAM_HAS_LLC, I915_PARAM_HAS_ALIASING_PPGTT, I915_PARAM_HAS_WAIT_TIMEOUT, I915_PARAM_HAS_SEMAPHORES, I915_PARAM_HAS_PRIME_VMAP_FLUSH, I915_PARAM_HAS_VEBOX, I915_PARAM_HAS_SECURE_BATCHES, I915_PARAM_HAS_PINNED_BATCHES, I915_PARAM_HAS_EXEC_NO_RELOC, I915_PARAM_HAS_EXEC_HANDLE_LUT, I915_PARAM_HAS_WT, I915_PARAM_CMD_PARSER_VERSION, I915_PARAM_HAS_COHERENT_PHYS_GTT, I915_PARAM_MMAP_VERSION, I915_PARAM_HAS_BSD2, I915_PARAM_REVISION, I915_PARAM_SUBSLICE_TOTAL, I915_PARAM_EU_TOTAL, I915_PARAM_HAS_GPU_RESET, I915_PARAM_HAS_RESOURCE_STREAMER, I915_PARAM_HAS_EXEC_SOFTPIN, I915_PARAM_HAS_POOLED_EU, I915_PARAM_MIN_EU_IN_POOL, I915_PARAM_MMAP_GTT_VERSION, I915_PARAM_HAS_SCHEDULER, I915_PARAM_HUC_STATUS, I915_PARAM_HAS_EXEC_ASYNC, I915_PARAM_HAS_EXEC_FENCE, I915_PARAM_HAS_EXEC_CAPTURE, I915_PARAM_SLICE_MASK, I915_PARAM_SUBSLICE_MASK, I915_PARAM_HAS_EXEC_BATCH_FIRST, I915_PARAM_HAS_EXEC_FENCE_ARRAY
+i915_perf_flags = I915_PERF_FLAG_FD_CLOEXEC, I915_PERF_FLAG_FD_NONBLOCK, I915_PERF_FLAG_DISABLED
+i915_overlay_flags = I915_OVERLAY_TYPE_MASK, I915_OVERLAY_YUV_PLANAR, I915_OVERLAY_YUV_PACKED, I915_OVERLAY_RGB, I915_OVERLAY_DEPTH_MASK, I915_OVERLAY_RGB24, I915_OVERLAY_RGB16, I915_OVERLAY_RGB15, I915_OVERLAY_YUV422, I915_OVERLAY_YUV411, I915_OVERLAY_YUV420, I915_OVERLAY_YUV410, I915_OVERLAY_SWAP_MASK, I915_OVERLAY_NO_SWAP, I915_OVERLAY_UV_SWAP, I915_OVERLAY_Y_SWAP, I915_OVERLAY_Y_AND_UV_SWAP, I915_OVERLAY_FLAGS_MASK, I915_OVERLAY_ENABLE, I915_OVERLAY_UPDATE_ATTRS, I915_OVERLAY_UPDATE_GAMMA, I915_OVERLAY_DISABLE_DEST_COLORKEY
+i915_query_perf_flags = DRM_I915_QUERY_PERF_CONFIG_LIST, DRM_I915_QUERY_PERF_CONFIG_DATA_FOR_UUID, DRM_I915_QUERY_PERF_CONFIG_DATA_FOR_ID, DRM_I915_QUERY_PERF_CONFIG_DATA_FOR_ID

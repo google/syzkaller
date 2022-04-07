@@ -1,0 +1,5 @@
+TITLE: divide error in corrupted
+CORRUPTED: Y
+
+[   89.659427] netlink: 13 bytes leftover after parsing attributes in process syz-executor5'.
+[   89.668217] divide error: 0000 [#1] SMP KASAN

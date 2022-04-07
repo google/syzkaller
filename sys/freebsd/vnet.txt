@@ -1,0 +1,1029 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <sys/param.h>
+include <sys/socket.h>
+include <net/ethernet.h>
+include <net/if_arp.h>
+include <netinet/in.h>
+include <netinet/ip.h>
+include <netinet/ip_icmp.h>
+include <netinet/ip6.h>
+include <netinet/icmp6.h>
+include <netinet/tcp.h>
+
+syz_emit_ethernet(len len[packet], packet ptr[in, eth_packet])
+
+hop_limits = 0, 1, 255
+
+resource tcp_seq_num[int32]: 0x41424344
+
+tcp_resources {
+	seq	tcp_seq_num
+	ack	tcp_seq_num
+}
+
+# These pseudo syscalls read a packet from tap device and extract tcp sequence and acknowledgement numbers from it.
+# They also adds the inc arguments to the returned values, this way sequence numbers get incremented.
+syz_extract_tcp_res(res ptr[out, tcp_resources], seq_inc int32, ack_inc int32)
+syz_extract_tcp_res$synack(res ptr[out, tcp_resources], seq_inc const[1], ack_inc const[0])
+
+################################################################################
+################################### Ethernet ###################################
+################################################################################
+
+# https://en.wikipedia.org/wiki/Ethernet_frame#Structure
+# https://en.wikipedia.org/wiki/IEEE_802.1Q
+
+type mac_addr_t[LAST] {
+	a0	array[const[0xaa, int8], 5]
+	a1	LAST
+} [packed]
+
+mac_addr [
+	empty		array[const[0x0, int8], 6]
+	local		mac_addr_t[const[0xaa, int8]]
+	remote		mac_addr_t[const[0xbb, int8]]
+	broadcast	array[const[0xff, int8], 6]
+	random		array[int8, 6]
+]
+
+vlan_tag_ad {
+	tpid	const[ETHERTYPE_QINQ, int16be]
+	pcp	int16:3
+	dei	int16:1
+	vid	int16:12[0:4]
+} [packed]
+
+vlan_tag_q {
+	tpid	const[ETHERTYPE_VLAN, int16be]
+	pcp	int16:3
+	dei	int16:1
+	vid	int16:12[0:4]
+} [packed]
+
+vlan_tag {
+	tag_ad	array[vlan_tag_ad, 0:1]
+	tag_q	vlan_tag_q
+} [packed]
+
+eth_packet {
+	dst_mac	mac_addr
+	src_mac	mac_addr
+	vtag	array[vlan_tag, 0:1]
+	payload	eth_payload
+} [packed]
+
+eth_payload {
+	eth2	eth2_packet
+} [packed]
+
+################################################################################
+################################## Ethernet 2 ##################################
+################################################################################
+
+# https://en.wikipedia.org/wiki/Ethernet_frame#Ethernet_II
+
+ether_types = ETHERTYPE_8023, ETHERTYPE_PUP, ETHERTYPE_PUPAT, ETHERTYPE_SPRITE, ETHERTYPE_NS, ETHERTYPE_NSAT, ETHERTYPE_DLOG1, ETHERTYPE_DLOG2, ETHERTYPE_IP, ETHERTYPE_X75, ETHERTYPE_NBS, ETHERTYPE_ECMA, ETHERTYPE_CHAOS, ETHERTYPE_X25, ETHERTYPE_ARP, ETHERTYPE_NSCOMPAT, ETHERTYPE_FRARP, ETHERTYPE_UBDEBUG, ETHERTYPE_IEEEPUP, ETHERTYPE_IEEEPUPAT, ETHERTYPE_VINES, ETHERTYPE_VINESLOOP, ETHERTYPE_VINESECHO, ETHERTYPE_DCA, ETHERTYPE_VALID, ETHERTYPE_DOGFIGHT, ETHERTYPE_RCL, ETHERTYPE_NBPVCD, ETHERTYPE_NBPSCD, ETHERTYPE_NBPCREQ, ETHERTYPE_NBPCRSP, ETHERTYPE_NBPCC, ETHERTYPE_NBPCLREQ, ETHERTYPE_NBPCLRSP, ETHERTYPE_NBPDG, ETHERTYPE_NBPDGB, ETHERTYPE_NBPCLAIM, ETHERTYPE_NBPDLTE, ETHERTYPE_NBPRAS, ETHERTYPE_NBPRAR, ETHERTYPE_NBPRST, ETHERTYPE_PCS, ETHERTYPE_IMLBLDIAG, ETHERTYPE_DIDDLE, ETHERTYPE_IMLBL, ETHERTYPE_SIMNET, ETHERTYPE_DECEXPER, ETHERTYPE_MOPDL, ETHERTYPE_MOPRC, ETHERTYPE_DECnet, ETHERTYPE_LAT, ETHERTYPE_DECDIAG, ETHERTYPE_DECCUST, ETHERTYPE_SCA, ETHERTYPE_AMBER, ETHERTYPE_DECMUMPS, ETHERTYPE_TRANSETHER, ETHERTYPE_RAWFR, ETHERTYPE_UBDL, ETHERTYPE_UBNIU, ETHERTYPE_UBDIAGLOOP, ETHERTYPE_UBNMC, ETHERTYPE_UBBST, ETHERTYPE_OS9, ETHERTYPE_OS9NET, ETHERTYPE_RACAL, ETHERTYPE_PRIMENTS, ETHERTYPE_CABLETRON, ETHERTYPE_CRONUSVLN, ETHERTYPE_CRONUS, ETHERTYPE_HP, ETHERTYPE_NESTAR, ETHERTYPE_ATTSTANFORD, ETHERTYPE_EXCELAN, ETHERTYPE_SG_DIAG, ETHERTYPE_SG_NETGAMES, ETHERTYPE_SG_RESV, ETHERTYPE_SG_BOUNCE, ETHERTYPE_APOLLODOMAIN, ETHERTYPE_TYMSHARE, ETHERTYPE_TIGAN, ETHERTYPE_REVARP, ETHERTYPE_AEONIC, ETHERTYPE_IPXNEW, ETHERTYPE_LANBRIDGE, ETHERTYPE_DSMD, ETHERTYPE_ARGONAUT, ETHERTYPE_VAXELN, ETHERTYPE_DECDNS, ETHERTYPE_ENCRYPT, ETHERTYPE_DECDTS, ETHERTYPE_DECLTM, ETHERTYPE_DECNETBIOS, ETHERTYPE_DECLAST, ETHERTYPE_PLANNING, ETHERTYPE_DECAM, ETHERTYPE_EXPERDATA, ETHERTYPE_VEXP, ETHERTYPE_VPROD, ETHERTYPE_ES, ETHERTYPE_LITTLE, ETHERTYPE_COUNTERPOINT, ETHERTYPE_VEECO, ETHERTYPE_GENDYN, ETHERTYPE_ATT, ETHERTYPE_AUTOPHON, ETHERTYPE_COMDESIGN, ETHERTYPE_COMPUGRAPHIC, ETHERTYPE_MATRA, ETHERTYPE_DDE, ETHERTYPE_MERIT, ETHERTYPE_VLTLMAN, ETHERTYPE_ATALK, ETHERTYPE_SPIDER, ETHERTYPE_PACER, ETHERTYPE_APPLITEK, ETHERTYPE_SNA, ETHERTYPE_VARIAN, ETHERTYPE_RETIX, ETHERTYPE_AARP, ETHERTYPE_APOLLO, ETHERTYPE_VLAN, ETHERTYPE_BOFL, ETHERTYPE_WELLFLEET, ETHERTYPE_TALARIS, ETHERTYPE_WATERLOO, ETHERTYPE_HAYES, ETHERTYPE_VGLAB, ETHERTYPE_IPX, ETHERTYPE_NOVELL, ETHERTYPE_MUMPS, ETHERTYPE_AMOEBA, ETHERTYPE_FLIP, ETHERTYPE_VURESERVED, ETHERTYPE_LOGICRAFT, ETHERTYPE_NCD, ETHERTYPE_ALPHA, ETHERTYPE_SNMP, ETHERTYPE_TEC, ETHERTYPE_RATIONAL, ETHERTYPE_XTP, ETHERTYPE_SGITW, ETHERTYPE_HIPPI_FP, ETHERTYPE_STP, ETHERTYPE_MOTOROLA, ETHERTYPE_NETBEUI, ETHERTYPE_ACCTON, ETHERTYPE_TALARISMC, ETHERTYPE_KALPANA, ETHERTYPE_SECTRA, ETHERTYPE_IPV6, ETHERTYPE_DELTACON, ETHERTYPE_ATOMIC, ETHERTYPE_RDP, ETHERTYPE_MICP, ETHERTYPE_TCPCOMP, ETHERTYPE_IPAS, ETHERTYPE_SECUREDATA, ETHERTYPE_FLOWCONTROL, ETHERTYPE_SLOW, ETHERTYPE_PPP, ETHERTYPE_HITACHI, ETHERTYPE_TEST, ETHERTYPE_MPLS, ETHERTYPE_MPLS_MCAST, ETHERTYPE_AXIS, ETHERTYPE_PPPOEDISC, ETHERTYPE_PPPOE, ETHERTYPE_LANPROBE, ETHERTYPE_PAE, ETHERTYPE_QINQ, ETHERTYPE_LOOPBACK, ETHERTYPE_XNSSM, ETHERTYPE_TCPSM, ETHERTYPE_BCLOOP, ETHERTYPE_DEBNI, ETHERTYPE_SONIX, ETHERTYPE_VITAL
+
+eth2_packet [
+	generic	eth2_packet_generic
+	arp	eth2_packet_t[ETHERTYPE_ARP, arp_packet]
+	ipv4	eth2_packet_t[ETHERTYPE_IP, ipv4_packet]
+	ipv6	eth2_packet_t[ETHERTYPE_IPV6, ipv6_packet_t]
+] [varlen]
+
+eth2_packet_generic {
+	etype	flags[ether_types, int16be]
+	payload	array[int8]
+} [packed]
+
+type eth2_packet_t[TYPE, PAYLOAD] {
+	etype	const[TYPE, int16be]
+	payload	PAYLOAD
+} [packed]
+
+################################################################################
+###################################### ARP #####################################
+################################################################################
+
+# https://en.wikipedia.org/wiki/Address_Resolution_Protocol#Packet_structure
+# https://tools.ietf.org/html/rfc826
+
+arp_hrds = ARPHRD_ETHER, ARPHRD_IEEE802, ARPHRD_FRELAY, ARPHRD_IEEE1394, ARPHRD_INFINIBAND
+
+arp_ops = ARPOP_REQUEST, ARPOP_REPLY, ARPOP_REVREQUEST, ARPOP_REVREPLY, ARPOP_INVREQUEST, ARPOP_INVREPLY
+
+arp_generic_packet {
+	ar_hrd	flags[arp_hrds, int16be]
+	ar_pro	flags[ether_types, int16be]
+	ar_hln	const[6, int8]
+	ar_pln	len[ar_spa, int8]
+	ar_op	flags[arp_ops, int16be]
+	ar_sha	mac_addr
+	ar_spa	array[int8, 0:16]
+	ar_tha	mac_addr
+	ar_tpa	array[int8, 16]
+} [packed]
+
+arp_ether_ipv4_packet {
+	ar_hrd	const[ARPHRD_ETHER, int16be]
+	ar_pro	const[ETHERTYPE_IP, int16be]
+	ar_hln	const[6, int8]
+	ar_pln	const[4, int8]
+	ar_op	flags[arp_ops, int16be]
+	ar_sha	mac_addr
+	ar_spa	ipv4_addr
+	ar_tha	mac_addr
+	ar_tpa	ipv4_addr
+} [packed]
+
+arp_packet [
+	generic		arp_generic_packet
+	ether_ipv4	arp_ether_ipv4_packet
+] [varlen]
+
+################################################################################
+##################################### IPv4 #####################################
+################################################################################
+
+# https://tools.ietf.org/html/rfc791#section-3.1
+# https://en.wikipedia.org/wiki/IPv4#Header
+
+# This corresponds to LOCAL_IPV4 ("172.20.%d.170" % pid) in executor/common_bsd.h
+ipv4_addr_local {
+	a0	const[0xac, int8]
+	a1	const[0x14, int8]
+	a2	proc[0, 1, int8]
+	a3	const[0xaa, int8]
+} [packed]
+
+# This corresponds to LOCAL_IPV4 ("172.20.%d.187" % pid) in executor/common_bsd.h
+ipv4_addr_remote {
+	a0	const[0xac, int8]
+	a1	const[0x14, int8]
+	a2	proc[0, 1, int8]
+	a3	const[0xbb, int8]
+} [packed]
+
+ipv4_addr [
+# 0.0.0.0
+	empty		const[0x0, int32be]
+# 172.20.%d.170
+	local		ipv4_addr_local
+# 172.20.%d.187
+	remote		ipv4_addr_remote
+# 127.0.0.1
+	loopback	const[0x7f000001, int32be]
+# 224.0.0.1
+	multicast1	const[0xe0000001, int32be]
+# 224.0.0.2
+	multicast2	const[0xe0000002, int32be]
+# 255.255.255.255
+	broadcast	const[0xffffffff, int32be]
+# random
+	rand_addr	int32be
+]
+
+# http://www.iana.org/assignments/ip-parameters/ip-parameters.xhtml#ip-parameters-1
+ipv4_option [
+	generic		ipv4_option_generic
+	end		ipv4_option_end
+	noop		ipv4_option_noop
+	lsrr		ipv4_option_lsrr
+	ssrr		ipv4_option_ssrr
+	rr		ipv4_option_rr
+	timestamp	ipv4_option_timestamp
+	ra		ipv4_option_ra
+] [varlen]
+
+ipv4_option_types = IPOPT_EOL, IPOPT_NOP, IPOPT_RR, IPOPT_TS, IPOPT_SECURITY, IPOPT_LSRR, IPOPT_ESO, IPOPT_CIPSO, IPOPT_SATID, IPOPT_SSRR, IPOPT_RA
+
+ipv4_option_generic {
+	type	flags[ipv4_option_types, int8]
+	length	len[parent, int8]
+	data	array[int8, 0:16]
+} [packed]
+
+# https://tools.ietf.org/html/rfc791#section-3.1
+ipv4_option_end {
+	type	const[IPOPT_EOL, int8]
+} [packed]
+
+# https://tools.ietf.org/html/rfc791#section-3.1
+ipv4_option_noop {
+	type	const[IPOPT_NOP, int8]
+} [packed]
+
+# https://tools.ietf.org/html/rfc791#section-3.1
+ipv4_option_lsrr {
+	type	const[IPOPT_LSRR, int8]
+	length	len[parent, int8]
+	pointer	int8
+	data	array[ipv4_addr]
+} [packed]
+
+# https://tools.ietf.org/html/rfc791#section-3.1
+ipv4_option_ssrr {
+	type	const[IPOPT_SSRR, int8]
+	length	len[parent, int8]
+	pointer	int8
+	data	array[ipv4_addr]
+} [packed]
+
+# https://tools.ietf.org/html/rfc791#section-3.1
+ipv4_option_rr {
+	type	const[IPOPT_RR, int8]
+	length	len[parent, int8]
+	pointer	int8
+	data	array[ipv4_addr]
+} [packed]
+
+ipv4_option_timestamp_flags = IPOPT_TS_TSONLY, IPOPT_TS_TSANDADDR, IPOPT_TS_PRESPEC
+
+ipv4_option_timestamp_timestamp {
+	addr		array[ipv4_addr, 0:1]
+	timestamp	int32be
+} [packed]
+
+# https://tools.ietf.org/html/rfc791#section-3.1
+# http://www.networksorcery.com/enp/protocol/ip/option004.htm
+ipv4_option_timestamp {
+	type		const[IPOPT_TS, int8]
+	length		len[parent, int8]
+	pointer		int8
+	flg		flags[ipv4_option_timestamp_flags, int8:4]
+	oflw		int8:4
+	timestamps	array[ipv4_option_timestamp_timestamp]
+} [packed]
+
+# https://tools.ietf.org/html/rfc2113
+ipv4_option_ra {
+	type	const[IPOPT_RA, int8]
+	length	len[parent, int8]
+	value	int32be
+} [packed]
+
+ipv4_options {
+	options	array[ipv4_option]
+} [packed, align[4]]
+
+ipv4_types = IPPROTO_ICMP, IPPROTO_IGMP, IPPROTO_IPV4, IPPROTO_TCP, IPPROTO_ST, IPPROTO_EGP, IPPROTO_PIGP, IPPROTO_RCCMON, IPPROTO_NVPII, IPPROTO_PUP, IPPROTO_ARGUS, IPPROTO_EMCON, IPPROTO_XNET, IPPROTO_CHAOS, IPPROTO_UDP, IPPROTO_MUX, IPPROTO_MEAS, IPPROTO_HMP, IPPROTO_PRM, IPPROTO_IDP, IPPROTO_TRUNK1, IPPROTO_TRUNK2, IPPROTO_LEAF1, IPPROTO_LEAF2, IPPROTO_RDP, IPPROTO_IRTP, IPPROTO_TP, IPPROTO_BLT, IPPROTO_NSP, IPPROTO_INP, IPPROTO_DCCP, IPPROTO_3PC, IPPROTO_IDPR, IPPROTO_XTP, IPPROTO_DDP, IPPROTO_CMTP, IPPROTO_TPXX, IPPROTO_IL, IPPROTO_SDRP, IPPROTO_IDRP, IPPROTO_RSVP, IPPROTO_GRE, IPPROTO_MHRP, IPPROTO_BHA, IPPROTO_ESP, IPPROTO_AH, IPPROTO_INLSP, IPPROTO_SWIPE, IPPROTO_NHRP, IPPROTO_MOBILE, IPPROTO_TLSP, IPPROTO_SKIP, IPPROTO_AHIP, IPPROTO_CFTP, IPPROTO_HELLO, IPPROTO_SATEXPAK, IPPROTO_KRYPTOLAN, IPPROTO_RVD, IPPROTO_IPPC, IPPROTO_ADFS, IPPROTO_SATMON, IPPROTO_VISA, IPPROTO_IPCV, IPPROTO_CPNX, IPPROTO_CPHB, IPPROTO_WSN, IPPROTO_PVP, IPPROTO_BRSATMON, IPPROTO_ND, IPPROTO_WBMON, IPPROTO_WBEXPAK, IPPROTO_EON, IPPROTO_VMTP, IPPROTO_SVMTP, IPPROTO_VINES, IPPROTO_TTP, IPPROTO_IGP, IPPROTO_DGP, IPPROTO_TCF, IPPROTO_IGRP, IPPROTO_OSPFIGP, IPPROTO_SRPC, IPPROTO_LARP, IPPROTO_MTP, IPPROTO_AX25, IPPROTO_IPEIP, IPPROTO_MICP, IPPROTO_SCCSP, IPPROTO_ETHERIP, IPPROTO_ENCAP, IPPROTO_APES, IPPROTO_GMTP, IPPROTO_IPCOMP, IPPROTO_IPCOMP, IPPROTO_MH, IPPROTO_UDPLITE, IPPROTO_HIP, IPPROTO_SHIM6, IPPROTO_PIM, IPPROTO_CARP, IPPROTO_PGM, IPPROTO_MPLS, IPPROTO_PFSYNC
+
+ipv4_header {
+	ihl		bytesize4[parent, int8:4]
+	version		const[4, int8:4]
+	ecn		int8:2
+	dscp		int8:6
+	total_len	len[ipv4_packet, int16be]
+	id		int16be[100:104]
+	frag_off	int16be
+# TODO: frag_off is actually 13 bits, 3 bits are flags
+	ttl		int8
+	protocol	flags[ipv4_types, int8]
+	csum		csum[parent, inet, int16be]
+	src_ip		ipv4_addr
+	dst_ip		ipv4_addr
+	options		ipv4_options
+} [packed]
+
+ipv4_packet {
+	header	ipv4_header
+	payload	ipv4_payload
+} [packed]
+
+ipv4_payload [
+	generic	array[int8]
+	tcp	tcp_packet
+	udp	udp_packet
+	icmp	icmp_packet
+] [varlen]
+
+################################################################################
+###################################### ICMP ####################################
+################################################################################
+
+# https://en.wikipedia.org/wiki/Internet_Control_Message_Protocol#ICMP_datagram_structure
+# https://tools.ietf.org/html/rfc792
+# https://tools.ietf.org/html/rfc4884#section-4.1
+# http://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml
+
+icmp_ipv4_header {
+	ihl		bytesize4[parent, int8:4]
+	version		const[4, int8:4]
+	ecn		int8:2
+	dscp		int8:6
+	total_len	int16be
+	id		icmp_id
+	frag_off	int16be
+	ttl		int8
+	protocol	flags[ipv4_types, int8]
+	csum		int16be
+	src_ip		ipv4_addr
+	dst_ip		ipv4_addr
+	options		ipv4_options
+} [packed]
+
+icmp_types = ICMP_ECHOREPLY, ICMP_UNREACH, ICMP_SOURCEQUENCH, ICMP_REDIRECT, ICMP_ALTHOSTADDR, ICMP_ECHO, ICMP_ROUTERADVERT, ICMP_ROUTERSOLICIT, ICMP_TIMXCEED, ICMP_PARAMPROB, ICMP_TSTAMP, ICMP_TSTAMPREPLY, ICMP_IREQ, ICMP_IREQREPLY, ICMP_MASKREQ, ICMP_MASKREPLY, ICMP_TRACEROUTE, ICMP_DATACONVERR, ICMP_MOBILE_REDIRECT, ICMP_IPV6_WHEREAREYOU, ICMP_IPV6_IAMHERE, ICMP_MOBILE_REGREQUEST, ICMP_MOBILE_REGREPLY, ICMP_SKIP, ICMP_PHOTURIS
+
+icmp_generic_packet {
+	type	flags[icmp_types, int8]
+	code	int8
+	csum	csum[parent, inet, int16be]
+	data	array[int8]
+} [packed]
+
+icmp_echo_reply_packet {
+	type	const[ICMP_ECHOREPLY, int8]
+	code	const[0, int8]
+	csum	csum[parent, inet, int16be]
+	id	icmp_id
+	seq_num	int16be
+	data	array[int8]
+} [packed]
+
+type icmp_id int16be[100:104]
+
+icmp_dest_unreach_codes = ICMP_UNREACH_NET, ICMP_UNREACH_HOST, ICMP_UNREACH_PROTOCOL, ICMP_UNREACH_PORT, ICMP_UNREACH_NEEDFRAG, ICMP_UNREACH_SRCFAIL, ICMP_UNREACH_NET_UNKNOWN, ICMP_UNREACH_HOST_UNKNOWN, ICMP_UNREACH_ISOLATED, ICMP_UNREACH_NET_PROHIB, ICMP_UNREACH_HOST_PROHIB, ICMP_UNREACH_TOSNET, ICMP_UNREACH_TOSHOST, ICMP_UNREACH_FILTER_PROHIB, ICMP_UNREACH_HOST_PRECEDENCE, ICMP_UNREACH_PRECEDENCE_CUTOFF
+
+icmp_dest_unreach_packet {
+	type	const[ICMP_UNREACH, int8]
+	code	flags[icmp_dest_unreach_codes, int8]
+	csum	csum[parent, inet, int16be]
+	unused	const[0, int8]
+	length	int8
+	mtu	int16be
+	iph	icmp_ipv4_header
+	data	array[int8, 0:8]
+} [packed]
+
+icmp_source_quench_packet {
+	type	const[ICMP_SOURCEQUENCH, int8]
+	code	const[0, int8]
+	csum	csum[parent, inet, int16be]
+	unused	const[0, int32]
+	iph	icmp_ipv4_header
+	data	array[int8, 0:8]
+} [packed]
+
+icmp_redirect_codes = ICMP_REDIRECT_NET, ICMP_REDIRECT_HOST, ICMP_REDIRECT_TOSNET, ICMP_REDIRECT_TOSHOST
+
+icmp_redirect_packet {
+	type	const[ICMP_REDIRECT, int8]
+	code	flags[icmp_redirect_codes, int8]
+	csum	csum[parent, inet, int16be]
+	ip	ipv4_addr
+	iph	icmp_ipv4_header
+	data	array[int8, 0:8]
+} [packed]
+
+icmp_echo_packet {
+	type	const[ICMP_ECHO, int8]
+	code	const[0, int8]
+	csum	csum[parent, inet, int16be]
+	id	int16be
+	seq_num	int16be
+	data	array[int8]
+} [packed]
+
+icmp_time_exceeded_codes = ICMP_TIMXCEED_INTRANS, ICMP_TIMXCEED_REASS
+
+icmp_time_exceeded_packet {
+	type	const[ICMP_TIMXCEED, int8]
+	code	flags[icmp_time_exceeded_codes, int8]
+	csum	csum[parent, inet, int16be]
+	unused1	const[0, int8]
+	length	int8
+	unused2	const[0, int16]
+	iph	icmp_ipv4_header
+	data	array[int8, 0:8]
+} [packed]
+
+icmp_parameter_prob_codes = ICMP_PARAMPROB_ERRATPTR, ICMP_PARAMPROB_OPTABSENT, ICMP_PARAMPROB_LENGTH
+
+icmp_parameter_prob_packet {
+	type	const[ICMP_PARAMPROB, int8]
+	code	flags[icmp_parameter_prob_codes, int8]
+	csum	csum[parent, inet, int16be]
+	pointer	int8
+	length	int8
+	unused	const[0, int16]
+	iph	icmp_ipv4_header
+	data	array[int8, 0:8]
+} [packed]
+
+icmp_timestamp_packet {
+	type		const[ICMP_TSTAMP, int8]
+	code		const[0, int8]
+	csum		csum[parent, inet, int16be]
+	id		int16be
+	seq_num		int16be
+	orig_ts		int32be
+	recv_ts		int32be
+	trans_ts	int32be
+} [packed]
+
+icmp_timestamp_reply_packet {
+	type		const[ICMP_TSTAMPREPLY, int8]
+	code		const[0, int8]
+	csum		csum[parent, inet, int16be]
+	id		int16be
+	seq_num		int16be
+	orig_ts		int32be
+	recv_ts		int32be
+	trans_ts	int32be
+} [packed]
+
+icmp_info_request_packet {
+	type	const[ICMP_IREQ, int8]
+	code	const[0, int8]
+	csum	csum[parent, inet, int16be]
+	id	int16be
+	seq_num	int16be
+} [packed]
+
+icmp_info_reply_packet {
+	type	const[ICMP_IREQREPLY, int8]
+	code	const[0, int8]
+	csum	csum[parent, inet, int16be]
+	id	int16be
+	seq_num	int16be
+} [packed]
+
+icmp_mask_request_packet {
+	type	const[ICMP_MASKREQ, int8]
+	code	const[0, int8]
+	csum	csum[parent, inet, int16be]
+	mask	int32be
+} [packed]
+
+icmp_mask_reply_packet {
+	type	const[ICMP_MASKREPLY, int8]
+	code	const[0, int8]
+	csum	csum[parent, inet, int16be]
+	mask	int32be
+} [packed]
+
+icmp_packet [
+	generic		icmp_generic_packet
+	echo_reply	icmp_echo_reply_packet
+	dest_unreach	icmp_dest_unreach_packet
+	source_quench	icmp_source_quench_packet
+	redirect	icmp_redirect_packet
+	echo		icmp_echo_packet
+	time_exceeded	icmp_time_exceeded_packet
+	parameter_prob	icmp_parameter_prob_packet
+	timestamp	icmp_timestamp_packet
+	timestamp_reply	icmp_timestamp_reply_packet
+	info_request	icmp_info_request_packet
+	info_reply	icmp_info_reply_packet
+	mask_request	icmp_mask_request_packet
+	mask_reply	icmp_mask_reply_packet
+] [varlen]
+
+################################################################################
+##################################### IPv6 #####################################
+################################################################################
+
+ipv6_types = IPPROTO_IPV4, IPPROTO_TCP, IPPROTO_ST, IPPROTO_EGP, IPPROTO_PIGP, IPPROTO_RCCMON, IPPROTO_NVPII, IPPROTO_PUP, IPPROTO_ARGUS, IPPROTO_EMCON, IPPROTO_XNET, IPPROTO_CHAOS, IPPROTO_UDP, IPPROTO_MUX, IPPROTO_MEAS, IPPROTO_HMP, IPPROTO_PRM, IPPROTO_IDP, IPPROTO_TRUNK1, IPPROTO_TRUNK2, IPPROTO_LEAF1, IPPROTO_LEAF2, IPPROTO_RDP, IPPROTO_IRTP, IPPROTO_TP, IPPROTO_BLT, IPPROTO_NSP, IPPROTO_INP, IPPROTO_DCCP, IPPROTO_3PC, IPPROTO_IDPR, IPPROTO_XTP, IPPROTO_DDP, IPPROTO_CMTP, IPPROTO_TPXX, IPPROTO_IL, IPPROTO_SDRP, IPPROTO_ROUTING, IPPROTO_FRAGMENT, IPPROTO_IDRP, IPPROTO_RSVP, IPPROTO_GRE, IPPROTO_MHRP, IPPROTO_BHA, IPPROTO_ESP, IPPROTO_AH, IPPROTO_INLSP, IPPROTO_SWIPE, IPPROTO_NHRP, IPPROTO_MOBILE, IPPROTO_TLSP, IPPROTO_SKIP, IPPROTO_ICMPV6, IPPROTO_NONE, IPPROTO_DSTOPTS, IPPROTO_AHIP, IPPROTO_CFTP, IPPROTO_HELLO, IPPROTO_SATEXPAK, IPPROTO_KRYPTOLAN, IPPROTO_RVD, IPPROTO_IPPC, IPPROTO_ADFS, IPPROTO_SATMON, IPPROTO_VISA, IPPROTO_IPCV, IPPROTO_CPNX, IPPROTO_CPHB, IPPROTO_WSN, IPPROTO_PVP, IPPROTO_BRSATMON, IPPROTO_ND, IPPROTO_WBMON, IPPROTO_WBEXPAK, IPPROTO_EON, IPPROTO_VMTP, IPPROTO_SVMTP, IPPROTO_VINES, IPPROTO_TTP, IPPROTO_IGP, IPPROTO_DGP, IPPROTO_TCF, IPPROTO_IGRP, IPPROTO_OSPFIGP, IPPROTO_SRPC, IPPROTO_LARP, IPPROTO_MTP, IPPROTO_AX25, IPPROTO_IPEIP, IPPROTO_MICP, IPPROTO_SCCSP, IPPROTO_ETHERIP, IPPROTO_ENCAP, IPPROTO_APES, IPPROTO_GMTP, IPPROTO_IPCOMP, IPPROTO_IPCOMP, IPPROTO_MH, IPPROTO_UDPLITE, IPPROTO_HIP, IPPROTO_SHIM6, IPPROTO_PIM, IPPROTO_CARP, IPPROTO_PGM, IPPROTO_MPLS, IPPROTO_PFSYNC
+
+ipv6_addr_empty {
+	a0	array[const[0x0, int8], 16]
+}
+
+# This corresponds to LOCAL_IPV6 ("fe80::%02hxaa" % pid) in executor/common_bsd.h
+ipv6_addr_local {
+	a0	const[0xfe, int8]
+	a1	const[0x80, int8]
+	a2	array[const[0x0, int8], 12]
+	a3	proc[0, 1, int8]
+	a4	const[0xaa, int8]
+} [packed]
+
+# This corresponds to REMOTE_IPV6 ("fe80::%02hxbb" % pid) in executor/common_bsd.h
+ipv6_addr_remote {
+	a0	const[0xfe, int8]
+	a1	const[0x80, int8]
+	a2	array[const[0x0, int8], 12]
+	a3	proc[0, 1, int8]
+	a4	const[0xbb, int8]
+} [packed]
+
+ipv6_addr_loopback {
+	a0	const[0, int64be]
+	a1	const[1, int64be]
+} [packed]
+
+ipv6_addr_ipv4 {
+	a0	array[const[0x0, int8], 10]
+	a1	array[const[0xff, int8], 2]
+	a3	ipv4_addr
+} [packed]
+
+ipv6_addr_multicast1 {
+	a0	const[0xff, int8]
+	a1	const[0x1, int8]
+	a2	array[const[0x0, int8], 13]
+	a3	const[0x1, int8]
+} [packed]
+
+ipv6_addr_multicast2 {
+	a0	const[0xff, int8]
+	a1	const[0x2, int8]
+	a2	array[const[0x0, int8], 13]
+	a3	const[0x1, int8]
+} [packed]
+
+ipv6_addr [
+	rand_addr	array[int8, 16]
+	empty		ipv6_addr_empty
+	local		ipv6_addr_local
+	remote		ipv6_addr_remote
+	loopback	ipv6_addr_loopback
+	ipv4		ipv6_addr_ipv4
+	mcast1		ipv6_addr_multicast1
+	mcast2		ipv6_addr_multicast2
+] [size[16]]
+
+# https://tools.ietf.org/html/rfc2402
+# https://tools.ietf.org/html/rfc2406
+# https://tools.ietf.org/html/rfc3775
+
+# https://tools.ietf.org/html/rfc2460#section-4
+# The length field in each of the extension headers specifies the
+# length of the header in 8-octet units not including the first 8 octets.
+
+ipv6_ext_header [
+	hopopts		ipv6_hopopts_ext_header
+	routing		ipv6_rt_hdr
+	fragment	ipv6_fragment_ext_header
+	dstopts		ipv6_dstopts_ext_header
+] [varlen]
+
+ipv6_hopopts_ext_header {
+	next_header	flags[ipv6_types, int8]
+	length		bytesize8[options, int8]
+	pad		array[const[0, int8], 6]
+	options		array[ipv6_tlv_option]
+} [packed, align[8]]
+
+ipv6_routing_types = IPV6_RTHDR_LOOSE, IPV6_RTHDR_STRICT, IPV6_RTHDR_TYPE_0
+
+ipv6_rt_hdr {
+	next_header	flags[ipv6_types, int8]
+	length		bytesize8[data, int8]
+	routing_type	flags[ipv6_routing_types, int8]
+	segments_left	int8
+	reserved	const[0, int32]
+	data		array[ipv6_addr]
+} [packed, align[8]]
+
+ipv6_fragment_ext_header {
+	next_header	flags[ipv6_types, int8]
+	reserved1	const[0, int8]
+	fragment_off_hi	int8
+	m_flag		int8:1
+	reserved2	const[0, int8:2]
+	fragment_off_lo	int8:5
+	identification	int32[100:104]
+} [packed, align[8]]
+
+ipv6_dstopts_ext_header {
+	next_header	flags[ipv6_types, int8]
+	length		bytesize8[options, int8]
+	pad		array[const[0, int8], 6]
+	options		array[ipv6_tlv_option]
+} [packed, align[8]]
+
+ipv6_tlv_option [
+	generic	ipv6_tlv_generic
+	pad1	ipv6_tlv_pad1
+	padn	ipv6_tlv_padn
+	jumbo	ipv6_tlv_jumbo
+	enc_lim	ipv6_tlv_tun_lim
+	ra	ipv6_tlv_ra
+] [varlen]
+
+ipv6_tlv_generic {
+	type	int8
+	length	len[data, int8]
+	data	array[int8]
+} [packed]
+
+ipv6_tlv_pad1 {
+	type	const[IP6OPT_PAD1, int8]
+	len	const[1, int8]
+	pad	const[0, int8]
+} [packed]
+
+ipv6_tlv_padn {
+	type	const[IP6OPT_PADN, int8]
+	len	len[pad, int8]
+	pad	array[const[0, int8]]
+} [packed]
+
+ipv6_tlv_jumbo {
+	type	const[IP6OPT_JUMBO, int8]
+	len	const[4, int8]
+	pkt_len	int32be
+} [packed]
+
+ipv6_tlv_tun_lim {
+	type		const[IP6OPT_TUNNEL_LIMIT, int8]
+	len		const[1, int8]
+	encap_limit	int8
+} [packed]
+
+ipv6_tlv_ra {
+	type	const[IP6OPT_ROUTER_ALERT, int8]
+	len	const[2, int8]
+	ra	int16be
+} [packed]
+
+ipv6_packet_t {
+	priority	int8:4
+	version		const[6, int8:4]
+	flow_label	array[int8, 3]
+# TODO: flow_label is actually 20 bits, 4 bits are part of priority
+	length		len[payload, int16be]
+	next_header	flags[ipv6_types, int8]
+	hop_limit	flags[hop_limits, int8]
+	src_ip		ipv6_addr
+	dst_ip		ipv6_addr
+	payload		ipv6_packet_payload
+} [packed]
+
+ipv6_packet_payload {
+	ext_headers	array[ipv6_ext_header]
+	payload		ipv6_payload
+} [packed]
+
+ipv6_payload [
+	generic	array[int8]
+	tcp	tcp_packet
+	udp	udp_packet
+	icmpv6	icmpv6_packet
+] [varlen]
+
+################################################################################
+##################################### ICMPv6 ###################################
+################################################################################
+
+# https://tools.ietf.org/html/rfc4443
+# http://www.iana.org/assignments/icmpv6-parameters/icmpv6-parameters.xhtml
+
+icmpv6_ipv6_packet {
+	priority	int8:4
+	version		const[6, int8:4]
+	flow_label	array[int8, 3]
+	length		int16be
+	next_header	flags[ipv6_types, int8]
+	hop_limit	flags[hop_limits, int8]
+	src_ip		ipv6_addr
+	dst_ip		ipv6_addr
+	ext_headers	array[ipv6_ext_header]
+	data		array[int8]
+} [packed]
+
+icmpv6_dest_unreach_codes = ICMP6_DST_UNREACH_NOROUTE, ICMP6_DST_UNREACH_ADMIN, ICMP6_DST_UNREACH_NOTNEIGHBOR, ICMP6_DST_UNREACH_BEYONDSCOPE, ICMP6_DST_UNREACH_ADDR, ICMP6_DST_UNREACH_NOPORT, ICMP6_DST_UNREACH_POLICY, ICMP6_DST_UNREACH_REJECT, ICMP6_DST_UNREACH_SRCROUTE
+
+icmpv6_dest_unreach_packet {
+	type	const[ICMP6_DST_UNREACH, int8]
+	code	flags[icmpv6_dest_unreach_codes, int8]
+	csum	csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	length	int8
+	unused	array[const[0, int8], 3]
+	packet	icmpv6_ipv6_packet
+} [packed]
+
+icmpv6_pkt_toobig_packet {
+	type	const[ICMP6_PACKET_TOO_BIG, int8]
+	code	const[0, int8]
+	csum	csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	mtu	int32be
+	packet	icmpv6_ipv6_packet
+} [packed]
+
+icmpv6_time_exceed_codes = ICMP6_TIME_EXCEED_TRANSIT, ICMP6_TIME_EXCEED_REASSEMBLY
+
+icmpv6_time_exceed_packet {
+	type	const[ICMP6_TIME_EXCEEDED, int8]
+	code	flags[icmpv6_time_exceed_codes, int8]
+	csum	csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	length	int8
+	unused	array[const[0, int8], 3]
+	packet	icmpv6_ipv6_packet
+} [packed]
+
+icmpv6_param_prob_codes = ICMP6_PARAMPROB_HEADER, ICMP6_PARAMPROB_NEXTHEADER, ICMP6_PARAMPROB_OPTION
+
+icmpv6_param_prob_packet {
+	type	const[ICMP6_PARAM_PROB, int8]
+	code	flags[icmpv6_param_prob_codes, int8]
+	csum	csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	pointer	int32be
+	packet	icmpv6_ipv6_packet
+} [packed]
+
+icmpv6_echo_request_packet {
+	type	const[ICMP6_ECHO_REQUEST, int8]
+	code	const[0, int8]
+	csum	csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	id	int16be
+	seq_num	int16be
+	data	array[int8]
+} [packed]
+
+icmpv6_echo_reply_packet {
+	type	const[ICMP6_ECHO_REPLY, int8]
+	code	const[0, int8]
+	csum	csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	id	int16be
+	seq_num	int16be
+	data	array[int8]
+} [packed]
+
+icmpv6_mld_types = MLD_LISTENER_QUERY, MLD_LISTENER_REPORT, MLD_LISTENER_REDUCTION
+
+# https://tools.ietf.org/html/rfc2710#section-3
+icmpv6_mld_packet {
+	type	flags[icmpv6_mld_types, int8]
+	code	const[0, int8]
+	csum	csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	mrd	int16be
+	unused	int16be
+	addr	ipv6_addr
+} [packed]
+
+# https://tools.ietf.org/html/rfc3810#section-5.1
+icmpv6_mldv2_listener_query_packet {
+	type		const[MLD_LISTENER_QUERY, int8]
+	code		const[0, int8]
+	csum		csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	mrd		int16be
+	unused		int16be
+	mca		ipv6_addr
+	qrv		int8:3
+	suppress	int8:1
+	resv2		int8:4
+	qqic		int8
+	nsrcs		len[srcs, int16be]
+	srcs		array[ipv6_addr]
+} [packed]
+
+icmpv6_mldv2_grec {
+	type		int8
+	auxwords	len[aux, int8]
+	nsrcs		len[srcs, int16be]
+	mca		ipv6_addr
+	srcs		array[ipv6_addr]
+	aux		array[int32]
+} [packed]
+
+# https://tools.ietf.org/html/rfc3810#section-5.2
+icmpv6_mldv2_listener_report_packet {
+	type	const[MLDV2_LISTENER_REPORT, int8]
+	code	const[0, int8]
+	csum	csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	unused	int16
+	ngrec	len[grec, int16be]
+	grec	array[icmpv6_mldv2_grec]
+} [packed]
+
+icmpv6_ni_types = ICMP6_NI_QUERY, ICMP6_NI_REPLY
+
+# https://tools.ietf.org/html/rfc4620#section-4
+icmpv6_ni_packet {
+	type	flags[icmpv6_ni_types, int8]
+	code	const[0, int8]
+	csum	csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	qtype	int16be
+	flags	int16be
+	nonce	int64be
+	data	array[int8]
+} [packed]
+
+icmpv6_ndisc_option_types = ND_OPT_SOURCE_LINKADDR, ND_OPT_TARGET_LINKADDR, ND_OPT_PREFIX_INFORMATION, ND_OPT_REDIRECTED_HEADER, ND_OPT_MTU, ND_OPT_NONCE, ND_OPT_ROUTE_INFO, ND_OPT_RDNSS, ND_OPT_DNSSL
+
+# https://tools.ietf.org/html/rfc4861#section-4.6
+icmpv6_ndisc_option {
+	option_type	flags[icmpv6_ndisc_option_types, int8]
+	length		bytesize8[parent, int8]
+# TODO: define the option formats
+	data		array[int8]
+} [packed]
+
+# https://tools.ietf.org/html/rfc4861#section-4.1
+icmpv6_ndisc_router_solicit_packet {
+	type	const[ND_ROUTER_SOLICIT, int8]
+	code	const[0, int8]
+	csum	csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	unused	array[const[0, int8], 4]
+	options	array[icmpv6_ndisc_option]
+} [packed]
+
+# https://tools.ietf.org/html/rfc4861#section-4.2
+icmpv6_ndisc_router_advert_packet {
+	type		const[ND_ROUTER_ADVERT, int8]
+	code		const[0, int8]
+	csum		csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	cur_hop_limit	flags[hop_limits, int8]
+# TODO: Implement bitflags for the router advert flags
+	router_flags	int8
+	router_lifetime	int16be
+	reachable_time	int32be
+	retrans_time	int32be
+	options		array[icmpv6_ndisc_option]
+} [packed]
+
+# https://tools.ietf.org/html/rfc4861#section-4.3
+icmpv6_ndisc_neigh_solicit_packet {
+	type		const[ND_NEIGHBOR_SOLICIT, int8]
+	code		const[0, int8]
+	csum		csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	target_addr	ipv6_addr
+	options		array[icmpv6_ndisc_option]
+} [packed]
+
+# https://tools.ietf.org/html/rfc4861#section-4.4
+icmpv6_ndisc_neigh_advert_packet {
+	type		const[ND_NEIGHBOR_ADVERT, int8]
+	code		const[0, int8]
+	csum		csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+# TODO: Implement bitflags for the neighbor advert flags
+	neighbor_flags	int8
+	unused		array[const[0, int8], 3]
+	target_addr	ipv6_addr
+	options		array[icmpv6_ndisc_option]
+} [packed]
+
+# https://tools.ietf.org/html/rfc4861#section-4.5
+icmpv6_ndisc_redir_packet {
+	type		const[ND_REDIRECT, int8]
+	code		const[0, int8]
+	csum		csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	unused		array[const[0, int8], 4]
+	target_addr	ipv6_addr
+	dst_addr	ipv6_addr
+	options		array[icmpv6_ndisc_option]
+} [packed]
+
+icmpv6_packet [
+	dest_unreach	icmpv6_dest_unreach_packet
+	pkt_toobig	icmpv6_pkt_toobig_packet
+	time_exceed	icmpv6_time_exceed_packet
+	param_prob	icmpv6_param_prob_packet
+	echo_request	icmpv6_echo_request_packet
+	echo_reply	icmpv6_echo_reply_packet
+	mld		icmpv6_mld_packet
+	mlv2_query	icmpv6_mldv2_listener_query_packet
+	mlv2_report	icmpv6_mldv2_listener_report_packet
+	ni		icmpv6_ni_packet
+	ndisc_rs	icmpv6_ndisc_router_solicit_packet
+	ndisc_ra	icmpv6_ndisc_router_advert_packet
+	ndisc_na	icmpv6_ndisc_neigh_advert_packet
+	ndisc_ns	icmpv6_ndisc_neigh_solicit_packet
+	ndisc_redir	icmpv6_ndisc_redir_packet
+] [varlen]
+
+################################################################################
+###################################### TCP #####################################
+################################################################################
+
+# https://tools.ietf.org/html/rfc793#section-3.1
+# https://en.wikipedia.org/wiki/Transmission_Control_Protocol#TCP_segment_structure
+# http://www.iana.org/assignments/tcp-parameters/tcp-parameters.xhtml
+
+tcp_option [
+	generic		tcp_generic_option
+	nop		tcp_nop_option
+	eol		tcp_eol_option
+	mss		tcp_mss_option
+	window		tcp_window_option
+	sack_perm	tcp_sack_perm_option
+	sack		tcp_sack_option
+	timestamp	tcp_timestamp_option
+	md5sig		tcp_md5sig_option
+	fastopen	tcp_fastopen_option
+] [varlen]
+
+tcp_option_types = TCPOPT_EOL, TCPOPT_NOP, TCPOPT_MAXSEG, TCPOPT_WINDOW, TCPOPT_SACK_PERMITTED, TCPOPT_SACK, TCPOPT_TIMESTAMP, TCPOPT_SIGNATURE, TCPOPT_FAST_OPEN
+
+tcp_generic_option {
+	type	flags[tcp_option_types, int8]
+	length	len[parent, int8]
+	data	array[int8, 0:16]
+} [packed]
+
+# https://tools.ietf.org/html/rfc793#section-3.1
+tcp_eol_option {
+	type	const[TCPOPT_EOL, int8]
+} [packed]
+
+# https://tools.ietf.org/html/rfc793#section-3.1
+tcp_nop_option {
+	type	const[TCPOPT_NOP, int8]
+} [packed]
+
+# https://tools.ietf.org/html/rfc793#section-3.1
+tcp_mss_option {
+	type		const[TCPOPT_MAXSEG, int8]
+	length		len[parent, int8]
+	seg_size	int16be
+} [packed]
+
+# https://tools.ietf.org/html/rfc7323#section-2
+tcp_window_option {
+	type	const[TCPOPT_WINDOW, int8]
+	length	len[parent, int8]
+	shift	int8
+} [packed]
+
+# https://tools.ietf.org/html/rfc2018#section-2
+tcp_sack_perm_option {
+	type	const[TCPOPT_SACK_PERMITTED, int8]
+	length	len[parent, int8]
+} [packed]
+
+# https://tools.ietf.org/html/rfc2018#section-3
+tcp_sack_option {
+	type	const[TCPOPT_SACK, int8]
+	length	len[parent, int8]
+	data	array[int32be]
+} [packed]
+
+# https://tools.ietf.org/html/rfc7323#section-3
+tcp_timestamp_option {
+	type	const[TCPOPT_TIMESTAMP, int8]
+	length	len[parent, int8]
+	tsval	int32be
+	tsecr	int32be
+} [packed]
+
+# https://tools.ietf.org/html/rfc2385#section-3.0
+tcp_md5sig_option {
+	type	const[TCPOPT_SIGNATURE, int8]
+	length	len[parent, int8]
+	md5	array[int8, 16]
+} [packed]
+
+# https://tools.ietf.org/html/rfc7413#section-4.1.1
+tcp_fastopen_option {
+	type	const[TCPOPT_FAST_OPEN, int8]
+	length	len[parent, int8]
+	data	array[int8, 0:16]
+} [packed]
+
+tcp_options {
+	options	array[tcp_option]
+} [packed, align[4]]
+
+tcp_flags = 0, TH_FIN, TH_SYN, TH_RST, TH_PUSH, TH_ACK, TH_URG, TH_ECE, TH_CWR
+
+tcp_header {
+	src_port	sock_port
+	dst_port	sock_port
+	seq_num		tcp_seq_num
+	ack_num		tcp_seq_num
+	ns		int8:1
+	reserved	const[0, int8:3]
+	data_off	bytesize4[parent, int8:4]
+	flags		flags[tcp_flags, int8]
+	window_size	int16be
+	csum		csum[tcp_packet, pseudo, IPPROTO_TCP, int16be]
+	urg_ptr		int16be
+	options		tcp_options
+} [packed]
+
+tcp_packet {
+	header	tcp_header
+	payload	tcp_payload
+} [packed]
+
+tcp_payload {
+	payload	array[int8]
+} [packed]
+
+################################################################################
+###################################### UDP #####################################
+################################################################################
+
+# https://tools.ietf.org/html/rfc768
+# https://en.wikipedia.org/wiki/User_Datagram_Protocol#Packet_structure
+
+udp_header {
+	src_port	sock_port
+	dst_port	sock_port
+	length		len[parent, int16be]
+	csum		csum[parent, pseudo, IPPROTO_UDP, int16be]
+} [packed]
+
+udp_packet {
+	header	udp_header
+	payload	udp_payload
+} [packed]
+
+udp_payload {
+	payload	array[int8]
+} [packed]

@@ -1,0 +1,117 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/types.h>
+include <uapi/linux/fs.h>
+include <scsi/sg.h>
+include <scsi/scsi.h>
+include <scsi/scsi_ioctl.h>
+include <uapi/linux/blktrace_api.h>
+
+resource fd_sg[fd_block_trace]
+
+syz_open_dev$sg(dev ptr[in, string["/dev/sg#"]], id intptr, flags flags[open_flags]) fd_sg
+
+ioctl$SG_IO(fd fd_sg, cmd const[SG_IO], arg ptr[in, sg_io_hdr])
+ioctl$SG_SET_TIMEOUT(fd fd_sg, cmd const[SG_SET_TIMEOUT], arg ptr[in, int32])
+ioctl$SG_GET_TIMEOUT(fd fd_sg, cmd const[SG_GET_TIMEOUT], arg const[0])
+ioctl$SG_GET_LOW_DMA(fd fd_sg, cmd const[SG_GET_LOW_DMA], arg ptr[out, int32])
+ioctl$SG_GET_SCSI_ID(fd fd_sg, cmd const[SG_GET_SCSI_ID], arg ptr[out, array[int8, SG_SCSI_ID_T_SIZE]])
+ioctl$SG_SET_FORCE_PACK_ID(fd fd_sg, cmd const[SG_SET_FORCE_PACK_ID], arg ptr[in, bool32])
+ioctl$SG_GET_PACK_ID(fd fd_sg, cmd const[SG_GET_PACK_ID], arg ptr[out, int32])
+ioctl$SG_GET_NUM_WAITING(fd fd_sg, cmd const[SG_GET_NUM_WAITING], arg ptr[out, int32])
+ioctl$SG_GET_SG_TABLESIZE(fd fd_sg, cmd const[SG_GET_SG_TABLESIZE], arg ptr[out, int32])
+ioctl$SG_SET_RESERVED_SIZE(fd fd_sg, cmd const[SG_SET_RESERVED_SIZE], arg ptr[in, int32])
+ioctl$SG_GET_RESERVED_SIZE(fd fd_sg, cmd const[SG_GET_RESERVED_SIZE], arg ptr[out, int32])
+ioctl$SG_GET_COMMAND_Q(fd fd_sg, cmd const[SG_GET_COMMAND_Q], arg ptr[out, int32])
+ioctl$SG_GET_KEEP_ORPHAN(fd fd_sg, cmd const[SG_GET_KEEP_ORPHAN], arg ptr[out, int32])
+ioctl$SG_GET_VERSION_NUM(fd fd_sg, cmd const[SG_GET_VERSION_NUM], arg ptr[out, int32])
+ioctl$SG_GET_ACCESS_COUNT(fd fd_sg, cmd const[SG_GET_ACCESS_COUNT], arg ptr[out, int32])
+ioctl$SG_EMULATED_HOST(fd fd_sg, cmd const[SG_EMULATED_HOST], arg ptr[out, int32])
+ioctl$SG_SET_COMMAND_Q(fd fd_sg, cmd const[SG_SET_COMMAND_Q], arg ptr[in, bool32])
+ioctl$SG_SET_KEEP_ORPHAN(fd fd_sg, cmd const[SG_SET_KEEP_ORPHAN], arg ptr[in, int32])
+ioctl$SG_NEXT_CMD_LEN(fd fd_sg, cmd const[SG_NEXT_CMD_LEN], arg ptr[in, int32[0:SG_MAX_CDB_SIZE]])
+ioctl$SG_SET_DEBUG(fd fd_sg, cmd const[SG_SET_DEBUG], arg ptr[in, bool32])
+ioctl$SG_SCSI_RESET(fd fd_sg, cmd const[SG_SCSI_RESET], arg const[0])
+ioctl$SG_GET_REQUEST_TABLE(fd fd_sg, cmd const[SG_GET_REQUEST_TABLE], arg ptr[out, array[int8, SG_REQUEST_TABLE_SIZE]])
+
+ioctl$SCSI_IOCTL_SEND_COMMAND(fd fd_sg, cmd const[SCSI_IOCTL_SEND_COMMAND], arg ptr[in, scsi_ioctl_command])
+ioctl$SCSI_IOCTL_TEST_UNIT_READY(fd fd_sg, cmd const[SCSI_IOCTL_TEST_UNIT_READY])
+ioctl$SCSI_IOCTL_DOORLOCK(fd fd_sg, cmd const[SCSI_IOCTL_DOORLOCK])
+ioctl$SCSI_IOCTL_DOORUNLOCK(fd fd_sg, cmd const[SCSI_IOCTL_DOORUNLOCK])
+ioctl$SCSI_IOCTL_START_UNIT(fd fd_sg, cmd const[SCSI_IOCTL_START_UNIT])
+ioctl$SCSI_IOCTL_STOP_UNIT(fd fd_sg, cmd const[SCSI_IOCTL_STOP_UNIT])
+ioctl$SCSI_IOCTL_SYNC(fd fd_sg, cmd const[SCSI_IOCTL_SYNC])
+ioctl$SCSI_IOCTL_BENCHMARK_COMMAND(fd fd_sg, cmd const[SCSI_IOCTL_BENCHMARK_COMMAND])
+ioctl$SCSI_IOCTL_GET_BUS_NUMBER(fd fd_sg, cmd const[SCSI_IOCTL_GET_BUS_NUMBER], arg ptr[out, int32])
+ioctl$SCSI_IOCTL_GET_PCI(fd fd_sg, cmd const[SCSI_IOCTL_GET_PCI], arg ptr[out, array[int8, 20]])
+ioctl$SCSI_IOCTL_PROBE_HOST(fd fd_sg, cmd const[SCSI_IOCTL_PROBE_HOST], arg ptr[out, scsi_ioctl_probe_host_out_buffer])
+ioctl$SCSI_IOCTL_GET_IDLUN(fd fd_sg, cmd const[SCSI_IOCTL_GET_IDLUN], arg ptr[out, scsi_idlun])
+
+sg_io_hdr {
+	interface_id	flags[sg_interface_id, int32]
+	dxfer_direction	flags[sg_dxfer_direction, int32]
+	cmd_len		len[cmdp, int8]
+	mx_sb_len	int8
+	data		sg_io_hdr_data
+	cmdp		ptr[in, array[int8]]
+	sbp		ptr[out, array[int8]]
+	timeout		int32
+	flags		flags[sg_flags, int32]
+	pack_id		int32[-1:3]
+	usr_ptr		ptr[out, int8]
+	status		const[0, int8]
+	masked_status	const[0, int8]
+	msg_status	const[0, int8]
+	sb_len_wr	const[0, int8]
+	host_status	const[0, int16]
+	driver_status	const[0, int16]
+	resid		const[0, int32]
+	duration	const[0, int32]
+	info		const[0, int32]
+} [packed, size[SG_IO_HDR_SIZE]]
+
+sg_io_hdr_data [
+	buffer	sg_io_hdr_data_buffer
+	scatter	sg_io_hdr_data_scatter
+]
+
+sg_io_hdr_data_buffer {
+	iovec_count	const[0, int16]
+	dxfer_len	bytesize[dxferp, int32]
+	dxferp		ptr[out, array[int8]]
+} [packed]
+
+sg_io_hdr_data_scatter {
+	iovec_count	len[dxferp, int16]
+	dxfer_len	const[0, int32]
+	dxferp		ptr[in, array[iovec_out]]
+} [packed]
+
+scsi_ioctl_command {
+	inlen	len[data, int32]
+	outlen	int32
+	opcode	int32
+# TODO: this needs improvement: there are some command headers depending on opcode
+# and inlen only describes data past header.
+	data	array[int8]
+}
+
+scsi_idlun {
+	dev_id		int32
+	host_unique_id	int32
+}
+
+scsi_ioctl_probe_host_out_buffer {
+	len	bytesize[data, int32]
+	data	array[int8]
+}
+
+sg_interface_id = 0, 'S'
+sg_dxfer_direction = SG_DXFER_NONE, SG_DXFER_TO_DEV, SG_DXFER_FROM_DEV, SG_DXFER_TO_FROM_DEV, SG_DXFER_UNKNOWN
+sg_flags = SG_FLAG_DIRECT_IO, SG_FLAG_UNUSED_LUN_INHIBIT, SG_FLAG_MMAP_IO, SG_FLAG_NO_DXFER, SG_FLAG_Q_AT_TAIL, SG_FLAG_Q_AT_HEAD
+
+define SG_MAX_CDB_SIZE	252
+define SG_REQUEST_TABLE_SIZE	SG_MAX_QUEUE * sizeof(sg_req_info_t)
+define SG_IO_HDR_SIZE	sizeof(struct sg_io_hdr)
+define SG_SCSI_ID_T_SIZE	sizeof(sg_scsi_id_t)

@@ -1,0 +1,95 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# TODO: due to autobind a socket can bind to port 0, that will result in a random port which is not reproducible
+
+include <sys/types.h>
+include <sys/socket.h>
+include <netinet/in.h>
+
+resource sock[fd]
+type sock_port proc[20000, 4, int16be]
+
+# TODO: describe socketcall syscall
+
+socket(domain flags[socket_domain], type flags[socket_type], proto int8) sock
+socketpair(domain flags[socket_domain], type flags[socket_type], proto int8, fds ptr[out, sock_pair])
+bind(fd sock, addr ptr[in, sockaddr_storage], addrlen len[addr])
+connect(fd sock, addr ptr[in, sockaddr_storage], addrlen len[addr])
+accept(fd sock, peer ptr[out, sockaddr_storage, opt], peerlen ptr[inout, len[peer, int32]]) sock
+# paccept(fd sock, peer ptr[out, sockaddr_storage, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock
+sendto(fd sock, buf buffer[in], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_storage, opt], addrlen len[addr])
+recvfrom(fd sock, buf buffer[out], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr_storage, opt], addrlen len[addr])
+getsockname(fd sock, addr ptr[out, sockaddr_storage], addrlen ptr[inout, len[addr, int32]])
+getpeername(fd sock, peer ptr[out, sockaddr_storage], peerlen ptr[inout, len[peer, int32]])
+
+sendmsg(fd sock, msg ptr[in, send_msghdr], f flags[send_flags])
+recvmsg(fd sock, msg ptr[inout, recv_msghdr], f flags[recv_flags])
+
+listen(fd sock, backlog int32)
+shutdown(fd sock, how flags[shutdown_flags])
+
+getsockopt(fd sock, level int32, optname int32, optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt(fd sock, level int32, optname int32, optval buffer[in], optlen len[optval])
+
+socket_domain = AF_LOCAL, AF_INET, AF_INET6, AF_NS, AF_BLUETOOTH, AF_APPLETALK
+socket_type = SOCK_STREAM, SOCK_DGRAM, SOCK_RAW, SOCK_RDM, SOCK_SEQPACKET, SOCK_NONBLOCK, SOCK_CLOEXEC
+# accept_flags = SOCK_NONBLOCK, SOCK_CLOEXEC
+shutdown_flags = SHUT_RD, SHUT_WR, SHUT_RDWR
+send_flags = MSG_OOB, MSG_PEEK, MSG_DONTROUTE, MSG_EOR, MSG_NOSIGNAL
+recv_flags = MSG_CMSG_CLOEXEC, MSG_OOB, MSG_PEEK, MSG_WAITALL
+cmsg_levels = SOL_SOCKET, IPPROTO_ICMP
+
+sock_pair {
+	fd0	sock
+	fd1	sock
+}
+
+# This sockaddr type corresponds to the sockaddr_storage type and is 128 bytes size.
+sockaddr_storage [
+	un	sockaddr_un
+	in	sockaddr_in
+	in6	sockaddr_in6
+] [varlen]
+
+send_msghdr {
+	msg_name	ptr[in, sockaddr_storage, opt]
+	msg_namelen	len[msg_name, int32]
+	msg_iov		ptr[in, array[iovec_in]]
+	msg_iovlen	len[msg_iov, intptr]
+	msg_control	ptr[in, array[cmsghdr]]
+	msg_controllen	bytesize[msg_control, intptr]
+	msg_flags	const[0, int32]
+}
+
+recv_msghdr {
+	msg_name	ptr[out, sockaddr_storage, opt]
+	msg_namelen	len[msg_name, int32]
+	msg_iov		ptr[in, array[iovec_out]]
+	msg_iovlen	len[msg_iov, intptr]
+	msg_control	buffer[out]
+	msg_controllen	len[msg_control, intptr]
+	msg_flags	const[0, int32]
+}
+
+cmsghdr {
+	cmsg_len	len[parent, intptr]
+	cmsg_level	flags[cmsg_levels, int32]
+	cmsg_type	int32
+	data		array[int8]
+} [align[PTR_SIZE]]
+
+# Socket options
+
+getsockopt$sock_int(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$sock_int(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_int], optval ptr[in, int32], optlen len[optval])
+getsockopt$sock_linger(fd sock, level const[SOL_SOCKET], optname const[SO_LINGER], optval ptr[out, linger], optlen ptr[inout, len[optval, int32]])
+setsockopt$sock_linger(fd sock, level const[SOL_SOCKET], optname const[SO_LINGER], optval ptr[in, linger], optlen len[optval])
+getsockopt$sock_cred(fd sock, level const[SOL_SOCKET], optname const[SO_PEERCRED], optval ptr[out, ucred], optlen ptr[inout, len[optval, int32]])
+setsockopt$sock_cred(fd sock, level const[SOL_SOCKET], optname const[SO_PEERCRED], optval ptr[in, ucred], optlen len[optval])
+getsockopt$sock_timeval(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_timeval], optval ptr[out, timeval], optlen ptr[inout, len[optval, int32]])
+setsockopt$sock_timeval(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_timeval], optval ptr[in, timeval], optlen len[optval])
+getsockopt$SO_PEERCRED(fd sock, level const[SOL_SOCKET], optname const[SO_PEERCRED], optval ptr[out, ucred], optlen len[optval])
+
+sockopt_opt_sock_int = SO_DEBUG, SO_REUSEADDR, SO_REUSEPORT, SO_KEEPALIVE, SO_DONTROUTE, SO_LINGER, SO_BROADCAST, SO_OOBINLINE, SO_SNDBUF, SO_RCVBUF, SO_SNDLOWAT, SO_RCVLOWAT, SO_TIMESTAMP, SO_TYPE, SO_ERROR
+sockopt_opt_sock_timeval = SO_RCVTIMEO, SO_SNDTIMEO

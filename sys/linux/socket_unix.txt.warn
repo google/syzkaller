@@ -1,0 +1,8 @@
+no-such-struct: unix_pair
+no-such-struct: sockaddr_un_file
+no-such-struct: sockaddr_un_abstract
+no-such-struct: send_msghdr_un
+no-such-struct: send_mmsghdr_un
+no-such-struct: recv_msghdr_un
+no-such-struct: recv_mmsghdr_un
+no-such-struct: cmsg_un_cred

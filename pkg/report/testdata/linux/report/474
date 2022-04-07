@@ -1,0 +1,94 @@
+TITLE: WARNING in tcf_exts_destroy
+
+[   85.150823][ T9436] ------------[ cut here ]------------
+[   85.156312][ T9436] virt_to_cache: Object is not a Slab page!
+[   85.162424][ T9436] WARNING: CPU: 1 PID: 9436 at mm/slab.h:473 kfree+0x1cf/0x2b0
+[   85.169953][ T9436] Kernel panic - not syncing: panic_on_warn set ...
+[   85.176545][ T9436] CPU: 1 PID: 9436 Comm: syz-executor.0 Not tainted 5.6.0-rc5-syzkaller #0
+[   85.185117][ T9436] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   85.195148][ T9436] Call Trace:
+[   85.198423][ T9436]  dump_stack+0x188/0x20d
+[   85.202736][ T9436]  ? kfree+0x170/0x2b0
+[   85.206790][ T9436]  panic+0x2e3/0x75c
+[   85.210770][ T9436]  ? add_taint.cold+0x16/0x16
+[   85.215439][ T9436]  ? __probe_kernel_read+0x188/0x1d0
+[   85.220701][ T9436]  ? __warn.cold+0x14/0x35
+[   85.225091][ T9436]  ? __warn+0xd5/0x1c8
+[   85.229178][ T9436]  ? kfree+0x1cf/0x2b0
+[   85.233226][ T9436]  __warn.cold+0x2f/0x35
+[   85.237442][ T9436]  ? irq_work_queue+0xd2/0x100
+[   85.242182][ T9436]  ? kfree+0x1cf/0x2b0
+[   85.246231][ T9436]  report_bug+0x27b/0x2f0
+[   85.250555][ T9436]  do_error_trap+0x12b/0x220
+[   85.255135][ T9436]  ? kfree+0x1cf/0x2b0
+[   85.259183][ T9436]  do_invalid_op+0x32/0x40
+[   85.263575][ T9436]  ? kfree+0x1cf/0x2b0
+[   85.267619][ T9436]  invalid_op+0x23/0x30
+[   85.271793][ T9436] RIP: 0010:kfree+0x1cf/0x2b0
+[   85.276448][ T9436] Code: 51 ff e9 67 fe ff ff 80 3d 8a a4 b2 08 00 75 1c 48 c7 c6 40 52 15 88 48 c7 c7 e8 03 26 89 c6 05 73 a4 b2 08 01 e8 b9 9f 95 ff <0f> 0b f6 c7 02 75 6b 48 83 3d 52 2e c5 07 00 0f 85 4e ff ff ff 0f
+[   85.296040][ T9436] RSP: 0018:ffffc900020e7030 EFLAGS: 00010082
+[   85.302084][ T9436] RAX: 0000000000000000 RBX: 0000000000000282 RCX: 0000000000000000
+[   85.310035][ T9436] RDX: 0000000000000000 RSI: ffffffff815bf4f1 RDI: fffff5200041cdf8
+[   85.317992][ T9436] RBP: ffffffff8c3f7080 R08: ffff88808e97c600 R09: ffffed1015ce45c9
+[   85.326068][ T9436] R10: ffffed1015ce45c8 R11: ffff8880ae722e43 R12: ffffffff8628c202
+[   85.334020][ T9436] R13: dffffc0000000000 R14: ffff8880a0069c10 R15: 0000000000000000
+[   85.341983][ T9436]  ? tcf_exts_destroy+0x62/0xc0
+[   85.346820][ T9436]  ? vprintk_func+0x81/0x17e
+[   85.351400][ T9436]  tcf_exts_destroy+0x62/0xc0
+[   85.356053][ T9436]  tcf_exts_change+0xf4/0x150
+[   85.360718][ T9436]  ? tcf_exts_destroy+0xc0/0xc0
+[   85.365568][ T9436]  tcindex_set_parms+0xed8/0x1a00
+[   85.370644][ T9436]  ? tcindex_alloc_perfect_hash+0x320/0x320
+[   85.376531][ T9436]  ? mark_held_locks+0xe0/0xe0
+[   85.381453][ T9436]  ? nla_memcpy+0xa0/0xa0
+[   85.385767][ T9436]  ? tcindex_change+0x203/0x2e0
+[   85.390595][ T9436]  tcindex_change+0x203/0x2e0
+[   85.395255][ T9436]  ? tcindex_set_parms+0x1a00/0x1a00
+[   85.400536][ T9436]  tc_new_tfilter+0xa59/0x20b0
+[   85.405283][ T9436]  ? tcindex_set_parms+0x1a00/0x1a00
+[   85.410553][ T9436]  ? tc_del_tfilter+0x1430/0x1430
+[   85.415570][ T9436]  ? __lock_acquire+0x80b/0x3ca0
+[   85.420498][ T9436]  ? apparmor_capable+0x454/0x8a0
+[   85.425514][ T9436]  ? rcu_read_lock_held+0x9c/0xb0
+[   85.430524][ T9436]  ? tc_del_tfilter+0x1430/0x1430
+[   85.435534][ T9436]  rtnetlink_rcv_msg+0x810/0xad0
+[   85.440505][ T9436]  ? rtnl_bridge_getlink+0x880/0x880
+[   85.445772][ T9436]  ? netdev_core_pick_tx+0x2e0/0x2e0
+[   85.451035][ T9436]  ? __copy_skb_header+0x210/0x5b0
+[   85.456138][ T9436]  ? skb_splice_bits+0x1a0/0x1a0
+[   85.461421][ T9436]  ? __kasan_kmalloc.constprop.0+0xbf/0xd0
+[   85.467319][ T9436]  ? kmem_cache_alloc+0x261/0x730
+[   85.472325][ T9436]  netlink_rcv_skb+0x15a/0x410
+[   85.477067][ T9436]  ? rtnl_bridge_getlink+0x880/0x880
+[   85.482439][ T9436]  ? netlink_ack+0xa80/0xa80
+[   85.487019][ T9436]  netlink_unicast+0x537/0x740
+[   85.491772][ T9436]  ? netlink_attachskb+0x810/0x810
+[   85.496875][ T9436]  ? _copy_from_iter_full+0x25c/0x870
+[   85.502233][ T9436]  ? __phys_addr_symbol+0x2c/0x70
+[   85.507287][ T9436]  ? __check_object_size+0x171/0x437
+[   85.512716][ T9436]  netlink_sendmsg+0x882/0xe10
+[   85.517472][ T9436]  ? aa_af_perm+0x260/0x260
+[   85.521954][ T9436]  ? netlink_unicast+0x740/0x740
+[   85.526880][ T9436]  ? netlink_unicast+0x740/0x740
+[   85.531818][ T9436]  sock_sendmsg+0xcf/0x120
+[   85.536282][ T9436]  ____sys_sendmsg+0x6b9/0x7d0
+[   85.541029][ T9436]  ? kernel_sendmsg+0x50/0x50
+[   85.545690][ T9436]  ? mark_lock+0xbc/0x1220
+[   85.550117][ T9436]  ___sys_sendmsg+0x100/0x170
+[   85.554780][ T9436]  ? sendmsg_copy_msghdr+0x70/0x70
+[   85.559871][ T9436]  ? find_held_lock+0x2d/0x110
+[   85.564617][ T9436]  ? find_held_lock+0x2d/0x110
+[   85.569369][ T9436]  ? __might_fault+0x11f/0x1d0
+[   85.574124][ T9436]  ? lock_downgrade+0x7f0/0x7f0
+[   85.578955][ T9436]  ? lock_acquire+0x197/0x420
+[   85.583608][ T9436]  ? __might_fault+0xef/0x1d0
+[   85.588269][ T9436]  ? __fget_light+0x1a5/0x270
+[   85.592933][ T9436]  __sys_sendmsg+0xec/0x1b0
+[   85.597415][ T9436]  ? __sys_sendmsg_sock+0xb0/0xb0
+[   85.602443][ T9436]  ? __ia32_sys_futex_time32+0x32a/0x494
+[   85.608065][ T9436]  ? trace_hardirqs_off_caller+0x55/0x230
+[   85.613764][ T9436]  ? do_fast_syscall_32+0xcc/0xe8f
+[   85.618942][ T9436]  do_fast_syscall_32+0x270/0xe8f
+[   85.623950][ T9436]  entry_SYSENTER_compat+0x70/0x7f
+[   85.630452][ T9436] Kernel Offset: disabled
+[   85.634771][ T9436] Rebooting in 86400 seconds..

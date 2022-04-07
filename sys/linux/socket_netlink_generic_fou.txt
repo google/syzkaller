@@ -1,0 +1,35 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_NETLINK/NETLINK_GENERIC/fou support.
+
+include <linux/net.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/genetlink.h>
+include <uapi/linux/fou.h>
+
+resource genl_fou_family_id[int16]
+type msghdr_nl_fou[CMD] msghdr_netlink[netlink_msg_t[genl_fou_family_id, genlmsghdr_t[CMD], fou_nl_policy]]
+
+syz_genetlink_get_family_id$fou(name ptr[in, string["fou"]], fd sock_nl_generic) genl_fou_family_id
+
+sendmsg$FOU_CMD_ADD(fd sock_nl_generic, msg ptr[in, msghdr_nl_fou[FOU_CMD_ADD]], f flags[send_flags])
+sendmsg$FOU_CMD_DEL(fd sock_nl_generic, msg ptr[in, msghdr_nl_fou[FOU_CMD_DEL]], f flags[send_flags])
+sendmsg$FOU_CMD_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_fou[FOU_CMD_GET]], f flags[send_flags])
+
+fou_nl_policy [
+	FOU_ATTR_PORT			nlattr[FOU_ATTR_PORT, sock_port]
+	FOU_ATTR_AF			nlattr[FOU_ATTR_AF, flags[fou_families, int8]]
+	FOU_ATTR_IPPROTO		nlattr[FOU_ATTR_IPPROTO, flags[ipv6_types, int8]]
+	FOU_ATTR_TYPE			nlattr[FOU_ATTR_TYPE, flags[fou_types, int8]]
+	FOU_ATTR_REMCSUM_NOPARTIAL	nlattr[FOU_ATTR_REMCSUM_NOPARTIAL, void]
+	FOU_ATTR_LOCAL_V4		nlattr[FOU_ATTR_LOCAL_V4, ipv4_addr]
+	FOU_ATTR_LOCAL_V6		nlattr[FOU_ATTR_LOCAL_V6, ipv6_addr]
+	FOU_ATTR_PEER_V4		nlattr[FOU_ATTR_PEER_V4, ipv4_addr]
+	FOU_ATTR_PEER_V6		nlattr[FOU_ATTR_PEER_V6, ipv6_addr]
+	FOU_ATTR_PEER_PORT		nlattr[FOU_ATTR_PEER_PORT, sock_port]
+	FOU_ATTR_IFINDEX		nlattr[FOU_ATTR_IFINDEX, ifindex]
+] [varlen]
+
+fou_families = AF_INET, AF_INET6
+fou_types = FOU_ENCAP_DIRECT, FOU_ENCAP_GUE

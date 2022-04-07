@@ -1,0 +1,497 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Trusty IPC device (https://android.googlesource.com/kernel/common android-trusty-4.9).
+
+include <linux/ioctl.h>
+include <linux/fcntl.h>
+
+resource fd_trusty[fd]
+
+openat$trusty(fd const[AT_FDCWD], file ptr[in, string["/dev/trusty-ipc-dev0"]], flags flags[trusty_open_flags], mode const[0]) fd_trusty
+ioctl$TIPC_IOC_CONNECT(fd fd_trusty, cmd const[TIPC_IOC_CONNECT], arg ptr[in, string[trusty_ports]])
+write$trusty(fd fd_trusty, msg ptr[in, array[int8]], len len[msg])
+read$trusty(fd fd_trusty, msg ptr[out, array[int8]], len len[msg])
+
+# TODO: describe interface for the rest of ports.
+trusty_ports = "com.android.trusty.gatekeeper", "com.android.trusty.keymaster", "com.android.trusty.keymaster.secure", "com.android.trusty.avb", "com.android.trusty.storage.proxy", "com.android.trusty.storage.client.td", "com.android.trusty.storage.client.tdea", "com.android.trusty.storage.client.tp", "com.android.trusty.hwkey", "com.android.trusty.hwrng", "com.android.trusty.appmgmt.srv2.start"
+
+trusty_open_flags = O_RDWR, O_RDWR_NONBLOCK
+
+define O_RDWR_NONBLOCK	O_RDWR | O_NONBLOCK
+
+# This is not defined in any kernel header.
+define TIPC_IOC_CONNECT	_IOW('r', 0x80, char*)
+
+define TRUSTY_ERROR_NONE	0
+define TRUSTY_ERROR_INVALID	1
+define TRUSTY_ERROR_RETRY	2
+define TRUSTY_ERROR_UNKNOWN	3
+
+### gatekeeper ###
+
+resource fd_trusty_gatekeeper[fd_trusty]
+
+openat$trusty_gatekeeper(fd const[AT_FDCWD], file ptr[in, string["/dev/trusty-ipc-dev0"]], flags flags[trusty_open_flags], mode const[0]) fd_trusty_gatekeeper
+ioctl$TIPC_IOC_CONNECT_gatekeeper(fd fd_trusty_gatekeeper, cmd const[TIPC_IOC_CONNECT], arg ptr[in, string["com.android.trusty.gatekeeper"]])
+write$trusty_gatekeeper(fd fd_trusty_gatekeeper, msg ptr[in, trusty_gatekeeper_msg], len len[msg])
+
+trusty_gatekeeper_msg [
+	err	trusty_gatekeeper_error
+	retry	trusty_gatekeeper_retry
+	enroll	trusty_gatekeeper_enroll
+	verify	trusty_gatekeeper_verify
+] [varlen]
+
+trusty_gatekeeper_error {
+	cmd	flags[trusty_gatekeeper_cmd, int32]
+	error	const[TRUSTY_ERROR_INVALID, int32]
+	user_id	const[0, int32]
+}
+
+trusty_gatekeeper_retry {
+	cmd		flags[trusty_gatekeeper_cmd, int32]
+	error		const[TRUSTY_ERROR_RETRY, int32]
+	user_id		const[0, int32]
+	retry_timeout	int32
+}
+
+trusty_gatekeeper_enroll {
+	cmd			const[TRUSTY_GK_ENROLL, int32]
+	error			const[TRUSTY_ERROR_NONE, int32]
+	user_id			trusty_gatekeeper_user_id
+	provided_password	trusty_blob
+	enrolled_password	trusty_blob
+	password_handle_len	bytesize[password_handle, int32]
+	password_handle		trusty_password_handle
+} [packed]
+
+trusty_gatekeeper_verify {
+	cmd			const[TRUSTY_GK_VERIFY, int32]
+	error			const[TRUSTY_ERROR_NONE, int32]
+	user_id			trusty_gatekeeper_user_id
+	challenge		int64
+	password_handle		trusty_blob
+	provided_password	trusty_blob
+} [packed]
+
+trusty_password_handle {
+	version		int8[0:2]
+	user_id		int64
+	flags		bool64
+	salt		int64
+	signature	array[int8, 32]
+	hardware_backed	bool8
+} [packed]
+
+trusty_blob {
+	len	bytesize[data, int32]
+	data	array[int8]
+} [packed]
+
+type trusty_gatekeeper_user_id int32[0:4]
+
+trusty_gatekeeper_cmd = TRUSTY_GK_ENROLL, TRUSTY_GK_VERIFY
+
+define TRUSTY_GK_ENROLL	0
+define TRUSTY_GK_VERIFY	2
+
+### keymaster.secure ###
+
+resource fd_trusty_km_secure[fd_trusty]
+
+openat$trusty_km_secure(fd const[AT_FDCWD], file ptr[in, string["/dev/trusty-ipc-dev0"]], flags flags[trusty_open_flags], mode const[0]) fd_trusty_km_secure
+ioctl$TIPC_IOC_CONNECT_keymaster_secure(fd fd_trusty_km_secure, cmd const[TIPC_IOC_CONNECT], arg ptr[in, string["com.android.trusty.keymaster.secure"]])
+write$trusty_km_secure(fd fd_trusty_km_secure, msg ptr[in, trusty_km_secure_msg], len len[msg])
+
+trusty_km_secure_msg {
+	cmd	const[TRUSTY_KM_GET_AUTH_TOKEN_KEY, int32]
+}
+
+define TRUSTY_KM_GET_AUTH_TOKEN_KEY	0
+
+### keymaster ###
+
+resource fd_trusty_km[fd_trusty]
+
+openat$trusty_km(fd const[AT_FDCWD], file ptr[in, string["/dev/trusty-ipc-dev0"]], flags flags[trusty_open_flags], mode const[0]) fd_trusty_km
+ioctl$TIPC_IOC_CONNECT_km(fd fd_trusty_km, cmd const[TIPC_IOC_CONNECT], arg ptr[in, string["com.android.trusty.keymaster"]])
+write$trusty_km(fd fd_trusty_km, msg ptr[in, trusty_km_msg], len len[msg])
+
+trusty_km_msg [
+	GENERATE_KEY			trusty_km_msg_t[TRUSTY_KM_GENERATE_KEY, trusty_authorization_set]
+	BEGIN_OPERATION			trusty_km_msg_t[TRUSTY_KM_BEGIN_OPERATION, trusty_km_begin_operation]
+	UPDATE_OPERATION		trusty_km_msg_t[TRUSTY_KM_UPDATE_OPERATION, trusty_km_update_operation]
+	FINISH_OPERATION		trusty_km_msg_t[TRUSTY_KM_FINISH_OPERATION, trusty_km_finish_operation]
+	ABORT_OPERATION			trusty_km_msg_t[TRUSTY_KM_ABORT_OPERATION, int64]
+	IMPORT_KEY			trusty_km_msg_t[TRUSTY_KM_IMPORT_KEY, trusty_km_import_key]
+	EXPORT_KEY			trusty_km_msg_t[TRUSTY_KM_EXPORT_KEY, trusty_km_export_key]
+	GET_VERSION			trusty_km_msg_t[TRUSTY_KM_GET_VERSION, void]
+	ADD_RNG_ENTROPY			trusty_km_msg_t[TRUSTY_KM_ADD_RNG_ENTROPY, trusty_blob]
+	GET_SUPPORTED_ALGORITHMS	trusty_km_msg_t[TRUSTY_KM_GET_SUPPORTED_ALGORITHMS, void]
+	GET_SUPPORTED_BLOCK_MODES	trusty_km_msg_t[TRUSTY_KM_GET_SUPPORTED_BLOCK_MODES, trusty_km_supported_digests]
+	GET_SUPPORTED_PADDING_MODES	trusty_km_msg_t[TRUSTY_KM_GET_SUPPORTED_PADDING_MODES, trusty_km_supported_digests]
+	GET_SUPPORTED_DIGESTS		trusty_km_msg_t[TRUSTY_KM_GET_SUPPORTED_DIGESTS, trusty_km_supported_digests]
+	GET_SUPPORTED_IMPORT_FORMATS	trusty_km_msg_t[TRUSTY_KM_GET_SUPPORTED_IMPORT_FORMATS, flags[trusty_km_algorithms, int32]]
+	GET_SUPPORTED_EXPORT_FORMATS	trusty_km_msg_t[TRUSTY_KM_GET_SUPPORTED_EXPORT_FORMATS, flags[trusty_km_algorithms, int32]]
+	GET_KEY_CHARACTERISTICS		trusty_km_msg_t[TRUSTY_KM_GET_KEY_CHARACTERISTICS, trusty_km_get_key_characteristics]
+	ATTEST_KEY			trusty_km_msg_t[TRUSTY_KM_ATTEST_KEY, trusty_km_attest_key]
+	UPGRADE_KEY			trusty_km_msg_t[TRUSTY_KM_UPGRADE_KEY, trusty_km_attest_key]
+	CONFIGURE			trusty_km_msg_t[TRUSTY_KM_CONFIGURE, trusty_km_configure]
+	GET_HMAC_SHARING_PARAMETERS	trusty_km_msg_t[TRUSTY_KM_GET_HMAC_SHARING_PARAMETERS, void]
+	COMPUTE_SHARED_HMAC		trusty_km_msg_t[TRUSTY_KM_COMPUTE_SHARED_HMAC, trusty_km_hmac_sharing_parameters_array]
+	VERIFY_AUTHORIZATION		trusty_km_msg_t[TRUSTY_KM_VERIFY_AUTHORIZATION, trusty_km_verify_authorization]
+	DELETE_KEY			trusty_km_msg_t[TRUSTY_KM_DELETE_KEY, trusty_blob]
+	DELETE_ALL_KEYS			trusty_km_msg_t[TRUSTY_KM_DELETE_ALL_KEYS, void]
+# TODO: is DESTROY_ATTESTATION_IDS a thing? Where is it handled?
+	IMPORT_WRAPPED_KEY		trusty_km_msg_t[TRUSTY_KM_IMPORT_WRAPPED_KEY, trusty_km_import_wrapped_key]
+] [varlen]
+
+type trusty_km_msg_t[CMD, PAYLOAD] {
+	cmd	const[CMD, int32]
+	payload	PAYLOAD
+} [packed]
+
+trusty_km_begin_operation {
+	purpose			int32
+	key			trusty_blob
+	additional_params	trusty_authorization_set
+} [packed]
+
+trusty_km_update_operation {
+	handle			int64
+	input			trusty_blob
+	additional_params	trusty_authorization_set
+} [packed]
+
+trusty_km_finish_operation {
+	handle			int64
+	signature		trusty_blob
+	additional_params	trusty_authorization_set
+	input			trusty_blob
+} [packed]
+
+trusty_km_import_key {
+	key_description	trusty_authorization_set
+	key_format	flags[trusty_km_key_format, int32]
+	key_material	trusty_blob
+} [packed]
+
+trusty_km_key_format = 0, 1, 3
+
+trusty_km_export_key {
+	key_description	trusty_authorization_set
+	key_format	flags[trusty_km_key_format, int32]
+	key_material	trusty_blob
+} [packed]
+
+trusty_km_supported_digests {
+	algorithm	flags[trusty_km_algorithms, int32]
+	purpose		flags[trusty_km_purposes, int32]
+} [packed]
+
+trusty_km_algorithms = 1, 2, 3, 32, 33, 128
+trusty_km_purposes = 0, 1, 2, 3, 4, 5
+
+trusty_km_get_key_characteristics {
+	key_blob		trusty_blob
+	additional_params	trusty_authorization_set
+} [packed]
+
+trusty_km_attest_key {
+	key_blob	trusty_blob
+	attest_params	trusty_authorization_set
+} [packed]
+
+trusty_km_configure {
+	os_version	int32
+	os_patchlevel	int32
+} [packed]
+
+trusty_km_hmac_sharing_parameters_array {
+	num_params	len[params, int32]
+	params		array[trusty_km_hmac_sharing_parameter]
+} [packed]
+
+trusty_km_hmac_sharing_parameter {
+	seed	trusty_blob
+	none	array[int8, 32]
+} [packed]
+
+trusty_km_verify_authorization {
+	challenge		int64
+	parameters_to_verify	trusty_authorization_set
+	auth_token		trusty_km_hardware_auth_token
+} [packed]
+
+trusty_km_hardware_auth_token {
+	challenge		int64
+	user_id			int64
+	authenticator_id	int64
+	authenticator_type	int32
+	timestamp		int64
+	mac			trusty_blob
+} [packed]
+
+trusty_km_import_wrapped_key {
+	wrapped_key		trusty_blob
+	wrapping_key		trusty_blob
+	masking_key		trusty_blob
+	additional_params	trusty_authorization_set
+	password_sid		int64
+	biometric_sid		int64
+} [packed]
+
+trusty_authorization_set {
+	indirect_data	trusty_blob
+	elements_count	len[elements, int32]
+	elements_size	bytesize[elements, int32]
+	elements	array[trusty_authorization_elem]
+} [packed]
+
+trusty_authorization_elem [
+	ENUM		trusty_authorization_elem_t[TRUSTY_KM_ENUM, int32]
+	ENUM_REP	trusty_authorization_elem_t[TRUSTY_KM_ENUM_REP, int32]
+	UINT		trusty_authorization_elem_t[TRUSTY_KM_UINT, int32]
+	UINT_REP	trusty_authorization_elem_t[TRUSTY_KM_UINT_REP, int32]
+	ULONG		trusty_authorization_elem_t[TRUSTY_KM_ULONG, int64]
+	ULONG_REP	trusty_authorization_elem_t[TRUSTY_KM_ULONG_REP, int64]
+	DATE		trusty_authorization_elem_t[TRUSTY_KM_DATE, int64]
+	BOOL		trusty_authorization_elem_t[TRUSTY_KM_BOOL, bool8]
+	BIGNUM		trusty_authorization_elem_t[TRUSTY_KM_BIGNUM, trusty_authorization_bytes]
+	BYTES		trusty_authorization_elem_t[TRUSTY_KM_BYTES, trusty_authorization_bytes]
+] [varlen]
+
+type trusty_authorization_elem_t[TAG, DATA] {
+	tag	const[TAG, int32]
+	data	DATA
+} [packed]
+
+trusty_authorization_bytes {
+# NEED: these are length/offset in trusty_authorization_set.indirect_data.
+	data_length	int32
+	offset		int32
+} [packed]
+
+define TRUSTY_KM_REQ_SHIFT	2
+define TRUSTY_KM_GENERATE_KEY	0 << TRUSTY_KM_REQ_SHIFT
+define TRUSTY_KM_BEGIN_OPERATION	1 << TRUSTY_KM_REQ_SHIFT
+define TRUSTY_KM_UPDATE_OPERATION	2 << TRUSTY_KM_REQ_SHIFT
+define TRUSTY_KM_FINISH_OPERATION	3 << TRUSTY_KM_REQ_SHIFT
+define TRUSTY_KM_ABORT_OPERATION	4 << TRUSTY_KM_REQ_SHIFT
+define TRUSTY_KM_IMPORT_KEY	5 << TRUSTY_KM_REQ_SHIFT
+define TRUSTY_KM_EXPORT_KEY	6 << TRUSTY_KM_REQ_SHIFT
+define TRUSTY_KM_GET_VERSION	7 << TRUSTY_KM_REQ_SHIFT
+define TRUSTY_KM_ADD_RNG_ENTROPY	8 << TRUSTY_KM_REQ_SHIFT
+define TRUSTY_KM_GET_SUPPORTED_ALGORITHMS	9 << TRUSTY_KM_REQ_SHIFT
+define TRUSTY_KM_GET_SUPPORTED_BLOCK_MODES	10 << TRUSTY_KM_REQ_SHIFT
+define TRUSTY_KM_GET_SUPPORTED_PADDING_MODES	11 << TRUSTY_KM_REQ_SHIFT
+define TRUSTY_KM_GET_SUPPORTED_DIGESTS	12 << TRUSTY_KM_REQ_SHIFT
+define TRUSTY_KM_GET_SUPPORTED_IMPORT_FORMATS	13 << TRUSTY_KM_REQ_SHIFT
+define TRUSTY_KM_GET_SUPPORTED_EXPORT_FORMATS	14 << TRUSTY_KM_REQ_SHIFT
+define TRUSTY_KM_GET_KEY_CHARACTERISTICS	15 << TRUSTY_KM_REQ_SHIFT
+define TRUSTY_KM_ATTEST_KEY	16 << TRUSTY_KM_REQ_SHIFT
+define TRUSTY_KM_UPGRADE_KEY	17 << TRUSTY_KM_REQ_SHIFT
+define TRUSTY_KM_CONFIGURE	18 << TRUSTY_KM_REQ_SHIFT
+define TRUSTY_KM_GET_HMAC_SHARING_PARAMETERS	19 << TRUSTY_KM_REQ_SHIFT
+define TRUSTY_KM_COMPUTE_SHARED_HMAC	20 << TRUSTY_KM_REQ_SHIFT
+define TRUSTY_KM_VERIFY_AUTHORIZATION	21 << TRUSTY_KM_REQ_SHIFT
+define TRUSTY_KM_DELETE_KEY	22 << TRUSTY_KM_REQ_SHIFT
+define TRUSTY_KM_DELETE_ALL_KEYS	23 << TRUSTY_KM_REQ_SHIFT
+define TRUSTY_KM_DESTROY_ATTESTATION_IDS	24 << TRUSTY_KM_REQ_SHIFT
+define TRUSTY_KM_IMPORT_WRAPPED_KEY	25 << TRUSTY_KM_REQ_SHIFT
+
+define TRUSTY_KM_ENUM	1 << 28
+define TRUSTY_KM_ENUM_REP	2 << 28
+define TRUSTY_KM_UINT	3 << 28
+define TRUSTY_KM_UINT_REP	4 << 28
+define TRUSTY_KM_ULONG	5 << 28
+define TRUSTY_KM_DATE	6 << 28
+define TRUSTY_KM_BOOL	7 << 28
+define TRUSTY_KM_BIGNUM	8 << 28
+define TRUSTY_KM_BYTES	9 << 28
+define TRUSTY_KM_ULONG_REP	10 << 28
+
+# TODO: does it make sense to exercise bootloader commands?
+# They should be locked when Linux starts and we probably trust bootloader anyway?
+
+### avb ###
+
+resource fd_trusty_avb[fd_trusty]
+
+openat$trusty_avb(fd const[AT_FDCWD], file ptr[in, string["/dev/trusty-ipc-dev0"]], flags flags[trusty_open_flags], mode const[0]) fd_trusty_avb
+ioctl$TIPC_IOC_CONNECT_avb(fd fd_trusty_avb, cmd const[TIPC_IOC_CONNECT], arg ptr[in, string["com.android.trusty.avb"]])
+write$trusty_avb(fd fd_trusty_avb, msg ptr[in, trusty_avb_msg], len len[msg])
+
+trusty_avb_msg [
+	READ_ROLLBACK_INDEX		trusty_avb_msg_t[TRUSTY_AVB_READ_ROLLBACK_INDEX, trusty_avb_rollback_index]
+	WRITE_ROLLBACK_INDEX		trusty_avb_msg_t[TRUSTY_AVB_WRITE_ROLLBACK_INDEX, trusty_avb_rollback_index]
+	AVB_GET_VERSION			trusty_avb_msg_t[TRUSTY_AVB_GET_VERSION, void]
+	READ_PERMANENT_ATTRIBUTES	trusty_avb_msg_t[TRUSTY_AVB_READ_PERMANENT_ATTRIBUTES, void]
+	WRITE_PERMANENT_ATTRIBUTES	trusty_avb_msg_t[TRUSTY_AVB_WRITE_PERMANENT_ATTRIBUTES, array[int8]]
+	READ_LOCK_STATE			trusty_avb_msg_t[TRUSTY_AVB_READ_LOCK_STATE, void]
+	WRITE_LOCK_STATE		trusty_avb_msg_t[TRUSTY_AVB_WRITE_LOCK_STATE, int8]
+	LOCK_BOOT_STATE			trusty_avb_msg_t[TRUSTY_AVB_LOCK_BOOT_STATE, void]
+] [varlen]
+
+type trusty_avb_msg_t[CMD, PAYLOAD] {
+	cmd	const[CMD, int32]
+	payload	PAYLOAD
+} [packed]
+
+trusty_avb_rollback_index {
+	value	int64
+	slot	int32
+} [packed]
+
+define TRUSTY_AVB_REQ_SHIFT	1
+define TRUSTY_AVB_READ_ROLLBACK_INDEX	0 << TRUSTY_AVB_REQ_SHIFT
+define TRUSTY_AVB_WRITE_ROLLBACK_INDEX	1 << TRUSTY_AVB_REQ_SHIFT
+define TRUSTY_AVB_GET_VERSION	2 << TRUSTY_AVB_REQ_SHIFT
+define TRUSTY_AVB_READ_PERMANENT_ATTRIBUTES	3 << TRUSTY_AVB_REQ_SHIFT
+define TRUSTY_AVB_WRITE_PERMANENT_ATTRIBUTES	4 << TRUSTY_AVB_REQ_SHIFT
+define TRUSTY_AVB_READ_LOCK_STATE	5 << TRUSTY_AVB_REQ_SHIFT
+define TRUSTY_AVB_WRITE_LOCK_STATE	6 << TRUSTY_AVB_REQ_SHIFT
+define TRUSTY_AVB_LOCK_BOOT_STATE	7 << TRUSTY_AVB_REQ_SHIFT
+
+### storage ###
+
+resource fd_trusty_storage[fd_trusty]
+
+openat$trusty_storage(fd const[AT_FDCWD], file ptr[in, string["/dev/trusty-ipc-dev0"]], flags flags[trusty_open_flags], mode const[0]) fd_trusty_storage
+ioctl$TIPC_IOC_CONNECT_storage(fd fd_trusty_storage, cmd const[TIPC_IOC_CONNECT], arg ptr[in, string[trusty_storage_ports]])
+write$trusty_storage(fd fd_trusty_storage, msg ptr[in, trusty_storage], len len[msg])
+
+trusty_storage_ports = "com.android.trusty.storage.proxy", "com.android.trusty.storage.client.td", "com.android.trusty.storage.client.tdea", "com.android.trusty.storage.client.tp"
+
+trusty_storage [
+	delete		trusty_storage_msg[TRUSTY_STORAGE_FILE_DELETE, trusty_storage_file_delete_req]
+	open		trusty_storage_msg[TRUSTY_STORAGE_FILE_OPEN, trusty_storage_file_open_req]
+	close		trusty_storage_msg[TRUSTY_STORAGE_FILE_CLOSE, trusty_storage_file_close_req]
+	read		trusty_storage_msg[TRUSTY_STORAGE_FILE_READ, trusty_storage_file_read_req]
+	write		trusty_storage_msg[TRUSTY_STORAGE_FILE_WRITE, trusty_storage_file_write_req]
+	get_size	trusty_storage_msg[TRUSTY_STORAGE_FILE_GET_SIZE, trusty_storage_file_get_size_req]
+	set_size	trusty_storage_msg[TRUSTY_STORAGE_FILE_SET_SIZE, trusty_storage_file_set_size_req]
+	rpmb		trusty_storage_msg[TRUSTY_STORAGE_RPMB_SEND, trusty_storage_rpmb_send_req]
+	end_trans	trusty_storage_msg[TRUSTY_STORAGE_END_TRANSACTION, void]
+	move		trusty_storage_msg[TRUSTY_STORAGE_FILE_MOVE, trusty_storage_file_move_req]
+	list		trusty_storage_msg[TRUSTY_STORAGE_FILE_LIST, trusty_storage_file_list_req]
+] [varlen]
+
+type trusty_storage_msg[CMD, PAYLOAD] {
+	cmd		const[CMD, int32]
+	op_id		int32[0:4]
+	flags		int32[0:7]
+	size		bytesize[parent, int32]
+# TODO: this is only output, right?
+	result		const[0, int32]
+	__reserved	const[0, int32]
+	payload		PAYLOAD
+}
+
+define TRUSTY_STORAGE_FILE_DELETE	1 << 1
+define TRUSTY_STORAGE_FILE_OPEN	2 << 1
+define TRUSTY_STORAGE_FILE_CLOSE	3 << 1
+define TRUSTY_STORAGE_FILE_READ	4 << 1
+define TRUSTY_STORAGE_FILE_WRITE	5 << 1
+define TRUSTY_STORAGE_FILE_GET_SIZE	6 << 1
+define TRUSTY_STORAGE_FILE_SET_SIZE	7 << 1
+define TRUSTY_STORAGE_RPMB_SEND	8 << 1
+define TRUSTY_STORAGE_END_TRANSACTION	9 << 1
+define TRUSTY_STORAGE_FILE_MOVE	10 << 1
+define TRUSTY_STORAGE_FILE_LIST	11 << 1
+
+# Server returns handles in responses to requests, we don't parse them, so we just use int32 for now.
+type trusty_storage_handle int32[0:4]
+
+trusty_storage_file_delete_req {
+	flags	const[0, int32]
+	name	stringnoz
+}
+
+trusty_storage_file_move_req {
+	flags		int32[0:7]
+	handle		trusty_storage_handle
+	old_name_len	bytesize[old_new_name, int32]
+	old_new_name	stringnoz
+	new_new_name	stringnoz
+} [packed]
+
+trusty_storage_file_open_req {
+	flags	int32[0:7]
+	name	stringnoz
+}
+
+trusty_storage_file_close_req {
+	handle	trusty_storage_handle
+}
+
+trusty_storage_file_read_req {
+	handle	trusty_storage_handle
+	size	int32
+	offset	int64
+}
+
+trusty_storage_file_write_req {
+	offset		int64
+	handle		trusty_storage_handle
+	__reserved	const[0, int32]
+	data		array[int8]
+}
+
+trusty_storage_file_list_req {
+	max_count	int8
+	flags		int8[0:7]
+	name		stringnoz
+}
+
+trusty_storage_file_get_size_req {
+	handle	trusty_storage_handle
+}
+
+trusty_storage_file_set_size_req {
+	size	int64
+	handle	trusty_storage_handle
+}
+
+trusty_storage_rpmb_send_req {
+	reliable_write_size	bytesize[reliable_write, int32]
+	write_size		bytesize[write, int32]
+	read_size		int32[0:4096, 512]
+	__reserved		const[0, int32]
+	reliable_write		array[array[const[0, int8], 512]]
+	write			array[array[const[0, int8], 512]]
+} [packed]
+
+### hwkey ###
+
+resource fd_trusty_hwkey[fd_trusty]
+
+openat$trusty_hwkey(fd const[AT_FDCWD], file ptr[in, string["/dev/trusty-ipc-dev0"]], flags flags[trusty_open_flags], mode const[0]) fd_trusty_hwkey
+ioctl$TIPC_IOC_CONNECT_hwkey(fd fd_trusty_hwkey, cmd const[TIPC_IOC_CONNECT], arg ptr[in, string["com.android.trusty.hwkey"]])
+write$trusty_hwkey(fd fd_trusty_hwkey, msg ptr[in, trusty_hwkey], len len[msg])
+
+trusty_hwkey [
+	get	trusty_hwkey_msg[TRUSTY_HWKEY_GET_KEYSLOT, stringnoz]
+	derive	trusty_hwkey_msg[TRUSTY_HWKEY_DERIVE, stringnoz]
+] [varlen]
+
+type trusty_hwkey_msg[CMD, PAYLOAD] {
+	cmd	const[CMD, int32]
+	op_id	int32[0:4]
+	status	const[0, int32]
+	arg1	const[0, int32]
+	arg2	const[0, int32]
+	payload	PAYLOAD
+}
+
+define TRUSTY_HWKEY_GET_KEYSLOT	0 << 1
+define TRUSTY_HWKEY_DERIVE	1 << 1
+
+### hwrng ###
+
+resource fd_trusty_hwrng[fd_trusty]
+
+openat$trusty_hwrng(fd const[AT_FDCWD], file ptr[in, string["/dev/trusty-ipc-dev0"]], flags flags[trusty_open_flags], mode const[0]) fd_trusty_hwrng
+ioctl$TIPC_IOC_CONNECT_hwrng(fd fd_trusty_hwrng, cmd const[TIPC_IOC_CONNECT], arg ptr[in, string["com.android.trusty.hwrng"]])
+write$trusty_hwrng(fd fd_trusty_hwrng, msg ptr[in, int32], len len[msg])

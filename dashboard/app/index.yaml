@@ -1,0 +1,144 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+indexes:
+
+- kind: Bug
+  properties:
+  - name: Namespace
+  - name: Status
+
+- kind: Bug
+  properties:
+  - name: Namespace
+  - name: HappenedOn
+
+- kind: Bug
+  properties:
+  - name: Namespace
+  - name: Status
+  - name: HappenedOn
+
+- kind: Bug
+  properties:
+  - name: HappenedOn
+  - name: Status
+
+- kind: Bug
+  properties:
+  - name: Namespace
+  - name: Title
+  - name: Seq
+    direction: desc
+
+- kind: Bug
+  properties:
+  - name: Namespace
+  - name: MergedTitles
+
+- kind: Bug
+  properties:
+  - name: Namespace
+  - name: AltTitles
+
+- kind: Bug
+  properties:
+  - name: Namespace
+  - name: NeedCommitInfo
+  - name: Commits
+
+- kind: Bug
+  properties:
+  - name: BisectCause
+  - name: ReproLevel
+  - name: FirstTime
+    direction: desc
+
+- kind: Bug
+  properties:
+  - name: BisectCause
+  - name: ReproLevel
+  - name: Status
+  - name: FirstTime
+    direction: desc
+
+- kind: Bug
+  properties:
+  - name: BisectFix
+  - name: ReproLevel
+  - name: Status
+  - name: LastTime
+
+- kind: Build
+  properties:
+  - name: Namespace
+  - name: Manager
+
+- kind: Build
+  properties:
+  - name: Namespace
+  - name: Manager
+  - name: Type
+  - name: Time
+    direction: desc
+
+- kind: Crash
+  ancestor: yes
+  properties:
+  - name: Reported
+  - name: ReproC
+  - name: ReproSyz
+
+- kind: Crash
+  ancestor: yes
+  properties:
+  - name: ReportLen
+    direction: desc
+  - name: Time
+    direction: desc
+
+- kind: Crash
+  ancestor: yes
+  properties:
+  - name: ReproC
+    direction: desc
+  - name: ReproSyz
+    direction: desc
+  - name: ReportLen
+    direction: desc
+  - name: Reported
+    direction: desc
+  - name: Time
+    direction: desc
+
+- kind: Crash
+  ancestor: yes
+  properties:
+  - name: ReproC
+    direction: desc
+  - name: ReproSyz
+    direction: desc
+  - name: Reported
+    direction: desc
+  - name: ReportLen
+    direction: desc
+  - name: Time
+    direction: desc
+
+- kind: Job
+  properties:
+  - name: Finished
+  - name: Attempts
+  - name: Created
+
+- kind: Job
+  properties:
+  - name: Reported
+  - name: Finished
+
+- kind: Job
+  ancestor: yes
+  properties:
+  - name: Type
+  - name: Finished
+    direction: desc

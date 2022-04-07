@@ -1,0 +1,269 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/fcntl.h>
+include <uapi/rdma/rdma_user_cm.h>
+include <uapi/rdma/ib_user_verbs.h>
+include <rdma/rdma_cm.h>
+include <rdma/ib_verbs.h>
+include <rdma/ib.h>
+
+resource fd_rdma_cm[fd]
+resource rdma_cm_id[int32]: -1
+resource rdma_cm_mcast_id[int32]: -1
+type rdma_cm_uid int64[0:4]
+
+openat$rdma_cm(fd const[AT_FDCWD], file ptr[in, string["/dev/infiniband/rdma_cm"]], flags const[O_RDWR], mode const[0]) fd_rdma_cm
+
+write$RDMA_USER_CM_CMD_CREATE_ID(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_CREATE_ID, rdma_ucm_create_id]], len bytesize[data])
+write$RDMA_USER_CM_CMD_DESTROY_ID(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_DESTROY_ID, rdma_ucm_destroy_id]], len bytesize[data])
+write$RDMA_USER_CM_CMD_BIND_IP(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_BIND_IP, rdma_ucm_bind_ip]], len bytesize[data])
+write$RDMA_USER_CM_CMD_RESOLVE_IP(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_RESOLVE_IP, rdma_ucm_resolve_ip]], len bytesize[data])
+write$RDMA_USER_CM_CMD_RESOLVE_ROUTE(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_RESOLVE_ROUTE, rdma_ucm_resolve_route]], len bytesize[data])
+write$RDMA_USER_CM_CMD_QUERY_ROUTE(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_QUERY_ROUTE, rdma_ucm_query]], len bytesize[data])
+write$RDMA_USER_CM_CMD_CONNECT(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_CONNECT, rdma_ucm_connect]], len bytesize[data])
+write$RDMA_USER_CM_CMD_LISTEN(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_LISTEN, rdma_ucm_listen]], len bytesize[data])
+write$RDMA_USER_CM_CMD_ACCEPT(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_ACCEPT, rdma_ucm_accept]], len bytesize[data])
+write$RDMA_USER_CM_CMD_REJECT(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_REJECT, rdma_ucm_reject]], len bytesize[data])
+write$RDMA_USER_CM_CMD_DISCONNECT(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_DISCONNECT, rdma_ucm_disconnect]], len bytesize[data])
+write$RDMA_USER_CM_CMD_INIT_QP_ATTR(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_INIT_QP_ATTR, rdma_ucm_init_qp_attr]], len bytesize[data])
+write$RDMA_USER_CM_CMD_GET_EVENT(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_GET_EVENT, rdma_ucm_get_event]], len bytesize[data])
+write$RDMA_USER_CM_CMD_SET_OPTION(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_SET_OPTION, rdma_ucm_set_option]], len bytesize[data])
+write$RDMA_USER_CM_CMD_NOTIFY(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_NOTIFY, rdma_ucm_notify]], len bytesize[data])
+write$RDMA_USER_CM_CMD_JOIN_IP_MCAST(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_JOIN_IP_MCAST, rdma_ucm_join_ip_mcast]], len bytesize[data])
+write$RDMA_USER_CM_CMD_LEAVE_MCAST(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_LEAVE_MCAST, rdma_ucm_leave_mcast]], len bytesize[data])
+write$RDMA_USER_CM_CMD_MIGRATE_ID(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_MIGRATE_ID, rdma_ucm_migrate_id]], len bytesize[data])
+write$RDMA_USER_CM_CMD_QUERY(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_QUERY, rdma_ucm_query]], len bytesize[data])
+write$RDMA_USER_CM_CMD_BIND(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_BIND, rdma_ucm_bind]], len bytesize[data])
+write$RDMA_USER_CM_CMD_RESOLVE_ADDR(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_RESOLVE_ADDR, rdma_ucm_resolve_addr]], len bytesize[data])
+write$RDMA_USER_CM_CMD_JOIN_MCAST(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_JOIN_MCAST, rdma_ucm_join_mcast]], len bytesize[data])
+
+type rdma_ucm_cmd_t[CMD, MSG] {
+	cmd	const[CMD, int32]
+	in	bytesize[msg, int16]
+# Note: this seems to be only checked for less, so we can get away with a large const.
+# bytesize[msg:response] does not work because lots of MSGs don't have response field.
+	out	const[64000, int16]
+	msg	MSG
+}
+
+rdma_ucm_create_id {
+	uid		rdma_cm_uid
+	response	ptr64[out, rdma_ucm_create_id_resp]
+	ps		flags[rdma_port_space, int16]
+	qp_type		flags[ib_qp_type, int8]
+	reserved	array[const[0, int8], 5]
+}
+
+rdma_ucm_create_id_resp {
+	id	rdma_cm_id
+}
+
+rdma_ucm_destroy_id {
+	response	ptr64[out, rdma_ucm_destroy_id_resp]
+	id		rdma_cm_id
+	reserved	const[0, int32]
+}
+
+rdma_ucm_destroy_id_resp {
+	events_reported	int32
+}
+
+rdma_ucm_bind_ip {
+	response	const[0, int64]
+	addr		sockaddr_in6
+	id		rdma_cm_id
+}
+
+rdma_ucm_bind {
+	id		rdma_cm_id
+	addr_size	flags[sockaddr_rdma_cm_lens, int16]
+	reserved	const[0, int16]
+	addr		sockaddr_rdma_cm
+}
+
+rdma_ucm_resolve_ip {
+	src_addr	sockaddr_in6
+	dst_addr	sockaddr_in6
+	id		rdma_cm_id
+	timeout_ms	int32
+}
+
+rdma_ucm_resolve_addr {
+	id		rdma_cm_id
+	timeout_ms	int32
+	src_size	const[0, int16]
+	dst_size	const[0, int16]
+	reserved	const[0, int32]
+	src_addr	sockaddr_rdma_cm
+	dst_addr	sockaddr_rdma_cm
+}
+
+rdma_ucm_resolve_route {
+	id		rdma_cm_id
+	timeout_ms	int32
+}
+
+rdma_ucm_query {
+	response	ptr64[out, array[int8, 512]]
+	id		rdma_cm_id
+	option		flags[rdma_ucm_query_options, int32]
+}
+
+rdma_ucm_query_options = RDMA_USER_CM_QUERY_ADDR, RDMA_USER_CM_QUERY_PATH, RDMA_USER_CM_QUERY_GID
+
+rdma_ucm_connect {
+	conn_param	rdma_ucm_conn_param
+	id		rdma_cm_id
+	reserved	const[0, int32]
+}
+
+rdma_ucm_listen {
+	id	rdma_cm_id
+	backlog	int32
+}
+
+rdma_ucm_accept {
+	uid		rdma_cm_uid
+	conn_param	rdma_ucm_conn_param
+	id		rdma_cm_id
+	reserved	const[0, int32]
+}
+
+rdma_ucm_reject {
+	id			rdma_cm_id
+	private_data_len	int8
+	reserved		array[int8, 3]
+	private_data		array[int8, RDMA_MAX_PRIVATE_DATA]
+}
+
+rdma_ucm_disconnect {
+	id	rdma_cm_id
+}
+
+rdma_ucm_init_qp_attr {
+	response	ptr64[out, array[int8, IB_UVERBS_QP_ATTR_SIZE]]
+	id		rdma_cm_id
+	qp_state	int32
+}
+
+define IB_UVERBS_QP_ATTR_SIZE	sizeof(struct ib_uverbs_qp_attr)
+
+rdma_ucm_notify {
+	id	rdma_cm_id
+	event	flags[ib_event_type, int32]
+}
+
+rdma_ucm_join_ip_mcast {
+	response	ptr64[out, rdma_ucm_create_mcast_id_resp]
+	uid		rdma_cm_uid
+	addr		sockaddr_in6
+	id		rdma_cm_id
+}
+
+rdma_ucm_create_mcast_id_resp {
+	id	rdma_cm_mcast_id
+}
+
+rdma_ucm_join_mcast {
+	response	ptr64[out, rdma_ucm_create_mcast_id_resp]
+	uid		rdma_cm_uid
+	id		rdma_cm_id
+	addr_size	flags[sockaddr_rdma_cm_lens, int16]
+	join_flags	flags[rdma_ucm_join_mcast_flags, int16]
+	addr		sockaddr_rdma_cm
+}
+
+rdma_ucm_join_mcast_flags = RDMA_MC_JOIN_FLAG_FULLMEMBER, RDMA_MC_JOIN_FLAG_SENDONLY_FULLMEMBER
+
+rdma_ucm_leave_mcast {
+	response	ptr64[out, rdma_ucm_destroy_id_resp]
+	id		rdma_cm_mcast_id
+	reserved	const[0, int32]
+}
+
+rdma_ucm_get_event {
+	response	ptr64[out, rdma_ucm_event_resp]
+}
+
+rdma_ucm_event_resp {
+	uid	rdma_cm_uid
+	id	rdma_cm_uid
+} [size[RDMA_UCM_EVENT_RESP_SIZE]]
+
+define RDMA_UCM_EVENT_RESP_SIZE	sizeof(struct rdma_ucm_event_resp)
+
+rdma_ucm_set_option [
+	id_tos		rdma_ucm_set_option_t[RDMA_OPTION_ID, RDMA_OPTION_ID_TOS, int8]
+	id_resuseaddr	rdma_ucm_set_option_t[RDMA_OPTION_ID, RDMA_OPTION_ID_REUSEADDR, bool32]
+	id_afonly	rdma_ucm_set_option_t[RDMA_OPTION_ID, RDMA_OPTION_ID_AFONLY, bool32]
+	ib_path		rdma_ucm_set_option_t[RDMA_OPTION_IB, RDMA_OPTION_IB_PATH, array[ib_path_rec_data]]
+]
+
+type rdma_ucm_set_option_t[LEVEL, OPTION, DATA] {
+	optval	ptr64[in, DATA]
+	id	rdma_cm_id
+	level	const[LEVEL, int32]
+	optname	const[OPTION, int32]
+	optlen	bytesize[optval, int32]
+}
+
+ib_path_rec_data {
+	flags		flags[ib_path_flags, int32]
+	reserved	const[0, int32]
+	path_rec	array[int32, 16]
+}
+
+ib_path_flags = IB_PATH_GMP, IB_PATH_PRIMARY, IB_PATH_ALTERNATE, IB_PATH_OUTBOUND, IB_PATH_INBOUND, IB_PATH_INBOUND_REVERSE
+
+rdma_ucm_migrate_id {
+	response	ptr64[out, rdma_ucm_migrate_resp]
+	id		rdma_cm_id
+	fd		fd_rdma_cm
+}
+
+rdma_ucm_migrate_resp {
+	events_reported	int32
+}
+
+rdma_ucm_conn_param {
+	qp_num			int32
+	qkey			int32
+	private_data		array[int8, RDMA_MAX_PRIVATE_DATA]
+	private_data_len	int8
+	srq			int8
+	responder_resources	int8
+	initiator_depth		int8
+	flow_control		int8
+	retry_count		int8
+	rnr_retry_count		int8
+	valid			bool8
+}
+
+define IB_UVERBS_AH_ATTR_SIZE	sizeof(struct ib_uverbs_ah_attr)
+
+sockaddr_rdma_cm [
+	in	sockaddr_in
+	in6	sockaddr_in6
+	ib	sockaddr_ib
+] [size[SOCKADDR_STORAGE_SIZE]]
+
+sockaddr_rdma_cm_lens = 16, 28, 48
+
+sockaddr_ib {
+	sib_family	const[AF_IB, int16]
+	sib_pkey	int16be
+	sib_flowinfo	int32be
+	sib_addr	ib_addr
+	sib_sid		int64be
+	sib_sid_mask	int64be
+	sib_scope_id	int64
+}
+
+# TODO: not completely clear what's in ib_addr.data.
+ib_addr {
+	data	array[int8, 16]
+} [align[8]]
+
+rdma_port_space = RDMA_PS_IPOIB, RDMA_PS_IB, RDMA_PS_TCP, RDMA_PS_UDP
+ib_event_type = IB_EVENT_CQ_ERR, IB_EVENT_QP_FATAL, IB_EVENT_QP_REQ_ERR, IB_EVENT_QP_ACCESS_ERR, IB_EVENT_COMM_EST, IB_EVENT_SQ_DRAINED, IB_EVENT_PATH_MIG, IB_EVENT_PATH_MIG_ERR, IB_EVENT_DEVICE_FATAL, IB_EVENT_PORT_ACTIVE, IB_EVENT_PORT_ERR, IB_EVENT_LID_CHANGE, IB_EVENT_PKEY_CHANGE, IB_EVENT_SM_CHANGE, IB_EVENT_SRQ_ERR, IB_EVENT_SRQ_LIMIT_REACHED, IB_EVENT_QP_LAST_WQE_REACHED, IB_EVENT_CLIENT_REREGISTER, IB_EVENT_GID_CHANGE, IB_EVENT_WQ_FATAL

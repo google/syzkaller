@@ -1,0 +1,21 @@
+TITLE: general protection fault in drm_legacy_newctx
+ALT: bad-access in drm_legacy_newctx
+START: [ 1021.364461] general protection fault: 0000 [#1] SMP DEBUG_PAGEALLOC KASAN
+CORRUPTED: Y
+
+[ 1021.362826] kasan: CONFIG_KASAN_INLINE enabled
+[ 1021.363613] kasan: GPF could be caused by NULL-ptr deref or user memory access
+[ 1021.364461] general protection fault: 0000 [#1] SMP DEBUG_PAGEALLOC KASAN
+[ 1021.365202] Dumping ftrace buffer:
+[ 1021.365408]    (ftrace buffer empty)
+[ 1021.366951] Modules linked in:
+[ 1021.366951] CPU: 2 PID: 29350 Comm: syz-executor Not tainted 4.8.0-rc3+ #33
+[ 1021.366951] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+[ 1021.366951] task: ffff88005b4347c0 task.stack: ffff8800634c0000
+[ 1021.366951] RIP: 0010:[<ffffffff83408ca0>]  [<ffffffff83408ca0>] drm_legacy_newctx+0x190/0x290
+[ 1021.366951] RSP: 0018:ffff8800634c7c50  EFLAGS: 00010246
+[ 1021.366951] RAX: dffffc0000000000 RBX: ffff880068f28840 RCX: ffffc900021d0000
+[ 1021.372626] RDX: 0000000000000000 RSI: ffff8800634c7cf8 RDI: ffff880064c0b600
+[ 1021.374099] RBP: ffff8800634c7c70 R08: 0000000000000000 R09: 0000000000000000
+[ 1021.374099] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
+[ 1021.375281] R13: ffff880067aa6000 R14: 0000000000000000 R15: 0000000000000000

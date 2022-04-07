@@ -1,0 +1,9 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+
+# TODO: limit value_ptr space somehow to make matches more frequent.
+zx_futex_wait(value_ptr ptr[in, int32], current_value int32, new_futext_owner zx_handle, deadline zx_time)
+zx_futex_wake(value_ptr ptr[in, int32], wake_count int32)
+zx_futex_requeue(value_ptr ptr[in, int32], wake_count int32, current_value int32, requeue_ptr ptr[in, int32], requeue_count int32, new_requeue_owner zx_handle)

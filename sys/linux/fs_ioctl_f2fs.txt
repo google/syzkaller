@@ -1,0 +1,56 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/fs.h>
+include <linux/f2fs_fs.h>
+include <fs/f2fs/f2fs.h>
+include <uapi/linux/f2fs.h>
+
+ioctl$F2FS_IOC_START_ATOMIC_WRITE(fd fd, cmd const[F2FS_IOC_START_ATOMIC_WRITE], arg const[0])
+ioctl$F2FS_IOC_COMMIT_ATOMIC_WRITE(fd fd, cmd const[F2FS_IOC_COMMIT_ATOMIC_WRITE], arg const[0])
+ioctl$F2FS_IOC_START_VOLATILE_WRITE(fd fd, cmd const[F2FS_IOC_START_VOLATILE_WRITE], arg const[0])
+ioctl$F2FS_IOC_RELEASE_VOLATILE_WRITE(fd fd, cmd const[F2FS_IOC_RELEASE_VOLATILE_WRITE], arg const[0])
+ioctl$F2FS_IOC_ABORT_VOLATILE_WRITE(fd fd, cmd const[F2FS_IOC_ABORT_VOLATILE_WRITE], arg const[0])
+ioctl$F2FS_IOC_GARBAGE_COLLECT(fd fd, cmd const[F2FS_IOC_GARBAGE_COLLECT], arg ptr[in, bool32])
+ioctl$F2FS_IOC_GARBAGE_COLLECT_RANGE(fd fd, cmd const[F2FS_IOC_GARBAGE_COLLECT_RANGE], arg ptr[in, f2fs_gc_range])
+ioctl$F2FS_IOC_WRITE_CHECKPOINT(fd fd, cmd const[F2FS_IOC_WRITE_CHECKPOINT], arg const[0])
+ioctl$F2FS_IOC_DEFRAGMENT(fd fd, cmd const[F2FS_IOC_DEFRAGMENT], arg ptr[inout, f2fs_defragment])
+ioctl$F2FS_IOC_MOVE_RANGE(fd fd, cmd const[F2FS_IOC_MOVE_RANGE], arg ptr[inout, f2fs_move_range])
+ioctl$F2FS_IOC_FLUSH_DEVICE(fd fd, cmd const[F2FS_IOC_FLUSH_DEVICE], arg ptr[in, f2fs_flush_device])
+ioctl$F2FS_IOC_GET_FEATURES(fd fd, cmd const[F2FS_IOC_GET_FEATURES], arg ptr[out, int32])
+ioctl$F2FS_IOC_GET_PIN_FILE(fd fd, cmd const[F2FS_IOC_GET_PIN_FILE], arg ptr[out, bool32])
+ioctl$F2FS_IOC_SET_PIN_FILE(fd fd, cmd const[F2FS_IOC_SET_PIN_FILE], arg ptr[in, bool32])
+ioctl$F2FS_IOC_PRECACHE_EXTENTS(fd fd, cmd const[F2FS_IOC_PRECACHE_EXTENTS], arg const[0])
+ioctl$F2FS_IOC_RESIZE_FS(fd fd, cmd const[F2FS_IOC_RESIZE_FS], arg ptr[in, int64])
+ioctl$F2FS_IOC_GET_COMPRESS_BLOCKS(fd fd, cmd const[F2FS_IOC_GET_COMPRESS_BLOCKS], arg ptr[out, int64])
+ioctl$F2FS_IOC_RELEASE_COMPRESS_BLOCKS(fd fd, cmd const[F2FS_IOC_RELEASE_COMPRESS_BLOCKS], arg ptr[out, int64])
+ioctl$F2FS_IOC_RESERVE_COMPRESS_BLOCKS(fd fd, cmd const[F2FS_IOC_RESERVE_COMPRESS_BLOCKS], arg ptr[out, int64])
+
+# F2FS_IOC_SHUTDOWN on root fs effectively brings the machine down in weird ways.
+# Fortunately, the value does not conflict with any other ioctl commands for now.
+ioctl$F2FS_IOC_SHUTDOWN(fd fd, cmd const[F2FS_IOC_SHUTDOWN], args ptr[in, flags[f2fs_shutdown_flag, int32]]) (disabled)
+
+f2fs_gc_range {
+	sync	bool32
+	start	int64
+	len	int64
+}
+
+f2fs_defragment {
+	start	int64
+	len	int64
+}
+
+f2fs_move_range {
+	dst_fd	fd
+	pos_in	int64
+	pos_out	int64
+	len	int64
+}
+
+f2fs_flush_device {
+	dev_num		int32
+	segments	int32
+}
+
+f2fs_shutdown_flag = F2FS_GOING_DOWN_FULLSYNC, F2FS_GOING_DOWN_METASYNC, F2FS_GOING_DOWN_NOSYNC, F2FS_GOING_DOWN_METAFLUSH, F2FS_GOING_DOWN_NEED_FSCK

@@ -1,0 +1,24 @@
+TITLE: kernel panic: panic_on_warn set
+CORRUPTED: Y
+
+[  238.092073] page:ffffea000712e200 count:1 mapcount:0 mapping:ffff8801c4b88c00 index:0x0 compound_mapcount: 0
+[  238.102211] flags: 0x200000000008100(slab|head)
+[  238.106859] raw: 0200000000008100 ffff8801c4b88c00 0000000000000000 0000000100000001
+[  238.114718] raw: ffffea00072d2a20 ffffea0007110820 ffff8801dac02200 0000000000000000
+[  238.122567] page dumped because: kasan: bad access detected
+[  238.128296] Kernel panic - not syncing: panic_on_warn set ...
+[  238.128296] 
+[  238.135637] CPU: 1 PID: 577 Comm: syz-executor4 Tainted: G    B           4.14.0-rc5+ #141
+[  238.144011] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  238.153335] Call Trace:
+[  238.155900]  dump_stack+0x194/0x257
+[  238.159499]  ? arch_local_irq_restore+0x53/0x53
+[  238.164137]  ? kasan_end_report+0x32/0x50
+[  238.168257]  ? lock_downgrade+0x990/0x990
+[  238.172377]  ? __internal_add_timer+0x1f0/0x2d0
+[  238.177023]  panic+0x1e4/0x417
+[  238.180186]  ? __warn+0x1d9/0x1d9
+[  238.183612]  ? add_taint+0x40/0x50
+[  238.187128]  ? __internal_add_timer+0x275/0x2d0
+[  238.191766]  kasan_end_report+0x50/0x50
+[  238.195711]  kasan_report+0x144/0x340

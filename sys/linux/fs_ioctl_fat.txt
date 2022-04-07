@@ -1,0 +1,20 @@
+# Copyright 2021 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/fs.h>
+include <uapi/linux/msdos_fs.h>
+
+__fat_dirent {
+	d_ino		intptr
+	d_off		intptr
+	d_reclen	len[d_name, int16]
+	d_name		string[filename, 256]
+}
+
+fat_attrs = ATTR_NONE, ATTR_RO, ATTR_HIDDEN, ATTR_SYS, ATTR_VOLUME, ATTR_DIR, ATTR_ARCH
+
+ioctl$VFAT_IOCTL_READDIR_BOTH(fd fd, cmd const[VFAT_IOCTL_READDIR_BOTH], arg ptr[out, array[__fat_dirent, 2]])
+ioctl$VFAT_IOCTL_READDIR_SHORT(fd fd, cmd const[VFAT_IOCTL_READDIR_SHORT], arg ptr[out, array[__fat_dirent, 2]])
+ioctl$FAT_IOCTL_GET_ATTRIBUTES(fd fd, cmd const[FAT_IOCTL_GET_ATTRIBUTES], arg ptr[out, int32])
+ioctl$FAT_IOCTL_SET_ATTRIBUTES(fd fd, cmd const[FAT_IOCTL_SET_ATTRIBUTES], arg ptr[in, flags[fat_attrs, int32]])
+ioctl$FAT_IOCTL_GET_VOLUME_ID(fd fd, cmd const[FAT_IOCTL_GET_VOLUME_ID], arg ptr[out, int32])

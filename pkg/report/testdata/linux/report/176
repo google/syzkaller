@@ -1,0 +1,85 @@
+TITLE: INFO: task hung in do_exit
+ALT: hang in do_exit
+TYPE: HANG
+
+[  246.752196] INFO: task syz-executor0:10244 blocked for more than 120 seconds.
+[  246.759582]       Not tainted 4.15.0-rc8+ #269
+[  246.764192] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  246.772168] syz-executor0   D23984 10244   4352 0x80000004
+[  246.777823] Call Trace:
+[  246.780435]  __schedule+0x8eb/0x2060
+[  246.784180]  ? __sched_text_start+0x8/0x8
+[  246.788352]  ? check_noncircular+0x20/0x20
+[  246.792606]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[  246.797849]  ? print_irqtrace_events+0x270/0x270
+[  246.802631]  schedule+0xf5/0x430
+[  246.806033]  ? lock_downgrade+0x980/0x980
+[  246.810191]  ? __schedule+0x2060/0x2060
+[  246.814184]  ? lock_release+0xa40/0xa40
+[  246.818204]  ? mark_held_locks+0xaf/0x100
+[  246.822368]  ? _raw_spin_unlock_irq+0x27/0x70
+[  246.826872]  ? rwsem_down_read_failed+0x3fc/0x6e0
+[  246.831729]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  246.836776]  ? rwsem_down_read_failed+0x3fc/0x6e0
+[  246.841630]  rwsem_down_read_failed+0x401/0x6e0
+[  246.846320]  ? rt_mutex_futex_unlock+0x110/0x110
+[  246.851121]  ? lock_acquire+0x1d5/0x580
+[  246.855100]  ? lock_acquire+0x1d5/0x580
+[  246.859109]  ? __might_sleep+0x95/0x190
+[  246.863104]  call_rwsem_down_read_failed+0x18/0x30
+[  246.868040]  ? call_rwsem_down_read_failed+0x18/0x30
+[  246.873269]  down_read+0xa4/0x150
+[  246.876727]  ? do_exit+0x4b0/0x1ad0
+[  246.880365]  ? __down_interruptible+0x6b0/0x6b0
+[  246.885080]  ? trace_hardirqs_on+0xd/0x10
+[  246.889260]  ? _raw_spin_unlock_irq+0x27/0x70
+[  246.893783]  ? sync_mm_rss+0x113/0x180
+[  246.897704]  do_exit+0x4b0/0x1ad0
+[  246.901194]  ? try_to_wake_up+0xf9/0x1600
+[  246.905370]  ? mm_update_next_owner+0x930/0x930
+[  246.910069]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[  246.915297]  ? print_irqtrace_events+0x270/0x270
+[  246.920091]  ? __rwsem_down_write_failed_common+0x100d/0x1530
+[  246.926048]  ? perf_trace_lock_acquire+0xe3/0x980
+[  246.930926]  ? perf_trace_lock+0x900/0x900
+[  246.935185]  ? check_noncircular+0x20/0x20
+[  246.939451]  ? __rwsem_down_write_failed_common+0x1015/0x1530
+[  246.945382]  ? rwsem_spin_on_owner+0x7e0/0x7e0
+[  246.950044]  ? find_held_lock+0x35/0x1d0
+[  246.954141]  ? get_signal+0x7ae/0x16c0
+[  246.958055]  ? lock_downgrade+0x980/0x980
+[  246.962244]  do_group_exit+0x149/0x400
+[  246.966158]  ? do_raw_spin_trylock+0x190/0x190
+[  246.970774]  ? SyS_exit+0x30/0x30
+[  246.974255]  ? _raw_spin_unlock_irq+0x27/0x70
+[  246.978775]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  246.983826]  get_signal+0x73f/0x16c0
+[  246.987614]  ? ptrace_notify+0x130/0x130
+[  246.991714]  ? exit_robust_list+0x240/0x240
+[  246.996051]  ? find_held_lock+0x35/0x1d0
+[  247.000163]  ? find_held_lock+0x35/0x1d0
+[  247.004277]  do_signal+0x90/0x1eb0
+[  247.007844]  ? vm_mmap_pgoff+0x198/0x280
+[  247.011929]  ? lock_downgrade+0x980/0x980
+[  247.016107]  ? lock_release+0xa40/0xa40
+[  247.020106]  ? setup_sigcontext+0x7d0/0x7d0
+[  247.024476]  ? rwsem_down_write_failed_killable+0xe/0x10
+[  247.029957]  ? call_rwsem_down_write_failed_killable+0x17/0x30
+[  247.035972]  ? down_read_killable+0x180/0x180
+[  247.040614]  ? security_mmap_file+0x143/0x180
+[  247.045157]  ? exit_to_usermode_loop+0x8c/0x310
+[  247.049860]  exit_to_usermode_loop+0x214/0x310
+[  247.054577]  ? trace_event_raw_event_sys_exit+0x260/0x260
+[  247.060172]  syscall_return_slowpath+0x490/0x550
+[  247.064958]  ? prepare_exit_to_usermode+0x340/0x340
+[  247.069996]  ? entry_SYSCALL_64_fastpath+0x73/0xa0
+[  247.074960]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  247.080010]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[  247.084836]  entry_SYSCALL_64_fastpath+0x9e/0xa0
+[  247.089613] RIP: 0033:0x452f3a
+[  247.092814] RSP: 002b:0000000000a2f728 EFLAGS: 00000246 ORIG_RAX: 0000000000000009
+[  247.100553] RAX: fffffffffffffffc RBX: 0000000000000003 RCX: 0000000000452f3a
+[  247.107852] RDX: 0000000000000003 RSI: 0000000000021000 RDI: 0000000000000000
+[  247.115144] RBP: ffffffffffffffff R08: ffffffffffffffff R09: 0000000000000000
+[  247.122428] R10: 0000000000020022 R11: 0000000000000246 R12: 0000000000000000
+[  247.129725] R13: 0000000000021000 R14: 0000000000020022 R15: 0000000000000000

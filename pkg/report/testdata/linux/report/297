@@ -1,0 +1,41 @@
+TITLE: BUG: soft lockup in smp_call_function
+ALT: stall in smp_call_function
+TYPE: HANG
+
+[  601.962573] watchdog: BUG: soft lockup - CPU#1 stuck for 123s! [syz-executor1:24793]
+[  601.970515] Modules linked in:
+[  601.973739] CPU: 1 PID: 24793 Comm: syz-executor1 Not tainted 4.18.0-rc4+ #24
+[  601.981015] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  601.990409] RIP: 0010:msan_get_shadow_origin_ptr+0x6f/0x300
+[  601.996116] Code: 8b 48 0f 45 d8 80 3c 25 00 f0 a0 8b 00 0f 84 08 02 00 00 65 4c 8b 2c 25 80 fc 02 00 41 83 bd f4 08 00 00 00 0f 85 f1 01 00 00 <49> 81 fc 01 10 00 00 72 23 0f b6 ca 45 31 f6 48 c7 c7 ba 47 d7 8a 
+[  602.016312] RSP: 0018:ffff8800b3a2f208 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff13
+[  602.024043] RAX: ffffffff8ba13000 RBX: ffffffff8ba11000 RCX: ffff880103d43b00
+[  602.031323] RDX: 0000000000000000 RSI: 0000000000000004 RDI: ffff8800b3a2f2d8
+[  602.038604] RBP: ffff8800b3a2f260 R08: 0000000000000000 R09: 0000000000000002
+[  602.045887] R10: 0000000000000000 R11: ffffffff8117d090 R12: 0000000000000004
+[  602.053171] R13: ffff880103d43b00 R14: ffffffff8ba10000 R15: ffff8800b3a2f2d8
+[  602.060458] FS:  00007f4dc65dc700(0000) GS:ffff88021fd00000(0000) knlGS:0000000000000000
+[  602.068697] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  602.074586] CR2: 00000000004544da CR3: 00000000b3c12000 CR4: 00000000001406e0
+[  602.081868] DR0: 0000000020000000 DR1: 0000000020000000 DR2: 0000000000000000
+[  602.089149] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000600
+[  602.096425] Call Trace:
+[  602.104092]  __msan_metadata_ptr_for_load_4+0x10/0x20
+[  602.109301]  smp_call_function_single+0x363/0x500
+[  602.122402]  smp_call_function_many+0x672/0xe30
+[  602.135338]  on_each_cpu_cond+0x335/0x420
+[  602.148630]  invalidate_bh_lrus+0x54/0x60
+[  602.152805]  __blkdev_put+0x44b/0xcc0
+[  602.160518]  blkdev_put+0x435/0x570
+[  602.164201]  blkdev_close+0xa6/0xf0
+[  602.167872]  __fput+0x458/0xa30
+[  602.174520]  ____fput+0x37/0x40
+[  602.177819]  task_work_run+0x22e/0x2b0
+[  602.181766]  do_exit+0x110e/0x3930
+[  602.185376]  do_group_exit+0x1a0/0x360
+[  602.189287]  get_signal+0x15c3/0x2190
+[  602.216814]  do_signal+0xca/0x2060
+[  602.229420]  prepare_exit_to_usermode+0x297/0x430
+[  602.234312]  syscall_return_slowpath+0x108/0x800
+[  602.243411]  do_syscall_64+0x1ad/0x230
+[  602.247324]  entry_SYSCALL_64_after_hwframe+0x63/0xe7

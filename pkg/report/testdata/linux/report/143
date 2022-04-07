@@ -1,0 +1,26 @@
+TITLE: kernel panic: Attempted to kill init!
+SUPPRESSED: Y
+
+INIT: PANIC: segmentation violation! sleeping for 30 seconds.
+[   19.171696] Kernel panic - not syncing: Attempted to kill init! exitcode=0x0000000b
+[   19.171696] 
+[   19.180969] CPU: 1 PID: 1 Comm: init Not tainted 4.15.0-rc3-next-20171214+ #67
+[   19.188300] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   19.197627] Call Trace:
+[   19.200192]  dump_stack+0xe9/0x14b
+[   19.203711]  panic+0x10e/0x2f8
+[   19.206877]  ? do_exit+0x1036/0x1050
+[   19.210569]  do_exit+0x1045/0x1050
+[   19.214089]  do_group_exit+0x60/0x100
+[   19.217864]  get_signal+0x36c/0xad0
+[   19.221474]  do_signal+0x23/0x670
+[   19.224911]  ? __bad_area_nosemaphore+0x149/0x270
+[   19.229741]  ? __do_page_fault+0x246/0x6b0
+[   19.233957]  exit_to_usermode_loop+0x13c/0x160
+[   19.238514]  prepare_exit_to_usermode+0x102/0x110
+[   19.243674]  ? page_fault+0x36/0x60
+[   19.247272]  retint_user+0x8/0x18
+[   19.250694] RIP: 0033:          (null)
+[   19.254549] RSP: 002b:00007ffe8c9df0b0 EFLAGS: 00010286
+Connection to kasan-2 closed by remote host.
+[   19.259884] RAX: ffffffffffffffff

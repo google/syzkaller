@@ -1,0 +1,68 @@
+TITLE: INFO: rcu detected stall in do_tcp_setsockopt
+ALT: stall in do_tcp_setsockopt
+TYPE: HANG
+
+[ 1335.106333][    C1] rcu: INFO: rcu_sched self-detected stall on CPU
+[ 1335.138473][    C1] rcu: 	1-....: (2599 ticks this GP) idle=61e/1/0x40000002 softirq=26532/26532 fqs=1286 
+[ 1335.139551][    C1] 	(t=2603 jiffies g=52717 q=8)
+[ 1335.140526][    C1] NMI backtrace for cpu 1
+[ 1335.141218][    C1] CPU: 1 PID: 4246 Comm: syz-executor.0 Not tainted 5.10.2 #14
+[ 1335.142006][    C1] Hardware name: ARM-Versatile Express
+[ 1335.142529][    C1] Backtrace: 
+[ 1335.143447][    C1] [<80de0078>] (dump_backtrace) from [<80de0574>] (show_stack+0x28/0x2c)
+[ 1335.144482][    C1]  r9:40000193 r8:ffffffff r7:00000001 r6:00000080 r5:8101acf4 r4:00000000
+[ 1335.145411][    C1] [<80de054c>] (show_stack) from [<80de7c10>] (dump_stack+0x154/0x1a8)
+[ 1335.146380][    C1]  r5:00000000 r4:81260dfc
+[ 1335.147235][    C1] [<80de7abc>] (dump_stack) from [<807a02bc>] (nmi_cpu_backtrace+0x170/0x20c)
+[ 1335.148412][    C1]  r10:81208ed4 r9:80e032f0 r8:801167a4 r7:00000001 r6:00000000 r5:00000001
+[ 1335.149201][    C1]  r4:00000000 r3:00010002
+[ 1335.150100][    C1] [<807a014c>] (nmi_cpu_backtrace) from [<807a04f8>] (nmi_trigger_cpumask_backtrace+0x1a0/0x2c8)
+[ 1335.151123][    C1]  r7:00000001 r6:81209554 r5:00000001 r4:00000000
+[ 1335.152100][    C1] [<807a0358>] (nmi_trigger_cpumask_backtrace) from [<80117f6c>] (arch_trigger_cpumask_backtrace+0x28/0x30)
+[ 1335.153283][    C1]  r9:00000149 r8:8129efa0 r7:81225180 r6:81225180 r5:00000000 r4:80e032f0
+[ 1335.154351][    C1] [<80117f44>] (arch_trigger_cpumask_backtrace) from [<80de347c>] (rcu_dump_cpu_stacks+0xe4/0x138)
+[ 1335.155203][    C1]  r5:81208f68 r4:00000001
+[ 1335.156050][    C1] [<80de3398>] (rcu_dump_cpu_stacks) from [<801f6894>] (rcu_sched_clock_irq+0x730/0x9a0)
+[ 1335.157264][    C1]  r10:81205d00 r9:3d66c000 r8:812a63c4 r7:81172a40 r6:00000000 r5:be7dea40
+[ 1335.157998][    C1]  r4:81225180
+[ 1335.158784][    C1] [<801f6164>] (rcu_sched_clock_irq) from [<80205c8c>] (update_process_times+0x9c/0xec)
+[ 1335.159895][    C1]  r10:00000001 r9:81c20400 r8:00000000 r7:3d66c000 r6:be7d7780 r5:fffffc4d
+[ 1335.160636][    C1]  r4:00000000
+[ 1335.161434][    C1] [<80205bf0>] (update_process_times) from [<80222b0c>] (tick_periodic+0x68/0x24c)
+[ 1335.162392][    C1]  r7:be7e10c0 r6:802233ec r5:00000000 r4:00000003
+[ 1335.163333][    C1] [<80222aa4>] (tick_periodic) from [<802233ec>] (tick_handle_periodic+0x38/0xd8)
+[ 1335.164325][    C1]  r8:00000000 r7:be7e10c0 r6:00000136 r5:be7e10c0 r4:d4cbfc80
+[ 1335.165274][    C1] [<802233b4>] (tick_handle_periodic) from [<80b38700>] (arch_timer_handler_virt+0x50/0x60)
+[ 1335.166418][    C1]  r10:000003fb r9:81c20400 r8:00000000 r7:8120956c r6:00000007 r5:be7e10c0
+[ 1335.167127][    C1]  r4:00000004
+[ 1335.167928][    C1] [<80b386b0>] (arch_timer_handler_virt) from [<801dd1c0>] (handle_percpu_devid_irq+0x9c/0x220)
+[ 1335.169218][    C1]  r7:8120956c r6:0000001c r5:81c89840 r4:81c87000
+[ 1335.170202][    C1] [<801dd124>] (handle_percpu_devid_irq) from [<801d319c>] (__handle_domain_irq+0xc0/0x12c)
+[ 1335.171304][    C1]  r10:000003fb r9:81c20400 r8:0000003b r7:812231ec r6:00000000 r5:81170f7c
+[ 1335.172013][    C1]  r4:00000000
+[ 1335.172829][    C1] [<801d30dc>] (__handle_domain_irq) from [<807bcf60>] (gic_handle_irq+0xc0/0xfc)
+[ 1335.173934][    C1]  r9:8120956c r8:00000010 r7:c0802000 r6:83711dd0 r5:0000001b r4:0000001b
+[ 1335.174870][    C1] [<807bcea0>] (gic_handle_irq) from [<80100b30>] (__irq_svc+0x70/0x98)
+[ 1335.175566][    C1] Exception stack(0x83711dd0 to 0x83711e18)
+[ 1335.176461][    C1] 1dc0:                                     80ffa650 0000009c 00000000 00040000
+[ 1335.177758][    C1] 1de0: 0000009c 00000000 ffffe000 83710000 80ffa650 80e948a8 80ffa650 83711e54
+[ 1335.178887][    C1] 1e00: 83711e20 83711e20 8034d678 8018c67c 60000013 ffffffff
+[ 1335.179954][    C1]  r10:80ffa650 r9:83710000 r8:80ffa650 r7:83711e04 r6:ffffffff r5:60000013
+[ 1335.180693][    C1]  r4:8018c67c
+[ 1335.181528][    C1] [<8034d5f8>] (__might_fault) from [<80cc74b4>] (do_tcp_setsockopt.constprop.0+0xa70/0x14bc)
+[ 1335.182627][    C1]  r8:40000104 r7:20685fc8 r6:00000000 r5:1f97a13c r4:833d8000
+[ 1335.183610][    C1] [<80cc6a44>] (do_tcp_setsockopt.constprop.0) from [<80cc7fa0>] (tcp_setsockopt+0xa0/0xb4)
+[ 1335.184692][    C1]  r10:00000126 r9:00000003 r8:00000016 r7:20000084 r6:00000016 r5:833d8000
+[ 1335.185372][    C1]  r4:00000006
+[ 1335.186193][    C1] [<80cc7f04>] (tcp_setsockopt) from [<80bbdc48>] (sock_common_setsockopt+0x54/0x5c)
+[ 1335.187107][    C1]  r6:826da080 r5:00000016 r4:80cc7f00
+[ 1335.187975][    C1] [<80bbdbf8>] (sock_common_setsockopt) from [<80bbbe3c>] (__sys_setsockopt+0xc8/0x17c)
+[ 1335.188894][    C1]  r6:80bbdbf4 r5:00000006 r4:826da080
+[ 1335.189736][    C1] [<80bbbd74>] (__sys_setsockopt) from [<80bbbf30>] (sys_setsockopt+0x40/0x48)
+[ 1335.190805][    C1]  r9:83710000 r8:80100244 r7:20000080 r6:00000016 r5:00000006 r4:00000003
+[ 1335.191786][    C1] [<80bbbef0>] (sys_setsockopt) from [<80100080>] (ret_fast_syscall+0x0/0x28)
+[ 1335.192564][    C1] Exception stack(0x83711fa8 to 0x83711ff0)
+[ 1335.193581][    C1] 1fa0:                   20000084 00000000 00000003 00000006 00000016 20000080
+[ 1335.194819][    C1] 1fc0: 20000084 00000000 00000000 00000126 7ed63732 75e47160 75e46ca0 75e46c9c
+[ 1335.195814][    C1] 1fe0: 75e46ae8 75e46ad8 000152e8 0004ed10
+[ 1335.196684][    C1]  r7:00000126 r6:00000000 r5:00000000 r4:20000084

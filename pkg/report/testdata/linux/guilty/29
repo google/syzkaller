@@ -1,0 +1,97 @@
+FILE: drivers/vhost/vhost.c
+
+==================================================================
+BUG: KASAN: use-after-free in __list_add_valid+0xb1/0xd0 lib/list_debug.c:23
+Read of size 8 at addr ffff8801bb5893d0 by task syz-executor1/28911
+
+CPU: 0 PID: 28911 Comm: syz-executor1 Not tainted 4.15.0-rc9+ #277
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Call Trace:
+ __dump_stack lib/dump_stack.c:17 [inline]
+ dump_stack+0x194/0x257 lib/dump_stack.c:53
+ print_address_description+0x73/0x250 mm/kasan/report.c:252
+ kasan_report_error mm/kasan/report.c:351 [inline]
+ kasan_report+0x25b/0x340 mm/kasan/report.c:409
+ __asan_report_load8_noabort+0x14/0x20 mm/kasan/report.c:430
+ __list_add_valid+0xb1/0xd0 lib/list_debug.c:23
+ __list_add include/linux/list.h:60 [inline]
+ list_add include/linux/list.h:79 [inline]
+ __add_wait_queue include/linux/wait.h:156 [inline]
+ add_wait_queue+0xcf/0x290 kernel/sched/wait.c:30
+ vhost_poll_func+0x3d/0x50 drivers/vhost/vhost.c:165
+ poll_wait include/linux/poll.h:46 [inline]
+ eventfd_poll+0xe8/0x1f0 fs/eventfd.c:123
+ vhost_poll_start+0x97/0x1c0 drivers/vhost/vhost.c:212
+ vhost_vring_ioctl+0xe28/0x19b0 drivers/vhost/vhost.c:1556
+ vhost_net_ioctl+0x9df/0x1910 drivers/vhost/net.c:1320
+ vfs_ioctl fs/ioctl.c:46 [inline]
+ do_vfs_ioctl+0x1b1/0x1520 fs/ioctl.c:686
+ SYSC_ioctl fs/ioctl.c:701 [inline]
+ SyS_ioctl+0x8f/0xc0 fs/ioctl.c:692
+ entry_SYSCALL_64_fastpath+0x29/0xa0
+RIP: 0033:0x452f19
+RSP: 002b:00007f33da20dc58 EFLAGS: 00000212 ORIG_RAX: 0000000000000010
+RAX: ffffffffffffffda RBX: 00007f33da20e700 RCX: 0000000000452f19
+RDX: 00000000208ffff8 RSI: 000000004008af20 RDI: 0000000000000017
+RBP: 0000000000a2f850 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000212 R12: 0000000000000000
+R13: 0000000000a2f7cf R14: 00007f33da20e9c0 R15: 0000000000000006
+
+Allocated by task 28878:
+ save_stack+0x43/0xd0 mm/kasan/kasan.c:447
+ set_track mm/kasan/kasan.c:459 [inline]
+ kasan_kmalloc+0xad/0xe0 mm/kasan/kasan.c:551
+ __do_kmalloc_node mm/slab.c:3672 [inline]
+ __kmalloc_node+0x47/0x70 mm/slab.c:3679
+ kmalloc_node include/linux/slab.h:541 [inline]
+ kvmalloc_node+0x64/0xd0 mm/util.c:397
+ kvmalloc include/linux/mm.h:541 [inline]
+ vhost_net_open+0x27/0x670 drivers/vhost/net.c:902
+ misc_open+0x382/0x500 drivers/char/misc.c:154
+ chrdev_open+0x257/0x730 fs/char_dev.c:417
+ do_dentry_open+0x667/0xd40 fs/open.c:752
+ vfs_open+0x107/0x220 fs/open.c:866
+ do_last fs/namei.c:3379 [inline]
+ path_openat+0x1151/0x3530 fs/namei.c:3519
+ do_filp_open+0x25b/0x3b0 fs/namei.c:3554
+ do_sys_open+0x502/0x6d0 fs/open.c:1059
+ SYSC_openat fs/open.c:1086 [inline]
+ SyS_openat+0x30/0x40 fs/open.c:1080
+ entry_SYSCALL_64_fastpath+0x29/0xa0
+
+Freed by task 28878:
+ save_stack+0x43/0xd0 mm/kasan/kasan.c:447
+ set_track mm/kasan/kasan.c:459 [inline]
+ kasan_slab_free+0x71/0xc0 mm/kasan/kasan.c:524
+ __cache_free mm/slab.c:3488 [inline]
+ kfree+0xd6/0x260 mm/slab.c:3803
+ kvfree+0x36/0x60 mm/util.c:416
+ vhost_net_release+0x159/0x190 drivers/vhost/net.c:1012
+ __fput+0x327/0x7e0 fs/file_table.c:210
+ ____fput+0x15/0x20 fs/file_table.c:244
+ task_work_run+0x199/0x270 kernel/task_work.c:113
+ tracehook_notify_resume include/linux/tracehook.h:191 [inline]
+ exit_to_usermode_loop+0x296/0x310 arch/x86/entry/common.c:162
+ prepare_exit_to_usermode arch/x86/entry/common.c:195 [inline]
+ syscall_return_slowpath+0x490/0x550 arch/x86/entry/common.c:264
+ entry_SYSCALL_64_fastpath+0x9e/0xa0
+
+The buggy address belongs to the object at ffff8801bb589140
+ which belongs to the cache kmalloc-65536 of size 65536
+The buggy address is located 656 bytes inside of
+ 65536-byte region [ffff8801bb589140, ffff8801bb599140)
+The buggy address belongs to the page:
+page:ffffea0006ed6000 count:1 mapcount:0 mapping:ffff8801bb589140 index:0x0 compound_mapcount: 0
+flags: 0x2fffc0000008100(slab|head)
+raw: 02fffc0000008100 ffff8801bb589140 0000000000000000 0000000100000001
+raw: ffffea00068b0820 ffffea000693d020 ffff8801dac02500 0000000000000000
+page dumped because: kasan: bad access detected
+
+Memory state around the buggy address:
+ ffff8801bb589280: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+ ffff8801bb589300: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+ffff8801bb589380: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+                                                 ^
+ ffff8801bb589400: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+ ffff8801bb589480: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+==================================================================

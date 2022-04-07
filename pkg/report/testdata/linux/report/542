@@ -1,0 +1,40 @@
+TITLE: kernel panic: bad mode
+
+[    0.000000][    C0] Bad mode in Synchronous Abort handler detected on CPU0, code 0x34000001 -- BTI
+[    0.000000][    C0] CPU: 0 PID: 0 Comm: swapper Not tainted 5.10.2 #24
+[    0.000000][    C0] Hardware name: linux,dummy-virt (DT)
+[    0.000000][    C0] pstate: 80000489 (Nzcv daIf -PAN -UAO -TCO BTYPE=jc)
+[    0.000000][    C0] pc : update_cpu_capabilities+0x0/0x3c0
+[    0.000000][    C0] lr : init_cpu_features+0xbc4/0xbec
+[    0.000000][    C0] sp : ffffa00019957eb0
+[    0.000000][    C0] x29: ffffa00019957eb0 x28: ffffa00019a1e828 
+[    0.000000][    C0] x27: 0000000000000000 x26: ffffa00017a2feb0 
+[    0.000000][    C0] x25: 00000000001be000 x24: ffffa00019a1d3e0 
+[    0.000000][    C0] x23: 0000000000000023 x22: 1ffff40003895fc4 
+[    0.000000][    C0] x21: 0000000000000002 x20: 0000000000000001 
+[    0.000000][    C0] x19: ffffa0001c4af880 x18: 0000000000000001 
+[    0.000000][    C0] x17: 0000000000000000 x16: ffffa000100424c0 
+[    0.000000][    C0] x15: 0000000000000000 x14: ffff000000000000 
+[    0.000000][    C0] x13: 0000000000000000 x12: 0000000000000000 
+[    0.000000][    C0] x11: 0000000000000000 x10: 0000000000000000 
+[    0.000000][    C0] x9 : 0000000000000000 x8 : 0000000000000000 
+[    0.000000][    C0] x7 : 0000000000000000 x6 : ffffa000194ca9b0 
+[    0.000000][    C0] x5 : ffffa00019a06380 x4 : 0000000000000000 
+[    0.000000][    C0] x3 : ffffa000196ba1cc x2 : 000000000000003a 
+[    0.000000][    C0] x1 : ffffa00019a06380 x0 : 0000000000000005 
+[    0.000000][    C0] Kernel panic - not syncing: bad mode
+[    0.000000][    C0] CPU: 0 PID: 0 Comm: swapper Not tainted 5.10.2 #24
+[    0.000000][    C0] Hardware name: linux,dummy-virt (DT)
+[    0.000000][    C0] Call trace:
+[    0.000000][    C0]  dump_backtrace+0x0/0x4f4
+[    0.000000][    C0]  show_stack+0x30/0x80
+[    0.000000][    C0]  dump_stack+0x1f0/0x294
+[    0.000000][    C0]  panic+0x484/0x8b8
+[    0.000000][    C0]  bad_mode+0x14c/0x1b4
+[    0.000000][    C0]  el1_inv+0x3c/0x5c
+[    0.000000][    C0]  el1_sync_handler+0x80/0x170
+[    0.000000][    C0]  el1_sync+0x80/0x100
+[    0.000000][    C0]  update_cpu_capabilities+0x0/0x3c0
+[    0.000000][    C0]  cpuinfo_store_boot_cpu+0xc4/0xd4
+[    0.000000][    C0]  smp_prepare_boot_cpu+0x98/0xac
+[    0.000000][    C0]  start_kernel+0xc8/0x4f4

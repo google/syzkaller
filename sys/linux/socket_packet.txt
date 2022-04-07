@@ -1,0 +1,104 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# http://man7.org/linux/man-pages/man7/packet.7.html
+# https://www.kernel.org/doc/Documentation/networking/packet_mmap.txt
+
+# AF_PACKET support.
+
+include <linux/socket.h>
+include <linux/net.h>
+include <linux/if_ether.h>
+include <linux/if_arp.h>
+
+define ETH_P_ALL_BE	htons(ETH_P_ALL)
+
+resource sock_packet[sock]
+
+socket$packet(domain const[AF_PACKET], type flags[packet_socket_type], proto const[ETH_P_ALL_BE]) sock_packet
+bind$packet(fd sock_packet, addr ptr[in, sockaddr_ll], addrlen len[addr])
+connect$packet(fd sock_packet, addr ptr[in, sockaddr_ll], addrlen len[addr])
+accept$packet(fd sock_packet, peer ptr[out, sockaddr_ll, opt], peerlen ptr[inout, len[peer, int32]]) sock_packet
+accept4$packet(fd sock_packet, peer ptr[out, sockaddr_ll, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_packet
+
+sendto$packet(fd sock_packet, buf buffer[in], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_ll, opt], addrlen len[addr])
+recvfrom$packet(fd sock_packet, buf buffer[out], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr_ll, opt], addrlen len[addr])
+getsockname$packet(fd sock_packet, addr ptr[out, sockaddr_ll], addrlen ptr[inout, len[addr, int32]])
+getpeername$packet(fd sock_packet, peer ptr[out, sockaddr_ll], peerlen ptr[inout, len[peer, int32]])
+
+packet_socket_type = SOCK_RAW, SOCK_DGRAM
+packet_protocols = ETH_P_802_3, ETH_P_AX25, ETH_P_ALL, ETH_P_802_2, ETH_P_SNAP, ETH_P_DDCMP, ETH_P_WAN_PPP, ETH_P_PPP_MP, ETH_P_LOCALTALK, ETH_P_CAN, ETH_P_CANFD, ETH_P_PPPTALK, ETH_P_TR_802_2, ETH_P_MOBITEX, ETH_P_CONTROL, ETH_P_IRDA, ETH_P_ECONET, ETH_P_HDLC, ETH_P_ARCNET, ETH_P_DSA, ETH_P_TRAILER, ETH_P_PHONET, ETH_P_IEEE802154, ETH_P_CAIF, ETH_P_XDSA
+
+sockaddr_ll {
+	sll_family	const[AF_PACKET, int16]
+	sll_protocol	flags[packet_protocols, int16be]
+	sll_ifindex	ifindex
+	sll_hatype	const[ARPHRD_ETHER, int16]
+	sll_pkttype	int8
+	sll_halen	const[6, int8]
+	sll_addr	mac_addr
+	pad		array[const[0, int8], 2]
+}
+
+# Generic options
+
+packet_option_types_int = PACKET_RECV_OUTPUT, PACKET_COPY_THRESH, PACKET_AUXDATA, PACKET_ORIGDEV, PACKET_VERSION, PACKET_HDRLEN, PACKET_RESERVE, PACKET_LOSS, PACKET_VNET_HDR, PACKET_TX_TIMESTAMP, PACKET_TIMESTAMP, PACKET_FANOUT, PACKET_TX_HAS_OFF, PACKET_QDISC_BYPASS
+
+packet_option_types_buf = PACKET_ADD_MEMBERSHIP, PACKET_DROP_MEMBERSHIP, PACKET_RX_RING, PACKET_STATISTICS, PACKET_TX_RING, PACKET_FANOUT_DATA
+
+getsockopt$packet_int(fd sock_packet, level const[SOL_PACKET], optname flags[packet_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$packet_int(fd sock_packet, level const[SOL_PACKET], optname flags[packet_option_types_int], optval ptr[in, int32], optlen len[optval])
+getsockopt$packet_buf(fd sock_packet, level const[SOL_PACKET], optname flags[packet_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$packet_buf(fd sock_packet, level const[SOL_PACKET], optname flags[packet_option_types_buf], optval buffer[in], optlen len[optval])
+
+# Specific options
+
+packet_mreq {
+	mr_ifindex	ifindex
+	mr_type		const[ARPHRD_ETHER, int16]
+	mr_alen		len[mr_address, int16]
+	mr_address	mac_addr
+	pad		array[const[0, int8], 2]
+}
+
+setsockopt$packet_add_memb(fd sock_packet, level const[SOL_PACKET], optname const[PACKET_ADD_MEMBERSHIP], optval ptr[in, packet_mreq], optlen len[optval])
+setsockopt$packet_drop_memb(fd sock_packet, level const[SOL_PACKET], optname const[PACKET_DROP_MEMBERSHIP], optval ptr[in, packet_mreq], optlen len[optval])
+
+tpacket_req {
+	tp_block_size	int32
+	tp_block_nr	int32
+	tp_frame_size	int32
+	tp_frame_nr	int32
+}
+
+tpacket_req3 {
+	tp_block_size		int32
+	tp_block_nr		int32
+	tp_frame_size		int32
+	tp_frame_nr		int32
+	tp_retire_blk_tov	int32
+	tp_sizeof_priv		int32
+	tp_feature_req_word	int32
+}
+
+tpacket_req_u [
+	req	tpacket_req
+	req3	tpacket_req3
+] [varlen]
+
+setsockopt$packet_rx_ring(fd sock_packet, level const[SOL_PACKET], optname const[PACKET_RX_RING], optval ptr[in, tpacket_req_u], optlen len[optval])
+setsockopt$packet_tx_ring(fd sock_packet, level const[SOL_PACKET], optname const[PACKET_TX_RING], optval ptr[in, tpacket_req_u], optlen len[optval])
+
+packet_fanout_types = PACKET_FANOUT_HASH, PACKET_FANOUT_LB, PACKET_FANOUT_CPU, PACKET_FANOUT_ROLLOVER, PACKET_FANOUT_RND, PACKET_FANOUT_QM, PACKET_FANOUT_CBPF, PACKET_FANOUT_EBPF, PACKET_FANOUT_FLAG_ROLLOVER, PACKET_FANOUT_FLAG_DEFRAG, PACKET_FANOUT_FLAG_UNIQUEID
+
+# TODO: Add descriptions
+_ = PACKET_MR_MULTICAST, PACKET_MR_PROMISC, PACKET_MR_ALLMULTI, PACKET_MR_UNICAST
+
+packet_fanout_val {
+	id	int16[0:4]
+	type	flags[packet_fanout_types, int16]
+}
+
+setsockopt$packet_fanout(fd sock_packet, level const[SOL_PACKET], optname const[PACKET_FANOUT], optval ptr[in, packet_fanout_val], optlen len[optval])
+
+setsockopt$packet_fanout_data(fd sock_packet, level const[SOL_PACKET], optname const[PACKET_FANOUT_DATA], optval ptr[in, sock_fprog], optlen len[optval])

@@ -1,0 +1,19 @@
+TITLE: BUG: using __this_cpu_add() in preemptible code in ipcomp_init_state
+
+[   76.825838] BUG: using __this_cpu_add() in preemptible [00000000] code: syz-executor0/10076
+[   35.193222] caller is __this_cpu_preempt_check+0x1c/0x20
+[   35.198727] CPU: 1 PID: 3344 Comm: syzkaller195313 Not tainted 4.9.68-gfb66dc2 #107
+[   35.206487] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   35.215825]  ffff8801c8e476d8 ffffffff81d90889 0000000000000001 ffffffff83c17800
+[   35.223786]  ffffffff83f42ec0 ffff8801c7643000 0000000000000003 ffff8801c8e47718
+[   35.231779]  ffffffff81df7854 ffff8801c8e47730 ffffffff83f42ec0 dffffc0000000000
+[   35.239734] Call Trace:
+[   35.242294]  [<ffffffff81d90889>] dump_stack+0xc1/0x128
+[   35.247625]  [<ffffffff81df7854>] check_preemption_disabled+0x1d4/0x200
+[   35.254346]  [<ffffffff81df78bc>] __this_cpu_preempt_check+0x1c/0x20
+[   35.260808]  [<ffffffff833f3f78>] ipcomp_init_state+0x188/0x930
+[   35.266833]  [<ffffffff81232141>] ? __lock_is_held+0xa1/0xf0
+[   35.272602]  [<ffffffff83360470>] ipcomp4_init_state+0xb0/0x7d0
+[   35.278628]  [<ffffffff833d2677>] __xfrm_init_state+0x3e7/0xb30
+[   35.284654]  [<ffffffff833d2dda>] xfrm_init_state+0x1a/0x20
+[   35.290339]  [<ffffffff8356cb49>] pfkey_add+0x1fb9/0x3470

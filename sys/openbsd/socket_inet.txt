@@ -1,0 +1,35 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <sys/socket.h>
+include <sys/sockio.h>
+include <netinet/in.h>
+
+# IP sockets
+
+resource sock_in[sock]
+
+sockaddr_in {
+	family	const[AF_INET, int16]
+	port	sock_port
+	pad	array[const[0, int8], 8]
+}
+
+socket$inet(domain const[AF_INET], type flags[socket_type], proto int8) sock_in
+accept$inet(fd sock_in, peer ptr[out, sockaddr_in, opt], peerlen ptr[inout, len[peer, int32]]) sock_in
+bind$inet(fd sock_in, addr ptr[in, sockaddr_in], addrlen len[addr])
+connect$inet(fd sock_in, addr ptr[in, sockaddr_in], addrlen len[addr])
+sendto$inet(fd sock_in, buf buffer[in], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_in, opt], addrlen len[addr])
+recvfrom$inet(fd sock_in, buf buffer[out], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr_in, opt], addrlen len[addr])
+getsockname$inet(fd sock_in, addr ptr[out, sockaddr_in], addrlen ptr[inout, len[addr, int32]])
+getpeername$inet(fd sock_in, peer ptr[out, sockaddr_in], peerlen ptr[inout, len[peer, int32]])
+
+# Generic IP options
+
+# Specific IP options
+
+sockopt_opt_ip_opts = IP_OPTIONS
+
+getsockopt$inet_opts(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_opts], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet_opts(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_opts], optval buffer[in], optlen len[optval])

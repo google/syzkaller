@@ -1,0 +1,20 @@
+TITLE: ASSERT FAILED: wait->magic == WAIT_QUEUE_MAGIC
+
+ZIRCON KERNEL PANIC
+
+UPTIME: 796655ms
+BUILDID git-5f588306b2998fea1c021f992444971b1ce92581
+
+dso: id=c9e63845b8cc355bb42713bfb8eec04942ec7bcd base=0xffffffff00100000 name=zircon.elf
+stopping other cpus
+panic (caller 0xffffffff00131673 frame 0xffffff9c8a6c3da0): DEBUG ASSERT FAILED at (kernel/kernel/wait.cpp:382): wait->magic ==
+ WAIT_QUEUE_MAGIC
+platform_halt suggested_action 0 reason 9
+Halting...
+Halted
+entering panic shell loop
+
+REPORT:
+ZIRCON KERNEL PANIC
+panic (caller 0xffffffff00131673 frame 0xffffff9c8a6c3da0): DEBUG ASSERT FAILED at (kernel/kernel/wait.cpp:382): wait->magic == WAIT_QUEUE_MAGIC
+platform_halt suggested_action 0 reason 9

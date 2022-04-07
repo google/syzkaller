@@ -1,0 +1,123 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <sys/fcntl.h>
+include <sys/stat.h>
+include <sys/ipc.h>
+include <sys/shm.h>
+include <sys/msg.h>
+include <sys/sem.h>
+
+resource ipc[int32]: 0, 0xffffffffffffffff
+
+# TODO: describe ipc syscall
+
+resource ipc_msq[ipc]
+msgget(key proc[2039379027, 4], flags flags[msgget_flags]) ipc_msq
+msgget$private(key const[IPC_PRIVATE], flags flags[msgget_flags]) ipc_msq
+msgsnd(msqid ipc_msq, msgp ptr[in, msgbuf], sz len[msgp], flags flags[msgsnd_flags])
+msgrcv(msqid ipc_msq, msgp ptr[out, msgbuf], sz len[msgp], typ flags[msgbuf_type], flags flags[msgrcv_flags])
+msgctl$IPC_STAT(msqid ipc_msq, cmd const[IPC_STAT], buf buffer[out])
+msgctl$IPC_SET(msqid ipc_msq, cmd const[IPC_SET], buf ptr[in, msqid_ds])
+msgctl$IPC_RMID(msqid ipc_msq, cmd const[IPC_RMID])
+
+resource ipc_sem[ipc]
+semget(key proc[2039359027, 4], nsems flags[sem_sem_id], flags flags[semget_flags]) ipc_sem
+semget$private(key const[IPC_PRIVATE], nsems flags[sem_sem_id], flags flags[semget_flags]) ipc_sem
+semop(semid ipc_sem, ops ptr[in, array[sembuf]], nops len[ops])
+semctl$IPC_STAT(semid ipc_sem, semnum const[0], cmd const[IPC_STAT], arg buffer[out])
+semctl$IPC_SET(semid ipc_sem, semnum const[0], cmd const[IPC_SET], arg ptr[in, semid_ds])
+semctl$IPC_RMID(semid ipc_sem, semnum const[0], cmd const[IPC_RMID])
+semctl$GETALL(semid ipc_sem, semnum const[0], cmd const[GETALL], arg buffer[out])
+semctl$GETNCNT(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETNCNT], arg buffer[out])
+semctl$GETPID(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETPID], arg buffer[out])
+semctl$GETVAL(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETVAL], arg buffer[out])
+semctl$GETZCNT(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETZCNT], arg buffer[out])
+semctl$SETALL(semid ipc_sem, semnum const[0], cmd const[SETALL], arg ptr[in, array[int16]])
+semctl$SETVAL(semid ipc_sem, semnum flags[sem_sem_id], cmd const[SETVAL], arg ptr[in, int32])
+
+resource ipc_shm[ipc]
+resource shmaddr[intptr]: 0
+# The unused arg is unused by syscall (does not exist at all),
+# but it helps to generate sane size values.
+shmget(key proc[2039339027, 4], size len[unused], flags flags[shmget_flags], unused vma) ipc_shm
+shmget$private(key const[IPC_PRIVATE], size len[unused], flags flags[shmget_flags], unused vma) ipc_shm
+shmat(shmid ipc_shm, addr vma, flags flags[shmat_flags]) shmaddr
+shmctl$IPC_STAT(shmid ipc_shm, cmd const[IPC_STAT], buf buffer[out])
+shmctl$IPC_SET(shmid ipc_shm, cmd const[IPC_SET], buf ptr[in, shmid_ds])
+shmctl$IPC_RMID(shmid ipc_shm, cmd const[IPC_RMID])
+shmctl$SHM_LOCK(shmid ipc_shm, cmd const[SHM_LOCK])
+shmctl$SHM_UNLOCK(shmid ipc_shm, cmd const[SHM_UNLOCK])
+shmdt(addr shmaddr)
+
+msgget_flags = IPC_CREAT, IPC_EXCL, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
+msgbuf_type = 0, 1, 2, 3
+msgsnd_flags = IPC_NOWAIT
+msgrcv_flags = IPC_NOWAIT, MSG_NOERROR
+semget_flags = IPC_CREAT, IPC_EXCL, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
+semop_flags = IPC_NOWAIT, SEM_UNDO
+sem_sem_id = 0, 1, 2, 3, 4
+shmget_flags = IPC_CREAT, IPC_EXCL, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
+shmat_flags = SHM_RND, SHM_RDONLY
+
+ipc_perm {
+	key	int32
+	uid	uid
+	gid	gid
+	cuid	uid
+	cgid	gid
+	mode	flags[open_mode, int32]
+	seq	int16
+	pad0	const[0, int16]
+	pad1	const[0, intptr]
+	pad2	const[0, intptr]
+}
+
+msqid_ds {
+	perm	ipc_perm
+	qnum	intptr
+	qbytes	intptr
+	lspid	pid
+	lrpid	pid
+	stime	intptr
+	rtime	intptr
+	ctime	intptr
+	cbytes	intptr
+	pad0	const[0, intptr]
+	pad1	const[0, intptr]
+}
+
+shmid_ds {
+	perm	ipc_perm
+	segsz	int32
+	nattch	int16
+	cpid	pid
+	lpid	pid
+	atime	intptr
+	dtime	intptr
+	ctime	intptr
+	unused0	const[0, int16]
+	unused1	const[0, intptr]
+	unused2	const[0, intptr]
+}
+
+semid_ds {
+	perm	ipc_perm
+	otime	intptr
+	ctime	intptr
+	nsems	intptr
+	pad0	const[0, intptr]
+	pad1	const[0, intptr]
+}
+
+sembuf {
+	num	flags[sem_sem_id, int16]
+	op	int16
+	flg	flags[semop_flags, int16]
+}
+
+msgbuf {
+	typ	flags[msgbuf_type, intptr]
+	data	array[int8]
+} [packed]

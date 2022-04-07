@@ -1,0 +1,81 @@
+TITLE: KCSAN: data-race in netlink_recvmsg / netlink_recvmsg
+TYPE: DATARACE
+
+[  472.478762][T19789] ==================================================================
+[  472.486894][T19789] BUG: KCSAN: data-race in netlink_recvmsg / netlink_recvmsg
+[  472.494249][T19789] 
+[  472.496603][T19789] write to 0xffff8880b588efb2 of 2 bytes by task 19788 on cpu 0:
+[  472.504348][T19789]  netlink_recvmsg+0x196/0x910
+[  472.509121][T19789]  sock_recvmsg_nosec+0x5c/0x70
+[  472.513990][T19789]  ___sys_recvmsg+0x1a0/0x3e0
+[  472.518791][T19789]  do_recvmmsg+0x19a/0x5c0
+[  472.523196][T19789]  __sys_recvmmsg+0x1ef/0x200
+[  472.527980][T19789]  __x64_sys_recvmmsg+0x89/0xb0
+[  472.532862][T19789]  do_syscall_64+0xcc/0x370
+[  472.537395][T19789]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[  472.543289][T19789] 
+[  472.545632][T19789] write to 0xffff8880b588efb2 of 2 bytes by task 19789 on cpu 1:
+[  472.553375][T19789]  netlink_recvmsg+0x196/0x910
+[  472.558178][T19789]  sock_recvmsg+0x92/0xb0
+[  472.562518][T19789]  __sys_recvfrom+0x1ae/0x2d0
+[  472.567200][T19789]  __x64_sys_recvfrom+0x89/0xb0
+[  472.572077][T19789]  do_syscall_64+0xcc/0x370
+[  472.576596][T19789]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[  472.582493][T19789] 
+[  472.584823][T19789] Reported by Kernel Concurrency Sanitizer on:
+[  472.591100][T19789] CPU: 1 PID: 19789 Comm: syz-executor.0 Not tainted 5.4.0-rc6+ #0
+[  472.599001][T19789] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  472.609194][T19789] ==================================================================
+[  472.617280][T19789] Kernel panic - not syncing: panic_on_warn set ...
+[  472.623912][T19789] CPU: 1 PID: 19789 Comm: syz-executor.0 Not tainted 5.4.0-rc6+ #0
+[  472.631819][T19789] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  472.641880][T19789] Call Trace:
+[  472.645181][T19789]  dump_stack+0xf5/0x159
+[  472.649446][T19789]  panic+0x210/0x640
+[  472.654132][T19789]  ? vprintk_func+0x8d/0x140
+[  472.658728][T19789]  kcsan_report.cold+0xc/0xe
+[  472.663325][T19789]  kcsan_setup_watchpoint+0x3fe/0x410
+[  472.668711][T19789]  __tsan_unaligned_write2+0x143/0x1f0
+[  472.674172][T19789]  netlink_recvmsg+0x196/0x910
+[  472.694611][T19789]  sock_recvmsg+0x92/0xb0
+[  472.698945][T19789]  __sys_recvfrom+0x1ae/0x2d0
+[  472.730069][T19789]  __x64_sys_recvfrom+0x89/0xb0
+[  472.735015][T19789]  do_syscall_64+0xcc/0x370
+[  472.739525][T19789]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[  472.745411][T19789] RIP: 0033:0x45a219
+[  472.749313][T19789] Code: ad b6 fb ff c3 66 2e 0f 1f 84 00 00 00 00 00 66 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 7b b6 fb ff c3 66 2e 0f 1f 84 00 00 00 00
+[  472.768910][T19789] RSP: 002b:00007f580a978c78 EFLAGS: 00000246 ORIG_RAX: 000000000000002d
+[  472.777579][T19789] RAX: ffffffffffffffda RBX: 0000000000000006 RCX: 000000000045a219
+[  472.785564][T19789] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000005
+[  472.794320][T19789] RBP: 000000000075bfc8 R08: 0000000000000000 R09: 0000000000000000
+[  472.802300][T19789] R10: 0000000000000000 R11: 0000000000000246 R12: 00007f580a9796d4
+[  472.810544][T19789] R13: 00000000004c7c59 R14: 00000000004ddd80 R15: 00000000ffffffff
+[  472.819997][T19789] Kernel Offset: disabled
+[  472.824338][T19789] Rebooting in 86400 seconds..
+
+REPORT:
+==================================================================
+BUG: KCSAN: data-race in netlink_recvmsg / netlink_recvmsg
+
+write to 0xffff8880b588efb2 of 2 bytes by task 19788 on cpu 0:
+ netlink_recvmsg+0x196/0x910
+ sock_recvmsg_nosec+0x5c/0x70
+ ___sys_recvmsg+0x1a0/0x3e0
+ do_recvmmsg+0x19a/0x5c0
+ __sys_recvmmsg+0x1ef/0x200
+ __x64_sys_recvmmsg+0x89/0xb0
+ do_syscall_64+0xcc/0x370
+ entry_SYSCALL_64_after_hwframe+0x44/0xa9
+
+write to 0xffff8880b588efb2 of 2 bytes by task 19789 on cpu 1:
+ netlink_recvmsg+0x196/0x910
+ sock_recvmsg+0x92/0xb0
+ __sys_recvfrom+0x1ae/0x2d0
+ __x64_sys_recvfrom+0x89/0xb0
+ do_syscall_64+0xcc/0x370
+ entry_SYSCALL_64_after_hwframe+0x44/0xa9
+
+Reported by Kernel Concurrency Sanitizer on:
+CPU: 1 PID: 19789 Comm: syz-executor.0 Not tainted 5.4.0-rc6+ #0
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+==================================================================

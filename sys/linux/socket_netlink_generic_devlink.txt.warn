@@ -1,0 +1,2 @@
+no-such-struct: devlink_devname
+bad-netlink-attr: devlink_nl_policy$nsim.DEVLINK_ATTR_DEV_NAME: expect string

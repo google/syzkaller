@@ -1,0 +1,3 @@
+r0 = openat(0xffffffffffffff9c, &(0x7f0000000000)='./file0\x00', 0x7, 0x43, 0x1a4)
+write(r0, &(0x7f0000001000)="112233", 0x3)
+close(r0)

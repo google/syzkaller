@@ -1,0 +1,16 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+include <zircon/syscalls/debug.h>
+
+resource zx_thread[zx_task]
+
+zx_thread_create(process zx_process, name ptr[in, string], name_len len[name], options const[0], out ptr[out, zx_thread])
+zx_thread_exit()
+# Note: kind corresponds to ZX_THREAD_STATE_REGSET0..9 constants.
+zx_thread_read_state(handle zx_thread, kind int32[0:9], buffer ptr[out, array[int64]], len bytesize[buffer])
+zx_thread_read_state$0(handle zx_thread, kind const[0], buffer ptr[out, array[int64, 18]], len bytesize[buffer])
+zx_thread_start(handle zx_thread, entry ptr[in, text[target]], stack ptr[out, array[int8]], arg1 const[0], arg2 const[0])
+zx_thread_write_state(handle zx_thread, kind int32[0:9], buffer ptr[in, array[int64]], len bytesize[buffer])
+zx_thread_write_state$0(handle zx_thread, kind const[0], buffer ptr[in, array[int64, 18]], len bytesize[buffer])

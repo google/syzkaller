@@ -1,0 +1,780 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/socket.h>
+include <uapi/linux/limits.h>
+include <uapi/linux/ip_vs.h>
+include <uapi/linux/netfilter/x_tables.h>
+include <uapi/linux/netfilter/xt_rpfilter.h>
+include <uapi/linux/netfilter/xt_cgroup.h>
+include <uapi/linux/netfilter/xt_rateest.h>
+include <uapi/linux/netfilter/xt_l2tp.h>
+include <uapi/linux/netfilter/xt_time.h>
+include <uapi/linux/netfilter/xt_bpf.h>
+include <uapi/linux/netfilter/xt_socket.h>
+include <uapi/linux/netfilter/xt_connlimit.h>
+include <uapi/linux/netfilter/xt_conntrack.h>
+include <uapi/linux/netfilter/xt_tcpudp.h>
+include <uapi/linux/netfilter/xt_set.h>
+include <uapi/linux/netfilter/xt_mark.h>
+include <uapi/linux/netfilter/xt_connmark.h>
+include <uapi/linux/netfilter/xt_realm.h>
+include <uapi/linux/netfilter/xt_connbytes.h>
+include <uapi/linux/netfilter/xt_quota.h>
+include <uapi/linux/netfilter/xt_sctp.h>
+include <uapi/linux/netfilter/xt_limit.h>
+include <uapi/linux/netfilter/xt_addrtype.h>
+include <uapi/linux/netfilter/xt_ipvs.h>
+include <uapi/linux/netfilter/xt_dccp.h>
+include <uapi/linux/netfilter/xt_hashlimit.h>
+include <uapi/linux/netfilter/xt_nfacct.h>
+include <uapi/linux/netfilter/xt_length.h>
+include <uapi/linux/netfilter/xt_mac.h>
+include <uapi/linux/netfilter/xt_comment.h>
+include <uapi/linux/netfilter/xt_ipcomp.h>
+include <uapi/linux/netfilter/xt_statistic.h>
+include <uapi/linux/netfilter/xt_recent.h>
+include <uapi/linux/netfilter/xt_dscp.h>
+include <uapi/linux/netfilter/xt_policy.h>
+include <uapi/linux/netfilter/xt_tcpmss.h>
+include <uapi/linux/netfilter/xt_string.h>
+include <uapi/linux/netfilter/xt_physdev.h>
+include <uapi/linux/netfilter/xt_connlabel.h>
+include <uapi/linux/netfilter/xt_devgroup.h>
+include <uapi/linux/netfilter/xt_multiport.h>
+include <uapi/linux/netfilter/xt_cluster.h>
+include <uapi/linux/netfilter/xt_ecn.h>
+include <uapi/linux/netfilter/xt_owner.h>
+include <uapi/linux/netfilter/xt_pkttype.h>
+include <uapi/linux/netfilter/xt_u32.h>
+include <uapi/linux/netfilter/xt_iprange.h>
+include <uapi/linux/netfilter/xt_esp.h>
+include <uapi/linux/netfilter/xt_cpu.h>
+include <uapi/linux/netfilter/xt_state.h>
+
+# Netfilter matches shared between ipv6/ipv6.
+
+# TODO: add CONFIG_NF_FLOW_TABLE* support.
+
+define IPT_FILTER_VALID_HOOKS	NF_INET_LOCAL_IN_BIT | NF_INET_FORWARD_BIT | NF_INET_LOCAL_OUT_BIT
+define IPT_NAT_VALID_HOOKS	NF_INET_PRE_ROUTING_BIT | NF_INET_POST_ROUTING_BIT | NF_INET_LOCAL_OUT_BIT | NF_INET_LOCAL_IN_BIT
+define IPT_MANGLE_VALID_HOOKS	NF_INET_PRE_ROUTING_BIT | NF_INET_POST_ROUTING_BIT | NF_INET_FORWARD_BIT |NF_INET_LOCAL_OUT_BIT | NF_INET_LOCAL_IN_BIT
+define IPT_RAW_VALID_HOOKS	NF_INET_PRE_ROUTING_BIT | NF_INET_LOCAL_OUT_BIT
+define IPT_SECURITY_VALID_HOOKS	NF_INET_LOCAL_IN_BIT | NF_INET_FORWARD_BIT | NF_INET_LOCAL_OUT_BIT
+
+define NF_INET_PRE_ROUTING_BIT	1 << NF_INET_PRE_ROUTING
+define NF_INET_LOCAL_IN_BIT	1 << NF_INET_LOCAL_IN
+define NF_INET_FORWARD_BIT	1 << NF_INET_FORWARD
+define NF_INET_LOCAL_OUT_BIT	1 << NF_INET_LOCAL_OUT
+define NF_INET_POST_ROUTING_BIT	1 << NF_INET_POST_ROUTING
+
+xt_counters {
+	pcnt	const[0, int64]
+	bcnt	const[0, int64]
+}
+
+xt_get_revision {
+	name		string[xt_get_revision_strings, XT_EXTENSION_MAXNAMELEN]
+	revision	const[0, int8]
+}
+
+xt_get_revision_strings = "icmp", "ah", "NETMAP", "TPROXY", "ipvs", "IDLETIMER", "icmp6", "HL"
+
+nf_inet_addr [
+	ipv4	ipv4_addr
+	ipv6	ipv6_addr
+]
+
+nf_conntrack_man_proto [
+	port	sock_port
+	icmp_id	icmp_id
+# TODO: what is gre key? do we have it already in gre descriptions in vnet.txt?
+	gre_key	int16
+]
+
+type xt_entry_match[NAME, REV] {
+	match_size	len[xt_entry_match_t, int16]
+	name		string[NAME, XT_EXTENSION_MAXNAMELEN]
+	revision	const[REV, int8]
+}
+
+type xt_entry_match_t[NAME, DATA, REV] {
+	header	xt_entry_match[NAME, REV]
+	data	DATA
+} [align[PTR_SIZE]]
+
+xt_unspec_matches [
+	cgroup0		xt_entry_match_t["cgroup", xt_cgroup_info_v0, 0]
+	cgroup1		xt_entry_match_t["cgroup", xt_cgroup_info_v1, 1]
+	helper		xt_entry_match_t["helper", xt_helper_info, 0]
+	rateest		xt_entry_match_t["rateest", xt_rateest_match_info, 0]
+	time		xt_entry_match_t["time", xt_time_info, 0]
+	bpf0		xt_entry_match_t["bpf", xt_bpf_info, 0]
+	bpf1		xt_entry_match_t["bpf", xt_bpf_info_v1, 1]
+	connlimit	xt_entry_match_t["connlimit", xt_connlimit_info, 1]
+	conntrack1	xt_entry_match_t["conntrack", xt_conntrack_mtinfo1, 1]
+	conntrack2	xt_entry_match_t["conntrack", xt_conntrack_mtinfo2, 2]
+	conntrack3	xt_entry_match_t["conntrack", xt_conntrack_mtinfo3, 3]
+	mark		xt_entry_match_t["mark", xt_mark_mtinfo1, 1]
+	connmark	xt_entry_match_t["connmark", xt_connmark_mtinfo1, 1]
+	realm		xt_entry_match_t["realm", xt_realm_info, 0]
+	connbytes	xt_entry_match_t["connbytes", xt_connbytes_info, 0]
+	quota		xt_entry_match_t["quota", xt_quota_info, 0]
+	limit		xt_entry_match_t["limit", xt_rateinfo, 0]
+	addrtype1	xt_entry_match_t["addrtype", xt_addrtype_info_v1, 1]
+	ipvs		xt_entry_match_t["ipvs", xt_ipvs_mtinfo, 0]
+	nfacct		xt_entry_match_t["nfacct", xt_nfacct_match_info, 0]
+	mac		xt_entry_match_t["mac", xt_mac_info, 0]
+	comment		xt_entry_match_t["comment", xt_comment_info, 0]
+	statistic	xt_entry_match_t["statistic", xt_statistic_info, 0]
+	string		xt_entry_match_t["string", xt_string_info, 1]
+	physdev		xt_entry_match_t["physdev", xt_physdev_info, 0]
+	connlabel	xt_entry_match_t["connlabel", xt_connlabel_mtinfo, 0]
+	devgroup	xt_entry_match_t["devgroup", xt_devgroup_info, 0]
+	cluster		xt_entry_match_t["cluster", xt_cluster_match_info, 0]
+	owner		xt_entry_match_t["owner", xt_owner_match_info, 0]
+	pkttype		xt_entry_match_t["pkttype", xt_pkttype_info, 0]
+	u32		xt_entry_match_t["u32", xt_u32, 0]
+	cpu		xt_entry_match_t["cpu", xt_cpu_info, 0]
+	state		xt_entry_match_t["state", xt_state_info, 0]
+] [varlen]
+
+xt_inet_matches [
+	l2tp		xt_entry_match_t["l2tp", xt_l2tp_info, 0]
+	socket1		xt_entry_match_t["socket", flags[xt_socket_flags_v1, int8], 1]
+	socket2		xt_entry_match_t["socket", flags[xt_socket_flags_v2, int8], 2]
+	socket3		xt_entry_match_t["socket", flags[xt_socket_flags_v3, int8], 3]
+	tcp		xt_entry_match_t["tcp", xt_tcp, 0]
+	udp		xt_entry_match_t["udp", xt_udp, 0]
+	udplite		xt_entry_match_t["udplite", xt_udp, 0]
+	set1		xt_entry_match_t["set", xt_set_info_match_v1, 1]
+	set2		xt_entry_match_t["set", xt_set_info_match_v1, 2]
+	set3		xt_entry_match_t["set", xt_set_info_match_v3, 3]
+	set4		xt_entry_match_t["set", xt_set_info_match_v4, 4]
+	sctp		xt_entry_match_t["sctp", xt_sctp_info, 0]
+	dccp		xt_entry_match_t["dccp", xt_dccp_info, 0]
+	hashlimit1	xt_entry_match_t["hashlimit", xt_hashlimit_mtinfo1, 1]
+	hashlimit2	xt_entry_match_t["hashlimit", xt_hashlimit_mtinfo2, 2]
+	hashlimit3	xt_entry_match_t["hashlimit", xt_hashlimit_mtinfo3, 3]
+	length		xt_entry_match_t["length", xt_length_info, 0]
+	ipcomp		xt_entry_match_t["ipcomp", xt_ipcomp, 0]
+	recent0		xt_entry_match_t["recent", xt_recent_mtinfo, 0]
+	recent1		xt_entry_match_t["recent", xt_recent_mtinfo_v1, 0]
+	dscp		xt_entry_match_t["dscp", xt_dscp_info, 0]
+	tos		xt_entry_match_t["tos", xt_tos_match_info, 0]
+	policy		xt_entry_match_t["policy", xt_policy_info, 0]
+	tcpmss		xt_entry_match_t["tcpmss", xt_tcpmss_match_info, 0]
+	multiport	xt_entry_match_t["multiport", xt_multiport_v1, 1]
+	ecn		xt_entry_match_t["ecn", xt_ecn_info, 0]
+	iprange		xt_entry_match_t["iprange", xt_iprange_mtinfo, 1]
+	esp		xt_entry_match_t["esp", xt_esp, 0]
+] [varlen]
+
+xt_inet_mangle_matches [
+	rpfilter	xt_entry_match_t["rpfilter", xt_rpfilter_info, 0]
+] [varlen]
+
+xt_inet_raw_matches [
+	rpfilter	xt_entry_match_t["rpfilter", xt_rpfilter_info, 0]
+] [varlen]
+
+xt_socket_flags_v1 = XT_SOCKET_TRANSPARENT
+xt_socket_flags_v2 = XT_SOCKET_TRANSPARENT, XT_SOCKET_NOWILDCARD
+xt_socket_flags_v3 = XT_SOCKET_TRANSPARENT, XT_SOCKET_NOWILDCARD, XT_SOCKET_RESTORESKMARK
+
+xt_rpfilter_info {
+	flags	flags[xt_rpfilter_flags, int8]
+}
+
+xt_rpfilter_flags = XT_RPFILTER_LOOSE, XT_RPFILTER_VALID_MARK, XT_RPFILTER_ACCEPT_LOCAL, XT_RPFILTER_INVERT
+
+xt_cgroup_info_v0 {
+# TODO: this is some "cgroup classid", what's this?
+	id	int32
+	invert	bool32
+}
+
+xt_cgroup_info_v1 {
+	has_path	bool8
+	has_classid	bool8
+	invert_path	bool8
+	invert_classid	bool8
+	path		string[cgroup_paths, PATH_MAX]
+# TODO: again "cgroup classid"
+	classid		int32
+	priv		align64[intptr]
+}
+
+xt_helper_info {
+	invert	bool32
+	name	string[xt_helper_names, 30]
+}
+
+xt_helper_names = "", "ftp-20000", "tftp-20000", "sip-20000", "irc-20000", "sane-20000", "amanda", "RAS", "Q.931", "H.245", "netbios-ns", "snmp", "snmp_trap", "pptp", "syz0", "syz1"
+
+xt_rateest_match_info {
+	name1	devname
+	name2	devname
+	flags	flags[xt_rateest_match_flags, int16]
+	mode	flags[xt_rateest_match_mode, int16]
+	bps1	int32
+	pps1	int32
+	bps2	int32
+	pps2	int32
+	est1	align64[intptr]
+	est2	align64[intptr]
+}
+
+xt_rateest_match_flags = XT_RATEEST_MATCH_INVERT, XT_RATEEST_MATCH_ABS, XT_RATEEST_MATCH_REL, XT_RATEEST_MATCH_DELTA, XT_RATEEST_MATCH_BPS, XT_RATEEST_MATCH_PPS
+xt_rateest_match_mode = XT_RATEEST_MATCH_NONE, XT_RATEEST_MATCH_EQ, XT_RATEEST_MATCH_LT, XT_RATEEST_MATCH_GT
+
+xt_l2tp_info {
+	tid	l2tp_tunnel[int32]
+	sid	l2tp_session[int32]
+	version	int8[2:3]
+	type	flags[xt_l2tp_type, int8]
+	flags	flags[xt_l2tp_flags, int8]
+}
+
+xt_l2tp_type = XT_L2TP_TYPE_CONTROL, XT_L2TP_TYPE_DATA
+xt_l2tp_flags = XT_L2TP_TID, XT_L2TP_SID, XT_L2TP_VERSION, XT_L2TP_TYPE
+
+xt_time_info {
+	date_start	int32
+	date_stop	int32
+	daytime_start	int32[0:XT_TIME_MAX_DAYTIME]
+	daytime_stop	int32[0:XT_TIME_MAX_DAYTIME]
+	monthdays_match	int32
+	weekdays_match	int8
+	flags		flags[xt_time_flags, int8]
+}
+
+xt_time_flags = XT_TIME_LOCAL_TZ, XT_TIME_CONTIGUOUS
+
+xt_bpf_info {
+	bpf_program_num_elem	int16[0:XT_BPF_MAX_NUM_INSTR]
+	bpf_program		array[sock_filter, XT_BPF_MAX_NUM_INSTR]
+	filter			align64[intptr]
+}
+
+xt_bpf_info_v1 [
+	bytecode	xt_bpf_info_bytecode
+	pinned		xt_bpf_info_pinned
+	fd		xt_bpf_info_fd
+]
+
+xt_bpf_info_bytecode {
+	mode			const[XT_BPF_MODE_BYTECODE, int16]
+	bpf_program_num_elem	int16[0:XT_BPF_MAX_NUM_INSTR]
+	fd			const[0, int32]
+	bpf_program		array[sock_filter, XT_BPF_MAX_NUM_INSTR]
+	filter			align64[intptr]
+}
+
+xt_bpf_info_pinned {
+	mode			const[XT_BPF_MODE_FD_PINNED, int16]
+	bpf_program_num_elem	const[0, int16]
+	fd			const[0, int32]
+	path			string[filename, XT_BPF_PATH_MAX]
+	filter			align64[intptr]
+}
+
+xt_bpf_info_fd {
+	mode			const[XT_BPF_MODE_FD_ELF, int16]
+	bpf_program_num_elem	const[0, int16]
+	fd			fd_bpf_prog
+}
+
+xt_connlimit_info {
+	mask	ipv6_addr_mask
+	limit	int32
+	flags	flags[xt_connlimit_flags, int32]
+	data	align64[intptr]
+}
+
+xt_connlimit_flags = XT_CONNLIMIT_INVERT, XT_CONNLIMIT_DADDR
+
+xt_conntrack_mtinfo_common {
+	origsrc_addr	nf_inet_addr
+	origsrc_mask	ipv6_addr_mask
+	origdst_addr	nf_inet_addr
+	origdst_mask	ipv6_addr_mask
+	replsrc_addr	nf_inet_addr
+	replsrc_mask	ipv6_addr_mask
+	repldst_addr	nf_inet_addr
+	repldst_mask	ipv6_addr_mask
+	expires_min	int32
+	expires_max	int32
+	l4proto		flags[ipv6_types, int16]
+	origsrc_port	sock_port
+	origdst_port	sock_port
+	replsrc_port	sock_port
+	repldst_port	sock_port
+	match_flags	flags[xt_conntrack_flags, int16]
+	invert_flags	flags[xt_conntrack_flags, int16]
+} [packed]
+
+xt_conntrack_mtinfo1 {
+	common		xt_conntrack_mtinfo_common
+	state_mask	flags[xt_conntrack_state8, int8]
+	status_mask	flags[xt_conntrack_status8, int8]
+} [align[4]]
+
+xt_conntrack_mtinfo2 {
+	common		xt_conntrack_mtinfo_common
+	state_mask	flags[xt_conntrack_state, int16]
+	status_mask	flags[xt_conntrack_status, int16]
+} [align[4]]
+
+xt_conntrack_mtinfo3 {
+	common			xt_conntrack_mtinfo_common
+	state_mask		flags[xt_conntrack_state, int16]
+	status_mask		flags[xt_conntrack_status, int16]
+	origsrc_port_high	sock_port
+	origdst_port_high	sock_port
+	replsrc_port_high	sock_port
+	repldst_port_high	sock_port
+} [align[4]]
+
+xt_conntrack_flags = XT_CONNTRACK_STATE, XT_CONNTRACK_PROTO, XT_CONNTRACK_ORIGSRC, XT_CONNTRACK_ORIGDST, XT_CONNTRACK_REPLSRC, XT_CONNTRACK_REPLDST, XT_CONNTRACK_STATUS, XT_CONNTRACK_EXPIRES, XT_CONNTRACK_ORIGSRC_PORT, XT_CONNTRACK_ORIGDST_PORT, XT_CONNTRACK_REPLSRC_PORT, XT_CONNTRACK_REPLDST_PORT, XT_CONNTRACK_DIRECTION, XT_CONNTRACK_STATE_ALIAS
+xt_conntrack_state8 = XT_CONNTRACK_STATE_INVALID, XT_CONNTRACK_STATE_SNAT, XT_CONNTRACK_STATE_DNAT
+xt_conntrack_state = XT_CONNTRACK_STATE_INVALID, XT_CONNTRACK_STATE_SNAT, XT_CONNTRACK_STATE_DNAT, XT_CONNTRACK_STATE_UNTRACKED
+xt_conntrack_status8 = IPS_EXPECTED, IPS_SEEN_REPLY, IPS_ASSURED, IPS_CONFIRMED, IPS_SRC_NAT, IPS_DST_NAT, IPS_SEQ_ADJUST, IPS_SRC_NAT_DONE
+xt_conntrack_status = IPS_EXPECTED, IPS_SEEN_REPLY, IPS_ASSURED, IPS_CONFIRMED, IPS_SRC_NAT, IPS_DST_NAT, IPS_SEQ_ADJUST, IPS_SRC_NAT_DONE, IPS_DST_NAT_DONE, IPS_DYING, IPS_FIXED_TIMEOUT, IPS_TEMPLATE, IPS_UNTRACKED, IPS_HELPER
+
+xt_tcp {
+	spts		array[sock_port, 2]
+	dpts		array[sock_port, 2]
+	option		flags[tcp_option_types, int8]
+	flg_mask	flags[tcp_flags, int8]
+	flg_cmp		flags[tcp_flags, int8]
+	invflags	flags[xt_tcp_inv_flags, int8]
+}
+
+xt_tcp_inv_flags = XT_TCP_INV_SRCPT, XT_TCP_INV_DSTPT, XT_TCP_INV_FLAGS, XT_TCP_INV_OPTION
+
+xt_udp {
+	spts		array[sock_port, 2]
+	dpts		array[sock_port, 2]
+	invflags	flags[xt_udp_inv_flags, int8]
+}
+
+xt_udp_inv_flags = XT_UDP_INV_SRCPT, XT_UDP_INV_DSTPT
+
+xt_set_info_match_v0 {
+	match_set	xt_set_info_v0
+}
+
+xt_set_info_match_v1 {
+	match_set	xt_set_info
+}
+
+xt_set_info_match_v3 {
+	match_set	xt_set_info
+	packets		ip_set_counter_match0
+	bytes		ip_set_counter_match0
+	flags		int32
+}
+
+xt_set_info_match_v4 {
+	match_set	xt_set_info
+	packets		ip_set_counter_match
+	bytes		ip_set_counter_match
+	flags		int32
+}
+
+xt_mark_mtinfo1 {
+	mark	int32
+	mask	int32
+	invert	bool8
+}
+
+xt_connmark_mtinfo1 {
+	mark	int32
+	mask	int32
+	invert	bool8
+}
+
+xt_realm_info {
+	id	int32
+	mask	int32
+	invert	bool8
+}
+
+xt_connbytes_info {
+	count		array[align64[int64], 2]
+	what		flags[xt_connbytes_what, int8]
+	direction	flags[xt_connbytes_direction, int8]
+}
+
+xt_connbytes_what = XT_CONNBYTES_PKTS, XT_CONNBYTES_BYTES, XT_CONNBYTES_AVGPKT
+xt_connbytes_direction = XT_CONNBYTES_DIR_ORIGINAL, XT_CONNBYTES_DIR_REPLY, XT_CONNBYTES_DIR_BOTH
+
+xt_quota_info {
+	flags	bool32
+	pad	const[0, int32]
+	quota	int64
+	master	align64[intptr]
+}
+
+xt_sctp_info {
+	dpts			array[sock_port, 2]
+	spts			array[sock_port, 2]
+	chunkmap		array[int32, 64]
+	chunk_match_type	flags[xt_sctp_match_type, int32]
+	flag_info		array[xt_sctp_flag_info, XT_NUM_SCTP_FLAGS]
+	flag_count		int32[0:XT_NUM_SCTP_FLAGS]
+	flags			flags[xt_sctp_flags, int32]
+	invflags		flags[xt_sctp_flags, int32]
+}
+
+xt_sctp_match_type = SCTP_CHUNK_MATCH_ANY, SCTP_CHUNK_MATCH_ALL, SCTP_CHUNK_MATCH_ONLY
+xt_sctp_flags = XT_SCTP_SRC_PORTS, XT_SCTP_DEST_PORTS, XT_SCTP_CHUNK_TYPES
+
+xt_sctp_flag_info {
+	chunktype	int8
+	flag		int8
+	flag_mask	int8
+}
+
+xt_rateinfo {
+	avg		int32
+	burst		int32
+	prev		intptr
+	credit		int32
+	credit_cap	int32
+	cost		int32
+	master		intptr
+}
+
+xt_addrtype_info {
+	source		flags[xt_addrtype_type, int16]
+	dest		flags[xt_addrtype_type, int16]
+	invert_source	bool32
+	invert_dest	bool32
+}
+
+xt_addrtype_info_v1 {
+	source	flags[xt_addrtype_type, int16]
+	dest	flags[xt_addrtype_type, int16]
+	flags	flags[xt_addrtype_flags, int32]
+}
+
+xt_addrtype_type = XT_ADDRTYPE_UNSPEC, XT_ADDRTYPE_UNICAST, XT_ADDRTYPE_LOCAL, XT_ADDRTYPE_BROADCAST, XT_ADDRTYPE_ANYCAST, XT_ADDRTYPE_MULTICAST, XT_ADDRTYPE_BLACKHOLE, XT_ADDRTYPE_UNREACHABLE, XT_ADDRTYPE_PROHIBIT, XT_ADDRTYPE_THROW, XT_ADDRTYPE_NAT, XT_ADDRTYPE_XRESOLVE
+xt_addrtype_flags = XT_ADDRTYPE_INVERT_SOURCE, XT_ADDRTYPE_INVERT_DEST, XT_ADDRTYPE_LIMIT_IFACE_IN, XT_ADDRTYPE_LIMIT_IFACE_OUT
+
+xt_ipvs_mtinfo {
+	vaddr		nf_inet_addr
+	vmask		ipv6_addr_mask
+	vport		sock_port
+	l4proto		flags[ipv6_types, int8]
+	fwd_method	int8[0:IP_VS_CONN_F_FWD_MASK]
+	vportctl	sock_port
+	invert		flags[xt_ipvs_flags, int8]
+	bitmask		flags[xt_ipvs_flags, int8]
+}
+
+xt_ipvs_flags = XT_IPVS_IPVS_PROPERTY, XT_IPVS_PROTO, XT_IPVS_VADDR, XT_IPVS_VPORT, XT_IPVS_DIR, XT_IPVS_METHOD, XT_IPVS_VPORT
+
+xt_dccp_info {
+	dpts		array[sock_port, 2]
+	spts		array[sock_port, 2]
+	flags		flags[xt_dccp_flags, int16]
+	invflags	flags[xt_dccp_flags, int16]
+	typemask	int16
+	option		int8
+}
+
+xt_dccp_flags = XT_DCCP_SRC_PORTS, XT_DCCP_DEST_PORTS, XT_DCCP_TYPE, XT_DCCP_OPTION
+
+xt_hashlimit_mtinfo1 {
+	name	devname
+	cfg	hashlimit_cfg1
+	hinfo	align64[intptr]
+}
+
+xt_hashlimit_mtinfo2 {
+	name	string[devnames, NAME_MAX]
+	cfg	hashlimit_cfg2
+	hinfo	align64[intptr]
+}
+
+xt_hashlimit_mtinfo3 {
+	name	string[devnames, NAME_MAX]
+	cfg	hashlimit_cfg3
+	hinfo	align64[intptr]
+}
+
+hashlimit_cfg1 {
+	mode		flags[xt_hashlimit_modes, int32]
+	avg		int32
+	burst		int32
+	size		int32
+	max		int32
+	gc_interval	int32
+	expire		int32
+	srcmask		flags[xt_hashlimit_mask, int8]
+	dstmask		flags[xt_hashlimit_mask, int8]
+}
+
+hashlimit_cfg2 {
+	avg		int64
+	burst		int64
+	mode		flags[xt_hashlimit_modes, int32]
+	size		int32
+	max		int32
+	gc_interval	int32
+	expire		int32
+	srcmask		flags[xt_hashlimit_mask, int8]
+	dstmask		flags[xt_hashlimit_mask, int8]
+}
+
+hashlimit_cfg3 {
+	avg		int64
+	burst		int64
+	mode		flags[xt_hashlimit_modes, int32]
+	size		int32
+	max		int32
+	gc_interval	int32
+	expire		int32
+	interval	int32
+	srcmask		flags[xt_hashlimit_mask, int8]
+	dstmask		flags[xt_hashlimit_mask, int8]
+}
+
+xt_hashlimit_modes = XT_HASHLIMIT_HASH_DIP, XT_HASHLIMIT_HASH_DPT, XT_HASHLIMIT_HASH_SIP, XT_HASHLIMIT_HASH_SPT, XT_HASHLIMIT_INVERT, XT_HASHLIMIT_BYTES, XT_HASHLIMIT_RATE_MATCH
+xt_hashlimit_mask = 0, 8, 24, 32, 64, 120, 128
+
+xt_nfacct_match_info {
+	name	string[xt_nfacct_match_names, NFACCT_NAME_MAX]
+	nfacct	intptr
+}
+
+xt_nfacct_match_names = "syz0", "syz1"
+
+xt_length_info {
+	min	int16
+	max	int16
+	invert	bool8
+}
+
+xt_mac_info {
+	srcaddr	mac_addr
+	invert	bool32
+}
+
+xt_comment_info {
+	comment	array[const[0, int8], XT_MAX_COMMENT_LEN]
+}
+
+xt_ipcomp {
+	spis		array[xfrm_spi, 2]
+	invflags	flags[xt_ipcomp_flags, int8]
+	hdrres		const[0, int8]
+}
+
+xt_ipcomp_flags = XT_IPCOMP_INV_SPI
+
+xt_statistic_info {
+	mode	bool16
+	flags	bool16
+	every	int32
+	packet	int32
+	count	int32
+	master	align64[intptr]
+}
+
+xt_recent_mtinfo {
+	seconds		int32
+	hit_count	int32
+	check_set	flags[xt_recent_check_set, int8]
+	invert		bool8
+	name		string[xt_recent_names, XT_RECENT_NAME_LEN]
+	side		int8
+}
+
+xt_recent_mtinfo_v1 {
+	seconds		int32
+	hit_count	int32
+	check_set	flags[xt_recent_check_set, int8]
+	invert		bool8
+	name		string[xt_recent_names, XT_RECENT_NAME_LEN]
+	side		int8
+	mask		ipv6_addr_mask
+}
+
+xt_recent_names = "syz0", "syz1"
+xt_recent_check_set = XT_RECENT_CHECK, XT_RECENT_SET, XT_RECENT_UPDATE, XT_RECENT_REMOVE, XT_RECENT_TTL, XT_RECENT_REAP, XT_RECENT_SOURCE, XT_RECENT_DEST
+
+xt_dscp_info {
+	dscp	int8
+	invert	bool8
+}
+
+xt_tos_match_info {
+	tos_mask	int8
+	tos_value	int8
+	invert		bool8
+}
+
+xt_policy_info {
+	pol	array[xt_policy_elem, XT_POLICY_MAX_ELEM]
+	flags	flags[xt_policy_flags, int16]
+	len	int16[0:XT_POLICY_MAX_ELEM]
+}
+
+xt_policy_elem {
+	saddr	nf_inet_addr
+	smask	ipv6_addr_mask
+	daddr	nf_inet_addr
+	dmask	ipv6_addr_mask
+	spi	xfrm_spi
+	reqid	xfrm_req_id
+	proto	flags[ipv6_types, int8]
+	mode	flags[xt_policy_mode, int8]
+	match	flags[xt_policy_spec, int8]
+	invert	flags[xt_policy_spec, int8]
+}
+
+xt_policy_flags = XT_POLICY_MATCH_IN, XT_POLICY_MATCH_OUT, XT_POLICY_MATCH_NONE, XT_POLICY_MATCH_STRICT
+xt_policy_mode = XT_POLICY_MODE_TRANSPORT, XT_POLICY_MODE_TUNNEL
+xt_policy_spec = 1, 2, 4, 8, 16
+
+xt_tcpmss_match_info {
+	mss_min	int16
+	mss_max	int16
+	invert	bool8
+}
+
+xt_string_info {
+	from_offset	int16
+	to_offset	int16
+	algo		string[textsearch_algos, XT_STRING_MAX_ALGO_NAME_SIZE]
+	pattern		array[int8, XT_STRING_MAX_PATTERN_SIZE]
+	patlen		int8[0:XT_STRING_MAX_PATTERN_SIZE]
+	flags		flags[xt_string_flags, int8]
+	config		align64[intptr]
+}
+
+textsearch_algos = "bm", "fsm", "kmp"
+xt_string_flags = XT_STRING_FLAG_INVERT, XT_STRING_FLAG_IGNORECASE
+
+xt_physdev_info {
+	physindev	devname
+	in_mask		devname_mask
+	physoutdev	devname
+	out_mask	devname_mask
+	invert		flags[xt_physdev_flags, int8]
+	bitmask		flags[xt_physdev_flags, int8]
+}
+
+xt_physdev_flags = XT_PHYSDEV_OP_IN, XT_PHYSDEV_OP_OUT, XT_PHYSDEV_OP_BRIDGED, XT_PHYSDEV_OP_ISIN, XT_PHYSDEV_OP_ISOUT
+
+xt_connlabel_mtinfo {
+	bit	int16
+	options	flags[xt_connlabel_mtopts, int16]
+}
+
+xt_connlabel_mtopts = XT_CONNLABEL_OP_INVERT, XT_CONNLABEL_OP_SET
+
+xt_devgroup_info {
+	flags		flags[xt_devgroup_flags, int32]
+	src_group	int32
+	src_mask	int32
+	dst_group	int32
+	dst_mask	int32
+}
+
+xt_devgroup_flags = XT_DEVGROUP_MATCH_SRC, XT_DEVGROUP_INVERT_SRC, XT_DEVGROUP_MATCH_DST, XT_DEVGROUP_INVERT_DST
+
+xt_multiport_v1 {
+	flags	int8[0:2]
+	count	int8[0:XT_MULTI_PORTS]
+	ports	array[sock_port, XT_MULTI_PORTS]
+	pflags	array[bool8, XT_MULTI_PORTS]
+	invert	bool8
+}
+
+xt_cluster_match_info {
+	total_nodes	int32
+	node_mask	int32
+	hash_seed	int32
+	flags		bool32
+}
+
+xt_ecn_info {
+	operation	flags[xt_ecn_operation, int8]
+	invert		flags[xt_ecn_operation, int8]
+	ip_ect		int8
+	ect		int8
+}
+
+xt_ecn_operation = XT_ECN_OP_MATCH_IP, XT_ECN_OP_MATCH_ECE, XT_ECN_OP_MATCH_CWR
+
+xt_owner_match_info {
+	uid_min	uid
+	uid_max	uid
+	gid_min	gid
+	gid_max	gid
+	match	flags[xt_owner_match_flags, int8]
+	invert	flags[xt_owner_match_flags, int8]
+}
+
+xt_owner_match_flags = XT_OWNER_UID, XT_OWNER_GID, XT_OWNER_SOCKET
+
+xt_pkttype_info {
+	pkttype	int32
+	invert	int32
+}
+
+xt_u32 {
+	tests	array[xt_u32_test, XT_U32_REAL_MAXSIZE]
+	ntests	int8[0:XT_U32_REAL_MAXSIZE]
+	invert	bool8
+}
+
+xt_u32_test {
+	location	array[xt_u32_location_element, XT_U32_REAL_MAXSIZE]
+	value		array[xt_u32_value_element, XT_U32_REAL_MAXSIZE]
+	nnums		int8[0:XT_U32_REAL_MAXSIZE]
+	nvalues		int8[0:XT_U32_REAL_MAXSIZE]
+}
+
+xt_u32_location_element {
+	number	int32
+	nextop	flags[xt_u32_ops, int8]
+}
+
+xt_u32_value_element {
+	min	int32
+	max	int32
+}
+
+xt_u32_ops = XT_U32_AND, XT_U32_LEFTSH, XT_U32_RIGHTSH, XT_U32_AT
+define XT_U32_REAL_MAXSIZE	XT_U32_MAXSIZE + 1
+
+xt_iprange_mtinfo {
+	src_min	nf_inet_addr
+	src_max	nf_inet_addr
+	dst_min	nf_inet_addr
+	dst_max	nf_inet_addr
+	flags	flags[xt_iprange_flags, int8]
+}
+
+xt_iprange_flags = IPRANGE_SRC, IPRANGE_DST, IPRANGE_SRC_INV, IPRANGE_DST_INV
+
+xt_esp {
+	spis		array[xfrm_spi, 2]
+	invflags	flags[xt_esp_flags, int8]
+}
+
+xt_esp_flags = XT_ESP_INV_SPI
+
+xt_cpu_info {
+	cpu	int32
+	invert	bool32
+}
+
+xt_state_info {
+	statemask	int32
+}

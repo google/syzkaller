@@ -1,0 +1,59 @@
+FILE: net/ipv6/ip6_output.c
+
+DEBUG_LOCKS_WARN_ON(class_idx > MAX_LOCKDEP_KEYS)
+------------[ cut here ]------------
+WARNING: CPU: 2 PID: 24023 at kernel/locking/lockdep.c:3344 __lock_acquire+0x10e5/0x3690 kernel/locking/lockdep.c:3344
+Kernel panic - not syncing: panic_on_warn set ...
+
+CPU: 2 PID: 24023 Comm: syz-executor1 Not tainted 4.12.0-rc3+ #370
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+Call Trace:
+ __dump_stack lib/dump_stack.c:16 [inline]
+ dump_stack+0x292/0x395 lib/dump_stack.c:52
+ panic+0x1cb/0x3a9 kernel/panic.c:180
+ __warn+0x1c4/0x1e0 kernel/panic.c:541
+ report_bug+0x211/0x2d0 lib/bug.c:183
+ fixup_bug arch/x86/kernel/traps.c:190 [inline]
+ do_trap_no_signal arch/x86/kernel/traps.c:224 [inline]
+ do_trap+0x32c/0x410 arch/x86/kernel/traps.c:273
+ do_error_trap+0x15a/0x3e0 arch/x86/kernel/traps.c:310
+ do_invalid_op+0x1b/0x20 arch/x86/kernel/traps.c:323
+ invalid_op+0x1e/0x30 arch/x86/entry/entry_64.S:844
+RIP: 0010:__lock_acquire+0x10e5/0x3690 kernel/locking/lockdep.c:3344
+RSP: 0018:ffff88005aba6100 EFLAGS: 00010086
+RAX: 0000000000000031 RBX: ffff880058995b40 RCX: 0000000000000000
+RDX: 0000000000000031 RSI: ffffffff81458577 RDI: ffffed000b574c12
+RBP: ffff88005aba6640 R08: 0000000000000001 R09: 0000000000000001
+R10: ffff8800589963a0 R11: fffffbfff0e0fc7a R12: 0000000000000000
+R13: 0000000000000010 R14: 0000000000000001 R15: 0000000000000010
+ lock_acquire+0x22d/0x560 kernel/locking/lockdep.c:3855
+ seqcount_lockdep_reader_access include/linux/seqlock.h:80 [inline]
+ read_seqcount_begin include/linux/seqlock.h:163 [inline]
+ read_seqbegin include/linux/seqlock.h:433 [inline]
+ neigh_hh_output include/net/neighbour.h:456 [inline]
+ neigh_output include/net/neighbour.h:477 [inline]
+ ip6_finish_output2+0x109a/0x2540 net/ipv6/ip6_output.c:123
+ ip6_finish_output+0x302/0x930 net/ipv6/ip6_output.c:149
+ NF_HOOK_COND include/linux/netfilter.h:246 [inline]
+ ip6_output+0x1c2/0x8a0 net/ipv6/ip6_output.c:163
+ ip6_xmit+0xd38/0x21c0 include/net/dst.h:492
+ inet6_csk_xmit+0x331/0x600 net/ipv6/inet6_connection_sock.c:139
+ tcp_transmit_skb+0x1ad8/0x3460 net/ipv4/tcp_output.c:1055
+ tcp_connect+0x2195/0x2f30 net/ipv4/tcp_output.c:3381
+ tcp_v6_connect+0x1c0b/0x20f0 net/ipv6/tcp_ipv6.c:304
+ __inet_stream_connect+0x2ee/0xf90 net/ipv4/af_inet.c:618
+ inet_stream_connect+0x58/0xa0 net/ipv4/af_inet.c:682
+ SYSC_connect+0x251/0x590 net/socket.c:1588
+ SyS_connect+0x24/0x30 net/socket.c:1569
+ entry_SYSCALL_64_fastpath+0x1f/0xbe
+RIP: 0033:0x446179
+RSP: 002b:00007fb738f47c08 EFLAGS: 00000286 ORIG_RAX: 000000000000002a
+RAX: ffffffffffffffda RBX: 0000000000000400 RCX: 0000000000446179
+RDX: 000000000000001c RSI: 0000000020411000 RDI: 0000000000000005
+RBP: 00000000ffffffff R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000286 R12: 0000000000000005
+R13: 0000000000000000 R14: 00007fb738f489c0 R15: 00007fb738f48700
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Kernel Offset: disabled
+Rebooting in 86400 seconds..

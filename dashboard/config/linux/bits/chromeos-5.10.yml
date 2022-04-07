@@ -1,0 +1,11 @@
+# Copyright 2021 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+kernel:
+ repo: https://chromium.googlesource.com/chromiumos/third_party/kernel
+ # HEAD of chromeos-5.10 branch.
+ tag: f8eeaf8c39fb2e2ab00f24cbc728de960815aa69
+
+shell:
+ - chromeos/scripts/prepareconfig chromiumos-x86_64 ${BUILDDIR}/.config
+ - make olddefconfig

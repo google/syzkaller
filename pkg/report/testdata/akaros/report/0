@@ -1,0 +1,14 @@
+TITLE: kernel panic: [German Accent]: OOM for a small slab growth!!!
+CORRUPTED: Y
+
+/ $ kernel panic at kern/src/slab.c:518, from core 1: [German Accent]: OOM for a small slab growth!!!
+
+Entering Nanwan's Dungeon on Core 1 (Ints on):
+
+Type 'help' for a list of commands.
+
+ROS(Core 1)> kernel panic at kern/src/arena.c:686, from core 0: OOM!
+
+Entering Nanwan's Dungeon on Core 0 (Ints on):
+
+Type 'help' for a list of commands.

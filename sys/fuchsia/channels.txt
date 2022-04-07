@@ -1,0 +1,26 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+
+resource zx_chan[zx_handle]
+
+zx_channel_call(handle zx_chan, options const[0], deadline zx_time, args ptr[in, zx_channel_call_args], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_create(options const[0], out0 ptr[out, zx_chan], out1 ptr[out, zx_chan])
+zx_channel_read(handle zx_chan, options flags[chan_read_options], bytes ptr[out, array[int8]], handles ptr[out, zx_handle], num_bytes len[bytes], num_handles len[handles], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_write(handle zx_chan, options const[0], bytes ptr[in, array[int8]], num_bytes len[bytes], handles ptr[in, array[zx_handle]], num_handles len[handles])
+
+zx_channel_read_etc(handle zx_chan, options int32, bytes ptr[out, array[int8]], handles ptr[out, zx_handle], num_bytes len[bytes], num_handles len[handles], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+
+zx_channel_call_args {
+	wr_bytes	ptr[in, array[int8]]
+	wr_handles	ptr[in, array[zx_handle]]
+	rd_bytes	ptr[out, array[int8]]
+	rd_handles	ptr[out, array[zx_handle]]
+	wr_num_bytes	len[wr_bytes, int32]
+	wr_num_handles	len[wr_handles, int32]
+	rd_num_bytes	len[rd_bytes, int32]
+	rd_num_handles	len[rd_handles, int32]
+}
+
+chan_read_options = ZX_CHANNEL_READ_MAY_DISCARD

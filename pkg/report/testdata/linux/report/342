@@ -1,0 +1,13 @@
+# TODO: this is not corrupted
+TITLE: WARNING in corrupted
+CORRUPTED: Y
+
+[  343.370355] ------------[ cut here ]------------
+[  343.375254] do_IRQ(): syz-executor1 has overflown the kernel stack (cur:ffff88806e810000,sp:ffff8880ac8e0c80,irq stk top-bottom:ffff8880ae600080-ffff8880ae608000,exception stk top-bottom:fffffe0000006080-fffffe0000010000,ip:__sanitizer_cov_trace_pc+0x8/0x50)
+[  343.398335] WARNING: CPU: 0 PID: 17088 at arch/x86/kernel/irq_64.c:61 handle_irq+0x2cb/0x3d8
+[  343.398345] Kernel panic - not syncing: panic_on_warn set ...
+[  343.412823] CPU: 0 PID: 17088 Comm: syz-executor1 Not tainted 4.20.0+ #6
+[  343.419670] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  343.429024] Call Trace:
+[  343.433016] Kernel Offset: disabled
+[  343.436648] Rebooting in 86400 seconds..

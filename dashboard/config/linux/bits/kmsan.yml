@@ -1,0 +1,100 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+kernel:
+ repo: https://github.com/google/kmsan.git
+ tag: kmsan-v5.15-rc2
+
+config:
+ - KMSAN
+ # Crash the kernel after the first KMSAN report.
+ - CMDLINE: [append, "kmsan.panic=1"]
+
+ # Avoid reboot loop in instrumented kernel:
+ - PREEMPT_NONE
+ - PREEMPT: [n, weak]
+ - HYPERV: [n, weak]
+
+ - VMAP_STACK: n
+
+ # Known errors. TODO(glider): fix those and enable the configs below.
+ - MTD: [n, weak]
+ - SND_HDA_INTEL: [n, weak]
+ - HARDENED_USERCOPY: [n, weak]
+ - HARDENED_USERCOPY_FALLBACK: [n, weak]
+
+ # KMSAN doesn't support ORC unwinder (https://github.com/google/kmsan/issues/48).
+ - UNWINDER_FRAME_POINTER
+
+ - HYPERVISOR_GUEST: n
+ - PARAVIRT: n
+ - PARAVIRT_SPINLOCKS: [n, weak]
+ - PARAVIRT_DEBUG: [n, weak]
+ - CPU_IDLE_GOV_HALTPOLL: [n, weak]
+ - BPF_JIT: [n, weak]
+ - MTD_BLOCK: [n, weak]
+ - FTL: [n, weak]
+ - MTD_SLRAM: [n, weak]
+ - MTD_PHRAM: [n, weak]
+ - MTD_MTDRAM: [n, weak]
+ - MTDRAM_TOTAL_SIZE: [n, weak]
+ - MTDRAM_ERASE_SIZE: [n, weak]
+ - MTD_BLOCK2MTD: [n, weak]
+ - MTD_UBI: [n, weak]
+ - SND_HDA_HWDEP: [n, weak]
+ - SND_HDA_INPUT_BEEP: [n, weak]
+ - SND_HDA_PATCH_LOADER: [n, weak]
+ - SND_HDA_CODEC_REALTEK: [n, weak]
+ - SND_HDA_CODEC_ANALOG: [n, weak]
+ - SND_HDA_CODEC_SIGMATEL: [n, weak]
+ - SND_HDA_CODEC_VIA: [n, weak]
+ - SND_HDA_CODEC_HDMI: [n, weak]
+ - SND_HDA_CODEC_CIRRUS: [n, weak]
+ - SND_HDA_CODEC_CONEXANT: [n, weak]
+ - SND_HDA_CODEC_CA0110: [n, weak]
+ - SND_HDA_CODEC_CA0132: [n, weak]
+ - SND_HDA_CODEC_CMEDIA: [n, weak]
+ - SND_HDA_CODEC_SI3054: [n, weak]
+ - UBIFS_FS: [n, weak]
+ - UBIFS_FS_ADVANCED_COMPR: [n, weak]
+ - UBIFS_ATIME_SUPPORT: [n, weak]
+ - UBIFS_FS_LZO: [n, weak]
+ - UBIFS_FS_ZLIB: [n, weak]
+ - UBIFS_FS_ZSTD: [n, weak]
+ - UBIFS_FS_SECURITY: [n, weak]
+ - CRYPTO_AEGIS128_AESNI_SSE2: [n, weak]
+ - CRYPTO_NHPOLY1305_SSE2: [n, weak]
+ - CRYPTO_NHPOLY1305_AVX2: [n, weak]
+ - CRYPTO_CRC32C_INTEL: [n, weak]
+ - CRYPTO_CRC32_PCLMUL: [n, weak]
+ - CRYPTO_CRCT10DIF_PCLMUL: [n, weak]
+ - CRYPTO_SHA1_SSSE3: [n, weak]
+ - CRYPTO_SHA256_SSSE3: [n, weak]
+ - CRYPTO_SHA512_SSSE3: [n, weak]
+ - CRYPTO_GHASH_CLMUL_NI_INTEL: [n, weak]
+ - CRYPTO_AES_NI_INTEL: [n, weak]
+ - CRYPTO_BLOWFISH_X86_64: [n, weak]
+ - CRYPTO_CAMELLIA_AESNI_AVX2_X86_64: [n, weak]
+ - CRYPTO_CAST5_AVX_X86_64: [n, weak]
+ - CRYPTO_CAST6_AVX_X86_64: [n, weak]
+ - CRYPTO_DES3_EDE_X86_64: [n, weak]
+ - CRYPTO_SERPENT_SSE2_X86_64: [n, weak]
+ - CRYPTO_SERPENT_AVX2_X86_64: [n, weak]
+ - CRYPTO_TWOFISH_AVX_X86_64: [n, weak]
+ # These depend on MTD which we disable above.
+ - JFFS2_FS: [n, weak]
+ - JFFS2_FS_DEBUG: [n, weak]
+ - JFFS2_FS_WRITEBUFFER: [n, weak]
+ - JFFS2_SUMMARY: [n, weak]
+ - JFFS2_FS_XATTR: [n, weak]
+ - JFFS2_FS_POSIX_ACL: [n, weak]
+ - JFFS2_FS_SECURITY: [n, weak]
+ - JFFS2_COMPRESSION_OPTIONS: [n, weak]
+ - JFFS2_ZLIB: [n, weak]
+ - JFFS2_LZO: [n, weak]
+ - JFFS2_RTIME: [n, weak]
+ - JFFS2_RUBIN: [n, weak]
+ - JFFS2_CMODE_PRIORITY: [n, weak]
+ - CRAMFS_MTD: [n, weak]
+ - ROMFS_BACKED_BY_BOTH: [n, weak]
+ - ROMFS_ON_MTD: [n, weak]

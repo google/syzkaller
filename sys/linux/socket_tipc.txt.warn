@@ -1,0 +1,4 @@
+no-such-struct: tipc_pair
+no-such-struct: sockaddr_tipc_t
+no-such-struct: msghdr_tipc
+no-such-struct: tipc_address_name

@@ -1,0 +1,37 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# See https://fuchsia.googlesource.com/fuchsia/+/master/zircon/docs/syscalls.md
+
+include <zircon/syscalls.h>
+include <ddk/driver.h>
+
+syz_execute_func(text ptr[in, text[target]])
+
+# Provided by sysroot (include/ddk/driver.h)
+resource zx_root_resource[zx_handle]
+get_root_resource() zx_root_resource
+
+# Used by syzkaller to allocate memory for syscall arguments.
+syz_mmap(addr vma, len len[addr])
+
+# Provided by process runtime (zircon/process.h).
+syz_process_self() zx_process
+syz_thread_self() zx_thread
+syz_vmar_root_self() zx_vmar
+syz_job_default() zx_job
+
+# TODO: the get_system_features_options flags are only valid on ARM;
+# find a way to make syzkaller generate ARM-specific code
+# zx_system_features(kind int32, features flags[get_system_features_options])
+zx_system_get_num_cpus()
+zx_system_get_physmem()
+zx_system_get_version(version ptr[out, array[int8]], version_len len[version])
+
+zx_cprng_draw(buffer ptr[out, array[int8]], len len[buffer])
+zx_cprng_add_entropy(buffer ptr[in, array[int8]], len len[buffer])
+
+zx_vmar_unmap_handle_close_thread_exit(vmar_handle zx_vmar, addr vma, len len[addr], close_handle zx_handle)
+zx_futex_wake_handle_close_thread_exit(value_ptr ptr[in, int32], wake_count int32, new_value int32, close_handle zx_handle)
+
+# get_system_features_options = ZX_ARM_64_ISA_FP, ZX_ARM64_FEATURE_ASIMD, ZX_ARM64_FEATURE_ISA_AES, ZX_ARM64_FEATURE_ISA_PMULL, ZX_ARM64_FEATURE_ISA_SHA1, ZX_ARM64_FEATURE_ISA_SHA2, ZX_ARM64_FEATURE_ISA_CRC32, ZX_ARM64_FEATURE_ISA_ATOMICS, ZX_ARM64_FEATURE_ISA_RDM, ZX_ARM64_FEATURE_ISA_SHA3, ZX_ARM64_FEATURE_ISA_SM3, ZX_ARM64_FEATURE_ISA_SM4, ZX_ARM64_FEATURE_ISA_DP, ZX_ARM64_FEATURE_ISA_DPB

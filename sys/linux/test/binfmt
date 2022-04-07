@@ -1,0 +1,16 @@
+# Tests for binfmt_misc.
+# Executor setups binfmt_misc with ./file0 interpreter for files with byte 0x01 at offset 0.
+
+execveat(0xffffffffffffff9c, &AUTO='./file1\x00', &AUTO=[0x0], &AUTO=[0x0], 0x0) # ENOENT
+r0 = openat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x42, 0x1ff)
+close(r0)
+execveat(0xffffffffffffff9c, &AUTO='./file1\x00', &AUTO=[0x0], &AUTO=[0x0], 0x0) # ENOEXEC
+r1 = openat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x2, 0x0)
+write(r1, &AUTO="01010101", 0x4)
+close(r1)
+execveat(0xffffffffffffff9c, &AUTO='./file1\x00', &AUTO=[0x0], &AUTO=[0x0], 0x0) # ENOENT
+r2 = openat(0xffffffffffffff9c, &AUTO='./file0\x00', 0x42, 0x0)
+close(r2)
+execveat(0xffffffffffffff9c, &AUTO='./file1\x00', &AUTO=[0x0], &AUTO=[0x0], 0x0) # EACCES
+fchmodat(0xffffffffffffff9c, &AUTO='./file0\x00', 0x1ff)
+execveat(0xffffffffffffff9c, &AUTO='./file1\x00', &AUTO=[0x0], &AUTO=[0x0], 0x0) # ENOEXEC

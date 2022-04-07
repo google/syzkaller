@@ -1,0 +1,212 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/asm/ioctl.h>
+include <uapi/linux/fcntl.h>
+include <uapi/linux/soundcard.h>
+include <sound/core/seq/oss/seq_oss_device.h>
+include <sound/asoundef.h>
+include <uapi/sound/sfnt_info.h>
+include <sound/core/seq/oss/seq_oss_event.h>
+
+resource fd_seq[fd]
+
+openat$sequencer(fd const[AT_FDCWD], file ptr[in, string["/dev/sequencer"]], flags flags[open_flags], mode const[0]) fd_seq
+openat$sequencer2(fd const[AT_FDCWD], file ptr[in, string["/dev/sequencer2"]], flags flags[open_flags], mode const[0]) fd_seq
+read$sequencer(fd fd_seq, buffer ptr[out, array[int8]], count bytesize[buffer])
+write$sequencer(fd fd_seq, buffer ptr[in, array[evrec_write]], count bytesize[buffer])
+
+define MIN_OSS_TEMPO	8
+define MAX_OSS_TEMPO	360
+define MIN_OSS_TIMEBASE	1
+define MAX_OSS_TIMEBASE	1000
+
+ioctl$SNDCTL_TMR_TIMEBASE(fd fd_seq, cmd const[SNDCTL_TMR_TIMEBASE], carg ptr[in, int32[MIN_OSS_TIMEBASE:MAX_OSS_TIMEBASE]])
+ioctl$SNDCTL_TMR_TEMPO(fd fd_seq, cmd const[SNDCTL_TMR_TEMPO], carg ptr[in, int32[MIN_OSS_TEMPO:MAX_OSS_TEMPO]])
+ioctl$SNDCTL_TMR_START(fd fd_seq, cmd const[SNDCTL_TMR_START])
+ioctl$SNDCTL_TMR_STOP(fd fd_seq, cmd const[SNDCTL_TMR_STOP])
+ioctl$SNDCTL_TMR_CONTINUE(fd fd_seq, cmd const[SNDCTL_TMR_CONTINUE])
+ioctl$SNDCTL_TMR_METRONOME(fd fd_seq, cmd const[SNDCTL_TMR_METRONOME])
+ioctl$SNDCTL_TMR_SOURCE(fd fd_seq, cmd const[SNDCTL_TMR_SOURCE])
+ioctl$SNDCTL_TMR_SELECT(fd fd_seq, cmd const[SNDCTL_TMR_SELECT])
+ioctl$SNDCTL_SEQ_CTRLRATE(fd fd_seq, cmd const[SNDCTL_SEQ_CTRLRATE], carg ptr[inout, int32])
+ioctl$SNDCTL_SEQ_PANIC(fd fd_seq, cmd const[SNDCTL_SEQ_PANIC])
+ioctl$SNDCTL_SEQ_SYNC(fd fd_seq, cmd const[SNDCTL_SEQ_SYNC])
+ioctl$SNDCTL_SEQ_RESET(fd fd_seq, cmd const[SNDCTL_SEQ_RESET])
+ioctl$SNDCTL_SEQ_TESTMIDI(fd fd_seq, cmd const[SNDCTL_SEQ_TESTMIDI], carg ptr[in, int32])
+ioctl$SNDCTL_SEQ_GETINCOUNT(fd fd_seq, cmd const[SNDCTL_SEQ_GETINCOUNT], carg ptr[out, int32])
+ioctl$SNDCTL_SEQ_GETOUTCOUNT(fd fd_seq, cmd const[SNDCTL_SEQ_GETOUTCOUNT], carg ptr[out, int32])
+ioctl$SNDCTL_SEQ_GETTIME(fd fd_seq, cmd const[SNDCTL_SEQ_GETTIME], carg ptr[out, int32])
+ioctl$SNDCTL_SEQ_RESETSAMPLES(fd fd_seq, cmd const[SNDCTL_SEQ_RESETSAMPLES], carg ptr[in, int32])
+ioctl$SNDCTL_SEQ_NRSYNTHS(fd fd_seq, cmd const[SNDCTL_SEQ_NRSYNTHS], carg ptr[out, int32])
+ioctl$SNDCTL_SEQ_NRMIDIS(fd fd_seq, cmd const[SNDCTL_SEQ_NRMIDIS], carg ptr[out, int32])
+ioctl$SNDCTL_SYNTH_MEMAVL(fd fd_seq, cmd const[SNDCTL_SYNTH_MEMAVL], carg ptr[inout, int32])
+ioctl$SNDCTL_FM_4OP_ENABLE(fd fd_seq, cmd const[SNDCTL_FM_4OP_ENABLE], carg ptr[in, int32])
+ioctl$SNDCTL_SYNTH_INFO(fd fd_seq, cmd const[SNDCTL_SYNTH_INFO], carg ptr[inout, synth_info])
+ioctl$SNDCTL_SYNTH_ID(fd fd_seq, cmd const[SNDCTL_SYNTH_ID], carg ptr[inout, synth_info])
+ioctl$SNDCTL_SEQ_OUTOFBAND(fd fd_seq, cmd const[SNDCTL_SEQ_OUTOFBAND], carg ptr[in, evrec])
+ioctl$SNDCTL_MIDI_INFO(fd fd_seq, cmd const[SNDCTL_MIDI_INFO], carg ptr[inout, midi_info])
+ioctl$SNDCTL_SEQ_THRESHOLD(fd fd_seq, cmd const[SNDCTL_SEQ_THRESHOLD], carg ptr[in, int32])
+ioctl$SNDCTL_MIDI_PRETIME(fd fd_seq, cmd const[SNDCTL_MIDI_PRETIME], carg ptr[inout, int32])
+ioctl$SNDCTL_FM_LOAD_INSTR(fd fd_seq, cmd const[SNDCTL_FM_LOAD_INSTR])
+
+synth_info {
+	name		array[int8, 30]
+	device		int32
+	synth_type	flags[synth_type_flags, int32]
+	synth_subtype	flags[synth_subtype_flags, int32]
+	perc_mode	int32
+	nr_voices	int32
+	nr_drums	int32
+	instr_bank_size	int32
+	capabilities	flags[capabilities_flags, int32]
+	dummies		array[int32, 19]
+}
+
+midi_info {
+	name		array[int8, 30]
+	device		int32
+	capabilities	int32
+	dev_type	int32
+	dummies		array[int32, 18]
+}
+
+evrec_write [
+	s	evrec_short
+	n	evrec_note
+	l	evrec_long
+	v	evrec_voice
+	t	evrec_timer
+	e	evrec_extended
+	x	evrec_sysex
+	echo	int32
+	raw	evrec_raw
+	generic	evrec_generic
+] [varlen]
+
+evrec [
+	s	evrec_short
+	n	evrec_note
+	l	evrec_long
+	v	evrec_voice
+	t	evrec_timer
+	e	evrec_extended
+	x	evrec_sysex
+	echo	int32
+	raw	evrec_raw
+	generic	evrec_generic
+]
+
+evrec_short {
+	code	const[SEQ_MIDIPUTC, int8]
+	parm1	evrec_short_parm1
+	dev	int8[0:SNDRV_SEQ_OSS_MAX_MIDI_DEVS]
+	parm2	int8
+}
+
+evrec_short_parm1 [
+	SEQ_MIDIPUTC	int8[MIDI_CMD_NOTE_OFF:MIDI_CMD_COMMON_RESET]
+	generic		int8
+]
+
+evrec_note {
+	code	flags[evrec_note_code, int8]
+	chn	int8
+	note	evrec_note_note
+	vel	int8
+}
+
+evrec_note_note [
+	SEQ_NOTEON	midi_note
+	generic		int8
+]
+
+midi_note [
+	note	int8[0:127]
+	special	const[255, int8]
+]
+
+evrec_timer {
+	code	flags[evrec_timer_code, int8]
+	cmd	flags[evrec_timer_cmd, int8]
+	dummy1	int8
+	dummy2	int8
+	time	evrec_timer_time
+}
+
+evrec_timer_time [
+	TMR_WAIT_ABS	const[0, int32]
+	generic		int32
+]
+
+evrec_extended {
+	code	const[SEQ_EXTENDED, int8]
+	cmd	flags[evrec_extended_cmd, int8]
+	dev	int8[0:15]
+	chn	int8
+	p1	evrec_extended_p1
+	p2	int8
+	p3	int8
+	p4	int8
+}
+
+evrec_extended_p1 [
+	SEQ_CONTROLLER	flags[evrec_extended_p1_flags, int8]
+	SEQ_NOTEON	midi_note
+	generic		int8
+]
+
+evrec_long {
+	code	const[EV_CHN_COMMON, int8]
+	dev	int8[0:15]
+	cmd	flags[evrec_long_cmd, int8]
+	chn	int8[0:31]
+	p1	int8
+	p2	int8
+	val	int16
+}
+
+evrec_voice {
+	code	const[EV_CHN_VOICE, int8]
+	dev	int8[0:15]
+	cmd	flags[evrec_voice_cmd, int8]
+	chn	int8[0:31]
+	note	evrec_voice_note
+	parm	int8
+	dummy	int16
+}
+
+evrec_voice_note [
+	MIDI_NOTEON	midi_note
+	generic		int8
+]
+
+evrec_sysex {
+	code	const[EV_SYSEX, int8]
+	dev	int8[0:15]
+	buf	array[int8, 6]
+}
+
+evrec_raw {
+	code	flags[evrec_raw_code, int8]
+	dev	int8[0:15]
+	arr	array[int8, 6]
+}
+
+evrec_generic {
+	code	flags[evrec_generic_flags, int8]
+}
+
+synth_type_flags = SYNTH_TYPE_FM, SYNTH_TYPE_SAMPLE, SYNTH_TYPE_MIDI
+synth_subtype_flags = FM_TYPE_ADLIB, FM_TYPE_OPL3, MIDI_TYPE_MPU401
+capabilities_flags = SYNTH_CAP_PERCMODE, SYNTH_CAP_OPL3, SYNTH_CAP_INPUT
+
+evrec_extended_cmd = SEQ_NOTEOFF, SEQ_NOTEON, SEQ_PGMCHANGE, SEQ_AFTERTOUCH, SEQ_BALANCE, SEQ_CONTROLLER, SEQ_VOLMODE
+evrec_extended_p1_flags = CTRL_PITCH_BENDER, CTRL_PITCH_BENDER_RANGE
+evrec_voice_cmd = MIDI_NOTEON, MIDI_NOTEOFF, MIDI_KEY_PRESSURE
+evrec_timer_code = EV_TIMING, SEQ_SYNCTIMER
+evrec_timer_cmd = TMR_ECHO, TMR_STOP, TMR_CONTINUE, TMR_TEMPO, TMR_WAIT_REL, TMR_WAIT_ABS, TMR_START
+evrec_long_cmd = MIDI_PGM_CHANGE, MIDI_CTL_CHANGE, MIDI_PITCH_BEND, MIDI_CHN_PRESSURE
+evrec_note_code = SEQ_NOTEOFF, SEQ_NOTEON, SEQ_PGMCHANGE
+evrec_generic_flags = EV_SEQ_LOCAL, SEQ_ECHO, SEQ_WAIT
+evrec_raw_code = SEQ_VOLMODE, SEQ_PRIVATE

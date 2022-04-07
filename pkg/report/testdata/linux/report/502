@@ -1,0 +1,65 @@
+TITLE: INFO: rcu detected stall in smp_call_function
+ALT: stall in smp_call_function
+TYPE: HANG
+
+[  611.778481][    C1] rcu: INFO: rcu_preempt detected stalls on CPUs/tasks:
+[  611.785841][    C1] rcu: 	Tasks blocked on level-0 rcu_node (CPUs 0-1):
+[  611.785848][    C1] ------------[ cut here ]------------
+[  611.798299][    C1] IRQs not enabled as expected
+[  611.803253][    C1] WARNING: CPU: 1 PID: 4737 at kernel/sched/core.c:2698 try_invoke_on_locked_down_task+0x18b/0x320
+[  611.815146][    C1] Kernel panic - not syncing: panic_on_warn set ...
+[  611.822004][    C1] CPU: 1 PID: 4737 Comm: systemd-timesyn Not tainted 5.8.0-rc3-syzkaller #0
+[  611.830678][    C1] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  611.840748][    C1] Call Trace:
+[  611.844041][    C1]  <IRQ>
+[  611.847038][    C1]  dump_stack+0x1f0/0x31e
+[  611.851537][    C1]  panic+0x264/0x7a0
+[  611.872226][    C1]  __warn+0x227/0x250
+[  611.882552][    C1]  report_bug+0x1b1/0x2e0
+[  611.887028][    C1]  handle_bug+0x42/0x80
+[  611.891294][    C1]  exc_invalid_op+0x16/0x40
+[  611.895859][    C1]  asm_exc_invalid_op+0x12/0x20
+[  611.900723][    C1] RIP: 0010:try_invoke_on_locked_down_task+0x18b/0x320
+[  611.907579][    C1] Code: 48 89 df e8 a7 35 09 00 4c 89 f7 e8 3f 63 ce 06 e9 b5 00 00 00 c6 05 92 7d 18 08 01 48 c7 c7 fc a9 e7 88 31 c0 e8 65 a8 f5 ff <0f> 0b e9 15 ff ff ff 48 c7 c1 70 5d 6d 89 80 e1 07 80 c1 03 38 c1
+[  611.927186][    C1] RSP: 0018:ffffc90000da8c50 EFLAGS: 00010046
+[  611.933365][    C1] RAX: 82cfb6c0e4d32500 RBX: ffff888096c1ee08 RCX: ffff888096c1e580
+[  611.941446][    C1] RDX: 0000000000010004 RSI: 0000000000010004 RDI: 0000000000000000
+[  611.949435][    C1] RBP: ffff888096c1ee4c R08: ffffffff815dc419 R09: ffffed1015d241c3
+[  611.957429][    C1] R10: ffffed1015d241c3 R11: 0000000000000000 R12: 0000000000000000
+[  611.965404][    C1] R13: ffff8880a9990040 R14: ffff8880a99903c0 R15: dffffc0000000000
+[  611.983534][    C1]  rcu_sched_clock_irq+0x12ec/0x1eb0
+[  611.993836][    C1]  update_process_times+0x12c/0x180
+[  611.999126][    C1]  tick_sched_timer+0x254/0x410
+[  612.009559][    C1]  __hrtimer_run_queues+0x42d/0x930
+[  612.014781][    C1]  hrtimer_interrupt+0x373/0xd60
+[  612.019801][    C1]  __sysvec_apic_timer_interrupt+0xf0/0x260
+[  612.025733][    C1]  asm_call_on_stack+0xf/0x20
+[  612.030407][    C1]  </IRQ>
+[  612.033350][    C1]  sysvec_apic_timer_interrupt+0xb9/0x130
+[  612.039081][    C1]  asm_sysvec_apic_timer_interrupt+0x12/0x20
+[  612.045068][    C1] RIP: 0010:smp_call_function_single+0x311/0x450
+[  612.051394][    C1] Code: 83 e5 01 75 14 e8 4f 00 0b 00 eb 45 0f 1f 00 66 2e 0f 1f 84 00 00 00 00 00 f3 90 42 0f b6 04 23 84 c0 75 0d 41 f6 07 01 74 22 <e8> 2a 00 0b 00 eb e8 44 89 f9 80 e1 07 80 c1 03 38 c1 7c e6 4c 89
+[  612.071000][    C1] RSP: 0018:ffffc90001c27be0 EFLAGS: 00000202
+[  612.077068][    C1] RAX: 0000000000000000 RBX: 1ffff92000384f81 RCX: ffff888096c1e580
+[  612.085045][    C1] RDX: 0000000000000000 RSI: 0000000000000001 RDI: 0000000000000000
+[  612.093027][    C1] RBP: ffffc90001c27c80 R08: ffffffff81697bb6 R09: ffffed1015d06d11
+[  612.101081][    C1] R10: ffffed1015d06d11 R11: 0000000000000000 R12: dffffc0000000000
+[  612.109241][    C1] R13: 0000000000000001 R14: 0000000000000000 R15: ffffc90001c27c08
+[  612.145958][    C1]  on_each_cpu+0x4d/0x1f0
+[  612.150298][    C1]  clock_was_set+0x18/0x20
+[  612.154718][    C1]  timekeeping_inject_offset+0x5e6/0x610
+[  612.164988][    C1]  do_adjtimex+0x3ac/0x8f0
+[  612.174200][    C1]  __x64_sys_clock_adjtime+0x17e/0x210
+[  612.185765][    C1]  do_syscall_64+0x73/0xe0
+[  612.190187][    C1]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[  612.196263][    C1] RIP: 0033:0x7f4117ebd1b7
+[  612.200677][    C1] Code: Bad RIP value.
+[  612.204760][    C1] RSP: 002b:00007ffeedde6cd8 EFLAGS: 00000246 ORIG_RAX: 0000000000000131
+[  612.213177][    C1] RAX: ffffffffffffffda RBX: 000055f707897630 RCX: 00007f4117ebd1b7
+[  612.221151][    C1] RDX: ffffffffe7ce77f1 RSI: 00007ffeedde6da0 RDI: 0000000000000000
+[  612.229141][    C1] RBP: 00007ffeedde6da0 R08: 0000000000000020 R09: 000000000000000d
+[  612.237138][    C1] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000ffffffff
+[  612.245140][    C1] R13: 00007ffeedde6e90 R14: 0000000000000005 R15: 0000000000000001
+[  613.358055][    C1] Shutting down cpus with NMI
+[  613.363983][    C1] Kernel Offset: disabled
+[  613.368409][    C1] Rebooting in 86400 seconds..

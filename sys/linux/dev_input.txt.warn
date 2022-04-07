@@ -1,0 +1,13 @@
+bad-field-number: input_event: syz=4 kernel=5
+bad-field-size: input_event.time/__sec: syz=16 kernel=8 [amd64,arm64]
+bad-field-size: input_event.time/__sec: syz=8 kernel=4 [386,arm]
+bad-field-offset: input_event.type/__usec: syz=16 kernel=8 [amd64,arm64]
+bad-field-offset: input_event.type/__usec: syz=8 kernel=4 [386,arm]
+bad-field-size: input_event.type/__usec: syz=2 kernel=4 [386,arm]
+bad-field-size: input_event.type/__usec: syz=2 kernel=8 [amd64,arm64]
+bad-field-offset: input_event.code/type: syz=10 kernel=8 [386,arm]
+bad-field-offset: input_event.code/type: syz=18 kernel=16 [amd64,arm64]
+bad-field-offset: input_event.val/code: syz=12 kernel=10 [386,arm]
+bad-field-offset: input_event.val/code: syz=20 kernel=18 [amd64,arm64]
+bad-field-size: input_event.val/code: syz=4 kernel=2
+no-such-struct: ff_effect_u

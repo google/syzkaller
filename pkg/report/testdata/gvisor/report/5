@@ -1,0 +1,53 @@
+TITLE: panic: invalid segment range [ADDR, ADDR)
+
+panic: invalid segment range [0x401000, 0x401000)
+
+goroutine 273 [running]:
+panic(0xa8fd00, 0xc423d64040)
+	GOROOT/src/runtime/panic.go:551 +0x3c1 fp=0xc4220c7208 sp=0xc4220c7168 pc=0x428fa1
+gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*pmaSet).Insert(0xc420c44668, 0xc420c44668, 0x1, 0x401000, 0x401000, 0x3fb8b34510f0, 0xc420268000, 0x83a1000, 0x1010101010001, 0x0, ...)
+	bazel-out/k8-fastbuild/bin/pkg/sentry/mm/pma_set.go:257 +0x11fb fp=0xc4220c79b0 sp=0xc4220c7208 pc=0x6a2c5b
+gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).insertPMAsLocked(0xc420c44000, 0xc94840, 0xc4206f9200, 0xc420c44070, 0x0, 0xc420c44668, 0x1, 0x46f000, 0x470000, 0xbd3301, ...)
+	pkg/sentry/mm/pma.go:372 +0x4fd fp=0xc4220c7bb0 sp=0xc4220c79b0 pc=0x69da4d
+gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).ensurePMAsLocked(0xc420c44000, 0xc94840, 0xc4206f9200, 0xc420c44070, 0x0, 0x46f000, 0x470000, 0x8ad6db, 0xb546c0, 0xc421278000, ...)
+	pkg/sentry/mm/pma.go:258 +0x24b fp=0xc4220c7c68 sp=0xc4220c7bb0 pc=0x69d42b
+gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).getPMAsLocked(0xc420c44000, 0xc94840, 0xc4206f9200, 0xc420c44070, 0x0, 0x46f000, 0x470000, 0x0, 0xc420c44070, 0x1, ...)
+	pkg/sentry/mm/pma.go:128 +0xd1 fp=0xc4220c7d48 sp=0xc4220c7c68 pc=0x69c6d1
+gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).HandleUserFault(0xc420c44000, 0xc94840, 0xc4206f9200, 0x46f970, 0xc420010001, 0x7f4ade70ae18, 0xc421278000, 0x10001)
+	pkg/sentry/mm/syscalls.go:55 +0x194 fp=0xc4220c7e10 sp=0xc4220c7d48 pc=0x6ab634
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute(0x0, 0xc4206f9200, 0xc87be0, 0x0)
+	pkg/sentry/kernel/task_run.go:235 +0x845 fp=0xc4220c7f88 sp=0xc4220c7e10 pc=0x733465
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run(0xc4206f9200, 0x1c)
+	pkg/sentry/kernel/task_run.go:95 +0x174 fp=0xc4220c7fd0 sp=0xc4220c7f88 pc=0x7328b4
+runtime.goexit()
+	bazel-out/k8-fastbuild/bin/external/io_bazel_rules_go/linux_amd64_pure_stripped/stdlib~/src/runtime/asm_amd64.s:2361 +0x1 fp=0xc4220c7fd8 sp=0xc4220c7fd0 pc=0x455f11
+created by gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).Start
+	pkg/sentry/kernel/task_start.go:251 +0x100
+
+goroutine 1 [semacquire, 3 minutes]:
+runtime.gopark(0xbfba68, 0x10ec000, 0xbd8524, 0xa, 0xc42045e419, 0x4)
+	GOROOT/src/runtime/proc.go:291 +0x11a fp=0xc42045b920 sp=0xc42045b900 pc=0x42b10a
+runtime.goparkunlock(0x10ec000, 0xbd8524, 0xa, 0x19, 0x4)
+	GOROOT/src/runtime/proc.go:297 +0x5e fp=0xc42045b960 sp=0xc42045b920 pc=0x42b1be
+runtime.semacquire1(0xc42011e640, 0x403300, 0x1)
+	GOROOT/src/runtime/sema.go:144 +0x1d4 fp=0xc42045b9d0 sp=0xc42045b960 pc=0x43b3e4
+sync.runtime_Semacquire(0xc42011e640)
+	GOROOT/src/runtime/sema.go:56 +0x39 fp=0xc42045b9f8 sp=0xc42045b9d0 pc=0x43b009
+sync.(*WaitGroup).Wait(0xc42011e634)
+	GOROOT/src/sync/waitgroup.go:129 +0x72 fp=0xc42045ba20 sp=0xc42045b9f8 pc=0x46bd72
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Kernel).WaitExited(0xc4202617a0)
+	pkg/sentry/kernel/kernel.go:730 +0x35 fp=0xc42045ba38 sp=0xc42045ba20 pc=0x70bbb5
+gvisor.googlesource.com/gvisor/runsc/boot.(*Loader).WaitExit(0xc420494000, 0x0, 0x0)
+	runsc/boot/loader.go:354 +0x2e fp=0xc42045ba60 sp=0xc42045ba38 pc=0x97e95e
+gvisor.googlesource.com/gvisor/runsc/cmd.(*Boot).Execute(0xc420136740, 0xc8f900, 0xc42010c010, 0xc42011e360, 0xc42011de80, 0x2, 0x2, 0x0)
+	runsc/cmd/boot.go:144 +0xa28 fp=0xc42045bc00 sp=0xc42045ba60 pc=0xa05148
+github.com/google/subcommands.(*Commander).Execute(0xc420120000, 0xc8f900, 0xc42010c010, 0xc42011de80, 0x2, 0x2, 0xc42011de80)
+	external/com_github_google_subcommands/subcommands.go:141 +0x29f fp=0xc42045bca8 sp=0xc42045bc00 pc=0x4e263f
+github.com/google/subcommands.Execute(0xc8f900, 0xc42010c010, 0xc42011de80, 0x2, 0x2, 0x5)
+	external/com_github_google_subcommands/subcommands.go:371 +0x5f fp=0xc42045bcf0 sp=0xc42045bca8 pc=0x4e406f
+main.main()
+	runsc/main.go:188 +0xfda fp=0xc42045bf88 sp=0xc42045bcf0 pc=0xa0ff7a
+runtime.main()
+	GOROOT/src/runtime/proc.go:198 +0x212 fp=0xc42045bfe0 sp=0xc42045bf88 pc=0x42acb2
+runtime.goexit()
+	bazel-out/k8-fastbuild/bin/external/io_bazel_rules_go/linux_amd64_pure_stripped/stdlib~/src/runtime/asm_amd64.s:2361 +0x1 fp=0xc42045bfe8 sp=0xc42045bfe0 pc=0x455f11

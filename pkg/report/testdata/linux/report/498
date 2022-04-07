@@ -1,0 +1,51 @@
+TITLE: BUG: using smp_processor_id() in preemptible code in radix_tree_node_alloc
+
+[ 2121.014859][T12078] BUG: using smp_processor_id() in preemptible [00000000] code: syz-executor.5/12078
+[ 2121.024801][T12078] caller is radix_tree_node_alloc.constprop.0+0x200/0x330
+[ 2121.032070][T12078] CPU: 0 PID: 12078 Comm: syz-executor.5 Not tainted 5.7.0-rc7-syzkaller #0
+[ 2121.040754][T12078] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 2121.050813][T12078] Call Trace:
+[ 2121.054118][T12078]  dump_stack+0x188/0x20d
+[ 2121.058459][T12078]  debug_smp_processor_id.cold+0x88/0x9b
+[ 2121.064100][T12078]  radix_tree_node_alloc.constprop.0+0x200/0x330
+[ 2121.070444][T12078]  radix_tree_extend+0x234/0x4a0
+[ 2121.075394][T12078]  idr_get_free+0x60c/0x8e0
+[ 2121.079915][T12078]  idr_alloc_u32+0x170/0x2d0
+[ 2121.084513][T12078]  ? __fprop_inc_percpu_max+0x210/0x210
+[ 2121.090063][T12078]  ? mark_held_locks+0xe0/0xe0
+[ 2121.094837][T12078]  ? mutex_trylock+0x2c0/0x2c0
+[ 2121.099614][T12078]  idr_alloc+0xc2/0x130
+[ 2121.103774][T12078]  ? idr_alloc_u32+0x2d0/0x2d0
+[ 2121.108541][T12078]  ? mark_lock+0x12b/0xf10
+[ 2121.112972][T12078]  __qrtr_bind.isra.0+0x12e/0x5c0
+[ 2121.118000][T12078]  ? qrtr_release+0x2a0/0x2a0
+[ 2121.122688][T12078]  ? mark_held_locks+0x9f/0xe0
+[ 2121.127462][T12078]  qrtr_autobind+0xaf/0xf0
+[ 2121.131885][T12078]  qrtr_sendmsg+0x1d6/0x770
+[ 2121.136394][T12078]  ? aa_af_perm+0x260/0x260
+[ 2121.140901][T12078]  ? qrtr_autobind+0xf0/0xf0
+[ 2121.145506][T12078]  ? qrtr_autobind+0xf0/0xf0
+[ 2121.150106][T12078]  sock_sendmsg+0xcf/0x120
+[ 2121.154526][T12078]  ____sys_sendmsg+0x6e6/0x810
+[ 2121.159307][T12078]  ? kernel_sendmsg+0x50/0x50
+[ 2121.163987][T12078]  ? _parse_integer+0x180/0x180
+[ 2121.168863][T12078]  ___sys_sendmsg+0x100/0x170
+[ 2121.173549][T12078]  ? sendmsg_copy_msghdr+0x70/0x70
+[ 2121.178680][T12078]  ? __fget_files+0x32f/0x500
+[ 2121.183385][T12078]  ? ksys_dup3+0x3c0/0x3c0
+[ 2121.187816][T12078]  ? __fget_light+0x20e/0x270
+[ 2121.192506][T12078]  __sys_sendmsg+0xe5/0x1b0
+[ 2121.197010][T12078]  ? __sys_sendmsg_sock+0xb0/0xb0
+[ 2121.202039][T12078]  ? vfs_write+0x161/0x5d0
+[ 2121.206472][T12078]  ? trace_hardirqs_off_caller+0x55/0x230
+[ 2121.212202][T12078]  ? do_syscall_64+0x21/0x7d0
+[ 2121.216895][T12078]  do_syscall_64+0xf6/0x7d0
+[ 2121.221410][T12078]  entry_SYSCALL_64_after_hwframe+0x49/0xb3
+[ 2121.227304][T12078] RIP: 0033:0x45ca69
+[ 2121.231204][T12078] Code: 0d b7 fb ff c3 66 2e 0f 1f 84 00 00 00 00 00 66 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 db b6 fb ff c3 66 2e 0f 1f 84 00 00 00 00
+[ 2121.250839][T12078] RSP: 002b:00007fe8719dbc78 EFLAGS: 00000246 ORIG_RAX: 000000000000002e
+[ 2121.259259][T12078] RAX: ffffffffffffffda RBX: 0000000000500300 RCX: 000000000045ca69
+[ 2121.267233][T12078] RDX: 0000000000000000 RSI: 0000000020000100 RDI: 0000000000000003
+[ 2121.275209][T12078] RBP: 000000000078bf00 R08: 0000000000000000 R09: 0000000000000000
+[ 2121.283187][T12078] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000004
+[ 2121.291168][T12078] R13: 00000000000009d2 R14: 00000000004cca8c R15: 00007fe8719dc6d4

@@ -1,0 +1,90 @@
+TITLE: WARNING: kobject bug in netdev_register_kobject
+
+[   24.413160] ------------[ cut here ]------------
+[   24.417920] WARNING: CPU: 0 PID: 1928 at lib/kobject.c:244 kobject_add_internal.cold.13+0xc8/0xe2
+[   24.426901] Kernel panic - not syncing: panic_on_warn set ...
+[   24.426901] 
+[   24.434238] CPU: 0 PID: 1928 Comm: syzkaller927371 Not tainted 4.14.31+ #2
+[   24.441222] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   24.450548] Call Trace:
+[   24.453109]  dump_stack+0x114/0x1cf
+[   24.456710]  ? show_regs_print_info+0x6a/0x6a
+[   24.461177]  ? _atomic_dec_and_lock+0x171/0x171
+[   24.465817]  ? kobject_add_internal.cold.13+0xc8/0xe2
+[   24.470981]  panic+0x1bb/0x3a0
+[   24.474164]  ? add_taint.cold.6+0x16/0x16
+[   24.478290]  ? kobject_add_internal.cold.13+0xc8/0xe2
+[   24.483451]  __warn.cold.9+0x149/0x186
+[   24.487317]  ? kobject_add_internal.cold.13+0xc8/0xe2
+[   24.492485]  report_bug+0x1f7/0x272
+[   24.496091]  do_error_trap+0x1c1/0x430
+[   24.499957]  ? vprintk_emit+0x23b/0x4e0
+[   24.503905]  ? math_error+0x3c0/0x3c0
+[   24.507680]  ? vprintk_emit+0x200/0x4e0
+[   24.511635]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[   24.516451]  do_invalid_op+0x20/0x30
+[   24.520145]  invalid_op+0x1b/0x40
+[   24.523599] RIP: 0010:kobject_add_internal.cold.13+0xc8/0xe2
+[   24.529380] RSP: 0018:ffff8801d28175c0 EFLAGS: 00010286
+[   24.534717] RAX: 0000000000000043 RBX: ffff8801d2c9c558 RCX: 0000000000000000
+[   24.541961] RDX: 0000000000000043 RSI: ffff8801dba1e3b8 RDI: ffffed003a502eae
+[   24.549202] RBP: ffff8801d28176b8 R08: ffff8801d4f753d8 R09: 0000000000000006
+[   24.556446] R10: ffff8801d4f74b40 R11: 0000000000000000 R12: ffffffff83adc840
+[   24.563689] R13: 00000000fffffff4 R14: ffff8801d777f888 R15: ffff8801d2c9c560
+[   24.570951]  ? kobj_ns_type_registered+0x50/0x50
+[   24.575678]  ? lock_release+0x8b0/0x8b0
+[   24.579626]  ? __raw_spin_lock_init+0x32/0x100
+[   24.584183]  ? klist_init+0xf8/0x1c0
+[   24.587873]  ? refcount_inc_not_zero+0xfd/0x170
+[   24.592529]  kobject_add+0x11f/0x180
+[   24.596215]  ? kset_create_and_add+0x170/0x170
+[   24.600772]  ? mutex_unlock+0x12/0x20
+[   24.604548]  device_add+0x390/0x1610
+[   24.608236]  ? dev_set_name+0xa9/0xd0
+[   24.612032]  ? device_private_init+0x240/0x240
+[   24.616591]  ? rtnl_is_locked+0x59/0xb0
+[   24.620537]  ? rtnl_kfree_skbs+0x70/0x70
+[   24.624573]  netdev_register_kobject+0x128/0x2ec
+[   24.629304]  register_netdevice+0x9ba/0xf20
+[   24.633602]  ? netdev_change_features+0x100/0x100
+[   24.638419]  ? __raw_spin_lock_init+0x21/0x100
+[   24.642973]  ? round_jiffies_up+0xfc/0x140
+[   24.647200]  ? __round_jiffies_up_relative+0x190/0x190
+[   24.652454]  __tun_chr_ioctl+0x2307/0x3e40
+[   24.656666]  ? tun_chr_read_iter+0x1e0/0x1e0
+[   24.661065]  ? get_pid_task+0xc5/0x140
+[   24.664947]  ? proc_fail_nth_write+0xbd/0x270
+[   24.669416]  ? proc_task_getattr+0x190/0x190
+[   24.673807]  ? find_held_lock+0x36/0x1c0
+[   24.677844]  ? vfs_write+0x266/0x500
+[   24.681531]  ? lock_downgrade+0x740/0x740
+[   24.685658]  ? kernel_read+0x130/0x130
+[   24.689533]  tun_chr_ioctl+0x2f/0x40
+[   24.693227]  ? tun_chr_compat_ioctl+0x40/0x40
+[   24.698050]  do_vfs_ioctl+0x1b7/0x15d0
+[   24.701912]  ? ioctl_preallocate+0x2c0/0x2c0
+[   24.706295]  ? fget_raw+0x20/0x20
+[   24.709723]  ? __sb_end_write+0xa5/0xd0
+[   24.713672]  ? vfs_write+0x222/0x500
+[   24.717358]  ? SyS_write+0x179/0x230
+[   24.721051]  ? security_file_ioctl+0x94/0xc0
+[   24.725431]  SyS_ioctl+0x94/0xc0
+[   24.728770]  ? do_vfs_ioctl+0x15d0/0x15d0
+[   24.732890]  do_syscall_64+0x251/0x6d0
+[   24.736752]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[   24.741482]  ? syscall_return_slowpath+0x330/0x330
+[   24.746385]  ? syscall_return_slowpath+0x217/0x330
+[   24.751308]  ? entry_SYSCALL_64_after_hwframe+0x52/0xb7
+[   24.756644]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[   24.761462]  entry_SYSCALL_64_after_hwframe+0x42/0xb7
+[   24.766625] RIP: 0033:0x444179
+[   24.769792] RSP: 002b:00007ffcebc3f4b8 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[   24.777473] RAX: ffffffffffffffda RBX: 0000000000000000 RCX: 0000000000444179
+[   24.784720] RDX: 0000000020000180 RSI: 00000000400454ca RDI: 0000000000000003
+[   24.791963] RBP: 00000000006cf018 R08: 0000000000000001 R09: 00007ffcebc30035
+[   24.799214] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000004
+[   24.806466] R13: ffffffffffffffff R14: 0000000000000000 R15: 0000000000000000
+[   24.814408] Dumping ftrace buffer:
+[   24.818034]    (ftrace buffer empty)
+[   24.822300] Kernel Offset: disabled
+[   24.825915] Rebooting in 86400 seconds..

@@ -1,0 +1,1098 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/net.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/genetlink.h>
+include <uapi/linux/nl80211.h>
+include <linux/ieee80211.h>
+include <net/cfg80211.h>
+
+resource nl80211_family_id[int16]
+resource nl80211_ifindex[int32]
+
+nl80211_devnames = "wlan0", "wlan1"
+
+type msg_nl80211_payload[CMD, PAYLOAD] {
+	genl_hdr	genlmsghdr_t[CMD]
+	payload		PAYLOAD
+} [packed, align[4]]
+
+type msghdr_nl80211[CMD, PAYLOAD, POLICY] msghdr_netlink[netlink_msg_t[nl80211_family_id, msg_nl80211_payload[CMD, PAYLOAD], POLICY]]
+# For commands with NL80211_FLAG_NEED_WDEV or NL80211_FLAG_NEED_NETDEV
+type msghdr_nl80211_wdev[CMD, POLICY] msghdr_nl80211[CMD, nl80211_wdev_payload, POLICY]
+# For commands with NL80211_FLAG_NEED_WIPHY
+type msghdr_nl80211_rdev[CMD, POLICY] msghdr_nl80211[CMD, nl80211_rdev_payload, POLICY]
+
+# Wiphys are created for each wireless device, and they are identified by consequtive numbers (the counter is system-wide).
+# TODO: fetch wiphy ids for devices created at executor initialization. Presently we're using small numbers in that hope that syzkaller will hit the right ones.
+type nl80211_wiphy int32[0:128]
+
+syz_genetlink_get_family_id$nl80211(name ptr[in, string["nl80211"]], fd sock_nl_generic) nl80211_family_id
+ioctl$sock_SIOCGIFINDEX_80211(fd sock, cmd const[SIOCGIFINDEX], arg ptr[out, ifreq_dev_t[nl80211_devnames, nl80211_ifindex]])
+
+sendmsg$NL80211_CMD_GET_WIPHY(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_rdev[NL80211_CMD_GET_WIPHY, void]], f flags[send_flags])
+sendmsg$NL80211_CMD_SET_WIPHY(fd sock_nl_generic, msg ptr[in, msghdr_nl80211[NL80211_CMD_SET_WIPHY, void, nl80211_policy$wiphy]], f flags[send_flags])
+sendmsg$NL80211_CMD_SET_WIPHY_NETNS(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_rdev[NL80211_CMD_SET_WIPHY_NETNS, nl80211_policy$setns]], f flags[send_flags])
+sendmsg$NL80211_CMD_GET_INTERFACE(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_GET_INTERFACE, void]], f flags[send_flags])
+sendmsg$NL80211_CMD_SET_INTERFACE(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_SET_INTERFACE, nl80211_policy$set_interface]], f flags[send_flags])
+sendmsg$NL80211_CMD_NEW_INTERFACE(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_rdev[NL80211_CMD_NEW_INTERFACE, nl80211_policy$new_interface]], f flags[send_flags])
+sendmsg$NL80211_CMD_DEL_INTERFACE(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_DEL_INTERFACE, void]], f flags[send_flags])
+sendmsg$NL80211_CMD_GET_KEY(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_GET_KEY, nl80211_policy$cmd_key]], f flags[send_flags])
+sendmsg$NL80211_CMD_SET_KEY(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_SET_KEY, nl80211_policy$cmd_key]], f flags[send_flags])
+sendmsg$NL80211_CMD_NEW_KEY(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_NEW_KEY, nl80211_policy$cmd_key]], f flags[send_flags])
+sendmsg$NL80211_CMD_DEL_KEY(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_DEL_KEY, nl80211_policy$cmd_key]], f flags[send_flags])
+sendmsg$NL80211_CMD_SET_BEACON(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_SET_BEACON, nl80211_policy$beacon]], f flags[send_flags])
+sendmsg$NL80211_CMD_START_AP(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_START_AP, nl80211_policy$start_ap]], f flags[send_flags])
+sendmsg$NL80211_CMD_STOP_AP(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_STOP_AP, void]], f flags[send_flags])
+sendmsg$NL80211_CMD_GET_STATION(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_GET_STATION, nl80211_policy$station]], f flags[send_flags])
+sendmsg$NL80211_CMD_SET_STATION(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_SET_STATION, nl80211_policy$station]], f flags[send_flags])
+sendmsg$NL80211_CMD_NEW_STATION(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_NEW_STATION, nl80211_policy$station]], f flags[send_flags])
+sendmsg$NL80211_CMD_DEL_STATION(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_DEL_STATION, nl80211_policy$station]], f flags[send_flags])
+sendmsg$NL80211_CMD_GET_MPATH(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_GET_MPATH, nl80211_policy$mpath]], f flags[send_flags])
+sendmsg$NL80211_CMD_SET_MPATH(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_SET_MPATH, nl80211_policy$mpath]], f flags[send_flags])
+sendmsg$NL80211_CMD_NEW_MPATH(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_NEW_MPATH, nl80211_policy$mpath]], f flags[send_flags])
+sendmsg$NL80211_CMD_DEL_MPATH(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_DEL_MPATH, nl80211_policy$mpath]], f flags[send_flags])
+sendmsg$NL80211_CMD_GET_MPP(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_GET_MPP, nl80211_policy$mpath]], f flags[send_flags])
+sendmsg$NL80211_CMD_SET_BSS(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_SET_BSS, nl80211_policy$bss]], f flags[send_flags])
+sendmsg$NL80211_CMD_GET_REG(fd sock_nl_generic, msg ptr[in, msghdr_nl80211[NL80211_CMD_GET_REG, void, nl80211_policy$reg]], f flags[send_flags])
+sendmsg$NL80211_CMD_SET_REG(fd sock_nl_generic, msg ptr[in, msghdr_nl80211[NL80211_CMD_SET_REG, void, nl80211_policy$reg]], f flags[send_flags])
+sendmsg$NL80211_CMD_REQ_SET_REG(fd sock_nl_generic, msg ptr[in, msghdr_nl80211[NL80211_CMD_REQ_SET_REG, void, nl80211_policy$reg]], f flags[send_flags])
+sendmsg$NL80211_CMD_GET_MESH_CONFIG(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_GET_MESH_CONFIG, void]], f flags[send_flags])
+sendmsg$NL80211_CMD_SET_MESH_CONFIG(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_SET_MESH_CONFIG, nl80211_policy$mesh]], f flags[send_flags])
+sendmsg$NL80211_CMD_JOIN_MESH(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_JOIN_MESH, nl80211_policy$join_mesh]], f flags[send_flags])
+sendmsg$NL80211_CMD_LEAVE_MESH(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_LEAVE_MESH, void]], f flags[send_flags])
+sendmsg$NL80211_CMD_TRIGGER_SCAN(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_TRIGGER_SCAN, nl80211_policy$scan]], f flags[send_flags])
+sendmsg$NL80211_CMD_GET_SCAN(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_GET_SCAN, void]], f flags[send_flags])
+sendmsg$NL80211_CMD_START_SCHED_SCAN(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_START_SCHED_SCAN, nl80211_policy$scan]], f flags[send_flags])
+sendmsg$NL80211_CMD_STOP_SCHED_SCAN(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_STOP_SCHED_SCAN, nl80211_policy$cookie]], f flags[send_flags])
+sendmsg$NL80211_CMD_JOIN_IBSS(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_JOIN_IBSS, nl80211_policy$join_ibss]], f flags[send_flags])
+sendmsg$NL80211_CMD_LEAVE_IBSS(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_LEAVE_IBSS, void]], f flags[send_flags])
+sendmsg$NL80211_CMD_CONNECT(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_CONNECT, nl80211_policy$connect]], f flags[send_flags])
+sendmsg$NL80211_CMD_DISCONNECT(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_DISCONNECT, nl80211_policy$disconnect]], f flags[send_flags])
+sendmsg$NL80211_CMD_UNEXPECTED_FRAME(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_UNEXPECTED_FRAME, void]], f flags[send_flags])
+sendmsg$NL80211_CMD_NOTIFY_RADAR(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_NOTIFY_RADAR, nl80211_policy$chandef_params]], f flags[send_flags])
+sendmsg$NL80211_CMD_RADAR_DETECT(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_RADAR_DETECT, nl80211_policy$chandef_params]], f flags[send_flags])
+sendmsg$NL80211_CMD_PEER_MEASUREMENT_START(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_PEER_MEASUREMENT_START, nl80211_pmsr_attr_policy]], f flags[send_flags])
+sendmsg$NL80211_CMD_UPDATE_OWE_INFO(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_UPDATE_OWE_INFO, nl80211_policy$upd_owe_info]], f flags[send_flags])
+sendmsg$NL80211_CMD_GET_SURVEY(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_GET_SURVEY, void]], f flags[send_flags])
+sendmsg$NL80211_CMD_GET_COALESCE(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_rdev[NL80211_CMD_GET_COALESCE, void]], f flags[send_flags])
+sendmsg$NL80211_CMD_GET_FTM_RESPONDER_STATS(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_GET_FTM_RESPONDER_STATS, void]], f flags[send_flags])
+sendmsg$NL80211_CMD_ADD_NAN_FUNCTION(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_ADD_NAN_FUNCTION, nl80211_policy$add_nan_func]], f flags[send_flags])
+sendmsg$NL80211_CMD_DEL_NAN_FUNCTION(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_DEL_NAN_FUNCTION, nl80211_policy$del_nan_func]], f flags[send_flags])
+sendmsg$NL80211_CMD_START_NAN(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_START_NAN, nl80211_policy$start_nan]], f flags[send_flags])
+sendmsg$NL80211_CMD_STOP_NAN(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_STOP_NAN, void]], f flags[send_flags])
+sendmsg$NL80211_CMD_CHANGE_NAN_CONFIG(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_CHANGE_NAN_CONFIG, nl80211_policy$start_nan]], f flags[send_flags])
+sendmsg$NL80211_CMD_PROBE_CLIENT(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_PROBE_CLIENT, nl80211_policy$probe_client]], f flags[send_flags])
+sendmsg$NL80211_CMD_SET_CHANNEL(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_SET_CHANNEL, nl80211_policy$chandef_params]], f flags[send_flags])
+sendmsg$NL80211_CMD_SET_COALESCE(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_SET_COALESCE, nl80211_coalesce_policy]], f flags[send_flags])
+sendmsg$NL80211_CMD_SET_MAC_ACL(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_SET_MAC_ACL, nl80211_policy$acl]], f flags[send_flags])
+sendmsg$NL80211_CMD_SET_MCAST_RATE(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_SET_MCAST_RATE, nl80211_policy$set_mcast_rate]], f flags[send_flags])
+sendmsg$NL80211_CMD_SET_MULTICAST_TO_UNICAST(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_SET_MULTICAST_TO_UNICAST, nl80211_policy$set_mcast_to_ucast]], f flags[send_flags])
+sendmsg$NL80211_CMD_SET_NOACK_MAP(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_SET_NOACK_MAP, nl80211_policy$set_noack_map]], f flags[send_flags])
+sendmsg$NL80211_CMD_SET_PMK(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_SET_PMK, nl80211_policy$set_pmk]], f flags[send_flags])
+sendmsg$NL80211_CMD_DEL_PMK(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_DEL_PMK, nl80211_policy$del_pmk]], f flags[send_flags])
+sendmsg$NL80211_CMD_SET_PMKSA(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_SET_PMKSA, nl80211_policy$setdel_pmksa]], f flags[send_flags])
+sendmsg$NL80211_CMD_DEL_PMKSA(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_DEL_PMKSA, nl80211_policy$setdel_pmksa]], f flags[send_flags])
+sendmsg$NL80211_CMD_FLUSH_PMKSA(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_FLUSH_PMKSA, void]], f flags[send_flags])
+sendmsg$NL80211_CMD_FRAME_WAIT_CANCEL(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_FRAME_WAIT_CANCEL, nl80211_policy$cookie]], f flags[send_flags])
+sendmsg$NL80211_CMD_ABORT_SCAN(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_ABORT_SCAN, void]], f flags[send_flags])
+sendmsg$NL80211_CMD_SET_POWER_SAVE(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_SET_POWER_SAVE, nl80211_policy$power_save]], f flags[send_flags])
+sendmsg$NL80211_CMD_GET_POWER_SAVE(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_GET_POWER_SAVE, void]], f flags[send_flags])
+sendmsg$NL80211_CMD_REMAIN_ON_CHANNEL(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_REMAIN_ON_CHANNEL, nl80211_policy$remain_on_ch]], f flags[send_flags])
+sendmsg$NL80211_CMD_CANCEL_REMAIN_ON_CHANNEL(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_CANCEL_REMAIN_ON_CHANNEL, nl80211_policy$cookie]], f flags[send_flags])
+sendmsg$NL80211_CMD_UPDATE_FT_IES(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_UPDATE_FT_IES, nl80211_policy$update_ft_ies]], f flags[send_flags])
+sendmsg$NL80211_CMD_VENDOR(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_rdev[NL80211_CMD_VENDOR, nl80211_policy$vendor]], f flags[send_flags])
+sendmsg$NL80211_CMD_SET_QOS_MAP(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_SET_QOS_MAP, nl80211_policy$set_qos_map]], f flags[send_flags])
+sendmsg$NL80211_CMD_SET_CQM(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_SET_CQM, nl80211_policy$cqm]], f flags[send_flags])
+sendmsg$NL80211_CMD_RELOAD_REGDB(fd sock_nl_generic, msg ptr[in, msghdr_nl80211[NL80211_CMD_RELOAD_REGDB, void, void]], f flags[send_flags])
+sendmsg$NL80211_CMD_LEAVE_OCB(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_LEAVE_OCB, void]], f flags[send_flags])
+sendmsg$NL80211_CMD_FRAME(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_FRAME, nl80211_policy$mgmt_frame]], f flags[send_flags])
+sendmsg$NL80211_CMD_ADD_TX_TS(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_ADD_TX_TS, nl80211_policy$add_tx_ts]], f flags[send_flags])
+sendmsg$NL80211_CMD_DEL_TX_TS(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_DEL_TX_TS, nl80211_policy$del_tx_ts]], f flags[send_flags])
+sendmsg$NL80211_CMD_AUTHENTICATE(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_AUTHENTICATE, nl80211_policy$authenticate]], f flags[send_flags])
+sendmsg$NL80211_CMD_DEAUTHENTICATE(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_DEAUTHENTICATE, nl80211_policy$de_auth_assoc]], f flags[send_flags])
+sendmsg$NL80211_CMD_ASSOCIATE(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_ASSOCIATE, nl80211_policy$associate]], f flags[send_flags])
+sendmsg$NL80211_CMD_DISASSOCIATE(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_DISASSOCIATE, nl80211_policy$de_auth_assoc]], f flags[send_flags])
+sendmsg$NL80211_CMD_EXTERNAL_AUTH(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_EXTERNAL_AUTH, nl80211_policy$ext_auth]], f flags[send_flags])
+sendmsg$NL80211_CMD_SET_REKEY_OFFLOAD(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_SET_REKEY_OFFLOAD, nl80211_policy$rekey_offload]], f flags[send_flags])
+sendmsg$NL80211_CMD_GET_PROTOCOL_FEATURES(fd sock_nl_generic, msg ptr[in, msghdr_nl80211[NL80211_CMD_GET_PROTOCOL_FEATURES, void, void]], f flags[send_flags])
+sendmsg$NL80211_CMD_SET_WDS_PEER(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_SET_WDS_PEER, nl80211_policy$set_wds_peer]], f flags[send_flags])
+sendmsg$NL80211_CMD_SET_TID_CONFIG(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_SET_TID_CONFIG, nl80211_policy$set_tid_config]], f flags[send_flags])
+sendmsg$NL80211_CMD_UPDATE_CONNECT_PARAMS(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_UPDATE_CONNECT_PARAMS, nl80211_policy$upd_connect_params]], f flags[send_flags])
+sendmsg$NL80211_CMD_TDLS_MGMT(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_TDLS_MGMT, nl80211_policy$tdls_mgmt]], f flags[send_flags])
+sendmsg$NL80211_CMD_TDLS_OPER(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_TDLS_OPER, nl80211_policy$tdls_oper]], f flags[send_flags])
+sendmsg$NL80211_CMD_JOIN_OCB(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_JOIN_OCB, nl80211_policy$chandef_params]], f flags[send_flags])
+sendmsg$NL80211_CMD_CONTROL_PORT_FRAME(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_CONTROL_PORT_FRAME, nl80211_policy$control_port]], f flags[send_flags])
+sendmsg$NL80211_CMD_CRIT_PROTOCOL_START(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_CRIT_PROTOCOL_START, nl80211_policy$crit_proto_start]], f flags[send_flags])
+sendmsg$NL80211_CMD_CRIT_PROTOCOL_STOP(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_CRIT_PROTOCOL_STOP, void]], f flags[send_flags])
+sendmsg$NL80211_CMD_PROBE_MESH_LINK(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_PROBE_MESH_LINK, nl80211_policy$probe_mesh_link]], f flags[send_flags])
+sendmsg$NL80211_CMD_REGISTER_BEACONS(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_rdev[NL80211_CMD_REGISTER_BEACONS, void]], f flags[send_flags])
+sendmsg$NL80211_CMD_REGISTER_FRAME(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_REGISTER_FRAME, nl80211_policy$register_mgmt]], f flags[send_flags])
+sendmsg$NL80211_CMD_TDLS_CHANNEL_SWITCH(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_TDLS_CHANNEL_SWITCH, nl80211_policy$tdls_chsw]], f flags[send_flags])
+sendmsg$NL80211_CMD_TDLS_CANCEL_CHANNEL_SWITCH(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_TDLS_CANCEL_CHANNEL_SWITCH, nl80211_policy$tdls_chsw_cancel]], f flags[send_flags])
+sendmsg$NL80211_CMD_CHANNEL_SWITCH(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_CHANNEL_SWITCH, nl80211_policy$chsw]], f flags[send_flags])
+sendmsg$NL80211_CMD_START_P2P_DEVICE(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_START_P2P_DEVICE, void]], f flags[send_flags])
+sendmsg$NL80211_CMD_STOP_P2P_DEVICE(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_STOP_P2P_DEVICE, void]], f flags[send_flags])
+sendmsg$NL80211_CMD_GET_WOWLAN(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_rdev[NL80211_CMD_GET_WOWLAN, void]], f flags[send_flags])
+sendmsg$NL80211_CMD_SET_WOWLAN(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_rdev[NL80211_CMD_SET_WOWLAN, nl80211_policy$set_wowlan]], f flags[send_flags])
+sendmsg$NL80211_CMD_TESTMODE(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_TESTMODE, nl80211_policy$testmode]], f flags[send_flags])
+sendmsg$NL80211_CMD_SET_TX_BITRATE_MASK(fd sock_nl_generic, msg ptr[in, msghdr_nl80211_wdev[NL80211_CMD_SET_TX_BITRATE_MASK, nl80211_policy$set_tx_bitrate]], f flags[send_flags])
+
+nl80211_wdev_payload {
+	NL80211_ATTR_IFINDEX	optional[nlattr[NL80211_ATTR_IFINDEX, nl80211_ifindex]]
+	NL80211_ATTR_WDEV	optional[nlattr[NL80211_ATTR_WDEV, nl80211_wdev]]
+} [packed, align[4]]
+
+nl80211_rdev_payload {
+	NL80211_ATTR_WIPHY	optional[nlattr[NL80211_ATTR_WIPHY, nl80211_wiphy]]
+	NL80211_ATTR_IFINDEX	optional[nlattr[NL80211_ATTR_IFINDEX, nl80211_ifindex]]
+	NL80211_ATTR_WDEV	optional[nlattr[NL80211_ATTR_WDEV, nl80211_wdev]]
+} [packed, align[4]]
+
+nl80211_channel_types = NL80211_CHAN_NO_HT, NL80211_CHAN_HT20, NL80211_CHAN_HT40MINUS, NL80211_CHAN_HT40PLUS
+nl80211_channel_widths = NL80211_CHAN_WIDTH_20_NOHT, NL80211_CHAN_WIDTH_20, NL80211_CHAN_WIDTH_40, NL80211_CHAN_WIDTH_80, NL80211_CHAN_WIDTH_80P80, NL80211_CHAN_WIDTH_160, NL80211_CHAN_WIDTH_5, NL80211_CHAN_WIDTH_10
+
+nl80211_policy$chandef_params [
+	NL80211_ATTR_WIPHY_FREQ			nlattr[NL80211_ATTR_WIPHY_FREQ, ieee80211_frequency_mhz[int32]]
+	NL80211_ATTR_WIPHY_FREQ_OFFSET		nlattr[NL80211_ATTR_WIPHY_FREQ_OFFSET, int32[0:999]]
+	NL80211_ATTR_WIPHY_CHANNEL_TYPE		nlattr[NL80211_ATTR_WIPHY_CHANNEL_TYPE, flags[nl80211_channel_types, int32]]
+	NL80211_ATTR_CENTER_FREQ1		nlattr[NL80211_ATTR_CENTER_FREQ1, int32]
+	NL80211_ATTR_CENTER_FREQ2		nlattr[NL80211_ATTR_CENTER_FREQ2, int32]
+	NL80211_ATTR_CHANNEL_WIDTH		nlattr[NL80211_ATTR_CHANNEL_WIDTH, flags[nl80211_channel_widths, int32]]
+	NL80211_ATTR_WIPHY_EDMG_CHANNELS	nlattr[NL80211_ATTR_WIPHY_EDMG_CHANNELS, int8[NL80211_EDMG_CHANNELS_MIN:NL80211_EDMG_CHANNELS_MAX]]
+	NL80211_ATTR_WIPHY_EDMG_BW_CONFIG	nlattr[NL80211_ATTR_WIPHY_EDMG_BW_CONFIG, int8[NL80211_EDMG_BW_CONFIG_MIN:NL80211_EDMG_BW_CONFIG_MAX]]
+] [varlen]
+
+nl80211_wdev {
+# TODO: what is this?
+	wdev_id	int32
+	wiphy	nl80211_wiphy
+}
+
+nl80211_policy$wiphy [
+	NL80211_ATTR_WIPHY_NAME			nlattr[NL80211_ATTR_WIPHY_NAME, devname]
+	NL80211_ATTR_WIPHY_TXQ_PARAMS		nlnest[NL80211_ATTR_WIPHY_TXQ_PARAMS, array[txq_params_policy]]
+	NL80211_ATTR_WIPHY_FREQ			nlattr[NL80211_ATTR_WIPHY_FREQ, ieee80211_frequency_mhz[int32]]
+	NL80211_ATTR_WIPHY_RETRY_SHORT		nlattr[NL80211_ATTR_WIPHY_RETRY_SHORT, int8]
+	NL80211_ATTR_WIPHY_RETRY_LONG		nlattr[NL80211_ATTR_WIPHY_RETRY_LONG, int8]
+	NL80211_ATTR_WIPHY_FRAG_THRESHOLD	nlattr[NL80211_ATTR_WIPHY_FRAG_THRESHOLD, int32]
+	NL80211_ATTR_WIPHY_RTS_THRESHOLD	nlattr[NL80211_ATTR_WIPHY_RTS_THRESHOLD, int32]
+	NL80211_ATTR_WIPHY_TX_POWER_SETTING	nlattr[NL80211_ATTR_WIPHY_TX_POWER_SETTING, int32]
+	NL80211_ATTR_WIPHY_TX_POWER_LEVEL	nlattr[NL80211_ATTR_WIPHY_TX_POWER_LEVEL, int32]
+	NL80211_ATTR_WIPHY_ANTENNA_TX		nlattr[NL80211_ATTR_WIPHY_ANTENNA_TX, int32]
+	NL80211_ATTR_WIPHY_ANTENNA_RX		nlattr[NL80211_ATTR_WIPHY_ANTENNA_RX, int32]
+	NL80211_ATTR_WIPHY_COVERAGE_CLASS	nlattr[NL80211_ATTR_WIPHY_COVERAGE_CLASS, int8]
+	NL80211_ATTR_WIPHY_DYN_ACK		nlattr[NL80211_ATTR_WIPHY_DYN_ACK, void]
+	NL80211_ATTR_TXQ_LIMIT			nlattr[NL80211_ATTR_TXQ_LIMIT, int32]
+	NL80211_ATTR_TXQ_MEMORY_LIMIT		nlattr[NL80211_ATTR_TXQ_MEMORY_LIMIT, int32]
+	NL80211_ATTR_TXQ_QUANTUM		nlattr[NL80211_ATTR_TXQ_QUANTUM, int32]
+] [varlen]
+
+nl80211_policy$setns [
+	NL80211_ATTR_WIPHY	nlattr[NL80211_ATTR_WIPHY, nl80211_wiphy]
+	NL80211_ATTR_IFINDEX	nlattr[NL80211_ATTR_IFINDEX, nl80211_ifindex]
+	NL80211_ATTR_WDEV	nlattr[NL80211_ATTR_WDEV, nl80211_wdev]
+	NL80211_ATTR_PID	nlattr[NL80211_ATTR_PID, pid]
+	NL80211_ATTR_NETNS_FD	nlattr[NL80211_ATTR_NETNS_FD, fd_namespace]
+] [varlen]
+
+txq_params_policy [
+	NL80211_TXQ_ATTR_QUEUE	nlattr[NL80211_TXQ_ATTR_QUEUE, int8]
+	NL80211_TXQ_ATTR_TXOP	nlattr[NL80211_TXQ_ATTR_TXOP, int16]
+	NL80211_TXQ_ATTR_CWMIN	nlattr[NL80211_TXQ_ATTR_CWMIN, int16]
+	NL80211_TXQ_ATTR_CWMAX	nlattr[NL80211_TXQ_ATTR_CWMAX, int16]
+	NL80211_TXQ_ATTR_AIFS	nlattr[NL80211_TXQ_ATTR_AIFS, int8]
+] [varlen]
+
+nl80211_policy$set_interface [
+	mon_options		array[nl80211_policy$mon_options]
+	NL80211_ATTR_IFTYPE	nlattr[NL80211_ATTR_IFTYPE, flags[nl80211_iftype, int32]]
+	NL80211_ATTR_MESH_ID	nlattr[NL80211_ATTR_MESH_ID, ieee80211_mesh_id]
+	NL80211_ATTR_4ADDR	nlattr[NL80211_ATTR_4ADDR, bool8]
+] [varlen]
+
+nl80211_policy$new_interface [
+	mon_options			array[nl80211_policy$mon_options]
+	NL80211_ATTR_IFTYPE		nlattr[NL80211_ATTR_IFTYPE, flags[nl80211_iftype, int32]]
+	NL80211_ATTR_IFNAME		nlattr[NL80211_ATTR_IFNAME, devname]
+	NL80211_ATTR_SOCKET_OWNER	nlattr[NL80211_ATTR_SOCKET_OWNER, void]
+	NL80211_ATTR_MESH_ID		nlattr[NL80211_ATTR_MESH_ID, ieee80211_mesh_id]
+	NL80211_ATTR_4ADDR		nlattr[NL80211_ATTR_4ADDR, bool8]
+] [varlen]
+
+mntr_flags_policy [
+	NL80211_MNTR_FLAG_FCSFAIL	nlattr[NL80211_MNTR_FLAG_FCSFAIL, void]
+	NL80211_MNTR_FLAG_PLCPFAIL	nlattr[NL80211_MNTR_FLAG_PLCPFAIL, void]
+	NL80211_MNTR_FLAG_CONTROL	nlattr[NL80211_MNTR_FLAG_CONTROL, void]
+	NL80211_MNTR_FLAG_OTHER_BSS	nlattr[NL80211_MNTR_FLAG_OTHER_BSS, void]
+	NL80211_MNTR_FLAG_COOK_FRAMES	nlattr[NL80211_MNTR_FLAG_COOK_FRAMES, void]
+	NL80211_MNTR_FLAG_ACTIVE	nlattr[NL80211_MNTR_FLAG_ACTIVE, void]
+]
+
+nl80211_policy$mon_options [
+	NL80211_ATTR_MNTR_FLAGS			nlnest[NL80211_ATTR_MNTR_FLAGS, array[mntr_flags_policy]]
+	NL80211_ATTR_MU_MIMO_GROUP_DATA		nlattr[NL80211_ATTR_MU_MIMO_GROUP_DATA, array[int8, VHT_MUMIMO_GROUPS_DATA_LEN]]
+	NL80211_ATTR_MU_MIMO_FOLLOW_MAC_ADDR	nlattr[NL80211_ATTR_MU_MIMO_FOLLOW_MAC_ADDR, ieee80211_mac_addr]
+] [varlen]
+
+nl80211_iftype = NL80211_IFTYPE_UNSPECIFIED, NL80211_IFTYPE_ADHOC, NL80211_IFTYPE_STATION, NL80211_IFTYPE_AP, NL80211_IFTYPE_AP_VLAN, NL80211_IFTYPE_WDS, NL80211_IFTYPE_MONITOR, NL80211_IFTYPE_MESH_POINT, NL80211_IFTYPE_P2P_CLIENT, NL80211_IFTYPE_P2P_GO, NL80211_IFTYPE_P2P_DEVICE, NL80211_IFTYPE_OCB, NL80211_IFTYPE_NAN
+
+nl80211_policy$cmd_key [
+	NL80211_ATTR_KEY_IDX		nlattr[NL80211_ATTR_KEY_IDX, int8[0:5]]
+	NL80211_ATTR_KEY_TYPE		nlattr[NL80211_ATTR_KEY_TYPE, flags[nl80211_key_type, int32]]
+	NL80211_ATTR_KEY_DEFAULT	nlattr[NL80211_ATTR_KEY_DEFAULT, void]
+	NL80211_ATTR_KEY_DEFAULT_MGMT	nlattr[NL80211_ATTR_KEY_DEFAULT_MGMT, void]
+	NL80211_ATTR_KEY_CIPHER		nlattr[NL80211_ATTR_KEY_CIPHER, flags[nl80211_cipher_suite, int32]]
+	NL80211_ATTR_KEY_DATA_WEP40	nlattr[NL80211_ATTR_KEY_DATA, array[int8, WLAN_KEY_LEN_WEP40]]
+	NL80211_ATTR_KEY_DATA_WEP104	nlattr[NL80211_ATTR_KEY_DATA, array[int8, WLAN_KEY_LEN_WEP104]]
+	NL80211_ATTR_KEY_SEQ		nlattr[NL80211_ATTR_KEY_SEQ, array[int8, 0:16]]
+	NL80211_ATTR_MAC		nlattr[NL80211_ATTR_MAC, ieee80211_mac_addr]
+	NL80211_ATTR_KEY_DEFAULT_TYPES	nlnest[NL80211_ATTR_KEY_DEFAULT_TYPES, array[nl80211_key_default_policy]]
+	NL80211_ATTR_KEY		nlnest[NL80211_ATTR_KEY, array[nl80211_key_policy]]
+] [varlen]
+
+nl80211_key_default_policy [
+	NL80211_KEY_DEFAULT_TYPE_UNICAST	nlattr[NL80211_KEY_DEFAULT_TYPE_UNICAST, void]
+	NL80211_KEY_DEFAULT_TYPE_MULTICAST	nlattr[NL80211_KEY_DEFAULT_TYPE_MULTICAST, void]
+] [varlen]
+
+nl80211_key_policy [
+	NL80211_KEY_DATA_WEP40		nlattr[NL80211_KEY_DATA, array[int8, WLAN_KEY_LEN_WEP40]]
+	NL80211_KEY_DATA_WEP104		nlattr[NL80211_KEY_DATA, array[int8, WLAN_KEY_LEN_WEP104]]
+	NL80211_KEY_IDX			nlattr[NL80211_KEY_IDX, int8[0:5]]
+	NL80211_KEY_CIPHER		nlattr[NL80211_KEY_CIPHER, flags[nl80211_cipher_suite, int32]]
+	NL80211_KEY_SEQ			nlattr[NL80211_KEY_SEQ, array[int8, 0:16]]
+	NL80211_KEY_DEFAULT		nlattr[NL80211_KEY_DEFAULT, void]
+	NL80211_KEY_DEFAULT_MGMT	nlattr[NL80211_KEY_DEFAULT_MGMT, void]
+	NL80211_KEY_TYPE		nlattr[NL80211_KEY_TYPE, flags[nl80211_key_type, int32]]
+	NL80211_KEY_DEFAULT_TYPES	nlnest[NL80211_KEY_DEFAULT_TYPES, array[nl80211_key_default_policy]]
+	NL80211_KEY_MODE		nlattr[NL80211_KEY_MODE, int8[0:NL80211_KEY_SET_TX]]
+] [varlen]
+
+nl80211_key_type = NL80211_KEYTYPE_GROUP, NL80211_KEYTYPE_PAIRWISE, NL80211_KEYTYPE_PEERKEY
+nl80211_cipher_suite = WLAN_CIPHER_SUITE_WEP40, WLAN_CIPHER_SUITE_WEP104
+
+he_obss_pd_policy [
+	NL80211_HE_OBSS_PD_ATTR_MIN_OFFSET		nlattr[NL80211_HE_OBSS_PD_ATTR_MIN_OFFSET, int8[1:20]]
+	NL80211_HE_OBSS_PD_ATTR_MAX_OFFSET		nlattr[NL80211_HE_OBSS_PD_ATTR_MAX_OFFSET, int8[1:20]]
+	NL80211_HE_OBSS_PD_ATTR_NON_SRG_MAX_OFFSET	nlattr[NL80211_HE_OBSS_PD_ATTR_NON_SRG_MAX_OFFSET, int8[1:20]]
+	NL80211_HE_OBSS_PD_ATTR_BSS_COLOR_BITMAP	nlattr[NL80211_HE_OBSS_PD_ATTR_BSS_COLOR_BITMAP, array[int8, 8]]
+	NL80211_HE_OBSS_PD_ATTR_PARTIAL_BSSID_BITMAP	nlattr[NL80211_HE_OBSS_PD_ATTR_PARTIAL_BSSID_BITMAP, array[int8, 8]]
+	NL80211_HE_OBSS_PD_ATTR_SR_CTRL			nlattr[NL80211_HE_OBSS_PD_ATTR_SR_CTRL, int8]
+]
+
+he_bss_color_policy [
+	NL80211_HE_BSS_COLOR_ATTR_COLOR		nlattr[NL80211_HE_BSS_COLOR_ATTR_COLOR, int8[1:63]]
+	NL80211_HE_BSS_COLOR_ATTR_DISABLED	nlattr[NL80211_HE_BSS_COLOR_ATTR_DISABLED, void]
+	NL80211_HE_BSS_COLOR_ATTR_PARTIAL	nlattr[NL80211_HE_BSS_COLOR_ATTR_PARTIAL, void]
+] [varlen]
+
+nl80211_policy$start_ap [
+	beacon					array[nl80211_policy$beacon]
+	chandef_params				array[nl80211_policy$chandef_params]
+	crypto_settings				array[nl80211_policy$crypto_settings]
+	acl_policy				array[nl80211_policy$acl]
+	NL80211_ATTR_BEACON_INTERVAL		nlattr[NL80211_ATTR_BEACON_INTERVAL, ieee80211_beacon_interval[int32]]
+	NL80211_ATTR_DTIM_PERIOD		nlattr[NL80211_ATTR_DTIM_PERIOD, int32]
+	NL80211_ATTR_SSID			nlattr[NL80211_ATTR_SSID, ieee80211_ssid]
+	NL80211_ATTR_HIDDEN_SSID		nlattr[NL80211_ATTR_HIDDEN_SSID, int32[NL80211_HIDDEN_SSID_NOT_IN_USE:NL80211_HIDDEN_SSID_ZERO_CONTENTS]]
+	NL80211_ATTR_PRIVACY			nlattr[NL80211_ATTR_PRIVACY, void]
+	NL80211_ATTR_AUTH_TYPE			nlattr[NL80211_ATTR_AUTH_TYPE, flags[nl80211_auth_type, int32]]
+	NL80211_ATTR_INACTIVITY_TIMEOUT		nlattr[NL80211_ATTR_INACTIVITY_TIMEOUT, int16]
+	NL80211_ATTR_P2P_CTWINDOW		nlattr[NL80211_ATTR_P2P_CTWINDOW, int8]
+	NL80211_ATTR_P2P_OPPPS			nlattr[NL80211_ATTR_P2P_OPPPS, bool8]
+	NL80211_ATTR_TX_RATES			nlnest[NL80211_ATTR_TX_RATES, array[nl80211_tx_rates_policy]]
+	NL80211_ATTR_SMPS_MODE			nlattr[NL80211_ATTR_SMPS_MODE, flags[nl80211_smps_mode, int8]]
+	NL80211_ATTR_PBSS			nlattr[NL80211_ATTR_PBSS, void]
+	NL80211_ATTR_EXTERNAL_AUTH_SUPPORT	nlattr[NL80211_ATTR_EXTERNAL_AUTH_SUPPORT, void]
+	NL80211_ATTR_TWT_RESPONDER		nlattr[NL80211_ATTR_TWT_RESPONDER, void]
+	NL80211_ATTR_HE_OBSS_PD			nlnest[NL80211_ATTR_HE_OBSS_PD, array[he_obss_pd_policy]]
+	NL80211_ATTR_HE_BSS_COLOR		nlnest[NL80211_ATTR_HE_BSS_COLOR, array[he_bss_color_policy]]
+] [varlen]
+
+nl80211_policy$beacon [
+	NL80211_ATTR_BEACON_HEAD	nlattr[NL80211_ATTR_BEACON_HEAD, ieee80211_mgmt_beacon]
+	NL80211_ATTR_BEACON_TAIL	nlattr[NL80211_ATTR_BEACON_TAIL, array[ieee80211_ie]]
+	NL80211_ATTR_IE			nlattr[NL80211_ATTR_IE, array[ieee80211_ie]]
+	NL80211_ATTR_IE_PROBE_RESP	nlattr[NL80211_ATTR_IE_PROBE_RESP, array[ieee80211_ie]]
+	NL80211_ATTR_IE_ASSOC_RESP	nlattr[NL80211_ATTR_IE_ASSOC_RESP, array[ieee80211_ie]]
+	NL80211_ATTR_PROBE_RESP		nlattr[NL80211_ATTR_PROBE_RESP, array[int8, 0:IEEE80211_MAX_DATA_LEN]]
+	NL80211_ATTR_FTM_RESPONDER	nlnest[NL80211_ATTR_FTM_RESPONDER, array[nl80211_ftm_responder_policy]]
+] [varlen]
+
+nl80211_smps_mode = NL80211_SMPS_OFF, NL80211_SMPS_STATIC, NL80211_SMPS_DYNAMIC
+nl80211_auth_type = NL80211_AUTHTYPE_OPEN_SYSTEM, NL80211_AUTHTYPE_SHARED_KEY, NL80211_AUTHTYPE_FT, NL80211_AUTHTYPE_NETWORK_EAP, NL80211_AUTHTYPE_SAE, NL80211_AUTHTYPE_FILS_SK, NL80211_AUTHTYPE_FILS_SK_PFS, NL80211_AUTHTYPE_FILS_PK
+nl80211_wpa_versions = NL80211_WPA_VERSION_1, NL80211_WPA_VERSION_2, NL80211_WPA_VERSION_3
+
+type nl80211_rates array[ieee80211_rate, 0:NL80211_MAX_SUPP_RATES]
+
+nl80211_tx_rates_policy [
+	NL80211_BAND_2GHZ	nlnest[NL80211_BAND_2GHZ, array[nl80211_txattr_policy]]
+	NL80211_BAND_5GHZ	nlnest[NL80211_BAND_5GHZ, array[nl80211_txattr_policy]]
+	NL80211_BAND_60GHZ	nlnest[NL80211_BAND_60GHZ, array[nl80211_txattr_policy]]
+	NL80211_BAND_6GHZ	nlnest[NL80211_BAND_6GHZ, array[nl80211_txattr_policy]]
+] [varlen]
+
+nl80211_ht_rate {
+	rbit	int8:3
+	ridx	int8:5[0:IEEE80211_HT_MCS_MASK_LEN]
+} [packed]
+
+nl80211_txattr_policy [
+	NL80211_TXRATE_LEGACY	nlattr[NL80211_TXRATE_LEGACY, array[flags[ieee80211_rate_label, int8], 0:NL80211_MAX_SUPP_RATES]]
+	NL80211_TXRATE_HT	nlattr[NL80211_TXRATE_HT, array[nl80211_ht_rate, 0:NL80211_MAX_SUPP_HT_RATES]]
+	NL80211_TXRATE_VHT	nlattr[NL80211_TXRATE_VHT, nl80211_txrate_vht]
+	NL80211_TXRATE_GI	nlattr[NL80211_TXRATE_GI, flags[nl80211_txrate_gi, int8]]
+	NL80211_TXRATE_HE	nlattr[NL80211_TXRATE_HE, nl80211_txrate_he]
+	NL80211_TXRATE_HE_GI	nlattr[NL80211_TXRATE_HE_GI, int8[NL80211_RATE_INFO_HE_GI_0_8:NL80211_RATE_INFO_HE_GI_3_2]]
+	NL80211_TXRATE_HE_LTF	nlattr[NL80211_TXRATE_HE_LTF, int8[NL80211_RATE_INFO_HE_1XLTF:NL80211_RATE_INFO_HE_4XLTF]]
+] [varlen]
+
+nl80211_txrate_gi = NL80211_TXRATE_DEFAULT_GI, NL80211_TXRATE_FORCE_SGI, NL80211_TXRATE_FORCE_LGI
+
+nl80211_txrate_he {
+	mcs	array[int16, NL80211_HE_NSS_MAX]
+}
+
+nl80211_txrate_vht {
+	mcs	array[int16, NL80211_VHT_NSS_MAX]
+}
+
+nl80211_ftm_responder_policy [
+	NL80211_FTM_RESP_ATTR_ENABLED	nlattr[NL80211_FTM_RESP_ATTR_ENABLED, void]
+	NL80211_FTM_RESP_ATTR_LCI	nlattr[NL80211_FTM_RESP_ATTR_LCI, array[int8]]
+	NL80211_FTM_RESP_ATTR_CIVICLOC	nlattr[NL80211_FTM_RESP_ATTR_CIVICLOC, array[int8]]
+] [varlen]
+
+nl80211_policy$station [
+	NL80211_ATTR_MAC			nlattr[NL80211_ATTR_MAC, ieee80211_mac_addr]
+	NL80211_ATTR_MGMT_SUBTYPE		nlattr[NL80211_ATTR_MGMT_SUBTYPE, flags[ieee80211_mgmt_subtype, int8]]
+	NL80211_ATTR_REASON_CODE		nlattr[NL80211_ATTR_REASON_CODE, int16]
+	NL80211_ATTR_STA_AID			nlattr[NL80211_ATTR_STA_AID, int16[1:IEEE80211_MAX_AID]]
+	NL80211_ATTR_VLAN_ID			nlattr[NL80211_ATTR_VLAN_ID, int16[1:4]]
+	NL80211_ATTR_STA_LISTEN_INTERVAL	nlattr[NL80211_ATTR_STA_LISTEN_INTERVAL, int16]
+	NL80211_ATTR_STA_SUPPORT_P2P_PS		nlattr[NL80211_ATTR_STA_SUPPORT_P2P_PS, bool8]
+	NL80211_ATTR_STA_SUPPORTED_RATES	nlattr[NL80211_ATTR_STA_SUPPORTED_RATES, nl80211_rates]
+	NL80211_ATTR_STA_CAPABILITY		nlattr[NL80211_ATTR_STA_CAPABILITY, int16]
+	NL80211_ATTR_STA_EXT_CAPABILITY		nlattr[NL80211_ATTR_STA_EXT_CAPABILITY, array[int8]]
+	NL80211_ATTR_STA_FLAGS			nlnest[NL80211_ATTR_STA_FLAGS, array[sta_flags_policy]]
+	NL80211_ATTR_STA_FLAGS2			nlattr[NL80211_ATTR_STA_FLAGS2, nl80211_sta_flag_update]
+	NL80211_ATTR_STA_PLINK_ACTION		nlattr[NL80211_ATTR_STA_PLINK_ACTION, int8[0:NUM_NL80211_PLINK_ACTIONS_1]]
+	NL80211_ATTR_STA_PLINK_STATE		nlattr[NL80211_ATTR_STA_PLINK_STATE, int8[0:NUM_NL80211_PLINK_STATES_1]]
+	NL80211_ATTR_LOCAL_MESH_POWER_MODE	nlattr[NL80211_ATTR_LOCAL_MESH_POWER_MODE, int32[1:NL80211_MESH_POWER_MAX]]
+	NL80211_ATTR_OPMODE_NOTIF		nlattr[NL80211_ATTR_OPMODE_NOTIF, int8]
+	NL80211_ATTR_AIRTIME_WEIGHT		nlattr[NL80211_ATTR_AIRTIME_WEIGHT, int16]
+	NL80211_ATTR_STA_TX_POWER_SETTING	nlattr[NL80211_ATTR_STA_TX_POWER_SETTING, int8[NL80211_TX_POWER_AUTOMATIC:NL80211_TX_POWER_FIXED]]
+	NL80211_ATTR_STA_TX_POWER		nlattr[NL80211_ATTR_STA_TX_POWER, int16]
+	NL80211_ATTR_STA_SUPPORTED_CHANNELS	nlattr[NL80211_ATTR_STA_SUPPORTED_CHANNELS, array[int16]]
+	NL80211_ATTR_STA_SUPPORTED_OPER_CLASSES	nlattr[NL80211_ATTR_STA_SUPPORTED_OPER_CLASSES, array[int8, 2:253]]
+	NL80211_ATTR_STA_WME			nlattr[NL80211_ATTR_STA_WME, array[nl80211_sta_wme_policy]]
+	NL80211_ATTR_PEER_AID			nlattr[NL80211_ATTR_PEER_AID, int16[1:IEEE80211_MAX_AID]]
+	NL80211_ATTR_MESH_PEER_AID		nlattr[NL80211_ATTR_MESH_PEER_AID, int16[1:IEEE80211_MAX_AID]]
+	NL80211_ATTR_STA_VLAN			nlattr[NL80211_ATTR_STA_VLAN, nl80211_ifindex]
+] [varlen]
+
+define NUM_NL80211_PLINK_ACTIONS_1	NUM_NL80211_PLINK_ACTIONS - 1
+define NUM_NL80211_PLINK_STATES_1	NUM_NL80211_PLINK_STATES - 1
+
+ieee80211_mgmt_subtype = 0xa, 0xc
+
+sta_flags_policy [
+	NL80211_STA_FLAG_AUTHORIZED	nlattr[NL80211_STA_FLAG_AUTHORIZED, void]
+	NL80211_STA_FLAG_SHORT_PREAMBLE	nlattr[NL80211_STA_FLAG_SHORT_PREAMBLE, void]
+	NL80211_STA_FLAG_WME		nlattr[NL80211_STA_FLAG_WME, void]
+	NL80211_STA_FLAG_MFP		nlattr[NL80211_STA_FLAG_MFP, void]
+	NL80211_STA_FLAG_AUTHENTICATED	nlattr[NL80211_STA_FLAG_AUTHENTICATED, void]
+	NL80211_STA_FLAG_TDLS_PEER	nlattr[NL80211_STA_FLAG_TDLS_PEER, void]
+	NL80211_STA_FLAG_ASSOCIATED	nlattr[NL80211_STA_FLAG_ASSOCIATED, void]
+] [varlen]
+
+nl80211_sta_flag_update {
+	mask	int32
+	set	int32
+} [packed]
+
+nl80211_sta_wme_policy [
+	NL80211_STA_WME_UAPSD_QUEUES	nlattr[NL80211_STA_WME_UAPSD_QUEUES, int8]
+	NL80211_STA_WME_MAX_SP		nlattr[NL80211_STA_WME_MAX_SP, int8]
+] [varlen]
+
+nl80211_policy$mpath [
+	NL80211_ATTR_MAC		nlattr[NL80211_ATTR_MAC, ieee80211_mac_addr]
+	NL80211_ATTR_MPATH_NEXT_HOP	nlattr[NL80211_ATTR_MPATH_NEXT_HOP, ieee80211_mac_addr]
+] [varlen]
+
+nl80211_policy$bss [
+	NL80211_ATTR_BSS_CTS_PROT		nlattr[NL80211_ATTR_BSS_CTS_PROT, int8]
+	NL80211_ATTR_BSS_SHORT_PREAMBLE		nlattr[NL80211_ATTR_BSS_SHORT_PREAMBLE, int8]
+	NL80211_ATTR_BSS_SHORT_SLOT_TIME	nlattr[NL80211_ATTR_BSS_SHORT_SLOT_TIME, int8]
+	NL80211_ATTR_BSS_HT_OPMODE		nlattr[NL80211_ATTR_BSS_HT_OPMODE, int16]
+	NL80211_ATTR_AP_ISOLATE			nlattr[NL80211_ATTR_AP_ISOLATE, int8]
+	NL80211_ATTR_P2P_CTWINDOW		nlattr[NL80211_ATTR_P2P_CTWINDOW, int8]
+	NL80211_ATTR_P2P_OPPPS			nlattr[NL80211_ATTR_P2P_OPPPS, bool8]
+] [varlen]
+
+nl80211_policy$reg [
+	NL80211_ATTR_WIPHY		nlattr[NL80211_ATTR_WIPHY, nl80211_wiphy]
+	NL80211_ATTR_USER_REG_HINT_TYPE	nlattr[NL80211_ATTR_USER_REG_HINT_TYPE, flags[nl80211_user_reg_hint_type, int32]]
+	NL80211_ATTR_SOCKET_OWNER	nlattr[NL80211_ATTR_SOCKET_OWNER, void]
+	NL80211_ATTR_REG_ALPHA2		nlattr[NL80211_ATTR_REG_ALPHA2, string[nl80211_reg_alpha2]]
+	NL80211_ATTR_REG_RULES		nlnest[NL80211_ATTR_REG_RULES, array[nlnest[0, array[reg_rule_policy]]]]
+	NL80211_ATTR_DFS_REGION		nlattr[NL80211_ATTR_DFS_REGION, int8]
+] [varlen]
+
+nl80211_user_reg_hint_type = NL80211_USER_REG_HINT_USER, NL80211_USER_REG_HINT_CELL_BASE, NL80211_USER_REG_HINT_INDOOR
+nl80211_reg_alpha2 = "a", "b", "aa", "bb"
+
+reg_rule_policy [
+	NL80211_ATTR_REG_RULE_FLAGS		nlattr[NL80211_ATTR_REG_RULE_FLAGS, int32]
+	NL80211_ATTR_FREQ_RANGE_START		nlattr[NL80211_ATTR_FREQ_RANGE_START, int32]
+	NL80211_ATTR_FREQ_RANGE_END		nlattr[NL80211_ATTR_FREQ_RANGE_END, int32]
+	NL80211_ATTR_FREQ_RANGE_MAX_BW		nlattr[NL80211_ATTR_FREQ_RANGE_MAX_BW, int32]
+	NL80211_ATTR_POWER_RULE_MAX_ANT_GAIN	nlattr[NL80211_ATTR_POWER_RULE_MAX_ANT_GAIN, int32]
+	NL80211_ATTR_POWER_RULE_MAX_EIRP	nlattr[NL80211_ATTR_POWER_RULE_MAX_EIRP, int32]
+	NL80211_ATTR_DFS_CAC_TIME		nlattr[NL80211_ATTR_DFS_CAC_TIME, int32]
+] [varlen]
+
+nl80211_policy$mesh [
+	NL80211_ATTR_WIPHY		nlattr[NL80211_ATTR_WIPHY, nl80211_wiphy]
+	NL80211_ATTR_IFINDEX		nlattr[NL80211_ATTR_IFINDEX, nl80211_ifindex]
+	NL80211_ATTR_WDEV		nlattr[NL80211_ATTR_WDEV, nl80211_wdev]
+	NL80211_ATTR_MESH_CONFIG	nlnest[NL80211_ATTR_MESH_CONFIG, array[nl80211_meshconf_params_policy]]
+] [varlen]
+
+nl80211_policy$join_mesh [
+	chandef_params				array[nl80211_policy$chandef_params]
+	NL80211_ATTR_MESH_CONFIG		nlnest[NL80211_ATTR_MESH_CONFIG, array[nl80211_meshconf_params_policy]]
+	NL80211_ATTR_MESH_SETUP			nlattr[NL80211_ATTR_MESH_SETUP, array[nl80211_mesh_setup_params_policy]]
+	NL80211_ATTR_MESH_ID			nlattr[NL80211_ATTR_MESH_ID, ieee80211_mesh_id]
+	NL80211_ATTR_MCAST_RATE			nlattr[NL80211_ATTR_MCAST_RATE, int32]
+	NL80211_ATTR_BEACON_INTERVAL		nlattr[NL80211_ATTR_BEACON_INTERVAL, ieee80211_beacon_interval[int32]]
+	NL80211_ATTR_DTIM_PERIOD		nlattr[NL80211_ATTR_DTIM_PERIOD, int32]
+	NL80211_ATTR_BSS_BASIC_RATES		nlattr[NL80211_ATTR_BSS_BASIC_RATES, nl80211_rates]
+	NL80211_ATTR_TX_RATES			nlnest[NL80211_ATTR_TX_RATES, array[nl80211_tx_rates_policy]]
+	NL80211_ATTR_SOCKET_OWNER		nlattr[NL80211_ATTR_SOCKET_OWNER, void]
+	NL80211_ATTR_HANDLE_DFS			nlattr[NL80211_ATTR_HANDLE_DFS, void]
+	NL80211_ATTR_CONTROL_PORT_OVER_NL80211	nlattr[NL80211_ATTR_CONTROL_PORT_OVER_NL80211, void]
+] [varlen]
+
+nl80211_meshconf_params_policy [
+	NL80211_MESHCONF_RETRY_TIMEOUT			nlattr[NL80211_MESHCONF_RETRY_TIMEOUT, int16[1:255]]
+	NL80211_MESHCONF_CONFIRM_TIMEOUT		nlattr[NL80211_MESHCONF_CONFIRM_TIMEOUT, int16[1:255]]
+	NL80211_MESHCONF_HOLDING_TIMEOUT		nlattr[NL80211_MESHCONF_HOLDING_TIMEOUT, int16[1:255]]
+	NL80211_MESHCONF_MAX_PEER_LINKS			nlattr[NL80211_MESHCONF_MAX_PEER_LINKS, int16[0:255]]
+	NL80211_MESHCONF_MAX_RETRIES			nlattr[NL80211_MESHCONF_MAX_RETRIES, int8[0:16]]
+	NL80211_MESHCONF_TTL				nlattr[NL80211_MESHCONF_TTL, int8]
+	NL80211_MESHCONF_ELEMENT_TTL			nlattr[NL80211_MESHCONF_ELEMENT_TTL, int8]
+	NL80211_MESHCONF_AUTO_OPEN_PLINKS		nlattr[NL80211_MESHCONF_AUTO_OPEN_PLINKS, int8]
+	NL80211_MESHCONF_SYNC_OFFSET_MAX_NEIGHBOR	nlattr[NL80211_MESHCONF_SYNC_OFFSET_MAX_NEIGHBOR, int32[1:255]]
+	NL80211_MESHCONF_HWMP_MAX_PREQ_RETRIES		nlattr[NL80211_MESHCONF_HWMP_MAX_PREQ_RETRIES, int8]
+	NL80211_MESHCONF_PATH_REFRESH_TIME		nlattr[NL80211_MESHCONF_PATH_REFRESH_TIME, int32]
+	NL80211_MESHCONF_MIN_DISCOVERY_TIMEOUT		nlattr[NL80211_MESHCONF_MIN_DISCOVERY_TIMEOUT, int16]
+	NL80211_MESHCONF_HWMP_ACTIVE_PATH_TIMEOUT	nlattr[NL80211_MESHCONF_HWMP_ACTIVE_PATH_TIMEOUT, int32]
+	NL80211_MESHCONF_HWMP_PREQ_MIN_INTERVAL		nlattr[NL80211_MESHCONF_HWMP_PREQ_MIN_INTERVAL, int16]
+	NL80211_MESHCONF_HWMP_PERR_MIN_INTERVAL		nlattr[NL80211_MESHCONF_HWMP_PERR_MIN_INTERVAL, int16]
+	NL80211_MESHCONF_HWMP_NET_DIAM_TRVS_TIME	nlattr[NL80211_MESHCONF_HWMP_NET_DIAM_TRVS_TIME, int16]
+	NL80211_MESHCONF_HWMP_ROOTMODE			nlattr[NL80211_MESHCONF_HWMP_ROOTMODE, int8[0:4]]
+	NL80211_MESHCONF_HWMP_RANN_INTERVAL		nlattr[NL80211_MESHCONF_HWMP_RANN_INTERVAL, int16]
+	NL80211_MESHCONF_GATE_ANNOUNCEMENTS		nlattr[NL80211_MESHCONF_GATE_ANNOUNCEMENTS, bool8]
+	NL80211_MESHCONF_FORWARDING			nlattr[NL80211_MESHCONF_FORWARDING, bool8]
+	NL80211_MESHCONF_RSSI_THRESHOLD			nlattr[NL80211_MESHCONF_RSSI_THRESHOLD, int32[-255:0]]
+	NL80211_MESHCONF_HT_OPMODE			nlattr[NL80211_MESHCONF_HT_OPMODE, flags[ieee80211_op_mode, int16]]
+	NL80211_MESHCONF_HWMP_PATH_TO_ROOT_TIMEOUT	nlattr[NL80211_MESHCONF_HWMP_PATH_TO_ROOT_TIMEOUT, int32]
+	NL80211_MESHCONF_HWMP_ROOT_INTERVAL		nlattr[NL80211_MESHCONF_HWMP_ROOT_INTERVAL, int16]
+	NL80211_MESHCONF_HWMP_CONFIRMATION_INTERVAL	nlattr[NL80211_MESHCONF_HWMP_CONFIRMATION_INTERVAL, int16]
+	NL80211_MESHCONF_POWER_MODE			nlattr[NL80211_MESHCONF_POWER_MODE, int32[NL80211_MESH_POWER_ACTIVE:NL80211_MESH_POWER_MAX]]
+	NL80211_MESHCONF_AWAKE_WINDOW			nlattr[NL80211_MESHCONF_AWAKE_WINDOW, int16]
+	NL80211_MESHCONF_PLINK_TIMEOUT			nlattr[NL80211_MESHCONF_PLINK_TIMEOUT, int32]
+	NL80211_MESHCONF_CONNECTED_TO_GATE		nlattr[NL80211_MESHCONF_CONNECTED_TO_GATE, bool8]
+	NL80211_MESHCONF_NOLEARN			nlattr[NL80211_MESHCONF_NOLEARN, bool8]
+	NL80211_MESHCONF_CONNECTED_TO_AS		nlattr[NL80211_MESHCONF_CONNECTED_TO_AS, bool8]
+] [varlen]
+
+ieee80211_op_mode = IEEE80211_HT_OP_MODE_PROTECTION, IEEE80211_HT_OP_MODE_NON_GF_STA_PRSNT, IEEE80211_HT_OP_MODE_NON_HT_STA_PRSNT
+
+nl80211_mesh_setup_params_policy [
+	NL80211_MESH_SETUP_ENABLE_VENDOR_SYNC		nlattr[NL80211_MESH_SETUP_ENABLE_VENDOR_SYNC, bool8]
+	NL80211_MESH_SETUP_ENABLE_VENDOR_PATH_SEL	nlattr[NL80211_MESH_SETUP_ENABLE_VENDOR_PATH_SEL, bool8]
+	NL80211_MESH_SETUP_ENABLE_VENDOR_METRIC		nlattr[NL80211_MESH_SETUP_ENABLE_VENDOR_METRIC, bool8]
+	NL80211_MESH_SETUP_USERSPACE_AUTH		nlattr[NL80211_MESH_SETUP_USERSPACE_AUTH, void]
+	NL80211_MESH_SETUP_AUTH_PROTOCOL		nlattr[NL80211_MESH_SETUP_AUTH_PROTOCOL, int8]
+	NL80211_MESH_SETUP_USERSPACE_MPM		nlattr[NL80211_MESH_SETUP_USERSPACE_MPM, void]
+	NL80211_MESH_SETUP_IE				nlattr[NL80211_MESH_SETUP_IE, array[int8]]
+	NL80211_MESH_SETUP_USERSPACE_AMPE		nlattr[NL80211_MESH_SETUP_USERSPACE_AMPE, void]
+] [varlen]
+
+nl80211_scan_flags = NL80211_SCAN_FLAG_LOW_PRIORITY, NL80211_SCAN_FLAG_FLUSH, NL80211_SCAN_FLAG_AP, NL80211_SCAN_FLAG_RANDOM_ADDR, NL80211_SCAN_FLAG_FILS_MAX_CHANNEL_TIME, NL80211_SCAN_FLAG_ACCEPT_BCAST_PROBE_RESP, NL80211_SCAN_FLAG_OCE_PROBE_REQ_HIGH_TX_RATE, NL80211_SCAN_FLAG_OCE_PROBE_REQ_DEFERRAL_SUPPRESSION, NL80211_SCAN_FLAG_LOW_SPAN, NL80211_SCAN_FLAG_LOW_POWER, NL80211_SCAN_FLAG_HIGH_ACCURACY, NL80211_SCAN_FLAG_RANDOM_SN, NL80211_SCAN_FLAG_MIN_PREQ_CONTENT, NL80211_SCAN_FLAG_FREQ_KHZ
+
+nl80211_policy$scan [
+	NL80211_ATTR_MAC				nlattr[NL80211_ATTR_MAC, ieee80211_mac_addr]
+	NL80211_ATTR_IE					nlattr[NL80211_ATTR_IE, array[ieee80211_ie]]
+	NL80211_ATTR_SCAN_FREQUENCIES			nlnest[NL80211_ATTR_SCAN_FREQUENCIES, array[nlattr[0, int32]]]
+	NL80211_ATTR_SCAN_SSIDS				nlnest[NL80211_ATTR_SCAN_SSIDS, array[nlattr[0, ieee80211_ssid]]]
+	NL80211_ATTR_SCHED_SCAN_INTERVAL		nlattr[NL80211_ATTR_SCHED_SCAN_INTERVAL, int32]
+	NL80211_ATTR_BG_SCAN_PERIOD			nlattr[NL80211_ATTR_BG_SCAN_PERIOD, int16]
+	NL80211_ATTR_SCHED_SCAN_DELAY			nlattr[NL80211_ATTR_SCHED_SCAN_DELAY, int32]
+	NL80211_ATTR_SCHED_SCAN_RELATIVE_RSSI		nlattr[NL80211_ATTR_SCHED_SCAN_RELATIVE_RSSI, int8]
+	NL80211_ATTR_MEASUREMENT_DURATION		nlattr[NL80211_ATTR_MEASUREMENT_DURATION, int16]
+	NL80211_ATTR_MEASUREMENT_DURATION_MANDATORY	nlattr[NL80211_ATTR_MEASUREMENT_DURATION_MANDATORY, void]
+	NL80211_ATTR_SCHED_SCAN_MULTI			nlattr[NL80211_ATTR_SCHED_SCAN_MULTI, void]
+	NL80211_ATTR_TX_NO_CCK_RATE			nlattr[NL80211_ATTR_TX_NO_CCK_RATE, void]
+	NL80211_ATTR_BSSID				nlattr[NL80211_ATTR_BSSID, ieee80211_bssid]
+	NL80211_ATTR_SCHED_SCAN_RSSI_ADJUST		nlattr[NL80211_ATTR_SCHED_SCAN_RSSI_ADJUST, nl80211_bss_select_rssi_adjust]
+	NL80211_ATTR_SCAN_SUPP_RATES			nlnest[NL80211_ATTR_SCAN_SUPP_RATES, array[nl80211_rates_policy]]
+	NL80211_ATTR_SCHED_SCAN_MATCH			nlnest[NL80211_ATTR_SCHED_SCAN_MATCH, array[nl80211_match_policy]]
+	NL80211_ATTR_SCAN_FLAGS				nlattr[NL80211_ATTR_SCAN_FLAGS, flags[nl80211_scan_flags, int32]]
+] [varlen]
+
+nl80211_bss_select_rssi_adjust {
+	band	flags[nl80211_bands, int8]
+	delta	int8
+} [packed]
+
+nl80211_rates_policy [
+	NL80211_BAND_2GHZ	nlattr[NL80211_BAND_2GHZ, array[int8]]
+	NL80211_BAND_5GHZ	nlattr[NL80211_BAND_5GHZ, array[int8]]
+	NL80211_BAND_60GHZ	nlattr[NL80211_BAND_60GHZ, array[int8]]
+	NL80211_BAND_6GHZ	nlattr[NL80211_BAND_6GHZ, array[int8]]
+] [varlen]
+
+nl80211_match_policy [
+	NL80211_SCHED_SCAN_MATCH_ATTR_SSID	nlattr[NL80211_SCHED_SCAN_MATCH_ATTR_SSID, ieee80211_ssid]
+	NL80211_SCHED_SCAN_MATCH_ATTR_BSSID	nlattr[NL80211_SCHED_SCAN_MATCH_ATTR_BSSID, ieee80211_bssid]
+	NL80211_SCHED_SCAN_MATCH_ATTR_RSSI	nlattr[NL80211_SCHED_SCAN_MATCH_ATTR_RSSI, int32]
+	NL80211_SCHED_SCAN_MATCH_PER_BAND_RSSI	nlnest[NL80211_SCHED_SCAN_MATCH_PER_BAND_RSSI, array[nl80211_match_band_rssi_policy]]
+] [varlen]
+
+nl80211_match_band_rssi_policy [
+	NL80211_BAND_2GHZ	nlattr[NL80211_BAND_2GHZ, int32]
+	NL80211_BAND_5GHZ	nlattr[NL80211_BAND_5GHZ, int32]
+	NL80211_BAND_6GHZ	nlattr[NL80211_BAND_6GHZ, int32]
+	NL80211_BAND_60GHZ	nlattr[NL80211_BAND_60GHZ, int32]
+	NL80211_BAND_LC		nlattr[NL80211_BAND_LC, int32]
+] [varlen]
+
+nl80211_policy$join_ibss [
+	chandef_params				array[nl80211_policy$chandef_params]
+	NL80211_ATTR_SSID			nlattr[NL80211_ATTR_SSID, ieee80211_ssid]
+	NL80211_ATTR_HIDDEN_SSID		nlattr[NL80211_ATTR_HIDDEN_SSID, ieee80211_ssid]
+	NL80211_ATTR_BEACON_INTERVAL		nlattr[NL80211_ATTR_BEACON_INTERVAL, ieee80211_beacon_interval[int32]]
+	NL80211_ATTR_MAC			nlattr[NL80211_ATTR_MAC, ieee80211_bssid]
+	NL80211_ATTR_IE				nlattr[NL80211_ATTR_IE, array[ieee80211_ie]]
+	NL80211_ATTR_FREQ_FIXED			nlattr[NL80211_ATTR_FREQ_FIXED, void]
+	NL80211_ATTR_PRIVACY			nlattr[NL80211_ATTR_PRIVACY, void]
+	NL80211_ATTR_BSS_BASIC_RATES		nlattr[NL80211_ATTR_BSS_BASIC_RATES, nl80211_rates]
+	NL80211_ATTR_HT_CAPABILITY		nlattr[NL80211_ATTR_HT_CAPABILITY, ieee80211_ht_cap]
+	NL80211_ATTR_HT_CAPABILITY_MASK		nlattr[NL80211_ATTR_HT_CAPABILITY_MASK, ieee80211_ht_cap]
+	NL80211_ATTR_MCAST_RATE			nlattr[NL80211_ATTR_MCAST_RATE, int32]
+	NL80211_ATTR_KEYS			nlnest[NL80211_ATTR_KEYS, array[nlnest[0, array[nl80211_key_policy]]]]
+	NL80211_ATTR_CONTROL_PORT		nlattr[NL80211_ATTR_CONTROL_PORT, void]
+	NL80211_ATTR_SOCKET_OWNER		nlattr[NL80211_ATTR_SOCKET_OWNER, void]
+	NL80211_ATTR_CONTROL_PORT_OVER_NL80211	nlattr[NL80211_ATTR_CONTROL_PORT_OVER_NL80211, void]
+	NL80211_ATTR_HANDLE_DFS			nlattr[NL80211_ATTR_HANDLE_DFS, void]
+	NL80211_ATTR_MESH_CONFIG		nlnest[NL80211_ATTR_MESH_CONFIG, array[nl80211_meshconf_params_policy]]
+] [varlen]
+
+nl80211_mfp_flags = NL80211_MFP_NO, NL80211_MFP_REQUIRED, NL80211_MFP_OPTIONAL
+
+nl80211_bss_select_policy [
+	NL80211_BSS_SELECT_ATTR_RSSI		nlattr[NL80211_BSS_SELECT_ATTR_RSSI, void]
+	NL80211_BSS_SELECT_ATTR_BAND_PREF	nlattr[NL80211_BSS_SELECT_ATTR_BAND_PREF, int32]
+	NL80211_BSS_SELECT_ATTR_RSSI_ADJUST	nlattr[NL80211_BSS_SELECT_ATTR_RSSI_ADJUST, nl80211_bss_select_rssi_adjust]
+] [varlen]
+
+nl80211_policy$fils_params [
+	NL80211_ATTR_FILS_ERP_USERNAME		nlattr[NL80211_ATTR_FILS_ERP_USERNAME, array[int8, 0:FILS_ERP_MAX_USERNAME_LEN]]
+	NL80211_ATTR_FILS_ERP_REALM		nlattr[NL80211_ATTR_FILS_ERP_REALM, array[int8]]
+	NL80211_ATTR_FILS_ERP_NEXT_SEQ_NUM	nlattr[NL80211_ATTR_FILS_ERP_NEXT_SEQ_NUM, int16]
+	NL80211_ATTR_FILS_ERP_RRK		nlattr[NL80211_ATTR_FILS_ERP_RRK, array[int8]]
+] [varlen]
+
+nl80211_policy$crypto_settings [
+	NL80211_ATTR_CONTROL_PORT		nlattr[NL80211_ATTR_CONTROL_PORT, void]
+	NL80211_ATTR_CONTROL_PORT_ETHERTYPE	nlattr[NL80211_ATTR_CONTROL_PORT_ETHERTYPE, flags[ether_types, int16]]
+	NL80211_ATTR_CONTROL_PORT_NO_ENCRYPT	nlattr[NL80211_ATTR_CONTROL_PORT_NO_ENCRYPT, void]
+	NL80211_ATTR_CONTROL_PORT_OVER_NL80211	nlattr[NL80211_ATTR_CONTROL_PORT_OVER_NL80211, void]
+	NL80211_ATTR_SOCKET_OWNER		nlattr[NL80211_ATTR_SOCKET_OWNER, void]
+	NL80211_ATTR_CONTROL_PORT_NO_PREAUTH	nlattr[NL80211_ATTR_CONTROL_PORT_NO_PREAUTH, void]
+	NL80211_ATTR_CIPHER_SUITES_PAIRWISE	nlattr[NL80211_ATTR_CIPHER_SUITES_PAIRWISE, array[flags[ieee80211_cipher_suites, int32], 0:NL80211_MAX_NR_CIPHER_SUITES]]
+	NL80211_ATTR_CIPHER_SUITE_GROUP		nlattr[NL80211_ATTR_CIPHER_SUITE_GROUP, flags[ieee80211_cipher_suites, int32]]
+	NL80211_ATTR_WPA_VERSIONS		nlattr[NL80211_ATTR_WPA_VERSIONS, flags[nl80211_wpa_versions, int32]]
+	NL80211_ATTR_AKM_SUITES			nlattr[NL80211_ATTR_AKM_SUITES, array[flags[ieee80211_akm_suites, int32]]]
+	NL80211_ATTR_PMK			nlattr[NL80211_ATTR_PMK, array[int8, 0:PMK_MAX_LEN]]
+	NL80211_ATTR_SAE_PASSWORD		nlattr[NL80211_ATTR_SAE_PASSWORD, array[int8, 0:SAE_PASSWORD_MAX_LEN]]
+] [varlen]
+
+nl80211_policy$connect [
+	chandef_params				array[nl80211_policy$chandef_params]
+	fils_params				array[nl80211_policy$fils_params]
+	crypto_settings				array[nl80211_policy$crypto_settings]
+	NL80211_ATTR_WIPHY_FREQ_HINT		nlattr[NL80211_ATTR_WIPHY_FREQ_HINT, ieee80211_frequency_mhz[int32]]
+	NL80211_ATTR_SSID			nlattr[NL80211_ATTR_SSID, ieee80211_ssid]
+	NL80211_ATTR_AUTH_TYPE			nlattr[NL80211_ATTR_AUTH_TYPE, flags[nl80211_auth_type, int32]]
+	NL80211_ATTR_PRIVACY			nlattr[NL80211_ATTR_PRIVACY, void]
+	NL80211_ATTR_WANT_1X_4WAY_HS		nlattr[NL80211_ATTR_WANT_1X_4WAY_HS, void]
+	NL80211_ATTR_BG_SCAN_PERIOD		nlattr[NL80211_ATTR_BG_SCAN_PERIOD, int16]
+	NL80211_ATTR_MAC			nlattr[NL80211_ATTR_MAC, ieee80211_bssid]
+	NL80211_ATTR_MAC_HINT			nlattr[NL80211_ATTR_MAC_HINT, ieee80211_bssid]
+	NL80211_ATTR_IE				nlattr[NL80211_ATTR_IE, array[ieee80211_ie]]
+	NL80211_ATTR_USE_MFP			nlattr[NL80211_ATTR_USE_MFP, flags[nl80211_mfp_flags, int32]]
+	NL80211_ATTR_PREV_BSSID			nlattr[NL80211_ATTR_PREV_BSSID, ieee80211_bssid]
+	NL80211_ATTR_WIPHY_EDMG_CHANNELS	nlattr[NL80211_ATTR_WIPHY_EDMG_CHANNELS, int8[NL80211_EDMG_CHANNELS_MIN:NL80211_EDMG_CHANNELS_MAX]]
+	NL80211_ATTR_WIPHY_EDMG_BW_CONFIG	nlattr[NL80211_ATTR_WIPHY_EDMG_BW_CONFIG, int8[NL80211_EDMG_BW_CONFIG_MIN:NL80211_EDMG_BW_CONFIG_MAX]]
+	NL80211_ATTR_KEYS			nlnest[NL80211_ATTR_KEYS, array[nlnest[0, array[nl80211_key_policy]]]]
+	NL80211_ATTR_DISABLE_HT			nlattr[NL80211_ATTR_DISABLE_HT, void]
+	NL80211_ATTR_HT_CAPABILITY		nlattr[NL80211_ATTR_HT_CAPABILITY, ieee80211_ht_cap]
+	NL80211_ATTR_HT_CAPABILITY_MASK		nlattr[NL80211_ATTR_HT_CAPABILITY_MASK, ieee80211_ht_cap]
+	NL80211_ATTR_DISABLE_VHT		nlattr[NL80211_ATTR_DISABLE_VHT, void]
+	NL80211_ATTR_VHT_CAPABILITY		nlattr[NL80211_ATTR_VHT_CAPABILITY, ieee80211_vht_cap]
+	NL80211_ATTR_VHT_CAPABILITY_MASK	nlattr[NL80211_ATTR_VHT_CAPABILITY_MASK, ieee80211_vht_cap]
+	NL80211_ATTR_USE_RRM			nlattr[NL80211_ATTR_USE_RRM, void]
+	NL80211_ATTR_PBSS			nlattr[NL80211_ATTR_PBSS, void]
+	NL80211_ATTR_BSS_SELECT			nlnest[NL80211_ATTR_BSS_SELECT, array[nl80211_bss_select_policy]]
+	NL80211_ATTR_EXTERNAL_AUTH_SUPPORT	nlattr[NL80211_ATTR_EXTERNAL_AUTH_SUPPORT, void]
+	NL80211_ATTR_SOCKET_OWNER		nlattr[NL80211_ATTR_SOCKET_OWNER, void]
+] [varlen]
+
+nl80211_policy$disconnect [
+	NL80211_ATTR_REASON_CODE	nlattr[NL80211_ATTR_REASON_CODE, ieee80211_reason_code[int16]]
+] [varlen]
+
+nl80211_preamble_types = NL80211_PREAMBLE_LEGACY, NL80211_PREAMBLE_HT, NL80211_PREAMBLE_VHT, NL80211_PREAMBLE_DMG, NL80211_PREAMBLE_HE
+
+nl80211_pmsr_ftm_req_attr_policy [
+	NL80211_PMSR_FTM_REQ_ATTR_ASAP			nlattr[NL80211_PMSR_FTM_REQ_ATTR_ASAP, void]
+	NL80211_PMSR_FTM_REQ_ATTR_PREAMBLE		nlattr[NL80211_PMSR_FTM_REQ_ATTR_PREAMBLE, flags[nl80211_preamble_types, int32]]
+	NL80211_PMSR_FTM_REQ_ATTR_NUM_BURSTS_EXP	nlattr[NL80211_PMSR_FTM_REQ_ATTR_NUM_BURSTS_EXP, int8[0:15]]
+	NL80211_PMSR_FTM_REQ_ATTR_BURST_PERIOD		nlattr[NL80211_PMSR_FTM_REQ_ATTR_BURST_PERIOD, int16]
+	NL80211_PMSR_FTM_REQ_ATTR_BURST_DURATION	nlattr[NL80211_PMSR_FTM_REQ_ATTR_BURST_DURATION, int8[0:15]]
+	NL80211_PMSR_FTM_REQ_ATTR_FTMS_PER_BURST	nlattr[NL80211_PMSR_FTM_REQ_ATTR_FTMS_PER_BURST, int8[0:31]]
+	NL80211_PMSR_FTM_REQ_ATTR_NUM_FTMR_RETRIES	nlattr[NL80211_PMSR_FTM_REQ_ATTR_NUM_FTMR_RETRIES, int8]
+	NL80211_PMSR_FTM_REQ_ATTR_REQUEST_LCI		nlattr[NL80211_PMSR_FTM_REQ_ATTR_REQUEST_LCI, void]
+	NL80211_PMSR_FTM_REQ_ATTR_REQUEST_CIVICLOC	nlattr[NL80211_PMSR_FTM_REQ_ATTR_REQUEST_CIVICLOC, void]
+	NL80211_PMSR_FTM_REQ_ATTR_TRIGGER_BASED		nlattr[NL80211_PMSR_FTM_REQ_ATTR_TRIGGER_BASED, void]
+	NL80211_PMSR_FTM_REQ_ATTR_NON_TRIGGER_BASED	nlattr[NL80211_PMSR_FTM_REQ_ATTR_NON_TRIGGER_BASED, void]
+	NL80211_PMSR_FTM_REQ_ATTR_LMR_FEEDBACK		nlattr[NL80211_PMSR_FTM_REQ_ATTR_LMR_FEEDBACK, void]
+] [varlen]
+
+nl80211_pmsr_req_data_policy [
+	NL80211_PMSR_TYPE_FTM	nlnest[NL80211_PMSR_TYPE_FTM, array[nl80211_pmsr_ftm_req_attr_policy]]
+] [varlen]
+
+nl80211_pmsr_req_attr_policy [
+	NL80211_PMSR_REQ_ATTR_DATA		nlnest[NL80211_PMSR_REQ_ATTR_DATA, array[nl80211_pmsr_req_data_policy]]
+	NL80211_PMSR_REQ_ATTR_GET_AP_TSF	nlattr[NL80211_PMSR_REQ_ATTR_GET_AP_TSF, void]
+] [varlen]
+
+nl80211_pmsr_peer_attr_policy [
+	NL80211_PMSR_PEER_ATTR_ADDR	nlattr[NL80211_PMSR_PEER_ATTR_ADDR, ieee80211_mac_addr]
+	NL80211_PMSR_PEER_ATTR_CHAN	nlnest[NL80211_PMSR_PEER_ATTR_CHAN, array[nl80211_policy$chandef_params]]
+	NL80211_PMSR_PEER_ATTR_REQ	nlnest[NL80211_PMSR_PEER_ATTR_REQ, array[nl80211_pmsr_req_attr_policy]]
+] [varlen]
+
+nl80211_pmsr_attr_policy [
+	NL80211_PMSR_ATTR_PEERS	nlnest[NL80211_PMSR_ATTR_PEERS, array[nlnest[0, array[nl80211_pmsr_peer_attr_policy]]]]
+] [varlen]
+
+nl80211_policy$upd_owe_info [
+	NL80211_ATTR_MAC		nlattr[NL80211_ATTR_MAC, ieee80211_mac_addr]
+	NL80211_ATTR_STATUS_CODE	nlattr[NL80211_ATTR_STATUS_CODE, ieee80211_status_code[int16]]
+	NL80211_ATTR_IE			nlattr[NL80211_ATTR_IE, array[ieee80211_ie]]
+] [varlen]
+
+# TODO: consider adding a pseudo system call that receives a response and takes a cookie from there
+type nl80211_cookie int64[0:128]
+
+nl80211_policy$del_nan_func [
+	NL80211_ATTR_COOKIE	nlattr[NL80211_ATTR_COOKIE, nl80211_cookie]
+]
+
+define NL80211_BAND_2GHZ_BIT	1 << NL80211_BAND_2GHZ
+define NL80211_BAND_5GHZ_BIT	1 << NL80211_BAND_5GHZ
+define NL80211_BAND_60GHZ_BIT	1 << NL80211_BAND_60GHZ
+define NL80211_BAND_6GHZ_BIT	1 << NL80211_BAND_6GHZ
+
+nl80211_bands = NL80211_BAND_2GHZ_BIT, NL80211_BAND_5GHZ_BIT, NL80211_BAND_60GHZ_BIT, NL80211_BAND_6GHZ_BIT
+
+# Same for NL80211_CMD_CHANGE_NAN_CONFIG and NL80211_CMD_START_NAN
+nl80211_policy$start_nan [
+	NL80211_ATTR_NAN_MASTER_PREF	nlattr[NL80211_ATTR_NAN_MASTER_PREF, int8]
+	NL80211_ATTR_BANDS		nlattr[NL80211_ATTR_BANDS, flags[nl80211_bands, int32]]
+] [varlen]
+
+nl80211_nan_func_types = NL80211_NAN_FUNC_PUBLISH, NL80211_NAN_FUNC_SUBSCRIBE, NL80211_NAN_FUNC_FOLLOW_UP
+
+nl80211_nan_srf_policy [
+	NL80211_NAN_SRF_INCLUDE		nlattr[NL80211_NAN_SRF_INCLUDE, void]
+	NL80211_NAN_SRF_BF		nlattr[NL80211_NAN_SRF_BF, array[int8, NL80211_NAN_FUNC_SRF_MAX_LEN]]
+	NL80211_NAN_SRF_BF_IDX		nlattr[NL80211_NAN_SRF_BF_IDX, int8]
+	NL80211_NAN_SRF_MAC_ADDRS	nlnest[NL80211_NAN_SRF_MAC_ADDRS, array[nlattr[NL80211_ATTR_MAC, ieee80211_mac_addr]]]
+] [varlen]
+
+nl80211_nan_func_policy [
+	NL80211_NAN_FUNC_TYPE			nlattr[NL80211_NAN_FUNC_TYPE, flags[nl80211_nan_func_types, int8]]
+	NL80211_NAN_FUNC_SERVICE_ID		nlattr[NL80211_NAN_FUNC_SERVICE_ID, array[int8, NL80211_NAN_FUNC_SERVICE_ID_LEN]]
+	NL80211_NAN_FUNC_CLOSE_RANGE		nlattr[NL80211_NAN_FUNC_CLOSE_RANGE, void]
+	NL80211_NAN_FUNC_SERVICE_INFO		nlattr[NL80211_NAN_FUNC_SERVICE_INFO, array[int8, 0:NL80211_NAN_FUNC_SERVICE_SPEC_INFO_MAX_LEN]]
+	NL80211_NAN_FUNC_TTL			nlattr[NL80211_NAN_FUNC_TTL, int32]
+	NL80211_NAN_FUNC_PUBLISH_TYPE		nlattr[NL80211_NAN_FUNC_PUBLISH_TYPE, int8]
+	NL80211_NAN_FUNC_PUBLISH_BCAST		nlattr[NL80211_NAN_FUNC_PUBLISH_BCAST, void]
+	NL80211_NAN_FUNC_SUBSCRIBE_ACTIVE	nlattr[NL80211_NAN_FUNC_SUBSCRIBE_ACTIVE, void]
+	NL80211_NAN_FUNC_FOLLOW_UP_ID		nlattr[NL80211_NAN_FUNC_FOLLOW_UP_ID, int8]
+	NL80211_NAN_FUNC_FOLLOW_UP_REQ_ID	nlattr[NL80211_NAN_FUNC_FOLLOW_UP_REQ_ID, int8]
+	NL80211_NAN_FUNC_FOLLOW_UP_DEST		nlattr[NL80211_NAN_FUNC_FOLLOW_UP_DEST, ieee80211_mac_addr]
+	NL80211_NAN_FUNC_SRF			nlnest[NL80211_NAN_FUNC_SRF, array[nl80211_nan_srf_policy]]
+	NL80211_NAN_FUNC_TX_MATCH_FILTER	nlnest[NL80211_NAN_FUNC_TX_MATCH_FILTER, array[nlattr[0, array[int8]]]]
+	NL80211_NAN_FUNC_RX_MATCH_FILTER	nlnest[NL80211_NAN_FUNC_RX_MATCH_FILTER, array[nlattr[0, array[int8]]]]
+	NL80211_NAN_FUNC_INSTANCE_ID		nlattr[NL80211_NAN_FUNC_INSTANCE_ID, int8]
+	NL80211_NAN_FUNC_TERM_REASON		nlattr[NL80211_NAN_FUNC_TERM_REASON, int8]
+] [varlen]
+
+nl80211_policy$add_nan_func [
+	NL80211_ATTR_NAN_FUNC	nlnest[NL80211_ATTR_NAN_FUNC, array[nl80211_nan_func_policy]]
+] [varlen]
+
+nl80211_policy$probe_client [
+	NL80211_ATTR_MAC	nlattr[NL80211_ATTR_MAC, ieee80211_mac_addr]
+]
+
+nl80211_packet_pattern_policy [
+# TODO: lengths of NL80211_PKTPAT_MASK and NL80211_PKTPAT_PATTERN are related. Currently, syzlang does not provide means to specify this.
+	NL80211_PKTPAT_MASK	nlattr[NL80211_PKTPAT_MASK, array[int8]]
+	NL80211_PKTPAT_PATTERN	nlattr[NL80211_PKTPAT_PATTERN, array[int8]]
+	NL80211_PKTPAT_OFFSET	nlattr[NL80211_PKTPAT_OFFSET, int32]
+] [varlen]
+
+nl80211_coalesce_policy [
+	NL80211_ATTR_COALESCE_RULE_DELAY	nlattr[NL80211_ATTR_COALESCE_RULE_DELAY, int32]
+	NL80211_ATTR_COALESCE_RULE_CONDITION	nlattr[NL80211_ATTR_COALESCE_RULE_CONDITION, int32[NL80211_COALESCE_CONDITION_MATCH:NL80211_COALESCE_CONDITION_NO_MATCH]]
+	NL80211_ATTR_COALESCE_RULE_PKT_PATTERN	nlnest[NL80211_ATTR_COALESCE_RULE_PKT_PATTERN, array[nlnest[0, nl80211_packet_pattern_policy], 0:MAX_NL80211_PKTPAT]]
+] [varlen]
+
+nl80211_acl_policies = NL80211_ACL_POLICY_ACCEPT_UNLESS_LISTED, NL80211_ACL_POLICY_DENY_UNLESS_LISTED
+
+nl80211_policy$acl [
+	NL80211_ATTR_ACL_POLICY	nlattr[NL80211_ATTR_ACL_POLICY, flags[nl80211_acl_policies, int32]]
+	NL80211_ATTR_MAC_ADDRS	nlnest[NL80211_ATTR_MAC_ADDRS, array[nlattr[NL80211_ATTR_MAC, ieee80211_mac_addr]]]
+] [varlen]
+
+nl80211_policy$set_mcast_rate [
+	NL80211_ATTR_MCAST_RATE	nlattr[NL80211_ATTR_MCAST_RATE, flags[ieee80211_raw_rates, int32]]
+]
+
+nl80211_policy$set_mcast_to_ucast [
+	NL80211_ATTR_MULTICAST_TO_UNICAST_ENABLED	nlattr[NL80211_ATTR_MULTICAST_TO_UNICAST_ENABLED, void]
+]
+
+nl80211_policy$set_noack_map [
+	NL80211_ATTR_NOACK_MAP	nlattr[NL80211_ATTR_NOACK_MAP, int16]
+]
+
+nl80211_policy$set_pmk [
+	NL80211_ATTR_MAC	nlattr[NL80211_ATTR_MAC, ieee80211_mac_addr]
+	NL80211_ATTR_PMK	nlattr[NL80211_ATTR_PMK, array[int8, WLAN_PMKID_LEN]]
+	NL80211_ATTR_PMKR0_NAME	nlattr[NL80211_ATTR_PMKR0_NAME, array[int8, WLAN_PMK_NAME_LEN]]
+] [varlen]
+
+nl80211_policy$del_pmk [
+	NL80211_ATTR_MAC	nlattr[NL80211_ATTR_MAC, ieee80211_mac_addr]
+]
+
+nl80211_policy$setdel_pmksa [
+	NL80211_ATTR_MAC			nlattr[NL80211_ATTR_MAC, ieee80211_bssid]
+	NL80211_ATTR_PMK			nlattr[NL80211_ATTR_PMK, array[int8, WLAN_PMKID_LEN]]
+	NL80211_ATTR_PMKID			nlattr[NL80211_ATTR_PMKID, array[int8, WLAN_PMKID_LEN]]
+	NL80211_ATTR_SSID			nlattr[NL80211_ATTR_SSID, ieee80211_ssid]
+	NL80211_ATTR_FILS_CACHE_ID		nlattr[NL80211_ATTR_FILS_CACHE_ID, int16]
+	NL80211_ATTR_PMK_LIFETIME		nlattr[NL80211_ATTR_PMK_LIFETIME, int32]
+	NL80211_ATTR_PMK_REAUTH_THRESHOLD	nlattr[NL80211_ATTR_PMK_REAUTH_THRESHOLD, int8[1:100]]
+] [varlen]
+
+nl80211_policy$cookie [
+	NL80211_ATTR_COOKIE	nlattr[NL80211_ATTR_COOKIE, nl80211_cookie]
+]
+
+nl80211_powersave_states = NL80211_PS_DISABLED, NL80211_PS_ENABLED
+
+nl80211_policy$power_save [
+	NL80211_ATTR_PS_STATE	nlattr[NL80211_ATTR_PS_STATE, flags[nl80211_powersave_states, int32]]
+]
+
+nl80211_policy$remain_on_ch [
+	chandef_params		array[nl80211_policy$chandef_params]
+	NL80211_ATTR_DURATION	nlattr[NL80211_ATTR_DURATION, int32]
+] [varlen]
+
+nl80211_policy$update_ft_ies [
+	NL80211_ATTR_MDID	nlattr[NL80211_ATTR_MDID, int16]
+	NL80211_ATTR_IE		nlattr[NL80211_ATTR_IE, array[ieee80211_ie]]
+] [varlen]
+
+nl80211_policy$vendor [
+	NL80211_ATTR_VENDOR_ID		nlattr[NL80211_ATTR_VENDOR_ID, int32]
+	NL80211_ATTR_VENDOR_SUBCMD	nlattr[NL80211_ATTR_VENDOR_SUBCMD, int32]
+	NL80211_ATTR_VENDOR_DATA	nlattr[NL80211_ATTR_VENDOR_DATA, array[int8]]
+] [varlen]
+
+nl80211_qos_map_dscp_exception {
+	dscp	int8
+	up	int8[0:7]
+} [packed]
+
+nl80211_qos_map {
+	dscp_exceptions	array[nl80211_qos_map_dscp_exception, 0:IEEE80211_QOS_MAP_MAX_EX]
+	up		array[int8, 8]
+} [packed]
+
+nl80211_policy$set_qos_map [
+	NL80211_ATTR_QOS_MAP	nlattr[NL80211_ATTR_QOS_MAP, nl80211_qos_map]
+] [varlen]
+
+nl80211_attr_cqm_policy [
+	NL80211_ATTR_CQM_RSSI_THOLD		nlattr[NL80211_ATTR_CQM_RSSI_THOLD, array[int32]]
+	NL80211_ATTR_CQM_RSSI_HYST		nlattr[NL80211_ATTR_CQM_RSSI_HYST, int32]
+	NL80211_ATTR_CQM_RSSI_THRESHOLD_EVENT	nlattr[NL80211_ATTR_CQM_RSSI_THRESHOLD_EVENT, int32]
+	NL80211_ATTR_CQM_TXE_RATE		nlattr[NL80211_ATTR_CQM_TXE_RATE, int32[0:100]]
+	NL80211_ATTR_CQM_TXE_PKTS		nlattr[NL80211_ATTR_CQM_TXE_PKTS, int32]
+	NL80211_ATTR_CQM_TXE_INTVL		nlattr[NL80211_ATTR_CQM_TXE_INTVL, int32[0:NL80211_CQM_TXE_MAX_INTVL]]
+	NL80211_ATTR_CQM_RSSI_LEVEL		nlattr[NL80211_ATTR_CQM_RSSI_LEVEL, int32]
+] [varlen]
+
+nl80211_policy$cqm [
+	NL80211_ATTR_CQM	nlnest[NL80211_ATTR_CQM, array[nl80211_attr_cqm_policy]]
+] [varlen]
+
+nl80211_policy$mgmt_frame [
+	chandef_params			array[nl80211_policy$chandef_params]
+	NL80211_ATTR_DONT_WAIT_FOR_ACK	nlattr[NL80211_ATTR_DONT_WAIT_FOR_ACK, void]
+	NL80211_ATTR_FRAME		nlattr[NL80211_ATTR_FRAME, ieee80211_mgmt_frame]
+	NL80211_ATTR_DURATION		nlattr[NL80211_ATTR_DURATION, int32[NL80211_MIN_REMAIN_ON_CHANNEL_TIME:5000]]
+	NL80211_ATTR_OFFCHANNEL_TX_OK	nlattr[NL80211_ATTR_OFFCHANNEL_TX_OK, void]
+	NL80211_ATTR_TX_NO_CCK_RATE	nlattr[NL80211_ATTR_TX_NO_CCK_RATE, void]
+	NL80211_ATTR_CSA_C_OFFSETS_TX	nlattr[NL80211_ATTR_CSA_C_OFFSETS_TX, array[int16]]
+] [varlen]
+
+define IEEE80211_MAX_TID	IEEE80211_NUM_TIDS - 1
+define IEEE80211_MAX_UP	IEEE80211_NUM_UPS - 1
+
+nl80211_policy$add_tx_ts [
+	NL80211_ATTR_TSID		nlattr[NL80211_ATTR_TSID, int8[0:IEEE80211_MAX_TID]]
+	NL80211_ATTR_MAC		nlattr[NL80211_ATTR_MAC, ieee80211_mac_addr]
+	NL80211_ATTR_ADMITTED_TIME	nlattr[NL80211_ATTR_ADMITTED_TIME, int16]
+	NL80211_ATTR_USER_PRIO		nlattr[NL80211_ATTR_USER_PRIO, int8[0:IEEE80211_MAX_UP]]
+] [varlen]
+
+nl80211_policy$del_tx_ts [
+	NL80211_ATTR_TSID	nlattr[NL80211_ATTR_TSID, int8[0:IEEE80211_MAX_TID]]
+	NL80211_ATTR_MAC	nlattr[NL80211_ATTR_MAC, ieee80211_mac_addr]
+] [varlen]
+
+nl80211_policy$authenticate [
+	chandef_params		array[nl80211_policy$chandef_params]
+	key_params		array[nl80211_policy$cmd_key]
+	NL80211_ATTR_MAC	nlattr[NL80211_ATTR_MAC, ieee80211_bssid]
+	NL80211_ATTR_AUTH_TYPE	nlattr[NL80211_ATTR_AUTH_TYPE, flags[nl80211_auth_type, int32]]
+	NL80211_ATTR_SSID	nlattr[NL80211_ATTR_SSID, ieee80211_ssid]
+] [varlen]
+
+nl80211_policy$de_auth_assoc [
+	NL80211_ATTR_MAC		nlattr[NL80211_ATTR_MAC, ieee80211_bssid]
+	NL80211_ATTR_SSID		nlattr[NL80211_ATTR_SSID, ieee80211_ssid]
+	NL80211_ATTR_REASON_CODE	nlattr[NL80211_ATTR_REASON_CODE, int16]
+	NL80211_ATTR_IE			nlattr[NL80211_ATTR_IE, array[ieee80211_ie]]
+	NL80211_ATTR_LOCAL_STATE_CHANGE	nlattr[NL80211_ATTR_LOCAL_STATE_CHANGE, void]
+] [varlen]
+
+nl80211_policy$associate [
+	chandef_params				array[nl80211_policy$chandef_params]
+	crypto_settings				array[nl80211_policy$crypto_settings]
+	NL80211_ATTR_MAC			nlattr[NL80211_ATTR_MAC, ieee80211_bssid]
+	NL80211_ATTR_SSID			nlattr[NL80211_ATTR_SSID, ieee80211_ssid]
+	NL80211_ATTR_IE				nlattr[NL80211_ATTR_IE, array[ieee80211_ie]]
+	NL80211_ATTR_USE_MFP			nlattr[NL80211_ATTR_USE_MFP, flags[nl80211_mfp_flags, int32]]
+	NL80211_ATTR_PREV_BSSID			nlattr[NL80211_ATTR_PREV_BSSID, ieee80211_bssid]
+	NL80211_ATTR_DISABLE_HT			nlattr[NL80211_ATTR_DISABLE_HT, void]
+	NL80211_ATTR_HT_CAPABILITY		nlattr[NL80211_ATTR_HT_CAPABILITY, ieee80211_ht_cap]
+	NL80211_ATTR_HT_CAPABILITY_MASK		nlattr[NL80211_ATTR_HT_CAPABILITY_MASK, ieee80211_ht_cap]
+	NL80211_ATTR_DISABLE_VHT		nlattr[NL80211_ATTR_DISABLE_VHT, void]
+	NL80211_ATTR_VHT_CAPABILITY		nlattr[NL80211_ATTR_VHT_CAPABILITY, ieee80211_vht_cap]
+	NL80211_ATTR_VHT_CAPABILITY_MASK	nlattr[NL80211_ATTR_VHT_CAPABILITY_MASK, ieee80211_vht_cap]
+	NL80211_ATTR_USE_RRM			nlattr[NL80211_ATTR_USE_RRM, void]
+	NL80211_ATTR_FILS_KEK			nlattr[NL80211_ATTR_FILS_KEK, array[int8, 0:FILS_MAX_KEK_LEN]]
+	NL80211_ATTR_FILS_NONCES		nlattr[NL80211_ATTR_FILS_NONCES, array[int16, FILS_NONCE_LEN]]
+] [varlen]
+
+nl80211_policy$ext_auth [
+	NL80211_ATTR_BSSID		nlattr[NL80211_ATTR_BSSID, ieee80211_bssid]
+	NL80211_ATTR_SSID		nlattr[NL80211_ATTR_SSID, ieee80211_ssid]
+	NL80211_ATTR_STATUS_CODE	nlattr[NL80211_ATTR_STATUS_CODE, ieee80211_status_code[int16]]
+	NL80211_ATTR_PMKID		nlattr[NL80211_ATTR_PMKID, array[int8, WLAN_PMKID_LEN]]
+] [varlen]
+
+nl80211_kek [
+	kek	array[int8, NL80211_KEK_LEN]
+	kek_ext	array[int8, NL80211_KEK_EXT_LEN]
+] [varlen]
+
+nl80211_kck [
+	kck	array[int8, NL80211_KCK_LEN]
+	kck_ext	array[int8, NL80211_KCK_EXT_LEN]
+] [varlen]
+
+nl80211_rekey_policy [
+	NL80211_REKEY_DATA_KEK		nlattr[NL80211_REKEY_DATA_KEK, nl80211_kek]
+	NL80211_REKEY_DATA_KCK		nlattr[NL80211_REKEY_DATA_KCK, nl80211_kck]
+	NL80211_REKEY_DATA_REPLAY_CTR	nlattr[NL80211_REKEY_DATA_REPLAY_CTR, array[int8, NL80211_REPLAY_CTR_LEN]]
+	NL80211_REKEY_DATA_AKM		nlattr[NL80211_REKEY_DATA_AKM, int32]
+] [varlen]
+
+nl80211_policy$rekey_offload [
+	NL80211_ATTR_REKEY_DATA	nlnest[NL80211_ATTR_REKEY_DATA, array[nl80211_rekey_policy]]
+] [varlen]
+
+nl80211_policy$set_wds_peer [
+	NL80211_ATTR_MAC	nlattr[NL80211_ATTR_MAC, ieee80211_bssid]
+]
+
+nl80211_tx_rate_setting = NL80211_TX_RATE_AUTOMATIC, NL80211_TX_RATE_LIMITED, NL80211_TX_RATE_FIXED
+
+nl80211_tid_config_attr_policy [
+	NL80211_TID_CONFIG_ATTR_VIF_SUPP	nlattr[NL80211_TID_CONFIG_ATTR_VIF_SUPP, int64]
+	NL80211_TID_CONFIG_ATTR_PEER_SUPP	nlattr[NL80211_TID_CONFIG_ATTR_PEER_SUPP, int64]
+	NL80211_TID_CONFIG_ATTR_OVERRIDE	nlattr[NL80211_TID_CONFIG_ATTR_OVERRIDE, void]
+	NL80211_TID_CONFIG_ATTR_TIDS		nlattr[NL80211_TID_CONFIG_ATTR_TIDS, int16[0x1:0xff]]
+	NL80211_TID_CONFIG_ATTR_NOACK		nlattr[NL80211_TID_CONFIG_ATTR_NOACK, int8[0:NL80211_TID_CONFIG_DISABLE]]
+	NL80211_TID_CONFIG_ATTR_RETRY_SHORT	nlattr[NL80211_TID_CONFIG_ATTR_RETRY_SHORT, int8[1:255]]
+	NL80211_TID_CONFIG_ATTR_RETRY_LONG	nlattr[NL80211_TID_CONFIG_ATTR_RETRY_LONG, int8[1:255]]
+	NL80211_TID_CONFIG_ATTR_AMPDU_CTRL	nlattr[NL80211_TID_CONFIG_ATTR_AMPDU_CTRL, int8[0:NL80211_TID_CONFIG_DISABLE]]
+	NL80211_TID_CONFIG_ATTR_RTSCTS_CTRL	nlattr[NL80211_TID_CONFIG_ATTR_RTSCTS_CTRL, int8[0:NL80211_TID_CONFIG_DISABLE]]
+	NL80211_TID_CONFIG_ATTR_AMSDU_CTRL	nlattr[NL80211_TID_CONFIG_ATTR_AMSDU_CTRL, int8[0:NL80211_TID_CONFIG_DISABLE]]
+	NL80211_TID_CONFIG_ATTR_TX_RATE_TYPE	nlattr[NL80211_TID_CONFIG_ATTR_TX_RATE_TYPE, flags[nl80211_tx_rate_setting, int8]]
+	NL80211_TID_CONFIG_ATTR_TX_RATE		nlnest[NL80211_TID_CONFIG_ATTR_TX_RATE, array[nl80211_tx_rates_policy]]
+] [varlen]
+
+nl80211_policy$set_tid_config [
+	NL80211_ATTR_TID_CONFIG	nlnest[NL80211_ATTR_TID_CONFIG, array[nlnest[0, array[nl80211_tid_config_attr_policy]]]]
+] [varlen]
+
+nl80211_policy$upd_connect_params [
+	fils_params	array[nl80211_policy$fils_params]
+	NL80211_ATTR_IE	nlattr[NL80211_ATTR_IE, array[ieee80211_ie]]
+] [varlen]
+
+nl80211_policy$tdls_mgmt [
+	NL80211_ATTR_TDLS_ACTION		nlattr[NL80211_ATTR_TDLS_ACTION, flags[ieee80211_tdls_action_codes, int8]]
+	NL80211_ATTR_MAC			nlattr[NL80211_ATTR_MAC, ieee80211_mac_addr]
+	NL80211_ATTR_STATUS_CODE		nlattr[NL80211_ATTR_STATUS_CODE, ieee80211_status_code[int16]]
+	NL80211_ATTR_TDLS_DIALOG_TOKEN		nlattr[NL80211_ATTR_TDLS_DIALOG_TOKEN, int8]
+	NL80211_ATTR_IE				nlattr[NL80211_ATTR_IE, array[ieee80211_ie]]
+	NL80211_ATTR_TDLS_INITIATOR		nlattr[NL80211_ATTR_TDLS_INITIATOR, void]
+	NL80211_ATTR_TDLS_PEER_CAPABILITY	nlattr[NL80211_ATTR_TDLS_PEER_CAPABILITY, int32]
+] [varlen]
+
+nl80211_tdls_operations = NL80211_TDLS_DISCOVERY_REQ, NL80211_TDLS_SETUP, NL80211_TDLS_TEARDOWN, NL80211_TDLS_ENABLE_LINK, NL80211_TDLS_DISABLE_LINK
+
+nl80211_policy$tdls_oper [
+	NL80211_ATTR_TDLS_OPERATION	nlattr[NL80211_ATTR_TDLS_OPERATION, flags[nl80211_tdls_operations, int8]]
+	NL80211_ATTR_MAC		nlattr[NL80211_ATTR_MAC, ieee80211_mac_addr]
+] [varlen]
+
+nl80211_policy$control_port [
+	NL80211_ATTR_FRAME			nlattr[NL80211_ATTR_FRAME, ieee80211_frame]
+	NL80211_ATTR_MAC			nlattr[NL80211_ATTR_MAC, ieee80211_mac_addr]
+	NL80211_ATTR_CONTROL_PORT_ETHERTYPE	nlattr[NL80211_ATTR_CONTROL_PORT_ETHERTYPE, flags[ether_types, int16]]
+	NL80211_ATTR_CONTROL_PORT_NO_ENCRYPT	nlattr[NL80211_ATTR_CONTROL_PORT_NO_ENCRYPT, void]
+] [varlen]
+
+nl80211_crit_proto_ids = NL80211_CRIT_PROTO_UNSPEC, NL80211_CRIT_PROTO_DHCP, NL80211_CRIT_PROTO_EAPOL, NL80211_CRIT_PROTO_APIPA
+
+nl80211_policy$crit_proto_start [
+	NL80211_ATTR_CRIT_PROT_ID		nlattr[NL80211_ATTR_CRIT_PROT_ID, flags[nl80211_crit_proto_ids, int16]]
+	NL80211_ATTR_MAX_CRIT_PROT_DURATION	nlattr[NL80211_ATTR_MAX_CRIT_PROT_DURATION, int16[0:NL80211_CRIT_PROTO_MAX_DURATION]]
+] [varlen]
+
+nl80211_policy$probe_mesh_link [
+	NL80211_ATTR_FRAME	nlattr[NL80211_ATTR_FRAME, ieee80211_frame]
+	NL80211_ATTR_MAC	nlattr[NL80211_ATTR_MAC, ieee80211_mac_addr]
+] [varlen]
+
+nl80211_policy$register_mgmt [
+	NL80211_ATTR_FRAME_TYPE		nlattr[NL80211_ATTR_FRAME_TYPE, int16]
+	NL80211_ATTR_FRAME_MATCH	nlattr[NL80211_ATTR_FRAME_MATCH, array[int8]]
+] [varlen]
+
+nl80211_policy$tdls_chsw [
+	chandef_params		array[nl80211_policy$chandef_params]
+	NL80211_ATTR_MAC	nlattr[NL80211_ATTR_MAC, ieee80211_mac_addr]
+	NL80211_ATTR_OPER_CLASS	nlattr[NL80211_ATTR_OPER_CLASS, int8]
+] [varlen]
+
+nl80211_policy$tdls_chsw_cancel [
+	NL80211_ATTR_MAC	nlattr[NL80211_ATTR_MAC, ieee80211_mac_addr]
+] [varlen]
+
+nl80211_policy$csa [
+	beacon_params			array[nl80211_policy$beacon]
+	NL80211_ATTR_CSA_C_OFF_BEACON	nlattr[NL80211_ATTR_CSA_C_OFF_BEACON, array[int16]]
+	NL80211_ATTR_CSA_C_OFF_PRESP	nlattr[NL80211_ATTR_CSA_C_OFF_PRESP, array[int16]]
+] [varlen]
+
+nl80211_policy$chsw [
+	chandef_params			array[nl80211_policy$chandef_params]
+	NL80211_ATTR_CSA_IES		nlnest[NL80211_ATTR_CSA_IES, array[nl80211_policy$csa]]
+	NL80211_ATTR_CH_SWITCH_COUNT	nlattr[NL80211_ATTR_CH_SWITCH_COUNT, int32[0:255]]
+	NL80211_ATTR_CH_SWITCH_BLOCK_TX	nlattr[NL80211_ATTR_CH_SWITCH_BLOCK_TX, void]
+] [varlen]
+
+nl80211_wowlan_tcp_data_seq {
+	start	int32
+	offset	int32
+	len	int32
+} [packed]
+
+nl80211_wowlan_tcp_data_token {
+	offset		int32
+	len		int32
+	token_stream	array[int8]
+} [packed]
+
+nl80211_wowlan_tcp_policy [
+	NL80211_WOWLAN_TCP_SRC_IPV4		nlattr[NL80211_WOWLAN_TCP_SRC_IPV4, ipv4_addr]
+	NL80211_WOWLAN_TCP_DST_IPV4		nlattr[NL80211_WOWLAN_TCP_DST_IPV4, ipv4_addr]
+	NL80211_WOWLAN_TCP_DST_MAC		nlattr[NL80211_WOWLAN_TCP_DST_MAC, ieee80211_mac_addr]
+	NL80211_WOWLAN_TCP_SRC_PORT		nlattr[NL80211_WOWLAN_TCP_SRC_PORT, int16]
+	NL80211_WOWLAN_TCP_DST_PORT		nlattr[NL80211_WOWLAN_TCP_DST_PORT, int16]
+	NL80211_WOWLAN_TCP_DATA_PAYLOAD		nlattr[NL80211_WOWLAN_TCP_DATA_PAYLOAD, array[int8]]
+	NL80211_WOWLAN_TCP_DATA_PAYLOAD_SEQ	nlattr[NL80211_WOWLAN_TCP_DATA_PAYLOAD_SEQ, nl80211_wowlan_tcp_data_seq]
+	NL80211_WOWLAN_TCP_DATA_PAYLOAD_TOKEN	nlattr[NL80211_WOWLAN_TCP_DATA_PAYLOAD_TOKEN, nl80211_wowlan_tcp_data_token]
+	NL80211_WOWLAN_TCP_DATA_INTERVAL	nlattr[NL80211_WOWLAN_TCP_DATA_INTERVAL, int32]
+# TODO: lengths of NL80211_WOWLAN_TCP_WAKE_PAYLOAD and NL80211_WOWLAN_TCP_WAKE_MASK are related. Currently, syzlang does not provide means to specify this.
+	NL80211_WOWLAN_TCP_WAKE_PAYLOAD		nlattr[NL80211_WOWLAN_TCP_WAKE_PAYLOAD, array[int8]]
+	NL80211_WOWLAN_TCP_WAKE_MASK		nlattr[NL80211_WOWLAN_TCP_WAKE_MASK, array[int8]]
+] [varlen]
+
+nl80211_wowlan_policy [
+	NL80211_WOWLAN_TRIG_ANY			nlattr[NL80211_WOWLAN_TRIG_ANY, void]
+	NL80211_WOWLAN_TRIG_DISCONNECT		nlattr[NL80211_WOWLAN_TRIG_DISCONNECT, void]
+	NL80211_WOWLAN_TRIG_MAGIC_PKT		nlattr[NL80211_WOWLAN_TRIG_MAGIC_PKT, void]
+	NL80211_WOWLAN_TRIG_GTK_REKEY_FAILURE	nlattr[NL80211_WOWLAN_TRIG_GTK_REKEY_FAILURE, void]
+	NL80211_WOWLAN_TRIG_EAP_IDENT_REQUEST	nlattr[NL80211_WOWLAN_TRIG_EAP_IDENT_REQUEST, void]
+	NL80211_WOWLAN_TRIG_4WAY_HANDSHAKE	nlattr[NL80211_WOWLAN_TRIG_4WAY_HANDSHAKE, void]
+	NL80211_WOWLAN_TRIG_RFKILL_RELEASE	nlattr[NL80211_WOWLAN_TRIG_RFKILL_RELEASE, void]
+	NL80211_WOWLAN_TRIG_PKT_PATTERN		nlnest[NL80211_WOWLAN_TRIG_PKT_PATTERN, array[nlnest[0, array[nl80211_packet_pattern_policy]]]]
+	NL80211_WOWLAN_TRIG_TCP_CONNECTION	nlnest[NL80211_WOWLAN_TRIG_TCP_CONNECTION, array[nl80211_wowlan_tcp_policy]]
+	NL80211_WOWLAN_TRIG_NET_DETECT		nlnest[NL80211_WOWLAN_TRIG_NET_DETECT, array[nl80211_policy$scan]]
+] [varlen]
+
+nl80211_policy$set_wowlan [
+	NL80211_ATTR_WOWLAN_TRIGGERS	nlnest[NL80211_ATTR_WOWLAN_TRIGGERS, array[nl80211_wowlan_policy]]
+] [varlen]
+
+nl80211_policy$testmode [
+	NL80211_ATTR_TESTDATA	nlattr[NL80211_ATTR_TESTDATA, array[int8]]
+] [varlen]
+
+nl80211_policy$set_tx_bitrate [
+	NL80211_ATTR_TX_RATES	nlnest[NL80211_ATTR_TX_RATES, array[nl80211_tx_rates_policy]]
+] [varlen]

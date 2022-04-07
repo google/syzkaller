@@ -1,0 +1,39 @@
+TITLE: INFO: suspicious RCU usage in ipv6_flowlabel_opt
+
+[   37.911413] ===============================
+[   37.912153] [ INFO: suspicious RCU usage. ]
+[   37.912790] 4.1.15+ #4 Not tainted
+[   37.913339] -------------------------------
+[   37.914040] /linux/net/ipv6/ip6_flowlabel.c:543 suspicious rcu_dereference_check() usage!
+[   37.915642] 
+[   37.915642] other info that might help us debug this:
+[   37.915642] 
+[   37.916873] 
+[   37.916873] rcu_scheduler_active = 1, debug_locks = 0
+[   37.917866] 2 locks held by syz-executor3/9912:
+[   37.918512]  #0:  (sk_lock-AF_INET6){+.+.+.}, at: [<ffffffff817c1ca2>] do_ipv6_setsockopt.isra.13+0xc2/0x1340
+[   37.920066]  #1:  (ip6_sk_fl_lock){+.....}, at: [<ffffffff817dfb27>] ipv6_flowlabel_opt+0x437/0xe00
+[   37.921525] 
+[   37.921525] stack backtrace:
+[   37.922226] CPU: 1 PID: 9912 Comm: syz-executor3 Not tainted 4.1.15+ #4
+[   37.923181] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+[   37.924340]  0000000000000001 ffff880071227c28 ffffffff818c5ac5 ffff88007afd4c40
+[   37.925520]  ffff880071227c58 ffffffff818b777b 0000000000000000 ffff88007af73cd0
+[   37.926688]  ffff88007af73c68 ffffffff81c46220 ffff880071227ce0 ffffffff817dfb87
+[   37.927769] Call Trace:
+[   37.928122]  [<ffffffff818c5ac5>] dump_stack+0x4b/0x63
+[   37.928832]  [<ffffffff818b777b>] lockdep_rcu_suspicious.cold.44+0xc4/0xe4
+[   37.929865]  [<ffffffff817dfb87>] ipv6_flowlabel_opt+0x497/0xe00
+[   37.930900]  [<ffffffff810996ad>] ? trace_hardirqs_on_caller+0xfd/0x1e0
+[   37.932119]  [<ffffffff816a31b1>] ? lock_sock_nested+0x41/0xb0
+[   37.933059]  [<ffffffff8109979d>] ? trace_hardirqs_on+0xd/0x10
+[   37.933873]  [<ffffffff817c25df>] do_ipv6_setsockopt.isra.13+0x9ff/0x1340
+[   37.934837]  [<ffffffff8107fd6a>] ? try_to_wake_up+0x21a/0x390
+[   37.935634]  [<ffffffff81316941>] ? plist_check_head+0x21/0x30
+[   37.936428]  [<ffffffff81099fb5>] ? __lock_acquire+0x535/0x1ab0
+[   37.937238]  [<ffffffff81097dd1>] ? __lock_is_held+0x51/0x80
+[   37.938032]  [<ffffffff817c2f73>] ipv6_setsockopt+0x53/0xc0
+[   37.938783]  [<ffffffff8172e7ab>] tcp_setsockopt+0x1b/0x30
+[   37.939530]  [<ffffffff816a289f>] sock_common_setsockopt+0xf/0x20
+[   37.940355]  [<ffffffff816a15bc>] SyS_setsockopt+0x6c/0xd0
+[   37.941114]  [<ffffffff818e2dae>] system_call_fastpath+0x12/0x76

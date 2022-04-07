@@ -1,0 +1,5 @@
+TITLE: WARNING: kernel stack frame pointer has bad value
+
+[   72.159680] WARNING: kernel stack frame pointer at ffff88003e1f7f40 in migration/1:14 has bad value ffffffff85632fb0
+[   72.159680] unwind stack type:0 next_sp:          (null) mask:0x6 graph_idx:0
+[   72.159680] ffff88003ed06ef0: ffff88003ed06f78 (0xffff88003ed06f78)

@@ -1,0 +1,51 @@
+TITLE: INFO: trying to register non-static key in mwifiex_unregister_dev
+
+[   62.448499] INFO: trying to register non-static key.
+[   62.453611] the code is fine but needs lockdep annotation.
+[   62.459227] turning off the locking correctness validator.
+[   62.464853] CPU: 0 PID: 12 Comm: kworker/0:1 Not tainted 5.1.0-rc4-319354-g9a33b36 #3
+[   62.472813] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   62.482183] Workqueue: events request_firmware_work_func
+[   62.487634] Call Trace:
+[   62.490227]  dump_stack+0xe8/0x16e
+[   62.493771]  register_lock_class+0x11b8/0x1250
+[   62.498354]  ? mark_held_locks+0x9f/0xe0
+[   62.502420]  ? _raw_spin_unlock_irq+0x29/0x40
+[   62.506916]  ? is_dynamic_key+0x1b0/0x1b0
+[   62.511108]  ? _raw_spin_unlock_irq+0x29/0x40
+[   62.515590]  ? finish_task_switch+0x121/0x6b0
+[   62.520076]  ? finish_task_switch+0xf3/0x6b0
+[   62.524472]  ? __switch_to_asm+0x34/0x70
+[   62.528517]  ? __switch_to_asm+0x40/0x70
+[   62.533434]  __lock_acquire+0xfb/0x37c0
+[   62.537406]  ? firmware_map_remove+0x1a1/0x1a1
+[   62.541974]  ? mark_held_locks+0xe0/0xe0
+[   62.546038]  ? _cond_resched+0x15/0x30
+[   62.549940]  ? usb_kill_urb+0x19d/0x2c0
+[   62.553911]  lock_acquire+0x10d/0x2f0
+[   62.557709]  ? del_timer_sync+0x5/0x150
+[   62.561691]  del_timer_sync+0x4c/0x150
+[   62.565561]  ? del_timer_sync+0x5/0x150
+[   62.569528]  mwifiex_unregister_dev+0x41b/0x690
+[   62.574191]  _mwifiex_fw_dpc+0x711/0xdd0
+[   62.578237]  ? mwifiex_usb_prepare_tx_aggr_skb+0x8c0/0x8c0
+[   62.583850]  ? slab_free_freelist_hook+0x5e/0x140
+[   62.588676]  ? mwifiex_free_adapter+0x3a0/0x3a0
+[   62.593328]  ? _request_firmware+0x913/0x10d0
+[   62.597808]  ? kfree+0xce/0x290
+[   62.601076]  ? _request_firmware+0x10b/0x10d0
+[   62.605590]  ? assign_fw+0x410/0x410
+[   62.609301]  ? find_held_lock+0x2d/0x110
+[   62.613349]  ? process_one_work+0x831/0x1580
+[   62.617748]  ? _mwifiex_fw_dpc+0xdd0/0xdd0
+[   62.621999]  request_firmware_work_func+0x12d/0x249
+[   62.627018]  ? request_firmware_into_buf+0x90/0x90
+[   62.631942]  ? _raw_spin_unlock_irq+0x29/0x40
+[   62.636692]  process_one_work+0x90f/0x1580
+[   62.640914]  ? wq_pool_ids_show+0x300/0x300
+[   62.645222]  ? do_raw_spin_lock+0x11f/0x290
+[   62.649618]  worker_thread+0x9b/0xe20
+[   62.653413]  ? process_one_work+0x1580/0x1580
+[   62.657903]  kthread+0x313/0x420
+[   62.661248]  ? kthread_park+0x1a0/0x1a0
+[   62.665209]  ret_from_fork+0x3a/0x50

@@ -1,0 +1,21 @@
+# Copyright 2021 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+config:
+ - MEDIA_SUPPORT
+ - MEDIA_SUPPORT_FILTER: [v5.8]
+ - MEDIA_SUBDRV_AUTOSELECT: n
+ - MEDIA_CAMERA_SUPPORT
+ - MEDIA_TEST_SUPPORT: [v5.8]
+ - MEDIA_USB_SUPPORT
+ - MEDIA_PCI_SUPPORT: n
+ - USB_VIDEO_CLASS
+ - VIDEO_IPU3_CIO2: n
+ - DVB_TEST_DRIVERS: [v5.11]
+ - DVB_VIDTV: [v5.11]
+ - V4L_TEST_DRIVERS: [v5.8]
+ - VIDEO_VIMC: [v5.8]
+ - VIDEO_VIVID: [v5.8]
+ - VIDEO_VIVID_CEC: [v5.8]
+ - VIDEO_VIM2M: [v5.8]
+ - VIDEO_VICODEC: [v5.8]

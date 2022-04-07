@@ -1,0 +1,61 @@
+# Copyright 2016 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/net.h>
+include <uapi/linux/netrom.h>
+include <uapi/linux/ax25.h>
+include <asm/ioctls.h>
+
+resource sock_netrom[sock]
+
+syz_init_net_socket$netrom(domain const[AF_NETROM], type const[SOCK_SEQPACKET], proto const[0]) sock_netrom
+bind$netrom(fd sock_netrom, addr ptr[in, full_sockaddr_ax25], addrlen len[addr])
+connect$netrom(fd sock_netrom, addr ptr[in, full_sockaddr_ax25], addrlen len[addr])
+accept$netrom(fd sock_netrom, peer ptr[out, full_sockaddr_ax25, opt], peerlen ptr[inout, len[peer, int32]]) sock_netrom
+accept4$netrom(fd sock_netrom, peer ptr[out, full_sockaddr_ax25, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_netrom
+sendto$netrom(fd sock_netrom, buf ptr[in, array[int8]], len len[buf], f flags[send_flags], addr ptr[in, full_sockaddr_ax25, opt], addrlen len[addr])
+recvfrom$netrom(fd sock_netrom, buf ptr[out, array[int8]], len len[buf], f flags[recv_flags], addr ptr[in, full_sockaddr_ax25, opt], addrlen len[addr])
+getsockname$netrom(fd sock_netrom, addr ptr[out, full_sockaddr_ax25], addrlen ptr[inout, len[addr, int32]])
+getpeername$netrom(fd sock_netrom, peer ptr[out, full_sockaddr_ax25], peerlen ptr[inout, len[peer, int32]])
+
+setsockopt$netrom_NETROM_T1(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_T1], arg ptr[in, int32], arglen len[arg])
+setsockopt$netrom_NETROM_T2(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_T2], arg ptr[in, int32], arglen len[arg])
+setsockopt$netrom_NETROM_N2(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_N2], arg ptr[in, int32], arglen len[arg])
+setsockopt$netrom_NETROM_T4(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_T4], arg ptr[in, int32], arglen len[arg])
+setsockopt$netrom_NETROM_IDLE(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_IDLE], arg ptr[in, int32], arglen len[arg])
+
+getsockopt$netrom_NETROM_T1(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_T1], arg ptr[out, int32], arglen ptr[inout, len[arg, int32]])
+getsockopt$netrom_NETROM_T2(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_T2], arg ptr[in, int32], arglen ptr[inout, len[arg, int32]])
+getsockopt$netrom_NETROM_N2(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_N2], arg ptr[in, int32], arglen ptr[inout, len[arg, int32]])
+getsockopt$netrom_NETROM_T4(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_T4], arg ptr[in, int32], arglen ptr[inout, len[arg, int32]])
+getsockopt$netrom_NETROM_IDLE(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_IDLE], arg ptr[in, int32], arglen ptr[inout, len[arg, int32]])
+
+ioctl$sock_netrom_SIOCADDRT(fd sock_netrom, cmd const[SIOCADDRT], arg ptr[in, nr_route_struct])
+ioctl$sock_netrom_SIOCDELRT(fd sock_netrom, cmd const[SIOCDELRT], arg ptr[in, nr_route_struct])
+ioctl$SIOCNRDECOBS(fd sock_netrom, cmd const[SIOCNRDECOBS])
+
+# This is what we assign to nr* devices in initialize_netdevices_init: bb:bb:bb:bb:bb:00:%02hx
+address_netrom_dev {
+	b0	const[0xbb, int8]
+	b1	const[0xbb, int8]
+	b2	const[0xbb, int8]
+	b3	const[0xbb, int8]
+	b4	const[0xbb, int8]
+	b5	const[0x0, int8]
+	b6	proc[0, 1, int8]
+}
+
+nr_route_struct {
+	type		flags[nr_route_type, int32]
+	callsign	ax25_address
+	device		ax25_devname
+	quality		int32
+	mnemonic	string[nr_route_mnemonics, 7]
+	neighbour	ax25_address
+	obs_count	int32
+	ndigis		int32[0:AX25_MAX_DIGIS]
+	digipeaters	array[ax25_address, AX25_MAX_DIGIS]
+}
+
+nr_route_type = NETROM_NEIGH, NETROM_NODE
+nr_route_mnemonics = "syz0", "syz1"

@@ -1,0 +1,23 @@
+TITLE: panic: size_on_all_streams smaller than control length
+
+panic: size_on_all_streams = 2644 smaller than control length 4096
+cpuid = 0
+time = 1456
+KDB: stack backtrace:
+db_trace_self_wrapper() at db_trace_self_wrapper+0x47/frame 0xfffffe000c95b2f0
+vpanic() at vpanic+0x1e0/frame 0xfffffe000c95b350
+panic() at panic+0x43/frame 0xfffffe000c95b3b0
+sctp_deliver_reasm_check() at sctp_deliver_reasm_check+0x167c/frame 0xfffffe000c95b460
+sctp_process_data() at sctp_process_data+0x3bbc/frame 0xfffffe000c95b660
+sctp_common_input_processing() at sctp_common_input_processing+0xe9d/frame 0xfffffe000c95b7a0
+sctp_input_with_port() at sctp_input_with_port+0x30e/frame 0xfffffe000c95b890
+sctp_input() at sctp_input+0x1f/frame 0xfffffe000c95b8b0
+ip_input() at ip_input+0x2d1/frame 0xfffffe000c95b970
+swi_net() at swi_net+0x23b/frame 0xfffffe000c95b9f0
+ithread_loop() at ithread_loop+0x2f2/frame 0xfffffe000c95ba60
+fork_exit() at fork_exit+0xb0/frame 0xfffffe000c95bab0
+fork_trampoline() at fork_trampoline+0xe/frame 0xfffffe000c95bab0
+--- trap 0, rip = 0, rsp = 0, rbp = 0 ---
+KDB: enter: panic
+[ thread pid 12 tid 100016 ]
+Stopped at      kdb_enter+0x6a: movq    $0,kdb_why

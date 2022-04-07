@@ -1,0 +1,211 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+include <zircon/syscalls/exception.h>
+include <zircon/syscalls/object.h>
+include <zircon/syscalls/port.h>
+
+resource koid[int64]: 0
+
+zx_object_get_child(handle zx_handle, koid koid, rights flags[zx_rights], out ptr[out, zx_handle])
+zx_object_get_info$ZX_INFO_HANDLE_VALID(handle zx_handle, topic const[ZX_INFO_HANDLE_VALID], buffer const[0], buffer_size const[0], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_HANDLE_BASIC(handle zx_handle, topic const[ZX_INFO_HANDLE_BASIC], buffer ptr[out, zx_info_handle_basic], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_HANDLE_COUNT(handle zx_handle, topic const[ZX_INFO_HANDLE_COUNT], buffer ptr[out, zx_info_handle_count], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_PROCESS_HANDLE_STATS(handle zx_process, topic const[ZX_INFO_PROCESS_HANDLE_STATS], buffer ptr[out, zx_info_process_handle_stats], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_JOB(handle zx_process, topic const[ZX_INFO_JOB], buffer ptr[out, zx_info_job], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_PROCESS(handle zx_process, topic const[ZX_INFO_PROCESS], buffer ptr[out, zx_info_process], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_PROCESS_THREADS(handle zx_process, topic const[ZX_INFO_PROCESS_THREADS], buffer ptr[out, array[koid]], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_THREAD(handle zx_process, topic const[ZX_INFO_THREAD], buffer ptr[out, zx_info_thread], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_THREAD_EXCEPTION_REPORT(handle zx_thread, topic const[ZX_INFO_THREAD_EXCEPTION_REPORT], buffer ptr[out, zx_exception_report], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_THREAD_STATS(handle zx_thread, topic const[ZX_INFO_THREAD_STATS], buffer ptr[out, zx_info_thread_stats], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_CPU_STATS(root_resource zx_root_resource, topic const[ZX_INFO_CPU_STATS], buffer ptr[out, array[zx_info_cpu_stats]], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_VMAR(handle zx_vmar, topic const[ZX_INFO_VMAR], buffer ptr[out, zx_info_vmar], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_VMO(handle zx_vmar, topic const[ZX_INFO_VMO], buffer ptr[out, zx_info_vmo], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_SOCKET(handle zx_vmar, topic const[ZX_INFO_SOCKET], buffer ptr[out, zx_info_socket], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_JOB_CHILDREN(handle zx_job, topic const[ZX_INFO_JOB_CHILDREN], buffer ptr[out, array[koid]], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_JOB_PROCESSES(handle zx_job, topic const[ZX_INFO_JOB_PROCESSES], buffer ptr[out, array[koid]], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_TASK_STATS(handle zx_process, topic const[ZX_INFO_TASK_STATS], buffer ptr[out, zx_info_task_stats], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_PROCESS_MAPS(handle zx_process, topic const[ZX_INFO_PROCESS_MAPS], buffer ptr[out, array[zx_info_maps]], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_PROCESS_VMOS(handle zx_process, topic const[ZX_INFO_PROCESS_VMOS], buffer ptr[out, array[zx_info_vmo]], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_KMEM_STATS(root_resource zx_root_resource, topic const[ZX_INFO_KMEM_STATS], buffer ptr[out, zx_info_kmem_stats], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+# TODO: what is handle type here?
+zx_object_get_info$ZX_INFO_RESOURCE(resource_handle zx_handle, topic const[ZX_INFO_RESOURCE], buffer ptr[out, zx_info_resource], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_BTI(resource_handle zx_handle, topic const[ZX_INFO_BTI], buffer ptr[out, zx_info_bti], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+# TODO: detail properties
+zx_object_get_property(handle zx_handle, property int32, value ptr[out, array[int8]], size len[value])
+zx_object_set_property(handle zx_handle, property int32, value ptr[in, array[int8]], size len[value])
+zx_object_signal(handle zx_handle, clear_mask int32, set_mask int32)
+zx_object_signal_peer(handle zx_handle, clear_mask int32, set_mask int32)
+zx_object_wait_many(items ptr[in, array[zx_wait_item]], count len[items], deadline zx_time)
+zx_object_wait_one(handle zx_handle, signals int32, deadline zx_time, observed ptr[out, int32])
+zx_object_wait_async(handle zx_handle, port zx_port, key proc[1000, 4], signals int32, options flags[wait_async_options])
+
+wait_async_options = ZX_WAIT_ASYNC_ONCE
+
+zx_info_handle_basic {
+	koid		koid
+	rights		int32
+	type		int32
+	related_koid	koid
+	props		int32
+}
+
+zx_info_handle_count {
+	count	int32
+}
+
+zx_info_process_handle_stats {
+	handle_count	array[int32, ZX_OBJ_TYPE_UPPER_BOUND]
+}
+
+zx_info_job {
+	return_code		int64
+	exited			int8
+	kill_on_oom		int8
+	debugger_attached	int8
+}
+
+zx_info_process {
+	return_code		int64
+	started			int8
+	exited			int8
+	debugger_attached	int8
+}
+
+zx_info_thread {
+	state				int32
+	wait_exception_channel_type	int32
+}
+
+zx_exception_report {
+	header	zx_exception_header
+	context	zx_exception_context
+}
+
+zx_info_thread_stats {
+	total_runtime	int64
+}
+
+zx_info_cpu_stats {
+	cpu_number		int32
+	flags			int32
+	idle_time		int64
+	reschedules		int64
+	context_switches	int64
+	irq_preempts		int64
+	preempts		int64
+	yields			int64
+	ints			int64
+	timer_ints		int64
+	timers			int64
+	page_faults		int64
+	exceptions		int64
+	syscalls		int64
+	reschedule_ipis		int64
+	generic_ipis		int64
+}
+
+zx_info_vmar {
+	base	intptr
+	len	intptr
+}
+
+zx_info_vmo {
+	koid		koid
+	name		array[int8, ZX_MAX_NAME_LEN]
+	size_bytes	int64
+	parent_koid	koid
+	num_children	intptr
+	num_mappings	intptr
+	share_count	intptr
+	flags		int32
+	committed_bytes	int64
+	handle_rights	int32
+	create_options	int32
+	cache_policy	int32
+}
+
+zx_info_socket {
+	options			int32
+	rx_buf_max		intptr
+	rx_buf_size		intptr
+	rx_buf_available	intptr
+	tx_buf_max		intptr
+	tx_buf_size		intptr
+}
+
+zx_info_task_stats {
+	mem_mapped_bytes	intptr
+	mem_private_bytes	intptr
+	mem_shared_bytes	intptr
+	mem_scaled_shared_bytes	intptr
+}
+
+zx_info_maps {
+	name	array[int8, ZX_MAX_NAME_LEN]
+	base	intptr
+	size	intptr
+	depth	intptr
+	type	int32
+	mapping	zx_info_maps_mapping
+}
+
+zx_info_maps_mapping {
+	mmu_flags	int32
+	vmo_koid	koid
+	committed_pages	intptr
+}
+
+zx_info_kmem_stats {
+	total_bytes		int64
+	free_bytes		int64
+	wired_bytes		int64
+
+	total_heap_bytes	int64
+	free_heap_bytes		int64
+	vmo_bytes		int64
+	mmu_overhead_bytes	int64
+	ipc_bytes		int64
+	other_bytes		int64
+}
+
+zx_info_resource {
+	kind	int32
+	flags	int32
+	base	int64
+	size	intptr
+	name	array[int8, ZX_MAX_NAME_LEN]
+}
+
+zx_info_bti {
+	minimum_contiguity	int64
+	aspace_size		int64
+}
+
+zx_exception_header {
+	size	int32
+	type	int32
+}
+
+zx_exception_context [
+	x86_64	x86_64_exc_data
+	arm_64	arm64_exc_data
+]
+
+x86_64_exc_data {
+	vector		int64
+	err_code	int64
+	cr2		int64
+}
+
+arm64_exc_data {
+	esr	int32
+	far	int64
+}
+
+zx_wait_item {
+	handle	zx_handle
+	waitfor	int32
+	pending	int32
+}

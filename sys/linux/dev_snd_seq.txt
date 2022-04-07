@@ -1,0 +1,288 @@
+# Copyright 2015 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/asm/ioctl.h>
+include <uapi/linux/fcntl.h>
+include <uapi/linux/time.h>
+include <uapi/sound/asound.h>
+include <uapi/sound/asequencer.h>
+
+resource fd_sndseq[fd]
+
+openat$sndseq(fd const[AT_FDCWD], file ptr[in, string["/dev/snd/seq"]], flags flags[open_flags]) fd_sndseq
+write$sndseq(fd fd_sndseq, data ptr[in, array[snd_seq_event]], len bytesize[data])
+
+ioctl$SNDRV_SEQ_IOCTL_PVERSION(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_PVERSION], arg ptr[out, int32])
+ioctl$SNDRV_SEQ_IOCTL_CLIENT_ID(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_CLIENT_ID], arg ptr[out, int32])
+
+ioctl$SNDRV_SEQ_IOCTL_SYSTEM_INFO(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_SYSTEM_INFO], arg ptr[in, snd_seq_system_info])
+ioctl$SNDRV_SEQ_IOCTL_RUNNING_MODE(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_RUNNING_MODE], arg ptr[in, snd_seq_running_info])
+ioctl$SNDRV_SEQ_IOCTL_GET_CLIENT_INFO(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_GET_CLIENT_INFO], arg ptr[out, snd_seq_client_info])
+ioctl$SNDRV_SEQ_IOCTL_SET_CLIENT_INFO(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_SET_CLIENT_INFO], arg ptr[in, snd_seq_client_info])
+ioctl$SNDRV_SEQ_IOCTL_CREATE_PORT(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_CREATE_PORT], arg ptr[in, snd_seq_port_info])
+ioctl$SNDRV_SEQ_IOCTL_DELETE_PORT(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_DELETE_PORT], arg ptr[in, snd_seq_port_info])
+ioctl$SNDRV_SEQ_IOCTL_GET_PORT_INFO(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_GET_PORT_INFO], arg ptr[out, snd_seq_port_info])
+ioctl$SNDRV_SEQ_IOCTL_SET_PORT_INFO(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_SET_PORT_INFO], arg ptr[in, snd_seq_port_info])
+ioctl$SNDRV_SEQ_IOCTL_SUBSCRIBE_PORT(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_SUBSCRIBE_PORT], arg ptr[in, snd_seq_port_subscribe])
+ioctl$SNDRV_SEQ_IOCTL_UNSUBSCRIBE_PORT(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_UNSUBSCRIBE_PORT], arg ptr[in, snd_seq_port_subscribe])
+ioctl$SNDRV_SEQ_IOCTL_CREATE_QUEUE(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_CREATE_QUEUE], arg ptr[in, snd_seq_queue_info])
+ioctl$SNDRV_SEQ_IOCTL_DELETE_QUEUE(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_DELETE_QUEUE], arg ptr[in, snd_seq_queue_info])
+ioctl$SNDRV_SEQ_IOCTL_GET_QUEUE_INFO(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_GET_QUEUE_INFO], arg ptr[in, snd_seq_queue_info])
+ioctl$SNDRV_SEQ_IOCTL_SET_QUEUE_INFO(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_SET_QUEUE_INFO], arg ptr[in, snd_seq_queue_info])
+ioctl$SNDRV_SEQ_IOCTL_GET_NAMED_QUEUE(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_GET_NAMED_QUEUE], arg ptr[in, snd_seq_queue_info])
+ioctl$SNDRV_SEQ_IOCTL_GET_QUEUE_STATUS(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_GET_QUEUE_STATUS], arg ptr[in, snd_seq_queue_status])
+ioctl$SNDRV_SEQ_IOCTL_GET_QUEUE_TEMPO(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_GET_QUEUE_TEMPO], arg ptr[out, snd_seq_queue_status])
+ioctl$SNDRV_SEQ_IOCTL_SET_QUEUE_TEMPO(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_SET_QUEUE_TEMPO], arg ptr[in, snd_seq_queue_status])
+ioctl$SNDRV_SEQ_IOCTL_GET_QUEUE_TIMER(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_GET_QUEUE_TIMER], arg ptr[in, snd_seq_queue_timer])
+ioctl$SNDRV_SEQ_IOCTL_SET_QUEUE_TIMER(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_SET_QUEUE_TIMER], arg ptr[in, snd_seq_queue_timer])
+ioctl$SNDRV_SEQ_IOCTL_GET_QUEUE_CLIENT(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_GET_QUEUE_CLIENT], arg ptr[in, snd_seq_queue_client])
+ioctl$SNDRV_SEQ_IOCTL_SET_QUEUE_CLIENT(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_SET_QUEUE_CLIENT], arg ptr[in, snd_seq_queue_client])
+ioctl$SNDRV_SEQ_IOCTL_GET_CLIENT_POOL(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_GET_CLIENT_POOL], arg ptr[in, snd_seq_client_pool])
+ioctl$SNDRV_SEQ_IOCTL_SET_CLIENT_POOL(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_SET_CLIENT_POOL], arg ptr[in, snd_seq_client_pool])
+ioctl$SNDRV_SEQ_IOCTL_REMOVE_EVENTS(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_REMOVE_EVENTS], arg ptr[in, snd_seq_remove_events])
+ioctl$SNDRV_SEQ_IOCTL_QUERY_SUBS(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_QUERY_SUBS], arg ptr[in, snd_seq_query_subs])
+ioctl$SNDRV_SEQ_IOCTL_GET_SUBSCRIPTION(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_GET_SUBSCRIPTION], arg ptr[in, snd_seq_port_subscribe])
+ioctl$SNDRV_SEQ_IOCTL_QUERY_NEXT_CLIENT(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_QUERY_NEXT_CLIENT], arg ptr[in, snd_seq_client_info])
+ioctl$SNDRV_SEQ_IOCTL_QUERY_NEXT_PORT(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_QUERY_NEXT_PORT], arg ptr[in, snd_seq_port_info])
+
+snd_seq_client_type = NO_CLIENT, USER_CLIENT, KERNEL_CLIENT
+snd_seq_filter = SNDRV_SEQ_FILTER_BROADCAST, SNDRV_SEQ_FILTER_MULTICAST, SNDRV_SEQ_FILTER_BOUNCE, SNDRV_SEQ_FILTER_USE_EVENT
+snd_seq_port_cap = SNDRV_SEQ_PORT_CAP_READ, SNDRV_SEQ_PORT_CAP_WRITE, SNDRV_SEQ_PORT_CAP_SYNC_READ, SNDRV_SEQ_PORT_CAP_SYNC_WRITE, SNDRV_SEQ_PORT_CAP_DUPLEX, SNDRV_SEQ_PORT_CAP_SUBS_READ, SNDRV_SEQ_PORT_CAP_SUBS_WRITE, SNDRV_SEQ_PORT_CAP_NO_EXPORT
+snd_seq_port_type = SNDRV_SEQ_PORT_TYPE_SPECIFIC, SNDRV_SEQ_PORT_TYPE_MIDI_GENERIC, SNDRV_SEQ_PORT_TYPE_MIDI_GM, SNDRV_SEQ_PORT_TYPE_MIDI_GS, SNDRV_SEQ_PORT_TYPE_MIDI_XG, SNDRV_SEQ_PORT_TYPE_MIDI_MT32, SNDRV_SEQ_PORT_TYPE_MIDI_GM2, SNDRV_SEQ_PORT_TYPE_SYNTH, SNDRV_SEQ_PORT_TYPE_DIRECT_SAMPLE, SNDRV_SEQ_PORT_TYPE_SAMPLE, SNDRV_SEQ_PORT_TYPE_HARDWARE, SNDRV_SEQ_PORT_TYPE_SOFTWARE, SNDRV_SEQ_PORT_TYPE_SYNTHESIZER, SNDRV_SEQ_PORT_TYPE_PORT, SNDRV_SEQ_PORT_TYPE_APPLICATION
+snd_seq_port_flags = SNDRV_SEQ_PORT_FLG_GIVEN_PORT, SNDRV_SEQ_PORT_FLG_TIMESTAMP, SNDRV_SEQ_PORT_FLG_TIME_REAL
+snd_seq_sub_flags = SNDRV_SEQ_PORT_SUBS_EXCLUSIVE, SNDRV_SEQ_PORT_SUBS_TIMESTAMP, SNDRV_SEQ_PORT_SUBS_TIME_REAL
+snd_seq_timer_type = SNDRV_SEQ_TIMER_ALSA, SNDRV_SEQ_TIMER_MIDI_CLOCK, SNDRV_SEQ_TIMER_MIDI_TICK
+snd_seq_remove_mode = SNDRV_SEQ_REMOVE_INPUT, SNDRV_SEQ_REMOVE_OUTPUT, SNDRV_SEQ_REMOVE_DEST, SNDRV_SEQ_REMOVE_DEST_CHANNEL, SNDRV_SEQ_REMOVE_TIME_BEFORE, SNDRV_SEQ_REMOVE_TIME_AFTER, SNDRV_SEQ_REMOVE_TIME_TICK, SNDRV_SEQ_REMOVE_EVENT_TYPE, SNDRV_SEQ_REMOVE_IGNORE_OFF, SNDRV_SEQ_REMOVE_TAG_MATCH
+snd_timer_class = SNDRV_TIMER_CLASS_NONE, SNDRV_TIMER_CLASS_SLAVE, SNDRV_TIMER_CLASS_GLOBAL, SNDRV_TIMER_CLASS_CARD, SNDRV_TIMER_CLASS_PCM
+snd_timer_sclass = SNDRV_TIMER_SCLASS_NONE, SNDRV_TIMER_SCLASS_APPLICATION, SNDRV_TIMER_SCLASS_SEQUENCER, SNDRV_TIMER_SCLASS_OSS_SEQUENCER
+snd_timer_dev = SNDRV_TIMER_GLOBAL_SYSTEM, SNDRV_TIMER_GLOBAL_RTC, SNDRV_TIMER_GLOBAL_HPET, SNDRV_TIMER_GLOBAL_HRTIMER
+snd_seq_subs_type = SNDRV_SEQ_QUERY_SUBS_READ, SNDRV_SEQ_QUERY_SUBS_WRITE
+
+snd_seq_client_name = "client0", "client1"
+snd_seq_port_name = "port0", "port1"
+snd_seq_queue_name = "queue0", "queue1"
+
+snd_seq_system_info {
+	queues	int32
+	clients	int32
+	ports	int32
+	channel	int32
+	nclient	int32
+	nqueue	int32
+	pad	array[const[0, int8], 24]
+}
+
+snd_seq_running_info {
+	client	int8
+	bigend	int8
+	cpumode	int8
+	pad1	const[0, int8]
+	pad2	array[const[0, int8], 12]
+}
+
+snd_seq_client_info {
+	client			int32
+	type			flags[snd_seq_client_type, int32]
+	name			string[snd_seq_client_name, 64]
+	filter			flags[snd_seq_filter, int32]
+	multicast_filter	array[int8, 8]
+	event_filter		array[int8, 32]
+	num_ports		int32
+	event_lost		int32
+	card			const[0, int32]
+	pid			const[0, int32]
+	pad			array[const[0, int8], 56]
+}
+
+snd_seq_port_info {
+	addr		snd_seq_addr
+	name		string[snd_seq_port_name, 64]
+	capability	flags[snd_seq_port_cap, int32]
+	type		flags[snd_seq_port_type, int32]
+	midi_channels	int32
+	midi_voices	int32
+	synth_voices	int32
+	read_use	int32
+	write_use	int32
+	kernel		const[0, intptr]
+	flags		flags[snd_seq_port_flags, int32]
+	time_queue	int8
+	pad		array[const[0, int8], 59]
+}
+
+snd_seq_port_subscribe {
+	sender	snd_seq_addr
+	dest	snd_seq_addr
+	voices	int32
+	flags	flags[snd_seq_sub_flags, int32]
+	queue	int8
+	pad1	array[const[0, int8], 3]
+	pad2	array[const[0, int8], 64]
+}
+
+snd_seq_queue_info {
+	queue		int32
+	owner		int32
+	locked		int32:1
+	name		string[snd_seq_queue_name, 64]
+	flags		int32
+	reserved	array[const[0, int8], 60]
+}
+
+snd_seq_queue_status {
+	queue	int32
+	events	int32
+	tick	int32
+	time	snd_seq_real_time
+	running	int32
+	flags	int32
+	pad	array[const[0, int8], 64]
+}
+
+snd_seq_queue_timer {
+	queue		int32
+	type		flags[snd_seq_timer_type, int32]
+	id		snd_timer_id
+	resolution	int32
+	pad		array[const[0, int8], 64]
+}
+
+snd_timer_id {
+	class	flags[snd_timer_class, int32]
+	sclass	flags[snd_timer_sclass, int32]
+	card	int32
+	dev	flags[snd_timer_dev, int32]
+	subdev	int32
+}
+
+snd_seq_queue_client {
+	queue	int32
+	client	int32
+	used	int32
+	pad	array[const[0, int8], 64]
+}
+
+snd_seq_client_pool {
+	client	int32
+	opool	int32
+	ipool	int32
+	oroom	int32
+	ofree	int32
+	ifree	int32
+	pad	array[const[0, int8], 64]
+}
+
+snd_seq_remove_events {
+	remove_mode	flags[snd_seq_remove_mode, int32]
+	time		snd_seq_timestamp
+	queue		int8
+	dest		snd_seq_addr
+	channel		int8
+	type		flags[snd_seq_client_type, int32]
+	tag		int8
+	pad		array[const[0, int32], 10]
+}
+
+snd_seq_query_subs {
+	root	snd_seq_addr
+	type	flags[snd_seq_subs_type, int32]
+	index	int32
+	nsubs	int32
+	addr	snd_seq_addr
+	queue	int8
+	flags	int32
+	pad	array[const[0, int8], 64]
+}
+
+snd_seq_event {
+	type	int8
+	flags	int8
+	tag	int8
+	queue	int8
+	time	snd_seq_timestamp
+	src	snd_seq_addr
+	dst	snd_seq_addr
+	data	snd_seq_event_data
+}
+
+snd_seq_event_data [
+	note	snd_seq_ev_note
+	control	snd_seq_ev_ctrl
+	raw8	snd_seq_ev_raw8
+	raw32	snd_seq_ev_raw32
+	ext	snd_seq_ev_ext
+	queue	snd_seq_ev_queue_control
+	time	snd_seq_timestamp
+	addr	snd_seq_addr
+	connect	snd_seq_connect
+	result	snd_seq_result
+	quote	snd_seq_ev_quote
+]
+
+snd_seq_ev_note {
+	chan	int8
+	note	int8
+	veloc	int8
+	oveloc	int8
+	dur	int32
+}
+
+snd_seq_ev_ctrl {
+	chan	int8
+	param	int32
+	val	int32
+}
+
+snd_seq_ev_raw8 {
+	data	array[int8, 12]
+}
+
+snd_seq_ev_raw32 {
+	data	array[int32, 3]
+}
+
+snd_seq_ev_ext {
+	len	len[ptr, int32]
+	ptr	buffer[in]
+} [packed]
+
+snd_seq_ev_queue_control {
+	queue	int8
+	param	snd_seq_queue_skew
+}
+
+snd_seq_connect {
+	sender	snd_seq_addr
+	dest	snd_seq_addr
+}
+
+snd_seq_result {
+	event	int32
+	result	int32
+}
+
+snd_seq_ev_quote {
+	origin	snd_seq_addr
+	val	int16
+	event	ptr[in, snd_seq_event, opt]
+} [packed]
+
+snd_seq_queue_skew {
+	val	int32
+	base	int32
+}
+
+snd_seq_timestamp [
+	tick	int32
+	time	snd_seq_real_time
+]
+
+snd_seq_real_time {
+	tv_sec	int32
+	tv_nsec	int32
+}
+
+snd_seq_addr {
+	client	int8
+	port	int8
+}

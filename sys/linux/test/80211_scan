@@ -1,0 +1,23 @@
+# requires: -sandbox=namespace
+
+r0 = socket$nl_generic(0x10, 0x3, 0x10)
+r1 = syz_genetlink_get_family_id$nl80211(&(0x7f0000000200)='nl80211\x00', 0xffffffffffffffff)
+ioctl$sock_SIOCGIFINDEX_80211(r0, 0x8933, &(0x7f0000000700)={'wlan1\x00', <r2=>0x0})
+
+# Set station mode for wlan1.
+
+sendmsg$NL80211_CMD_SET_INTERFACE(r0, &(0x7f0000000340)={0x0, 0x0, &(0x7f0000000300)={&(0x7f0000000240)={AUTO, r1, 0x5, 0x0, 0x0, {{AUTO, AUTO, AUTO}, {@val={AUTO, AUTO, r2, nil}, @void}}, [@NL80211_ATTR_IFTYPE={AUTO, AUTO, 0x2, nil}]}, AUTO}, AUTO, AUTO, AUTO, 0x0}, 0x0)
+
+# Trigger a scan.
+
+sendmsg$NL80211_CMD_TRIGGER_SCAN(r0, &(0x7f0000000340)={0x0, 0x0, &(0x7f0000000300)={&(0x7f0000000240)={AUTO, r1, 0x5, 0x0, 0x0, {{AUTO, AUTO, AUTO}, {@val={AUTO, AUTO, r2, nil}, @void}}, [@NL80211_ATTR_IE={AUTO, AUTO, [@random={0xdd, AUTO, 'abcdefghijk'}], nil}, @NL80211_ATTR_SCAN_SSIDS={AUTO, AUTO, AUTO, AUTO, [{AUTO, AUTO, @default_ap_ssid, nil}], nil}]}, AUTO}, AUTO, AUTO, AUTO, 0x0}, 0x0)
+
+# Inject a beacon.
+
+syz_80211_inject_frame(&(0x7f0000000300)=@device_b, &AUTO=@mgmt_frame=@beacon={@wo_ht={{AUTO, AUTO, AUTO, AUTO, AUTO, 0, 0, 0, 0, AUTO, 0}, {0, 0}, @device_b, @device_a, @from_mac=@device_a, {0,0}}, 0x0, @default, 0x1, @val={AUTO, AUTO, @default_ap_ssid}, @val={AUTO, AUTO, [{0x2,0x1}, {0x4,0x1}, {0xb,0x1}, {0x16,0x1}, {0x0c,0x0}, {0x12,0x0}, {0x18,0x0}, {0x24, 0x0}]}, @void, @void, @void, @void, @void, @void, @void, @void, @void, @void, @void, []}, AUTO)
+
+# Wait 5 ms and inject a probe response.
+
+nanosleep(&AUTO={0x0,0x4C4B40}, &AUTO={0,0})
+
+syz_80211_inject_frame(&(0x7f0000000300)=@device_b, &(0x7f0000000340)=@mgmt_frame=@probe_response={@wo_ht={{AUTO, AUTO, AUTO, AUTO, AUTO, 0, 0, 0, 0, AUTO, 0}, {0, 0}, @device_b, @device_a, @from_mac=@device_a, {0,0}}, 0x0, @default, 0x1, @val={AUTO, AUTO, @default_ap_ssid}, @val={AUTO, AUTO, [{0x2,0x1}, {0x4,0x1}, {0xb,0x1}, {0x16,0x1}, {0x0c,0}, {0x12,0x0}, {0x18,0x0}, {0x24,0x0}]}, @void, @void, @void, @void, @void, @void, []}, AUTO)

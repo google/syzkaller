@@ -1,0 +1,108 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/asm/ioctl.h>
+include <uapi/linux/fcntl.h>
+include <uapi/linux/soundcard.h>
+
+resource fd_mixer[fd]
+resource fd_dsp[fd_mixer]
+
+openat$mixer(fd const[AT_FDCWD], file ptr[in, string["/dev/mixer"]], flags flags[open_flags], mode const[0]) fd_mixer
+openat$dsp(fd const[AT_FDCWD], file ptr[in, string["/dev/dsp"]], flags flags[open_flags], mode const[0]) fd_dsp
+openat$dsp1(fd const[AT_FDCWD], file ptr[in, string["/dev/dsp1"]], flags flags[open_flags], mode const[0]) fd_dsp
+openat$adsp1(fd const[AT_FDCWD], file ptr[in, string["/dev/adsp1"]], flags flags[open_flags], mode const[0]) fd_dsp
+openat$audio(fd const[AT_FDCWD], file ptr[in, string["/dev/audio"]], flags flags[open_flags], mode const[0]) fd_dsp
+openat$audio1(fd const[AT_FDCWD], file ptr[in, string["/dev/audio1"]], flags flags[open_flags], mode const[0]) fd_dsp
+
+write$dsp(fd fd_dsp, data ptr[in, array[int8]], len bytesize[data])
+read$dsp(fd fd_dsp, data ptr[out, array[int8]], len bytesize[data])
+mmap$dsp(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_dsp, offset const[0])
+
+ioctl$SNDCTL_DSP_RESET(fd fd_dsp, cmd const[SNDCTL_DSP_RESET], arg const[0])
+ioctl$SNDCTL_DSP_SYNC(fd fd_dsp, cmd const[SNDCTL_DSP_SYNC], arg const[0])
+ioctl$SNDCTL_DSP_SPEED(fd fd_dsp, cmd const[SNDCTL_DSP_SPEED], arg ptr[in, int32])
+ioctl$SNDCTL_DSP_STEREO(fd fd_dsp, cmd const[SNDCTL_DSP_STEREO], arg ptr[in, bool32])
+ioctl$SNDCTL_DSP_GETBLKSIZE(fd fd_dsp, cmd const[SNDCTL_DSP_GETBLKSIZE], arg ptr[out, int32])
+ioctl$SNDCTL_DSP_CHANNELS(fd fd_dsp, cmd const[SNDCTL_DSP_CHANNELS], arg ptr[in, int32])
+ioctl$SNDCTL_DSP_POST(fd fd_dsp, cmd const[SNDCTL_DSP_POST], arg const[0])
+ioctl$SNDCTL_DSP_SUBDIVIDE(fd fd_dsp, cmd const[SNDCTL_DSP_SUBDIVIDE], arg ptr[in, int32])
+ioctl$SNDCTL_DSP_SETFRAGMENT(fd fd_dsp, cmd const[SNDCTL_DSP_SETFRAGMENT], arg ptr[in, int32])
+ioctl$SNDCTL_DSP_GETFMTS(fd fd_dsp, cmd const[SNDCTL_DSP_GETFMTS], arg ptr[in, int32])
+ioctl$SNDCTL_DSP_SETFMT(fd fd_dsp, cmd const[SNDCTL_DSP_SETFMT], arg ptr[in, int32])
+ioctl$SNDCTL_DSP_GETOSPACE(fd fd_dsp, cmd const[SNDCTL_DSP_GETOSPACE], arg ptr[out, array[int8, AUFIO_BUF_INFO_SIZE]])
+ioctl$SNDCTL_DSP_GETISPACE(fd fd_dsp, cmd const[SNDCTL_DSP_GETISPACE], arg ptr[out, array[int8, AUFIO_BUF_INFO_SIZE]])
+ioctl$SNDCTL_DSP_NONBLOCK(fd fd_dsp, cmd const[SNDCTL_DSP_NONBLOCK], arg const[0])
+ioctl$SNDCTL_DSP_GETCAPS(fd fd_dsp, cmd const[SNDCTL_DSP_GETCAPS], arg ptr[out, int32])
+ioctl$SNDCTL_DSP_GETTRIGGER(fd fd_dsp, cmd const[SNDCTL_DSP_GETTRIGGER], arg ptr[out, int32])
+ioctl$SNDCTL_DSP_SETTRIGGER(fd fd_dsp, cmd const[SNDCTL_DSP_SETTRIGGER], arg ptr[in, int32])
+ioctl$SNDCTL_DSP_GETIPTR(fd fd_dsp, cmd const[SNDCTL_DSP_GETIPTR], arg ptr[out, array[int8, COUNT_INFO_SIZE]])
+ioctl$SNDCTL_DSP_GETOPTR(fd fd_dsp, cmd const[SNDCTL_DSP_GETOPTR], arg ptr[out, array[int8, COUNT_INFO_SIZE]])
+ioctl$SNDCTL_DSP_SETDUPLEX(fd fd_dsp, cmd const[SNDCTL_DSP_SETDUPLEX], arg const[0])
+ioctl$SNDCTL_DSP_GETODELAY(fd fd_dsp, cmd const[SNDCTL_DSP_GETODELAY], arg ptr[out, int32])
+ioctl$SOUND_PCM_READ_RATE(fd fd_dsp, cmd const[SOUND_PCM_READ_RATE], arg ptr[out, int32])
+ioctl$SOUND_PCM_READ_CHANNELS(fd fd_dsp, cmd const[SOUND_PCM_READ_CHANNELS], arg ptr[out, int32])
+ioctl$SOUND_PCM_READ_BITS(fd fd_dsp, cmd const[SOUND_PCM_READ_BITS], arg ptr[out, int32])
+
+# /dev/mixer
+ioctl$SOUND_OLD_MIXER_INFO(fd fd_mixer, cmd const[SOUND_OLD_MIXER_INFO], arg ptr[out, array[int8, OLD_MIXED_INFO_SIZE]])
+ioctl$SOUND_MIXER_INFO(fd fd_mixer, cmd const[SOUND_MIXER_INFO], arg ptr[out, array[int8, MIXER_INFO_SIZE]])
+ioctl$SOUND_MIXER_WRITE_RECSRC(fd fd_mixer, cmd const[SOUND_MIXER_WRITE_RECSRC], arg ptr[inout, int32])
+ioctl$mixer_OSS_GETVERSION(fd fd_mixer, cmd const[OSS_GETVERSION], arg ptr[out, int32])
+ioctl$mixer_OSS_ALSAEMULVER(fd fd_mixer, cmd const[OSS_ALSAEMULVER], arg ptr[out, int32])
+ioctl$SOUND_MIXER_READ_DEVMASK(fd fd_mixer, cmd const[SOUND_MIXER_READ_DEVMASK], arg ptr[out, int32])
+ioctl$SOUND_MIXER_READ_STEREODEVS(fd fd_mixer, cmd const[SOUND_MIXER_READ_STEREODEVS], arg ptr[out, int32])
+ioctl$SOUND_MIXER_READ_RECMASK(fd fd_mixer, cmd const[SOUND_MIXER_READ_RECMASK], arg ptr[out, int32])
+ioctl$SOUND_MIXER_READ_CAPS(fd fd_mixer, cmd const[SOUND_MIXER_READ_CAPS], arg ptr[out, int32])
+ioctl$SOUND_MIXER_READ_RECSRC(fd fd_mixer, cmd const[SOUND_MIXER_READ_RECSRC], arg ptr[out, int32])
+ioctl$SOUND_MIXER_WRITE_VOLUME(fd fd_mixer, cmd int32[SOUND_MIXER_WRITE_VOLUME:SOUND_MIXER_WRITE_ONOFF_MAX], arg ptr[in, int32[0:100]])
+ioctl$SOUND_MIXER_READ_VOLUME(fd fd_mixer, cmd int32[SOUND_MIXER_READ_VOLUME:SOUND_MIXER_READ_ONOFF_MAX], arg ptr[out, int32])
+
+# /proc/asound/card*/oss_mixer
+resource fd_proc_mixer[fd]
+oss_mixer_proc_files = "/proc/asound/card0/oss_mixer", "/proc/asound/card1/oss_mixer", "/proc/asound/card2/oss_mixer", "/proc/asound/card3/oss_mixer"
+
+openat$proc_mixer(fd const[AT_FDCWD], file ptr[in, string[oss_mixer_proc_files]], flags flags[open_flags], mode const[0]) fd_proc_mixer
+read$proc_mixer(fd fd_proc_mixer, data ptr[out, array[int8]], len bytesize[data])
+write$proc_mixer(fd fd_proc_mixer, data ptr[in, array[oss_mixer_input_line]], len bytesize[data])
+
+# The input to write$proc_mixer can consist of several lines.
+# The format of each line should be:
+# <oss_mixer_name>[ '<alsa_source_names>' <index>]\n
+# e.g. "VOLUME\nBASS 'Line Capture Switch' 123\n"
+
+# 10 = '\n'
+oss_mixer_input_line {
+	name	stringnoz[oss_mixer_names]
+	body	optional[oss_mixer_input_body]
+	newline	const[10, int8]
+} [packed]
+
+# index should be intptr[0:0x4000], but only 0 works on qemu currently.
+oss_mixer_input_body {
+	sep1		stringnoz[" '"]
+	alsa_source	stringnoz[alsa_source_names]
+	sep2		stringnoz["' "]
+	index		fmt[dec, intptr[0:0]]
+} [packed]
+
+oss_mixer_names = "VOLUME", "BASS", "TREBLE", "SYNTH", "PCM", "SPEAKER", "LINE", "MIC", "CD", "IMIX", "ALTPCM", "RECLEV", "IGAIN", "OGAIN", "LINE1", "LINE2", "LINE3", "DIGITAL1", "DIGITAL2", "DIGITAL3", "PHONEIN", "PHONEOUT", "VIDEO", "RADIO", "MONITOR"
+alsa_source_names = "Master", "Master Capture", "Master Capture Switch", "Master Playback", "Master Playback Volume", "Master Playback Switch", "Synth", "Synth Capture", "Synth Capture Switch", "Line", "Line Capture", "Line Capture Switch", "Mic", "Mic Capture", "Mic Capture Switch", "CD", "CD Capture", "CD Capture Switch", "Capture", "Capture Volume", "Capture Switch"
+
+# NEED: we could provide a special support for this to save typing and duplication here.
+# It could be eigher:
+#	csizeof[struct audio_buf_info]
+# Note: we probalby want to use sizeof as replacement for current bytesize.
+# Note: the argument is not necessary a struct, so we need to pronounce struct as well.
+# Or more generic form would be something along the following lines:
+#	ceval[`sizeof(struct audio_buf_info)`]
+# as replacement for any one-off defines.
+
+define AUFIO_BUF_INFO_SIZE	sizeof(struct audio_buf_info)
+define COUNT_INFO_SIZE	sizeof(struct count_info)
+define MIXER_INFO_SIZE	sizeof(struct mixer_info)
+define OLD_MIXED_INFO_SIZE	sizeof(struct _old_mixer_info)
+define SOUND_MIXER_WRITE_ONOFF_MAX	MIXER_WRITE(SOUND_ONOFF_MAX)
+define SOUND_MIXER_READ_ONOFF_MAX	MIXER_READ(SOUND_ONOFF_MAX)
+define OSS_ALSAEMULVER	_SIOR ('M', 249, int)
+_ = __NR_mmap2

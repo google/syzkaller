@@ -1,0 +1,185 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <ros/syscall.h>
+include <ros/mman.h>
+include <ros/fs.h>
+include <ros/procinfo.h>
+include <ros/resource.h>
+include <ros/event.h>
+include <ros/vmm.h>
+include <ros/trapframe.h>
+include <ros/fdtap.h>
+include <ros/bits/posix_signum.h>
+include <termios.h>
+
+resource fd[int32]: 0xffffffffffffffff, AT_FDCWD
+resource pid[int32]: 0, 0xffffffffffffffff
+
+syz_execute_func(text ptr[in, text[target]])
+
+openat(fromfd fd[opt], path ptr[in, filename], path_l len[path], oflag flags[open_flags], mode flags[open_mode]) fd
+read(fd fd, buf buffer[out], count len[buf])
+write(fd fd, buf buffer[in], count len[buf])
+close(fd fd)
+abort_sysc_fd(fd fd)
+stat(path ptr[in, filename], path_l len[path], statbuf ptr[out, array[int8, KSTAT_SIZE]])
+fstat(fd fd, statbuf ptr[out, array[int8, KSTAT_SIZE]])
+lstat(path ptr[in, filename], path_l len[path], statbuf ptr[out, array[int8, KSTAT_SIZE]])
+llseek(fd fd, offset_hi intptr, offset_lo intptr, result ptr[out, int64], whence flags[seek_whence])
+link(old ptr[in, filename], old_l len[old], new ptr[in, filename], new_l len[new])
+unlink(path ptr[in, filename], path_l len[path])
+symlink(old ptr[in, filename], old_l len[old], new ptr[in, filename], new_l len[new])
+readlink(path ptr[in, filename], path_l len[path], buf buffer[out], siz len[buf])
+chdir(pid pid[opt], path ptr[in, filename], path_l len[path])
+fchdir(pid pid[opt], fd fd)
+getcwd(buf buffer[out], size len[buf])
+rename(old_path ptr[in, filename], old_path_l len[old_path], new_path ptr[in, filename], new_path_l len[new_path])
+mkdir(path ptr[in, filename], path_l len[path], mode flags[open_mode])
+rmdir(path ptr[in, filename], path_l len[path])
+
+fcntl$F_DUPFD(fd fd, cmd const[F_DUPFD], arg fd, must_use_low boolptr) fd
+fcntl$F_GETFD(fd fd, cmd const[F_GETFD])
+fcntl$F_GETFL(fd fd, cmd const[F_GETFL])
+fcntl$F_SETFD(fd fd, cmd const[F_SETFD], flags flags[fcntl_flags])
+fcntl$F_SETFL(fd fd, cmd const[F_SETFL], flags flags[fcntl_status])
+fcntl$F_SYNC(fd fd, cmd const[F_SYNC])
+
+mmap(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd[opt], offset intptr)
+munmap(addr vma, len len[addr])
+mprotect(addr vma, len len[addr], prot flags[mmap_prot])
+
+fork()
+waitpid(pid pid, status ptr[out, int32], options flags[wait_options])
+nanosleep(req ptr[in, timespec], rem ptr[out, timespec, opt])
+
+open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, O_CLOEXEC, O_CREAT, O_DIRECTORY, O_EXCL, O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_SYNC, O_TRUNC, O_REMCLO, O_PATH
+open_mode = S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
+mmap_prot = PROT_EXEC, PROT_READ, PROT_WRITE, PROT_GROWSDOWN, PROT_GROWSUP
+mmap_flags = MAP_SHARED, MAP_PRIVATE, MAP_ANONYMOUS, MAP_DENYWRITE, MAP_EXECUTABLE, MAP_FIXED, MAP_GROWSDOWN, MAP_LOCKED, MAP_NONBLOCK, MAP_NORESERVE, MAP_POPULATE, MAP_STACK
+wait_options = WNOHANG, WUNTRACED
+fcntl_flags = FD_CLOEXEC
+fcntl_status = O_APPEND, O_NONBLOCK, O_CLOEXEC, O_REMCLO, O_PATH
+seek_whence = SEEK_SET, SEEK_CUR, SEEK_END
+
+timespec {
+	sec	intptr
+	nsec	intptr
+}
+
+block(usec intptr)
+cache_invalidate()
+getpcoreid()
+getvcoreid()
+proc_create(path ptr[in, filename], path_l len[path], argenv ptr[in, string], argenv_l len[argenv], flags boolptr) pid
+proc_run(pid pid[opt])
+proc_destroy(pid pid[opt], exitcode int32)
+proc_yield(being_nice bool32)
+change_vcore(vcoreid int32, enable_my_notif bool32)
+exec(path ptr[in, filename], path_l len[path], argenv ptr[in, string], argenv_l len[argenv])
+provision(target_pid pid[opt], res_type const[RES_CORES], res_val intptr)
+notify(target_pid pid[opt], ev_type flags[event_type], u_msg ptr[in, event_msg])
+self_notify(vcoreid int32, ev_type flags[event_type], u_msg ptr[in, event_msg], priv bool32)
+halt_core(usec intptr)
+change_to_m()
+poke_ksched(target_pid pid[opt], res_type const[0])
+abort_sysc(sysc intptr)
+populate_va(va vma, nr_pgs intptr)
+vmm_add_gpcs(nr_more_gpcs intptr, gpcis ptr[in, vmm_gpcore_init])
+vc_entry()
+pop_ctx(ctx ptr[in, user_context])
+vmm_poke_guest(guest_pcoreid int32)
+send_event(ev_q ptr[in, event_queue], u_msg ptr[in, event_msg], vcoreid int32)
+access(path ptr[in, filename], path_l len[path], mode flags[open_mode])
+umask(mask int32)
+wstat(path ptr[in, filename], path_l len[path], stat_m ptr[out, array[int8]], stat_sz bytesize[stat_m], flags const[0])
+fwstat(fd fd, stat_m ptr[out, array[int8]], stat_sz bytesize[stat_m], flags const[0])
+dup_fds_to(pid pid[opt], map ptr[in, array[childfdmap]], nentries len[map])
+tap_fds(tap_reqs ptr[in, array[fd_tap_req]], nr_reqs len[tap_reqs])
+tcgetattr(fd fd, termios_p ptr[out, array[int8, TERMIOS_SIZE]])
+nbind(src_path ptr[in, filename], src_l len[src_path], onto_path ptr[in, filename], onto_l len[onto_path], flag flags[bind_flags])
+nmount(fd fd, onto_path ptr[in, filename], onto_l len[onto_path], lag flags[bind_flags])
+nunmount(src_path ptr[in, filename], src_l len[src_path], onto_path ptr[in, filename], onto_l len[onto_path])
+fd2path(fd fd, u_buf ptr[out, array[int8]], len len[u_buf])
+
+# Depends on deprecated CONFIG_ARSC_SERVER.
+#init_arsc()
+
+vmm_ctl$VMM_CTL_GET_EXITS(cmd const[VMM_CTL_GET_EXITS])
+vmm_ctl$VMM_CTL_SET_EXITS(cmd const[VMM_CTL_SET_EXITS], arg flags[vmm_exits])
+vmm_ctl$VMM_CTL_GET_FLAGS(cmd const[VMM_CTL_GET_FLAGS])
+vmm_ctl$VMM_CTL_SET_FLAGS(cmd const[VMM_CTL_SET_FLAGS], arg flags[vmm_flags])
+
+vmm_exits = VMM_CTL_FL_KERN_PRINTC
+vmm_flags = VMM_CTL_EXIT_HALT, VMM_CTL_EXIT_PAUSE, VMM_CTL_EXIT_MWAIT
+
+bind_flags = MREPL, MBEFORE, MAFTER, MCREATE, MCACHE
+
+event_msg {
+	ev_type	flags[event_type, int16]
+	ev_arg1	int16
+	ev_arg2	int32
+	ev_arg3	ptr[in, array[int8]]
+	ev_arg4	int64
+}
+
+event_queue {
+	ev_mbox			ptr[in, event_mbox]
+	ev_flags		int32
+	ev_alert_pending	bool8
+	ev_vcore		int32
+# TODO: this is a function pointer, is it called by kernel?
+	ev_handler		intptr
+	ev_udata		intptr
+}
+
+# TODO: do we need more precise description?
+type event_mbox array[int8, EVENT_MBOX_SIZE]
+
+vmm_gpcore_init {
+	posted_irq_desc	ptr[in, array[int8]]
+	vapic_addr	ptr[in, array[int8]]
+	apic_addr	ptr[in, array[int8]]
+	fsbase		ptr[in, array[int8]]
+	gsbase		ptr[in, array[int8]]
+}
+
+childfdmap {
+	parentfd	fd
+	childfd		const[0, int32]
+	ok		const[0, int32]
+}
+
+fd_tap_req {
+	fd	fd
+	cmd	flags[fdtap_commands, int32]
+	filter	flags[fdtap_filters, int32]
+	ev_id	int32
+	ev_q	ptr[in, event_queue]
+	data	const[0, intptr]
+}
+
+fdtap_commands = FDTAP_CMD_ADD, FDTAP_CMD_REM, FDTAP_CMD_MOD
+fdtap_filters = FDTAP_FILT_READABLE, FDTAP_FILT_WRITABLE, FDTAP_FILT_WRITTEN, FDTAP_FILT_DELETED, FDTAP_FILT_ERROR, FDTAP_FILT_RENAME, FDTAP_FILT_TRUNCATE, FDTAP_FILT_ATTRIB, FDTAP_FILT_PRIORITY, FDTAP_FILT_HANGUP, FDTAP_FILT_RDHUP
+
+# TODO: do we need more precise description?
+type user_context array[int8, USER_CONTEXT_SIZE]
+
+define USER_CONTEXT_SIZE	sizeof(struct user_context)
+define TERMIOS_SIZE	sizeof(struct termios)
+define EVENT_MBOX_SIZE	sizeof(struct event_mbox)
+define KSTAT_SIZE	sizeof(struct kstat)
+
+event_type = EV_NONE, EV_PREEMPT_PENDING, EV_GANG_PREMPT_PENDING, EV_VCORE_PREEMPT, EV_GANG_RETURN, EV_USER_IPI, EV_PAGE_FAULT, EV_ALARM, EV_EVENT, EV_FREE_APPLE_PIE, EV_SYSCALL, EV_CHECK_MSGS, EV_POSIX_SIGNAL, NR_EVENT_TYPES, MAX_NR_EVENT
+
+# Akaros does not bother to define these in headers.
+define SEEK_SET	0
+define SEEK_CUR	1
+define SEEK_END	2
+
+# Can't include <ns.h> because it conflicts with other header files (how it is supposed to be used?).
+define MREPL	0x0000
+define MBEFORE	0x0001
+define MAFTER	0x0002
+define MCREATE	0x0004
+define MCACHE	0x0010

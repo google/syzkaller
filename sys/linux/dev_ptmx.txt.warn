@@ -1,0 +1,20 @@
+compiler: unsupported syscall: ioctl$TIOCGETP due to missing const TIOCGETP
+compiler: unsupported syscall: ioctl$TIOCSETP due to missing const TIOCSETP
+compiler: unsupported syscall: ioctl$TIOCGETC due to missing const TIOCGETC
+compiler: unsupported syscall: ioctl$TIOCSETC due to missing const TIOCSETC
+compiler: unsupported syscall: ioctl$TIOCGLTC due to missing const TIOCGLTC
+compiler: unsupported syscall: ioctl$TIOCSLTC due to missing const TIOCSLTC
+no-such-struct: io_cmap
+no-such-struct: unimapdesc_in
+no-such-struct: unimapdesc_out
+no-such-struct: tiocl_selection_arg
+bad-field-number: tiocl_selection: syz=6 kernel=5
+bad-struct-size: tiocl_selection: syz=11 kernel=10
+bad-field-size: tiocl_selection.subcode/xs: syz=1 kernel=2
+bad-field-offset: tiocl_selection.xs/ys: syz=1 kernel=2
+bad-field-offset: tiocl_selection.ys/xe: syz=3 kernel=4
+bad-field-offset: tiocl_selection.xe/ye: syz=5 kernel=6
+bad-field-offset: tiocl_selection.ye/sel_mode: syz=7 kernel=8
+no-such-struct: loadlut
+no-such-struct: tiocl_shift_state
+no-such-struct: tioctl_scroll_console

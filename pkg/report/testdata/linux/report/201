@@ -1,0 +1,116 @@
+TITLE: general protection fault in corrupted
+ALT: bad-access in corrupted
+CORRUPTED: Y
+
+[   32.536478] binder: BINDER_SET_CONTEXT_MGR already set
+[   32.549080] binder: 6304:6306 ioctl 40046207 0 returned -16
+[   32.571039] kasan: CONFIG_KASAN_INLINE enabled
+[   32.576239] kasan: GPF could be caused by NULL-ptr deref or user memory access
+[   32.591202] general protection fault: 0000 [#1] PREEMPT SMP KASAN
+[   32.597451] Dumping ftrace buffer:
+[   32.600971]    (ftrace buffer empty)
+[   32.604002] BUG: using __this_cpu_read() in preemptible [00000000] code: syz-executor4/6343
+[   32.604015] caller is __this_cpu_preempt_check+0x1c/0x20
+[   32.604023] CPU: 1 PID: 6343 Comm: syz-executor4 Not tainted 4.9.80-g550c01d #37
+[   32.604028] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   32.604042]  ffff8801aea7f658 ffffffff81d94b69 0000000000000001 ffffffff83c18800
+[   32.604052]  ffffffff83f454c0 ffff8801ae996000 0000000000000003 ffff8801aea7f698
+[   32.604062]  ffffffff81dfc144 ffff8801aea7f6b0 ffffffff83f454c0 dffffc0000000000
+[   32.604065] Call Trace:
+[   32.604077]  [<ffffffff81d94b69>] dump_stack+0xc1/0x128
+[   32.604087]  [<ffffffff81dfc144>] check_preemption_disabled+0x1d4/0x200
+[   32.604096]  [<ffffffff81dfc1ac>] __this_cpu_preempt_check+0x1c/0x20
+[   32.604105]  [<ffffffff833fcdd8>] ipcomp_init_state+0x188/0x930
+[   32.604113]  [<ffffffff83512ee5>] ipcomp6_init_state+0xb5/0x820
+[   32.604119]  [<ffffffff833db443>] ? __xfrm_init_state+0x363/0xb30
+[   32.604126]  [<ffffffff833db4c7>] __xfrm_init_state+0x3e7/0xb30
+[   32.604132]  [<ffffffff833dbc2a>] xfrm_init_state+0x1a/0x20
+[   32.604140]  [<ffffffff83575b69>] pfkey_add+0x1fb9/0x3470
+[   32.604147]  [<ffffffff83573bb0>] ? pfkey_delete+0x360/0x360
+[   32.604153]  [<ffffffff8356af00>] ? pfkey_seq_stop+0x80/0x80
+[   32.604162]  [<ffffffff82ef282a>] ? __skb_clone+0x24a/0x7d0
+[   32.604168]  [<ffffffff83573bb0>] ? pfkey_delete+0x360/0x360
+[   32.604175]  [<ffffffff8356d65b>] pfkey_process+0x68b/0x750
+[   32.604182]  [<ffffffff8356cfd0>] ? pfkey_send_new_mapping+0x11b0/0x11b0
+[   32.604190]  [<ffffffff8356eeb9>] pfkey_sendmsg+0x3a9/0x760
+[   32.604196]  [<ffffffff8356eb10>] ? pfkey_spdget+0x820/0x820
+[   32.604204]  [<ffffffff82ed7baa>] sock_sendmsg+0xca/0x110
+[   32.604210]  [<ffffffff82ed97a1>] ___sys_sendmsg+0x6d1/0x7e0
+[   32.604218]  [<ffffffff82ed90d0>] ? copy_msghdr_from_user+0x550/0x550
+[   32.604226]  [<ffffffff812e4238>] ? do_futex+0x3f8/0x15c0
+[   32.604233]  [<ffffffff815d13c7>] ? __fget+0x47/0x3a0
+[   32.604240]  [<ffffffff815d1581>] ? __fget+0x201/0x3a0
+[   32.604246]  [<ffffffff815d15a8>] ? __fget+0x228/0x3a0
+[   32.604252]  [<ffffffff815d13c7>] ? __fget+0x47/0x3a0
+[   32.604258]  [<ffffffff815d18e8>] ? __fget_light+0x188/0x1e0
+[   32.604264]  [<ffffffff815d1958>] ? __fdget+0x18/0x20
+[   32.604272]  [<ffffffff82ed5a58>] ? sockfd_lookup_light+0x118/0x160
+[   32.604279]  [<ffffffff82edb7d6>] __sys_sendmsg+0xd6/0x190
+[   32.604285]  [<ffffffff82edb700>] ? SyS_shutdown+0x1b0/0x1b0
+[   32.604292]  [<ffffffff812e5ef9>] ? compat_SyS_futex+0x1f9/0x2a0
+[   32.604298]  [<ffffffff815d34ad>] ? fd_install+0x4d/0x60
+[   32.604310]  [<ffffffff82eda560>] ? move_addr_to_kernel+0x50/0x50
+[   32.604318]  [<ffffffff8167cffc>] ? compat_SyS_ioctl+0x8c/0x2050
+[   32.604328]  [<ffffffff82fde04a>] compat_SyS_sendmsg+0x2a/0x40
+[   32.604337]  [<ffffffff82fde020>] ? compat_SyS_getsockopt+0x2a0/0x2a0
+[   32.604346]  [<ffffffff81006fc7>] do_fast_syscall_32+0x2f7/0x890
+[   32.604354]  [<ffffffff81003036>] ? trace_hardirqs_off_thunk+0x1a/0x1c
+[   32.604365]  [<ffffffff838b4d34>] entry_SYSENTER_compat+0x74/0x83
+[   32.889740] Modules linked in:
+[   32.893039] CPU: 0 PID: 6331 Comm: syz-executor6 Not tainted 4.9.80-g550c01d #37
+[   32.900547] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   32.909885] task: ffff8801aea23000 task.stack: ffff8801ae9e8000
+[   32.915914] RIP: 0010:[<ffffffff8144ee81>]  [<ffffffff8144ee81>] __free_pages+0x21/0x80
+[   32.924152] RSP: 0018:ffff8801ae9ef940  EFLAGS: 00010a07
+[   32.929576] RAX: dffffc0000000000 RBX: dead4ead00000000 RCX: ffffffff8266806b
+[   32.936828] RDX: 1bd5a9d5a0000003 RSI: 0000000000000002 RDI: dead4ead0000001c
+[   32.944072] RBP: ffff8801ae9ef950 R08: 0000000048000000 R09: 0000000000001e30
+[   32.951313] R10: 0000000000002100 R11: ffff8801aea23000 R12: 0000000000000004
+[   32.958566] R13: 0000000000000020 R14: ffff8801c473a100 R15: dffffc0000000000
+[   32.965824] FS:  0000000000000000(0000) GS:ffff8801db200000(0063) knlGS:00000000f6fb9b40
+[   32.974022] CS:  0010 DS: 002b ES: 002b CR0: 0000000080050033
+[   32.979874] CR2: 00000000f6f1cbf0 CR3: 00000001c46f0000 CR4: 0000000000160670
+[   32.987118] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   32.994364] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   33.001603] Stack:
+[   33.003724]  0000000000000001 ffff8801c473a258 ffff8801ae9ef9b0 ffffffff82668091
+[   33.011702]  ffff8801c473a270 ffffed00388e744b ffffed00388e744e ffff8801c473a268
+[   33.019679]  dead4ead00000000 ffff8801c473a240 0000000000000000 0000000000000000
+[   33.027659] Call Trace:
+[   33.030221]  [<ffffffff82668091>] sg_remove_scat.isra.19+0x1c1/0x2d0
+[   33.036687]  [<ffffffff82668455>] sg_finish_rem_req+0x2b5/0x340
+[   33.042715]  [<ffffffff8266866d>] sg_new_read.isra.20+0x18d/0x3e0
+[   33.048920]  [<ffffffff8266a187>] sg_read+0x8b7/0x1440
+[   33.054183]  [<ffffffff826698d0>] ? sg_proc_seq_show_debug+0xd90/0xd90
+[   33.060822]  [<ffffffff81644640>] ? fsnotify+0xf30/0xf30
+[   33.066245]  [<ffffffff81bdc219>] ? avc_policy_seqno+0x9/0x20
+[   33.072109]  [<ffffffff8156cc21>] do_loop_readv_writev.part.17+0x141/0x1e0
+[   33.079110]  [<ffffffff81bd32d9>] ? security_file_permission+0x89/0x1e0
+[   33.085835]  [<ffffffff826698d0>] ? sg_proc_seq_show_debug+0xd90/0xd90
+[   33.092472]  [<ffffffff826698d0>] ? sg_proc_seq_show_debug+0xd90/0xd90
+[   33.099113]  [<ffffffff81571b42>] compat_do_readv_writev+0x522/0x760
+[   33.105577]  [<ffffffff81571620>] ? do_pwritev+0x1a0/0x1a0
+[   33.111196]  [<ffffffff812e3e40>] ? exit_robust_list+0x230/0x230
+[   33.117318]  [<ffffffff81dfbfab>] ? check_preemption_disabled+0x3b/0x200
+[   33.124141]  [<ffffffff815d1581>] ? __fget+0x201/0x3a0
+[   33.129386]  [<ffffffff815d15a8>] ? __fget+0x228/0x3a0
+[   33.134632]  [<ffffffff815d13c7>] ? __fget+0x47/0x3a0
+[   33.139801]  [<ffffffff81571e63>] compat_readv+0xe3/0x150
+[   33.145325]  [<ffffffff81571fc4>] do_compat_readv+0xf4/0x1d0
+[   33.145334]  [<ffffffff81571ed0>] ? compat_readv+0x150/0x150
+[   33.145342]  [<ffffffff81573be0>] ? SyS_read+0x1b0/0x1b0
+[   33.145351]  [<ffffffff8167cffc>] ? compat_SyS_ioctl+0x8c/0x2050
+[   33.145359]  [<ffffffff81574536>] compat_SyS_readv+0x26/0x30
+[   33.145367]  [<ffffffff81574510>] ? SyS_pwritev2+0x80/0x80
+[   33.145376]  [<ffffffff81006fc7>] do_fast_syscall_32+0x2f7/0x890
+[   33.145383]  [<ffffffff81003036>] ? trace_hardirqs_off_thunk+0x1a/0x1c
+[   33.145393]  [<ffffffff838b4d34>] entry_SYSENTER_compat+0x74/0x83
+[   33.145509] Code: e9 27 fc ff ff 0f 1f 44 00 00 48 b8 00 00 00 00 00 fc ff df 55 48 89 e5 53 48 89 fb 48 83 c7 1c 48 89 fa 48 83 ec 08 48 c1 ea 03 <0f> b6 14 02 48 89 f8 83 e0 07 83 c0 03 38 d0 7c 04 84 d2 75 3d 
+[   33.145518] RIP  [<ffffffff8144ee81>] __free_pages+0x21/0x80
+[   33.145520]  RSP <ffff8801ae9ef940>
+[   33.153370] ---[ end trace 7176eb4430fb7fce ]---
+[   33.153375] Kernel panic - not syncing: Fatal exception
+[   33.153827] Dumping ftrace buffer:
+[   33.153830]    (ftrace buffer empty)
+[   33.153832] Kernel Offset: disabled
+[   33.256349] Rebooting in 86400 seconds..

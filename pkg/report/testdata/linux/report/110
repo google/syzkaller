@@ -1,0 +1,56 @@
+TITLE: KASAN: slab-out-of-bounds Read in sg_remove_request
+ALT: bad-access in sg_remove_request
+
+[  190.154802] ==================================================================
+[  190.154802] BUG: KASAN: slab-out-of-bounds in __lock_acquire+0x2eff/0x3640 at addr ffff8801a751e6f8
+[  190.154802] Read of size 8 by task syz-executor7/18786
+[  190.154802] CPU: 1 PID: 18786 Comm: syz-executor7 Not tainted 4.9.60-g4ca16e6 #83
+[  190.154802] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  190.154802]  ffff8801cd20f810 ffffffff81d91389 ffff8801d74358c0 ffff8801a751e680
+[  190.154802]  ffff8801a751e6e0 ffffed0034ea3cdf ffff8801a751e6f8 ffff8801cd20f838
+[  190.154802]  ffffffff8153c1bc ffffed0034ea3cdf ffff8801d74358c0 0000000000000000
+[  190.154802] Call Trace:
+[  190.154802]  [<ffffffff81d91389>] dump_stack+0xc1/0x128
+[  190.154802]  [<ffffffff8153c1bc>] kasan_object_err+0x1c/0x70
+[  190.154802]  [<ffffffff8153c47c>] kasan_report.part.1+0x21c/0x500
+[  190.154802]  [<ffffffff8153c819>] __asan_report_load8_noabort+0x29/0x30
+[  190.154802]  [<ffffffff8123e9cf>] __lock_acquire+0x2eff/0x3640
+[  190.154802]  [<ffffffff8123fb4e>] lock_acquire+0x12e/0x410
+[  190.154802]  [<ffffffff838aa25e>] _raw_write_lock_irqsave+0x4e/0x62
+[  190.154802]  [<ffffffff8265f840>] sg_remove_request+0x70/0x120
+[  190.154802]  [<ffffffff8265fe55>] sg_finish_rem_req+0x295/0x340
+[  190.154802]  [<ffffffff82661b8c>] sg_read+0x91c/0x1400
+[  190.154802]  [<ffffffff8156c793>] __vfs_read+0x103/0x670
+[  190.154802]  [<ffffffff8156dd27>] vfs_read+0x107/0x330
+[  190.154802]  [<ffffffff815719c9>] SyS_read+0xd9/0x1b0
+[  190.154802]  [<ffffffff838aa305>] entry_SYSCALL_64_fastpath+0x23/0xc6
+[  190.154802] Object at ffff8801a751e680, in cache fasync_cache size: 96
+[  190.154802] Allocated:
+[  190.154802] PID = 18786
+[  190.154802]  save_stack_trace+0x16/0x20
+[  190.154802]  save_stack+0x43/0xd0
+[  190.154802]  kasan_kmalloc+0xad/0xe0
+[  190.154802]  kasan_slab_alloc+0x12/0x20
+[  190.154802]  kmem_cache_alloc+0xba/0x290
+[  190.154802]  fasync_helper+0x37/0xb0
+[  190.154802]  sg_fasync+0x86/0xb0
+[  190.154802]  do_vfs_ioctl+0x2d8/0x10c0
+[  190.154802]  SyS_ioctl+0x8f/0xc0
+[  190.154802]  entry_SYSCALL_64_fastpath+0x23/0xc6
+[  190.154802] Freed:
+[  190.154802] PID = 16494
+[  190.154802]  save_stack_trace+0x16/0x20
+[  190.154802]  save_stack+0x43/0xd0
+[  190.154802]  kasan_slab_free+0x73/0xc0
+[  190.154802]  kmem_cache_free+0xb2/0x2e0
+[  190.154802]  fasync_free_rcu+0x1d/0x20
+[  190.154802]  rcu_process_callbacks+0x871/0x12c0
+[  190.154802]  __do_softirq+0x206/0x951
+[  190.154802] Memory state around the buggy address:
+[  190.154802]  ffff8801a751e580: fb fb fb fb fb fb fb fb fb fb fb fb fc fc fc fc
+[  190.154802]  ffff8801a751e600: fb fb fb fb fb fb fb fb fb fb fb fb fc fc fc fc
+[  190.154802] >ffff8801a751e680: 00 00 00 00 00 00 00 00 00 00 00 00 fc fc fc fc
+[  190.154802]                                                                 ^
+[  190.154802]  ffff8801a751e700: 00 00 00 00 00 00 00 00 00 00 00 00 fc fc fc fc
+[  190.154802]  ffff8801a751e780: 00 00 00 00 00 00 00 00 00 00 00 00 fc fc fc fc
+[  190.154802] ==================================================================

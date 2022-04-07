@@ -1,0 +1,76 @@
+# Copyright 2021 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/malloc.h>
+include <sys/time.h>
+include <fcntl.h>
+include <opencrypto/cryptodev.h>
+
+resource fd_crypto[fd]
+
+openat$crypto(fd const[AT_FDCWD], file ptr[in, string["/dev/crypto"]], flags flags[open_flags], mode const[0]) fd_crypto
+
+define CRIOGET	3221513060
+ioctl$CRIOGET(fd fd_crypto, cmd const[CRIOGET], arg ptr[inout, int32])
+ioctl$CIOCFINDDEV(fd fd_crypto, cmd const[CIOCFINDDEV], arg ptr[inout, crypt_find_op])
+ioctl$CIOCGSESSION(fd fd_crypto, cmd const[CIOCGSESSION], arg ptr[inout, session_op])
+ioctl$CIOCGSESSION2(fd fd_crypto, cmd const[CIOCGSESSION2], arg ptr[inout, session2_op])
+ioctl$CIOCCRYPT(fd fd_crypto, cmd const[CIOCCRYPT], arg ptr[inout, crypt_op])
+ioctl$CIOCCRYPTAEAD(fd fd_crypto, cmd const[CIOCCRYPTAEAD], arg ptr[inout, crypt_aead])
+ioctl$CIOCFSESSION(fd fd_crypto, cmd const[CIOCFSESSION], arg ptr[inout, array[int32]])
+
+crypt_find_op {
+	crid	int32
+	name	array[int8, 32]
+}
+
+session_op {
+	cipher		flags[cipher_flags, int32]
+	mac		flags[mac_flags, int32]
+	keylen		bytesize[key, int32]
+	key		ptr[in, array[int8]]
+	mackeylen	bytesize[mackey, int32]
+	mackey		ptr[in, array[int8]]
+	ses		int32
+}
+
+session2_op {
+	cipher		flags[cipher_flags, int32]
+	mac		flags[mac_flags, int32]
+	keylen		bytesize[key, int32]
+	key		ptr[in, array[int8]]
+	mackeylen	bytesize[mackey, int32]
+	mackey		ptr[in, array[int8]]
+	ses		int32
+	crid		int32
+	pad		array[int32, 4]
+}
+
+crypt_op {
+	ses	int32
+	op	flags[op_flags, int16]
+	flags	int16
+	len	int32
+	src	ptr[in, array[int8]]
+	dst	ptr[in, array[int8]]
+	mac	ptr[in, array[int8]]
+	iv	ptr[in, array[int8]]
+}
+
+crypt_aead {
+	ses	int32
+	op	flags[op_flags, int16]
+	flags	int16
+	len	int32
+	aadlen	int32
+	ivlen	int32
+	src	ptr[in, array[int8]]
+	dst	ptr[in, array[int8]]
+	aad	ptr[in, array[int8]]
+	tag	ptr[in, array[int8]]
+	iv	ptr[in, array[int8]]
+}
+
+cipher_flags = CRYPTO_AES_CBC, CRYPTO_AES_XTS, CRYPTO_AES_ICM, CRYPTO_CHACHA20, CRYPTO_NULL_CBC, CRYPTO_AES_NIST_GCM_16, CRYPTO_AES_CCM_16, CRYPTO_CHACHA20_POLY1305, CRYPTO_CAMELLIA_CBC
+mac_flags = CRYPTO_SHA2_224_HMAC, CRYPTO_SHA2_256_HMAC, CRYPTO_SHA2_384_HMAC, CRYPTO_SHA2_512_HMAC, CRYPTO_AES_NIST_GMAC, CRYPTO_POLY1305, CRYPTO_SHA1, CRYPTO_SHA1_HMAC, CRYPTO_BLAKE2B, CRYPTO_BLAKE2S, CRYPTO_AES_NIST_GMAC, CRYPTO_SHA2_224, CRYPTO_SHA2_256, CRYPTO_SHA2_384, CRYPTO_SHA2_512, CRYPTO_RIPEMD160_HMAC, CRYPTO_AES_CCM_CBC_MAC, CRYPTO_NULL_HMAC
+op_flags = COP_ENCRYPT, COP_DECRYPT

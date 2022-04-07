@@ -1,0 +1,71 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/ioctl.h>
+include <uapi/linux/fcntl.h>
+include <uapi/linux/userfaultfd.h>
+
+resource fd_uffd[fd]
+
+userfaultfd(flags flags[userfaultfd_flags]) fd_uffd
+
+ioctl$UFFDIO_API(fd fd_uffd, cmd const[UFFDIO_API], arg ptr[in, uffdio_api])
+ioctl$UFFDIO_REGISTER(fd fd_uffd, cmd const[UFFDIO_REGISTER], arg ptr[in, uffdio_register])
+ioctl$UFFDIO_UNREGISTER(fd fd_uffd, cmd const[UFFDIO_UNREGISTER], arg ptr[in, uffdio_range])
+ioctl$UFFDIO_WAKE(fd fd_uffd, cmd const[UFFDIO_WAKE], arg ptr[in, uffdio_range])
+ioctl$UFFDIO_COPY(fd fd_uffd, cmd const[UFFDIO_COPY], arg ptr[in, uffdio_copy])
+ioctl$UFFDIO_ZEROPAGE(fd fd_uffd, cmd const[UFFDIO_ZEROPAGE], arg ptr[in, uffdio_zeropage])
+ioctl$UFFDIO_WRITEPROTECT(fd fd_uffd, cmd const[UFFDIO_WRITEPROTECT], arg ptr[in, uffdio_writeprotect])
+ioctl$UFFDIO_CONTINUE(fd fd_uffd, cmd const[UFFDIO_CONTINUE], arg ptr[in, uffdio_continue])
+
+userfaultfd_flags = O_NONBLOCK, O_CLOEXEC, UFFD_USER_MODE_ONLY
+uffdio_register_mode = UFFDIO_REGISTER_MODE_MISSING, UFFDIO_REGISTER_MODE_WP, UFFDIO_REGISTER_MODE_MINOR
+uffdio_copy_mode = UFFDIO_COPY_MODE_DONTWAKE, UFFDIO_COPY_MODE_WP
+uffdio_zero_mode = UFFDIO_ZEROPAGE_MODE_DONTWAKE
+uffdio_features = UFFD_FEATURE_PAGEFAULT_FLAG_WP, UFFD_FEATURE_EVENT_FORK, UFFD_FEATURE_EVENT_REMAP, UFFD_FEATURE_EVENT_REMOVE, UFFD_FEATURE_MISSING_HUGETLBFS, UFFD_FEATURE_MISSING_SHMEM, UFFD_FEATURE_EVENT_UNMAP, UFFD_FEATURE_SIGBUS, UFFD_FEATURE_THREAD_ID, UFFD_FEATURE_MINOR_HUGETLBFS, UFFD_FEATURE_MINOR_SHMEM
+
+uffdio_api {
+	api	const[UFFD_API, int64]
+	featur	flags[uffdio_features, int64]
+	ioctls	const[0, int64]
+}
+
+uffdio_range {
+	start	vma64
+	len	len[start, int64]
+}
+
+uffdio_register {
+	range	uffdio_range
+	mode	flags[uffdio_register_mode, int64]
+	ioctls	const[0, int64]
+}
+
+uffdio_copy {
+	dst	vma64
+	src	vma64
+	len	len[dst, int64]
+	mode	flags[uffdio_copy_mode, int64]
+	copy	const[0, int64]
+}
+
+uffdio_zeropage {
+	range	uffdio_range
+	mode	flags[uffdio_zero_mode, int64]
+	zeropg	const[0, int64]
+}
+
+uffdio_writeprotect {
+	range	uffdio_range
+	mode	flags[uffdio_writeprotect_mode, int64]
+}
+
+uffdio_writeprotect_mode = UFFDIO_WRITEPROTECT_MODE_WP, UFFDIO_WRITEPROTECT_MODE_DONTWAKE
+
+uffdio_continue {
+	range	uffdio_range
+	mode	flags[uffdio_continue_mode, int64]
+	mapped	int64	(out)
+}
+
+uffdio_continue_mode = UFFDIO_CONTINUE_MODE_DONTWAKE

@@ -1,0 +1,53 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# V4L2 specific support for the vim2m driver.
+#
+# These descriptions narrow the search space to focus on the M2M
+# framework code. The vim2m driver should be built into the kernel
+# (CONFIG_VIDEO_VI2M2=y)
+
+include <linux/time.h>
+include <linux/types.h>
+include <uapi/asm/ioctl.h>
+include <uapi/linux/fcntl.h>
+include <uapi/linux/videodev2.h>
+include <uapi/linux/v4l2-common.h>
+include <uapi/linux/v4l2-subdev.h>
+include <uapi/linux/v4l2-mediabus.h>
+include <uapi/linux/media-bus-format.h>
+include <uapi/linux/v4l2-controls.h>
+
+resource fd_vim2m[fd]
+
+# syz_open_dev will use devices from /dev/video0 to /dev/video10
+# openat$vim2m assumes a symlink (/dev/vim2m) to the appropriate vim2m device
+# This can be set with a udev rule such as this:
+#
+#     ATTR{name}=="vim2m", SYMLINK+="vim2m"
+
+syz_open_dev$vim2m(dev ptr[in, string["/dev/video#"]], id intptr, flags const[O_RDWR]) fd_vim2m
+openat$vim2m(fd const[AT_FDCWD], file ptr[in, string["/dev/vim2m"]], flags const[O_RDWR], mode const[0]) fd_vim2m
+
+# Specialized ioctls for vim2m
+
+ioctl$vim2m_VIDIOC_QUERYCAP(fd fd_vim2m, cmd const[VIDIOC_QUERYCAP], arg ptr[out, v4l2_capability])
+ioctl$vim2m_VIDIOC_ENUM_FMT(fd fd_vim2m, cmd const[VIDIOC_ENUM_FMT], arg ptr[inout, v4l2_fmtdesc[v4l2_buf_type_vim2m]])
+ioctl$vim2m_VIDIOC_ENUM_FRAMESIZES(fd fd_vim2m, cmd const[VIDIOC_ENUM_FRAMESIZES], arg ptr[inout, v4l2_frmsizeenum])
+ioctl$vim2m_VIDIOC_G_FMT(fd fd_vim2m, cmd const[VIDIOC_G_FMT], arg ptr[inout, v4l2_format[v4l2_buf_type_vim2m]])
+ioctl$vim2m_VIDIOC_TRY_FMT(fd fd_vim2m, cmd const[VIDIOC_TRY_FMT], arg ptr[inout, v4l2_format[v4l2_buf_type_vim2m]])
+ioctl$vim2m_VIDIOC_S_FMT(fd fd_vim2m, cmd const[VIDIOC_S_FMT], arg ptr[inout, v4l2_format[v4l2_buf_type_vim2m]])
+ioctl$vim2m_VIDIOC_REQBUFS(fd fd_vim2m, cmd const[VIDIOC_REQBUFS], arg ptr[inout, v4l2_requestbuffers[v4l2_buf_type_vim2m]])
+ioctl$vim2m_VIDIOC_QUERYBUF(fd fd_vim2m, cmd const[VIDIOC_QUERYBUF], arg ptr[inout, v4l2_buffer_t[v4l2_buf_type_vim2m]])
+ioctl$vim2m_VIDIOC_QBUF(fd fd_vim2m, cmd const[VIDIOC_QBUF], arg ptr[inout, v4l2_buffer_t[v4l2_buf_type_vim2m]])
+ioctl$vim2m_VIDIOC_DQBUF(fd fd_vim2m, cmd const[VIDIOC_DQBUF], arg ptr[inout, v4l2_buffer_t[v4l2_buf_type_vim2m]])
+ioctl$vim2m_VIDIOC_PREPARE_BUF(fd fd_vim2m, cmd const[VIDIOC_PREPARE_BUF], arg ptr[inout, v4l2_buffer_t[v4l2_buf_type_vim2m]])
+ioctl$vim2m_VIDIOC_CREATE_BUFS(fd fd_vim2m, cmd const[VIDIOC_CREATE_BUFS], arg ptr[inout, v4l2_create_buffers[v4l2_buf_type_vim2m]])
+ioctl$vim2m_VIDIOC_EXPBUF(fd fd_vim2m, cmd const[VIDIOC_EXPBUF], arg ptr[inout, v4l2_exportbuffer[v4l2_buf_type_vim2m]])
+ioctl$vim2m_VIDIOC_S_CTRL(fd fd_vim2m, cmd const[VIDIOC_S_CTRL], arg ptr[inout, v4l2_control])
+ioctl$vim2m_VIDIOC_STREAMON(fd fd_vim2m, cmd const[VIDIOC_STREAMON], arg ptr[in, flags[v4l2_buf_type_vim2m, int32]])
+ioctl$vim2m_VIDIOC_STREAMOFF(fd fd_vim2m, cmd const[VIDIOC_STREAMON], arg ptr[in, flags[v4l2_buf_type_vim2m, int32]])
+
+# Limit buffer types to OUTPUT and CAPTURE
+
+v4l2_buf_type_vim2m = V4L2_BUF_TYPE_VIDEO_CAPTURE, V4L2_BUF_TYPE_VIDEO_OUTPUT

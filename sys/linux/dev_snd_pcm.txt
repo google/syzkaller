@@ -1,0 +1,182 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/asm/ioctl.h>
+include <uapi/linux/fcntl.h>
+include <uapi/linux/time.h>
+include <uapi/sound/asound.h>
+include <sound/pcm.h>
+
+resource fd_snd_dsp[fd]
+
+syz_open_dev$sndpcmc(dev ptr[in, string["/dev/snd/pcmC#D#c"]], id intptr, flags flags[open_flags]) fd_snd_dsp
+syz_open_dev$sndpcmp(dev ptr[in, string["/dev/snd/pcmC#D#p"]], id intptr, flags flags[open_flags]) fd_snd_dsp
+
+write$snddsp(fd fd_snd_dsp, data ptr[in, array[int8]], len bytesize[data])
+read$snddsp(fd fd_snd_dsp, data ptr[out, array[int8]], len bytesize[data])
+mmap$snddsp(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_snd_dsp, offset intptr[0:0x10000, 0x1000])
+mmap$snddsp_status(addr vma, len const[0x1000], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_snd_dsp, offset const[SNDRV_PCM_MMAP_OFFSET_STATUS])
+mmap$snddsp_control(addr vma, len const[0x1000], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_snd_dsp, offset const[SNDRV_PCM_MMAP_OFFSET_CONTROL])
+
+ioctl$SNDRV_PCM_IOCTL_INFO(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_INFO], arg ptr[out, array[int8, SND_PCM_INFO_SIZE]])
+
+ioctl$SNDRV_PCM_IOCTL_TTSTAMP(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_TTSTAMP], arg ptr[in, int32])
+ioctl$SNDRV_PCM_IOCTL_USER_PVERSION(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_USER_PVERSION], arg ptr[in, int32])
+ioctl$SNDRV_PCM_IOCTL_HW_REFINE(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_HW_REFINE], arg ptr[in, snd_pcm_hw_params])
+ioctl$SNDRV_PCM_IOCTL_HW_PARAMS(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_HW_PARAMS], arg ptr[in, snd_pcm_hw_params])
+
+ioctl$SNDRV_PCM_IOCTL_HW_REFINE_OLD(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_HW_REFINE_OLD], arg ptr[in, snd_pcm_hw_params_old])
+ioctl$SNDRV_PCM_IOCTL_HW_PARAMS_OLD(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_HW_PARAMS_OLD], arg ptr[in, snd_pcm_hw_params_old])
+
+ioctl$SNDRV_PCM_IOCTL_HW_FREE(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_HW_FREE], arg const[0])
+ioctl$SNDRV_PCM_IOCTL_SW_PARAMS(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_SW_PARAMS], arg ptr[in, snd_pcm_sw_params])
+ioctl$SNDRV_PCM_IOCTL_STATUS32(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_STATUS32], arg ptr[out, array[int8, SND_PCM_STATUS32_SIZE]])
+ioctl$SNDRV_PCM_IOCTL_STATUS64(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_STATUS64], arg ptr[out, array[int8, SND_PCM_STATUS64_SIZE]])
+ioctl$SNDRV_PCM_IOCTL_DELAY(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_DELAY], arg ptr[out, array[int8, SND_PCM_SFRAMES_SIZE]])
+ioctl$SNDRV_PCM_IOCTL_HWSYNC(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_HWSYNC], arg const[0])
+ioctl$SNDRV_PCM_IOCTL_SYNC_PTR(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_SYNC_PTR], arg ptr[in, snd_pcm_sync_ptr])
+ioctl$SNDRV_PCM_IOCTL_STATUS_EXT32(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_STATUS_EXT32], arg ptr[in, snd_pcm_status32])
+ioctl$SNDRV_PCM_IOCTL_STATUS_EXT64(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_STATUS_EXT64], arg ptr[in, snd_pcm_status64])
+ioctl$SNDRV_PCM_IOCTL_CHANNEL_INFO(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_CHANNEL_INFO], arg ptr[out, array[int8, SND_PCM_CHANNEL_INFO_SIZE]])
+ioctl$SNDRV_PCM_IOCTL_PREPARE(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_PREPARE], arg const[0])
+ioctl$SNDRV_PCM_IOCTL_RESET(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_RESET], arg const[0])
+ioctl$SNDRV_PCM_IOCTL_START(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_START], arg const[0])
+ioctl$SNDRV_PCM_IOCTL_DROP(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_DROP], arg const[0])
+ioctl$SNDRV_PCM_IOCTL_DRAIN(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_DRAIN], arg const[0])
+ioctl$SNDRV_PCM_IOCTL_PAUSE(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_PAUSE], arg ptr[in, int32])
+ioctl$SNDRV_PCM_IOCTL_REWIND(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_REWIND], arg ptr[in, intptr])
+ioctl$SNDRV_PCM_IOCTL_RESUME(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_RESUME], arg const[0])
+ioctl$SNDRV_PCM_IOCTL_XRUN(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_XRUN], arg const[0])
+ioctl$SNDRV_PCM_IOCTL_FORWARD(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_FORWARD], arg ptr[in, intptr])
+ioctl$SNDRV_PCM_IOCTL_WRITEI_FRAMES(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_WRITEI_FRAMES], arg ptr[in, snd_xferi])
+ioctl$SNDRV_PCM_IOCTL_READI_FRAMES(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_READI_FRAMES], arg ptr[out, snd_xferi])
+ioctl$SNDRV_PCM_IOCTL_WRITEN_FRAMES(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_WRITEN_FRAMES], arg ptr[in, snd_xfern])
+ioctl$SNDRV_PCM_IOCTL_READN_FRAMES(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_READN_FRAMES], arg ptr[out, snd_xfern])
+ioctl$SNDRV_PCM_IOCTL_LINK(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_LINK], arg ptr[in, int32])
+ioctl$SNDRV_PCM_IOCTL_UNLINK(fd fd_snd_dsp, cmd const[SNDRV_PCM_IOCTL_UNLINK], arg const[0])
+
+snd_pcm_hw_params {
+	flags		int32
+	masks		array[snd_mask, 3]
+	mres		array[const[0, int32], 40]
+	intervals	array[snd_interval, 12]
+	ires		array[const[0, int32], 27]
+	rmask		int32
+	cmask		const[0, int32]
+	info		const[0, int32]
+	msbits		const[0, int32]
+	rate_num	const[0, int32]
+	rate_den	const[0, int32]
+	fifo_size	const[0, intptr]
+	reserved	array[const[0, int8], 64]
+}
+
+snd_pcm_hw_params_old {
+	flags		int32
+	masks		array[int32, 3]
+	intervals	array[snd_interval, 12]
+	rmask		int32
+	cmask		const[0, int32]
+	info		const[0, int32]
+	msbits		const[0, int32]
+	rate_num	const[0, int32]
+	rate_den	const[0, int32]
+	fifo_size	const[0, intptr]
+	reserved	array[const[0, int8], 64]
+}
+
+snd_pcm_sw_params {
+	tstamp_mode		bool32
+	period_step		int32
+	sleep_min		int32
+	avail_min		intptr
+	xfer_align		intptr
+	start_threshold		intptr
+	stop_threshold		intptr
+	silence_threshold	intptr
+	silence_size		intptr
+	boundary		intptr
+	proto			int32
+	tstamp_type		flags[sndrv_pcm_audio_tstamp_type, int32]
+	reserved		array[const[0, int8], 56]
+}
+
+snd_pcm_sync_ptr {
+	flags	flags[snd_pcm_sync_flags, int32]
+	status	array[int8, 64]
+	control	snd_pcm_mmap_control
+} [size[SND_PCM_SYNC_PTR_SIZE]]
+
+snd_pcm_mmap_control {
+	appl_ptr	intptr
+	avail_min	intptr
+}
+
+snd_pcm_status32 {
+	state			const[0, int32]
+	trigger_tstamp_sec	const[0, int32]
+	trigger_tstamp_nsec	const[0, int32]
+	tstamp_sec		const[0, int32]
+	tstamp_nsec		const[0, int32]
+	appl_ptr		const[0, intptr]
+	hw_ptr			const[0, intptr]
+	delay			const[0, intptr]
+	avail			const[0, intptr]
+	avail_max		const[0, intptr]
+	overrange		const[0, intptr]
+	suspended_state		const[0, int32]
+	audio_tstamp_data	flags[sndrv_pcm_audio_tstamp_type, int32]
+} [size[SND_PCM_STATUS32_SIZE]]
+
+snd_pcm_status64 {
+	state			const[0, int32]
+	rsvd			const[0, int32]
+	trigger_tstamp_sec	const[0, int64]
+	trigger_tstamp_nsec	const[0, int64]
+	tstamp_sec		const[0, int64]
+	tstamp_nsec		const[0, int64]
+	appl_ptr		const[0, intptr]
+	hw_ptr			const[0, intptr]
+	delay			const[0, intptr]
+	avail			const[0, intptr]
+	avail_max		const[0, intptr]
+	overrange		const[0, intptr]
+	suspended_state		const[0, int32]
+	audio_tstamp_data	flags[sndrv_pcm_audio_tstamp_type, int32]
+} [size[SND_PCM_STATUS64_SIZE]]
+
+snd_xferi {
+	result	const[0, intptr]
+	buf	ptr[in, array[int8]]
+	frames	bytesize[buf, intptr]
+}
+
+snd_xfern {
+	result	const[0, intptr]
+	buf	ptr[in, array[ptr[in, array[int8]]]]
+	frames	intptr
+}
+
+snd_interval {
+	min	int32
+	max	int32
+	openmin	int32:1
+	openmax	int32:1
+	integer	int32:1
+	empty	int32:1
+}
+
+type snd_mask array[int32, 8]
+
+sndrv_pcm_audio_tstamp_type = SNDRV_PCM_AUDIO_TSTAMP_TYPE_COMPAT, SNDRV_PCM_AUDIO_TSTAMP_TYPE_DEFAULT, SNDRV_PCM_AUDIO_TSTAMP_TYPE_LINK, SNDRV_PCM_AUDIO_TSTAMP_TYPE_LINK_ABSOLUTE, SNDRV_PCM_AUDIO_TSTAMP_TYPE_LINK_ESTIMATED, SNDRV_PCM_AUDIO_TSTAMP_TYPE_LINK_SYNCHRONIZED
+snd_pcm_sync_flags = SNDRV_PCM_SYNC_PTR_HWSYNC, SNDRV_PCM_SYNC_PTR_APPL, SNDRV_PCM_SYNC_PTR_AVAIL_MIN
+
+define SNDRV_PCM_IOCTL_HW_REFINE_OLD	_IOWR('A', 0x10, struct {int a[62]; long b;})
+define SNDRV_PCM_IOCTL_HW_PARAMS_OLD	_IOWR('A', 0x11, struct {int a[62]; long b;})
+define SND_PCM_INFO_SIZE	sizeof(struct snd_pcm_info)
+define SND_PCM_STATUS32_SIZE	sizeof(struct snd_pcm_status32)
+define SND_PCM_STATUS64_SIZE	sizeof(struct snd_pcm_status64)
+define SND_PCM_SFRAMES_SIZE	sizeof(snd_pcm_sframes_t)
+define SND_PCM_CHANNEL_INFO_SIZE	sizeof(struct snd_pcm_channel_info)
+define SND_PCM_SYNC_PTR_SIZE	sizeof(struct snd_pcm_sync_ptr)
+_ = __NR_mmap2

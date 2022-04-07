@@ -1,0 +1,12 @@
+# Copyright 2021 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/param.h>
+include <sys/signal.h>
+include <sys/uio.h>
+include <sys/ktrace.h>
+
+ktrace(path ptr[in, filename], ops flags[ktrace_ops], trpoints flags[ktrace_trpoints], pid pid)
+
+ktrace_ops = KTROP_SET, KTROP_CLEAR, KTROP_CLEARFILE, KTRFLAG_DESCEND
+ktrace_trpoints = KTRFAC_SYSCALL, KTRFAC_SYSRET, KTRFAC_NAMEI, KTRFAC_GENIO, KTRFAC_PSIG, KTRFAC_CSW, KTRFAC_USER, KTRFAC_STRUCT, KTRFAC_SYSCTL, KTRFAC_PROCCTOR, KTRFAC_PROCDTOR, KTRFAC_CAPFAIL, KTRFAC_FAULT, KTRFAC_FAULTEND, KTRFAC_INHERIT

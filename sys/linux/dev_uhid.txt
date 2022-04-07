@@ -1,0 +1,76 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/fcntl.h>
+include <uapi/linux/uhid.h>
+
+resource fd_uhid[fd]
+
+openat$uhid(fd const[AT_FDCWD], file ptr[in, string["/dev/uhid"]], flags flags[uhid_open_flags], mode const[0]) fd_uhid
+write$UHID_CREATE(fd fd_uhid, data ptr[in, uhid_req[UHID_CREATE, uhid_create_req]], len len[data])
+write$UHID_CREATE2(fd fd_uhid, data ptr[in, uhid_req[UHID_CREATE2, uhid_create2_req]], len len[data])
+write$UHID_DESTROY(fd fd_uhid, data ptr[in, uhid_req[UHID_DESTROY, void]], len len[data])
+write$UHID_INPUT(fd fd_uhid, data ptr[in, uhid_req[UHID_INPUT, uhid_input_req]], len len[data])
+write$UHID_INPUT2(fd fd_uhid, data ptr[in, uhid_req[UHID_INPUT2, uhid_input2_req]], len len[data])
+write$UHID_GET_REPORT_REPLY(fd fd_uhid, data ptr[in, uhid_req[UHID_GET_REPORT_REPLY, uhid_get_report_req]], len len[data])
+write$UHID_SET_REPORT_REPLY(fd fd_uhid, data ptr[in, uhid_req[UHID_SET_REPORT_REPLY, uhid_set_report_req]], len len[data])
+
+type uhid_req[TYP, DATA] {
+	type	const[TYP, int32]
+	data	DATA
+} [packed]
+
+uhid_create_req {
+	name	string[uhid_names, 128]
+	phys	string[uhid_names, 64]
+	uniq	string[uhid_names, 64]
+	rd_data	ptr[out, array[int8]]
+	rd_size	len[rd_data, int16]
+	bus	int16
+	vendor	int32
+	product	int32
+	version	int32
+	country	int32
+} [packed]
+
+uhid_create2_req {
+	name	string[uhid_names, 128]
+	phys	string[uhid_names, 64]
+	uniq	string[uhid_names, 64]
+	rd_size	len[rd_data, int16]
+	bus	int16
+	vendor	int32
+	product	int32
+	version	int32
+	country	int32
+	rd_data	array[int8]
+} [packed]
+
+uhid_input_req {
+	data	array[int8, UHID_DATA_MAX]
+	size	len[data, int16]
+} [packed]
+
+uhid_input2_req {
+	size	len[data, int16]
+	data	array[int8]
+} [packed]
+
+uhid_get_report_req {
+	id	int32[0:10]
+	rnum	int8
+	rtype	int8
+} [packed]
+
+uhid_set_report_req {
+	id	int32[0:10]
+	rnum	int8
+	rtype	int8
+	size	len[data, int16]
+	data	array[int8]
+} [packed]
+
+uhid_names = "syz0", "syz1"
+uhid_open_flags = O_RDWR, O_RDWR_NONBLOCK
+
+define O_RDWR_NONBLOCK	O_RDWR | O_NONBLOCK

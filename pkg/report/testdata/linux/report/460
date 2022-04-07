@@ -1,0 +1,129 @@
+TITLE: WARNING in input_register_device
+
+[   24.131202][   T22] ------------[ cut here ]------------
+[   24.137091][   T22] add_uevent_var: buffer size too small
+[   24.142887][   T22] WARNING: CPU: 1 PID: 22 at lib/kobject_uevent.c:670 add_uevent_var+0x2e7/0x310
+[   24.152007][   T22] Kernel panic - not syncing: panic_on_warn set ...
+[   24.158679][   T22] CPU: 1 PID: 22 Comm: kworker/1:1 Not tainted 5.5.0-rc2-syzkaller #0
+[   24.166903][   T22] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   24.176968][   T22] Workqueue: usb_hub_wq hub_event
+[   24.181989][   T22] Call Trace:
+[   24.185282][   T22]  dump_stack+0xef/0x16e
+[   24.189533][   T22]  ? add_uevent_var+0x220/0x310
+[   24.194392][   T22]  panic+0x2aa/0x6e1
+[   24.198306][   T22]  ? add_taint.cold+0x16/0x16
+[   24.203056][   T22]  ? __probe_kernel_read+0x188/0x1d0
+[   24.208333][   T22]  ? __warn.cold+0x14/0x30
+[   24.212737][   T22]  ? __warn+0xd5/0x1c8
+[   24.216869][   T22]  ? add_uevent_var+0x2e7/0x310
+[   24.221827][   T22]  __warn.cold+0x2f/0x30
+[   24.226178][   T22]  ? add_uevent_var+0x2e7/0x310
+[   24.238748][   T22]  report_bug+0x27b/0x2f0
+[   24.243061][   T22]  do_error_trap+0x12b/0x1e0
+[   24.247644][   T22]  ? add_uevent_var+0x2e7/0x310
+[   24.252500][   T22]  do_invalid_op+0x32/0x40
+[   24.257458][   T22]  ? add_uevent_var+0x2e7/0x310
+[   24.262300][   T22]  invalid_op+0x23/0x30
+[   24.266441][   T22] RIP: 0010:add_uevent_var+0x2e7/0x310
+[   24.272124][   T22] Code: 48 c7 c7 c0 36 6f 86 e8 bf 6d 9e fb 0f 0b 41 bd f4 ff ff ff e9 55 ff ff ff e8 e5 50 c9 fb 48 c7 c7 60 37 6f 86 e8 a1 6d 9e fb <0f> 0b 41 bd f4 ff ff ff e9 37 ff ff ff e8 f7 d7 f1 fb e9 16 ff ff
+[   24.293003][   T22] RSP: 0018:ffff8881d8c368b0 EFLAGS: 00010286
+[   24.299066][   T22] RAX: 0000000000000000 RBX: ffff8881d16de000 RCX: 0000000000000000
+[   24.307016][   T22] RDX: 0000000000000000 RSI: ffffffff81295dad RDI: ffffed103b186d08
+[   24.314997][   T22] RBP: ffff8881d8c369a0 R08: ffff8881da24e200 R09: fffffbfff11f1eb0
+[   24.322986][   T22] R10: fffffbfff11f1eaf R11: ffffffff88f8f57f R12: 1ffff1103b186d19
+[   24.330951][   T22] R13: ffff8881d16de118 R14: 00000000000007f5 R15: 00000000000007f5
+[   24.338922][   T22]  ? vprintk_func+0x7d/0x113
+[   24.343699][   T22]  ? cleanup_uevent_env+0x40/0x40
+[   24.348712][   T22]  ? kasan_unpoison_shadow+0x30/0x40
+[   24.353982][   T22]  ? __kasan_kmalloc.constprop.0+0xbf/0xd0
+[   24.360117][   T22]  ? memcpy+0x35/0x50
+[   24.364086][   T22]  kobject_uevent_env+0x6e0/0x11f0
+[   24.370146][   T22]  device_add+0xad2/0x1c20
+[   24.374549][   T22]  ? rcu_read_lock_bh_held+0xb0/0xb0
+[   24.379821][   T22]  ? device_links_flush_sync_list+0x350/0x350
+[   24.385871][   T22]  ? kasan_unpoison_shadow+0x30/0x40
+[   24.391168][   T22]  ? __kasan_kmalloc.constprop.0+0xbf/0xd0
+[   24.396996][   T22]  input_register_device+0x7f0/0xd10
+[   24.402316][   T22]  ? check_memory_region+0x141/0x1c0
+[   24.407619][   T22]  hidinput_connect+0x4f8d/0xdb90
+[   24.412650][   T22]  ? hidinput_setkeycode+0x390/0x390
+[   24.417936][   T22]  ? usb_alloc_urb+0x65/0xb0
+[   24.422529][   T22]  ? rcu_read_lock_bh_held+0xb0/0xb0
+[   24.428063][   T22]  ? __kasan_kmalloc.constprop.0+0xbf/0xd0
+[   24.433855][   T22]  hid_connect+0x965/0xbb0
+[   24.438258][   T22]  ? hid_match_one_id+0x2c0/0x2c0
+[   24.443439][   T22]  hid_hw_start+0xa2/0x130
+[   24.447846][   T22]  ms_probe+0x159/0x4d0
+[   24.451986][   T22]  ? ms_remove+0x90/0x90
+[   24.456234][   T22]  hid_device_probe+0x2be/0x3f0
+[   24.461095][   T22]  ? hid_match_device+0x1f0/0x1f0
+[   24.466114][   T22]  really_probe+0x281/0x6d0
+[   24.470607][   T22]  driver_probe_device+0x104/0x210
+[   24.475717][   T22]  __device_attach_driver+0x1c2/0x220
+[   24.481076][   T22]  ? driver_allows_async_probing+0x160/0x160
+[   24.487040][   T22]  bus_for_each_drv+0x162/0x1e0
+[   24.491890][   T22]  ? bus_rescan_devices+0x20/0x20
+[   24.496899][   T22]  ? _raw_spin_unlock_irqrestore+0x39/0x40
+[   24.502691][   T22]  ? lockdep_hardirqs_on+0x382/0x580
+[   24.508312][   T22]  __device_attach+0x217/0x360
+[   24.513067][   T22]  ? device_bind_driver+0xd0/0xd0
+[   24.518097][   T22]  bus_probe_device+0x1e4/0x290
+[   24.522941][   T22]  device_add+0x1480/0x1c20
+[   24.527626][   T22]  ? device_links_flush_sync_list+0x350/0x350
+[   24.533679][   T22]  ? __debugfs_create_file+0x301/0x3f0
+[   24.539150][   T22]  hid_add_device+0x33c/0x9a0
+[   24.544692][   T22]  ? debug_object_fixup+0x30/0x30
+[   24.549703][   T22]  ? __hid_bus_reprobe_drivers+0x130/0x130
+[   24.557758][   T22]  ? lockdep_init_map+0x1b0/0x5e0
+[   24.563723][   T22]  usbhid_probe+0xa81/0xfa0
+[   24.568228][   T22]  usb_probe_interface+0x305/0x7a0
+[   24.573325][   T22]  ? usb_probe_device+0x100/0x100
+[   24.578346][   T22]  really_probe+0x281/0x6d0
+[   24.582831][   T22]  driver_probe_device+0x104/0x210
+[   24.587928][   T22]  __device_attach_driver+0x1c2/0x220
+[   24.593283][   T22]  ? driver_allows_async_probing+0x160/0x160
+[   24.599247][   T22]  bus_for_each_drv+0x162/0x1e0
+[   24.604090][   T22]  ? bus_rescan_devices+0x20/0x20
+[   24.609100][   T22]  ? _raw_spin_unlock_irqrestore+0x39/0x40
+[   24.615844][   T22]  ? lockdep_hardirqs_on+0x382/0x580
+[   24.621125][   T22]  __device_attach+0x217/0x360
+[   24.625884][   T22]  ? device_bind_driver+0xd0/0xd0
+[   24.630890][   T22]  bus_probe_device+0x1e4/0x290
+[   24.635726][   T22]  device_add+0x1480/0x1c20
+[   24.640647][   T22]  ? wait_for_completion+0x3c0/0x3c0
+[   24.645917][   T22]  ? device_links_flush_sync_list+0x350/0x350
+[   24.651965][   T22]  ? _raw_spin_unlock_irqrestore+0x39/0x40
+[   24.658016][   T22]  usb_set_configuration+0xe67/0x1740
+[   24.663371][   T22]  generic_probe+0x9d/0xd5
+[   24.667792][   T22]  usb_probe_device+0x99/0x100
+[   24.672567][   T22]  ? usb_suspend+0x620/0x620
+[   24.677175][   T22]  really_probe+0x281/0x6d0
+[   24.681682][   T22]  driver_probe_device+0x104/0x210
+[   24.687391][   T22]  __device_attach_driver+0x1c2/0x220
+[   24.693879][   T22]  ? driver_allows_async_probing+0x160/0x160
+[   24.700109][   T22]  bus_for_each_drv+0x162/0x1e0
+[   24.704949][   T22]  ? bus_rescan_devices+0x20/0x20
+[   24.709958][   T22]  ? _raw_spin_unlock_irqrestore+0x39/0x40
+[   24.715758][   T22]  ? lockdep_hardirqs_on+0x382/0x580
+[   24.721038][   T22]  __device_attach+0x217/0x360
+[   24.726000][   T22]  ? device_bind_driver+0xd0/0xd0
+[   24.731107][   T22]  bus_probe_device+0x1e4/0x290
+[   24.735947][   T22]  device_add+0x1480/0x1c20
+[   24.740454][   T22]  ? device_links_flush_sync_list+0x350/0x350
+[   24.746568][   T22]  usb_new_device.cold+0x6a4/0xe79
+[   24.751823][   T22]  hub_event+0x1e59/0x3860
+[   24.756241][   T22]  ? hub_port_debounce+0x260/0x260
+[   24.761348][   T22]  ? find_held_lock+0x2d/0x110
+[   24.766097][   T22]  ? mark_held_locks+0xe0/0xe0
+[   24.770850][   T22]  ? rcu_read_lock_sched_held+0x9c/0xd0
+[   24.776490][   T22]  ? rcu_read_lock_bh_held+0xb0/0xb0
+[   24.781794][   T22]  process_one_work+0x92b/0x1530
+[   24.787538][   T22]  ? pwq_dec_nr_in_flight+0x310/0x310
+[   24.792932][   T22]  ? do_raw_spin_lock+0x11a/0x280
+[   24.798040][   T22]  worker_thread+0x96/0xe20
+[   24.802556][   T22]  ? process_one_work+0x1530/0x1530
+[   24.807837][   T22]  kthread+0x318/0x420
+[   24.811901][   T22]  ? kthread_create_on_node+0xf0/0xf0
+[   24.817261][   T22]  ret_from_fork+0x24/0x30
+[   24.822548][   T22] Kernel Offset: disabled
+[   24.826941][   T22] Rebooting in 86400 seconds..

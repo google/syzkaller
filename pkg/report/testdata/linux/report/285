@@ -1,0 +1,66 @@
+TITLE: INFO: rcu detected stall in sctp_generate_heartbeat_event
+ALT: stall in sctp_generate_heartbeat_event
+TYPE: HANG
+
+[  396.651023] INFO: rcu_sched self-detected stall on CPU
+[  396.656449] 	0-...!: (120232 ticks this GP) idle=3da/1/4611686018427387906 softirq=85066/85067 fqs=87 
+[  396.666018] 	 (t=125000 jiffies g=45941 c=45940 q=632561)
+[  396.671551] rcu_sched kthread starved for 96651 jiffies! g45941 c45940 f0x2 RCU_GP_WAIT_FQS(3) ->state=0x0 ->cpu=1
+[  396.682013] RCU grace-period kthread stack dump:
+[  396.686747] rcu_sched       R  running task    22584     9      2 0x80000000
+[  396.693925] Call Trace:
+[  396.696504]  __schedule+0x801/0x1e30
+[  396.721528]  schedule+0xef/0x430
+[  396.760095]  schedule_timeout+0x138/0x240
+[  396.773155]  rcu_gp_kthread+0x6b5/0x1940
+[  396.902194]  kthread+0x345/0x410
+[  396.914410]  ret_from_fork+0x3a/0x50
+[  396.918117] NMI backtrace for cpu 0
+[  396.921726] CPU: 0 PID: 8 Comm: ksoftirqd/0 Not tainted 4.17.0-rc4+ #48
+[  396.928465] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  396.937797] Call Trace:
+[  396.940361]  <IRQ>
+[  396.942495]  dump_stack+0x1b9/0x294
+[  396.955257]  nmi_cpu_backtrace.cold.4+0x19/0xce
+[  396.965085]  nmi_trigger_cpumask_backtrace+0x151/0x192
+[  396.970349]  arch_trigger_cpumask_backtrace+0x14/0x20
+[  396.975523]  rcu_dump_cpu_stacks+0x175/0x1c2
+[  396.984915]  check_cpu_stall.isra.61.cold.80+0x36c/0x59a
+[  397.045471]  rcu_check_callbacks+0x21b/0xad0
+[  397.099148]  update_process_times+0x2d/0x70
+[  397.103455]  tick_sched_handle+0x9f/0x180
+[  397.107586]  tick_sched_timer+0x45/0x130
+[  397.111633]  __hrtimer_run_queues+0x3e3/0x10a0
+[  397.164906]  hrtimer_interrupt+0x2f3/0x750
+[  397.169132]  smp_apic_timer_interrupt+0x15d/0x710
+[  397.200493]  apic_timer_interrupt+0xf/0x20
+[  397.204703]  </IRQ>
+[  397.206926] RIP: 0010:unwind_next_frame.part.7+0x8b/0x9c0
+[  397.212439] RSP: 0018:ffff8801d9aaebb0 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff13
+[  397.220131] RAX: 1ffff1003b355da3 RBX: ffff8801d9aaecc8 RCX: 0000000000000007
+[  397.227380] RDX: dffffc0000000000 RSI: ffffffff86e8b04f RDI: ffff8801d9aaecc8
+[  397.234633] RBP: ffff8801d9aaeca0 R08: ffff8801d9aaed00 R09: ffff8801d9a9c200
+[  397.241882] R10: ffffed003b355da3 R11: ffff8801d9aaed1f R12: 1ffff1003b355d7b
+[  397.249135] R13: 0000000000000000 R14: ffff8801d9a9c200 R15: ffff8801d9aaed18
+[  397.284735]  unwind_next_frame+0x3e/0x50
+[  397.288784]  __save_stack_trace+0x6e/0xd0
+[  397.297403]  save_stack_trace+0x1a/0x20
+[  397.301360]  save_stack+0x43/0xd0
+[  397.415393]  kasan_kmalloc+0xc4/0xe0
+[  397.419094]  kasan_slab_alloc+0x12/0x20
+[  397.423094]  kmem_cache_alloc+0x12e/0x760
+[  397.427240]  sctp_chunkify+0xce/0x400
+[  397.455406]  _sctp_make_chunk+0x157/0x280
+[  397.459538]  sctp_make_heartbeat+0x8f/0x430
+[  397.483422]  sctp_sf_heartbeat.isra.23+0x26/0x180
+[  397.488250]  sctp_sf_sendbeat_8_3+0x38e/0x550
+[  397.492731]  sctp_do_sm+0x1ab/0x7160
+[  397.565731]  sctp_generate_heartbeat_event+0x218/0x450
+[  397.571003]  call_timer_fn+0x230/0x940
+[  397.617386]  __run_timers+0x79e/0xc50
+[  397.668620]  run_timer_softirq+0x4c/0x70
+[  397.672666]  __do_softirq+0x2e0/0xaf5
+[  397.707640]  run_ksoftirqd+0x86/0x100
+[  397.711424]  smpboot_thread_fn+0x417/0x870
+[  397.729086]  kthread+0x345/0x410
+[  397.739836]  ret_from_fork+0x3a/0x50	

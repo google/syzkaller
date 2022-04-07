@@ -1,0 +1,217 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# https://elixir.bootlin.com/linux/latest/source/drivers/usb/core/devio.c
+
+include <linux/ioctl.h>
+include <linux/usb.h>
+include <linux/usbdevice_fs.h>
+include <uapi/linux/fcntl.h>
+include <uapi/linux/usb/ch9.h>
+
+define MAXDRIVERNAME	USBDEVFS_MAXDRIVERNAME + 1
+
+resource fd_usbfs[fd]
+
+syz_open_dev$usbfs(dev ptr[in, string["/dev/bus/usb/00#/00#"]], id intptr, flags flags[open_flags]) fd_usbfs
+
+read$usbfs(fd fd_usbfs, buf buffer[out], count len[buf])
+
+mmap$usbfs(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_usbfs, offset fileoff)
+_ = __NR_mmap2
+
+# TODO: arg is a pointer to a previously submitted URB.
+ioctl$USBDEVFS_REAPURB(fd fd_usbfs, cmd const[USBDEVFS_REAPURB], arg ptr[out, int64])
+ioctl$USBDEVFS_REAPURBNDELAY(fd fd_usbfs, cmd const[USBDEVFS_REAPURBNDELAY], arg ptr[out, int64])
+
+ioctl$USBDEVFS_CONTROL(fd fd_usbfs, cmd const[USBDEVFS_CONTROL], arg ptr[in, usbdevfs_ctrltransfer])
+ioctl$USBDEVFS_BULK(fd fd_usbfs, cmd const[USBDEVFS_BULK], arg ptr[in, usbdevfs_bulktransfer])
+ioctl$USBDEVFS_RESETEP(fd fd_usbfs, cmd const[USBDEVFS_RESETEP], arg ptr[in, usbdevfs_ep])
+ioctl$USBDEVFS_RESET(fd fd_usbfs, cmd const[USBDEVFS_RESET])
+ioctl$USBDEVFS_CLEAR_HALT(fd fd_usbfs, cmd const[USBDEVFS_CLEAR_HALT], arg ptr[in, usbdevfs_ep])
+ioctl$USBDEVFS_GETDRIVER(fd fd_usbfs, cmd const[USBDEVFS_GETDRIVER], arg ptr[inout, usbdevfs_getdriver])
+ioctl$USBDEVFS_CONNECTINFO(fd fd_usbfs, cmd const[USBDEVFS_CONNECTINFO], arg ptr[out, usbdevfs_connectinfo])
+ioctl$USBDEVFS_SETINTERFACE(fd fd_usbfs, cmd const[USBDEVFS_SETINTERFACE], arg ptr[in, usbdevfs_setinterface])
+ioctl$USBDEVFS_SETCONFIGURATION(fd fd_usbfs, cmd const[USBDEVFS_SETCONFIGURATION], arg ptr[in, int32])
+ioctl$USBDEVFS_SUBMITURB(fd fd_usbfs, cmd const[USBDEVFS_SUBMITURB], arg ptr[in, usbdevfs_urb])
+
+# TODO: arg is a pointer to a previously submitted URB.
+ioctl$USBDEVFS_DISCARDURB(fd fd_usbfs, cmd const[USBDEVFS_DISCARDURB], arg ptr[in, int64])
+
+ioctl$USBDEVFS_DISCSIGNAL(fd fd_usbfs, cmd const[USBDEVFS_DISCSIGNAL], arg ptr[in, usbdevfs_disconnectsignal])
+ioctl$USBDEVFS_CLAIMINTERFACE(fd fd_usbfs, cmd const[USBDEVFS_CLAIMINTERFACE], arg ptr[in, int32])
+ioctl$USBDEVFS_RELEASEINTERFACE(fd fd_usbfs, cmd const[USBDEVFS_RELEASEINTERFACE], arg ptr[in, int32])
+ioctl$USBDEVFS_IOCTL(fd fd_usbfs, cmd const[USBDEVFS_IOCTL], arg ptr[in, usbdevfs_ioctl])
+ioctl$USBDEVFS_CLAIM_PORT(fd fd_usbfs, cmd const[USBDEVFS_CLAIM_PORT], arg ptr[in, int32])
+ioctl$USBDEVFS_RELEASE_PORT(fd fd_usbfs, cmd const[USBDEVFS_RELEASE_PORT], arg ptr[in, int32])
+ioctl$USBDEVFS_GET_CAPABILITIES(fd fd_usbfs, cmd const[USBDEVFS_GET_CAPABILITIES], arg ptr[out, int32])
+ioctl$USBDEVFS_DISCONNECT_CLAIM(fd fd_usbfs, cmd const[USBDEVFS_DISCONNECT_CLAIM], arg ptr[in, usbdevfs_disconnect_claim])
+ioctl$USBDEVFS_FREE_STREAMS(fd fd_usbfs, cmd const[USBDEVFS_FREE_STREAMS], arg ptr[in, usbdevfs_streams])
+ioctl$USBDEVFS_DROP_PRIVILEGES(fd fd_usbfs, cmd const[USBDEVFS_DROP_PRIVILEGES], arg ptr[in, int32])
+ioctl$USBDEVFS_GET_SPEED(fd fd_usbfs, cmd const[USBDEVFS_GET_SPEED])
+
+usbdevfs_ep {
+	num	int8:7[0:15]
+	dir	int8:1
+}
+
+usbdevfs_ctrltransfer {
+	bRequestType	flags[usb_request_type_flags, int8]
+	bRequest	flags[usb_requests, int8]
+	wValue		int16
+	wIndex		int16
+	wLength		len[data, int16]
+	timeout		int32
+	data		ptr[inout, array[int8]]
+}
+
+usb_request_type_flags = USB_DIR_OUT, USB_DIR_IN, USB_TYPE_MASK, USB_TYPE_STANDARD, USB_TYPE_CLASS, USB_TYPE_VENDOR, USB_TYPE_RESERVED, USB_RECIP_MASK, USB_RECIP_DEVICE, USB_RECIP_INTERFACE, USB_RECIP_ENDPOINT, USB_RECIP_OTHER, USB_RECIP_PORT, USB_RECIP_RPIPE
+
+usbdevfs_bulktransfer {
+	ep	align32[usbdevfs_ep]
+	len	len[data, int32]
+	timeout	int32
+	data	ptr[inout, array[int8]]
+}
+
+usbdevfs_getdriver {
+	interface	int32
+	driver		array[int8, MAXDRIVERNAME]
+}
+
+usbdevfs_connectinfo {
+	devnum	int32
+	slow	int8
+}
+
+usbdevfs_setinterface {
+	interface	int32
+	altsetting	int32
+}
+
+usbdevfs_urb [
+	urb_type_control	usbdevfs_urb_control
+	urb_type_bulk		usbdevfs_urb_bulk
+	urb_type_interrupt	usbdevfs_urb_interrupt
+	urb_type_iso		usbdevfs_urb_iso
+] [varlen]
+
+usbdevfs_urb_control {
+	type		const[USBDEVFS_URB_TYPE_CONTROL, int8]
+	endpoint	usbdevfs_ep
+	status		int32
+	flags		flags[urb_flags, int32]
+	buffer		ptr[in, usb_ctrlrequest]
+	buffer_length	len[buffer, int32]
+	actual_length	int32
+	start_frame	int32
+	u		const[0, int32]
+	error_count	int32
+	signr		int32
+	usercontext	ptr[in, array[int8]]
+}
+
+usb_ctrlrequest {
+	bRequestType	flags[usb_request_type_flags, int8]
+	bRequest	flags[usb_requests, int8]
+	wValue		int16
+	wIndex		int16
+	wLength		int16
+} [packed]
+
+usbdevfs_urb_bulk {
+	type		const[USBDEVFS_URB_TYPE_BULK, int8]
+	endpoint	usbdevfs_ep
+	status		int32
+	flags		flags[urb_flags, int32]
+	buffer		ptr[in, array[int8]]
+	buffer_length	len[buffer, int32]
+	actual_length	int32
+	start_frame	int32
+	stream_id	int32
+	error_count	int32
+	signr		int32
+	usercontext	ptr[in, array[int8]]
+}
+
+usbdevfs_urb_interrupt {
+	type		const[USBDEVFS_URB_TYPE_INTERRUPT, int8]
+	endpoint	usbdevfs_ep
+	status		int32
+	flags		flags[urb_flags, int32]
+	buffer		ptr[in, array[int8]]
+	buffer_length	len[buffer, int32]
+	actual_length	int32
+	start_frame	int32
+	u		const[0, int32]
+	error_count	int32
+	signr		int32
+	usercontext	ptr[in, array[int8]]
+}
+
+usbdevfs_urb_iso {
+	type			const[USBDEVFS_URB_TYPE_ISO, int8]
+	endpoint		usbdevfs_ep
+	status			int32
+	flags			flags[urb_flags, int32]
+	buffer			ptr[in, array[int8]]
+	buffer_length		len[buffer, int32]
+	actual_length		int32
+	start_frame		int32
+	number_of_packets	len[iso_frame_desc, int32]
+	error_count		int32
+	signr			int32
+	usercontext		ptr[in, array[int8]]
+	iso_frame_desc		array[usbdevfs_iso_packet_desc, 1:127]
+}
+
+urb_flags = USBDEVFS_URB_SHORT_NOT_OK, USBDEVFS_URB_ISO_ASAP, USBDEVFS_URB_BULK_CONTINUATION, USBDEVFS_URB_NO_FSBR, USBDEVFS_URB_ZERO_PACKET, USBDEVFS_URB_NO_INTERRUPT
+
+usbdevfs_iso_packet_desc {
+	length		int32
+	actual_length	int32
+	status		int32
+}
+
+usbdevfs_disconnectsignal {
+	signr	int32
+	context	ptr[in, array[int8]]
+}
+
+usbdevfs_ioctl [
+	usbdevfs_disconnect	usbdevfs_ioctl_disconnect
+	usbdevfs_connect	usbdevfs_ioctl_connect
+	usbdevfs_driver		usbdevfs_ioctl_driver
+]
+
+usbdevfs_ioctl_disconnect {
+	ifno		int32
+	ioctl_code	const[USBDEVFS_DISCONNECT, int32]
+	data		const[0, intptr]
+}
+
+usbdevfs_ioctl_connect {
+	ifno		int32
+	ioctl_code	const[USBDEVFS_CONNECT, int32]
+	data		const[0, intptr]
+}
+
+usbdevfs_ioctl_driver {
+	ifno		int32
+	ioctl_code	int32
+	data		ptr[inout, array[int8]]
+}
+
+usbdevfs_disconnect_claim {
+	interface	int32
+	flags		flags[disconnect_flags, int32]
+	driver		array[int8, MAXDRIVERNAME]
+}
+
+disconnect_flags = USBDEVFS_DISCONNECT_CLAIM_IF_DRIVER, USBDEVFS_DISCONNECT_CLAIM_EXCEPT_DRIVER
+
+usbdevfs_streams {
+	num_streams	int32[2:65536]
+	num_eps		len[eps, int32]
+	eps		array[usbdevfs_ep, 1:USB_MAXENDPOINTS]
+}

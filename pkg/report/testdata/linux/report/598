@@ -1,0 +1,40 @@
+TITLE: KFENCE: invalid read in test_invalid_access
+ALT: bad-access in test_invalid_access
+
+[   10.613348] ==================================================================
+[   10.614532] BUG: KFENCE: invalid read in test_invalid_access+0x48/0xe0
+[   10.614532] 
+[   10.615358] Invalid read at 0xffff8c2aae20000a:
+[   10.615830]  test_invalid_access+0x48/0xe0
+[   10.616267]  kunit_try_run_case+0x51/0x90
+[   10.616689]  kunit_generic_run_threadfn_adapter+0x16/0x30
+[   10.617294]  kthread+0x166/0x1a0
+[   10.617640]  ret_from_fork+0x22/0x30
+[   10.618021] 
+[   10.618186] CPU: 5 PID: 130 Comm: kunit_try_catch Tainted: G    B             5.11.0-rc2+ #1
+[   10.619067] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.14.0-2 04/01/2014
+[   10.619937] RIP: 0010:test_invalid_access+0x48/0xe0
+[   10.620455] Code: e8 31 c0 e8 ca 78 ef ff 48 8b 05 03 70 48 01 c6 45 a0 00 48 c7 45 90 d0 30 27 a1 48 8d 50 0a c7 45 88 03 00 00 00 48 89 55 98 <0f> b6 40 0a 48 b8 01 00 00 00 7c 02 00 00 48 89 45 b0 8b 05 b4 49
+[   10.622396] RSP: 0000:ffffa2260147fe50 EFLAGS: 00010293
+[   10.622946] RAX: ffff8c2aae200000 RBX: ffffffffa12726a0 RCX: ffffffffa12730f6
+[   10.623695] RDX: ffff8c2aae20000a RSI: 0000000000000000 RDI: ffffa22600013d48
+[   10.624433] RBP: ffffa2260147fec8 R08: 0000000000000000 R09: 000000000000006d
+[   10.625179] R10: ffff8c2aafd695c0 R11: 0000000000000000 R12: ffffa22600013d48
+[   10.626001] R13: 0000000000000000 R14: 0000000000000000 R15: ffffa22600013d60
+[   10.626857] FS:  0000000000000000(0000) GS:ffff8c2aafd40000(0000) knlGS:0000000000000000
+[   10.627823] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   10.628516] CR2: ffff8c2aae20000a CR3: 000000034740c001 CR4: 0000000000770ee0
+[   10.629388] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   10.630252] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   10.631116] PKRU: 55555554
+[   10.631451] Call Trace:
+[   10.631755]  ? report_matches.part.0+0x3a0/0x3a0
+[   10.632322]  ? preempt_count_add+0x63/0xa0
+[   10.632827]  ? _raw_spin_lock_irqsave+0x14/0x40
+[   10.633389]  kunit_try_run_case+0x51/0x90
+[   10.633881]  ? kunit_try_catch_throw+0x20/0x20
+[   10.634424]  kunit_generic_run_threadfn_adapter+0x16/0x30
+[   10.635080]  kthread+0x166/0x1a0
+[   10.635478]  ? __kthread_bind_mask+0x80/0x80
+[   10.636000]  ret_from_fork+0x22/0x30
+[   10.636437] ==================================================================

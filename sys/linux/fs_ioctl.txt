@@ -1,0 +1,118 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/fiemap.h>
+include <uapi/linux/fs.h>
+include <uapi/linux/fsmap.h>
+include <linux/falloc.h>
+
+ioctl$FIBMAP(fd fd, cmd const[FIBMAP], arg ptr[in, int32])
+ioctl$FIGETBSZ(fd fd, cmd const[FIGETBSZ], arg ptr[out, intptr])
+ioctl$FITRIM(fd fd, cmd const[FITRIM], arg ptr[in, fstrim_range])
+ioctl$FICLONE(fd fd, cmd const[FICLONE], arg fd)
+ioctl$FICLONERANGE(fd fd, cmd const[FICLONERANGE], arg ptr[in, file_clone_range])
+ioctl$FIDEDUPERANGE(fd fd, cmd const[FIDEDUPERANGE], arg ptr[in, file_dedupe_range])
+
+ioctl$FS_IOC_GETFLAGS(fd fd, cmd const[FS_IOC_GETFLAGS], arg ptr[out, flags[fs_flags, int32]])
+ioctl$FS_IOC_SETFLAGS(fd fd, cmd const[FS_IOC_SETFLAGS], arg ptr[in, flags[fs_flags, int32]])
+
+ioctl$FS_IOC_GETVERSION(fd fd, cmd const[FS_IOC_GETVERSION], arg ptr[out, intptr])
+ioctl$FS_IOC_SETVERSION(fd fd, cmd const[FS_IOC_SETVERSION], arg ptr[in, intptr])
+ioctl$FS_IOC_FIEMAP(fd fd, cmd const[FS_IOC_FIEMAP], v ptr[in, fiemap])
+ioctl$FS_IOC_RESVSP(fd fd, cmd const[FS_IOC_RESVSP], arg ptr[in, space_resv])
+ioctl$FS_IOC_FSGETXATTR(fd fd, cmd const[FS_IOC_FSGETXATTR], arg ptr[in, fsxattr])
+ioctl$FS_IOC_FSSETXATTR(fd fd, cmd const[FS_IOC_FSSETXATTR], arg ptr[in, fsxattr])
+ioctl$FS_IOC_GETFSLABEL(fd fd, cmd const[FS_IOC_GETFSLABEL], arg ptr[out, array[const[0, int8], FSLABEL_MAX]])
+ioctl$FS_IOC_SETFSLABEL(fd fd, cmd const[FS_IOC_SETFSLABEL], arg ptr[in, array[int8, FSLABEL_MAX]])
+ioctl$FS_IOC_GETFSMAP(fd fd, cmd const[FS_IOC_GETFSMAP], arg ptr[in, fsmap_head])
+
+space_resv {
+	l_type		const[0, int16]
+	l_whence	flags[seek_whence, int16]
+	l_start		int64
+	l_len		int64
+	l_sysid		const[0, int32]
+	l_pid		const[0, int32]
+	l_pad		array[const[0, int32], 4]
+}
+
+fstrim_range {
+	start	int64
+	len	int64
+	minlen	int64
+}
+
+file_clone_range {
+	src_fd		align64[fd]
+	src_offset	int64
+	src_length	int64
+	dest_offset	int64
+}
+
+file_dedupe_range {
+	src_offset	int64
+	src_length	int64
+	dest_count	len[info, int16]
+	reserved1	const[0, int16]
+	reserved2	const[0, int32]
+	info		array[file_dedupe_range_info]
+}
+
+file_dedupe_range_info {
+	dest_fd		align64[fd]
+	dest_offset	int64
+	bytes_deduped	const[0, int64]
+	status		const[0, int32]
+	reserved	const[0, int32]
+}
+
+fsxattr {
+	fsx_xflags	int32
+	fsx_extsize	int32
+	fsx_nextents	int32
+	fsx_projid	int32
+	fsx_cowextsize	int32
+	fsx_pad		array[const[0, int8], 8]
+}
+
+fiemap {
+	start	int64
+	len	int64
+	flags	flags[fiemap_flags, int32]
+	mapped	int32
+	count	len[extent, int32]
+	extent	array[fiemap_extent]
+}
+
+fiemap_extent {
+	fe_logical	int64
+	fe_physical	int64
+	fe_length	int64
+	fe_reserved64	array[const[0, int64], 2]
+	fe_flags	flags[fiemap_extent_flags, int32]
+	fe_reserved	array[const[0, int32], 3]
+}
+
+fsmap_head {
+	fmh_iflags	const[0, int32]
+	fmh_oflags	const[0, int32]
+	fmh_count	len[fmh_recs, int32]
+	fmh_entries	const[0, int32]
+	fmh_reserved	array[const[0, int64], 6]
+	fmh_keys	array[fsmap, 2]
+	fmh_recs	array[array[const[0, int8], FSMAP_SIZE]]
+}
+
+fsmap {
+	fmr_device	int32
+	fmr_flags	int32
+	fmr_physical	int64
+	fmr_owner	int64
+	fmr_offset	int64
+	fmr_length	int64
+	fmr_reserved	array[const[0, int64], 3]
+}
+
+fs_flags = FS_SECRM_FL, FS_UNRM_FL, FS_COMPR_FL, FS_SYNC_FL, FS_IMMUTABLE_FL, FS_APPEND_FL, FS_NODUMP_FL, FS_NOATIME_FL, FS_DIRTY_FL, FS_COMPRBLK_FL, FS_NOCOMP_FL, FS_ENCRYPT_FL, FS_BTREE_FL, FS_INDEX_FL, FS_IMAGIC_FL, FS_JOURNAL_DATA_FL, FS_NOTAIL_FL, FS_DIRSYNC_FL, FS_TOPDIR_FL, FS_HUGE_FILE_FL, FS_EXTENT_FL, FS_VERITY_FL, FS_EA_INODE_FL, FS_EOFBLOCKS_FL, FS_NOCOW_FL, FS_DAX_FL, FS_INLINE_DATA_FL, FS_PROJINHERIT_FL, FS_CASEFOLD_FL, FS_RESERVED_FL
+
+define FSMAP_SIZE	sizeof(struct fsmap)

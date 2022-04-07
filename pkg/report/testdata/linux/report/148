@@ -1,0 +1,90 @@
+TITLE: general protection fault in tipc_subscrb_subscrp_delete
+ALT: bad-access in tipc_subscrb_subscrp_delete
+
+[   41.864973] kasan: CONFIG_KASAN_INLINE enabled
+[   41.869549] kasan: GPF could be caused by NULL-ptr deref or user memory access
+[   41.876882] general protection fault: 0000 [#1] SMP KASAN
+[   41.882385] Dumping ftrace buffer:
+[   41.885888]    (ftrace buffer empty)
+[   41.889561] Modules linked in:
+[   41.892722] CPU: 0 PID: 3085 Comm: syzkaller064164 Not tainted 4.15.0-rc1+ #137
+[   41.900130] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   41.909450] task: 00000000c24413a5 task.stack: 000000005e8160b5
+[   41.915475] RIP: 0010:__lock_acquire+0xd55/0x47f0
+[   41.920278] RSP: 0018:ffff8801cb5474a8 EFLAGS: 00010002
+[   41.925604] RAX: dffffc0000000000 RBX: 0000000000000000 RCX: 0000000000000000
+[   41.932837] RDX: 0000000000000004 RSI: 0000000000000000 RDI: ffffffff85ecb400
+[   41.940070] RBP: ffff8801cb547830 R08: 0000000000000001 R09: 0000000000000000
+[   41.947304] R10: 0000000000000000 R11: ffffffff87489d60 R12: ffff8801cd2980c0
+[   41.954537] R13: 0000000000000000 R14: 0000000000000001 R15: 0000000000000020
+[   41.961772] FS:  00000000014ee880(0000) GS:ffff8801db400000(0000) knlGS:0000000000000000
+[   41.969963] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   41.975807] CR2: 00007ffee2426e40 CR3: 00000001cb85a000 CR4: 00000000001406f0
+[   41.983046] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   41.990280] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   41.997514] Call Trace:
+[   42.000068]  ? find_held_lock+0x39/0x1d0
+[   42.004098]  ? lock_downgrade+0x980/0x980
+[   42.008214]  ? debug_check_no_locks_freed+0x3d0/0x3d0
+[   42.013368]  ? find_held_lock+0x39/0x1d0
+[   42.017400]  ? llist_add_batch+0xf3/0x180
+[   42.021513]  ? find_last_bit+0xd0/0xd0
+[   42.025367]  ? tick_nohz_tick_stopped+0x9/0x20
+[   42.029912]  ? irq_work_queue+0xf7/0x170
+[   42.033940]  ? wake_up_klogd+0xc3/0x100
+[   42.037877]  ? is_console_locked+0x20/0x20
+[   42.042080]  ? console_unlock+0x57e/0xd80
+[   42.046191]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[   42.051171]  ? console_unlock+0x983/0xd80
+[   42.055286]  ? __down_trylock_console_sem+0x70/0x1e0
+[   42.060349]  ? wake_up_klogd+0x100/0x100
+[   42.064373]  ? vprintk_emit+0x49b/0x590
+[   42.068312]  lock_acquire+0x1d5/0x580
+[   42.072085]  ? tipc_subscrb_subscrp_delete+0x8f/0x470
+[   42.077237]  ? lock_release+0xda0/0xda0
+[   42.081174]  ? vprintk_default+0x28/0x30
+[   42.085204]  ? vprintk_func+0x5e/0xc0
+[   42.088966]  ? printk+0xaa/0xca
+[   42.092210]  ? tipc_subscrb_subscrp_delete+0x8f/0x470
+[   42.097362]  _raw_spin_lock_bh+0x31/0x40
+[   42.101385]  ? tipc_subscrb_subscrp_delete+0x8f/0x470
+[   42.106538]  tipc_subscrb_subscrp_delete+0x8f/0x470
+[   42.111518]  ? tipc_subscrp_put+0x360/0x360
+[   42.115800]  ? tipc_subscrb_put+0x30/0x30
+[   42.119910]  ? __lock_is_held+0xbc/0x140
+[   42.123932]  ? tipc_subscrb_subscrp_delete+0x470/0x470
+[   42.129172]  tipc_subscrb_release_cb+0x17/0x30
+[   42.133719]  tipc_close_conn+0x171/0x270
+[   42.137745]  tipc_topsrv_kern_subscr+0x724/0x810
+[   42.142464]  ? tipc_conn_terminate+0x50/0x50
+[   42.146837]  ? addr_domain+0x204/0x380
+[   42.150696]  ? tipc_nlist_init+0x77/0x130
+[   42.154806]  ? in_own_node+0x320/0x320
+[   42.158660]  tipc_group_create+0x702/0x9c0
+[   42.162860]  ? tipc_group_size+0x50/0x50
+[   42.166883]  ? lock_release+0xda0/0xda0
+[   42.170824]  ? addr_domain+0x204/0x380
+[   42.174680]  ? in_own_node+0x320/0x320
+[   42.178532]  ? lock_sock_nested+0x91/0x110
+[   42.182728]  ? trace_hardirqs_on+0xd/0x10
+[   42.186843]  ? __local_bh_enable_ip+0x121/0x230
+[   42.191476]  tipc_setsockopt+0x249/0xc10
+[   42.195502]  ? tipc_sk_leave+0x200/0x200
+[   42.199529]  ? security_socket_setsockopt+0x89/0xb0
+[   42.204510]  SyS_setsockopt+0x189/0x360
+[   42.208446]  ? SyS_recv+0x40/0x40
+[   42.211864]  ? SyS_write+0x184/0x220
+[   42.215543]  ? entry_SYSCALL_64_fastpath+0x5/0x96
+[   42.220348]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[   42.225330]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[   42.230049]  entry_SYSCALL_64_fastpath+0x1f/0x96
+[   42.234769] RIP: 0033:0x444dd9
+[   42.237923] RSP: 002b:00007fffe5997f78 EFLAGS: 00000246 ORIG_RAX: 0000000000000036
+[   42.245593] RAX: ffffffffffffffda RBX: 0000000000000001 RCX: 0000000000444dd9
+[   42.252835] RDX: 0000000000000087 RSI: 000000000000010f RDI: 0000000000000004
+[   42.260070] RBP: 0000000000000006 R08: 000000000000001c R09: 0000006f00000034
+[   42.267303] R10: 0000000020265000 R11: 0000000000000246 R12: 0000000000402310
+[   42.274537] R13: 00000000004023a0 R14: 0000000000000000 R15: 0000000000000000
+[   42.281774] Code: e9 03 f3 48 ab 48 81 c4 60 03 00 00 44 89 f8 5b 41 5c 41 5d 41 5e 41 5f 5d c3 4c 89 fa 48 b8 00 00 00 00 00 fc ff df 48 c1 ea 03 <80> 3c 02 00 0f 85 cf 38 00 00 49 81 3f 00 58 8b 86 41 be 00 00 
+[   42.300805] RIP: __lock_acquire+0xd55/0x47f0 RSP: ffff8801cb5474a8
+[   42.307089] ---[ end trace 1d79d73eb824586d ]---

@@ -1,0 +1,80 @@
+TITLE: INFO: trying to register non-static key in vmk80xx_detach
+
+[  654.367816] INFO: trying to register non-static key.
+[  654.368829] the code is fine but needs lockdep annotation.
+[  654.370037] turning off the locking correctness validator.
+[  654.371095] CPU: 0 PID: 3715 Comm: kworker/0:3 Not tainted 5.1.0-rc4-13807-ge5a190e835a1 #241
+[  654.372790] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+[  654.374490] Workqueue: usb_hub_wq hub_event
+[  654.375272] Call Trace:
+[  654.375758]  dump_stack+0xca/0x13e
+[  654.376446]  register_lock_class+0x12c2/0x1640
+[  654.377314]  ? is_dynamic_key+0x1f0/0x1f0
+[  654.378119]  ? __switch_to_asm+0x34/0x70
+[  654.378877]  ? __switch_to_asm+0x40/0x70
+[  654.379640]  ? is_dynamic_key+0x1f0/0x1f0
+[  654.380450]  __lock_acquire+0xf6/0x3c40
+[  654.381184]  ? __lock_acquire+0x5ab/0x3c40
+[  654.381962]  ? mark_held_locks+0x110/0x110
+[  654.382777]  ? __mutex_lock+0x4c1/0x1190
+[  654.383521]  ? mark_held_locks+0x110/0x110
+[  654.384350]  lock_acquire+0x10f/0x2f0
+[  654.385041]  ? down+0x12/0x80
+[  654.385646]  ? lock_acquire+0x10f/0x2f0
+[  654.386388]  _raw_spin_lock_irqsave+0x43/0x60
+[  654.387256]  ? down+0x12/0x80
+[  654.387858]  down+0x12/0x80
+[  654.388430]  ? comedi_to_usb_interface+0x40/0x60
+[  654.389326]  vmk80xx_detach+0x59/0x100
+[  654.390043]  comedi_device_detach+0xf3/0x7d0
+[  654.390844]  ? wait_for_completion+0x3d0/0x3d0
+[  654.391721]  comedi_device_cleanup.part.16+0x58/0x130
+[  654.392768]  comedi_free_board_dev.part.17+0x16/0x90
+[  654.393738]  comedi_release_hardware_device+0xf6/0x130
+[  654.394736]  comedi_auto_config.cold.11+0x19d/0x1e5
+[  654.395681]  usb_probe_interface+0x2bf/0x780
+[  654.396569]  ? usb_probe_device+0x120/0x120
+[  654.397366]  really_probe+0x284/0xac0
+[  654.398069]  ? driver_allows_async_probing+0x130/0x130
+[  654.399060]  driver_probe_device+0x203/0x320
+[  654.399907]  __device_attach_driver+0x198/0x250
+[  654.400811]  bus_for_each_drv+0x151/0x1d0
+[  654.401570]  ? bus_rescan_devices+0x30/0x30
+[  654.402368]  ? lockdep_hardirqs_on+0x384/0x570
+[  654.403218]  __device_attach+0x1fd/0x350
+[  654.403976]  ? device_bind_driver+0xd0/0xd0
+[  654.404776]  ? kobject_uevent_env+0x294/0x1290
+[  654.405614]  bus_probe_device+0x1e3/0x290
+[  654.406368]  device_add+0xc4d/0x1630
+[  654.407052]  ? get_device_parent.isra.29+0x590/0x590
+[  654.407988]  usb_set_configuration+0xbbe/0x1570
+[  654.408902]  generic_probe+0x7e/0x9c
+[  654.409671]  usb_probe_device+0xab/0x120
+[  654.410384]  ? usb_suspend+0x590/0x590
+[  654.411143]  really_probe+0x284/0xac0
+[  654.411944]  ? driver_allows_async_probing+0x130/0x130
+[  654.412947]  driver_probe_device+0x203/0x320
+[  654.413753]  __device_attach_driver+0x198/0x250
+[  654.414646]  bus_for_each_drv+0x151/0x1d0
+[  654.415497]  ? bus_rescan_devices+0x30/0x30
+[  654.416373]  ? lockdep_hardirqs_on+0x384/0x570
+[  654.417224]  __device_attach+0x1fd/0x350
+[  654.417986]  ? device_bind_driver+0xd0/0xd0
+[  654.418851]  ? kobject_uevent_env+0x294/0x1290
+[  654.419750]  bus_probe_device+0x1e3/0x290
+[  654.420494]  device_add+0xc4d/0x1630
+[  654.421191]  ? get_device_parent.isra.29+0x590/0x590
+[  654.422163]  ? _raw_spin_unlock_irq+0x29/0x40
+[  654.423045]  usb_new_device.cold.56+0x51d/0xc51
+[  654.423907]  hub_event+0x115c/0x3530
+[  654.424608]  ? hub_port_debounce+0x2e0/0x2e0
+[  654.425490]  ? mark_held_locks+0x110/0x110
+[  654.426340]  ? process_one_work+0x882/0x1620
+[  654.427158]  process_one_work+0x952/0x1620
+[  654.427966]  ? apply_wqattrs_commit+0x460/0x460
+[  654.428891]  ? do_raw_spin_lock+0x120/0x290
+[  654.429767]  worker_thread+0x638/0xc40
+[  654.430515]  ? process_one_work+0x1620/0x1620
+[  654.431353]  kthread+0x33a/0x400
+[  654.431971]  ? kthread_create_on_node+0xf0/0xf0
+[  654.432869]  ret_from_fork+0x3a/0x50

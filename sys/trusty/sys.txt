@@ -1,0 +1,55 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# https://android.googlesource.com/trusty/lk/trusty/+/master/lib/trusty/include/syscall_table.h
+# https://source.android.com/security/trusty/trusty-ref
+
+include <user/trusty_syscalls.h>
+
+write(fd int32, msg ptr[in, array[int8]], size len[msg])
+brk(brk int32)
+exit_etc(status int32, flags int32)
+read(fd int32, msg ptr[out, array[int8]], size len[msg])
+ioctl(fd int32, req int32, buf ptr[in, array[int8]])
+nanosleep(clock_id int32, flags int32, sleep_time int64)
+gettime(clock_id int32, flags int32, time ptr[out, int64])
+mmap(uaddr vma, size len[uaddr], flags int32, handle int32)
+munmap(uaddr vma, size len[uaddr])
+prepare_dma(uaddr ptr[out, array[int8]], size len[uaddr], flags int32, pmem ptr[in, dma_pmem])
+finish_dma(uaddr ptr[out, array[int8]], size len[uaddr], flags int32)
+
+port_create(path ptr[in, string], num_recv_bufs int32, recv_buf_size int32, flags int32)
+connect(path ptr[in, string], flags int32)
+accept(handle_id int32, peer_uuid ptr[out, uuid])
+close(handle_id int32)
+set_cookie(handle int32, cookie intptr)
+handle_set_create()
+handle_set_ctrl(handle int32, cmd int32, evt ptr[in, uevent])
+
+wait(handle_id int32, event ptr[in, uevent], timeout_msecs int32)
+wait_any(event ptr[out, uevent], timeout_msecs int32)
+
+get_msg(handle int32, msg_info ptr[in, ipc_msg_info])
+read_msg(handle int32, msg_id int32, offset int32, msg ptr[out, ipc_msg])
+put_msg(handle int32, msg_id int32)
+send_msg(handle int32, msg ptr[in, ipc_msg])
+
+dma_pmem {
+	todo	int32
+}
+
+uuid {
+	todo	int32
+}
+
+uevent {
+	todo	int32
+}
+
+ipc_msg_info {
+	todo	int32
+}
+
+ipc_msg {
+	todo	int32
+}

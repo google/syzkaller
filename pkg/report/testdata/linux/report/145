@@ -1,0 +1,65 @@
+TITLE: INFO: rcu detected stall in ipv6_rcv
+ALT: stall in ipv6_rcv
+TYPE: HANG
+
+[  323.830017] INFO: rcu_sched detected stalls on CPUs/tasks:
+[  323.835676] 	(detected by 0, t=125007 jiffies, g=66299, c=66298, q=40)
+[  323.842315] All QSes seen, last rcu_sched kthread activity 125014 (4294991138-4294866124), jiffies_till_next_fqs=3, root ->qsmask 0x0
+[  323.854420] syz-executor5   R  running task    22056 22277   3688 0x00000008
+[  323.861597] Call Trace:
+[  323.864155]  <IRQ>
+[  323.866280]  sched_show_task+0x4a3/0x5e0
+[  323.890409]  print_other_cpu_stall+0x996/0x1090
+[  323.956870]  check_cpu_stall.isra.61+0x6e6/0x15b0
+[  324.038202]  rcu_check_callbacks+0x256/0xd00
+[  324.082553]  update_process_times+0x30/0x60
+[  324.086846]  tick_sched_handle+0x85/0x160
+[  324.090968]  tick_sched_timer+0x42/0x120
+[  324.094999]  __hrtimer_run_queues+0x358/0xe20
+[  324.134365]  hrtimer_interrupt+0x1c2/0x5e0
+[  324.138588]  smp_apic_timer_interrupt+0x14a/0x700
+[  324.172031]  apic_timer_interrupt+0xa9/0xb0
+[  324.176323] RIP: 0010:__sanitizer_cov_trace_pc+0x0/0x50
+[  324.181650] RSP: 0018:ffff8801db206738 EFLAGS: 00000206 ORIG_RAX: ffffffffffffff11
+[  324.189325] RAX: ffffed003a2965e3 RBX: ffff8801d14b2e40 RCX: ffffffff84c25899
+[  324.196564] RDX: 0000000000000100 RSI: ffff8801c5f47f29 RDI: 00000000000079c8
+[  324.203803] RBP: ffff8801db2067c8 R08: ffffed0038bea003 R09: ffffed0038bea003
+[  324.211046] R10: 000000000000000b R11: ffffed0038bea002 R12: ffff8801c5f40580
+[  324.218304] R13: ffff8801db206aa0 R14: 00000000000079d0 R15: dffffc0000000000
+[  324.234345]  __xfrm_decode_session+0x68/0x110
+[  324.238814]  __xfrm_policy_check+0x18c/0x2350
+[  324.363656]  rawv6_rcv+0x8f6/0x1200
+[  324.375676]  raw6_local_deliver+0x819/0xa80
+[  324.405216]  ip6_input_finish+0x3c7/0x17a0
+[  324.425219]  ip6_input+0xe9/0x560
+[  324.445039]  ip6_rcv_finish+0x1a9/0x7a0
+[  324.460829]  ipv6_rcv+0xf37/0x1fa0
+[  324.498351]  __netif_receive_skb_core+0x1a41/0x3460
+[  324.588071]  __netif_receive_skb+0x2c/0x1b0
+[  324.596827]  process_backlog+0x203/0x740
+[  324.604982]  net_rx_action+0x792/0x1910
+[  324.711663]  __do_softirq+0x2d7/0xb85
+[  324.763025]  do_softirq_own_stack+0x2a/0x40
+[  324.767312]  </IRQ>
+[  324.769522]  do_softirq.part.21+0x14d/0x190
+[  324.778364]  __local_bh_enable_ip+0x1ee/0x230
+[  324.782830]  ip6_finish_output2+0xba0/0x23a0
+[  324.834968]  ip6_fragment+0x25f2/0x3470
+[  324.859537]  ip6_finish_output+0x6bb/0xaf0
+[  324.863753]  ip6_output+0x1eb/0x840
+[  324.884025]  ip6_local_out+0x95/0x160
+[  324.887802]  ip6_send_skb+0xa1/0x330
+[  324.891487]  ip6_push_pending_frames+0xb3/0xe0
+[  324.896041]  rawv6_sendmsg+0x2ee9/0x3e70
+[  324.944155]  inet_sendmsg+0x11f/0x5e0
+[  324.969127]  sock_sendmsg+0xca/0x110
+[  324.972812]  SYSC_sendto+0x361/0x5c0
+[  325.009270]  SyS_sendto+0x40/0x50
+[  325.012699]  entry_SYSCALL_64_fastpath+0x23/0x9a
+[  325.017423] RIP: 0033:0x452ac9
+[  325.020580] RSP: 002b:00007f042a550c58 EFLAGS: 00000212 ORIG_RAX: 000000000000002c
+[  325.028255] RAX: ffffffffffffffda RBX: 000000000071bea0 RCX: 0000000000452ac9
+[  325.035495] RDX: 0000000000000000 RSI: 0000000020aa7000 RDI: 0000000000000013
+[  325.042733] RBP: 00000000000004b6 R08: 00000000201e0000 R09: 000000000000001c
+[  325.049971] R10: 0000000000000000 R11: 0000000000000212 R12: 00000000006f51b0
+[  325.057210] R13: 00000000ffffffff R14: 00007f042a5516d4 R15: 0000000000000000

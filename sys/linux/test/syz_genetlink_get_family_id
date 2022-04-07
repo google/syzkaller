@@ -1,0 +1,17 @@
+# syz_init_net_socket requires sandbox none, also doesn't work without sandbox b/c we are still in init net ns.
+# requires: -sandbox=
+
+syz_genetlink_get_family_id$nl80211(&AUTO='nl80211\x00', 0xffffffffffffffff)
+syz_genetlink_get_family_id$ieee802154(&AUTO='802.15.4 MAC\x00', 0xffffffffffffffff)	# ENOENT
+
+r0 = socket$nl_generic(0x10, 0x3, 0x10)
+syz_genetlink_get_family_id$nl80211(&AUTO='nl80211\x00', r0)
+syz_genetlink_get_family_id$ieee802154(&AUTO='802.15.4 MAC\x00', r0)	# ENOENT
+syz_genetlink_get_family_id$nl80211(&AUTO='nl80211\x00', r0)
+
+r1 = syz_init_net_socket$nl_generic(AUTO, AUTO, AUTO)
+syz_genetlink_get_family_id$nl80211(&AUTO='nl80211\x00', r1)
+syz_genetlink_get_family_id$ieee802154(&AUTO='802.15.4 MAC\x00', r1)
+
+r2 = socket$inet_udp(AUTO, AUTO, AUTO)
+syz_genetlink_get_family_id$nl80211(&AUTO='nl80211\x00', r2)	# EINVAL

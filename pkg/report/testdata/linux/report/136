@@ -1,0 +1,16 @@
+TITLE: BUG: using __this_cpu_read() in preemptible code in corrupted
+CORRUPTED: Y
+
+[   62.873963] BUG: using __this_cpu_read() in preemptible [00000000] code: syz-executor7/11203
+[   62.882637] caller is __this_cpu_preempt_check+0x1c/0x20
+[   62.888081] CPU: 1 PID: 11203 Comm: syz-executor7 Not tainted 4.9.68-gfb66dc2 #107
+[   62.895769] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   62.905122]  ffff8801a32576d8[   62.907092] binder: BINDER_SET_CONTEXT_MGR already set
+[   62.907100] binder: 11189:11213 ioctl 40046207 0 returned -16
+[   62.919171]  ffffffff81d90889 0000000000000001 ffffffff83c17800
+[   62.925605]  ffffffff83f42ec0 ffff8801a31ac800 0000000000000003 ffff8801a3257718
+[   62.933626]  ffffffff81df7854 ffff8801a3257730 ffffffff83f42ec0 dffffc0000000000
+[   62.941645] Call Trace:
+[   62.944227]  [<ffffffff81d90889>] dump_stack+0xc1/0x128
+[   62.949590]  [<ffffffff81df7854>] check_preemption_disabled+0x1d4/0x200
+[   62.955431] audit: type=1400 audit(1513230272.694:51): avc:  denied  { setopt } for  pid=11219 comm="syz-executor6" scontext=unconfined_u:system_r:insmod_t:s0-s0:c0.c1023 tcontext=unconfined_u:system_r:insm

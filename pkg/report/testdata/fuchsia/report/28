@@ -1,0 +1,31 @@
+TITLE: panic: payload too small
+
+[00121.386] 05209.05460> panic: payload too small
+[00121.386] 05209.05460> 
+[00121.387] 05209.05460> goroutine 8 [running]:
+[00121.387] 05209.05460> syscall/zx/fidl.(*decoder).readUint(0x4eb3f40305c0, 0x8, 0x52b2b5a4c850)
+[00121.389] 05209.05460> syscall/zx/fidl/encoding.go:685 +0x71
+[00121.391] 05209.05460> syscall/zx/fidl.(*decoder).unmarshalString(0x4eb3f40305c0, 0xa9b7b304720, 0xa9b7b298320, 0xa9b7b298320, 0x4eb3f4239000, 0x198, 0x0, 0x0, 0x0, 0x0, ...)
+[00121.393] 05209.05460> syscall/zx/fidl/encoding.go:965 +0x5e
+[00121.395] 05209.05460> syscall/zx/fidl.(*decoder).unmarshal(0x4eb3f40305c0, 0xa9b7b304720, 0xa9b7b298320, 0xa9b7b298320, 0x4eb3f4239000, 0x198, 0x0, 0x0, 0x0, 0x0, ...)
+[00121.395] 05209.05460> syscall/zx/fidl/encoding.go:1037 +0x572
+[00121.399] 05209.05460> syscall/zx/fidl.(*decoder).unmarshalStructFields(0x4eb3f40305c0, 0xa9b7b304720, 0xa9b7b2cfd80, 0xa9b7b2cfd80, 0x4eb3f4239000, 0x199, 0x8, 0x18)
+[00121.401] 05209.05460> syscall/zx/fidl/encoding.go:796 +0x1f3
+[00121.403] 05209.05460> syscall/zx/fidl.Unmarshal(0x4eb3f4456010, 0x0, 0xfff0, 0x4eb3f4000600, 0x0, 0x40, 0xa9b7b2ff800, 0x4eb3f4239000, 0xa9b7b0b40fb, 0x4eb3f4238fe0)
+[00121.406] 05209.05460> syscall/zx/fidl/encoding.go:1091 +0x370
+[00121.409] 05209.05460> fidl/fuchsia/net/stack.(*StackStub).Dispatch(0x4eb3f415a540, 0x1, 0x4eb3f4456010, 0x0, 0xfff0, 0x4eb3f4000600, 0x0, 0x40, 0x10, 0x0, ...)
+[00121.411] 05209.05460> netstack/src/fidl/fuchsia/net/stack/impl.go:984 +0x28f
+[00121.411] 05209.05460> syscall/zx/fidl.(*Binding).dispatch(0x4eb3f40e62c0, 0xa9b7b2fe200, 0x0, 0x0)
+[00121.411] 05209.05460> syscall/zx/fidl/bindings.go:152 +0x3e5
+[00121.411] 05209.05460> syscall/zx/fidl.(*Binding).Init.func1(0x4eb3f4030040, 0x4eb300000000, 0x4eb3f4284060, 0x0)
+[00121.411] 05209.05460> syscall/zx/fidl/bindings.go:94 +0x100
+[00121.421] 05209.05460> syscall/zx/dispatch.(*Dispatcher).dispatch(0x4eb3f4030040, 0x18, 0x4eb3f4356520, 0x4eb3f4284060)
+[00121.423] 05209.05460> syscall/zx/dispatch/dispatcher.go:171 +0xa5
+[00121.425] 05209.05460> syscall/zx/dispatch.(*Dispatcher).Serve(0x4eb3f4030040)
+[00121.425] 05209.05460> syscall/zx/dispatch/dispatcher.go:222 +0x10e
+[00121.425] 05209.05460> syscall/zx/fidl.Serve()
+[00121.428] 05209.05460> syscall/zx/fidl/bindings.go:30 +0x2f
+[00121.430] 05209.05460> created by main.main
+[00121.431] 05209.05460> netstack/src/netstack/main.go:157 +0x907
+[00121.440] 07754.07766> [ERROR:garnet/bin/mdns/service/mdns_interface_transceiver.cc(179)] Failed to recvfrom, errno 5
+[00121.443] 07391.07405> [ERROR:garnet/bin/sshd-host/sshd-host.cc(92)] The netstack died. Terminating.

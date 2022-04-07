@@ -1,0 +1,98 @@
+TITLE: KASAN: use-after-free Read in remove_wait_queue
+ALT: bad-access in remove_wait_queue
+
+[   19.121820] ==================================================================
+[   19.121834] BUG: KASAN: use-after-free in __lock_acquire+0x3c41/0x3cf0
+[   19.121839] Read of size 8 at addr ffff8801c75ea0f8 by task syzkaller992070/3471
+[   19.121840] 
+[   19.121847] CPU: 1 PID: 3471 Comm: syzkaller992070 Not tainted 4.15.0-rc6-next-20180103+ #87
+[   19.121850] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   19.121852] Call Trace:
+[   19.121861]  dump_stack+0x137/0x198
+[   19.121867]  ? __lock_acquire+0x3c41/0x3cf0
+[   19.121877]  print_address_description+0x73/0x250
+[   19.121883]  ? __lock_acquire+0x3c41/0x3cf0
+[   19.121889]  kasan_report+0x23b/0x360
+[   19.121897]  __asan_report_load8_noabort+0x14/0x20
+[   19.121903]  __lock_acquire+0x3c41/0x3cf0
+[   19.121908]  ? lock_downgrade+0x860/0x860
+[   19.121916]  ? __bpf_address_lookup+0x2b0/0x2b0
+[   19.121923]  ? __lock_acquire+0x63e/0x3cf0
+[   19.121930]  ? remove_wait_queue+0x24/0x1b0
+[   19.121939]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[   19.121947]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[   19.121956]  ? __mutex_lock+0xec/0x1550
+[   19.121970]  ? ep_free+0x72/0x230
+[   19.121975]  ? save_stack+0xa3/0xd0
+[   19.121983]  lock_acquire+0x16b/0x420
+[   19.121988]  ? lock_acquire+0x16b/0x420
+[   19.121994]  ? remove_wait_queue+0x24/0x1b0
+[   19.122007]  _raw_spin_lock_irqsave+0x96/0xc0
+[   19.122013]  ? remove_wait_queue+0x24/0x1b0
+[   19.122019]  remove_wait_queue+0x24/0x1b0
+[   19.122027]  ep_unregister_pollwait.isra.7+0x9d/0x360
+[   19.122034]  ? ep_free+0x230/0x230
+[   19.122040]  ep_free+0xae/0x230
+[   19.122046]  ? ep_free+0x230/0x230
+[   19.122052]  ep_eventpoll_release+0x44/0x60
+[   19.122058]  __fput+0x291/0x6e0
+[   19.122065]  ____fput+0x15/0x20
+[   19.122071]  task_work_run+0x122/0x1a0
+[   19.122081]  do_exit+0x7f4/0x2da0
+[   19.122090]  ? binder_ioctl_write_read.isra.39+0x8e0/0x8e0
+[   19.122097]  ? do_vfs_ioctl+0x439/0xfe0
+[   19.122104]  ? mm_update_next_owner+0x690/0x690
+[   19.122110]  ? ioctl_preallocate+0x1c0/0x1c0
+[   19.122117]  ? __do_page_fault+0x3c3/0xca0
+[   19.122127]  ? entry_SYSCALL_64_fastpath+0x5/0x9a
+[   19.122135]  do_group_exit+0x108/0x320
+[   19.122142]  SyS_exit_group+0x1d/0x20
+[   19.122148]  entry_SYSCALL_64_fastpath+0x23/0x9a
+[   19.122153] RIP: 0033:0x4429f8
+[   19.122156] RSP: 002b:00007ffc4a4029a8 EFLAGS: 00000246 ORIG_RAX: 00000000000000e7
+[   19.122163] RAX: ffffffffffffffda RBX: 00000000004002e0 RCX: 00000000004429f8
+[   19.122166] RDX: 0000000000000000 RSI: 000000000000003c RDI: 0000000000000000
+[   19.122169] RBP: 00000000006ce018 R08: 00000000000000e7 R09: ffffffffffffffd0
+[   19.122172] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000401a40
+[   19.122175] R13: 0000000000401ad0 R14: 0000000000000000 R15: 0000000000000000
+[   19.122182] 
+[   19.122185] Allocated by task 3471:
+[   19.122191]  save_stack+0x43/0xd0
+[   19.122196]  kasan_kmalloc+0xad/0xe0
+[   19.122201]  kmem_cache_alloc_trace+0x136/0x750
+[   19.122205]  binder_get_thread+0x15d/0x700
+[   19.122209]  binder_poll+0x4a/0x210
+[   19.122214]  ep_item_poll.isra.10+0xf2/0x320
+[   19.122220]  SyS_epoll_ctl+0x11c4/0x27b0
+[   19.122226]  entry_SYSCALL_64_fastpath+0x23/0x9a
+[   19.122227] 
+[   19.122229] Freed by task 3471:
+[   19.122233]  save_stack+0x43/0xd0
+[   19.122238]  kasan_slab_free+0x71/0xc0
+[   19.122242]  kfree+0xd6/0x260
+[   19.122247]  binder_thread_dec_tmpref+0x17d/0x1e0
+[   19.122252]  binder_thread_release+0x27d/0x540
+[   19.122256]  binder_ioctl+0xa1b/0x10ee
+[   19.122261]  do_vfs_ioctl+0x190/0xfe0
+[   19.122265]  SyS_ioctl+0x8f/0xc0
+[   19.122271]  entry_SYSCALL_64_fastpath+0x23/0x9a
+[   19.122272] 
+[   19.122276] The buggy address belongs to the object at ffff8801c75ea040
+[   19.122276]  which belongs to the cache kmalloc-512 of size 512
+[   19.122281] The buggy address is located 184 bytes inside of
+[   19.122281]  512-byte region [ffff8801c75ea040, ffff8801c75ea240)
+[   19.122282] The buggy address belongs to the page:
+[   19.122287] page:ffffea00071d7a80 count:1 mapcount:0 mapping:ffff8801c75ea040 index:0x0
+[   19.122292] flags: 0x2fffc0000000100(slab)
+[   19.122300] raw: 02fffc0000000100 ffff8801c75ea040 0000000000000000 0000000100000006
+[   19.122307] raw: ffffea00071e1ca0 ffffea00071fd0a0 ffff8801db000940 0000000000000000
+[   19.122309] page dumped because: kasan: bad access detected
+[   19.122310] 
+[   19.122311] Memory state around the buggy address:
+[   19.122316]  ffff8801c75e9f80: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[   19.122320]  ffff8801c75ea000: fc fc fc fc fc fc fc fc fb fb fb fb fb fb fb fb
+[   19.122324] >ffff8801c75ea080: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   19.122327]                                                                 ^
+[   19.122331]  ffff8801c75ea100: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   19.122335]  ffff8801c75ea180: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   19.122337] ==================================================================

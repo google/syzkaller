@@ -1,0 +1,64 @@
+TITLE: ASSERT FAILED in size_to_index_helper
+
+executing program
+gfxconsole: rows 48, columns 113, extray 0
+
+ZIRCON KERNEL PANIC
+
+UPTIME: 128577ms
+BUILDID git-5f588306b2998fea1c021f992444971b1ce92581
+
+dso: id=c9e63845b8cc355bb42713bfb8eec04942ec7bcd base=0xffffffff00100000 name=zircon.elf
+stopping other cpus
+halting cpu 0
+panic (caller 0xffffffff001dd965 frame 0xffffff95faf71b80): DEBUG ASSERT FAILED at (kernel/lib/heap/cmpctmalloc/cmpctmalloc.c:2
+90): answer < NUMBER_OF_BUCKETS
+platform_halt suggested_action 0 reason 9
+Halting...
+bt#00: 0x00105972 platform_halt platform/pc/power.cpp:122
+bt#01: 0x001a22c4 _panic lib/debug/debug.cpp:39
+bt#02: 0x001dd8ef size_to_index_helper lib/heap/cmpctmalloc/cmpctmalloc.c:290
+bt#03: 0x001dd965 size_to_index_helper lib/heap/cmpctmalloc/cmpctmalloc.c:254
+bt#04: [ inline ] size_to_index_freeing lib/heap/cmpctmalloc/cmpctmalloc.c:303
+bt#04: 0x001dd995 create_free_area lib/heap/cmpctmalloc/cmpctmalloc.c:358
+bt#05: 0x001ddd71 cmpct_alloc lib/heap/cmpctmalloc/cmpctmalloc.c:943
+bt#06: 0x001a38b3 malloc lib/heap/heap_wrapper.cpp:55
+bt#07: 0x0013eb76 operator new system/ulib/fbl/alloc_checker.cpp:70
+bt#08: 0x001cc668 VmPageList::AddPage vm/vm_page_list.cpp:84
+bt#09: 0x001c66db VmObjectPaged::AddPageLocked system/ulib/fbl/include/fbl/ref_counted_internal.h:103
+bt#10: 0x001c6a1f VmObjectPaged::GetPageLocked system/ulib/fbl/include/fbl/ref_counted_internal.h:103
+bt#11: 0x001c4560 VmMapping::PageFault vm/vm_mapping.cpp:649
+bt#12: 0x001ba1ed VmAddressRegion::PageFault vm/vm_address_region.cpp:402
+bt#13: 0x001bfcd6 VmAspace::PageFault system/ulib/fbl/include/fbl/ref_counted_internal.h:103
+bt#14: 0x001d2b76 vmm_page_fault_handler vm/vmm.cpp:61
+bt#15: [ inline ] x86_pfe_handler arch/x86/faults.cpp:288
+bt#15: [ inline ] handle_exception_types arch/x86/faults.cpp:367
+bt#15: 0x00108a57 x86_exception_handler arch/x86/faults.cpp:455
+bt#16: end
+Halted
+entering panic shell loop
+
+REPORT:
+ZIRCON KERNEL PANIC
+panic (caller 0xffffffff001dd965 frame 0xffffff95faf71b80): DEBUG ASSERT FAILED at (kernel/lib/heap/cmpctmalloc/cmpctmalloc.c:290): answer < NUMBER_OF_BUCKETS
+platform_halt suggested_action 0 reason 9
+bt#00: 0x00105972 platform_halt platform/pc/power.cpp:122
+bt#01: 0x001a22c4 _panic lib/debug/debug.cpp:39
+bt#02: 0x001dd8ef size_to_index_helper lib/heap/cmpctmalloc/cmpctmalloc.c:290
+bt#03: 0x001dd965 size_to_index_helper lib/heap/cmpctmalloc/cmpctmalloc.c:254
+bt#04: [ inline ] size_to_index_freeing lib/heap/cmpctmalloc/cmpctmalloc.c:303
+bt#04: 0x001dd995 create_free_area lib/heap/cmpctmalloc/cmpctmalloc.c:358
+bt#05: 0x001ddd71 cmpct_alloc lib/heap/cmpctmalloc/cmpctmalloc.c:943
+bt#06: 0x001a38b3 malloc lib/heap/heap_wrapper.cpp:55
+bt#07: 0x0013eb76 operator new system/ulib/fbl/alloc_checker.cpp:70
+bt#08: 0x001cc668 VmPageList::AddPage vm/vm_page_list.cpp:84
+bt#09: 0x001c66db VmObjectPaged::AddPageLocked system/ulib/fbl/include/fbl/ref_counted_internal.h:103
+bt#10: 0x001c6a1f VmObjectPaged::GetPageLocked system/ulib/fbl/include/fbl/ref_counted_internal.h:103
+bt#11: 0x001c4560 VmMapping::PageFault vm/vm_mapping.cpp:649
+bt#12: 0x001ba1ed VmAddressRegion::PageFault vm/vm_address_region.cpp:402
+bt#13: 0x001bfcd6 VmAspace::PageFault system/ulib/fbl/include/fbl/ref_counted_internal.h:103
+bt#14: 0x001d2b76 vmm_page_fault_handler vm/vmm.cpp:61
+bt#15: [ inline ] x86_pfe_handler arch/x86/faults.cpp:288
+bt#15: [ inline ] handle_exception_types arch/x86/faults.cpp:367
+bt#15: 0x00108a57 x86_exception_handler arch/x86/faults.cpp:455
+bt#16: end

@@ -1,0 +1,31 @@
+TITLE: KFENCE: invalid free in test_double_free
+ALT: invalid-free in test_double_free
+
+[    4.524933] ==================================================================
+[    4.525732] BUG: KFENCE: invalid free in test_double_free+0xdc/0x171
+[    4.525732] 
+[    4.526553] Invalid free of 0xffff8c2aae244fe0 (in kfence-#33):
+[    4.527185]  test_double_free+0xdc/0x171
+[    4.527602]  kunit_try_run_case+0x51/0x90
+[    4.528032]  kunit_generic_run_threadfn_adapter+0x16/0x30
+[    4.528607]  kthread+0x166/0x1a0
+[    4.528958]  ret_from_fork+0x22/0x30
+[    4.529356] 
+[    4.529524] kfence-#33 [0xffff8c2aae244fe0-0xffff8c2aae244fff, size=32, cache=kmalloc-32] allocated by task 116:
+[    4.530593]  test_alloc+0xf0/0x6ff
+[    4.530958]  test_double_free+0x76/0x171
+[    4.531374]  kunit_try_run_case+0x51/0x90
+[    4.531803]  kunit_generic_run_threadfn_adapter+0x16/0x30
+[    4.532374]  kthread+0x166/0x1a0
+[    4.532719]  ret_from_fork+0x22/0x30
+[    4.533105] 
+[    4.533105] freed by task 116:
+[    4.533599]  test_double_free+0xa8/0x171
+[    4.534015]  kunit_try_run_case+0x51/0x90
+[    4.534440]  kunit_generic_run_threadfn_adapter+0x16/0x30
+[    4.535015]  kthread+0x166/0x1a0
+[    4.535364]  ret_from_fork+0x22/0x30
+[    4.535750] 
+[    4.535914] CPU: 5 PID: 116 Comm: kunit_try_catch Tainted: G    B             5.11.0-rc2+ #1
+[    4.536800] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.14.0-2 04/01/2014
+[    4.537714] ==================================================================

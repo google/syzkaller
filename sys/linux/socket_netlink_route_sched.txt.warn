@@ -1,0 +1,67 @@
+no-such-struct: tcm_handle
+bad-netlink-attr: rtm_tca_policy: missing attributes: [1 10 11]
+no-such-netlink-policy: tca_kind_options_t
+no-such-netlink-policy: qdisc_kind_options
+bad-netlink-attr: cbq_policy: missing attributes: [4 7]
+bad-netlink-attr: fq_policy: missing attributes: [14 15]
+bad-netlink-attr: gred_policy: missing attributes: [6]
+no-such-netlink-policy: netem_loss_policy
+bad-netlink-attr: pie_policy: missing attributes: [8]
+bad-netlink-attr: entry_policy$taprio: missing attributes: [1]
+bad-netlink-attr: taprio_policy: missing attributes: [4]
+no-such-netlink-policy: tclass_kind_options
+bad-netlink-attr: fl_policy: missing attributes: [100 101]
+no-such-netlink-policy: mpls_opts
+no-such-netlink-policy: tca_actions
+no-such-netlink-policy: tca_ife_meta_policy
+bad-field-size: xt_entry_target.u_target_size/u: syz=2 kernel=32
+bad-field-offset: xt_entry_target.name/data: syz=2 kernel=32
+bad-field-size: xt_entry_target.name/data: syz=32 kernel=0
+bad-netlink-attr: skbedit_policy: missing attributes: [8 9]
+bad-netlink-attr: tunnel_key_policy: missing attributes: [11 12 13]
+no-such-netlink-policy: action_gd_policy
+no-such-struct: tc_gen
+bad-field-number: tc_connmark: syz=2 kernel=6
+bad-field-size: tc_connmark.tc_gen/index: syz=20 kernel=4
+bad-field-offset: tc_connmark.zone/capab: syz=20 kernel=4
+bad-field-size: tc_connmark.zone/capab: syz=2 kernel=4
+bad-field-number: tc_csum: syz=2 kernel=6
+bad-field-size: tc_csum.tc_gen/index: syz=20 kernel=4
+bad-field-offset: tc_csum.update_flags/capab: syz=20 kernel=4
+bad-field-number: tc_ife: syz=2 kernel=6
+bad-field-size: tc_ife.tc_gen/index: syz=20 kernel=4
+bad-field-offset: tc_ife.flags/capab: syz=20 kernel=4
+bad-field-size: tc_ife.flags/capab: syz=2 kernel=4
+bad-field-number: tc_mirred: syz=3 kernel=7
+bad-field-size: tc_mirred.tc_gen/index: syz=20 kernel=4
+bad-field-offset: tc_mirred.eaction/capab: syz=20 kernel=4
+bad-field-offset: tc_mirred.ifindex/action: syz=24 kernel=8
+bad-field-number: tc_mpls: syz=2 kernel=6
+bad-field-size: tc_mpls.tc_gen/index: syz=20 kernel=4
+bad-field-offset: tc_mpls.m_action/capab: syz=20 kernel=4
+bad-field-number: tc_nat: syz=5 kernel=9
+bad-field-size: tc_nat.tc_gen/index: syz=20 kernel=4
+bad-field-offset: tc_nat.old_addr/capab: syz=20 kernel=4
+bad-field-offset: tc_nat.new_addr/action: syz=24 kernel=8
+bad-field-offset: tc_nat.mask/refcnt: syz=28 kernel=12
+bad-field-offset: tc_nat.flags/bindcnt: syz=32 kernel=16
+bad-field-size: tc_pedit_sel.tc_gen/index: syz=20 kernel=4
+bad-field-offset: tc_pedit_sel.nkeys/capab: syz=20 kernel=4
+bad-field-size: tc_pedit_sel.nkeys/capab: syz=1 kernel=4
+bad-field-offset: tc_pedit_sel.flags/action: syz=21 kernel=8
+bad-field-size: tc_pedit_sel.flags/action: syz=1 kernel=4
+no-such-struct: m_pedit_key_ex
+bad-field-number: tc_skbmod: syz=2 kernel=6
+bad-field-size: tc_skbmod.tc_gen/index: syz=20 kernel=4
+bad-field-offset: tc_skbmod.flags/capab: syz=20 kernel=4 [386]
+bad-field-offset: tc_skbmod.flags/capab: syz=24 kernel=4 [amd64,arm,arm64]
+bad-field-size: tc_skbmod.flags/capab: syz=8 kernel=4
+bad-field-number: tc_tunnel_key: syz=2 kernel=6
+bad-field-size: tc_tunnel_key.tc_gen/index: syz=20 kernel=4
+bad-field-offset: tc_tunnel_key.t_action/capab: syz=20 kernel=4
+bad-field-number: tc_vlan: syz=2 kernel=6
+bad-field-size: tc_vlan.tc_gen/index: syz=20 kernel=4
+bad-field-offset: tc_vlan.v_action/capab: syz=20 kernel=4
+bad-netlink-attr: police_policy: missing attributes: [10 11]
+no-such-netlink-policy: tca_ematch_tree_list
+no-such-struct: tcf_ematch_hdr_t

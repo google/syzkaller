@@ -1,0 +1,5 @@
+no-such-struct: sockaddr_storage_tcp
+no-such-struct: tcp_repair_opt_mss
+no-such-struct: tcp_repair_opt_window
+no-such-struct: tcp_repair_opt_sack_perm
+no-such-struct: tcp_repair_opt_timestamp

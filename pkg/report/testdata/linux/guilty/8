@@ -1,0 +1,48 @@
+FILE: net/ipv4/tcp_ipv4.c
+
+==================================================================
+BUG: KASAN: use-after-free in dst_check include/net/dst.h:498 [inline]
+BUG: KASAN: use-after-free in tcp_v4_early_demux+0x967/0xa60 net/ipv4/tcp_ipv4.c:1480
+Read of size 8 at addr ffff8800397d2fe0 by task syz-executor0/4289
+
+CPU: 0 PID: 4289 Comm: syz-executor0 Not tainted 4.12.0-rc1+ #366
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+Call Trace:
+ <IRQ>
+ __dump_stack lib/dump_stack.c:16 [inline]
+ dump_stack+0x292/0x395 lib/dump_stack.c:52
+ print_address_description+0x73/0x280 mm/kasan/report.c:252
+ kasan_report_error mm/kasan/report.c:351 [inline]
+ kasan_report+0x22b/0x340 mm/kasan/report.c:408
+ __asan_report_load8_noabort+0x14/0x20 mm/kasan/report.c:429
+ dst_check include/net/dst.h:498 [inline]
+ tcp_v4_early_demux+0x967/0xa60 net/ipv4/tcp_ipv4.c:1480
+ ip_rcv_finish+0x1941/0x2110 net/ipv4/ip_input.c:334
+sctp: [Deprecated]: syz-executor7 (pid 4299) Use of struct sctp_assoc_value in delayed_ack socket option.
+Use struct sctp_sack_info instead
+ NF_HOOK include/linux/netfilter.h:257 [inline]
+ ip_rcv+0xd8c/0x19c0 net/ipv4/ip_input.c:488
+ __netif_receive_skb_core+0x1ad1/0x3400 net/core/dev.c:4216
+ __netif_receive_skb+0x2c/0x1b0 net/core/dev.c:4254
+ netif_receive_skb_internal+0x240/0x1b20 net/core/dev.c:4416
+ napi_skb_finish net/core/dev.c:4773 [inline]
+ napi_gro_receive+0x4e6/0x680 net/core/dev.c:4807
+ e1000_receive_skb drivers/net/ethernet/intel/e1000/e1000_main.c:4018 [inline]
+ e1000_clean_rx_irq+0x5e0/0x1490 drivers/net/ethernet/intel/e1000/e1000_main.c:4474
+ e1000_clean+0xb9a/0x28f0 drivers/net/ethernet/intel/e1000/e1000_main.c:3819
+ napi_poll net/core/dev.c:5407 [inline]
+ net_rx_action+0xe7a/0x18f0 net/core/dev.c:5473
+ __do_softirq+0x2fb/0xb99 kernel/softirq.c:284
+ invoke_softirq kernel/softirq.c:364 [inline]
+ irq_exit+0x19e/0x1d0 kernel/softirq.c:405
+ exiting_irq arch/x86/include/asm/apic.h:652 [inline]
+ smp_apic_timer_interrupt+0x76/0xa0 arch/x86/kernel/apic/apic.c:966
+ apic_timer_interrupt+0x93/0xa0 arch/x86/entry/entry_64.S:484
+RIP: 0033:0x449783
+RSP: 002b:00007ffde3d48590 EFLAGS: 00000202 ORIG_RAX: ffffffffffffff10
+RAX: 00000000006e6bc0 RBX: 0000000000000001 RCX: 0000000000000040
+RDX: 0000000000000001 RSI: 0000000000a640a0 RDI: 00007ffb7ef3a700
+RBP: 0000000000000000 R08: 000000000139cda0 R09: 0000000000000012
+R10: 0000000000020022 R11: 0000000000000201 R12: 00007ffde3d486c0
+R13: 0000000000000000 R14: 0000000000000444 R15: 0000000000a640c8
+ </IRQ>

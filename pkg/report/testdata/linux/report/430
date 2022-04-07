@@ -1,0 +1,272 @@
+TITLE: INFO: task hung in i2c_transfer
+ALT: hang in i2c_transfer
+TYPE: HANG
+
+[  284.144921] INFO: task syz-executor.6:3901 blocked for more than 140 seconds.
+[  284.147532]       Not tainted 4.19.0+ #7
+[  284.149185] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  284.151857] syz-executor.6  D29880  3901   2584 0x00000004
+[  284.153814] Call Trace:
+[  284.159451]  schedule+0x77/0x1a0
+[  284.160627]  __rt_mutex_slowlock+0x1b8/0x280
+[  284.163788]  rt_mutex_slowlock.constprop.14+0x17d/0x3e0
+[  284.166452]  i2c_transfer+0x1db/0x260
+[  284.167013]  i2c_transfer_buffer_flags+0x102/0x180
+[  284.169389]  i2cdev_read+0xdf/0x190
+[  284.169905]  __vfs_read+0xf2/0x660
+[  284.174259]  vfs_read+0x17e/0x3b0
+[  284.174765]  ksys_read+0xcd/0x1c0
+[  284.178513]  do_syscall_64+0xc2/0x500
+[  284.179070]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  284.179813] RIP: 0033:0x465209
+[  284.180276] Code: Bad RIP value.
+[  284.180769] RSP: 002b:00007f605b979c68 EFLAGS: 00000246 ORIG_RAX: 0000000000000000
+[  284.181862] RAX: ffffffffffffffda RBX: 000000000051c2f0 RCX: 0000000000465209
+[  284.182922] RDX: 00000000000000ef RSI: 00000000200003c0 RDI: 0000000000000008
+[  284.183946] RBP: 00000000ffffffff R08: 0000000000000000 R09: 0000000000000000
+[  284.184993] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000004a638a
+[  284.186024] R13: 00000000004edb00 R14: 00000000004acac4 R15: 00007f605b97a6bc
+[  284.187073] INFO: task syz-executor.4:3875 blocked for more than 140 seconds.
+[  284.188098]       Not tainted 4.19.0+ #7
+[  284.188697] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  284.189852] syz-executor.4  D28024  3875   2582 0x00000004
+[  284.190699] Call Trace:
+[  284.193088]  schedule+0x77/0x1a0
+[  284.193572]  schedule_timeout+0x496/0xe90
+[  284.196879]  wait_for_completion_timeout+0x1a7/0x320
+[  284.198874]  aspeed_i2c_master_xfer+0x24c/0x870
+[  284.199517]  __i2c_transfer+0x4e1/0x12b0
+[  284.200106]  i2c_smbus_xfer_emulated+0x2e8/0x1160
+[  284.204141]  __i2c_smbus_xfer+0x3c0/0xd10
+[  284.204749]  i2c_smbus_xfer+0x94/0x130
+[  284.205314]  i2cdev_ioctl_smbus+0x2aa/0x6f0
+[  284.207098]  i2cdev_ioctl+0x275/0x750
+[  284.210377]  do_vfs_ioctl+0x1c5/0x1240
+[  284.213232]  ksys_ioctl+0x9b/0xc0
+[  284.213702]  __x64_sys_ioctl+0x6f/0xb0
+[  284.214822]  do_syscall_64+0xc2/0x500
+[  284.215332]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  284.216025] RIP: 0033:0x465209
+[  284.216456] Code: Bad RIP value.
+[  284.216915] RSP: 002b:00007fad04d8cc68 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[  284.217923] RAX: ffffffffffffffda RBX: 000000000051bf00 RCX: 0000000000465209
+[  284.218895] RDX: 0000000020000040 RSI: 0000000000000720 RDI: 0000000000000003
+[  284.219846] RBP: 00000000ffffffff R08: 0000000000000000 R09: 0000000000000000
+[  284.220850] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000004a638a
+[  284.221803] R13: 00000000004e71b8 R14: 00000000004a9178 R15: 00007fad04d8d6bc
+[  284.222783] INFO: task syz-executor.4:3906 blocked for more than 140 seconds.
+[  284.223738]       Not tainted 4.19.0+ #7
+[  284.224274] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  284.225330] syz-executor.4  D28408  3906   2582 0x00000004
+[  284.226097] Call Trace:
+[  284.228382]  schedule+0x77/0x1a0
+[  284.228891]  __rt_mutex_slowlock+0x1b8/0x280
+[  284.232130]  rt_mutex_slowlock.constprop.14+0x17d/0x3e0
+[  284.234887]  i2c_smbus_xfer+0x74/0x130
+[  284.235460]  i2cdev_ioctl_smbus+0x2aa/0x6f0
+[  284.237272]  i2cdev_ioctl+0x275/0x750
+[  284.240486]  do_vfs_ioctl+0x1c5/0x1240
+[  284.243462]  ksys_ioctl+0x9b/0xc0
+[  284.243973]  __x64_sys_ioctl+0x6f/0xb0
+[  284.245193]  do_syscall_64+0xc2/0x500
+[  284.245749]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  284.246484] RIP: 0033:0x465209
+[  284.246955] Code: Bad RIP value.
+[  284.247431] RSP: 002b:00007fad04d4ac68 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[  284.248542] RAX: ffffffffffffffda RBX: 000000000051c050 RCX: 0000000000465209
+[  284.249576] RDX: 0000000020000040 RSI: 0000000000000720 RDI: 0000000000000003
+[  284.250614] RBP: 00000000ffffffff R08: 0000000000000000 R09: 0000000000000000
+[  284.251648] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000004a638a
+[  284.252694] R13: 00000000004e71b8 R14: 00000000004a9178 R15: 00007fad04d4b6bc
+[  284.253740] INFO: task syz-executor.1:3912 blocked for more than 140 seconds.
+[  284.254791]       Not tainted 4.19.0+ #7
+[  284.255355] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  284.256490] syz-executor.1  D29240  3912   2575 0x00000004
+[  284.257301] Call Trace:
+[  284.259545]  schedule+0x77/0x1a0
+[  284.260039]  __rt_mutex_slowlock+0x1b8/0x280
+[  284.263237]  rt_mutex_slowlock.constprop.14+0x17d/0x3e0
+[  284.265868]  i2c_smbus_xfer+0x74/0x130
+[  284.266421]  i2cdev_ioctl_smbus+0x2aa/0x6f0
+[  284.268235]  i2cdev_ioctl+0x275/0x750
+[  284.271398]  do_vfs_ioctl+0x1c5/0x1240
+[  284.274391]  ksys_ioctl+0x9b/0xc0
+[  284.274901]  __x64_sys_ioctl+0x6f/0xb0
+[  284.276123]  do_syscall_64+0xc2/0x500
+[  284.276668]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  284.277419] RIP: 0033:0x465209
+[  284.277889] Code: Bad RIP value.
+[  284.278367] RSP: 002b:00007fb42cac4c68 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[  284.279481] RAX: ffffffffffffffda RBX: 000000000051bf00 RCX: 0000000000465209
+[  284.280517] RDX: 0000000020000200 RSI: 0000000000000720 RDI: 0000000000000003
+[  284.281546] RBP: 00000000ffffffff R08: 0000000000000000 R09: 0000000000000000
+[  284.282575] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000004a638a
+[  284.283598] R13: 00000000004e71b8 R14: 00000000004a9178 R15: 00007fb42cac56bc
+[  284.284638] INFO: task syz-executor.1:3914 blocked for more than 140 seconds.
+[  284.285676]       Not tainted 4.19.0+ #7
+[  284.286248] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  284.287373] syz-executor.1  D29720  3914   2575 0x00000004
+[  284.288185] Call Trace:
+[  284.290451]  schedule+0x77/0x1a0
+[  284.290947]  __rt_mutex_slowlock+0x1b8/0x280
+[  284.294180]  rt_mutex_slowlock.constprop.14+0x17d/0x3e0
+[  284.296236]  i2c_smbus_xfer+0x74/0x130
+[  284.296854]  i2cdev_ioctl_smbus+0x2aa/0x6f0
+[  284.298633]  i2cdev_ioctl+0x275/0x750
+[  284.302329]  do_vfs_ioctl+0x1c5/0x1240
+[  284.305292]  ksys_ioctl+0x9b/0xc0
+[  284.305798]  __x64_sys_ioctl+0x6f/0xb0
+[  284.307016]  do_syscall_64+0xc2/0x500
+[  284.307559]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  284.308316] RIP: 0033:0x465209
+[  284.308782] Code: Bad RIP value.
+[  284.309258] RSP: 002b:00007fb42ca82c68 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[  284.310372] RAX: ffffffffffffffda RBX: 000000000051c050 RCX: 0000000000465209
+[  284.311409] RDX: 0000000020000200 RSI: 0000000000000720 RDI: 0000000000000003
+[  284.312460] RBP: 00000000ffffffff R08: 0000000000000000 R09: 0000000000000000
+[  284.313507] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000004a638a
+[  284.314547] R13: 00000000004e71b8 R14: 00000000004a9178 R15: 00007fb42ca836bc
+[  284.315589] INFO: task syz-executor.7:3932 blocked for more than 140 seconds.
+[  284.316630]       Not tainted 4.19.0+ #7
+[  284.317208] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  284.318343] syz-executor.7  D28968  3932   2572 0x00000004
+[  284.319156] Call Trace:
+[  284.321422]  schedule+0x77/0x1a0
+[  284.321918]  __rt_mutex_slowlock+0x1b8/0x280
+[  284.325133]  rt_mutex_slowlock.constprop.14+0x17d/0x3e0
+[  284.327760]  i2c_smbus_xfer+0x74/0x130
+[  284.328319]  i2cdev_ioctl_smbus+0x48e/0x6f0
+[  284.330685]  i2cdev_ioctl+0x275/0x750
+[  284.333892]  do_vfs_ioctl+0x1c5/0x1240
+[  284.336861]  ksys_ioctl+0x9b/0xc0
+[  284.337337]  __x64_sys_ioctl+0x6f/0xb0
+[  284.338543]  do_syscall_64+0xc2/0x500
+[  284.339105]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  284.339838] RIP: 0033:0x465209
+[  284.340298] Code: Bad RIP value.
+[  284.340782] RSP: 002b:00007f0862cffc68 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[  284.341892] RAX: ffffffffffffffda RBX: 000000000051bf00 RCX: 0000000000465209
+[  284.342938] RDX: 0000000020000040 RSI: 0000000000000720 RDI: 0000000000000003
+[  284.343986] RBP: 00000000ffffffff R08: 0000000000000000 R09: 0000000000000000
+[  284.345058] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000004a638a
+[  284.346097] R13: 00000000004e71b8 R14: 00000000004a9178 R15: 00007f0862d006bc
+[  284.347151] INFO: task syz-executor.7:3951 blocked for more than 140 seconds.
+[  284.348195]       Not tainted 4.19.0+ #7
+[  284.348794] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  284.349934] syz-executor.7  D29320  3951   2572 0x00000004
+[  284.350761] Call Trace:
+[  284.353029]  schedule+0x77/0x1a0
+[  284.353509]  __rt_mutex_slowlock+0x1b8/0x280
+[  284.356758]  rt_mutex_slowlock.constprop.14+0x17d/0x3e0
+[  284.359405]  i2c_smbus_xfer+0x74/0x130
+[  284.359979]  i2cdev_ioctl_smbus+0x48e/0x6f0
+[  284.362351]  i2cdev_ioctl+0x275/0x750
+[  284.365543]  do_vfs_ioctl+0x1c5/0x1240
+[  284.368538]  ksys_ioctl+0x9b/0xc0
+[  284.369048]  __x64_sys_ioctl+0x6f/0xb0
+[  284.370257]  do_syscall_64+0xc2/0x500
+[  284.370812]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  284.371541] RIP: 0033:0x465209
+[  284.372011] Code: Bad RIP value.
+[  284.372492] RSP: 002b:00007f0862cdec68 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[  284.373592] RAX: ffffffffffffffda RBX: 000000000051bfa8 RCX: 0000000000465209
+[  284.374622] RDX: 0000000020000040 RSI: 0000000000000720 RDI: 0000000000000003
+[  284.375655] RBP: 00000000ffffffff R08: 0000000000000000 R09: 0000000000000000
+[  284.376693] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000004a638a
+[  284.377729] R13: 00000000004e71b8 R14: 00000000004a9178 R15: 00007f0862cdf6bc
+[  284.378769] 
+[  284.378769] Showing all locks held in the system:
+[  284.379700] 1 lock held by khungtaskd/246:
+[  284.380306]  #0: 00000000d40ce8f7 (rcu_read_lock){....}, at: debug_show_all_locks+0x52/0x296
+[  284.381550] 1 lock held by rsyslogd/2409:
+[  284.382114]  #0: 000000004bae8f19 (&f->f_pos_lock){+.+.}, at: __fdget_pos+0xe5/0x100
+[  284.383057] 2 locks held by getty/2507:
+[  284.383527]  #0: 00000000c5ff7047 (&tty->ldisc_sem){++++}, at: tty_ldisc_ref_wait+0x20/0x80
+[  284.384558]  #1: 00000000b0b8a0ca (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x221/0x18a0
+[  284.385658] 2 locks held by getty/2508:
+[  284.386136]  #0: 0000000051d11daa (&tty->ldisc_sem){++++}, at: tty_ldisc_ref_wait+0x20/0x80
+[  284.387137]  #1: 00000000039f5693 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x221/0x18a0
+[  284.388198] 2 locks held by getty/2509:
+[  284.388674]  #0: 00000000747e00ab (&tty->ldisc_sem){++++}, at: tty_ldisc_ref_wait+0x20/0x80
+[  284.389691]  #1: 000000001ea953e3 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x221/0x18a0
+[  284.390745] 2 locks held by getty/2510:
+[  284.391224]  #0: 000000004ff61276 (&tty->ldisc_sem){++++}, at: tty_ldisc_ref_wait+0x20/0x80
+[  284.392227]  #1: 000000002fac7e18 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x221/0x18a0
+[  284.393269] 2 locks held by getty/2511:
+[  284.393743]  #0: 00000000d0e136ae (&tty->ldisc_sem){++++}, at: tty_ldisc_ref_wait+0x20/0x80
+[  284.394749]  #1: 000000003443c64f (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x221/0x18a0
+[  284.395800] 2 locks held by getty/2512:
+[  284.396269]  #0: 000000000998aa13 (&tty->ldisc_sem){++++}, at: tty_ldisc_ref_wait+0x20/0x80
+[  284.397278]  #1: 0000000083315404 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x221/0x18a0
+[  284.398324] 2 locks held by getty/2513:
+[  284.398801]  #0: 00000000ba433acf (&tty->ldisc_sem){++++}, at: tty_ldisc_ref_wait+0x20/0x80
+[  284.399808]  #1: 00000000293fb1d1 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x221/0x18a0
+[  284.400912] 1 lock held by syz-executor.6/3901:
+[  284.401451]  #0: 000000006fdd818f (i2c_register_adapter){+.+.}, at: i2c_transfer+0x1db/0x260
+[  284.402463] 1 lock held by syz-executor.4/3875:
+[  284.403011]  #0: 000000006fdd818f (i2c_register_adapter){+.+.}, at: i2c_smbus_xfer+0x74/0x130
+[  284.404029] 1 lock held by syz-executor.4/3906:
+[  284.404570]  #0: 000000006fdd818f (i2c_register_adapter){+.+.}, at: i2c_smbus_xfer+0x74/0x130
+[  284.405590] 1 lock held by syz-executor.1/3912:
+[  284.406135]  #0: 000000006fdd818f (i2c_register_adapter){+.+.}, at: i2c_smbus_xfer+0x74/0x130
+[  284.407156] 1 lock held by syz-executor.1/3914:
+[  284.407703]  #0: 000000006fdd818f (i2c_register_adapter){+.+.}, at: i2c_smbus_xfer+0x74/0x130
+[  284.408729] 1 lock held by syz-executor.7/3932:
+[  284.409264]  #0: 000000006fdd818f (i2c_register_adapter){+.+.}, at: i2c_smbus_xfer+0x74/0x130
+[  284.410284] 1 lock held by syz-executor.7/3951:
+[  284.410829]  #0: 000000006fdd818f (i2c_register_adapter){+.+.}, at: i2c_smbus_xfer+0x74/0x130
+[  284.411870] 
+[  284.412067] =============================================
+[  284.412067] 
+[  284.412893] NMI backtrace for cpu 3
+[  284.413311] CPU: 3 PID: 246 Comm: khungtaskd Not tainted 4.19.0+ #7
+[  284.414042] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
+[  284.415002] Call Trace:
+[  284.415304]  dump_stack+0xe8/0x16e
+[  284.416317]  nmi_cpu_backtrace.cold.3+0x48/0x87
+[  284.417443]  nmi_trigger_cpumask_backtrace+0x149/0x187
+[  284.418045]  watchdog+0x905/0xd00
+[  284.419007]  kthread+0x347/0x410
+[  284.419985]  ret_from_fork+0x3a/0x50
+[  284.420447] Sending NMI from CPU 3 to CPUs 0-2:
+[  284.421089] NMI backtrace for cpu 1 skipped: idling at native_safe_halt+0x2/0x10
+[  284.421109] NMI backtrace for cpu 0 skipped: idling at native_safe_halt+0x2/0x10
+[  284.421597] NMI backtrace for cpu 2
+[  284.421603] CPU: 2 PID: 2407 Comm: rs:main Q:Reg Not tainted 4.19.0+ #7
+[  284.421610] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
+[  284.421614] RIP: 0010:__sanitizer_cov_trace_pc+0x0/0x50
+[  284.421627] Code: 00 00 4d 39 d0 72 1b 49 83 c1 01 4a 89 7c 10 e0 4a 89 74 10 e8 4a 89 54 10 f0 4a 89 4c d8 20 4c 89 08 c3 0f 1f 80 00 00 00 00 <48> 8b 34 24 65 48 8b 04 25 00 df 01 00 65 8b 15 fc 69 c6 7e 81 e2
+[  284.421631] RSP: 0018:ffff8800656c7868 EFLAGS: 00000246
+[  284.421639] RAX: 0000000000000000 RBX: 0000000000000000 RCX: ffffffff81837d08
+[  284.421645] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000005
+[  284.421650] RBP: 0000000000000000 R08: ffff88006a949ec0 R09: ffffed000d6e8539
+[  284.421656] R10: ffffed000d6e8539 R11: ffff88006b7429cb R12: ffff88006978b300
+[  284.421661] R13: ffffffff82efd040 R14: 000000000000178d R15: 0000000000000001
+[  284.421671] FS:  00007f825064a700(0000) GS:ffff88006d300000(0000) knlGS:0000000000000000
+[  284.421675] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  284.421681] CR2: 00000000007d7000 CR3: 000000006bb22004 CR4: 0000000000760ee0
+[  284.421686] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  284.421692] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  284.421695] PKRU: 55555554
+[  284.421697] Call Trace:
+[  284.421701]  __ext4_journal_stop+0x101/0x200
+[  284.421708]  ext4_dirty_inode+0xa1/0xb0
+[  284.421712]  __mark_inode_dirty+0x580/0x10c0
+[  284.421720]  __generic_write_end+0x1b0/0x240
+[  284.421723]  ext4_da_write_end+0x3c0/0xa30
+[  284.421727]  generic_perform_write+0x367/0x4c0
+[  284.421786]  __generic_file_write_iter+0x3a8/0x5c0
+[  284.421806]  ext4_file_write_iter+0x5ac/0x1010
+[  284.421865]  __vfs_write+0x492/0x680
+[  284.421924]  vfs_write+0x1f6/0x550
+[  284.421934]  ksys_write+0xcd/0x1c0
+[  284.421983]  do_syscall_64+0xc2/0x500
+[  284.422054]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  284.422064] RIP: 0033:0x7f82520a819d
+[  284.422078] Code: d1 20 00 00 75 10 b8 01 00 00 00 0f 05 48 3d 01 f0 ff ff 73 31 c3 48 83 ec 08 e8 be fa ff ff 48 89 04 24 b8 01 00 00 00 0f 05 <48> 8b 3c 24 48 89 c2 e8 07 fb ff ff 48 89 d0 48 83 c4 08 48 3d 01
+[  284.422088] RSP: 002b:00007f8250648f90 EFLAGS: 00000293 ORIG_RAX: 0000000000000001
+[  284.422109] RAX: ffffffffffffffda RBX: 0000000000000400 RCX: 00007f82520a819d
+[  284.422120] RDX: 0000000000000400 RSI: 00000000007ca340 RDI: 0000000000000001
+[  284.422131] RBP: 00000000007ca340 R08: 0000000000801870 R09: 34383220205b203a
+[  284.422141] R10: 5d3239333931342e R11: 0000000000000293 R12: 0000000000000000
+[  284.422152] R13: 00007f8250649410 R14: 0000000000801870 R15: 00000000007ca120

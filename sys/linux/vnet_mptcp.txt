@@ -1,0 +1,121 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# TCP Extensions for Multipath Operation with Multiple Addresses
+# https://tools.ietf.org/html/rfc6824
+# This is not upstream yes, constants for this descriptions were generated on the following tree:
+# https://github.com/multipath-tcp/mptcp_net-next.git
+# Once this is upstream we need to move this to vnet.txt
+
+include <net/tcp.h>
+include <net/mptcp.h>
+include <net/mptcp_v4.h>
+include <net/mptcp_v6.h>
+include <uapi/linux/tcp.h>
+
+tcp_mptcp_option [
+	generic		mptcp_generic_option
+	syn		mptcp_syn_option
+	synack		mptcp_synack_option
+	ack		mptcp_ack_option
+	capable		mptcp_capable_option
+	add_addr	mptcp_add_addr_option
+	mp_join		mptcp_mp_join_option
+	mp_fclose	mptcp_mp_fclose_option
+	remove_addr	mptcp_remove_addr_option
+] [varlen]
+
+mptcp_sub_types = OPTION_TYPE_SYN, OPTION_TYPE_SYNACK, OPTION_TYPE_ACK, OPTION_MP_CAPABLE, OPTION_ADD_ADDR, OPTION_MP_JOIN, OPTION_MP_FCLOSE
+
+# TODO: OPTION_REMOVE_ADDR was listed in mptcp_sub_types, but it does not fit into int8 below...
+_ = OPTION_REMOVE_ADDR
+
+mptcp_generic_option {
+	type	flags[mptcp_sub_types, int8]
+	length	len[parent, int8]
+	data	array[int8, 0:16]
+} [packed]
+
+mptcp_capable_option {
+	type		const[TCPOPT_MPTCP, int8]
+	length		len[parent, int8]
+	version		int8:4
+	subtype		const[OPTION_MP_CAPABLE, int8:4]
+	flags		int8
+	sender		int64be
+	receiver	array[int64be, 0:1]
+} [packed]
+
+mptcp_add_addr_option {
+	type	const[TCPOPT_MPTCP, int8]
+	length	len[parent, int8]
+# TODO: this was OPTION_ADD_ADDR, but it does not fit into 4 bits.
+	subtype	const[0, int8:4]
+	version	len[parent, int8:4]
+	addr_id	int8
+	address	ipv4_addr
+	port	int16be
+	mac	array[int8, 0:8]
+} [packed]
+
+_ = OPTION_ADD_ADDR
+
+mptcp_mp_join_option {
+	type	const[TCPOPT_MPTCP, int8]
+	length	len[parent, int8]
+	flags	int8:4
+# TODO: this was OPTION_MP_JOIN, but it does not fit into 4 bits.
+	subtype	const[0, int8:4]
+} [packed]
+
+_ = OPTION_MP_JOIN
+
+mptcp_syn_option {
+	type	const[TCPOPT_MPTCP, int8]
+	length	len[parent, int8]
+	flags	int8:4
+	subtype	const[OPTION_TYPE_SYN, int8:4]
+	addr_id	int8
+	token	int32
+	nonce	int32
+} [packed]
+
+mptcp_synack_option {
+	type	const[TCPOPT_MPTCP, int8]
+	length	len[parent, int8]
+	flags	int8:4
+	subtype	const[OPTION_TYPE_SYNACK, int8:4]
+	addr_id	int8
+	mac	int64
+	nonce	int32
+} [packed]
+
+mptcp_ack_option {
+	type		const[TCPOPT_MPTCP, int8]
+	length		len[parent, int8]
+	reserved	int16:12
+	subtype		const[OPTION_TYPE_ACK, int16:4]
+	mac		array[int8, 0:20]
+} [packed]
+
+mptcp_mp_fclose_option {
+	type		const[TCPOPT_MPTCP, int8]
+	length		len[parent, int8]
+	reserved	int16:12
+# TODO: this was OPTION_MP_FCLOSE, but it does not fit into 4 bits.
+	subtype		const[0, int16:4]
+	key		int64
+} [packed]
+
+_ = OPTION_MP_FCLOSE
+
+mptcp_remove_addr_option {
+	type		const[TCPOPT_MPTCP, int8]
+	length		len[parent, int8]
+	reserved	int8:4
+# TODO: this was OPTION_REMOVE_ADDR, but it does not fit into 4 bits.
+	subtype		const[0, int8:4]
+	addrs_id	array[int8]
+} [packed]
+
+_ = OPTION_REMOVE_ADDR

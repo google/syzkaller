@@ -1,0 +1,8 @@
+no-such-struct: alg_name
+no-such-struct: alg_aead_name
+no-such-struct: alg_hash_name
+no-such-struct: alg_skcipher_name
+no-such-struct: alg_compress_name
+no-such-struct: msghdr_alg
+no-such-struct: cmsghdr_alg_op
+no-such-struct: cmsghdr_alg_assoc

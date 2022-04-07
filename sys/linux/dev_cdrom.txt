@@ -1,0 +1,351 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# For fuzzing with qemu you need to enable cdrom option and provide an iso image.
+# For example: in "vm" section of syzkaller configuration
+# "vm" : {
+#     ...
+#     "cmdline": " -cdrom /.../ubuntu-18.04-desktop-amd64.iso "
+# }
+# In the kernel CONFIG_CDROM should be enabled.
+#
+# For more effective fuzzing one might want to disable
+# CDROMEJECT && CDROMEJECT_SW.
+# "disable_syscalls" : [ "ioctl$CDROMEJECT*" ]
+
+include <linux/cdrom.h>
+include <uapi/linux/cdrom.h>
+
+resource fd_cdrom[fd]
+
+openat$cdrom(fd const[AT_FDCWD], file ptr[in, string["/dev/cdrom"]], flags flags[open_flags], mode const[0]) fd_cdrom
+openat$cdrom1(fd const[AT_FDCWD], file ptr[in, string["/dev/cdrom1"]], flags flags[open_flags], mode const[0]) fd_cdrom
+
+ioctl$CDROMPAUSE(fd fd_cdrom, cmd const[CDROMPAUSE])
+ioctl$CDROMRESUME(fd fd_cdrom, cmd const[CDROMRESUME])
+ioctl$CDROMPLAYMSF(fd fd_cdrom, cmd const[CDROMPLAYMSF], arg ptr[in, cdrom_msf])
+ioctl$CDROMPLAYTRKIND(fd fd_cdrom, cmd const[CDROMPLAYTRKIND], arg ptr[in, cdrom_ti])
+ioctl$CDROMREADTOCHDR(fd fd_cdrom, cmd const[CDROMREADTOCHDR], arg ptr[inout, cdrom_tochdr])
+ioctl$CDROMREADTOCENTRY(fd fd_cdrom, cmd const[CDROMREADTOCENTRY], arg ptr[inout, cdrom_tocentry])
+ioctl$CDROMSTOP(fd fd_cdrom, cmd const[CDROMSTOP])
+ioctl$CDROMSTART(fd fd_cdrom, cmd const[CDROMSTART])
+ioctl$CDROMEJECT(fd fd_cdrom, cmd const[CDROMEJECT])
+ioctl$CDROMVOLCTRL(fd fd_cdrom, cmd const[CDROMVOLCTRL], arg ptr[in, cdrom_volctrl])
+ioctl$CDROMSUBCHNL(fd fd_cdrom, cmd const[CDROMSUBCHNL], arg ptr[inout, cdrom_subchnl])
+ioctl$CDROMREADMODE2(fd fd_cdrom, cmd const[CDROMREADMODE2], arg ptr[in, cdrom_msf_out_stub])
+ioctl$CDROMREADMODE1(fd fd_cdrom, cmd const[CDROMREADMODE1], arg ptr[in, cdrom_msf_out_stub])
+ioctl$CDROMREADAUDIO(fd fd_cdrom, cmd const[CDROMREADAUDIO], arg ptr[in, cdrom_read_audio])
+ioctl$CDROMEJECT_SW(fd fd_cdrom, cmd const[CDROMEJECT_SW], arg boolptr)
+ioctl$CDROMMULTISESSION(fd fd_cdrom, cmd const[CDROMMULTISESSION], arg ptr[inout, cdrom_multisession])
+ioctl$CDROM_GET_MCN(fd fd_cdrom, cmd const[CDROM_GET_MCN], arg ptr[out, cdrom_mcn])
+ioctl$CDROMRESET(fd fd_cdrom, cmd const[CDROMRESET])
+ioctl$CDROMVOLREAD(fd fd_cdrom, cmd const[CDROMVOLREAD], arg ptr[out, cdrom_volctrl])
+ioctl$CDROMREADRAW(fd fd_cdrom, cmd const[CDROMREADRAW], arg ptr[in, cdrom_msf_out_stub])
+
+ioctl$CDROMREADCOOKED(fd fd_cdrom, cmd const[CDROMREADCOOKED], arg ptr[out, cdrom_output_buffer])
+ioctl$CDROMSEEK(fd fd_cdrom, cmd const[CDROMSEEK], arg ptr[in, cdrom_msf])
+
+ioctl$CDROMPLAYBLK(fd fd_cdrom, cmd const[CDROMPLAYBLK], arg ptr[in, cdrom_blk])
+
+ioctl$CDROMREADALL(fd fd_cdrom, cmd const[CDROMREADALL], arg ptr[out, cdrom_output_buffer])
+
+ioctl$CDROMGETSPINDOWN(fd fd_cdrom, cmd const[CDROMGETSPINDOWN], arg ptr[out, int8])
+ioctl$CDROMSETSPINDOWN(fd fd_cdrom, cmd const[CDROMSETSPINDOWN], arg ptr[in, int8[0:15]])
+
+ioctl$CDROMCLOSETRAY(fd fd_cdrom, cmd const[CDROMCLOSETRAY])
+
+ioctl$CDROM_SET_OPTIONS(fd fd_cdrom, cmd const[CDROM_SET_OPTIONS], arg flags[cdrom_options])
+ioctl$CDROM_CLEAR_OPTIONS(fd fd_cdrom, cmd const[CDROM_CLEAR_OPTIONS], arg flags[cdrom_options])
+ioctl$CDROM_SELECT_SPEED(fd fd_cdrom, cmd const[CDROM_SELECT_SPEED], speed intptr)
+ioctl$CDROM_SELECT_DISK(fd fd_cdrom, cmd const[CDROM_SELECT_SPEED], disk intptr)
+ioctl$CDROM_MEDIA_CHANGED(fd fd_cdrom, cmd const[CDROM_MEDIA_CHANGED], slot intptr)
+ioctl$CDROM_TIMED_MEDIA_CHANGE(fd fd_cdrom, cmd const[CDROM_TIMED_MEDIA_CHANGE], arg ptr[inout, cdrom_timed_media_change_info])
+ioctl$CDROM_DISC_STATUS(fd fd_cdrom, cmd const[CDROM_DISC_STATUS])
+ioctl$CDROM_CHANGER_NSLOTS(fd fd_cdrom, cmd const[CDROM_CHANGER_NSLOTS])
+ioctl$CDROM_LOCKDOOR(fd fd_cdrom, cmd const[CDROM_LOCKDOOR], lock boolptr)
+ioctl$CDROM_DEBUG(fd fd_cdrom, cmd const[CDROM_DEBUG], debug boolptr)
+ioctl$CDROM_GET_CAPABILITY(fd fd_cdrom, cmd const[CDROM_GET_CAPABILITY])
+
+ioctl$DVD_READ_STRUCT(fd fd_cdrom, cmd const[DVD_READ_STRUCT], arg ptr[inout, dvd_struct])
+ioctl$DVD_WRITE_STRUCT(fd fd_cdrom, cmd const[DVD_READ_STRUCT], arg ptr[in, dvd_struct])
+ioctl$DVD_AUTH(fd fd_cdrom, cmd const[DVD_READ_STRUCT], arg ptr[inout, dvd_authinfo])
+
+ioctl$CDROM_SEND_PACKET(fd fd_cdrom, cmd const[CDROM_SEND_PACKET], arg ptr[inout, cdrom_generic_command])
+
+ioctl$CDROM_NEXT_WRITABLE(fd fd_cdrom, cmd const[CDROM_NEXT_WRITABLE], arg ptr[out, int64])
+ioctl$CDROM_LAST_WRITTEN(fd fd_cdrom, cmd const[CDROM_LAST_WRITTEN], arg ptr[out, int64])
+
+type cdrom_output_buffer array[int8, CD_FRAMESIZE_RAWER]
+
+cdrom_msf {
+	cdmsf_min0	int8
+	cdmsf_sec0	int8
+	cdmsf_frame0	int8
+	cdmsf_min1	int8
+	cdmsf_sec1	int8
+	cdmsf_frame1	int8
+}
+
+cdrom_msf_out_stub {
+	cdmsf_min0	int8
+	cdmsf_sec0	int8
+	cdmsf_frame0	int8
+	cdmsf_min1	int8
+	cdmsf_sec1	int8
+	cdmsf_frame1	int8
+	reserved	array[const[0, int8], CDROM_MSF_OUT_STUB_SIZE]
+}
+
+cdrom_ti {
+	cdti_trk0	int8
+	cdti_int0	int8
+	cdti_trk1	int8
+	cdti_ind1	int8
+}
+
+cdrom_tochdr {
+	cdth_trk0	int8
+	cdth_trk1	int8
+}
+
+cdrom_tocentry {
+	cdte_track	int8
+	cdte_adr	int8:4
+	cdte_ctrl	int8:4
+	cdte_format	flags[cdrom_format, int8]
+	cdte_addr	cdrom_addr
+	cdte_datamode	int8
+}
+
+cdrom_addr [
+	msf	cdrom_msf0
+	lba	int32
+]
+
+cdrom_msf0 {
+	minute	int8
+	second	int8
+	frame	int8
+}
+
+cdrom_read_audio {
+	addr		cdrom_addr
+	addr_format	flags[cdrom_format, int8]
+	nframes		bytesize[buf, int32]
+	buf		ptr[out, array[int8, 1:CD_FRAMES]]
+}
+
+cdrom_volctrl {
+	channel0	int8
+	channel1	int8
+	channel2	int8
+	channel3	int8
+}
+
+cdrom_subchnl {
+	cdsc_format		flags[cdrom_format, int8]
+	cdsc_audiostatus	int8
+	cdsc_adr		int8:4
+	cdsc_ctrl		int8:4
+	cdsc_trk		int8
+	cdsc_ind		int8
+	cdsc_absaddr		cdrom_addr
+	cdsc_reladdr		cdrom_addr
+}
+
+cdrom_multisession {
+	addr		cdrom_addr
+	xa_flag		bool8
+	addr_format	flags[cdrom_format, int8]
+}
+
+cdrom_mcn {
+	medium_catalog_number	array[int8, 14]
+}
+
+cdrom_blk {
+	from	int32
+	len	int16
+}
+
+dvd_struct [
+	type		flags[dvd_struct_type, int8]
+
+	physical	dvd_physical
+	copyright	dvd_copyright
+	disckey		dvd_disckey
+	bca		dvd_bca
+	manufact	dvd_manufact
+]
+
+dvd_physical {
+	type		const[DVD_STRUCT_PHYSICAL, int8]
+	layer_num	int8[0:3]
+	layer		array[dvd_layer, DVD_LAYERS]
+}
+
+dvd_layer {
+	book_version	int8:4
+	book_type	int8:4
+	min_rate	int8:4
+	disc_size	int8:4
+	layer_type	int8:4
+	track_path	int8:1
+	nlayers		int8:2
+	track_density	int8:4
+	linear_density	int8:4
+	bca		int8:1
+	start_sector	int32
+	end_sector	int32
+	end_sector_l0	int32
+}
+
+dvd_copyright {
+	type		const[DVD_STRUCT_COPYRIGHT, int8]
+
+	layer_num	int8[0:3]
+	cpst		int8
+	rmi		int8
+}
+
+dvd_disckey {
+	type	const[DVD_STRUCT_DISCKEY, int8]
+
+	agid	int32:2
+	value	array[int8, 2048]
+}
+
+dvd_bca {
+	type	const[DVD_STRUCT_BCA, int8]
+
+	len	len[value, int32]
+	value	array[int8, 188]
+}
+
+dvd_manufact {
+	type		const[DVD_STRUCT_MANUFACT, int8]
+
+	layer_num	int8[0:3]
+	len		len[value, int32]
+	value		array[int8, 2048]
+}
+
+dvd_authinfo [
+	type	flags[dvd_authinfo_type, int8]
+
+	lsa	dvd_lu_send_agid
+	hsc	dvd_host_send_challenge
+	lsk	dvd_send_key
+	lsc	dvd_lu_send_challenge
+	hsk	dvd_send_key
+	lstk	dvd_lu_send_title_key
+	lsasf	dvd_lu_send_asf
+	hrpcs	dvd_host_send_rpcstate
+	lrpcs	dvd_lu_send_rpcstate
+]
+
+type dvd_key array[int8, 5]
+type dvd_challenge array[int8, 10]
+
+dvd_lu_send_agid {
+	type	const[DVD_LU_SEND_AGID, int8]
+	agid	int32:2
+}
+
+dvd_host_send_challenge {
+	type	const[DVD_HOST_SEND_CHALLENGE, int8]
+	agid	int32:2
+
+	chal	dvd_challenge
+}
+
+dvd_send_key_type = DVD_LU_SEND_KEY1, DVD_HOST_SEND_KEY2
+
+dvd_send_key {
+	type	flags[dvd_send_key_type, int8]
+	agid	int32:2
+
+	key	dvd_key
+}
+
+dvd_lu_send_challenge {
+	type	const[DVD_LU_SEND_CHALLENGE, int8]
+	agid	int32:2
+
+	chal	dvd_challenge
+}
+
+dvd_lu_send_title_key {
+	type		const[DVD_LU_SEND_TITLE_KEY, int8]
+	agid		int32:2
+
+	title_key	dvd_key
+	lba		int32
+	cpm		int32:1
+	cp_sec		int32:1
+	cgms		int32:2
+}
+
+dvd_lu_send_asf {
+	type	const[DVD_LU_SEND_ASF, int8]
+	agid	int32:2
+
+	asf	int32:1
+}
+
+dvd_host_send_rpcstate {
+	type	const[DVD_HOST_SEND_RPC_STATE, int8]
+	pdrc	int8
+}
+
+dvd_lu_send_rpcstate {
+	type		int8:2
+	vra		int8:3
+	ucca		int8:3
+	region_mask	int8
+	rpc_scheme	int8
+}
+
+cdrom_generic_command {
+	cmd		array[int8, CDROM_PACKET_SIZE]
+	buffer		ptr[inout, array[int8]]
+	buflen		len[buffer, int32]
+	stat		int32
+	sense		ptr[inout, request_sense]
+	data_direction	flags[cdrom_data_direction, int8]
+	quiet		int32
+	timeout		int32
+	reserved	ptr[out, array[intptr, 1]]
+}
+
+request_sense {
+	error_code	int8:7
+	valid		int8:1
+	segment_number	int8
+	sense_key	int8:4
+	reserved2	const[0, int8:1]
+	ili		int8:1
+	reserved1	const[0, int8:2]
+	information	array[int8, 4]
+	add_sense_len	int8
+	command_info	array[int8, 4]
+	asc		int8
+	ascq		int8
+	fruc		int8
+	sks		array[int8, 3]
+	asb		array[int8, 46]
+}
+
+cdrom_timed_media_change_info {
+	last_media_change	int64
+	media_flags		flags[media_flags, int64]
+}
+
+cdrom_options = CDO_AUTO_CLOSE, CDO_AUTO_EJECT, CDO_USE_FFLAGS, CDO_LOCK, CDO_CHECK_TYPE
+cdrom_format = CDROM_MSF, CDROM_LBA
+dvd_struct_type = DVD_STRUCT_PHYSICAL, DVD_STRUCT_COPYRIGHT, DVD_STRUCT_DISCKEY, DVD_STRUCT_BCA, DVD_STRUCT_MANUFACT
+dvd_authinfo_type = DVD_LU_SEND_AGID, DVD_LU_SEND_KEY1, DVD_LU_SEND_CHALLENGE, DVD_LU_SEND_TITLE_KEY, DVD_LU_SEND_ASF, DVD_HOST_SEND_CHALLENGE, DVD_HOST_SEND_KEY2, DVD_INVALIDATE_AGID, DVD_LU_SEND_RPC_STATE, DVD_LU_SEND_RPC_STATE
+cdrom_data_direction = CGC_DATA_UNKNOWN, CGC_DATA_WRITE, CGC_DATA_READ, CGC_DATA_NONE
+media_flags = MEDIA_CHANGED_FLAG
+
+define CDROM_MSF_OUT_STUB_SIZE	CD_FRAMESIZE_RAWER-6

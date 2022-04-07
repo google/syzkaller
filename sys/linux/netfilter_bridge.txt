@@ -1,0 +1,425 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/socket.h>
+include <uapi/linux/netfilter/x_tables.h>
+include <uapi/linux/netfilter_bridge.h>
+include <uapi/linux/netfilter_bridge/ebtables.h>
+include <uapi/linux/netfilter_bridge/ebt_802_3.h>
+include <uapi/linux/netfilter_bridge/ebt_among.h>
+include <uapi/linux/netfilter_bridge/ebt_arp.h>
+include <uapi/linux/netfilter_bridge/ebt_ip.h>
+include <uapi/linux/netfilter_bridge/ebt_ip6.h>
+include <uapi/linux/netfilter_bridge/ebt_limit.h>
+include <uapi/linux/netfilter_bridge/ebt_mark_m.h>
+include <uapi/linux/netfilter_bridge/ebt_pkttype.h>
+include <uapi/linux/netfilter_bridge/ebt_stp.h>
+include <uapi/linux/netfilter_bridge/ebt_vlan.h>
+include <uapi/linux/netfilter_bridge/ebt_arpreply.h>
+include <uapi/linux/netfilter_bridge/ebt_nat.h>
+include <uapi/linux/netfilter_bridge/ebt_log.h>
+include <uapi/linux/netfilter_bridge/ebt_mark_t.h>
+include <uapi/linux/netfilter_bridge/ebt_nflog.h>
+include <uapi/linux/netfilter_bridge/ebt_redirect.h>
+
+setsockopt$EBT_SO_SET_ENTRIES(fd sock_in, level const[SOL_IP], opt const[EBT_SO_SET_ENTRIES], val ptr[in, ebt_replace], len const[0])
+setsockopt$EBT_SO_SET_COUNTERS(fd sock_in, level const[SOL_IP], opt const[EBT_SO_SET_COUNTERS], val ptr[in, ebt_counters_info], len len[val])
+getsockopt$EBT_SO_GET_INFO(fd sock_in, level const[SOL_IP], opt const[EBT_SO_GET_INFO], val ptr[in, ebt_getinfo], len ptr[in, len[val, int32]])
+getsockopt$EBT_SO_GET_INIT_INFO(fd sock_in, level const[SOL_IP], opt const[EBT_SO_GET_INIT_INFO], val ptr[in, ebt_getinfo], len ptr[in, len[val, int32]])
+getsockopt$EBT_SO_GET_ENTRIES(fd sock_in, level const[SOL_IP], opt const[EBT_SO_GET_ENTRIES], val ptr[in, ebt_get_entries], len ptr[in, len[val, int32]])
+getsockopt$EBT_SO_GET_INIT_ENTRIES(fd sock_in, level const[SOL_IP], opt const[EBT_SO_GET_INIT_ENTRIES], val ptr[in, ebt_get_entries], len ptr[in, len[val, int32]])
+
+ebt_replace [
+	filter	ebt_replace_t["filter", EBT_FILTER_VALID_HOOKS, ebt_filter_targets]
+	nat	ebt_replace_t["nat", EBT_NAT_VALID_HOOKS, ebt_nat_targets]
+	broute	ebt_replace_t["broute", EBT_BROUTE_VALID_HOOKS, ebt_broute_targets]
+] [varlen]
+
+define NF_BR_PRE_ROUTING_BIT	1 << NF_BR_PRE_ROUTING
+define NF_BR_LOCAL_IN_BIT	1 << NF_BR_LOCAL_IN
+define NF_BR_FORWARD_BIT	1 << NF_BR_FORWARD
+define NF_BR_LOCAL_OUT_BIT	1 << NF_BR_LOCAL_OUT
+define NF_BR_POST_ROUTING_BIT	1 << NF_BR_POST_ROUTING
+define NF_BR_BROUTING_BIT	1 << NF_BR_BROUTING
+
+define EBT_FILTER_VALID_HOOKS	NF_BR_LOCAL_IN_BIT | NF_BR_FORWARD_BIT | NF_BR_LOCAL_OUT_BIT
+define EBT_NAT_VALID_HOOKS	NF_BR_PRE_ROUTING_BIT | NF_BR_LOCAL_OUT_BIT | NF_BR_POST_ROUTING_BIT
+define EBT_BROUTE_VALID_HOOKS	NF_BR_BROUTING_BIT
+
+type ebt_replace_t[NAME, HOOKS, TARGETS] {
+	name		string[NAME, XT_TABLE_MAXNAMELEN]
+	valid_hooks	const[HOOKS, int32]
+	nentries	const[0, int32]
+	entries_size	bytesize[entries, int32]
+	hook_entry	array[intptr, NF_BR_NUMHOOKS]
+	num_counters	const[0, int32]
+	counters	ptr[out, array[xt_counters, 1]]
+	entries		ptr[in, array[ebt_entries[TARGETS], 3:4]]
+}
+
+type ebt_entries[TARGETS] {
+	distinguisher	const[0, int32]
+	name		string["", EBT_CHAIN_MAXNAMELEN]
+	counter_offset	const[0, int32]
+	policy		flags[ebt_entries_policy, int32]
+	nentries	len[entries, int32]
+	entries		array[ebt_entry[TARGETS], 0:2]
+}
+
+ebt_entries_policy = EBT_DROP, EBT_ACCEPT, EBT_RETURN
+ebt_verdicts = EBT_DROP, EBT_ACCEPT, EBT_RETURN, EBT_CONTINUE
+
+type ebt_entry[TARGETS] {
+	bitmask		flags[ebt_entry_bitmask, int32]
+	invflags	flags[ebt_entry_invflags, int32]
+	ethproto	flags[ether_types, int16be]
+	in		devname
+	logical_in	devname
+	out		devname
+	logical_out	devname
+	sourcemac	mac_addr
+	sourcemsk	mac_addr_mask
+	destmac		mac_addr
+	destmsk		mac_addr_mask
+	watchers_offset	offsetof[watchers, int32]
+	target_offset	offsetof[target, int32]
+	next_offset	bytesize[parent, int32]
+	matches		array[ebt_matches, 0:2]
+	watchers	array[TARGETS, 0:2]
+	target		TARGETS
+} [packed]
+
+ebt_entry_bitmask = EBT_NOPROTO_F, EBT_802_3_F, EBT_SOURCEMAC_F, EBT_DESTMAC_F
+ebt_entry_invflags = EBT_IPROTO, EBT_IIN, EBT_IOUT, EBT_ISOURCE, EBT_IDEST, EBT_ILOGICALIN, EBT_ILOGICALOUT
+
+define EBT_NOPROTO_F	EBT_ENTRY_OR_ENTRIES | EBT_NOPROTO
+define EBT_802_3_F	EBT_ENTRY_OR_ENTRIES | EBT_802_3
+define EBT_SOURCEMAC_F	EBT_ENTRY_OR_ENTRIES | EBT_SOURCEMAC
+define EBT_DESTMAC_F	EBT_ENTRY_OR_ENTRIES | EBT_DESTMAC
+
+ebt_tables = "filter", "nat", "broute"
+
+ebt_counters_info {
+	name		string[ebt_tables, XT_TABLE_MAXNAMELEN]
+	valid_hooks	const[0, int32]
+	nentries	const[0, int32]
+	entries_size	const[0, int32]
+	hook_entry	array[intptr, NF_BR_NUMHOOKS]
+	num_counters	len[counters1, int32]
+	counters	ptr[out, array[xt_counters]]
+	entries		const[0, intptr]
+	counters1	array[xt_counters]
+}
+
+ebt_getinfo {
+	name		string[ebt_tables, XT_TABLE_MAXNAMELEN]
+	valid_hooks	const[0, int32]
+	nentries	const[0, int32]
+	entries_size	const[0, int32]
+	hook_entry	array[intptr, NF_BR_NUMHOOKS]
+	num_counters	const[0, int32]
+	counters	const[0, intptr]
+	entries		const[0, intptr]
+}
+
+ebt_get_entries {
+	name		string[ebt_tables, XT_TABLE_MAXNAMELEN]
+	valid_hooks	const[0, int32]
+	nentries	int32[3:4]
+	entries_size	bytesize[entries, int32]
+	hook_entry	array[intptr, NF_BR_NUMHOOKS]
+	num_counters	len[counters, int32]
+	counters	ptr[out, array[xt_counters]]
+	entries		ptr[out, array[int8]]
+}
+
+# MATCHES:
+
+type ebt_entry_match[NAME] {
+	name		string[NAME, EBT_EXTENSION_MAXNAMELEN]
+	revision	const[0, int8]
+	match_size	bytesize[ebt_entry_match_t:data, int32]
+} [align[PTR_SIZE]]
+
+type ebt_entry_match_t[NAME, DATA] {
+	header	ebt_entry_match[NAME]
+	data	xt_padded[DATA]
+}
+
+type xt_padded[TYPE] {
+	data	TYPE
+} [align[PTR_SIZE]]
+
+ebt_matches [
+	m802_3		ebt_entry_match_t["802_3", ebt_802_3_info]
+	among		ebt_entry_match_t["among", ebt_among_info]
+	arp		ebt_entry_match_t["arp", ebt_arp_info]
+	ip		ebt_entry_match_t["ip", ebt_ip_info]
+	ip6		ebt_entry_match_t["ip6", ebt_ip6_info]
+	limit		ebt_entry_match_t["limit", ebt_limit_info]
+	mark_m		ebt_entry_match_t["mark_m", ebt_mark_m_info]
+	pkttype		ebt_entry_match_t["pkttype", ebt_pkttype_info]
+	stp		ebt_entry_match_t["stp", ebt_stp_info]
+	vlan		ebt_entry_match_t["vlan", ebt_vlan_info]
+# AF_UNSPEC matches (only version 0 and not overriden by AF_BRIDGE).
+	cgroup0		ebt_entry_match_t["cgroup", xt_cgroup_info_v0]
+	helper		ebt_entry_match_t["helper", xt_helper_info]
+	rateest		ebt_entry_match_t["rateest", xt_rateest_match_info]
+	time		ebt_entry_match_t["time", xt_time_info]
+	bpf0		ebt_entry_match_t["bpf", xt_bpf_info]
+	realm		ebt_entry_match_t["realm", xt_realm_info]
+	connbytes	ebt_entry_match_t["connbytes", xt_connbytes_info]
+	quota		ebt_entry_match_t["quota", xt_quota_info]
+	ipvs		ebt_entry_match_t["ipvs", xt_ipvs_mtinfo]
+	nfacct		ebt_entry_match_t["nfacct", xt_nfacct_match_info]
+	mac		ebt_entry_match_t["mac", xt_mac_info]
+	comment		ebt_entry_match_t["comment", xt_comment_info]
+	statistic	ebt_entry_match_t["statistic", xt_statistic_info]
+	physdev		ebt_entry_match_t["physdev", xt_physdev_info]
+	connlabel	ebt_entry_match_t["connlabel", xt_connlabel_mtinfo]
+	devgroup	ebt_entry_match_t["devgroup", xt_devgroup_info]
+	cluster		ebt_entry_match_t["cluster", xt_cluster_match_info]
+	owner		ebt_entry_match_t["owner", xt_owner_match_info]
+	u32		ebt_entry_match_t["u32", xt_u32]
+	cpu		ebt_entry_match_t["cpu", xt_cpu_info]
+	state		ebt_entry_match_t["state", xt_state_info]
+] [varlen]
+
+ebt_802_3_info {
+	sap		flags[sap_values, int8]
+	type		int16be
+	bitmask		flags[ebt_802_3_flags, int8]
+	invflags	flags[ebt_802_3_flags, int8]
+}
+
+ebt_802_3_flags = EBT_802_3_SAP, EBT_802_3_TYPE, EBT_802_3
+
+ebt_among_info {
+	wh_dst_ofs	ebt_among_info_offset[dst]
+	wh_src_ofs	ebt_among_info_offset[src]
+	bitmask		flags[ebt_among_flags, int32]
+	dst		ebt_mac_wormhash
+	src		ebt_mac_wormhash
+} [packed]
+
+type ebt_among_info_offset[FIELD] [
+	offset	offsetof[ebt_among_info:FIELD, int32]
+	zero	const[0, int32]
+]
+
+ebt_mac_wormhash {
+	table		array[int32, 257]
+	poolsize	len[pool, int32]
+	pool		array[ebt_mac_wormhash_tuple]
+}
+
+ebt_mac_wormhash_tuple {
+	cmp	array[int32, 2]
+	ip	ipv4_addr
+}
+
+ebt_among_flags = EBT_AMONG_DST_NEG, EBT_AMONG_SRC_NEG
+
+ebt_arp_info {
+	htype		flags[arp_htypes, int16be]
+	ptype		flags[ether_types, int16be]
+	op		flags[arp_ops, int16be]
+	saddr		ipv4_addr
+	smsk		ipv4_addr_mask
+	daddr		ipv4_addr
+	dmsk		ipv4_addr_mask
+	smaddr		mac_addr
+	smmsk		mac_addr_mask
+	dmaddr		mac_addr
+	dmmsk		mac_addr_mask
+	bitmask		flags[ebt_arp_flags, int8]
+	invflags	flags[ebt_arp_flags, int8]
+}
+
+ebt_arp_flags = EBT_ARP_OPCODE, EBT_ARP_HTYPE, EBT_ARP_PTYPE, EBT_ARP_SRC_IP, EBT_ARP_DST_IP, EBT_ARP_SRC_MAC, EBT_ARP_DST_MAC, EBT_ARP_GRAT
+
+ebt_ip_info {
+	saddr		ipv4_addr
+	daddr		ipv4_addr
+	smsk		ipv4_addr_mask
+	dmsk		ipv4_addr_mask
+	tos		int8
+	protocol	flags[ipv4_types, int8]
+	bitmask		flags[ebt_ip_flags, int8]
+	invflags	flags[ebt_ip_flags, int8]
+	sport_min	sock_port
+	sport_max	sock_port
+	dport_min	sock_port
+	dport_max	sock_port
+}
+
+ebt_ip_flags = EBT_IP_SOURCE, EBT_IP_DEST, EBT_IP_TOS, EBT_IP_PROTO, EBT_IP_SPORT, EBT_IP_DPORT
+
+ebt_ip6_info {
+	saddr		ipv6_addr
+	daddr		ipv6_addr
+	smsk		ipv6_addr_mask
+	dmsk		ipv6_addr_mask
+	tclass		int8
+	protocol	flags[ipv6_types, int8]
+	bitmask		flags[ebt_ip6_flags, int8]
+	invflags	flags[ebt_ip6_flags, int8]
+	sport_min	sock_port
+	sport_max	sock_port
+	dport_min	sock_port
+	dport_max	sock_port
+}
+
+ebt_ip6_flags = EBT_IP6_SOURCE, EBT_IP6_DEST, EBT_IP6_TCLASS, EBT_IP6_PROTO, EBT_IP6_SPORT, EBT_IP6_DPORT, EBT_IP6_ICMP6
+
+ebt_limit_info {
+	avg		int32
+	burst		int32
+	prev		intptr
+	credit		int32
+	credit_cap	int32
+	cost		int32
+}
+
+ebt_mark_m_info {
+	mark	intptr
+	mask	intptr
+	invert	flags[ebt_mark_m_flags, int8]
+	bitmask	flags[ebt_mark_m_flags, int8]
+}
+
+ebt_mark_m_flags = EBT_MARK_AND, EBT_MARK_OR
+
+ebt_pkttype_info {
+	pkt_type	int8[0:7]
+	invert		bool8
+}
+
+ebt_stp_info {
+	type		int8
+	config		ebt_stp_config_info
+	bitmask		flags[ebt_stp_flags, int16]
+	invflags	flags[ebt_stp_flags, int16]
+}
+
+ebt_stp_config_info {
+	flags		int8
+	root_priol	int16
+	root_priou	int16
+	root_addr	mac_addr
+	root_addrmsk	mac_addr_mask
+	root_costl	int32
+	root_costu	int32
+	sender_priol	int16
+	sender_priou	int16
+	sender_addr	mac_addr
+	sender_addrmsk	mac_addr_mask
+	portl		sock_port
+	portu		sock_port
+	msg_agel	int16
+	msg_ageu	int16
+	max_agel	int16
+	max_ageu	int16
+	hello_timel	int16
+	hello_timeu	int16
+	forward_delayl	int16
+	forward_delayu	int16
+}
+
+ebt_stp_flags = EBT_STP_TYPE, EBT_STP_FLAGS, EBT_STP_ROOTPRIO, EBT_STP_ROOTADDR, EBT_STP_ROOTCOST, EBT_STP_SENDERPRIO, EBT_STP_SENDERADDR, EBT_STP_PORT, EBT_STP_MSGAGE, EBT_STP_MAXAGE, EBT_STP_HELLOTIME, EBT_STP_FWDD
+
+ebt_vlan_info {
+	id		int16[0:4]
+	prio		int8[0:7]
+	encap		flags[ether_types, int16be]
+	bitmask		flags[ebt_vlan_flags, int8]
+	invflags	flags[ebt_vlan_flags, int8]
+}
+
+ebt_vlan_flags = EBT_VLAN_ID, EBT_VLAN_PRIO, EBT_VLAN_ENCAP
+
+# TARGETS:
+
+type ebt_entry_target[NAME, DATA] {
+	name		string[NAME, EBT_FUNCTION_MAXNAMELEN]
+	target_size	bytesize[data, int32]
+	data		xt_padded[DATA]
+}
+
+ebt_targets [
+	dnat		ebt_entry_target["dnat", ebt_nat_info]
+	log		ebt_entry_target["log", ebt_log_info]
+	mark		ebt_entry_target["mark", ebt_mark_t_info]
+	nflog		ebt_entry_target["nflog", ebt_nflog_info]
+	redirect	ebt_entry_target["redirect", ebt_redirect_info]
+# AF_UNSPEC targets (only version 0).
+	STANDARD	ebt_entry_target["", flags[nf_verdicts, int32]]
+	ERROR		ebt_entry_target["ERROR", array[int8, XT_FUNCTION_MAXNAMELEN]]
+	LED		ebt_entry_target["LED", xt_led_info]
+	RATEEST		ebt_entry_target["RATEEST", xt_rateest_target_info]
+	NFQUEUE0	ebt_entry_target["NFQUEUE", xt_NFQ_info]
+	CLASSIFY	ebt_entry_target["CLASSIFY", xt_classify_target_info]
+	IDLETIMER	ebt_entry_target["IDLETIMER", idletimer_tg_info]
+	AUDIT		ebt_entry_target["AUDIT", xt_audit_info]
+	CONNSECMARK	ebt_entry_target["CONNSECMARK", xt_connsecmark_target_info]
+	SECMARK		ebt_entry_target["SECMARK", xt_secmark_target_info]
+	NFLOG		ebt_entry_target["NFLOG", xt_nflog_info]
+] [varlen]
+
+ebt_filter_targets [
+	common	ebt_targets
+] [varlen]
+
+ebt_nat_targets [
+	common		ebt_targets
+	arpreply	ebt_entry_target["arpreply", ebt_arpreply_info]
+	snat		ebt_entry_target["snat", ebt_nat_info]
+] [varlen]
+
+ebt_broute_targets [
+	common	ebt_targets
+] [varlen]
+
+ebt_arpreply_info {
+	mac	mac_addr
+# TODO: can also be jump target
+	target	flags[ebt_verdicts, int32]
+}
+
+ebt_nat_info {
+	mac	mac_addr
+# TODO: can also be jump target
+	target	flags[ebt_nat_verdicts, int32]
+}
+
+ebt_nat_verdicts = EBT_DROP, EBT_ACCEPT, EBT_RETURN, EBT_CONTINUE, NAT_ARP_BIT
+
+ebt_log_info {
+	loglevel	int8
+	prefix		array[int8, EBT_LOG_PREFIX_SIZE]
+	bitmask		flags[ebt_log_bitmask, int32]
+}
+
+ebt_log_bitmask = EBT_LOG_IP, EBT_LOG_ARP, EBT_LOG_NFLOG, EBT_LOG_IP6
+
+ebt_mark_t_info {
+	mark	flags[ebt_mark_marks, intptr]
+# TODO: can also be jump target
+	target	flags[ebt_verdicts, int32]
+}
+
+ebt_mark_marks = MARK_SET_VALUE, MARK_OR_VALUE, MARK_AND_VALUE, MARK_XOR_VALUE
+
+ebt_nflog_info {
+	len		int32
+	group		int16
+	threshold	int16
+	flags		const[0, int16]
+	pad		const[0, int16]
+	prefix		array[int8, EBT_NFLOG_PREFIX_SIZE]
+}
+
+ebt_redirect_info {
+# TODO: can also be jump target
+	target	flags[ebt_verdicts, int32]
+}

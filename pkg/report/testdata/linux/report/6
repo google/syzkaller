@@ -1,0 +1,14 @@
+# Raw 'dmesg -r' and /proc/kmsg output.
+TITLE: WARNING: foo
+
+<6>[   85.501187] WARNING: foo
+<6>[   85.501187] nouveau  [     DRM] suspending kernel object tree...
+executing program 1:
+<6>[   85.525111] nouveau  [     DRM] nouveau suspended
+<14>[   85.912347] init: computing context for service 'clear-bcb'
+
+REPORT:
+WARNING: foo
+nouveau  [     DRM] suspending kernel object tree...
+nouveau  [     DRM] nouveau suspended
+init: computing context for service 'clear-bcb'

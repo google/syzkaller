@@ -1,0 +1,113 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/net.h>
+include <uapi/linux/if_pppox.h>
+include <uapi/linux/ppp-ioctl.h>
+include <uapi/linux/if_pppol2tp.h>
+
+resource sock_pppox[sock]
+resource sock_pppoe[sock_pppox]
+resource sock_pppl2tp[sock_pppox]
+resource sock_pptp[sock_pppox]
+
+type pptp_call_id int16be[0:3]
+type sid_t int16[0:4]
+type l2tp_tunnel[BASE] BASE[0:4]
+type l2tp_session[BASE] BASE[0:4]
+
+socket$pppoe(domain const[AF_PPPOX], type const[SOCK_STREAM], proto const[PX_PROTO_OE]) sock_pppoe
+connect$pppoe(fd sock_pppoe, addr ptr[in, sockaddr_pppoe], addrlen len[addr])
+ioctl$PPPOEIOCSFWD(fd sock_pppoe, cmd const[PPPOEIOCSFWD], arg ptr[in, sockaddr_pppoe])
+ioctl$PPPOEIOCDFWD(fd sock_pppoe, cmd const[PPPOEIOCDFWD], arg const[0])
+
+socket$pppl2tp(domain const[AF_PPPOX], type const[SOCK_STREAM], proto const[PX_PROTO_OL2TP]) sock_pppl2tp
+connect$pppl2tp(fd sock_pppl2tp, addr ptr[in, sockaddr_pppl2tp], addrlen len[addr])
+ioctl$PPPIOCGL2TPSTATS(fd sock_pppl2tp, cmd const[PPPIOCGL2TPSTATS], arg ptr[in, array[int8]])
+ioctl$SIOCGIFMTU(fd sock_pppl2tp, cmd const[SIOCGIFMTU], arg ptr[out, ifreq_t[int32]])
+ioctl$SIOCSIFMTU(fd sock_pppl2tp, cmd const[SIOCSIFMTU], arg ptr[in, ifreq_t[int32]])
+setsockopt$pppl2tp_PPPOL2TP_SO_DEBUG(fd sock_pppl2tp, level const[SOL_PPPOL2TP], optname const[PPPOL2TP_SO_DEBUG], optval int32, optlen bytesize[optval])
+setsockopt$pppl2tp_PPPOL2TP_SO_RECVSEQ(fd sock_pppl2tp, level const[SOL_PPPOL2TP], optname const[PPPOL2TP_SO_RECVSEQ], optval bool32, optlen bytesize[optval])
+setsockopt$pppl2tp_PPPOL2TP_SO_SENDSEQ(fd sock_pppl2tp, level const[SOL_PPPOL2TP], optname const[PPPOL2TP_SO_SENDSEQ], optval bool32, optlen bytesize[optval])
+setsockopt$pppl2tp_PPPOL2TP_SO_LNSMODE(fd sock_pppl2tp, level const[SOL_PPPOL2TP], optname const[PPPOL2TP_SO_LNSMODE], optval bool32, optlen bytesize[optval])
+setsockopt$pppl2tp_PPPOL2TP_SO_REORDERTO(fd sock_pppl2tp, level const[SOL_PPPOL2TP], optname const[PPPOL2TP_SO_REORDERTO], optval int32, optlen bytesize[optval])
+
+socket$pptp(domain const[AF_PPPOX], type const[SOCK_STREAM], proto const[PX_PROTO_PPTP]) sock_pptp
+bind$pptp(fd sock_pptp, addr ptr[in, sockaddr_pptp], addrlen len[addr])
+connect$pptp(fd sock_pptp, addr ptr[in, sockaddr_pptp], addrlen len[addr])
+
+ioctl$PPPIOCGCHAN(fd sock_pppox, cmd const[PPPIOCGCHAN], arg ptr[out, int32])
+ioctl$PPPIOCGFLAGS(fd sock_pppox, cmd const[PPPIOCGFLAGS], arg ptr[out, int32])
+ioctl$PPPIOCSFLAGS(fd sock_pppox, cmd const[PPPIOCSFLAGS], arg ptr[in, flags[ppp_flags, int32]])
+ioctl$PPPIOCGMRU(fd sock_pppox, cmd const[PPPIOCGMRU], arg ptr[out, int32])
+ioctl$PPPIOCSMRU(fd sock_pppox, cmd const[PPPIOCSMRU], arg ptr[in, int32])
+
+define SOCKADDR_PPPOX_SIZE	sizeof(struct sockaddr_pppox)
+
+sockaddr_pppoe {
+	sa_family	const[AF_PPPOX, int16]
+	sa_protocol	const[PX_PROTO_OE, int32]
+	pppoe		pppoe_addr
+} [packed, size[SOCKADDR_PPPOX_SIZE]]
+
+pppoe_addr {
+	sid	sid_t
+	remote	mac_addr
+	dev	devname
+}
+
+sockaddr_pppl2tp [
+	pppol2tp	sockaddr_pppol2tp
+	pppol2tpin6	sockaddr_pppol2tpin6
+	pppol2tpv3	sockaddr_pppol2tpv3
+	pppol2tpv3in6	sockaddr_pppol2tpv3in6
+] [varlen]
+
+type sockaddr_pppol2tp sockaddr_pppl2tp_t[pppol2tp_addr]
+type sockaddr_pppol2tpin6 sockaddr_pppl2tp_t[pppol2tpin6_addr]
+type sockaddr_pppol2tpv3 sockaddr_pppl2tp_t[pppol2tpv3_addr]
+type sockaddr_pppol2tpv3in6 sockaddr_pppl2tp_t[pppol2tpv3in6_addr]
+
+type sockaddr_pppl2tp_t[ADDR] {
+	sa_family	const[AF_PPPOX, int16]
+	sa_protocol	const[PX_PROTO_OL2TP, int32]
+	addr		ADDR
+} [packed]
+
+type pppol2tp_addr_t[BASE] {
+	pid		const[0, int32]
+	fd		sock
+	addr		sockaddr_in
+	s_tunnel	l2tp_tunnel[BASE]
+	s_session	l2tp_session[BASE]
+	d_tunnel	l2tp_tunnel[BASE]
+	d_session	l2tp_session[BASE]
+}
+
+type pppol2tpin6_addr_t[BASE] {
+	pid		const[0, int32]
+	fd		sock
+	s_tunnel	l2tp_tunnel[BASE]
+	s_session	l2tp_session[BASE]
+	d_tunnel	l2tp_tunnel[BASE]
+	d_session	l2tp_session[BASE]
+	addr		sockaddr_in6
+}
+
+type pppol2tp_addr pppol2tp_addr_t[int16]
+type pppol2tpv3_addr pppol2tp_addr_t[int32]
+type pppol2tpin6_addr pppol2tpin6_addr_t[int16]
+type pppol2tpv3in6_addr pppol2tpin6_addr_t[int32]
+
+sockaddr_pptp {
+	sa_family	const[AF_PPPOX, int16]
+	sa_protocol	const[PX_PROTO_PPTP, int32]
+	pptp		pptp_addr
+} [packed, size[SOCKADDR_PPPOX_SIZE]]
+
+pptp_addr {
+	call_id		pptp_call_id
+	sin_addr	ipv4_addr
+}
+
+ppp_flags = SC_COMP_PROT, SC_COMP_AC, SC_COMP_TCP, SC_NO_TCP_CCID, SC_REJ_COMP_AC, SC_REJ_COMP_TCP, SC_CCP_OPEN, SC_CCP_UP, SC_ENABLE_IP, SC_LOOP_TRAFFIC, SC_MULTILINK, SC_MP_SHORTSEQ, SC_COMP_RUN, SC_DECOMP_RUN, SC_MP_XSHORTSEQ, SC_DEBUG, SC_LOG_INPKT, SC_LOG_OUTPKT, SC_LOG_RAWIN, SC_LOG_FLUSH, SC_SYNC, SC_MUST_COMP, SC_RCV_B7_0, SC_RCV_B7_1, SC_RCV_EVNP, SC_RCV_ODDP

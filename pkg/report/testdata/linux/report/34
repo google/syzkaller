@@ -1,0 +1,8 @@
+TITLE: INFO: suspicious RCU usage in corrupted
+CORRUPTED: Y
+
+[ 1722.511384] [ INFO: suspicious RCU usage. ]
+[ 1722.511384] 4.3.5-smp-DEV #101 Not tainted
+[ 1722.511384] -------------------------------
+[ 1722.511384] net/core/filter.c:1917 suspicious rcu_dereference_protected() usage!
+[ 1722.511384] other info that might help us debug this:

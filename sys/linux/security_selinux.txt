@@ -1,0 +1,112 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Vary basic description. We only let fuzzer open files.
+# TODO: describe file formats.
+# TODO: figure out if we can use policies that will meaningfully interact with fuzzing,
+# i.e. access to some local files will be prohibited.
+
+include <linux/fcntl.h>
+include <uapi/linux/magic.h>
+
+resource fd_selinux_load[fd]
+openat$selinux_load(fd const[AT_FDCWD], file ptr[in, string["/selinux/load"]], flags const[O_RDWR], mode const[0]) fd_selinux_load
+write$selinux_load(fd fd_selinux_load, buf ptr[in, selinux_policy], count bytesize[buf])
+
+resource fd_selinux_access[fd]
+openat$selinux_access(fd const[AT_FDCWD], file ptr[in, string["/selinux/access"]], flags const[O_RDWR], mode const[0]) fd_selinux_access
+openat$selinux_member(fd const[AT_FDCWD], file ptr[in, string["/selinux/member"]], flags const[O_RDWR], mode const[0]) fd_selinux_access
+openat$selinux_relabel(fd const[AT_FDCWD], file ptr[in, string["/selinux/relabel"]], flags const[O_RDWR], mode const[0]) fd_selinux_access
+write$selinux_access(fd fd_selinux_access, buf ptr[in, selinux_access_req], count bytesize[buf])
+
+resource fd_selinux_context[fd]
+openat$selinux_context(fd const[AT_FDCWD], file ptr[in, string["/selinux/context"]], flags const[O_RDWR], mode const[0]) fd_selinux_context
+write$selinux_context(fd fd_selinux_context, buf ptr[in, string[selinux_security_context]], count bytesize[buf])
+
+resource fd_selinux_create[fd]
+openat$selinux_create(fd const[AT_FDCWD], file ptr[in, string["/selinux/create"]], flags const[O_RDWR], mode const[0]) fd_selinux_create
+write$selinux_create(fd fd_selinux_create, buf ptr[in, selinux_create_req], count bytesize[buf])
+
+resource fd_selinux_validatetrans[fd]
+openat$selinux_validatetrans(fd const[AT_FDCWD], file ptr[in, string["/selinux/validatetrans"]], flags const[O_WRONLY], mode const[0]) fd_selinux_validatetrans
+write$selinux_validatetrans(fd fd_selinux_validatetrans, buf ptr[in, selinux_validatetrans_req], count bytesize[buf])
+
+resource fd_selinux_user[fd]
+openat$selinux_user(fd const[AT_FDCWD], file ptr[in, string["/selinux/user"]], flags const[O_RDWR], mode const[0]) fd_selinux_user
+write$selinux_user(fd fd_selinux_user, buf ptr[in, selinux_user_req], count bytesize[buf])
+
+openat$selinux_enforce(fd const[AT_FDCWD], file ptr[in, string["/selinux/enforce"]], flags flags[open_flags], mode const[0]) fd
+openat$selinux_commit_pending_bools(fd const[AT_FDCWD], file ptr[in, string["/selinux/commit_pending_bools"]], flags const[O_WRONLY], mode const[0]) fd
+openat$selinux_mls(fd const[AT_FDCWD], file ptr[in, string["/selinux/mls"]], flags const[O_RDONLY], mode const[0]) fd
+openat$selinux_checkreqprot(fd const[AT_FDCWD], file ptr[in, string["/selinux/checkreqprot"]], flags flags[open_flags], mode const[0]) fd
+openat$selinux_status(fd const[AT_FDCWD], file ptr[in, string["/selinux/status"]], flags const[O_RDONLY], mode const[0]) fd
+openat$selinux_policy(fd const[AT_FDCWD], file ptr[in, string["/selinux/policy"]], flags const[O_RDONLY], mode const[0]) fd
+openat$selinux_avc_cache_stats(fd const[AT_FDCWD], file ptr[in, string["/selinux/avc/cache_stats"]], flags const[O_RDONLY], mode const[0]) fd
+openat$selinux_avc_cache_threshold(fd const[AT_FDCWD], file ptr[in, string["/selinux/avc/cache_threshold"]], flags const[O_RDWR], mode const[0]) fd
+openat$selinux_avc_hash_stats(fd const[AT_FDCWD], file ptr[in, string["/selinux/avc/hash_stats"]], flags const[O_RDONLY], mode const[0]) fd
+
+# Let's make it a little bit easier for fuzzer to guess the correct header.
+# It doesn't have problem with SELINUX_MAGIC, but is not currently capable
+# of guessing POLICYDB_STRING (need strcmp support in comparison interception).
+selinux_policy {
+	magic	const[SELINUX_MAGIC, int32]
+	len	len[str, int32]
+	str	stringnoz["SE Linux"]
+	data	array[int8]
+} [packed]
+
+# This gives us "%s %s %hu" string.
+selinux_access_req {
+	scon	stringnoz[selinux_security_context]
+	sp0	const[' ', int8]
+	tcon	stringnoz[selinux_task_context]
+	sp1	const[' ', int8]
+	class	fmt[dec, int16]
+	z	const[0, int8]
+} [packed]
+
+selinux_create_objname {
+	scon	stringnoz[selinux_security_context]
+	sp0	const[' ', int8]
+	tcon	stringnoz[selinux_task_context]
+	sp1	const[' ', int8]
+	class	fmt[dec, int16]
+	sp2	const[' ', int8]
+	objname	filename
+} [packed]
+
+selinux_create_req [
+	access	selinux_access_req
+	objname	selinux_create_objname
+] [varlen]
+
+selinux_validatetrans_req {
+	scon0	stringnoz[selinux_security_context]
+	sp0	const[' ', int8]
+	scon1	stringnoz[selinux_security_context]
+	sp1	const[' ', int8]
+	class	fmt[dec, int16]
+	sp2	const[' ', int8]
+	tcon	string[selinux_task_context]
+} [packed]
+
+selinux_user_req {
+	scon	stringnoz[selinux_security_context]
+	sp0	const[' ', int8]
+	user	string[selinux_user_context]
+} [packed]
+
+resource fd_selinux_attr[fd]
+
+openat$selinux_attr(fd const[AT_FDCWD], file ptr[in, string[selinux_proc_attrs]], flags const[O_RDWR], mode const[0]) fd_selinux_attr
+write$selinux_attr(fd fd_selinux_attr, data ptr[in, string[selinux_security_context]], len len[data])
+
+selinux_proc_attrs = "/proc/self/attr/current", "/proc/self/attr/exec", "/proc/self/attr/fscreate", "/proc/self/attr/keycreate", "/proc/self/attr/sockcreate", "/proc/thread-self/attr/current", "/proc/thread-self/attr/exec", "/proc/thread-self/attr/fscreate", "/proc/thread-self/attr/keycreate", "/proc/thread-self/attr/sockcreate"
+
+setxattr$security_selinux(path ptr[in, filename], name ptr[in, string["security.selinux"]], val ptr[in, string[selinux_security_context]], size len[val], flags flags[setxattr_flags])
+lsetxattr$security_selinux(path ptr[in, filename], name ptr[in, string["security.selinux"]], val ptr[in, string[selinux_security_context]], size len[val], flags flags[setxattr_flags])
+fsetxattr$security_selinux(fd fd, name ptr[in, string["security.selinux"]], val ptr[in, string[selinux_security_context]], size len[val], flags flags[setxattr_flags])
+
+selinux_task_context = "system_u:system_r:kernel_t:s0", "unconfined_u:system_r:insmod_t:s0-s0:c0.c1023", "/sbin/dhclient", "unconfined", "/usr/lib/telepathy/mission-control-5", "/usr/sbin/cups-browsed", "/usr/sbin/cupsd", "/usr/sbin/ntpd"
+selinux_user_context = "root", "staff_u", "sysadm_u", "system_u", "unconfined_u", "user_u"
+selinux_security_context = "u:r:untrusted_app:s0:c512,c768", "u:object_r:app_data_file:s0:c512,c768", "system_u:system_r:kernel_t:s0", "unconfined_u:system_r:insmod_t:s0-s0:c0.c1023", "/sbin/dhclient", "unconfined", "/usr/lib/telepathy/mission-control-5", "/usr/sbin/cups-browsed", "/usr/sbin/cupsd", "/usr/sbin/ntpd", "system_u:object_r:adjtime_t:s0", "system_u:object_r:admin_passwd_exec_t:s0", "system_u:object_r:agp_device_t:s0", "system_u:object_r:anacron_exec_t:s0", "system_u:object_r:apm_bios_t:s0", "system_u:object_r:apt_exec_t:s0", "system_u:object_r:apt_lock_t:s0", "system_u:object_r:apt_var_cache_t:s0", "system_u:object_r:apt_var_lib_t:s0", "system_u:object_r:apt_var_log_t:s0", "system_u:object_r:audisp_exec_t:s0", "system_u:object_r:audisp_remote_exec_t:s0", "system_u:object_r:audisp_var_run_t:s0", "system_u:object_r:auditctl_exec_t:s0", "system_u:object_r:auditd_etc_t:s0", "system_u:object_r:auditd_exec_t:s0", "system_u:object_r:auditd_initrc_exec_t:s0", "system_u:object_r:auditd_log_t:s0", "system_u:object_r:auditd_unit_file_t:s0", "system_u:object_r:auditd_var_run_t:s0", "system_u:object_r:audit_spool_t:s0", "system_u:object_r:auth_cache_t:s0", "system_u:object_r:autofs_device_t:s0", "system_u:object_r:bin_t:s0", "system_u:object_r:boot_t:s0", "system_u:object_r:bsdpty_device_t:s0", "system_u:object_r:cert_t:s0", "system_u:object_r:cgroup_t:s0", "system_u:object_r:checkpolicy_exec_t:s0", "system_u:object_r:chfn_exec_t:s0", "system_u:object_r:chkpwd_exec_t:s0", "system_u:object_r:clock_device_t:s0", "system_u:object_r:console_device_t:s0", "system_u:object_r:cpu_device_t:s0", "system_u:object_r:cpu_online_t:s0", "system_u:object_r:crack_db_t:s0", "system_u:object_r:crack_exec_t:s0", "system_u:object_r:crash_device_t:s0", "system_u:object_r:crond_exec_t:s0", "system_u:object_r:crond_initrc_exec_t:s0", "system_u:object_r:crond_unit_file_t:s0", "system_u:object_r:crond_var_run_t:s0", "system_u:object_r:cron_log_t:s0", "system_u:object_r:cron_spool_t:s0", "system_u:object_r:crontab_exec_t:s0", "system_u:object_r:crypt_device_t:s0", "system_u:object_r:dbusd_etc_t:s0", "system_u:object_r:dbusd_exec_t:s0", "system_u:object_r:default_context_t:s0", "system_u:object_r:default_t:s0", "system_u:object_r:depmod_exec_t:s0", "system_u:object_r:devicekit_disk_exec_t:s0", "system_u:object_r:devicekit_exec_t:s0", "system_u:object_r:devicekit_power_exec_t:s0", "system_u:object_r:devicekit_var_lib_t:s0", "system_u:object_r:devicekit_var_run_t:s0", "system_u:object_r:device_t:s0", "system_u:object_r:devlog_t:s0", "system_u:object_r:devpts_t:s0", "system_u:object_r:devtty_t:s0", "system_u:object_r:dhcpc_exec_t:s0", "system_u:object_r:dhcpc_state_t:s0", "system_u:object_r:dhcpc_var_run_t:s0", "system_u:object_r:dhcpd_exec_t:s0", "system_u:object_r:dhcpd_initrc_exec_t:s0", "system_u:object_r:dhcpd_state_t:s0", "system_u:object_r:dhcpd_unit_file_t:s0", "system_u:object_r:dhcpd_var_run_t:s0", "system_u:object_r:dhcp_etc_t:s0", "system_u:object_r:dhcp_state_t:s0", "system_u:object_r:dlm_control_device_t:s0", "system_u:object_r:dmesg_exec_t:s0", "system_u:object_r:dmidecode_exec_t:s0", "system_u:object_r:dpkg_exec_t:s0", "system_u:object_r:dpkg_lock_t:s0", "system_u:object_r:dpkg_var_lib_t:s0", "system_u:object_r:dri_device_t:s0", "system_u:object_r:etc_aliases_t:s0", "system_u:object_r:etc_mail_t:s0", "system_u:object_r:etc_runtime_t:s0", "system_u:object_r:etc_t:s0", "system_u:object_r:event_device_t:s0", "system_u:object_r:faillog_t:s0", "system_u:object_r:file_context_t:s0", "system_u:object_r:fixed_disk_device_t:s0", "system_u:object_r:fonts_cache_t:s0", "system_u:object_r:fonts_t:s0", "system_u:object_r:framebuf_device_t:s0", "system_u:object_r:fsadm_exec_t:s0", "system_u:object_r:fsadm_log_t:s0", "system_u:object_r:fuse_device_t:s0", "system_u:object_r:getty_etc_t:s0", "system_u:object_r:getty_exec_t:s0", "system_u:object_r:getty_log_t:s0", "system_u:object_r:getty_var_run_t:s0", "system_u:object_r:gpg_agent_exec_t:s0", "system_u:object_r:gpg_exec_t:s0", "system_u:object_r:gpg_helper_exec_t:s0", "system_u:object_r:groupadd_exec_t:s0", "system_u:object_r:hald_acl_exec_t:s0", "system_u:object_r:hald_cache_t:s0", "system_u:object_r:hald_dccm_exec_t:s0", "system_u:object_r:hald_exec_t:s0", "system_u:object_r:hald_keymap_exec_t:s0", "system_u:object_r:hald_log_t:s0", "system_u:object_r:hald_mac_exec_t:s0", "system_u:object_r:hald_sonypic_exec_t:s0", "system_u:object_r:hald_var_lib_t:s0", "system_u:object_r:hald_var_run_t:s0", "system_u:object_r:hostname_exec_t:s0", "system_u:object_r:hugetlbfs_t:s0", "system_u:object_r:hwclock_exec_t:s0", "system_u:object_r:hwdata_t:s0", "system_u:object_r:ifconfig_exec_t:s0", "system_u:object_r:inetd_child_exec_t:s0", "system_u:object_r:inetd_exec_t:s0", "system_u:object_r:inetd_log_t:s0", "system_u:object_r:inetd_var_run_t:s0", "system_u:object_r:initctl_t:s0", "system_u:object_r:init_exec_t:s0", "system_u:object_r:initrc_exec_t:s0", "system_u:object_r:initrc_var_run_t:s0", "system_u:object_r:init_var_run_t:s0", "system_u:object_r:insmod_exec_t:s0", "system_u:object_r:ipmi_device_t:s0", "system_u:object_r:iptables_conf_t:s0", "system_u:object_r:iptables_exec_t:s0", "system_u:object_r:iptables_initrc_exec_t:s0", "system_u:object_r:iptables_unit_file_t:s0", "system_u:object_r:klogd_exec_t:s0", "system_u:object_r:klogd_var_run_t:s0", "system_u:object_r:kmsg_device_t:s0", "system_u:object_r:ksm_device_t:s0", "system_u:object_r:kvm_device_t:s0", "system_u:object_r:lastlog_t:s0", "system_u:object_r:ldconfig_cache_t:s0", "system_u:object_r:ldconfig_exec_t:s0", "system_u:object_r:ld_so_cache_t:s0", "system_u:object_r:ld_so_t:s0", "system_u:object_r:lib_t:s0", "system_u:object_r:lirc_device_t:s0", "system_u:object_r:load_policy_exec_t:s0", "system_u:object_r:locale_t:s0", "system_u:object_r:login_exec_t:s0", "system_u:object_r:logrotate_exec_t:s0", "system_u:object_r:logrotate_var_lib_t:s0", "system_u:object_r:lost_found_t:s0", "system_u:object_r:lvm_control_t:s0", "system_u:object_r:mail_spool_t:s0", "system_u:object_r:man_t:s0", "system_u:object_r:memory_device_t:s0", "system_u:object_r:mnt_t:s0", "system_u:object_r:modem_device_t:s0", "system_u:object_r:modules_conf_t:s0", "system_u:object_r:modules_dep_t:s0", "system_u:object_r:modules_object_t:s0", "system_u:object_r:mount_exec_t:s0", "system_u:object_r:mount_tmp_t:s0", "system_u:object_r:mouse_device_t:s0", "system_u:object_r:mqueue_spool_t:s0", "system_u:object_r:mtrr_device_t:s0", "system_u:object_r:net_conf_t:s0", "system_u:object_r:netcontrol_device_t:s0", "system_u:object_r:netlabel_mgmt_exec_t:s0", "system_u:object_r:netutils_exec_t:s0", "system_u:object_r:newrole_exec_t:s0", "system_u:object_r:null_device_t:s0", "system_u:object_r:nvram_device_t:s0", "system_u:object_r:pam_console_exec_t:s0", "system_u:object_r:pam_exec_t:s0", "system_u:object_r:pam_var_run_t:s0", "system_u:object_r:passwd_exec_t:s0", "system_u:object_r:pinentry_exec_t:s0", "system_u:object_r:ping_exec_t:s0", "system_u:object_r:policy_config_t:s0", "system_u:object_r:policy_src_t:s0", "system_u:object_r:power_device_t:s0", "system_u:object_r:ppp_device_t:s0", "system_u:object_r:printer_device_t:s0", "system_u:object_r:ptchown_exec_t:s0", "system_u:object_r:ptmx_t:s0", "system_u:object_r:public_content_rw_t:s0", "system_u:object_r:public_content_t:s0", "system_u:object_r:qemu_device_t:s0", "system_u:object_r:random_device_t:s0", "system_u:object_r:removable_device_t:s0", "system_u:object_r:restorecond_exec_t:s0", "system_u:object_r:restorecond_var_run_t:s0", "system_u:object_r:root_t:s0", "system_u:object_r:run_init_exec_t:s0", "system_u:object_r:scanner_device_t:s0", "system_u:object_r:scsi_generic_device_t:s0", "system_u:object_r:selinux_config_t:s0", "system_u:object_r:semanage_exec_t:s0", "system_u:object_r:semanage_read_lock_t:s0", "system_u:object_r:semanage_store_t:s0", "system_u:object_r:semanage_trans_lock_t:s0", "system_u:object_r:sendmail_exec_t:s0", "system_u:object_r:setfiles_exec_t:s0", "system_u:object_r:setrans_exec_t:s0", "system_u:object_r:setrans_initrc_exec_t:s0", "system_u:object_r:setrans_var_run_t:s0", "system_u:object_r:shadow_t:s0", "system_u:object_r:shell_exec_t:s0", "system_u:object_r:smartcard_device_t:s0", "system_u:object_r:sound_device_t:s0", "system_u:object_r:src_t:s0", "system_u:object_r:ssh_agent_exec_t:s0", "system_u:object_r:sshd_exec_t:s0", "system_u:object_r:sshd_key_t:s0", "system_u:object_r:sshd_var_run_t:s0", "system_u:object_r:ssh_exec_t:s0", "system_u:object_r:ssh_keygen_exec_t:s0", "system_u:object_r:ssh_keysign_exec_t:s0", "system_u:object_r:sudo_exec_t:s0", "system_u:object_r:su_exec_t:s0", "system_u:object_r:sulogin_exec_t:s0", "system_u:object_r:sysfs_t:s0", "system_u:object_r:syslog_conf_t:s0", "system_u:object_r:syslogd_exec_t:s0", "system_u:object_r:syslogd_initrc_exec_t:s0", "system_u:object_r:syslogd_var_lib_t:s0", "system_u:object_r:syslogd_var_run_t:s0", "system_u:object_r:system_cron_spool_t:s0", "system_u:object_r:system_dbusd_var_lib_t:s0", "system_u:object_r:system_dbusd_var_run_t:s0", "system_u:object_r:systemd_logger_exec_t:s0", "system_u:object_r:systemd_logind_exec_t:s0", "system_u:object_r:systemd_logind_sessions_t:s0", "system_u:object_r:systemd_logind_var_run_t:s0", "system_u:object_r:systemd_notify_exec_t:s0", "system_u:object_r:systemd_passwd_agent_exec_t:s0", "system_u:object_r:systemd_passwd_var_run_t:s0", "system_u:object_r:systemd_systemctl_exec_t:s0", "system_u:object_r:systemd_tmpfiles_exec_t:s0", "system_u:object_r:systemd_unit_file_t:s0", "system_u:object_r:system_map_t:s0", "system_u:object_r:tape_device_t:s0", "system_u:object_r:tetex_data_t:s0", "system_u:object_r:textrel_shlib_t:s0", "system_u:object_r:tmpfs_t:s0", "system_u:object_r:tmpreaper_exec_t:s0", "system_u:object_r:tmp_t:s0", "system_u:object_r:tpm_device_t:s0", "system_u:object_r:traceroute_exec_t:s0", "system_u:object_r:tty_device_t:s0", "system_u:object_r:tun_tap_device_t:s0", "system_u:object_r:tzdata_exec_t:s0", "system_u:object_r:udev_exec_t:s0", "system_u:object_r:udev_helper_exec_t:s0", "system_u:object_r:udev_rules_t:s0", "system_u:object_r:udev_tbl_t:s0", "system_u:object_r:udev_var_run_t:s0", "system_u:object_r:unconfined_execmem_exec_t:s0", "system_u:object_r:unconfined_exec_t:s0", "system_u:object_r:update_modules_exec_t:s0", "system_u:object_r:updpwd_exec_t:s0", "system_u:object_r:urandom_device_t:s0", "system_u:object_r:usb_device_t:s0", "system_u:object_r:usbmon_device_t:s0", "system_u:object_r:usbtty_device_t:s0", "system_u:object_r:useradd_exec_t:s0", "system_u:object_r:user_cron_spool_t:s0", "system_u:object_r:userio_device_t:s0", "system_u:object_r:usr_t:s0", "system_u:object_r:utempter_exec_t:s0", "system_u:object_r:v4l_device_t:s0", "system_u:object_r:var_auth_t:s0", "system_u:object_r:var_lib_t:s0", "system_u:object_r:var_lock_t:s0", "system_u:object_r:var_log_t:s0", "system_u:object_r:var_run_t:s0", "system_u:object_r:var_spool_t:s0", "system_u:object_r:var_t:s0", "system_u:object_r:vhost_device_t:s0", "system_u:object_r:vmware_device_t:s0", "system_u:object_r:watchdog_device_t:s0", "system_u:object_r:wireless_device_t:s0", "system_u:object_r:wtmp_t:s0", "system_u:object_r:xconsole_device_t:s0", "system_u:object_r:xen_device_t:s0", "system_u:object_r:xserver_misc_device_t:s0", "system_u:object_r:zero_device_t:s0"

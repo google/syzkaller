@@ -1,0 +1,409 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Errors that happen during checking phase.
+
+# Recursive resources.
+
+resource r0[r0]			### recursive resource r0->r0
+resource r1[r2]			### recursive resource r1->r2->r1
+resource r2[r1]			### recursive resource r2->r1->r2
+resource r3[int32]		### unused resource r3
+
+foo$0(a0 ptr[out, r0], a1 ptr[out, r1], a2 ptr[out, r2])
+foo$1(a0 r0, a1 r1, a2 r2)
+
+# Recursive structs/unions.
+
+sr1 {
+	f1	sr1		### recursive declaration: sr1.f1 -> sr1 (mark some pointers as opt)
+}
+
+sr2 {
+	f1	sr3
+	f2	sr4
+}
+
+sr3 {
+	f1	ptr[in, sr3]	### recursive declaration: sr3.f1 -> sr3 (mark some pointers as opt)
+}
+
+sr4 {
+	f1	ptr[in, sr3]
+	f2	array[ptr[in, sr5], 4]	### recursive declaration: sr4.f2 -> sr5.f2 -> sr6.f1 -> sr4 (mark some pointers as opt)
+}
+
+sr5 [
+	f1	int32
+	f2	sr6
+]
+
+sr6 {
+	f1	sr4
+}
+
+sr7 {
+	f1	ptr[in, sr7, opt]
+}
+
+type templ_sr[T] {
+	f	T
+}
+
+sr8 {
+	f	templ_sr[sr8]	### recursive declaration: sr8.f -> templ_sr[sr8].f -> sr8 (mark some pointers as opt)
+}
+
+sr9 {
+	f	templ_sr[ptr[in, sr9]]	### recursive declaration: sr9.f -> templ_sr[ptr[in, sr9]].f -> sr9 (mark some pointers as opt)
+}
+
+use_sr {
+	u2	u2
+		u3	u3
+	s3	s3
+	s4	s4
+	s6	s6
+	s8	s8
+	sr1 sr1
+	sr2	sr2
+	sr5	sr5
+	sr7	sr7
+	sr8 sr8
+	sr9 sr9
+	s400	s400
+	s401	s401
+	u400	u400
+	u401	u401
+	s402	s402
+	s403	s403
+} [packed]
+
+foo$sr0(a ptr[in, use_sr])
+
+# Len target tests.
+
+foo$100(a int32, b len[a])
+foo$101(a len[a])		### len target a refers to itself
+foo$102(a ptr[in, len[a, int8]])	### len target a refers to itself
+foo$103(a int32, b len[c])	### len target c does not exist
+foo$104(a len[parent])		### len target parent does not exist
+foo$105(a ptr[in, int32], b ptr[in, array[len[a, int32]]])
+foo$106(a int32, b ptr[in, csum[a, inet, int32]])
+foo$107(a int32, b ptr[in, csum[c, inet, int32]])	### csum target c does not exist
+
+s1 {
+	f1	len[s2, int32]	### len target s2 does not exist
+}
+
+s2 {
+	f1	s1
+}
+
+s3 {
+	f1	int8
+} [size[0]]			### size attribute has bad value 0, expect [1, 1<<20]
+
+s4 {
+	f1	int8
+} [size[1000000000]]		### size attribute has bad value 1000000000, expect [1, 1<<20]
+
+s6 {
+	f1	int8
+	f2	array[int8]
+} [size[10]]			### varlen struct s6 has size attribute
+
+s7 {
+	f1	int32
+	f2	u0
+}
+
+s8 {
+	f1	int8
+} [align[7]]			###  bad struct s8 alignment 7 (must be a sane power of 2)
+
+u0 [
+	f	len[f1, int32]	### len target f1 does not exist
+]
+
+u1 [
+	f1	ptr[in, array[int8]]
+	f2	len[f1, int32]	### len target f1 does not exist
+]
+
+u2 [
+	f1	int8
+] [size[0]]			### size attribute has bad value 0, expect [1, 1<<20]
+
+u3 [
+	f1	int8
+] [varlen, size[8]]		### varlen union u3 has size attribute
+
+foo$200(a ptr[in, s2])
+foo$201(a ptr[in, s1])
+foo$202(a ptr[in, s7])
+foo$203(a u1)
+
+foo$204(a ptr[in, slen1])
+
+slen1 {
+	f0 len[parent, int32]
+	f1 len[parent:f0, int32]	### parent can't be part of path expressions
+	f2 len[slen21:a, int32]		### len target a does not exist
+	f3 len[f0:parent, int32]	### parent can't be part of path expressions
+	f4 len[slen2:f, int32]		### len path slen2 does not refer to a struct
+	f5 len[slen22:f, int32]		### len path slen22 does not refer to a struct
+	f6 len[syscall, int32]		### no argument name after syscall reference
+	f7 len[syscall:b, int32]	### len target b does not exist
+	f8 offsetof[parent, int32]	### offsetof must refer to fields
+	f9 offsetof[slen1, int32]	### offsetof must refer to fields
+	slen2 ptr[in, array[slen2]]
+	slen21 slen2
+	slen22 array[slen2]
+}
+
+slen2 {
+	f int32
+}
+
+# Resource ctor tests.
+
+resource r100[int32]		### resource r100 can't be created (never mentioned as a syscall return value or output argument/field)
+resource r101[int32]
+resource r102[r101]
+resource r103[r102]
+resource r104[int8]
+resource r105[int8]
+resource r106[int8]		### resource r106 can't be created (never mentioned as a syscall return value or output argument/field)
+resource r107[int8]		### resource r107 can't be created (never mentioned as a syscall return value or output argument/field)
+resource r108[int8]		### resource r108 can't be created (never mentioned as a syscall return value or output argument/field)
+resource r109[int8]		### resource r109 can't be created (never mentioned as a syscall return value or output argument/field)
+resource r110[int8]
+resource r111[int8]
+resource r112[int8]		### resource r112 can't be created (never mentioned as a syscall return value or output argument/field)
+resource r113[int8]
+resource r114[int8]
+resource r115[int8]		### resource r115 can't be created (never mentioned as a syscall return value or output argument/field)
+resource r116[int8]		### resource r116 is never used as an input (such resources are not useful)
+resource r117[int8]		### resource r117 is never used as an input (such resources are not useful)
+resource r118[int8]		### resource r118 is never used as an input (such resources are not useful)
+resource r119[int8]		### resource r119 is never used as an input (such resources are not useful)
+resource r120[int8]		### resource r120 can't be created (never mentioned as a syscall return value or output argument/field)
+resource r121[int8]		### resource r121 can't be created (never mentioned as a syscall return value or output argument/field)
+
+foo$300(a0 r100, a1 r101, a2 r102, a3 r103, a4 r104, a5 r105, a6 r106, a7 r107, a8 r108)
+foo$301(a0 r109, a1 r110, a2 r111, a3 r112, a4 r113, a5 r114, a6 r115, a7 r120)
+foo$302(a ptr[out, array[r103]], b ptr[in, s300], c r107) r104
+foo$303(a ptr[in, s302], b ptr[in, s303], c ptr[in, s304], d ptr[out, s305], e ptr[inout, s306], f ptr[inout, s307], g ptr[in, s308], h ptr[out, s310])
+foo$304(a ptr[out, r117], b ptr[in, s312], c ptr[in, s313]) r116
+foo$305(a0 r121)
+foo$306(a0 ptr[out, u315])
+
+s300 {
+	f1	ptr[inout, s301]
+	f2	r106
+}
+
+s301 {
+	f2	r105
+}
+
+s302 {
+	f1	r108
+}
+
+s303 {
+	f1	r109	(in)
+}
+
+# ptr to struct is in, field is out (valid, resource can be created)
+s304 {
+	f1	r110	(out)
+}
+
+# ptr to struct is out, field is in (error, resource can't be created)
+s305 {
+	f1	r111	(in)
+}
+
+# ptr to struct is inout, field is inout (valid, resource can be created)
+s306 {
+	f1	r111	(inout)
+}
+
+# ptr to struct is inout, fields are in (error) and out (valid)
+s307 {
+	f1	r112	(in)
+	f2	r113	(out)
+}
+
+# recurse the out field inside two levels of in ptrs (valid, resource can be created)
+s308 {
+	f1	ptr[in, s309]
+}
+
+s309 {
+	f1	ptr[out, r114]
+}
+
+# recurse the in field inside two levels of out ptrs (error, resource can't be created)
+s310 {
+	f1	ptr[out, s311]
+}
+
+s311 {
+	f1	ptr[in, r115]
+}
+
+# ptr to struct is in, field is out (error, never used as an input)
+s312 {
+	f1	r118	(out)
+}
+
+# recurse the out field inside two levels of in ptrs (error, never used as an input)
+s313 {
+	f1	ptr[in, s314]
+}
+
+s314 {
+	f1	r119	(out)
+}
+
+u315 [
+	f1	r121
+	f2	int32
+]
+
+# TODO: Two instances of the same resource might exist in the same structure as
+# both in and out. How common is this and how to handle this?
+
+# Varlen field tests.
+
+s400 {
+	f1	int32
+	f2	array[int8]
+}
+
+s401 {
+	f1	array[int8]
+	f2	array[int8]
+} [packed]
+
+s402 {
+	f1	array[int8]	### variable size field f1 in the middle of non-packed struct s402
+	f2	int32
+}
+
+u400 [
+	f1	array[int8]
+	f2	array[int16]
+] [varlen]
+
+u401 [
+	f1	filename	### variable size field f1 in non-varlen union u401
+	f2	text[x86_64]	### variable size field f2 in non-varlen union u401
+	f3	string		### variable size field f3 in non-varlen union u401
+	f4	string["foo", 10]
+	f5	string[sf400]
+	f6	string[sf401]	### variable size field f6 in non-varlen union u401
+	f7	s401		### variable size field f7 in non-varlen union u401
+]
+
+u402 [
+	f1	int32
+	f2	int32
+] [varlen]
+
+s403 {
+	f1	u400		### variable size field f1 in the middle of non-packed struct s403
+	f2	u402		### variable size field f2 in the middle of non-packed struct s403
+	f3	int32
+}
+
+s404 {				### unused struct s404
+	f1	int8
+}
+
+u404 [				### unused union u404
+	f1	int8
+]
+
+sf400 = "foo", "bar", "baz"
+sf401 = "a", "b", "cd"
+sf402 = "a", "b"		### unused string flags sf402
+
+# Const argument checks.
+
+foo$500(a int32[3:2])		### bad int range [3:2]
+foo$501(a ptr[in, int32[3:2]])	### bad int range [3:2]
+foo$502(a ptr[in, string["foo", C1]])	### string value "foo\x00" exceeds buffer length 1
+foo$503(a ptr[in, proc[1000, 1, int8]])	### values starting from 1000 overflow base type
+foo$504(a ptr[in, proc[20, 10, int8]])	### values starting from 20 with step 10 overflow base type for 32 procs
+foo$505(a proc[20, 0])		### proc per-process values must not be 0
+foo$506(a ptr[in, array[int32, 0]])	### arrays of size 0 are not supported
+foo$507(a ptr[in, array[int32, 0:0]])	### arrays of size 0 are not supported
+foo$508(a ptr[in, string["foo", 3]])	### string value "foo\x00" exceeds buffer length 3
+foo$509(a int8['b':'a'])		### bad int range [98:97]
+foo$510(a type500)
+foo$511(a int32[-10:-20])		### bad int range [18446744073709551606:18446744073709551596]
+foo$512(a ptr[in, array[int8, -2:-1]])	### bad size range [18446744073709551614:18446744073709551615]
+foo$513(a ptr[in, array[int8, -2:2]])	### bad size range [18446744073709551614:2]
+foo$514(a vma[-2:2])			### bad size range [18446744073709551614:2]
+foo$515(a ptr[in, proc[1, -10, int64]])	### values starting from 1 with step 18446744073709551606 overflow base type for 32 procs
+foo$516(a ptr[in, intptr[0:2, 1]])	### bad int alignment 1
+foo$517(a intptr[0:0xffffffff, 0])	### bad int alignment 0
+foo$518(a int64[1:100, -1])		### int alignment 18446744073709551615 is too large for range [1:100]
+foo$519(a int64[0:10, 512])		### int alignment 512 is too large for range [0:10]
+foo$520(a int8[0:16, 0xffff])		### int alignment 65535 is too large for range [0:16]
+foo$521(a int32[9:10, 8])		### int alignment 8 is too large for range [9:10]
+foo$522(a int8[0:-1, 1000])		### int alignment 1000 is too large for range [0:255]
+foo$523(a int8[0:256])			### int range [0:256] is too large for base type of size 8
+foo$524(a int8[-1000:0])		### int range [18446744073709550616:0] is too large for base type of size 8
+foo$525(a int8[-256:256])		### int range [18446744073709551360:256] is too large for base type of size 8
+foo$526(a int8[-255:255])		### int range [18446744073709551361:255] is too large for base type of size 8
+foo$527(a int16[-40000:40000])		### int range [18446744073709511616:40000] is too large for base type of size 16
+foo$528(a ptr[in, s405])
+foo$529(a ptr[in, string[`abcdde`, 3]])	### string value "\xab\xcd\xde\x00" exceeds buffer length 3
+foo$530(a ptr[in, const[0x1ab, int8]])	### const val 0x1ab does not fit into 8 bits
+foo$531(a ptr[in, const[0xffffffffffffffab, int8]])
+foo$532(a ptr[in, const[0x7234567812345678, int64]])
+foo$533(a ptr[in, const[0x12, int8:4]])	### const val 0x12 does not fit into 4 bits
+foo$534(a ptr[in, flags[large_flags, int8]])	### large_flags U16_MAX=0xffff doesn't fit into 8 bits
+
+large_flags = U8_MAX, U16_MAX
+
+equal_flags_0 = 0, 0, 0, 0		### all equal_flags_0 values are equal 0
+equal_flags_1 = 42, 42, 42, 42		### all equal_flags_1 values are equal 42
+non_equal_flags = 0, 0, 0, 1
+
+equal_flags_call(a flags[equal_flags_0], b flags[equal_flags_1], c flags[non_equal_flags])
+
+type type500 proc[C1, 8, int8]	### values starting from 1 with step 8 overflow base type for 32 procs
+type type501 int8		### unused type type501
+type type502[C] const[C, int8]	### unused type type502
+
+s405 {
+	f1	int16:8[-256:0]		### int range [18446744073709551360:0] is too large for base type of size 8
+	f2	int16:8[0:256]		### int range [0:256] is too large for base type of size 8
+	f3	int64:16[-65541:-10]	### int range [18446744073709486075:18446744073709551606] is too large for base type of size 16
+	f4	int16:8[-255:0]		### int range [18446744073709551361:0] is too large for base type of size 8
+}
+
+# Field attributes.
+
+foo$overlay(a ptr[in, struct$overlay0], b ptr[in, struct$out0])
+
+struct$overlay0 {
+	f0	int32
+	f1	const[0, int32]	(out_overlay)	### const type must not be used as output
+	f2	ptr[in, int32]			### ptr type must not be used as output
+	f3	proc[0, 1, int32]		### proc type must not be used as output
+	f4	bytesize[f1, int32]		### bytesize type must not be used as output
+}
+
+struct$out0 {
+	f0	const[0, int32]	(out)		### const type must not be used as output
+	f1	ptr[in, int32] (out)		### ptr type must not be used as output
+	f2	proc[0, 1, int32] (out)		### proc type must not be used as output
+	f3	bytesize[f1, int32] (out)	### bytesize type must not be used as output
+}

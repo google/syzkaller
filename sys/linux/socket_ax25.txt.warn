@@ -1,0 +1,8 @@
+no-such-struct: ax25_address_remote
+no-such-struct: ax25_address_bcast
+no-such-struct: ax25_address_default
+no-such-struct: ax25_address_null
+no-such-struct: sockaddr_ax25_uid
+no-such-struct: ax25_devname
+no-such-struct: ax25_devname_rose
+no-such-struct: ax25_devname_netrom

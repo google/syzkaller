@@ -1,0 +1,25 @@
+TITLE: panic: no result
+
+panic: no result
+
+goroutine 36 [running]:
+github.com/google/syzkaller/prog.(*ResultArg).serialize(0xc005120640, 0xc005177420)
+	/home/ghani/go/src/github.com/google/syzkaller/prog/encoding.go:172 +0x3a7
+github.com/google/syzkaller/prog.(*serializer).arg(0xc005177420, 0x9f5ec0, 0xc005120640)
+	/home/ghani/go/src/github.com/google/syzkaller/prog/encoding.go:80 +0x40
+github.com/google/syzkaller/prog.(*serializer).call(0xc005177420, 0xc005120600)
+	/home/ghani/go/src/github.com/google/syzkaller/prog/encoding.go:70 +0x1d6
+github.com/google/syzkaller/prog.(*Prog).Serialize(0xc0051205c0, 0xc00516fb30, 0x717465, 0xc00516fb38)
+	/home/ghani/go/src/github.com/google/syzkaller/prog/encoding.go:35 +0xc8
+main.(*Proc).logProgram(0xc000101fc0, 0xc0000240e0, 0xc0051205c0)
+	/home/ghani/go/src/github.com/google/syzkaller/syz-fuzzer/proc.go:316 +0x59
+main.(*Proc).executeRaw(0xc000101fc0, 0xc0000240e0, 0xc0051205c0, 0x5, 0x0)
+	/home/ghani/go/src/github.com/google/syzkaller/syz-fuzzer/proc.go:293 +0xd4
+main.(*Proc).execute(0xc000101fc0, 0xc0000240e0, 0xc0051205c0, 0x0, 0x5, 0x1)
+	/home/ghani/go/src/github.com/google/syzkaller/syz-fuzzer/proc.go:259 +0x67
+main.(*Proc).smashInput(0xc000101fc0, 0xc004f79f50)
+	/home/ghani/go/src/github.com/google/syzkaller/syz-fuzzer/proc.go:223 +0x1d4
+main.(*Proc).loop(0xc000101fc0)
+	/home/ghani/go/src/github.com/google/syzkaller/syz-fuzzer/proc.go:84 +0x12f
+created by main.main
+	/home/ghani/go/src/github.com/google/syzkaller/syz-fuzzer/fuzzer.go:242 +0x1011

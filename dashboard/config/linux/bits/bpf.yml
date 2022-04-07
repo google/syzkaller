@@ -1,0 +1,15 @@
+# Copyright 2021 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+config:
+ - BPF_SYSCALL
+ # JIT is enabled on subset of instances to get coverage for both JIT and interpreter.
+ - BPF_JIT: [bpfjit]
+ - BPF_JIT_ALWAYS_ON: [bpfjit]
+ - BPF_STREAM_PARSER
+ # Cross-builds of BPF_PRELOAD fails with missing libelf and zlib.
+ # I am not sure why it needs non-host versions of these libs,
+ # and it's probably possible to install them somehow, but I did not figure out how,
+ # so for now this is disabled.
+ - BPF_PRELOAD: [v5.10, x86_64]
+ - BPF_PRELOAD_UMD: [v5.10, x86_64]

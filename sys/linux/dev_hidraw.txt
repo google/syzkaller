@@ -1,0 +1,37 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/hidraw.h>
+
+resource fd_hidraw[fd]
+
+syz_open_dev$hidraw(dev ptr[in, string["/dev/hidraw#"]], id intptr, flags flags[open_flags]) fd_hidraw
+
+# TODO: binary format (see https://elixir.bootlin.com/linux/v5.1.7/source/drivers/hid/hidraw.c#L111)
+write$hidraw(fd fd_hidraw, data buffer[in], len bytesize[data])
+read$hidraw(fd fd_hidraw, data buffer[out], len bytesize[data])
+
+# https://elixir.bootlin.com/linux/v5.1.7/source/include/uapi/linux/hidraw.h#L34
+ioctl$HIDIOCGRDESCSIZE(fd fd_hidraw, cmd const[HIDIOCGRDESCSIZE], arg ptr[out, int32])
+ioctl$HIDIOCGRDESC(fd fd_hidraw, cmd const[HIDIOCGRDESC], arg ptr[inout, hidraw_report_descriptor])
+ioctl$HIDIOCGRAWINFO(fd fd_hidraw, cmd const[HIDIOCGRAWINFO], arg buffer[out])
+ioctl$HIDIOCGRAWNAME(fd fd_hidraw, cmd const[HIDIOCGRAWNAME64], arg ptr[out, array[int8, 64]])
+ioctl$HIDIOCGRAWPHYS(fd fd_hidraw, cmd const[HIDIOCGRAWPHYS64], arg ptr[out, array[int8, 64]])
+# TODO: binary format (see https://elixir.bootlin.com/linux/v5.1.7/source/drivers/hid/hidraw.c#L111)
+ioctl$HIDIOCSFEATURE(fd fd_hidraw, cmd const[HIDIOCSFEATURE64], arg buffer[in])
+ioctl$HIDIOCGFEATURE(fd fd_hidraw, cmd const[HIDIOCGFEATURE64], arg ptr[inout, hidraw_get_report_arg])
+
+hidraw_report_descriptor {
+	size	bytesize[value, int32]
+	value	array[int8, 0:HID_MAX_DESCRIPTOR_SIZE]
+}
+
+hidraw_get_report_arg {
+	report_number	int8
+	report		array[int8, 64]
+} [packed]
+
+define HIDIOCGRAWNAME64	HIDIOCGRAWNAME(64)
+define HIDIOCGRAWPHYS64	HIDIOCGRAWPHYS(64)
+define HIDIOCSFEATURE64	HIDIOCSFEATURE(64)
+define HIDIOCGFEATURE64	HIDIOCGFEATURE(64)

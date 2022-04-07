@@ -1,0 +1,58 @@
+TITLE: KMSAN: uninit-value in prepare_task_switch
+ALT: bad-access in prepare_task_switch
+ALT: KMSAN origin in step_into
+
+[  567.476354][    T1] =====================================================
+[  567.483452][    T1] BUG: KMSAN: uninit-value in prepare_task_switch+0x284/0xd00
+[  567.490925][    T1]  prepare_task_switch+0x284/0xd00
+[  567.496040][    T1]  __schedule+0x2da/0x520
+[  567.500419][    T1]  __cond_resched+0x43/0xa0
+[  567.505008][    T1]  __dentry_kill+0xdc2/0xe90
+[  567.509631][    T1]  dentry_kill+0x22c/0x710
+[  567.514066][    T1]  dput+0x3e1/0x640
+[  567.517883][    T1]  step_into+0x923/0x1a00
+[  567.522249][    T1]  path_openat+0x3603/0x64c0
+[  567.526845][    T1]  do_filp_open+0x2cb/0x720
+[  567.531348][    T1]  do_sys_openat2+0x273/0x870
+[  567.536051][    T1]  __x64_sys_open+0x314/0x380
+[  567.540732][    T1]  do_syscall_64+0x53/0xc0
+[  567.545153][    T1]  entry_SYSCALL_64_after_hwframe+0x44/0xae
+[  567.551059][    T1] 
+[  567.553376][    T1] Local variable ----path@step_into created at:
+[  567.559600][    T1]  step_into+0xbc/0x1a00
+[  567.563850][    T1]  path_openat+0x3603/0x64c0
+[  567.568441][    T1] =====================================================
+[  567.575370][    T1] Disabling lock debugging due to kernel taint
+[  567.581610][    T1] Kernel panic - not syncing: panic_on_kmsan set ...
+[  567.588283][    T1] CPU: 1 PID: 1 Comm: systemd Tainted: G    B             5.13.0-syzkaller #0c
+[  567.588283][    T1] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  567.588283][    T1] Call Trace:
+[  567.588283][    T1]  __dump_stack lib/dump_stack.c:79 [inline]
+[  567.588283][    T1]  dump_stack+0x25a/0x2f6 lib/dump_stack.c:120
+[  567.588283][    T1]  panic+0x4c7/0xe98 kernel/panic.c:231
+[  567.588283][    T1]  kmsan_report+0x2ee/0x300 mm/kmsan/report.c:179
+[  567.588283][    T1]  __msan_warning+0xd7/0x150 mm/kmsan/instrumentation.c:205
+[  567.588283][    T1]  prepare_task_switch+0x284/0xd00 kernel/sched/core.c:4146
+[  567.588283][    T1]  context_switch kernel/sched/core.c:4302 [inline]
+
+REPORT:
+=====================================================
+BUG: KMSAN: uninit-value in prepare_task_switch+0x284/0xd00
+ prepare_task_switch+0x284/0xd00
+ __schedule+0x2da/0x520
+ __cond_resched+0x43/0xa0
+ __dentry_kill+0xdc2/0xe90
+ dentry_kill+0x22c/0x710
+ dput+0x3e1/0x640
+ step_into+0x923/0x1a00
+ path_openat+0x3603/0x64c0
+ do_filp_open+0x2cb/0x720
+ do_sys_openat2+0x273/0x870
+ __x64_sys_open+0x314/0x380
+ do_syscall_64+0x53/0xc0
+ entry_SYSCALL_64_after_hwframe+0x44/0xae
+
+Local variable ----path@step_into created at:
+ step_into+0xbc/0x1a00
+ path_openat+0x3603/0x64c0
+=====================================================

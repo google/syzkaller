@@ -1,0 +1,321 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+foo_0(a int8)
+foo_1(a int8[C1:C2])
+foo_2(a ptr[out, array[int32]])
+foo_3(a union_arg)
+foo_4() r0
+foo_5(a int8['a':'z'])
+foo_6(a int8[-20:-10])
+foo_7(a int8[-20:20])
+foo_8(a ptr[in, strings])
+foo_9(a ptr[out, ptr[in, string]])
+foo_10(a ptr[out, buffer[in]])
+foo_11(a int64[1:100, 2])
+foo_12(a int64[0:-1, 0x1000])
+foo_13() (disabled)
+foo_14() r0 (timeout[100])
+foo_15() r0 (disabled, timeout[C1], prog_timeout[C2])
+
+resource r0[intptr]
+
+union_arg [
+	f1	int8
+	f2	int64
+	f3	ptr[in, int32]
+	f4	r0
+	f5	const[1, intptr]
+	f6	flags[int_flags, int32]
+	f7	proc[0, 1, int16]
+]
+
+strings {
+	f1	string
+	f2	string["foo"]
+	f3	string["foo", 10]
+	f4	string[string_flags1, 10]
+	f5	stringnoz
+	f6	stringnoz["foo"]
+	f7	string[""]
+	f8	string["", 10]
+	f9	stringnoz[""]
+	f11	stringnoz[string_flags1]
+	f12	string[string_flags2]
+	f13	stringnoz[string_flags2]
+	f14	string[`abcdef`, 4]
+	f15	string[string_flags3, 4]
+} [packed]
+
+string_flags1 = "foo", "barbaz"
+string_flags2 = ""
+string_flags3 = "ab", `010203`, `de`
+int_flags = 0, 1, 0xabc, 'x', -11
+_ = 1, 2
+_ = C1, C2
+
+# Proc type.
+
+proc_struct1 {
+	f1	proc[C0, 8, int8]
+}
+
+foo_proc1(a ptr[in, proc_struct1])
+
+# Len/bytesize types.
+
+type len_templ1[DATA1, DATA2] {
+	data	DATA1
+	inner	len_temp2[DATA2]
+}
+
+type len_temp2[DATA] {
+	data	DATA
+	len	len[len_templ1, int8]
+}
+
+foo_len_templ(a ptr[in, len_templ1[int8, int16]])
+foo_len_var0(a ptr[in, array[string]], b len[a])
+foo_len_var1(a ptr[in, array[string]], b ptr[in, len[a, int32]])
+
+len_expr1 {
+	f11	len_expr2
+	f12	bytesize[syscall:b, int32]
+}
+
+len_expr2 {
+	f21	len_expr3
+	f22	len_expr4
+	f23	ptr[in, len_expr4]
+	f24	ptr[in, ptr[in, len_expr4]]
+	f25	len[f21:f31, int32]
+}
+
+len_expr3 {
+	f31	int32
+	f32	bytesize[len_expr2:f21, int32]
+	f33	bytesize[len_expr2:f22:f41, int32]
+	f34	bytesize[len_expr1:f11:f22:f41, int32]
+	f35	bytesize[len_expr2:f23:f41, int32]
+	f36	bytesize[len_expr2:f24:f41, int32]
+	f37	offsetof[f32, int32]
+	f38	offsetof[len_expr2:f21, int32]
+}
+
+len_expr4 {
+	f41	int32
+}
+
+foo_len_expr(a ptr[in, len_expr1], b ptr[in, array[int8, 3]])
+
+# Pointer type.
+
+foo_ptr(a ptr[in, int64])
+foo_ptr64(a ptr64[in, int64])
+foo_vma(a vma)
+foo_vma64(a vma64)
+
+# Void type.
+
+void0 {
+	f	void
+}
+
+void1 {
+	f1	void
+	f2	int8
+}
+
+void2 {
+	f1	void
+	f2	int8
+}
+
+void3 [
+	f1	void
+	f2	int8
+]
+
+void4 [
+	f1	void
+	f2	int8
+] [varlen]
+
+void5 {
+	f1	void
+	f2	void
+}
+
+struct_with_void0 {
+	f1	int8
+	f2	array[array[void]]
+	f3	int64
+}
+
+struct_with_void1 {
+	f1	int8
+	f2	array[void5]
+	f3	int64
+	f4	optional[int8]
+}
+
+foo_void0(a ptr[in, void0])
+foo_void1(a ptr[in, void1])
+foo_void2(a ptr[in, void2])
+foo_void3(a ptr[in, void3])
+foo_void4(a ptr[in, void4])
+foo_void5(a ptr[in, void5])
+foo_void6(a ptr[in, struct_with_void0])
+foo_void7(a ptr[in, struct_with_void1])
+foo_void8(a ptr[in, void])
+
+# Bitfields.
+
+bitfield0 {
+	f1	int8:1
+	f2	int8:2
+	f3	int16:8[-127:0]
+	f4	int16:8[0:255]
+	f5	int64:64[-1:1]
+}
+
+foo_bitfield0(a ptr[in, bitfield0])
+
+# Type templates.
+
+type type0 int8
+type templ0[A, B] const[A, B]
+type templ2[STR] string[STR]
+type type3 templ2["a"]
+
+type templ_struct0[A, B] {
+	len	len[parent, int16]
+	typ	const[A, int16]
+	data	B
+} [align[4]]
+
+type templ_struct1[C] {
+	f1	const[C, int8]
+	f2	int8[0:C]
+}
+
+union_with_templ_struct [
+	f1	templ_struct0[C1, type0]
+	f2	templ_struct0[C2, struct0]
+] [varlen]
+
+struct0 {
+	f1	int8
+	f2	int16
+}
+
+type templ_base0[TYPE, CONST] {
+	f1	TYPE
+	f2	const[CONST, int32]
+}
+
+type templ_base1[TYPE, CONST] {
+	f2	const[CONST, int8]
+	f1	TYPE
+}
+
+type templ_templ[TMPL, CONST] {
+	f1	TMPL[int8, CONST]
+	f2	TMPL[int32, 0]
+}
+
+templ_templ_use {
+	f1	templ_templ[templ_base0, 0]
+	f2	templ_templ[templ_base1, 1]
+}
+
+type templ_struct2[A] templ_struct0[A, int8]
+type templ_struct3 templ_struct2[C1]
+type templ_struct4 templ_struct3
+type templ_struct5 templ_struct0[C1, templ_struct0[C2, int8]]
+type templ_struct6 templ_struct0[C1, templ_struct2[C2]]
+type templ_union union_with_templ_struct
+type templ_base3[BASE] BASE
+type templ_base4[BASE] const[0, BASE]
+type templ_base5[VAL, BASE] const[VAL, BASE]
+
+foo_templ0(a templ0[42, int8])
+foo_templ1(a ptr[in, templ_struct0[C2, int8]])
+foo_templ2(a ptr[in, union_with_templ_struct])
+foo_templ3(a ptr[in, templ_struct1[1]], b ptr[in, templ_struct1[2]])
+foo_templ4(a ptr[in, templ_struct1[3]])
+foo_templ5(a ptr[in, templ_struct1[3]])
+foo_templ6(a ptr[in, templ_struct4])
+foo_templ7(a ptr[in, templ_struct5], b ptr[in, templ_struct6], c ptr[in, templ_union], d ptr[in, type3])
+foo_templ8(a ptr[in, templ_templ_use])
+foo_templ9(a ptr[in, templ_base3[int64]])
+foo_templ10(a ptr[in, templ_base4[int8]])
+foo_templ11(a ptr[in, templ_base5[42, int8]])
+
+foo_glob0(a ptr[in, glob["/sys/"]])
+foo_glob1(a ptr[in, glob["/sys/**/*"]])
+
+# Structs.
+
+s0 {
+	f1	int8
+} [size[64]]
+
+s1 {
+	f1	int8
+} [size[C2]]
+
+s2 {
+	f1	int8
+	f2	s3
+} [size[101]]
+
+s3 {
+	f1	int8
+} [size[100]]
+
+s4 {
+	f1	fmt[hex, int32]
+	f2	int8
+} [size[19]]
+
+s5 {
+	f_in0		int32	(in)
+	f_in1		int32[0:1]	(in)
+	f_out		int32	(out)
+	f_inout0	int32	(inout)
+	f_inout1	int32[0:1]	(inout)
+}
+
+s6 {
+	f0	int32
+	f1	r0
+	f2	int32	(out_overlay)
+	f3	r0
+}
+
+foo_s0(a ptr[in, s0], b ptr[in, s1], c ptr[in, s2], d ptr[in, s4], e ptr[in, s5], f ptr[in, s6])
+
+# Unions.
+
+u0 [
+	f1	int32
+]
+
+foo_u0(a ptr[in, u0])
+
+# fmt
+
+foo_fmt0(a ptr[in, fmt[dec, int32[1:10]]])
+foo_fmt1(a ptr[in, fmt[hex, flags[int_flags]]])
+foo_fmt2(a ptr[in, fmt[oct, len[b]]], b ptr[in, array[int8]])
+foo_fmt3(a ptr[in, fmt[dec, proc[10, 20]]])
+foo_fmt4(a ptr[in, fmt[dec, r0]])
+foo_fmt5(a ptr[in, struct$fmt0])
+foo_fmt6(a ptr[in, fmt[dec, flags[flags_with_one_value]]])
+
+struct$fmt0 {
+	f0	fmt[dec, int8]
+}
+
+flags_with_one_value = 0

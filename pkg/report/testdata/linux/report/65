@@ -1,0 +1,78 @@
+TITLE: BUG: soft lockup in smp_call_function
+ALT: stall in smp_call_function
+TYPE: HANG
+
+[  247.938942] watchdog: BUG: soft lockup - CPU#0 stuck for 134s! [kworker/0:2:1400]
+[  247.946595] Modules linked in:
+[  247.949764] irq event stamp: 494028
+[  247.953370] hardirqs last  enabled at (494027): [<ffffffff8516b14a>] restore_regs_and_return_to_kernel+0x0/0x26
+[  247.963568] hardirqs last disabled at (494028): [<ffffffff8516c088>] apic_timer_interrupt+0x98/0xb0
+[  247.972723] softirqs last  enabled at (484570): [<ffffffff85171d23>] __do_softirq+0x733/0xbb2
+[  247.981361] softirqs last disabled at (484563): [<ffffffff81426983>] irq_exit+0x1d3/0x210
+[  247.990083] CPU: 0 PID: 1400 Comm: kworker/0:2 Not tainted 4.15.0-rc1+ #198
+[  247.997151] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  248.006484] Workqueue: events jump_label_update_timeout
+[  248.011822] task: ffff8801d2abe540 task.stack: ffff8801d2ac0000
+[  248.019334] RIP: 0010:smp_call_function_single+0x364/0x560
+[  248.026315] RSP: 0018:ffff8801d2ac6f00 EFLAGS: 00000293 ORIG_RAX: ffffffffffffff11
+[  248.033996] RAX: ffff8801d2abe540 RBX: 1ffff1003a558de8 RCX: ffffffff8164c2e2
+[  248.041239] RDX: 0000000000000000 RSI: 00000000000000fb RDI: ffff8801d2ac6ff8
+[  248.048482] RBP: ffff8801d2ac7050 R08: 1ffff1003a558dff R09: 0000000000000000
+[  248.055724] R10: ffff8801d2ac7078 R11: 0000000000000000 R12: ffff8801d2ac6ff8
+[  248.062969] R13: dffffc0000000000 R14: 0000000000000000 R15: ffffed003a558df4
+[  248.070211] FS:  0000000000000000(0000) GS:ffff8801db400000(0000) knlGS:0000000000000000
+[  248.078408] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  248.084262] CR2: 0000000020335ffc CR3: 00000001d0869000 CR4: 00000000001426f0
+[  248.091506] Call Trace:
+[  248.126547]  smp_call_function_many+0x773/0x930
+[  248.174760]  on_each_cpu+0x3d/0x1b0
+[  248.183088]  text_poke_bp+0xe4/0x170
+[  248.205094]  __jump_label_transform.isra.0+0x6a5/0x8a0
+[  248.226421]  arch_jump_label_transform+0x2f/0x40
+[  248.231152]  __jump_label_update+0x207/0x2d0
+[  248.249480]  jump_label_update+0x22c/0x2b0
+[  248.253695]  static_key_slow_dec_cpuslocked+0x176/0x1d0
+[  248.268594]  jump_label_update_timeout+0x1f/0x30
+[  248.273326]  process_one_work+0xbfd/0x1be0
+[  248.338580]  worker_thread+0x223/0x1990
+[  248.429263]  kthread+0x37a/0x440
+[  248.441018]  ret_from_fork+0x24/0x30
+[  248.444727] Code: 00 00 00 fc ff df 44 89 bd 50 ff ff ff 48 c1 e8 03 4c 01 e8 41 83 e7 01 c6 00 f8 74 4e 49 89 c7 49 83 c4 18 e8 4e 25 0b 00 f3 90 <4c> 89 e2 41 c6 07 04 48 c1 ea 03 42 0f b6 14 2a 84 d2 74 09 80 
+[  248.463942] Kernel panic - not syncing: softlockup: hung tasks
+[  248.469888] CPU: 0 PID: 1400 Comm: kworker/0:2 Tainted: G             L   4.15.0-rc1+ #198
+[  248.478256] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  248.487585] Workqueue: events jump_label_update_timeout
+[  248.492919] Call Trace:
+[  248.495472]  <IRQ>
+[  248.497597]  dump_stack+0x194/0x257
+[  248.517432]  panic+0x1e4/0x41c
+[  248.529731]  watchdog_timer_fn+0x314/0x320
+[  248.533947]  __hrtimer_run_queues+0x349/0xe10
+[  248.585978]  hrtimer_interrupt+0x1d4/0x5f0
+[  248.590213]  smp_apic_timer_interrupt+0x14a/0x700
+[  248.617409]  apic_timer_interrupt+0x9d/0xb0
+[  248.621700]  </IRQ>
+[  248.623909] RIP: 0010:smp_call_function_single+0x364/0x560
+[  248.629500] RSP: 0018:ffff8801d2ac6f00 EFLAGS: 00000293 ORIG_RAX: ffffffffffffff11
+[  248.637180] RAX: ffff8801d2abe540 RBX: 1ffff1003a558de8 RCX: ffffffff8164c2e2
+[  248.644421] RDX: 0000000000000000 RSI: 00000000000000fb RDI: ffff8801d2ac6ff8
+[  248.651662] RBP: ffff8801d2ac7050 R08: 1ffff1003a558dff R09: 0000000000000000
+[  248.658903] R10: ffff8801d2ac7078 R11: 0000000000000000 R12: ffff8801d2ac6ff8
+[  248.666144] R13: dffffc0000000000 R14: 0000000000000000 R15: ffffed003a558df4
+[  248.710884]  smp_call_function_many+0x773/0x930
+[  248.759110]  on_each_cpu+0x3d/0x1b0
+[  248.767443]  text_poke_bp+0xe4/0x170
+[  248.789452]  __jump_label_transform.isra.0+0x6a5/0x8a0
+[  248.810776]  arch_jump_label_transform+0x2f/0x40
+[  248.815507]  __jump_label_update+0x207/0x2d0
+[  248.833832]  jump_label_update+0x22c/0x2b0
+[  248.838048]  static_key_slow_dec_cpuslocked+0x176/0x1d0
+[  248.853695]  jump_label_update_timeout+0x1f/0x30
+[  248.858424]  process_one_work+0xbfd/0x1be0
+[  248.923671]  worker_thread+0x223/0x1990
+[  249.014357]  kthread+0x37a/0x440
+[  249.026113]  ret_from_fork+0x24/0x30
+[  249.030488] Dumping ftrace buffer:
+[  249.034111]    (ftrace buffer empty)
+[  249.037809] Kernel Offset: disabled
+[  249.041413] Rebooting in 86400 seconds..

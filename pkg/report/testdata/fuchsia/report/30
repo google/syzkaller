@@ -1,0 +1,23 @@
+TITLE: unexpected kernel reboot
+TYPE: REBOOT
+START: [00000.000] 00000.00000> welcome to Zircon
+
+000> PMM: boot reserve marking WIRED [0x100000, 0x2b5fff]
+[00000.000] 00000.00000> PMM: boot reserve marking WIRED [0x743000, 0xc4ffff]
+[00000.000] 00000.00000> 
+[00000.000] 00000.00000> welcome to Zircon
+[00000.000] 00000.00000> 
+[00000.000] 00000.00000> KASLR: .text section at 0xffffffff00100000
+[00000.000] 00000.00000> INIT: cpu 0, calling hook 0xffffffff001a12b8 (global_prng_seed) at level 0x30000, flags 0x1
+[00000.000] 00000.00000> initializing vm pre-heap
+[00000.000] 00000.00000> VM: marking boot alloc used range [0xc50000, 0xc50040)
+[00000.000] 00000.00000> INIT: cpu 0, calling hook 0xffffffff00142b08 (elf_build_id) at level 0x4fffe, flags 0x1
+[00000.000] 00000.00000> INIT: cpu 0, calling hook 0xffffffff00142c94 (version) at level 0x4ffff, flags 0x1
+[00000.000] 00000.00000> version:
+[00000.000] 00000.00000> 	arch:     x86
+[00000.000] 00000.00000> 	platform: pc
+[00000.000] 00000.00000> 	target:   pc
+[00000.000] 00000.00000> 	project:  x64
+[00000.000] 00000.00000> 	buildid:  git-09a563b00c52cd79375e7ae0d212857ce1647c91
+[00000.000] 00000.00000> 	ELF build ID: a3466affc9bd84b3edf7d5bf0ee25bbfb043a5dd
+[00000.000] 00000.00000> initializing heap

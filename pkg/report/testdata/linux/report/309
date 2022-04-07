@@ -1,0 +1,26 @@
+TITLE: memory leak in sget
+TYPE: LEAK
+
+BUG: memory leak
+unreferenced object 0xffff88006b006340 (size 32):
+  comm "swapper/0", pid 1, jiffies 4294937368 (age 128.520s)
+  hex dump (first 32 bytes):
+    00 77 fb 5f 00 88 ff ff a0 56 a7 81 ff ff ff ff  .w._.....V......
+    00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+  backtrace:
+    [<000000005cb5aa0e>] kmem_cache_alloc_node_trace+0x1d3/0x3f0
+    [<0000000074d33dbd>] __kmalloc_node+0x33/0x70
+    [<00000000c8234a88>] kvmalloc_node+0x38/0xc0
+    [<00000000abadf90a>] __list_lru_init+0x572/0x800
+    [<000000001da18740>] sget_userns+0x91e/0xe70
+    [<00000000494d4fe2>] sget+0xd2/0x120
+    [<0000000096a3fef4>] mount_single+0x3e/0x160
+    [<00000000d0b401b6>] debug_mount+0x2c/0x40
+    [<0000000041554630>] mount_fs+0x6b/0x2d0
+    [<00000000603d2f69>] vfs_kern_mount.part.27+0xcc/0x4b0
+    [<000000006c791ccb>] vfs_kern_mount+0x40/0x60
+    [<0000000058f3812e>] simple_pin_fs+0xec/0x180
+    [<000000002917b386>] start_creating+0x51/0x1f0
+    [<00000000f9f78446>] debugfs_create_dir+0x23/0x3b0
+    [<0000000011348831>] component_debug_init+0x17/0x22
+    [<000000002365a896>] do_one_initcall+0x11a/0x7ae

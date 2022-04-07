@@ -1,0 +1,45 @@
+TITLE: INFO: rcu detected stall in kvm_vcpu_ioctl
+ALT: stall in kvm_vcpu_ioctl
+TYPE: HANG
+
+[  618.102956] overlayfs: failed to resolve './file1': -2
+[  724.054784] rcu: INFO: rcu_preempt detected stalls on CPUs/tasks:
+[  724.061136] rcu: 	(detected by 1, t=10502 jiffies, g=71473, q=34)
+[  724.067416] rcu: All QSes seen, last rcu_preempt kthread activity 10503 (4295009460-4294998957), jiffies_till_next_fqs=1, root ->qsmask 0x0
+[  724.080087] syz-executor1   R  running task    22672 24999   5368 0x00000000
+[  724.087341] Call Trace:
+[  724.089931]  <IRQ>
+[  724.092107]  sched_show_task.cold.83+0x2b6/0x30a
+[  724.128077]  print_other_cpu_stall.cold.79+0xa83/0xba5
+[  724.199489]  rcu_check_callbacks+0xafc/0x1990
+[  724.345408]  update_process_times+0x2d/0x70
+[  724.349750]  tick_sched_handle+0x9f/0x180
+[  724.353919]  tick_sched_timer+0x45/0x130
+[  724.357996]  __hrtimer_run_queues+0x41c/0x10d0
+[  724.412730]  hrtimer_interrupt+0x313/0x780
+[  724.417102]  smp_apic_timer_interrupt+0x1a1/0x760
+[  724.477953]  apic_timer_interrupt+0xf/0x20
+[  724.482196]  </IRQ>
+[  724.484449] RIP: 0010:debug_lockdep_rcu_enabled.part.3+0x0/0x60
+[  724.509432] RSP: 0018:ffff88017575f3a0 EFLAGS: 00000202 ORIG_RAX: ffffffffffffff13
+[  724.517157] RAX: 0000000000000003 RBX: ffffffff89936580 RCX: 0000000000000002
+[  724.524434] RDX: 0000000000000001 RSI: ffffffff8120f03f RDI: ffffffff8a314a50
+[  724.531735] RBP: ffff88017575f3b0 R08: ffff8801bbe52580 R09: 0000000000000001
+[  724.539010] R10: ffff8801bbe52e28 R11: 473e358cd184502e R12: ffff88017575f4b8
+[  724.546290] R13: 0000000000000000 R14: ffff880188148400 R15: 0000000000000000
+[  724.562989]  vmx_handle_exit+0x1144/0x17f0
+[  724.579859]  vcpu_enter_guest+0x14a9/0x62e0
+[  724.673018]  kvm_arch_vcpu_ioctl_run+0x375/0x16e0
+[  724.682933]  kvm_vcpu_ioctl+0x72b/0x1150
+[  724.742569]  do_vfs_ioctl+0x1de/0x1720
+[  724.793606]  ksys_ioctl+0xa9/0xd0
+[  724.797074]  __x64_sys_ioctl+0x73/0xb0
+[  724.800988]  do_syscall_64+0x1b9/0x820
+[  724.840073]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  724.845299] RIP: 0033:0x457099
+[  724.867425] RSP: 002b:00007f0e6289ec78 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[  724.875170] RAX: ffffffffffffffda RBX: 00007f0e6289f6d4 RCX: 0000000000457099
+[  724.882446] RDX: 0000000000000000 RSI: 000000000000ae80 RDI: 0000000000000007
+[  724.889728] RBP: 00000000009300a0 R08: 0000000000000000 R09: 0000000000000000
+[  724.897005] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000ffffffff
+[  724.904285] R13: 00000000004cf730 R14: 00000000004c59b9 R15: 0000000000000000

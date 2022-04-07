@@ -1,0 +1,13 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+
+resource zx_process[zx_task]
+
+zx_process_create(job zx_job, name ptr[in, string], name_len len[name], options const[0], proc_handle ptr[out, zx_process], vmar_handle ptr[out, zx_vmar])
+zx_process_read_memory(process zx_process, vaddr ptr[out, int8], buffer ptr[out, array[int8]], len len[buffer], actual ptr[out, intptr])
+zx_process_start(process zx_process, thread zx_thread, entry ptr[in, text[target]], stack ptr[out, array[int8]], arg1 const[0], arg2 const[0])
+# TODO: temporary disabled as it crashes kernel left and right.
+# zx_process_write_memory(process zx_process, vaddr ptr[out, int8], buffer ptr[in, array[int8]], len len[buffer], actual ptr[out, intptr])
+zx_process_exit(ret_code int64)

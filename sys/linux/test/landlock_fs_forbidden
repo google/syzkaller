@@ -1,0 +1,39 @@
+# Access denied to whole syscalls, which return EPERM.
+#
+# Manipuling namespaces requires some privileges:
+# requires: -sandbox=setuid
+
+# Makes a private mount point for MS_MOVE.
+
+mkdirat(0xffffffffffffff9c, &AUTO='./file0\x00', 0x1c0)
+mount$tmpfs(0x0, &AUTO='./file0\x00', &AUTO='tmpfs\x00', 0x0, 0x0)
+mount$bind(&AUTO='\x00', &AUTO='./file0\x00', &AUTO='pipefs\x00', 0x40000, 0x0)
+mkdirat(0xffffffffffffff9c, &AUTO='./file0/file0\x00', 0x1c0)
+mount$tmpfs(0x0, &AUTO='./file0/file0\x00', &AUTO='tmpfs\x00', 0x0, 0x0)
+mkdirat(0xffffffffffffff9c, &AUTO='./file0/file1\x00', 0x1c0)
+
+# Creates a first ruleset to restrict execution.
+
+r0 = landlock_create_ruleset(&AUTO={0x1}, AUTO, 0x0)
+prctl$PR_SET_NO_NEW_PRIVS(0x26, 0x1)
+landlock_restrict_self(r0, 0x0)
+
+# Checks hook_sb_mount().
+
+mount$tmpfs(0x0, &AUTO='./file0/file1\x00', &AUTO='tmpfs\x00', 0x0, 0x0) # EPERM
+
+# Checks hook_sb_umount().
+
+umount2(&AUTO='./file0/file0\x00', 0x0) # EPERM
+
+# Checks hook_move_mount().
+
+move_mount(0xffffffffffffff9c, &AUTO='./file0/file0\x00', 0xffffffffffffff9c, &AUTO='./file0/file0\x00', 0x0) # EPERM
+
+# Checks hook_sb_remount().
+
+mount$bind(&AUTO='\x00', &AUTO='./file0/file0\x00', &AUTO='pipefs\x00', 0x21, 0x0) # EPERM
+
+# Checks hook_sb_pivotroot().
+
+pivot_root(&AUTO='./file0\x00', &AUTO='./file0/file0\x00') # EPERM

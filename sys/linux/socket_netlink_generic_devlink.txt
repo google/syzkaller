@@ -1,0 +1,215 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_NETLINK/NETLINK_GENERIC/devlink support.
+
+include <linux/net.h>
+include <net/netlink.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/genetlink.h>
+include <uapi/linux/devlink.h>
+
+resource genl_devlink_family_id[int16]
+syz_genetlink_get_family_id$devlink(name ptr[in, string["devlink"]], fd sock_nl_generic) genl_devlink_family_id
+
+type msghdr_nl_devlink[CMD, POLICY] msghdr_netlink[netlink_msg_t[genl_devlink_family_id, genlmsghdr_t[CMD], POLICY]]
+
+sendmsg$DEVLINK_CMD_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_GET, devlink_handle]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_RELOAD(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_RELOAD, devlink_reload_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_PORT_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_PORT_GET, devlink_port_get_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_PORT_SET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_PORT_SET, devlink_port_set_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_PORT_SPLIT(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_PORT_SPLIT, devlink_port_split_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_PORT_UNSPLIT(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_PORT_UNSPLIT, devlink_port_unsplit_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_TRAP_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_TRAP_GET, devlink_trap_get_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_TRAP_SET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_TRAP_SET, devlink_trap_set_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_TRAP_GROUP_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_TRAP_GROUP_GET, devlink_trap_group_get_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_TRAP_GROUP_SET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_TRAP_GROUP_SET, devlink_trap_group_set_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_TRAP_POLICER_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_TRAP_POLICER_GET, devlink_trap_policer_get_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_TRAP_POLICER_SET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_TRAP_POLICER_SET, devlink_trap_policer_set_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_SB_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_SB_GET, devlink_sb_get_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_SB_POOL_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_SB_POOL_GET, devlink_sb_pool_get_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_SB_POOL_SET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_SB_POOL_SET, devlink_sb_pool_set_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_SB_PORT_POOL_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_SB_PORT_POOL_GET, devlink_sb_port_pool_get_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_SB_PORT_POOL_SET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_SB_PORT_POOL_SET, devlink_sb_port_pool_set_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_SB_TC_POOL_BIND_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_SB_TC_POOL_BIND_GET, devlink_sb_tc_pool_bind_get_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_SB_TC_POOL_BIND_SET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_SB_TC_POOL_BIND_SET, devlink_sb_tc_pool_bind_set_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_SB_OCC_SNAPSHOT(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_SB_OCC_SNAPSHOT, devlink_sb_occ_snapshot_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_SB_OCC_MAX_CLEAR(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_SB_OCC_MAX_CLEAR, devlink_sb_occ_max_clear_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_RATE_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_RATE_GET, devlink_nl_rate_get_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_RATE_SET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_RATE_SET, devlink_nl_rate_set_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_RATE_NEW(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_RATE_NEW, devlink_nl_rate_set_policy]], f flags[send_flags])
+sendmsg$DEVLINK_CMD_RATE_DEL(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLINK_CMD_RATE_DEL, devlink_nl_rate_get_policy]], f flags[send_flags])
+
+devlink_devname {
+	prefix	stringnoz["netdevsim"]
+	id	proc['0', 1, int8]
+	z	const[0, int8]
+} [packed]
+
+devlink_nl_policy$nsim {
+	DEVLINK_ATTR_BUS_NAME	nlattr[DEVLINK_ATTR_BUS_NAME, string["netdevsim"]]
+	DEVLINK_ATTR_DEV_NAME	nlattr[DEVLINK_ATTR_DEV_NAME, devlink_devname]
+} [packed, align[4]]
+
+devlink_nl_policy$pci {
+	DEVLINK_ATTR_BUS_NAME	nlattr[DEVLINK_ATTR_BUS_NAME, string["pci"]]
+# 0000:00:10.0 is a fixed pci address what is moved from initial network namespace by initialize_devlink()
+	DEVLINK_ATTR_DEV_NAME	nlattr[DEVLINK_ATTR_DEV_NAME, string["0000:00:10.0"]]
+} [packed, align[4]]
+
+devlink_handle [
+	nsim	devlink_nl_policy$nsim
+	pci	devlink_nl_policy$pci
+] [varlen]
+
+devlink_port_handle {
+	port_handle		devlink_handle
+# 0:3 is in sync with number of ports created by netdevsim_add()
+	DEVLINK_ATTR_PORT_INDEX	nlattr[DEVLINK_ATTR_PORT_INDEX, int32[0:3]]
+} [packed, align[4]]
+
+devlink_nl_policy$reload [
+	DEVLINK_ATTR_NETNS_PID	nlattr[DEVLINK_ATTR_NETNS_PID, pid]
+	DEVLINK_ATTR_NETNS_FD	nlattr[DEVLINK_ATTR_NETNS_FD, fd_namespace]
+	DEVLINK_ATTR_NETNS_ID	nlattr[DEVLINK_ATTR_NETNS_ID, netns_id]
+] [varlen]
+
+devlink_reload_policy {
+	handle	devlink_handle
+	arg	devlink_nl_policy$reload
+} [packed, align[4]]
+
+devlink_port_get_policy {
+	port_handle	devlink_port_handle
+} [packed, align[4]]
+
+devlink_port_set_policy {
+	port_handle		devlink_port_handle
+	DEVLINK_ATTR_PORT_TYPE	nlattr[DEVLINK_ATTR_PORT_TYPE, int16[DEVLINK_PORT_TYPE_NOTSET:DEVLINK_PORT_TYPE_IB]]
+} [packed, align[4]]
+
+devlink_port_split_policy {
+	port_handle			devlink_port_handle
+	DEVLINK_ATTR_PORT_SPLIT_COUNT	nlattr[DEVLINK_ATTR_PORT_SPLIT_COUNT, int32[0:8]]
+} [packed, align[4]]
+
+devlink_port_unsplit_policy {
+	port_handle	devlink_port_handle
+} [packed, align[4]]
+
+devlink_trap_get_policy {
+	dev_handle		devlink_handle
+	DEVLINK_ATTR_TRAP_NAME	nlattr[DEVLINK_ATTR_TRAP_NAME, string["source_mac_is_multicast"]]
+} [packed, align[4]]
+
+devlink_trap_set_policy {
+	dev_handle			devlink_handle
+	DEVLINK_ATTR_TRAP_NAME		nlattr[DEVLINK_ATTR_TRAP_NAME, string["source_mac_is_multicast"]]
+	DEVLINK_ATTR_TRAP_ACTION	nlattr[DEVLINK_ATTR_TRAP_ACTION, int8[DEVLINK_TRAP_ACTION_DROP:DEVLINK_TRAP_ACTION_TRAP]]
+} [packed, align[4]]
+
+# 0 stands for the only invalid policer id, the rest has no special meaning but
+#  used to ease collision in policer ids between system calls.
+trap_policer_ids = 0, 1, 2, 3
+
+devlink_trap_policer_get_policy {
+	dev_handle			devlink_handle
+	DEVLINK_ATTR_TRAP_POLICER_ID	nlattr[DEVLINK_ATTR_TRAP_POLICER_ID, flags[trap_policer_ids, int32]]
+} [packed, align[4]]
+
+devlink_trap_policer_set_policy {
+	dev_handle			devlink_handle
+	DEVLINK_ATTR_TRAP_POLICER_ID	nlattr[DEVLINK_ATTR_TRAP_POLICER_ID, flags[trap_policer_ids, int32]]
+	DEVLINK_ATTR_TRAP_POLICER_RATE	nlattr[DEVLINK_ATTR_TRAP_POLICER_RATE, int64]
+	DEVLINK_ATTR_TRAP_POLICER_BURST	nlattr[DEVLINK_ATTR_TRAP_POLICER_BURST, int64]
+} [packed, align[4]]
+
+devlink_trap_group_get_policy {
+	dev_handle			devlink_handle
+	DEVLINK_ATTR_TRAP_GROUP_NAME	nlattr[DEVLINK_ATTR_TRAP_GROUP_NAME, string["l2_drops"]]
+} [packed, align[4]]
+
+devlink_trap_group_set_policy {
+	dev_handle			devlink_handle
+	DEVLINK_ATTR_TRAP_GROUP_NAME	nlattr[DEVLINK_ATTR_TRAP_GROUP_NAME, string["l2_drops"]]
+	DEVLINK_ATTR_TRAP_ACTION	nlattr[DEVLINK_ATTR_TRAP_ACTION, int8[DEVLINK_TRAP_ACTION_DROP:DEVLINK_TRAP_ACTION_TRAP]]
+} [packed, align[4]]
+
+devlink_sb_get_policy {
+	handle			devlink_handle
+	DEVLINK_ATTR_SB_INDEX	nlattr[DEVLINK_ATTR_SB_INDEX, int32]
+} [packed, align[4]]
+
+devlink_sb_pool_get_policy {
+	handle				devlink_handle
+	DEVLINK_ATTR_SB_INDEX		nlattr[DEVLINK_ATTR_SB_INDEX, int32]
+	DEVLINK_ATTR_SB_POOL_INDEX	nlattr[DEVLINK_ATTR_SB_POOL_INDEX, int16]
+} [packed, align[4]]
+
+devlink_sb_pool_set_policy {
+	handle					devlink_handle
+	DEVLINK_ATTR_SB_INDEX			nlattr[DEVLINK_ATTR_SB_INDEX, int32]
+	DEVLINK_ATTR_SB_POOL_INDEX		nlattr[DEVLINK_ATTR_SB_POOL_INDEX, int16]
+	DEVLINK_ATTR_SB_POOL_SIZE		nlattr[DEVLINK_ATTR_SB_POOL_SIZE, int32]
+	DEVLINK_ATTR_SB_POOL_THRESHOLD_TYPE	nlattr[DEVLINK_ATTR_SB_POOL_THRESHOLD_TYPE, int8[DEVLINK_SB_THRESHOLD_TYPE_STATIC:DEVLINK_SB_THRESHOLD_TYPE_DYNAMIC]]
+} [packed, align[4]]
+
+devlink_sb_port_pool_get_policy {
+	port_handle			devlink_port_handle
+	DEVLINK_ATTR_SB_INDEX		nlattr[DEVLINK_ATTR_SB_INDEX, int32]
+	DEVLINK_ATTR_SB_POOL_INDEX	nlattr[DEVLINK_ATTR_SB_POOL_INDEX, int16]
+} [packed, align[4]]
+
+devlink_sb_port_pool_set_policy {
+	port_handle			devlink_port_handle
+	DEVLINK_ATTR_SB_INDEX		nlattr[DEVLINK_ATTR_SB_INDEX, int32]
+	DEVLINK_ATTR_SB_POOL_INDEX	nlattr[DEVLINK_ATTR_SB_POOL_INDEX, int16]
+	DEVLINK_ATTR_SB_THRESHOLD	nlattr[DEVLINK_ATTR_SB_THRESHOLD, int32]
+} [packed, align[4]]
+
+devlink_sb_tc_pool_bind_get_policy {
+	port_handle			devlink_port_handle
+	DEVLINK_ATTR_SB_INDEX		nlattr[DEVLINK_ATTR_SB_INDEX, int32]
+	DEVLINK_ATTR_SB_TC_INDEX	nlattr[DEVLINK_ATTR_SB_TC_INDEX, int16]
+	DEVLINK_ATTR_SB_POOL_TYPE	nlattr[DEVLINK_ATTR_SB_POOL_TYPE, int8[DEVLINK_SB_POOL_TYPE_INGRESS:DEVLINK_SB_POOL_TYPE_EGRESS]]
+} [packed, align[4]]
+
+devlink_sb_tc_pool_bind_set_policy {
+	port_handle			devlink_port_handle
+	DEVLINK_ATTR_SB_INDEX		nlattr[DEVLINK_ATTR_SB_INDEX, int32]
+	DEVLINK_ATTR_SB_TC_INDEX	nlattr[DEVLINK_ATTR_SB_TC_INDEX, int16]
+	DEVLINK_ATTR_SB_POOL_TYPE	nlattr[DEVLINK_ATTR_SB_POOL_TYPE, int8[DEVLINK_SB_POOL_TYPE_INGRESS:DEVLINK_SB_POOL_TYPE_EGRESS]]
+	DEVLINK_ATTR_SB_POOL_INDEX	nlattr[DEVLINK_ATTR_SB_POOL_INDEX, int16]
+	DEVLINK_ATTR_SB_THRESHOLD	nlattr[DEVLINK_ATTR_SB_INDEX, int32]
+} [packed, align[4]]
+
+devlink_sb_occ_snapshot_policy {
+	handle			devlink_handle
+	DEVLINK_ATTR_SB_INDEX	nlattr[DEVLINK_ATTR_SB_INDEX, int32]
+} [packed, align[4]]
+
+devlink_sb_occ_max_clear_policy {
+	handle			devlink_handle
+	DEVLINK_ATTR_SB_INDEX	nlattr[DEVLINK_ATTR_SB_INDEX, int32]
+} [packed, align[4]]
+
+devlink_rate_node_name [
+	name1	string["firstname"]
+	name2	string["secondname"]
+	random	array[int8]
+] [varlen]
+
+devlink_nl_rate_get_policy [
+	handle				devlink_handle
+	DEVLINK_ATTR_RATE_NODE_NAME	nlattr[DEVLINK_ATTR_RATE_NODE_NAME, devlink_rate_node_name]
+	DEVLINK_ATTR_PORT_INDEX		nlattr[DEVLINK_ATTR_PORT_INDEX, int32[0:3]]
+] [varlen]
+
+devlink_nl_rate_set_policy [
+	handle					devlink_handle
+	DEVLINK_ATTR_RATE_NODE_NAME		nlattr[DEVLINK_ATTR_RATE_NODE_NAME, devlink_rate_node_name]
+	DEVLINK_ATTR_PORT_INDEX			nlattr[DEVLINK_ATTR_PORT_INDEX, int32[0:3]]
+	DEVLINK_ATTR_RATE_TX_SHARE		nlattr[DEVLINK_ATTR_RATE_TX_SHARE, int64]
+	DEVLINK_ATTR_RATE_TX_MAX		nlattr[DEVLINK_ATTR_RATE_TX_MAX, int64]
+	DEVLINK_ATTR_RATE_PARENT_NODE_NAME	nlattr[DEVLINK_ATTR_RATE_PARENT_NODE_NAME, devlink_rate_node_name]
+] [varlen]

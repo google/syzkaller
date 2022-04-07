@@ -1,0 +1,123 @@
+TITLE: KASAN: invalid-access Read in firmware_fallback_sysfs
+ALT: bad-access in firmware_fallback_sysfs
+
+[ 4452.860624][T17139] ==================================================================
+[ 4452.861782][T17139] BUG: KASAN: invalid-access in __list_add_valid+0x14/0x90
+[ 4452.863752][T17139] Read at addr 0aff0000332b5c90 by task syz-executor.0/17139
+[ 4452.865189][T17139] Pointer tag: [0a], memory tag: [f3]
+[ 4452.866400][T17139] 
+[ 4452.867400][T17139] CPU: 1 PID: 17139 Comm: syz-executor.0 Not tainted 5.11.0-rc3 #36
+[ 4452.868689][T17139] Hardware name: linux,dummy-virt (DT)
+[ 4452.869805][T17139] Call trace:
+[ 4452.870468][T17139]  dump_backtrace+0x0/0x1a4
+[ 4452.871419][T17139]  show_stack+0x1c/0x70
+[ 4452.872343][T17139]  dump_stack+0xd0/0x12c
+[ 4452.873190][T17139]  print_address_description+0x70/0x29c
+[ 4452.874175][T17139]  kasan_report+0x104/0x200
+[ 4452.875059][T17139]  __do_kernel_fault+0x17c/0x1c0
+[ 4452.875905][T17139]  do_tag_check_fault+0x6c/0x80
+[ 4452.876789][T17139]  do_mem_abort+0x44/0xb4
+[ 4452.877702][T17139]  el1_abort+0x40/0x6c
+[ 4452.878542][T17139]  el1_sync_handler+0xb0/0xcc
+[ 4452.879382][T17139]  el1_sync+0x70/0x100
+[ 4452.880172][T17139]  __list_add_valid+0x14/0x90
+[ 4452.881033][T17139]  firmware_fallback_sysfs+0x1a8/0x460
+[ 4452.882107][T17139]  _request_firmware+0x4cc/0x6d4
+[ 4452.882970][T17139]  request_firmware+0x4c/0x70
+[ 4452.883832][T17139]  reg_reload_regdb+0x44/0xec
+[ 4452.884736][T17139]  nl80211_reload_regdb+0x14/0x20
+[ 4452.885643][T17139]  genl_family_rcv_msg_doit+0xc8/0x150
+[ 4452.886582][T17139]  genl_rcv_msg+0xe4/0x1d0
+[ 4452.887392][T17139]  netlink_rcv_skb+0x58/0x120
+[ 4452.888255][T17139]  genl_rcv+0x3c/0x5c
+[ 4452.888989][T17139]  netlink_unicast+0x25c/0x320
+[ 4452.889836][T17139]  netlink_sendmsg+0x1d4/0x3e4
+[ 4452.890666][T17139]  sock_sendmsg+0x58/0x6c
+[ 4452.891484][T17139]  ____sys_sendmsg+0x288/0x2d0
+[ 4452.892389][T17139]  ___sys_sendmsg+0x80/0xd0
+[ 4452.893240][T17139]  __sys_sendmsg+0x68/0xc4
+[ 4452.894089][T17139]  __arm64_sys_sendmsg+0x28/0x3c
+[ 4452.894971][T17139]  el0_svc_common.constprop.0+0x74/0x190
+[ 4452.895915][T17139]  do_el0_svc+0x78/0x90
+[ 4452.896686][T17139]  el0_svc+0x14/0x20
+[ 4452.897530][T17139]  el0_sync_handler+0x1a8/0x1b0
+[ 4452.898403][T17139]  el0_sync+0x190/0x1c0
+[ 4452.899343][T17139] 
+[ 4452.899961][T17139] Allocated by task 8480:
+[ 4452.900802][T17139]  stack_trace_save+0x50/0x80
+[ 4452.901896][T17139]  kasan_save_stack+0x2c/0x60
+[ 4452.902787][T17139]  ____kasan_kmalloc+0xe8/0x160
+[ 4452.903686][T17139]  __kasan_kmalloc+0x18/0x24
+[ 4452.904507][T17139]  __kmalloc+0x20c/0x37c
+[ 4452.905257][T17139]  __register_sysctl_table+0x414/0x830
+[ 4452.906302][T17139]  register_net_sysctl+0x18/0x24
+[ 4452.907217][T17139]  neigh_sysctl_register+0x108/0x1bc
+[ 4452.908157][T17139]  devinet_sysctl_register+0x50/0xc0
+[ 4452.909026][T17139]  inetdev_init+0xf8/0x250
+[ 4452.909933][T17139]  inetdev_event+0x524/0x7e0
+[ 4452.910817][T17139]  raw_notifier_call_chain+0x58/0x80
+[ 4452.911732][T17139]  call_netdevice_notifiers_info+0x58/0xa4
+[ 4452.912707][T17139]  register_netdevice+0x440/0x544
+[ 4452.913812][T17139]  veth_newlink+0x1c0/0x384
+[ 4452.914888][T17139]  __rtnl_newlink+0x5ec/0x820
+[ 4452.915839][T17139]  rtnl_newlink+0x74/0xa4
+[ 4452.916657][T17139]  rtnetlink_rcv_msg+0x11c/0x33c
+[ 4452.917562][T17139]  netlink_rcv_skb+0x58/0x120
+[ 4452.918358][T17139]  rtnetlink_rcv+0x1c/0x2c
+[ 4452.919194][T17139]  netlink_unicast+0x25c/0x320
+[ 4452.920136][T17139]  netlink_sendmsg+0x1d4/0x3e4
+[ 4452.920937][T17139]  sock_sendmsg+0x58/0x6c
+[ 4452.921792][T17139]  ____sys_sendmsg+0x288/0x2d0
+[ 4452.922640][T17139]  ___sys_sendmsg+0x80/0xd0
+[ 4452.923495][T17139]  __sys_sendmsg+0x68/0xc4
+[ 4452.924279][T17139]  __arm64_sys_sendmsg+0x28/0x3c
+[ 4452.925148][T17139]  el0_svc_common.constprop.0+0x74/0x190
+[ 4452.926095][T17139]  do_el0_svc+0x78/0x90
+[ 4452.926944][T17139]  el0_svc+0x14/0x20
+[ 4452.927775][T17139]  el0_sync_handler+0x1a8/0x1b0
+[ 4452.928639][T17139]  el0_sync+0x190/0x1c0
+[ 4452.929519][T17139] 
+[ 4452.930185][T17139] Freed by task 7615:
+[ 4452.930910][T17139]  stack_trace_save+0x50/0x80
+[ 4452.931825][T17139]  kasan_save_stack+0x2c/0x60
+[ 4452.932775][T17139]  kasan_set_track+0x2c/0x40
+[ 4452.933682][T17139]  kasan_set_free_info+0x24/0x30
+[ 4452.934606][T17139]  ____kasan_slab_free.constprop.0+0x184/0x1c0
+[ 4452.935665][T17139]  __kasan_slab_free+0x14/0x20
+[ 4452.936562][T17139]  slab_free_freelist_hook+0x9c/0x190
+[ 4452.937477][T17139]  kfree+0x328/0x4a0
+[ 4452.938226][T17139]  smk_fetch+0xc8/0x100
+[ 4452.938997][T17139]  smack_d_instantiate+0x184/0x3a4
+[ 4452.939922][T17139]  security_d_instantiate+0x44/0x6c
+[ 4452.940866][T17139]  d_instantiate+0x34/0x70
+[ 4452.941765][T17139]  shmem_mknod+0xc8/0x100
+[ 4452.942597][T17139]  shmem_create+0x1c/0x30
+[ 4452.943384][T17139]  path_openat+0xbe4/0xe50
+[ 4452.944150][T17139]  do_filp_open+0x78/0x130
+[ 4452.945003][T17139]  do_sys_openat2+0xb4/0x160
+[ 4452.945860][T17139]  __arm64_sys_openat+0x68/0xb0
+[ 4452.946723][T17139]  el0_svc_common.constprop.0+0x74/0x190
+[ 4452.947652][T17139]  do_el0_svc+0x78/0x90
+[ 4452.948461][T17139]  el0_svc+0x14/0x20
+[ 4452.949203][T17139]  el0_sync_handler+0x1a8/0x1b0
+[ 4452.950148][T17139]  el0_sync+0x190/0x1c0
+[ 4452.950997][T17139] 
+[ 4452.951589][T17139] The buggy address belongs to the object at ffff0000332b5c00
+[ 4452.951589][T17139]  which belongs to the cache kmalloc-256 of size 256
+[ 4452.953245][T17139] The buggy address is located 144 bytes inside of
+[ 4452.953245][T17139]  256-byte region [ffff0000332b5c00, ffff0000332b5d00)
+[ 4452.955025][T17139] The buggy address belongs to the page:
+[ 4452.956097][T17139] page:00000000d1cd0b9c refcount:1 mapcount:0 mapping:0000000000000000 index:0x0 pfn:0x732b5
+[ 4452.957644][T17139] flags: 0x1ffffc000000200(slab)
+[ 4452.959046][T17139] raw: 01ffffc000000200 fffffc0000ce1000 0000000300000003 f5ff000004001d00
+[ 4452.960450][T17139] raw: 0000000000000000 0000000000080008 00000001ffffffff 0000000000000000
+[ 4452.961801][T17139] page dumped because: kasan: bad access detected
+[ 4452.962813][T17139] 
+[ 4452.963346][T17139] Memory state around the buggy address:
+[ 4452.964556][T17139]  ffff0000332b5a00: f0 f0 f0 f0 f0 f0 f0 f0 f0 f0 fe fe fe fe fe fe
+[ 4452.965740][T17139]  ffff0000332b5b00: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+[ 4452.966922][T17139] >ffff0000332b5c00: f3 f3 f3 f3 f3 f3 f3 f3 f3 f3 f3 f3 f3 f3 f3 f3
+[ 4452.967989][T17139]                                               ^
+[ 4452.969107][T17139]  ffff0000332b5d00: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+[ 4452.970315][T17139]  ffff0000332b5e00: f6 f6 f6 f6 f6 f6 f6 f6 f6 f6 fe fe fe fe fe fe
+[ 4452.971436][T17139] ==================================================================

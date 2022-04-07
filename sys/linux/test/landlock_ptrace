@@ -1,0 +1,37 @@
+# Creates independent Landlock hierarchies and try different tracer/tracee
+# schemas (without scheduling control).
+
+capset(&AUTO={0x20080522, 0x0}, &AUTO={0x0, 0x0, 0x0, 0x0, 0x0, 0x0})
+prctl$PR_SET_NO_NEW_PRIVS(0x26, 0x1)
+
+r0 = syz_clone(0x11, 0x0, 0x0, 0x0, 0x0, 0x0)
+
+# PTRACE_ATTACH and PTRACE_DETACH
+
+ptrace(0x10, r0)
+ptrace(0x11, r0)
+
+r1 = landlock_create_ruleset(&AUTO={0x100}, AUTO, 0x0)
+landlock_restrict_self(r1, 0x0)
+
+r2 = syz_clone(0x11, 0x0, 0x0, 0x0, 0x0, 0x0)
+
+ptrace(0x10, r0)
+ptrace(0x11, r0)
+
+ptrace(0x10, r2)
+ptrace(0x11, r2)
+
+r3 = landlock_create_ruleset(&AUTO={0x100}, AUTO, 0x0)
+landlock_restrict_self(r3, 0x0)
+
+ptrace(0x10, r0)
+ptrace(0x11, r0)
+
+ptrace(0x10, r2)
+ptrace(0x11, r2)
+
+# For now, PTRACE_TRACEME is transformed to -1, which returns an error:
+# https://github.com/google/syzkaller/blob/cbd0445ec3b0b184db66966d8a47e6b37d13692e/sys/linux/init.go#L179-L182
+
+ptrace(0x0, 0x0)

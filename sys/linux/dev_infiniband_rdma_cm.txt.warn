@@ -1,0 +1,15 @@
+no-such-struct: rdma_ucm_cmd_t
+bad-field-number: rdma_ucm_connect: syz=3 kernel=4
+bad-struct-size: rdma_ucm_connect: syz=280 kernel=288
+bad-field-number: rdma_ucm_accept: syz=4 kernel=5
+bad-struct-size: rdma_ucm_accept: syz=288 kernel=296
+bad-field-number: rdma_ucm_reject: syz=4 kernel=5
+bad-field-size: rdma_ucm_reject.reserved/reason: syz=3 kernel=1
+bad-field-offset: rdma_ucm_reject.private_data/reserved: syz=8 kernel=6
+bad-field-size: rdma_ucm_reject.private_data/reserved: syz=256 kernel=2
+no-such-struct: rdma_ucm_create_mcast_id_resp
+no-such-struct: rdma_ucm_leave_mcast
+bad-field-number: rdma_ucm_event_resp: syz=2 kernel=7
+bad-field-size: rdma_ucm_event_resp.id: syz=8 kernel=4
+no-such-struct: rdma_ucm_set_option_t
+no-such-struct: sockaddr_rdma_cm

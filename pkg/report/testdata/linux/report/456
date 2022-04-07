@@ -1,0 +1,31 @@
+TITLE: UBSAN: undefined-behaviour in f2fs_fill_super
+
+[   55.446365][ T6377] ================================================================================
+[   55.447852][ T6377] UBSAN: Undefined behaviour in fs/f2fs/super.c:2563:16
+[   55.448947][ T6377] shift exponent 1275068428 is too large for 32-bit type 'int'
+[   55.457726][ T6377] CPU: 2 PID: 6377 Comm: syz-executor.4 Not tainted 5.4.0-next-20191128+ #3
+[   55.458959][ T6377] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
+[   55.460201][ T6377] Call Trace:
+[   55.460679][ T6377]  dump_stack+0x1b1/0x22a
+[   55.461294][ T6377]  ubsan_epilogue+0xe/0x2b
+[   55.461928][ T6377]  __ubsan_handle_shift_out_of_bounds.cold.14+0x178/0x1f2
+[   55.464350][ T6377]  f2fs_fill_super.cold.79+0x403/0x5e0
+[   55.469849][ T6377]  mount_bdev+0x300/0x3d0
+[   55.471728][ T6377]  f2fs_mount+0x34/0x40
+[   55.473103][ T6377]  legacy_get_tree+0x10a/0x230
+[   55.474426][ T6377]  vfs_get_tree+0x8e/0x370
+[   55.475015][ T6377]  do_mount+0x14d3/0x1ab0
+[   55.479873][ T6377]  ksys_mount+0x114/0x130
+[   55.480459][ T6377]  __x64_sys_mount+0xbe/0x150
+[   55.481144][    C3] perf: interrupt took too long (66639 > 66480), lowering kernel.perf_event_max_sample_rate to 3000
+[   55.481725][ T6377]  do_syscall_64+0xfa/0x7d0
+[   55.483735][ T6377]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[   55.484505][ T6377] RIP: 0033:0x46736a
+[   55.485026][ T6377] Code: 48 c7 c1 bc ff ff ff f7 d8 64 89 01 48 83 c8 ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 44 00 00 49 89 ca b8 a5 00 00 00 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 bc ff ff ff f7 d8 64 89 01 48
+[   55.487622][ T6377] RSP: 002b:00007fedb6acfa78 EFLAGS: 00000202 ORIG_RAX: 00000000000000a5
+[   55.488759][ T6377] RAX: ffffffffffffffda RBX: 00007fedb6acfaf0 RCX: 000000000046736a
+[   55.489861][ T6377] RDX: 00007fedb6acfad0 RSI: 0000000020000340 RDI: 00007fedb6acfaf0
+[   55.490978][ T6377] RBP: 00007fedb6acfad0 R08: 00007fedb6acfb30 R09: 00007fedb6acfad0
+[   55.491997][ T6377] R10: 0000000000000000 R11: 0000000000000202 R12: 00007fedb6acfb30
+[   55.493017][ T6377] R13: 00000000004b1c60 R14: 00000000004aff22 R15: 00007fedb6ad06bc
+[   55.510433][ T6377] ================================================================================

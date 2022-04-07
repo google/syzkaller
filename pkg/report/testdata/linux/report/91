@@ -1,0 +1,10 @@
+TITLE: INFO: suspicious RCU usage in corrupted
+CORRUPTED: Y
+
+[ 1722.511384] ===============================
+[ 1722.511384] [ INFO: suspicious RCU usage. ]
+[ 1722.511384] 4.3.5+ #8 Not tainted
+[ 1722.511384] -------------------------------
+[ 1722.511384] net/ipv6/ip6_flowlabel.c:544 suspicious rcu_dereference_check() usage!
+[ 1722.511384] 
+[ 1722.511384] other info that might help us debug this:

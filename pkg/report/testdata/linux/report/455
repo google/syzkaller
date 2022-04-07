@@ -1,0 +1,44 @@
+TITLE: UBSAN: undefined-behaviour in xprt_calc_majortimeo
+
+[  173.675058][ T8575] ================================================================================
+[  173.699127][ T8575] UBSAN: Undefined behaviour in net/sunrpc/xprt.c:597:14
+[  173.700242][ T8575] shift exponent 536871040 is too large for 64-bit type 'long unsigned int'
+[  173.701708][ T8575] CPU: 2 PID: 8575 Comm: syz-executor.0 Not tainted 5.4.0-next-20191128+ #3
+[  173.702885][ T8575] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
+[  173.704304][ T8575] Call Trace:
+[  173.704780][ T8575]  dump_stack+0x1b1/0x22a
+[  173.705379][ T8575]  ubsan_epilogue+0xe/0x2b
+[  173.705994][ T8575]  __ubsan_handle_shift_out_of_bounds.cold.14+0x178/0x1f2
+[  173.709119][ T8575]  xprt_calc_majortimeo+0x210/0x280
+[  173.709849][ T8575]  xprt_do_reserve+0x4d2/0x720
+[  173.710498][ T8575]  xprt_reserve+0x11a/0x1e0
+[  173.711889][ T8575]  call_reserve+0x69/0x80
+[  173.712499][ T8575]  __rpc_execute+0x253/0xe10
+[  173.713162][ T8575]  rpc_execute+0x2a1/0x3e0
+[  173.713174][ T8575]  rpc_run_task+0x575/0x700
+[  173.713188][ T8575]  rpc_call_sync+0xd6/0x1a0
+[  173.717639][ T8575]  rpc_create_xprt+0x384/0x520
+[  173.720364][ T8575]  rpc_create+0x3cd/0x750
+[  173.723860][ T8575]  nfs_create_rpc_client+0x519/0x6d0
+[  173.725320][ T8575]  nfs_init_client+0x74/0xf0
+[  173.725955][ T8575]  nfs_get_client+0x10c6/0x14b0
+[  173.728045][ T8575]  nfs_init_server+0x2a8/0xee0
+[  173.729406][ T8575]  nfs_create_server+0x17a/0x750
+[  173.730771][ T8575]  nfs_try_mount+0x191/0xa50
+[  173.739213][ T8575]  nfs_fs_mount+0xd1d/0x2610
+[  173.748342][ T8575]  legacy_get_tree+0x10a/0x230
+[  173.749711][ T8575]  vfs_get_tree+0x8e/0x370
+[  173.750328][ T8575]  do_mount+0x14d3/0x1ab0
+[  173.755313][ T8575]  ksys_mount+0x114/0x130
+[  173.755919][ T8575]  __x64_sys_mount+0xbe/0x150
+[  173.756574][ T8575]  do_syscall_64+0xfa/0x7d0
+[  173.757208][ T8575]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  173.758018][ T8575] RIP: 0033:0x465fe9
+[  173.758554][ T8575] Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 bc ff ff ff f7 d8 64 89 01 48
+[  173.761249][ T8575] RSP: 002b:00007fdf4b8f3c68 EFLAGS: 00000246 ORIG_RAX: 00000000000000a5
+[  173.762393][ T8575] RAX: ffffffffffffffda RBX: 000000000052bf00 RCX: 0000000000465fe9
+[  173.763480][ T8575] RDX: 0000000020000100 RSI: 0000000020000180 RDI: 0000000020000240
+[  173.764574][ T8575] RBP: 00000000ffffffff R08: 0000000020000000 R09: 0000000000000000
+[  173.765677][ T8575] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000004a643a
+[  173.766765][ T8575] R13: 00000000004ede98 R14: 00000000004ad077 R15: 00007fdf4b8f46bc
+[  173.768756][ T8575] ================================================================================

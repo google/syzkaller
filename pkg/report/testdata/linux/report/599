@@ -1,0 +1,26 @@
+TITLE: KFENCE: memory corruption in do_check_common
+
+[   98.860898][ T9916] ==================================================================
+[   98.869076][ T9916] BUG: KFENCE: memory corruption in krealloc+0x60/0xd0
+[   98.869076][ T9916] 
+[   98.878111][ T9916] Corrupted memory at 0xffff88823bdb0018 [ 0x03 0x00 0x00 0x00 0x02 0x00 0x00 0x00 . . . . . . . . ] (in kfence-#215):
+[   98.890643][ T9916]  krealloc+0x60/0xd0
+[   98.890672][ T9916]  do_check_common+0x3b2a/0xd090
+[   98.890695][ T9916]  bpf_check+0x900a/0xcbe0
+[   98.890714][ T9916]  bpf_prog_load+0xe47/0x1f40
+[   98.919655][ T9916]  __do_sys_bpf+0x1251/0x4f00
+[   98.924347][ T9916]  do_syscall_64+0x2d/0x70
+[   98.928792][ T9916]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[   98.934699][ T9916] 
+[   98.937023][ T9916] kfence-#215 [0xffff88823bdb0000-0xffff88823bdb0017, size=24, cache=kmalloc-32] allocated by task 9916:
+[   98.948243][ T9916]  krealloc+0x7e/0xd0
+[   98.952232][ T9916]  do_check_common+0x3b2a/0xd090
+[   98.957210][ T9916]  bpf_check+0x900a/0xcbe0
+[   98.961631][ T9916]  bpf_prog_load+0xe47/0x1f40
+[   98.966323][ T9916]  __do_sys_bpf+0x1251/0x4f00
+[   98.971097][ T9916]  do_syscall_64+0x2d/0x70
+[   98.975535][ T9916]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[   98.981452][ T9916] 
+[   98.983774][ T9916] CPU: 1 PID: 9916 Comm: syz-executor.0 Not tainted 5.11.0-rc6-next-20210202-syzkaller #0
+[   98.993670][ T9916] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   99.003732][ T9916] ==================================================================

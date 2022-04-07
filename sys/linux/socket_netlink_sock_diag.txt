@@ -1,0 +1,46 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/net.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/sock_diag.h>
+include <uapi/linux/inet_diag.h>
+
+resource sock_diag[sock_netlink]
+
+socket$nl_sock_diag(domain const[AF_NETLINK], type const[SOCK_RAW], proto const[NETLINK_SOCK_DIAG]) sock_diag
+
+sendmsg$SOCK_DIAG_BY_FAMILY(fd sock_diag, msg ptr[in, msghdr_netlink[netlink_msg[SOCK_DIAG_BY_FAMILY, sock_diag_req, tcpdiag_policy]]], f flags[send_flags])
+sendmsg$SOCK_DESTROY(fd sock_diag, msg ptr[in, msghdr_netlink[netlink_msg[SOCK_DESTROY, sock_diag_req, tcpdiag_policy]]], f flags[send_flags])
+sendmsg$TCPDIAG_GETSOCK(fd sock_diag, msg ptr[in, msghdr_netlink[netlink_msg[TCPDIAG_GETSOCK, inet_diag_req, tcpdiag_policy]]], f flags[send_flags])
+sendmsg$DCCPDIAG_GETSOCK(fd sock_diag, msg ptr[in, msghdr_netlink[netlink_msg[DCCPDIAG_GETSOCK, inet_diag_req, tcpdiag_policy]]], f flags[send_flags])
+
+# TODO: this may actually be inet_diag_req_v2 for inet protocols.
+sock_diag_req {
+	sdiag_family	flags[socket_domain, int8]
+	sdiag_protocol	int8
+}
+
+inet_diag_req {
+	idiag_family	flags[socket_domain, int8]
+	idiag_src_len	int8
+	idiag_dst_len	int8
+	idiag_ext	int8
+	id		inet_diag_sockid
+	idiag_states	int32
+	idiag_dbs	int32
+}
+
+inet_diag_sockid {
+	idiag_sport	sock_port
+	idiag_dport	sock_port
+# TODO: this may be ipv4/ipv6 addr
+	idiag_src	array[int32, 4]
+	idiag_dst	array[int32, 4]
+	idiag_if	ifindex[opt]
+	idiag_cookie	array[int32, 2]
+}
+
+tcpdiag_policy [
+	INET_DIAG_REQ_BYTECODE	nlattr[INET_DIAG_REQ_BYTECODE, array[int8]]
+] [varlen]

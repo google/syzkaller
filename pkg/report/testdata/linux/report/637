@@ -1,0 +1,41 @@
+TITLE: KMSAN: kernel-usb-infoleak in hif_usb_send
+ALT: KMSAN origin in htc_connect_service
+
+[  180.463142][ T3569] =====================================================
+[  180.470227][ T3569] BUG: KMSAN: kernel-usb-infoleak in usb_submit_urb+0x6c1/0x2aa0
+[  180.478010][ T3569]  usb_submit_urb+0x6c1/0x2aa0
+[  180.482855][ T3569]  hif_usb_send+0x5f0/0x16f0
+[  180.487492][ T3569]  htc_connect_service+0x143e/0x1960
+[  180.492828][ T3569]  ath9k_wmi_connect+0x177/0x2c0
+[  180.497805][ T3569]  ath9k_init_htc_services+0xf6/0xee0
+[  180.503229][ T3569]  ath9k_htc_probe_device+0x4f5/0x3db0
+[  180.508740][ T3569]  ath9k_htc_hw_init+0xdd/0x190
+[  180.513642][ T3569]  ath9k_hif_usb_firmware_cb+0x42e/0xaa0
+[  180.519330][ T3569]  request_firmware_work_func+0x1b9/0x2e0
+[  180.525110][ T3569]  process_one_work+0xdb9/0x1820
+[  180.530108][ T3569]  worker_thread+0x10bc/0x21f0
+[  180.534934][ T3569]  kthread+0x721/0x850
+[  180.539061][ T3569]  ret_from_fork+0x1f/0x30
+[  180.543529][ T3569] 
+[  180.545869][ T3569] Uninit was created at:
+[  180.550185][ T3569]  __kmalloc_node_track_caller+0xe0c/0x1510
+[  180.556141][ T3569]  __alloc_skb+0x545/0xf90
+[  180.560605][ T3569]  htc_connect_service+0x1029/0x1960
+[  180.565936][ T3569]  ath9k_wmi_connect+0x177/0x2c0
+[  180.570930][ T3569]  ath9k_init_htc_services+0xf6/0xee0
+[  180.576373][ T3569]  ath9k_htc_probe_device+0x4f5/0x3db0
+[  180.581891][ T3569]  ath9k_htc_hw_init+0xdd/0x190
+[  180.586804][ T3569]  ath9k_hif_usb_firmware_cb+0x42e/0xaa0
+[  180.592676][ T3569]  request_firmware_work_func+0x1b9/0x2e0
+[  180.598459][ T3569]  process_one_work+0xdb9/0x1820
+[  180.603545][ T3569]  worker_thread+0x10bc/0x21f0
+[  180.608456][ T3569]  kthread+0x721/0x850
+[  180.612571][ T3569]  ret_from_fork+0x1f/0x30
+[  180.617036][ T3569] 
+[  180.619371][ T3569] Bytes 4-7 of 18 are uninitialized
+[  180.624584][ T3569] Memory access of size 18 starts at ffff888090c4fe00
+[  180.631364][ T3569] 
+[  180.633704][ T3569] CPU: 1 PID: 3569 Comm: kworker/1:7 Not tainted 5.16.0-rc5-syzkaller #0
+[  180.642161][ T3569] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  180.652338][ T3569] Workqueue: events request_firmware_work_func
+[  180.658559][ T3569] =====================================================

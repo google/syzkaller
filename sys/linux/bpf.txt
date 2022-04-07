@@ -1,0 +1,864 @@
+# Copyright 2015 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Note these sysctls have radical effect on code paths inside of kernel:
+# net.core.bpf_jit_enable  = { 0, 1, 2 }
+# net.core.bpf_jit_harden  = { 0, 1, 2 }
+
+include <uapi/linux/bpf.h>
+include <uapi/linux/btf.h>
+
+resource fd_bpf_map[fd]: BPF_PSEUDO_MAP_FD
+resource fd_bpf_prog[fd]
+resource fd_btf[fd]
+resource bpf_prog_id[int32]: 0, -1
+resource bpf_map_id[int32]: 0, -1
+resource bpf_btf_id[int32]: 0, -1
+resource bpf_link_id[int32]: 0, -1
+resource fd_bpf_link[fd]
+
+# NEED: this is a random index in btf_header:types. We can't express this, so we just use a small index.
+type btf_type_id int32[1:5]
+# NEED: opt modified on typedefs, this could be btf_type_id[opt]
+type btf_opt_type_id int32[0:5]
+
+# NEED: offset in bpf_btf_program:strings. We can't express this, so we just use a small index.
+type btf_name_off int32[1:16]
+type btf_opt_name_off int32[0:16]
+
+# NEED: offset in bpf_prog_t:fd_array. We can't express this, so we just use a small index.
+type map_fd_id int32[0:16]
+
+bpf$MAP_CREATE(cmd const[BPF_MAP_CREATE], arg ptr[in, bpf_map_create_arg], size len[arg]) fd_bpf_map
+bpf$MAP_LOOKUP_ELEM(cmd const[BPF_MAP_LOOKUP_ELEM], arg ptr[in, bpf_map_lookup_arg], size len[arg])
+bpf$MAP_UPDATE_ELEM(cmd const[BPF_MAP_UPDATE_ELEM], arg ptr[in, bpf_map_update_arg], size len[arg])
+bpf$MAP_DELETE_ELEM(cmd const[BPF_MAP_DELETE_ELEM], arg ptr[in, bpf_map_delete_arg], size len[arg])
+bpf$MAP_GET_NEXT_KEY(cmd const[BPF_MAP_GET_NEXT_KEY], arg ptr[in, bpf_map_get_next_arg], size len[arg])
+bpf$PROG_LOAD(cmd const[BPF_PROG_LOAD], arg ptr[in, bpf_prog], size len[arg]) fd_bpf_prog
+bpf$OBJ_PIN_MAP(cmd const[BPF_OBJ_PIN], arg ptr[in, bpf_obj_pin_map], size len[arg])
+bpf$OBJ_PIN_PROG(cmd const[BPF_OBJ_PIN], arg ptr[in, bpf_obj_pin_prog], size len[arg])
+bpf$OBJ_GET_MAP(cmd const[BPF_OBJ_GET], arg ptr[in, bpf_obj_get], size len[arg]) fd_bpf_map
+bpf$OBJ_GET_PROG(cmd const[BPF_OBJ_GET], arg ptr[in, bpf_obj_get], size len[arg]) fd_bpf_prog
+bpf$BPF_PROG_ATTACH(cmd const[BPF_PROG_ATTACH], arg ptr[in, bpf_attach_arg], size len[arg])
+bpf$BPF_PROG_DETACH(cmd const[BPF_PROG_DETACH], arg ptr[in, bpf_detach_arg], size len[arg])
+bpf$BPF_PROG_TEST_RUN(cmd const[BPF_PROG_TEST_RUN], arg ptr[in, bpf_test_prog_arg], size len[arg])
+bpf$BPF_PROG_GET_NEXT_ID(cmd const[BPF_PROG_GET_NEXT_ID], arg ptr[inout, bpf_prog_get_next_id_arg], size len[arg])
+bpf$BPF_MAP_GET_NEXT_ID(cmd const[BPF_MAP_GET_NEXT_ID], arg ptr[inout, bpf_map_get_next_id_arg], size len[arg])
+bpf$BPF_BTF_GET_NEXT_ID(cmd const[BPF_BTF_GET_NEXT_ID], arg ptr[inout, bpf_btf_get_next_id_arg], size len[arg])
+bpf$BPF_PROG_GET_FD_BY_ID(cmd const[BPF_PROG_GET_FD_BY_ID], arg ptr[in, bpf_prog_get_fd_by_id_arg], size len[arg]) fd_bpf_prog
+bpf$BPF_MAP_GET_FD_BY_ID(cmd const[BPF_MAP_GET_FD_BY_ID], arg ptr[in, bpf_map_get_fd_by_id_arg], size len[arg]) fd_bpf_map
+bpf$BPF_GET_PROG_INFO(cmd const[BPF_OBJ_GET_INFO_BY_FD], arg ptr[in, bpf_get_prog_info_arg], size len[arg])
+bpf$BPF_GET_MAP_INFO(cmd const[BPF_OBJ_GET_INFO_BY_FD], arg ptr[in, bpf_get_map_info_arg], size len[arg])
+bpf$BPF_GET_BTF_INFO(cmd const[BPF_OBJ_GET_INFO_BY_FD], arg ptr[in, bpf_get_btf_info_arg], size len[arg])
+bpf$BPF_PROG_QUERY(cmd const[BPF_PROG_QUERY], arg ptr[in, bpf_prog_query], size len[arg])
+bpf$BPF_BTF_LOAD(cmd const[BPF_BTF_LOAD], arg ptr[in, bpf_btf_load], size len[arg]) fd_btf
+bpf$BPF_BTF_GET_FD_BY_ID(cmd const[BPF_BTF_GET_FD_BY_ID], arg ptr[in, bpf_btf_id], size len[arg]) fd_btf
+bpf$BPF_TASK_FD_QUERY(cmd const[BPF_TASK_FD_QUERY], arg ptr[inout, bpf_task_fd_query], size len[arg])
+bpf$BPF_MAP_LOOKUP_AND_DELETE_ELEM(cmd const[BPF_MAP_LOOKUP_AND_DELETE_ELEM], arg ptr[in, bpf_map_lookup_arg], size len[arg])
+bpf$BPF_MAP_FREEZE(cmd const[BPF_MAP_FREEZE], arg ptr[in, fd_bpf_map], size len[arg])
+bpf$MAP_LOOKUP_BATCH(cmd const[BPF_MAP_LOOKUP_BATCH], arg ptr[in, bpf_map_batch_arg], size len[arg])
+bpf$MAP_UPDATE_BATCH(cmd const[BPF_MAP_UPDATE_BATCH], arg ptr[in, bpf_map_batch_arg], size len[arg])
+bpf$MAP_DELETE_BATCH(cmd const[BPF_MAP_DELETE_BATCH], arg ptr[in, bpf_map_batch_arg], size len[arg])
+bpf$BPF_MAP_LOOKUP_AND_DELETE_BATCH(cmd const[BPF_MAP_LOOKUP_AND_DELETE_BATCH], arg ptr[in, bpf_map_batch_arg], size len[arg])
+bpf$BPF_LINK_CREATE(cmd const[BPF_LINK_CREATE], arg ptr[in, bpf_link_create_arg], size len[arg]) fd_bpf_link
+bpf$BPF_LINK_UPDATE(cmd const[BPF_LINK_UPDATE], arg ptr[in, bpf_link_update_arg], size len[arg])
+bpf$ENABLE_STATS(cmd const[BPF_ENABLE_STATS], arg ptr[in, bpf_enable_stats_arg], size len[arg])
+bpf$ITER_CREATE(cmd const[BPF_ITER_CREATE], arg ptr[in, bpf_iter_create_arg], size len[arg]) fd
+bpf$LINK_GET_FD_BY_ID(cmd const[BPF_LINK_GET_FD_BY_ID], arg ptr[in, bpf_link_id], size len[arg]) fd_bpf_link
+bpf$LINK_GET_NEXT_ID(cmd const[BPF_LINK_GET_NEXT_ID], arg ptr[inout, bpf_link_get_next_id_arg], size len[arg])
+bpf$LINK_DETACH(cmd const[BPF_LINK_DETACH], arg ptr[in, fd_bpf_link], size len[arg])
+bpf$PROG_BIND_MAP(cmd const[BPF_PROG_BIND_MAP], arg ptr[in, bpf_prog_bind_map_arg], size len[arg])
+
+bpf_map_create_arg [
+	base		bpf_map_create_arg_base
+	bloom_filter	bpf_map_create_arg_bf
+]
+
+bpf_map_create_arg_base {
+	type			flags[bpf_map_type, int32]
+	ksize			int32
+	vsize			int32
+	max			int32
+	flags			flags[map_flags, int32]
+	inner			fd_bpf_map[opt]
+	node			int32
+	map_name		array[const[0, int8], BPF_OBJ_NAME_LEN]
+	map_ifindex		ifindex[opt]
+	btf_fd			fd_btf[opt]
+	btf_key_type_id		btf_opt_type_id
+	btf_value_type_id	btf_opt_type_id
+	btf_vmlinux_type_id	btf_opt_type_id
+	map_extra		const[0, int64]
+}
+
+bpf_map_create_arg_bf {
+	type			const[BPF_MAP_TYPE_BLOOM_FILTER, int32]
+	ksize			int32
+	vsize			int32
+	max			int32
+	flags			flags[map_flags, int32]
+	inner			fd_bpf_map[opt]
+	node			int32
+	map_name		array[const[0, int8], BPF_OBJ_NAME_LEN]
+	map_ifindex		ifindex[opt]
+	btf_fd			fd_btf[opt]
+	btf_key_type_id		btf_opt_type_id
+	btf_value_type_id	btf_opt_type_id
+	btf_vmlinux_type_id	btf_opt_type_id
+	map_extra		int64[0:15]
+}
+
+bpf_map_get_fd_by_id_arg {
+	map_id		bpf_map_id
+	next_id		int32
+	open_flags	flags[bpf_open_flags, int32]
+}
+
+bpf_map_lookup_arg {
+	map	fd_bpf_map
+	key	ptr64[in, array[int8]]
+	val	ptr64[out, array[int8]]
+	flags	flags[bpf_lookup_flags, int64]
+}
+
+bpf_map_update_val [
+	buf	array[int8]
+	udp	sock_udp
+	udp6	sock_udp6
+	tcp	sock_tcp
+	tcp6	sock_tcp6
+] [varlen]
+
+bpf_map_update_arg {
+	map	fd_bpf_map
+	key	ptr64[in, array[int8]]
+	val	ptr64[in, bpf_map_update_val]
+	flags	flags[bpf_map_flags, int64]
+}
+
+bpf_map_delete_arg {
+	map	fd_bpf_map
+	key	ptr64[in, array[int8]]
+	value	const[0, int64]
+	flags	const[0, int64]
+}
+
+bpf_map_get_next_arg {
+	map	fd_bpf_map
+	key	ptr64[in, array[int8]]
+	next	ptr64[out, array[int8]]
+	flags	const[0, int64]
+}
+
+bpf_map_batch_arg {
+	in_batch	ptr64[in, array[int8]]
+	out_batch	ptr64[out, array[int8]]
+	key		ptr64[in, array[int8]]
+	val		ptr64[in, array[int8]]
+	count		int32
+	map_fd		fd_bpf_map
+	elem_flags	flags[bpf_batch_flags, int64]
+	flags		const[0, int64]
+}
+
+bpf_link_create_arg {
+	prog_fd		fd_bpf_prog
+	target_fd	fd_cgroup
+	attach_type	flags[bpf_attach_types_link_create, int32]
+	flags		const[0, int32]
+}
+
+bpf_link_update_arg {
+	link_fd		fd_bpf_link
+	new_prog_fd	fd_bpf_prog
+	flags		flags[bpf_link_update_flags, int32]
+	old_prog_fd	fd_bpf_prog
+}
+
+bpf_enable_stats_arg {
+	type	flags[bpf_stat_types, int32]
+}
+
+bpf_iter_create_arg {
+	link_fd	fd_bpf_link
+	flags	const[0, int32]
+}
+
+bpf_batch_flags = BPF_F_LOCK
+
+define BPF_LINE_INFO_SIZE	sizeof(struct bpf_line_info)
+define BPF_FUNC_INFO_SIZE	sizeof(struct bpf_func_info)
+
+type bpf_prog_t[TYPE, ATTACH_TYPE, BTF_ID, PROG_FD] {
+	type			TYPE
+	ninsn			bytesize8[insns, int32]
+	insns			ptr64[in, bpf_instructions]
+	license			ptr64[in, string[bpf_licenses]]
+	loglev			int32
+	logsize			len[log, int32]
+	log			ptr64[out, array[int8], opt]
+	kern_version		flags[bpf_kern_version, int32]
+	flags			flags[bpf_prog_load_flags, int32]
+	prog_name		array[const[0, int8], BPF_OBJ_NAME_LEN]
+	prog_ifindex		ifindex[opt]
+	expected_attach_type	ATTACH_TYPE
+	btf_fd			fd_btf[opt]
+	func_info_rec_size	const[BPF_FUNC_INFO_SIZE, int32]
+	func_info		ptr64[in, bpf_func_info]
+	func_info_cnt		len[func_info, int32]
+	line_info_rec_size	const[BPF_LINE_INFO_SIZE, int32]
+	line_info		ptr64[in, bpf_line_info]
+	line_info_cnt		len[line_info, int32]
+	attach_btf_id		BTF_ID
+	attach_prog_fd		PROG_FD
+	pad			const[0, int32]
+	fd_array		ptr64[in, array[fd_bpf_map], opt]
+}
+
+type bpf_prog bpf_prog_t[flags[bpf_prog_type, int32], flags[bpf_attach_type, int32], bpf_btf_id[opt], fd_bpf_prog[opt]]
+
+bpf_licenses = "GPL", "syzkaller"
+bpf_kern_version = 0x40f00, 0x41000, 0x41100
+
+bpf_func_info {
+# This is instruction index, so should not be too large.
+	insn_off	int32[0:10]
+	type_id		btf_type_id
+}
+
+bpf_line_info {
+# This is instruction index, so should not be too large.
+	insn_off	int32[0:5]
+	file_name_off	btf_opt_name_off
+	line_off	int32
+	line_col	int32
+}
+
+bpf_instructions [
+	raw	array[bpf_insn]
+	framed	bpf_framed_program
+] [varlen]
+
+bpf_framed_program {
+	initr0	bpf_insn_init_r0
+	body	array[bpf_insn]
+	exit	bpf_insn_exit
+} [packed]
+
+bpf_insn [
+	generic		bpf_insn_generic
+	ldst		bpf_insn_ldst
+	alu		bpf_insn_alu
+	jmp		bpf_insn_jmp
+	call		bpf_insn_call_helper
+	func		bpf_insn_call_func
+	kfunc		bpf_insn_call_kfunc
+	exit		bpf_insn_exit
+	initr0		bpf_insn_init_r0
+	map_fd		bpf_insn_map_fd
+	map_idx		bpf_insn_map_idx
+	map_val		bpf_insn_map_value
+	map_idx_val	bpf_insn_map_idx_value
+	btf_id		bpf_insn_btf_id
+	cb_func		bpf_insn_cb_func
+] [varlen]
+
+bpf_insn_generic {
+	code	int8
+	dst	int8:4
+	src	int8:4
+	off	int16
+	imm	int32
+}
+
+bpf_insn_ldst {
+	code_class	flags[bpf_ldst_insn, int8:3]
+	code_size	flags[bpf_ldst_size, int8:2]
+	code_mode	flags[bpf_ldst_mode, int8:3]
+	dst		flags[bpf_reg, int8:4]
+	src		flags[bpf_reg, int8:4]
+	off		flags[bpf_insn_offsets, int16]
+	imm		flags[bpf_insn_immediates, int32]
+}
+
+bpf_ldst_insn = BPF_LD, BPF_LDX, BPF_ST, BPF_STX
+bpf_ldst_size = BPF_W0, BPF_H0, BPF_B0, BPF_DW0
+bpf_ldst_mode = BPF_IMM0, BPF_ABS0, BPF_IND0, BPF_MEM0, BPF_XADD0
+
+define BPF_W0	BPF_W >> 3
+define BPF_H0	BPF_H >> 3
+define BPF_B0	BPF_B >> 3
+define BPF_DW0	BPF_DW >> 3
+
+define BPF_IMM0	BPF_IMM >> 5
+define BPF_ABS0	BPF_ABS >> 5
+define BPF_IND0	BPF_IND >> 5
+define BPF_MEM0	BPF_MEM >> 5
+define BPF_XADD0	BPF_XADD >> 5
+
+bpf_insn_alu {
+	code_class	flags[bpf_alu_insn, int8:3]
+	code_s		int8:1
+	code_op		flags[bpf_alu_op, int8:4]
+	dst		flags[bpf_reg, int8:4]
+	src		flags[bpf_reg, int8:4]
+	off		flags[bpf_insn_offsets, int16]
+	imm		flags[bpf_insn_immediates, int32]
+}
+
+bpf_alu_insn = BPF_ALU, BPF_ALU64
+bpf_alu_op = BPF_ADD0, BPF_SUB0, BPF_MUL0, BPF_DIV0, BPF_OR0, BPF_AND0, BPF_LSH0, BPF_RSH0, BPF_NEG0, BPF_MOD0, BPF_XOR0, BPF_MOV0, BPF_ARSH0, BPF_END0
+
+define BPF_ADD0	BPF_ADD >> 4
+define BPF_SUB0	BPF_SUB >> 4
+define BPF_MUL0	BPF_MUL >> 4
+define BPF_DIV0	BPF_DIV >> 4
+define BPF_OR0	BPF_OR >> 4
+define BPF_AND0	BPF_AND >> 4
+define BPF_LSH0	BPF_LSH >> 4
+define BPF_RSH0	BPF_RSH >> 4
+define BPF_NEG0	BPF_NEG >> 4
+define BPF_MOD0	BPF_MOD >> 4
+define BPF_XOR0	BPF_XOR >> 4
+define BPF_MOV0	BPF_MOV >> 4
+define BPF_ARSH0	BPF_ARSH >> 4
+define BPF_END0	BPF_END >> 4
+
+bpf_insn_jmp {
+	code_class	const[BPF_JMP, int8:3]
+	code_s		int8:1
+	code_op		flags[bpf_jmp_op, int8:4]
+	dst		flags[bpf_reg, int8:4]
+	src		flags[bpf_reg, int8:4]
+	off		flags[bpf_insn_offsets, int16]
+	imm		flags[bpf_insn_immediates, int32]
+}
+
+bpf_jmp_op = BPF_JA0, BPF_JEQ0, BPF_JGT0, BPF_JGE0, BPF_JSET0, BPF_JNE0, BPF_JSGT0, BPF_JSGE0, BPF_CALL0, BPF_EXIT0, BPF_JLT0, BPF_JLE0, BPF_JSLT0, BPF_JSLE0
+
+define BPF_JA0	BPF_JA >> 4
+define BPF_JEQ0	BPF_JEQ >> 4
+define BPF_JGT0	BPF_JGT >> 4
+define BPF_JGE0	BPF_JGE >> 4
+define BPF_JSET0	BPF_JSET >> 4
+define BPF_JNE0	BPF_JNE >> 4
+define BPF_JSGT0	BPF_JSGT >> 4
+define BPF_JSGE0	BPF_JSGE >> 4
+define BPF_CALL0	BPF_CALL >> 4
+define BPF_EXIT0	BPF_EXIT >> 4
+define BPF_JLT0	BPF_JLT >> 4
+define BPF_JLE0	BPF_JLE >> 4
+define BPF_JSLT0	BPF_JSLT >> 4
+define BPF_JSLE0	BPF_JSLE >> 4
+
+bpf_insn_call_helper {
+	code	const[bpf_call_code, int8]
+	regs	const[0, int8]
+	off	const[0, int16]
+	func	int32[0:__BPF_FUNC_MAX_ID]
+}
+
+bpf_insn_call_func {
+	code	const[bpf_call_code, int8]
+	dst	const[0, int8:4]
+	src	const[BPF_PSEUDO_CALL, int8:4]
+	off	const[0, int16]
+# NEED: to limit the call offset to the program size, we'd need support for path expressions inside ranges of values.
+	func	int32[-8:8]
+}
+
+bpf_insn_call_kfunc {
+	code	const[bpf_call_code, int8]
+	dst	const[0, int8:4]
+	src	const[BPF_PSEUDO_KFUNC_CALL, int8:4]
+	off	const[0, int16]
+	kfunc	btf_type_id
+}
+
+define bpf_call_code	BPF_JMP | BPF_CALL
+
+bpf_insn_exit {
+	code	const[bpf_exit_code, int8]
+	regs	const[0, int8]
+	off	const[0, int16]
+	imm	const[0, int32]
+}
+
+define bpf_exit_code	BPF_JMP | BPF_EXIT
+
+bpf_insn_init_r0 {
+	code	const[bpf_insn_load_imm_dw, int8]
+	dst	const[BPF_REG_0, int8:4]
+	src	const[0, int8:4]
+	off	const[0, int16]
+	imm	int32
+	code2	const[0, int8]
+	regs2	const[0, int8]
+	off2	const[0, int16]
+	imm2	int32
+}
+
+bpf_insn_map_fd {
+	code	const[bpf_insn_load_imm_dw, int8]
+	dst	flags[bpf_reg, int8:4]
+	src	const[BPF_PSEUDO_MAP_FD, int8:4]
+	off	const[0, int16]
+	imm	fd_bpf_map
+	code2	const[0, int8]
+	regs2	const[0, int8]
+	off2	const[0, int16]
+	imm2	const[0, int32]
+}
+
+bpf_insn_map_idx {
+	code	const[bpf_insn_load_imm_dw, int8]
+	dst	flags[bpf_reg, int8:4]
+	src	const[BPF_PSEUDO_MAP_IDX, int8:4]
+	off	const[0, int16]
+	imm	map_fd_id
+	code2	const[0, int8]
+	regs2	const[0, int8]
+	off2	const[0, int16]
+	imm2	const[0, int32]
+}
+
+bpf_insn_map_value {
+	code	const[bpf_insn_load_imm_dw, int8]
+	dst	flags[bpf_reg, int8:4]
+	src	const[BPF_PSEUDO_MAP_VALUE, int8:4]
+	off	const[0, int16]
+	imm	fd_bpf_map
+	code2	const[0, int8]
+	regs2	const[0, int8]
+	off2	const[0, int16]
+	imm2	int32
+}
+
+bpf_insn_map_idx_value {
+	code	const[bpf_insn_load_imm_dw, int8]
+	dst	flags[bpf_reg, int8:4]
+	src	const[BPF_PSEUDO_MAP_IDX_VALUE, int8:4]
+	off	const[0, int16]
+	imm	map_fd_id
+	code2	const[0, int8]
+	regs2	const[0, int8]
+	off2	const[0, int16]
+	imm2	int32
+}
+
+bpf_insn_cb_func {
+	code	const[bpf_insn_load_imm_dw, int8]
+	dst	flags[bpf_reg, int8:4]
+	src	const[BPF_PSEUDO_FUNC, int8:4]
+	off	const[0, int16]
+# NEED: to limit the call offset to the program size, we'd need support for path expressions inside ranges of values.
+	imm	int32[-8:8]
+	code2	const[0, int8]
+	regs2	const[0, int8]
+	off2	const[0, int16]
+	imm2	const[0, int32]
+}
+
+bpf_insn_btf_id {
+	code	const[bpf_insn_load_imm_dw, int8]
+	dst	flags[bpf_reg, int8:4]
+	src	const[BPF_PSEUDO_BTF_ID, int8:4]
+	off	const[0, int16]
+	imm	btf_type_id
+	code2	const[0, int8]
+	regs2	const[0, int8]
+	off2	const[0, int16]
+	imm2	const[0, int32]
+}
+
+define bpf_insn_load_imm_dw	BPF_LD | BPF_DW | BPF_IMM
+
+# Slightly prune state space, these values frequently must be 0.
+bpf_insn_offsets = 0, 1, 2, 4, 6, 8, 12, 16, 24, 32, 48, 64, 80, 128, 256, -1, -2, -4, -8, -12, -16, -32, -64
+bpf_insn_immediates = 0, 1, 4, 8, 16, -1, -4, -16
+bpf_reg = BPF_REG_0, BPF_REG_1, BPF_REG_2, BPF_REG_3, BPF_REG_4, BPF_REG_5, BPF_REG_6, BPF_REG_7, BPF_REG_8, BPF_REG_9, BPF_REG_10, __MAX_BPF_REG
+
+define MAX_BPF_REG	__MAX_BPF_REG
+
+# NEED: these filenames must be on bpf filesystem, can we do it somehow?
+bpf_obj_pin_map {
+	path	ptr64[in, filename]
+	fd	fd_bpf_map
+	flags	const[0, int32]
+}
+
+bpf_obj_pin_prog {
+	path	ptr64[in, filename]
+	fd	fd_bpf_prog
+	flags	const[0, int32]
+}
+
+bpf_obj_get {
+	path		ptr64[in, filename]
+	fd		const[0, int32]
+	file_flags	flags[bpf_open_flags, int32]
+}
+
+bpf_attach_targets [
+	cgroup	fd_cgroup[opt]
+	map	fd_bpf_map[opt]
+]
+
+bpf_attach_arg {
+	target_fd	bpf_attach_targets
+	attach_bpf_fd	fd_bpf_prog
+	type		flags[bpf_attach_type, int32]
+	flags		flags[bpf_attach_flags, int32]
+	replace_bpf_fd	fd_bpf_prog
+}
+
+bpf_detach_arg {
+	target	bpf_attach_targets
+	prog	fd_bpf_prog
+	type	flags[bpf_attach_type, int32]
+	flags	const[0, int32]
+}
+
+bpf_test_prog_arg {
+	prog		fd_bpf_prog
+	retval		const[0, int32]
+	insizedata	len[indata, int32]
+	outsizedata	len[outdata, int32]
+	indata		ptr64[in, array[int8]]
+	outdata		ptr64[out, array[int8]]
+	repeat		int32
+	dur		const[0, int32]
+	insizectx	len[inctx, int32]
+	outsizectx	len[outctx, int32]
+	inctx		ptr64[in, array[int8]]
+	outctx		ptr64[in, array[int8]]
+	flags		flags[bpf_prog_test_run_flags, int32]
+	cpu		int32
+}
+
+bpf_prog_get_next_id_arg {
+	start	int32	(in)
+	next_id	bpf_prog_id	(out)
+}
+
+bpf_map_get_next_id_arg {
+	start	int32	(in)
+	next_id	bpf_map_id	(out)
+}
+
+bpf_btf_get_next_id_arg {
+	start	int32	(in)
+	next_id	bpf_btf_id	(out)
+}
+
+bpf_link_get_next_id_arg {
+	start	int32	(in)
+	next_id	bpf_link_id	(out)
+}
+
+bpf_prog_get_fd_by_id_arg {
+	prog	bpf_prog_id
+}
+
+bpf_prog_bind_map_arg {
+	prog_fd	fd_bpf_prog
+	map_fd	fd_bpf_map
+	flags	const[0, int32]
+}
+
+bpf_get_prog_info_arg {
+	prog	fd_bpf_prog
+	len	len[info, int32]
+	info	ptr64[out, bpf_prog_info]
+}
+
+bpf_prog_info {
+	type				int32
+	id				bpf_prog_id
+	tag				int64
+	jited_prog_len			int32
+	xlated_prog_len			int32
+	jited_prog_insns		int64
+	xlated_prog_insns		int64
+	load_time			int64
+	created_by_uid			int32
+	nr_map_ids			len[map_ids, int32]	(in)
+# We could declare these as bpf_map_id, but this is not the best way to obtain these resources.
+	map_ids				ptr64[out, array[int32]]
+	name				array[int8, BPF_OBJ_NAME_LEN]
+	ifindex				ifindex
+	gpl_compatible			int32:1
+	netns_dev			int64
+	netns_ino			int64
+	nr_jited_ksyms			len[jited_ksyms, int32]	(in)
+	nr_jited_func_lens		len[jited_func_lens, int32]	(in)
+	jited_ksyms			ptr64[out, array[int64]]
+	jited_func_lens			ptr64[out, array[int32]]
+	btf_id				bpf_btf_id
+	func_info_rec_size		const[BPF_FUNC_INFO_SIZE, int32]	(in)
+	func_info			ptr64[out, array[bpf_func_info]]
+	nr_func_info			bytesize[func_info, int32]	(in)
+	nr_line_info			len[line_info, int32]	(in)
+	line_info			ptr64[out, bpf_line_info]
+	jited_line_info			ptr64[out, int64]
+	nr_jited_line_info		len[jited_line_info, int32]	(in)
+	line_info_rec_size		const[BPF_LINE_INFO_SIZE, int32]	(in)
+	jited_line_info_rec_size	const[8, int32]	(in)
+	nr_prog_tags			len[prog_tags, int32]	(in)
+	prog_tags			ptr64[out, int64]
+	run_time_ns			int64
+	run_cnt				int64
+	recursion_misses		int64
+	verified_insns			int32
+} [align[8]]
+
+bpf_get_map_info_arg {
+	prog	fd_bpf_map
+	len	len[info, int32]
+	info	ptr64[out, bpf_map_info]
+}
+
+bpf_map_info {
+	type				int32
+	id				bpf_map_id
+	key_size			int32
+	value_size			int32
+	max_entries			int32
+	map_flags			int32
+	name				array[int8, BPF_OBJ_NAME_LEN]
+	ifindex				ifindex
+	btf_vmlinux_value_type_id	int32
+	netns_dev			int64
+	netns_ino			int64
+	btf_id				int32
+	btf_key_type_id			int32
+	btf_value_type_id		int32
+	map_extra			align64[int64]
+} [align[8]]
+
+bpf_get_btf_info_arg {
+	btf	fd_btf	(in)
+	len	len[info, int32]	(in)
+	info	ptr64[out, bpf_btf_info]
+}
+
+bpf_btf_info {
+	btf		ptr64[out, array[int8]]
+	btf_size	bytesize[btf, int32]	(in)
+	id		bpf_btf_id
+	name		ptr64[out, array[int8]]
+	name_len	bytesize[name, int32]
+	kernel_btf	int32
+} [align[8]]
+
+bpf_prog_query {
+	target_fd	fd_cgroup
+	attach_type	flags[bpf_prog_query_attach_type, int32]
+	query_flags	flags[bpf_prog_query_flags, int32]
+	attach_flags	int32
+	prog_ids	ptr64[out, array[int32]]
+	prog_cnt	len[prog_ids, int32]
+} [align[8]]
+
+bpf_btf_load {
+	btf		ptr64[in, bpf_btf_program]
+	btf_log_buf	ptr64[out, array[int8]]
+	btf_size	bytesize[btf, int32]
+	btf_log_size	bytesize[btf_log_buf, int32]
+	btf_log_level	bool32
+} [align[8]]
+
+bpf_btf_program {
+	header	btf_header
+	strings	bpf_btf_strings
+} [packed]
+
+btf_header {
+	magic		const[BTF_MAGIC, int16]
+	version		const[BTF_VERSION, int8]
+	flags		const[0, int8]
+	hdr_len		const[0x18, int32]
+	type_off	const[0, int32]
+	type_len	bytesize[types, int32]
+	str_off		bytesize[types, int32]
+	str_len		bytesize[bpf_btf_program:strings, int32]
+	types		array[btf_type]
+} [align[4]]
+
+btf_type [
+	int		btf_type_int
+	ptr		btf_type_ref_t[BTF_KIND_PTR]
+	array		btf_type_array
+	struct		btf_type_struct_t[BTF_KIND_STRUCT]
+	union		btf_type_struct_t[BTF_KIND_UNION]
+	enum		btf_type_enum
+	fwd		btf_type_fwd
+	typedef		btf_type_ref_t[BTF_KIND_TYPEDEF]
+	volatile	btf_type_ref_t[BTF_KIND_VOLATILE]
+	const		btf_type_ref_t[BTF_KIND_CONST]
+	restrict	btf_type_ref_t[BTF_KIND_RESTRICT]
+	func		btf_type_func
+	func_proto	btf_type_func_proto
+	var		btf_type_var
+	datasec		btf_type_datasec
+] [varlen]
+
+btf_type_int {
+# Note: this is an offset in bpf_btf_program:strings
+	name_off	btf_opt_name_off
+	info_vlen	const[0, int16]
+	info_pad	const[0, int8]
+	info_typ	const[BTF_KIND_INT, int8]
+	size		const[0, int32]
+	bits		int8[0:128]
+	pad		const[0, int8]
+	offset		int8[0:128]
+	encoding	flags[btf_type_int_encoding, int8]
+}
+
+btf_type_int_encoding = BTF_INT_SIGNED, BTF_INT_CHAR, BTF_INT_BOOL
+
+type btf_type_ref_t[TYP] {
+	name_off	btf_opt_name_off
+	info_vlen	const[0, int16]
+	info_pad	const[0, int8]
+	info_typ	const[TYP, int8]
+	type		btf_opt_type_id
+}
+
+btf_type_array {
+	name_off	const[0, int32]
+	info_vlen	const[0, int16]
+	info_pad	const[0, int8]
+	info_typ	const[BTF_KIND_ARRAY, int8]
+	size		const[0, int32]
+	data		btf_array
+}
+
+btf_array {
+	type		btf_type_id
+	index_type	btf_type_id
+	nelems		int32
+}
+
+type btf_type_struct_t[TYP] {
+	name_off	btf_opt_name_off
+	info_vlen	len[fields, int16]
+	info_pad	const[0, int8]
+	info_typ	const[TYP, int8:7]
+	info_kflag	int8:1
+	size		int32
+	fields		array[btf_member]
+}
+
+btf_member {
+	name_off	btf_opt_name_off
+	type		btf_opt_type_id
+	offset		int32
+}
+
+btf_type_enum {
+	name_off	btf_opt_name_off
+	info_vlen	len[values, int16]
+	info_pad	const[0, int8]
+	info_typ	const[BTF_KIND_ENUM, int8]
+	size		const[4, int32]
+	values		array[btf_enum]
+}
+
+btf_enum {
+	name_off	btf_opt_name_off
+	val		int32
+}
+
+btf_type_fwd {
+	name_off	btf_name_off
+	info_vlen	const[0, int16]
+	info_pad	const[0, int8]
+	info_typ	const[BTF_KIND_FWD, int8]
+	size		const[0, int32]
+}
+
+btf_type_func {
+	name_off	btf_name_off
+	info_vlen	const[0, int16]
+	info_pad	const[0, int8]
+	info_typ	const[BTF_KIND_FUNC, int8]
+	type		btf_type_id
+}
+
+btf_type_func_proto {
+	name_off	const[0, int32]
+	info_vlen	len[params, int16]
+	info_pad	const[0, int8]
+	info_typ	const[BTF_KIND_FUNC_PROTO, int8]
+	size		const[0, int32]
+	params		array[btf_param]
+}
+
+btf_param {
+	name_off	btf_opt_name_off
+	type		btf_opt_type_id
+}
+
+btf_type_var {
+	name_off	btf_name_off
+	info_vlen	const[0, int16]
+	info_pad	const[0, int8]
+	info_typ	const[BTF_KIND_VAR, int8]
+	type		btf_type_id
+	linkage		bool32
+}
+
+btf_type_datasec {
+	name_off	btf_name_off
+	info_vlen	len[secinfo, int16]
+	info_pad	const[0, int8]
+	info_typ	const[BTF_KIND_DATASEC, int8]
+	size		bytesize[data, int32]
+	secinfo		array[btf_var_secinfo]
+	data		array[int8, 1:3]
+} [packed]
+
+btf_var_secinfo {
+	type	btf_type_id
+# NEED: offset/size are for btf_type_datasec:data and must be increasing and within bounds (see btf_datasec_check_meta)
+	offset	int32
+	size	int32
+}
+
+bpf_btf_strings {
+	z0	const[0, int8]
+	data	array[flags[bpf_btf_strings_elem, int8]]
+	z1	const[0, int8]
+} [packed]
+
+bpf_btf_strings_elem = 'a', '0', '_', '.', 0
+
+bpf_task_fd_query {
+	pid		pid	(in)
+	fd		fd_perf_base	(in)
+	flags		const[0, int32]	(in)
+	buf_len		bytesize[buf, int32]	(in)
+	buf		ptr64[in, string]	(in)
+	prog_id		bpf_prog_id	(out)
+	fd_type		int32	(out)
+	probe_offset	int64	(out)
+	probe_addr	int64	(out)
+}
+
+bpf_map_type = BPF_MAP_TYPE_HASH, BPF_MAP_TYPE_ARRAY, BPF_MAP_TYPE_PROG_ARRAY, BPF_MAP_TYPE_PERF_EVENT_ARRAY, BPF_MAP_TYPE_STACK_TRACE, BPF_MAP_TYPE_CGROUP_ARRAY, BPF_MAP_TYPE_PERCPU_HASH, BPF_MAP_TYPE_PERCPU_ARRAY, BPF_MAP_TYPE_LRU_HASH, BPF_MAP_TYPE_LRU_PERCPU_HASH, BPF_MAP_TYPE_LPM_TRIE, BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_DEVMAP, BPF_MAP_TYPE_SOCKMAP, BPF_MAP_TYPE_CPUMAP, BPF_MAP_TYPE_XSKMAP, BPF_MAP_TYPE_SOCKHASH, BPF_MAP_TYPE_CGROUP_STORAGE, BPF_MAP_TYPE_REUSEPORT_SOCKARRAY, BPF_MAP_TYPE_PERCPU_CGROUP_STORAGE, BPF_MAP_TYPE_QUEUE, BPF_MAP_TYPE_STACK, BPF_MAP_TYPE_SK_STORAGE, BPF_MAP_TYPE_DEVMAP_HASH, BPF_MAP_TYPE_STRUCT_OPS, BPF_MAP_TYPE_RINGBUF, BPF_MAP_TYPE_INODE_STORAGE, BPF_MAP_TYPE_TASK_STORAGE, BPF_MAP_TYPE_BLOOM_FILTER
+bpf_map_flags = BPF_ANY, BPF_NOEXIST, BPF_EXIST, BPF_F_LOCK
+bpf_lookup_flags = BPF_F_LOCK
+bpf_prog_type = BPF_PROG_TYPE_SOCKET_FILTER, BPF_PROG_TYPE_KPROBE, BPF_PROG_TYPE_SCHED_CLS, BPF_PROG_TYPE_SCHED_ACT, BPF_PROG_TYPE_TRACEPOINT, BPF_PROG_TYPE_XDP, BPF_PROG_TYPE_PERF_EVENT, BPF_PROG_TYPE_CGROUP_SKB, BPF_PROG_TYPE_CGROUP_SOCK, BPF_PROG_TYPE_LWT_IN, BPF_PROG_TYPE_LWT_OUT, BPF_PROG_TYPE_LWT_XMIT, BPF_PROG_TYPE_SOCK_OPS, BPF_PROG_TYPE_SK_SKB, BPF_PROG_TYPE_CGROUP_DEVICE, BPF_PROG_TYPE_SK_MSG, BPF_PROG_TYPE_RAW_TRACEPOINT, BPF_PROG_TYPE_CGROUP_SOCK_ADDR, BPF_PROG_TYPE_LWT_SEG6LOCAL, BPF_PROG_TYPE_LIRC_MODE2, BPF_PROG_TYPE_SK_REUSEPORT, BPF_PROG_TYPE_FLOW_DISSECTOR, BPF_PROG_TYPE_CGROUP_SYSCTL, BPF_PROG_TYPE_RAW_TRACEPOINT_WRITABLE, BPF_PROG_TYPE_CGROUP_SOCKOPT, BPF_PROG_TYPE_TRACING, BPF_PROG_TYPE_EXT, BPF_PROG_TYPE_STRUCT_OPS, BPF_PROG_TYPE_LSM, BPF_PROG_TYPE_SK_LOOKUP, BPF_PROG_TYPE_SYSCALL
+map_flags = BPF_F_NO_PREALLOC, BPF_F_NO_COMMON_LRU, BPF_F_NUMA_NODE, BPF_F_RDONLY, BPF_F_WRONLY, BPF_F_STACK_BUILD_ID, BPF_F_ZERO_SEED, BPF_F_RDONLY_PROG, BPF_F_WRONLY_PROG, BPF_F_CLONE, BPF_F_MMAPABLE, BPF_F_INNER_MAP, BPF_F_PRESERVE_ELEMS
+bpf_attach_type = BPF_CGROUP_INET_INGRESS, BPF_CGROUP_INET_EGRESS, BPF_CGROUP_INET_SOCK_CREATE, BPF_CGROUP_SOCK_OPS, BPF_SK_SKB_STREAM_PARSER, BPF_SK_SKB_STREAM_VERDICT, BPF_CGROUP_DEVICE, BPF_SK_MSG_VERDICT, BPF_CGROUP_INET4_BIND, BPF_CGROUP_INET6_BIND, BPF_CGROUP_INET4_CONNECT, BPF_CGROUP_INET6_CONNECT, BPF_CGROUP_INET4_POST_BIND, BPF_CGROUP_INET6_POST_BIND, BPF_CGROUP_UDP4_SENDMSG, BPF_CGROUP_UDP6_SENDMSG, BPF_LIRC_MODE2, BPF_FLOW_DISSECTOR, BPF_CGROUP_SYSCTL, BPF_CGROUP_UDP4_RECVMSG, BPF_CGROUP_UDP6_RECVMSG, BPF_CGROUP_GETSOCKOPT, BPF_CGROUP_SETSOCKOPT, BPF_TRACE_RAW_TP, BPF_TRACE_FENTRY, BPF_TRACE_FEXIT, BPF_LSM_MAC, BPF_MODIFY_RETURN, BPF_CGROUP_INET4_GETPEERNAME, BPF_CGROUP_INET4_GETSOCKNAME, BPF_CGROUP_INET6_GETPEERNAME, BPF_CGROUP_INET6_GETSOCKNAME, BPF_TRACE_ITER, BPF_XDP_DEVMAP, BPF_CGROUP_INET_SOCK_RELEASE, BPF_SK_LOOKUP, BPF_XDP, BPF_XDP_CPUMAP, BPF_SK_SKB_VERDICT, BPF_SK_REUSEPORT_SELECT, BPF_SK_REUSEPORT_SELECT_OR_MIGRATE, BPF_PERF_EVENT
+bpf_attach_types_link_create = BPF_CGROUP_INET_INGRESS, BPF_CGROUP_INET_EGRESS, BPF_CGROUP_INET_SOCK_CREATE, BPF_CGROUP_INET4_POST_BIND, BPF_CGROUP_INET6_POST_BIND, BPF_CGROUP_INET4_BIND, BPF_CGROUP_INET6_BIND, BPF_CGROUP_INET4_CONNECT, BPF_CGROUP_INET6_CONNECT, BPF_CGROUP_UDP4_SENDMSG, BPF_CGROUP_UDP6_SENDMSG, BPF_CGROUP_UDP4_RECVMSG, BPF_CGROUP_UDP6_RECVMSG, BPF_CGROUP_SOCK_OPS, BPF_CGROUP_DEVICE, BPF_SK_MSG_VERDICT, BPF_SK_SKB_STREAM_PARSER, BPF_SK_SKB_STREAM_VERDICT, BPF_LIRC_MODE2, BPF_FLOW_DISSECTOR, BPF_CGROUP_SYSCTL, BPF_CGROUP_GETSOCKOPT, BPF_CGROUP_SETSOCKOPT, BPF_CGROUP_INET4_GETPEERNAME, BPF_CGROUP_INET4_GETSOCKNAME, BPF_CGROUP_INET6_GETPEERNAME, BPF_CGROUP_INET6_GETSOCKNAME, BPF_TRACE_ITER, BPF_CGROUP_INET_SOCK_RELEASE, BPF_SK_LOOKUP, BPF_XDP, BPF_SK_SKB_VERDICT
+bpf_prog_load_flags = BPF_F_STRICT_ALIGNMENT, BPF_F_ANY_ALIGNMENT, BPF_F_TEST_RND_HI32, BPF_F_TEST_STATE_FREQ, BPF_F_SLEEPABLE
+bpf_attach_flags = BPF_F_ALLOW_OVERRIDE, BPF_F_ALLOW_MULTI, BPF_F_REPLACE
+bpf_link_update_flags = BPF_F_REPLACE
+bpf_prog_query_flags = BPF_F_QUERY_EFFECTIVE
+bpf_prog_test_run_flags = BPF_F_TEST_RUN_ON_CPU
+bpf_prog_query_attach_type = BPF_CGROUP_INET_INGRESS, BPF_CGROUP_INET_EGRESS, BPF_CGROUP_INET_SOCK_CREATE, BPF_CGROUP_SOCK_OPS, BPF_CGROUP_DEVICE, BPF_CGROUP_INET4_BIND, BPF_CGROUP_INET4_CONNECT, BPF_CGROUP_INET4_POST_BIND, BPF_CGROUP_INET6_BIND, BPF_CGROUP_INET6_CONNECT, BPF_CGROUP_INET6_POST_BIND, BPF_CGROUP_UDP4_SENDMSG, BPF_CGROUP_UDP6_SENDMSG, BPF_LIRC_MODE2, BPF_CGROUP_SYSCTL, BPF_FLOW_DISSECTOR, BPF_CGROUP_UDP4_RECVMSG, BPF_CGROUP_UDP6_RECVMSG, BPF_CGROUP_GETSOCKOPT, BPF_CGROUP_SETSOCKOPT, BPF_CGROUP_INET4_GETPEERNAME, BPF_CGROUP_INET4_GETSOCKNAME, BPF_CGROUP_INET6_GETPEERNAME, BPF_CGROUP_INET6_GETSOCKNAME, BPF_CGROUP_INET_SOCK_RELEASE, BPF_SK_LOOKUP
+bpf_open_flags = BPF_F_RDONLY, BPF_F_WRONLY
+bpf_stat_types = BPF_STATS_RUN_TIME

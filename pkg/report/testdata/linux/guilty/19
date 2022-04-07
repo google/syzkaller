@@ -1,0 +1,36 @@
+FILE: crypto/af_alg.c
+
+BUG: sleeping function called from invalid context at arch/x86/mm/fault.c:1372
+in_atomic(): 0, irqs_disabled(): 1, pid: 22259, name: syz-executor7
+2 locks held by syz-executor7/22259:
+ #0:  (sk_lock-AF_ALG){+.+.}, at: [<0000000035a74818>] lock_sock include/net/sock.h:1465 [inline]
+ #0:  (sk_lock-AF_ALG){+.+.}, at: [<0000000035a74818>] af_alg_wait_for_data+0x2f2/0x650 crypto/af_alg.c:768
+ #1:  (&mm->mmap_sem){++++}, at: [<0000000044f840f2>] __do_page_fault+0x32d/0xc90 arch/x86/mm/fault.c:1358
+irq event stamp: 332
+hardirqs last  enabled at (331): [<00000000eed64b41>] slab_alloc mm/slab.c:3378 [inline]
+hardirqs last  enabled at (331): [<00000000eed64b41>] __do_kmalloc mm/slab.c:3709 [inline]
+hardirqs last  enabled at (331): [<00000000eed64b41>] __kmalloc+0x23a/0x760 mm/slab.c:3720
+hardirqs last disabled at (332): [<00000000f3407c2d>] kfree+0x6a/0x250 mm/slab.c:3800
+softirqs last  enabled at (318): [<00000000c75b17c3>] lock_sock_nested+0x91/0x110 net/core/sock.c:2765
+softirqs last disabled at (316): [<00000000272f4822>] spin_lock_bh include/linux/spinlock.h:320 [inline]
+softirqs last disabled at (316): [<00000000272f4822>] lock_sock_nested+0x44/0x110 net/core/sock.c:2762
+CPU: 0 PID: 22259 Comm: syz-executor7 Not tainted 4.15.0-rc1+ #131
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Call Trace:
+ __dump_stack lib/dump_stack.c:17 [inline]
+ dump_stack+0x194/0x257 lib/dump_stack.c:53
+ ___might_sleep+0x2b2/0x470 kernel/sched/core.c:6060
+ __might_sleep+0x95/0x190 kernel/sched/core.c:6013
+ __do_page_fault+0x350/0xc90 arch/x86/mm/fault.c:1372
+ do_page_fault+0xee/0x720 arch/x86/mm/fault.c:1504
+ page_fault+0x22/0x30 arch/x86/entry/entry_64.S:1094
+RIP: 0010:virt_to_cache mm/slab.c:400 [inline]
+RIP: 0010:kfree+0xb2/0x250 mm/slab.c:3802
+RSP: 0018:ffff8801cc82f780 EFLAGS: 00010046
+RAX: 0000000000000000 RBX: ffff8801cc82f948 RCX: ffffffffffffffff
+RDX: ffffea0007320bc0 RSI: 0000000000000000 RDI: ffff8801cc82f948
+RBP: ffff8801cc82f7a0 R08: ffffed003a54e4dc R09: 0000000000000000
+R10: 0000000000000001 R11: ffffed003a54e4db R12: 0000000000000286
+R13: 0000000000000000 R14: ffff8801cc82f948 R15: ffff8801cc82f8b0
+ blkcipher_walk_done+0x72b/0xde0 crypto/blkcipher.c:139
+ encrypt+0x50a/0xaf0 crypto/salsa20_generic.c:208

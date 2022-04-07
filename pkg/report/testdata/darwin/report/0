@@ -1,0 +1,19 @@
+TITLE: panic: assertion failed: in6p == NULL || (in6p->inp_vflag & INP_IPV6)
+
+panic(cpu 0 caller 0xffffff801f3ada45): assertion failed: in6p == NULL || (in6p->inp_vflag & INP_IPV6), file: /Users/space/kernel/xnu-7195.81.3/bsd/netinet6/in6_mcast.c, line: 1905
+Backtrace (CPU 0), Frame : Return Address
+0xffffffb064dae750 : 0xffffff801daa0d75 mach_kernel : _handle_debugger_trap + 0x5d5
+0xffffffb064dae7b0 : 0xffffff801df44204 mach_kernel : _kdp_i386_trap + 0x2d4
+0xffffffb064dae800 : 0xffffff801df26727 mach_kernel : _kernel_trap + 0xb27
+0xffffffb064dae890 : 0xffffff801df4bf8f mach_kernel : trap_from_kernel + 0x26
+0xffffffb064dae8b0 : 0xffffff801daa0264 mach_kernel : _DebuggerTrapWithState + 0x104
+0xffffffb064dae9e0 : 0xffffff801daa16d0 mach_kernel : _panic_trap_to_debugger + 0x390
+0xffffffb064daea50 : 0xffffff801f3a0216 mach_kernel : _panic + 0x54
+0xffffffb064daeac0 : 0xffffff801f3ada45 mach_kernel : _assfail + 0x2f
+0xffffffb064daeaf0 : 0xffffff801ead06e0 mach_kernel : _in6p_lookup_mcast_ifp + 0x6c0
+0xffffffb064daec10 : 0xffffff801eaca192 mach_kernel : _ip6_setmoptions + 0x3382
+0xffffffb064daf750 : 0xffffff801eaa3c77 mach_kernel : _ip6_ctloutput + 0x1947
+0xffffffb064daf9f0 : 0xffffff801ee65178 mach_kernel : _sosetoptlock + 0x5b8
+0xffffffb064dafd70 : 0xffffff801ee9afc0 mach_kernel : _setsockopt + 0x3e0
+0xffffffb064dafee0 : 0xffffff801ef5675f mach_kernel : _unix_syscall64 + 0x99f
+0xffffffb064daffa0 : 0xffffff801df4c756 mach_kernel : _hndl_unix_scall64 + 0x16

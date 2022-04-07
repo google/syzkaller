@@ -1,0 +1,16 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+
+resource zx_socket[zx_handle]
+
+zx_socket_create(options flags[socket_create_options], out0 ptr[out, zx_socket], out1 ptr[out, zx_socket])
+zx_socket_read(handle zx_socket, options flags[socket_read_options], buffer ptr[out, array[int8]], size len[buffer], actual ptr[out, intptr])
+zx_socket_write(handle zx_socket, options flags[socket_write_options], buffer ptr[in, array[int8]], size len[buffer], actual ptr[out, intptr])
+zx_socket_shutdown(handlez zx_socket, options flags[socket_shutdown_options])
+
+socket_create_options = ZX_SOCKET_STREAM, ZX_SOCKET_DATAGRAM
+socket_read_options = ZX_SOCKET_CREATE_MASK
+socket_write_options = ZX_SOCKET_CREATE_MASK, ZX_SOCKET_SHUTDOWN_READ, ZX_SOCKET_SHUTDOWN_WRITE
+socket_shutdown_options = ZX_SOCKET_SHUTDOWN_READ, ZX_SOCKET_SHUTDOWN_WRITE

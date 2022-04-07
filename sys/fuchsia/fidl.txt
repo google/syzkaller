@@ -1,0 +1,51 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# See https://fuchsia.dev/fuchsia-src/reference/fidl/language/wire-format
+
+include <zircon/fidl.h>
+
+type fidl_call_args[REQ_MESSAGE, REQ_HANDLES, RESP_MESSAGE, RESP_HANDLES] {
+	wr_bytes	ptr[in, REQ_MESSAGE]
+	wr_handles	ptr[in, REQ_HANDLES]
+	rd_bytes	ptr[out, RESP_MESSAGE]
+	rd_handles	ptr[out, RESP_HANDLES]
+	wr_num_bytes	bytesize[wr_bytes, int32]
+	wr_num_handles	bytesize4[wr_handles, int32]
+	rd_num_bytes	bytesize[rd_bytes, int32]
+	rd_num_handles	bytesize4[rd_handles, int32]
+}
+
+type fidl_union_member[TAG, TYPE] {
+	tag	const[TAG, int32]
+	data	TYPE
+}
+
+type fidl_message_header[METHOD_ORDINAL] {
+	txid		const[0, int32]
+	flags		array[const[0, int8], 3]
+	magic_number	const[1, int8]
+	ordinal		const[METHOD_ORDINAL, int64]
+}
+
+fidl_string {
+	size	int64
+	data	flags[fidl_alloc_presence, int64]
+}
+
+fidl_vector {
+	size	int64
+	data	flags[fidl_alloc_presence, int64]
+}
+
+type fidl_aligned[T] {
+	var	T
+} [align[8]]
+
+type parallel_array[A, B] {
+	a	array[A]
+	b	array[B]
+} [packed]
+
+fidl_alloc_presence = FIDL_ALLOC_ABSENT, FIDL_ALLOC_PRESENT, FIDL_ALLOC_PRESENT, FIDL_ALLOC_PRESENT, FIDL_ALLOC_PRESENT, FIDL_ALLOC_PRESENT
+fidl_handle_presence = FIDL_HANDLE_ABSENT, FIDL_HANDLE_PRESENT, FIDL_HANDLE_PRESENT, FIDL_HANDLE_PRESENT, FIDL_HANDLE_PRESENT, FIDL_HANDLE_PRESENT

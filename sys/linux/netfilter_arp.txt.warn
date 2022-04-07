@@ -1,0 +1,18 @@
+bad-field-size: arpt_replace.hook_in/hook_entry: syz=4 kernel=12
+bad-field-offset: arpt_replace.hook_out/underflow: syz=48 kernel=56
+bad-field-size: arpt_replace.hook_out/underflow: syz=4 kernel=12
+bad-field-offset: arpt_replace.hook_forward/num_counters: syz=52 kernel=68
+bad-field-offset: arpt_replace.underflow_in/counters: syz=56 kernel=72
+bad-field-size: arpt_replace.underflow_in/counters: syz=4 kernel=8 [amd64,arm64]
+bad-field-offset: arpt_replace.underflow_out/entries: syz=60 kernel=76 [386]
+bad-field-offset: arpt_replace.underflow_out/entries: syz=60 kernel=80 [amd64,arm,arm64]
+bad-field-size: arpt_replace.underflow_out/entries: syz=4 kernel=0
+bad-field-size: arpt_entry.matches/arp: syz=188 kernel=164 [386]
+bad-field-size: arpt_entry.matches/arp: syz=192 kernel=164 [amd64,arm,arm64]
+no-such-struct: arpt_entry_matches
+no-such-struct: arpt_entry_underflow
+no-such-struct: arpt_entry_underflow_matches
+no-such-struct: arpt_arp_or_uncond
+no-such-struct: arpt_devaddr
+no-such-struct: arpt_devmask
+no-such-struct: arpt_counters_info

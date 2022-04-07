@@ -1,0 +1,79 @@
+TITLE: KASAN: invalid-access Read in io_submit_sqes
+ALT: bad-access in io_submit_sqes
+
+[ 1344.478322][ T6700] ==================================================================
+[ 1344.479538][ T6700] BUG: KASAN: invalid-access in __memset+0x16c/0x188
+[ 1344.480722][ T6700] Read at addr 0bff00002a0f4600 by task syz-executor.0/6700
+[ 1344.481938][ T6700] Pointer tag: [0b], memory tag: [fe]
+[ 1344.483006][ T6700] 
+[ 1344.484199][ T6700] CPU: 0 PID: 6700 Comm: syz-executor.0 Not tainted 5.11.0-rc3 #36
+[ 1344.485714][ T6700] Hardware name: linux,dummy-virt (DT)
+[ 1344.486832][ T6700] Call trace:
+[ 1344.487421][ T6700]  dump_backtrace+0x0/0x1a4
+[ 1344.488255][ T6700]  show_stack+0x1c/0x70
+[ 1344.489062][ T6700]  dump_stack+0xd0/0x12c
+[ 1344.489906][ T6700]  print_address_description+0x70/0x29c
+[ 1344.490874][ T6700]  kasan_report+0x104/0x200
+[ 1344.491847][ T6700]  __do_kernel_fault+0x17c/0x1c0
+[ 1344.492697][ T6700]  do_tag_check_fault+0x6c/0x80
+[ 1344.493568][ T6700]  do_mem_abort+0x44/0xb4
+[ 1344.494435][ T6700]  el1_abort+0x40/0x6c
+[ 1344.495260][ T6700]  el1_sync_handler+0xb0/0xcc
+[ 1344.496197][ T6700]  el1_sync+0x70/0x100
+[ 1344.496937][ T6700]  __memset+0x16c/0x188
+[ 1344.497746][ T6700]  io_submit_sqes+0x420/0x82c
+[ 1344.498574][ T6700]  __arm64_sys_io_uring_enter+0x180/0x73c
+[ 1344.499530][ T6700]  el0_svc_common.constprop.0+0x74/0x190
+[ 1344.500534][ T6700]  do_el0_svc+0x78/0x90
+[ 1344.501438][ T6700]  el0_svc+0x14/0x20
+[ 1344.502237][ T6700]  el0_sync_handler+0x1a8/0x1b0
+[ 1344.503145][ T6700]  el0_sync+0x190/0x1c0
+[ 1344.504188][ T6700] 
+[ 1344.504848][ T6700] Allocated by task 6367:
+[ 1344.505717][ T6700]  stack_trace_save+0x50/0x80
+[ 1344.506613][ T6700]  kasan_save_stack+0x2c/0x60
+[ 1344.507397][ T6700]  ____kasan_kmalloc+0xe8/0x160
+[ 1344.508272][ T6700]  __kasan_slab_alloc+0x20/0x30
+[ 1344.509134][ T6700]  kmem_cache_alloc+0x1a8/0x304
+[ 1344.510030][ T6700]  io_uring_setup+0x24c/0xe10
+[ 1344.510841][ T6700]  __arm64_sys_io_uring_setup+0x20/0x30
+[ 1344.511860][ T6700]  el0_svc_common.constprop.0+0x74/0x190
+[ 1344.512805][ T6700]  do_el0_svc+0x78/0x90
+[ 1344.513634][ T6700]  el0_svc+0x14/0x20
+[ 1344.514456][ T6700]  el0_sync_handler+0x1a8/0x1b0
+[ 1344.515343][ T6700]  el0_sync+0x190/0x1c0
+[ 1344.516214][ T6700] 
+[ 1344.516845][ T6700] Freed by task 6119:
+[ 1344.517632][ T6700]  stack_trace_save+0x50/0x80
+[ 1344.518543][ T6700]  kasan_save_stack+0x2c/0x60
+[ 1344.519347][ T6700]  kasan_set_track+0x2c/0x40
+[ 1344.520127][ T6700]  kasan_set_free_info+0x24/0x30
+[ 1344.521091][ T6700]  ____kasan_slab_free.constprop.0+0x184/0x1c0
+[ 1344.522146][ T6700]  __kasan_slab_free+0x14/0x20
+[ 1344.523038][ T6700]  slab_free_freelist_hook+0x9c/0x190
+[ 1344.523977][ T6700]  kmem_cache_free+0xa0/0x460
+[ 1344.524799][ T6700]  io_ring_exit_work+0x190/0x224
+[ 1344.525696][ T6700]  process_one_work+0x1d8/0x360
+[ 1344.526516][ T6700]  worker_thread+0x74/0x440
+[ 1344.527320][ T6700]  kthread+0x178/0x180
+[ 1344.528089][ T6700]  ret_from_fork+0x10/0x30
+[ 1344.528922][ T6700] 
+[ 1344.529488][ T6700] The buggy address belongs to the object at ffff00002a0f4600
+[ 1344.529488][ T6700]  which belongs to the cache io_kiocb of size 208
+[ 1344.531168][ T6700] The buggy address is located 0 bytes inside of
+[ 1344.531168][ T6700]  208-byte region [ffff00002a0f4600, ffff00002a0f46d0)
+[ 1344.532920][ T6700] The buggy address belongs to the page:
+[ 1344.534051][ T6700] page:00000000289c8f05 refcount:1 mapcount:0 mapping:0000000000000000 index:0xf7ff00002a0f4400 pfn:0x6a0f4
+[ 1344.535717][ T6700] flags: 0x1ffffc000000200(slab)
+[ 1344.537027][ T6700] raw: 01ffffc000000200 dead000000000100 dead000000000122 faff000004d2ab00
+[ 1344.538299][ T6700] raw: f7ff00002a0f4400 000000008010000c 00000001ffffffff 0000000000000000
+[ 1344.539527][ T6700] page dumped because: kasan: bad access detected
+[ 1344.540477][ T6700] 
+[ 1344.541066][ T6700] Memory state around the buggy address:
+[ 1344.542279][ T6700]  ffff00002a0f4400: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+[ 1344.543535][ T6700]  ffff00002a0f4500: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+[ 1344.544798][ T6700] >ffff00002a0f4600: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+[ 1344.545944][ T6700]                    ^
+[ 1344.546740][ T6700]  ffff00002a0f4700: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+[ 1344.547936][ T6700]  ffff00002a0f4800: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+[ 1344.549089][ T6700] ==================================================================

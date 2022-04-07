@@ -1,0 +1,47 @@
+TITLE: INFO: rcu detected stall in smp_call_function
+ALT: stall in smp_call_function
+TYPE: HANG
+
+[  401.753130] rcu: INFO: rcu_sched detected stalls on CPUs/tasks:
+[  401.759317] rcu: 	(detected by 0, t=105002 jiffies, g=89793, q=195)
+[  401.765737] rcu: All QSes seen, last rcu_sched kthread activity 105002 (4295067669-4294962667), jiffies_till_next_fqs=3, root ->qsmask 0x0
+[  401.778318] syz-executor5   R  running task    24488  9936   4748 0x00000008
+[  401.785560] Call Trace:
+[  401.788141]  <IRQ>
+[  401.790301]  sched_show_task.cold.85+0x273/0x2d5
+[  401.821799]  print_other_cpu_stall.cold.79+0x8e0/0x91d
+[  401.860568]  rcu_check_callbacks+0x986/0x15a0
+[  401.964031]  update_process_times+0x2d/0x70
+[  401.968355]  tick_sched_handle+0x9f/0x180
+[  401.972517]  tick_sched_timer+0x45/0x130
+[  401.976581]  __hrtimer_run_queues+0x3eb/0xff0
+[  402.026193]  hrtimer_interrupt+0x2f3/0x750
+[  402.030445]  smp_apic_timer_interrupt+0x16d/0x6a0
+[  402.083022]  apic_timer_interrupt+0xf/0x20
+[  402.087252]  </IRQ>
+[  402.089510] RIP: 0010:smp_call_function_single+0x3f5/0x5c0
+[  402.114059] RSP: 0018:ffff8801cfb8f3a0 EFLAGS: 00000293 ORIG_RAX: ffffffffffffff13
+[  402.121773] RAX: ffff8801cfb8f418 RBX: ffff8801cfb8f418 RCX: ffffffff8170865c
+[  402.129044] RDX: 0000000000000000 RSI: ffffffff8170860b RDI: 0000000000000005
+[  402.136314] RBP: ffff8801cfb8f4f0 R08: ffff8801bcb92140 R09: ffffed003b625b98
+[  402.143582] R10: ffffed003b625b98 R11: ffff8801db12dcc7 R12: ffffed0039f71e90
+[  402.150856] R13: dffffc0000000000 R14: 0000000000000000 R15: 0000000000000001
+[  402.191483]  vmx_vcpu_load+0x873/0xfe0
+[  402.235986]  kvm_arch_vcpu_load+0x22b/0x940
+[  402.244821]  vcpu_load+0x32/0x40
+[  402.248189]  kvm_arch_destroy_vm+0x1f9/0x7c0
+[  402.284984]  kvm_put_kvm+0x73f/0x1060
+[  402.317058]  kvm_vcpu_release+0x7b/0xa0
+[  402.321039]  __fput+0x38a/0xa40
+[  402.354473]  ____fput+0x15/0x20
+[  402.357755]  task_work_run+0x1e8/0x2a0
+[  402.374215]  exit_to_usermode_loop+0x318/0x380
+[  402.389202]  do_syscall_64+0x6be/0x820
+[  402.423222]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  402.428415] RIP: 0033:0x410c41
+[  402.450537] RSP: 002b:00007ffc6fee9a70 EFLAGS: 00000293 ORIG_RAX: 0000000000000003
+[  402.458282] RAX: 0000000000000000 RBX: 000000000000000b RCX: 0000000000410c41
+[  402.465556] RDX: 0000000000000000 RSI: 00000000007305f0 RDI: 000000000000000a
+[  402.472826] RBP: 0000000000000000 R08: ffffffffffffffff R09: ffffffffffffffff
+[  402.480102] R10: 00007ffc6fee99a0 R11: 0000000000000293 R12: 0000000000000009
+[  402.487376] R13: 00000000000485c6 R14: 0000000000000052 R15: badc0ffeebadface

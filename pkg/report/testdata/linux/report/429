@@ -1,0 +1,80 @@
+TITLE: WARNING: ODEBUG bug in blk_mq_unregister_disk
+
+[   77.713943] ------------[ cut here ]------------
+[   77.718699] WARNING: CPU: 0 PID: 2484 at lib/debugobjects.c:260 debug_print_object+0x181/0x210
+[   77.727440] ODEBUG: init active (active state 0) object type: timer_list hint:           (null)
+[   77.736364] Kernel panic - not syncing: panic_on_warn set ...
+[   77.736364] 
+[   77.743708] CPU: 0 PID: 2484 Comm: syz-executor382 Not tainted 4.4.194+ #0
+[   77.743960] kobject: '0' (ffff8800bb7592b0): kobject_cleanup, parent           (null)
+[   77.743964] kobject: '0' (ffff8800bb7592b0): calling ktype release
+[   77.743966] kobject: '0': free name
+[   77.743994] kobject: 'integrity' (ffff8801d66cbe18): kobject_cleanup, parent           (null)
+[   77.743997] kobject: 'integrity' (ffff8801d66cbe18): does not have a release() function, it is broken and must be fixed.
+[   77.743999] kobject: 'integrity': free name
+[   77.763943] kobject: 'holders' (ffff8800b8c15038): kobject_cleanup, parent ffff8800b9726718
+[   77.763947] kobject: 'holders' (ffff8800b8c15038): auto cleanup kobject_del
+[   77.763980] kobject: 'holders' (ffff8800b8c15038): calling ktype release
+[   77.763983] kobject: (ffff8800b8c15038): dynamic_kobj_release
+[   77.764001] kobject: 'holders': free name
+[   77.825544] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   77.833953] kobject: 'loop0' (ffff8800b978c1d8): kobject_cleanup, parent           (null)
+[   77.833957] kobject: 'loop0' (ffff8800b978c1d8): calling ktype release
+[   77.834008] kobject: 'queue' (ffff8800bab5f900): kobject_release, parent           (null) (delayed 400)
+[   77.834059] kobject: 'loop0': free name
+[   77.863276]  0000000000000000 ffff8800baa3f860 ffffffff81cb8911 ffff8800baa3f998
+[   77.871298]  ffffffff82c3ef40 ffffffff82d8ef60 ffffffff81d15631 0000000000000009
+[   77.879377]  ffff8800baa3f920 ffffffff813e5f5d 0000000041b58ab3 ffffffff830c0b83
+[   77.887397] Call Trace:
+[   77.889973]  [<ffffffff81cb8911>] dump_stack+0xc1/0x120
+[   77.895313]  [<ffffffff81d15631>] ? debug_print_object+0x181/0x210
+[   77.901611]  [<ffffffff813e5f5d>] panic+0x1a2/0x364
+[   77.906603]  [<ffffffff813e5dbb>] ? add_taint.cold+0x16/0x16
+[   77.912391]  [<ffffffff81d15631>] ? debug_print_object+0x181/0x210
+[   77.918694]  [<ffffffff813e6185>] __warn.cold+0x20/0x45
+[   77.924036]  [<ffffffff81252060>] ? __internal_add_timer+0x240/0x240
+[   77.930507]  [<ffffffff8110c041>] warn_slowpath_fmt+0xb1/0xd0
+[   77.936390]  [<ffffffff8110bf90>] ? __warn+0x1c0/0x1c0
+[   77.941644]  [<ffffffff8120570d>] ? trace_hardirqs_on+0xd/0x10
+[   77.947595]  [<ffffffff81d15631>] debug_print_object+0x181/0x210
+[   77.953721]  [<ffffffff81d15eb2>] __debug_object_init+0x482/0x8a0
+[   77.959952]  [<ffffffff81d15a30>] ? free_object+0x2b0/0x2b0
+[   77.965642]  [<ffffffff81d15a30>] ? free_object+0x2b0/0x2b0
+[   77.971335]  [<ffffffff81d162e6>] debug_object_init+0x16/0x20
+[   77.977201]  [<ffffffff81253f0d>] init_timer_key+0x3d/0x390
+[   77.982889]  [<ffffffff81cbe2ef>] kobject_release+0x15f/0x250
+[   77.988755]  [<ffffffff81c61e2f>] ? blk_mq_unregister_hctx.part.0+0xef/0x140
+[   77.995920]  [<ffffffff81cbe5f0>] kobject_put+0x70/0xd0
+[   78.001260]  [<ffffffff81c62057>] blk_mq_unregister_disk+0x1d7/0x350
+[   78.003968] kobject: 'queue' (ffff8800bab5b920): kobject_cleanup, parent           (null)
+[   78.003972] kobject: 'queue' (ffff8800bab5b920): calling ktype release
+[   78.022656]  [<ffffffff81c38987>] blk_unregister_queue+0x87/0x150
+[   78.028864]  [<ffffffff81c6c953>] del_gendisk+0x2a3/0x660
+[   78.034378]  [<ffffffff81c6c6b0>] ? disk_events_poll_msecs_store+0x150/0x150
+[   78.041540]  [<ffffffff81cbe5de>] ? kobject_put+0x5e/0xd0
+[   78.047055]  [<ffffffff81c283c9>] ? blk_cleanup_queue+0x3f9/0x5f0
+[   78.053265]  [<ffffffff81f4ffbd>] loop_remove+0x6d/0xd0
+[   78.058604]  [<ffffffff81f54d7e>] loop_control_ioctl+0x29e/0x2f0
+[   78.064739]  [<ffffffff81f54ae0>] ? loop_lookup+0x170/0x170
+[   78.070428]  [<ffffffff81f54ae0>] ? loop_lookup+0x170/0x170
+[   78.076232]  [<ffffffff8156c341>] do_vfs_ioctl+0xa41/0xfe0
+[   78.081836]  [<ffffffff82a48dc0>] ? __switch_to_asm+0x40/0x70
+[   78.087818]  [<ffffffff82a48db4>] ? __switch_to_asm+0x34/0x70
+[   78.093688]  [<ffffffff8156b900>] ? ioctl_preallocate+0x1f0/0x1f0
+[   78.099903]  [<ffffffff82a3347b>] ? __schedule+0x6fb/0x1c10
+[   78.105610]  [<ffffffff8123ebf1>] ? debug_lockdep_rcu_enabled+0x71/0xa0
+[   78.112348]  [<ffffffff8158b278>] ? __fget_light+0xa8/0x1f0
+[   78.113970] kobject: '7:0' (ffff8801d66cd3e8): kobject_cleanup, parent           (null)
+[   78.113974] kobject: '7:0' (ffff8801d66cd3e8): calling ktype release
+[   78.114022] kobject: '7:0': free name
+[   78.123965] kobject: 'integrity' (ffff8801d66ceca8): kobject_cleanup, parent           (null)
+[   78.123969] kobject: 'integrity' (ffff8801d66ceca8): does not have a release() function, it is broken and must be fixed.
+[   78.123970] kobject: 'integrity': free name
+[   78.133989] kobject: 'cpu0' (ffffe8ffffc02518): kobject_cleanup, parent           (null)
+[   78.133993] kobject: 'cpu0' (ffffe8ffffc02518): calling ktype release
+[   78.133995] kobject: 'cpu0': free name
+[   78.179087]  [<ffffffff81b5cc34>] ? security_file_ioctl+0x94/0xc0
+[   78.185300]  [<ffffffff8156c974>] SyS_ioctl+0x94/0xc0
+[   78.190487]  [<ffffffff82a489e7>] entry_SYSCALL_64_fastpath+0x1e/0xa0
+[   78.198342] Kernel Offset: disabled
+[   78.202259] Rebooting in 86400 seconds..

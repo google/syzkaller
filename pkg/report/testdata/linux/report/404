@@ -1,0 +1,55 @@
+TITLE: BUG: MAX_STACK_TRACE_ENTRIES too low!
+
+[ 3167.402179][T32668] BUG: MAX_STACK_TRACE_ENTRIES too low!
+[ 3167.407738][T32668] turning off the locking correctness validator.
+[ 3167.414046][T32668] CPU: 1 PID: 32668 Comm: kworker/1:1 Not tainted 5.2.0-rc6+ #15
+[ 3167.421733][T32668] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 3167.431773][T32668] Workqueue: usb_hub_wq hub_event
+[ 3167.436772][T32668] Call Trace:
+[ 3167.440048][T32668]  dump_stack+0xca/0x13e
+[ 3167.444285][T32668]  save_trace.isra.0.cold+0x11/0x19
+[ 3167.449472][T32668]  mark_lock+0x2b9/0x10c0
+[ 3167.453779][T32668]  ? print_shortest_lock_dependencies+0x80/0x80
+[ 3167.460005][T32668]  __lock_acquire+0x54a/0x5340
+[ 3167.464743][T32668]  ? __lock_acquire+0x54a/0x5340
+[ 3167.469659][T32668]  ? find_held_lock+0x2d/0x110
+[ 3167.474399][T32668]  ? __free_object+0xdd/0x1e0
+[ 3167.479050][T32668]  ? mark_held_locks+0xe0/0xe0
+[ 3167.483785][T32668]  ? mark_held_locks+0xe0/0xe0
+[ 3167.488526][T32668]  ? _raw_spin_unlock_irqrestore+0x3e/0x50
+[ 3167.494305][T32668]  ? lockdep_hardirqs_on+0x379/0x580
+[ 3167.499577][T32668]  ? __lock_acquire+0x54a/0x5340
+[ 3167.504577][T32668]  lock_acquire+0x100/0x2b0
+[ 3167.509055][T32668]  ? flush_workqueue+0xf7/0x14c0
+[ 3167.513964][T32668]  flush_workqueue+0x126/0x14c0
+[ 3167.518796][T32668]  ? flush_workqueue+0xf7/0x14c0
+[ 3167.523705][T32668]  ? mark_held_locks+0xe0/0xe0
+[ 3167.528449][T32668]  ? __mutex_lock+0x3a2/0x12b0
+[ 3167.533185][T32668]  ? find_held_lock+0x2d/0x110
+[ 3167.537923][T32668]  ? __pm_runtime_resume+0x111/0x180
+[ 3167.543180][T32668]  ? max_active_store+0x120/0x120
+[ 3167.548178][T32668]  ? _raw_spin_unlock_irqrestore+0x3e/0x50
+[ 3167.553973][T32668]  ? lockdep_hardirqs_on+0x379/0x580
+[ 3167.559232][T32668]  ? scsi_remove_host+0x12d/0x360
+[ 3167.564229][T32668]  scsi_remove_host+0x12d/0x360
+[ 3167.569055][T32668]  usb_stor_disconnect+0x106/0x230
+[ 3167.574160][T32668]  usb_unbind_interface+0x1bd/0x8a0
+[ 3167.579330][T32668]  ? usb_autoresume_device+0x60/0x60
+[ 3167.584590][T32668]  device_release_driver_internal+0x404/0x4c0
+[ 3167.590627][T32668]  bus_remove_device+0x2dc/0x4a0
+[ 3167.595541][T32668]  device_del+0x460/0xb80
+[ 3167.599845][T32668]  ? __device_links_no_driver+0x240/0x240
+[ 3167.605539][T32668]  ? usb_remove_ep_devs+0x3e/0x80
+[ 3167.610536][T32668]  ? remove_intf_ep_devs+0x13f/0x1d0
+[ 3167.615794][T32668]  usb_disable_device+0x211/0x690
+[ 3167.620795][T32668]  usb_disconnect+0x284/0x830
+[ 3167.625457][T32668]  hub_event+0x13bd/0x3550
+[ 3167.629848][T32668]  ? hub_port_debounce+0x260/0x260
+[ 3167.634934][T32668]  process_one_work+0x905/0x1570
+[ 3167.639851][T32668]  ? pwq_dec_nr_in_flight+0x310/0x310
+[ 3167.645196][T32668]  ? do_raw_spin_lock+0x11a/0x280
+[ 3167.650210][T32668]  worker_thread+0x96/0xe20
+[ 3167.654704][T32668]  ? process_one_work+0x1570/0x1570
+[ 3167.659881][T32668]  kthread+0x30b/0x410
+[ 3167.663925][T32668]  ? kthread_park+0x1a0/0x1a0
+[ 3167.668574][T32668]  ret_from_fork+0x24/0x30

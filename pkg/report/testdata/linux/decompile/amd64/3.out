@@ -1,0 +1,50 @@
+ccid3_first_li: No RTT estimate available, using fallback RTT
+ccid3_first_li: X_recv==0
+BUG: stored value of X_recv is zero at net/dccp/ccids/ccid3.c:691/ccid3_first_li()
+CPU: 1 PID: 11737 Comm: syz-fuzzer Not tainted 5.14.0-rc5-syzkaller #0
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Call Trace:
+ __dump_stack lib/dump_stack.c:88 [inline]
+ dump_stack_lvl+0xcd/0x134 lib/dump_stack.c:105
+ ccid3_first_li.cold+0x67/0x17a net/dccp/ccids/ccid3.c:691
+ tfrc_lh_interval_add+0x640/0x8e0 net/dccp/ccids/lib/loss_interval.c:157
+ tfrc_rx_handle_loss+0x41b/0x1fa0 net/dccp/ccids/lib/packet_history.c:328
+ ccid3_hc_rx_packet_recv+0x385/0xe90 net/dccp/ccids/ccid3.c:744
+ ccid_hc_rx_packet_recv net/dccp/ccid.h:182 [inline]
+ dccp_deliver_input_to_ccids+0xd9/0x250 net/dccp/input.c:176
+ dccp_rcv_established net/dccp/input.c:374 [inline]
+ dccp_rcv_established+0x107/0x160 net/dccp/input.c:364
+ dccp_v4_do_rcv+0x130/0x190 net/dccp/ipv4.c:667
+ sk_backlog_rcv include/net/sock.h:1023 [inline]
+ __sk_receive_skb+0x29d/0x830 net/core/sock.c:527
+ dccp_v4_rcv+0xea5/0x19d0 net/dccp/ipv4.c:890
+ ip_protocol_deliver_rcu+0xa7/0xa20 net/ipv4/ip_input.c:204
+ ip_local_deliver_finish+0x20a/0x370 net/ipv4/ip_input.c:231
+ NF_HOOK include/linux/netfilter.h:307 [inline]
+ NF_HOOK include/linux/netfilter.h:301 [inline]
+ ip_local_deliver+0x1b3/0x200 net/ipv4/ip_input.c:252
+ dst_input include/net/dst.h:458 [inline]
+ ip_rcv_finish+0x1da/0x2f0 net/ipv4/ip_input.c:429
+ NF_HOOK include/linux/netfilter.h:307 [inline]
+ NF_HOOK include/linux/netfilter.h:301 [inline]
+ ip_rcv+0xaa/0xd0 net/ipv4/ip_input.c:540
+ __netif_receive_skb_one_core+0x114/0x180 net/core/dev.c:5498
+ __netif_receive_skb+0x24/0x1b0 net/core/dev.c:5612
+ process_backlog+0x2a5/0x6c0 net/core/dev.c:6492
+ __napi_poll+0xaf/0x440 net/core/dev.c:7047
+ napi_poll net/core/dev.c:7114 [inline]
+ net_rx_action+0x801/0xb40 net/core/dev.c:7201
+ __do_softirq+0x29b/0x9c2 kernel/softirq.c:558
+ invoke_softirq kernel/softirq.c:432 [inline]
+ __irq_exit_rcu+0x16e/0x1c0 kernel/softirq.c:636
+ irq_exit_rcu+0x5/0x20 kernel/softirq.c:648
+ sysvec_apic_timer_interrupt+0x45/0xc0 arch/x86/kernel/apic/apic.c:1100
+ asm_sysvec_apic_timer_interrupt+0x12/0x20 arch/x86/include/asm/idtentry.h:638
+RIP: 0033:0x43132b
+Code: 48 8b 4c 24 40 48 8b 54 24 38 48 8b 5c 24 30 eb 9e 90 48 89 d3 48 c1 ea 03 48 83 e3 07 48 89 ce 48 89 d9 bf 01 00 00 00 d3 e7 <90> 48 03 50 50 0f b6 1a 40 84 df 74 19 48 8b 44 24 58 48 8b 4c 24
+RSP: 002b:000000c00ca55f60 EFLAGS: 00000202
+RAX: 00007ff3437d4f70 RBX: 0000000000000001 RCX: 0000000000000001
+RDX: 0000000000000014 RSI: 000000c013793420 RDI: 0000000000000002
+RBP: 000000c00ca55fa8 R08: 000000000000000b R09: ffffffffffffffff
+R10: 00007ff343dc41c0 R11: 000000c000020f58 R12: 000000c00181c6f0
+R13: 000000c000020f48 R14: 000000000094d49c R15: 0000000000000000

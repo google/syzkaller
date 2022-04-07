@@ -1,0 +1,111 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_INET and AF_INET6: TCP support
+
+include <sys/types.h>
+include <sys/ktls.h>
+include <sys/malloc.h>
+include <sys/socket.h>
+include <sys/time.h>
+include <netinet/in.h>
+include <netinet/tcp.h>
+include <netinet/cc/cc_newreno.h>
+include <opencrypto/cryptodev.h>
+
+resource sock_tcp[sock_in]
+
+socket$inet_tcp(domain const[AF_INET], type const[SOCK_STREAM], proto const[0]) sock_tcp
+
+resource sock_tcp6[sock_in6]
+
+socket$inet6_tcp(domain const[AF_INET6], type const[SOCK_STREAM], proto const[0]) sock_tcp6
+
+# Generic TCP socket options
+
+tcp_option_types_int = TCP_NODELAY, TCP_MAXSEG, TCP_NOPUSH, TCP_NOOPT, TCP_MD5SIG, TCP_LOG, TCP_REMOTE_UDP_ENCAPS_PORT, TCP_DELACK, TCP_KEEPINIT, TCP_KEEPIDLE, TCP_KEEPINTVL, TCP_KEEPCNT, TCP_PCAP_OUT, TCP_PCAP_IN
+
+tcp_option_types_buf = TCP_INFO, TCP_LOGBUF, TCP_LOGID, TCP_LOGDUMP, TCP_LOGDUMPID, TCP_CONGESTION, TCP_CCALGOOPT, TCP_FASTOPEN, TCP_FUNCTION_BLK
+
+getsockopt$inet_tcp_int(fd sock_tcp, level const[IPPROTO_TCP], optname flags[tcp_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet_tcp_int(fd sock_tcp, level const[IPPROTO_TCP], optname flags[tcp_option_types_int], optval ptr[in, int32], optlen len[optval])
+getsockopt$inet6_tcp_int(fd sock_tcp6, level const[IPPROTO_TCP], optname flags[tcp_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet6_tcp_int(fd sock_tcp6, level const[IPPROTO_TCP], optname flags[tcp_option_types_int], optval ptr[in, int32], optlen len[optval])
+
+getsockopt$inet_tcp_buf(fd sock_tcp, level const[IPPROTO_TCP], optname flags[tcp_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet_tcp_buf(fd sock_tcp, level const[IPPROTO_TCP], optname flags[tcp_option_types_buf], optval buffer[in], optlen len[optval])
+getsockopt$inet6_tcp_buf(fd sock_tcp6, level const[IPPROTO_TCP], optname flags[tcp_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet6_tcp_buf(fd sock_tcp6, level const[IPPROTO_TCP], optname flags[tcp_option_types_buf], optval buffer[in], optlen len[optval])
+
+# Specific TCP socket options
+
+setsockopt$inet_tcp_TCP_CONGESTION(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_CONGESTION], optval ptr[in, string[tcp_congestion_control_alg_names]], optlen len[optval])
+setsockopt$inet6_tcp_TCP_CONGESTION(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_CONGESTION], optval ptr[in, string[tcp_congestion_control_alg_names]], optlen len[optval])
+
+tcp_congestion_control_alg_names = "cdg", "chd", "cubic", "dctcp", "hd", "htcp", "newreno", "vegas"
+
+setsockopt$inet_tcp_TCP_CCALGOOPT(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_CCALGOOPT], optval ptr[in, cc_opts], optlen len[optval])
+setsockopt$inet6_tcp_TCP_CCALGOOPT(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_CCALGOOPT], optval ptr[in, cc_opts], optlen len[optval])
+
+cc_opts [
+	newreno	cc_newreno_opts
+	generic	cc_generic_opts
+] [varlen]
+
+cc_newreno_opts {
+	name	flags[cc_newreno_opts_names, int32]
+	val	int32
+}
+
+cc_newreno_opts_names = CC_NEWRENO_BETA, CC_NEWRENO_BETA_ECN
+
+cc_generic_opts {
+	val	array[int8]
+}
+
+setsockopt$inet_tcp_TCP_FUNCTION_BLK(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_FUNCTION_BLK], optval ptr[in, tcp_function_set], optlen len[optval])
+setsockopt$inet6_tcp_TCP_FUNCTION_BLK(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_FUNCTION_BLK], optval ptr[in, tcp_function_set], optlen len[optval])
+
+tcp_function_set {
+	function_set_name	string[tcp_function_set_names, TCP_FUNCTION_NAME_LEN_MAX]
+	pcbcnt			int32
+}
+
+tcp_function_set_names = "freebsd", "rack", "bbr"
+
+setsockopt$inet_tcp_TCP_FASTOPEN(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_FASTOPEN], optval ptr[in, tcp_fastopen], optlen len[optval])
+setsockopt$inet6_tcp_TCP_FASTOPEN(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_FASTOPEN], optval ptr[in, tcp_fastopen], optlen len[optval])
+
+tcp_fastopen {
+	enable	int32
+	psk	array[int8, TCP_FASTOPEN_PSK_LEN]
+}
+
+getsockopt$inet_tcp_TCP_RXTLS_MODE(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_RXTLS_MODE], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+getsockopt$inet_tcp_TCP_TXTLS_MODE(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_TXTLS_MODE], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet_tcp_TCP_TXTLS_MODE(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_TXTLS_MODE], optval ptr[in, flags[tls_tx_mode, int32]], optlen len[optval])
+
+tls_tx_mode = TCP_TLS_MODE_NONE, TCP_TLS_MODE_SW, TCP_TLS_MODE_IFNET, TCP_TLS_MODE_TOE
+
+setsockopt$inet_tcp_TCP_TXTLS_ENABLE(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_TXTLS_ENABLE], optval ptr[in, tls_enable], optlen bytesize[optval])
+setsockopt$inet_tcp_TCP_RXTLS_ENABLE(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_RXTLS_ENABLE], optval ptr[in, tls_enable], optlen bytesize[optval])
+
+tls_enable {
+	cipher_key		ptr[in, array[int8]]
+	iv			ptr[in, array[int8]]
+	auth_key		ptr[in, array[int8]]
+	cipher_algorithm	flags[ktls_cipher_algo, int32]
+	cipher_key_len		bytesize[cipher_key, int32]
+	iv_len			bytesize[iv, int32]
+	auth_algorithm		flags[ktls_auth_algo, int32]
+	auth_key_len		bytesize[auth_key, int32]
+	flags			const[0, int32]
+	tls_vmajor		flags[ktls_vmajor, int8]
+	tls_vminor		flags[ktls_vminor, int8]
+	rec_seq			array[int8, 8]
+}
+
+ktls_cipher_algo = CRYPTO_AES_NIST_GCM_16, CRYPTO_AES_CBC, CRYPTO_CHACHA20_POLY1305
+ktls_auth_algo = 0, CRYPTO_AES_128_NIST_GMAC, CRYPTO_AES_192_NIST_GMAC, CRYPTO_AES_256_NIST_GMAC
+ktls_vmajor = TLS_MAJOR_VER_ONE
+ktls_vminor = TLS_MINOR_VER_ZERO, TLS_MINOR_VER_ONE, TLS_MINOR_VER_TWO, TLS_MINOR_VER_THREE

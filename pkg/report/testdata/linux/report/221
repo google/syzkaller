@@ -1,0 +1,33 @@
+TITLE: kernel panic: hung_task: blocked tasks
+CORRUPTED: Y
+
+[  246.756084] Kernel panic - not syncing: hung_task: blocked tasks
+[  246.762271] CPU: 1 PID: 870 Comm: khungtaskd Not tainted 4.16.0-rc7+ #5
+[  246.769011] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  246.778353] Call Trace:
+[  246.780919]  dump_stack+0x194/0x24d
+[  246.784522]  ? arch_local_irq_restore+0x53/0x53
+[  246.789168]  ? vsnprintf+0x1ed/0x1900
+[  246.792946]  panic+0x1e4/0x41c
+[  246.796112]  ? refcount_error_report+0x214/0x214
+[  246.800854]  ? nmi_trigger_cpumask_backtrace+0xf0/0x180
+[  246.806194]  watchdog+0x91d/0xd60
+[  246.809631]  ? reset_hung_task_detector+0xa0/0xa0
+[  246.814452]  ? complete+0x62/0x80
+[  246.817889]  ? __schedule+0x1ec0/0x1ec0
+[  246.821836]  ? do_wait_intr_irq+0x3e0/0x3e0
+[  246.826131]  ? __lockdep_init_map+0xe4/0x650
+[  246.830514]  ? do_raw_spin_trylock+0x190/0x190
+[  246.835071]  ? lockdep_init_map+0x9/0x10
+[  246.839104]  ? _raw_spin_unlock_irqrestore+0x31/0xc0
+[  246.844181]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  246.849168]  ? trace_hardirqs_on+0xd/0x10
+[  246.853289]  ? __kthread_parkme+0x176/0x240
+[  246.857584]  kthread+0x33c/0x400
+[  246.860924]  ? reset_hung_task_detector+0xa0/0xa0
+[  246.865736]  ? kthread_stop+0x7a0/0x7a0
+[  246.869694]  ret_from_fork+0x3a/0x50
+[  246.873891] Dumping ftrace buffer:
+[  246.877662]    (ftrace buffer empty)
+[  246.881355] Kernel Offset: disabled
+[  246.884957] Rebooting in 86400 seconds..

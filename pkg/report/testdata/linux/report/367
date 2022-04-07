@@ -1,0 +1,93 @@
+TITLE: INFO: task hung in mon_bin_read
+ALT: hang in mon_bin_read
+TYPE: HANG
+
+[  286.641449] INFO: task syz-executor.0:6102 blocked for more than 140 seconds.
+[  286.649215]       Not tainted 4.15.0 #3
+[  286.653305] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  286.661454] syz-executor.0  D12800  6102   3860 0x30020000 115507005282
+[  286.668254] Call Trace:
+[  286.670899]  [<ffffffff8144ecbf>] context_switch+0x60f/0xa60
+[  286.676752]  [<ffffffff8100094b>] __schedule+0x59b/0x1d30
+[  286.682357]  [<ffffffff810003b0>] ? __startup_64+0x1c0/0x1c0
+[  286.688189]  [<ffffffff8100216f>] schedule+0x8f/0x1b0
+[  286.693459]  [<ffffffff81002a10>] schedule_preempt_disabled+0x10/0x20
+[  286.700073]  [<ffffffff8100753d>] __mutex_lock+0x82d/0x1430
+[  286.705848]  [<ffffffff83320880>] ? mon_bin_read+0x60/0x640
+[  286.711627]  [<ffffffff81006d10>] ? mutex_trylock+0x1c0/0x1c0
+[  286.717557]  [<ffffffff816a54f6>] ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  286.725001]  [<ffffffff81b7d077>] ? fsnotify+0x4b7/0xce0
+[  286.730519]  [<ffffffff81b7cbc0>] ? fsnotify_first_mark+0x210/0x210
+[  286.731038] audit: type=1326 audit(1554431287.410:64): auid=4294967295 uid=0 gid=0 ses=4294967295 pid=15398 comm="syz-executor.3" exe="/root/syz-executor.3" sig=31 arch=40000003 syscall=265 compat=1 ip=0xf7f5cc69 code=0x0
+[  286.757096]  [<ffffffff81008156>] mutex_lock_nested+0x16/0x20
+[  286.763054]  [<ffffffff81008156>] ? mutex_lock_nested+0x16/0x20
+[  286.769139]  [<ffffffff83320880>] mon_bin_read+0x60/0x640
+[  286.774769]  [<ffffffff81aebd01>] ? __fget+0x2f1/0x6d0
+[  286.780180]  [<ffffffff81a7786d>] __vfs_read+0x8d/0x110
+[  286.785708]  [<ffffffff83320820>] ? copy_from_buf.isra.0+0x1c0/0x1c0
+[  286.792267]  [<ffffffff81a77a82>] vfs_read+0x192/0x3c0
+[  286.797568]  [<ffffffff81a789e9>] SyS_read+0xe9/0x1f0
+[  286.802834]  [<ffffffff81a78900>] ? kernel_write+0x120/0x120
+[  286.808655]  [<ffffffff8101d47a>] ? do_fast_syscall_32+0xca/0xcd1
+[  286.814965]  [<ffffffff81a78900>] ? kernel_write+0x120/0x120
+[  286.820838]  [<ffffffff8101d707>] do_fast_syscall_32+0x357/0xcd1
+[  286.827012]  [<ffffffff810172ec>] ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  286.833770]  [<ffffffff84401a9b>] entry_SYSENTER_compat+0x8b/0x9d
+[  286.840080] RIP: 0023:0xf7f06c69
+[  286.843510] RSP: 002b:00000000f5cc00cc EFLAGS: 00000286 ORIG_RAX: 0000000000000003
+[  286.851313] RAX: ffffffffffffffda RBX: 0000000000000004 RCX: 0000000000000000
+[  286.858602] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
+[  286.866074] RBP: 0000000000000000 R08: 0000000000000000 R09: 0000000000000000
+[  286.873398] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
+[  286.880745] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
+[  286.888048] 
+[  286.888048] Showing all locks held in the system:
+[  286.894449] 2 locks held by khungtaskd/585:
+[  286.898804]  #0:  (rcu_read_lock){....}, at: [<000000005e0a0171>] watchdog+0x147/0xc60
+[  286.906970]  #1:  (tasklist_lock){.+.+}, at: [<000000008b8d4ab8>] debug_show_all_locks+0x7f/0x230
+[  286.916227] 1 lock held by rsyslogd/3747:
+[  286.920443]  #0:  (&f->f_pos_lock){+.+.}, at: [<00000000fb6b1c3a>] __fdget_pos+0xe2/0x110
+[  286.928809] 2 locks held by getty/3829:
+[  286.932840]  #0:  (&tty->ldisc_sem){++++}, at: [<0000000040c39c58>] ldsem_down_read+0x33/0x40
+[  286.941586]  #1:  (&ldata->atomic_read_lock){+.+.}, at: [<00000000099475ab>] n_tty_read+0x220/0x1910
+[  286.950956] 2 locks held by getty/3830:
+[  286.954930]  #0:  (&tty->ldisc_sem){++++}, at: [<0000000040c39c58>] ldsem_down_read+0x33/0x40
+[  286.963681]  #1:  (&ldata->atomic_read_lock){+.+.}, at: [<00000000099475ab>] n_tty_read+0x220/0x1910
+[  286.973035] 2 locks held by getty/3831:
+[  286.977008]  #0:  (&tty->ldisc_sem){++++}, at: [<0000000040c39c58>] ldsem_down_read+0x33/0x40
+[  286.985733]  #1:  (&ldata->atomic_read_lock){+.+.}, at: [<00000000099475ab>] n_tty_read+0x220/0x1910
+[  286.995096] 2 locks held by getty/3832:
+[  286.999064]  #0:  (&tty->ldisc_sem){++++}, at: [<0000000040c39c58>] ldsem_down_read+0x33/0x40
+[  287.007794]  #1:  (&ldata->atomic_read_lock){+.+.}, at: [<00000000099475ab>] n_tty_read+0x220/0x1910
+[  287.017144] 2 locks held by getty/3833:
+[  287.021158]  #0:  (&tty->ldisc_sem){++++}, at: [<0000000040c39c58>] ldsem_down_read+0x33/0x40
+[  287.029857]  #1:  (&ldata->atomic_read_lock){+.+.}, at: [<00000000099475ab>] n_tty_read+0x220/0x1910
+[  287.039221] 2 locks held by getty/3834:
+[  287.043256]  #0:  (&tty->ldisc_sem){++++}, at: [<0000000040c39c58>] ldsem_down_read+0x33/0x40
+[  287.051994]  #1:  (&ldata->atomic_read_lock){+.+.}, at: [<00000000099475ab>] n_tty_read+0x220/0x1910
+[  287.061342] 2 locks held by getty/3835:
+[  287.065316]  #0:  (&tty->ldisc_sem){++++}, at: [<0000000040c39c58>] ldsem_down_read+0x33/0x40
+[  287.074048]  #1:  (&ldata->atomic_read_lock){+.+.}, at: [<00000000099475ab>] n_tty_read+0x220/0x1910
+[  287.083443] 1 lock held by syz-executor.0/6065:
+[  287.088106]  #0:  (&rp->fetch_lock){+.+.}, at: [<0000000032ae6fe1>] mon_bin_read+0x60/0x640
+[  287.096690] 1 lock held by syz-executor.0/6102:
+[  287.101395]  #0:  (&rp->fetch_lock){+.+.}, at: [<0000000032ae6fe1>] mon_bin_read+0x60/0x640
+[  287.110025] 
+[  287.111701] =============================================
+[  287.111701] 
+[  287.118725] NMI backtrace for cpu 1
+[  287.122409] CPU: 1 PID: 585 Comm: khungtaskd Not tainted 4.15.0 #3
+[  287.128734] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  287.138091] Call Trace:
+[  287.140701]  [<ffffffff8427bc32>] dump_stack+0x14d/0x20b
+[  287.146181]  [<ffffffff8134ac01>] ? x86_vector_activate.cold+0xb8/0xb8
+[  287.152875]  [<ffffffff842881b7>] nmi_cpu_backtrace.cold+0x19/0x98
+[  287.159219]  [<ffffffff8134ac80>] ? lapic_can_unplug_cpu.cold+0x38/0x38
+[  287.165998]  [<ffffffff8428818a>] nmi_trigger_cpumask_backtrace+0x16a/0x17e
+[  287.173124]  [<ffffffff8134ad94>] arch_trigger_cpumask_backtrace+0x14/0x20
+[  287.180180]  [<ffffffff816a623d>] watchdog+0x7bd/0xc60
+[  287.185489]  [<ffffffff81427a78>] kthread+0x348/0x420
+[  287.190690]  [<ffffffff816a5a80>] ? reset_hung_task_detector+0x20/0x20
+[  287.197374]  [<ffffffff81427730>] ? kthread_create_worker_on_cpu+0xf0/0xf0
+[  287.204398]  [<ffffffff84400261>] ret_from_fork+0x61/0x70
+[  287.210065] Sending NMI from CPU 1 to CPUs 0:

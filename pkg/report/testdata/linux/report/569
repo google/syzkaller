@@ -1,0 +1,54 @@
+TITLE: KASAN: invalid-access Read in enqueue_timer
+ALT: bad-access in enqueue_timer
+
+[ 1039.654796][    C0] ==================================================================
+[ 1039.655950][    C0] BUG: KASAN: invalid-access in enqueue_timer+0x18/0xc0
+[ 1039.658389][    C0] Read at addr 07ff00002327cda0 by task kworker/0:0/5
+[ 1039.659862][    C0] Pointer tag: [07], memory tag: [ff]
+[ 1039.661155][    C0] 
+[ 1039.661936][    C0] CPU: 0 PID: 5 Comm: kworker/0:0 Not tainted 5.11.0-rc3 #36
+[ 1039.663186][    C0] Hardware name: linux,dummy-virt (DT)
+[ 1039.664468][    C0] Workqueue: wg-crypt-wg1 wg_packet_decrypt_worker
+[ 1039.665932][    C0] Call trace:
+[ 1039.666550][    C0]  dump_backtrace+0x0/0x1a4
+[ 1039.667401][    C0]  show_stack+0x1c/0x70
+[ 1039.668253][    C0]  dump_stack+0xd0/0x12c
+[ 1039.669087][    C0]  print_address_description+0x70/0x29c
+[ 1039.670037][    C0]  kasan_report+0x104/0x200
+[ 1039.670900][    C0]  __do_kernel_fault+0x17c/0x1c0
+[ 1039.671785][    C0]  do_tag_check_fault+0x6c/0x80
+[ 1039.672644][    C0]  do_mem_abort+0x44/0xb4
+[ 1039.673529][    C0]  el1_abort+0x40/0x6c
+[ 1039.674345][    C0]  el1_sync_handler+0xb0/0xcc
+[ 1039.675169][    C0]  el1_sync+0x70/0x100
+[ 1039.675933][    C0]  enqueue_timer+0x18/0xc0
+[ 1039.676761][    C0]  mod_timer+0x18/0x24
+[ 1039.677571][    C0]  wg_timers_any_authenticated_packet_traversal+0x68/0x8c
+[ 1039.678639][    C0]  wg_packet_rx_poll+0x340/0x6b0
+[ 1039.679498][    C0]  net_rx_action+0x180/0x490
+[ 1039.680388][    C0]  _stext+0x12c/0x2b4
+[ 1039.681205][    C0]  do_softirq+0x98/0xa4
+[ 1039.682006][    C0]  __local_bh_enable_ip+0xa8/0xbc
+[ 1039.682913][    C0]  _raw_spin_unlock_bh+0x3c/0x64
+[ 1039.683851][    C0]  wg_packet_decrypt_worker+0xfc/0x1c4
+[ 1039.684865][    C0]  process_one_work+0x1d8/0x360
+[ 1039.685738][    C0]  worker_thread+0x74/0x440
+[ 1039.686557][    C0]  kthread+0x178/0x180
+[ 1039.687345][    C0]  ret_from_fork+0x10/0x30
+[ 1039.688322][    C0] 
+[ 1039.688946][    C0] The buggy address belongs to the page:
+[ 1039.690015][    C0] page:00000000ecc16909 refcount:1 mapcount:0 mapping:0000000000000000 index:0x0 pfn:0x63278
+[ 1039.691507][    C0] head:00000000ecc16909 order:3 compound_mapcount:0 compound_pincount:0
+[ 1039.692784][    C0] flags: 0x1ffffc000010000(head)
+[ 1039.694169][    C0] raw: 01ffffc000010000 dead000000000100 dead000000000122 0000000000000000
+[ 1039.695467][    C0] raw: 0000000000000000 0000000000000000 00000001ffffffff 0000000000000000
+[ 1039.696662][    C0] page dumped because: kasan: bad access detected
+[ 1039.697642][    C0] 
+[ 1039.698174][    C0] Memory state around the buggy address:
+[ 1039.699291][    C0]  ffff00002327cb00: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+[ 1039.700514][    C0]  ffff00002327cc00: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+[ 1039.701658][    C0] >ffff00002327cd00: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+[ 1039.702775][    C0]                                                  ^
+[ 1039.703920][    C0]  ffff00002327ce00: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+[ 1039.705131][    C0]  ffff00002327cf00: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+[ 1039.706190][    C0] ==================================================================

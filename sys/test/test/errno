@@ -1,0 +1,7 @@
+syz_errno(0x0)
+syz_errno(0x0)
+syz_errno(0x16)		# EINVAL
+syz_errno(0x0)
+syz_errno(0xc)		# ENOMEM
+syz_errno(0x9)		# EBADF
+syz_errno(0x0)

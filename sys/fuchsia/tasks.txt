@@ -1,0 +1,15 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+include <zircon/syscalls/exception.h>
+
+resource zx_task[zx_handle]
+
+zx_task_create_exception_channel(task zx_task, options flags[exception_channel_options], out ptr[out, zx_chan])
+
+# This is disabled until we figure out how to prevent executor from killing fuzzer (#594).
+# zx_task_kill(handle zx_task)
+# zx_task_suspend(handle zx_task, token ptr[out, zx_handle])
+
+exception_channel_options = ZX_EXCEPTION_CHANNEL_DEBUGGER

@@ -1,0 +1,6 @@
+TITLE: INFO: rcu detected stall in corrupted
+ALT: stall in corrupted
+TYPE: HANG
+CORRUPTED: Y
+
+[   50.583499] INFO: rcu_sched self-detected stall on CPU

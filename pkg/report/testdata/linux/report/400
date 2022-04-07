@@ -1,0 +1,43 @@
+TITLE: WARNING in blk_sync_queue
+
+WARNING: CPU: 1 PID: 3214 at kernel/workqueue.c:2911 __flush_work+0x740/0x880 kernel/workqueue.c:2911
+Kernel panic - not syncing: panic_on_warn set ...
+
+CPU: 1 PID: 3214 Comm: kworker/1:2 Not tainted 4.19.38 #6
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Workqueue: md_misc mddev_delayed_delete
+Call Trace:
+ __dump_stack lib/dump_stack.c:77 [inline]
+ dump_stack+0x172/0x1f0 lib/dump_stack.c:113
+ panic+0x263/0x51d kernel/panic.c:185
+ __warn.cold+0x20/0x54 kernel/panic.c:540
+ report_bug+0x263/0x2b0 lib/bug.c:186
+ fixup_bug arch/x86/kernel/traps.c:178 [inline]
+ fixup_bug arch/x86/kernel/traps.c:173 [inline]
+ do_error_trap+0x204/0x360 arch/x86/kernel/traps.c:296
+ do_invalid_op+0x1b/0x20 arch/x86/kernel/traps.c:316
+ invalid_op+0x14/0x20 arch/x86/entry/entry_64.S:997
+RIP: 0010:__flush_work+0x740/0x880 kernel/workqueue.c:2911
+Code: 74 58 e8 63 59 25 00 fb 66 0f 1f 44 00 00 45 31 e4 e9 86 fd ff ff e8 4f 59 25 00 0f 0b 45 31 e4 e9 77 fd ff ff e8 40 59 25 00 <0f> 0b 45 31 e4 e9 68 fd ff ff e8 31 59 25 00 4c 89 ff 45 31 e4 e8
+RSP: 0018:ffff88809bc3f990 EFLAGS: 00010293
+RAX: ffff88809bc10640 RBX: dffffc0000000000 RCX: ffffffff8146100b
+RDX: 0000000000000000 RSI: ffffffff814616b0 RDI: 0000000000000001
+RBP: ffff88809bc3faf8 R08: ffff88809bc10640 R09: ffff88809bc10f08
+R10: 0000000000000000 R11: 0000000000000000 R12: ffff88809aca8690
+R13: ffff88809bc3fad0 R14: 0000000000000001 R15: 0000000000000001
+ __cancel_work_timer+0x3bf/0x520 kernel/workqueue.c:3007
+ cancel_work_sync+0x18/0x20 kernel/workqueue.c:3043
+ blk_sync_queue+0x33/0x1c0 block/blk-core.c:408
+ blk_cleanup_queue+0x404/0x720 block/blk-core.c:807
+ md_free+0xcb/0x1b0 drivers/md/md.c:5223
+ kobject_cleanup lib/kobject.c:662 [inline]
+ kobject_release lib/kobject.c:691 [inline]
+ kref_put include/linux/kref.h:70 [inline]
+ kobject_put.cold+0x28f/0x2ec lib/kobject.c:708
+ mddev_delayed_delete+0x34/0x40 drivers/md/md.c:5251
+ process_one_work+0x98e/0x1760 kernel/workqueue.c:2153
+ worker_thread+0x98/0xe40 kernel/workqueue.c:2296
+ kthread+0x357/0x430 kernel/kthread.c:246
+ ret_from_fork+0x3a/0x50 arch/x86/entry/entry_64.S:413
+Kernel Offset: disabled
+Rebooting in 86400 seconds..

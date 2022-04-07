@@ -1,0 +1,2 @@
+no-such-struct: vfio_iommu_type1_info [arm]
+no-such-struct: vfio_iommu_type1_dma_map [arm]

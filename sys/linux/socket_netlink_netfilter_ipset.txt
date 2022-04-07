@@ -1,0 +1,166 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/net.h>
+include <linux/socket.h>
+include <uapi/asm-generic/socket.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/netfilter.h>
+include <uapi/linux/netfilter/nfnetlink.h>
+include <uapi/linux/netfilter/ipset/ip_set.h>
+
+type ip_set_id_t int16[-1:4]
+
+getsockopt$IP_SET_OP_GET_BYNAME(fd sock, level const[SOL_SOCKET], opt const[SO_IP_SET], val ptr[in, ip_set_req_get_set_byname], len ptr[inout, len[val, int32]])
+getsockopt$IP_SET_OP_GET_BYINDEX(fd sock, level const[SOL_SOCKET], opt const[SO_IP_SET], val ptr[in, ip_set_req_get_set_byindex], len ptr[inout, len[val, int32]])
+getsockopt$IP_SET_OP_GET_FNAME(fd sock, level const[SOL_SOCKET], opt const[SO_IP_SET], val ptr[in, ip_set_req_get_set_family], len ptr[inout, len[val, int32]])
+getsockopt$IP_SET_OP_VERSION(fd sock, level const[SOL_SOCKET], opt const[SO_IP_SET], val ptr[in, ip_set_req_version], len ptr[inout, len[val, int32]])
+
+ip_set_req_get_set_byname {
+	op	const[IP_SET_OP_GET_BYNAME, int32]
+	version	const[IPSET_PROTOCOL, int32]
+	name	string[ipset_name, IPSET_MAXNAMELEN]
+} [size[IP_SET_REQ_GET_SET_SIZE]]
+
+ip_set_req_get_set_byindex {
+	op	const[IP_SET_OP_GET_BYINDEX, int32]
+	version	const[IPSET_PROTOCOL, int32]
+	index	ip_set_id_t
+} [size[IP_SET_REQ_GET_SET_SIZE]]
+
+ip_set_req_get_set_family {
+	op	const[IP_SET_OP_GET_FNAME, int32]
+	version	const[IPSET_PROTOCOL, int32]
+	family	const[0, int32]
+	name	string[ipset_name, IPSET_MAXNAMELEN]
+}
+
+ip_set_req_version {
+	op	const[IP_SET_OP_VERSION, int32]
+	version	const[0, int32]
+}
+
+define IP_SET_REQ_GET_SET_SIZE	sizeof(struct ip_set_req_get_set)
+
+type msghdr_ipset[CMD, POLICY] msghdr_netlink[netlink_msg_netfilter_t[NFNL_SUBSYS_IPSET, CMD, POLICY]]
+
+sendmsg$IPSET_CMD_CREATE(fd sock_nl_netfilter, msg ptr[in, msghdr_ipset[IPSET_CMD_CREATE, ip_set_create_policy]], f flags[send_flags])
+sendmsg$IPSET_CMD_DESTROY(fd sock_nl_netfilter, msg ptr[in, msghdr_ipset[IPSET_CMD_DESTROY, ip_set_setname_policy]], f flags[send_flags])
+sendmsg$IPSET_CMD_FLUSH(fd sock_nl_netfilter, msg ptr[in, msghdr_ipset[IPSET_CMD_FLUSH, ip_set_setname_policy]], f flags[send_flags])
+sendmsg$IPSET_CMD_RENAME(fd sock_nl_netfilter, msg ptr[in, msghdr_ipset[IPSET_CMD_RENAME, ip_set_setname2_policy]], f flags[send_flags])
+sendmsg$IPSET_CMD_SWAP(fd sock_nl_netfilter, msg ptr[in, msghdr_ipset[IPSET_CMD_SWAP, ip_set_setname2_policy]], f flags[send_flags])
+sendmsg$IPSET_CMD_LIST(fd sock_nl_netfilter, msg ptr[in, msghdr_ipset[IPSET_CMD_LIST, ip_set_dump_policy]], f flags[send_flags])
+sendmsg$IPSET_CMD_SAVE(fd sock_nl_netfilter, msg ptr[in, msghdr_ipset[IPSET_CMD_SAVE, ip_set_setname_policy]], f flags[send_flags])
+sendmsg$IPSET_CMD_ADD(fd sock_nl_netfilter, msg ptr[in, msghdr_ipset[IPSET_CMD_ADD, ip_set_adt_policy]], f flags[send_flags])
+sendmsg$IPSET_CMD_DEL(fd sock_nl_netfilter, msg ptr[in, msghdr_ipset[IPSET_CMD_DEL, ip_set_adt_policy]], f flags[send_flags])
+sendmsg$IPSET_CMD_TEST(fd sock_nl_netfilter, msg ptr[in, msghdr_ipset[IPSET_CMD_TEST, ip_set_adt_policy]], f flags[send_flags])
+sendmsg$IPSET_CMD_HEADER(fd sock_nl_netfilter, msg ptr[in, msghdr_ipset[IPSET_CMD_HEADER, ip_set_setname_policy]], f flags[send_flags])
+sendmsg$IPSET_CMD_TYPE(fd sock_nl_netfilter, msg ptr[in, msghdr_ipset[IPSET_CMD_TYPE, ip_set_type_policy]], f flags[send_flags])
+sendmsg$IPSET_CMD_PROTOCOL(fd sock_nl_netfilter, msg ptr[in, msghdr_ipset[IPSET_CMD_PROTOCOL, ip_set_protocol_policy]], f flags[send_flags])
+sendmsg$IPSET_CMD_GET_BYNAME(fd sock_nl_netfilter, msg ptr[in, msghdr_ipset[IPSET_CMD_GET_BYNAME, ip_set_setname_policy]], f flags[send_flags])
+sendmsg$IPSET_CMD_GET_BYINDEX(fd sock_nl_netfilter, msg ptr[in, msghdr_ipset[IPSET_CMD_GET_BYINDEX, ip_set_index_policy]], f flags[send_flags])
+
+ip_set_create_policy [
+	IPSET_ATTR_PROTOCOL	nlattr[IPSET_ATTR_PROTOCOL, const[IPSET_PROTOCOL, int8]]
+	IPSET_ATTR_SETNAME	nlattr[IPSET_ATTR_SETNAME, string[ipset_name]]
+	IPSET_ATTR_TYPENAME	nlattr[IPSET_ATTR_TYPENAME, string[ipset_type]]
+	IPSET_ATTR_REVISION	nlattr[IPSET_ATTR_REVISION, int8[0:3]]
+	IPSET_ATTR_FAMILY	nlattr[IPSET_ATTR_FAMILY, flags[nfproto, int8]]
+	IPSET_ATTR_DATA		nlnest[IPSET_ATTR_DATA, array[ip_set_type_create_policy]]
+] [varlen]
+
+ip_set_adt_policy [
+	IPSET_ATTR_PROTOCOL	nlattr[IPSET_ATTR_PROTOCOL, const[IPSET_PROTOCOL, int8]]
+	IPSET_ATTR_SETNAME	nlattr[IPSET_ATTR_SETNAME, string[ipset_name]]
+	IPSET_ATTR_LINENO	nlnetw[IPSET_ATTR_LINENO, int32be]
+	IPSET_ATTR_DATA		nlnest[IPSET_ATTR_DATA, array[ip_set_type_adt_policy]]
+	IPSET_ATTR_ADT		nlnest[IPSET_ATTR_ADT, array[nlnest[IPSET_ATTR_DATA, ip_set_type_adt_policy]]]
+] [varlen]
+
+ip_set_setname_policy [
+	IPSET_ATTR_PROTOCOL	nlattr[IPSET_ATTR_PROTOCOL, const[IPSET_PROTOCOL, int8]]
+	IPSET_ATTR_SETNAME	nlattr[IPSET_ATTR_SETNAME, string[ipset_name]]
+] [varlen]
+
+ip_set_setname2_policy [
+	IPSET_ATTR_PROTOCOL	nlattr[IPSET_ATTR_PROTOCOL, const[IPSET_PROTOCOL, int8]]
+	IPSET_ATTR_SETNAME	nlattr[IPSET_ATTR_SETNAME, string[ipset_name]]
+	IPSET_ATTR_SETNAME2	nlattr[IPSET_ATTR_SETNAME2, string[ipset_name]]
+] [varlen]
+
+ip_set_dump_policy [
+	IPSET_ATTR_PROTOCOL	nlattr[IPSET_ATTR_PROTOCOL, const[IPSET_PROTOCOL, int8]]
+	IPSET_ATTR_SETNAME	nlattr[IPSET_ATTR_SETNAME, string[ipset_name]]
+	IPSET_ATTR_FLAGS	nlnetw[IPSET_ATTR_FLAGS, int32be]
+] [varlen]
+
+ip_set_type_policy [
+	IPSET_ATTR_PROTOCOL	nlattr[IPSET_ATTR_PROTOCOL, const[IPSET_PROTOCOL, int8]]
+	IPSET_ATTR_TYPENAME	nlattr[IPSET_ATTR_TYPENAME, string[ipset_type]]
+	IPSET_ATTR_FAMILY	nlattr[IPSET_ATTR_FAMILY, flags[nfproto, int8]]
+] [varlen]
+
+ip_set_protocol_policy [
+	IPSET_ATTR_PROTOCOL	nlattr[IPSET_ATTR_PROTOCOL, const[IPSET_PROTOCOL, int8]]
+] [varlen]
+
+ip_set_index_policy [
+	IPSET_ATTR_PROTOCOL	nlattr[IPSET_ATTR_PROTOCOL, const[IPSET_PROTOCOL, int8]]
+	IPSET_ATTR_INDEX	nlattr[IPSET_ATTR_INDEX, ip_set_id_t]
+] [varlen]
+
+ip_set_type_create_policy [
+	IPSET_ATTR_IP		nlnest[IPSET_ATTR_IP, ipaddr_policy]
+	IPSET_ATTR_IP_TO	nlnest[IPSET_ATTR_IP_TO, ipaddr_policy]
+	IPSET_ATTR_CIDR		nlattr[IPSET_ATTR_CIDR, int8]
+	IPSET_ATTR_PORT		nlnetw[IPSET_ATTR_PORT, sock_port]
+	IPSET_ATTR_PORT_TO	nlnetw[IPSET_ATTR_PORT_TO, sock_port]
+	IPSET_ATTR_TIMEOUT	nlnetw[IPSET_ATTR_TIMEOUT, int32be]
+	IPSET_ATTR_PROTO	nlattr[IPSET_ATTR_PROTO, flags[ipv4_types, int8]]
+	IPSET_ATTR_CADT_FLAGS	nlnetw[IPSET_ATTR_CADT_FLAGS, flags[ipset_cadt_flags, int32be]]
+	IPSET_ATTR_LINENO	nlnetw[IPSET_ATTR_LINENO, int32be]
+	IPSET_ATTR_MARK		nlnetw[IPSET_ATTR_MARK, int32be]
+	IPSET_ATTR_MARKMASK	nlnetw[IPSET_ATTR_MARKMASK, int32be]
+	IPSET_ATTR_HASHSIZE	nlnetw[IPSET_ATTR_HASHSIZE, int32be]
+	IPSET_ATTR_MAXELEM	nlnetw[IPSET_ATTR_MAXELEM, int32be]
+	IPSET_ATTR_NETMASK	nlattr[IPSET_ATTR_NETMASK, int8]
+	IPSET_ATTR_BUCKETSIZE	nlattr[IPSET_ATTR_BUCKETSIZE, int8]
+	IPSET_ATTR_SIZE		nlnetw[IPSET_ATTR_SIZE, int32be]
+] [varlen]
+
+ip_set_type_adt_policy [
+	IPSET_ATTR_IP		nlnest[IPSET_ATTR_IP, ipaddr_policy]
+	IPSET_ATTR_IP_TO	nlnest[IPSET_ATTR_IP_TO, ipaddr_policy]
+	IPSET_ATTR_CIDR		nlattr[IPSET_ATTR_CIDR, int8]
+	IPSET_ATTR_PORT		nlnetw[IPSET_ATTR_PORT, sock_port]
+	IPSET_ATTR_PORT_TO	nlnetw[IPSET_ATTR_PORT_TO, sock_port]
+	IPSET_ATTR_TIMEOUT	nlnetw[IPSET_ATTR_TIMEOUT, int32be]
+	IPSET_ATTR_PROTO	nlattr[IPSET_ATTR_PROTO, flags[ipv4_types, int8]]
+	IPSET_ATTR_CADT_FLAGS	nlnetw[IPSET_ATTR_CADT_FLAGS, flags[ipset_cadt_flags, int32be]]
+	IPSET_ATTR_LINENO	nlnetw[IPSET_ATTR_LINENO, int32be]
+	IPSET_ATTR_MARK		nlnetw[IPSET_ATTR_MARK, int32be]
+	IPSET_ATTR_MARKMASK	nlnetw[IPSET_ATTR_MARKMASK, int32be]
+	IPSET_ATTR_ETHER	nlattr[IPSET_ATTR_ETHER, mac_addr]
+	IPSET_ATTR_NAME		nlattr[IPSET_ATTR_NAME, string[ipset_name]]
+	IPSET_ATTR_NAMEREF	nlattr[IPSET_ATTR_NAMEREF, string[ipset_name]]
+	IPSET_ATTR_IP2		nlnest[IPSET_ATTR_IP2, ipaddr_policy]
+	IPSET_ATTR_CIDR2	nlattr[IPSET_ATTR_CIDR2, int8]
+	IPSET_ATTR_IP2_TO	nlnest[IPSET_ATTR_IP2_TO, ipaddr_policy]
+	IPSET_ATTR_IFACE	nlattr[IPSET_ATTR_IFACE, devname]
+	IPSET_ATTR_BYTES	nlnetw[IPSET_ATTR_BYTES, int64be]
+	IPSET_ATTR_PACKETS	nlnetw[IPSET_ATTR_PACKETS, int64be]
+	IPSET_ATTR_COMMENT	nlattr[IPSET_ATTR_COMMENT, string]
+	IPSET_ATTR_SKBMARK	nlnetw[IPSET_ATTR_SKBMARK, int64be]
+	IPSET_ATTR_SKBPRIO	nlnetw[IPSET_ATTR_SKBPRIO, int32be]
+	IPSET_ATTR_SKBQUEUE	nlnetw[IPSET_ATTR_SKBQUEUE, int16be]
+] [varlen]
+
+ipaddr_policy [
+# TODO: should ipv4_addr be in reverse byte order here?
+	IPSET_ATTR_IPADDR_IPV4	nlnetw[IPSET_ATTR_IPADDR_IPV4, ipv4_addr]
+	IPSET_ATTR_IPADDR_IPV6	nlnetw[IPSET_ATTR_IPADDR_IPV6, ipv6_addr]
+] [varlen]
+
+ipset_name = "syz0", "syz1", "syz2"
+ipset_type = "list:set", "bitmap:ip", "bitmap:port", "hash:net,port,net", "hash:net,port", "hash:net,net", "hash:net,iface", "hash:net", "hash:mac", "hash:ip,port,net", "hash:ip,port,ip", "hash:ip,port", "hash:ip,mark", "hash:ip", "hash:ip,mac", "hash:ip", "bitmap:ip,mac"
+ipset_cadt_flags = IPSET_FLAG_BEFORE, IPSET_FLAG_PHYSDEV, IPSET_FLAG_NOMATCH, IPSET_FLAG_WITH_COUNTERS, IPSET_FLAG_WITH_COMMENT, IPSET_FLAG_WITH_FORCEADD, IPSET_FLAG_WITH_SKBINFO, IPSET_FLAG_IFACE_WILDCARD

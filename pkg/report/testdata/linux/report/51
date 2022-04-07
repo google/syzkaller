@@ -1,0 +1,16 @@
+TITLE: memory leak in do_ipv6_setsockopt
+TYPE: LEAK
+
+2018/01/09 14:28:48 BUG: memory leak
+unreferenced object 0xffff880039a55260 (size 64): 
+  comm "executor", pid 11746, jiffies 4298984475 (age 16.078s) 
+  hex dump (first 32 bytes): 
+    2f 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  /............... 
+    00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................ 
+  backtrace: 
+    [<ffffffff848a2f5f>] sock_kmalloc+0x7f/0xc0 net/core/sock.c:1774 
+    [<ffffffff84e5bea0>] do_ipv6_setsockopt.isra.7+0x15d0/0x2830 net/ipv6/ipv6_sockglue.c:483 
+    [<ffffffff84e5d19b>] ipv6_setsockopt+0x9b/0x140 net/ipv6/ipv6_sockglue.c:885 
+    [<ffffffff8544616c>] sctp_setsockopt+0x15c/0x36c0 net/sctp/socket.c:3702 
+    [<ffffffff848a2035>] sock_common_setsockopt+0x95/0xd0 net/core/sock.c:2645 
+    [<ffffffff8489f1d8>] SyS_setsockopt+0x158/0x240 net/socket.c:1736 

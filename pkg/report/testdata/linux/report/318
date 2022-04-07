@@ -1,0 +1,31 @@
+TITLE: INFO: rcu detected stall in kvm_vm_compat_ioctl
+ALT: stall in kvm_vm_compat_ioctl
+TYPE: HANG
+
+[  393.750282] INFO: rcu_sched self-detected stall on CPU
+[  393.755773] 	1: (104999 ticks this GP) idle=235/140000000000001/0 softirq=67058/67058 fqs=202 
+[  393.764498] 	 (t=105000 jiffies g=29066 c=29065 q=1109)
+[  393.769976] rcu_sched kthread starved for 104281 jiffies! g29066 c29065 f0x0 s3 ->state=0x0
+[  393.778490] Task dump for CPU 1:
+[  393.781838] syz-executor5   R running task on cpu   1     0 16797   3934 0x30020008 288748335923
+[  393.791005]  0000000000000f5e 000000009e46eea7 ffff8801dab07bc0 ffffffff8170cafa
+[  393.799139]  ffff8801dab1f8c0 0000000000000001 dffffc0000000000 ffffffff83fd1880
+[  393.807174]  ffffffff83fd18f4 ffff8801dab07bd0 ffffffff8170d27f ffff8801dab07bf0
+[  393.815239] Call Trace:
+[  393.817802]  <IRQ>  [<ffffffff8170cafa>] _sched_show_task+0x31a/0x325
+[  393.824517]  [<ffffffff8170d27f>] sched_show_task+0x10/0x12
+[  393.830211]  [<ffffffff8170d424>] dump_cpu_task+0x7e/0x83
+[  393.835736]  [<ffffffff8171694f>] rcu_dump_cpu_stacks+0x155/0x169
+[  393.841950]  [<ffffffff81717294>] rcu_check_callbacks.cold.75+0x61e/0xc77
+[  393.854649]  [<ffffffff81512ccf>] update_process_times+0x3f/0x70
+[  393.860782]  [<ffffffff8153c1ca>] tick_sched_handle.isra.16+0x5a/0x100
+[  393.867430]  [<ffffffff8153c87a>] tick_sched_timer+0x7a/0x130
+[  393.873296]  [<ffffffff81515e05>] __hrtimer_run_queues+0x3a5/0xc50
+[  393.911466]  [<ffffffff8151702e>] hrtimer_interrupt+0x18e/0x400
+[  393.917506]  [<ffffffff812af344>] local_apic_timer_interrupt+0x74/0x90
+[  393.924153]  [<ffffffff81012fba>] smp_trace_apic_timer_interrupt+0x13a/0x4bd
+[  393.931325]  [<ffffffff81011d42>] smp_trace_apic_timer_interrupt_entry_after_kaiser_bti+0x20/0x2e
+[  393.940311]  <EOI>  [<ffffffff814f00eb>] ? debug_lockdep_rcu_enabled+0x3b/0x90
+[  394.076457]  [<ffffffff81085d5c>] kvm_vm_compat_ioctl+0x13c/0x250
+[  394.106616]  [<ffffffff819d8ee0>] compat_SyS_ioctl+0x650/0x2180
+[  394.178750]  [<ffffffff830a99b0>] sysenter_dispatch+0xf/0x32

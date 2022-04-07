@@ -1,0 +1,5 @@
+no-such-struct: vfs_cap_data_v1
+no-such-struct: vfs_cap_elem
+no-such-struct: evm_ima_xattr_digest_md5
+no-such-struct: evm_ima_xattr_digest_sha1
+no-such-struct: xattr_overlay_nlink

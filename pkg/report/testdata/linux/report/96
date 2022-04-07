@@ -1,0 +1,13 @@
+TITLE: kernel panic: Fatal exception
+CORRUPTED: Y
+
+[  128.792466] R10: 00000000000f4244 R11: 0000000000000217 R12: 00000000004bbb5d
+[  128.792471] R13: 00000000ffffffff R14: 000000000000001a R15: 000000000000001b
+[  128.792489] Code: 48 0f 44 da e8 c0 5b c4 ff 48 8b 85 28 ff ff ff 4d 89 f1 4c 89 e9 4c 89 e2 48 89 de 48 c7 c7 20 a3 f1 84 49 89 c0 e8 13 68 ae ff <0f> 0b 48 c7 c0 e0 a0 f1 84 eb 96 48 c7 c0 20 a1 f1 84 eb 8d 48 
+[  128.792644] RIP: __check_object_size+0x3a2/0x4f0 RSP: ffff8801c15d7148
+[  128.792706] ---[ end trace 794afb02691fabdc ]---
+[  128.792710] Kernel panic - not syncing: Fatal exception
+[  128.793235] Dumping ftrace buffer:
+[  128.793239]    (ftrace buffer empty)
+[  128.793242] Kernel Offset: disabled
+[  129.380444] Rebooting in 86400 seconds..

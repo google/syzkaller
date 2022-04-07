@@ -1,0 +1,20 @@
+TITLE: WARNING in corrupted
+CORRUPTED: Y
+
+------------[ cut here ]------------
+WARNING: CPU: 0 PID: 8775 at net/ipv6/xfrm6_tunnel.c:345 xfrm6_tunnel_net_exit+0x84/0x104
+Kernel panic - not syncing: panic_on_warn set ...
+
+CPU: 0 PID: 8775 Comm: kworker/u10:2 Not tainted 4.17.0-rc1+ #11
+Hardware name: ARM-Versatile Express
+Workqueue: netns cleanup_net
+[<8011218c>] (unwind_backtrace) from [<8010e300>] (show_stack+0x18/0x1c)
+[<8010e300>] (show_stack) from [<80b12478>] (dump_stack+0xa0/0xc0)
+[<80b12478>] (dump_stack) from [<801349a8>] (panic+0x104/0x2cc)
+[<801349a8>] (panic) from [<8013479c>] (warn_slowpath_fmt+0x0/0x5c)
+[<8013479c>] (warn_slowpath_fmt) from [<ffffffff>] (0xffffffff)
+Exception stack(0x8d2d3e90 to 0x8d2d3ed8)
+3e80:                                     00000000 00000000 9f7003c0 9f700000
+3ea0: 9f700400 809be104 9eb79d80 809be080 8d2d3ef0 80f3ebe8 00000000 8d2d3ef0
+3ec0: ffffffff 807fc920 80f3ebe8 80f3686c 80f3688c 9eb7ac40
+Rebooting in 86400 seconds..

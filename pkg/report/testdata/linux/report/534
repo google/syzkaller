@@ -1,0 +1,43 @@
+TITLE: INFO: task hung in register_netdevice_notifier
+ALT: hang in register_netdevice_notifier
+TYPE: HANG
+
+[  610.334229][ T1478] INFO: task syz-fuzzer:4433 blocked for more than 143 seconds.
+[  610.337281][ T1478]       Not tainted 5.9.0-12994-gf9893351acae #15
+[  610.338689][ T1478] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  610.361669][ T1478] task:syz-fuzzer      state:D stack:    0 pid: 4433 ppid:  4402 flags:0x00000001
+[  610.364848][ T1478] Call trace:
+[  610.366182][ T1478]  __switch_to+0x210/0x450
+[  610.367628][ T1478]  __schedule+0x894/0x1eb8
+[  610.368937][ T1478]  schedule+0xac/0x228
+[  610.371513][ T1478]  rwsem_down_write_slowpath+0x604/0xc98
+[  610.373033][ T1478]  down_write+0x134/0x1f0
+[  610.374427][ T1478]  register_netdevice_notifier+0x38/0x238
+[  610.375901][ T1478]  bcm_init+0x144/0x1b8
+[  610.377193][ T1478]  can_create+0x244/0x498
+[  610.378892][ T1478]  __sock_create+0x3ec/0x740
+[  610.401364][ T1478]  __sys_socket+0xf0/0x208
+[  610.403935][ T1478]  __arm64_sys_socket+0x70/0xa8
+[  610.405432][ T1478]  el0_svc_common.constprop.0+0x158/0x530
+[  610.406871][ T1478]  do_el0_svc+0x58/0x148
+[  610.408121][ T1478]  el0_sync_handler+0x1f4/0x200
+[  610.409317][ T1478]  el0_sync+0x174/0x180
+[  610.412964][ T1478] 
+[  610.412964][ T1478] Showing all locks held in the system:
+[  610.415916][ T1478] 4 locks held by kworker/u8:0/7:
+[  610.417901][ T1478] 1 lock held by khungtaskd/1478:
+[  610.419240][ T1478]  #0: ffffa00019769560 (rcu_read_lock){....}-{1:2}, at: debug_show_all_locks+0x70/0x258
+[  610.446034][ T1478] 3 locks held by kworker/3:1/1855:
+[  610.447236][ T1478]  #0: ffff000040020d38 ((wq_completion)events){+.+.}-{0:0}, at: process_one_work+0x76c/0x1af8
+[  610.472660][ T1478]  #1: ffff000040c5fd40 ((work_completion)(&fqdir->destroy_work)){+.+.}-{0:0}, at: process_one_work+0x76c/0x1af8
+[  610.476736][ T1478]  #2: ffffa0001976f170 (rcu_state.barrier_mutex){+.+.}-{3:3}, at: rcu_barrier+0x48/0x528
+[  610.484255][ T1478] 1 lock held by klogd/4083:
+[  610.486172][ T1478] 1 lock held by dhcpcd/4135:
+[  610.487825][ T1478]  #0: ffff000049d2c120 (sk_lock-AF_PACKET){+.+.}-{0:0}, at: packet_do_bind+0x48/0xea8
+[  610.494582][ T1478] 2 locks held by getty/4253:
+[  610.499360][ T1478]  #0: ffff00004aeec098 (&tty->ldisc_sem){++++}-{0:0}, at: ldsem_down_read+0x44/0x58
+[  610.535135][ T1478]  #1: ffffa0001e3fc2e8 (&ldata->atomic_read_lock){+.+.}-{3:3}, at: n_tty_read+0x1d0/0x1bd8
+[  610.539204][ T1478] 1 lock held by syz-fuzzer/4433:
+[  610.561088][ T1478]  #0: ffffa0001ad1ceb0 (pernet_ops_rwsem){++++}-{3:3}, at: register_netdevice_notifier+0x38/0x238
+[  610.566582][ T1478] 
+[  610.624513][ T1478] =============================================

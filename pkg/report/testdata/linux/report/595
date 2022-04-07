@@ -1,0 +1,24 @@
+TITLE: KFENCE: invalid free in test_invalid_addr_free
+ALT: invalid-free in test_invalid_addr_free
+
+[    4.764967] ==================================================================
+[    4.765977] BUG: KFENCE: invalid free in test_invalid_addr_free+0xb4/0x17e
+[    4.765977] 
+[    4.767161] Invalid free of 0xffff8c2aae248001 (in kfence-#35):
+[    4.767986]  test_invalid_addr_free+0xb4/0x17e
+[    4.768607]  kunit_try_run_case+0x51/0x90
+[    4.769182]  kunit_generic_run_threadfn_adapter+0x16/0x30
+[    4.769936]  kthread+0x166/0x1a0
+[    4.770390]  ret_from_fork+0x22/0x30
+[    4.770895] 
+[    4.771113] kfence-#35 [0xffff8c2aae248000-0xffff8c2aae24801f, size=32, cache=kmalloc-32] allocated by task 118:
+[    4.772241]  test_alloc+0xf0/0x6ff
+[    4.772610]  test_invalid_addr_free+0x7e/0x17e
+[    4.773107]  kunit_try_run_case+0x51/0x90
+[    4.773542]  kunit_generic_run_threadfn_adapter+0x16/0x30
+[    4.774119]  kthread+0x166/0x1a0
+[    4.774469]  ret_from_fork+0x22/0x30
+[    4.774855] 
+[    4.775024] CPU: 6 PID: 118 Comm: kunit_try_catch Tainted: G    B             5.11.0-rc2+ #1
+[    4.775917] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.14.0-2 04/01/2014
+[    4.776796] ==================================================================

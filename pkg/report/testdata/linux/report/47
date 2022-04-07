@@ -1,0 +1,17 @@
+TITLE: kernel panic: Attempted to kill init!
+
+[ 2713.133889] Kernel panic - not syncing: Attempted to kill init! exitcode=0x00000013
+[ 2713.133889] 
+[ 2713.136293] CPU: 2 PID: 1 Comm: init.sh Not tainted 4.8.0-rc3+ #35
+[ 2713.138395] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+[ 2713.138395]  ffffffff884b8280 ffff88003e1f79b8 ffffffff82d1b1d9 ffffffff00000001
+[ 2713.138395]  fffffbfff1097050 ffffffff86e90b20 ffff88003e1f7a90 dffffc0000000000
+[ 2713.138395]  dffffc0000000000 ffff88006cc97af0 ffff88003e1f7a80 ffffffff816ab4e3
+[ 2713.153531] Call Trace:
+[ 2713.153531]  [<ffffffff82d1b1d9>] dump_stack+0x12e/0x185
+[ 2713.153531]  [<ffffffff816ab4e3>] panic+0x1e4/0x3ef
+[ 2713.153531]  [<ffffffff816ab2ff>] ? set_ti_thread_flag+0x1e/0x1e
+[ 2713.153531]  [<ffffffff8138e51e>] ? do_exit+0x8ce/0x2c10
+[ 2713.153531]  [<ffffffff86c24cc7>] ? _raw_write_unlock_irq+0x27/0x70
+[ 2713.153531]  [<ffffffff8139012f>] do_exit+0x24df/0x2c10
+[ 2713.153531]  [<ffffffff8138dc50>] ? mm_update_next_owner+0x640/0x640

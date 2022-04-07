@@ -1,0 +1,13 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+cron:
+- url: /email_poll
+  schedule: every 1 minutes
+- url: /cache_update
+  schedule: every 1 hour
+- url: /kcidb_poll
+  schedule: every 5 minutes
+- url: /_ah/datastore_admin/backup.create?name=backup&filesystem=gs&gs_bucket_name=syzkaller-backups&kind=Bug&kind=Build&kind=Crash&kind=CrashLog&kind=CrashReport&kind=Error&kind=Job&kind=KernelConfig&kind=Manager&kind=ManagerStats&kind=Patch&kind=ReportingState&kind=ReproC&kind=ReproSyz
+  schedule: every monday 00:00
+  target: ah-builtin-python-bundle

@@ -1,0 +1,16 @@
+TITLE: panic: ptrace set regs failed: no such process
+SUPPRESSED: Y
+
+panic: ptrace set regs failed: no such process
+
+goroutine 195 [running]:
+gvisor.googlesource.com/gvisor/pkg/sentry/platform/ptrace.(*thread).syscall(0xc0002c2690, 0xc00052bd98, 0xc00052bed0, 0x5, 0x5)
+	pkg/sentry/platform/ptrace/subprocess.go:381 +0x576
+gvisor.googlesource.com/gvisor/pkg/sentry/platform/ptrace.(*thread).syscallIgnoreInterrupt(0xc0002c2690, 0xc0002c26a0, 0x38, 0xc00052bed0, 0x5, 0x5, 0xc00014c6b8, 0xc0008716e0, 0xc00052bef8)
+	pkg/sentry/platform/ptrace/subprocess.go:428 +0xc2
+gvisor.googlesource.com/gvisor/pkg/sentry/platform/ptrace.(*thread).clone(0xc0002c2690, 0xc00052bf58, 0x1, 0x0)
+	pkg/sentry/platform/ptrace/ptrace_unsafe.go:138 +0xad
+gvisor.googlesource.com/gvisor/pkg/sentry/platform/ptrace.newSubprocess.func1(0xc00033c170, 0xc00014c600, 0xc00014c660)
+	pkg/sentry/platform/ptrace/subprocess.go:163 +0x15f
+created by gvisor.googlesource.com/gvisor/pkg/sentry/platform/ptrace.newSubprocess
+	pkg/sentry/platform/ptrace/subprocess.go:147 +0xd2

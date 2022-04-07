@@ -1,0 +1,43 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+resource anyres32[int32]
+resource anyres64[int64]
+
+foo$anyres(a0 ptr[out, anyres32], a1 ptr[out, anyres64])
+
+foo$any0(a ptr[in, any0])
+
+any0 {
+	f1	int8
+	f2	int32
+	f3	int16be
+	f4	int64
+	f5	anybitfields
+	f6	array[any1]
+} [align[8]]
+
+any1 {
+	f1	anyunion0
+	f2	anyunion1
+	f3	array[int8]
+} [packed, align[2]]
+
+anyunion0 [
+	res32	anyres32
+	res64	anyres64
+]
+
+anyunion1 [
+	i8	int8
+	i32	int32
+] [varlen]
+
+anybitfields {
+	f1	int8:2
+	f2	int8:3
+	f3	int8:1
+	f4	int16:1
+	f5	int16:10
+	f6	int16:3
+}

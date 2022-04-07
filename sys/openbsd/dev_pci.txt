@@ -1,0 +1,33 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <sys/pciio.h>
+include <fcntl.h>
+
+resource fd_pci[fd]
+
+openat$pci(fd const[AT_FDCWD], file ptr[in, string["/dev/pci"]], flags flags[open_flags], mode const[0]) fd_pci
+
+ioctl$PCIOCREAD(fd fd_pci, cmd const[PCIOCREAD], arg ptr[out, pci_io])
+ioctl$PCIOCWRITE(fd fd_pci, cmd const[PCIOCWRITE], arg ptr[in, pci_io])
+ioctl$PCIOCGETROM(fd fd_pci, cmd const[PCIOCGETROM], arg ptr[out, pci_rom])
+
+pci_io {
+	pi_sel		pcisel
+	pi_reg		int32
+	pi_width	int32
+	pi_data		int32
+}
+
+pci_rom {
+	pr_sel		pcisel
+	pr_romlen	len[pr_rom, int32]
+	pr_rom		ptr[out, array[int32]]
+}
+
+pcisel {
+	pc_bus	int8
+	pc_dev	int8
+	pc_func	int8
+}

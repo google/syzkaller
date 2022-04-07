@@ -1,0 +1,217 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/fcntl.h>
+include <security/smack/smack.h>
+
+resource fd_smack_current[fd]
+
+type smack_labelnoz stringnoz
+
+smack_label {
+	label	smack_labelnoz
+	z	const[0, int8]
+} [packed]
+
+openat$smack_task_current(fd const[AT_FDCWD], file ptr[in, string["/proc/self/attr/current"]], flags const[O_RDWR], mode const[0]) fd_smack_current
+openat$smack_thread_current(fd const[AT_FDCWD], file ptr[in, string["/proc/thread-self/attr/current"]], flags const[O_RDWR], mode const[0]) fd_smack_current
+write$smack_current(fd fd_smack_current, data ptr[in, smack_label], len len[data])
+
+setxattr$smack_xattr_label(path ptr[in, filename], name ptr[in, string[smack_xattr_entry]], val ptr[in, smack_label], size len[val], flags flags[setxattr_flags])
+lsetxattr$smack_xattr_label(path ptr[in, filename], name ptr[in, string[smack_xattr_entry]], val ptr[in, smack_label], size len[val], flags flags[setxattr_flags])
+fsetxattr$smack_xattr_label(fd fd, name ptr[in, string[smack_xattr_entry]], val ptr[in, smack_label], size len[val], flags flags[setxattr_flags])
+
+smack_xattr_entry = "security.SMACK64", "security.SMACK64IPIN", "security.SMACK64IPOUT", "security.SMACK64EXEC", "security.SMACK64MMAP"
+
+setxattr$security_smack_transmute(path ptr[in, filename], name ptr[in, string["security.SMACK64TRANSMUTE"]], val ptr[in, stringnoz["TRUE"]], size len[val], flags flags[setxattr_flags])
+lsetxattr$security_smack_transmute(path ptr[in, filename], name ptr[in, string["security.SMACK64TRANSMUTE"]], val ptr[in, stringnoz["TRUE"]], size len[val], flags flags[setxattr_flags])
+fsetxattr$security_smack_transmute(fd fd, name ptr[in, string["security.SMACK64TRANSMUTE"]], val ptr[in, stringnoz["TRUE"]], size len[val], flags flags[setxattr_flags])
+
+# -rwxatlbRWXATLB
+perm = "", "-", "r", "w", "rw", "x", "rx", "wx", "rwx", "a", "ra", "wa", "rwa", "xa", "rxa", "wxa", "rwxa", "t", "rt", "wt", "rwt", "xt", "rxt", "wxt", "rwxt", "at", "rat", "wat", "rwat", "xat", "rxat", "wxat", "rwxat", "b", "rb", "wb", "rwb", "xb", "rxb", "wxb", "rwxb", "ab", "rab", "wab", "rwab", "xab", "rxab", "wxab", "rwxab", "tb", "rtb", "wtb", "rwtb", "xtb", "rxtb", "wxtb", "rwxtb", "atb", "ratb", "watb", "rwatb", "xatb", "rxatb", "wxatb", "rwxatb", "l", "rl", "wl", "rwl", "xl", "rxl", "wxl", "rwxl", "al", "ral", "wal", "rwal", "xal", "rxal", "wxal", "rwxal", "tl", "rtl", "wtl", "rwtl", "xtl", "rxtl", "wxtl", "rwxtl", "atl", "ratl", "watl", "rwatl", "xatl", "rxatl", "wxatl", "rwxatl", "bl", "rbl", "wbl", "rwbl", "xbl", "rxbl", "wxbl", "rwxbl", "abl", "rabl", "wabl", "rwabl", "xabl", "rxabl", "wxabl", "rwxabl", "tbl", "rtbl", "wtbl", "rwtbl", "xtbl", "rxtbl", "wxtbl", "rwxtbl", "atbl", "ratbl", "watbl", "rwatbl", "xatbl", "rxatbl", "wxatbl", "rwxatbl"
+type smack_perm stringnoz[perm]
+
+smackfs_access {
+	subject	smack_labelnoz
+	sp0	const[' ', int8]
+	object	smack_labelnoz
+	sp1	const[' ', int8]
+	access	smack_perm
+	z	const[0, int8]
+} [packed]
+
+smackfs_change_access {
+	subject	smack_labelnoz
+	sp0	const[' ', int8]
+	object	smack_labelnoz
+	sp1	const[' ', int8]
+	allow	smack_perm
+	sp2	const[' ', int8]
+	deny	smack_perm
+	z	const[0, int8]
+} [packed]
+
+resource fd_smackfs_access[fd]
+smackfs_access_files = "/sys/fs/smackfs/access", "/sys/fs/smackfs/access2"
+openat$smackfs_access(fd const[AT_FDCWD], file ptr[in, string[smackfs_access_files]], flags const[O_RDWR], mode const[0]) fd_smackfs_access
+write$smackfs_access(fd fd_smackfs_access, buf ptr[in, smackfs_access], count len[buf])
+read$smackfs_access(fd fd_smackfs_access, buf ptr[out, fmt[dec, intptr[0:1]]], count len[buf])
+
+# load, load2, load-self, load-self2
+resource fd_smackfs_load[fd]
+smackfs_load_files = "/sys/fs/smackfs/load", "/sys/fs/smackfs/load2", "/sys/fs/smackfs/load-self", "/sys/fs/smackfs/load-self2"
+openat$smackfs_load(fd const[AT_FDCWD], file ptr[in, string[smackfs_load_files]], flags const[O_RDWR], mode const[0]) fd_smackfs_load
+write$smackfs_load(fd fd_smackfs_load, buf ptr[in, smackfs_access], count len[buf])
+
+# ambient, unconfined, syslog, revoke-subject
+resource fd_smackfs_label[fd]
+openat$smackfs_ambient(fd const[AT_FDCWD], file ptr[in, string["/sys/fs/smackfs/ambient"]], flags const[O_RDWR], mode const[0]) fd_smackfs_label
+openat$smackfs_unconfined(fd const[AT_FDCWD], file ptr[in, string["/sys/fs/smackfs/unconfined"]], flags const[O_RDWR], mode const[0]) fd_smackfs_label
+openat$smackfs_revoke_subject(fd const[AT_FDCWD], file ptr[in, string["/sys/fs/smackfs/revoke-subject"]], flags const[O_RDWR], mode const[0]) fd_smackfs_label
+openat$smackfs_syslog(fd const[AT_FDCWD], file ptr[in, string["/sys/fs/smackfs/syslog"]], flags const[O_RDWR], mode const[0]) fd_smackfs_label
+write$smackfs_label(fd fd_smackfs_label, buf ptr[in, smack_label], count len[buf])
+
+resource fd_smackfs_change_rule[fd]
+openat$smackfs_change_rule(fd const[AT_FDCWD], file ptr[in, string["/sys/fs/smackfs/change-rule"]], flags const[O_RDWR], mode const[0]) fd_smackfs_change_rule
+write$smackfs_change_rule(fd fd_smackfs_change_rule, buf ptr[in, smackfs_change_access], count len[buf])
+
+smackfs_cipso_category {
+	cat	fmt[dec, int8[0:SMACK_CIPSO_MAXCATNUM]]
+	sp	const[' ', int8]
+}
+
+smackfs_cipso {
+	label	smack_labelnoz
+	sp0	const[' ', int8]
+# NEED: format specifiers with the given len ("%04d").
+# Kernel expects level to take exactly 4 (SMK_DIGITLEN) chars.
+# This affects lots of other fmt's in this file too.
+	level	fmt[dec, int8[0:SMACK_CIPSO_MAXLEVEL]]
+	sp1	const[' ', int8]
+	num	fmt[dec, len[cats]]
+	sp2	const[' ', int8]
+	cats	array[smackfs_cipso_category]
+	z	const[0, int8]
+} [packed]
+
+resource fd_smackfs_cipso[fd]
+smackfs_cipso_files = "/sys/fs/smackfs/cipso", "/sys/fs/smackfs/cipso2"
+openat$smackfs_cipso(fd const[AT_FDCWD], file ptr[in, string[smackfs_cipso_files]], flags const[O_RDWR], mode const[0]) fd_smackfs_cipso
+write$smackfs_cipso(fd fd_smackfs_cipso, buf ptr[in, smackfs_cipso], count len[buf])
+
+# direct, doi, mapped
+resource fd_smackfs_cipsonum[fd]
+smackfs_cipsonum_files = "/sys/fs/smackfs/direct", "/sys/fs/smackfs/doi", "/sys/fs/smackfs/mapped"
+openat$smackfs_cipsonum(fd const[AT_FDCWD], file ptr[in, string[smackfs_cipsonum_files]], flags const[O_RDWR], mode const[0]) fd_smackfs_cipsonum
+# It's ok to write number here without '\0'
+write$smackfs_cipsonum(fd fd_smackfs_cipsonum, buf ptr[in, fmt[dec, intptr]], count len[buf])
+read$smackfs_cipsonum(fd fd_smackfs_cipsonum, buf ptr[out, fmt[dec, intptr]], count len[buf])
+
+smack_ipv6 {
+	d1	fmt[hex, int8]
+	sp1	const[':', int8]
+	d2	fmt[hex, int8]
+	sp2	const[':', int8]
+	d3	fmt[hex, int8]
+	sp3	const[':', int8]
+	d4	fmt[hex, int8]
+	sp4	const[':', int8]
+	d5	fmt[hex, int8]
+	sp5	const[':', int8]
+	d6	fmt[hex, int8]
+	sp6	const[':', int8]
+	d7	fmt[hex, int8]
+	sp7	const[':', int8]
+	d8	fmt[hex, int8]
+} [packed]
+
+smack_ipv6host_wo_mask {
+	ipv6	smack_ipv6
+	sp	const[' ', int8]
+	label	smack_labelnoz
+	z	const[0, int8]
+} [packed]
+
+smack_ipv6host_w_mask {
+	ipv6	smack_ipv6
+	bs	const['/', int8]
+	mask	fmt[dec, int8]
+	sp	const[' ', int8]
+	label	smack_labelnoz
+	z	const[0, int8]
+} [packed]
+
+smack_ipv6host [
+	l1	smack_ipv6host_wo_mask
+	l2	smack_ipv6host_w_mask
+] [varlen]
+
+resource fd_smackfs_ipv6host[fd]
+openat$smackfs_ipv6host(fd const[AT_FDCWD], file ptr[in, string["/sys/fs/smackfs/ipv6host"]], flags const[O_RDWR], mode const[0]) fd_smackfs_ipv6host
+write$smackfs_ipv6host(fd fd_smackfs_ipv6host, buf ptr[in, smack_ipv6host], count len[buf])
+
+smack_ipv4 {
+	d1	fmt[dec, int8]
+	sp1	const['.', int8]
+	d2	fmt[dec, int8]
+	sp2	const['.', int8]
+	d3	fmt[dec, int8]
+	sp3	const['.', int8]
+	d4	fmt[dec, int8]
+	sp4	const['.', int8]
+} [packed]
+
+smack_netlabel_wo_mask {
+	ipv4	smack_ipv4
+	sp	const[' ', int8]
+	label	smack_labelnoz
+	z	const[0, int8]
+} [packed]
+
+smack_netlabel_w_mask {
+	ipv4	smack_ipv4
+	bs	const['/', int8]
+	mask	fmt[dec, int8]
+	sp	const[' ', int8]
+	label	smack_labelnoz
+	z	const[0, int8]
+} [packed]
+
+smack_netlabel [
+	l1	smack_netlabel_wo_mask
+	l2	smack_netlabel_w_mask
+] [varlen]
+
+resource fd_smackfs_netlabel[fd]
+openat$smackfs_netlabel(fd const[AT_FDCWD], file ptr[in, string["/sys/fs/smackfs/netlabel"]], flags const[O_RDWR], mode const[0]) fd_smackfs_netlabel
+write$smackfs_netlabel(fd fd_smackfs_netlabel, buf ptr[in, smack_netlabel], count len[buf])
+
+resource fd_smackfs_logging[fd]
+openat$smackfs_logging(fd const[AT_FDCWD], file ptr[in, string["/sys/fs/smackfs/logging"]], flags const[O_RDWR], mode const[0]) fd_smackfs_logging
+# It's ok to write number here without '\0'
+write$smackfs_logging(fd fd_smackfs_logging, buf ptr[in, fmt[dec, intptr[0:3]]], count len[buf])
+read$smackfs_logging(fd fd_smackfs_logging, buf ptr[out, fmt[dec, intptr[0:3]]], count len[buf])
+
+smackfs_labels_list_el {
+	label	smack_labelnoz
+	sp	const[' ', int8]
+} [packed]
+
+smackfs_labels_list {
+	labels	array[smackfs_labels_list_el]
+	z	const[0, int8]
+} [packed]
+
+resource fd_smackfs_labels_list[fd]
+
+# onlycap changes global restrictive policy and may need to be disabled
+# for more effective fuzzing
+openat$smackfs_onlycap(fd const[AT_FDCWD], file ptr[in, string["/sys/fs/smackfs/onlycap"]], flags const[O_RDWR], mode const[0]) fd_smackfs_labels_list
+openat$smackfs_relabel_self(fd const[AT_FDCWD], file ptr[in, string["/sys/fs/smackfs/relabel-self"]], flags const[O_RDWR], mode const[0]) fd_smackfs_labels_list
+write$smackfs_labels_list(fd fd_smackfs_labels_list, buf ptr[in, smackfs_labels_list], count len[buf])
+
+resource fd_smackfs_ptrace[fd]
+openat$smackfs_ptrace(fd const[AT_FDCWD], file ptr[in, string["/sys/fs/smackfs/ptrace"]], flags const[O_RDWR], mode const[0]) fd_smackfs_ptrace
+# It's ok to write number here without '\0'
+write$smackfs_ptrace(fd fd_smackfs_ptrace, buf ptr[in, fmt[dec, intptr[SMACK_PTRACE_DEFAULT:SMACK_PTRACE_MAX]]], count len[buf])
+read$smackfs_ptrace(fd fd_smackfs_ptrace, buf ptr[out, fmt[dec, intptr[SMACK_PTRACE_DEFAULT:SMACK_PTRACE_MAX]]], count len[buf])

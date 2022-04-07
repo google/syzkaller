@@ -1,0 +1,108 @@
+TITLE: KASAN: use-after-free Read in __queue_work
+ALT: bad-access in __queue_work
+
+[ 1140.689311] ==================================================================
+[ 1140.696784] BUG: KASAN: use-after-free in work_is_static_object+0x39/0x40
+[ 1140.703711] Read of size 8 at addr ffff8801beca5788 by task syz-executor2/12922
+[ 1140.711147] 
+[ 1140.712770] CPU: 0 PID: 12922 Comm: syz-executor2 Not tainted 4.15.0-rc5+ #178
+[ 1140.720123] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 1140.729462] Call Trace:
+[ 1140.732034]  dump_stack+0x194/0x257
+[ 1140.735659]  ? arch_local_irq_restore+0x53/0x53
+[ 1140.740300]  ? show_regs_print_info+0x18/0x18
+[ 1140.744769]  ? lock_release+0xa40/0xa40
+[ 1140.748714]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[ 1140.753877]  ? work_is_static_object+0x39/0x40
+[ 1140.758436]  print_address_description+0x73/0x250
+[ 1140.763254]  ? work_is_static_object+0x39/0x40
+[ 1140.767810]  kasan_report+0x25b/0x340
+[ 1140.771589]  __asan_report_load8_noabort+0x14/0x20
+[ 1140.776492]  work_is_static_object+0x39/0x40
+[ 1140.780875]  debug_object_activate+0x36f/0x730
+[ 1140.785434]  ? debug_object_assert_init+0x570/0x570
+[ 1140.790424]  ? trace_hardirqs_on+0xd/0x10
+[ 1140.794550]  ? __debug_object_init+0x235/0x1040
+[ 1140.799193]  ? save_stack+0x43/0xd0
+[ 1140.802802]  __queue_work+0x163/0x1230
+[ 1140.806661]  ? __queue_work+0x163/0x1230
+[ 1140.810704]  ? retint_kernel+0x10/0x10
+[ 1140.814578]  ? insert_work+0x5f0/0x5f0
+[ 1140.818702]  ? retint_kernel+0x10/0x10
+[ 1140.823880]  ? find_held_lock+0x35/0x1d0
+[ 1140.829619]  ? kcm_ioctl+0x823/0x1690
+[ 1140.833394]  ? lock_downgrade+0x980/0x980
+[ 1140.837514]  ? kcm_rcv_strparser+0x9a0/0x9a0
+[ 1140.841894]  ? lock_release+0xa40/0xa40
+[ 1140.845842]  ? strp_check_rcv+0x30/0x30
+[ 1140.849789]  ? __local_bh_enable_ip+0x121/0x230
+[ 1140.854435]  queue_work_on+0x16a/0x1c0
+[ 1140.858299]  strp_check_rcv+0x25/0x30
+[ 1140.862071]  kcm_ioctl+0x82f/0x1690
+[ 1140.865676]  ? kcm_unattach+0x1510/0x1510
+[ 1140.869796]  ? avc_ss_reset+0x110/0x110
+[ 1140.873740]  ? lock_downgrade+0x980/0x980
+[ 1140.877863]  ? lock_release+0xa40/0xa40
+[ 1140.881811]  ? __lock_is_held+0xb6/0x140
+[ 1140.885871]  sock_do_ioctl+0x65/0xb0
+[ 1140.889563]  sock_ioctl+0x2c2/0x440
+[ 1140.893163]  ? dlci_ioctl_set+0x40/0x40
+[ 1140.897110]  do_vfs_ioctl+0x1b1/0x1520
+[ 1140.900970]  ? _cond_resched+0x14/0x30
+[ 1140.904848]  ? ioctl_preallocate+0x2b0/0x2b0
+[ 1140.909231]  ? selinux_capable+0x40/0x40
+[ 1140.913278]  ? SyS_futex+0x269/0x390
+[ 1140.916980]  ? security_file_ioctl+0x89/0xb0
+[ 1140.921364]  SyS_ioctl+0x8f/0xc0
+[ 1140.924708]  entry_SYSCALL_64_fastpath+0x23/0x9a
+[ 1140.929431] RIP: 0033:0x452ac9
+[ 1140.932591] RSP: 002b:00007f1bbd860c58 EFLAGS: 00000212 ORIG_RAX: 0000000000000010
+[ 1140.940270] RAX: ffffffffffffffda RBX: 000000000071bea0 RCX: 0000000000452ac9
+[ 1140.947516] RDX: 0000000020954ff8 RSI: 00000000000089e0 RDI: 0000000000000017
+[ 1140.954760] RBP: 000000000000057b R08: 0000000000000000 R09: 0000000000000000
+[ 1140.962002] R10: 0000000000000000 R11: 0000000000000212 R12: 00000000006f6428
+[ 1140.969251] R13: 00000000ffffffff R14: 00007f1bbd8616d4 R15: 0000000000000000
+[ 1140.976508] 
+[ 1140.978108] Allocated by task 12922:
+[ 1140.981797]  save_stack+0x43/0xd0
+[ 1140.985220]  kasan_kmalloc+0xad/0xe0
+[ 1140.988907]  kasan_slab_alloc+0x12/0x20
+[ 1140.992851]  kmem_cache_alloc+0x12e/0x760
+[ 1140.996968]  kcm_ioctl+0x2d2/0x1690
+[ 1141.000566]  sock_do_ioctl+0x65/0xb0
+[ 1141.004248]  sock_ioctl+0x2c2/0x440
+[ 1141.007846]  do_vfs_ioctl+0x1b1/0x1520
+[ 1141.011707]  SyS_ioctl+0x8f/0xc0
+[ 1141.015054]  entry_SYSCALL_64_fastpath+0x23/0x9a
+[ 1141.019779] 
+[ 1141.021376] Freed by task 12929:
+[ 1141.024714]  save_stack+0x43/0xd0
+[ 1141.028135]  kasan_slab_free+0x71/0xc0
+[ 1141.031991]  kmem_cache_free+0x83/0x2a0
+[ 1141.035941]  kcm_unattach+0xe53/0x1510
+[ 1141.039797]  kcm_ioctl+0xe54/0x1690
+[ 1141.043393]  sock_do_ioctl+0x65/0xb0
+[ 1141.047078]  sock_ioctl+0x2c2/0x440
+[ 1141.050673]  do_vfs_ioctl+0x1b1/0x1520
+[ 1141.054529]  SyS_ioctl+0x8f/0xc0
+[ 1141.057866]  entry_SYSCALL_64_fastpath+0x23/0x9a
+[ 1141.062586] 
+[ 1141.064186] The buggy address belongs to the object at ffff8801beca56c0
+[ 1141.064186]  which belongs to the cache kcm_psock_cache of size 544
+[ 1141.077163] The buggy address is located 200 bytes inside of
+[ 1141.077163]  544-byte region [ffff8801beca56c0, ffff8801beca58e0)
+[ 1141.089015] The buggy address belongs to the page:
+[ 1141.093923] page:000000005180a80a count:1 mapcount:0 mapping:0000000058aa9a5c index:0x0 compound_mapcount: 0
+[ 1141.103862] flags: 0x2fffc0000008100(slab|head)
+[ 1141.108503] raw: 02fffc0000008100 ffff8801beca40c0 0000000000000000 000000010000000b
+[ 1141.116357] raw: ffff8801d31e8a48 ffff8801d31e8a48 ffff8801d3f6a380 0000000000000000
+[ 1141.124206] page dumped because: kasan: bad access detected
+[ 1141.129888] 
+[ 1141.131492] Memory state around the buggy address:
+[ 1141.136397]  ffff8801beca5680: fc fc fc fc fc fc fc fc fb fb fb fb fb fb fb fb
+[ 1141.143734]  ffff8801beca5700: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[ 1141.151076] >ffff8801beca5780: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[ 1141.158418]                       ^
+[ 1141.162028]  ffff8801beca5800: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[ 1141.169364]  ffff8801beca5880: fb fb fb fb fb fb fb fb fb fb fb fb fc fc fc fc
+[ 1141.176691] ==================================================================

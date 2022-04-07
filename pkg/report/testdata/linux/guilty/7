@@ -1,0 +1,37 @@
+FILE: net/packet/af_packet.c
+
+------------[ cut here ]------------
+WARNING: CPU: 1 PID: 23686 at net/core/dev.c:2444 skb_warn_bad_offload+0x2c0/0x3a0 net/core/dev.c:2439()
+lo: caps=(0x00000014401b7c69, 0x0000000000000000) len=246 data_len=0 gso_size=35328 gso_type=4 ip_summed=0
+Kernel panic - not syncing: panic_on_warn set ...
+
+CPU: 1 PID: 23686 Comm: syz-executor0 Not tainted 4.4.64+ #26
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+ 0000000000000001 ffff8801d8a674b8 ffffffff81bfd89c ffffffff82a382a0
+ ffff8801d8a67590 ffffffff82c2f040 0000000000000009 ffff8801d8a67580
+ ffffffff813a0073 0000000041b58ab3 ffffffff82d52827 ffffffff8139fed1
+Call Trace:
+ [<ffffffff81bfd89c>] __dump_stack lib/dump_stack.c:15 [inline]
+ [<ffffffff81bfd89c>] dump_stack+0x80/0xb4 lib/dump_stack.c:51
+ [<ffffffff813a0073>] panic+0x1a2/0x347 kernel/panic.c:115
+ [<ffffffff810e209a>] warn_slowpath_common+0x12a/0x140 kernel/panic.c:463
+ [<ffffffff810e2160>] warn_slowpath_fmt+0xb0/0xe0 kernel/panic.c:479
+ [<ffffffff8217e980>] skb_warn_bad_offload+0x2c0/0x3a0 net/core/dev.c:2439
+ [<ffffffff8218cc64>] __skb_gso_segment+0x3c4/0x4b0 net/core/dev.c:2596
+ [<ffffffff8218d883>] skb_gso_segment include/linux/netdevice.h:3702 [inline]
+ [<ffffffff8218d883>] validate_xmit_skb.isra.102.part.103+0x453/0x980 net/core/dev.c:2804
+ [<ffffffff821902eb>] validate_xmit_skb include/linux/spinlock.h:347 [inline]
+ [<ffffffff821902eb>] __dev_queue_xmit+0x133b/0x1550 net/core/dev.c:3173
+ [<ffffffff8219051c>] dev_queue_xmit+0x1c/0x20 net/core/dev.c:3215
+ [<ffffffff8278c519>] packet_snd net/packet/af_packet.c:2825 [inline]
+ [<ffffffff8278c519>] packet_sendmsg+0x2959/0x4950 net/packet/af_packet.c:2850
+ [<ffffffff821260af>] sock_sendmsg_nosec net/socket.c:611 [inline]
+ [<ffffffff821260af>] sock_sendmsg+0xcf/0x110 net/socket.c:621
+ [<ffffffff82127c49>] ___sys_sendmsg+0x6f9/0x810 net/socket.c:1947
+ [<ffffffff82129590>] __sys_sendmsg+0xd0/0x180 net/socket.c:1981
+ [<ffffffff82129672>] SYSC_sendmsg net/socket.c:1992 [inline]
+ [<ffffffff82129672>] SyS_sendmsg+0x32/0x50 net/socket.c:1988
+ [<ffffffff828ab96e>] entry_SYSCALL_64_fastpath+0x12/0x6d
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Kernel Offset: disabled

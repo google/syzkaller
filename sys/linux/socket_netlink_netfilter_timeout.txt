@@ -1,0 +1,89 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/net.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/netfilter.h>
+include <uapi/linux/netfilter/nfnetlink.h>
+include <uapi/linux/netfilter/nfnetlink_cttimeout.h>
+
+type msghdr_nl_timeout[CMD] msghdr_netlink[netlink_msg_netfilter_t[NFNL_SUBSYS_CTNETLINK_TIMEOUT, CMD, cttimeout_nla_policy]]
+
+sendmsg$IPCTNL_MSG_TIMEOUT_NEW(fd sock_nl_netfilter, msg ptr[in, msghdr_nl_timeout[IPCTNL_MSG_TIMEOUT_NEW]], f flags[send_flags])
+sendmsg$IPCTNL_MSG_TIMEOUT_GET(fd sock_nl_netfilter, msg ptr[in, msghdr_nl_timeout[IPCTNL_MSG_TIMEOUT_GET]], f flags[send_flags])
+sendmsg$IPCTNL_MSG_TIMEOUT_DELETE(fd sock_nl_netfilter, msg ptr[in, msghdr_nl_timeout[IPCTNL_MSG_TIMEOUT_DELETE]], f flags[send_flags])
+sendmsg$IPCTNL_MSG_TIMEOUT_DEFAULT_SET(fd sock_nl_netfilter, msg ptr[in, msghdr_nl_timeout[IPCTNL_MSG_TIMEOUT_DEFAULT_SET]], f flags[send_flags])
+sendmsg$IPCTNL_MSG_TIMEOUT_DEFAULT_GET(fd sock_nl_netfilter, msg ptr[in, msghdr_nl_timeout[IPCTNL_MSG_TIMEOUT_DEFAULT_GET]], f flags[send_flags])
+
+cttimeout_nla_policy [
+	CTA_TIMEOUT_NAME	nlattr[CTA_TIMEOUT_NAME, string[cttimeout_names]]
+	CTA_TIMEOUT_L3PROTO	nlnetw[CTA_TIMEOUT_L3PROTO, flags[ether_types, int16be]]
+	CTA_TIMEOUT_L4PROTO	nlattr[CTA_TIMEOUT_L4PROTO, flags[conntrack_proto, int8]]
+	CTA_TIMEOUT_DATA	nlnest[CTA_TIMEOUT_DATA, cttimeout_data_policy]
+] [varlen]
+
+cttimeout_data_policy [
+	udp	array[udp_timeout_nla_policy]
+	tcp	array[tcp_timeout_nla_policy]
+	icmp	array[icmp_timeout_nla_policy]
+	icmpv6	array[icmpv6_timeout_nla_policy]
+	fccp	array[dccp_timeout_nla_policy]
+	sctp	array[sctp_timeout_nla_policy]
+	gre	array[gre_timeout_nla_policy]
+] [varlen]
+
+udp_timeout_nla_policy [
+	CTA_TIMEOUT_UDP_UNREPLIED	nlnetw[CTA_TIMEOUT_UDP_UNREPLIED, int32be]
+	CTA_TIMEOUT_UDP_REPLIED		nlnetw[CTA_TIMEOUT_UDP_REPLIED, int32be]
+] [varlen]
+
+tcp_timeout_nla_policy [
+	CTA_TIMEOUT_TCP_SYN_SENT	nlnetw[CTA_TIMEOUT_TCP_SYN_SENT, int32be]
+	CTA_TIMEOUT_TCP_SYN_RECV	nlnetw[CTA_TIMEOUT_TCP_SYN_RECV, int32be]
+	CTA_TIMEOUT_TCP_ESTABLISHED	nlnetw[CTA_TIMEOUT_TCP_ESTABLISHED, int32be]
+	CTA_TIMEOUT_TCP_FIN_WAIT	nlnetw[CTA_TIMEOUT_TCP_FIN_WAIT, int32be]
+	CTA_TIMEOUT_TCP_CLOSE_WAIT	nlnetw[CTA_TIMEOUT_TCP_CLOSE_WAIT, int32be]
+	CTA_TIMEOUT_TCP_LAST_ACK	nlnetw[CTA_TIMEOUT_TCP_LAST_ACK, int32be]
+	CTA_TIMEOUT_TCP_TIME_WAIT	nlnetw[CTA_TIMEOUT_TCP_TIME_WAIT, int32be]
+	CTA_TIMEOUT_TCP_CLOSE		nlnetw[CTA_TIMEOUT_TCP_CLOSE, int32be]
+	CTA_TIMEOUT_TCP_SYN_SENT2	nlnetw[CTA_TIMEOUT_TCP_SYN_SENT2, int32be]
+	CTA_TIMEOUT_TCP_RETRANS		nlnetw[CTA_TIMEOUT_TCP_RETRANS, int32be]
+	CTA_TIMEOUT_TCP_UNACK		nlnetw[CTA_TIMEOUT_TCP_UNACK, int32be]
+] [varlen]
+
+icmp_timeout_nla_policy [
+	CTA_TIMEOUT_ICMP_TIMEOUT	nlnetw[CTA_TIMEOUT_ICMP_TIMEOUT, int32be]
+] [varlen]
+
+icmpv6_timeout_nla_policy [
+	CTA_TIMEOUT_ICMPV6_TIMEOUT	nlnetw[CTA_TIMEOUT_ICMPV6_TIMEOUT, int32be]
+] [varlen]
+
+dccp_timeout_nla_policy [
+	CTA_TIMEOUT_DCCP_REQUEST	nlnetw[CTA_TIMEOUT_DCCP_REQUEST, int32be]
+	CTA_TIMEOUT_DCCP_RESPOND	nlnetw[CTA_TIMEOUT_DCCP_RESPOND, int32be]
+	CTA_TIMEOUT_DCCP_PARTOPEN	nlnetw[CTA_TIMEOUT_DCCP_PARTOPEN, int32be]
+	CTA_TIMEOUT_DCCP_OPEN		nlnetw[CTA_TIMEOUT_DCCP_OPEN, int32be]
+	CTA_TIMEOUT_DCCP_CLOSEREQ	nlnetw[CTA_TIMEOUT_DCCP_CLOSEREQ, int32be]
+	CTA_TIMEOUT_DCCP_CLOSING	nlnetw[CTA_TIMEOUT_DCCP_CLOSING, int32be]
+	CTA_TIMEOUT_DCCP_TIMEWAIT	nlnetw[CTA_TIMEOUT_DCCP_TIMEWAIT, int32be]
+] [varlen]
+
+sctp_timeout_nla_policy [
+	CTA_TIMEOUT_SCTP_CLOSED			nlnetw[CTA_TIMEOUT_SCTP_CLOSED, int32be]
+	CTA_TIMEOUT_SCTP_COOKIE_WAIT		nlnetw[CTA_TIMEOUT_SCTP_COOKIE_WAIT, int32be]
+	CTA_TIMEOUT_SCTP_COOKIE_ECHOED		nlnetw[CTA_TIMEOUT_SCTP_COOKIE_ECHOED, int32be]
+	CTA_TIMEOUT_SCTP_ESTABLISHED		nlnetw[CTA_TIMEOUT_SCTP_ESTABLISHED, int32be]
+	CTA_TIMEOUT_SCTP_SHUTDOWN_SENT		nlnetw[CTA_TIMEOUT_SCTP_SHUTDOWN_SENT, int32be]
+	CTA_TIMEOUT_SCTP_SHUTDOWN_RECD		nlnetw[CTA_TIMEOUT_SCTP_SHUTDOWN_RECD, int32be]
+	CTA_TIMEOUT_SCTP_SHUTDOWN_ACK_SENT	nlnetw[CTA_TIMEOUT_SCTP_SHUTDOWN_ACK_SENT, int32be]
+	CTA_TIMEOUT_SCTP_HEARTBEAT_SENT		nlnetw[CTA_TIMEOUT_SCTP_HEARTBEAT_SENT, int32be]
+	CTA_TIMEOUT_SCTP_HEARTBEAT_ACKED	nlnetw[CTA_TIMEOUT_SCTP_HEARTBEAT_ACKED, int32be]
+] [varlen]
+
+gre_timeout_nla_policy [
+	CTA_TIMEOUT_GRE_UNREPLIED	nlnetw[CTA_TIMEOUT_GRE_UNREPLIED, int32be]
+	CTA_TIMEOUT_GRE_REPLIED		nlnetw[CTA_TIMEOUT_GRE_REPLIED, int32be]
+] [varlen]
+
+cttimeout_names = "syz0", "syz1"

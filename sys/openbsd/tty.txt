@@ -1,0 +1,70 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <time.h>
+include <sys/tty.h>
+include <fcntl.h>
+
+resource fd_tty[fd]
+
+syz_open_pts() fd_tty
+openat$tty(fd const[AT_FDCWD], file ptr[in, string["/dev/tty"]], flags flags[open_flags], mode const[0]) fd_tty
+
+ioctl$TIOCSETD(fd fd_tty, cmd const[TIOCSETD], arg ptr[in, int32])
+ioctl$TIOCGETD(fd fd_tty, cmd const[TIOCGETD], arg ptr[out, int32])
+ioctl$TIOCSBRK(fd fd_tty, cmd const[TIOCSBRK])
+ioctl$TIOCCBRK(fd fd_tty, cmd const[TIOCCBRK])
+ioctl$TIOCSDTR(fd fd_tty, cmd const[TIOCSDTR])
+ioctl$TIOCCDTR(fd fd_tty, cmd const[TIOCCDTR])
+ioctl$TIOCSPGRP(fd fd_tty, cmd const[TIOCGPGRP], arg ptr[out, int32])
+ioctl$TIOCGETA(fd fd_tty, cmd const[TIOCGETA], arg ptr[out, termios])
+ioctl$TIOCSETA(fd fd_tty, cmd const[TIOCSETA], arg ptr[in, termios])
+ioctl$TIOCSETAW(fd fd_tty, cmd const[TIOCSETAW], arg ptr[in, termios])
+ioctl$TIOCSETAF(fd fd_tty, cmd const[TIOCSETAF], arg ptr[in, termios])
+ioctl$TIOCOUTQ(fd fd_tty, cmd const[TIOCOUTQ], arg ptr[in, int32])
+ioctl$TIOCNOTTY(fd fd_tty, cmd const[TIOCNOTTY])
+ioctl$TIOCSETVERAUTH(fd fd_tty, cmd const[TIOCSETVERAUTH], arg ptr[in, int32])
+ioctl$TIOCCLRVERAUTH(fd fd_tty, cmd const[TIOCCLRVERAUTH])
+ioctl$TIOCCHKVERAUTH(fd fd_tty, cmd const[TIOCCHKVERAUTH])
+ioctl$TIOCSTOP(fd fd_tty, cmd const[TIOCSTOP])
+ioctl$TIOCSTART(fd fd_tty, cmd const[TIOCSTART])
+ioctl$TIOCSCTTY(fd fd_tty, cmd const[TIOCSCTTY])
+ioctl$TIOCDRAIN(fd fd_tty, cmd const[TIOCDRAIN])
+ioctl$TIOCEXCL(fd fd_tty, cmd const[TIOCEXCL])
+ioctl$TIOCNXCL(fd fd_tty, cmd const[TIOCNXCL])
+ioctl$TIOCFLUSH(fd fd_tty, cmd const[TIOCFLUSH], arg ptr[in, int32])
+ioctl$TIOCGWINSZ(fd fd_tty, cmd const[TIOCGWINSZ], arg ptr[out, winsize])
+ioctl$TIOCSWINSZ(fd fd_tty, cmd const[TIOCSWINSZ], arg ptr[in, winsize])
+ioctl$TIOCCONS(fd fd_tty, cmd const[TIOCCONS], arg ptr[in, int32])
+ioctl$TIOCMSET(fd fd_tty, cmd const[TIOCMSET], arg ptr[in, int32])
+ioctl$TIOCMGET(fd fd_tty, cmd const[TIOCMGET], arg ptr[out, int32])
+ioctl$TIOCMBIS(fd fd_tty, cmd const[TIOCMBIS], arg ptr[in, int32])
+ioctl$TIOCMBIC(fd fd_tty, cmd const[TIOCMBIC], arg ptr[in, int32])
+ioctl$TIOCGTSTAMP(fd fd_tty, cmd const[TIOCGTSTAMP], arg ptr[out, timeval])
+ioctl$TIOCSTSTAMP(fd fd_tty, cmd const[TIOCSTSTAMP], arg ptr[in, tstamps])
+ioctl$TIOCSFLAGS(fd fd_tty, cmd const[TIOCSFLAGS], arg ptr[in, int32])
+ioctl$TIOCGFLAGS(fd fd_tty, cmd const[TIOCGFLAGS], arg ptr[out, int32])
+ioctl$TIOCSTAT(fd fd_tty, cmd const[TIOCSTAT], arg ptr[out, int32])
+
+termios {
+	iflag	int32
+	oflag	int32
+	cflag	int32
+	lflag	int32
+	cc	array[int8, NCCS]
+	ispeed	int32
+	ospeed	int32
+}
+
+tstamps {
+	set	int32
+	clr	int32
+}
+
+winsize {
+	row	int16
+	col	int16
+	xpixel	int16
+	ypixel	int16
+}

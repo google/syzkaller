@@ -1,0 +1,147 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/socket.h>
+include <uapi/linux/netfilter_arp/arp_tables.h>
+include <uapi/linux/netfilter_arp/arpt_mangle.h>
+
+setsockopt$ARPT_SO_SET_REPLACE(fd sock_in, level const[SOL_IP], opt const[ARPT_SO_SET_REPLACE], val ptr[in, arpt_replace], len len[val])
+setsockopt$ARPT_SO_SET_ADD_COUNTERS(fd sock_in, level const[SOL_IP], opt const[ARPT_SO_SET_ADD_COUNTERS], val ptr[in, arpt_counters_info], len len[val])
+getsockopt$ARPT_SO_GET_INFO(fd sock_in, level const[SOL_IP], opt const[ARPT_SO_GET_INFO], val ptr[in, arpt_getinfo], len ptr[in, len[val, int32]])
+getsockopt$ARPT_SO_GET_ENTRIES(fd sock_in, level const[SOL_IP], opt const[ARPT_SO_GET_ENTRIES], val ptr[in, arpt_get_entries], len ptr[in, len[val, int32]])
+getsockopt$ARPT_SO_GET_REVISION_TARGET(fd sock_in, level const[SOL_IP], opt const[ARPT_SO_GET_REVISION_TARGET], val ptr[in, xt_get_revision], len ptr[in, len[val, int32]])
+
+arpt_replace {
+	name			string["filter", XT_TABLE_MAXNAMELEN]
+	valid_hooks		const[ARPT_FILTER_VALID_HOOKS, int32]
+	num_entries		const[4, int32]
+	size			bytesize[entries, int32]
+	hook_in			ipt_hook
+	hook_out		ipt_hook
+	hook_forward		ipt_hook
+	underflow_in		ipt_hook
+	underflow_out		ipt_hook
+	underflow_forward	ipt_hook
+	num_counters		const[4, int32]
+	counters		ptr[out, array[xt_counters, 4]]
+	entries			arpt_replace_entries
+}
+
+define ARPT_FILTER_VALID_HOOKS	(1 << NF_ARP_IN) | (1 << NF_ARP_OUT) | (1 << NF_ARP_FORWARD)
+
+arpt_replace_entries {
+	entries		array[arpt_entry, 3]
+	underflow	arpt_entry_underflow
+} [packed, align[PTR_SIZE]]
+
+arpt_entry {
+	matches	arpt_entry_matches
+	target	arpt_targets
+} [packed, align[PTR_SIZE]]
+
+arpt_entry_matches {
+	arp		arpt_arp_or_uncond
+	target_offset	len[parent, int16]
+	next_offset	len[arpt_entry, int16]
+	comefrom	const[0, int32]
+	counters	xt_counters
+# Note: matches should go here, but they seem to be unused in arp tables.
+} [align[PTR_SIZE]]
+
+arpt_entry_underflow {
+	matches	arpt_entry_underflow_matches
+	target	xt_target_t["", const[NF_ACCEPT_VERDICT, int32], 0]
+} [align[PTR_SIZE]]
+
+arpt_entry_underflow_matches {
+	arp		arpt_arp_uncond
+	target_offset	len[parent, int16]
+	next_offset	len[arpt_entry_underflow, int16]
+	comefrom	const[0, int32]
+	counters	xt_counters
+}
+
+arpt_arp_or_uncond [
+	arp	arpt_arp
+	uncond	arpt_arp_uncond
+]
+
+type arpt_arp_uncond array[const[0, int8], ARPT_ARP_SIZE]
+define ARPT_ARP_SIZE	sizeof(struct arpt_arp)
+
+arpt_arp {
+	src		ipv4_addr
+	tgt		ipv4_addr
+	smsk		ipv4_addr_mask
+	tmsk		ipv4_addr_mask
+	arhln		int8[0:ARPT_DEV_ADDR_LEN_MAX]
+	arhln_mask	int8[0:ARPT_DEV_ADDR_LEN_MAX]
+	src_devaddr	arpt_devaddr_info
+	tgt_devaddr	arpt_devaddr_info
+	arpop		int16be
+	arpop_mask	int16be
+	arhrd		int16be
+	arhrd_mask	int16be
+	arpro		int16be
+	arpro_mask	int16be
+	iniface		devname
+	outiface	devname
+	iniface_mask	devname_mask
+	outiface_mask	devname_mask
+	flags		const[0, int8]
+	invflags	flags[arpt_arp_invflags, int16]
+}
+
+arpt_devaddr_info {
+	addr	arpt_devaddr
+	mask	arpt_devmask
+}
+
+arpt_devaddr [
+	empty	array[const[0, int8], ARPT_DEV_ADDR_LEN_MAX]
+	mac	mac_addr
+]
+
+arpt_devmask {
+	mac	mac_addr_mask
+} [size[ARPT_DEV_ADDR_LEN_MAX]]
+
+arpt_arp_invflags = ARPT_INV_VIA_IN, ARPT_INV_VIA_OUT, ARPT_INV_SRCIP, ARPT_INV_TGTIP, ARPT_INV_SRCDEVADDR, ARPT_INV_TGTDEVADDR, ARPT_INV_ARPOP, ARPT_INV_ARPHRD, ARPT_INV_ARPPRO, ARPT_INV_ARPHLN
+
+arpt_targets [
+	unspec	xt_unspec_targets
+	mangle	xt_target_t["mangle", arpt_mangle, 0]
+] [varlen]
+
+arpt_mangle {
+	src_devaddr	arpt_devaddr
+	tgt_devaddr	arpt_devaddr
+	src_ip		ipv4_addr
+	tgt_ip		ipv4_addr
+	flags		flags[arpt_mangle_flags, int8]
+	target		flags[arpt_mangle_targets, int32]
+}
+
+arpt_mangle_flags = ARPT_MANGLE_SDEV, ARPT_MANGLE_TDEV, ARPT_MANGLE_SIP, ARPT_MANGLE_TIP, ARPT_MANGLE_MASK
+arpt_mangle_targets = NF_DROP, NF_ACCEPT, XT_CONTINUE
+
+arpt_counters_info {
+	name		string["filter", XT_TABLE_MAXNAMELEN]
+	num_counters	len[counters, int32]
+	counters	array[xt_counters, 4:4]
+}
+
+arpt_getinfo {
+	name		string["filter", XT_TABLE_MAXNAMELEN]
+	valid_hooks	const[0, int32]
+	hook_entry	array[int32, NF_ARP_NUMHOOKS]
+	underflow	array[const[0, int32], NF_ARP_NUMHOOKS]
+	num_entries	const[0, int32]
+	size		const[0, int32]
+}
+
+arpt_get_entries {
+	name		string["filter", XT_TABLE_MAXNAMELEN]
+	size		bytesize[entrytable, int32]
+	entrytable	array[int8]
+}

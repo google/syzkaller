@@ -1,0 +1,170 @@
+TITLE: DATA RACE in mm.(*pmaSet).Find
+
+==================
+WARNING: DATA RACE
+Read at 0x00c4203c26f8 by goroutine 34:
+  gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*pmaSet).Find()
+      bazel-out/k8-fastbuild/bin/pkg/sentry/mm/pma_set.go:131 +0xa4
+  gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*pmaSet).FindSegment()
+      bazel-out/k8-fastbuild/bin/pkg/sentry/mm/pma_set.go:151 +0x42
+  gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).existingPMAsLocked()
+      pkg/sentry/mm/pma.go:48 +0x4e
+  gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).withInternalMappings()
+      pkg/sentry/mm/io.go:463 +0xcd
+  gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).CopyOut()
+      pkg/sentry/mm/io.go:119 +0x20f
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).CopyOutBytes()
+      pkg/sentry/kernel/task_usermem.go:83 +0xaa
+  gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.copyTimespecOut()
+      pkg/sentry/syscalls/linux/timespec.go:52 +0x3b1
+  gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.copyOutTimespecRemaining()
+      pkg/sentry/syscalls/linux/sys_poll.go:260 +0xc8
+  gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.Pselect()
+      pkg/sentry/syscalls/linux/sys_poll.go:423 +0x187
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).executeSyscall()
+      pkg/sentry/kernel/task_syscall.go:162 +0x14e
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallInvoke()
+      pkg/sentry/kernel/task_syscall.go:278 +0x7d
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallEnter()
+      pkg/sentry/kernel/task_syscall.go:241 +0xc3
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscall()
+      pkg/sentry/kernel/task_syscall.go:216 +0x19c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute()
+      pkg/sentry/kernel/task_run.go:217 +0x157c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run()
+      pkg/sentry/kernel/task_run.go:95 +0x264
+
+Previous write at 0x00c4203c26f8 by goroutine 27:
+  gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*pmaSet).InsertWithoutMergingUnchecked()
+      bazel-out/k8-fastbuild/bin/pkg/sentry/mm/pma_set.go:316 +0x229
+  gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*pmaSet).Insert()
+      bazel-out/k8-fastbuild/bin/pkg/sentry/mm/pma_set.go:288 +0x225
+  gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).insertPMAsLocked()
+      pkg/sentry/mm/pma.go:339 +0xf5b
+  gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).ensurePMAsLocked()
+      pkg/sentry/mm/pma.go:258 +0x25e
+  gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).getPMAsLocked()
+      pkg/sentry/mm/pma.go:128 +0xe1
+  gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).populateAndUnlock()
+      pkg/sentry/mm/syscalls.go:180 +0x187
+  gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).MMap()
+      pkg/sentry/mm/syscalls.go:148 +0x2c3
+  gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.Mmap()
+      pkg/sentry/syscalls/linux/sys_mmap.go:101 +0x32e
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).executeSyscall()
+      pkg/sentry/kernel/task_syscall.go:162 +0x14e
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallInvoke()
+      pkg/sentry/kernel/task_syscall.go:278 +0x7d
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallEnter()
+      pkg/sentry/kernel/task_syscall.go:241 +0xc3
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscall()
+      pkg/sentry/kernel/task_syscall.go:216 +0x19c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute()
+      pkg/sentry/kernel/task_run.go:217 +0x157c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run()
+      pkg/sentry/kernel/task_run.go:95 +0x264
+
+Goroutine 34 (running) created at:
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).Start()
+      pkg/sentry/kernel/task_start.go:251 +0x193
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).Clone()
+      pkg/sentry/kernel/task_clone.go:314 +0x10e6
+  gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.clone()
+      pkg/sentry/syscalls/linux/sys_thread.go:157 +0x22e
+  gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.Clone()
+      pkg/sentry/syscalls/linux/sys_thread.go:171 +0x80
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).executeSyscall()
+      pkg/sentry/kernel/task_syscall.go:162 +0x14e
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallInvoke()
+      pkg/sentry/kernel/task_syscall.go:278 +0x7d
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallEnter()
+      pkg/sentry/kernel/task_syscall.go:241 +0xc3
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscall()
+      pkg/sentry/kernel/task_syscall.go:216 +0x19c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute()
+      pkg/sentry/kernel/task_run.go:217 +0x157c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run()
+      pkg/sentry/kernel/task_run.go:95 +0x264
+
+Goroutine 27 (running) created at:
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).Start()
+      pkg/sentry/kernel/task_start.go:251 +0x193
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Kernel).Start()
+      pkg/sentry/kernel/kernel.go:664 +0x320
+  gvisor.googlesource.com/gvisor/runsc/boot.(*Loader).run()
+      runsc/boot/loader.go:343 +0x2f2
+  gvisor.googlesource.com/gvisor/runsc/boot.(*Loader).Run()
+      runsc/boot/loader.go:298 +0x3c
+  gvisor.googlesource.com/gvisor/runsc/cmd.(*Boot).Execute()
+      runsc/cmd/boot.go:140 +0xf02
+  github.com/google/subcommands.(*Commander).Execute()
+      external/com_github_google_subcommands/subcommands.go:141 +0x486
+  github.com/google/subcommands.Execute()
+      external/com_github_google_subcommands/subcommands.go:371 +0x80
+  main.main()
+      runsc/main.go:188 +0x16d0
+==================
+
+REPORT:
+WARNING: DATA RACE
+Read at 0x00c4203c26f8 by goroutine 34:
+  gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*pmaSet).Find()
+      bazel-out/k8-fastbuild/bin/pkg/sentry/mm/pma_set.go:131 +0xa4
+  gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*pmaSet).FindSegment()
+      bazel-out/k8-fastbuild/bin/pkg/sentry/mm/pma_set.go:151 +0x42
+  gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).existingPMAsLocked()
+      pkg/sentry/mm/pma.go:48 +0x4e
+  gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).withInternalMappings()
+      pkg/sentry/mm/io.go:463 +0xcd
+  gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).CopyOut()
+      pkg/sentry/mm/io.go:119 +0x20f
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).CopyOutBytes()
+      pkg/sentry/kernel/task_usermem.go:83 +0xaa
+  gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.copyTimespecOut()
+      pkg/sentry/syscalls/linux/timespec.go:52 +0x3b1
+  gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.copyOutTimespecRemaining()
+      pkg/sentry/syscalls/linux/sys_poll.go:260 +0xc8
+  gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.Pselect()
+      pkg/sentry/syscalls/linux/sys_poll.go:423 +0x187
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).executeSyscall()
+      pkg/sentry/kernel/task_syscall.go:162 +0x14e
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallInvoke()
+      pkg/sentry/kernel/task_syscall.go:278 +0x7d
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallEnter()
+      pkg/sentry/kernel/task_syscall.go:241 +0xc3
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscall()
+      pkg/sentry/kernel/task_syscall.go:216 +0x19c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute()
+      pkg/sentry/kernel/task_run.go:217 +0x157c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run()
+      pkg/sentry/kernel/task_run.go:95 +0x264
+
+Previous write at 0x00c4203c26f8 by goroutine 27:
+  gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*pmaSet).InsertWithoutMergingUnchecked()
+      bazel-out/k8-fastbuild/bin/pkg/sentry/mm/pma_set.go:316 +0x229
+  gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*pmaSet).Insert()
+      bazel-out/k8-fastbuild/bin/pkg/sentry/mm/pma_set.go:288 +0x225
+  gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).insertPMAsLocked()
+      pkg/sentry/mm/pma.go:339 +0xf5b
+  gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).ensurePMAsLocked()
+      pkg/sentry/mm/pma.go:258 +0x25e
+  gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).getPMAsLocked()
+      pkg/sentry/mm/pma.go:128 +0xe1
+  gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).populateAndUnlock()
+      pkg/sentry/mm/syscalls.go:180 +0x187
+  gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).MMap()
+      pkg/sentry/mm/syscalls.go:148 +0x2c3
+  gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.Mmap()
+      pkg/sentry/syscalls/linux/sys_mmap.go:101 +0x32e
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).executeSyscall()
+      pkg/sentry/kernel/task_syscall.go:162 +0x14e
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallInvoke()
+      pkg/sentry/kernel/task_syscall.go:278 +0x7d
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallEnter()
+      pkg/sentry/kernel/task_syscall.go:241 +0xc3
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscall()
+      pkg/sentry/kernel/task_syscall.go:216 +0x19c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute()
+      pkg/sentry/kernel/task_run.go:217 +0x157c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run()
+      pkg/sentry/kernel/task_run.go:95 +0x264

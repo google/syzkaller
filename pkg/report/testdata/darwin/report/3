@@ -1,0 +1,22 @@
+TITLE: panic: zalloc: default.kalloc.NUM retry fail NUM
+
+panic(cpu 1 caller 0xffffff8009da2f32): "zalloc: default.kalloc.4096 (357 elements) retry fail 6"@/Users/space/kernel/xnu-7195.81.3/osfmk/kern/zalloc.c:3413
+Backtrace (CPU 1), Frame : Return Address
+0xffffffa84446f540 : 0xffffff80084a0d75 mach_kernel : _handle_debugger_trap + 0x5d5
+0xffffffa84446f5a0 : 0xffffff8008944204 mach_kernel : _kdp_i386_trap + 0x2d4
+0xffffffa84446f5f0 : 0xffffff8008926727 mach_kernel : _kernel_trap + 0xb27
+0xffffffa84446f680 : 0xffffff800894bf8f mach_kernel : trap_from_kernel + 0x26
+0xffffffa84446f6a0 : 0xffffff80084a0264 mach_kernel : _DebuggerTrapWithState + 0x104
+0xffffffa84446f7d0 : 0xffffff80084a16d0 mach_kernel : _panic_trap_to_debugger + 0x390
+0xffffffa84446f840 : 0xffffff8009da0216 mach_kernel : _panic + 0x54
+0xffffffa84446f8b0 : 0xffffff8009da2f32 mach_kernel : _zone_replenish_panic + 0x123
+0xffffffa84446f900 : 0xffffff80085c2f4f mach_kernel : _zone_replenish_locked + 0x3df
+0xffffffa84446f970 : 0xffffff80085bd856 mach_kernel : _zone_refill_synchronously_locked + 0x186
+0xffffffa84446f9c0 : 0xffffff80085bd434 mach_kernel : _zalloc_ext + 0x4e4
+0xffffffa84446fa30 : 0xffffff80084ce564 mach_kernel : _kalloc_ext + 0x404
+0xffffffa84446fb30 : 0xffffff8009a004ab mach_kernel : __ZN12OSOrderedSet14ensureCapacityEj + 0xbb
+0xffffffa84446fb90 : 0xffffff8009a009ec mach_kernel : __ZN12OSOrderedSet9setObjectEjPK15OSMetaClassBase + 0x10c
+0xffffffa84446fbf0 : 0xffffff8009b8de3d mach_kernel : __ZN11IOCatalogue11findDriversEP9IOServicePi + 0x32d
+0xffffffa84446fd50 : 0xffffff8009b14114 mach_kernel : __ZN9IOService14doServiceMatchEj + 0x164
+0xffffffa84446fe70 : 0xffffff8009b2ffa2 mach_kernel : __ZN15_IOConfigThread4mainEPvi + 0x4c2
+0xffffffa84446ffa0 : 0xffffff800890881e mach_kernel : _call_continuation + 0x2e

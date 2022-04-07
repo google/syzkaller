@@ -1,0 +1,170 @@
+TITLE: WARNING: refcount bug in sctp_wfree
+
+[   44.461565] refcount_t: underflow; use-after-free.
+[   44.466577] ------------[ cut here ]------------
+[   44.471332] WARNING: CPU: 1 PID: 2992 at lib/refcount.c:186 refcount_sub_and_test+0x167/0x1b0
+[   44.479978] Kernel panic - not syncing: panic_on_warn set ...
+[   44.479978] 
+[   44.487309] CPU: 1 PID: 2992 Comm: syzkaller263121 Not tainted 4.14.0-rc5+ #91
+[   44.494631] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   44.503948] Call Trace:
+[   44.506504]  dump_stack+0x194/0x257
+[   44.510098]  ? arch_local_irq_restore+0x53/0x53
+[   44.514735]  panic+0x1e4/0x417
+[   44.517892]  ? __warn+0x1d9/0x1d9
+[   44.521307]  ? show_regs_print_info+0x65/0x65
+[   44.525774]  ? refcount_sub_and_test+0x167/0x1b0
+[   44.530498]  __warn+0x1c4/0x1d9
+[   44.533743]  ? refcount_sub_and_test+0x167/0x1b0
+[   44.538466]  report_bug+0x211/0x2d0
+[   44.542078]  fixup_bug+0x40/0x90
+[   44.545410]  do_trap+0x260/0x390
+[   44.548743]  do_error_trap+0x120/0x390
+[   44.552593]  ? vprintk_emit+0x49b/0x590
+[   44.556537]  ? do_trap+0x390/0x390
+[   44.560045]  ? refcount_sub_and_test+0x167/0x1b0
+[   44.564766]  ? vprintk_emit+0x3ea/0x590
+[   44.568710]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[   44.573519]  do_invalid_op+0x1b/0x20
+[   44.577201]  invalid_op+0x18/0x20
+[   44.580618] RIP: 0010:refcount_sub_and_test+0x167/0x1b0
+[   44.585944] RSP: 0018:ffff8801d1f4e9c8 EFLAGS: 00010282
+[   44.591271] RAX: 0000000000000026 RBX: 0000000000000001 RCX: 0000000000000000
+[   44.598504] RDX: 0000000000000026 RSI: 1ffff1003a3e9cf9 RDI: ffffed003a3e9d2d
+[   44.605737] RBP: ffff8801d1f4ea58 R08: 0000000000000000 R09: 1ffff1003a3e9ccb
+[   44.612969] R10: ffff8801d1f4e7f8 R11: ffffffff85b2cb78 R12: 1ffff1003a3e9d3a
+[   44.620203] R13: 00000000ffffff01 R14: 0000000000000100 R15: ffff8801d1d16a3c
+[   44.627449]  ? refcount_sub_and_test+0x167/0x1b0
+[   44.632170]  ? refcount_inc+0x50/0x50
+[   44.635936]  ? __sctp_outq_teardown+0xa5b/0x1230
+[   44.640656]  ? sctp_association_free+0x2d0/0x930
+[   44.645375]  ? sctp_do_sm+0x271b/0x6a30
+[   44.649313]  ? sctp_primitive_SHUTDOWN+0xa0/0xd0
+[   44.654031]  ? sctp_close+0x3c6/0x980
+[   44.657795]  ? inet_release+0xed/0x1c0
+[   44.661648]  ? sock_release+0x8d/0x1e0
+[   44.665498]  ? sock_close+0x16/0x20
+[   44.669090]  sctp_wfree+0x183/0x620
+[   44.672685]  ? entry_SYSCALL_64_fastpath+0xbc/0xbe
+[   44.677580]  ? __sctp_write_space+0x910/0x910
+[   44.682043]  skb_release_head_state+0x124/0x200
+[   44.686676]  skb_release_all+0x15/0x60
+[   44.690528]  consume_skb+0x153/0x490
+[   44.694202]  ? sctp_chunk_put+0x99/0x420
+[   44.698226]  ? alloc_skb_with_frags+0x750/0x750
+[   44.702858]  ? sctp_chunk_hold+0x20/0x20
+[   44.706884]  ? sctp_sched_dequeue_common+0x2aa/0x5d0
+[   44.711952]  ? refcount_sub_and_test+0x115/0x1b0
+[   44.716672]  ? refcount_inc+0x50/0x50
+[   44.720440]  ? trace_hardirqs_off+0xd/0x10
+[   44.724641]  ? quarantine_put+0xeb/0x190
+[   44.728672]  sctp_chunk_put+0x29c/0x420
+[   44.732615]  ? sctp_chunk_hold+0x20/0x20
+[   44.736643]  ? sctp_transport_dst_confirm+0x50/0x50
+[   44.741627]  ? sctp_sched_fcfs_dequeue+0x198/0x290
+[   44.746522]  ? sctp_sched_dequeue_common+0x5d0/0x5d0
+[   44.751594]  sctp_chunk_free+0x53/0x60
+[   44.755448]  __sctp_outq_teardown+0xa5b/0x1230
+[   44.759997]  ? sctp_inq_set_th_handler+0x1b0/0x1b0
+[   44.764894]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[   44.770054]  ? check_preempt_wakeup+0x1320/0x1320
+[   44.774873]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[   44.780030]  ? default_wake_function+0x30/0x50
+[   44.784576]  ? autoremove_wake_function+0x78/0x350
+[   44.789471]  ? finish_wait+0x490/0x490
+[   44.793325]  ? lock_acquire+0x1d5/0x580
+[   44.797266]  ? lock_acquire+0x1d5/0x580
+[   44.801206]  ? lock_acquire+0x1d5/0x580
+[   44.805147]  ? __wake_up_common_lock+0x1c2/0x310
+[   44.809879]  ? lock_acquire+0x1d5/0x580
+[   44.813821]  ? sock_def_wakeup+0x1f9/0x350
+[   44.818023]  ? lock_downgrade+0x990/0x990
+[   44.822138]  ? lock_release+0xa40/0xa40
+[   44.826078]  ? trace_raw_output_tick_stop+0x130/0x130
+[   44.831234]  sctp_outq_free+0x15/0x20
+[   44.834999]  sctp_association_free+0x2d0/0x930
+[   44.839548]  ? sctp_asconf_queue_teardown+0x700/0x700
+[   44.844704]  ? sock_def_wakeup+0x222/0x350
+[   44.848907]  ? sk_dst_check+0x560/0x560
+[   44.852852]  ? lock_release+0xa40/0xa40
+[   44.856794]  ? bpf_prog_kallsyms_find+0xbd/0x440
+[   44.861519]  sctp_do_sm+0x271b/0x6a30
+[   44.865286]  ? lock_acquire+0x1d5/0x580
+[   44.869227]  ? is_bpf_text_address+0x7b/0x120
+[   44.873691]  ? sctp_do_8_2_transport_strike.isra.16+0x8a0/0x8a0
+[   44.879718]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[   44.884875]  ? do_raw_spin_trylock+0x190/0x190
+[   44.889429]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[   44.894592]  ? lock_acquire+0x1d5/0x580
+[   44.898532]  ? lock_acquire+0x1d5/0x580
+[   44.902469]  ? skb_dequeue+0x12a/0x180
+[   44.906323]  ? lock_downgrade+0x990/0x990
+[   44.910438]  ? do_raw_spin_trylock+0x190/0x190
+[   44.914986]  ? lock_release+0xa40/0xa40
+[   44.918928]  ? trace_hardirqs_on+0xd/0x10
+[   44.923045]  sctp_primitive_SHUTDOWN+0xa0/0xd0
+[   44.927595]  sctp_close+0x3c6/0x980
+[   44.931192]  ? sctp_apply_peer_addr_params+0xf30/0xf30
+[   44.936438]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[   44.941593]  ? lock_downgrade+0x990/0x990
+[   44.945705]  ? lock_downgrade+0x990/0x990
+[   44.949821]  ? locks_remove_file+0x3fa/0x5a0
+[   44.954195]  ? fcntl_setlk+0x10c0/0x10c0
+[   44.958223]  ? bsearch+0x83/0xa0
+[   44.961555]  ? __fsnotify_parent+0xb4/0x3a0
+[   44.965841]  ? ip_mc_drop_socket+0x1ce/0x230
+[   44.970218]  inet_release+0xed/0x1c0
+[   44.973901]  sock_release+0x8d/0x1e0
+[   44.977581]  ? sock_release+0x1e0/0x1e0
+[   44.981521]  sock_close+0x16/0x20
+[   44.984942]  __fput+0x327/0x7e0
+[   44.988190]  ? fput+0x140/0x140
+[   44.991441]  ____fput+0x15/0x20
+[   44.994686]  task_work_run+0x199/0x270
+[   44.998539]  ? task_work_cancel+0x210/0x210
+[   45.002829]  ? __do_page_fault+0x3d6/0xd60
+[   45.007032]  get_signal+0x1343/0x16d0
+[   45.010798]  ? mm_fault_error+0x2c0/0x2c0
+[   45.014910]  ? ptrace_notify+0x130/0x130
+[   45.018935]  ? do_page_fault+0xee/0x720
+[   45.022874]  ? __do_page_fault+0xd60/0xd60
+[   45.027072]  ? do_page_fault+0xee/0x720
+[   45.031011]  ? __do_page_fault+0xd60/0xd60
+[   45.035210]  ? lock_acquire+0x1d5/0x580
+[   45.039147]  ? lock_acquire+0x1d5/0x580
+[   45.043093]  do_signal+0x94/0x1ee0
+[   45.046597]  ? lock_acquire+0x1d5/0x580
+[   45.050533]  ? lock_acquire+0x1d5/0x580
+[   45.054470]  ? put_unused_fd+0x62/0x70
+[   45.058322]  ? lock_downgrade+0x990/0x990
+[   45.062437]  ? setup_sigcontext+0x7d0/0x7d0
+[   45.066722]  ? do_raw_spin_trylock+0x190/0x190
+[   45.071271]  ? task_work_add+0x10e/0x1b0
+[   45.075296]  ? __put_unused_fd+0x183/0x250
+[   45.079498]  ? alloc_fdtable+0x280/0x280
+[   45.083524]  ? cpumask_weight.constprop.3+0x45/0x45
+[   45.088509]  ? _copy_to_user+0xa2/0xc0
+[   45.092398]  ? _raw_spin_unlock+0x22/0x30
+[   45.096511]  ? fput+0xd2/0x140
+[   45.099669]  ? SYSC_accept4+0x4ec/0x850
+[   45.103622]  ? kernel_accept+0x2f0/0x2f0
+[   45.107668]  exit_to_usermode_loop+0x214/0x310
+[   45.112219]  ? trace_event_raw_event_sys_exit+0x260/0x260
+[   45.117728]  syscall_return_slowpath+0x42f/0x510
+[   45.122448]  ? finish_task_switch+0x1aa/0x740
+[   45.126907]  ? prepare_exit_to_usermode+0x2d0/0x2d0
+[   45.131889]  ? prepare_exit_to_usermode+0x1a0/0x2d0
+[   45.136869]  ? perf_trace_sys_enter+0xc20/0xc20
+[   45.141502]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[   45.146226]  entry_SYSCALL_64_fastpath+0xbc/0xbe
+[   45.150944] RIP: 0033:0x446539
+[   45.154099] RSP: 002b:00007f402614bdc8 EFLAGS: 00000202 ORIG_RAX: 0000000000000120
+[   45.161772] RAX: fffffffffffffff2 RBX: 0000000000000000 RCX: 0000000000446539
+[   45.169007] RDX: 0000000020137ffc RSI: 0000000020b53ff0 RDI: 0000000000000003
+[   45.176244] RBP: 0000000000000000 R08: 00007f402614c700 R09: 00007f402614c700
+[   45.183479] R10: 0000000000080000 R11: 0000000000000202 R12: 0000000000000000
+[   45.190717] R13: 00000000007efe7f R14: 00007f402614c9c0 R15: 0000000000000000
+[   45.198315] Dumping ftrace buffer:
+[   45.201822]    (ftrace buffer empty)
+[   45.205500] Kernel Offset: disabled
+[   45.209092] Rebooting in 86400 seconds..

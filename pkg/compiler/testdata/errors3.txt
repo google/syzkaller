@@ -1,0 +1,23 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Errors that happen during description generation phase.
+
+discrimination(a int32)
+discrimination$1(a int16)	### discrimination$1 arg a is redeclared with size 2, previously declared with size 4 at LOCATION
+
+arg_size$1(a int16)
+arg_size$2(a const[0x12345])	### const val 0x12345 does not fit into 16 bits
+
+bad_size_attr_struct {
+	a	int64
+} [size[4]]			### struct bad_size_attr_struct has size attribute 4 which is less than struct size 8
+
+bad_size_attr_union [
+	a	int8
+	b	int16
+	c	int32		### union bad_size_attr_union has size attribute 2 which is less than field int32 size 4
+	d	int64		### union bad_size_attr_union has size attribute 2 which is less than field int64 size 8
+] [size[2]]
+
+bad_size_call(a ptr[in, bad_size_attr_struct], b ptr[in, bad_size_attr_union])

@@ -1,0 +1,196 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <sys/stat.h>
+include <sys/mount.h>
+include <sys/param.h>
+include <sys/ucred.h>
+include <fcntl.h>
+include <unistd.h>
+
+resource fd[int32]: 0xffffffffffffffff, AT_FDCWD
+resource fd_dir[fd]
+
+resource pid[int32]: 0, 0xffffffffffffffff
+resource uid[int32]: 0, 0xffffffffffffffff
+resource gid[int32]: 0, 0xffffffffffffffff
+
+open(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
+# Just so that we have something that creates fd_dir resources.
+open$dir(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd_dir
+openat(fd fd_dir[opt], file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
+close(fd fd)
+# Don't close fd ranges, tunfd ends up being closed as collateral damage.
+#close_range(fd fd, max_fd fd, flags flags[close_range_flags])
+#freebsd12_closefrom(fd fd)
+read(fd fd, buf buffer[out], count len[buf])
+readv(fd fd, vec ptr[in, array[iovec_out]], vlen len[vec])
+preadv(fd fd, vec ptr[in, array[iovec_out]], vlen len[vec], off fileoff)
+pread(fd fd, buf buffer[out], count len[buf], off fileoff)
+write(fd fd, buf buffer[in], count len[buf])
+writev(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec])
+pwrite(fd fd, buf buffer[in], count len[buf], off fileoff)
+pwritev(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec], off fileoff)
+lseek(fd fd, offset fileoff, whence flags[seek_whence])
+dup(oldfd fd) fd
+dup2(oldfd fd, newfd fd) fd
+pipe2(pipefd ptr[out, pipefd], flags flags[pipe_flags])
+freebsd10_pipe(pipefd ptr[out, pipefd])
+fstat(fd fd, statbuf ptr[out, stat])
+freebsd11_stat(file ptr[in, filename], statbuf ptr[out, freebsd11_stat])
+freebsd11_fstat(fd fd, statbuf ptr[out, freebsd11_stat])
+freebsd11_lstat(file ptr[in, filename], statbuf ptr[out, freebsd11_stat])
+fstatat(fd fd, path ptr[in, filename], statbuf ptr[out, stat], flag flags[fstatat_flags])
+freebsd11_fstatat(fd fd, path ptr[in, filename], statbuf ptr[out, freebsd11_stat], flag flags[fstatat_flags])
+freebsd11_getfsstat(buf ptr[out, freebsd11_statfs], size len[buf], mode flags[getfsstat_flags])
+getfsstat(buf ptr[out, statfs], size len[buf], mode flags[getfsstat_flags])
+posix_fallocate(fd fd, offset fileoff, len intptr)
+posix_fadvise(fd fd, offset fileoff, len intptr, advice flags[fadvise_advice])
+pathconf(file ptr[in, filename], name flags[conf_value])
+lpathconf(file ptr[in, filename], name flags[conf_value])
+fpathconf(fd fd, name flags[conf_value])
+unmount(path ptr[in, filename], flags flags[mount_flags])
+mount(type ptr[in, string[filesystem_types]], path ptr[in, filename], flags flags[mount_flags], data buffer[in])
+fspacectl(fd fd, cmd flags[spacectl_cmd], rgsr ptr[in, spacectl_range], flags flags[spacectl_flags], rmsr ptr[out, spacectl_range])
+getdirentries(fd fd_dir, buf buffer[out], nbytes len[buf], basep ptr[out, int64])
+
+pipefd {
+	rfd	fd
+	wfd	fd
+}
+
+iovec_in {
+	addr	buffer[in]
+	len	len[addr, intptr]
+}
+
+iovec_out {
+	addr	buffer[out]
+	len	len[addr, intptr]
+}
+
+freebsd11_stat {
+	dev	int32
+	ino	int32
+	mode	int16
+	nlink	int16
+	uid	uid
+	gid	gid
+	rdev	int32
+	atime	int64
+	ansec	int64
+	mtime	int64
+	mnsec	int64
+	ctime	int64
+	cnsec	int64
+	size	int64
+	blocks	int64
+	blksize	int32
+	flags	int32
+	gen	int32
+	__spare	const[0, int32]
+	btime	int64
+	bnsec	int64
+}
+
+stat {
+	dev	int64
+	ino	int64
+	nlink	int64
+	mode	int16
+	__pad0	const[0, int16]
+	uid	uid
+	gid	gid
+	__pad1	const[0, int32]
+	rdev	int64
+	atime	int64
+	ansec	int64
+	mtime	int64
+	mnsec	int64
+	ctime	int64
+	cnsec	int64
+	btime	int64
+	bnsec	int64
+	size	int64
+	blocks	int64
+	blksize	int32
+	flags	int32
+	gen	int64
+	__spare	array[int64, 10]
+}
+
+define MFSNAMELEN	16
+define MNAMELEN	1025
+define STATFS_VERSION	0x20140518
+
+statfs {
+	version		int32
+	type		int32
+	flags		flags[mount_flags, int64]
+	bsize		int64
+	iosize		int64
+	blocks		int64
+	bfree		int64
+	bavail		int64
+	files		int64
+	ffree		int64
+	syncwrites	int64
+	asyncwrites	int64
+	syncreads	int64
+	asyncreads	int64
+	spare		array[int64, 10]
+	namemax		int32
+	owner		uid
+	fsid		fsid
+	cspare		array[int8, 80]
+	fstype		array[int8, MFSNAMELEN]
+	mnton		array[int8, MNAMELEN]
+	mntfrom		array[int8, MNAMELEN]
+}
+
+define FREEBSD11_STATFS_VERSION	0x20030518
+
+freebsd11_statfs {
+	version		int32
+	type		int32
+	flags		flags[mount_flags, int64]
+	bsize		int64
+	iosize		int64
+	blocks		int64
+	bfree		int64
+	bavail		int64
+	files		int64
+	ffree		int64
+	syncwrites	int64
+	asyncwrites	int64
+	syncreads	int64
+	asyncreads	int64
+	spare		array[int64, 10]
+	namemax		int32
+	owner		uid
+	fsid		fsid
+	cspare		array[int8, 80]
+	fstype		array[int8, 16]
+	mnton		array[int8, 88]
+	mntfrom		array[int8, 88]
+}
+
+spacectl_range {
+	offset	int64
+	len	int64
+}
+
+filesystem_types = "apfs", "cd9660", "exfat", "ext2fs", "geli", "hammer", "hammer2", "hfsp", "msdosfs", "ntfs", "ufs", "zfs"
+open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, FASYNC, O_CLOEXEC, O_CREAT, O_DIRECT, O_DIRECTORY, O_EXCL, O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_SYNC, O_TRUNC, O_EXEC, O_TTY_INIT, O_VERIFY, O_PATH, O_EMPTY_PATH
+open_mode = S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
+#close_range_flags = 0
+seek_whence = SEEK_SET, SEEK_CUR, SEEK_END, SEEK_DATA, SEEK_HOLE
+pipe_flags = O_NONBLOCK, O_CLOEXEC
+fadvise_advice = POSIX_FADV_NORMAL, POSIX_FADV_RANDOM, POSIX_FADV_SEQUENTIAL, POSIX_FADV_WILLNEED, POSIX_FADV_DONTNEED, POSIX_FADV_NOREUSE
+conf_value = _PC_LINK_MAX, _PC_MAX_CANON, _PC_MAX_INPUT, _PC_NAME_MAX, _PC_PATH_MAX, _PC_PIPE_BUF, _PC_CHOWN_RESTRICTED, _PC_NO_TRUNC, _PC_VDISABLE, _PC_ASYNC_IO, _PC_PRIO_IO, _PC_SYNC_IO, _PC_ALLOC_SIZE_MIN, _PC_FILESIZEBITS, _PC_REC_INCR_XFER_SIZE, _PC_REC_MAX_XFER_SIZE, _PC_REC_MIN_XFER_SIZE, _PC_REC_XFER_ALIGN, _PC_SYMLINK_MAX, _PC_ACL_EXTENDED, _PC_ACL_NFS4, _PC_ACL_PATH_MAX, _PC_CAP_PRESENT, _PC_INF_PRESENT, _PC_MAC_PRESENT, _PC_MIN_HOLE_SIZE
+fstatat_flags = AT_SYMLINK_NOFOLLOW, AT_EMPTY_PATH
+mount_flags = MNT_RDONLY, MNT_SYNCHRONOUS, MNT_NOEXEC, MNT_NOSUID, MNT_ASYNC, MNT_NOATIME, MNT_SNAPSHOT, MNT_SUIDDIR, MNT_FORCE, MNT_NOCLUSTERR, MNT_NOCLUSTERW, MNT_NFS4ACLS, MNT_SOFTDEP, MNT_NOSYMFOLLOW, MNT_GJOURNAL, MNT_MULTILABEL, MNT_ACLS, MNT_EXRDONLY, MNT_EXPORTED, MNT_DEFEXPORTED, MNT_EXPORTANON
+getfsstat_flags = MNT_WAIT, MNT_NOWAIT
+spacectl_flags = 0
+spacectl_cmd = SPACECTL_DEALLOC

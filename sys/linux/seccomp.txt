@@ -1,0 +1,65 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/seccomp.h>
+include <asm/ioctls.h>
+include <asm/fcntl.h>
+
+resource fd_seccomp[fd]
+resource seccomp_id[int64]
+
+# Only some commands break return values.
+# When/if we have stricter enforcement of arguments, we may remove some of breaks_returns attributes.
+seccomp$SECCOMP_SET_MODE_STRICT(op const[SECCOMP_SET_MODE_STRICT], flags const[0], arg const[0]) (breaks_returns)
+seccomp$SECCOMP_SET_MODE_FILTER(op const[SECCOMP_SET_MODE_FILTER], flags flags[seccomp_flags], arg ptr[in, sock_fprog]) (breaks_returns)
+seccomp$SECCOMP_SET_MODE_FILTER_LISTENER(op const[SECCOMP_SET_MODE_FILTER], flags flags[seccomp_flags_listener], arg ptr[in, sock_fprog]) fd_seccomp (breaks_returns)
+seccomp$SECCOMP_GET_ACTION_AVAIL(op const[SECCOMP_GET_ACTION_AVAIL], flags const[0], arg ptr[in, int32]) (breaks_returns)
+seccomp$SECCOMP_GET_NOTIF_SIZES(op const[SECCOMP_GET_NOTIF_SIZES], flags const[0], arg ptr[out, seccomp_notif_sizes]) (breaks_returns)
+
+ioctl$SECCOMP_IOCTL_NOTIF_RECV(fd fd_seccomp, cmd const[SECCOMP_IOCTL_NOTIF_RECV], arg ptr[out, seccomp_notif]) (breaks_returns)
+ioctl$SECCOMP_IOCTL_NOTIF_SEND(fd fd_seccomp, cmd const[SECCOMP_IOCTL_NOTIF_SEND], arg ptr[in, seccomp_notif_resp]) (breaks_returns)
+ioctl$SECCOMP_IOCTL_NOTIF_ID_VALID(fd fd_seccomp, cmd const[SECCOMP_IOCTL_NOTIF_ID_VALID], arg ptr[in, seccomp_id]) (breaks_returns)
+ioctl$SECCOMP_IOCTL_NOTIF_ADDFD(fd fd_seccomp, cmd const[SECCOMP_IOCTL_NOTIF_ADDFD], arg ptr[in, seccomp_notif_addfd]) (breaks_returns)
+
+seccomp_notif_sizes {
+	seccomp_notif		int16
+	seccomp_notif_resp	int16
+	seccomp_data		int16
+}
+
+seccomp_notif {
+	id	seccomp_id
+	pid	pid
+	flags	int32
+	data	seccomp_data
+}
+
+seccomp_data {
+	nr			int32
+	arch			int32
+	instruction_pointer	int64
+	args			array[int64, 6]
+}
+
+seccomp_notif_resp {
+	id	seccomp_id
+	val	int64
+	error	int32
+	flags	const[0, int32]
+}
+
+seccomp_notif_addfd {
+	id		seccomp_id
+	flags		flags[seccomp_addfd_flags, int32]
+	srcfd		fd
+	newfd		int32
+	newfd_flags	flags[seccomp_addfd_newfd_flags, int32]
+}
+
+seccomp_flags = 0, SECCOMP_FILTER_FLAG_TSYNC, SECCOMP_FILTER_FLAG_LOG, SECCOMP_FILTER_FLAG_SPEC_ALLOW
+seccomp_flags_listener = SECCOMP_FILTER_FLAG_NEW_LISTENER, SECCOMP_FILTER_FLAG_LOG_LISTENER, SECCOMP_FILTER_FLAG_SPEC_ALLOW_LISTENER
+seccomp_addfd_flags = SECCOMP_ADDFD_FLAG_SETFD, SECCOMP_ADDFD_FLAG_SEND
+seccomp_addfd_newfd_flags = O_CLOEXEC
+
+define SECCOMP_FILTER_FLAG_LOG_LISTENER	SECCOMP_FILTER_FLAG_LOG | SECCOMP_FILTER_FLAG_NEW_LISTENER
+define SECCOMP_FILTER_FLAG_SPEC_ALLOW_LISTENER	SECCOMP_FILTER_FLAG_SPEC_ALLOW | SECCOMP_FILTER_FLAG_NEW_LISTENER

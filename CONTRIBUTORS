@@ -1,0 +1,107 @@
+# This is the official list of people who can contribute (and who have contributed)
+# code to the syzkaller project repository. The AUTHORS file lists the copyright holders;
+# this file lists people. For example, Google employees are listed here
+# but not in AUTHORS, because Google holds the copyright.
+
+Google Inc.
+ Dmitry Vyukov
+ Andrey Konovalov
+ David Drysdale
+ Vishwath Mohan
+ Billy Lau
+ Michael Pratt
+ Jess Frazelle
+ Zach Riggle
+ Willem de Bruijn
+ Eric Biggers
+ Atul Prakash
+ Julia Hansbrough
+ Dan Austin
+ Victor Hsieh
+ Michael A. Specter
+ Jann Horn
+ Andy Nguyen
+ Matt Morehouse
+ Jiaheng Hu
+ Albert van der Linde
+ Necip Fazil Yildiran
+ Cheng-Min Chiang
+ Ioana-Ruxandra Stancioi
+ Stefano Duo
+ Aleksandr Nogikh
+ Dean Deng
+ Pi-Hsun Shih
+ Stephen Boyd
+ Patrick Meyer
+ Zi Fan Tan
+ Christian Resell
+Baozeng Ding
+Lorenzo Stoakes
+Jeremy Huang
+Shuai Bai
+Alexander Popov
+Jean-Baptiste Cayrou
+Yuzhe Han
+Thomas Garnier
+Utkarsh Anand
+Tobias Klauser
+Tim Tianyang Chen
+Ed Maste
+Sumukha PK
+Mitchell Horne
+Denis Efremov
+Ondrej Mosnacek
+Daniel Borkmann
+Joey Jiao
+Anton Lindqvist
+Tobin Harding
+Shankara Pailoor
+Michael Tuexen
+Hou Jingyi
+Kamil Rytarowski
+Siddharth Muralee
+Dan Robertson
+Mark Johnston
+Mellanox Technologies
+ Noa Osherovich
+Cody Holliday
+JinWoo Lee
+Andrew Turner
+Ethercflow
+Christoph Paasch
+Collabora
+ André Almeida
+ Ricardo Cañuelo
+ Muhammad Usama Anjum
+Dipanjan Das
+Daimeng Wang
+Jukka Kaartinen
+Alexander Egorenkov
+Matthew Halchyshak
+Heyuan Shi
+Marijo Simunovic
+Jouni Högander
+VMware
+ Radoslav Gerganov
+Suraj K Suresh
+Palash Oswal
+Tiger Gao
+Congyu Liu
+Kyle Evans
+Darby Sauter
+Christian Brauner
+Johannes Wellhöfer
+Microsoft Corporation
+ Mickaël Salaün
+ANSSI
+ Vincent Dagonneau
+Desmond Cheong Zhi Xi
+Chuck Silvers
+Pavel Skripkin
+Linaro
+ Lee Jones
+Sabyrzhan Tasbolatov
+Adam Goska
+Kouame Behouba Manassé
+Junquan Zhou
+

@@ -1,0 +1,21 @@
+no-such-struct: xt_target_t
+bad-field-size: xt_tee_tginfo.priv: syz=8 kernel=4 [386,arm]
+bad-field-size: xt_led_info.internal_data: syz=8 kernel=4 [386,arm]
+bad-field-size: xt_rateest_target_info.est: syz=8 kernel=4 [386,arm]
+bad-field-size: idletimer_tg_info.timer: syz=8 kernel=4 [386,arm]
+bad-field-size: xt_ct_target_info.ct: syz=8 kernel=4 [386,arm]
+bad-field-size: xt_ct_target_info_v1.ct: syz=8 kernel=4 [386,arm]
+bad-field-number: xt_hmark_info: syz=11 kernel=9
+bad-field-size: xt_hmark_info.src_port_mask/port_mask: syz=2 kernel=4
+bad-field-offset: xt_hmark_info.dst_port_mask/port_set: syz=34 kernel=36
+bad-field-size: xt_hmark_info.dst_port_mask/port_set: syz=2 kernel=4
+bad-field-offset: xt_hmark_info.src_port_set/flags: syz=36 kernel=40
+bad-field-size: xt_hmark_info.src_port_set/flags: syz=2 kernel=4
+bad-field-offset: xt_hmark_info.dst_port_set/proto_mask: syz=38 kernel=44
+bad-field-offset: xt_hmark_info.flags/hashrnd: syz=40 kernel=48
+bad-field-offset: xt_hmark_info.proto_mask/hmodulus: syz=44 kernel=52
+bad-field-size: xt_hmark_info.proto_mask/hmodulus: syz=2 kernel=4
+bad-field-offset: xt_hmark_info.hashrnd/hoffset: syz=48 kernel=56
+bad-field-number: xt_set_info_v0: syz=4 kernel=2
+bad-field-size: xt_set_info_v0.flags/u: syz=24 kernel=28
+no-such-struct: xt_synproxy_info

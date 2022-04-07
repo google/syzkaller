@@ -1,0 +1,22 @@
+TITLE: panic: runtime error: invalid memory address or nil pointer dereference
+
+panic: runtime error: invalid memory address or nil pointer dereference
+[signal SIGSEGV: segmentation violation code=0x1 addr=0x88 pc=0x7a0381]
+
+goroutine 24 [running]:
+github.com/google/syzkaller/prog.chooseCall.func1(0x9a6240, 0xc00306eb40, 0xc003ac0b60)
+	/syzkaller/gopath/src/github.com/google/syzkaller/prog/mutation.go:198 +0x51
+github.com/google/syzkaller/prog.foreachArgImpl(0x9a6240, 0xc00306eb40, 0xc003035fc8, 0x0, 0x0, 0x0, 0xc002effd60)
+	/syzkaller/gopath/src/github.com/google/syzkaller/prog/analysis.go:125 +0xbe
+github.com/google/syzkaller/prog.ForeachArg(0xc003035fc0, 0xc002effd60)
+	/syzkaller/gopath/src/github.com/google/syzkaller/prog/analysis.go:120 +0x9e
+github.com/google/syzkaller/prog.chooseCall(0xc002fc8080, 0xc003ac9420, 0xc002c616b0, 0xc002effdc0)
+	/syzkaller/gopath/src/github.com/google/syzkaller/prog/mutation.go:197 +0x10d
+github.com/google/syzkaller/prog.(*mutator).mutateArg(0xc002effec0, 0xa)
+	/syzkaller/gopath/src/github.com/google/syzkaller/prog/mutation.go:161 +0x67
+github.com/google/syzkaller/prog.(*Prog).Mutate(0xc002fc8080, 0x9a0ac0, 0xc002c0d560, 0x1e, 0xc002e96980, 0xc003022000, 0x1e78, 0x2400)
+	/syzkaller/gopath/src/github.com/google/syzkaller/prog/mutation.go:44 +0x2da
+main.(*Proc).loop(0xc002fe2500)
+	/syzkaller/gopath/src/github.com/google/syzkaller/syz-fuzzer/proc.go:99 +0x434
+created by main.main
+	/syzkaller/gopath/src/github.com/google/syzkaller/syz-fuzzer/fuzzer.go:259 +0x114c

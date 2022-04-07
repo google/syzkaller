@@ -1,0 +1,82 @@
+TITLE: general protection fault in integrity_inode_free
+ALT: bad-access in integrity_inode_free
+
+[   36.583433] kasan: GPF could be caused by NULL-ptr deref or user memory access
+[   36.590897] general protection fault: 0000 [#1] PREEMPT SMP KASAN
+[   36.597137] CPU: 1 PID: 5376 Comm: syz-executor171 Not tainted 4.19.0+ #301
+[   36.604221] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   36.613579] RIP: 0010:rb_erase+0x306/0x3710
+[   36.617891] Code: c7 81 28 01 00 00 f2 f2 f2 f2 c7 81 2c 01 00 00 00 f2 f2 f2 48 89 f9 65 48 8b 1c 25 28 00 00 00 48 89 5d d0 31 db 48 c1 e9 03 <42> 80 3c 01 00 0f 85 41 1c 00 00 4c 8d 48 10 4c 8b 78 08 48 b9 00
+[   36.636814] RSP: 0018:ffff8801ccf76918 EFLAGS: 00010202
+[   36.642164] RAX: 0000000000000000 RBX: 0000000000000000 RCX: 0000000000000001
+[   36.649417] RDX: 1ffff100399eed2b RSI: ffffffff8af92020 RDI: 0000000000000008
+[   36.656670] RBP: ffff8801ccf77320 R08: dffffc0000000000 R09: ffffed00399eee53
+[   36.663939] R10: ffffed00399eee53 R11: 0000000000000003 R12: ffff8801b738e970
+[   36.671193] R13: dffffc0000000000 R14: ffff8801ccf772f8 R15: ffff8801ccf77438
+[   36.678447] FS:  0000000001470880(0000) GS:ffff8801daf00000(0000) knlGS:0000000000000000
+[   36.686655] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   36.692517] CR2: 00000000200000c0 CR3: 00000001d9758000 CR4: 00000000001406e0
+[   36.699770] Call Trace:
+[   36.903531]  integrity_inode_free+0x12f/0x320
+[   36.908012]  security_inode_free+0x19/0x90
+[   36.912242]  __destroy_inode+0x328/0x820
+[   36.932871]  destroy_inode+0xda/0x200
+[   36.940885]  evict+0x5e0/0x980
+[   36.968583]  iput+0x679/0xa90
+[   36.998602]  ext4_ioctl+0x236f/0x4210
+[   36.999678] kobject: 'regulatory.0' (00000000223ee51a): kobject_uevent_env
+[   37.009422] kobject: 'regulatory.0' (00000000223ee51a): fill_kobj_path: path = '/devices/platform/regulatory.0'
+[   37.151191]  do_vfs_ioctl+0x1de/0x1720
+[   37.211187]  ksys_ioctl+0xa9/0xd0
+[   37.214643]  __x64_sys_ioctl+0x73/0xb0
+[   37.218528]  do_syscall_64+0x1b9/0x820
+[   37.257532]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[   37.262716] RIP: 0033:0x440019
+[   37.265950] Code: 18 89 d0 c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 fb 13 fc ff c3 66 2e 0f 1f 84 00 00 00 00
+[   37.284848] RSP: 002b:00007ffe8fee3478 EFLAGS: 00000213 ORIG_RAX: 0000000000000010
+[   37.292568] RAX: ffffffffffffffda RBX: 00000000004002c8 RCX: 0000000000440019
+[   37.299851] RDX: 0000000000440019 RSI: 0000000000006611 RDI: 0000000000000003
+[   37.307119] RBP: 00000000006ca018 R08: 0000000000000000 R09: 00000000004002c8
+[   37.314384] R10: 0000000000000000 R11: 0000000000000213 R12: 00000000004018a0
+[   37.321649] R13: 0000000000401930 R14: 0000000000000000 R15: 0000000000000000
+[   37.328920] Modules linked in:
+[   37.332245] ---[ end trace 49b6e5e5800906ef ]---[   36.583433] kasan: GPF could be caused by NULL-ptr deref or user memory access
+[   36.590897] general protection fault: 0000 [#1] PREEMPT SMP KASAN
+[   36.597137] CPU: 1 PID: 5376 Comm: syz-executor171 Not tainted 4.19.0+ #301
+[   36.604221] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   36.613579] RIP: 0010:rb_erase+0x306/0x3710
+[   36.617891] Code: c7 81 28 01 00 00 f2 f2 f2 f2 c7 81 2c 01 00 00 00 f2 f2 f2 48 89 f9 65 48 8b 1c 25 28 00 00 00 48 89 5d d0 31 db 48 c1 e9 03 <42> 80 3c 01 00 0f 85 41 1c 00 00 4c 8d 48 10 4c 8b 78 08 48 b9 00
+[   36.636814] RSP: 0018:ffff8801ccf76918 EFLAGS: 00010202
+[   36.642164] RAX: 0000000000000000 RBX: 0000000000000000 RCX: 0000000000000001
+[   36.649417] RDX: 1ffff100399eed2b RSI: ffffffff8af92020 RDI: 0000000000000008
+[   36.656670] RBP: ffff8801ccf77320 R08: dffffc0000000000 R09: ffffed00399eee53
+[   36.663939] R10: ffffed00399eee53 R11: 0000000000000003 R12: ffff8801b738e970
+[   36.671193] R13: dffffc0000000000 R14: ffff8801ccf772f8 R15: ffff8801ccf77438
+[   36.678447] FS:  0000000001470880(0000) GS:ffff8801daf00000(0000) knlGS:0000000000000000
+[   36.686655] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   36.692517] CR2: 00000000200000c0 CR3: 00000001d9758000 CR4: 00000000001406e0
+[   36.699770] Call Trace:
+[   36.903531]  integrity_inode_free+0x12f/0x320
+[   36.908012]  security_inode_free+0x19/0x90
+[   36.912242]  __destroy_inode+0x328/0x820
+[   36.932871]  destroy_inode+0xda/0x200
+[   36.940885]  evict+0x5e0/0x980
+[   36.968583]  iput+0x679/0xa90
+[   36.998602]  ext4_ioctl+0x236f/0x4210
+[   36.999678] kobject: 'regulatory.0' (00000000223ee51a): kobject_uevent_env
+[   37.009422] kobject: 'regulatory.0' (00000000223ee51a): fill_kobj_path: path = '/devices/platform/regulatory.0'
+[   37.151191]  do_vfs_ioctl+0x1de/0x1720
+[   37.211187]  ksys_ioctl+0xa9/0xd0
+[   37.214643]  __x64_sys_ioctl+0x73/0xb0
+[   37.218528]  do_syscall_64+0x1b9/0x820
+[   37.257532]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[   37.262716] RIP: 0033:0x440019
+[   37.265950] Code: 18 89 d0 c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 fb 13 fc ff c3 66 2e 0f 1f 84 00 00 00 00
+[   37.284848] RSP: 002b:00007ffe8fee3478 EFLAGS: 00000213 ORIG_RAX: 0000000000000010
+[   37.292568] RAX: ffffffffffffffda RBX: 00000000004002c8 RCX: 0000000000440019
+[   37.299851] RDX: 0000000000440019 RSI: 0000000000006611 RDI: 0000000000000003
+[   37.307119] RBP: 00000000006ca018 R08: 0000000000000000 R09: 00000000004002c8
+[   37.314384] R10: 0000000000000000 R11: 0000000000000213 R12: 00000000004018a0
+[   37.321649] R13: 0000000000401930 R14: 0000000000000000 R15: 0000000000000000
+[   37.328920] Modules linked in:
+[   37.332245] ---[ end trace 49b6e5e5800906ef ]---

@@ -1,0 +1,75 @@
+TITLE: BUG: unable to handle kernel paging request in io_serial_out
+ALT: bad-access in io_serial_out
+
+8<--- cut here ---
+Unable to handle kernel paging request at virtual address fee00001
+pgd = cd9e72c8
+[fee00001] *pgd=00000000
+Internal error: Oops: 805 [#1] SMP ARM
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Modules linked in:
+CPU: 0 PID: 21591 Comm: syz-executor.0 Not tainted 5.10.2 #10
+Hardware name: ARM-Versatile Express
+PC is at io_serial_out+0x40/0x48
+LR is at io_serial_out+0x28/0x48
+pc : [<8078e15c>]    lr : [<8078e144>]    psr: 20000093
+sp : 9e4ffe10  ip : 00000002  fp : 00000000
+r10: 82c92c74  r9 : 920a1340  r8 : 920a1340
+r7 : 0000001b  r6 : 811b9fa8  r5 : 00000000  r4 : 00000001
+r3 : fee00001  r2 : 00040000  r1 : cb584000  r0 : 811b9fa8
+Flags: nzCv  IRQs off  FIQs on  Mode SVC_32  ISA ARM  Segment none
+Control: 10c5387d  Table: 9b54806a  DAC: 00000051
+Process syz-executor.0 (pid: 21591, stack limit = 0x3084032e)
+Stack: (0x9e4ffe10 to 0x9e500000)
+fe00:                                     811b9fa8 00000000 00000000 8078fba0
+fe20: 811b9fa8 82c92ca8 00000000 8078fba8 920a1340 8078fbec 82c92c00 811b9fa8
+fe40: 81d44b7c 80784f14 82c92c00 00000000 00000000 0000001b 920a1340 80763814
+fe60: 00000000 0000001b 82c92c00 0000001a 972bce40 200000c0 82c92c00 80758554
+fe80: 00000000 801ef828 ffffffff 3d764000 9e49abc0 00000402 9e4ffedc 00000000
+fea0: 814fa000 80218e8c 00000000 00000000 80171fec 00000000 972bce40 00000001
+fec0: 00000004 0000000c 80d12fe0 00000000 80344a0c 00005423 00000000 80218f54
+fee0: 00005423 00000000 80344a0c 00005423 972bce41 81104e88 972bce40 00005423
+ff00: 972bce41 80757adc 972bce40 200000c0 81d52f68 00000000 00000004 80344e20
+ff20: 00000ef1 8010cc9c 00000000 00000051 00000107 80100284 9e4fe000 80218e8c
+ff40: 00000000 00000000 75e8ead8 00000001 00000001 81104e88 00000036 8010cb7c
+ff60: 82ebe988 9e4fffb0 00000036 80100284 9e4fe000 00000040 75e8ec9c 81104e88
+ff80: 00000000 00000000 00000000 00000000 00000036 80100284 9e4fe000 00000036
+ffa0: 75e8ec9c 80100260 00000000 00000000 00000004 00005423 200000c0 00000000
+ffc0: 00000000 00000000 00000000 00000036 7e89e732 75e8f160 75e8eca0 75e8ec9c
+ffe0: 75e8eae8 75e8ead8 000152e8 0004ed10 60000010 00000004 00000000 00000000
+Backtrace: 
+[<8078e15c>] (io_serial_out) from [<8078fba0>] (serial8250_do_set_ldisc+0x10c/0x114)
+[<8078fba0>] (serial8250_do_set_ldisc) from [<8078fbec>] (serial8250_set_ldisc+0x44/0x4c)
+[<8078fbec>] (serial8250_set_ldisc) from [<80784f14>] (uart_set_ldisc+0x4c/0x5c)
+[<80784f14>] (uart_set_ldisc) from [<80763814>] (tty_set_ldisc+0x1e4/0x2bc)
+[<80763814>] (tty_set_ldisc) from [<80758554>] (tty_ioctl+0xa78/0x1080)
+[<80758554>] (tty_ioctl) from [<80344e20>] (sys_ioctl+0x47c/0xed8)
+[<80344e20>] (sys_ioctl) from [<80100260>] (__sys_trace_return+0x0/0x20)
+Exception stack(0x9e4fffa8 to 0x9e4ffff0)
+ffa0:                   00000000 00000000 00000004 00005423 200000c0 00000000
+ffc0: 00000000 00000000 00000000 00000036 7e89e732 75e8f160 75e8eca0 75e8ec9c
+ffe0: 75e8eae8 75e8ead8 000152e8 0004ed10
+Code: e0844003 e3c434ff e3c3360f e2433612 (e5c35000) 
+---[ end trace 999c39366fb036fe ]---
+Kernel panic - not syncing: Fatal exception
+CPU1: stopping
+CPU: 1 PID: 0 Comm: swapper/1 Tainted: G      D           5.10.2 #10
+Hardware name: ARM-Versatile Express
+[<80118054>] (unwind_backtrace) from [<80110ce4>] (show_stack+0x20/0x24)
+[<80110ce4>] (show_stack) from [<80c16564>] (dump_stack+0x104/0x138)
+[<80c16564>] (dump_stack) from [<80115548>] (do_handle_IPI+0x3e8/0x45c)
+[<80115548>] (do_handle_IPI) from [<801155d8>] (ipi_handler+0x1c/0x28)
+[<801155d8>] (ipi_handler) from [<801aec5c>] (handle_percpu_devid_fasteoi_ipi+0x84/0x1a8)
+[<801aec5c>] (handle_percpu_devid_fasteoi_ipi) from [<801a59ec>] (__handle_domain_irq+0xb8/0x124)
+[<801a59ec>] (__handle_domain_irq) from [<806ab444>] (gic_handle_irq+0xb0/0xe8)
+[<806ab444>] (gic_handle_irq) from [<80100b6c>] (__irq_svc+0x6c/0x90)
+Exception stack(0x814fff60 to 0x814fffa8)
+ff60: 002ff1c4 00000000 814dc4c0 00000000 00000000 814fe000 00000000 00000001
+ff80: 81104ed4 81104f10 81067b90 814fffc0 00000000 814fffb0 8010c030 8010c034
+ffa0: 80000013 ffffffff
+[<80100b6c>] (__irq_svc) from [<8010c034>] (arch_cpu_idle+0x28/0x48)
+[<8010c034>] (arch_cpu_idle) from [<80c23ac4>] (default_idle_call+0x28/0xf0)
+[<80c23ac4>] (default_idle_call) from [<80181b30>] (do_idle+0x1cc/0x26c)
+[<80181b30>] (do_idle) from [<80181e88>] (cpu_startup_entry+0x18/0x1c)
+[<80181e88>] (cpu_startup_entry) from [<8010164c>] (__enable_mmu+0x0/0x14)

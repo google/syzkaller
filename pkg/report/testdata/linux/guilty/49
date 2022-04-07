@@ -1,0 +1,132 @@
+FILE: net/mac80211/sta_info.c
+
+watchdog: BUG: soft lockup - CPU#1 stuck for 134s! [syz-executor.3:16401]
+Modules linked in:
+irq event stamp: 35791815
+hardirqs last  enabled at (35791814): [<ffffffff89000d42>] asm_sysvec_irq_work+0x12/0x20 arch/x86/include/asm/idtentry.h:657
+hardirqs last disabled at (35791815): [<ffffffff88e55bbc>] sysvec_apic_timer_interrupt+0xc/0x100 arch/x86/kernel/apic/apic.c:1091
+softirqs last  enabled at (27194592): [<ffffffff89000eaf>] asm_call_irq_on_stack+0xf/0x20
+softirqs last disabled at (27194595): [<ffffffff89000eaf>] asm_call_irq_on_stack+0xf/0x20
+CPU: 1 PID: 16401 Comm: syz-executor.3 Not tainted 5.10.0-rc6-syzkaller #0
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+RIP: 0010:__sanitizer_cov_trace_switch+0xe/0x70 kernel/kcov.c:303
+Code: 48 89 f2 48 89 fe bf 07 00 00 00 e9 8c fe ff ff 66 90 66 2e 0f 1f 84 00 00 00 00 00 41 54 48 89 fa 55 48 89 f5 53 48 8b 46 08 <48> 83 f8 20 74 52 77 39 48 83 f8 08 74 43 48 83 f8 10 75 28 bf 03
+RSP: 0018:ffffc90000d909e8 EFLAGS: 00000246
+RAX: 0000000000000020 RBX: ffff88802767c85a RCX: ffffffff83b5e925
+RDX: 0000000000000006 RSI: ffffffff899d4fc0 RDI: 0000000000000006
+RBP: ffffffff899d4fc0 R08: 000000006581e33e R09: ffffffff8ebae667
+R10: 000000000000000c R11: 0000000000000001 R12: 0000000000000006
+R13: 00000000442fa233 R14: 00000000442fa233 R15: 00000000442fa233
+FS:  00007f8f30af8700(0000) GS:ffff8880b9f00000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000000020eb4000 CR3: 000000001d519000 CR4: 0000000000350ee0
+Call Trace:
+ <IRQ>
+ jhash+0x1d7/0x5d0 include/linux/jhash.h:88
+ rht_key_hashfn include/linux/rhashtable.h:159 [inline]
+ __rhashtable_lookup+0x22b/0x780 include/linux/rhashtable.h:596
+ rhltable_lookup include/linux/rhashtable.h:688 [inline]
+ sta_info_hash_lookup net/mac80211/sta_info.c:162 [inline]
+ sta_info_get_bss+0x144/0x3f0 net/mac80211/sta_info.c:199
+ __ieee80211_rx_handle_packet net/mac80211/rx.c:4638 [inline]
+ ieee80211_rx_list+0xdd3/0x23d0 net/mac80211/rx.c:4759
+ ieee80211_rx_napi+0xf7/0x3d0 net/mac80211/rx.c:4780
+ ieee80211_rx include/net/mac80211.h:4502 [inline]
+ ieee80211_tasklet_handler+0xd3/0x130 net/mac80211/main.c:235
+ tasklet_action_common.constprop.0+0x22f/0x2d0 kernel/softirq.c:560
+ __do_softirq+0x2a0/0x9f6 kernel/softirq.c:298
+ asm_call_irq_on_stack+0xf/0x20
+ </IRQ>
+ __run_on_irqstack arch/x86/include/asm/irq_stack.h:26 [inline]
+ run_on_irqstack_cond arch/x86/include/asm/irq_stack.h:77 [inline]
+ do_softirq_own_stack+0xaa/0xd0 arch/x86/kernel/irq_64.c:77
+ invoke_softirq kernel/softirq.c:393 [inline]
+ __irq_exit_rcu kernel/softirq.c:423 [inline]
+ irq_exit_rcu+0x132/0x200 kernel/softirq.c:435
+ sysvec_apic_timer_interrupt+0x4d/0x100 arch/x86/kernel/apic/apic.c:1091
+ asm_sysvec_apic_timer_interrupt+0x12/0x20 arch/x86/include/asm/idtentry.h:631
+RIP: 0010:preempt_schedule_irq+0x49/0x90 kernel/sched/core.c:4789
+Code: 55 53 65 48 8b 1c 25 00 f0 01 00 48 89 dd 48 c1 ed 03 48 01 c5 bf 01 00 00 00 e8 e2 6c 64 f8 e8 ad d2 8e f8 fb bf 01 00 00 00 <e8> 82 d1 ff ff 9c 58 fa f6 c4 02 75 27 bf 01 00 00 00 e8 50 55 64
+RSP: 0018:ffffc900040af818 EFLAGS: 00000206
+RAX: 00000000019ef4e1 RBX: ffff8880246ecec0 RCX: ffffffff8155a937
+RDX: 0000000000000000 RSI: 0000000000000001 RDI: 0000000000000001
+RBP: ffffed10048dd9d8 R08: 0000000000000001 R09: ffffffff8ebae70f
+R10: fffffbfff1d75ce1 R11: 0000000000000001 R12: 0000000000000000
+R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
+ irqentry_exit_cond_resched kernel/entry/common.c:357 [inline]
+ irqentry_exit_cond_resched kernel/entry/common.c:349 [inline]
+ irqentry_exit+0x7a/0xa0 kernel/entry/common.c:387
+ asm_sysvec_apic_timer_interrupt+0x12/0x20 arch/x86/include/asm/idtentry.h:631
+RIP: 0010:constant_test_bit arch/x86/include/asm/bitops.h:207 [inline]
+RIP: 0010:test_bit include/asm-generic/bitops/instrumented-non-atomic.h:135 [inline]
+RIP: 0010:test_ti_thread_flag include/linux/thread_info.h:84 [inline]
+RIP: 0010:need_resched include/linux/sched.h:1897 [inline]
+RIP: 0010:preempt_schedule_common+0x19/0xc0 kernel/sched/core.c:4695
+Code: 9b ca f8 e9 78 ff ff ff 66 0f 1f 84 00 00 00 00 00 41 55 41 54 49 bc 00 00 00 00 00 fc ff df 55 53 65 48 8b 1c 25 00 f0 01 00 <48> 89 dd 48 c1 ed 03 4c 01 e5 65 ff 05 26 08 1b 77 65 8b 05 1f 08
+RSP: 0018:ffffc900040af8e8 EFLAGS: 00000202
+RAX: 0000000000000246 RBX: ffff8880246ecec0 RCX: 0000000000000000
+RDX: 0000000000000001 RSI: 0000000000000001 RDI: 0000000000000001
+RBP: ffffc900040af958 R08: 0000000000000003 R09: ffffffff8ebae70f
+R10: fffffbfff1d75ce1 R11: 0000000000000000 R12: dffffc0000000000
+R13: 00000000000382b0 R14: 0000000000000297 R15: 0000000000000001
+ preempt_schedule_thunk+0x16/0x18 arch/x86/entry/thunk_64.S:40
+ put_cpu_partial+0x138/0x200 mm/slub.c:2420
+ qlink_free mm/kasan/quarantine.c:149 [inline]
+ qlist_free_all+0x5a/0xc0 mm/kasan/quarantine.c:168
+ quarantine_reduce+0x17e/0x200 mm/kasan/quarantine.c:261
+ __kasan_kmalloc.constprop.0+0x9e/0xd0 mm/kasan/common.c:442
+ slab_post_alloc_hook mm/slab.h:526 [inline]
+ slab_alloc_node mm/slub.c:2891 [inline]
+ kmem_cache_alloc_node+0x13b/0x490 mm/slub.c:2927
+ __alloc_skb+0x71/0x550 net/core/skbuff.c:198
+ alloc_skb_fclone include/linux/skbuff.h:1144 [inline]
+ sk_stream_alloc_skb+0x109/0xc30 net/ipv4/tcp.c:888
+ tcp_sendmsg_locked+0xbb7/0x2d20 net/ipv4/tcp.c:1295
+ tcp_sendmsg+0x2b/0x40 net/ipv4/tcp.c:1444
+ inet_sendmsg+0x99/0xe0 net/ipv4/af_inet.c:817
+ sock_sendmsg_nosec net/socket.c:651 [inline]
+ sock_sendmsg+0xcf/0x120 net/socket.c:671
+ __sys_sendto+0x21c/0x320 net/socket.c:1992
+ __do_sys_sendto net/socket.c:2004 [inline]
+ __se_sys_sendto net/socket.c:2000 [inline]
+ __x64_sys_sendto+0xdd/0x1b0 net/socket.c:2000
+ do_syscall_64+0x2d/0x70 arch/x86/entry/common.c:46
+ entry_SYSCALL_64_after_hwframe+0x44/0xa9
+RIP: 0033:0x45deb9
+Code: 0d b4 fb ff c3 66 2e 0f 1f 84 00 00 00 00 00 66 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 db b3 fb ff c3 66 2e 0f 1f 84 00 00 00 00
+RSP: 002b:00007f8f30af7c78 EFLAGS: 00000246 ORIG_RAX: 000000000000002c
+RAX: ffffffffffffffda RBX: 000000000002ea00 RCX: 000000000045deb9
+RDX: ffffffffffffffef RSI: 0000000020d7cfcb RDI: 0000000000000005
+RBP: 000000000119bf78 R08: 0000000000000000 R09: 0000000009000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 000000000119bf2c
+R13: 00007ffdae49d00f R14: 00007f8f30af89c0 R15: 000000000119bf2c
+Sending NMI from CPU 1 to CPUs 0:
+NMI backtrace for cpu 0
+CPU: 0 PID: 10 Comm: ksoftirqd/0 Not tainted 5.10.0-rc6-syzkaller #0
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+RIP: 0010:__pvclock_read_cycles arch/x86/include/asm/pvclock.h:84 [inline]
+RIP: 0010:pvclock_clocksource_read+0x6b/0x510 arch/x86/kernel/pvclock.c:76
+Code: c0 0f 95 c0 84 c1 0f 85 80 04 00 00 4c 89 e0 83 e0 07 38 c2 0f 9e c1 84 d2 0f 95 c0 84 c1 0f 85 68 04 00 00 48 8d 43 08 8b 0b <48> bd 00 00 00 00 00 fc ff df 48 8d 7b 1c 48 89 44 24 08 48 c1 e8
+RSP: 0018:ffffc90000cf7ce0 EFLAGS: 00000046
+RAX: ffffffff8e48d008 RBX: ffffffff8e48d000 RCX: 0000000000000008
+RDX: 0000000000000000 RSI: 0000000000000100 RDI: ffffffff8e48d000
+RBP: ffff888010d69a40 R08: 0000000000000000 R09: ffff888010d69a47
+R10: ffffed10021ad348 R11: 0000000000000001 R12: ffffffff8e48d003
+R13: 0000000000000038 R14: 0000000000000006 R15: 0000000000000040
+FS:  0000000000000000(0000) GS:ffff8880b9e00000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000563fcd9200c8 CR3: 00000000142dc000 CR4: 0000000000350ef0
+Call Trace:
+ kvm_clock_read arch/x86/kernel/kvmclock.c:90 [inline]
+ kvm_sched_clock_read+0x14/0x40 arch/x86/kernel/kvmclock.c:102
+ paravirt_sched_clock arch/x86/include/asm/paravirt.h:22 [inline]
+ sched_clock+0x2a/0x40 arch/x86/kernel/tsc.c:252
+ sched_clock_cpu+0x18/0x1f0 kernel/sched/clock.c:371
+ irqtime_account_irq+0x71/0x2d0 kernel/sched/cputime.c:60
+ account_irq_exit_time include/linux/vtime.h:115 [inline]
+ __do_softirq+0x5e0/0x9f6 kernel/softirq.c:324
+ run_ksoftirqd kernel/softirq.c:653 [inline]
+ run_ksoftirqd+0x2d/0x50 kernel/softirq.c:645
+ smpboot_thread_fn+0x655/0x9e0 kernel/smpboot.c:165
+ kthread+0x3b1/0x4a0 kernel/kthread.c:292
+ ret_from_fork+0x1f/0x30 arch/x86/entry/entry_64.S:296

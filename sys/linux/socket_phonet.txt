@@ -1,0 +1,42 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/socket.h>
+include <linux/net.h>
+include <uapi/linux/phonet.h>
+
+resource sock_phonet[sock]
+resource sock_phonet_dgram[sock_phonet]
+resource sock_phonet_pipe[sock_phonet]
+
+socket$phonet(domain const[AF_PHONET], type const[SOCK_DGRAM], proto const[PN_PROTO_PHONET]) sock_phonet_dgram
+ioctl$SIOCPNADDRESOURCE(fd sock_phonet, cmd const[SIOCPNGETOBJECT], arg ptr[in, int32])
+ioctl$SIOCPNDELRESOURCE(fd sock_phonet_dgram, cmd const[SIOCPNDELRESOURCE], arg ptr[in, int32])
+
+socket$phonet_pipe(domain const[AF_PHONET], type const[SOCK_SEQPACKET], proto const[PN_PROTO_PIPE]) sock_phonet_pipe
+accept$phonet_pipe(fd sock_phonet_pipe, peer ptr[out, sockaddr_pn, opt], peerlen ptr[inout, len[peer, int32]]) sock_phonet_pipe
+accept4$phonet_pipe(fd sock_phonet_pipe, peer ptr[out, sockaddr_pn, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_phonet_pipe
+connect$phonet_pipe(fd sock_phonet_pipe, addr ptr[in, sockaddr_pn], addrlen len[addr])
+ioctl$SIOCPNENABLEPIPE(fd sock_phonet_pipe, cmd const[SIOCPNENABLEPIPE], arg const[0])
+setsockopt$PNPIPE_ENCAP(fd sock_phonet_pipe, level const[SOL_PNPIPE], opt const[PNPIPE_ENCAP], val ptr[in, bool32], len bytesize[val])
+getsockopt$PNPIPE_ENCAP(fd sock_phonet_pipe, level const[SOL_PNPIPE], opt const[PNPIPE_ENCAP], val ptr[out, int32], len ptr[inout, len[val, int32]])
+setsockopt$PNPIPE_HANDLE(fd sock_phonet_pipe, level const[SOL_PNPIPE], opt const[PNPIPE_HANDLE], val ptr[in, int32], len bytesize[val])
+getsockopt$PNPIPE_HANDLE(fd sock_phonet_pipe, level const[SOL_PNPIPE], opt const[PNPIPE_HANDLE], val ptr[out, int32], len ptr[inout, len[val, int32]])
+setsockopt$PNPIPE_INITSTATE(fd sock_phonet_pipe, level const[SOL_PNPIPE], opt const[PNPIPE_INITSTATE], val ptr[in, bool32], len bytesize[val])
+getsockopt$PNPIPE_INITSTATE(fd sock_phonet_pipe, level const[SOL_PNPIPE], opt const[PNPIPE_INITSTATE], val ptr[out, int32], len ptr[inout, len[val, int32]])
+getsockopt$PNPIPE_IFINDEX(fd sock_phonet_pipe, level const[SOL_PNPIPE], opt const[PNPIPE_IFINDEX], val ptr[out, ifindex], len ptr[inout, len[val, int32]])
+
+# Common operations.
+
+bind$phonet(fd sock_phonet, addr ptr[in, sockaddr_pn], addrlen len[addr])
+sendto$phonet(fd sock_phonet, buf buffer[in], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_pn, opt], addrlen len[addr])
+recvfrom$phonet(fd sock_phonet, buf buffer[out], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr_pn, opt], addrlen len[addr])
+ioctl$SIOCPNGETOBJECT(fd sock_phonet, cmd const[SIOCPNGETOBJECT], arg ptr[in, int16])
+
+sockaddr_pn {
+	spn_family	const[AF_PHONET, int16]
+	spn_obj		int8
+	spn_dev		int8
+	spn_resource	int8
+	spn_zero	array[const[0, int8], 11]
+} [packed]

@@ -1,0 +1,48 @@
+TITLE: BUG: using __this_cpu_read() in preemptible code in ipcomp_init_state
+
+syzkaller login: [   35.184476] BUG: using __this_cpu_read() in preemptible [00000000] code: syzkaller195313/3344
+[   35.193222] caller is __this_cpu_preempt_check+0x1c/0x20
+[   35.198727] CPU: 1 PID: 3344 Comm: syzkaller195313 Not tainted 4.9.68-gfb66dc2 #107
+[   35.206487] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   35.215825]  ffff8801c8e476d8 ffffffff81d90889 0000000000000001 ffffffff83c17800
+[   35.223786]  ffffffff83f42ec0 ffff8801c7643000 0000000000000003 ffff8801c8e47718
+[   35.231779]  ffffffff81df7854 ffff8801c8e47730 ffffffff83f42ec0 dffffc0000000000
+[   35.239734] Call Trace:
+[   35.242294]  [<ffffffff81d90889>] dump_stack+0xc1/0x128
+[   35.247625]  [<ffffffff81df7854>] check_preemption_disabled+0x1d4/0x200
+[   35.254346]  [<ffffffff81df78bc>] __this_cpu_preempt_check+0x1c/0x20
+[   35.260808]  [<ffffffff833f3f78>] ipcomp_init_state+0x188/0x930
+[   35.266833]  [<ffffffff81232141>] ? __lock_is_held+0xa1/0xf0
+[   35.272602]  [<ffffffff83360470>] ipcomp4_init_state+0xb0/0x7d0
+[   35.278628]  [<ffffffff833d2677>] __xfrm_init_state+0x3e7/0xb30
+[   35.284654]  [<ffffffff833d2dda>] xfrm_init_state+0x1a/0x20
+[   35.290339]  [<ffffffff8356cb49>] pfkey_add+0x1fb9/0x3470
+[   35.295843]  [<ffffffff8356ab90>] ? pfkey_delete+0x360/0x360
+[   35.301604]  [<ffffffff83561f00>] ? pfkey_seq_stop+0x80/0x80
+[   35.307382]  [<ffffffff82eea81a>] ? __skb_clone+0x24a/0x7d0
+[   35.313066]  [<ffffffff8356ab90>] ? pfkey_delete+0x360/0x360
+[   35.318831]  [<ffffffff835645ee>] pfkey_process+0x61e/0x730
+[   35.324509]  [<ffffffff83563fd0>] ? pfkey_send_new_mapping+0x11b0/0x11b0
+[   35.331317]  [<ffffffff81238c3b>] ? trace_hardirqs_on_caller+0x38b/0x590
+[   35.338125]  [<ffffffff83565e99>] pfkey_sendmsg+0x3a9/0x760
+[   35.343802]  [<ffffffff83565af0>] ? pfkey_spdget+0x820/0x820
+[   35.349568]  [<ffffffff82ecfb9a>] sock_sendmsg+0xca/0x110
+[   35.355070]  [<ffffffff82ed1791>] ___sys_sendmsg+0x6d1/0x7e0
+[   35.360832]  [<ffffffff82ed10c0>] ? copy_msghdr_from_user+0x550/0x550
+[   35.367549]  [<ffffffff81462e67>] ? __lru_cache_add+0x187/0x250
+[   35.373571]  [<ffffffff81465569>] ? lru_cache_add+0xd9/0x1e0
+[   35.379335]  [<ffffffff814cc2b2>] ? handle_mm_fault+0xb12/0x2530
+[   35.385449]  [<ffffffff838aa11c>] ? _raw_spin_unlock+0x2c/0x50
+[   35.391387]  [<ffffffff814cbe8e>] ? handle_mm_fault+0x6ee/0x2530
+[   35.397498]  [<ffffffff81232141>] ? __lock_is_held+0xa1/0xf0
+[   35.403261]  [<ffffffff814cb7a0>] ? __pmd_alloc+0x410/0x410
+[   35.408938]  [<ffffffff815cd8b8>] ? __fget_light+0x158/0x1e0
+[   35.414709]  [<ffffffff815cd958>] ? __fdget+0x18/0x20
+[   35.419865]  [<ffffffff82ed37c6>] __sys_sendmsg+0xd6/0x190
+[   35.425453]  [<ffffffff82ed36f0>] ? SyS_shutdown+0x1b0/0x1b0
+executing program
+[   35.431217]  [<ffffffff810dd47c>] ? __do_page_fault+0x5ec/0xd40
+[   35.437239]  [<ffffffff810dd24d>] ? __do_page_fault+0x3bd/0xd40
+[   35.443262]  [<ffffffff81238c3b>] ? trace_hardirqs_on_caller+0x38b/0x590
+[   35.450067]  [<ffffffff82ed38ad>] SyS_sendmsg+0x2d/0x50
+[   35.455398]  [<ffffffff838aa9c5>] entry_SYSCALL_64_fastpath+0x23/0xc6

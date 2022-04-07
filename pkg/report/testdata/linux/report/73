@@ -1,0 +1,24 @@
+TITLE: INFO: task hung in set_current_rng
+ALT: hang in set_current_rng
+TYPE: HANG
+
+[  863.200911] INFO: task syz-executor0:5676 blocked for more than 120 seconds.
+[  863.203658]       Not tainted 4.14.0-rc8-44455-ge2105594a876 #110
+[  863.205780] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  863.208544] syz-executor0   D27584  5676      1 0x00000004
+[  863.210626] Call Trace:
+[  863.211704]  __schedule+0x57e/0x1940
+[  863.213000]  schedule+0x84/0x1c0
+[  863.214031]  schedule_timeout+0xa8b/0xe80
+[  863.215535]  ? mark_held_locks+0xc8/0x140
+[  863.216878]  ? _raw_spin_unlock_irq+0x2c/0x60
+[  863.218277]  ? trace_hardirqs_on_caller+0x2c8/0x390
+[  863.219875]  wait_for_completion+0x192/0x340
+[  863.221345]  ? wake_up_q+0xe0/0xe0
+[  863.222517]  kthread_stop+0x105/0x650
+[  863.223783]  set_current_rng+0x2b2/0x3b0
+[  863.225073]  hwrng_unregister+0x1db/0x230
+[  863.226341]  chaoskey_disconnect+0x1c8/0x210
+[  863.227675]  usb_unbind_interface+0x1b6/0x950
+[  863.250249]  SyS_ioctl+0xbb/0xe0
+[  863.250857]  entry_SYSCALL_64_fastpath+0x23/0xc2

@@ -1,0 +1,99 @@
+TITLE: WARNING in kvm_arch_vcpu_ioctl_run
+
+[  114.858684] WARNING: CPU: 1 PID: 21961 at arch/x86/kvm/x86.c:7377 kvm_arch_vcpu_ioctl_run+0x1cf/0x5cb0
+[  114.868227] Kernel panic - not syncing: panic_on_warn set ...
+[  114.868227] 
+[  114.875599] CPU: 1 PID: 21961 Comm: syz-executor4 Not tainted 4.15.0-rc4-mm1+ #49
+[  114.883218] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  114.892572] Call Trace:
+[  114.894625] binder: 21966:21967 unknown command 0
+[  114.894635] binder: 21966:21967 ioctl c0306201 2000a000 returned -22
+[  114.902582] binder_alloc: binder_alloc_mmap_handler: 21966 20000000-20002000 already mapped failed -16
+[  114.905144] binder: BINDER_SET_CONTEXT_MGR already set
+[  114.905155] binder: 21966:21967 ioctl 40046207 0 returned -16
+[  114.906089] binder_alloc: 21966: binder_alloc_buf, no vma
+[  114.906120] binder: 21966:21985 transaction failed 29189/-3, size 24-8 line 2960
+[  114.906959] binder: 21966:21967 unknown command 0
+[  114.906968] binder: 21966:21967 ioctl c0306201 2000a000 returned -22
+[  114.914168] SELinux: unrecognized netlink message: protocol=0 nlmsg_type=0 sclass=netlink_route_socket pig=21994 comm=syz-executor6
+[  114.933422] binder: undelivered TRANSACTION_ERROR: 29189
+[  114.933698] binder: release 21966:21967 transaction 114 out, still active
+[  114.933703] binder: undelivered TRANSACTION_COMPLETE
+[  114.933733] binder: send failed reply for transaction 114, target dead
+[  114.987217]  dump_stack+0x194/0x257
+[  114.990822]  ? arch_local_irq_restore+0x53/0x53
+[  114.995470]  ? vsnprintf+0x1ed/0x1900
+[  114.999250]  panic+0x1e4/0x41c
+[  115.002416]  ? refcount_error_report+0x214/0x214
+[  115.007142]  ? show_regs_print_info+0x18/0x18
+[  115.011619]  ? __warn+0x1c1/0x200
+[  115.015055]  ? kvm_arch_vcpu_ioctl_run+0x1cf/0x5cb0
+[  115.020042]  __warn+0x1dc/0x200
+[  115.023298]  ? kvm_arch_vcpu_ioctl_run+0x1cf/0x5cb0
+[  115.028299]  report_bug+0x211/0x2d0
+[  115.031911]  fixup_bug.part.11+0x37/0x80
+[  115.035946]  do_error_trap+0x2d7/0x3e0
+[  115.039811]  ? math_error+0x400/0x400
+[  115.043588]  ? __lock_is_held+0xb6/0x140
+[  115.047636]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  115.052460]  do_invalid_op+0x1b/0x20
+[  115.056149]  invalid_op+0x22/0x40
+[  115.059576] RIP: 0010:kvm_arch_vcpu_ioctl_run+0x1cf/0x5cb0
+[  115.065167] RSP: 0018:ffff8801d0d4f6b0 EFLAGS: 00010216
+[  115.070504] RAX: 0000000000010000 RBX: ffff8801c28e5000 RCX: ffffffff810df6bf
+[  115.077746] RDX: 000000000000006a RSI: ffffc900012e9000 RDI: ffff8801cb260de0
+[  115.084990] RBP: ffff8801d0d4fa40 R08: 1ffff1003964cc53 R09: 0000000000000001
+[  115.092241] R10: ffff8801d0d4f690 R11: 0000000000000004 R12: 0000000000000000
+[  115.099486] R13: ffff8801c1a5b580 R14: ffff8801cb260bc0 R15: ffff8801cb260bc0
+[  115.106745]  ? kvm_arch_vcpu_ioctl_run+0x1cf/0x5cb0
+[  115.111750]  ? mutex_lock_io_nested+0x1900/0x1900
+[  115.116575]  ? futex_wait_setup+0x22e/0x3d0
+[  115.120878]  ? futex_wake+0x680/0x680
+[  115.124657]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[  115.129831]  ? kvm_arch_vcpu_runnable+0x560/0x560
+[  115.134643]  ? __lock_acquire+0x664/0x3e00
+[  115.138849]  ? mmdrop+0x18/0x30
+[  115.142102]  ? drop_futex_key_refs.isra.12+0x63/0xa0
+[  115.147178]  ? futex_wait+0x6a9/0x9a0
+[  115.150967]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[  115.156132]  ? perf_trace_lock_acquire+0xe3/0x980
+[  115.160944]  ? mmdrop+0x18/0x30
+[  115.164197]  ? drop_futex_key_refs.isra.12+0x63/0xa0
+[  115.169272]  ? futex_wake+0x2ca/0x680
+[  115.173054]  ? get_futex_key+0x1d50/0x1d50
+[  115.177270]  ? perf_trace_lock_acquire+0xe3/0x980
+[  115.182108]  ? perf_trace_lock+0x900/0x900
+[  115.186315]  ? check_noncircular+0x20/0x20
+[  115.190534]  kvm_vcpu_ioctl+0x6f1/0xff0
+[  115.194480]  ? kvm_vcpu_ioctl+0x6f1/0xff0
+[  115.198604]  ? kvm_vcpu_fault+0x520/0x520
+[  115.202737]  ? find_held_lock+0x35/0x1d0
+[  115.206782]  ? __fget+0x333/0x570
+[  115.210207]  ? lock_downgrade+0x980/0x980
+[  115.214331]  ? lock_release+0xa40/0xa40
+[  115.218289]  ? __lock_is_held+0xb6/0x140
+[  115.222340]  ? __fget+0x35c/0x570
+[  115.225777]  ? iterate_fd+0x3f0/0x3f0
+[  115.229547]  ? __fget_light+0x297/0x380
+[  115.233495]  ? fget_raw+0x20/0x20
+[  115.236934]  ? kvm_vcpu_fault+0x520/0x520
+[  115.241055]  do_vfs_ioctl+0x1b1/0x1520
+[  115.244916]  ? putname+0xee/0x130
+[  115.248345]  ? ioctl_preallocate+0x2b0/0x2b0
+[  115.252736]  ? selinux_capable+0x40/0x40
+[  115.256780]  ? SyS_futex+0x269/0x390
+[  115.260466]  ? SyS_setsockopt+0x1fb/0x360
+[  115.264604]  ? security_file_ioctl+0x89/0xb0
+[  115.268998]  SyS_ioctl+0x8f/0xc0
+[  115.272349]  entry_SYSCALL_64_fastpath+0x1f/0x96
+[  115.277075] RIP: 0033:0x452ac9
+[  115.280237] RSP: 002b:00007fd7be9edc58 EFLAGS: 00000212 ORIG_RAX: 0000000000000010
+[  115.287917] RAX: ffffffffffffffda RBX: 000000000071bea0 RCX: 0000000000452ac9
+[  115.295160] RDX: 0000000000000000 RSI: 000000000000ae80 RDI: 0000000000000015
+[  115.302402] RBP: 000000000000039b R08: 0000000000000000 R09: 0000000000000000
+[  115.309643] R10: 0000000000000000 R11: 0000000000000212 R12: 00000000006f2728
+[  115.316884] R13: 00000000ffffffff R14: 00007fd7be9ee6d4 R15: 0000000000000000
+[  115.324611] Dumping ftrace buffer:
+[  115.328322]    (ftrace buffer empty)
+[  115.332004] Kernel Offset: disabled
+[  115.335606] Rebooting in 86400 seconds..

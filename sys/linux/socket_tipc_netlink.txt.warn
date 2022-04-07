@@ -1,0 +1,8 @@
+no-such-struct: tipc_genlmsghdr_t
+no-such-struct: tipc_tlv_desc
+bad-netlink-attr: tipc_nl_policy: missing attributes: [8]
+no-such-netlink-policy: tipc_nl_publ_policy
+bad-netlink-attr: tipc_nl_bearer_policy.TIPC_NLA_BEARER_NAME: expect string
+no-such-netlink-policy: tipc_nl_sock_con_policy
+bad-netlink-attr: tipc_nl_net_policy: missing attributes: [5]
+bad-netlink-attr: tipc_nl_prop_policy: missing attributes: [5 6]

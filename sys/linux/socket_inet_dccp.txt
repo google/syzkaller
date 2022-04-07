@@ -1,0 +1,30 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_INET and AF_INET6: DCCP support
+
+include <linux/dccp.h>
+
+resource sock_dccp[sock_in]
+
+socket$inet_dccp(domain const[AF_INET], type const[SOCK_DCCP], proto const[0]) sock_dccp
+
+resource sock_dccp6[sock_in6]
+
+socket$inet6_dccp(domain const[AF_INET6], type const[SOCK_DCCP], proto const[0]) sock_dccp6
+
+# Generic DCCP socket options
+
+dccp_option_types_int = DCCP_SOCKOPT_PACKET_SIZE, DCCP_SOCKOPT_CHANGE_L, DCCP_SOCKOPT_CHANGE_R, DCCP_SOCKOPT_GET_CUR_MPS, DCCP_SOCKOPT_SERVER_TIMEWAIT, DCCP_SOCKOPT_SEND_CSCOV, DCCP_SOCKOPT_RECV_CSCOV, DCCP_SOCKOPT_QPOLICY_ID, DCCP_SOCKOPT_QPOLICY_TXQLEN
+
+dccp_option_types_buf = DCCP_SOCKOPT_SERVICE, DCCP_SOCKOPT_AVAILABLE_CCIDS, DCCP_SOCKOPT_CCID, DCCP_SOCKOPT_TX_CCID, DCCP_SOCKOPT_RX_CCID, DCCP_SOCKOPT_CCID_RX_INFO, DCCP_SOCKOPT_CCID_TX_INFO
+
+getsockopt$inet_dccp_int(fd sock_dccp, level const[IPPROTO_DCCP], optname flags[dccp_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet_dccp_int(fd sock_dccp, level const[IPPROTO_DCCP], optname flags[dccp_option_types_int], optval ptr[in, int32], optlen len[optval])
+getsockopt$inet6_dccp_int(fd sock_dccp6, level const[IPPROTO_DCCP], optname flags[dccp_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet6_dccp_int(fd sock_dccp6, level const[IPPROTO_DCCP], optname flags[dccp_option_types_int], optval ptr[in, int32], optlen len[optval])
+
+getsockopt$inet_dccp_buf(fd sock_dccp, level const[IPPROTO_DCCP], optname flags[dccp_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet_dccp_buf(fd sock_dccp, level const[IPPROTO_DCCP], optname flags[dccp_option_types_buf], optval buffer[in], optlen len[optval])
+getsockopt$inet6_dccp_buf(fd sock_dccp6, level const[IPPROTO_DCCP], optname flags[dccp_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet6_dccp_buf(fd sock_dccp6, level const[IPPROTO_DCCP], optname flags[dccp_option_types_buf], optval buffer[in], optlen len[optval])

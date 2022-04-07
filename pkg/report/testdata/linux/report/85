@@ -1,0 +1,6 @@
+TITLE: BUG: Bad page map
+CORRUPTED: Y
+
+[   40.438790] BUG: Bad page map in process syz-executor6  pte:ffff8801a700ff00 pmd:1a700f067
+[   40.447217] addr:00000000009ca000 vm_flags:00100073 anon_vma:ffff8801d16f20e0 mapping:          (null) index:9ca
+[   40.457560] file:          (null) fault:          (null) mmap:          (null) readpage:          (null)

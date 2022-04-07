@@ -1,0 +1,101 @@
+TITLE: WARNING: ODEBUG bug in corrupted
+CORRUPTED: Y
+
+[  127.347754] xprt_adjust_timeout: rq_timeout = 0!
+[  127.359095] ------------[ cut here ]------------
+[  127.364981] ODEBUG: free active (active state 0) object type: work_struct hint: process_one_req+0x0/0x6c0
+[  127.374778] WARNING: CPU: 1 PID: 16250 at lib/debugobjects.c:291 debug_print_object+0x166/0x220
+[  127.375356] syz-executor3: vmalloc: allocation failure: 0 bytes, mode:0x14000c0(GFP_KERNEL), nodemask=(null)
+[  127.383596] Kernel panic - not syncing: panic_on_warn set ...
+[  127.383596] 
+[  127.383605] CPU: 1 PID: 16250 Comm: kworker/u4:6 Not tainted 4.16.0-rc5+ #264
+[  127.383609] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  127.383623] Workqueue: ib_addr process_one_req
+[  127.383628] Call Trace:
+[  127.383641]  dump_stack+0x194/0x24d
+[  127.383651]  ? arch_local_irq_restore+0x53/0x53
+[  127.383664]  ? vsnprintf+0x1ed/0x1900
+[  127.393628] syz-executor3 cpuset=
+[  127.400960]  panic+0x1e4/0x41c
+[  127.400969]  ? refcount_error_report+0x214/0x214
+[  127.400977]  ? show_regs_print_info+0x18/0x18
+[  127.400994]  ? __warn+0x1c1/0x200
+[  127.408241] /
+[  127.417568]  ? debug_print_object+0x166/0x220
+[  127.422245]  mems_allowed=0
+[  127.424692]  __warn+0x1dc/0x200
+[  127.424705]  ? debug_print_object+0x166/0x220
+[  127.472694]  report_bug+0x1f4/0x2b0
+[  127.476305]  fixup_bug.part.11+0x37/0x80
+[  127.480342]  do_error_trap+0x2d7/0x3e0
+[  127.484208]  ? vprintk_default+0x28/0x30
+[  127.488250]  ? math_error+0x400/0x400
+[  127.492026]  ? printk+0xaa/0xca
+[  127.495282]  ? show_regs_print_info+0x18/0x18
+[  127.499760]  ? __usermodehelper_disable+0x2f0/0x2f0
+[  127.504758]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  127.509583]  do_invalid_op+0x1b/0x20
+[  127.513273]  invalid_op+0x1b/0x40
+[  127.516704] RIP: 0010:debug_print_object+0x166/0x220
+[  127.521783] RSP: 0018:ffff8801b591f210 EFLAGS: 00010086
+[  127.527126] RAX: dffffc0000000008 RBX: 0000000000000003 RCX: ffffffff815acd3e
+[  127.534461] RDX: 0000000000000000 RSI: 1ffff10036b23df2 RDI: 1ffff10036b23dc7
+[  127.541709] RBP: ffff8801b591f250 R08: 0000000000000000 R09: 1ffff10036b23d99
+[  127.548956] R10: ffffed0036b23e71 R11: ffffffff86f39b78 R12: 0000000000000001
+[  127.556201] R13: ffffffff86f15440 R14: ffffffff86408680 R15: ffffffff8147c020
+[  127.563453]  ? __usermodehelper_disable+0x2f0/0x2f0
+[  127.568457]  ? vprintk_func+0x5e/0xc0
+[  127.572251]  debug_check_no_obj_freed+0x662/0xf1f
+[  127.577073]  ? retint_kernel+0x10/0x10
+[  127.581285]  ? cma_work_handler+0x1d0/0x1d0
+[  127.585597]  ? free_obj_work+0x690/0x690
+[  127.589639]  ? complete+0x62/0x80
+[  127.593077]  ? cma_deref_id+0x2c/0x30
+[  127.596858]  ? __lock_is_held+0xb6/0x140
+[  127.600906]  ? debug_check_no_locks_freed+0x264/0x3c0
+[  127.606077]  ? cma_work_handler+0x1d0/0x1d0
+[  127.610376]  kfree+0xc7/0x260
+[  127.613464]  process_one_req+0x2e7/0x6c0
+[  127.617506]  ? addr_resolve+0xbc0/0xbc0
+[  127.621467]  ? __lock_is_held+0xb6/0x140
+[  127.625519]  process_one_work+0xc47/0x1bb0
+[  127.629731]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[  127.634898]  ? trace_hardirqs_on+0xd/0x10
+[  127.639035]  ? pwq_dec_nr_in_flight+0x450/0x450
+[  127.643697]  ? perf_trace_lock_acquire+0xe3/0x980
+[  127.648516]  ? __schedule+0x903/0x1ec0
+[  127.652388]  ? perf_trace_lock+0x900/0x900
+[  127.656608]  ? trace_hardirqs_off+0x10/0x10
+[  127.660909]  ? perf_trace_lock_acquire+0xe3/0x980
+[  127.665733]  ? trace_hardirqs_off+0x10/0x10
+[  127.670046]  ? lock_acquire+0x1d5/0x580
+[  127.673999]  ? lock_acquire+0x1d5/0x580
+[  127.677951]  ? worker_thread+0x4a3/0x1990
+[  127.682082]  ? lock_release+0xa40/0xa40
+[  127.686034]  ? pr_cont_work+0x130/0x130
+[  127.689990]  ? do_raw_spin_trylock+0x190/0x190
+[  127.694565]  worker_thread+0x223/0x1990
+[  127.698526]  ? trace_hardirqs_on+0xd/0x10
+[  127.702670]  ? process_one_work+0x1bb0/0x1bb0
+[  127.707162]  ? put_task_stack+0x116/0x270
+[  127.711292]  ? finish_task_switch+0x539/0x7e0
+[  127.715768]  ? copy_overflow+0x20/0x20
+[  127.719651]  ? __schedule+0x903/0x1ec0
+[  127.723526]  ? trace_hardirqs_off+0x10/0x10
+[  127.727833]  ? find_held_lock+0x35/0x1d0
+[  127.731882]  ? find_held_lock+0x35/0x1d0
+[  127.735929]  ? complete+0x62/0x80
+[  127.739368]  ? __schedule+0x1ec0/0x1ec0
+[  127.743317]  ? do_wait_intr_irq+0x3e0/0x3e0
+[  127.747617]  ? __lockdep_init_map+0xe4/0x650
+[  127.752007]  ? do_raw_spin_trylock+0x190/0x190
+[  127.756566]  ? lockdep_init_map+0x9/0x10
+[  127.760605]  ? _raw_spin_unlock_irqrestore+0x31/0xc0
+[  127.765689]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  127.770686]  ? trace_hardirqs_on+0xd/0x10
+[  127.774811]  ? __kthread_parkme+0x176/0x240
+[  127.779116]  kthread+0x33c/0x400
+[  127.782461]  ? process_one_work+0x1bb0/0x1bb0
+[  127.786930]  ? kthread_stop+0x7a0/0x7a0
+[  127.790883]  ret_from_fork+0x3a/0x50
+[  127.794596] CPU: 0 PID: 20543 Comm: syz-executor3 Not tainted 4.16.0-rc5+ #264

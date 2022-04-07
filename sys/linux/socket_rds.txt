@@ -1,0 +1,111 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_RDS support.
+
+include <linux/socket.h>
+include <linux/net.h>
+include <uapi/linux/in6.h>
+include <uapi/linux/rds.h>
+
+resource sock_rds[sock]
+
+socket$rds(domain const[AF_RDS], type const[SOCK_SEQPACKET], proto const[0]) sock_rds
+bind$rds(fd sock_rds, addr ptr[in, sockaddr_in], addrlen len[addr])
+connect$rds(fd sock_rds, addr ptr[in, sockaddr_in], addrlen len[addr])
+sendmsg$rds(fd sock_rds, msg ptr[in, msghdr_rds], f flags[send_flags])
+
+setsockopt$RDS_CANCEL_SENT_TO(fd sock_rds, level const[SOL_RDS], opt const[RDS_CANCEL_SENT_TO], val ptr[in, sockaddr_in], len len[val])
+setsockopt$RDS_GET_MR(fd sock_rds, level const[SOL_RDS], opt const[RDS_GET_MR], val ptr[in, rds_get_mr_args], len len[val])
+setsockopt$RDS_GET_MR_FOR_DEST(fd sock_rds, level const[SOL_RDS], opt const[RDS_GET_MR_FOR_DEST], val ptr[in, rds_get_mr_for_dest_args], len len[val])
+setsockopt$RDS_FREE_MR(fd sock_rds, level const[SOL_RDS], opt const[RDS_FREE_MR], val ptr[in, rds_free_mr_args], len len[val])
+setsockopt$RDS_RECVERR(fd sock_rds, level const[SOL_RDS], opt const[RDS_RECVERR], val ptr[in, bool32], len len[val])
+setsockopt$RDS_CONG_MONITOR(fd sock_rds, level const[SOL_RDS], opt const[RDS_CONG_MONITOR], val ptr[in, bool32], len len[val])
+setsockopt$SO_RDS_TRANSPORT(fd sock_rds, level const[SOL_RDS], opt const[SO_RDS_TRANSPORT], val ptr[in, flags[rds_transport, int32]], len len[val])
+setsockopt$SO_RDS_MSG_RXPATH_LATENCY(fd sock_rds, level const[SOL_RDS], opt const[SO_RDS_MSG_RXPATH_LATENCY], val ptr[in, rds_rx_trace_so], len len[val])
+
+msghdr_rds {
+	addr	ptr[in, sockaddr_in, opt]
+	addrlen	len[addr, int32]
+	vec	ptr[in, array[iovec[out, array[int8]]]]
+	vlen	len[vec, intptr]
+	ctrl	ptr[in, array[cmsghdr_rds], opt]
+	ctrllen	bytesize[ctrl, intptr]
+	f	flags[send_flags, int32]
+}
+
+cmsghdr_rds [
+	rdma_args	cmsghdr_rds_t[RDS_CMSG_RDMA_ARGS, rds_rdma_args]
+	rdma_dest	cmsghdr_rds_t[RDS_CMSG_RDMA_DEST, rds_rdma_cookie_t]
+	rdma_map	cmsghdr_rds_t[RDS_CMSG_RDMA_MAP, rds_get_mr_args]
+	fadd		cmsghdr_rds_t[RDS_CMSG_ATOMIC_FADD, rds_atomic_args]
+	cswp		cmsghdr_rds_t[RDS_CMSG_ATOMIC_CSWP, rds_atomic_args]
+	mask_fadd	cmsghdr_rds_t[RDS_CMSG_MASKED_ATOMIC_FADD, rds_atomic_args]
+	mask_cswp	cmsghdr_rds_t[RDS_CMSG_MASKED_ATOMIC_CSWP, rds_atomic_args]
+	zcopy_cookie	cmsghdr_rds_t[RDS_CMSG_ZCOPY_COOKIE, int32]
+] [varlen]
+
+type cmsghdr_rds_t[TYPE, DATA] {
+	cmsg_len	len[parent, intptr]
+	cmsg_level	const[SOL_RDS, int32]
+	cmsg_type	const[TYPE, int32]
+	data		DATA
+} [align[PTR_SIZE]]
+
+rds_rdma_args {
+	cookie		rds_rdma_cookie_t
+	remote_vec	rds_iovec
+	local_vec	ptr64[in, array[rds_iovec]]
+	nr_local	len[local_vec, int64]
+	flags		flags[rds_rdma_flags, int64]
+	user_token	int64
+}
+
+rds_atomic_args {
+	cookie		rds_rdma_cookie_t
+	local_addr	ptr64[in, int64]
+	remote_addr	ptr64[in, int64]
+	arg1		int64
+	arg2		int64
+	mask1		int64
+	mask2		int64
+	flags		flags[rds_rdma_flags, int64]
+	user_token	int64
+}
+
+rds_get_mr_args {
+	vec		rds_iovec
+	cookie_addr	ptr64[out, int8]
+	flags		flags[rds_rdma_flags, int64]
+}
+
+rds_get_mr_for_dest_args {
+	dest_addr	sockaddr_storage
+	vec		rds_iovec
+	cookie_addr	ptr64[out, int8]
+	flags		flags[rds_rdma_flags, int64]
+} [packed]
+
+rds_free_mr_args {
+	cookie	rds_rdma_cookie_t
+	flags	flags[rds_rdma_flags, int64]
+}
+
+rds_rx_trace_so {
+	rx_traces	len[rx_trace_pos, int8]
+	rx_trace_pos	array[int8, 0:RDS_MSG_RX_DGRAM_TRACE_MAX]
+}
+
+rds_iovec {
+	addr	ptr64[out, array[int8]]
+	bytes	len[addr, int64]
+}
+
+rds_rdma_cookie_t {
+# This should be a resource, but it's unclear how to obtain it.
+	key	int32
+	off	int32
+} [align[8]]
+
+rds_transport = RDS_TRANS_IB, RDS_TRANS_IWARP, RDS_TRANS_TCP, RDS_TRANS_NONE
+rds_rdma_flags = RDS_RDMA_READWRITE, RDS_RDMA_FENCE, RDS_RDMA_INVALIDATE, RDS_RDMA_USE_ONCE, RDS_RDMA_DONTWAIT, RDS_RDMA_NOTIFY_ME, RDS_RDMA_SILENT

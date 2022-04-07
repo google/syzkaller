@@ -1,0 +1,13 @@
+TITLE: panic: kernel diagnostic assertion "tname->un_flags serialport: VM disconnected.
+CORRUPTED: Y
+
+16:00:17 executing program 0:
+mknod(&(0x7f0000000040)='./bus\x00', 0x80002005, 0x4300)
+r0 = open$dir(&(0x7f0000000180)='./bus\x00', 0x1, 0x0)
+ioctl$TIOCSETAF(0xffffffffffffffff, 0x802c7416, &(0x7f0000000000)={0x0, 0x0, 0x0, 0xffffffffffffffff, "8dc6861f62e38a64ec768840672c55a31f82335c"})
+mknod(&(0x7f0000000080)='./bus\x00', 0x6000, 0x4)
+r1 = dup(r0)
+ioctl$WSKBDIO_SETMODE(r1, 0x8010570e, &(0x7f0000000000))
+
+
+panic: kernel diagnostic assertion "tname->un_flags serialport: VM disconnected.

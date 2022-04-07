@@ -1,0 +1,59 @@
+TITLE: INFO: rcu detected stall in fuse_dev_release
+ALT: stall in fuse_dev_release
+TYPE: HANG
+
+[  629.392020] INFO: rcu_sched detected stalls on CPUs/tasks:
+[  629.397716] 	(detected by 0, t=105007 jiffies, g=118924, c=118923, q=65)
+[  629.404568] All QSes seen, last rcu_sched kthread activity 105014 (4295296700-4295191686), jiffies_till_next_fqs=3, root ->qsmask 0x0
+[  629.416688] syz-executor7   R  running task    23352 14084   4424 0x00000008
+[  629.423888] Call Trace:
+[  629.426460]  <IRQ>
+[  629.428611]  sched_show_task.cold.84+0x27a/0x301
+[  629.459938]  print_other_cpu_stall.cold.77+0x92f/0x9d2
+[  629.498729]  check_cpu_stall.isra.60+0x721/0xf70
+[  629.570316]  rcu_check_callbacks+0x23f/0xcd0
+[  629.647174]  update_process_times+0x2d/0x70
+[  629.651489]  tick_sched_handle+0x9f/0x180
+[  629.655627]  tick_sched_timer+0x45/0x130
+[  629.659679]  __hrtimer_run_queues+0x3eb/0x10c0
+[  629.708023]  hrtimer_interrupt+0x2f3/0x750
+[  629.712277]  smp_apic_timer_interrupt+0x165/0x730
+[  629.739746]  apic_timer_interrupt+0xf/0x20
+[  629.743963]  </IRQ>
+[  629.746192] RIP: 0010:check_memory_region+0x121/0x1b0
+[  629.770657] RSP: 0018:ffff88018fec7388 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff13
+[  629.778358] RAX: ffffed0039557a49 RBX: 1ffff10039557a48 RCX: ffffffff815faf29
+[  629.785618] RDX: 0000000000000000 RSI: 0000000000000004 RDI: ffff8801caabd240
+[  629.792874] RBP: ffff88018fec73a0 R08: ffffed0039557a49 R09: ffffed0039557a48
+[  629.800131] R10: ffffed0039557a48 R11: ffff8801caabd243 R12: ffffed0039557a49
+[  629.807389] R13: 0000000000000001 R14: dffffc0000000000 R15: ffff8801caabd240
+[  629.820455]  kasan_check_read+0x11/0x20
+[  629.824417]  native_queued_spin_lock_slowpath+0x189/0x1200
+[  629.924285]  do_raw_spin_lock+0x1a7/0x200
+[  629.928436]  _raw_spin_lock+0x32/0x40
+[  629.936113]  request_end+0x400/0xb20
+[  629.948990]  end_requests+0x296/0x460
+[  629.983347]  fuse_dev_release+0x18c/0x2e0
+[  630.004675]  __fput+0x355/0x8b0
+[  630.015712]  ____fput+0x15/0x20
+[  630.018984]  task_work_run+0x1ec/0x2a0
+[  630.031840]  exit_to_usermode_loop+0x313/0x370
+[  630.044964]  do_syscall_64+0x6be/0x820
+[  630.073391]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  630.078571] RIP: 0033:0x456b29
+[  630.101035] RSP: 002b:00007fae499f2c78 EFLAGS: 00000246 ORIG_RAX: 0000000000000000
+[  630.108738] RAX: 0000000000000030 RBX: 00007fae499f36d4 RCX: 0000000000456b29
+[  630.116002] RDX: 0000000000001000 RSI: 0000000020001000 RDI: 0000000000000017
+[  630.123265] RBP: 00000000009300a0 R08: 0000000000000000 R09: 0000000000000000
+[  630.130534] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000ffffffff
+[  630.137793] R13: 00000000004d2b40 R14: 00000000004c7b8b R15: 0000000000000000
+[  630.145073] rcu_sched kthread starved for 105755 jiffies! g118924 c118923 f0x2 RCU_GP_WAIT_FQS(3) ->state=0x0 ->cpu=1
+[  630.155808] RCU grace-period kthread stack dump:
+[  630.160554] rcu_sched       R  running task    23688    10      2 0x80000000
+[  630.167746] Call Trace:
+[  630.170332]  __schedule+0x87c/0x1ec0
+[  630.195223]  schedule+0xfb/0x450
+[  630.229166]  schedule_timeout+0x140/0x260
+[  630.242118]  rcu_gp_kthread+0x717/0x1c90
+[  630.389446]  kthread+0x345/0x410
+[  630.401684]  ret_from_fork+0x3a/0x50

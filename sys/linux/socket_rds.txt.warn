@@ -1,0 +1,7 @@
+no-such-struct: msghdr_rds
+no-such-struct: cmsghdr_rds_t
+bad-field-number: rds_atomic_args: syz=9 kernel=6
+bad-field-size: rds_atomic_args.arg1/: syz=8 kernel=32
+bad-field-offset: rds_atomic_args.arg2/flags: syz=32 kernel=56
+bad-field-offset: rds_atomic_args.mask1/user_token: syz=40 kernel=64
+no-such-struct: rds_rdma_cookie_t

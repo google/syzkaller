@@ -1,0 +1,113 @@
+TITLE: INFO: rcu detected stall in mac80211_hwsim_beacon
+ALT: stall in mac80211_hwsim_beacon
+TYPE: HANG
+
+[ 2700.709744][    C0] rcu: INFO: rcu_preempt self-detected stall on CPU
+[ 2700.716975][    C0] rcu: 	0-...!: (10499 ticks this GP) idle=bde/1/0x4000000000000000 softirq=233837/233838 fqs=1 
+[ 2700.728310][    C0] 	(t=10500 jiffies g=481481 q=89)
+[ 2700.733809][    C0] rcu: rcu_preempt kthread starved for 10498 jiffies! g481481 f0x0 RCU_GP_WAIT_FQS(5) ->state=0x0 ->cpu=1
+[ 2700.745509][    C0] rcu: 	Unless rcu_preempt kthread gets sufficient CPU time, OOM is now expected behavior.
+[ 2700.755766][    C0] rcu: RCU grace-period kthread stack dump:
+[ 2700.761951][    C0] task:rcu_preempt     state:R  running task     stack:29584 pid:   10 ppid:     2 flags:0x00004000
+[ 2700.773531][    C0] Call Trace:
+[ 2700.776860][    C0]  __schedule+0xec9/0x2280
+[ 2700.803797][    C0]  schedule+0xd0/0x2a0
+[ 2700.807894][    C0]  schedule_timeout+0x148/0x250
+[ 2700.834718][    C0]  rcu_gp_kthread+0xb2c/0x1ca0
+[ 2700.886442][    C0]  kthread+0x3b5/0x4a0
+[ 2700.895694][    C0]  ret_from_fork+0x1f/0x30
+[ 2700.900422][    C0] NMI backtrace for cpu 0
+[ 2700.904957][    C0] CPU: 0 PID: 9258 Comm: syz-executor.0 Not tainted 5.9.0-rc3-syzkaller #0
+[ 2700.913839][    C0] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 2700.924895][    C0] Call Trace:
+[ 2700.928198][    C0]  <IRQ>
+[ 2700.931083][    C0]  dump_stack+0x198/0x1fd
+[ 2700.935684][    C0]  nmi_cpu_backtrace.cold+0x70/0xb1
+[ 2700.946943][    C0]  nmi_trigger_cpumask_backtrace+0x1b3/0x223
+[ 2700.953586][    C0]  rcu_dump_cpu_stacks+0x1e3/0x21e
+[ 2700.959094][    C0]  rcu_sched_clock_irq.cold+0x4db/0xdfd
+[ 2700.980420][    C0]  update_process_times+0x25/0xa0
+[ 2700.985659][    C0]  tick_sched_handle+0x9b/0x180
+[ 2700.990556][    C0]  tick_sched_timer+0x1d1/0x2a0
+[ 2700.995533][    C0]  __hrtimer_run_queues+0x1d5/0xfc0
+[ 2701.019214][    C0]  hrtimer_interrupt+0x334/0x940
+[ 2701.024477][    C0]  __sysvec_apic_timer_interrupt+0x147/0x5f0
+[ 2701.030815][    C0]  sysvec_apic_timer_interrupt+0x4c/0xf0
+[ 2701.036655][    C0]  asm_sysvec_apic_timer_interrupt+0x12/0x20
+[ 2701.042924][    C0] RIP: 0010:unwind_next_frame+0x10ea/0x1f90
+[ 2701.049076][    C0] Code: fc ff df 48 89 fa 48 c1 ea 03 80 3c 02 00 0f 85 44 07 00 00 4d 89 67 40 e9 2a fd ff ff 48 8b 4c 24 60 ba a8 00 00 00 4c 89 ff <4c> 89 44 24 20 48 89 ce 48 89 4c 24 18 e8 94 ec ff ff 84 c0 0f 84
+[ 2701.069229][    C0] RSP: 0018:ffffc90000007640 EFLAGS: 00000246
+[ 2701.075559][    C0] RAX: 0000000000000001 RBX: 1ffff92000000ed0 RCX: ffffc9000521f108
+[ 2701.084157][    C0] RDX: 00000000000000a8 RSI: 0000000000000000 RDI: ffffc90000007718
+[ 2701.092707][    C0] RBP: 0000000000000001 R08: ffffffff8c464984 R09: ffffffff8c464988
+[ 2701.101053][    C0] R10: 000000000007601f R11: 0000000000000001 R12: ffffc90000007760
+[ 2701.109726][    C0] R13: ffffc9000000774d R14: ffffc90000007768 R15: ffffc90000007718
+[ 2701.141150][    C0]  arch_stack_walk+0x81/0xf0
+[ 2701.152871][    C0]  stack_trace_save+0x8c/0xc0
+[ 2701.174481][    C0]  kasan_save_stack+0x1b/0x40
+[ 2701.354420][    C0]  __kasan_kmalloc.constprop.0+0xbf/0xd0
+[ 2701.360473][    C0]  kmem_cache_alloc+0x13a/0x3f0
+[ 2701.365462][    C0]  __build_skb+0x21/0x60
+[ 2701.369733][    C0]  __netdev_alloc_skb+0x244/0x450
+[ 2701.375035][    C0]  __ieee80211_beacon_get+0xebe/0x1af0
+[ 2701.392652][    C0]  ieee80211_beacon_get_tim+0x88/0x910
+[ 2701.417841][    C0]  mac80211_hwsim_beacon_tx+0x111/0x810
+[ 2701.423703][    C0]  __iterate_interfaces+0x124/0x4d0
+[ 2701.442602][    C0]  ieee80211_iterate_active_interfaces_atomic+0x8d/0x170
+[ 2701.450679][    C0]  mac80211_hwsim_beacon+0xd5/0x1a0
+[ 2701.456146][    C0]  __hrtimer_run_queues+0x6a9/0xfc0
+[ 2701.480367][    C0]  hrtimer_run_softirq+0x17b/0x360
+[ 2701.485538][    C0]  __do_softirq+0x1f8/0xb23
+[ 2701.490178][    C0]  asm_call_on_stack+0xf/0x20
+[ 2701.494985][    C0]  </IRQ>
+[ 2701.497959][    C0]  do_softirq_own_stack+0x9d/0xd0
+[ 2701.503352][    C0]  irq_exit_rcu+0x235/0x280
+[ 2701.508209][    C0]  sysvec_apic_timer_interrupt+0x51/0xf0
+[ 2701.514140][    C0]  asm_sysvec_apic_timer_interrupt+0x12/0x20
+[ 2701.520417][    C0] RIP: 0010:preempt_schedule_irq+0xba/0x1b0
+[ 2701.526996][    C0] Code: 89 f0 48 c1 e8 03 80 3c 18 00 0f 85 b9 00 00 00 48 83 3d a0 be d6 01 00 0f 84 a5 00 00 00 fb 66 0f 1f 44 00 00 bf 01 00 00 00 <e8> 21 ce ff ff 4c 89 e8 48 c1 e8 03 80 3c 18 00 0f 85 9a 00 00 00
+[ 2701.547348][    C0] RSP: 0018:ffffc9000521f0c8 EFLAGS: 00000286
+[ 2701.554111][    C0] RAX: 1ffffffff13f8d77 RBX: dffffc0000000000 RCX: 0000000000000006
+[ 2701.562674][    C0] RDX: 0000000000000000 RSI: 0000000000000001 RDI: 0000000000000001
+[ 2701.571497][    C0] RBP: ffffed10087e4c90 R08: 0000000000000001 R09: ffffffff8d0b6a9f
+[ 2701.579906][    C0] R10: fffffbfff1a16d53 R11: 0000000000000001 R12: ffff888043f26480
+[ 2701.588461][    C0] R13: ffffffff89fc6ba0 R14: ffffffff89fc6bb8 R15: 0000000000000000
+[ 2701.602820][    C0]  irqentry_exit+0x65/0x90
+[ 2701.607527][    C0]  asm_sysvec_apic_timer_interrupt+0x12/0x20
+[ 2701.613634][    C0] RIP: 0010:lock_acquire+0x280/0xae0
+[ 2701.619562][    C0] Code: 00 fc ff df 48 c1 e8 03 80 3c 10 00 0f 85 04 07 00 00 48 83 3d f8 6f a0 08 00 0f 84 5a 05 00 00 4c 89 ff 57 9d 0f 1f 44 00 00 <48> b8 00 00 00 00 00 fc ff df 48 03 44 24 08 48 c7 00 00 00 00 00
+[ 2701.640495][    C0] RSP: 0018:ffffc9000521f1b8 EFLAGS: 00000286
+[ 2701.646955][    C0] RAX: 1ffffffff13f8d75 RBX: ffff888043f26480 RCX: 0000000000000001
+[ 2701.655308][    C0] RDX: dffffc0000000000 RSI: 4f598863ac3f63df RDI: 0000000000000286
+[ 2701.664621][    C0] RBP: ffffffff8a067f40 R08: 0000000000000000 R09: ffffffff8d0b69e7
+[ 2701.674881][    C0] R10: fffffbfff1a16d3c R11: 0000000000000000 R12: 0000000000000002
+[ 2701.683643][    C0] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000286
+[ 2701.722003][    C0]  is_bpf_text_address+0x36/0x160
+[ 2701.733050][    C0]  kernel_text_address+0xbd/0xf0
+[ 2701.738203][    C0]  __kernel_text_address+0x9/0x30
+[ 2701.743472][    C0]  unwind_get_return_address+0x51/0x90
+[ 2701.754467][    C0]  arch_stack_walk+0x97/0xf0
+[ 2701.759371][    C0]  stack_trace_save+0x8c/0xc0
+[ 2701.770341][    C0]  kasan_save_stack+0x1b/0x40
+[ 2701.931573][    C0]  __kasan_kmalloc.constprop.0+0xbf/0xd0
+[ 2701.937491][    C0]  kmem_cache_alloc_trace+0x13d/0x300
+[ 2701.943175][    C0]  sctp_add_bind_addr+0x96/0x390
+[ 2701.948411][    C0]  sctp_copy_local_addr_list+0x33e/0x4e0
+[ 2701.965552][    C0]  sctp_bind_addr_copy+0xde/0x460
+[ 2701.970714][    C0]  sctp_connect_new_asoc+0x1cd/0x770
+[ 2702.008644][    C0]  sctp_sendmsg+0x1377/0x1cf0
+[ 2702.024947][    C0]  inet_sendmsg+0x99/0xe0
+[ 2702.035283][    C0]  sock_sendmsg+0xcf/0x120
+[ 2702.040011][    C0]  ____sys_sendmsg+0x6e8/0x810
+[ 2702.076425][    C0]  ___sys_sendmsg+0xf3/0x170
+[ 2702.106649][    C0]  __sys_sendmsg+0xe5/0x1b0
+[ 2702.128070][    C0]  do_syscall_64+0x2d/0x70
+[ 2702.132719][    C0]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[ 2702.139032][    C0] RIP: 0033:0x45e179
+[ 2702.142959][    C0] Code: 3d b2 fb ff c3 66 2e 0f 1f 84 00 00 00 00 00 66 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 0b b2 fb ff c3 66 2e 0f 1f 84 00 00 00 00
+[ 2702.163870][    C0] RSP: 002b:00007f129cbb9c78 EFLAGS: 00000246 ORIG_RAX: 000000000000002e
+[ 2702.173174][    C0] RAX: ffffffffffffffda RBX: 0000000000027c80 RCX: 000000000045e179
+[ 2702.181177][    C0] RDX: 0000000000000000 RSI: 00000000200006c0 RDI: 0000000000000007
+[ 2702.189447][    C0] RBP: 000000000118cf80 R08: 0000000000000000 R09: 0000000000000000
+[ 2702.197901][    C0] R10: 0000000000000000 R11: 0000000000000246 R12: 000000000118cf4c
+[ 2702.206037][    C0] R13: 00007ffd0c55e1cf R14: 00007f129cbba9c0 R15: 000000000118cf4c

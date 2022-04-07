@@ -1,0 +1,131 @@
+# Copyright 2015 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/perf_event.h>
+include <linux/hw_breakpoint.h>
+
+resource fd_perf_base[fd]
+resource fd_perf[fd_perf_base]
+
+perf_event_open(attr ptr[in, perf_event_attr], pid pid[opt], cpu intptr[-1:16], group fd_perf[opt], flags flags[perf_flags]) fd_perf
+perf_event_open$cgroup(attr ptr[in, perf_event_attr], fd fd_cgroup, cpu intptr[-1:16], group fd_perf[opt], flags flags[perf_flags_cgroup]) fd_perf
+
+mmap$perf(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_perf, offset fileoff)
+
+ioctl$PERF_EVENT_IOC_ENABLE(fd fd_perf, cmd const[PERF_EVENT_IOC_ENABLE], flags intptr)
+ioctl$PERF_EVENT_IOC_DISABLE(fd fd_perf, cmd const[PERF_EVENT_IOC_DISABLE], flags intptr)
+ioctl$PERF_EVENT_IOC_RESET(fd fd_perf, cmd const[PERF_EVENT_IOC_RESET], flags intptr)
+ioctl$PERF_EVENT_IOC_REFRESH(fd fd_perf, cmd const[PERF_EVENT_IOC_REFRESH], refresh intptr)
+ioctl$PERF_EVENT_IOC_PERIOD(fd fd_perf, cmd const[PERF_EVENT_IOC_PERIOD], period ptr[in, int64])
+ioctl$PERF_EVENT_IOC_ID(fd fd_perf, cmd const[PERF_EVENT_IOC_ID], id ptr[out, int64])
+ioctl$PERF_EVENT_IOC_SET_OUTPUT(fd fd_perf, cmd const[PERF_EVENT_IOC_SET_OUTPUT], other fd_perf)
+ioctl$PERF_EVENT_IOC_SET_FILTER(fd fd_perf, cmd const[PERF_EVENT_IOC_SET_FILTER], filter ptr[in, string])
+ioctl$PERF_EVENT_IOC_SET_BPF(fd fd_perf, cmd const[PERF_EVENT_IOC_SET_BPF], prog fd_bpf_prog)
+ioctl$PERF_EVENT_IOC_PAUSE_OUTPUT(fd fd_perf, cmd const[PERF_EVENT_IOC_PAUSE_OUTPUT], arg boolptr)
+ioctl$PERF_EVENT_IOC_QUERY_BPF(fd fd_perf, cmd const[PERF_EVENT_IOC_QUERY_BPF], arg ptr[in, perf_event_query_bpf])
+ioctl$PERF_EVENT_IOC_MODIFY_ATTRIBUTES(fd fd_perf, cmd const[PERF_EVENT_IOC_MODIFY_ATTRIBUTES], arg ptr[in, perf_event_attr])
+
+perf_flags = PERF_FLAG_FD_NO_GROUP, PERF_FLAG_FD_OUTPUT, PERF_FLAG_FD_CLOEXEC
+perf_flags_cgroup = PERF_FLAG_FD_NO_GROUP, PERF_FLAG_FD_OUTPUT, PERF_FLAG_PID_CGROUP, PERF_FLAG_FD_CLOEXEC
+perf_event_type = PERF_TYPE_HARDWARE, PERF_TYPE_SOFTWARE, PERF_TYPE_TRACEPOINT, PERF_TYPE_HW_CACHE, PERF_TYPE_RAW, PERF_TYPE_BREAKPOINT
+perf_bp_type = HW_BREAKPOINT_EMPTY, HW_BREAKPOINT_R, HW_BREAKPOINT_W, HW_BREAKPOINT_X
+perf_sample_type = PERF_SAMPLE_IP, PERF_SAMPLE_TID, PERF_SAMPLE_TIME, PERF_SAMPLE_ADDR, PERF_SAMPLE_READ, PERF_SAMPLE_CALLCHAIN, PERF_SAMPLE_ID, PERF_SAMPLE_CPU, PERF_SAMPLE_PERIOD, PERF_SAMPLE_STREAM_ID, PERF_SAMPLE_RAW, PERF_SAMPLE_BRANCH_STACK, PERF_SAMPLE_REGS_USER, PERF_SAMPLE_STACK_USER, PERF_SAMPLE_WEIGHT, PERF_SAMPLE_DATA_SRC, PERF_SAMPLE_IDENTIFIER, PERF_SAMPLE_TRANSACTION, PERF_SAMPLE_REGS_INTR, PERF_SAMPLE_PHYS_ADDR
+perf_read_format = PERF_FORMAT_TOTAL_TIME_ENABLED, PERF_FORMAT_TOTAL_TIME_RUNNING, PERF_FORMAT_ID, PERF_FORMAT_GROUP
+perf_branch_sample_type = PERF_SAMPLE_BRANCH_USER, PERF_SAMPLE_BRANCH_KERNEL, PERF_SAMPLE_BRANCH_HV, PERF_SAMPLE_BRANCH_ANY, PERF_SAMPLE_BRANCH_ANY_CALL, PERF_SAMPLE_BRANCH_ANY_RETURN, PERF_SAMPLE_BRANCH_IND_CALL, PERF_SAMPLE_BRANCH_ABORT_TX, PERF_SAMPLE_BRANCH_IN_TX, PERF_SAMPLE_BRANCH_NO_TX, PERF_SAMPLE_BRANCH_COND, PERF_SAMPLE_BRANCH_CALL_STACK, PERF_SAMPLE_BRANCH_IND_JUMP, PERF_SAMPLE_BRANCH_CALL, PERF_SAMPLE_BRANCH_NO_FLAGS, PERF_SAMPLE_BRANCH_NO_CYCLES, PERF_SAMPLE_BRANCH_TYPE_SAVE, PERF_SAMPLE_BRANCH_MAX
+perf_bp_lens = 1, 2, 4, 8
+_ = __NR_mmap2
+#perf_event_attr size
+_ = PERF_ATTR_SIZE_VER0, PERF_ATTR_SIZE_VER1, PERF_ATTR_SIZE_VER2, PERF_ATTR_SIZE_VER3, PERF_ATTR_SIZE_VER4, PERF_ATTR_SIZE_VER5
+#perf_event_attr config field
+_ = PERF_COUNT_HW_CPU_CYCLES, PERF_COUNT_HW_INSTRUCTIONS, PERF_COUNT_HW_CACHE_REFERENCES, PERF_COUNT_HW_CACHE_MISSES, PERF_COUNT_HW_BRANCH_INSTRUCTIONS, PERF_COUNT_HW_BRANCH_MISSES, PERF_COUNT_HW_BUS_CYCLES, PERF_COUNT_HW_STALLED_CYCLES_FRONTEND, PERF_COUNT_HW_STALLED_CYCLES_BACKEND, PERF_COUNT_HW_REF_CPU_CYCLES, PERF_COUNT_HW_MAX
+_ = PERF_COUNT_SW_CPU_CLOCK, PERF_COUNT_SW_TASK_CLOCK, PERF_COUNT_SW_PAGE_FAULTS, PERF_COUNT_SW_CONTEXT_SWITCHES, PERF_COUNT_SW_CPU_MIGRATIONS, PERF_COUNT_SW_PAGE_FAULTS_MIN, PERF_COUNT_SW_PAGE_FAULTS_MAJ, PERF_COUNT_SW_ALIGNMENT_FAULTS, PERF_COUNT_SW_EMULATION_FAULTS, PERF_COUNT_SW_DUMMY, PERF_COUNT_SW_BPF_OUTPUT
+
+perf_event_attr {
+	type				flags[perf_event_type, int32]
+	size				len[parent, int32]
+# TODO: config can contain lots of various flags depending on type.
+# this is a hacky way to generate something reasonable.
+	config0				int8
+	config1				int8
+	config2				int8
+	config3				int8
+	config4				const[0, int32]
+	sample_freq			int64
+	sample_type			flags[perf_sample_type, int64]
+	read_format			flags[perf_read_format, int64]
+
+	disabled			int64:1
+	inherit				int64:1
+	pinned				int64:1
+	exclusive			int64:1
+	exclude_user			int64:1
+	exclude_kernel			int64:1
+	exclude_hv			int64:1
+	exclude_idle			int64:1
+	mmap				int64:1
+	comm				int64:1
+	freq				int64:1
+	inherit_stat			int64:1
+	enable_on_exec			int64:1
+	task				int64:1
+	watermark			int64:1
+	precise_ip			int64:2
+	mmap_data			int64:1
+	sample_id_all			int64:1
+	exclude_host			int64:1
+	exclude_guest			int64:1
+	exclude_callchain_kernel	int64:1
+	exclude_callchain_user		int64:1
+	mmap2				int64:1
+	comm_exec			int64:1
+	use_clockid			int64:1
+	context_switch			int64:1
+	write_backward			int64:1
+	namespaces			int64:1
+	ksymbol				int64:1
+	bpf_event			int64:1
+	aux_output			int64:1
+	cgroup				int64:1
+	text_poke			int64:1
+	build_id			int64:1
+	inherit_thread			int64:1
+	remove_on_exec			int64:1
+	sigtrap				int64:1
+	__reserved_1			const[0, int64:26]
+
+	wakeup_events			int32
+	bp_type				flags[perf_bp_type, int32]
+	bp_config			perf_bp_config
+	branch_sample_type		flags[perf_branch_sample_type, int64]
+	sample_regs_user		int64
+	sample_stack_user		int32
+	clockid				flags[clock_type, int32]
+	sample_regs_intr		int64
+	aux_watermark			int32
+	sample_max_stack		int16
+	__reserved_2			const[0, int16]
+	aux_sample_size			int32
+	__reserved_3			const[0, int32]
+	sig_data			int64
+}
+
+perf_bp_config [
+	perf_bp		perf_bp
+	perf_config_ext	perf_config_ext
+]
+
+perf_bp {
+	bp_addr	ptr64[out, int8]
+	bp_len	flags[perf_bp_lens, int64]
+}
+
+perf_config_ext {
+	config1	int64
+	config2	int64
+}
+
+perf_event_query_bpf {
+	ids_len		len[ids, int32]
+	prog_cnt	const[0, int32]
+	ids		array[const[0, int32]]
+}

@@ -1,0 +1,26 @@
+TITLE: memory leak in kobject_set_name_vargs
+TYPE: LEAK
+
+BUG: memory leak
+unreferenced object 0xffff88005f607a40 (size 32):
+  comm "syz-executor0", pid 6646, jiffies 4294942725 (age 13.180s)
+  hex dump (first 32 bytes):
+    76 62 6f 78 6e 65 74 30 65 74 68 30 2b 2d 00 00  vboxnet0eth0+-..
+    00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+  backtrace:
+    [<000000005040d77c>] __kmalloc_track_caller+0x14b/0x290
+    [<000000009136e0d6>] kstrdup+0x39/0x70
+    [<0000000031b458ae>] kstrdup_const+0x39/0x50
+    [<00000000973ef0d1>] kvasprintf_const+0xb2/0xd0
+    [<000000001526c47f>] kobject_set_name_vargs+0x40/0xd0
+    [<00000000b76f0c51>] kobject_init_and_add+0x6f/0xd0
+    [<00000000f4b13d82>] gfs2_sys_fs_add+0xa1/0x1f0
+    [<00000000b5b99fa9>] fill_super+0x5fd/0xe20
+    [<00000000b47b26c2>] gfs2_mount+0x283/0x2e0
+    [<0000000038cea8a6>] mount_fs+0x4b/0x1a0
+    [<00000000148e0cf2>] vfs_kern_mount.part.25+0x67/0x150
+    [<00000000a8e58e5d>] do_mount+0x72b/0x1100
+    [<00000000cc40e6b2>] ksys_mount+0xab/0x120
+    [<000000004911d907>] __x64_sys_mount+0x26/0x30
+    [<00000000d4b3b027>] do_syscall_64+0x7c/0x180
+    [<000000004c73f7cb>] entry_SYSCALL_64_after_hwframe+0x44/0xa9

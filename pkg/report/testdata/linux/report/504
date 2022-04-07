@@ -1,0 +1,164 @@
+TITLE: BUG: soft lockup in smp_call_function
+ALT: stall in smp_call_function
+TYPE: HANG
+
+[  635.060078][    C0] watchdog: BUG: soft lockup - CPU#0 stuck for 123s! [syz-executor.2:12834]
+[  635.068861][    C0] Modules linked in:
+[  635.073526][    C0] irq event stamp: 30574
+[  635.077838][    C0] hardirqs last  enabled at (30573): [<ffffffff88000c42>] asm_sysvec_apic_timer_interrupt+0x12/0x20
+[  635.088590][    C0] hardirqs last disabled at (30574): [<ffffffff87e462cd>] idtentry_enter_cond_rcu+0x1d/0x50
+[  635.098646][    C0] softirqs last  enabled at (13814): [<ffffffff88200748>] __do_softirq+0x748/0xa60
+[  635.107920][    C0] softirqs last disabled at (13753): [<ffffffff88000f0f>] asm_call_on_stack+0xf/0x20
+[  635.118057][    C0] CPU: 0 PID: 12834 Comm: syz-executor.2 Not tainted 5.8.0-rc3-syzkaller #0
+[  635.126714][    C0] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  635.136820][    C0] RIP: 0010:smp_call_function_single+0x197/0x4f0
+[  635.143138][    C0] Code: 48 8d 74 24 40 48 89 44 24 50 48 8b 44 24 08 48 89 44 24 58 e8 fa f9 ff ff 41 89 c5 eb 07 e8 f0 ff 0a 00 f3 90 44 8b 64 24 48 <31> ff 41 83 e4 01 44 89 e6 e8 5b fc 0a 00 45 85 e4 75 e1 e8 d1 ff
+[  635.162818][    C0] RSP: 0018:ffffc9000466f5e0 EFLAGS: 00000293
+[  635.168970][    C0] RAX: 0000000000000000 RBX: 1ffff920008cdec0 RCX: ffffffff8168b785
+[  635.179534][    C0] RDX: ffff88804550c200 RSI: ffffffff8168b770 RDI: 0000000000000005
+[  635.187589][    C0] RBP: ffffc9000466f6b8 R08: 0000000000000001 R09: ffff8880ae736dc7
+[  635.195551][    C0] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000011
+[  635.203540][    C0] R13: 0000000000000000 R14: 0000000000000001 R15: 0000000000000040
+[  635.211850][    C0] FS:  00007fc9cbaaa700(0000) GS:ffff8880ae600000(0000) knlGS:0000000000000000
+[  635.220983][    C0] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  635.227827][    C0] CR2: 000000c00005bc80 CR3: 00000000960ba000 CR4: 00000000001406f0
+[  635.235812][    C0] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  635.244211][    C0] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  635.252431][    C0] Call Trace:
+[  635.286610][    C0]  smp_call_function_many_cond+0x1a4/0x990
+[  635.312583][    C0]  on_each_cpu+0x4a/0x240
+[  635.316906][    C0]  text_poke_bp_batch+0x142/0x3d0
+[  635.338876][    C0]  text_poke_finish+0x16/0x21
+[  635.343543][    C0]  arch_jump_label_transform_apply+0x13/0x20
+[  635.349511][    C0]  jump_label_update+0x1b3/0x3a0
+[  635.354469][    C0]  __static_key_slow_dec_cpuslocked.part.0+0x59/0x60
+[  635.361135][    C0]  static_key_slow_dec+0x78/0xc0
+[  635.366106][    C0]  tracepoint_probe_unregister+0x4fb/0x6b0
+[  635.382469][    C0]  trace_event_reg+0x181/0x350
+[  635.393733][    C0]  perf_trace_event_unreg.isra.0+0xaa/0x200
+[  635.399656][    C0]  perf_trace_destroy+0xb5/0xf0
+[  635.409699][    C0]  _free_event+0x2ee/0x11e0
+[  635.414292][    C0]  perf_event_release_kernel+0xa24/0xe00
+[  635.436630][    C0]  perf_release+0x33/0x40
+[  635.441181][    C0]  __fput+0x33c/0x880
+[  635.445477][    C0]  task_work_run+0xdd/0x190
+[  635.450012][    C0]  do_exit+0xb72/0x2a40
+[  635.485151][    C0]  do_group_exit+0x125/0x310
+[  635.490691][    C0]  get_signal+0x40b/0x1ee0
+[  635.502065][    C0]  do_signal+0x82/0x2520
+[  635.555253][    C0]  __prepare_exit_to_usermode+0x156/0x1f0
+[  635.561518][    C0]  do_syscall_64+0x6c/0xe0
+[  635.566462][    C0]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[  635.572837][    C0] RIP: 0033:0x45cb29
+[  635.576820][    C0] Code: Bad RIP value.
+[  635.581756][    C0] RSP: 002b:00007fc9cbaa9cf8 EFLAGS: 00000246 ORIG_RAX: 00000000000000ca
+[  635.590331][    C0] RAX: fffffffffffffe00 RBX: 000000000078bfa8 RCX: 000000000045cb29
+[  635.598291][    C0] RDX: 0000000000000000 RSI: 0000000000000080 RDI: 000000000078bfa8
+[  635.606254][    C0] RBP: 000000000078bfa0 R08: 0000000000000000 R09: 0000000000000000
+[  635.614217][    C0] R10: 0000000000000000 R11: 0000000000000246 R12: 000000000078bfac
+[  635.622176][    C0] R13: 00007fff67a9f90f R14: 00007fc9cbaaa9c0 R15: 000000000078bfac
+[  635.630260][    C0] Sending NMI from CPU 0 to CPUs 1:
+[  635.636609][    C0] NMI backtrace for cpu 1
+[  635.636616][    C0] CPU: 1 PID: 13865 Comm: syz-executor.0 Not tainted 5.8.0-rc3-syzkaller #0
+[  635.636625][    C0] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  635.636630][    C0] RIP: 0010:_raw_spin_unlock_irqrestore+0x51/0xe0
+[  635.636645][    C0] Code: e0 b4 89 48 ba 00 00 00 00 00 fc ff df 48 c1 e8 03 80 3c 10 00 0f 85 80 00 00 00 48 83 3d 36 a7 cd 01 00 74 5f 48 89 df 57 9d <0f> 1f 44 00 00 e8 05 2d 92 f9 eb 34 e8 5e 33 92 f9 48 c7 c0 40 e0
+[  635.636650][    C0] RSP: 0018:ffffc90000da8dd0 EFLAGS: 00000082
+[  635.636660][    C0] RAX: 1ffffffff1369c08 RBX: 0000000000000082 RCX: ffffffff815aff60
+[  635.636667][    C0] RDX: dffffc0000000000 RSI: 0000000000000004 RDI: 0000000000000082
+[  635.636673][    C0] RBP: ffff8880ae727740 R08: 0000000000000000 R09: ffff8880ae727743
+[  635.636680][    C0] R10: ffffed1015ce4ee8 R11: 0000000000000000 R12: ffff8880ae727740
+[  635.636686][    C0] R13: ffff8880ae727840 R14: ffff88808fac9b40 R15: dffffc0000000000
+[  635.636694][    C0] FS:  00007f86e73d9700(0000) GS:ffff8880ae700000(0000) knlGS:0000000000000000
+[  635.636699][    C0] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  635.636706][    C0] CR2: 0000001b2e421000 CR3: 000000004b7e9000 CR4: 00000000001406e0
+[  635.636713][    C0] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  635.636719][    C0] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  635.636723][    C0] Call Trace:
+[  635.636725][    C0]  <IRQ>
+[  635.636730][    C0]  __hrtimer_run_queues+0x5d1/0xfc0
+[  635.636750][    C0]  hrtimer_interrupt+0x32a/0x930
+[  635.636755][    C0]  __sysvec_apic_timer_interrupt+0x142/0x5e0
+[  635.636759][    C0]  asm_call_on_stack+0xf/0x20
+[  635.636762][    C0]  </IRQ>
+[  635.636767][    C0]  sysvec_apic_timer_interrupt+0xe0/0x120
+[  635.636773][    C0]  asm_sysvec_apic_timer_interrupt+0x12/0x20
+[  635.636778][    C0] RIP: 0010:_raw_spin_unlock_irqrestore+0x8c/0xe0
+[  635.636793][    C0] Code: 48 c7 c0 40 e0 b4 89 48 ba 00 00 00 00 00 fc ff df 48 c1 e8 03 80 3c 10 00 75 37 48 83 3d fb a6 cd 01 00 74 22 48 89 df 57 9d <0f> 1f 44 00 00 bf 01 00 00 00 e8 35 39 68 f9 65 8b 05 5e c5 1a 78
+[  635.636798][    C0] RSP: 0018:ffffc90006edfd80 EFLAGS: 00000282
+[  635.636807][    C0] RAX: 1ffffffff1369c08 RBX: 0000000000000282 RCX: 0000000000000000
+[  635.636814][    C0] RDX: dffffc0000000000 RSI: 0000000000000000 RDI: 0000000000000282
+[  635.636820][    C0] RBP: ffffffff89bd19e0 R08: 0000000000000000 R09: 0000000000000000
+[  635.636827][    C0] R10: 0000000000000001 R11: 0000000000000000 R12: 1ffff92000ddbfbc
+[  635.636834][    C0] R13: 0000000000000000 R14: ffffc90006edfed0 R15: ffffffffa0fc92c3
+[  635.636838][    C0]  do_settimeofday64+0x34b/0x4e0
+[  635.636851][    C0]  do_sys_settimeofday64+0x1de/0x260
+[  635.636856][    C0]  __x64_sys_clock_settime+0x197/0x260
+[  635.636878][    C0]  do_syscall_64+0x60/0xe0
+[  635.636884][    C0]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[  635.636887][    C0] RIP: 0033:0x45cb29
+[  635.636891][    C0] Code: Bad RIP value.
+[  635.636896][    C0] RSP: 002b:00007f86e73d8c78 EFLAGS: 00000246 ORIG_RAX: 00000000000000e3
+[  635.636907][    C0] RAX: ffffffffffffffda RBX: 00000000004db560 RCX: 000000000045cb29
+[  635.636914][    C0] RDX: 0000000000000000 RSI: 0000000020000400 RDI: 0000000000000000
+[  635.636921][    C0] RBP: 000000000078bf00 R08: 0000000000000000 R09: 0000000000000000
+[  635.636927][    C0] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000ffffffff
+[  635.636934][    C0] R13: 000000000000007b R14: 00000000004c34ac R15: 00007f86e73d96d4
+[  635.636942][    C0] Kernel panic - not syncing: softlockup: hung tasks
+[  636.023252][    C0] CPU: 0 PID: 12834 Comm: syz-executor.2 Tainted: G             L    5.8.0-rc3-syzkaller #0
+[  636.033299][    C0] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  636.043351][    C0] Call Trace:
+[  636.046636][    C0]  <IRQ>
+[  636.049608][    C0]  dump_stack+0x18f/0x20d
+[  636.055303][    C0]  panic+0x2e3/0x75c
+[  636.083775][    C0]  watchdog_timer_fn.cold+0x16/0x2a
+[  636.088971][    C0]  __hrtimer_run_queues+0x1d5/0xfc0
+[  636.112471][    C0]  hrtimer_interrupt+0x32a/0x930
+[  636.117503][    C0]  __sysvec_apic_timer_interrupt+0x142/0x5e0
+[  636.123476][    C0]  asm_call_on_stack+0xf/0x20
+[  636.128194][    C0]  </IRQ>
+[  636.131126][    C0]  sysvec_apic_timer_interrupt+0xe0/0x120
+[  636.136836][    C0]  asm_sysvec_apic_timer_interrupt+0x12/0x20
+[  636.142808][    C0] RIP: 0010:smp_call_function_single+0x197/0x4f0
+[  636.149123][    C0] Code: 48 8d 74 24 40 48 89 44 24 50 48 8b 44 24 08 48 89 44 24 58 e8 fa f9 ff ff 41 89 c5 eb 07 e8 f0 ff 0a 00 f3 90 44 8b 64 24 48 <31> ff 41 83 e4 01 44 89 e6 e8 5b fc 0a 00 45 85 e4 75 e1 e8 d1 ff
+[  636.170465][    C0] RSP: 0018:ffffc9000466f5e0 EFLAGS: 00000293
+[  636.176525][    C0] RAX: 0000000000000000 RBX: 1ffff920008cdec0 RCX: ffffffff8168b785
+[  636.184487][    C0] RDX: ffff88804550c200 RSI: ffffffff8168b770 RDI: 0000000000000005
+[  636.192447][    C0] RBP: ffffc9000466f6b8 R08: 0000000000000001 R09: ffff8880ae736dc7
+[  636.200407][    C0] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000011
+[  636.208368][    C0] R13: 0000000000000000 R14: 0000000000000001 R15: 0000000000000040
+[  636.259397][    C0]  smp_call_function_many_cond+0x1a4/0x990
+[  636.285749][    C0]  on_each_cpu+0x4a/0x240
+[  636.291120][    C0]  text_poke_bp_batch+0x142/0x3d0
+[  636.315309][    C0]  text_poke_finish+0x16/0x21
+[  636.319978][    C0]  arch_jump_label_transform_apply+0x13/0x20
+[  636.325956][    C0]  jump_label_update+0x1b3/0x3a0
+[  636.330978][    C0]  __static_key_slow_dec_cpuslocked.part.0+0x59/0x60
+[  636.337645][    C0]  static_key_slow_dec+0x78/0xc0
+[  636.342581][    C0]  tracepoint_probe_unregister+0x4fb/0x6b0
+[  636.360775][    C0]  trace_event_reg+0x181/0x350
+[  636.371429][    C0]  perf_trace_event_unreg.isra.0+0xaa/0x200
+[  636.377327][    C0]  perf_trace_destroy+0xb5/0xf0
+[  636.390247][    C0]  _free_event+0x2ee/0x11e0
+[  636.394754][    C0]  perf_event_release_kernel+0xa24/0xe00
+[  636.416956][    C0]  perf_release+0x33/0x40
+[  636.421297][    C0]  __fput+0x33c/0x880
+[  636.425544][    C0]  task_work_run+0xdd/0x190
+[  636.430048][    C0]  do_exit+0xb72/0x2a40
+[  636.463457][    C0]  do_group_exit+0x125/0x310
+[  636.468045][    C0]  get_signal+0x40b/0x1ee0
+[  636.477693][    C0]  do_signal+0x82/0x2520
+[  636.523170][    C0]  __prepare_exit_to_usermode+0x156/0x1f0
+[  636.528884][    C0]  do_syscall_64+0x6c/0xe0
+[  636.533312][    C0]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[  636.539198][    C0] RIP: 0033:0x45cb29
+[  636.543082][    C0] Code: Bad RIP value.
+[  636.547139][    C0] RSP: 002b:00007fc9cbaa9cf8 EFLAGS: 00000246 ORIG_RAX: 00000000000000ca
+[  636.556948][    C0] RAX: fffffffffffffe00 RBX: 000000000078bfa8 RCX: 000000000045cb29
+[  636.565278][    C0] RDX: 0000000000000000 RSI: 0000000000000080 RDI: 000000000078bfa8
+[  636.573338][    C0] RBP: 000000000078bfa0 R08: 0000000000000000 R09: 0000000000000000
+[  636.581396][    C0] R10: 0000000000000000 R11: 0000000000000246 R12: 000000000078bfac
+[  636.589558][    C0] R13: 00007fff67a9f90f R14: 00007fc9cbaaa9c0 R15: 000000000078bfac
+[  637.736857][    C0] Shutting down cpus with NMI
+[  637.743185][    C0] Kernel Offset: disabled
+[  637.747556][    C0] Rebooting in 86400 seconds..

@@ -1,0 +1,46 @@
+TITLE: BUG: held lock freed in sctp_sendmsg
+
+[   38.333264] =========================
+[   38.337030] [ BUG: held lock freed! ]
+[   38.340800] 4.3.5+ #9 Not tainted
+[   38.344221] -------------------------
+[   38.347999] syzkaller434861/3744 is freeing memory ffff8800b8db4940-ffff8800b8db5107, with a lock still held there!
+[   38.358535]  (sk_lock-AF_INET6){+.+.+.}, at: [<ffffffff82d3eeff>] sctp_sendmsg+0x231f/0x2e20
+[   38.367562] 1 lock held by syzkaller434861/3744:
+[   38.372283]  #0:  (sk_lock-AF_INET6){+.+.+.}, at: [<ffffffff82d3eeff>] sctp_sendmsg+0x231f/0x2e20
+[   38.381873] 
+[   38.381873] stack backtrace:
+[   38.386341] CPU: 1 PID: 3744 Comm: syzkaller434861 Not tainted 4.3.5+ #9
+[   38.393145] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   38.402467]  0000000000000001 ffff8801d181b8a0 ffffffff81d8e482 ffff8800b8db5107
+[   38.410437]  0000000000000000 0000000000000002 ffff8801d2fce280 ffff8800b8db4940
+[   38.418419]  ffff8801d181b900 ffffffff81427ff2 0000000000000001 ffffffff8272c36f
+[   38.426391] Call Trace:
+[   38.428948]  [<ffffffff81d8e482>] dump_stack+0xf6/0x184
+[   38.434282]  [<ffffffff81427ff2>] debug_check_no_locks_freed+0x2f2/0x370
+[   38.441091]  [<ffffffff8272c36f>] ? dst_release+0x3f/0xa0
+[   38.446599]  [<ffffffff817b486d>] kmem_cache_free+0xcd/0x2d0
+[   38.452370]  [<ffffffff826a8a2e>] __sk_destruct+0x3be/0x580
+[   38.458049]  [<ffffffff826b0a1c>] sk_destruct+0x4c/0x80
+[   38.463385]  [<ffffffff826b0aac>] __sk_free+0x5c/0x210
+[   38.468630]  [<ffffffff826b0c95>] sk_free+0x35/0x40
+[   38.473632]  [<ffffffff82cfb40c>] sctp_association_put+0x16c/0x240
+[   38.479918]  [<ffffffff82d3f316>] sctp_sendmsg+0x2736/0x2e20
+[   38.485686]  [<ffffffff82d3cbe0>] ? sctp_id2assoc+0x310/0x310
+[   38.491542]  [<ffffffff81428070>] ? debug_check_no_locks_freed+0x370/0x370
+[   38.498526]  [<ffffffff814081b0>] ? finish_wait+0x2a0/0x2a0
+[   38.504209]  [<ffffffff82a96b65>] inet_sendmsg+0xe5/0x520
+[   38.509717]  [<ffffffff81c30aee>] ? security_socket_sendmsg+0x8e/0xc0
+[   38.516265]  [<ffffffff82a96a80>] ? inet_recvmsg+0x590/0x590
+[   38.522031]  [<ffffffff82693fdf>] sock_sendmsg+0xcf/0x110
+[   38.527535]  [<ffffffff82694eea>] SYSC_sendto+0x2ba/0x330
+[   38.533052]  [<ffffffff82694c30>] ? SYSC_connect+0x2f0/0x2f0
+[   38.538824]  [<ffffffff81733c41>] ? handle_mm_fault+0x401/0x3280
+[   38.544939]  [<ffffffff81428070>] ? debug_check_no_locks_freed+0x370/0x370
+[   38.551920]  [<ffffffff826b30b0>] ? sock_enable_timestamp+0x80/0x80
+[   38.558291]  [<ffffffff81733840>] ? __pmd_alloc+0x400/0x400
+[   38.563972]  [<ffffffff812a72e8>] ? __do_page_fault+0x398/0x940
+[   38.570000]  [<ffffffff82deef6b>] ? retint_user+0x18/0x18
+[   38.575506]  [<ffffffff82699c95>] SyS_sendto+0x45/0x60
+[   38.580749]  [<ffffffff82dee393>] entry_SYSCALL_64_fastpath+0x12/0x17
+[   38.587395] ==================================================================

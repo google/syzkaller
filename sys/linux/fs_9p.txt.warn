@@ -1,0 +1,8 @@
+no-such-struct: pipe_9p
+no-such-struct: p9_msg
+bad-struct-size: p9_qid: syz=13 kernel=16
+bad-field-offset: p9_qid.version: syz=1 kernel=4
+bad-field-offset: p9_qid.path: syz=5 kernel=8
+no-such-struct: p9_ropen
+bad-struct-size: p9_rstatfs: syz=60 kernel=64 [amd64,arm,arm64]
+no-such-struct: p9_rgetattr

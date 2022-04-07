@@ -1,0 +1,81 @@
+TITLE: INFO: rcu detected stall in corrupted
+ALT: stall in corrupted
+TYPE: HANG
+CORRUPTED: Y
+
+[  463.512820][   T27] audit: type=1326 audit(1589206749.923:16): auid=0 uid=0 gid=0 ses=4 subj=system_u:system_r:kernel_t:s0 pid=16576 comm="syz-executor.5" exe="/root/syz-executor.5" sig=9 arch=c000003e syscall=228 compat=0 ip=0x45f66a code=0x0
+[  568.528728][    C1] rcu: INFO: rcu_preempt detected stalls on CPUs/tasks:
+[  568.535895][    C1] rcu: 	Tasks blocked on level-0 rcu_node (CPUs 0-1): P282
+[  568.543518][    C1] 	(detected by 1, t=10503 jiffies, g=61629, q=41)
+[  568.550540][    C1] kworker/u4:6    R  running task    24784   282      2 0x80004000
+[  568.558788][    C1] Workqueue: bat_events batadv_mcast_mla_update
+[  568.565112][    C1] Call Trace:
+[  568.568513][    C1]  ? __schedule+0x937/0x1ff0
+[  568.573122][    C1]  ? __sched_text_start+0x8/0x8
+[  568.578018][    C1]  ? __this_cpu_preempt_check+0x28/0x190
+[  568.583702][    C1]  ? smp_apic_timer_interrupt+0x1b6/0x600
+[  568.589452][    C1]  ? preempt_schedule_thunk+0x16/0x18
+[  568.594819][    C1]  ? preempt_schedule_common+0x4a/0xc0
+[  568.600299][    C1]  ? preempt_schedule_thunk+0x16/0x18
+[  568.605777][    C1]  ? unwind_next_frame+0x1073/0x1df0
+[  568.611146][    C1]  ? stack_trace_save+0x8c/0xc0
+[  568.616003][    C1]  ? deref_stack_reg+0xe0/0xe0
+[  568.620810][    C1]  ? mark_lock+0x12b/0xf10
+[  568.625230][    C1]  ? profile_setup.cold+0xc1/0xc1
+[  568.630712][    C1]  ? arch_stack_walk+0x81/0xf0
+[  568.635521][    C1]  ? save_stack+0x1b/0x40
+[  568.639855][    C1]  ? stack_trace_save+0x8c/0xc0
+[  568.648620][    C1]  ? stack_trace_consume_entry+0x160/0x160
+[  568.654579][    C1]  ? print_usage_bug+0x240/0x240
+[  568.659531][    C1]  ? print_usage_bug+0x240/0x240
+[  568.664469][    C1]  ? save_stack+0x1b/0x40
+[  568.668810][    C1]  ? __lock_acquire+0xcbb/0x4c50
+[  568.673764][    C1]  ? mark_held_locks+0xe0/0xe0
+[  568.678526][    C1]  ? mark_held_locks+0xe0/0xe0
+[  568.683295][    C1]  ? mark_lock+0x12b/0xf10
+[  568.687722][    C1]  ? print_usage_bug+0x240/0x240
+[  568.692668][    C1]  ? lock_acquire+0x1f2/0x8f0
+[  568.697354][    C1]  ? kasan_unpoison_shadow+0x30/0x40
+[  568.702643][    C1]  ? __kasan_kmalloc.constprop.0+0xbf/0xd0
+[  568.708445][    C1]  ? kmem_cache_alloc_trace+0x295/0x7d0
+[  568.713993][    C1]  ? kmem_cache_alloc_trace+0x13d/0x7d0
+[  568.719639][    C1]  ? rcu_read_lock_held+0x9c/0xb0
+[  568.724665][    C1]  ? rcu_read_lock_held_common+0x130/0x130
+[  568.730484][    C1]  ? batadv_mcast_mla_update+0x1ce2/0x2d20
+[  568.736305][    C1]  ? lock_acquire+0x1f2/0x8f0
+[  568.741009][    C1]  ? batadv_mcast_get_bridge+0x200/0x200
+[  568.746660][    C1]  ? rcu_read_lock_sched_held+0x9c/0xd0
+[  568.752205][    C1]  ? rcu_read_lock_any_held.part.0+0x50/0x50
+[  568.758190][    C1]  ? _raw_spin_unlock_irq+0x1f/0x80
+[  568.763484][    C1]  ? process_one_work+0x965/0x16a0
+[  568.768607][    C1]  ? lock_release+0x800/0x800
+[  568.773327][    C1]  ? pwq_dec_nr_in_flight+0x310/0x310
+[  568.778699][    C1]  ? rwlock_bug.part.0+0x90/0x90
+[  568.783646][    C1]  ? worker_thread+0x96/0xe20
+[  568.788353][    C1]  ? process_one_work+0x16a0/0x16a0
+[  568.793621][    C1]  ? kthread+0x388/0x470
+[  568.797864][    C1]  ? kthread_mod_delayed_work+0x1a0/0x1a0
+[  568.803619][    C1]  ? ret_from_fork+0x24/0x30
+[  568.808239][    C1] rcu: rcu_preempt kthread starved for 10527 jiffies! g61629 f0x0 RCU_GP_WAIT_FQS(5) ->state=0x0 ->cpu=0
+[  568.819430][    C1] rcu: RCU grace-period kthread stack dump:
+[  568.825314][    C1] rcu_preempt     R  running task    28440    10      2 0x80004000
+[  568.833214][    C1] Call Trace:
+[  568.836513][    C1]  ? __schedule+0x937/0x1ff0
+[  568.841112][    C1]  ? __sched_text_start+0x8/0x8
+[  568.846051][    C1]  ? _raw_spin_lock_irqsave+0x94/0xbf
+[  568.851416][    C1]  ? debug_smp_processor_id+0x2f/0x185
+[  568.856876][    C1]  ? schedule+0xd0/0x2a0
+[  568.861123][    C1]  ? schedule_timeout+0x35c/0x850
+[  568.866153][    C1]  ? usleep_range+0x160/0x160
+[  568.870831][    C1]  ? _raw_spin_unlock_irqrestore+0x62/0xe0
+[  568.876650][    C1]  ? __next_timer_interrupt+0x190/0x190
+[  568.882285][    C1]  ? prepare_to_swait_exclusive+0x110/0x110
+[  568.888191][    C1]  ? rcu_gp_kthread+0x9bf/0x1960
+[  568.893135][    C1]  ? rcu_barrier+0x4b0/0x4b0
+[  568.897729][    C1]  ? _raw_spin_unlock_irqrestore+0x62/0xe0
+[  568.903536][    C1]  ? lockdep_hardirqs_on+0x463/0x620
+[  568.908821][    C1]  ? __kthread_parkme+0x13f/0x1e0
+[  568.913841][    C1]  ? rcu_barrier+0x4b0/0x4b0
+[  568.918441][    C1]  ? kthread+0x388/0x470
+[  568.922701][    C1]  ? kthread_mod_delayed_work+0x1a0/0x1a0
+[  568.928441][    C1]  ? ret_from_fork+0x24/0x30

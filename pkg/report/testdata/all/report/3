@@ -1,0 +1,17 @@
+TITLE: panic: first open arg is not a pointer to string const
+
+panic: first open arg is not a pointer to string const
+
+goroutine 1 [running]:
+github.com/google/syzkaller/pkg/host.extractStringConst(0x6858e0, 0xecfde0, 0x0, 0x0, 0xffffffffffffffff)
+	/home/thesis/gopath/src/github.com/google/syzkaller/pkg/host/host_linux.go:167 +0xdc
+github.com/google/syzkaller/pkg/host.isSupportedOpenAt(0xb413e0, 0x7)
+	/home/thesis/gopath/src/github.com/google/syzkaller/pkg/host/host_linux.go:153 +0x3c
+github.com/google/syzkaller/pkg/host.isSupported(0x4421a14000, 0x53eadf, 0x7ffe00, 0xb413e0, 0x4420081f00)
+	/home/thesis/gopath/src/github.com/google/syzkaller/pkg/host/host_linux.go:52 +0x178
+github.com/google/syzkaller/pkg/host.DetectSupportedSyscalls(0x44201d4480, 0x4420081f80, 0xb4df80, 0x442190701e)
+	/home/thesis/gopath/src/github.com/google/syzkaller/pkg/host/host_linux.go:34 +0xd0
+main.buildCallList(0x44201d4480, 0x44218ec000, 0x1904, 0xf)
+	/home/thesis/gopath/src/github.com/google/syzkaller/syz-fuzzer/fuzzer.go:459 +0xbc
+main.main()
+	/home/thesis/gopath/src/github.com/google/syzkaller/syz-fuzzer/fuzzer.go:155 +0x44c

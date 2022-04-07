@@ -1,0 +1,24 @@
+TITLE: WARNING: possible circular locking dependency detected
+CORRUPTED: Y
+
+[....] Starting enhanced syslogd: rsyslogd[   12.037795] audit: type=1400 audit(1515564630.515:5): avc:  denied  { syslog } for  pid=3348 comm="rsyslogd" capability=34  scontext=system_u:system_r:kernel_t:s0 tcontext=system_u:system_r:kernel_t:s0 tclass=capability2 permissive=1
+[?25l[?1c7[1G[[32m ok [39;49m8[?25h[?0c.
+Starting mcstransd: 
+[....] Starting periodic command scheduler: cron[?25l[?1c7[1G[[32m ok [39;49m8[?25h[?0c.
+[....] Starting file context maintaining daemon: restorecond[?25l[?1c7[1G[[32m ok [39;49m8[?25h[?0c.
+[....] Starting OpenBSD Secure Shell server: sshd[?25l[?1c7[1G[[32m ok [39;49m8[?25h[?0c.
+
+Debian GNU/Linux 7 syzkaller ttyS0
+
+syzkaller login: [   19.781382] audit: type=1400 audit(1515564638.259:6): avc:  denied  { map } for  pid=3488 comm="bash" path="/bin/bash" dev="sda1" ino=1457 scontext=unconfined_u:system_r:insmod_t:s0-s0:c0.c1023 tcontext=system_u:object_r:file_t:s0 tclass=file permissive=1
+Warning: Permanently added '10.128.0.54' (ECDSA) to the list of known hosts.
+net.ipv6.conf.syz0.accept_dad = 0
+net.ipv6.conf.syz0.router_solicitations = 0
+[   26.145521] audit: type=1400 audit(1515564644.623:7): avc:  denied  { map } for  pid=3502 comm="syzkaller898346" path="/root/syzkaller898346096" dev="sda1" ino=16481 scontext=unconfined_u:system_r:insmod_t:s0-s0:c0.c1023 tcontext=unconfined_u:object_r:user_home_t:s0 tclass=file permissive=1
+[   26.226655] audit: type=1400 audit(1515564644.704:8): avc:  denied  { map } for  pid=3502 comm="syzkaller898346" path="/dev/ashmem" dev="devtmpfs" ino=1065 scontext=unconfined_u:system_r:insmod_t:s0-s0:c0.c1023 tcontext=system_u:object_r:device_t:s0 tclass=chr_file permissive=1
+[   26.226985] 
+[   26.226987] ======================================================
+[   26.226988] WARNING: possible circular locking dependency detected
+[   26.226991] 4.15.0-rc7+ #255 Not tainted
+[   26.226992] ------------------------------------------------------
+[ 

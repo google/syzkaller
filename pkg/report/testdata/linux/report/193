@@ -1,0 +1,193 @@
+# Note: 191-194 have the same root cause.
+TITLE: possible deadlock in perf_event_for_each_child
+
+[   68.155096] ======================================================
+[   68.161400] WARNING: possible circular locking dependency detected
+[   68.167703] 4.15.0-rc9+ #9 Not tainted
+[   68.171576] ------------------------------------------------------
+[   68.177877] syz-executor1/6389 is trying to acquire lock:
+[   68.184086]  (&event->child_mutex){+.+.}, at: [<000000000857a1c0>] perf_event_for_each_child+0x8a/0x150
+[   68.193610] 
+[   68.193610] but task is already holding lock:
+[   68.199551]  (&cpuctx_mutex){+.+.}, at: [<00000000a77e48ee>] perf_event_ctx_lock_nested+0x21b/0x450
+[   68.208717] 
+[   68.208717] which lock already depends on the new lock.
+[   68.208717] 
+[   68.217001] 
+[   68.217001] the existing dependency chain (in reverse order) is:
+[   68.224594] 
+[   68.224594] -> #5 (&cpuctx_mutex){+.+.}:
+[   68.230112]        __mutex_lock+0x16f/0x1a80
+[   68.234492]        mutex_lock_nested+0x16/0x20
+[   68.239047]        perf_event_init_cpu+0xb6/0x160
+[   68.243863]        perf_event_init+0x4e9/0x549
+[   68.248416]        start_kernel+0x4cc/0x819
+[   68.252707]        x86_64_start_reservations+0x2a/0x2c
+[   68.257954]        x86_64_start_kernel+0x77/0x7a
+[   68.262684]        secondary_startup_64+0xa5/0xb0
+[   68.267492] 
+[   68.267492] -> #4 (pmus_lock){+.+.}:
+[   68.272659]        __mutex_lock+0x16f/0x1a80
+[   68.277036]        mutex_lock_nested+0x16/0x20
+[   68.281587]        perf_event_init_cpu+0x2f/0x160
+[   68.286402]        cpuhp_invoke_callback+0x2ea/0x1d20
+[   68.291562]        _cpu_up+0x216/0x510
+[   68.295420]        do_cpu_up+0x73/0xa0
+[   68.299277]        cpu_up+0x18/0x20
+[   68.302873]        smp_init+0x13a/0x152
+[   68.306821]        kernel_init_freeable+0x2fe/0x521
+[   68.311810]        kernel_init+0x13/0x180
+[   68.315929]        ret_from_fork+0x3a/0x50
+[   68.320129] 
+[   68.320129] -> #3 (cpu_hotplug_lock.rw_sem){++++}:
+[   68.326513]        cpus_read_lock+0x42/0x90
+[   68.330807]        static_key_slow_inc+0x9d/0x3c0
+[   68.335622]        tracepoint_probe_register_prio+0x80d/0x9a0
+[   68.341478]        tracepoint_probe_register+0x2a/0x40
+[   68.346725]        trace_event_reg+0x167/0x320
+[   68.351277]        perf_trace_init+0x4ef/0xab0
+[   68.355829]        perf_tp_event_init+0x7d/0xf0
+[   68.360468]        perf_try_init_event+0xc9/0x1f0
+[   68.365284]        perf_event_alloc+0x1cc6/0x2b00
+[   68.370098]        SYSC_perf_event_open+0x84e/0x2e00
+[   68.375171]        SyS_perf_event_open+0x39/0x50
+[   68.379897]        entry_SYSCALL_64_fastpath+0x29/0xa0
+[   68.385140] 
+[   68.385140] -> #2 (tracepoints_mutex){+.+.}:
+[   68.391002]        __mutex_lock+0x16f/0x1a80
+[   68.395383]        mutex_lock_nested+0x16/0x20
+[   68.399935]        tracepoint_probe_register_prio+0xa0/0x9a0
+[   68.405704]        tracepoint_probe_register+0x2a/0x40
+[   68.410955]        trace_event_reg+0x167/0x320
+[   68.415509]        perf_trace_init+0x4ef/0xab0
+[   68.420062]        perf_tp_event_init+0x7d/0xf0
+[   68.424700]        perf_try_init_event+0xc9/0x1f0
+[   68.429514]        perf_event_alloc+0x1cc6/0x2b00
+[   68.434327]        SYSC_perf_event_open+0x84e/0x2e00
+[   68.439400]        SyS_perf_event_open+0x39/0x50
+[   68.444125]        entry_SYSCALL_64_fastpath+0x29/0xa0
+[   68.449376] 
+[   68.449376] -> #1 (event_mutex){+.+.}:
+[   68.454717]        __mutex_lock+0x16f/0x1a80
+[   68.459094]        mutex_lock_nested+0x16/0x20
+[   68.463645]        perf_trace_destroy+0x28/0x100
+[   68.468370]        tp_perf_event_destroy+0x15/0x20
+[   68.473269]        _free_event+0x3bd/0x10f0
+[   68.477559]        free_event+0x84/0x150
+[   68.481589]        perf_event_release_kernel+0x54e/0xc10
+[   68.487014]        perf_release+0x37/0x50
+[   68.491133]        __fput+0x327/0x7e0
+[   68.494901]        ____fput+0x15/0x20
+[   68.498675]        task_work_run+0x199/0x270
+[   68.503054]        do_exit+0x9bb/0x1ad0
+[   68.506997]        do_group_exit+0x149/0x400
+[   68.511379]        get_signal+0x73f/0x16c0
+[   68.515583]        do_signal+0x90/0x1eb0
+[   68.519616]        exit_to_usermode_loop+0x214/0x310
+[   68.524694]        syscall_return_slowpath+0x490/0x550
+[   68.529948]        entry_SYSCALL_64_fastpath+0x9e/0xa0
+[   68.535192] 
+[   68.535192] -> #0 (&event->child_mutex){+.+.}:
+[   68.541228]        lock_acquire+0x1d5/0x580
+[   68.545520]        __mutex_lock+0x16f/0x1a80
+[   68.549899]        mutex_lock_nested+0x16/0x20
+[   68.554454]        perf_event_for_each_child+0x8a/0x150
+[   68.559787]        perf_ioctl+0x35a/0x1430
+[   68.563997]        do_vfs_ioctl+0x1b1/0x1520
+[   68.568378]        SyS_ioctl+0x8f/0xc0
+[   68.572237]        entry_SYSCALL_64_fastpath+0x29/0xa0
+[   68.577481] 
+[   68.577481] other info that might help us debug this:
+[   68.577481] 
+[   68.585592] Chain exists of:
+[   68.585592]   &event->child_mutex --> pmus_lock --> &cpuctx_mutex
+[   68.585592] 
+[   68.596141]  Possible unsafe locking scenario:
+[   68.596141] 
+[   68.602170]        CPU0                    CPU1
+[   68.606805]        ----                    ----
+[   68.611442]   lock(&cpuctx_mutex);
+[   68.614951]                                lock(pmus_lock);
+[   68.620631]                                lock(&cpuctx_mutex);
+[   68.626661]   lock(&event->child_mutex);
+[   68.630691] 
+[   68.630691]  *** DEADLOCK ***
+[   68.630691] 
+[   68.636720] 1 lock held by syz-executor1/6389:
+[   68.641270]  #0:  (&cpuctx_mutex){+.+.}, at: [<00000000a77e48ee>] perf_event_ctx_lock_nested+0x21b/0x450
+[   68.650868] 
+[   68.650868] stack backtrace:
+[   68.655339] CPU: 1 PID: 6389 Comm: syz-executor1 Not tainted 4.15.0-rc9+ #9
+[   68.662408] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   68.671731] Call Trace:
+[   68.674295]  dump_stack+0x194/0x257
+[   68.677894]  ? arch_local_irq_restore+0x53/0x53
+[   68.682541]  print_circular_bug.isra.37+0x2cd/0x2dc
+[   68.687528]  ? save_trace+0xe0/0x2b0
+[   68.691215]  __lock_acquire+0x30a8/0x3e00
+[   68.695339]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[   68.700502]  ? perf_trace_lock_acquire+0xe3/0x980
+[   68.705316]  ? check_noncircular+0x20/0x20
+[   68.709522]  ? perf_trace_lock+0x900/0x900
+[   68.713729]  ? perf_trace_lock_acquire+0xe3/0x980
+[   68.718543]  ? perf_trace_lock+0x900/0x900
+[   68.722749]  ? check_noncircular+0x20/0x20
+[   68.726956]  ? lock_acquire+0x1d5/0x580
+[   68.730900]  ? perf_event_ctx_lock_nested+0x21b/0x450
+[   68.736061]  ? lock_release+0xa40/0xa40
+[   68.740010]  lock_acquire+0x1d5/0x580
+[   68.743785]  ? lock_acquire+0x1d5/0x580
+[   68.747732]  ? perf_event_for_each_child+0x8a/0x150
+[   68.752720]  ? lock_release+0xa40/0xa40
+[   68.756666]  ? get_futex_value_locked+0xc3/0xf0
+[   68.761305]  ? rcu_note_context_switch+0x710/0x710
+[   68.766205]  ? __might_sleep+0x95/0x190
+[   68.770151]  ? perf_event_for_each_child+0x8a/0x150
+[   68.775138]  __mutex_lock+0x16f/0x1a80
+[   68.778998]  ? perf_event_for_each_child+0x8a/0x150
+[   68.783988]  ? perf_trace_lock+0xd6/0x900
+[   68.788110]  ? perf_event_for_each_child+0x8a/0x150
+[   68.793097]  ? drop_futex_key_refs.isra.12+0x63/0xb0
+[   68.798170]  ? mutex_lock_io_nested+0x1900/0x1900
+[   68.802983]  ? perf_trace_lock+0x900/0x900
+[   68.807189]  ? check_noncircular+0x20/0x20
+[   68.811394]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[   68.816556]  ? wake_up_q+0x8a/0xe0
+[   68.820070]  ? drop_futex_key_refs.isra.12+0x63/0xb0
+[   68.825145]  ? futex_wake+0x2ca/0x680
+[   68.828920]  ? find_held_lock+0x35/0x1d0
+[   68.832958]  ? perf_event_ctx_lock_nested+0x1e0/0x450
+[   68.838118]  ? lock_downgrade+0x980/0x980
+[   68.842239]  ? lock_release+0xa40/0xa40
+[   68.846189]  ? mutex_lock_nested+0x16/0x20
+[   68.850392]  ? mutex_lock_nested+0x16/0x20
+[   68.854596]  ? perf_event_ctx_lock_nested+0x328/0x450
+[   68.859756]  ? perf_iterate_ctx+0x770/0x770
+[   68.864049]  ? event_function_call+0x5a0/0x5a0
+[   68.868602]  mutex_lock_nested+0x16/0x20
+[   68.872633]  ? mutex_lock_nested+0x16/0x20
+[   68.876839]  perf_event_for_each_child+0x8a/0x150
+[   68.881652]  perf_ioctl+0x35a/0x1430
+[   68.885336]  ? lock_release+0xa40/0xa40
+[   68.889282]  ? event_function_call+0x5a0/0x5a0
+[   68.893834]  ? SYSC_perf_event_open+0x2e00/0x2e00
+[   68.898646]  ? __lock_is_held+0xb6/0x140
+[   68.902684]  ? __fget+0x35c/0x570
+[   68.906106]  ? fd_install+0x4d/0x60
+[   68.909707]  ? iterate_fd+0x3f0/0x3f0
+[   68.913480]  ? perf_event_set_output+0x5a0/0x5a0
+[   68.918206]  ? SYSC_perf_event_open+0x2e00/0x2e00
+[   68.923022]  do_vfs_ioctl+0x1b1/0x1520
+[   68.926882]  ? ioctl_preallocate+0x2b0/0x2b0
+[   68.931261]  ? selinux_capable+0x40/0x40
+[   68.935297]  ? SyS_futex+0x269/0x390
+[   68.938988]  ? security_file_ioctl+0x89/0xb0
+[   68.943369]  SyS_ioctl+0x8f/0xc0
+[   68.946710]  entry_SYSCALL_64_fastpath+0x29/0xa0
+[   68.951435] RIP: 0033:0x453299
+[   68.954597] RSP: 002b:00007f5aeb166c58 EFLAGS: 00000212 ORIG_RAX: 0000000000000010
+[   68.962277] RAX: ffffffffffffffda RBX: 00007f5aeb167700 RCX: 0000000000453299
+[   68.969521] RDX: 0000000000000000 RSI: 0000000000002401 RDI: 0000000000000012
+[   68.976762] RBP: 0000000000000000 R08: 0000000000000000 R09: 0000000000000000
+[   68.984002] R10: 0000000000000000 R11: 0000000000000212 R12: 0000000000000000
+[   68.991245] R13: 00007fffc57787af R14: 00007f5aeb1679c0 R15: 0000000000000000

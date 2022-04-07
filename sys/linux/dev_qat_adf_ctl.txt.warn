@@ -1,0 +1,12 @@
+no-such-struct: adf_user_cfg_ctl_data [arm,arm64]
+no-such-struct: adf_user_cfg_section [arm,arm64]
+no-such-struct: adf_user_cfg_key_val_u
+no-such-struct: adf_user_cfg_key_val [arm,arm64]
+no-such-struct: adf_user_cfg_key
+no-such-struct: adf_user_cfg_format_keys
+no-such-struct: adf_user_cfg_bank_keys
+no-such-struct: adf_user_cfg_val_dec
+no-such-struct: adf_user_cfg_val_hex
+no-such-struct: adf_user_cfg_val_str
+no-such-struct: adf_ptr64
+no-such-struct: adf_dev_status_info [arm,arm64]

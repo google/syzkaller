@@ -1,0 +1,45 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+resource fd_apparmor_current[fd]
+
+openat$apparmor_task_current(fd const[AT_FDCWD], file ptr[in, string["/proc/self/attr/current"]], flags const[O_RDWR], mode const[0]) fd_apparmor_current
+openat$apparmor_thread_current(fd const[AT_FDCWD], file ptr[in, string["/proc/thread-self/attr/current"]], flags const[O_RDWR], mode const[0]) fd_apparmor_current
+write$apparmor_current(fd fd_apparmor_current, data ptr[in, apparmor_current_attr], len len[data])
+
+apparmor_current_attr [
+	hat	apparmor_current_hat
+	profile	apparmor_current_profile
+] [varlen]
+
+apparmor_current_hat {
+	cmd	stringnoz[apparmor_hat_cmds]
+	token	fmt[hex, int64[0:4]]
+	delim	const['^', int8]
+# TODO: what are these hats? should we pass some strings from apparmor profile?
+	hats	array[string]
+} [packed]
+
+apparmor_hat_cmds = "changehat ", "permhat "
+
+apparmor_current_profile {
+	cmd	stringnoz[apparmor_profile_cmds]
+# TODO: what is this profile/fqname?
+	profile	string
+} [packed]
+
+apparmor_profile_cmds = "changeprofile ", "permprofile ", "stack "
+
+resource fd_apparmor_exec[fd]
+
+openat$apparmor_task_exec(fd const[AT_FDCWD], file ptr[in, string["/proc/self/attr/exec"]], flags const[O_RDWR], mode const[0]) fd_apparmor_exec
+openat$apparmor_thread_exec(fd const[AT_FDCWD], file ptr[in, string["/proc/thread-self/attr/exec"]], flags const[O_RDWR], mode const[0]) fd_apparmor_exec
+write$apparmor_exec(fd fd_apparmor_exec, data ptr[in, apparmor_exec_attr], len len[data])
+
+apparmor_exec_attr {
+	cmd	stringnoz[apparmor_exec_profile_cmds]
+# TODO: what is this profile/fqname?
+	profile	string
+} [packed]
+
+apparmor_exec_profile_cmds = "exec ", "stack "

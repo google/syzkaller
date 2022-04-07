@@ -1,0 +1,7 @@
+TITLE: BUG: unable to handle kernel NULL pointer dereference in corrupted
+ALT: bad-access in corrupted
+CORRUPTED: Y
+
+[  149.188010] BUG: unable to handle kernel NULL pointer dereference at 000000000000058c
+unrelateed line
+[  149.188010] IP: [<ffffffff8148e81d>] __lock_acquire+0x2bd/0x3410

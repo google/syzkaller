@@ -1,0 +1,17 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+resource r_any[int32]
+
+foo$fmt0(a ptr[in, fmt[dec, int32[1:10]]]) r_any
+foo$fmt1(a ptr[in, fmt[hex, flags[flags_any]]])
+foo$fmt2(a ptr[in, fmt[oct, len[b]]], b ptr[in, array[int8]])
+foo$fmt3(a ptr[in, fmt[dec, proc[10, 20]]])
+foo$fmt4(a ptr[in, fmt[dec, r_any]])
+foo$fmt5(a ptr[in, struct$fmt0])
+
+struct$fmt0 {
+	f0	fmt[dec, int8]
+}
+
+flags_any = 0, 1, 2

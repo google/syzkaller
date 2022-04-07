@@ -1,0 +1,100 @@
+TITLE: WARNING in xfrm_state_fini
+
+[  560.713151][ T1194] WARNING: CPU: 2 PID: 1194 at net/xfrm/xfrm_state.c:2381 xfrm_state_fini+0x440/0x5c0
+[ 3481.239960][ T1234] INFO: rcu_sched detected stalls on CPUs/tasks:
+[ 3481.239969][ T1234]  	(detected by 1, t=105002 jiffies, g=687946, c=687945, q=520)
+[ 3481.239975][ T1234]  All QSes seen, last rcu_sched kthread activity 103964 (4298143477-4298039513), jiffies_till_next_fqs=3, root ->qsmask 0x0
+[ 3481.239987][ T1234]  syz-executor0   R running task on cpu   1     0 315571 315308 0x0000000e 3375506638533
+[  438.400447][ T2345]  should_fail.cold+0xa/0x10
+[  438.427757][ T2345]  should_failslab+0xde/0x140
+[  438.400447]  should_fail.cold+0xa/0x10
+[  438.427757]  should_failslab+0xde/0x140
+ should_fail.cold+0xa/0x10
+ should_failslab+0xde/0x140
+[  560.714556][ T1194] Kernel panic - not syncing: panic_on_warn set ...
+[  560.715572][ T1194] CPU: 2 PID: 1194 Comm: kworker/u12:4 Not tainted 4.20.0-next-20190102+ #5
+[  560.716935][ T1194] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+[  560.718554][ T1194] Workqueue: netns cleanup_net
+[ 3481.240052][ T1234]  Call Trace:
+[ 3481.240067][ T1234]   <IRQ>  [<ffffffff816efb87>] _sched_show_task+0x31a/0x325
+[ 3481.240075][ T1234]   [<ffffffff816f030c>] sched_show_task+0x10/0x12
+[ 3481.240082][ T1234]   [<ffffffff816fabed>] rcu_check_callbacks.cold.76+0xbfa/0xc77
+[ 3481.240092][ T1234]   [<ffffffff814f5cdf>] update_process_times+0x3f/0x70
+[ 3481.240101][ T1234]   [<ffffffff8151f1ea>] tick_sched_handle.isra.16+0x5a/0x100
+[ 3481.240108][ T1234]   [<ffffffff8151f89a>] tick_sched_timer+0x7a/0x130
+[ 3481.240115][ T1234]   [<ffffffff814f8e15>] __hrtimer_run_queues+0x3a5/0xc50
+[  560.719399][ T1194] Call Trace:
+[  560.719962][ T1194]  dump_stack+0x1db/0x2d0
+[  560.722633][ T1194]  panic+0x2cb/0x65c
+[  560.728889][ T1194]  __warn.cold+0x20/0x48
+[  560.730136][ T1194]  report_bug+0x263/0x2b0
+[  560.730753][ T1194]  do_error_trap+0x11b/0x200
+[  560.731421][ T1194]  do_invalid_op+0x37/0x50
+[  560.732696][ T1194]  invalid_op+0x14/0x20
+[ 3481.240160][ T1234]   [<ffffffff814fa03e>] hrtimer_interrupt+0x18e/0x400
+[ 3481.240169][ T1234]   [<ffffffff8129a744>] local_apic_timer_interrupt+0x74/0x90
+[ 3481.240177][ T1234]   [<ffffffff81012dff>] smp_apic_timer_interrupt+0xdf/0x130
+[ 3481.240186][ T1234]   [<ffffffff81011c72>] smp_apic_timer_interrupt_entry_after_kaiser_bti+0x20/0x2e
+[ 3481.240196][ T1234]   <EOI>  [<ffffffff815bcdb1>] ? __sanitizer_cov_trace_pc+0x21/0x60
+[ 3481.240204][ T1234]   [<ffffffff8152dedc>] smp_call_function_single+0x26c/0x330
+[ 3481.240241][ T1234]   [<ffffffff8152eaa5>] smp_cfm_core+0x6a5/0x7e0
+[ 3481.240269][ T1234]   [<ffffffff8152ee6b>] on_each_cpu+0x6b/0x120
+[ 3481.240278][ T1234]   [<ffffffff812dd836>] flush_tlb_kernel_range+0x86/0xe0
+[ 3481.240294][ T1234]   [<ffffffff817ea3cc>] __purge_vmap_area_lazy+0x3ec/0xf40
+[ 3481.240333][ T1234]   [<ffffffff817eb5df>] free_vmap_area_noflush+0x1bf/0x200
+[ 3481.240362][ T1234]   [<ffffffff817ee77e>] remove_vm_area+0x13e/0x1c0
+[ 3481.240368][ T1234]   [<ffffffff817ee849>] __vunmap+0x49/0x330
+[ 3481.240374][ T1234]   [<ffffffff817eebf5>] vfree+0x55/0xe0
+[ 3481.240381][ T1234]   [<ffffffff8177bc6b>] kvfree+0x3b/0x60
+[ 3481.240389][ T1234]   [<ffffffff82430b98>] uhaul_rx_release+0x268/0x5a0
+[  560.733271][ T1194] RIP: 0010:xfrm_state_fini+0x440/0x5c0
+[  560.736699][ T1194] RSP: 0018:ffff888068c37718 EFLAGS: 00010293
+[  560.737543][ T1194] RAX: ffff888068c28300 RBX: ffff88805fec4340 RCX: 0000000000000000
+[  560.738638][ T1194] RDX: 0000000000000000 RSI: ffffffff86c36c50 RDI: 1ffff1100d186ee9
+[  560.739795][ T1194] RBP: ffff888068c37810 R08: 0000000000000007 R09: ffff888068c28bf0
+[  560.740936][ T1194] R10: ffff888068c28300 R11: 0000000000000000 R12: 1ffff1100d186ee5
+[  560.742054][ T1194] R13: ffff888068c377e8 R14: ffff88805fec5e40 R15: ffff88801f9cb0e0
+[  560.747522][ T1194]  xfrm_net_exit+0x25/0x70
+[  560.748148][ T1194]  ops_exit_list.isra.0+0xb0/0x160
+[  560.748885][ T1194]  cleanup_net+0x51d/0xb10
+[  560.753239][ T1194]  process_one_work+0xd0c/0x1ce0
+[  560.765456][ T1194]  worker_thread+0x143/0x14a0
+[  560.777603][ T1194]  kthread+0x357/0x430
+[  560.779733][ T1194]  ret_from_fork+0x3a/0x50
+[  560.780962][ T1194] Dumping ftrace buffer:
+[  560.781955][ T1194]    (ftrace buffer empty)
+[  560.782576][ T1194] Kernel Offset: disabled
+[  560.783204][ T1194] Rebooting in 86400 seconds..
+
+REPORT:
+WARNING: CPU: 2 PID: 1194 at net/xfrm/xfrm_state.c:2381 xfrm_state_fini+0x440/0x5c0
+Kernel panic - not syncing: panic_on_warn set ...
+CPU: 2 PID: 1194 Comm: kworker/u12:4 Not tainted 4.20.0-next-20190102+ #5
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+Workqueue: netns cleanup_net
+Call Trace:
+ dump_stack+0x1db/0x2d0
+ panic+0x2cb/0x65c
+ __warn.cold+0x20/0x48
+ report_bug+0x263/0x2b0
+ do_error_trap+0x11b/0x200
+ do_invalid_op+0x37/0x50
+ invalid_op+0x14/0x20
+RIP: 0010:xfrm_state_fini+0x440/0x5c0
+RSP: 0018:ffff888068c37718 EFLAGS: 00010293
+RAX: ffff888068c28300 RBX: ffff88805fec4340 RCX: 0000000000000000
+RDX: 0000000000000000 RSI: ffffffff86c36c50 RDI: 1ffff1100d186ee9
+RBP: ffff888068c37810 R08: 0000000000000007 R09: ffff888068c28bf0
+R10: ffff888068c28300 R11: 0000000000000000 R12: 1ffff1100d186ee5
+R13: ffff888068c377e8 R14: ffff88805fec5e40 R15: ffff88801f9cb0e0
+ xfrm_net_exit+0x25/0x70
+ ops_exit_list.isra.0+0xb0/0x160
+ cleanup_net+0x51d/0xb10
+ process_one_work+0xd0c/0x1ce0
+ worker_thread+0x143/0x14a0
+ kthread+0x357/0x430
+ ret_from_fork+0x3a/0x50
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Kernel Offset: disabled
+Rebooting in 86400 seconds..

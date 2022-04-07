@@ -1,0 +1,29 @@
+TITLE: KMSAN: uninit-value in ppp_send_frame
+ALT: bad-access in ppp_send_frame
+ALT: KMSAN origin in ppp_write
+
+[   87.733076][ T3479] =====================================================
+[   87.740069][ T3479] BUG: KMSAN: uninit-value in ppp_send_frame+0x28d/0x27c0
+[   87.747227][ T3479]  ppp_send_frame+0x28d/0x27c0
+[   87.752035][ T3479]  __ppp_xmit_process+0x23e/0x4b0
+[   87.757102][ T3479]  ppp_xmit_process+0x1fe/0x480
+[   87.761996][ T3479]  ppp_write+0x5cb/0x5e0
+[   87.766280][ T3479]  do_iter_write+0xb0c/0x1500
+[   87.770997][ T3479]  do_writev+0x645/0xe00
+[   87.775277][ T3479]  __x64_sys_writev+0xe5/0x120
+[   87.780077][ T3479]  do_syscall_64+0x54/0xd0
+[   87.784535][ T3479]  entry_SYSCALL_64_after_hwframe+0x44/0xae
+[   87.790467][ T3479] 
+[   87.792796][ T3479] Uninit was created at:
+[   87.797099][ T3479]  __kmalloc_node_track_caller+0xe0c/0x1510
+[   87.803048][ T3479]  __alloc_skb+0x545/0xf90
+[   87.807505][ T3479]  ppp_write+0x11d/0x5e0
+[   87.811787][ T3479]  do_iter_write+0xb0c/0x1500
+[   87.816501][ T3479]  do_writev+0x645/0xe00
+[   87.820785][ T3479]  __x64_sys_writev+0xe5/0x120
+[   87.825587][ T3479]  do_syscall_64+0x54/0xd0
+[   87.830048][ T3479]  entry_SYSCALL_64_after_hwframe+0x44/0xae
+[   87.835983][ T3479] 
+[   87.838311][ T3479] CPU: 1 PID: 3479 Comm: syz-executor849 Not tainted 5.16.0-rc5-syzkaller #0
+[   87.847105][ T3479] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   87.857185][ T3479] =====================================================

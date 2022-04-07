@@ -1,0 +1,105 @@
+# Copyright 2015 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/asm/ioctl.h>
+include <uapi/linux/fcntl.h>
+include <uapi/linux/time.h>
+include <uapi/sound/asound.h>
+
+resource fd_sndctrl[fd]
+
+syz_open_dev$sndctrl(dev ptr[in, string["/dev/snd/controlC#"]], id intptr, flags flags[open_flags]) fd_sndctrl
+
+ioctl$SNDRV_CTL_IOCTL_PVERSION(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_PVERSION], arg ptr[out, int32])
+ioctl$SNDRV_CTL_IOCTL_CARD_INFO(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_CARD_INFO], arg buffer[out])
+ioctl$SNDRV_CTL_IOCTL_HWDEP_INFO(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_HWDEP_INFO], arg buffer[out])
+ioctl$SNDRV_CTL_IOCTL_PCM_NEXT_DEVICE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_PCM_NEXT_DEVICE], arg buffer[out])
+ioctl$SNDRV_CTL_IOCTL_POWER_STATE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_POWER_STATE], arg ptr[out, int32])
+ioctl$SNDRV_CTL_IOCTL_ELEM_LIST(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_LIST], arg ptr[in, snd_ctl_elem_list])
+ioctl$SNDRV_CTL_IOCTL_ELEM_INFO(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_INFO], arg ptr[in, snd_ctl_elem_info])
+ioctl$SNDRV_CTL_IOCTL_ELEM_READ(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_READ], arg ptr[in, snd_ctl_elem_value])
+ioctl$SNDRV_CTL_IOCTL_ELEM_WRITE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_WRITE], arg ptr[in, snd_ctl_elem_value])
+ioctl$SNDRV_CTL_IOCTL_ELEM_LOCK(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_LOCK], arg ptr[in, snd_ctl_elem_id])
+ioctl$SNDRV_CTL_IOCTL_ELEM_UNLOCK(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_UNLOCK], arg ptr[in, snd_ctl_elem_id])
+ioctl$SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS], arg ptr[in, int32])
+ioctl$SNDRV_CTL_IOCTL_ELEM_ADD(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_ADD], arg ptr[in, snd_ctl_elem_info])
+ioctl$SNDRV_CTL_IOCTL_ELEM_REPLACE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_REPLACE], arg ptr[in, snd_ctl_elem_info])
+ioctl$SNDRV_CTL_IOCTL_ELEM_REMOVE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_REMOVE], arg ptr[in, snd_ctl_elem_id])
+ioctl$SNDRV_CTL_IOCTL_TLV_READ(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_TLV_READ], arg ptr[in, snd_ctl_tlv])
+ioctl$SNDRV_CTL_IOCTL_TLV_WRITE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_TLV_WRITE], arg ptr[in, snd_ctl_tlv])
+ioctl$SNDRV_CTL_IOCTL_TLV_COMMAND(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_TLV_COMMAND], arg ptr[in, snd_ctl_tlv])
+ioctl$SNDRV_CTL_IOCTL_HWDEP_NEXT_DEVICE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_HWDEP_NEXT_DEVICE], arg ptr[in, int32])
+ioctl$SNDRV_CTL_IOCTL_PCM_INFO(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_PCM_INFO], arg ptr[in, snd_pcm_info])
+ioctl$SNDRV_CTL_IOCTL_PCM_PREFER_SUBDEVICE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_PCM_PREFER_SUBDEVICE], arg ptr[in, int32])
+ioctl$SNDRV_CTL_IOCTL_RAWMIDI_NEXT_DEVICE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_RAWMIDI_NEXT_DEVICE], arg ptr[in, int32])
+ioctl$SNDRV_CTL_IOCTL_RAWMIDI_INFO(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_RAWMIDI_INFO], arg ptr[in, snd_rawmidi_info])
+ioctl$SNDRV_CTL_IOCTL_RAWMIDI_PREFER_SUBDEVICE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_RAWMIDI_PREFER_SUBDEVICE], arg ptr[in, int32])
+
+snd_ctl_iface = SNDRV_CTL_ELEM_IFACE_CARD, SNDRV_CTL_ELEM_IFACE_HWDEP, SNDRV_CTL_ELEM_IFACE_MIXER, SNDRV_CTL_ELEM_IFACE_PCM, SNDRV_CTL_ELEM_IFACE_RAWMIDI, SNDRV_CTL_ELEM_IFACE_TIMER, SNDRV_CTL_ELEM_IFACE_SEQUENCER
+snd_ctl_access = SNDRV_CTL_ELEM_ACCESS_READ, SNDRV_CTL_ELEM_ACCESS_WRITE, SNDRV_CTL_ELEM_ACCESS_READWRITE, SNDRV_CTL_ELEM_ACCESS_VOLATILE, SNDRV_CTL_ELEM_ACCESS_TLV_READ, SNDRV_CTL_ELEM_ACCESS_TLV_WRITE, SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE, SNDRV_CTL_ELEM_ACCESS_TLV_COMMAND, SNDRV_CTL_ELEM_ACCESS_INACTIVE, SNDRV_CTL_ELEM_ACCESS_LOCK, SNDRV_CTL_ELEM_ACCESS_OWNER, SNDRV_CTL_ELEM_ACCESS_TLV_CALLBACK, SNDRV_CTL_ELEM_ACCESS_USER
+snd_ctl_names = "", "syz0", "syz1"
+snd_ctl_elem_names = "syz0", "syz1"
+
+snd_ctl_elem_id {
+	numid	int32[0:10]
+	iface	flags[snd_ctl_iface, int32]
+	dev	int32
+	subdev	int32
+	name	string[snd_ctl_names, SNDRV_CTL_ELEM_ID_NAME_MAXLEN]
+	index	int32
+}
+
+snd_ctl_elem_list {
+	off	int32
+	space	len[pids, int32]
+	used	int32
+	count	int32
+	pids	ptr[out, array[snd_ctl_elem_id]]
+	pad	array[const[0, int8], 50]
+}
+
+snd_ctl_elem_info {
+	id		snd_ctl_elem_id
+	type		int32[SNDRV_CTL_ELEM_TYPE_NONE:SNDRV_CTL_ELEM_TYPE_LAST]
+	access		flags[snd_ctl_access, int32]
+	count		int32
+	owner		pid
+	items		len[names_ptr, int32]
+	item		int32
+	name		string[snd_ctl_elem_names, 64]
+	names_ptr	ptr64[in, array[string]]
+	names_length	bytesize[names_ptr, int32]
+	pad1		array[const[0, int8], 44]
+	d		array[int16, 4]
+} [size[SND_CTL_ELEM_INFO_SIZE]]
+
+define SND_CTL_ELEM_INFO_SIZE	sizeof(struct snd_ctl_elem_info)
+
+snd_ctl_elem_value {
+	id		snd_ctl_elem_id
+	indirect	int32:1
+	value		array[intptr, 128]
+	reserved	array[const[0, int8], 128]
+}
+
+snd_ctl_tlv {
+	numid	int32
+	len	bytesize[tlv, int32]
+	tlv	array[int32]
+}
+
+snd_pcm_info {
+	dev	int32
+	subdev	int32
+	stream	int32
+	card	int32
+	id	array[const[0, int8], 64]
+	name	array[const[0, int8], 80]
+	subname	array[const[0, int8], 32]
+	devcl	int32
+	devscl	int32
+	count	int32
+	avail	int32
+	sync	array[int8, 16]
+	pad	array[const[0, int8], 64]
+}

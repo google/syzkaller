@@ -1,0 +1,37 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_RXRPC support.
+
+include <linux/socket.h>
+include <linux/net.h>
+include <uapi/linux/rxrpc.h>
+
+resource sock_rxrpc[sock]
+type rxrpc_service int16[0:4]
+
+socket$rxrpc(fam const[AF_RXRPC], type const[SOCK_DGRAM], proto flags[rxrpc_protos]) sock_rxrpc
+bind$rxrpc(fd sock_rxrpc, addr ptr[in, sockaddr_rxrpc], addrlen len[addr])
+connect$rxrpc(fd sock_rxrpc, addr ptr[in, sockaddr_rxrpc], addrlen len[addr])
+sendto$rxrpc(fd sock_rxrpc, buf ptr[in, array[int8]], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_rxrpc, opt], addrlen len[addr])
+recvfrom$rxrpc(fd sock_rxrpc, buf ptr[out, array[int8]], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr_rxrpc, opt], addrlen len[addr])
+setsockopt$RXRPC_EXCLUSIVE_CONNECTION(fd sock_rxrpc, level const[SOL_RXRPC], opt const[RXRPC_EXCLUSIVE_CONNECTION])
+setsockopt$RXRPC_SECURITY_KEY(fd sock_rxrpc, level const[SOL_RXRPC], opt const[RXRPC_SECURITY_KEY], arg ptr[in, string], arglen len[arg])
+setsockopt$RXRPC_SECURITY_KEYRING(fd sock_rxrpc, level const[SOL_RXRPC], opt const[RXRPC_SECURITY_KEYRING], arg ptr[in, string], arglen len[arg])
+setsockopt$RXRPC_MIN_SECURITY_LEVEL(fd sock_rxrpc, level const[SOL_RXRPC], opt const[RXRPC_MIN_SECURITY_LEVEL], arg ptr[in, int32[RXRPC_SECURITY_PLAIN:RXRPC_SECURITY_ENCRYPT]], arglen len[arg])
+setsockopt$RXRPC_UPGRADEABLE_SERVICE(fd sock_rxrpc, level const[SOL_RXRPC], opt const[RXRPC_UPGRADEABLE_SERVICE], arg ptr[in, array[rxrpc_service, 2]], arglen len[arg])
+
+rxrpc_protos = AF_INET, AF_INET6
+
+sockaddr_rxrpc [
+	in4	sockaddr_rxrpc_t[sockaddr_in]
+	in6	sockaddr_rxrpc_t[sockaddr_in6]
+]
+
+type sockaddr_rxrpc_t[ADDR] {
+	srx_family	const[AF_RXRPC, int16]
+	srx_service	rxrpc_service
+	transport_type	const[SOCK_DGRAM, int16]
+	transport_len	bytesize[transport, int16]
+	transport	ADDR
+}

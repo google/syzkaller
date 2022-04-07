@@ -1,0 +1,7 @@
+TITLE: kernel panic: Couldn't open N_TTY ldisc
+CORRUPTED: Y
+
+[ 1722.511384] Kernel panic - not syncing: Couldn't open N_TTY ldisc for ptm1 --- error -12.
+[ 1722.511384] CPU: 1 PID: 14836 Comm: syz-executor5 Not tainted 4.12.0-rc4+ #15
+[ 1722.511384] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+[ 1722.511384] Call Trace:

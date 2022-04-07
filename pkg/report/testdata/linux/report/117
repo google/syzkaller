@@ -1,0 +1,42 @@
+TITLE: WARNING: bad unlock balance in ipmr_mfc_seq_stop
+
+[  163.443279] =====================================
+[  163.448095] WARNING: bad unlock balance detected!
+[  163.452916] 4.15.0-rc3+ #217 Not tainted
+[  163.456956] -------------------------------------
+[  163.461783] syz-executor3/19522 is trying to release lock (mrt_lock) at:
+[  163.468622] [<00000000adc671f1>] ipmr_mfc_seq_stop+0xe1/0x130
+[  163.474487] but there are no more locks to release!
+[  163.479485] 
+[  163.479485] other info that might help us debug this:
+[  163.486133] 2 locks held by syz-executor3/19522:
+[  163.490861]  #0:  (&f->f_pos_lock){+.+.}, at: [<00000000cd36f0f9>] __fdget_pos+0x131/0x1a0
+[  163.499256]  #1:  (&p->lock){+.+.}, at: [<00000000c93d2595>] seq_lseek+0x58/0x3c0
+[  163.506866] 
+[  163.506866] stack backtrace:
+[  163.511343] CPU: 0 PID: 19522 Comm: syz-executor3 Not tainted 4.15.0-rc3+ #217
+[  163.518677] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  163.528007] Call Trace:
+[  163.530573]  dump_stack+0x194/0x257
+[  163.534176]  ? arch_local_irq_restore+0x53/0x53
+[  163.538823]  ? ipmr_mfc_seq_stop+0xe1/0x130
+[  163.543121]  print_unlock_imbalance_bug+0x12f/0x140
+[  163.548118]  lock_release+0x5f9/0xda0
+[  163.551899]  ? ipmr_mfc_seq_stop+0xe1/0x130
+[  163.556206]  ? lock_downgrade+0x980/0x980
+[  163.560332]  ? iterate_fd+0x3f0/0x3f0
+[  163.564105]  ? lock_release+0xda0/0xda0
+[  163.568060]  ? do_raw_spin_trylock+0x190/0x190
+[  163.572617]  ? memcpy+0x45/0x50
+[  163.575872]  ? seq_puts+0xb5/0x130
+[  163.579392]  _raw_read_unlock+0x1a/0x30
+[  163.583341]  ipmr_mfc_seq_stop+0xe1/0x130
+[  163.587462]  traverse+0x3bc/0xa00
+[  163.590894]  ? seq_hlist_next+0xc0/0xc0
+[  163.594846]  seq_lseek+0x136/0x3c0
+[  163.598361]  ? traverse+0xa00/0xa00
+[  163.601961]  proc_reg_llseek+0xf1/0x160
+[  163.605913]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  163.610902]  ? proc_reg_read+0x170/0x170
+[  163.614944]  SyS_lseek+0xf1/0x170
+[  163.618373]  entry_SYSCALL_64_fastpath+0x1f/0x96

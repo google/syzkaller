@@ -1,0 +1,19 @@
+# This is part of deterministic hang/stall detection.
+# Don't change this without considering workqueue.watchdog_thresh,
+# CONFIG_RCU_CPU_STALL_TIMEOUT and CONFIG_DEFAULT_HUNG_TASK_TIMEOUT.
+kernel.watchdog_thresh = 55
+kernel.hung_task_check_interval_secs = 20
+# This gives more interesting coverage.
+net.core.bpf_jit_enable = 1
+# bpf_jit_kallsyms and disabling bpf_jit_harden are required
+# for unwinding through bpf functions.
+net.core.bpf_jit_kallsyms = 1
+net.core.bpf_jit_harden = 0
+# This is to provide more useful info in crash reports.
+kernel.kptr_restrict = 0
+kernel.softlockup_all_cpu_backtrace = 1
+# This is to restrict effects of recursive exponential mounts, for details see
+# "mnt: Add a per mount namespace limit on the number of mounts" commit.
+fs.mount-max = 100
+# Dumping all tasks to console can take too long.
+vm.oom_dump_tasks = 0

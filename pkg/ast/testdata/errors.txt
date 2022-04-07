@@ -1,0 +1,96 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+0x42		### unexpected int, expecting comment, define, include, resource, identifier
+foo		### unexpected '\n', expecting '(', '{', '[', '='
+%		### illegal character U+0025 '%'
+
+int_flags0 = 0, 0x1, 0xab
+int_flags1 = 123ab0x			### bad integer "123ab0x"
+int_flags1 == 0, 1			### unexpected '=', expecting int, identifier, string
+int_flags = 0, "foo"			### unexpected string, expecting int, identifier
+int_flags2 = '				### char literal is not terminated
+int_flags3 = 'a				### char literal is not terminated
+int_flags3 = 'a, 1			### char literal is not terminated
+int_flags4 = 1, -2-			### bad integer "-2-"
+
+str_flags0 = "foo", "bar"
+str_flags1 = "non terminated		### string literal is not terminated
+str_flags2 = "bad chars здесь"		### illegal character U+00D0 'Ð' in string literal
+str_flags3 = "string", not a string	### unexpected identifier, expecting string, hex string
+str_flags4 = "string", 42		### unexpected int, expecting string, hex string
+str_flags5 = `x`			### bad hex string literal: encoding/hex: invalid byte: U+0078 'x'
+
+call(foo ,int32 , bar int32)		### unexpected ',', expecting int, identifier, string
+call(foo int32:"bar")			### unexpected string, expecting int, identifier
+call(a int32, b len[a:"bar"])		### unexpected string, expecting int, identifier
+call() (attr)
+call() (attr1, attr2[arg1, "arg2"])
+call() ("attr1")
+call() (42)
+call() (				### unexpected '\n', expecting int, identifier, string
+call() ()				### unexpected ')', expecting int, identifier, string
+call(foo int32 (attr))	### unexpected '(', expecting ',', ')'
+
+define FOO bar
+
+foo(x int32[1:2:3, opt])
+foo2(x int32[1[2]:2])			### unexpected ':', expecting ']'
+
+s0 {
+	f0	string[""]
+}
+
+sf0 = "", "1"
+
+include <linux/foo.h>
+include "linux/foo.h"
+incdir </foo/bar>
+incdir "/foo/bar"
+
+s2 {
+	f1	int8
+
+	# comment
+
+	f2	int8
+
+	# comment
+
+}
+
+s3 {
+	f1	int8
+} [attribute[1, "foo"], another[and[another]]]
+
+type mybool8 int8
+type net_port proc[1, 2, int16be]
+type mybool16				### unexpected '\n', expecting '[', identifier
+type type4:4 int32			### unexpected ':', expecting '[', identifier
+
+type templ0[] int8			### unexpected ']', expecting identifier
+type templ1[A,] int8			### unexpected ']', expecting identifier
+type templ2[,] int8			### unexpected ',', expecting identifier
+type templ3[				### unexpected '\n', expecting identifier
+type templ4[A]				### unexpected '\n', expecting int, identifier, string
+type templ5[A] const[A]
+type templ6[A, B] const[A, B]
+type templ7[0] ptr[in, int8]		### unexpected int, expecting identifier
+
+type templ_struct0[A, B] {
+	len	len[parent, int16]
+	typ	const[A, int16]
+	data	B
+} [align_4]
+
+s4 {
+	f0 int8 (attr)
+	f1 int8 (attr1, attr2[arg1, "arg2"])
+	f2 int8 ("attr1")
+}
+
+s5 {
+	f0 int8 (	### unexpected '\n', expecting int, identifier, string
+
+s6 {
+	f0 int8 ()	### unexpected ')', expecting int, identifier, string

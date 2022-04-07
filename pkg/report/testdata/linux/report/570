@@ -1,0 +1,98 @@
+TITLE: KASAN: invalid-access Read in bond_ipsec_del_sa
+ALT: bad-access in bond_ipsec_del_sa
+
+[  678.660041][ T2885] ==================================================================
+[  678.660727][ T2885] BUG: KASAN: invalid-access in bond_ipsec_del_sa+0x4/0x70
+[  678.662451][ T2885] Read at addr 02ff000027080260 by task kworker/u4:6/2885
+[  678.663084][ T2885] Pointer tag: [02], memory tag: [fe]
+[  678.663746][ T2885] 
+[  678.664691][ T2885] CPU: 0 PID: 2885 Comm: kworker/u4:6 Not tainted 5.11.0-rc3 #36
+[  678.665767][ T2885] Hardware name: linux,dummy-virt (DT)
+[  678.666527][ T2885] Workqueue: netns cleanup_net
+[  678.667743][ T2885] Call trace:
+[  678.668104][ T2885]  dump_backtrace+0x0/0x1a4
+[  678.668577][ T2885]  show_stack+0x1c/0x70
+[  678.669023][ T2885]  dump_stack+0xd0/0x12c
+[  678.669491][ T2885]  print_address_description+0x70/0x29c
+[  678.670014][ T2885]  kasan_report+0x104/0x200
+[  678.670467][ T2885]  __do_kernel_fault+0x17c/0x1c0
+[  678.670960][ T2885]  do_tag_check_fault+0x6c/0x80
+[  678.671446][ T2885]  do_mem_abort+0x44/0xb4
+[  678.671937][ T2885]  el1_abort+0x40/0x6c
+[  678.672392][ T2885]  el1_sync_handler+0xb0/0xcc
+[  678.672894][ T2885]  el1_sync+0x70/0x100
+[  678.673336][ T2885]  bond_ipsec_del_sa+0x4/0x70
+[  678.673896][ T2885]  __bond_release_one+0x1e8/0x4e0
+[  678.674412][ T2885]  bond_netdev_event+0x284/0x340
+[  678.674893][ T2885]  raw_notifier_call_chain+0x58/0x80
+[  678.675395][ T2885]  call_netdevice_notifiers_info+0x58/0xa4
+[  678.675938][ T2885]  rollback_registered_many+0x348/0x6e0
+[  678.676440][ T2885]  unregister_netdevice_many.part.0+0x18/0xe0
+[  678.676964][ T2885]  default_device_exit_batch+0x164/0x1a0
+[  678.677507][ T2885]  ops_exit_list+0x64/0x80
+[  678.678003][ T2885]  cleanup_net+0x23c/0x3b4
+[  678.678491][ T2885]  process_one_work+0x1d8/0x360
+[  678.679022][ T2885]  worker_thread+0x74/0x440
+[  678.679659][ T2885]  kthread+0x178/0x180
+[  678.680111][ T2885]  ret_from_fork+0x10/0x30
+[  678.680701][ T2885] 
+[  678.681082][ T2885] Allocated by task 5231:
+[  678.681582][ T2885]  stack_trace_save+0x50/0x80
+[  678.682060][ T2885]  kasan_save_stack+0x2c/0x60
+[  678.682547][ T2885]  ____kasan_kmalloc+0xe8/0x160
+[  678.683036][ T2885]  __kasan_slab_alloc+0x20/0x30
+[  678.683539][ T2885]  kmem_cache_alloc+0x1a8/0x304
+[  678.684126][ T2885]  xfrm_state_alloc+0x28/0xc4
+[  678.684594][ T2885]  xfrm_add_sa+0x25c/0xb90
+[  678.685063][ T2885]  xfrm_user_rcv_msg+0x118/0x1f4
+[  678.685546][ T2885]  netlink_rcv_skb+0x58/0x120
+[  678.686018][ T2885]  xfrm_netlink_rcv+0x40/0x60
+[  678.686524][ T2885]  netlink_unicast+0x25c/0x320
+[  678.687003][ T2885]  netlink_sendmsg+0x1d4/0x3e4
+[  678.687501][ T2885]  sock_sendmsg+0x58/0x6c
+[  678.687987][ T2885]  ____sys_sendmsg+0x288/0x2d0
+[  678.688500][ T2885]  ___sys_sendmsg+0x80/0xd0
+[  678.688995][ T2885]  __sys_sendmsg+0x68/0xc4
+[  678.689468][ T2885]  __arm64_sys_sendmsg+0x28/0x3c
+[  678.689969][ T2885]  el0_svc_common.constprop.0+0x74/0x190
+[  678.690485][ T2885]  do_el0_svc+0x78/0x90
+[  678.690931][ T2885]  el0_svc+0x14/0x20
+[  678.691362][ T2885]  el0_sync_handler+0x1a8/0x1b0
+[  678.691846][ T2885]  el0_sync+0x190/0x1c0
+[  678.692318][ T2885] 
+[  678.692653][ T2885] Freed by task 5068:
+[  678.693031][ T2885]  stack_trace_save+0x50/0x80
+[  678.693492][ T2885]  kasan_save_stack+0x2c/0x60
+[  678.694113][ T2885]  kasan_set_track+0x2c/0x40
+[  678.694597][ T2885]  kasan_set_free_info+0x24/0x30
+[  678.695085][ T2885]  ____kasan_slab_free.constprop.0+0x184/0x1c0
+[  678.695632][ T2885]  __kasan_slab_free+0x14/0x20
+[  678.696123][ T2885]  slab_free_freelist_hook+0x9c/0x190
+[  678.696647][ T2885]  kmem_cache_free+0xa0/0x460
+[  678.697104][ T2885]  ___xfrm_state_destroy+0x150/0x1b0
+[  678.697593][ T2885]  xfrm_state_gc_task+0x78/0xb0
+[  678.698100][ T2885]  process_one_work+0x1d8/0x360
+[  678.698617][ T2885]  worker_thread+0x74/0x440
+[  678.699090][ T2885]  kthread+0x178/0x180
+[  678.699544][ T2885]  ret_from_fork+0x10/0x30
+[  678.700042][ T2885] 
+[  678.700336][ T2885] The buggy address belongs to the object at ffff000027080000
+[  678.700336][ T2885]  which belongs to the cache xfrm_state of size 720
+[  678.701581][ T2885] The buggy address is located 608 bytes inside of
+[  678.701581][ T2885]  720-byte region [ffff000027080000, ffff0000270802d0)
+[  678.702529][ T2885] The buggy address belongs to the page:
+[  678.703316][ T2885] page:00000000f608b534 refcount:1 mapcount:0 mapping:0000000000000000 index:0x0 pfn:0x67080
+[  678.704655][ T2885] head:00000000f608b534 order:2 compound_mapcount:0 compound_pincount:0
+[  678.705630][ T2885] flags: 0x1ffffc000010200(slab|head)
+[  678.706599][ T2885] raw: 01ffffc000010200 dead000000000100 dead000000000122 fdff000004923e00
+[  678.707662][ T2885] raw: 0000000000000000 0000000080150015 00000001ffffffff 0000000000000000
+[  678.708650][ T2885] page dumped because: kasan: bad access detected
+[  678.709440][ T2885] 
+[  678.709831][ T2885] Memory state around the buggy address:
+[  678.710669][ T2885]  ffff000027080000: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+[  678.711660][ T2885]  ffff000027080100: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+[  678.712596][ T2885] >ffff000027080200: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+[  678.713177][ T2885]                                      ^
+[  678.713737][ T2885]  ffff000027080300: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+[  678.714423][ T2885]  ffff000027080400: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+[  678.715035][ T2885] ==================================================================

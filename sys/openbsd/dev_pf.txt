@@ -1,0 +1,15 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <sys/time.h>
+include <sys/fcntl.h>
+include <sys/ioctl.h>
+include <net/if.h>
+
+include <net/pfvar.h>
+
+# The following ioctl commands are restricted in neutralize(), see init.go.
+_ = DIOCCLRSTATES, DIOCKILLSTATES
+
+openat$pf(fd const[AT_FDCWD], file ptr[in, string["/dev/pf"]], flags flags[open_flags], mode const[0]) fd

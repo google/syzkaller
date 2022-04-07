@@ -1,0 +1,60 @@
+TITLE: kernel BUG in sctp_packet_transmit
+ALT: kernel BUG at net/core/skbuff.c:LINE!
+
+[  486.883962] skbuff: skb_over_panic: text:ffffffff847fe683 len:213316 put:213008 head:ffff8801c2fd3340 data:ffff8801c2fd33f8 tail:0x341fc end:0x7ec0 dev:<NULL>
+[  486.904303] ------------[ cut here ]------------
+[  486.925068] kernel BUG at net/core/skbuff.c:105!
+[  486.930372] invalid opcode: 0000 [#1] SMP KASAN
+[  486.933100] tc_dump_action: action bad kind
+[  486.939365] Dumping ftrace buffer:
+[  486.942896]    (ftrace buffer empty)
+[  486.946590] Modules linked in:
+[  486.949778] CPU: 0 PID: 31980 Comm: syz-executor1 Not tainted 4.14.0-rc5+ #89
+[  486.957039] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  486.966381] task: ffff8801a29be180 task.stack: ffff8801cc100000
+[  486.972430] RIP: 0010:skb_panic+0x15c/0x1f0
+[  486.976741] RSP: 0018:ffff8801cc1063a8 EFLAGS: 00010286
+[  486.982102] RAX: 0000000000000092 RBX: ffff8801d48d6e00 RCX: 0000000000000000
+[  486.989370] RDX: 0000000000000092 RSI: ffffffff8158830e RDI: ffffed0039820c69
+[  486.996636] RBP: ffff8801cc106410 R08: 0000000000000000 R09: 1ffff10039820c07
+[  487.003247] tc_dump_action: action bad kind
+[  487.008185] R10: 000000007ded0268 R11: ffffffff85b2cb78 R12: ffffffff853bc8a0
+[  487.015428] R13: ffffffff847fe683 R14: 0000000000034010 R15: ffffffff853bc0e0
+[  487.022670] FS:  00007f6a3f4cb700(0000) GS:ffff8801db200000(0000) knlGS:0000000000000000
+[  487.030865] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  487.036725] CR2: 00007f7033456fc8 CR3: 0000000199292000 CR4: 00000000001406f0
+[  487.043975] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  487.051228] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  487.058468] Call Trace:
+[  487.065852]  skb_put+0x181/0x1c0
+[  487.069205]  sctp_packet_transmit+0x1183/0x3750
+[  487.144441]  sctp_outq_flush+0x1216/0x4050
+[  487.427592]  sctp_outq_uncork+0x5a/0x70
+[  487.431535]  sctp_do_sm+0x50e/0x6a30
+[  487.502506]  sctp_assoc_bh_rcv+0x283/0x4b0
+[  487.506713]  sctp_inq_push+0x23b/0x300
+[  487.523794]  sctp_backlog_rcv+0x177/0xaa0
+[  487.552102]  __release_sock+0x124/0x360
+[  487.556048]  release_sock+0xa4/0x2a0
+[  487.563852]  sctp_wait_for_connect+0x346/0x570
+[  487.585404]  sctp_sendmsg+0x29fd/0x32b0
+[  487.647465]  inet_sendmsg+0x11f/0x5e0
+[  487.676464]  sock_sendmsg+0xca/0x110
+[  487.680150]  SYSC_sendto+0x352/0x5a0
+[  487.705402]  SyS_sendto+0x40/0x50
+[  487.708828]  entry_SYSCALL_64_fastpath+0x1f/0xbe
+[  487.713552] RIP: 0033:0x452719
+[  487.718170] RSP: 002b:00007f6a3f4cabe8 EFLAGS: 00000212 ORIG_RAX: 000000000000002c
+[  487.725846] RAX: ffffffffffffffda RBX: 0000000000758020 RCX: 0000000000452719
+[  487.733106] RDX: 0000000000034000 RSI: 0000000020832000 RDI: 0000000000000014
+[  487.740345] RBP: 0000000000000577 R08: 00000000205e4fe4 R09: 000000000000001c
+[  487.747584] R10: 0000000000000000 R11: 0000000000000212 R12: 00000000006f63c8
+[  487.754822] R13: 00000000ffffffff R14: 00007f6a3f4cb6d4 R15: 0000000000000000
+[  487.762071] Code: 03 0f b6 04 01 84 c0 74 04 3c 03 7e 20 8b 4b 78 41 57 48 c7 c7 20 c1 3b 85 52 56 4c 89 ea 41 50 4c 89 e6 45 89 f0 e8 49 75 78 fd <0f> 0b 4c 89 4d b8 4c 89 45 c0 48 89 75 c8 48 89 55 d0 e8 fd 56 
+[  487.781158] RIP: skb_panic+0x15c/0x1f0 RSP: ffff8801cc1063a8
+[  487.787117] ---[ end trace cd770ff18ca4ef3c ]---
+[  487.792104] Kernel panic - not syncing: Fatal exception
+[  487.797963] Dumping ftrace buffer:
+[  487.801481]    (ftrace buffer empty)
+[  487.805159] Kernel Offset: disabled
+[  487.808754] Rebooting in 86400 seconds..

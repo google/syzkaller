@@ -1,0 +1,4 @@
+*******************************************************************************
+Before sending a pull request, please review Contribution Guidelines:
+https://github.com/google/syzkaller/blob/master/docs/contributing.md
+*******************************************************************************

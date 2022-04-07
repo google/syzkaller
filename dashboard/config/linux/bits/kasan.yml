@@ -1,0 +1,42 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+config:
+ - KASAN
+ - KASAN_GENERIC: [v4.16]
+ # TODO: KASAN_INLINE is now broken for riscv+gcc. Revert -riscv once it is fixed.
+ - KASAN_INLINE: [-arm, -riscv]
+ - KASAN_STACK_ENABLE: [clang, v4.16, -v5.11]
+ - KASAN_STACK: [clang, v5.11]
+ - KASAN_VMALLOC: [v5.5, -arm, -arm64, -s390, -riscv]
+ # This was historically enabled in the KASAN section without explanation.
+ - SPARSEMEM_VMEMMAP: [-arm, -riscv]
+ # This is required to enable SPARSEMEM_VMEMMAP.
+ - SPARSEMEM_MANUAL: [-arm, -arm64, -s390, -v5.17]
+ # This allows to get alloc/free stacks for UAFs on freed pages.
+ # This also needs page_owner=on in cmdline.
+ - PAGE_OWNER
+
+ - UBSAN: [v5.8]
+ - UBSAN_SANITIZE_ALL: [v5.8, -arm, -riscv]
+ - UBSAN_TRAP: n
+ - UBSAN_MISC: n
+ - UBSAN_BOUNDS: [v5.8]
+ - UBSAN_SHIFT: [v5.11]
+ # Already detected well by the exception handler.
+ - UBSAN_DIV_ZERO: n
+ # Produces too many reports:
+ # https://groups.google.com/forum/#!msg/syzkaller-bugs/i0xhp3rFSmo/KwZ0r9IIBQAJ
+ - UBSAN_BOOL: n
+ # Produces too many reports:
+ # https://groups.google.com/g/syzkaller-bugs/c/b_y3xw0wvOI/m/L074F0v3BQAJ
+ - UBSAN_OBJECT_SIZE: n
+ # This does not produce any reports, which suggests that it does not work somehow.
+ - UBSAN_SIGNED_OVERFLOW: n
+ - UBSAN_UNSIGNED_OVERFLOW: n
+ # This does not produce any reports, which suggests that it does not work somehow.
+ - UBSAN_ENUM: n
+ # Presumably can produce lots of working-as-intended reports, but this wasn't checked.
+ - UBSAN_ALIGNMENT: [n, v5.8]
+ # Depends on STACK_VALIDATION=n which we have enabled.
+ - UBSAN_UNREACHABLE: n

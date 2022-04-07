@@ -1,0 +1,92 @@
+TITLE: INFO: rcu detected stall in sctp_generate_heartbeat_event
+ALT: stall in sctp_generate_heartbeat_event
+TYPE: HANG
+
+[  486.569033] INFO: rcu_sched self-detected stall on CPU
+[  486.574490] 	0-...!: (124998 ticks this GP) idle=0be/1/4611686018427387908 softirq=15234/15234 fqs=59 
+[  486.584061] 	 (t=125000 jiffies g=7610 c=7609 q=351640)
+[  486.589425] rcu_sched kthread starved for 124739 jiffies! g7610 c7609 f0x2 RCU_GP_WAIT_FQS(3) ->state=0x0 ->cpu=1
+[  486.599806] RCU grace-period kthread stack dump:
+[  486.604550] rcu_sched       R  running task    23896     9      2 0x80000000
+[  486.611759] Call Trace:
+[  486.614337]  __schedule+0x801/0x1e30
+[  486.639334]  schedule+0xef/0x430
+[  486.678051]  schedule_timeout+0x138/0x240
+[  486.690987]  rcu_gp_kthread+0x6b5/0x1940
+[  486.824473]  kthread+0x345/0x410
+[  486.836697]  ret_from_fork+0x3a/0x50
+[  486.840421] NMI backtrace for cpu 0
+[  486.844038] CPU: 0 PID: 6381 Comm: sh Not tainted 4.17.0-rc5+ #58
+[  486.850257] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  486.859596] Call Trace:
+[  486.862174]  <IRQ>
+[  486.864315]  dump_stack+0x1b9/0x294
+[  486.877074]  nmi_cpu_backtrace.cold.4+0x19/0xce
+[  486.886903]  nmi_trigger_cpumask_backtrace+0x151/0x192
+[  486.892167]  arch_trigger_cpumask_backtrace+0x14/0x20
+[  486.897347]  rcu_dump_cpu_stacks+0x175/0x1c2
+[  486.906765]  check_cpu_stall.isra.61.cold.80+0x36c/0x59a
+[  486.967369]  rcu_check_callbacks+0x21b/0xad0
+[  487.021142]  update_process_times+0x2d/0x70
+[  487.025452]  tick_sched_handle+0x9f/0x180
+[  487.029583]  tick_sched_timer+0x45/0x130
+[  487.033630]  __hrtimer_run_queues+0x3e3/0x10a0
+[  487.074515]  hrtimer_interrupt+0x2f3/0x750
+[  487.078754]  smp_apic_timer_interrupt+0x15d/0x710
+[  487.098448]  apic_timer_interrupt+0xf/0x20
+[  487.102683] RIP: 0010:lock_acquire+0x257/0x520
+[  487.107246] RSP: 0000:ffff8801dae06b60 EFLAGS: 00000286 ORIG_RAX: ffffffffffffff13
+[  487.114937] RAX: dffffc0000000000 RBX: 1ffff1003b5c0d71 RCX: 0000000000000000
+[  487.122190] RDX: 1ffffffff11a30e5 RSI: ffff8801c7b54c38 RDI: 0000000000000286
+[  487.129440] RBP: ffff8801dae06c50 R08: 0000000000000008 R09: 0000000000000003
+[  487.136692] R10: ffff8801c7b54cb0 R11: ffff8801c7b54400 R12: ffff8801c7b54400
+[  487.143948] R13: 0000000000000002 R14: 0000000000000000 R15: 0000000000000000
+[  487.173035]  is_bpf_text_address+0x3b/0x170
+[  487.181997]  kernel_text_address+0x79/0xf0
+[  487.190350]  __kernel_text_address+0xd/0x40
+[  487.194668]  unwind_get_return_address+0x61/0xa0
+[  487.199429]  __save_stack_trace+0x7e/0xd0
+[  487.203571]  save_stack_trace+0x1a/0x20
+[  487.207529]  save_stack+0x43/0xd0
+[  487.356403]  kasan_kmalloc+0xc4/0xe0
+[  487.360107]  kasan_slab_alloc+0x12/0x20
+[  487.364754]  kmem_cache_alloc_node+0x131/0x780
+[  487.383127]  __alloc_skb+0x111/0x780
+[  487.426126]  _sctp_make_chunk+0x58/0x280
+[  487.430174]  sctp_make_heartbeat+0x8f/0x430
+[  487.459807]  sctp_sf_heartbeat.isra.23+0x26/0x180
+[  487.464634]  sctp_sf_sendbeat_8_3+0x38e/0x550
+[  487.469117]  sctp_do_sm+0x1ab/0x7160
+[  487.544210]  sctp_generate_heartbeat_event+0x218/0x450
+[  487.549480]  call_timer_fn+0x230/0x940
+[  487.604501]  __run_timers+0x79e/0xc50
+[  487.647862]  run_timer_softirq+0x4c/0x70
+[  487.651907]  __do_softirq+0x2e0/0xaf5
+[  487.696662]  irq_exit+0x1d1/0x200
+[  487.700103]  smp_apic_timer_interrupt+0x17e/0x710
+[  487.731472]  apic_timer_interrupt+0xf/0x20
+[  487.735686]  </IRQ>
+[  487.737908] RIP: 0010:rcu_is_watching+0xc4/0x140
+[  487.742651] RSP: 0000:ffff8801c957f398 EFLAGS: 00000a06 ORIG_RAX: ffffffffffffff13
+[  487.750347] RAX: 00000000000130be RBX: 1ffff100392afe74 RCX: 1ffff100392afe78
+[  487.757598] RDX: 0000000000000004 RSI: 0000000000000004 RDI: ffff8801dae23610
+[  487.764850] RBP: ffff8801c957f428 R08: ffffed003b5c46c3 R09: ffffed003b5c46c2
+[  487.772101] R10: ffffed003b5c46c2 R11: ffff8801dae23613 R12: ffff8801c957f3c0
+[  487.779353] R13: ffff8801dae23610 R14: ffff8801c957f400 R15: dffffc0000000000
+[  487.804394]  rcu_read_lock_sched_held+0x8d/0x120
+[  487.809139]  kmem_cache_alloc+0x5fa/0x760
+[  487.821900]  __anon_vma_prepare+0x3b3/0x700
+[  487.838290]  wp_page_copy+0xdf1/0x1440
+[  487.873330]  do_wp_page+0x425/0x1990
+[  487.929184]  __handle_mm_fault+0x2996/0x4310
+[  487.958511]  handle_mm_fault+0x53a/0xc70
+[  487.970662]  __do_page_fault+0x60b/0xe40
+[  487.982996]  do_page_fault+0xee/0x8a7
+[  488.035994]  page_fault+0x1e/0x30
+[  488.039438] RIP: 0033:0x7f4232a6d1fb
+[  488.043133] RSP: 002b:00007fff2aeebd28 EFLAGS: 00010246
+[  488.048483] RAX: 000000000000000d RBX: 00000000756e6547 RCX: 000000006c65746e
+[  488.055740] RDX: 0000000049656e69 RSI: 0000000000000025 RDI: 0000000000000002
+[  488.063019] RBP: 00007fff2aeebe20 R08: 0000000000000001 R09: 000000000000002f
+[  488.070280] R10: 00007f4232a6caf0 R11: 00007fff2aeebb70 R12: 00007f4232a4e000
+[  488.077543] R13: 00007f4232dd5038 R14: 00007f4232a6cac0 R15: 00007f4232dd5d98

@@ -1,0 +1,13 @@
+TITLE: BUG: unable to handle kernel
+CORRUPTED: Y
+
+[ 1722.511384] BUG: unable to handle kernel 
+[ 1722.511384] 
+[ 1722.511384] paging request at ffffffff761cd3a8
+[ 1722.511384] IP: node_state include/linux/nodemask.h:405 [inline]
+[ 1722.511384] IP: map_create kernel/bpf/syscall.c:326 [inline]
+[ 1722.511384] IP: SYSC_bpf kernel/bpf/syscall.c:1462 [inline]
+[ 1722.511384] IP: SyS_bpf+0x3c9/0x4c40 kernel/bpf/syscall.c:1443
+[ 1722.511384] PGD 5a25067 
+[ 1722.511384] P4D 5a25067 
+[ 1722.511384] PUD 0

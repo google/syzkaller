@@ -1,0 +1,7 @@
+no-such-struct: send_msghdr_key
+no-such-struct: iovec_sadb_msg
+bad-field-number: sadb_x_policy: syz=8 kernel=7
+bad-struct-size: sadb_x_policy: syz=64 kernel=16
+bad-field-number: sadb_x_ipsecrequest: syz=9 kernel=7
+bad-struct-size: sadb_x_ipsecrequest: syz=48 kernel=16
+no-such-struct: sadb_filter_addr

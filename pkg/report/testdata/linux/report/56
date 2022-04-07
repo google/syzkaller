@@ -1,0 +1,5 @@
+TITLE: BUG: sleeping function called from invalid context in corrupted
+CORRUPTED: Y
+
+[ 1722.511384] BUG: sleeping function called from invalid context at include/linux/wait.h:1095 
+[ 1722.511384] in_atomic(): 1, irqs_disabled(): 0, pid: 3658, name: syz-fuzzer 

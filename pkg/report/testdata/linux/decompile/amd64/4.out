@@ -1,0 +1,75 @@
+divide error: 0000 [#1] PREEMPT SMP KASAN
+CPU: 1 PID: 3149 Comm: syz-executor385 Not tainted 5.4.141-syzkaller-16412-gf364839bcf0b #0
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+RIP: 0010:snd_pcm_lib_ioctl_fifo_size sound/core/pcm_lib.c:1739 [inline]
+RIP: 0010:snd_pcm_lib_ioctl+0x73e/0x75c sound/core/pcm_lib.c:1764
+Code: fd 4c 89 e2 b8 ff ff 37 00 48 c1 ea 03 48 c1 e0 2a 80 3c 02 00 74 08 4c 89 e7 e8 f0 8e 14 fe 48 8b 83 18 02 00 00 89 ed 31 d2 <48> f7 f5 48 89 83 18 02 00 00 45 31 ed e8 7f b5 f2 fd 44 89 e8 5b
+RSP: 0018:ffff8881da17fb78 EFLAGS: 00010246
+RAX: 0000000000000000 RBX: ffff8881dce33800 RCX: ffff8881dd6a9980
+RDX: 0000000000000000 RSI: ffffffff833e3709 RDI: 0000000100000000
+RBP: 0000000000000000 R08: 0000000000000000 R09: 0000000000000007
+R10: ffff8881dd6a9980 R11: ffffffff8134d1e8 R12: ffff8881dce33a18
+R13: 0000000000000000 R14: 0000000000000001 R15: 0000000000000000
+FS:  0000000002290300(0000) GS:ffff8881f6d00000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000000020001090 CR3: 00000001d89ec000 CR4: 00000000001406e0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+Call Trace:
+ snd_pcm_ops_ioctl+0x76/0xa0 sound/core/pcm_native.c:196
+ fixup_unreferenced_params+0x46b/0x547 sound/core/pcm_native.c:471
+ snd_pcm_hw_refine_old_user sound/core/pcm_native.c:3700 [inline]
+ snd_pcm_common_ioctl+0x1002/0x1764 sound/core/pcm_native.c:3036
+ snd_pcm_ioctl+0x93/0xa9 sound/core/pcm_native.c:3073
+ vfs_ioctl+0x76/0x9e fs/ioctl.c:47
+ do_vfs_ioctl+0xfc5/0x1022 fs/ioctl.c:722
+ ksys_ioctl+0x79/0xb1 fs/ioctl.c:737
+ __do_sys_ioctl fs/ioctl.c:744 [inline]
+ __se_sys_ioctl fs/ioctl.c:742 [inline]
+ __x64_sys_ioctl+0x7f/0x86 fs/ioctl.c:742
+ do_syscall_64+0x10b/0x144 arch/x86/entry/common.c:299
+ entry_SYSCALL_64_after_hwframe+0x49/0xbe
+RIP: 0033:0x443649
+Code: 28 c3 e8 2a 14 00 00 66 2e 0f 1f 84 00 00 00 00 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 c0 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007ffef556a688 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+RAX: ffffffffffffffda RBX: 00000000004004a0 RCX: 0000000000443649
+RDX: 00000000200010c0 RSI: 00000000c1004110 RDI: 0000000000000003
+RBP: 00000000004031f0 R08: 0000000000000000 R09: 00000000004004a0
+R10: 000000000000001f R11: 0000000000000246 R12: 0000000000403280
+R13: 0000000000000000 R14: 00000000004b1018 R15: 00000000004004a0
+Modules linked in:
+---[ end trace 7398808905092392 ]---
+RIP: 0010:snd_pcm_lib_ioctl_fifo_size sound/core/pcm_lib.c:1739 [inline]
+RIP: 0010:snd_pcm_lib_ioctl+0x73e/0x75c sound/core/pcm_lib.c:1764
+Code: fd 4c 89 e2 b8 ff ff 37 00 48 c1 ea 03 48 c1 e0 2a 80 3c 02 00 74 08 4c 89 e7 e8 f0 8e 14 fe 48 8b 83 18 02 00 00 89 ed 31 d2 <48> f7 f5 48 89 83 18 02 00 00 45 31 ed e8 7f b5 f2 fd 44 89 e8 5b
+RSP: 0018:ffff8881da17fb78 EFLAGS: 00010246
+RAX: 0000000000000000 RBX: ffff8881dce33800 RCX: ffff8881dd6a9980
+RDX: 0000000000000000 RSI: ffffffff833e3709 RDI: 0000000100000000
+RBP: 0000000000000000 R08: 0000000000000000 R09: 0000000000000007
+R10: ffff8881dd6a9980 R11: ffffffff8134d1e8 R12: ffff8881dce33a18
+R13: 0000000000000000 R14: 0000000000000001 R15: 0000000000000000
+FS:  0000000002290300(0000) GS:ffff8881f6c00000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 00007b48899bf000 CR3: 00000001d89ec000 CR4: 00000000001406f0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+----------------
+Code disassembly (best guess):
+   0:	fd                   	std
+   1:	4c 89 e2             	mov    %r12,%rdx
+   4:	b8 ff ff 37 00       	mov    $0x37ffff,%eax
+   9:	48 c1 ea 03          	shr    $0x3,%rdx
+   d:	48 c1 e0 2a          	shl    $0x2a,%rax
+  11:	80 3c 02 00          	cmpb   $0x0,(%rdx,%rax,1)
+  15:	74 08                	je     0x1f
+  17:	4c 89 e7             	mov    %r12,%rdi
+  1a:	e8 f0 8e 14 fe       	callq  0xfe148f0f
+  1f:	48 8b 83 18 02 00 00 	mov    0x218(%rbx),%rax
+  26:	89 ed                	mov    %ebp,%ebp
+  28:	31 d2                	xor    %edx,%edx
+* 2a:	48 f7 f5             	div    %rbp <-- trapping instruction
+  2d:	48 89 83 18 02 00 00 	mov    %rax,0x218(%rbx)
+  34:	45 31 ed             	xor    %r13d,%r13d
+  37:	e8 7f b5 f2 fd       	callq  0xfdf2b5bb
+  3c:	44 89 e8             	mov    %r13d,%eax
+  3f:	5b                   	pop    %rbx

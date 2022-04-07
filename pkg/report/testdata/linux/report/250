@@ -1,0 +1,161 @@
+TITLE: possible deadlock in blkdev_reread_part
+
+[  254.403407] ======================================================
+[  254.404314] WARNING: possible circular locking dependency detected
+[  254.405199] 4.17.0-rc2+ #178 Not tainted
+[  254.405751] ------------------------------------------------------
+[  254.406669] syz-executor6/6936 is trying to acquire lock:
+[  254.407386] 000000000199d5d7 (&bdev->bd_mutex){+.+.}, at: blkdev_reread_part+0x1e/0x40
+[  254.408469] 
+[  254.408469] but task is already holding lock:
+[  254.409244] 00000000a9fae736 (&lo->lo_ctl_mutex#2){+.+.}, at: lo_compat_ioctl+0x12a/0x170
+[  254.410339] 
+[  254.410339] which lock already depends on the new lock.
+[  254.410339] 
+[  254.411411] 
+[  254.411411] the existing dependency chain (in reverse order) is:
+[  254.412400] 
+[  254.412400] -> #2 (&lo->lo_ctl_mutex#2){+.+.}:
+[  254.413203]        __mutex_lock+0x16d/0x17f0
+[  254.413781]        mutex_lock_nested+0x16/0x20
+[  254.414380]        lo_release+0xa3/0x1f0
+[  254.414912]        __blkdev_put+0x4af/0x7e0
+[  254.415595]        blkdev_put+0x98/0x490
+[  254.416327]        blkdev_close+0x8b/0xb0
+[  254.416983]        __fput+0x34d/0x890
+[  254.417474]        ____fput+0x15/0x20
+[  254.418005]        task_work_run+0x1e4/0x290
+[  254.418570]        exit_to_usermode_loop+0x2bd/0x310
+[  254.419221]        do_syscall_64+0x6ac/0x800
+[  254.419793]        entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  254.420520] 
+[  254.420520] -> #1 (loop_index_mutex){+.+.}:
+[  254.421276]        __mutex_lock+0x16d/0x17f0
+[  254.421869]        mutex_lock_nested+0x16/0x20
+[  254.422476]        lo_open+0x1b/0xb0
+[  254.422953]        __blkdev_get+0x358/0x13a0
+[  254.423514]        blkdev_get+0xb9/0xb30
+[  254.424122]        blkdev_open+0x1fb/0x280
+[  254.424858]        do_dentry_open+0x7ef/0xf10
+[  254.425459]        vfs_open+0x139/0x230
+[  254.426132]        path_openat+0x1676/0x4e20
+[  254.426764]        do_filp_open+0x249/0x350
+[  254.427369]        do_sys_open+0x56f/0x740
+[  254.427919]        __x64_sys_open+0x7e/0xc0
+[  254.428459]        do_syscall_64+0x1b1/0x800
+[  254.429017]        entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  254.429729] 
+[  254.429729] -> #0 (&bdev->bd_mutex){+.+.}:
+[  254.430463]        lock_acquire+0x1dc/0x520
+[  254.431136]        __mutex_lock+0x16d/0x17f0
+[  254.431884]        mutex_lock_nested+0x16/0x20
+[  254.432527]        blkdev_reread_part+0x1e/0x40
+[  254.433113]        loop_reread_partitions+0x159/0x180
+[  254.433756]        loop_set_status+0xb95/0x1010
+[  254.434397]        loop_set_status_compat+0xa4/0xf0
+[  254.435024]        lo_compat_ioctl+0x14b/0x170
+[  254.435665]        compat_blkdev_ioctl+0x3c2/0x1b20
+[  254.436385]        __ia32_compat_sys_ioctl+0x221/0x640
+[  254.437255]        do_fast_syscall_32+0x345/0xf9b
+[  254.437898]        entry_SYSENTER_compat+0x70/0x7f
+[  254.438507] 
+[  254.438507] other info that might help us debug this:
+[  254.438507] 
+[  254.439670] Chain exists of:
+[  254.439670]   &bdev->bd_mutex --> loop_index_mutex --> &lo->lo_ctl_mutex#2
+[  254.439670] 
+[  254.441278]  Possible unsafe locking scenario:
+[  254.441278] 
+[  254.442169]        CPU0                    CPU1
+[  254.442800]        ----                    ----
+[  254.443610]   lock(&lo->lo_ctl_mutex#2);
+[  254.444241]                                lock(loop_index_mutex);
+[  254.445125]                                lock(&lo->lo_ctl_mutex#2);
+[  254.446004]   lock(&bdev->bd_mutex);
+[  254.446609] 
+[  254.446609]  *** DEADLOCK ***
+[  254.446609] 
+[  254.447587] 1 lock held by syz-executor6/6936:
+[  254.448299]  #0: 00000000a9fae736 (&lo->lo_ctl_mutex#2){+.+.}, at: lo_compat_ioctl+0x12a/0x170
+[  254.449678] 
+[  254.449678] stack backtrace:
+[  254.450442] CPU: 1 PID: 6936 Comm: syz-executor6 Not tainted 4.17.0-rc2+ #178
+[  254.451624] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+[  254.452880] Call Trace:
+[  254.453313]  dump_stack+0x1b9/0x294
+[  254.453901]  ? dump_stack_print_info.cold.2+0x52/0x52
+[  254.454653]  ? print_lock+0xd1/0xd6
+[  254.455240]  ? vprintk_func+0x81/0xe7
+[  254.455761]  print_circular_bug.isra.36.cold.53+0x1bd/0x27d
+[  254.456576]  ? save_trace+0xe0/0x290
+[  254.457194]  __lock_acquire+0x343e/0x5140
+[  254.457789]  ? debug_check_no_locks_freed+0x310/0x310
+[  254.458680]  ? noop_count+0x40/0x40
+[  254.459261]  ? lock_pin_lock+0x350/0x350
+[  254.459884]  ? __lock_acquire+0x7f5/0x5140
+[  254.460501]  ? print_usage_bug+0xc0/0xc0
+[  254.461166]  ? print_usage_bug+0xc0/0xc0
+[  254.461839]  ? print_usage_bug+0xc0/0xc0
+[  254.462520]  ? mark_held_locks+0xc9/0x160
+[  254.463132]  ? do_raw_spin_trylock+0x1b0/0x1b0
+[  254.463857]  ? __bfs+0x388/0x790
+[  254.464389]  ? graph_lock+0x170/0x170
+[  254.464917]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  254.465619]  ? __lock_acquire+0x7f5/0x5140
+[  254.466166]  lock_acquire+0x1dc/0x520
+[  254.466707]  ? blkdev_reread_part+0x1e/0x40
+[  254.467255]  ? lock_release+0xa10/0xa10
+[  254.467819]  ? rcu_note_context_switch+0x710/0x710
+[  254.468444]  ? __might_sleep+0x95/0x190
+[  254.469005]  ? blkdev_reread_part+0x1e/0x40
+[  254.469555]  __mutex_lock+0x16d/0x17f0
+[  254.470101]  ? blkdev_reread_part+0x1e/0x40
+[  254.470649]  ? blkdev_reread_part+0x1e/0x40
+[  254.471251]  ? debug_check_no_locks_freed+0x310/0x310
+[  254.471978]  ? mutex_trylock+0x2a0/0x2a0
+[  254.472549]  ? graph_lock+0x170/0x170
+[  254.473044]  ? mark_held_locks+0xc9/0x160
+[  254.473616]  ? graph_lock+0x170/0x170
+[  254.474103]  ? graph_lock+0x170/0x170
+[  254.474643]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  254.475293]  ? __lock_is_held+0xb5/0x140
+[  254.475858]  ? print_usage_bug+0xc0/0xc0
+[  254.476367]  ? lock_downgrade+0x8e0/0x8e0
+[  254.476928]  ? mark_held_locks+0xc9/0x160
+[  254.477463]  ? do_raw_spin_trylock+0x1b0/0x1b0
+[  254.478138]  ? _raw_spin_unlock_irqrestore+0x74/0xc0
+[  254.478841]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  254.479483]  ? trace_hardirqs_on+0xd/0x10
+[  254.480071]  ? __wake_up_common_lock+0x1c2/0x300
+[  254.480693]  mutex_lock_nested+0x16/0x20
+[  254.481264]  ? mutex_lock_nested+0x16/0x20
+[  254.481833]  blkdev_reread_part+0x1e/0x40
+[  254.482418]  loop_reread_partitions+0x159/0x180
+[  254.483003]  ? __loop_update_dio+0x6a0/0x6a0
+[  254.483614]  ? __sanitizer_cov_trace_const_cmp1+0x1a/0x20
+[  254.484362]  loop_set_status+0xb95/0x1010
+[  254.484900]  loop_set_status_compat+0xa4/0xf0
+[  254.485517]  ? loop_set_status+0x1010/0x1010
+[  254.486084]  lo_compat_ioctl+0x14b/0x170
+[  254.486647]  ? lo_ioctl+0x2130/0x2130
+[  254.487141]  compat_blkdev_ioctl+0x3c2/0x1b20
+[  254.487780]  ? bfq_create_group_hierarchy+0x120/0x120
+[  254.488448]  ? __x32_compat_sys_get_robust_list+0x430/0x430
+[  254.489219]  ? __sanitizer_cov_trace_switch+0x53/0x90
+[  254.489877]  ? bfq_create_group_hierarchy+0x120/0x120
+[  254.490582]  __ia32_compat_sys_ioctl+0x221/0x640
+[  254.491255]  do_fast_syscall_32+0x345/0xf9b
+[  254.491820]  ? do_int80_syscall_32+0x880/0x880
+[  254.492455]  ? kasan_check_write+0x14/0x20
+[  254.493001]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  254.493759]  ? syscall_return_slowpath+0x30f/0x5c0
+[  254.494400]  ? sysret32_from_system_call+0x5/0x46
+[  254.495060]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  254.495743]  entry_SYSENTER_compat+0x70/0x7f
+[  254.496334] RIP: 0023:0xf7f3dcb9
+[  254.496834] RSP: 002b:00000000f5f3904c EFLAGS: 00000292 ORIG_RAX: 0000000000000036
+[  254.497908] RAX: ffffffffffffffda RBX: 0000000000000013 RCX: 0000000000004c02
+[  254.498866] RDX: 0000000020000100 RSI: 0000000000000000 RDI: 0000000000000000
+[  254.499878] RBP: 0000000000000000 R08: 0000000000000000 R09: 0000000000000000
+[  254.500918] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
+[  254.501931] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000

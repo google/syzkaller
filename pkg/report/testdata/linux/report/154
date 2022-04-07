@@ -1,0 +1,163 @@
+TITLE: BUG: unable to handle kernel paging request in corrupted
+ALT: bad-access in corrupted
+CORRUPTED: Y
+
+[   85.149573] BUG: unable to handle kernel paging request at ffffffff0001eea6
+[   85.153038] ==================================================================
+[   85.153056] BUG: KASAN: use-after-free in rb_first_postorder+0x7c/0xa0
+[   85.153063] Read of size 8 at addr ffff8801d92ca840 by task syz-executor3/13991
+[   85.153065] 
+[   85.153074] CPU: 0 PID: 13991 Comm: syz-executor3 Not tainted 4.15.0-rc7-next-20180115+ #97
+[   85.153080] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   85.153082] Call Trace:
+[   85.153098]  dump_stack+0x194/0x257
+[   85.153111]  ? arch_local_irq_restore+0x53/0x53
+[   85.153121]  ? show_regs_print_info+0x18/0x18
+[   85.153134]  ? rb_first_postorder+0x7c/0xa0
+[   85.153144]  print_address_description+0x73/0x250
+[   85.153151]  ? rb_first_postorder+0x7c/0xa0
+[   85.153158]  kasan_report+0x23b/0x360
+[   85.153168]  __asan_report_load8_noabort+0x14/0x20
+[   85.153175]  rb_first_postorder+0x7c/0xa0
+[   85.153185]  tipc_group_join+0x120/0x2d0
+[   85.153195]  ? tipc_group_update_member+0x740/0x740
+[   85.153201]  ? tipc_sk_publish+0x388/0x4b0
+[   85.153215]  ? tipc_nametbl_build_group+0x2a0/0x3a0
+[   85.153227]  tipc_setsockopt+0x67e/0xcc0
+[   85.153238]  ? tipc_sk_leave+0x200/0x200
+[   85.153261]  ? security_socket_setsockopt+0x89/0xb0
+[   85.153273]  SyS_setsockopt+0x189/0x360
+[   85.153285]  ? SyS_recv+0x40/0x40
+[   85.153297]  ? entry_SYSCALL_64_fastpath+0x5/0xa0
+[   85.153311]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[   85.153324]  entry_SYSCALL_64_fastpath+0x29/0xa0
+[   85.153330] RIP: 0033:0x452cf9
+[   85.153333] RSP: 002b:00007f88b463ac58 EFLAGS: 00000212 ORIG_RAX: 0000000000000036
+[   85.153340] RAX: ffffffffffffffda RBX: 000000000071bea0 RCX: 0000000000452cf9
+[   85.153344] RDX: 0000000000000087 RSI: 000000000000010f RDI: 0000000000000015
+[   85.153348] RBP: 000000000000004d R08: 0000000000000010 R09: 0000000000000000
+[   85.153352] R10: 0000000020f38000 R11: 0000000000000212 R12: 00000000006ee7d8
+[   85.153356] R13: 00000000ffffffff R14: 00007f88b463b6d4 R15: 0000000000000000
+[   85.153370] 
+[   85.153373] Allocated by task 13991:
+[   85.153381]  save_stack+0x43/0xd0
+[   85.153387]  kasan_kmalloc+0xad/0xe0
+[   85.153394]  kmem_cache_alloc_trace+0x136/0x750
+[   85.153400]  tipc_group_create+0x144/0x900
+[   85.153405]  tipc_setsockopt+0x274/0xcc0
+[   85.153411]  SyS_setsockopt+0x189/0x360
+[   85.153418]  entry_SYSCALL_64_fastpath+0x29/0xa0
+[   85.153419] 
+[   85.153421] Freed by task 13991:
+[   85.153427]  save_stack+0x43/0xd0
+[   85.153433]  __kasan_slab_free+0x11a/0x170
+[   85.153439]  kasan_slab_free+0xe/0x10
+[   85.153445]  kfree+0xd9/0x260
+[   85.153451]  tipc_group_delete+0x2c8/0x3d0
+[   85.153457]  tipc_setsockopt+0xba3/0xcc0
+[   85.153462]  SyS_setsockopt+0x189/0x360
+[   85.153469]  entry_SYSCALL_64_fastpath+0x29/0xa0
+[   85.153470] 
+[   85.153475] The buggy address belongs to the object at ffff8801d92ca840
+[   85.153475]  which belongs to the cache kmalloc-128 of size 128
+[   85.153480] The buggy address is located 0 bytes inside of
+[   85.153480]  128-byte region [ffff8801d92ca840, ffff8801d92ca8c0)
+[   85.153482] The buggy address belongs to the page:
+[   85.153488] page:ffffea000764b280 count:1 mapcount:0 mapping:ffff8801d92ca000 index:0x0
+[   85.153494] flags: 0x2fffc0000000100(slab)
+[   85.153504] raw: 02fffc0000000100 ffff8801d92ca000 0000000000000000 0000000100000015
+[   85.153512] raw: ffffea0007639820 ffffea0007639460 ffff8801dac00640 0000000000000000
+[   85.153515] page dumped because: kasan: bad access detected
+[   85.153516] 
+[   85.153518] Memory state around the buggy address:
+[   85.153523]  ffff8801d92ca700: 00 00 00 00 00 00 00 00 fc fc fc fc fc fc fc fc
+[   85.153528]  ffff8801d92ca780: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[   85.153533] >ffff8801d92ca800: fc fc fc fc fc fc fc fc fb fb fb fb fb fb fb fb
+[   85.153536]                                            ^
+[   85.153541]  ffff8801d92ca880: fb fb fb fb fb fb fb fb fc fc fc fc fc fc fc fc
+[   85.153546]  ffff8801d92ca900: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   85.153548] ==================================================================
+[   85.153572] Kernel panic - not syncing: panic_on_warn set ...
+[   85.153572] 
+[   85.536900] IP: dst_release+0x1e/0x90
+[   85.540682] PGD 6825067 P4D 6825067 PUD 0 
+[   85.544904] Oops: 0002 [#1] SMP KASAN
+[   85.548684] Dumping ftrace buffer:
+[   85.552205]    (ftrace buffer empty)
+[   85.555894] Modules linked in:
+[   85.559069] CPU: 1 PID: 13996 Comm: syz-executor5 Tainted: G    B            4.15.0-rc7-next-20180115+ #97
+[   85.568839] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   85.578183] RIP: 0010:dst_release+0x1e/0x90
+[   85.582480] RSP: 0018:ffff8801c247f598 EFLAGS: 00010246
+[   85.587837] RAX: 0000000000010000 RBX: ffff8801c247f720 RCX: 00000000ffffffff
+[   85.595090] RDX: 0000000000010000 RSI: ffffc90001c77000 RDI: ffffffff0001ee66
+[   85.602344] RBP: ffff8801c247f5a8 R08: 0000000000000000 R09: 0000000000000000
+[   85.609596] R10: 0000000000000000 R11: 0000000000000000 R12: ffffffff0001ee66
+[   85.616852] R13: ffffffff0001ee66 R14: ffff8801c247f648 R15: ffff8801c247f7c8
+[   85.624123] FS:  00007fd191c53700(0000) GS:ffff8801db300000(0000) knlGS:0000000000000000
+[   85.632351] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   85.638218] CR2: ffffffff0001eea6 CR3: 00000001bce8d005 CR4: 00000000001606e0
+[   85.645474] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   85.652731] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   85.659985] Call Trace:
+[   85.662562]  ip6_cork_release.isra.43+0x1bb/0x2c0
+[   85.667389]  ip6_make_skb+0x4f1/0x5a0
+[   85.671172]  ? ip_reply_glue_bits+0xb0/0xb0
+[   85.675479]  ? ip6_push_pending_frames+0xe0/0xe0
+[   85.680217]  ? ip6_dst_hoplimit+0x26c/0x420
+[   85.684524]  ? lock_downgrade+0x980/0x980
+[   85.688658]  ? lock_release+0xa40/0xa40
+[   85.692614]  ? __lock_is_held+0xb6/0x140
+[   85.696668]  ? ip6_dst_hoplimit+0xc1/0x420
+[   85.700898]  ? ip6_find_1stfragopt+0x260/0x260
+[   85.705473]  udpv6_sendmsg+0x27fc/0x3400
+[   85.709535]  ? ip_reply_glue_bits+0xb0/0xb0
+[   85.713849]  ? udpv6_setsockopt+0x80/0x80
+[   85.717987]  ? reacquire_held_locks+0x1f9/0x3e0
+[   85.722638]  ? reacquire_held_locks+0x1f9/0x3e0
+[   85.727295]  ? find_held_lock+0x35/0x1d0
+[   85.731351]  ? release_sock+0x1d4/0x2a0
+[   85.735308]  ? lock_downgrade+0x980/0x980
+[   85.739438]  ? lock_downgrade+0x980/0x980
+[   85.743573]  ? __local_bh_enable_ip+0x121/0x230
+[   85.748225]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[   85.753237]  ? release_sock+0x1d4/0x2a0
+[   85.757192]  ? trace_hardirqs_on+0xd/0x10
+[   85.761323]  ? __local_bh_enable_ip+0x121/0x230
+[   85.765975]  ? _raw_spin_unlock_bh+0x30/0x40
+[   85.770366]  ? release_sock+0x1d4/0x2a0
+[   85.774338]  inet_sendmsg+0x11f/0x5e0
+[   85.778122]  ? inet_sendmsg+0x11f/0x5e0
+[   85.782078]  ? __might_sleep+0x95/0x190
+[   85.786034]  ? inet_create+0xf50/0xf50
+[   85.789904]  ? selinux_socket_sendmsg+0x36/0x40
+[   85.794555]  ? security_socket_sendmsg+0x89/0xb0
+[   85.799310]  ? inet_create+0xf50/0xf50
+[   85.803186]  sock_sendmsg+0xca/0x110
+[   85.806900]  SYSC_sendto+0x361/0x5c0
+[   85.810597]  ? SYSC_connect+0x4a0/0x4a0
+[   85.814554]  ? __mutex_unlock_slowpath+0xe9/0xac0
+[   85.819379]  ? vfs_write+0x374/0x510
+[   85.823080]  ? wait_for_completion+0x770/0x770
+[   85.827650]  ? __lock_is_held+0xb6/0x140
+[   85.831714]  ? fput+0xd2/0x140
+[   85.834888]  ? SyS_write+0x184/0x220
+[   85.838585]  ? entry_SYSCALL_64_fastpath+0x5/0xa0
+[   85.843416]  SyS_sendto+0x40/0x50
+[   85.846857]  entry_SYSCALL_64_fastpath+0x29/0xa0
+[   85.851594] RIP: 0033:0x452cf9
+[   85.854761] RSP: 002b:00007fd191c52c58 EFLAGS: 00000212 ORIG_RAX: 000000000000002c
+[   85.862450] RAX: ffffffffffffffda RBX: 00007fd191c52aa0 RCX: 0000000000452cf9
+[   85.869705] RDX: 0000000000000555 RSI: 00000000204ce000 RDI: 0000000000000013
+[   85.876958] RBP: 00007fd191c52a90 R08: 0000000020e26fe4 R09: 000000000000001c
+[   85.884210] R10: 0000000000000000 R11: 0000000000000212 R12: 00000000004b798c
+[   85.891463] R13: 00007fd191c52bc8 R14: 00000000004b798c R15: 0000000000000000
+[   85.898731] Code: f7 ff 31 c0 5b 5d c3 66 0f 1f 44 00 00 55 48 89 e5 41 54 53 49 89 fc e8 b1 77 30 fd 4d 85 e4 74 21 e8 a7 77 30 fd b9 ff ff ff ff <f0> 41 0f c1 4c 24 40 89 cb 83 eb 01 78 33 e8 8f 77 30 fd 85 db 
+[   85.917879] RIP: dst_release+0x1e/0x90 RSP: ffff8801c247f598
+[   85.923673] CR2: ffffffff0001eea6
+[   85.927129] ---[ end trace b421a5a363a9c4fd ]---
+[   86.211221] Shutting down cpus with NMI
+[   86.215778] Dumping ftrace buffer:
+[   86.219299]    (ftrace buffer empty)
+[   86.223002] Kernel Offset: disabled
+[   86.226619] Rebooting in 86400 seconds..

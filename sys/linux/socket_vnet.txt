@@ -1,0 +1,157 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_VSOCK support.
+
+include <linux/net.h>
+include <linux/socket.h>
+include <linux/virtio_vsock.h>
+include <uapi/linux/fcntl.h>
+include <uapi/linux/vhost.h>
+include <uapi/linux/vm_sockets.h>
+include <uapi/linux/virtio_net.h>
+include <uapi/linux/virtio_config.h>
+
+resource sock_vsock[sock]
+resource sock_vsock_stream[sock_vsock]
+resource sock_vsock_dgram[sock_vsock]
+
+resource fd_vhost[fd]
+resource vhost_vsock[fd_vhost]
+resource vhost_net[fd_vhost]
+
+socket$vsock_stream(domain const[AF_VSOCK], type const[SOCK_STREAM], proto const[0]) sock_vsock_stream
+bind$vsock_stream(fd sock_vsock_stream, addr ptr[in, sockaddr_vm], addrlen len[addr])
+connect$vsock_stream(fd sock_vsock_stream, addr ptr[in, sockaddr_vm], addrlen len[addr])
+accept4$vsock_stream(fd sock_vsock_stream, addr ptr[in, sockaddr_vm], addrlen len[addr], flags flags[accept_flags]) sock_vsock_stream
+setsockopt$SO_VM_SOCKETS_BUFFER_SIZE(fd sock_vsock_stream, level const[AF_VSOCK], opt const[SO_VM_SOCKETS_BUFFER_SIZE], val ptr[in, int64], len len[val])
+setsockopt$SO_VM_SOCKETS_BUFFER_MAX_SIZE(fd sock_vsock_stream, level const[AF_VSOCK], opt const[SO_VM_SOCKETS_BUFFER_MAX_SIZE], val ptr[in, int64], len len[val])
+setsockopt$SO_VM_SOCKETS_BUFFER_MIN_SIZE(fd sock_vsock_stream, level const[AF_VSOCK], opt const[SO_VM_SOCKETS_BUFFER_MIN_SIZE], val ptr[in, int64], len len[val])
+setsockopt$SO_VM_SOCKETS_CONNECT_TIMEOUT_OLD(fd sock_vsock_stream, level const[AF_VSOCK], opt const[SO_VM_SOCKETS_CONNECT_TIMEOUT_OLD], val ptr[in, timeval], len len[val])
+
+socket$vsock_dgram(domain const[AF_VSOCK], type const[SOCK_DGRAM], proto const[0]) sock_vsock_dgram
+bind$vsock_dgram(fd sock_vsock_dgram, addr ptr[in, sockaddr_vm], addrlen len[addr])
+connect$vsock_dgram(fd sock_vsock_dgram, addr ptr[in, sockaddr_vm], addrlen len[addr])
+
+openat$vsock(fd const[AT_FDCWD], file ptr[in, string["/dev/vsock"]], flags flags[open_flags], mode const[0]) fd
+
+openat$vhost_vsock(fd const[AT_FDCWD], file ptr[in, string["/dev/vhost-vsock"]], flags const[O_RDWR], mode const[0]) vhost_vsock
+ioctl$VHOST_VSOCK_SET_GUEST_CID(fd vhost_vsock, cmd const[VHOST_VSOCK_SET_GUEST_CID], arg ptr[in, vmaddr_cid64])
+ioctl$VHOST_VSOCK_SET_RUNNING(fd vhost_vsock, cmd const[VHOST_VSOCK_SET_RUNNING], arg ptr[in, bool32])
+
+openat$vnet(fd const[AT_FDCWD], file ptr[in, string["/dev/vhost-net"]], flags const[O_RDWR], mode const[0]) vhost_net
+write$vhost_msg(fd vhost_net, buf ptr[in, vhost_msg], size len[buf])
+write$vhost_msg_v2(fd vhost_net, buf ptr[in, vhost_msg_v2], size len[buf])
+ioctl$VHOST_NET_SET_BACKEND(fd vhost_net, cmd const[VHOST_NET_SET_BACKEND], arg ptr[in, vhost_vring_file])
+
+ioctl$VHOST_GET_FEATURES(fd fd_vhost, cmd const[VHOST_GET_FEATURES], arg ptr[out, int64])
+ioctl$VHOST_SET_FEATURES(fd fd_vhost, cmd const[VHOST_SET_FEATURES], arg ptr[in, flags[vhost_features, int64]])
+ioctl$VHOST_SET_OWNER(fd fd_vhost, cmd const[VHOST_SET_OWNER], arg const[0])
+ioctl$VHOST_RESET_OWNER(fd fd_vhost, cmd const[VHOST_RESET_OWNER], arg const[0])
+ioctl$VHOST_SET_MEM_TABLE(fd fd_vhost, cmd const[VHOST_SET_MEM_TABLE], arg ptr[in, vhost_memory])
+ioctl$VHOST_SET_LOG_BASE(fd fd_vhost, cmd const[VHOST_SET_LOG_BASE], arg ptr[in, ptr64[out, int8]])
+ioctl$VHOST_SET_LOG_FD(fd fd_vhost, cmd const[VHOST_SET_LOG_FD], arg ptr[in, fd_event[opt]])
+ioctl$VHOST_SET_VRING_NUM(fd fd_vhost, cmd const[VHOST_SET_VRING_NUM], arg ptr[in, vhost_vring_state])
+ioctl$VHOST_SET_VRING_BASE(fd fd_vhost, cmd const[VHOST_SET_VRING_BASE], arg ptr[in, vhost_vring_state])
+ioctl$VHOST_GET_VRING_BASE(fd fd_vhost, cmd const[VHOST_GET_VRING_BASE], arg ptr[out, vhost_vring_state])
+ioctl$VHOST_SET_VRING_ADDR(fd fd_vhost, cmd const[VHOST_SET_VRING_ADDR], arg ptr[in, vhost_vring_addr])
+ioctl$VHOST_SET_VRING_KICK(fd fd_vhost, cmd const[VHOST_SET_VRING_KICK], arg ptr[in, vhost_vring_file])
+ioctl$VHOST_SET_VRING_CALL(fd fd_vhost, cmd const[VHOST_SET_VRING_CALL], arg ptr[in, vhost_vring_file])
+ioctl$VHOST_SET_VRING_ERR(fd fd_vhost, cmd const[VHOST_SET_VRING_ERR], arg ptr[in, vhost_vring_file])
+ioctl$VHOST_SET_VRING_ENDIAN(fd fd_vhost, cmd const[VHOST_SET_VRING_ENDIAN], arg ptr[in, vhost_vring_state])
+ioctl$VHOST_GET_VRING_ENDIAN(fd fd_vhost, cmd const[VHOST_GET_VRING_ENDIAN], arg ptr[in, vhost_vring_state])
+ioctl$VHOST_SET_VRING_BUSYLOOP_TIMEOUT(fd fd_vhost, cmd const[VHOST_SET_VRING_BUSYLOOP_TIMEOUT], arg ptr[in, vhost_vring_state])
+
+sockaddr_vm {
+	svm_family	const[AF_VSOCK, int16]
+	svm_reserved1	const[0, int16]
+	svm_port	flags[vmaddr_port, int32]
+	svm_cid		vmaddr_cid
+	svm_zero	const[0, int32]
+}
+
+vmaddr_cid [
+	any	const[VMADDR_CID_ANY, int32]
+	hyper	const[VMADDR_CID_HYPERVISOR, int32]
+	local	const[VMADDR_CID_LOCAL, int32]
+	host	const[VMADDR_CID_HOST, int32]
+	my	proc[1234, 2, int32]
+]
+
+vmaddr_cid64 {
+	cid	vmaddr_cid
+	pad	const[0, int32]
+} [align[8]]
+
+vhost_memory {
+	nregions	len[regions, int32]
+	padding		const[0, int32]
+	regions		array[vhost_memory_region]
+}
+
+vhost_memory_region {
+	guest_phys_addr	flags[kvm_guest_addrs, int64]
+	memory_size	bytesize[userspace_addr, int64]
+	userspace_addr	ptr64[out, array[int8]]
+	flags_padding	const[0, int64]
+}
+
+vhost_vring_state {
+	index	flags[vhost_vring_index, int32]
+	num	int32
+}
+
+vhost_vring_addr {
+	index		flags[vhost_vring_index, int32]
+	flags		int32[0:1]
+	desc_user_addr	ptr64[out, array[int8]]
+	used_user_addr	ptr64[out, array[int8]]
+	avail_user_addr	ptr64[out, array[int8]]
+	log_guest_addr	flags[kvm_guest_addrs, int64]
+}
+
+vhost_vring_file {
+	index	flags[vhost_vring_index, int32]
+	fd	fd_event[opt]
+}
+
+vhost_msg {
+	type	const[VHOST_IOTLB_MSG, int32]
+	iotlb	vhost_iotlb_msg
+} [size[VHOST_MSG_SIZE]]
+
+define VHOST_MSG_SIZE	sizeof(struct vhost_msg)
+
+vhost_msg_v2 {
+	type		const[VHOST_IOTLB_MSG_V2, int32]
+	reserved	const[0, int32]
+	iotlb		vhost_iotlb_msg
+} [size[VHOST_MSG_V2_SIZE]]
+
+define VHOST_MSG_V2_SIZE	sizeof(struct vhost_msg_v2)
+
+vhost_iotlb_msg {
+# TODO: is it host or guest address?
+	iova	ptr64[out, array[int8]]
+	size	len[iova, int64]
+	uaddr	ptr64[out, array[int8]]
+	perm	flags[vhost_iotlb_perm, int8]
+	type	flags[vhost_iotlb_type, int8]
+}
+
+vmaddr_port = VMADDR_PORT_ANY, 0, 10000, 10001
+vhost_features = VHOST_LOG_ALL, VIRTIO_NOTIFY_ON_EMPTY, VIRTIO_RING_F_INDIRECT_DESC, VIRTIO_RING_F_EVENT_IDX, VIRTIO_ANY_LAYOUT, VIRTIO_VERSION_1, VHOST_NET_VIRTIO_NET_HDR, VIRTIO_NET_MRG_RXBUF, VIRTIO_IOMMU_PLATFORM
+vhost_vring_index = VSOCK_VQ_RX, VSOCK_VQ_TX, VSOCK_VQ_EVENT, VSOCK_VQ_MAX
+vhost_iotlb_type = VHOST_IOTLB_MISS, VHOST_IOTLB_UPDATE, VHOST_IOTLB_INVALIDATE, VHOST_IOTLB_ACCESS_FAIL
+vhost_iotlb_perm = VHOST_ACCESS_RO, VHOST_ACCESS_WO, VHOST_ACCESS_RW
+kvm_guest_addrs = 0, 1, 2, 4, 0x1000, 0x2000, 0x3000, 0x4000, 0x5000, 0x6000, 0xd000, 0xf000, 0x100000, 0x10000
+
+define VHOST_LOG_ALL	1 << VHOST_F_LOG_ALL
+define VIRTIO_NOTIFY_ON_EMPTY	1 << VIRTIO_F_NOTIFY_ON_EMPTY
+define VIRTIO_RING_F_INDIRECT_DESC	1 << VIRTIO_RING_F_INDIRECT_DESC
+define VIRTIO_RING_F_EVENT_IDX	1 << VIRTIO_RING_F_EVENT_IDX
+define VIRTIO_ANY_LAYOUT	1 << VIRTIO_F_ANY_LAYOUT
+define VIRTIO_VERSION_1	1 << VIRTIO_F_VERSION_1
+define VHOST_NET_VIRTIO_NET_HDR	1 << VHOST_NET_F_VIRTIO_NET_HDR
+define VIRTIO_NET_MRG_RXBUF	1 << VIRTIO_NET_F_MRG_RXBUF
+define VIRTIO_IOMMU_PLATFORM	1 << VIRTIO_F_ACCESS_PLATFORM

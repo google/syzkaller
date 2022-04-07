@@ -1,0 +1,44 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/ioctl.h>
+include <uapi/linux/filter.h>
+include <uapi/linux/ppp-ioctl.h>
+include <uapi/linux/ppp_defs.h>
+
+resource fd_ppp[fd]
+# TODO: what is this?
+type ppp_unit int32[0:4]
+
+openat$ppp(fd const[AT_FDCWD], file ptr[in, string["/dev/ppp"]], flags flags[open_flags], mode const[0]) fd_ppp
+write$ppp(fd fd_ppp, data ptr[in, ppp_packet], size bytesize[data])
+
+ioctl$PPPIOCNEWUNIT(fd fd_ppp, cmd const[PPPIOCNEWUNIT], arg ptr[in, ppp_unit])
+ioctl$PPPIOCATTACH(fd fd_ppp, cmd const[PPPIOCATTACH], arg ptr[in, ppp_unit])
+ioctl$PPPIOCATTCHAN(fd fd_ppp, cmd const[PPPIOCATTCHAN], arg ptr[in, ppp_unit])
+ioctl$PPPIOCCONNECT(fd fd_ppp, cmd const[PPPIOCCONNECT], arg ptr[in, ppp_unit])
+ioctl$PPPIOCDISCONN(fd fd_ppp, cmd const[PPPIOCDISCONN])
+ioctl$PPPIOCSCOMPRESS(fd fd_ppp, cmd const[PPPIOCSCOMPRESS])
+ioctl$PPPIOCGUNIT(fd fd_ppp, cmd const[PPPIOCGUNIT], arg ptr[out, int32])
+ioctl$PPPIOCSDEBUG(fd fd_ppp, cmd const[PPPIOCSDEBUG], arg ptr[in, int32])
+ioctl$PPPIOCGDEBUG(fd fd_ppp, cmd const[PPPIOCGDEBUG], arg ptr[out, int32])
+ioctl$PPPIOCGIDLE(fd fd_ppp, cmd const[PPPIOCGIDLE], arg ptr[out, array[int64, 2]])
+ioctl$PPPIOCSMAXCID(fd fd_ppp, cmd const[PPPIOCSMAXCID], arg ptr[in, int32])
+ioctl$PPPIOCGNPMODE(fd fd_ppp, cmd const[PPPIOCGNPMODE], arg ptr[in, npioctl])
+ioctl$PPPIOCSNPMODE(fd fd_ppp, cmd const[PPPIOCSNPMODE], arg ptr[in, npioctl])
+ioctl$PPPIOCSPASS(fd fd_ppp, cmd const[PPPIOCSPASS], arg ptr[in, sock_fprog])
+ioctl$PPPIOCSACTIVE(fd fd_ppp, cmd const[PPPIOCSACTIVE], arg ptr[in, sock_fprog])
+ioctl$PPPIOCSMRRU(fd fd_ppp, cmd const[PPPIOCSMRRU], arg ptr[in, int32])
+
+# NEED: these ioctl's are also defined for sock_pppox. We need multiple inheritance here (#322).
+ioctl$PPPIOCSMRU1(fd fd_ppp, cmd const[PPPIOCSMRU], arg ptr[in, int32])
+ioctl$PPPIOCSFLAGS1(fd fd_ppp, cmd const[PPPIOCSFLAGS], arg ptr[in, flags[ppp_flags, int32]])
+ioctl$PPPIOCGFLAGS1(fd fd_ppp, cmd const[PPPIOCGFLAGS], arg ptr[out, int32])
+
+ppp_proto = PPP_IP, PPP_AT, PPP_IPX, PPP_VJC_COMP, PPP_VJC_UNCOMP, PPP_MP, PPP_IPV6, PPP_COMPFRAG, PPP_COMP, PPP_MPLS_UC, PPP_MPLS_MC, PPP_IPCP, PPP_ATCP, PPP_IPXCP, PPP_IPV6CP, PPP_CCPFRAG, PPP_CCP, PPP_MPLSCP, PPP_LCP, PPP_PAP, PPP_LQR, PPP_CHAP, PPP_CBCP
+NPmode = NPMODE_PASS, NPMODE_DROP, NPMODE_ERROR, NPMODE_QUEUE
+
+npioctl {
+	protocol	flags[ppp_proto, int32]
+	mode		flags[NPmode, int32]
+}

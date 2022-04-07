@@ -1,0 +1,40 @@
+TITLE: general protection fault in __kernfs_remove
+ALT: bad-access in __kernfs_remove
+
+[ 1703.516227][ T2809] general protection fault, probably for non-canonical address 0xdffffc0000000002: 0000 [#1] PREEMPT SMP KASAN
+[ 1703.528051][ T2809] KASAN: null-ptr-deref in range [0x0000000000000010-0x0000000000000017]
+[ 1703.536428][ T2809] CPU: 0 PID: 2809 Comm: kworker/u4:2 Not tainted 5.8.0-rc3-next-20200703-syzkaller #0
+[ 1703.546018][ T2809] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 1703.556139][ T2809] Workqueue: netns cleanup_net
+[ 1703.560876][ T2809] RIP: 0010:rb_erase+0xb7/0x1210
+[ 1703.565782][ T2809] Code: 5e 10 4c 89 f5 48 ba 00 00 00 00 00 fc ff df 48 85 db 75 0b e9 9f 04 00 00 48 89 dd 48 89 c3 4c 8d 63 10 4c 89 e0 48 c1 e8 03 <80> 3c 10 00 0f 85 f3 0b 00 00 48 8b 43 10 48 85 c0 75 dc 48 8d 7b
+[ 1703.585480][ T2809] RSP: 0018:ffffc90017aff6c8 EFLAGS: 00010202
+[ 1703.591513][ T2809] RAX: 0000000000000002 RBX: 0000000000000001 RCX: 1ffff11000022949
+[ 1703.599456][ T2809] RDX: dffffc0000000000 RSI: ffff888000114e08 RDI: ffff888000114a48
+[ 1703.607397][ T2809] RBP: ffff888000110000 R08: 0000000000000000 R09: ffffffff89cdc267
+[ 1703.615340][ T2809] R10: 0000000000000001 R11: 0000000000000000 R12: 0000000000000011
+[ 1703.623281][ T2809] R13: ffff888000114c08 R14: ffff888000114a38 R15: ffff888000114e08
+[ 1703.631224][ T2809] FS:  0000000000000000(0000) GS:ffff8880ae600000(0000) knlGS:0000000000000000
+[ 1703.640121][ T2809] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[ 1703.646673][ T2809] CR2: 0000000000caa008 CR3: 00000000a7aa1000 CR4: 00000000001506f0
+[ 1703.654727][ T2809] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[ 1703.662682][ T2809] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[ 1703.670623][ T2809] Call Trace:
+[ 1703.679403][ T2809]  __kernfs_remove+0x623/0xa30
+[ 1703.705851][ T2809]  kernfs_remove_by_name_ns+0x51/0xb0
+[ 1703.711191][ T2809]  remove_files+0x96/0x1c0
+[ 1703.715580][ T2809]  sysfs_remove_group+0x87/0x170
+[ 1703.720486][ T2809]  sysfs_remove_groups+0x5c/0xa0
+[ 1703.725509][ T2809]  device_remove_attrs+0xa9/0x150
+[ 1703.730505][ T2809]  device_del+0x474/0xd20
+[ 1703.746949][ T2809]  rollback_registered_many+0xa07/0xf60
+[ 1703.778840][ T2809]  unregister_netdevice_many.part.0+0x1a/0x2f0
+[ 1703.784966][ T2809]  default_device_exit_batch+0x30c/0x3d0
+[ 1703.817287][ T2809]  ops_exit_list+0x10d/0x160
+[ 1703.821846][ T2809]  cleanup_net+0x4ea/0xa00
+[ 1703.841043][ T2809]  process_one_work+0x94c/0x1670
+[ 1703.866117][ T2809]  worker_thread+0x64c/0x1120
+[ 1703.880928][ T2809]  kthread+0x3b5/0x4a0
+[ 1703.895136][ T2809]  ret_from_fork+0x1f/0x30
+[ 1703.899519][ T2809] Modules linked in:
+[ 1703.904874][ T2809] ---[ end trace 85e16a2eaea866a0 ]---

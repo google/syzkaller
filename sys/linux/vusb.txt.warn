@@ -1,0 +1,57 @@
+no-such-struct: usb_device_descriptor_verbose_t
+compiler: len target configs refer to an array with variable-size elements (do you mean bytesize?)
+no-such-struct: usb_config_descriptor_verbose_t
+compiler: len target interfaces refer to an array with variable-size elements (do you mean bytesize?)
+no-such-struct: usb_interface_descriptor_verbose_t
+compiler: len target endpoints refer to an array with variable-size elements (do you mean bytesize?)
+no-such-struct: usb_endpoint_descriptor_verbose_t
+no-such-struct: vusb_connect_string_descriptor
+no-such-struct: vusb_descriptors
+no-such-struct: vusb_descriptor_t
+no-such-struct: vusb_responses
+no-such-struct: vusb_response_t
+no-such-struct: usb_string_descriptor_t
+compiler: len target caps refer to an array with variable-size elements (do you mean bytesize?)
+bad-field-number: usb_ext_cap_descriptor: syz=7 kernel=4
+bad-bitfield: usb_ext_cap_descriptor.bmAttributes1/bmAttributes: size/offset: syz=8/0 kernel=0/0
+bad-bitfield: usb_ssp_cap_descriptor.bmAttributesSublinkSpeeds/bmAttributes: size/offset: syz=5/0 kernel=0/0
+bad-bitfield: usb_ssp_cap_descriptor.bmAttributesSpeedIDs/wFunctionalitySupport: size/offset: syz=27/5 kernel=0/0
+bad-field-offset: usb_ssp_cap_descriptor.bmAttributesSpeedIDs/wFunctionalitySupport: syz=4 kernel=8
+bad-field-size: usb_ssp_cap_descriptor.bmAttributesSpeedIDs/wFunctionalitySupport: syz=4 kernel=2
+bad-field-offset: usb_ssp_cap_descriptor.wFunctionalitySupport/wReserved: syz=8 kernel=10
+bad-field-offset: usb_ssp_cap_descriptor.wReserved/bmSublinkSpeedAttr: syz=10 kernel=12
+bad-field-size: usb_ssp_cap_descriptor.wReserved/bmSublinkSpeedAttr: syz=2 kernel=4
+no-such-struct: usb_hub_descriptor_hs
+no-such-struct: usb_hub_descriptor_ss
+no-such-struct: usb_endpoint_descriptor_hid_in
+no-such-struct: usb_endpoint_descriptor_hid_out
+no-such-struct: vusb_descriptors_hid
+no-such-struct: vusb_responses_hid
+no-such-struct: usb_hid_descriptor_hid
+no-such-struct: usb_hid_class_descriptor_report
+no-such-struct: hid_report_item_short_4_t
+no-such-struct: usb_endpoint_descriptor_printer_out
+no-such-struct: usb_endpoint_descriptor_printer_in
+no-such-struct: vusb_descriptors_printer
+no-such-struct: vusb_responses_printer
+no-such-struct: usb_endpoint_descriptor_cdc_ecm_notify
+no-such-struct: usb_endpoint_descriptor_cdc_ecm_in
+no-such-struct: usb_endpoint_descriptor_cdc_ecm_out
+no-such-struct: usb_cdc_ecm_mbm_guid
+no-such-struct: vusb_descriptors_cdc_ecm
+no-such-struct: usb_cdc_ecm_mac
+no-such-struct: vusb_responses_cdc_ecm
+no-such-struct: usb_endpoint_descriptors_cdc_ncm_data
+no-such-struct: vusb_descriptors_cdc_ncm
+no-such-struct: vusb_responses_cdc_ncm
+no-such-struct: uac1_ac_header_descriptor_2
+no-such-struct: uac_as_out_endpoint_descriptor
+no-such-struct: uac_as_in_endpoint_descriptor
+no-such-struct: vusb_descriptors_uac1
+no-such-struct: vusb_responses_uac1
+no-such-struct: usb_device_descriptor_ath9k
+no-such-struct: usb_config_descriptor_ath9k
+no-such-struct: usb_interface_descriptor_ath9k
+no-such-struct: usb_endpoint_descriptors_ath9k
+no-such-struct: htc_ready_frame
+no-such-struct: htc_conn_svc_rsp_frame

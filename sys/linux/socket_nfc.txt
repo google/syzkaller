@@ -1,0 +1,59 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_NFC support.
+
+include <linux/socket.h>
+include <linux/net.h>
+include <uapi/linux/nfc.h>
+
+resource sock_nfc_llcp[sock]
+
+syz_init_net_socket$nfc_llcp(domain const[AF_NFC], type flags[nfc_llcp_type], proto const[NFC_SOCKPROTO_LLCP]) sock_nfc_llcp
+bind$nfc_llcp(fd sock_nfc_llcp, addr ptr[in, sockaddr_nfc_llcp], addrlen len[addr])
+connect$nfc_llcp(fd sock_nfc_llcp, addr ptr[in, sockaddr_nfc_llcp], addrlen len[addr])
+accept$nfc_llcp(fd sock_nfc_llcp, peer ptr[out, sockaddr_nfc_llcp, opt], peerlen ptr[inout, len[peer, int32]]) sock_nfc_llcp
+accept4$nfc_llcp(fd sock_nfc_llcp, peer ptr[out, sockaddr_nfc_llcp, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_nfc_llcp
+setsockopt$nfc_llcp_NFC_LLCP_RW(fd sock_nfc_llcp, level const[SOL_NFC], opt const[NFC_LLCP_RW], arg ptr[in, int32], arglen len[arg])
+setsockopt$nfc_llcp_NFC_LLCP_MIUX(fd sock_nfc_llcp, level const[SOL_NFC], opt const[NFC_LLCP_MIUX], arg ptr[in, int32], arglen len[arg])
+getsockopt$nfc_llcp(fd sock_nfc_llcp, level const[SOL_NFC], opt flags[nfc_llcp_opts], arg buffer[out], arglen len[arg])
+sendmsg$nfc_llcp(fd sock_nfc_llcp, msg ptr[in, nfc_llcp_send_msghdr], f flags[send_flags])
+sendmmsg$nfc_llcp(fd sock_nfc_llcp, mmsg ptr[in, array[nfc_llcp_send_msghdr]], vlen len[mmsg], f flags[send_flags])
+
+resource sock_nfc_raw[sock]
+
+syz_init_net_socket$nfc_raw(domain const[AF_NFC], type flags[nfc_raw_type], proto const[NFC_SOCKPROTO_RAW]) sock_nfc_raw
+connect$nfc_raw(fd sock_nfc_raw, addr ptr[in, sockaddr_nfc], addrlen len[addr])
+
+nfc_llcp_type = SOCK_STREAM, SOCK_DGRAM, SOCK_RAW
+nfc_raw_type = SOCK_SEQPACKET, SOCK_RAW
+nfc_proto = NFC_PROTO_JEWEL, NFC_PROTO_MIFARE, NFC_PROTO_FELICA, NFC_PROTO_ISO14443, NFC_PROTO_NFC_DEP, NFC_PROTO_ISO14443_B, NFC_PROTO_ISO15693
+nfc_llcp_opts = NFC_LLCP_RW, NFC_LLCP_MIUX, NFC_LLCP_REMOTE_MIU, NFC_LLCP_REMOTE_LTO, NFC_LLCP_REMOTE_RW
+
+sockaddr_nfc_llcp {
+	family		const[AF_NFC, int16]
+	devidx		int32[0:1]
+	target		int32[0:2]
+	proto		flags[nfc_proto, int32]
+	dsap		int8
+	ssap		int8
+	service_name	array[int8, NFC_LLCP_MAX_SERVICE_NAME]
+	servlen		intptr[0:NFC_LLCP_MAX_SERVICE_NAME]
+}
+
+sockaddr_nfc {
+	sa_family	const[AF_NFC, int16]
+	dev_idx		int32[0:1]
+	target_idx	int32[0:2]
+	nfc_protocol	flags[nfc_proto, int32]
+}
+
+nfc_llcp_send_msghdr {
+	addr	ptr[in, sockaddr_nfc_llcp]
+	addrlen	len[addr, int32]
+	vec	ptr[in, array[iovec_in]]
+	vlen	len[vec, intptr]
+	ctrl	ptr[in, cmsghdr, opt]
+	ctrllen	bytesize[ctrl, intptr]
+	f	flags[send_flags, int32]
+}

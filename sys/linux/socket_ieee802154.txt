@@ -1,0 +1,558 @@
+# Copyright 2021 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# TODO: these descriptions allow some basic testing, but does not seem to cover ingress path and lots of other things.
+# Some things that can be improved:
+# - supporting net namespaces in 802.15.4 subsystem for proper isolation, reproducubility
+#   (https://bugzilla.kernel.org/show_bug.cgi?id=211675)
+#   currently, parallel test processes use the same wpan0/wpan1 global devices in init namespace,
+#   thus no isolation, reproducubility, coverage guidance does not work
+# - supporting phy flags (WPAN_PHY_FLAG_TXPOWER, etc) in mac802154_hwsim
+#   this will increase coverage that can be achieved with mac802154_hwsim
+# - supporting remote coverage in 802.15.4 subsystem, lots of code seems to execute asynchronously
+# - figuring out how to achieve coverage of ingress path and describing 802.15.4 packet format
+# - there is something called 6lowpan that is related to 802.15.4, need to figure out what it is and how to reach it
+# - executor sets wpan0/1 UP in setup_802154, but lots of commands require the device to be DOWN
+#   since these are in init net namespace, our descriptions in socket_netlink_route.txt can change these devices
+#   thus commands that require devices to be DOWN don't actually work
+
+include <linux/net.h>
+include <linux/socket.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/genetlink.h>
+include <net/af_ieee802154.h>
+include <net/netlink.h>
+include <net/nl802154.h>
+include <linux/ieee802154.h>
+include <linux/nl802154.h>
+
+resource sock_802154_raw[sock]
+resource sock_802154_dgram[sock]
+
+syz_init_net_socket$802154_raw(domain const[AF_IEEE802154], type const[SOCK_RAW], proto const[0]) sock_802154_raw
+bind$802154_raw(fd sock_802154_raw, addr ptr[in, sockaddr_ieee802154], len bytesize[addr])
+sendmsg$802154_raw(fd sock_802154_raw, msg ptr[in, msghdr_802154], f flags[send_flags])
+
+syz_init_net_socket$802154_dgram(domain const[AF_IEEE802154], type const[SOCK_DGRAM], proto const[0]) sock_802154_dgram
+connect$802154_dgram(fd sock_802154_dgram, addr ptr[in, sockaddr_ieee802154], len bytesize[addr])
+bind$802154_dgram(fd sock_802154_dgram, addr ptr[in, sockaddr_ieee802154], len bytesize[addr])
+sendmsg$802154_dgram(fd sock_802154_dgram, msg ptr[in, msghdr_802154], f flags[send_flags])
+
+setsockopt$WPAN_WANTACK(fd sock_802154_dgram, level const[SOL_IEEE802154], opt const[WPAN_WANTACK], val ptr[in, bool32], len bytesize[val])
+setsockopt$WPAN_WANTLQI(fd sock_802154_dgram, level const[SOL_IEEE802154], opt const[WPAN_WANTLQI], val ptr[in, bool32], len bytesize[val])
+setsockopt$WPAN_SECURITY(fd sock_802154_dgram, level const[SOL_IEEE802154], opt const[WPAN_SECURITY], val ptr[in, flags[ieee802154_security, int32]], len bytesize[val])
+setsockopt$WPAN_SECURITY_LEVEL(fd sock_802154_dgram, level const[SOL_IEEE802154], opt const[WPAN_SECURITY_LEVEL], val ptr[in, int32[WPAN_SECURITY_LEVEL_DEFAULT:IEEE802154_SCF_SECLEVEL_ENC_MIC128]], len bytesize[val])
+getsockopt$WPAN_WANTACK(fd sock_802154_dgram, level const[SOL_IEEE802154], opt const[WPAN_WANTACK], val ptr[out, int32], len ptr[inout, bytesize[val, int32]])
+getsockopt$WPAN_WANTLQI(fd sock_802154_dgram, level const[SOL_IEEE802154], opt const[WPAN_WANTLQI], val ptr[out, int32], len ptr[inout, bytesize[val, int32]])
+getsockopt$WPAN_SECURITY(fd sock_802154_dgram, level const[SOL_IEEE802154], opt const[WPAN_SECURITY], val ptr[out, int32], len ptr[inout, bytesize[val, int32]])
+getsockopt$WPAN_SECURITY_LEVEL(fd sock_802154_dgram, level const[SOL_IEEE802154], opt const[WPAN_SECURITY_LEVEL], val ptr[out, int32], len ptr[inout, bytesize[val, int32]])
+
+resource genl_nl802154_family_id[int16]
+resource ieee802154_ifindex[int32]
+type msghdr_nl802154[CMD, POLICY] msghdr_netlink[netlink_msg_t[genl_nl802154_family_id, genlmsghdr_t[CMD], POLICY]]
+
+syz_genetlink_get_family_id$nl802154(name ptr[in, string["nl802154"]], fd sock_nl_generic_init) genl_nl802154_family_id
+ioctl$sock_SIOCGIFINDEX_802154(fd sock_nl_generic_init, cmd const[SIOCGIFINDEX], arg ptr[out, ifreq_dev_t[ieee802154_dev_names, ieee802154_ifindex]])
+
+sendmsg$NL802154_CMD_GET_WPAN_PHY(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_GET_WPAN_PHY, nl802154_policy$GET_WPAN_PHY]], f flags[send_flags])
+sendmsg$NL802154_CMD_GET_INTERFACE(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_GET_INTERFACE, nl802154_policy$GET_INTERFACE]], f flags[send_flags])
+sendmsg$NL802154_CMD_NEW_INTERFACE(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_NEW_INTERFACE, nl802154_policy$NEW_INTERFACE]], f flags[send_flags])
+# This is disabled as we only have 2 global hwsim devices, if we delete them we are out of devices.
+# sendmsg$NL802154_CMD_DEL_INTERFACE(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_DEL_INTERFACE, nl802154_policy$DEL_INTERFACE]], f flags[send_flags])
+sendmsg$NL802154_CMD_SET_CHANNEL(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_SET_CHANNEL, nl802154_policy$SET_CHANNEL]], f flags[send_flags])
+sendmsg$NL802154_CMD_SET_CCA_MODE(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_SET_CCA_MODE, nl802154_policy$SET_CCA_MODE]], f flags[send_flags])
+sendmsg$NL802154_CMD_SET_CCA_ED_LEVEL(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_SET_CCA_ED_LEVEL, nl802154_policy$SET_CCA_ED_LEVEL]], f flags[send_flags])
+sendmsg$NL802154_CMD_SET_TX_POWER(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_SET_TX_POWER, nl802154_policy$SET_TX_POWER]], f flags[send_flags])
+# This may be more harmful than useful. Once we move the device from init ns, we won't be able to test it anymore...
+sendmsg$NL802154_CMD_SET_WPAN_PHY_NETNS(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_SET_WPAN_PHY_NETNS, nl802154_policy$SET_WPAN_PHY_NETNS]], f flags[send_flags])
+sendmsg$NL802154_CMD_SET_PAN_ID(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_SET_PAN_ID, nl802154_policy$SET_PAN_ID]], f flags[send_flags])
+sendmsg$NL802154_CMD_SET_SHORT_ADDR(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_SET_SHORT_ADDR, nl802154_policy$SET_SHORT_ADDR]], f flags[send_flags])
+sendmsg$NL802154_CMD_SET_BACKOFF_EXPONENT(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_SET_BACKOFF_EXPONENT, nl802154_policy$SET_BACKOFF_EXPONENT]], f flags[send_flags])
+sendmsg$NL802154_CMD_SET_MAX_CSMA_BACKOFFS(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_SET_MAX_CSMA_BACKOFFS, nl802154_policy$SET_MAX_CSMA_BACKOFFS]], f flags[send_flags])
+sendmsg$NL802154_CMD_SET_MAX_FRAME_RETRIES(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_SET_MAX_FRAME_RETRIES, nl802154_policy$SET_MAX_FRAME_RETRIES]], f flags[send_flags])
+sendmsg$NL802154_CMD_SET_LBT_MODE(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_SET_LBT_MODE, nl802154_policy$SET_LBT_MODE]], f flags[send_flags])
+sendmsg$NL802154_CMD_SET_ACKREQ_DEFAULT(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_SET_ACKREQ_DEFAULT, nl802154_policy$SET_ACKREQ_DEFAULT]], f flags[send_flags])
+sendmsg$NL802154_CMD_SET_SEC_PARAMS(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_SET_SEC_PARAMS, nl802154_policy$SET_SEC_PARAMS]], f flags[send_flags])
+sendmsg$NL802154_CMD_GET_SEC_KEY(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_GET_SEC_KEY, nl802154_policy$GET_SEC_KEY]], f flags[send_flags])
+sendmsg$NL802154_CMD_NEW_SEC_KEY(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_NEW_SEC_KEY, nl802154_policy$NEW_SEC_KEY]], f flags[send_flags])
+sendmsg$NL802154_CMD_DEL_SEC_KEY(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_DEL_SEC_KEY, nl802154_policy$DEL_SEC_KEY]], f flags[send_flags])
+sendmsg$NL802154_CMD_GET_SEC_DEV(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_GET_SEC_DEV, nl802154_policy$GET_SEC_DEV]], f flags[send_flags])
+sendmsg$NL802154_CMD_NEW_SEC_DEV(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_NEW_SEC_DEV, nl802154_policy$NEW_SEC_DEV]], f flags[send_flags])
+sendmsg$NL802154_CMD_DEL_SEC_DEV(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_DEL_SEC_DEV, nl802154_policy$DEL_SEC_DEV]], f flags[send_flags])
+sendmsg$NL802154_CMD_GET_SEC_DEVKEY(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_GET_SEC_DEVKEY, nl802154_policy$GET_SEC_DEVKEY]], f flags[send_flags])
+sendmsg$NL802154_CMD_NEW_SEC_DEVKEY(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_NEW_SEC_DEVKEY, nl802154_policy$NEW_SEC_DEVKEY]], f flags[send_flags])
+sendmsg$NL802154_CMD_DEL_SEC_DEVKEY(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_DEL_SEC_DEVKEY, nl802154_policy$DEL_SEC_DEVKEY]], f flags[send_flags])
+sendmsg$NL802154_CMD_GET_SEC_LEVEL(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_GET_SEC_LEVEL, nl802154_policy$GET_SEC_LEVEL]], f flags[send_flags])
+sendmsg$NL802154_CMD_NEW_SEC_LEVEL(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_NEW_SEC_LEVEL, nl802154_policy$NEW_DEL_SEC_LEVEL]], f flags[send_flags])
+sendmsg$NL802154_CMD_DEL_SEC_LEVEL(fd sock_nl_generic_init, msg ptr[in, msghdr_nl802154[NL802154_CMD_DEL_SEC_LEVEL, nl802154_policy$NEW_DEL_SEC_LEVEL]], f flags[send_flags])
+
+nl802154_policy$GET_WPAN_PHY [
+	NL802154_ATTR_WPAN_PHY	nlattr[NL802154_ATTR_WPAN_PHY, flags[ieee802154_phy_index, int32]]
+	NL802154_ATTR_IFINDEX	nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV	nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+] [varlen]
+
+nl802154_policy$GET_INTERFACE [
+	NL802154_ATTR_IFINDEX	nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV	nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+] [varlen]
+
+nl802154_policy$NEW_INTERFACE [
+	NL802154_ATTR_WPAN_PHY		nlattr[NL802154_ATTR_WPAN_PHY, flags[ieee802154_phy_index, int32]]
+	NL802154_ATTR_IFINDEX		nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV		nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+	NL802154_ATTR_IFNAME		nlattr[NL802154_ATTR_IFNAME, string[ieee802154_dev_names]]
+	NL802154_ATTR_IFTYPE		nlattr[NL802154_ATTR_IFTYPE, flags[nl802154_iftype, int32]]
+	NL802154_ATTR_EXTENDED_ADDR	nlattr[NL802154_ATTR_EXTENDED_ADDR, ieee802154_hwaddr]
+] [varlen]
+
+nl802154_iftype = NL802154_IFTYPE_UNSPEC, NL802154_IFTYPE_NODE, NL802154_IFTYPE_MONITOR, NL802154_IFTYPE_COORD
+
+#nl802154_policy$DEL_INTERFACE [
+#	NL802154_ATTR_IFINDEX	nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+#	NL802154_ATTR_WPAN_DEV	nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+#] [varlen]
+
+nl802154_policy$SET_CHANNEL [
+	NL802154_ATTR_WPAN_PHY	nlattr[NL802154_ATTR_WPAN_PHY, flags[ieee802154_phy_index, int32]]
+	NL802154_ATTR_IFINDEX	nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV	nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+	NL802154_ATTR_PAGE	nlattr[NL802154_ATTR_PAGE, int8[0:IEEE802154_MAX_PAGE]]
+	NL802154_ATTR_CHANNEL	nlattr[NL802154_ATTR_CHANNEL, int8[0:IEEE802154_MAX_CHANNEL]]
+] [varlen]
+
+nl802154_policy$SET_CCA_MODE [
+	NL802154_ATTR_WPAN_PHY	nlattr[NL802154_ATTR_WPAN_PHY, flags[ieee802154_phy_index, int32]]
+	NL802154_ATTR_IFINDEX	nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV	nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+	NL802154_ATTR_CCA_MODE	nlattr[NL802154_ATTR_CCA_MODE, flags[nl802154_cca_modes, int32]]
+	NL802154_ATTR_CCA_OPT	nlattr[NL802154_ATTR_CCA_OPT, flags[nl802154_cca_opts, int32]]
+] [varlen]
+
+nl802154_cca_modes = NL802154_CCA_ENERGY, NL802154_CCA_CARRIER, NL802154_CCA_ENERGY_CARRIER, NL802154_CCA_ALOHA, NL802154_CCA_UWB_SHR, NL802154_CCA_UWB_MULTIPLEXED
+nl802154_cca_opts = NL802154_CCA_OPT_ENERGY_CARRIER_AND, NL802154_CCA_OPT_ENERGY_CARRIER_OR
+
+nl802154_policy$SET_CCA_ED_LEVEL [
+	NL802154_ATTR_WPAN_PHY		nlattr[NL802154_ATTR_WPAN_PHY, flags[ieee802154_phy_index, int32]]
+	NL802154_ATTR_IFINDEX		nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV		nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+	NL802154_ATTR_CCA_ED_LEVEL	nlattr[NL802154_ATTR_CCA_ED_LEVEL, int32[0:16]]
+] [varlen]
+
+nl802154_policy$SET_TX_POWER [
+	NL802154_ATTR_WPAN_PHY	nlattr[NL802154_ATTR_WPAN_PHY, flags[ieee802154_phy_index, int32]]
+	NL802154_ATTR_IFINDEX	nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV	nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+	NL802154_ATTR_TX_POWER	nlattr[NL802154_ATTR_TX_POWER, int32]
+] [varlen]
+
+nl802154_policy$SET_WPAN_PHY_NETNS [
+	NL802154_ATTR_WPAN_PHY	nlattr[NL802154_ATTR_WPAN_PHY, flags[ieee802154_phy_index, int32]]
+	NL802154_ATTR_IFINDEX	nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV	nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+	NL802154_ATTR_PID	nlattr[NL802154_ATTR_PID, pid]
+	NL802154_ATTR_NETNS_FD	nlattr[NL802154_ATTR_NETNS_FD, fd_namespace]
+] [varlen]
+
+nl802154_policy$SET_PAN_ID [
+	NL802154_ATTR_IFINDEX	nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV	nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+	NL802154_ATTR_PAN_ID	nlattr[NL802154_ATTR_PAN_ID, flags[ieee802154_pan_id, int16]]
+] [varlen]
+
+nl802154_policy$SET_SHORT_ADDR [
+	NL802154_ATTR_IFINDEX		nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV		nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+	NL802154_ATTR_SHORT_ADDR	nlattr[NL802154_ATTR_SHORT_ADDR, flags[ieee802154_short_addr, int16]]
+] [varlen]
+
+nl802154_policy$SET_BACKOFF_EXPONENT [
+	NL802154_ATTR_IFINDEX	nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV	nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+	NL802154_ATTR_MIN_BE	nlattr[NL802154_ATTR_MIN_BE, int8]
+	NL802154_ATTR_MAX_BE	nlattr[NL802154_ATTR_MAX_BE, int8]
+] [varlen]
+
+nl802154_policy$SET_MAX_CSMA_BACKOFFS [
+	NL802154_ATTR_IFINDEX		nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV		nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+	NL802154_ATTR_MAX_CSMA_BACKOFFS	nlattr[NL802154_ATTR_MAX_CSMA_BACKOFFS, int8]
+] [varlen]
+
+nl802154_policy$SET_MAX_FRAME_RETRIES [
+	NL802154_ATTR_IFINDEX		nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV		nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+	NL802154_ATTR_MAX_FRAME_RETRIES	nlattr[NL802154_ATTR_MAX_FRAME_RETRIES, int8]
+] [varlen]
+
+nl802154_policy$SET_LBT_MODE [
+	NL802154_ATTR_IFINDEX	nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV	nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+	NL802154_ATTR_LBT_MODE	nlattr[NL802154_ATTR_LBT_MODE, bool8]
+] [varlen]
+
+nl802154_policy$SET_ACKREQ_DEFAULT [
+	NL802154_ATTR_IFINDEX		nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV		nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+	NL802154_ATTR_ACKREQ_DEFAULT	nlattr[NL802154_ATTR_ACKREQ_DEFAULT, bool8]
+] [varlen]
+
+nl802154_policy$SET_SEC_PARAMS [
+	NL802154_ATTR_IFINDEX		nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV		nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+	NL802154_ATTR_SEC_ENABLED	nlattr[NL802154_ATTR_SEC_ENABLED, bool8]
+	NL802154_ATTR_SEC_OUT_KEY_ID	nlnest[NL802154_ATTR_SEC_OUT_KEY_ID, array[nl802154_key_id_policy]]
+	NL802154_ATTR_SEC_OUT_LEVEL	nlattr[NL802154_ATTR_SEC_OUT_LEVEL, int32[0:NL802154_SECLEVEL_MAX]]
+	NL802154_ATTR_SEC_FRAME_COUNTER	nlattr[NL802154_ATTR_SEC_FRAME_COUNTER, int32]
+] [varlen]
+
+nl802154_policy$GET_SEC_KEY [
+	NL802154_ATTR_IFINDEX	nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV	nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+] [varlen]
+
+nl802154_policy$NEW_SEC_KEY [
+	NL802154_ATTR_IFINDEX	nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV	nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+	NL802154_ATTR_SEC_KEY	nlnest[NL802154_ATTR_SEC_KEY, array[nl802154_key_policy]]
+] [varlen]
+
+nl802154_key_policy [
+	NL802154_KEY_ATTR_ID		nlnest[NL802154_KEY_ATTR_ID, array[nl802154_key_id_policy]]
+	NL802154_KEY_ATTR_USAGE_FRAMES	nlattr[NL802154_KEY_ATTR_USAGE_FRAMES, int8]
+	NL802154_KEY_ATTR_USAGE_CMDS	nlattr[NL802154_KEY_ATTR_USAGE_CMDS, array[int8, 32]]
+	NL802154_KEY_ATTR_BYTES		nlattr[NL802154_KEY_ATTR_BYTES, array[int8, NL802154_KEY_SIZE]]
+] [varlen]
+
+nl802154_key_id_policy [
+	NL802154_KEY_ID_ATTR_MODE		nlattr[NL802154_KEY_ID_ATTR_MODE, int32[0:NL802154_KEY_ID_MODE_MAX]]
+	NL802154_KEY_ID_ATTR_INDEX		nlattr[NL802154_KEY_ID_ATTR_INDEX, flags[ieee802154_scf_key, int8]]
+	NL802154_KEY_ID_ATTR_IMPLICIT		nlnest[NL802154_KEY_ID_ATTR_IMPLICIT, array[nl802154_dev_addr_policy]]
+	NL802154_KEY_ID_ATTR_SOURCE_SHORT	nlattr[NL802154_KEY_ID_ATTR_SOURCE_SHORT, int32]
+	NL802154_KEY_ID_ATTR_SOURCE_EXTENDED	nlattr[NL802154_KEY_ID_ATTR_SOURCE_EXTENDED, int64]
+] [varlen]
+
+nl802154_dev_addr_policy [
+	NL802154_DEV_ADDR_ATTR_PAN_ID	nlattr[NL802154_DEV_ADDR_ATTR_PAN_ID, flags[ieee802154_pan_id, int16]]
+	NL802154_DEV_ADDR_ATTR_MODE	nlattr[NL802154_DEV_ADDR_ATTR_MODE, int32[0:NL802154_DEV_ADDR_MAX]]
+	NL802154_DEV_ADDR_ATTR_SHORT	nlattr[NL802154_DEV_ADDR_ATTR_SHORT, flags[ieee802154_short_addr, int16]]
+	NL802154_DEV_ADDR_ATTR_EXTENDED	nlattr[NL802154_DEV_ADDR_ATTR_EXTENDED, ieee802154_hwaddr]
+] [varlen]
+
+nl802154_policy$DEL_SEC_KEY [
+	NL802154_ATTR_IFINDEX	nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV	nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+	NL802154_ATTR_SEC_KEY	nlnest[NL802154_ATTR_SEC_KEY, array[nl802154_key_policy]]
+] [varlen]
+
+nl802154_policy$GET_SEC_DEV [
+	NL802154_ATTR_IFINDEX	nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV	nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+] [varlen]
+
+nl802154_policy$NEW_SEC_DEV [
+	NL802154_ATTR_IFINDEX		nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV		nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+	NL802154_ATTR_SEC_DEVICE	nlnest[NL802154_ATTR_SEC_DEVICE, array[nl802154_dev_policy]]
+] [varlen]
+
+nl802154_dev_policy [
+	NL802154_DEV_ATTR_FRAME_COUNTER		nlattr[NL802154_DEV_ATTR_FRAME_COUNTER, int16]
+	NL802154_DEV_ATTR_PAN_ID		nlattr[NL802154_DEV_ATTR_PAN_ID, flags[ieee802154_pan_id, int16]]
+	NL802154_DEV_ATTR_SHORT_ADDR		nlattr[NL802154_DEV_ATTR_SHORT_ADDR, flags[ieee802154_short_addr, int16]]
+	NL802154_DEV_ATTR_EXTENDED_ADDR		nlattr[NL802154_DEV_ATTR_EXTENDED_ADDR, ieee802154_hwaddr]
+	NL802154_DEV_ATTR_SECLEVEL_EXEMPT	nlattr[NL802154_DEV_ATTR_SECLEVEL_EXEMPT, bool8]
+	NL802154_DEV_ATTR_KEY_MODE		nlattr[NL802154_DEV_ATTR_KEY_MODE, int32[0:NL802154_DEVKEY_MAX]]
+] [varlen]
+
+nl802154_policy$DEL_SEC_DEV [
+	NL802154_ATTR_IFINDEX		nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV		nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+	NL802154_ATTR_SEC_DEVICE	nlnest[NL802154_ATTR_SEC_DEVICE, nlattr[NL802154_DEV_ATTR_EXTENDED_ADDR, ieee802154_hwaddr]]
+] [varlen]
+
+nl802154_policy$GET_SEC_DEVKEY [
+	NL802154_ATTR_IFINDEX	nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV	nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+] [varlen]
+
+nl802154_policy$NEW_SEC_DEVKEY [
+	NL802154_ATTR_IFINDEX		nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV		nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+	NL802154_ATTR_SEC_DEVKEY	nlnest[NL802154_ATTR_SEC_DEVKEY, array[nl802154_devkey_policy]]
+] [varlen]
+
+nl802154_devkey_policy [
+	NL802154_DEVKEY_ATTR_FRAME_COUNTER	nlattr[NL802154_DEVKEY_ATTR_FRAME_COUNTER, int32]
+	NL802154_DEVKEY_ATTR_EXTENDED_ADDR	nlattr[NL802154_DEVKEY_ATTR_EXTENDED_ADDR, ieee802154_hwaddr]
+	NL802154_DEVKEY_ATTR_ID			nlnest[NL802154_DEVKEY_ATTR_ID, array[nl802154_key_id_policy]]
+] [varlen]
+
+nl802154_policy$DEL_SEC_DEVKEY [
+	NL802154_ATTR_IFINDEX		nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV		nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+	NL802154_ATTR_SEC_DEVKEY	nlnest[NL802154_ATTR_SEC_DEVKEY, array[nl802154_devkey_policy]]
+] [varlen]
+
+nl802154_policy$GET_SEC_LEVEL [
+	NL802154_ATTR_IFINDEX	nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV	nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+] [varlen]
+
+nl802154_policy$NEW_DEL_SEC_LEVEL [
+	NL802154_ATTR_IFINDEX	nlattr[NL802154_ATTR_IFINDEX, ieee802154_ifindex]
+	NL802154_ATTR_WPAN_DEV	nlattr[NL802154_ATTR_WPAN_DEV, flags[ieee802154_dev_index, int64]]
+	NL802154_ATTR_SEC_LEVEL	nlnest[NL802154_ATTR_SEC_LEVEL, array[nl802154_seclevel_policy]]
+] [varlen]
+
+nl802154_seclevel_policy [
+	NL802154_SECLEVEL_ATTR_LEVELS		nlattr[NL802154_SECLEVEL_ATTR_LEVELS, int8]
+	NL802154_SECLEVEL_ATTR_FRAME		nlattr[NL802154_SECLEVEL_ATTR_FRAME, int32[0:NL802154_FRAME_MAX]]
+	NL802154_SECLEVEL_ATTR_CMD_FRAME	nlattr[NL802154_SECLEVEL_ATTR_CMD_FRAME, int32[0:NL802154_CMD_FRAME_MAX]]
+	NL802154_SECLEVEL_ATTR_DEV_OVERRIDE	nlattr[NL802154_SECLEVEL_ATTR_DEV_OVERRIDE, bool8]
+] [varlen]
+
+resource genl_ieee802154_family_id[int16]
+type msghdr_ieee802154[CMD, POLICY] msghdr_netlink[netlink_msg_t[genl_ieee802154_family_id, genlmsghdr_t[CMD], POLICY]]
+
+syz_genetlink_get_family_id$ieee802154(name ptr[in, string["802.15.4 MAC"]], fd sock_nl_generic_init) genl_ieee802154_family_id
+
+sendmsg$IEEE802154_LIST_PHY(fd sock_nl_generic_init, msg ptr[in, msghdr_ieee802154[IEEE802154_LIST_PHY, void]], f flags[send_flags])
+sendmsg$IEEE802154_ADD_IFACE(fd sock_nl_generic_init, msg ptr[in, msghdr_ieee802154[IEEE802154_ADD_IFACE, ieee802154_policy$ADD_IFACE]], f flags[send_flags])
+# This is disabled as we only have 2 global hwsim devices, if we delete them we are out of devices.
+# sendmsg$IEEE802154_DEL_IFACE(fd sock_nl_generic_init, msg ptr[in, msghdr_ieee802154[IEEE802154_DEL_IFACE, ieee802154_policy$DEL_IFACE]], f flags[send_flags])
+sendmsg$IEEE802154_ASSOCIATE_REQ(fd sock_nl_generic_init, msg ptr[in, msghdr_ieee802154[IEEE802154_ASSOCIATE_REQ, ieee802154_policy$ASSOCIATE_REQ]], f flags[send_flags])
+sendmsg$IEEE802154_ASSOCIATE_RESP(fd sock_nl_generic_init, msg ptr[in, msghdr_ieee802154[IEEE802154_ASSOCIATE_RESP, ieee802154_policy$ASSOCIATE_RESP]], f flags[send_flags])
+sendmsg$IEEE802154_DISASSOCIATE_REQ(fd sock_nl_generic_init, msg ptr[in, msghdr_ieee802154[IEEE802154_DISASSOCIATE_REQ, ieee802154_policy$DISASSOCIATE_REQ]], f flags[send_flags])
+sendmsg$IEEE802154_SCAN_REQ(fd sock_nl_generic_init, msg ptr[in, msghdr_ieee802154[IEEE802154_SCAN_REQ, ieee802154_policy$SCAN_REQ]], f flags[send_flags])
+sendmsg$IEEE802154_START_REQ(fd sock_nl_generic_init, msg ptr[in, msghdr_ieee802154[IEEE802154_START_REQ, ieee802154_policy$START_REQ]], f flags[send_flags])
+sendmsg$IEEE802154_LIST_IFACE(fd sock_nl_generic_init, msg ptr[in, msghdr_ieee802154[IEEE802154_LIST_IFACE, ieee802154_policy$LIST_IFACE]], f flags[send_flags])
+sendmsg$IEEE802154_SET_MACPARAMS(fd sock_nl_generic_init, msg ptr[in, msghdr_ieee802154[IEEE802154_SET_MACPARAMS, ieee802154_policy$SET_MACPARAMS]], f flags[send_flags])
+sendmsg$IEEE802154_LLSEC_GETPARAMS(fd sock_nl_generic_init, msg ptr[in, msghdr_ieee802154[IEEE802154_LLSEC_GETPARAMS, ieee802154_policy$LLSEC_GETPARAMS]], f flags[send_flags])
+sendmsg$IEEE802154_LLSEC_SETPARAMS(fd sock_nl_generic_init, msg ptr[in, msghdr_ieee802154[IEEE802154_LLSEC_SETPARAMS, ieee802154_policy$LLSEC_SETPARAMS]], f flags[send_flags])
+sendmsg$IEEE802154_LLSEC_LIST_KEY(fd sock_nl_generic_init, msg ptr[in, msghdr_ieee802154[IEEE802154_LLSEC_LIST_KEY, void]], f flags[send_flags])
+sendmsg$IEEE802154_LLSEC_ADD_KEY(fd sock_nl_generic_init, msg ptr[in, msghdr_ieee802154[IEEE802154_LLSEC_ADD_KEY, ieee802154_policy$LLSEC_ADD_KEY]], f flags[send_flags])
+sendmsg$IEEE802154_LLSEC_DEL_KEY(fd sock_nl_generic_init, msg ptr[in, msghdr_ieee802154[IEEE802154_LLSEC_DEL_KEY, ieee802154_policy$LLSEC_DEL_KEY]], f flags[send_flags])
+sendmsg$IEEE802154_LLSEC_LIST_DEV(fd sock_nl_generic_init, msg ptr[in, msghdr_ieee802154[IEEE802154_LLSEC_LIST_DEV, void]], f flags[send_flags])
+sendmsg$IEEE802154_LLSEC_ADD_DEV(fd sock_nl_generic_init, msg ptr[in, msghdr_ieee802154[IEEE802154_LLSEC_ADD_DEV, ieee802154_policy$LLSEC_ADD_DEV]], f flags[send_flags])
+sendmsg$IEEE802154_LLSEC_DEL_DEV(fd sock_nl_generic_init, msg ptr[in, msghdr_ieee802154[IEEE802154_LLSEC_DEL_DEV, ieee802154_policy$LLSEC_DEL_DEV]], f flags[send_flags])
+sendmsg$IEEE802154_LLSEC_LIST_DEVKEY(fd sock_nl_generic_init, msg ptr[in, msghdr_ieee802154[IEEE802154_LLSEC_LIST_DEVKEY, void]], f flags[send_flags])
+sendmsg$IEEE802154_LLSEC_ADD_DEVKEY(fd sock_nl_generic_init, msg ptr[in, msghdr_ieee802154[IEEE802154_LLSEC_ADD_DEVKEY, ieee802154_policy$LLSEC_ADD_DEVKEY]], f flags[send_flags])
+sendmsg$IEEE802154_LLSEC_DEL_DEVKEY(fd sock_nl_generic_init, msg ptr[in, msghdr_ieee802154[IEEE802154_LLSEC_DEL_DEVKEY, ieee802154_policy$LLSEC_DEL_DEVKEY]], f flags[send_flags])
+sendmsg$IEEE802154_LLSEC_LIST_SECLEVEL(fd sock_nl_generic_init, msg ptr[in, msghdr_ieee802154[IEEE802154_LLSEC_LIST_SECLEVEL, void]], f flags[send_flags])
+sendmsg$IEEE802154_LLSEC_ADD_SECLEVEL(fd sock_nl_generic_init, msg ptr[in, msghdr_ieee802154[IEEE802154_LLSEC_ADD_SECLEVEL, ieee802154_policy$LLSEC_ADD_DEL_SECLEVEL]], f flags[send_flags])
+sendmsg$IEEE802154_LLSEC_DEL_SECLEVEL(fd sock_nl_generic_init, msg ptr[in, msghdr_ieee802154[IEEE802154_LLSEC_DEL_SECLEVEL, ieee802154_policy$LLSEC_ADD_DEL_SECLEVEL]], f flags[send_flags])
+
+ieee802154_policy$ADD_IFACE [
+	IEEE802154_ATTR_DEV_NAME	nlattr[IEEE802154_ATTR_DEV_NAME, string[ieee802154_dev_names]]
+	IEEE802154_ATTR_PHY_NAME	nlattr[IEEE802154_ATTR_PHY_NAME, string[ieee802154_phy_names]]
+	IEEE802154_ATTR_HW_ADDR		nlattr[IEEE802154_ATTR_HW_ADDR, ieee802154_hwaddr]
+	IEEE802154_ATTR_DEV_TYPE	nlattr[IEEE802154_ATTR_DEV_TYPE, int8[IEEE802154_DEV_WPAN:IEEE802154_DEV_MONITOR]]
+] [varlen]
+
+#ieee802154_policy$DEL_IFACE [
+#	IEEE802154_ATTR_DEV_NAME	nlattr[IEEE802154_ATTR_DEV_NAME, string[ieee802154_dev_names]]
+#	IEEE802154_ATTR_PHY_NAME	nlattr[IEEE802154_ATTR_PHY_NAME, string[ieee802154_phy_names]]
+#] [varlen]
+
+ieee802154_policy$ASSOCIATE_REQ [
+	IEEE802154_ATTR_CHANNEL			nlattr[IEEE802154_ATTR_CHANNEL, int8[0:IEEE802154_MAX_CHANNEL]]
+	IEEE802154_ATTR_COORD_PAN_ID		nlattr[IEEE802154_ATTR_COORD_PAN_ID, flags[ieee802154_pan_id, int16]]
+	IEEE802154_ATTR_COORD_HW_ADDR		nlattr[IEEE802154_ATTR_COORD_HW_ADDR, ieee802154_hwaddr]
+	IEEE802154_ATTR_COORD_SHORT_ADDR	nlattr[IEEE802154_ATTR_COORD_SHORT_ADDR, flags[ieee802154_short_addr, int16]]
+	IEEE802154_ATTR_CAPABILITY		nlattr[IEEE802154_ATTR_CAPABILITY, int8]
+	IEEE802154_ATTR_PAGE			nlattr[IEEE802154_ATTR_PAGE, int8[0:IEEE802154_MAX_PAGE]]
+] [varlen]
+
+ieee802154_policy$ASSOCIATE_RESP [
+	IEEE802154_ATTR_STATUS			nlattr[IEEE802154_ATTR_STATUS, int8]
+	IEEE802154_ATTR_COORD_HW_ADDR		nlattr[IEEE802154_ATTR_COORD_HW_ADDR, ieee802154_hwaddr]
+	IEEE802154_ATTR_COORD_SHORT_ADDR	nlattr[IEEE802154_ATTR_COORD_SHORT_ADDR, flags[ieee802154_short_addr, int16]]
+] [varlen]
+
+ieee802154_policy$DISASSOCIATE_REQ [
+	IEEE802154_ATTR_REASON			nlattr[IEEE802154_ATTR_REASON, int8]
+	IEEE802154_ATTR_COORD_HW_ADDR		nlattr[IEEE802154_ATTR_COORD_HW_ADDR, ieee802154_hwaddr]
+	IEEE802154_ATTR_COORD_SHORT_ADDR	nlattr[IEEE802154_ATTR_COORD_SHORT_ADDR, flags[ieee802154_short_addr, int16]]
+] [varlen]
+
+ieee802154_policy$SCAN_REQ [
+	IEEE802154_ATTR_SCAN_TYPE	nlattr[IEEE802154_ATTR_SCAN_TYPE, int8]
+	IEEE802154_ATTR_CHANNELS	nlattr[IEEE802154_ATTR_CHANNELS, int32[0:IEEE802154_MAX_CHANNEL]]
+	IEEE802154_ATTR_DURATION	nlattr[IEEE802154_ATTR_DURATION, int8]
+	IEEE802154_ATTR_PAGE		nlattr[IEEE802154_ATTR_PAGE, int8[0:IEEE802154_MAX_PAGE]]
+] [varlen]
+
+ieee802154_policy$START_REQ [
+	IEEE802154_ATTR_COORD_PAN_ID		nlattr[IEEE802154_ATTR_COORD_PAN_ID, flags[ieee802154_pan_id, int16]]
+	IEEE802154_ATTR_COORD_SHORT_ADDR	nlattr[IEEE802154_ATTR_COORD_SHORT_ADDR, flags[ieee802154_short_addr, int16]]
+	IEEE802154_ATTR_CHANNEL			nlattr[IEEE802154_ATTR_CHANNEL, int8[0:IEEE802154_MAX_CHANNEL]]
+	IEEE802154_ATTR_BCN_ORD			nlattr[IEEE802154_ATTR_BCN_ORD, int8]
+	IEEE802154_ATTR_SF_ORD			nlattr[IEEE802154_ATTR_SF_ORD, int8]
+	IEEE802154_ATTR_PAN_COORD		nlattr[IEEE802154_ATTR_PAN_COORD, int8]
+	IEEE802154_ATTR_BAT_EXT			nlattr[IEEE802154_ATTR_BAT_EXT, int8]
+	IEEE802154_ATTR_COORD_REALIGN		nlattr[IEEE802154_ATTR_COORD_REALIGN, int8]
+	IEEE802154_ATTR_PAGE			nlattr[IEEE802154_ATTR_PAGE, int8[0:IEEE802154_MAX_PAGE]]
+] [varlen]
+
+ieee802154_policy$LIST_IFACE [
+	IEEE802154_ATTR_DEV_NAME	nlattr[IEEE802154_ATTR_DEV_NAME, string[ieee802154_dev_names]]
+	IEEE802154_ATTR_DEV_INDEX	nlattr[IEEE802154_ATTR_DEV_INDEX, ieee802154_ifindex]
+] [varlen]
+
+ieee802154_policy$SET_MACPARAMS [
+	IEEE802154_ATTR_DEV_NAME	nlattr[IEEE802154_ATTR_DEV_NAME, string[ieee802154_dev_names]]
+	IEEE802154_ATTR_DEV_INDEX	nlattr[IEEE802154_ATTR_DEV_INDEX, ieee802154_ifindex]
+	IEEE802154_ATTR_LBT_ENABLED	nlattr[IEEE802154_ATTR_LBT_ENABLED, bool8]
+	IEEE802154_ATTR_CCA_MODE	nlattr[IEEE802154_ATTR_CCA_MODE, int8]
+	IEEE802154_ATTR_CCA_ED_LEVEL	nlattr[IEEE802154_ATTR_CCA_ED_LEVEL, int32]
+	IEEE802154_ATTR_CSMA_RETRIES	nlattr[IEEE802154_ATTR_CSMA_RETRIES, int8]
+	IEEE802154_ATTR_CSMA_MIN_BE	nlattr[IEEE802154_ATTR_CSMA_MIN_BE, int8]
+	IEEE802154_ATTR_CSMA_MAX_BE	nlattr[IEEE802154_ATTR_CSMA_MAX_BE, int8]
+	IEEE802154_ATTR_FRAME_RETRIES	nlattr[IEEE802154_ATTR_FRAME_RETRIES, int8]
+	IEEE802154_ATTR_TXPOWER		nlattr[IEEE802154_ATTR_TXPOWER, int8]
+] [varlen]
+
+ieee802154_policy$LLSEC_GETPARAMS [
+	IEEE802154_ATTR_DEV_NAME	nlattr[IEEE802154_ATTR_DEV_NAME, string[ieee802154_dev_names]]
+	IEEE802154_ATTR_DEV_INDEX	nlattr[IEEE802154_ATTR_DEV_INDEX, ieee802154_ifindex]
+] [varlen]
+
+ieee802154_policy$LLSEC_SETPARAMS [
+	IEEE802154_ATTR_DEV_NAME			nlattr[IEEE802154_ATTR_DEV_NAME, string[ieee802154_dev_names]]
+	IEEE802154_ATTR_DEV_INDEX			nlattr[IEEE802154_ATTR_DEV_INDEX, ieee802154_ifindex]
+	IEEE802154_ATTR_LLSEC_SECLEVEL			nlattr[IEEE802154_ATTR_LLSEC_SECLEVEL, int8[0:7]]
+	IEEE802154_ATTR_LLSEC_ENABLED			nlattr[IEEE802154_ATTR_LLSEC_ENABLED, bool8]
+	IEEE802154_ATTR_LLSEC_KEY_MODE			nlattr[IEEE802154_ATTR_LLSEC_KEY_MODE, flags[ieee802154_scf_key, int8]]
+	IEEE802154_ATTR_PAN_ID				nlattr[IEEE802154_ATTR_PAN_ID, flags[ieee802154_pan_id, int16]]
+	IEEE802154_ATTR_HW_ADDR				nlattr[IEEE802154_ATTR_HW_ADDR, ieee802154_hwaddr]
+	IEEE802154_ATTR_SHORT_ADDR			nlattr[IEEE802154_ATTR_SHORT_ADDR, flags[ieee802154_short_addr, int16]]
+	IEEE802154_ATTR_LLSEC_KEY_ID			nlattr[IEEE802154_ATTR_LLSEC_KEY_ID, int8]
+	IEEE802154_ATTR_LLSEC_KEY_SOURCE_SHORT		nlattr[IEEE802154_ATTR_LLSEC_KEY_SOURCE_SHORT, int32]
+	IEEE802154_ATTR_LLSEC_KEY_SOURCE_EXTENDED	nlattr[IEEE802154_ATTR_LLSEC_KEY_SOURCE_EXTENDED, ieee802154_hwaddr]
+	IEEE802154_ATTR_LLSEC_FRAME_COUNTER		nlattr[IEEE802154_ATTR_LLSEC_FRAME_COUNTER, int32]
+] [varlen]
+
+ieee802154_scf_key = IEEE802154_SCF_KEY_IMPLICIT, IEEE802154_SCF_KEY_INDEX, IEEE802154_SCF_KEY_SHORT_INDEX, IEEE802154_SCF_KEY_HW_INDEX
+
+ieee802154_policy$LLSEC_ADD_KEY [
+	IEEE802154_ATTR_DEV_NAME			nlattr[IEEE802154_ATTR_DEV_NAME, string[ieee802154_dev_names]]
+	IEEE802154_ATTR_DEV_INDEX			nlattr[IEEE802154_ATTR_DEV_INDEX, ieee802154_ifindex]
+	IEEE802154_ATTR_LLSEC_KEY_USAGE_FRAME_TYPES	nlattr[IEEE802154_ATTR_LLSEC_KEY_USAGE_FRAME_TYPES, int8]
+	IEEE802154_ATTR_LLSEC_KEY_BYTES			nlattr[IEEE802154_ATTR_LLSEC_KEY_BYTES, array[int8, 16]]
+	IEEE802154_ATTR_LLSEC_KEY_USAGE_COMMANDS	nlattr[IEEE802154_ATTR_LLSEC_KEY_USAGE_COMMANDS, array[int8, 32]]
+	IEEE802154_ATTR_LLSEC_KEY_MODE			nlattr[IEEE802154_ATTR_LLSEC_KEY_MODE, flags[ieee802154_scf_key, int8]]
+	IEEE802154_ATTR_PAN_ID				nlattr[IEEE802154_ATTR_PAN_ID, flags[ieee802154_pan_id, int16]]
+	IEEE802154_ATTR_HW_ADDR				nlattr[IEEE802154_ATTR_HW_ADDR, ieee802154_hwaddr]
+	IEEE802154_ATTR_SHORT_ADDR			nlattr[IEEE802154_ATTR_SHORT_ADDR, flags[ieee802154_short_addr, int16]]
+	IEEE802154_ATTR_LLSEC_KEY_ID			nlattr[IEEE802154_ATTR_LLSEC_KEY_ID, int8]
+	IEEE802154_ATTR_LLSEC_KEY_SOURCE_SHORT		nlattr[IEEE802154_ATTR_LLSEC_KEY_SOURCE_SHORT, int32]
+	IEEE802154_ATTR_LLSEC_KEY_SOURCE_EXTENDED	nlattr[IEEE802154_ATTR_LLSEC_KEY_SOURCE_EXTENDED, ieee802154_hwaddr]
+] [varlen]
+
+ieee802154_policy$LLSEC_DEL_KEY [
+	IEEE802154_ATTR_DEV_NAME			nlattr[IEEE802154_ATTR_DEV_NAME, string[ieee802154_dev_names]]
+	IEEE802154_ATTR_DEV_INDEX			nlattr[IEEE802154_ATTR_DEV_INDEX, ieee802154_ifindex]
+	IEEE802154_ATTR_LLSEC_KEY_MODE			nlattr[IEEE802154_ATTR_LLSEC_KEY_MODE, flags[ieee802154_scf_key, int8]]
+	IEEE802154_ATTR_PAN_ID				nlattr[IEEE802154_ATTR_PAN_ID, flags[ieee802154_pan_id, int16]]
+	IEEE802154_ATTR_HW_ADDR				nlattr[IEEE802154_ATTR_HW_ADDR, ieee802154_hwaddr]
+	IEEE802154_ATTR_SHORT_ADDR			nlattr[IEEE802154_ATTR_SHORT_ADDR, flags[ieee802154_short_addr, int16]]
+	IEEE802154_ATTR_LLSEC_KEY_ID			nlattr[IEEE802154_ATTR_LLSEC_KEY_ID, int8]
+	IEEE802154_ATTR_LLSEC_KEY_SOURCE_SHORT		nlattr[IEEE802154_ATTR_LLSEC_KEY_SOURCE_SHORT, int32]
+	IEEE802154_ATTR_LLSEC_KEY_SOURCE_EXTENDED	nlattr[IEEE802154_ATTR_LLSEC_KEY_SOURCE_EXTENDED, ieee802154_hwaddr]
+] [varlen]
+
+ieee802154_policy$LLSEC_ADD_DEV [
+	IEEE802154_ATTR_DEV_NAME		nlattr[IEEE802154_ATTR_DEV_NAME, string[ieee802154_dev_names]]
+	IEEE802154_ATTR_DEV_INDEX		nlattr[IEEE802154_ATTR_DEV_INDEX, ieee802154_ifindex]
+	IEEE802154_ATTR_LLSEC_FRAME_COUNTER	nlattr[IEEE802154_ATTR_LLSEC_FRAME_COUNTER, int32]
+	IEEE802154_ATTR_HW_ADDR			nlattr[IEEE802154_ATTR_HW_ADDR, ieee802154_hwaddr]
+	IEEE802154_ATTR_SHORT_ADDR		nlattr[IEEE802154_ATTR_SHORT_ADDR, flags[ieee802154_short_addr, int16]]
+	IEEE802154_ATTR_PAN_ID			nlattr[IEEE802154_ATTR_PAN_ID, flags[ieee802154_pan_id, int16]]
+	IEEE802154_ATTR_LLSEC_DEV_OVERRIDE	nlattr[IEEE802154_ATTR_LLSEC_DEV_OVERRIDE, bool8]
+	IEEE802154_ATTR_LLSEC_DEV_KEY_MODE	nlattr[IEEE802154_ATTR_LLSEC_DEV_KEY_MODE, flags[ieee802154_devkey_mode, int8]]
+] [varlen]
+
+ieee802154_devkey_mode = NL802154_DEVKEY_IGNORE, NL802154_DEVKEY_RESTRICT, NL802154_DEVKEY_RECORD
+
+ieee802154_policy$LLSEC_DEL_DEV [
+	IEEE802154_ATTR_DEV_NAME	nlattr[IEEE802154_ATTR_DEV_NAME, string[ieee802154_dev_names]]
+	IEEE802154_ATTR_DEV_INDEX	nlattr[IEEE802154_ATTR_DEV_INDEX, ieee802154_ifindex]
+	IEEE802154_ATTR_HW_ADDR		nlattr[IEEE802154_ATTR_HW_ADDR, ieee802154_hwaddr]
+] [varlen]
+
+ieee802154_policy$LLSEC_ADD_DEVKEY [
+	IEEE802154_ATTR_DEV_NAME			nlattr[IEEE802154_ATTR_DEV_NAME, string[ieee802154_dev_names]]
+	IEEE802154_ATTR_DEV_INDEX			nlattr[IEEE802154_ATTR_DEV_INDEX, ieee802154_ifindex]
+	IEEE802154_ATTR_LLSEC_FRAME_COUNTER		nlattr[IEEE802154_ATTR_LLSEC_FRAME_COUNTER, int32]
+	IEEE802154_ATTR_HW_ADDR				nlattr[IEEE802154_ATTR_HW_ADDR, ieee802154_hwaddr]
+	IEEE802154_ATTR_LLSEC_KEY_MODE			nlattr[IEEE802154_ATTR_LLSEC_KEY_MODE, flags[ieee802154_scf_key, int8]]
+	IEEE802154_ATTR_PAN_ID				nlattr[IEEE802154_ATTR_PAN_ID, flags[ieee802154_pan_id, int16]]
+	IEEE802154_ATTR_SHORT_ADDR			nlattr[IEEE802154_ATTR_SHORT_ADDR, flags[ieee802154_short_addr, int16]]
+	IEEE802154_ATTR_LLSEC_KEY_ID			nlattr[IEEE802154_ATTR_LLSEC_KEY_ID, int8]
+	IEEE802154_ATTR_LLSEC_KEY_SOURCE_SHORT		nlattr[IEEE802154_ATTR_LLSEC_KEY_SOURCE_SHORT, int32]
+	IEEE802154_ATTR_LLSEC_KEY_SOURCE_EXTENDED	nlattr[IEEE802154_ATTR_LLSEC_KEY_SOURCE_EXTENDED, ieee802154_hwaddr]
+] [varlen]
+
+ieee802154_policy$LLSEC_DEL_DEVKEY [
+	IEEE802154_ATTR_DEV_NAME			nlattr[IEEE802154_ATTR_DEV_NAME, string[ieee802154_dev_names]]
+	IEEE802154_ATTR_DEV_INDEX			nlattr[IEEE802154_ATTR_DEV_INDEX, ieee802154_ifindex]
+	IEEE802154_ATTR_HW_ADDR				nlattr[IEEE802154_ATTR_HW_ADDR, ieee802154_hwaddr]
+	IEEE802154_ATTR_LLSEC_KEY_MODE			nlattr[IEEE802154_ATTR_LLSEC_KEY_MODE, flags[ieee802154_scf_key, int8]]
+	IEEE802154_ATTR_PAN_ID				nlattr[IEEE802154_ATTR_PAN_ID, flags[ieee802154_pan_id, int16]]
+	IEEE802154_ATTR_SHORT_ADDR			nlattr[IEEE802154_ATTR_SHORT_ADDR, flags[ieee802154_short_addr, int16]]
+	IEEE802154_ATTR_LLSEC_KEY_ID			nlattr[IEEE802154_ATTR_LLSEC_KEY_ID, int8]
+	IEEE802154_ATTR_LLSEC_KEY_SOURCE_SHORT		nlattr[IEEE802154_ATTR_LLSEC_KEY_SOURCE_SHORT, int32]
+	IEEE802154_ATTR_LLSEC_KEY_SOURCE_EXTENDED	nlattr[IEEE802154_ATTR_LLSEC_KEY_SOURCE_EXTENDED, ieee802154_hwaddr]
+] [varlen]
+
+ieee802154_policy$LLSEC_ADD_DEL_SECLEVEL [
+	IEEE802154_ATTR_DEV_NAME		nlattr[IEEE802154_ATTR_DEV_NAME, string[ieee802154_dev_names]]
+	IEEE802154_ATTR_DEV_INDEX		nlattr[IEEE802154_ATTR_DEV_INDEX, ieee802154_ifindex]
+	IEEE802154_ATTR_LLSEC_FRAME_TYPE	nlattr[IEEE802154_ATTR_LLSEC_FRAME_TYPE, int8]
+	IEEE802154_ATTR_LLSEC_SECLEVELS		nlattr[IEEE802154_ATTR_LLSEC_SECLEVELS, int8]
+	IEEE802154_ATTR_LLSEC_DEV_OVERRIDE	nlattr[IEEE802154_ATTR_LLSEC_DEV_OVERRIDE, bool8]
+	IEEE802154_ATTR_LLSEC_CMD_FRAME_ID	nlattr[IEEE802154_ATTR_LLSEC_CMD_FRAME_ID, int8]
+] [varlen]
+
+sockaddr_ieee802154 {
+	family	const[AF_IEEE802154, int16]
+	addr	ieee802154_addr_sa
+}
+
+ieee802154_addr_sa [
+	none	ieee802154_addr_sa_t[IEEE802154_ADDR_NONE, void]
+	short	ieee802154_addr_sa_t[IEEE802154_ADDR_SHORT, flags[ieee802154_short_addr, int16]]
+	long	ieee802154_addr_sa_t[IEEE802154_ADDR_LONG, ieee802154_hwaddr]
+]
+
+type ieee802154_addr_sa_t[TYP, ADDR] {
+	addr_type	const[TYP, int32]
+	pan_id		flags[ieee802154_pan_id, int16]
+	addr		ADDR
+}
+
+ieee802154_hwaddr {
+	val	flags[ieee802154_hwaddrs, int64]
+} [align[1]]
+
+msghdr_802154 {
+	addr	ptr[in, sockaddr_ieee802154, opt]
+	addrlen	len[addr, int32]
+	vec	ptr[in, iovec[in, array[int8]]]
+	vlen	const[1, intptr]
+	ctrl	const[0, intptr]
+	ctrllen	const[0, intptr]
+	f	flags[send_flags, int32]
+}
+
+# executor/common_linux.h:setup_802154 knowns about these constants.
+ieee802154_short_addr = IEEE802154_ADDR_UNDEF, IEEE802154_ADDR_BROADCAST, 0, 0xaaa0, 0xaaa1, 0xaaa2, 0xaaa3
+# Note: the last byte (02) is some flags that need to have a particular value.
+ieee802154_hwaddrs = 0, 0xaaaaaaaaaaaa0002, 0xaaaaaaaaaaaa0102, 0xaaaaaaaaaaaa0202, 0xaaaaaaaaaaaa0302
+ieee802154_dev_names = "wpan0", "wpan1", "wpan3", "wpan4"
+ieee802154_phy_names = "phy0", "phy1", "phy2", "phy3"
+ieee802154_phy_index = 0, 1, 2, 3
+ieee802154_dev_index = 0x0, 0x100000001, 0x200000002, 0x300000003, 0x2, 0x3
+ieee802154_pan_id = IEEE802154_PANID_BROADCAST, 0, 1, 2, 3
+ieee802154_security = WPAN_SECURITY_DEFAULT, WPAN_SECURITY_OFF, WPAN_SECURITY_ON

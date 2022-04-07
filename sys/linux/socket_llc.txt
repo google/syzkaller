@@ -1,0 +1,42 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# http://www.bocc.de/llcsocket.c
+
+# AF_LLC support.
+
+include <linux/socket.h>
+include <linux/net.h>
+include <linux/if_ether.h>
+include <linux/if_arp.h>
+include <linux/llc.h>
+
+resource sock_llc[sock]
+
+syz_init_net_socket$llc(domain const[AF_LLC], type flags[llc_socket_type], proto const[0]) sock_llc
+bind$llc(fd sock_llc, addr ptr[in, sockaddr_llc], addrlen len[addr])
+connect$llc(fd sock_llc, addr ptr[in, sockaddr_llc], addrlen len[addr])
+accept4$llc(fd sock_llc, peer ptr[out, sockaddr_llc, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_llc
+sendto$llc(fd sock_llc, buf buffer[in], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_llc, opt], addrlen len[addr])
+recvfrom$llc(fd sock_llc, buf buffer[out], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr_llc, opt], addrlen len[addr])
+getsockname$llc(fd sock_llc, addr ptr[out, sockaddr_llc], addrlen ptr[inout, len[addr, int32]])
+getpeername$llc(fd sock_llc, peer ptr[out, sockaddr_llc], peerlen ptr[inout, len[peer, int32]])
+
+llc_socket_type = SOCK_DGRAM, SOCK_STREAM
+
+sockaddr_llc {
+	sllc_family	const[AF_LLC, int16]
+	sllc_arphrd	flags[dev_type_arphdr, int16]
+	sllc_test	int8
+	sllc_xid	int8
+	sllc_ua		int8
+	sllc_sap	int8
+	sll_addr	mac_addr
+} [size[SOCKADDR_SIZE]]
+
+# Generic options
+
+llc_option_types_int = LLC_OPT_RETRY, LLC_OPT_SIZE, LLC_OPT_ACK_TMR_EXP, LLC_OPT_P_TMR_EXP, LLC_OPT_REJ_TMR_EXP, LLC_OPT_BUSY_TMR_EXP, LLC_OPT_TX_WIN, LLC_OPT_RX_WIN, LLC_OPT_PKTINFO
+
+getsockopt$llc_int(fd sock_llc, level const[SOL_LLC], optname flags[llc_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$llc_int(fd sock_llc, level const[SOL_LLC], optname flags[llc_option_types_int], optval ptr[in, int32], optlen len[optval])

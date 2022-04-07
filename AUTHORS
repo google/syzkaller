@@ -1,0 +1,50 @@
+# This is the official list of the syzkaller project authors for copyright purposes.
+# This file is distinct from the CONTRIBUTORS file. See the latter for an explanation.
+
+# Names should be added to this file as
+#	Name or Organization
+# Email addresses for individuals are tracked elsewhere to avoid spam.
+
+Google Inc.
+Baozeng Ding
+Lorenzo Stoakes
+Jeremy Huang
+Shuai Bai
+Alexander Popov
+Jean-Baptiste Cayrou
+Yuzhe Han
+Thomas Garnier
+Utkarsh Anand
+Tobias Klauser
+Tim Tianyang Chen
+Ed Maste
+Sumukha PK
+Mitchell Horne
+Hangbin Liu
+Denis Efremov
+Ondrej Mosnacek
+Chi Pham
+Anton Lindqvist
+Greg Steuck
+Shankara Pailoor
+Michael Tuexen
+Kamil Rytarowski
+Siddharth Muralee
+Dan Robertson
+Mark Johnston
+Mellanox Technologies
+Cody Holliday
+JinWoo Lee
+Andrew Turner
+Ethercflow
+Collabora
+Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+Heyuan Shi
+Christian Brauner
+Johannes Wellhöfer
+Microsoft Corporation
+Muhammad Usama Anjum
+ANSSI
+Chuck Silvers
+Lee Jones
+Junquan Zhou

@@ -1,0 +1,4 @@
+
+[    3.576566] [drm:sde_dbg_init:3432] evtlog_status: enable:0, panic:1, dump:2
+[    3.833763] sde_rotator_evtlog_create_debugfs: evtlog_status: enable:0, panic:1, dump:2
+[    4.077912] softdog: initialized. soft_noboot=0 soft_margin=60 sec soft_panic=0 (nowayout=0)

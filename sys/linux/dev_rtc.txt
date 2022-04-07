@@ -1,0 +1,62 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/rtc.h>
+
+resource fd_rtc[fd]
+
+openat$rtc(fd const[AT_FDCWD], file ptr[in, string["/dev/rtc0"]], flags flags[open_flags], mode const[0]) fd_rtc
+syz_open_dev$rtc(dev ptr[in, string["/dev/rtc#"]], id intptr, flags flags[open_flags]) fd_rtc
+
+ioctl$RTC_AIE_OFF(fd fd_rtc, cmd const[RTC_AIE_OFF])
+ioctl$RTC_AIE_ON(fd fd_rtc, cmd const[RTC_AIE_ON])
+ioctl$RTC_PIE_OFF(fd fd_rtc, cmd const[RTC_PIE_OFF])
+ioctl$RTC_PIE_ON(fd fd_rtc, cmd const[RTC_PIE_ON])
+ioctl$RTC_UIE_OFF(fd fd_rtc, cmd const[RTC_UIE_OFF])
+ioctl$RTC_UIE_ON(fd fd_rtc, cmd const[RTC_UIE_ON])
+ioctl$RTC_WIE_ON(fd fd_rtc, cmd const[RTC_WIE_ON])
+ioctl$RTC_WIE_OFF(fd fd_rtc, cmd const[RTC_WIE_OFF])
+ioctl$RTC_ALM_READ(fd fd_rtc, cmd const[RTC_ALM_READ], arg ptr[out, rtc_time])
+ioctl$RTC_ALM_SET(fd fd_rtc, cmd const[RTC_ALM_SET], arg ptr[in, rtc_time])
+ioctl$RTC_RD_TIME(fd fd_rtc, cmd const[RTC_RD_TIME], arg ptr[out, rtc_time])
+ioctl$RTC_SET_TIME(fd fd_rtc, cmd const[RTC_SET_TIME], arg ptr[in, rtc_time])
+ioctl$RTC_IRQP_READ(fd fd_rtc, cmd const[RTC_IRQP_READ], arg ptr[out, intptr])
+ioctl$RTC_IRQP_SET(fd fd_rtc, cmd const[RTC_IRQP_SET], arg intptr[1:RTC_MAX_FREQ])
+ioctl$RTC_EPOCH_READ(fd fd_rtc, cmd const[RTC_EPOCH_READ], arg ptr[out, intptr])
+ioctl$RTC_EPOCH_SET(fd fd_rtc, cmd const[RTC_EPOCH_SET], arg intptr)
+ioctl$RTC_WKALM_RD(fd fd_rtc, cmd const[RTC_WKALM_RD], arg ptr[out, rtc_wkalrm])
+ioctl$RTC_WKALM_SET(fd fd_rtc, cmd const[RTC_WKALM_SET], arg ptr[in, rtc_wkalrm])
+ioctl$RTC_PLL_GET(fd fd_rtc, cmd const[RTC_PLL_GET], arg ptr[out, rtc_pll_info])
+ioctl$RTC_PLL_SET(fd fd_rtc, cmd const[RTC_PLL_SET], arg ptr[in, rtc_pll_info])
+ioctl$RTC_VL_READ(fd fd_rtc, cmd const[RTC_VL_READ], arg ptr[out, int32])
+ioctl$RTC_VL_CLR(fd fd_rtc, cmd const[RTC_VL_CLR])
+
+rtc_time {
+	tm_sec		int32[0:60]
+	tm_min		int32[0:59]
+	tm_hour		int32[0:23]
+	tm_mday		int32[1:31]
+	tm_mon		int32[0:11]
+	tm_year		int32
+	tm_wday		int32[0:6]
+	tm_yday		int32[0:365]
+	tm_isdst	flags[rtc_isdst, int32]
+}
+
+rtc_wkalrm {
+	enabled	bool8
+	pending	bool8
+	time	rtc_time
+}
+
+rtc_pll_info {
+	pll_ctrl	int32
+	pll_value	int32
+	pll_max		int32
+	pll_min		int32
+	pll_posmult	int32
+	pll_negmult	int32
+	pll_clock	intptr
+}
+
+rtc_isdst = 0, 1, -1

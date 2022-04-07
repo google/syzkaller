@@ -1,0 +1,2 @@
+bad-netlink-attr: team_nl_policy: missing attributes: [3]
+bad-netlink-attr: team_nl_option_policy$array: missing attributes: [2]

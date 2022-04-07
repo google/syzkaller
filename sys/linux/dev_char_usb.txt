@@ -1,0 +1,11 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <include/linux/usb.h>
+
+resource fd_char_usb[fd]
+
+syz_open_dev$char_usb(dev const[0xc], major const[USB_MAJOR], minor intptr) fd_char_usb
+
+read$char_usb(fd fd_char_usb, buf buffer[out], count len[buf])
+write$char_usb(fd fd_char_usb, buf buffer[in], count len[buf])

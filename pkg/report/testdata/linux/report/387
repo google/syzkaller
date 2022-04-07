@@ -1,0 +1,98 @@
+TITLE: WARNING in aiptek_open/usb_submit_urb
+
+[  383.247320][ T5643] ------------[ cut here ]------------
+[  383.253280][ T5643] usb 2-1: BOGUS urb xfer, pipe 1 != type 3
+[  383.259753][ T5643] WARNING: CPU: 1 PID: 5643 at drivers/usb/core/urb.c:477 usb_submit_urb+0x119a/0x13c0
+[  383.269397][ T5643] Kernel panic - not syncing: panic_on_warn set ...
+[  383.275993][ T5643] CPU: 1 PID: 5643 Comm: kworker/1:5 Not tainted 5.1.0-rc3+ #8
+[  383.283555][ T5643] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  383.293644][ T5643] Workqueue: usb_hub_wq hub_event
+[  383.298671][ T5643] Call Trace:
+[  383.302006][ T5643]  dump_stack+0xca/0x13e
+[  383.306259][ T5643]  ? usb_submit_urb+0x1180/0x13c0
+[  383.311300][ T5643]  panic+0x292/0x5e1
+[  383.315191][ T5643]  ? __warn_printk+0xf3/0xf3
+[  383.319771][ T5643]  ? usb_submit_urb+0x119a/0x13c0
+[  383.324794][ T5643]  ? __probe_kernel_read+0x16c/0x1b0
+[  383.330192][ T5643]  ? __warn.cold+0x5/0x53
+[  383.334533][ T5643]  ? usb_submit_urb+0x119a/0x13c0
+[  383.339576][ T5643]  __warn.cold+0x20/0x53
+[  383.343807][ T5643]  ? usb_submit_urb+0x119a/0x13c0
+[  383.348822][ T5643]  report_bug+0x262/0x2a0
+[  383.353143][ T5643]  do_error_trap+0x12b/0x1e0
+[  383.357722][ T5643]  ? usb_submit_urb+0x119a/0x13c0
+[  383.362753][ T5643]  do_invalid_op+0x32/0x40
+[  383.367177][ T5643]  ? usb_submit_urb+0x119a/0x13c0
+[  383.372216][ T5643]  invalid_op+0x14/0x20
+[  383.376395][ T5643] RIP: 0010:usb_submit_urb+0x119a/0x13c0
+[  383.382022][ T5643] Code: ea fd 48 8b 04 24 48 8d b8 a0 00 00 00 e8 9e 3f 12 ff 41 89 d8 44 89 e1 4c 89 ea 48 89 c6 48 c7 c7 e0 90 16 86 e8 e1 23 c0 fd <0f> 0b e9 14 f4 ff ff e8 3a 15 ea fd 49 8d be b0 00 00 00 48 b8 00
+[  383.402333][ T5643] RSP: 0018:ffff8881af737030 EFLAGS: 00010282
+[  383.408406][ T5643] RAX: 0000000000000000 RBX: 0000000000000003 RCX: 0000000000000000
+[  383.416366][ T5643] RDX: 0000000000040000 RSI: ffffffff8127bbcd RDI: ffffed1035ee6df8
+[  383.424334][ T5643] RBP: ffff8881d7ef9500 R08: ffff8881af728000 R09: ffffed103b664d30
+[  383.432329][ T5643] R10: ffffed103b664d2f R11: ffff8881db32697f R12: 0000000000000001
+[  383.440321][ T5643] R13: ffff8881d835c738 R14: ffff8881bb55aa80 R15: ffff8881d9764e00
+[  383.448333][ T5643]  ? vprintk_func+0x7d/0x113
+[  383.452948][ T5643]  aiptek_open+0xd5/0x130
+[  383.457281][ T5643]  input_open_device+0x173/0x280
+[  383.462220][ T5643]  ? store_tabletXtilt+0x230/0x230
+[  383.467329][ T5643]  kbd_connect+0xfe/0x160
+[  383.471676][ T5643]  input_attach_handler+0x19c/0x200
+[  383.476884][ T5643]  input_register_device.cold+0xfd/0x24e
+[  383.482510][ T5643]  aiptek_probe.cold+0x284/0x307
+[  383.488509][ T5643]  ? store_tabletExecute+0x90/0x90
+[  383.493633][ T5643]  ? lockdep_hardirqs_on+0x379/0x580
+[  383.498925][ T5643]  ? __pm_runtime_resume+0x111/0x180
+[  383.504212][ T5643]  usb_probe_interface+0x30d/0x7b0
+[  383.509332][ T5643]  ? usb_probe_device+0x110/0x110
+[  383.514365][ T5643]  really_probe+0x296/0x680
+[  383.518874][ T5643]  driver_probe_device+0xf9/0x200
+[  383.523905][ T5643]  __device_attach_driver+0x1c4/0x230
+[  383.529277][ T5643]  ? driver_allows_async_probing+0x160/0x160
+[  383.535259][ T5643]  bus_for_each_drv+0x15e/0x1e0
+[  383.540133][ T5643]  ? bus_rescan_devices+0x20/0x20
+[  383.545165][ T5643]  ? _raw_spin_unlock_irqrestore+0x3e/0x50
+[  383.550975][ T5643]  ? lockdep_hardirqs_on+0x379/0x580
+[  383.556272][ T5643]  __device_attach+0x21e/0x360
+[  383.561273][ T5643]  ? device_bind_driver+0xd0/0xd0
+[  383.566306][ T5643]  bus_probe_device+0x1ec/0x2a0
+[  383.571435][ T5643]  ? blocking_notifier_call_chain+0x54/0xa0
+[  383.577322][ T5643]  device_add+0xaf4/0x1700
+[  383.581780][ T5643]  ? uevent_store+0x50/0x50
+[  383.586286][ T5643]  ? _raw_spin_unlock_irqrestore+0x3e/0x50
+[  383.592090][ T5643]  usb_set_configuration+0xdf2/0x1670
+[  383.597458][ T5643]  generic_probe+0x9d/0xd5
+[  383.601865][ T5643]  usb_probe_device+0xa8/0x110
+[  383.606616][ T5643]  ? usb_suspend+0x620/0x620
+[  383.611194][ T5643]  really_probe+0x296/0x680
+[  383.615710][ T5643]  driver_probe_device+0xf9/0x200
+[  383.620931][ T5643]  __device_attach_driver+0x1c4/0x230
+[  383.626319][ T5643]  ? driver_allows_async_probing+0x160/0x160
+[  383.626762][ T9686] udc dummy_udc.3: registering UDC driver [USB fuzzer]
+[  383.632310][ T5643]  bus_for_each_drv+0x15e/0x1e0
+[  383.632351][ T5643]  ? bus_rescan_devices+0x20/0x20
+[  383.632374][ T5643]  ? _raw_spin_unlock_irqrestore+0x3e/0x50
+[  383.639572][ T9686] dummy_hcd dummy_hcd.3: port status 0x00010101 has changes
+[  383.644082][ T5643]  ? lockdep_hardirqs_on+0x379/0x580
+[  383.676546][ T5643]  __device_attach+0x21e/0x360
+[  383.681309][ T5643]  ? device_bind_driver+0xd0/0xd0
+[  383.686354][ T5643]  bus_probe_device+0x1ec/0x2a0
+[  383.691194][ T5643]  ? blocking_notifier_call_chain+0x54/0xa0
+[  383.697088][ T5643]  device_add+0xaf4/0x1700
+[  383.701529][ T5643]  ? uevent_store+0x50/0x50
+[  383.706150][ T5643]  usb_new_device.cold+0x8b8/0x1030
+[  383.712417][ T5643]  ? usb_port_suspend+0xa40/0xa40
+[  383.717551][ T5643]  ? mark_held_locks+0x9f/0xe0
+[  383.723956][ T5643]  ? _raw_spin_unlock_irq+0x24/0x30
+[  383.729157][ T5643]  hub_event+0x1ac9/0x35a0
+[  383.733586][ T5643]  ? hub_port_debounce+0x260/0x260
+[  383.738703][ T5643]  process_one_work+0x90a/0x1580
+[  383.743681][ T5643]  ? wq_pool_ids_show+0x300/0x300
+[  383.748712][ T5643]  ? do_raw_spin_lock+0x11a/0x280
+[  383.753774][ T5643]  worker_thread+0x7ab/0xe20
+[  383.758369][ T5643]  ? process_one_work+0x1580/0x1580
+[  383.763673][ T5643]  kthread+0x30e/0x420
+[  383.767772][ T5643]  ? kthread_park+0x1a0/0x1a0
+[  383.772462][ T5643]  ret_from_fork+0x3a/0x50
+[  383.777638][ T5643] Kernel Offset: disabled
+[  383.782074][ T5643] Rebooting in 86400 seconds..

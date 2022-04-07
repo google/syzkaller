@@ -1,0 +1,37 @@
+TITLE: UBSAN: array-index-out-of-bounds in arch_uprobe_analyze_insn
+ALT: bad-access in arch_uprobe_analyze_insn
+
+[  175.967267][T13309] ================================================================================
+[  175.968362][T13309] UBSAN: array-index-out-of-bounds in /usr/local/google/home/dvyukov/src/linux2/arch/x86/kernel/uprobes.c:263:56
+[  175.969802][T13309] index 4 is out of range for type 'insn_byte_t [4]'
+[  175.970958][T13309] CPU: 2 PID: 13309 Comm: syz-executor.3 Not tainted 5.9.0-rc5-next-20200916 #36
+[  175.972021][T13309] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.13.0-1 04/01/2014
+[  175.973306][T13309] Call Trace:
+[  175.973685][T13309]  dump_stack+0x14b/0x18f
+[  175.974290][T13309]  ubsan_epilogue+0xb/0x5a
+[  175.974921][T13309]  __ubsan_handle_out_of_bounds.cold+0x62/0x6c
+[  175.975740][T13309]  arch_uprobe_analyze_insn+0x91b/0xa40
+[  175.976517][T13309]  ? branch_post_xol_op+0x120/0x120
+[  175.977256][T13309]  ? PageHuge+0x11c/0x170
+[  175.977776][T13309]  ? memcpy+0x39/0x60
+[  175.978224][T13309]  install_breakpoint.isra.0+0x6e7/0x7e0
+[  175.978833][T13309]  uprobe_mmap+0x5ef/0xf70
+[  175.979307][T13309]  ? uprobe_apply+0x130/0x130
+[  175.979815][T13309]  mmap_region+0x687/0x15d0
+[  175.980304][T13309]  do_mmap+0x868/0x11b0
+[  175.980849][T13309]  vm_mmap_pgoff+0x195/0x200
+[  175.981535][T13309]  ? randomize_stack_top+0x100/0x100
+[  175.982285][T13309]  ksys_mmap_pgoff+0x44e/0x5a0
+[  175.982999][T13309]  ? find_mergeable_anon_vma+0x290/0x290
+[  175.984187][T13309]  ? exit_to_user_mode_prepare+0x12e/0x160
+[  175.985528][T13309]  do_syscall_64+0x2d/0x70
+[  175.986348][T13309]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[  175.987223][T13309] RIP: 0033:0x464519
+[  175.987796][T13309] Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 bc ff ff ff f7 d8 64 89 01 48
+[  175.990679][T13309] RSP: 002b:00007fa4e341c1a8 EFLAGS: 00000246 ORIG_RAX: 0000000000000009
+[  175.991912][T13309] RAX: ffffffffffffffda RBX: 000000000055cfc0 RCX: 0000000000464519
+[  175.993094][T13309] RDX: 0000000000000000 RSI: 0000000000003000 RDI: 0000000020007000
+[  175.994274][T13309] RBP: 00000000004ad71c R08: 0000000000000003 R09: 0000000000000000
+[  175.995454][T13309] R10: 0000000000000412 R11: 0000000000000246 R12: 000000000055cfcc
+[  175.996655][T13309] R13: 00007ffccc88912f R14: 000000000055cfc0 R15: 0000000000022000
+[  176.003248][T13309] ================================================================================

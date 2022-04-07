@@ -1,0 +1,43 @@
+TITLE: INFO: rcu detected stall in ext4_filemap_fault
+ALT: stall in ext4_filemap_fault
+TYPE: HANG
+
+[ 2355.201776] INFO: rcu_preempt detected stalls on CPUs/tasks:
+[ 2355.201784] 	Tasks blocked on level-0 rcu_node (CPUs 0-1): P2270
+[ 2355.201792] 	(detected by 0, t=10502 jiffies, g=98916, c=98915, q=146)
+[ 2355.201808] syz-fuzzer      R  running task    25680  2270   2264 0x00000000
+[ 2355.201818]  00000000000008d8 16c3269289c67388 ffff8801db607c20 ffffffff8138d924
+[ 2355.201826]  ffff8801caf9df00 ffffffff82ea86c0 0000000000000092 dffffc0000000000
+[ 2355.201835]  ffff8801caf9e308 ffff8801db607c58 ffffffff8139811e 0000000000018263
+[ 2355.201836] Call Trace:
+[ 2355.201852]  <IRQ>  [<ffffffff8138d924>] sched_show_task+0x378/0x387
+[ 2355.201860]  [<ffffffff8139811e>] rcu_print_detail_task_stall_rnp+0xbd/0xf9
+[ 2355.201868]  [<ffffffff8139910c>] rcu_check_callbacks.cold.67+0xa85/0xd20
+[ 2355.201876]  [<ffffffff81251b3a>] update_process_times+0x3a/0x70
+[ 2355.201885]  [<ffffffff8127e0fa>] tick_sched_handle.isra.6+0x4a/0xf0
+[ 2355.201892]  [<ffffffff8127e216>] tick_sched_timer+0x76/0x130
+[ 2355.201906]  [<ffffffff81253bb0>] __hrtimer_run_queues+0x390/0xfc0
+[ 2355.201956]  [<ffffffff81256831>] hrtimer_interrupt+0x1b1/0x430
+[ 2355.201964]  [<ffffffff810897c4>] local_apic_timer_interrupt+0x74/0xa0
+[ 2355.201971]  [<ffffffff82692b7c>] smp_apic_timer_interrupt+0x7c/0xa0
+[ 2355.201978]  [<ffffffff82691edd>] apic_timer_interrupt+0x9d/0xb0
+[ 2355.201987]  <EOI>  [<ffffffff81214699>] ? console_unlock+0x659/0xa10
+[ 2355.202000]  [<ffffffff81214e45>] vprintk_emit+0x3f5/0x830
+[ 2355.202006]  [<ffffffff812152a8>] vprintk+0x28/0x30
+[ 2355.202013]  [<ffffffff812152cd>] vprintk_default+0x1d/0x30
+[ 2355.202019]  [<ffffffff8139632a>] printk+0xaf/0xd7
+[ 2355.202042]  [<ffffffff8146763e>] dump_header.isra.4+0x617/0x6b5
+[ 2355.202050]  [<ffffffff814676f7>] oom_kill_process.cold.9+0x1b/0x9b6
+[ 2355.202065]  [<ffffffff813a9d8e>] out_of_memory+0x48e/0xab0
+[ 2355.202092]  [<ffffffff813b600a>] __alloc_pages_nodemask+0x122a/0x1430
+[ 2355.202166]  [<ffffffff813a5a22>] filemap_fault+0x802/0xbe0
+[ 2355.202173]  [<ffffffff81634781>] ext4_filemap_fault+0x71/0xa0
+[ 2355.202181]  [<ffffffff8140dee7>] __do_fault+0x1d7/0x360
+[ 2355.202203]  [<ffffffff8141abd9>] handle_mm_fault+0x1cd9/0x2f30
+[ 2355.202231]  [<ffffffff810a9571>] __do_page_fault+0x291/0x7e0
+[ 2355.202238]  [<ffffffff810a9b17>] do_page_fault+0x27/0x30
+[ 2355.202244]  [<ffffffff82691775>] page_fault+0x25/0x30
+[ 2355.202257] syz-fuzzer      R  running task    25680  2270   2264 0x00000000
+[ 2355.202266]  00000000000008d8 16c3269289c67388 ffff8801db607c20 ffffffff8138d924
+[ 2355.202274]  ffff8801caf9df00 ffffffff82ea86c0 0000000000000092 dffffc0000000000
+[ 2355.202283]  ffff8801caf9e308 ffff8801db607c58 ffffffff8139811e ffffffff82ea8940

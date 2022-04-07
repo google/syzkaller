@@ -1,0 +1,74 @@
+TITLE: WARNING: refcount bug in hci_register_dev
+
+[   83.882482][T10363] ------------[ cut here ]------------
+[   83.894883][T10363] refcount_t: increment on 0; use-after-free.
+[   83.901740][T10363] WARNING: CPU: 0 PID: 10363 at lib/refcount.c:156 refcount_inc_checked+0x61/0x70
+[   83.911146][T10363] Kernel panic - not syncing: panic_on_warn set ...
+[   83.917719][T10363] CPU: 0 PID: 10363 Comm: syz-executor494 Not tainted 5.3.0-rc2+ #112
+[   83.925858][T10363] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   83.936006][T10363] Call Trace:
+[   83.939303][T10363]  dump_stack+0x172/0x1f0
+[   83.943651][T10363]  ? refcount_inc_not_zero_checked+0x180/0x200
+[   83.949907][T10363]  panic+0x2dc/0x755
+[   83.954073][T10363]  ? add_taint.cold+0x16/0x16
+[   83.958747][T10363]  ? __kasan_check_write+0x14/0x20
+[   83.963852][T10363]  ? __warn.cold+0x5/0x4c
+[   83.968333][T10363]  ? __warn+0xe7/0x1e0
+[   83.972417][T10363]  ? refcount_inc_checked+0x61/0x70
+[   83.977794][T10363]  __warn.cold+0x20/0x4c
+[   83.982051][T10363]  ? refcount_inc_checked+0x61/0x70
+[   83.987235][T10363]  report_bug+0x263/0x2b0
+[   83.991664][T10363]  do_error_trap+0x11b/0x200
+[   83.996328][T10363]  do_invalid_op+0x37/0x50
+[   84.000735][T10363]  ? refcount_inc_checked+0x61/0x70
+[   84.005920][T10363]  invalid_op+0x23/0x30
+[   84.010085][T10363] RIP: 0010:refcount_inc_checked+0x61/0x70
+[   84.015875][T10363] Code: 1d 5e 90 64 06 31 ff 89 de e8 eb 99 35 fe 84 db 75 dd e8 a2 98 35 fe 48 c7 c7 80 03 c6 87 c6 05 3e 90 64 06 01 e8 57 05 07 fe <0f> 0b eb c1 90 90 90 90 90 90 90 90 90 90 90 55 48 89 e5 41 57 41
+[   84.035461][T10363] RSP: 0018:ffff8880a818f8f8 EFLAGS: 00010286
+[   84.041508][T10363] RAX: 0000000000000000 RBX: 0000000000000000 RCX: 0000000000000000
+[   84.049467][T10363] RDX: 0000000000000000 RSI: ffffffff815c5216 RDI: ffffed1015031f11
+[   84.057421][T10363] RBP: ffff8880a818f908 R08: ffff8880a7e70300 R09: ffffed1015d04101
+[   84.065383][T10363] R10: ffffed1015d04100 R11: ffff8880ae820807 R12: ffff88821adec338
+[   84.073527][T10363] R13: ffff888094299820 R14: ffff888094299818 R15: ffff88821adec2b8
+[   84.081510][T10363]  ? vprintk_func+0x86/0x189
+[   84.086215][T10363]  ? refcount_inc_checked+0x61/0x70
+[   84.091419][T10363]  kobject_get+0x66/0xc0
+[   84.095671][T10363]  kobject_add_internal+0x14f/0x380
+[   84.100884][T10363]  ? kfree_const+0x5e/0x70
+[   84.105300][T10363]  kobject_add+0x150/0x1c0
+[   84.109731][T10363]  ? kset_create_and_add+0x1a0/0x1a0
+[   84.115124][T10363]  ? kasan_kmalloc+0x9/0x10
+[   84.119630][T10363]  ? kmem_cache_alloc_trace+0x346/0x790
+[   84.125165][T10363]  get_device_parent.isra.0+0x413/0x560
+[   84.130695][T10363]  device_add+0x2df/0x17a0
+[   84.135098][T10363]  ? get_device_parent.isra.0+0x560/0x560
+[   84.140797][T10363]  ? up_write+0x9d/0x280
+[   84.145023][T10363]  hci_register_dev+0x2e8/0x8f0
+[   84.149891][T10363]  __vhci_create_device+0x2c5/0x5d0
+[   84.155097][T10363]  vhci_write+0x2d0/0x470
+[   84.159410][T10363]  new_sync_write+0x4d3/0x770
+[   84.164079][T10363]  ? new_sync_read+0x800/0x800
+[   84.168857][T10363]  ? common_file_perm+0x238/0x720
+[   84.173877][T10363]  ? __kasan_check_read+0x11/0x20
+[   84.178900][T10363]  ? apparmor_file_permission+0x25/0x30
+[   84.184451][T10363]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[   84.190690][T10363]  ? security_file_permission+0x8f/0x380
+[   84.196306][T10363]  __vfs_write+0xe1/0x110
+[   84.200620][T10363]  vfs_write+0x268/0x5d0
+[   84.204844][T10363]  ksys_write+0x14f/0x290
+[   84.209193][T10363]  ? __ia32_sys_read+0xb0/0xb0
+[   84.213943][T10363]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[   84.220179][T10363]  ? entry_SYSCALL_64_after_hwframe+0x3e/0xbe
+[   84.226325][T10363]  __x64_sys_write+0x73/0xb0
+[   84.230926][T10363]  do_syscall_64+0xfd/0x6a0
+[   84.235415][T10363]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[   84.241327][T10363] RIP: 0033:0x441279
+[   84.245225][T10363] Code: e8 ac e8 ff ff 48 83 c4 18 c3 0f 1f 80 00 00 00 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 eb 08 fc ff c3 66 2e 0f 1f 84 00 00 00 00
+[   84.264855][T10363] RSP: 002b:00007fffdebca038 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
+[   84.273275][T10363] RAX: ffffffffffffffda RBX: 0000000000000000 RCX: 0000000000441279
+[   84.281251][T10363] RDX: 0000000000000002 RSI: 0000000020000000 RDI: 0000000000000003
+[   84.289237][T10363] RBP: 0000000000014777 R08: 00000000004002c8 R09: 00000000004002c8
+[   84.297234][T10363] R10: 0000000000000004 R11: 0000000000000246 R12: 0000000000401ff0
+[   84.305317][T10363] R13: 0000000000402080 R14: 0000000000000000 R15: 0000000000000000
+[   84.314420][T10363] Kernel Offset: disabled
+[   84.318949][T10363] Rebooting in 86400 seconds..

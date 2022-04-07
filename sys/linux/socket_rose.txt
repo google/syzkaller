@@ -1,0 +1,81 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/socket.h>
+include <linux/net.h>
+include <uapi/linux/rose.h>
+
+resource sock_rose[sock]
+
+syz_init_net_socket$rose(domain const[AF_ROSE], type const[SOCK_SEQPACKET], proto const[0]) sock_rose
+bind$rose(fd sock_rose, addr ptr[in, sockaddr_rose_any], addrlen len[addr])
+connect$rose(fd sock_rose, addr ptr[in, sockaddr_rose_any], addrlen len[addr])
+accept4$rose(fd sock_rose, peer ptr[out, sockaddr_rose_any, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_rose
+sendto$rose(fd sock_rose, buf ptr[in, array[int8]], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_rose_any, opt], addrlen len[addr])
+recvfrom$rose(fd sock_rose, buf ptr[out, array[int8]], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr_rose_any, opt], addrlen len[addr])
+setsockopt$rose(fd sock_rose, level const[SOL_ROSE], opt flags[rose_sockopts], arg ptr[in, int32], arglen len[arg])
+getsockopt$rose(fd sock_rose, level const[SOL_ROSE], opt flags[rose_sockopts], arg ptr[out, int32], arglen ptr[inout, len[arg, int32]])
+
+rose_sockopts = ROSE_DEFER, ROSE_T1, ROSE_T2, ROSE_T3, ROSE_IDLE, ROSE_QBITINCL, ROSE_HOLDBACK
+
+ioctl$sock_rose_SIOCADDRT(fd sock_rose, cmd const[SIOCADDRT], arg ptr[in, rose_route_struct])
+ioctl$sock_rose_SIOCDELRT(fd sock_rose, cmd const[SIOCDELRT], arg ptr[in, rose_route_struct])
+ioctl$sock_rose_SIOCRSCLRRT(fd sock_rose, cmd const[SIOCRSCLRRT])
+ioctl$SIOCRSGCAUSE(fd sock_rose, cmd const[SIOCRSGCAUSE], arg ptr[out, int16])
+ioctl$SIOCRSSCAUSE(fd sock_rose, cmd const[SIOCRSSCAUSE], arg ptr[in, int16])
+ioctl$SIOCRSSL2CALL(fd sock_rose, cmd const[SIOCRSSL2CALL], arg ptr[in, ax25_address])
+ioctl$SIOCRSGL2CALL(fd sock_rose, cmd const[SIOCRSGL2CALL], arg ptr[out, ax25_address])
+ioctl$SIOCRSACCEPT(fd sock_rose, cmd const[SIOCRSACCEPT])
+
+sockaddr_rose_any [
+	short	sockaddr_rose
+	full	full_sockaddr_rose
+] [varlen]
+
+sockaddr_rose {
+	srose_family	const[AF_ROSE, int16]
+	srose_addr	rose_address
+	srose_call	ax25_address
+	srose_ndigis	const[1, int32]
+	srose_digi	ax25_address
+}
+
+full_sockaddr_rose {
+	srose_family	const[AF_ROSE, int16]
+	srose_addr	rose_address
+	srose_call	ax25_address
+	srose_ndigis	int32[0:ROSE_MAX_DIGIS]
+	srose_digis	array[ax25_address, ROSE_MAX_DIGIS]
+}
+
+rose_address [
+	remote	rose_address_remote
+	dev	rose_address_dev
+] [size[5]]
+
+# Just some address without special meaning.
+rose_address_remote {
+	b0	const[0xcc, int8]
+	b1	const[0xcc, int8]
+	b2	const[0xcc, int8]
+	b3	const[0xcc, int8]
+	b4	proc[0, 4, int8]
+}
+
+# This is what we assign to rose* devices in initialize_netdevices_init: bb:bb:bb:01:%02hx
+rose_address_dev {
+	b0	const[0xbb, int8]
+	b1	const[0xbb, int8]
+	b2	const[0xbb, int8]
+	b3	const[0x1, int8]
+	b4	proc[0, 1, int8]
+}
+
+rose_route_struct {
+	address		rose_address
+	mask		int16
+	neighbour	ax25_address
+	device		ax25_devname
+	ndigis		int8[0:AX25_MAX_DIGIS]
+	digipeaters	array[ax25_address, AX25_MAX_DIGIS]
+}

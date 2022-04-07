@@ -1,0 +1,15 @@
+# Basic test for cgroups and executor cgroup setup.
+# This inherently does not work with sandbox="" because sandbox does part of setup.
+# TODO(dvyukov): sandbox=setuid has some permissions setup problems.
+# requires: -sandbox= -sandbox=setuid -C,norepeat
+
+r0 = getpid()
+r1 = openat(0xffffffffffffff9c, &AUTO='./cgroup/cgroup.procs\x00', 0x2, 0x0)
+read(r1, &AUTO="00", AUTO)
+write$cgroup_pid(r1, &AUTO=r0, AUTO)
+close(r1)
+openat(0xffffffffffffff9c, &AUTO='./cgroup/pids.max\x00', 0x2, 0x0)
+openat(0xffffffffffffff9c, &AUTO='./cgroup.cpu/cgroup.procs\x00', 0x2, 0x0)
+openat(0xffffffffffffff9c, &AUTO='./cgroup.cpu/cpuset.cpus\x00', 0x2, 0x0)
+openat(0xffffffffffffff9c, &AUTO='./cgroup.net/cgroup.procs\x00', 0x2, 0x0)
+openat(0xffffffffffffff9c, &AUTO='./cgroup.net/devices.allow\x00', 0x1, 0x0)

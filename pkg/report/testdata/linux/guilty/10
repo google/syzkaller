@@ -1,0 +1,36 @@
+FILE: fs/nsfs.c
+
+==================================================================
+BUG: KASAN: use-after-free in __read_once_size include/linux/compiler.h:254 [inline] at addr ffff88004f0f1938
+BUG: KASAN: use-after-free in atomic_read arch/x86/include/asm/atomic.h:26 [inline] at addr ffff88004f0f1938
+BUG: KASAN: use-after-free in virt_spin_lock arch/x86/include/asm/qspinlock.h:62 [inline] at addr ffff88004f0f1938
+BUG: KASAN: use-after-free in queued_spin_lock_slowpath+0xb0a/0xfd0 kernel/locking/qspinlock.c:421 at addr ffff88004f0f1938
+Read of size 4 by task syz-executor0/28813
+CPU: 1 PID: 28813 Comm: syz-executor0 Not tainted 4.11.0-rc7+ #251
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+Call Trace:
+ __dump_stack lib/dump_stack.c:16 [inline]
+ dump_stack+0x292/0x398 lib/dump_stack.c:52
+ kasan_object_err+0x1c/0x70 mm/kasan/report.c:164
+ print_address_description mm/kasan/report.c:202 [inline]
+ kasan_report_error mm/kasan/report.c:291 [inline]
+ kasan_report+0x252/0x510 mm/kasan/report.c:347
+ __asan_report_load4_noabort+0x14/0x20 mm/kasan/report.c:367
+ __read_once_size include/linux/compiler.h:254 [inline]
+ atomic_read arch/x86/include/asm/atomic.h:26 [inline]
+ virt_spin_lock arch/x86/include/asm/qspinlock.h:62 [inline]
+ queued_spin_lock_slowpath+0xb0a/0xfd0 kernel/locking/qspinlock.c:421
+ queued_spin_lock include/asm-generic/qspinlock.h:103 [inline]
+ do_raw_spin_lock+0x151/0x1e0 kernel/locking/spinlock_debug.c:113
+ __raw_spin_lock include/linux/spinlock_api_smp.h:143 [inline]
+ _raw_spin_lock+0x32/0x40 kernel/locking/spinlock.c:151
+ spin_lock include/linux/spinlock.h:299 [inline]
+ lockref_get_not_dead+0x19/0x80 lib/lockref.c:179
+ __ns_get_path+0x197/0x860 fs/nsfs.c:66
+ open_related_ns+0xda/0x200 fs/nsfs.c:143
+ sock_ioctl+0x39d/0x440 net/socket.c:1001
+ vfs_ioctl fs/ioctl.c:45 [inline]
+ do_vfs_ioctl+0x1bf/0x1780 fs/ioctl.c:685
+ SYSC_ioctl fs/ioctl.c:700 [inline]
+ SyS_ioctl+0x8f/0xc0 fs/ioctl.c:691
+ entry_SYSCALL_64_fastpath+0x1f/0xc2

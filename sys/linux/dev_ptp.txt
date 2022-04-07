@@ -1,0 +1,75 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/asm/ioctl.h>
+include <uapi/linux/fcntl.h>
+include <uapi/linux/ptp_clock.h>
+
+resource fd_ptp[fd]
+
+type ptp_index int32
+
+openat$ptp0(fd const[AT_FDCWD], file ptr[in, string["/dev/ptp0"]], flags flags[open_flags], mode const[0]) fd_ptp
+openat$ptp1(fd const[AT_FDCWD], file ptr[in, string["/dev/ptp1"]], flags flags[open_flags], mode const[0]) fd_ptp
+
+read$ptp(fd fd_ptp, data ptr[out, array[int8]], len bytesize[data])
+
+ioctl$PTP_CLOCK_GETCAPS(fd fd_ptp, cmd const[PTP_CLOCK_GETCAPS], arg ptr[out, array[int8, PTP_CLOCK_CAPS_SIZE]])
+ioctl$PTP_EXTTS_REQUEST(fd fd_ptp, cmd const[PTP_EXTTS_REQUEST], arg ptr[in, ptp_extts_request])
+ioctl$PTP_EXTTS_REQUEST2(fd fd_ptp, cmd const[PTP_EXTTS_REQUEST2], arg ptr[in, ptp_extts_request])
+ioctl$PTP_PEROUT_REQUEST(fd fd_ptp, cmd const[PTP_PEROUT_REQUEST], arg ptr[in, ptp_perout_request])
+ioctl$PTP_PEROUT_REQUEST2(fd fd_ptp, cmd const[PTP_PEROUT_REQUEST2], arg ptr[in, ptp_perout_request])
+ioctl$PTP_ENABLE_PPS(fd fd_ptp, cmd const[PTP_ENABLE_PPS], arg boolptr)
+ioctl$PTP_SYS_OFFSET(fd fd_ptp, cmd const[PTP_SYS_OFFSET], arg ptr[in, ptp_sys_offset])
+ioctl$PTP_SYS_OFFSET_PRECISE(fd fd_ptp, cmd const[PTP_SYS_OFFSET_PRECISE], arg ptr[out, array[int8, PTP_SYS_OFFSET_PRECISE_SIZE]])
+ioctl$PTP_SYS_OFFSET_EXTENDED(fd fd_ptp, cmd const[PTP_SYS_OFFSET_EXTENDED], arg ptr[in, ptp_sys_offset_extended])
+ioctl$PTP_PIN_GETFUNC(fd fd_ptp, cmd const[PTP_PIN_GETFUNC], arg ptr[in, ptp_pin_desc])
+ioctl$PTP_PIN_GETFUNC2(fd fd_ptp, cmd const[PTP_PIN_GETFUNC2], arg ptr[in, ptp_pin_desc])
+ioctl$PTP_PIN_SETFUNC(fd fd_ptp, cmd const[PTP_PIN_SETFUNC], arg ptr[in, ptp_pin_desc])
+ioctl$PTP_PIN_SETFUNC2(fd fd_ptp, cmd const[PTP_PIN_SETFUNC2], arg ptr[in, ptp_pin_desc])
+
+ptp_extts_request {
+	index	ptp_index
+	flags	flags[ptp_extts_request_flags, int32]
+	rsv	array[const[0, int32], 2]
+}
+
+ptp_perout_request {
+	start	ptp_clock_time
+	period	ptp_clock_time
+	index	ptp_index
+	flags	bool32
+	rsv	array[const[0, int32], 4]
+}
+
+ptp_sys_offset {
+	n_samples	int32[0:PTP_MAX_SAMPLES]
+	rsv		array[const[0, int32], 3]
+	ts		array[const[0, int64], 102]
+}
+
+ptp_sys_offset_extended {
+	n_samples	int32[0:PTP_MAX_SAMPLES]
+	rsv		array[const[0, int32], 3]
+	ts		array[const[0, int64], 150]
+}
+
+ptp_pin_desc {
+	name	array[const[0, int8], 64]
+	index	int32
+	func	flags[ptp_pin_pf, int32]
+	chan	ptp_index
+	rsv	array[const[0, int32], 5]
+}
+
+ptp_clock_time {
+	desc		int64
+	nsec		int32
+	reserved	const[0, int32]
+}
+
+ptp_extts_request_flags = PTP_ENABLE_FEATURE, PTP_RISING_EDGE, PTP_FALLING_EDGE, PTP_STRICT_FLAGS
+ptp_pin_pf = PTP_PF_NONE, PTP_PF_EXTTS, PTP_PF_PEROUT, PTP_PF_PHYSYNC
+
+define PTP_CLOCK_CAPS_SIZE	sizeof(struct ptp_clock_caps)
+define PTP_SYS_OFFSET_PRECISE_SIZE	sizeof(struct ptp_sys_offset_precise)

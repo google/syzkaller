@@ -1,0 +1,78 @@
+TITLE: general protection fault in ucma_close
+ALT: bad-access in ucma_close
+
+[   52.099632] kasan: GPF could be caused by NULL-ptr deref or user memory access
+[   52.106982] general protection fault: 0000 [#1] SMP KASAN
+[   52.112852] Modules linked in:
+[   52.116130] CPU: 1 PID: 4672 Comm: syzkaller354295 Not tainted 4.3.5+ #21
+[   52.123024] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   52.132353] task: ffff8801d5e522c0 ti: ffff8801d6fb0000 task.ti: ffff8801d6fb0000
+[   52.139937] RIP: 0010:[<ffffffff8143d030>]  [<ffffffff8143d030>] __lock_acquire+0xc00/0x4e80
+[   52.148604] RSP: 0018:ffff8801d6fb3420  EFLAGS: 00010002
+[   52.154021] RAX: dffffc0000000000 RBX: ffff8801d5e522c0 RCX: 0000000000000000
+[   52.161261] RDX: 0000000000000010 RSI: 0000000000000000 RDI: 0000000000000080
+[   52.168498] RBP: ffff8801d6fb35c0 R08: 0000000000000001 R09: 0000000000000000
+[   52.175735] R10: 0000000000000000 R11: 0000000000000001 R12: 0000000000000080
+[   52.182974] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
+[   52.190213] FS:  0000000000000000(0000) GS:ffff8801dab00000(0000) knlGS:0000000000000000
+[   52.198407] CS:  0010 DS: 002b ES: 002b CR0: 0000000080050033
+[   52.204256] CR2: 0000000020000340 CR3: 00000000bac51000 CR4: 00000000001626f0
+[   52.211498] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   52.218734] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   52.225972] Stack:
+[   52.228089]  0000000041b58ab3 ffffffff83c6ee98 ffffffff8143c430 ffff8801d5e522c0
+[   52.236058]  ffff8801d5e52b82 ffff8801d5e522c0 ffff8801d6fb3460 ffffffff81474b47
+[   52.244029]  ffff8801d6fb3608 ffffffff8143dbe8 0000000000000000 ffff8801d6fb3488
+[   52.251988] Call Trace:
+[   52.254551]  [<ffffffff8143c430>] ? debug_check_no_locks_freed+0x2b0/0x2b0
+[   52.261534]  [<ffffffff81474b47>] ? debug_lockdep_rcu_enabled+0x77/0x90
+[   52.268254]  [<ffffffff8143dbe8>] ? __lock_acquire+0x17b8/0x4e80
+[   52.274381]  [<ffffffff81474b47>] ? debug_lockdep_rcu_enabled+0x77/0x90
+[   52.281128]  [<ffffffff8143c430>] ? debug_check_no_locks_freed+0x2b0/0x2b0
+[   52.288129]  [<ffffffff8143d423>] ? __lock_acquire+0xff3/0x4e80
+[   52.294169]  [<ffffffff81582cc4>] ? is_ftrace_trampoline+0xc4/0x120
+[   52.300556]  [<ffffffff8143d423>] ? __lock_acquire+0xff3/0x4e80
+[   52.306602]  [<ffffffff81474b47>] ? debug_lockdep_rcu_enabled+0x77/0x90
+[   52.313342]  [<ffffffff81442e2b>] lock_acquire+0x13b/0x350
+[   52.318953]  [<ffffffff8136e3c0>] ? drain_workqueue+0x90/0x4d0
+[   52.324905]  [<ffffffff81009544>] mutex_lock_nested+0xc4/0x950
+[   52.330845]  [<ffffffff8136e3c0>] ? drain_workqueue+0x90/0x4d0
+[   52.336785]  [<ffffffff8143c430>] ? debug_check_no_locks_freed+0x2b0/0x2b0
+[   52.343777]  [<ffffffff81225bc1>] ? dump_trace+0x171/0x330
+[   52.349371]  [<ffffffff81009480>] ? _mutex_lock_nest_lock+0x950/0x950
+[   52.355927]  [<ffffffff81e60209>] ? depot_save_stack+0x1c9/0x600
+[   52.362047]  [<ffffffff8136e3c0>] drain_workqueue+0x90/0x4d0
+[   52.367814]  [<ffffffff8143b79c>] ? mark_held_locks+0xcc/0x160
+[   52.373757]  [<ffffffff8136e330>] ? flush_workqueue+0x1750/0x1750
+[   52.379960]  [<ffffffff8100b6ee>] ? mutex_unlock+0xe/0x10
+[   52.385467]  [<ffffffff8143bdcd>] ? trace_hardirqs_on+0xd/0x10
+[   52.391409]  [<ffffffff82903760>] ? ucma_free_ctx+0xb40/0xb40
+[   52.397264]  [<ffffffff8137493c>] destroy_workqueue+0x7c/0x700
+[   52.403214]  [<ffffffff8100b668>] ? __mutex_unlock_slowpath+0x2c8/0x340
+[   52.409945]  [<ffffffff813748c0>] ? wq_sysfs_prep_attrs+0x2b0/0x2b0
+[   52.416320]  [<ffffffff8143bdcd>] ? trace_hardirqs_on+0xd/0x10
+[   52.422260]  [<ffffffff82903760>] ? ucma_free_ctx+0xb40/0xb40
+[   52.428117]  [<ffffffff8290399c>] ucma_close+0x23c/0x2e0
+[   52.433543]  [<ffffffff813a3a25>] ? __might_sleep+0x95/0x1a0
+[   52.439307]  [<ffffffff82903760>] ? ucma_free_ctx+0xb40/0xb40
+[   52.445162]  [<ffffffff81851948>] __fput+0x238/0x6f0
+[   52.450234]  [<ffffffff81851e8a>] ____fput+0x1a/0x20
+[   52.455311]  [<ffffffff8137ffd0>] task_work_run+0x1a0/0x240
+[   52.460996]  [<ffffffff81321b5d>] do_exit+0xc2d/0x29a0
+[   52.466246]  [<ffffffff81320f30>] ? release_task+0x20/0x20
+[   52.471837]  [<ffffffff813801e8>] ? __kernel_text_address+0x88/0xc0
+[   52.478210]  [<ffffffff81436840>] ? check_noncircular+0x20/0x20
+[   52.484242]  [<ffffffff8134e4e7>] ? get_signal+0x6a7/0x1600
+[   52.489925]  [<ffffffff81323a56>] do_group_exit+0x116/0x340
+[   52.495605]  [<ffffffff8134e4d4>] get_signal+0x694/0x1600
+[   52.501113]  [<ffffffff8121921e>] do_signal+0x7e/0x400
+[   52.506363]  [<ffffffff81e363f0>] ? debug_object_active_state+0x3b0/0x3b0
+[   52.513258]  [<ffffffff812191a0>] ? __handle_signal+0x18b0/0x18b0
+[   52.519459]  [<ffffffff8187fbc0>] ? putname+0xe0/0x120
+[   52.524705]  [<ffffffff81474d58>] ? rcu_read_lock_sched_held+0x108/0x120
+[   52.531511]  [<ffffffff817e64c3>] ? kmem_cache_free+0x243/0x2b0
+[   52.537537]  [<ffffffff8187fbc5>] ? putname+0xe5/0x120
+[   52.542782]  [<ffffffff8101a4da>] ? prepare_exit_to_usermode+0x11a/0x390
+[   52.549590]  [<ffffffff8101a539>] prepare_exit_to_usermode+0x179/0x390
+[   52.556225]  [<ffffffff8101a817>] syscall_return_slowpath+0xc7/0x5c0
+[   52.562687]  [<ffffffff8316a4e3>] int_ret_from_sys_call+0x25/0xba

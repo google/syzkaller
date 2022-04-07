@@ -1,0 +1,49 @@
+# Creates a file hierarchy.
+
+mkdirat(0xffffffffffffff9c, &AUTO='./file0\x00', 0x1c0)
+mkdirat(0xffffffffffffff9c, &AUTO='./file0/file0\x00', 0x1c0)
+
+# Creates a first ruleset to restrict file creation.
+
+r0 = landlock_create_ruleset(&AUTO={0x100}, AUTO, 0x0)
+r1 = openat$dir(0xffffffffffffff9c, &AUTO='./file0\x00', 0x200000, 0x0)
+landlock_add_rule$LANDLOCK_RULE_PATH_BENEATH(r0, AUTO, &AUTO={0x100, r1}, 0x0)
+
+# No need to close FDs for this test.
+
+# Enforces the first ruleset.
+
+prctl$PR_SET_NO_NEW_PRIVS(0x26, 0x1)
+landlock_restrict_self(r0, 0x0)
+
+# Creates and remove a file: allowed by the first ruleset.
+
+mknodat(0xffffffffffffff9c, &AUTO='./file0/file1\x00', 0x81c0, 0x0)
+unlinkat(0xffffffffffffff9c, &AUTO='./file0/file1\x00', 0x0)
+
+# Tries to create a file: denied by the first ruleset.
+
+mknodat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x81c0, 0x0) # EACCES
+
+# Creates a second ruleset to restrict file removal.
+
+r2 = landlock_create_ruleset(&AUTO={0x20}, AUTO, 0x0)
+r3 = openat$dir(0xffffffffffffff9c, &AUTO='./file0/file0\x00', 0x200000, 0x0)
+landlock_add_rule$LANDLOCK_RULE_PATH_BENEATH(r2, AUTO, &AUTO={0x20, r3}, 0x0)
+
+# Enforces the second ruleset.
+
+landlock_restrict_self(r2, 0x0)
+
+# Creates and remove files: allowed by both rulesets.
+
+mknodat(0xffffffffffffff9c, &AUTO='./file0/file0/file0\x00', 0x81c0, 0x0)
+unlinkat(0xffffffffffffff9c, &AUTO='./file0/file0/file0\x00', 0x0)
+
+# Creates a file: allowed by the first ruleset.
+
+mknodat(0xffffffffffffff9c, &AUTO='./file0/file1\x00', 0x81c0, 0x0)
+
+# Tries to remove a file: denied by the second ruleset.
+
+unlinkat(0xffffffffffffff9c, &AUTO='./file0/file1\x00', 0x0) # EACCES

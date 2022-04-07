@@ -1,0 +1,85 @@
+# Copyright 2015 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/asm/ioctl.h>
+include <uapi/linux/fcntl.h>
+include <uapi/linux/time.h>
+include <uapi/sound/asound.h>
+include <uapi/linux/soundcard.h>
+
+resource fd_sndtimer[fd]
+
+openat$sndtimer(fd const[AT_FDCWD], file ptr[in, string["/dev/snd/timer"]], flags flags[open_flags]) fd_sndtimer
+
+ioctl$SNDRV_TIMER_IOCTL_PVERSION(fd fd_sndtimer, cmd const[SNDRV_TIMER_IOCTL_PVERSION], arg ptr[out, int32])
+ioctl$SNDRV_TIMER_IOCTL_NEXT_DEVICE(fd fd_sndtimer, cmd const[SNDRV_TIMER_IOCTL_NEXT_DEVICE], arg ptr[in, snd_timer_id])
+ioctl$SNDRV_TIMER_IOCTL_TREAD(fd fd_sndtimer, cmd const[SNDRV_TIMER_IOCTL_TREAD], arg ptr[in, int32[0:1]])
+ioctl$SNDRV_TIMER_IOCTL_GINFO(fd fd_sndtimer, cmd const[SNDRV_TIMER_IOCTL_GINFO], arg ptr[in, snd_timer_ginfo])
+ioctl$SNDRV_TIMER_IOCTL_GPARAMS(fd fd_sndtimer, cmd const[SNDRV_TIMER_IOCTL_GPARAMS], arg ptr[in, snd_timer_gparams])
+ioctl$SNDRV_TIMER_IOCTL_GSTATUS(fd fd_sndtimer, cmd const[SNDRV_TIMER_IOCTL_GSTATUS], arg ptr[in, snd_timer_gstatus])
+ioctl$SNDRV_TIMER_IOCTL_SELECT(fd fd_sndtimer, cmd const[SNDRV_TIMER_IOCTL_SELECT], arg ptr[in, snd_timer_select])
+ioctl$SNDRV_TIMER_IOCTL_INFO(fd fd_sndtimer, cmd const[SNDRV_TIMER_IOCTL_INFO], arg buffer[out])
+ioctl$SNDRV_TIMER_IOCTL_PARAMS(fd fd_sndtimer, cmd const[SNDRV_TIMER_IOCTL_PARAMS], arg ptr[in, snd_timer_params])
+ioctl$SNDRV_TIMER_IOCTL_STATUS32(fd fd_sndtimer, cmd const[SNDRV_TIMER_IOCTL_STATUS32], arg ptr[out, array[int8, SND_TIMER_STATUS32_SIZE]])
+ioctl$SNDRV_TIMER_IOCTL_STATUS64(fd fd_sndtimer, cmd const[SNDRV_TIMER_IOCTL_STATUS64], arg ptr[out, array[int8, SND_TIMER_STATUS64_SIZE]])
+ioctl$SNDRV_TIMER_IOCTL_START(fd fd_sndtimer, cmd const[SNDRV_TIMER_IOCTL_START])
+ioctl$SNDRV_TIMER_IOCTL_STOP(fd fd_sndtimer, cmd const[SNDRV_TIMER_IOCTL_STOP])
+ioctl$SNDRV_TIMER_IOCTL_CONTINUE(fd fd_sndtimer, cmd const[SNDRV_TIMER_IOCTL_CONTINUE])
+ioctl$SNDRV_TIMER_IOCTL_PAUSE(fd fd_sndtimer, cmd const[SNDRV_TIMER_IOCTL_PAUSE])
+
+snd_timer_flags = SNDRV_TIMER_PSFLG_AUTO, SNDRV_TIMER_PSFLG_EXCLUSIVE, SNDRV_TIMER_PSFLG_EARLY_EVENT
+snd_timer_filter = SNDRV_TIMER_EVENT_RESOLUTION, SNDRV_TIMER_EVENT_TICK, SNDRV_TIMER_EVENT_START, SNDRV_TIMER_EVENT_STOP, SNDRV_TIMER_EVENT_CONTINUE, SNDRV_TIMER_EVENT_PAUSE, SNDRV_TIMER_EVENT_EARLY, SNDRV_TIMER_EVENT_SUSPEND, SNDRV_TIMER_EVENT_RESUME, SNDRV_TIMER_EVENT_MSTART, SNDRV_TIMER_EVENT_MSTOP, SNDRV_TIMER_EVENT_MCONTINUE, SNDRV_TIMER_EVENT_MPAUSE, SNDRV_TIMER_EVENT_MSUSPEND, SNDRV_TIMER_EVENT_MRESUME
+
+# TODO: Add descriptions
+_ = SNDCTL_TMR_START, SNDCTL_TMR_STOP, SNDCTL_TMR_TIMEBASE, SNDCTL_TMR_CONTINUE, SNDCTL_TMR_TEMPO, SNDCTL_TMR_SOURCE, SNDCTL_TMR_METRONOME, SNDCTL_TMR_SELECT
+
+snd_timer_id_str = "id0", "id1"
+snd_timer_name = "timer0", "timer1"
+
+snd_timer_ginfo {
+	tid	snd_timer_id
+	flags	int32
+	card	int32
+	id	string[snd_timer_id_str, 64]
+	name	string[snd_timer_name, 80]
+	pad1	const[0, intptr]
+	res	intptr
+	resmin	intptr
+	resmax	intptr
+	clients	int32
+	pad2	array[const[0, int8], 32]
+}
+
+snd_timer_gparams {
+	tid	snd_timer_id
+	periodn	intptr
+	periodd	intptr
+	pad	array[const[0, int8], 32]
+}
+
+snd_timer_gstatus {
+	tid	snd_timer_id
+	res	intptr
+	resnum	intptr
+	resden	intptr
+	pad	array[const[0, int8], 32]
+}
+
+snd_timer_select {
+	tid	snd_timer_id
+	pad	array[const[0, int8], 32]
+}
+
+snd_timer_params {
+	flags	flags[snd_timer_flags, int32]
+	ticks	int32
+	qsize	int32
+	pad1	const[0, int32]
+	filter	flags[snd_timer_filter, int32]
+	pad2	array[const[0, int8], 60]
+}
+
+define SND_TIMER_STATUS32_SIZE	88
+define SND_TIMER_STATUS64_SIZE	96
+define SNDRV_TIMER_IOCTL_STATUS32	_IOR('T', 0x14, char[SND_TIMER_STATUS32_SIZE])
+define SNDRV_TIMER_IOCTL_STATUS64	_IOR('T', 0x14, char[SND_TIMER_STATUS64_SIZE])

@@ -1,0 +1,10 @@
+TITLE: inconsistent lock state in inet_ehash_insert
+CORRUPTED: Y
+
+[   52.261501] =================================
+[   52.261501] [ INFO: inconsistent lock state ]
+[   52.261501] 4.10.0+ #60 Not tainted
+[   52.261501] ---------------------------------
+[   52.261501] inconsistent {IN-SOFTIRQ-W} -> {SOFTIRQ-ON-W} usage.
+[   52.261501] syz-executor3/5076 [HC0[0]:SC0[0]:HE1:SE1] takes:
+[   52.261501]  (&(&hashinfo->ehash_locks[i])->rlock){+.?...}, at: [<ffffffff83a6a370>] inet_ehash_insert+0x240/0xad0

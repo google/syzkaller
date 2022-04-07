@@ -1,0 +1,16 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+include <zircon/types.h>
+
+resource zx_interrupt[intptr]
+
+cache_flush_flags = ZX_CACHE_FLUSH_DATA, ZX_CACHE_FLUSH_INVALIDATE, ZX_CACHE_FLUSH_INSN
+
+zx_cache_flush(addr ptr[out, intptr], size int64, flags flags[cache_flush_flags])
+# TODO: enable modes other than ZX_INTERRUPT_VIRTUAL
+zx_interrupt_create(src_obj const[0], src_num const[0], options const[ZX_INTERRUPT_VIRTUAL], interrupt ptr[out, zx_interrupt])
+zx_interrupt_ack(interrupt zx_interrupt)
+zx_interrupt_destroy(interrupt zx_interrupt)
+# TODO: fill out remaining interrupt syscalls

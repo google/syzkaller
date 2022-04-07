@@ -1,0 +1,15 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+
+resource zx_handle[int32]: ZX_HANDLE_INVALID
+
+zx_handle_close(handle zx_handle)
+zx_handle_close_many(handles ptr[in, array[zx_handle]], num_handles len[handles])
+zx_handle_duplicate(handle zx_handle, rights flags[zx_rights], out ptr[out, zx_handle])
+zx_handle_replace(handle zx_handle, rights flags[zx_rights], out ptr[out, zx_handle])
+
+zx_rights = ZX_RIGHT_NONE, ZX_RIGHT_DUPLICATE, ZX_RIGHT_TRANSFER, ZX_RIGHT_READ, ZX_RIGHT_WRITE, ZX_RIGHT_EXECUTE, ZX_RIGHT_MAP, ZX_RIGHT_GET_PROPERTY, ZX_RIGHT_SET_PROPERTY, ZX_RIGHT_ENUMERATE, ZX_RIGHT_DESTROY, ZX_RIGHT_SET_POLICY, ZX_RIGHT_GET_POLICY, ZX_RIGHT_SIGNAL, ZX_RIGHT_SIGNAL_PEER, ZX_RIGHT_SAME_RIGHTS
+
+# rights not enabled in ARM: ZX_MANAGE_JOB, ZX_MANAGE_PROCESS, ZX_MANAGE_THREAD, ZX_APPLY_PROFILE, ZX_WAIT, ZX_APPLY, ZX_INSPECT

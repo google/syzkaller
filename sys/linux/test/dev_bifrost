@@ -1,0 +1,16 @@
+# requires: manual
+
+r0 = openat$bifrost(0xffffffffffffff9c, &AUTO='/dev/bifrost\x00', 0x2, 0x0)
+
+# These two ioctl set up kbase_context
+
+ioctl$KBASE_IOCTL_VERSION_CHECK(r0, 0xc0048000, &AUTO={0xB, 0xF})
+ioctl$KBASE_IOCTL_SET_FLAGS(r0, 0x40048001, &AUTO={0x0})
+
+# Offset 0x3000 is BASE_MEM_MAP_TRACKING_HANDLE
+
+mmap$bifrost(nil, 0x3000, 0x3, 0x1, r0, 0x3000)
+
+ioctl$KBASE_IOCTL_MEM_ALLOC(r0, 0xc0208005, &AUTO={0x1, 0x1, 0x0, 0xf, 0x0, 0x0})
+
+close(r0)

@@ -1,0 +1,1 @@
+syz_compare(0xfffffffffffffffe, 0x1, 0xffffffffffffffff, 0x1)	# EFAULT

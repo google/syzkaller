@@ -1,0 +1,44 @@
+TITLE: assertion failed: !pte_is_mapped(pte)
+
+kernel panic at kern/src/mm.c:737, from core 1: assertion failed: !pte_is_mapped(pte)
+
+Stack Backtrace on Core 1:
+
+#01 [<0xffffffffc200a3b7>] in backtrace
+
+#02 [<0xffffffffc2009b7c>] in _panic
+
+#03 [<0xffffffffc200db41>] in map_page_at_addr
+
+#04 [<0xffffffffc200db92>] in populate_anon_va
+
+#05 [<0xffffffffc200fbf2>] in populate_va
+
+#06 [<0xffffffffc20560f0>] in sys_populate_va
+
+#07 [<0xffffffffc2059129>] in syscall
+
+#08 [<0xffffffffc20592e4>] in run_local_syscall
+
+#09 [<0xffffffffc2059819>] in prep_syscalls
+
+#10 [<0xffffffffc20aaefa>] in sysenter_callwrapper
+
+
+Entering Nanwan's Dungeon on Core 1 (Ints on):
+
+Type 'help' for a list of commands.
+
+REPORT:
+kernel panic at kern/src/mm.c:737, from core 1: assertion failed: !pte_is_mapped(pte)
+Stack Backtrace on Core 1:
+#01 [<0xffffffffc200a3b7>] in backtrace
+#02 [<0xffffffffc2009b7c>] in _panic
+#03 [<0xffffffffc200db41>] in map_page_at_addr
+#04 [<0xffffffffc200db92>] in populate_anon_va
+#05 [<0xffffffffc200fbf2>] in populate_va
+#06 [<0xffffffffc20560f0>] in sys_populate_va
+#07 [<0xffffffffc2059129>] in syscall
+#08 [<0xffffffffc20592e4>] in run_local_syscall
+#09 [<0xffffffffc2059819>] in prep_syscalls
+#10 [<0xffffffffc20aaefa>] in sysenter_callwrapper

@@ -1,0 +1,202 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Common config fragments required by syzbot for all kernels
+
+# CONFIG_DEBUG_MEMORY was once added to mm tree and cause disabling of KASAN,
+# which in turn caused storm of assorted crashes after silent memory corruptions.
+# The config was reverted, but we keep it here for the case it is reintroduced to kernel again.
+# CONFIG_TWIST_KERNEL_BEHAVIOR can be used to prevent fuzzers from trying stupid things.
+# See https://github.com/google/syzkaller/issues/1622 for details.
+# DEBUG_AID_FOR_SYZBOT can be used to enable any additional temporal debugging features in linux-next tree.
+# It is kept in verbatim because it has for some reason disappeared from next-20220222.
+# CONFIG_RCU_EXP_CPU_STALL_TIMEOUT is now only in the linux-next branch.
+# By default it is set to a too small value, which causes tons of `rcu_preempt detected expedited stalls
+# on CPUs/tasks`.
+# TODO: turn it into a normal config once it reaches mainline.
+verbatim: |
+ CONFIG_DEBUG_MEMORY=y
+ CONFIG_TWIST_KERNEL_BEHAVIOR=y
+ CONFIG_TWIST_FOR_SYZKALLER_TESTING=y
+ CONFIG_DEBUG_AID_FOR_SYZBOT=y
+ CONFIG_RCU_EXP_CPU_STALL_TIMEOUT=21000
+
+config:
+ # Required to enable some other configs we set.
+ - EXPERT
+ - DEBUG_KERNEL
+
+ # panic=86400: prevents kernel from rebooting so that we don't get reboot output in all crash reports.
+ # Huge page overcommit is disabled by default, allowing some overcommit
+ # with vm.nr_overcommit_hugepages is intended to give more coverage.
+ # secretmem_enable enables memfd_secret syscall.
+ - CMDLINE: "earlyprintk=serial net.ifnames=0 sysctl.kernel.hung_task_all_cpu_backtrace=1 ima_policy=tcb nf-conntrack-ftp.ports=20000 nf-conntrack-tftp.ports=20000 nf-conntrack-sip.ports=20000 nf-conntrack-irc.ports=20000 nf-conntrack-sane.ports=20000 binder.debug_mask=0 rcupdate.rcu_expedited=1 no_hash_pointers page_owner=on sysctl.vm.nr_hugepages=4 sysctl.vm.nr_overcommit_hugepages=4 secretmem.enable=1 sysctl.max_rcu_stall_to_panic=1"
+
+ # We don't need lots, but some configs set it to 2 which is too low.
+ - NR_CPUS: 8
+
+ # We slowdown execution significantly and there is no point in low latency under test.
+ - HZ_100
+
+ - RCU_TRACE: n
+
+ # KPROBES pollute coverage and needlessly slow down execution.
+ - KPROBES: n
+ # Slows down execution and sometimes fuzzer actually enables it.
+ - STACK_TRACER: n
+ - FUNCTION_TRACER: n
+ # Slows down execution.
+ - RETPOLINE: n
+ - PAGE_TABLE_ISOLATION: n
+ - LATENCYTOP: n
+ - SCHED_DEBUG: n
+
+ # Speeds up randomness initialization.
+ - HW_RANDOM
+ - HW_RANDOM_VIRTIO
+ - HW_RANDOM_INTEL: n
+ - HW_RANDOM_AMD: n
+ - HW_RANDOM_VIA: n
+ - RANDOM_TRUST_CPU: [-arm, -riscv]
+ - RANDOM_TRUST_BOOTLOADER: [v4.16]
+
+ # For detection of supported syscalls
+ - KALLSYMS
+ - KALLSYMS_ALL
+ - KALLSYMS_BASE_RELATIVE
+
+ # For namespace sandbox.
+ - NAMESPACES
+ - USER_NS
+ - UTS_NS
+ # Depends on CONFIG_SYSVIPC.
+ - CONFIG_IPC_NS: [optional]
+ - PID_NS
+ - NET_NS
+
+ # Control groups are needed for better sandboxing of test processes.
+ - CGROUP_PIDS
+ - MEMCG
+
+ # Debugging features (from kernel_configs.md, do not alpha sort).
+ - DEBUG_BUGVERBOSE
+ - PANIC_ON_OOPS
+ - PANIC_TIMEOUT: 86400
+ - SCHED_STACK_END_CHECK
+ - FORTIFY_SOURCE: [-riscv, -clang]
+ - HARDENED_USERCOPY
+ - HARDENED_USERCOPY_FALLBACK: [-v5.15]
+ - BUG_ON_DATA_CORRUPTION
+ - DEBUG_LIST
+ - DEBUG_STACKOVERFLOW: [-v5.0]
+
+ # CONFIG_DEBUG_PI_LIST was renamed to CONFIG_DEBUG_PLIST in 8e18faeac3e4.
+ - DEBUG_PLIST: [v5.2]
+ - DEBUG_PI_LIST: [-v5.2]
+
+ # CONFIG_REFCOUNT_FULL was removed in fb041bb7c0a9.
+ - REFCOUNT_FULL: [v4.16, -v5.5]
+ # Added in 919067cc845f ("net: add CONFIG_PCPU_DEV_REFCNT") and should appear in v5.13.
+ - PCPU_DEV_REFCNT: [n, v5.13]
+
+ - NET_DEV_REFCNT_TRACKER: [v5.17]
+ - NET_NS_REFCNT_TRACKER: [v5.17]
+
+ # This config does not add any debug checks (only debug output).
+ - DEBUG_KOBJECT: n
+
+ - DEBUG_INFO
+ # CONFIG_DEBUG_INFO_BTF breaks the build since 5.14 merge window:
+ #    https://lkml.kernel.org/r/YOLzFecogWmdZ5Hc@infradead.org
+ - DEBUG_INFO_BTF: [-v5.13]
+ - DEBUG_INFO_REDUCED: n
+
+ # This should make behavior more deterministic.
+ - INIT_ON_ALLOC_DEFAULT_ON: [v4.16, -kmsan]
+
+ # KCOV slows down execution too much with KASAN_HW_TAGS and in qemu emulation in general.
+ # KCOV crashes on Arm:
+ # https://lore.kernel.org/linux-arm-kernel/20210119130010.GA2338@C02TD0UTHF1T.local/T/#m78fdfcc41ae831f91c93ad5dabe63f7ccfb482f0
+ # KCOV is not supported on s390 with our toolchain now, config depends on:
+ # (!ARCH_WANTS_NO_INSTR [=y] || STACK_VALIDATION [=n] || GCC_VERSION [=110200]>=120000 || CLANG_VERSION [=0]>=130000)
+ - KCOV: [-arm64, -arm, -s390]
+ - KCOV_INSTRUMENT_ALL: [-arm64, -arm, -s390]
+ - KCOV_ENABLE_COMPARISONS: [-arm64, -arm, -s390]
+ - DEBUG_FS
+
+ # Required for KCOV but also eliminates unnecessary non-determinism.
+ - RELOCATABLE: n
+ - RANDOMIZE_BASE: n
+
+ # Print thread and CPU ids.
+ - PRINTK_CALLER
+ - PRINTK_TIME
+ # Some kernel oops'es are large. Largest observed for a stack overflow is ~42KB.
+ # There are 2 such buffers per CPU (safe and nmi), so this adds 128KB per CPU.
+ - PRINTK_SAFE_LOG_BUF_SHIFT: 16
+
+ # Fault injection.
+ - FAULT_INJECTION
+ - FAILSLAB
+ - FAIL_PAGE_ALLOC
+ - FAIL_MAKE_REQUEST
+ - FAIL_IO_TIMEOUT
+ - FAIL_FUTEX
+ - FAULT_INJECTION_DEBUG_FS
+ - FAULT_INJECTION_USERCOPY: [v5.10]
+
+ # Options enabled to boot Debian Wheezy.
+ - DEVTMPFS
+ - DEVTMPFS_MOUNT
+ - INOTIFY_USER
+ - UEVENT_HELPER
+ - UEVENT_HELPER_PATH: "/sbin/hotplug"
+
+ # QEMU disk is usually on the generic PCI bus.
+ - PCI_HOST_GENERIC: [v4.16]
+ - OF: [v4.16]
+
+ # Options enabled to boot Debian Stretch.
+ - CONFIGFS_FS
+ - SECURITYFS
+
+ # If syzkaller gets to /dev/{mem,kmem,ioport}, it will destroy the machine.
+ # It managed to do so with some mount's, chdir's and bogus file names.
+ # These are not needed for fuzzing, so completely disabling them is
+ # the simplest and the most reliable option.
+ - DEVMEM: n
+ - DEVKMEM: n
+ - DEVPORT: n
+
+ # Disable magic SysRq completely, as it can be reached over USB and through tty.
+ - MAGIC_SYSRQ: n
+ # We don't need it and it enables MAGIC_SYSRQ and KPROBES.
+ - KGDB: n
+
+ - RUNTIME_TESTING_MENU: n
+
+ # Don't test/need this (may be enabled via HID_HYPERV_MOUSE in USB/HID configs).
+ - HYPERV: n
+
+ # Don't test/need this.
+ - XEN: n
+
+ # These are legacy gadget drivers that we don't reach/test and some of these break boot:
+ # https://github.com/google/syzkaller/pull/1975#issuecomment-712807462
+ - USB_G_NCM: n
+ - USB_G_SERIAL: n
+ - USB_G_PRINTER: n
+ - USB_G_NOKIA: n
+ - USB_G_ACM_MS: n
+ - USB_G_MULTI: n
+ - USB_G_HID: n
+ - USB_G_DBGP: n
+ - USB_G_WEBCAM: n
+ - USB_ZERO: n
+ - USB_AUDIO: n
+ - USB_ETH: n
+ - USB_FUNCTIONFS: n
+ - USB_MASS_STORAGE: n
+ - USB_GADGET_TARGET: n
+ - USB_MIDI_GADGET: n
+ - USB_CDC_COMPOSITE: n

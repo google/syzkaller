@@ -1,0 +1,21 @@
+TITLE: memory leak in map_create
+TYPE: LEAK
+
+BUG: memory leak
+unreferenced object 0xffff88005f7ac800 (size 2048):
+  comm "syz-executor0", pid 6839, jiffies 4294947130 (age 39.460s)
+  hex dump (first 32 bytes):
+    00 04 00 00 00 00 00 00 00 04 00 00 00 04 00 00  ................
+    00 00 00 00 00 04 00 00 00 00 00 00 00 04 00 00  ................
+  backtrace:
+    [<00000000996d44e4>] __kmalloc+0x14f/0x2a0
+    [<00000000d3775b57>] pcpu_mem_zalloc+0x6a/0x90
+    [<00000000ba6d0050>] pcpu_create_chunk+0xb6/0x2a0
+    [<000000007b267cc3>] pcpu_alloc+0x7e5/0x8b0
+    [<00000000c6fad5c7>] __alloc_percpu_gfp+0x27/0x30
+    [<00000000f3c9f17c>] htab_map_alloc+0x447/0x5c0
+    [<0000000018bf48ad>] map_create+0x149/0x520
+    [<00000000807bbe88>] __x64_sys_bpf+0x169/0x340
+    [<000000003b6aa314>] do_syscall_64+0x7c/0x180
+    [<0000000021153197>] entry_SYSCALL_64_after_hwframe+0x44/0xa9
+    [<000000005ec5fd9f>] 0xffffffffffffffff

@@ -1,0 +1,107 @@
+TITLE: KASAN: invalid-access Read in ip6_mc_del1_src
+ALT: bad-access in ip6_mc_del1_src
+
+[  312.699657][ T5007] BUG: KASAN: invalid-access in __list_add_valid+0x10/0x90
+[  312.701749][ T5007] Read at addr f6ff00001d527690 by task syz-executor.1/5007
+[  312.703585][ T5007] Pointer tag: [f6], memory tag: [f5]
+[  312.704857][ T5007] 
+[  312.706267][ T5007] CPU: 1 PID: 5007 Comm: syz-executor.1 Not tainted 5.14.0-rc2-syzkaller-00265-gf0fddcec6b62 #0
+[  312.707896][ T5007] Hardware name: linux,dummy-virt (DT)
+[  312.708971][ T5007] Call trace:
+[  312.709686][ T5007]  dump_backtrace+0x0/0x1b0
+[  312.710577][ T5007]  show_stack+0x18/0x24
+[  312.711502][ T5007]  dump_stack_lvl+0x68/0x84
+[  312.712217][ T5007]  print_address_description+0x7c/0x2b4
+[  312.712977][ T5007]  kasan_report+0x134/0x380
+[  312.713659][ T5007]  __do_kernel_fault+0x1a8/0x1dc
+[  312.714400][ T5007]  do_tag_check_fault+0x74/0x90
+[  312.715108][ T5007]  do_mem_abort+0x44/0xb4
+[  312.715880][ T5007]  el1_abort+0x40/0x60
+[  312.716529][ T5007]  el1h_64_sync_handler+0xb0/0xd0
+[  312.717471][ T5007]  el1h_64_sync+0x78/0x7c
+[  312.718161][ T5007]  __list_add_valid+0x10/0x90
+[  312.717471][ T5007]  ip6_mc_del1_src+0x78/0x7c
+[  312.718855][ T5007]  firmware_fallback_sysfs+0x1a4/0x460
+[  312.719570][ T5007]  _request_firmware+0x28c/0x510
+[  312.720377][ T5007]  request_firmware+0x48/0x70
+[  312.721227][ T5007]  devlink_compat_flash_update+0x9c/0x1ec
+[  312.722124][ T5007]  ethtool_flash_device+0xf8/0x100
+[  312.722857][ T5007]  dev_ethtool+0x590/0x2280
+[  312.723796][ T5007]  dev_ioctl+0x4ec/0x5f0
+[  312.724506][ T5007]  sock_do_ioctl+0x114/0x2b0
+[  312.725523][ T5007]  sock_ioctl+0x28c/0x4a0
+[  312.726466][ T5007]  __arm64_sys_ioctl+0xa8/0xec
+[  312.727133][ T5007]  invoke_syscall+0x48/0x114
+[  312.727981][ T5007]  el0_svc_common+0x40/0xdc
+[  312.728624][ T5007]  do_el0_svc+0x78/0x90
+[  312.729273][ T5007]  el0_svc+0x2c/0x54
+[  312.730021][ T5007]  el0t_64_sync_handler+0x1a4/0x1b0
+[  312.730893][ T5007]  el0t_64_sync+0x1b4/0x1b8
+[  312.732052][ T5007] 
+[  312.732607][ T5007] Allocated by task 5007:
+[  312.733314][ T5007]  kasan_save_stack+0x28/0x60
+[  312.734426][ T5007]  __kasan_kmalloc+0xac/0xc4
+[  312.735244][ T5007]  device_add+0x444/0x894
+[  312.735930][ T5007]  firmware_fallback_sysfs+0x170/0x460
+[  312.736865][ T5007]  _request_firmware+0x28c/0x510
+[  312.737599][ T5007]  request_firmware+0x48/0x70
+[  312.738278][ T5007]  devlink_compat_flash_update+0x9c/0x1ec
+[  312.739048][ T5007]  ethtool_flash_device+0xf8/0x100
+[  312.739882][ T5007]  dev_ethtool+0x590/0x2280
+[  312.740631][ T5007]  dev_ioctl+0x4ec/0x5f0
+[  312.741264][ T5007]  sock_do_ioctl+0x114/0x2b0
+[  312.742170][ T5007]  sock_ioctl+0x28c/0x4a0
+[  312.743097][ T5007]  __arm64_sys_ioctl+0xa8/0xec
+[  312.743806][ T5007]  invoke_syscall+0x48/0x114
+[  312.744484][ T5007]  el0_svc_common+0x40/0xdc
+[  312.745129][ T5007]  do_el0_svc+0x78/0x90
+[  312.745785][ T5007]  el0_svc+0x2c/0x54
+[  312.746512][ T5007]  el0t_64_sync_handler+0x1a4/0x1b0
+[  312.747271][ T5007]  el0t_64_sync+0x1b4/0x1b8
+[  312.748028][ T5007] 
+[  312.748573][ T5007] Freed by task 4907:
+[  312.749196][ T5007]  kasan_save_stack+0x28/0x60
+[  312.750119][ T5007]  kasan_set_track+0x28/0x3c
+[  312.750787][ T5007]  kasan_set_free_info+0x20/0x30
+[  312.751819][ T5007]  ____kasan_slab_free.constprop.0+0x178/0x1e0
+[  312.752596][ T5007]  __kasan_slab_free+0x10/0x1c
+[  312.753438][ T5007]  slab_free_freelist_hook+0xc4/0x220
+[  312.754198][ T5007]  kfree+0x2f4/0x43c
+[  312.754866][ T5007]  free_fw_priv+0xe0/0x10c
+[  312.755587][ T5007]  release_firmware.part.0+0x50/0x74
+[  312.756399][ T5007]  _request_firmware+0x2c4/0x510
+[  312.757102][ T5007]  request_firmware+0x48/0x70
+[  312.757903][ T5007]  devlink_compat_flash_update+0x9c/0x1ec
+[  312.758680][ T5007]  ethtool_flash_device+0xf8/0x100
+[  312.759533][ T5007]  dev_ethtool+0x590/0x2280
+[  312.760224][ T5007]  dev_ioctl+0x4ec/0x5f0
+[  312.761065][ T5007]  sock_do_ioctl+0x114/0x2b0
+[  312.761816][ T5007]  sock_ioctl+0x28c/0x4a0
+[  312.762451][ T5007]  __arm64_sys_ioctl+0xa8/0xec
+[  312.763462][ T5007]  invoke_syscall+0x48/0x114
+[  312.764137][ T5007]  el0_svc_common+0x40/0xdc
+[  312.764943][ T5007]  do_el0_svc+0x78/0x90
+[  312.765601][ T5007]  el0_svc+0x2c/0x54
+[  312.766310][ T5007]  el0t_64_sync_handler+0x1a4/0x1b0
+[  312.767168][ T5007]  el0t_64_sync+0x1b4/0x1b8
+[  312.767955][ T5007] 
+[  312.768440][ T5007] The buggy address belongs to the object at ffff00001d527600
+[  312.768440][ T5007]  which belongs to the cache kmalloc-256 of size 256
+[  312.770205][ T5007] The buggy address is located 144 bytes inside of
+[  312.770205][ T5007]  256-byte region [ffff00001d527600, ffff00001d527700)
+[  312.772204][ T5007] The buggy address belongs to the page:
+[  312.773330][ T5007] page:00000000234323ff refcount:1 mapcount:0 mapping:0000000000000000 index:0x0 pfn:0x5d526
+[  312.775026][ T5007] head:00000000234323ff order:1 compound_mapcount:0
+[  312.775882][ T5007] flags: 0x1ffc00000010200(slab|head|node=0|zone=0|lastcpupid=0x7ff|kasantag=0x0)
+[  312.777479][ T5007] raw: 01ffc00000010200 0000000000000000 0000000100000001 f5ff000002801300
+[  312.779011][ T5007] raw: 0000000000000000 0000000080100010 00000001ffffffff 0000000000000000
+[  312.780323][ T5007] page dumped because: kasan: bad access detected
+[  312.781116][ T5007] 
+[  312.781637][ T5007] Memory state around the buggy address:
+[  312.782634][ T5007]  ffff00001d527400: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+[  312.783632][ T5007]  ffff00001d527500: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+[  312.784519][ T5007] >ffff00001d527600: f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 f5 fe fe
+[  312.785670][ T5007]                                               ^
+[  312.786604][ T5007]  ffff00001d527700: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+[  312.787636][ T5007]  ffff00001d527800: f8 f8 f8 f8 f8 f8 f8 f8 f8 fe fe fe fe fe fe fe
+[  312.788542][ T5007] ==================================================================

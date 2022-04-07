@@ -1,0 +1,14 @@
+TITLE: KASAN: slab-out-of-bounds in do_raw_write_lock at addr ADDR
+CORRUPTED: Y
+
+[  322.909624] FAULT_FLAG_ALLOW_RETRY missing 30
+[  322.914808] FAULT_FLAG_ALLOW_RETRY missing 30
+[  322.914819] CPU: 0 PID: 23312 Comm: syz-executor7 Not tainted 4.9.60-gdfe0a9b #81
+[  322.914824] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  322.914839]  ffff8801d58ff750 ffffffff81d91389 ffff8801d58ffa30 0000000000000000
+[  322.914853]  ffff8801c456c710 ffff8801d58ff920 ffff8801c456c600 ffff8801d58ff948
+[  322.914865]  ffffffff8165fc37 0000000000006476 ffff8801ca16b8f0 ffff8801ca16b8a0
+[  322.914868] Call Trace:
+[  322.914882]  [<ffffffff81d91389>] dump_stack+0xc1/0x128
+** 93 printk messages dropped ** [  322.962139] BUG: KASAN: slab-out-of-bounds in do_raw_write_lock+0x1a3/0x1d0 at addr ffff8801c464b568
+** 1987 printk messages dropped ** [  322.975979]  ffff8801c464b400: fb fb fb fb fb fb fb fb fb fb fb fb fc fc fc fc

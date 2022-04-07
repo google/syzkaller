@@ -1,0 +1,16 @@
+TITLE: panic: ptrace set fpregs (ADDR) failed: no such process
+SUPPRESSED: Y
+
+panic: ptrace set fpregs (0xc000dd9300) failed: no such process
+
+goroutine 29103 [running]:
+gvisor.googlesource.com/gvisor/pkg/sentry/platform/ptrace.(*subprocess).switchToApp(0xc000636780, 0xc00061e780, 0xd2c720, 0xc00061d560, 0xc000ce9e00)
+	pkg/sentry/platform/ptrace/subprocess.go:486 +0x9e7
+gvisor.googlesource.com/gvisor/pkg/sentry/platform/ptrace.(*context).Switch(0xc00061e780, 0xd1e340, 0xc000636780, 0xd2c720, 0xc00061d560, 0x7f57ffffffff, 0x0, 0x0, 0x0, 0x0)
+	pkg/sentry/platform/ptrace/ptrace.go:102 +0x74
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute(0x0, 0xc000489500, 0xd119c0, 0x0)
+	pkg/sentry/kernel/task_run.go:205 +0x348
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run(0xc000489500, 0x108)
+	pkg/sentry/kernel/task_run.go:91 +0x149
+created by gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).Start
+	pkg/sentry/kernel/task_start.go:279 +0xfe

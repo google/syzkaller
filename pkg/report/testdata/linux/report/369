@@ -1,0 +1,44 @@
+TITLE: INFO: rcu detected stall in corrupted
+ALT: stall in corrupted
+TYPE: HANG
+CORRUPTED: Y
+
+[  161.009133][    C1] rcu: INFO: rcu_preempt detected stalls on CPUs/tasks:
+[  161.016405][    C1] rcu: 	Tasks blocked on level-0 rcu_node (CPUs 0-1): P8340
+[  161.023875][    C1] rcu: 	(detected by 1, t=10502 jiffies, g=5905, q=81)
+[  161.031272][    C1] syz-executor586 R  running task    27832  8340   8338 0x00000000
+[  161.039353][    C1] Call Trace:
+[  161.042641][    C1]  __schedule+0x817/0x1cc0
+[  161.067630][    C1]  preempt_schedule_common+0x4f/0xe0
+[  161.073186][    C1]  preempt_schedule+0x4b/0x60
+[  161.077857][    C1]  ___preempt_schedule+0x16/0x18
+[  161.082788][    C1]  __sched_setscheduler+0x12fb/0x1e70
+[  161.104326][    C1]  __x64_sys_sched_setattr+0x184/0x2b0
+[  161.136290][    C1]  do_syscall_64+0x103/0x610
+[  161.140891][    C1]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  161.146770][    C1] RIP: 0033:0x4403c9
+[  161.150694][    C1] Code: 76 77 78 5d 20 5b 2d 6c 3c 68 6f 73 74 6c 69 73 74 3e 5d 20 5b 2d 73 3c 64 6f 6d 61 69 6e 6c 69 73 74 3e 5d 0a 20 20 20 20 20 <20> 20 20 20 20 20 20 20 20 20 20 5b 2d 66 3c 63 6f 6e 66 66 69 6c
+[  161.170494][    C1] RSP: 002b:00007ffea1a49298 EFLAGS: 00000246 ORIG_RAX: 000000000000013a
+[  161.178993][    C1] RAX: ffffffffffffffda RBX: 00007ffea1a49340 RCX: 00000000004403c9
+[  161.186950][    C1] RDX: 0000000000000000 RSI: 0000000020000140 RDI: 0000000000000000
+[  161.194924][    C1] RBP: 0000000000000000 R08: 0000000000002b80 R09: 0000000000400d10
+[  161.203018][    C1] R10: 000000000000f8f8 R11: 0000000000000246 R12: 0000000000401c90
+[  161.211013][    C1] R13: 0000000000401d20 R14: 0000000000000000 R15: 0000000000000000
+[  161.219019][    C1] syz-executor586 R  running task    27832  8340   8338 0x00000000
+[  161.227103][    C1] Call Trace:
+[  161.230454][    C1]  __schedule+0x817/0x1cc0
+[  161.255625][    C1]  preempt_schedule_common+0x4f/0xe0
+[  161.260961][    C1]  preempt_schedule+0x4b/0x60
+[  161.265909][    C1]  ___preempt_schedule+0x16/0x18
+[  161.270958][    C1]  __sched_setscheduler+0x12fb/0x1e70
+[  161.292201][    C1]  __x64_sys_sched_setattr+0x184/0x2b0
+[  161.324361][    C1]  do_syscall_64+0x103/0x610
+[  161.329089][    C1]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  161.334969][    C1] RIP: 0033:0x4403c9
+[  161.338911][    C1] Code: 76 77 78 5d 20 5b 2d 6c 3c 68 6f 73 74 6c 69 73 74 3e 5d 20 5b 2d 73 3c 64 6f 6d 61 69 6e 6c 69 73 74 3e 5d 0a 20 20 20 20 20 <20> 20 20 20 20 20 20 20 20 20 20 5b 2d 66 3c 63 6f 6e 66 66 69 6c
+[  161.358741][    C1] RSP: 002b:00007ffea1a49298 EFLAGS: 00000246 ORIG_RAX: 000000000000013a
+[  161.367399][    C1] RAX: ffffffffffffffda RBX: 00007ffea1a49340 RCX: 00000000004403c9
+[  161.375427][    C1] RDX: 0000000000000000 RSI: 0000000020000140 RDI: 0000000000000000
+[  161.383974][    C1] RBP: 0000000000000000 R08: 0000000000002b80 R09: 0000000000400d10
+[  161.392608][    C1] R10: 000000000000f8f8 R11: 0000000000000246 R12: 0000000000401c90
+[  161.400755][    C1] R13: 0000000000401d20 R14: 0000000000000000 R15: 0000000000000000

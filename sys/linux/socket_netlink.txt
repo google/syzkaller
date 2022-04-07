@@ -1,0 +1,160 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_NETLINK support.
+
+include <linux/net.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/rtnetlink.h>
+
+resource sock_netlink[sock]
+type netlink_seq int32[7388453:7388461]
+type netlink_port_id int32[635427835:635427839]
+
+socket$netlink(domain const[AF_NETLINK], type const[SOCK_RAW], proto flags[netlink_proto]) sock_netlink
+bind$netlink(fd sock_netlink, addr ptr[in, sockaddr_nl_proc], addrlen len[addr])
+connect$netlink(fd sock_netlink, addr ptr[in, sockaddr_nl], addrlen len[addr])
+getsockname$netlink(fd sock_netlink, addr ptr[out, sockaddr_nl_unspec], addrlen ptr[inout, len[addr, int32]])
+getpeername$netlink(fd sock_netlink, peer ptr[out, sockaddr_nl_unspec], peerlen ptr[inout, len[peer, int32]])
+sendmsg$netlink(fd sock_netlink, msg ptr[in, msghdr_netlink_generic], f flags[send_flags])
+setsockopt$netlink_NETLINK_ADD_MEMBERSHIP(fd sock_netlink, level const[SOL_NETLINK], opt const[NETLINK_ADD_MEMBERSHIP], arg ptr[in, int32[0:31]], arglen len[arg])
+setsockopt$netlink_NETLINK_DROP_MEMBERSHIP(fd sock_netlink, level const[SOL_NETLINK], opt const[NETLINK_DROP_MEMBERSHIP], arg ptr[in, int32[0:31]], arglen len[arg])
+setsockopt$netlink_NETLINK_PKTINFO(fd sock_netlink, level const[SOL_NETLINK], opt const[NETLINK_PKTINFO], arg ptr[in, int32], arglen len[arg])
+setsockopt$netlink_NETLINK_BROADCAST_ERROR(fd sock_netlink, level const[SOL_NETLINK], opt const[NETLINK_BROADCAST_ERROR], arg ptr[in, int32], arglen len[arg])
+setsockopt$netlink_NETLINK_NO_ENOBUFS(fd sock_netlink, level const[SOL_NETLINK], opt const[NETLINK_NO_ENOBUFS], arg ptr[in, int32], arglen len[arg])
+setsockopt$netlink_NETLINK_RX_RING(fd sock_netlink, level const[SOL_NETLINK], opt const[NETLINK_RX_RING], arg ptr[in, nl_mmap_req], arglen len[arg])
+setsockopt$netlink_NETLINK_TX_RING(fd sock_netlink, level const[SOL_NETLINK], opt const[NETLINK_TX_RING], arg ptr[in, nl_mmap_req], arglen len[arg])
+setsockopt$netlink_NETLINK_LISTEN_ALL_NSID(fd sock_netlink, level const[SOL_NETLINK], opt const[NETLINK_LISTEN_ALL_NSID], arg ptr[in, int32], arglen len[arg])
+setsockopt$netlink_NETLINK_CAP_ACK(fd sock_netlink, level const[SOL_NETLINK], opt const[NETLINK_CAP_ACK], arg ptr[in, int32], arglen len[arg])
+getsockopt$netlink(fd sock_netlink, level const[SOL_NETLINK], opt flags[netlink_sockopts], arg buffer[out], arglen ptr[inout, len[arg, int32]])
+
+netlink_proto = NETLINK_ROUTE, NETLINK_UNUSED, NETLINK_USERSOCK, NETLINK_SOCK_DIAG, NETLINK_NFLOG, NETLINK_XFRM, NETLINK_SELINUX, NETLINK_ISCSI, NETLINK_AUDIT, NETLINK_FIB_LOOKUP, NETLINK_CONNECTOR, NETLINK_NETFILTER, NETLINK_DNRTMSG, NETLINK_KOBJECT_UEVENT, NETLINK_GENERIC, NETLINK_SCSITRANSPORT, NETLINK_ECRYPTFS, NETLINK_RDMA, NETLINK_CRYPTO, NETLINK_INET_DIAG
+netlink_sockopts = NETLINK_ADD_MEMBERSHIP, NETLINK_DROP_MEMBERSHIP, NETLINK_PKTINFO, NETLINK_BROADCAST_ERROR, NETLINK_NO_ENOBUFS, NETLINK_RX_RING, NETLINK_TX_RING, NETLINK_LISTEN_ALL_NSID, NETLINK_LIST_MEMBERSHIPS, NETLINK_CAP_ACK
+netlink_msg_flags = NLM_F_REQUEST, NLM_F_MULTI, NLM_F_ACK, NLM_F_ECHO, NLM_F_DUMP_INTR, NLM_F_DUMP_FILTERED, NLM_F_ROOT, NLM_F_MATCH, NLM_F_ATOMIC, NLM_F_DUMP, NLM_F_REPLACE, NLM_F_EXCL, NLM_F_CREATE, NLM_F_APPEND
+netlink_group_bitmap = 0x0, 0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80, 0x100, 0x200, 0x400, 0x800, 0x1000, 0x2000, 0x4000, 0x8000, 0x10000, 0x20000, 0x40000, 0x80000, 0x100000, 0x200000, 0x400000, 0x800000, 0x1000000, 0x2000000, 0x4000000, 0x8000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000
+
+sockaddr_nl [
+	kern	sockaddr_nl_kern
+	proc	sockaddr_nl_proc
+	unspec	sockaddr_nl_unspec
+]
+
+sockaddr_nl_send [
+	kern	sockaddr_nl_kern
+	proc	sockaddr_nl_proc
+]
+
+type sockaddr_nl_t[FAMILY, PID, GROUPS] {
+	nl_family	const[FAMILY, int16]
+	nl_pad		const[0, int16]
+	nl_pid		PID
+	nl_groups	GROUPS
+}
+type sockaddr_nl_proc sockaddr_nl_t[AF_NETLINK, netlink_port_id, flags[netlink_group_bitmap, int32]]
+type sockaddr_nl_kern sockaddr_nl_t[AF_NETLINK, const[0, int32], flags[netlink_group_bitmap, int32]]
+type sockaddr_nl_unspec sockaddr_nl_t[AF_UNSPEC, const[0, int32], const[0, int32]]
+
+type msghdr_netlink_full[MSG] {
+	addr	ptr[in, sockaddr_nl_send, opt]
+	addrlen	len[addr, int32]
+	vec	ptr[in, array[iovec[in, MSG]]]
+	vlen	len[vec, intptr]
+	ctrl	ptr[in, array[cmsghdr_un], opt]
+	ctrllen	bytesize[ctrl, intptr]
+	f	flags[send_flags, int32]
+}
+
+# Simplified version of msghdr_netlink_full with kernel address, no control data and only 1 iovec.
+# It's enough for most protocols.
+type msghdr_netlink[MSG] {
+	addr	ptr[in, sockaddr_nl_kern]
+	addrlen	len[addr, int32]
+	vec	ptr[in, iovec[in, MSG]]
+	vlen	const[1, intptr]
+	ctrl	const[0, intptr]
+	ctrllen	const[0, intptr]
+	f	flags[send_flags, int32]
+}
+
+# No body. Generic attribute can represent a random body.
+type msghdr_netlink_generic msghdr_netlink_full[netlink_msg_t[netlink_random_msg_type, void, nl_generic_attr]]
+
+type netlink_msg_t[TYPE, PAYLOAD, ATTRS] {
+	len	len[parent, int32]
+	type	TYPE
+	flags	flags[netlink_msg_flags, int16]
+	seq	netlink_seq
+	pid	netlink_port_id
+	payload	PAYLOAD
+	attrs	array[ATTRS]
+} [packed, align[4]]
+
+type netlink_msg[TYPE, PAYLOAD, ATTRS] netlink_msg_t[const[TYPE, int16], PAYLOAD, ATTRS]
+
+type nlattr_t[TYPE, PAYLOAD] {
+	nla_len		offsetof[size, int16]
+	nla_type	TYPE
+	payload		PAYLOAD
+	size		void
+} [packed, align[4]]
+
+type nlattr_tt[TYPE, NETORDER, NESTED, PAYLOAD] {
+	nla_len			offsetof[size, int16]
+	nla_type		TYPE
+	NLA_F_NET_BYTEORDER	const[NETORDER, int16:1]
+	NLA_F_NESTED		const[NESTED, int16:1]
+	payload			PAYLOAD
+	size			void
+} [packed, align[4]]
+
+type nlattr[TYPE, PAYLOAD] nlattr_t[const[TYPE, int16], PAYLOAD]
+# nlattr with NLA_F_NESTED set.
+type nlnest[TYPE, PAYLOAD] nlattr_tt[const[TYPE, int16:14], 0, 1, PAYLOAD]
+# nlattr with NLA_F_NET_BYTEORDER set (unused for now).
+type nlnetw[TYPE, PAYLOAD] nlattr_tt[const[TYPE, int16:14], 1, 0, PAYLOAD]
+
+nl_generic_attr [
+	generic	array[int8]
+# NL80211 has 150 attributes.
+	typed	nlattr_tt[int16:14[0:150], 0, 0, nl_generic_attr_data]
+	nested	nlattr_tt[int16:14[0:150], 0, 1, array[nl_generic_attr_nonested]]
+] [varlen]
+
+nl_generic_attr_nonested [
+	generic	array[int8]
+	typed	nlattr_tt[int16:14[0:150], 0, 0, nl_generic_attr_data]
+] [varlen]
+
+nl_generic_attr_data [
+	void	void
+	u32	int32
+	u64	int64
+	ipv4	ipv4_addr
+	ipv6	ipv6_addr
+	fd	fd
+	pid	pid
+	uid	uid
+	str	string
+	binary	array[int8]
+] [varlen]
+
+type nla_bitfield32[FLAGS] {
+	value		flags[FLAGS, int32]
+	selector	flags[FLAGS, int32]
+}
+
+nl_mmap_req {
+	bsize	int32
+	bnumber	int32
+	fsize	int32
+	fnumber	int32
+}
+
+# Removed (if __KERNEL__ defined) in next-20160229 (commit d1b4c689)
+define NETLINK_RX_RING	6
+define NETLINK_TX_RING	7
+
+# Some approximation for protocols for which we don't have precise descriptions.
+define NLMSG_MAX_TYPE	NLMSG_MIN_TYPE + 50
+
+type netlink_random_msg_type int16[NLMSG_MIN_TYPE:NLMSG_MAX_TYPE]

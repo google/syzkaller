@@ -1,0 +1,95 @@
+TITLE: KASAN: invalid-access Read in l2cap_sock_teardown_cb
+ALT: bad-access in l2cap_sock_teardown_cb
+
+[ 5825.407853][ T9802] ==================================================================
+[ 5825.409134][ T9802] BUG: KASAN: invalid-access in _raw_spin_lock_bh+0x2c/0x70
+[ 5825.411015][ T9802] Read at addr 07ff000030708888 by task kworker/0:3/9802
+[ 5825.412333][ T9802] Pointer tag: [07], memory tag: [f4]
+[ 5825.413708][ T9802] 
+[ 5825.414551][ T9802] CPU: 0 PID: 9802 Comm: kworker/0:3 Not tainted 5.11.0-rc3 #36
+[ 5825.415818][ T9802] Hardware name: linux,dummy-virt (DT)
+[ 5825.417106][ T9802] Workqueue: events l2cap_chan_timeout
+[ 5825.418918][ T9802] Call trace:
+[ 5825.419576][ T9802]  dump_backtrace+0x0/0x1a4
+[ 5825.420449][ T9802]  show_stack+0x1c/0x70
+[ 5825.421202][ T9802]  dump_stack+0xd0/0x12c
+[ 5825.422024][ T9802]  print_address_description+0x70/0x29c
+[ 5825.422923][ T9802]  kasan_report+0x104/0x200
+[ 5825.423762][ T9802]  __do_kernel_fault+0x17c/0x1c0
+[ 5825.424690][ T9802]  do_tag_check_fault+0x6c/0x80
+[ 5825.425561][ T9802]  do_mem_abort+0x44/0xb4
+[ 5825.426471][ T9802]  el1_abort+0x40/0x6c
+[ 5825.427300][ T9802]  el1_sync_handler+0xb0/0xcc
+[ 5825.428208][ T9802]  el1_sync+0x70/0x100
+[ 5825.429039][ T9802]  _raw_spin_lock_bh+0x2c/0x70
+[ 5825.429915][ T9802]  l2cap_sock_teardown_cb+0x34/0x160
+[ 5825.430801][ T9802]  l2cap_chan_del+0x48/0x3d0
+[ 5825.431701][ T9802]  l2cap_chan_close+0x58/0x274
+[ 5825.432594][ T9802]  l2cap_chan_timeout+0x64/0x17c
+[ 5825.433484][ T9802]  process_one_work+0x1d8/0x360
+[ 5825.434361][ T9802]  worker_thread+0x74/0x440
+[ 5825.435232][ T9802]  kthread+0x178/0x180
+[ 5825.436135][ T9802]  ret_from_fork+0x10/0x30
+[ 5825.437144][ T9802] 
+[ 5825.437788][ T9802] Allocated by task 4482:
+[ 5825.438645][ T9802]  stack_trace_save+0x50/0x80
+[ 5825.439672][ T9802]  kasan_save_stack+0x2c/0x60
+[ 5825.440533][ T9802]  ____kasan_kmalloc+0xe8/0x160
+[ 5825.441362][ T9802]  __kasan_slab_alloc+0x20/0x30
+[ 5825.442191][ T9802]  __kmalloc_node_track_caller+0x164/0x330
+[ 5825.443082][ T9802]  __kmalloc_reserve.constprop.0+0x68/0x110
+[ 5825.444030][ T9802]  __alloc_skb+0x88/0x1b0
+[ 5825.444876][ T9802]  new_skb+0x20/0x60
+[ 5825.445661][ T9802]  aoecmd_cfg+0xd8/0x220
+[ 5825.446529][ T9802]  discover_timer+0x30/0x40
+[ 5825.447352][ T9802]  call_timer_fn.constprop.0+0x24/0x80
+[ 5825.448264][ T9802]  __run_timers.part.0+0x1f0/0x224
+[ 5825.449152][ T9802]  run_timer_softirq+0x40/0x7c
+[ 5825.449999][ T9802]  _stext+0x12c/0x2b4
+[ 5825.450830][ T9802] 
+[ 5825.451387][ T9802] Freed by task 19062:
+[ 5825.452095][ T9802]  stack_trace_save+0x50/0x80
+[ 5825.452931][ T9802]  kasan_save_stack+0x2c/0x60
+[ 5825.453764][ T9802]  kasan_set_track+0x2c/0x40
+[ 5825.454577][ T9802]  kasan_set_free_info+0x24/0x30
+[ 5825.455407][ T9802]  ____kasan_slab_free.constprop.0+0x184/0x1c0
+[ 5825.456569][ T9802]  __kasan_slab_free+0x14/0x20
+[ 5825.457436][ T9802]  slab_free_freelist_hook+0x9c/0x190
+[ 5825.458358][ T9802]  kfree+0x328/0x4a0
+[ 5825.459130][ T9802]  kvfree+0x40/0x50
+[ 5825.459915][ T9802]  xt_free_table_info+0x74/0x84
+[ 5825.460810][ T9802]  __do_replace+0x238/0x320
+[ 5825.461744][ T9802]  do_arpt_set_ctl+0x4e4/0x76c
+[ 5825.462565][ T9802]  nf_setsockopt+0x6c/0x9c
+[ 5825.463412][ T9802]  ip_setsockopt+0x134/0x1334
+[ 5825.464274][ T9802]  tcp_setsockopt+0x3c/0xc40
+[ 5825.465141][ T9802]  sock_common_setsockopt+0x20/0x30
+[ 5825.466043][ T9802]  __sys_setsockopt+0xa4/0x1a4
+[ 5825.466951][ T9802]  __arm64_sys_setsockopt+0x2c/0x3c
+[ 5825.467866][ T9802]  el0_svc_common.constprop.0+0x74/0x190
+[ 5825.468878][ T9802]  do_el0_svc+0x78/0x90
+[ 5825.469704][ T9802]  el0_svc+0x14/0x20
+[ 5825.470495][ T9802]  el0_sync_handler+0x1a8/0x1b0
+[ 5825.471336][ T9802]  el0_sync+0x190/0x1c0
+[ 5825.472165][ T9802] 
+[ 5825.472761][ T9802] The buggy address belongs to the object at ffff000030708800
+[ 5825.472761][ T9802]  which belongs to the cache kmalloc-1k of size 1024
+[ 5825.474559][ T9802] The buggy address is located 136 bytes inside of
+[ 5825.474559][ T9802]  1024-byte region [ffff000030708800, ffff000030708c00)
+[ 5825.476395][ T9802] The buggy address belongs to the page:
+[ 5825.477433][ T9802] page:00000000aaed4763 refcount:1 mapcount:0 mapping:0000000000000000 index:0x0 pfn:0x70708
+[ 5825.478974][ T9802] head:00000000aaed4763 order:2 compound_mapcount:0 compound_pincount:0
+[ 5825.480208][ T9802] flags: 0x1ffffc000010200(slab|head)
+[ 5825.481642][ T9802] raw: 01ffffc000010200 dead000000000100 dead000000000122 fcff000004001b00
+[ 5825.482925][ T9802] raw: 0000000000000000 0000000000080008 00000001ffffffff f2ff00002a7fed01
+[ 5825.484096][ T9802] page dumped because: kasan: bad access detected
+[ 5825.485061][ T9802] pages's memcg:f2ff00002a7fed01
+[ 5825.485862][ T9802] 
+[ 5825.486457][ T9802] Memory state around the buggy address:
+[ 5825.487531][ T9802]  ffff000030708600: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+[ 5825.488745][ T9802]  ffff000030708700: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+[ 5825.489861][ T9802] >ffff000030708800: f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4
+[ 5825.490870][ T9802]                                            ^
+[ 5825.491844][ T9802]  ffff000030708900: f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4
+[ 5825.492978][ T9802]  ffff000030708a00: f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4
+[ 5825.494124][ T9802] ==================================================================

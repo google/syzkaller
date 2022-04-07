@@ -1,0 +1,34 @@
+TITLE: kernel BUG in btree_readpage_end_io_hook
+ALT: kernel BUG at lib/string.c:LINE!
+
+[   61.075073][   T26] ------------[ cut here ]------------
+[   61.081689][   T26] kernel BUG at lib/string.c:1129!
+[   61.086820][   T26] invalid opcode: 0000 [#1] PREEMPT SMP KASAN
+[   61.092886][   T26] CPU: 1 PID: 26 Comm: kworker/u4:2 Not tainted 5.9.0-rc4-syzkaller #0
+[   61.101101][   T26] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   61.111163][   T26] Workqueue: btrfs-endio-meta btrfs_work_helper
+[   61.117405][   T26] RIP: 0010:fortify_panic+0xf/0x20
+[   61.122497][   T26] Code: 89 c7 48 89 74 24 08 48 89 04 24 e8 ab 39 00 fe 48 8b 74 24 08 48 8b 04 24 eb d5 48 89 fe 48 c7 c7 40 22 97 88 e8 b0 8c a9 fd <0f> 0b cc cc cc cc cc cc cc cc cc cc cc cc cc cc cc 41 57 41 56 41
+[   61.142096][   T26] RSP: 0018:ffffc90000e27980 EFLAGS: 00010286
+[   61.148141][   T26] RAX: 0000000000000022 RBX: ffff8880a80dca64 RCX: 0000000000000000
+[   61.156098][   T26] RDX: ffff8880a90860c0 RSI: ffffffff815dba07 RDI: fffff520001c4f22
+[   61.164051][   T26] RBP: ffff8880a80dca00 R08: 0000000000000022 R09: ffff8880ae7318e7
+[   61.172021][   T26] R10: 0000000000000000 R11: 0000000000077578 R12: 00000000ffffff6e
+[   61.179985][   T26] R13: 0000000000000008 R14: ffffc90000e27a40 R15: 1ffff920001c4f3c
+[   61.187940][   T26] FS:  0000000000000000(0000) GS:ffff8880ae700000(0000) knlGS:0000000000000000
+[   61.196858][   T26] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   61.203419][   T26] CR2: 0000557335f440d0 CR3: 000000009647d000 CR4: 00000000001506e0
+[   61.211385][   T26] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   61.219342][   T26] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   61.227304][   T26] Call Trace:
+[   61.230594][   T26]  btree_readpage_end_io_hook.cold+0x206/0x221
+[   61.249010][   T26]  end_bio_extent_readpage+0x4de/0x10c0
+[   61.271483][   T26]  bio_endio+0x3cf/0x7f0
+[   61.281591][   T26]  end_workqueue_fn+0x114/0x170
+[   61.286421][   T26]  btrfs_work_helper+0x221/0xe20
+[   61.296510][   T26]  process_one_work+0x94c/0x1670
+[   61.321547][   T26]  worker_thread+0x64c/0x1120
+[   61.331402][   T26]  kthread+0x3b5/0x4a0
+[   61.340554][   T26]  ret_from_fork+0x1f/0x30
+[   61.344955][   T26] Modules linked in:
+[   61.358276][   T26] ---[ end trace b68924293169feef ]---

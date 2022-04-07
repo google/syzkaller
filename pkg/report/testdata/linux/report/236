@@ -1,0 +1,15 @@
+TITLE: WARNING in corrupted
+CORRUPTED: Y
+
+------------[ cut here ]------------
+WARNING: CPU: 0 PID: 2587 at drivers/i2c/i2c-core-base.c:1848 __i2c_transfer+0x310/0x380
+Kernel panic - not syncing: panic_on_warn set ...
+
+CPU: 0 PID: 2587 Comm: syz-executor2 Not tainted 4.17.0-rc1+ #11
+Hardware name: ARM-Versatile Express
+[<8011218c>] (unwind_backtrace) from [<8010e300>] (show_stack+0x18/0x1c)
+[<8010e300>] (show_stack) from [<80b12478>] (dump_stack+0xa0/0xc0)
+[<80b12478>] (dump_stack) from [<801349a8>] (panic+0x104/0x2cc)
+[<801349a8>] (panic) from [<8013479c>] (warn_slowpath_fmt+0x0/0x5c)
+[<8013479c>] (warn_slowpath_fmt) from [<00000000>] (  (null))
+Rebooting in 86400 seconds..

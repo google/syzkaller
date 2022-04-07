@@ -1,0 +1,50 @@
+TITLE: memory leak in new_inode_pseudo
+TYPE: LEAK
+
+2018/01/09 14:28:48 BUG: memory leak
+unreferenced object 0xffff88007658a9e0 (size 944):
+  comm "syz-executor1", pid 4094, jiffies 4294767514 (age 15.374s)
+  hex dump (first 32 bytes):
+    24 81 04 00 00 00 00 00 00 00 00 00 00 00 00 00  $...............
+    ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff  ................
+  backtrace:
+    [<000000005b8e4771>] kmem_cache_alloc+0x1c0/0x3c0
+    [<0000000017059910>] alloc_inode+0x133/0x190
+    [<00000000ba068e0d>] new_inode_pseudo+0x69/0x1a0
+    [<00000000b7bf3701>] new_inode+0x1c/0x40
+    [<000000009423fcb4>] debugfs_get_inode+0x19/0x120
+    [<00000000b46a8283>] __debugfs_create_file+0xb7/0x400
+    [<00000000a5368b38>] debugfs_create_file+0x57/0x70
+    [<00000000452f2bcd>] binder_open+0x63c/0x910
+    [<00000000d1769510>] misc_open+0x3c7/0x560
+    [<00000000cad31ad6>] chrdev_open+0x254/0x760
+    [<000000004c009e95>] do_dentry_open+0x733/0xe20
+    [<00000000950879ed>] vfs_open+0x139/0x220
+    [<000000000006e060>] path_openat+0xd30/0x38d0
+    [<00000000ff84eb5e>] do_filp_open+0x249/0x350
+    [<0000000072d8b477>] do_sys_open+0x59b/0x760
+    [<000000008cf1946f>] SyS_open+0x2d/0x40
+
+2018/01/09 14:28:48 BUG: memory leak
+unreferenced object 0xffff88007c996480 (size 96):
+  comm "syz-executor1", pid 4094, jiffies 4294767514 (age 15.374s)
+  hex dump (first 32 bytes):
+    a0 ad 58 76 00 88 ff ff b0 ab 58 76 00 88 ff ff  ..Xv......Xv....
+    70 05 2e 82 ff ff ff ff dd 00 00 00 21 00 00 00  p...........!...
+  backtrace:
+    [<000000005b8e4771>] kmem_cache_alloc+0x1c0/0x3c0
+    [<0000000075871512>] selinux_inode_alloc_security+0xf9/0x390
+    [<0000000072685286>] security_inode_alloc+0x92/0xe0
+    [<000000003c51daf0>] inode_init_always+0x64f/0xca0
+    [<0000000093a4cd58>] alloc_inode+0x82/0x190
+    [<00000000ba068e0d>] new_inode_pseudo+0x69/0x1a0
+    [<00000000b7bf3701>] new_inode+0x1c/0x40
+    [<000000009423fcb4>] debugfs_get_inode+0x19/0x120
+    [<00000000b46a8283>] __debugfs_create_file+0xb7/0x400
+    [<00000000a5368b38>] debugfs_create_file+0x57/0x70
+    [<00000000452f2bcd>] binder_open+0x63c/0x910
+    [<00000000d1769510>] misc_open+0x3c7/0x560
+    [<00000000cad31ad6>] chrdev_open+0x254/0x760
+    [<000000004c009e95>] do_dentry_open+0x733/0xe20
+    [<00000000950879ed>] vfs_open+0x139/0x220
+    [<000000000006e060>] path_openat+0xd30/0x38d0

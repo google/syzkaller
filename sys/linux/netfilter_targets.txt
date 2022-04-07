@@ -1,0 +1,354 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Netfilter targets shared between ipv6/ipv6.
+
+include <linux/socket.h>
+include <uapi/linux/netfilter/ipset/ip_set.h>
+include <uapi/linux/netfilter/x_tables.h>
+include <uapi/linux/netfilter/xt_connmark.h>
+include <uapi/linux/netfilter/nf_nat.h>
+include <uapi/linux/netfilter/xt_set.h>
+include <uapi/linux/netfilter/xt_mark.h>
+include <uapi/linux/netfilter/xt_TEE.h>
+include <uapi/linux/netfilter/xt_LED.h>
+include <uapi/linux/netfilter/xt_TCPMSS.h>
+include <uapi/linux/netfilter/xt_RATEEST.h>
+include <uapi/linux/netfilter/xt_DSCP.h>
+include <uapi/linux/netfilter/xt_CLASSIFY.h>
+include <uapi/linux/netfilter/xt_IDLETIMER.h>
+include <uapi/linux/netfilter/xt_TCPOPTSTRIP.h>
+include <uapi/linux/netfilter/xt_NFQUEUE.h>
+include <uapi/linux/netfilter/xt_CT.h>
+include <uapi/linux/netfilter/xt_AUDIT.h>
+include <uapi/linux/netfilter/xt_HMARK.h>
+include <uapi/linux/netfilter/xt_TPROXY.h>
+include <uapi/linux/netfilter/xt_CHECKSUM.h>
+include <uapi/linux/netfilter/xt_CONNSECMARK.h>
+include <uapi/linux/netfilter/xt_SECMARK.h>
+include <uapi/linux/netfilter/xt_NFLOG.h>
+include <uapi/linux/netfilter/xt_LOG.h>
+include <uapi/linux/netfilter/xt_SYNPROXY.h>
+
+type xt_target_t[NAME, DATA, REV] {
+	target_size	len[parent, int16]
+	name		string[NAME, XT_EXTENSION_MAXNAMELEN]
+	revision	const[REV, int8]
+	data		DATA
+} [align[PTR_SIZE]]
+
+xt_unspec_targets [
+	STANDARD	xt_target_t["", flags[nf_verdicts, int32], 0]
+	ERROR		xt_target_t["ERROR", array[int8, XT_FUNCTION_MAXNAMELEN], 0]
+	LED		xt_target_t["LED", xt_led_info, 0]
+	RATEEST		xt_target_t["RATEEST", xt_rateest_target_info, 0]
+	NFQUEUE0	xt_target_t["NFQUEUE", xt_NFQ_info, 0]
+	NFQUEUE1	xt_target_t["NFQUEUE", xt_NFQ_info_v1, 1]
+	NFQUEUE2	xt_target_t["NFQUEUE", xt_NFQ_info_v3, 2]
+	NFQUEUE3	xt_target_t["NFQUEUE", xt_NFQ_info_v3, 3]
+	CLASSIFY	xt_target_t["CLASSIFY", xt_classify_target_info, 0]
+	IDLETIMER	xt_target_t["IDLETIMER", idletimer_tg_info, 0]
+	AUDIT		xt_target_t["AUDIT", xt_audit_info, 0]
+	MARK		xt_target_t["MARK", xt_mark_tginfo2, 2]
+	CONNSECMARK	xt_target_t["CONNSECMARK", xt_connsecmark_target_info, 0]
+	SECMARK		xt_target_t["SECMARK", xt_secmark_target_info, 0]
+	NFLOG		xt_target_t["NFLOG", xt_nflog_info, 0]
+	CONNMARK	xt_target_t["CONNMARK", xt_connmark_tginfo1, 1]
+] [varlen]
+
+nf_verdicts = 0, NF_DROP_VERDICT, NF_ACCEPT_VERDICT, NF_STOLEN_VERDICT, NF_QUEUE_VERDICT, NF_REPEAT_VERDICT
+
+define NF_DROP_VERDICT	-NF_DROP - 1
+define NF_ACCEPT_VERDICT	-NF_ACCEPT - 1
+define NF_STOLEN_VERDICT	-NF_STOLEN - 1
+define NF_QUEUE_VERDICT	-NF_QUEUE - 1
+define NF_REPEAT_VERDICT	-NF_REPEAT - 1
+
+xt_unspec_mangle_targets [
+	CHECKSUM	xt_target_t["CHECKSUM", xt_CHECKSUM_info, 0]
+] [varlen]
+
+xt_unspec_nat_targets [
+	SNAT1	xt_target_t["SNAT", nf_nat_range, 1]
+	DNAT1	xt_target_t["DNAT", nf_nat_range, 1]
+] [varlen]
+
+xt_unspec_raw_targets [
+	TRACE	xt_target_t["TRACE", void, 0]
+	CT0	xt_target_t["CT", xt_ct_target_info, 0]
+	CT1	xt_target_t["CT", xt_ct_target_info_v1, 1]
+	CT2	xt_target_t["CT", xt_ct_target_info_v1, 2]
+	NOTRACK	xt_target_t["NOTRACK", void, 0]
+] [varlen]
+
+xt_inet_targets [
+	TEE		xt_target_t["TEE", xt_tee_tginfo, 1]
+	TCPMSS		xt_target_t["TCPMSS", xt_tcpmss_info, 0]
+	TCPOPTSTRIP	xt_target_t["TCPOPTSTRIP", xt_tcpoptstrip_target_info, 0]
+	HMARK		xt_target_t["HMARK", xt_hmark_info, 0]
+	SET1		xt_target_t["SET", xt_set_info_target_v1, 1]
+	SET2		xt_target_t["SET", xt_set_info_target_v2, 2]
+	SET3		xt_target_t["SET", xt_set_info_target_v3, 3]
+	LOG		xt_target_t["LOG", xt_log_info, 0]
+	SYNPROXY	xt_target_t["SYNPROXY", xt_synproxy_info, 0]
+] [varlen]
+
+xt_inet_mangle_targets [
+	DSCP	xt_target_t["DSCP", xt_DSCP_info, 0]
+	TOS	xt_target_t["TOS", xt_tos_target_info, 0]
+	TPROXY1	xt_target_t["TPROXY", xt_tproxy_target_info_v1, 1]
+] [varlen]
+
+xt_tee_tginfo {
+	gw	nf_inet_addr
+	oif	devname
+	priv	align64[intptr]
+}
+
+xt_led_info {
+	id		string[xt_led_names, 27]
+	always_blink	bool8
+	delay		int32
+	internal_data	align64[intptr]
+}
+
+xt_led_names = "syz0", "syz1"
+
+xt_tcpmss_info {
+	mss	int16
+}
+
+xt_rateest_target_info {
+	name		string[xt_rateest_names, IFNAMSIZ]
+	interval	int8
+	ewma_log	int8
+	est		align64[intptr]
+}
+
+xt_rateest_names = "syz0", "syz1"
+
+nf_nat_range {
+	flags		flags[nf_nat_flags, int32]
+	min_addr	nf_inet_addr
+	max_addr	nf_inet_addr
+	min_proto	nf_conntrack_man_proto
+	max_proto	nf_conntrack_man_proto
+}
+
+nf_nat_ipv4_multi_range_compat {
+	rangesize	const[1, int32]
+	range		nf_nat_ipv4_range
+}
+
+nf_nat_ipv4_range {
+	flags	flags[nf_nat_flags, int32]
+	min_ip	ipv4_addr
+	max_ip	ipv4_addr
+	min	nf_conntrack_man_proto
+	max	nf_conntrack_man_proto
+}
+
+nf_nat_flags = NF_NAT_RANGE_MAP_IPS, NF_NAT_RANGE_PROTO_SPECIFIED, NF_NAT_RANGE_PROTO_RANDOM, NF_NAT_RANGE_PERSISTENT, NF_NAT_RANGE_PROTO_RANDOM_FULLY
+
+xt_NFQ_info {
+	queuenum	int16
+}
+
+xt_NFQ_info_v1 {
+	queuenum	int16
+	queues_total	int16
+}
+
+xt_NFQ_info_v3 {
+	queuenum	int16
+	queues_total	int16
+	flags		flags[xt_NFQ_flags, int16]
+}
+
+xt_NFQ_flags = NFQ_FLAG_BYPASS, NFQ_FLAG_CPU_FANOUT
+
+xt_DSCP_info {
+	dscp	int8[0:XT_DSCP_MAX]
+}
+
+xt_tos_target_info {
+	tos_value	int8
+	tos_mask	int8
+}
+
+xt_classify_target_info {
+	priority	int32
+}
+
+idletimer_tg_info {
+	timeout	int32
+	label	string[idletimer_tg_names, MAX_IDLETIMER_LABEL_SIZE]
+	timer	align64[intptr]
+}
+
+idletimer_tg_names = "syz0", "syz1"
+
+xt_tcpoptstrip_target_info {
+	strip_bmap	array[int32, 8]
+}
+
+xt_ct_target_info {
+	flags		bool16
+	zone		int16
+	ct_events	int32
+	exp_events	int32
+	helper		string[xt_ct_helpers, 16]
+	ct		align64[intptr]
+}
+
+xt_ct_target_info_v1 {
+	flags		flags[xt_ct_flags, int16]
+	zone		int16
+	ct_events	int32
+	exp_events	int32
+	helper		string[xt_ct_helpers, 16]
+# TODO: these names must be registered somewhere from netlink.
+	timeout		string[xt_ct_timeouts, 32]
+	ct		align64[intptr]
+}
+
+xt_ct_flags = XT_CT_NOTRACK, XT_CT_NOTRACK_ALIAS, XT_CT_ZONE_DIR_ORIG, XT_CT_ZONE_DIR_REPL, XT_CT_ZONE_MARK
+xt_ct_helpers = "", "snmp_trap", "netbios-ns", "pptp", "snmp", "syz0", "syz1"
+xt_ct_timeouts = "syz0", "syz1"
+
+xt_audit_info {
+	type	flags[xt_audit_flags, int8]
+}
+
+xt_audit_flags = XT_AUDIT_TYPE_ACCEPT, XT_AUDIT_TYPE_DROP, XT_AUDIT_TYPE_REJECT
+
+xt_hmark_info {
+	src_mask	nf_inet_addr
+	dst_mask	ipv6_addr_mask
+	src_port_mask	sock_port
+	dst_port_mask	sock_port
+	src_port_set	sock_port
+	dst_port_set	sock_port
+	flags		int32
+	proto_mask	int16
+	hashrnd		int32
+	hmodulus	int32
+	hoffset		int32
+}
+
+xt_tproxy_target_info {
+	mark_mask	int32
+	mark_value	int32
+	laddr		ipv4_addr
+	lport		sock_port
+}
+
+xt_tproxy_target_info_v1 {
+	mark_mask	int32
+	mark_value	int32
+	laddr		nf_inet_addr
+	lport		sock_port
+}
+
+xt_set_info_target_v0 {
+	add_set	xt_set_info_v0
+	del_set	xt_set_info_v0
+}
+
+xt_set_info_target_v1 {
+	add_set	xt_set_info
+	del_set	xt_set_info
+}
+
+xt_set_info_target_v2 {
+	add_set	xt_set_info
+	del_set	xt_set_info
+	flags	int32
+	timeout	int32
+}
+
+xt_set_info_target_v3 {
+	add_set	xt_set_info
+	del_set	xt_set_info
+	map_set	xt_set_info
+	flags	int32
+	timeout	int32
+}
+
+xt_set_info_v0 {
+	index	ip_set_id_t
+	flags	array[flags[xt_set_info_flags, int32], IPSET_DIM_MAX]
+	dim	int8[0:IPSET_DIM_MAX]
+	flags2	flags[xt_set_info_flags, int8]
+}
+
+xt_set_info {
+	index	ip_set_id_t
+	dim	int8[0:IPSET_DIM_MAX]
+	flags	flags[xt_set_info_flags, int8]
+}
+
+xt_set_info_flags = IPSET_SRC, IPSET_DST, IPSET_MATCH_INV
+
+ip_set_counter_match0 {
+	op	int8
+	value	int64
+}
+
+ip_set_counter_match {
+	value	align64[int64]
+	op	int8
+}
+
+xt_mark_tginfo2 {
+	mark	int32
+	mask	int32
+}
+
+xt_CHECKSUM_info {
+	operation	const[XT_CHECKSUM_OP_FILL, int8]
+}
+
+xt_log_info {
+	level		int8
+	logflags	flags[xt_log_flags, int8]
+	prefix		array[int8, 30]
+}
+
+xt_log_flags = XT_LOG_TCPSEQ, XT_LOG_TCPOPT, XT_LOG_IPOPT, XT_LOG_UID, XT_LOG_NFLOG, XT_LOG_MACDECODE
+
+xt_connsecmark_target_info {
+	mode	int8[1:2]
+}
+
+xt_secmark_target_info {
+	mode	int8[1:1]
+	secid	int32
+	secctx	string[selinux_security_context, SECMARK_SECCTX_MAX]
+}
+
+xt_nflog_info {
+	len		int32
+	group		int16
+	threshold	int16
+	flags		bool16
+	pad		const[0, int16]
+	prefix		array[int8, 64]
+}
+
+xt_connmark_tginfo1 {
+	ctmark	int32
+	ctmask	int32
+	nfmask	int32
+	mode	flags[xt_connmark_mode, int8]
+}
+
+xt_connmark_mode = XT_CONNMARK_SET, XT_CONNMARK_SAVE, XT_CONNMARK_RESTORE
+
+xt_synproxy_info {
+	options	flags[xt_synproxy_options, int8]
+	wscale	int8
+	mss	int16
+}
+
+xt_synproxy_options = XT_SYNPROXY_OPT_MSS, XT_SYNPROXY_OPT_WSCALE, XT_SYNPROXY_OPT_SACK_PERM, XT_SYNPROXY_OPT_TIMESTAMP, XT_SYNPROXY_OPT_ECN

@@ -1,0 +1,16 @@
+TITLE: UBSAN: undefined-behaviour in proc_do_submiturb
+
+[    4.556968] ================================================================================
+[    4.556972] UBSAN: Undefined behaviour in drivers/usb/core/devio.c:1517:25
+[    4.556975] shift exponent -1 is negative
+[    4.556979] CPU: 2 PID: 3624 Comm: usb Not tainted 4.5.0-rc1 #252
+[    4.556981] Hardware name: Apple Inc. MacBookPro10,2/Mac-AFD8A9D944EA4843, BIOS MBP102.88Z.0106.B0A.1509130955 09/13/2015
+[    4.556984]  0000000000000000 0000000000000000 ffffffff845c6528 ffff8802493b3c68
+[    4.556988]  ffffffff81b2e7d9 0000000000000007 ffff8802493b3c98 ffff8802493b3c80
+[    4.556992]  ffffffff81bcb87d ffffffffffffffff ffff8802493b3d10 ffffffff81bcc1c1
+[    4.556996] Call Trace:
+[    4.557004]  [<ffffffff81b2e7d9>] dump_stack+0x45/0x6c
+[    4.557010]  [<ffffffff81bcb87d>] ubsan_epilogue+0xd/0x40
+[    4.557015]  [<ffffffff81bcc1c1>] __ubsan_handle_shift_out_of_bounds+0xf1/0x140
+[    4.557030]  [<ffffffff822247af>] ? proc_do_submiturb+0x9af/0x2c30
+[    4.557034]  [<ffffffff82226794>] proc_do_submiturb+0x2994/0x2c30

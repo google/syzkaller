@@ -1,0 +1,117 @@
+TITLE: pool: double put: lockfpl
+
+login: panic: pool_do_put: lockfpl: double pool_put: 0xffffff001692bd18
+Stopped at      db_enter+0xa:   popq    %rbp
+    TID    PID    UID     PRFLAGS     PFLAGS  CPU  COMMAND
+db_enter() at db_enter+0xa
+panic() at panic+0x147
+pool_do_put(ffffff001692bd18,ffffffff81ec0850) at pool_do_put+0x2e2
+pool_put(ffffff0016933440,ffff80000e3793e8) at pool_put+0x37
+lf_advlock(40,ffffff001dc251c8,2,ffff80000e3793e8,ffffffff81df26c0,200000040) at lf_advlock+0x270
+VOP_ADVLOCK(ffffff0015a96da8,ffff80000e2a3080,3,ffffff001f7ca350,3) at VOP_ADVLOCK+0x67
+closef(ffff80000e2a3080,ffffff001f7ca350) at closef+0xaf
+fdfree(ffff80000e27c008) at fdfree+0x98
+exit1(ffff80000e3795c0,ffff80000e2a3080,ffff80000e27c008) at exit1+0x226
+sys_exit(ffffffff81558913,ffff80000e3794e0,ffff80000e3795c0) at sys_exit+0x13
+syscall(0) at syscall+0x3e4
+Xsyscall(6,1,0,1,0,7f7ffffed840) at Xsyscall+0x128
+end of kernel
+end trace frame: 0x7f7ffffed7f0, count: 3
+https://www.openbsd.org/ddb.html describes the minimum info required in bug
+reports.  Insufficient info makes it difficult to find and fix bugs.
+ddb> trace
+db_enter() at db_enter+0xa
+panic() at panic+0x147
+pool_do_put(ffffff001692bd18,ffffffff81ec0850) at pool_do_put+0x2e2
+pool_put(ffffff0016933440,ffff80000e3793e8) at pool_put+0x37
+lf_advlock(40,ffffff001dc251c8,2,ffff80000e3793e8,ffffffff81df26c0,200000040) at lf_advlock+0x270
+VOP_ADVLOCK(ffffff0015a96da8,ffff80000e2a3080,3,ffffff001f7ca350,3) at VOP_ADVLOCK+0x67
+closef(ffff80000e2a3080,ffffff001f7ca350) at closef+0xaf
+fdfree(ffff80000e27c008) at fdfree+0x98
+exit1(ffff80000e3795c0,ffff80000e2a3080,ffff80000e27c008) at exit1+0x226
+sys_exit(ffffffff81558913,ffff80000e3794e0,ffff80000e3795c0) at sys_exit+0x13
+syscall(0) at syscall+0x3e4
+Xsyscall(6,1,0,1,0,7f7ffffed840) at Xsyscall+0x128
+end of kernel
+end trace frame: 0x7f7ffffed7f0, count: -12
+ddb> show registers
+rdi               0xffffffff81e13608    kprintf_mutex
+rsi                       0x7ffec13f
+rbp               0xffff80000e379180
+rbx               0xffff80000e379220
+rdx                              0xc
+rcx               0xffffffff81e919f8    rdrand_tmo
+rax                                0
+r8                0xffff80000e379150
+r9                0x8080808080808080
+r10               0xffff80000e378fb8
+r11                              0x8
+r12                     0x3000000008
+r13               0xffff80000e379190
+r14                            0x100
+r15               0xffffffff81d3c0f9    owctr_fams+0x285
+rip               0xffffffff816dce0a    db_enter+0xa
+cs                               0x8
+rflags                         0x246
+rsp               0xffff80000e379180
+ss                              0x10
+db_enter+0xa:   popq    %rbp
+
+REPORT:
+login: panic: pool_do_put: lockfpl: double pool_put: 0xffffff001692bd18
+Stopped at      db_enter+0xa:   popq    %rbp
+    TID    PID    UID     PRFLAGS     PFLAGS  CPU  COMMAND
+db_enter() at db_enter+0xa
+panic() at panic+0x147
+pool_do_put(ffffff001692bd18,ffffffff81ec0850) at pool_do_put+0x2e2
+pool_put(ffffff0016933440,ffff80000e3793e8) at pool_put+0x37
+lf_advlock(40,ffffff001dc251c8,2,ffff80000e3793e8,ffffffff81df26c0,200000040) at lf_advlock+0x270
+VOP_ADVLOCK(ffffff0015a96da8,ffff80000e2a3080,3,ffffff001f7ca350,3) at VOP_ADVLOCK+0x67
+closef(ffff80000e2a3080,ffffff001f7ca350) at closef+0xaf
+fdfree(ffff80000e27c008) at fdfree+0x98
+exit1(ffff80000e3795c0,ffff80000e2a3080,ffff80000e27c008) at exit1+0x226
+sys_exit(ffffffff81558913,ffff80000e3794e0,ffff80000e3795c0) at sys_exit+0x13
+syscall(0) at syscall+0x3e4
+Xsyscall(6,1,0,1,0,7f7ffffed840) at Xsyscall+0x128
+end of kernel
+end trace frame: 0x7f7ffffed7f0, count: 3
+https://www.openbsd.org/ddb.html describes the minimum info required in bug
+reports.  Insufficient info makes it difficult to find and fix bugs.
+ddb> trace
+db_enter() at db_enter+0xa
+panic() at panic+0x147
+pool_do_put(ffffff001692bd18,ffffffff81ec0850) at pool_do_put+0x2e2
+pool_put(ffffff0016933440,ffff80000e3793e8) at pool_put+0x37
+lf_advlock(40,ffffff001dc251c8,2,ffff80000e3793e8,ffffffff81df26c0,200000040) at lf_advlock+0x270
+VOP_ADVLOCK(ffffff0015a96da8,ffff80000e2a3080,3,ffffff001f7ca350,3) at VOP_ADVLOCK+0x67
+closef(ffff80000e2a3080,ffffff001f7ca350) at closef+0xaf
+fdfree(ffff80000e27c008) at fdfree+0x98
+exit1(ffff80000e3795c0,ffff80000e2a3080,ffff80000e27c008) at exit1+0x226
+sys_exit(ffffffff81558913,ffff80000e3794e0,ffff80000e3795c0) at sys_exit+0x13
+syscall(0) at syscall+0x3e4
+Xsyscall(6,1,0,1,0,7f7ffffed840) at Xsyscall+0x128
+end of kernel
+end trace frame: 0x7f7ffffed7f0, count: -12
+ddb> show registers
+rdi               0xffffffff81e13608    kprintf_mutex
+rsi                       0x7ffec13f
+rbp               0xffff80000e379180
+rbx               0xffff80000e379220
+rdx                              0xc
+rcx               0xffffffff81e919f8    rdrand_tmo
+rax                                0
+r8                0xffff80000e379150
+r9                0x8080808080808080
+r10               0xffff80000e378fb8
+r11                              0x8
+r12                     0x3000000008
+r13               0xffff80000e379190
+r14                            0x100
+r15               0xffffffff81d3c0f9    owctr_fams+0x285
+rip               0xffffffff816dce0a    db_enter+0xa
+cs                               0x8
+rflags                         0x246
+rsp               0xffff80000e379180
+ss                              0x10
+db_enter+0xa:   popq    %rbp
+

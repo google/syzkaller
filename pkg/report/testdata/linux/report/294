@@ -1,0 +1,46 @@
+TITLE: INFO: rcu detected stall in lo_ioctl
+ALT: stall in lo_ioctl
+TYPE: HANG
+
+[  480.801028] INFO: rcu_sched self-detected stall on CPU
+[  480.806333] 	0-...: (64962 ticks this GP) idle=ff6/140000000000001/0 softirq=6610/6610 fqs=16220 
+[  480.815311] 	 (t=65000 jiffies g=3400 c=3399 q=180)
+[  480.820444] NMI backtrace for cpu 0
+[  480.824066] CPU: 0 PID: 1932 Comm: syz-executor0 Not tainted 4.14.35+ #15
+[  480.830976] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  480.840409] Call Trace:
+[  480.842967]  <IRQ>
+[  480.845148]  dump_stack+0x114/0x1cf
+[  480.867367]  nmi_cpu_backtrace.cold.2+0x19/0x95
+[  480.881500]  nmi_trigger_cpumask_backtrace+0x102/0x143
+[  480.886763]  arch_trigger_cpumask_backtrace+0x19/0x20
+[  480.891968]  rcu_dump_cpu_stacks+0x177/0x1c4
+[  480.896355]  check_cpu_stall.isra.56.cold.75+0x289/0x4b7
+[  480.975100]  rcu_check_callbacks+0x2e4/0xe20
+[  481.026890]  update_process_times+0x35/0x70
+[  481.031242]  tick_sched_handle+0x8a/0x150
+[  481.035364]  tick_sched_timer+0x47/0x120
+[  481.043793]  __hrtimer_run_queues+0x4ea/0x1150
+[  481.122814]  hrtimer_interrupt+0x1b1/0x5b0
+[  481.127041]  smp_apic_timer_interrupt+0x1f9/0x870
+[  481.169084]  apic_timer_interrupt+0x8e/0xa0
+[  481.173377]  </IRQ>
+[  481.175588] RIP: 0010:lo_ioctl+0x15e4/0x1b50
+[  481.179969] RSP: 0018:ffff8801cd6efb78 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff10
+[  481.187652] RAX: 1ffff100395975ef RBX: ffff8801cacbadc0 RCX: dffffc0000000000
+[  481.194907] RDX: 0000000000000000 RSI: 0000000000000002 RDI: ffff8801cacbaf78
+[  481.202165] RBP: ffff8801cd6efbf0 R08: 0000000000000001 R09: 0000000000000000
+[  481.209417] R10: 0000000000000003 R11: 0000000000000001 R12: ffff8801caf99c40
+[  481.216664] R13: ffff8801db016320 R14: ffff8801d51e4b48 R15: ffff8801db016240
+[  481.236297]  lo_compat_ioctl+0xb3/0x140
+[  481.244057]  compat_blkdev_ioctl+0x39c/0x1950
+[  481.261895]  compat_SyS_ioctl+0x19d/0x3030
+[  481.281601]  do_fast_syscall_32+0x3c1/0xbf1
+[  481.317738]  entry_SYSENTER_compat+0x84/0x96
+[  481.322121] RIP: 0023:0xf7f71c99
+[  481.325470] RSP: 002b:00000000fff4d7ec EFLAGS: 00000286 ORIG_RAX: 0000000000000036
+[  481.333156] RAX: ffffffffffffffda RBX: 0000000000000004 RCX: 0000000000004c00
+[  481.340410] RDX: 0000000000000003 RSI: 0000000000000000 RDI: 0000000000000000
+[  481.347665] RBP: 0000000000000000 R08: 0000000000000000 R09: 0000000000000000
+[  481.354909] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
+[  481.362160] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000

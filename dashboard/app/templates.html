@@ -1,0 +1,463 @@
+{{/*
+Copyright 2017 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+*/}}
+
+{{/* Info icon with a link, invoked with an URL string */}}
+{{define "info_link"}}
+<a href="{{.}}" title="help" target="_blank" class="info_link">🛈</a>
+{{end}}
+
+{{/* Common page head part, invoked with *uiHeader */}}
+{{define "head"}}
+	<link rel="stylesheet" href="/static/style.css"/>
+	<script src="/static/common.js"></script>
+	{{if .AnalyticsTrackingID}}
+		<script async src="https://www.googletagmanager.com/gtag/js?id={{.AnalyticsTrackingID}}"></script>
+		<script>
+			window.dataLayer = window.dataLayer || [];
+			function gtag() { dataLayer.push(arguments); }
+			gtag('js', new Date());
+			gtag('config', '{{.AnalyticsTrackingID}}');
+		</script>
+	{{end}}
+{{end}}
+
+{{/* Common page header, invoked with *uiHeader */}}
+{{define "header"}}
+	<header id="topbar">
+		<table class="position_table">
+			<tr>
+				<td>
+					<h1><a href="/{{$.Namespace}}">syzbot</a></h1>
+				</td>
+				<td class="namespace_td">
+					<select class="namespace" onchange="window.location.href = '/' + this.value + '{{.Subpage}}';">
+						{{- range $ns := .Namespaces}}
+							<option value="{{$ns.Name}}" {{if eq $.Namespace $ns.Name}}selected="1"{{end}}>
+								{{- $ns.Caption -}}
+							</option>
+						{{- end -}}
+					</select>
+				</td>
+				<td class="search">
+					{{if .Admin}}
+						<a href="/admin">admin</a> |
+					{{end}}
+					{{if .LoginLink}}
+						<a href="{{.LoginLink}}">sign-in</a> |
+					{{end}}
+					<a href="https://groups.google.com/forum/#!forum/syzkaller" target="_blank">mailing list</a> |
+					<a href="https://github.com/google/syzkaller" target="_blank">source</a> |
+					<a href="https://github.com/google/syzkaller/blob/master/docs/syzbot.md" target="_blank">docs</a>
+				</td>
+			</tr>
+		</table>
+		{{if not (eq .URLPath "/admin")}}
+		<table class="position_table">
+			<tr>
+				<td class="navigation">
+					<a class="navigation_tab{{if eq .URLPath (printf "/%v" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}'>
+						<span style="color:DeepPink;">🐞</span> Open [{{$.Cached.Open}}]</a>
+					<a class="navigation_tab{{if eq .URLPath (printf "/%v/fixed" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/fixed'>
+						<span style="color:ForestGreen;">🐞</span> Fixed [{{$.Cached.Fixed}}]</a>
+					<a class="navigation_tab{{if eq .URLPath (printf "/%v/invalid" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/invalid'>
+						<span style="color:RoyalBlue;">🐞</span> Invalid [{{$.Cached.Invalid}}]</a>
+					{{if .Admin}}
+					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/bugs" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/graph/bugs'>
+						<span style="color:DarkOrange;">📈</span> Kernel Health</a>
+					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/lifetimes" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/graph/lifetimes'>
+						<span style="color:DarkOrange;">📈</span> Bug Lifetimes</a>
+					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/fuzzing" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/graph/fuzzing'>
+					  <span style="color:DarkOrange;">📈</span> Fuzzing</a>
+					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/crashes" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/graph/crashes'>
+						<span style="color:DarkOrange;">📈</span> Crashes</a> 
+					{{end}}
+				</td>
+			</tr>
+		</table>
+		{{end}}
+	</header>
+	<br>
+{{end}}
+
+{{/* List of bugs, invoked with *uiBugGroup */}}
+{{define "bug_list"}}
+{{if .}}
+{{if .Bugs}}
+<table class="list_table">
+	{{if $.Caption}}
+		{{if $.Fragment}}
+			<caption id="{{$.Fragment}}"><a class="plain" href="#{{$.Fragment}}">
+		{{else}}
+			<caption>
+		{{end}}
+		{{$.Caption}} ({{len $.Bugs}}):
+		{{if $.Fragment}}</a>{{end}}
+		</caption>
+	{{end}}
+	<thead>
+	<tr>
+		{{if $.ShowNamespace}}
+			<th><a onclick="return sortTable(this, 'Kernel', textSort)" href="#">Kernel</a></th>
+		{{end}}
+		<th><a onclick="return sortTable(this, 'Title', textSort)" href="#">Title</a></th>
+		<th><a onclick="return sortTable(this, 'Repro', reproSort)" href="#">Repro</a></th>
+		<th><a onclick="return sortTable(this, 'Cause bisect', textSort)" href="#">Cause bisect</a></th>
+		<th><a onclick="return sortTable(this, 'Fix bisect', textSort)" href="#">Fix bisect</a></th>
+		<th><a onclick="return sortTable(this, 'Count', numSort)" href="#">Count</a></th>
+		<th><a onclick="return sortTable(this, 'Last', timeSort)" href="#">Last</a></th>
+		<th><a onclick="return sortTable(this, 'Reported', timeSort)" href="#">Reported</a></th>
+		{{if $.DispLastAct}}
+		<th><a onclick="return sortTable(this, 'Last activity', timeSort, desc=true)" href="#">Last activity</a></th>
+		{{end}}
+		{{if $.ShowPatch}}
+			<th><a onclick="return sortTable(this, 'Closed', timeSort)" href="#">Closed</a></th>
+			<th><a onclick="return sortTable(this, 'Patch', textSort)" href="#">Patch</a></th>
+		{{end}}
+		{{if $.ShowPatched}}
+			<th><a onclick="return sortTable(this, 'Patched', patchedSort)" href="#">Patched</a></th>
+		{{end}}
+		{{if $.ShowStatus}}
+			<th><a onclick="return sortTable(this, 'Status', textSort)" href="#">Status</a></th>
+		{{end}}
+	</tr>
+	</thead>
+	<tbody>
+	{{range $b := .Bugs}}
+		<tr>
+			{{if $.ShowNamespace}}<td>{{$b.Namespace}}</td>{{end}}
+			<td class="title"><a href="{{$b.Link}}">{{$b.Title}}</a></td>
+			<td class="stat">{{formatReproLevel $b.ReproLevel}}</td>
+			<td class="bisect_status">{{print $b.BisectCause}}</td>
+			<td class="bisect_status">{{print $b.BisectFix}}</td>
+			<td class="stat {{if $b.NumCrashesBad}}bad{{end}}">{{$b.NumCrashes}}</td>
+			<td class="stat">{{formatLateness $.Now $b.LastTime}}</td>
+			<td class="stat">
+				{{if $b.ExternalLink}}
+					<a href="{{$b.ExternalLink}}">{{formatLateness $.Now $b.ReportedTime}}</a>
+				{{else}}
+					{{formatLateness $.Now $b.ReportedTime}}
+				{{end}}
+			</td>
+			{{if $.DispLastAct}}
+			<td class="stat">{{formatLateness $.Now $b.LastActivity}}</td>
+			{{end}}
+			{{if $.ShowPatch}}
+				<td class="stat">{{formatLateness $.Now $b.ClosedTime}}</td>
+				<td class="commit_list">{{template "fix_commits" $b.Commits}}</td>
+			{{end}}
+			{{if $.ShowPatched}}
+				<td class="patched" {{if $b.Commits}}title="{{with $com := index $b.Commits 0}}{{$com.Title}}{{end}}"{{end}}>{{len $b.PatchedOn}}/{{$b.NumManagers}}</td>
+			{{end}}
+			{{if $.ShowStatus}}
+				<td class="status">
+					{{if $b.ExternalLink}}
+						<a href="{{$b.ExternalLink}}">{{$b.Status}}</a>
+					{{else}}
+						{{$b.Status}}
+					{{end}}
+				</td>
+			{{end}}
+		</tr>
+	{{end}}
+	</tbody>
+</table>
+{{end}}
+{{end}}
+{{end}}
+
+{{/* List of managers, invoked with []*uiManager */}}
+{{define "manager_list"}}
+{{if .}}
+<table class="list_table">
+	<caption id="managers"><a class="plain" href="managers">Instances:</a></caption>
+	<thead>
+	<tr>
+		<th>Name</th>
+		<th>Active</th>
+		<th>Uptime</th>
+		<th>Corpus</th>
+		<th>Coverage {{template "info_link" "https://github.com/google/syzkaller/blob/master/docs/coverage.md"}}</th>
+		<th>Crashes</th>
+		<th>Execs</th>
+		<th colspan="3">Kernel build</th>
+		<th colspan="3">syzkaller build</th>
+	</tr>
+	<tr>
+		<th></th>
+		<th></th>
+		<th></th>
+		<th></th>
+		<th></th>
+		<th></th>
+		<th></th>
+		<th>Commit</th>
+		<th>Freshness</th>
+		<th>Status</th>
+		<th>Commit</th>
+		<th>Freshness</th>
+		<th>Status</th>
+	</tr>
+	</thead>
+	<tbody>
+	{{range $mgr := .}}
+		<tr>
+			<td>{{link $mgr.Link $mgr.Name}}</td>
+			<td class="stat {{if $mgr.LastActiveBad}}bad{{end}}">{{formatLateness $mgr.Now $mgr.LastActive}}</td>
+			<td class="stat">{{formatDuration $mgr.CurrentUpTime}}</td>
+			<td class="stat">{{formatStat $mgr.MaxCorpus}}</td>
+			<td class="stat">
+				{{if $mgr.CoverLink}}
+					<a href="{{$mgr.CoverLink}}" target="_blank">
+				{{end}}
+				{{formatStat $mgr.MaxCover}}
+				{{if $mgr.CoverLink}}
+					</a>
+				{{end}}
+			</td>
+			<td class="stat">{{formatStat $mgr.TotalCrashes}}</td>
+			{{if $mgr.TotalExecsBad}}
+				<td class="stat bad">broken</td>
+			{{else}}
+				<td class="stat">{{formatStat $mgr.TotalExecs}}</td>
+			{{end}}
+			{{with $build := $mgr.CurrentBuild}}
+				<td class="stat" title="[{{$build.KernelAlias}}] {{$build.KernelCommitTitle}}">{{link $build.KernelCommitLink (formatTagHash $build.KernelCommit)}}</td>
+				<td class="stat" title="{{formatTime $build.KernelCommitDate}}" {{if $mgr.FailedBuildBugLink}}class="bad"{{end}}>{{formatLateness $mgr.Now $build.KernelCommitDate}}</td>
+				<td class="stat">{{if $mgr.FailedBuildBugLink}}<a href="{{$mgr.FailedBuildBugLink}}" class="bad">failing</a>{{end}}</td>
+				<td class="stat">{{link $build.SyzkallerCommitLink (formatShortHash $build.SyzkallerCommit)}}</td>
+				<td class="stat" title="{{formatTime $build.SyzkallerCommitDate}}" {{if $mgr.FailedSyzBuildBugLink}}class="bad"{{end}}>{{formatLateness $mgr.Now $build.SyzkallerCommitDate}}</td>
+				<td class="stat">{{if $mgr.FailedSyzBuildBugLink}}<a href="{{$mgr.FailedSyzBuildBugLink}}" class="bad">failing</a>{{end}}</td>
+			{{else}}
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+			{{end}}
+		</tr>
+	{{end}}
+	</tbody>
+</table>
+{{end}}
+{{end}}
+
+{{/* List of fixing commits, invoked with []*uiCommit */}}
+{{define "fix_commits"}}
+{{range $com := .}}
+	<span class="mono">
+		{{if $com.Hash}}
+			{{formatTagHash $com.Hash}}
+		{{end}}
+		{{link $com.Link $com.Title}}
+	</span>
+{{end}}
+{{end}}
+
+{{/* Bisection result, invoked with *uiJob */}}
+{{/* Show bisection results */}}
+{{define "bisect_results"}}
+{{if .}}
+	<br>
+	{{$causeJob := 1}}
+	{{$fixJob := 2}}
+	{{if .ErrorLink}}
+		{{if eq .Type $causeJob}}
+			<b>Cause bisection: failed</b>
+		{{else if eq .Type $fixJob}}
+			<b>Fix bisection: failed</b>
+		{{end}}
+		<b>({{link .LogLink "bisect log"}})</b><br>
+	{{else if .Commit}}
+		{{if eq .Type $causeJob}}
+			<b>Cause bisection: introduced by</b>
+		{{else if eq .Type $fixJob}}
+			<b>Fix bisection: fixed by</b>
+		{{end}}
+		<b>({{link .LogLink "bisect log"}})</b> <span class="bad">{{print .Flags}}</span>:<br>
+		<span class="mono">
+		commit {{.Commit.Hash}}<br>
+		Author: {{.Commit.Author}}<br>
+		Date:   {{formatKernelTime .Commit.Date}}<br>
+		<br>
+		&nbsp;&nbsp;{{.Commit.Title}}<br>
+		</span><br>
+	{{else if .Commits}}
+		{{if eq .Type $causeJob}}
+			<b>Cause bisection: the cause commit could be any of</b>
+		{{else if eq .Type $fixJob}}
+			<b>Fix bisection: the fix commit could be any of</b>
+		{{end}}
+		<b>({{link .LogLink "bisect log"}}):</b><br>
+		<span class="mono">
+		{{range $com := .Commits}}
+			&nbsp;&nbsp;{{formatTagHash $com.Hash}} {{$com.Title}}<br>
+		{{end}}
+		</span>
+	{{else}}
+		{{if eq .Type $causeJob}}
+			<b>Cause bisection: the issue happens on the oldest tested release</b>
+		{{else if eq .Type $fixJob}}
+			<b>Fix bisection: the issue occurs on the latest tested release</b>
+		{{end}}
+		<b>({{link .LogLink "bisect log"}})</b><br>
+	{{end}}
+	{{if .CrashLogLink}}
+		Crash: {{link .CrashReportLink .CrashTitle}} ({{link .CrashLogLink "log"}})<br>
+		Repro: {{optlink .Crash.ReproCLink "C"}}
+		{{optlink .Crash.ReproSyzLink "syz"}}
+		{{optlink .Crash.KernelConfigLink ".config"}}<br>
+	{{end}}
+
+	{{if not .Reported}}[report pending]<br>{{end}}
+{{end}}
+{{end}}
+
+{{/* List of fixing commits, invoked with *uiCrashTable */}}
+{{/* Show crashes */}}
+{{define "crash_list"}}
+{{if .}}
+<table class="list_table">
+	<caption>{{.Caption}}:</caption>
+		<thead>
+		<tr>
+			<th><a onclick="return sortTable(this, 'Manager', textSort)" href="#">Manager</a></th>
+			<th><a onclick="return sortTable(this, 'Time', textSort, true)" href="#">Time</a></th>
+			<th><a onclick="return sortTable(this, 'Kernel', textSort)" href="#">Kernel</a></th>
+			<th><a onclick="return sortTable(this, 'Commit', textSort)" href="#">Commit</a></th>
+			<th><a onclick="return sortTable(this, 'Syzkaller', textSort)" href="#">Syzkaller</a></th>
+			<th><a onclick="return sortTable(this, 'Config', textSort)" href="#">Config</a></th>
+			<th><a onclick="return sortTable(this, 'Log', textSort)" href="#">Log</a></th>
+			<th><a onclick="return sortTable(this, 'Report', reproSort)" href="#">Report</a></th>
+			<th><a onclick="return sortTable(this, 'Syz repro', reproSort)" href="#">Syz repro</a></th>
+			<th><a onclick="return sortTable(this, 'C repro', textSort)" href="#">C repro</a></th>
+			<th><a onclick="return sortTable(this, 'VM info', textSort)" href="#">VM info</a></th>
+			<th><a onclick="return sortTable(this, 'Title', textSort)" href="#">Title</a></th>
+		</tr>
+		</thead>
+		<tbody>
+		{{range $b := .Crashes}}
+		<tr>
+			<td class="manager">{{$b.Manager}}</td>
+			<td class="time">{{formatTime $b.Time}}</td>
+			<td class="kernel" title="{{$b.KernelAlias}}">{{$b.KernelAlias}}</td>
+			<td class="tag" title="{{$b.KernelCommit}}
+	{{formatTime $b.KernelCommitDate}}">{{link $b.KernelCommitLink (formatTagHash $b.KernelCommit)}}</td>
+			<td class="tag">{{link $b.SyzkallerCommitLink (formatShortHash $b.SyzkallerCommit)}}</td>
+			<td class="config">{{if $b.KernelConfigLink}}<a href="{{$b.KernelConfigLink}}">.config</a>{{end}}</td>
+			<td class="repro">{{if $b.LogLink}}<a href="{{$b.LogLink}}">log</a>{{end}}</td>
+			<td class="repro">{{if $b.ReportLink}}<a href="{{$b.ReportLink}}">report</a>{{end}}</td>
+			<td class="repro">{{if $b.ReproSyzLink}}<a href="{{$b.ReproSyzLink}}">syz</a>{{end}}</td>
+			<td class="repro">{{if $b.ReproCLink}}<a href="{{$b.ReproCLink}}">C</a>{{end}}</td>
+			<td class="repro">{{if $b.MachineInfoLink}}<a href="{{$b.MachineInfoLink}}">info</a>{{end}}</td>
+			<td class="manager">{{$b.Title}}</td>
+		</tr>
+		{{end}}
+		</tbody>
+</table>
+{{end}}
+{{end}}
+
+
+
+{{/* List of jobs, invoked with *uiJobList */}}
+{{define "job_list"}}
+{{if $.Jobs}}
+	<table class="list_table">
+		<caption id="jobs"><a class="plain" href="#jobs">{{if $.PerBug}}Patch testing requests:{{else}}Recent jobs:{{end}}</a></caption>
+		<thead>
+		<tr>
+			{{if not $.PerBug}}<th>Bug</th>{{end}}
+			<th>Created</th>
+			<th>Duration</th>
+			<th>User</th>
+			<th>Patch</th>
+			<th>Repo</th>
+			{{if not $.PerBug}}<th>Manager</th>{{end}}
+			<th>Result</th>
+		</tr>
+		</thead>
+		<tbody>
+		{{range $job := $.Jobs}}
+			<tr>
+				{{if not $.PerBug}}<td class="title"><a href="{{$job.BugLink}}">{{$job.BugTitle}}</a></td>{{end}}
+				<td class="time">{{link $job.ExternalLink (formatTime $job.Created)}}</td>
+				<td class="time" title="started: {{formatTime $job.Started}}&#013;finished: {{formatTime $job.Finished}}">
+					{{formatDuration $job.Duration}}{{if gt $job.Attempts 1}} ({{$job.Attempts}}){{end}}
+				</td>
+				<td>
+					{{if eq $job.Type 0}}
+						{{$job.User}}
+					{{else if eq $job.Type 1}}
+						bisect
+					{{else if eq $job.Type 2}}
+						bisect fix
+					{{end}}
+				</td>
+				<td>{{optlink $job.PatchLink "patch"}}</td>
+				<td class="kernel" title="{{$job.KernelAlias}}">{{link $job.KernelCommitLink $job.KernelAlias}}</td>
+				{{if not $.PerBug}}<td title="{{$job.Namespace}}/{{$job.Reporting}}">{{$job.Manager}}</td>{{end}}
+				<td class="result">
+					{{if $job.ErrorLink}}
+						{{link $job.ErrorLink "error"}}
+					{{else if $job.LogLink}}
+						{{link $job.LogLink "log"}}
+						({{if $job.Commit}}1{{else}}{{len $job.Commits}}{{end}})
+					{{else if $job.CrashTitle}}
+						{{optlink $job.CrashReportLink "report"}}
+						{{optlink $job.CrashLogLink "log"}}
+					{{else if formatTime $job.Finished}}
+						OK
+					{{else if formatTime $job.Started}}
+						running
+					{{else}}
+						pending
+					{{end}}
+				</td>
+			</tr>
+		{{end}}
+		</tbody>
+	</table>
+{{end}}
+{{end}}
+
+{{/* Checkbox input, invoked with *uiCheckbox */}}
+{{define "input-checkbox"}}
+	<div class="panel">
+		<h1>{{$.Caption}}</h1>
+		{{range .Values}}
+			<input type="checkbox" name="{{$.ID}}" {{if .Selected}}checked{{end}} value="{{.ID}}">{{if .Caption}}{{.Caption}}{{else}}{{.ID}}{{end}}</input><br>
+		{{end}}
+	</div>
+{{end}}
+
+{{/* Range slider input, invoked with *uiSlider */}}
+{{define "input-slider"}}
+	<div class="panel">
+		<label for="{{.ID}}">{{.Caption}}:</label>
+		<input type="range" name="{{.ID}}" min="{{.Min}}" max="{{.Max}}" value="{{.Val}}" oninput="document.getElementById('{{.ID}}-val').innerHTML = this.value">
+		<i id="{{.ID}}-val">{{.Val}}</i>
+	</div>
+{{end}}
+
+{{/* Multiple text fields */}}
+{{define "input-multi-text"}}
+	<div class="panel">
+		<h1>{{.Caption}}:</h1>
+		<div class="input-values">
+			{{$input := .}}
+			{{range .Vals}}
+			<span class="input-group">
+				<input type="text" name="{{$input.ID}}" value="{{.}}" /> <button onclick="deleteInputGroup(this)" type="button">x</button>
+			</span>
+			{{else}}
+			<span class="input-group">
+				<input type="text" name="{{$input.ID}}" value="" /> <button onclick="deleteInputGroup(this)" type="button">x</button>
+			</span>
+			{{end}}
+			<button onclick="addInputGroup(this)">Add one more</button>
+		</div>
+	</div>
+{{end}}

@@ -1,0 +1,294 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <sys/ucred.h>
+include <sys/mount.h>
+include <sys/socket.h>
+include <sys/sysctl.h>
+include <ddb/db_var.h>
+
+# CPU_CONSDEV
+# XXX can includes be made conditional based on the architecture?
+include <amd64/cpu.h>
+
+sysctl$ddb(name ptr[in, ctl_ddb], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
+sysctl$fs(name ptr[in, ctl_fs], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
+sysctl$hw(name ptr[in, ctl_hw], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
+sysctl$kern(name ptr[in, ctl_kern], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
+sysctl$machdep(name ptr[in, ctl_machdep], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
+# XXX sysctl$net_inet_route not supported?
+sysctl$net_inet_ah(name ptr[in, ctl_net_inet_ah], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
+# XXX sysctl$net_inet_bpf not supported?
+sysctl$net_inet_carp(name ptr[in, ctl_net_inet_carp], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
+sysctl$net_inet_divert(name ptr[in, ctl_net_inet_divert], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
+sysctl$net_inet_esp(name ptr[in, ctl_net_inet_esp], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
+sysctl$net_inet_etherip(name ptr[in, ctl_net_inet_etherip], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
+sysctl$net_inet_gre(name ptr[in, ctl_net_inet_gre], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
+sysctl$net_inet_icmp(name ptr[in, ctl_net_inet_icmp], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
+sysctl$net_inet_ip(name ptr[in, ctl_net_inet_ip], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
+sysctl$net_inet_ipcomp(name ptr[in, ctl_net_inet_ipcomp], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
+sysctl$net_inet_ipip(name ptr[in, ctl_net_inet_ipip], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
+sysctl$net_inet_tcp(name ptr[in, ctl_net_inet_tcp], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
+sysctl$net_inet_udp(name ptr[in, ctl_net_inet_udp], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
+sysctl$net_inet6_icmp6(name ptr[in, ctl_net_inet6_icmp6], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
+sysctl$net_inet6_ip6(name ptr[in, ctl_net_inet6_ip6], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
+# XXX sysctl$net_key not supported?
+sysctl$net_mpls(name ptr[in, ctl_net_mpls], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
+sysctl$net_pipex(name ptr[in, ctl_net_pipex], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
+sysctl$vfs_ffs(name ptr[in, ctl_vfs_ffs], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
+sysctl$vfs_nfs(name ptr[in, ctl_vfs_nfs], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
+sysctl$vfs_fuse(name ptr[in, ctl_vfs_fuse], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
+sysctl$vm(name ptr[in, ctl_vm], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
+sysctl$vm_swapencrypt(name ptr[in, ctl_vm_swapencrypt], namelen bytesize4[name], oldp buffer[inout], oldlenp ptr[inout, len[oldp, int64]], newp buffer[in], newlen len[newp])
+
+ctl_ddb {
+	n1	const[CTL_DDB, int32]
+	n2	flags[ctl_ddb_flags, int32]
+}
+
+ctl_ddb_flags = DBCTL_CONSOLE, DBCTL_LOG, DBCTL_MAXLINE, DBCTL_MAXWIDTH, DBCTL_PANIC, DBCTL_RADIX, DBCTL_TABSTOP, DBCTL_TRIGGER
+
+ctl_fs {
+	n1	const[CTL_FS, int32]
+	n2	flags[ctl_fs_flags, int32]
+}
+
+ctl_fs_flags = FS_POSIX_SETUID
+
+ctl_hw {
+	n1	const[CTL_HW, int32]
+	n2	flags[ctl_hw_flags, int32]
+}
+
+ctl_hw_flags = HW_ALLOWPOWERDOWN, HW_BYTEORDER, HW_CPUSPEED, HW_DISKCOUNT, HW_DISKNAMES, HW_DISKSTATS, HW_MACHINE, HW_MODEL, HW_NCPU, HW_NCPUFOUND, HW_NCPUONLINE, HW_PAGESIZE, HW_PERFPOLICY, HW_PHYSMEM, HW_PHYSMEM64, HW_PRODUCT, HW_SENSORS, HW_SETPERF, HW_SMT, HW_USERMEM, HW_USERMEM64, HW_UUID, HW_VENDOR, HW_VERSION
+
+ctl_kern {
+	n1	const[CTL_KERN, int32]
+	n2	flags[ctl_kern_flags, int32]
+}
+
+ctl_kern_flags = KERN_ALLOWDT, KERN_ALLOWKMEM, KERN_ARGMAX, KERN_AUDIO, KERN_BOOTTIME, KERN_CACHEPCT, KERN_CCPU, KERN_CLOCKRATE, KERN_CONSDEV, KERN_CPTIME, KERN_CPTIME2, KERN_CPUSTATS, KERN_DOMAINNAME, KERN_FILE, KERN_FORKSTAT, KERN_FSCALE, KERN_FSYNC, KERN_GLOBAL_PTRACE, KERN_HOSTID, KERN_HOSTNAME, KERN_INTRCNT, KERN_JOB_CONTROL, KERN_MALLOCSTATS, KERN_MAXCLUSTERS, KERN_MAXFILES, KERN_MAXLOCKSPERUID, KERN_MAXPARTITIONS, KERN_MAXPROC, KERN_MAXTHREAD, KERN_MAXVNODES, KERN_MBSTAT, KERN_MSGBUF, KERN_MSGBUFSIZE, KERN_NCHSTATS, KERN_NFILES, KERN_NGROUPS, KERN_NOSUIDCOREDUMP, KERN_NPROCS, KERN_NSELCOLL, KERN_NTHREADS, KERN_NUMVNODES, KERN_OSRELEASE, KERN_OSREV, KERN_OSTYPE, KERN_OSVERSION, KERN_PFSTATUS, KERN_POOL_DEBUG, KERN_POSIX1, KERN_PROC, KERN_PROC_ARGS, KERN_PROC_CWD, KERN_PROC_NOBROADCASTKILL, KERN_PROC_VMMAP, KERN_PROF, KERN_RAWPARTITION, KERN_SAVED_IDS, KERN_SECURELVL, KERN_SEMINFO, KERN_SHMINFO, KERN_SOMAXCONN, KERN_SOMINCONN, KERN_SPLASSERT, KERN_STACKGAPRANDOM, KERN_SYSVIPC_INFO, KERN_SYSVMSG, KERN_SYSVSEM, KERN_SYSVSHM, KERN_TIMECOUNTER, KERN_TTY, KERN_TTYCOUNT, KERN_UTC_OFFSET, KERN_VERSION, KERN_WATCHDOG, KERN_WITNESS, KERN_WXABORT
+
+ctl_machdep {
+	n1	const[CTL_MACHDEP, int32]
+	n2	flags[ctl_machdep_flags, int32]
+}
+
+ctl_machdep_flags = CPU_CONSDEV
+
+ctl_net_inet_ah {
+	n1	const[CTL_NET, int32]
+	n2	const[PF_INET, int32]
+# CTL_IPPROTO_NAMES
+	n3	const[51, int32]
+	n4	flags[ctl_net_inet_ah_flags, int32]
+}
+
+# AHCTL_NAMES = enable, stats
+ctl_net_inet_ah_flags = 1, 2
+
+ctl_net_inet_carp {
+	n1	const[CTL_NET, int32]
+	n2	const[PF_INET, int32]
+# CTL_IPPROTO_NAMES
+	n3	const[112, int32]
+	n4	flags[ctl_net_inet_carp_flags, int32]
+}
+
+# CARPCTL_NAMES = allow, preempt, log, stats
+ctl_net_inet_carp_flags = 1, 2, 3, 4
+
+ctl_net_inet_divert {
+	n1	const[CTL_NET, int32]
+	n2	const[PF_INET, int32]
+# CTL_IPPROTO_NAMES
+	n3	const[258, int32]
+	n4	flags[ctl_net_inet_divert_flags, int32]
+}
+
+# DIVERTCTL_NAMES  = recvspace, sendspace, stats
+ctl_net_inet_divert_flags = 1, 2, 3
+
+ctl_net_inet_esp {
+	n1	const[CTL_NET, int32]
+	n2	const[PF_INET, int32]
+# CTL_IPPROTO_NAMES
+	n3	const[50, int32]
+	n4	flags[ctl_net_inet_esp_flags, int32]
+}
+
+# ESPCTL_NAMES = enable, udpencap, udpencap_port, stats
+ctl_net_inet_esp_flags = 1, 2, 3, 4
+
+ctl_net_inet_etherip {
+	n1	const[CTL_NET, int32]
+	n2	const[PF_INET, int32]
+# CTL_IPPROTO_NAMES
+	n3	const[97, int32]
+	n4	flags[ctl_net_inet_etherip_flags, int32]
+}
+
+# ETHERIPCTL_NAMES = allow, stats
+ctl_net_inet_etherip_flags = 1, 2
+
+ctl_net_inet_gre {
+	n1	const[CTL_NET, int32]
+	n2	const[PF_INET, int32]
+# CTL_IPPROTO_NAMES
+	n3	const[47, int32]
+	n4	flags[ctl_net_inet_gre_flags, int32]
+}
+
+# GRECTL_NAMES = allow, wccp
+ctl_net_inet_gre_flags = 1, 2
+
+ctl_net_inet_icmp {
+	n1	const[CTL_NET, int32]
+	n2	const[PF_INET, int32]
+# CTL_IPPROTO_NAMES
+	n3	const[1, int32]
+	n4	flags[ctl_net_inet_icmp_flags, int32]
+}
+
+# ICMPCTL_NAMES = maskrepl, bmcastecho, errppslimit, rediraccept, redirtimeout, tstamprepl, stats
+ctl_net_inet_icmp_flags = 1, 2, 3, 4, 5, 6, 7
+
+ctl_net_inet_ip {
+	n1	const[CTL_NET, int32]
+	n2	const[PF_INET, int32]
+# CTL_IPPROTO_NAMES
+	n3	const[0, int32]
+	n4	flags[ctl_net_inet_ip_flags, int32]
+}
+
+# IPCTL_NAMES = forwarding, redirect, ttl, sourceroute, directed-broadcast, portfirst, portlast, porthifirst, porthilast, maxqueue, encdebug, ipsecstat, ipsec-expire-acquire, ipsec-invalid-life, ipsec-pfs, ipsec-soft-allocs, ipsec-allocs, ipsec-soft-bytes, ipsec-bytes, ipsec-timeout, ipsec-soft-timeout, ipsec-soft-firstuse, ipsec-firstuse, ipsec-enc-alg, ipsec-auth-alg, mtudisc, mtudisctimeout, ipsec-comp-alg, ifq, mforwarding, multipath, stats, mrtproto, mrtstats, arpqueued, mrtmfc, mrtvif, arptimeout, arpdown, arpq
+ctl_net_inet_ip_flags = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40
+
+ctl_net_inet_ipcomp {
+	n1	const[CTL_NET, int32]
+	n2	const[PF_INET, int32]
+# CTL_IPPROTO_NAMES
+	n3	const[108, int32]
+	n4	flags[ctl_net_inet_ipcomp_flags, int32]
+}
+
+# IPCOMPCTL_NAMES = enable
+ctl_net_inet_ipcomp_flags = 1
+
+ctl_net_inet_ipip {
+	n1	const[CTL_NET, int32]
+	n2	const[PF_INET, int32]
+# CTL_IPPROTO_NAMES
+	n3	const[4, int32]
+	n4	flags[ctl_net_inet_ipip_flags, int32]
+}
+
+# IPIPCTL_NAMES = allow
+ctl_net_inet_ipip_flags = 1
+
+ctl_net_inet_tcp {
+	n1	const[CTL_NET, int32]
+	n2	const[PF_INET, int32]
+# CTL_IPPROTO_NAMES
+	n3	const[6, int32]
+	n4	flags[ctl_net_inet_tcp_flags, int32]
+}
+
+# IPIPCTL_NAMES = rfc1323, keepinittime, keepidle, keepintvl, slowhz, baddynamic, NULL, NULL, ident, sack, mssdflt, rstppslimit, ackonpush, ecn, syncachelimit, synbucketlimit, rfc3390, reasslimit, drop, sackholelimit, stats, always_keepalive, synuselimit, rootonly, synhashsize,
+ctl_net_inet_tcp_flags = 1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25
+
+ctl_net_inet_udp {
+	n1	const[CTL_NET, int32]
+	n2	const[PF_INET, int32]
+# CTL_IPPROTO_NAMES
+	n3	const[17, int32]
+	n4	flags[ctl_net_inet_udp_flags, int32]
+}
+
+# UDPCTL_NAMES = checksum, baddynamic, recvspace, sendspace, stats, rootonly
+ctl_net_inet_udp_flags = 1, 2, 3, 4, 5, 6
+
+ctl_net_inet6_icmp6 {
+	n1	const[CTL_NET, int32]
+	n2	const[PF_INET6, int32]
+# CTL_IPPROTO_NAMES
+	n3	const[58, int32]
+	n4	flags[ctl_net_inet6_icmp6_flags, int32]
+}
+
+# ICMPV6CTL_NAMES = NULL, NULL, NULL, redirtimeout, NULL, NULL, NULL, NULL, nd6_delay, nd6_umaxtries, nd6_mmaxtries, NULL, NULL, NULL, errppslimit, nd6_maxnudhint, mtudisc_hiwat, mtudisc_lowat, nd6_debug
+ctl_net_inet6_icmp6_flags = 3, 8, 9, 10, 14, 15, 16, 17, 18
+
+ctl_net_inet6_ip6 {
+	n1	const[CTL_NET, int32]
+	n2	const[PF_INET6, int32]
+# CTL_IPPROTO_NAMES
+	n3	const[41, int32]
+	n4	flags[ctl_net_inet6_ip6_flags, int32]
+}
+
+# IPV6CTL_NAMES  = forwarding, redirect, hlim, forwsrcrt, mrtproto, maxfragpackets, sourcecheck, sourcecheck_logint, log_interval, hdrnestlimit, dad_count, auto_flowlabel, defmcasthlim, use_deprecated, maxfrags, mforwarding, multipath, multicast_mtudisc, neighborgcthresh, maxdynroutes, dad_pending, mtudisctimeout, ifq, mrtmif, mrtmfc, soiikey
+ctl_net_inet6_ip6_flags = 1, 2, 3, 5, 8, 9, 10, 11, 14, 15, 16, 17, 18, 21, 41, 42, 43, 44, 45, 48, 49, 50, 51, 52, 53, 54
+
+ctl_net_mpls {
+	n1	const[CTL_NET, int32]
+	n2	const[PF_MPLS, int32]
+	n3	flags[ctl_net_mpls_flags, int32]
+}
+
+# MPLSCTL_NAMES = ttl, ifq, mapttl_ip, mapttl_ip6
+ctl_net_mpls_flags = 2, 3, 5, 6
+
+ctl_net_pipex {
+	n1	const[CTL_NET, int32]
+	n2	const[PF_PIPEX, int32]
+	n3	flags[ctl_net_pipex_flags, int32]
+}
+
+# PIPEXCTL_NAMES = enable, inq, outq
+ctl_net_pipex_flags = 1, 2, 3
+
+ctl_vfs_ffs {
+	n1	const[CTL_VFS, int32]
+	n2	const[1, int32]
+	n3	flags[ctl_vfs_ffs_flags, int32]
+}
+
+# FFS_NAMES = max_softdeps, sd_tickdelay, sd_worklist_push, sd_blk_limit_push, sd_ino_limit_push, sd_blk_limit_hit, sd_ino_limit_hit, sd_sync_limit_hit, sd_indir_blk_ptrs, sd_inode_bitmap, sd_direct_blk_ptrs, sd_dir_entry, dirhash_dirsize, dirhash_maxmem, dirhash_mem
+ctl_vfs_ffs_flags = 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19
+
+ctl_vfs_nfs {
+	n1	const[CTL_VFS, int32]
+	n2	const[2, int32]
+	n3	flags[ctl_vfs_nfs_flags, int32]
+}
+
+# FS_NFS_NAMES = nfsstats, iothreads
+ctl_vfs_nfs_flags = 1, 2
+
+ctl_vfs_fuse {
+	n1	const[CTL_VFS, int32]
+	n2	const[18, int32]
+	n3	flags[ctl_vfs_fuse_flags, int32]
+}
+
+# FUSEFS_NAMES = fusefs_open_devices, fusefs_fbufs_in, fusefs_fbufs_wait, fusefs_pool_pages
+ctl_vfs_fuse_flags = 1, 2, 3, 4
+
+ctl_vm {
+	n1	const[CTL_VM, int32]
+	n2	flags[ctl_vm_flags, int32]
+}
+
+# CTL_VM_NAMES = vmmeter, loadavg, psstrings, uvmexp, swapencrypt, nkmempages, anonmin, vtextmin, vnodemin, maxslp, uspace, malloc_conf
+ctl_vm_flags = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
+
+ctl_vm_swapencrypt {
+	n1	const[CTL_VM, int32]
+	n2	const[VM_SWAPENCRYPT, int32]
+	n3	flags[ctl_vm_swapencrypt_flags, int32]
+}
+
+# CTL_SWPENC_NAMES = enable, keyscreated, keysdeleted
+ctl_vm_swapencrypt_flags = 0, 1, 2

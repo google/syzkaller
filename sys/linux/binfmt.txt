@@ -1,0 +1,121 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/a.out.h>
+include <uapi/linux/elf.h>
+
+execve(file ptr[in, filename], argv ptr[in, array[ptr[in, string]]], envp ptr[in, array[ptr[in, string]]])
+execveat(dirfd fd_dir, file ptr[in, filename], argv ptr[in, array[ptr[in, string]]], envp ptr[in, array[ptr[in, string]]], flags flags[at_flags])
+
+write$binfmt_script(fd fd, data ptr[in, binfmt_script], len bytesize[data])
+write$binfmt_misc(fd fd, data ptr[in, binfmt_misc], len bytesize[data])
+write$binfmt_aout(fd fd, data ptr[in, binfmt_aout], len bytesize[data])
+write$binfmt_elf32(fd fd, data ptr[in, binfmt_elf32], len bytesize[data])
+write$binfmt_elf64(fd fd, data ptr[in, binfmt_elf64], len bytesize[data])
+
+binfmt_script {
+	hdr	stringnoz["#! "]
+	bin	stringnoz[filename]
+	args	array[binfmt_script_arg]
+	nl	const[0xa, int8]
+	data	array[int8]
+} [packed]
+
+binfmt_script_arg {
+	sp	const[0x20, int8]
+	arg	stringnoz
+}
+
+binfmt_misc {
+	hdr	stringnoz[binfmt_misc_headers]
+	data	array[int8]
+}
+
+binfmt_misc_headers = "syz0", "syz1"
+
+binfmt_aout {
+	exec	exec
+	data	array[int8]
+# Just to make the file of a non-trivial size.
+	pad	array[array[const[0, int64], 32], 0:10]
+} [packed]
+
+exec {
+	magic		flags[aouthdr_magics, int16]
+	machtype	int8
+	flags		int8
+	a_text		int32[0:1000]
+	a_data		int32[0:1000]
+	a_bss		int32
+	a_syms		int32[0:1000]
+	a_entry		int32
+	a_trsize	const[0, int32]
+	a_drsize	const[0, int32]
+}
+
+aouthdr_magics = OMAGIC, NMAGIC, ZMAGIC, QMAGIC
+
+type binfmt_elf32 binfmt_elf[int32, elf32_phdr, ELF32_PHDR_SIZE]
+type binfmt_elf64 binfmt_elf[int64, elf64_phdr, ELF64_PHDR_SIZE]
+
+type binfmt_elf[ADDR, PHDR, PHENTSIZE] {
+	hdr	elf_hdr[ADDR, PHENTSIZE]
+	phdr	array[PHDR, 1:2]
+	data	array[int8]
+# Just to make the file of a non-trivial size.
+	pad	array[array[const[0, int64], 32], 0:10]
+} [packed]
+
+type elf_hdr[ADDR, PHENTSIZE] {
+	e_ident0	const[0x7f, int8]
+	e_ident1	const[0x45, int8]
+	e_ident2	const[0x4c, int8]
+	e_ident3	const[0x46, int8]
+	e_ident_class	int8
+	e_ident_data	int8
+	e_ident_ver	int8
+	e_ident_osabi	int8
+	e_ident_pad	int64
+	e_type		flags[elf_types, int16]
+	e_machine	flags[elf_machines, int16]
+	e_version	int32
+	e_entry		ADDR[0:1000]
+	e_phoff		bytesize[parent, ADDR]
+	e_shoff		ADDR[0:1000]
+	e_flags		int32
+	e_ehsize	int16
+	e_phentsize	const[PHENTSIZE, int16]
+	e_phnum		int16[1:2]
+	e_shentsize	int16
+	e_shnum		int16
+	e_shstrndx	int16
+}
+
+elf32_phdr {
+	p_type		flags[elf_ptypes, int32]
+	p_offset	int32
+	p_vaddr		int32
+	p_paddr		int32
+	p_filesz	int32
+	p_memsz		int32
+	p_flags		int32
+	p_align		int32
+} [size[ELF32_PHDR_SIZE]]
+
+elf64_phdr {
+	p_type		flags[elf_ptypes, int32]
+	p_flags		int32
+	p_offset	int64
+	p_vaddr		int64
+	p_paddr		int64
+	p_filesz	int64
+	p_memsz		int64
+	p_align		int64
+} [size[ELF64_PHDR_SIZE]]
+
+elf_types = ET_EXEC, ET_DYN
+elf_machines = EM_386, EM_486, EM_X86_64
+elf_ptypes = PT_LOAD, PT_DYNAMIC, PT_INTERP, PT_NOTE, PT_SHLIB, PT_PHDR, PT_TLS, PT_LOOS, PT_LOPROC, PT_GNU_STACK
+
+define ELF32_PHDR_SIZE	sizeof(struct elf32_phdr)
+define ELF64_PHDR_SIZE	sizeof(struct elf64_phdr)

@@ -1,0 +1,68 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/fcntl.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/genetlink.h>
+include <uapi/linux/nbd.h>
+include <uapi/linux/nbd-netlink.h>
+
+resource fd_nbd[fd_block]
+resource sock_nbd_client[sock]
+resource sock_nbd_server[sock]
+resource genl_nbd_family_id[int16]
+
+syz_open_dev$ndb(dev ptr[in, string["/dev/nbd#"]], id proc[0, 1], flags flags[open_flags]) fd_nbd
+
+ioctl$NBD_DISCONNECT(fd fd_nbd, cmd const[NBD_DISCONNECT])
+ioctl$NBD_CLEAR_SOCK(fd fd_nbd, cmd const[NBD_CLEAR_SOCK])
+ioctl$NBD_SET_SOCK(fd fd_nbd, cmd const[NBD_SET_SOCK], arg sock_nbd_client)
+ioctl$NBD_SET_BLKSIZE(fd fd_nbd, cmd const[NBD_SET_BLKSIZE], arg intptr)
+ioctl$NBD_SET_SIZE(fd fd_nbd, cmd const[NBD_SET_SIZE], arg intptr)
+ioctl$NBD_SET_SIZE_BLOCKS(fd fd_nbd, cmd const[NBD_SET_SIZE_BLOCKS], arg intptr)
+ioctl$NBD_SET_TIMEOUT(fd fd_nbd, cmd const[NBD_SET_TIMEOUT], arg intptr)
+ioctl$NBD_SET_FLAGS(fd fd_nbd, cmd const[NBD_SET_FLAGS], arg intptr)
+ioctl$NBD_DO_IT(fd fd_nbd, cmd const[NBD_DO_IT])
+ioctl$NBD_CLEAR_QUE(fd fd_nbd, cmd const[NBD_CLEAR_QUE])
+
+type msghdr_nl_nbd[CMD] msghdr_netlink[netlink_msg_t[genl_nbd_family_id, genlmsghdr_t[CMD], nbd_attr_policy]]
+
+syz_genetlink_get_family_id$nbd(name ptr[in, string["nbd"]], fd sock_nl_generic_init) genl_nbd_family_id
+
+sendmsg$NBD_CMD_CONNECT(fd sock_nl_generic_init, msg ptr[in, msghdr_nl_nbd[NBD_CMD_CONNECT]], f flags[send_flags])
+sendmsg$NBD_CMD_DISCONNECT(fd sock_nl_generic_init, msg ptr[in, msghdr_nl_nbd[NBD_CMD_DISCONNECT]], f flags[send_flags])
+sendmsg$NBD_CMD_RECONFIGURE(fd sock_nl_generic_init, msg ptr[in, msghdr_nl_nbd[NBD_CMD_RECONFIGURE]], f flags[send_flags])
+sendmsg$NBD_CMD_STATUS(fd sock_nl_generic_init, msg ptr[in, msghdr_nl_nbd[NBD_CMD_STATUS]], f flags[send_flags])
+
+nbd_attr_policy [
+	NBD_ATTR_INDEX			nlattr[NBD_ATTR_INDEX, proc[0, 1, int32]]
+	NBD_ATTR_SIZE_BYTES		nlattr[NBD_ATTR_SIZE_BYTES, int64]
+	NBD_ATTR_BLOCK_SIZE_BYTES	nlattr[NBD_ATTR_BLOCK_SIZE_BYTES, int64]
+	NBD_ATTR_TIMEOUT		nlattr[NBD_ATTR_TIMEOUT, int64]
+	NBD_ATTR_SERVER_FLAGS		nlattr[NBD_ATTR_SERVER_FLAGS, flags[nbd_server_flags, int64]]
+	NBD_ATTR_CLIENT_FLAGS		nlattr[NBD_ATTR_CLIENT_FLAGS, flags[nbd_client_flags, int64]]
+	NBD_ATTR_SOCKETS		nlnest[NBD_ATTR_SOCKETS, array[nlattr[NBD_SOCK_FD, sock_nbd_client]]]
+	NBD_ATTR_DEAD_CONN_TIMEOUT	nlattr[NBD_ATTR_DEAD_CONN_TIMEOUT, int64]
+	NBD_ATTR_BACKEND_IDENTIFIER	nlattr[NBD_ATTR_BACKEND_IDENTIFIER, stringnoz]
+] [varlen]
+
+nbd_server_flags = NBD_FLAG_HAS_FLAGS, NBD_FLAG_READ_ONLY, NBD_FLAG_SEND_FLUSH, NBD_FLAG_SEND_FUA, NBD_FLAG_SEND_TRIM, NBD_FLAG_CAN_MULTI_CONN
+nbd_client_flags = NBD_CFLAG_DESTROY_ON_DISCONNECT, NBD_CFLAG_DISCONNECT_ON_CLOSE
+
+socketpair$nbd(domain const[AF_UNIX], type const[SOCK_STREAM], proto const[0], fds ptr[out, nbd_sock_pair])
+
+nbd_sock_pair {
+	client	sock_nbd_client
+	server	sock_nbd_server
+}
+
+write$nbd(fd sock_nbd_server, data ptr[in, nbd_reply], size len[data])
+
+nbd_reply {
+	magic		const[NBD_REPLY_MAGIC, int32be]
+	error		bool32
+	handle_tag	int16[0:4]
+	handle_hwq	int16[0:4]
+	handle_cookie	int32[1:4]
+	payload		array[int8]
+}

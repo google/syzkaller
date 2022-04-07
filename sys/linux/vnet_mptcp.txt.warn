@@ -1,0 +1,8 @@
+compiler: unsupported struct: mptcp_capable_option due to missing const OPTION_MP_CAPABLE [arm64]
+no-such-struct: mptcp_mp_join_option
+compiler: unsupported struct: mptcp_syn_option due to missing const OPTION_TYPE_SYN [arm64]
+no-such-struct: mptcp_syn_option
+compiler: unsupported struct: mptcp_synack_option due to missing const OPTION_TYPE_SYNACK [arm64]
+no-such-struct: mptcp_synack_option
+compiler: unsupported struct: mptcp_ack_option due to missing const OPTION_TYPE_ACK [arm64]
+no-such-struct: mptcp_mp_fclose_option

@@ -1,0 +1,12 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# See https://source.android.com/setup/build/building-kernels
+# for details on how to checkout and build Android kernel.
+
+kernel:
+ repo: https://android.googlesource.com/kernel/common
+ tag: d7ec680881a1
+
+shell:
+ - make gki_defconfig

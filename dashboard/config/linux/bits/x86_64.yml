@@ -1,0 +1,82 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+shell:
+ - make x86_64_defconfig: [-nodefconfig]
+ - make kvm_guest.config
+
+config:
+ # root=/dev/sda is not necessary correct, but it's a common setting and user arguments are appended
+ # to the builtin command line, so user can always override this.
+ # vsyscall=native required to run x86_64 executables on android kernels (it disables VDSO by default).
+ - CMDLINE: [append, "root=/dev/sda console=ttyS0 vsyscall=native numa=fake=2 kvm-intel.nested=1 spec_store_bypass_disable=prctl nopcid vivid.n_devs=16 vivid.multiplanar=1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2 netrom.nr_ndevs=16 rose.rose_ndevs=16 dummy_hcd.num=8 watchdog_thresh=55 workqueue.watchdog_thresh=140 sysctl.net.core.netdev_unregister_timeout_secs=140"]
+ - CMDLINE_BOOL
+
+ # Deterministic hang/stall detection.
+ # Without careful tuning the same hang/stall can be detected in multiple, radically-different ways.
+ # For example, an infinite loop can be detected as CPU stall, RCU stall, hung task or workqueue stall.
+ # This may lead to lots of duplicate bugs. In order to prevent this we strictly order hang/stall detection
+ # timeouts based on their causality (CPU stall can cause hung task, but not vise versa). See #516 for details.
+ #
+ # 1. RCU stalls has the highest priority.
+ #    RCU_CPU_STALL_TIMEOUT=100 results in stalls detected after 100-101 secs.
+ #
+ # 2. Then softlockup detector.
+ #    kernel.watchdog_thresh = 55 detects stalls after 110-132 secs.
+ #
+ # 3. Then hung tasks, workqueue stalls and netdev unregister hangs.
+ #    Unfortunately we can't separate them because that would require setting "no output" timeout to 10+ minutes.
+ #    watchdog_thresh=140 and DEFAULT_HUNG_TASK_TIMEOUT=140 both result in detection after 140-280 secs.
+ #
+ # 4. Finally, "no output" crashes.
+ #    sys/targets.Timeouts.NoOutput is set to 300 secs.
+ #
+ # Don't change these values without considering all other values as well.
+ # Note: executor also sets hung_task_check_interval_secs=20 sysctl.
+ # Note: gVisor watchdog timeout is 3 mins + 1/4 of that for checking period = 3m45s.
+ # Note: other arches that use qemu emulation scale all these timeouts by 3 (sys/targets.Timeouts.Scale).
+ - RCU_CPU_STALL_TIMEOUT: 100
+ # The constraints repeat constraints on inclusion of debug.yml which enables hung task detection.
+ - DEFAULT_HUNG_TASK_TIMEOUT: [140, -nonoise, -kmsan, -kcsan, -kmemleak]
+
+ # Should be faster this way.
+ - MCORE2
+ - BASE_FULL
+
+ # 32-on-64 support (compat).
+ - IA32_EMULATION
+ - X86_X32: [-baseline]
+
+ # Moved from legacy config, reason for enabling is unknown.
+ - KALLSYMS_ABSOLUTE_PERCPU
+ - X86_MSR
+ - X86_CPUID
+ - X86_5LEVEL: n
+
+ # Should be faster this way.
+ - PARAVIRT_SPINLOCKS
+ - PARAVIRT_DEBUG
+
+ - PROCESSOR_SELECT
+ - CPU_SUP_HYGON: n
+ - CPU_SUP_CENTAUR: n
+ - CPU_SUP_ZHAOXIN: n
+
+ # Required to boot Debian Wheezy.
+ - X86_VSYSCALL_EMULATION
+
+ # Intel network support.
+ # TODO: should we switch to virtio instead?
+ - ETHERNET
+ - NET_VENDOR_INTEL
+ - E1000
+
+ - X86_ACPI_CPUFREQ
+ - CPU_IDLE_GOV_HALTPOLL: [v4.16]
+ - X86_INTEL_TSX_MODE_ON: [v4.16]
+ - INTEL_IDLE
+ - LEGACY_VSYSCALL_EMULATE
+ - EFI: n
+
+ - TRACE_EVENT_INJECT: [v5.5]
+ - PM_TRACE_RTC: [optional]

@@ -1,0 +1,42 @@
+TITLE: BUG: unable to handle kernel NULL pointer dereference in process_one_work
+ALT: bad-access in process_one_work
+
+[  190.154802] BUG: unable to handle kernel NULL pointer dereference at 0000000000000286
+[  190.154802] IP: 0x286
+[  190.154802] PGD 1d8d6a067 
+[  190.154802] P4D 1d8d6a067 
+[  190.154802] PUD 1d925e067 
+[  190.154802] PMD 0 
+[  190.154802] 
+[  190.154802] Oops: 0010 [#1] SMP KASAN
+[  190.154802] Dumping ftrace buffer:
+[  190.154802]    (ftrace buffer empty)
+[  190.154802] Modules linked in:
+[  190.154802] CPU: 1 PID: 3289 Comm: kworker/u4:7 Not tainted 4.13.0-rc5-next-20170817+ #5
+[  190.154802] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  190.154802] Workqueue: kstrp strp_work
+[  190.154802] task: ffff8801c9d16540 task.stack: ffff8801ca570000
+[  190.154802] RIP: 0010:0x286
+[  190.154802] RSP: 0018:ffff8801ca577540 EFLAGS: 00010246
+[  190.154802] RAX: dffffc0000000000 RBX: ffff8801cbbfad60 RCX: 0000000000000000
+[  190.154802] RDX: 1ffff1003977f5bd RSI: ffffffff85b34380 RDI: ffff8801cbbfac48
+[  190.154802] RBP: ffff8801ca577558 R08: 0000000000000000 R09: 0000000000000000
+[  190.154802] R10: ffff8801ca577438 R11: dffffc0000000000 R12: ffff8801cbbfac48
+[  190.154802] R13: ffff8801cb7ede18 R14: ffff8801ca577980 R15: ffff8801cb7ede00
+[  190.154802] FS:  0000000000000000(0000) GS:ffff8801db300000(0000) knlGS:0000000000000000
+[  190.154802] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  190.154802] CR2: 0000000000000286 CR3: 00000001d91cf000 CR4: 00000000001426e0
+[  190.154802] Call Trace:
+[  190.154802]  process_one_work+0xbf3/0x1bc0
+[  190.154802]  worker_thread+0x223/0x1860
+[  190.154802]  kthread+0x35e/0x430
+[  190.154802]  ret_from_fork+0x2a/0x40
+[  190.154802] Code:  Bad RIP value.
+[  190.154802] RIP: 0x286 RSP: ffff8801ca577540
+[  190.154802] CR2: 0000000000000286
+[  190.154802] ---[ end trace 05ef833e13705a0a ]---
+[  190.154802] Kernel panic - not syncing: Fatal exception
+[  190.154802] Dumping ftrace buffer:
+[  190.154802]    (ftrace buffer empty)
+[  190.154802] Kernel Offset: disabled
+[  190.154802] Rebooting in 86400 seconds..

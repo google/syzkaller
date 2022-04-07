@@ -1,0 +1,47 @@
+TITLE: Unhandled fault in write_comp_data
+ALT: bad-access in write_comp_data
+
+[ 1328.320581][    C1] 8<--- cut here ---
+[ 1328.320974][    C1] Unhandled fault: page domain fault (0x01b) at 0x00000ea3
+[ 1328.321210][    C1] pgd = 8555366c
+[ 1328.321374][    C1] [00000ea3] *pgd=00000000
+[ 1328.321706][    C1] Internal error: : 1b [#1] PREEMPT SMP ARM
+[ 1328.325337][    C1] Dumping ftrace buffer:
+[ 1328.325511][    C1]    (ftrace buffer empty)
+[ 1328.325596][    C1] Modules linked in:
+[ 1328.325822][    C1] CPU: 1 PID: 3722 Comm: pvrusb2-context Not tainted 5.10.0-rc1+ #18
+[ 1328.325923][    C1] Hardware name: ARM-Versatile Express
+[ 1328.329012][    C1] PC is at write_comp_data+0x4c/0xd8
+[ 1328.329115][    C1] LR is at 0x0
+[ 1328.329264][    C1] pc : [<802b34ac>]    lr : [<00000000>]    psr: 60030193
+[ 1328.329421][    C1] sp : 88e16000  ip : 88e16000  fp : 88e16024
+[ 1328.329547][    C1] r10: 00000043  r9 : 83f8909c  r8 : 83f8909b
+[ 1328.329695][    C1] r7 : 00000073  r6 : 88e160ac  r5 : 0000000b  r4 : 00000073
+[ 1328.329843][    C1] r3 : 00000000  r2 : 00000012  r1 : 00000000  r0 : 00000001
+[ 1328.330011][    C1] Flags: nZCv  IRQs off  FIQs on  Mode SVC_32  ISA ARM  Segment none
+[ 1328.330150][    C1] Control: 10c5387d  Table: 89b9006a  DAC: 00000051
+[ 1328.330317][    C1] Process pvrusb2-context (pid: 3722, stack limit = 0xba29d0cb)
+[ 1328.330431][    C1] Stack: (0x88e16000 to 0x88e16000)
+[ 1328.330563][    C1] Backtrace: 
+[ 1328.330797][    C1] 
+[ 1328.330997][    C1] [<802b3460>] (write_comp_data) from [<802b3668>] (__sanitizer_cov_trace_const_cmp1+0x34/0x3c)
+[ 1328.338016][    C1]  r9:83f8909c r8:83f8909b r7:00000073 r6:88e160ac r5:0000000b r4:00000073
+[ 1328.338271][    C1] [<802b3634>] (__sanitizer_cov_trace_const_cmp1) from [<814e3fb4>] (format_decode+0x1e0/0x7f8)
+[ 1328.338465][    C1] [<814e3dd4>] (format_decode) from [<814ec950>] (vsnprintf+0xb4/0x62c)
+[ 1328.338646][    C1]  r10:844f6698 r9:88e160ac r8:00000000 r7:83f8909b r6:00000025 r5:83f8909b
+[ 1328.338770][    C1]  r4:844f5689
+[ 1328.338984][    C1] [<814ec89c>] (vsnprintf) from [<814ecefc>] (vscnprintf+0x34/0x7c)
+[ 1328.339193][    C1]  r10:88e16000 r9:88e1619c r8:88e1619c r7:88e1619c r6:83f89088 r5:844f5676
+[ 1328.339319][    C1]  r4:00001022
+[ 1328.339543][    C1] [<814ecec8>] (vscnprintf) from [<801f6454>] (printk_safe_log_store+0x94/0x1b4)
+[ 1328.339710][    C1]  r7:83f89088 r6:00000001 r5:00000fca r4:844f4698
+[ 1328.339938][    C1] [<801f63c0>] (printk_safe_log_store) from [<801f6d70>] (vprintk_func+0x1a8/0x2ac)
+[ 1328.340149][    C1]  r10:88e16000 r9:00000000 r8:88e1619c r7:83f89088 r6:00000001 r5:88e16000
+[ 1328.340279][    C1]  r4:844f4698
+[ 1328.340468][    C1] [<801f6bc8>] (vprintk_func) from [<83680608>] (printk+0x40/0x68)
+[ 1328.340677][    C1]  r9:88e16000 r8:8456398c r7:88e161e0 r6:0000036a r5:00000001 r4:83f89088
+[ 1328.340877][    C1] [<836805c8>] (printk) from [<80122904>] (do_DataAbort+0x9c/0xe8)
+[ 1328.341052][    C1]  r3:0000036a r2:0000001b r1:83f891a8 r0:83f89088
+[ 1328.341174][    C1]  r4:0000001b
+[ 1328.341378][    C1] [<80122868>] (do_DataAbort) from [<80100a7c>] (__dabt_svc+0x5c/0xa0)
+[ 1328.341537][    C1] Exception stack(0x88e161e0 to 0x88e16228)

@@ -1,0 +1,20 @@
+TITLE: UBSAN: undefined-behaviour in ip_idents_reserve
+
+[    3.805449] ================================================================================
+[    3.805453] UBSAN: Undefined behaviour in ./arch/x86/include/asm/atomic.h:156:2
+[    3.805455] signed integer overflow:
+[    3.805456] -1720106381 + -1531247276 cannot be represented in type 'int'
+[    3.805460] CPU: 3 PID: 3235 Comm: cups-browsed Not tainted 4.5.0-rc1 #252
+[    3.805461] Hardware name: Apple Inc. MacBookPro10,2/Mac-AFD8A9D944EA4843, BIOS MBP102.88Z.0106.B0A.1509130955 09/13/2015
+[    3.805465]  0000000000000000 0000000000000000 ffffffffa4bb0554 ffff88025f2c37c8
+[    3.805468]  ffffffff81b2e7d9 0000000000000001 ffff88025f2c37f8 ffff88025f2c37e0
+[    3.805470]  ffffffff81bcb87d ffffffff84b16a74 ffff88025f2c3868 ffffffff81bcbc4d
+[    3.805471] Call Trace:
+[    3.805478]  <IRQ>  [<ffffffff81b2e7d9>] dump_stack+0x45/0x6c
+[    3.805483]  [<ffffffff81bcb87d>] ubsan_epilogue+0xd/0x40
+[    3.805485]  [<ffffffff81bcbc4d>] handle_overflow+0xbd/0xe0
+[    3.805490]  [<ffffffff82b3409f>] ? csum_partial_copy_nocheck+0xf/0x20
+[    3.805493]  [<ffffffff81d635df>] ? get_random_bytes+0x4f/0x100
+[    3.805496]  [<ffffffff81bcbc7e>] __ubsan_handle_add_overflow+0xe/0x10
+[    3.805500]  [<ffffffff82680a4a>] ip_idents_reserve+0x9a/0xd0
+[    3.805503]  [<ffffffff826835e9>] __ip_select_ident+0xc9/0x160

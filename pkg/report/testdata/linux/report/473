@@ -1,0 +1,81 @@
+TITLE: WARNING: refcount bug in htc_connect_service
+
+[  347.999844][ T4270] ------------[ cut here ]------------
+[  348.000384][   T78] steelseries_srws1 0003:1038:1410.00A7: unknown main item tag 0x0
+[  348.001259][ T4270] refcount_t: underflow; use-after-free.
+[  348.001333][ T4270] WARNING: CPU: 0 PID: 4270 at lib/refcount.c:28 refcount_warn_saturate+0x1d1/0x1e0
+[  348.002004][   T78] steelseries_srws1 0003:1038:1410.00A7: unknown main item tag 0x0
+[  348.002964][ T4270] Kernel panic - not syncing: panic_on_warn set ...
+[  348.003632][   T78] steelseries_srws1 0003:1038:1410.00A7: unknown main item tag 0x0
+[  348.005581][ T4270] CPU: 0 PID: 4270 Comm: kworker/0:12 Not tainted 5.6.0-rc6+ #153
+[  348.006253][   T78] steelseries_srws1 0003:1038:1410.00A7: unknown main item tag 0x0
+[  348.008405][ T4270] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
+[  348.008422][ T4270] Workqueue: events request_firmware_work_func
+[  348.017246][   T78] steelseries_srws1 0003:1038:1410.00A7: unknown main item tag 0x0
+[  348.017956][ T4270] Call Trace:
+[  348.017971][ T4270]  dump_stack+0xef/0x16e
+[  348.017979][ T4270]  ? refcount_warn_saturate+0xf0/0x1e0
+[  348.017985][ T4270]  panic+0x2aa/0x6e1
+[  348.017990][ T4270]  ? add_taint.cold+0x16/0x16
+[  348.017998][ T4270]  ? __probe_kernel_read+0x188/0x1d0
+[  348.018002][ T4270]  ? __warn.cold+0x14/0x30
+[  348.018008][ T4270]  ? refcount_warn_saturate+0x1d1/0x1e0
+[  348.018012][ T4270]  __warn.cold+0x2f/0x30
+[  348.018025][ T4270]  ? refcount_warn_saturate+0x1d1/0x1e0
+[  348.018036][ T4270]  report_bug+0x28a/0x2f0
+[  348.020428][   T78] steelseries_srws1 0003:1038:1410.00A7: unknown main item tag 0x0
+[  348.021402][ T4270]  do_error_trap+0x12b/0x1e0
+[  348.021408][ T4270]  ? refcount_warn_saturate+0x1d1/0x1e0
+[  348.021413][ T4270]  do_invalid_op+0x32/0x40
+[  348.021530][ T4270]  ? refcount_warn_saturate+0x1d1/0x1e0
+[  348.024097][   T78] steelseries_srws1 0003:1038:1410.00A7: unknown main item tag 0x0
+[  348.025509][ T4270]  invalid_op+0x23/0x30
+[  348.025522][ T4270] RIP: 0010:refcount_warn_saturate+0x1d1/0x1e0
+[  348.027955][   T78] steelseries_srws1 0003:1038:1410.00A7: unknown main item tag 0x0
+[  348.028903][ T4270] Code: e9 db fe ff ff 48 89 df e8 7c bf 7f ff e9 8a fe ff ff e8 d2 06 57 ff 48 c7 c7 40 ee fb 85 c6 05 60 48 f3 05 01 e8 57 6b 2b ff <0f> 0b e9 af fe ff ff 0f 1f 84 00 00 00 00 00 48 b8 00 00 00 00 00
+[  348.028907][ T4270] RSP: 0018:ffff88806732f8d0 EFLAGS: 00010282
+[  348.028912][ T4270] RAX: 0000000000000000 RBX: 0000000000000000 RCX: 0000000000000000
+[  348.028916][ T4270] RDX: 0000000000000000 RSI: 0000000000000000 RDI: ffffed100ce65f0c
+[  348.028920][ T4270] RBP: 0000000000000003 R08: ffff888045bb5e80 R09: ffffed100d94439f
+[  348.028923][ T4270] R10: ffffed100d94439e R11: ffff88806ca21cf3 R12: ffff8880614fa5d4
+[  348.028927][ T4270] R13: 00000000ffffff92 R14: ffff8880429d9000 R15: ffff8880614fa500
+[  348.028937][ T4270]  kfree_skb+0x313/0x3d0
+[  348.028950][ T4270]  htc_connect_service.cold+0xa9/0x109
+[  348.029348][   T78] steelseries_srws1 0003:1038:1410.00A7: unknown main item tag 0x0
+[  348.029850][ T4270]  ath9k_wmi_connect+0xd2/0x1a0
+[  348.029856][ T4270]  ? ath9k_fatal_work+0x20/0x20
+[  348.029862][ T4270]  ? ath9k_hif_usb_firmware_cb.cold+0xde/0xde
+[  348.029867][ T4270]  ? ath9k_wmi_event_tasklet+0x430/0x430
+[  348.029874][ T4270]  ath9k_init_htc_services.constprop.0+0xb4/0x650
+[  348.029881][ T4270]  ? ath9k_htc_wait_for_target.isra.0+0x1b0/0x1b0
+[  348.029888][ T4270]  ? lockdep_init_map+0x1b0/0x5e0
+[  348.029894][ T4270]  ? lockdep_init_map+0x1b0/0x5e0
+[  348.029901][ T4270]  ? tasklet_init+0x69/0x110
+[  348.029913][ T4270]  ath9k_htc_probe_device+0x25a/0x1d80
+[  348.031985][   T78] steelseries_srws1 0003:1038:1410.00A7: unknown main item tag 0x0
+[  348.032890][ T4270]  ? ath9k_init_htc_services.constprop.0+0x650/0x650
+[  348.032937][ T4270]  ? usb_submit_urb+0x6ed/0x1460
+[  348.033497][   T78] steelseries_srws1 0003:1038:1410.00A7: unknown main item tag 0x0
+[  348.034710][ T4270]  ? usb_free_urb.part.0+0x52/0x110
+[  348.036226][   T78] steelseries_srws1 0003:1038:1410.00A7: unknown main item tag 0x0
+[  348.037306][ T4270]  ? usb_free_urb+0x1b/0x30
+[  348.037314][ T4270]  ath9k_htc_hw_init+0x31/0x60
+[  348.037320][ T4270]  ath9k_hif_usb_firmware_cb+0x26b/0x500
+[  348.037326][ T4270]  ? ath9k_hif_usb_resume+0x320/0x320
+[  348.037334][ T4270]  request_firmware_work_func+0x126/0x242
+[  348.037340][ T4270]  ? request_firmware_into_buf+0x90/0x90
+[  348.037348][ T4270]  ? rcu_read_lock_sched_held+0x9c/0xd0
+[  348.037395][ T4270]  ? rcu_read_lock_bh_held+0xb0/0xb0
+[  348.038174][   T78] steelseries_srws1 0003:1038:1410.00A7: unknown main item tag 0x0
+[  348.038788][ T4270]  process_one_work+0x94b/0x1620
+[  348.038795][ T4270]  ? pwq_dec_nr_in_flight+0x310/0x310
+[  348.038801][ T4270]  ? do_raw_spin_lock+0x129/0x290
+[  348.038848][ T4270]  worker_thread+0x96/0xe20
+[  348.038855][ T4270]  ? process_one_work+0x1620/0x1620
+[  348.038861][ T4270]  kthread+0x318/0x420
+[  348.038866][ T4270]  ? kthread_create_on_node+0xf0/0xf0
+[  348.038874][ T4270]  ret_from_fork+0x24/0x30
+[  348.039759][ T4270] Dumping ftrace buffer:
+[  348.039817][ T4270]    (ftrace buffer empty)
+[  348.039821][ T4270] Kernel Offset: disabled
+[  348.102324][ T4270] Rebooting in 1 seconds..

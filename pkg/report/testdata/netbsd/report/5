@@ -1,0 +1,18 @@
+TITLE: lock error in do_sys_accept
+
+[ 157.5698093] panic: lock error: Mutex: mutex_vector_exit,761: assertion failed: MUTEX_OWNER(mtx->mtx_owner) == curthread: lock 0xffffc200130971c0 cpu 0 lwp 0xffffc20012ccd320
+[ 157.5924708] cpu0: Begin traceback...
+[ 157.5977590] vpanic() at netbsd:vpanic+0x214
+[ 157.6109214] snprintf() at netbsd:snprintf
+[ 157.6251928] lockdebug_abort() at netbsd:lockdebug_abort+0x14c
+[ 157.6394641] mutex_vector_exit() at netbsd:mutex_vector_exit+0x1bc
+[ 157.6543582] do_sys_accept() at netbsd:do_sys_accept+0x346
+[ 157.6690586] sys_paccept() at netbsd:sys_paccept+0x11c
+[ 157.6839301] sys___syscall() at netbsd:sys___syscall+0xe2
+[ 157.6965505] syscall() at netbsd:syscall+0x348
+[ 157.7124393] --- syscall (number 198) ---
+[ 157.7250907] 77dca383f4aa:
+[ 157.7250907] cpu0: End traceback...
+
+[ 157.7250907] dumping to dev 4,1 (offset=0, size=0): not possible
+[ 157.7250907] rebooting...

@@ -1,0 +1,144 @@
+TITLE: WARNING in corrupted
+CORRUPTED: Y
+
+[  343.108919] netlink: 8 bytes leftover after parsing attributes in process `syz-executor.5'.
+[  343.124393] FAULT_INJECTION: forcing a failure.
+[  343.124393] name failslab, interval 1, probability 0, space 0, times 0
+[  343.135889] CPU: 1 PID: 18907 Comm: syz-executor.5 Not tainted 4.15.0 #1
+[  343.142811] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  343.144521] WARNING: CPU: 0 PID: 18900 at kernel/kthread.c:769 kthread_insert_work_sanity_check+0xb8/0x130
+[  343.144543] Kernel panic - not syncing: panic_on_warn set ...
+[  343.144543] 
+[  343.169338] Call Trace:
+[  343.171971]  [<ffffffff841f56c2>] dump_stack+0x14d/0x20b
+[  343.177479]  [<ffffffff821b0ccf>] should_fail.cold+0x11f/0x170
+[  343.183510]  [<ffffffff81a1fb81>] should_failslab+0x121/0x190
+[  343.189446]  [<ffffffff81a172bd>] kmem_cache_alloc_node+0x2ed/0x810
+[  343.195970]  [<ffffffff81541589>] ? find_held_lock+0x39/0x130
+[  343.201887]  [<ffffffff816c5b38>] ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[  343.209282]  [<ffffffff83992d66>] __alloc_skb+0xc6/0x590
+[  343.214762]  [<ffffffff83992ca0>] ? skb_pull+0x110/0x110
+[  343.220247]  [<ffffffff8213cdb3>] ? import_iovec+0x233/0x3e0
+[  343.226084]  [<ffffffff81f8c38b>] ? security_socket_getpeersec_dgram+0x9b/0xd0
+[  343.234013]  [<ffffffff83c5d227>] netlink_sendmsg+0x967/0xd50
+[  343.240104]  [<ffffffff83c5c8c0>] ? netlink_unicast+0x720/0x720
+[  343.246197]  [<ffffffff81f93eeb>] ? security_socket_sendmsg+0x9b/0xd0
+[  343.252807]  [<ffffffff83c5c8c0>] ? netlink_unicast+0x720/0x720
+[  343.258889]  [<ffffffff839649fe>] sock_sendmsg+0x12e/0x170
+[  343.264547]  [<ffffffff83966352>] ___sys_sendmsg+0x3e2/0x960
+[  343.270396]  [<ffffffff83965f70>] ? copy_msghdr_from_user+0x430/0x430
+[  343.277006]  [<ffffffff81548680>] ? debug_check_no_locks_freed+0x2b0/0x2b0
+[  343.284042]  [<ffffffff814604a3>] ? finish_task_switch+0x123/0x5f0
+[  343.290496]  [<ffffffff8146cc67>] ? context_switch+0x617/0xa60
+[  343.296505]  [<ffffffff81541589>] ? find_held_lock+0x39/0x130
+[  343.302425]  [<ffffffff8154d270>] ? lock_downgrade+0x660/0x660
+[  343.308446]  [<ffffffff8396a553>] __sys_sendmmsg+0x1c3/0x4e0
+[  343.314463]  [<ffffffff8396a390>] ? SyS_sendmsg+0x30/0x30
+[  343.320303]  [<ffffffff81005e60>] ? wait_for_completion+0x440/0x440
+[  343.326743]  [<ffffffff81aaf767>] ? __sb_end_write+0xa7/0xd0
+[  343.332581]  [<ffffffff816c5ada>] ? __sanitizer_cov_trace_const_cmp1+0x1a/0x20
+[  343.339972]  [<ffffffff81aac6b9>] ? fput+0x119/0x190
+[  343.345128]  [<ffffffff81aaa415>] ? SyS_write+0x165/0x1f0
+[  343.350693]  [<ffffffff81aaa2b0>] ? SyS_read+0x1f0/0x1f0
+[  343.356175]  [<ffffffff8396a8a2>] SyS_sendmmsg+0x32/0x40
+[  343.361651]  [<ffffffff8396a870>] ? __sys_sendmmsg+0x4e0/0x4e0
+[  343.367737]  [<ffffffff8101caec>] do_syscall_64+0x49c/0x6d0
+[  343.373485]  [<ffffffff8101735c>] ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  343.380191]  [<ffffffff84400091>] entry_SYSCALL_64_after_hwframe+0x42/0xb7
+[  343.387226] RIP: 0033:0x459129
+[  343.390447] RSP: 002b:00007fb7c8fccc78 EFLAGS: 00000246 ORIG_RAX: 0000000000000133
+[  343.398176] RAX: ffffffffffffffda RBX: 00007fb7c8fccc90 RCX: 0000000000459129
+[  343.405546] RDX: 0492492492492805 RSI: 0000000020000140 RDI: 0000000000000003
+[  343.412833] RBP: 000000000075bf20 R08: 0000000000000000 R09: 0000000000000000
+[  343.420114] R10: 0000000000000000 R11: 0000000000000246 R12: 00007fb7c8fcd6d4
+[  343.427975] R13: 00000000004c698a R14: 00000000004dcca8 R15: 0000000000000005
+[  343.435286] CPU: 0 PID: 18900 Comm: blkid Not tainted 4.15.0 #1
+[  343.441415] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  343.450951] Call Trace:
+[  343.453574]  [<ffffffff841f56c2>] dump_stack+0x14d/0x20b
+[  343.459260]  [<ffffffff813c5ec4>] __panic+0x1c3/0x45d
+[  343.464533]  [<ffffffff813c6229>] panic_saved_regs+0xcb/0xcb
+[  343.470369]  [<ffffffff813c615e>] ? __panic+0x45d/0x45d
+[  343.475741]  [<ffffffff813c58f7>] ? __warn+0x487/0x4f0
+[  343.481040]  [<ffffffff813c55f7>] ? __warn+0x187/0x4f0
+[  343.486334]  [<ffffffff81443128>] ? kthread_insert_work_sanity_check+0xb8/0x130
+[  343.493799]  [<ffffffff813c5917>] __warn+0x4a7/0x4f0
+[  343.498939]  [<ffffffff81443128>] ? kthread_insert_work_sanity_check+0xb8/0x130
+[  343.506458]  [<ffffffff81443070>] ? kthread_worker_fn+0x830/0x830
+[  343.512706]  [<ffffffff813c5470>] ? metric_exit_warnings+0x20/0x20
+[  343.519032]  [<ffffffff812d778c>] ? is_valid_bugaddr+0x9c/0xd0
+[  343.525093]  [<ffffffff812d76f0>] ? ist_end_non_atomic+0x10/0x10
+[  343.531264]  [<ffffffff81443128>] ? kthread_insert_work_sanity_check+0xb8/0x130
+[  343.538739]  [<ffffffff841f38b3>] report_bug+0x263/0x2b0
+[  343.544221]  [<ffffffff812d6dcd>] do_error_trap+0x1dd/0x300
+[  343.549949]  [<ffffffff812d6bf0>] ? do_trap+0x6e0/0x6e0
+[  343.555332]  [<ffffffff81548680>] ? debug_check_no_locks_freed+0x2b0/0x2b0
+[  343.562355]  [<ffffffff8101735c>] ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  343.569063]  [<ffffffff812d78ab>] do_invalid_op+0x1b/0x20
+[  343.575044]  [<ffffffff84400fab>] invalid_op+0x1b/0x40
+[  343.580325] RIP: 0010:kthread_insert_work_sanity_check+0xb8/0x130
+[  343.586570] RSP: 0018:ffff8801cafb71b8 EFLAGS: 00010093
+[  343.594989] RAX: ffff8801c5d8c1c0 RBX: 000000000000000c RCX: ffffffff81443156
+[  343.608419] RDX: 0000000000000000 RSI: ffffffff81443128 RDI: ffff8801d3357b70
+[  343.615689] RBP: ffff8801cafb71d0 R08: ffff8801c5d8c1c0 R09: 0000000000000000
+[  343.622966] R10: ffff8801c5d8cb88 R11: 0000000000000001 R12: ffff8801d5305350
+[  343.630412] R13: 0000000000000001 R14: 0000000000000293 R15: ffff8801d5305358
+[  343.637701]  [<ffffffff81443156>] ? kthread_insert_work_sanity_check+0xe6/0x130
+[  343.645194]  [<ffffffff81443128>] ? kthread_insert_work_sanity_check+0xb8/0x130
+[  343.652698]  [<ffffffff81443128>] ? kthread_insert_work_sanity_check+0xb8/0x130
+[  343.660178]  [<ffffffff81443dca>] kthread_insert_work+0x2a/0x1f0
+[  343.666469]  [<ffffffff814440be>] kthread_queue_work+0x12e/0x160
+[  343.672636]  [<ffffffff825a15bf>] loop_queue_rq+0x45f/0x560
+[  343.678358]  [<ffffffff82093d54>] blk_mq_dispatch_rq_list+0x1d4/0x1730
+[  343.685066]  [<ffffffff82093b80>] ? blk_mq_try_issue_directly+0x280/0x280
+[  343.693272]  [<ffffffff820fd6e3>] ? dd_dispatch_request+0x5d3/0x930
+[  343.699793]  [<ffffffff820a59e2>] blk_mq_do_dispatch_sched+0x192/0x420
+[  343.706478]  [<ffffffff820a5850>] ? blk_mq_sched_free_hctx_data+0x200/0x200
+[  343.713702]  [<ffffffff81a1df52>] ? memset+0x32/0x40
+[  343.718814]  [<ffffffff820a7451>] blk_mq_sched_dispatch_requests+0x4c1/0x800
+[  343.726013]  [<ffffffff820a6f90>] ? blk_mq_sched_assign_ioc+0x200/0x200
+[  343.732787]  [<ffffffff8208f4f5>] __blk_mq_run_hw_queue+0x145/0x310
+[  343.739202]  [<ffffffff8208f885>] __blk_mq_delay_run_hw_queue+0x1c5/0x200
+[  343.746137]  [<ffffffff8208fbfe>] blk_mq_run_hw_queue+0x30e/0x3c0
+[  343.752411]  [<ffffffff820fda40>] ? dd_dispatch_request+0x930/0x930
+[  343.758840]  [<ffffffff820a9024>] blk_mq_sched_insert_requests+0x1b4/0x250
+[  343.765863]  [<ffffffff820985da>] blk_mq_flush_plug_list+0x72a/0xc10
+[  343.772855]  [<ffffffff81b847e9>] ? guard_bio_eod+0x269/0x5a0
+[  343.778754]  [<ffffffff82097eb0>] ? blk_mq_insert_requests+0x6b0/0x6b0
+[  343.785421]  [<ffffffff81b8d3e0>] ? I_BDEV+0x20/0x20
+[  343.790548]  [<ffffffff81babd30>] ? do_mpage_readpage+0x1980/0x1980
+[  343.796963]  [<ffffffff82064b13>] blk_flush_plug_list+0x353/0xb60
+[  343.803207]  [<ffffffff820647c0>] ? blk_init_request_from_bio+0x470/0x470
+[  343.810186]  [<ffffffff818ccb3d>] ? put_pages_list+0x1dd/0x2c0
+[  343.816161]  [<ffffffff82066698>] blk_finish_plug+0x58/0xa2
+[  343.821880]  [<ffffffff81b90570>] ? blkdev_write_begin+0x50/0x50
+[  343.828044]  [<ffffffff818c865a>] __do_page_cache_readahead+0x64a/0xa40
+[  343.834802]  [<ffffffff818c8010>] ? read_cache_pages+0x650/0x650
+[  343.841012]  [<ffffffff8154d270>] ? lock_downgrade+0x660/0x660
+[  343.846996]  [<ffffffff818c9a69>] force_page_cache_readahead+0x219/0x370
+[  343.853837]  [<ffffffff818c9a69>] ? force_page_cache_readahead+0x219/0x370
+[  343.860880]  [<ffffffff818c9cb9>] page_cache_sync_readahead+0xf9/0x110
+[  343.867566]  [<ffffffff8188dba6>] generic_file_read_iter+0x1a36/0x2c30
+[  343.874246]  [<ffffffff8188c170>] ? filemap_range_has_page+0x270/0x270
+[  343.880916]  [<ffffffff81548680>] ? debug_check_no_locks_freed+0x2b0/0x2b0
+[  343.887939]  [<ffffffff81b922e0>] blkdev_read_iter+0x120/0x190
+[  343.893921]  [<ffffffff81aa2f3b>] new_sync_read+0x39b/0x570
+[  343.899655]  [<ffffffff81aa2ba0>] ? do_iter_readv_writev+0x6f0/0x6f0
+[  343.906154]  [<ffffffff810149f8>] ? _raw_spin_unlock_irq+0x28/0x40
+[  343.912475]  [<ffffffff81f90abf>] ? security_file_permission+0x9f/0x250
+[  343.919225]  [<ffffffff81aa9074>] __vfs_read+0xe4/0x110
+[  343.924586]  [<ffffffff81aa9234>] vfs_read+0x194/0x3d0
+[  343.929872]  [<ffffffff81aaa1a9>] SyS_read+0xe9/0x1f0
+[  343.935062]  [<ffffffff81aaa0c0>] ? kernel_write+0x120/0x120
+[  343.940954]  [<ffffffff8101c69c>] ? do_syscall_64+0x4c/0x6d0
+[  343.946770]  [<ffffffff81aaa0c0>] ? kernel_write+0x120/0x120
+[  343.952610]  [<ffffffff8101caec>] do_syscall_64+0x49c/0x6d0
+[  343.958334]  [<ffffffff8101735c>] ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  343.965007]  [<ffffffff84400091>] entry_SYSCALL_64_after_hwframe+0x42/0xb7
+[  343.972043] RIP: 0033:0x7f28a8aeb310
+[  343.975737] RSP: 002b:00007ffcc73469c8 EFLAGS: 00000246 ORIG_RAX: 0000000000000000
+[  343.983442] RAX: ffffffffffffffda RBX: 0000000004070000 RCX: 00007f28a8aeb310
+[  343.990706] RDX: 0000000000000040 RSI: 0000000002044c58 RDI: 0000000000000003
+[  343.998062] RBP: 0000000002044c30 R08: 0000000000000068 R09: 0101010101010101
+[  344.005329] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000002044030
+[  344.012592] R13: 0000000000000040 R14: 0000000002044080 R15: 0000000002044c48

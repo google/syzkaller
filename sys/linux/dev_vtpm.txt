@@ -1,0 +1,21 @@
+# Copyright 2021 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/fcntl.h>
+include <uapi/linux/vtpm_proxy.h>
+
+resource fd_vtpm[fd]
+
+openat$vtpm(fd const[AT_FDCWD], file ptr[in, string["/dev/vtpmx"]], flags flags[open_flags], mode const[0]) fd_vtpm
+
+vtpm_proxy_flags = VTPM_PROXY_FLAG_TPM2
+
+vtpm_proxy_new_dev {
+	flags	flags[vtpm_proxy_flags, int32]
+	tpm_num	int32
+	fd	fd
+	major	int32
+	minor	int32
+}
+
+ioctl$VTPM_PROXY_IOC_NEW_DEV(fd fd_vtpm, cmd const[VTPM_PROXY_IOC_NEW_DEV], arg ptr[inout, vtpm_proxy_new_dev])

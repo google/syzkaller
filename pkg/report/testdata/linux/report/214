@@ -1,0 +1,99 @@
+TITLE: KASAN: wild-memory-access in sg_read
+CORRUPTED: Y
+
+[   56.874510] ==================================================================
+[   56.881919] BUG: KASAN: wild-memory-access in sg_read+0x1296/0x1440
+[   56.886161] kasan: CONFIG_KASAN_INLINE enabled
+[   56.886164] kasan: GPF could be caused by NULL-ptr deref or user memory access
+[   56.886173] general protection fault: 0000 [#1] PREEMPT SMP KASAN
+[   56.886178] Dumping ftrace buffer:
+[   56.886182]    (ftrace buffer empty)
+[   56.886186] Modules linked in:
+[   56.886194] CPU: 1 PID: 11774 Comm: syz-executor7 Not tainted 4.9.72-gcb7518e #10
+[   56.886198] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   56.886203] task: ffff8801c45f9800 task.stack: ffff8801c5770000
+[   56.886222] RIP: 0010:[<ffffffff8144d081>]  [<ffffffff8144d081>] __free_pages+0x21/0x80
+[   56.886226] RSP: 0018:ffff8801c5777940  EFLAGS: 00010a07
+[   56.886230] RAX: dffffc0000000000 RBX: dead4ead00000000 RCX: ffffffff82664f9b
+[   56.886234] RDX: 1bd5a9d5a0000003 RSI: 0000000000000001 RDI: dead4ead0000001c
+[   56.886238] RBP: ffff8801c5777950 R08: 0000000000000001 R09: 0000000000000001
+[   56.886241] R10: 0000000000000000 R11: ffff8801c45f9800 R12: 0000000000000004
+[   56.886245] R13: 0000000000000020 R14: ffff8801cc62c200 R15: dffffc0000000000
+[   56.886251] FS:  0000000000000000(0000) GS:ffff8801db300000(0063) knlGS:00000000f6ff7b40
+[   56.886255] CS:  0010 DS: 002b ES: 002b CR0: 0000000080050033
+[   56.886259] CR2: 0000000020bb7000 CR3: 00000001c9cec000 CR4: 00000000001406e0
+[   56.886267] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   56.886272] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   56.886273] Stack:
+[   56.886285]  0000000000000001 ffff8801cc62c358 ffff8801c57779b0 ffffffff82664fc1
+[   56.886299]  ffff8801cc62c370 ffffed00398c586b ffffed00398c586e ffff8801cc62c368
+[   56.886308]  dead4ead00000000 ffff8801cc62c340 0000000000000000 0000000000000000
+[   56.886310] Call Trace:
+[   56.886319]  [<ffffffff82664fc1>] sg_remove_scat.isra.19+0x1c1/0x2d0
+[   56.886330]  [<ffffffff82665385>] sg_finish_rem_req+0x2b5/0x340
+[   56.886340]  [<ffffffff82665766>] sg_new_read.isra.20+0x356/0x3e0
+[   56.886347]  [<ffffffff82663745>] ? sg_get_rq_mark+0x145/0x190
+[   56.886357]  [<ffffffff8266703d>] sg_read+0x8bd/0x1440
+[   56.886366]  [<ffffffff82666780>] ? sg_proc_seq_show_debug+0xd10/0xd10
+[   56.886378]  [<ffffffff81641d00>] ? fsnotify+0xf30/0xf30
+[   56.886387]  [<ffffffff81bd97f9>] ? avc_policy_seqno+0x9/0x20
+[   56.886396]  [<ffffffff8156a4e1>] do_loop_readv_writev.part.17+0x141/0x1e0
+[   56.886403]  [<ffffffff81bd08b9>] ? security_file_permission+0x89/0x1e0
+[   56.886410]  [<ffffffff82666780>] ? sg_proc_seq_show_debug+0xd10/0xd10
+[   56.886417]  [<ffffffff82666780>] ? sg_proc_seq_show_debug+0xd10/0xd10
+[   56.886424]  [<ffffffff8156f402>] compat_do_readv_writev+0x522/0x760
+[   56.886431]  [<ffffffff8156eee0>] ? do_pwritev+0x1a0/0x1a0
+[   56.886439]  [<ffffffff812e2010>] ? exit_robust_list+0x230/0x230
+[   56.886448]  [<ffffffff81df90fb>] ? check_preemption_disabled+0x3b/0x200
+[   56.886455]  [<ffffffff815cec41>] ? __fget+0x201/0x3a0
+[   56.886461]  [<ffffffff815cec68>] ? __fget+0x228/0x3a0
+[   56.886467]  [<ffffffff815cea87>] ? __fget+0x47/0x3a0
+[   56.886474]  [<ffffffff8156f723>] compat_readv+0xe3/0x150
+[   56.886482]  [<ffffffff8156f884>] do_compat_readv+0xf4/0x1d0
+[   56.886489]  [<ffffffff8156f790>] ? compat_readv+0x150/0x150
+[   56.886496]  [<ffffffff815714a0>] ? SyS_read+0x1b0/0x1b0
+[   56.886504]  [<ffffffff81571df6>] compat_SyS_readv+0x26/0x30
+[   56.886511]  [<ffffffff81571dd0>] ? SyS_pwritev2+0x80/0x80
+[   56.886518]  [<ffffffff81006fc7>] do_fast_syscall_32+0x2f7/0x890
+[   56.886525]  [<ffffffff81003036>] ? trace_hardirqs_off_thunk+0x1a/0x1c
+[   56.886534]  [<ffffffff838b0be1>] entry_SYSENTER_compat+0x51/0x60
+[   56.886639] Code: e9 27 fc ff ff 0f 1f 44 00 00 48 b8 00 00 00 00 00 fc ff df 55 48 89 e5 53 48 89 fb 48 83 c7 1c 48 89 fa 48 83 ec 08 48 c1 ea 03 <0f> b6 14 02 48 89 f8 83 e0 07 83 c0 03 38 d0 7c 04 84 d2 75 3d 
+[   56.886647] RIP  [<ffffffff8144d081>] __free_pages+0x21/0x80
+[   56.886649]  RSP <ffff8801c5777940>
+[   56.886657] ---[ end trace 8afff88f0ca340d1 ]---
+[   56.886660] Kernel panic - not syncing: Fatal exception
+[   57.259120] Read of size 4060 at addr ffe70874503c9000 by task syz-executor6/11770
+[   57.266791] 
+[   57.268394] CPU: 0 PID: 11770 Comm: syz-executor6 Tainted: G      D         4.9.72-gcb7518e #10
+[   57.277195] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   57.286519]  ffff8801c3dd7ad8 ffffffff81d922b9 ffe70874503c9000 0000000000000fdc
+[   57.294479]  0000000000000000 ffff8801c202c540 ffff8801c9c14340 ffff8801c3dd7b20
+[   57.302441]  ffffffff8153bebe ffffffff82667a16 0000000000000286 112de43e2a9805f9
+[   57.310407] Call Trace:
+[   57.312966]  [<ffffffff81d922b9>] dump_stack+0xc1/0x128
+[   57.318304]  [<ffffffff8153bebe>] kasan_report+0x15e/0x360
+[   57.323898]  [<ffffffff82667a16>] ? sg_read+0x1296/0x1440
+[   57.329403]  [<ffffffff8153a9e7>] check_memory_region+0x137/0x190
+[   57.335604]  [<ffffffff8153aa51>] kasan_check_read+0x11/0x20
+[   57.341368]  [<ffffffff82667a16>] sg_read+0x1296/0x1440
+[   57.346702]  [<ffffffff82666780>] ? sg_proc_seq_show_debug+0xd10/0xd10
+[   57.353337]  [<ffffffff8123a020>] ? debug_check_no_locks_freed+0x2c0/0x2c0
+[   57.360327]  [<ffffffff82666780>] ? sg_proc_seq_show_debug+0xd10/0xd10
+[   57.366963]  [<ffffffff81569903>] __vfs_read+0x103/0x670
+[   57.372381]  [<ffffffff81569800>] ? default_llseek+0x290/0x290
+[   57.378323]  [<ffffffff81640e56>] ? fsnotify+0x86/0xf30
+[   57.383655]  [<ffffffff81641d00>] ? fsnotify+0xf30/0xf30
+[   57.389076]  [<ffffffff81bd97f9>] ? avc_policy_seqno+0x9/0x20
+[   57.394932]  [<ffffffff81bea142>] ? selinux_file_permission+0x82/0x460
+[   57.401568]  [<ffffffff81bd08b9>] ? security_file_permission+0x89/0x1e0
+[   57.408290]  [<ffffffff8156d3b5>] ? rw_verify_area+0xe5/0x2b0
+[   57.414143]  [<ffffffff8156d69e>] vfs_read+0x11e/0x380
+[   57.419389]  [<ffffffff815713c9>] SyS_read+0xd9/0x1b0
+[   57.424548]  [<ffffffff815712f0>] ? vfs_copy_file_range+0x740/0x740
+[   57.430921]  [<ffffffff8167a6bc>] ? compat_SyS_ioctl+0x8c/0x2050
+[   57.437038]  [<ffffffff81006d9f>] ? do_fast_syscall_32+0xcf/0x890
+[   57.443239]  [<ffffffff815712f0>] ? vfs_copy_file_range+0x740/0x740
+[   57.449610]  [<ffffffff81006fc7>] do_fast_syscall_32+0x2f7/0x890
+[   57.455725]  [<ffffffff81003036>] ? trace_hardirqs_off_thunk+0x1a/0x1c
+[   57.462365]  [<ffffffff838b0be1>] entry_SYSENTER_compat+0x51/0x60
+[   57.468563] ==================================================================

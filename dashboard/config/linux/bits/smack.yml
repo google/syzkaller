@@ -1,0 +1,11 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+config:
+ - SECURITY_SELINUX: n
+ - SECURITY_APPARMOR: n
+ - SECURITY_SMACK
+ - SECURITY_SMACK_NETFILTER: [-baseline, -onlyusb]
+ - EVM_EXTRA_SMACK_XATTRS
+ - DEFAULT_SECURITY_SMACK
+ - LSM: "landlock,lockdown,yama,safesetid,integrity,tomoyo,smack,bpf"

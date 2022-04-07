@@ -1,0 +1,142 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_ISDN support.
+
+include <linux/socket.h>
+include <linux/mISDNif.h>
+include <linux/isdn/capiutil.h>
+include <uapi/linux/capi.h>
+include <uapi/linux/isdn/capicmd.h>
+
+resource sock_isdn_base[sock]
+
+socket$isdn_base(domain const[AF_ISDN], type const[SOCK_RAW], proto const[ISDN_P_BASE]) sock_isdn_base
+bind$isdn_base(fd sock_isdn_base, addr ptr[in, sockaddr_mISDN], len bytesize[addr])
+ioctl$IMGETVERSION(fd sock_isdn_base, cmd const[IMGETVERSION], arg ptr[out, int32])
+ioctl$IMGETCOUNT(fd sock_isdn_base, cmd const[IMGETCOUNT], arg ptr[out, int32])
+ioctl$IMGETDEVINFO(fd sock_isdn_base, cmd const[IMGETDEVINFO], arg ptr[in, mISDN_devinfo])
+ioctl$IMSETDEVNAME(fd sock_isdn_base, cmd const[IMSETDEVNAME], arg ptr[in, mISDN_devrename])
+
+sockaddr_mISDN {
+	family	const[AF_ISDN, int16]
+# TODO: this is some ISDN dev id. What are these values?
+	dev	int8
+	channel	int8
+	sapi	int8
+	tei	int8
+}
+
+mISDN_devinfo {
+# TODO: this is some ISDN dev id. What are these values? Is it the same thing as in sockaddr? Why are they differnet sizes?
+	id		int32
+	Dprotocols	const[0, int32]
+	Bprotocols	const[0, int32]
+	protocol	const[0, int32]
+	channelmap	array[const[0, int8], MISDN_CHMAP_SIZE]
+	nrbchan		const[0, int32]
+	name		array[const[0, int8], MISDN_MAX_IDLEN]
+}
+
+mISDN_devrename {
+# TODO: this is some ISDN dev id. What are these values? Is it the same thing as in sockaddr? Why are they differnet sizes?
+	id	int32
+	name	string[mISDN_dev_names, MISDN_MAX_IDLEN]
+}
+
+mISDN_dev_names = "syz0", "syz1"
+
+resource sock_isdn[sock]
+
+socket$isdn(domain const[AF_ISDN], type const[SOCK_RAW], proto flags[isdn_sock_protos]) sock_isdn
+bind$isdn(fd sock_isdn, addr ptr[in, sockaddr_mISDN], len bytesize[addr])
+ioctl$IMCTRLREQ(fd sock_isdn, cmd const[IMCTRLREQ], arg ptr[in, mISDN_ctrl_req])
+ioctl$IMCLEAR_L2(fd sock_isdn, cmd const[IMCLEAR_L2], arg ptr[in, int32])
+ioctl$IMHOLD_L1(fd sock_isdn, cmd const[IMHOLD_L1], arg ptr[in, int32])
+sendto$isdn(fd sock_isdn, buf ptr[in, mISDNhead], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_mISDN, opt], addrlen len[addr])
+setsockopt$MISDN_TIME_STAMP(fd sock_isdn, level const[0], opt const[MISDN_TIME_STAMP], arg ptr[in, bool32], arglen len[arg])
+getsockopt$MISDN_TIME_STAMP(fd sock_isdn, level const[0], opt const[MISDN_TIME_STAMP], arg ptr[out, bool32], arglen ptr[inout, len[arg, int32]])
+
+isdn_sock_protos = ISDN_P_TE_S0, ISDN_P_NT_S0, ISDN_P_TE_E1, ISDN_P_NT_E1, ISDN_P_LAPD_TE, ISDN_P_LAPD_NT, ISDN_P_B_RAW, ISDN_P_B_HDLC, ISDN_P_B_X75SLP, ISDN_P_B_L2DTMF, ISDN_P_B_L2DSP, ISDN_P_B_L2DSPHDLC
+
+mISDN_ctrl_req {
+	op	flags[mISDN_ctrl_ops, int32]
+	channel	int32
+	p1	int32
+	p2	int32
+}
+
+mISDNhead {
+	prim	int32
+	id	int32
+	data	array[int8]
+} [packed]
+
+mISDN_ctrl_ops = MISDN_CTRL_GETOP, MISDN_CTRL_LOOP, MISDN_CTRL_CONNECT, MISDN_CTRL_DISCONNECT, MISDN_CTRL_RX_BUFFER, MISDN_CTRL_PCMCONNECT, MISDN_CTRL_PCMDISCONNECT, MISDN_CTRL_SETPEER, MISDN_CTRL_UNSETPEER, MISDN_CTRL_RX_OFF, MISDN_CTRL_FILL_EMPTY, MISDN_CTRL_GETPEER, MISDN_CTRL_L1_TIMER3, MISDN_CTRL_HW_FEATURES_OP, MISDN_CTRL_HW_FEATURES, MISDN_CTRL_HFC_OP, MISDN_CTRL_HFC_PCM_CONN, MISDN_CTRL_HFC_PCM_DISC, MISDN_CTRL_HFC_CONF_JOIN, MISDN_CTRL_HFC_CONF_SPLIT, MISDN_CTRL_HFC_RECEIVE_OFF, MISDN_CTRL_HFC_RECEIVE_ON, MISDN_CTRL_HFC_ECHOCAN_ON, MISDN_CTRL_HFC_ECHOCAN_OFF, MISDN_CTRL_HFC_WD_INIT, MISDN_CTRL_HFC_WD_RESET
+
+resource fd_capi20[fd]
+# TODO: what is this contr?
+type capi20_contr int32
+
+openat$capi20(fd const[AT_FDCWD], file ptr[in, string["/dev/capi20"]], flags flags[open_flags], mode const[0]) fd_capi20
+write$capi20(fd fd_capi20, data ptr[in, capi20_command], size bytesize[data])
+write$capi20_data(fd fd_capi20, data ptr[in, capi20_command_data], size bytesize[data])
+ioctl$CAPI_REGISTER(fd fd_capi20, cmd const[CAPI_REGISTER], arg ptr[in, capi_register_params])
+ioctl$CAPI_GET_SERIAL(fd fd_capi20, cmd const[CAPI_GET_SERIAL], arg ptr[in, capi20_contr])
+ioctl$CAPI_GET_PROFILE(fd fd_capi20, cmd const[CAPI_GET_PROFILE], arg ptr[in, capi20_contr])
+ioctl$CAPI_GET_MANUFACTURER(fd fd_capi20, cmd const[CAPI_GET_MANUFACTURER], arg ptr[in, capi20_contr])
+ioctl$CAPI_GET_ERRCODE(fd fd_capi20, cmd const[CAPI_GET_ERRCODE], arg ptr[out, int32])
+ioctl$CAPI_INSTALLED(fd fd_capi20, cmd const[CAPI_INSTALLED])
+ioctl$CAPI_MANUFACTURER_CMD(fd fd_capi20, cmd const[CAPI_MANUFACTURER_CMD], arg ptr[in, capi_manufacturer_cmd])
+ioctl$CAPI_SET_FLAGS(fd fd_capi20, cmd const[CAPI_SET_FLAGS], arg ptr[in, bool32])
+ioctl$CAPI_CLR_FLAGS(fd fd_capi20, cmd const[CAPI_CLR_FLAGS], arg ptr[in, bool32])
+ioctl$CAPI_GET_FLAGS(fd fd_capi20, cmd const[CAPI_GET_FLAGS], arg ptr[out, bool32])
+ioctl$CAPI_NCCI_OPENCOUNT(fd fd_capi20, cmd const[CAPI_NCCI_OPENCOUNT], arg ptr[in, int32])
+ioctl$CAPI_NCCI_GETUNIT(fd fd_capi20, cmd const[CAPI_NCCI_GETUNIT], arg ptr[in, int32])
+
+capi20_command {
+	len		bytesize[parent, int16]
+	appid		int16
+	command		flags[capi20_commands, int8]
+	subcommand	flags[capi20_subcommands, int8]
+	msgid		int16
+	control		int32
+	pad		const[0, int32]
+} [packed]
+
+capi20_command_data {
+	header		capi20_command
+	datasize	bytesize[data, int16]
+	data		array[int8]
+} [packed]
+
+capi20_commands = CAPI_ALERT, CAPI_CONNECT, CAPI_CONNECT_ACTIVE, CAPI_CONNECT_B3_ACTIVE, CAPI_CONNECT_B3, CAPI_CONNECT_B3_T90_ACTIVE, CAPI_DATA_B3, CAPI_DISCONNECT_B3, CAPI_DISCONNECT, CAPI_FACILITY, CAPI_INFO, CAPI_LISTEN, CAPI_MANUFACTURER, CAPI_RESET_B3, CAPI_SELECT_B_PROTOCOL
+capi20_subcommands = CAPI_REQ, CAPI_CONF, CAPI_IND, CAPI_RESP
+
+capi_register_params {
+	level3cnt	int32
+	datablkcnt	int32
+	datablklen	int32
+}
+
+capi_manufacturer_cmd {
+	cmd	intptr
+	data	ptr[in, array[int8]]
+}
+
+openat$proc_capi20(fd const[AT_FDCWD], file ptr[in, string["/proc/capi/capi20"]], flags flags[open_flags], mode const[0]) fd
+openat$proc_capi20ncci(fd const[AT_FDCWD], file ptr[in, string["/proc/capi/capi20ncci"]], flags flags[open_flags], mode const[0]) fd
+
+resource fd_misdntimer[fd]
+
+openat$misdntimer(fd const[AT_FDCWD], file ptr[in, string["/dev/mISDNtimer"]], flags flags[open_flags], mode const[0]) fd_misdntimer
+ioctl$IMADDTIMER(fd fd_misdntimer, cmd const[IMADDTIMER], arg ptr[in, flags[misdntimer_timeouts, int32]])
+ioctl$IMDELTIMER(fd fd_misdntimer, cmd const[IMDELTIMER], arg ptr[in, flags[misdntimer_id, int32]])
+
+# IMADDTIMER accepts timeout in arg and returns timer id in the same location,
+# we don't have a way to describe overlapping in/out args.
+# This is like the only known so far such case in kernel interfaces, yikes!
+# Timer id's seems to be allocated densely from 1 per opened device,
+# so we just use 0, 1, 2, 3 as id's.
+misdntimer_id = 0, 1, 2, 3
+misdntimer_timeouts = 0, 20, 50, 1000000, -1

@@ -1,0 +1,107 @@
+TITLE: KASAN: global-out-of-bounds Read in show_timer
+ALT: bad-access in show_timer
+
+[   66.768767] ==================================================================
+[   66.776196] BUG: KASAN: global-out-of-bounds in show_timer+0x27a/0x2b0 at addr ffffffff82cda558
+[   66.785026] Read of size 8 by task syz-executor7/8685
+[   66.790216] Address belongs to variable nstr.37854+0x18/0x40
+[   66.796010] CPU: 0 PID: 8685 Comm: syz-executor7 Not tainted 4.4.114+ #250
+[   66.803009] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   66.807266] kasan: CONFIG_KASAN_INLINE enabled
+[   66.807275] kasan: GPF could be caused by NULL-ptr deref or user memory access
+[   66.807279] general protection fault: 0000 [#1] SMP KASAN
+[   66.807284] Dumping ftrace buffer:
+[   66.807288]    (ftrace buffer empty)
+[   66.807291] Modules linked in:
+[   66.807299] CPU: 1 PID: 8694 Comm: syz-executor3 Not tainted 4.4.114+ #250
+[   66.807304] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   66.807311] task: ffff8800b9c69780 ti: ffff8800b7bb8000 task.ti: ffff8800b7bb8000
+[   66.807335] RIP: 0010:[<ffffffff8268adb6>]  [<ffffffff8268adb6>] udp_queue_rcv_skb+0x196/0x1590
+[   66.807338] RSP: 0018:ffff8800b7bbf928  EFLAGS: 00010206
+[   66.807343] RAX: dffffc0000000000 RBX: ffff8800ba440000 RCX: ffffc90003b90000
+[   66.807347] RDX: 000000000000000c RSI: ffff8801cd8b2900 RDI: 0000000000000060
+[   66.807351] RBP: ffff8800b7bbf968 R08: 0000000000000001 R09: 0000000000000001
+[   66.807355] R10: 0000000000000000 R11: 1ffff10016f77efa R12: ffff8801cd8b2900
+[   66.807359] R13: 0000000000000001 R14: 0000000000000000 R15: ffff8801cd8b2958
+[   66.807365] FS:  00007fc9a056d700(0000) GS:ffff8801db700000(0000) knlGS:0000000000000000
+[   66.807370] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   66.807375] CR2: 000000002082dff0 CR3: 00000000b1580000 CR4: 0000000000160630
+[   66.807383] DR0: 0000000020000000 DR1: 0000000020000000 DR2: 0000000000000000
+[   66.807388] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000600
+[   66.807389] Stack:
+[   66.807399]  ffff8800ba440088 ffff880000000001 ffff8800ba440088 dffffc0000000000
+[   66.807408]  ffff8800ba440000 0000000000000000 ffffed0017488083 ffff8801cd8b2900
+[   66.807418]  ffff8800b7bbf9d8 ffffffff822092d5 ffff8800ba440188 ffff8800ba440190
+[   66.807419] Call Trace:
+[   66.807429]  [<ffffffff822092d5>] release_sock+0x165/0x540
+[   66.807437]  [<ffffffff826844df>] udp_sendmsg+0x15df/0x1c40
+[   66.807447]  [<ffffffff811efdee>] ? __lock_acquire+0xabe/0x4eb0
+[   66.807454]  [<ffffffff82680e70>] ? udp_push_pending_frames+0xe0/0xe0
+[   66.807462]  [<ffffffff811ef330>] ? debug_check_no_locks_freed+0x2c0/0x2c0
+[   66.807469]  [<ffffffff82682f00>] ? udp_seq_next+0x80/0x80
+[   66.807478]  [<ffffffff811ef330>] ? debug_check_no_locks_freed+0x2c0/0x2c0
+[   66.807486]  [<ffffffff811e61d0>] ? zap_class+0x390/0x390
+[   66.807494]  [<ffffffff811e8241>] ? __lock_is_held+0xa1/0xf0
+[   66.807502]  [<ffffffff826b8a58>] ? inet_sendmsg+0x208/0x4c0
+[   66.807508]  [<ffffffff826b8b15>] inet_sendmsg+0x2c5/0x4c0
+[   66.807515]  [<ffffffff826b88c8>] ? inet_sendmsg+0x78/0x4c0
+[   66.807521]  [<ffffffff826b8850>] ? inet_recvmsg+0x4b0/0x4b0
+[   66.807529]  [<ffffffff821fcb2f>] sock_sendmsg+0xcf/0x110
+[   66.807535]  [<ffffffff821fda60>] SYSC_sendto+0x2e0/0x360
+[   66.807543]  [<ffffffff821fd780>] ? SYSC_connect+0x310/0x310
+[   66.807551]  [<ffffffff811c61fe>] ? pick_next_task_fair+0x105e/0x1b40
+[   66.807558]  [<ffffffff811e61d0>] ? zap_class+0x390/0x390
+[   66.807568]  [<ffffffff82a1611c>] ? _raw_spin_unlock_irq+0x2c/0x40
+[   66.807576]  [<ffffffff811eeb5b>] ? trace_hardirqs_on_caller+0x38b/0x590
+[   66.807584]  [<ffffffff82a02785>] ? __schedule+0xab5/0x1c40
+[   66.807591]  [<ffffffff81284a8d>] ? SyS_futex+0x20d/0x2b0
+[   66.807600]  [<ffffffff82a16cce>] ? int_ret_from_sys_call+0x52/0xa3
+[   66.807608]  [<ffffffff82200025>] SyS_sendto+0x45/0x60
+[   66.807616]  [<ffffffff82a16b1b>] entry_SYSCALL_64_fastpath+0x18/0x94
+[   66.807698] Code: 74 24 58 41 f6 c6 01 0f 85 7f 08 00 00 49 83 e6 fe e8 3f b1 c7 fe 49 8d 7e 60 48 b8 00 00 00 00 00 fc ff df 48 89 fa 48 c1 ea 03 <0f> b6 04 02 84 c0 74 08 3c 01 0f 8e 4c 0c 00 00 41 f6 46 60 04 
+[   66.807706] RIP  [<ffffffff8268adb6>] udp_queue_rcv_skb+0x196/0x1590
+[   66.807708]  RSP <ffff8800b7bbf928>
+[   66.807727] ---[ end trace 4bc40108dd6f901f ]---
+[   66.807733] Kernel panic - not syncing: Fatal exception in interrupt
+[   67.166273]  0000000000000000 ffff8800b6c7f9f8 ffffffff81cac64d fffffbfff059b4ab
+[   67.174269]  fffffbfff059b4ab 0000000000000008 0000000000000000 ffffffff82cda558
+[   67.182263]  ffff8800b6c7fa80 ffffffff814d588d ffff8800b6c7faa0 ffff8800b6c7fa40
+[   67.190259] Call Trace:
+[   67.192832]  [<ffffffff81cac64d>] dump_stack+0xc1/0x124
+[   67.198179]  [<ffffffff814d588d>] kasan_report.part.2+0x44d/0x540
+[   67.204391]  [<ffffffff8166b87a>] ? show_timer+0x27a/0x2b0
+[   67.209998]  [<ffffffff811159c0>] ? __lock_task_sighand+0x170/0x470
+[   67.216383]  [<ffffffff814d5a3e>] __asan_report_load8_noabort+0x2e/0x30
+[   67.223115]  [<ffffffff8166b87a>] show_timer+0x27a/0x2b0
+[   67.228545]  [<ffffffff8166bac1>] ? timers_start+0x151/0x1d0
+[   67.234325]  [<ffffffff81581e3c>] seq_read+0x32c/0x1240
+[   67.239671]  [<ffffffff81581b10>] ? seq_lseek+0x3c0/0x3c0
+[   67.245188]  [<ffffffff815e3c4d>] ? fsnotify+0x59d/0xec0
+[   67.250612]  [<ffffffff815e4570>] ? fsnotify+0xec0/0xec0
+[   67.256040]  [<ffffffff81510656>] do_loop_readv_writev+0x146/0x1e0
+[   67.262337]  [<ffffffff81b4cabe>] ? security_file_permission+0x8e/0x1e0
+[   67.269067]  [<ffffffff81581b10>] ? seq_lseek+0x3c0/0x3c0
+[   67.274581]  [<ffffffff81581b10>] ? seq_lseek+0x3c0/0x3c0
+[   67.280094]  [<ffffffff81512954>] do_readv_writev+0x5d4/0x6d0
+[   67.285953]  [<ffffffff81512380>] ? vfs_write+0x530/0x530
+[   67.291470]  [<ffffffff811e8241>] ? __lock_is_held+0xa1/0xf0
+[   67.297241]  [<ffffffff8156c152>] ? __fget+0x212/0x3b0
+[   67.302491]  [<ffffffff8156c17b>] ? __fget+0x23b/0x3b0
+[   67.307742]  [<ffffffff8156bf8c>] ? __fget+0x4c/0x3b0
+[   67.312909]  [<ffffffff81512acd>] vfs_readv+0x7d/0xb0
+[   67.318074]  [<ffffffff815152eb>] SyS_preadv+0x18b/0x220
+[   67.323498]  [<ffffffff81515160>] ? SyS_writev+0x230/0x230
+[   67.329099]  [<ffffffff81002284>] ? lockdep_sys_exit_thunk+0x12/0x14
+[   67.335570]  [<ffffffff82a16b1b>] entry_SYSCALL_64_fastpath+0x18/0x94
+[   67.342119] Memory state around the buggy address:
+[   67.347022]  ffffffff82cda400: 05 fa fa fa fa fa fa fa 00 04 fa fa fa fa fa fa
+[   67.354352]  ffffffff82cda480: 07 fa fa fa fa fa fa fa 05 fa fa fa fa fa fa fa
+[   67.361682] >ffffffff82cda500: 07 fa fa fa fa fa fa fa 00 00 00 fa fa fa fa fa
+[   67.369010]                                                     ^
+[   67.375211]  ffffffff82cda580: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[   67.382542]  ffffffff82cda600: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[   67.389870] ==================================================================
+[   67.397650] Dumping ftrace buffer:
+[   67.401175]    (ftrace buffer empty)
+[   67.405471] Kernel Offset: disabled
+[   67.409078] Rebooting in 86400 seconds..

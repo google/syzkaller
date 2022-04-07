@@ -1,0 +1,5 @@
+no-such-struct: sockaddr_storage_in6
+no-such-struct: group_req_in6
+no-such-struct: group_source_req_in6
+no-such-struct: msghdr_inet6
+no-such-struct: mmsghdr_inet6

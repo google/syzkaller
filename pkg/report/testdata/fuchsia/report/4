@@ -1,0 +1,17 @@
+TITLE: recursion in interrupt handler
+
+10:25:07 executing program 2:
+zx_eventpair_create(0x0, &(0x7f0000000040)=<r0=>0x0, &(0x7f0000000080)=<r1=>0x0)
+zx_handle_replace(r0, 0x800, &(0x7f00000000c0)=<r2=>0x0)
+zx_object_set_cookie(r2, r1, 0x0)
+
+gfxconsole: rows 48, columns 113, extray 0
+stopping other cpus
+vector 14
+recursion in interrupt handler
+Connection to localhost closed by remote host.
+halting cpu 0
+
+REPORT:
+recursion in interrupt handler
+Connection to localhost closed by remote host.

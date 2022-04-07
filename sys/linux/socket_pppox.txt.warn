@@ -1,0 +1,5 @@
+no-such-struct: sockaddr_pppoe
+no-such-struct: sockaddr_pppl2tp_t
+no-such-struct: pppol2tp_addr_t
+no-such-struct: pppol2tpin6_addr_t
+no-such-struct: sockaddr_pptp

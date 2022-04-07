@@ -1,0 +1,105 @@
+TITLE: WARNING in shark_write_val/usb_submit_urb
+
+[   45.725205][ T1535] ------------[ cut here ]------------
+[   45.730853][ T1535] usb 1-1: BOGUS urb xfer, pipe 1 != type 3
+[   45.737099][ T1535] WARNING: CPU: 1 PID: 1535 at drivers/usb/core/urb.c:477 usb_submit_urb+0x1188/0x13b0
+[   45.746736][ T1535] Kernel panic - not syncing: panic_on_warn set ...
+[   45.753311][ T1535] CPU: 1 PID: 1535 Comm: kworker/1:2 Not tainted 5.2.0-rc1+ #9
+[   45.760923][ T1535] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   45.771108][ T1535] Workqueue: usb_hub_wq hub_event
+[   45.776207][ T1535] Call Trace:
+[   45.779490][ T1535]  dump_stack+0xca/0x13e
+[   45.783715][ T1535]  ? usb_submit_urb+0x1130/0x13b0
+[   45.788716][ T1535]  panic+0x292/0x6df
+[   45.792595][ T1535]  ? __warn_printk+0xf3/0xf3
+[   45.797180][ T1535]  ? usb_submit_urb+0x1188/0x13b0
+[   45.802193][ T1535]  ? __probe_kernel_read+0x16c/0x1b0
+[   45.807464][ T1535]  ? __warn.cold+0x5/0x45
+[   45.811792][ T1535]  ? __warn+0xe4/0x1c0
+[   45.815843][ T1535]  ? usb_submit_urb+0x1188/0x13b0
+[   45.820955][ T1535]  __warn.cold+0x20/0x45
+[   45.825235][ T1535]  ? usb_submit_urb+0x1188/0x13b0
+[   45.830260][ T1535]  report_bug+0x262/0x2a0
+[   45.834591][ T1535]  do_error_trap+0x12b/0x1e0
+[   45.839309][ T1535]  ? usb_submit_urb+0x1188/0x13b0
+[   45.844322][ T1535]  do_invalid_op+0x32/0x40
+[   45.848731][ T1535]  ? usb_submit_urb+0x1188/0x13b0
+[   45.853801][ T1535]  invalid_op+0x14/0x20
+[   45.857943][ T1535] RIP: 0010:usb_submit_urb+0x1188/0x13b0
+[   45.863551][ T1535] Code: 4d 85 ed 74 2c e8 b8 de e5 fd 4c 89 f7 e8 b0 7e 11 ff 41 89 d8 44 89 e1 4c 89 ea 48 89 c6 48 c7 c7 80 a3 17 86 e8 73 9b bb fd <0f> 0b e9 20 f4 ff ff e8 8c de e5 fd 4c 89 f2 48 b8 00 00 00 00 00
+[   45.883207][ T1535] RSP: 0018:ffff8881d7afef38 EFLAGS: 00010286
+[   45.889270][ T1535] RAX: 0000000000000000 RBX: 0000000000000003 RCX: 0000000000000000
+[   45.897461][ T1535] RDX: 0000000000000000 RSI: ffffffff812824fd RDI: ffffed103af5fdd9
+[   45.905540][ T1535] RBP: ffff8881d0c29a00 R08: ffff8881d795b000 R09: 0000000000000000
+[   45.913594][ T1535] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000001
+[   45.921580][ T1535] R13: ffff8881cf057b70 R14: ffff8881cde166a0 R15: ffff8881d0c29700
+[   45.929666][ T1535]  ? vprintk_func+0x7d/0x113
+[   45.934256][ T1535]  ? usb_submit_urb+0x1188/0x13b0
+[   45.939267][ T1535]  usb_start_wait_urb+0x108/0x2b0
+[   45.944274][ T1535]  ? sg_clean+0x230/0x230
+[   45.948582][ T1535]  ? kasan_unpoison_shadow+0x30/0x40
+[   45.953851][ T1535]  ? memset+0x20/0x40
+[   45.957858][ T1535]  usb_bulk_msg+0x228/0x550
+[   45.962497][ T1535]  shark_write_val+0x20b/0x310
+[   45.967254][ T1535]  ? rcu_read_lock_sched_held+0x113/0x130
+[   45.972957][ T1535]  ? shark_read_val+0x470/0x470
+[   45.977790][ T1535]  ? shark_read_val+0x470/0x470
+[   45.982660][ T1535]  snd_tea575x_write+0x7a/0x350
+[   45.987552][ T1535]  snd_tea575x_hw_init+0x8d/0x170
+[   45.992562][ T1535]  snd_tea575x_init+0x1f/0x6ba
+[   45.997311][ T1535]  usb_shark_probe+0x5e1/0x770
+[   46.002058][ T1535]  usb_probe_interface+0x30b/0x7a0
+[   46.007156][ T1535]  ? usb_probe_device+0x100/0x100
+[   46.012228][ T1535]  really_probe+0x287/0x660
+[   46.016726][ T1535]  driver_probe_device+0x104/0x210
+[   46.021818][ T1535]  __device_attach_driver+0x1c4/0x230
+[   46.027176][ T1535]  ? driver_allows_async_probing+0x160/0x160
+[   46.033136][ T1535]  bus_for_each_drv+0x15e/0x1e0
+[   46.037972][ T1535]  ? bus_rescan_devices+0x20/0x20
+[   46.042981][ T1535]  ? _raw_spin_unlock_irqrestore+0x3e/0x50
+[   46.048880][ T1535]  ? lockdep_hardirqs_on+0x379/0x580
+[   46.054155][ T1535]  __device_attach+0x217/0x360
+[   46.058908][ T1535]  ? device_bind_driver+0xd0/0xd0
+[   46.063917][ T1535]  ? kobject_uevent_env+0x2a2/0x1170
+[   46.069231][ T1535]  ? kobject_uevent_env+0x2ac/0x1170
+[   46.074520][ T1535]  bus_probe_device+0x1e6/0x290
+[   46.079394][ T1535]  ? blocking_notifier_call_chain+0x54/0xa0
+[   46.085319][ T1535]  device_add+0xae6/0x1700
+[   46.089808][ T1535]  ? uevent_store+0x50/0x50
+[   46.094304][ T1535]  ? _raw_spin_unlock_irqrestore+0x3e/0x50
+[   46.100093][ T1535]  usb_set_configuration+0xdf6/0x1670
+[   46.105452][ T1535]  generic_probe+0x9d/0xd5
+[   46.109849][ T1535]  usb_probe_device+0xa2/0x100
+[   46.114598][ T1535]  ? usb_suspend+0x620/0x620
+[   46.119167][ T1535]  really_probe+0x287/0x660
+[   46.123653][ T1535]  driver_probe_device+0x104/0x210
+[   46.128747][ T1535]  __device_attach_driver+0x1c4/0x230
+[   46.134103][ T1535]  ? driver_allows_async_probing+0x160/0x160
+[   46.140060][ T1535]  bus_for_each_drv+0x15e/0x1e0
+[   46.144898][ T1535]  ? bus_rescan_devices+0x20/0x20
+[   46.149901][ T1535]  ? _raw_spin_unlock_irqrestore+0x3e/0x50
+[   46.155704][ T1535]  ? lockdep_hardirqs_on+0x379/0x580
+[   46.160974][ T1535]  __device_attach+0x217/0x360
+[   46.165721][ T1535]  ? device_bind_driver+0xd0/0xd0
+[   46.170729][ T1535]  ? kobject_uevent_env+0x2a2/0x1170
+[   46.177395][ T1535]  ? kobject_uevent_env+0x2ac/0x1170
+[   46.182666][ T1535]  bus_probe_device+0x1e6/0x290
+[   46.187496][ T1535]  ? blocking_notifier_call_chain+0x54/0xa0
+[   46.193369][ T1535]  device_add+0xae6/0x1700
+[   46.197810][ T1535]  ? uevent_store+0x50/0x50
+[   46.202303][ T1535]  usb_new_device.cold+0x8c1/0x1016
+[   46.207546][ T1535]  ? usb_port_suspend+0xa40/0xa40
+[   46.212561][ T1535]  ? mark_held_locks+0x9f/0xe0
+[   46.217351][ T1535]  ? _raw_spin_unlock_irq+0x24/0x30
+[   46.222542][ T1535]  hub_event+0x1adc/0x35a0
+[   46.226964][ T1535]  ? hub_port_debounce+0x260/0x260
+[   46.232060][ T1535]  process_one_work+0x90a/0x1580
+[   46.236983][ T1535]  ? pwq_dec_nr_in_flight+0x310/0x310
+[   46.242346][ T1535]  ? do_raw_spin_lock+0x11a/0x280
+[   46.247359][ T1535]  worker_thread+0x96/0xe20
+[   46.251856][ T1535]  ? process_one_work+0x1580/0x1580
+[   46.257041][ T1535]  kthread+0x30e/0x420
+[   46.261093][ T1535]  ? kthread_park+0x1a0/0x1a0
+[   46.265755][ T1535]  ret_from_fork+0x3a/0x50
+[   46.270355][ T1535] Kernel Offset: disabled
+[   46.274713][ T1535] Rebooting in 86400 seconds..

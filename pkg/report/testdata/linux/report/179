@@ -1,0 +1,114 @@
+TITLE: INFO: task hung in synchronize_rcu
+ALT: hang in synchronize_rcu
+TYPE: HANG
+
+[  369.632214] INFO: task syz-executor4:8442 blocked for more than 120 seconds.
+[  369.639487]       Not tainted 4.15.0-rc7-next-20180115+ #97
+[  369.645214] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  369.653184] syz-executor4   D21856  8442   4763 0x80000002
+[  369.658821] Call Trace:
+[  369.661423]  __schedule+0x8eb/0x2060
+[  369.665150]  ? __sched_text_start+0x8/0x8
+[  369.669304]  ? lock_downgrade+0x980/0x980
+[  369.673461]  ? lock_release+0xa40/0xa40
+[  369.677449]  ? mark_held_locks+0xaf/0x100
+[  369.681611]  ? check_noncircular+0x20/0x20
+[  369.685872]  ? trace_hardirqs_on+0xd/0x10
+[  369.690041]  ? check_noncircular+0x20/0x20
+[  369.694288]  schedule+0xf5/0x430
+[  369.697702]  ? debug_object_deactivate+0x560/0x560
+[  369.702648]  ? __schedule+0x2060/0x2060
+[  369.706634]  ? print_irqtrace_events+0x270/0x270
+[  369.711401]  ? wait_for_completion+0x40d/0x770
+[  369.715990]  ? lock_downgrade+0x980/0x980
+[  369.720147]  schedule_timeout+0x1a3/0x230
+[  369.724301]  ? usleep_range+0x190/0x190
+[  369.728284]  ? mark_held_locks+0xaf/0x100
+[  369.732437]  ? _raw_spin_unlock_irq+0x27/0x70
+[  369.736937]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  369.741965]  wait_for_completion+0x415/0x770
+[  369.746390]  ? wait_for_completion_interruptible+0x7e0/0x7e0
+[  369.752198]  ? __lockdep_init_map+0xe4/0x650
+[  369.756614]  ? lockdep_init_map+0x9/0x10
+[  369.760718]  ? __init_waitqueue_head+0x97/0x140
+[  369.765422]  ? wake_up_q+0xe0/0xe0
+[  369.768965]  ? kasan_slab_free+0xe/0x10
+[  369.772940]  ? kfree+0xd9/0x260
+[  369.776225]  ? mousedev_release+0x68/0xb0
+[  369.780371]  ? __fput+0x327/0x7e0
+[  369.783824]  ? ____fput+0x15/0x20
+[  369.787288]  __wait_rcu_gp+0x221/0x340
+[  369.791195]  synchronize_sched.part.64+0xac/0x100
+[  369.796044]  ? synchronize_sched_expedited+0xf0/0xf0
+[  369.801153]  ? call_rcu_bh+0x20/0x20
+[  369.804883]  ? trace_event_raw_event_sched_switch+0x800/0x800
+[  369.810780]  ? trace_raw_output_rcu_utilization+0xb0/0xb0
+[  369.816333]  ? __might_sleep+0x95/0x190
+[  369.825883]  synchronize_sched+0x76/0xf0
+[  369.829995]  input_close_device+0xf6/0x130
+[  369.834241]  ? mousedev_detach_client+0x260/0x260
+[  369.839088]  mousedev_close_device+0x94/0xb0
+[  369.843501]  mixdev_close_devices+0xe0/0x120
+[  369.847917]  mousedev_release+0x8f/0xb0
+[  369.851895]  __fput+0x327/0x7e0
+[  369.855186]  ? fput+0x140/0x140
+[  369.858473]  ? trace_event_raw_event_sched_switch+0x800/0x800
+[  369.864361]  ? _raw_spin_unlock_irq+0x27/0x70
+[  369.868892]  ____fput+0x15/0x20
+[  369.872175]  task_work_run+0x199/0x270
+[  369.876073]  ? task_work_cancel+0x210/0x210
+[  369.880401]  ? _raw_spin_unlock+0x22/0x30
+[  369.884556]  ? switch_task_namespaces+0x87/0xc0
+[  369.889284]  do_exit+0x9bb/0x1ad0
+[  369.892754]  ? mm_update_next_owner+0x930/0x930
+[  369.897445]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[  369.902648]  ? lock_release+0xa40/0xa40
+[  369.906639]  ? do_raw_spin_trylock+0x190/0x190
+[  369.911229]  ? perf_trace_lock+0xd6/0x900
+[  369.915452]  ? perf_trace_lock+0xd6/0x900
+[  369.919607]  ? check_noncircular+0x20/0x20
+[  369.923851]  ? trace_event_raw_event_lock+0x340/0x340
+[  369.929051]  ? check_noncircular+0x20/0x20
+[  369.933312]  ? find_held_lock+0x35/0x1d0
+[  369.937393]  ? find_held_lock+0x35/0x1d0
+[  369.941481]  ? get_signal+0x7ae/0x16c0
+[  369.945374]  ? lock_downgrade+0x980/0x980
+[  369.949537]  do_group_exit+0x149/0x400
+[  369.953448]  ? do_raw_spin_trylock+0x190/0x190
+[  369.958038]  ? SyS_exit+0x30/0x30
+[  369.961494]  ? _raw_spin_unlock_irq+0x27/0x70
+[  369.966030]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  369.971062]  get_signal+0x73f/0x16c0
+[  369.974799]  ? ptrace_notify+0x130/0x130
+[  369.978870]  ? __schedule+0x2060/0x2060
+[  369.982857]  ? trace_event_raw_event_sched_switch+0x800/0x800
+[  369.988751]  ? dl_cpu_busy+0x370/0x370
+[  369.992648]  ? __might_sleep+0x95/0x190
+[  369.996640]  do_signal+0x90/0x1eb0
+[  370.000200]  ? mousedev_disconnect+0x3c0/0x3c0
+[  370.004798]  ? _raw_spin_unlock_irqrestore+0xa6/0xba
+[  370.009906]  ? setup_sigcontext+0x7d0/0x7d0
+[  370.014232]  ? prepare_to_wait+0x4d0/0x4d0
+[  370.018483]  ? mousedev_disconnect+0x3c0/0x3c0
+[  370.023065]  ? __vfs_read+0xf7/0xa00
+[  370.026796]  ? vfs_copy_file_range+0x940/0x940
+[  370.031391]  ? fsnotify_first_mark+0x2b0/0x2b0
+[  370.035979]  ? exit_to_usermode_loop+0x8c/0x2f0
+[  370.040667]  exit_to_usermode_loop+0x258/0x2f0
+[  370.045257]  ? trace_event_raw_event_sys_exit+0x260/0x260
+[  370.050803]  ? rw_verify_area+0xe5/0x2b0
+[  370.054870]  ? __fdget_raw+0x20/0x20
+[  370.058600]  syscall_return_slowpath+0x490/0x550
+[  370.063365]  ? prepare_exit_to_usermode+0x340/0x340
+[  370.068391]  ? SyS_read+0x184/0x220
+[  370.072118]  ? entry_SYSCALL_64_fastpath+0x73/0xa0
+[  370.077057]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  370.082079]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[  370.086850]  entry_SYSCALL_64_fastpath+0x9e/0xa0
+[  370.091610] RIP: 0033:0x452df9
+[  370.094803] RSP: 002b:00007fc30d193c58 EFLAGS: 00000212 ORIG_RAX: 0000000000000000
+[  370.102516] RAX: fffffffffffffe00 RBX: 000000000071bea0 RCX: 0000000000452df9
+[  370.109791] RDX: 0000000000000000 RSI: 00000000204fa000 RDI: 0000000000000013
+[  370.117064] RBP: 000000000000043f R08: 0000000000000000 R09: 0000000000000000
+[  370.124338] R10: 0000000000000000 R11: 0000000000000212 R12: 00000000006f4688
+[  370.131625] R13: 00000000ffffffff R14: 00007fc30d1946d4 R15: 0000000000000000

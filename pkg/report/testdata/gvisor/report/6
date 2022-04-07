@@ -1,0 +1,165 @@
+TITLE: DATA RACE in waiter.(*Entry).Next
+
+getsockopt$sock_cred(0xffffffffffffffff, 0x1, 0x11, &(0x7f0000caaffb), &(0x7f0000cab000)=0xc)
+setsockopt$inet_tcp_buf(r0, 0x6, 0x0, &(0x7f0000000240)="df", 0x1)
+
+==================
+WARNING: DATA RACE
+Read at 0x00c420e3a1b8 by goroutine 185:
+  gvisor.googlesource.com/gvisor/pkg/waiter.(*Entry).Next()
+      bazel-out/k8-fastbuild/bin/pkg/ilist/interface_list.go:150 +0x4c
+  gvisor.googlesource.com/gvisor/pkg/ilist.(*List).Remove()
+      bazel-out/k8-fastbuild/bin/pkg/ilist/interface_list.go:125 +0x6a
+  gvisor.googlesource.com/gvisor/pkg/waiter.(*Queue).EventUnregister()
+      pkg/waiter/waiter.go:167 +0x67
+  gvisor.googlesource.com/gvisor/pkg/sentry/fs/tty.(*slaveFileOperations).EventUnregister()
+      pkg/sentry/fs/tty/slave.go:114 +0x96
+  gvisor.googlesource.com/gvisor/pkg/sentry/fs.(*File).EventUnregister()
+      pkg/sentry/fs/file.go:155 +0x5d
+  gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.readv()
+      pkg/sentry/syscalls/linux/sys_read.go:223 +0x5e1
+  gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.Readv()
+      pkg/sentry/syscalls/linux/sys_read.go:144 +0x28c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).executeSyscall()
+      pkg/sentry/kernel/task_syscall.go:162 +0x14e
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallInvoke()
+      pkg/sentry/kernel/task_syscall.go:278 +0x7d
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallEnter()
+      pkg/sentry/kernel/task_syscall.go:241 +0xc3
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscall()
+      pkg/sentry/kernel/task_syscall.go:216 +0x19c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute()
+      pkg/sentry/kernel/task_run.go:217 +0x157c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run()
+      pkg/sentry/kernel/task_run.go:95 +0x264
+
+Previous write at 0x00c420e3a1b8 by goroutine 221:
+  gvisor.googlesource.com/gvisor/pkg/waiter.(*Entry).SetNext()
+      bazel-out/k8-fastbuild/bin/pkg/ilist/interface_list.go:160 +0x50
+  gvisor.googlesource.com/gvisor/pkg/ilist.(*List).PushBack()
+      bazel-out/k8-fastbuild/bin/pkg/ilist/interface_list.go:70 +0xee
+  gvisor.googlesource.com/gvisor/pkg/waiter.(*Queue).EventRegister()
+      pkg/waiter/waiter.go:160 +0x86
+  gvisor.googlesource.com/gvisor/pkg/sentry/fs/tty.(*slaveFileOperations).EventRegister()
+      pkg/sentry/fs/tty/slave.go:109 +0x10f
+  gvisor.googlesource.com/gvisor/pkg/sentry/fs.(*File).EventRegister()
+      pkg/sentry/fs/file.go:150 +0x67
+  gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.readv()
+      pkg/sentry/syscalls/linux/sys_read.go:202 +0x3cb
+  gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.Readv()
+      pkg/sentry/syscalls/linux/sys_read.go:144 +0x28c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).executeSyscall()
+      pkg/sentry/kernel/task_syscall.go:162 +0x14e
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallInvoke()
+      pkg/sentry/kernel/task_syscall.go:278 +0x7d
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallEnter()
+      pkg/sentry/kernel/task_syscall.go:241 +0xc3
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscall()
+      pkg/sentry/kernel/task_syscall.go:216 +0x19c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute()
+      pkg/sentry/kernel/task_run.go:217 +0x157c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run()
+      pkg/sentry/kernel/task_run.go:95 +0x264
+
+Goroutine 185 (running) created at:
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).Start()
+      pkg/sentry/kernel/task_start.go:251 +0x193
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).Clone()
+      pkg/sentry/kernel/task_clone.go:314 +0x10e6
+  gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.clone()
+      pkg/sentry/syscalls/linux/sys_thread.go:157 +0x22e
+  gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.Clone()
+      pkg/sentry/syscalls/linux/sys_thread.go:171 +0x80
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).executeSyscall()
+      pkg/sentry/kernel/task_syscall.go:162 +0x14e
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallInvoke()
+      pkg/sentry/kernel/task_syscall.go:278 +0x7d
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallEnter()
+      pkg/sentry/kernel/task_syscall.go:241 +0xc3
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscall()
+      pkg/sentry/kernel/task_syscall.go:216 +0x19c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute()
+      pkg/sentry/kernel/task_run.go:217 +0x157c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run()
+      pkg/sentry/kernel/task_run.go:95 +0x264
+
+Goroutine 221 (running) created at:
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).Start()
+      pkg/sentry/kernel/task_start.go:251 +0x193
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).Clone()
+      pkg/sentry/kernel/task_clone.go:314 +0x10e6
+  gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.clone()
+      pkg/sentry/syscalls/linux/sys_thread.go:157 +0x22e
+  gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.Clone()
+      pkg/sentry/syscalls/linux/sys_thread.go:171 +0x80
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).executeSyscall()
+      pkg/sentry/kernel/task_syscall.go:162 +0x14e
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallInvoke()
+      pkg/sentry/kernel/task_syscall.go:278 +0x7d
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallEnter()
+      pkg/sentry/kernel/task_syscall.go:241 +0xc3
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscall()
+      pkg/sentry/kernel/task_syscall.go:216 +0x19c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute()
+      pkg/sentry/kernel/task_run.go:217 +0x157c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run()
+      pkg/sentry/kernel/task_run.go:95 +0x264
+==================
+
+REPORT:
+WARNING: DATA RACE
+Read at 0x00c420e3a1b8 by goroutine 185:
+  gvisor.googlesource.com/gvisor/pkg/waiter.(*Entry).Next()
+      bazel-out/k8-fastbuild/bin/pkg/ilist/interface_list.go:150 +0x4c
+  gvisor.googlesource.com/gvisor/pkg/ilist.(*List).Remove()
+      bazel-out/k8-fastbuild/bin/pkg/ilist/interface_list.go:125 +0x6a
+  gvisor.googlesource.com/gvisor/pkg/waiter.(*Queue).EventUnregister()
+      pkg/waiter/waiter.go:167 +0x67
+  gvisor.googlesource.com/gvisor/pkg/sentry/fs/tty.(*slaveFileOperations).EventUnregister()
+      pkg/sentry/fs/tty/slave.go:114 +0x96
+  gvisor.googlesource.com/gvisor/pkg/sentry/fs.(*File).EventUnregister()
+      pkg/sentry/fs/file.go:155 +0x5d
+  gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.readv()
+      pkg/sentry/syscalls/linux/sys_read.go:223 +0x5e1
+  gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.Readv()
+      pkg/sentry/syscalls/linux/sys_read.go:144 +0x28c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).executeSyscall()
+      pkg/sentry/kernel/task_syscall.go:162 +0x14e
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallInvoke()
+      pkg/sentry/kernel/task_syscall.go:278 +0x7d
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallEnter()
+      pkg/sentry/kernel/task_syscall.go:241 +0xc3
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscall()
+      pkg/sentry/kernel/task_syscall.go:216 +0x19c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute()
+      pkg/sentry/kernel/task_run.go:217 +0x157c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run()
+      pkg/sentry/kernel/task_run.go:95 +0x264
+
+Previous write at 0x00c420e3a1b8 by goroutine 221:
+  gvisor.googlesource.com/gvisor/pkg/waiter.(*Entry).SetNext()
+      bazel-out/k8-fastbuild/bin/pkg/ilist/interface_list.go:160 +0x50
+  gvisor.googlesource.com/gvisor/pkg/ilist.(*List).PushBack()
+      bazel-out/k8-fastbuild/bin/pkg/ilist/interface_list.go:70 +0xee
+  gvisor.googlesource.com/gvisor/pkg/waiter.(*Queue).EventRegister()
+      pkg/waiter/waiter.go:160 +0x86
+  gvisor.googlesource.com/gvisor/pkg/sentry/fs/tty.(*slaveFileOperations).EventRegister()
+      pkg/sentry/fs/tty/slave.go:109 +0x10f
+  gvisor.googlesource.com/gvisor/pkg/sentry/fs.(*File).EventRegister()
+      pkg/sentry/fs/file.go:150 +0x67
+  gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.readv()
+      pkg/sentry/syscalls/linux/sys_read.go:202 +0x3cb
+  gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.Readv()
+      pkg/sentry/syscalls/linux/sys_read.go:144 +0x28c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).executeSyscall()
+      pkg/sentry/kernel/task_syscall.go:162 +0x14e
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallInvoke()
+      pkg/sentry/kernel/task_syscall.go:278 +0x7d
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallEnter()
+      pkg/sentry/kernel/task_syscall.go:241 +0xc3
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscall()
+      pkg/sentry/kernel/task_syscall.go:216 +0x19c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute()
+      pkg/sentry/kernel/task_run.go:217 +0x157c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run()
+      pkg/sentry/kernel/task_run.go:95 +0x264

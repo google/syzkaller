@@ -1,0 +1,11 @@
+# Test how we avoid fuse deadlocks in kill_and_wait.
+# requires: threaded -sandbox= -C,norepeat
+
+mkdirat(0xffffffffffffff9c, &AUTO='./file0\x00', 0x0)
+r0 = openat$fuse(0xffffffffffffff9c, &AUTO='/dev/fuse\x00', 0x2, 0x0)
+mount$fuse(0x0, &AUTO='./file0\x00', &AUTO='fuse\x00', 0x0, &AUTO={{'fd', 0x3d, r0}, 0x2c, {'rootmode', 0x3d, 0x4000}, 0x2c, {'user_id', 0x3d, 0x0}, 0x2c, {'group_id', 0x3d, 0x0}, 0x2c, {[], [], 0x0}})
+read$FUSE(r0, &AUTO={AUTO, 0x0, <r1=>0x0, 0x0, 0x0, 0x0, 0x0, ""/8192}, AUTO)
+pread64(r0, &AUTO=""/236, AUTO, 0x0) # blocked
+write$FUSE_INIT(r0, &AUTO={AUTO, 0x0, r1, {AUTO, AUTO, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, "0000000000000000"}}, AUTO)
+mkdirat(0xffffffffffffff9c, &AUTO='./file0/file0\x00', 0x0) # unfinished
+write$FUSE_NOTIFY_INVAL_ENTRY(r0, &AUTO={AUTO, 0x3, 0x0, {0x1, AUTO, 0x0, 'group_id', 0x0}}, AUTO) # unfinished

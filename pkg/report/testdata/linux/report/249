@@ -1,0 +1,36 @@
+TITLE: WARNING in rfkill_fop_read
+
+[   30.952857] WARNING: CPU: 1 PID: 8321 at /linux/kernel/sched/core.c:7301 __might_sleep+0x77/0x80()
+[   30.956045] do not call blocking ops when !TASK_RUNNING; state=1 set at [<ffffffff81094815>] prepare_to_wait_event+0x75/0xf0
+[   30.958816] Kernel panic - not syncing: panic_on_warn set ...
+[   30.958816] 
+[   30.959781] CPU: 1 PID: 8321 Comm: syz-executor6 Not tainted 4.1.15+ #4
+[   30.959781] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+[   30.959781]  0000000000000009 ffff8800735dbb90 ffffffff818c5ac5 ffffffff81c49290
+[   30.959781]  ffff8800735dbc08 ffffffff818b5731 0000000000000008 ffff8800735dbc18
+[   30.959781]  ffff8800735dbbb8 0000000000000000 ffff88007f84d828 ffff88007f850238
+[   30.959781] Call Trace:
+[   30.959781]  [<ffffffff818c5ac5>] dump_stack+0x4b/0x63
+[   30.959781]  [<ffffffff818b5731>] panic+0xc8/0x200
+[   30.959781]  [<ffffffff818b5902>] warn_slowpath_common+0x89/0xad
+[   30.959781]  [<ffffffff81053de7>] warn_slowpath_fmt+0x47/0x50
+[   30.959781]  [<ffffffff81094815>] ? prepare_to_wait_event+0x75/0xf0
+[   30.959781]  [<ffffffff81094815>] ? prepare_to_wait_event+0x75/0xf0
+[   30.959781]  [<ffffffff81079c77>] __might_sleep+0x77/0x80
+[   30.959781]  [<ffffffff818de867>] mutex_lock_nested+0x37/0x3f0
+[   30.959781]  [<ffffffff8109979d>] ? trace_hardirqs_on+0xd/0x10
+[   30.959781]  [<ffffffff81094847>] ? prepare_to_wait_event+0xa7/0xf0
+[   30.959781]  [<ffffffff818a4d09>] rfkill_fop_read+0xf9/0x1c0
+[   30.959781]  [<ffffffff81094890>] ? prepare_to_wait_event+0xf0/0xf0
+[   30.959781]  [<ffffffff818a4c10>] ? rfkill_fop_ioctl+0x80/0x80
+[   30.959781]  [<ffffffff81168d35>] do_loop_readv_writev+0x75/0xa0
+[   30.959781]  [<ffffffff818a4c10>] ? rfkill_fop_ioctl+0x80/0x80
+[   30.959781]  [<ffffffff81169983>] do_readv_writev+0x213/0x240
+[   30.959781]  [<ffffffff8118be2f>] ? __fget+0xbf/0x200
+[   30.959781]  [<ffffffff8118bd70>] ? expand_files+0x270/0x270
+[   30.959781]  [<ffffffff811699d5>] vfs_readv+0x25/0x50
+[   30.959781]  [<ffffffff8116a687>] SyS_readv+0x47/0xd0
+[   30.959781]  [<ffffffff818e2dae>] system_call_fastpath+0x12/0x76
+[   30.959781] Kernel Offset: disabled
+
+

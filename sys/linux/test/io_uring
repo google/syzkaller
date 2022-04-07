@@ -1,0 +1,24 @@
+# Create an io_uring instance
+
+r0 = syz_io_uring_setup(0x1, &AUTO={0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, "000000000000000000000000", [0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0], [0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0]}, &(0x7f00000a0000)=nil, &(0x7f00000b0000)=nil, &AUTO=<r1=>0x0, &AUTO=<r2=>0x0)
+
+# Set IORING_CQ_EVENTFD_DISABLED. Has no side-effect for the test,
+# only tests syz_memcpy_off().
+
+syz_memcpy_off$IO_URING_METADATA_FLAGS(r1, 0x114, &AUTO=0x1, 0x0, AUTO)
+
+# Write an openat2 operation to the submission queue
+
+syz_io_uring_submit(r1, r2, &AUTO=@IORING_OP_OPENAT2={AUTO, 0x0, AUTO, 0xffffffffffffff9c, &AUTO={0x42, 0x0, 0x0}, &AUTO='./file1\x00', AUTO, AUTO, 0x12345, {AUTO, 0x0, "0000000000000000000000000000000000000000"}}, 0x0)
+
+# Notify the kernel about the submission and wait until completion
+
+io_uring_enter(r0, 0x1, 0x1, 0x1, 0x0, 0x0)
+
+# Get the resulting fd from the completion queue
+
+r3 = syz_io_uring_complete(r1)
+
+# Close the file
+
+close(r3)

@@ -1,0 +1,1 @@
+compiler: unsupported syscall: ioctl$SNDRV_TIMER_IOCTL_TREAD due to missing const SNDRV_TIMER_IOCTL_TREAD [386,arm]

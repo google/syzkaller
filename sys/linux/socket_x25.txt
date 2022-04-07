@@ -1,0 +1,103 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/socket.h>
+include <linux/net.h>
+include <uapi/linux/x25.h>
+include <net/x25.h>
+
+resource sock_x25[sock]
+
+syz_init_net_socket$x25(domain const[AF_X25], type const[SOCK_SEQPACKET], proto const[0]) sock_x25
+bind$x25(fd sock_x25, addr ptr[in, sockaddr_x25], addrlen len[addr])
+connect$x25(fd sock_x25, addr ptr[in, sockaddr_x25], addrlen len[addr])
+accept4$x25(fd sock_x25, peer ptr[out, sockaddr_x25, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_x25
+sendto$x25(fd sock_x25, buf ptr[in, array[int8]], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_x25, opt], addrlen len[addr])
+recvfrom$x25(fd sock_x25, buf ptr[out, array[int8]], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr_x25, opt], addrlen len[addr])
+setsockopt$X25_QBITINCL(fd sock_x25, level const[SOL_X25], opt const[X25_QBITINCL], arg ptr[in, bool32], arglen len[arg])
+getsockopt$X25_QBITINCL(fd sock_x25, level const[SOL_X25], opt const[X25_QBITINCL], arg ptr[out, int32], arglen ptr[inout, len[arg, int32]])
+
+ioctl$sock_x25_SIOCADDRT(fd sock_x25, cmd const[SIOCADDRT], arg ptr[in, x25_route_struct])
+ioctl$sock_x25_SIOCDELRT(fd sock_x25, cmd const[SIOCDELRT], arg ptr[in, x25_route_struct])
+ioctl$SIOCX25GSUBSCRIP(fd sock_x25, cmd const[SIOCX25GSUBSCRIP], arg ptr[in, x25_subscrip_struct])
+ioctl$SIOCX25SSUBSCRIP(fd sock_x25, cmd const[SIOCX25SSUBSCRIP], arg ptr[in, x25_subscrip_struct])
+ioctl$SIOCX25GFACILITIES(fd sock_x25, cmd const[SIOCX25GFACILITIES], arg ptr[out, x25_facilities])
+ioctl$SIOCX25SFACILITIES(fd sock_x25, cmd const[SIOCX25SFACILITIES], arg ptr[in, x25_facilities])
+ioctl$SIOCX25GDTEFACILITIES(fd sock_x25, cmd const[SIOCX25GDTEFACILITIES], arg ptr[out, x25_dte_facilities])
+ioctl$SIOCX25SDTEFACILITIES(fd sock_x25, cmd const[SIOCX25SDTEFACILITIES], arg ptr[in, x25_dte_facilities])
+ioctl$SIOCX25GCALLUSERDATA(fd sock_x25, cmd const[SIOCX25GCALLUSERDATA], arg ptr[in, x25_calluserdata])
+ioctl$SIOCX25SCALLUSERDATA(fd sock_x25, cmd const[SIOCX25SCALLUSERDATA], arg ptr[in, x25_calluserdata])
+ioctl$SIOCX25GCAUSEDIAG(fd sock_x25, cmd const[SIOCX25GCAUSEDIAG], arg ptr[in, x25_causediag])
+ioctl$SIOCX25SCAUSEDIAG(fd sock_x25, cmd const[SIOCX25SCAUSEDIAG], arg ptr[in, x25_causediag])
+ioctl$SIOCX25SCUDMATCHLEN(fd sock_x25, cmd const[SIOCX25SCUDMATCHLEN], arg ptr[in, x25_subaddr])
+ioctl$SIOCX25CALLACCPTAPPRV(fd sock_x25, cmd const[SIOCX25CALLACCPTAPPRV])
+ioctl$SIOCX25SENDCALLACCPT(fd sock_x25, cmd const[SIOCX25SENDCALLACCPT])
+
+sockaddr_x25 {
+	sx25_family	const[AF_X25, int16]
+	sx25_addr	x25_address
+}
+
+x25_address [
+	null	x25_address_null
+	remote	x25_address_remote
+]
+
+type x25_address_null string["               "]
+
+x25_address_remote {
+	prefix	array[const[0xcc, int8], 14]
+	id	proc[0x20, 4, int8]
+	z	const[0, int8]
+}
+
+x25_route_struct {
+	address		x25_address
+	sigdigits	int32[0:15]
+	device		string[devnames, 200]
+}
+
+x25_subscrip_struct {
+	device			string[devnames, X25_SUBSCRIP_DEVICE_SIZE]
+	global_facil_mask	intptr
+	extended		int32
+}
+
+define X25_SUBSCRIP_DEVICE_SIZE	200 - sizeof(long)
+
+x25_facilities {
+	winsize_in	int32[1:127]
+	winsize_out	int32
+	pacsize_in	int32[X25_PS16:X25_PS4096]
+	pacsize_out	int32[X25_PS16:X25_PS4096]
+	throughput	int32
+	reverse		flags[x25_facilities_reverse, int32]
+}
+
+x25_facilities_reverse = 0, 0x81
+
+x25_dte_facilities {
+	delay_cumul	int16
+	delay_target	int16
+	delay_max	int16
+	min_throughput	int8
+	expedited	int8
+	calling_len	int8[0:X25_MAX_AE_LEN]
+	called_len	int8[0:X25_MAX_AE_LEN]
+	calling_ae	array[int8, 20]
+	called_ae	array[int8, 20]
+}
+
+x25_calluserdata {
+	cudlength	int32[0:128]
+	cuddata		array[int8, 128]
+}
+
+x25_causediag {
+	cause		int8
+	diagnostic	int8
+}
+
+x25_subaddr {
+	cudmatchlength	int32[0:X25_MAX_CUD_LEN]
+}

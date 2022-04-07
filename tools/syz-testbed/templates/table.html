@@ -1,0 +1,79 @@
+{{define "PrintValue"}}
+	{{if or (lt . -100.0) (gt . 100.0)}}
+		{{printf "%.0f" .}}
+	{{else}}
+		{{printf "%.1f" .}}
+	{{end}}
+{{end}}
+
+{{define "PrintExtra"}}
+	{{if .PercentChange}}
+		{{$numVal := (dereference .PercentChange)}}
+		{{if ge $numVal 0.0}}
+			<span class="positive-delta">
+		{{else}}
+			<span class="negative-delta">
+		{{end}}
+		{{printf "%+.1f" $numVal}}%
+		</span>
+	{{end}}
+	{{if .PValue}}
+		p={{printf "%.2f" (dereference .PValue)}}
+	{{end}}
+{{end}}
+
+{{$uiTable := .}}
+{{if .Table}}
+{{if $uiTable.AlignedBy}}
+	The data are aligned by {{$uiTable.AlignedBy}} <br />
+{{end}}
+<table class="list_table">
+	<thead><tr>
+	<th>{{.Table.TopLeftHeader}}</th>
+	{{range $c := .Table.ColumnHeaders}}
+		<th>
+		{{$url := ""}}
+                {{if $uiTable.ColumnURL}}{{$url = (call $uiTable.ColumnURL $c)}}{{end}}
+			{{if $url}}<a href="{{$url}}">{{$c}}</a>
+			{{else}}
+			{{$c}}
+			{{end}}
+		</th>
+		{{if $uiTable.Extra}}
+		<th>Δ</th>
+		{{end}}
+	{{end}}
+	</tr></thead>
+	<tbody>
+	{{range $r := .Table.SortedRows}}
+	<tr>
+		<td>
+		{{$url := ""}}
+                {{if $uiTable.RowURL}}{{$url = (call $uiTable.RowURL $r)}}{{end}}
+			{{if $url}}<a href="{{$url}}">{{$r}}</a>
+			{{else}}
+			{{$r}}
+			{{end}}
+		</td>
+		{{range $c := $uiTable.Table.ColumnHeaders}}
+			{{$cell := ($uiTable.Table.Get $r $c)}}
+			{{if and $cell $uiTable.Extra}}
+			<td>{{template "PrintValue" $cell.Value}}</td>
+			<td>{{template "PrintExtra" $cell}}</td>
+			{{else}}
+			<td>{{$cell}}</td>
+			{{end}}
+		{{end}}
+	</tr>
+	{{end}}
+	{{if $uiTable.HasFooter}}
+		<tr>
+			<td>-</td>
+			{{range $c := $uiTable.Table.ColumnHeaders}}
+				<td>{{$uiTable.Table.GetFooterValue $c}}</td>
+			{{end}}
+		</tr>
+	{{end}}
+	</tbody>
+</table>
+{{end}}

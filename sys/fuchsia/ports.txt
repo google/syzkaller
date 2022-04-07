@@ -1,0 +1,19 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+include <zircon/syscalls/port.h>
+
+resource zx_port[zx_handle]
+
+zx_port_create(options const[0], out ptr[out, zx_port])
+zx_port_queue(handle zx_port, packet ptr[in, zx_port_packet])
+zx_port_wait(handle zx_port, deadline zx_time, packet ptr[out, zx_port_packet])
+zx_port_cancel(port zx_port, source zx_handle, key proc[1000, 4])
+
+zx_port_packet {
+	key	proc[1000, 4, int64]
+	type	const[ZX_PKT_TYPE_USER, int32]
+	status	const[0, int32]
+	u64	array[int64, 4]
+}

@@ -1,0 +1,51 @@
+TITLE: WARNING: zero-size vmalloc in dvb_dmx_init
+
+[   35.569409][    T7] ------------[ cut here ]------------
+[   35.574867][    T7] WARNING: CPU: 0 PID: 7 at mm/vmalloc.c:2873 __vmalloc_node_range+0x769/0x970
+[   35.584019][    T7] Modules linked in:
+[   35.587933][    T7] CPU: 0 PID: 7 Comm: kworker/0:1 Not tainted 5.12.0-syzkaller #0
+[   35.595800][    T7] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   35.606172][    T7] Workqueue: usb_hub_wq hub_event
+[   35.611337][    T7] RIP: 0010:__vmalloc_node_range+0x769/0x970
+[   35.617566][    T7] Code: c7 04 24 00 00 00 00 eb 93 e8 93 b7 d9 ff 44 89 fa 44 89 f6 4c 89 ef e8 75 20 07 00 48 89 04 24 e9 be fb ff ff e8 77 b7 d9 ff <0f> 0b 48 c7 04 24 00 00 00 00 e9 63 ff ff ff e8 63 b7 d9 ff 8b 7c
+[   35.637892][    T7] RSP: 0018:ffffc9000007ee30 EFLAGS: 00010293
+[   35.644074][    T7] RAX: 0000000000000000 RBX: ffffffff8403d464 RCX: 0000000000000000
+[   35.652126][    T7] RDX: ffff888100283680 RSI: ffffffff81673599 RDI: 0000000000000003
+[   35.660504][    T7] RBP: 0000000000000001 R08: 0000000000000000 R09: 8000000000000163
+[   35.668661][    T7] R10: ffffffff81672ed2 R11: 0000000000000000 R12: 0000000000000000
+[   35.676671][    T7] R13: ffffc90000000000 R14: dffffc0000000000 R15: 00000000ffffffff
+[   35.684845][    T7] FS:  0000000000000000(0000) GS:ffff8881f6a00000(0000) knlGS:0000000000000000
+[   35.693860][    T7] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   35.700513][    T7] CR2: 00007fffeb9f7c40 CR3: 00000001033f2000 CR4: 00000000001506f0
+[   35.708567][    T7] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   35.716553][    T7] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   35.724572][    T7] Call Trace:
+[   35.755553][    T7]  vmalloc+0x67/0x80
+[   35.764115][    T7]  dvb_dmx_init+0xe4/0xb90
+[   35.773888][    T7]  dvb_usb_adapter_dvb_init+0x564/0x860
+[   35.785770][    T7]  dvb_usb_device_init.cold+0xc94/0x146e
+[   35.807815][    T7]  cxusb_probe+0x159/0x5e0
+[   35.828720][    T7]  usb_probe_interface+0x315/0x7f0
+[   35.839786][    T7]  really_probe+0x291/0xf60
+[   35.850802][    T7]  driver_probe_device+0x298/0x410
+[   35.856028][    T7]  __device_attach_driver+0x203/0x2c0
+[   35.867475][    T7]  bus_for_each_drv+0x15f/0x1e0
+[   35.888628][    T7]  __device_attach+0x228/0x4b0
+[   35.904836][    T7]  bus_probe_device+0x1e4/0x290
+[   35.909763][    T7]  device_add+0xbe0/0x2100
+[   35.944451][    T7]  usb_set_configuration+0x113f/0x1910
+[   35.950006][    T7]  usb_generic_driver_probe+0xba/0x100
+[   35.955616][    T7]  usb_probe_device+0xd9/0x2c0
+[   35.966589][    T7]  really_probe+0x291/0xf60
+[   35.977431][    T7]  driver_probe_device+0x298/0x410
+[   35.982627][    T7]  __device_attach_driver+0x203/0x2c0
+[   35.994100][    T7]  bus_for_each_drv+0x15f/0x1e0
+[   36.015154][    T7]  __device_attach+0x228/0x4b0
+[   36.031601][    T7]  bus_probe_device+0x1e4/0x290
+[   36.036479][    T7]  device_add+0xbe0/0x2100
+[   36.057660][    T7]  usb_new_device.cold+0x721/0x1058
+[   36.078871][    T7]  hub_event+0x2357/0x4320
+[   36.113134][    T7]  process_one_work+0x98d/0x1580
+[   36.128556][    T7]  worker_thread+0x64c/0x1120
+[   36.143575][    T7]  kthread+0x38c/0x460
+[   36.158149][    T7]  ret_from_fork+0x1f/0x30

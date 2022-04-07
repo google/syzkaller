@@ -1,0 +1,58 @@
+TITLE: BUG: unable to handle kernel paging request in hash_sendmsg
+ALT: bad-access in hash_sendmsg
+
+[   70.687256] sctp: [Deprecated]: syz-executor5 (pid 16777) Use of int in maxseg socket option.
+[   70.687256] Use struct sctp_assoc_value instead
+[   70.741203] kernel tried to execute NX-protected page - exploit attempt? (uid: 0)
+[   70.748873] BUG: unable to handle kernel paging request at ffff880214d12c00
+[   70.755967] IP: 0xffff880214d12c00
+[   70.759477] PGD 404e067 P4D 404e067 PUD 4051067 PMD 1df18b063 PTE 8000000214d12163
+[   70.767166] Oops: 0011 [#1] SMP
+[   70.770413] Dumping ftrace buffer:
+[   70.773920]    (ftrace buffer empty)
+[   70.777599] Modules linked in:
+[   70.780764] CPU: 0 PID: 16786 Comm: syz-executor4 Not tainted 4.15.0-rc3-next-20171214+ #67
+[   70.789230] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   70.798562] RIP: 0010:0xffff880214d12c00
+[   70.802596] RSP: 0018:ffffc900010c7c70 EFLAGS: 00010212
+[   70.807926] RAX: ffff8801def81900 RBX: ffff8801e2dd8310 RCX: ffffffff811acd8d
+[   70.815163] RDX: ffff8801def81948 RSI: ffffc90002ded000 RDI: ffff8801e2dd8360
+[   70.822399] RBP: ffffc900010c7c80 R08: 0000000000000000 R09: 0000000000000000
+[   70.829636] R10: 0000000000000000 R11: 0000000000000000 R12: ffff8801dedc9dc8
+[   70.836872] R13: 0000000000010000 R14: 0000000000000000 R15: 0000000000000000
+[   70.844111] FS:  00007f1df9a2c700(0000) GS:ffff88021fc00000(0000) knlGS:0000000000000000
+[   70.852303] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   70.858151] CR2: ffff880214d12c00 CR3: 00000001dd63c000 CR4: 00000000001406f0
+[   70.865395] DR0: 0000000020000000 DR1: 0000000020000000 DR2: 0000000020001000
+[   70.872634] DR3: 0000000020001000 DR6: 00000000fffe0ff0 DR7: 0000000000000600
+[   70.879870] Call Trace:
+[   70.882427]  ? sha1_mb_async_init+0x6a/0x70
+[   70.886721]  hash_sendmsg+0xc2/0x340
+[   70.890409]  ? security_socket_sendmsg+0x5d/0x80
+[   70.895139]  sock_sendmsg+0x51/0x70
+[   70.898737]  ___sys_sendmsg+0x35e/0x3b0
+[   70.902684]  ? perf_trace_lock+0x108/0x130
+[   70.906887]  ? find_held_lock+0x35/0xa0
+[   70.910842]  ? __fget+0x160/0x290
+[   70.914290]  ? __fget_light+0x93/0xa0
+[   70.918061]  ? __fdget+0x18/0x20
+[   70.921403]  __sys_sendmsg+0x50/0x90
+[   70.925083]  ? __sys_sendmsg+0x50/0x90
+[   70.928951]  SyS_sendmsg+0x2d/0x50
+[   70.932463]  entry_SYSCALL_64_fastpath+0x1f/0x96
+[   70.937185] RIP: 0033:0x452a39
+[   70.940342] RSP: 002b:00007f1df9a2bc58 EFLAGS: 00000212 ORIG_RAX: 000000000000002e
+[   70.948017] RAX: ffffffffffffffda RBX: 0000000000758020 RCX: 0000000000452a39
+[   70.955263] RDX: 000000000403ffff RSI: 0000000020d7bfc8 RDI: 0000000000000019
+[   70.962509] RBP: 0000000000000048 R08: 0000000000000000 R09: 0000000000000000
+[   70.969746] R10: 0000000000000000 R11: 0000000000000212 R12: 00000000006ee760
+[   70.976990] R13: 00000000ffffffff R14: 00007f1df9a2c6d4 R15: 0000000000000000
+[   70.984245] Code: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 <00> 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 e0 81 a3 16 02 
+[   71.003374] RIP: 0xffff880214d12c00 RSP: ffffc900010c7c70
+[   71.008876] CR2: ffff880214d12c00
+[   71.012300] ---[ end trace 2f920463c8d82a39 ]---
+[   71.017019] Kernel panic - not syncing: Fatal exception
+[   71.022787] Dumping ftrace buffer:
+[   71.026293]    (ftrace buffer empty)
+[   71.029969] Kernel Offset: disabled
+[   71.033571] Rebooting in 86400 seconds..

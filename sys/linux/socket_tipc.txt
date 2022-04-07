@@ -1,0 +1,115 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/net.h>
+include <uapi/linux/tipc.h>
+include <net/tipc/core.h>
+
+resource sock_tipc[sock]
+
+type tipc_instance int32[0:4]
+type tipc_node_addr int32[0:4]
+type tipc_port int32[20000:20004]
+
+socket$tipc(domain const[AF_TIPC], type flags[tipc_socket_types], proto const[0]) sock_tipc
+socketpair$tipc(domain const[AF_TIPC], type flags[tipc_socket_types], proto const[0], fds ptr[out, tipc_pair])
+bind$tipc(fd sock_tipc, addr ptr[in, sockaddr_tipc, opt], addrlen len[addr])
+connect$tipc(fd sock_tipc, addr ptr[in, sockaddr_tipc], addrlen len[addr])
+accept4$tipc(fd sock_tipc, peer ptr[out, sockaddr_tipc, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_tipc
+getsockname$tipc(fd sock_tipc, addr ptr[out, sockaddr_tipc], addrlen ptr[inout, len[addr, int32]])
+getpeername$tipc(fd sock_tipc, peer ptr[out, sockaddr_tipc], peerlen ptr[inout, len[peer, int32]])
+sendmsg$tipc(fd sock_tipc, msg ptr[in, msghdr_tipc], f flags[send_flags])
+
+ioctl$SIOCGETLINKNAME(fd sock_tipc, cmd const[SIOCGETLINKNAME], arg ptr[in, tipc_sioc_ln_req])
+ioctl$SIOCGETNODEID(fd sock_tipc, cmd const[SIOCGETNODEID], arg ptr[in, tipc_sioc_nodeid_req])
+
+setsockopt$TIPC_IMPORTANCE(fd sock_tipc, level const[SOL_TIPC], opt const[TIPC_IMPORTANCE], val ptr[in, int32], len bytesize[val])
+setsockopt$TIPC_SRC_DROPPABLE(fd sock_tipc, level const[SOL_TIPC], opt const[TIPC_SRC_DROPPABLE], val ptr[in, int32], len bytesize[val])
+setsockopt$TIPC_DEST_DROPPABLE(fd sock_tipc, level const[SOL_TIPC], opt const[TIPC_DEST_DROPPABLE], val ptr[in, int32], len bytesize[val])
+setsockopt$TIPC_CONN_TIMEOUT(fd sock_tipc, level const[SOL_TIPC], opt const[TIPC_CONN_TIMEOUT], val ptr[in, int32], len bytesize[val])
+setsockopt$TIPC_MCAST_BROADCAST(fd sock_tipc, level const[SOL_TIPC], opt const[TIPC_MCAST_BROADCAST])
+setsockopt$TIPC_MCAST_REPLICAST(fd sock_tipc, level const[SOL_TIPC], opt const[TIPC_MCAST_REPLICAST])
+setsockopt$TIPC_GROUP_LEAVE(fd sock_tipc, level const[SOL_TIPC], opt const[TIPC_GROUP_LEAVE])
+setsockopt$TIPC_GROUP_JOIN(fd sock_tipc, level const[SOL_TIPC], opt const[TIPC_GROUP_JOIN], val ptr[in, tipc_group_req], len bytesize[val])
+
+getsockopt$TIPC_IMPORTANCE(fd sock_tipc, level const[SOL_TIPC], opt const[TIPC_IMPORTANCE], val ptr[out, int32], len ptr[inout, bytesize[val, int32]])
+getsockopt$TIPC_SRC_DROPPABLE(fd sock_tipc, level const[SOL_TIPC], opt const[TIPC_SRC_DROPPABLE], val ptr[out, int32], len ptr[inout, bytesize[val, int32]])
+getsockopt$TIPC_DEST_DROPPABLE(fd sock_tipc, level const[SOL_TIPC], opt const[TIPC_DEST_DROPPABLE], val ptr[out, int32], len ptr[inout, bytesize[val, int32]])
+getsockopt$TIPC_CONN_TIMEOUT(fd sock_tipc, level const[SOL_TIPC], opt const[TIPC_CONN_TIMEOUT], val ptr[out, int32], len ptr[inout, bytesize[val, int32]])
+getsockopt$TIPC_NODE_RECVQ_DEPTH(fd sock_tipc, level const[SOL_TIPC], opt const[TIPC_NODE_RECVQ_DEPTH], val ptr[out, int32], len ptr[inout, bytesize[val, int32]])
+getsockopt$TIPC_SOCK_RECVQ_DEPTH(fd sock_tipc, level const[SOL_TIPC], opt const[TIPC_SOCK_RECVQ_DEPTH], val ptr[out, int32], len ptr[inout, bytesize[val, int32]])
+getsockopt$TIPC_GROUP_JOIN(fd sock_tipc, level const[SOL_TIPC], opt const[TIPC_GROUP_JOIN], val ptr[out, int32], len ptr[inout, bytesize[val, int32]])
+
+tipc_socket_types = SOCK_DGRAM, SOCK_SEQPACKET, SOCK_DGRAM
+tipc_service_type = TIPC_NODE_STATE, TIPC_TOP_SRV, TIPC_LINK_STATE, TIPC_SERVICE_TYPE0, TIPC_SERVICE_TYPE1, TIPC_SERVICE_TYPE2, TIPC_SERVICE_TYPE3
+define TIPC_SERVICE_TYPE0	TIPC_RESERVED_TYPES + 0
+define TIPC_SERVICE_TYPE1	TIPC_RESERVED_TYPES + 1
+define TIPC_SERVICE_TYPE2	TIPC_RESERVED_TYPES + 2
+define TIPC_SERVICE_TYPE3	TIPC_RESERVED_TYPES + 3
+
+tipc_pair {
+	fd0	sock_tipc
+	fd1	sock_tipc
+}
+
+sockaddr_tipc [
+	nameseq	sockaddr_tipc_t[TIPC_ADDR_NAMESEQ, tipc_service_range]
+	name	sockaddr_tipc_t[TIPC_ADDR_NAME, tipc_address_name]
+	id	sockaddr_tipc_t[TIPC_ADDR_ID, tipc_socket_addr]
+]
+
+type sockaddr_tipc_t[TYP, DATA] {
+	family		const[AF_TIPC, int16]
+	addrtype	const[TYP, int8]
+	scope		flags[tipc_scope, int8]
+	addr		DATA
+}
+
+msghdr_tipc {
+	msg_name	ptr[in, sockaddr_tipc, opt]
+	msg_namelen	len[msg_name, int32]
+	msg_iov		ptr[in, array[iovec_in]]
+	msg_iovlen	len[msg_iov, intptr]
+	msg_control	ptr[in, array[int8], opt]
+	msg_controllen	bytesize[msg_control, intptr]
+	msg_flags	flags[send_flags, int32]
+}
+
+tipc_address_name {
+	name	tipc_service_addr
+	domain	tipc_node_addr
+}
+
+tipc_socket_addr {
+	ref	tipc_port
+	node	tipc_node_addr
+}
+
+tipc_service_addr {
+	type		flags[tipc_service_type, int32]
+	instance	tipc_instance
+}
+
+tipc_service_range {
+	type	flags[tipc_service_type, int32]
+	lower	tipc_instance
+	upper	tipc_instance
+}
+
+tipc_sioc_ln_req {
+	peer		tipc_node_addr
+	bearer_id	int32[0:MAX_BEARERS]
+	linkname	array[const[0, int8], TIPC_MAX_LINK_NAME]
+}
+
+tipc_sioc_nodeid_req {
+	peer		tipc_node_addr
+	linkname	array[const[0, int8], TIPC_NODEID_LEN]
+}
+
+tipc_group_req {
+	type		int32[TIPC_SERVICE_TYPE0:TIPC_SERVICE_TYPE3]
+	instance	tipc_instance
+	scope		flags[tipc_scope, int32]
+	flags		const[0, int32]
+}

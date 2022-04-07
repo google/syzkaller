@@ -1,0 +1,39 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/fcntl.h>
+include <uapi/linux/udmabuf.h>
+include <uapi/linux/dma-buf.h>
+
+resource fd_udambuf[fd]
+resource fd_dma_buf[fd]
+
+openat$udambuf(fd const[AT_FDCWD], file ptr[in, string["/dev/udmabuf"]], flags const[O_RDWR]) fd_udambuf
+ioctl$UDMABUF_CREATE(fd fd_udambuf, cmd const[UDMABUF_CREATE], arg ptr[in, udmabuf_create]) fd_dma_buf
+ioctl$UDMABUF_CREATE_LIST(fd fd_udambuf, cmd const[UDMABUF_CREATE_LIST], arg ptr[in, udmabuf_create_list]) fd_dma_buf
+
+ioctl$DMA_BUF_IOCTL_SYNC(fd fd_dma_buf, cmd const[DMA_BUF_IOCTL_SYNC], arg ptr[in, flags[dma_buf_sync_flags, int64]])
+ioctl$DMA_BUF_SET_NAME_A(fd fd_dma_buf, cmd const[DMA_BUF_SET_NAME_A], arg ptr[in, string])
+
+udmabuf_create {
+	memfd	fd_memfd
+	flags	bool32
+	offset	flags[udmabuf_offset_size, int64]
+	size	flags[udmabuf_offset_size, int64]
+}
+
+udmabuf_create_list {
+	flags	bool32
+	count	len[list, int32]
+	list	array[udmabuf_create_item]
+}
+
+udmabuf_create_item {
+	memfd	fd_memfd
+	__pad	const[0, int32]
+	offset	flags[udmabuf_offset_size, int64]
+	size	flags[udmabuf_offset_size, int64]
+}
+
+udmabuf_offset_size = 0, 0x1000, 0x2000, 0x4000, 0x8000, 0x10000, 0x1000000, 0x100000000, 0xfffff000, 0x1000000000000, 0xfffffffffffff000, 0xfffffffff0000000
+dma_buf_sync_flags = DMA_BUF_SYNC_READ, DMA_BUF_SYNC_WRITE, DMA_BUF_SYNC_START, DMA_BUF_SYNC_END

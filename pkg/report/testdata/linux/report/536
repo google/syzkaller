@@ -1,0 +1,54 @@
+TITLE: BUG: unable to handle kernel paging request in selinux_socket_sendmsg
+ALT: bad-access in selinux_socket_sendmsg
+
+[ 1418.056449][ T6604] Unable to handle kernel paging request at virtual address dfffa00000000003
+[ 1418.057778][ T6604] Mem abort info:
+[ 1418.060540][ T4436] vhci_hcd: disconnect device
+[ 1418.064939][ T4436] vhci_hcd: stop threads
+[ 1418.065447][ T4436] vhci_hcd: release socket
+[ 1418.066582][ T4436] vhci_hcd: disconnect device
+[ 1418.072814][ T4436] vhci_hcd: stop threads
+[ 1418.073388][ T4436] vhci_hcd: release socket
+[ 1418.074818][ T4436] vhci_hcd: disconnect device
+[ 1418.090728][ T6604]   ESR = 0x96000004
+[ 1418.091860][ T6604]   EC = 0x25: DABT (current EL), IL = 32 bits
+[ 1418.092617][ T6604]   SET = 0, FnV = 0
+[ 1418.093198][ T6604]   EA = 0, S1PTW = 0
+[ 1418.093747][ T6604] Data abort info:
+[ 1418.094338][ T6604]   ISV = 0, ISS = 0x00000004
+[ 1418.095159][ T6604]   CM = 0, WnR = 0
+[ 1418.095945][ T6604] [dfffa00000000003] address between user and kernel address ranges
+[ 1418.097299][ T6604] Internal error: Oops: 96000004 [#1] PREEMPT SMP
+[ 1418.098357][ T6604] Modules linked in:
+[ 1418.099914][ T6604] CPU: 0 PID: 6604 Comm: vhci_tx Not tainted 5.9.0-12994-gf9893351acae #16
+[ 1418.100971][ T6604] Hardware name: linux,dummy-virt (DT)
+[ 1418.102283][ T6604] pstate: 80000005 (Nzcv daif -PAN -UAO -TCO BTYPE=--)
+[ 1418.103355][ T6604] pc : selinux_socket_sendmsg+0x28/0x58
+[ 1418.104161][ T6604] lr : selinux_socket_sendmsg+0x18/0x58
+[ 1418.104870][ T6604] sp : ffff000049b6fa10
+[ 1418.105700][ T6604] x29: ffff000049b6fa10 x28: ffff0000467c42a0 
+[ 1418.106910][ T6604] x27: ffff000045138700 x26: ffff000049b6fc50 
+[ 1418.108225][ T6604] x25: 0000000000000001 x24: 0000000000000000 
+[ 1418.109389][ T6604] x23: ffff000049b6fc50 x22: 0000000000000030 
+[ 1418.110629][ T6604] x21: dfffa00000000000 x20: 0000000000000000 
+[ 1418.111540][ T6604] x19: 0000000000000000 x18: 1fffe0000d4d8e30 
+[ 1418.112679][ T6604] x17: 0000000000000000 x16: 0000000000000000 
+[ 1418.113664][ T6604] x15: 0000000000000001 x14: 0080000000000000 
+[ 1418.115642][ T6604] x13: 0000000000000004 x12: ffffa00019a35810 
+[ 1418.117770][ T6604] x11: ffffa00013f1867c x10: ffffa0001723e970 
+[ 1418.118916][ T6604] x9 : 0000000000000004 x8 : 1fffe0000936df9a 
+[ 1418.119980][ T6604] x7 : 1fffe0000936df9b x6 : 0000000000000001 
+[ 1418.121038][ T6604] x5 : ffff00004363af40 x4 : 0000000000000000 
+[ 1418.123366][ T6604] x3 : ffffa00011d6e5a0 x2 : 0000000000000003 
+[ 1418.124768][ T6604] x1 : dfffa00000000000 x0 : 0000000000000018 
+[ 1418.128340][ T6604] Call trace:
+[ 1418.129242][ T6604]  selinux_socket_sendmsg+0x28/0x58
+[ 1418.132314][ T6604]  security_socket_sendmsg+0x68/0xd0
+[ 1418.133085][ T6604]  sock_sendmsg+0x4c/0x128
+[ 1418.133754][ T6604]  kernel_sendmsg+0x54/0x70
+[ 1418.134448][ T6604]  vhci_send_cmd_submit+0x6c8/0xda8
+[ 1418.135141][ T6604]  vhci_tx_loop+0xe8/0x300
+[ 1418.135800][ T6604]  kthread+0x344/0x3e0
+[ 1418.136434][ T6604]  ret_from_fork+0x10/0x30
+[ 1418.138100][ T6604] Code: 91006260 d2d40001 f2fbffe1 d343fc02 (38e16841) 
+[ 1418.139739][ T6604] ---[ end trace bfc0c3bff103ed46 ]---

@@ -1,0 +1,21 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/ioctl.h>
+include <uapi/linux/rfkill.h>
+
+resource fd_rfkill[fd]
+
+openat$rfkill(fd const[AT_FDCWD], file ptr[in, string["/dev/rfkill"]], flags flags[open_flags], mode const[0]) fd_rfkill
+
+write$rfkill(fd fd_rfkill, data ptr[in, rfkill_event], len bytesize[data])
+read$rfkill(fd fd_rfkill, data ptr[out, rfkill_event], len bytesize[data])
+ioctl$RFKILL_IOCTL_NOINPUT(fd fd_rfkill, cmd const[RFKILL_IOCTL_NOINPUT])
+
+rfkill_event {
+	idx	int32
+	type	int8[0:NUM_RFKILL_TYPES]
+	op	int8[0:RFKILL_OP_CHANGE_ALL]
+	soft	int8[0:1]
+	hard	int8[0:1]
+} [packed]

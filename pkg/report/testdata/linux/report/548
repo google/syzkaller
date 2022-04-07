@@ -1,0 +1,28 @@
+TITLE: Unhandled fault in trace_hardirqs_off
+ALT: bad-access in trace_hardirqs_off
+
+[ 9080.453689][T11783] 8<--- cut here ---
+[ 9080.454760][T11783] Unhandled fault: page domain fault (0x01b) at 0x00000e30
+[ 9080.455761][T11783] pgd = e852c1e3
+[ 9080.456588][T11783] [00000e30] *pgd=e8c3e835
+[ 9080.459344][T11783] Internal error: : 1b [#1] PREEMPT SMP ARM
+[ 9080.461027][T11783] Dumping ftrace buffer:
+[ 9080.462253][T11783]    (ftrace buffer empty)
+[ 9080.463160][T11783] Modules linked in:
+[ 9080.464375][T11783] CPU: 1 PID: 11783 Comm: syz-executor.0 Not tainted 5.10.0-rc1+ #18
+[ 9080.465313][T11783] Hardware name: ARM-Versatile Express
+[ 9080.467190][T11783] PC is at __sanitizer_cov_trace_pc+0x4c/0x78
+[ 9080.468129][T11783] LR is at trace_hardirqs_off+0x6c/0x120
+[ 9080.468826][T11783] pc : [<802b4048>]    lr : [<802e1324>]    psr: 60000193
+[ 9080.469644][T11783] sp : 8bdfc010  ip : 8bdfc020  fp : 8bdfc01c
+[ 9080.470461][T11783] r10: 8591b080  r9 : 8bdfc000  r8 : 00000001
+[ 9080.471172][T11783] r7 : 80100a74  r6 : 844fbc1c  r5 : 60000193  r4 : 8bdfc000
+[ 9080.471940][T11783] r3 : 8bdfc000  r2 : 00000000  r1 : 00000000  r0 : 00000000
+[ 9080.472938][T11783] Flags: nZCv  IRQs off  FIQs on  Mode SVC_32  ISA ARM  Segment none
+[ 9080.474920][T11783] Control: 10c5387d  Table: 8a14806a  DAC: 00000051
+[ 9080.475742][T11783] Process syz-executor.0 (pid: 11783, stack limit = 0xdf960dff)
+[ 9080.476792][T11783] Stack: (0x8bdfc010 to 0x00002000)
+[ 9080.477621][T11783] Backtrace: 
+[ 9080.479068][T11783] [<802b3ffc>] (__sanitizer_cov_trace_pc) from [<802e1324>] (trace_hardirqs_off+0x6c/0x120)
+[ 9080.480508][T11783] [<802e12b8>] (trace_hardirqs_off) from [<80100a74>] (__dabt_svc+0x54/0xa0)
+[ 9080.481456][T11783] Exception stack(0x8bdfc048 to 0x8bdfc090)

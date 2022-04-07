@@ -1,0 +1,19 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+include <zircon/syscalls/policy.h>
+
+resource zx_job[zx_task]
+
+zx_job_create(job zx_job, options const[0], out ptr[out, zx_job])
+zx_job_set_policy(job_handle zx_job, options flags[job_policy_options], topic const[ZX_JOB_POL_BASIC], policy ptr[in, array[zx_policy_basic]], count len[policy])
+
+zx_policy_basic {
+	condition	flags[zx_policy_condition, int32]
+	policy		flags[zx_policy_policy, int32]
+}
+
+job_policy_options = ZX_JOB_POL_RELATIVE, ZX_JOB_POL_ABSOLUTE
+zx_policy_condition = ZX_POL_BAD_HANDLE, ZX_POL_WRONG_OBJECT, ZX_POL_VMAR_WX, ZX_POL_NEW_VMO, ZX_POL_NEW_CHANNEL, ZX_POL_NEW_EVENT, ZX_POL_NEW_PORT, ZX_POL_NEW_SOCKET, ZX_POL_NEW_FIFO, ZX_POL_NEW_TIMER, ZX_POL_NEW_ANY
+zx_policy_policy = ZX_POL_ACTION_ALLOW, ZX_POL_ACTION_DENY, ZX_POL_ACTION_KILL

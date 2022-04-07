@@ -1,0 +1,32 @@
+TITLE: INFO: rcu detected stall in rmdir
+ALT: stall in rmdir
+TYPE: HANG
+
+[  539.960575] INFO: rcu_preempt detected stalls on CPUs/tasks:
+[  539.960585] 	(detected by 0, t=10502 jiffies, g=3970, c=3969, q=379)
+[  539.960592] All QSes seen, last rcu_preempt kthread activity 10502 (4294991162-4294980660), jiffies_till_next_fqs=1, root ->qsmask 0x0
+[  539.960608] syz-executor7   R  running task    26968  2301   2298 0x00000000
+[  539.960623]  ffff8801db607c98 ffffffff813f5a7f ffffffff813f5886 0000000100003434
+[  539.960633]  0000000100005d3a dffffc0000000000 ffff8801db621d40 ffffffff82ecd580
+[  539.960643]  ffff8801db607d68 ffffffff81401aa5 0000000000000000 ffff8801db607cd8
+[  539.960645] Call Trace:
+[  539.960662]  <IRQ> 
+[  539.960663]  [<ffffffff813f5a7f>] sched_show_task.cold.35+0x279/0x31f
+[  539.960679]  [<ffffffff81401aa5>] rcu_check_callbacks.cold.69+0xc70/0xd27
+[  539.960688]  [<ffffffff81261680>] update_process_times+0x30/0x70
+[  539.960697]  [<ffffffff8128ec7a>] tick_sched_handle.isra.5+0x4a/0xf0
+[  539.960704]  [<ffffffff8128ed96>] tick_sched_timer+0x76/0x130
+[  539.960720]  [<ffffffff812643a7>] __hrtimer_run_queues+0x357/0xe30
+[  539.960766]  [<ffffffff81266891>] hrtimer_interrupt+0x1b1/0x430
+[  539.960775]  [<ffffffff8108f6c4>] local_apic_timer_interrupt+0x74/0xa0
+[  539.960784]  [<ffffffff8278ff1c>] smp_apic_timer_interrupt+0x7c/0xa0
+[  539.960791]  [<ffffffff8278d7ed>] apic_timer_interrupt+0x9d/0xb0
+[  539.960802]  <EOI> 
+[  539.960812]  [<ffffffff8278b454>] _raw_spin_lock_nested+0x44/0x50
+[  539.960828]  [<ffffffff81548219>] d_walk.part.10+0x1b9/0x710
+[  539.960849]  [<ffffffff815488f7>] shrink_dcache_parent+0xd7/0x130
+[  539.960873]  [<ffffffff81529bd9>] vfs_rmdir2+0x1c9/0x410
+[  539.960880]  [<ffffffff81533264>] do_rmdir+0x304/0x3b0
+[  539.960916]  [<ffffffff81534d9a>] SyS_rmdir+0x1a/0x20
+[  539.960922]  [<ffffffff8100554f>] do_syscall_64+0x19f/0x480
+[  539.960930]  [<ffffffff8278c053>] entry_SYSCALL_64_after_swapgs+0x5d/0xdb

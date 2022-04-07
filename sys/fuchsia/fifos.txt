@@ -1,0 +1,12 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+
+resource zx_fifo[zx_handle]
+
+zx_fifo_create(elem_count flags[fifo_elem_count], elem_size int32, options const[0], out0 ptr[out, zx_fifo], out1 ptr[out, zx_fifo])
+zx_fifo_read(handle zx_fifo, size len[buffer], buffer ptr[out, array[int8]], num_entries_read ptr[out, int32])
+zx_fifo_write(handle zx_fifo, size len[buffer], buffer ptr[in, array[int8]], num_entries_written ptr[out, int32])
+
+fifo_elem_count = 0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096

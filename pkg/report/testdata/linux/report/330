@@ -1,0 +1,57 @@
+TITLE: kernel panic: corrupted stack end in wb_workfn
+
+[  335.974403] Kernel panic - not syncing: corrupted stack end detected inside scheduler
+[  335.975933] CPU: 0 PID: 11678 Comm: kworker/u12:6 Not tainted 4.20.0+ #11
+[  335.977172] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+[  335.978779] Workqueue: writeback wb_workfn (flush-8:0)
+[  335.979784] Call Trace:
+[  335.980287]  dump_stack+0x1d3/0x2c6
+[  335.982672]  panic+0x2ad/0x55f
+[  335.986347]  __schedule+0x1ec6/0x1ed0
+[  335.993751]  preempt_schedule_irq+0x87/0x110
+[  335.994383]  retint_kernel+0x1b/0x2d
+[  335.994939] RIP: 0010:__sanitizer_cov_trace_pc+0x26/0x50
+[  335.995730] Code: 5d c3 66 90 55 48 89 e5 48 8b 75 08 65 48 8b 04 25 40 ee 01 00 65 8b 15 d8 05 80 7e 81 e2 00 01 1f 00 75 2b 8b 90 d8 12 00 00 <83> fa 02 75 20 48 8b 88 e0 12 00 00 8b 80 dc 12 00 00 48 8b 11 48
+[  335.998549] RSP: 0018:ffff888044289348 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff02
+[  335.999800] RAX: ffff88804400c3c0 RBX: 1ffff1100885126e RCX: 0000000000000000
+[  336.000873] RDX: 0000000000000000 RSI: ffffffff81bb5329 RDI: 0000000000000007
+[  336.001964] RBP: ffff888044289348 R08: ffff88804400c3c0 R09: fffff940002b91fe
+[  336.003010] R10: fffff940002b91fe R11: ffffea00015c8ff3 R12: ffffea00015c8fc0
+[  336.004112] R13: ffff888044289410 R14: ffffea00015c8fc8 R15: ffffea00015c8fc0
+[  336.006590]  rmap_walk+0x119/0x350
+[  336.009046]  try_to_unmap+0x1f3/0xa40
+[  336.020876]  shrink_page_list+0x70ef/0xc2e0
+[  336.138056]  shrink_inactive_list+0x77b/0x1c60
+[  336.143095]  shrink_node_memcg+0x7a8/0x19a0
+[  336.153262] syz-executor2 (20558) used greatest stack depth: 4808 bytes left
+[  336.153592]  shrink_node+0x3e1/0x17f0
+[  336.164797]  do_try_to_free_pages+0x3df/0x12a0
+[  336.168005]  try_to_free_pages+0x4d0/0xb90
+[  336.174332]  __alloc_pages_slowpath+0xa5a/0x2db0
+[  336.188121]  __alloc_pages_nodemask+0xa89/0xde0
+[  336.195476]  alloc_pages_current+0x10c/0x210
+[  336.196116]  __page_cache_alloc+0x38c/0x5b0
+[  336.199371]  pagecache_get_page+0x396/0xf00
+[  336.207507]  ext4_mb_load_buddy_gfp+0xddf/0x1e70
+[  336.227432]  ext4_mb_find_by_goal+0x2fa/0x1040
+[  336.234525]  ext4_mb_regular_allocator+0x282/0x1590
+[  336.241382]  ext4_mb_new_blocks+0x1de3/0x4840
+[  336.276757]  ext4_ext_map_blocks+0x2eef/0x6180
+[  336.291766]  ext4_map_blocks+0x8f7/0x1b60
+[  336.297211]  ext4_writepages+0x2564/0x4170
+[  336.308530] blkid (20588) used greatest stack depth: 3352 bytes left
+[  336.314367]  do_writepages+0x9a/0x1a0
+[  336.317308]  __writeback_single_inode+0x20a/0x1660
+[  336.338247]  writeback_sb_inodes+0x71f/0x1210
+[  336.344617]  __writeback_inodes_wb+0x1b9/0x340
+[  336.346588]  wb_writeback+0xa73/0xfc0
+[  336.356813]  wb_workfn+0xd65/0x1790
+[  336.370426]  process_one_work+0xc90/0x1c40
+[  336.387991]  worker_thread+0x17f/0x1390
+[  336.400947]  kthread+0x35a/0x440
+[  336.402013]  ret_from_fork+0x3a/0x50
+[  336.403121] Dumping ftrace buffer:
+[  336.403852]    (ftrace buffer empty)
+[  336.404373] Kernel Offset: disabled
+[  336.404873] Rebooting in 86400 seconds..
+

@@ -1,0 +1,45 @@
+TITLE: INFO: rcu detected stall in bpf_map_free_deferred
+ALT: stall in bpf_map_free_deferred
+TYPE: HANG
+
+isob2 login: [  709.689951] INFO: rcu_sched detected stalls on CPUs/tasks:
+[  709.695737] 	(detected by 0, t=125002 jiffies, g=6134, c=6133, q=11)
+[  709.702334] All QSes seen, last rcu_sched kthread activity 124990 (4295372585-4295247595), jiffies_till_next_fqs=3, root ->qsmask 0x0
+[  709.714440] kworker/0:0     R running task on cpu   0     0     4      2 0x00000008 584683503973
+[  709.723606] Workqueue: events bpf_map_free_deferred
+[  709.728724]  0000000000000000 ffff8801daa07c80 ffffffff813a0886 ffffffff813a0691
+[  709.736752]  000000000001e83e 0000000100062f29 00000001000446eb ffff8801daa20540
+[  709.744756]  ffffffff839bef80 0000000100062f29 ffff8801daa07c90 ffffffff813becd0
+[  709.752766] Call Trace:
+[  709.755323]  <IRQ>  [<ffffffff813a0886>] _sched_show_task+0x2a6/0x4f0
+[  709.762012]  [<ffffffff813a0691>] ? _sched_show_task+0xb1/0x4f0
+[  709.768049]  [<ffffffff813becd0>] sched_show_task+0x10/0x20
+[  709.773742]  [<ffffffff8148081c>] rcu_check_callbacks+0x1b7c/0x1da0
+[  709.780127]  [<ffffffff81494c5f>] update_process_times+0x3f/0x70
+[  709.786251]  [<ffffffff814bd59a>] tick_sched_handle.isra.17+0x5a/0x100
+[  709.792896]  [<ffffffff814bee0a>] tick_sched_timer+0x7a/0x130
+[  709.798758]  [<ffffffff81497169>] __hrtimer_run_queues+0x369/0xc10
+[  709.805052]  [<ffffffff814bed90>] ? tick_sched_do_timer+0xa0/0xa0
+[  709.811259]  [<ffffffff81496e00>] ? retrigger_next_event+0x170/0x170
+[  709.817730]  [<ffffffff81498f0c>] ? hrtimer_interrupt+0x10c/0x410
+[  709.823940]  [<ffffffff81498f84>] hrtimer_interrupt+0x184/0x410
+[  709.829975]  [<ffffffff812852b0>] local_apic_timer_interrupt+0x70/0xb0
+[  709.836617]  [<ffffffff81012895>] smp_apic_timer_interrupt+0xc5/0x100
+[  709.843176]  [<ffffffff81011752>] smp_apic_timer_interrupt_entry_after_kaiser_bti+0x20/0x2e
+[  709.851638]  <EOI>  [<ffffffff81010d64>] ? _raw_spin_unlock_irqrestore+0x64/0x80
+[  709.859295]  [<ffffffff81718c49>] free_percpu+0x1c9/0x360
+[  709.864815]  [<ffffffff81718a80>] ? pcpu_free_area+0x610/0x610
+[  709.870770]  [<ffffffff8163038a>] array_map_free+0xca/0x130
+[  709.876463]  [<ffffffff81332f3b>] ? free_uid+0xcb/0x290
+[  709.881810]  [<ffffffff8160eed1>] bpf_map_free_deferred+0xb1/0xe0
+executing program
+[  709.888018]  [<ffffffff81363350>] process_one_work+0x8c0/0x15a0
+[  709.894051]  [<ffffffff81363286>] ? process_one_work+0x7f6/0x15a0
+[  709.900265]  [<ffffffff81362a90>] ? pwq_dec_nr_in_flight+0x280/0x280
+[  709.906732]  [<ffffffff81364111>] worker_thread+0xe1/0xf70
+[  709.912338]  [<ffffffff81379281>] kthread+0x231/0x2c0
+[  709.917503]  [<ffffffff81364030>] ? process_one_work+0x15a0/0x15a0
+[  709.923801]  [<ffffffff81379050>] ? kthread_create_on_node+0x460/0x460
+[  709.930449]  [<ffffffff81379050>] ? kthread_create_on_node+0x460/0x460
+[  709.937100]  [<ffffffff82e25bac>] ret_from_fork+0x5c/0x90
+[  709.942620]  [<ffffffff81379050>] ? kthread_create_on_node+0x460/0x460

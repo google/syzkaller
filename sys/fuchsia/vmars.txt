@@ -1,0 +1,16 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+
+resource zx_vmar[zx_handle]
+
+zx_vmar_allocate(parent_handle zx_vmar, options flags[vmar_allocate_options], offset intptr, size intptr, out ptr[out, zx_vmar], child_addr ptr[out, intptr])
+zx_vmar_map(handle zx_vmar, options flags[vmar_map_options], vmar_offset intptr, vmo zx_vmo, vmo_offset int64, len intptr, mapped_addr ptr[out, intptr])
+zx_vmar_unmap(handle zx_vmar, addr vma, len len[addr])
+zx_vmar_protect(handle zx_vmar, options flags[vmar_protect_options], addr vma, len len[addr])
+zx_vmar_destroy(handle zx_vmar)
+
+vmar_allocate_options = ZX_VM_FLAG_COMPACT, ZX_VM_FLAG_SPECIFIC, ZX_VM_FLAG_CAN_MAP_SPECIFIC, ZX_VM_FLAG_CAN_MAP_READ, ZX_VM_FLAG_CAN_MAP_WRITE, ZX_VM_FLAG_CAN_MAP_EXECUTE
+vmar_map_options = ZX_VM_FLAG_SPECIFIC, ZX_VM_FLAG_SPECIFIC_OVERWRITE, ZX_VM_FLAG_PERM_READ, ZX_VM_FLAG_PERM_WRITE, ZX_VM_FLAG_PERM_EXECUTE, ZX_VM_FLAG_MAP_RANGE
+vmar_protect_options = ZX_VM_FLAG_PERM_READ, ZX_VM_FLAG_PERM_WRITE, ZX_VM_FLAG_PERM_EXECUTE

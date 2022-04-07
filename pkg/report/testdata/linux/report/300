@@ -1,0 +1,46 @@
+TITLE: INFO: rcu detected stall in smp_call_function
+ALT: stall in smp_call_function
+TYPE: HANG
+
+[ 3481.239960] INFO: rcu_sched detected stalls on CPUs/tasks:
+[ 3481.239969] 	(detected by 1, t=105002 jiffies, g=687946, c=687945, q=520)
+[ 3481.239975] All QSes seen, last rcu_sched kthread activity 103964 (4298143477-4298039513), jiffies_till_next_fqs=3, root ->qsmask 0x0
+[ 3481.239987] syz-executor0   R running task on cpu   1     0 315571 315308 0x0000000e 3375506638533
+[ 3481.240033]  000000000004cfac 000000007b396287 ffff8801dab07c50 ffffffff816efb87
+[ 3481.240042]  ffff8801dab20880 00000001003076f5 00000001002ee0d9 ffffffff83fca0c0
+[ 3481.240050]  0000000000000003 ffff8801dab07c60 ffffffff816f030c ffff8801dab07d30
+[ 3481.240052] Call Trace:
+[ 3481.240067]  <IRQ>  [<ffffffff816efb87>] _sched_show_task+0x31a/0x325
+[ 3481.240075]  [<ffffffff816f030c>] sched_show_task+0x10/0x12
+[ 3481.240082]  [<ffffffff816fabed>] rcu_check_callbacks.cold.76+0xbfa/0xc77
+[ 3481.240092]  [<ffffffff814f5cdf>] update_process_times+0x3f/0x70
+[ 3481.240101]  [<ffffffff8151f1ea>] tick_sched_handle.isra.16+0x5a/0x100
+[ 3481.240108]  [<ffffffff8151f89a>] tick_sched_timer+0x7a/0x130
+[ 3481.240115]  [<ffffffff814f8e15>] __hrtimer_run_queues+0x3a5/0xc50
+[ 3481.240160]  [<ffffffff814fa03e>] hrtimer_interrupt+0x18e/0x400
+[ 3481.240169]  [<ffffffff8129a744>] local_apic_timer_interrupt+0x74/0x90
+[ 3481.240177]  [<ffffffff81012dff>] smp_apic_timer_interrupt+0xdf/0x130
+[ 3481.240186]  [<ffffffff81011c72>] smp_apic_timer_interrupt_entry_after_kaiser_bti+0x20/0x2e
+[ 3481.240196]  <EOI>  [<ffffffff815bcdb1>] ? __sanitizer_cov_trace_pc+0x21/0x60
+[ 3481.240204]  [<ffffffff8152dedc>] smp_call_function_single+0x26c/0x330
+[ 3481.240241]  [<ffffffff8152eaa5>] smp_cfm_core+0x6a5/0x7e0
+[ 3481.240269]  [<ffffffff8152ee6b>] on_each_cpu+0x6b/0x120
+[ 3481.240278]  [<ffffffff812dd836>] flush_tlb_kernel_range+0x86/0xe0
+[ 3481.240294]  [<ffffffff817ea3cc>] __purge_vmap_area_lazy+0x3ec/0xf40
+[ 3481.240333]  [<ffffffff817eb5df>] free_vmap_area_noflush+0x1bf/0x200
+[ 3481.240362]  [<ffffffff817ee77e>] remove_vm_area+0x13e/0x1c0
+[ 3481.240368]  [<ffffffff817ee849>] __vunmap+0x49/0x330
+[ 3481.240374]  [<ffffffff817eebf5>] vfree+0x55/0xe0
+[ 3481.240381]  [<ffffffff8177bc6b>] kvfree+0x3b/0x60
+[ 3481.240389]  [<ffffffff82430b98>] uhaul_rx_release+0x268/0x5a0
+[ 3481.240412]  [<ffffffff82428bee>] uhaul_release+0xce/0x3a0
+[ 3481.240432]  [<ffffffff82a06882>] sock_release+0x92/0x1b0
+[ 3481.240438]  [<ffffffff82a069bb>] sock_close+0x1b/0x20
+[ 3481.240446]  [<ffffffff8189fbae>] __fput+0x22e/0x6d0
+[ 3481.240453]  [<ffffffff818a00da>] ____fput+0x1a/0x20
+[ 3481.240462]  [<ffffffff813a0710>] task_work_run+0x1a0/0x240
+[ 3481.240470]  [<ffffffff8136f8e8>] get_signal+0x1098/0x14a0
+[ 3481.240486]  [<ffffffff8123b14e>] do_signal+0x7e/0x400
+[ 3481.240524]  [<ffffffff8101a530>] prepare_exit_to_usermode+0x170/0x390
+[ 3481.240531]  [<ffffffff8101a817>] syscall_return_slowpath+0xc7/0x5c0
+[ 3481.240538]  [<ffffffff8307e1e3>] int_ret_from_sys_call+0x25/0xba

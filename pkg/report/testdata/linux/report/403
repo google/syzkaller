@@ -1,0 +1,47 @@
+TITLE: BUG: MAX_STACK_TRACE_ENTRIES too low!
+
+[  185.416858][  T809] BUG: MAX_STACK_TRACE_ENTRIES too low!
+[  185.422408][  T809] turning off the locking correctness validator.
+[  185.428702][  T809] CPU: 1 PID: 809 Comm: syz-executor986 Not tainted 5.1.0-rc2+ #44
+[  185.436697][  T809] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  185.446719][  T809] Call Trace:
+[  185.449986][  T809]  dump_stack+0x172/0x1f0
+[  185.454359][  T809]  save_trace.cold+0x14/0x19
+[  185.458944][  T809]  mark_lock+0x2fb/0x1380
+[  185.463242][  T809]  ? is_bpf_text_address+0xac/0x170
+[  185.468401][  T809]  ? print_shortest_lock_dependencies+0x90/0x90
+[  185.474608][  T809]  __lock_acquire+0x1317/0x3fb0
+[  185.479423][  T809]  ? lock_downgrade+0x880/0x880
+[  185.484239][  T809]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  185.490438][  T809]  ? is_dynamic_key+0x1c0/0x1c0
+[  185.495251][  T809]  ? mark_held_locks+0xf0/0xf0
+[  185.499975][  T809]  ? __lock_acquire+0x548/0x3fb0
+[  185.504875][  T809]  ? __kernel_text_address+0xd/0x40
+[  185.510033][  T809]  ? unwind_get_return_address+0x61/0xa0
+[  185.515627][  T809]  lock_acquire+0x16f/0x3f0
+[  185.520095][  T809]  ? flush_workqueue+0xf7/0x14c0
+[  185.525009][  T809]  flush_workqueue+0x126/0x14c0
+[  185.529824][  T809]  ? flush_workqueue+0xf7/0x14c0
+[  185.534722][  T809]  ? lock_downgrade+0x880/0x880
+[  185.539537][  T809]  ? pwq_unbound_release_workfn+0x2f0/0x2f0
+[  185.545395][  T809]  ? wait_for_completion+0x440/0x440
+[  185.550686][  T809]  ? mutex_trylock+0x1e0/0x1e0
+[  185.555425][  T809]  ? ucma_free_ctx+0xb90/0xb90
+[  185.560165][  T809]  drain_workqueue+0x1b4/0x470
+[  185.564900][  T809]  ? drain_workqueue+0x1b4/0x470
+[  185.569804][  T809]  ? fsnotify+0x811/0xbc0
+[  185.574102][  T809]  ? ucma_free_ctx+0xb90/0xb90
+[  185.578862][  T809]  destroy_workqueue+0x21/0x700
+[  185.583692][  T809]  ? ucma_free_ctx+0xb90/0xb90
+[  185.588414][  T809]  ucma_close+0x289/0x320
+[  185.592706][  T809]  ? __might_sleep+0x95/0x190
+[  185.597343][  T809]  ? ucma_free_ctx+0xb90/0xb90
+[  185.602069][  T809]  __fput+0x2e5/0x8d0
+[  185.606015][  T809]  ____fput+0x16/0x20
+[  185.609956][  T809]  task_work_run+0x14a/0x1c0
+[  185.614530][  T809]  exit_to_usermode_loop+0x273/0x2c0
+[  185.619778][  T809]  do_syscall_64+0x52d/0x610
+[  185.624342][  T809]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  185.630195][  T809] RIP: 0033:0x400ef0
+[  185.634068][  T809] Code: 01 f0 ff ff 0f 83 20 0c 00 00 c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 44 00 00 83 3d dd 17 2d 00 00 75 14 b8 03 00 00 00 0f 05 <48> 3d 01 f0 ff ff 0f 83 f4 0b 00 00 c3 48 83 ec 08 e8 5a 01 00 00
+[  185.653672][  T809] RSP: 002b:00007ffecc78cbb8 EFLAGS: 00000246 ORIG_RAX: 0000000000000003

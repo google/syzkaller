@@ -1,0 +1,164 @@
+TITLE: KASAN: stack-out-of-bounds Read in iov_iter_advance
+ALT: bad-access in iov_iter_advance
+
+[   81.174109] ==================================================================
+[   81.174125] BUG: KASAN: stack-out-of-bounds in iov_iter_advance+0x4c0/0x4f0 at addr ffff8801ca657d38
+[   81.174129] Read of size 8 by task syz-executor5/12434
+[   81.174136] page:ffffea00072995c0 count:0 mapcount:0 mapping:          (null) index:0x0
+[   81.174141] flags: 0x200000000000000()
+[   81.174144] page dumped because: kasan: bad access detected
+[   81.219855]  0000000000000001 ffff8800ba75f830 ffffffff81cac64d 1ffff100174ebf0a
+[   81.227938]  ffffffff82cae060 dffffc0000000000 ffff8800ba75f8f0 00000000024000c2
+[   81.235928]  ffff8800ba75f948 ffffffff81400659 ffff880200000001 0000000000000000
+[   81.243919] Call Trace:
+[   81.246487]  [<ffffffff81cac64d>] dump_stack+0xc1/0x124
+[   81.251826]  [<ffffffff81400659>] warn_alloc_failed+0x1c9/0x240
+[   81.257859]  [<ffffffff81400490>] ? zone_watermark_ok_safe+0x2a0/0x2a0
+[   81.264501]  [<ffffffff811ef330>] ? debug_check_no_locks_freed+0x2c0/0x2c0
+[   81.271488]  [<ffffffff814c373d>] ? alloc_pages_current+0x12d/0x3d0
+[   81.277872]  [<ffffffff814aa5cb>] __vmalloc_node_range+0x56b/0x6f0
+[   81.284167]  [<ffffffff8145acd6>] ? kmalloc_order_trace+0x86/0x190
+[   81.290633]  [<ffffffff814aa820>] vmalloc+0x60/0x70
+[   81.295626]  [<ffffffff82434c76>] ? xt_alloc_entry_offsets+0x46/0x60
+[   81.302093]  [<ffffffff82434c76>] xt_alloc_entry_offsets+0x46/0x60
+[   81.308386]  [<ffffffff82760bbb>] translate_table+0x2fb/0x1b60
+[   81.314333]  [<ffffffff814cf498>] ? ___slab_alloc+0x448/0x550
+[   81.320194]  [<ffffffff827608c0>] ? arpt_alloc_initial_table+0x6a0/0x6a0
+[   81.327015]  [<ffffffff814767b9>] ? __might_fault+0xe9/0x1d0
+[   81.332799]  [<ffffffff814767e9>] ? __might_fault+0x119/0x1d0
+[   81.338657]  [<ffffffff82764c85>] do_arpt_set_ctl+0x295/0x5b0
+[   81.344517]  [<ffffffff827649f0>] ? compat_do_arpt_set_ctl+0x6a0/0x6a0
+[   81.351159]  [<ffffffff82a06e90>] ? mutex_trylock+0x1e0/0x1e0
+[   81.357021]  [<ffffffff82a077f2>] ? mutex_unlock+0x12/0x20
+[   81.362622]  [<ffffffff8239a24c>] ? nf_sockopt_find.constprop.0+0x1ac/0x220
+[   81.369695]  [<ffffffff8239a3fc>] nf_setsockopt+0x6c/0xc0
+[   81.375207]  [<ffffffff825dda36>] ip_setsockopt+0xa6/0xc0
+[   81.380720]  [<ffffffff825fcf47>] tcp_setsockopt+0x87/0xd0
+[   81.386320]  [<ffffffff8156c3d6>] ? __fget_light+0xa6/0x1e0
+[   81.392010]  [<ffffffff82202fca>] sock_common_setsockopt+0x9a/0xe0
+[   81.399088]  [<ffffffff8220027d>] SyS_setsockopt+0x15d/0x240
+[   81.404858]  [<ffffffff82200120>] ? SyS_recv+0x40/0x40
+[   81.410109]  [<ffffffff8156c4d0>] ? __fget_light+0x1a0/0x1e0
+[   81.415885]  [<ffffffff81002284>] ? lockdep_sys_exit_thunk+0x12/0x14
+[   81.422439]  [<ffffffff82a16b1b>] entry_SYSCALL_64_fastpath+0x18/0x94
+[   81.428999] CPU: 0 PID: 12434 Comm: syz-executor5 Not tainted 4.4.114+ #249
+[   81.429116] Mem-Info:
+[   81.429135] active_anon:49698 inactive_anon:20 isolated_anon:0
+[   81.429135]  active_file:3605 inactive_file:7475 isolated_file:0
+[   81.429135]  unevictable:0 dirty:102 writeback:0 unstable:0
+[   81.429135]  slab_reclaimable:4964 slab_unreclaimable:8278
+[   81.429135]  mapped:24075 shmem:26 pagetables:676 bounce:0
+[   81.429135]  free:1551197 free_pcp:519 free_cma:0
+[   81.429161] Node 0 DMA free:15904kB min:324kB low:404kB high:484kB active_anon:0kB inactive_anon:0kB active_file:0kB inactive_file:0kB unevictable:0kB isolated(anon):0kB isolated(file):0kB present:15992kB managed:15904kB mlocked:0kB dirty:0kB writeback:0kB mapped:0kB shmem:0kB slab_reclaimable:0kB slab_unreclaimable:0kB kernel_stack:0kB pagetables:0kB unstable:0kB bounce:0kB free_pcp:0kB local_pcp:0kB free_cma:0kB writeback_tmp:0kB pages_scanned:0 all_unreclaimable? yes
+[   81.429169] lowmem_reserve[]: 0 2936 6453 6453
+[   81.429195] Node 0 DMA32 free:2821564kB min:61364kB low:76704kB high:92044kB active_anon:107768kB inactive_anon:12kB active_file:7108kB inactive_file:10020kB unevictable:0kB isolated(anon):0kB isolated(file):0kB present:3129292kB managed:3012004kB mlocked:0kB dirty:172kB writeback:0kB mapped:34476kB shmem:24kB slab_reclaimable:4712kB slab_unreclaimable:13276kB kernel_stack:1792kB pagetables:1040kB unstable:0kB bounce:0kB free_pcp:840kB local_pcp:300kB free_cma:0kB writeback_tmp:0kB pages_scanned:0 all_unreclaimable? no
+[   81.429203] lowmem_reserve[]: 0 0 3516 3516
+[   81.429228] Node 0 Normal free:3367320kB min:73476kB low:91844kB high:110212kB active_anon:91024kB inactive_anon:68kB active_file:7312kB inactive_file:19880kB unevictable:0kB isolated(anon):0kB isolated(file):0kB present:4718592kB managed:3601032kB mlocked:0kB dirty:236kB writeback:0kB mapped:61824kB shmem:80kB slab_reclaimable:15144kB slab_unreclaimable:19836kB kernel_stack:3008kB pagetables:1664kB unstable:0kB bounce:0kB free_pcp:1236kB local_pcp:644kB free_cma:0kB writeback_tmp:0kB pages_scanned:0 all_unreclaimable? no
+[   81.429235] lowmem_reserve[]: 0 0 0 0
+[   81.429270] Node 0 DMA: 0*4kB 0*8kB 0*16kB 1*32kB (U) 2*64kB (U) 1*128kB (U) 1*256kB (U) 0*512kB 1*1024kB (U) 1*2048kB (U) 3*4096kB (M) = 15904kB
+[   81.429310] Node 0 DMA32: 85*4kB (UM) 170*8kB (UME) 203*16kB (UME) 179*32kB (UM) 148*64kB (UM) 70*128kB (UME) 12*256kB (UME) 8*512kB (UM) 4*1024kB (UME) 2*2048kB (ME) 678*4096kB (UM) = 2821556kB
+[   81.429351] Node 0 Normal: 164*4kB (UM) 243*8kB (UME) 152*16kB (UME) 132*32kB (UM) 137*64kB (UME) 88*128kB (UME) 13*256kB (UM) 5*512kB (UM) 4*1024kB (UME) 5*2048kB (UME) 810*4096kB (M) = 3367272kB
+[   81.429353] 11105 total pagecache pages
+[   81.429356] 0 pages in swap cache
+[   81.429360] Swap cache stats: add 0, delete 0, find 0/0
+[   81.429362] Free swap  = 0kB
+[   81.429364] Total swap = 0kB
+[   81.429366] 1965969 pages RAM
+[   81.429367] 0 pages HighMem/MovableOnly
+[   81.429369] 308734 pages reserved
+[   81.499041] vmalloc: allocation failure: 17178820608 bytes
+[   81.499047] syz-executor7: page allocation failure: order:0, mode:0x24000c2
+[   81.709227] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   81.718558]  0000000000000000 ffff8801ca6579e0 ffffffff81cac64d ffffed00394cafa7
+[   81.726560]  ffffed00394cafa7 0000000000000008 0000000000000000 ffff8801ca657d38
+[   81.734551]  ffff8801ca657a68 ffffffff814d588d ffff8801ccdc4680 0000000000000001
+[   81.742557] Call Trace:
+[   81.745128]  [<ffffffff81cac64d>] dump_stack+0xc1/0x124
+[   81.750475]  [<ffffffff814d588d>] kasan_report.part.2+0x44d/0x540
+[   81.756691]  [<ffffffff81ce6f10>] ? iov_iter_advance+0x4c0/0x4f0
+[   81.762818]  [<ffffffff81476863>] ? __might_fault+0x193/0x1d0
+[   81.768680]  [<ffffffff814d5a3e>] __asan_report_load8_noabort+0x2e/0x30
+[   81.775414]  [<ffffffff81ce6f10>] iov_iter_advance+0x4c0/0x4f0
+[   81.781363]  [<ffffffff820882d3>] tun_get_user+0x2e3/0x2370
+[   81.787053]  [<ffffffff82087ff0>] ? tun_net_xmit+0x1110/0x1110
+[   81.793005]  [<ffffffff811e8241>] ? __lock_is_held+0xa1/0xf0
+[   81.798779]  [<ffffffff82082e81>] ? __tun_get+0x131/0x240
+[   81.804292]  [<ffffffff8208a57a>] tun_chr_write_iter+0xda/0x190
+[   81.810328]  [<ffffffff815103fe>] __vfs_write+0x32e/0x440
+[   81.815846]  [<ffffffff815100d0>] ? __vfs_read+0x420/0x420
+[   81.821454]  [<ffffffff81b70667>] ? apparmor_file_permission+0x27/0x30
+[   81.828098]  [<ffffffff815118c5>] ? rw_verify_area+0x105/0x2f0
+[   81.834046]  [<ffffffff81511fdf>] vfs_write+0x18f/0x530
+[   81.839386]  [<ffffffff815146b9>] SyS_write+0xd9/0x1b0
+[   81.844647]  [<ffffffff815145e0>] ? SyS_read+0x1b0/0x1b0
+[   81.850078]  [<ffffffff81002284>] ? lockdep_sys_exit_thunk+0x12/0x14
+[   81.856550]  [<ffffffff82a16b1b>] entry_SYSCALL_64_fastpath+0x18/0x94
+[   81.863104] Memory state around the buggy address:
+[   81.863111] CPU: 1 PID: 12430 Comm: syz-executor7 Not tainted 4.4.114+ #249
+[   81.863118] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   81.863127]  0000000000000001 ffff8800ba75f830 ffffffff81cac64d 1ffff100174ebf0a
+[   81.863135]  ffffffff82cae060 dffffc0000000000 ffff8800ba75f8f0 00000000024000c2
+[   81.863143]  ffff8800ba75f948 ffffffff81400659 ffff880200000001 0000000000000000
+[   81.863144] Call Trace:
+[   81.863153]  [<ffffffff81cac64d>] dump_stack+0xc1/0x124
+[   81.863161]  [<ffffffff81400659>] warn_alloc_failed+0x1c9/0x240
+[   81.863168]  [<ffffffff81400490>] ? zone_watermark_ok_safe+0x2a0/0x2a0
+[   81.863176]  [<ffffffff811e8480>] ? SOFTIRQ_verbose+0x10/0x10
+[   81.863185]  [<ffffffff811ef330>] ? debug_check_no_locks_freed+0x2c0/0x2c0
+[   81.863192]  [<ffffffff814c373d>] ? alloc_pages_current+0x12d/0x3d0
+[   81.863201]  [<ffffffff814aa5cb>] __vmalloc_node_range+0x56b/0x6f0
+[   81.863208]  [<ffffffff8145acd6>] ? kmalloc_order_trace+0x86/0x190
+[   81.863215]  [<ffffffff814aa820>] vmalloc+0x60/0x70
+[   81.863224]  [<ffffffff82434c76>] ? xt_alloc_entry_offsets+0x46/0x60
+[   81.863230]  [<ffffffff82434c76>] xt_alloc_entry_offsets+0x46/0x60
+[   81.863238]  [<ffffffff82760bbb>] translate_table+0x2fb/0x1b60
+[   81.863246]  [<ffffffff811e8480>] ? SOFTIRQ_verbose+0x10/0x10
+[   81.863254]  [<ffffffff814cf498>] ? ___slab_alloc+0x448/0x550
+[   81.863261]  [<ffffffff827608c0>] ? arpt_alloc_initial_table+0x6a0/0x6a0
+[   81.863270]  [<ffffffff814767b9>] ? __might_fault+0xe9/0x1d0
+[   81.863278]  [<ffffffff814767e9>] ? __might_fault+0x119/0x1d0
+[   81.863286]  [<ffffffff82764c85>] do_arpt_set_ctl+0x295/0x5b0
+[   81.863293]  [<ffffffff827649f0>] ? compat_do_arpt_set_ctl+0x6a0/0x6a0
+[   81.863300]  [<ffffffff82a06e90>] ? mutex_trylock+0x1e0/0x1e0
+[   81.863307]  [<ffffffff82a077f2>] ? mutex_unlock+0x12/0x20
+[   81.863316]  [<ffffffff8239a24c>] ? nf_sockopt_find.constprop.0+0x1ac/0x220
+[   81.863322]  [<ffffffff8239a3fc>] nf_setsockopt+0x6c/0xc0
+[   81.863330]  [<ffffffff825dda36>] ip_setsockopt+0xa6/0xc0
+[   81.863337]  [<ffffffff825fcf47>] tcp_setsockopt+0x87/0xd0
+[   81.863345]  [<ffffffff8156c3d6>] ? __fget_light+0xa6/0x1e0
+[   81.863354]  [<ffffffff82202fca>] sock_common_setsockopt+0x9a/0xe0
+[   81.863361]  [<ffffffff8220027d>] SyS_setsockopt+0x15d/0x240
+[   81.863368]  [<ffffffff82200120>] ? SyS_recv+0x40/0x40
+[   81.863377]  [<ffffffff81002284>] ? lockdep_sys_exit_thunk+0x12/0x14
+[   81.863385]  [<ffffffff82a16b1b>] entry_SYSCALL_64_fastpath+0x18/0x94
+[   81.863388] Mem-Info:
+[   81.863406] active_anon:49673 inactive_anon:45 isolated_anon:0
+[   81.863406]  active_file:3605 inactive_file:7475 isolated_file:0
+[   81.863406]  unevictable:0 dirty:102 writeback:0 unstable:0
+[   81.863406]  slab_reclaimable:4964 slab_unreclaimable:8304
+[   81.863406]  mapped:24149 shmem:63 pagetables:639 bounce:0
+[   81.863406]  free:1551167 free_pcp:489 free_cma:0
+[   81.863432] Node 0 DMA free:15904kB min:324kB low:404kB high:484kB active_anon:0kB inactive_anon:0kB active_file:0kB inactive_file:0kB unevictable:0kB isolated(anon):0kB isolated(file):0kB present:15992kB managed:15904kB mlocked:0kB dirty:0kB writeback:0kB mapped:0kB shmem:0kB slab_reclaimable:0kB slab_unreclaimable:0kB kernel_stack:0kB pagetables:0kB unstable:0kB bounce:0kB free_pcp:0kB local_pcp:0kB free_cma:0kB writeback_tmp:0kB pages_scanned:0 all_unreclaimable? yes
+[   81.863439] lowmem_reserve[]: 0 2936 6453 6453
+[   81.863465] Node 0 DMA32 free:2821768kB min:61364kB low:76704kB high:92044kB active_anon:107568kB inactive_anon:12kB active_file:7108kB inactive_file:10020kB unevictable:0kB isolated(anon):0kB isolated(file):0kB present:3129292kB managed:3012004kB mlocked:0kB dirty:172kB writeback:0kB mapped:34624kB shmem:24kB slab_reclaimable:4712kB slab_unreclaimable:13276kB kernel_stack:1792kB pagetables:892kB unstable:0kB bounce:0kB free_pcp:1204kB local_pcp:664kB free_cma:0kB writeback_tmp:0kB pages_scanned:0 all_unreclaimable? no
+[   81.863473] lowmem_reserve[]: 0 0 3516 3516
+[   81.863498] Node 0 Normal free:3366996kB min:73476kB low:91844kB high:110212kB active_anon:91124kB inactive_anon:168kB active_file:7312kB inactive_file:19880kB unevictable:0kB isolated(anon):0kB isolated(file):0kB present:4718592kB managed:3601032kB mlocked:0kB dirty:236kB writeback:0kB mapped:61972kB shmem:228kB slab_reclaimable:15144kB slab_unreclaimable:19940kB kernel_stack:3008kB pagetables:1664kB unstable:0kB bounce:0kB free_pcp:752kB local_pcp:160kB free_cma:0kB writeback_tmp:0kB pages_scanned:0 all_unreclaimable? no
+[   81.863505] lowmem_reserve[]: 0 0 0 0
+[   81.863541] Node 0 DMA: 0*4kB 0*8kB 0*16kB 1*32kB (U) 2*64kB (U) 1*128kB (U) 1*256kB (U) 0*512kB 1*1024kB (U) 1*2048kB (U) 3*4096kB (M) = 15904kB
+[   81.863581] Node 0 DMA32: 102*4kB (UM) 178*8kB (UME) 202*16kB (UME) 182*32kB (UM) 148*64kB (UM) 70*128kB (UME) 12*256kB (UME) 8*512kB (UM) 4*1024kB (UME) 2*2048kB (ME) 678*4096kB (UM) = 2821768kB
+[   81.863620] Node 0 Normal: 181*4kB (UM) 241*8kB (UME) 153*16kB (UME) 122*32kB (M) 137*64kB (UME) 87*128kB (UME) 13*256kB (UM) 5*512kB (UM) 4*1024kB (UME) 5*2048kB (UME) 810*4096kB (M) = 3366892kB
+[   81.863623] 11142 total pagecache pages
+[   81.863625] 0 pages in swap cache
+[   81.863629] Swap cache stats: add 0, delete 0, find 0/0
+[   81.863631] Free swap  = 0kB
+[   81.863633] Total swap = 0kB
+[   81.863635] 1965969 pages RAM
+[   81.863637] 0 pages HighMem/MovableOnly
+[   81.863639] 308734 pages reserved
+[   82.356238]  ffff8801ca657c00: f2 f2 f2 00 00 00 00 00 f2 f2 f2 f3 f3 f3 f3 00
+[   82.363566]  ffff8801ca657c80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[   82.370894] >ffff8801ca657d00: f1 f1 f1 f1 00 00 f2 f2 f2 f2 f2 f2 00 00 00 00
+[   82.378222]                                         ^
+[   82.383382]  ffff8801ca657d80: 00 f2 f2 f2 f2 f2 f2 f2 00 00 00 00 00 f2 f2 f2
+[   82.390710]  ffff8801ca657e00: f3 f3 f3 f3 00 00 00 00 00 00 00 00 00 00 00 00
+[   82.398044] ==================================================================

@@ -1,0 +1,48 @@
+TITLE: INFO: rcu detected stall in mousedev_write
+ALT: stall in mousedev_write
+TYPE: HANG
+
+[  489.536147] rcu: INFO: rcu_sched self-detected stall on CPU
+[  489.542259] rcu: 	1-....: (104999 ticks this GP) idle=19e/1/0x4000000000000002 softirq=112269/112269 fqs=19579 
+[  489.552836] rcu: 	 (t=105000 jiffies g=225813 q=1973)
+[  489.558034] NMI backtrace for cpu 1
+[  489.561659] CPU: 1 PID: 21558 Comm: syz-executor5 Not tainted 4.18.0+ #203
+[  489.568681] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  489.578024] Call Trace:
+[  489.580590]  <IRQ>
+[  489.582742]  dump_stack+0x1c9/0x2b4
+[  489.605152]  nmi_cpu_backtrace.cold.3+0x48/0x88
+[  489.615031]  nmi_trigger_cpumask_backtrace+0x151/0x192
+[  489.620303]  arch_trigger_cpumask_backtrace+0x14/0x20
+[  489.625482]  rcu_dump_cpu_stacks+0x175/0x1c2
+[  489.634885]  print_cpu_stall.cold.78+0x2fb/0x59c
+[  489.660436]  rcu_check_callbacks+0xd4a/0x15a0
+[  489.763624]  update_process_times+0x2d/0x70
+[  489.767934]  tick_sched_handle+0x9f/0x180
+[  489.772076]  tick_sched_timer+0x45/0x130
+[  489.776132]  __hrtimer_run_queues+0x3eb/0xff0
+[  489.825496]  hrtimer_interrupt+0x2f3/0x750
+[  489.829726]  smp_apic_timer_interrupt+0x16d/0x6a0
+[  489.882166]  apic_timer_interrupt+0xf/0x20
+[  489.886385]  </IRQ>
+[  489.888622] RIP: 0010:_raw_spin_unlock_irq+0x56/0x70
+[  489.912610] RSP: 0018:ffff88018eb8faf8 EFLAGS: 00000286 ORIG_RAX: ffffffffffffff13
+[  489.920323] RAX: dffffc0000000000 RBX: ffff8801bff42be8 RCX: 0000000000000000
+[  489.927581] RDX: 1ffffffff0fe379f RSI: 0000000000000001 RDI: ffffffff87f1bcf8
+[  489.934838] RBP: ffff88018eb8fb00 R08: ffff88018d902000 R09: 0000000000000000
+[  489.942093] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000c6c5ef
+[  489.949350] R13: dffffc0000000000 R14: 0000000000c6c5ef R15: ffff8801bff42be8
+[  489.961123]  mousedev_write+0x19d/0x840
+[  489.970770]  __vfs_write+0x117/0x9d0
+[  490.009169]  vfs_write+0x1fc/0x560
+[  490.012705]  ksys_write+0x101/0x260
+[  490.025464]  __x64_sys_write+0x73/0xb0
+[  490.029373]  do_syscall_64+0x1b9/0x820
+[  490.068264]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  490.073439] RIP: 0033:0x457089
+[  490.095520] RSP: 002b:00007f0d92208c78 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
+[  490.103219] RAX: ffffffffffffffda RBX: 00007f0d922096d4 RCX: 0000000000457089
+[  490.110563] RDX: 00000000ffffffd1 RSI: 00000000200001c0 RDI: 0000000000000005
+[  490.117820] RBP: 00000000009300a0 R08: 0000000000000000 R09: 0000000000000000
+[  490.125073] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000ffffffff
+[  490.132328] R13: 00000000004d7088 R14: 00000000004ca379 R15: 0000000000000000

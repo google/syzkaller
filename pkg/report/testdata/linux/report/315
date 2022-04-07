@@ -1,0 +1,46 @@
+# This is not corrupted but we don't understand this stack trace format.
+TITLE: PANIC: double fault in trace_hardirqs_off_thunk
+CORRUPTED: Y
+
+[    0.004000] PANIC: double fault, error_code: 0x0
+[    0.004000] CPU: 0 PID: 0 Comm: swapper/0 Not tainted 4.18.0-rc4-00074-g19efe000 #2
+[    0.004000] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+[    0.004000] RIP: 0010:trace_hardirqs_off_thunk+0xb/0x1c
+[    0.004000] Code: 5f 5d c3 55 48 89 e5 57 56 52 51 50 41 50 41 51 41 52 41 53 48 8b 7d 08 e8 f5 4e 2b 00 eb 34 55 48 89 e5 57 56 52 51 50 41 50 <41> 51 41 52 41 53 48 8b 7d 08 e8 eb 52 2b 00 eb 18 55 48 89 e5 57 
+[    0.004000] RSP: 0000:ffffc90000000000 EFLAGS: 00010087
+[    0.004000] RAX: 0000000082800a97 RBX: 0000000000000001 RCX: ffffffff82800a97
+[    0.004000] RDX: 0000000000000000 RSI: ffffffff82800f68 RDI: ffffffff83678c68
+[    0.004000] RBP: ffffc90000000030 R08: 0000000000000000 R09: 0000000000000000
+[    0.004000] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
+[    0.004000] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
+[    0.004000] FS:  0000000000000000(0000) GS:ffff880013400000(0000) knlGS:0000000000000000
+[    0.004000] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[    0.004000] CR2: ffffc8fffffffff8 CR3: 000000000366e000 CR4: 00000000000406b0
+[    0.004000] Call Trace:
+[    0.004000] Kernel panic - not syncing: Machine halted.
+[    0.004000] CPU: 0 PID: 0 Comm: swapper/0 Not tainted 4.18.0-rc4-00074-g19efe000 #2
+[    0.004000] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+[    0.004000] Call Trace:
+[    0.004000]  <#DF>
+[    0.004000]  dump_stack+0x9b/0xe7
+[    0.004000]  panic+0x1ad/0x325
+[    0.004000]  ? refcount_error_report+0x267/0x267
+[    0.004000]  df_debug+0x32/0x32
+[    0.004000]  do_double_fault+0x1b3/0x1c7
+[    0.004000]  double_fault+0x23/0x30
+[    0.004000] RIP: 0010:trace_hardirqs_off_thunk+0xb/0x1c
+[    0.004000] Code: 5f 5d c3 55 48 89 e5 57 56 52 51 50 41 50 41 51 41 52 41 53 48 8b 7d 08 e8 f5 4e 2b 00 eb 34 55 48 89 e5 57 56 52 51 50 41 50 <41> 51 41 52 41 53 48 8b 7d 08 e8 eb 52 2b 00 eb 18 55 48 89 e5 57 
+[    0.004000] RSP: 0000:ffffc90000000000 EFLAGS: 00010087
+[    0.004000] RAX: 0000000082800a97 RBX: 0000000000000001 RCX: ffffffff82800a97
+[    0.004000] RDX: 0000000000000000 RSI: ffffffff82800f68 RDI: ffffffff83678c68
+[    0.004000] RBP: ffffc90000000030 R08: 0000000000000000 R09: 0000000000000000
+[    0.004000] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
+[    0.004000] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
+[    0.004000]  ? native_iret+0x7/0x7
+[    0.004000]  ? async_page_fault+0x8/0x30
+[    0.004000] WARNING: kernel stack regs at (____ptrval____) in swapper/0:0 has bad 'bp' value (____ptrval____)
+[    0.004000] unwind stack type:0 next_sp:(____ptrval____) mask:0x20 graph_idx:0
+[    0.004000] (____ptrval____): fffffe0000008e00 (0xfffffe0000008e00)
+[    0.004000] (____ptrval____): ffffffff81045a52 (show_trace_log_lvl+0x1ec/0x2c8)
+[    0.004000] (____ptrval____): ffffffff82800f68 (async_page_fault+0x8/0x30)
+[    0.004000] (____ptrval____): fffffe0000008fd8 (0xfffffe0000008fd8)

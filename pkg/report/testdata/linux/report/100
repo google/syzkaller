@@ -1,0 +1,9 @@
+TITLE: general protection fault in corrupted
+ALT: bad-access in corrupted
+CORRUPTED: Y
+
+[ 1722.511384] kasan: CONFIG_KASAN_INLINE enabled
+[ 1722.511384] kasan: GPF could be caused by NULL-ptr deref or user memory access
+[ 1722.511384] general protection fault: 0000 [#1] SMP KASAN
+[ 1722.511384] Modules linked in:
+[ 1722.511384] CPU: 1 PID: 18769 Comm: syz-executor2 Not tainted 4.3.5+ #10

@@ -1,0 +1,2 @@
+compiler: unsupported syscall: inotify_init due to missing const __NR_inotify_init [arm64]
+compiler: unsupported syscall: ioctl$INOTIFY_IOC_SETNEXTWD due to missing const INOTIFY_IOC_SETNEXTWD [arm]

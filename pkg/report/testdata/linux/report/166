@@ -1,0 +1,118 @@
+TITLE: WARNING: suspicious RCU usage in bpf_prog_array_copy_info
+
+[   24.271604] =============================
+[   24.275791] WARNING: suspicious RCU usage
+[   24.279952] 4.15.0+ #10 Not tainted
+[   24.283625] -----------------------------
+[   24.287794] ./include/linux/rcupdate.h:302 Illegal context switch in RCU read-side critical section!
+[   24.297101] 
+[   24.297101] other info that might help us debug this:
+[   24.297101] 
+[   24.305269] 
+[   24.305269] rcu_scheduler_active = 2, debug_locks = 1
+[   24.311963] 3 locks held by syzkaller076311/4159:
+[   24.316826]  #0:  (&ctx->mutex){+.+.}, at: [<0000000027c8872d>] perf_event_ctx_lock_nested+0x21b/0x450
+[   24.326332]  #1:  (bpf_event_mutex){+.+.}, at: [<0000000092294d8c>] perf_event_query_prog_array+0x10e/0x280
+[   24.336270]  #2:  (rcu_read_lock){....}, at: [<000000002b518ca0>] bpf_prog_array_copy_to_user+0x0/0x4d0
+[   24.345854] 
+[   24.345854] stack backtrace:
+[   24.350373] CPU: 0 PID: 4159 Comm: syzkaller076311 Not tainted 4.15.0+ #10
+[   24.357363] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   24.366690] Call Trace:
+[   24.369257]  dump_stack+0x194/0x257
+[   24.372863]  ? arch_local_irq_restore+0x53/0x53
+[   24.377529]  lockdep_rcu_suspicious+0x123/0x170
+[   24.382181]  ___might_sleep+0x385/0x470
+[   24.386133]  ? trace_event_raw_event_sched_switch+0x800/0x800
+[   24.392013]  __might_sleep+0x95/0x190
+[   24.395790]  ? __lock_is_held+0xb6/0x140
+[   24.399834]  __might_fault+0xab/0x1d0
+[   24.403613]  _copy_to_user+0x2c/0xc0
+[   24.407327]  bpf_prog_array_copy_to_user+0x217/0x4d0
+[   24.412412]  ? bpf_prog_array_length+0x2d0/0x2d0
+[   24.417152]  ? __might_sleep+0x95/0x190
+[   24.421117]  ? kasan_check_read+0x11/0x20
+[   24.425241]  ? _copy_to_user+0xa2/0xc0
+[   24.429110]  bpf_prog_array_copy_info+0x17b/0x1c0
+[   24.433936]  ? bpf_prog_array_copy+0x370/0x370
+[   24.438515]  perf_event_query_prog_array+0x196/0x280
+[   24.443597]  ? perf_event_detach_bpf_prog+0x3d0/0x3d0
+[   24.448766]  ? handle_mm_fault+0x248/0x8d0
+[   24.452990]  perf_ioctl+0x3e1/0x1480
+[   24.456687]  ? SYSC_perf_event_open+0x2f10/0x2f10
+[   24.461503]  ? __do_page_fault+0x5f7/0xc90
+[   24.465722]  ? lock_downgrade+0x980/0x980
+[   24.470243]  ? handle_mm_fault+0x410/0x8d0
+[   24.474453]  ? down_read_trylock+0xdb/0x170
+[   24.478747]  ? __do_page_fault+0x32d/0xc90
+[   24.482958]  ? __handle_mm_fault+0x3ce0/0x3ce0
+[   24.487511]  ? vmacache_find+0x5f/0x280
+[   24.491485]  ? up_read+0x1a/0x40
+[   24.494827]  ? __do_page_fault+0x3d6/0xc90
+[   24.499072]  ? SYSC_perf_event_open+0x2f10/0x2f10
+[   24.503889]  do_vfs_ioctl+0x1b1/0x1520
+[   24.507761]  ? ioctl_preallocate+0x2b0/0x2b0
+[   24.512151]  ? selinux_capable+0x40/0x40
+[   24.516228]  ? security_file_ioctl+0x89/0xb0
+[   24.520621]  SyS_ioctl+0x8f/0xc0
+[   24.523974]  entry_SYSCALL_64_fastpath+0x29/0xa0
+[   24.528712] RIP: 0033:0x43ffd9
+[   24.531876] RSP: 002b:00007ffde8594aa8 EFLAGS: 00000217 ORIG_RAX: 0000000000000010
+[   24.539560] RAX: ffffffffffffffda RBX: ffffffffffffffff RCX: 000000000043ffd9
+[   24.546802] RDX: 0000000020a40000 RSI: 00000000c008240a RDI: 0000000000000004
+[   24.554071] RBP: 00000000006ca018 R08: 0000000000000000 R09: 0000000000000000
+[   24.561317] R10: 0000000000000000 R11: 0000000000000217 R12: 0000000000401900
+[   24.568560] R13: 0000000000401990 R14: 0000000000000000 R15: 0000000000000000
+[   24.575983] BUG: sleeping function called from invalid context at lib/usercopy.c:25
+[   24.583814] in_atomic(): 1, irqs_disabled(): 0, pid: 4159, name: syzkaller076311
+[   24.591379] 3 locks held by syzkaller076311/4159:
+[   24.596249]  #0:  (&ctx->mutex){+.+.}, at: [<0000000027c8872d>] perf_event_ctx_lock_nested+0x21b/0x450
+[   24.605750]  #1:  (bpf_event_mutex){+.+.}, at: [<0000000092294d8c>] perf_event_query_prog_array+0x10e/0x280
+[   24.615699]  #2:  (rcu_read_lock){....}, at: [<000000002b518ca0>] bpf_prog_array_copy_to_user+0x0/0x4d0
+[   24.625296] CPU: 0 PID: 4159 Comm: syzkaller076311 Not tainted 4.15.0+ #10
+[   24.632293] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   24.641635] Call Trace:
+[   24.644205]  dump_stack+0x194/0x257
+[   24.647814]  ? arch_local_irq_restore+0x53/0x53
+[   24.652461]  ? print_lock+0x9f/0xa2
+[   24.656066]  ? lockdep_print_held_locks+0xc4/0x130
+[   24.660983]  ___might_sleep+0x2b2/0x470
+[   24.664931]  ? trace_event_raw_event_sched_switch+0x800/0x800
+[   24.670810]  __might_sleep+0x95/0x190
+[   24.674586]  ? __lock_is_held+0xb6/0x140
+[   24.678630]  __might_fault+0xab/0x1d0
+[   24.682412]  _copy_to_user+0x2c/0xc0
+[   24.686109]  bpf_prog_array_copy_to_user+0x217/0x4d0
+[   24.691203]  ? bpf_prog_array_length+0x2d0/0x2d0
+[   24.695934]  ? __might_sleep+0x95/0x190
+[   24.699897]  ? kasan_check_read+0x11/0x20
+[   24.704032]  ? _copy_to_user+0xa2/0xc0
+[   24.707902]  bpf_prog_array_copy_info+0x17b/0x1c0
+[   24.712731]  ? bpf_prog_array_copy+0x370/0x370
+[   24.717313]  perf_event_query_prog_array+0x196/0x280
+[   24.722396]  ? perf_event_detach_bpf_prog+0x3d0/0x3d0
+[   24.727564]  ? handle_mm_fault+0x248/0x8d0
+[   24.731790]  perf_ioctl+0x3e1/0x1480
+[   24.735484]  ? SYSC_perf_event_open+0x2f10/0x2f10
+[   24.740301]  ? __do_page_fault+0x5f7/0xc90
+[   24.744512]  ? lock_downgrade+0x980/0x980
+[   24.748651]  ? handle_mm_fault+0x410/0x8d0
+[   24.752865]  ? down_read_trylock+0xdb/0x170
+[   24.757160]  ? __do_page_fault+0x32d/0xc90
+[   24.761371]  ? __handle_mm_fault+0x3ce0/0x3ce0
+[   24.765924]  ? vmacache_find+0x5f/0x280
+[   24.769887]  ? up_read+0x1a/0x40
+[   24.773230]  ? __do_page_fault+0x3d6/0xc90
+[   24.777458]  ? SYSC_perf_event_open+0x2f10/0x2f10
+[   24.782275]  do_vfs_ioctl+0x1b1/0x1520
+[   24.786151]  ? ioctl_preallocate+0x2b0/0x2b0
+[   24.790540]  ? selinux_capable+0x40/0x40
+[   24.794617]  ? security_file_ioctl+0x89/0xb0
+[   24.799019]  SyS_ioctl+0x8f/0xc0
+[   24.802381]  entry_SYSCALL_64_fastpath+0x29/0xa0
+[   24.807122] RIP: 0033:0x43ffd9
+[   24.810285] RSP: 002b:00007ffde8594aa8 EFLAGS: 00000217 ORIG_RAX: 0000000000000010
+[   24.817968] RAX: ffffffffffffffda RBX: ffffffffffffffff RCX: 000000000043ffd9
+[   24.825213] RDX: 0000000020a40000 RSI: 00000000c008240a RDI: 0000000000000004
+[   24.832455] RBP: 00000000006ca018 R08: 0000000000000000 R09: 0000000000000000
+[   24.839700] R10: 0000000000000000 R11: 0000000000

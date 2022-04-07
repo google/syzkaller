@@ -1,0 +1,65 @@
+TITLE: inconsistent lock state in vprintk_emit
+
+[    0.000000][    C0] ================================
+[    0.000000][    C0] WARNING: inconsistent lock state
+[    0.000000][    C0] 5.10.2 #24 Not tainted
+[    0.000000][    C0] --------------------------------
+[    0.000000][    C0] inconsistent {INITIAL USE} -> {IN-NMI} usage.
+[    0.000000][    C0] swapper/0 [HC1[1]:SC0[0]:HE0:SE1] takes:
+[    0.000000][    C0] ffffa00019b517b8 (logbuf_lock){....}-{2:2}, at: vprintk_emit+0xec/0x510
+[    0.000000][    C0] {INITIAL USE} state was registered at:
+[    0.000000][    C0]   __lock_acquire+0x5ac/0x58f0
+[    0.000000][    C0]   lock_acquire.part.0+0x330/0x820
+[    0.000000][    C0]   lock_acquire+0x94/0xc0
+[    0.000000][    C0]   _raw_spin_lock+0x90/0x120
+[    0.000000][    C0]   vprintk_emit+0xec/0x510
+[    0.000000][    C0]   vprintk_default+0x48/0x60
+[    0.000000][    C0]   vprintk_func+0x394/0x730
+[    0.000000][    C0]   printk+0xbc/0xf4
+[    0.000000][    C0]   smp_setup_processor_id+0x44/0x50
+[    0.000000][    C0]   start_kernel+0x40/0x4f4
+[    0.000000][    C0] irq event stamp: 0
+[    0.000000][    C0] hardirqs last  enabled at (0): [<0000000000000000>] 0x0
+[    0.000000][    C0] hardirqs last disabled at (0): [<0000000000000000>] 0x0
+[    0.000000][    C0] softirqs last  enabled at (0): [<0000000000000000>] 0x0
+[    0.000000][    C0] softirqs last disabled at (0): [<0000000000000000>] 0x0
+[    0.000000][    C0] 
+[    0.000000][    C0] other info that might help us debug this:
+[    0.000000][    C0]  Possible unsafe locking scenario:
+[    0.000000][    C0] 
+[    0.000000][    C0]        CPU0
+[    0.000000][    C0]        ----
+[    0.000000][    C0]   lock(logbuf_lock);
+[    0.000000][    C0]   <Interrupt>
+[    0.000000][    C0]     lock(logbuf_lock);
+[    0.000000][    C0] 
+[    0.000000][    C0]  *** DEADLOCK ***
+[    0.000000][    C0] 
+[    0.000000][    C0] no locks held by swapper/0.
+[    0.000000][    C0] 
+[    0.000000][    C0] stack backtrace:
+[    0.000000][    C0] CPU: 0 PID: 0 Comm: swapper Not tainted 5.10.2 #24
+[    0.000000][    C0] Hardware name: linux,dummy-virt (DT)
+[    0.000000][    C0] Call trace:
+[    0.000000][    C0]  dump_backtrace+0x0/0x4f4
+[    0.000000][    C0]  show_stack+0x30/0x80
+[    0.000000][    C0]  dump_stack+0x1f0/0x294
+[    0.000000][    C0]  print_usage_bug.part.0+0x52c/0x550
+[    0.000000][    C0]  lock_acquire.part.0+0x610/0x820
+[    0.000000][    C0]  lock_acquire+0x94/0xc0
+[    0.000000][    C0]  _raw_spin_lock+0x90/0x120
+[    0.000000][    C0]  vprintk_emit+0xec/0x510
+[    0.000000][    C0]  vprintk_deferred+0x48/0x6c
+[    0.000000][    C0]  printk_deferred+0xbc/0xf4
+[    0.000000][    C0]  __printk_safe_flush+0x4ac/0x4e0
+[    0.000000][    C0]  printk_safe_flush+0xb4/0x1f0
+[    0.000000][    C0]  printk_safe_flush_on_panic+0x104/0x130
+[    0.000000][    C0]  panic+0x4a4/0x8b8
+[    0.000000][    C0]  bad_mode+0x14c/0x1b4
+[    0.000000][    C0]  el1_inv+0x3c/0x5c
+[    0.000000][    C0]  el1_sync_handler+0x80/0x170
+[    0.000000][    C0]  el1_sync+0x80/0x100
+[    0.000000][    C0]  update_cpu_capabilities+0x0/0x3c0
+[    0.000000][    C0]  cpuinfo_store_boot_cpu+0xc4/0xd4
+[    0.000000][    C0]  smp_prepare_boot_cpu+0x98/0xac
+[    0.000000][    C0]  start_kernel+0xc8/0x4f4

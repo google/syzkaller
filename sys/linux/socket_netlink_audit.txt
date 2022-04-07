@@ -1,0 +1,81 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/net.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/audit.h>
+
+resource sock_nl_audit[sock_netlink]
+
+socket$nl_audit(domain const[AF_NETLINK], type const[SOCK_RAW], proto const[NETLINK_AUDIT]) sock_nl_audit
+
+type nl_audit_msg[CMD, DATA] ptr[in, msghdr_netlink[netlink_msg[CMD, DATA, void]]]
+
+sendmsg$AUDIT_GET(fd sock_nl_audit, msg nl_audit_msg[AUDIT_GET, void], f flags[send_flags])
+sendmsg$AUDIT_SET(fd sock_nl_audit, msg nl_audit_msg[AUDIT_SET, audit_status], f flags[send_flags])
+sendmsg$AUDIT_USER(fd sock_nl_audit, msg nl_audit_msg[AUDIT_USER, array[int8]], f flags[send_flags])
+sendmsg$AUDIT_USER_AVC(fd sock_nl_audit, msg nl_audit_msg[AUDIT_USER_AVC, array[int8]], f flags[send_flags])
+sendmsg$AUDIT_USER_TTY(fd sock_nl_audit, msg nl_audit_msg[AUDIT_USER_TTY, array[int8]], f flags[send_flags])
+sendmsg$AUDIT_SET_FEATURE(fd sock_nl_audit, msg nl_audit_msg[AUDIT_SET_FEATURE, audit_features], f flags[send_flags])
+sendmsg$AUDIT_GET_FEATURE(fd sock_nl_audit, msg nl_audit_msg[AUDIT_GET_FEATURE, void], f flags[send_flags])
+sendmsg$AUDIT_ADD_RULE(fd sock_nl_audit, msg nl_audit_msg[AUDIT_ADD_RULE, audit_rule_data], f flags[send_flags])
+sendmsg$AUDIT_DEL_RULE(fd sock_nl_audit, msg nl_audit_msg[AUDIT_DEL_RULE, audit_rule_data], f flags[send_flags])
+sendmsg$AUDIT_LIST_RULES(fd sock_nl_audit, msg nl_audit_msg[AUDIT_LIST_RULES, void], f flags[send_flags])
+sendmsg$AUDIT_TRIM(fd sock_nl_audit, msg nl_audit_msg[AUDIT_TRIM, void], f flags[send_flags])
+sendmsg$AUDIT_MAKE_EQUIV(fd sock_nl_audit, msg nl_audit_msg[AUDIT_MAKE_EQUIV, audit_make_equiv], f flags[send_flags])
+sendmsg$AUDIT_SIGNAL_INFO(fd sock_nl_audit, msg nl_audit_msg[AUDIT_SIGNAL_INFO, void], f flags[send_flags])
+sendmsg$AUDIT_TTY_GET(fd sock_nl_audit, msg nl_audit_msg[AUDIT_TTY_GET, void], f flags[send_flags])
+sendmsg$AUDIT_TTY_SET(fd sock_nl_audit, msg nl_audit_msg[AUDIT_TTY_SET, audit_tty_status], f flags[send_flags])
+
+audit_status {
+	mask				flags[audit_status_mask, int32]
+	enabled				bool32
+	failure				flags[audit_fail_action, int32]
+	pid				pid
+	rate_limit			int32
+	backlog_limit			int32
+	lost				int32
+	backlog				int32
+	feature_bitmap			const[0, int32]
+	backlog_wait_time		int32
+	backlog_wait_time_actual	int32
+}
+
+audit_status_mask = AUDIT_STATUS_ENABLED, AUDIT_STATUS_FAILURE, AUDIT_STATUS_PID, AUDIT_STATUS_RATE_LIMIT, AUDIT_STATUS_BACKLOG_LIMIT, AUDIT_STATUS_BACKLOG_WAIT_TIME, AUDIT_STATUS_LOST
+audit_fail_action = AUDIT_FAIL_SILENT, AUDIT_FAIL_PRINTK, AUDIT_FAIL_PANIC
+
+audit_features {
+	vers		const[AUDIT_FEATURE_VERSION, int32]
+	mask		flags[audit_features, int32]
+	features	flags[audit_features, int32]
+	lock		flags[audit_features, int32]
+}
+
+audit_features = AUDIT_FEATURE_ONLY_UNSET_LOGINUID, AUDIT_FEATURE_LOGINUID_IMMUTABLE
+
+audit_rule_data {
+	flags		flags[audit_rule_flags, int32]
+	action		flags[audit_rule_action, int32]
+	field_count	int32[0:AUDIT_MAX_FIELDS]
+	mask		array[int32, AUDIT_BITMASK_SIZE]
+	fields		array[int32, AUDIT_MAX_FIELDS]
+	values		array[int32, AUDIT_MAX_FIELDS]
+	fieldflags	array[int32, AUDIT_MAX_FIELDS]
+	buflen		bytesize[buf, int32]
+	buf		array[string]
+}
+
+audit_rule_flags = AUDIT_FILTER_USER, AUDIT_FILTER_TASK, AUDIT_FILTER_ENTRY, AUDIT_FILTER_WATCH, AUDIT_FILTER_EXIT, AUDIT_FILTER_EXCLUDE, AUDIT_FILTER_FS, AUDIT_FILTER_PREPEND
+audit_rule_action = AUDIT_NEVER, AUDIT_POSSIBLE, AUDIT_ALWAYS
+
+audit_make_equiv {
+	oldlen	bytesize[old, int32]
+	newlen	bytesize[new, int32]
+	old	stringnoz[filename]
+	new	stringnoz[filename]
+} [packed]
+
+audit_tty_status {
+	enabled		bool32
+	log_passwd	bool32
+}

@@ -1,0 +1,20 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+
+resource zx_time[int64]: 0, ZX_TIME_INFINITE
+
+zx_nanosleep(deadline zx_time)
+zx_clock_get(clock_id flags[clock_id], zx_time ptr[out, intptr]) (ignore_return)
+zx_clock_get_monotonic() (ignore_return)
+zx_ticks_get() (ignore_return)
+zx_ticks_per_second()
+zx_deadline_after(ns int64) zx_time (ignore_return)
+
+# TODO: undocumented
+# zx_clock_adjust?
+
+syz_future_time(when intptr[0:1]) zx_time
+
+clock_id = ZX_CLOCK_MONOTONIC, ZX_CLOCK_UTC, ZX_CLOCK_THREAD

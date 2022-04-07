@@ -1,0 +1,103 @@
+TITLE: unexpected kernel reboot
+TYPE: REBOOT
+
+[00037.711] 07800.07847> PageFault: 500574 free pages
+[00037.712] 07800.07847> PageFault: MemoryUsed: proc  1127   26M 'fshost'
+[00037.712] 07800.07847> PageFault: 500574 free pages
+[00037.712] 07800.07847> PageFault: MemoryUsed: proc  1127   26M 'fshost'
+[00037.717] 0788[00000.000] 00000.00000> zbi: @ 0xffffff8000c62000 (10549960 bytes)
+[00000.000] 00000.00000> UART: FIFO depth 16
+[00000.000] 00000.00000> PMM: boot reserve add [0x100000, 0x2d1fff]
+[00000.000] 00000.00000> PMM: boot reserve add [0xc62000, 0x1671fff]
+[00000.000] 00000.00000> PMM: boot reserve marking WIRED [0x100000, 0x2d1fff]
+[00000.000] 00000.00000> PMM: boot reserve marking WIRED [0xc62000, 0x1671fff]
+[00000.000] 00000.00000> 
+[00000.000] 00000.00000> welcome to Zircon
+[00000.000] 00000.00000> 
+[00000.000] 00000.00000> KASLR: .text section at 0xffffffff00100000
+[00000.000] 00000.00000> INIT: cpu 0, calling hook 0xffffffff001b1d50 (global_prng_seed) at level 0x30000, flags 0x1
+[00000.000] 00000.00000> initializing vm pre-heap
+[00000.000] 00000.00000> VM: marking boot alloc used range [0x1672000, 0x1672040)
+[00000.000] 00000.00000> INIT: cpu 0, calling hook 0xffffffff001514f0 (elf_build_id) at level 0x4fffe, flags 0x1
+[00000.000] 00000.00000> INIT: cpu 0, calling hook 0xffffffff00151690 (version) at level 0x4ffff, flags 0x1
+[00000.000] 00000.00000> version:
+[00000.000] 00000.00000> 	arch:     x86
+[00000.000] 00000.00000> 	platform: pc
+[00000.000] 00000.00000> 	target:   pc
+[00000.000] 00000.00000> 	project:  x64
+[00000.000] 00000.00000> 	buildid:  git-7ce261f8df05c3157b32d84e106744f43b4bfc77-dirty
+[00000.000] 00000.00000> 	ELF build ID: 125ba74e65fad35c
+[00000.000] 00000.00000> initializing heap
+[00000.000] 00000.00000> INIT: cpu 0, calling hook 0xffffffff00104170 (x86_resource_init) at level 0x50000, flags 0x1
+[00000.000] 00000.00000> INIT: cpu 0, calling hook 0xffffffff001b0330 (console) at level 0x50000, flags 0x1
+[00000.000] 00000.00000> initializing vm
+[00000.000] 00000.00000> VM: reserving kernel region [0xffffffff00100000, 0xffffffff001f5000) flags 0x28 name 'kernel_code'
+[00000.000] 00000.00000> VM: reserving kernel region [0xffffffff001f5000, 0xffffffff0023e000) flags 0x8 name 'kernel_rodata'
+[00000.000] 00000.00000> VM: reserving kernel region [0xffffffff0023e000, 0xffffffff0024e000) flags 0x18 name 'kernel_data'
+[00000.000] 00000.00000> VM: reserving kernel region [0xffffffff0024e000, 0xffffffff002d2000) flags 0x18 name 'kernel_bss'
+[00000.000] 00000.00000> INIT: cpu 0, calling hook 0xffffffff00101170 (acpi_tables) at level 0x60001, flags 0x1
+[00000.000] 00000.00000> INIT: cpu 0, calling hook 0xffffffff00105110 (display_memtype) at level 0x60001, flags 0x1
+[00000.000] 00000.00000> INIT: cpu 0, calling hook 0xffffffff00102540 (hpet) at level 0x60002, flags 0x1
+[00000.000] 00000.00000> INIT: cpu 0, calling hook 0xffffffff001029a0 (apic) at level 0x60002, flags 0x1
+[00000.000] 00000.00000> x2APIC enabled
+[00000.000] 00000.00000> INIT: cpu 0, calling hook 0xffffffff00107bf0 (timer) at level 0x60003, flags 0x1
+[00000.000] 00000.00000> pvclock: Clocksource is stable
+[00000.000] 00000.00000> HPET frequency: 100000 ticks/ms
+[00000.000] 00000.00000> pvclock: Fetching TSC frequency
+[00000.000] 00000.00000> TSC frequency: 2593992 ticks/ms
+[00037.835] 00000.00000> timer features: constant_tsc 1 invariant_tsc 1 tsc_deadline 1
+[00037.835] 00000.00000> Using TSC as wallclock
+[00037.835] 00000.00000> initializing kernel
+[00037.835] 00000.00000> initializing mp
+[00037.835] 00000.00000> initializing timers
+[00037.835] 00000.00000> INIT: cpu 0, calling hook 0xffffffff00142500 (debuglog) at level 0x7ffff, flags 0x1
+[00037.835] 00000.00000> INIT: cpu 0, calling hook 0xffffffff0019b5a0 (thread_set_priority_experiment) at level 0x7ffff, flags 0x1
+[00037.835] 00000.00000> thread set priority experiment is : ENABLED
+[00037.835] 00000.00000> INIT: cpu 0, calling hook 0xffffffff001b2090 (global_prng_thread_safe) at level 0x7ffff, flags 0x1
+[00037.835] 00000.00000> creating bootstrap completion thread
+[00037.864] 00000.00000> top of bootstrap2()
+[00037.864] 00000.00000> INIT: cpu 0, calling hook 0xffffffff00135000 (dpc) at level 0x80000, flags 0x1
+[00037.865] 00000.00000> INIT: cpu 0, calling hook 0xffffffff0015e480 (libobject) at level 0x80000, flags 0x1
+[00037.865] 00000.00000> OOM: started thread
+[00037.867] 00000.00000> Processor Model Info: type 0 family 0x6 model 0xf stepping 0x1
+[00037.867] 00000.00000> 	display_family 0x6 display_model 0x4f
+[00037.867] 00000.00000> Vendor: Intel
+[00037.867] 00000.00000> Microarch: Broadwell
+[00037.867] 00000.00000> F/M/S: 6/4f/1
+[00037.867] 00000.00000> Brand: Intel(R) Xeon(R) CPU E5-2690 v4 @ 2.60GHz
+[00037.867] 00000.00000> Features: fpu sse sse2 sse3 ssse3 sse4.1 sse4.2 mmx avx avx2 fxsr pcid xsave aesni clflush 
+[00037.867] 00000.00000> fsgsbase tsc_adj smep smap erms rdrand rdseed umip syscall nx huge rdtscp invar_tsc 
+[00037.867] 00000.00000> tsc_deadline x2apic hypervisor 
+[00037.867] 00000.00000> x86_perfmon_have_mchbar_data:386: perfmon: unsupported pci device: 0x8086.0x29c0
+[00037.867] 00000.00000> initializing platform
+[00037.867] 00000.00000> UART: started IRQ driven RX
+[00037.867] 00000.00000> UART: started IRQ driven TX
+[00037.867] 00000.00000> cpu topology:
+[00037.867] 00000.00000> 	0: apic id 0x0 package 0 node 0 core 0 smt 0 BSP
+[00037.867] 00000.00000> 	1: apic id 0x1 package 0 node 0 core 0 smt 1
+[00037.867] 00000.00000> 	2: apic id 0x2 package 1 node 0 core 0 smt 0
+[00037.867] 00000.00000> 	3: apic id 0x3 package 1 node 0 core 0 smt 1
+[00037.867] 00000.00000> Found 4 cpus
+[00037.867] 00000.00000> booting apic ids: 0x1 0x2 0x3 
+[00037.878] 00000.00000> entering scheduler on cpu 2
+[00037.878] 00000.00000> entering scheduler on cpu 1
+[00037.878] 00000.00000> entering scheduler on cpu 3
+[00037.881] 00000.00000> smbios: manufacturer="QEMU" product="Standard PC (Q35 + ICH9, 2009)"
+[00037.881] 00000.00000> initializing target
+[00037.881] 00000.00000> INIT: cpu 0, calling hook 0xffffffff00106c40 (x86_pcie_init) at level 0xa0000, flags 0x1
+[00037.881] 00000.00000> moving to last init level
+[00037.881] 00000.00000> INIT: cpu 0, calling hook 0xffffffff0014b690 (ktrace) at level 0xc0000, flags 0x1
+[00037.897] 00000.00000> ktrace: buffer at 0xffffff93cbdee000 (33554432 bytes)
+[00037.897] 00000.00000> INIT: cpu 0, calling hook 0xffffffff0014fd50 (userboot) at level 0xc0000, flags 0x1
+[00037.897] 00000.00000> userboot: ramdisk        0xa10000 @ 0xffffff8000c62000
+[00037.901] 00000.00000> userboot: userboot rodata       0 @ [0x77c04a1a1000,0x77c04a1a4000)
+[00037.901] 00000.00000> userboot: userboot code    0x3000 @ [0x77c04a1a4000,0x77c04a1b8000)
+[00037.901] 00000.00000> userboot: vdso/full rodata       0 @ [0x77c04a1b8000,0x77c04a1be000)
+[00037.901] 00000.00000> userboot: vdso/full code    0x6000 @ [0x77c04a1be000,0x77c04a1bf000)
+[00037.901] 00000.00000> userboot: entry point             @ 0x77c04a1a4b10
+[00037.901] 00000.00000> INIT: cpu 0, calling hook 0xffffffff001b0880 (kernel_shell) at level 0xc0000, flags 0x1
+[00037.902] 01031.01038> userboot: option "/usr/local/google/home/cpu/src/garnet/zircon/build-x64-clang/multiboot.bin="
+[00037.902] 01031.01038> userboot: option "kernel.halt-on-panic=true"
+[00037.902] 01031.01038> userboot: option "kernel.serial=legacy"
+[00037.902] 01031.01038> userboot: option "TERM=xterm-256color"
+[00037.902] 01031.01038> userboot: option "kernel.entropy-mixin.redacted=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"

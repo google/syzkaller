@@ -1,0 +1,44 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/net.h>
+include <uapi/linux/ip.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/netfilter.h>
+include <uapi/linux/netfilter/nfnetlink.h>
+include <uapi/linux/netfilter/nfnetlink_osf.h>
+
+type msghdr_nf_osf[CMD] msghdr_netlink[netlink_msg_netfilter_t[NFNL_SUBSYS_OSF, CMD, nfnl_osf_policy]]
+
+sendmsg$OSF_MSG_ADD(fd sock_nl_netfilter, msg ptr[in, msghdr_nf_osf[OSF_MSG_ADD]], f flags[send_flags])
+sendmsg$OSF_MSG_REMOVE(fd sock_nl_netfilter, msg ptr[in, msghdr_nf_osf[OSF_MSG_REMOVE]], f flags[send_flags])
+
+nfnl_osf_policy {
+	OSF_ATTR_FINGER	nlattr[OSF_ATTR_FINGER, nf_osf_user_finger]
+}
+
+nf_osf_user_finger {
+	wss	nf_osf_wc
+	ttl	int8
+	df	int8
+	ss	int16
+	mss	int16
+	opt_num	int16[0:MAX_IPOPTLEN]
+	genre	string[xt_osf_genre, MAXGENRELEN]
+	version	array[int8, MAXGENRELEN]
+	subtype	array[int8, MAXGENRELEN]
+	opt	array[nf_osf_opt, MAX_IPOPTLEN]
+}
+
+nf_osf_wc {
+	wc	flags[nf_osf_window_size_options, int32]
+	val	int32
+}
+
+nf_osf_opt {
+	kind	int16
+	length	int16
+	wc	nf_osf_wc
+}
+
+nf_osf_window_size_options = OSF_WSS_PLAIN, OSF_WSS_MSS, OSF_WSS_MTU, OSF_WSS_MODULO

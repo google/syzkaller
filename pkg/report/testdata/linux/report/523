@@ -1,0 +1,96 @@
+TITLE: INFO: rcu detected stall in corrupted
+ALT: stall in corrupted
+TYPE: HANG
+CORRUPTED: Y
+
+[    9.545061][    T1] devtmpfs: initialized
+[    9.590105][    T1] x86/mm: Memory block size: 128MB
+[    9.890105][   T33] kworker/u17:0 (33) used greatest stack depth: 27448 bytes left
+[  118.704531][    T1] rcu: INFO: rcu_preempt detected expedited stalls on CPUs/tasks: { 2-... } 10886 jiffies s: 25 root: 0x4/.
+[  118.770640][    T1] rcu: blocking rcu_node structures:
+[  118.810521][    T1] Task dump for CPU 2:
+[  118.831578][    T1] swapper/0       R  running task    28272     1      0 0x00004000
+[  118.872247][    T1] Call Trace:
+[  118.906021][    T1]  sched_show_task.cold+0x2da/0x33e
+[  118.931273][    T1]  ? cpu_cgroup_can_attach+0x110/0x110
+[  118.962164][    T1]  ? _raw_spin_unlock_irqrestore+0x62/0xe0
+[  118.990882][    T1]  ? _find_next_bit.constprop.0+0x1a3/0x200
+[  119.030866][    T1]  rcu_exp_wait_wake.cold+0x4a0/0x7ef
+[  119.070461][    T1]  ? rcu_core_si+0x10/0x10
+[  119.090202][    T1]  ? sync_rcu_exp_select_cpus+0x33a/0x720
+[  119.120302][    T1]  synchronize_rcu_expedited+0x502/0x5f0
+[  119.150343][    T1]  ? rcu_exp_wait_wake+0x520/0x520
+[  119.190732][    T1]  ? lock_acquire+0x1f1/0xad0
+[  119.230883][    T1]  ? __alloc_pages_nodemask+0x3b1/0x930
+[  119.280500][    T1]  ? find_held_lock+0x2d/0x110
+[  119.310220][    T1]  ? lock_downgrade+0x820/0x820
+[  119.340426][    T1]  ? __zone_watermark_ok+0x370/0x370
+[  119.380387][    T1]  ? lock_is_held_type+0xb0/0xe0
+[  119.420553][    T1]  ? lock_is_held_type+0xb0/0xe0
+[  119.460683][    T1]  ? initcall_blacklisted+0x124/0x190
+[  119.510604][    T1]  ? __bpf_trace_initcall_finish+0x100/0x100
+[  119.560511][    T1]  ? rcu_read_lock_sched_held+0x3a/0xb0
+[  119.610452][    T1]  ? __alloc_pages_nodemask+0x6b1/0x930
+[  119.650436][    T1]  ? lock_is_held_type+0xb0/0xe0
+[  119.692005][    T1]  ? irq_alloc_matrix+0x191/0x191
+[  119.730575][    T1]  synchronize_rcu+0xdf/0x180
+[  119.760255][    T1]  ? synchronize_rcu_expedited+0x5f0/0x5f0
+[  119.800673][    T1]  ? __inc_numa_state+0x44/0xe0
+[  119.830460][    T1]  ? alloc_page_interleave+0x88/0x1b0
+[  119.860320][    T1]  ? lock_is_held_type+0xb0/0xe0
+[  119.890331][    T1]  ? irq_alloc_matrix+0x191/0x191
+[  119.930377][    T1]  rcu_set_runtime_mode+0x5/0x5a
+[  119.960465][    T1]  do_one_initcall+0x10a/0x7b0
+[  120.000355][    T1]  ? perf_trace_initcall_level+0x3d0/0x3d0
+[  120.051028][    T1]  ? parameq+0x150/0x170
+[  120.090467][    T1]  ? kernel_init_freeable+0x398/0x5a3
+[  120.130791][    T1]  ? rcu_read_lock_sched_held+0x3a/0xb0
+[  120.180348][    T1]  ? lock_is_held_type+0xb0/0xe0
+[  120.210341][    T1]  kernel_init_freeable+0x4f4/0x5a3
+[  120.250390][    T1]  ? rest_init+0x360/0x360
+[  120.270367][    T1]  kernel_init+0xd/0x1c0
+[  120.300423][    T1]  ret_from_fork+0x1f/0x30
+[  436.140105][    T1] rcu: INFO: rcu_preempt detected expedited stalls on CPUs/tasks: { 2-... } 42631 jiffies s: 25 root: 0x4/.
+[  436.242676][    T1] rcu: blocking rcu_node structures:
+[  436.281285][    T1] Task dump for CPU 2:
+[  436.313477][    T1] swapper/0       R  running task    28272     1      0 0x00004000
+[  436.374828][    T1] Call Trace:
+[  436.410105][    T1]  sched_show_task.cold+0x2da/0x33e
+[  436.441149][    T1]  ? cpu_cgroup_can_attach+0x110/0x110
+[  436.473688][    T1]  ? _raw_spin_unlock_irqrestore+0x62/0xe0
+[  436.500873][    T1]  ? _find_next_bit.constprop.0+0x1a3/0x200
+[  436.520238][    T1]  rcu_exp_wait_wake.cold+0x4a0/0x7ef
+[  436.540390][    T1]  ? rcu_core_si+0x10/0x10
+[  436.560375][    T1]  ? sync_rcu_exp_select_cpus+0x33a/0x720
+[  436.590332][    T1]  synchronize_rcu_expedited+0x502/0x5f0
+[  436.610247][    T1]  ? rcu_exp_wait_wake+0x520/0x520
+[  436.640459][    T1]  ? lock_acquire+0x1f1/0xad0
+[  436.660573][    T1]  ? __alloc_pages_nodemask+0x3b1/0x930
+[  436.690232][    T1]  ? find_held_lock+0x2d/0x110
+[  436.720391][    T1]  ? lock_downgrade+0x820/0x820
+[  436.750371][    T1]  ? __zone_watermark_ok+0x370/0x370
+[  436.770298][    T1]  ? lock_is_held_type+0xb0/0xe0
+[  436.800187][    T1]  ? lock_is_held_type+0xb0/0xe0
+[  436.820503][    T1]  ? initcall_blacklisted+0x124/0x190
+[  436.850394][    T1]  ? __bpf_trace_initcall_finish+0x100/0x100
+[  436.890362][    T1]  ? rcu_read_lock_sched_held+0x3a/0xb0
+[  436.920374][    T1]  ? __alloc_pages_nodemask+0x6b1/0x930
+[  436.950606][    T1]  ? lock_is_held_type+0xb0/0xe0
+[  436.991643][    T1]  ? irq_alloc_matrix+0x191/0x191
+[  437.020628][    T1]  synchronize_rcu+0xdf/0x180
+[  437.060521][    T1]  ? synchronize_rcu_expedited+0x5f0/0x5f0
+[  437.090374][    T1]  ? __inc_numa_state+0x44/0xe0
+[  437.110489][    T1]  ? alloc_page_interleave+0x88/0x1b0
+[  437.140456][    T1]  ? lock_is_held_type+0xb0/0xe0
+[  437.160383][    T1]  ? irq_alloc_matrix+0x191/0x191
+[  437.200532][    T1]  rcu_set_runtime_mode+0x5/0x5a
+[  437.222500][    T1]  do_one_initcall+0x10a/0x7b0
+[  437.250678][    T1]  ? perf_trace_initcall_level+0x3d0/0x3d0
+[  437.290474][    T1]  ? parameq+0x150/0x170
+[  437.310367][    T1]  ? kernel_init_freeable+0x398/0x5a3
+[  437.340275][    T1]  ? rcu_read_lock_sched_held+0x3a/0xb0
+[  437.370509][    T1]  ? lock_is_held_type+0xb0/0xe0
+[  437.410724][    T1]  kernel_init_freeable+0x4f4/0x5a3
+[  437.450379][    T1]  ? rest_init+0x360/0x360
+[  437.480371][    T1]  kernel_init+0xd/0x1c0
+[  437.510442][    T1]  ret_from_fork+0x1f/0x30

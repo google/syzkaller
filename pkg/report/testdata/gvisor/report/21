@@ -1,0 +1,11 @@
+TITLE: fatal error: newosproc
+SUPPRESSED: Y
+
+runtime: failed to create new OS thread (have 25 already; errno=11)
+runtime: may need to increase max user processes (ulimit -u)
+fatal error: newosproc
+executing program
+W1016 23:14:39.681210   17547 x:0] Wait RPC to container "syzkaller" failed: <nil>. Will try waiting on the sandbox process instead.
+W1016 23:14:39.681194   38814 x:0] FATAL ERROR: error waiting on pid 19: error waiting on PID 19 in sandbox "syzkaller": urpc method "containerManager.WaitPID" failed: EOF
+error waiting on pid 19: error waiting on PID 19 in sandbox "syzkaller": urpc method "containerManager.WaitPID" failed: EOF
+I1016 23:14:40.684713   17547 x:0] Exiting with status: 512

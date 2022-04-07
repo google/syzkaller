@@ -1,0 +1,53 @@
+FILE: fs/xattr.c
+
+WARNING: CPU: 0 PID: 4406 at mm/slab_common.c:1031 kmalloc_slab+0x56/0x70 mm/slab_common.c:1031
+Kernel panic - not syncing: panic_on_warn set ...
+
+CPU: 0 PID: 4406 Comm: syz-executor177 Not tainted 4.18.0-rc4-next-20180713+ #7
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Call Trace:
+ __dump_stack lib/dump_stack.c:77 [inline]
+ dump_stack+0x1c9/0x2b4 lib/dump_stack.c:113
+ panic+0x238/0x4e7 kernel/panic.c:184
+ __warn.cold.8+0x163/0x1ba kernel/panic.c:536
+ report_bug+0x252/0x2d0 lib/bug.c:186
+ fixup_bug arch/x86/kernel/traps.c:178 [inline]
+ do_error_trap+0x1fc/0x4d0 arch/x86/kernel/traps.c:296
+ do_invalid_op+0x1b/0x20 arch/x86/kernel/traps.c:316
+ invalid_op+0x14/0x20 arch/x86/entry/entry_64.S:996
+RIP: 0010:kmalloc_slab+0x56/0x70 mm/slab_common.c:1031
+Code: c5 c0 1a d1 88 5d c3 b8 10 00 00 00 48 85 ff 74 f4 83 ef 01 c1 ef 03 0f b6 87 e0 19 d1 88 eb d8 31 c0 81 e6 00 02 00 00 75 db <0f> 0b 5d c3 48 8b 04 c5 00 1a d1 88 5d c3 66 90 66 2e 0f 1f 84 00
+RSP: 0018:ffff8801af0ef830 EFLAGS: 00010246
+RAX: 0000000000000000 RBX: 0000000000000000 RCX: ffffffff81d098cd
+RDX: ffffffff81d09964 RSI: 0000000000000000 RDI: 0000000000550001
+RBP: ffff8801af0ef830 R08: ffff8801b640c6c0 R09: fffffbfff12569a0
+R10: fffffbfff12569a0 R11: ffffffff892b4d03 R12: 0000000000550001
+R13: 0000000000600040 R14: ffff8801af0ef998 R15: 0000000000600040
+ __do_kmalloc mm/slab.c:3713 [inline]
+ __kmalloc_track_caller+0x21/0x760 mm/slab.c:3733
+ __do_krealloc mm/slab_common.c:1468 [inline]
+ krealloc+0x65/0xb0 mm/slab_common.c:1515
+ vfs_getxattr_alloc+0x274/0x3c0 fs/xattr.c:288
+ cap_inode_getsecurity+0x104/0x820 security/commoncap.c:396
+ security_inode_getsecurity+0xe1/0x130 security/security.c:866
+ xattr_getsecurity fs/xattr.c:243 [inline]
+ vfs_getxattr+0x1db/0x390 fs/xattr.c:331
+ getxattr+0x139/0x2c0 fs/xattr.c:537
+ path_getxattr+0x103/0x1b0 fs/xattr.c:565
+ __do_sys_getxattr fs/xattr.c:577 [inline]
+ __se_sys_getxattr fs/xattr.c:574 [inline]
+ __x64_sys_getxattr+0x9d/0x100 fs/xattr.c:574
+ do_syscall_64+0x1b9/0x820 arch/x86/entry/common.c:290
+ entry_SYSCALL_64_after_hwframe+0x49/0xbe
+RIP: 0033:0x440639
+Code: 18 89 d0 c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 fb 13 fc ff c3 66 2e 0f 1f 84 00 00 00 00
+RSP: 002b:00007ffdc307f058 EFLAGS: 00000217 ORIG_RAX: 00000000000000bf
+RAX: ffffffffffffffda RBX: 0030656c69662f2e RCX: 0000000000440639
+RDX: 00000000200002c0 RSI: 0000000020000500 RDI: 00000000200004c0
+RBP: 64663d736e617274 R08: 00007ffdc307f1d8 R09: 00007ffdc307f1d8
+R10: 0000000000000143 R11: 0000000000000217 R12: 0000000000401ec0
+R13: 0000000000401f50 R14: 0000000000000000 R15: 0000000000000000
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Kernel Offset: disabled
+Rebooting in 86400 seconds..

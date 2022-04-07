@@ -1,0 +1,119 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/param.h>
+include <sys/ioctl.h>
+include <sys/fcntl.h>
+
+include <machine/param.h>
+include <machine/vmmvar.h>
+
+resource fd_vmm[fd]
+
+openat$vmm(fd const[AT_FDCWD], file ptr[in, string["/dev/vmm"]], flags flags[open_flags], mode const[0]) fd_vmm
+
+ioctl$VMM_IOC_CREATE(fd fd_vmm, cmd const[VMM_IOC_CREATE], arg ptr[in, vm_create_params])
+ioctl$VMM_IOC_INFO(fd fd_vmm, cmd const[VMM_IOC_INFO], arg ptr[out, vm_info_params])
+ioctl$VMM_IOC_INTR(fd fd_vmm, cmd const[VMM_IOC_INTR], arg ptr[in, vm_intr_params])
+ioctl$VMM_IOC_READREGS(fd fd_vmm, cmd const[VMM_IOC_READREGS], arg ptr[out, vm_rwregs_params])
+ioctl$VMM_IOC_RESETCPU(fd fd_vmm, cmd const[VMM_IOC_RESETCPU], arg ptr[in, vm_resetcpu_params])
+ioctl$VMM_IOC_RUN(fd fd_vmm, cmd const[VMM_IOC_RUN], arg ptr[in, vm_run_params])
+ioctl$VMM_IOC_TERM(fd fd_vmm, cmd const[VMM_IOC_TERM], arg ptr[in, vm_terminate_params])
+ioctl$VMM_IOC_WRITEREGS(fd fd_vmm, cmd const[VMM_IOC_WRITEREGS], arg ptr[in, vm_rwregs_params])
+
+vcpu_reg_state {
+	vrs_gprs	array[int64, VCPU_REGS_NGPRS]
+	vrs_crs		array[int64, VCPU_REGS_NCRS]
+	vrs_msrs	array[int64, VCPU_REGS_NMSRS]
+	vrs_drs		array[int64, VCPU_REGS_NDRS]
+	vrs_sregs	array[vcpu_segment_info, VCPU_REGS_NSREGS]
+	vrs_gdtr	vcpu_segment_info
+	vrs_idtr	vcpu_segment_info
+}
+
+vcpu_segment_info {
+	vsi_sel		int16
+	vsi_limit	int32
+	vsi_ar		int32
+	vsi_base	int64
+}
+
+vm_create_params {
+	vcp_nmemranges	len[vcp_memranges, int64]
+	vcp_ncpus	int64
+	vcp_ndisks	len[vcp_disks, int64]
+	vcp_nnics	int64
+	vcp_memranges	array[vm_mem_range, VMM_MAX_MEM_RANGES]
+	vcp_disks	array[string[filename, VMM_MAX_PATH_DISK], VMM_MAX_DISKS_PER_VM]
+	vcp_cdrom	string[filename, VMM_MAX_PATH_CDROM]
+	vcp_name	string[filename, VMM_MAX_NAME_LEN]
+	vcp_kernel	string[filename, VMM_MAX_KERNEL_PATH]
+	vcp_macs	array[string[filename, 6], VMM_MAX_NICS_PER_VM]
+# NEED: actual out parameter, syz_vmm_create(arg ptr[in, vm_create_params]) vmid
+	vcp_id		int32
+}
+
+vm_exit {
+	vei	vm_exit_inout
+	vrs	vcpu_reg_state
+}
+
+vm_exit_inout {
+	vei_size	int8
+	vei_dir		int8
+	vei_rep		int8
+	vei_string	int8
+	vei_encoding	int8
+	vei_port	int16
+	vei_data	int32
+}
+
+vm_info_params {
+	vip_size	len[vip_info, int64]
+	vip_info_ct	int64
+	vip_info	buffer[out]
+}
+
+vm_intr_params {
+# NEED: vmid
+	vip_vm_id	int32
+	vip_vcpu_id	int32
+	vip_intr	int16
+}
+
+vm_mem_range {
+	vmr_gpa		vma64
+	vmr_va		vma64
+	vmr_size	int64
+}
+
+vm_resetcpu_params {
+# NEED: vmid
+	vrp_vm_id	int32
+	vrp_vcpu_id	int32
+	vrp_init_state	vcpu_reg_state
+}
+
+vm_run_params {
+# NEED: vmid
+	vrp_vm_id	int32
+	vrp_vcpu_id	int32
+	vrp_continue	int8
+	vrp_irq		int16
+	vrp_exit	ptr[inout, vm_exit]
+	vrp_exit_reason	int16
+	vrp_irqready	int8
+}
+
+vm_rwregs_params {
+# NEED: vmid
+	vrwp_vm_id	int32
+	vrwp_vcpu_id	int32
+	vrwp_mask	int64
+	vrwp_regs	vcpu_reg_state
+}
+
+vm_terminate_params {
+# NEED: vmid
+	vtp_vm_id	int32
+}

@@ -1,0 +1,34 @@
+TITLE: recursion in interrupt handler in arch_spin_lock
+
+ZIRCON KERNEL PANIC
+vector 14
+recursion in interrupt handler
+ RIP: 0x00114bcd  arch_spin_lock arch/x86/asm.S:45
+ CS:                0x10 RIP: 0xffffffff00114bcd EFL:            0x10046 CR2:              0x258
+ RAX:                  0 RBX:                  0 RCX:                  0 RDX:               0x20
+ RSI:                0x2 RDI:              0x258 RBP: 0xffffff9539930e40 RSP: 0xffffff9539930e18
+  R8:      0x2960a8b235f  R9:                  0 R10:       0x6ac66cf251 R11: 0xffffff9539930e50
+ R12: 0xffffff9539930e50 R13:              0x258 R14:               0x46 R15: 0xffffffff001f7028
+errc:                0x2
+bottom of kernel stack at 0xffffff9539930d60:
+0xffffff9539930d60: 00000258 00000000 00000002 00000000 |X...............|
+0xffffff9539930d70: 39930e40 ffffff95 00000000 00000000 |@..9............|
+0xffffff9539930d80: 00000020 00000000 00000000 00000000 | ...............|
+0xffffff9539930d90: 00000000 00000000 0a8b235f 00000296 |........_#......|
+0xffffff9539930da0: 00000000 00000000 c66cf251 0000006a |........Q.l.j...|
+0xffffff9539930db0: 39930e50 ffffff95 39930e50 ffffff95 |P..9....P..9....|
+0xffffff9539930dc0: 00000258 00000000 00000046 00000000 |X.......F.......|
+0xffffff9539930dd0: 001f7028 ffffffff 0000000e 00000000 |(p..............|
+platform_halt suggested_action 0 reason 9
+bt#00: 0x00105972 platform_halt platform/pc/power.cpp:122
+bt#01: 0x00108425 exception_die arch/x86/faults.cpp:97
+bt#02: 0x00108c54 x86_exception_handler arch/x86/faults.cpp:443
+bt#03: 0x0011599e interrupt_common arch/x86/exceptions.S:127
+bt#04: 0x001326c1 dump_thread kernel/thread.cpp:1186
+bt#05: [ inline ] x86_fatal_pfe_handler arch/x86/faults.cpp:217
+bt#05: [ inline ] handle_exception_types arch/x86/faults.cpp:368
+bt#05: 0x00108aca x86_exception_handler arch/x86/faults.cpp:455
+bt#06: 0x0011599e interrupt_common arch/x86/exceptions.S:127
+bt#07: 0x00115c9a x86_syscall syscall-kernel-branches.S:8
+bt#08: end
+

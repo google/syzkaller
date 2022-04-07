@@ -1,0 +1,76 @@
+TITLE: WARNING in corrupted
+CORRUPTED: Y
+
+[   95.884027] WARNING: CPU: 1 PID: 18244 at ./arch/x86/include/asm/fpu/internal.h:340 __switch_to+0x10bd/0x13c0
+[   95.884034] Kernel panic - not syncing: panic_on_warn set ...
+[   95.884034] 
+[   95.884044] CPU: 1 PID: 18244 Comm: syz-executor5 Not tainted 4.15.0-rc4+ #231
+[   95.884050] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   95.884053] Call Trace:
+[   95.884288] kasan: CONFIG_KASAN_INLINE enabled
+[   95.884290] kasan: GPF could be caused by NULL-ptr deref or user memory access
+[   95.884297] general protection fault: 0000 [#1] SMP KASAN
+[   95.884301] Dumping ftrace buffer:
+[   95.884305]    (ftrace buffer empty)
+[   95.884307] Modules linked in:
+[   95.884314] CPU: 0 PID: 18241 Comm: syz-executor2 Not tainted 4.15.0-rc4+ #231
+[   95.884317] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   95.884328] RIP: 0010:native_write_cr4+0x4/0x10
+[   95.884331] RSP: 0018:ffff8801db407e88 EFLAGS: 00010086
+[   95.884336] RAX: dffffc0000000000 RBX: 00000000001606f0 RCX: 0000000000000001
+[   95.884339] RDX: 1ffffffff0bd9024 RSI: 0000000000000000 RDI: 00000000001606f0
+[   95.884342] RBP: ffff8801db407e88 R08: ffff8801db407f40 R09: ffff8801db407f80
+[   95.884345] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000082
+[   95.884349] R13: 1ffff1003b680fd4 R14: ffff8801cee560c0 R15: ffff8801db407fc0
+[   95.884353] FS:  00007f6b9af6b700(0000) GS:ffff8801db400000(0000) knlGS:0000000000000000
+[   95.884356] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   95.884359] CR2: 0000001b9bc22000 CR3: 00000001c71f7005 CR4: 00000000001626f0
+[   95.884363] Call Trace:
+[   95.884366]  <IRQ>
+[   95.884373]  smp_reboot_interrupt+0x3ea/0x510
+[   95.884380]  ? native_stop_other_cpus+0x3d0/0x3d0
+[   95.884394]  ? _raw_spin_unlock+0x22/0x30
+[   95.884402]  ? handle_edge_irq+0x2b4/0x7c0
+[   95.884410]  ? task_prio+0x40/0x40
+[   95.884428]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[   95.884442]  reboot_interrupt+0xa9/0xb0
+[   95.884444]  </IRQ>
+[   95.884450] RIP: 0010:qlist_free_all+0x41/0x160
+[   95.884453] RSP: 0018:ffff8801ce13fac8 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff07
+[   95.884458] RAX: ffff8801d1e83de0 RBX: 0000000000000282 RCX: 0000000000000000
+[   95.884461] RDX: 0000000000000000 RSI: ffffea000724c59f RDI: 0000000000000282
+[   95.884464] RBP: ffff8801ce13fb00 R08: ffff8801db00f918 R09: 0000000000000001
+[   95.884467] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
+[   95.884470] R13: ffff8801db12d500 R14: ffff8801d86b85a0 R15: ffffffff85ec8220
+[   95.884503]  quarantine_reduce+0x141/0x170
+[   95.884512]  kasan_kmalloc+0xca/0xe0
+[   95.884523]  kasan_slab_alloc+0x12/0x20
+[   95.884530]  kmem_cache_alloc+0x11b/0x760
+[   95.884551]  sock_alloc_inode+0x70/0x300
+[   95.884558]  ? sock_destroy_inode+0x70/0x70
+[   95.884570]  ? security_transition_sid+0x75/0x90
+[   95.884577]  ? sock_destroy_inode+0x70/0x70
+[   95.884586]  alloc_inode+0x65/0x180
+[   95.884594]  new_inode_pseudo+0x69/0x190
+[   95.884600]  ? prune_icache_sb+0x1a0/0x1a0
+[   95.884605]  ? get_unused_fd_flags+0x190/0x190
+[   95.884623]  sock_alloc+0x41/0x270
+[   95.884632]  __sock_create+0x148/0x850
+[   95.884644]  ? ___sys_recvmsg+0x640/0x640
+[   95.884651]  ? trace_event_raw_event_sys_exit+0x260/0x260
+[   95.884674]  SyS_socket+0xeb/0x1d0
+[   95.884680]  ? entry_SYSCALL_64_fastpath+0x5/0x96
+[   95.884687]  ? move_addr_to_kernel+0x60/0x60
+[   95.884692]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[   95.884699]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[   95.884713]  entry_SYSCALL_64_fastpath+0x1f/0x96
+[   95.884717] RIP: 0033:0x452a09
+[   95.884720] RSP: 002b:00007f6b9af6ac58 EFLAGS: 00000212 ORIG_RAX: 0000000000000029
+[   95.884725] RAX: ffffffffffffffda RBX: 000000000071bea0 RCX: 0000000000452a09
+[   95.884728] RDX: 0000000000000000 RSI: 0000000000000002 RDI: 0000000000000029
+[   95.884730] RBP: 000000000000003b R08: 0000000000000000 R09: 0000000000000000
+[   95.884733] R10: 0000000000000000 R11: 0000000000000212 R12: 00000000006ed628
+[   95.884736] R13: 00000000ffffffff R14: 00007f6b9af6b6d4 R15: 0000000000000000
+[   95.884757] Code: 0f 1f 80 00 00 00 00 55 48 89 e5 0f 20 d8 5d c3 0f 1f 80 00 00 00 00 55 48 89 e5 0f 22 df 5d c3 0f 1f 80 00 00 00 00 55 48 89 e5 <0f> 22 e7 5d c3 0f 1f 80 00 00 00 00 55 48 89 e5 44 0f 20 c0 5d 
+[   95.884862] RIP: native_write_cr4+0x4/0x10 RSP: ffff8801db407e88
+[   95.884866] ---[ end trace 4ebaf0dcd226af03 ]---

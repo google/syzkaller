@@ -1,0 +1,128 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# TODO: due to autobind a socket can bind to port 0, that will result in a random port which is not reproducible
+
+include <stddef.h>
+include <sys/types.h>
+include <sys/socket.h>
+include <netinet/in.h>
+include <compat/linux/common/linux_socket.h>
+
+resource sock[fd]
+type sock_port proc[20000, 4, int16be]
+
+# TODO: describe socketcall syscall
+
+socket(domain flags[socket_domain], type flags[socket_type], proto int8) sock
+compat_30_socket(domain flags[socket_domain], type flags[socket_type], proto int8) sock
+socketpair(domain flags[socket_domain], type flags[socket_type], proto int8, fds ptr[out, sock_pair])
+bind(fd sock, addr ptr[in, sockaddr_storage], addrlen len[addr])
+connect(fd sock, addr ptr[in, sockaddr_storage], addrlen len[addr])
+accept(s sock, addr ptr[out, sockaddr_storage, opt], addrlen ptr[inout, len[addr, int32]]) sock
+compat_43_oaccept(s sock, name buffer[out], namelen ptr[inout, len[name, int32]]) sock
+paccept(fd sock, peer ptr[out, sockaddr_storage, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock
+sendto(fd sock, buf buffer[in], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_storage, opt], addrlen len[addr])
+recvfrom(fd sock, buf buffer[out], len len[buf], f flags[recv_flags], frm ptr[in, sockaddr_storage, opt], frmlen len[frm])
+compat_43_orecvfrom(s sock, buf buffer[out], len len[buf], f flags[recv_flags], frm buffer[in], frmlen len[frm])
+getsockname(fd sock, addr ptr[out, sockaddr_storage], addrlen ptr[inout, len[addr, int32]])
+compat_43_ogetsockname(fdec sock, asa buffer[out], alen ptr[inout, len[asa, int32]])
+getpeername(fd sock, peer ptr[out, sockaddr_storage], peerlen ptr[inout, len[peer, int32]])
+compat_43_ogetpeername(fdes sock, asa buffer[out], alen ptr[inout, len[asa, int32]])
+compat_43_osend(s sock, msg buffer[in], len len[msg], f flags[send_flags])
+compat_43_orecv(s sock, msg buffer[out], len len[msg], f flags[recv_flags])
+compat_43_osendmsg(s sock, msg buffer[in], f flags[send_flags])
+compat_43_orecvmsg(s sock, msg ptr[inout, recv_omsghdr], f flags[recv_flags])
+
+sendmsg(fd sock, msg ptr[in, send_msghdr], f flags[send_flags])
+sendmmsg(s sock, mmsg ptr[inout, send_mmsghdr], len len[mmsg], f flags[send_flags], timeout ptr[in, timespec, opt])
+recvmsg(fd sock, msg ptr[inout, recv_msghdr], f flags[recv_flags])
+recvmmsg(s sock, mmsg ptr[inout, recv_mmsghdr], len len[mmsg], f flags[recv_flags], timeout ptr[in, timespec, opt])
+
+listen(fd sock, backlog int32)
+shutdown(fd sock, how flags[shutdown_flags])
+
+getsockopt(fd sock, level int32, optname int32, optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt(fd sock, level int32, optname int32, optval buffer[in], optlen len[optval])
+
+socket_domain = PF_LOCAL, PF_INET, PF_INET6, PF_NS, PF_BLUETOOTH, PF_APPLETALK, PF_CAN
+socket_type = SOCK_STREAM, SOCK_DGRAM, SOCK_RAW, SOCK_RDM, SOCK_SEQPACKET, SOCK_NONBLOCK, SOCK_CLOEXEC, SOCK_NOSIGPIPE
+accept_flags = SOCK_NONBLOCK, SOCK_CLOEXEC, SOCK_NOSIGPIPE
+shutdown_flags = SHUT_RD, SHUT_WR, SHUT_RDWR
+send_flags = MSG_OOB, MSG_PEEK, MSG_DONTROUTE, MSG_EOR, MSG_NOSIGNAL
+recv_flags = MSG_OOB, MSG_PEEK, MSG_DONTROUTE, MSG_EOR, MSG_TRUNC, MSG_CTRUNC, MSG_WAITALL, MSG_DONTWAIT, MSG_BCAST, MSG_MCAST, MSG_NOSIGNAL, MSG_CMSG_CLOEXEC, MSG_NBIO, MSG_WAITFORONE, MSG_NOTIFICATION
+cmsg_levels = SOL_SOCKET, IPPROTO_ICMP, LINUX_SOL_IP, LINUX_SOL_TCP, LINUX_SOL_UDP, LINUX_SOL_IPV6, LINUX_SOL_IPX, LINUX_SOL_AX25
+addr_family = AF_UNSPEC, AF_LOCAL, AF_UNIX, AF_INET, AF_IMPLINK, AF_PUP, AF_CHAOS, AF_NS, AF_ISO, AF_OSI, AF_ECMA, AF_DATAKIT, AF_CCITT, AF_SNA, AF_DECnet, AF_DLI, AF_LAT, AF_HYLINK, AF_APPLETALK, AF_OROUTE, AF_LINK, AF_COIP, AF_CNT, pseudo_AF_RTIP, pseudo_AF_PIP, pseudo_AF_XTP, AF_IPX, AF_INET6, AF_ISDN, AF_E164, AF_NATM, AF_ARP, pseudo_AF_KEY, pseudo_AF_HDRCMPLT, AF_BLUETOOTH, AF_IEEE80211, AF_MPLS, AF_ROUTE, AF_CAN, AF_ETHER, AF_MAX
+
+sock_pair {
+	fd0	sock
+	fd1	sock
+}
+
+# This sockaddr type corresponds to the sockaddr_storage type and is 128 bytes size.
+sockaddr_storage [
+	len	int8
+	family	flags[addr_family, int8]
+	data	array[int8, 14]
+]
+
+send_mmsghdr {
+	hdr	ptr[inout, send_msghdr]
+	len	int32
+}
+
+send_msghdr {
+	msg_name	ptr[in, sockaddr_storage, opt]
+	msg_namelen	len[msg_name, int32]
+	msg_iov		ptr[in, array[iovec_in]]
+	msg_iovlen	len[msg_iov, intptr]
+	msg_control	ptr[in, array[cmsghdr]]
+	msg_controllen	bytesize[msg_control, intptr]
+	msg_flags	const[0, int32]
+}
+
+recv_mmsghdr {
+	hdr	ptr[inout, recv_msghdr]
+	len	int32
+}
+
+recv_msghdr {
+	msg_name	ptr[out, sockaddr_storage, opt]
+	msg_namelen	len[msg_name, int32]
+	msg_iov		ptr[in, array[iovec_out]]
+	msg_iovlen	len[msg_iov, intptr]
+	msg_control	buffer[out]
+	msg_controllen	len[msg_control, intptr]
+	msg_flags	const[0, int32]
+}
+
+recv_omsghdr {
+	msg_name		ptr[out, sockaddr_storage, opt]
+	msg_namelen		len[msg_name, int32]
+	msg_iov			ptr[in, iovec_out]
+	msg_iovlen		len[msg_iov, int32]
+	msg_accrights		buffer[out]
+	msg_accrightslen	len[msg_accrights, int32]
+}
+
+cmsghdr {
+	cmsg_len	len[parent, intptr]
+	cmsg_level	flags[cmsg_levels, int32]
+	cmsg_type	int32
+	data		array[int8]
+} [align[PTR_SIZE]]
+
+# Socket options
+
+getsockopt$sock_int(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$sock_int(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_int], optval ptr[in, int32], optlen len[optval])
+getsockopt$sock_linger(fd sock, level const[SOL_SOCKET], optname const[SO_LINGER], optval ptr[out, linger], optlen ptr[inout, len[optval, int32]])
+setsockopt$sock_linger(fd sock, level const[SOL_SOCKET], optname const[SO_LINGER], optval ptr[in, linger], optlen len[optval])
+getsockopt$sock_cred(fd sock, level const[SOL_SOCKET], optname const[SO_PEERCRED], optval ptr[out, ucred], optlen ptr[inout, len[optval, int32]])
+setsockopt$sock_cred(fd sock, level const[SOL_SOCKET], optname const[SO_PEERCRED], optval ptr[in, ucred], optlen len[optval])
+getsockopt$sock_timeval(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_timeval], optval ptr[out, timeval], optlen ptr[inout, len[optval, int32]])
+setsockopt$sock_timeval(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_timeval], optval ptr[in, timeval], optlen len[optval])
+getsockopt$SO_PEERCRED(fd sock, level const[SOL_SOCKET], optname const[SO_PEERCRED], optval ptr[out, ucred], optlen len[optval])
+
+sockopt_opt_sock_int = SO_DEBUG, SO_REUSEADDR, SO_REUSEPORT, SO_KEEPALIVE, SO_DONTROUTE, SO_LINGER, SO_BROADCAST, SO_OOBINLINE, SO_SNDBUF, SO_RCVBUF, SO_SNDLOWAT, SO_RCVLOWAT, SO_TIMESTAMP, SO_ACCEPTFILTER, SO_NOSIGPIPE, SO_TYPE, SO_ERROR
+sockopt_opt_sock_timeval = SO_RCVTIMEO, SO_SNDTIMEO

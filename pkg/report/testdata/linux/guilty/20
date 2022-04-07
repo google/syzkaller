@@ -1,0 +1,4 @@
+FILE: driver/foo/lib/foo.c
+
+WARNING: CPU: 2 PID: 24023 at kernel/locking/lockdep.c:3344 __lock_acquire+0x10e5/0x3690 kernel/locking/lockdep.c:3344
+driver/foo/lib/foo.c:10

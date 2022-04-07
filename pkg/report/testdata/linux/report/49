@@ -1,0 +1,12 @@
+TITLE: divide error in snd_hrtimer_callback
+CORRUPTED: Y
+
+[  616.309156] divide error: 0000 [#1] SMP DEBUG_PAGEALLOC KASAN
+[  616.310026] Dumping ftrace buffer:
+[  616.310085]    (ftrace buffer empty)
+[  616.310085] Modules linked in:
+[  616.310085] CPU: 1 PID: 22257 Comm: syz-executor Not tainted 4.8.0-rc3+ #35
+[  616.310085] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+[  616.312546] task: ffff88002fe9e580 task.stack: ffff8800316a8000
+[  616.312546] RIP: 0010:[<ffffffff8575b41c>]  [<ffffffff8575b41c>] snd_hrtimer_callback+0x1bc/0x3c0
+[  616.312546] RSP: 0018:ffff88003ed07d98  EFLAGS: 00010006

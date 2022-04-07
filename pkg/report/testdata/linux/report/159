@@ -1,0 +1,87 @@
+TITLE: WARNING: refcount bug in l2tp_session_register
+
+[   40.530345] ------------[ cut here ]------------
+[   40.535205] refcount_t: increment on 0; use-after-free.
+[   40.540824] WARNING: CPU: 1 PID: 3697 at lib/refcount.c:153 refcount_inc+0x47/0x50
+[   40.548509] Kernel panic - not syncing: panic_on_warn set ...
+[   40.548509] 
+[   40.555846] CPU: 1 PID: 3697 Comm: syzkaller479670 Not tainted 4.15.0-rc8+ #174
+[   40.563263] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   40.572588] Call Trace:
+[   40.575151]  dump_stack+0x194/0x257
+[   40.578756]  ? arch_local_irq_restore+0x53/0x53
+[   40.583400]  ? vsnprintf+0x1ed/0x1900
+[   40.587179]  panic+0x1e4/0x41c
+[   40.590345]  ? refcount_error_report+0x214/0x214
+[   40.595074]  ? show_regs_print_info+0x18/0x18
+[   40.599549]  ? __warn+0x1c1/0x200
+[   40.602978]  ? refcount_inc+0x47/0x50
+[   40.606749]  __warn+0x1dc/0x200
+[   40.610000]  ? console_unlock+0x983/0xd80
+[   40.614122]  ? refcount_inc+0x47/0x50
+[   40.617897]  report_bug+0x211/0x2d0
+[   40.621502]  fixup_bug.part.11+0x37/0x80
+[   40.625537]  do_error_trap+0x2d7/0x3e0
+[   40.629398]  ? __down_trylock_console_sem+0x10d/0x1e0
+[   40.634563]  ? math_error+0x400/0x400
+[   40.638337]  ? vprintk_emit+0x3ea/0x590
+[   40.642295]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[   40.647113]  do_invalid_op+0x1b/0x20
+[   40.650800]  invalid_op+0x22/0x40
+[   40.654227] RIP: 0010:refcount_inc+0x47/0x50
+[   40.658604] RSP: 0018:ffff8801d9077788 EFLAGS: 00010286
+[   40.663948] RAX: dffffc0000000008 RBX: ffff8801d94f48c0 RCX: ffffffff8159dade
+[   40.671190] RDX: 0000000000000000 RSI: 1ffff1003b20eeac RDI: ffff8801d9077490
+[   40.678432] RBP: ffff8801d9077790 R08: 1ffff1003b20ee6e R09: 0000000000000000
+[   40.685674] R10: ffff8801d9077658 R11: 0000000000000000 R12: 0000000000000000
+[   40.692915] R13: 0000000000000000 R14: ffff8801bc2540c0 R15: ffff8801d2cb6800
+[   40.700169]  ? vprintk_func+0x5e/0xc0
+[   40.703949]  ? refcount_inc+0x47/0x50
+[   40.707727]  l2tp_session_register+0x9cb/0xe20
+[   40.712291]  ? l2tp_tunnel_get+0x690/0x690
+[   40.716497]  ? pppol2tp_connect+0x11ee/0x1dd0
+[   40.720966]  ? lock_downgrade+0x980/0x980
+[   40.725087]  ? ipv4_mtu+0x34d/0x4c0
+[   40.728688]  ? rt_cpu_seq_show+0x2c0/0x2c0
+[   40.732896]  ? refcount_add+0x60/0x60
+[   40.736670]  ? __lock_is_held+0xb6/0x140
+[   40.740717]  pppol2tp_connect+0x134b/0x1dd0
+[   40.745023]  ? pppol2tp_recv_payload_hook+0x1b0/0x1b0
+[   40.750194]  ? selinux_netlbl_socket_connect+0x76/0x1b0
+[   40.755535]  ? selinux_socket_connect+0x311/0x730
+[   40.760349]  ? lock_downgrade+0x980/0x980
+[   40.764484]  ? selinux_socket_setsockopt+0x80/0x80
+[   40.769383]  ? lock_release+0xa40/0xa40
+[   40.773331]  ? trace_event_raw_event_sched_switch+0x800/0x800
+[   40.779188]  ? __check_object_size+0x25d/0x4f0
+[   40.783749]  ? __might_sleep+0x95/0x190
+[   40.787707]  ? security_socket_connect+0x89/0xb0
+[   40.792442]  SYSC_connect+0x213/0x4a0
+[   40.796217]  ? SYSC_bind+0x410/0x410
+[   40.799906]  ? handle_mm_fault+0x410/0x8d0
+[   40.804113]  ? __do_page_fault+0x32d/0xc90
+[   40.808320]  ? __handle_mm_fault+0x3ce0/0x3ce0
+[   40.812871]  ? vmacache_find+0x5f/0x280
+[   40.816821]  ? up_read+0x1a/0x40
+[   40.820162]  ? __do_page_fault+0x3d6/0xc90
+[   40.824381]  SyS_connect+0x24/0x30
+[   40.827892]  ? SyS_accept+0x30/0x30
+[   40.831491]  do_fast_syscall_32+0x3ee/0xf9d
+[   40.835790]  ? do_int80_syscall_32+0x9d0/0x9d0
+[   40.840343]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[   40.845090]  ? syscall_return_slowpath+0x2ad/0x550
+[   40.849991]  ? prepare_exit_to_usermode+0x340/0x340
+[   40.854985]  ? retint_user+0x18/0x18
+[   40.858679]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[   40.863502]  entry_SYSENTER_compat+0x54/0x63
+[   40.867881] RIP: 0023:0xf7fbac79
+[   40.871216] RSP: 002b:00000000ff9c653c EFLAGS: 00000207 ORIG_RAX: 000000000000016a
+[   40.878896] RAX: ffffffffffffffda RBX: 0000000000000004 RCX: 00000000205fafd2
+[   40.886137] RDX: 000000000000002e RSI: 0000000000000167 RDI: 0000000000000018
+[   40.893381] RBP: 0000000000000001 R08: 0000000000000000 R09: 0000000000000000
+[   40.900622] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
+[   40.907863] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
+[   40.915598] Dumping ftrace buffer:
+[   40.919171]    (ftrace buffer empty)
+[   40.922857] Kernel Offset: disabled
+[   40.926459] Rebooting in 86400 seconds..

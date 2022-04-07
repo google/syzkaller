@@ -1,0 +1,71 @@
+TITLE: Unhandled fault in jffs2_parse_param
+ALT: bad-access in jffs2_parse_param
+
+8<--- cut here ---
+Unhandled fault: page domain fault (0x01b) at 0x00000008
+pgd = 4c5c9ce0
+[00000008] *pgd=9671f835, *pte=00000000, *ppte=00000000
+Internal error: : 1b [#1] SMP ARM
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Modules linked in:
+CPU: 0 PID: 24993 Comm: syz-executor.0 Not tainted 5.10.2 #10
+Hardware name: ARM-Versatile Express
+PC is at jffs2_parse_param+0xa8/0x18c
+LR is at jffs2_parse_param+0x98/0x18c
+pc : [<8054b7c0>]    lr : [<8054b7b0>]    psr: 40000013
+sp : 94771e60  ip : 00000002  fp : 00000000
+r10: 9675f000  r9 : 00000000  r8 : 00000000
+r7 : 9258f200  r6 : 0002b400  r5 : 9676fb80  r4 : 00000001
+r3 : 00000000  r2 : 00040000  r1 : cb584000  r0 : 00000005
+Flags: nZcv  IRQs on  FIQs on  Mode SVC_32  ISA ARM  Segment none
+Control: 10c5387d  Table: 95fd006a  DAC: 00000051
+Process syz-executor.0 (pid: 24993, stack limit = 0x9c3a9348)
+Stack: (0x94771e60 to 0x94772000)
+1e60: 00000000 00000000 00000000 00000000 000000ad 00000000 00000000 81104e88
+1e80: 00000014 8054b718 9676fb80 94771ec0 00000000 00000000 00000014 8037e608
+1ea0: 967f4280 802b75bc 9675f008 9675f008 00000014 9675f000 9676fb80 8037e7dc
+1ec0: 9675f000 00000002 967f4280 00000014 00000000 81104e88 00000072 9675f000
+1ee0: 9675f008 80e65d98 9676fb80 8037e8e0 9675f01d 81104e88 00800000 9676fb80
+1f00: 00000020 00000000 967f4740 811521c0 00800000 80360ff0 94771f74 8033ee34
+1f20: ffffff9c 00000000 00000000 81104e88 00000051 00000000 00000000 75e869c0
+1f40: 00000051 967f4740 00000000 00000015 9675f000 80361cc8 9675f000 8010cb7c
+1f60: 9197f748 00000000 20000000 00800000 94770000 822f19d0 82d8b198 81104e88
+1f80: 00800000 75e869c0 20000000 00000000 00000015 80100284 94770000 00000015
+1fa0: 20000040 80100260 75e869c0 20000000 00000000 20000000 200009c0 00800000
+1fc0: 75e869c0 20000000 00000000 00000015 200009c0 00000000 75e86980 20000040
+1fe0: 00000001 75e86938 00015750 0004ffc0 20000010 00000000 00000000 00000000
+Backtrace: 
+[<8054b7c0>] (jffs2_parse_param) from [<8037e608>] (vfs_parse_fs_param+0xf8/0x23c)
+[<8037e608>] (vfs_parse_fs_param) from [<8037e7dc>] (vfs_parse_fs_string+0x90/0xd4)
+[<8037e7dc>] (vfs_parse_fs_string) from [<8037e8e0>] (generic_parse_monolithic+0xc0/0x114)
+[<8037e8e0>] (generic_parse_monolithic) from [<80360ff0>] (path_mount+0xb10/0x10c0)
+[<80360ff0>] (path_mount) from [<80361cc8>] (sys_mount+0x21c/0x36c)
+[<80361cc8>] (sys_mount) from [<80100260>] (__sys_trace_return+0x0/0x20)
+Exception stack(0x94771fa8 to 0x94771ff0)
+1fa0:                   75e869c0 20000000 00000000 20000000 200009c0 00800000
+1fc0: 75e869c0 20000000 00000000 00000015 200009c0 00000000 75e86980 20000040
+1fe0: 00000001 75e86938 00015750 0004ffc0
+Code: e5973000 e2169602 13e09000 e1a06506 (e5934008) 
+---[ end trace 1e8bf21d99144682 ]---
+Kernel panic - not syncing: Fatal exception
+CPU1: stopping
+CPU: 1 PID: 0 Comm: swapper/1 Tainted: G      D           5.10.2 #10
+Hardware name: ARM-Versatile Express
+[<80118054>] (unwind_backtrace) from [<80110ce4>] (show_stack+0x20/0x24)
+[<80110ce4>] (show_stack) from [<80c16564>] (dump_stack+0x104/0x138)
+[<80c16564>] (dump_stack) from [<80115548>] (do_handle_IPI+0x3e8/0x45c)
+[<80115548>] (do_handle_IPI) from [<801155d8>] (ipi_handler+0x1c/0x28)
+[<801155d8>] (ipi_handler) from [<801aec5c>] (handle_percpu_devid_fasteoi_ipi+0x84/0x1a8)
+[<801aec5c>] (handle_percpu_devid_fasteoi_ipi) from [<801a59ec>] (__handle_domain_irq+0xb8/0x124)
+[<801a59ec>] (__handle_domain_irq) from [<806ab444>] (gic_handle_irq+0xb0/0xe8)
+[<806ab444>] (gic_handle_irq) from [<80100b6c>] (__irq_svc+0x6c/0x90)
+Exception stack(0x814fff60 to 0x814fffa8)
+ff60: 0048140c 00000000 814dc4c0 00000000 00000000 814fe000 00000000 00000001
+ff80: 81104ed4 81104f10 81067b90 814fffc0 00000000 814fffb0 8010c030 8010c034
+ffa0: 80000013 ffffffff
+[<80100b6c>] (__irq_svc) from [<8010c034>] (arch_cpu_idle+0x28/0x48)
+[<8010c034>] (arch_cpu_idle) from [<80c23ac4>] (default_idle_call+0x28/0xf0)
+[<80c23ac4>] (default_idle_call) from [<80181b30>] (do_idle+0x1cc/0x26c)
+[<80181b30>] (do_idle) from [<80181e88>] (cpu_startup_entry+0x18/0x1c)
+[<80181e88>] (cpu_startup_entry) from [<8010164c>] (__enable_mmu+0x0/0x14)

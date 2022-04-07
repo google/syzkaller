@@ -1,0 +1,12 @@
+TITLE: FATAL ERROR: error getting processes for container: error executing in sandbox: EOF
+SUPPRESSED: Y
+
+7:54:59 executing program 1:
+linkat(0xffffffffffffffff, &(0x7f0000000100)='./file0\x00', 0xffffffffffffffff, &(0x7f0000000140)='./file0\x00', 0x0)
+
+==64097==ERROR: ThreadSanitizer failed to allocate 0x80000 (524288) bytes of DenseSlabAllocator (error code: 12)
+FATAL: ThreadSanitizer CHECK failed: ./gotsan.cc:6532 "((0 && "unable to mmap")) != (0)" (0x0, 0x0)
+W0623 07:55:00.082589   64365 x:0] FATAL ERROR: error getting processes for container: error executing in sandbox: EOF
+error getting processes for container: error executing in sandbox: EOF
+W0623 07:55:00.082787   64048 x:0] FATAL ERROR: error running container: err waiting on container "syzkaller": EOF
+error running container: err waiting on container "syzkaller": EOF

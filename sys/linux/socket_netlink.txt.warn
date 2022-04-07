@@ -1,0 +1,7 @@
+no-such-struct: sockaddr_nl_send
+no-such-struct: sockaddr_nl_t
+no-such-struct: msghdr_netlink_full
+no-such-struct: msghdr_netlink
+no-such-struct: netlink_msg_t
+no-such-struct: nlattr_t
+no-such-struct: nlattr_tt

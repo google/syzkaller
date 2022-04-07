@@ -1,0 +1,41 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_NETLINK/NETLINK_CRYPTO support.
+
+include <linux/net.h>
+include <linux/crypto.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/cryptouser.h>
+
+resource sock_nl_crypto[sock_netlink]
+
+socket$nl_crypto(domain const[AF_NETLINK], type const[SOCK_RAW], proto const[NETLINK_CRYPTO]) sock_nl_crypto
+
+sendmsg$nl_crypto(fd sock_nl_crypto, msg ptr[in, msghdr_nl_crypto], f flags[send_flags])
+
+type msghdr_nl_crypto msghdr_netlink[netlink_msg_crypto]
+
+netlink_msg_crypto [
+	alg	netlink_msg[CRYPTO_MSG_NEWALG, crypto_user_alg, netlink_crypto_attrs]
+	del	netlink_msg[CRYPTO_MSG_DELALG, crypto_user_alg, netlink_crypto_attrs]
+	upd	netlink_msg[CRYPTO_MSG_UPDATEALG, crypto_user_alg, netlink_crypto_attrs]
+	get	netlink_msg[CRYPTO_MSG_GETALG, crypto_user_alg, netlink_crypto_attrs]
+	delrng	netlink_msg[CRYPTO_MSG_DELRNG, void, void]
+	getstat	netlink_msg[CRYPTO_MSG_GETSTAT, crypto_user_alg, void]
+] [varlen]
+
+type netlink_crypto_attrs nlattr[CRYPTOCFGA_PRIORITY_VAL, int32]
+
+crypto_user_alg {
+	cru_name	alg_name
+# TODO: generate driver names.
+	cru_driver_name	array[const[0, int8], CRYPTO_MAX_NAME]
+	cru_module_name	array[const[0, int8], CRYPTO_MAX_NAME]
+	cru_type	flags[crypto_user_alg_flags, int32]
+	cru_mask	flags[crypto_user_alg_flags, int32]
+	cru_refcnt	const[0, int32]
+	cru_flags	const[0, int32]
+}
+
+crypto_user_alg_flags = CRYPTO_ALG_TESTED, CRYPTO_ALG_INTERNAL

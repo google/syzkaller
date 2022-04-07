@@ -1,0 +1,57 @@
+TITLE: KMSAN: uninit-value in __perf_event_task_sched_in
+ALT: bad-access in __perf_event_task_sched_in
+ALT: KMSAN origin in corrupted
+CORRUPTED: Y
+
+[ 1307.507727][    T0] =====================================================
+[ 1307.507800][    T5] kmsan_internal_set_shadow_origin: not memsetting 24 bytes starting at ffff8881024001a0, because the shadow is NULL
+[ 1307.514750][    T0] BUG: KMSAN: uninit-value in __perf_event_task_sched_in+0x2b6/0xca0
+[ 1307.514815][    T0]  __perf_event_task_sched_in+0x2b6/0xca0
+[ 1307.514872][    T0]  finish_task_switch+0x72c/0xad0
+[ 1307.514916][    T0]  __schedule+0x182c/0x20a0
+[ 1307.514967][    T0]  schedule_idle+0x5b/0x90
+[ 1307.515017][    T0]  do_idle+0x816/0x840
+[ 1307.515137][    T0]  cpu_startup_entry+0x3c/0x40
+[ 1307.515194][    T0]  start_secondary+0x112/0x120
+[ 1307.515247][    T0]  secondary_startup_64_no_verify+0xb1/0xbb
+[ 1307.515309][    T0] 
+[ 1307.515316][    T0] ------------[ cut here ]------------
+[ 1307.515328][    T0] slab index 52160 out of bounds (604) for stack id 0283cbc0
+[ 1307.515910][    T0] WARNING: CPU: 1 PID: 0 at lib/stackdepot.c:293 stack_depot_fetch+0x2f/0x60
+[ 1307.516000][    T0] Modules linked in:
+[ 1307.516019][    T0] CPU: 1 PID: 0 Comm: swapper/1 Not tainted 5.16.0-rc5-syzkaller #0
+[ 1307.516069][    T0] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 1307.516094][    T0] RIP: 0010:stack_depot_fetch+0x2f/0x60
+[ 1307.516143][    T0] Code: 48 c7 06 00 00 00 00 31 db 85 ff 74 45 89 f9 0f b7 c1 8b 15 83 59 8f 0b 39 d0 7e 12 48 c7 c7 55 cd ed 90 89 c6 e8 e1 b0 fb fa <0f> 0b eb 24 89 c0 48 8b 04 c5 00 b8 fc 91 48 85 c0 74 15 c1 e9 0c
+[ 1307.516190][    T0] RSP: 0018:ffff888102c4f848 EFLAGS: 00010046
+[ 1307.516225][    T0] RAX: ee1befff8248f700 RBX: 0000000000000000 RCX: ffff888102c3c100
+[ 1307.516260][    T0] RDX: 0000000040000000 RSI: 0000000080000003 RDI: 0000000000000000
+[ 1307.516290][    T0] RBP: ffff888102c4f850 R08: ffffffff81961950 R09: 0000000000000000
+[ 1307.516324][    T0] R10: 0000000000000012 R11: ffff888102c3c100 R12: ffff888102c4f9a8
+[ 1307.516357][    T0] R13: ffff888102c3c100 R14: 0000000000000008 R15: 000000000283cbc0
+[ 1307.516389][    T0] FS:  0000000000000000(0000) GS:ffff88813fd00000(0000) knlGS:0000000000000000
+[ 1307.516429][    T0] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[ 1307.516461][    T0] CR2: 00000000f7050034 CR3: 000000008112e000 CR4: 00000000003506e0
+[ 1307.516495][    T0] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[ 1307.516524][    T0] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[ 1307.516553][    T0] Call Trace:
+[ 1307.516566][    T0]  <TASK>
+[ 1307.516583][    T0]  kmsan_print_origin+0x41/0x2e0
+[ 1307.516720][    T0]  kmsan_report+0x1dd/0x2f0
+[ 1307.517857][    T0]  __msan_warning+0xb8/0x130
+[ 1307.517908][    T0]  __perf_event_task_sched_in+0x2b6/0xca0
+[ 1307.518042][    T0]  finish_task_switch+0x72c/0xad0
+[ 1307.518099][    T0]  __schedule+0x182c/0x20a0
+[ 1307.518168][    T0]  schedule_idle+0x5b/0x90
+[ 1307.518222][    T0]  do_idle+0x816/0x840
+[ 1307.518289][    T0]  cpu_startup_entry+0x3c/0x40
+[ 1307.518402][    T0]  start_secondary+0x112/0x120
+[ 1307.518451][    T0]  secondary_startup_64_no_verify+0xb1/0xbb
+[ 1307.518525][    T0]  </TASK>
+[ 1307.518541][    T0] ---[ end trace d0954b51d36472ee ]---
+[ 1307.518561][    T0] Uninit was created at:
+[ 1307.518571][    T0] (stack is not available)
+[ 1307.518580][    T0] 
+[ 1307.518589][    T0] CPU: 1 PID: 0 Comm: swapper/1 Tainted: G        W         5.16.0-rc5-syzkaller #0
+[ 1307.518639][    T0] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 1307.518663][    T0] =====================================================

@@ -1,0 +1,35 @@
+TITLE: kernel BUG in reserve_bootmem_region
+ALT: kernel BUG at include/linux/page-flags.h:LINE!
+
+[    0.834244][    T0] kernel BUG at include/linux/page-flags.h:356!
+[    0.835624][    T0] invalid opcode: 0000 [#1] PREEMPT SMP KASAN
+[    0.837176][    T0] CPU: 0 PID: 0 Comm: swapper Not tainted 5.10.0-rc6-next-20201203-syzkaller #0
+[    0.839213][    T0] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[    0.841103][    T0] RIP: 0010:reserve_bootmem_region+0xc8/0x128
+[    0.842479][    T0] Code: e8 03 42 80 3c 30 00 74 08 48 89 ef e8 a1 54 c3 f8 48 8b 45 00 0f ba e0 10 73 11 48 c7 c6 00 e9 55 89 48 89 ef e8 08 53 b1 f8 <0f> 0b 4c 89 e8 48 c1 e8 03 42 80 3c 30 00 74 08 4c 89 ef e8 70 54
+[    0.847211][    T0] RSP: 0000:ffffffff8b007d98 EFLAGS: 00010096
+[    0.848614][    T0] RAX: 0000000000000000 RBX: 0000000000000000 RCX: 0000000000000000
+[    0.850580][    T0] RDX: ffffffff8b09b000 RSI: ffffffff88b71174 RDI: 0000000000000003
+[    0.851930][    T0] RBP: ffffea0000000000 R08: ffffffffffffffff R09: 0000000000000001
+[    0.854126][    T0] R10: ffffffff88b7111b R11: 0000000000000000 R12: 0000000000000010
+[    0.856156][    T0] R13: ffffea0000000008 R14: dffffc0000000000 R15: ffffffff8b007e20
+[    0.857733][    T0] FS:  0000000000000000(0000) GS:ffff8880b9e00000(0000) knlGS:0000000000000000
+[    0.860003][    T0] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[    0.861664][    T0] CR2: ffff88823ffff000 CR3: 000000000b08e000 CR4: 00000000000406b0
+[    0.863779][    T0] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[    0.866116][    T0] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[    0.867689][    T0] Call Trace:
+[    0.868563][    T0]  memblock_free_all+0xf0/0x2c7
+[    0.869595][    T0]  ? dmar_table_detect+0x67/0x67
+[    0.872875][    T0]  ? clkdev_alloc+0x100/0x100
+[    0.873548][    T0]  ? reset_all_zones_managed_pages+0x5f/0x5f
+[    0.874471][    T0]  ? __sanitizer_cov_trace_const_cmp4+0x1c/0x70
+[    0.875489][    T0]  ? swiotlb_init_with_tbl+0x1db/0x1ee
+[    0.876300][    T0]  ? __sanitizer_cov_trace_const_cmp4+0x1c/0x70
+[    0.877628][    T0]  mem_init+0x1d/0x2b5
+[    0.878399][    T0]  mm_init+0xa4/0xcc
+[    0.878955][    T0]  start_kernel+0x184/0x491
+[    0.879713][    T0]  secondary_startup_64_no_verify+0xb0/0xbb
+[    0.880559][    T0] Modules linked in:
+[    0.881169][    T0] random: get_random_bytes called from oops_exit+0x58/0x80 with crng_init=0
+[    0.881177][    T0] ---[ end trace 9fcd7b4745fb867f ]---

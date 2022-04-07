@@ -1,0 +1,7 @@
+no-such-struct: usbdevfs_ep
+no-such-struct: usbdevfs_urb_control
+no-such-struct: usbdevfs_urb_bulk
+no-such-struct: usbdevfs_urb_interrupt
+no-such-struct: usbdevfs_ioctl_disconnect
+no-such-struct: usbdevfs_ioctl_connect
+no-such-struct: usbdevfs_ioctl_driver

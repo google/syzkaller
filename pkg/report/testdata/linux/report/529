@@ -1,0 +1,30 @@
+TITLE: WARNING: suspicious RCU usage in sys_rt_sigreturn
+
+[  581.924125][ T4410] =============================
+[  581.925315][ T4410] WARNING: suspicious RCU usage
+[  581.926740][ T4410] 5.9.0-12994-gf9893351acae #15 Not tainted
+[  582.016302][ T4410] -----------------------------
+[  582.017910][ T4410] kernel/sched/core.c:7264 Illegal context switch in RCU-bh read-side critical section!
+[  582.023295][ T4410] 
+[  582.023295][ T4410] other info that might help us debug this:
+[  582.023295][ T4410] 
+[  582.025057][ T4410] 
+[  582.025057][ T4410] rcu_scheduler_active = 2, debug_locks = 1
+[  582.044500][ T4410] no locks held by syz-fuzzer/4410.
+[  582.045998][ T4410] 
+[  582.045998][ T4410] stack backtrace:
+[  582.047912][ T4410] CPU: 0 PID: 4410 Comm: syz-fuzzer Not tainted 5.9.0-12994-gf9893351acae #15
+[  582.049096][ T4410] Hardware name: linux,dummy-virt (DT)
+[  582.050721][ T4410] Call trace:
+[  582.051777][ T4410]  dump_backtrace+0x0/0x4d0
+[  582.052754][ T4410]  show_stack+0x2c/0x80
+[  582.053616][ T4410]  dump_stack+0x1b0/0x254
+[  582.054527][ T4410]  lockdep_rcu_suspicious+0x134/0x14c
+[  582.055451][ T4410]  ___might_sleep+0x478/0x4d8
+[  582.056345][ T4410]  __might_sleep+0x88/0x168
+[  582.057285][ T4410]  __might_fault+0xc4/0x1b0
+[  582.058241][ T4410]  __arm64_sys_rt_sigreturn+0x278/0x1990
+[  582.059448][ T4410]  el0_svc_common.constprop.0+0x158/0x530
+[  582.060390][ T4410]  do_el0_svc+0x58/0x148
+[  582.061327][ T4410]  el0_sync_handler+0x1f4/0x200
+[  582.062214][ T4410]  el0_sync+0x174/0x180

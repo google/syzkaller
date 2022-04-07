@@ -1,0 +1,73 @@
+TITLE: INFO: rcu detected stall in sys_recvmmsg
+ALT: stall in sys_recvmmsg
+TYPE: HANG
+
+[  444.457807][    C0] rcu: INFO: rcu_sched self-detected stall on CPU
+[  444.464365][    C0] rcu: 	0-...!: (10500 ticks this GP) idle=5be/1/0x4000000000000000 softirq=5432/5432 fqs=4 
+[  444.474605][    C0] 	(t=10502 jiffies g=2601 q=18)
+[  444.479528][    C0] rcu: rcu_sched kthread starved for 10494 jiffies! g2601 f0x0 RCU_GP_WAIT_FQS(5) ->state=0x402 ->cpu=1
+[  444.490606][    C0] rcu: 	Unless rcu_sched kthread gets sufficient CPU time, OOM is now expected behavior.
+[  444.500377][    C0] rcu: RCU grace-period kthread stack dump:
+[  444.506244][    C0] task:rcu_sched       state:I stack:    0 pid:   11 ppid:     2 flags:0x00004000
+[  444.515423][    C0] Call Trace:
+[  444.518702][    C0]  __schedule+0x988/0x26f0
+[  444.533738][    C0]  schedule+0xd7/0x280
+[  444.537793][    C0]  schedule_timeout+0x15e/0x260
+[  444.558706][    C0]  rcu_gp_kthread+0x8e8/0x1790
+[  444.602481][    C0]  kthread+0x39a/0x490
+[  444.617067][    C0]  ret_from_fork+0x1f/0x30
+[  444.621500][    C0] NMI backtrace for cpu 0
+[  444.625817][    C0] CPU: 0 PID: 5028 Comm: syz-executor030 Not tainted 5.10.0-syzkaller #0
+[  444.634201][    C0] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  444.644231][    C0] Call Trace:
+[  444.647498][    C0]  <IRQ>
+[  444.650334][    C0]  dump_stack+0x111/0x171
+[  444.660263][    C0]  nmi_cpu_backtrace.cold+0x44/0xd8
+[  444.670633][    C0]  nmi_trigger_cpumask_backtrace+0x1e7/0x210
+[  444.676594][    C0]  arch_trigger_cpumask_backtrace+0x14/0x20
+[  444.682469][    C0]  rcu_dump_cpu_stacks+0x1e8/0x226
+[  444.687586][    C0]  rcu_sched_clock_irq.cold+0x48f/0x95b
+[  444.693122][    C0]  update_process_times+0x141/0x1c0
+[  444.698303][    C0]  tick_sched_handle+0xa2/0x190
+[  444.703137][    C0]  tick_sched_timer+0x1d0/0x2a0
+[  444.713164][    C0]  __hrtimer_run_queues+0x204/0xec0
+[  444.723718][    C0]  hrtimer_interrupt+0x30d/0x900
+[  444.728649][    C0]  __sysvec_apic_timer_interrupt+0xfa/0x430
+[  444.734525][    C0]  asm_call_irq_on_stack+0xf/0x20
+[  444.739525][    C0]  </IRQ>
+[  444.742447][    C0]  sysvec_apic_timer_interrupt+0x98/0xb0
+[  444.748065][    C0]  asm_sysvec_apic_timer_interrupt+0x12/0x20
+[  444.754030][    C0] RIP: 0010:count_memcg_event_mm.part.0+0x12e/0x2a0
+[  444.760602][    C0] Code: e8 97 05 cf ff 4d 85 f6 0f 85 84 00 00 00 e8 49 0d cf ff ba 01 00 00 00 44 89 ee 4c 89 e7 e8 49 d3 13 00 e8 34 0d cf ff 53 9d <e8> 2d 0d cf ff e8 e8 f3 d6 02 31 ff 89 c3 89 c6 e8 3d 05 cf ff 85
+[  444.780185][    C0] RSP: 0018:ffff88810f8e7700 EFLAGS: 00000293
+[  444.786236][    C0] RAX: 0000000000000000 RBX: 0000000000000293 RCX: 1ffffffff0ea9136
+[  444.794189][    C0] RDX: ffff888114eac180 RSI: ffffffff819c792c RDI: ffffffff819c79b5
+[  444.802141][    C0] RBP: ffff88810f8e7720 R08: 0000000000000001 R09: ffffffff8753dd5f
+[  444.810093][    C0] R10: fffffbfff0ea7bab R11: 0000000000000000 R12: ffff888100304000
+[  444.818048][    C0] R13: 0000000000000011 R14: 0000000000000200 R15: ffff888112f40948
+[  444.837948][    C0]  handle_mm_fault+0x145/0x4140
+[  444.863608][    C0]  do_user_addr_fault+0x49f/0xa00
+[  444.868621][    C0]  exc_page_fault+0xa3/0x180
+[  444.873199][    C0]  asm_exc_page_fault+0x1e/0x30
+[  444.878038][    C0] RIP: 0010:copy_user_generic_unrolled+0x86/0xc0
+[  444.884349][    C0] Code: 4c 8b 5e 38 4c 89 47 20 4c 89 4f 28 4c 89 57 30 4c 89 5f 38 48 8d 76 40 48 8d 7f 40 ff c9 75 b6 89 d1 83 e2 07 c1 e9 03 74 12 <4c> 8b 06 4c 89 07 48 8d 76 08 48 8d 7f 08 ff c9 75 ee 21 d2 74 10
+[  444.903933][    C0] RSP: 0018:ffff88810f8e79d8 EFLAGS: 00050202
+[  444.909983][    C0] RAX: 0000000000000001 RBX: 000000002000e780 RCX: 0000000000000007
+[  444.917935][    C0] RDX: 0000000000000000 RSI: 000000002000e780 RDI: ffff88810f8e7a50
+[  444.925886][    C0] RBP: ffff88810f8e7a08 R08: 0000000000000001 R09: ffff88810f8e7a87
+[  444.933839][    C0] R10: ffffed1021f1cf50 R11: 0000000000000000 R12: 0000000000000038
+[  444.941794][    C0] R13: 000000002000e7b8 R14: ffff88810f8e7a50 R15: 0000000000000000
+[  444.954604][    C0]  __copy_msghdr_from_user+0xa7/0x4e0
+[  444.975077][    C0]  ___sys_recvmsg+0xf5/0x230
+[  445.015581][    C0]  do_recvmmsg+0x277/0x730
+[  445.039426][    C0]  __x64_sys_recvmmsg+0x22c/0x280
+[  445.049712][    C0]  do_syscall_64+0x32/0x50
+[  445.054113][    C0]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[  445.059983][    C0] RIP: 0033:0x449069
+[  445.063877][    C0] Code: 28 00 00 00 75 05 48 83 c4 28 c3 e8 a1 15 00 00 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
+[  445.083461][    C0] RSP: 002b:00007f18d0a67318 EFLAGS: 00000246 ORIG_RAX: 000000000000012b
+[  445.091858][    C0] RAX: ffffffffffffffda RBX: 00000000004ce4c8 RCX: 0000000000449069
+[  445.099812][    C0] RDX: 0400000000000249 RSI: 0000000020008880 RDI: 0000000000000004
+[  445.107766][    C0] RBP: 00000000004ce4c0 R08: 0000000000000000 R09: 0000000000000000
+[  445.115717][    C0] R10: 0000000044000102 R11: 0000000000000246 R12: 000000000049d484
+[  445.123671][    C0] R13: 00007fff8247bf9f R14: 00007f18d0a67400 R15: 0000000000022000

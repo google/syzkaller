@@ -1,0 +1,314 @@
+# Copyright 2015 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <asm/ioctls.h>
+include <linux/stat.h>
+include <uapi/linux/fuse.h>
+include <uapi/linux/fcntl.h>
+
+resource fuse_unique[int64]
+resource fd_fuse[fd]
+
+openat$fuse(fd const[AT_FDCWD], file ptr[in, string["/dev/fuse"]], flags const[O_RDWR], mode const[0]) fd_fuse
+openat$cuse(fd const[AT_FDCWD], file ptr[in, string["/dev/cuse"]], flags const[O_RDWR], mode const[0]) fd_fuse
+ioctl$FUSE_DEV_IOC_CLONE(fd fd_fuse, cmd const[FUSE_DEV_IOC_CLONE], arg ptr[in, fd_fuse])
+
+type read_buffer array[int8, FUSE_MIN_READ_BUFFER]
+read$FUSE(fd fd_fuse, buf ptr[out, fuse_in[read_buffer]], len bytesize[buf])
+mount$fuse(src const[0], dst ptr[in, filename], type ptr[in, string["fuse"]], flags flags[mount_flags], opts ptr[in, fuse_options])
+mount$fuseblk(src ptr[in, string["/dev/loop0"]], dst ptr[in, filename], type ptr[in, string["fuseblk"]], flags flags[mount_flags], opts ptr[in, fuse_options])
+
+write$FUSE_INTERRUPT(fd fd_fuse, arg ptr[in, fuse_out[void]], len bytesize[arg])
+write$FUSE_INIT(fd fd_fuse, arg ptr[in, fuse_out[fuse_init_out]], len bytesize[arg])
+write$FUSE_BMAP(fd fd_fuse, arg ptr[in, fuse_out[fuse_bmap_out]], len bytesize[arg])
+write$FUSE_IOCTL(fd fd_fuse, arg ptr[in, fuse_out[fuse_ioctl_out]], len bytesize[arg])
+write$FUSE_POLL(fd fd_fuse, arg ptr[in, fuse_out[fuse_poll_out]], len bytesize[arg])
+write$FUSE_LSEEK(fd fd_fuse, arg ptr[in, fuse_out[fuse_lseek_out]], len bytesize[arg])
+write$FUSE_LK(fd fd_fuse, arg ptr[in, fuse_out[fuse_lk_out]], len bytesize[arg])
+write$FUSE_GETXATTR(fd fd_fuse, arg ptr[in, fuse_out[fuse_getxattr_out]], len bytesize[arg])
+write$FUSE_STATFS(fd fd_fuse, arg ptr[in, fuse_out[fuse_statfs_out]], len bytesize[arg])
+write$FUSE_WRITE(fd fd_fuse, arg ptr[in, fuse_out[fuse_write_out]], len bytesize[arg])
+write$FUSE_OPEN(fd fd_fuse, arg ptr[in, fuse_out[fuse_open_out]], len bytesize[arg])
+write$FUSE_ATTR(fd fd_fuse, arg ptr[in, fuse_out[fuse_attr_out]], len bytesize[arg])
+write$FUSE_ENTRY(fd fd_fuse, arg ptr[in, fuse_out[fuse_entry_out]], len bytesize[arg])
+write$FUSE_CREATE_OPEN(fd fd_fuse, arg ptr[in, fuse_out[fuse_create_open_out]], len bytesize[arg])
+write$FUSE_DIRENT(fd fd_fuse, arg ptr[in, fuse_out[array[fuse_dirent]]], len bytesize[arg])
+write$FUSE_DIRENTPLUS(fd fd_fuse, arg ptr[in, fuse_out[array[fuse_direntplus]]], len bytesize[arg])
+write$FUSE_NOTIFY_POLL(fd fd_fuse, arg ptr[in, fuse_notify[FUSE_NOTIFY_POLL, fuse_notify_poll_wakeup_out]], len bytesize[arg])
+write$FUSE_NOTIFY_INVAL_INODE(fd fd_fuse, arg ptr[in, fuse_notify[FUSE_NOTIFY_INVAL_INODE, fuse_notify_inval_inode_out]], len bytesize[arg])
+write$FUSE_NOTIFY_INVAL_ENTRY(fd fd_fuse, arg ptr[in, fuse_notify[FUSE_NOTIFY_INVAL_ENTRY, fuse_notify_inval_entry_out]], len bytesize[arg])
+write$FUSE_NOTIFY_STORE(fd fd_fuse, arg ptr[in, fuse_notify[FUSE_NOTIFY_STORE, fuse_notify_store_out]], len bytesize[arg])
+write$FUSE_NOTIFY_RETRIEVE(fd fd_fuse, arg ptr[in, fuse_notify[FUSE_NOTIFY_RETRIEVE, fuse_notify_retrieve_out]], len bytesize[arg])
+write$FUSE_NOTIFY_DELETE(fd fd_fuse, arg ptr[in, fuse_notify[FUSE_NOTIFY_DELETE, fuse_notify_delete_out]], len bytesize[arg])
+
+syz_mount_image$fuse(fs ptr[in, string["fuse"]], dir ptr[in, filename], size const[0], nsegs const[0], segments const[0], flags flags[mount_flags], opts ptr[in, fuse_options]) fd_dir
+syz_fuse_handle_req(fd fd_fuse, buf ptr[in, read_buffer], len bytesize[buf], res ptr[in, syz_fuse_req_out])
+
+type fuse_ino int64[0:6]
+type fuse_gen int64[0:3]
+
+type fuse_notify[MSG, PAYLOAD] {
+	len	len[parent, int32]
+	err	const[MSG, int32]
+	unique	const[0, int64]
+	payload	PAYLOAD
+} [packed]
+
+type fuse_in[PAYLOAD] {
+	len	len[parent, int32]
+	opcode	int32
+	unique	fuse_unique
+	uid	uid
+	gid	gid
+	pid	pid
+	padding	int32
+	payload	PAYLOAD
+} [packed]
+
+type fuse_out_t[UNIQUE, PAYLOAD] {
+	len	len[parent, int32]
+	err	flags[fuse_errors, int32]
+	unique	UNIQUE
+	payload	PAYLOAD
+} [packed]
+
+type fuse_out[PAYLOAD] fuse_out_t[fuse_unique, PAYLOAD]
+# This response header is used by syz_fuse_handle_req(). It defines the FUSE unique
+# identifier as int64 because syz_fuse_handle_req() retrieves it internally
+# (defining it as a resource would create a dependency with read$FUSE() which is
+# incorrect).
+type syz_fuse_out[PAYLOAD] fuse_out_t[int64, PAYLOAD]
+
+# -ENOENT, -EAGAIN, -ENOSYS
+fuse_errors = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -2, -11, -38
+
+fuse_init_out {
+	major			const[FUSE_KERNEL_VERSION, int32]
+	minor			const[FUSE_KERNEL_MINOR_VERSION, int32]
+	max_readahead		int32
+	flags			flags[fuse_init_flags, int32]
+	max_background		int16
+	congestion_threshold	int16
+	max_write		int32
+	time_gran		int32
+	max_pages		const[0, int16]
+	map_alignment		const[0, int16]
+	unused			array[const[0, int32], 8]
+}
+
+fuse_init_flags = FUSE_ASYNC_READ, FUSE_POSIX_LOCKS, FUSE_FILE_OPS, FUSE_ATOMIC_O_TRUNC, FUSE_EXPORT_SUPPORT, FUSE_BIG_WRITES, FUSE_DONT_MASK, FUSE_SPLICE_WRITE, FUSE_SPLICE_MOVE, FUSE_SPLICE_READ, FUSE_FLOCK_LOCKS, FUSE_HAS_IOCTL_DIR, FUSE_AUTO_INVAL_DATA, FUSE_DO_READDIRPLUS, FUSE_READDIRPLUS_AUTO, FUSE_ASYNC_DIO, FUSE_WRITEBACK_CACHE, FUSE_NO_OPEN_SUPPORT, FUSE_PARALLEL_DIROPS, FUSE_HANDLE_KILLPRIV, FUSE_POSIX_ACL, FUSE_ABORT_ERROR, FUSE_MAX_PAGES, FUSE_CACHE_SYMLINKS, FUSE_NO_OPENDIR_SUPPORT, FUSE_EXPLICIT_INVAL_DATA
+
+fuse_lseek_out {
+	offset	int64
+}
+
+fuse_bmap_out {
+	block	int64
+}
+
+fuse_ioctl_out {
+	res		int32
+	flags		flags[fuse_ioctl_flags, int32]
+	in_iovs		int32
+	out_iovs	int32
+}
+
+fuse_ioctl_flags = 0, FUSE_IOCTL_RETRY
+
+fuse_poll_out {
+	revents	int32
+	padding	const[0, int32]
+}
+
+fuse_notify_poll_wakeup_out {
+	kh	int64
+}
+
+fuse_getxattr_out {
+	size	int32
+	padding	const[0, int32]
+}
+
+fuse_lk_out {
+	lk	fuse_file_lock
+}
+
+fuse_file_lock {
+	start	int64
+	end	int64
+	type	flags[fuse_lock_type, int32]
+	pid	pid
+}
+
+fuse_lock_type = F_UNLCK, F_RDLCK, F_WRLCK
+
+fuse_statfs_out {
+	st	fuse_kstatfs
+}
+
+fuse_kstatfs {
+	blocks	int64
+	bfree	int64
+	bavail	int64
+	files	int64
+	ffree	int64
+	bsize	int32
+	namelen	int32
+	frsize	int32
+	padding	const[0, int32]
+	spare	array[const[0, int32], 6]
+}
+
+fuse_write_out {
+	size	int32
+	padding	const[0, int32]
+}
+
+fuse_read_out {
+	content	string
+}
+
+fuse_open_out {
+	fh		const[0, int64]
+	open_flags	flags[fuse_open_flags, int32]
+	padding		const[0, int32]
+}
+
+fuse_open_flags = FOPEN_DIRECT_IO, FOPEN_KEEP_CACHE, FOPEN_NONSEEKABLE, FOPEN_CACHE_DIR, FOPEN_STREAM
+
+fuse_attr_out {
+	attr_valid	int64
+	attr_valid_nsec	int32
+	dummy		const[0, int32]
+	attr		fuse_attr
+}
+
+fuse_entry_out {
+	nodeid			fuse_ino
+	generation		fuse_gen
+	entry_valid		int64
+	attr_valid		int64
+	entry_valid_nsec	int32
+	attr_valid_nsec		int32
+	attr			fuse_attr
+}
+
+fuse_create_open_out {
+	entry	fuse_entry_out
+	open	fuse_open_out
+}
+
+fuse_attr {
+	ino		fuse_ino
+	size		int64
+	blocks		int64
+	atime		int64
+	mtime		int64
+	ctime		int64
+	atimensec	int32
+	mtimensec	int32
+	ctimensec	int32
+	mode		flags[fuse_mode, int32]
+	nlink		int32
+	uid		uid
+	gid		gid
+	rdev		int32
+	blksize		int32
+	padding		const[0, int32]
+}
+
+fuse_dirent {
+	ino	fuse_ino
+	off	int64
+	namelen	len[name, int32]
+	type	int32
+	name	stringnoz
+} [align[8]]
+
+fuse_direntplus {
+	entry	fuse_entry_out
+	dirent	fuse_dirent
+}
+
+fuse_notify_inval_inode_out {
+	ino	fuse_ino
+	off	int64
+	len	int64
+}
+
+fuse_notify_inval_entry_out {
+	parent1	fuse_ino
+	namelen	len[name, int32]
+	padding	const[0, int32]
+	name	stringnoz
+	zero	const[0, int8]
+} [packed]
+
+fuse_notify_delete_out {
+	parent1	fuse_ino
+	child	fuse_ino
+	namelen	len[name, int32]
+	padding	const[0, int32]
+	name	stringnoz
+	zero	const[0, int8]
+} [packed]
+
+fuse_notify_store_out {
+	nodeid	fuse_ino
+	off	int64
+	size	len[data, int32]
+	padding	const[0, int32]
+	data	array[const[0, int8]]
+} [packed]
+
+fuse_notify_retrieve_out {
+	notify_unique	const[0, int64]
+	nodeid		fuse_ino
+	offset		int64
+	size		int32
+	padding		const[0, int32]
+} [packed]
+
+# Mount options.
+
+fuse_options {
+	fd		fs_opt_hex["fd", fd_fuse]
+	comma0		const[',', int8]
+	rootmode	fs_opt_oct["rootmode", flags[fuse_mode]]
+	comma1		const[',', int8]
+	user_id		fs_opt_dec["user_id", uid]
+	comma2		const[',', int8]
+	group_id	fs_opt_dec["group_id", gid]
+	comma3		const[',', int8]
+	opts		fs_options[fuse_opts]
+} [packed]
+
+fuse_opts [
+	max_read		fs_opt_hex["max_read", int32]
+	allow_other		stringnoz["allow_other"]
+	default_permissions	stringnoz["default_permissions"]
+	blksize			fs_opt_hex["blksize", flags[fuse_block_sizes]]
+] [varlen]
+
+fuse_mode = S_IFREG, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK, S_IFLNK, S_IFDIR
+fuse_block_sizes = 512, 1024, 2048, 4096
+
+# Used by syz_fuse_handle_req() to mimic a FUSE daemon.
+syz_fuse_req_out {
+	init		ptr[in, syz_fuse_out[fuse_init_out]]
+	lseek		ptr[in, syz_fuse_out[fuse_lseek_out]]
+	bmap		ptr[in, syz_fuse_out[fuse_bmap_out]]
+	poll		ptr[in, syz_fuse_out[fuse_poll_out]]
+	getxattr	ptr[in, syz_fuse_out[fuse_getxattr_out]]
+	lk		ptr[in, syz_fuse_out[fuse_lk_out]]
+	statfs		ptr[in, syz_fuse_out[fuse_statfs_out]]
+	write		ptr[in, syz_fuse_out[fuse_write_out]]
+	read		ptr[in, syz_fuse_out[fuse_read_out]]
+	open		ptr[in, syz_fuse_out[fuse_open_out]]
+	attr		ptr[in, syz_fuse_out[fuse_attr_out]]
+	entry		ptr[in, syz_fuse_out[fuse_entry_out]]
+	dirent		ptr[in, syz_fuse_out[array[fuse_dirent]]]
+	direntplus	ptr[in, syz_fuse_out[array[fuse_direntplus]]]
+	create_open	ptr[in, syz_fuse_out[fuse_create_open_out]]
+	ioctl		ptr[in, syz_fuse_out[fuse_ioctl_out]]
+}

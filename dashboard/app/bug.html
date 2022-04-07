@@ -1,0 +1,47 @@
+{{/*
+Copyright 2017 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+Page with details about a single bug.
+*/}}
+
+<!doctype html>
+<html>
+<head>
+	{{template "head" .Header}}
+	<title>{{.Bug.Title}}</title>
+</head>
+<body>
+	{{template "header" .Header}}
+
+	<b>{{.Bug.Title}}</b><br>
+	Status: {{if .Bug.ExternalLink}}<a href="{{.Bug.ExternalLink}}">{{.Bug.Status}}</a>{{else}}{{.Bug.Status}}{{end}}<br>
+	Reported-by: {{.Bug.CreditEmail}}<br>
+	{{if .Bug.Commits}}
+		Fix commit: {{template "fix_commits" .Bug.Commits}}<br>
+		{{if .Bug.ClosedTime.IsZero}}
+			Patched on: {{.Bug.PatchedOn}}, missing on: {{.Bug.MissingOn}}<br>
+		{{end}}
+	{{end}}
+	First crash: {{formatLateness $.Now $.Bug.FirstTime}}, last: {{formatLateness $.Now $.Bug.LastTime}}<br>
+
+	{{template "bisect_results" .BisectCause}}
+	{{template "bisect_results" .BisectFix}}
+
+	{{template "bug_list" .DupOf}}
+	{{template "bug_list" .Dups}}
+	{{template "bug_list" .Similar}}
+	{{template "job_list" .TestPatchJobs}}
+
+	{{if .SampleReport}}
+	<br><b>Sample crash report:</b><br>
+	<textarea id="log_textarea" readonly rows="25" wrap=off>{{printf "%s" .SampleReport}}</textarea><br>
+	{{end}}
+
+	{{if .FixBisections}}
+		{{template "crash_list" .FixBisections}}
+	{{end}}
+
+	{{template "crash_list" .Crashes}}
+</body>
+</html>

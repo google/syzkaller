@@ -1,0 +1,7 @@
+# This simply creates 2 UDP sockets and sends a packet between them.
+
+r0 = socket$inet_udp(AUTO, AUTO, AUTO)
+bind$inet(r0, &AUTO={AUTO, 0x4e20, @empty}, AUTO)
+r1 = socket$inet_udp(AUTO, AUTO, AUTO)
+sendto$inet(r1, &AUTO=""/10, AUTO, 0x0, &AUTO={AUTO, 0x4e20, @empty}, AUTO)
+recvfrom(r0, &AUTO=""/10, AUTO, 0x0, 0x0, 0x0)

@@ -1,0 +1,43 @@
+# This is not corrupted but we don't understand this stack trace format.
+TITLE: PANIC: double fault in compat_sock_ioctl
+CORRUPTED: Y
+
+[   10.584905] PANIC: double fault, error_code: 0x0
+[   10.585372] CPU: 0 PID: 917 Comm: netifd Not tainted 4.14.0-rc1-00015-gf5caf62 #2
+[   10.586062] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.9.3-20161025_171302-gandalf 04/01/2014
+[   10.586978] task: ffff8800141a8000 task.stack: ffffc90000274000
+[   10.587519] RIP: 0010:compat_sock_ioctl+0xfea/0x103e
+[   10.587974] RSP: 0000:0000000000277d78 EFLAGS: 00010283
+[   10.588448] RAX: 0000000000277d78 RBX: 0000000000008933 RCX: ffff8800141a8000
+[   10.589103] RDX: 0000000000000020 RSI: 00000000fffbea00 RDI: 00000000fffbea50
+[   10.589757] RBP: ffffc90000277e18 R08: fffbea50fffbea34 R09: ffffffff814a68c9
+[   10.590407] R10: ffffff9c00000002 R11: 00000000fffbea50 R12: 0000000000000000
+[   10.591056] R13: ffff880012c8c880 R14: 00000000fffbea50 R15: 00000000fffbea00
+[   10.591708] FS:  0000000000000000(0000) GS:ffff880019a00000(0063) knlGS:00000000f7fab9a0
+[   10.592446] CS:  0010 DS: 002b ES: 002b CR0: 0000000080050033
+[   10.592973] CR2: 0000000000277d68 CR3: 000000001807f000 CR4: 00000000000006b0
+[   10.593623] Call Trace:
+[   10.593858] Code: 02 0f ff 65 48 8b 04 25 80 d1 00 00 48 8b 80 28 25 00 00 48 83 e8 20 49 39 c7 77 34 89 e0 4c 89 f7 4c 89 fe ba 20 00 00 00 89 c4 <e8> b3 52 05 00 85 c0 74 22 eb 1a 4c 89 fa 89 de 4c 89 ef e8 c6 
+[   10.595705] Kernel panic - not syncing: Machine halted.
+[   10.596181] CPU: 0 PID: 917 Comm: netifd Not tainted 4.14.0-rc1-00015-gf5caf62 #2
+[   10.596868] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.9.3-20161025_171302-gandalf 04/01/2014
+[   10.597786] Call Trace:
+[   10.598017]  <#DF>
+[   10.598216]  dump_stack+0x8f/0xc4
+[   10.598527]  panic+0xda/0x22f
+[   10.598811]  df_debug+0x30/0x30
+[   10.599104]  do_double_fault+0x9b/0xaf
+[   10.599456]  double_fault+0x22/0x30
+[   10.599791] RIP: 0010:compat_sock_ioctl+0xfea/0x103e
+[   10.600247] RSP: 0000:0000000000277d78 EFLAGS: 00010283
+[   10.600733] RAX: 0000000000277d78 RBX: 0000000000008933 RCX: ffff8800141a8000
+[   10.601381] RDX: 0000000000000020 RSI: 00000000fffbea00 RDI: 00000000fffbea50
+[   10.602036] RBP: ffffc90000277e18 R08: fffbea50fffbea34 R09: ffffffff814a68c9
+[   10.602700] R10: ffffff9c00000002 R11: 00000000fffbea50 R12: 0000000000000000
+[   10.603349] R13: ffff880012c8c880 R14: 00000000fffbea50 R15: 00000000fffbea00
+[   10.604002]  ? dev_ioctl+0x2d7/0x5e3
+[   10.604336] WARNING: kernel stack regs at ffff880019a05f58 in netifd:917 has bad 'bp' value ffffc90000277e18
+[   10.604337] unwind stack type:0 next_sp:0000000000277d78 mask:0x10 graph_idx:0
+[   10.604339] ffff880019a05d48: ffff880019a05e28 (0xffff880019a05e28)
+[   10.604340] ffff880019a05d50: ffffffff8100ce27 (show_trace_log_lvl+0x203/0x2a7)
+[   10.604342] ffff880019a05d58: ffffffff81473d28 (compat_sock_ioctl+0xfea/0x103e)

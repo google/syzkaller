@@ -1,0 +1,5 @@
+TITLE: general protection fault in corrupted
+ALT: bad-access in corrupted
+CORRUPTED: Y
+
+[   92.396607] general protection fault: 0000 [#1] [ 387.811073] audit: type=1326 audit(1486238739.637:135): auid=4294967295 uid=0 gid=0 ses=4294967295 pid=10020 comm="syz-executor1" exe="/root/syz-executor1" sig=31 arch=c000003e syscall=202 compat=0 ip=0x44fad9 code=0x0

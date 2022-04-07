@@ -1,0 +1,6 @@
+no-such-struct: nbd_filename
+no-such-struct: loop_filename
+no-such-struct: fs_image_segment
+no-such-struct: fs_opt
+no-such-struct: fs_opt_nodelim
+no-such-struct: uuid_str

@@ -1,0 +1,47 @@
+bad-field-number: sg_io_hdr: syz=20 kernel=22
+bad-field-size: sg_io_hdr.data/iovec_count: syz=10 kernel=2 [386,arm]
+bad-field-size: sg_io_hdr.data/iovec_count: syz=14 kernel=2 [amd64,arm64]
+bad-field-offset: sg_io_hdr.cmdp/dxfer_len: syz=20 kernel=12 [386,arm]
+bad-field-offset: sg_io_hdr.cmdp/dxfer_len: syz=24 kernel=12 [amd64,arm64]
+bad-field-size: sg_io_hdr.cmdp/dxfer_len: syz=8 kernel=4 [amd64,arm64]
+bad-field-offset: sg_io_hdr.sbp/dxferp: syz=24 kernel=16 [386,arm]
+bad-field-offset: sg_io_hdr.sbp/dxferp: syz=32 kernel=16 [amd64,arm64]
+bad-field-offset: sg_io_hdr.timeout/cmdp: syz=28 kernel=20 [386,arm]
+bad-field-offset: sg_io_hdr.timeout/cmdp: syz=40 kernel=24 [amd64,arm64]
+bad-field-size: sg_io_hdr.timeout/cmdp: syz=4 kernel=8 [amd64,arm64]
+bad-field-offset: sg_io_hdr.flags/sbp: syz=32 kernel=24 [386,arm]
+bad-field-offset: sg_io_hdr.flags/sbp: syz=44 kernel=32 [amd64,arm64]
+bad-field-size: sg_io_hdr.flags/sbp: syz=4 kernel=8 [amd64,arm64]
+bad-field-offset: sg_io_hdr.pack_id/timeout: syz=36 kernel=28 [386,arm]
+bad-field-offset: sg_io_hdr.pack_id/timeout: syz=48 kernel=40 [amd64,arm64]
+bad-field-offset: sg_io_hdr.usr_ptr/flags: syz=40 kernel=32 [386,arm]
+bad-field-offset: sg_io_hdr.usr_ptr/flags: syz=52 kernel=44 [amd64,arm64]
+bad-field-size: sg_io_hdr.usr_ptr/flags: syz=8 kernel=4 [amd64,arm64]
+bad-field-offset: sg_io_hdr.status/pack_id: syz=44 kernel=36 [386,arm]
+bad-field-offset: sg_io_hdr.status/pack_id: syz=60 kernel=48 [amd64,arm64]
+bad-field-size: sg_io_hdr.status/pack_id: syz=1 kernel=4
+bad-field-offset: sg_io_hdr.masked_status/usr_ptr: syz=45 kernel=40 [386,arm]
+bad-field-offset: sg_io_hdr.masked_status/usr_ptr: syz=61 kernel=56 [amd64,arm64]
+bad-field-size: sg_io_hdr.masked_status/usr_ptr: syz=1 kernel=4 [386,arm]
+bad-field-size: sg_io_hdr.masked_status/usr_ptr: syz=1 kernel=8 [amd64,arm64]
+bad-field-offset: sg_io_hdr.msg_status/status: syz=46 kernel=44 [386,arm]
+bad-field-offset: sg_io_hdr.msg_status/status: syz=62 kernel=64 [amd64,arm64]
+bad-field-offset: sg_io_hdr.sb_len_wr/masked_status: syz=47 kernel=45 [386,arm]
+bad-field-offset: sg_io_hdr.sb_len_wr/masked_status: syz=63 kernel=65 [amd64,arm64]
+bad-field-offset: sg_io_hdr.host_status/msg_status: syz=48 kernel=46 [386,arm]
+bad-field-offset: sg_io_hdr.host_status/msg_status: syz=64 kernel=66 [amd64,arm64]
+bad-field-size: sg_io_hdr.host_status/msg_status: syz=2 kernel=1
+bad-field-offset: sg_io_hdr.driver_status/sb_len_wr: syz=50 kernel=47 [386,arm]
+bad-field-offset: sg_io_hdr.driver_status/sb_len_wr: syz=66 kernel=67 [amd64,arm64]
+bad-field-size: sg_io_hdr.driver_status/sb_len_wr: syz=2 kernel=1
+bad-field-offset: sg_io_hdr.resid/host_status: syz=52 kernel=48 [386,arm]
+bad-field-size: sg_io_hdr.resid/host_status: syz=4 kernel=2
+bad-field-offset: sg_io_hdr.duration/driver_status: syz=56 kernel=50 [386,arm]
+bad-field-offset: sg_io_hdr.duration/driver_status: syz=72 kernel=70 [amd64,arm64]
+bad-field-size: sg_io_hdr.duration/driver_status: syz=4 kernel=2
+bad-field-offset: sg_io_hdr.info/resid: syz=60 kernel=52 [386,arm]
+bad-field-offset: sg_io_hdr.info/resid: syz=76 kernel=72 [amd64,arm64]
+no-such-struct: sg_io_hdr_data
+no-such-struct: sg_io_hdr_data_buffer
+no-such-struct: sg_io_hdr_data_scatter
+bad-field-size: scsi_ioctl_command.opcode/data: syz=4 kernel=0

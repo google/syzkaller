@@ -1,0 +1,419 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Errors that happen during type checking phase.
+
+#include "something"		### confusing comment faking a directive (rephrase if it's intentional)
+#define FOO BAR			### confusing comment faking a directive (rephrase if it's intentional)
+# include "something"		### confusing comment faking a directive (rephrase if it's intentional)
+#	incdir "dir"		### confusing comment faking a directive (rephrase if it's intentional)
+
+foo$0(x fileoff, y int8, z buffer[in])
+foo$1(x "bar")			### unexpected string "bar", expect type
+foo$2(x 123, y "bar")		### unexpected int 123, expect type	### unexpected string "bar", expect type
+foo$3(x string)			### string can't be syscall argument
+
+resource r0[int32]: 0, 0x1
+resource r1[string["foo"]]	### string can't be resource base (int types can)
+resource r1[int32]		### type r1 redeclared, previously declared as resource at LOCATION
+resource int32[int32]		### resource name int32 conflicts with builtin type
+resource fileoff[intptr]	### type fileoff redeclared, previously declared as type alias at builtins
+
+s1 {
+	f1	int32
+}
+
+s1 {				### type s1 redeclared, previously declared as struct at LOCATION
+	f1	int32
+	f1	intptr		### duplicate field f1 in struct s1
+	parent	int8		### reserved field name parent in struct s1
+}
+
+s2 {				### struct s2 has no fields, need at least 1 field
+}
+
+int32 {				### struct name int32 conflicts with builtin type
+	f1	int32
+}
+
+r0 {				### type r0 redeclared, previously declared as resource at LOCATION
+	f1	int32
+}
+
+u0 [
+	f1	int32
+	f2	fileoff[int32]
+]
+
+u1 [				### union u1 has no fields, need at least 1 field
+]
+
+u2 [
+	f1	int8
+	f1	int16		### duplicate field f1 in union u2
+	parent	int32		### reserved field name parent in union u2
+]
+
+foo$4(a int8, a int16)		### duplicate argument a in syscall foo$4
+foo$4()				### syscall foo$4 redeclared, previously declared at LOCATION
+foo()
+foo()				### syscall foo redeclared, previously declared at LOCATION
+foo$5(a0 int8, a1 int8, a2 int8, a3 int8, a4 int8, a5 int8, a6 int8, a7 int8, a8 int8, a9 int8)	### syscall foo$5 has 10 arguments, allowed maximum is 9
+foo$6(parent int8)		### reserved argument name parent in syscall foo$6
+
+f1 = 1
+f2 = 1, 2
+f2 = 1, 2			### flags f2 redeclared, previously declared at LOCATION
+sf1 = "a"
+sf2 = "a", "b"
+sf2 = "c"			### string flags sf2 redeclared, previously declared at LOCATION
+
+resource r2[r0]: 2
+resource r3[int32:1]		### unexpected ':', only struct fields can be bitfields
+resource r4[int32[opt]]		### resource base can't be marked as opt
+resource r5[non_existent]	### unknown type non_existent
+resource r6[int64be]		### int64be can't be resource base (int types can)
+resource r9["foo"]		### unexpected string "foo", expect type
+
+foo$7(a r0, a1 r2[opt])
+foo$8(a fileoff[a, b, int8])	### template fileoff needs 0 arguments instead of 3
+foo$9(a buffer[inout])
+foo$10(a buffer[intout])	### unexpected value intout for direction argument of ptr type, expect [in out inout]
+foo$11(a buffer["in"])		### unexpected string "in" for direction argument of ptr type, expect [in out inout]
+foo$12(a buffer[10])		### unexpected int 10 for direction argument of ptr type, expect [in out inout]
+foo$13(a int32[2:3])
+foo$14(a int32[2:2])
+foo$16(a int32[3])		### first argument of int32 needs to be a range
+foo$17(a ptr[in, int32])
+foo$18(a ptr[in, int32[2:3]])
+foo$19(a ptr[in, int32[opt]])
+foo$20(a ptr)			### wrong number of arguments for type ptr, expect direction, type, [opt]
+foo$21(a ptr["foo"])		### wrong number of arguments for type ptr, expect direction, type, [opt]
+foo$22(a ptr[in])		### wrong number of arguments for type ptr, expect direction, type, [opt]
+foo$23(a ptr[in, s3[in]])	### wrong number of arguments for type s3, expect no arguments
+foo$25(a proc[0, "foo"])	### unexpected string "foo" for per-proc values argument of proc type, expect int
+foo$26(a flags[no])		### unknown flags no
+foo$27(a flags["foo"])		### unexpected string "foo" for flags argument of flags type, expect identifier
+foo$28(a ptr[in, string["foo"]], b ptr[in, string["foo", 4]])
+foo$30(a ptr[in, string[no]])	### unknown string flags no
+foo$31(a int8, b ptr[in, csum[a, inet]])		### wrong number of arguments for type csum, expect csum target, kind, [proto], base type
+foo$32(a int8, b ptr[in, csum[a, inet, 1, int32]])	### only pseudo csum can have proto
+foo$33(a int8, b ptr[in, csum[a, pseudo, 1, int32]])
+foo$34(a int32["foo"])		### unexpected string "foo" for range argument of int32 type, expect int
+foo$35(a ptr[in, s3[opt]])	### s3 can't be marked as opt
+foo$36(a const[1:2])		### unexpected ':'
+foo$39(a fileoff:1)		### type alias fileoff with ':'
+foo$40(a len["a"])		### unexpected string "a" for len target argument of len type, expect identifier
+foo$41(a vma[C1:C2])
+foo$43(a ptr[in, string[1]])	### unexpected int 1, string arg must be a string literal or string flags
+foo$44(a int32) len[a]		### len can't be syscall return
+foo$45(a int32) len[b]		### len can't be syscall return
+foo$46(a ptr[in, in])		### unknown type in
+foo$47(a int32:2)		### unexpected ':', only struct fields can be bitfields
+foo$48(a ptr[in, int32:7])	### unexpected ':', only struct fields can be bitfields
+foo$49(a ptr[in, array[int32, 0:1]])
+foo$52(a intptr, b bitsize[a])
+foo$53(a proc[20, 10, opt])
+# This must not error yet (consts are not patched).
+foo$54(a ptr[in, string["foo", C1]])
+foo$55(a int8[opt[int8]])	### opt can't have arguments
+foo$56(a void)			### void can't be syscall argument
+foo$57(a ptr[in, stringnoz["foo", 10]])	### fixed-size string can't be non-zero-terminated
+foo$58(a ptr[in, stringnoz[sf2, 10]])	### fixed-size string can't be non-zero-terminated
+foo$59(a s1)			### s1 can't be syscall argument
+foo$60() s1			### s1 can't be syscall return
+foo$61(a u6)			### u6 can't be syscall argument
+foo$62() u6			### u6 can't be syscall return
+foo$63(a int32[1[2]])		### range argument has subargs
+foo$64(a ptr[in, flags[f1[int32], int32]])	### flags argument has subargs
+foo$65(a int32, b len[1])	### unexpected int 1 for len target argument of len type, expect identifier
+foo$66(a int32, b len[a:1])	### unexpected int 1 after colon, expect identifier
+foo$67(x int32[1:2:3, opt])	### unexpected ':'
+foo$68(a int32[15, 2])		### first argument of int32 needs to be a range
+foo$69() (foo)			### unknown syscall foo$69 attribute foo
+foo$70() ("foo")		### unexpected string "foo", expect attribute
+foo$71() (42)			### unexpected int 42, expect attribute
+foo$72() (disabled, disabled)	### duplicate syscall foo$72 attribute disabled
+
+opt {				### struct uses reserved name opt
+	f1	int32
+}
+
+in = 1, 2			### flags uses reserved name in
+out = "1", "2"			### string flags uses reserved name out
+
+out [				### union uses reserved name out
+	f1	int32
+	f2	int8
+]
+
+resource inout[int32]		### resource uses reserved name inout
+
+bar()
+
+s3 {
+	f1	int8:0		### bitfields of size 0 are not supported
+	f2	int8:1
+	f3	int8:7
+	f4	int8:8
+	f5	int8:9		### bitfield of size 9 is too large for base type of size 8
+	f6	int32:32
+	f7	int32:33	### bitfield of size 33 is too large for base type of size 32
+	f8	const[0, int32:C1]	### literal const bitfield sizes are not supported
+	f9	const[0]	### wrong number of arguments for type const, expect value, base type
+} [packed, align[4]]
+
+s5 {
+	f1	int8
+} [varlen]			### unknown struct s5 attribute varlen
+
+s7 {
+	f1	ptr64[in, int32]
+}
+
+s8 {
+	f1	int8
+} [unknown]			### unknown struct s8 attribute unknown
+
+s9 {
+	f1	int8
+} ["foo"[0]]			### unexpected string "foo", expect attribute
+
+s10 {
+	f1	int8
+} [packed[0]]			### packed attribute has args
+
+s11 {
+	f1	int8
+} [size["foo"]]			### unexpected string "foo", expect int
+
+s12 {
+	f1	int8
+} [size[0:1]]			### size attribute has colon or args
+
+s13 {
+	f1	int8
+} [size[0[0]]]			### size attribute has colon or args
+
+u3 [
+	f1	int8
+	f2	int32
+] [varlen]
+
+u4 [
+	f1	int8
+	f2	int32
+] [packed]			### unknown union u4 attribute packed
+
+u5 [
+	f1	int8:1		### unexpected ':', only struct fields can be bitfields
+	f2	int8:2		### unexpected ':', only struct fields can be bitfields
+]
+
+u6 [
+	f1	int8
+	f2	int64
+	f3	array[int8]
+]
+
+define d0 SOMETHING
+define d1 `some C expression`
+define d2 some C expression
+define d2 SOMETHING		### duplicate define d2
+define d3 1
+
+# Type aliases.
+
+type mybool8 int8[0:1]
+type mybool16 int16[0:1]
+type net_port proc[100, 1, int16be]
+resource typeres0[mybool8]
+typestruct {
+	f1	mybool8
+	f2	mybool16
+}
+
+type type0 int8
+type type0 int8			### type type0 redeclared, previously declared as type alias at LOCATION
+resource type0[int32]		### type type0 redeclared, previously declared as type alias at LOCATION
+type0 = 0, 1
+type type1 type1		### type instantiation loop: type1 -> type1
+type type2 int8:4		### unexpected ':', only struct fields can be bitfields
+type type3 type2		### unknown type type2
+type type4 const[0]		### wrong number of arguments for type const, expect value, base type
+type type6 len[foo, int32]	### len can't be type alias target
+type type7 len[foo]		### len can't be type alias target
+resource typeres1[int32]
+type type8 typeres1		### typeres1 can't be type alias target
+type int8 int8			### type name int8 conflicts with builtin type
+type opt int8			### type uses reserved name opt
+type type9 const[0, int8]
+type type12 proc[123, 2, int16, opt]
+type type13 ptr[in, typestruct13]
+type type14 flags[type0, int32]
+type type15 const[0, type0]	### unexpected value type0 for base type argument of const type, expect [int8 int16 int32 int64 int16be int32be int64be intptr]
+type type16 type17		### type instantiation loop: type16 -> type16
+type type17 type18		### unknown type type16
+type type18 type16		### unknown type type16
+type bool8 int8[0:1]		### type bool8 redeclared, previously declared as type alias at builtins
+
+typestruct11 {
+	f	type11		### unknown type type11
+}
+
+typestruct12 {
+	f	type11		### unknown type type11
+}
+
+typestruct13 {
+	f1	type9
+	f2	type12
+}
+
+foo$100(a mybool8, b mybool16)
+foo$102(a type2)		### unknown type type2
+foo$103(a type0:4)		### type alias type0 with ':'
+foo$104(a type0[opt])		### type type0 is not a template
+foo$105() type0			### int8 can't be syscall return
+foo$106() type6			### unknown type type6
+foo$107(a type9, b type12)
+foo$108(a flags[type0])
+foo$109(a ptr[in, type0])
+
+# Type templates.
+
+type templ0[A, B] const[A, B]
+type templ2[A] A[0]
+type templ3[A] ptr[in, A]
+type templ4[A, A] ptr[in, A]	### duplicate type argument A
+type templ5[abc] ptr[in, abc]	### type argument abc must be ALL_CAPS
+type templ6[T] ptr[in, T]
+type templ7 templ0[templ6, int8]
+type templ8[BASE, A] BASE[A]	### type argument BASE must be the last argument
+type templ9[BASE] BASE
+type templ10[A] templ9[A]
+type templ11[VAL, BASE] const[VAL, BASE]
+
+# Note: here 42 is stripped as base type, so const ends up without arguments.
+foo$201(a templ1[42])		### wrong number of arguments for type const, expect value
+type templ1[A] const[A]
+
+type templ_struct0[A, B] {
+	len	len[parent, int16]
+	typ	const[A, int16]
+	data	B
+} [align[4]]
+
+type templ_struct1[STR] {
+	f	string[STR, 40]
+	f	int32		### duplicate field f in template struct templ_struct1
+}
+
+type templ_struct2[A] {
+	f	B
+}
+
+type templ_base0[TYPE] {
+	f1	TYPE
+}
+
+type templ_templ0[B] {
+	f1	B
+}
+
+type templ_templ1[B] {
+	f1	B[int16]			### both template parameter B and its usage have sub-arguments
+}
+
+templ_templ_use0 {
+	f1	templ_templ0[templ_base0]	### template templ_base0 needs 1 arguments instead of 0
+	f2	templ_templ1[templ_base0[int32]]
+}
+
+foo$200(a templ0[42, int8])
+foo$202(a templ0)		### template templ0 needs 2 arguments instead of 0
+foo$203(a type0[42])		### type type0 is not a template
+foo$204(a ptr[in, templ_struct0[42, int8]])
+foo$205(a ptr[in, templ_struct0[int8, int8]])
+foo$207(a ptr[in, templ_struct2[1]])		### template argument A is not used
+foo$208(a ptr[in, templ9[string["foo"]]])	### unexpected value string for base type argument of templ9 type, expect [int8 int16 int32 int64 int16be int32be int64be intptr]
+foo$209(a ptr[in, templ10[templ0[42, int8]]])	### unexpected value templ0 for base type argument of templ9 type, expect [int8 int16 int32 int64 int16be int32be int64be intptr]
+foo$210(a ptr[in, templ11[0, 1, int8]])		### template templ11 needs 2 arguments instead of 3
+foo$211(a ptr[in, templ9])			### template templ9 needs 1 arguments instead of 0
+foo$212(a ptr[in, templ11[1]])			### template templ11 needs 2 arguments instead of 1
+
+type TR[A, B] {
+	f TR[A, A[B]]		### type instantiation recursion: TR[X, Y] -> TR[X, X[Y]] -> TR[X, X[X[Y]]] -> TR[X, X[X[X[Y]]]] -> TR[X, X[X[X[X[Y]]]]] -> TR[X, X[X[X[X[X[Y]]]]]] -> TR[X, X[X[X[X[X[X[Y]]]]]]] -> TR[X, X[X[X[X[X[X[X[Y]]]]]]]] -> TR[X, X[X[X[X[X[X[X[X[Y]]]]]]]]] -> TR[X, X[X[X[X[X[X[X[X[X[Y]]]]]]]]]] -> TR[X, X[X[X[X[X[X[X[X[X[X[Y]]]]]]]]]]] -> TR[X, X[X[X[X[X[X[X[X[X[X[X[Y]]]]]]]]]]]]
+}
+type TU TR[X, Y]
+
+type TT1[A] {
+	f0 templ_base0[A]
+	f1 TT2[A]
+}
+
+type TT2[A] {
+	f1 templ_base0[A]
+	f2 TT3[A]
+}
+
+type TT3[A] {
+	f1 templ_base0[A]
+	f2 TT1[A]				### type instantiation loop: TT1[int8] -> TT2[int8] -> TT3[int8] -> TT1[int8]
+}
+
+foo$213(a ptr[in, TT1[int8]])
+
+foo$glob001(a ptr[in, glob[1]])			### unexpected int 1, string arg must be a string literal or string flags
+foo$glob002(a ptr[in, glob])			### glob only accepts 1 arg, provided 0
+foo$glob003(a ptr[in, glob["/sys", 5]])		### glob only accepts 1 arg, provided 2
+foo$glob004(a ptr[in, glob["/sys", 5, 2]])	### wrong number of arguments for type glob, expect [literal or flags], [size], [opt]
+
+# fmt
+
+foo$fmt0(a ptr[in, fmt])			### wrong number of arguments for type fmt, expect format, value
+foo$fmt1(a fmt[dec, int8])			### fmt can't be syscall argument
+foo$fmt2(a ptr[in, fmt[dec, ptr[in, int8]]])	### bad fmt value ptr, expect an integer
+foo$fmt3(a ptr[in, fmt[foo, int8]])		### unexpected value foo for format argument of fmt type, expect [dec hex oct]
+foo$fmt4(a ptr[in, fmt[dec, int8:3]])		### unexpected ':', only struct fields can be bitfields
+
+struct$fmt0 {
+	f0	fmt[dec, int8:3]		### unexpected ':', only struct fields can be bitfields
+	f1	int32:-1			### bitfield of size 18446744073709551615 is too large for base type of size 32
+}
+
+struct$perfielddir {
+	f0	int32	(in, in)	### duplicate arg/field f0 attribute in
+	f1	int32	(out, out)	### duplicate arg/field f1 attribute out
+	f2	int32	(inout, inout)	### duplicate arg/field f2 attribute inout
+	f3	int32	(in, out)	### arg/field has multiple direction attributes
+	f4	int32	(in, inout)	### arg/field has multiple direction attributes
+	f5	int32	(out, inout)	### arg/field has multiple direction attributes
+	f6	int32	(in, out, inout)	### arg/field has multiple direction attributes
+}
+
+struct$overlay0 {
+	f0	int32	(out_overlay)	### out_overlay attribute must not be specified on the first field
+	f1	int32	(out_overlay)	### multiple out_overlay attributes
+}
+
+struct$overlay1 {
+	f0	int32
+	f1	int32	(out_overlay, out_overlay)	### duplicate arg/field f1 attribute out_overlay
+	f2	int32	(out_overlay)	### multiple out_overlay attributes
+}
+
+struct$overlay2 {
+	f0	int32	(in)
+	f1	int32	(out_overlay)	### mix of direction and out_overlay attributes is not supported
+}
+
+union$overlay0 [
+	f0	int32
+	f1	int32	(out_overlay)	### unknown arg/field f1 attribute out_overlay
+]
+
+union$directions [
+	f1	int32	(in)	### unknown arg/field f1 attribute in
+	f2	int32	(out)	### unknown arg/field f2 attribute out
+]

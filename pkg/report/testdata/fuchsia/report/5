@@ -1,0 +1,10 @@
+TITLE: recursion in interrupt handler in fillrect16
+
+gfxconsole: rows stopping other cpus
+48halting cpu 0
+, columns 113, extray 0
+vector 14
+recursion in interrupt handler
+Connection to localhost closed by remote host.
+ RIP: 0x001a1f12  fillrect16 lib/gfx/gfx.c:289
+ CS:                0x10 RIP: 0xffffffff001a1f12 EFL:            0x10006 CR2: 0xffffff9bf8dab000

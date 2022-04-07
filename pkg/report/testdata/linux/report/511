@@ -1,0 +1,56 @@
+TITLE: KASAN: use-after-free Write in bpf_prog_kallsyms_del
+ALT: bad-access in bpf_prog_kallsyms_del
+
+[  284.023898] ==================================================================
+[  284.031579] BUG: KASAN: use-after-free in rb_erase+0x26d0/0x3710
+[  284.037735] Write of size 8 at addr ffff8801d816bcf0 by task syz-executor5/19158
+[  284.045291] 
+[  284.046968] CPU: 0 PID: 19158 Comm: syz-executor5 Not tainted 4.20.0-rc1+ #144
+[  284.054332] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  284.063684] Call Trace:
+[  284.063772]  dump_stack+0x244/0x39d
+[  284.070274]  print_address_description.cold.7+0x9/0x1ff
+[  284.070310]  kasan_report.cold.8+0x242/0x309
+[  284.093317]  __asan_report_store8_noabort+0x17/0x20
+[  284.093332]  rb_erase+0x26d0/0x3710
+[  284.372639]  bpf_prog_kallsyms_del+0x1c2/0x410
+[  284.418562]  bpf_prog_kallsyms_del_all+0x1d/0x20
+[  284.423322]  __bpf_prog_put+0xe0/0x150
+[  284.427217]  bpf_prog_test_run+0x145/0x1a0
+[  284.431474] BUG: unable to handle kernel paging request at ffffc90001953030
+[  284.438566] PGD 1da95a067 P4D 1da95a067 PUD 1da95b067 PMD 1d41ad067 PTE 0
+[  284.445509] Oops: 0000 [#1] PREEMPT SMP KASAN
+[  284.450002] CPU: 0 PID: 19158 Comm: syz-executor5 Not tainted 4.20.0-rc1+ #144
+[  284.457355] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  284.466715] RIP: 0010:bpf_prog_kallsyms_find+0x289/0x4a0
+[  284.472169] Code: 03 42 80 3c 30 00 0f 85 b1 01 00 00 4d 8b 6f 50 49 8d 7d 30 48 89 fa 48 c1 ea 03 42 80 3c 32 00 0f 85 ab 01 00 00 49 8d 7d 02 <4d> 8b 65 30 48 89 fa 48 89 f9 48 c1 ea 03 83 e1 07 42 0f b6 14 32
+[  284.491069] RSP: 0018:ffff8801d309edc8 EFLAGS: 00010046
+[  284.496429] RAX: 0000000000000000 RBX: ffff8801d816bd08 RCX: ffffffff818c0a21
+[  284.503699] RDX: 1ffff9200032a606 RSI: 0000000000000008 RDI: ffffc90001953002
+[  284.510972] RBP: ffff8801d309ef40 R08: ffff880196284540 R09: ffffed003b5c5b67
+[  284.518241] R10: ffffed003b5c5b67 R11: ffff8801dae2db3b R12: 1ffff1003a613ddb
+[  284.525514] R13: ffffc90001953000 R14: dffffc0000000000 R15: ffff8801d816bcf0
+[  284.532784] FS:  00007f32b4635700(0000) GS:ffff8801dae00000(0000) knlGS:0000000000000000
+[  284.541010] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  284.547091] CR2: ffffc90001953030 CR3: 00000001c1c3c000 CR4: 00000000001406f0
+[  284.554367] DR0: 0000000000000000 DR1: 0000000020000000 DR2: 0000000000000000
+[  284.561635] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000600
+[  284.568903] Call Trace:
+[  284.571510] BUG: unable to handle kernel paging request at ffffc90001953030
+[  284.578601] PGD 1da95a067 P4D 1da95a067 PUD 1da95b067 PMD 1d41ad067 PTE 0
+[  284.585543] Oops: 0000 [#2] PREEMPT SMP KASAN
+[  284.590036] CPU: 0 PID: 19158 Comm: syz-executor5 Not tainted 4.20.0-rc1+ #144
+[  284.597391] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  284.606758] RIP: 0010:bpf_prog_kallsyms_find+0x289/0x4a0
+[  284.612214] Code: 03 42 80 3c 30 00 0f 85 b1 01 00 00 4d 8b 6f 50 49 8d 7d 30 48 89 fa 48 c1 ea 03 42 80 3c 32 00 0f 85 ab 01 00 00 49 8d 7d 02 <4d> 8b 65 30 48 89 fa 48 89 f9 48 c1 ea 03 83 e1 07 42 0f b6 14 32
+[  284.631116] RSP: 0018:ffff8801d309e6d8 EFLAGS: 00010046
+[  284.636478] RAX: 0000000000000000 RBX: ffff8801d816bd08 RCX: ffffffff818c0a21
+[  284.643743] RDX: 1ffff9200032a606 RSI: 0000000000000008 RDI: ffffc90001953002
+[  284.651013] RBP: ffff8801d309e850 R08: ffff880196284540 R09: 0000000000000001
+[  284.658280] R10: ffffed003b5c5b67 R11: ffff880196284540 R12: 1ffff1003a613cfd
+[  284.665548] R13: ffffc90001953000 R14: dffffc0000000000 R15: ffff8801d816bcf0
+[  284.672817] FS:  00007f32b4635700(0000) GS:ffff8801dae00000(0000) knlGS:0000000000000000
+[  284.681188] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  284.687071] CR2: ffffc90001953030 CR3: 00000001c1c3c000 CR4: 00000000001406f0
+[  284.694340] DR0: 0000000000000000 DR1: 0000000020000000 DR2: 0000000000000000
+[  284.701610] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000600

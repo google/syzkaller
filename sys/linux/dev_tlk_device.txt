@@ -1,0 +1,80 @@
+# Copyright 2016 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Open Trusted Execution driver for /dev/tlk_device
+# Reference source code:
+# https://android.googlesource.com/kernel/tegra/+/android-tegra-dragon-3.18-marshmallow-dr-dragon/security/tlk_driver/ote_protocol.h
+
+include <linux/ioctl.h>
+include <linux/types.h>
+include <security/tlk_driver/ote_protocol.h>
+
+resource fd_tlk[fd]
+resource te_session_id[int32]
+
+openat$tlk_device(fd const[AT_FDCWD], file ptr[in, string["/dev/tlk_device"]], flags flags[open_flags]) fd_tlk
+
+ioctl$TE_IOCTL_OPEN_CLIENT_SESSION(fd fd_tlk, cmd const[TE_IOCTL_OPEN_CLIENT_SESSION], arg ptr[inout, te_opensession])
+ioctl$TE_IOCTL_CLOSE_CLIENT_SESSION(fd fd_tlk, cmd const[TE_IOCTL_CLOSE_CLIENT_SESSION], arg ptr[inout, te_closesession])
+ioctl$TE_IOCTL_LAUNCH_OPERATION(fd fd_tlk, cmd const[TE_IOCTL_LAUNCH_OPERATION], arg ptr[inout, te_launchop])
+ioctl$TE_IOCTL_SS_CMD(fd fd_tlk, cmd const[TE_IOCTL_SS_CMD], arg flags[te_ss_cmd_flags])
+
+te_ss_cmd_flags = TE_IOCTL_SS_CMD_GET_NEW_REQ, TE_IOCTL_SS_CMD_REQ_COMPLETE
+te_oper_param_type_flags = TE_PARAM_TYPE_NONE, TE_PARAM_TYPE_INT_RO, TE_PARAM_TYPE_INT_RW, TE_PARAM_TYPE_MEM_RO, TE_PARAM_TYPE_MEM_RW, TE_PARAM_TYPE_PERSIST_MEM_RO, TE_PARAM_TYPE_PERSIST_MEM_RW, TE_PARAM_TYPE_FLAGS_PHYS_LIST
+
+# Values of time_low, time_mid, time_hi_and_version, clock_seq_and_node don't seem to mean anything.
+te_service_id {
+	unused_time_low			int32
+	unused_time_mid			int16
+	unused_time_hi_and_version	int16
+	unused_clock_seq_and_node	array[int8, 8]
+}
+
+te_opensession {
+	dest_uuid	te_service_id
+	operation	te_operation
+	answer		ptr[out, te_answer]
+}
+
+te_closesession {
+	session_id	te_session_id
+	answer		ptr[out, te_answer]
+}
+
+te_answer {
+	result		int32
+	session_id	te_session_id
+	result_origin	int32
+}
+
+te_launchop {
+	session_id	te_session_id
+	operation	te_operation
+	answer		int64
+}
+
+te_operation {
+	unused_command		int32
+	status			int32
+	list_head		ptr[in, te_oper_param]
+	unused_list_tail	ptr[in, te_oper_param]
+	list_count		int32
+	unused_interface_side	int32
+}
+
+te_int_mem_union [
+	int	int32
+	Mem	te_mem
+]
+
+te_mem {
+	base	vma
+	len	int32
+}
+
+te_oper_param {
+	index		int32
+	type		flags[te_oper_param_type_flags, int32]
+	u		te_int_mem_union
+	next_ptr_user	ptr[in, te_oper_param, opt]
+}

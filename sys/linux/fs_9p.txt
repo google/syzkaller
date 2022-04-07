@@ -1,0 +1,292 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# 9p2000 mount/server descriptions. For protocol description see:
+# http://knusbaum.com/useful/rfc9p2000
+# http://ericvh.github.io/9p-rfc/rfc9p2000.html
+# http://ericvh.github.io/9p-rfc/rfc9p2000.u.html
+# https://github.com/chaos/diod/blob/master/protocol.md
+
+include <linux/fs.h>
+include <net/9p/9p.h>
+
+resource rfd9p[fd]
+resource wfd9p[fd]
+
+mount$9p_fd(src const[0], dst ptr[in, filename], type ptr[in, string["9p"]], flags flags[mount_flags], opts ptr[in, p9_options_fd])
+mount$9p_tcp(src ptr[in, string["127.0.0.1"]], dst ptr[in, filename], type ptr[in, string["9p"]], flags flags[mount_flags], opts ptr[in, p9_options_tcp])
+mount$9p_unix(src ptr[in, filename], dst ptr[in, filename], type ptr[in, string["9p"]], flags flags[mount_flags], opts ptr[in, p9_options_unix])
+mount$9p_rdma(src ptr[in, string["127.0.0.1"]], dst ptr[in, filename], type ptr[in, string["9p"]], flags flags[mount_flags], opts ptr[in, p9_options_rdma])
+mount$9p_virtio(src ptr[in, string["syz"]], dst ptr[in, filename], type ptr[in, string["9p"]], flags flags[mount_flags], opts ptr[in, p9_options_virtio])
+mount$9p_xen(src ptr[in, string["syz"]], dst ptr[in, filename], type ptr[in, string["9p"]], flags flags[mount_flags], opts ptr[in, p9_options_xen])
+
+pipe2$9p(pipefd ptr[out, pipe_9p], flags flags[pipe_flags])
+
+pipe_9p {
+	rfd	rfd9p
+	wfd	wfd9p
+}
+
+write$9p(fd wfd9p, data ptr[in, array[int8]], size bytesize[data])
+
+write$P9_RLERROR(fd wfd9p, data ptr[in, p9_msg[P9_RLERROR, p9_rerror]], size bytesize[data])
+write$P9_RLERRORu(fd wfd9p, data ptr[in, p9_msg[P9_RLERROR, p9_rerroru]], size bytesize[data])
+write$P9_RVERSION(fd wfd9p, data ptr[in, p9_rversion], size bytesize[data])
+write$P9_RAUTH(fd wfd9p, data ptr[in, p9_msg[P9_RAUTH, p9_qid]], size bytesize[data])
+write$P9_RFLUSH(fd wfd9p, data ptr[in, p9_msg[P9_RFLUSH, void]], size bytesize[data])
+write$P9_RATTACH(fd wfd9p, data ptr[in, p9_msg[P9_RATTACH, p9_qid]], size bytesize[data])
+write$P9_RWALK(fd wfd9p, data ptr[in, p9_msg[P9_RWALK, p9_rwalk]], size bytesize[data])
+write$P9_ROPEN(fd wfd9p, data ptr[in, p9_msg[P9_ROPEN, p9_ropen]], size bytesize[data])
+write$P9_RCREATE(fd wfd9p, data ptr[in, p9_msg[P9_RCREATE, p9_ropen]], size bytesize[data])
+write$P9_RREAD(fd wfd9p, data ptr[in, p9_msg[P9_RREAD, p9_rread]], size bytesize[data])
+write$P9_RWRITE(fd wfd9p, data ptr[in, p9_msg[P9_RWRITE, int32]], size bytesize[data])
+write$P9_RCLUNK(fd wfd9p, data ptr[in, p9_msg[P9_RCLUNK, void]], size bytesize[data])
+write$P9_RREMOVE(fd wfd9p, data ptr[in, p9_msg[P9_RREMOVE, void]], size bytesize[data])
+write$P9_RWSTAT(fd wfd9p, data ptr[in, p9_msg[P9_RWSTAT, void]], size bytesize[data])
+write$P9_RSTAT(fd wfd9p, data ptr[in, p9_msg[P9_RSTAT, p9_rstat]], size bytesize[data])
+write$P9_RSTATu(fd wfd9p, data ptr[in, p9_msg[P9_RSTAT, p9_rstatu]], size bytesize[data])
+write$P9_RSTATFS(fd wfd9p, data ptr[in, p9_msg[P9_RSTATFS, p9_rstatfs]], size bytesize[data])
+write$P9_RLOPEN(fd wfd9p, data ptr[in, p9_msg[P9_RLOPEN, p9_ropen]], size bytesize[data])
+write$P9_RLCREATE(fd wfd9p, data ptr[in, p9_msg[P9_RLCREATE, p9_ropen]], size bytesize[data])
+write$P9_RSYMLINK(fd wfd9p, data ptr[in, p9_msg[P9_RSYMLINK, p9_qid]], size bytesize[data])
+write$P9_RMKNOD(fd wfd9p, data ptr[in, p9_msg[P9_RMKNOD, p9_qid]], size bytesize[data])
+write$P9_RRENAME(fd wfd9p, data ptr[in, p9_msg[P9_RRENAME, void]], size bytesize[data])
+write$P9_RREADLINK(fd wfd9p, data ptr[in, p9_msg[P9_RREADLINK, p9_rreadlink]], size bytesize[data])
+write$P9_RGETATTR(fd wfd9p, data ptr[in, p9_msg[P9_RGETATTR, p9_rgetattr]], size bytesize[data])
+write$P9_RSETATTR(fd wfd9p, data ptr[in, p9_msg[P9_RSETATTR, void]], size bytesize[data])
+write$P9_RXATTRWALK(fd wfd9p, data ptr[in, p9_msg[P9_RXATTRWALK, int64]], size bytesize[data])
+write$P9_RXATTRCREATE(fd wfd9p, data ptr[in, p9_msg[P9_RXATTRCREATE, void]], size bytesize[data])
+write$P9_RREADDIR(fd wfd9p, data ptr[in, p9_msg[P9_RREADDIR, p9_rreaddir]], size bytesize[data])
+write$P9_RFSYNC(fd wfd9p, data ptr[in, p9_msg[P9_RFSYNC, void]], size bytesize[data])
+write$P9_RLOCK(fd wfd9p, data ptr[in, p9_msg[P9_RLOCK, flags[p9_lock_status, int8]]], size bytesize[data])
+write$P9_RGETLOCK(fd wfd9p, data ptr[in, p9_msg[P9_RGETLOCK, p9_rgetlock]], size bytesize[data])
+write$P9_RLINK(fd wfd9p, data ptr[in, p9_msg[P9_RLINK, void]], size bytesize[data])
+write$P9_RMKDIR(fd wfd9p, data ptr[in, p9_msg[P9_RMKDIR, p9_qid]], size bytesize[data])
+write$P9_RRENAMEAT(fd wfd9p, data ptr[in, p9_msg[P9_RRENAMEAT, void]], size bytesize[data])
+write$P9_RUNLINKAT(fd wfd9p, data ptr[in, p9_msg[P9_RUNLINKAT, void]], size bytesize[data])
+
+type p9_msg[MSG, PAYLOAD] {
+	size	bytesize[parent, int32]
+	type	const[MSG, int8]
+	tag	int16[1:2]
+	payload	PAYLOAD
+} [packed]
+
+p9_rerror {
+	ename_len	len[ename, int16]
+	ename		stringnoz
+} [packed]
+
+p9_rerroru {
+	error	p9_rerror
+	errno	int32
+} [packed]
+
+p9_rversion {
+	size		bytesize[parent, int32]
+	type		const[P9_RVERSION, int8]
+	tag		const[0xffff, int16]
+	msize		int32
+	version_len	len[version, int16]
+	version		stringnoz[p9_versions]
+} [packed]
+
+p9_versions = "9P2000", "9P2000.u", "9P2000.L"
+
+p9_qid {
+	type	flags[p9_qid_types, int8]
+	version	int32[0:4]
+	path	int64[0:8]
+} [packed]
+
+p9_qid_types = P9_QTDIR, P9_QTAPPEND, P9_QTEXCL, P9_QTMOUNT, P9_QTAUTH, P9_QTTMP, P9_QTSYMLINK, P9_QTLINK, P9_QTFILE
+
+p9_rwalk {
+	nwqid	len[wqid, int16]
+	wqid	array[p9_qid]
+} [packed]
+
+p9_ropen {
+	qid	p9_qid
+	iounit	int32
+} [packed]
+
+p9_rread {
+	count	bytesize[data, int32]
+	data	array[int8]
+} [packed]
+
+p9_rstat {
+# I can't find this in any protocol descriptions, but linux seems to expect another int16 field here.
+	ignored		const[0, int16]
+	size		bytesize[parent, int16]
+	type		int16
+	dev		int32
+	qid		p9_qid
+	mode		flags[p9_perm_t, int32]
+	atime		int32
+	mtime		int32
+	length		int64
+	name_len	len[name, int16]
+	name		stringnoz
+	uid_len		len[uid, int16]
+	uid		stringnoz
+	gid_len		len[gid, int16]
+	gid		stringnoz
+	muid_len	len[muid, int16]
+	muid		stringnoz
+} [packed]
+
+p9_rstatu {
+	rstat		p9_rstat
+	extension_len	len[extension, int16]
+	extension	stringnoz
+	n_uid		uid
+	n_gid		gid
+	n_muid		uid
+} [packed]
+
+p9_perm_t = P9_DMDIR, P9_DMAPPEND, P9_DMEXCL, P9_DMMOUNT, P9_DMAUTH, P9_DMTMP, P9_DMSYMLINK, P9_DMLINK, P9_DMDEVICE, P9_DMNAMEDPIPE, P9_DMSOCKET, P9_DMSETUID, P9_DMSETGID, P9_DMSETVTX
+
+p9_rreadlink {
+	target_len	len[target, int16]
+	target		stringnoz[filename]
+} [packed]
+
+p9_rstatfs {
+	type	int32
+	bsize	int32
+	blocks	int64
+	bfree	int64
+	bavail	int64
+	files	int64
+	ffree	int64
+	fsid	int64
+	namelen	int32
+} [packed]
+
+p9_rgetattr {
+	valid		flags[p8_stats_valid, int64]
+	qid		p9_qid
+	mode		flags[open_mode, int32]
+	uid		uid
+	gid		gid
+	nlink		int64
+	rdev		int64
+	size		int64
+	blksize		int64
+	blocks		int64
+	atime_sec	int64
+	atime_nsec	int64
+	mtime_sec	int64
+	mtime_nsec	int64
+	ctime_sec	int64
+	ctime_nsec	int64
+	btime_sec	int64
+	btime_nsec	int64
+	gen		int64
+	data_version	int64
+} [packed]
+
+p8_stats_valid = P9_STATS_MODE, P9_STATS_NLINK, P9_STATS_UID, P9_STATS_GID, P9_STATS_RDEV, P9_STATS_ATIME, P9_STATS_MTIME, P9_STATS_CTIME, P9_STATS_INO, P9_STATS_SIZE, P9_STATS_BLOCKS, P9_STATS_BTIME, P9_STATS_GEN, P9_STATS_DATA_VERSION
+
+p9_lock_status = P9_LOCK_SUCCESS, P9_LOCK_BLOCKED, P9_LOCK_ERROR, P9_LOCK_GRACE
+p9_lock_type = P9_LOCK_TYPE_RDLCK, P9_LOCK_TYPE_WRLCK, P9_LOCK_TYPE_UNLCK
+
+p9_rreaddir {
+	count	int32
+	entries	array[p9_dir]
+} [packed]
+
+p9_dir {
+	qid		p9_qid
+	offset		int64
+	type		int8
+	name_len	len[name, int16]
+	name		stringnoz[filename]
+} [packed]
+
+p9_rgetlock {
+	type		flags[p9_lock_type, int8]
+	start		int64
+	length		int64
+	proc_id		pid
+	client_id_len	len[client_id, int16]
+	client_id	stringnoz
+} [packed]
+
+# Mount options.
+
+p9_options_fd {
+	trans	stringnoz["trans=fd,"]
+	rfdno	fs_opt_hex["rfdno", rfd9p]
+	comma0	const[',', int8]
+	wfdno	fs_opt_hex["wfdno", fd]
+	comma1	const[',', int8]
+	opts	fs_options[p9_options]
+} [packed]
+
+p9_options_tcp {
+	trans	stringnoz["trans=tcp,"]
+	port	fs_opt_hex["port", sock_port]
+	comma0	const[',', int8]
+	opts	fs_options[p9_options]
+} [packed]
+
+p9_options_unix {
+	name	stringnoz["trans=unix,"]
+	opts	fs_options[p9_options]
+} [packed]
+
+p9_options_rdma {
+	trans	stringnoz["trans=rdma,"]
+	port	fs_opt_hex["port", sock_port]
+	comma0	const[',', int8]
+	opts	fs_options[p9_options_rdma_opt]
+} [packed]
+
+p9_options_rdma_opt [
+	common	p9_options
+	timeout	fs_opt_hex["timeout", intptr]
+	sq	fs_opt_hex["sq", intptr]
+	rq	fs_opt_hex["rq", intptr]
+] [varlen]
+
+p9_options_virtio {
+	trans	stringnoz["trans=virtio,"]
+	opts	fs_options[p9_options]
+} [packed]
+
+p9_options_xen {
+	trans	stringnoz["trans=xen,"]
+	opts	fs_options[p9_options]
+} [packed]
+
+p9_options [
+	uname		fs_opt_str["uname"]
+	aname		fs_opt_str["aname"]
+	cache_none	stringnoz["cache=none"]
+	cache_loose	stringnoz["cache=loose"]
+	cache_fscache	stringnoz["cache=fscache"]
+	cache_mmap	stringnoz["cache=mmap"]
+	debug		fs_opt_hex["debug", int64]
+	noextend	stringnoz["noextend"]
+	nodevmap	stringnoz["nodevmap"]
+	version_9p2000	stringnoz["version=9p2000"]
+	version_u	stringnoz["version=9p2000.u"]
+	version_L	stringnoz["version=9p2000.L"]
+	cachetag	fs_opt_str["cachetag"]
+	loose		stringnoz["loose"]
+	fscache		stringnoz["fscache"]
+	mmap		stringnoz["mmap"]
+	posixacl	stringnoz["posixacl"]
+	privport	stringnoz["privport"]
+	msize		fs_opt_hex["msize", int32]
+	dfltuid		fs_opt_hex["dfltuid", uid]
+	dfltgid		fs_opt_hex["dfltgid", gid]
+	afid		fs_opt_hex["afid", int32]
+	access_user	stringnoz["access=user"]
+	access_any	stringnoz["access=any"]
+	access_client	stringnoz["access=client"]
+	access_uid	fs_opt_dec["access", uid]
+] [varlen]

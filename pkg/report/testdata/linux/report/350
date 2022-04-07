@@ -1,0 +1,436 @@
+TITLE: BUG: soft lockup in smp_call_function
+ALT: stall in smp_call_function
+TYPE: HANG
+
+[ 1098.601132][    C2] watchdog: BUG: soft lockup - CPU#2 stuck for 136s! [syz-executor4:4888]
+[ 1098.605452][    C2] Modules linked in:
+[ 1098.606265][    C2] irq event stamp: 79894
+[ 1098.606820][    C2] hardirqs last  enabled at (79893): [<ffffffff81007bd9>] trace_hardirqs_on_thunk+0x1a/0x1c
+[ 1098.608649][    C2] hardirqs last disabled at (79894): [<ffffffff81007bf5>] trace_hardirqs_off_thunk+0x1a/0x1c
+[ 1098.609960][    C2] softirqs last  enabled at (0): [<ffffffff814aaac4>] copy_process+0x1d14/0x8720
+[ 1098.611510][    C2] softirqs last disabled at (0): [<0000000000000000>]           (null)
+[ 1098.613062][    C2] CPU: 2 PID: 4888 Comm: syz-executor4 Not tainted 4.20.0-next-20190102+ #5
+[ 1098.614698][    C2] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+[ 1098.616349][    C2] RIP: 0010:__sanitizer_cov_trace_const_cmp4+0xd/0x20
+[ 1098.617620][    C2] Code: d6 0f b7 f7 bf 03 00 00 00 48 89 e5 48 8b 4d 08 e8 d8 fe ff ff 5d c3 66 0f 1f 44 00 00 55 89 f2 89 fe bf 05 00 00 00 48 89 e5 <48> 8b 4d 08 e8 ba fe ff ff 5d c3 0f 1f 84 00 00 00 00 00 55 48 89
+[ 1098.620395][    C2] RSP: 0018:ffff88803b35f218 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff13
+[ 1098.621529][    C2] RAX: 0000000000000004 RBX: ffffed100766be5a RCX: ffffffff81759ae5
+[ 1098.622602][    C2] RDX: 0000000000000001 RSI: 0000000000000000 RDI: 0000000000000005
+[ 1098.623674][    C2] RBP: ffff88803b35f218 R08: ffff88805a72a540 R09: ffff88805a72ae80
+[ 1098.624721][    C2] R10: ffff88805a72a540 R11: 0000000000000000 R12: ffff88806c437fe0
+[ 1098.625772][    C2] R13: 0000000000000001 R14: ffff88803b35f310 R15: 0000000000000003
+[ 1098.626836][    C2] FS:  0000000001b86940(0000) GS:ffff88806c480000(0000) knlGS:0000000000000000
+[ 1098.628024][    C2] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[ 1098.628909][    C2] CR2: 0000001b2d423000 CR3: 000000003ce21003 CR4: 00000000001606e0
+[ 1098.629973][    C2] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[ 1098.631040][    C2] DR3: 0000000000000000 DR6: 00000000ffff0ff0 DR7: 0000000000000600
+[ 1098.632107][    C2] Call Trace:
+[ 1098.632573][    C2]  smp_call_function_many+0x8d5/0xb10
+[ 1098.637451][    C2]  smp_call_function+0x42/0x90
+[ 1098.638671][    C2]  on_each_cpu+0x31/0x200
+[ 1098.640009][    C2]  text_poke_bp+0x101/0x1e5
+[ 1098.644345][    C2]  __jump_label_transform+0x33f/0x4d0
+[ 1098.647841][    C2]  arch_jump_label_transform+0x2b/0x40
+[ 1098.648594][    C2]  __jump_label_update+0x16a/0x210
+[ 1098.649296][    C2]  jump_label_update+0x1ce/0x3d0
+[ 1098.649976][    C2]  __static_key_slow_dec_cpuslocked+0xc5/0x220
+[ 1098.652283][    C2]  static_key_slow_dec+0x60/0xa0
+[ 1098.652960][    C2]  tracepoint_probe_unregister+0x73e/0x940
+[ 1098.660208][    C2]  trace_event_reg+0x189/0x350
+[ 1098.661664][    C2]  perf_trace_event_unreg.isra.0+0xbb/0x220
+[ 1098.662468][    C2]  perf_trace_destroy+0xc1/0x100
+[ 1098.663853][    C2]  tp_perf_event_destroy+0x16/0x20
+[ 1098.664551][    C2]  _free_event+0x3ee/0x1640
+[ 1098.667119][    C2]  put_event+0x47/0x60
+[ 1098.667706][    C2]  perf_event_release_kernel+0x890/0xf70
+[ 1098.676219][    C2]  perf_release+0x37/0x50
+[ 1098.676768][    C2]  __fput+0x3c5/0xb10
+[ 1098.681592][    C2]  ____fput+0x16/0x20
+[ 1098.682129][    C2]  task_work_run+0x1f4/0x2b0
+[ 1098.684692][    C2]  exit_to_usermode_loop+0x32a/0x3b0
+[ 1098.687763][    C2]  do_syscall_64+0x696/0x800
+[ 1098.690774][    C2]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[ 1098.691576][    C2] RIP: 0033:0x411071
+[ 1098.692132][    C2] Code: 75 14 b8 03 00 00 00 0f 05 48 3d 01 f0 ff ff 0f 83 74 1a 00 00 c3 48 83 ec 08 e8 0a fc ff ff 48 89 04 24 b8 03 00 00 00 0f 05 <48> 8b 3c 24 48 89 c2 e8 53 fc ff ff 48 89 d0 48 83 c4 08 48 3d 01
+[ 1098.694803][    C2] RSP: 002b:00007ffffa2d80d0 EFLAGS: 00000293 ORIG_RAX: 0000000000000003
+[ 1098.695946][    C2] RAX: 0000000000000000 RBX: 0000000000000004 RCX: 0000000000411071
+[ 1098.697031][    C2] RDX: 0000001b2d420000 RSI: 00007fd53b7c3510 RDI: 0000000000000003
+[ 1098.698108][    C2] RBP: 0000000000000000 R08: 00007fd53b7c3048 R09: 000000003df39a59
+[ 1098.699185][    C2] R10: 00007ffffa2d8000 R11: 0000000000000293 R12: 0000000000000001
+[ 1098.700267][    C2] R13: 0000000000000000 R14: 0000000000000000 R15: 00007ffffa2d8190
+[ 1098.701358][    C2] Sending NMI from CPU 2 to CPUs 0-1,3:
+[ 1098.702519][    C1] NMI backtrace for cpu 1
+[ 1098.702523][    C1] CPU: 1 PID: 22149 Comm: kworker/1:1 Not tainted 4.20.0-next-20190102+ #5
+[ 1098.702527][    C1] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+[ 1098.702529][    C1] Workqueue: rcu_gp process_srcu
+[ 1098.702533][    C1] RIP: 0010:delay_tsc+0x33/0xc0
+[ 1098.702540][    C1] Code: bf 01 00 00 00 41 55 41 54 53 e8 58 18 66 f9 e8 f3 ad 9f fb 41 89 c5 0f ae e8 0f 31 48 c1 e2 20 48 09 c2 49 89 d4 eb 16 f3 90 <bf> 01 00 00 00 e8 33 18 66 f9 e8 ce ad 9f fb 44 39 e8 75 36 0f ae
+[ 1098.702542][    C1] RSP: 0018:ffff88803ce475a0 EFLAGS: 00000286
+[ 1098.702547][    C1] RAX: 0000000080000000 RBX: 0000029824c8de8b RCX: 0000000000000000
+[ 1098.702550][    C1] RDX: 0000000000000004 RSI: ffffffff8391c828 RDI: 0000000000000001
+[ 1098.702553][    C1] RBP: ffff88803ce475c0 R08: ffff88806b55c240 R09: fffffbfff16b1885
+[ 1098.702556][    C1] R10: ffff88803ce47710 R11: ffffffff8b58c427 R12: 0000029824c8d990
+[ 1098.702560][    C1] R13: 0000000000000001 R14: 00000000000032ab R15: ffffffff8b58c080
+[ 1098.702563][    C1] FS:  0000000000000000(0000) GS:ffff88806c440000(0000) knlGS:0000000000000000
+[ 1098.702566][    C1] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[ 1098.702569][    C1] CR2: ffffffffff600400 CR3: 000000005ad83004 CR4: 00000000001606e0
+[ 1098.702570][    C1] Call Trace:
+[ 1098.702573][    C1]  __const_udelay+0x5f/0x80
+[ 1098.702575][    C1]  try_check_zero+0x352/0x5c0
+[ 1098.702583][    C1]  process_srcu+0x642/0x1400
+[ 1098.702620][    C1]  process_one_work+0xd0c/0x1ce0
+[ 1098.702653][    C1]  worker_thread+0x143/0x14a0
+[ 1098.702685][    C1]  kthread+0x357/0x430
+[ 1098.702691][    C1]  ret_from_fork+0x3a/0x50
+[ 1098.703114][    C2] NMI backtrace for cpu 0
+[ 1098.703118][    C2] CPU: 0 PID: 3681 Comm: udevd Not tainted 4.20.0-next-20190102+ #5
+[ 1098.703121][    C2] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+[ 1098.703124][    C2] RIP: 0010:native_queued_spin_lock_slowpath+0x323/0x1290
+[ 1098.703131][    C2] Code: 00 00 00 fc ff df 49 c1 ec 03 4d 01 fc 45 84 f6 41 c6 04 24 f8 74 4f 4c 89 ee 83 e6 07 83 c6 03 f3 90 4c 89 e8 41 c6 04 24 04 <48> c1 e8 03 42 0f b6 04 38 40 38 c6 7c 08 84 c0 0f 85 f5 09 00 00
+[ 1098.703134][    C2] RSP: 0000:ffff88806c4077f8 EFLAGS: 00000002
+[ 1098.703139][    C2] RAX: ffff88806b9f4798 RBX: ffff88806c4079a0 RCX: ffff88806c4078b0
+[ 1098.703142][    C2] RDX: 0000000000000000 RSI: 0000000000000003 RDI: ffff88806b9f4798
+[ 1098.703145][    C2] RBP: ffff88806c4079c8 R08: 1ffff1100d73e8f3 R09: ffffed100d73e8f4
+[ 1098.703148][    C2] R10: ffffed100d73e8f3 R11: ffff88806b9f479b R12: ffffed100d880f16
+[ 1098.703151][    C2] R13: ffff88806b9f4798 R14: 0000000000000101 R15: dffffc0000000000
+[ 1098.703154][    C2] FS:  00007fdf8d22a7a0(0000) GS:ffff88806c400000(0000) knlGS:0000000000000000
+[ 1098.703157][    C2] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[ 1098.703160][    C2] CR2: 00000000023997d0 CR3: 000000006b1bd002 CR4: 00000000001606f0
+[ 1098.703162][    C2] Call Trace:
+[ 1098.703163][    C2]  <IRQ>
+[ 1098.703180][    C2]  do_raw_spin_lock+0x2af/0x360
+[ 1098.703189][    C2]  _raw_spin_lock+0x37/0x40
+[ 1098.703193][    C2]  drm_handle_vblank+0x154/0xc70
+[ 1098.703213][    C2]  drm_crtc_handle_vblank+0x63/0x90
+[ 1098.703218][    C2]  vkms_vblank_simulate+0x61/0x290
+[ 1098.703220][    C2]  __hrtimer_run_queues+0x3a7/0x1050
+[ 1098.703241][    C2]  hrtimer_interrupt+0x314/0x770
+[ 1098.703243][    C2]  smp_apic_timer_interrupt+0x18d/0x760
+[ 1098.703259][    C2]  apic_timer_interrupt+0xf/0x20
+[ 1098.703261][    C2]  </IRQ>
+[ 1098.703263][    C2] RIP: 0033:0x4179c0
+[ 1098.703270][    C2] Code: 40 00 48 8d 3d 3a 88 00 00 b9 09 00 00 00 48 89 de f3 a6 0f 84 91 01 00 00 48 8d 3d 2d 88 00 00 b9 05 00 00 00 48 89 de f3 a6 <0f> 84 22 02 00 00 48 8d 3d 1c 88 00 00 b9 12 00 00 00 48 89 de f3
+[ 1098.703273][    C2] RSP: 002b:00007fff245ca880 EFLAGS: 00000297 ORIG_RAX: ffffffffffffff13
+[ 1098.703278][    C2] RAX: 0000000000000000 RBX: 00007fff245cae1f RCX: 0000000000000004
+[ 1098.703281][    C2] RDX: 0000000000000000 RSI: 00007fff245cae20 RDI: 00000000004201e4
+[ 1098.703284][    C2] RBP: 00000000023a3f90 R08: 00007fff245cae1f R09: 00007fdf8c98a3f0
+[ 1098.703287][    C2] R10: 00000000023a0920 R11: 00000000023a4ce0 R12: 00007fff245cad80
+[ 1098.703291][    C2] R13: 00000000000000ac R14: 00000000023872d0 R15: 00007fff245cae1f
+[ 1098.703295][    C2] NMI backtrace for cpu 3
+[ 1098.703298][    C2] CPU: 3 PID: 4874 Comm: udevd Not tainted 4.20.0-next-20190102+ #5
+[ 1098.703302][    C2] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+[ 1098.703304][    C2] RIP: 0010:lock_acquire+0x27d/0x570
+[ 1098.703314][    C2] Code: 48 ff ff ff 57 9d 0f 1f 44 00 00 48 b8 00 00 00 00 00 fc ff df 48 03 85 40 ff ff ff 48 c7 00 00 00 00 00 c7 40 08 00 00 00 00 <48> 8b 45 d0 65 48 33 04 25 28 00 00 00 0f 85 77 02 00 00 48 8d 65
+[ 1098.703317][    C2] RSP: 0018:ffff88806c4c75d8 EFLAGS: 00000086
+[ 1098.703321][    C2] RAX: ffffed100d898ec0 RBX: ffff88805034c100 RCX: 0000000000000000
+[ 1098.703324][    C2] RDX: dffffc0000000000 RSI: 00000000000046f9 RDI: 0000000000000086
+[ 1098.703327][    C2] RBP: ffff88806c4c76a8 R08: 0000000000000005 R09: ffff88805034ca68
+[ 1098.703331][    C2] R10: ffff88805034ca48 R11: 0000000000000001 R12: ffff88806c425d58
+[ 1098.703334][    C2] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
+[ 1098.703337][    C2] FS:  00007fdf8d22a7a0(0000) GS:ffff88806c4c0000(0000) knlGS:0000000000000000
+[ 1098.703340][    C2] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[ 1098.703343][    C2] CR2: 0000000000625208 CR3: 0000000020393002 CR4: 00000000001606e0
+[ 1098.703344][    C2] Call Trace:
+[ 1098.703346][    C2]  <IRQ>
+[ 1098.703357][    C2]  _raw_spin_lock_irqsave+0x95/0xcd
+[ 1098.703362][    C2]  lock_hrtimer_base.isra.0+0x75/0x130
+[ 1098.703364][    C2]  hrtimer_try_to_cancel+0xfe/0x6b0
+[ 1098.703378][    C2]  hrtimer_cancel+0x20/0x40
+[ 1098.703380][    C2]  vkms_disable_vblank+0x19/0x20
+[ 1098.703382][    C2]  drm_vblank_disable_and_save+0x391/0x4a0
+[ 1098.703394][    C2]  vblank_disable_fn+0x22c/0x280
+[ 1098.703399][    C2]  call_timer_fn+0x254/0x900
+[ 1098.703424][    C2]  __run_timers+0x6fc/0xd50
+[ 1098.703452][    C2]  run_timer_softirq+0x52/0xb0
+[ 1098.703457][    C2]  __do_softirq+0x30b/0xb11
+[ 1098.703475][    C2]  irq_exit+0x180/0x1d0
+[ 1098.703477][    C2]  smp_apic_timer_interrupt+0x1b7/0x760
+[ 1098.703493][    C2]  apic_timer_interrupt+0xf/0x20
+[ 1098.703495][    C2]  </IRQ>
+[ 1098.703497][    C2] RIP: 0010:handle_mm_fault+0x7f4/0xc80
+[ 1098.703504][    C2] Code: 48 c1 e8 03 80 3c 10 00 0f 85 c9 03 00 00 48 83 3d 70 ce db 07 00 0f 84 ff 02 00 00 e8 75 4f cb ff 48 8b bd 70 ff ff ff 57 9d <0f> 1f 44 00 00 e9 98 fb ff ff e8 5d 4f cb ff 48 ba 00 00 00 00 00
+[ 1098.703507][    C2] RSP: 0018:ffff88800a7ff7b0 EFLAGS: 00000293 ORIG_RAX: ffffffffffffff13
+[ 1098.703512][    C2] RAX: ffff88805034c100 RBX: 0000000000000200 RCX: 1ffff1100a069934
+[ 1098.703515][    C2] RDX: 0000000000000000 RSI: ffffffff81b6b18b RDI: 0000000000000293
+[ 1098.703518][    C2] RBP: ffff88800a7ff858 R08: 0000000000000006 R09: ffff88805034c9a0
+[ 1098.703521][    C2] R10: ffff88805034c100 R11: 0000000000000000 R12: ffff8880607ea738
+[ 1098.703524][    C2] R13: 0000000000000081 R14: 1ffff110014ffefa R15: 0000000000000000
+[ 1098.703533][    C2]  __get_user_pages+0x8f7/0x1e10
+[ 1098.703545][    C2]  get_user_pages_remote+0x21d/0x440
+[ 1098.703547][    C2]  copy_strings.isra.0+0x3fd/0xa70
+[ 1098.703562][    C2]  copy_strings_kernel+0xa5/0x110
+[ 1098.703565][    C2]  __do_execve_file.isra.0+0x124e/0x2700
+[ 1098.703587][    C2]  __x64_sys_execve+0x8f/0xc0
+[ 1098.703590][    C2]  do_syscall_64+0x1a3/0x800
+[ 1098.703600][    C2]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[ 1098.703602][    C2] RIP: 0033:0x7fdf8c90e207
+[ 1098.703608][    C2] Code: 77 19 f4 48 89 d7 44 89 c0 0f 05 48 3d 00 f0 ff ff 76 e0 f7 d8 64 41 89 01 eb d8 f7 d8 64 41 89 01 eb df b8 3b 00 00 00 0f 05 <48> 3d 00 f0 ff ff 77 02 f3 c3 48 8b 15 00 8c 2d 00 f7 d8 64 89 02
+[ 1098.703611][    C2] RSP: 002b:00007fff245c5488 EFLAGS: 00000206 ORIG_RAX: 000000000000003b
+[ 1098.703616][    C2] RAX: ffffffffffffffda RBX: 00000000ffffffff RCX: 00007fdf8c90e207
+[ 1098.703619][    C2] RDX: 0000000002398aa0 RSI: 00007fff245c5580 RDI: 00007fff245c6590
+[ 1098.703622][    C2] RBP: 0000000000625500 R08: 0000000000001ca3 R09: 0000000000001ca3
+[ 1098.703625][    C2] R10: 0000000000000000 R11: 0000000000000206 R12: 0000000002398aa0
+[ 1098.703628][    C2] R13: 0000000000000007 R14: 0000000002387250 R15: 0000000000000005
+[ 1098.703635][    C2] Kernel panic - not syncing: softlockup: hung tasks
+[ 1098.926323][    C2] CPU: 2 PID: 4888 Comm: syz-executor4 Tainted: G             L    4.20.0-next-20190102+ #5
+[ 1098.927624][    C2] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+[ 1098.928856][    C2] Call Trace:
+[ 1098.929301][    C2]  <IRQ>
+[ 1098.929700][    C2]  dump_stack+0x1db/0x2d0
+[ 1098.931078][    C2]  panic+0x2cb/0x65c
+[ 1098.936771][    C2]  watchdog_timer_fn.cold+0x16/0x33
+[ 1098.937481][    C2]  __hrtimer_run_queues+0x3a7/0x1050
+[ 1098.944713][    C2]  hrtimer_interrupt+0x314/0x770
+[ 1098.945397][    C2]  smp_apic_timer_interrupt+0x18d/0x760
+[ 1098.949266][    C2]  apic_timer_interrupt+0xf/0x20
+[ 1098.949993][    C2]  </IRQ>
+[ 1098.950487][    C2] RIP: 0010:__sanitizer_cov_trace_const_cmp4+0xd/0x20
+[ 1098.951483][    C2] Code: d6 0f b7 f7 bf 03 00 00 00 48 89 e5 48 8b 4d 08 e8 d8 fe ff ff 5d c3 66 0f 1f 44 00 00 55 89 f2 89 fe bf 05 00 00 00 48 89 e5 <48> 8b 4d 08 e8 ba fe ff ff 5d c3 0f 1f 84 00 00 00 00 00 55 48 89
+[ 1098.955004][    C2] RSP: 0018:ffff88803b35f218 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff13
+[ 1098.956602][    C2] RAX: 0000000000000004 RBX: ffffed100766be5a RCX: ffffffff81759ae5
+[ 1098.957765][    C2] RDX: 0000000000000001 RSI: 0000000000000000 RDI: 0000000000000005
+[ 1098.958789][    C2] RBP: ffff88803b35f218 R08: ffff88805a72a540 R09: ffff88805a72ae80
+[ 1098.959808][    C2] R10: ffff88805a72a540 R11: 0000000000000000 R12: ffff88806c437fe0
+[ 1098.960835][    C2] R13: 0000000000000001 R14: ffff88803b35f310 R15: 0000000000000003
+[ 1098.964552][    C2]  smp_call_function_many+0x8d5/0xb10
+[ 1098.971259][    C2]  smp_call_function+0x42/0x90
+[ 1098.972893][    C2]  on_each_cpu+0x31/0x200
+[ 1098.974688][    C2]  text_poke_bp+0x101/0x1e5
+[ 1098.979195][    C2]  __jump_label_transform+0x33f/0x4d0
+[ 1098.982659][    C2]  arch_jump_label_transform+0x2b/0x40
+[ 1098.983402][    C2]  __jump_label_update+0x16a/0x210
+[ 1098.984102][    C2]  jump_label_update+0x1ce/0x3d0
+[ 1098.984789][    C2]  __static_key_slow_dec_cpuslocked+0xc5/0x220
+[ 1098.987090][    C2]  static_key_slow_dec+0x60/0xa0
+[ 1098.987765][    C2]  tracepoint_probe_unregister+0x73e/0x940
+[ 1098.994913][    C2]  trace_event_reg+0x189/0x350
+[ 1098.996370][    C2]  perf_trace_event_unreg.isra.0+0xbb/0x220
+[ 1098.997165][    C2]  perf_trace_destroy+0xc1/0x100
+[ 1098.998528][    C2]  tp_perf_event_destroy+0x16/0x20
+[ 1098.999215][    C2]  _free_event+0x3ee/0x1640
+[ 1099.001769][    C2]  put_event+0x47/0x60
+[ 1099.002309][    C2]  perf_event_release_kernel+0x890/0xf70
+[ 1099.010804][    C2]  perf_release+0x37/0x50
+[ 1099.011391][    C2]  __fput+0x3c5/0xb10
+[ 1099.016398][    C2]  ____fput+0x16/0x20
+[ 1099.016945][    C2]  task_work_run+0x1f4/0x2b0
+[ 1099.019398][    C2]  exit_to_usermode_loop+0x32a/0x3b0
+[ 1099.022408][    C2]  do_syscall_64+0x696/0x800
+[ 1099.025320][    C2]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[ 1099.026128][    C2] RIP: 0033:0x411071
+[ 1099.026675][    C2] Code: 75 14 b8 03 00 00 00 0f 05 48 3d 01 f0 ff ff 0f 83 74 1a 00 00 c3 48 83 ec 08 e8 0a fc ff ff 48 89 04 24 b8 03 00 00 00 0f 05 <48> 8b 3c 24 48 89 c2 e8 53 fc ff ff 48 89 d0 48 83 c4 08 48 3d 01
+[ 1099.029314][    C2] RSP: 002b:00007ffffa2d80d0 EFLAGS: 00000293 ORIG_RAX: 0000000000000003
+[ 1099.030450][    C2] RAX: 0000000000000000 RBX: 0000000000000004 RCX: 0000000000411071
+[ 1099.031526][    C2] RDX: 0000001b2d420000 RSI: 00007fd53b7c3510 RDI: 0000000000000003
+[ 1099.032606][    C2] RBP: 0000000000000000 R08: 00007fd53b7c3048 R09: 000000003df39a59
+[ 1099.033686][    C2] R10: 00007ffffa2d8000 R11: 0000000000000293 R12: 0000000000000001
+[ 1099.034762][    C2] R13: 0000000000000000 R14: 0000000000000000 R15: 00007ffffa2d8190
+[ 1100.119903][    C2] Shutting down cpus with NMI
+[ 1100.124765][    C2] Dumping ftrace buffer:
+[ 1100.125471][    C2] ---------------------------------
+[ 1100.126341][    C2] syz-exec-31490   2...1 413720925us : 0: }D
+[ 1100.126360][    C2] syz-exec-31490   2...1 413720950us : 0: }D
+[ 1100.127252][    C2] syz-exec-31490   2...1 413720952us : 0: }D
+[ 1100.128205][    C2] syz-exec-31490   2...1 413720954us : 0: }D
+[ 1100.129066][    C2] syz-exec-31490   2...1 413720955us : 0: }D
+[ 1100.130010][    C2] syz-exec-31490   2...1 413720957us : 0: }D
+[ 1100.130943][    C2] syz-exec-31490   2...1 413720959us : 0: }D
+[ 1100.131870][    C2] syz-exec-31490   2...1 413720960us : 0: }D
+[ 1100.132686][    C2] syz-exec-31490   2...1 413720962us : 0: }D
+[ 1100.133639][    C2] syz-exec-31490   2...1 413720963us : 0: }D
+[ 1100.134491][    C2] syz-exec-31490   2...1 413720965us : 0: }D
+[ 1100.135435][    C2] syz-exec-31490   2...1 413720967us : 0: }D
+[ 1100.136312][    C2] syz-exec-31490   2...1 413720968us : 0: }D
+[ 1100.137093][    C2] syz-exec-31490   2...1 413720970us : 0: }D
+[ 1100.137881][    C2] syz-exec-31490   2...1 413720971us : 0: }D
+[ 1100.138686][    C2] syz-exec-31490   2...1 413720973us : 0: }D
+[ 1100.139503][    C2] syz-exec-31490   2...1 413720975us : 0: }D
+[ 1100.140328][    C2] syz-exec-31490   2...1 413720976us : 0: }D
+[ 1100.141148][    C2] syz-exec-31490   2...1 413720978us : 0: }D
+[ 1100.141967][    C2] syz-exec-31490   2...1 413720979us : 0: }D
+[ 1100.142785][    C2] syz-exec-31490   2...1 413720981us : 0: }D
+[ 1100.143604][    C2] syz-exec-31490   2...1 413720983us : 0: }D
+[ 1100.144454][    C2] syz-exec-31490   2...1 413720984us : 0: }D
+[ 1100.145270][    C2] syz-exec-31490   2...1 413720986us : 0: }D
+[ 1100.146077][    C2] syz-exec-31490   2...1 413720987us : 0: }D
+[ 1100.146900][    C2] syz-exec-31490   2...1 413720989us : 0: }D
+[ 1100.147709][    C2] syz-exec-31490   2...1 413720991us : 0: }D
+[ 1100.148535][    C2] syz-exec-31490   2...1 413720992us : 0: }D
+[ 1100.149358][    C2] syz-exec-31490   2...1 413720994us : 0: }D
+[ 1100.150183][    C2] syz-exec-31490   2...1 413720995us : 0: }D
+[ 1100.151005][    C2] syz-exec-31490   2...1 413720997us : 0: }D
+[ 1100.151823][    C2] syz-exec-31490   2...1 413720998us : 0: }D
+[ 1100.152649][    C2] syz-exec-31490   2...1 413721000us : 0: }D
+[ 1100.153466][    C2] syz-exec-31490   2...1 413721002us : 0: }D
+[ 1100.154284][    C2] syz-exec-31490   2...1 413721003us : 0: }D
+
+REPORT:
+watchdog: BUG: soft lockup - CPU#2 stuck for 136s! [syz-executor4:4888]
+Modules linked in:
+irq event stamp: 79894
+hardirqs last  enabled at (79893): [<ffffffff81007bd9>] trace_hardirqs_on_thunk+0x1a/0x1c
+hardirqs last disabled at (79894): [<ffffffff81007bf5>] trace_hardirqs_off_thunk+0x1a/0x1c
+softirqs last  enabled at (0): [<ffffffff814aaac4>] copy_process+0x1d14/0x8720
+softirqs last disabled at (0): [<0000000000000000>]           (null)
+CPU: 2 PID: 4888 Comm: syz-executor4 Not tainted 4.20.0-next-20190102+ #5
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+RIP: 0010:__sanitizer_cov_trace_const_cmp4+0xd/0x20
+Code: d6 0f b7 f7 bf 03 00 00 00 48 89 e5 48 8b 4d 08 e8 d8 fe ff ff 5d c3 66 0f 1f 44 00 00 55 89 f2 89 fe bf 05 00 00 00 48 89 e5 <48> 8b 4d 08 e8 ba fe ff ff 5d c3 0f 1f 84 00 00 00 00 00 55 48 89
+RSP: 0018:ffff88803b35f218 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff13
+RAX: 0000000000000004 RBX: ffffed100766be5a RCX: ffffffff81759ae5
+RDX: 0000000000000001 RSI: 0000000000000000 RDI: 0000000000000005
+RBP: ffff88803b35f218 R08: ffff88805a72a540 R09: ffff88805a72ae80
+R10: ffff88805a72a540 R11: 0000000000000000 R12: ffff88806c437fe0
+R13: 0000000000000001 R14: ffff88803b35f310 R15: 0000000000000003
+FS:  0000000001b86940(0000) GS:ffff88806c480000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000001b2d423000 CR3: 000000003ce21003 CR4: 00000000001606e0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000ffff0ff0 DR7: 0000000000000600
+Call Trace:
+ smp_call_function_many+0x8d5/0xb10
+ smp_call_function+0x42/0x90
+ on_each_cpu+0x31/0x200
+ text_poke_bp+0x101/0x1e5
+ __jump_label_transform+0x33f/0x4d0
+ arch_jump_label_transform+0x2b/0x40
+ __jump_label_update+0x16a/0x210
+ jump_label_update+0x1ce/0x3d0
+ __static_key_slow_dec_cpuslocked+0xc5/0x220
+ static_key_slow_dec+0x60/0xa0
+ tracepoint_probe_unregister+0x73e/0x940
+ trace_event_reg+0x189/0x350
+ perf_trace_event_unreg.isra.0+0xbb/0x220
+ perf_trace_destroy+0xc1/0x100
+ tp_perf_event_destroy+0x16/0x20
+ _free_event+0x3ee/0x1640
+ put_event+0x47/0x60
+ perf_event_release_kernel+0x890/0xf70
+ perf_release+0x37/0x50
+ __fput+0x3c5/0xb10
+ ____fput+0x16/0x20
+ task_work_run+0x1f4/0x2b0
+ exit_to_usermode_loop+0x32a/0x3b0
+ do_syscall_64+0x696/0x800
+ entry_SYSCALL_64_after_hwframe+0x49/0xbe
+RIP: 0033:0x411071
+Code: 75 14 b8 03 00 00 00 0f 05 48 3d 01 f0 ff ff 0f 83 74 1a 00 00 c3 48 83 ec 08 e8 0a fc ff ff 48 89 04 24 b8 03 00 00 00 0f 05 <48> 8b 3c 24 48 89 c2 e8 53 fc ff ff 48 89 d0 48 83 c4 08 48 3d 01
+RSP: 002b:00007ffffa2d80d0 EFLAGS: 00000293 ORIG_RAX: 0000000000000003
+RAX: 0000000000000000 RBX: 0000000000000004 RCX: 0000000000411071
+RDX: 0000001b2d420000 RSI: 00007fd53b7c3510 RDI: 0000000000000003
+RBP: 0000000000000000 R08: 00007fd53b7c3048 R09: 000000003df39a59
+R10: 00007ffffa2d8000 R11: 0000000000000293 R12: 0000000000000001
+R13: 0000000000000000 R14: 0000000000000000 R15: 00007ffffa2d8190
+Sending NMI from CPU 2 to CPUs 0-1,3:
+NMI backtrace for cpu 1
+CPU: 1 PID: 22149 Comm: kworker/1:1 Not tainted 4.20.0-next-20190102+ #5
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+Workqueue: rcu_gp process_srcu
+RIP: 0010:delay_tsc+0x33/0xc0
+Code: bf 01 00 00 00 41 55 41 54 53 e8 58 18 66 f9 e8 f3 ad 9f fb 41 89 c5 0f ae e8 0f 31 48 c1 e2 20 48 09 c2 49 89 d4 eb 16 f3 90 <bf> 01 00 00 00 e8 33 18 66 f9 e8 ce ad 9f fb 44 39 e8 75 36 0f ae
+RSP: 0018:ffff88803ce475a0 EFLAGS: 00000286
+RAX: 0000000080000000 RBX: 0000029824c8de8b RCX: 0000000000000000
+RDX: 0000000000000004 RSI: ffffffff8391c828 RDI: 0000000000000001
+RBP: ffff88803ce475c0 R08: ffff88806b55c240 R09: fffffbfff16b1885
+R10: ffff88803ce47710 R11: ffffffff8b58c427 R12: 0000029824c8d990
+R13: 0000000000000001 R14: 00000000000032ab R15: ffffffff8b58c080
+FS:  0000000000000000(0000) GS:ffff88806c440000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: ffffffffff600400 CR3: 000000005ad83004 CR4: 00000000001606e0
+Call Trace:
+ __const_udelay+0x5f/0x80
+ try_check_zero+0x352/0x5c0
+ process_srcu+0x642/0x1400
+ process_one_work+0xd0c/0x1ce0
+ worker_thread+0x143/0x14a0
+ kthread+0x357/0x430
+ ret_from_fork+0x3a/0x50
+NMI backtrace for cpu 0
+CPU: 0 PID: 3681 Comm: udevd Not tainted 4.20.0-next-20190102+ #5
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+RIP: 0010:native_queued_spin_lock_slowpath+0x323/0x1290
+Code: 00 00 00 fc ff df 49 c1 ec 03 4d 01 fc 45 84 f6 41 c6 04 24 f8 74 4f 4c 89 ee 83 e6 07 83 c6 03 f3 90 4c 89 e8 41 c6 04 24 04 <48> c1 e8 03 42 0f b6 04 38 40 38 c6 7c 08 84 c0 0f 85 f5 09 00 00
+RSP: 0000:ffff88806c4077f8 EFLAGS: 00000002
+RAX: ffff88806b9f4798 RBX: ffff88806c4079a0 RCX: ffff88806c4078b0
+RDX: 0000000000000000 RSI: 0000000000000003 RDI: ffff88806b9f4798
+RBP: ffff88806c4079c8 R08: 1ffff1100d73e8f3 R09: ffffed100d73e8f4
+R10: ffffed100d73e8f3 R11: ffff88806b9f479b R12: ffffed100d880f16
+R13: ffff88806b9f4798 R14: 0000000000000101 R15: dffffc0000000000
+FS:  00007fdf8d22a7a0(0000) GS:ffff88806c400000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 00000000023997d0 CR3: 000000006b1bd002 CR4: 00000000001606f0
+Call Trace:
+ <IRQ>
+ do_raw_spin_lock+0x2af/0x360
+ _raw_spin_lock+0x37/0x40
+ drm_handle_vblank+0x154/0xc70
+ drm_crtc_handle_vblank+0x63/0x90
+ vkms_vblank_simulate+0x61/0x290
+ __hrtimer_run_queues+0x3a7/0x1050
+ hrtimer_interrupt+0x314/0x770
+ smp_apic_timer_interrupt+0x18d/0x760
+ apic_timer_interrupt+0xf/0x20
+ </IRQ>
+RIP: 0033:0x4179c0
+Code: 40 00 48 8d 3d 3a 88 00 00 b9 09 00 00 00 48 89 de f3 a6 0f 84 91 01 00 00 48 8d 3d 2d 88 00 00 b9 05 00 00 00 48 89 de f3 a6 <0f> 84 22 02 00 00 48 8d 3d 1c 88 00 00 b9 12 00 00 00 48 89 de f3
+RSP: 002b:00007fff245ca880 EFLAGS: 00000297 ORIG_RAX: ffffffffffffff13
+RAX: 0000000000000000 RBX: 00007fff245cae1f RCX: 0000000000000004
+RDX: 0000000000000000 RSI: 00007fff245cae20 RDI: 00000000004201e4
+RBP: 00000000023a3f90 R08: 00007fff245cae1f R09: 00007fdf8c98a3f0
+R10: 00000000023a0920 R11: 00000000023a4ce0 R12: 00007fff245cad80
+R13: 00000000000000ac R14: 00000000023872d0 R15: 00007fff245cae1f
+NMI backtrace for cpu 3
+CPU: 3 PID: 4874 Comm: udevd Not tainted 4.20.0-next-20190102+ #5
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+RIP: 0010:lock_acquire+0x27d/0x570
+Code: 48 ff ff ff 57 9d 0f 1f 44 00 00 48 b8 00 00 00 00 00 fc ff df 48 03 85 40 ff ff ff 48 c7 00 00 00 00 00 c7 40 08 00 00 00 00 <48> 8b 45 d0 65 48 33 04 25 28 00 00 00 0f 85 77 02 00 00 48 8d 65
+RSP: 0018:ffff88806c4c75d8 EFLAGS: 00000086
+RAX: ffffed100d898ec0 RBX: ffff88805034c100 RCX: 0000000000000000
+RDX: dffffc0000000000 RSI: 00000000000046f9 RDI: 0000000000000086
+RBP: ffff88806c4c76a8 R08: 0000000000000005 R09: ffff88805034ca68
+R10: ffff88805034ca48 R11: 0000000000000001 R12: ffff88806c425d58
+R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
+FS:  00007fdf8d22a7a0(0000) GS:ffff88806c4c0000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000000000625208 CR3: 0000000020393002 CR4: 00000000001606e0
+Call Trace:
+ <IRQ>
+ _raw_spin_lock_irqsave+0x95/0xcd
+ lock_hrtimer_base.isra.0+0x75/0x130
+ hrtimer_try_to_cancel+0xfe/0x6b0
+ hrtimer_cancel+0x20/0x40
+ vkms_disable_vblank+0x19/0x20
+ drm_vblank_disable_and_save+0x391/0x4a0
+ vblank_disable_fn+0x22c/0x280
+ call_timer_fn+0x254/0x900
+ __run_timers+0x6fc/0xd50
+ run_timer_softirq+0x52/0xb0
+ __do_softirq+0x30b/0xb11
+ irq_exit+0x180/0x1d0
+ smp_apic_timer_interrupt+0x1b7/0x760
+ apic_timer_interrupt+0xf/0x20
+ </IRQ>
+RIP: 0010:handle_mm_fault+0x7f4/0xc80
+Code: 48 c1 e8 03 80 3c 10 00 0f 85 c9 03 00 00 48 83 3d 70 ce db 07 00 0f 84 ff 02 00 00 e8 75 4f cb ff 48 8b bd 70 ff ff ff 57 9d <0f> 1f 44 00 00 e9 98 fb ff ff e8 5d 4f cb ff 48 ba 00 00 00 00 00
+RSP: 0018:ffff88800a7ff7b0 EFLAGS: 00000293 ORIG_RAX: ffffffffffffff13
+RAX: ffff88805034c100 RBX: 0000000000000200 RCX: 1ffff1100a069934
+RDX: 0000000000000000 RSI: ffffffff81b6b18b RDI: 0000000000000293
+RBP: ffff88800a7ff858 R08: 0000000000000006 R09: ffff88805034c9a0
+R10: ffff88805034c100 R11: 0000000000000000 R12: ffff8880607ea738
+R13: 0000000000000081 R14: 1ffff110014ffefa R15: 0000000000000000
+ __get_user_pages+0x8f7/0x1e10
+ get_user_pages_remote+0x21d/0x440
+ copy_strings.isra.0+0x3fd/0xa70
+ copy_strings_kernel+0xa5/0x110
+ __do_execve_file.isra.0+0x124e/0x2700
+ __x64_sys_execve+0x8f/0xc0
+ do_syscall_64+0x1a3/0x800
+ entry_SYSCALL_64_after_hwframe+0x49/0xbe
+RIP: 0033:0x7fdf8c90e207
+Code: 77 19 f4 48 89 d7 44 89 c0 0f 05 48 3d 00 f0 ff ff 76 e0 f7 d8 64 41 89 01 eb d8 f7 d8 64 41 89 01 eb df b8 3b 00 00 00 0f 05 <48> 3d 00 f0 ff ff 77 02 f3 c3 48 8b 15 00 8c 2d 00 f7 d8 64 89 02
+RSP: 002b:00007fff245c5488 EFLAGS: 00000206 ORIG_RAX: 000000000000003b
+RAX: ffffffffffffffda RBX: 00000000ffffffff RCX: 00007fdf8c90e207
+RDX: 0000000002398aa0 RSI: 00007fff245c5580 RDI: 00007fff245c6590
+RBP: 0000000000625500 R08: 0000000000001ca3 R09: 0000000000001ca3
+R10: 0000000000000000 R11: 0000000000000206 R12: 0000000002398aa0
+R13: 0000000000000007 R14: 0000000002387250 R15: 0000000000000005

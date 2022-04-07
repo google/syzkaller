@@ -1,0 +1,22 @@
+TITLE: INFO: task hung in tty_ldisc_hangup
+ALT: hang in tty_ldisc_hangup
+TYPE: HANG
+
+[  843.240752] INFO: task getty:2986 blocked for more than 120 seconds.
+[  843.247365]       Not tainted 3.18.0-13280-g93f6785-dirty #12
+[  843.253777] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  843.261764] getty           D ffffffff83e27d60 28152  2986      1 0x00000002
+[  843.269316]  ffff88005bb6f908 0000000000000046 ffff880050b6ab70 ffff880061e1c5d0
+[  843.277435]  fffffbfff07c4802 ffff880061e1cde8 ffffffff83e27d60 ffff88005cb71580
+[  843.285515]  ffff88005bb6f968 0000000000000000 1ffff1000b76df2b ffff88005cb71580
+[  843.293802] Call Trace:
+[  843.296385]  [<ffffffff835bdeb4>] schedule+0x64/0x160
+[  843.301593]  [<ffffffff835c9c1a>] schedule_timeout+0x2fa/0x5d0
+[  843.307563]  [<ffffffff835c9920>] ? console_conditional_schedule+0x30/0x30
+[  843.314790]  [<ffffffff811c1eb2>] ? pick_next_task_fair+0xeb2/0x1680
+[  843.321296]  [<ffffffff81d9b3ed>] ? check_preemption_disabled+0x3d/0x210
+[  843.328311]  [<ffffffff835cb4ec>] ldsem_down_write+0x1ac/0x357
+[  843.334295]  [<ffffffff835cb340>] ? ldsem_down_read+0x3a0/0x3a0
+[  843.340437]  [<ffffffff835bec62>] ? preempt_schedule+0x62/0xa0
+[  843.346418]  [<ffffffff835cbdd2>] tty_ldisc_lock_pair_timeout+0xb2/0x160
+[  843.353363]  [<ffffffff81f8b03f>] tty_ldisc_hangup+0x21f/0x720

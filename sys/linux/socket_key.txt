@@ -1,0 +1,208 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_KEY support.
+
+include <linux/socket.h>
+include <linux/net.h>
+include <linux/pfkeyv2.h>
+include <linux/ipsec.h>
+
+resource sock_key[sock]
+
+socket$key(domain const[AF_KEY], type const[SOCK_RAW], proto const[PF_KEY_V2]) sock_key
+
+openat$pfkey(fd const[AT_FDCWD], file ptr[in, string["/proc/self/net/pfkey"]], flags flags[open_flags], mode const[0]) fd
+
+sendmsg$key(fd sock_key, msg ptr[in, send_msghdr_key], f flags[send_flags])
+
+send_msghdr_key {
+	msg_name	const[0, intptr]
+	msg_namelen	const[0, int32]
+	msg_iov		ptr[in, iovec_sadb_msg]
+	msg_iovlen	const[1, intptr]
+	msg_control	const[0, intptr]
+	msg_controllen	const[0, intptr]
+	msg_flags	const[0, int32]
+}
+
+iovec_sadb_msg {
+	addr	ptr[in, sadb_msg]
+	len	bytesize[addr, intptr]
+}
+
+sadb_msg {
+	sadb_msg_version	const[PF_KEY_V2, int8]
+	sadb_msg_type		int8[SADB_RESERVED:SADB_MAX]
+	sadb_msg_errno		int8
+	sadb_msg_satype		flags[sadb_satype, int8]
+	sadb_msg_len		bytesize8[parent, int16]
+	sadb_msg_reserved	const[0, int16]
+	sadb_msg_seq		netlink_seq
+	sadb_msg_pid		netlink_port_id
+	ext_headers		array[sadb_ext_hdr]
+} [packed]
+
+sadb_ext_hdr [
+	sadb_sa			sadb_sa
+	sadb_lifetime		sadb_lifetime
+	sadb_address		sadb_address
+	sadb_key		sadb_key
+	sadb_ident		sadb_ident
+	sadb_spirange		sadb_spirange
+	sadb_x_policy		sadb_x_policy
+	sadb_x_sa2		sadb_x_sa2
+	sadb_x_nat_t_type	sadb_x_nat_t_type
+	sadb_x_nat_t_port	sadb_x_nat_t_port
+	sadb_x_sec_ctx		sadb_x_sec_ctx
+	sadb_x_kmaddress	sadb_x_kmaddress
+	sadb_x_filter		sadb_x_filter
+] [varlen]
+
+sadb_sa {
+	sadb_len	bytesize8[parent, int16]
+	sadb_exttype	const[SADB_EXT_SA, int16]
+	sadb_sa_spi	xfrm_spi
+	sadb_sa_replay	int8
+	sadb_sa_state	int8
+	sadb_sa_auth	int8[SADB_AALG_NONE:SADB_AALG_MAX]
+	sadb_sa_encrypt	int8[SADB_X_CALG_NONE:SADB_X_CALG_MAX]
+	sadb_sa_flags	flags[sadb_sa_flags, int32]
+} [packed, align[8]]
+
+sadb_sa_flags = SADB_SAFLAGS_PFS, SADB_SAFLAGS_NOPMTUDISC, SADB_SAFLAGS_DECAP_DSCP, SADB_SAFLAGS_NOECN
+
+sadb_lifetime {
+	sadb_len			bytesize8[parent, int16]
+	sadb_exttype			flags[sadb_lifetime_type, int16]
+	sadb_lifetime_allocations	int32
+	sadb_lifetime_bytes		int64
+	sadb_lifetime_addtime		int64
+	sadb_lifetime_usetime		int64
+} [packed, align[8]]
+
+sadb_address {
+	sadb_len		bytesize8[parent, int16]
+	sadb_exttype		flags[sadb_address_type, int16]
+	sadb_address_proto	flags[xfrm_proto, int8]
+	sadb_address_prefixlen	flags[xfrm_prefixlens, int8]
+	sadb_address_reserved	const[0, int16]
+	addr			sadb_address_addr
+} [packed, align[8]]
+
+sadb_address_addr [
+	in	sockaddr_in
+	in6	sockaddr_in6
+] [varlen]
+
+sadb_key {
+	sadb_len		bytesize8[parent, int16]
+	sadb_exttype		flags[sadb_key_type, int16]
+	sadb_key_bits		bitsize[key, int16]
+	sadb_key_reserved	const[0, int16]
+	key			array[int8]
+} [packed, align[8]]
+
+sadb_ident {
+	sadb_len		bytesize8[parent, int16]
+	sadb_exttype		flags[sadb_ident_type, int16]
+	sadb_ident_type		int16
+	sadb_ident_reserved	const[0, int16]
+	sadb_ident_id		int64
+} [packed, align[8]]
+
+sadb_spirange {
+	sadb_len		bytesize8[parent, int16]
+	sadb_exttype		const[SADB_EXT_SPIRANGE, int16]
+	sadb_spirange_min	xfrm_spi
+	sadb_spirange_max	xfrm_spi
+	sadb_spirange_reserved	const[0, int32]
+} [packed, align[8]]
+
+sadb_x_policy {
+	sadb_len		bytesize8[parent, int16]
+	sadb_exttype		const[SADB_X_EXT_POLICY, int16]
+	sadb_x_policy_type	int16[IPSEC_POLICY_DISCARD:IPSEC_POLICY_BYPASS]
+	sadb_x_policy_dir	flags[ipsec_policy_dir, int8]
+	sadb_x_policy_reserved	const[0, int8]
+	sadb_x_policy_id	xfrm_policy_index
+	sadb_x_policy_priority	int32
+	policy			sadb_x_ipsecrequest
+} [packed, align[8]]
+
+sadb_x_ipsecrequest {
+	sadb_x_ipsecrequest_len		bytesize8[parent, int16]
+	sadb_x_ipsecrequest_proto	flags[xfrm_proto, int16]
+	sadb_x_ipsecrequest_mode	int8
+	sadb_x_ipsecrequest_level	int8
+	sadb_x_ipsecrequest_reserved1	const[0, int16]
+	sadb_x_ipsecrequest_reqid	int32
+	sadb_x_ipsecrequest_reserved2	const[0, int32]
+	saddr				sadb_filter_addr
+	daddr				sadb_filter_addr
+} [packed, align[8]]
+
+sadb_x_sa2 {
+	sadb_len		bytesize8[parent, int16]
+	sadb_exttype		const[SADB_X_EXT_SA2, int16]
+	sadb_x_sa2_mode		int8
+	sadb_x_sa2_reserved1	const[0, int8]
+	sadb_x_sa2_reserved2	const[0, int16]
+	sadb_x_sa2_sequence	netlink_seq
+	sadb_x_sa2_reqid	xfrm_req_id
+} [packed, align[8]]
+
+sadb_x_nat_t_type {
+	sadb_len			bytesize8[parent, int16]
+	sadb_exttype			const[SADB_X_EXT_NAT_T_TYPE, int16]
+	sadb_x_nat_t_type_type		int8
+	sadb_x_nat_t_type_reserved	array[const[0, int8], 3]
+} [packed, align[8]]
+
+sadb_x_nat_t_port {
+	sadb_len			bytesize8[parent, int16]
+	sadb_exttype			flags[sadb_nat_port_type, int16]
+	sadb_x_nat_t_port_port		sock_port
+	sadb_x_nat_t_port_reserved	const[0, int16]
+} [packed, align[8]]
+
+sadb_x_sec_ctx {
+	sadb_len	bytesize8[parent, int16]
+	sadb_exttype	const[SADB_X_EXT_SEC_CTX, int16]
+	sadb_x_ctx_alg	int8
+	sadb_x_ctx_doi	int8
+	sadb_x_ctx_len	bytesize[ctx, int16]
+	ctx		array[int8]
+} [packed, align[8]]
+
+sadb_x_kmaddress {
+	sadb_len			bytesize8[parent, int16]
+	sadb_exttype			const[SADB_X_EXT_KMADDRESS, int16]
+	sadb_x_kmaddress_reserved	const[0, int32]
+	src				sadb_address_addr
+	dst				sadb_address_addr
+} [packed, align[8]]
+
+sadb_x_filter {
+	sadb_len		bytesize8[parent, int16]
+	sadb_exttype		const[SADB_X_EXT_FILTER, int16]
+	sadb_x_filter_saddr	sadb_filter_addr
+	sadb_x_filter_daddr	sadb_filter_addr
+	sadb_x_filter_family	flags[socket_domain, int16]
+	sadb_x_filter_splen	flags[sadb_filter_addr_len, int8]
+	sadb_x_filter_dplen	flags[sadb_filter_addr_len, int8]
+} [packed, align[8]]
+
+sadb_filter_addr [
+	in	ipv4_addr
+	in6	ipv6_addr
+]
+
+sadb_satype = SADB_SATYPE_UNSPEC, SADB_SATYPE_AH, SADB_SATYPE_ESP, SADB_SATYPE_RSVP, SADB_SATYPE_OSPFV2, SADB_SATYPE_RIPV2, SADB_SATYPE_MIP, SADB_X_SATYPE_IPCOMP, SADB_SATYPE_MAX
+sadb_lifetime_type = SADB_EXT_LIFETIME_CURRENT, SADB_EXT_LIFETIME_HARD, SADB_EXT_LIFETIME_SOFT
+sadb_address_type = SADB_EXT_ADDRESS_SRC, SADB_EXT_ADDRESS_DST, SADB_EXT_ADDRESS_PROXY, SADB_X_EXT_NAT_T_OA
+sadb_key_type = SADB_EXT_KEY_AUTH, SADB_EXT_KEY_ENCRYPT
+sadb_ident_type = SADB_EXT_IDENTITY_SRC, SADB_EXT_IDENTITY_DST
+sadb_nat_port_type = SADB_X_EXT_NAT_T_SPORT, SADB_X_EXT_NAT_T_DPORT
+ipsec_policy_dir = IPSEC_DIR_ANY, IPSEC_DIR_INBOUND, IPSEC_DIR_OUTBOUND, IPSEC_DIR_FWD, IPSEC_DIR_MAX
+sadb_filter_addr_len = 4, 16

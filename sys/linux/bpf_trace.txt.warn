@@ -1,0 +1,3 @@
+no-such-struct: bpf_prog_with_btfid
+no-such-struct: bpf_raw_tracepoint_unnamed
+no-such-struct: bpf_raw_tracepoint

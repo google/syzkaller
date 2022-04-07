@@ -1,0 +1,12 @@
+bad-field-number: floppy_raw_cmd: syz=16 kernel=14
+bad-field-size: floppy_raw_cmd.cmd/: syz=16 kernel=33
+bad-field-offset: floppy_raw_cmd.reply_count/track: syz=46 kernel=64 [386,arm]
+bad-field-offset: floppy_raw_cmd.reply_count/track: syz=70 kernel=88 [amd64,arm64]
+bad-field-size: floppy_raw_cmd.reply_count/track: syz=1 kernel=4
+bad-field-offset: floppy_raw_cmd.reply/resultcode: syz=47 kernel=68 [386,arm]
+bad-field-offset: floppy_raw_cmd.reply/resultcode: syz=71 kernel=92 [amd64,arm64]
+bad-field-size: floppy_raw_cmd.reply/resultcode: syz=16 kernel=4
+bad-field-offset: floppy_raw_cmd.track/reserved1: syz=64 kernel=72 [386,arm]
+bad-field-offset: floppy_raw_cmd.track/reserved1: syz=88 kernel=96 [amd64,arm64]
+bad-field-offset: floppy_raw_cmd.resultcode/reserved2: syz=68 kernel=76 [386,arm]
+bad-field-offset: floppy_raw_cmd.resultcode/reserved2: syz=92 kernel=100 [amd64,arm64]

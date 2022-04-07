@@ -1,0 +1,63 @@
+TITLE: WARNING: ODEBUG bug in corrupted
+CORRUPTED: Y
+
+[  438.329938] ------------[ cut here ]------------
+[  438.335655] ODEBUG: free active (active state 0) object type: timer_list hint: delayed_work_timer_fn+0x0/0xa0
+[  438.340968] FAULT_INJECTION: forcing a failure.
+[  438.340968] name failslab, interval 1, probability 0, space 0, times 0
+[  438.345758] WARNING: CPU: 1 PID: 1798 at lib/debugobjects.c:287 debug_print_object+0x16a/0x250
+[  438.356954] CPU: 0 PID: 26531 Comm: syz-executor1 Not tainted 4.14.90+ #1
+[  438.365668] Kernel panic - not syncing: panic_on_warn set ...
+[  438.365668] 
+[  438.372870] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  438.372879] Call Trace:
+[  438.392137]  dump_stack+0x101/0x1b4
+[  438.400447]  should_fail.cold+0xa/0x10
+[  438.427757]  should_failslab+0xde/0x140
+[  438.431738]  __kmalloc_node_track_caller+0x190/0x410
+[  438.440733]  __kmalloc_reserve.isra.0+0x45/0xd0
+[  438.445408]  __alloc_skb+0x17d/0x760
+[  438.465984]  alloc_skb_with_frags+0xf9/0x6e0
+[  438.484227]  sock_alloc_send_pskb+0x76e/0x980
+[  438.505268]  unix_dgram_sendmsg+0x401/0x1570
+[  438.527934]  sock_sendmsg+0xd5/0x110
+[  438.531639]  ___sys_sendmsg+0x39a/0x890
+[  438.570907]  __sys_sendmmsg+0x1fc/0x670
+[  438.619640]  SyS_sendmmsg+0x3a/0x60
+[  438.627439]  do_syscall_64+0x242/0x740
+[  438.654247]  entry_SYSCALL_64_after_hwframe+0x42/0xb7
+[  438.659431] RIP: 0033:0x457ec9
+[  438.662614] RSP: 002b:00007fd309fc0c78 EFLAGS: 00000246 ORIG_RAX: 0000000000000133
+[  438.670316] RAX: ffffffffffffffda RBX: 00007fd309fc0c90 RCX: 0000000000457ec9
+[  438.677578] RDX: 0000000000000318 RSI: 00000000200bd000 RDI: 0000000000000004
+[  438.684837] RBP: 000000000073bf00 R08: 0000000000000000 R09: 0000000000000000
+[  438.692098] R10: 0000000000000000 R11: 0000000000000246 R12: 00007fd309fc16d4
+[  438.699358] R13: 00000000004c4baf R14: 00000000004d82f0 R15: 0000000000000006
+[  438.706637] CPU: 1 PID: 1798 Comm: kworker/1:2 Not tainted 4.14.90+ #1
+[  438.713307] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  438.722656] Workqueue: events kobject_delayed_cleanup
+[  438.727830] Call Trace:
+[  438.730406]  dump_stack+0x101/0x1b4
+[  438.743142]  panic+0x1c2/0x3ad
+[  438.759339]  __warn.cold+0x20/0x4a
+[  438.767345]  report_bug+0x216/0x254
+[  438.770952]  do_error_trap+0x1c0/0x440
+[  438.794964]  do_invalid_op+0x20/0x30
+[  438.798657]  invalid_op+0x1b/0x40
+[  438.802107] RIP: 0010:debug_print_object+0x16a/0x250
+[  438.807194] RSP: 0018:ffff8881cb8ff6c0 EFLAGS: 00010086
+[  438.812542] RAX: 0000000000000061 RBX: 0000000000000003 RCX: 0000000000000006
+[  438.819800] RDX: 0000000000000000 RSI: 1ffffffff085f188 RDI: ffff8881db91e540
+[  438.827049] RBP: ffff8881cb8ff700 R08: ffff8881cb8ff240 R09: 0000000000000001
+[  438.834297] R10: 0000000000000001 R11: 0000000000000000 R12: 0000000000000001
+[  438.841544] R13: ffffffff8410a140 R14: ffffffff8130f810 R15: ffff8881d2a2db10
+[  438.853476]  debug_check_no_obj_freed+0x529/0xaa2
+[  438.881909]  kfree+0x187/0x2f0
+[  438.885092]  disk_release+0x1cb/0x230
+[  438.893351]  device_release+0x82/0x220
+[  438.897215]  kobject_delayed_cleanup+0x28b/0x2c1
+[  438.901960]  process_one_work+0xc05/0x1ac0
+[  438.940048]  worker_thread+0x82a/0x1840
+[  438.993489]  kthread+0x321/0x430
+[  439.005988]  ret_from_fork+0x3a/0x50
+

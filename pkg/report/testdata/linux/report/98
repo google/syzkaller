@@ -1,0 +1,7 @@
+TITLE: WARNING: possible circular locking dependency detected
+CORRUPTED: Y
+
+[  308.130685] ======================================================
+[  308.136979] WARNING: possible circular locking dependency detected
+[  308.143266] 4.14.0-rc3+ #22 Not tainted
+[  308.147204] ------------------------serialport: VM disconnected.

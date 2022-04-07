@@ -1,0 +1,45 @@
+FILE: kernel/bpf/cpumap.c
+
+WARNING: CPU: 1 PID: 4183 at mm/util.c:403 kvmalloc_node+0xc3/0xd0 mm/util.c:403
+audit: type=1400 audit(1518457683.474:8): avc:  denied  { map_create } for  pid=4183 comm="syzkaller238030" scontext=unconfined_u:system_r:insmod_t:s0-s0:c0.c1023 tcontext=unconfined_u:system_r:insmod_t:s0-s0:c0.c1023 tclass=bpf permissive=1
+Kernel panic - not syncing: panic_on_warn set ...
+
+CPU: 1 PID: 4183 Comm: syzkaller238030 Not tainted 4.16.0-rc1+ #12
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Call Trace:
+ __dump_stack lib/dump_stack.c:17 [inline]
+ dump_stack+0x194/0x257 lib/dump_stack.c:53
+audit: type=1400 audit(1518457683.474:9): avc:  denied  { map_read map_write } for  pid=4183 comm="syzkaller238030" scontext=unconfined_u:system_r:insmod_t:s0-s0:c0.c1023 tcontext=unconfined_u:system_r:insmod_t:s0-s0:c0.c1023 tclass=bpf permissive=1
+ panic+0x1e4/0x41c kernel/panic.c:183
+ __warn+0x1dc/0x200 kernel/panic.c:547
+ report_bug+0x211/0x2d0 lib/bug.c:184
+ fixup_bug.part.11+0x37/0x80 arch/x86/kernel/traps.c:178
+ fixup_bug arch/x86/kernel/traps.c:247 [inline]
+ do_error_trap+0x2d7/0x3e0 arch/x86/kernel/traps.c:296
+ do_invalid_op+0x1b/0x20 arch/x86/kernel/traps.c:315
+ invalid_op+0x22/0x40 arch/x86/entry/entry_64.S:988
+RIP: 0010:kvmalloc_node+0xc3/0xd0 mm/util.c:403
+RSP: 0018:ffff8801b436f6e8 EFLAGS: 00010293
+RAX: ffff8801b1dd25c0 RBX: 0000000001088220 RCX: ffffffff81970ca3
+RDX: 0000000000000000 RSI: 0000000001088220 RDI: 0000000000000070
+RBP: ffff8801b436f708 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000070
+R13: 0000000000000000 R14: 00000000ffffffff R15: ffff8801d304cd00
+ kvmalloc include/linux/mm.h:541 [inline]
+ kvmalloc_array include/linux/mm.h:557 [inline]
+ __ptr_ring_init_queue_alloc include/linux/ptr_ring.h:474 [inline]
+ ptr_ring_init include/linux/ptr_ring.h:492 [inline]
+ __cpu_map_entry_alloc kernel/bpf/cpumap.c:359 [inline]
+ cpu_map_update_elem+0x3c3/0x8e0 kernel/bpf/cpumap.c:490
+ map_update_elem kernel/bpf/syscall.c:698 [inline]
+ SYSC_bpf kernel/bpf/syscall.c:1872 [inline]
+ SyS_bpf+0x215f/0x4860 kernel/bpf/syscall.c:1843
+ do_syscall_64+0x282/0x940 arch/x86/entry/common.c:287
+ entry_SYSCALL_64_after_hwframe+0x26/0x9b
+RIP: 0033:0x43fda9
+RSP: 002b:00007ffe6b075798 EFLAGS: 00000203 ORIG_RAX: 0000000000000141
+RAX: ffffffffffffffda RBX: ffffffffffffffff RCX: 000000000043fda9
+RDX: 0000000000000020 RSI: 0000000020ef4fe0 RDI: 0000000000000002
+RBP: 00000000006ca018 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000203 R12: 00000000004016d0
+R13: 0000000000401760 R14: 0000000000000000 R15: 0000000000000000

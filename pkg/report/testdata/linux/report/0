@@ -1,0 +1,17 @@
+TITLE: BUG: unable to handle kernel paging request in corrupted
+ALT: bad-access in corrupted
+CORRUPTED: Y
+
+[  772.918915] BUG: unable to handle kernel paging request at ffff88002bde1e40
+unrelateed line
+[  772.919010] IP: [<ffffffff82d4e304>] __memset+0x24/0x30
+[  772.919010] PGD ae2c067 PUD ae2d067 PMD 7faa5067 PTE 800000002bde1060
+[  772.919010] Oops: 0002 [#1] SMP DEBUG_PAGEALLOC KASAN
+[  772.919010] Dumping ftrace buffer:
+[  772.919010]    (ftrace buffer empty)
+[  772.919010] Modules linked in:
+[  772.919010] CPU: 1 PID: 4070 Comm: syz-executor Not tainted 4.8.0-rc3+ #33
+[  772.919010] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+[  772.919010] task: ffff880066be2280 task.stack: ffff880066be8000
+[  772.919010] RIP: 0010:[<ffffffff82d4e304>]  [<ffffffff82d4e304>] __memset+0x24/0x30
+[  772.919010] RSP: 0018:ffff880066befc88  EFLAGS: 00010006

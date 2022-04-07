@@ -1,0 +1,63 @@
+# Note: there is SyS_darby in LR, it looks more relevant, but for some reason it's not present in the call trace.
+# We don't parse LR because usually it's either wrong or duplicated in call trace, also not present on other arches.
+# This looks like a bug in the arm64 kernel unwinder.
+TITLE: Internal error in el0_svc_naked
+ALT: bad-access in el0_svc_naked
+
+[   28.231851] Internal error: Oops - SP/PC alignment exception: 8a000000 [#1] PREEMPT SMP
+[   28.231866] Modules linked in:
+[   28.231879] CPU: 6 PID: 1942 Comm: syz-executor Not tainted 4.9.232-dirty_audio #1
+[   28.231888] Hardware name: Google Inc. MSM sdm845 C1 DVT1.1 (DT)
+[   28.231899] task: 00000000bb76f97a task.stack: 00000000fd9408ab
+[   28.231909] PC is at 0xffffffffdeadbeef
+[   28.231925] LR is at SyS_darby+0x34/0x48
+[   28.231935] pc : [<ffffffffdeadbeef>] lr : [<ffffff90080ed944>] pstate: 60400145
+[   28.231943] sp : ffffffc01ec87ea0
+[   28.231951] x29: ffffffc01ec87ea0 x28: ffffffc055663000 
+[   28.231960] x27: ffffff9009e02000 x26: 00000000000001b3 
+[   28.231969] x25: 00000000000001b4 x24: 0000000000000015 
+[   28.231978] x23: 0000000060000000 x22: 0000000000430fe8 
+[   28.231988] x21: ffffffffffffffff x20: 00000030f127a000 
+[   28.231997] x19: 00000000deadbeef x18: 0000000002611930 
+[   28.232006] x17: ffffffff9fc90fd1 x16: ffffff90080ed910 
+[   28.232015] x15: 000000002d549539 x14: 001bef4f277722fd 
+[   28.232024] x13: 000000002f4d3f2e x12: ffffffffc4653600 
+[   28.232032] x11: 0000000000040000 x10: 0000000000000001 
+[   28.232041] x9 : ffffff901cf12000 x8 : ffffffffdeadbeef 
+[   28.232050] x7 : 00000000000001b3 x6 : 00000000000001b3 
+[   28.232059] x5 : 0000000000000000 x4 : 0000000000000000 
+[   28.232068] x3 : 0000000000000000 x2 : 0000000000000000 
+[   28.232076] x1 : 0000000000000000 x0 : 00000000deadbeef 
+[   28.232086] \x0aPC: 0xffffffffdeadbeaf:
+[   28.232098] beac  ******** ******** ******** ******** ******** ******** ******** ********
+[   28.232123] becc  ******** ******** ******** ******** ******** ******** ******** ********
+[   28.232145] beec  ******** ******** ******** ******** ******** ******** ******** ********
+[   28.232167] bf0c  ******** ******** ******** ******** ******** ******** ******** ********
+[   28.232188] bf2c  ******** ******** ******** ******** ******** ******** ******** ********
+[   28.232211] \x0aLR: 0xffffff90080ed904:
+[   28.232223] d904  93407c00 a8c17bfd d65f03c0 a9be7bfd f9000bf3 910003fd aa0003f3 9404aa19
+[   28.232247] d924  9404aa18 5297dde8 72bbd5a8 6b08027f 54000081 92882208 f2bbd5a8 d63f0100
+[   28.232271] d944  f9400bf3 528c29c0 72a01780 a8c27bfd d65f03c0 a9bf7bfd 910003fd 9404aa09
+[   28.232294] d964  2a1f03e1 aa1f03e2 d5384100 940053ff 93407c00 a8c17bfd d65f03c0 a9be7bfd
+[   28.232319] \x0aSP: 0xffffffc01ec87e60:
+[   28.232330] 7e60  080ed944 ffffff90 1ec87ea0 ffffffc0 deadbeef ffffffff 60400145 00000000
+[   28.232354] 7e80  004081c0 00000000 82000007 00000000 ffffffff 0000007f 00000000 00000000
+[   28.232376] 7ea0  00000000 00000000 08084200 ffffff90 fffffe4c ffffffff 00000000 00000000
+[   28.232399] 7ec0  deadbeef 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[   28.232425] Process syz-executor (pid: 1942, stack limit = 0x00000000fd9408ab)
+[   28.232433] Call trace:
+[   28.232443] Exception stack(0xffffffc01ec87d20 to 0xffffffc01ec87e50)
+[   28.232456] 7d20: ffffffc055663000 ffffff9009e02000 00000000000001b3 00000000000001b4
+[   28.232468] 7d40: 0000000000000022 0000000060400145 ffffffffdeadbeef ffffffc01ec87ea0
+[   28.232479] 7d60: 0000007fffffffff 00000000deadbeef 00000000deadbeef 0000000000000000
+[   28.232490] 7d80: 0000000000000000 0000000000000000 0000000000000000 0000000000000000
+[   28.232502] 7da0: 00000000000001b3 00000000000001b3 ffffffffdeadbeef ffffff901cf12000
+[   28.232513] 7dc0: 0000000000000001 0000000000040000 ffffffffc4653600 000000002f4d3f2e
+[   28.232525] 7de0: 001bef4f277722fd 000000002d549539 ffffff90080ed910 ffffffff9fc90fd1
+[   28.232537] 7e00: 0000000002611930 00000000deadbeef 00000030f127a000 ffffffffffffffff
+[   28.232548] 7e20: 0000000000430fe8 0000000060000000 0000000000000015 00000000000001b4
+[   28.232558] 7e40: 00000000000001b3 ffffff9009e02000
+[   28.232568] [<0000000015c44a38>] 0xffffffffdeadbeef
+[   28.232581] [<000000004fa15e98>] el0_svc_naked+0x34/0x38
+[   28.232590] Code: bad PC value
+[   28.232600] ---[ end trace 4b8b792e63a62aac ]---

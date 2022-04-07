@@ -1,0 +1,13 @@
+# Copyright 2022 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# For documentation see:
+# https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository
+# There is also an ability to setup issue forms:
+# https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository#creating-issue-forms
+
+blank_issues_enabled: false
+contact_links:
+  - name: Mailing list for questions
+    url: https://groups.google.com/forum/#!forum/syzkaller
+    about: Please ask and answer questions on the syzkaller@googlegroups.com mailing list.

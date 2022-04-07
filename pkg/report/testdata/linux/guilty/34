@@ -1,0 +1,87 @@
+FILE: net/ipv6/route.c
+
+==================================================================
+BUG: KMSAN: use of uninitialized memory in rt6_mtu_change_route+0x4d8/0xa70 net/ipv6/route.c:3822
+CPU: 0 PID: 8319 Comm: syz-executor7 Not tainted 4.16.0-rc4+ #63
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Call Trace:
+ __dump_stack lib/dump_stack.c:17 [inline]
+ dump_stack+0x185/0x1d0 lib/dump_stack.c:53
+ kmsan_report+0x142/0x1f0 mm/kmsan/kmsan.c:1093
+ __msan_warning_32+0x6c/0xb0 mm/kmsan/kmsan_instr.c:676
+ rt6_mtu_change_route+0x4d8/0xa70 net/ipv6/route.c:3822
+ fib6_clean_node+0x319/0x6b0 net/ipv6/ip6_fib.c:1918
+ fib6_walk_continue+0x9a1/0xbb0 net/ipv6/ip6_fib.c:1844
+ fib6_walk net/ipv6/ip6_fib.c:1892 [inline]
+ fib6_clean_tree net/ipv6/ip6_fib.c:1969 [inline]
+ __fib6_clean_all+0x501/0x810 net/ipv6/ip6_fib.c:1985
+ fib6_clean_all+0x90/0xa0 net/ipv6/ip6_fib.c:1996
+ rt6_mtu_change+0xd2/0x120 net/ipv6/route.c:3843
+ addrconf_notify+0xb59/0x5020 net/ipv6/addrconf.c:3395
+ notifier_call_chain kernel/notifier.c:93 [inline]
+ __raw_notifier_call_chain kernel/notifier.c:394 [inline]
+ raw_notifier_call_chain+0x13b/0x250 kernel/notifier.c:401
+ call_netdevice_notifiers_info net/core/dev.c:1707 [inline]
+ call_netdevice_notifiers net/core/dev.c:1725 [inline]
+ dev_set_mtu+0xa0e/0xea0 net/core/dev.c:7043
+ dev_ifsioc+0x3a9/0x10d0 net/core/dev_ioctl.c:244
+ dev_ioctl+0x876/0x1490 net/core/dev_ioctl.c:498
+ sock_do_ioctl+0x43a/0x6b0 net/socket.c:981
+ sock_ioctl+0x4e0/0xbf0 net/socket.c:1081
+ vfs_ioctl fs/ioctl.c:46 [inline]
+ do_vfs_ioctl+0xc6d/0x2440 fs/ioctl.c:686
+ SYSC_ioctl+0x1d9/0x260 fs/ioctl.c:701
+ SyS_ioctl+0x54/0x80 fs/ioctl.c:692
+ do_syscall_64+0x2f1/0x450 arch/x86/entry/common.c:287
+ entry_SYSCALL_64_after_hwframe+0x3d/0xa2
+RIP: 0033:0x454239
+RSP: 002b:00007fac6f2d2c68 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+RAX: ffffffffffffffda RBX: 00007fac6f2d36d4 RCX: 0000000000454239
+RDX: 0000000020000100 RSI: 0000000000008922 RDI: 0000000000000013
+RBP: 000000000072bea0 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 00000000ffffffff
+R13: 0000000000000379 R14: 00000000006f63f8 R15: 0000000000000000
+chained origin:
+ kmsan_save_stack_with_flags mm/kmsan/kmsan.c:303 [inline]
+ kmsan_save_stack mm/kmsan/kmsan.c:318 [inline]
+ kmsan_internal_chain_origin+0x12d/0x210 mm/kmsan/kmsan.c:709
+ __msan_chain_origin+0x69/0xc0 mm/kmsan/kmsan_instr.c:521
+ ip6_convert_metrics+0x715/0xa00 net/ipv6/route.c:2429
+ ip6_route_add+0x13c/0x300 net/ipv6/route.c:2861
+ inet6_rtm_newroute+0x1481/0x2520 net/ipv6/route.c:4255
+ rtnetlink_rcv_msg+0xa4b/0x15d0 net/core/rtnetlink.c:4635
+ netlink_rcv_skb+0x355/0x5f0 net/netlink/af_netlink.c:2444
+ rtnetlink_rcv+0x50/0x60 net/core/rtnetlink.c:4653
+ netlink_unicast_kernel net/netlink/af_netlink.c:1308 [inline]
+ netlink_unicast+0x1656/0x1730 net/netlink/af_netlink.c:1334
+ netlink_sendmsg+0x1048/0x1310 net/netlink/af_netlink.c:1897
+ sock_sendmsg_nosec net/socket.c:630 [inline]
+ sock_sendmsg net/socket.c:640 [inline]
+ ___sys_sendmsg+0xed5/0x1330 net/socket.c:2046
+ __sys_sendmsg net/socket.c:2080 [inline]
+ SYSC_sendmsg+0x2a6/0x3d0 net/socket.c:2091
+ SyS_sendmsg+0x54/0x80 net/socket.c:2087
+ do_syscall_64+0x2f1/0x450 arch/x86/entry/common.c:287
+ entry_SYSCALL_64_after_hwframe+0x3d/0xa2
+origin:
+ kmsan_save_stack_with_flags mm/kmsan/kmsan.c:303 [inline]
+ kmsan_internal_poison_shadow+0xb8/0x1b0 mm/kmsan/kmsan.c:213
+ kmsan_kmalloc+0x94/0x100 mm/kmsan/kmsan.c:339
+ kmsan_slab_alloc+0x11/0x20 mm/kmsan/kmsan.c:346
+ slab_post_alloc_hook mm/slab.h:445 [inline]
+ slab_alloc_node mm/slub.c:2737 [inline]
+ __kmalloc_node_track_caller+0xa7a/0x1290 mm/slub.c:4369
+ __kmalloc_reserve net/core/skbuff.c:138 [inline]
+ __alloc_skb+0x2e3/0xa20 net/core/skbuff.c:206
+ alloc_skb include/linux/skbuff.h:984 [inline]
+ netlink_alloc_large_skb net/netlink/af_netlink.c:1180 [inline]
+ netlink_sendmsg+0x9a6/0x1310 net/netlink/af_netlink.c:1872
+ sock_sendmsg_nosec net/socket.c:630 [inline]
+ sock_sendmsg net/socket.c:640 [inline]
+ ___sys_sendmsg+0xed5/0x1330 net/socket.c:2046
+ __sys_sendmsg net/socket.c:2080 [inline]
+ SYSC_sendmsg+0x2a6/0x3d0 net/socket.c:2091
+ SyS_sendmsg+0x54/0x80 net/socket.c:2087
+ do_syscall_64+0x2f1/0x450 arch/x86/entry/common.c:287
+ entry_SYSCALL_64_after_hwframe+0x3d/0xa2
+==================================================================

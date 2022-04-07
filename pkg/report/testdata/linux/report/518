@@ -1,0 +1,31 @@
+TITLE: general protection fault in timerqueue_del
+ALT: bad-access in timerqueue_del
+
+[   71.480406][    C0] general protection fault: 0000 [#1] PREEMPT SMP KASAN
+[   71.480415][    C0] CPU: 0 PID: 8856 Comm: syz-executor.2 Not tainted 5.2.0-rc4+ #32
+[   71.480420][    C0] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   71.480431][    C0] RIP: 0010:rb_next+0xd7/0x140
+[   71.480442][    C0] Code: 49 89 dc 4c 89 eb 48 83 e3 fc 48 89 d8 75 c8 48 83 c4 08 5b 41 5c 41 5d 41 5e 5d c3 48 89 d0 48 8d 78 10 48 89 fa 48 c1 ea 03 <80> 3c 1a 00 75 1a 48 8b 50 10 48 85 d2 75 e3 48 83 c4 08 5b 41 5c
+[   71.480447][    C0] RSP: 0018:ffff8880ae809d70 EFLAGS: 00010007
+[   71.480455][    C0] RAX: 26f1e8c689c389ff RBX: dffffc0000000000 RCX: ffffffff87185c81
+[   71.480461][    C0] RDX: 04de3d18d1387141 RSI: ffffffff87185d10 RDI: 26f1e8c689c38a0f
+[   71.480467][    C0] RBP: ffff8880ae809d98 R08: ffff88808a51a440 R09: ffffed1015d06be0
+[   71.480473][    C0] R10: ffffed1015d06bdf R11: ffff8880ae835efb R12: ffff8880ae8275c0
+[   71.480479][    C0] R13: ffff8880ae827861 R14: dffffc0000000000 R15: ffff8880ae826d00
+[   71.480495][    C0] FS:  0000555555728940(0000) GS:ffff8880ae800000(0000) knlGS:0000000000000000
+[   71.603155][    C0] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   71.609725][    C0] CR2: 0000000000a8dc78 CR3: 00000000992f7000 CR4: 00000000001406f0
+[   71.617774][    C0] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   71.625741][    C0] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   71.633702][    C0] Call Trace:
+[   71.636972][    C0]  <IRQ>
+[   71.639833][    C0]  timerqueue_del+0xd8/0x150
+[   71.644475][    C0]  __remove_hrtimer+0xa8/0x1c0
+[   71.649244][    C0]  __hrtimer_run_queues+0x2a8/0xdd0
+[   71.673258][    C0]  hrtimer_interrupt+0x314/0x770
+[   71.678190][    C0]  smp_apic_timer_interrupt+0x111/0x550
+[   71.683810][    C0]  apic_timer_interrupt+0xf/0x20
+[   71.688725][    C0]  </IRQ>
+[   71.691649][    C0] Modules linked in:
+[   71.695531][    C0] 
+[   71.695537][    C0] ======================================================

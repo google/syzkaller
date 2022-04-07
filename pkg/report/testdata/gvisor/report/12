@@ -1,0 +1,18 @@
+TITLE: SIGSEGV: segmentation violation
+
+SIGSEGV: segmentation violation
+PC=0x881300 m=79 sigcode=128
+
+goroutine 81531 [syscall, locked to thread]:
+gvisor.googlesource.com/gvisor/pkg/sentry/platform/kvm.(*vCPU).SwitchToUser(0xc42082e000, 0xc4208d4fc0, 0xc4220f8600, 0xc522383fb0, 0x100000001, 0xfffffffda0bfa001, 0x13ffda0bfa000, 0x420, 0xc4208a4e98)
+	pkg/sentry/platform/kvm/machine_amd64.go:210 +0xc1 fp=0xc4208e1d50 sp=0xc4208e1cd8 pc=0x88ebf1
+gvisor.googlesource.com/gvisor/pkg/sentry/platform/kvm.(*context).Switch(0xc421facfc0, 0xc73d60, 0xc522494000, 0xc798a0, 0xc4208d4fc0, 0xffffffff, 0xc4208a4de0, 0x410e9c, 0xc4208a4e40, 0xc4208e1f78)
+	pkg/sentry/platform/kvm/context.go:68 +0x1ed fp=0xc4208e1e10 sp=0xc4208e1d50 pc=0x88440d
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute(0x0, 0xc4220fd200, 0xc679a0, 0x0)
+	pkg/sentry/kernel/task_run.go:207 +0x17d fp=0xc4208e1f88 sp=0xc4208e1e10 pc=0x70d19d
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run(0xc4220fd200, 0x9c1)
+	pkg/sentry/kernel/task_run.go:95 +0x174 fp=0xc4208e1fd0 sp=0xc4208e1f88 pc=0x70ccb4
+runtime.goexit()
+	bazel-out/k8-fastbuild/bin/external/io_bazel_rules_go/linux_amd64_pure_stripped/stdlib~/src/runtime/asm_amd64.s:2361 +0x1 fp=0xc4208e1fd8 sp=0xc4208e1fd0 pc=0x455f11
+created by gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).Start
+	pkg/sentry/kernel/task_start.go:251 +0x100

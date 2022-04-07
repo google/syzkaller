@@ -1,0 +1,30 @@
+TITLE: INFO: task hung in exit_aio
+ALT: hang in exit_aio
+TYPE: HANG
+
+[ 2435.283131] INFO: task syz-executor.0:18224 blocked for more than 143 seconds.
+[ 2435.283923]       Not tainted 5.1.0-rc3 #1
+[ 2435.284345] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[ 2435.285150] syz-executor.0  D12048 18224   2776 0x00040008
+[ 2435.285727] Call Trace:
+[ 2435.285992] [c000000049a87530] [c000000049a875a0] 0xc000000049a875a0 (unreliable)
+[ 2435.286794] [c000000049a87710] [c0000000000286fc] __switch_to+0x43c/0x6d0
+[ 2435.287514] [c000000049a87780] [c000000001385b4c] __schedule+0x3cc/0xed0
+[ 2435.288206] [c000000049a87860] [c0000000013866a0] schedule+0x50/0xd0
+[ 2435.288863] [c000000049a87880] [c00000000138d5ec] schedule_timeout+0x36c/0x810
+[ 2435.289608] [c000000049a879a0] [c0000000013876ec] wait_for_common+0xfc/0x220
+[ 2435.290343] [c000000049a87a10] [c0000000005f7dc8] exit_aio+0x188/0x2a0
+[ 2435.291308] [c000000049a87ad0] [c00000000016556c] mmput+0xbc/0x260
+[ 2435.293006] [c000000049a87b00] [c000000000175ea4] do_exit+0x484/0x1300
+[ 2435.293971] [c000000049a87be0] [c000000000176e44] do_group_exit+0x84/0x130
+[ 2435.295804] [c000000049a87c20] [c000000000191df8] get_signal+0x218/0xfe0
+[ 2435.297295] [c000000049a87d10] [c00000000002b0d0] do_notify_resume+0x220/0x640
+[ 2435.299010] [c000000049a87e20] [c00000000000e644] ret_from_except_lite+0x70/0x74
+[ 2435.300711] 
+[ 2435.300711] Showing all locks held in the system:
+[ 2435.302138] 1 lock held by khungtaskd/342:
+[ 2435.302643]  #0: 000000007cacd2b6 (rcu_read_lock){....}, at: debug_show_all_locks+0x28/0x260
+[ 2435.303702] 1 lock held by in:imklog/2546:
+[ 2435.304409] 
+[ 2435.304571] =============================================
+[ 2435.304571] 

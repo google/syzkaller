@@ -1,0 +1,26 @@
+FILE: fs/timerfd.c
+
+==================================================================
+BUG: KASAN: use-after-free in __list_add_rcu include/linux/rculist.h:57 [inline] at addr ffff8801c5b6c110
+BUG: KASAN: use-after-free in list_add_rcu include/linux/rculist.h:78 [inline] at addr ffff8801c5b6c110
+BUG: KASAN: use-after-free in timerfd_setup_cancel fs/timerfd.c:141 [inline] at addr ffff8801c5b6c110
+BUG: KASAN: use-after-free in do_timerfd_settime+0xd32/0xf50 fs/timerfd.c:446 at addr ffff8801c5b6c110
+Write of size 8 by task syz-executor5/10885
+CPU: 1 PID: 10885 Comm: syz-executor5 Not tainted 4.10.0+ #7
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Call Trace:
+ __dump_stack lib/dump_stack.c:15 [inline]
+ dump_stack+0x2ee/0x3ef lib/dump_stack.c:51
+ kasan_object_err+0x1c/0x70 mm/kasan/report.c:162
+ print_address_description mm/kasan/report.c:200 [inline]
+ kasan_report_error mm/kasan/report.c:289 [inline]
+ kasan_report.part.2+0x1e5/0x4b0 mm/kasan/report.c:311
+ kasan_report mm/kasan/report.c:337 [inline]
+ __asan_report_store8_noabort+0x2c/0x30 mm/kasan/report.c:337
+ __list_add_rcu include/linux/rculist.h:57 [inline]
+ list_add_rcu include/linux/rculist.h:78 [inline]
+ timerfd_setup_cancel fs/timerfd.c:141 [inline]
+ do_timerfd_settime+0xd32/0xf50 fs/timerfd.c:446
+ SYSC_timerfd_settime fs/timerfd.c:533 [inline]
+ SyS_timerfd_settime+0xef/0x1c0 fs/timerfd.c:524
+ entry_SYSCALL_64_fastpath+0x1f/0xc

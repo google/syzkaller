@@ -1,0 +1,90 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <sys/time.h>
+include <sys/fcntl.h>
+include <sys/ioctl.h>
+include <net/bpf.h>
+include <net/if.h>
+
+resource fd_bpf[fd]
+
+openat$bpf(fd const[AT_FDCWD], file ptr[in, string["/dev/bpf"]], flags flags[open_flags], mode const[0]) fd_bpf
+
+ioctl$BIOCFLUSH(fd fd_bpf, cmd const[BIOCFLUSH])
+ioctl$BIOCGBLEN(fd fd_bpf, cmd const[BIOCGBLEN], arg ptr[out, int32])
+ioctl$BIOCGDIRFILT(fd fd_bpf, cmd const[BIOCGDIRFILT], arg ptr[out, int32])
+ioctl$BIOCGDLTLIST(fd fd_bpf, cmd const[BIOCGDLTLIST], arg ptr[out, bpf_dltlist])
+ioctl$BIOCGETIF(fd fd_bpf, cmd const[BIOCGETIF], arg ptr[out, ifreq])
+ioctl$BIOCGFILDROP(fd fd_bpf, cmd const[BIOCGFILDROP], arg ptr[out, int32])
+ioctl$BIOCGHDRCMPLT(fd fd_bpf, cmd const[BIOCGHDRCMPLT], arg ptr[out, int32])
+ioctl$BIOCGRSIG(fd fd_bpf, cmd const[BIOCGRSIG], arg ptr[out, int32])
+ioctl$BIOCGRTIMEOUT(fd fd_bpf, cmd const[BIOCGRTIMEOUT], arg ptr[out, timeval])
+ioctl$BIOCGSTATS(fd fd_bpf, cmd const[BIOCGSTATS], arg ptr[out, bpf_stat])
+ioctl$BIOCIMMEDIATE(fd fd_bpf, cmd const[BIOCIMMEDIATE], arg ptr[in, int32])
+ioctl$BIOCLOCK(fd fd_bpf, cmd const[BIOCLOCK])
+ioctl$BIOCPROMISC(fd fd_bpf, cmd const[BIOCPROMISC])
+ioctl$BIOCSBLEN(fd fd_bpf, cmd const[BIOCSBLEN], arg ptr[in, int32])
+ioctl$BIOCSDIRFILT(fd fd_bpf, cmd const[BIOCSDIRFILT], arg ptr[in, int32])
+ioctl$BIOCSDLT(fd fd_bpf, cmd const[BIOCSDLT], arg ptr[in, int32])
+ioctl$BIOCSETF(fd fd_bpf, cmd const[BIOCSETF], arg ptr[in, bpf_program])
+ioctl$BIOCSETIF(fd fd_bpf, cmd const[BIOCSETIF], arg ptr[in, ifreq_name])
+ioctl$BIOCSETWF(fd fd_bpf, cmd const[BIOCSETWF], arg ptr[in, bpf_program])
+ioctl$BIOCSFILDROP(fd fd_bpf, cmd const[BIOCSFILDROP], arg ptr[in, int32])
+ioctl$BIOCSHDRCMPLT(fd fd_bpf, cmd const[BIOCSHDRCMPLT], arg ptr[in, int32])
+ioctl$BIOCSRSIG(fd fd_bpf, cmd const[BIOCSRSIG], arg ptr[in, int32])
+ioctl$BIOCSRTIMEOUT(fd fd_bpf, cmd const[BIOCSRTIMEOUT], arg ptr[in, timeval])
+ioctl$BIOCVERSION(fd fd_bpf, cmd const[BIOCVERSION], arg ptr[out, bpf_version])
+
+bpf_dltlist {
+	bfl_len		len[bfl_list, int32]
+	bfl_list	ptr[in, array[int32]]
+}
+
+bf_insns {
+	code	int16
+	jt	int8
+	jf	int8
+	k	int32
+}
+
+bpf_program {
+	bf_len		len[bf_insns, int32]
+	bf_insns	ptr[in, array[bf_insns]]
+}
+
+bpf_stat {
+	bs_recv	int32
+	bs_drop	int32
+}
+
+bpf_version {
+	bv_major	int16
+	bv_minor	int16
+}
+
+ifreq {
+	ifr_name	string[filename, IFNAMSIZ]
+	ifr_ifru	ifr_ifru
+}
+
+ifreq_name {
+	ifr_name	stringnoz["tap"]
+	tapindex	proc['0', 1, int8]
+	z		const[0, int8]
+} [size[IFREQ_SIZE]]
+
+define IFREQ_SIZE	sizeof(struct ifreq)
+
+ifr_ifru [
+	ifru_addr	sockaddr_storage
+	ifru_dstaddr	sockaddr_storage
+	ifru_broadaddr	sockaddr_storage
+	ifru_flags	int16
+	ifru_metric	int32
+	ifru_vnetid	int64
+	ifru_media	int64
+	ifru_data	buffer[in]
+	ifru_index	int32
+] [varlen]

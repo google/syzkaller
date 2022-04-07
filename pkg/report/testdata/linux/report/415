@@ -1,0 +1,54 @@
+TITLE: WARNING: ODEBUG bug in netdev_freemem
+
+[ 3008.116296][T24159] ------------[ cut here ]------------
+[ 3008.121093][ T1807] 8021q: adding VLAN 0 to HW filter on device batadv0
+[ 3008.121995][T24159] ODEBUG: free active (active state 0) object type: timer_list hint: delayed_work_timer_fn+0x0/0x90
+[ 3008.129496][ T1807] kobject: 'vlan0' (00000000b294a58f): kobject_add_internal: parent: 'mesh', set: '<NULL>'
+[ 3008.140532][T24159] WARNING: CPU: 0 PID: 24159 at lib/debugobjects.c:484 debug_check_no_obj_freed+0x464/0x5b0
+[ 3008.140539][T24159] Kernel panic - not syncing: panic_on_warn set ...
+[ 3008.140549][T24159] CPU: 0 PID: 24159 Comm: kworker/u4:4 Not tainted 5.3.0-rc7 #0
+[ 3008.140555][T24159] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 3008.140587][T24159] Workqueue: netns cleanup_net
+[ 3008.140593][T24159] Call Trace:
+[ 3008.140607][T24159]  dump_stack+0x1d8/0x2f8
+[ 3008.140640][T24159]  panic+0x25c/0x799
+[ 3008.140656][T24159]  __warn+0x22f/0x230
+[ 3008.140673][T24159]  report_bug+0x190/0x290
+[ 3008.140728][T24159]  do_error_trap+0xd7/0x440
+[ 3008.140739][T24159]  do_invalid_op+0x36/0x40
+[ 3008.140756][T24159]  invalid_op+0x23/0x30
+[ 3008.140765][T24159] RIP: 0010:debug_check_no_obj_freed+0x464/0x5b0
+[ 3008.140774][T24159] Code: 08 48 89 df e8 7d 96 58 fe 4c 8b 03 48 c7 c7 9e 5d 45 88 48 c7 c6 e4 7f 43 88 4c 89 e2 44 89 f9 4d 89 e9 31 c0 e8 6c 7d f2 fd <0f> 0b 4c 8b 6d a8 ff 05 44 34 6a 05 49 83 c5 30 4c 89 e8 48 c1 e8
+[ 3008.140779][T24159] RSP: 0018:ffff88808b22f900 EFLAGS: 00010046
+[ 3008.140786][T24159] RAX: 6096dfdc67ea2300 RBX: ffffffff888da040 RCX: ffff8880a0206000
+[ 3008.140791][T24159] RDX: 0000000000000000 RSI: 0000000080000000 RDI: 0000000000000000
+[ 3008.140796][T24159] RBP: ffff88808b22f998 R08: ffffffff815cfa14 R09: ffffed1015d440d2
+[ 3008.140801][T24159] R10: ffffed1015d440d2 R11: 0000000000000000 R12: ffffffff884eece1
+[ 3008.140807][T24159] R13: ffffffff814c7770 R14: dffffc0000000000 R15: 0000000000000000
+[ 3008.140926][T24159]  kfree+0x107/0x200
+[ 3008.140936][T24159]  kvfree+0x47/0x50
+[ 3008.140960][T24159]  netdev_freemem+0x3e/0x60
+[ 3008.140997][T24159]  netdev_release+0x79/0xa0
+[ 3008.173080][ T1812] kobject: 'ip6gretap0' (0000000011a6ccfe): kobject_add_internal: parent: 'net', set: 'devices'
+[ 3008.175953][T24159]  device_release+0x74/0x1a0
+[ 3008.186465][ T1812] kobject: 'ip6gretap0' (0000000011a6ccfe): kobject_uevent_env
+[ 3008.190674][T24159]  kobject_cleanup+0x2f7/0x4c0
+[ 3008.190697][T24159]  kobject_put+0xad/0xe0
+[ 3008.194348][ T1812] kobject: 'ip6gretap0' (0000000011a6ccfe): fill_kobj_path: path = '/devices/virtual/net/ip6gretap0'
+[ 3008.198640][T24159]  netdev_run_todo+0xbff/0xd90
+[ 3008.202707][ T1812] kobject: 'queues' (0000000009d2beab): kobject_add_internal: parent: 'ip6gretap0', set: '<NULL>'
+[ 3008.206803][T24159]  rtnl_unlock+0xe/0x10
+[ 3008.211178][ T1812] kobject: 'queues' (0000000009d2beab): kobject_uevent_env
+[ 3008.216497][T24159]  default_device_exit_batch+0x65e/0x6a0
+[ 3008.220929][ T1812] kobject: 'queues' (0000000009d2beab): kobject_uevent_env: filter function caused the event to drop!
+[ 3008.231253][ T1812] kobject: 'rx-0' (000000002e64dd06): kobject_add_internal: parent: 'queues', set: 'queues'
+[ 3008.242358][ T1812] kobject: 'rx-0' (000000002e64dd06): kobject_uevent_env
+[ 3008.245329][T24159]  cleanup_net+0x70b/0xaa0
+[ 3008.245342][T24159]  process_one_work+0x7ef/0x10e0
+[ 3008.245358][T24159]  worker_thread+0xc01/0x1630
+[ 3008.245473][T24159]  kthread+0x332/0x350
+[ 3008.252375][ T1812] kobject: 'rx-0' (000000002e64dd06): fill_kobj_path: path = '/devices/virtual/net/ip6gretap0/queues/rx-0'
+[ 3008.271382][T24159]  ret_from_fork+0x24/0x30
+[ 3008.272950][T24159] Kernel Offset: disabled
+[ 3008.525434][T24159] Rebooting in 86400 seconds..
+

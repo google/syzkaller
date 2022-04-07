@@ -1,0 +1,16 @@
+TITLE: ASSERT FAILED: is_kernel_address(x86_get_percpu()->default_tss.rsp0)
+
+ZIRCON KERNEL PANIC
+
+UPTIME: 1944951ms
+BUILDID git-1bf305d9612c862c33249da88456e3bd47523162
+
+dso: id=741c506e5d533679b99547e4caa12bce94f6f6a5 base=0xffffffff00100000 name=zircon.elf
+stopping other cpus
+halting cpu 1
+panic (caller 0xffffffff00164791 frame 0xffffff9c2a2acfb0): DEBUG ASSERT FAILED at (kernel/arch/x86/arch.cpp:86): is_kernel_add
+ress(x86_get_percpu()->default_tss.rsp0)
+platform_halt suggested_action 0 reason 2
+Halting...
+Halted
+entering panic shell loop

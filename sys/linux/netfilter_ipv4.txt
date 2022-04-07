@@ -1,0 +1,273 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/socket.h>
+include <uapi/linux/netfilter/xt_osf.h>
+include <uapi/linux/netfilter_ipv4/ip_tables.h>
+include <uapi/linux/netfilter_ipv4/ipt_ah.h>
+include <uapi/linux/netfilter_ipv4/ipt_ttl.h>
+include <uapi/linux/netfilter_ipv4/ipt_REJECT.h>
+include <uapi/linux/netfilter_ipv4/ipt_ECN.h>
+include <uapi/linux/netfilter_ipv4/ipt_TTL.h>
+include <uapi/linux/netfilter_ipv4/ipt_CLUSTERIP.h>
+
+setsockopt$IPT_SO_SET_REPLACE(fd sock_in, level const[SOL_IP], opt const[IPT_SO_SET_REPLACE], val ptr[in, ipt_replace], len len[val])
+setsockopt$IPT_SO_SET_ADD_COUNTERS(fd sock_in, level const[SOL_IP], opt const[IPT_SO_SET_ADD_COUNTERS], val ptr[in, ipt_counters_info], len len[val])
+getsockopt$IPT_SO_GET_INFO(fd sock_in, level const[SOL_IP], opt const[IPT_SO_GET_INFO], val ptr[in, ipt_getinfo], len ptr[in, len[val, int32]])
+getsockopt$IPT_SO_GET_ENTRIES(fd sock_in, level const[SOL_IP], opt const[IPT_SO_GET_ENTRIES], val ptr[in, ipt_get_entries], len ptr[in, len[val, int32]])
+getsockopt$IPT_SO_GET_REVISION_MATCH(fd sock_in, level const[SOL_IP], opt const[IPT_SO_GET_REVISION_MATCH], val ptr[in, xt_get_revision], len ptr[in, len[val, int32]])
+getsockopt$IPT_SO_GET_REVISION_TARGET(fd sock_in, level const[SOL_IP], opt const[IPT_SO_GET_REVISION_TARGET], val ptr[in, xt_get_revision], len ptr[in, len[val, int32]])
+
+ipt_replace [
+	filter		ipt_replace_t["filter", 3, 4, IPT_FILTER_VALID_HOOKS, ipt_filter_matches, ipt_filter_targets, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_unused, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_unused]
+	nat		ipt_replace_t["nat", 4, 5, IPT_NAT_VALID_HOOKS, ipt_nat_matches, ipt_nat_targets, ipt_hook, ipt_hook, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_unused, ipt_hook, ipt_hook]
+	mangle		ipt_replace_t["mangle", 5, 6, IPT_MANGLE_VALID_HOOKS, ipt_mangle_matches, ipt_mangle_targets, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook]
+	raw		ipt_replace_t["raw", 2, 3, IPT_RAW_VALID_HOOKS, ipt_raw_matches, ipt_raw_targets, ipt_hook, ipt_unused, ipt_unused, ipt_hook, ipt_unused, ipt_hook, ipt_unused, ipt_unused, ipt_hook, ipt_unused]
+	security	ipt_replace_t["security", 3, 4, IPT_SECURITY_VALID_HOOKS, ipt_security_matches, ipt_security_targets, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_unused, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_unused]
+] [varlen]
+
+type ipt_replace_t[NAME, NENTRIES, NHOOKS, HOOKS, MATCHES, TARGETS, H0, H1, H2, H3, H4, U0, U1, U2, U3, U4] {
+	name			string[NAME, XT_TABLE_MAXNAMELEN]
+	valid_hooks		const[HOOKS, int32]
+	num_entries		const[NHOOKS, int32]
+	size			bytesize[entries, int32]
+	hook_pre_routing	H0
+	hook_local_in		H1
+	hook_forward		H2
+	hook_local_out		H3
+	hook_post_routing	H4
+	underflow_pre_routing	U0
+	underflow_local_in	U1
+	underflow_forward	U2
+	underflow_local_out	U3
+	underflow_post_routing	U4
+	num_counters		const[NHOOKS, int32]
+	counters		ptr[out, array[xt_counters, NHOOKS]]
+	entries			ipt_replace_entries[NENTRIES, MATCHES, TARGETS]
+}
+
+type ipt_replace_entries[NENTRIES, MATCHES, TARGETS] {
+	entries		array[ipt_entry[MATCHES, TARGETS], NENTRIES]
+	underflow	ipt_entry_underflow
+} [packed, align[PTR_SIZE]]
+
+type ipt_hook const[0, int32]
+type ipt_unused const[-1, int32]
+
+type ipt_entry[MATCHES, TARGETS] {
+	matches	ipt_entry_matches[MATCHES]
+	target	TARGETS
+} [packed, align[PTR_SIZE]]
+
+type ipt_entry_matches[MATCHES] {
+	ip		ipt_ip_or_uncond
+	nfcache		const[0, int32]
+	target_offset	len[parent, int16]
+	next_offset	len[ipt_entry, int16]
+	comefrom	const[0, int32]
+	counters	xt_counters
+	matches		array[MATCHES, 0:2]
+} [align[PTR_SIZE]]
+
+ipt_entry_underflow {
+	matches	ipt_entry_underflow_matches
+	target	xt_target_t["", const[NF_ACCEPT_VERDICT, int32], 0]
+} [align[PTR_SIZE]]
+
+ipt_entry_underflow_matches {
+	ip		ipt_ip_uncond
+	nfcache		const[0, int32]
+	target_offset	len[parent, int16]
+	next_offset	len[ipt_entry_underflow, int16]
+	comefrom	const[0, int32]
+	counters	xt_counters
+}
+
+ipt_ip_or_uncond [
+	ip	ipt_ip
+	uncond	ipt_ip_uncond
+]
+
+type ipt_ip_uncond array[const[0, int8], IPT_IP_SIZE]
+define IPT_IP_SIZE	sizeof(struct ipt_ip)
+
+ipt_ip {
+	src		ipv4_addr
+	dst		ipv4_addr
+	smsk		ipv4_addr_mask
+	dmsk		ipv4_addr_mask
+	iniface		devname
+	outiface	devname
+	iniface_mask	devname_mask
+	outiface_mask	devname_mask
+	proto		flags[ipv4_types, int16]
+	flags		flags[ipt_ip_flags, int8]
+	invflags	flags[ipt_ip_invflags, int8]
+}
+
+ipt_ip_flags = IPT_F_FRAG, IPT_F_GOTO
+ipt_ip_invflags = IPT_INV_VIA_IN, IPT_INV_VIA_OUT, IPT_INV_TOS, IPT_INV_SRCIP, IPT_INV_DSTIP, IPT_INV_FRAG, IPT_INV_PROTO
+
+ipt_counters_info {
+	name		string[ipt_tables, XT_TABLE_MAXNAMELEN]
+	num_counters	len[counters, int32]
+	counters	array[xt_counters, 2:5]
+}
+
+ipt_tables = "filter", "nat", "mangle", "raw", "security"
+
+ipt_getinfo {
+	name		string[ipt_tables, XT_TABLE_MAXNAMELEN]
+# The rest are output arguments.
+	valid_hooks	const[0, int32]
+	hook_entry	array[int32, NF_INET_NUMHOOKS]
+	underflow	array[const[0, int32], NF_INET_NUMHOOKS]
+	num_entries	const[0, int32]
+	size		const[0, int32]
+}
+
+ipt_get_entries {
+	name		string[ipt_tables, XT_TABLE_MAXNAMELEN]
+	size		bytesize[entrytable, int32]
+	entrytable	array[int8]
+}
+
+# MATCHES:
+
+ipt_matches [
+	unspec		xt_unspec_matches
+	inet		xt_inet_matches
+	icmp		xt_entry_match_t["icmp", ipt_icmp, 0]
+	ah		xt_entry_match_t["ah", ipt_ah, 0]
+	socket0		xt_entry_match_t["socket", void, 0]
+	set		xt_entry_match_t["set", xt_set_info_match_v0, 0]
+	addrtype	xt_entry_match_t["addrtype", xt_addrtype_info, 0]
+	osf		xt_entry_match_t["osf", xt_osf_info, 0]
+	ttl		xt_entry_match_t["ttl", ipt_ttl_info, 0]
+] [varlen]
+
+ipt_filter_matches [
+	common	ipt_matches
+] [varlen]
+
+ipt_nat_matches [
+	common	ipt_matches
+] [varlen]
+
+ipt_mangle_matches [
+	common	ipt_matches
+	inet	xt_inet_mangle_matches
+] [varlen]
+
+ipt_raw_matches [
+	common	ipt_matches
+	inet	xt_inet_raw_matches
+] [varlen]
+
+ipt_security_matches [
+	common	ipt_matches
+] [varlen]
+
+ipt_icmp {
+	type		flags[icmp_types, int8]
+	code		array[int8, 2]
+	invflags	bool8
+}
+
+ipt_ah {
+	spis		array[int32, 2]
+	invflags	bool8
+}
+
+xt_osf_info {
+	genre		string[xt_osf_genre, MAXGENRELEN]
+# unused?
+	len		const[0, int32]
+	flags		flags[xt_osf_flags, int32]
+	loglevel	int32[0:2]
+	ttl		int32[0:2]
+}
+
+xt_osf_genre = "syz0", "syz1"
+xt_osf_flags = XT_OSF_GENRE, XT_OSF_TTL, XT_OSF_LOG, XT_OSF_INVERT
+
+ipt_ttl_info {
+	mode	flags[ipt_ttl_mode, int8]
+	ttl	int8
+}
+
+ipt_ttl_mode = IPT_TTL_EQ, IPT_TTL_NE, IPT_TTL_LT, IPT_TTL_GT
+
+# TARGETS:
+
+ipt_targets [
+	unspec		xt_unspec_targets
+	inet		xt_inet_targets
+	SET		xt_target_t["SET", xt_set_info_target_v0, 0]
+	CLUSTERIP	xt_target_t["CLUSTERIP", ipt_clusterip_tgt_info, 0]
+] [varlen]
+
+ipt_filter_targets [
+	common	ipt_targets
+	REJECT	xt_target_t["REJECT", ipt_reject_info, 0]
+] [varlen]
+
+ipt_nat_targets [
+	common		ipt_targets
+	unspec		xt_unspec_nat_targets
+	NETMAP		xt_target_t["NETMAP", nf_nat_ipv4_multi_range_compat, 0]
+	SNAT0		xt_target_t["SNAT", nf_nat_ipv4_multi_range_compat, 0]
+	DNAT0		xt_target_t["DNAT", nf_nat_ipv4_multi_range_compat, 0]
+	REDIRECT	xt_target_t["REDIRECT", nf_nat_ipv4_multi_range_compat, 0]
+	MASQUERADE	xt_target_t["MASQUERADE", nf_nat_ipv4_multi_range_compat, 0]
+] [varlen]
+
+ipt_mangle_targets [
+	common	ipt_targets
+	unspec	xt_unspec_mangle_targets
+	inet	xt_inet_mangle_targets
+	ECN	xt_target_t["ECN", ipt_ECN_info, 0]
+	TPROXY	xt_target_t["TPROXY", xt_tproxy_target_info, 0]
+	TTL	xt_target_t["TTL", ipt_TTL_info, 0]
+] [varlen]
+
+ipt_raw_targets [
+	common	ipt_targets
+	unspec	xt_unspec_raw_targets
+] [varlen]
+
+ipt_security_targets [
+	common	ipt_targets
+] [varlen]
+
+ipt_reject_info {
+	with	flags[ipt_reject_with, int32]
+}
+
+ipt_reject_with = IPT_ICMP_NET_UNREACHABLE, IPT_ICMP_HOST_UNREACHABLE, IPT_ICMP_PROT_UNREACHABLE, IPT_ICMP_PORT_UNREACHABLE, IPT_ICMP_NET_PROHIBITED, IPT_ICMP_HOST_PROHIBITED, IPT_TCP_RESET, IPT_ICMP_ADMIN_PROHIBITED
+
+ipt_ECN_info {
+	operation	flags[ipt_ECN_op, int8]
+	ip_ect		int8
+	tcp		int8[0:3]
+}
+
+ipt_ECN_op = IPT_ECN_OP_SET_IP, IPT_ECN_OP_SET_ECE, IPT_ECN_OP_SET_CWR
+
+ipt_TTL_info {
+	mode	int8[0:3]
+	ttl	int8
+}
+
+ipt_clusterip_tgt_info {
+	flags		bool32
+	clustermac	mac_addr
+	num_total_nodes	int16
+	num_local_nodes	int16[0:CLUSTERIP_MAX_NODES]
+	local_nodes	array[int16[0:64], CLUSTERIP_MAX_NODES]
+	hash_mode	flags[ipt_clusterip_hash_mode, int32]
+	hash_initval	int32
+	config		intptr
+}
+
+ipt_clusterip_hash_mode = CLUSTERIP_HASHMODE_SIP, CLUSTERIP_HASHMODE_SIP_SPT, CLUSTERIP_HASHMODE_SIP_SPT_DPT

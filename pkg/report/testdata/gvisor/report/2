@@ -1,0 +1,51 @@
+TITLE: panic: ptrace set regs (&{R15:NUM R14:NUM R13:NUM R12:NUM Rbp:ADDR Rbx:ADDR R11:NUM R10:NUM R9:NUM R8:NUM Rax:NUM Rcx:AD
+SUPPRESSED: Y
+
+D1212 09:34:24.562123   58684 x:0] [   1] Restarting syscall 202 after errno 512: interrupted by signal 17
+D1212 09:34:24.562194   58684 x:0] [   1] Signal 17: delivering to handler
+panic: ptrace set regs (&{R15:512 R14:218 R13:219 R12:32 Rbp:139868397907264 Rbx:50432192 R11:646 R10:0 R9:0 R8:0 Rax:0 Rcx:4567363 Rdx:842350500544 Rsi:842350500848 Rdi:17 Orig_rax:202 Rip:4566688 Cs:51 Eflags:646 Rsp:842350500536 Ss:43 Fs_base:50432336 Gs_base:0 Ds:0 Es:0 Fs:0 Gs:0}) failed: no such process
+
+goroutine 80 [running]:
+gvisor.googlesource.com/gvisor/pkg/sentry/platform/ptrace.(*subprocess).switchToApp(0xc0001480c0, 0xc000443440, 0x120ab80, 0xc00026d680, 0xb00)
+	pkg/sentry/platform/ptrace/subprocess.go:483 +0xffc
+gvisor.googlesource.com/gvisor/pkg/sentry/platform/ptrace.(*context).Switch(0xc000443440, 0x11fae40, 0xc0001480c0, 0x120ab80, 0xc00026d680, 0x7f90ffffffff, 0xc0011be080, 0x0, 0x11ec4e0, 0xc000136500)
+	pkg/sentry/platform/ptrace/ptrace.go:102 +0x90
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute(0x0, 0xc000279500, 0x11ecd20, 0x0)
+	pkg/sentry/kernel/task_run.go:205 +0x26b
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run(0xc000279500, 0x1)
+	pkg/sentry/kernel/task_run.go:91 +0x24c
+created by gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).Start
+	pkg/sentry/kernel/task_start.go:279 +0x19e
+
+goroutine 1 [semacquire, 1 minutes]:
+sync.runtime_Semacquire(0xc0002cc264)
+	GOROOT/src/runtime/sema.go:56 +0x39
+sync.(*WaitGroup).Wait(0xc0002cc264)
+	GOROOT/src/sync/waitgroup.go:130 +0xb5
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Kernel).WaitExited(0xc0002d0000)
+	pkg/sentry/kernel/kernel.go:800 +0x57
+gvisor.googlesource.com/gvisor/runsc/boot.(*Loader).WaitExit(0xc0002d0140, 0x0, 0x0)
+	runsc/boot/loader.go:757 +0x50
+gvisor.googlesource.com/gvisor/runsc/cmd.(*Boot).Execute(0xc00024c280, 0x11f5e60, 0xc000140010, 0xc000146ba0, 0xc0001e5100, 0x2, 0x2, 0x0)
+	runsc/cmd/boot.go:213 +0x133f
+github.com/google/subcommands.(*Commander).Execute(0xc000154000, 0x11f5e60, 0xc000140010, 0xc0001e5100, 0x2, 0x2, 0x1)
+	external/com_github_google_subcommands/subcommands.go:141 +0x525
+github.com/google/subcommands.Execute(0x11f5e60, 0xc000140010, 0xc0001e5100, 0x2, 0x2, 0xc000136dc0)
+	external/com_github_google_subcommands/subcommands.go:371 +0x81
+main.main()
+	runsc/main.go:220 +0x1ef9
+
+REPORT:
+panic: ptrace set regs (&{R15:512 R14:218 R13:219 R12:32 Rbp:139868397907264 Rbx:50432192 R11:646 R10:0 R9:0 R8:0 Rax:0 Rcx:4567363 Rdx:842350500544 Rsi:842350500848 Rdi:17 Orig_rax:202 Rip:4566688 Cs:51 Eflags:646 Rsp:842350500536 Ss:43 Fs_base:50432336 Gs_base:0 Ds:0 Es:0 Fs:0 Gs:0}) failed: no such process
+
+goroutine 80 [running]:
+gvisor.googlesource.com/gvisor/pkg/sentry/platform/ptrace.(*subprocess).switchToApp(0xc0001480c0, 0xc000443440, 0x120ab80, 0xc00026d680, 0xb00)
+	pkg/sentry/platform/ptrace/subprocess.go:483 +0xffc
+gvisor.googlesource.com/gvisor/pkg/sentry/platform/ptrace.(*context).Switch(0xc000443440, 0x11fae40, 0xc0001480c0, 0x120ab80, 0xc00026d680, 0x7f90ffffffff, 0xc0011be080, 0x0, 0x11ec4e0, 0xc000136500)
+	pkg/sentry/platform/ptrace/ptrace.go:102 +0x90
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute(0x0, 0xc000279500, 0x11ecd20, 0x0)
+	pkg/sentry/kernel/task_run.go:205 +0x26b
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run(0xc000279500, 0x1)
+	pkg/sentry/kernel/task_run.go:91 +0x24c
+created by gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).Start
+	pkg/sentry/kernel/task_start.go:279 +0x19e

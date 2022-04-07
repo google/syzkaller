@@ -1,0 +1,11 @@
+no-such-struct: msghdr_sctp
+no-such-struct: cmsghdr_sctp_init
+no-such-struct: cmsghdr_sctp_sndrcv
+no-such-struct: cmsghdr_sctp_sndinfo
+no-such-struct: cmsghdr_sctp_prinfo
+no-such-struct: cmsghdr_sctp_authinfo
+no-such-struct: cmsghdr_sctp_dstaddrv4
+no-such-struct: cmsghdr_sctp_dstaddrv6
+no-such-struct: sockaddr_storage_sctp
+bad-field-number: sctp_assoc_stats: syz=3 kernel=17
+bad-field-size: sctp_assoc_stats.status/sas_maxrto: syz=120 kernel=8

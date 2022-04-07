@@ -1,0 +1,48 @@
+TITLE: BUG: using smp_processor_id() in preemptible code in ext4_mb_new_blocks
+
+syzkaller login: [   59.806466][ T6792] BUG: using smp_processor_id() in preemptible [00000000] code: syz-fuzzer/6792
+[   59.815692][ T6792] caller is ext4_mb_new_blocks+0xa4d/0x3b70
+[   59.821714][ T6792] CPU: 1 PID: 6792 Comm: syz-fuzzer Not tainted 5.7.0-next-20200602-syzkaller #0
+[   59.830866][ T6792] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   59.840909][ T6792] Call Trace:
+[   59.844178][ T6792]  dump_stack+0x18f/0x20d
+[   59.848512][ T6792]  check_preemption_disabled+0x20d/0x220
+[   59.854126][ T6792]  ext4_mb_new_blocks+0xa4d/0x3b70
+[   59.859396][ T6792]  ? ext4_ext_search_right+0x2ca/0xb20
+[   59.864840][ T6792]  ? ext4_inode_to_goal_block+0x2df/0x3f0
+[   59.870593][ T6792]  ext4_ext_map_blocks+0x201b/0x33e0
+[   59.875905][ T6792]  ? ext4_ext_release+0x10/0x10
+[   59.880748][ T6792]  ? down_write_killable+0x170/0x170
+[   59.886005][ T6792]  ? ext4_es_lookup_extent+0x41d/0xd10
+[   59.891443][ T6792]  ext4_map_blocks+0x4cb/0x1640
+[   59.896274][ T6792]  ? ext4_issue_zeroout+0x1e0/0x1e0
+[   59.901461][ T6792]  ? rcu_read_lock_sched_held+0x9c/0xd0
+[   59.906982][ T6792]  ? rcu_read_lock_any_held.part.0+0x50/0x50
+[   59.912999][ T6792]  ? prandom_u32_state+0xe/0x170
+[   59.917913][ T6792]  ? __brelse+0x84/0xa0
+[   59.922043][ T6792]  ? __ext4_new_inode+0x144/0x55e0
+[   59.927130][ T6792]  ext4_getblk+0xad/0x520
+[   59.931435][ T6792]  ? ext4_iomap_overwrite_begin+0xa0/0xa0
+[   59.937131][ T6792]  ? ext4_free_inode+0x1700/0x1700
+[   59.942219][ T6792]  ext4_bread+0x7c/0x380
+[   59.946481][ T6792]  ? ext4_getblk+0x520/0x520
+[   59.951046][ T6792]  ? dquot_get_next_dqblk+0x180/0x180
+[   59.956396][ T6792]  ext4_append+0x153/0x360
+[   59.960807][ T6792]  ext4_mkdir+0x5e0/0xdf0
+[   59.965115][ T6792]  ? ext4_rmdir+0xde0/0xde0
+[   59.969593][ T6792]  ? security_inode_permission+0xc4/0xf0
+[   59.975203][ T6792]  vfs_mkdir+0x419/0x690
+[   59.979423][ T6792]  do_mkdirat+0x21e/0x280
+[   59.983732][ T6792]  ? __ia32_sys_mknod+0xb0/0xb0
+[   59.988576][ T6792]  ? do_syscall_64+0x1c/0xe0
+[   59.993170][ T6792]  ? lockdep_hardirqs_on_prepare+0x3a2/0x590
+[   59.999133][ T6792]  do_syscall_64+0x60/0xe0
+[   60.003526][ T6792]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[   60.009423][ T6792] RIP: 0033:0x4b02a0
+[   60.013286][ T6792] Code: Bad RIP value.
+[   60.017323][ T6792] RSP: 002b:000000c00010d4b8 EFLAGS: 00000212 ORIG_RAX: 0000000000000102
+[   60.025720][ T6792] RAX: ffffffffffffffda RBX: 000000c00002c000 RCX: 00000000004b02a0
+[   60.033663][ T6792] RDX: 00000000000001c0 RSI: 000000c000026b40 RDI: ffffffffffffff9c
+[   60.041628][ T6792] RBP: 000000c00010d510 R08: 0000000000000000 R09: 0000000000000000
+[   60.049586][ T6792] R10: 0000000000000000 R11: 0000000000000212 R12: ffffffffffffffff
+[   60.057530][ T6792] R13: 000000000000005b R14: 000000000000005a R15: 0000000000000100

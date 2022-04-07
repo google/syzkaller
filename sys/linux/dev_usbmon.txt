@@ -1,0 +1,93 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# https://elixir.bootlin.com/linux/latest/source/Documentation/usb/usbmon.txt
+# https://elixir.bootlin.com/linux/latest/source/drivers/usb/mon/mon_bin.c
+
+include <linux/fcntl.h>
+include <linux/ioctl.h>
+
+# The following macros were defined here because they are not visible from a separate header file
+
+define MON_IOC_MAGIC	0x92
+
+define SETUP_LEN	8
+define PAGE_SIZE	4096
+define CHUNK_SIZE	PAGE_SIZE
+
+define BUFF_MAX	(((1200*1024)+CHUNK_SIZE-1) & ~(CHUNK_SIZE-1))
+define BUFF_MIN	(((8*1024)+CHUNK_SIZE-1) & ~(CHUNK_SIZE-1))
+
+define MON_IOCQ_URB_LEN	_IO(MON_IOC_MAGIC, 1)
+define MON_IOCG_STATS	_IOR(MON_IOC_MAGIC, 3, struct {u32 queued; u32 dropped;})
+define MON_IOCT_RING_SIZE	_IO(MON_IOC_MAGIC, 4)
+define MON_IOCQ_RING_SIZE	_IO(MON_IOC_MAGIC, 5)
+define MON_IOCX_GET	_IOW(MON_IOC_MAGIC, 6, struct {void *hdr; void *data; size_t alloc;})
+define MON_IOCX_MFETCH	_IOWR(MON_IOC_MAGIC, 7, struct {u32 *offvec; u32 nfetch; u32 nflush;})
+define MON_IOCH_MFLUSH	_IO(MON_IOC_MAGIC, 8)
+define MON_IOCX_GETX	_IOW(MON_IOC_MAGIC, 10,  struct {void *hdr; void *data; size_t alloc;})
+
+resource fd_usbmon[fd]
+
+syz_open_dev$usbmon(dev ptr[in, string["/dev/usbmon#"]], id intptr, flags flags[open_flags]) fd_usbmon
+read$usbmon(fd fd_usbmon, buf buffer[out], count len[buf])
+mmap$usbmon(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_usbmon, offset fileoff)
+_ = __NR_mmap2
+
+ioctl$MON_IOCQ_URB_LEN(fd fd_usbmon, cmd const[MON_IOCQ_URB_LEN])
+ioctl$MON_IOCQ_RING_SIZE(fd fd_usbmon, cmd const[MON_IOCQ_RING_SIZE])
+ioctl$MON_IOCT_RING_SIZE(fd fd_usbmon, cmd const[MON_IOCT_RING_SIZE], arg intptr[BUFF_MIN:BUFF_MAX])
+ioctl$MON_IOCH_MFLUSH(fd fd_usbmon, cmd const[MON_IOCH_MFLUSH], arg intptr)
+ioctl$MON_IOCX_GET(fd fd_usbmon, cmd const[MON_IOCX_GET], arg ptr[in, mon_bin_get])
+ioctl$MON_IOCX_GETX(fd fd_usbmon, cmd const[MON_IOCX_GETX], arg ptr[in, mon_bin_get])
+
+ioctl$MON_IOCX_MFETCH(fd fd_usbmon, cmd const[MON_IOCX_MFETCH], arg ptr[inout, mon_bin_mfetch])
+ioctl$MON_IOCG_STATS(fd fd_usbmon, cmd const[MON_IOCG_STATS], arg ptr[out, mon_bin_stats])
+
+iso_rec {
+	error_count	int32
+	numdesc		int32
+}
+
+mon_bin_union [
+	setup	array[int8, SETUP_LEN]
+	iso	iso_rec
+]
+
+mon_bin_hdr {
+	id		int64
+	type		int8
+	xfer_type	int8
+	epnum		int8
+	devnum		int8
+	busnum		int16
+	flag_setup	int8
+	flag_data	int8
+	ts_sec		int64
+	ts_usec		int32
+	status		int32
+	len_urb		int32
+	len_cap		int32
+	s		mon_bin_union
+	interval	int32
+	start_frame	int32
+	xfer_flags	int32
+	ndesc		int32
+}
+
+mon_bin_get {
+	hdr	ptr[out, mon_bin_hdr]
+	data	ptr[out, array[int8]]
+	alloc	bytesize[data, intptr]
+}
+
+mon_bin_mfetch {
+	offvec	ptr[out, array[int32]]
+	nfetch	len[offvec, int32]
+	nflush	int32
+}
+
+mon_bin_stats {
+	queued	int32
+	dropped	int32
+}

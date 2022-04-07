@@ -1,0 +1,39 @@
+TITLE: debugger: Unexpected kernel trap number: 0xe
+
+Debugger: Unexpected kernel trap number: 0xe, RIP: 0xffffff80021020ba, CR2: 0x0
+CPU 1 panic trap number 0xe, rip 0xffffff80021020ba
+cr0 0x000000008001003b cr2 0x0000000000000000 cr3 0x0000000008b71000 cr4 0x00000000000406e0
+Debugger called: <panic>
+panic(cpu 1 caller 0xffffff8002928989): Kernel trap at 0xffffff80021020ba, type 14=page fault, registers:
+CR0: 0x000000008001003b, CR2: 0x0000000000000000, CR3: 0x0000000008b71000, CR4: 0x00000000000406e0
+RAX: 0x00000000000000be, RBX: 0x0000000000000000, RCX: 0x0000000000004000, RDX: 0x0000000000004000
+RSP: 0xffffffb04918f778, RBP: 0xffffffb04918f890, RSI: 0x00000000000000be, RDI: 0x0000000000000000
+R8:  0x0000000000000000, R9:  0x0000000000000046, R10: 0x0000000000000005, R11: 0x0000000000001000
+R12: 0x0000000000004000, R13: 0xdffff80000000000, R14: 0x1ffffff609231efc, R15: 0x1ffffff609231ef8
+RFL: 0x0000000000010282, RIP: 0xffffff80021020ba, CS:  0x0000000000000008, SS:  0x0000000000000010
+Fault CR2: 0x0000000000000000, Error code: 0x0000000000000002, Fault CPU: 0x1 VMM, PL: 0, VF: 1
+
+Backtrace (CPU 1), Frame : Return Address
+0xffffffb04918ef60 : 0xffffff80024a0d75 mach_kernel : _handle_debugger_trap + 0x5d5
+0xffffffb04918efc0 : 0xffffff8002944204 mach_kernel : _kdp_i386_trap + 0x2d4
+0xffffffb04918f010 : 0xffffff8002926727 mach_kernel : _kernel_trap + 0xb27
+0xffffffb04918f0a0 : 0xffffff800294bf8f mach_kernel : trap_from_kernel + 0x26
+0xffffffb04918f0c0 : 0xffffff80024a0264 mach_kernel : _DebuggerTrapWithState + 0x104
+0xffffffb04918f1f0 : 0xffffff80024a16d0 mach_kernel : _panic_trap_to_debugger + 0x390
+0xffffffb04918f260 : 0xffffff8003da0216 mach_kernel : _panic + 0x54
+0xffffffb04918f2d0 : 0xffffff8002928989 mach_kernel : _panic_trap + 0x13f9
+0xffffffb04918f5d0 : 0xffffff8002926de2 mach_kernel : _kernel_trap + 0x11e2
+0xffffffb04918f660 : 0xffffff800294bf8f mach_kernel : trap_from_kernel + 0x26
+0xffffffb04918f680 : 0xffffff80021020ba
+0xffffffb04918f890 : 0xffffff80024ce372 mach_kernel : _kalloc_ext + 0x212
+0xffffffb04918f990 : 0xffffff8002d198a8 mach_kernel : _grab_memory_for_meta_buf + 0x48
+0xffffffb04918f9e0 : 0xffffff8002d1805d mach_kernel : _allocbuf + 0x23d
+0xffffffb04918fa50 : 0xffffff8002d168f9 mach_kernel : _buf_getblk + 0xe39
+0xffffffb04918fc20 : 0xffffff8006dbbace com.apple.filesystems.apfs : __vnode_dev_write + 0x10a
+0xffffffb04918fc70 : 0xffffff8006dbb8a3 com.apple.filesystems.apfs : _vnode_dev_flush_buf + 0x8d
+0xffffffb04918fcb0 : 0xffffff8006dbb31f com.apple.filesystems.apfs : _vnode_dev_write + 0x423
+0xffffffb04918fd60 : 0xffffff8006eb2be7 com.apple.filesystems.apfs : _obj_write_internal + 0xf7
+0xffffffb04918fda0 : 0xffffff8006eb2882 com.apple.filesystems.apfs : _obj_cache_flush_write + 0xe4
+0xffffffb04918fe10 : 0xffffff8006ecd22d com.apple.filesystems.apfs : _tx_flush + 0x3be
+0xffffffb04918ff20 : 0xffffff8006eccc4c com.apple.filesystems.apfs : _tx_flush_thread + 0x18b
+0xffffffb04918ffa0 : 0xffffff800290881e mach_kernel : _call_continuation + 0x2e

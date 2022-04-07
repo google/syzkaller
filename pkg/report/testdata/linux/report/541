@@ -1,0 +1,48 @@
+TITLE: Internal error in clear_page
+ALT: bad-access in clear_page
+
+[    4.227552][    T1] DMI not present or invalid.
+[    4.282443][    T1] NET: Registered protocol family 16
+[    4.493539][    T1] DMA: preallocated 512 KiB GFP_KERNEL pool for atomic allocations
+[    4.496451][    T1] Internal error: synchronous external abort: 96000050 [#1] PREEMPT SMP
+[    4.497227][    T1] Modules linked in:
+[    4.498230][    T1] CPU: 1 PID: 1 Comm: swapper/0 Not tainted 5.10.2 #24
+[    4.498610][    T1] Hardware name: linux,dummy-virt (DT)
+[    4.499302][    T1] pstate: 10000005 (nzcV daif -PAN -UAO -TCO BTYPE=--)
+[    4.499760][    T1] pc : clear_page+0x14/0x28
+[    4.500225][    T1] lr : kernel_init_free_pages+0x7c/0x190
+[    4.500580][    T1] sp : ffff0001001ff600
+[    4.500909][    T1] x29: ffff0001001ff600 x28: dfffa00000000000 
+[    4.501492][    T1] x27: ffff0001001f14a8 x26: ffff80002003e295 
+[    4.502108][    T1] x25: fffffdffffe00000 x24: 00000000000014a8 
+[    4.502650][    T1] x23: ffff0001001f0000 x22: fffffe0000182000 
+[    4.503274][    T1] x21: ffffa000194cac58 x20: dfffa00000000000 
+[    4.503925][    T1] x19: fffffe0000180000 x18: ffff000118930b48 
+[    4.504419][    T1] x17: 0000000000001008 x16: ffffa00010385650 
+[    4.504911][    T1] x15: ffffa0001c4a6010 x14: 1fffe0002003fe82 
+[    4.505402][    T1] x13: ffff0001001f0000 x12: ffff9fc000030007 
+[    4.505893][    T1] x11: 1fffffc000030006 x10: ffff9fc000030006 
+[    4.506457][    T1] x9 : 0000000000000000 x8 : ffff800001c10000 
+[    4.506963][    T1] x7 : 0000000000000000 x6 : 000000000000003f 
+[    4.507471][    T1] x5 : 0000000000000040 x4 : 1ffff400039e3590 
+[    4.508023][    T1] x3 : 1fffe0002003e002 x2 : 0000000000000004 
+[    4.508526][    T1] x1 : 0000000000000040 x0 : ffff00000e000000 
+[    4.509236][    T1] Call trace:
+[    4.509645][    T1]  clear_page+0x14/0x28
+[    4.510010][    T1]  prep_new_page+0x11c/0x250
+[    4.510368][    T1]  get_page_from_freelist+0x2604/0x31b0
+[    4.510909][    T1]  __alloc_pages_nodemask+0x2a4/0x269c
+[    4.511347][    T1]  alloc_page_interleave+0x38/0x20c
+[    4.511743][    T1]  alloc_pages_current+0x2d0/0x364
+[    4.512105][    T1]  atomic_pool_expand+0x3d0/0x624
+[    4.512488][    T1]  __dma_atomic_pool_init+0xc4/0x164
+[    4.512885][    T1]  dma_atomic_pool_init+0x128/0x1e4
+[    4.513243][    T1]  do_one_initcall+0x18c/0xce0
+[    4.513604][    T1]  kernel_init_freeable+0x868/0x8f4
+[    4.513974][    T1]  kernel_init+0x1c/0x210
+[    4.514319][    T1]  ret_from_fork+0x10/0x34
+[    4.515141][    T1] Code: d53b00e1 12000c21 d2800082 9ac12041 (d50b7420) 
+[    4.516455][    T1] ---[ end trace 1a4edb2d835d8567 ]---
+[    4.517220][    T1] Kernel panic - not syncing: synchronous external abort: Fatal exception
+[    4.517808][    T1] SMP: stopping secondary CPUs
+[    4.519265][    T1] Rebooting in 86400 seconds..

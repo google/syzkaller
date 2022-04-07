@@ -1,0 +1,26 @@
+TITLE: memory leak in __kernfs_new_node
+TYPE: LEAK
+
+BUG: memory leak
+unreferenced object 0xffff88005a065340 (size 576):
+  comm "syz-executor1", pid 8262, jiffies 4294976807 (age 33.830s)
+  hex dump (first 32 bytes):
+    00 2c 00 00 00 00 00 00 40 33 35 5a 00 88 ff ff  .,......@35Z....
+    90 5b 81 6b 00 88 ff ff 58 53 06 5a 00 88 ff ff  .[.k....XS.Z....
+  backtrace:
+    [<000000008beb86da>] kmem_cache_alloc+0x1bb/0x3d0
+    [<0000000063949181>] radix_tree_node_alloc.constprop.16+0x1b4/0x330
+    [<0000000039ade84e>] idr_get_free+0x88d/0xe40
+    [<0000000085e044c9>] idr_alloc_u32+0x1bc/0x3d0
+    [<0000000000759b30>] idr_alloc_cyclic+0x13c/0x2f0
+    [<000000009768e365>] __kernfs_new_node+0x1cd/0x8f0
+    [<000000009a4a314c>] kernfs_new_node+0x95/0x120
+    [<000000003c9dee50>] __kernfs_create_file+0x5a/0x340
+    [<00000000aca96e67>] sysfs_add_file_mode_ns+0x225/0x4e0
+    [<000000000b5e0beb>] internal_create_group+0x3a0/0xd30
+    [<00000000c99804fb>] sysfs_create_groups+0x97/0x140
+    [<00000000d826272f>] device_add+0xc32/0x1780
+    [<00000000b0ff2929>] netdev_register_kobject+0x187/0x3e0
+    [<000000003ad8cd45>] register_netdevice+0xaa9/0xf80
+    [<00000000d29a81f6>] __tun_chr_ioctl+0x215c/0x4280
+    [<0000000033cca7c2>] tun_chr_ioctl+0x2a/0x40

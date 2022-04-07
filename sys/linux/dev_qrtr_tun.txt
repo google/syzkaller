@@ -1,0 +1,13 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/fcntl.h>
+
+resource fd_qrtr_tun[fd]
+
+openat$qrtrtun(fd const[AT_FDCWD], file ptr[in, string["/dev/qrtr-tun"]], flags flags[open_flags]) fd_qrtr_tun
+
+write$qrtrtun(fd fd_qrtr_tun, data ptr[in, array[int8]], len bytesize[data])
+read$qrtrtun(fd fd_qrtr_tun, data ptr[out, array[int8]], len bytesize[data])
+mmap$qrtrtun(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_qrtr_tun, offset fileoff)
+_ = __NR_mmap2

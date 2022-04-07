@@ -1,0 +1,283 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+syz_mmap(addr vma, len len[addr])
+syz_errno(v int32)
+syz_exit(status int32)
+syz_sleep_ms(ms intptr)
+syz_compare(want ptr[in, string], want_len bytesize[want], got ptr[in, compare_data], got_len bytesize[got])
+syz_compare_int$2(n const[2], v0 intptr, v1 intptr)
+syz_compare_int$3(n const[3], v0 intptr, v1 intptr, v2 intptr)
+syz_compare_int$4(n const[4], v0 intptr, v1 intptr, v2 intptr, v3 intptr)
+
+compare_data [
+	align0		align0
+	bf0		syz_bf_struct0
+	bf1		syz_bf_struct1
+	bf2		syz_bf_struct2
+	bf3		syz_bf_struct3
+	bf4		syz_bf_align[syz_bf_struct4]
+	bf5		syz_bf_align[syz_bf_struct5]
+	bf6		syz_bf_align[syz_bf_struct6]
+	bf7		syz_bf_align[syz_bf_struct7]
+	bf8		syz_bf_align[syz_bf_struct8]
+	bf9		syz_bf_align[syz_bf_struct9]
+	bf10		syz_bf_align[syz_bf_struct10]
+	bf11		syz_bf_align[syz_bf_struct11]
+	bf12		syz_bf_align[syz_bf_struct12]
+	bf13		syz_bf_align[syz_bf_struct13]
+	bf14		syz_bf_align[syz_bf_struct14]
+	bf15		syz_bf_align[syz_bf_struct15]
+	bf16		syz_bf_align[syz_bf_struct16]
+	bf17		syz_bf_align[syz_bf_struct17]
+	bf18		syz_bf_align[syz_bf_struct18]
+	bf19		syz_bf_align[syz_bf_struct19]
+	bf20		syz_bf_align[syz_bf_struct20]
+	bf21		syz_bf_align[syz_bf_struct21]
+	bf22		syz_bf_align[syz_bf_struct22]
+	bf23		syz_bf_align[syz_bf_struct23]
+	bf24		syz_bf_align[syz_bf_struct24]
+	bf25		syz_bf_align[syz_bf_struct25]
+	str		string
+	blob		array[int8]
+	arr16be		array[int16be]
+	nla		array[compare_nla]
+	fmt0		fmt[oct, int32]
+	fmt1		fmt[dec, int32]
+	fmt2		fmt[hex, int32]
+	fmt3		fmt[dec, flags[flags_with_one_value]]
+	overlayres	overlayres
+	overlay0	overlay0
+	overlay1	overlay1
+	overlay2	overlay2
+] [varlen]
+
+flags_with_one_value = 0
+
+compare_nla [
+	a0	nlattr[0xaa, int8]
+	a1	nlattr[0xbb, int16]
+	a2	nlattr[0xcc, int32]
+	a3	nlattr[0xdd, int64]
+	a4	nlattr[0xee, stringnoz]
+	a5	nlnest[0xaa, int8]
+	a6	nlnest[0xaa, int32]
+	a7	nlnetw[0xaa, int8]
+	a8	nlnetw[0xaa, int32]
+] [varlen]
+
+type nlattr_t[TYPE, PAYLOAD] {
+	nla_len		offsetof[size, int16]
+	nla_type	TYPE
+	payload		PAYLOAD
+	size		void
+} [packed, align[4]]
+
+type nlattr_tt[TYPE, NETORDER, NESTED, PAYLOAD] {
+	nla_len			offsetof[size, int16]
+	nla_type		TYPE
+	NLA_F_NET_BYTEORDER	const[NETORDER, int16:1]
+	NLA_F_NESTED		const[NESTED, int16:1]
+	payload			PAYLOAD
+	size			void
+} [packed, align[4]]
+
+type nlattr[TYPE, PAYLOAD] nlattr_t[const[TYPE, int16], PAYLOAD]
+type nlnest[TYPE, PAYLOAD] nlattr_tt[const[TYPE, int16:14], 0, 1, PAYLOAD]
+type nlnetw[TYPE, PAYLOAD] nlattr_tt[const[TYPE, int16:14], 1, 0, PAYLOAD]
+
+align0 {
+	f0	int16
+	f1	int32
+	f2	int8
+	f3	int16
+	f4	int64
+}
+
+syz_bf_struct4 {
+	f0	int8
+	f1	int32:4
+	f2	int8
+}
+
+syz_bf_struct5 {
+	f0	int8
+	f1	int32:4
+}
+
+syz_bf_struct6 {
+	f0	int8
+	f1	int16:4
+	f2	int8
+}
+
+syz_bf_struct7 {
+	f0	int8
+	f1	int16:4
+}
+
+syz_bf_struct8 {
+	f0	int8
+	f1	int32:4
+	f2	int16:4
+}
+
+syz_bf_struct9 {
+	f0	int8
+	f1	int16:4
+	f2	int16:4
+}
+
+syz_bf_struct10 {
+	f0	int32:4
+	f1	int32:4
+	f2	int32:4
+	f3	int64:12
+	f4	int64:12
+	f5	int64:12
+	f6	int64:12
+	f7	int64:12
+	f8	int8
+}
+
+syz_bf_struct11 {
+	f0	int8
+	f1	int8
+	f2	int8
+	f3	int32:4
+	f4	int32:4
+}
+
+syz_bf_struct12 {
+	f0	int8
+	f1	int8
+	f2	int8
+	f3	int32:4
+	f4	int32:4
+	f5	int32:4
+	f6	int8
+}
+
+syz_bf_struct13 {
+	f0	int16
+	f1	int32:12
+	f2	int32:12
+}
+
+syz_bf_struct14 {
+	f0	int8
+	f1	int8
+	f2	int32:12
+}
+
+syz_bf_struct15 {
+	f0	int8
+	f1	int32:12
+	f2	int16:4
+}
+
+syz_bf_struct16 {
+	f0	int8
+	f1	int32:4
+	f2	int16:4
+}
+
+syz_bf_struct17 {
+	f0	int8
+	f1	int32:6
+	f2	int16:4
+}
+
+syz_bf_struct18 {
+	f0	int8
+	f1	int32:4
+	f2	int16:6
+}
+
+syz_bf_struct19 {
+	f0	int8
+	f1	int16:12
+}
+
+syz_bf_struct20 {
+	f0	int8
+	f1	int8
+	f2	int64:4
+	f3	int32:4
+	f4	int16:4
+	f5	int8:4
+}
+
+syz_bf_struct21 {
+	f0	int32
+	f1	int8
+	f2	int16:8
+	f3	int16
+}
+
+syz_bf_struct22 {
+	f0	int8
+	f1	int64:4
+	f2	int16:4
+} [packed]
+
+syz_bf_struct23 {
+	f0	int8
+	f1	int32:4
+	f2	int16:6
+} [packed]
+
+syz_bf_struct24 {
+	f0	int8
+	f1	int64:4
+} [packed]
+
+syz_bf_struct25 {
+	f0	int16
+	f1	int16:14
+	f2	int16:1
+	f3	int16:1
+	f4	int16
+	f5	void
+} [packed, align[4]]
+
+type syz_bf_align[T] {
+	f0	int8
+	f1	T
+}
+
+resource overlayres8[int8]
+resource overlayres16[int16]
+resource overlayres32[int32]
+resource overlayres64[int64]
+
+overlay_ctor(a ptr[out, overlayres8], b ptr[out, overlayres16], c ptr[out, overlayres32], d ptr[out, overlayres64])
+overlay_uses(a overlayres8, b overlayres16, c overlayres32, d overlayres64)
+
+overlayres [
+	res8	overlayres8
+	res16	overlayres16
+	res32	overlayres32
+	res64	overlayres64
+] [varlen]
+
+overlay0 {
+	i0	int32
+	i1	int32
+	o0	overlayres32	(out_overlay)
+	o1	overlayres32
+}
+
+overlay1 {
+	i0	int32
+	i1	int8
+	o0	overlayres8	(out_overlay)
+	o1	overlayres16
+}
+
+overlay2 {
+	i0	int32
+	i1	int32
+	o0	overlayres64	(out_overlay)
+	o1	overlayres64
+}

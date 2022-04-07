@@ -1,0 +1,26 @@
+TITLE: BUG: workqueue leaked lock or atomic in addrconf_dad_work
+
+[   52.362800] BUG: workqueue leaked lock or atomic: kworker/0:1/0x00000000/353
+[   52.362800]      last function: addrconf_dad_work
+[   52.374928] 1 lock held by kworker/0:1/353:
+[   52.379256]  #0:  (rcu_read_lock_bh){......}, at: [<ffffffff8294ef60>] hashlimit_mt_common.isra.11+0x190/0x22a0
+[   52.390498] CPU: 0 PID: 353 Comm: kworker/0:1 Not tainted 4.3.5+ #124
+[   52.397063] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   52.406407] Workqueue: ipv6_addrconf addrconf_dad_work
+[   52.411790]  0000000000000000 ffff8801d834fc48 ffffffff81da5ce2 ffff8801d7e90300
+[   52.419811]  ffff8801d7e90300 ffff8801d28d8148 ffff8801daa1eac0 ffff8801d8b95400
+[   52.427836]  ffff8801d834fd48 ffffffff813639b5 ffffffff81363286 ffff8801d8b95448
+[   52.435843] Call Trace:
+[   52.438419]  [<ffffffff81da5ce2>] dump_stack+0xf6/0x184
+[   52.443770]  [<ffffffff813639b5>] process_one_work+0xf25/0x15a0
+[   52.449813]  [<ffffffff81363286>] ? process_one_work+0x7f6/0x15a0
+[   52.456031]  [<ffffffff81362a90>] ? pwq_dec_nr_in_flight+0x280/0x280
+[   52.462511]  [<ffffffff81364111>] worker_thread+0xe1/0xf70
+[   52.468119]  [<ffffffff81000a4e>] ? __schedule+0x3ee/0x13b0
+[   52.473820]  [<ffffffff81379281>] kthread+0x231/0x2c0
+[   52.478995]  [<ffffffff81364030>] ? process_one_work+0x15a0/0x15a0
+[   52.485297]  [<ffffffff81379050>] ? kthread_create_on_node+0x460/0x460
+[   52.491950]  [<ffffffff81379050>] ? kthread_create_on_node+0x460/0x460
+[   52.498604]  [<ffffffff82e2a86c>] ret_from_fork+0x5c/0x90
+[   52.504131]  [<ffffffff81379050>] ? kthread_create_on_node+0x460/0x460
+[   52.362800]      last function: not_the_function_you_are_looking_for

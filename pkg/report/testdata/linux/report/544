@@ -1,0 +1,17 @@
+TITLE: BUG: using smp_processor_id() in preemptible code in get_cache_size
+
+[   74.831966][ T4088] BUG: using smp_processor_id() in preemptible [00000000] code: dhcpcd/4088
+[   74.832401][ T4088] caller is debug_smp_processor_id+0x1c/0x26
+[   74.832713][ T4088] CPU: 1 PID: 4088 Comm: dhcpcd Not tainted 5.10.2 #18
+[   74.833035][ T4088] Call Trace:
+[   74.833253][ T4088] [<ffffffe00020383c>] walk_stackframe+0x0/0xaa
+[   74.833582][ T4088] [<ffffffe002141ec4>] show_stack+0x32/0x3e
+[   74.833878][ T4088] [<ffffffe002150a3a>] dump_stack+0x8e/0xb4
+[   74.834212][ T4088] [<ffffffe002173288>] check_preemption_disabled+0xaa/0xac
+[   74.834564][ T4088] [<ffffffe0021732a6>] debug_smp_processor_id+0x1c/0x26
+[   74.834906][ T4088] [<ffffffe000203fd0>] get_cache_size+0x18/0x68
+[   74.835234][ T4088] [<ffffffe00046a262>] load_elf_binary+0x8a4/0xeee
+[   74.835557][ T4088] [<ffffffe0003eb4a2>] bprm_execve+0x352/0x7da
+[   74.835881][ T4088] [<ffffffe0003ec17e>] do_execveat_common+0x10c/0x150
+[   74.836242][ T4088] [<ffffffe0003ece8e>] sys_execve+0x24/0x30
+[   74.836546][ T4088] [<ffffffe000201ba0>] ret_from_syscall+0x0/0x2

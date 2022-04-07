@@ -1,0 +1,9 @@
+TITLE: KASAN: slab-out-of-bounds Read in corrupted
+ALT: bad-access in corrupted
+CORRUPTED: Y
+
+[ 1722.511384] ==================================================================
+[ 1722.511384] BUG: KASAN: slab-out-of-bounds in memcpy+0x1d/0x40 at addr ffff88003a6bd110
+[ 1722.511384] Read of size 8 by task a.out/6260
+[ 1722.511384] BUG: KASAN: slab-out-of-bounds in memcpy+0x1d/0x40 at addr ffff88003a6bd110
+[ 1722.511384] Write of size 4 by task a.out/6260

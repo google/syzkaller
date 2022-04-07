@@ -1,0 +1,103 @@
+FILE: fs/overlayfs/namei.c
+
+BUG: KASAN: slab-out-of-bounds in string+0x298/0x2d0 lib/vsprintf.c:604
+Read of size 1 at addr ffff8801c36c66ba by task syz-executor2/27811
+
+CPU: 0 PID: 27811 Comm: syz-executor2 Not tainted 4.19.0-rc5+ #36
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Call Trace:
+ __dump_stack lib/dump_stack.c:77 [inline]
+ dump_stack+0x1c4/0x2b4 lib/dump_stack.c:113
+ print_address_description.cold.8+0x9/0x1ff mm/kasan/report.c:256
+ kasan_report_error mm/kasan/report.c:354 [inline]
+ kasan_report.cold.9+0x242/0x309 mm/kasan/report.c:412
+ __asan_report_load1_noabort+0x14/0x20 mm/kasan/report.c:430
+ string+0x298/0x2d0 lib/vsprintf.c:604
+ vsnprintf+0x48e/0x1b60 lib/vsprintf.c:2293
+ vscnprintf+0x2d/0x80 lib/vsprintf.c:2396
+ vprintk_store+0x43/0x510 kernel/printk/printk.c:1847
+ vprintk_emit+0x1c1/0x930 kernel/printk/printk.c:1905
+ vprintk_default+0x28/0x30 kernel/printk/printk.c:1963
+ vprintk_func+0x7e/0x181 kernel/printk/printk_safe.c:398
+ printk+0xa7/0xcf kernel/printk/printk.c:1996
+ ovl_lookup_index.cold.15+0xe8/0x1f8 fs/overlayfs/namei.c:689
+ ovl_lookup+0x9f2/0x29c0 fs/overlayfs/namei.c:1022
+ __lookup_hash+0x12e/0x190 fs/namei.c:1546
+ do_rmdir+0x3b3/0x630 fs/namei.c:3930
+ __do_sys_rmdir fs/namei.c:3959 [inline]
+ __se_sys_rmdir fs/namei.c:3957 [inline]
+ __x64_sys_rmdir+0x36/0x40 fs/namei.c:3957
+ do_syscall_64+0x1b9/0x820 arch/x86/entry/common.c:290
+ entry_SYSCALL_64_after_hwframe+0x49/0xbe
+RIP: 0033:0x457579
+Code: 1d b4 fb ff c3 66 2e 0f 1f 84 00 00 00 00 00 66 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 eb b3 fb ff c3 66 2e 0f 1f 84 00 00 00 00
+RSP: 002b:00007f0e714a6c78 EFLAGS: 00000246 ORIG_RAX: 0000000000000054
+RAX: ffffffffffffffda RBX: 00007f0e714a6c90 RCX: 0000000000457579
+RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000020000140
+RBP: 000000000072bf00 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 00007f0e714a76d4
+R13: 00000000004c32cb R14: 00000000004d4ef0 R15: 0000000000000004
+
+Allocated by task 27811:
+ save_stack+0x43/0xd0 mm/kasan/kasan.c:448
+ set_track mm/kasan/kasan.c:460 [inline]
+ kasan_kmalloc+0xc7/0xe0 mm/kasan/kasan.c:553
+ __do_kmalloc mm/slab.c:3718 [inline]
+ __kmalloc+0x14e/0x760 mm/slab.c:3727
+ kmalloc_array include/linux/slab.h:635 [inline]
+ kcalloc include/linux/slab.h:646 [inline]
+ ovl_get_index_name_fh+0x57/0x180 fs/overlayfs/namei.c:596
+ ovl_get_index_name+0x5c/0x80 fs/overlayfs/namei.c:631
+ ovl_lookup_index+0xe4/0x700 fs/overlayfs/namei.c:678
+ ovl_lookup+0x9f2/0x29c0 fs/overlayfs/namei.c:1022
+ __lookup_hash+0x12e/0x190 fs/namei.c:1546
+ do_rmdir+0x3b3/0x630 fs/namei.c:3930
+ __do_sys_rmdir fs/namei.c:3959 [inline]
+ __se_sys_rmdir fs/namei.c:3957 [inline]
+ __x64_sys_rmdir+0x36/0x40 fs/namei.c:3957
+ do_syscall_64+0x1b9/0x820 arch/x86/entry/common.c:290
+ entry_SYSCALL_64_after_hwframe+0x49/0xbe
+
+Freed by task 5441:
+ save_stack+0x43/0xd0 mm/kasan/kasan.c:448
+ set_track mm/kasan/kasan.c:460 [inline]
+ __kasan_slab_free+0x102/0x150 mm/kasan/kasan.c:521
+ kasan_slab_free+0xe/0x10 mm/kasan/kasan.c:528
+ __cache_free mm/slab.c:3498 [inline]
+ kfree+0xcf/0x230 mm/slab.c:3813
+ __vunmap+0x335/0x460 mm/vmalloc.c:1532
+ vfree+0x68/0x100 mm/vmalloc.c:1593
+ copy_entries_to_user net/ipv4/netfilter/ip_tables.c:870 [inline]
+ get_entries net/ipv4/netfilter/ip_tables.c:1027 [inline]
+ do_ipt_get_ctl+0x9eb/0xbc0 net/ipv4/netfilter/ip_tables.c:1703
+ nf_sockopt net/netfilter/nf_sockopt.c:104 [inline]
+ nf_getsockopt+0x80/0xe0 net/netfilter/nf_sockopt.c:122
+ ip_getsockopt+0x1af/0x240 net/ipv4/ip_sockglue.c:1577
+ tcp_getsockopt+0x93/0xe0 net/ipv4/tcp.c:3583
+ sock_common_getsockopt+0x9a/0xe0 net/core/sock.c:2997
+ __sys_getsockopt+0x1ad/0x390 net/socket.c:1939
+ __do_sys_getsockopt net/socket.c:1950 [inline]
+ __se_sys_getsockopt net/socket.c:1947 [inline]
+ __x64_sys_getsockopt+0xbe/0x150 net/socket.c:1947
+ do_syscall_64+0x1b9/0x820 arch/x86/entry/common.c:290
+ entry_SYSCALL_64_after_hwframe+0x49/0xbe
+
+The buggy address belongs to the object at ffff8801c36c6680
+ which belongs to the cache kmalloc-64 of size 64
+The buggy address is located 58 bytes inside of
+ 64-byte region [ffff8801c36c6680, ffff8801c36c66c0)
+The buggy address belongs to the page:
+page:ffffea00070db180 count:1 mapcount:0 mapping:ffff8801da800340 index:0xffff8801c36c6380
+flags: 0x2fffc0000000100(slab)
+raw: 02fffc0000000100 ffffea0006d16508 ffffea000638a588 ffff8801da800340
+raw: ffff8801c36c6380 ffff8801c36c6000 000000010000001b 0000000000000000
+page dumped because: kasan: bad access detected
+
+Memory state around the buggy address:
+ ffff8801c36c6580: fb fb fb fb fb fb fb fb fc fc fc fc fc fc fc fc
+ ffff8801c36c6600: fb fb fb fb fb fb fb fb fc fc fc fc fc fc fc fc
+ffff8801c36c6680: 00 00 00 00 00 00 00 02 fc fc fc fc fc fc fc fc
+                                        ^
+ ffff8801c36c6700: fb fb fb fb fb fb fb fb fc fc fc fc fc fc fc fc
+ ffff8801c36c6780: fb fb fb fb fb fb fb fb fc fc fc fc fc fc fc fc
+==================================================================

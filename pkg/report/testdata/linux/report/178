@@ -1,0 +1,16 @@
+TITLE: INFO: task hung in corrupted
+ALT: hang in corrupted
+TYPE: HANG
+CORRUPTED: Y
+
+[  861.152227] INFO: task syz-executor3:10976 blocked for more than 120 seconds.
+[  861.159591]       Not tainted 4.15.0-rc7+ #192
+[  861.164179] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  861.172159] syz-executor3   D23920 10976   4681 0x00000004
+[  861.177810] Call Trace:
+[  861.180416]  __schedule+0x8eb/0x2060
+[  861.184145]  ? __sched_text_start+0x8/0x8
+[  861.188302]  ? check_noncircular+0x20/0x20
+[  861.192550]  ? __queue_work+0x5b9/0x1230
+[  861.196618]  ? insert_work+0x5f0/0x5f0
+[  861.200518]  ? save_packet_write_wait: Connection to 216.239.38.127 port 9600: Broken pipe

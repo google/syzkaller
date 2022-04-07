@@ -1,0 +1,14 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+include <zircon/syscalls/log.h>
+
+resource zx_debug_log[zx_handle]
+
+# Undocumented syscall
+zx_debuglog_create(root_resource zx_root_resource, options flags[log_create_options], out ptr[out, zx_debug_log])
+zx_debuglog_read(handle zx_debug_log, options int32, ptr ptr[out, array[int8]], size len[ptr]) (ignore_return)
+zx_debuglog_write(handle zx_debug_log, options int32, ptr ptr[in, array[int8]], size len[ptr])
+
+log_create_options = ZX_LOG_FLAG_READABLE

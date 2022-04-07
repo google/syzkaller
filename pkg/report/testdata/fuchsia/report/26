@@ -1,0 +1,31 @@
+TITLE: ASSERT FAILED in VmPageListNode::~VmPageListNode
+
+ZIRCON KERNEL PANIC
+panic (caller 0xffffffff001d8b31 frame 0xffffff9a0ea5bd80): DEBUG ASSERT FAILED at (kernel/vm/vm_page_list.cpp:31): p == nullptr
+platform_halt suggested_action 0 reason 2
+bt#00: 0x0010626b platform_halt platform/pc/power.cpp:122
+bt#01: 0x001aec74 _panic lib/debug/debug.cpp:40
+bt#02: 0x001d85c8 VmPageListNode::~VmPageListNode vm/vm_page_list.cpp:31
+bt#03: [ inline ] fbl::unique_ptr::recycle system/ulib/fbl/include/fbl/unique_ptr.h:125
+bt#03: [ inline ] fbl::unique_ptr::reset system/ulib/fbl/include/fbl/unique_ptr.h:65
+bt#03: [ inline ] fbl::unique_ptr::operator= system/ulib/fbl/include/fbl/unique_ptr.h:40
+bt#03: [ inline ] fbl::WAVLTree::clear system/ulib/fbl/include/fbl/intrusive_wavl_tree.h:391
+bt#03: 0x001d8b31 VmPageList::FreeAllPages vm/vm_page_list.cpp:170
+bt#04: 0x001d41d9 VmObjectPaged::~VmObjectPaged system/ulib/fbl/include/fbl/ref_counted_internal.h:119
+bt#05: 0x001d4299 VmObjectPaged::~VmObjectPaged system/ulib/fbl/include/fbl/ref_counted_internal.h:119
+bt#06: 0x0016fffc VmObjectDispatcher::~VmObjectDispatcher object/vm_object_dispatcher.cpp:42
+bt#07: 0x00170071 VmObjectDispatcher::~VmObjectDispatcher object/vm_object_dispatcher.cpp:47
+bt#08: [ inline ] Delete object/dispatcher.cpp:102
+bt#08: 0x0014de82 Dispatcher::fbl_recycle object/dispatcher.cpp:113
+bt#09: [ inline ] HandleOwner::Destroy object/include/object/handle.h:188
+bt#09: [ inline ] HandleOwner::~HandleOwner object/include/object/handle.h:42
+bt#09: 0x00165124 ProcessDispatcher::FinishDeadTransition object/process_dispatcher.cpp:359
+bt#10: 0x0016b94b ThreadDispatcher::Exiting system/ulib/fbl/include/fbl/ref_counted_internal.h:119
+bt#11: 0x00133dc7 thread_exit kernel/thread.cpp:1395
+bt#12: 0x0016b1ec ThreadDispatcher::Exit system/ulib/fbl/include/fbl/ref_counted_internal.h:119
+bt#13: 0xffffffff00163416
+bt#14: 0x00197761 sys_process_exit syscalls/task.cpp:443
+bt#15: [ inline ] operator() syscall-kernel-wrappers.inc:273
+bt#15: [ inline ] lambda syscalls/syscalls.cpp:60
+bt#15: 0x001797ba wrapper_process_exit syscall-kernel-wrappers.inc:276
+bt#16: end

@@ -1,0 +1,16 @@
+TITLE: INFO: trying to register non-static key in tun_flow_cleanup
+
+[   47.711290] ==================================================================
+[   47.712178] INFO: trying to register non-static key.
+[   47.712195] the code is fine but needs lockdep annotation.
+[   47.712204] turning off the locking correctness validator.
+[   47.712264] CPU: 1 PID: 0 Comm: swapper/1 Not tainted 4.13.0-rc6-next-20170825+ #9
+[   47.712270] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+[   47.712271] Call Trace:
+[   47.712273]  <IRQ>
+[   47.712281]  dump_stack+0x194/0x257
+[   47.712441]  register_lock_class+0x55e/0x2c70
+[   47.712696]  __lock_acquire+0x203/0x4620
+[   47.713005]  lock_acquire+0x1d5/0x580
+[   47.713035]  _raw_spin_lock_bh+0x31/0x40
+[   47.713045]  tun_flow_cleanup+0xf4/0x300

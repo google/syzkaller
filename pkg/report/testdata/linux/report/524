@@ -1,0 +1,38 @@
+TITLE: Internal error in ns558_init
+ALT: bad-access in ns558_init
+
+[  211.592905][    T1] Internal error: synchronous external abort: 96000010 [#1] PREEMPT SMP
+[  211.594621][    T1] Dumping ftrace buffer:
+[  211.596062][    T1]    (ftrace buffer empty)
+[  211.596883][    T1] Modules linked in:
+[  211.598101][    T1] CPU: 0 PID: 1 Comm: swapper/0 Not tainted 5.9.0-12994-gf9893351acae #11
+[  211.598861][    T1] Hardware name: linux,dummy-virt (DT)
+[  211.599762][    T1] pstate: 40000005 (nZcv daif -PAN -UAO -TCO BTYPE=--)
+[  211.600602][    T1] pc : __raw_readb+0x18/0x2c
+[  211.601220][    T1] lr : __raw_readb+0x18/0x2c
+[  211.601722][    T1] sp : ffff0000401f7c40
+[  211.602276][    T1] x29: ffff0000401f7c40 x28: 0000000000000007 
+[  211.603165][    T1] x27: ffffa00017c462a0 x26: ffffa00017e310d8 
+[  211.603979][    T1] x25: 0000000000000201 x24: ffffa0001b484900 
+[  211.604829][    T1] x23: dfffa00000000000 x22: ffffa00016b39140 
+[  211.605882][    T1] x21: ffffa0001a3059e0 x20: 0000000000ffbffe 
+[  211.606753][    T1] x19: fffffdfffec00201 x18: 00000000000011d8 
+[  211.607569][    T1] x17: 0000000000001270 x16: 00000000000011e0 
+[  211.608388][    T1] x15: 0000000000001408 x14: ffffa0001012790c 
+[  211.609208][    T1] x13: ffffa000101275dc x12: ffff0000401e8000 
+[  211.610012][    T1] x11: 0000000000000007 x10: 0000000000ffbffe 
+[  211.610850][    T1] x9 : 0000000000000201 x8 : ffffa00011e6a1c4 
+[  211.611769][    T1] x7 : ffffa0001a305920 x6 : 0000000000000000 
+[  211.612591][    T1] x5 : ffff0000401e8000 x4 : ffffa00011e69e68 
+[  211.613386][    T1] x3 : ffff0000401e8000 x2 : 0000000000000000 
+[  211.614175][    T1] x1 : 0000000000000000 x0 : 0000000000000000 
+[  211.615210][    T1] Call trace:
+[  211.616071][    T1]  __raw_readb+0x18/0x2c
+[  211.616694][    T1]  logic_inb+0x50/0x13c
+[  211.617265][    T1]  ns558_init+0x17c/0x63c
+[  211.617822][    T1]  do_one_initcall+0x294/0x61c
+[  211.618467][    T1]  kernel_init_freeable+0x790/0x798
+[  211.619101][    T1]  kernel_init+0x18/0x1d4
+[  211.619667][    T1]  ret_from_fork+0x10/0x30
+[  211.620699][    T1] Code: 910003fd f9000bf3 aa0003f3 97932e41 (08dffe60) 
+[  211.622487][    T1] ---[ end trace ec5638d8e916ae8b ]---

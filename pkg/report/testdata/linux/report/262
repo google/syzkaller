@@ -1,0 +1,10 @@
+TITLE: 
+
+DEBUG:     #15 pc 000000000045c4a0  /system/lib64/libart.so (art::InvokeWithVarArgs(art::ScopedObjectAccessAlreadyRunnable const&, _jobject*, _jmethodID*, std::__va_list)+424)
+audio_aio_open[fffffff9cf4f9280]:SIO interface not supported
+audio_open: audio_aio_open rc=-13
+DEBUG:     #16 pc 0000000000361b60  /system/lib64/libart.so (art::JNI::CallStaticVoidMethodV(_JNIEnv*, _jclass*, _jmethodID*, std::__va_list)+652)
+DEBUG:     #17 pc 00000000000b1a4c  /system/lib64/libandroid_runtime.so (_JNIEnv::CallStaticVoidMethod(_jclass*, _jmethodID*, ...)+116)
+DEBUG:     #18 pc 00000000000b4470  /system/lib64/libandroid_runtime.so (android::AndroidRuntime::start(char const*, android::Vector<android::String8> const&, bool)+752)
+DEBUG:     #19 pc 000000000000251c  /system/bin/app_process64 (main+2000)
+DEBUG:     #20 pc 00000000000cab94  /system/lib64/libc.so (__libc_init+88)

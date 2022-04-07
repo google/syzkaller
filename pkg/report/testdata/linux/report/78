@@ -1,0 +1,31 @@
+TITLE: BUG: spinlock bad magic in tcp_nuke_addr
+
+[   82.818367] BUG: spinlock bad magic on CPU#0, ^keyring*�vmnet/20513
+[   82.824830]  lock: 0xffff8800bb37e088, .magic: ffff8800, .owner: <none>/-1, .owner_cpu: 131071
+[   82.833579] CPU: 0 PID: 20513 Comm: ^keyring*�vmnet Not tainted 4.4.70+ #9
+[   82.840570] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   82.849899]  0000000000000000 ffff8801d3e4faf8 ffffffff81c01b4c ffff8800bb37e088
+[   82.857899]  ffff8801d74e1d80 ffffffff83209890 ffff8800bb37e000 ffff8801d3e4fb38
+[   82.865898]  ffffffff811d2be2 0000000000000101 ffff8801db91e140 0000000000000000
+[   82.873873] Call Trace:
+[   82.876438]  [<ffffffff81c01b4c>] dump_stack+0x80/0xb4
+[   82.881697]  [<ffffffff811d2be2>] spin_dump+0x152/0x280
+[   82.887044]  [<ffffffff811d2fc5>] do_raw_spin_lock+0x225/0x2c0
+[   82.892991]  [<ffffffff828b61be>] _raw_spin_lock+0xe/0x10
+[   82.898497]  [<ffffffff824e6a26>] tcp_nuke_addr+0x586/0x8a0
+[   82.904173]  [<ffffffff81aad743>] ? security_capable+0x93/0xc0
+[   82.910115]  [<ffffffff8259012f>] devinet_ioctl+0x58f/0x1460
+[   82.915878]  [<ffffffff8258fba0>] ? inet_ifa_byprefix+0x1e0/0x1e0
+[   82.922075]  [<ffffffff8124ec10>] ? exit_robust_list+0x1c0/0x1c0
+[   82.928190]  [<ffffffff8259566c>] inet_ioctl+0x11c/0x1d0
+[   82.933619]  [<ffffffff82127eea>] sock_do_ioctl+0x6a/0xb0
+[   82.939136]  [<ffffffff8212875b>] sock_ioctl+0x29b/0x390
+[   82.944569]  [<ffffffff821284c0>] ? compat_ifr_data_ioctl+0x150/0x150
+[   82.951122]  [<ffffffff814f68bf>] do_vfs_ioctl+0x68f/0xdb0
+[   82.956714]  [<ffffffff81444c58>] ? do_mmap+0x288/0x980
+[   82.962051]  [<ffffffff814f6230>] ? ioctl_preallocate+0x1c0/0x1c0
+[   82.968250]  [<ffffffff8125051c>] ? SyS_futex+0x1fc/0x2a0
+[   82.973753]  [<ffffffff81511f27>] ? __fget+0x177/0x220
+[   82.978999]  [<ffffffff81ab099e>] ? security_file_ioctl+0x8e/0xc0
+[   82.985204]  [<ffffffff814f7074>] SyS_ioctl+0x94/0xc0
+[   82.990363]  [<ffffffff828b682e>] entry_SYSCALL_64_fastpath+0x12/0x6d

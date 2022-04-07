@@ -1,0 +1,119 @@
+FILE: include/linux/spinlock.h
+
+=============================
+[ BUG: Invalid wait context ]
+5.10.2 #14 Not tainted
+-----------------------------
+udevd/95 is trying to lock:
+81e70810 (&n->list_lock){..-.}-{3:3}, at: spin_lock include/linux/spinlock.h:354 [inline]
+81e70810 (&n->list_lock){..-.}-{3:3}, at: deactivate_slab+0x2a8/0x558 mm/slub.c:2244
+other info that might help us debug this:
+context-{2:2}
+2 locks held by udevd/95:
+ #0: 81dd4d20 (&mm->mmap_lock){++++}-{4:4}, at: __might_fault mm/memory.c:5032 [inline]
+ #0: 81dd4d20 (&mm->mmap_lock){++++}-{4:4}, at: __might_fault+0x98/0xf8 mm/memory.c:5018
+ #1: 812239d8 (rcu_callback){....}-{0:0}, at: rcu_do_batch kernel/rcu/tree.c:2466 [inline]
+ #1: 812239d8 (rcu_callback){....}-{0:0}, at: rcu_core+0x314/0xa74 kernel/rcu/tree.c:2711
+stack backtrace:
+CPU: 0 PID: 95 Comm: udevd Not tainted 5.10.2 #14
+Hardware name: ARM-Versatile Express
+Backtrace: 
+[<80de0078>] (dump_backtrace) from [<80de0574>] (show_stack+0x28/0x2c)
+ r9:600f0193 r8:ffffffff r7:00000000 r6:00000080 r5:8101acf4 r4:00000000
+[<80de054c>] (show_stack) from [<80de7c10>] (dump_stack+0x154/0x1a8)
+ r5:00000000 r4:81260dfc
+[<80de7abc>] (dump_stack) from [<801bba34>] (__lock_acquire+0x840/0x30e0)
+ r10:83358588 r9:00000000 r8:83358000 r7:00000013 r6:00040000 r5:817125d4
+ r4:00000002 r3:00000000
+[<801bb1f4>] (__lock_acquire) from [<801bed58>] (lock_acquire.part.0+0xc4/0x4b4)
+ r10:00000000 r9:81e70810 r8:81167528 r7:3d659000 r6:600f0193 r5:83341808
+ r4:81167528
+[<801bec94>] (lock_acquire.part.0) from [<801bf1b0>] (lock_acquire+0x68/0x74)
+ r10:803981dc r9:00000000 r8:00000001 r7:00000000 r6:00000000 r5:00000000
+ r4:81e70810
+[<801bf148>] (lock_acquire) from [<80df7ffc>] (_raw_spin_lock+0x4c/0x5c)
+ r10:00000000 r9:818ca800 r8:8e2e6000 r7:8e2e4000 r6:829c0900 r5:80040001
+ r4:81e70800
+[<80df7fb0>] (_raw_spin_lock) from [<803981dc>] (deactivate_slab+0x2a8/0x558)
+ r4:be9b7c00
+[<80397f34>] (deactivate_slab) from [<80398960>] (flush_cpu_slab+0x48/0x68)
+ r10:829c0900 r9:8100b3ec r8:00000000 r7:8d25dc50 r6:00000000 r5:ff7dd310
+ r4:829c0900
+[<80398918>] (flush_cpu_slab) from [<8022d134>] (flush_smp_call_function_queue+0x14c/0x554)
+ r5:80398918 r4:00000000
+[<8022cfe8>] (flush_smp_call_function_queue) from [<8022edc4>] (generic_smp_call_function_single_interrupt+0x18/0x1c)
+ r10:000003fb r9:81c20400 r8:0000003b r7:807bc808 r6:81c0cbc0 r5:00000000
+ r4:00000003
+[<8022edac>] (generic_smp_call_function_single_interrupt) from [<80116e24>] (do_handle_IPI+0x234/0x590)
+[<80116bf0>] (do_handle_IPI) from [<801171a4>] (ipi_handler+0x24/0x30)
+ r10:000003fb r9:81c20400 r8:0000003b r7:807bc808 r6:81c0cbc0 r5:00000013
+ r4:00000013 r3:81208ea0
+[<80117180>] (ipi_handler) from [<801dd3d0>] (handle_percpu_devid_fasteoi_ipi+0x8c/0xa4)
+ r5:00000013 r4:81c85e00
+[<801dd344>] (handle_percpu_devid_fasteoi_ipi) from [<801d319c>] (__handle_domain_irq+0xc0/0x12c)
+ r7:812231ec r6:83341d10 r5:81170f7c r4:00000000
+[<801d30dc>] (__handle_domain_irq) from [<807bcf60>] (gic_handle_irq+0xc0/0xfc)
+ r9:8120956c r8:00000000 r7:c0802000 r6:83341a90 r5:00000003 r4:00000403
+[<807bcea0>] (gic_handle_irq) from [<80100b30>] (__irq_svc+0x70/0x98)
+Exception stack(0x83341a90 to 0x83341ad8)
+1a80:                                     d1ee2b67 d1ee2b67 00000001 00015a2e
+1aa0: 000f0113 8194cdfc 00000002 00000000 00000002 8e0983c0 8e098280 83341af4
+1ac0: 83341ac0 83341ae0 8028d800 80df8480 600f0113 ffffffff
+ r10:8e098280 r9:83340000 r8:00000002 r7:83341ac4 r6:ffffffff r5:600f0113
+ r4:80df8480
+[<80df844c>] (_raw_spin_unlock_irqrestore) from [<80726a08>] (__debug_check_no_obj_freed+0x128/0x240)
+ r5:8e098280 r4:83531a98
+[<807268e0>] (__debug_check_no_obj_freed) from [<80727c54>] (debug_check_no_obj_freed+0x20/0x28)
+ r10:83341be0 r9:818ca800 r8:be9b3300 r7:803b3ac8 r6:600f0113 r5:8e098280
+ r4:81c02780
+[<80727c34>] (debug_check_no_obj_freed) from [<8039bb2c>] (kmem_cache_free+0x16c/0x50c)
+[<8039b9c0>] (kmem_cache_free) from [<803b3ac8>] (file_free_rcu+0x6c/0x84)
+ r10:83341be0 r9:80e04848 r8:812239d8 r7:00000000 r6:0000000d r5:8e098280
+ r4:832cc580
+[<803b3a5c>] (file_free_rcu) from [<801f3e54>] (rcu_core+0x2b4/0xa74)
+ r7:00000000 r6:0000000a r5:00000003 r4:8e098280
+[<801f3ba0>] (rcu_core) from [<801f474c>] (rcu_core_si+0x10/0x14)
+ r10:00000002 r9:81208ed8 r8:00000002 r7:00000003 r6:00000009 r5:812030a4
+ r4:83340000
+[<801f473c>] (rcu_core_si) from [<801013c0>] (__do_softirq+0xf0/0x698)
+[<801012d0>] (__do_softirq) from [<8014c104>] (__irq_exit_rcu+0xb4/0x170)
+ r10:000003fb r9:81c20400 r8:0000003b r7:812231ec r6:00000000 r5:81170f7c
+ r4:ffffe000
+[<8014c050>] (__irq_exit_rcu) from [<8014c5a4>] (irq_exit+0x10/0x30)
+ r5:81170f7c r4:00000000
+[<8014c594>] (irq_exit) from [<801d31a4>] (__handle_domain_irq+0xc8/0x12c)
+[<801d30dc>] (__handle_domain_irq) from [<807bcf60>] (gic_handle_irq+0xc0/0xfc)
+ r9:8120956c r8:00000010 r7:c0802000 r6:83341d10 r5:0000001b r4:0000001b
+[<807bcea0>] (gic_handle_irq) from [<80100b30>] (__irq_svc+0x70/0x98)
+Exception stack(0x83341d10 to 0x83341d58)
+1d00:                                     00000001 00000013 3d659000 00000000
+1d20: 81167528 83341d60 600f0013 3d659000 81167528 81dd4d20 00000000 83341dd4
+1d40: 83341c90 83341d60 801bb4a0 801bed74 600f0013 ffffffff
+ r10:00000000 r9:83340000 r8:81167528 r7:83341d44 r6:ffffffff r5:600f0013
+ r4:801bed74
+[<801bec94>] (lock_acquire.part.0) from [<801bf1b0>] (lock_acquire+0x68/0x74)
+ r10:8034d690 r9:00000000 r8:00000001 r7:00000001 r6:00000000 r5:00000000
+ r4:81dd4d20
+[<801bf148>] (lock_acquire) from [<8034d6b4>] (__might_fault+0xbc/0xf8)
+ r10:00000020 r9:81040ce8 r8:81040ce8 r7:83340000 r6:ffffe000 r5:00000000
+ r4:81dd4c80
+[<8034d5f8>] (__might_fault) from [<8078b458>] (strncpy_from_user+0x184/0x34c)
+ r8:83340000 r7:65752f33 r6:00000000 r5:00000000 r4:00000fd0
+[<8078b2d4>] (strncpy_from_user) from [<803cdd00>] (getname_flags+0x4c/0x1e8)
+ r10:000a0000 r9:81209448 r8:00000000 r7:00000000 r6:7ea2c138 r5:7ea2c138
+ r4:81e18000
+[<803cdcb4>] (getname_flags) from [<803cdec0>] (getname+0x24/0x28)
+ r10:000a0000 r9:00000000 r8:7ea2c138 r7:ffffff9c r6:83341f40 r5:7ea2c138
+ r4:7ea2c138 r3:00000000
+[<803cde9c>] (getname) from [<803abf4c>] (do_sys_openat2+0x88/0x234)
+ r5:7ea2c138 r4:00000000
+[<803abec4>] (do_sys_openat2) from [<803ac768>] (sys_openat+0xac/0x118)
+ r10:000a0000 r9:00000000 r8:7ea2c138 r7:ffffff9c r6:00000000 r5:00000000
+ r4:00000000
+[<803ac6bc>] (sys_openat) from [<80100080>] (ret_fast_syscall+0x0/0x28)
+Exception stack(0x83341fa8 to 0x83341ff0)
+1fa0:                   0005fb88 76f36840 ffffff9c 7ea2c138 000a0000 00000000
+1fc0: 0005fb88 76f36840 00000008 00000142 0005fb88 00000066 7ea3058c 00000000
+1fe0: 00000000 7ea2c080 76ba33dc 76c00200
+ r10:00000142 r9:83340000 r8:80100244 r7:00000142 r6:00000008 r5:76f36840
+ r4:0005fb88

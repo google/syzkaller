@@ -1,0 +1,67 @@
+TITLE: panic: Sentry detected stuck tasks
+
+panic: Sentry detected 10 stuck task(s):
+	Task tid: 46 (0x2e), entered RunSys state 3m33.39s ago.
+	Task tid: 12 (0xc), entered RunSys state 3m33.37s ago.
+	Task tid: 16 (0x10), entered RunSys state 3m33.37s ago.
+	Task tid: 26 (0x1a), entered RunSys state 3m33.37s ago.
+	Task tid: 16296 (0x3fa8), entered RunSys state 3m33.39s ago.
+	Task tid: 16297 (0x3fa9), entered RunSys state 3m33.39s ago.
+	Task tid: 16291 (0x3fa3), entered RunSys state 3m33.39s ago.
+	Task tid: 16295 (0x3fa7), entered RunSys state 3m32.67s ago.
+	Task tid: 47 (0x2f), entered RunSys state 3m33.39s ago.
+	Task tid: 16285 (0x3f9d), entered RunSys state 3m32.67s ago.
+Search for '(*Task).run(0x..., 0x<tid>)' in the stack dump to find the offending goroutine
+Stack for running G's are skipped while panicking.
+
+goroutine 110 [running]:
+panic(0xeb0780, 0xc00089a0a0)
+	GOROOT/src/runtime/panic.go:1064 +0x46d fp=0xc0004b3c08 sp=0xc0004b3b50 pc=0x43438d
+gvisor.dev/gvisor/pkg/sentry/watchdog.(*Watchdog).doAction(0xc0003a2080, 0x1, 0x1, 0xc0004b3d70)
+	pkg/sentry/watchdog/watchdog.go:386 +0x57d fp=0xc0004b3d00 sp=0xc0004b3c08 pc=0xa9308d
+gvisor.dev/gvisor/pkg/sentry/watchdog.(*Watchdog).report(0xc0003a2080, 0xc00e5143c0, 0x7a01, 0x7c93771680)
+	pkg/sentry/watchdog/watchdog.go:345 +0x311 fp=0xc0004b3e38 sp=0xc0004b3d00 pc=0xa92a51
+gvisor.dev/gvisor/pkg/sentry/watchdog.(*Watchdog).runTurn(0xc0003a2080)
+	pkg/sentry/watchdog/watchdog.go:326 +0x4b4 fp=0xc0004b3f40 sp=0xc0004b3e38 pc=0xa92664
+gvisor.dev/gvisor/pkg/sentry/watchdog.(*Watchdog).loop(0xc0003a2080)
+	pkg/sentry/watchdog/watchdog.go:261 +0x42 fp=0xc0004b3fd8 sp=0xc0004b3f40 pc=0xa920d2
+runtime.goexit()
+	src/runtime/asm_amd64.s:1373 +0x1 fp=0xc0004b3fe0 sp=0xc0004b3fd8 pc=0x467da1
+created by gvisor.dev/gvisor/pkg/sentry/watchdog.(*Watchdog).Start
+	pkg/sentry/watchdog/watchdog.go:212 +0x1b7
+
+goroutine 13 [semacquire]:
+runtime.gopark(0x10ade88, 0x1a6b5a0, 0xc0005a1912, 0x4)
+	GOROOT/src/runtime/proc.go:304 +0xe0 fp=0xc00f3e76c8 sp=0xc00f3e76a8 pc=0x4371d0
+runtime.goparkunlock(...)
+	GOROOT/src/runtime/proc.go:310
+runtime.semacquire1(0xc0000287f4, 0x0, 0x1, 0x0)
+	GOROOT/src/runtime/sema.go:144 +0x1c0 fp=0xc00f3e7730 sp=0xc00f3e76c8 pc=0x448580
+sync.runtime_Semacquire(0xc0000287f4)
+	GOROOT/src/runtime/sema.go:56 +0x42 fp=0xc00f3e7760 sp=0xc00f3e7730 pc=0x4481d2
+gvisor.dev/gvisor/pkg/sync.(*RWMutex).RLock(...)
+	pkg/sync/rwmutex_unsafe.go:76
+gvisor.dev/gvisor/pkg/sentry/mm.(*MemoryManager).withInternalMappings(0xc000028000, 0x123ef80, 0x1a55130, 0xc0000fdbf0, 0xc0000fdc70, 0x100, 0xc00f3e78b0, 0xc00fef2290, 0x191, 0x70)
+	pkg/sentry/mm/io.go:504 +0x7e4 fp=0xc00f3e7860 sp=0xc00f3e7760 pc=0x74f834
+gvisor.dev/gvisor/pkg/sentry/mm.(*MemoryManager).CopyOut(0xc000028000, 0x123ef80, 0x1a55130, 0xc0000fdbf0, 0xc010a6e080, 0x80, 0x80, 0x0, 0x80, 0x103b1e0, ...)
+	pkg/sentry/mm/io.go:119 +0x12d fp=0xc00f3e78f0 sp=0xc00f3e7860 pc=0x74cc2d
+gvisor.dev/gvisor/pkg/usermem.(*IOReadWriter).Write(0xc00f3e79b0, 0xc010a6e080, 0x80, 0x80, 0x1a90a80, 0x103b1e0, 0xc00fef2280)
+	pkg/usermem/usermem.go:173 +0x87 fp=0xc00f3e7958 sp=0xc00f3e78f0 pc=0x567dd7
+gvisor.dev/gvisor/pkg/usermem.CopyObjectOut(0x123ef80, 0x1a55130, 0x1237760, 0xc000028000, 0xc0000fdbf0, 0x103b1e0, 0xc00fef2280, 0xea0000, 0xc000382528, 0xc0106f0001, ...)
+	pkg/usermem/usermem.go:206 +0x160 fp=0xc00f3e79f0 sp=0xc00f3e7958 pc=0x567fb0
+gvisor.dev/gvisor/pkg/sentry/arch.(*Stack).Push(0xc0054fe120, 0xc00f3e7b50, 0x1, 0x1, 0xc000135680, 0x41f6da, 0xc000844e00)
+	pkg/sentry/arch/stack.go:100 +0x175 fp=0xc00f3e7ac8 sp=0xc00f3e79f0 pc=0x5e6eb5
+gvisor.dev/gvisor/pkg/sentry/arch.(*context64).SignalSetup(0xc000135680, 0xc0054fe120, 0xc000594060, 0xc00fef2280, 0xc000594080, 0x0, 0x1, 0xc0106ee000)
+	pkg/sentry/arch/signal_amd64.go:198 +0x30a fp=0xc00f3e7b70 sp=0xc00f3e7ac8 pc=0x5e650a
+gvisor.dev/gvisor/pkg/sentry/kernel.(*Task).deliverSignalToHandler(0xc0001fca80, 0xc00fef2280, 0x468ed0, 0x1c000004, 0x469000, 0xfffffffffffbfeff, 0xc00f3e7c58, 0x40)
+	pkg/sentry/kernel/task_signals.go:280 +0x24a fp=0xc00f3e7c08 sp=0xc00f3e7b70 pc=0x8caaaa
+gvisor.dev/gvisor/pkg/sentry/kernel.(*Task).deliverSignal(0xc0001fca80, 0xc00fef2280, 0x468ed0, 0x1c000004, 0x469000, 0xfffffffffffbfeff, 0xc00f3e7f50, 0x8c52d6)
+	pkg/sentry/kernel/task_signals.go:221 +0x4e2 fp=0xc00f3e7e88 sp=0xc00f3e7c08 pc=0x8ca032
+gvisor.dev/gvisor/pkg/sentry/kernel.(*runInterrupt).execute(0x0, 0xc0001fca80, 0x1210be0, 0x0)
+	pkg/sentry/kernel/task_signals.go:1076 +0xad2 fp=0xc00f3e7f60 sp=0xc00f3e7e88 pc=0x8ce5a2
+gvisor.dev/gvisor/pkg/sentry/kernel.(*Task).run(0xc0001fca80, 0x3)
+	pkg/sentry/kernel/task_run.go:93 +0x18b fp=0xc00f3e7fd0 sp=0xc00f3e7f60 pc=0x8c50db
+runtime.goexit()
+	src/runtime/asm_amd64.s:1373 +0x1 fp=0xc00f3e7fd8 sp=0xc00f3e7fd0 pc=0x467da1
+created by gvisor.dev/gvisor/pkg/sentry/kernel.(*Task).Start
+	pkg/sentry/kernel/task_start.go:318 +0xfe

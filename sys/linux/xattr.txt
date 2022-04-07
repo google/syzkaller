@@ -1,0 +1,194 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/xattr.h>
+include <linux/uuid.h>
+include <uapi/linux/posix_acl_xattr.h>
+include <uapi/linux/posix_acl.h>
+include <uapi/linux/capability.h>
+include <security/integrity/integrity.h>
+include <fs/overlayfs/overlayfs.h>
+include <uapi/linux/hash_info.h>
+
+setxattr(path ptr[in, filename], name ptr[in, xattr_name], val ptr[in, string], size len[val], flags flags[setxattr_flags])
+lsetxattr(path ptr[in, filename], name ptr[in, xattr_name], val ptr[in, string], size len[val], flags flags[setxattr_flags])
+fsetxattr(fd fd, name ptr[in, xattr_name], val ptr[in, string], size len[val], flags flags[setxattr_flags])
+getxattr(path ptr[in, filename], name ptr[in, xattr_name], val buffer[out], size len[val])
+lgetxattr(path ptr[in, filename], name ptr[in, xattr_name], val buffer[out], size len[val])
+fgetxattr(fd fd, name ptr[in, xattr_name], val buffer[out], size len[val])
+listxattr(path ptr[in, filename], list buffer[out], size len[list])
+llistxattr(path ptr[in, filename], list buffer[out], size len[list])
+flistxattr(fd fd, list buffer[out], size len[list])
+removexattr(path ptr[in, filename], name ptr[in, xattr_name])
+lremovexattr(path ptr[in, filename], name ptr[in, xattr_name])
+fremovexattr(fd fd, name ptr[in, xattr_name])
+
+xattr_name [
+	known	string[xattr_names]
+	random	xattr_name_random
+] [varlen]
+
+xattr_name_random {
+	prefix	stringnoz[xattr_prefix]
+	name	string
+} [packed]
+
+setxattr_flags = XATTR_CREATE, XATTR_REPLACE
+
+xattr_prefix = "system.", "trusted.", "security.", "user.", "btrfs.", "osx.", "os2."
+
+xattr_names = "system.posix_acl_access", "system.posix_acl_default", "system.advise", "system.sockprotoname", "com.apple.FinderInfo", "com.apple.system.Security", "user.syz", "trusted.syz", "security.apparmor", "trusted.overlay.opaque", "trusted.overlay.redirect", "trusted.overlay.origin", "trusted.overlay.impure", "trusted.overlay.nlink", "trusted.overlay.upper", "trusted.overlay.metacopy", "security.selinux", "user.incfs.id", "user.incfs.size", "user.incfs.metadata"
+
+setxattr$system_posix_acl(path ptr[in, filename], name ptr[in, string[xattr_posix_acl_names]], val ptr[in, xattr_system_posix_acl_access], size len[val], flags flags[setxattr_flags])
+lsetxattr$system_posix_acl(path ptr[in, filename], name ptr[in, string[xattr_posix_acl_names]], val ptr[in, xattr_system_posix_acl_access], size len[val], flags flags[setxattr_flags])
+fsetxattr$system_posix_acl(fd fd, name ptr[in, string[xattr_posix_acl_names]], val ptr[in, xattr_system_posix_acl_access], size len[val], flags flags[setxattr_flags])
+
+xattr_posix_acl_names = "system.posix_acl_access", "system.posix_acl_default"
+
+xattr_system_posix_acl_access {
+	header		posix_acl_xattr_header
+	user_obj	posix_acl_xattr_entry[ACL_USER_OBJ, const[0, int32]]
+	users		array[posix_acl_xattr_entry[ACL_USER, uid]]
+	group_obj	posix_acl_xattr_entry[ACL_GROUP_OBJ, const[0, int32]]
+	groups		array[posix_acl_xattr_entry[ACL_GROUP, gid]]
+	mask		posix_acl_xattr_entry[ACL_MASK, const[0, int32]]
+	other		posix_acl_xattr_entry[ACL_OTHER, const[0, int32]]
+} [packed]
+
+posix_acl_xattr_header {
+	a_version	const[POSIX_ACL_XATTR_VERSION, int32]
+}
+
+type posix_acl_xattr_entry[TAG, ID] {
+	e_tag	const[TAG, int16]
+	e_perm	flags[posix_acl_perm, int16]
+	e_id	ID
+}
+
+posix_acl_perm = ACL_READ, ACL_WRITE, ACL_EXECUTE
+
+setxattr$security_capability(path ptr[in, filename], name ptr[in, string["security.capability"]], val ptr[in, vfs_cap_data_u], size len[val], flags flags[setxattr_flags])
+lsetxattr$security_capability(path ptr[in, filename], name ptr[in, string["security.capability"]], val ptr[in, vfs_cap_data_u], size len[val], flags flags[setxattr_flags])
+fsetxattr$security_capability(fd fd, name ptr[in, string["security.capability"]], val ptr[in, vfs_cap_data_u], size len[val], flags flags[setxattr_flags])
+
+vfs_cap_data_u [
+	v1	vfs_cap_data_v1
+	v2	vfs_cap_data
+	v3	vfs_ns_cap_data
+] [varlen]
+
+vfs_cap_data_v1 {
+	magic_etc	const[VFS_CAP_REVISION_1, int32]
+	data		array[vfs_cap_elem, VFS_CAP_U32_1]
+}
+
+vfs_cap_data {
+	magic_etc	const[VFS_CAP_REVISION_2, int32]
+	data		array[vfs_cap_elem, VFS_CAP_U32_2]
+}
+
+vfs_ns_cap_data {
+	magic_etc	const[VFS_CAP_REVISION_3, int32]
+	data		array[vfs_cap_elem, VFS_CAP_U32_3]
+	rootid		uid
+}
+
+vfs_cap_elem {
+	permitted	int32
+	inheritable	int32
+}
+
+setxattr$security_evm(path ptr[in, filename], name ptr[in, string["security.evm"]], val ptr[in, evm_ima_xattr], size len[val], flags flags[setxattr_flags])
+lsetxattr$security_evm(path ptr[in, filename], name ptr[in, string["security.evm"]], val ptr[in, evm_ima_xattr], size len[val], flags flags[setxattr_flags])
+fsetxattr$security_evm(fd fd, name ptr[in, string["security.evm"]], val ptr[in, evm_ima_xattr], size len[val], flags flags[setxattr_flags])
+
+setxattr$security_ima(path ptr[in, filename], name ptr[in, string["security.ima"]], val ptr[in, evm_ima_xattr], size len[val], flags flags[setxattr_flags])
+lsetxattr$security_ima(path ptr[in, filename], name ptr[in, string["security.ima"]], val ptr[in, evm_ima_xattr], size len[val], flags flags[setxattr_flags])
+fsetxattr$security_ima(fd fd, name ptr[in, string["security.ima"]], val ptr[in, evm_ima_xattr], size len[val], flags flags[setxattr_flags])
+
+evm_ima_xattr [
+	v1	evm_ima_xattr_data
+	v2	signature_v2_hdr
+	md5	evm_ima_xattr_digest_md5
+	sha1	evm_ima_xattr_digest_sha1
+	ng	evm_ima_xattr_digest_ng
+] [varlen]
+
+evm_ima_xattr_data {
+	type	const[EVM_XATTR_HMAC, int8]
+	digest	array[int8, 0:SHA1_DIGEST_SIZE]
+}
+
+signature_v2_hdr {
+	type		flags[evm_xattr_type, int8]
+	version		int8[0:3]
+	hash_algo	int8[0:HASH_ALGO__LAST]
+	keyid		int32be
+	sig_size	bytesize[sig, int16be]
+	sig		array[int8]
+} [packed]
+
+evm_xattr_type = EVM_IMA_XATTR_DIGSIG, EVM_XATTR_PORTABLE_DIGSIG
+
+evm_ima_xattr_digest_md5 {
+	type	const[IMA_XATTR_DIGEST, int8]
+	digest	array[int8, 16]
+}
+
+evm_ima_xattr_digest_sha1 {
+	type	const[IMA_XATTR_DIGEST, int8]
+	digest	array[int8, 20]
+}
+
+evm_ima_xattr_digest_ng {
+	type	const[IMA_XATTR_DIGEST_NG, int8]
+	algo	int8[0:HASH_ALGO__LAST]
+	digest	array[int8, 0:SHA1_DIGEST_SIZE]
+}
+
+setxattr$trusted_overlay_origin(path ptr[in, filename], name ptr[in, string["trusted.overlay.origin"]], val ptr[in, string["y"]], size len[val], flags flags[setxattr_flags])
+lsetxattr$trusted_overlay_origin(path ptr[in, filename], name ptr[in, string["trusted.overlay.origin"]], val ptr[in, string["y"]], size len[val], flags flags[setxattr_flags])
+fsetxattr$trusted_overlay_origin(fd fd, name ptr[in, string["trusted.overlay.origin"]], val ptr[in, string["y"]], size len[val], flags flags[setxattr_flags])
+
+setxattr$trusted_overlay_opaque(path ptr[in, filename], name ptr[in, string["trusted.overlay.opaque"]], val ptr[in, string["y"]], size len[val], flags flags[setxattr_flags])
+lsetxattr$trusted_overlay_opaque(path ptr[in, filename], name ptr[in, string["trusted.overlay.opaque"]], val ptr[in, string["y"]], size len[val], flags flags[setxattr_flags])
+fsetxattr$trusted_overlay_opaque(fd fd, name ptr[in, string["trusted.overlay.opaque"]], val ptr[in, string["y"]], size len[val], flags flags[setxattr_flags])
+
+setxattr$trusted_overlay_redirect(path ptr[in, filename], name ptr[in, string["trusted.overlay.redirect"]], val ptr[in, filename], size len[val], flags flags[setxattr_flags])
+lsetxattr$trusted_overlay_redirect(path ptr[in, filename], name ptr[in, string["trusted.overlay.redirect"]], val ptr[in, filename], size len[val], flags flags[setxattr_flags])
+fsetxattr$trusted_overlay_redirect(fd fd, name ptr[in, string["trusted.overlay.redirect"]], val ptr[in, filename], size len[val], flags flags[setxattr_flags])
+
+setxattr$trusted_overlay_nlink(path ptr[in, filename], name ptr[in, string["trusted.overlay.nlink"]], val ptr[in, xattr_overlay_nlink], size len[val], flags flags[setxattr_flags])
+lsetxattr$trusted_overlay_nlink(path ptr[in, filename], name ptr[in, string["trusted.overlay.nlink"]], val ptr[in, xattr_overlay_nlink], size len[val], flags flags[setxattr_flags])
+fsetxattr$trusted_overlay_nlink(fd fd, name ptr[in, string["trusted.overlay.nlink"]], val ptr[in, xattr_overlay_nlink], size len[val], flags flags[setxattr_flags])
+
+setxattr$trusted_overlay_upper(path ptr[in, filename], name ptr[in, string["trusted.overlay.upper"]], val ptr[in, ovl_fb], size len[val], flags flags[setxattr_flags])
+lsetxattr$trusted_overlay_upper(path ptr[in, filename], name ptr[in, string["trusted.overlay.upper"]], val ptr[in, ovl_fb], size len[val], flags flags[setxattr_flags])
+fsetxattr$trusted_overlay_upper(fd fd, name ptr[in, string["trusted.overlay.upper"]], val ptr[in, ovl_fb], size len[val], flags flags[setxattr_flags])
+
+xattr_overlay_nlink {
+	prefix	stringnoz[xattr_overlay_nlink_prefix]
+	num	fmt[dec, int64]
+}
+
+xattr_overlay_nlink_prefix = "U+", "U-", "L+", "L-"
+
+# TODO: do these attrs accept ovl_fb or ovl_fh?..
+ovl_fb {
+	version	const[0, int8]
+	magic	const[OVL_FH_MAGIC, int8]
+	len	bytesize[parent, int8]
+	flags	flags[ovl_fb_flags, int8]
+	type	int8
+	uuid	uuid_t
+	fid	array[int8]
+} [packed]
+
+ovl_fh {
+	padding	array[const[0, int8], 3]
+	fb	ovl_fb
+} [packed]
+
+type uuid_t array[int8, UUID_SIZE]
+
+ovl_fb_flags = OVL_FH_FLAG_BIG_ENDIAN, OVL_FH_FLAG_ANY_ENDIAN, OVL_FH_FLAG_PATH_UPPER

@@ -1,0 +1,61 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/net.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/netfilter.h>
+include <uapi/linux/netfilter/nfnetlink.h>
+include <uapi/linux/netfilter/nfnetlink_queue.h>
+
+type msghdr_nl_queue[CMD, POLICY] msghdr_netlink[netlink_msg_netfilter_t[NFNL_SUBSYS_QUEUE, CMD, POLICY]]
+
+sendmsg$NFQNL_MSG_VERDICT(fd sock_nl_netfilter, msg ptr[in, msghdr_nl_queue[NFQNL_MSG_VERDICT, nfqa_verdict_policy]], f flags[send_flags])
+sendmsg$NFQNL_MSG_VERDICT_BATCH(fd sock_nl_netfilter, msg ptr[in, msghdr_nl_queue[NFQNL_MSG_VERDICT_BATCH, nfqa_verdict_batch_policy]], f flags[send_flags])
+sendmsg$NFQNL_MSG_CONFIG(fd sock_nl_netfilter, msg ptr[in, msghdr_nl_queue[NFQNL_MSG_CONFIG, nfqa_cfg_policy]], f flags[send_flags])
+
+nfqa_verdict_policy [
+	NFQA_VERDICT_HDR	nlattr[NFQA_VERDICT_HDR, nfqnl_msg_verdict_hdr]
+	NFQA_MARK		nlnetw[NFQA_MARK, int32be]
+	NFQA_PAYLOAD		nlattr[NFQA_PAYLOAD, array[int8]]
+	NFQA_CT			nlnest[NFQA_CT, array[ct_nla_policy]]
+	NFQA_EXP		nlnest[NFQA_EXP, array[exp_nla_policy]]
+	NFQA_VLAN		nlnest[NFQA_VLAN, array[nfqa_vlan_policy]]
+] [varlen]
+
+nfqa_verdict_batch_policy [
+	NFQA_VERDICT_HDR	nlattr[NFQA_VERDICT_HDR, nfqnl_msg_verdict_hdr]
+	NFQA_MARK		nlnetw[NFQA_MARK, int32be]
+] [varlen]
+
+nfqa_vlan_policy [
+	NFQA_VLAN_TCI	nlnetw[NFQA_VLAN_TCI, int16be]
+	NFQA_VLAN_PROTO	nlnetw[NFQA_VLAN_PROTO, flags[vlan_proto, int16be]]
+] [varlen]
+
+nfqa_cfg_policy [
+	NFQA_CFG_CMD		nlattr[NFQA_CFG_CMD, nfqnl_msg_config_cmd]
+	NFQA_CFG_PARAMS		nlattr[NFQA_CFG_PARAMS, nfqnl_msg_config_params]
+	NFQA_CFG_QUEUE_MAXLEN	nlnetw[NFQA_CFG_QUEUE_MAXLEN, int32be]
+	NFQA_CFG_MASK		nlnetw[NFQA_CFG_MASK, flags[nfqa_cfg_flags, int32be]]
+	NFQA_CFG_FLAGS		nlnetw[NFQA_CFG_FLAGS, flags[nfqa_cfg_flags, int32be]]
+] [varlen]
+
+nfqnl_msg_verdict_hdr {
+	verdict	flags[nf_verdicts, int32be]
+	id	int32be
+}
+
+nfqnl_msg_config_cmd {
+	command	flags[nfqnl_msg_config_cmds, int8]
+	_pad	const[0, int8]
+	pf	flags[socket_domain, int16be]
+}
+
+nfqnl_msg_config_params {
+	copy_range	int32be
+	copy_mode	flags[nfqnl_config_mode, int8]
+} [packed]
+
+nfqa_cfg_flags = NFQA_CFG_F_FAIL_OPEN, NFQA_CFG_F_CONNTRACK, NFQA_CFG_F_GSO, NFQA_CFG_F_UID_GID, NFQA_CFG_F_SECCTX, NFQA_CFG_F_MAX
+nfqnl_msg_config_cmds = NFQNL_CFG_CMD_NONE, NFQNL_CFG_CMD_BIND, NFQNL_CFG_CMD_UNBIND, NFQNL_CFG_CMD_PF_BIND, NFQNL_CFG_CMD_PF_UNBIND
+nfqnl_config_mode = NFQNL_COPY_NONE, NFQNL_COPY_META, NFQNL_COPY_PACKET

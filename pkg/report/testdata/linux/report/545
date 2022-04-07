@@ -1,0 +1,33 @@
+# TOOD: should be in __virt_to_phys, or somewhere down the stack, but there is no stack and no PC symbol.
+TITLE: WARNING in ret_from_exception
+
+[   75.189488][ T4090] ------------[ cut here ]------------
+[   75.190329][ T4090] virt_to_phys used for non-linear address: 0000000022abe3fe (0xffffffd01514e038)
+[   75.192486][ T4090] WARNING: CPU: 1 PID: 4090 at arch/riscv/mm/physaddr.c:16 __virt_to_phys+0x44/0x5c
+[   75.193022][ T4090] Modules linked in:
+[   75.193507][ T4090] CPU: 1 PID: 4090 Comm: dhcpcd Not tainted 5.10.2 #18
+[   75.193884][ T4090] epc: ffffffe000207654 ra : ffffffe000207654 sp : ffffffe00b777cd0
+[   75.194301][ T4090]  gp : ffffffe003833fd0 tp : ffffffe00d271580 t0 : ffffffe00b777a18
+[   75.195975][ T4090]  t1 : 0000000000000003 t2 : 0000000000000000 s0 : ffffffe00b777cf0
+[   75.197705][ T4090]  s1 : ffffffd01514e038 a0 : 000000000000004f a1 : ffffffe002d76078
+[   75.199321][ T4090]  a2 : ffffffe07ed74eb8 a3 : 0000000000000000 a4 : 8b259e98d0dda300
+[   75.201422][ T4090]  a5 : 8b259e98d0dda300 a6 : 0000000000000002 a7 : ffffffe00026c9e2
+[   75.202998][ T4090]  s2 : 0000000000000040 s3 : 0000000000000000 s4 : ffffffd01514e078
+[   75.204827][ T4090]  s5 : 0000003fffd885e0 s6 : 0000000000000000 s7 : ffffffe00383c0d0
+[   75.206432][ T4090]  s8 : ffffffe00db6b000 s9 : 000000000004e000 s10: 000000000004d648
+[   75.208186][ T4090]  s11: ffffffffffffffff t3 : ffffffe00384c4e8 t4 : ffffffe00383c3d4
+[   75.209939][ T4090]  t5 : 0000000000000108 t6 : ffffffe00b777a08
+[   75.212122][ T4090] status: 0000000000000120 badaddr: 0000000000000000 cause: 0000000000000003
+[   75.213908][ T4090] Kernel panic - not syncing: panic_on_warn set ...
+[   75.215283][ T4090] CPU: 1 PID: 4090 Comm: dhcpcd Not tainted 5.10.2 #18
+[   75.216759][ T4090] Call Trace:
+[   75.217460][ T4090] [<ffffffe00020383c>] walk_stackframe+0x0/0xaa
+[   75.218679][ T4090] [<ffffffe002141ec4>] show_stack+0x32/0x3e
+[   75.219851][ T4090] [<ffffffe002150a3a>] dump_stack+0x8e/0xb4
+[   75.221087][ T4090] [<ffffffe0021420e2>] panic+0x10c/0x2e0
+[   75.221402][ T4090] [<ffffffe00020fd1e>] __warn+0x88/0x108
+[   75.221704][ T4090] [<ffffffe000ccca62>] report_bug+0x84/0x102
+[   75.222008][ T4090] [<ffffffe000203766>] do_trap_break+0x56/0xa2
+[   75.222332][ T4090] [<ffffffe000201bae>] ret_from_exception+0x0/0x10
+[   75.223024][ T4090] SMP: stopping secondary CPUs
+[   75.225137][ T4090] Rebooting in 86400 seconds..

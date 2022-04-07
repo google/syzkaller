@@ -1,0 +1,4 @@
+r0 = openat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x42, 0x1ff)
+write(r0, &AUTO="01010101", 0x4)
+read(r0, &AUTO=""/4, 0x4)
+close(r0)

@@ -1,0 +1,18 @@
+no-such-struct: trusty_gatekeeper_error
+no-such-struct: trusty_gatekeeper_retry
+no-such-struct: trusty_password_handle
+no-such-struct: trusty_km_secure_msg
+no-such-struct: trusty_km_msg_t
+no-such-struct: trusty_km_supported_digests
+no-such-struct: trusty_km_configure
+compiler: len target params refer to an array with variable-size elements (do you mean bytesize?)
+compiler: len target elements refer to an array with variable-size elements (do you mean bytesize?)
+no-such-struct: trusty_authorization_elem_t
+no-such-struct: trusty_authorization_bytes
+no-such-struct: trusty_avb_msg_t
+no-such-struct: trusty_avb_rollback_index
+no-such-struct: trusty_storage_msg
+no-such-struct: trusty_storage_file_close_req
+no-such-struct: trusty_storage_file_read_req
+no-such-struct: trusty_storage_file_get_size_req
+no-such-struct: trusty_storage_file_set_size_req

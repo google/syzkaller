@@ -1,0 +1,44 @@
+TITLE: KMSAN: uninit-value in sctp_epaddr_lookup_transport
+ALT: bad-access in sctp_epaddr_lookup_transport
+ALT: KMSAN origin in sctp_rcv
+
+[  701.063465][    C1] =====================================================
+[  701.070594][    C1] BUG: KMSAN: uninit-value in sctp_epaddr_lookup_transport+0x9bc/0xd10
+[  701.078973][    C1]  sctp_epaddr_lookup_transport+0x9bc/0xd10
+[  701.084902][    C1]  sctp_endpoint_bh_rcv+0x4ca/0x1010
+[  701.090306][    C1]  sctp_inq_push+0x31c/0x440
+[  701.094919][    C1]  sctp_rcv+0x408d/0x4260
+[  701.099280][    C1]  sctp4_rcv+0x60/0x80
+[  701.103374][    C1]  ip_protocol_deliver_rcu+0x752/0x10a0
+[  701.108991][    C1]  ip_local_deliver+0x584/0x8c0
+[  701.113873][    C1]  ip_rcv+0x5a5/0x830
+[  701.117879][    C1]  __netif_receive_skb+0x1ec/0x630
+[  701.123065][    C1]  process_backlog+0x54b/0xc10
+[  701.127860][    C1]  __napi_poll+0x14c/0xc00
+[  701.132303][    C1]  net_rx_action+0x7e2/0x1820
+[  701.137009][    C1]  __do_softirq+0x1ee/0x7c5
+[  701.141545][    C1]  run_ksoftirqd+0x33/0x50
+[  701.146054][    C1]  smpboot_thread_fn+0x606/0xbd0
+[  701.151058][    C1]  kthread+0x721/0x850
+[  701.155151][    C1]  ret_from_fork+0x1f/0x30
+[  701.159603][    C1] 
+[  701.161925][    C1] Uninit was stored to memory at:
+[  701.167016][    C1]  sctp_init_addrs+0x90/0xf0
+[  701.171641][    C1]  sctp_rcv+0x38c5/0x4260
+[  701.175993][    C1]  sctp4_rcv+0x60/0x80
+[  701.180088][    C1]  ip_protocol_deliver_rcu+0x752/0x10a0
+[  701.185668][    C1]  ip_local_deliver+0x584/0x8c0
+[  701.190546][    C1]  ip_rcv+0x5a5/0x830
+[  701.194557][    C1]  __netif_receive_skb+0x1ec/0x630
+[  701.199705][    C1]  process_backlog+0x54b/0xc10
+[  701.204499][    C1]  __napi_poll+0x14c/0xc00
+[  701.208948][    C1]  net_rx_action+0x7e2/0x1820
+[  701.213654][    C1]  __do_softirq+0x1ee/0x7c5
+[  701.218187][    C1] 
+[  701.220510][    C1] Local variable src created at:
+[  701.225443][    C1]  sctp_rcv+0x55/0x4260
+[  701.229619][    C1]  sctp4_rcv+0x60/0x80
+[  701.233712][    C1] 
+[  701.236035][    C1] CPU: 1 PID: 18 Comm: ksoftirqd/1 Not tainted 5.16.0-rc5-syzkaller #0
+[  701.244300][    C1] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  701.254363][    C1] =====================================================

@@ -1,0 +1,9 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+config:
+  - KFENCE
+  - KFENCE_STATIC_KEYS
+  - KFENCE_SAMPLE_INTERVAL: 100
+  - KFENCE_NUM_OBJECTS: 255
+  - KFENCE_STRESS_TEST_FAULTS: 0

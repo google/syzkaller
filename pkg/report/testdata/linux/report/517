@@ -1,0 +1,28 @@
+TITLE: general protection fault in timerqueue_del
+ALT: bad-access in timerqueue_del
+
+[  110.420358][    C0] general protection fault: 0000 [#1] PREEMPT SMP KASAN
+[  110.427307][    C0] CPU: 0 PID: 12754 Comm: syz-executor.2 Not tainted 5.3.0-rc2 #81
+[  110.435198][    C0] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  110.445272][    C0] RIP: 0010:rb_erase+0x2ec/0x1c10
+[  110.450304][    C0] Code: 84 f3 01 00 00 49 8d 7d 08 48 89 f8 48 c1 e8 03 80 3c 18 00 0f 85 01 0f 00 00 4d 8b 75 08 4d 85 f6 74 1b 4c 89 f0 48 c1 e8 03 <80> 3c 18 00 0f 85 d6 0c 00 00 41 f6 06 01 0f 84 41 09 00 00 4d 85
+[  110.470613][    C0] RSP: 0018:ffff8880ae809d50 EFLAGS: 00010003
+[  110.476687][    C0] RAX: 063f66976b9d1f68 RBX: dffffc0000000000 RCX: 1ffff11015d04dc9
+[  110.484660][    C0] RDX: ffffed1015d04dc8 RSI: ffff8880ae826e40 RDI: ffffffff862ba6fd
+[  110.492656][    C0] RBP: ffff8880ae809d98 R08: ffff8880ae8276c8 R09: ffff88807a73fac8
+[  110.500632][    C0] R10: fffffbfff134adef R11: ffffffff89a56f7f R12: ffff8880ae8276c0
+[  110.508605][    C0] R13: ffffffff862ba6f5 R14: 31fb34bb5ce8fb46 R15: f981e8c689c389ff
+[  110.517298][    C0] FS:  000055555711f940(0000) GS:ffff8880ae800000(0000) knlGS:0000000000000000
+[  110.526235][    C0] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  110.532823][    C0] CR2: 00007ffe788eeebc CR3: 000000009b351000 CR4: 00000000001406f0
+[  110.540807][    C0] Call Trace:
+[  110.544089][    C0]  <IRQ>
+[  110.557020][    C0]  timerqueue_del+0x86/0x150
+[  110.561625][    C0]  __remove_hrtimer+0xa8/0x1c0
+[  110.566394][    C0]  __hrtimer_run_queues+0x2b8/0xe40
+[  110.588950][    C0]  hrtimer_interrupt+0x314/0x770
+[  110.593901][    C0]  smp_apic_timer_interrupt+0x160/0x610
+[  110.599447][    C0]  apic_timer_interrupt+0xf/0x20
+[  110.604385][    C0]  </IRQ>
+[  110.607326][    C0] Modules linked in:
+[  110.611244][    C0] ---[ end trace 24350ae9a4f9ba9e ]---

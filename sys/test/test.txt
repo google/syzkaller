@@ -1,0 +1,864 @@
+# Copyright 2015 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Syscalls used in syzkaller tests.
+
+syz_execute_func(text ptr[in, text[target]])
+
+test()
+
+# Integer types.
+
+test$int(a0 intptr, a1 int8, a2 int16, a3 int32, a4 int64)
+
+# String types.
+
+test$str0(a ptr[in, string])
+test$str1(a ptr[in, string["foo"]])
+test$str2(a ptr[in, string[fixed_strings]])
+test$blob0(a ptr[in, array[int8]])
+
+fixed_strings = "foo", "bar"
+
+# Opt arguments
+
+test$opt0(a0 intptr[opt])
+test$opt1(a0 ptr[in, intptr, opt])
+test$opt2(a0 vma[opt])
+test$opt3(a0 proc[100, 4, opt])
+
+# Alignment and padding
+
+test$align0(a0 ptr[in, syz_align0])
+test$align1(a0 ptr[in, syz_align1])
+test$align2(a0 ptr[in, syz_align2])
+test$align3(a0 ptr[in, syz_align3])
+test$align4(a0 ptr[in, syz_align4])
+test$align5(a0 ptr[in, syz_align5])
+test$align6(a0 ptr[in, syz_align6])
+test$align7(a0 ptr[in, syz_align7])
+
+syz_align0 {
+	f0	int16
+	f1	int32
+	f2	int8
+	f3	int16
+	f4	int64
+}
+
+syz_align1 {
+	f0	int16
+	f1	int32
+	f2	int8
+	f3	int16
+	f4	int64
+} [packed]
+
+syz_align2_packed {
+	f0	array[int16, 1]
+} [packed]
+
+syz_align2_not_packed {
+	f0	array[int16, 1]
+}
+
+syz_align2 {
+	f0	int8
+	f1	syz_align2_packed
+	f2	syz_align2_not_packed
+}
+
+syz_align3_noalign {
+	f0	int8
+}
+
+syz_align3_align4 {
+	f0	int8
+} [align[4]]
+
+syz_align3 {
+	f0	int8
+	f1	syz_align3_noalign
+	f2	syz_align3_align4
+}
+
+syz_align4_internal {
+	f0	int8
+	f1	int16
+} [packed, align[4]]
+
+syz_align4 {
+	f0	syz_align4_internal
+	f1	int8
+}
+
+syz_align5_internal {
+	f0	int64
+	f1	array[int16, 0:3]
+}
+
+syz_align5 {
+	f0	syz_align5_internal
+	f1	syz_align5_internal
+	f2	int8
+} [packed]
+
+syz_align6 {
+	f0	int8
+	f1	array[int32]
+}
+
+syz_align7 {
+	f0	syz_align8
+	f1	int8
+}
+
+syz_align8 {
+	f0	int8:1
+	f1	int8:1
+	f2	int8:1
+	f3	int16:1
+	f4	int16:1
+	f5	int16:1
+} [packed, align[8]]
+
+# Structs
+
+test$struct(a0 ptr[in, syz_struct0])
+
+syz_struct0 {
+	f0	int64
+	f1	syz_struct1
+}
+
+syz_struct1 {
+	f0	int8
+}
+
+# Unions
+
+test$union0(a0 ptr[in, syz_union0_struct])
+test$union1(a0 ptr[in, syz_union1_struct])
+test$union2(a0 ptr[in, syz_union2_struct])
+
+syz_union0 [
+	f0	int64
+	f1	array[int64, 10]
+	f2	int8
+]
+
+syz_union0_struct {
+	f	int64
+	u	syz_union0
+}
+
+syz_union1 [
+	f0	int64
+	f1	int32
+]
+
+syz_union1_struct {
+	f0	syz_union1
+	f1	int8
+} [packed]
+
+syz_union2 [
+	f0	int64
+	f1	int32
+] [varlen]
+
+syz_union2_struct {
+	f0	syz_union2
+	f1	int8
+} [packed]
+
+syz_union3 [
+	f0	int32
+]
+
+union_arg [
+	f1	int8
+	f2	int64
+	f3	ptr[in, int32]
+	f4	fd
+	f5	const[1, intptr]
+	f6	flags[syz_length_flags, int32]
+	f7	proc[0, 1, int16]
+]
+
+test$syz_union3(a0 ptr[in, syz_union3])
+test$syz_union4(a0 union_arg)
+
+# Arrays
+
+test$array0(a0 ptr[in, syz_array_struct])
+test$array1(a0 ptr[in, syz_array_trailing])
+test$array2(a0 ptr[in, syz_array_blob])
+
+# Struct with a variable-length array or variable-length unions.
+syz_array_struct {
+	f0	int8
+	f1	array[syz_array_union, 1:2]
+	f2	int64
+} [packed]
+
+syz_array_union [
+	f0	int16
+	f1	int64
+] [varlen]
+
+syz_array_trailing {
+	f0	int8
+	f1	array[int8, 4:8]
+}
+
+syz_array_blob {
+	f0	int16
+	f1	array[int8, 16]
+	f2	int16
+}
+
+# Length
+
+test$length0(a0 ptr[in, syz_length_int_struct])
+test$length1(a0 ptr[in, syz_length_const_struct])
+test$length2(a0 ptr[in, syz_length_flags_struct])
+test$length3(a0 ptr[in, syz_length_len_struct])
+test$length4(a0 ptr[in, syz_length_len2_struct])
+test$length5(a0 ptr[in, syz_length_parent_struct])
+test$length6(a0 ptr[in, syz_length_array_struct])
+test$length7(a0 ptr[in, syz_length_array2_struct])
+test$length8(a0 ptr[in, syz_length_complex_struct])
+test$length9(a0 ptr[in, syz_length_vma_struct])
+
+test$length10(a0 vma, a1 len[a0], a2 bytesize[a0], a3 bytesize2[a0], a4 bytesize4[a0])
+test$length11(a0 ptr[in, syz_length_large_struct], a1 len[a0])
+test$length12(a0 ptr[in, syz_length_large_struct, opt], a1 len[a0])
+test$length13(a0 ptr[inout, syz_length_large_struct], a1 ptr[inout, len[a0, int64]])
+test$length14(a0 ptr[inout, syz_length_large_struct], a1 ptr[inout, len[a0, int64], opt])
+test_length15(a0 int16, a1 len[a0])
+
+test$length16(a0 ptr[in, syz_length_bytesize_struct])
+test$length17(a0 ptr[in, syz_length_bytesize2_struct])
+test$length18(a0 ptr[in, syz_length_bytesize3_struct])
+test$length19(a0 ptr[in, syz_length_bf_struct])
+
+test$length20(a0 ptr[in, syz_length_parent2_struct])
+test$length21(a0 ptr[in, int64], a1 bitsize[a0])
+test$length22(a0 ptr[in, array[int8]], a1 bitsize[a0])
+
+syz_length_flags = 0, 1
+
+syz_length_int_struct {
+	f0	int16
+	f1	len[f0, int16]
+}
+
+syz_length_const_struct {
+	f0	const[0, int32]
+	f1	len[f0, int32]
+}
+
+syz_length_flags_struct {
+	f0	flags[syz_length_flags, int64]
+	f1	len[f0, int64]
+}
+
+syz_length_len_struct {
+	f0	int32
+	f1	len[f0, int16]
+	f2	len[f1, int16]
+}
+
+syz_length_len2_struct {
+	f0	len[f1, int16]
+	f1	len[f0, int16]
+}
+
+syz_length_parent_struct {
+	f0	int16
+	f1	len[parent, int16]
+}
+
+syz_length_array_struct {
+	f0	array[int16, 4]
+	f1	len[f0, int16]
+}
+
+syz_length_array2_struct {
+	f0	array[int16, 4]
+	f1	bytesize[f0, int16]
+}
+
+syz_length_complex_inner_struct {
+	f0	int8
+	f1	len[f0, int8]
+	f2	len[parent, int16]
+	f3	array[int32, 3]
+}
+
+syz_length_complex_struct {
+	f0	len[parent, int64]
+	f1	syz_length_complex_inner_struct
+	f2	array[syz_length_complex_inner_struct, 1]
+	f3	len[f1, int32]
+	f4	len[f2, int16]
+	f5	array[int16]
+}
+
+syz_length_vma_struct {
+	f0	vma
+	f1	len[f0, int64]
+}
+
+syz_length_large_struct {
+	f0	int64
+	f1	int64
+	f2	array[int32, 8]
+}
+
+syz_length_bytesize_struct {
+	f0	array[int64, 2]
+	f1	len[f0, int8]
+	f2	bytesize[f0, int8]
+	f3	bytesize2[f0, int8]
+	f4	bytesize4[f0, int8]
+	f5	bytesize8[f0, int8]
+}
+
+syz_length_bytesize2_struct {
+	f0	int64
+	f1	bytesize[f0, int8]
+	f2	bytesize2[f0, int8]
+	f3	bytesize4[f0, int8]
+	f4	bytesize8[f0, int8]
+}
+
+syz_length_bytesize3_struct {
+	f0	int32
+	f1	bytesize[parent, int8]
+	f2	bytesize2[parent, int8]
+	f3	bytesize4[parent, int8]
+	f4	bytesize8[parent, int8]
+}
+
+syz_length_bf_struct_inner {
+	f0	int32:10
+	f1	int32:10
+	f2	int32:10
+	f3	int32:32
+	f4	int32:16
+	f5	int32:16
+	f6	int32:10
+	f7	len[parent, int32]
+}
+
+syz_length_bf_struct {
+	f0	syz_length_bf_struct_inner
+	f1	len[f0, int8]
+	f2	bytesize[f0, int8]
+	f3	bytesize4[f0, int8]
+}
+
+syz_length_parent2_struct_inner_inner {
+	f1	len[parent, int8]
+	f2	len[syz_length_parent2_struct_inner_inner, int8]
+	f3	len[syz_length_parent2_struct_inner, int8]
+	f4	len[syz_length_parent2_struct, int8]
+}
+
+syz_length_parent2_struct_inner {
+	f0	syz_length_parent2_struct_inner_inner
+	f1	len[parent, int8]
+	f2	len[syz_length_parent2_struct_inner, int8]
+	f3	len[syz_length_parent2_struct, int8]
+}
+
+syz_length_parent2_struct {
+	f0	syz_length_parent2_struct_inner
+	f1	len[parent, int8]
+	f2	len[syz_length_parent2_struct, int8]
+}
+
+type len_templ1[DATA1, DATA2] {
+	data	DATA1
+	inner	len_temp2[DATA2]
+}
+
+type len_temp2[DATA] {
+	data	DATA
+	len	len[len_templ1, int8]
+}
+
+test$length23(a ptr[in, len_templ1[int8, int16]])
+
+type len_temp3[DATA] {
+	f1	DATA
+	f2	len_nontemp4
+}
+
+len_nontemp4 {
+	f1	len[len_temp3, int32]
+}
+
+len_nontemp5 {
+	f1	len_temp3[int8]
+	f2	len_temp3[int64]
+}
+
+len_unaligned {
+	f1	int32
+	f2	int8
+}
+
+explicitly_sized {
+	f1	int8
+} [size[42]]
+
+explicitly_sized_union [
+	f1	int8
+] [size[42]]
+
+static_filename {
+	f1	string[filename, 10]
+	f2	string[filename, 20]
+	f3	bytesize[f1, int8]
+	f4	bytesize[f2, int8]
+	f5	bytesize[parent, int8]
+}
+
+test$length24(a ptr[in, len_nontemp5])
+test$length25(a0 ptr[in, array[array[int8]]], a1 len[a0])
+test$length26(a ptr[in, len_unaligned], b bytesize[a])
+test$length27(a0 ptr[in, explicitly_sized], a1 len[a0])
+test$length28(a0 ptr[in, explicitly_sized_union], a1 len[a0])
+test$length29(a ptr[in, static_filename])
+
+len_expr1 {
+	f11	len_expr2
+	f12	bytesize[syscall:a2, int32]
+}
+
+len_expr2 {
+	f21	len_expr3
+	f22	len_expr4
+	f23	ptr[in, len_expr4]
+	f24	ptr[in, ptr[in, len_expr4]]
+	f25	len[f21:f31, int32]
+}
+
+len_expr3 {
+	f31	int16
+	f32	bytesize[len_expr2:f21, int32]
+	f33	bytesize[len_expr2:f22:f41, int32]
+	f34	bytesize[len_expr1:f11:f22:f42, int32]
+	f35	bytesize[len_expr2:f23:f43, int32]
+	f36	bytesize[len_expr2:f24:f44, int32]
+}
+
+len_expr4 {
+	f41	array[int8, 1]
+	f42	array[int8, 3]
+	f43	array[int8, 5]
+	f44	array[int8, 6]
+}
+
+test$length30(a0 ptr[in, len_expr1], a1 bytesize[a0:f11], a2 ptr[in, bytesize[a0:f11:f21, int32]], a3 bytesize[a0:f11:f21:f31])
+
+test$offsetof0(a0 ptr[in, offsetof0])
+
+offsetof0 {
+	f0	int32
+	f1	int8
+	f2	int16
+	f3	int8
+	f4	int64
+	f5	int32:5
+	f6	int32:10
+	f7	int64
+	o0	offsetof[f0, int32]
+	o1	offsetof[f1, int32]
+	o2	offsetof[f2, int32]
+	o3	offsetof[f3, int32]
+	o4	offsetof[f4, int32]
+	o5	offsetof[f5, int32]
+	o6	offsetof[f6, int32]
+	o7	offsetof[f7, int32]
+}
+
+# Big endian
+
+test$end0(a0 ptr[in, syz_end_int_struct])
+test$end1(a0 ptr[in, syz_end_var_struct])
+
+syz_end_flags = 0, 1
+
+syz_end_int_struct {
+	f0	int8
+	f1	int16be
+	f2	int32be
+	f3	int64be
+} [packed]
+
+syz_end_var_struct {
+	f0	len[parent, int16be]
+	f1	const[0x42, int32be]
+	f2	flags[syz_end_flags, int64be]
+} [packed]
+
+# Vma type
+
+test$vma0(v0 vma, l0 len[v0], v1 vma[5], l1 len[v1], v2 vma[7:9], l2 len[v2])
+
+# Text type
+
+test$text_x86_real(a0 ptr[in, text[x86_real]], a1 len[a0])
+test$text_x86_16(a0 ptr[in, text[x86_16]], a1 len[a0])
+test$text_x86_32(a0 ptr[in, text[x86_32]], a1 len[a0])
+test$text_x86_64(a0 ptr[in, text[x86_64]], a1 len[a0])
+
+# Regression tests
+
+test$regression0(a0 ptr[inout, syz_regression0_struct])
+
+syz_regression0_struct {
+	f0	buffer[out]
+}
+
+test$regression1(a1 ptr[in, array[syz_regression1_struct]])
+
+syz_regression1_struct {
+	f0	array[int8, 4]
+}
+
+test$regression2(a1 ptr[in, array[int32, 4]])
+
+excessive_fields {
+	f1	int8
+}
+
+type_confusion [
+	f1	int8
+]
+
+test_excessive_args1()
+test_excessive_args2(a1 int8)
+test$excessive_fields1(a1 ptr[in, excessive_fields])
+test$type_confusion1(a1 ptr[in, type_confusion])
+test$out_const(a1 ptr[out, const[1, int32]])
+
+# Bitfields
+
+syz_bf_flags = 0, 1, 2
+
+syz_bf_struct0 {
+	f0	flags[syz_bf_flags, int16:10]
+	f1	int64
+	f2	const[0x2, int16:5]
+	f3	int16:6
+	f4	const[0x42, int32:15]
+	f5	len[parent, int16:11]
+	f6	len[parent, int16be:11]
+	f7	int8
+}
+
+syz_bf_struct1_internal {
+	f0	int32:10
+	f1	int32:10
+	f2	int32:10
+}
+
+syz_bf_struct1 {
+	f0	syz_bf_struct1_internal
+	f1	int8
+}
+
+syz_bf_struct2 {
+	f0	int64:4
+	f1	int64:8
+	f2	int64:12
+	f3	int64:20
+	f4	int64:16
+}
+
+syz_bf_struct3 {
+	f0	int64be:4
+	f1	int64be:8
+	f2	int64be:12
+	f3	int64be:20
+	f4	int64be:16
+}
+
+test$bf0(a0 ptr[in, syz_bf_struct0])
+test$bf1(a0 ptr[in, syz_bf_struct1])
+
+# Checksums
+
+test$csum_encode(a0 ptr[in, syz_csum_encode])
+test$csum_ipv4(a0 ptr[in, syz_csum_ipv4_header])
+test$csum_ipv4_tcp(a0 ptr[in, syz_csum_ipv4_tcp_packet])
+test$csum_ipv6_tcp(a0 ptr[in, syz_csum_ipv6_tcp_packet])
+test$csum_ipv4_udp(a0 ptr[in, syz_csum_ipv4_udp_packet])
+test$csum_ipv6_udp(a0 ptr[in, syz_csum_ipv6_udp_packet])
+test$csum_ipv6_icmp(a0 ptr[in, syz_csum_ipv6_icmp_packet])
+
+syz_csum_encode {
+	f0	int16
+	f1	int16be
+	f2	array[int32, 0:4]
+	f3	int8:4
+	f4	int8:4
+	f5	array[int8, 4]
+} [packed]
+
+syz_csum_ipv4_header {
+	csum	csum[parent, inet, int16]
+	src_ip	int32be
+	dst_ip	int32be
+} [packed]
+
+syz_csum_tcp_header {
+	csum	csum[syz_csum_tcp_packet, pseudo, IPPROTO_TCP, int16]
+} [packed]
+
+syz_csum_tcp_packet {
+	header	syz_csum_tcp_header
+	payload	array[int8]
+} [packed]
+
+syz_csum_ipv4_tcp_packet {
+	header	syz_csum_ipv4_header
+	payload	syz_csum_tcp_packet
+} [packed]
+
+syz_csum_ipv6_header {
+	src_ip	array[int8, 16]
+	dst_ip	array[int8, 16]
+} [packed]
+
+syz_csum_ipv6_tcp_packet {
+	header	syz_csum_ipv6_header
+	payload	syz_csum_tcp_packet
+} [packed]
+
+syz_csum_udp_packet {
+	csum	csum[parent, pseudo, IPPROTO_UDP, int16]
+	payload	array[int8]
+} [packed]
+
+syz_csum_ipv4_udp_packet {
+	header	syz_csum_ipv4_header
+	payload	syz_csum_udp_packet
+} [packed]
+
+syz_csum_ipv6_udp_packet {
+	header	syz_csum_ipv6_header
+	payload	syz_csum_udp_packet
+} [packed]
+
+syz_csum_icmp_packet {
+	csum	csum[parent, pseudo, IPPROTO_ICMPV6, int16]
+	payload	array[int8]
+} [packed]
+
+syz_csum_ipv6_icmp_packet {
+	header	syz_csum_ipv6_header
+	payload	syz_csum_icmp_packet
+} [packed]
+
+# Recursion
+
+syz_recur_0 {
+	a0	ptr[in, syz_recur_0, opt]
+}
+
+syz_recur_1 {
+	a0	ptr[in, syz_recur_1, opt]
+	a1	ptr[in, syz_recur_2, opt]
+}
+
+syz_recur_2_0 {
+	a0	ptr[in, syz_recur_2_0, opt]
+	a1	ptr[in, syz_recur_2_0, opt]
+	a2	ptr[in, syz_recur_2_0, opt]
+	a3	ptr[in, syz_recur_2_0, opt]
+}
+
+syz_recur_2 {
+	a0	ptr[in, syz_recur_0, opt]
+	a1	ptr[in, syz_recur_1, opt]
+	a2	ptr[in, syz_recur_2_0, opt]
+	a3	ptr[in, syz_recur_2_0, opt]
+	a4	ptr[in, syz_recur_2, opt]
+	a5	ptr[in, syz_recur_2, opt]
+}
+
+test$recur0(a0 ptr[inout, syz_recur_0])
+test$recur1(a0 ptr[inout, syz_recur_1])
+test$recur2(a0 ptr[inout, syz_recur_2])
+
+# Resources.
+
+resource fd[int32]: 0xffffffffffffffff, 999
+resource syz_res[int32]: 0xffff
+
+test$res0() syz_res
+test$res1(a0 syz_res)
+test$res2() fd
+
+# ONLY_32BITS_CONST const is not present on all arches.
+# Ensure that it does not break build.
+
+resource syz_missing_const_res[int32]: ONLY_32BITS_CONST
+
+test$missing_resource() syz_missing_const_res
+test$missing_struct(a ptr[in, syz_use_missing])
+
+syz_missing_const_struct {
+	a0	const[ONLY_32BITS_CONST, int32]
+}
+
+syz_use_missing {
+	a0	syz_missing_const_res
+	a1	syz_missing_const_struct
+}
+
+# Hints tests.
+
+test$hint_int(a0 ptr[in, hint_ints])
+test$hint_data(a0 ptr[in, array[int8]])
+
+hint_ints {
+	int1_0	int8
+	int2_0	int16
+	int4_0	int32
+	int8_0	int64
+	int2_12	int16:12
+}
+
+# Mutation tests.
+
+mutate0()
+mutate1()
+mutate2()
+mutate3(vec ptr[in, array[int32[0:1]]], vlen len[vec])
+mutate4(data ptr[in, array[int8]], size bytesize[data])
+mutate5(filename ptr[in, filename], flags flags[open_flags]) fd
+mutate6(fd fd, data ptr[in, array[int8]], size bytesize[data])
+mutate7(a0 ptr[in, string], a1 len[a0])
+mutate8(a0 proc[100, 4, opt])
+
+# Test for arguments mutation
+mutate_integer(b1 bool8, b2 bool8, b3 bool8, b4 bool8, b5 bool8, b6 bool8, b7 bool8, b8 bool8, i9 int64)
+mutate_integer2(b1 bool64, i1 int64, i2 int32, i3 int16[0x0:0x8], i4 int8[0x0:0x8])
+mutate_flags(filename ptr[in, filename], i1 int64, b1 bool16, flags flags[bitmask_flags])
+mutate_flags2(filename ptr[in, filename], flags flags[bitmask_flags2])
+mutate_flags3(filename ptr[in, filename], flags flags[open_flags2])
+mutate_array(i1 int64, i2 int64[0x0:0x1fffffff], vec ptr[in, array[int32[0:1]]])
+mutate_array2(vec ptr[in, array[syz_struct1]])
+mutate_union(p ptr[in, syz_union0])
+mutate_buffer(p buffer[out])
+mutate_rangedbuffer(p ptr[out, array[int8, 5:10]])
+
+open_flags = 0xabababab, 0xcdcdcdcd
+open_flags2 = 0xaaaaaaaa, 0xaaaabbbb, 0xbbbbbbbb, 0xbbbbcccc, 0xcccccccc, 0xccccdddd, 0xdddddddd, 0xddddeeee, 0xeeeeeeee, 0xeeeeffff, 0xffffffff
+
+bitmask_flags = 0x1, 0x8, 0x10
+bitmask_flags2 = 0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80
+
+# Minimization tests.
+
+minimize$0(a0 proc[10, 2], a1 proc[10, 2, opt])
+
+# Serialization tests.
+
+serialize0(a ptr[in, serialize0_struct])
+serialize1(a ptr[out, array[int8]], b len[a])
+
+serialize0_struct {
+	a	string[serialize_strings, 10]
+	b	string[serialize_strings, 5]
+}
+
+serialize_strings = "aaa", "bbb", "hash", "HI"
+
+# Unsupported syscalls due to resources.
+
+resource unsupported[int32]
+
+unsupported$0(a unsupported) unsupported
+unsupported$1(a unsupported) unsupported
+
+foo$arch_specific_const_as_array_size(a ptr[in, array[int8, ARCH_64_SPECIFIC_CONST]])
+
+# Fallback coverage.
+
+fallback$0() fd
+fallback$1(a fd)
+breaks_returns() (breaks_returns)
+
+# AUTO
+
+test$auto0(a const[0x42], b ptr[in, auto_struct0], c len[b], d int32)
+
+auto_struct0 {
+	f0	len[parent, int32]
+	f1	const[0x43, int32]
+	f2	int32
+}
+
+# Attributes
+
+resource disabled_resource[int32]
+
+disabled0() (disabled)
+disabled1() disabled_resource (disabled)
+disabled2(a disabled_resource) (disabled)
+
+# Struct/union field direction attribute (overrides ptr dir)
+
+resource r100[int32]
+resource r101[int32]
+resource r102[int32]
+resource r103[int32]
+resource r104[int32]
+
+test$r100_consumer(a r100)
+test$r101_consumer(a r101)
+test$r102_consumer_recur(a ptr[out, syz_r102_in_recur0])
+test$r103_consumer(a r103)
+test$r104_producer(a ptr[out, r104])
+test$r100_producer(a ptr[in, syz_r100_out])
+test$r101_producer_recur(a ptr[in, syz_r101_out_recur0])
+test$r102_producer(a ptr[out, r102])
+test$r103_producer_r104_consumer(a ptr[inout, syz_r103_r104_u], b ptr[inout, syz_r103_r104_s])
+
+syz_r100_out {
+	f0	r100	(out)
+}
+
+syz_r101_out_recur0 {
+	f0	ptr[in, syz_r101_out_recur1]
+}
+
+syz_r101_out_recur1 {
+	f0	r101	(out)
+}
+
+syz_r102_in_recur0 {
+	f0	ptr[out, syz_r102_in_recur1]
+}
+
+syz_r102_in_recur1 {
+	f0	r102	(in)
+}
+
+syz_r103_r104_u {
+	opt0	r103	(out)
+	opt1	r104	(in)
+}
+
+syz_r103_r104_s {
+	opt0	r103	(out)
+	opt1	r104	(in)
+}

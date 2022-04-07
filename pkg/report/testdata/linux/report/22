@@ -1,0 +1,5 @@
+TITLE: WARNING in corrupted
+CORRUPTED: Y
+
+[   50.583499] WARNING: CPU: 2 PID: 2636 at ipc/shm.c:162 shm_open.isra.5.part.6+0x74/0x80
+[   50.583499] Modules linked in: 

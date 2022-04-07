@@ -1,0 +1,56 @@
+FILE: sound/core/oss/mulaw.c
+
+INFO: rcu_sched detected stalls on CPUs/tasks:
+        (detected by 0, t=125002 jiffies, g=15654, c=15653, q=133)
+All QSes seen, last rcu_sched kthread activity 125002 (4294863411-4294738409), jiffies_till_next_fqs=3, root ->qsmask 0x0
+syz-executor1   R  running task    24936 11943   3739 0x0000000c
+Call Trace:
+ <IRQ>
+ sched_show_task+0x4a3/0x5e0 kernel/sched/core.c:5198
+ print_other_cpu_stall+0x996/0x1090 kernel/rcu/tree.c:1564
+ check_cpu_stall.isra.61+0x6e6/0x15b0 kernel/rcu/tree.c:1682
+ __rcu_pending kernel/rcu/tree.c:3440 [inline]
+ rcu_pending kernel/rcu/tree.c:3502 [inline]
+ rcu_check_callbacks+0x256/0xd00 kernel/rcu/tree.c:2842
+ update_process_times+0x30/0x60 kernel/time/timer.c:1628
+ tick_sched_handle+0x85/0x160 kernel/time/tick-sched.c:162
+ tick_sched_timer+0x42/0x120 kernel/time/tick-sched.c:1194
+ __run_hrtimer kernel/time/hrtimer.c:1211 [inline]
+ __hrtimer_run_queues+0x358/0xe20 kernel/time/hrtimer.c:1275
+ hrtimer_interrupt+0x1c2/0x5e0 kernel/time/hrtimer.c:1309
+ local_apic_timer_interrupt arch/x86/kernel/apic/apic.c:1025 [inline]
+ smp_apic_timer_interrupt+0x14a/0x700 arch/x86/kernel/apic/apic.c:1050
+ apic_timer_interrupt+0xa9/0xb0 arch/x86/entry/entry_64.S:920
+ </IRQ>
+RIP: 0010:kasan_mem_to_shadow include/linux/kasan.h:30 [inline]
+RIP: 0010:memory_is_poisoned_n mm/kasan/kasan.c:210 [inline]
+RIP: 0010:memory_is_poisoned mm/kasan/kasan.c:241 [inline]
+RIP: 0010:check_memory_region_inline mm/kasan/kasan.c:257 [inline]
+RIP: 0010:check_memory_region+0x38/0x190 mm/kasan/kasan.c:267
+RSP: 0000:ffff8801bd2ff868 EFLAGS: 00000212 ORIG_RAX: ffffffffffffff11
+RAX: ffff7fffffffffff RBX: ffffc9000160020b RCX: ffffffff841fceaf
+RDX: 0000000000000001 RSI: 0000000000000002 RDI: ffffc9000160020a
+RBP: ffff8801bd2ff878 R08: ffffc9000160020a R09: dffffc0000000000
+R10: 0000000000000001 R11: ffffed0037a5ff2e R12: ffffc9000160020a
+R13: ffff8801bd2ff970 R14: dffffc0000000000 R15: ffffc9000160020a
+ memcpy+0x37/0x50 mm/kasan/kasan.c:303
+ memcpy include/linux/string.h:344 [inline]
+ cvt_s16_to_native sound/core/oss/mulaw.c:164 [inline]
+ mulaw_decode+0x52f/0x770 sound/core/oss/mulaw.c:195
+ mulaw_transfer+0x222/0x270 sound/core/oss/mulaw.c:273
+ snd_pcm_plug_write_transfer+0x22d/0x420 sound/core/oss/pcm_plugin.c:611
+ snd_pcm_oss_write2+0x260/0x420 sound/core/oss/pcm_oss.c:1311
+ snd_pcm_oss_write1 sound/core/oss/pcm_oss.c:1372 [inline]
+ snd_pcm_oss_write+0x5fe/0x830 sound/core/oss/pcm_oss.c:2646
+ __vfs_write+0xef/0x970 fs/read_write.c:480
+ vfs_write+0x189/0x510 fs/read_write.c:544
+ SYSC_write fs/read_write.c:589 [inline]
+ SyS_write+0xef/0x220 fs/read_write.c:581
+ entry_SYSCALL_64_fastpath+0x23/0x9a
+RIP: 0033:0x452ac9
+RSP: 002b:00007fa354a13c58 EFLAGS: 00000212 ORIG_RAX: 0000000000000001
+RAX: ffffffffffffffda RBX: cccccccccccccccd RCX: 0000000000452ac9
+RDX: 00000000fffffeb2 RSI: 0000000020083fc6 RDI: 0000000000000014
+RBP: 00000000000005b5 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000212 R12: 00000000006f6998
+R13: 00000000ffffffff R14: 00007fa354a146d4 R15: 0000000000000000

@@ -1,0 +1,88 @@
+TITLE: WARNING: kmalloc bug in relay_open_buf
+
+syzkaller login: [   50.946624] WARNING: CPU: 0 PID: 3081 at mm/slab_common.c:971 kmalloc_slab+0x5d/0x70
+[   50.947754] Kernel panic - not syncing: panic_on_warn set ...
+[   50.947754] 
+[   50.948737] CPU: 0 PID: 3081 Comm: syzkaller701757 Not tainted 4.15.0-rc1+ #205
+[   50.949713] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   50.950930] Call Trace:
+[   50.951287]  dump_stack+0x194/0x257
+[   50.951806]  ? arch_local_irq_restore+0x53/0x53
+[   50.952433]  ? vsnprintf+0x1ed/0x1900
+[   50.952948]  panic+0x1e4/0x41c
+[   50.953380]  ? refcount_error_report+0x214/0x214
+[   50.954015]  ? show_regs_print_info+0x65/0x65
+[   50.954619]  ? __warn+0x1c1/0x200
+[   50.955090]  ? kmalloc_slab+0x5d/0x70
+[   50.955599]  __warn+0x1dc/0x200
+[   50.956044]  ? kmalloc_slab+0x5d/0x70
+[   50.956559]  report_bug+0x211/0x2d0
+[   50.957054]  fixup_bug.part.11+0x37/0x80
+[   50.957598]  do_error_trap+0x2d7/0x3e0
+[   50.958118]  ? entry_SYSCALL_64_fastpath+0x1f/0x96
+[   50.958777]  ? find_held_lock+0x39/0x1d0
+[   50.959322]  ? math_error+0x400/0x400
+[   50.959832]  ? check_noncircular+0x20/0x20
+[   50.960399]  ? print_usage_bug+0x3f0/0x3f0
+[   50.960973]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[   50.961622]  do_invalid_op+0x1b/0x20
+[   50.962123]  invalid_op+0x18/0x20
+[   50.962588] RIP: 0010:kmalloc_slab+0x5d/0x70
+[   50.963174] RSP: 0018:ffff8801cbe4f678 EFLAGS: 00010246
+[   50.963884] RAX: 0000000000000000 RBX: ffff8801cbf5ab40 RCX: ffffffff8171b467
+[   50.964838] RDX: 1ffff1003981c8ba RSI: 0000000000000000 RDI: 0000000007b81000
+[   50.965793] RBP: ffff8801cbe4f678 R08: 1ffff100397c9e43 R09: 0000000000000000
+[   50.966762] R10: 0000000000000000 R11: 0000000000000000 R12: ffff8801cc0e45d0
+[   50.974002] R13: 0000000000000000 R14: 00000000014000c0 R15: ffffffff85be9ae0
+[   50.981252]  ? relay_open_buf.part.10+0x97/0x9b0
+[   50.985980]  ? rcu_read_lock_sched_held+0x108/0x120
+[   50.990962]  __kmalloc+0x25/0x760
+[   50.994378]  ? kmem_cache_alloc_trace+0x459/0x750
+[   50.999189]  ? relay_open_buf.part.10+0xc8/0x9b0
+[   51.003916]  relay_open_buf.part.10+0xc8/0x9b0
+[   51.008467]  ? find_next_bit+0x27/0x30
+[   51.012327]  relay_open+0x57a/0xa40
+[   51.015928]  ? relay_open_buf.part.10+0x9b0/0x9b0
+[   51.020740]  ? __debugfs_create_file+0x2cf/0x3d0
+[   51.025466]  ? debugfs_create_file+0x57/0x70
+[   51.029847]  do_blk_trace_setup+0x4a4/0xcd0
+[   51.034141]  ? blk_tracer_print_line+0x40/0x40
+[   51.038691]  ? __might_sleep+0x95/0x190
+[   51.042643]  ? kasan_check_write+0x14/0x20
+[   51.046843]  ? _copy_from_user+0x99/0x110
+[   51.050961]  __blk_trace_setup+0xb6/0x140
+[   51.055076]  ? do_blk_trace_setup+0xcd0/0xcd0
+[   51.059544]  ? disk_name+0x98/0x100
+[   51.063144]  blk_trace_ioctl+0x1d5/0x2a0
+[   51.067175]  ? blk_add_trace_rq_remap+0x680/0x680
+[   51.071988]  ? avc_has_extended_perms+0x7fa/0x12c0
+[   51.076887]  blkdev_ioctl+0x1845/0x1e00
+[   51.080828]  ? blkpg_ioctl+0xb20/0xb20
+[   51.084683]  ? avc_ss_reset+0x110/0x110
+[   51.088636]  ? lock_downgrade+0x980/0x980
+[   51.092767]  ? down_read_trylock+0xdb/0x170
+[   51.097065]  ? trace_event_raw_event_sched_switch+0x800/0x800
+[   51.102915]  ? up_read+0x1a/0x40
+[   51.106251]  ? rcu_note_context_switch+0x710/0x710
+[   51.111150]  block_ioctl+0xea/0x130
+[   51.114747]  ? blkdev_fallocate+0x3b0/0x3b0
+[   51.119034]  do_vfs_ioctl+0x1b1/0x1530
+[   51.122887]  ? _cond_resched+0x14/0x30
+[   51.126746]  ? ioctl_preallocate+0x2b0/0x2b0
+[   51.131121]  ? selinux_capable+0x40/0x40
+[   51.135150]  ? putname+0xf3/0x130
+[   51.138575]  ? do_sys_open+0x320/0x6d0
+[   51.142435]  ? security_file_ioctl+0x89/0xb0
+[   51.146813]  SyS_ioctl+0x8f/0xc0
+[   51.150152]  entry_SYSCALL_64_fastpath+0x1f/0x96
+[   51.154871] RIP: 0033:0x443e59
+[   51.158029] RSP: 002b:00007ffc416b5fe8 EFLAGS: 00000202 ORIG_RAX: 0000000000000010
+[   51.165701] RAX: ffffffffffffffda RBX: 00000000004002e0 RCX: 0000000000443e59
+[   51.172936] RDX: 0000000020ed6000 RSI: 00000000c0481273 RDI: 0000000000000003
+[   51.180169] RBP: 00000000006ce018 R08: 0000000000000000 R09: 0000000000000000
+[   51.187406] R10: 0000000000000000 R11: 0000000000000202 R12: 0000000000401b40
+[   51.194640] R13: 0000000000401bd0 R14: 0000000000000000 R15: 0000000000000000
+[   51.202041] Dumping ftrace buffer:
+[   51.205589]    (ftrace buffer empty)
+[   51.209265] Kernel Offset: disabled
+[   51.212860] Rebooting in 86400 seconds..

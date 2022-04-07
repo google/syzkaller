@@ -1,0 +1,48 @@
+bad-field-number: v4l2_fmtdesc: syz=6 kernel=7
+bad-field-size: v4l2_fmtdesc.reserved/mbus_code: syz=16 kernel=4
+no-such-struct: v4l2_format_fmt
+no-such-struct: v4l2_buffer_t
+bad-struct-size: v4l2_buffer: syz=68 kernel=76 [386]
+bad-struct-size: v4l2_buffer: syz=68 kernel=80 [arm]
+bad-field-offset: v4l2_buffer.timestamp: syz=20 kernel=24 [arm]
+bad-field-size: v4l2_buffer.timestamp: syz=8 kernel=16 [386,arm]
+bad-field-offset: v4l2_buffer.timecode: syz=28 kernel=36 [386]
+bad-field-offset: v4l2_buffer.timecode: syz=28 kernel=40 [arm]
+bad-field-offset: v4l2_buffer.sequence: syz=44 kernel=52 [386]
+bad-field-offset: v4l2_buffer.sequence: syz=44 kernel=56 [arm]
+bad-field-offset: v4l2_buffer.memory: syz=48 kernel=56 [386]
+bad-field-offset: v4l2_buffer.memory: syz=48 kernel=60 [arm]
+bad-field-offset: v4l2_buffer.m: syz=52 kernel=60 [386]
+bad-field-offset: v4l2_buffer.m: syz=52 kernel=64 [arm]
+bad-field-offset: v4l2_buffer.length: syz=56 kernel=64 [386]
+bad-field-offset: v4l2_buffer.length: syz=56 kernel=68 [arm]
+bad-field-offset: v4l2_buffer.reserved2: syz=60 kernel=68 [386]
+bad-field-offset: v4l2_buffer.reserved2: syz=60 kernel=72 [arm]
+bad-field-offset: v4l2_buffer.request_fd/: syz=64 kernel=72 [386]
+bad-field-offset: v4l2_buffer.request_fd/: syz=64 kernel=76 [arm]
+no-such-struct: v4l2_framebuffer_union
+no-such-struct: v4l2_streamparm_union
+no-such-struct: v4l2_querymenu_union
+no-such-struct: v4l2_ext_u
+no-such-struct: v4l2_frmsizeenum_union
+no-such-struct: v4l2_frmivalenum_union
+no-such-struct: v4l2_dbg_match_union
+no-such-struct: v4l2_dv_timings_union
+bad-struct-size: v4l2_event: syz=120 kernel=128 [386]
+bad-struct-size: v4l2_event: syz=128 kernel=136 [arm]
+bad-field-size: v4l2_event.timestamp: syz=8 kernel=16 [386,arm]
+bad-field-offset: v4l2_event.id: syz=84 kernel=92 [386]
+bad-field-offset: v4l2_event.id: syz=88 kernel=96 [arm]
+bad-field-offset: v4l2_event.reserved: syz=88 kernel=96 [386]
+bad-field-offset: v4l2_event.reserved: syz=92 kernel=100 [arm]
+no-such-struct: v4l2_event_union
+no-such-struct: v4l2_event_ctrl_union
+bad-field-number: v4l2_create_buffers: syz=6 kernel=7
+bad-field-size: v4l2_create_buffers.reserved/flags: syz=28 kernel=4
+no-such-struct: v4l2_decoder_cmd_u
+no-such-struct: v4l2_decoder_cmd_start
+no-such-struct: v4l2_dv_timings_cap_u
+bad-field-number: v4l2_mbus_framefmt: syz=9 kernel=10
+bad-field-size: v4l2_mbus_framefmt.reserved/flags: syz=22 kernel=2
+bad-field-number: v4l2_subdev_mbus_code_enum: syz=5 kernel=6
+bad-field-size: v4l2_subdev_mbus_code_enum.reserved/flags: syz=32 kernel=4

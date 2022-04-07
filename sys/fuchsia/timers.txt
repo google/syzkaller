@@ -1,0 +1,12 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+
+resource zx_timer[zx_handle]
+
+zx_timer_create(options flags[timer_options], clock_id const[ZX_CLOCK_MONOTONIC], out ptr[out, zx_timer])
+zx_timer_set(handle zx_timer, deadline zx_time, slack int64)
+zx_timer_cancel(handle zx_timer)
+
+timer_options = ZX_TIMER_SLACK_CENTER, ZX_TIMER_SLACK_EARLY, ZX_TIMER_SLACK_LATE

@@ -1,0 +1,55 @@
+TITLE: BUG: soft lockup in ipv6_rcv
+ALT: stall in ipv6_rcv
+TYPE: HANG
+
+[ 1290.104807] watchdog: BUG: soft lockup - CPU#1 stuck for 134s! [syz-executor738:4553]
+[ 1290.112830] Modules linked in:
+[ 1290.116020] irq event stamp: 13885653
+[ 1290.120062] hardirqs last  enabled at (13885652): [<ffffffff878009d5>] restore_regs_and_return_to_kernel+0x0/0x2b
+[ 1290.130479] hardirqs last disabled at (13885653): [<ffffffff87800905>] interrupt_entry+0xb5/0xf0
+[ 1290.139538] softirqs last  enabled at (13614028): [<ffffffff84df0809>] tun_get_user+0x1dd9/0x4290
+[ 1290.148551] softirqs last disabled at (13614032): [<ffffffff84df1b6f>] tun_get_user+0x313f/0x4290
+[ 1290.158637] CPU: 1 PID: 4553 Comm: syz-executor738 Not tainted 4.17.0-rc3+ #40
+[ 1290.165983] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 1290.175400] RIP: 0010:__sanitizer_cov_trace_pc+0x20/0x50
+[ 1290.180861] RSP: 0018:ffff8801d8cfe250 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff13
+[ 1290.188563] RAX: ffff8801d88a8080 RBX: ffff8801d7389e40 RCX: 0000000000000006
+[ 1290.195826] RDX: 0000000000000000 RSI: ffffffff868da4ad RDI: ffff8801c8a53277
+[ 1290.203081] RBP: ffff8801d8cfe250 R08: ffff8801d88a8080 R09: ffff8801d8cfe3e8
+[ 1290.210432] R10: ffffed003b19fc87 R11: ffff8801d8cfe43f R12: ffff8801c8a5327f
+[ 1290.217775] R13: 0000000000000000 R14: ffff8801c8a4e5fe R15: ffff8801d8cfe3e8
+[ 1290.225035] FS:  0000000000d88940(0000) GS:ffff8801daf00000(0000) knlGS:0000000000000000
+[ 1290.233337] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[ 1290.239235] CR2: ffffffffff600400 CR3: 00000001acab3000 CR4: 00000000001406e0
+[ 1290.246677] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[ 1290.253936] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[ 1290.261210] Call Trace:
+[ 1290.263888]  _decode_session6+0xc1d/0x14f0
+[ 1290.268154]  __xfrm_decode_session+0x71/0x140
+[ 1290.272668]  icmpv6_route_lookup+0x395/0x6e0
+[ 1290.294459]  icmp6_send+0x1982/0x2da0
+[ 1290.398009]  icmpv6_send+0x17a/0x300
+[ 1290.421143]  ip6_input_finish+0x14e1/0x1a30
+[ 1290.444140]  ip6_input+0xe1/0x5e0
+[ 1290.456233]  ip6_rcv_finish+0x29c/0xa10
+[ 1290.482435]  ipv6_rcv+0xeb8/0x2040
+[ 1290.510550]  __netif_receive_skb_core+0x2468/0x3650
+[ 1290.597399]  __netif_receive_skb+0x2c/0x1e0
+[ 1290.601729]  netif_receive_skb_internal+0x126/0x7b0
+[ 1290.629906]  napi_gro_frags+0x631/0xc40
+[ 1290.650727]  tun_get_user+0x3168/0x4290
+[ 1290.691649]  tun_chr_write_iter+0xb9/0x154
+[ 1290.695900]  do_iter_readv_writev+0x859/0xa50
+[ 1290.709371]  do_iter_write+0x185/0x5f0
+[ 1290.716890]  vfs_writev+0x1c7/0x330
+[ 1290.759809]  do_writev+0x112/0x2f0
+[ 1290.772027]  __x64_sys_writev+0x75/0xb0
+[ 1290.776025]  do_syscall_64+0x1b1/0x800
+[ 1290.804960]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[ 1290.810147] RIP: 0033:0x442c30
+[ 1290.813340] RSP: 002b:00007ffe3fff4978 EFLAGS: 00000246 ORIG_RAX: 0000000000000014
+[ 1290.821081] RAX: ffffffffffffffda RBX: 0000000000000003 RCX: 0000000000442c30
+[ 1290.828385] RDX: 0000000000000001 RSI: 00007ffe3fff49c0 RDI: 00000000000000fc
+[ 1290.835646] RBP: 0000000000d89940 R08: 0000000000000000 R09: 00007ffe000087fe
+[ 1290.842901] R10: 0000000000000000 R11: 0000000000000246 R12: 585858582e72656c
+[ 1290.850156] R13: 6c616b7a79732f2e R14: 0000000000000000 R15: 0000000000000000

@@ -1,0 +1,41 @@
+TITLE: BUG: still has locks held in pipe_lock
+
+[   80.586804] =====================================
+[  734.270366] [ BUG: syz-executor/31761 still has locks held! ]
+[  734.307462] 4.8.0+ #30 Not tainted
+[  734.325126] -------------------------------------
+[  734.417271] 1 lock held by syz-executor/31761:
+[  734.442178]  #0:  (&pipe->mutex/1){+.+.+.}, at: [<ffffffff81844c6b>] pipe_lock+0x5b/0x70
+[  734.451474] 
+[  734.451474] stack backtrace:
+[  734.521109] CPU: 0 PID: 31761 Comm: syz-executor Not tainted 4.8.0+ #30
+[  734.527900] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  734.537256]  ffff8800458dfa38 ffffffff82d383a9 ffffffff00000000 fffffbfff1097248
+[  734.545358]  ffff88005639a700 ffff88005639a700 dffffc0000000000 ffff88005639a700
+[  734.553482]  ffff8800530148f8 ffff8800458dfa58 ffffffff81463cb5 0000000000000000
+[  734.562654] Call Trace:
+[  734.565257]  [<ffffffff82d383a9>] dump_stack+0x12e/0x185
+[  734.570819]  [<ffffffff81463cb5>] debug_check_no_locks_held+0x125/0x140
+[  734.577590]  [<ffffffff860bae47>] unix_stream_read_generic+0x1317/0x1b70
+[  734.584440]  [<ffffffff860b9b30>] ? unix_getname+0x290/0x290
+[  734.590238]  [<ffffffff8146870b>] ? __lock_acquire+0x7fb/0x3410
+[  734.596306]  [<ffffffff81467f10>] ? debug_check_no_locks_freed+0x3c0/0x3c0
+[  734.603322]  [<ffffffff81905282>] ? fsnotify+0xca2/0x1020
+[  734.608874]  [<ffffffff81467f10>] ? debug_check_no_locks_freed+0x3c0/0x3c0
+[  734.615894]  [<ffffffff814475b0>] ? prepare_to_wait_event+0x450/0x450
+[  734.622486]  [<ffffffff860bb7fb>] unix_stream_splice_read+0x15b/0x1d0
+[  734.629066]  [<ffffffff860bb6a0>] ? unix_stream_read_generic+0x1b70/0x1b70
+[  734.636086]  [<ffffffff82b27c3a>] ? common_file_perm+0x15a/0x3a0
+[  734.642242]  [<ffffffff860b52f0>] ? unix_accept+0x460/0x460
+[  734.647963]  [<ffffffff82a5c02e>] ? security_file_permission+0x8e/0x1e0
+[  734.654729]  [<ffffffff860bb6a0>] ? unix_stream_read_generic+0x1b70/0x1b70
+[  734.661754]  [<ffffffff85afc54e>] sock_splice_read+0xbe/0x100
+[  734.667649]  [<ffffffff85afc490>] ? kernel_sock_shutdown+0x80/0x80
+[  734.673973]  [<ffffffff818d11ff>] do_splice_to+0x10f/0x170
+[  734.679697]  [<ffffffff818d6acc>] SyS_splice+0x114c/0x15b0
+[  734.685329]  [<ffffffff81506bf4>] ? SyS_futex+0x144/0x2e0
+[  734.690961]  [<ffffffff818d5980>] ? compat_SyS_vmsplice+0x250/0x250
+[  734.697375]  [<ffffffff8146750c>] ? trace_hardirqs_on_caller+0x44c/0x5e0
+[  734.704230]  [<ffffffff8100501a>] ? trace_hardirqs_on_thunk+0x1a/0x1c
+[  734.710821]  [<ffffffff86da6d05>] entry_SYSCALL_64_fastpath+0x23/0xc6
+[  734.717436]  [<ffffffff816939e7>] ? perf_event_mmap+0x77/0xb20

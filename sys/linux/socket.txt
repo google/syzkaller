@@ -1,0 +1,957 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <asm/ioctls.h>
+include <linux/if_tun.h>
+include <linux/if_bridge.h>
+include <linux/net.h>
+include <linux/net_tstamp.h>
+include <linux/route.h>
+include <linux/socket.h>
+include <uapi/linux/in.h>
+include <uapi/linux/ethtool.h>
+include <uapi/linux/if_ether.h>
+include <uapi/linux/if_vlan.h>
+include <uapi/asm-generic/socket.h>
+
+resource sock[fd]
+type sock_port int16be[20000:20004]
+
+# TODO: describe socketcall syscall
+
+socket(domain flags[socket_domain], type flags[socket_type], proto int32) sock
+socketpair(domain flags[socket_domain], type flags[socket_type], proto int32, fds ptr[out, sock_pair])
+bind(fd sock, addr ptr[in, sockaddr_storage], addrlen len[addr])
+connect(fd sock, addr ptr[in, sockaddr_storage], addrlen len[addr])
+accept(fd sock, peer ptr[out, sockaddr_storage, opt], peerlen ptr[inout, len[peer, int32]]) sock
+accept4(fd sock, peer ptr[out, sockaddr_storage, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock
+sendto(fd sock, buf buffer[in], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_storage, opt], addrlen len[addr])
+recvfrom(fd sock, buf buffer[out], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr_storage, opt], addrlen len[addr])
+getsockname(fd sock, addr ptr[out, sockaddr_storage], addrlen ptr[inout, len[addr, int32]])
+getpeername(fd sock, peer ptr[out, sockaddr_storage], peerlen ptr[inout, len[peer, int32]])
+
+sendmsg(fd sock, msg ptr[in, send_msghdr], f flags[send_flags])
+sendmmsg(fd sock, mmsg ptr[in, array[send_mmsghdr]], vlen len[mmsg], f flags[send_flags])
+recvmsg(fd sock, msg ptr[inout, recv_msghdr], f flags[recv_flags])
+recvmmsg(fd sock, mmsg ptr[in, array[recv_mmsghdr]], vlen len[mmsg], f flags[recv_flags], timeout ptr[in, timespec, opt])
+
+listen(fd sock, backlog int32)
+shutdown(fd sock, how flags[shutdown_flags])
+
+getsockopt(fd sock, level int32, optname int32, optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt(fd sock, level int32, optname int32, optval buffer[in], optlen len[optval])
+
+socket_domain = AF_UNIX, AF_INET, AF_INET6, AF_NETLINK, AF_X25, AF_AX25, AF_ATMPVC, AF_APPLETALK, AF_PACKET, AF_VSOCK, AF_XDP, AF_TIPC, AF_RXRPC, AF_PPPOX, AF_RDS, AF_ROSE, AF_PHONET, AF_NFC, AF_NETROM, AF_KEY, AF_KCM, AF_ISDN, AF_SMC, AF_CAN, AF_CAIF, AF_BLUETOOTH, AF_LLC, AF_ALG, AF_QIPCRTR
+socket_type = SOCK_STREAM, SOCK_DGRAM, SOCK_RAW, SOCK_RDM, SOCK_SEQPACKET, SOCK_DCCP, SOCK_PACKET, SOCK_NONBLOCK, SOCK_CLOEXEC
+accept_flags = SOCK_NONBLOCK, SOCK_CLOEXEC
+shutdown_flags = SHUT_RD, SHUT_WR
+send_flags = MSG_CONFIRM, MSG_DONTROUTE, MSG_DONTWAIT, MSG_EOR, MSG_MORE, MSG_NOSIGNAL, MSG_OOB, MSG_PROBE, MSG_BATCH, MSG_FASTOPEN, MSG_ZEROCOPY
+recv_flags = MSG_CMSG_CLOEXEC, MSG_DONTWAIT, MSG_ERRQUEUE, MSG_OOB, MSG_PEEK, MSG_TRUNC, MSG_WAITALL, MSG_WAITFORONE
+cmsg_levels = SOL_SOCKET, IPPROTO_ICMP, SOL_IP, SOL_TCP, SOL_UDP, SOL_IPV6, SOL_ICMPV6, SOL_SCTP, SOL_UDPLITE, SOL_RAW, SOL_AX25, SOL_ATALK, SOL_NETROM, SOL_ROSE, SOL_DECNET, SOL_PACKET, SOL_ATM, SOL_AAL, SOL_IRDA, SOL_NETBEUI, SOL_LLC, SOL_DCCP, SOL_NETLINK, SOL_TIPC, SOL_RXRPC, SOL_PPPOL2TP, SOL_BLUETOOTH, SOL_PNPIPE, SOL_RDS, SOL_IUCV, SOL_CAIF, SOL_ALG, SOL_NFC, SOL_KCM
+
+sock_pair {
+	fd0	sock
+	fd1	sock
+}
+
+# This sockaddr type corresponds to the struct sockaddr and is 16 bytes or less.
+# TODO: add AF_APPLETALK, AF_ATMPVC, AF_ROSE, AF_DECnet, AF_ATMSVC, AF_IRDA, AF_IB, AF_IUCV
+# Note: AF_UNIX, AF_INET6, AF_PACKET, AF_ALG, AF_PPPOX sockaddr is bigger than 16 bytes
+# Note: AF_NETROM sockaddr is the same as AF_AX25
+sockaddr [
+	in		sockaddr_in
+	ax25		sockaddr_ax25
+	nl		sockaddr_nl
+	llc		sockaddr_llc
+	can		sockaddr_can
+	sco		sockaddr_sco
+	l2		sockaddr_l2
+	hci		sockaddr_hci
+	rc		sockaddr_rc
+	nfc		sockaddr_nfc
+	vsock		sockaddr_vm
+	xdp		sockaddr_xdp
+	tipc		sockaddr_tipc
+	isdn		sockaddr_mISDN
+	l2tp		sockaddr_l2tpip
+	phonet		sockaddr_pn
+	ethernet	sockaddr_ethernet
+	qipcrtr		sockaddr_qrtr
+	generic		sockaddr_generic
+] [size[SOCKADDR_SIZE]]
+
+# This sockaddr type corresponds to the sockaddr_storage type and is 128 bytes size.
+sockaddr_storage [
+	un		sockaddr_un
+	in		sockaddr_in
+	x25		sockaddr_x25
+	ax25		full_sockaddr_ax25
+	in6		sockaddr_in6
+	nl		sockaddr_nl
+	ll		sockaddr_ll
+	pppoe		sockaddr_pppoe
+	pppol2tp	sockaddr_pppol2tp
+	pppol2tpin6	sockaddr_pppol2tpin6
+	pppol2tpv3	sockaddr_pppol2tpv3
+	pppol2tpv3in6	sockaddr_pppol2tpv3in6
+	pptp		sockaddr_pptp
+	l2tp		sockaddr_l2tpip
+	l2tp6		sockaddr_l2tpip6
+	llc		sockaddr_llc
+	can		sockaddr_can
+	sco		sockaddr_sco
+	l2		sockaddr_l2
+	hci		sockaddr_hci
+	rc		sockaddr_rc
+	alg		sockaddr_alg
+	nfc		sockaddr_nfc
+	nfc_llcp	sockaddr_nfc_llcp
+	vsock		sockaddr_vm
+	xdp		sockaddr_xdp
+	tipc		sockaddr_tipc
+	caif		sockaddr_caif
+	isdn		sockaddr_mISDN
+	rxrpc		sockaddr_rxrpc
+	phonet		sockaddr_pn
+	ethernet	sockaddr_ethernet
+	qipcrtr		sockaddr_qrtr
+	ieee802154	sockaddr_ieee802154
+	generic		sockaddr_storage_generic
+] [size[SOCKADDR_STORAGE_SIZE]]
+
+define SOCKADDR_SIZE	sizeof(struct sockaddr)
+define SOCKADDR_STORAGE_SIZE	sizeof(struct sockaddr_storage)
+
+sockaddr_generic {
+	sa_family	flags[socket_domain, int16]
+	sa_data		array[int8, 14]
+}
+
+sockaddr_storage_generic {
+	sa_family	flags[socket_domain, int16]
+	sa_data		array[int8, 126]
+}
+
+send_msghdr {
+	msg_name	ptr[in, sockaddr_storage, opt]
+	msg_namelen	len[msg_name, int32]
+	msg_iov		ptr[in, array[iovec_in]]
+	msg_iovlen	len[msg_iov, intptr]
+	msg_control	ptr[in, array[cmsghdr], opt]
+	msg_controllen	bytesize[msg_control, intptr]
+	msg_flags	const[0, int32]
+}
+
+msghdr_sock {
+	msg_name	ptr[in, sockaddr_storage, opt]
+	msg_namelen	len[msg_name, int32]
+	msg_iov		ptr[in, array[iovec_in]]
+	msg_iovlen	len[msg_iov, intptr]
+	msg_control	ptr[in, array[cmsghdr_sock], opt]
+	msg_controllen	bytesize[msg_control, intptr]
+	msg_flags	const[0, int32]
+}
+
+send_mmsghdr {
+	msg_hdr	send_msghdr
+	msg_len	const[0, int32]
+}
+
+mmsghdr_sock {
+	msg_hdr	msghdr_sock
+	msg_len	const[0, int32]
+}
+
+recv_msghdr {
+	msg_name	ptr[out, sockaddr_storage, opt]
+	msg_namelen	len[msg_name, int32]
+	msg_iov		ptr[in, array[iovec_out]]
+	msg_iovlen	len[msg_iov, intptr]
+	msg_control	ptr[out, array[int8], opt]
+	msg_controllen	bytesize[msg_control, intptr]
+	msg_flags	const[0, int32]
+}
+
+recv_mmsghdr {
+	msg_hdr	recv_msghdr
+	msg_len	int32
+}
+
+cmsghdr {
+	cmsg_len	len[parent, intptr]
+	cmsg_level	flags[cmsg_levels, int32]
+	cmsg_type	int32
+	data		array[int8]
+} [align[PTR_SIZE]]
+
+type cmsghdr_t[SOL, TYP, DATA] {
+	unaligned	cmsghdr_unaligned[SOL, TYP, DATA]
+} [align[PTR_SIZE]]
+
+type cmsghdr_unaligned[SOL, TYP, DATA] {
+	cmsg_len	len[parent, intptr]
+	cmsg_level	const[SOL, int32]
+	cmsg_type	const[TYP, int32]
+	data		DATA
+} [packed]
+
+# For __sock_cmsg_send
+cmsghdr_sock [
+	mark		cmsghdr_t[SOL_SOCKET, SO_MARK, int32]
+	timestamping	cmsghdr_t[SOL_SOCKET, SO_TIMESTAMPING_OLD, int32]
+	txtime		cmsghdr_t[SOL_SOCKET, SCM_TXTIME, int64]
+] [varlen]
+
+# Socket options
+
+# http://lxr.free-electrons.com/source/include/uapi/asm-generic/socket.h
+
+setsockopt$sock_void(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_void], optval const[0], optlen const[0])
+getsockopt$sock_int(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$sock_int(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_int], optval ptr[in, int32], optlen len[optval])
+getsockopt$sock_linger(fd sock, level const[SOL_SOCKET], optname const[SO_LINGER], optval ptr[out, linger], optlen ptr[inout, len[optval, int32]])
+setsockopt$sock_linger(fd sock, level const[SOL_SOCKET], optname const[SO_LINGER], optval ptr[in, linger], optlen len[optval])
+getsockopt$sock_cred(fd sock, level const[SOL_SOCKET], optname const[SO_PEERCRED], optval ptr[out, ucred], optlen ptr[inout, len[optval, int32]])
+setsockopt$sock_cred(fd sock, level const[SOL_SOCKET], optname const[SO_PEERCRED], optval ptr[in, ucred], optlen len[optval])
+getsockopt$sock_timeval(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_timeval], optval ptr[out, timeval], optlen ptr[inout, len[optval, int32]])
+setsockopt$sock_timeval(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_timeval], optval ptr[in, timeval], optlen len[optval])
+setsockopt$sock_attach_bpf(fd sock, level const[SOL_SOCKET], optname const[SO_ATTACH_BPF], optval ptr[in, fd_bpf_prog], optlen len[optval])
+setsockopt$SO_TIMESTAMP(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_timestamp], optval ptr[in, int32], optlen len[optval])
+getsockopt$SO_TIMESTAMP(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_timestamp], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$SO_TIMESTAMPING(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_timestamping], optval ptr[in, flags[sockopt_so_timestamping, int32]], optlen len[optval])
+getsockopt$SO_TIMESTAMPING(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_timestamping], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$SO_ATTACH_FILTER(fd sock, level const[SOL_SOCKET], optname const[SO_ATTACH_FILTER], optval ptr[in, sock_fprog], optlen len[optval])
+setsockopt$SO_BINDTODEVICE(fd sock, level const[SOL_SOCKET], optname const[SO_BINDTODEVICE], optval ptr[in, devname], optlen len[optval])
+getsockopt$SO_BINDTODEVICE(fd sock, level const[SOL_SOCKET], optname const[SO_BINDTODEVICE], optval ptr[out, devname], optlen len[optval])
+getsockopt$sock_buf(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+getsockopt$SO_COOKIE(fd sock, level const[SOL_SOCKET], optname const[SO_COOKIE], optval ptr[out, int64], optlen ptr[inout, len[optval, int32]])
+
+linger {
+	onoff	bool32
+	linger	int32
+}
+
+sockopt_opt_sock_void = SO_DETACH_FILTER, SO_MARK
+sockopt_opt_sock_int = SO_ACCEPTCONN, SO_BROADCAST, SO_DEBUG, SO_DOMAIN, SO_ERROR, SO_DONTROUTE, SO_KEEPALIVE, SO_PEEK_OFF, SO_PRIORITY, SO_PROTOCOL, SO_RCVBUF, SO_RCVBUFFORCE, SO_RCVLOWAT, SO_SNDLOWAT, SO_REUSEADDR, SO_SNDBUF, SO_SNDBUFFORCE, SO_TIMESTAMP_OLD, SO_TYPE, SO_REUSEPORT, SO_OOBINLINE, SO_NO_CHECK, SO_PASSCRED, SO_TIMESTAMPNS_OLD, SO_LOCK_FILTER, SO_PASSSEC, SO_RXQ_OVFL, SO_WIFI_STATUS, SO_NOFCS, SO_SELECT_ERR_QUEUE, SO_BUSY_POLL, SO_MAX_PACING_RATE, SO_ZEROCOPY
+sockopt_opt_sock_timeval = SO_RCVTIMEO_OLD, SO_RCVTIMEO_NEW, SO_SNDTIMEO_OLD, SO_SNDTIMEO_NEW
+sockopt_opt_sock_timestamp = SO_TIMESTAMP_OLD, SO_TIMESTAMP_NEW, SO_TIMESTAMPNS_OLD, SO_TIMESTAMPNS_NEW
+sockopt_opt_sock_timestamping = SO_TIMESTAMPING_OLD, SO_TIMESTAMPING_NEW
+sockopt_opt_sock_buf = SO_PEERNAME, SO_PEERSEC, SO_GET_FILTER, SO_MEMINFO, SO_PEERGROUPS, SO_TXTIME
+sockopt_so_timestamping = SOF_TIMESTAMPING_TX_HARDWARE, SOF_TIMESTAMPING_TX_SOFTWARE, SOF_TIMESTAMPING_RX_HARDWARE, SOF_TIMESTAMPING_RX_SOFTWARE, SOF_TIMESTAMPING_SOFTWARE, SOF_TIMESTAMPING_SYS_HARDWARE, SOF_TIMESTAMPING_RAW_HARDWARE, SOF_TIMESTAMPING_OPT_ID, SOF_TIMESTAMPING_TX_SCHED, SOF_TIMESTAMPING_TX_ACK, SOF_TIMESTAMPING_OPT_CMSG, SOF_TIMESTAMPING_OPT_TSONLY, SOF_TIMESTAMPING_OPT_STATS, SOF_TIMESTAMPING_OPT_PKTINFO, SOF_TIMESTAMPING_OPT_TX_SWHW
+
+# Socket ioctls
+
+# Since some socket ioctls are forwarded to the network device, adding device ioctls here as well.
+
+# http://lxr.free-electrons.com/linux/latest/source/include/uapi/linux/sockios.h
+
+# http://lxr.free-electrons.com/linux/latest/source/include/uapi/asm-generic/sockios.h
+
+ioctl$sock_SIOCADDRT(fd sock, cmd const[SIOCADDRT], arg ptr[inout, rtentry])
+ioctl$sock_SIOCDELRT(fd sock, cmd const[SIOCDELRT], arg ptr[inout, rtentry])
+
+ioctl$sock_SIOCGIFVLAN_SET_VLAN_INGRESS_PRIORITY_CMD(fd sock, cmd const[SIOCGIFVLAN], arg ptr[in, vlan_args[SET_VLAN_INGRESS_PRIORITY_CMD, int32]])
+ioctl$sock_SIOCGIFVLAN_SET_VLAN_EGRESS_PRIORITY_CMD(fd sock, cmd const[SIOCGIFVLAN], arg ptr[in, vlan_args[SET_VLAN_EGRESS_PRIORITY_CMD, int32]])
+ioctl$sock_SIOCGIFVLAN_SET_VLAN_FLAG_CMD(fd sock, cmd const[SIOCGIFVLAN], arg ptr[in, vlan_args[SET_VLAN_FLAG_CMD, int32]])
+ioctl$sock_SIOCGIFVLAN_SET_VLAN_NAME_TYPE_CMD(fd sock, cmd const[SIOCGIFVLAN], arg ptr[in, vlan_args[SET_VLAN_NAME_TYPE_CMD, int32]])
+ioctl$sock_SIOCGIFVLAN_ADD_VLAN_CMD(fd sock, cmd const[SIOCGIFVLAN], arg ptr[in, vlan_args[ADD_VLAN_CMD, int32[0:4]]])
+ioctl$sock_SIOCGIFVLAN_DEL_VLAN_CMD(fd sock, cmd const[SIOCGIFVLAN], arg ptr[in, vlan_args[DEL_VLAN_CMD, const[0, int32]]])
+ioctl$sock_SIOCGIFVLAN_GET_VLAN_REALDEV_NAME_CMD(fd sock, cmd const[SIOCGIFVLAN], arg ptr[inout, vlan_args[GET_VLAN_REALDEV_NAME_CMD, string[devnames, 24]]])
+ioctl$sock_SIOCGIFVLAN_GET_VLAN_VID_CMD(fd sock, cmd const[SIOCGIFVLAN], arg ptr[out, vlan_args[GET_VLAN_VID_CMD, int32]])
+ioctl$sock_SIOCGIFVLAN_GET_VLAN_INGRESS_PRIORITY_CMD(fd sock, cmd const[SIOCGIFVLAN], arg ptr[out, vlan_args[GET_VLAN_INGRESS_PRIORITY_CMD, const[0, int32]]])
+ioctl$sock_SIOCGIFVLAN_GET_VLAN_EGRESS_PRIORITY_CMD(fd sock, cmd const[SIOCGIFVLAN], arg ptr[out, vlan_args[GET_VLAN_EGRESS_PRIORITY_CMD, const[0, int32]]])
+
+ioctl$sock_SIOCSIFVLAN_SET_VLAN_INGRESS_PRIORITY_CMD(fd sock, cmd const[SIOCSIFVLAN], arg ptr[in, vlan_args[SET_VLAN_INGRESS_PRIORITY_CMD, int32]])
+ioctl$sock_SIOCSIFVLAN_SET_VLAN_EGRESS_PRIORITY_CMD(fd sock, cmd const[SIOCSIFVLAN], arg ptr[in, vlan_args[SET_VLAN_EGRESS_PRIORITY_CMD, int32]])
+ioctl$sock_SIOCSIFVLAN_SET_VLAN_FLAG_CMD(fd sock, cmd const[SIOCSIFVLAN], arg ptr[in, vlan_args[SET_VLAN_FLAG_CMD, int32]])
+ioctl$sock_SIOCSIFVLAN_SET_VLAN_NAME_TYPE_CMD(fd sock, cmd const[SIOCSIFVLAN], arg ptr[in, vlan_args[SET_VLAN_NAME_TYPE_CMD, int32]])
+ioctl$sock_SIOCSIFVLAN_ADD_VLAN_CMD(fd sock, cmd const[SIOCSIFVLAN], arg ptr[in, vlan_args[ADD_VLAN_CMD, int32[0:4]]])
+ioctl$sock_SIOCSIFVLAN_DEL_VLAN_CMD(fd sock, cmd const[SIOCSIFVLAN], arg ptr[in, vlan_args[DEL_VLAN_CMD, const[0, int32]]])
+ioctl$sock_SIOCSIFVLAN_GET_VLAN_REALDEV_NAME_CMD(fd sock, cmd const[SIOCSIFVLAN], arg ptr[inout, vlan_args[GET_VLAN_REALDEV_NAME_CMD, string[devnames, 24]]])
+ioctl$sock_SIOCSIFVLAN_GET_VLAN_VID_CMD(fd sock, cmd const[SIOCSIFVLAN], arg ptr[out, vlan_args[GET_VLAN_VID_CMD, int32]])
+ioctl$sock_SIOCSIFVLAN_GET_VLAN_INGRESS_PRIORITY_CMD(fd sock, cmd const[SIOCSIFVLAN], arg ptr[out, vlan_args[GET_VLAN_INGRESS_PRIORITY_CMD, const[0, int32]]])
+ioctl$sock_SIOCSIFVLAN_GET_VLAN_EGRESS_PRIORITY_CMD(fd sock, cmd const[SIOCSIFVLAN], arg ptr[out, vlan_args[GET_VLAN_EGRESS_PRIORITY_CMD, const[0, int32]]])
+
+ioctl$sock_SIOCETHTOOL(fd sock, cmd const[SIOCETHTOOL], arg ptr[inout, ifreq_t[ptr[inout, ethtool_cmd_u]]])
+
+ioctl$sock_SIOCOUTQ(fd sock, cmd const[SIOCOUTQ], arg ptr[out, int32])
+ioctl$sock_SIOCINQ(fd sock, cmd const[SIOCINQ], arg ptr[out, int32])
+
+ioctl$sock_SIOCGIFCONF(fd sock, cmd const[SIOCGIFCONF], arg ptr[inout, ifconf])
+
+ifreq_ioctls = SIOCGIFNAME, SIOCSIFLINK, SIOCGIFFLAGS, SIOCSIFFLAGS, SIOCGIFADDR, SIOCSIFADDR, SIOCGIFDSTADDR, SIOCSIFDSTADDR, SIOCGIFBRDADDR, SIOCSIFBRDADDR, SIOCGIFNETMASK, SIOCSIFNETMASK, SIOCGIFMETRIC, SIOCSIFMETRIC, SIOCGIFMEM, SIOCSIFMEM, SIOCGIFMTU, SIOCSIFMTU, SIOCSIFNAME, SIOCSIFHWADDR, SIOCGIFENCAP, SIOCSIFENCAP, SIOCGIFHWADDR, SIOCGIFSLAVE, SIOCSIFSLAVE, SIOCADDMULTI, SIOCDELMULTI, SIOCGIFINDEX, SIOCSIFPFLAGS, SIOCGIFPFLAGS, SIOCDIFADDR, SIOCSIFHWBROADCAST, SIOCGIFCOUNT, SIOCGIFTXQLEN, SIOCSIFTXQLEN, SIOCETHTOOL, SIOCGMIIPHY, SIOCGMIIREG, SIOCSMIIREG, SIOCWANDEV, SIOCGIFMAP, SIOCSIFMAP, SIOCBONDENSLAVE, SIOCBONDRELEASE, SIOCBONDSETHWADDR, SIOCBONDSLAVEINFOQUERY, SIOCBONDINFOQUERY, SIOCBONDCHANGEACTIVE, SIOCBRADDIF, SIOCBRDELIF, SIOCSHWTSTAMP, SIOCGHWTSTAMP
+
+ioctl$sock_ifreq(fd sock, cmd flags[ifreq_ioctls], arg ptr[inout, ifreq])
+
+ioctl$sock_SIOCGIFINDEX(fd sock, cmd const[SIOCGIFINDEX], arg ptr[out, ifreq_t[ifindex]])
+
+ioctl$sock_SIOCGIFBR(fd sock, cmd const[SIOCGIFBR], arg ptr[inout, brctl_arg])
+ioctl$sock_SIOCSIFBR(fd sock, cmd const[SIOCSIFBR], arg ptr[inout, brctl_arg])
+
+ioctl$sock_SIOCOUTQNSD(fd sock, cmd const[SIOCOUTQNSD], arg ptr[out, int32])
+
+ioctl$sock_SIOCGSKNS(fd sock, cmd const[SIOCGSKNS], arg ptr[inout, int32])
+
+ioctl$sock_SIOCADDDLCI(fd sock, cmd const[SIOCADDDLCI], arg ptr[inout, dlci_add])
+ioctl$sock_SIOCDELDLCI(fd sock, cmd const[SIOCDELDLCI], arg ptr[in, dlci_add])
+
+ioctl$sock_SIOCBRADDBR(fd sock, cmd const[SIOCBRADDBR], arg ptr[in, devname])
+ioctl$sock_SIOCBRDELBR(fd sock, cmd const[SIOCBRDELBR], arg ptr[in, devname])
+
+define SIOCDEVPRIVATE_BEG	(SIOCDEVPRIVATE)
+define SIOCDEVPRIVATE_END	(SIOCDEVPRIVATE + 15)
+
+define SIOCPROTOPRIVATE_BEG	(SIOCPROTOPRIVATE)
+define SIOCPROTOPRIVATE_END	(SIOCPROTOPRIVATE + 15)
+
+ioctl$sock_netdev_private(fd sock, cmd int32[SIOCDEVPRIVATE_BEG:SIOCDEVPRIVATE_END], arg ptr[in, array[int8]])
+ioctl$sock_proto_private(fd sock, cmd int32[SIOCPROTOPRIVATE_BEG:SIOCPROTOPRIVATE_END], arg ptr[in, array[int8]])
+
+ioctl$sock_FIOSETOWN(fd sock, cmd const[FIOSETOWN], arg ptr[in, pid])
+ioctl$sock_SIOCSPGRP(fd sock, cmd const[SIOCSPGRP], arg ptr[in, pid])
+
+ioctl$sock_FIOGETOWN(fd sock, cmd const[FIOGETOWN], arg ptr[out, pid])
+ioctl$sock_SIOCGPGRP(fd sock, cmd const[SIOCGPGRP], arg ptr[out, pid])
+
+ioctl$sock_TIOCOUTQ(fd sock, cmd const[TIOCOUTQ], arg ptr[out, int32])
+ioctl$sock_TIOCINQ(fd sock, cmd const[TIOCINQ], arg ptr[out, int32])
+ioctl$SIOCGSTAMP(fd sock, cmd const[SIOCGSTAMP], arg ptr[out, timeval])
+ioctl$SIOCGSTAMPNS(fd sock, cmd const[SIOCGSTAMPNS], arg ptr[out, timespec])
+
+# Socket sendmsg
+sendmsg$sock(fd sock, msg ptr[in, msghdr_sock], f flags[send_flags])
+sendmmsg$sock(fd sock, mmsg ptr[in, array[mmsghdr_sock]], vlen len[mmsg], f flags[send_flags])
+
+resource ifindex[int32]
+
+type ifreq_dev_t[DEVNAME, ELEM] {
+	ifr_ifrn	string[DEVNAME, IFNAMSIZ]	(in)
+	elem		ELEM
+} [size[IFREQ_SIZE]]
+
+type ifreq_t[ELEM] ifreq_dev_t[devnames, ELEM]
+
+type ifreq ifreq_t[ifr_ifru]
+
+ifr_ifru [
+	ifru_addrs	sockaddr
+	ifru_hwaddr	mac_addr
+	ifru_flags	flags[ifru_flags, int16]
+	ifru_ivalue	int32
+	ifru_mtu	int32
+	ifru_map	ifmap
+	ifru_names	devname
+	ifru_data	ptr[in, array[int8, 32]]
+	ifru_settings	if_settings
+]
+
+define IFREQ_SIZE	sizeof(struct ifreq)
+
+# https://elixir.bootlin.com/linux/v5.3.11/source/include/uapi/linux/if_vlan.h
+type vlan_args[CMD, DATA] {
+	cmd		const[CMD, int32]
+	device1		string[devnames, 24]
+	u		vlan_args_u[DATA]
+	vlan_qos	int16
+}
+
+type vlan_args_u[DATA] {
+	datadata	DATA
+} [size[24]]
+
+# https://elixir.bootlin.com/linux/v5.3.12/source/include/uapi/linux/route.h#L31
+rtentry {
+	rt_pad1		const[0, intptr]
+	rt_dst		sockaddr
+	rt_gateway	sockaddr
+	rt_genmask	sockaddr
+	rt_flags	int16
+	rt_pad2		const[0, int16]
+	rt_pad3		const[0, intptr]
+	rt_pad4		const[0, intptr]
+	rt_metric	int16
+	rt_dev		ptr[in, devname, opt]
+	rt_mtu		intptr
+	rt_window	intptr
+	rt_irtt		int16
+}
+
+# We could add "eth0" to this list as well, but this will affect the connection
+# between fuzzer and manager and produce lots of "no output" crashes
+# (actually, this is not true now since all testing is done in a separate
+# network namespace, but we still don't mess with eth0).
+# Note: lapb0, bpq0 and hwsim0 are only present in init namespace.
+# Note: for roseN and nrN we should use proc type, but for simplicity we currently use N=0.
+# Note: netdevsim0 and netpci0 are renamed in initialize_devlink_ports()
+devnames = "", "lo", "tunl0", "gre0", "gretap0", "ip_vti0", "ip6_vti0", "sit0", "ip6tnl0", "ip6gre0", "ip6gretap0", "bond0", "dummy0", "nr0", "rose0", "erspan0", "vlan0", "bridge0", "vcan0", "team0", "syz_tun", "veth0", "veth1", "veth0_to_bridge", "veth1_to_bridge", "veth0_to_bond", "veth1_to_bond", "veth0_to_team", "veth1_to_team", "bridge_slave_0", "bridge_slave_1", "bond_slave_0", "bond_slave_1", "team_slave_0", "team_slave_1", "syzkaller0", "syzkaller1", "veth0_to_hsr", "veth1_to_hsr", "hsr0", "ip6erspan0", "vxcan1", "caif0", "batadv0", "veth0_to_batadv", "veth1_to_batadv", "batadv_slave_0", "batadv_slave_1", "netdevsim0", "netpci0", "xfrm0", "veth0_virt_wifi", "veth1_virt_wifi", "virt_wifi0", "veth0_vlan", "veth1_vlan", "vlan0", "vlan1", "macvlan0", "macvlan1", "ipvlan0", "ipvlan1", "veth0_macvtap", "veth1_macvtap", "macvtap0", "macsec0", "geneve0", "geneve1", "wg0", "wg1", "wg2", "wlan0", "wlan1"
+
+type devname string[devnames, IFNAMSIZ]
+
+devname_mask {
+	lo	flags[devname_mask_values, int8]
+} [size[IFNAMSIZ]]
+
+devname_mask_values = 0, 0xff
+
+ifru_flags = IFF_TUN, IFF_TAP, IFF_NO_PI, IFF_ONE_QUEUE, IFF_VNET_HDR, IFF_TUN_EXCL, IFF_MULTI_QUEUE, IFF_ATTACH_QUEUE, IFF_DETACH_QUEUE, IFF_PERSIST, IFF_NOFILTER
+
+ifmap {
+	mem_start	intptr
+	mem_end		intptr
+	base_addr	int16
+	irq		int8
+	dma		int8
+	port		int8
+}
+
+if_settings {
+	type		int32
+	size		int32
+	ifs_ifsu	ifs_ifsu
+}
+
+ifs_ifsu [
+	raw_hdlc	ptr[in, raw_hdlc_proto]
+	cisco		ptr[in, cisco_proto]
+	fr		ptr[in, fr_proto]
+	fr_pvc		ptr[in, fr_proto_pvc]
+	fr_pvc_info	ptr[in, fr_proto_pvc_info]
+	sync		ptr[in, sync_serial_settings]
+	te1		ptr[in, te1_settings]
+]
+
+raw_hdlc_proto {
+	encode	int16
+	parity	int16
+}
+
+cisco_proto {
+	val	int32
+	timeout	int32
+}
+
+fr_proto {
+	t391	int32
+	t392	int32
+	n391	int32
+	n392	int32
+	n393	int32
+	lmi	int16
+	dce	int16
+}
+
+fr_proto_pvc {
+	dlcl	int32
+}
+
+fr_proto_pvc_info {
+	dlci	int32
+	master	devname
+}
+
+sync_serial_settings {
+	rate	int32
+	type	int32
+	loop	int16
+}
+
+te1_settings {
+	rate	int32
+	type	int32
+	loop	int16
+	slot	int32
+}
+
+ifconf [
+	req	ifconf_req
+	buf	ifconf_buf
+]
+
+ifconf_buf {
+	ifc_len		len[ifcu_buf, int32]
+	ifcu_buf	ptr[inout, array[int8], opt]
+}
+
+ifconf_req {
+	ifc_len		len[ifcu_req, int32]
+	ifcu_req	ptr[inout, ifreq, opt]
+}
+
+brctl_cmds = BRCTL_GET_VERSION, BRCTL_GET_BRIDGES, BRCTL_ADD_BRIDGE, BRCTL_DEL_BRIDGE
+
+brctl_arg [
+	get	brctl_arg_get
+	add_del	brctl_arg_add_del
+	generic	brctl_arg_generic
+]
+
+brctl_arg_get {
+	cmd	const[BRCTL_GET_BRIDGES, int64]
+	buf	ptr[out, array[int8]]
+	indices	int64
+}
+
+brctl_arg_add_del {
+	cmd	const[BRCTL_ADD_BRIDGE, int64]
+	devname	ptr[in, devname]
+	pad	const[0, int64]
+}
+
+brctl_arg_generic {
+	a0	flags[brctl_cmds, int64]
+	a1	int64
+	a2	int64
+}
+
+dlci_add {
+	devname	devname
+	dlci	int16
+}
+
+# ETHTOOL declaration part
+# http://elixir.free-electrons.com/linux/latest/source/include/uapi/linux/ethtool.h
+
+ethtool_cmd_u [
+	ethtool_cmd		ethtool_cmd
+	ethtool_drvinfo		ethtool_drvinfo
+	ethtool_wolinfo		ethtool_wolinfo
+	ethtool_regs		ethtool_regs
+	ethtool_eeprom		ethtool_eeprom
+	ethtool_eee		ethtool_eee
+	ethtool_modinfo		ethtool_modinfo
+	ethtool_coalesce	ethtool_coalesce
+	ethtool_ringparam	ethtool_ringparam
+	ethtool_channels	ethtool_channels
+	ethtool_pauseparam	ethtool_pauseparam
+	ethtool_gstrings	ethtool_gstrings
+	ethtool_sset_info	ethtool_sset_info
+	ethtool_test		ethtool_test
+	ethtool_stats		ethtool_stats
+	ethtool_perm_addr	ethtool_perm_addr
+	ethtool_rxnfc		ethtool_rxnfc
+	ethtool_rxfh_indir	ethtool_rxfh_indir
+	ethtool_rxfh		ethtool_rxfh
+	ethtool_rx_ntuple	ethtool_rx_ntuple
+	ethtool_flash		ethtool_flash
+	ethtool_dump		ethtool_dump
+	ethtool_gfeatures	ethtool_gfeatures
+	ethtool_sfeatures	ethtool_sfeatures
+	ethtool_ts_info		ethtool_ts_info
+	ethtool_per_queue_op	ethtool_per_queue_op
+	ethtool_link_settings	ethtool_link_settings
+] [varlen]
+
+ethtool_cmd {
+	cmd			flags[ethtool_cmd_flags, int32]
+	supported		int32
+	advertising		int32
+	speed			int16
+	duplex			int8
+	port			int8
+	phy_address		int8
+	transceiver		int8
+	autoneg			int8
+	mdio_support		int8
+	maxtxpkt		int32
+	maxrxpkt		int32
+	speed_hi		int16
+	eth_tp_mdix		int8
+	eth_tp_mdix_ctrl	int8
+	lp_advertising		int32
+	reserved		array[int32, 2]
+}
+
+ethtool_cmd_flags = ETHTOOL_GSET, ETHTOOL_SSET, ETHTOOL_GDRVINFO, ETHTOOL_GREGS, ETHTOOL_GWOL, ETHTOOL_SWOL, ETHTOOL_GMSGLVL, ETHTOOL_SMSGLVL, ETHTOOL_NWAY_RST, ETHTOOL_GLINK, ETHTOOL_GEEPROM, ETHTOOL_SEEPROM, ETHTOOL_GCOALESCE, ETHTOOL_SCOALESCE, ETHTOOL_GRINGPARAM, ETHTOOL_SRINGPARAM, ETHTOOL_GPAUSEPARAM, ETHTOOL_SPAUSEPARAM, ETHTOOL_GRXCSUM, ETHTOOL_SRXCSUM, ETHTOOL_GTXCSUM, ETHTOOL_STXCSUM, ETHTOOL_GSG, ETHTOOL_SSG, ETHTOOL_TEST, ETHTOOL_PHYS_ID, ETHTOOL_GSTATS, ETHTOOL_GTSO, ETHTOOL_STSO, ETHTOOL_GPERMADDR, ETHTOOL_GUFO, ETHTOOL_SUFO, ETHTOOL_GGSO, ETHTOOL_SGSO, ETHTOOL_GFLAGS, ETHTOOL_SFLAGS, ETHTOOL_GPFLAGS, ETHTOOL_SPFLAGS, ETHTOOL_GRXFH, ETHTOOL_SRXFH, ETHTOOL_GGRO, ETHTOOL_SGRO, ETHTOOL_GRXRINGS, ETHTOOL_GRXCLSRLCNT, ETHTOOL_GRXCLSRULE, ETHTOOL_GRXCLSRLALL, ETHTOOL_SRXCLSRLDEL, ETHTOOL_SRXCLSRLINS, ETHTOOL_RESET, ETHTOOL_SRXNTUPLE, ETHTOOL_GRXNTUPLE, ETHTOOL_GSSET_INFO, ETHTOOL_GRXFHINDIR, ETHTOOL_SRXFHINDIR, ETHTOOL_GFEATURES, ETHTOOL_SFEATURES, ETHTOOL_GCHANNELS, ETHTOOL_SCHANNELS, ETHTOOL_SET_DUMP, ETHTOOL_GET_DUMP_FLAG, ETHTOOL_GET_DUMP_DATA, ETHTOOL_GET_TS_INFO, ETHTOOL_GMODULEEEPROM, ETHTOOL_GEEE, ETHTOOL_SEEE, ETHTOOL_GRSSH, ETHTOOL_SRSSH, ETHTOOL_GTUNABLE, ETHTOOL_STUNABLE, ETHTOOL_GPHYSTATS, ETHTOOL_PERQUEUE, ETHTOOL_GLINKSETTINGS, ETHTOOL_SLINKSETTINGS, ETHTOOL_PHY_GTUNABLE, ETHTOOL_PHY_STUNABLE
+
+ethtool_drvinfo {
+	cmd		const[ETHTOOL_GDRVINFO, int32]
+	driver		array[int8, 32]
+	version		array[int8, 32]
+	fw_version	array[int8, ETHTOOL_FWVERS_LEN]
+	bus_info	array[int8, ETHTOOL_BUSINFO_LEN]
+	erom_version	array[int8, ETHTOOL_EROMVERS_LEN]
+	reserved2	array[int8, 12]
+	n_priv_flags	int32
+	n_stats		int32
+	testinfo_len	int32
+	eedump_len	int32
+	regdump_len	int32
+}
+
+ethtool_wolinfo_cmd_flags = ETHTOOL_GWOL, ETHTOOL_SWOL
+
+ethtool_wolinfo {
+	cmd		flags[ethtool_wolinfo_cmd_flags, int32]
+	supported	int32
+	wolopts		int32
+	sopass		array[int8, SOPASS_MAX]
+}
+
+ethtool_regs {
+	cmd	const[ETHTOOL_GREGS, int32]
+	version	int32
+	len	len[data, int32]
+	data	array[int8]
+}
+
+ethtool_eeprom_cmd_flags = ETHTOOL_GEEPROM, ETHTOOL_GMODULEEEPROM, ETHTOOL_SEEPROM
+
+ethtool_eeprom {
+	cmd	flags[ethtool_eeprom_cmd_flags, int32]
+	magic	int32
+	offset	int32
+	len	len[data, int32]
+	data	array[int8]
+}
+
+ethtool_eee_cmd_flags = ETHTOOL_GEEE, ETHTOOL_SEEE
+
+ethtool_eee {
+	cmd		flags[ethtool_eee_cmd_flags, int32]
+	supported	int32
+	advertised	int32
+	lp_advertised	int32
+	eee_active	int32
+	eee_enabled	int32
+	tx_lpi_enabled	int32
+	tx_lpi_timer	int32
+	reserved	array[int32, 2]
+}
+
+ethtool_modinfo {
+	cmd		const[ETHTOOL_GMODULEINFO, int32]
+	type		int32
+	eeprom_len	int32
+	reserved	array[const[0, int32], 8]
+}
+
+ethtool_coalesce_cmd_flags = ETHTOOL_GCOALESCE, ETHTOOL_SCOALESCE
+
+ethtool_coalesce {
+	cmd				flags[ethtool_coalesce_cmd_flags, int32]
+	rx_coalesce_usecs		int32
+	rx_max_coalesced_frames		int32
+	rx_coalesce_usecs_irq		int32
+	rx_max_coalesced_frames_irq	int32
+	tx_coalesce_usecs		int32
+	tx_max_coalesced_frames		int32
+	tx_coalesce_usecs_irq		int32
+	tx_max_coalesced_frames_irq	int32
+	stats_block_coalesce_usecs	int32
+	use_adaptive_rx_coalesce	int32
+	use_adaptive_tx_coalesce	int32
+	pkt_rate_low			int32
+	rx_coalesce_usecs_low		int32
+	rx_max_coalesced_frames_low	int32
+	tx_coalesce_usecs_low		int32
+	tx_max_coalesced_frames_low	int32
+	pkt_rate_high			int32
+	rx_coalesce_usecs_high		int32
+	rx_max_coalesced_frames_high	int32
+	tx_coalesce_usecs_high		int32
+	tx_max_coalesced_frames_high	int32
+	rate_sample_interval		int32
+}
+
+ethtool_ringparam_cmd_flags = ETHTOOL_GRINGPARAM, ETHTOOL_SRINGPARAM
+
+ethtool_ringparam {
+	cmd			flags[ethtool_ringparam_cmd_flags, int32]
+	rx_max_pending		int32
+	rx_mini_max_pending	int32
+	rx_jumbo_max_pending	int32
+	tx_max_pending		int32
+	rx_pending		int32
+	rx_mini_pending		int32
+	rx_jumbo_pending	int32
+	tx_pending		int32
+}
+
+ethtool_channels_cmd_flags = ETHTOOL_GCHANNELS, ETHTOOL_SCHANNELS
+
+ethtool_channels {
+	cmd		flags[ethtool_channels_cmd_flags, int32]
+	max_rx		int32
+	max_tx		int32
+	max_other	int32
+	max_combined	int32
+	rx_count	int32
+	tx_count	int32
+	other_count	int32
+	combined_count	int32
+}
+
+ethtool_pauseparam_cmd_flags = ETHTOOL_GPAUSEPARAM, ETHTOOL_SPAUSEPARAM
+
+ethtool_pauseparam {
+	cmd		flags[ethtool_pauseparam_cmd_flags, int32]
+	autoneg		int32
+	rx_pause	int32
+	tx_pause	int32
+}
+
+ethtool_gstrings {
+	cmd		const[ETHTOOL_GSTRINGS, int32]
+	string_set	flags[ethtool_stringset, int32]
+	len		len[data, int32]
+	data		array[int8]
+}
+
+ethtool_stringset = ETH_SS_TEST, ETH_SS_STATS, ETH_SS_PRIV_FLAGS, ETH_SS_NTUPLE_FILTERS, ETH_SS_FEATURES, ETH_SS_RSS_HASH_FUNCS, ETH_SS_TUNABLES, ETH_SS_PHY_STATS, ETH_SS_PHY_TUNABLES
+
+ethtool_sset_info {
+	cmd		const[ETHTOOL_GSSET_INFO, int32]
+	reserved	int32
+	sset_mask	int64
+	data		array[int32]
+}
+
+ethtool_test {
+	cmd		const[ETHTOOL_TEST, int32]
+	flags		int32
+	reserved	int32
+	len		len[data, int32]
+	data		array[int64]
+}
+
+ethtool_stats {
+	cmd	const[ETHTOOL_GSTATS, int32]
+	n_stats	len[data, int32]
+	data	array[int64]
+}
+
+ethtool_perm_addr {
+	cmd	const[ETHTOOL_GPERMADDR, int32]
+	size	len[data, int32]
+	data	array[int8]
+}
+
+# http://elixir.free-electrons.com/linux/latest/source/include/uapi/linux/ethtool.h#L1565
+traffic_flow_types = TCP_V4_FLOW, UDP_V4_FLOW, SCTP_V4_FLOW, AH_ESP_V4_FLOW, TCP_V6_FLOW, UDP_V6_FLOW, SCTP_V6_FLOW, AH_ESP_V6_FLOW, AH_V4_FLOW, ESP_V4_FLOW, AH_V6_FLOW, ESP_V6_FLOW, IPV4_USER_FLOW, IP_USER_FLOW, IPV6_USER_FLOW, IPV4_FLOW, IPV6_FLOW, ETHER_FLOW
+
+ethtool_rxnfc_cmd_flags = ETHTOOL_GRXFH, ETHTOOL_SRXFH, ETHTOOL_GRXRINGS, ETHTOOL_GRXCLSRLCNT, ETHTOOL_GRXCLSRULE, ETHTOOL_GRXCLSRLALL, ETHTOOL_SRXCLSRLDEL, ETHTOOL_SRXCLSRLINS
+
+ethtool_rxnfc {
+	cmd		flags[ethtool_rxnfc_cmd_flags, int32]
+	flow_type	flags[traffic_flow_types, int32]
+	data		int64
+	fs		ethtool_rx_flow_spec
+	rule_cnt	len[rule_locs, int32]
+	rule_locs	array[int32]
+}
+
+ethtool_rx_flow_spec {
+	flow_type	flags[traffic_flow_types, int32]
+	h_u		ethtool_flow_union
+	h_ext		ethtool_flow_ext
+	m_u		ethtool_flow_union
+	m_ext		ethtool_flow_ext
+	ring_cookie	int64
+	location	int32
+}
+
+ethtool_flow_union [
+	tcp_ip4_spec	ethtool_tcpip4_spec
+	udp_ip4_spec	ethtool_tcpip4_spec
+	sctp_ip4_spec	ethtool_tcpip4_spec
+	ah_ip4_spec	ethtool_ah_espip4_spec
+	esp_ip4_spec	ethtool_ah_espip4_spec
+	usr_ip4_spec	ethtool_usrip4_spec
+	tcp_ip6_spec	ethtool_tcpip6_spec
+	udp_ip6_spec	ethtool_tcpip6_spec
+	sctp_ip6_spec	ethtool_tcpip6_spec
+	ah_ip6_spec	ethtool_ah_espip6_spec
+	esp_ip6_spec	ethtool_ah_espip6_spec
+	usr_ip6_spec	ethtool_usrip6_spec
+	ether_spec	ethhdr
+	hdata		array[int8, 52]
+]
+
+ethtool_flow_ext {
+	padding		const[0, int16]
+	h_dest		mac_addr
+	vlan_etype	int16be
+	vlan_tci	int16be
+	data		array[int32be, 2]
+}
+
+ethtool_tcpip4_spec {
+	ip4src	ipv4_addr
+	ip4dst	ipv4_addr
+	psrc	sock_port
+	pdst	sock_port
+	tos	int8
+}
+
+ethtool_ah_espip4_spec {
+	ip4src	ipv4_addr
+	ip4dst	ipv4_addr
+	spi	int32be
+	tos	int8
+}
+
+ethtool_usrip4_spec {
+	ip4src		ipv4_addr
+	ip4dst		ipv4_addr
+	l4_4_bytes	int32be
+	tos		int8
+	ip_ver		const[ETH_RX_NFC_IP4, int8]
+	proto		int8
+}
+
+ethtool_tcpip6_spec {
+	ip6src	ipv6_addr
+	ip6dst	ipv6_addr
+	psrc	sock_port
+	pdst	sock_port
+	tclass	int8
+}
+
+ethtool_ah_espip6_spec {
+	ip6src	ipv6_addr
+	ip6dst	ipv6_addr
+	spi	int32be
+	tclass	int8
+}
+
+ethtool_usrip6_spec {
+	ip6src		ipv6_addr
+	ip6dst		ipv6_addr
+	l4_4_bytes	int32be
+	tclass		int8
+	l4_proto	int8
+}
+
+ethhdr {
+	h_dest		mac_addr
+	h_source	mac_addr
+	h_proto		int16be
+} [packed]
+
+ethtool_rxfh_indir_flags = ETHTOOL_GRXFHINDIR, ETHTOOL_SRXFHINDIR
+
+ethtool_rxfh_indir {
+	cmd		flags[ethtool_rxfh_indir_flags, int32]
+	size		len[ring_index, int32]
+	ring_index	array[int32]
+}
+
+ethtool_rxfh_cmd_flags = ETHTOOL_GRSSH, ETHTOOL_SRSSH
+
+ethtool_rxfh {
+	cmd		flags[ethtool_rxfh_cmd_flags, int32]
+	rss_context	int32
+	indir_size	int32
+	key_size	int32
+	hfunc		int8
+	rsvd8		array[int8, 3]
+	rsvd32		int32
+	rss_config	array[int32]
+}
+
+ethtool_rx_ntuple {
+	cmd	const[ETHTOOL_SRXNTUPLE, int32]
+	fs	ethtool_rx_ntuple_flow_spec
+}
+
+ethtool_rx_ntuple_flow_spec_action_flags = ETHTOOL_RXNTUPLE_ACTION_DROP, ETHTOOL_RXNTUPLE_ACTION_CLEAR
+
+ethtool_rx_ntuple_flow_spec {
+	flow_type	flags[traffic_flow_types, int32]
+	h_u		ethtool_rx_ntuple_flow_spec_union
+	m_u		ethtool_rx_ntuple_flow_spec_union
+	vlan_tag	int16
+	vlan_tag_mask	int16
+	data		int64
+	data_mask	int64
+	action		flags[ethtool_rx_ntuple_flow_spec_action_flags, int32]
+}
+
+ethtool_rx_ntuple_flow_spec_union [
+	tcp_ip4_spec	ethtool_tcpip4_spec
+	udp_ip4_spec	ethtool_tcpip4_spec
+	sctp_ip4_spec	ethtool_tcpip4_spec
+	ah_ip4_spec	ethtool_ah_espip4_spec
+	esp_ip4_spec	ethtool_ah_espip4_spec
+	usr_ip4_spec	ethtool_usrip4_spec
+	ether_spec	ethhdr
+	hdata		array[int8, 72]
+]
+
+ethtool_flash {
+	cmd	const[ETHTOOL_FLASHDEV, int32]
+	region	int32
+	data	string[filename, ETHTOOL_FLASH_MAX_FILENAME]
+}
+
+ethtool_dump_cmd_flags = ETHTOOL_GET_DUMP_FLAG, ETHTOOL_GET_DUMP_DATA, ETHTOOL_SET_DUMP
+
+ethtool_dump {
+	cmd	flags[ethtool_dump_cmd_flags, int32]
+	version	int32
+	flag	int32
+	len	len[data, int32]
+	data	array[int8]
+}
+
+ethtool_gfeatures {
+	cmd		const[ETHTOOL_GFEATURES, int32]
+	size		len[features, int32]
+	features	array[ethtool_get_features_block]
+}
+
+ethtool_get_features_block {
+	available	const[0, int32]
+	requested	const[0, int32]
+	active		const[0, int32]
+	never_changed	const[0, int32]
+}
+
+ethtool_sfeatures {
+	cmd		const[ETHTOOL_SFEATURES, int32]
+	size		len[features, int32]
+	features	array[ethtool_set_features_block]
+}
+
+ethtool_set_features_block {
+	valid		int32
+	requested	int32
+}
+
+ethtool_ts_info {
+	cmd		const[ETHTOOL_GET_TS_INFO, int32]
+	so_timestamping	const[0, int32]
+	phc_index	const[0, int32]
+	tx_types	const[0, int32]
+	tx_reserved	array[const[0, int32], 3]
+	rx_filters	const[0, int32]
+	rx_reserved	array[const[0, int32], 3]
+}
+
+ethtool_per_queue_op {
+	cmd		const[ETHTOOL_PERQUEUE, int32]
+	sub_command	flags[ethtool_per_queue_sub_cmd, int32]
+	queue_mask	array[int32, ethtool_per_queue_op_size]
+	data		array[int8]
+}
+
+ethtool_per_queue_sub_cmd = ETHTOOL_GCOALESCE, ETHTOOL_SCOALESCE
+
+define ethtool_per_queue_op_size	__KERNEL_DIV_ROUND_UP(MAX_NUM_QUEUE, 32)
+
+ethtool_link_settings_cmd_flags = ETHTOOL_GLINKSETTINGS, ETHTOOL_SLINKSETTINGS
+
+ethtool_link_settings {
+	cmd			flags[ethtool_link_settings_cmd_flags, int32]
+	speed			int32
+	duplex			int8
+	port			int8
+	phy_address		int8
+	autoneg			int8
+	mdio_support		int8
+	eth_tp_mdix		int8
+	eth_tp_mdix_ctrl	int8
+	link_mode_masks_nwords	int8
+	reserved		array[int32, 8]
+	link_mode_masks		array[int32]
+}

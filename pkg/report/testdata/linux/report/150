@@ -1,0 +1,88 @@
+TITLE: WARNING: held lock freed in sctp_wait_for_sndbuf
+
+[   25.058100] =========================
+[   25.061864] WARNING: held lock freed!
+[   25.065632] 4.15.0-rc6+ #250 Not tainted
+[   25.069655] -------------------------
+[   25.073423] syzkaller065230/3505 is freeing memory 000000007fcba654-00000000499fef26, with a lock still held there!
+[   25.083959]  (sk_lock-AF_INET6){+.+.}, at: [<00000000abe26b8e>] sctp_wait_for_sndbuf+0x509/0x8d0
+[   25.092871] 1 lock held by syzkaller065230/3505:
+[   25.097592]  #0:  (sk_lock-AF_INET6){+.+.}, at: [<00000000abe26b8e>] sctp_wait_for_sndbuf+0x509/0x8d0
+[   25.106926] 
+[   25.106926] stack backtrace:
+[   25.111388] CPU: 0 PID: 3505 Comm: syzkaller065230 Not tainted 4.15.0-rc6+ #250
+[   25.118800] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   25.128122] Call Trace:
+[   25.130685]  dump_stack+0x194/0x257
+[   25.134284]  ? arch_local_irq_restore+0x53/0x53
+[   25.138929]  debug_check_no_locks_freed+0x32f/0x3c0
+[   25.143918]  kmem_cache_free+0x68/0x2a0
+[   25.147864]  __sk_destruct+0x622/0x910
+[   25.151718]  ? kasan_slab_free+0x71/0xc0
+[   25.155748]  ? sock_rfree+0x160/0x160
+[   25.159515]  ? inet_sendmsg+0x11f/0x5e0
+[   25.163455]  ? SYSC_sendto+0x361/0x5c0
+[   25.167307]  ? SyS_sendto+0x40/0x50
+[   25.170902]  ? entry_SYSCALL_64_fastpath+0x23/0x9a
+[   25.175818]  ? check_noncircular+0x20/0x20
+[   25.180019]  ? print_irqtrace_events+0x270/0x270
+[   25.184756]  ? free_obj_work+0x690/0x690
+[   25.188787]  ? sctp_put_port+0x495/0x640
+[   25.192826]  ? sctp_poll+0xc00/0xc00
+[   25.196510]  ? refcount_sub_and_test+0x115/0x1b0
+[   25.201233]  ? refcount_inc+0x50/0x50
+[   25.204999]  ? refcount_inc+0x50/0x50
+[   25.208770]  sk_destruct+0x47/0x80
+[   25.212275]  __sk_free+0x57/0x230
+[   25.215698]  sk_free+0x2a/0x40
+[   25.218857]  sctp_association_put+0x14c/0x2f0
+[   25.223318]  ? sctp_association_hold+0x20/0x20
+[   25.227865]  ? lock_sock_nested+0x91/0x110
+[   25.232068]  ? trace_hardirqs_on+0xd/0x10
+[   25.236186]  ? __local_bh_enable_ip+0x121/0x230
+[   25.240833]  sctp_wait_for_sndbuf+0x673/0x8d0
+[   25.245307]  ? sctp_init_sock+0x13b0/0x13b0
+[   25.249597]  ? do_raw_spin_trylock+0x190/0x190
+[   25.254155]  ? __local_bh_enable_ip+0x121/0x230
+[   25.258789]  ? sctp_prsctp_prune+0x97/0x6f0
+[   25.263080]  ? prepare_to_wait+0x4d0/0x4d0
+[   25.267976]  ? trace_hardirqs_on+0xd/0x10
+[   25.272095]  sctp_sendmsg+0x277d/0x3360
+[   25.276050]  ? put_pi_state+0x3c0/0x560
+[   25.280001]  ? sctp_id2assoc+0x390/0x390
+[   25.284031]  ? avc_has_perm+0x43e/0x680
+[   25.287975]  ? avc_has_perm_noaudit+0x520/0x520
+[   25.292621]  ? __fget+0x35c/0x570
+[   25.296047]  ? iterate_fd+0x3f0/0x3f0
+[   25.299819]  ? find_held_lock+0x35/0x1d0
+[   25.303862]  ? sock_has_perm+0x2a4/0x420
+[   25.307889]  ? lock_release+0x962/0xa40
+[   25.311829]  ? trace_event_raw_event_sched_switch+0x800/0x800
+[   25.317689]  ? __check_object_size+0x25d/0x4f0
+[   25.322261]  inet_sendmsg+0x11f/0x5e0
+[   25.326027]  ? inet_sendmsg+0x11f/0x5e0
+[   25.329968]  ? __might_sleep+0x95/0x190
+[   25.333909]  ? inet_recvmsg+0x5f0/0x5f0
+[   25.337854]  ? selinux_socket_sendmsg+0x36/0x40
+[   25.342500]  ? security_socket_sendmsg+0x89/0xb0
+[   25.347220]  ? inet_recvmsg+0x5f0/0x5f0
+[   25.351161]  sock_sendmsg+0xca/0x110
+[   25.354841]  SYSC_sendto+0x361/0x5c0
+[   25.358521]  ? SYSC_connect+0x4a0/0x4a0
+[   25.362461]  ? selinux_secmark_relabel_packet+0xc0/0xc0
+[   25.367791]  ? __do_page_fault+0x3d6/0xc90
+[   25.371995]  ? selinux_netlbl_sock_rcv_skb+0x730/0x730
+[   25.377250]  ? SyS_futex+0x269/0x390
+[   25.380930]  ? SyS_setsockopt+0x215/0x360
+[   25.385059]  ? do_futex+0x22a0/0x22a0
+[   25.388827]  ? entry_SYSCALL_64_fastpath+0x5/0x9a
+[   25.393648]  SyS_sendto+0x40/0x50
+[   25.397077]  entry_SYSCALL_64_fastpath+0x23/0x9a
+[   25.401808] RIP: 0033:0x445db9
+[   25.404964] RSP: 002b:00007f2467415d98 EFLAGS: 00000212 ORIG_RAX: 000000000000002c
+[   25.412638] RAX: ffffffffffffffda RBX: 00000000006dbc84 RCX: 0000000000445db9
+[   25.419874] RDX: 0000000000000001 RSI: 000000002010bf14 RDI: 0000000000000005
+[   25.428507] RBP: 0000000000000000 R08: 00000000204d9000 R09: 000000000000001c
+[   25.435744] R10: 0000000000000000 R11: 0000000000000212 R12: 00000000006dbc80
+[   25.443327] R13: 00000000209a9000 R14: 0100000000000000 R15: 0000000000000001
+[   25.450699] ==================================================================

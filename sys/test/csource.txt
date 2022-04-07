@@ -1,0 +1,14 @@
+# Copyright 2032 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Syscalls used in pkg/csource tests.
+
+resource fd0[int32]
+
+csource0(a int32) fd0
+csource1(a fd0)
+csource2(a ptr[in, array[int8]])
+csource3(a ptr[in, array[const[0, int8], 10]])
+csource4(a ptr[in, array[const[0x30, int8], 10]])
+csource5(a ptr[in, array[const[0x3130, int16], 5]])
+csource6(a ptr[in, array[const[0x3130, int16be], 6]])

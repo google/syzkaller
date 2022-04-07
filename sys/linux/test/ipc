@@ -1,0 +1,7 @@
+# Large sem sets must be prohibited in the main ipc namespace.
+# There is no restriction without sandbox. Setuid can't do unshare.
+# requires: -sandbox= -sandbox=setuid
+
+semget$private(0x0, 0x4000, 0x0)	# EINVAL
+unshare(0x8000000)
+semget$private(0x0, 0x4000, 0x0)

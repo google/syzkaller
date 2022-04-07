@@ -1,0 +1,6 @@
+# 32_shmem has 4-byte alignment for int64 and everything goes havoc.
+# requires: -arch=32_shmem littleendian
+
+syz_compare(&AUTO="ab03000000000000cdcdcdcdcdcdcdcdebffff03ab0303abaa00000000000000", 0x20, &AUTO=@bf0={0xabab, 0xcdcdcdcdcdcdcdcd, 0xabab, 0xffff, 0xffffff, 0xabab, 0xabab, 0xaaa}, AUTO)
+syz_compare(&AUTO="dcfcde563422f10e", 0x8, &AUTO=@bf2={0x0abc, 0x0bcd, 0xcdef, 0x123456, 0x78ef12}, AUTO)
+syz_compare(&AUTO="0ef1223456defcdc", 0x8, &AUTO=@bf3={0x0abc, 0x0bcd, 0xcdef, 0x123456, 0x78ef12}, AUTO)

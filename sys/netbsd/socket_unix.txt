@@ -1,0 +1,79 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_UNIX support.
+
+include <stddef.h>
+include <sys/types.h>
+include <sys/socket.h>
+include <netinet/in.h>
+include <compat/linux/common/linux_socket.h>
+
+resource sock_unix[sock]
+
+socket$unix(domain const[AF_UNIX], type flags[unix_socket_type], proto const[0]) sock_unix
+socketpair$unix(domain const[AF_UNIX], type flags[unix_socket_type], proto const[0], fds ptr[out, unix_pair])
+bind$unix(fd sock_unix, addr ptr[in, sockaddr_un], addrlen len[addr])
+connect$unix(fd sock_unix, addr ptr[in, sockaddr_un], addrlen len[addr])
+accept$unix(fd sock_unix, peer ptr[out, sockaddr_un, opt], peerlen ptr[inout, len[peer, int32]]) sock_unix
+
+sendto$unix(fd sock_unix, buf buffer[in], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_un, opt], addrlen len[addr])
+sendmsg$unix(fd sock_unix, msg ptr[in, msghdr_un], f flags[send_flags])
+recvfrom$unix(fd sock_unix, buf buffer[out], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr_un, opt], addrlen len[addr])
+getsockname$unix(fd sock_unix, addr ptr[out, sockaddr_un], addrlen ptr[inout, len[addr, int32]])
+getpeername$unix(fd sock_unix, peer ptr[out, sockaddr_un], peerlen ptr[inout, len[peer, int32]])
+
+unix_socket_type = SOCK_STREAM, SOCK_DGRAM, SOCK_SEQPACKET
+unix_socket_family = AF_UNIX, AF_UNSPEC
+
+unix_pair {
+	fd0	sock_unix
+	fd1	sock_unix
+}
+
+sockaddr_un [
+	file	sockaddr_un_file
+	abs	sockaddr_un_abstract
+] [varlen]
+
+sockaddr_un_file {
+	family	flags[unix_socket_family, int16]
+	path	filename
+} [packed]
+
+sockaddr_un_abstract {
+	family	flags[unix_socket_family, int16]
+	ind	const[0, int8]
+	id	proc[20000, 4, int32]
+}
+
+msghdr_un {
+	addr	ptr[in, sockaddr_un]
+	addrlen	len[addr, int32]
+	vec	ptr[in, array[iovec_in]]
+	vlen	len[vec, intptr]
+	ctrl	ptr[in, array[cmsghdr_un], opt]
+	ctrllen	bytesize[ctrl, intptr]
+	f	flags[send_flags, int32]
+}
+
+cmsghdr_un [
+	rights	cmsghdr_un_rights
+	cred	cmsghdr_un_cred
+] [varlen]
+
+cmsghdr_un_rights {
+	len	len[parent, intptr]
+	level	const[SOL_SOCKET, int32]
+	type	const[SCM_RIGHTS, int32]
+	fds	array[fd]
+} [align[PTR_SIZE]]
+
+cmsghdr_un_cred {
+	len	len[parent, intptr]
+	level	const[SOL_SOCKET, int32]
+	type	const[LINUX_SCM_CREDENTIALS, int32]
+	pid	pid
+	uid	uid
+	gid	gid
+} [align[PTR_SIZE]]

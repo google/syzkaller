@@ -1,0 +1,18 @@
+TITLE: WARNING in corrupted
+CORRUPTED: Y
+
+syzkaller login: ------------[ cut here ]------------
+WARNING: CPU: 5 PID: -534549613 at kernel/sched/core.c:2681 finish_task_switch+0x230/0x23c
+corrupted preempt_count: Yl���`��0��/-534549613/0x97aa0000
+Kernel panic - not syncing: panic_on_warn set ...
+
+CPU: 5 PID: -534549613 Comm: Yl���`��0�� Not tainted 4.17.0-rc1+ #8
+Hardware name: ARM-Versatile Express
+[<8011344c>] (unwind_backtrace) from [<8010ef84>] (show_stack+0x18/0x1c)
+[<8010ef84>] (show_stack) from [<807bb0d8>] (dump_stack+0xa0/0xc0)
+[<807bb0d8>] (dump_stack) from [<80126690>] (panic+0x104/0x2cc)
+[<80126690>] (panic) from [<80126484>] (warn_slowpath_fmt+0x0/0x5c)
+[<80126484>] (warn_slowpath_fmt) from [<e0236b93>] (0xe0236b93)
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Rebooting in 86400 seconds..

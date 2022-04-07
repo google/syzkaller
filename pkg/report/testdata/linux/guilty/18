@@ -1,0 +1,29 @@
+FILE: crypto/blkcipher.c
+
+BUG: unable to handle kernel NULL pointer dereference at 0000000000000074
+IP: virt_to_cache mm/slab.c:400 [inline]
+IP: kfree+0xb2/0x250 mm/slab.c:3802
+PGD 1c18ff067 P4D 1c18ff067 PUD 1c3556067 PMD 0
+Oops: 0000 [#1] SMP KASAN
+Dumping ftrace buffer:
+    (ftrace buffer empty)
+Modules linked in:
+CPU: 1 PID: 24672 Comm: syz-executor7 Not tainted 4.14.0+ #129
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS  
+Google 01/01/2011
+task: ffff8801c904c540 task.stack: ffff8801a4320000
+RIP: 0010:virt_to_cache mm/slab.c:400 [inline]
+RIP: 0010:kfree+0xb2/0x250 mm/slab.c:3802
+RSP: 0018:ffff8801a4327750 EFLAGS: 00010046
+RAX: 0000000000000000 RBX: ffff8801a4327918 RCX: ffffffffffffffff
+RDX: ffffea000690c9c0 RSI: 0000000000000000 RDI: ffff8801a4327918
+RBP: ffff8801a4327770 R08: ffffed003a6e6874 R09: 0000000000000000
+R10: 0000000000000001 R11: ffffed003a6e6873 R12: 0000000000000286
+R13: 0000000000000000 R14: ffff8801a4327918 R15: ffff8801a4327880
+FS:  00007f63f74de700(0000) GS:ffff8801db500000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000000000000074 CR3: 00000001c6f12000 CR4: 00000000001406e0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+Call Trace:
+  blkcipher_walk_done+0x72b/0xde0 crypto/blkcipher.c:139

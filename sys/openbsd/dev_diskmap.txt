@@ -1,0 +1,23 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/param.h>
+include <sys/ioctl.h>
+include <sys/fcntl.h>
+
+include <sys/disk.h>
+include <sys/dkio.h>
+
+resource fd_diskmap[fd]
+
+openat$diskmap(fd const[AT_FDCWD], file ptr[in, string["/dev/diskmap"]], flags flags[open_flags], mode const[0]) fd_diskmap
+
+ioctl$DIOCMAP(fd fd_diskmap, cmd const[DIOCMAP], arg ptr[in, dk_diskmap])
+
+dk_diskmap {
+	device	ptr[in, filename]
+	fd	fd
+	flags	flags[dk_diskmap_flags, int32]
+}
+
+dk_diskmap_flags = DM_OPENPART, DM_OPENBLCK

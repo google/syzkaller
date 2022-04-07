@@ -1,0 +1,62 @@
+{{/*
+Copyright 2020 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+Manager statistics graphs.
+*/}}
+
+<!doctype html>
+<html>
+<head>
+	<title>{{.Header.Namespace}} fuzzing stats</title>
+	{{template "head" .Header}}
+
+	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+	<script type="text/javascript">
+		google.load("visualization", "1", {packages:["corechart"]});
+		google.setOnLoadCallback(drawCharts);
+		function drawCharts() {
+			var data = new google.visualization.DataTable();
+			data.addColumn({type: 'string'});
+			{{range $.Graph.Headers}}
+				data.addColumn({type: 'number', label: '{{.}}'});
+				data.addColumn({type: 'string', role: 'tooltip'});
+			{{- end}}
+			data.addRows([ {{range $.Graph.Columns}}
+					[ "{{.Hint}}", {{range .Vals}}
+						{{if .Val}}{{.Val}}{{end}}, '{{.Hint}}',
+					{{- end}}
+					],
+				{{- end}}
+			]);
+			new google.visualization.LineChart(document.getElementById('graph_div')).
+				draw(data, {
+					width: "80%",
+					height: 600,
+					interpolateNulls: true,
+					focusTarget: "category",
+					chartArea: {width: '95%', height: '100%'},
+					legend: {position: 'in'},
+					axisTitlesPosition: 'out',
+					hAxis: {textPosition: 'in', maxAlternation: 1},
+					vAxis: {textPosition: 'in'},
+					explorer: {axis: 'horizontal', maxZoomIn: 0, maxZoomOut: 1, zoomDelta: 1.2, keepInBounds: true}
+				})
+		}
+	</script>
+</head>
+<body>
+	{{template "header" .Header}}
+	<div  class="page">
+		<div id="graph_div" class="main-content"></div>
+		<aside>
+			<form>
+				{{template "input-checkbox" .Managers}}
+				{{template "input-checkbox" .Metrics}}
+				{{template "input-slider" .Months}}
+				<input type="submit" value="Refresh"/>
+			</form>
+		</aside>
+	</div>
+</body>
+</html>

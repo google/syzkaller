@@ -1,0 +1,64 @@
+TITLE: WARNING in free_netdev
+
+[  582.890557][  T981] ------------[ cut here ]------------
+[  582.907452][  T981] WARNING: CPU: 1 PID: 981 at lib/ref_tracker.c:38 ref_tracker_dir_exit.cold+0x137/0x1e3
+[  582.923415][  T981] Modules linked in:
+[  582.945529][  T981] CPU: 1 PID: 981 Comm: kworker/u4:5 Not tainted 5.16.0-rc7-syzkaller #0
+[  582.954023][  T981] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  582.989367][  T981] Workqueue: netns cleanup_net
+[  582.994171][  T981] RIP: 0010:ref_tracker_dir_exit.cold+0x137/0x1e3
+[  583.034829][  T981] Code: 4c 89 ef e8 27 29 aa f8 4c 8b 3c 24 4c 39 fd 49 8b 07 0f 85 b5 00 00 00 e8 c2 b9 62 f8 48 8b 74 24 10 4c 89 e7 e8 25 15 36 00 <0f> 0b e9 91 40 e9 fa 4c 89 ff e8 f6 28 aa f8 e9 d4 fe ff ff e8 dc
+[  583.063642][  T981] RSP: 0018:ffffc90004897970 EFLAGS: 00010246
+[  583.071448][  T981] RAX: 0000000000000000 RBX: dffffc0000000000 RCX: 0000000000000000
+[  583.116543][  T981] RDX: 0000000000000001 RSI: 0000000000000001 RDI: 0000000000000001
+[  583.124638][  T981] RBP: ffff88806ec6e600 R08: 0000000000000001 R09: ffffffff8ff9ba0f
+[  583.184822][  T981] R10: 0000000000000001 R11: 0000000000000001 R12: ffff88806ec6e5b8
+[  583.236536][  T981] R13: ffff88806ec6e600 R14: ffff88806ec6e600 R15: ffff88806ec6e600
+[  583.244547][  T981] FS:  0000000000000000(0000) GS:ffff8880b9d00000(0000) knlGS:0000000000000000
+[  583.267265][  T981] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  583.313964][  T981] CR2: 00007f507edcd370 CR3: 000000000b88e000 CR4: 00000000003506e0
+[  583.354853][  T981] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  583.387245][  T981] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  583.428985][  T981] Call Trace:
+[  583.438690][  T981]  <TASK>
+[  583.453571][  T981]  free_netdev+0x32a/0x5b0
+[  583.470555][  T981]  netdev_run_todo+0x8a0/0xaa0
+[  583.570864][  T981]  default_device_exit_batch+0x2ff/0x3c0
+[  583.719434][  T981]  ops_exit_list+0x10d/0x160
+[  583.744036][  T981]  cleanup_net+0x4ea/0xb00
+[  583.779533][  T981]  process_one_work+0x9b2/0x1660
+[  583.864495][  T981]  worker_thread+0x65d/0x1130
+[  583.912736][  T981]  kthread+0x405/0x4f0
+[  583.968596][  T981]  ret_from_fork+0x1f/0x30
+[  583.981013][  T981]  </TASK>
+[  583.994730][  T981] Kernel panic - not syncing: panic_on_warn set ...
+[  584.001329][  T981] CPU: 0 PID: 981 Comm: kworker/u4:5 Not tainted 5.16.0-rc7-syzkaller #0
+[  584.009751][  T981] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  584.019818][  T981] Workqueue: netns cleanup_net
+[  584.024599][  T981] Call Trace:
+[  584.027883][  T981]  <TASK>
+[  584.030820][  T981]  dump_stack_lvl+0xcd/0x134
+[  584.035427][  T981]  panic+0x2b0/0x6dd
+[  584.054713][  T981]  __warn.cold+0x35/0x44
+[  584.064804][  T981]  report_bug+0x1bd/0x210
+[  584.069232][  T981]  handle_bug+0x3c/0x60
+[  584.073454][  T981]  exc_invalid_op+0x14/0x40
+[  584.077977][  T981]  asm_exc_invalid_op+0x12/0x20
+[  584.082842][  T981] RIP: 0010:ref_tracker_dir_exit.cold+0x137/0x1e3
+[  584.089281][  T981] Code: 4c 89 ef e8 27 29 aa f8 4c 8b 3c 24 4c 39 fd 49 8b 07 0f 85 b5 00 00 00 e8 c2 b9 62 f8 48 8b 74 24 10 4c 89 e7 e8 25 15 36 00 <0f> 0b e9 91 40 e9 fa 4c 89 ff e8 f6 28 aa f8 e9 d4 fe ff ff e8 dc
+[  584.108900][  T981] RSP: 0018:ffffc90004897970 EFLAGS: 00010246
+[  584.114981][  T981] RAX: 0000000000000000 RBX: dffffc0000000000 RCX: 0000000000000000
+[  584.122964][  T981] RDX: 0000000000000001 RSI: 0000000000000001 RDI: 0000000000000001
+[  584.130944][  T981] RBP: ffff88806ec6e600 R08: 0000000000000001 R09: ffffffff8ff9ba0f
+[  584.138923][  T981] R10: 0000000000000001 R11: 0000000000000001 R12: ffff88806ec6e5b8
+[  584.146908][  T981] R13: ffff88806ec6e600 R14: ffff88806ec6e600 R15: ffff88806ec6e600
+[  584.155270][  T981]  free_netdev+0x32a/0x5b0
+[  584.159721][  T981]  netdev_run_todo+0x8a0/0xaa0
+[  584.191050][  T981]  default_device_exit_batch+0x2ff/0x3c0
+[  584.223562][  T981]  ops_exit_list+0x10d/0x160
+[  584.228169][  T981]  cleanup_net+0x4ea/0xb00
+[  584.238180][  T981]  process_one_work+0x9b2/0x1660
+[  584.258899][  T981]  worker_thread+0x65d/0x1130
+[  584.268819][  T981]  kthread+0x405/0x4f0
+[  584.278143][  T981]  ret_from_fork+0x1f/0x30
+[  584.282605][  T981]  </TASK>

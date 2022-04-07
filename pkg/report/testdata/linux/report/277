@@ -1,0 +1,56 @@
+TITLE: INFO: rcu detected stall in ext4_file_write_iter
+ALT: stall in ext4_file_write_iter
+TYPE: HANG
+
+[  587.513972] rcu: INFO: rcu_sched self-detected stall on CPU
+[  587.520042] rcu: 	0-....: (105000 ticks this GP) idle=76a/1/0x4000000000000002 softirq=144952/144952 fqs=26032 
+[  587.530723] rcu: 	 (t=105010 jiffies g=334085 q=1885)
+[  587.535924] NMI backtrace for cpu 0
+[  587.539556] CPU: 0 PID: 30128 Comm: syz-executor6 Not tainted 4.18.0+ #197
+[  587.546568] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  587.555920] Call Trace:
+[  587.558509]  <IRQ>
+[  587.560674]  dump_stack+0x1c9/0x2b4
+[  587.578675]  nmi_cpu_backtrace.cold.3+0x48/0x88
+[  587.588548]  nmi_trigger_cpumask_backtrace+0x151/0x192
+[  587.593830]  arch_trigger_cpumask_backtrace+0x14/0x20
+[  587.599018]  rcu_dump_cpu_stacks+0x175/0x1c2
+[  587.608455]  print_cpu_stall.cold.78+0x2fb/0x59c
+[  587.638910]  rcu_check_callbacks+0xd93/0x1660
+[  587.732161]  update_process_times+0x2d/0x70
+[  587.736486]  tick_sched_handle+0x9f/0x180
+[  587.740649]  tick_sched_timer+0x45/0x130
+[  587.744711]  __hrtimer_run_queues+0x3eb/0x10c0
+[  587.785214]  hrtimer_interrupt+0x2f3/0x750
+[  587.789483]  smp_apic_timer_interrupt+0x16d/0x730
+[  587.817071]  apic_timer_interrupt+0xf/0x20
+[  587.821308]  </IRQ>
+[  587.823563] RIP: 0010:lock_acquire+0x25f/0x540
+[  587.847050] RSP: 0018:ffff8801912ee5e8 EFLAGS: 00000282 ORIG_RAX: ffffffffffffff13
+[  587.854764] RAX: dffffc0000000000 RBX: 1ffff1003225dcc2 RCX: 0000000000000000
+[  587.862032] RDX: 1ffffffff0fe374d RSI: 0000000000000000 RDI: 0000000000000282
+[  587.869301] RBP: ffff8801912ee6d8 R08: 0000000000000008 R09: 0000000000000004
+[  587.876569] R10: ffff8801bb228d58 R11: 5f54006f34535a0e R12: ffff8801bb228480
+[  587.883836] R13: 0000000000000002 R14: 0000000000000000 R15: 0000000000000000
+[  587.903344]  balance_dirty_pages_ratelimited+0x187f/0x2200
+[  587.991035]  generic_perform_write+0x551/0x6c0
+[  588.027011]  __generic_file_write_iter+0x26e/0x630
+[  588.031952]  ext4_file_write_iter+0x390/0x1450
+[  588.082118]  __vfs_write+0x6af/0x9d0
+[  588.102237]  __kernel_write+0x10c/0x380
+[  588.106225]  do_acct_process+0x1148/0x1660
+[  588.118181]  acct_process+0x6b9/0x87d
+[  588.151604]  do_exit+0x1afd/0x2760
+[  588.255303]  do_group_exit+0x177/0x440
+[  588.277377]  get_signal+0x88e/0x1970
+[  588.310755]  do_signal+0x9c/0x21c0
+[  588.350143]  exit_to_usermode_loop+0x2e5/0x380
+[  588.365138]  do_syscall_64+0x6be/0x820
+[  588.397707]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  588.402900] RIP: 0033:0x457089
+[  588.425533] RSP: 002b:00007fe66d9d4c78 EFLAGS: 00000246 ORIG_RAX: 0000000000000003
+[  588.433254] RAX: 0000000000000000 RBX: 00007fe66d9d56d4 RCX: 0000000000457089
+[  588.440538] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000004
+[  588.447815] RBP: 00000000009300a0 R08: 0000000000000000 R09: 0000000000000000
+[  588.455086] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000ffffffff
+[  588.462371] R13: 00000000004cb460 R14: 00000000004ee072 R15: 0000000000000000

@@ -1,0 +1,4 @@
+syz_compare(&AUTO="303100090a0d7022273a", 0xa, &AUTO=@str='01\x00\t\n\rp\"\':', AUTO)
+syz_compare(&AUTO="303100090a0d7022273a01", 0xb, &AUTO=@blob='01\x00\t\n\rp\"\':\x01', AUTO)
+syz_compare(&AUTO="303100090a0d7022273a0102", 0xc, &AUTO=@arr16be=[0x3031, 0x0009, 0x0a0d, 0x7022, 0x273a, 0x0102], AUTO)
+syz_compare(&AUTO="e91f6189591e9233614b00", 0xb, &AUTO=@str='\xe9\x1fa\x89Y\x1e\x923aK\x00', AUTO)

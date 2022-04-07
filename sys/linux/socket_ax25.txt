@@ -1,0 +1,173 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_AX25 support.
+
+include <linux/socket.h>
+include <linux/net.h>
+include <linux/if_ether.h>
+include <linux/if_arp.h>
+include <linux/ax25.h>
+include <net/ax25.h>
+
+resource sock_ax25[sock]
+
+syz_init_net_socket$ax25(domain const[AF_AX25], type flags[ax25_socket_types], proto flags[ax25_protocols]) sock_ax25
+bind$ax25(fd sock_ax25, addr ptr[in, full_sockaddr_ax25], addrlen len[addr])
+connect$ax25(fd sock_ax25, addr ptr[in, full_sockaddr_ax25], addrlen len[addr])
+accept$ax25(fd sock_ax25, peer ptr[out, full_sockaddr_ax25, opt], peerlen ptr[inout, len[peer, int32]]) sock_ax25
+accept4$ax25(fd sock_ax25, peer ptr[out, full_sockaddr_ax25, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_ax25
+sendto$ax25(fd sock_ax25, buf ptr[in, array[int8]], len len[buf], f flags[send_flags], addr ptr[in, full_sockaddr_ax25, opt], addrlen len[addr])
+recvfrom$ax25(fd sock_ax25, buf ptr[out, array[int8]], len len[buf], f flags[recv_flags], addr ptr[in, full_sockaddr_ax25, opt], addrlen len[addr])
+getsockname$ax25(fd sock_ax25, addr ptr[out, full_sockaddr_ax25], addrlen ptr[inout, len[addr, int32]])
+getpeername$ax25(fd sock_ax25, peer ptr[out, full_sockaddr_ax25], peerlen ptr[inout, len[peer, int32]])
+
+ax25_socket_types = SOCK_DGRAM, SOCK_SEQPACKET, SOCK_RAW
+ax25_protocols = AX25_P_ROSE, AX25_P_VJCOMP, AX25_P_VJUNCOMP, AX25_P_SEGMENT, AX25_P_TEXNET, AX25_P_LQ, AX25_P_ATALK, AX25_P_ATALK_ARP, AX25_P_IP, AX25_P_ARP, AX25_P_FLEXNET, AX25_P_NETROM, AX25_P_TEXT
+
+ax25_address [
+	remote	ax25_address_remote
+	bcast	ax25_address_bcast
+	default	ax25_address_default
+	null	ax25_address_null
+	netrom	address_netrom_dev
+# TODO: rose address is 5 bytes, ax25 is 7, should it even be here?
+	rose	rose_address_dev
+] [size[7]]
+
+# Just some address without special meaning.
+ax25_address_remote {
+	b0	const[0xcc, int8]
+	b1	const[0xcc, int8]
+	b2	const[0xcc, int8]
+	b3	const[0xcc, int8]
+	b4	const[0xcc, int8]
+	b5	const[0xcc, int8]
+	b6	proc[0x0, 4, int8]
+}
+
+# {{'Q' << 1, 'S' << 1, 'T' << 1, ' ' << 1, ' ' << 1, ' ' << 1, 0 << 1}}
+ax25_address_bcast {
+	b0	const[0xa2, int8]
+	b1	const[0xa6, int8]
+	b2	const[0xa8, int8]
+	b3	const[0x40, int8]
+	b4	const[0x40, int8]
+	b5	const[0x40, int8]
+	b6	const[0x0, int8]
+}
+
+# {{'L' << 1, 'I' << 1, 'N' << 1, 'U' << 1, 'X' << 1, ' ' << 1, 1 << 1}}
+ax25_address_default {
+	b0	const[0x98, int8]
+	b1	const[0x92, int8]
+	b2	const[0x9c, int8]
+	b3	const[0xaa, int8]
+	b4	const[0xb0, int8]
+	b5	const[0x40, int8]
+	b6	const[0x2, int8]
+}
+
+# {{' ' << 1, ' ' << 1, ' ' << 1, ' ' << 1, ' ' << 1, ' ' << 1, 0 << 1}}
+ax25_address_null {
+	b0	const[0x40, int8]
+	b1	const[0x40, int8]
+	b2	const[0x40, int8]
+	b3	const[0x40, int8]
+	b4	const[0x40, int8]
+	b5	const[0x40, int8]
+	b6	const[0x0, int8]
+}
+
+sockaddr_ax25 {
+	sax25_family	const[AF_AX25, int16]
+	sax25_call	ax25_address
+	sax25_ndigis	int32[0:AX25_MAX_DIGIS]
+}
+
+sockaddr_ax25_uid {
+	sax25_family	const[AF_AX25, int16]
+	sax25_call	ax25_address
+	sax25_ndigis	uid
+}
+
+full_sockaddr_ax25 {
+	fsa_ax25	sockaddr_ax25
+	fsa_digipeater	array[ax25_address, AX25_MAX_DIGIS]
+}
+
+# Generic options
+
+ax25_option_types_int = AX25_WINDOW, AX25_T1, AX25_T2, AX25_N2, AX25_T3, AX25_IDLE, AX25_BACKOFF, AX25_EXTSEQ, AX25_PIDINCL, AX25_IAMDIGI, AX25_PACLEN
+
+getsockopt$ax25_int(fd sock_ax25, level const[SOL_AX25], optname flags[ax25_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$ax25_int(fd sock_ax25, level const[SOL_AX25], optname flags[ax25_option_types_int], optval ptr[in, int32], optlen len[optval])
+
+setsockopt$ax25_SO_BINDTODEVICE(fd sock_ax25, level const[SOL_AX25], optname const[SO_BINDTODEVICE], optval ptr[in, ax25_devname], optlen len[optval])
+
+ax25_devname [
+	rose	ax25_devname_rose
+	netrom	ax25_devname_netrom
+	bpq0	string["bpq0", IFNAMSIZ]
+]
+
+ax25_devname_rose {
+	name	stringnoz["rose"]
+	id	proc['0', 1, int8]
+	z	const[0, int8]
+} [size[IFNAMSIZ]]
+
+ax25_devname_netrom {
+	name	stringnoz["nr"]
+	id	proc['0', 1, int8]
+	z	const[0, int8]
+} [size[IFNAMSIZ]]
+
+ioctl$SIOCAX25ADDUID(fd sock_ax25, cmd const[SIOCAX25ADDUID], arg ptr[in, sockaddr_ax25_uid])
+ioctl$SIOCAX25DELUID(fd sock_ax25, cmd const[SIOCAX25DELUID], arg ptr[in, sockaddr_ax25_uid])
+ioctl$SIOCAX25GETUID(fd sock_ax25, cmd const[SIOCAX25GETUID], arg ptr[in, sockaddr_ax25_uid])
+ioctl$SIOCAX25NOUID(fd sock_ax25, cmd const[SIOCAX25NOUID], arg ptr[in, int64[0:AX25_NOUID_BLOCK]])
+ioctl$SIOCAX25CTLCON(fd sock_ax25, cmd const[SIOCAX25CTLCON], arg ptr[in, ax25_ctl_struct])
+ioctl$SIOCAX25GETINFO(fd sock_ax25, cmd const[SIOCAX25GETINFO], arg ptr[out, array[int8, AX25_INFO_SIZE]])
+ioctl$SIOCAX25GETINFOOLD(fd sock_ax25, cmd const[SIOCAX25GETINFOOLD], arg ptr[out, array[int8, AX25_INFO_OLD_SIZE]])
+ioctl$SIOCAX25ADDFWD(fd sock_ax25, cmd const[SIOCAX25ADDFWD], arg ptr[in, ax25_fwd_struct])
+ioctl$SIOCAX25DELFWD(fd sock_ax25, cmd const[SIOCAX25DELFWD], arg ptr[in, ax25_fwd_struct])
+ioctl$sock_ax25_SIOCADDRT(fd sock_ax25, cmd const[SIOCADDRT], arg ptr[in, ax25_routes_struct])
+ioctl$sock_ax25_SIOCDELRT(fd sock_ax25, cmd const[SIOCDELRT], arg ptr[in, ax25_routes_struct])
+ioctl$SIOCAX25OPTRT(fd sock_ax25, cmd const[SIOCAX25OPTRT], arg ptr[in, ax25_route_opt_struct])
+
+define AX25_INFO_SIZE	sizeof(struct ax25_info_struct)
+define AX25_INFO_OLD_SIZE	sizeof(struct ax25_info_struct_deprecated)
+
+ax25_ctl_struct {
+	port_addr	ax25_address
+	source_addr	ax25_address
+	dest_addr	ax25_address
+	cmd		flags[ax25_ctl_cmd, int32]
+	arg		intptr
+	digi_count	int8[0:AX25_MAX_DIGIS]
+	digi_addr	array[ax25_address, AX25_MAX_DIGIS]
+}
+
+ax25_ctl_cmd = AX25_WINDOW, AX25_T1, AX25_N2, AX25_T3, AX25_T2, AX25_BACKOFF, AX25_EXTSEQ, AX25_PIDINCL, AX25_IDLE, AX25_PACLEN, AX25_IAMDIGI, AX25_KILL
+
+ax25_fwd_struct {
+	port_from	ax25_address
+	port_to		ax25_address
+}
+
+ax25_routes_struct {
+	port_addr	ax25_address
+	dest_addr	ax25_address
+	digi_count	int8[0:AX25_MAX_DIGIS]
+	digi_addr	array[ax25_address, AX25_MAX_DIGIS]
+}
+
+ax25_route_opt_struct {
+	port_addr	ax25_address
+	dest_addr	ax25_address
+	cmd		const[AX25_SET_RT_IPMODE, int32]
+	arg		flags[ax25_route_ipmodes, int32]
+}
+
+ax25_route_ipmodes = ' ', 'D', 'V'

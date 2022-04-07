@@ -1,0 +1,32 @@
+FILE: mm/filemap.c
+
+INFO: task syz-executor6:9207 blocked for more than 120 seconds.
+      Not tainted 4.15.0-rc2-next-20171208+ #63
+"echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+syz-executor6   D21264  9207   3394 0x80000002
+Call Trace:
+ context_switch kernel/sched/core.c:2800 [inline]
+ __schedule+0x8eb/0x2060 kernel/sched/core.c:3376
+ schedule+0xf5/0x430 kernel/sched/core.c:3435
+ io_schedule+0x1c/0x70 kernel/sched/core.c:5043
+ wait_on_page_bit_common mm/filemap.c:1099 [inline]
+ __lock_page+0x585/0x740 mm/filemap.c:1272
+ lock_page include/linux/pagemap.h:483 [inline]
+ truncate_inode_pages_range+0x1945/0x1f90 mm/truncate.c:452
+ truncate_inode_pages+0x24/0x30 mm/truncate.c:482
+ kill_bdev+0xbc/0xf0 fs/block_dev.c:86
+ __blkdev_put+0x183/0x7c0 fs/block_dev.c:1764
+ blkdev_put+0x85/0x4f0 fs/block_dev.c:1835
+ blkdev_close+0x91/0xc0 fs/block_dev.c:1842
+ __fput+0x333/0x7f0 fs/file_table.c:210
+ ____fput+0x15/0x20 fs/file_table.c:244
+ task_work_run+0x199/0x270 kernel/task_work.c:113
+ exit_task_work include/linux/task_work.h:22 [inline]
+ do_exit+0x9bb/0x1ae0 kernel/exit.c:869
+ do_group_exit+0x149/0x400 kernel/exit.c:972
+ get_signal+0x73f/0x16c0 kernel/signal.c:2337
+ do_signal+0x94/0x1ee0 arch/x86/kernel/signal.c:809
+ exit_to_usermode_loop+0x258/0x2f0 arch/x86/entry/common.c:161
+ prepare_exit_to_usermode arch/x86/entry/common.c:195 [inline]
+ syscall_return_slowpath+0x490/0x550 arch/x86/entry/common.c:264
+ entry_SYSCALL_64_fastpath+0x94/0x96

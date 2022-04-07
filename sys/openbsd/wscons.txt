@@ -1,0 +1,286 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <time.h>
+include <sys/tty.h>
+include <fcntl.h>
+
+include <dev/wscons/wsconsio.h>
+include <dev/wscons/wsdisplay_usl_io.h>
+
+resource fd_wsdisplay[fd]
+
+openat$wsdisplay(fd const[AT_FDCWD], file ptr[in, string["/dev/ttyCcfg"]], flags flags[open_flags], mode const[0]) fd_wsdisplay
+
+ioctl$KDDISABIO(fd fd_wsdisplay, cmd const[KDDISABIO])
+ioctl$KDENABIO(fd fd_wsdisplay, cmd const[KDENABIO])
+ioctl$KDGETLED(fd fd_wsdisplay, cmd const[KDGETLED], arg ptr[in, kd_getled])
+ioctl$KDGKBMODE(fd fd_wsdisplay, cmd const[KDGKBMODE])
+ioctl$KDMKTONE(fd fd_wsdisplay, cmd const[KDMKTONE], arg ptr[in, int32])
+ioctl$KDSETLED(fd fd_wsdisplay, cmd const[KDSETLED], arg ptr[in, kd_setled])
+ioctl$KDSETMODE(fd fd_wsdisplay, cmd const[KDSETMODE], arg ptr[in, kd_mode])
+ioctl$KDSETRAD(fd fd_wsdisplay, cmd const[KDSETRAD])
+ioctl$VT_ACTIVATE(fd fd_wsdisplay, cmd const[VT_ACTIVATE], arg ptr[in, int32])
+ioctl$VT_GETACTIVE(fd fd_wsdisplay, cmd const[VT_GETACTIVE], arg ptr[out, int32])
+ioctl$VT_GETMODE(fd fd_wsdisplay, cmd const[VT_GETMODE], arg ptr[out, vt_mode])
+ioctl$VT_GETSTATE(fd fd_wsdisplay, cmd const[VT_GETSTATE], arg ptr[out, vt_stat])
+ioctl$VT_OPENQRY(fd fd_wsdisplay, cmd const[VT_OPENQRY], arg ptr[out, int32])
+ioctl$VT_RELDISP(fd fd_wsdisplay, cmd const[VT_RELDISP], arg ptr[in, vt_reldisp])
+ioctl$VT_SETMODE(fd fd_wsdisplay, cmd const[VT_SETMODE], arg ptr[in, vt_mode])
+ioctl$VT_WAITACTIVE(fd fd_wsdisplay, cmd const[VT_WAITACTIVE], arg ptr[in, int32])
+ioctl$WSDISPLAYIO_ADDSCREEN(fd fd_wsdisplay, cmd const[WSDISPLAYIO_ADDSCREEN], arg ptr[in, wsdisplay_addscreendata])
+ioctl$WSDISPLAYIO_DELFONT(fd fd_wsdisplay, cmd const[WSDISPLAYIO_DELFONT], arg ptr[in, wsdisplay_font])
+ioctl$WSDISPLAYIO_DELSCREEN(fd fd_wsdisplay, cmd const[WSDISPLAYIO_DELSCREEN], arg ptr[in, wsdisplay_delscreendata])
+ioctl$WSDISPLAYIO_GBURNER(fd fd_wsdisplay, cmd const[WSDISPLAYIO_GBURNER], arg ptr[out, wsdisplay_burner])
+ioctl$WSDISPLAYIO_GETEMULTYPE(fd fd_wsdisplay, cmd const[WSDISPLAYIO_GETEMULTYPE], arg ptr[in, wsdisplay_emultype])
+ioctl$WSDISPLAYIO_GETSCREEN(fd fd_wsdisplay, cmd const[WSDISPLAYIO_GETSCREEN], arg ptr[in, wsdisplay_addscreendata])
+ioctl$WSDISPLAYIO_GETSCREENTYPE(fd fd_wsdisplay, cmd const[WSDISPLAYIO_GETSCREENTYPE], arg ptr[in, wsdisplay_screentype])
+ioctl$WSDISPLAYIO_GMODE(fd fd_wsdisplay, cmd const[WSDISPLAYIO_GMODE], arg ptr[out, int32])
+ioctl$WSDISPLAYIO_GVIDEO(fd fd_wsdisplay, cmd const[WSDISPLAYIO_GVIDEO], arg ptr[out, int32])
+ioctl$WSDISPLAYIO_LDFONT(fd fd_wsdisplay, cmd const[WSDISPLAYIO_LDFONT], arg ptr[in, wsdisplay_font])
+ioctl$WSDISPLAYIO_LSFONT(fd fd_wsdisplay, cmd const[WSDISPLAYIO_LSFONT], arg ptr[out, wsdisplay_font])
+ioctl$WSDISPLAYIO_SBURNER(fd fd_wsdisplay, cmd const[WSDISPLAYIO_SBURNER], arg ptr[in, wsdisplay_burner])
+ioctl$WSDISPLAYIO_SETSCREEN(fd fd_wsdisplay, cmd const[WSDISPLAYIO_SETSCREEN], arg ptr[in, int32])
+ioctl$WSDISPLAYIO_SMODE(fd fd_wsdisplay, cmd const[WSDISPLAYIO_SMODE], arg ptr[in, wsdisplay_mode])
+ioctl$WSDISPLAYIO_SVIDEO(fd fd_wsdisplay, cmd const[WSDISPLAYIO_SVIDEO], arg ptr[in, wsdisplay_svideo])
+ioctl$WSDISPLAYIO_USEFONT(fd fd_wsdisplay, cmd const[WSDISPLAYIO_USEFONT], arg ptr[in, wsdisplay_font])
+ioctl$WSDISPLAYIO_WSMOUSED(fd fd_wsdisplay, cmd const[WSDISPLAYIO_WSMOUSED], arg ptr[in, wscons_event])
+ioctl$WSKBDIO_GETMODE(fd fd_wsdisplay, cmd const[WSKBDIO_GETMODE], arg ptr[out, int32])
+ioctl$WSKBDIO_SETMODE(fd fd_wsdisplay, cmd const[WSKBDIO_SETMODE], arg ptr[in, wskbd_mode])
+ioctl$WSMUXIO_ADD_DEVICE(fd fd_wsdisplay, cmd const[WSMUXIO_ADD_DEVICE], arg ptr[in, wsmux_device])
+ioctl$WSMUXIO_INJECTEVENT(fd fd_wsdisplay, cmd const[WSMUXIO_INJECTEVENT], arg ptr[in, wscons_event])
+ioctl$WSMUXIO_LIST_DEVICES(fd fd_wsdisplay, cmd const[WSMUXIO_LIST_DEVICES], arg ptr[in, wsmux_device_list])
+ioctl$WSMUXIO_REMOVE_DEVICE(fd fd_wsdisplay, cmd const[WSMUXIO_REMOVE_DEVICE], arg ptr[in, wsmux_device])
+
+resource fd_wskbd[fd]
+
+openat$wskbd(fd const[AT_FDCWD], file ptr[in, string["/dev/wskbd0"]], flags flags[open_flags], mode const[0]) fd_wskbd
+
+ioctl$WSKBDIO_BELL(fd fd_wskbd, cmd const[WSKBDIO_BELL])
+ioctl$WSKBDIO_COMPLEXBELL(fd fd_wskbd, cmd const[WSKBDIO_COMPLEXBELL], arg ptr[in, wskbd_bell_data])
+ioctl$WSKBDIO_SETBELL(fd fd_wskbd, cmd const[WSKBDIO_SETBELL], arg ptr[in, wskbd_bell_data])
+ioctl$WSKBDIO_GETBELL(fd fd_wskbd, cmd const[WSKBDIO_GETBELL], arg ptr[out, wskbd_bell_data])
+ioctl$WSKBDIO_SETDEFAULTBELL(fd fd_wskbd, cmd const[WSKBDIO_SETDEFAULTBELL], arg ptr[in, wskbd_bell_data])
+ioctl$WSKBDIO_GETDEFAULTBELL(fd fd_wskbd, cmd const[WSKBDIO_GETDEFAULTBELL], arg ptr[out, wskbd_bell_data])
+ioctl$WSKBDIO_SETKEYREPEAT(fd fd_wskbd, cmd const[WSKBDIO_SETKEYREPEAT], arg ptr[in, wskbd_keyrepeat_data])
+ioctl$WSKBDIO_GETKEYREPEAT(fd fd_wskbd, cmd const[WSKBDIO_GETKEYREPEAT], arg ptr[out, wskbd_keyrepeat_data])
+ioctl$WSKBDIO_SETDEFAULTKEYREPEAT(fd fd_wskbd, cmd const[WSKBDIO_SETDEFAULTKEYREPEAT], arg ptr[in, wskbd_keyrepeat_data])
+ioctl$WSKBDIO_GETDEFAULTKEYREPEAT(fd fd_wskbd, cmd const[WSKBDIO_GETDEFAULTKEYREPEAT], arg ptr[out, wskbd_keyrepeat_data])
+ioctl$WSKBDIO_SETMAP(fd fd_wskbd, cmd const[WSKBDIO_SETMAP], arg ptr[in, wskbd_map_data])
+ioctl$WSKBDIO_GETMAP(fd fd_wskbd, cmd const[WSKBDIO_GETMAP], arg ptr[out, wskbd_map_data])
+ioctl$WSKBDIO_GETENCODING(fd fd_wskbd, cmd const[WSKBDIO_GETENCODING], arg ptr[out, int32])
+ioctl$WSKBDIO_SETENCODING(fd fd_wskbd, cmd const[WSKBDIO_SETENCODING], arg ptr[in, int32])
+ioctl$WSKBDIO_GETENCODINGS(fd fd_wskbd, cmd const[WSKBDIO_GETENCODINGS], arg ptr[out, wskbd_encoding_data])
+ioctl$WSKBDIO_GETBACKLIGHT(fd fd_wskbd, cmd const[WSKBDIO_GETBACKLIGHT], arg ptr[out, wskbd_backlight])
+ioctl$WSKBDIO_SETBACKLIGHT(fd fd_wskbd, cmd const[WSKBDIO_SETBACKLIGHT], arg ptr[in, wskbd_backlight])
+
+resource fd_wsmouse[fd]
+
+openat$wsmouse(fd const[AT_FDCWD], file ptr[in, string["/dev/wsmouse0"]], flags flags[open_flags], mode const[0]) fd_wsmouse
+
+ioctl$WSMOUSEIO_GCALIBCOORDS(fd fd_wsmouse, cmd const[WSMOUSEIO_GCALIBCOORDS], arg ptr[out, wsmouse_calibcoords])
+ioctl$WSMOUSEIO_GETPARAMS(fd fd_wsmouse, cmd const[WSMOUSEIO_GETPARAMS], arg ptr[out, wsmouse_parameters])
+ioctl$WSMOUSEIO_GTYPE(fd fd_wsmouse, cmd const[WSMOUSEIO_GTYPE], arg ptr[out, int32])
+ioctl$WSMOUSEIO_SCALIBCOORDS(fd fd_wsmouse, cmd const[WSMOUSEIO_SCALIBCOORDS], arg ptr[in, wsmouse_calibcoords])
+ioctl$WSMOUSEIO_SETMODE(fd fd_wsmouse, cmd const[WSMOUSEIO_SETMODE], arg ptr[in, wsmouse_mode])
+ioctl$WSMOUSEIO_SETPARAMS(fd fd_wsmouse, cmd const[WSMOUSEIO_SETPARAMS], arg ptr[in, wsmouse_parameters])
+ioctl$WSMOUSEIO_SRES(fd fd_wsmouse, cmd const[WSMOUSEIO_SRES], arg ptr[in, int32])
+
+openat$wsmuxkbd(fd const[AT_FDCWD], file ptr[in, string["/dev/wskbd"]], flags flags[open_flags], mode const[0]) fd
+openat$wsmuxmouse(fd const[AT_FDCWD], file ptr[in, string["/dev/wsmouse"]], flags flags[open_flags], mode const[0]) fd
+
+wsmux_device {
+	type	flags[wsmux_device_flags, int32]
+	idx	int32
+}
+
+wsmux_device_list {
+	ndevices	int32
+	devices		array[wsmux_device, WSMUX_MAXDEV]
+}
+
+wscons_event {
+	type	int32
+	value	int32
+	time	timespec
+}
+
+wsdisplay_addscreendata {
+	idx		int32
+# NEED: random string of given max size
+	screentype	string[filename, WSSCREEN_NAME_SIZE]
+# NEED: random string of given max size
+	emul		string[filename, WSEMUL_NAME_SIZE]
+}
+
+wsdisplay_burner {
+	off	int32
+	on	int32
+	flags	flags[wsdisplay_burner_flags, int32]
+}
+
+wsdisplay_delscreendata {
+	idx	int32
+	flags	flags[wsdisplay_delscreendata_flags, int32]
+}
+
+wsdisplay_emultype {
+	idx	int32
+	name	string[filename, WSSCREEN_NAME_SIZE]
+}
+
+wsdisplay_font {
+# NEED: random string of given max size
+	name		string[filename, WSFONT_NAME_SIZE]
+	index		int32
+	firstchar	int32
+	numchars	int32
+	encoding	flags[wsdisplay_font_encoding_flags, int32]
+	fontwidth	int32
+	fontheight	int32
+	stride		int32
+	bitorder	flags[wsdisplay_font_order_flags, int32]
+	byteorder	flags[wsdisplay_font_order_flags, int32]
+	cookie		intptr
+	data		intptr
+}
+
+wsdisplay_screentype {
+	idx		int32
+	nidx		int32
+# NEED: random string of given max size
+	name		string[filename, WSSCREEN_NAME_SIZE]
+	ncols		int32
+	nrows		int32
+	fontwidth	int32
+	fontheight	int32
+}
+
+wsmouse_calibcoord {
+	rawx	int32
+	rawy	int32
+	x	int32
+	y	int32
+}
+
+wsmouse_calibcoords {
+	minx		int32
+	miny		int32
+	maxx		int32
+	maxy		int32
+	swapxy		int32
+	resx		int32
+	resy		int32
+	samplelen	len[samples, int32]
+	samples		array[wsmouse_calibcoord, WSMOUSE_CALIBCOORDS_MAX]
+}
+
+wsmouse_mode {
+	mode	flags[wsmouse_mode_flags, int32]
+}
+
+wsmouse_param {
+	key	flags[wsmousecfg_flags, int32]
+	value	int32
+}
+
+wsmouse_parameters {
+	params	ptr[in, array[wsmouse_param]]
+	nparams	len[params, int32]
+}
+
+vt_stat {
+	v_active	int16
+	v_signal	int16
+	v_state		int16
+}
+
+vt_mode {
+	mode	flags[vt_mode_flags, int8]
+	waitv	int8
+	relsig	int16
+	acqsig	int16
+	frsig	int16
+}
+
+wskbd_bell_data {
+	which	int32
+	pitch	int32
+	period	int32
+	volume	int32
+}
+
+wskbd_keyrepeat_data {
+	which	int32
+	del1	int32
+	delN	int32
+}
+
+wskbd_map_data {
+	maplen	len[map, int32]
+	map	ptr[in, array[wscons_keymap]]
+}
+
+wscons_keymap {
+	command		int16
+	group1_0	int16
+	group1_1	int16
+	group2_0	int16
+	group2_1	int16
+}
+
+wskbd_encoding_data {
+	nencodings	len[encodings, int32]
+	encodings	array[int32]
+}
+
+wskbd_backlight {
+	min	int32
+	max	int32
+	curval	int32
+}
+
+type vt_reldisp flags[vt_reldisp_flags, int32]
+
+type kd_mode flags[kd_mode_flags, int32]
+
+type kd_setled flags[kd_setled_flags, int32]
+
+type kd_getled flags[kd_getled_flags, int32]
+
+type wskbd_mode flags[wskbd_mode_flags, int32]
+
+type wsdisplay_mode flags[wsdisplay_mode_flags, int32]
+
+type wsdisplay_svideo flags[wsdisplay_svideo_flags, int32]
+
+vt_mode_flags = VT_AUTO, VT_PROCESS
+
+vt_reldisp_flags = VT_FALSE, VT_TRUE, VT_ACKACQ
+
+kd_mode_flags = KD_GRAPHICS, KD_TEXT
+
+kd_setled_flags = LED_CAP, LED_NUM, LED_SCR
+
+kd_getled_flags = K_RAW, K_XLATE
+
+wskbd_mode_flags = WSKBD_RAW
+
+wsdisplay_delscreendata_flags = WSDISPLAY_DELSCR_FORCE, WSDISPLAY_DELSCR_QUIET
+
+wsdisplay_mode_flags = WSDISPLAYIO_MODE_EMUL, WSDISPLAYIO_MODE_MAPPED, WSDISPLAYIO_MODE_DUMBFB
+
+wsdisplay_font_encoding_flags = WSDISPLAY_FONTENC_ISO, WSDISPLAY_FONTENC_IBM
+
+wsdisplay_font_order_flags = WSDISPLAY_FONTORDER_KNOWN, WSDISPLAY_FONTORDER_L2R, WSDISPLAY_FONTORDER_R2L
+
+wsdisplay_svideo_flags = WSDISPLAYIO_VIDEO_OFF, WSDISPLAYIO_VIDEO_ON
+
+wsdisplay_burner_flags = WSDISPLAY_BURN_VBLANK, WSDISPLAY_BURN_KBD, WSDISPLAY_BURN_MOUSE, WSDISPLAY_BURN_OUTPUT
+
+wsmouse_mode_flags = WSMOUSE_COMPAT, WSMOUSE_NATIVE
+
+wsmousecfg_flags = WSMOUSECFG_DX_SCALE, WSMOUSECFG_DY_SCALE, WSMOUSECFG_PRESSURE_LO, WSMOUSECFG_PRESSURE_HI, WSMOUSECFG_TRKMAXDIST, WSMOUSECFG_SWAPXY, WSMOUSECFG_X_INV, WSMOUSECFG_Y_INV, WSMOUSECFG_REVERSE_SCROLLING, WSMOUSECFG_DX_MAX, WSMOUSECFG_DY_MAX, WSMOUSECFG_X_HYSTERESIS, WSMOUSECFG_Y_HYSTERESIS, WSMOUSECFG_DECELERATION, WSMOUSECFG_STRONG_HYSTERESIS, WSMOUSECFG_SMOOTHING, WSMOUSECFG_SOFTBUTTONS, WSMOUSECFG_SOFTMBTN, WSMOUSECFG_TOPBUTTONS, WSMOUSECFG_TWOFINGERSCROLL, WSMOUSECFG_EDGESCROLL, WSMOUSECFG_HORIZSCROLL, WSMOUSECFG_SWAPSIDES, WSMOUSECFG_DISABLE, WSMOUSECFG_LEFT_EDGE, WSMOUSECFG_RIGHT_EDGE, WSMOUSECFG_TOP_EDGE, WSMOUSECFG_BOTTOM_EDGE, WSMOUSECFG_CENTERWIDTH, WSMOUSECFG_HORIZSCROLLDIST, WSMOUSECFG_VERTSCROLLDIST, WSMOUSECFG_F2WIDTH, WSMOUSECFG_F2PRESSURE, WSMOUSECFG_TAP_MAXTIME, WSMOUSECFG_TAP_CLICKTIME, WSMOUSECFG_TAP_LOCKTIME, WSMOUSECFG_TAP_ONE_BTNMAP, WSMOUSECFG_TAP_TWO_BTNMAP, WSMOUSECFG_TAP_THREE_BTNMAP, WSMOUSECFG_LOG_INPUT, WSMOUSECFG_LOG_EVENTS
+
+wsmux_device_flags = WSMUX_MOUSE, WSMUX_KBD, WSMUX_MUX

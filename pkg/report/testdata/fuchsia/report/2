@@ -1,0 +1,59 @@
+TITLE: ASSERT FAILED in fbl::Canary::Assert
+
+gfxconsole: rows 48, columns 113, extray 0
+[00124.537] 01044.01197> devmgr: analyzer_starter: analyzing exception type 0x108
+
+ZIRCON KERNEL PANIC
+
+UPTIME: 124582ms
+BUILDID git-5f588306b2998fea1c021f992444971b1ce92581
+
+dso: id=c9e63845b8cc355bb42713bfb8eec04942ec7bcd base=0xffffffff00100000 name=zircon.elf
+stopping other cpus
+halting cpu 1
+panic (caller 0xffffffff0015ae53 frame 0xffffff921934cdb0): DEBUG ASSERT FAILED at (system/ulib/fbl/include/fbl/canary.h:68): m
+agic_ == magic
+Invalid canary (expt: 504f5254, got: 00000000)
+
+platform_halt suggested_action 0 reason 9
+Halting...
+bt#00: 0x00105972 platform_halt platform/pc/power.cpp:122
+bt#01: 0x001a22c4 _panic lib/debug/debug.cpp:39
+bt#02: [ inline ] fbl::Canary::Assert object/port_dispatcher.cpp:159
+bt#02: 0x0015ad92 PortDispatcher::Queue object/port_dispatcher.cpp:258
+bt#03: 0x0015ae53 PortObserver::MaybeQueue object/port_dispatcher.cpp:159
+bt#04: 0x0014a19f Dispatcher::UpdateInternalLocked object/dispatcher.cpp:104
+bt#05: [ inline ] Dispatcher::UpdateStateHelper object/dispatcher.cpp:270
+bt#05: 0x0014adbb Dispatcher::UpdateStateLocked object/dispatcher.cpp:290
+bt#06: 0x001619ba SocketDispatcher::WriteSelfLocked object/socket_dispatcher.cpp:275
+bt#07: 0x00161a39 SocketDispatcher::Write object/socket_dispatcher.cpp:212
+bt#08: 0x0018bf7b sys_socket_write syscalls/socket.cpp:68
+bt#09: [ inline ] operator() syscall-kernel-wrappers.inc:204
+bt#09: [ inline ] socket_write syscalls/syscalls.cpp:60
+bt#09: 0x0016f9a4 wrapper_socket_write syscall-kernel-wrappers.inc:206
+bt#10: 0x00115e7f x86_syscall syscall-kernel-branches.S:34
+bt#11: end
+Halted
+entering panic shell loop
+
+REPORT:
+ZIRCON KERNEL PANIC
+panic (caller 0xffffffff0015ae53 frame 0xffffff921934cdb0): DEBUG ASSERT FAILED at (system/ulib/fbl/include/fbl/canary.h:68): magic_ == magic
+Invalid canary (expt: 504f5254, got: 00000000)
+platform_halt suggested_action 0 reason 9
+bt#00: 0x00105972 platform_halt platform/pc/power.cpp:122
+bt#01: 0x001a22c4 _panic lib/debug/debug.cpp:39
+bt#02: [ inline ] fbl::Canary::Assert object/port_dispatcher.cpp:159
+bt#02: 0x0015ad92 PortDispatcher::Queue object/port_dispatcher.cpp:258
+bt#03: 0x0015ae53 PortObserver::MaybeQueue object/port_dispatcher.cpp:159
+bt#04: 0x0014a19f Dispatcher::UpdateInternalLocked object/dispatcher.cpp:104
+bt#05: [ inline ] Dispatcher::UpdateStateHelper object/dispatcher.cpp:270
+bt#05: 0x0014adbb Dispatcher::UpdateStateLocked object/dispatcher.cpp:290
+bt#06: 0x001619ba SocketDispatcher::WriteSelfLocked object/socket_dispatcher.cpp:275
+bt#07: 0x00161a39 SocketDispatcher::Write object/socket_dispatcher.cpp:212
+bt#08: 0x0018bf7b sys_socket_write syscalls/socket.cpp:68
+bt#09: [ inline ] operator() syscall-kernel-wrappers.inc:204
+bt#09: [ inline ] socket_write syscalls/syscalls.cpp:60
+bt#09: 0x0016f9a4 wrapper_socket_write syscall-kernel-wrappers.inc:206
+bt#10: 0x00115e7f x86_syscall syscall-kernel-branches.S:34
+bt#11: end

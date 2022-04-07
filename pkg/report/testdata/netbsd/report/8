@@ -1,0 +1,3 @@
+TITLE: UBSan: Undefined behavior
+
+[     1.000003] UBSan: Undefined Behavior in /media/k4iz3n/event1/kWork/src/sys/external/bsd/acpica/dist/tables/tbxfload.c:187:10, load of misaligned address 0xffffffff82d8de5f for type 'UINT32' which requires 4 byte alignment

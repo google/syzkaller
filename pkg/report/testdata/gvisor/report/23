@@ -1,0 +1,17 @@
+TITLE: panic: ptrace get regs failed: no such process
+SUPPRESSED: Y
+
+panic: ptrace get regs failed: no such process
+
+goroutine 19098 [running]:
+gvisor.googlesource.com/gvisor/pkg/sentry/platform/ptrace.(*subprocess).switchToApp(0xc4201230e0, 0xc4203accc0, 0xc86940, 0xc4204d6fc0, 0x404800)
+        pkg/sentry/platform/ptrace/subprocess.go:466 +0x790
+gvisor.googlesource.com/gvisor/pkg/sentry/platform/ptrace.(*context).Switch(0xc4203accc0, 0xc80da0, 0xc4201230e0, 0xc86940, 0xc4204d6fc0, 0x7faeffffffff, 0x0, 0x0, 0x0, 0x0)
+        pkg/sentry/platform/ptrace/ptrace.go:102 +0x71
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute(0x0, 0xc420a11200, 0xc748a0, 0x0)
+        pkg/sentry/kernel/task_run.go:207 +0x17d
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run(0xc420a11200, 0x246)
+        pkg/sentry/kernel/task_run.go:95 +0x174
+created by gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).Start
+        pkg/sentry/kernel/task_start.go:258 +0x100
+

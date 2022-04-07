@@ -1,0 +1,39 @@
+TITLE: kernel panic: Proc-ful Page Fault in the Kernel at ADDR!
+CORRUPTED: Y
+
+HW TRAP frame at 0xfffffff00006ab90 on core 0
+  rax  0xffff8000044a0b60
+  rbx  0x000000000000000b
+  rcx  0xffff8000044a0b60
+  rdx  0x000000000000000b
+  rbp  0xfffffff00006ac58
+  rsi  0x0000000000483cda
+  rdi  0xffff8000044a0b60
+  r8   0x0000000000483cdc
+  r9   0x000000000000000a
+  r10  0xffff8000044a0b6a
+  r11  0xffff8000044a0b5a
+  r12  0xffff8000048b3020
+  r13  0x0000000000483cda
+  r14  0x0000000000010000
+  r15  0xffff8000044a0b60
+  trap 0x0000000e Page Fault
+  gsbs 0xffffffffc82e58c0
+  fsbs 0x0000000000000000
+  err  0x--------00000000
+  rip  0xffffffffc2053804
+  cs   0x------------0008
+  flag 0x0000000000010202
+  rsp  0xfffffff00006ac58
+  ss   0x------------0010
+
+Backtrace of kernel context on Core 0:
+#01 [<0xffffffffc2053804>] in memcpy
+#02 [<0xffffffffc203a495>] in __qwrite
+#03 [<0xffffffffc207ef26>] in pipewrite
+#04 [<0xffffffffc203f3c4>] in rwrite
+#05 [<0xffffffffc2057ca9>] in syscall
+#06 [<0xffffffffc2057e64>] in run_local_syscall
+#07 [<0xffffffffc20a957a>] in sysenter_callwrapper
+kernel panic at kern/arch/x86/trap.c:311, from core 0: Proc-ful Page Fault in the Kernel at 0x0000000000483cda!
+Entering Nanwan's Dungeon on Core 0 (Ints off):

@@ -1,0 +1,17 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+shell:
+ - make defconfig
+ - make kvm_guest.config
+
+config:
+ - CMDLINE: [append, "dummy_hcd.num=2 watchdog_thresh=165 workqueue.watchdog_thresh=420 sysctl.net.core.netdev_unregister_timeout_secs=420"]
+ - CMDLINE_EXTEND
+ # See the comment in x86_64.yml re these numbers.
+ - RCU_CPU_STALL_TIMEOUT: 300
+ - DEFAULT_HUNG_TASK_TIMEOUT: 420
+
+ # Presumably this gives more interesting coverage.
+ - BINFMT_FLAT
+ - RISCV_BASE_PMU: [-baseline]

@@ -1,0 +1,48 @@
+FILE: virt/kvm/eventfd.c
+
+irq bypass consumer (token ffff8801bff15e80) registration fails: -16
+kasan: CONFIG_KASAN_INLINE enabled
+kasan: GPF could be caused by NULL-ptr deref or user memory access
+general protection fault: 0000 [#1] SMP KASAN
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Modules linked in:
+CPU: 0 PID: 1427 Comm: kworker/0:3 Not tainted 4.9.0+ #9
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Workqueue: kvm-irqfd-cleanup irqfd_shutdown
+task: ffff8801d60cc700 task.stack: ffff8801d62f8000
+RIP: 0010:[<ffffffff84352ab6>]  [<ffffffff84352ab6>] __list_del include/linux/list.h:89 [inline]
+RIP: 0010:[<ffffffff84352ab6>]  [<ffffffff84352ab6>] list_del include/linux/list.h:107 [inline]
+RIP: 0010:[<ffffffff84352ab6>]  [<ffffffff84352ab6>] irq_bypass_unregister_consumer+0x296/0x470 virt/lib/irqbypass.c:258
+RSP: 0018:ffff8801d62ff318  EFLAGS: 00010202
+RAX: 0000000000000000 RBX: 1ffff1003ac5fe65 RCX: dffffc0000000000
+RDX: ffff8801d3075170 RSI: 0000000000000001 RDI: 0000000000000008
+RBP: ffff8801d62ff3b0 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000006 R11: 0000000000000000 R12: ffff8801d3075168
+R13: ffff8801d7d071a8 R14: 0000000000000000 R15: ffffffff8541bbe0
+FS:  0000000000000000(0000) GS:ffff8801dc000000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 00007f960f8f3db8 CR3: 00000001da19b000 CR4: 00000000001426f0
+DR0: 0000000020000000 DR1: 0000000020000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000600
+Stack:
+ ffffffff814cc212 ffff8801d60cc700 0000000041b58ab3 ffffffff84ad688d
+ ffffffff84352820 ffffffff815720c0 ffff8801da11b640 0000000041b58ab3
+ ffffffff84aea0a0 ffffffff81262e90 1ffff1003ac5fe74 0000000041b58ab3
+Call Trace:
+ [<ffffffff8108aaf3>] irqfd_shutdown+0x123/0x1c0 arch/x86/kvm/../../../virt/kvm/eventfd.c:145
+ [<ffffffff81492c00>] process_one_work+0xbd0/0x1c10 kernel/workqueue.c:2096
+ [<ffffffff81493e63>] worker_thread+0x223/0x1990 kernel/workqueue.c:2230
+ [<ffffffff814abd53>] kthread+0x323/0x3e0 kernel/kthread.c:209
+ [<ffffffff84377c6a>] ret_from_fork+0x2a/0x40 arch/x86/entry/entry_64.S:433
+Code: 48 89 d1 48 c1 e9 03 80 3c 01 00 0f 85 76 01 00 00 49 8d 7e 08 48 b9 00 00 00 00 00 fc ff df 49 8b 44 24 08 48 89 fe 48 c1 ee 03 <80> 3c 0e 00 0f 85 2c 01 00 00 4c 8d 6d 98 48 b9 00 00 00 00 00 
+RIP  [<ffffffff84352ab6>] __list_del include/linux/list.h:89 [inline]
+RIP  [<ffffffff84352ab6>] list_del include/linux/list.h:107 [inline]
+RIP  [<ffffffff84352ab6>] irq_bypass_unregister_consumer+0x296/0x470 virt/lib/irqbypass.c:258
+ RSP <ffff8801d62ff318>
+---[ end trace c88bb3be8e63e0af ]---
+Kernel panic - not syncing: Fatal exception
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Kernel Offset: disabled
+Rebooting in 86400 seconds..

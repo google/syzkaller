@@ -1,0 +1,28 @@
+bad-field-number: snd_pcm_sync_ptr: syz=3 kernel=4
+bad-field-size: snd_pcm_sync_ptr.status/pad1: syz=64 kernel=4
+bad-field-offset: snd_pcm_sync_ptr.control/s: syz=68 kernel=8 [386,arm]
+bad-field-offset: snd_pcm_sync_ptr.control/s: syz=72 kernel=8 [amd64,arm64]
+bad-field-size: snd_pcm_sync_ptr.control/s: syz=16 kernel=64 [amd64,arm64]
+bad-field-size: snd_pcm_sync_ptr.control/s: syz=8 kernel=64 [386,arm]
+bad-field-number: snd_pcm_mmap_control: syz=2 kernel=6
+bad-struct-size: snd_pcm_mmap_control: syz=8 kernel=12 [386,arm]
+bad-field-size: snd_pcm_mmap_control.appl_ptr/__pad1: syz=4 kernel=0 [386,arm]
+bad-field-size: snd_pcm_mmap_control.appl_ptr/__pad1: syz=8 kernel=0 [amd64,arm64]
+bad-field-offset: snd_pcm_mmap_control.avail_min/appl_ptr: syz=4 kernel=0 [386,arm]
+bad-field-offset: snd_pcm_mmap_control.avail_min/appl_ptr: syz=8 kernel=0 [amd64,arm64]
+bad-field-number: snd_pcm_status32: syz=13 kernel=19
+bad-field-offset: snd_pcm_status32.appl_ptr: syz=24 kernel=20 [amd64,arm64]
+bad-field-size: snd_pcm_status32.appl_ptr: syz=8 kernel=4 [amd64,arm64]
+bad-field-offset: snd_pcm_status32.hw_ptr: syz=32 kernel=24 [amd64,arm64]
+bad-field-size: snd_pcm_status32.hw_ptr: syz=8 kernel=4 [amd64,arm64]
+bad-field-offset: snd_pcm_status32.delay: syz=40 kernel=28 [amd64,arm64]
+bad-field-size: snd_pcm_status32.delay: syz=8 kernel=4 [amd64,arm64]
+bad-field-offset: snd_pcm_status32.avail: syz=48 kernel=32 [amd64,arm64]
+bad-field-size: snd_pcm_status32.avail: syz=8 kernel=4 [amd64,arm64]
+bad-field-offset: snd_pcm_status32.avail_max: syz=56 kernel=36 [amd64,arm64]
+bad-field-size: snd_pcm_status32.avail_max: syz=8 kernel=4 [amd64,arm64]
+bad-field-offset: snd_pcm_status32.overrange: syz=64 kernel=40 [amd64,arm64]
+bad-field-size: snd_pcm_status32.overrange: syz=8 kernel=4 [amd64,arm64]
+bad-field-offset: snd_pcm_status32.suspended_state: syz=72 kernel=44 [amd64,arm64]
+bad-field-offset: snd_pcm_status32.audio_tstamp_data: syz=76 kernel=48 [amd64,arm64]
+bad-field-number: snd_pcm_status64: syz=14 kernel=20

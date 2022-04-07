@@ -1,0 +1,13 @@
+TITLE: memory leak in start_kernel
+TYPE: LEAK
+
+2018/01/09 14:28:48 BUG: memory leak
+unreferenced object 0xdb8040c0 (size 20):
+  comm "swapper", pid 0, jiffies 4294667296
+  backtrace:
+    [<c04fd8b3>] kmemleak_alloc+0x193/0x2b8
+    [<c04f5e73>] kmem_cache_alloc+0x11e/0x174
+    [<c0aae5a7>] debug_objects_mem_init+0x63/0x1d9
+    [<c0a86a62>] start_kernel+0x2da/0x38d
+    [<c0a86090>] i386_start_kernel+0x7f/0x98
+    [<ffffffff>] 0xffffffff

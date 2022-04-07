@@ -1,0 +1,53 @@
+TITLE: INFO: rcu detected stall in kvm_vcpu_ioctl
+ALT: stall in kvm_vcpu_ioctl
+TYPE: HANG
+
+[  351.337674] rcu: INFO: rcu_preempt detected stalls on CPUs/tasks:
+[  351.343969] rcu: 	(detected by 1, t=10502 jiffies, g=9981, q=283)
+[  351.350228] rcu: All QSes seen, last rcu_preempt kthread activity 10503 (4294972288-4294961785), jiffies_till_next_fqs=1, root ->qsmask 0x0
+[  351.363323] syz-executor0   R  running task    21280  7720   5511 0x00000000
+[  351.370540] Call Trace:
+[  351.373124]  <IRQ>
+[  351.375304]  sched_show_task.cold.83+0x2b6/0x30a
+[  351.411243]  print_other_cpu_stall.cold.79+0xa83/0xba5
+[  351.477062]  rcu_check_callbacks+0xafc/0x1990
+[  351.621883]  update_process_times+0x2d/0x70
+[  351.626218]  tick_sched_handle+0x9f/0x180
+[  351.630382]  tick_sched_timer+0x45/0x130
+[  351.634462]  __hrtimer_run_queues+0x41c/0x10d0
+[  351.693471]  hrtimer_interrupt+0x313/0x780
+[  351.697833]  smp_apic_timer_interrupt+0x1a1/0x760
+[  351.758839]  apic_timer_interrupt+0xf/0x20
+[  351.763076]  </IRQ>
+[  351.765322] RIP: 0010:__virt_addr_valid+0xfe/0x230
+[  351.789242] RSP: 0018:ffff88018a1d68b8 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff13
+[  351.796963] RAX: dffffc0000000000 RBX: 0000000193be3c00 RCX: ffffc900060ed000
+[  351.804244] RDX: 1ffffffff1679c04 RSI: ffffffff81386a72 RDI: ffffffff8b3ce020
+[  351.811523] RBP: ffff88018a1d68d0 R08: ffff8801c071a040 R09: ffffed003277c780
+[  351.818800] R10: ffffed003277c781 R11: ffff880193be3c0e R12: 0000000000000032
+[  351.826073] R13: 0000000000000000 R14: 0000000000000000 R15: 000000000000000f
+[  351.842081]  __check_object_size+0x15b/0x782
+[  351.859038]  __kvm_read_guest_page+0xda/0x130
+[  351.863547]  kvm_vcpu_read_guest_page+0x40/0x50
+[  351.868231]  kvm_fetch_guest_virt+0x149/0x1c0
+[  351.876984]  __do_insn_fetch_bytes+0x45b/0x950
+[  351.890976]  x86_decode_insn+0x1544/0x54c0
+[  351.904190]  x86_emulate_instruction+0x89a/0x1f90
+[  351.928622]  kvm_mmu_page_fault+0x342/0x1ad0
+[  352.039266]  handle_ept_violation+0x29e/0x6a0
+[  352.055832]  vmx_handle_exit+0x2f7/0x17f0
+[  352.081257]  vcpu_enter_guest+0x14a9/0x62e0
+[  352.160089]  kvm_arch_vcpu_ioctl_run+0x375/0x16e0
+[  352.169984]  kvm_vcpu_ioctl+0x72b/0x1150
+[  352.247217]  do_vfs_ioctl+0x1de/0x1720
+[  352.291956]  ksys_ioctl+0xa9/0xd0
+[  352.295448]  __x64_sys_ioctl+0x73/0xb0
+[  352.299350]  do_syscall_64+0x1b9/0x820
+[  352.343921]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  352.349120] RIP: 0033:0x457099
+[  352.371250] RSP: 002b:00007f10ce81ac78 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[  352.378968] RAX: ffffffffffffffda RBX: 00007f10ce81b6d4 RCX: 0000000000457099
+[  352.386246] RDX: 0000000000000000 RSI: 000000000000ae80 RDI: 0000000000000006
+[  352.393525] RBP: 00000000009300a0 R08: 0000000000000000 R09: 0000000000000000
+[  352.400800] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000ffffffff
+[  352.408074] R13: 00000000004cf730 R14: 00000000004c59b9 R15: 0000000000000000

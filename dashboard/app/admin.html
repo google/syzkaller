@@ -1,0 +1,52 @@
+{{/*
+Copyright 2019 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+Main page.
+*/}}
+
+<!doctype html>
+<html>
+<head>
+	{{template "head" .Header}}
+	<title>syzbot</title>
+</head>
+<body>
+	{{template "header" .Header}}
+
+	<a class="plain" href="#log"><div id="log"><b>Error log:</b></div></a>
+	<textarea id="log_textarea" readonly rows="20" wrap=off>{{printf "%s" .Log}}</textarea>
+	<script>
+		var textarea = document.getElementById("log_textarea");
+		textarea.scrollTop = textarea.scrollHeight;
+	</script>
+	<br><br>
+
+	{{with $.MemcacheStats}}
+	<table class="list_table">
+		<caption><a href="https://pkg.go.dev/google.golang.org/appengine/memcache?tab=doc#Item" target="_blank">Memcache stats:</a></caption>
+		<tr>
+			<th>Hits</th>
+			<th>Misses</th>
+			<th>ByteHits</th>
+			<th>Items</th>
+			<th>Bytes</th>
+			<th>Oldest</th>
+			<th></th>
+		</tr>
+		<tr>
+			<td class="stat">{{.Hits}}</td>
+			<td class="stat">{{.Misses}}</td>
+			<td class="stat">{{.ByteHits}}</td>
+			<td class="stat">{{.Items}}</td>
+			<td class="stat">{{.Bytes}}</td>
+			<td class="stat">{{.Oldest}}</td>
+			<td><a href="?action=memcache_flush">flush</input></td>
+		</tr>
+	</table>
+	{{end}}
+
+	{{template "manager_list" $.Managers}}
+	{{template "job_list" $.Jobs}}
+</body>
+</html>

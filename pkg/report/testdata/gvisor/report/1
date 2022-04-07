@@ -1,0 +1,105 @@
+TITLE: panic: MountNamespace.FindInode: path is empty
+
+move_pages(r2, 0x5, &(0x7f0000000080)=[&(0x7f0000ffb000/0x3000)=nil, &(0x7f0000ffb000/0x4000)=nil, &(0x7f0000ffc000/0x4000)=nil, &(0x7f0000ffd000/0x3000)=nil, &(0x7f0000ffc000/0x4000)=nil], 0x0, &(0x7f00000000c0), 0x4)
+write$cgroup_subtree(r1, &(0x7f0000000140), 0x0)
+
+panic: MountNamespace.FindInode: path is empty
+
+goroutine 56049 [running]:
+panic(0xa8fd00, 0xc84ba0)
+	GOROOT/src/runtime/panic.go:551 +0x3c1 fp=0xc420c6f078 sp=0xc420c6efd8 pc=0x428fa1
+gvisor.googlesource.com/gvisor/pkg/sentry/fs.(*MountNamespace).FindLink(0xc42011eae0, 0xc94840, 0xc42039a400, 0xc4202165a0, 0xc420aa7f40, 0x0, 0x0, 0x28, 0xc420592788, 0xc4205927d0, ...)
+	pkg/sentry/fs/mounts.go:352 +0x500 fp=0xc420c6f148 sp=0xc420c6f078 pc=0x631560
+gvisor.googlesource.com/gvisor/pkg/sentry/fs.(*MountNamespace).FindInode(0xc42011eae0, 0xc94840, 0xc42039a400, 0xc4202165a0, 0xc420aa7f40, 0x0, 0x0, 0x28, 0x20, 0xc420488160, ...)
+	pkg/sentry/fs/mounts.go:437 +0x71 fp=0xc420c6f1b0 sp=0xc420c6f148 pc=0x631601
+gvisor.googlesource.com/gvisor/pkg/sentry/loader.openPath(0xc94840, 0xc42039a400, 0xc42011eae0, 0xc4202165a0, 0xc420aa7f40, 0x28, 0x0, 0x0, 0x0, 0x0, ...)
+	pkg/sentry/loader/loader.go:58 +0xc1 fp=0xc420c6f2f8 sp=0xc420c6f1b0 pc=0x6ebd91
+gvisor.googlesource.com/gvisor/pkg/sentry/loader.loadPath(0xc94840, 0xc42039a400, 0xc420728c80, 0xc42011eae0, 0xc4202165a0, 0xc420aa7f40, 0x28, 0xc4202943c0, 0x0, 0x0, ...)
+	pkg/sentry/loader/loader.go:135 +0x170 fp=0xc420c6f5e8 sp=0xc420c6f2f8 pc=0x6ec850
+gvisor.googlesource.com/gvisor/pkg/sentry/loader.Load(0xc94840, 0xc42039a400, 0xc420728c80, 0xc42011eae0, 0xc4202165a0, 0xc420aa7f40, 0x28, 0xc4202943c0, 0x0, 0x0, ...)
+	pkg/sentry/loader/loader.go:195 +0x158 fp=0xc420c6f938 sp=0xc420c6f5e8 pc=0x6ed738
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Kernel).LoadTaskImage(0xc42025ea20, 0xc94840, 0xc42039a400, 0xc42011eae0, 0xc4202165a0, 0xc420aa7f40, 0x28, 0x0, 0x0, 0x0, ...)
+	pkg/sentry/kernel/task_context.go:157 +0x1b9 fp=0xc420c6fa60 sp=0xc420c6f938 pc=0x72a0e9
+gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.Execve(0xc42039a400, 0x20000040, 0x200000c0, 0x20000200, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, ...)
+	pkg/sentry/syscalls/linux/sys_thread.go:106 +0x2c8 fp=0xc420c6fb78 sp=0xc420c6fa60 pc=0x8e7348
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).executeSyscall(0xc42039a400, 0x3b, 0x20000040, 0x200000c0, 0x20000200, 0x0, 0x0, 0x0, 0xc4202943c0, 0xbd3380, ...)
+	pkg/sentry/kernel/task_syscall.go:162 +0x307 fp=0xc420c6fc30 sp=0xc420c6fb78 pc=0x73c3f7
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallInvoke(0xc42039a400, 0x3b, 0x20000040, 0x200000c0, 0x20000200, 0x0, 0x0, 0x0, 0x0, 0x0)
+	pkg/sentry/kernel/task_syscall.go:278 +0x62 fp=0xc420c6fcb8 sp=0xc420c6fc30 pc=0x73d092
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallEnter(0xc42039a400, 0x3b, 0x20000040, 0x200000c0, 0x20000200, 0x0, 0x0, 0x0, 0xc87be0, 0xc420c6fe00)
+	pkg/sentry/kernel/task_syscall.go:241 +0x91 fp=0xc420c6fd18 sp=0xc420c6fcb8 pc=0x73ccc1
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscall(0xc42039a400, 0x2, 0xc4202787e0)
+	pkg/sentry/kernel/task_syscall.go:216 +0x10c fp=0xc420c6fe10 sp=0xc420c6fd18 pc=0x73c61c
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute(0x0, 0xc42039a400, 0xc87be0, 0x0)
+	pkg/sentry/kernel/task_run.go:217 +0xed8 fp=0xc420c6ff88 sp=0xc420c6fe10 pc=0x733af8
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run(0xc42039a400, 0x35c)
+	pkg/sentry/kernel/task_run.go:95 +0x174 fp=0xc420c6ffd0 sp=0xc420c6ff88 pc=0x7328b4
+runtime.goexit()
+	bazel-out/k8-fastbuild/bin/external/io_bazel_rules_go/linux_amd64_pure_stripped/stdlib~/src/runtime/asm_amd64.s:2361 +0x1 fp=0xc420c6ffd8 sp=0xc420c6ffd0 pc=0x455f11
+created by gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).Start
+	pkg/sentry/kernel/task_start.go:251 +0x100
+
+goroutine 1 [semacquire]:
+runtime.gopark(0xbfba68, 0x10ec000, 0xbd8524, 0xa, 0xc4200e0219, 0x4)
+	GOROOT/src/runtime/proc.go:291 +0x11a fp=0xc420505920 sp=0xc420505900 pc=0x42b10a
+runtime.goparkunlock(0x10ec000, 0xbd8524, 0xa, 0x19, 0x4)
+	GOROOT/src/runtime/proc.go:297 +0x5e fp=0xc420505960 sp=0xc420505920 pc=0x42b1be
+runtime.semacquire1(0xc42011e640, 0x403300, 0x1)
+	GOROOT/src/runtime/sema.go:144 +0x1d4 fp=0xc4205059d0 sp=0xc420505960 pc=0x43b3e4
+sync.runtime_Semacquire(0xc42011e640)
+	GOROOT/src/runtime/sema.go:56 +0x39 fp=0xc4205059f8 sp=0xc4205059d0 pc=0x43b009
+sync.(*WaitGroup).Wait(0xc42011e634)
+	GOROOT/src/sync/waitgroup.go:129 +0x72 fp=0xc420505a20 sp=0xc4205059f8 pc=0x46bd72
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Kernel).WaitExited(0xc42025ea20)
+	pkg/sentry/kernel/kernel.go:730 +0x35 fp=0xc420505a38 sp=0xc420505a20 pc=0x70bbb5
+gvisor.googlesource.com/gvisor/runsc/boot.(*Loader).WaitExit(0xc4201ca240, 0x0, 0x0)
+	runsc/boot/loader.go:354 +0x2e fp=0xc420505a60 sp=0xc420505a38 pc=0x97e95e
+gvisor.googlesource.com/gvisor/runsc/cmd.(*Boot).Execute(0xc420136740, 0xc8f900, 0xc42010c010, 0xc42011e360, 0xc42011de40, 0x2, 0x2, 0x0)
+	runsc/cmd/boot.go:144 +0xa28 fp=0xc420505c00 sp=0xc420505a60 pc=0xa05148
+github.com/google/subcommands.(*Commander).Execute(0xc420120000, 0xc8f900, 0xc42010c010, 0xc42011de40, 0x2, 0x2, 0xc42011de40)
+	external/com_github_google_subcommands/subcommands.go:141 +0x29f fp=0xc420505ca8 sp=0xc420505c00 pc=0x4e263f
+github.com/google/subcommands.Execute(0xc8f900, 0xc42010c010, 0xc42011de40, 0x2, 0x2, 0x5)
+	external/com_github_google_subcommands/subcommands.go:371 +0x5f fp=0xc420505cf0 sp=0xc420505ca8 pc=0x4e406f
+main.main()
+	runsc/main.go:188 +0xfda fp=0xc420505f88 sp=0xc420505cf0 pc=0xa0ff7a
+runtime.main()
+	GOROOT/src/runtime/proc.go:198 +0x212 fp=0xc420505fe0 sp=0xc420505f88 pc=0x42acb2
+runtime.goexit()
+	bazel-out/k8-fastbuild/bin/external/io_bazel_rules_go/linux_amd64_pure_stripped/stdlib~/src/runtime/asm_amd64.s:2361 +0x1 fp=0xc420505fe8 sp=0xc420505fe0 pc=0x455f11
+
+REPORT:
+panic: MountNamespace.FindInode: path is empty
+
+goroutine 56049 [running]:
+panic(0xa8fd00, 0xc84ba0)
+	GOROOT/src/runtime/panic.go:551 +0x3c1 fp=0xc420c6f078 sp=0xc420c6efd8 pc=0x428fa1
+gvisor.googlesource.com/gvisor/pkg/sentry/fs.(*MountNamespace).FindLink(0xc42011eae0, 0xc94840, 0xc42039a400, 0xc4202165a0, 0xc420aa7f40, 0x0, 0x0, 0x28, 0xc420592788, 0xc4205927d0, ...)
+	pkg/sentry/fs/mounts.go:352 +0x500 fp=0xc420c6f148 sp=0xc420c6f078 pc=0x631560
+gvisor.googlesource.com/gvisor/pkg/sentry/fs.(*MountNamespace).FindInode(0xc42011eae0, 0xc94840, 0xc42039a400, 0xc4202165a0, 0xc420aa7f40, 0x0, 0x0, 0x28, 0x20, 0xc420488160, ...)
+	pkg/sentry/fs/mounts.go:437 +0x71 fp=0xc420c6f1b0 sp=0xc420c6f148 pc=0x631601
+gvisor.googlesource.com/gvisor/pkg/sentry/loader.openPath(0xc94840, 0xc42039a400, 0xc42011eae0, 0xc4202165a0, 0xc420aa7f40, 0x28, 0x0, 0x0, 0x0, 0x0, ...)
+	pkg/sentry/loader/loader.go:58 +0xc1 fp=0xc420c6f2f8 sp=0xc420c6f1b0 pc=0x6ebd91
+gvisor.googlesource.com/gvisor/pkg/sentry/loader.loadPath(0xc94840, 0xc42039a400, 0xc420728c80, 0xc42011eae0, 0xc4202165a0, 0xc420aa7f40, 0x28, 0xc4202943c0, 0x0, 0x0, ...)
+	pkg/sentry/loader/loader.go:135 +0x170 fp=0xc420c6f5e8 sp=0xc420c6f2f8 pc=0x6ec850
+gvisor.googlesource.com/gvisor/pkg/sentry/loader.Load(0xc94840, 0xc42039a400, 0xc420728c80, 0xc42011eae0, 0xc4202165a0, 0xc420aa7f40, 0x28, 0xc4202943c0, 0x0, 0x0, ...)
+	pkg/sentry/loader/loader.go:195 +0x158 fp=0xc420c6f938 sp=0xc420c6f5e8 pc=0x6ed738
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Kernel).LoadTaskImage(0xc42025ea20, 0xc94840, 0xc42039a400, 0xc42011eae0, 0xc4202165a0, 0xc420aa7f40, 0x28, 0x0, 0x0, 0x0, ...)
+	pkg/sentry/kernel/task_context.go:157 +0x1b9 fp=0xc420c6fa60 sp=0xc420c6f938 pc=0x72a0e9
+gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.Execve(0xc42039a400, 0x20000040, 0x200000c0, 0x20000200, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, ...)
+	pkg/sentry/syscalls/linux/sys_thread.go:106 +0x2c8 fp=0xc420c6fb78 sp=0xc420c6fa60 pc=0x8e7348
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).executeSyscall(0xc42039a400, 0x3b, 0x20000040, 0x200000c0, 0x20000200, 0x0, 0x0, 0x0, 0xc4202943c0, 0xbd3380, ...)
+	pkg/sentry/kernel/task_syscall.go:162 +0x307 fp=0xc420c6fc30 sp=0xc420c6fb78 pc=0x73c3f7
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallInvoke(0xc42039a400, 0x3b, 0x20000040, 0x200000c0, 0x20000200, 0x0, 0x0, 0x0, 0x0, 0x0)
+	pkg/sentry/kernel/task_syscall.go:278 +0x62 fp=0xc420c6fcb8 sp=0xc420c6fc30 pc=0x73d092
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallEnter(0xc42039a400, 0x3b, 0x20000040, 0x200000c0, 0x20000200, 0x0, 0x0, 0x0, 0xc87be0, 0xc420c6fe00)
+	pkg/sentry/kernel/task_syscall.go:241 +0x91 fp=0xc420c6fd18 sp=0xc420c6fcb8 pc=0x73ccc1
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscall(0xc42039a400, 0x2, 0xc4202787e0)
+	pkg/sentry/kernel/task_syscall.go:216 +0x10c fp=0xc420c6fe10 sp=0xc420c6fd18 pc=0x73c61c
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute(0x0, 0xc42039a400, 0xc87be0, 0x0)
+	pkg/sentry/kernel/task_run.go:217 +0xed8 fp=0xc420c6ff88 sp=0xc420c6fe10 pc=0x733af8
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run(0xc42039a400, 0x35c)
+	pkg/sentry/kernel/task_run.go:95 +0x174 fp=0xc420c6ffd0 sp=0xc420c6ff88 pc=0x7328b4
+runtime.goexit()
+	bazel-out/k8-fastbuild/bin/external/io_bazel_rules_go/linux_amd64_pure_stripped/stdlib~/src/runtime/asm_amd64.s:2361 +0x1 fp=0xc420c6ffd8 sp=0xc420c6ffd0 pc=0x455f11
+created by gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).Start
+	pkg/sentry/kernel/task_start.go:251 +0x100

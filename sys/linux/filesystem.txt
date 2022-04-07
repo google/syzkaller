@@ -1,0 +1,931 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/mount.h>
+include <linux/fs.h>
+include <linux/fcntl.h>
+
+mount(src ptr[in, blockdev_filename], dst ptr[in, filename], type ptr[in, string[filesystem]], flags flags[mount_flags], data ptr[in, string, opt])
+umount2(path ptr[in, filename], flags flags[umount_flags])
+
+mount$bpf(src const[0], dst ptr[in, filename], type ptr[in, string["bpf"]], flags flags[mount_flags], opts ptr[in, fs_options[bpf_options]])
+mount$overlay(src const[0], dst ptr[in, filename], type ptr[in, string["overlay"]], flags flags[mount_flags], opts ptr[in, fs_options[overlay_options]])
+mount$binder(src const[0], dst ptr[in, filename], type ptr[in, string["binder"]], flags flags[mount_flags], opts ptr[in, fs_options[binder_options]])
+mount$tmpfs(src const[0], dst ptr[in, filename], type ptr[in, string["tmpfs"]], flags flags[mount_flags], opts ptr[in, fs_options[tmpfs_options]])
+mount$cgroup(src const[0], dst ptr[in, filename], type ptr[in, string["cgroup"]], flags flags[mount_flags], opts ptr[in, fs_options[cgroup_options]])
+mount$cgroup2(src const[0], dst ptr[in, filename], type ptr[in, string["cgroup2"]], flags flags[mount_flags], opts ptr[in, fs_options[cgroup2_options]])
+
+# A bind mount ignores the filesystem type argument, but
+# pkg/host/syscalls_linux.go:isSupportedFilesystem() requires one in
+# /proc/filesystems.  Use a common and valid filesystem string ("pipefs") to
+# pass the check.
+mount$bind(src ptr[in, filename], dst ptr[in, filename], type ptr[in, string["pipefs"]], flags flags[mount_flags], data const[0])
+
+# esdfs is ChromeOS-specific:
+# https://chromium.googlesource.com/chromiumos/third_party/kernel/+/d2c1fb9fcdb53%5E%21/
+mount$esdfs(src ptr[in, filename], dst ptr[in, filename], type ptr[in, string["esdfs"]], flags flags[mount_flags], opts ptr[in, fs_options[esdfs_options]])
+
+resource fd_fscontext[fd]
+
+fsopen(type ptr[in, string[filesystem]], flags flags[fsopen_flags]) fd_fscontext
+fspick(dfd fd_dir[opt], path ptr[in, filename], flags flags[fspick_flags]) fd_fscontext
+fsconfig$FSCONFIG_SET_FLAG(fd fd_fscontext, cmd const[FSCONFIG_SET_FLAG], key ptr[in, string[fsconfig_flag_params]], value const[0], aux const[0])
+fsconfig$FSCONFIG_SET_STRING(fd fd_fscontext, cmd const[FSCONFIG_SET_STRING], key ptr[in, string], value ptr[in, string], aux const[0])
+fsconfig$FSCONFIG_SET_BINARY(fd fd_fscontext, cmd const[FSCONFIG_SET_BINARY], key ptr[in, string], value ptr[in, array[int8]], aux bytesize[value])
+fsconfig$FSCONFIG_SET_PATH(fd fd_fscontext, cmd const[FSCONFIG_SET_PATH], key ptr[in, string], value ptr[in, filename], aux fd_dir[opt])
+fsconfig$FSCONFIG_SET_PATH_EMPTY(fd fd_fscontext, cmd const[FSCONFIG_SET_PATH_EMPTY], key ptr[in, string], value ptr[in, filename], aux fd_dir[opt])
+fsconfig$FSCONFIG_SET_FD(fd fd_fscontext, cmd const[FSCONFIG_SET_FD], key ptr[in, string], value const[0], aux fd)
+fsconfig$FSCONFIG_CMD_CREATE(fd fd_fscontext, cmd const[FSCONFIG_CMD_CREATE], key const[0], value const[0], aux const[0])
+fsconfig$FSCONFIG_CMD_RECONFIGURE(fd fd_fscontext, cmd const[FSCONFIG_CMD_RECONFIGURE], key const[0], value const[0], aux const[0])
+fsmount(fs_fd fd_fscontext, flags flags[fsmount_flags], attr_flags flags[fsmount_attr_flags]) fd
+move_mount(from_dfd fd_dir[opt], from_pathname ptr[in, filename], to_dfd fd_dir[opt], to_pathname ptr[in, filename], flags flags[move_mount_flags])
+open_tree(dfd fd_dir[opt], filename ptr[in, filename], flags flags[open_tree_flags]) fd
+mount_setattr(dfd fd_dir[opt], filename ptr[in, filename], flags flags[mount_setattr_flags], args ptr[in, mount_attr], size bytesize[args])
+
+open_tree_flags = AT_EMPTY_PATH, AT_NO_AUTOMOUNT, AT_RECURSIVE, AT_SYMLINK_NOFOLLOW, OPEN_TREE_CLONE, OPEN_TREE_CLOEXEC
+
+mount_setattr_flags = AT_EMPTY_PATH, AT_NO_AUTOMOUNT, AT_RECURSIVE, AT_SYMLINK_NOFOLLOW
+
+mount_attr {
+	attr_set	flags[mount_attr_flags, int64]
+	attr_clr	flags[mount_attr_flags, int64]
+	propagation	flags[mount_attr_propagation_flags, int64]
+	userns_fd	align64[fd_userns]
+}
+
+mount_attr_flags = MOUNT_ATTR_RDONLY, MOUNT_ATTR_NOSUID, MOUNT_ATTR_NODEV, MOUNT_ATTR_NOEXEC, MOUNT_ATTR__ATIME, MOUNT_ATTR_NODIRATIME, MOUNT_ATTR_IDMAP
+mount_attr_propagation_flags = MS_UNBINDABLE, MS_PRIVATE, MS_SLAVE, MS_SHARED
+fsmount_flags = FSMOUNT_CLOEXEC
+fsopen_flags = FSOPEN_CLOEXEC
+fspick_flags = FSPICK_CLOEXEC
+fsmount_attr_flags = MOUNT_ATTR_RDONLY, MOUNT_ATTR_NOSUID, MOUNT_ATTR_NODEV, MOUNT_ATTR_NOEXEC, MOUNT_ATTR__ATIME, MOUNT_ATTR_NODIRATIME
+move_mount_flags = MOVE_MOUNT_F_SYMLINKS, MOVE_MOUNT_F_AUTOMOUNTS, MOVE_MOUNT_F_EMPTY_PATH, MOVE_MOUNT_T_SYMLINKS, MOVE_MOUNT_T_AUTOMOUNTS, MOVE_MOUNT_T_EMPTY_PATH
+fsconfig_flag_params = "dirsync", "lazytime", "mand", "posixacl", "ro", "sync", "async", "nolazytime", "nomand", "rw", "silent"
+
+filesystem = "sysfs", "rootfs", "ramfs", "tmpfs", "devtmpfs", "debugfs", "securityfs", "sockfs", "pipefs", "anon_inodefs", "devpts", "ext3", "ext2", "ext4", "hugetlbfs", "vfat", "ecryptfs", "fuseblk", "fuse", "rpc_pipefs", "nfs", "nfs4", "nfsd", "binfmt_misc", "autofs", "xfs", "jfs", "msdos", "ntfs", "minix", "hfs", "hfsplus", "qnx4", "ufs", "btrfs", "configfs", "ncpfs", "qnx6", "exofs", "befs", "vxfs", "gfs2", "gfs2meta", "fusectl", "bfs", "nsfs", "efs", "cifs", "efivarfs", "affs", "tracefs", "bdev", "ocfs2", "ocfs2_dlmfs", "hpfs", "proc", "afs", "reiserfs", "jffs2", "romfs", "aio", "sysv", "v7", "udf", "ceph", "pstore", "adfs", "9p", "hostfs", "squashfs", "cramfs", "iso9660", "coda", "nilfs2", "logfs", "overlay", "f2fs", "omfs", "ubifs", "openpromfs", "bpf", "cgroup", "cgroup2", "cpuset", "mqueue", "aufs", "selinuxfs", "dax", "erofs", "virtiofs", "exfat", "binder", "zonefs", "pvfs2", "incremental-fs", "esdfs"
+
+blockdev_filename [
+	filename	filename
+	nbd		nbd_filename
+	loop		loop_filename
+	nullb		string["/dev/nullb0"]
+	md0		string["/dev/md0"]
+	sg0		string["/dev/sg0"]
+	sr0		string["/dev/sr0"]
+] [varlen]
+
+nbd_filename {
+	prefix	stringnoz["/dev/nbd"]
+	id	proc['0', 1, int8]
+	z	const[0, int8]
+} [packed]
+
+loop_filename {
+	prefix	stringnoz["/dev/loop"]
+	id	proc['0', 1, int8]
+	z	const[0, int8]
+} [packed]
+
+syz_read_part_table(size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]])
+
+define SYZ_MOUNT_IMAGE_TIMEOUT	50
+
+syz_mount_image$vfat(fs ptr[in, string["vfat"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[vfat_options]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$msdos(fs ptr[in, string["msdos"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[msdos_options]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$bfs(fs ptr[in, string["bfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$xfs(fs ptr[in, string["xfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[xfs_options]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$minix(fs ptr[in, string["minix"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$reiserfs(fs ptr[in, string["reiserfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[reiserfs_options]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$hfs(fs ptr[in, string["hfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[hfs_options]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$hfsplus(fs ptr[in, string["hfsplus"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[hfsplus_options]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$iso9660(fs ptr[in, string["iso9660"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[iso9660_options]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$gfs2(fs ptr[in, string["gfs2"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[gfs2_options]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$jfs(fs ptr[in, string["jfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[jfs_options]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$btrfs(fs ptr[in, string["btrfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[btrfs_options]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$ntfs(fs ptr[in, string["ntfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[ntfs_options]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$ext4(fs ptr[in, string[ext4_types]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[ext4_options]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$f2fs(fs ptr[in, string["f2fs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[f2fs_options]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$ocfs2(fs ptr[in, string["ocfs2"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$nfs(fs ptr[in, string["nfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$nfs4(fs ptr[in, string["nfs4"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$erofs(fs ptr[in, string["erofs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[erofs_options]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$exfat(fs ptr[in, string["exfat"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[exfat_options]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$afs(fs ptr[in, string["afs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[afs_options]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$cramfs(fs ptr[in, string["cramfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$romfs(fs ptr[in, string["romfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$zonefs(fs ptr[in, string["zonefs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[zonefs_options]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$efs(fs ptr[in, string["efs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$jffs2(fs ptr[in, string["jffs2"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[jffs2_options]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$nilfs2(fs ptr[in, string["nilfs2"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[nilfs2_options]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$ubifs(fs ptr[in, string["ubifs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[ubifs_options]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$squashfs(fs ptr[in, string["squashfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$udf(fs ptr[in, string["udf"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[udf_options]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+
+# TODO: add mount options for the following file systems.
+syz_mount_image$adfs(fs ptr[in, string["adfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$affs(fs ptr[in, string["affs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$pvfs2(fs ptr[in, string["pvfs2"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$befs(fs ptr[in, string["befs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$vxfs(fs ptr[in, string["vxfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$omfs(fs ptr[in, string["omfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$hpfs(fs ptr[in, string["hpfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$qnx4(fs ptr[in, string["qnx4"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$qnx6(fs ptr[in, string["qnx6"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$sysv(fs ptr[in, string["sysv"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$ufs(fs ptr[in, string["ufs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$gfs2meta(fs ptr[in, string["gfs2meta"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$v7(fs ptr[in, string["v7"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+
+# Note: tmpfs does not need an image, but we use this in tests.
+syz_mount_image$tmpfs(fs ptr[in, string["tmpfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[tmpfs_options]]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+
+fs_image_segment {
+	data	ptr[in, array[int8]]
+	size	len[data, intptr]
+	offset	intptr
+}
+
+type fs_options[ELEMS] {
+	elems		array[fs_opt_elem[ELEMS]]
+	security	array[fs_opt_elem[fs_options_security]]
+	null		const[0, int8]
+} [packed]
+
+type fs_opt_elem[ELEMS] {
+	elem	ELEMS
+	comma	const[',', int8]
+} [packed]
+
+type fs_opt[NAME, TYPE] {
+	name	stringnoz[NAME]
+	eq	const['=', int8]
+	val	TYPE
+} [packed]
+
+type fs_opt_nodelim[NAME, TYPE] {
+	name	stringnoz[NAME]
+	val	TYPE
+} [packed]
+
+type fs_opt_str[NAME] fs_opt[NAME, stringnoz]
+type fs_opt_dec[NAME, VAL] fs_opt[NAME, fmt[dec, VAL]]
+type fs_opt_hex[NAME, VAL] fs_opt[NAME, fmt[hex, VAL]]
+type fs_opt_oct[NAME, VAL] fs_opt[NAME, fmt[oct, VAL]]
+type fs_opt_dec_suffix[NAME] fs_opt[NAME, array[flags[fs_opt_digits_suffix, int8]]]
+type fs_opt_filename[NAME] fs_opt[NAME, stringnoz[filename]]
+type fs_opt_codepage[NAME] fs_opt[NAME, stringnoz[codepages_names]]
+type fs_opt_cp_num[NAME] fs_opt[NAME, stringnoz[codepage_nums]]
+
+fs_opt_digits_suffix = '-', 'x', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'k', 'm', 'g', 't', 'p', 'e', '%'
+
+fs_options_security [
+# SELinux options:
+	context			fs_opt["context", stringnoz[selinux_user_context]]
+	fscontext		fs_opt["fscontext", stringnoz[selinux_user_context]]
+	rootcontext		fs_opt["rootcontext", stringnoz[selinux_user_context]]
+	defcontext		fs_opt["defcontext", stringnoz[selinux_user_context]]
+	seclabel		stringnoz["seclabel"]
+
+# Smack options:
+	smackfsdef		fs_opt_str["smackfsdef"]
+	smackfsfloor		fs_opt_str["smackfsfloor"]
+	smackfshat		fs_opt_str["smackfshat"]
+	smackfsroot		fs_opt_str["smackfsroot"]
+	smackfstransmute	fs_opt_str["smackfstransmute"]
+
+# IMA options:
+	measure			stringnoz["measure"]
+	dont_measure		stringnoz["dont_measure"]
+	appraise		stringnoz["appraise"]
+	dont_appraise		stringnoz["dont_appraise"]
+	audit			stringnoz["audit"]
+	hash			stringnoz["hash"]
+	dont_hash		stringnoz["dont_hash"]
+	permit_directio		stringnoz["permit_directio"]
+	obj_user		fs_opt_str["obj_user"]
+	obj_role		fs_opt_str["obj_role"]
+	obj_type		fs_opt_str["obj_type"]
+	subj_user		fs_opt_str["subj_user"]
+	subj_role		fs_opt_str["subj_role"]
+	subj_type		fs_opt_str["subj_type"]
+	func			fs_opt["func", stringnoz[ima_funcs]]
+	mask			fs_opt["mask", stringnoz[ima_masks]]
+	fsmagic			fs_opt_hex["fsmagic", intptr]
+	fsname			fs_opt_str["fsname"]
+	fsuuid			fs_opt["fsuuid", uuid_str]
+	uid_eq			fs_opt_dec["uid", uid]
+	euid_eq			fs_opt_dec["euid", uid]
+	fowner_eq		fs_opt_dec["fowner", uid]
+	uid_gt			fs_opt_nodelim["uid>", fmt[dec, uid]]
+	euid_gt			fs_opt_nodelim["euid>", fmt[dec, uid]]
+	fowner_gt		fs_opt_nodelim["fowner>", fmt[dec, uid]]
+	uid_lt			fs_opt_nodelim["uid<", fmt[dec, uid]]
+	euid_lt			fs_opt_nodelim["euid<", fmt[dec, uid]]
+	fowner_lt		fs_opt_nodelim["fowner<", fmt[dec, uid]]
+	appraise_type		stringnoz["appraise_type=imasig"]
+	pcr			fs_opt_dec["pcr", int64[0:64]]
+] [varlen]
+
+uuid_str {
+	p0	array[flags[hex_chars, int8], 8]
+	d0	const['-', int8]
+	p1	array[flags[hex_chars, int8], 4]
+	d1	const['-', int8]
+	p2	array[flags[hex_chars, int8], 4]
+	d2	const['-', int8]
+	p3	array[flags[hex_chars, int8], 4]
+	d3	const['-', int8]
+	p4	array[flags[hex_chars, int8], 8]
+}
+
+hex_chars = '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
+
+ima_funcs = "FILE_CHECK", "PATH_CHECK", "MODULE_CHECK", "FIRMWARE_CHECK", "FILE_MMAP", "MMAP_CHECK", "BPRM_CHECK", "CREDS_CHECK", "KEXEC_KERNEL_CHECK", "KEXEC_INITRAMFS_CHECK", "POLICY_CHECK"
+ima_masks = "MAY_EXEC", "MAY_WRITE", "MAY_READ", "MAY_APPEND", "^MAY_EXEC", "^MAY_WRITE", "^MAY_READ", "^MAY_APPEND"
+
+msdos_options [
+	fat	fat_options
+	nodots	stringnoz["nodots"]
+	dots	stringnoz["dots"]
+] [varlen]
+
+vfat_options [
+	fat		fat_options
+	iocharset	fs_opt_codepage["iocharset"]
+	rodir		stringnoz["rodir"]
+	utf8no		stringnoz["utf8=0"]
+	utf8		stringnoz["utf8=1"]
+	uni_xlateno	stringnoz["uni_xlate=0"]
+	uni_xlate	stringnoz["uni_xlate=1"]
+	numtail		stringnoz["nonumtail=0"]
+	nonumtail	stringnoz["nnonumtail=1"]
+	shortname_lower	stringnoz["shortname=lower"]
+	shortname_win95	stringnoz["shortname=win95"]
+	shortname_winnt	stringnoz["shortname=winnt"]
+	shortname_mixed	stringnoz["shortname=mixed"]
+] [varlen]
+
+fat_options [
+	check_relaxed	stringnoz["check=relaxed"]
+	check_strict	stringnoz["check=strict"]
+	check_normal	stringnoz["check=normal"]
+	usefree		stringnoz["usefree"]
+	nocase		stringnoz["nocase"]
+	quiet		stringnoz["quiet"]
+	showexec	stringnoz["showexec"]
+	debug		stringnoz["debug"]
+	sys_immutable	stringnoz["sys_immutable"]
+	flush		stringnoz["flush"]
+	tz_utc		stringnoz["tz=UTC"]
+	errors_continue	stringnoz["errors=continue"]
+	errors_remount	stringnoz["errors=remount-ro"]
+	discard		stringnoz["discard"]
+	nfs		stringnoz["nfs"]
+	nfs_nostale_ro	stringnoz["nfs=nostale_ro"]
+	dos1xfloppy	stringnoz["dos1xfloppy"]
+	uid		fs_opt_hex["uid", uid]
+	gid		fs_opt_hex["gid", gid]
+	umask		fs_opt_oct["umask", int32]
+	dmask		fs_opt_oct["dmask", int32]
+	fmask		fs_opt_oct["fmask", int32]
+	allow_utime	fs_opt_oct["allow_utime", int32]
+	time_offset	fs_opt_hex["time_offset", int32[-1440:1440]]
+	codepage	fs_opt_cp_num["codepage"]
+] [varlen]
+
+xfs_options [
+	wsync		stringnoz["wsync"]
+	noalign		stringnoz["noalign"]
+	swalloc		stringnoz["swalloc"]
+	nouuid		stringnoz["nouuid"]
+	mtpt		stringnoz["mtpt"]
+	grpid		stringnoz["grpid"]
+	nogrpid		stringnoz["nogrpid"]
+	bsdgroups	stringnoz["bsdgroups"]
+	sysvgroups	stringnoz["sysvgroups"]
+	norecovery	stringnoz["norecovery"]
+	inode64		stringnoz["inode64"]
+	inode32		stringnoz["inode32"]
+	ikeep		stringnoz["ikeep"]
+	noikeep		stringnoz["noikeep"]
+	largeio		stringnoz["largeio"]
+	nolargeio	stringnoz["nolargeio"]
+	attr2		stringnoz["attr2"]
+	noattr2		stringnoz["noattr2"]
+	filestreams	stringnoz["filestreams"]
+	quota		stringnoz["quota"]
+	noquota		stringnoz["noquota"]
+	lazytime	stringnoz["lazytime"]
+	nolazytime	stringnoz["nolazytime"]
+	usrquota	stringnoz["usrquota"]
+	grpquota	stringnoz["grpquota"]
+	prjquota	stringnoz["prjquota"]
+	uquota		stringnoz["uquota"]
+	gquota		stringnoz["gquota"]
+	pquota		stringnoz["pquota"]
+	uqnoenforce	stringnoz["uqnoenforce"]
+	gqnoenforce	stringnoz["gqnoenforce"]
+	pqnoenforce	stringnoz["pqnoenforce"]
+	qnoenforce	stringnoz["qnoenforce"]
+	discard		stringnoz["discard"]
+	nodiscard	stringnoz["nodiscard"]
+	dax		stringnoz["dax"]
+	barrier		stringnoz["barrier"]
+	nobarrier	stringnoz["nobarrier"]
+	logbufs		fs_opt_dec["logbufs", int32[-1:8]]
+	biosize		fs_opt_dec["biosize", int32]
+	sunit		fs_opt_hex["sunit", int32]
+	swidth		fs_opt_hex["swidth", int32]
+	logbsize	fs_opt_dec_suffix["logbsize"]
+	allocsize	fs_opt_dec_suffix["allocsize"]
+	logdev		fs_opt_filename["logdev"]
+	rtdev		fs_opt_filename["rtdev"]
+] [varlen]
+
+reiserfs_options [
+	tails_on		stringnoz["tails=on"]
+	tails_off		stringnoz["tails=off"]
+	tails_small		stringnoz["tails=small"]
+	notail			stringnoz["notail"]
+	conv			stringnoz["conv"]
+	noattrs			stringnoz["noattrs"]
+	expose_privroot		stringnoz["expose_privroot"]
+	user_xattr		stringnoz["user_xattr"]
+	nouser_xattr		stringnoz["nouser_xattr"]
+	acl			stringnoz["acl"]
+	noacl			stringnoz["noacl"]
+	replayonly		stringnoz["replayonly"]
+	nolargeio		stringnoz["nolargeio"]
+	usrquota		stringnoz["usrquota"]
+	grpquota		stringnoz["grpquota"]
+	noquota			stringnoz["noquota"]
+	usrjquota		stringnoz["usrjquota"]
+	usrjquota_file		stringnoz["usrjquota=syz"]
+	grpjquota		stringnoz["grpjquota"]
+	commit			fs_opt_hex["commit", int32]
+	resize			fs_opt_hex["resize", int32]
+	resize_auto		stringnoz["resize=auto"]
+	jdev			fs_opt_filename["jdev"]
+	jqfmt_vfsold		stringnoz["jqfmt=vfsold"]
+	jqfmt_vfsv0		stringnoz["jqfmt=vfsv0"]
+	hash_tea		stringnoz["hash=tea"]
+	hash_rupasov		stringnoz["hash=rupasov"]
+	hash_r5			stringnoz["hash=r5"]
+	balloc_noborder		stringnoz["block-allocator=noborder"]
+	balloc_border		stringnoz["block-allocator=border"]
+	balloc_no_unhash_reloc	stringnoz["block-allocator=no_unhashed_relocation"]
+	balloc_hashed_reloc	stringnoz["block-allocator=hashed_relocation"]
+	balloc_test4		stringnoz["block-allocator=test4"]
+	balloc_notest4		stringnoz["block-allocator=notest4"]
+	barrier_none		stringnoz["barrier=none"]
+	barrier_flush		stringnoz["barrier=flush"]
+	data_ordered		stringnoz["data=ordered"]
+	data_journal		stringnoz["data=journal"]
+	data_writeback		stringnoz["data=writeback"]
+	errors_continue		stringnoz["errors=continue"]
+	errors_ro_remount	stringnoz["errors=ro-remount"]
+] [varlen]
+
+hfs_options [
+	quiet		stringnoz["quiet"]
+	umask		fs_opt_oct["umask", int32]
+	file_umask	fs_opt_oct["file_umask", int32]
+	dir_umask	fs_opt_oct["dir_umask", int32]
+	uid		fs_opt_hex["uid", uid]
+	gid		fs_opt_hex["gid", gid]
+	part		fs_opt_hex["part", int32]
+	session		fs_opt_hex["session", int32]
+	type		fs_opt["type", array[int8, 4]]
+	creator		fs_opt["creator", array[int8, 4]]
+	codepage	fs_opt_codepage["codepage"]
+	iocharset	fs_opt_codepage["iocharset"]
+] [varlen]
+
+hfsplus_options [
+	decompose	stringnoz["decompose"]
+	nodecompose	stringnoz["nodecompose"]
+	barrier		stringnoz["barrier"]
+	nobarrier	stringnoz["nobarrier"]
+	force		stringnoz["force"]
+	umask		fs_opt_oct["umask", int32]
+	type		fs_opt["type", array[int8, 4]]
+	creator		fs_opt["creator", array[int8, 4]]
+	uid		fs_opt_hex["uid", uid]
+	gid		fs_opt_hex["gid", gid]
+	part		fs_opt_hex["part", int32]
+	session		fs_opt_hex["session", int32]
+	nls		fs_opt_codepage["nls"]
+] [varlen]
+
+iso9660_options [
+	norock		stringnoz["norock"]
+	nojoliet	stringnoz["nojoliet"]
+	unhide		stringnoz["unhide"]
+	hide		stringnoz["hide"]
+	cruft		stringnoz["cruft"]
+	utf8		stringnoz["utf8"]
+	map_acorn	stringnoz["map=acorn"]
+	map_normal	stringnoz["map=normal"]
+	map_off		stringnoz["map=off"]
+	check_relaxed	stringnoz["check=relaxed"]
+	check_strict	stringnoz["check=strict"]
+	overriderock	stringnoz["overriderockperm"]
+	nocompress	stringnoz["nocompress"]
+	session		fs_opt_hex["session", int32[0:98]]
+	sbsector	fs_opt_hex["sbsector", int32]
+	uid		fs_opt_hex["uid", uid]
+	gid		fs_opt_hex["gid", gid]
+	mode		fs_opt_hex["mode", int32]
+	dmode		fs_opt_hex["dmode", int32]
+	block		fs_opt_hex["block", flags[iso9660_blocks]]
+	iocharset	fs_opt_codepage["iocharset"]
+] [varlen]
+
+iso9660_blocks = 512, 1024, 2048
+
+gfs2_options [
+	spectator		stringnoz["spectator"]
+	norecovery		stringnoz["norecovery"]
+	ignore_local_fs		stringnoz["ignore_local_fs"]
+	localflocks		stringnoz["localflocks"]
+	localcaching		stringnoz["localcaching"]
+	upgrade			stringnoz["upgrade"]
+	acl			stringnoz["acl"]
+	noacl			stringnoz["noacl"]
+	quota_off		stringnoz["quota=off"]
+	quota_account		stringnoz["quota=account"]
+	quota_on		stringnoz["quota=on"]
+	quota			stringnoz["quota"]
+	noquota			stringnoz["noquota"]
+	suiddir			stringnoz["suiddir"]
+	nosuiddir		stringnoz["nosuiddir"]
+	data_writeback		stringnoz["data=writeback"]
+	data_ordered		stringnoz["data=ordered"]
+	meta			stringnoz["meta"]
+	discard			stringnoz["discard"]
+	nodiscard		stringnoz["nodiscard"]
+	errors_withdraw		stringnoz["errors=withdraw"]
+	barrier			stringnoz["barrier"]
+	nobarrier		stringnoz["nobarrier"]
+	rgrplvb			stringnoz["rgrplvb"]
+	norgrplvb		stringnoz["norgrplvb"]
+	loccookie		stringnoz["loccookie"]
+	noloccookie		stringnoz["noloccookie"]
+	commit			fs_opt_hex["commit", int32]
+	statfs_quantum		fs_opt_hex["statfs_quantum", int32]
+	statfs_percent		fs_opt_hex["statfs_percent", int32]
+	quota_quantum		fs_opt_hex["quota_quantum", int32]
+	lockproto_dlm		stringnoz["lockproto=dlm"]
+	lockproto_nolock	stringnoz["lockproto=lock_nolock"]
+	locktable		fs_opt_str["locktable"]
+	hostdata		fs_opt_str["hostdata"]
+] [varlen]
+
+jfs_options [
+	integrity	stringnoz["integrity"]
+	nointegrity	stringnoz["nointegrity"]
+	resize		stringnoz["resize"]
+	noquota		stringnoz["noquota"]
+	quota		stringnoz["quota"]
+	usrquota	stringnoz["usrquota"]
+	grpquota	stringnoz["grpquota"]
+	discard		stringnoz["discard"]
+	nodiscard	stringnoz["nodiscard"]
+	iocharset	fs_opt_codepage["iocharset"]
+	errors_continue	stringnoz["errors=continue"]
+	errors_remount	stringnoz["errors=remount-ro"]
+	resize_size	fs_opt_hex["resize", int32]
+	uid		fs_opt_hex["uid", uid]
+	gid		fs_opt_hex["gid", gid]
+	umask		fs_opt_hex["umask", int32]
+	discard_size	fs_opt_hex["discard", int32]
+] [varlen]
+
+btrfs_options [
+	degraded		stringnoz["degraded"]
+	nodatasum		stringnoz["nodatasum"]
+	datasum			stringnoz["datasum"]
+	nodatacow		stringnoz["nodatacow"]
+	datacow			stringnoz["datacow"]
+	nobarrier		stringnoz["nobarrier"]
+	barrier			stringnoz["barrier"]
+	compress		stringnoz["compress"]
+	compress_force		stringnoz["compress-force"]
+	ssd			stringnoz["ssd"]
+	ssd_spread		stringnoz["ssd_spread"]
+	nossd_spread		stringnoz["nossd_spread"]
+	nossd			stringnoz["nossd"]
+	acl			stringnoz["acl"]
+	noacl			stringnoz["noacl"]
+	notreelog		stringnoz["notreelog"]
+	treelog			stringnoz["treelog"]
+	flushoncommit		stringnoz["flushoncommit"]
+	noflushoncommit		stringnoz["noflushoncommit"]
+	discard			stringnoz["discard"]
+	nodiscard		stringnoz["nodiscard"]
+	space_cache		stringnoz["space_cache"]
+	clear_cache		stringnoz["clear_cache"]
+	user_subvol_rm		stringnoz["user_subvol_rm_allowed"]
+	enospc_debug		stringnoz["enospc_debug"]
+	noenospc_debug		stringnoz["noenospc_debug"]
+	autodefrag		stringnoz["autodefrag"]
+	noautodefrag		stringnoz["noautodefrag"]
+	inode_cache		stringnoz["inode_cache"]
+	noinode_cache		stringnoz["noinode_cache"]
+	nospace_cache		stringnoz["nospace_cache"]
+	usebackuproot		stringnoz["usebackuproot"]
+	skip_balance		stringnoz["skip_balance"]
+	check_int		stringnoz["check_int"]
+	check_int_data		stringnoz["check_int_data"]
+	rescan_uuid_tree	stringnoz["rescan_uuid_tree"]
+	fragment_data		stringnoz["fragment=data"]
+	fragment_metadata	stringnoz["fragment=metadata"]
+	fragment_all		stringnoz["fragment=all"]
+	ref_verify		stringnoz["ref_verify"]
+	metadata_ratio		fs_opt_hex["metadata_ratio", int32]
+	check_int_print_mask	fs_opt_hex["check_int_print_mask", int32]
+	commit			fs_opt_hex["commit", int32]
+	thread_pool		fs_opt_hex["thread_pool", int32]
+	device			fs_opt_filename["device"]
+	subvolid		fs_opt_hex["subvolid", int64]
+	subvol			fs_opt_str["subvol"]
+	max_inline		fs_opt_dec_suffix["max_inline"]
+	compress_algo		fs_opt["compress", stringnoz[btrfs_compress_algos]]
+	compress_force_algo	fs_opt["compress-force", stringnoz[btrfs_compress_algos]]
+	space_cache_v1		stringnoz["space_cache=v1"]
+	space_cache_v2		stringnoz["space_cache=v2"]
+] [varlen]
+
+btrfs_compress_algos = "zlib", "lzo", "zstd", "no"
+
+ntfs_options [
+	uid			fs_opt_hex["uid", uid]
+	gid			fs_opt_hex["gid", gid]
+	umask			fs_opt_oct["umask", int32]
+	fmask			fs_opt_oct["fmask", int32]
+	dmask			fs_opt_oct["dmask", int32]
+	mft_zone_multiplier	fs_opt_hex["mft_zone_multiplier", int32[-1:4]]
+	show_sys_files_no	stringnoz["show_sys_files=no"]
+	show_sys_files_yes	stringnoz["show_sys_files=yes"]
+	case_sensitive_no	stringnoz["case_sensitive=no"]
+	case_sensitive_yes	stringnoz["case_sensitive=yes"]
+	disable_sparse_no	stringnoz["disable_sparse=no"]
+	disable_sparse_yes	stringnoz["disable_sparse=yes"]
+	errors_remount		stringnoz["errors=remount-ro"]
+	errors_continue		stringnoz["errors=continue"]
+	errors_recover		stringnoz["errors=recover"]
+	nls			fs_opt_codepage["nls"]
+	utf8			stringnoz["utf8"]
+] [varlen]
+
+ext4_options [
+	bsddf			stringnoz["bsddf"]
+	minixdf			stringnoz["minixdf"]
+	grpid			stringnoz["grpid"]
+	bsdgroups		stringnoz["bsdgroups"]
+	nogrpid			stringnoz["nogrpid"]
+	sysvgroups		stringnoz["sysvgroups"]
+	errors_continue		stringnoz["errors=continue"]
+	errors_remount		stringnoz["errors=remount-ro"]
+	nouid32			stringnoz["nouid32"]
+	debug			stringnoz["debug"]
+	oldalloc		stringnoz["oldalloc"]
+	orlov			stringnoz["orlov"]
+	user_xattr		stringnoz["user_xattr"]
+	nouser_xattr		stringnoz["nouser_xattr"]
+	acl			stringnoz["acl"]
+	noacl			stringnoz["noacl"]
+	norecovery		stringnoz["norecovery"]
+	noload			stringnoz["noload"]
+	nobh			stringnoz["nobh"]
+	bh			stringnoz["bh"]
+	journal_checksum	stringnoz["journal_checksum"]
+	nojournal_checksum	stringnoz["nojournal_checksum"]
+	journal_async_commit	stringnoz["journal_async_commit"]
+	abort			stringnoz["abort"]
+	data_journal		stringnoz["data=journal"]
+	data_ordered		stringnoz["data=ordered"]
+	data_writeback		stringnoz["data=writeback"]
+	data_err_abort		stringnoz["data_err=abort"]
+	data_err_ignore		stringnoz["data_err=ignore"]
+	usrjquota		stringnoz["usrjquota="]
+	grpjquota		stringnoz["grpjquota="]
+	jqfmt_vfsold		stringnoz["jqfmt=vfsold"]
+	jqfmt_vfsv0		stringnoz["jqfmt=vfsv0"]
+	jqfmt_vfsv1		stringnoz["jqfmt=vfsv1"]
+	grpquota		stringnoz["grpquota"]
+	noquota			stringnoz["noquota"]
+	quota			stringnoz["quota"]
+	usrquota		stringnoz["usrquota"]
+	prjquota		stringnoz["prjquota"]
+	barrier			stringnoz["barrier"]
+	nobarrier		stringnoz["nobarrier"]
+	i_version		stringnoz["i_version"]
+	dax			stringnoz["dax"]
+	delalloc		stringnoz["delalloc"]
+	lazytime		stringnoz["lazytime"]
+	nolazytime		stringnoz["nolazytime"]
+	nodelalloc		stringnoz["nodelalloc"]
+	mblk_io_submit		stringnoz["mblk_io_submit"]
+	nomblk_io_submit	stringnoz["nomblk_io_submit"]
+	block_validity		stringnoz["block_validity"]
+	noblock_validity	stringnoz["noblock_validity"]
+	auto_da_alloc		stringnoz["auto_da_alloc"]
+	noauto_da_alloc		stringnoz["noauto_da_alloc"]
+	dioread_nolock		stringnoz["dioread_nolock"]
+	dioread_lock		stringnoz["dioread_lock"]
+	discard			stringnoz["discard"]
+	nodiscard		stringnoz["nodiscard"]
+	init_itable		stringnoz["init_itable"]
+	noinit_itable		stringnoz["noinit_itable"]
+	test_dummy_encryption	stringnoz["test_dummy_encryption"]
+	nombcache		stringnoz["nombcache"]
+	resgid			fs_opt_hex["resgid", gid]
+	resuid			fs_opt_hex["resuid", uid]
+	sb			fs_opt_hex["sb", int32]
+	commit			fs_opt_hex["commit", int32]
+	min_batch_time		fs_opt_hex["min_batch_time", int32]
+	max_batch_time		fs_opt_hex["max_batch_time", int32]
+	journal_dev		fs_opt_hex["journal_dev", int32]
+	barrier_val		fs_opt_hex["barrier", int32]
+	stripe			fs_opt_hex["stripe", int32]
+	debug_want_extra_isize	fs_opt_hex["debug_want_extra_isize", int32]
+	inode_readahead_blks	fs_opt_hex["inode_readahead_blks", flags[ext4_inode_readahead_blks]]
+	journal_ioprio		fs_opt_hex["journal_ioprio", int32[0:7]]
+	auto_da_alloc_val	fs_opt_hex["auto_da_alloc", int32]
+	init_itable_val		fs_opt_hex["init_itable", int32]
+	max_dir_size_kb		fs_opt_hex["max_dir_size_kb", int32]
+	journal_path		fs_opt_filename["journal_path"]
+	grpjquota_path		fs_opt_filename["grpjquota"]
+	usrjquota_path		fs_opt_filename["usrjquota"]
+] [varlen]
+
+ext4_types = "ext4", "ext3", "ext2"
+ext4_inode_readahead_blks = 0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 0x1000, 0x2000, 0x4000, 0x8000, 0x10000, 0x20000, 0x40000, 0x80000, 0x100000, 0x200000, 0x400000, 0x800000, 0x1000000, 0x2000000, 0x4000000, 0x8000000
+
+f2fs_options [
+	background_gc_sync	stringnoz["background_gc=sync"]
+	background_gc_off	stringnoz["background_gc=off"]
+	background_gc_on	stringnoz["background_gc=on"]
+	disable_roll_forward	stringnoz["disable_roll_forward"]
+	norecovery		stringnoz["norecovery"]
+	discard			stringnoz["discard"]
+	nodiscard		stringnoz["nodiscard"]
+	noheap			stringnoz["noheap"]
+	heap			stringnoz["heap"]
+	user_xattr		stringnoz["user_xattr"]
+	nouser_xattr		stringnoz["nouser_xattr"]
+	acl			stringnoz["acl"]
+	noacl			stringnoz["noacl"]
+	six_active_logs		stringnoz["active_logs=6"]
+	four_active_logs	stringnoz["active_logs=4"]
+	two_active_logs		stringnoz["active_logs=2"]
+	disable_ext_identify	stringnoz["disable_ext_identify"]
+	inline_xattr		stringnoz["inline_xattr"]
+	noinline_xattr		stringnoz["noinline_xattr"]
+	inline_xattr_size	fs_opt_hex["inline_xattr_size", int32]
+	inline_data		stringnoz["inline_data"]
+	noinline_data		stringnoz["noinline_data"]
+	inline_dentry		stringnoz["inline_dentry"]
+	noinline_dentry		stringnoz["noinline_dentry"]
+	flush_merge		stringnoz["flush_merge"]
+	noflush_merge		stringnoz["noflush_merge"]
+	nobarrier		stringnoz["nobarrier"]
+	fastboot		stringnoz["fastboot"]
+	extent_cache		stringnoz["extent_cache"]
+	noextent_cache		stringnoz["noextent_cache"]
+	data_flush		stringnoz["data_flush"]
+	adaptive_mode		stringnoz["mode=adaptive"]
+	lfs_mode		stringnoz["mode=lfs"]
+	resgid			fs_opt_hex["resgid", gid]
+	resuid			fs_opt_hex["resuid", uid]
+	lazytime		stringnoz["lazytime"]
+	nolazytime		stringnoz["nolazytime"]
+	quota			stringnoz["quota"]
+	noquota			stringnoz["noquota"]
+	usrquota		fs_opt_str["usrquota"]
+	grpquota		fs_opt_str["grpquota"]
+	prjquota		fs_opt_str["prjquota"]
+	usrjquota		fs_opt_str["usrjquota"]
+	grpjquota		fs_opt_str["grpjquota"]
+	prjjquota		fs_opt_str["prjjquota"]
+	jqfmt_vfsold		stringnoz["jqfmt=vfsold"]
+	jqfmt_vfsv0		stringnoz["jqfmt=vfsv0"]
+	jqfmt_vfsv1		stringnoz["jqfmt=vfsv1"]
+	whint_mode_user		stringnoz["whint_mode=user-based"]
+	whint_mode_off		stringnoz["whint_mode=off"]
+	whint_mode_fs		stringnoz["whint_mode=fs-based"]
+	alloc_mode_def		stringnoz["alloc_mode=default"]
+	alloc_mode_reuse	stringnoz["alloc_mode=reuse"]
+	fsync_mode_posix	stringnoz["fsync_mode=posix"]
+	fsync_mode_strict	stringnoz["fsync_mode=strict"]
+	test_dummy_encryption	stringnoz["test_dummy_encryption"]
+] [varlen]
+
+bpf_options [
+	mode	fs_opt_oct["mode", int32]
+] [varlen]
+
+overlay_options [
+	lowerdir		fs_opt_filename["lowerdir"]
+	upperdir		fs_opt_filename["upperdir"]
+	workdir			fs_opt_filename["workdir"]
+	redirect_dir		fs_opt_filename["redirect_dir"]
+	default_permissions	stringnoz["default_permissions"]
+	index_on		stringnoz["index=on"]
+	index_off		stringnoz["index=off"]
+	nfs_export_on		stringnoz["nfs_export=on"]
+	nfs_export_off		stringnoz["nfs_export=off"]
+	xino_on			stringnoz["xino=on"]
+	xino_off		stringnoz["xino=off"]
+	xino_auto		stringnoz["xino=auto"]
+	metacopy_on		stringnoz["metacopy=on"]
+	metacopy_off		stringnoz["metacopy=off"]
+] [varlen]
+
+binder_options [
+	max	fs_opt_dec["max", int32[0:4]]
+	stats	stringnoz["stats=global"]
+] [varlen]
+
+erofs_options [
+	user_xattr	stringnoz["user_xattr"]
+	nouser_xattr	stringnoz["nouser_xattr"]
+	acl		stringnoz["acl"]
+	noacl		stringnoz["noacl"]
+	fault_injection	fs_opt_hex["fault_injection", int32]
+] [varlen]
+
+exfat_options [
+	uid		fs_opt_hex["uid", uid]
+	gid		fs_opt_hex["gid", gid]
+	umask		fs_opt_oct["umask", int32]
+	dmask		fs_opt_oct["dmask", int32]
+	fmask		fs_opt_oct["fmask", int32]
+	allow_utime	fs_opt_oct["allow_utime", int32]
+	codepage	fs_opt_codepage["codepage"]
+	iocharset	fs_opt_codepage["iocharset"]
+	namecase	stringnoz["namecase=1"]
+	errors_remount	stringnoz["errors=remount-ro"]
+	errors_continue	stringnoz["errors=continue"]
+	utf8		stringnoz["utf8"]
+	discard		stringnoz["discard"]
+] [varlen]
+
+afs_options [
+	autocell	stringnoz["autocell"]
+	dyn		stringnoz["dyn"]
+	flock_local	stringnoz["flock=local"]
+	flock_openafs	stringnoz["flock=openafs"]
+	flock_strict	stringnoz["flock=strict"]
+	flock_write	stringnoz["flock=write"]
+	source		fs_opt_str["source"]
+] [varlen]
+
+tmpfs_options [
+	uid			fs_opt_hex["uid", uid]
+	gid			fs_opt_hex["gid", gid]
+	mode			fs_opt_oct["mode", int32]
+	nr_blocks		fs_opt_dec_suffix["nr_blocks"]
+	nr_inodes		fs_opt_dec_suffix["nr_inodes"]
+	size			fs_opt_dec_suffix["size"]
+	huge_never		stringnoz["huge=never"]
+	huge_always		stringnoz["huge=always"]
+	huge_within_size	stringnoz["huge=within_size"]
+	huge_advise		stringnoz["huge=advise"]
+	mpol			fs_opt["mpol", tmpfs_mpol]
+] [varlen]
+
+tmpfs_mpol {
+	policy	stringnoz[tmpfs_mpol_policy]
+	flags	stringnoz[tmpfs_mpol_flags]
+	nodes	optional[tmpfs_mpol_nodes]
+} [packed]
+
+tmpfs_mpol_nodes {
+	colon	const[':', int8]
+	nodes	array[flags[tmpfs_mpol_node_chars, int8]]
+}
+
+tmpfs_mpol_policy = "default", "prefer", "bind", "interleave", "local"
+tmpfs_mpol_flags = "", "=static", "=relative"
+tmpfs_mpol_node_chars = '-', ':', '/', ',', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'
+
+zonefs_options [
+	errors_zone_ro		stringnoz["errors=zone-ro"]
+	errors_zone_offline	stringnoz["errors=zone-offline"]
+	errors_repair		stringnoz["errors=repair"]
+	explicit_open		stringnoz["explicit-open"]
+] [varlen]
+
+jffs2_options [
+	compr_none	stringnoz["compr=none"]
+	compr_lzo	stringnoz["compr=lzo"]
+	compr_zlib	stringnoz["compr=zlib"]
+	rp_size		fs_opt_dec["rp_size", int32]
+] [varlen]
+
+nilfs2_options [
+	barrier		stringnoz["barrier"]
+	nobarrier	stringnoz["nobarrier"]
+	norecovery	stringnoz["norecovery"]
+	discard		stringnoz["discard"]
+	nodiscard	stringnoz["nodiscard"]
+	snapshot	fs_opt_hex["snapshot", int32[0:3]]
+	order_relaxed	stringnoz["order=relaxed"]
+	order_strict	stringnoz["order=strict"]
+] [varlen]
+
+ubifs_options [
+	fast_unmount	stringnoz["fast_unmount"]
+	norm_unmount	stringnoz["norm_unmount"]
+	bulk_read	stringnoz["bulk_read"]
+	no_bulk_read	stringnoz["no_bulk_read"]
+	chk_data_crc	stringnoz["chk_data_crc"]
+	no_chk_data_crc	stringnoz["no_chk_data_crc"]
+	compr_none	stringnoz["compr=none"]
+	compr_lzo	stringnoz["compr=lzo"]
+	compr_zlib	stringnoz["compr=zlib"]
+	compr_zstd	stringnoz["compr=zstd"]
+	auth_key	fs_opt_str["auth_key"]
+	auth_hash_name	fs_opt["auth_hash_name", stringnoz[ubifs_auth_hash_name]]
+] [varlen]
+
+# We could use more hash names, but the problem is that alg_hash_name is 0-terminated.
+ubifs_auth_hash_name = "crc32", "ghash", "md5", "sha1"
+
+udf_options [
+	novrs		stringnoz["novrs"]
+	nostrict	stringnoz["nostrict"]
+	unhide		stringnoz["unhide"]
+	undelete	stringnoz["undelete"]
+	noadinicb	stringnoz["noadinicb"]
+	adinicb		stringnoz["adinicb"]
+	shortad		stringnoz["shortad"]
+	longad		stringnoz["longad"]
+	utf8		stringnoz["utf8"]
+	iocharset	fs_opt_codepage["iocharset"]
+	uid_forget	stringnoz["uid=forget"]
+	uid_ignore	stringnoz["uid=ignore"]
+	gid_forget	stringnoz["gid=forget"]
+	gid_ignore	stringnoz["gid=ignore"]
+	gid		fs_opt_dec["gid", gid]
+	uid		fs_opt_dec["uid", uid]
+	umask		fs_opt_oct["umask", int32]
+	mode		fs_opt_oct["mode", int32]
+	dmode		fs_opt_oct["dmode", int32]
+	bs		fs_opt_dec["bs", int32]
+	session		fs_opt_dec["session", int32]
+	lastblock	fs_opt_dec["lastblock", int32]
+	anchor		fs_opt_dec["anchor", int32]
+	volume		fs_opt_dec["volume", int32]
+	partition	fs_opt_dec["partition", int32]
+	fileset		fs_opt_dec["fileset", int32]
+	rootdir		fs_opt_dec["rootdir", int32]
+] [varlen]
+
+esdfs_options [
+	lower		fs_opt_str["lower"]
+	upper		fs_opt_str["upper"]
+	derive		fs_opt["derive", stringnoz[esdfs_derive]]
+	confine		stringnoz["confine"]
+	noconfine	stringnoz["noconfine"]
+	derive_gid	stringnoz["derive_gid"]
+	default_normal	stringnoz["default_normal"]
+	dl_loc		fs_opt_str["dl_loc"]
+	dl_uid		fs_opt_oct["dl_uid", uid]
+	dl_gid		fs_opt_oct["dl_gid", gid]
+	ns_fd		fs_opt_oct["ns_fd", fd_namespace]
+	fsuid		fs_opt_oct["fsuid", uid]
+	fsgid		fs_opt_oct["fsgid", gid]
+	gid		fs_opt_oct["gid", gid]
+	mask		fs_opt_oct["mask", int32]
+	userid		fs_opt_oct["userid", uid]
+	multiuser	stringnoz["multiuser"]
+] [varlen]
+
+esdfs_derive = "none", "legacy", "unified", "multi", "public"
+
+cgroup_options [
+	all		stringnoz["all"]
+	clone_children	stringnoz["clone_children"]
+	cpuset_v2_mode	stringnoz["cpuset_v2_mode"]
+	name		fs_opt_str["name"]
+	none		stringnoz["none"]
+	noprefix	stringnoz["noprefix"]
+	release_agent	fs_opt_filename["release_agent"]
+	xattr		stringnoz["xattr"]
+	subsystem	stringnoz[cgroup_subsystems]
+] [varlen]
+
+cgroup2_options [
+	nsdelegate		stringnoz["nsdelegate"]
+	memory_localevents	stringnoz["memory_localevents"]
+	memory_recursiveprot	stringnoz["memory_recursiveprot"]
+	subsystem		stringnoz[cgroup_subsystems]
+] [varlen]
+
+codepage_nums = "1250", "1251", "1255", "437", "737", "775", "850", "852", "855", "857", "860", "861", "862", "863", "864", "865", "866", "869", "874", "932", "936", "949", "950"
+codepages_names = "macceltic", "maccenteuro", "maccroatian", "maccyrillic", "macgaelic", "macgreek", "maciceland", "macinuit", "macroman", "macromanian", "macturkish", "ascii", "default", "cp1250", "cp1251", "cp1255", "cp437", "cp737", "cp775", "cp850", "cp852", "cp855", "cp857", "cp860", "cp861", "cp862", "cp863", "cp864", "cp865", "cp866", "cp869", "cp874", "cp932", "cp936", "cp949", "cp950", "euc-jp", "iso8859-13", "iso8859-14", "iso8859-15", "iso8859-1", "iso8859-2", "iso8859-3", "iso8859-4", "iso8859-5", "iso8859-6", "iso8859-7", "iso8859-9", "koi8-r", "koi8-ru", "koi8-u", "utf8", "none"
+mount_flags = MS_BIND, MS_DIRSYNC, MS_MANDLOCK, MS_MOVE, MS_NOATIME, MS_NODEV, MS_NODIRATIME, MS_NOEXEC, MS_NOSUID, MS_RDONLY, MS_RELATIME, MS_REMOUNT, MS_SILENT, MS_STRICTATIME, MS_SYNCHRONOUS, MS_REC, MS_POSIXACL, MS_UNBINDABLE, MS_PRIVATE, MS_SLAVE, MS_SHARED, MS_I_VERSION, MS_LAZYTIME
+umount_flags = MNT_FORCE, MNT_DETACH, MNT_EXPIRE, UMOUNT_NOFOLLOW

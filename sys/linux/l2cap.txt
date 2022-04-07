@@ -1,0 +1,258 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <net/bluetooth/bluetooth.h>
+include <net/bluetooth/hci_sock.h>
+include <net/bluetooth/l2cap.h>
+
+l2cap_hdr_un [
+	l2cap_cid_signaling	l2cap_hdr_t[L2CAP_CID_SIGNALING, array[l2cap_cid_signaling_un]]
+	l2cap_cid_le_signaling	l2cap_hdr_t[L2CAP_CID_LE_SIGNALING, l2cap_cid_le_signaling_un]
+] [varlen]
+
+l2cap_cid_signaling_un [
+	l2cap_cmd_rej_unk	l2cap_cmd_hdr_t[L2CAP_COMMAND_REJ, l2cap_cmd_rej_unk]
+	l2cap_conn_req		l2cap_cmd_hdr_t[L2CAP_CONN_REQ, l2cap_conn_req]
+	l2cap_conn_rsp		l2cap_cmd_hdr_t[L2CAP_CONN_RSP, l2cap_conn_rsp]
+	l2cap_conf_req		l2cap_cmd_hdr_t[L2CAP_CONF_REQ, l2cap_conf_req]
+	l2cap_conf_rsp		l2cap_cmd_hdr_t[L2CAP_CONF_RSP, l2cap_conf_rsp]
+	l2cap_create_chan_req	l2cap_cmd_hdr_t[L2CAP_CREATE_CHAN_REQ, l2cap_create_chan_req]
+	l2cap_create_chan_rsp	l2cap_cmd_hdr_t[L2CAP_CREATE_CHAN_RSP, l2cap_create_chan_rsp]
+	l2cap_disconn_req	l2cap_cmd_hdr_t[L2CAP_DISCONN_REQ, l2cap_disconn_req]
+	l2cap_disconn_rsp	l2cap_cmd_hdr_t[L2CAP_DISCONN_RSP, l2cap_disconn_rsp]
+	l2cap_info_req		l2cap_cmd_hdr_t[L2CAP_INFO_REQ, l2cap_info_req]
+	l2cap_info_rsp		l2cap_cmd_hdr_t[L2CAP_INFO_RSP, l2cap_info_rsp]
+	l2cap_move_chan_cfm	l2cap_cmd_hdr_t[L2CAP_MOVE_CHAN_CFM, l2cap_move_chan_cfm]
+	l2cap_move_chan_cfm_rsp	l2cap_cmd_hdr_t[L2CAP_MOVE_CHAN_CFM_RSP, l2cap_move_chan_cfm_rsp]
+	l2cap_move_chan_req	l2cap_cmd_hdr_t[L2CAP_MOVE_CHAN_REQ, l2cap_move_chan_req]
+	l2cap_move_chan_rsp	l2cap_cmd_hdr_t[L2CAP_MOVE_CHAN_RSP, l2cap_move_chan_rsp]
+] [varlen]
+
+l2cap_cid_le_signaling_un [
+	l2cap_cmd_rej_unk		l2cap_cmd_hdr_t[L2CAP_COMMAND_REJ, l2cap_cmd_rej_unk]
+	l2cap_conn_param_update_req	l2cap_cmd_hdr_t[L2CAP_CONN_PARAM_UPDATE_REQ, l2cap_conn_param_update_req]
+	l2cap_conn_param_update_rsp	l2cap_cmd_hdr_t[L2CAP_CONN_PARAM_UPDATE_RSP, l2cap_conn_param_update_rsp]
+	l2cap_disconn_req		l2cap_cmd_hdr_t[L2CAP_DISCONN_REQ, l2cap_disconn_req]
+	l2cap_disconn_rsp		l2cap_cmd_hdr_t[L2CAP_DISCONN_RSP, l2cap_disconn_rsp]
+	l2cap_ecred_conn_req		l2cap_cmd_hdr_t[L2CAP_ECRED_CONN_REQ, l2cap_ecred_conn_req]
+	l2cap_ecred_conn_rsp		l2cap_cmd_hdr_t[L2CAP_ECRED_CONN_RSP, l2cap_ecred_conn_rsp]
+	l2cap_ecred_reconf_req		l2cap_cmd_hdr_t[L2CAP_ECRED_RECONF_REQ, l2cap_ecred_reconf_req]
+	l2cap_ecred_reconf_rsp		l2cap_cmd_hdr_t[L2CAP_ECRED_RECONF_RSP, l2cap_ecred_reconf_rsp]
+	l2cap_le_conn_req		l2cap_cmd_hdr_t[L2CAP_LE_CONN_REQ, l2cap_le_conn_req]
+	l2cap_le_conn_rsp		l2cap_cmd_hdr_t[L2CAP_LE_CONN_RSP, l2cap_le_conn_rsp]
+	l2cap_le_credits		l2cap_cmd_hdr_t[L2CAP_LE_CREDITS, l2cap_le_credits]
+] [varlen]
+
+type l2cap_hdr_t[CID, PAYLOAD] {
+	hdr	l2cap_hdr[CID]
+	payload	PAYLOAD
+} [packed]
+
+type l2cap_hdr[CID] {
+	len	bytesize[l2cap_hdr_t:payload, int16]
+	cid	const[CID, int16]
+} [packed]
+
+type l2cap_cmd_hdr_t[CODE, PAYLOAD] {
+	hdr	l2cap_cmd_hdr[CODE]
+	payload	PAYLOAD
+} [packed]
+
+type l2cap_cmd_hdr[CODE] {
+	code	const[CODE, int8]
+	ident	int8
+	len	bytesize[l2cap_cmd_hdr_t:payload, int16]
+} [packed]
+
+l2cap_cmd_rej_unk {
+	reason	int16
+} [packed]
+
+l2cap_conf_rfc {
+	mode		flags[l2cap_rfc_mode, int8]
+	txwin_size	int8
+	max_transmit	int8
+	retrans_timeout	int16
+	monitor_timeout	int16
+	max_pdu_size	int16
+} [packed]
+
+l2cap_rfc_mode = L2CAP_MODE_BASIC, L2CAP_MODE_RETRANS, L2CAP_MODE_FLOWCTL, L2CAP_MODE_ERTM, L2CAP_MODE_STREAMING
+
+l2cap_conf_efs {
+	id		int8
+	stype		flags[l2cap_serv_type, int8]
+	msdu		int16
+	sdu_itime	int32
+	acc_lat		int32
+	flush_to	int32
+} [packed]
+
+l2cap_serv_type = L2CAP_SERV_NOTRAFIC, L2CAP_SERV_BESTEFFORT, L2CAP_SERV_GUARANTEED
+
+type l2cap_conf_opt[TYPE, VAL] {
+	type	const[TYPE, int8]
+	len	bytesize[val, int8]
+	val	VAL
+} [packed]
+
+l2cap_conf_opt_un [
+	l2cap_conf_rfc		l2cap_conf_opt[L2CAP_CONF_RFC, l2cap_conf_rfc]
+	l2cap_conf_efs		l2cap_conf_opt[L2CAP_CONF_EFS, l2cap_conf_efs]
+	l2cap_conf_mtu		l2cap_conf_opt[L2CAP_CONF_MTU, int16]
+	l2cap_conf_flushto	l2cap_conf_opt[L2CAP_CONF_FLUSH_TO, int16]
+	l2cap_conf_fcs		l2cap_conf_opt[L2CAP_CONF_FCS, flags[l2cap_fcs_type, int8]]
+	l2cap_conf_ews		l2cap_conf_opt[L2CAP_CONF_EWS, int16]
+] [varlen]
+
+l2cap_fcs_type = L2CAP_FCS_NONE, L2CAP_FCS_CRC16
+
+l2cap_conf_req {
+	dcid	int16
+	flags	int16
+	data	array[l2cap_conf_opt_un]
+} [packed]
+
+l2cap_conf_rsp {
+	scid	int16
+	flags	int16
+	result	int16
+	data	array[l2cap_conf_opt_un]
+} [packed]
+
+l2cap_conn_param_update_req {
+	min		int16
+	max		int16
+	latency		int16
+	to_multiplier	int16
+} [packed]
+
+l2cap_conn_param_update_rsp {
+	result	int16
+} [packed]
+
+l2cap_conn_req {
+	psm	int16
+	scid	int16
+} [packed]
+
+l2cap_conn_rsp {
+	dcid	int16
+	scid	int16
+	result	int16
+	status	int16
+} [packed]
+
+l2cap_conninfo {
+	hci_handle	int16
+	dev_class	array[int8, 3]
+}
+
+l2cap_create_chan_req {
+	psm	int16
+	scid	int16
+	amp_id	int8
+} [packed]
+
+l2cap_create_chan_rsp {
+	dcid	int16
+	scid	int16
+	result	int16
+	status	int16
+} [packed]
+
+l2cap_disconn_req {
+	dcid	int16
+	scid	int16
+} [packed]
+
+l2cap_disconn_rsp {
+	dcid	int16
+	scid	int16
+} [packed]
+
+l2cap_ecred_conn_req {
+	psm	int16
+	mtu	int16
+	mps	int16
+	credits	int16
+	scid	array[int16]
+} [packed]
+
+l2cap_ecred_conn_rsp {
+	mtu	int16
+	mps	int16
+	credits	int16
+	result	int16
+	dcid	array[int16]
+} [packed]
+
+l2cap_ecred_reconf_req {
+	mtu	int16
+	mps	int16
+	scid	array[int16]
+} [packed]
+
+l2cap_ecred_reconf_rsp {
+	result	int16
+} [packed]
+
+l2cap_info_req {
+	type	int16
+} [packed]
+
+l2cap_info_rsp {
+	type	int16
+	result	int16
+	data	array[int8]
+} [packed]
+
+l2cap_le_conn_req {
+	psm	int16
+	scid	int16
+	mtu	int16
+	mps	int16
+	credits	int16
+} [packed]
+
+l2cap_le_conn_rsp {
+	dcid	int16
+	mtu	int16
+	mps	int16
+	credits	int16
+	result	int16
+} [packed]
+
+l2cap_le_credits {
+	cid	int16
+	credits	int16
+} [packed]
+
+l2cap_move_chan_cfm {
+	icid	int16
+	result	int16
+} [packed]
+
+l2cap_move_chan_cfm_rsp {
+	icid	int16
+} [packed]
+
+l2cap_move_chan_req {
+	icid		int16
+	dest_amp_id	int8
+} [packed]
+
+l2cap_move_chan_rsp {
+	icid	int16
+	result	int16
+} [packed]
+
+l2cap_options {
+	omtu		int16
+	imtu		int16
+	flush_to	int16
+	mode		int8
+	fcs		int8
+	max_tx		int8
+	txwin_size	int16
+}

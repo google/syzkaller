@@ -1,0 +1,65 @@
+TITLE: INFO: rcu detected stall in sys_inotify_init
+ALT: stall in sys_inotify_init
+TYPE: HANG
+
+[  990.309025][    C0] rcu: INFO: rcu_preempt self-detected stall on CPU
+[  990.312270][    C1] net_ratelimit: 18 callbacks suppressed
+[  990.312279][    C1] protocol 88fb is buggy, dev hsr_slave_0
+[  990.316032][    C0] rcu: 	0-...!: (1 GPs behind) idle=cfe/1/0x4000000000000002 softirq=53884/53885 fqs=0 
+[  990.321512][    C1] protocol 88fb is buggy, dev hsr_slave_1
+[  990.321695][    C1] protocol 88fb is buggy, dev hsr_slave_0
+[  990.321736][    C1] protocol 88fb is buggy, dev hsr_slave_1
+[  990.354932][    C0] rcu: 	 (t=29988 jiffies g=72133 q=198)
+[  990.360592][    C0] NMI backtrace for cpu 0
+[  990.364957][    C0] CPU: 0 PID: 12976 Comm: syz-executor.4 Not tainted 5.1.0-rc7+ #98
+[  990.373043][    C0] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  990.383145][    C0] Call Trace:
+[  990.386441][    C0]  <IRQ>
+[  990.389349][    C0]  dump_stack+0x172/0x1f0
+[  990.393977][    C0]  nmi_cpu_backtrace.cold+0x63/0xa4
+[  990.399300][    C0]  ? lapic_can_unplug_cpu.cold+0x38/0x38
+[  990.404961][    C0]  nmi_trigger_cpumask_backtrace+0x1be/0x236
+[  990.410966][    C0]  arch_trigger_cpumask_backtrace+0x14/0x20
+[  990.416996][    C0]  rcu_dump_cpu_stacks+0x183/0x1cf
+[  990.422203][    C0]  ? find_next_bit+0x107/0x130
+[  990.427008][    C0]  rcu_sched_clock_irq.cold+0x500/0xa4a
+[  990.432604][    C0]  ? raise_softirq+0x11f/0x310
+[  990.437471][    C0]  update_process_times+0x32/0x80
+[  990.442558][    C0]  tick_sched_handle+0xa2/0x190
+[  990.447434][    C0]  tick_sched_timer+0x47/0x130
+[  990.452217][    C0]  __hrtimer_run_queues+0x33e/0xde0
+[  990.457442][    C0]  ? tick_sched_do_timer+0x1b0/0x1b0
+[  990.462758][    C0]  ? hrtimer_start_range_ns+0xc80/0xc80
+[  990.468316][    C0]  ? __sanitizer_cov_trace_cmp4+0x16/0x20
+[  990.474079][    C0]  ? ktime_get_update_offsets_now+0x2d9/0x440
+[  990.480169][    C0]  hrtimer_interrupt+0x314/0x770
+[  990.485144][    C0]  smp_apic_timer_interrupt+0x120/0x570
+[  990.490723][    C0]  apic_timer_interrupt+0xf/0x20
+[  990.495671][    C0]  </IRQ>
+[  990.498637][    C0] RIP: 0010:check_memory_region+0x0/0x190
+[  990.504381][    C0] Code: 66 2e 0f 1f 84 00 00 00 00 00 55 48 89 f2 be f8 00 00 00 48 89 e5 e8 af 2c 66 05 5d c3 0f 1f 00 66 2e 0f 1f 84 00 00 00 00 00 <48> 85 f6 0f 84 21 01 00 00 48 b8 ff ff ff ff ff 7f ff ff 55 0f b6
+[  990.524014][    C0] RSP: 0018:ffff8880587c7e38 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff13
+[  990.532468][    C0] RAX: 0000000000000000 RBX: ffff8880ae82dd80 RCX: ffffffff815ecff4
+[  990.540474][    C0] RDX: 0000000000000000 RSI: 0000000000000004 RDI: ffff8880ae82de38
+[  990.548464][    C0] RBP: ffff8880587c7e40 R08: ffff8880522be040 R09: ffffffff895e69d4
+[  990.556455][    C0] R10: ffff8880522be8c0 R11: ffff8880522be040 R12: ffff8880ae82de38
+[  990.564448][    C0] R13: 0000000000000000 R14: 0000000000004000 R15: 0000000000000000
+[  990.572477][    C0]  ? rcu_dynticks_curr_cpu_in_eqs+0x54/0xb0
+[  990.578407][    C0]  ? kasan_check_read+0x11/0x20
+[  990.583281][    C0]  rcu_dynticks_curr_cpu_in_eqs+0x54/0xb0
+[  990.590664][    C0]  rcu_is_watching+0x10/0x30
+[  990.595296][    C0]  rcu_read_lock+0x43/0x70
+[  990.599733][    C0]  get_mem_cgroup_from_mm+0x1e/0x2b0
+[  990.605108][    C0]  do_inotify_init+0x279/0x640
+[  990.609905][    C0]  ? trace_hardirqs_on+0x67/0x230
+[  990.614971][    C0]  __ia32_sys_inotify_init+0x10/0x20
+[  990.620303][    C0]  do_syscall_64+0x103/0x610
+[  990.624927][    C0]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  990.630829][    C0] RIP: 0033:0x20000108
+[  990.634925][    C0] Code: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 98 46 0f 72 d4 00 0f 05 <c4> 42 fd 31 d3 c4 a3 7b f0 c5 3e 14 d5 41 e2 e9 9f c4 c1 c1 62 c1
+[  990.654645][    C0] RSP: 002b:00007f1cb99e4bd8 EFLAGS: 00000282 ORIG_RAX: 00000000000000fd
+[  990.663106][    C0] RAX: ffffffffffffffda RBX: 0000000000000009 RCX: 0000000020000108
+[  990.671221][    C0] RDX: 2be1ef2a11dbdbda RSI: 0000000000000000 RDI: 00007f1cb99e5608
+[  990.679217][    C0] RBP: 000000000000000a R08: 0000000000000005 R09: 0000000000000006
+[  990.687214][    C0] R10: 0000000000000007 R11: 0000000000000282 R12: 000000000000000b
+[  990.696716][    C0] R13: 000000000000000c R14: 000000000000000d R15: 00000000ffffffff

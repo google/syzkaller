@@ -1,0 +1,208 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_INET and AF_INET6: TCP support
+
+include <asm/ioctls.h>
+include <linux/tcp.h>
+include <net/tcp.h>
+include <uapi/linux/sockios.h>
+include <uapi/linux/tls.h>
+
+resource sock_tcp[sock_in]
+
+socket$inet_tcp(domain const[AF_INET], type const[SOCK_STREAM], proto const[0]) sock_tcp
+socket$inet_mptcp(domain const[AF_INET], type const[SOCK_STREAM], proto const[IPPROTO_MPTCP]) sock_tcp
+
+# From interface point of view SMC sockets seem to be the same as TCP.
+socket$inet_smc(domain const[AF_SMC], type const[SOCK_STREAM], proto const[0]) sock_tcp
+
+resource sock_tcp6[sock_in6]
+
+socket$inet6_tcp(domain const[AF_INET6], type const[SOCK_STREAM], proto const[0]) sock_tcp6
+socket$inet6_mptcp(domain const[AF_INET6], type const[SOCK_STREAM], proto const[IPPROTO_MPTCP]) sock_tcp6
+
+# Generic TCP socket options
+
+tcp_option_types_int = TCP_NODELAY, TCP_MAXSEG, TCP_CORK, TCP_KEEPIDLE, TCP_KEEPINTVL, TCP_KEEPCNT, TCP_SYNCNT, TCP_LINGER2, TCP_DEFER_ACCEPT, TCP_WINDOW_CLAMP, TCP_QUICKACK, TCP_THIN_LINEAR_TIMEOUTS, TCP_THIN_DUPACK, TCP_USER_TIMEOUT, TCP_FASTOPEN, TCP_FASTOPEN_CONNECT, TCP_FASTOPEN_NO_COOKIE, TCP_TIMESTAMP, TCP_NOTSENT_LOWAT, TCP_SAVE_SYN, TCP_INQ
+
+tcp_option_types_buf = TCP_INFO, TCP_CONGESTION, TCP_ULP, TCP_MD5SIG, TCP_CC_INFO, TCP_SAVED_SYN, TCP_FASTOPEN_KEY
+
+getsockopt$inet_tcp_int(fd sock_tcp, level const[IPPROTO_TCP], optname flags[tcp_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet_tcp_int(fd sock_tcp, level const[IPPROTO_TCP], optname flags[tcp_option_types_int], optval ptr[in, int32], optlen len[optval])
+getsockopt$inet6_tcp_int(fd sock_tcp6, level const[IPPROTO_TCP], optname flags[tcp_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet6_tcp_int(fd sock_tcp6, level const[IPPROTO_TCP], optname flags[tcp_option_types_int], optval ptr[in, int32], optlen len[optval])
+
+getsockopt$inet_tcp_buf(fd sock_tcp, level const[IPPROTO_TCP], optname flags[tcp_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet_tcp_buf(fd sock_tcp, level const[IPPROTO_TCP], optname flags[tcp_option_types_buf], optval buffer[in], optlen len[optval])
+getsockopt$inet6_tcp_buf(fd sock_tcp6, level const[IPPROTO_TCP], optname flags[tcp_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet6_tcp_buf(fd sock_tcp6, level const[IPPROTO_TCP], optname flags[tcp_option_types_buf], optval buffer[in], optlen len[optval])
+
+getsockopt$inet_tcp_TCP_ZEROCOPY_RECEIVE(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_ZEROCOPY_RECEIVE], optval ptr[in, tcp_zerocopy_receive], optlen ptr[inout, len[optval, int32]])
+getsockopt$inet6_tcp_TCP_ZEROCOPY_RECEIVE(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_ZEROCOPY_RECEIVE], optval ptr[in, tcp_zerocopy_receive], optlen ptr[inout, len[optval, int32]])
+
+tcp_zerocopy_receive {
+	address		vma64
+	length		len[address, int32]
+	recv_skip_hint	int32	(out)
+	inq		int32	(out)
+	err		int32	(out)
+	copybuf_address	ptr64[out, array[int8]]
+	copybuf_len	bytesize[copybuf_address, int32]
+	flags		flags[tcp_zerocopy_receive_flags, int32]
+	msg_control	ptr64[out, array[int8]]
+	msg_controllen	bytesize[msg_control, int64]
+	msg_flags	int32	(out)
+	reserved	const[0, int32]
+}
+
+tcp_zerocopy_receive_flags = TCP_RECEIVE_ZEROCOPY_FLAG_TLB_CLEAN_HINT
+
+# Specific TCP socket options
+
+# TODO: use TCP_SAVED_SYN to extract sequence numbers
+
+setsockopt$inet_tcp_TCP_CONGESTION(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_CONGESTION], optval ptr[in, string[tcp_congestion_control_alg_names]], optlen len[optval])
+setsockopt$inet6_tcp_TCP_CONGESTION(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_CONGESTION], optval ptr[in, string[tcp_congestion_control_alg_names]], optlen len[optval])
+
+setsockopt$inet_tcp_TCP_ULP(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_ULP], optval ptr[in, string[tcp_ulp_names]], optlen len[optval])
+setsockopt$inet6_tcp_TCP_ULP(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_ULP], optval ptr[in, string[tcp_ulp_names]], optlen len[optval])
+
+setsockopt$inet_tcp_TCP_MD5SIG(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_MD5SIG], optval ptr[in, tcp_md5sig], optlen len[optval])
+setsockopt$inet6_tcp_TCP_MD5SIG(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_MD5SIG], optval ptr[in, tcp_md5sig], optlen len[optval])
+
+setsockopt$inet_tcp_TCP_REPAIR(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_REPAIR], optval ptr[in, flags[tcp_repair_modes, int32]], optlen len[optval])
+setsockopt$inet6_tcp_TCP_REPAIR(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_REPAIR], optval ptr[in, flags[tcp_repair_modes, int32]], optlen len[optval])
+
+tcp_repair_modes = TCP_REPAIR_ON, TCP_REPAIR_OFF, TCP_REPAIR_OFF_NO_WP
+
+setsockopt$inet_tcp_TCP_REPAIR_QUEUE(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_REPAIR_QUEUE], optval ptr[in, flags[tcp_repair_queue_modes, int32]], optlen len[optval])
+setsockopt$inet6_tcp_TCP_REPAIR_QUEUE(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_REPAIR_QUEUE], optval ptr[in, flags[tcp_repair_queue_modes, int32]], optlen len[optval])
+
+tcp_repair_queue_modes = TCP_NO_QUEUE, TCP_RECV_QUEUE, TCP_SEND_QUEUE
+
+setsockopt$inet_tcp_TCP_QUEUE_SEQ(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_QUEUE_SEQ], optval ptr[in, int32], optlen len[optval])
+setsockopt$inet6_tcp_TCP_QUEUE_SEQ(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_QUEUE_SEQ], optval ptr[in, int32], optlen len[optval])
+
+setsockopt$inet_tcp_TCP_REPAIR_OPTIONS(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_REPAIR_OPTIONS], optval ptr[in, array[tcp_repair_opt]], optlen len[optval])
+setsockopt$inet6_tcp_TCP_REPAIR_OPTIONS(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_REPAIR_OPTIONS], optval ptr[in, array[tcp_repair_opt]], optlen len[optval])
+
+getsockopt$inet_tcp_TCP_REPAIR_WINDOW(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_REPAIR_WINDOW], optval ptr[out, tcp_repair_window], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet_tcp_TCP_REPAIR_WINDOW(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_REPAIR_WINDOW], optval ptr[in, tcp_repair_window], optlen len[optval])
+getsockopt$inet6_tcp_TCP_REPAIR_WINDOW(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_REPAIR_WINDOW], optval ptr[out, tcp_repair_window], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet6_tcp_TCP_REPAIR_WINDOW(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_REPAIR_WINDOW], optval ptr[in, tcp_repair_window], optlen len[optval])
+
+setsockopt$inet_tcp_TCP_FASTOPEN_KEY(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_FASTOPEN_KEY], optval ptr[in, array[int8, TCP_FASTOPEN_KEY_LENGTH]], optlen len[optval])
+setsockopt$inet6_tcp_TCP_FASTOPEN_KEY(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_FASTOPEN_KEY], optval ptr[in, array[int8, TCP_FASTOPEN_KEY_LENGTH]], optlen len[optval])
+
+setsockopt$inet_tcp_TLS_TX(fd sock_tcp, level const[IPPROTO_TCP], optname const[TLS_TX], optval ptr[in, tls_crypto_info_u], optlen len[optval])
+setsockopt$inet6_tcp_TLS_TX(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TLS_TX], optval ptr[in, tls_crypto_info_u], optlen len[optval])
+setsockopt$inet_tcp_TLS_RX(fd sock_tcp, level const[IPPROTO_TCP], optname const[TLS_RX], optval ptr[in, tls_crypto_info_u], optlen len[optval])
+setsockopt$inet6_tcp_TLS_RX(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TLS_RX], optval ptr[in, tls_crypto_info_u], optlen len[optval])
+
+tcp_congestion_control_alg_names = "cubic", "reno", "bic", "cdg", "dctcp", "westwood", "highspeed", "hybla", "htcp", "vegas", "nv", "veno", "scalable", "lp", "yeah", "illinois", "dctcp-reno", "bbr"
+
+tcp_ulp_names = "tls"
+
+tcp_repair_window {
+	snd_wl1		int32
+	snd_wnd		int32
+	max_window	int32
+	rcv_wnd		int32
+	rcv_wup		int32
+}
+
+sockaddr_storage_tcp [
+	in	sockaddr_storage_in
+	in6	sockaddr_storage_in6
+]
+
+tcp_md5sig {
+	tcpm_addr	sockaddr_storage_tcp
+	tcpm_flags	const[0, int8]
+	tcpm_prefixlen	const[0, int8]
+	tcpm_keylen	int16[0:TCP_MD5SIG_MAXKEYLEN]
+	__tcpm_pad	const[0, int32]
+	tcpm_key	array[int8, TCP_MD5SIG_MAXKEYLEN]
+}
+
+tcp_repair_opt [
+	mss		tcp_repair_opt_mss
+	window		tcp_repair_opt_window
+	sack_perm	tcp_repair_opt_sack_perm
+	timestamp	tcp_repair_opt_timestamp
+]
+
+tcp_repair_opt_mss {
+	opt_code	const[TCPOPT_MSS, int32]
+	opt_val		int32
+}
+
+tcp_repair_opt_window {
+	opt_code	const[TCPOPT_WINDOW, int32]
+	snd_wscale	int16
+	rcv_wscale	int16
+}
+
+tcp_repair_opt_sack_perm {
+	opt_code	const[TCPOPT_SACK_PERM, int32]
+	opt_val		const[0, int32]
+}
+
+tcp_repair_opt_timestamp {
+	opt_code	const[TCPOPT_TIMESTAMP, int32]
+	opt_val		const[0, int32]
+}
+
+type tls_crypto_info[TYP] {
+	version		flags[tls_crypto_version, int16]
+	cipher_type	const[TYP, int16]
+}
+
+tls_crypto_version = TLS_1_2_VERSION, TLS_1_3_VERSION
+
+tls_crypto_info_u [
+	gcm_128	tls12_crypto_info_aes_gcm_128
+	gcm_256	tls12_crypto_info_aes_gcm_256
+	ccm_128	tls12_crypto_info_aes_ccm_128
+] [varlen]
+
+tls12_crypto_info_aes_gcm_128 {
+	info	tls_crypto_info[TLS_CIPHER_AES_GCM_128]
+	iv	array[int8, TLS_CIPHER_AES_GCM_128_IV_SIZE]
+	key	array[int8, TLS_CIPHER_AES_GCM_128_KEY_SIZE]
+	salt	array[int8, TLS_CIPHER_AES_GCM_128_SALT_SIZE]
+	rec_seq	array[int8, TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE]
+}
+
+tls12_crypto_info_aes_gcm_256 {
+	info	tls_crypto_info[TLS_CIPHER_AES_GCM_256]
+	iv	array[int8, TLS_CIPHER_AES_GCM_256_IV_SIZE]
+	key	array[int8, TLS_CIPHER_AES_GCM_256_KEY_SIZE]
+	salt	array[int8, TLS_CIPHER_AES_GCM_256_SALT_SIZE]
+	rec_seq	array[int8, TLS_CIPHER_AES_GCM_256_REC_SEQ_SIZE]
+}
+
+tls12_crypto_info_aes_ccm_128 {
+	info	tls_crypto_info[TLS_CIPHER_AES_CCM_128]
+	iv	array[int8, TLS_CIPHER_AES_CCM_128_IV_SIZE]
+	key	array[int8, TLS_CIPHER_AES_CCM_128_KEY_SIZE]
+	salt	array[int8, TLS_CIPHER_AES_CCM_128_SALT_SIZE]
+	rec_seq	array[int8, TLS_CIPHER_AES_CCM_128_REC_SEQ_SIZE]
+}
+
+# TCP ioctls
+
+# http://lxr.free-electrons.com/ident?i=tcp_ioctl
+
+ioctl$sock_inet_tcp_SIOCINQ(fd sock_tcp, cmd const[SIOCINQ], arg ptr[out, int32])
+ioctl$sock_inet6_tcp_SIOCINQ(fd sock_tcp6, cmd const[SIOCINQ], arg ptr[out, int32])
+
+ioctl$sock_inet_tcp_SIOCATMARK(fd sock_tcp, cmd const[SIOCATMARK], arg ptr[out, int32])
+ioctl$sock_inet6_tcp_SIOCATMARK(fd sock_tcp6, cmd const[SIOCATMARK], arg ptr[out, int32])
+
+ioctl$sock_inet_tcp_SIOCOUTQ(fd sock_tcp, cmd const[SIOCOUTQ], arg ptr[out, int32])
+ioctl$sock_inet6_tcp_SIOCOUTQ(fd sock_tcp6, cmd const[SIOCOUTQ], arg ptr[out, int32])
+
+ioctl$sock_inet_tcp_SIOCOUTQNSD(fd sock_tcp, cmd const[SIOCOUTQNSD], arg ptr[out, int32])
+ioctl$sock_inet6_tcp_SIOCOUTQNSD(fd sock_tcp6, cmd const[SIOCOUTQNSD], arg ptr[out, int32])

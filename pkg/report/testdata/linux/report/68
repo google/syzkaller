@@ -1,0 +1,18 @@
+TITLE: BUG: spinlock recursion in wake_up_new_task
+
+[  213.269287] BUG: spinlock recursion on CPU#0, syz-executor7/5032
+[  213.281506]  lock: 0xffff88006c122d00, .magic: dead4ead, .owner: syz-executor7/5032, .owner_cpu: -1
+[  213.285112] CPU: 0 PID: 5032 Comm: syz-executor7 Not tainted 4.9.0-rc7+ #58
+[  213.285112] Hardware name: Google Google/Google, BIOS Google 01/01/2011
+[  213.285112]  ffff880057c17538 ffffffff834c3ae9 ffffffff00000000 1ffff1000af82e3a
+[  213.285112]  ffffed000af82e32 0000000041b58ab3 ffffffff89580db8 ffffffff834c37fb
+[  213.285112]  ffff880068ad8858 ffff880068ad8860 1ffff1000af82e2c 0000000041b58ab3
+[  213.285112] Call Trace:
+[  213.285112]  [<ffffffff834c3ae9>] dump_stack+0x2ee/0x3f5
+[  213.618060]  [<ffffffff834c37fb>] ? arch_local_irq_restore+0x53/0x53
+[  213.618060]  [<ffffffff81576cd2>] spin_dump+0x152/0x280
+[  213.618060]  [<ffffffff81577284>] do_raw_spin_lock+0x3f4/0x5d0
+[  213.618060]  [<ffffffff881a2750>] _raw_spin_lock+0x40/0x50
+[  213.618060]  [<ffffffff814b7615>] ? __task_rq_lock+0xf5/0x330
+[  213.618060]  [<ffffffff814b7615>] __task_rq_lock+0xf5/0x330
+[  213.618060]  [<ffffffff814c89b2>] wake_up_new_task+0x592/0x1000

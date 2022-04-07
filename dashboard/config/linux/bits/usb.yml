@@ -1,0 +1,14 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Config fragments for the USB instance, included in baseline as well.
+
+config:
+ - USB_SUPPORT
+ - USB_GADGET
+ # It's introduced in v5.5 or so, but we want it in android-5.4, but it's not present in stable/chromeos-5.4.
+ - USB_RAW_GADGET: [v5.4, -chromeos-5.4]
+ - USB_DUMMY_HCD
+ # We don't need/test these on the USB instance.
+ - USB_GADGETFS: n
+ - USB_CONFIGFS: n

@@ -1,0 +1,3 @@
+no-such-struct: key_desc
+no-such-struct: key_restriction_keyring
+no-such-struct: key_restriction_keyring_chain

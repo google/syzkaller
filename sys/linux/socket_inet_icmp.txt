@@ -1,0 +1,24 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_INET and AF_INET6: ICMP support
+
+include <linux/icmp.h>
+include <linux/icmpv6.h>
+
+resource sock_icmp[sock_in]
+
+socket$inet_icmp(domain const[AF_INET], type const[SOCK_DGRAM], proto const[IPPROTO_ICMP]) sock_icmp
+socket$inet_icmp_raw(domain const[AF_INET], type const[SOCK_RAW], proto const[IPPROTO_ICMP]) sock_icmp
+
+resource sock_icmp6[sock_in6]
+
+socket$inet6_icmp(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[IPPROTO_ICMPV6]) sock_icmp6
+socket$inet6_icmp_raw(domain const[AF_INET6], type const[SOCK_RAW], proto const[IPPROTO_ICMPV6]) sock_icmp6
+
+setsockopt$inet_icmp_ICMP_FILTER(fd sock_icmp, level const[IPPROTO_ICMP], optname const[ICMP_FILTER], optval ptr[in, icmp_filter], optlen len[optval])
+setsockopt$inet6_icmp_ICMP_FILTER(fd sock_icmp6, level const[IPPROTO_ICMP], optname const[ICMP_FILTER], optval ptr[in, icmp_filter], optlen len[optval])
+
+icmp_filter {
+	data	int32
+}

@@ -1,0 +1,34 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/futex.h>
+
+futex(addr ptr[in, int32[0:2]], op flags[futex_op], val int32[0:2], timeout ptr[in, timespec], addr2 ptr[in, int32[0:2]], val3 int32[0:2])
+set_robust_list(head ptr[in, robust_list_head], len len[head])
+get_robust_list(pid pid, head ptr[in, ptr[out, robust_list_head]], len ptr[inout, len[head, intptr]])
+
+robust_list_head {
+	list		ptr[in, robust_list, opt]
+	futex_offset	intptr
+	list_op_pending	ptr[in, robust_list, opt]
+}
+
+robust_list {
+	next	ptr[in, robust_list, opt]
+}
+
+futex_waitv(addr ptr[in, array[futex_waitv, 0:FUTEX_WAITV_MAX_INDEX]], val len[addr], flg const[0], timeout ptr[in, timespec], clockid flags[futex_clock_id])
+
+futex_waitv {
+	val		int64
+	uaddr		ptr64[in, int64]
+	flags		flags[struct_flags_op, int32]
+	__reserved	const[0, int32]
+}
+
+futex_op = FUTEX_WAIT, FUTEX_WAKE, FUTEX_FD, FUTEX_REQUEUE, FUTEX_CMP_REQUEUE, FUTEX_WAKE_OP, FUTEX_LOCK_PI, FUTEX_UNLOCK_PI, FUTEX_TRYLOCK_PI, FUTEX_WAIT_BITSET, FUTEX_WAKE_BITSET, FUTEX_WAIT_REQUEUE_PI, FUTEX_CMP_REQUEUE_PI, FUTEX_LOCK_PI2, FUTEX_PRIVATE_FLAG, FUTEX_CLOCK_REALTIME
+
+futex_clock_id = CLOCK_REALTIME, CLOCK_MONOTONIC
+struct_flags_op = FUTEX_32, FUTEX_PRIVATE_32
+define FUTEX_WAITV_MAX_INDEX	FUTEX_WAITV_MAX - 1
+define FUTEX_PRIVATE_32	FUTEX_32 | FUTEX_PRIVATE_FLAG

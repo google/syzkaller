@@ -1,0 +1,115 @@
+TITLE: WARNING: bad unlock balance in ipmr_mfc_seq_stop
+
+[  123.238569] =====================================
+[  123.243391] WARNING: bad unlock balance detected!
+[  123.248225] 4.15.0-rc6+ #160 Not tainted
+[  123.252273] -------------------------------------
+[  123.253273] binder: BINDER_SET_CONTEXT_MGR already set
+[  123.253280] binder: 19039:19065 ioctl 40046207 0 returned -16
+[  123.254503] binder: 19049 RLIMIT_NICE not set
+[  123.254548] binder_alloc: 19039: binder_alloc_buf, no vma
+[  123.254567] binder: 19039:19065 transaction failed 29189/-3, size 0-0 line 2903
+[  123.277377] binder: undelivered TRANSACTION_ERROR: 29189
+[  123.277534] binder: release 19039:19049 transaction 74 in, still active
+[  123.277539] binder: send failed reply for transaction 74 to 19039:19065
+[  123.277551] binder: undelivered TRANSACTION_COMPLETE
+[  123.277557] binder: undelivered TRANSACTION_ERROR: 29189
+[  123.315003] syz-executor4/19072 is trying to release lock (mrt_lock) at:
+[  123.321838] [<00000000c4ef30ff>] ipmr_mfc_seq_stop+0xe1/0x130
+[  123.327688] but there are no more locks to release!
+[  123.332667] 
+[  123.332667] other info that might help us debug this:
+[  123.339299] 2 locks held by syz-executor4/19072:
+[  123.344020]  #0:  (sb_writers#7){.+.+}, at: [<0000000015352bfd>] do_sendfile+0xada/0xe80
+[  123.352230]  #1:  (&p->lock){+.+.}, at: [<0000000070ba5816>] seq_read+0xd5/0x13d0
+[  123.359836] 
+[  123.359836] stack backtrace:
+[  123.364303] CPU: 1 PID: 19072 Comm: syz-executor4 Not tainted 4.15.0-rc6+ #160
+[  123.371627] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  123.380959] Call Trace:
+[  123.383521]  dump_stack+0x194/0x257
+[  123.387118]  ? arch_local_irq_restore+0x53/0x53
+[  123.391765]  ? ipmr_mfc_seq_stop+0xe1/0x130
+[  123.396068]  print_unlock_imbalance_bug+0x12f/0x140
+[  123.401052]  lock_release+0x6fe/0xa40
+[  123.404821]  ? ipmr_mfc_seq_stop+0xe1/0x130
+[  123.409112]  ? lock_downgrade+0x980/0x980
+[  123.413232]  ? ipmr_mfc_seq_start+0x22f/0x3d0
+[  123.417697]  ? memcpy+0x45/0x50
+[  123.420945]  ? seq_puts+0xb5/0x130
+[  123.424455]  _raw_read_unlock+0x1a/0x30
+[  123.428399]  ipmr_mfc_seq_stop+0xe1/0x130
+[  123.432516]  seq_read+0xc42/0x13d0
+[  123.436031]  ? seq_lseek+0x3c0/0x3c0
+[  123.439716]  ? fsnotify_first_mark+0x2b0/0x2b0
+[  123.444269]  ? avc_policy_seqno+0x9/0x20
+[  123.448302]  ? selinux_file_permission+0x82/0x460
+[  123.453113]  ? seq_lseek+0x3c0/0x3c0
+[  123.456810]  proc_reg_read+0xef/0x170
+[  123.460580]  do_iter_read+0x3d2/0x5a0
+[  123.464351]  ? dup_iter+0x260/0x260
+[  123.467951]  vfs_readv+0x121/0x1c0
+[  123.471463]  ? compat_rw_copy_check_uvector+0x2e0/0x2e0
+[  123.476795]  ? is_bpf_text_address+0x7b/0x120
+[  123.481261]  ? lock_downgrade+0x980/0x980
+[  123.485379]  ? __free_insn_slot+0x5c0/0x5c0
+[  123.489672]  ? rcutorture_record_progress+0x10/0x10
+[  123.494660]  ? is_bpf_text_address+0xa4/0x120
+[  123.499125]  ? kernel_text_address+0x102/0x140
+[  123.503677]  default_file_splice_read+0x508/0xae0
+[  123.508507]  ? default_file_splice_read+0x508/0xae0
+[  123.513494]  ? __save_stack_trace+0x7e/0xd0
+[  123.517787]  ? do_splice_direct+0x3c0/0x3c0
+[  123.522079]  ? print_irqtrace_events+0x270/0x270
+[  123.526802]  ? save_stack+0xa3/0xd0
+[  123.530398]  ? save_stack+0x43/0xd0
+[  123.533995]  ? kasan_kmalloc+0xad/0xe0
+[  123.537852]  ? __kmalloc+0x162/0x760
+[  123.541539]  ? splice_direct_to_actor+0x64a/0x820
+[  123.546349]  ? do_splice_direct+0x29b/0x3c0
+[  123.550640]  ? do_sendfile+0x5c9/0xe80
+[  123.554498]  ? compat_SyS_sendfile+0xea/0x1a0
+[  123.558962]  ? do_fast_syscall_32+0x3ee/0xf9d
+[  123.563437]  ? print_irqtrace_events+0x270/0x270
+[  123.568161]  ? __lock_is_held+0xb6/0x140
+[  123.572194]  ? __lockdep_init_map+0xe4/0x650
+[  123.576570]  ? fsnotify+0x7b3/0x1140
+[  123.580255]  ? fsnotify_first_mark+0x2b0/0x2b0
+[  123.584808]  ? avc_policy_seqno+0x9/0x20
+[  123.588837]  ? selinux_file_permission+0x82/0x460
+[  123.593648]  ? security_file_permission+0x89/0x1e0
+[  123.598548]  ? do_splice_direct+0x3c0/0x3c0
+[  123.602838]  do_splice_to+0x10a/0x160
+[  123.606605]  ? do_splice_to+0x10a/0x160
+[  123.610550]  splice_direct_to_actor+0x242/0x820
+[  123.615199]  ? _cond_resched+0x14/0x30
+[  123.619067]  ? generic_pipe_buf_nosteal+0x10/0x10
+[  123.623881]  ? do_splice_to+0x160/0x160
+[  123.627826]  ? security_file_permission+0x89/0x1e0
+[  123.632743]  ? rw_verify_area+0xe5/0x2b0
+[  123.636796]  do_splice_direct+0x29b/0x3c0
+[  123.640914]  ? splice_direct_to_actor+0x820/0x820
+[  123.645727]  ? rcu_sync_lockdep_assert+0x6d/0xb0
+[  123.650451]  ? __sb_start_write+0x209/0x2a0
+[  123.654744]  do_sendfile+0x5c9/0xe80
+[  123.658431]  ? do_compat_pwritev64+0x100/0x100
+[  123.662992]  ? __fdget_raw+0x20/0x20
+[  123.666680]  ? __might_sleep+0x95/0x190
+[  123.670632]  compat_SyS_sendfile+0xea/0x1a0
+[  123.674924]  ? SyS_sendfile64+0x160/0x160
+[  123.679044]  ? do_fast_syscall_32+0x156/0xf9d
+[  123.683509]  ? SyS_sendfile64+0x160/0x160
+[  123.687625]  do_fast_syscall_32+0x3ee/0xf9d
+[  123.691917]  ? do_int80_syscall_32+0x9d0/0x9d0
+[  123.696488]  ? syscall_return_slowpath+0x2ad/0x550
+[  123.701386]  ? prepare_exit_to_usermode+0x340/0x340
+[  123.706373]  ? sysret32_from_system_call+0x5/0x3b
+[  123.711188]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  123.716008]  entry_SYSENTER_compat+0x54/0x63
+[  123.720385] RIP: 0023:0xf7facc79
+[  123.723728] RSP: 002b:00000000f77a808c EFLAGS: 00000296 ORIG_RAX: 00000000000000bb
+[  123.731405] RAX: ffffffffffffffda RBX: 0000000000000013 RCX: 0000000000000013
+[  123.738646] RDX: 0000000020292000 RSI: 0000000000000008 RDI: 0000000000000000
+[  123.745884] RBP: 0000000000000000 R08: 0000000000000000 R09: 0000000000000000
+[  123.753123] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
+[  123.760361] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000

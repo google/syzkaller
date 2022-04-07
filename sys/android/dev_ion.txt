@@ -1,0 +1,46 @@
+# Copyright 2016 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+# billylau@
+
+# Description of ioctl calls for /dev/ion, which is based off of 3.18 kernel.
+# TODO: ION_IOC_HEAP_QUERY is detected for 4.10 upstream, but not covered in this description.
+
+include <asm/ioctl.h>
+include <linux/fcntl.h>
+include <../drivers/staging/android/uapi/ion.h>
+
+resource fd_ion[fd]
+resource fd_ion_generic[fd]
+
+resource ion_handle[int32]
+
+openat$ion(fd const[AT_FDCWD], file ptr[in, string["/dev/ion"]], flags flags[open_flags], mode const[0]) fd_ion
+ioctl$ION_IOC_ALLOC(fd fd_ion, cmd const[ION_IOC_ALLOC], arg ptr[inout, ion_allocation_data])
+ioctl$ION_IOC_FREE(fd fd_ion, cmd const[ION_IOC_FREE], arg ptr[in, ion_handle_data])
+ioctl$ION_IOC_MAP(fd fd_ion, cmd const[ION_IOC_MAP], arg ptr[inout, ion_fd_data])
+ioctl$ION_IOC_SHARE(fd fd_ion, cmd const[ION_IOC_SHARE], arg ptr[inout, ion_fd_data])
+ioctl$ION_IOC_IMPORT(fd fd_ion, cmd const[ION_IOC_IMPORT], arg ptr[inout, ion_fd_data])
+ioctl$ION_IOC_SYNC(fd fd_ion, cmd const[ION_IOC_SYNC], arg ptr[inout, ion_fd_data])
+ioctl$ION_IOC_CUSTOM(fd fd_ion, cmd const[ION_IOC_CUSTOM], arg ptr[inout, ion_custom_data])
+
+ion_allocation_data {
+	len	intptr
+	align	intptr
+	heapid	int32
+	flags	int32
+	handle	ion_handle
+}
+
+ion_handle_data {
+	handle	ion_handle
+}
+
+ion_fd_data {
+	handle	ion_handle
+	fd	fd_ion_generic
+}
+
+ion_custom_data {
+	cmd	int32
+	arg	intptr
+}

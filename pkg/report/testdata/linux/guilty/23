@@ -1,0 +1,16 @@
+FILE: crypto/af_alg.c
+
+INFO: task syz-executor2:19495 blocked for more than 120 seconds.
+      Not tainted 4.15.0-rc2+ #148
+"echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+syz-executor2   D25200 19495   3406 0x00000004
+Call Trace:
+ context_switch kernel/sched/core.c:2799 [inline]
+ __schedule+0x8eb/0x2060 kernel/sched/core.c:3375
+ schedule+0xf5/0x430 kernel/sched/core.c:3434
+ __lock_sock+0x1dc/0x2f0 net/core/sock.c:2240
+ lock_sock_nested+0xf3/0x110 net/core/sock.c:2764
+ lock_sock include/net/sock.h:1461 [inline]
+ af_alg_sendmsg+0x349/0x1080 crypto/af_alg.c:858
+ aead_sendmsg+0x103/0x150 crypto/algif_aead.c:76
+ sock_sendmsg_nosec net/socket.c:636 [inline]
