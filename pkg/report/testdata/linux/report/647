@@ -1,0 +1,9 @@
+TITLE: 
+
+
+[    1.229302][    T0] Spectre V1 : Mitigation: usercopy/swapgs barriers and __user pointer sanitization
+[    1.230552][    T0] Spectre V2 : WARNING: Unprivileged eBPF is enabled with eIBRS on, data leaks possible via Spectre v2 BHB attacks!
+[    1.232245][    T0] Spectre V2 : Mitigation: Enhanced IBRS
+[    1.232987][    T0] Spectre V2 : Spectre v2 / SpectreRSB mitigation: Filling RSB on context switch
+[    1.234308][    T0] Spectre V2 : mitigation: Enabling conditional Indirect Branch Prediction Barrier
+[    1.235587][    T0] Speculative Store Bypass: Mitigation: Speculative Store Bypass disabled via prctl
