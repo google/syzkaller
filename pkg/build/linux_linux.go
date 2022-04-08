@@ -55,7 +55,7 @@ func embedLinuxKernel(params Params, kernelPath string) error {
 		return err
 	}
 	if params.SysctlFile != "" {
-		if err := osutil.CopyFile(params.SysctlFile, filepath.Join(mountDir, "etc", "sysctl.conf")); err != nil {
+		if err := copySysctlFile(params.SysctlFile, loopFile, mountDir); err != nil {
 			return err
 		}
 	}
@@ -63,6 +63,22 @@ func embedLinuxKernel(params Params, kernelPath string) error {
 		return err
 	}
 	return osutil.CopyFile(imageFile, filepath.Join(params.OutputDir, "image"))
+}
+
+func copySysctlFile(sysctlFile, loopFile, mountDir string) error {
+	etcFolder := filepath.Join(mountDir, "etc")
+	for idx := 2; ; idx++ {
+		if osutil.IsExist(etcFolder) {
+			break
+		}
+		err := tryMount(fmt.Sprintf("%sp%d", loopFile, idx), mountDir)
+		if err != nil {
+			// Most likely we've just run out of partitions.
+			return fmt.Errorf("didn't find a partition that has /etc")
+		}
+		defer unix.Unmount(mountDir, 0)
+	}
+	return osutil.CopyFile(sysctlFile, filepath.Join(etcFolder, "sysctl.conf"))
 }
 
 func tryMount(device, mountDir string) error {
