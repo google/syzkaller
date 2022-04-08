@@ -47,7 +47,7 @@ func embedLinuxKernel(params Params, kernelPath string) error {
 	if err := osutil.MkdirAll(mountDir); err != nil {
 		return err
 	}
-	if err := unix.Mount(loopFile+"p1", mountDir, "ext4", 0, ""); err != nil {
+	if err := tryMount(loopFile+"p1", mountDir); err != nil {
 		return fmt.Errorf("mount(%vp1, %v) failed: %v", loopFile, mountDir, err)
 	}
 	defer unix.Unmount(mountDir, 0)
@@ -63,6 +63,22 @@ func embedLinuxKernel(params Params, kernelPath string) error {
 		return err
 	}
 	return osutil.CopyFile(imageFile, filepath.Join(params.OutputDir, "image"))
+}
+
+func tryMount(device, mountDir string) error {
+	var err error
+loop:
+	for _, fsType := range []string{"ext4", "vfat"} {
+		err = unix.Mount(device, mountDir, fsType, 0, "")
+		switch err {
+		case syscall.EINVAL:
+			// Most likely it just an invalid superblock error - try another fstype.
+			continue
+		case nil:
+			break loop
+		}
+	}
+	return err
 }
 
 func copyKernel(mountDir, kernelPath string) error {
