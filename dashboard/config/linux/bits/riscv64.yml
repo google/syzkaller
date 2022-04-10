@@ -14,4 +14,5 @@ config:
 
  # Presumably this gives more interesting coverage.
  - BINFMT_FLAT
- - RISCV_BASE_PMU: [-baseline]
+ # This perf implementation was removed by https://lkml.org/lkml/2022/4/1/1109 (v5.18)
+ - RISCV_BASE_PMU: [-baseline, -v5.18]

@@ -26,6 +26,9 @@ config:
  - EXPERT
  - DEBUG_KERNEL
 
+ # Continuous fuzzing is more important than breaking on warnings.
+ - WERROR: n
+
  # panic=86400: prevents kernel from rebooting so that we don't get reboot output in all crash reports.
  # Huge page overcommit is disabled by default, allowing some overcommit
  # with vm.nr_overcommit_hugepages is intended to give more coverage.
@@ -106,6 +109,8 @@ config:
  - DEBUG_KOBJECT: n
 
  - DEBUG_INFO
+ # One of DEBUG_INFO_DWARF_* is required to enable DEBUG_INFO in v5.18.
+ - DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT: [v5.18]
  # CONFIG_DEBUG_INFO_BTF breaks the build since 5.14 merge window:
  #    https://lkml.kernel.org/r/YOLzFecogWmdZ5Hc@infradead.org
  - DEBUG_INFO_BTF: [-v5.13]
@@ -119,9 +124,9 @@ config:
  # https://lore.kernel.org/linux-arm-kernel/20210119130010.GA2338@C02TD0UTHF1T.local/T/#m78fdfcc41ae831f91c93ad5dabe63f7ccfb482f0
  # KCOV is not supported on s390 with our toolchain now, config depends on:
  # (!ARCH_WANTS_NO_INSTR [=y] || STACK_VALIDATION [=n] || GCC_VERSION [=110200]>=120000 || CLANG_VERSION [=0]>=130000)
- - KCOV: [-arm64, -arm, -s390]
- - KCOV_INSTRUMENT_ALL: [-arm64, -arm, -s390]
- - KCOV_ENABLE_COMPARISONS: [-arm64, -arm, -s390]
+ - KCOV: [-arm, -s390, -nokcov]
+ - KCOV_INSTRUMENT_ALL: [-arm, -s390, -nokcov]
+ - KCOV_ENABLE_COMPARISONS: [-arm, -s390, -nokcov]
  - DEBUG_FS
 
  # Required for KCOV but also eliminates unnecessary non-determinism.

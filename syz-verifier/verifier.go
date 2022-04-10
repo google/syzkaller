@@ -309,11 +309,14 @@ func (vrf *Verifier) finalizeCallSet(w io.Writer) {
 	}
 }
 
+// AddCallsExecutionStat ignore all the calls after the first mismatch.
 func (vrf *Verifier) AddCallsExecutionStat(results []*ExecResult, program *prog.Prog) {
 	rr := CompareResults(results, program)
 	for _, cr := range rr.Reports {
 		vrf.stats.Calls.IncCallOccurrenceCount(cr.Call)
+	}
 
+	for _, cr := range rr.Reports {
 		if !cr.Mismatch {
 			continue
 		}
@@ -324,6 +327,7 @@ func (vrf *Verifier) AddCallsExecutionStat(results []*ExecResult, program *prog.
 				vrf.stats.Calls.AddState(cr.Call, state0)
 			}
 		}
+		break
 	}
 }
 
