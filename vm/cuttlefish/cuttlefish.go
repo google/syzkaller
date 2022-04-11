@@ -69,51 +69,36 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 
 	// Start a Cuttlefish device on the GCE instance
 	// TODO: pass it the specific kernel artifact using -kernel_path and -initramfs_path flags
-	if err := inst.runOnHost(10*time.Minute, "./bin/launch_cvd -daemon", false); err != nil {
+	if err := inst.runOnHost(10*time.Minute, "./bin/launch_cvd -daemon"); err != nil {
 		return nil, fmt.Errorf("failed to start cuttlefish: %s", err)
 	}
 
-	if err := inst.runOnHost(10*time.Minute, "adb wait-for-device", false); err != nil {
+	if err := inst.runOnHost(10*time.Minute, "adb wait-for-device"); err != nil {
 		return nil, fmt.Errorf("failed while waiting for device: %s", err)
 	}
 
-	if err := inst.runOnHost(5*time.Minute, "adb root", false); err != nil {
+	if err := inst.runOnHost(5*time.Minute, "adb root"); err != nil {
 		return nil, fmt.Errorf("failed to get root access to device: %s", err)
 	}
 
 	return inst, nil
 }
 
-func (inst *instance) runOnHost(timeout time.Duration, cmd string, background bool) error {
-	taskTimeout := timeout
-	if background {
-		taskTimeout = 24 * time.Hour
-	}
-
-	outc, errc, err := inst.gceInst.Run(taskTimeout, nil, cmd)
+func (inst *instance) runOnHost(timeout time.Duration, cmd string) error {
+	outc, errc, err := inst.gceInst.Run(timeout, nil, cmd)
 	if err != nil {
 		return fmt.Errorf("failed to run command: %s", err)
 	}
 
-	timer := time.NewTimer(timeout)
 	for {
 		select {
 		case <-vmimpl.Shutdown:
 			return nil
 		case err := <-errc:
-			if err != nil {
-				return fmt.Errorf("error while running: %s", err)
-			}
-			return nil
+			return err
 		case out, ok := <-outc:
 			if ok && inst.debug {
 				log.Logf(1, "%s", out)
-			}
-		case <-timer.C:
-			// When running processes in the background, we assume that everything is fine if the timer
-			// expires and it hasn't given any errors.
-			if background {
-				return nil
 			}
 		}
 	}
@@ -128,7 +113,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	deviceDst := filepath.Join(deviceRoot, filepath.Base(hostSrc))
 	pushCmd := fmt.Sprintf("adb push %s %s", gceDst, deviceDst)
 
-	if err := inst.runOnHost(5*time.Minute, pushCmd, false); err != nil {
+	if err := inst.runOnHost(5*time.Minute, pushCmd); err != nil {
 		return "", fmt.Errorf("error pushing to device: %s", err)
 	}
 
@@ -140,15 +125,16 @@ func (inst *instance) Forward(port int) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to get IP/port from GCE instance: %s", err)
 	}
-	cmd := fmt.Sprintf("socat TCP-LISTEN:%d,fork TCP:%s", port, hostForward)
-	if err := inst.runOnHost(60*time.Second, cmd, true); err != nil {
+
+	cmd := fmt.Sprintf("nohup socat TCP-LISTEN:%d,fork TCP:%s", port, hostForward)
+	if err := inst.runOnHost(10*time.Second, cmd); err != nil && err != vmimpl.ErrTimeout {
 		return "", fmt.Errorf("unable to forward port on host: %s", err)
 	}
 
 	for i := 0; i < 100; i++ {
 		devicePort := vmimpl.RandomPort()
 		cmd := fmt.Sprintf("adb reverse tcp:%d tcp:%d", devicePort, port)
-		err = inst.runOnHost(10*time.Second, cmd, false)
+		err = inst.runOnHost(10*time.Second, cmd)
 		if err == nil {
 			return fmt.Sprintf("127.0.0.1:%d", devicePort), nil
 		}
