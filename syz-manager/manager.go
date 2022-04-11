@@ -1331,7 +1331,7 @@ func publicWebAddr(addr string) string {
 		if host, err := os.Hostname(); err == nil {
 			addr = net.JoinHostPort(host, port)
 		}
-		if GCE, err := gce.NewContext(); err == nil {
+		if GCE, err := gce.NewContext(""); err == nil {
 			addr = net.JoinHostPort(GCE.ExternalIP, port)
 		}
 	}
