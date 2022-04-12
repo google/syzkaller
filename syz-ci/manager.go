@@ -422,7 +422,7 @@ func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
 		switch err := res.(type) {
 		case *instance.TestError:
 			if rep := err.Report; rep != nil {
-				what := targets.TestOS
+				what := "test"
 				if err.Boot {
 					what = "boot"
 				}
