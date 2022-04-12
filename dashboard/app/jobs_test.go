@@ -275,6 +275,36 @@ Note: testing is done by a robot and is best-effort only.
 	c.expectEQ(pollResp.ID, "")
 }
 
+// Test whether we can test boot time crashes.
+func TestJobBootError(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client2.UploadBuild(build)
+
+	patch := `--- a/mm/kasan/kasan.c
++++ b/mm/kasan/kasan.c
+-       current->kasan_depth++;
++       current->kasan_depth--;
+`
+
+	crash := testCrash(build, 2)
+	crash.Title = "riscv/fixes boot error: can't ssh into the instance"
+	c.client2.ReportCrash(crash)
+
+	sender := c.pollEmailBug().Sender
+	c.incomingEmail(sender, "#syz upstream\n")
+	sender = c.pollEmailBug().Sender
+	mailingList := config.Namespaces["test2"].Reporting[1].Config.(*EmailConfig).Email
+
+	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch,
+		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
+	c.expectNoEmail()
+	pollResp := c.client2.pollJobs(build.Manager)
+	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
+}
+
 // Test on particular commit and without a patch.
 func TestJobWithoutPatch(t *testing.T) {
 	c := NewCtx(t)
