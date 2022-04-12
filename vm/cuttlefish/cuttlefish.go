@@ -127,7 +127,7 @@ func (inst *instance) Forward(port int) (string, error) {
 	}
 
 	cmd := fmt.Sprintf("nohup socat TCP-LISTEN:%d,fork TCP:%s", port, hostForward)
-	if err := inst.runOnHost(10*time.Second, cmd); err != nil && err != vmimpl.ErrTimeout {
+	if err := inst.runOnHost(time.Second, cmd); err != nil && err != vmimpl.ErrTimeout {
 		return "", fmt.Errorf("unable to forward port on host: %s", err)
 	}
 
