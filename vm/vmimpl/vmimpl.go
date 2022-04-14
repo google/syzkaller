@@ -8,10 +8,11 @@
 package vmimpl
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"io"
-	"math/rand"
+	"math/big"
 	"net"
 	"os/exec"
 	"strings"
@@ -169,7 +170,11 @@ func Multiplex(cmd *exec.Cmd, merger *OutputMerger, console io.Closer, timeout t
 }
 
 func RandomPort() int {
-	return rand.Intn(64<<10-1<<10) + 1<<10
+	n, err := rand.Int(rand.Reader, big.NewInt(64<<10-1<<10))
+	if err != nil {
+		panic(err)
+	}
+	return int(n.Int64()) + 1<<10
 }
 
 func UnusedTCPPort() int {
