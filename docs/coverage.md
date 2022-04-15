@@ -36,7 +36,7 @@ All PC values associated to that line are covered. There is number on the left s
 
 ![Code line is fully covered](coverage_covered.png?raw=true)
 
-### Both: orange (#ff6400)
+### Both: orange (#c86400)
 
 There are several PC values associated to the line and not all of these are executed. Again there is number left to the source code line that can clicked to open last program triggering associated PC values. Example below shows single line which has both excuted and non-executed PC values associated to it.
 
