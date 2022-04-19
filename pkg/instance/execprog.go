@@ -22,6 +22,7 @@ type OptionalConfig struct {
 	ExitCondition      vm.ExitCondition
 	Logf               ExecutorLogger
 	OldFlagsCompatMode bool
+	BeforeContextLen   int
 }
 
 type ExecProgInstance struct {
@@ -34,7 +35,7 @@ type ExecProgInstance struct {
 }
 
 type RunResult struct {
-	Report *report.Report
+	vm.ExecutionResult
 }
 
 func SetupExecProg(vmInst *vm.Instance, mgrCfg *mgrconfig.Config, reporter *report.Reporter,
@@ -90,8 +91,10 @@ func (inst *ExecProgInstance) runCommand(command string, duration time.Duration)
 	if err != nil {
 		return nil, fmt.Errorf("failed to run command in VM: %v", err)
 	}
-	result := &RunResult{}
-	result.Report = inst.VMInstance.MonitorExecution(outc, errc, inst.reporter, inst.ExitCondition)
+	result := &RunResult{
+		ExecutionResult: *inst.VMInstance.MonitorExecutionRaw(outc, errc,
+			inst.reporter, inst.ExitCondition, inst.BeforeContextLen),
+	}
 	if result.Report == nil {
 		inst.Logf(2, "program did not crash")
 	} else {
