@@ -43,6 +43,7 @@ RUN apt-get remove -y -q clang-11
 RUN apt-get install -y -q --no-install-recommends clang-13 clang-format-13 clang-tidy-13
 RUN apt autoremove -y -q
 RUN sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-13 100
+RUN sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-13 100
 RUN sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-13 100
 RUN sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-13 100
 
