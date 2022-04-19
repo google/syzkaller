@@ -233,6 +233,7 @@ case "$TARGETARCH" in
     ;;
 esac
 
+touch post_image_script.sh  # only created for some archs
 chmod u+x rootfs_script.sh post_image_script.sh
 
 make olddefconfig
