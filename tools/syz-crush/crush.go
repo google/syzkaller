@@ -83,7 +83,7 @@ func main() {
 		log.Printf("reproducing from log file: %v", reproduceMe)
 	}
 	log.Printf("booting %v test machines...", vmPool.Count())
-	runDone := make(chan *report.Report)
+	runDone := make(chan *instance.RunResult)
 	var shutdown, stoppedWorkers uint32
 
 	for i := 0; i < vmPool.Count(); i++ {
@@ -124,7 +124,8 @@ func main() {
 	log.Printf("all done. reproduced %v crashes. reproduce rate %.2f%%", crashes, float64(crashes)/float64(count)*100.0)
 }
 
-func storeCrash(cfg *mgrconfig.Config, rep *report.Report) {
+func storeCrash(cfg *mgrconfig.Config, res *instance.RunResult) {
+	rep := res.Report
 	id := hash.String([]byte(rep.Title))
 	dir := filepath.Join(filepath.Dir(flag.Args()[0]), "crashes", id)
 	osutil.MkdirAll(dir)
@@ -137,7 +138,7 @@ func storeCrash(cfg *mgrconfig.Config, rep *report.Report) {
 	if err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(rep.Title+"\n")); err != nil {
 		log.Printf("failed to write crash description: %v", err)
 	}
-	if err := osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("log%v", index)), rep.Output); err != nil {
+	if err := osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("log%v", index)), res.RawOutput); err != nil {
 		log.Printf("failed to write crash log: %v", err)
 	}
 	if err := osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("tag%v", index)), []byte(cfg.Tag)); err != nil {
@@ -154,7 +155,7 @@ func storeCrash(cfg *mgrconfig.Config, rep *report.Report) {
 }
 
 func runInstance(cfg *mgrconfig.Config, reporter *report.Reporter,
-	vmPool *vm.Pool, index int, timeout time.Duration, runType FileType) *report.Report {
+	vmPool *vm.Pool, index int, timeout time.Duration, runType FileType) *instance.RunResult {
 	log.Printf("vm-%v: starting", index)
 	optArgs := &instance.OptionalConfig{
 		ExitCondition: vm.ExitTimeout,
@@ -186,7 +187,7 @@ func runInstance(cfg *mgrconfig.Config, reporter *report.Reporter,
 	}
 	if res.Report != nil {
 		log.Printf("vm-%v: crash: %v", index, res.Report.Title)
-		return res.Report
+		return res
 	}
 	log.Printf("vm-%v: running long enough, stopping", index)
 	return nil

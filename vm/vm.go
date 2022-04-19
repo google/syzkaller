@@ -181,19 +181,51 @@ const (
 // Returns a non-symbolized crash report, or nil if no error happens.
 func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 	reporter *report.Reporter, exit ExitCondition) (rep *report.Report) {
-	mon := &monitor{
-		inst:     inst,
-		outc:     outc,
-		errc:     errc,
-		reporter: reporter,
-		exit:     exit,
+	return inst.MonitorExecutionRaw(outc, errc, reporter, exit, 0).Report
+}
+
+type ExecutionResult struct {
+	Report    *report.Report
+	RawOutput []byte
+}
+
+func (inst *Instance) MonitorExecutionRaw(outc <-chan []byte, errc <-chan error,
+	reporter *report.Reporter, exit ExitCondition, beforeContextSize int) (res *ExecutionResult) {
+	if beforeContextSize == 0 {
+		beforeContextSize = beforeContextDefault
 	}
-	lastExecuteTime := time.Now()
-	ticker := time.NewTicker(tickerPeriod * inst.timeouts.Scale)
+	mon := &monitor{
+		inst:          inst,
+		outc:          outc,
+		errc:          errc,
+		reporter:      reporter,
+		beforeContext: beforeContextSize,
+		exit:          exit,
+	}
+	return &ExecutionResult{
+		Report:    mon.monitorExecution(),
+		RawOutput: mon.output,
+	}
+}
+
+type monitor struct {
+	inst          *Instance
+	outc          <-chan []byte
+	errc          <-chan error
+	reporter      *report.Reporter
+	exit          ExitCondition
+	output        []byte
+	beforeContext int
+	matchPos      int
+}
+
+func (mon *monitor) monitorExecution() *report.Report {
+	ticker := time.NewTicker(tickerPeriod * mon.inst.timeouts.Scale)
 	defer ticker.Stop()
+	lastExecuteTime := time.Now()
 	for {
 		select {
-		case err := <-errc:
+		case err := <-mon.errc:
 			switch err {
 			case nil:
 				// The program has exited without errors,
@@ -217,9 +249,9 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 				}
 				return mon.extractError(crash)
 			}
-		case out, ok := <-outc:
+		case out, ok := <-mon.outc:
 			if !ok {
-				outc = nil
+				mon.outc = nil
 				continue
 			}
 			lastPos := len(mon.output)
@@ -228,12 +260,12 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 				bytes.Contains(mon.output[lastPos:], executingProgram2) {
 				lastExecuteTime = time.Now()
 			}
-			if reporter.ContainsCrash(mon.output[mon.matchPos:]) {
+			if mon.reporter.ContainsCrash(mon.output[mon.matchPos:]) {
 				return mon.extractError("unknown error")
 			}
-			if len(mon.output) > 2*beforeContext {
-				copy(mon.output, mon.output[len(mon.output)-beforeContext:])
-				mon.output = mon.output[:beforeContext]
+			if len(mon.output) > 2*mon.beforeContext {
+				copy(mon.output, mon.output[len(mon.output)-mon.beforeContext:])
+				mon.output = mon.output[:mon.beforeContext]
 			}
 			// Find the starting position for crash matching on the next iteration.
 			// We step back from the end of output by maxErrorLength to handle the case
@@ -254,23 +286,13 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 		case <-ticker.C:
 			// Detect both "no output whatsoever" and "kernel episodically prints
 			// something to console, but fuzzer is not actually executing programs".
-			if time.Since(lastExecuteTime) > inst.timeouts.NoOutput {
+			if time.Since(lastExecuteTime) > mon.inst.timeouts.NoOutput {
 				return mon.extractError(noOutputCrash)
 			}
 		case <-Shutdown:
 			return nil
 		}
 	}
-}
-
-type monitor struct {
-	inst     *Instance
-	outc     <-chan []byte
-	errc     <-chan error
-	reporter *report.Reporter
-	exit     ExitCondition
-	output   []byte
-	matchPos int
 }
 
 func (mon *monitor) extractError(defaultError string) *report.Report {
@@ -316,7 +338,7 @@ func (mon *monitor) createReport(defaultError string) *report.Report {
 			Suppressed: report.IsSuppressed(mon.reporter, mon.output),
 		}
 	}
-	start := rep.StartPos - beforeContext
+	start := rep.StartPos - mon.beforeContext
 	if start < 0 {
 		start = 0
 	}
@@ -362,8 +384,8 @@ var (
 	executingProgram1 = []byte("executing program")  // syz-fuzzer, syz-runner output
 	executingProgram2 = []byte("executed programs:") // syz-execprog output
 
-	beforeContext = 1024 << 10
-	afterContext  = 128 << 10
+	beforeContextDefault = 1024 << 10
+	afterContext         = 128 << 10
 
 	tickerPeriod         = 10 * time.Second
 	waitForOutputTimeout = 10 * time.Second
