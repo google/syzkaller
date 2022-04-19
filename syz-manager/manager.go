@@ -1032,11 +1032,14 @@ func (mgr *Manager) saveRepro(res *ReproResult) {
 
 		report := repro.Report
 		output := report.Output
+
+		var crashFlags dashapi.CrashFlags
 		if res.strace != nil {
 			// If syzkaller managed to successfully run the repro with strace, send
 			// the report and the output generated under strace.
 			report = res.strace.Report
 			output = res.strace.Output
+			crashFlags = dashapi.CrashUnderStrace
 		}
 		dc := &dashapi.Crash{
 			BuildID:    mgr.cfg.Tag,
@@ -1045,6 +1048,7 @@ func (mgr *Manager) saveRepro(res *ReproResult) {
 			Suppressed: report.Suppressed,
 			Recipients: report.Recipients.ToDash(),
 			Log:        output,
+			Flags:      crashFlags,
 			Report:     report.Report,
 			ReproOpts:  repro.Opts.Serialize(),
 			ReproSyz:   repro.Prog.Serialize(),
