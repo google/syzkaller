@@ -16,6 +16,10 @@ config:
  - DEBUG_VIRTUAL: [-s390]
  - LOCKUP_DETECTOR: [-s390]
  - SOFTLOCKUP_DETECTOR: [-s390]
+ # This config itself was added in v5.10, but the smp.csd_lock_timeout command line argument
+ # that is required to make it reliably usable is currently only in linux-next.
+ # TODO: change this to v5.18 when smp.csd_lock_timeout reaches mainline.
+ - CSD_LOCK_WAIT_DEBUG: [linux-next]
  - DETECT_HUNG_TASK
  - WQ_WATCHDOG
  - BOOTPARAM_HUNG_TASK_PANIC
