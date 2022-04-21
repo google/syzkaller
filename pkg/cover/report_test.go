@@ -180,11 +180,12 @@ func buildTestBinary(t *testing.T, target *targets.Target, test Test, dir string
 
 	aslrDefine := "-DNO_ASLR_BASE"
 	if target.OS == targets.Linux || target.OS == targets.OpenBSD ||
-		target.OS == targets.FreeBSD || target.OS == targets.NetBSD {
+		target.OS == targets.FreeBSD || target.OS == targets.NetBSD ||
+		target.OS == targets.Android {
 		aslrDefine = "-DASLR_BASE"
 	}
 	aslrExtraLibs := []string{}
-	if target.OS == targets.Linux {
+	if target.OS == targets.Linux || target.OS == targets.Android {
 		aslrExtraLibs = []string{"-ldl"}
 	}
 

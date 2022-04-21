@@ -82,15 +82,19 @@ func main() {
 
 	data := &ExecutorData{}
 	for _, OS := range OSList {
-		descriptions := ast.ParseGlob(filepath.Join(*srcDir, "sys", OS, "*.txt"), nil)
+		descOS := OS
+		if OS == targets.Android {
+			descOS = targets.Linux
+		}
+		descriptions := ast.ParseGlob(filepath.Join(*srcDir, "sys", descOS, "*.txt"), nil)
 		if descriptions == nil {
 			os.Exit(1)
 		}
-		constFile := compiler.DeserializeConstFile(filepath.Join(*srcDir, "sys", OS, "*.const"), nil)
+		constFile := compiler.DeserializeConstFile(filepath.Join(*srcDir, "sys", descOS, "*.const"), nil)
 		if constFile == nil {
 			os.Exit(1)
 		}
-		osutil.MkdirAll(filepath.Join(*outDir, "sys", OS, "gen"))
+		osutil.MkdirAll(filepath.Join(*outDir, "sys", descOS, "gen"))
 
 		var archs []string
 		for arch := range targets.List[OS] {
