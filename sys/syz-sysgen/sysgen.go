@@ -372,6 +372,9 @@ func writeSource(file string, data []byte) {
 }
 
 func writeFile(file string, data []byte) {
+	if err := os.MkdirAll(filepath.Dir(file), os.FileMode(0755)); err != nil {
+		tool.Failf("failed to create dir: %v", err)
+	}
 	outf, err := os.Create(file)
 	if err != nil {
 		tool.Failf("failed to create output file: %v", err)
