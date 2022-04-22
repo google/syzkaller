@@ -77,7 +77,7 @@ func TestReportGenerator(t *testing.T) {
 			Supports: func(target *targets.Target) bool {
 				return target.OS == targets.Fuchsia ||
 					// Fails with "relocation truncated to fit: R_AARCH64_CALL26 against symbol `memcpy'".
-					target.OS == targets.Linux && target.Arch != targets.ARM64
+					(target.OS == targets.Linux || target.OS == targets.Android) && target.Arch != targets.ARM64
 			},
 		},
 		{
@@ -90,7 +90,7 @@ func TestReportGenerator(t *testing.T) {
 			LDFlags: []string{"-pie", "-Wl,--section-start=.text=0x33300000,--emit-relocs"},
 			Supports: func(target *targets.Target) bool {
 				return target.OS == targets.Fuchsia ||
-					target.OS == targets.Linux && target.Arch != targets.ARM64 &&
+					(target.OS == targets.Linux || target.OS == targets.Android) && target.Arch != targets.ARM64 &&
 						target.Arch != targets.ARM && target.Arch != targets.I386
 			},
 		},
