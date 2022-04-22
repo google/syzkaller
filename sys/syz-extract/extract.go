@@ -64,7 +64,7 @@ var extractors = map[string]Extractor{
 	targets.Darwin:  new(darwin),
 	targets.NetBSD:  new(netbsd),
 	targets.OpenBSD: new(openbsd),
-	"android":       new(linux),
+	targets.Android: new(linux),
 	targets.Fuchsia: new(fuchsia),
 	targets.Windows: new(windows),
 	targets.Trusty:  new(trusty),

@@ -118,8 +118,9 @@ type Timeouts struct {
 
 const (
 	Akaros  = "akaros"
-	FreeBSD = "freebsd"
+	Android = "android"
 	Darwin  = "darwin"
+	FreeBSD = "freebsd"
 	Fuchsia = "fuchsia"
 	Linux   = "linux"
 	NetBSD  = "netbsd"
@@ -440,6 +441,7 @@ var List = map[string]map[string]*Target{
 			},
 		},
 	},
+	Android: {}, // Copied from Linux in init()
 	Trusty: {
 		ARM: {
 			PtrSize:           4,
@@ -538,6 +540,22 @@ var oses = map[string]osCommon{
 		HostFuzzer:             true,
 		KernelObject:           "akaros-kernel-64b",
 	},
+	Android: {
+		BuildOS:                Linux,
+		SyscallNumbers:         true,
+		SyscallPrefix:          "__NR_",
+		ExecutorUsesShmem:      true,
+		ExecutorUsesForkServer: true,
+		KernelObject:           "vmlinux",
+		PseudoSyscallDeps: map[string][]string{
+			"syz_read_part_table": {"memfd_create"},
+			"syz_mount_image":     {"memfd_create"},
+			"syz_io_uring_setup":  {"io_uring_setup"},
+			"syz_clone3":          {"clone3", "exit"},
+			"syz_clone":           {"clone", "exit"},
+		},
+		cflags: []string{"-static-pie"},
+	},
 	Trusty: {
 		SyscallNumbers:   true,
 		Int64SyscallArgs: true,
@@ -595,6 +613,7 @@ func fuchsiaCFlags(arch, clangArch string) []string {
 }
 
 func init() {
+	List[Android] = List[Linux]
 	for OS, archs := range List {
 		for arch, target := range archs {
 			initTarget(target, OS, arch)
@@ -602,7 +621,7 @@ func init() {
 	}
 	goarch := runtime.GOARCH
 	goos := runtime.GOOS
-	if goos == "android" {
+	if goos == Android {
 		goos = Linux
 	}
 	for _, target := range List[TestOS] {

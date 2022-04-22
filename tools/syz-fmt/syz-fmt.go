@@ -26,6 +26,9 @@ func main() {
 	if len(args) == 1 && args[0] == "all" {
 		args = nil
 		for os := range targets.List {
+			if os == targets.Android {
+				os = targets.Linux
+			}
 			args = append(args, filepath.Join("sys", os))
 		}
 	}

@@ -178,6 +178,8 @@ func NewRepo(os, vm, dir string, opts ...RepoOpt) (Repo, error) {
 		return newLinux(dir, opts), nil
 	case targets.Akaros:
 		return newAkaros(dir, opts), nil
+	case targets.Android:
+		return newGit(dir, nil, opts), nil
 	case targets.Fuchsia:
 		return newFuchsia(dir, opts), nil
 	case targets.OpenBSD:

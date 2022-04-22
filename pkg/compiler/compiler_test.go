@@ -23,6 +23,9 @@ var flagUpdate = flag.Bool("update", false, "reformat all.txt")
 func TestCompileAll(t *testing.T) {
 	for os, arches := range targets.List {
 		os, arches := os, arches
+		if os == targets.Android {
+			os = targets.Linux
+		}
 		t.Run(os, func(t *testing.T) {
 			t.Parallel()
 			eh := func(pos ast.Pos, msg string) {
