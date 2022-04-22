@@ -94,11 +94,11 @@ func Logf(v int, msg string, args ...interface{}) {
 }
 
 func Fatal(err error) {
-	golog.Fatal(err)
+	golog.Fatal("SYZFATAL: ", err)
 }
 
 func Fatalf(msg string, args ...interface{}) {
-	golog.Fatalf(msg, args...)
+	golog.Fatalf("SYZFATAL: "+msg, args...)
 }
 
 type VerboseWriter int
