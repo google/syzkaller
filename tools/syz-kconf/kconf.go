@@ -241,8 +241,7 @@ func (ctx *Context) executeShell() error {
 		}
 		args := strings.Split(shell.Cmd, " ")
 		for i := 1; i < len(args); i++ {
-			args[i] = strings.ReplaceAll(args[i], "${BUILDDIR}", ctx.BuildDir)
-			args[i] = strings.ReplaceAll(args[i], "${ARCH}", ctx.Target.KernelArch)
+			args[i] = ctx.replaceVars(args[i])
 		}
 		if args[0] == "make" {
 			if err := ctx.Make(args[1:]...); err != nil {
@@ -426,12 +425,18 @@ func (ctx *Context) Make(args ...string) error {
 		args = append(args, "CROSS_COMPILE="+ctx.Target.Triple+"-")
 	}
 	if ctx.Inst.Compiler != "" {
-		args = append(args, "CC="+ctx.Inst.Compiler)
+		args = append(args, "CC="+ctx.replaceVars(ctx.Inst.Compiler))
 	} else if ctx.Target.KernelCompiler != "" {
 		args = append(args, "CC="+ctx.Target.KernelCompiler)
 	}
 	_, err := osutil.RunCmd(10*time.Minute, ctx.SourceDir, "make", args...)
 	return err
+}
+
+func (ctx *Context) replaceVars(str string) string {
+	str = strings.ReplaceAll(str, "${BUILDDIR}", ctx.BuildDir)
+	str = strings.ReplaceAll(str, "${ARCH}", ctx.Target.KernelArch)
+	return str
 }
 
 func releaseTag(dir string) (string, error) {
