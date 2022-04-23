@@ -429,6 +429,9 @@ func (ctx *Context) Make(args ...string) error {
 	} else if ctx.Target.KernelCompiler != "" {
 		args = append(args, "CC="+ctx.Target.KernelCompiler)
 	}
+	if ctx.Inst.Linker != "" {
+		args = append(args, "LD="+ctx.replaceVars(ctx.Inst.Linker))
+	}
 	_, err := osutil.RunCmd(10*time.Minute, ctx.SourceDir, "make", args...)
 	return err
 }
