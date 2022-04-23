@@ -434,6 +434,7 @@ func (ctx *Context) Make(args ...string) error {
 }
 
 func (ctx *Context) replaceVars(str string) string {
+	str = strings.ReplaceAll(str, "${SOURCEDIR}", ctx.SourceDir)
 	str = strings.ReplaceAll(str, "${BUILDDIR}", ctx.BuildDir)
 	str = strings.ReplaceAll(str, "${ARCH}", ctx.Target.KernelArch)
 	return str
