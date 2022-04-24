@@ -694,8 +694,10 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Re
 		Debug:     *flagDebug,
 		Test:      false,
 		Runtest:   false,
-		Slowdown:  mgr.cfg.Timeouts.Slowdown,
-		RawCover:  mgr.cfg.RawCover,
+		Optional: &instance.OptionalFuzzerArgs{
+			Slowdown: mgr.cfg.Timeouts.Slowdown,
+			RawCover: mgr.cfg.RawCover,
+		},
 	}
 	cmd := instance.FuzzerCmd(args)
 	outc, errc, err := inst.Run(mgr.cfg.Timeouts.VMRunningTime, mgr.vmStop, cmd)
@@ -1329,7 +1331,7 @@ func publicWebAddr(addr string) string {
 		if host, err := os.Hostname(); err == nil {
 			addr = net.JoinHostPort(host, port)
 		}
-		if GCE, err := gce.NewContext(); err == nil {
+		if GCE, err := gce.NewContext(""); err == nil {
 			addr = net.JoinHostPort(GCE.ExternalIP, port)
 		}
 	}

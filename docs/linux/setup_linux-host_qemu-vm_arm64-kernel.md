@@ -149,7 +149,7 @@ A sample config file that exercises the required options are shown below. Modify
     "kernel_obj": "/path/to/linux/build/dir",
     "syzkaller": "/path/to/syzkaller/arm64/",
     "image": "/path/to/rootfs.ext3",
-    "sshkey": "/path/to/ida_rsa",
+    "sshkey": "/path/to/id_rsa",
     "procs": 8,
     "type": "qemu",
     "vm": {

@@ -166,8 +166,11 @@ func addTestJob(c context.Context, bug *Bug, bugKey *db.Key, bugReporting *BugRe
 
 func checkTestJob(c context.Context, bug *Bug, bugReporting *BugReporting, crash *Crash,
 	repo, branch string) string {
+	isBootError := func(crash *Crash) bool {
+		return strings.Contains(crash.Title, "boot error:")
+	}
 	switch {
-	case crash.ReproC == 0 && crash.ReproSyz == 0:
+	case !isBootError(crash) && crash.ReproC == 0 && crash.ReproSyz == 0:
 		return "This crash does not have a reproducer. I cannot test it."
 	case !vcs.CheckRepoAddress(repo):
 		return fmt.Sprintf("%q does not look like a valid git repo address.", repo)

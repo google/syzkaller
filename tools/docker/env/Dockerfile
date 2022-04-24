@@ -9,8 +9,7 @@ LABEL homepage="https://github.com/google/syzkaller"
 
 RUN apt-get update --allow-releaseinfo-change
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
-	sudo make python nano git curl ca-certificates \
-	clang-format clang-tidy binutils g++ clang \
+	sudo make python nano git curl ca-certificates binutils g++ \
 	g++-arm-linux-gnueabi g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu \
 	g++-mips64el-linux-gnuabi64 g++-s390x-linux-gnu g++-riscv64-linux-gnu \
 	libc6-dev-i386 libc6-dev-i386-amd64-cross lib32gcc-10-dev lib32stdc++-10-dev \
@@ -34,6 +33,19 @@ ENV GOPATH /gopath
 RUN mkdir -p /syzkaller/gopath/src/github.com/google/syzkaller && \
 	mkdir -p /syzkaller/.cache && \
 	chmod -R 0777 /syzkaller
+
+# The default clang-11 is too old, install the latest one.
+RUN apt-get install -y -q gnupg software-properties-common apt-transport-https
+RUN curl https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+RUN add-apt-repository "deb http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-13 main"
+RUN apt-get update --allow-releaseinfo-change
+RUN apt-get remove -y -q clang-11
+RUN apt-get install -y -q --no-install-recommends clang-13 clang-format-13 clang-tidy-13
+RUN apt autoremove -y -q
+RUN sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-13 100
+RUN sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-13 100
+RUN sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-13 100
+RUN sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-13 100
 
 # Download and install the custom Clang required to build KMSAN.
 # TODO(@ramosian-glider): switch to stable Clang once KMSAN is upstreamed.

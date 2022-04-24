@@ -196,6 +196,28 @@ var fileSystems = []FileSystem{
 		},
 	},
 	{
+		Name:      "ntfs3",
+		MinSize:   1 << 20,
+		MkfsFlags: []string{"-f", "-F", "-L", "syzkaller"},
+		MkfsFlagCombinations: [][]string{
+			{
+				"-s 512 -c 1024",
+				"-s 512 -c 4096",
+				"-s 1024 -c 4096",
+				"-s 1024 -c 65536",
+				"-s 2048 -c 2048",
+				"-s 2048 -c 4096",
+				"-s 4096 -c 4096",
+				"-s 4096 -c 131072",
+			},
+			{"", "-I"},
+		},
+		Mkfs: func(image *Image) error {
+			_, err := runCmd("mkfs.ntfs", append(image.flags, image.disk)...)
+			return err
+		},
+	},
+	{
 		Name:      "ext4",
 		MinSize:   64 << 10,
 		MkfsFlags: []string{"-L", "syzkaller", "-U", "clear", "-E", "test_fs"},

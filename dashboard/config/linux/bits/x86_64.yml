@@ -9,7 +9,7 @@ config:
  # root=/dev/sda is not necessary correct, but it's a common setting and user arguments are appended
  # to the builtin command line, so user can always override this.
  # vsyscall=native required to run x86_64 executables on android kernels (it disables VDSO by default).
- - CMDLINE: [append, "root=/dev/sda console=ttyS0 vsyscall=native numa=fake=2 kvm-intel.nested=1 spec_store_bypass_disable=prctl nopcid vivid.n_devs=16 vivid.multiplanar=1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2 netrom.nr_ndevs=16 rose.rose_ndevs=16 dummy_hcd.num=8 watchdog_thresh=55 workqueue.watchdog_thresh=140 sysctl.net.core.netdev_unregister_timeout_secs=140"]
+ - CMDLINE: [append, "root=/dev/sda console=ttyS0 vsyscall=native numa=fake=2 kvm-intel.nested=1 spec_store_bypass_disable=prctl nopcid vivid.n_devs=16 vivid.multiplanar=1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2 netrom.nr_ndevs=16 rose.rose_ndevs=16 dummy_hcd.num=8 smp.csd_lock_timeout=100000 watchdog_thresh=55 workqueue.watchdog_thresh=140 sysctl.net.core.netdev_unregister_timeout_secs=140"]
  - CMDLINE_BOOL
 
  # Deterministic hang/stall detection.
@@ -20,6 +20,7 @@ config:
  #
  # 1. RCU stalls has the highest priority.
  #    RCU_CPU_STALL_TIMEOUT=100 results in stalls detected after 100-101 secs.
+ #    This also includes CSD lock timeout (CONFIG_CSD_LOCK_WAIT_DEBUG + smp.csd_lock_timeout=100000(ms)).
  #
  # 2. Then softlockup detector.
  #    kernel.watchdog_thresh = 55 detects stalls after 110-132 secs.
@@ -45,7 +46,9 @@ config:
 
  # 32-on-64 support (compat).
  - IA32_EMULATION
- - X86_X32: [-baseline]
+ # X86_X32 renamed to X86_X32_ABI in v5.18
+ - X86_X32: [-baseline, -v5.18]
+ - X86_X32_ABI: [-baseline, v5.18]
 
  # Moved from legacy config, reason for enabling is unknown.
  - KALLSYMS_ABSOLUTE_PERCPU

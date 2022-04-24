@@ -92,6 +92,9 @@ func (git *git) Poll(repo, branch string) (*Commit, error) {
 	if _, err := git.git("checkout", "origin/"+branch); err != nil {
 		return nil, err
 	}
+	if _, err := git.git("submodule", "update", "--init"); err != nil {
+		return nil, err
+	}
 	return git.HeadCommit()
 }
 
@@ -107,6 +110,9 @@ func (git *git) CheckoutBranch(repo, branch string) (*Commit, error) {
 		return nil, err
 	}
 	if _, err := git.git("checkout", "FETCH_HEAD"); err != nil {
+		return nil, err
+	}
+	if _, err := git.git("submodule", "update", "--init"); err != nil {
 		return nil, err
 	}
 	return git.HeadCommit()
@@ -136,6 +142,9 @@ func (git *git) SwitchCommit(commit string) (*Commit, error) {
 		git.git("clean", "-fdx")
 	}
 	if _, err := git.git("checkout", commit); err != nil {
+		return nil, err
+	}
+	if _, err := git.git("submodule", "update", "--init"); err != nil {
 		return nil, err
 	}
 	return git.HeadCommit()
