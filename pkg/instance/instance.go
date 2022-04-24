@@ -398,7 +398,7 @@ func (inst *inst) testRepro() error {
 			opts.FaultCall = -1
 		}
 		cmdSyz := ExecprogCmd(execprogBin, executorBin, cfg.TargetOS, cfg.TargetArch, opts.Sandbox,
-			true, true, true, cfg.Procs, opts.FaultCall, opts.FaultNth, inst.optionalFlags,
+			true, true, opts.Collide, cfg.Procs, opts.FaultCall, opts.FaultNth, inst.optionalFlags,
 			cfg.Timeouts.Slowdown, vmProgFile)
 		if err := inst.testProgram(cmdSyz, cfg.Timeouts.NoOutputRunningTime); err != nil {
 			return err

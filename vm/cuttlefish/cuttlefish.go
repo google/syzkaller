@@ -95,10 +95,7 @@ func (inst *instance) runOnHost(timeout time.Duration, cmd string) error {
 		case <-vmimpl.Shutdown:
 			return nil
 		case err := <-errc:
-			if err != nil {
-				return fmt.Errorf("error while running: %s", err)
-			}
-			return nil
+			return err
 		case out, ok := <-outc:
 			if ok && inst.debug {
 				log.Logf(1, "%s", out)
@@ -124,7 +121,26 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 }
 
 func (inst *instance) Forward(port int) (string, error) {
-	return "", fmt.Errorf("not implemented")
+	hostForward, err := inst.gceInst.Forward(port)
+	if err != nil {
+		return "", fmt.Errorf("failed to get IP/port from GCE instance: %s", err)
+	}
+
+	cmd := fmt.Sprintf("nohup socat TCP-LISTEN:%d,fork TCP:%s", port, hostForward)
+	if err := inst.runOnHost(time.Second, cmd); err != nil && err != vmimpl.ErrTimeout {
+		return "", fmt.Errorf("unable to forward port on host: %s", err)
+	}
+
+	for i := 0; i < 100; i++ {
+		devicePort := vmimpl.RandomPort()
+		cmd := fmt.Sprintf("adb reverse tcp:%d tcp:%d", devicePort, port)
+		err = inst.runOnHost(10*time.Second, cmd)
+		if err == nil {
+			return fmt.Sprintf("127.0.0.1:%d", devicePort), nil
+		}
+	}
+
+	return "", fmt.Errorf("unable to forward port on device: %s", err)
 }
 
 func (inst *instance) Close() {

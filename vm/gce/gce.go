@@ -40,6 +40,7 @@ func init() {
 
 type Config struct {
 	Count         int    `json:"count"`          // number of VMs to use
+	ZoneID        string `json:"zone_id"`        // GCE zone (if it's different from that of syz-manager)
 	MachineType   string `json:"machine_type"`   // GCE machine type (e.g. "n1-highcpu-2")
 	GCSPath       string `json:"gcs_path"`       // GCS path to upload image
 	GCEImage      string `json:"gce_image"`      // pre-created GCE image to use
@@ -99,7 +100,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		return nil, fmt.Errorf("both image and gce_image are specified")
 	}
 
-	GCE, err := gce.NewContext()
+	GCE, err := gce.NewContext(cfg.ZoneID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init gce: %v", err)
 	}

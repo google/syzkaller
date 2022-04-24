@@ -87,7 +87,7 @@ func main() {
 		}
 	}
 	if *flagCollide {
-		log.Fatalf("setting -collide to true is deprecated now")
+		log.Logf(0, "note: setting -collide to true is deprecated now and has no effect")
 	}
 	config, execOpts := createConfig(target, features, featuresFlags)
 	if err = host.Setup(target, features, featuresFlags, config.Executor); err != nil {

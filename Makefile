@@ -98,7 +98,7 @@ endif
 	manager runtest fuzzer executor \
 	ci hub \
 	execprog mutate prog2c trace2syz stress repro upgrade db \
-	usbgen symbolize cover kconf crush \
+	usbgen symbolize cover kconf syz-build crush \
 	bin/syz-extract bin/syz-fmt \
 	extract generate generate_go generate_sys \
 	format format_go format_cpp format_sys \
@@ -205,6 +205,8 @@ cover:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-cover github.com/google/syzkaller/tools/syz-cover
 kconf:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-kconf github.com/google/syzkaller/tools/syz-kconf
+syz-build:
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-build github.com/google/syzkaller/tools/syz-build
 
 bisect: descriptions
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-bisect github.com/google/syzkaller/tools/syz-bisect
