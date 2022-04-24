@@ -159,6 +159,7 @@ signalfd4(fd fd, mask ptr[in, sigset_t], size len[mask], flags flags[signalfd_fl
 timerfd_create(clockid flags[clock_type], flags flags[timerfd_create_flags]) fd_timer
 timerfd_settime(fd fd_timer, flags flags[timerfd_settime_flags], new ptr[in, itimerspec], old ptr[out, itimerspec])
 timerfd_gettime(fd fd_timer, cur ptr[out, itimerspec])
+ioctl$TFD_IOC_SET_TICKS(fd fd_timer, cmd const[TFD_IOC_SET_TICKS], arg ptr[in, int64])
 
 resource fd_event[fd]
 eventfd(initval int32) fd_event
@@ -1243,7 +1244,7 @@ seek_whence = SEEK_SET, SEEK_CUR, SEEK_END, SEEK_DATA, SEEK_HOLE
 signalfd_flags = SFD_NONBLOCK, SFD_CLOEXEC
 eventfd_flags = EFD_CLOEXEC, EFD_NONBLOCK, EFD_SEMAPHORE
 timerfd_create_flags = TFD_NONBLOCK, TFD_CLOEXEC
-timerfd_settime_flags = TFD_TIMER_ABSTIME
+timerfd_settime_flags = TFD_TIMER_ABSTIME, TFD_TIMER_CANCEL_ON_SET
 clock_type = CLOCK_REALTIME, CLOCK_REALTIME_COARSE, CLOCK_MONOTONIC, CLOCK_MONOTONIC_COARSE, CLOCK_MONOTONIC_RAW, CLOCK_BOOTTIME, CLOCK_PROCESS_CPUTIME_ID, CLOCK_THREAD_CPUTIME_ID, CLOCK_REALTIME_ALARM, CLOCK_BOOTTIME_ALARM
 sigev_notify = SIGEV_NONE, SIGEV_SIGNAL, SIGEV_THREAD, SIGEV_THREAD_ID
 cap_version = _LINUX_CAPABILITY_VERSION_1, _LINUX_CAPABILITY_VERSION_2, _LINUX_CAPABILITY_VERSION_3
