@@ -18,7 +18,7 @@ The intended function will be called according to the target kernel as defined b
 ## Build files `pkg/`
 
 - The OS name is added to `pkg/build/build.go` along with the supported architecture
-- Creating a file under `pkg/build/` which contains functions for configuring the build of a bootable image of your targeted kernel, building it, and generating ssh keys which will be used by Syzkaller in order to access the VM. under . There is a file per each of the supported OSes by Syzkaller where the name pattern is `GOOS.go`.
+- Creating a file under `pkg/build/` which contains functions for configuring the build of a bootable image of your targeted kernel, for building it, and for generating ssh keys which will be used by Syzkaller in order to access the VM. under . There is a file per each of the supported OSes by Syzkaller where the name pattern is `GOOS.go`.
 
 - Adding the given target to the `s/makefile/Makefile/`.
 
