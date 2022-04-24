@@ -125,7 +125,8 @@ config:
  - MTD_BLOCK2MTD
  - MTD_UBI
  - BLK_DEV_PMEM: [x86_64]
- - ND_BLK: [x86_64]
+ # ND_BLK removed from v5.18 by f8669f1d6a86
+ - ND_BLK: [x86_64, -v5.18]
  - ND_CLAIM: [x86_64]
  - ND_BTT: [x86_64]
  - BTT: [x86_64]
@@ -425,7 +426,8 @@ config:
  - VHOST_CROSS_ENDIAN_LEGACY
  - STAGING
  - ANDROID
- - ASHMEM
+ # ASHMEM removed from v5.18. Replacement is memfd.
+ - ASHMEM: [-v5.18]
  - ION: [-v5.10]
  - ION_SYSTEM_HEAP: [-v5.10]
  - ION_CMA_HEAP: [-v5.10]
@@ -449,7 +451,8 @@ config:
  - PSTORE_ZSTD_COMPRESS
  - PSTORE_COMPRESS
  - PSTORE_DEFLATE_COMPRESS_DEFAULT
- - FS_DAX: [-arm]
+ # Didn't find how to enable it for riscv in v5.18
+ - FS_DAX: [-arm, -riscv]
  - FS_ENCRYPTION
  - FS_VERITY
  - FS_VERITY_BUILTIN_SIGNATURES
@@ -532,9 +535,11 @@ config:
  - BIG_KEYS: [-kmsan]
  - TRUSTED_KEYS
  - KEY_DH_OPERATIONS
- - ASYMMETRIC_TPM_KEY_SUBTYPE
+ # ASYMMETRIC_TPM_KEY_SUBTYPE removed since v5.18, refer https://lore.kernel.org/lkml/YiL4DJscHPEsDHc3@iki.fi/T/
+ - ASYMMETRIC_TPM_KEY_SUBTYPE: [-v5.18]
  - PKCS8_PRIVATE_KEY_PARSER
- - TPM_KEY_PARSER
+ # TPM_KEY_PARSER removed since v5.18, refer https://lore.kernel.org/lkml/YiL4DJscHPEsDHc3@iki.fi/T/
+ - TPM_KEY_PARSER: [-v5.18]
  - PKCS7_TEST_KEY
  - SIGNED_PE_FILE_VERIFICATION
  - SECONDARY_TRUSTED_KEYRING

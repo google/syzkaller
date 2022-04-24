@@ -5,6 +5,7 @@ config:
  - SECURITY_APPARMOR: n
  - SECURITY_SMACK: n
  - SECURITY_SELINUX
+ - SECURITY_SELINUX_DEVELOP
  - SECURITY_SELINUX_DISABLE: n
  - DEFAULT_SECURITY_SELINUX
  - LSM: "landlock,lockdown,yama,safesetid,integrity,tomoyo,selinux,bpf"

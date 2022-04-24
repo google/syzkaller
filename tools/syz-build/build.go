@@ -18,6 +18,7 @@ var (
 	flagOS            = flag.String("os", runtime.GOOS, "OS to test")
 	flagArch          = flag.String("arch", runtime.GOARCH, "arch to test")
 	flagKernelSrc     = flag.String("kernel_src", "", "path to kernel checkout")
+	flagCompiler      = flag.String("compiler", "", "non-defult compiler")
 	flagKernelConfig  = flag.String("config", "", "kernel config file")
 	flagKernelSysctl  = flag.String("sysctl", "", "kernel sysctl file")
 	flagKernelCmdline = flag.String("cmdline", "", "kernel cmdline file")
@@ -40,7 +41,7 @@ func main() {
 		VMType:       "gce",
 		KernelDir:    *flagKernelSrc,
 		OutputDir:    ".",
-		Compiler:     "",
+		Compiler:     *flagCompiler,
 		Ccache:       "",
 		UserspaceDir: *flagUserspace,
 		CmdlineFile:  *flagKernelCmdline,

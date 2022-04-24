@@ -121,36 +121,21 @@ type builder interface {
 }
 
 func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
-	var supported = []struct {
-		OS    string
-		archs []string
-		vms   []string
-		b     builder
-	}{
-		{targets.Linux, []string{targets.AMD64}, []string{"gvisor"}, gvisor{}},
-		{targets.Linux, []string{targets.AMD64}, []string{"gce", "qemu"}, linux{}},
-		{targets.Linux, []string{targets.ARM, targets.ARM64, targets.I386, targets.MIPS64LE,
-			targets.PPC64LE, targets.S390x, targets.RiscV64}, []string{"qemu"}, linux{}},
-		{targets.Fuchsia, []string{targets.AMD64, targets.ARM64}, []string{"qemu"}, fuchsia{}},
-		{targets.Akaros, []string{targets.AMD64}, []string{"qemu"}, akaros{}},
-		{targets.OpenBSD, []string{targets.AMD64}, []string{"gce", "vmm"}, openbsd{}},
-		{targets.NetBSD, []string{targets.AMD64}, []string{"gce", "qemu"}, netbsd{}},
-		{targets.FreeBSD, []string{targets.AMD64}, []string{"gce", "qemu"}, freebsd{}},
-		{targets.Darwin, []string{targets.AMD64}, []string{"qemu"}, darwin{}},
-		{targets.TestOS, []string{targets.TestArch64}, []string{"qemu"}, test{}},
+	if targetOS == targets.Linux && vmType == "gvisor" {
+		return gvisor{}, nil
 	}
-	for _, s := range supported {
-		if targetOS == s.OS {
-			for _, arch := range s.archs {
-				if targetArch == arch {
-					for _, vm := range s.vms {
-						if vmType == vm {
-							return s.b, nil
-						}
-					}
-				}
-			}
-		}
+	builders := map[string]builder{
+		targets.Linux:   linux{},
+		targets.Fuchsia: fuchsia{},
+		targets.Akaros:  akaros{},
+		targets.OpenBSD: openbsd{},
+		targets.NetBSD:  netbsd{},
+		targets.FreeBSD: freebsd{},
+		targets.Darwin:  darwin{},
+		targets.TestOS:  test{},
+	}
+	if builder, ok := builders[targetOS]; ok {
+		return builder, nil
 	}
 	return nil, fmt.Errorf("unsupported image type %v/%v/%v", targetOS, targetArch, vmType)
 }
