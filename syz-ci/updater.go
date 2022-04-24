@@ -239,6 +239,8 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 			switch filepath.Ext(src) {
 			case ".txt", ".const":
 				dst = filepath.Join(upd.syzkallerDir, "sys", targets.Linux, f.Name())
+			case ".test":
+				dst = filepath.Join(upd.syzkallerDir, "sys", targets.Linux, "test", f.Name())
 			case ".h":
 				dst = filepath.Join(upd.syzkallerDir, "executor", f.Name())
 			default:
