@@ -11,5 +11,3 @@ syz_open_dev$MSR(dev ptr[in, string["/dev/cpu/#/msr"]], id intptr, flags const[O
 read$msr(fd fd_msr, buf buffer[out], count len[buf])
 
 ioctl$X86_IOC_RDMSR_REGS(fd fd_msr, cmd const[X86_IOC_RDMSR_REGS], arg ptr[in, array[int32, 8]])
-# Disallow writing to MSRs
-_ = X86_IOC_WRMSR_REGS
