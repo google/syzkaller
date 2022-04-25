@@ -127,6 +127,7 @@ const (
 	TestOS  = "test"
 	Trusty  = "trusty"
 	Windows = "windows"
+	KOS 	= "kos"
 
 	AMD64               = "amd64"
 	ARM64               = "arm64"
@@ -448,6 +449,13 @@ var List = map[string]map[string]*Target{
 			NeedSyscallDefine: dontNeedSyscallDefine,
 		},
 	},
+	KOS: {
+		ARM64: {
+			PtrSize: 8,
+			PageSize: 4 << 10,
+			CCompiler: "/opt/KasperskyOS-Community-Edition-1.0.1.4/toolchain/bin/arm-kos-g++": 
+		}
+	}
 }
 
 var oses = map[string]osCommon{
@@ -543,6 +551,12 @@ var oses = map[string]osCommon{
 		Int64SyscallArgs: true,
 		SyscallPrefix:    "__NR_",
 	},
+	KOS: {
+		BuildOS: Linux,
+		SyscallNumbers: false,
+		ExecutorUsesShmem: false,
+		HostFuzzer: true,
+	}
 }
 
 var (
