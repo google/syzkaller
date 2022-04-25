@@ -127,7 +127,7 @@ const (
 	TestOS  = "test"
 	Trusty  = "trusty"
 	Windows = "windows"
-	KOS 	= "kos"
+	KOS     = "kos"
 
 	AMD64               = "amd64"
 	ARM64               = "arm64"
@@ -451,11 +451,11 @@ var List = map[string]map[string]*Target{
 	},
 	KOS: {
 		ARM64: {
-			PtrSize: 8,
-			PageSize: 4 << 10,
-			CCompiler: "/opt/KasperskyOS-Community-Edition-1.0.1.4/toolchain/bin/arm-kos-g++": 
-		}
-	}
+			PtrSize:   8,
+			PageSize:  4 << 10,
+			CCompiler: "/opt/KasperskyOS-Community-Edition-1.0.1.4/toolchain/bin/arm-kos-g++",
+		},
+	},
 }
 
 var oses = map[string]osCommon{
@@ -552,11 +552,11 @@ var oses = map[string]osCommon{
 		SyscallPrefix:    "__NR_",
 	},
 	KOS: {
-		BuildOS: Linux,
-		SyscallNumbers: false,
+		BuildOS:           Linux,
+		SyscallNumbers:    false,
 		ExecutorUsesShmem: false,
-		HostFuzzer: true,
-	}
+		HostFuzzer:        true,
+	},
 }
 
 var (
@@ -684,6 +684,7 @@ func initTarget(target *Target, OS, arch string) {
 	for i := range target.CFlags {
 		target.replaceSourceDir(&target.CFlags[i], sourceDir)
 	}
+
 	if OS == Linux && arch == runtime.GOARCH {
 		// Don't use cross-compiler for native compilation, there are cases when this does not work:
 		// https://github.com/google/syzkaller/pull/619
