@@ -759,6 +759,19 @@ var commonOopses = []*oops{
 		[]*regexp.Regexp{},
 	},
 	{
+		// Errors produced by log.Fatal functions.
+		[]byte("SYZFATAL:"),
+		[]oopsFormat{
+			{
+				title:        compile("SYZFATAL:(.*)()"),
+				alt:          []string{"SYZFATAL%[2]s"},
+				fmt:          "SYZFATAL:%[1]v",
+				noStackTrace: true,
+			},
+		},
+		[]*regexp.Regexp{},
+	},
+	{
 		[]byte("panic:"),
 		[]oopsFormat{
 			{

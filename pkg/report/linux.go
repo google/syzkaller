@@ -1051,6 +1051,7 @@ var linuxStackParams = &stackParams{
 		"down_write",
 		"down_read_trylock",
 		"down_write_trylock",
+		"down_trylock",
 		"up_read",
 		"up_write",
 		"mutex_lock",
