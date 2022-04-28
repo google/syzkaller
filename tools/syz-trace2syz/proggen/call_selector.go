@@ -145,7 +145,10 @@ func (cs *openCallSelector) matchOpen(meta *prog.Syscall, call *parser.Syscall) 
 	if _, ok := syzFileArg.(*prog.PtrType); !ok {
 		return false, -1
 	}
-	syzBuf := syzFileArg.(*prog.PtrType).Elem.(*prog.BufferType)
+	syzBuf, ok := syzFileArg.(*prog.PtrType).Elem.(*prog.BufferType)
+	if !ok {
+		return false, -1
+	}
 	if syzBuf.Kind != prog.BufferString {
 		return false, -1
 	}
