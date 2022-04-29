@@ -1,0 +1,9 @@
+# Copyright 2022 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+meta arches["64"]
+
+resource unsupported2[int32]
+
+foo$unsupported2_ctor(cmd const[ARCH_64_SPECIFIC_CONST]) unsupported2
+foo$unsupported2_use(res unsupported2)

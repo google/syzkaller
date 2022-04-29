@@ -3,6 +3,11 @@
 
 # Errors that happen during type checking phase.
 
+meta foobar			### unknown type foobar
+meta noextract["foo"]		### wrong number of arguments for type noextract, expect no arguments
+meta "foobar"			### unexpected string "foobar", expect type
+meta arches["z80"]		### unknown arch z80
+
 #include "something"		### confusing comment faking a directive (rephrase if it's intentional)
 #define FOO BAR			### confusing comment faking a directive (rephrase if it's intentional)
 # include "something"		### confusing comment faking a directive (rephrase if it's intentional)

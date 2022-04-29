@@ -46,6 +46,15 @@ func (n *Comment) Info() (Pos, string, string) {
 	return n.Pos, tok2str[tokComment], ""
 }
 
+type Meta struct {
+	Pos   Pos
+	Value *Type
+}
+
+func (n *Meta) Info() (Pos, string, string) {
+	return n.Pos, "meta", n.Value.Ident
+}
+
 type Include struct {
 	Pos  Pos
 	File *String

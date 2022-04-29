@@ -391,6 +391,22 @@ foo(a ptr[in, array[int8, MY_PATH_MAX]])
 define MY_PATH_MAX	PATH_MAX + 2
 ```
 
+## Meta
+
+Description files can also contain `meta` directives that specify meta-information for the whole file.
+
+```
+meta noextract
+```
+Tells `make extract` to not extract constants for this file.
+Though, `syz-extract` can still be invoked manually on this file.
+
+```
+meta arches["arch1", "arch2"]
+```
+Restricts this file only to the given set of architectures.
+`make extract` and ``make generate` will not use it on other architectures.
+
 ## Misc
 
 Description files also contain `include` directives that refer to Linux kernel header files,

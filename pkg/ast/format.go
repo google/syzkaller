@@ -74,6 +74,12 @@ func (n *Comment) serialize(w io.Writer) {
 	fmt.Fprintf(w, "#%v\n", strings.TrimRight(n.Text, " \t"))
 }
 
+func (n *Meta) serialize(w io.Writer) {
+	fmt.Fprintf(w, "meta ")
+	n.Value.serialize(w)
+	fmt.Fprintf(w, "\n")
+}
+
 func (n *Include) serialize(w io.Writer) {
 	fmt.Fprintf(w, "include <%v>\n", n.File.Value)
 }

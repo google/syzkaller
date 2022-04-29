@@ -4,6 +4,10 @@
 # The source file of mali bifrost ioctl can be found in ChromeOS source tree:
 # https://chromium.googlesource.com/chromiumos/third_party/kernel/+/chromeos-4.19/drivers/gpu/arm/bifrost/mali_kbase_ioctl.h
 
+# Not upstream, generated on:
+# https://chromium.googlesource.com/chromiumos/third_party/kernel d2a8a1eb8b86
+meta noextract
+
 include <asm/page.h>
 include <drivers/gpu/arm/bifrost/mali_kbase_debug.h>
 include <drivers/gpu/arm/bifrost/mali_kbase_hwcnt_reader.h>

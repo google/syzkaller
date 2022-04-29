@@ -1,6 +1,9 @@
 # Copyright 2018 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+meta noextract
+meta arches["32_shmem", "32_fork_shmem", "64", "64_fork"]
+
 foo_0(a int8)
 foo_1(a int8[C1:C2])
 foo_2(a ptr[out, array[int32]])

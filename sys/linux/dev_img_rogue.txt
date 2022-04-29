@@ -4,6 +4,9 @@
 # The source file of IMG PowerVR Rogue ioctl can be found in ChromeOS source tree:
 # https://chromium.googlesource.com/chromiumos/third_party/kernel/+/chromeos-4.19/drivers/gpu/drm/img-rogue/1.13/
 
+# Not upstream, generated on unknown tree.
+meta noextract
+
 incdir <drivers/gpu/drm/img-rogue/1.13>
 incdir <drivers/gpu/drm/img-rogue/1.13/km>
 include <linux/fcntl.h>
