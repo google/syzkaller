@@ -459,7 +459,7 @@ func (mgr *Manager) runRepro(crash *Crash, vmIndexes []int, putInstances func(..
 		err:       err,
 		hub:       crash.hub,
 	}
-	if err != nil && res != nil && mgr.cfg.StraceBin != "" {
+	if err == nil && res != nil && mgr.cfg.StraceBin != "" {
 		// We need only one instance to get strace output, release the rest.
 		putInstances(vmIndexes[1:]...)
 		defer putInstances(vmIndexes[0])
