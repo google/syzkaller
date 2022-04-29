@@ -7,6 +7,7 @@ package compiler
 
 import (
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -74,6 +75,7 @@ func createCompiler(desc *ast.Description, target *targets.Target, eh ast.ErrorH
 // Compile compiles sys description.
 func Compile(desc *ast.Description, consts map[string]uint64, target *targets.Target, eh ast.ErrorHandler) *Prog {
 	comp := createCompiler(desc.Clone(), target, eh)
+	comp.filterArch()
 	comp.typecheck()
 	// The subsequent, more complex, checks expect basic validity of the tree,
 	// in particular corrent number of type arguments. If there were errors,
@@ -149,6 +151,24 @@ func (comp *compiler) error(pos ast.Pos, msg string, args ...interface{}) {
 
 func (comp *compiler) warning(pos ast.Pos, msg string, args ...interface{}) {
 	comp.warnings = append(comp.warnings, warn{pos, fmt.Sprintf(msg, args...)})
+}
+
+func (comp *compiler) filterArch() {
+	files := comp.fileList()
+	comp.desc = comp.desc.Filter(func(n ast.Node) bool {
+		pos, typ, name := n.Info()
+		meta := files[filepath.Base(pos.File)]
+		if meta.SupportsArch(comp.target.Arch) {
+			return true
+		}
+		switch n.(type) {
+		case *ast.Resource, *ast.Struct, *ast.Call, *ast.TypeDef:
+			// This is required to keep the unsupported diagnostic working,
+			// otherwise sysgen will think that these things are still supported on some arches.
+			comp.unsupported[typ+" "+name] = true
+		}
+		return false
+	})
 }
 
 func (comp *compiler) structIsVarlen(name string) bool {
