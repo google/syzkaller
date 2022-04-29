@@ -128,7 +128,10 @@ func (p *parser) parseTop() Node {
 		return p.parseResource()
 	case tokIdent:
 		name := p.parseIdent()
-		if name.Name == "type" {
+		switch name.Name {
+		case "meta":
+			return p.parseMeta()
+		case "type":
 			return p.parseTypeDef()
 		}
 		switch p.tok {
@@ -188,6 +191,13 @@ func (p *parser) parseComment() *Comment {
 	}
 	p.consume(tokComment)
 	return c
+}
+
+func (p *parser) parseMeta() *Meta {
+	return &Meta{
+		Pos:   p.pos,
+		Value: p.parseType(),
+	}
 }
 
 func (p *parser) parseDefine() *Define {

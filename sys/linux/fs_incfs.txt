@@ -1,13 +1,18 @@
 # Copyright 2020 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+# incremental-fs is ChromeOS/Android-specific:
+# https://chromium.googlesource.com/chromiumos/third_party/kernel/+/2db8add7871ad%5E%21/
+
+# This was generated on:
+# https://chromium.googlesource.com/chromiumos/third_party/kernel 3a36438201f3
+meta noextract
+meta arches["386", "amd64", "arm", "arm64"]
+
 include <asm/ioctls.h>
 include <linux/stat.h>
 include <uapi/linux/fcntl.h>
 include <uapi/linux/incrementalfs.h>
-
-# incremental-fs is ChromeOS/Android-specific:
-# https://chromium.googlesource.com/chromiumos/third_party/kernel/+/2db8add7871ad%5E%21/
 
 mount$incfs(src ptr[in, filename], dst ptr[in, filename], type ptr[in, string["incremental-fs"]], flags flags[mount_flags], opts ptr[in, fs_options[incfs_options]])
 

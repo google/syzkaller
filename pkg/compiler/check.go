@@ -836,11 +836,14 @@ type checkCtx struct {
 }
 
 func (comp *compiler) checkType(ctx checkCtx, t *ast.Type, flags checkFlags) {
+	comp.checkTypeImpl(ctx, t, comp.getTypeDesc(t), flags)
+}
+
+func (comp *compiler) checkTypeImpl(ctx checkCtx, t *ast.Type, desc *typeDesc, flags checkFlags) {
 	if unexpected, _, ok := checkTypeKind(t, kindIdent); !ok {
 		comp.error(t.Pos, "unexpected %v, expect type", unexpected)
 		return
 	}
-	desc := comp.getTypeDesc(t)
 	if desc == nil {
 		comp.error(t.Pos, "unknown type %v", t.Ident)
 		return
