@@ -181,7 +181,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<th>Coverage {{template "info_link" "https://github.com/google/syzkaller/blob/master/docs/coverage.md"}}</th>
 		<th>Crashes</th>
 		<th>Execs</th>
-		<th colspan="3">Kernel build</th>
+		<th colspan="4">Kernel build</th>
 		<th colspan="3">syzkaller build</th>
 	</tr>
 	<tr>
@@ -193,6 +193,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<th></th>
 		<th></th>
 		<th>Commit</th>
+		<th>Config</th>
 		<th>Freshness</th>
 		<th>Status</th>
 		<th>Commit</th>
@@ -224,12 +225,14 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			{{end}}
 			{{with $build := $mgr.CurrentBuild}}
 				<td class="stat" title="[{{$build.KernelAlias}}] {{$build.KernelCommitTitle}}">{{link $build.KernelCommitLink (formatTagHash $build.KernelCommit)}}</td>
+				<td class="stat">{{link $build.KernelConfigLink ".config"}}</td>
 				<td class="stat" title="{{formatTime $build.KernelCommitDate}}" {{if $mgr.FailedBuildBugLink}}class="bad"{{end}}>{{formatLateness $mgr.Now $build.KernelCommitDate}}</td>
 				<td class="stat">{{if $mgr.FailedBuildBugLink}}<a href="{{$mgr.FailedBuildBugLink}}" class="bad">failing</a>{{end}}</td>
 				<td class="stat">{{link $build.SyzkallerCommitLink (formatShortHash $build.SyzkallerCommit)}}</td>
 				<td class="stat" title="{{formatTime $build.SyzkallerCommitDate}}" {{if $mgr.FailedSyzBuildBugLink}}class="bad"{{end}}>{{formatLateness $mgr.Now $build.SyzkallerCommitDate}}</td>
 				<td class="stat">{{if $mgr.FailedSyzBuildBugLink}}<a href="{{$mgr.FailedSyzBuildBugLink}}" class="bad">failing</a>{{end}}</td>
 			{{else}}
+				<td></td>
 				<td></td>
 				<td></td>
 				<td></td>
