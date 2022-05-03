@@ -23,17 +23,17 @@ resource fd_loop_ctrl[fd]
 resource fd_loop_num[intptr]: 0, 1, 2, 10, 11, 12
 openat$loop_ctrl(fd const[AT_FDCWD], file ptr[in, string["/dev/loop-control"]], flags flags[open_flags], mode const[0]) fd_loop_ctrl
 ioctl$LOOP_CTL_GET_FREE(fd fd_loop_ctrl, cmd const[LOOP_CTL_GET_FREE]) fd_loop_num
-ioctl$LOOP_CTL_ADD(fd fd_loop_ctrl, cmd const[LOOP_CTL_ADD], num fd_loop_num)
+ioctl$LOOP_CTL_ADD(fd fd_loop_ctrl, cmd const[LOOP_CTL_ADD], num fd_loop_num) fd_loop
 ioctl$LOOP_CTL_REMOVE(fd fd_loop_ctrl, cmd const[LOOP_CTL_REMOVE], num fd_loop_num)
 
 lo_encrypt_type = LO_CRYPT_NONE, LO_CRYPT_XOR, LO_CRYPT_DES, LO_CRYPT_FISH2, LO_CRYPT_BLOW, LO_CRYPT_CAST128, LO_CRYPT_IDEA, LO_CRYPT_DUMMY, LO_CRYPT_SKIPJACK, LO_CRYPT_CRYPTOAPI
 lo_flags = LO_FLAGS_READ_ONLY, LO_FLAGS_AUTOCLEAR, LO_FLAGS_PARTSCAN, LO_FLAGS_DIRECT_IO
 
 loop_config {
-	lo_fd		int32
-	lo_block_size	int32
-	lo_info		loop_info64
-	reserved	array[int64, 8]
+	fd		fd_loop
+	block_size	int32
+	info		loop_info64
+	reserved	array[const[0, int64], 8]
 }
 
 loop_info {
