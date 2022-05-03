@@ -1096,14 +1096,6 @@ func loadManagers(c context.Context, accessLevel AccessLevel, ns, manager string
 			TotalExecs:            stats.TotalExecs,
 			TotalExecsBad:         stats.TotalExecs == 0,
 		}
-		if config.Namespaces[mgr.Namespace].Decommissioned {
-			// Don't show bold red highlight for decommissioned namespaces.
-			ui.Link = ""
-			ui.FailedBuildBugLink = ""
-			ui.FailedSyzBuildBugLink = ""
-			ui.CurrentUpTime = 0
-			ui.TotalExecsBad = false
-		}
 		results = append(results, ui)
 	}
 	sort.Slice(results, func(i, j int) bool {
