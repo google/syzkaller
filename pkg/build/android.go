@@ -4,7 +4,11 @@
 package build
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -27,6 +31,40 @@ func (a android) runBuild(kernelDir, buildConfig string) error {
 	return err
 }
 
+func (a android) readCompiler(archivePath string) (string, error) {
+	f, err := os.Open(archivePath)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	gr, err := gzip.NewReader(f)
+	if err != nil {
+		return "", err
+	}
+	defer gr.Close()
+
+	tr := tar.NewReader(gr)
+
+	h, err := tr.Next()
+	for ; err == nil; h, err = tr.Next() {
+		if filepath.Base(h.Name) == "compile.h" {
+			bytes, err := ioutil.ReadAll(tr)
+			if err != nil {
+				return "", err
+			}
+			result := linuxCompilerRegexp.FindSubmatch(bytes)
+			if result == nil {
+				return "", fmt.Errorf("include/generated/compile.h does not contain build information")
+			}
+
+			return string(result[1]), nil
+		}
+	}
+
+	return "", fmt.Errorf("archive %s doesn't contain include/generated/compile.h", archivePath)
+}
+
 func (a android) build(params Params) (ImageDetails, error) {
 	var details ImageDetails
 
@@ -44,13 +82,37 @@ func (a android) build(params Params) (ImageDetails, error) {
 		return details, fmt.Errorf("failed to build modules: %s", err)
 	}
 
-	buildOutDir := filepath.Join(params.KernelDir, "out/dist")
+	buildOutDir := filepath.Join(params.KernelDir, "out", "dist")
 	bzImage := filepath.Join(buildOutDir, "bzImage")
 	vmlinux := filepath.Join(buildOutDir, "vmlinux")
 	initramfs := filepath.Join(buildOutDir, "initramfs.img")
 
-	if err := buildCuttlefishImage(params, bzImage, vmlinux, initramfs); err != nil {
-		return details, fmt.Errorf("failed to build image: %s", err)
+	var err error
+	details.CompilerID, err = a.readCompiler(filepath.Join(buildOutDir, "kernel-headers.tar.gz"))
+	if err != nil {
+		return details, err
+	}
+
+	if err := embedFiles(params, func(mountDir string) error {
+		homeDir := filepath.Join(mountDir, "root")
+
+		if _, err := osutil.RunCmd(time.Hour, homeDir, "./fetchcvd"); err != nil {
+			return err
+		}
+
+		if err := osutil.CopyFile(bzImage, filepath.Join(homeDir, "bzImage")); err != nil {
+			return err
+		}
+		if err := osutil.CopyFile(vmlinux, filepath.Join(homeDir, "vmlinux")); err != nil {
+			return err
+		}
+		if err := osutil.CopyFile(initramfs, filepath.Join(homeDir, "initramfs.img")); err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		return details, err
 	}
 
 	if err := osutil.CopyFile(vmlinux, filepath.Join(params.OutputDir, "kernel")); err != nil {
@@ -60,7 +122,6 @@ func (a android) build(params Params) (ImageDetails, error) {
 		return details, err
 	}
 
-	var err error
 	details.Signature, err = elfBinarySignature(vmlinux)
 	if err != nil {
 		return details, fmt.Errorf("failed to generate signature: %s", err)

@@ -13,3 +13,7 @@ import (
 func embedLinuxKernel(params Params, kernelPath string) error {
 	return errors.New("building linux image is only supported on linux")
 }
+
+func embedFiles(params Params, callback func(mountDir string) error) error {
+	return errors.New("building linux image is only supported on linux")
+}
