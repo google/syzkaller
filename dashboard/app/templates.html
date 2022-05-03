@@ -204,7 +204,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	{{range $mgr := .}}
 		<tr>
 			<td>{{link $mgr.Link $mgr.Name}}</td>
-			<td class="stat {{if $mgr.LastActiveBad}}bad{{end}}">{{formatLateness $mgr.Now $mgr.LastActive}}</td>
+			<td class="stat {{if not $mgr.CurrentUpTime}}bad{{end}}">{{formatLateness $mgr.Now $mgr.LastActive}}</td>
 			<td class="stat">{{formatDuration $mgr.CurrentUpTime}}</td>
 			<td class="stat">{{formatStat $mgr.MaxCorpus}}</td>
 			<td class="stat">
