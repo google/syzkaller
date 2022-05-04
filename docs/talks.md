@@ -1,4 +1,4 @@
-# Tech talks and articles
+# Tech talks
 
 _newer first_
 * [syzkaller: adventures in continuous coverage-guided kernel fuzzing](https://www.youtube.com/watch?v=YwX4UyXnhz0)
@@ -39,8 +39,9 @@ at GeeKon 2015
 * [AddressSanitizer/ThreadSanitizer for Linux Kernel](https://www.youtube.com/watch?v=capbD_aRz40)
 at Linux Collaboration Summit 2013
 
-## Articles
+# Articles
 
+* [Looking for Remote Code Execution bugs in the Linux kernel](https://xairy.io/articles/syzkaller-external-network)
 * From [Collabora](https://twitter.com/Collabora):
   * [syzkaller: fuzzing the kernel](https://www.collabora.com/news-and-blog/blog/2020/03/26/syzkaller-fuzzing-the-kernel/)
   * [Using syzkaller to detect programming bugs in the Linux kernel](https://www.collabora.com/news-and-blog/blog/2020/04/17/using-syzkaller-to-detect-programming-bugs-in-linux/)
