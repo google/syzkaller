@@ -23,7 +23,7 @@ resource fd_loop_ctrl[fd]
 resource fd_loop_num[intptr]: 0, 1, 2, 10, 11, 12
 openat$loop_ctrl(fd const[AT_FDCWD], file ptr[in, string["/dev/loop-control"]], flags flags[open_flags], mode const[0]) fd_loop_ctrl
 ioctl$LOOP_CTL_GET_FREE(fd fd_loop_ctrl, cmd const[LOOP_CTL_GET_FREE]) fd_loop_num
-ioctl$LOOP_CTL_ADD(fd fd_loop_ctrl, cmd const[LOOP_CTL_ADD], num fd_loop_num) fd_loop
+ioctl$LOOP_CTL_ADD(fd fd_loop_ctrl, cmd const[LOOP_CTL_ADD], num fd_loop_num) fd_loop_num
 ioctl$LOOP_CTL_REMOVE(fd fd_loop_ctrl, cmd const[LOOP_CTL_REMOVE], num fd_loop_num)
 
 lo_encrypt_type = LO_CRYPT_NONE, LO_CRYPT_XOR, LO_CRYPT_DES, LO_CRYPT_FISH2, LO_CRYPT_BLOW, LO_CRYPT_CAST128, LO_CRYPT_IDEA, LO_CRYPT_DUMMY, LO_CRYPT_SKIPJACK, LO_CRYPT_CRYPTOAPI
