@@ -278,10 +278,36 @@ func TestNeedReproIsolated(t *testing.T) {
 		{
 			// Make sure we try until we find a C repro, not just a syz repro.
 			bug: &Bug{
-				Title:         "too much fails, but only a syz repro",
+				Title:         "too many fails, but only a syz repro",
 				ReproLevel:    ReproLevelSyz,
 				NumRepro:      maxReproPerBug,
-				LastReproTime: nowTime.Add(-time.Hour * 24),
+				LastReproTime: nowTime.Add(-24 * time.Hour),
+			},
+			needRepro: true,
+		},
+		{
+			// We don't need a C repro for SYZFATAL: bugs.
+			bug: &Bug{
+				Title:         "SYZFATAL: Manager.Check call failed",
+				ReproLevel:    ReproLevelSyz,
+				LastReproTime: nowTime.Add(-24 * time.Hour),
+			},
+			needRepro: false,
+		},
+		{
+			// .. and for SYZFAIL: bugs.
+			bug: &Bug{
+				Title:         "SYZFAIL: clock_gettime failed",
+				ReproLevel:    ReproLevelSyz,
+				LastReproTime: nowTime.Add(-24 * time.Hour),
+			},
+			needRepro: false,
+		},
+		{
+			// Yet make sure that we request at least a syz repro.
+			bug: &Bug{
+				Title:      "SYZFATAL: Manager.Check call failed",
+				ReproLevel: ReproLevelNone,
 			},
 			needRepro: true,
 		},
