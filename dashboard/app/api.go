@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -1249,8 +1250,10 @@ func needRepro(c context.Context, bug *Bug) bool {
 	return needReproForBug(c, canon)
 }
 
+var syzErrorTitleRe = regexp.MustCompile(`^SYZFAIL:|^SYZFATAL:`)
+
 func needReproForBug(c context.Context, bug *Bug) bool {
-	// We are already have fixing commits.
+	// We already have fixing commits.
 	if len(bug.Commits) > 0 {
 		return false
 	}
@@ -1261,11 +1264,16 @@ func needReproForBug(c context.Context, bug *Bug) bool {
 	if !config.Namespaces[bug.Namespace].NeedRepro(bug) {
 		return false
 	}
-	if bug.ReproLevel < ReproLevelC {
-		// We have not found a C repro yet, try until we do.
+	bestReproLevel := ReproLevelC
+	// For some bugs there's anyway no chance to find a C repro.
+	if syzErrorTitleRe.MatchString(bug.Title) {
+		bestReproLevel = ReproLevelSyz
+	}
+	if bug.ReproLevel < bestReproLevel {
+		// We have not found a best-level repro yet, try until we do.
 		return bug.NumRepro < maxReproPerBug || timeSince(c, bug.LastReproTime) >= reproRetryPeriod
 	}
-	// When a C repro is already found, still do a repro attempt once in a while.
+	// When the best repro is already found, still do a repro attempt once in a while.
 	return timeSince(c, bug.LastReproTime) >= reproStalePeriod
 }
 
