@@ -142,7 +142,7 @@ func (p *parser) QuotedString() string {
 		if ch == '\\' {
 			ch = p.char()
 			switch ch {
-			case '\'', '"', '\\':
+			case '\'', '"', '\\', 'n':
 				str = append(str, ch)
 			default:
 				p.failf("bad quoted character")
