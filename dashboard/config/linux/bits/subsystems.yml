@@ -272,6 +272,9 @@ config:
  - AGP_AMD64: [x86_64]
  - AGP_INTEL: [x86_64]
  - DRM
+ # Workaround: select small driver that selects DRM_DISPLAY_HELPER required by
+ # DRM_DP_AUX_CHARDEV. Only works with architectures that have CONFIG_PM.
+ - DRM_PANEL_EDP: [linux-next, -s390]
  - DRM_DP_AUX_CHARDEV
  - DRM_DEBUG_MM
  - DRM_I915: n

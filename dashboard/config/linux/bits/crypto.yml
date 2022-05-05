@@ -38,7 +38,8 @@ config:
  - CRYPTO_DES
  - CRYPTO_KHAZAD
  - CRYPTO_SEED
- - CRYPTO_SM4
+ - CRYPTO_SM4: [-linux-next]
+ - CRYPTO_SM4_GENERIC: [linux-next]
  - CRYPTO_TEA
  - CRYPTO_TWOFISH
  - CRYPTO_842
