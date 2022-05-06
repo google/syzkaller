@@ -26,6 +26,7 @@ func TestReportBug(t *testing.T) {
 		Title:       "title1",
 		Maintainers: []string{`"Foo Bar" <foo@bar.com>`, `bar@foo.com`},
 		Log:         []byte("log1"),
+		Flags:       dashapi.CrashUnderStrace,
 		Report:      []byte("report1"),
 		MachineInfo: []byte("machine info 1"),
 	}
@@ -72,6 +73,7 @@ func TestReportBug(t *testing.T) {
 		MachineInfoLink:   externalLink(c.ctx, textMachineInfo, dbCrash.MachineInfo),
 		Log:               []byte("log1"),
 		LogLink:           externalLink(c.ctx, textCrashLog, dbCrash.Log),
+		LogHasStrace:      true,
 		Report:            []byte("report1"),
 		ReportLink:        externalLink(c.ctx, textCrashReport, dbCrash.Report),
 		ReproOpts:         []uint8{},

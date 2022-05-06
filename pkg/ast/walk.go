@@ -35,6 +35,10 @@ func (n *Ident) walk(cb func(Node))   {}
 func (n *String) walk(cb func(Node))  {}
 func (n *Int) walk(cb func(Node))     {}
 
+func (n *Meta) walk(cb func(Node)) {
+	cb(n.Value)
+}
+
 func (n *Include) walk(cb func(Node)) {
 	cb(n.File)
 }

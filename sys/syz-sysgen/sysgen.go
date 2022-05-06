@@ -176,32 +176,11 @@ func processJob(job *Job, descriptions *ast.Description, constFile *compiler.Con
 		job.Errors = append(job.Errors, fmt.Sprintf("%v: %v\n", pos, msg))
 	}
 	consts := constFile.Arch(job.Target.Arch)
-	top := descriptions
-	if job.Target.OS == targets.Linux && (job.Target.Arch == targets.ARM || job.Target.Arch == targets.RiscV64) {
-		// Hack: KVM is not supported on ARM anymore. On riscv64 it
-		// is not supported yet but might be in the future.
-		// Note: syz-extract also ignores this file for arm and riscv64.
-		top = descriptions.Filter(func(n ast.Node) bool {
-			pos, typ, name := n.Info()
-			if !strings.HasSuffix(pos.File, "_kvm.txt") {
-				return true
-			}
-			switch n.(type) {
-			case *ast.Resource, *ast.Struct, *ast.Call, *ast.TypeDef:
-				// Mimic what pkg/compiler would do with unsupported entries.
-				// This is required to keep the unsupported diagnostic below working
-				// for kvm entries, otherwise it will not think that kvm entries
-				// are not supported on all architectures.
-				job.Unsupported[typ+" "+name] = true
-			}
-			return false
-		})
-	}
 	if job.Target.OS == targets.TestOS {
-		constInfo := compiler.ExtractConsts(top, job.Target, eh)
+		constInfo := compiler.ExtractConsts(descriptions, job.Target, eh)
 		compiler.FabricateSyscallConsts(job.Target, constInfo, consts)
 	}
-	prog := compiler.Compile(top, consts, job.Target, eh)
+	prog := compiler.Compile(descriptions, consts, job.Target, eh)
 	if prog == nil {
 		return
 	}

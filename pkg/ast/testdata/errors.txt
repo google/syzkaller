@@ -5,6 +5,10 @@
 foo		### unexpected '\n', expecting '(', '{', '[', '='
 %		### illegal character U+0025 '%'
 
+meta		### unexpected '\n', expecting int, identifier, string
+meta: foo	### unexpected ':', expecting int, identifier, string
+meta foo, bar	### unexpected ',', expecting '\n'
+
 int_flags0 = 0, 0x1, 0xab
 int_flags1 = 123ab0x			### bad integer "123ab0x"
 int_flags1 == 0, 1			### unexpected '=', expecting int, identifier, string

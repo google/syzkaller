@@ -6,7 +6,7 @@ syzbot {{if .First}}found{{else}}has found a reproducer for{{end}} the following
 
 HEAD commit:    {{formatTagHash .KernelCommit}} {{formatCommitTableTitle .KernelCommitTitle}}
 git tree:       {{.KernelRepoAlias}}
-{{if .LogLink}}console output: {{.LogLink}}
+{{if .LogLink}}{{if .LogHasStrace}}console+strace{{else}}console output{{end}}: {{.LogLink}}
 {{end}}{{if .KernelConfigLink}}kernel config:  {{.KernelConfigLink}}
 {{end}}dashboard link: {{.Link}}
 {{if .CompilerID}}compiler:       {{.CompilerID}}

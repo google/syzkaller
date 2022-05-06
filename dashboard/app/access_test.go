@@ -72,6 +72,22 @@ func TestAccess(t *testing.T) {
 			url:   "/access-public/invalid",
 		},
 		{
+			level: AccessPublic,
+			url:   "/access-public/graph/bugs",
+		},
+		{
+			level: AccessPublic,
+			url:   "/access-public/graph/lifetimes",
+		},
+		{
+			level: AccessPublic,
+			url:   "/access-public/graph/fuzzing",
+		},
+		{
+			level: AccessPublic,
+			url:   "/access-public/graph/crashes",
+		},
+		{
 			level: AccessUser,
 			url:   "/access-user",
 		},
@@ -84,6 +100,22 @@ func TestAccess(t *testing.T) {
 			url:   "/access-user/invalid",
 		},
 		{
+			level: AccessUser,
+			url:   "/access-user/graph/bugs",
+		},
+		{
+			level: AccessUser,
+			url:   "/access-user/graph/lifetimes",
+		},
+		{
+			level: AccessUser,
+			url:   "/access-user/graph/fuzzing",
+		},
+		{
+			level: AccessUser,
+			url:   "/access-user/graph/crashes",
+		},
+		{
 			level: AccessAdmin,
 			url:   "/access-admin",
 		},
@@ -94,6 +126,22 @@ func TestAccess(t *testing.T) {
 		{
 			level: AccessAdmin,
 			url:   "/access-admin/invalid",
+		},
+		{
+			level: AccessAdmin,
+			url:   "/access-admin/graph/bugs",
+		},
+		{
+			level: AccessAdmin,
+			url:   "/access-admin/graph/lifetimes",
+		},
+		{
+			level: AccessAdmin,
+			url:   "/access-admin/graph/fuzzing",
+		},
+		{
+			level: AccessAdmin,
+			url:   "/access-admin/graph/crashes",
 		},
 		{
 			// Any references to namespace, reporting, links, etc.

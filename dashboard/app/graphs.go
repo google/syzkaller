@@ -109,10 +109,6 @@ type uiMultiInput struct {
 
 // nolint: dupl
 func handleKernelHealthGraph(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	accessLevel := accessLevel(c, r)
-	if accessLevel != AccessAdmin {
-		return ErrAccess
-	}
 	hdr, err := commonHeader(c, r, w, "")
 	if err != nil {
 		return err
@@ -130,10 +126,6 @@ func handleKernelHealthGraph(c context.Context, w http.ResponseWriter, r *http.R
 
 // nolint: dupl
 func handleGraphLifetimes(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	accessLevel := accessLevel(c, r)
-	if accessLevel != AccessAdmin {
-		return ErrAccess
-	}
 	hdr, err := commonHeader(c, r, w, "")
 	if err != nil {
 		return err
@@ -303,10 +295,6 @@ func createBugLifetimes(c context.Context, bugs []*Bug, causeBisects map[string]
 }
 
 func handleGraphFuzzing(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	accessLevel := accessLevel(c, r)
-	if accessLevel != AccessAdmin {
-		return ErrAccess
-	}
 	hdr, err := commonHeader(c, r, w, "")
 	if err != nil {
 		return err
@@ -485,10 +473,6 @@ func createMultiInput(r *http.Request, id, caption string) *uiMultiInput {
 }
 
 func handleGraphCrashes(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	accessLevel := accessLevel(c, r)
-	if accessLevel != AccessAdmin {
-		return ErrAccess
-	}
 	hdr, err := commonHeader(c, r, w, "")
 	if err != nil {
 		return err
@@ -508,6 +492,16 @@ func handleGraphCrashes(c context.Context, w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return err
 	}
+	accessLevel := accessLevel(c, r)
+	nbugs := 0
+	for _, bug := range bugs {
+		if accessLevel < bug.sanitizeAccess(accessLevel) {
+			continue
+		}
+		bugs[nbugs] = bug
+		nbugs++
+	}
+	bugs = bugs[:nbugs]
 	if len(data.Regexps.Vals) == 0 {
 		// If no data is passed, then at least show the graph for important crash types.
 		data.Regexps.Vals = []string{"^KASAN", "^KMSAN", "^KCSAN", "^SYZFAIL"}

@@ -7,6 +7,9 @@
 # https://github.com/multipath-tcp/mptcp_net-next.git
 # Once this is upstream we need to move this to vnet.txt
 
+# Was generated on https://github.com/multipath-tcp/mptcp_net-next
+meta noextract
+
 include <net/tcp.h>
 include <net/mptcp.h>
 include <net/mptcp_v4.h>

@@ -1,0 +1,9 @@
+# Copyright 2022 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+meta arches["32_shmem", "32_fork_shmem"]
+
+resource unsupported3[int32]
+
+foo$unsupported3_ctor(cmd const[ONLY_32BITS_CONST]) unsupported3
+foo$unsupported3_use(res unsupported3)

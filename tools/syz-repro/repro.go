@@ -25,6 +25,7 @@ var (
 	flagDebug  = flag.Bool("debug", false, "print debug output")
 	flagOutput = flag.String("output", filepath.Join(".", "repro.txt"), "output description file (output.txt)")
 	flagCRepro = flag.String("crepro", filepath.Join(".", "repro.c"), "output c file (repro.c)")
+	flagStrace = flag.String("strace", "", "output strace log (strace_bin must be set)")
 )
 
 func main() {
@@ -102,6 +103,23 @@ func main() {
 			fmt.Printf("C file saved to %s\n", *flagCRepro)
 		} else {
 			log.Logf(0, "failed to write C repro to file: %v", err)
+		}
+	}
+	if *flagStrace != "" {
+		result := repro.RunStrace(res, cfg, reporter, vmPool, vmIndexes[0])
+		if result.Error != nil {
+			log.Logf(0, "failed to run strace: %v", result.Error)
+		} else {
+			if result.Report != nil {
+				log.Logf(0, "under strace repro crashed with title: %s", result.Report.Title)
+			} else {
+				log.Logf(0, "repro didn't crash under strace")
+			}
+			if err := osutil.WriteFile(*flagStrace, result.Output); err == nil {
+				fmt.Printf("C file saved to %s\n", *flagStrace)
+			} else {
+				log.Logf(0, "failed to write strace output to file: %v", err)
+			}
 		}
 	}
 }

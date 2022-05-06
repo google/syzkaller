@@ -296,7 +296,8 @@ type RunResult struct {
 type ReproResult struct {
 	instances []int
 	report0   *report.Report // the original report we started reproducing
-	res       *repro.Result
+	repro     *repro.Result
+	strace    *repro.StraceResult
 	stats     *repro.Stats
 	err       error
 	hub       bool // repro came from hub
@@ -313,23 +314,15 @@ func (mgr *Manager) vmLoop() {
 	if instancesPerRepro > maxReproVMs && maxReproVMs > 0 {
 		instancesPerRepro = maxReproVMs
 	}
-	bootInstance := make(chan int)
-	go func() {
-		for i := 0; i < vmCount; i++ {
-			bootInstance <- i
-			time.Sleep(10 * time.Second * mgr.cfg.Timeouts.Scale)
-		}
-	}()
-	var instances []int
+	instances := SequentialResourcePool(vmCount, 10*time.Second*mgr.cfg.Timeouts.Scale)
 	runDone := make(chan *RunResult, 1)
 	pendingRepro := make(map[*Crash]bool)
 	reproducing := make(map[string]bool)
-	reproInstances := 0
 	var reproQueue []*Crash
 	reproDone := make(chan *ReproResult, 1)
 	stopPending := false
 	shutdown := vm.Shutdown
-	for shutdown != nil || len(instances) != vmCount {
+	for shutdown != nil || instances.Len() != vmCount {
 		mgr.mu.Lock()
 		phase := mgr.phase
 		mgr.mu.Unlock()
@@ -348,46 +341,39 @@ func (mgr *Manager) vmLoop() {
 		}
 
 		log.Logf(1, "loop: phase=%v shutdown=%v instances=%v/%v %+v repro: pending=%v reproducing=%v queued=%v",
-			phase, shutdown == nil, len(instances), vmCount, instances,
+			phase, shutdown == nil, instances.Len(), vmCount, instances.Snapshot(),
 			len(pendingRepro), len(reproducing), len(reproQueue))
 
 		canRepro := func() bool {
 			return phase >= phaseTriagedHub && len(reproQueue) != 0 &&
-				reproInstances+instancesPerRepro <= maxReproVMs
+				(int(atomic.LoadUint32(&mgr.numReproducing))+1)*instancesPerRepro <= maxReproVMs
 		}
 
 		if shutdown != nil {
-			for canRepro() && len(instances) >= instancesPerRepro {
+			for canRepro() {
+				vmIndexes := instances.Take(instancesPerRepro)
+				if vmIndexes == nil {
+					break
+				}
 				last := len(reproQueue) - 1
 				crash := reproQueue[last]
 				reproQueue[last] = nil
 				reproQueue = reproQueue[:last]
-				vmIndexes := append([]int{}, instances[len(instances)-instancesPerRepro:]...)
-				instances = instances[:len(instances)-instancesPerRepro]
-				reproInstances += instancesPerRepro
 				atomic.AddUint32(&mgr.numReproducing, 1)
 				log.Logf(1, "loop: starting repro of '%v' on instances %+v", crash.Title, vmIndexes)
 				go func() {
-					features := mgr.checkResult.Features
-					res, stats, err := repro.Run(crash.Output, mgr.cfg, features, mgr.reporter, mgr.vmPool, vmIndexes)
-					reproDone <- &ReproResult{
-						instances: vmIndexes,
-						report0:   crash.Report,
-						res:       res,
-						stats:     stats,
-						err:       err,
-						hub:       crash.hub,
-					}
+					reproDone <- mgr.runRepro(crash, vmIndexes, instances.Put)
 				}()
 			}
-			for !canRepro() && len(instances) != 0 {
-				last := len(instances) - 1
-				idx := instances[last]
-				instances = instances[:last]
-				log.Logf(1, "loop: starting instance %v", idx)
+			for !canRepro() {
+				idx := instances.TakeOne()
+				if idx == nil {
+					break
+				}
+				log.Logf(1, "loop: starting instance %v", *idx)
 				go func() {
-					crash, err := mgr.runInstance(idx)
-					runDone <- &RunResult{idx, crash, err}
+					crash, err := mgr.runInstance(*idx)
+					runDone <- &RunResult{*idx, crash, err}
 				}()
 			}
 		}
@@ -399,8 +385,8 @@ func (mgr *Manager) vmLoop() {
 
 	wait:
 		select {
-		case idx := <-bootInstance:
-			instances = append(instances, idx)
+		case <-instances.Freed:
+			// An instance has been released.
 		case stopRequest <- true:
 			log.Logf(1, "loop: issued stop request")
 			stopPending = true
@@ -410,7 +396,7 @@ func (mgr *Manager) vmLoop() {
 				log.Logf(0, "%v", res.err)
 			}
 			stopPending = false
-			instances = append(instances, res.idx)
+			instances.Put(res.idx)
 			// On shutdown qemu crashes with "qemu: terminating on signal 2",
 			// which we detect as "lost connection". Don't save that as crash.
 			if shutdown != nil && res.crash != nil {
@@ -424,24 +410,22 @@ func (mgr *Manager) vmLoop() {
 			atomic.AddUint32(&mgr.numReproducing, ^uint32(0))
 			crepro := false
 			title := ""
-			if res.res != nil {
-				crepro = res.res.CRepro
-				title = res.res.Report.Title
+			if res.repro != nil {
+				crepro = res.repro.CRepro
+				title = res.repro.Report.Title
 			}
 			log.Logf(1, "loop: repro on %+v finished '%v', repro=%v crepro=%v desc='%v'",
-				res.instances, res.report0.Title, res.res != nil, crepro, title)
+				res.instances, res.report0.Title, res.repro != nil, crepro, title)
 			if res.err != nil {
 				log.Logf(0, "repro failed: %v", res.err)
 			}
 			delete(reproducing, res.report0.Title)
-			instances = append(instances, res.instances...)
-			reproInstances -= instancesPerRepro
-			if res.res == nil {
+			if res.repro == nil {
 				if !res.hub {
 					mgr.saveFailedRepro(res.report0, res.stats)
 				}
 			} else {
-				mgr.saveRepro(res.res, res.stats, res.hub)
+				mgr.saveRepro(res)
 			}
 		case <-shutdown:
 			log.Logf(1, "loop: shutting down...")
@@ -462,6 +446,101 @@ func (mgr *Manager) vmLoop() {
 			goto wait
 		}
 	}
+}
+
+func (mgr *Manager) runRepro(crash *Crash, vmIndexes []int, putInstances func(...int)) *ReproResult {
+	features := mgr.checkResult.Features
+	res, stats, err := repro.Run(crash.Output, mgr.cfg, features, mgr.reporter, mgr.vmPool, vmIndexes)
+	ret := &ReproResult{
+		instances: vmIndexes,
+		report0:   crash.Report,
+		repro:     res,
+		stats:     stats,
+		err:       err,
+		hub:       crash.hub,
+	}
+	if err == nil && res != nil && mgr.cfg.StraceBin != "" {
+		// We need only one instance to get strace output, release the rest.
+		putInstances(vmIndexes[1:]...)
+		defer putInstances(vmIndexes[0])
+
+		const straceAttempts = 2
+		for i := 1; i <= straceAttempts; i++ {
+			strace := repro.RunStrace(res, mgr.cfg, mgr.reporter, mgr.vmPool, vmIndexes[0])
+			sameBug := strace.IsSameBug(res)
+			log.Logf(0, "strace run attempt %d/%d for '%s': same bug %v, error %v",
+				i, straceAttempts, res.Report.Title, sameBug, strace.Error)
+			// We only want to save strace output if it resulted in the same bug.
+			// Otherwise, it will be hard to reproduce on syzbot and will confuse users.
+			if sameBug {
+				ret.strace = strace
+				break
+			}
+		}
+	} else {
+		putInstances(vmIndexes...)
+	}
+	return ret
+}
+
+type ResourcePool struct {
+	ids   []int
+	mu    sync.RWMutex
+	Freed chan interface{}
+}
+
+func SequentialResourcePool(count int, delay time.Duration) *ResourcePool {
+	ret := &ResourcePool{Freed: make(chan interface{}, 1)}
+	go func() {
+		for i := 0; i < count; i++ {
+			ret.Put(i)
+			time.Sleep(delay)
+		}
+	}()
+	return ret
+}
+
+func (pool *ResourcePool) Put(ids ...int) {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+	pool.ids = append(pool.ids, ids...)
+	// Notify the listener.
+	select {
+	case pool.Freed <- true:
+	default:
+	}
+}
+
+func (pool *ResourcePool) Len() int {
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
+	return len(pool.ids)
+}
+
+func (pool *ResourcePool) Snapshot() []int {
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
+	return append([]int{}, pool.ids...)
+}
+
+func (pool *ResourcePool) Take(cnt int) []int {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+	totalItems := len(pool.ids)
+	if totalItems < cnt {
+		return nil
+	}
+	ret := append([]int{}, pool.ids[totalItems-cnt:]...)
+	pool.ids = pool.ids[:totalItems-cnt]
+	return ret
+}
+
+func (pool *ResourcePool) TakeOne() *int {
+	ret := pool.Take(1)
+	if ret == nil {
+		return nil
+	}
+	return &ret[0]
 }
 
 func (mgr *Manager) preloadCorpus() {
@@ -916,23 +995,23 @@ func (mgr *Manager) saveFailedRepro(rep *report.Report, stats *repro.Stats) {
 	}
 }
 
-func (mgr *Manager) saveRepro(res *repro.Result, stats *repro.Stats, hub bool) {
-	rep := res.Report
-	opts := fmt.Sprintf("# %+v\n", res.Opts)
-	prog := res.Prog.Serialize()
+func (mgr *Manager) saveRepro(res *ReproResult) {
+	repro := res.repro
+	opts := fmt.Sprintf("# %+v\n", repro.Opts)
+	prog := repro.Prog.Serialize()
 
 	// Append this repro to repro list to send to hub if it didn't come from hub originally.
-	if !hub {
+	if !res.hub {
 		progForHub := []byte(fmt.Sprintf("# %+v\n# %v\n# %v\n%s",
-			res.Opts, res.Report.Title, mgr.cfg.Tag, prog))
+			repro.Opts, repro.Report.Title, mgr.cfg.Tag, prog))
 		mgr.mu.Lock()
 		mgr.newRepros = append(mgr.newRepros, progForHub)
 		mgr.mu.Unlock()
 	}
 
 	var cprogText []byte
-	if res.CRepro {
-		cprog, err := csource.Write(res.Prog, res.Opts)
+	if repro.CRepro {
+		cprog, err := csource.Write(repro.Prog, repro.Opts)
 		if err == nil {
 			formatted, err := csource.Format(cprog)
 			if err == nil {
@@ -950,16 +1029,29 @@ func (mgr *Manager) saveRepro(res *repro.Result, stats *repro.Stats, hub bool) {
 		// 2. Repro re-tried 3 times and still got corrupted report at the end,
 		//    so maybe corrupted report detection is broken.
 		// 3. Reproduction is expensive so it's good to persist the result.
+
+		report := repro.Report
+		output := report.Output
+
+		var crashFlags dashapi.CrashFlags
+		if res.strace != nil {
+			// If syzkaller managed to successfully run the repro with strace, send
+			// the report and the output generated under strace.
+			report = res.strace.Report
+			output = res.strace.Output
+			crashFlags = dashapi.CrashUnderStrace
+		}
 		dc := &dashapi.Crash{
 			BuildID:    mgr.cfg.Tag,
-			Title:      res.Report.Title,
-			AltTitles:  res.Report.AltTitles,
-			Suppressed: res.Report.Suppressed,
-			Recipients: res.Report.Recipients.ToDash(),
-			Log:        res.Report.Output,
-			Report:     res.Report.Report,
-			ReproOpts:  res.Opts.Serialize(),
-			ReproSyz:   res.Prog.Serialize(),
+			Title:      report.Title,
+			AltTitles:  report.AltTitles,
+			Suppressed: report.Suppressed,
+			Recipients: report.Recipients.ToDash(),
+			Log:        output,
+			Flags:      crashFlags,
+			Report:     report.Report,
+			ReproOpts:  repro.Opts.Serialize(),
+			ReproSyz:   repro.Prog.Serialize(),
 			ReproC:     cprogText,
 		}
 		if _, err := mgr.dash.ReportCrash(dc); err != nil {
@@ -971,6 +1063,7 @@ func (mgr *Manager) saveRepro(res *repro.Result, stats *repro.Stats, hub bool) {
 		}
 	}
 
+	rep := repro.Report
 	dir := filepath.Join(mgr.crashdir, hash.String([]byte(rep.Title)))
 	osutil.MkdirAll(dir)
 
@@ -990,7 +1083,17 @@ func (mgr *Manager) saveRepro(res *repro.Result, stats *repro.Stats, hub bool) {
 	if len(cprogText) > 0 {
 		osutil.WriteFile(filepath.Join(dir, "repro.cprog"), cprogText)
 	}
-	saveReproStats(filepath.Join(dir, "repro.stats"), stats)
+	if res.strace != nil {
+		// Unlike dashboard reporting, we save strace output separately from the original log.
+		if res.strace.Error != nil {
+			osutil.WriteFile(filepath.Join(dir, "strace.error"),
+				[]byte(fmt.Sprintf("%v", res.strace.Error)))
+		}
+		if len(res.strace.Output) > 0 {
+			osutil.WriteFile(filepath.Join(dir, "strace.log"), res.strace.Output)
+		}
+	}
+	saveReproStats(filepath.Join(dir, "repro.stats"), res.stats)
 }
 
 func saveReproStats(filename string, stats *repro.Stats) {

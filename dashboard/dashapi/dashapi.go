@@ -251,6 +251,12 @@ func (dash *Dashboard) UploadCommits(commits []Commit) error {
 	return dash.Query("upload_commits", &CommitPollResultReq{commits}, nil)
 }
 
+type CrashFlags int64
+
+const (
+	CrashUnderStrace CrashFlags = 1 << iota
+)
+
 // Crash describes a single kernel crash (potentially with repro).
 type Crash struct {
 	BuildID     string // refers to Build.ID
@@ -261,6 +267,7 @@ type Crash struct {
 	Maintainers []string // deprecated in favor of Recipients
 	Recipients  Recipients
 	Log         []byte
+	Flags       CrashFlags
 	Report      []byte
 	MachineInfo []byte
 	// The following is optional and is filled only after repro.
@@ -355,6 +362,7 @@ type BugReport struct {
 	SyzkallerCommit   string
 	Log               []byte
 	LogLink           string
+	LogHasStrace      bool
 	Report            []byte
 	ReportLink        string
 	ReproC            []byte

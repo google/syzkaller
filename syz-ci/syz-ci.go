@@ -89,7 +89,10 @@ type Config struct {
 	Goroot          string `json:"goroot"`           // Go 1.8+ toolchain dir.
 	SyzkallerRepo   string `json:"syzkaller_repo"`
 	SyzkallerBranch string `json:"syzkaller_branch"` // Defaults to "master".
-	// Dir with additional syscall descriptions (.txt and .const files).
+	// Dir with additional syscall descriptions.
+	// - *.txt and *.const files are copied to syzkaller/sys/linux/
+	// - *.test files are copied to syzkaller/sys/linux/test/
+	// - *.h files are copied to syzkaller/executor/
 	SyzkallerDescriptions string `json:"syzkaller_descriptions"`
 	// Path to upload coverage reports from managers (optional).
 	// Supported protocols: GCS (gs://) and HTTP PUT (http:// or https://).

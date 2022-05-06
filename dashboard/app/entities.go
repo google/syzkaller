@@ -143,6 +143,7 @@ type Crash struct {
 	Reported    time.Time // set if this crash was ever reported
 	Maintainers []string  `datastore:",noindex"`
 	Log         int64     // reference to CrashLog text entity
+	Flags       int64     // properties of the Crash
 	Report      int64     // reference to CrashReport text entity
 	ReproOpts   []byte    `datastore:",noindex"`
 	ReproSyz    int64     // reference to ReproSyz text entity

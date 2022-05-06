@@ -23,6 +23,17 @@ import (
 // - cmdline file is not supported (should be moved to kernel config)
 // - the kernel is stored in the image in /vmlinuz file.
 func embedLinuxKernel(params Params, kernelPath string) error {
+	return embedFiles(params, func(mountDir string) error {
+		if err := copyKernel(mountDir, kernelPath); err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+// embedFiles mounts the disk image specified by params.UserspaceDir and then calls the given
+// callback function which should copy files into the image as needed.
+func embedFiles(params Params, callback func(mountDir string) error) error {
 	if params.CmdlineFile != "" {
 		return fmt.Errorf("cmdline file is not supported for linux images")
 	}
@@ -51,7 +62,7 @@ func embedLinuxKernel(params Params, kernelPath string) error {
 		return fmt.Errorf("mount(%vp1, %v) failed: %v", loopFile, mountDir, err)
 	}
 	defer unix.Unmount(mountDir, 0)
-	if err := copyKernel(mountDir, kernelPath); err != nil {
+	if err := callback(mountDir); err != nil {
 		return err
 	}
 	if params.SysctlFile != "" {

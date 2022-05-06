@@ -7,6 +7,7 @@
 
 include <uapi/linux/bpf.h>
 include <uapi/linux/btf.h>
+include <uapi/linux/if_link.h>
 
 resource fd_bpf_map[fd]: BPF_PSEUDO_MAP_FD
 resource fd_bpf_prog[fd]
@@ -68,6 +69,13 @@ bpf$LINK_GET_FD_BY_ID(cmd const[BPF_LINK_GET_FD_BY_ID], arg ptr[in, bpf_link_id]
 bpf$LINK_GET_NEXT_ID(cmd const[BPF_LINK_GET_NEXT_ID], arg ptr[inout, bpf_link_get_next_id_arg], size len[arg])
 bpf$LINK_DETACH(cmd const[BPF_LINK_DETACH], arg ptr[in, fd_bpf_link], size len[arg])
 bpf$PROG_BIND_MAP(cmd const[BPF_PROG_BIND_MAP], arg ptr[in, bpf_prog_bind_map_arg], size len[arg])
+
+resource fd_bpf_prog_xdp[fd_bpf_prog]
+bpf$PROG_LOAD_XDP(cmd const[BPF_PROG_LOAD], arg ptr[in, bpf_prog_xdp], size len[arg]) fd_bpf_prog_xdp
+bpf$BPF_LINK_CREATE_XDP(cmd const[BPF_LINK_CREATE], arg ptr[in, bpf_link_create_xdp], size len[arg]) fd_bpf_link
+type bpf_prog_xdp bpf_prog_t[const[BPF_PROG_TYPE_XDP, int32], const[BPF_XDP, int32], const[0, int32], const[0, int32]]
+type bpf_link_create_xdp bpf_link_create_arg_t[fd_bpf_prog_xdp, ifindex, const[BPF_XDP, int32], flags[xdp_flags, int32]]
+xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST, XDP_FLAGS_SKB_MODE, XDP_FLAGS_DRV_MODE, XDP_FLAGS_HW_MODE, XDP_FLAGS_REPLACE
 
 bpf_map_create_arg [
 	base		bpf_map_create_arg_base
@@ -161,12 +169,14 @@ bpf_map_batch_arg {
 	flags		const[0, int64]
 }
 
-bpf_link_create_arg {
-	prog_fd		fd_bpf_prog
-	target_fd	fd_cgroup
-	attach_type	flags[bpf_attach_types_link_create, int32]
-	flags		const[0, int32]
+type bpf_link_create_arg_t[PROG_FD, TARGET_FD, ATTACH_TYPE, FLAGS] {
+	prog_fd		PROG_FD
+	target_fd	TARGET_FD
+	attach_type	ATTACH_TYPE
+	flags		FLAGS
 }
+
+type bpf_link_create_arg bpf_link_create_arg_t[fd_bpf_prog, fd_cgroup, flags[bpf_attach_types_link_create, int32], const[0, int32]]
 
 bpf_link_update_arg {
 	link_fd		fd_bpf_link

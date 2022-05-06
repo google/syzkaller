@@ -784,6 +784,7 @@ func saveCrash(c context.Context, ns string, req *dashapi.Crash, bug *Bug, bugKe
 			GetEmails(req.Recipients, dashapi.Cc)),
 		ReproOpts: req.ReproOpts,
 		ReportLen: prio,
+		Flags:     int64(req.Flags),
 	}
 	var err error
 	if crash.Log, err = putText(c, ns, textCrashLog, req.Log, false); err != nil {

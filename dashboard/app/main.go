@@ -90,7 +90,6 @@ type uiManager struct {
 	FailedBuildBugLink    string
 	FailedSyzBuildBugLink string
 	LastActive            time.Time
-	LastActiveBad         bool // highlight LastActive in red
 	CurrentUpTime         time.Duration
 	MaxCorpus             int64
 	MaxCover              int64
@@ -1075,6 +1074,10 @@ func loadManagers(c context.Context, accessLevel AccessLevel, ns, manager string
 		if accessLevel < AccessUser {
 			link = ""
 		}
+		uptime := mgr.CurrentUpTime
+		if now.Sub(mgr.LastAlive) > 6*time.Hour {
+			uptime = 0
+		}
 		ui := &uiManager{
 			Now:                   timeNow(c),
 			Namespace:             mgr.Namespace,
@@ -1085,23 +1088,13 @@ func loadManagers(c context.Context, accessLevel AccessLevel, ns, manager string
 			FailedBuildBugLink:    bugLink(mgr.FailedBuildBug),
 			FailedSyzBuildBugLink: bugLink(mgr.FailedSyzBuildBug),
 			LastActive:            mgr.LastAlive,
-			LastActiveBad:         now.Sub(mgr.LastAlive) > 6*time.Hour,
-			CurrentUpTime:         mgr.CurrentUpTime,
+			CurrentUpTime:         uptime,
 			MaxCorpus:             stats.MaxCorpus,
 			MaxCover:              stats.MaxCover,
 			TotalFuzzingTime:      stats.TotalFuzzingTime,
 			TotalCrashes:          stats.TotalCrashes,
 			TotalExecs:            stats.TotalExecs,
 			TotalExecsBad:         stats.TotalExecs == 0,
-		}
-		if config.Namespaces[mgr.Namespace].Decommissioned {
-			// Don't show bold red highlight for decommissioned namespaces.
-			ui.Link = ""
-			ui.FailedBuildBugLink = ""
-			ui.FailedSyzBuildBugLink = ""
-			ui.CurrentUpTime = 0
-			ui.LastActiveBad = false
-			ui.TotalExecsBad = false
 		}
 		results = append(results, ui)
 	}
