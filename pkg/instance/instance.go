@@ -368,10 +368,13 @@ func (inst *inst) testRepro() error {
 		return err
 	}
 	transformError := func(res *RunResult, err error) error {
-		if err != nil && res.Report != nil {
+		if err != nil {
+			return err
+		}
+		if res != nil && res.Report != nil {
 			return &CrashError{Report: res.Report}
 		}
-		return err
+		return nil
 	}
 	if len(inst.reproSyz) > 0 {
 		var opts csource.Options
