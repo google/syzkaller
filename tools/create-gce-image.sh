@@ -149,6 +149,7 @@ PermitRootLogin yes
 PasswordAuthentication yes
 PermitEmptyPasswords yes
 ClientAliveInterval 420
+Subsystem sftp /usr/lib/openssh/sftp-server
 EOF
 # Reset root password.
 sudo sed -i "s#^root:\*:#root::#g" disk.mnt/etc/shadow
