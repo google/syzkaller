@@ -346,7 +346,7 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	bug, err := findBugByID(c, r)
 	if err != nil {
-		return ErrDontLog{err}
+		return fmt.Errorf("%v, %w", err, ErrClientNotFound)
 	}
 	accessLevel := accessLevel(c, r)
 	if err := checkAccessLevel(c, r, bug.sanitizeAccess(accessLevel)); err != nil {
@@ -501,14 +501,14 @@ func handleTextImpl(c context.Context, w http.ResponseWriter, r *http.Request, t
 	if x := r.FormValue("x"); x != "" {
 		xid, err := strconv.ParseUint(x, 16, 64)
 		if err != nil || xid == 0 {
-			return ErrDontLog{fmt.Errorf("failed to parse text id: %v", err)}
+			return fmt.Errorf("failed to parse text id: %v: %w", err, ErrClientBadRequest)
 		}
 		id = int64(xid)
 	} else {
 		// Old link support, don't remove.
 		xid, err := strconv.ParseInt(r.FormValue("id"), 10, 64)
 		if err != nil || xid == 0 {
-			return ErrDontLog{fmt.Errorf("failed to parse text id: %v", err)}
+			return fmt.Errorf("failed to parse text id: %v: %w", err, ErrClientBadRequest)
 		}
 		id = xid
 	}
@@ -519,7 +519,7 @@ func handleTextImpl(c context.Context, w http.ResponseWriter, r *http.Request, t
 	data, ns, err := getText(c, tag, id)
 	if err != nil {
 		if strings.Contains(err.Error(), "datastore: no such entity") {
-			err = ErrDontLog{err}
+			err = fmt.Errorf("%v: %w", err, ErrClientBadRequest)
 		}
 		return err
 	}
