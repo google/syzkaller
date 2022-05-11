@@ -61,7 +61,8 @@ func handleContext(fn contextHandler) http.Handler {
 			logf(c, "%v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			if err1 := templates.ExecuteTemplate(w, "error.html", data); err1 != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				combinedError := fmt.Sprintf("got err \"%v\" processing ExecuteTemplate() for err \"%v\"", err1, err)
+				http.Error(w, combinedError, http.StatusInternalServerError)
 			}
 		}
 	})
