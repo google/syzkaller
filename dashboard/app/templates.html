@@ -283,7 +283,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		Author: {{.Commit.Author}}<br>
 		Date:   {{formatKernelTime .Commit.Date}}<br>
 		<br>
-		&nbsp;&nbsp;{{.Commit.Title}}<br>
+		&nbsp;&nbsp;{{link .Commit.Link .Commit.Title}}<br>
 		</span><br>
 	{{else if .Commits}}
 		{{if eq .Type $causeJob}}
@@ -294,7 +294,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<b>({{link .LogLink "bisect log"}}):</b><br>
 		<span class="mono">
 		{{range $com := .Commits}}
-			&nbsp;&nbsp;{{formatTagHash $com.Hash}} {{$com.Title}}<br>
+			&nbsp;&nbsp;{{formatTagHash $com.Hash}} {{link $com.Link $com.Title}}<br>
 		{{end}}
 		</span>
 	{{else}}
