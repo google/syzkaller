@@ -1173,28 +1173,33 @@ func loadTestPatchJobs(c context.Context, bug *Bug) ([]*uiJob, error) {
 }
 
 func makeUIJob(job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *uiJob {
+	kernelRepo, kernelCommit := job.KernelRepo, job.KernelBranch
+	if build != nil {
+		kernelRepo, kernelCommit = build.KernelRepo, build.KernelCommit
+	}
 	ui := &uiJob{
-		Type:            job.Type,
-		Flags:           job.Flags,
-		Created:         job.Created,
-		BugLink:         bugLink(jobKey.Parent().StringID()),
-		ExternalLink:    job.Link,
-		User:            job.User,
-		Reporting:       job.Reporting,
-		Namespace:       job.Namespace,
-		Manager:         job.Manager,
-		BugTitle:        job.BugTitle,
-		KernelAlias:     kernelRepoInfoRaw(job.Namespace, job.KernelRepo, job.KernelBranch).Alias,
-		PatchLink:       textLink(textPatch, job.Patch),
-		Attempts:        job.Attempts,
-		Started:         job.Started,
-		Finished:        job.Finished,
-		CrashTitle:      job.CrashTitle,
-		CrashLogLink:    textLink(textCrashLog, job.CrashLog),
-		CrashReportLink: textLink(textCrashReport, job.CrashReport),
-		LogLink:         textLink(textLog, job.Log),
-		ErrorLink:       textLink(textError, job.Error),
-		Reported:        job.Reported,
+		Type:             job.Type,
+		Flags:            job.Flags,
+		Created:          job.Created,
+		BugLink:          bugLink(jobKey.Parent().StringID()),
+		ExternalLink:     job.Link,
+		User:             job.User,
+		Reporting:        job.Reporting,
+		Namespace:        job.Namespace,
+		Manager:          job.Manager,
+		BugTitle:         job.BugTitle,
+		KernelAlias:      kernelRepoInfoRaw(job.Namespace, job.KernelRepo, job.KernelBranch).Alias,
+		KernelCommitLink: vcs.CommitLink(kernelRepo, kernelCommit),
+		PatchLink:        textLink(textPatch, job.Patch),
+		Attempts:         job.Attempts,
+		Started:          job.Started,
+		Finished:         job.Finished,
+		CrashTitle:       job.CrashTitle,
+		CrashLogLink:     textLink(textCrashLog, job.CrashLog),
+		CrashReportLink:  textLink(textCrashReport, job.CrashReport),
+		LogLink:          textLink(textLog, job.Log),
+		ErrorLink:        textLink(textError, job.Error),
+		Reported:         job.Reported,
 	}
 	if !job.Finished.IsZero() {
 		ui.Duration = job.Finished.Sub(job.Started)
@@ -1213,6 +1218,7 @@ func makeUIJob(job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *
 			Author: fmt.Sprintf("%v <%v>", com.AuthorName, com.Author),
 			CC:     strings.Split(com.CC, "|"),
 			Date:   com.Date,
+			Link:   vcs.CommitLink(kernelRepo, com.Hash),
 		})
 	}
 	if len(ui.Commits) == 1 {
@@ -1221,11 +1227,6 @@ func makeUIJob(job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *
 	}
 	if crash != nil {
 		ui.Crash = makeUICrash(crash, build)
-	}
-	if build != nil {
-		ui.KernelCommitLink = vcs.CommitLink(build.KernelRepo, build.KernelCommit)
-	} else {
-		ui.KernelCommitLink = vcs.CommitLink(job.KernelRepo, job.KernelBranch)
 	}
 	return ui
 }
