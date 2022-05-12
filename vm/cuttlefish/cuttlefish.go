@@ -67,9 +67,9 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		gceInst: gceInst,
 	}
 
-	// Start a Cuttlefish device on the GCE instance
-	// TODO: pass it the specific kernel artifact using -kernel_path and -initramfs_path flags
-	if err := inst.runOnHost(10*time.Minute, "./bin/launch_cvd -daemon"); err != nil {
+	// Start a Cuttlefish device on the GCE instance.
+	if err := inst.runOnHost(10*time.Minute,
+		"./bin/launch_cvd -daemon -kernel_path=./bzImage -initramfs_path=./initramfs.img"); err != nil {
 		return nil, fmt.Errorf("failed to start cuttlefish: %s", err)
 	}
 
