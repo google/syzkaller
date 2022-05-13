@@ -24,7 +24,7 @@ import (
 
 var (
 	flagDashboard    = flag.String("dashboard", "https://syzkaller.appspot.com", "dashboard address")
-	flagAPIClient    = flag.String("client", "", "api client")
+	flagAPIClients   = flag.String("clients", "", "comma-separated list of api clients")
 	flagAPIKey       = flag.String("key", "", "api key")
 	flagOutputDir    = flag.String("output", "repros", "output dir")
 	flagSyzkallerDir = flag.String("syzkaller", ".", "syzkaller dir")
@@ -33,65 +33,69 @@ var (
 
 func main() {
 	flag.Parse()
-	if *flagAPIClient == "" || *flagAPIKey == "" {
-		log.Fatalf("api client and key are required")
+	clients := strings.Split(*flagAPIClients, ",")
+	if len(clients) == 0 {
+		log.Fatalf("api client is required")
 	}
 	if err := os.MkdirAll(*flagOutputDir, 0755); err != nil {
 		log.Fatalf("failed to create output dir: %v", err)
 	}
-	dash, err := dashapi.New(*flagAPIClient, *flagDashboard, *flagAPIKey)
-	if err != nil {
-		log.Fatalf("dashapi failed: %v", err)
-	}
-	resp, err := dash.BugList()
-	if err != nil {
-		log.Fatalf("api call failed: %v", err)
-	}
-	log.Printf("loading %v bugs", len(resp.List))
-	const P = 10
-	idchan := make(chan string, 10*P)
-	bugchan := make(chan *dashapi.BugReport, 10*P)
-	go func() {
-		for _, id := range resp.List {
-			if _, err := os.Stat(filepath.Join(*flagOutputDir, id+".c")); err == nil {
-				log.Printf("%v: already present", id)
-				continue
-			}
-			if _, err := os.Stat(filepath.Join(*flagOutputDir, id+".norepro")); err == nil {
-				log.Printf("%v: no repro (cached)", id)
-				continue
-			}
-			if _, err := os.Stat(filepath.Join(*flagOutputDir, id+".error")); err == nil {
-				log.Printf("%v: error (cached)", id)
-				continue
-			}
-			idchan <- id
+	for _, client := range clients {
+		log.Printf("processing client %v", client)
+		dash, err := dashapi.New(client, *flagDashboard, *flagAPIKey)
+		if err != nil {
+			log.Fatalf("dashapi failed: %v", err)
 		}
-		close(idchan)
-	}()
-	var wg sync.WaitGroup
-	wg.Add(P)
-	for p := 0; p < P; p++ {
+		resp, err := dash.BugList()
+		if err != nil {
+			log.Fatalf("api call failed: %v", err)
+		}
+		log.Printf("loading %v bugs", len(resp.List))
+		const P = 10
+		idchan := make(chan string, 10*P)
+		bugchan := make(chan *dashapi.BugReport, 10*P)
 		go func() {
-			defer wg.Done()
-			for id := range idchan {
-				resp, err := dash.LoadBug(id)
-				if err != nil {
-					log.Printf("%v: failed to load bug: %v", id, err)
+			for _, id := range resp.List {
+				if _, err := os.Stat(filepath.Join(*flagOutputDir, id+".c")); err == nil {
+					log.Printf("%v: already present", id)
 					continue
 				}
-				if resp.ID == "" {
+				if _, err := os.Stat(filepath.Join(*flagOutputDir, id+".norepro")); err == nil {
+					log.Printf("%v: no repro (cached)", id)
 					continue
 				}
-				bugchan <- resp
+				if _, err := os.Stat(filepath.Join(*flagOutputDir, id+".error")); err == nil {
+					log.Printf("%v: error (cached)", id)
+					continue
+				}
+				idchan <- id
 			}
+			close(idchan)
 		}()
+		var wg sync.WaitGroup
+		wg.Add(P)
+		for p := 0; p < P; p++ {
+			go func() {
+				defer wg.Done()
+				for id := range idchan {
+					resp, err := dash.LoadBug(id)
+					if err != nil {
+						log.Printf("%v: failed to load bug: %v", id, err)
+						continue
+					}
+					if resp.ID == "" {
+						continue
+					}
+					bugchan <- resp
+				}
+			}()
+		}
+		go func() {
+			wg.Wait()
+			close(bugchan)
+		}()
+		writeRepros(bugchan)
 	}
-	go func() {
-		wg.Wait()
-		close(bugchan)
-	}()
-	writeRepros(bugchan)
 }
 
 func writeRepros(bugchan chan *dashapi.BugReport) {
