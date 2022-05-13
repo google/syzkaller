@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sort"
@@ -52,14 +53,18 @@ func handleContext(fn contextHandler) http.Handler {
 				http.Redirect(w, r, redir.Error(), http.StatusFound)
 				return
 			}
+
+			status := http.StatusInternalServerError
 			logf := log.Errorf
-			if _, dontlog := err.(ErrDontLog); dontlog {
+			var clientError *ErrClient
+			if errors.As(err, &clientError) {
 				// We don't log these as errors because they can be provoked
 				// by invalid user requests, so we don't wan't to pollute error log.
 				logf = log.Warningf
+				status = clientError.HTTPStatus()
 			}
 			logf(c, "%v", err)
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(status)
 			if err1 := templates.ExecuteTemplate(w, "error.html", data); err1 != nil {
 				combinedError := fmt.Sprintf("got err \"%v\" processing ExecuteTemplate() for err \"%v\"", err1, err)
 				http.Error(w, combinedError, http.StatusInternalServerError)
@@ -69,9 +74,22 @@ func handleContext(fn contextHandler) http.Handler {
 }
 
 type (
-	ErrDontLog  struct{ error }
+	ErrClient   struct{ error }
 	ErrRedirect struct{ error }
 )
+
+var ErrClientNotFound = &ErrClient{errors.New("resource not found")}
+var ErrClientBadRequest = &ErrClient{errors.New("bad request")}
+
+func (ce *ErrClient) HTTPStatus() int {
+	switch ce {
+	case ErrClientNotFound:
+		return http.StatusNotFound
+	case ErrClientBadRequest:
+		return http.StatusBadRequest
+	}
+	return http.StatusInternalServerError
+}
 
 func handleAuth(fn contextHandler) contextHandler {
 	return func(c context.Context, w http.ResponseWriter, r *http.Request) error {

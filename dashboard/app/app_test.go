@@ -431,6 +431,53 @@ func TestRedirects(t *testing.T) {
 	c.expectOK(err)
 }
 
+func TestResponseStatusCode(t *testing.T) {
+	tests := []struct {
+		whatURL      string
+		wantRespCode int
+	}{
+		{
+			"/text?tag=CrashLog&x=13354bf5700000",
+			http.StatusNotFound,
+		},
+		{
+			"/text?tag=CrashReport&x=17a2bedcb00000",
+			http.StatusNotFound,
+		},
+		{
+			"/text?tag=ReproSyz&x=107e219b700000",
+			http.StatusNotFound,
+		},
+		{
+			"/text?tag=ReproC&x=1762ad64f00000",
+			http.StatusNotFound,
+		},
+		{
+			"/text?tag=CrashLog",
+			http.StatusBadRequest,
+		},
+		{
+			"/text?tag=CrashReport",
+			http.StatusBadRequest,
+		},
+		{
+			"/text?tag=ReproC",
+			http.StatusBadRequest,
+		},
+		{
+			"/text?tag=ReproSyz",
+			http.StatusBadRequest,
+		},
+	}
+
+	c := NewCtx(t)
+	defer c.Close()
+
+	for _, test := range tests {
+		checkResponseStatusCode(c, AccessUser, test.whatURL, test.wantRespCode)
+	}
+}
+
 func checkLoginRedirect(c *Ctx, accessLevel AccessLevel, url string) {
 	to, err := user.LoginURL(c.ctx, url)
 	if err != nil {
@@ -446,6 +493,14 @@ func checkRedirect(c *Ctx, accessLevel AccessLevel, from, to string, status int)
 	c.expectTrue(ok)
 	c.expectEQ(httpErr.Code, status)
 	c.expectEQ(httpErr.Headers["Location"], []string{to})
+}
+
+func checkResponseStatusCode(c *Ctx, accessLevel AccessLevel, url string, status int) {
+	_, err := c.AuthGET(accessLevel, url)
+	c.expectNE(err, nil)
+	httpErr, ok := err.(HTTPError)
+	c.expectTrue(ok)
+	c.expectEQ(httpErr.Code, status)
 }
 
 // Test purging of old crashes for bugs with lots of crashes.
