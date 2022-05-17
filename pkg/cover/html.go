@@ -98,7 +98,9 @@ func (rg *ReportGenerator) DoHTML(w io.Writer, progs []Prog, coverFilter map[uin
 				fname = fname[sep+1:]
 			}
 			var TotalInCoveredFunc int
+			var coveredInFunc int
 			for _, function := range file.functions {
+				coveredInFunc += function.covered
 				if function.covered > 0 {
 					TotalInCoveredFunc += function.pcs
 				}
@@ -110,7 +112,7 @@ func (rg *ReportGenerator) DoHTML(w io.Writer, progs []Prog, coverFilter map[uin
 					Name:               fname,
 					Total:              file.totalPCs,
 					TotalInCoveredFunc: TotalInCoveredFunc,
-					Covered:            file.coveredPCs,
+					Covered:            coveredInFunc,
 				},
 				HasFunctions: len(file.functions) != 0,
 			}
@@ -268,21 +270,22 @@ func (rg *ReportGenerator) convertToStats(progs []Prog) ([]fileStats, error) {
 		for fname, file := range files1 {
 			lines, err := parseFile(file.filename)
 			if err != nil {
-				fmt.Printf("failed to open/locate %s\n", file.filename)
+				fmt.Printf("failed to open/locate file for module:%s\n", file.module)
 				continue
 			}
-			totalFuncs := len(file.functions)
+			totalFuncs := 0
 			var coveredInFunc int
 			var pcsInFunc int
 			var pcsInCoveredFunc int
 			var coveredFunc int
 			for _, function := range file.functions {
 				coveredInFunc += function.covered
-				if function.covered != 0 {
+				if function.covered > 0 {
 					pcsInCoveredFunc += function.pcs
 					coveredFunc++
 				}
 				pcsInFunc += function.pcs
+				totalFuncs++
 			}
 			totalLines := len(lines)
 			var coveredLines int
@@ -501,6 +504,7 @@ func (rg *ReportGenerator) DoModuleCover(w io.Writer, progs []Prog, coverFilter 
 var csvHeader = []string{
 	"Module",
 	"Filename",
+	"StartOffset",
 	"Function",
 	"Covered PCs",
 	"Total PCs",
@@ -519,6 +523,7 @@ func (rg *ReportGenerator) DoCSV(w io.Writer, progs []Prog, coverFilter map[uint
 				data = append(data, []string{
 					file.module,
 					fname,
+					strconv.FormatUint(function.start, 16),
 					function.name,
 					strconv.Itoa(function.covered),
 					strconv.Itoa(function.pcs),
@@ -530,7 +535,13 @@ func (rg *ReportGenerator) DoCSV(w io.Writer, progs []Prog, coverFilter map[uint
 		if data[i][0] != data[j][0] {
 			return data[i][0] < data[j][0]
 		}
-		return data[i][1] < data[j][1]
+		if data[i][1] != data[j][1] {
+			return data[i][1] < data[j][1]
+		}
+		if data[i][2] != data[j][2] {
+			return data[i][2] < data[j][2]
+		}
+		return data[i][3] < data[j][3]
 	})
 	writer := csv.NewWriter(w)
 	defer writer.Flush()
@@ -674,14 +685,18 @@ func addFunctionCoverage(file *file, data *templateData) {
 	var TotalInCoveredFunc int
 	for _, function := range file.functions {
 		percentage := ""
-		coveredTotal += function.covered
 		if function.covered > 0 {
 			percentage = fmt.Sprintf("%v%%", percent(function.covered, function.pcs))
 			TotalInCoveredFunc += function.pcs
+			coveredTotal += function.covered
 		} else {
 			percentage = "---"
 		}
-		buf.WriteString(fmt.Sprintf("<span class='hover'>%v", function.name))
+		if function.inline {
+			buf.WriteString(fmt.Sprintf("<span class='hover'>%v (I)", function.name))
+		} else {
+			buf.WriteString(fmt.Sprintf("<span class='hover'>%v", function.name))
+		}
 		buf.WriteString(fmt.Sprintf("<span class='cover hover'>%v", percentage))
 		buf.WriteString(fmt.Sprintf("<span class='cover-right'>of %v", strconv.Itoa(function.pcs)))
 		buf.WriteString("</span></span></span><br>\n")

@@ -82,6 +82,7 @@ func makeDWARF(target *targets.Target, objDir, srcDir, buildDir string,
 	impl, err = makeDWARFUnsafe(target, objDir, srcDir, buildDir, moduleObj, hostModules, fn)
 	return
 }
+
 func makeDWARFUnsafe(target *targets.Target, objDir, srcDir, buildDir string,
 	moduleObj []string, hostModules []host.KernelModule, fn *containerFns) (
 	*Impl, error) {
@@ -94,11 +95,10 @@ func makeDWARFUnsafe(target *targets.Target, objDir, srcDir, buildDir string,
 	// and index 1 refers to comparison callbacks (__sanitizer_cov_trace_cmp*).
 	var allCoverPoints [2][]uint64
 	var allSymbols []*Symbol
-	var allRanges []pcRange
 	var allUnits []*CompileUnit
 	var pcBase uint64
+	errc := make(chan error, len(modules))
 	for _, module := range modules {
-		errc := make(chan error, 1)
 		go func() {
 			info := &symbolInfo{
 				traceCmp:    make(map[uint64]bool),
@@ -114,43 +114,43 @@ func makeDWARFUnsafe(target *targets.Target, objDir, srcDir, buildDir string,
 			if module.Name == "" {
 				pcBase = info.textAddr
 			}
-			var data []byte
 			var coverPoints [2][]uint64
 			if target.Arch != targets.AMD64 && target.Arch != targets.ARM64 {
 				coverPoints, err = objdump(target, module)
 			} else if module.Name == "" {
-				data, err = fn.readTextData(module)
+				data, err := fn.readTextData(module)
 				if err != nil {
 					errc <- err
 					return
 				}
 				coverPoints, err = readCoverPoints(target, info, data)
+				if err != nil {
+					errc <- err
+					return
+				}
 			} else {
 				coverPoints, err = fn.readModuleCoverPoints(target, module, info)
 			}
+			if err != nil {
+				errc <- err
+				return
+			}
 			allCoverPoints[0] = append(allCoverPoints[0], coverPoints[0]...)
 			allCoverPoints[1] = append(allCoverPoints[1], coverPoints[1]...)
-			if err == nil && module.Name == "" && len(coverPoints[0]) == 0 {
+			if module.Name == "" && len(coverPoints[0]) == 0 {
 				err = fmt.Errorf("%v doesn't contain coverage callbacks (set CONFIG_KCOV=y on linux)", module.Path)
 			}
 			errc <- err
 		}()
-		ranges, units, err := fn.readTextRanges(module)
-		if err != nil {
-			return nil, err
-		}
 		if err := <-errc; err != nil {
 			return nil, err
 		}
-		allRanges = append(allRanges, ranges...)
-		allUnits = append(allUnits, units...)
 	}
-
 	sort.Slice(allSymbols, func(i, j int) bool {
+		if allSymbols[i].End != allSymbols[j].End {
+			return allSymbols[i].End < allSymbols[j].End
+		}
 		return allSymbols[i].Start < allSymbols[j].Start
-	})
-	sort.Slice(allRanges, func(i, j int) bool {
-		return allRanges[i].start < allRanges[j].start
 	})
 	for k := range allCoverPoints {
 		sort.Slice(allCoverPoints[k], func(i, j int) bool {
@@ -158,18 +158,14 @@ func makeDWARFUnsafe(target *targets.Target, objDir, srcDir, buildDir string,
 		})
 	}
 
-	allSymbols = buildSymbols(allSymbols, allRanges, allCoverPoints)
-	nunit := 0
-	for _, unit := range allUnits {
-		if len(unit.PCs) == 0 {
-			continue // drop the unit
-		}
+	allSymbols, allUnits = buildSymbols(allSymbols, allCoverPoints)
+	for _, s := range allSymbols {
 		// TODO: objDir won't work for out-of-tree modules.
-		unit.Name, unit.Path = cleanPath(unit.Name, objDir, srcDir, buildDir)
-		allUnits[nunit] = unit
-		nunit++
+		s.Unit.Name, s.Unit.Path = cleanPath(s.Unit.Name, objDir, srcDir, buildDir)
 	}
-	allUnits = allUnits[:nunit]
+	for _, unit := range allUnits {
+		unit.Name, unit.Path = cleanPath(unit.Name, objDir, srcDir, buildDir)
+	}
 	if len(allSymbols) == 0 || len(allUnits) == 0 {
 		return nil, fmt.Errorf("failed to parse DWARF (set CONFIG_DEBUG_INFO=y on linux)")
 	}
@@ -190,26 +186,44 @@ func makeDWARFUnsafe(target *targets.Target, objDir, srcDir, buildDir string,
 	return impl, nil
 }
 
-func buildSymbols(symbols []*Symbol, ranges []pcRange, coverPoints [2][]uint64) []*Symbol {
+func buildSymbols(symbols []*Symbol, coverPoints [2][]uint64) ([]*Symbol, []*CompileUnit) {
 	// Assign coverage point PCs to symbols.
 	// Both symbols and coverage points are sorted, so we do it one pass over both.
 	selectPCs := func(u *ObjectUnit, typ int) *[]uint64 {
 		return [2]*[]uint64{&u.PCs, &u.CMPs}[typ]
 	}
+	allUnits := make(map[string]map[string]*CompileUnit)
+	var units []*CompileUnit
 	for pcType := range coverPoints {
 		pcs := coverPoints[pcType]
+		if len(pcs) == 0 {
+			continue
+		}
 		var curSymbol *Symbol
 		firstSymbolPC, symbolIdx := -1, 0
 		for i := 0; i < len(pcs); i++ {
 			pc := pcs[i]
-			for ; symbolIdx < len(symbols) && pc >= symbols[symbolIdx].End; symbolIdx++ {
-			}
+			symbolIdx = sort.Search(len(symbols), func(i int) bool {
+				return pc < symbols[i].Start
+			})
+			symbolIdx--
 			var symb *Symbol
-			if symbolIdx < len(symbols) && pc >= symbols[symbolIdx].Start && pc < symbols[symbolIdx].End {
-				symb = symbols[symbolIdx]
+			for j := symbolIdx; j < len(symbols); j++ {
+				if pc >= symbols[j].Start && pc < symbols[j].End {
+					symb = symbols[j]
+					break
+				}
 			}
-			if curSymbol != nil && curSymbol != symb {
-				*selectPCs(&curSymbol.ObjectUnit, pcType) = pcs[firstSymbolPC:i]
+			if (curSymbol != nil && curSymbol != symb) || i == len(pcs)-1 {
+				if i == 0 {
+					firstSymbolPC = 0
+					curSymbol = symb
+				}
+				if i == len(pcs)-1 {
+					i++
+				}
+				sPCs := selectPCs(&curSymbol.ObjectUnit, pcType)
+				*sPCs = append(*sPCs, pcs[firstSymbolPC:i]...)
 				firstSymbolPC = -1
 			}
 			curSymbol = symb
@@ -217,37 +231,32 @@ func buildSymbols(symbols []*Symbol, ranges []pcRange, coverPoints [2][]uint64) 
 				firstSymbolPC = i
 			}
 		}
-		if curSymbol != nil {
-			*selectPCs(&curSymbol.ObjectUnit, pcType) = pcs[firstSymbolPC:]
-		}
-	}
-	// Assign compile units to symbols based on unit pc ranges.
-	// Do it one pass as both are sorted.
-	nsymbol := 0
-	rangeIndex := 0
-	for _, s := range symbols {
-		for ; rangeIndex < len(ranges) && ranges[rangeIndex].end <= s.Start; rangeIndex++ {
-		}
-		if rangeIndex == len(ranges) || s.Start < ranges[rangeIndex].start || len(s.PCs) == 0 {
-			continue // drop the symbol
-		}
-		unit := ranges[rangeIndex].unit
-		s.Unit = unit
-		symbols[nsymbol] = s
-		nsymbol++
-	}
-	symbols = symbols[:nsymbol]
 
-	for pcType := range coverPoints {
 		for _, s := range symbols {
 			symbPCs := selectPCs(&s.ObjectUnit, pcType)
-			unitPCs := selectPCs(&s.Unit.ObjectUnit, pcType)
-			pos := len(*unitPCs)
+			if allUnits[s.Module.Name] == nil {
+				allUnits[s.Module.Name] = make(map[string]*CompileUnit)
+			}
+			if allUnits[s.Module.Name][s.Unit.Name] == nil {
+				allUnits[s.Module.Name][s.Unit.Name] = &CompileUnit{
+					Module: s.Module,
+					ObjectUnit: ObjectUnit{
+						OrigName: s.Unit.ObjectUnit.Name,
+						Name:     s.Unit.ObjectUnit.Name,
+					},
+				}
+			}
+			unitPCs := selectPCs(&allUnits[s.Module.Name][s.Unit.Name].ObjectUnit, pcType)
 			*unitPCs = append(*unitPCs, *symbPCs...)
-			*symbPCs = (*unitPCs)[pos:]
 		}
 	}
-	return symbols
+	for _, f := range allUnits {
+		for _, unit := range f {
+			units = append(units, unit)
+		}
+	}
+
+	return symbols, units
 }
 
 type symbolInfo struct {
@@ -382,6 +391,8 @@ func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string,
 					EndLine:   frame.Line,
 					EndCol:    LineEnd,
 				},
+				Inline: frame.Inline,
+				Func:   frame.Func,
 			})
 		}
 	}
