@@ -235,6 +235,7 @@ type fileStats struct {
 }
 
 var csvFilesHeader = []string{
+	"Module",
 	"Filename",
 	"CoveredLines",
 	"TotalLines",
@@ -317,6 +318,7 @@ func (rg *ReportGenerator) DoCSVFiles(w io.Writer, progs []Prog, coverFilter map
 	var d [][]string
 	for _, dt := range data {
 		d = append(d, []string{
+			dt.Module,
 			dt.Name,
 			strconv.Itoa(dt.CoveredLines),
 			strconv.Itoa(dt.TotalLines),
@@ -485,6 +487,7 @@ func (rg *ReportGenerator) DoModuleCover(w io.Writer, progs []Prog, coverFilter 
 }
 
 var csvHeader = []string{
+	"Module",
 	"Filename",
 	"Function",
 	"Covered PCs",
@@ -501,6 +504,7 @@ func (rg *ReportGenerator) DoCSV(w io.Writer, progs []Prog, coverFilter map[uint
 	for fname, file := range files {
 		for _, function := range file.functions {
 			data = append(data, []string{
+				file.module,
 				fname,
 				function.name,
 				strconv.Itoa(function.covered),
