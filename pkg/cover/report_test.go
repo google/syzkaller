@@ -334,10 +334,10 @@ func checkCSVReport(t *testing.T, CSVReport []byte) {
 
 	foundMain := false
 	for _, line := range lines {
-		if line[1] == "main" {
+		if line[2] == "main" {
 			foundMain = true
-			if line[2] != "1" && line[3] != "1" {
-				t.Fatalf("function coverage percentage doesn't match %v vs. %v", line[2], "100")
+			if line[3] != "1" && line[4] != "1" {
+				t.Fatalf("function coverage percentage doesn't match %v vs. %v", line[3], "100")
 			}
 		}
 	}
