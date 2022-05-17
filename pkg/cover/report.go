@@ -73,13 +73,16 @@ type line struct {
 	progIndex int          // example program index that covers this line
 }
 
-func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error) {
+func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]map[string]*file, error) {
 	if err := rg.lazySymbolize(progs); err != nil {
 		return nil, err
 	}
-	files := make(map[string]*file)
+	files := make(map[string]map[string]*file)
 	for _, unit := range rg.Units {
-		files[unit.Name] = &file{
+		if files[unit.Module.Name] == nil {
+			files[unit.Module.Name] = make(map[string]*file)
+		}
+		files[unit.Module.Name][unit.Name] = &file{
 			module:   unit.Module.Name,
 			filename: unit.Path,
 			lines:    make(map[int]line),
@@ -97,7 +100,7 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error
 	}
 	matchedPC := false
 	for _, frame := range rg.Frames {
-		f := getFile(files, frame.Name, frame.Path, frame.Module.Name)
+		f := getFile(files[frame.Module.Name], frame.Name, frame.Path, frame.Module.Name)
 		ln := f.lines[frame.StartLine]
 		coveredBy := progPCs[frame.PC]
 		if len(coveredBy) == 0 {
@@ -140,13 +143,15 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error
 				fun.covered++
 			}
 		}
-		f := files[s.Unit.Name]
+		f := files[s.Module.Name][s.Unit.Name]
 		f.functions = append(f.functions, fun)
 	}
-	for _, f := range files {
-		sort.Slice(f.functions, func(i, j int) bool {
-			return f.functions[i].name < f.functions[j].name
-		})
+	for _, m := range files {
+		for _, f := range m {
+			sort.Slice(f.functions, func(i, j int) bool {
+				return f.functions[i].name < f.functions[j].name
+			})
+		}
 	}
 	return files, nil
 }

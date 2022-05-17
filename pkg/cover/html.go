@@ -68,74 +68,77 @@ func (rg *ReportGenerator) DoHTML(w io.Writer, progs []Prog, coverFilter map[uin
 	}
 	haveProgs := len(progs) > 1 || progs[0].Data != ""
 	fileOpenErr := fmt.Errorf("failed to open/locate any source file")
-	for fname, file := range files {
-		pos := d.Root
-		path := ""
-		for {
-			if path != "" {
-				path += "/"
+	for _, files1 := range files {
+		for fname, file := range files1 {
+			pos := d.Root
+			path := ""
+			for {
+				if path != "" {
+					path += "/"
+				}
+				sep := strings.IndexByte(fname, filepath.Separator)
+				if sep == -1 {
+					path += fname
+					break
+				}
+				dir := fname[:sep]
+				path += dir
+				if pos.Dirs == nil {
+					pos.Dirs = make(map[string]*templateDir)
+				}
+				if pos.Dirs[dir] == nil {
+					pos.Dirs[dir] = &templateDir{
+						templateBase: templateBase{
+							Path: path,
+							Name: dir,
+						},
+					}
+				}
+				pos = pos.Dirs[dir]
+				fname = fname[sep+1:]
 			}
-			sep := strings.IndexByte(fname, filepath.Separator)
-			if sep == -1 {
-				path += fname
-				break
-			}
-			dir := fname[:sep]
-			path += dir
-			if pos.Dirs == nil {
-				pos.Dirs = make(map[string]*templateDir)
-			}
-			if pos.Dirs[dir] == nil {
-				pos.Dirs[dir] = &templateDir{
-					templateBase: templateBase{
-						Path: path,
-						Name: dir,
-					},
+			var TotalInCoveredFunc int
+			for _, function := range file.functions {
+				if function.covered > 0 {
+					TotalInCoveredFunc += function.pcs
 				}
 			}
-			pos = pos.Dirs[dir]
-			fname = fname[sep+1:]
-		}
-		var TotalInCoveredFunc int
-		for _, function := range file.functions {
-			if function.covered > 0 {
-				TotalInCoveredFunc += function.pcs
+			f := &templateFile{
+				templateBase: templateBase{
+					Module:             file.module,
+					Path:               path,
+					Name:               fname,
+					Total:              file.totalPCs,
+					TotalInCoveredFunc: TotalInCoveredFunc,
+					Covered:            file.coveredPCs,
+				},
+				HasFunctions: len(file.functions) != 0,
 			}
-		}
-		f := &templateFile{
-			templateBase: templateBase{
-				Path:               path,
-				Name:               fname,
-				Total:              file.totalPCs,
-				TotalInCoveredFunc: TotalInCoveredFunc,
-				Covered:            file.coveredPCs,
-			},
-			HasFunctions: len(file.functions) != 0,
-		}
-		pos.Files = append(pos.Files, f)
-		if file.coveredPCs == 0 {
-			continue
-		}
-		addFunctionCoverage(file, d)
-		contents := ""
-		lines, err := parseFile(file.filename)
-		if err == nil {
-			contents = fileContents(file, lines, haveProgs)
-			fileOpenErr = nil
-		} else {
-			// We ignore individual errors of opening/locating source files
-			// because there is a number of reasons when/why it can happen.
-			// We fail only if we can't open/locate any single source file.
-			// syz-ci can mess state of source files (https://github.com/google/syzkaller/issues/1770),
-			// or bazel lies about location of auto-generated files,
-			// or a used can update source files with git pull/checkout.
-			contents = html.EscapeString(err.Error())
-			if fileOpenErr != nil {
-				fileOpenErr = err
+			pos.Files = append(pos.Files, f)
+			if file.coveredPCs == 0 {
+				continue
 			}
+			addFunctionCoverage(file, d)
+			contents := ""
+			lines, err := parseFile(file.filename)
+			if err == nil {
+				contents = fileContents(file, lines, haveProgs)
+				fileOpenErr = nil
+			} else {
+				// We ignore individual errors of opening/locating source files
+				// because there is a number of reasons when/why it can happen.
+				// We fail only if we can't open/locate any single source file.
+				// syz-ci can mess state of source files (https://github.com/google/syzkaller/issues/1770),
+				// or bazel lies about location of auto-generated files,
+				// or a used can update source files with git pull/checkout.
+				contents = html.EscapeString(err.Error())
+				if fileOpenErr != nil {
+					fileOpenErr = err
+				}
+			}
+			d.Contents = append(d.Contents, template.HTML(contents))
+			f.Index = len(d.Contents) - 1
 		}
-		d.Contents = append(d.Contents, template.HTML(contents))
-		f.Index = len(d.Contents) - 1
 	}
 	if fileOpenErr != nil {
 		return fileOpenErr
@@ -261,45 +264,47 @@ func (rg *ReportGenerator) convertToStats(progs []Prog) ([]fileStats, error) {
 	}
 
 	var data []fileStats
-	for fname, file := range files {
-		lines, err := parseFile(file.filename)
-		if err != nil {
-			fmt.Printf("failed to open/locate %s\n", file.filename)
-			continue
-		}
-		totalFuncs := len(file.functions)
-		var coveredInFunc int
-		var pcsInFunc int
-		var pcsInCoveredFunc int
-		var coveredFunc int
-		for _, function := range file.functions {
-			coveredInFunc += function.covered
-			if function.covered != 0 {
-				pcsInCoveredFunc += function.pcs
-				coveredFunc++
+	for _, files1 := range files {
+		for fname, file := range files1 {
+			lines, err := parseFile(file.filename)
+			if err != nil {
+				fmt.Printf("failed to open/locate %s\n", file.filename)
+				continue
 			}
-			pcsInFunc += function.pcs
-		}
-		totalLines := len(lines)
-		var coveredLines int
-		for _, line := range file.lines {
-			if len(line.progCount) != 0 {
-				coveredLines++
+			totalFuncs := len(file.functions)
+			var coveredInFunc int
+			var pcsInFunc int
+			var pcsInCoveredFunc int
+			var coveredFunc int
+			for _, function := range file.functions {
+				coveredInFunc += function.covered
+				if function.covered != 0 {
+					pcsInCoveredFunc += function.pcs
+					coveredFunc++
+				}
+				pcsInFunc += function.pcs
 			}
+			totalLines := len(lines)
+			var coveredLines int
+			for _, line := range file.lines {
+				if len(line.progCount) != 0 {
+					coveredLines++
+				}
+			}
+			data = append(data, fileStats{
+				Name:                       fname,
+				Module:                     file.module,
+				CoveredLines:               coveredLines,
+				TotalLines:                 totalLines,
+				CoveredPCs:                 file.coveredPCs,
+				TotalPCs:                   file.totalPCs,
+				TotalFunctions:             totalFuncs,
+				CoveredFunctions:           coveredFunc,
+				CoveredPCsInFunctions:      coveredInFunc,
+				TotalPCsInFunctions:        pcsInFunc,
+				TotalPCsInCoveredFunctions: pcsInCoveredFunc,
+			})
 		}
-		data = append(data, fileStats{
-			Name:                       fname,
-			Module:                     file.module,
-			CoveredLines:               coveredLines,
-			TotalLines:                 totalLines,
-			CoveredPCs:                 file.coveredPCs,
-			TotalPCs:                   file.totalPCs,
-			TotalFunctions:             totalFuncs,
-			CoveredFunctions:           coveredFunc,
-			CoveredPCsInFunctions:      coveredInFunc,
-			TotalPCsInFunctions:        pcsInFunc,
-			TotalPCsInCoveredFunctions: pcsInCoveredFunc,
-		})
 	}
 
 	return data, nil
@@ -508,15 +513,17 @@ func (rg *ReportGenerator) DoCSV(w io.Writer, progs []Prog, coverFilter map[uint
 		return err
 	}
 	var data [][]string
-	for fname, file := range files {
-		for _, function := range file.functions {
-			data = append(data, []string{
-				file.module,
-				fname,
-				function.name,
-				strconv.Itoa(function.covered),
-				strconv.Itoa(function.pcs),
-			})
+	for _, files1 := range files {
+		for fname, file := range files1 {
+			for _, function := range file.functions {
+				data = append(data, []string{
+					file.module,
+					fname,
+					function.name,
+					strconv.Itoa(function.covered),
+					strconv.Itoa(function.pcs),
+				})
+			}
 		}
 	}
 	sort.Slice(data, func(i, j int) bool {
@@ -771,6 +778,7 @@ type templateProg struct {
 }
 
 type templateBase struct {
+	Module               string
 	Name                 string
 	Path                 string
 	Total                int
@@ -999,7 +1007,7 @@ var coverTemplate = template.Must(template.New("").Parse(`
 		<li><span class="hover">
 			{{if $file.Covered}}
 				<a href="#{{$file.Path}}" id="path/{{$file.Path}}" onclick="onFileClick({{$file.Index}})">
-					{{$file.Name}}
+					{{$file.Name}}[{{$file.Module}}]
 				</a>
 				<span class="cover hover">
 					<a href="#{{$file.Path}}" id="path/{{$file.Path}}"
