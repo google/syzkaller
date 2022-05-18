@@ -352,692 +352,762 @@ ioctl$syz_describe_kvm_vm_ioctl_kvm_device_fops_371(fd kvm_vm_ioctl_cmd_32220566
 ioctl$syz_describe_kvm_vm_ioctl_kvm_device_fops_372(fd kvm_vm_ioctl_cmd_3222056672_fd, cmd const[1075359459], arg ptr[in, struct_ms_hyperv_tsc_page_370])
 
 union_anon_0_208 {
-    union_anon_0_208_0    int64
+	union_anon_0_208_0	int64
 }
+
 struct_atomic_t_179 {
-    struct_atomic_t_179_0    int32
+	struct_atomic_t_179_0	int32
 }
+
 struct_jump_entry_30 {
-    struct_jump_entry_30_0    int32
-    struct_jump_entry_30_1    int32
-    struct_jump_entry_30_2    int64
+	struct_jump_entry_30_0	int32
+	struct_jump_entry_30_1	int32
+	struct_jump_entry_30_2	int64
 }
+
 struct_uid_gid_extent_164 {
-    struct_uid_gid_extent_164_0    int32
-    struct_uid_gid_extent_164_1    int32
-    struct_uid_gid_extent_164_2    int32
+	struct_uid_gid_extent_164_0	int32
+	struct_uid_gid_extent_164_1	int32
+	struct_uid_gid_extent_164_2	int32
 }
+
 struct_cpu_itimer_64 {
-    struct_cpu_itimer_64_0    int64
-    struct_cpu_itimer_64_1    int64
+	struct_cpu_itimer_64_0	int64
+	struct_cpu_itimer_64_1	int64
 }
+
 struct_sigset_t_189 {
-    struct_sigset_t_189_0    array[int64, 1]
+	struct_sigset_t_189_0	array[int64, 1]
 }
+
 struct_kvm_kpit_channel_state_373 {
-    struct_kvm_kpit_channel_state_373_0    int32
-    struct_kvm_kpit_channel_state_373_1    int16
-    struct_kvm_kpit_channel_state_373_2    int8
-    struct_kvm_kpit_channel_state_373_3    int8
-    struct_kvm_kpit_channel_state_373_4    int8
-    struct_kvm_kpit_channel_state_373_5    int8
-    struct_kvm_kpit_channel_state_373_6    int8
-    struct_kvm_kpit_channel_state_373_7    int8
-    struct_kvm_kpit_channel_state_373_8    int8
-    struct_kvm_kpit_channel_state_373_9    int8
-    struct_kvm_kpit_channel_state_373_10    int8
-    struct_kvm_kpit_channel_state_373_11    int8
-    struct_kvm_kpit_channel_state_373_12    int64
+	struct_kvm_kpit_channel_state_373_0	int32
+	struct_kvm_kpit_channel_state_373_1	int16
+	struct_kvm_kpit_channel_state_373_2	int8
+	struct_kvm_kpit_channel_state_373_3	int8
+	struct_kvm_kpit_channel_state_373_4	int8
+	struct_kvm_kpit_channel_state_373_5	int8
+	struct_kvm_kpit_channel_state_373_6	int8
+	struct_kvm_kpit_channel_state_373_7	int8
+	struct_kvm_kpit_channel_state_373_8	int8
+	struct_kvm_kpit_channel_state_373_9	int8
+	struct_kvm_kpit_channel_state_373_10	int8
+	struct_kvm_kpit_channel_state_373_11	int8
+	struct_kvm_kpit_channel_state_373_12	int64
 }
+
 struct_kvm_xen_hvm_config_55 {
-    struct_kvm_xen_hvm_config_55_0    int32
-    struct_kvm_xen_hvm_config_55_1    int32
-    struct_kvm_xen_hvm_config_55_2    int64
-    struct_kvm_xen_hvm_config_55_3    int64
-    struct_kvm_xen_hvm_config_55_4    int8
-    struct_kvm_xen_hvm_config_55_5    int8
-    struct_kvm_xen_hvm_config_55_6    array[int8, 30]
+	struct_kvm_xen_hvm_config_55_0	int32
+	struct_kvm_xen_hvm_config_55_1	int32
+	struct_kvm_xen_hvm_config_55_2	int64
+	struct_kvm_xen_hvm_config_55_3	int64
+	struct_kvm_xen_hvm_config_55_4	int8
+	struct_kvm_xen_hvm_config_55_5	int8
+	struct_kvm_xen_hvm_config_55_6	array[int8, 30]
 }
+
 struct_ms_hyperv_tsc_page_370 {
-    struct_ms_hyperv_tsc_page_370_0    int32
-    struct_ms_hyperv_tsc_page_370_1    int32
-    struct_ms_hyperv_tsc_page_370_2    int64
-    struct_ms_hyperv_tsc_page_370_3    int64
+	struct_ms_hyperv_tsc_page_370_0	int32
+	struct_ms_hyperv_tsc_page_370_1	int32
+	struct_ms_hyperv_tsc_page_370_2	int64
+	struct_ms_hyperv_tsc_page_370_3	int64
 }
+
 struct_kvm_pmu_event_filter_71 {
-    struct_kvm_pmu_event_filter_71_0    int32
-    struct_kvm_pmu_event_filter_71_1    int32
-    struct_kvm_pmu_event_filter_71_2    int32
-    struct_kvm_pmu_event_filter_71_3    int32
-    struct_kvm_pmu_event_filter_71_4    array[int32, 4]
-    struct_kvm_pmu_event_filter_71_5    array[int64]
+	struct_kvm_pmu_event_filter_71_0	int32
+	struct_kvm_pmu_event_filter_71_1	int32
+	struct_kvm_pmu_event_filter_71_2	int32
+	struct_kvm_pmu_event_filter_71_3	int32
+	struct_kvm_pmu_event_filter_71_4	array[int32, 4]
+	struct_kvm_pmu_event_filter_71_5	array[int64]
 }
+
 struct_kvm_regs_175 {
-    struct_kvm_regs_175_0    int64
-    struct_kvm_regs_175_1    int64
-    struct_kvm_regs_175_2    int64
-    struct_kvm_regs_175_3    int64
-    struct_kvm_regs_175_4    int64
-    struct_kvm_regs_175_5    int64
-    struct_kvm_regs_175_6    int64
-    struct_kvm_regs_175_7    int64
-    struct_kvm_regs_175_8    int64
-    struct_kvm_regs_175_9    int64
-    struct_kvm_regs_175_10    int64
-    struct_kvm_regs_175_11    int64
-    struct_kvm_regs_175_12    int64
-    struct_kvm_regs_175_13    int64
-    struct_kvm_regs_175_14    int64
-    struct_kvm_regs_175_15    int64
-    struct_kvm_regs_175_16    int64
-    struct_kvm_regs_175_17    int64
+	struct_kvm_regs_175_0	int64
+	struct_kvm_regs_175_1	int64
+	struct_kvm_regs_175_2	int64
+	struct_kvm_regs_175_3	int64
+	struct_kvm_regs_175_4	int64
+	struct_kvm_regs_175_5	int64
+	struct_kvm_regs_175_6	int64
+	struct_kvm_regs_175_7	int64
+	struct_kvm_regs_175_8	int64
+	struct_kvm_regs_175_9	int64
+	struct_kvm_regs_175_10	int64
+	struct_kvm_regs_175_11	int64
+	struct_kvm_regs_175_12	int64
+	struct_kvm_regs_175_13	int64
+	struct_kvm_regs_175_14	int64
+	struct_kvm_regs_175_15	int64
+	struct_kvm_regs_175_16	int64
+	struct_kvm_regs_175_17	int64
 }
+
 struct_kvm_segment_374 {
-    struct_kvm_segment_374_0    int64
-    struct_kvm_segment_374_1    int32
-    struct_kvm_segment_374_2    int16
-    struct_kvm_segment_374_3    int8
-    struct_kvm_segment_374_4    int8
-    struct_kvm_segment_374_5    int8
-    struct_kvm_segment_374_6    int8
-    struct_kvm_segment_374_7    int8
-    struct_kvm_segment_374_8    int8
-    struct_kvm_segment_374_9    int8
-    struct_kvm_segment_374_10    int8
-    struct_kvm_segment_374_11    int8
-    struct_kvm_segment_374_12    int8
+	struct_kvm_segment_374_0	int64
+	struct_kvm_segment_374_1	int32
+	struct_kvm_segment_374_2	int16
+	struct_kvm_segment_374_3	int8
+	struct_kvm_segment_374_4	int8
+	struct_kvm_segment_374_5	int8
+	struct_kvm_segment_374_6	int8
+	struct_kvm_segment_374_7	int8
+	struct_kvm_segment_374_8	int8
+	struct_kvm_segment_374_9	int8
+	struct_kvm_segment_374_10	int8
+	struct_kvm_segment_374_11	int8
+	struct_kvm_segment_374_12	int8
 }
+
 union_anon_120_375 {
-    union_anon_120_375_0    ptr[in, int8]
+	union_anon_120_375_0	ptr[in, int8]
 }
+
 struct_vmcb_control_area_238 {
-    struct_vmcb_control_area_238_0    array[int32, 6]
-    struct_vmcb_control_area_238_1    array[int32, 9]
-    struct_vmcb_control_area_238_2    int16
-    struct_vmcb_control_area_238_3    int16
-    struct_vmcb_control_area_238_4    int64
-    struct_vmcb_control_area_238_5    int64
-    struct_vmcb_control_area_238_6    int64
-    struct_vmcb_control_area_238_7    int32
-    struct_vmcb_control_area_238_8    int8
-    struct_vmcb_control_area_238_9    array[int8, 3]
-    struct_vmcb_control_area_238_10    int32
-    struct_vmcb_control_area_238_11    int32
-    struct_vmcb_control_area_238_12    int32
-    struct_vmcb_control_area_238_13    array[int8, 4]
-    struct_vmcb_control_area_238_14    int32
-    struct_vmcb_control_area_238_15    int32
-    struct_vmcb_control_area_238_16    int64
-    struct_vmcb_control_area_238_17    int64
-    struct_vmcb_control_area_238_18    int32
-    struct_vmcb_control_area_238_19    int32
-    struct_vmcb_control_area_238_20    int64
-    struct_vmcb_control_area_238_21    int64
-    struct_vmcb_control_area_238_22    int64
-    struct_vmcb_control_area_238_23    int32
-    struct_vmcb_control_area_238_24    int32
-    struct_vmcb_control_area_238_25    int64
-    struct_vmcb_control_area_238_26    int64
-    struct_vmcb_control_area_238_27    int32
-    struct_vmcb_control_area_238_28    int32
-    struct_vmcb_control_area_238_29    int64
-    struct_vmcb_control_area_238_30    int8
-    struct_vmcb_control_area_238_31    array[int8, 15]
-    struct_vmcb_control_area_238_32    int64
-    struct_vmcb_control_area_238_33    array[int8, 8]
-    struct_vmcb_control_area_238_34    int64
-    struct_vmcb_control_area_238_35    int64
-    struct_vmcb_control_area_238_36    array[int8, 8]
-    struct_vmcb_control_area_238_37    int64
+	struct_vmcb_control_area_238_0	array[int32, 6]
+	struct_vmcb_control_area_238_1	array[int32, 9]
+	struct_vmcb_control_area_238_2	int16
+	struct_vmcb_control_area_238_3	int16
+	struct_vmcb_control_area_238_4	int64
+	struct_vmcb_control_area_238_5	int64
+	struct_vmcb_control_area_238_6	int64
+	struct_vmcb_control_area_238_7	int32
+	struct_vmcb_control_area_238_8	int8
+	struct_vmcb_control_area_238_9	array[int8, 3]
+	struct_vmcb_control_area_238_10	int32
+	struct_vmcb_control_area_238_11	int32
+	struct_vmcb_control_area_238_12	int32
+	struct_vmcb_control_area_238_13	array[int8, 4]
+	struct_vmcb_control_area_238_14	int32
+	struct_vmcb_control_area_238_15	int32
+	struct_vmcb_control_area_238_16	int64
+	struct_vmcb_control_area_238_17	int64
+	struct_vmcb_control_area_238_18	int32
+	struct_vmcb_control_area_238_19	int32
+	struct_vmcb_control_area_238_20	int64
+	struct_vmcb_control_area_238_21	int64
+	struct_vmcb_control_area_238_22	int64
+	struct_vmcb_control_area_238_23	int32
+	struct_vmcb_control_area_238_24	int32
+	struct_vmcb_control_area_238_25	int64
+	struct_vmcb_control_area_238_26	int64
+	struct_vmcb_control_area_238_27	int32
+	struct_vmcb_control_area_238_28	int32
+	struct_vmcb_control_area_238_29	int64
+	struct_vmcb_control_area_238_30	int8
+	struct_vmcb_control_area_238_31	array[int8, 15]
+	struct_vmcb_control_area_238_32	int64
+	struct_vmcb_control_area_238_33	array[int8, 8]
+	struct_vmcb_control_area_238_34	int64
+	struct_vmcb_control_area_238_35	int64
+	struct_vmcb_control_area_238_36	array[int8, 8]
+	struct_vmcb_control_area_238_37	int64
 }
+
 struct_vmcb_seg_376 {
-    struct_vmcb_seg_376_0    int16
-    struct_vmcb_seg_376_1    int16
-    struct_vmcb_seg_376_2    int32
-    struct_vmcb_seg_376_3    int64
+	struct_vmcb_seg_376_0	int16
+	struct_vmcb_seg_376_1	int16
+	struct_vmcb_seg_376_2	int32
+	struct_vmcb_seg_376_3	int64
 }
+
 struct_vmcb_save_area_240 {
-    struct_vmcb_save_area_240_0    struct_vmcb_seg_376
-    struct_vmcb_save_area_240_1    struct_vmcb_seg_376
-    struct_vmcb_save_area_240_2    struct_vmcb_seg_376
-    struct_vmcb_save_area_240_3    struct_vmcb_seg_376
-    struct_vmcb_save_area_240_4    struct_vmcb_seg_376
-    struct_vmcb_save_area_240_5    struct_vmcb_seg_376
-    struct_vmcb_save_area_240_6    struct_vmcb_seg_376
-    struct_vmcb_save_area_240_7    struct_vmcb_seg_376
-    struct_vmcb_save_area_240_8    struct_vmcb_seg_376
-    struct_vmcb_save_area_240_9    struct_vmcb_seg_376
-    struct_vmcb_save_area_240_10    array[int8, 43]
-    struct_vmcb_save_area_240_11    int8
-    struct_vmcb_save_area_240_12    array[int8, 4]
-    struct_vmcb_save_area_240_13    int64
-    struct_vmcb_save_area_240_14    array[int8, 104]
-    struct_vmcb_save_area_240_15    int64
-    struct_vmcb_save_area_240_16    int64
-    struct_vmcb_save_area_240_17    int64
-    struct_vmcb_save_area_240_18    int64
-    struct_vmcb_save_area_240_19    int64
-    struct_vmcb_save_area_240_20    int64
-    struct_vmcb_save_area_240_21    int64
-    struct_vmcb_save_area_240_22    int64
-    struct_vmcb_save_area_240_23    array[int8, 88]
-    struct_vmcb_save_area_240_24    int64
-    struct_vmcb_save_area_240_25    array[int8, 24]
-    struct_vmcb_save_area_240_26    int64
-    struct_vmcb_save_area_240_27    int64
-    struct_vmcb_save_area_240_28    int64
-    struct_vmcb_save_area_240_29    int64
-    struct_vmcb_save_area_240_30    int64
-    struct_vmcb_save_area_240_31    int64
-    struct_vmcb_save_area_240_32    int64
-    struct_vmcb_save_area_240_33    int64
-    struct_vmcb_save_area_240_34    int64
-    struct_vmcb_save_area_240_35    int64
-    struct_vmcb_save_area_240_36    array[int8, 32]
-    struct_vmcb_save_area_240_37    int64
-    struct_vmcb_save_area_240_38    int64
-    struct_vmcb_save_area_240_39    int64
-    struct_vmcb_save_area_240_40    int64
-    struct_vmcb_save_area_240_41    int64
-    struct_vmcb_save_area_240_42    int64
-    struct_vmcb_save_area_240_43    array[int8, 80]
-    struct_vmcb_save_area_240_44    int32
-    struct_vmcb_save_area_240_45    array[int8, 20]
-    struct_vmcb_save_area_240_46    int64
-    struct_vmcb_save_area_240_47    int64
-    struct_vmcb_save_area_240_48    int64
-    struct_vmcb_save_area_240_49    int64
-    struct_vmcb_save_area_240_50    int64
-    struct_vmcb_save_area_240_51    int64
-    struct_vmcb_save_area_240_52    int64
-    struct_vmcb_save_area_240_53    int64
-    struct_vmcb_save_area_240_54    int64
-    struct_vmcb_save_area_240_55    int64
-    struct_vmcb_save_area_240_56    int64
-    struct_vmcb_save_area_240_57    int64
-    struct_vmcb_save_area_240_58    int64
-    struct_vmcb_save_area_240_59    int64
-    struct_vmcb_save_area_240_60    int64
-    struct_vmcb_save_area_240_61    int64
-    struct_vmcb_save_area_240_62    array[int8, 16]
-    struct_vmcb_save_area_240_63    int64
-    struct_vmcb_save_area_240_64    int64
-    struct_vmcb_save_area_240_65    int64
-    struct_vmcb_save_area_240_66    int64
-    struct_vmcb_save_area_240_67    array[int8, 56]
-    struct_vmcb_save_area_240_68    int64
-    struct_vmcb_save_area_240_69    array[int8, 16]
-    struct_vmcb_save_area_240_70    int64
+	struct_vmcb_save_area_240_0	struct_vmcb_seg_376
+	struct_vmcb_save_area_240_1	struct_vmcb_seg_376
+	struct_vmcb_save_area_240_2	struct_vmcb_seg_376
+	struct_vmcb_save_area_240_3	struct_vmcb_seg_376
+	struct_vmcb_save_area_240_4	struct_vmcb_seg_376
+	struct_vmcb_save_area_240_5	struct_vmcb_seg_376
+	struct_vmcb_save_area_240_6	struct_vmcb_seg_376
+	struct_vmcb_save_area_240_7	struct_vmcb_seg_376
+	struct_vmcb_save_area_240_8	struct_vmcb_seg_376
+	struct_vmcb_save_area_240_9	struct_vmcb_seg_376
+	struct_vmcb_save_area_240_10	array[int8, 43]
+	struct_vmcb_save_area_240_11	int8
+	struct_vmcb_save_area_240_12	array[int8, 4]
+	struct_vmcb_save_area_240_13	int64
+	struct_vmcb_save_area_240_14	array[int8, 104]
+	struct_vmcb_save_area_240_15	int64
+	struct_vmcb_save_area_240_16	int64
+	struct_vmcb_save_area_240_17	int64
+	struct_vmcb_save_area_240_18	int64
+	struct_vmcb_save_area_240_19	int64
+	struct_vmcb_save_area_240_20	int64
+	struct_vmcb_save_area_240_21	int64
+	struct_vmcb_save_area_240_22	int64
+	struct_vmcb_save_area_240_23	array[int8, 88]
+	struct_vmcb_save_area_240_24	int64
+	struct_vmcb_save_area_240_25	array[int8, 24]
+	struct_vmcb_save_area_240_26	int64
+	struct_vmcb_save_area_240_27	int64
+	struct_vmcb_save_area_240_28	int64
+	struct_vmcb_save_area_240_29	int64
+	struct_vmcb_save_area_240_30	int64
+	struct_vmcb_save_area_240_31	int64
+	struct_vmcb_save_area_240_32	int64
+	struct_vmcb_save_area_240_33	int64
+	struct_vmcb_save_area_240_34	int64
+	struct_vmcb_save_area_240_35	int64
+	struct_vmcb_save_area_240_36	array[int8, 32]
+	struct_vmcb_save_area_240_37	int64
+	struct_vmcb_save_area_240_38	int64
+	struct_vmcb_save_area_240_39	int64
+	struct_vmcb_save_area_240_40	int64
+	struct_vmcb_save_area_240_41	int64
+	struct_vmcb_save_area_240_42	int64
+	struct_vmcb_save_area_240_43	array[int8, 80]
+	struct_vmcb_save_area_240_44	int32
+	struct_vmcb_save_area_240_45	array[int8, 20]
+	struct_vmcb_save_area_240_46	int64
+	struct_vmcb_save_area_240_47	int64
+	struct_vmcb_save_area_240_48	int64
+	struct_vmcb_save_area_240_49	int64
+	struct_vmcb_save_area_240_50	int64
+	struct_vmcb_save_area_240_51	int64
+	struct_vmcb_save_area_240_52	int64
+	struct_vmcb_save_area_240_53	int64
+	struct_vmcb_save_area_240_54	int64
+	struct_vmcb_save_area_240_55	int64
+	struct_vmcb_save_area_240_56	int64
+	struct_vmcb_save_area_240_57	int64
+	struct_vmcb_save_area_240_58	int64
+	struct_vmcb_save_area_240_59	int64
+	struct_vmcb_save_area_240_60	int64
+	struct_vmcb_save_area_240_61	int64
+	struct_vmcb_save_area_240_62	array[int8, 16]
+	struct_vmcb_save_area_240_63	int64
+	struct_vmcb_save_area_240_64	int64
+	struct_vmcb_save_area_240_65	int64
+	struct_vmcb_save_area_240_66	int64
+	struct_vmcb_save_area_240_67	array[int8, 56]
+	struct_vmcb_save_area_240_68	int64
+	struct_vmcb_save_area_240_69	array[int8, 16]
+	struct_vmcb_save_area_240_70	int64
 }
+
 struct_iommu_page_response_377 {
-    struct_iommu_page_response_377_0    int32
-    struct_iommu_page_response_377_1    int32
-    struct_iommu_page_response_377_2    int32
-    struct_iommu_page_response_377_3    int32
-    struct_iommu_page_response_377_4    int32
-    struct_iommu_page_response_377_5    int32
+	struct_iommu_page_response_377_0	int32
+	struct_iommu_page_response_377_1	int32
+	struct_iommu_page_response_377_2	int32
+	struct_iommu_page_response_377_3	int32
+	struct_iommu_page_response_377_4	int32
+	struct_iommu_page_response_377_5	int32
 }
+
 struct_kvm_dtable_378 {
-    struct_kvm_dtable_378_0    int64
-    struct_kvm_dtable_378_1    int16
-    struct_kvm_dtable_378_2    array[int16, 3]
+	struct_kvm_dtable_378_0	int64
+	struct_kvm_dtable_378_1	int16
+	struct_kvm_dtable_378_2	array[int16, 3]
 }
+
 struct_kvm_sregs_177 {
-    struct_kvm_sregs_177_0    struct_kvm_segment_374
-    struct_kvm_sregs_177_1    struct_kvm_segment_374
-    struct_kvm_sregs_177_2    struct_kvm_segment_374
-    struct_kvm_sregs_177_3    struct_kvm_segment_374
-    struct_kvm_sregs_177_4    struct_kvm_segment_374
-    struct_kvm_sregs_177_5    struct_kvm_segment_374
-    struct_kvm_sregs_177_6    struct_kvm_segment_374
-    struct_kvm_sregs_177_7    struct_kvm_segment_374
-    struct_kvm_sregs_177_8    struct_kvm_dtable_378
-    struct_kvm_sregs_177_9    struct_kvm_dtable_378
-    struct_kvm_sregs_177_10    int64
-    struct_kvm_sregs_177_11    int64
-    struct_kvm_sregs_177_12    int64
-    struct_kvm_sregs_177_13    int64
-    struct_kvm_sregs_177_14    int64
-    struct_kvm_sregs_177_15    int64
-    struct_kvm_sregs_177_16    int64
-    struct_kvm_sregs_177_17    array[int64, 4]
+	struct_kvm_sregs_177_0	struct_kvm_segment_374
+	struct_kvm_sregs_177_1	struct_kvm_segment_374
+	struct_kvm_sregs_177_2	struct_kvm_segment_374
+	struct_kvm_sregs_177_3	struct_kvm_segment_374
+	struct_kvm_sregs_177_4	struct_kvm_segment_374
+	struct_kvm_sregs_177_5	struct_kvm_segment_374
+	struct_kvm_sregs_177_6	struct_kvm_segment_374
+	struct_kvm_sregs_177_7	struct_kvm_segment_374
+	struct_kvm_sregs_177_8	struct_kvm_dtable_378
+	struct_kvm_sregs_177_9	struct_kvm_dtable_378
+	struct_kvm_sregs_177_10	int64
+	struct_kvm_sregs_177_11	int64
+	struct_kvm_sregs_177_12	int64
+	struct_kvm_sregs_177_13	int64
+	struct_kvm_sregs_177_14	int64
+	struct_kvm_sregs_177_15	int64
+	struct_kvm_sregs_177_16	int64
+	struct_kvm_sregs_177_17	array[int64, 4]
 }
+
 struct_anon_164_379 {
-    struct_anon_164_379_0    int8
-    struct_anon_164_379_1    int8
-    struct_anon_164_379_2    int8
-    struct_anon_164_379_3    int8
-    struct_anon_164_379_4    int32
+	struct_anon_164_379_0	int8
+	struct_anon_164_379_1	int8
+	struct_anon_164_379_2	int8
+	struct_anon_164_379_3	int8
+	struct_anon_164_379_4	int32
 }
+
 struct_anon_165_380 {
-    struct_anon_165_380_0    int8
-    struct_anon_165_380_1    int8
-    struct_anon_165_380_2    int8
-    struct_anon_165_380_3    int8
+	struct_anon_165_380_0	int8
+	struct_anon_165_380_1	int8
+	struct_anon_165_380_2	int8
+	struct_anon_165_380_3	int8
 }
+
 struct_kvm_vcpu_events_213 {
-    struct_kvm_vcpu_events_213_0    struct_anon_164_379
-    struct_kvm_vcpu_events_213_1    struct_anon_165_380
-    struct_kvm_vcpu_events_213_2    struct_anon_165_380
-    struct_kvm_vcpu_events_213_3    int32
-    struct_kvm_vcpu_events_213_4    int32
-    struct_kvm_vcpu_events_213_5    struct_anon_165_380
-    struct_kvm_vcpu_events_213_6    array[int8, 27]
-    struct_kvm_vcpu_events_213_7    int8
-    struct_kvm_vcpu_events_213_8    int64
+	struct_kvm_vcpu_events_213_0	struct_anon_164_379
+	struct_kvm_vcpu_events_213_1	struct_anon_165_380
+	struct_kvm_vcpu_events_213_2	struct_anon_165_380
+	struct_kvm_vcpu_events_213_3	int32
+	struct_kvm_vcpu_events_213_4	int32
+	struct_kvm_vcpu_events_213_5	struct_anon_165_380
+	struct_kvm_vcpu_events_213_6	array[int8, 27]
+	struct_kvm_vcpu_events_213_7	int8
+	struct_kvm_vcpu_events_213_8	int64
 }
+
 struct_kvm_cpuid_entry2_21 {
-    struct_kvm_cpuid_entry2_21_0    int32
-    struct_kvm_cpuid_entry2_21_1    int32
-    struct_kvm_cpuid_entry2_21_2    int32
-    struct_kvm_cpuid_entry2_21_3    int32
-    struct_kvm_cpuid_entry2_21_4    int32
-    struct_kvm_cpuid_entry2_21_5    int32
-    struct_kvm_cpuid_entry2_21_6    int32
-    struct_kvm_cpuid_entry2_21_7    array[int32, 3]
+	struct_kvm_cpuid_entry2_21_0	int32
+	struct_kvm_cpuid_entry2_21_1	int32
+	struct_kvm_cpuid_entry2_21_2	int32
+	struct_kvm_cpuid_entry2_21_3	int32
+	struct_kvm_cpuid_entry2_21_4	int32
+	struct_kvm_cpuid_entry2_21_5	int32
+	struct_kvm_cpuid_entry2_21_6	int32
+	struct_kvm_cpuid_entry2_21_7	array[int32, 3]
 }
+
 struct_kvm_coalesced_mmio_zone_88 {
-    struct_kvm_coalesced_mmio_zone_88_0    int64
-    struct_kvm_coalesced_mmio_zone_88_1    int32
-    struct_kvm_coalesced_mmio_zone_88_2    struct_atomic_t_179
+	struct_kvm_coalesced_mmio_zone_88_0	int64
+	struct_kvm_coalesced_mmio_zone_88_1	int32
+	struct_kvm_coalesced_mmio_zone_88_2	struct_atomic_t_179
 }
+
 struct_anon_207_381 {
-    struct_anon_207_381_0    int16
+	struct_anon_207_381_0	int16
 }
+
 struct_kvm_vmx_nested_state_hdr_382 {
-    struct_kvm_vmx_nested_state_hdr_382_0    int64
-    struct_kvm_vmx_nested_state_hdr_382_1    int64
-    struct_kvm_vmx_nested_state_hdr_382_2    struct_anon_207_381
-    struct_kvm_vmx_nested_state_hdr_382_3    int32
-    struct_kvm_vmx_nested_state_hdr_382_4    int64
+	struct_kvm_vmx_nested_state_hdr_382_0	int64
+	struct_kvm_vmx_nested_state_hdr_382_1	int64
+	struct_kvm_vmx_nested_state_hdr_382_2	struct_anon_207_381
+	struct_kvm_vmx_nested_state_hdr_382_3	int32
+	struct_kvm_vmx_nested_state_hdr_382_4	int64
 }
+
 union_anon_206_383 {
-    union_anon_206_383_0    struct_kvm_vmx_nested_state_hdr_382
-    union_anon_206_383_1    array[int8, 88]
+	union_anon_206_383_0	struct_kvm_vmx_nested_state_hdr_382
+	union_anon_206_383_1	array[int8, 88]
 }
+
 struct_kvm_vmx_nested_state_data_384 {
-    struct_kvm_vmx_nested_state_data_384_0    array[int8, 4096]
-    struct_kvm_vmx_nested_state_data_384_1    array[int8, 4096]
+	struct_kvm_vmx_nested_state_data_384_0	array[int8, 4096]
+	struct_kvm_vmx_nested_state_data_384_1	array[int8, 4096]
 }
+
 union_anon_208_385 {
-    union_anon_208_385_0    array[struct_kvm_vmx_nested_state_data_384]
+	union_anon_208_385_0	array[struct_kvm_vmx_nested_state_data_384]
 }
+
 struct_kvm_nested_state_224 {
-    struct_kvm_nested_state_224_0    int16
-    struct_kvm_nested_state_224_1    int16
-    struct_kvm_nested_state_224_2    int32
-    struct_kvm_nested_state_224_3    union_anon_206_383
-    struct_kvm_nested_state_224_4    union_anon_208_385
+	struct_kvm_nested_state_224_0	int16
+	struct_kvm_nested_state_224_1	int16
+	struct_kvm_nested_state_224_2	int32
+	struct_kvm_nested_state_224_3	union_anon_206_383
+	struct_kvm_nested_state_224_4	union_anon_208_385
 }
+
 struct_kvm_msrs_28 {
-    struct_kvm_msrs_28_0    int32
-    struct_kvm_msrs_28_1    int32
-    struct_kvm_msrs_28_2    array[struct_jump_entry_30]
+	struct_kvm_msrs_28_0	int32
+	struct_kvm_msrs_28_1	int32
+	struct_kvm_msrs_28_2	array[struct_jump_entry_30]
 }
+
 struct_kvm_cpuid2_18 {
-    struct_kvm_cpuid2_18_0    int32
-    struct_kvm_cpuid2_18_1    int32
-    struct_kvm_cpuid2_18_2    array[struct_kvm_cpuid_entry2_21]
+	struct_kvm_cpuid2_18_0	int32
+	struct_kvm_cpuid2_18_1	int32
+	struct_kvm_cpuid2_18_2	array[struct_kvm_cpuid_entry2_21]
 }
+
 struct_kvm_lapic_state_197 {
-    struct_kvm_lapic_state_197_0    array[int8, 1024]
+	struct_kvm_lapic_state_197_0	array[int8, 1024]
 }
+
 struct_kvm_tpr_access_ctl_205 {
-    struct_kvm_tpr_access_ctl_205_0    int32
-    struct_kvm_tpr_access_ctl_205_1    int32
-    struct_kvm_tpr_access_ctl_205_2    array[int32, 8]
+	struct_kvm_tpr_access_ctl_205_0	int32
+	struct_kvm_tpr_access_ctl_205_1	int32
+	struct_kvm_tpr_access_ctl_205_2	array[int32, 8]
 }
+
 struct_kvm_x86_mce_211 {
-    struct_kvm_x86_mce_211_0    int64
-    struct_kvm_x86_mce_211_1    int64
-    struct_kvm_x86_mce_211_2    int64
-    struct_kvm_x86_mce_211_3    int64
-    struct_kvm_x86_mce_211_4    int8
-    struct_kvm_x86_mce_211_5    array[int8, 7]
-    struct_kvm_x86_mce_211_6    array[int64, 3]
+	struct_kvm_x86_mce_211_0	int64
+	struct_kvm_x86_mce_211_1	int64
+	struct_kvm_x86_mce_211_2	int64
+	struct_kvm_x86_mce_211_3	int64
+	struct_kvm_x86_mce_211_4	int8
+	struct_kvm_x86_mce_211_5	array[int8, 7]
+	struct_kvm_x86_mce_211_6	array[int64, 3]
 }
+
 struct_kvm_debugregs_216 {
-    struct_kvm_debugregs_216_0    array[int64, 4]
-    struct_kvm_debugregs_216_1    int64
-    struct_kvm_debugregs_216_2    int64
-    struct_kvm_debugregs_216_3    int64
-    struct_kvm_debugregs_216_4    array[int64, 9]
+	struct_kvm_debugregs_216_0	array[int64, 4]
+	struct_kvm_debugregs_216_1	int64
+	struct_kvm_debugregs_216_2	int64
+	struct_kvm_debugregs_216_3	int64
+	struct_kvm_debugregs_216_4	array[int64, 9]
 }
+
 struct_kvm_xsave_219 {
-    struct_kvm_xsave_219_0    array[int32, 1024]
+	struct_kvm_xsave_219_0	array[int32, 1024]
 }
+
 struct_kvm_xcrs_221 {
-    struct_kvm_xcrs_221_0    int32
-    struct_kvm_xcrs_221_1    int32
-    struct_kvm_xcrs_221_2    array[struct_jump_entry_30, 16]
-    struct_kvm_xcrs_221_3    array[int64, 16]
+	struct_kvm_xcrs_221_0	int32
+	struct_kvm_xcrs_221_1	int32
+	struct_kvm_xcrs_221_2	array[struct_jump_entry_30, 16]
+	struct_kvm_xcrs_221_3	array[int64, 16]
 }
+
 struct_kvm_irq_level_81 {
-    struct_kvm_irq_level_81_0    struct_atomic_t_179
-    struct_kvm_irq_level_81_1    int32
+	struct_kvm_irq_level_81_0	struct_atomic_t_179
+	struct_kvm_irq_level_81_1	int32
 }
+
 struct_kvm_ioapic_state_386 {
-    struct_kvm_ioapic_state_386_0    int64
-    struct_kvm_ioapic_state_386_1    int32
-    struct_kvm_ioapic_state_386_2    int32
-    struct_kvm_ioapic_state_386_3    int32
-    struct_kvm_ioapic_state_386_4    int32
-    struct_kvm_ioapic_state_386_5    array[union_anon_0_208, 24]
+	struct_kvm_ioapic_state_386_0	int64
+	struct_kvm_ioapic_state_386_1	int32
+	struct_kvm_ioapic_state_386_2	int32
+	struct_kvm_ioapic_state_386_3	int32
+	struct_kvm_ioapic_state_386_4	int32
+	struct_kvm_ioapic_state_386_5	array[union_anon_0_208, 24]
 }
+
 union_anon_268_387 {
-    union_anon_268_387_0    struct_kvm_ioapic_state_386
-    union_anon_268_387_1    array[int8, 296]
+	union_anon_268_387_0	struct_kvm_ioapic_state_386
+	union_anon_268_387_1	array[int8, 296]
 }
+
 struct_kvm_irqchip_44 {
-    struct_kvm_irqchip_44_0    int32
-    struct_kvm_irqchip_44_1    int32
-    struct_kvm_irqchip_44_2    union_anon_268_387
+	struct_kvm_irqchip_44_0	int32
+	struct_kvm_irqchip_44_1	int32
+	struct_kvm_irqchip_44_2	union_anon_268_387
 }
+
 struct_kvm_pit_state_46 {
-    struct_kvm_pit_state_46_0    array[struct_kvm_kpit_channel_state_373, 3]
+	struct_kvm_pit_state_46_0	array[struct_kvm_kpit_channel_state_373, 3]
 }
+
 struct_kvm_pit_state2_50 {
-    struct_kvm_pit_state2_50_0    array[struct_kvm_kpit_channel_state_373, 3]
-    struct_kvm_pit_state2_50_1    int32
-    struct_kvm_pit_state2_50_2    array[int32, 9]
+	struct_kvm_pit_state2_50_0	array[struct_kvm_kpit_channel_state_373, 3]
+	struct_kvm_pit_state2_50_1	int32
+	struct_kvm_pit_state2_50_2	array[int32, 9]
 }
+
 struct_kvm_reinject_control_53 {
-    struct_kvm_reinject_control_53_0    int8
-    struct_kvm_reinject_control_53_1    array[int8, 31]
+	struct_kvm_reinject_control_53_0	int8
+	struct_kvm_reinject_control_53_1	array[int8, 31]
 }
+
 struct_kvm_msr_filter_range_388 {
-    struct_kvm_msr_filter_range_388_0    int32
-    struct_kvm_msr_filter_range_388_1    int32
-    struct_kvm_msr_filter_range_388_2    int32
-    struct_kvm_msr_filter_range_388_3    ptr[in, int8]
+	struct_kvm_msr_filter_range_388_0	int32
+	struct_kvm_msr_filter_range_388_1	int32
+	struct_kvm_msr_filter_range_388_2	int32
+	struct_kvm_msr_filter_range_388_3	ptr[in, int8]
 }
+
 struct_kvm_guest_debug_arch_389 {
-    struct_kvm_guest_debug_arch_389_0    array[int64, 8]
+	struct_kvm_guest_debug_arch_389_0	array[int64, 8]
 }
+
 struct_kvm_guest_debug_185 {
-    struct_kvm_guest_debug_185_0    int32
-    struct_kvm_guest_debug_185_1    int32
-    struct_kvm_guest_debug_185_2    struct_kvm_guest_debug_arch_389
+	struct_kvm_guest_debug_185_0	int32
+	struct_kvm_guest_debug_185_1	int32
+	struct_kvm_guest_debug_185_2	struct_kvm_guest_debug_arch_389
 }
+
 struct_kvm_translation_182 {
-    struct_kvm_translation_182_0    int64
-    struct_kvm_translation_182_1    int64
-    struct_kvm_translation_182_2    int8
-    struct_kvm_translation_182_3    int8
-    struct_kvm_translation_182_4    int8
-    struct_kvm_translation_182_5    array[int8, 5]
+	struct_kvm_translation_182_0	int64
+	struct_kvm_translation_182_1	int64
+	struct_kvm_translation_182_2	int8
+	struct_kvm_translation_182_3	int8
+	struct_kvm_translation_182_4	int8
+	struct_kvm_translation_182_5	array[int8, 5]
 }
+
 struct_kvm_fpu_191 {
-    struct_kvm_fpu_191_0    array[array[int8, 16], 8]
-    struct_kvm_fpu_191_1    int16
-    struct_kvm_fpu_191_2    int16
-    struct_kvm_fpu_191_3    int8
-    struct_kvm_fpu_191_4    int8
-    struct_kvm_fpu_191_5    int16
-    struct_kvm_fpu_191_6    int64
-    struct_kvm_fpu_191_7    int64
-    struct_kvm_fpu_191_8    array[array[int8, 16], 16]
-    struct_kvm_fpu_191_9    int32
-    struct_kvm_fpu_191_10    int32
+	struct_kvm_fpu_191_0	array[array[int8, 16], 8]
+	struct_kvm_fpu_191_1	int16
+	struct_kvm_fpu_191_2	int16
+	struct_kvm_fpu_191_3	int8
+	struct_kvm_fpu_191_4	int8
+	struct_kvm_fpu_191_5	int16
+	struct_kvm_fpu_191_6	int64
+	struct_kvm_fpu_191_7	int64
+	struct_kvm_fpu_191_8	array[array[int8, 16], 16]
+	struct_kvm_fpu_191_9	int32
+	struct_kvm_fpu_191_10	int32
 }
+
 struct_kvm_cpuid_200 {
-    struct_kvm_cpuid_200_0    int32
-    struct_kvm_cpuid_200_1    int32
-    struct_kvm_cpuid_200_2    array[struct_iommu_page_response_377]
+	struct_kvm_cpuid_200_0	int32
+	struct_kvm_cpuid_200_1	int32
+	struct_kvm_cpuid_200_2	array[struct_iommu_page_response_377]
 }
+
 struct_kvm_hyperv_eventfd_67 {
-    struct_kvm_hyperv_eventfd_67_0    int32
-    struct_kvm_hyperv_eventfd_67_1    int32
-    struct_kvm_hyperv_eventfd_67_2    int32
-    struct_kvm_hyperv_eventfd_67_3    array[int32, 3]
+	struct_kvm_hyperv_eventfd_67_0	int32
+	struct_kvm_hyperv_eventfd_67_1	int32
+	struct_kvm_hyperv_eventfd_67_2	int32
+	struct_kvm_hyperv_eventfd_67_3	array[int32, 3]
 }
+
 struct_kvm_irq_routing_s390_adapter_390 {
-    struct_kvm_irq_routing_s390_adapter_390_0    int64
-    struct_kvm_irq_routing_s390_adapter_390_1    int64
-    struct_kvm_irq_routing_s390_adapter_390_2    int64
-    struct_kvm_irq_routing_s390_adapter_390_3    int32
-    struct_kvm_irq_routing_s390_adapter_390_4    int32
+	struct_kvm_irq_routing_s390_adapter_390_0	int64
+	struct_kvm_irq_routing_s390_adapter_390_1	int64
+	struct_kvm_irq_routing_s390_adapter_390_2	int64
+	struct_kvm_irq_routing_s390_adapter_390_3	int32
+	struct_kvm_irq_routing_s390_adapter_390_4	int32
 }
+
 union_anon_214_391 {
-    union_anon_214_391_0    struct_kvm_irq_routing_s390_adapter_390
+	union_anon_214_391_0	struct_kvm_irq_routing_s390_adapter_390
 }
+
 struct_kvm_irq_routing_entry_392 {
-    struct_kvm_irq_routing_entry_392_0    int32
-    struct_kvm_irq_routing_entry_392_1    int32
-    struct_kvm_irq_routing_entry_392_2    int32
-    struct_kvm_irq_routing_entry_392_3    int32
-    struct_kvm_irq_routing_entry_392_4    union_anon_214_391
+	struct_kvm_irq_routing_entry_392_0	int32
+	struct_kvm_irq_routing_entry_392_1	int32
+	struct_kvm_irq_routing_entry_392_2	int32
+	struct_kvm_irq_routing_entry_392_3	int32
+	struct_kvm_irq_routing_entry_392_4	union_anon_214_391
 }
+
 struct_kvm_dirty_log_86 {
-    struct_kvm_dirty_log_86_0    int32
-    struct_kvm_dirty_log_86_1    int32
-    struct_kvm_dirty_log_86_2    union_anon_120_375
+	struct_kvm_dirty_log_86_0	int32
+	struct_kvm_dirty_log_86_1	int32
+	struct_kvm_dirty_log_86_2	union_anon_120_375
 }
+
 struct_kvm_enable_cap_150 {
-    struct_kvm_enable_cap_150_0    int32
-    struct_kvm_enable_cap_150_1    int32
-    struct_kvm_enable_cap_150_2    array[int64, 4]
-    struct_kvm_enable_cap_150_3    array[int8, 64]
+	struct_kvm_enable_cap_150_0	int32
+	struct_kvm_enable_cap_150_1	int32
+	struct_kvm_enable_cap_150_2	array[int64, 4]
+	struct_kvm_enable_cap_150_3	array[int8, 64]
 }
+
 struct_kvm_userspace_memory_region_92 {
-    struct_kvm_userspace_memory_region_92_0    int32
-    struct_kvm_userspace_memory_region_92_1    int32
-    struct_kvm_userspace_memory_region_92_2    int64
-    struct_kvm_userspace_memory_region_92_3    int64
-    struct_kvm_userspace_memory_region_92_4    int64
+	struct_kvm_userspace_memory_region_92_0	int32
+	struct_kvm_userspace_memory_region_92_1	int32
+	struct_kvm_userspace_memory_region_92_2	int64
+	struct_kvm_userspace_memory_region_92_3	int64
+	struct_kvm_userspace_memory_region_92_4	int64
 }
+
 struct_kvm_clear_dirty_log_167 {
-    struct_kvm_clear_dirty_log_167_0    int32
-    struct_kvm_clear_dirty_log_167_1    int32
-    struct_kvm_clear_dirty_log_167_2    int64
-    struct_kvm_clear_dirty_log_167_3    union_anon_120_375
+	struct_kvm_clear_dirty_log_167_0	int32
+	struct_kvm_clear_dirty_log_167_1	int32
+	struct_kvm_clear_dirty_log_167_2	int64
+	struct_kvm_clear_dirty_log_167_3	union_anon_120_375
 }
+
 struct_ring_buffer_event_12 {
-    struct_ring_buffer_event_12_0    int32
-    struct_ring_buffer_event_12_1    array[int32]
+	struct_ring_buffer_event_12_0	int32
+	struct_ring_buffer_event_12_1	array[int32]
 }
+
 struct_kvm_irqfd_94 {
-    struct_kvm_irqfd_94_0    int32
-    struct_kvm_irqfd_94_1    int32
-    struct_kvm_irqfd_94_2    int32
-    struct_kvm_irqfd_94_3    int32
-    struct_kvm_irqfd_94_4    array[int8, 16]
+	struct_kvm_irqfd_94_0	int32
+	struct_kvm_irqfd_94_1	int32
+	struct_kvm_irqfd_94_2	int32
+	struct_kvm_irqfd_94_3	int32
+	struct_kvm_irqfd_94_4	array[int8, 16]
 }
+
 struct_kvm_ioeventfd_147 {
-    struct_kvm_ioeventfd_147_0    int64
-    struct_kvm_ioeventfd_147_1    int64
-    struct_kvm_ioeventfd_147_2    int32
-    struct_kvm_ioeventfd_147_3    int32
-    struct_kvm_ioeventfd_147_4    int32
-    struct_kvm_ioeventfd_147_5    array[int8, 36]
+	struct_kvm_ioeventfd_147_0	int64
+	struct_kvm_ioeventfd_147_1	int64
+	struct_kvm_ioeventfd_147_2	int32
+	struct_kvm_ioeventfd_147_3	int32
+	struct_kvm_ioeventfd_147_4	int32
+	struct_kvm_ioeventfd_147_5	array[int8, 36]
 }
+
 struct_kvm_msi_96 {
-    struct_kvm_msi_96_0    int32
-    struct_kvm_msi_96_1    int32
-    struct_kvm_msi_96_2    int32
-    struct_kvm_msi_96_3    int32
-    struct_kvm_msi_96_4    int32
-    struct_kvm_msi_96_5    array[int8, 12]
+	struct_kvm_msi_96_0	int32
+	struct_kvm_msi_96_1	int32
+	struct_kvm_msi_96_2	int32
+	struct_kvm_msi_96_3	int32
+	struct_kvm_msi_96_4	int32
+	struct_kvm_msi_96_5	array[int8, 12]
 }
+
 struct_kvm_xen_vcpu_attr_57 {
-    struct_kvm_xen_vcpu_attr_57_0    int16
-    struct_kvm_xen_vcpu_attr_57_1    array[int16, 3]
-    struct_kvm_xen_vcpu_attr_57_2    struct_kvm_guest_debug_arch_389
+	struct_kvm_xen_vcpu_attr_57_0	int16
+	struct_kvm_xen_vcpu_attr_57_1	array[int16, 3]
+	struct_kvm_xen_vcpu_attr_57_2	struct_kvm_guest_debug_arch_389
 }
+
 struct_vmcs12_232 {
-    struct_vmcs12_232_0    struct_atomic_t_179
-    struct_vmcs12_232_1    int32
-    struct_vmcs12_232_2    int32
-    struct_vmcs12_232_3    array[int32, 7]
-    struct_vmcs12_232_4    int64
-    struct_vmcs12_232_5    int64
-    struct_vmcs12_232_6    int64
-    struct_vmcs12_232_7    int64
-    struct_vmcs12_232_8    int64
-    struct_vmcs12_232_9    int64
-    struct_vmcs12_232_10    int64
-    struct_vmcs12_232_11    int64
-    struct_vmcs12_232_12    int64
-    struct_vmcs12_232_13    int64
-    struct_vmcs12_232_14    int64
-    struct_vmcs12_232_15    int64
-    struct_vmcs12_232_16    int64
-    struct_vmcs12_232_17    int64
-    struct_vmcs12_232_18    int64
-    struct_vmcs12_232_19    int64
-    struct_vmcs12_232_20    int64
-    struct_vmcs12_232_21    int64
-    struct_vmcs12_232_22    int64
-    struct_vmcs12_232_23    int64
-    struct_vmcs12_232_24    int64
-    struct_vmcs12_232_25    int64
-    struct_vmcs12_232_26    int64
-    struct_vmcs12_232_27    int64
-    struct_vmcs12_232_28    int64
-    struct_vmcs12_232_29    int64
-    struct_vmcs12_232_30    int64
-    struct_vmcs12_232_31    int64
-    struct_vmcs12_232_32    int64
-    struct_vmcs12_232_33    int64
-    struct_vmcs12_232_34    int64
-    struct_vmcs12_232_35    int64
-    struct_vmcs12_232_36    int64
-    struct_vmcs12_232_37    int64
-    struct_vmcs12_232_38    int64
-    struct_vmcs12_232_39    array[int64, 3]
-    struct_vmcs12_232_40    int64
-    struct_vmcs12_232_41    int64
-    struct_vmcs12_232_42    int64
-    struct_vmcs12_232_43    int64
-    struct_vmcs12_232_44    array[int64, 4]
-    struct_vmcs12_232_45    int64
-    struct_vmcs12_232_46    int64
-    struct_vmcs12_232_47    int64
-    struct_vmcs12_232_48    int64
-    struct_vmcs12_232_49    int64
-    struct_vmcs12_232_50    int64
-    struct_vmcs12_232_51    int64
-    struct_vmcs12_232_52    int64
-    struct_vmcs12_232_53    int64
-    struct_vmcs12_232_54    int64
-    struct_vmcs12_232_55    int64
-    struct_vmcs12_232_56    int64
-    struct_vmcs12_232_57    int64
-    struct_vmcs12_232_58    int64
-    struct_vmcs12_232_59    int64
-    struct_vmcs12_232_60    int64
-    struct_vmcs12_232_61    int64
-    struct_vmcs12_232_62    int64
-    struct_vmcs12_232_63    int64
-    struct_vmcs12_232_64    int64
-    struct_vmcs12_232_65    int64
-    struct_vmcs12_232_66    int64
-    struct_vmcs12_232_67    int64
-    struct_vmcs12_232_68    int64
-    struct_vmcs12_232_69    int64
-    struct_vmcs12_232_70    int64
-    struct_vmcs12_232_71    int64
-    struct_vmcs12_232_72    int64
-    struct_vmcs12_232_73    int64
-    struct_vmcs12_232_74    int64
-    struct_vmcs12_232_75    int64
-    struct_vmcs12_232_76    int64
-    struct_vmcs12_232_77    int64
-    struct_vmcs12_232_78    int64
-    struct_vmcs12_232_79    array[int64, 8]
-    struct_vmcs12_232_80    int32
-    struct_vmcs12_232_81    int32
-    struct_vmcs12_232_82    int32
-    struct_vmcs12_232_83    int32
-    struct_vmcs12_232_84    int32
-    struct_vmcs12_232_85    int32
-    struct_vmcs12_232_86    int32
-    struct_vmcs12_232_87    int32
-    struct_vmcs12_232_88    int32
-    struct_vmcs12_232_89    int32
-    struct_vmcs12_232_90    int32
-    struct_vmcs12_232_91    int32
-    struct_vmcs12_232_92    int32
-    struct_vmcs12_232_93    int32
-    struct_vmcs12_232_94    int32
-    struct_vmcs12_232_95    int32
-    struct_vmcs12_232_96    int32
-    struct_vmcs12_232_97    int32
-    struct_vmcs12_232_98    int32
-    struct_vmcs12_232_99    int32
-    struct_vmcs12_232_100    int32
-    struct_vmcs12_232_101    int32
-    struct_vmcs12_232_102    int32
-    struct_vmcs12_232_103    int32
-    struct_vmcs12_232_104    int32
-    struct_vmcs12_232_105    int32
-    struct_vmcs12_232_106    int32
-    struct_vmcs12_232_107    int32
-    struct_vmcs12_232_108    int32
-    struct_vmcs12_232_109    int32
-    struct_vmcs12_232_110    int32
-    struct_vmcs12_232_111    int32
-    struct_vmcs12_232_112    int32
-    struct_vmcs12_232_113    int32
-    struct_vmcs12_232_114    int32
-    struct_vmcs12_232_115    int32
-    struct_vmcs12_232_116    int32
-    struct_vmcs12_232_117    int32
-    struct_vmcs12_232_118    int32
-    struct_vmcs12_232_119    int32
-    struct_vmcs12_232_120    int32
-    struct_vmcs12_232_121    int32
-    struct_vmcs12_232_122    int32
-    struct_vmcs12_232_123    int32
-    struct_vmcs12_232_124    int32
-    struct_vmcs12_232_125    int32
-    struct_vmcs12_232_126    int32
-    struct_vmcs12_232_127    array[int32, 7]
-    struct_vmcs12_232_128    int16
-    struct_vmcs12_232_129    int16
-    struct_vmcs12_232_130    int16
-    struct_vmcs12_232_131    int16
-    struct_vmcs12_232_132    int16
-    struct_vmcs12_232_133    int16
-    struct_vmcs12_232_134    int16
-    struct_vmcs12_232_135    int16
-    struct_vmcs12_232_136    int16
-    struct_vmcs12_232_137    int16
-    struct_vmcs12_232_138    int16
-    struct_vmcs12_232_139    int16
-    struct_vmcs12_232_140    int16
-    struct_vmcs12_232_141    int16
-    struct_vmcs12_232_142    int16
-    struct_vmcs12_232_143    int16
-    struct_vmcs12_232_144    int16
-    struct_vmcs12_232_145    int16
-    struct_vmcs12_232_146    int16
+	struct_vmcs12_232_0	struct_atomic_t_179
+	struct_vmcs12_232_1	int32
+	struct_vmcs12_232_2	int32
+	struct_vmcs12_232_3	array[int32, 7]
+	struct_vmcs12_232_4	int64
+	struct_vmcs12_232_5	int64
+	struct_vmcs12_232_6	int64
+	struct_vmcs12_232_7	int64
+	struct_vmcs12_232_8	int64
+	struct_vmcs12_232_9	int64
+	struct_vmcs12_232_10	int64
+	struct_vmcs12_232_11	int64
+	struct_vmcs12_232_12	int64
+	struct_vmcs12_232_13	int64
+	struct_vmcs12_232_14	int64
+	struct_vmcs12_232_15	int64
+	struct_vmcs12_232_16	int64
+	struct_vmcs12_232_17	int64
+	struct_vmcs12_232_18	int64
+	struct_vmcs12_232_19	int64
+	struct_vmcs12_232_20	int64
+	struct_vmcs12_232_21	int64
+	struct_vmcs12_232_22	int64
+	struct_vmcs12_232_23	int64
+	struct_vmcs12_232_24	int64
+	struct_vmcs12_232_25	int64
+	struct_vmcs12_232_26	int64
+	struct_vmcs12_232_27	int64
+	struct_vmcs12_232_28	int64
+	struct_vmcs12_232_29	int64
+	struct_vmcs12_232_30	int64
+	struct_vmcs12_232_31	int64
+	struct_vmcs12_232_32	int64
+	struct_vmcs12_232_33	int64
+	struct_vmcs12_232_34	int64
+	struct_vmcs12_232_35	int64
+	struct_vmcs12_232_36	int64
+	struct_vmcs12_232_37	int64
+	struct_vmcs12_232_38	int64
+	struct_vmcs12_232_39	array[int64, 3]
+	struct_vmcs12_232_40	int64
+	struct_vmcs12_232_41	int64
+	struct_vmcs12_232_42	int64
+	struct_vmcs12_232_43	int64
+	struct_vmcs12_232_44	array[int64, 4]
+	struct_vmcs12_232_45	int64
+	struct_vmcs12_232_46	int64
+	struct_vmcs12_232_47	int64
+	struct_vmcs12_232_48	int64
+	struct_vmcs12_232_49	int64
+	struct_vmcs12_232_50	int64
+	struct_vmcs12_232_51	int64
+	struct_vmcs12_232_52	int64
+	struct_vmcs12_232_53	int64
+	struct_vmcs12_232_54	int64
+	struct_vmcs12_232_55	int64
+	struct_vmcs12_232_56	int64
+	struct_vmcs12_232_57	int64
+	struct_vmcs12_232_58	int64
+	struct_vmcs12_232_59	int64
+	struct_vmcs12_232_60	int64
+	struct_vmcs12_232_61	int64
+	struct_vmcs12_232_62	int64
+	struct_vmcs12_232_63	int64
+	struct_vmcs12_232_64	int64
+	struct_vmcs12_232_65	int64
+	struct_vmcs12_232_66	int64
+	struct_vmcs12_232_67	int64
+	struct_vmcs12_232_68	int64
+	struct_vmcs12_232_69	int64
+	struct_vmcs12_232_70	int64
+	struct_vmcs12_232_71	int64
+	struct_vmcs12_232_72	int64
+	struct_vmcs12_232_73	int64
+	struct_vmcs12_232_74	int64
+	struct_vmcs12_232_75	int64
+	struct_vmcs12_232_76	int64
+	struct_vmcs12_232_77	int64
+	struct_vmcs12_232_78	int64
+	struct_vmcs12_232_79	array[int64, 8]
+	struct_vmcs12_232_80	int32
+	struct_vmcs12_232_81	int32
+	struct_vmcs12_232_82	int32
+	struct_vmcs12_232_83	int32
+	struct_vmcs12_232_84	int32
+	struct_vmcs12_232_85	int32
+	struct_vmcs12_232_86	int32
+	struct_vmcs12_232_87	int32
+	struct_vmcs12_232_88	int32
+	struct_vmcs12_232_89	int32
+	struct_vmcs12_232_90	int32
+	struct_vmcs12_232_91	int32
+	struct_vmcs12_232_92	int32
+	struct_vmcs12_232_93	int32
+	struct_vmcs12_232_94	int32
+	struct_vmcs12_232_95	int32
+	struct_vmcs12_232_96	int32
+	struct_vmcs12_232_97	int32
+	struct_vmcs12_232_98	int32
+	struct_vmcs12_232_99	int32
+	struct_vmcs12_232_100	int32
+	struct_vmcs12_232_101	int32
+	struct_vmcs12_232_102	int32
+	struct_vmcs12_232_103	int32
+	struct_vmcs12_232_104	int32
+	struct_vmcs12_232_105	int32
+	struct_vmcs12_232_106	int32
+	struct_vmcs12_232_107	int32
+	struct_vmcs12_232_108	int32
+	struct_vmcs12_232_109	int32
+	struct_vmcs12_232_110	int32
+	struct_vmcs12_232_111	int32
+	struct_vmcs12_232_112	int32
+	struct_vmcs12_232_113	int32
+	struct_vmcs12_232_114	int32
+	struct_vmcs12_232_115	int32
+	struct_vmcs12_232_116	int32
+	struct_vmcs12_232_117	int32
+	struct_vmcs12_232_118	int32
+	struct_vmcs12_232_119	int32
+	struct_vmcs12_232_120	int32
+	struct_vmcs12_232_121	int32
+	struct_vmcs12_232_122	int32
+	struct_vmcs12_232_123	int32
+	struct_vmcs12_232_124	int32
+	struct_vmcs12_232_125	int32
+	struct_vmcs12_232_126	int32
+	struct_vmcs12_232_127	array[int32, 7]
+	struct_vmcs12_232_128	int16
+	struct_vmcs12_232_129	int16
+	struct_vmcs12_232_130	int16
+	struct_vmcs12_232_131	int16
+	struct_vmcs12_232_132	int16
+	struct_vmcs12_232_133	int16
+	struct_vmcs12_232_134	int16
+	struct_vmcs12_232_135	int16
+	struct_vmcs12_232_136	int16
+	struct_vmcs12_232_137	int16
+	struct_vmcs12_232_138	int16
+	struct_vmcs12_232_139	int16
+	struct_vmcs12_232_140	int16
+	struct_vmcs12_232_141	int16
+	struct_vmcs12_232_142	int16
+	struct_vmcs12_232_143	int16
+	struct_vmcs12_232_144	int16
+	struct_vmcs12_232_145	int16
+	struct_vmcs12_232_146	int16
 } [packed]
+
 struct_kvm_sev_cmd_74 {
-    struct_kvm_sev_cmd_74_0    int32
-    struct_kvm_sev_cmd_74_1    int64
-    struct_kvm_sev_cmd_74_2    int32
-    struct_kvm_sev_cmd_74_3    int32
+	struct_kvm_sev_cmd_74_0	int32
+	struct_kvm_sev_cmd_74_1	int64
+	struct_kvm_sev_cmd_74_2	int32
+	struct_kvm_sev_cmd_74_3	int32
 }
+
 struct_kvm_irq_routing_84 {
-    struct_kvm_irq_routing_84_0    int32
-    struct_kvm_irq_routing_84_1    int32
-    struct_kvm_irq_routing_84_2    array[struct_kvm_irq_routing_entry_392]
+	struct_kvm_irq_routing_84_0	int32
+	struct_kvm_irq_routing_84_1	int32
+	struct_kvm_irq_routing_84_2	array[struct_kvm_irq_routing_entry_392]
 }
+
 struct_kvm_signal_mask_187 {
-    struct_kvm_signal_mask_187_0    int32
-    struct_kvm_signal_mask_187_1    array[int8]
+	struct_kvm_signal_mask_187_0	int32
+	struct_kvm_signal_mask_187_1	array[int8]
 }
+
 struct_kvm_clock_data_61 {
-    struct_kvm_clock_data_61_0    int64
-    struct_kvm_clock_data_61_1    int32
-    struct_kvm_clock_data_61_2    array[int32, 9]
+	struct_kvm_clock_data_61_0	int64
+	struct_kvm_clock_data_61_1	int32
+	struct_kvm_clock_data_61_2	array[int32, 9]
 }
+
 struct_kvm_pit_config_42 {
-    struct_kvm_pit_config_42_0    int32
-    struct_kvm_pit_config_42_1    array[int32, 15]
+	struct_kvm_pit_config_42_0	int32
+	struct_kvm_pit_config_42_1	array[int32, 15]
 }
+
 struct_kvm_msr_filter_69 {
-    struct_kvm_msr_filter_69_0    int32
-    struct_kvm_msr_filter_69_1    array[struct_kvm_msr_filter_range_388, 16]
+	struct_kvm_msr_filter_69_0	int32
+	struct_kvm_msr_filter_69_1	array[struct_kvm_msr_filter_range_388, 16]
 }
