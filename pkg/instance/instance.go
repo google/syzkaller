@@ -11,6 +11,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -61,6 +62,8 @@ func NewEnv(cfg *mgrconfig.Config) (Env, error) {
 	return env, nil
 }
 
+var incompleteBuildRe = regexp.MustCompile(`Executor will not be built`)
+
 func (env *env) BuildSyzkaller(repoURL, commit string) error {
 	cfg := env.cfg
 	srcIndex := strings.LastIndex(cfg.Syzkaller, "/src/")
@@ -96,7 +99,14 @@ func (env *env) BuildSyzkaller(repoURL, commit string) error {
 		// ebtables.h:197:19: error: invalid conversion from ‘void*’ to ‘ebt_entry_target*’
 		"CFLAGS=-fpermissive -w",
 	)
-	if _, err := osutil.Run(time.Hour, cmd); err != nil {
+	output, err := osutil.Run(time.Hour, cmd)
+	if err == nil && incompleteBuildRe.Match(output) {
+		// In some cases make exists successfully, but it e.g. did not even attempt to compile
+		// syz-executor due to cross-compiler problems.
+		// For syzbot this is a clear indication that the environment is broken.
+		err = fmt.Errorf("the build was not complete:\n%v", output)
+	}
+	if err != nil {
 		goEnvCmd := osutil.Command("go", "env")
 		goEnvCmd.Dir = cfg.Syzkaller
 		goEnvCmd.Env = append(append([]string{}, os.Environ()...), goEnvOptions...)
