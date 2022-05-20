@@ -7,8 +7,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"net/http"
 	"os"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -130,7 +132,7 @@ type uiBugPage struct {
 	DupOf         *uiBugGroup
 	Dups          *uiBugGroup
 	Similar       *uiBugGroup
-	SampleReport  []byte
+	SampleReport  template.HTML
 	Crashes       *uiCrashTable
 	FixBisections *uiCrashTable
 	TestPatchJobs *uiJobList
@@ -944,12 +946,12 @@ func updateBugBadness(c context.Context, bug *uiBug) {
 	bug.NumCrashesBad = bug.NumCrashes >= 10000 && timeNow(c).Sub(bug.LastTime) < 24*time.Hour
 }
 
-func loadCrashesForBug(c context.Context, bug *Bug) ([]*uiCrash, []byte, error) {
+func loadCrashesForBug(c context.Context, bug *Bug) ([]*uiCrash, template.HTML, error) {
 	bugKey := bug.key(c)
 	// We can have more than maxCrashes crashes, if we have lots of reproducers.
 	crashes, _, err := queryCrashesForBug(c, bugKey, 2*maxCrashes+200)
 	if err != nil || len(crashes) == 0 {
-		return nil, nil, err
+		return nil, "", err
 	}
 	builds := make(map[string]*Build)
 	var results []*uiCrash
@@ -958,7 +960,7 @@ func loadCrashesForBug(c context.Context, bug *Bug) ([]*uiCrash, []byte, error) 
 		if build == nil {
 			build, err = loadBuild(c, bug.Namespace, crash.BuildID)
 			if err != nil {
-				return nil, nil, err
+				return nil, "", err
 			}
 			builds[crash.BuildID] = build
 		}
@@ -966,10 +968,24 @@ func loadCrashesForBug(c context.Context, bug *Bug) ([]*uiCrash, []byte, error) 
 	}
 	sampleReport, _, err := getText(c, textCrashReport, crashes[0].Report)
 	if err != nil {
-		return nil, nil, err
+		return nil, "", err
 	}
-	return results, sampleReport, nil
+	sampleBuild := builds[crashes[0].BuildID]
+	linkifiedReport := linkifyReport(sampleReport, sampleBuild.KernelRepo, sampleBuild.KernelCommit)
+	return results, linkifiedReport, nil
 }
+
+func linkifyReport(report []byte, repo, commit string) template.HTML {
+	escaped := template.HTMLEscapeString(string(report))
+	return template.HTML(sourceFileRe.ReplaceAllStringFunc(escaped, func(match string) string {
+		sub := sourceFileRe.FindStringSubmatch(match)
+		line, _ := strconv.Atoi(sub[3])
+		url := vcs.FileLink(repo, commit, sub[2], line)
+		return fmt.Sprintf("%v<a href='%v'>%v:%v</a>%v", sub[1], url, sub[2], sub[3], sub[4])
+	}))
+}
+
+var sourceFileRe = regexp.MustCompile("( |\t|\n)([a-zA-Z0-9/_-]+\\.(?:h|c|cc|cpp|s|S|go|rs)):([0-9]+)( |!|\t|\n)")
 
 func loadFixBisectionsForBug(c context.Context, bug *Bug) ([]*uiCrash, error) {
 	bugKey := bug.key(c)

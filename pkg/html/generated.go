@@ -284,6 +284,10 @@ aside {
 	background: transparent;
 }
 
+#crash_div pre {
+	margin: 1px;
+}
+
 .input-values {
 	margin-left: 7px;
 	margin-bottom: 7px;

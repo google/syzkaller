@@ -35,7 +35,7 @@ Page with details about a single bug.
 
 	{{if .SampleReport}}
 	<br><b>Sample crash report:</b><br>
-	<div id="crash_div"><p><pre>{{printf "%s" .SampleReport}}</pre></p></div><br>
+	<div id="crash_div"><pre>{{.SampleReport}}</pre></div><br>
 	{{end}}
 
 	{{if .FixBisections}}

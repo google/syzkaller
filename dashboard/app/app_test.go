@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/auth"
 	"github.com/google/syzkaller/sys/targets"
@@ -686,4 +687,26 @@ func compareBuilds(c *Ctx, dbBuild *Build, build *dashapi.Build) {
 	c.expectEQ(dbBuild.ID, build.ID)
 	c.expectEQ(dbBuild.KernelCommit, build.KernelCommit)
 	c.expectEQ(dbBuild.SyzkallerCommit, build.SyzkallerCommit)
+}
+
+func TestLinkifyReport(t *testing.T) {
+	input := `
+ tipc_topsrv_stop net/tipc/topsrv.c:694 [inline]
+ tipc_topsrv_exit_net+0x149/0x340 net/tipc/topsrv.c:715
+kernel BUG at fs/ext4/inode.c:2753!
+pkg/sentry/fsimpl/fuse/fusefs.go:278 +0x384
+	arch/x86/entry/entry_64.S:298
+`
+	// nolint: lll
+	output := `
+ tipc_topsrv_stop <a href='https://github.com/google/syzkaller/blob/111222/net/tipc/topsrv.c#L694'>net/tipc/topsrv.c:694</a> [inline]
+ tipc_topsrv_exit_net+0x149/0x340 <a href='https://github.com/google/syzkaller/blob/111222/net/tipc/topsrv.c#L715'>net/tipc/topsrv.c:715</a>
+kernel BUG at <a href='https://github.com/google/syzkaller/blob/111222/fs/ext4/inode.c#L2753'>fs/ext4/inode.c:2753</a>!
+<a href='https://github.com/google/syzkaller/blob/111222/pkg/sentry/fsimpl/fuse/fusefs.go#L278'>pkg/sentry/fsimpl/fuse/fusefs.go:278</a> +0x384
+	<a href='https://github.com/google/syzkaller/blob/111222/arch/x86/entry/entry_64.S#L298'>arch/x86/entry/entry_64.S:298</a>
+`
+	got := linkifyReport([]byte(input), "https://github.com/google/syzkaller", "111222")
+	if diff := cmp.Diff(output, string(got)); diff != "" {
+		t.Fatal(diff)
+	}
 }
