@@ -90,7 +90,6 @@ type uiManager struct {
 	FailedBuildBugLink    string
 	FailedSyzBuildBugLink string
 	LastActive            time.Time
-	LastActiveBad         bool // highlight LastActive in red
 	CurrentUpTime         time.Duration
 	MaxCorpus             int64
 	MaxCover              int64
@@ -347,7 +346,7 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	bug, err := findBugByID(c, r)
 	if err != nil {
-		return ErrDontLog{err}
+		return fmt.Errorf("%v, %w", err, ErrClientNotFound)
 	}
 	accessLevel := accessLevel(c, r)
 	if err := checkAccessLevel(c, r, bug.sanitizeAccess(accessLevel)); err != nil {
@@ -502,14 +501,14 @@ func handleTextImpl(c context.Context, w http.ResponseWriter, r *http.Request, t
 	if x := r.FormValue("x"); x != "" {
 		xid, err := strconv.ParseUint(x, 16, 64)
 		if err != nil || xid == 0 {
-			return ErrDontLog{fmt.Errorf("failed to parse text id: %v", err)}
+			return fmt.Errorf("failed to parse text id: %v: %w", err, ErrClientBadRequest)
 		}
 		id = int64(xid)
 	} else {
 		// Old link support, don't remove.
 		xid, err := strconv.ParseInt(r.FormValue("id"), 10, 64)
 		if err != nil || xid == 0 {
-			return ErrDontLog{fmt.Errorf("failed to parse text id: %v", err)}
+			return fmt.Errorf("failed to parse text id: %v: %w", err, ErrClientBadRequest)
 		}
 		id = xid
 	}
@@ -520,7 +519,7 @@ func handleTextImpl(c context.Context, w http.ResponseWriter, r *http.Request, t
 	data, ns, err := getText(c, tag, id)
 	if err != nil {
 		if strings.Contains(err.Error(), "datastore: no such entity") {
-			err = ErrDontLog{err}
+			err = fmt.Errorf("%v: %w", err, ErrClientBadRequest)
 		}
 		return err
 	}
@@ -1075,6 +1074,10 @@ func loadManagers(c context.Context, accessLevel AccessLevel, ns, manager string
 		if accessLevel < AccessUser {
 			link = ""
 		}
+		uptime := mgr.CurrentUpTime
+		if now.Sub(mgr.LastAlive) > 6*time.Hour {
+			uptime = 0
+		}
 		ui := &uiManager{
 			Now:                   timeNow(c),
 			Namespace:             mgr.Namespace,
@@ -1085,23 +1088,13 @@ func loadManagers(c context.Context, accessLevel AccessLevel, ns, manager string
 			FailedBuildBugLink:    bugLink(mgr.FailedBuildBug),
 			FailedSyzBuildBugLink: bugLink(mgr.FailedSyzBuildBug),
 			LastActive:            mgr.LastAlive,
-			LastActiveBad:         now.Sub(mgr.LastAlive) > 6*time.Hour,
-			CurrentUpTime:         mgr.CurrentUpTime,
+			CurrentUpTime:         uptime,
 			MaxCorpus:             stats.MaxCorpus,
 			MaxCover:              stats.MaxCover,
 			TotalFuzzingTime:      stats.TotalFuzzingTime,
 			TotalCrashes:          stats.TotalCrashes,
 			TotalExecs:            stats.TotalExecs,
 			TotalExecsBad:         stats.TotalExecs == 0,
-		}
-		if config.Namespaces[mgr.Namespace].Decommissioned {
-			// Don't show bold red highlight for decommissioned namespaces.
-			ui.Link = ""
-			ui.FailedBuildBugLink = ""
-			ui.FailedSyzBuildBugLink = ""
-			ui.CurrentUpTime = 0
-			ui.LastActiveBad = false
-			ui.TotalExecsBad = false
 		}
 		results = append(results, ui)
 	}
@@ -1180,28 +1173,33 @@ func loadTestPatchJobs(c context.Context, bug *Bug) ([]*uiJob, error) {
 }
 
 func makeUIJob(job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *uiJob {
+	kernelRepo, kernelCommit := job.KernelRepo, job.KernelBranch
+	if build != nil {
+		kernelRepo, kernelCommit = build.KernelRepo, build.KernelCommit
+	}
 	ui := &uiJob{
-		Type:            job.Type,
-		Flags:           job.Flags,
-		Created:         job.Created,
-		BugLink:         bugLink(jobKey.Parent().StringID()),
-		ExternalLink:    job.Link,
-		User:            job.User,
-		Reporting:       job.Reporting,
-		Namespace:       job.Namespace,
-		Manager:         job.Manager,
-		BugTitle:        job.BugTitle,
-		KernelAlias:     kernelRepoInfoRaw(job.Namespace, job.KernelRepo, job.KernelBranch).Alias,
-		PatchLink:       textLink(textPatch, job.Patch),
-		Attempts:        job.Attempts,
-		Started:         job.Started,
-		Finished:        job.Finished,
-		CrashTitle:      job.CrashTitle,
-		CrashLogLink:    textLink(textCrashLog, job.CrashLog),
-		CrashReportLink: textLink(textCrashReport, job.CrashReport),
-		LogLink:         textLink(textLog, job.Log),
-		ErrorLink:       textLink(textError, job.Error),
-		Reported:        job.Reported,
+		Type:             job.Type,
+		Flags:            job.Flags,
+		Created:          job.Created,
+		BugLink:          bugLink(jobKey.Parent().StringID()),
+		ExternalLink:     job.Link,
+		User:             job.User,
+		Reporting:        job.Reporting,
+		Namespace:        job.Namespace,
+		Manager:          job.Manager,
+		BugTitle:         job.BugTitle,
+		KernelAlias:      kernelRepoInfoRaw(job.Namespace, job.KernelRepo, job.KernelBranch).Alias,
+		KernelCommitLink: vcs.CommitLink(kernelRepo, kernelCommit),
+		PatchLink:        textLink(textPatch, job.Patch),
+		Attempts:         job.Attempts,
+		Started:          job.Started,
+		Finished:         job.Finished,
+		CrashTitle:       job.CrashTitle,
+		CrashLogLink:     textLink(textCrashLog, job.CrashLog),
+		CrashReportLink:  textLink(textCrashReport, job.CrashReport),
+		LogLink:          textLink(textLog, job.Log),
+		ErrorLink:        textLink(textError, job.Error),
+		Reported:         job.Reported,
 	}
 	if !job.Finished.IsZero() {
 		ui.Duration = job.Finished.Sub(job.Started)
@@ -1220,6 +1218,7 @@ func makeUIJob(job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *
 			Author: fmt.Sprintf("%v <%v>", com.AuthorName, com.Author),
 			CC:     strings.Split(com.CC, "|"),
 			Date:   com.Date,
+			Link:   vcs.CommitLink(kernelRepo, com.Hash),
 		})
 	}
 	if len(ui.Commits) == 1 {
@@ -1228,11 +1227,6 @@ func makeUIJob(job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *
 	}
 	if crash != nil {
 		ui.Crash = makeUICrash(crash, build)
-	}
-	if build != nil {
-		ui.KernelCommitLink = vcs.CommitLink(build.KernelRepo, build.KernelCommit)
-	} else {
-		ui.KernelCommitLink = vcs.CommitLink(job.KernelRepo, job.KernelBranch)
 	}
 	return ui
 }

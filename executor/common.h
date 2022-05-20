@@ -772,6 +772,9 @@ int main(void)
 	/*{{{MMAP_DATA}}}*/
 #endif
 
+#if SYZ_HAVE_SETUP_EXT
+	setup_ext();
+#endif
 #if SYZ_SYSCTL
 	setup_sysctl();
 #endif

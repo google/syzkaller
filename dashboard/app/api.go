@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -62,6 +63,10 @@ type APINamespaceHandler func(c context.Context, ns string, r *http.Request, pay
 const (
 	maxReproPerBug   = 10
 	reproRetryPeriod = 24 * time.Hour // try 1 repro per day until we have at least syz repro
+	// Attempt a new repro every ~ 3 months, even if we have already found it for the bug. This should:
+	// 1) Improve old repros over time (as we update descriptions / change syntax / repro algorithms).
+	// 2) Constrain the impact of bugs in syzkaller's backward compatibility. Fewer old repros, fewer problems.
+	reproStalePeriod = 100 * 24 * time.Hour
 )
 
 // Overridable for testing.
@@ -784,6 +789,7 @@ func saveCrash(c context.Context, ns string, req *dashapi.Crash, bug *Bug, bugKe
 			GetEmails(req.Recipients, dashapi.Cc)),
 		ReproOpts: req.ReproOpts,
 		ReportLen: prio,
+		Flags:     int64(req.Flags),
 	}
 	var err error
 	if crash.Log, err = putText(c, ns, textCrashLog, req.Log, false); err != nil {
@@ -1244,15 +1250,31 @@ func needRepro(c context.Context, bug *Bug) bool {
 	return needReproForBug(c, canon)
 }
 
+var syzErrorTitleRe = regexp.MustCompile(`^SYZFAIL:|^SYZFATAL:`)
+
 func needReproForBug(c context.Context, bug *Bug) bool {
-	return bug.ReproLevel < ReproLevelC &&
-		len(bug.Commits) == 0 &&
-		bug.Title != corruptedReportTitle &&
-		bug.Title != suppressedReportTitle &&
-		config.Namespaces[bug.Namespace].NeedRepro(bug) &&
-		(bug.NumRepro < maxReproPerBug ||
-			bug.ReproLevel == ReproLevelNone &&
-				timeSince(c, bug.LastReproTime) > reproRetryPeriod)
+	// We already have fixing commits.
+	if len(bug.Commits) > 0 {
+		return false
+	}
+	if bug.Title == corruptedReportTitle ||
+		bug.Title == suppressedReportTitle {
+		return false
+	}
+	if !config.Namespaces[bug.Namespace].NeedRepro(bug) {
+		return false
+	}
+	bestReproLevel := ReproLevelC
+	// For some bugs there's anyway no chance to find a C repro.
+	if syzErrorTitleRe.MatchString(bug.Title) {
+		bestReproLevel = ReproLevelSyz
+	}
+	if bug.ReproLevel < bestReproLevel {
+		// We have not found a best-level repro yet, try until we do.
+		return bug.NumRepro < maxReproPerBug || timeSince(c, bug.LastReproTime) >= reproRetryPeriod
+	}
+	// When the best repro is already found, still do a repro attempt once in a while.
+	return timeSince(c, bug.LastReproTime) >= reproStalePeriod
 }
 
 func putText(c context.Context, ns, tag string, data []byte, dedup bool) (int64, error) {

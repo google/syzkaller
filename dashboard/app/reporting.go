@@ -427,6 +427,7 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 		Moderation:      reporting.moderation,
 		Log:             crashLog,
 		LogLink:         externalLink(c, textCrashLog, crash.Log),
+		LogHasStrace:    dashapi.CrashFlags(crash.Flags)&dashapi.CrashUnderStrace > 0,
 		Report:          report,
 		ReportLink:      externalLink(c, textCrashReport, crash.Report),
 		CC:              kernelRepo.CC.Always,

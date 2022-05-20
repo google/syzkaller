@@ -24,6 +24,13 @@ func (n *Comment) Clone() Node {
 	}
 }
 
+func (n *Meta) Clone() Node {
+	return &Meta{
+		Pos:   n.Pos,
+		Value: n.Value.Clone().(*Type),
+	}
+}
+
 func (n *Include) Clone() Node {
 	return &Include{
 		Pos:  n.Pos,

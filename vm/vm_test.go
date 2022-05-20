@@ -69,7 +69,7 @@ func (inst *testInstance) Close() {
 }
 
 func init() {
-	beforeContext = maxErrorLength + 100
+	beforeContextDefault = maxErrorLength + 100
 	tickerPeriod = 1 * time.Second
 	waitForOutputTimeout = 3 * time.Second
 

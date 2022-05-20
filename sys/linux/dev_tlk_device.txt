@@ -5,6 +5,10 @@
 # Reference source code:
 # https://android.googlesource.com/kernel/tegra/+/android-tegra-dragon-3.18-marshmallow-dr-dragon/security/tlk_driver/ote_protocol.h
 
+# This was generated on unknown tree.
+meta noextract
+meta arches["386", "amd64", "arm", "arm64"]
+
 include <linux/ioctl.h>
 include <linux/types.h>
 include <security/tlk_driver/ote_protocol.h>

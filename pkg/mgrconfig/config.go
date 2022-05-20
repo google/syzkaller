@@ -168,6 +168,11 @@ type Config struct {
 	// Regexps are matched against bug title, guilty file and maintainer emails.
 	Interests []string `json:"interests,omitempty"`
 
+	// Path to the strace binary compiled for the target architecture.
+	// If set, for each reproducer syzkaller will run it once more under strace and save
+	// the output.
+	StraceBin string `json:"strace_bin"`
+
 	// Type of virtual machine to use, e.g. "qemu", "gce", "android", "isolated", etc.
 	Type string `json:"type"`
 	// VM-type-specific parameters.

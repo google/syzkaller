@@ -75,17 +75,12 @@ func main() {
 	if *flagBuild && *flagBuildDir != "" {
 		tool.Failf("-build and -builddir is an invalid combination")
 	}
-
-	OS, archArray, files, err := archFileList(*flagOS, *flagArch, flag.Args())
-	if err != nil {
-		tool.Fail(err)
-	}
-
+	OS := *flagOS
 	extractor := extractors[OS]
 	if extractor == nil {
 		tool.Failf("unknown os: %v", OS)
 	}
-	arches, err := createArches(OS, archArray, files)
+	arches, err := createArches(OS, archList(OS, *flagArch), flag.Args())
 	if err != nil {
 		tool.Fail(err)
 	}
@@ -97,7 +92,7 @@ func main() {
 		tool.Fail(err)
 	}
 
-	jobC := make(chan interface{}, len(archArray)*len(files))
+	jobC := make(chan interface{}, len(arches))
 	for _, arch := range arches {
 		jobC <- arch
 	}
@@ -108,11 +103,8 @@ func main() {
 
 	failed := false
 	constFiles := make(map[string]*compiler.ConstFile)
-	for _, file := range files {
-		constFiles[file] = compiler.NewConstFile()
-	}
 	for _, arch := range arches {
-		fmt.Printf("generating %v/%v...\n", arch.target.OS, arch.target.Arch)
+		fmt.Printf("generating %v/%v...\n", OS, arch.target.Arch)
 		<-arch.done
 		if arch.err != nil {
 			failed = true
@@ -125,6 +117,9 @@ func main() {
 				failed = true
 				fmt.Printf("%v: %v\n", f.name, f.err)
 				continue
+			}
+			if constFiles[f.name] == nil {
+				constFiles[f.name] = compiler.NewConstFile()
 			}
 			constFiles[f.name].AddArch(f.arch.target.Arch, f.consts, f.undeclared)
 		}
@@ -175,6 +170,18 @@ func worker(extractor Extractor, jobC chan interface{}) {
 }
 
 func createArches(OS string, archArray, files []string) ([]*Arch, error) {
+	errBuf := new(bytes.Buffer)
+	eh := func(pos ast.Pos, msg string) {
+		fmt.Fprintf(errBuf, "%v: %v\n", pos, msg)
+	}
+	top := ast.ParseGlob(filepath.Join("sys", OS, "*.txt"), eh)
+	if top == nil {
+		return nil, fmt.Errorf("%v", errBuf.String())
+	}
+	allFiles := compiler.FileList(top, OS, eh)
+	if allFiles == nil {
+		return nil, fmt.Errorf("%v", errBuf.String())
+	}
 	var arches []*Arch
 	for _, archStr := range archArray {
 		buildDir := ""
@@ -203,7 +210,17 @@ func createArches(OS string, archArray, files []string) ([]*Arch, error) {
 			build:       *flagBuild,
 			done:        make(chan bool),
 		}
-		for _, f := range files {
+		archFiles := files
+		if len(archFiles) == 0 {
+			for file, meta := range allFiles {
+				if meta.NoExtract || !meta.SupportsArch(archStr) {
+					continue
+				}
+				archFiles = append(archFiles, file)
+			}
+		}
+		sort.Strings(archFiles)
+		for _, f := range archFiles {
 			arch.files = append(arch.files, &File{
 				arch: arch,
 				name: f,
@@ -213,6 +230,18 @@ func createArches(OS string, archArray, files []string) ([]*Arch, error) {
 		arches = append(arches, arch)
 	}
 	return arches, nil
+}
+
+func archList(OS, arches string) []string {
+	if arches != "" {
+		return strings.Split(arches, ",")
+	}
+	var archArray []string
+	for arch := range targets.List[OS] {
+		archArray = append(archArray, arch)
+	}
+	sort.Strings(archArray)
+	return archArray
 }
 
 func checkUnsupportedCalls(arches []*Arch) bool {
@@ -238,60 +267,6 @@ func checkUnsupportedCalls(arches []*Arch) bool {
 			file, name)
 	}
 	return failed
-}
-
-func archFileList(os, arch string, files []string) (string, []string, []string, error) {
-	// Note: this is linux-specific and should be part of Extractor and moved to linux.go.
-	android := false
-	if os == "android" {
-		android = true
-		os = targets.Linux
-	}
-	var arches []string
-	if arch != "" {
-		arches = strings.Split(arch, ",")
-	} else {
-		for arch := range targets.List[os] {
-			arches = append(arches, arch)
-		}
-		if android {
-			arches = []string{targets.I386, targets.AMD64, targets.ARM, targets.ARM64}
-		}
-		sort.Strings(arches)
-	}
-	if len(files) == 0 {
-		matches, err := filepath.Glob(filepath.Join("sys", os, "*.txt"))
-		if err != nil || len(matches) == 0 {
-			return "", nil, nil, fmt.Errorf("failed to find sys files: %v", err)
-		}
-		manualFiles := map[string]bool{
-			// Not upstream, generated on https://github.com/multipath-tcp/mptcp_net-next
-			"vnet_mptcp.txt": true,
-			// Not upstream, generated on:
-			// https://chromium.googlesource.com/chromiumos/third_party/kernel d2a8a1eb8b86
-			"dev_bifrost.txt": true,
-			// Not upstream, generated on unknown tree.
-			"dev_img_rogue.txt": true,
-		}
-		androidFiles := map[string]bool{
-			"dev_tlk_device.txt": true,
-			// This was generated on:
-			// https://source.codeaurora.org/quic/la/kernel/msm-4.9 msm-4.9
-			"dev_video4linux.txt": true,
-			// This was generated on:
-			// https://chromium.googlesource.com/chromiumos/third_party/kernel 3a36438201f3
-			"fs_incfs.txt": true,
-		}
-		for _, f := range matches {
-			f = filepath.Base(f)
-			if manualFiles[f] || os == targets.Linux && android != androidFiles[f] {
-				continue
-			}
-			files = append(files, f)
-		}
-		sort.Strings(files)
-	}
-	return os, arches, files, nil
 }
 
 func processArch(extractor Extractor, arch *Arch) (map[string]*compiler.ConstInfo, error) {

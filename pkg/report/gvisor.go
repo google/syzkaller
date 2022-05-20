@@ -157,7 +157,7 @@ var gvisorOopses = append([]*oops{
 		[]oopsFormat{
 			{
 				title:        compile("WARNING: DATA RACE"),
-				report:       compile("WARNING: DATA RACE\n(?:.*\n)*?  (?:[a-zA-Z0-9./-_]+/)([a-zA-Z0-9.()*_]+)\\(\\)\n"),
+				report:       compile("WARNING: DATA RACE\n(?:.*\n)*?  (?:[a-zA-Z0-9./_-]+/)([a-zA-Z0-9.()*_]+)\\(\\)\n"),
 				fmt:          "DATA RACE in %[1]v",
 				noStackTrace: true,
 			},
