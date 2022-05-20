@@ -273,6 +273,16 @@ aside {
 	height: 85vh;
 }
 
+#crash_div {
+	align: left;
+	width: 90%;
+	height: 400px;
+	margin: 0 0;
+	overflow: scroll;
+	border: 1px solid #777;
+	padding: 0px;
+	background: transparent;
+}
 
 .input-values {
 	margin-left: 7px;
