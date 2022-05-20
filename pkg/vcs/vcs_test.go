@@ -192,6 +192,45 @@ func TestCommitLink(t *testing.T) {
 	}
 }
 
+func TestFileLink(t *testing.T) {
+	type Test struct {
+		URL      string
+		Hash     string
+		File     string
+		Line     int
+		FileLink string
+	}
+	tests := []Test{
+		{
+			"https://github.com/google/syzkaller",
+			"76dd003f1b102b791d8b342a1f92a6486ff56a1e",
+			"Makefile",
+			42,
+			"https://github.com/google/syzkaller/blob/76dd003f1b102b791d8b342a1f92a6486ff56a1e/Makefile#L42",
+		},
+		{
+			"https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git",
+			"8fe28cb58bcb",
+			"Makefile",
+			42,
+			"https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Makefile?id=8fe28cb58bcb#n42",
+		},
+		{
+			"https://android.googlesource.com/kernel/common",
+			"d0c3914ffbe4c00f0a131bae83f811d5606699bc",
+			"Makefile",
+			42,
+			"https://android.googlesource.com/kernel/common/+/d0c3914ffbe4c00f0a131bae83f811d5606699bc/Makefile#42",
+		},
+	}
+	for _, test := range tests {
+		link := FileLink(test.URL, test.Hash, test.File, test.Line)
+		if link != test.FileLink {
+			t.Errorf("Test: %+v\ngot:  %v", test, link)
+		}
+	}
+}
+
 func TestParse(t *testing.T) {
 	// nolint: lll
 	test1 := []byte(`Foo (Maintainer) Bar <a@email.com> (maintainer:KERNEL)
