@@ -238,7 +238,7 @@ generate:
 	$(MAKE) format
 
 generate_go: format_cpp
-	$(GO) generate ./pkg/csource ./executor ./pkg/ifuzz ./pkg/build ./pkg/html/pages
+	$(GO) generate ./pkg/csource ./executor ./pkg/ifuzz ./pkg/build
 
 generate_fidl:
 ifeq ($(TARGETOS),fuchsia)
