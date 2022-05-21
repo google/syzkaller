@@ -7,7 +7,7 @@
 meta arches["amd64"]
 
 # driver found at module init function loop_init() in https://elixir.bootlin.com/linux/v5.12/source/drivers/block/loop.c#L2320
-# call chain: 
+# call chain:
 # 00: https://elixir.bootlin.com/linux/v5.12/source/drivers/block/loop.c#L2364
 
 resource fd_17156368644779550551_fd[fd]
@@ -20,9 +20,8 @@ ioctl$syz_describe_17156368644779550551_19584(fd fd_17156368644779550551_fd, cmd
 ioctl$syz_describe_17156368644779550551_19585(fd fd_17156368644779550551_fd, cmd const[19585], arg intptr)
 ioctl$syz_describe_17156368644779550551_19586(fd fd_17156368644779550551_fd, cmd const[19586], arg intptr)
 
-
 # driver found at module init function loop_init() in https://elixir.bootlin.com/linux/v5.12/source/drivers/block/loop.c#L2320
-# call chain: 
+# call chain:
 # 00: https://elixir.bootlin.com/linux/v5.12/source/drivers/block/loop.c#L2377
 # 01: https://elixir.bootlin.com/linux/v5.12/source/drivers/block/loop.c#L2168
 
@@ -45,43 +44,45 @@ ioctl$syz_describe_10884907972705227686_19465(fd fd_10884907972705227686_fd, cmd
 ioctl$syz_describe_10884907972705227686_19466_0(fd fd_10884907972705227686_fd, cmd const[19466], arg ptr[in, struct_loop_config_10884907972705227686])
 
 struct_loop_info64_10884907972705227686 {
-    field_0    int64
-    field_1    int64
-    field_2    int64
-    field_3    int64
-    field_4    int64
-    field_5    int32
-    field_6    int32
-    field_7    int32
-    field_8    int32
-    field_9    array[int8, 64]
-    field_10    array[int8, 64]
-    field_11    array[int8, 32]
-    field_12    array[int64, 2]
+	field_0		int64
+	field_1		int64
+	field_2		int64
+	field_3		int64
+	field_4		int64
+	field_5		int32
+	field_6		int32
+	field_7		int32
+	field_8		int32
+	field_9		array[int8, 64]
+	field_10	array[int8, 64]
+	field_11	array[int8, 32]
+	field_12	array[int64, 2]
 }
+
 struct_loop_config_10884907972705227686 {
-    field_0    int32
-    field_1    int32
-    field_2    struct_loop_info64_10884907972705227686
-    field_3    array[int64, 8]
+	field_0	int32
+	field_1	int32
+	field_2	struct_loop_info64_10884907972705227686
+	field_3	array[int64, 8]
 }
+
 struct_loop_info_10884907972705227686 {
-    field_0    int32
-    field_1    int64
-    field_2    int64
-    field_3    int64
-    field_4    int32
-    field_5    int32
-    field_6    int32
-    field_7    int32
-    field_8    array[int8, 64]
-    field_9    array[int8, 32]
-    field_10    array[int64, 2]
-    field_11    array[int8, 4]
+	field_0		int32
+	field_1		int64
+	field_2		int64
+	field_3		int64
+	field_4		int32
+	field_5		int32
+	field_6		int32
+	field_7		int32
+	field_8		array[int8, 64]
+	field_9		array[int8, 32]
+	field_10	array[int64, 2]
+	field_11	array[int8, 4]
 }
 
 # driver found at module init function loop_init() in https://elixir.bootlin.com/linux/v5.12/source/drivers/block/loop.c#L2320
-# call chain: 
+# call chain:
 # 00: https://elixir.bootlin.com/linux/v5.12/source/drivers/block/loop.c#L2369
 # 01: https://elixir.bootlin.com/linux/v5.12/source/drivers/block/loop.c#L2246
 # 02: https://elixir.bootlin.com/linux/v5.12/source/drivers/block/loop.c#L2168
@@ -105,44 +106,46 @@ ioctl$syz_describe_15353969716721061489_19465(fd fd_15353969716721061489_fd, cmd
 ioctl$syz_describe_15353969716721061489_19466_0(fd fd_15353969716721061489_fd, cmd const[19466], arg ptr[in, struct_loop_config_15353969716721061489])
 
 struct_loop_info64_15353969716721061489 {
-    field_0    int64
-    field_1    int64
-    field_2    int64
-    field_3    int64
-    field_4    int64
-    field_5    int32
-    field_6    int32
-    field_7    int32
-    field_8    int32
-    field_9    array[int8, 64]
-    field_10    array[int8, 64]
-    field_11    array[int8, 32]
-    field_12    array[int64, 2]
+	field_0		int64
+	field_1		int64
+	field_2		int64
+	field_3		int64
+	field_4		int64
+	field_5		int32
+	field_6		int32
+	field_7		int32
+	field_8		int32
+	field_9		array[int8, 64]
+	field_10	array[int8, 64]
+	field_11	array[int8, 32]
+	field_12	array[int64, 2]
 }
+
 struct_loop_config_15353969716721061489 {
-    field_0    int32
-    field_1    int32
-    field_2    struct_loop_info64_15353969716721061489
-    field_3    array[int64, 8]
+	field_0	int32
+	field_1	int32
+	field_2	struct_loop_info64_15353969716721061489
+	field_3	array[int64, 8]
 }
+
 struct_loop_info_15353969716721061489 {
-    field_0    int32
-    field_1    int64
-    field_2    int64
-    field_3    int64
-    field_4    int32
-    field_5    int32
-    field_6    int32
-    field_7    int32
-    field_8    array[int8, 64]
-    field_9    array[int8, 32]
-    field_10    array[int64, 2]
-    field_11    array[int8, 4]
+	field_0		int32
+	field_1		int64
+	field_2		int64
+	field_3		int64
+	field_4		int32
+	field_5		int32
+	field_6		int32
+	field_7		int32
+	field_8		array[int8, 64]
+	field_9		array[int8, 32]
+	field_10	array[int64, 2]
+	field_11	array[int8, 4]
 }
 
 # driver found at (not module init) function loop_control_ioctl() in https://elixir.bootlin.com/linux/v5.12/source/drivers/block/loop.c#L2250
 # parent id hash: 17156368644779550551
-# call chain: 
+# call chain:
 # 00: https://elixir.bootlin.com/linux/v5.12/source/drivers/block/loop.c#L2268
 # 01: https://elixir.bootlin.com/linux/v5.12/source/drivers/block/loop.c#L2168
 
@@ -165,37 +168,39 @@ ioctl$syz_describe_16829254356611959132_19465(fd fd_16829254356611959132_fd, cmd
 ioctl$syz_describe_16829254356611959132_19466_0(fd fd_16829254356611959132_fd, cmd const[19466], arg ptr[in, struct_loop_config_16829254356611959132])
 
 struct_loop_info64_16829254356611959132 {
-    field_0    int64
-    field_1    int64
-    field_2    int64
-    field_3    int64
-    field_4    int64
-    field_5    int32
-    field_6    int32
-    field_7    int32
-    field_8    int32
-    field_9    array[int8, 64]
-    field_10    array[int8, 64]
-    field_11    array[int8, 32]
-    field_12    array[int64, 2]
+	field_0		int64
+	field_1		int64
+	field_2		int64
+	field_3		int64
+	field_4		int64
+	field_5		int32
+	field_6		int32
+	field_7		int32
+	field_8		int32
+	field_9		array[int8, 64]
+	field_10	array[int8, 64]
+	field_11	array[int8, 32]
+	field_12	array[int64, 2]
 }
+
 struct_loop_config_16829254356611959132 {
-    field_0    int32
-    field_1    int32
-    field_2    struct_loop_info64_16829254356611959132
-    field_3    array[int64, 8]
+	field_0	int32
+	field_1	int32
+	field_2	struct_loop_info64_16829254356611959132
+	field_3	array[int64, 8]
 }
+
 struct_loop_info_16829254356611959132 {
-    field_0    int32
-    field_1    int64
-    field_2    int64
-    field_3    int64
-    field_4    int32
-    field_5    int32
-    field_6    int32
-    field_7    int32
-    field_8    array[int8, 64]
-    field_9    array[int8, 32]
-    field_10    array[int64, 2]
-    field_11    array[int8, 4]
+	field_0		int32
+	field_1		int64
+	field_2		int64
+	field_3		int64
+	field_4		int32
+	field_5		int32
+	field_6		int32
+	field_7		int32
+	field_8		array[int8, 64]
+	field_9		array[int8, 32]
+	field_10	array[int64, 2]
+	field_11	array[int8, 4]
 }

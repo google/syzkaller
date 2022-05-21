@@ -7,7 +7,7 @@
 meta arches["amd64"]
 
 # driver found at module init function svm_init() in https://elixir.bootlin.com/linux/v5.12/source/arch/x86/kvm/svm/svm.c#L4634
-# call chain: 
+# call chain:
 # 00: https://elixir.bootlin.com/linux/v5.12/source/arch/x86/kvm/svm/svm.c#L4638
 # 01: https://elixir.bootlin.com/linux/v5.12/source/arch/x86/kvm/../../../virt/kvm/kvm_main.c#L4988
 
@@ -47,43 +47,46 @@ ioctl$syz_describe_15882912382654402107_3221794497_1(fd fd_15882912382654402107_
 ioctl$syz_describe_15882912382654402107_3221794497_2(fd fd_15882912382654402107_fd, cmd const[3221794497], arg ptr[in, struct_kvm_cpuid_entry2_15882912382654402107])
 
 struct_jump_entry_15882912382654402107 {
-    field_0    int32
-    field_1    int32
-    field_2    int64
+	field_0	int32
+	field_1	int32
+	field_2	int64
 }
+
 struct_kvm_cpuid_entry2_15882912382654402107 {
-    field_0    int32
-    field_1    int32
-    field_2    int32
-    field_3    int32
-    field_4    int32
-    field_5    int32
-    field_6    int32
-    field_7    array[int32, 3]
+	field_0	int32
+	field_1	int32
+	field_2	int32
+	field_3	int32
+	field_4	int32
+	field_5	int32
+	field_6	int32
+	field_7	array[int32, 3]
 }
+
 struct_kvm_msrs_15882912382654402107 {
-    field_0    int32
-    field_1    int32
-    field_2    array[struct_jump_entry_15882912382654402107]
+	field_0	int32
+	field_1	int32
+	field_2	array[struct_jump_entry_15882912382654402107]
 }
+
 struct_kvm_cpuid2_15882912382654402107 {
-    field_0    int32
-    field_1    int32
-    field_2    array[struct_kvm_cpuid_entry2_15882912382654402107]
+	field_0	int32
+	field_1	int32
+	field_2	array[struct_kvm_cpuid_entry2_15882912382654402107]
 }
+
 struct_ring_buffer_event_15882912382654402107 {
-    field_0    int32
-    field_1    array[int32]
+	field_0	int32
+	field_1	array[int32]
 }
 
 # driver found at (not module init) function kvm_dev_ioctl() in https://elixir.bootlin.com/linux/v5.12/source/arch/x86/kvm/../../../virt/kvm/kvm_main.c#L4111
 # parent id hash: 15882912382654402107
-# call chain: 
+# call chain:
 # 00: https://elixir.bootlin.com/linux/v5.12/source/arch/x86/kvm/../../../virt/kvm/kvm_main.c#L4123
 # 01: https://elixir.bootlin.com/linux/v5.12/source/arch/x86/kvm/../../../virt/kvm/kvm_main.c#L4083
 
 resource fd_15882912382654402107_cmd_44545_fd[fd]
-
 
 # syscall handler structure in https://elixir.bootlin.com/linux/v5.12/source/arch/x86/kvm/../../../virt/kvm/kvm_main.c#L4083
 ioctl$syz_describe_3019682129797709532_44547(fd fd_15882912382654402107_cmd_44545_fd, cmd const[44547], arg intptr)
@@ -196,205 +199,237 @@ ioctl$syz_describe_3019682129797709532_3225988808_1(fd fd_15882912382654402107_c
 ioctl$syz_describe_3019682129797709532_3255348834_0(fd fd_15882912382654402107_cmd_44545_fd, cmd const[3255348834], arg ptr[in, struct_kvm_irqchip_3019682129797709532])
 
 union_anon_0_3019682129797709532 {
-    field_0    int64
+	field_0	int64
 }
+
 struct_atomic_t_3019682129797709532 {
-    field_0    int32
+	field_0	int32
 }
+
 struct_uid_gid_extent_3019682129797709532 {
-    field_0    int32
-    field_1    int32
-    field_2    int32
+	field_0	int32
+	field_1	int32
+	field_2	int32
 }
+
 struct_cpu_itimer_3019682129797709532 {
-    field_0    int64
-    field_1    int64
+	field_0	int64
+	field_1	int64
 }
+
 struct_kvm_kpit_channel_state_3019682129797709532 {
-    field_0    int32
-    field_1    int16
-    field_2    int8
-    field_3    int8
-    field_4    int8
-    field_5    int8
-    field_6    int8
-    field_7    int8
-    field_8    int8
-    field_9    int8
-    field_10    int8
-    field_11    int8
-    field_12    int64
+	field_0		int32
+	field_1		int16
+	field_2		int8
+	field_3		int8
+	field_4		int8
+	field_5		int8
+	field_6		int8
+	field_7		int8
+	field_8		int8
+	field_9		int8
+	field_10	int8
+	field_11	int8
+	field_12	int64
 }
+
 struct_kvm_xen_hvm_config_3019682129797709532 {
-    field_0    int32
-    field_1    int32
-    field_2    int64
-    field_3    int64
-    field_4    int8
-    field_5    int8
-    field_6    array[int8, 30]
+	field_0	int32
+	field_1	int32
+	field_2	int64
+	field_3	int64
+	field_4	int8
+	field_5	int8
+	field_6	array[int8, 30]
 }
+
 struct_kvm_pmu_event_filter_3019682129797709532 {
-    field_0    int32
-    field_1    int32
-    field_2    int32
-    field_3    int32
-    field_4    array[int32, 4]
-    field_5    array[int64]
+	field_0	int32
+	field_1	int32
+	field_2	int32
+	field_3	int32
+	field_4	array[int32, 4]
+	field_5	array[int64]
 }
+
 union_anon_120_3019682129797709532 {
-    field_0    ptr[in, int8]
+	field_0	ptr[in, int8]
 }
+
 struct_kvm_coalesced_mmio_zone_3019682129797709532 {
-    field_0    int64
-    field_1    int32
-    field_2    struct_atomic_t_3019682129797709532
+	field_0	int64
+	field_1	int32
+	field_2	struct_atomic_t_3019682129797709532
 }
+
 struct_kvm_irq_level_3019682129797709532 {
-    field_0    struct_atomic_t_3019682129797709532
-    field_1    int32
+	field_0	struct_atomic_t_3019682129797709532
+	field_1	int32
 }
+
 struct_kvm_ioapic_state_3019682129797709532 {
-    field_0    int64
-    field_1    int32
-    field_2    int32
-    field_3    int32
-    field_4    int32
-    field_5    array[union_anon_0_3019682129797709532, 24]
+	field_0	int64
+	field_1	int32
+	field_2	int32
+	field_3	int32
+	field_4	int32
+	field_5	array[union_anon_0_3019682129797709532, 24]
 }
+
 union_anon_268_3019682129797709532 {
-    field_0    struct_kvm_ioapic_state_3019682129797709532
-    field_1    array[int8, 296]
+	field_0	struct_kvm_ioapic_state_3019682129797709532
+	field_1	array[int8, 296]
 }
+
 struct_kvm_irqchip_3019682129797709532 {
-    field_0    int32
-    field_1    int32
-    field_2    union_anon_268_3019682129797709532
+	field_0	int32
+	field_1	int32
+	field_2	union_anon_268_3019682129797709532
 }
+
 struct_kvm_pit_state_3019682129797709532 {
-    field_0    array[struct_kvm_kpit_channel_state_3019682129797709532, 3]
+	field_0	array[struct_kvm_kpit_channel_state_3019682129797709532, 3]
 }
+
 struct_kvm_pit_state2_3019682129797709532 {
-    field_0    array[struct_kvm_kpit_channel_state_3019682129797709532, 3]
-    field_1    int32
-    field_2    array[int32, 9]
+	field_0	array[struct_kvm_kpit_channel_state_3019682129797709532, 3]
+	field_1	int32
+	field_2	array[int32, 9]
 }
+
 struct_kvm_reinject_control_3019682129797709532 {
-    field_0    int8
-    field_1    array[int8, 31]
+	field_0	int8
+	field_1	array[int8, 31]
 }
+
 struct_kvm_msr_filter_range_3019682129797709532 {
-    field_0    int32
-    field_1    int32
-    field_2    int32
-    field_3    ptr[in, int8]
+	field_0	int32
+	field_1	int32
+	field_2	int32
+	field_3	ptr[in, int8]
 }
+
 struct_kvm_guest_debug_arch_3019682129797709532 {
-    field_0    array[int64, 8]
+	field_0	array[int64, 8]
 }
+
 struct_kvm_hyperv_eventfd_3019682129797709532 {
-    field_0    int32
-    field_1    int32
-    field_2    int32
-    field_3    array[int32, 3]
+	field_0	int32
+	field_1	int32
+	field_2	int32
+	field_3	array[int32, 3]
 }
+
 struct_kvm_irq_routing_s390_adapter_3019682129797709532 {
-    field_0    int64
-    field_1    int64
-    field_2    int64
-    field_3    int32
-    field_4    int32
+	field_0	int64
+	field_1	int64
+	field_2	int64
+	field_3	int32
+	field_4	int32
 }
+
 union_anon_214_3019682129797709532 {
-    field_0    struct_kvm_irq_routing_s390_adapter_3019682129797709532
+	field_0	struct_kvm_irq_routing_s390_adapter_3019682129797709532
 }
+
 struct_kvm_irq_routing_entry_3019682129797709532 {
-    field_0    int32
-    field_1    int32
-    field_2    int32
-    field_3    int32
-    field_4    union_anon_214_3019682129797709532
+	field_0	int32
+	field_1	int32
+	field_2	int32
+	field_3	int32
+	field_4	union_anon_214_3019682129797709532
 }
+
 struct_kvm_dirty_log_3019682129797709532 {
-    field_0    int32
-    field_1    int32
-    field_2    union_anon_120_3019682129797709532
+	field_0	int32
+	field_1	int32
+	field_2	union_anon_120_3019682129797709532
 }
+
 struct_kvm_enable_cap_3019682129797709532 {
-    field_0    int32
-    field_1    int32
-    field_2    array[int64, 4]
-    field_3    array[int8, 64]
+	field_0	int32
+	field_1	int32
+	field_2	array[int64, 4]
+	field_3	array[int8, 64]
 }
+
 struct_kvm_userspace_memory_region_3019682129797709532 {
-    field_0    int32
-    field_1    int32
-    field_2    int64
-    field_3    int64
-    field_4    int64
+	field_0	int32
+	field_1	int32
+	field_2	int64
+	field_3	int64
+	field_4	int64
 }
+
 struct_kvm_clear_dirty_log_3019682129797709532 {
-    field_0    int32
-    field_1    int32
-    field_2    int64
-    field_3    union_anon_120_3019682129797709532
+	field_0	int32
+	field_1	int32
+	field_2	int64
+	field_3	union_anon_120_3019682129797709532
 }
+
 struct_kvm_irqfd_3019682129797709532 {
-    field_0    int32
-    field_1    int32
-    field_2    int32
-    field_3    int32
-    field_4    array[int8, 16]
+	field_0	int32
+	field_1	int32
+	field_2	int32
+	field_3	int32
+	field_4	array[int8, 16]
 }
+
 struct_kvm_ioeventfd_3019682129797709532 {
-    field_0    int64
-    field_1    int64
-    field_2    int32
-    field_3    int32
-    field_4    int32
-    field_5    array[int8, 36]
+	field_0	int64
+	field_1	int64
+	field_2	int32
+	field_3	int32
+	field_4	int32
+	field_5	array[int8, 36]
 }
+
 struct_kvm_msi_3019682129797709532 {
-    field_0    int32
-    field_1    int32
-    field_2    int32
-    field_3    int32
-    field_4    int32
-    field_5    array[int8, 12]
+	field_0	int32
+	field_1	int32
+	field_2	int32
+	field_3	int32
+	field_4	int32
+	field_5	array[int8, 12]
 }
+
 struct_kvm_xen_vcpu_attr_3019682129797709532 {
-    field_0    int16
-    field_1    array[int16, 3]
-    field_2    struct_kvm_guest_debug_arch_3019682129797709532
+	field_0	int16
+	field_1	array[int16, 3]
+	field_2	struct_kvm_guest_debug_arch_3019682129797709532
 }
+
 struct_kvm_irq_routing_3019682129797709532 {
-    field_0    int32
-    field_1    int32
-    field_2    array[struct_kvm_irq_routing_entry_3019682129797709532]
+	field_0	int32
+	field_1	int32
+	field_2	array[struct_kvm_irq_routing_entry_3019682129797709532]
 }
+
 struct_kvm_clock_data_3019682129797709532 {
-    field_0    int64
-    field_1    int32
-    field_2    array[int32, 9]
+	field_0	int64
+	field_1	int32
+	field_2	array[int32, 9]
 }
+
 struct_kvm_pit_config_3019682129797709532 {
-    field_0    int32
-    field_1    array[int32, 15]
+	field_0	int32
+	field_1	array[int32, 15]
 }
+
 struct_kvm_msr_filter_3019682129797709532 {
-    field_0    int32
-    field_1    array[struct_kvm_msr_filter_range_3019682129797709532, 16]
+	field_0	int32
+	field_1	array[struct_kvm_msr_filter_range_3019682129797709532, 16]
 }
 
 # driver found at (not module init) function kvm_vm_ioctl() in https://elixir.bootlin.com/linux/v5.12/source/arch/x86/kvm/../../../virt/kvm/kvm_main.c#L3828
 # parent id hash: 3019682129797709532
-# call chain: 
+# call chain:
 # 00: https://elixir.bootlin.com/linux/v5.12/source/arch/x86/kvm/../../../virt/kvm/kvm_main.c#L3839
 # 01: https://elixir.bootlin.com/linux/v5.12/source/arch/x86/kvm/../../../virt/kvm/kvm_main.c#L3223
 # 02: https://elixir.bootlin.com/linux/v5.12/source/arch/x86/kvm/../../../virt/kvm/kvm_main.c#L3140
 
 resource fd_3019682129797709532_cmd_44609_fd[fd]
-
 
 # syscall handler structure in https://elixir.bootlin.com/linux/v5.12/source/arch/x86/kvm/../../../virt/kvm/kvm_main.c#L3140
 ioctl$syz_describe_4845774610936020991_174(fd fd_3019682129797709532_cmd_44609_fd, cmd const[174], arg intptr)
@@ -574,518 +609,555 @@ ioctl$syz_describe_4845774610936020991_3229658814_36(fd fd_3019682129797709532_c
 ioctl$syz_describe_4845774610936020991_3229658814_37(fd fd_3019682129797709532_cmd_44609_fd, cmd const[3229658814], arg ptr[in, struct_vmcb_save_area_4845774610936020991])
 
 union_anon_0_4845774610936020991 {
-    field_0    int64
+	field_0	int64
 }
+
 struct_atomic_t_4845774610936020991 {
-    field_0    int32
+	field_0	int32
 }
+
 struct_jump_entry_4845774610936020991 {
-    field_0    int32
-    field_1    int32
-    field_2    int64
+	field_0	int32
+	field_1	int32
+	field_2	int64
 }
+
 struct_sigset_t_4845774610936020991 {
-    field_0    array[int64, 1]
+	field_0	array[int64, 1]
 }
+
 struct_kvm_regs_4845774610936020991 {
-    field_0    int64
-    field_1    int64
-    field_2    int64
-    field_3    int64
-    field_4    int64
-    field_5    int64
-    field_6    int64
-    field_7    int64
-    field_8    int64
-    field_9    int64
-    field_10    int64
-    field_11    int64
-    field_12    int64
-    field_13    int64
-    field_14    int64
-    field_15    int64
-    field_16    int64
-    field_17    int64
+	field_0		int64
+	field_1		int64
+	field_2		int64
+	field_3		int64
+	field_4		int64
+	field_5		int64
+	field_6		int64
+	field_7		int64
+	field_8		int64
+	field_9		int64
+	field_10	int64
+	field_11	int64
+	field_12	int64
+	field_13	int64
+	field_14	int64
+	field_15	int64
+	field_16	int64
+	field_17	int64
 }
+
 struct_kvm_segment_4845774610936020991 {
-    field_0    int64
-    field_1    int32
-    field_2    int16
-    field_3    int8
-    field_4    int8
-    field_5    int8
-    field_6    int8
-    field_7    int8
-    field_8    int8
-    field_9    int8
-    field_10    int8
-    field_11    int8
-    field_12    int8
+	field_0		int64
+	field_1		int32
+	field_2		int16
+	field_3		int8
+	field_4		int8
+	field_5		int8
+	field_6		int8
+	field_7		int8
+	field_8		int8
+	field_9		int8
+	field_10	int8
+	field_11	int8
+	field_12	int8
 }
+
 struct_vmcb_control_area_4845774610936020991 {
-    field_0    array[int32, 6]
-    field_1    array[int32, 9]
-    field_2    int16
-    field_3    int16
-    field_4    int64
-    field_5    int64
-    field_6    int64
-    field_7    int32
-    field_8    int8
-    field_9    array[int8, 3]
-    field_10    int32
-    field_11    int32
-    field_12    int32
-    field_13    array[int8, 4]
-    field_14    int32
-    field_15    int32
-    field_16    int64
-    field_17    int64
-    field_18    int32
-    field_19    int32
-    field_20    int64
-    field_21    int64
-    field_22    int64
-    field_23    int32
-    field_24    int32
-    field_25    int64
-    field_26    int64
-    field_27    int32
-    field_28    int32
-    field_29    int64
-    field_30    int8
-    field_31    array[int8, 15]
-    field_32    int64
-    field_33    array[int8, 8]
-    field_34    int64
-    field_35    int64
-    field_36    array[int8, 8]
-    field_37    int64
+	field_0		array[int32, 6]
+	field_1		array[int32, 9]
+	field_2		int16
+	field_3		int16
+	field_4		int64
+	field_5		int64
+	field_6		int64
+	field_7		int32
+	field_8		int8
+	field_9		array[int8, 3]
+	field_10	int32
+	field_11	int32
+	field_12	int32
+	field_13	array[int8, 4]
+	field_14	int32
+	field_15	int32
+	field_16	int64
+	field_17	int64
+	field_18	int32
+	field_19	int32
+	field_20	int64
+	field_21	int64
+	field_22	int64
+	field_23	int32
+	field_24	int32
+	field_25	int64
+	field_26	int64
+	field_27	int32
+	field_28	int32
+	field_29	int64
+	field_30	int8
+	field_31	array[int8, 15]
+	field_32	int64
+	field_33	array[int8, 8]
+	field_34	int64
+	field_35	int64
+	field_36	array[int8, 8]
+	field_37	int64
 }
+
 struct_vmcb_seg_4845774610936020991 {
-    field_0    int16
-    field_1    int16
-    field_2    int32
-    field_3    int64
+	field_0	int16
+	field_1	int16
+	field_2	int32
+	field_3	int64
 }
+
 struct_vmcb_save_area_4845774610936020991 {
-    field_0    struct_vmcb_seg_4845774610936020991
-    field_1    struct_vmcb_seg_4845774610936020991
-    field_2    struct_vmcb_seg_4845774610936020991
-    field_3    struct_vmcb_seg_4845774610936020991
-    field_4    struct_vmcb_seg_4845774610936020991
-    field_5    struct_vmcb_seg_4845774610936020991
-    field_6    struct_vmcb_seg_4845774610936020991
-    field_7    struct_vmcb_seg_4845774610936020991
-    field_8    struct_vmcb_seg_4845774610936020991
-    field_9    struct_vmcb_seg_4845774610936020991
-    field_10    array[int8, 43]
-    field_11    int8
-    field_12    array[int8, 4]
-    field_13    int64
-    field_14    array[int8, 104]
-    field_15    int64
-    field_16    int64
-    field_17    int64
-    field_18    int64
-    field_19    int64
-    field_20    int64
-    field_21    int64
-    field_22    int64
-    field_23    array[int8, 88]
-    field_24    int64
-    field_25    array[int8, 24]
-    field_26    int64
-    field_27    int64
-    field_28    int64
-    field_29    int64
-    field_30    int64
-    field_31    int64
-    field_32    int64
-    field_33    int64
-    field_34    int64
-    field_35    int64
-    field_36    array[int8, 32]
-    field_37    int64
-    field_38    int64
-    field_39    int64
-    field_40    int64
-    field_41    int64
-    field_42    int64
-    field_43    array[int8, 80]
-    field_44    int32
-    field_45    array[int8, 20]
-    field_46    int64
-    field_47    int64
-    field_48    int64
-    field_49    int64
-    field_50    int64
-    field_51    int64
-    field_52    int64
-    field_53    int64
-    field_54    int64
-    field_55    int64
-    field_56    int64
-    field_57    int64
-    field_58    int64
-    field_59    int64
-    field_60    int64
-    field_61    int64
-    field_62    array[int8, 16]
-    field_63    int64
-    field_64    int64
-    field_65    int64
-    field_66    int64
-    field_67    array[int8, 56]
-    field_68    int64
-    field_69    array[int8, 16]
-    field_70    int64
+	field_0		struct_vmcb_seg_4845774610936020991
+	field_1		struct_vmcb_seg_4845774610936020991
+	field_2		struct_vmcb_seg_4845774610936020991
+	field_3		struct_vmcb_seg_4845774610936020991
+	field_4		struct_vmcb_seg_4845774610936020991
+	field_5		struct_vmcb_seg_4845774610936020991
+	field_6		struct_vmcb_seg_4845774610936020991
+	field_7		struct_vmcb_seg_4845774610936020991
+	field_8		struct_vmcb_seg_4845774610936020991
+	field_9		struct_vmcb_seg_4845774610936020991
+	field_10	array[int8, 43]
+	field_11	int8
+	field_12	array[int8, 4]
+	field_13	int64
+	field_14	array[int8, 104]
+	field_15	int64
+	field_16	int64
+	field_17	int64
+	field_18	int64
+	field_19	int64
+	field_20	int64
+	field_21	int64
+	field_22	int64
+	field_23	array[int8, 88]
+	field_24	int64
+	field_25	array[int8, 24]
+	field_26	int64
+	field_27	int64
+	field_28	int64
+	field_29	int64
+	field_30	int64
+	field_31	int64
+	field_32	int64
+	field_33	int64
+	field_34	int64
+	field_35	int64
+	field_36	array[int8, 32]
+	field_37	int64
+	field_38	int64
+	field_39	int64
+	field_40	int64
+	field_41	int64
+	field_42	int64
+	field_43	array[int8, 80]
+	field_44	int32
+	field_45	array[int8, 20]
+	field_46	int64
+	field_47	int64
+	field_48	int64
+	field_49	int64
+	field_50	int64
+	field_51	int64
+	field_52	int64
+	field_53	int64
+	field_54	int64
+	field_55	int64
+	field_56	int64
+	field_57	int64
+	field_58	int64
+	field_59	int64
+	field_60	int64
+	field_61	int64
+	field_62	array[int8, 16]
+	field_63	int64
+	field_64	int64
+	field_65	int64
+	field_66	int64
+	field_67	array[int8, 56]
+	field_68	int64
+	field_69	array[int8, 16]
+	field_70	int64
 }
+
 struct_iommu_page_response_4845774610936020991 {
-    field_0    int32
-    field_1    int32
-    field_2    int32
-    field_3    int32
-    field_4    int32
-    field_5    int32
+	field_0	int32
+	field_1	int32
+	field_2	int32
+	field_3	int32
+	field_4	int32
+	field_5	int32
 }
+
 struct_kvm_dtable_4845774610936020991 {
-    field_0    int64
-    field_1    int16
-    field_2    array[int16, 3]
+	field_0	int64
+	field_1	int16
+	field_2	array[int16, 3]
 }
+
 struct_kvm_sregs_4845774610936020991 {
-    field_0    struct_kvm_segment_4845774610936020991
-    field_1    struct_kvm_segment_4845774610936020991
-    field_2    struct_kvm_segment_4845774610936020991
-    field_3    struct_kvm_segment_4845774610936020991
-    field_4    struct_kvm_segment_4845774610936020991
-    field_5    struct_kvm_segment_4845774610936020991
-    field_6    struct_kvm_segment_4845774610936020991
-    field_7    struct_kvm_segment_4845774610936020991
-    field_8    struct_kvm_dtable_4845774610936020991
-    field_9    struct_kvm_dtable_4845774610936020991
-    field_10    int64
-    field_11    int64
-    field_12    int64
-    field_13    int64
-    field_14    int64
-    field_15    int64
-    field_16    int64
-    field_17    array[int64, 4]
+	field_0		struct_kvm_segment_4845774610936020991
+	field_1		struct_kvm_segment_4845774610936020991
+	field_2		struct_kvm_segment_4845774610936020991
+	field_3		struct_kvm_segment_4845774610936020991
+	field_4		struct_kvm_segment_4845774610936020991
+	field_5		struct_kvm_segment_4845774610936020991
+	field_6		struct_kvm_segment_4845774610936020991
+	field_7		struct_kvm_segment_4845774610936020991
+	field_8		struct_kvm_dtable_4845774610936020991
+	field_9		struct_kvm_dtable_4845774610936020991
+	field_10	int64
+	field_11	int64
+	field_12	int64
+	field_13	int64
+	field_14	int64
+	field_15	int64
+	field_16	int64
+	field_17	array[int64, 4]
 }
+
 struct_anon_164_4845774610936020991 {
-    field_0    int8
-    field_1    int8
-    field_2    int8
-    field_3    int8
-    field_4    int32
+	field_0	int8
+	field_1	int8
+	field_2	int8
+	field_3	int8
+	field_4	int32
 }
+
 struct_anon_165_4845774610936020991 {
-    field_0    int8
-    field_1    int8
-    field_2    int8
-    field_3    int8
+	field_0	int8
+	field_1	int8
+	field_2	int8
+	field_3	int8
 }
+
 struct_kvm_vcpu_events_4845774610936020991 {
-    field_0    struct_anon_164_4845774610936020991
-    field_1    struct_anon_165_4845774610936020991
-    field_2    struct_anon_165_4845774610936020991
-    field_3    int32
-    field_4    int32
-    field_5    struct_anon_165_4845774610936020991
-    field_6    array[int8, 27]
-    field_7    int8
-    field_8    int64
+	field_0	struct_anon_164_4845774610936020991
+	field_1	struct_anon_165_4845774610936020991
+	field_2	struct_anon_165_4845774610936020991
+	field_3	int32
+	field_4	int32
+	field_5	struct_anon_165_4845774610936020991
+	field_6	array[int8, 27]
+	field_7	int8
+	field_8	int64
 }
+
 struct_kvm_cpuid_entry2_4845774610936020991 {
-    field_0    int32
-    field_1    int32
-    field_2    int32
-    field_3    int32
-    field_4    int32
-    field_5    int32
-    field_6    int32
-    field_7    array[int32, 3]
+	field_0	int32
+	field_1	int32
+	field_2	int32
+	field_3	int32
+	field_4	int32
+	field_5	int32
+	field_6	int32
+	field_7	array[int32, 3]
 }
+
 struct_anon_207_4845774610936020991 {
-    field_0    int16
+	field_0	int16
 }
+
 struct_kvm_vmx_nested_state_hdr_4845774610936020991 {
-    field_0    int64
-    field_1    int64
-    field_2    struct_anon_207_4845774610936020991
-    field_3    int32
-    field_4    int64
+	field_0	int64
+	field_1	int64
+	field_2	struct_anon_207_4845774610936020991
+	field_3	int32
+	field_4	int64
 }
+
 union_anon_206_4845774610936020991 {
-    field_0    struct_kvm_vmx_nested_state_hdr_4845774610936020991
-    field_1    array[int8, 88]
+	field_0	struct_kvm_vmx_nested_state_hdr_4845774610936020991
+	field_1	array[int8, 88]
 }
+
 struct_kvm_vmx_nested_state_data_4845774610936020991 {
-    field_0    array[int8, 4096]
-    field_1    array[int8, 4096]
+	field_0	array[int8, 4096]
+	field_1	array[int8, 4096]
 }
+
 union_anon_208_4845774610936020991 {
-    field_0    array[struct_kvm_vmx_nested_state_data_4845774610936020991]
+	field_0	array[struct_kvm_vmx_nested_state_data_4845774610936020991]
 }
+
 struct_kvm_nested_state_4845774610936020991 {
-    field_0    int16
-    field_1    int16
-    field_2    int32
-    field_3    union_anon_206_4845774610936020991
-    field_4    union_anon_208_4845774610936020991
+	field_0	int16
+	field_1	int16
+	field_2	int32
+	field_3	union_anon_206_4845774610936020991
+	field_4	union_anon_208_4845774610936020991
 }
+
 struct_kvm_msrs_4845774610936020991 {
-    field_0    int32
-    field_1    int32
-    field_2    array[struct_jump_entry_4845774610936020991]
+	field_0	int32
+	field_1	int32
+	field_2	array[struct_jump_entry_4845774610936020991]
 }
+
 struct_kvm_cpuid2_4845774610936020991 {
-    field_0    int32
-    field_1    int32
-    field_2    array[struct_kvm_cpuid_entry2_4845774610936020991]
+	field_0	int32
+	field_1	int32
+	field_2	array[struct_kvm_cpuid_entry2_4845774610936020991]
 }
+
 struct_kvm_lapic_state_4845774610936020991 {
-    field_0    array[int8, 1024]
+	field_0	array[int8, 1024]
 }
+
 struct_kvm_tpr_access_ctl_4845774610936020991 {
-    field_0    int32
-    field_1    int32
-    field_2    array[int32, 8]
+	field_0	int32
+	field_1	int32
+	field_2	array[int32, 8]
 }
+
 struct_kvm_x86_mce_4845774610936020991 {
-    field_0    int64
-    field_1    int64
-    field_2    int64
-    field_3    int64
-    field_4    int8
-    field_5    array[int8, 7]
-    field_6    array[int64, 3]
+	field_0	int64
+	field_1	int64
+	field_2	int64
+	field_3	int64
+	field_4	int8
+	field_5	array[int8, 7]
+	field_6	array[int64, 3]
 }
+
 struct_kvm_debugregs_4845774610936020991 {
-    field_0    array[int64, 4]
-    field_1    int64
-    field_2    int64
-    field_3    int64
-    field_4    array[int64, 9]
+	field_0	array[int64, 4]
+	field_1	int64
+	field_2	int64
+	field_3	int64
+	field_4	array[int64, 9]
 }
+
 struct_kvm_xsave_4845774610936020991 {
-    field_0    array[int32, 1024]
+	field_0	array[int32, 1024]
 }
+
 struct_kvm_xcrs_4845774610936020991 {
-    field_0    int32
-    field_1    int32
-    field_2    array[struct_jump_entry_4845774610936020991, 16]
-    field_3    array[int64, 16]
+	field_0	int32
+	field_1	int32
+	field_2	array[struct_jump_entry_4845774610936020991, 16]
+	field_3	array[int64, 16]
 }
+
 struct_kvm_guest_debug_arch_4845774610936020991 {
-    field_0    array[int64, 8]
+	field_0	array[int64, 8]
 }
+
 struct_kvm_guest_debug_4845774610936020991 {
-    field_0    int32
-    field_1    int32
-    field_2    struct_kvm_guest_debug_arch_4845774610936020991
+	field_0	int32
+	field_1	int32
+	field_2	struct_kvm_guest_debug_arch_4845774610936020991
 }
+
 struct_kvm_translation_4845774610936020991 {
-    field_0    int64
-    field_1    int64
-    field_2    int8
-    field_3    int8
-    field_4    int8
-    field_5    array[int8, 5]
+	field_0	int64
+	field_1	int64
+	field_2	int8
+	field_3	int8
+	field_4	int8
+	field_5	array[int8, 5]
 }
+
 struct_kvm_fpu_4845774610936020991 {
-    field_0    array[array[int8, 16], 8]
-    field_1    int16
-    field_2    int16
-    field_3    int8
-    field_4    int8
-    field_5    int16
-    field_6    int64
-    field_7    int64
-    field_8    array[array[int8, 16], 16]
-    field_9    int32
-    field_10    int32
+	field_0		array[array[int8, 16], 8]
+	field_1		int16
+	field_2		int16
+	field_3		int8
+	field_4		int8
+	field_5		int16
+	field_6		int64
+	field_7		int64
+	field_8		array[array[int8, 16], 16]
+	field_9		int32
+	field_10	int32
 }
+
 struct_kvm_cpuid_4845774610936020991 {
-    field_0    int32
-    field_1    int32
-    field_2    array[struct_iommu_page_response_4845774610936020991]
+	field_0	int32
+	field_1	int32
+	field_2	array[struct_iommu_page_response_4845774610936020991]
 }
+
 struct_kvm_enable_cap_4845774610936020991 {
-    field_0    int32
-    field_1    int32
-    field_2    array[int64, 4]
-    field_3    array[int8, 64]
+	field_0	int32
+	field_1	int32
+	field_2	array[int64, 4]
+	field_3	array[int8, 64]
 }
+
 struct_kvm_xen_vcpu_attr_4845774610936020991 {
-    field_0    int16
-    field_1    array[int16, 3]
-    field_2    struct_kvm_guest_debug_arch_4845774610936020991
+	field_0	int16
+	field_1	array[int16, 3]
+	field_2	struct_kvm_guest_debug_arch_4845774610936020991
 }
+
 struct_vmcs12_4845774610936020991 {
-    field_0    struct_atomic_t_4845774610936020991
-    field_1    int32
-    field_2    int32
-    field_3    array[int32, 7]
-    field_4    int64
-    field_5    int64
-    field_6    int64
-    field_7    int64
-    field_8    int64
-    field_9    int64
-    field_10    int64
-    field_11    int64
-    field_12    int64
-    field_13    int64
-    field_14    int64
-    field_15    int64
-    field_16    int64
-    field_17    int64
-    field_18    int64
-    field_19    int64
-    field_20    int64
-    field_21    int64
-    field_22    int64
-    field_23    int64
-    field_24    int64
-    field_25    int64
-    field_26    int64
-    field_27    int64
-    field_28    int64
-    field_29    int64
-    field_30    int64
-    field_31    int64
-    field_32    int64
-    field_33    int64
-    field_34    int64
-    field_35    int64
-    field_36    int64
-    field_37    int64
-    field_38    int64
-    field_39    array[int64, 3]
-    field_40    int64
-    field_41    int64
-    field_42    int64
-    field_43    int64
-    field_44    array[int64, 4]
-    field_45    int64
-    field_46    int64
-    field_47    int64
-    field_48    int64
-    field_49    int64
-    field_50    int64
-    field_51    int64
-    field_52    int64
-    field_53    int64
-    field_54    int64
-    field_55    int64
-    field_56    int64
-    field_57    int64
-    field_58    int64
-    field_59    int64
-    field_60    int64
-    field_61    int64
-    field_62    int64
-    field_63    int64
-    field_64    int64
-    field_65    int64
-    field_66    int64
-    field_67    int64
-    field_68    int64
-    field_69    int64
-    field_70    int64
-    field_71    int64
-    field_72    int64
-    field_73    int64
-    field_74    int64
-    field_75    int64
-    field_76    int64
-    field_77    int64
-    field_78    int64
-    field_79    array[int64, 8]
-    field_80    int32
-    field_81    int32
-    field_82    int32
-    field_83    int32
-    field_84    int32
-    field_85    int32
-    field_86    int32
-    field_87    int32
-    field_88    int32
-    field_89    int32
-    field_90    int32
-    field_91    int32
-    field_92    int32
-    field_93    int32
-    field_94    int32
-    field_95    int32
-    field_96    int32
-    field_97    int32
-    field_98    int32
-    field_99    int32
-    field_100    int32
-    field_101    int32
-    field_102    int32
-    field_103    int32
-    field_104    int32
-    field_105    int32
-    field_106    int32
-    field_107    int32
-    field_108    int32
-    field_109    int32
-    field_110    int32
-    field_111    int32
-    field_112    int32
-    field_113    int32
-    field_114    int32
-    field_115    int32
-    field_116    int32
-    field_117    int32
-    field_118    int32
-    field_119    int32
-    field_120    int32
-    field_121    int32
-    field_122    int32
-    field_123    int32
-    field_124    int32
-    field_125    int32
-    field_126    int32
-    field_127    array[int32, 7]
-    field_128    int16
-    field_129    int16
-    field_130    int16
-    field_131    int16
-    field_132    int16
-    field_133    int16
-    field_134    int16
-    field_135    int16
-    field_136    int16
-    field_137    int16
-    field_138    int16
-    field_139    int16
-    field_140    int16
-    field_141    int16
-    field_142    int16
-    field_143    int16
-    field_144    int16
-    field_145    int16
-    field_146    int16
+	field_0		struct_atomic_t_4845774610936020991
+	field_1		int32
+	field_2		int32
+	field_3		array[int32, 7]
+	field_4		int64
+	field_5		int64
+	field_6		int64
+	field_7		int64
+	field_8		int64
+	field_9		int64
+	field_10	int64
+	field_11	int64
+	field_12	int64
+	field_13	int64
+	field_14	int64
+	field_15	int64
+	field_16	int64
+	field_17	int64
+	field_18	int64
+	field_19	int64
+	field_20	int64
+	field_21	int64
+	field_22	int64
+	field_23	int64
+	field_24	int64
+	field_25	int64
+	field_26	int64
+	field_27	int64
+	field_28	int64
+	field_29	int64
+	field_30	int64
+	field_31	int64
+	field_32	int64
+	field_33	int64
+	field_34	int64
+	field_35	int64
+	field_36	int64
+	field_37	int64
+	field_38	int64
+	field_39	array[int64, 3]
+	field_40	int64
+	field_41	int64
+	field_42	int64
+	field_43	int64
+	field_44	array[int64, 4]
+	field_45	int64
+	field_46	int64
+	field_47	int64
+	field_48	int64
+	field_49	int64
+	field_50	int64
+	field_51	int64
+	field_52	int64
+	field_53	int64
+	field_54	int64
+	field_55	int64
+	field_56	int64
+	field_57	int64
+	field_58	int64
+	field_59	int64
+	field_60	int64
+	field_61	int64
+	field_62	int64
+	field_63	int64
+	field_64	int64
+	field_65	int64
+	field_66	int64
+	field_67	int64
+	field_68	int64
+	field_69	int64
+	field_70	int64
+	field_71	int64
+	field_72	int64
+	field_73	int64
+	field_74	int64
+	field_75	int64
+	field_76	int64
+	field_77	int64
+	field_78	int64
+	field_79	array[int64, 8]
+	field_80	int32
+	field_81	int32
+	field_82	int32
+	field_83	int32
+	field_84	int32
+	field_85	int32
+	field_86	int32
+	field_87	int32
+	field_88	int32
+	field_89	int32
+	field_90	int32
+	field_91	int32
+	field_92	int32
+	field_93	int32
+	field_94	int32
+	field_95	int32
+	field_96	int32
+	field_97	int32
+	field_98	int32
+	field_99	int32
+	field_100	int32
+	field_101	int32
+	field_102	int32
+	field_103	int32
+	field_104	int32
+	field_105	int32
+	field_106	int32
+	field_107	int32
+	field_108	int32
+	field_109	int32
+	field_110	int32
+	field_111	int32
+	field_112	int32
+	field_113	int32
+	field_114	int32
+	field_115	int32
+	field_116	int32
+	field_117	int32
+	field_118	int32
+	field_119	int32
+	field_120	int32
+	field_121	int32
+	field_122	int32
+	field_123	int32
+	field_124	int32
+	field_125	int32
+	field_126	int32
+	field_127	array[int32, 7]
+	field_128	int16
+	field_129	int16
+	field_130	int16
+	field_131	int16
+	field_132	int16
+	field_133	int16
+	field_134	int16
+	field_135	int16
+	field_136	int16
+	field_137	int16
+	field_138	int16
+	field_139	int16
+	field_140	int16
+	field_141	int16
+	field_142	int16
+	field_143	int16
+	field_144	int16
+	field_145	int16
+	field_146	int16
 } [packed]
+
 struct_kvm_signal_mask_4845774610936020991 {
-    field_0    int32
-    field_1    array[int8]
+	field_0	int32
+	field_1	array[int8]
 }
 
 # driver found at (not module init) function kvm_vm_ioctl() in https://elixir.bootlin.com/linux/v5.12/source/arch/x86/kvm/../../../virt/kvm/kvm_main.c#L3828
 # parent id hash: 3019682129797709532
-# call chain: 
+# call chain:
 # 00: https://elixir.bootlin.com/linux/v5.12/source/arch/x86/kvm/../../../virt/kvm/kvm_main.c#L3993
 # 01: https://elixir.bootlin.com/linux/v5.12/source/arch/x86/kvm/../../../virt/kvm/kvm_main.c#L3666
 
 resource fd_3019682129797709532_cmd_3222056672_fd[fd]
-
 
 # syscall handler structure in https://elixir.bootlin.com/linux/v5.12/source/arch/x86/kvm/../../../virt/kvm/kvm_main.c#L3666
 ioctl$syz_describe_17854554411658907855_1075359457_0(fd fd_3019682129797709532_cmd_3222056672_fd, cmd const[1075359457], arg ptr[in, struct_ms_hyperv_tsc_page_17854554411658907855])
@@ -1093,8 +1165,8 @@ ioctl$syz_describe_17854554411658907855_1075359458_0(fd fd_3019682129797709532_c
 ioctl$syz_describe_17854554411658907855_1075359459_0(fd fd_3019682129797709532_cmd_3222056672_fd, cmd const[1075359459], arg ptr[in, struct_ms_hyperv_tsc_page_17854554411658907855])
 
 struct_ms_hyperv_tsc_page_17854554411658907855 {
-    field_0    int32
-    field_1    int32
-    field_2    int64
-    field_3    int64
+	field_0	int32
+	field_1	int32
+	field_2	int64
+	field_3	int64
 }
