@@ -24,7 +24,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/html"
+	"github.com/google/syzkaller/pkg/html/pages"
 	"github.com/google/syzkaller/pkg/kconfig"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -223,7 +223,7 @@ func trimNewLines(data []byte) []byte {
 	return data
 }
 
-var summaryTemplate = html.CreatePage(`
+var summaryTemplate = pages.Create(`
 <!doctype html>
 <html>
 <head>
