@@ -225,14 +225,21 @@ func getFile(files map[string]*file, name, path, module string) *file {
 }
 
 func (rg *ReportGenerator) findSymbol(pc uint64) *backend.Symbol {
-	idx := sort.Search(len(rg.Symbols), func(i int) bool {
-		return pc < rg.Symbols[i].End
+	idx := sort.Search(len(rg.Ranges), func(i int) bool {
+		return pc < rg.Ranges[i].Start
 	})
-	if idx == len(rg.Symbols) {
+	if idx == 0 {
 		return nil
 	}
-	s := rg.Symbols[idx]
-	if pc < s.Start || pc > s.End {
+	idx--
+	var s *backend.Symbol
+	for j := idx; j < len(rg.Ranges); j++ {
+		if pc >= rg.Ranges[j].Symbol.Start && pc < rg.Ranges[j].Symbol.End {
+			s = rg.Ranges[j].Symbol
+			break
+		}
+	}
+	if s == nil {
 		return nil
 	}
 	return s

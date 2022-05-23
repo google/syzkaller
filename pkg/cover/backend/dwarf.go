@@ -83,6 +83,12 @@ func makeDWARF(target *targets.Target, objDir, srcDir, buildDir string,
 	return
 }
 
+type DwarfRange struct {
+	Symbol *Symbol
+	Start  uint64
+	End    uint64
+}
+
 func makeDWARFUnsafe(target *targets.Target, objDir, srcDir, buildDir string,
 	moduleObj []string, hostModules []host.KernelModule, fn *containerFns) (
 	*Impl, error) {
@@ -146,19 +152,35 @@ func makeDWARFUnsafe(target *targets.Target, objDir, srcDir, buildDir string,
 			return nil, err
 		}
 	}
-	sort.Slice(allSymbols, func(i, j int) bool {
-		if allSymbols[i].End != allSymbols[j].End {
-			return allSymbols[i].End < allSymbols[j].End
-		}
-		return allSymbols[i].Start < allSymbols[j].Start
-	})
 	for k := range allCoverPoints {
 		sort.Slice(allCoverPoints[k], func(i, j int) bool {
 			return allCoverPoints[k][i] < allCoverPoints[k][j]
 		})
 	}
+	var allRanges []*DwarfRange
+	for _, symbol := range allSymbols {
+		for _, r := range symbol.Ranges {
+			allRanges = append(allRanges, &DwarfRange{
+				Symbol: symbol,
+				Start:  r[0],
+				End:    r[1],
+			})
+		}
+	}
+	sort.Slice(allSymbols, func(i, j int) bool {
+		if allSymbols[i].End != allSymbols[j].End {
+			return allSymbols[i].End < allSymbols[j].End
+		}
+		return allSymbols[i].Start > allSymbols[j].Start
+	})
+	sort.Slice(allRanges, func(i, j int) bool {
+		if allRanges[i].End != allRanges[j].End {
+			return allRanges[i].End < allRanges[j].End
+		}
+		return allRanges[i].Start > allRanges[j].Start
+	})
 
-	allSymbols, allUnits = buildSymbols(allSymbols, allCoverPoints)
+	allUnits = buildSymbols(allSymbols, allRanges, allCoverPoints)
 	for _, s := range allSymbols {
 		// TODO: objDir won't work for out-of-tree modules.
 		s.Unit.Name, s.Unit.Path = cleanPath(s.Unit.Name, objDir, srcDir, buildDir)
@@ -176,6 +198,7 @@ func makeDWARFUnsafe(target *targets.Target, objDir, srcDir, buildDir string,
 	impl := &Impl{
 		Units:   allUnits,
 		Symbols: allSymbols,
+		Ranges:  allRanges,
 		Symbolize: func(pcs map[*Module][]uint64) ([]Frame, error) {
 			return symbolize(target, objDir, srcDir, buildDir, pcs)
 		},
@@ -186,9 +209,9 @@ func makeDWARFUnsafe(target *targets.Target, objDir, srcDir, buildDir string,
 	return impl, nil
 }
 
-func buildSymbols(symbols []*Symbol, coverPoints [2][]uint64) ([]*Symbol, []*CompileUnit) {
+func buildSymbols(symbols []*Symbol, ranges []*DwarfRange, coverPoints [2][]uint64) []*CompileUnit {
 	// Assign coverage point PCs to symbols.
-	// Both symbols and coverage points are sorted, so we do it one pass over both.
+	// Both ranges and coverage points are sorted, so we do it one pass over both.
 	selectPCs := func(u *ObjectUnit, typ int) *[]uint64 {
 		return [2]*[]uint64{&u.PCs, &u.CMPs}[typ]
 	}
@@ -199,37 +222,24 @@ func buildSymbols(symbols []*Symbol, coverPoints [2][]uint64) ([]*Symbol, []*Com
 		if len(pcs) == 0 {
 			continue
 		}
-		var curSymbol *Symbol
-		firstSymbolPC, symbolIdx := -1, 0
 		for i := 0; i < len(pcs); i++ {
 			pc := pcs[i]
-			symbolIdx = sort.Search(len(symbols), func(i int) bool {
-				return pc < symbols[i].Start
+			idx := sort.Search(len(ranges), func(i int) bool {
+				return pc < ranges[i].Start
 			})
-			symbolIdx--
+			idx--
 			var symb *Symbol
-			for j := symbolIdx; j < len(symbols); j++ {
-				if pc >= symbols[j].Start && pc < symbols[j].End {
-					symb = symbols[j]
+			for j := idx; j < len(ranges); j++ {
+				if pc >= ranges[j].Symbol.Start && pc < ranges[j].Symbol.End {
+					symb = ranges[j].Symbol
 					break
 				}
 			}
-			if (curSymbol != nil && curSymbol != symb) || i == len(pcs)-1 {
-				if i == 0 {
-					firstSymbolPC = 0
-					curSymbol = symb
-				}
-				if i == len(pcs)-1 {
-					i++
-				}
-				sPCs := selectPCs(&curSymbol.ObjectUnit, pcType)
-				*sPCs = append(*sPCs, pcs[firstSymbolPC:i]...)
-				firstSymbolPC = -1
+			if symb == nil {
+				continue
 			}
-			curSymbol = symb
-			if symb != nil && firstSymbolPC == -1 {
-				firstSymbolPC = i
-			}
+			sPCs := selectPCs(&symb.ObjectUnit, pcType)
+			*sPCs = append(*sPCs, pc)
 		}
 
 		for _, s := range symbols {
@@ -256,7 +266,7 @@ func buildSymbols(symbols []*Symbol, coverPoints [2][]uint64) ([]*Symbol, []*Com
 		}
 	}
 
-	return symbols, units
+	return units
 }
 
 type symbolInfo struct {

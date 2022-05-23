@@ -286,8 +286,15 @@ func elfReadSymbols(module *Module, info *symbolInfo) ([]*Symbol, error) {
 		}
 		start := ds.Ranges[0][0]
 		end := ds.Ranges[len(ds.Ranges)-1][1]
-		text := start >= text.Addr && end <= text.Addr+text.Size
-		if text {
+		var ranges [][2]uint64
+		for _, r := range ds.Ranges {
+			ranges = append(ranges, [2]uint64{
+				r[0] + module.Addr,
+				r[1] + module.Addr,
+			})
+		}
+		flag := start >= text.Addr && end <= text.Addr+text.Size
+		if flag {
 			start1 := start + module.Addr
 			end1 := end + module.Addr
 			symbols = append(symbols, &Symbol{
@@ -297,7 +304,7 @@ func elfReadSymbols(module *Module, info *symbolInfo) ([]*Symbol, error) {
 				},
 				Start:  start1,
 				End:    end1,
-				Ranges: ds.Ranges,
+				Ranges: ranges,
 				Inline: ds.Inline,
 				Unit: &CompileUnit{
 					Module: module,

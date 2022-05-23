@@ -13,6 +13,7 @@ import (
 type Impl struct {
 	Units     []*CompileUnit
 	Symbols   []*Symbol
+	Ranges    []*DwarfRange
 	Frames    []Frame
 	Symbolize func(pcs map[*Module][]uint64) ([]Frame, error)
 	RestorePC func(pc uint32) uint64
