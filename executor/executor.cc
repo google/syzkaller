@@ -1173,6 +1173,7 @@ void write_extra_output()
 	cover_collect(&extra_cov);
 	if (!extra_cov.size)
 		return;
+	write_output(kOutMagic);
 	write_output(-1); // call index
 	write_output(-1); // call num
 	write_output(999); // errno
