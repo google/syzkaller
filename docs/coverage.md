@@ -22,7 +22,7 @@ See [this](linux/coverage.md) for Linux kernel specific coverage information.
 
 ## Web Interface
 
-When clicking on `cover` link you get view showing each directory located in your kernel build directory. It's showing either percentage number `X%(Y%) of N(M)` or `---`. `X% of N` means that `X%` of `N` coverage points are covered so far, . `---` indicates there is no coverage in that directory. `Y% of M` means that `Y%` of `M` coverage points in covered function (function.covered >0) so far.
+When clicking on `cover` link you get view showing each directory located in your kernel build directory. It's showing either percentage number `X%(Y%) of N(M)` or `---`. `X% of N` means that `X%` of `N` coverage points are covered so far, . `---` indicates there is no coverage in that directory. `Y% of M` means that `Y%` of `M` coverage points in covered function (function.covered > 0) so far.
 
 Directory can be clicked and you get view on files and possible subdirectories. On each source code file there is again either `---` or coverage percentage.
 If [`xxx`] is shown, it means the file is belong to kernel module `xxx`.

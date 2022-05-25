@@ -68,8 +68,8 @@ func (rg *ReportGenerator) DoHTML(w io.Writer, progs []Prog, coverFilter map[uin
 	}
 	haveProgs := len(progs) > 1 || progs[0].Data != ""
 	fileOpenErr := fmt.Errorf("failed to open/locate any source file")
-	for _, files1 := range files {
-		for fname, file := range files1 {
+	for _, mfiles := range files {
+		for fname, file := range mfiles {
 			pos := d.Root
 			path := ""
 			for {
@@ -266,8 +266,8 @@ func (rg *ReportGenerator) convertToStats(progs []Prog) ([]fileStats, error) {
 	}
 
 	var data []fileStats
-	for _, files1 := range files {
-		for fname, file := range files1 {
+	for _, mfiles := range files {
+		for fname, file := range mfiles {
 			lines, err := parseFile(file.filename)
 			if err != nil {
 				fmt.Printf("failed to open/locate file for module:%s\n", file.module)
@@ -517,8 +517,8 @@ func (rg *ReportGenerator) DoCSV(w io.Writer, progs []Prog, coverFilter map[uint
 		return err
 	}
 	var data [][]string
-	for _, files1 := range files {
-		for fname, file := range files1 {
+	for _, mfiles := range files {
+		for fname, file := range mfiles {
 			for _, function := range file.functions {
 				data = append(data, []string{
 					file.module,
@@ -1022,8 +1022,8 @@ var coverTemplate = template.Must(template.New("").Parse(`
 		<li><span class="hover">
 			{{if $file.Covered}}
 				<a href="#{{$file.Path}}" id="path/{{$file.Path}}" onclick="onFileClick({{$file.Index}})">
-					{{$file.Name}}[{{$file.Module}}]
-				</a>
+					{{$file.Name}}
+				</a>{{if $file.Module}}[{{$file.Module}}]{{else}}{{end}}
 				<span class="cover hover">
 					<a href="#{{$file.Path}}" id="path/{{$file.Path}}"
 						onclick="{{if .HasFunctions}}onPercentClick{{else}}onFileClick{{end}}({{$file.Index}})">

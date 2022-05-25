@@ -232,15 +232,15 @@ func (rg *ReportGenerator) findSymbol(pc uint64) *backend.Symbol {
 		return nil
 	}
 	idx--
-	var s *backend.Symbol
+	var symb *backend.Symbol
 	for j := idx; j < len(rg.Ranges); j++ {
 		if pc >= rg.Ranges[j].Symbol.Start && pc < rg.Ranges[j].Symbol.End {
-			s = rg.Ranges[j].Symbol
+			symb = rg.Ranges[j].Symbol
 			break
 		}
 	}
-	if s == nil {
+	if symb == nil {
 		return nil
 	}
-	return s
+	return symb
 }
