@@ -46,7 +46,7 @@ RUN sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/b
 
 # Download and install the custom Clang required to build KMSAN.
 # TODO(@ramosian-glider): switch to stable Clang once KMSAN is upstreamed.
-ENV CLANG_KMSAN_VER 38e16e1cebb8
+ENV CLANG_KMSAN_VER 9ffb5944a699
 RUN curl https://storage.googleapis.com/syzkaller/clang-${CLANG_KMSAN_VER}.tar.gz | tar -C /usr/local/ -xz
 RUN ln -s /usr/local/clang-${CLANG_KMSAN_VER} /usr/local/clang-kmsan
 
