@@ -3627,7 +3627,9 @@ static void setup_binderfs()
 		debug("mkdir(/dev/binderfs) failed: %d\n", errno);
 	}
 
-	if (mount("binder", "/dev/binderfs", "binder", 0, NULL)) {
+        // Skip the mount command if the "/dev/binderfs" directory already
+        // exists.
+        if (errno != EEXIST && mount("binder", "/dev/binderfs", "binder", 0, NULL)) {
 		debug("mount of binder at /dev/binderfs failed: %d\n", errno);
 	}
 #if !SYZ_EXECUTOR && !SYZ_USE_TMP_DIR
