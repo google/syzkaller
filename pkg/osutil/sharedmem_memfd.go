@@ -16,7 +16,7 @@ import (
 // In the case of Linux, we can just use the memfd_create syscall.
 func CreateSharedMemFile(size int) (f *os.File, err error) {
 	// The name is actually irrelevant and can even be the same for all such files.
-	fd, err := unix.MemfdCreate("syz-shared-mem", 0)
+	fd, err := unix.MemfdCreate("syz-shared-mem", unix.MFD_CLOEXEC)
 	if err != nil {
 		err = fmt.Errorf("failed to do memfd_create: %v", err)
 		return
