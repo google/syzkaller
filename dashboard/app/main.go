@@ -260,9 +260,10 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 
 func handleFixed(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	return handleTerminalBugList(c, w, r, &TerminalBug{
-		Status:    BugStatusFixed,
-		Subpage:   "/fixed",
-		ShowPatch: true,
+		Status:      BugStatusFixed,
+		Subpage:     "/fixed",
+		ShowPatch:   true,
+		ShowPatched: true,
 	})
 }
 
@@ -275,9 +276,10 @@ func handleInvalid(c context.Context, w http.ResponseWriter, r *http.Request) er
 }
 
 type TerminalBug struct {
-	Status    int
-	Subpage   string
-	ShowPatch bool
+	Status      int
+	Subpage     string
+	ShowPatch   bool
+	ShowPatched bool
 }
 
 func handleTerminalBugList(c context.Context, w http.ResponseWriter, r *http.Request, typ *TerminalBug) error {
@@ -288,7 +290,15 @@ func handleTerminalBugList(c context.Context, w http.ResponseWriter, r *http.Req
 	}
 	hdr.Subpage = typ.Subpage
 	manager := r.FormValue("manager")
-	bugs, err := fetchTerminalBugs(c, accessLevel, hdr.Namespace, manager, typ)
+	extraBugs := []*Bug{}
+	if typ.Status == BugStatusFixed {
+		// Mix in bugs that have pending fixes.
+		extraBugs, err = fetchFixPendingBugs(c, hdr.Namespace, manager)
+		if err != nil {
+			return err
+		}
+	}
+	bugs, err := fetchTerminalBugs(c, accessLevel, hdr.Namespace, manager, typ, extraBugs)
 	if err != nil {
 		return err
 	}
@@ -592,6 +602,23 @@ func textFilename(tag string) string {
 	}
 }
 
+func fetchFixPendingBugs(c context.Context, ns, manager string) ([]*Bug, error) {
+	filter := func(query *db.Query) *db.Query {
+		query = query.Filter("Namespace=", ns).
+			Filter("Status=", BugStatusOpen).
+			Filter("Commits>", "")
+		if manager != "" {
+			query = query.Filter("HappenedOn=", manager)
+		}
+		return query
+	}
+	rawBugs, _, err := loadAllBugs(c, filter)
+	if err != nil {
+		return nil, err
+	}
+	return rawBugs, nil
+}
+
 func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns, manager string) ([]*uiBugGroup, error) {
 	bugs, err := loadVisibleBugs(c, accessLevel, ns, manager)
 	if err != nil {
@@ -617,11 +644,12 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns, manager 
 			continue
 		}
 		uiBug := createUIBug(c, bug, state, managers)
+		if len(uiBug.Commits) != 0 {
+			// Don't show "fix pending" bugs on the main page.
+			continue
+		}
 		bugMap[bug.keyHash()] = uiBug
 		id := uiBug.ReportingIndex
-		if len(uiBug.Commits) != 0 {
-			id = -1
-		}
 		groups[id] = append(groups[id], uiBug)
 	}
 	for _, dup := range dups {
@@ -643,27 +671,23 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns, manager 
 			}
 			return bugs[i].ReportedTime.After(bugs[j].ReportedTime)
 		})
-		caption, fragment, showPatched := "", "", false
+		caption, fragment := "", ""
 		switch index {
-		case -1:
-			caption, showPatched = "fix pending", true
-			fragment = "pending"
 		case len(cfg.Reporting) - 1:
-			caption, showPatched = "open", false
+			caption = "open"
 			fragment = "open"
 		default:
 			reporting := &cfg.Reporting[index]
-			caption, showPatched = reporting.DisplayTitle, false
+			caption = reporting.DisplayTitle
 			fragment = reporting.Name
 		}
 		uiGroups = append(uiGroups, &uiBugGroup{
-			Now:         timeNow(c),
-			Caption:     caption,
-			Fragment:    fragment,
-			Namespace:   ns,
-			ShowPatched: showPatched,
-			ShowIndex:   index,
-			Bugs:        bugs,
+			Now:       timeNow(c),
+			Caption:   caption,
+			Fragment:  fragment,
+			Namespace: ns,
+			ShowIndex: index,
+			Bugs:      bugs,
 		})
 	}
 	sort.Slice(uiGroups, func(i, j int) bool {
@@ -713,7 +737,7 @@ func loadVisibleBugs(c context.Context, accessLevel AccessLevel, ns, manager str
 }
 
 func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
-	ns, manager string, typ *TerminalBug) (*uiBugGroup, error) {
+	ns, manager string, typ *TerminalBug, extraBugs []*Bug) (*uiBugGroup, error) {
 	bugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
 		query = query.Filter("Namespace=", ns).
 			Filter("Status=", typ.Status)
@@ -725,6 +749,7 @@ func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
 	if err != nil {
 		return nil, err
 	}
+	bugs = append(bugs, extraBugs...)
 	state, err := loadReportingState(c)
 	if err != nil {
 		return nil, err
@@ -733,10 +758,20 @@ func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
 	if err != nil {
 		return nil, err
 	}
+	sort.Slice(bugs, func(i, j int) bool {
+		iFixed := bugs[i].Status == BugStatusFixed
+		jFixed := bugs[j].Status == BugStatusFixed
+		if iFixed != jFixed {
+			// Not-yet-fully-patched bugs come first.
+			return jFixed
+		}
+		return bugs[i].Closed.After(bugs[j].Closed)
+	})
 	res := &uiBugGroup{
-		Now:       timeNow(c),
-		ShowPatch: typ.ShowPatch,
-		Namespace: ns,
+		Now:         timeNow(c),
+		ShowPatch:   typ.ShowPatch,
+		ShowPatched: typ.ShowPatched,
+		Namespace:   ns,
 	}
 	for _, bug := range bugs {
 		if accessLevel < bug.sanitizeAccess(accessLevel) {
@@ -744,9 +779,6 @@ func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
 		}
 		res.Bugs = append(res.Bugs, createUIBug(c, bug, state, managers))
 	}
-	sort.Slice(res.Bugs, func(i, j int) bool {
-		return res.Bugs[i].ClosedTime.After(res.Bugs[j].ClosedTime)
-	})
 	return res, nil
 }
 
