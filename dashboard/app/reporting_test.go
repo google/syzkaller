@@ -6,6 +6,7 @@ package main
 import (
 	"fmt"
 	"html"
+	"reflect"
 	"regexp"
 	"testing"
 	"time"
@@ -764,4 +765,148 @@ func TestDetachExternalTracker(t *testing.T) {
 	closed, _ := c.client.ReportingPollClosed([]string{rep1.ID, rep2.ID})
 	c.expectEQ(len(closed), 1)
 	c.expectEQ(closed[0], rep1.ID)
+}
+
+func TestUpdateBugReporting(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+	setIDs := func(bug *Bug, arr []BugReporting) {
+		for i := range arr {
+			arr[i].ID = bugReportingHash(bug.keyHash(), arr[i].Name)
+		}
+	}
+	now := timeNow(c.ctx)
+	// We test against the test2 namespace.
+	cfg := config.Namespaces["test2"]
+	tests := []struct {
+		Before []BugReporting
+		After  []BugReporting
+		Error  bool
+	}{
+		// Initially empty object.
+		{
+			Before: []BugReporting{},
+			After: []BugReporting{
+				{
+					Name: "reporting1",
+				},
+				{
+					Name: "reporting2",
+				},
+				{
+					Name: "reporting3",
+				},
+			},
+		},
+		// Prepending and appending new reporting objects, the bug is not reported yet.
+		{
+			Before: []BugReporting{
+				{
+					Name: "reporting2",
+				},
+			},
+			After: []BugReporting{
+				{
+					Name: "reporting1",
+				},
+				{
+					Name: "reporting2",
+				},
+				{
+					Name: "reporting3",
+				},
+			},
+		},
+		// The order or reportings is changed.
+		{
+			Before: []BugReporting{
+				{
+					Name: "reporting2",
+				},
+				{
+					Name: "reporting1",
+				},
+				{
+					Name: "reporting3",
+				},
+			},
+			After: []BugReporting{},
+			Error: true,
+		},
+		// Prepending and appending new reporting objects, the bug is already reported.
+		{
+			Before: []BugReporting{
+				{
+					Name:     "reporting2",
+					Reported: now,
+					ExtID:    "abcd",
+				},
+			},
+			After: []BugReporting{
+				{
+					Name:     "reporting1",
+					Closed:   now,
+					Reported: now,
+					Dummy:    true,
+				},
+				{
+					Name:     "reporting2",
+					Reported: now,
+					ExtID:    "abcd",
+				},
+				{
+					Name: "reporting3",
+				},
+			},
+		},
+		// It must look like as if the new Reporting was immediate.
+		{
+			Before: []BugReporting{
+				{
+					Name:     "reporting1",
+					Reported: now.Add(-24 * time.Hour),
+					ExtID:    "abcd",
+				},
+				{
+					Name:     "reporting3",
+					Reported: now,
+					ExtID:    "efgh",
+				},
+			},
+			After: []BugReporting{
+				{
+					Name:     "reporting1",
+					Reported: now.Add(-24 * time.Hour),
+					ExtID:    "abcd",
+				},
+				{
+					Name:     "reporting2",
+					Reported: now.Add(-24 * time.Hour),
+					Closed:   now.Add(-24 * time.Hour),
+					Dummy:    true,
+				},
+				{
+					Name:     "reporting3",
+					Reported: now,
+					ExtID:    "efgh",
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		bug := &Bug{
+			Title:     "bug",
+			Reporting: test.Before,
+			Namespace: "test2",
+		}
+		setIDs(bug, bug.Reporting)
+		setIDs(bug, test.After)
+		hasError := bug.updateReportings(cfg, now) != nil
+		if hasError != test.Error {
+			t.Errorf("Before: %#v, Expected error: %v, Got error: %v", test.Before, test.Error, hasError)
+		}
+		if !test.Error && !reflect.DeepEqual(bug.Reporting, test.After) {
+			t.Errorf("Before: %#v, Expected After: %#v, Got After: %#v", test.Before, test.After, bug.Reporting)
+		}
+	}
 }
