@@ -10222,6 +10222,7 @@ static long handle_clone_ret(long ret)
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_clone
+#include <sched.h>
 static long syz_clone(volatile long flags, volatile long stack, volatile long stack_len,
 		      volatile long ptid, volatile long ctid, volatile long tls)
 {
