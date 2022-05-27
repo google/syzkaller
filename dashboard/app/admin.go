@@ -150,7 +150,10 @@ func updateBugReporting(c context.Context, w http.ResponseWriter, r *http.Reques
 		update = append(update, keys[i])
 	}
 	return updateBugBatch(c, update, func(bug *Bug) {
-		createBugReporting(bug, cfg)
+		err := bug.updateReportings(cfg, timeNow(c))
+		if err != nil {
+			panic(err)
+		}
 	})
 }
 
