@@ -379,11 +379,16 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 		if err != nil {
 			return nil, err
 		}
-		job = job1
-		if crash1.ReproC != 0 || crash.ReproC == 0 {
-			// Don't override the crash in this case,
-			// otherwise we will always think that we haven't reported the C repro.
-			crash, crashKey = crash1, crashKey1
+		// If we didn't check whether the bisect is unreliable, even though it would not be
+		// reported anyway, we could still eventually Cc people from those commits later
+		// (e.g. when we did bisected with a syz repro and then notified about a C repro).
+		if !job1.isUnreliableBisect() {
+			job = job1
+			if crash1.ReproC != 0 || crash.ReproC == 0 {
+				// Don't override the crash in this case,
+				// otherwise we will always think that we haven't reported the C repro.
+				crash, crashKey = crash1, crashKey1
+			}
 		}
 	}
 	crashLog, _, err := getText(c, textCrashLog, crash.Log)
