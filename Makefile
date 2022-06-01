@@ -94,6 +94,11 @@ ifeq ("$(TARGETOS)", "trusty")
 	TARGETGOARCH := $(HOSTARCH)
 endif
 
+ifeq ("$(TARGETOS)", "kos")
+	TARGETGOOS := $(HOSTOS)
+	TARGETGOARCH := $(HOSTARCH)
+endif
+
 .PHONY: all clean host target \
 	manager runtest fuzzer executor \
 	ci hub \

@@ -451,9 +451,11 @@ var List = map[string]map[string]*Target{
 	},
 	KOS: {
 		ARM64: {
-			PtrSize:   8,
-			PageSize:  4 << 10,
-			CCompiler: "/opt/KasperskyOS-Community-Edition-1.0.1.4/toolchain/bin/arm-kos-g++",
+			PtrSize:      8,
+			PageSize:     4 << 10,
+			LittleEndian: true,
+			CCompiler:    "/opt/KasperskyOS-Community-Edition-1.0.1.4/toolchain/bin/arm-kos-gcc",
+			Objdump:      "/opt/KasperskyOS-Community-Edition-1.0.1.4/toolchain/bin/arm-kos-objdump",
 		},
 	},
 }
@@ -552,10 +554,12 @@ var oses = map[string]osCommon{
 		SyscallPrefix:    "__NR_",
 	},
 	KOS: {
-		BuildOS:           Linux,
+		// BuildOS:           Linux,
 		SyscallNumbers:    false,
 		ExecutorUsesShmem: false,
 		HostFuzzer:        true,
+		ExecutorBin:       "syz-executor",
+		// KernelObject:      "kos-qemu-image.dbg.syms",
 	},
 }
 
