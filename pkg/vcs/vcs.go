@@ -307,25 +307,29 @@ const SyzkallerRepo = "https://github.com/google/syzkaller"
 const HEAD = "HEAD"
 
 func CommitLink(url, hash string) string {
-	return link(url, hash, 0)
+	return link(url, hash, "", 0, 0)
 }
 
 func TreeLink(url, hash string) string {
-	return link(url, hash, 1)
+	return link(url, hash, "", 0, 1)
 }
 
 func LogLink(url, hash string) string {
-	return link(url, hash, 2)
+	return link(url, hash, "", 0, 2)
 }
 
-func link(url, hash string, typ int) string {
+func FileLink(url, hash, file string, line int) string {
+	return link(url, hash, file, line, 3)
+}
+
+func link(url, hash, file string, line, typ int) string {
 	if url == "" || hash == "" {
 		return ""
 	}
 	switch url {
 	case "https://fuchsia.googlesource.com":
 		// We collect hashes from the fuchsia repo.
-		return link(url+"/fuchsia", hash, typ)
+		return link(url+"/fuchsia", hash, file, line, typ)
 	}
 	if strings.HasPrefix(url, "https://github.com/") {
 		url = strings.TrimSuffix(url, ".git")
@@ -334,6 +338,8 @@ func link(url, hash string, typ int) string {
 			return url + "/tree/" + hash
 		case 2:
 			return url + "/commits/" + hash
+		case 3:
+			return url + "/blob/" + hash + "/" + file + "#L" + fmt.Sprint(line)
 		default:
 			return url + "/commit/" + hash
 		}
@@ -348,6 +354,8 @@ func link(url, hash string, typ int) string {
 			return url + "/tree/?id=" + hash
 		case 2:
 			return url + "/log/?id=" + hash
+		case 3:
+			return url + "/tree/" + file + "?id=" + hash + "#n" + fmt.Sprint(line)
 		default:
 			return url + "/commit/?id=" + hash
 		}
@@ -363,6 +371,8 @@ func link(url, hash string, typ int) string {
 				return url + "/tree/?id=" + hash
 			case 2:
 				return url + "/log/?id=" + hash
+			case 3:
+				return url + "/tree/" + file + "?id=" + hash + "#n" + fmt.Sprint(line)
 			default:
 				return url + "/commit/?id=" + hash
 			}
@@ -374,6 +384,8 @@ func link(url, hash string, typ int) string {
 			return url + "/+/" + hash + "/"
 		case 2:
 			return url + "/+log/" + hash
+		case 3:
+			return url + "/+/" + hash + "/" + file + "#" + fmt.Sprint(line)
 		default:
 			return url + "/+/" + hash + "^!"
 		}

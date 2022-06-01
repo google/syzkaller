@@ -338,6 +338,9 @@ func (env *Env) parseOutput(p *prog.Prog, opts *ExecOpts) (*ProgInfo, error) {
 		reply := *(*callReply)(unsafe.Pointer(&out[0]))
 		out = out[unsafe.Sizeof(callReply{}):]
 		var inf *CallInfo
+		if reply.magic != outMagic {
+			return nil, fmt.Errorf("bad reply magic 0x%x", reply.magic)
+		}
 		if reply.index != extraReplyIndex {
 			if int(reply.index) >= len(info.Calls) {
 				return nil, fmt.Errorf("bad call %v index %v/%v", i, reply.index, len(info.Calls))
@@ -532,6 +535,7 @@ type executeReply struct {
 }
 
 type callReply struct {
+	magic      uint32
 	index      uint32 // call index in the program
 	num        uint32 // syscall number (for cross-checking)
 	errno      uint32

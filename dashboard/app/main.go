@@ -7,8 +7,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"net/http"
 	"os"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -130,7 +132,7 @@ type uiBugPage struct {
 	DupOf         *uiBugGroup
 	Dups          *uiBugGroup
 	Similar       *uiBugGroup
-	SampleReport  []byte
+	SampleReport  template.HTML
 	Crashes       *uiCrashTable
 	FixBisections *uiCrashTable
 	TestPatchJobs *uiJobList
@@ -258,9 +260,10 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 
 func handleFixed(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	return handleTerminalBugList(c, w, r, &TerminalBug{
-		Status:    BugStatusFixed,
-		Subpage:   "/fixed",
-		ShowPatch: true,
+		Status:      BugStatusFixed,
+		Subpage:     "/fixed",
+		ShowPatch:   true,
+		ShowPatched: true,
 	})
 }
 
@@ -273,9 +276,10 @@ func handleInvalid(c context.Context, w http.ResponseWriter, r *http.Request) er
 }
 
 type TerminalBug struct {
-	Status    int
-	Subpage   string
-	ShowPatch bool
+	Status      int
+	Subpage     string
+	ShowPatch   bool
+	ShowPatched bool
 }
 
 func handleTerminalBugList(c context.Context, w http.ResponseWriter, r *http.Request, typ *TerminalBug) error {
@@ -286,7 +290,15 @@ func handleTerminalBugList(c context.Context, w http.ResponseWriter, r *http.Req
 	}
 	hdr.Subpage = typ.Subpage
 	manager := r.FormValue("manager")
-	bugs, err := fetchTerminalBugs(c, accessLevel, hdr.Namespace, manager, typ)
+	extraBugs := []*Bug{}
+	if typ.Status == BugStatusFixed {
+		// Mix in bugs that have pending fixes.
+		extraBugs, err = fetchFixPendingBugs(c, hdr.Namespace, manager)
+		if err != nil {
+			return err
+		}
+	}
+	bugs, err := fetchTerminalBugs(c, accessLevel, hdr.Namespace, manager, typ, extraBugs)
 	if err != nil {
 		return err
 	}
@@ -590,6 +602,23 @@ func textFilename(tag string) string {
 	}
 }
 
+func fetchFixPendingBugs(c context.Context, ns, manager string) ([]*Bug, error) {
+	filter := func(query *db.Query) *db.Query {
+		query = query.Filter("Namespace=", ns).
+			Filter("Status=", BugStatusOpen).
+			Filter("Commits>", "")
+		if manager != "" {
+			query = query.Filter("HappenedOn=", manager)
+		}
+		return query
+	}
+	rawBugs, _, err := loadAllBugs(c, filter)
+	if err != nil {
+		return nil, err
+	}
+	return rawBugs, nil
+}
+
 func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns, manager string) ([]*uiBugGroup, error) {
 	bugs, err := loadVisibleBugs(c, accessLevel, ns, manager)
 	if err != nil {
@@ -615,11 +644,12 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns, manager 
 			continue
 		}
 		uiBug := createUIBug(c, bug, state, managers)
+		if len(uiBug.Commits) != 0 {
+			// Don't show "fix pending" bugs on the main page.
+			continue
+		}
 		bugMap[bug.keyHash()] = uiBug
 		id := uiBug.ReportingIndex
-		if len(uiBug.Commits) != 0 {
-			id = -1
-		}
 		groups[id] = append(groups[id], uiBug)
 	}
 	for _, dup := range dups {
@@ -641,27 +671,23 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns, manager 
 			}
 			return bugs[i].ReportedTime.After(bugs[j].ReportedTime)
 		})
-		caption, fragment, showPatched := "", "", false
+		caption, fragment := "", ""
 		switch index {
-		case -1:
-			caption, showPatched = "fix pending", true
-			fragment = "pending"
 		case len(cfg.Reporting) - 1:
-			caption, showPatched = "open", false
+			caption = "open"
 			fragment = "open"
 		default:
 			reporting := &cfg.Reporting[index]
-			caption, showPatched = reporting.DisplayTitle, false
+			caption = reporting.DisplayTitle
 			fragment = reporting.Name
 		}
 		uiGroups = append(uiGroups, &uiBugGroup{
-			Now:         timeNow(c),
-			Caption:     caption,
-			Fragment:    fragment,
-			Namespace:   ns,
-			ShowPatched: showPatched,
-			ShowIndex:   index,
-			Bugs:        bugs,
+			Now:       timeNow(c),
+			Caption:   caption,
+			Fragment:  fragment,
+			Namespace: ns,
+			ShowIndex: index,
+			Bugs:      bugs,
 		})
 	}
 	sort.Slice(uiGroups, func(i, j int) bool {
@@ -711,7 +737,7 @@ func loadVisibleBugs(c context.Context, accessLevel AccessLevel, ns, manager str
 }
 
 func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
-	ns, manager string, typ *TerminalBug) (*uiBugGroup, error) {
+	ns, manager string, typ *TerminalBug, extraBugs []*Bug) (*uiBugGroup, error) {
 	bugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
 		query = query.Filter("Namespace=", ns).
 			Filter("Status=", typ.Status)
@@ -723,6 +749,7 @@ func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
 	if err != nil {
 		return nil, err
 	}
+	bugs = append(bugs, extraBugs...)
 	state, err := loadReportingState(c)
 	if err != nil {
 		return nil, err
@@ -731,10 +758,20 @@ func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
 	if err != nil {
 		return nil, err
 	}
+	sort.Slice(bugs, func(i, j int) bool {
+		iFixed := bugs[i].Status == BugStatusFixed
+		jFixed := bugs[j].Status == BugStatusFixed
+		if iFixed != jFixed {
+			// Not-yet-fully-patched bugs come first.
+			return jFixed
+		}
+		return bugs[i].Closed.After(bugs[j].Closed)
+	})
 	res := &uiBugGroup{
-		Now:       timeNow(c),
-		ShowPatch: typ.ShowPatch,
-		Namespace: ns,
+		Now:         timeNow(c),
+		ShowPatch:   typ.ShowPatch,
+		ShowPatched: typ.ShowPatched,
+		Namespace:   ns,
 	}
 	for _, bug := range bugs {
 		if accessLevel < bug.sanitizeAccess(accessLevel) {
@@ -742,9 +779,6 @@ func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
 		}
 		res.Bugs = append(res.Bugs, createUIBug(c, bug, state, managers))
 	}
-	sort.Slice(res.Bugs, func(i, j int) bool {
-		return res.Bugs[i].ClosedTime.After(res.Bugs[j].ClosedTime)
-	})
 	return res, nil
 }
 
@@ -944,12 +978,12 @@ func updateBugBadness(c context.Context, bug *uiBug) {
 	bug.NumCrashesBad = bug.NumCrashes >= 10000 && timeNow(c).Sub(bug.LastTime) < 24*time.Hour
 }
 
-func loadCrashesForBug(c context.Context, bug *Bug) ([]*uiCrash, []byte, error) {
+func loadCrashesForBug(c context.Context, bug *Bug) ([]*uiCrash, template.HTML, error) {
 	bugKey := bug.key(c)
 	// We can have more than maxCrashes crashes, if we have lots of reproducers.
 	crashes, _, err := queryCrashesForBug(c, bugKey, 2*maxCrashes+200)
 	if err != nil || len(crashes) == 0 {
-		return nil, nil, err
+		return nil, "", err
 	}
 	builds := make(map[string]*Build)
 	var results []*uiCrash
@@ -958,7 +992,7 @@ func loadCrashesForBug(c context.Context, bug *Bug) ([]*uiCrash, []byte, error) 
 		if build == nil {
 			build, err = loadBuild(c, bug.Namespace, crash.BuildID)
 			if err != nil {
-				return nil, nil, err
+				return nil, "", err
 			}
 			builds[crash.BuildID] = build
 		}
@@ -966,10 +1000,24 @@ func loadCrashesForBug(c context.Context, bug *Bug) ([]*uiCrash, []byte, error) 
 	}
 	sampleReport, _, err := getText(c, textCrashReport, crashes[0].Report)
 	if err != nil {
-		return nil, nil, err
+		return nil, "", err
 	}
-	return results, sampleReport, nil
+	sampleBuild := builds[crashes[0].BuildID]
+	linkifiedReport := linkifyReport(sampleReport, sampleBuild.KernelRepo, sampleBuild.KernelCommit)
+	return results, linkifiedReport, nil
 }
+
+func linkifyReport(report []byte, repo, commit string) template.HTML {
+	escaped := template.HTMLEscapeString(string(report))
+	return template.HTML(sourceFileRe.ReplaceAllStringFunc(escaped, func(match string) string {
+		sub := sourceFileRe.FindStringSubmatch(match)
+		line, _ := strconv.Atoi(sub[3])
+		url := vcs.FileLink(repo, commit, sub[2], line)
+		return fmt.Sprintf("%v<a href='%v'>%v:%v</a>%v", sub[1], url, sub[2], sub[3], sub[4])
+	}))
+}
+
+var sourceFileRe = regexp.MustCompile("( |\t|\n)([a-zA-Z0-9/_-]+\\.(?:h|c|cc|cpp|s|S|go|rs)):([0-9]+)( |!|\t|\n)")
 
 func loadFixBisectionsForBug(c context.Context, bug *Bug) ([]*uiCrash, error) {
 	bugKey := bug.key(c)
