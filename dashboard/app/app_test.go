@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/auth"
 	"github.com/google/syzkaller/sys/targets"
@@ -431,6 +432,53 @@ func TestRedirects(t *testing.T) {
 	c.expectOK(err)
 }
 
+func TestResponseStatusCode(t *testing.T) {
+	tests := []struct {
+		whatURL      string
+		wantRespCode int
+	}{
+		{
+			"/text?tag=CrashLog&x=13354bf5700000",
+			http.StatusNotFound,
+		},
+		{
+			"/text?tag=CrashReport&x=17a2bedcb00000",
+			http.StatusNotFound,
+		},
+		{
+			"/text?tag=ReproSyz&x=107e219b700000",
+			http.StatusNotFound,
+		},
+		{
+			"/text?tag=ReproC&x=1762ad64f00000",
+			http.StatusNotFound,
+		},
+		{
+			"/text?tag=CrashLog",
+			http.StatusBadRequest,
+		},
+		{
+			"/text?tag=CrashReport",
+			http.StatusBadRequest,
+		},
+		{
+			"/text?tag=ReproC",
+			http.StatusBadRequest,
+		},
+		{
+			"/text?tag=ReproSyz",
+			http.StatusBadRequest,
+		},
+	}
+
+	c := NewCtx(t)
+	defer c.Close()
+
+	for _, test := range tests {
+		checkResponseStatusCode(c, AccessUser, test.whatURL, test.wantRespCode)
+	}
+}
+
 func checkLoginRedirect(c *Ctx, accessLevel AccessLevel, url string) {
 	to, err := user.LoginURL(c.ctx, url)
 	if err != nil {
@@ -446,6 +494,14 @@ func checkRedirect(c *Ctx, accessLevel AccessLevel, from, to string, status int)
 	c.expectTrue(ok)
 	c.expectEQ(httpErr.Code, status)
 	c.expectEQ(httpErr.Headers["Location"], []string{to})
+}
+
+func checkResponseStatusCode(c *Ctx, accessLevel AccessLevel, url string, status int) {
+	_, err := c.AuthGET(accessLevel, url)
+	c.expectNE(err, nil)
+	httpErr, ok := err.(HTTPError)
+	c.expectTrue(ok)
+	c.expectEQ(httpErr.Code, status)
 }
 
 // Test purging of old crashes for bugs with lots of crashes.
@@ -631,4 +687,26 @@ func compareBuilds(c *Ctx, dbBuild *Build, build *dashapi.Build) {
 	c.expectEQ(dbBuild.ID, build.ID)
 	c.expectEQ(dbBuild.KernelCommit, build.KernelCommit)
 	c.expectEQ(dbBuild.SyzkallerCommit, build.SyzkallerCommit)
+}
+
+func TestLinkifyReport(t *testing.T) {
+	input := `
+ tipc_topsrv_stop net/tipc/topsrv.c:694 [inline]
+ tipc_topsrv_exit_net+0x149/0x340 net/tipc/topsrv.c:715
+kernel BUG at fs/ext4/inode.c:2753!
+pkg/sentry/fsimpl/fuse/fusefs.go:278 +0x384
+	arch/x86/entry/entry_64.S:298
+`
+	// nolint: lll
+	output := `
+ tipc_topsrv_stop <a href='https://github.com/google/syzkaller/blob/111222/net/tipc/topsrv.c#L694'>net/tipc/topsrv.c:694</a> [inline]
+ tipc_topsrv_exit_net+0x149/0x340 <a href='https://github.com/google/syzkaller/blob/111222/net/tipc/topsrv.c#L715'>net/tipc/topsrv.c:715</a>
+kernel BUG at <a href='https://github.com/google/syzkaller/blob/111222/fs/ext4/inode.c#L2753'>fs/ext4/inode.c:2753</a>!
+<a href='https://github.com/google/syzkaller/blob/111222/pkg/sentry/fsimpl/fuse/fusefs.go#L278'>pkg/sentry/fsimpl/fuse/fusefs.go:278</a> +0x384
+	<a href='https://github.com/google/syzkaller/blob/111222/arch/x86/entry/entry_64.S#L298'>arch/x86/entry/entry_64.S:298</a>
+`
+	got := linkifyReport([]byte(input), "https://github.com/google/syzkaller", "111222")
+	if diff := cmp.Diff(output, string(got)); diff != "" {
+		t.Fatal(diff)
+	}
 }

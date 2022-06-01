@@ -21,6 +21,19 @@ indexes:
 
 - kind: Bug
   properties:
+  - name: Namespace
+  - name: Status
+  - name: Commits
+
+- kind: Bug
+  properties:
+  - name: Namespace
+  - name: Status
+  - name: Commits
+  - name: HappenedOn
+
+- kind: Bug
+  properties:
   - name: HappenedOn
   - name: Status
 

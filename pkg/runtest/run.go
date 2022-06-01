@@ -299,6 +299,7 @@ func parseProg(target *prog.Target, dir, filename string) (*prog.Prog, map[strin
 		"ENOMEM":     12,
 		"EACCES":     13,
 		"EFAULT":     14,
+		"EXDEV":      18,
 		"EINVAL":     22,
 		"ENOTTY":     25,
 		"EOPNOTSUPP": 95,

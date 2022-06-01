@@ -109,15 +109,15 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		{{if $.DispLastAct}}
 		<th><a onclick="return sortTable(this, 'Last activity', timeSort, desc=true)" href="#">Last activity</a></th>
 		{{end}}
-		{{if $.ShowPatch}}
-			<th><a onclick="return sortTable(this, 'Closed', timeSort)" href="#">Closed</a></th>
-			<th><a onclick="return sortTable(this, 'Patch', textSort)" href="#">Patch</a></th>
-		{{end}}
 		{{if $.ShowPatched}}
 			<th><a onclick="return sortTable(this, 'Patched', patchedSort)" href="#">Patched</a></th>
 		{{end}}
 		{{if $.ShowStatus}}
 			<th><a onclick="return sortTable(this, 'Status', textSort)" href="#">Status</a></th>
+		{{end}}
+		{{if $.ShowPatch}}
+			<th><a onclick="return sortTable(this, 'Closed', timeSort)" href="#">Closed</a></th>
+			<th><a onclick="return sortTable(this, 'Patch', textSort)" href="#">Patch</a></th>
 		{{end}}
 	</tr>
 	</thead>
@@ -141,10 +141,6 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			{{if $.DispLastAct}}
 			<td class="stat">{{formatLateness $.Now $b.LastActivity}}</td>
 			{{end}}
-			{{if $.ShowPatch}}
-				<td class="stat">{{formatLateness $.Now $b.ClosedTime}}</td>
-				<td class="commit_list">{{template "fix_commits" $b.Commits}}</td>
-			{{end}}
 			{{if $.ShowPatched}}
 				<td class="patched" {{if $b.Commits}}title="{{with $com := index $b.Commits 0}}{{$com.Title}}{{end}}"{{end}}>{{len $b.PatchedOn}}/{{$b.NumManagers}}</td>
 			{{end}}
@@ -156,6 +152,10 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 						{{$b.Status}}
 					{{end}}
 				</td>
+			{{end}}
+			{{if $.ShowPatch}}
+				<td class="stat">{{formatLateness $.Now $b.ClosedTime}}</td>
+				<td class="commit_list">{{template "fix_commits" $b.Commits}}</td>
 			{{end}}
 		</tr>
 	{{end}}
@@ -283,7 +283,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		Author: {{.Commit.Author}}<br>
 		Date:   {{formatKernelTime .Commit.Date}}<br>
 		<br>
-		&nbsp;&nbsp;{{.Commit.Title}}<br>
+		&nbsp;&nbsp;{{link .Commit.Link .Commit.Title}}<br>
 		</span><br>
 	{{else if .Commits}}
 		{{if eq .Type $causeJob}}
@@ -294,7 +294,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<b>({{link .LogLink "bisect log"}}):</b><br>
 		<span class="mono">
 		{{range $com := .Commits}}
-			&nbsp;&nbsp;{{formatTagHash $com.Hash}} {{$com.Title}}<br>
+			&nbsp;&nbsp;{{formatTagHash $com.Hash}} {{link $com.Link $com.Title}}<br>
 		{{end}}
 		</span>
 	{{else}}

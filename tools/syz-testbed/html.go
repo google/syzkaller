@@ -16,7 +16,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/google/syzkaller/pkg/html"
+	"github.com/google/syzkaller/pkg/html/pages"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/gorilla/handlers"
 )
@@ -307,4 +307,4 @@ func executeTemplate(w http.ResponseWriter, templ *template.Template, name strin
 
 //go:embed templates
 var testbedTemplates embed.FS
-var mainTemplate = html.CreateFromFS(testbedTemplates, "templates/*.html")
+var mainTemplate = pages.CreateFromFS(testbedTemplates, "templates/*.html")

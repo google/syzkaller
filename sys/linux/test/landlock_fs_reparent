@@ -1,0 +1,39 @@
+# Creates a file hierarchy with a mount point.
+
+mkdirat(0xffffffffffffff9c, &AUTO='./file0\x00', 0x1c0)
+mkdirat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x1c0)
+mknodat(0xffffffffffffff9c, &AUTO='./file1/file2\x00', 0x81c0, 0x0)
+mkdirat(0xffffffffffffff9c, &AUTO='./file1/file3\x00', 0x1c0)
+mkdirat(0xffffffffffffff9c, &AUTO='./file1/file4\x00', 0x1c0)
+mount$tmpfs(0x0, &AUTO='./file1/file4\x00', &AUTO='tmpfs\x00', 0x0, 0x0)
+mknodat(0xffffffffffffff9c, &AUTO='./file1/file4/file5\x00', 0x81c0, 0x0)
+mkdirat(0xffffffffffffff9c, &AUTO='./file1/file4/file6\x00', 0x1c0)
+mkdirat(0xffffffffffffff9c, &AUTO='./file1/file4/file7\x00', 0x1c0)
+
+# Creates a ruleset to restrict file linking/renaming and execution (to get an extra access right).
+
+r0 = landlock_create_ruleset(&AUTO={0x2001}, AUTO, 0x0)
+
+# Allows link and rename from and to file1.
+
+r1 = openat$dir(0xffffffffffffff9c, &AUTO='./file1\x00', 0x200000, 0x0)
+landlock_add_rule$LANDLOCK_RULE_PATH_BENEATH(r0, AUTO, &AUTO={0x2000, r1}, 0x0)
+
+# No need to close FDs for this test.
+
+# Enforces the first ruleset.
+
+prctl$PR_SET_NO_NEW_PRIVS(0x26, 0x1)
+landlock_restrict_self(r0, 0x0)
+
+# Denied link, rename and exchange.
+
+linkat(0xffffffffffffff9c, &AUTO='./file1/file2\x00', 0xffffffffffffff9c, &AUTO='./file0/file2\x00', 0x0) # EXDEV
+renameat2(0xffffffffffffff9c, &AUTO='./file1/file3\x00', 0xffffffffffffff9c, &AUTO='./file0/file3\x00', 0x0) # EXDEV
+renameat2(0xffffffffffffff9c, &AUTO='./file1/file2\x00', 0xffffffffffffff9c, &AUTO='./file0\x00', 0x2) # EXDEV
+
+# Allowed link, rename and exchange with access right beneath the mount point.
+
+linkat(0xffffffffffffff9c, &AUTO='./file1/file4/file5\x00', 0xffffffffffffff9c, &AUTO='./file1/file4/file7/file5\x00', 0x0)
+renameat2(0xffffffffffffff9c, &AUTO='./file1/file4/file6\x00', 0xffffffffffffff9c, &AUTO='./file1/file4/file7/file6\x00', 0x0)
+renameat2(0xffffffffffffff9c, &AUTO='./file1/file4/file5\x00', 0xffffffffffffff9c, &AUTO='./file1/file4/file7/file6\x00', 0x2)

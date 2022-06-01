@@ -308,6 +308,10 @@ func (git *git) GetCommitByTitle(title string) (*Commit, error) {
 	return commits[0], nil
 }
 
+const (
+	fetchCommitsMaxAgeInYears = 5
+)
+
 func (git *git) GetCommitsByTitles(titles []string) ([]*Commit, []string, error) {
 	var greps []string
 	m := make(map[string]string)
@@ -316,7 +320,7 @@ func (git *git) GetCommitsByTitles(titles []string) ([]*Commit, []string, error)
 		greps = append(greps, canonical)
 		m[canonical] = title
 	}
-	since := time.Now().Add(-time.Hour * 24 * 365 * 2).Format("01-02-2006")
+	since := time.Now().Add(-time.Hour * 24 * 365 * fetchCommitsMaxAgeInYears).Format("01-02-2006")
 	commits, err := git.fetchCommits(since, "HEAD", "", "", greps, true)
 	if err != nil {
 		return nil, nil, err
@@ -354,7 +358,7 @@ func (git *git) ExtractFixTagsFromCommits(baseCommit, email string) ([]*Commit, 
 		return nil, fmt.Errorf("failed to parse email %q: %v", email, err)
 	}
 	grep := user + "+.*" + domain
-	since := time.Now().Add(-time.Hour * 24 * 365).Format("01-02-2006")
+	since := time.Now().Add(-time.Hour * 24 * 365 * fetchCommitsMaxAgeInYears).Format("01-02-2006")
 	return git.fetchCommits(since, baseCommit, user, domain, []string{grep}, false)
 }
 

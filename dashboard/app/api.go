@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -62,6 +63,10 @@ type APINamespaceHandler func(c context.Context, ns string, r *http.Request, pay
 const (
 	maxReproPerBug   = 10
 	reproRetryPeriod = 24 * time.Hour // try 1 repro per day until we have at least syz repro
+	// Attempt a new repro every ~ 3 months, even if we have already found it for the bug. This should:
+	// 1) Improve old repros over time (as we update descriptions / change syntax / repro algorithms).
+	// 2) Constrain the impact of bugs in syzkaller's backward compatibility. Fewer old repros, fewer problems.
+	reproStalePeriod = 100 * 24 * time.Hour
 )
 
 // Overridable for testing.
@@ -1187,7 +1192,10 @@ func createBugForCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, 
 					FirstTime:    now,
 					LastTime:     now,
 				}
-				createBugReporting(bug, config.Namespaces[ns])
+				err = bug.updateReportings(config.Namespaces[ns], now)
+				if err != nil {
+					return err
+				}
 				if _, err = db.Put(c, bugKey, bug); err != nil {
 					return fmt.Errorf("failed to put new bug: %v", err)
 				}
@@ -1210,16 +1218,6 @@ func createBugForCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, 
 		return nil, err
 	}
 	return bug, nil
-}
-
-func createBugReporting(bug *Bug, cfg *Config) {
-	for len(bug.Reporting) < len(cfg.Reporting) {
-		rep := &cfg.Reporting[len(bug.Reporting)]
-		bug.Reporting = append(bug.Reporting, BugReporting{
-			Name: rep.Name,
-			ID:   bugReportingHash(bug.keyHash(), rep.Name),
-		})
-	}
 }
 
 func isActiveBug(c context.Context, bug *Bug) (bool, error) {
@@ -1245,15 +1243,31 @@ func needRepro(c context.Context, bug *Bug) bool {
 	return needReproForBug(c, canon)
 }
 
+var syzErrorTitleRe = regexp.MustCompile(`^SYZFAIL:|^SYZFATAL:`)
+
 func needReproForBug(c context.Context, bug *Bug) bool {
-	return bug.ReproLevel < ReproLevelC &&
-		len(bug.Commits) == 0 &&
-		bug.Title != corruptedReportTitle &&
-		bug.Title != suppressedReportTitle &&
-		config.Namespaces[bug.Namespace].NeedRepro(bug) &&
-		(bug.NumRepro < maxReproPerBug ||
-			bug.ReproLevel == ReproLevelNone &&
-				timeSince(c, bug.LastReproTime) > reproRetryPeriod)
+	// We already have fixing commits.
+	if len(bug.Commits) > 0 {
+		return false
+	}
+	if bug.Title == corruptedReportTitle ||
+		bug.Title == suppressedReportTitle {
+		return false
+	}
+	if !config.Namespaces[bug.Namespace].NeedRepro(bug) {
+		return false
+	}
+	bestReproLevel := ReproLevelC
+	// For some bugs there's anyway no chance to find a C repro.
+	if syzErrorTitleRe.MatchString(bug.Title) {
+		bestReproLevel = ReproLevelSyz
+	}
+	if bug.ReproLevel < bestReproLevel {
+		// We have not found a best-level repro yet, try until we do.
+		return bug.NumRepro < maxReproPerBug || timeSince(c, bug.LastReproTime) >= reproRetryPeriod
+	}
+	// When the best repro is already found, still do a repro attempt once in a while.
+	return timeSince(c, bug.LastReproTime) >= reproStalePeriod
 }
 
 func putText(c context.Context, ns, tag string, data []byte, dedup bool) (int64, error) {

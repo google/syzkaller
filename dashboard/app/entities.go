@@ -120,13 +120,17 @@ type Commit struct {
 }
 
 type BugReporting struct {
-	Name       string // refers to Reporting.Name
-	ID         string // unique ID per BUG/BugReporting used in commucation with external systems
-	ExtID      string // arbitrary reporting ID that is passed back in dashapi.BugReport
-	Link       string
-	CC         string             // additional emails added to CC list (|-delimited list)
-	CrashID    int64              // crash that we've last reported in this reporting
-	Auto       bool               // was it auto-upstreamed/obsoleted?
+	Name    string // refers to Reporting.Name
+	ID      string // unique ID per BUG/BugReporting used in commucation with external systems
+	ExtID   string // arbitrary reporting ID that is passed back in dashapi.BugReport
+	Link    string
+	CC      string // additional emails added to CC list (|-delimited list)
+	CrashID int64  // crash that we've last reported in this reporting
+	Auto    bool   // was it auto-upstreamed/obsoleted?
+	// If Dummy is true, the corresponding Reporting stage was introduced later and the object was just
+	// inserted to preserve consistency across the system. Even though it's indicated as Closed and Reported,
+	// it never actually was.
+	Dummy      bool
 	ReproLevel dashapi.ReproLevel // may be less then bug.ReproLevel if repro arrived but we didn't report it yet
 	OnHold     time.Time          // if set, the bug must not be upstreamed
 	Reported   time.Time
