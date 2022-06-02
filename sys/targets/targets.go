@@ -127,6 +127,7 @@ const (
 	TestOS  = "test"
 	Trusty  = "trusty"
 	Windows = "windows"
+	KOS     = "kos"
 
 	AMD64               = "amd64"
 	ARM64               = "arm64"
@@ -448,6 +449,15 @@ var List = map[string]map[string]*Target{
 			NeedSyscallDefine: dontNeedSyscallDefine,
 		},
 	},
+	KOS: {
+		ARM64: {
+			PtrSize:      8,
+			PageSize:     4 << 10,
+			LittleEndian: true,
+			CCompiler:    "/opt/KasperskyOS-Community-Edition-1.0.1.4/toolchain/bin/arm-kos-gcc",
+			Objdump:      "/opt/KasperskyOS-Community-Edition-1.0.1.4/toolchain/bin/arm-kos-objdump",
+		},
+	},
 }
 
 var oses = map[string]osCommon{
@@ -542,6 +552,14 @@ var oses = map[string]osCommon{
 		SyscallNumbers:   true,
 		Int64SyscallArgs: true,
 		SyscallPrefix:    "__NR_",
+	},
+	KOS: {
+		// BuildOS:           Linux,
+		SyscallNumbers:    false,
+		ExecutorUsesShmem: false,
+		HostFuzzer:        true,
+		ExecutorBin:       "syz-executor",
+		// KernelObject:      "kos-qemu-image.dbg.syms",
 	},
 }
 
@@ -670,6 +688,7 @@ func initTarget(target *Target, OS, arch string) {
 	for i := range target.CFlags {
 		target.replaceSourceDir(&target.CFlags[i], sourceDir)
 	}
+
 	if OS == Linux && arch == runtime.GOARCH {
 		// Don't use cross-compiler for native compilation, there are cases when this does not work:
 		// https://github.com/google/syzkaller/pull/619
