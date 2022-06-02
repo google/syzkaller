@@ -4163,6 +4163,8 @@ static int do_sandbox_android(void)
 	if (setresgid(UNTRUSTED_APP_GID, UNTRUSTED_APP_GID, UNTRUSTED_APP_GID) != 0)
 		fail("do_sandbox_android: setresgid failed");
 
+	setup_binderfs();
+
 #if GOARCH_arm || GOARCH_arm64 || GOARCH_386 || GOARCH_amd64
 	// Will fail() if anything fails.
 	// Must be called when the new process still has CAP_SYS_ADMIN, in this case,
@@ -4179,7 +4181,6 @@ static int do_sandbox_android(void)
 	setfilecon(".", SELINUX_LABEL_APP_DATA_FILE);
 	setcon(SELINUX_CONTEXT_UNTRUSTED_APP);
 
-	setup_binderfs();
 	loop();
 	doexit(1);
 }
