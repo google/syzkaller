@@ -253,6 +253,7 @@ resource overlayres64[int64]
 
 overlay_ctor(a ptr[out, overlayres8], b ptr[out, overlayres16], c ptr[out, overlayres32], d ptr[out, overlayres64])
 overlay_uses(a overlayres8, b overlayres16, c overlayres32, d overlayres64)
+overlay_any(a ptr[in, compare_data])
 
 overlayres [
 	res8	overlayres8
