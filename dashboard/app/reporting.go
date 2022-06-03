@@ -379,11 +379,16 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 		if err != nil {
 			return nil, err
 		}
-		job = job1
-		if crash1.ReproC != 0 || crash.ReproC == 0 {
-			// Don't override the crash in this case,
-			// otherwise we will always think that we haven't reported the C repro.
-			crash, crashKey = crash1, crashKey1
+		// If we didn't check whether the bisect is unreliable, even though it would not be
+		// reported anyway, we could still eventually Cc people from those commits later
+		// (e.g. when we did bisected with a syz repro and then notified about a C repro).
+		if !job1.isUnreliableBisect() {
+			job = job1
+			if crash1.ReproC != 0 || crash.ReproC == 0 {
+				// Don't override the crash in this case,
+				// otherwise we will always think that we haven't reported the C repro.
+				crash, crashKey = crash1, crashKey1
+			}
 		}
 	}
 	crashLog, _, err := getText(c, textCrashLog, crash.Log)
@@ -1051,6 +1056,64 @@ func lastReportedReporting(bug *Bug) *BugReporting {
 	for i := len(bug.Reporting) - 1; i >= 0; i-- {
 		if !bug.Reporting[i].Reported.IsZero() {
 			return &bug.Reporting[i]
+		}
+	}
+	return nil
+}
+
+// The updateReporting method is supposed to be called both to fully initialize a new
+// Bug object and also to adjust it to the updated namespace configuration.
+func (bug *Bug) updateReportings(cfg *Config, now time.Time) error {
+	oldReportings := map[string]BugReporting{}
+	oldPositions := map[string]int{}
+	for i, rep := range bug.Reporting {
+		oldReportings[rep.Name] = rep
+		oldPositions[rep.Name] = i
+	}
+	maxPos := 0
+	bug.Reporting = nil
+	for _, rep := range cfg.Reporting {
+		if oldRep, ok := oldReportings[rep.Name]; ok {
+			oldPos := oldPositions[rep.Name]
+			if oldPos < maxPos {
+				// At the moment we only support insertions and deletions of reportings.
+				// TODO: figure out what exactly can go wrong if we also allow reordering.
+				return fmt.Errorf("the order of reportings is changed, before: %v", oldPositions)
+			}
+			maxPos = oldPos
+			bug.Reporting = append(bug.Reporting, oldRep)
+		} else {
+			bug.Reporting = append(bug.Reporting, BugReporting{
+				Name: rep.Name,
+				ID:   bugReportingHash(bug.keyHash(), rep.Name),
+			})
+		}
+	}
+	// We might have added new BugReporting objects between/before the ones that were
+	// already reported. To let syzbot continue from the same reporting stage where it
+	// stopped, close such outliers.
+	seenProcessed := false
+	minTime := now
+	for i := len(bug.Reporting) - 1; i >= 0; i-- {
+		rep := &bug.Reporting[i]
+		if !rep.Reported.IsZero() || !rep.Closed.IsZero() || !rep.OnHold.IsZero() {
+			if !rep.Reported.IsZero() && rep.Reported.Before(minTime) {
+				minTime = rep.Reported
+			}
+			seenProcessed = true
+		} else if seenProcessed {
+			rep.Dummy = true
+		}
+	}
+	// Yet another stage -- we set Closed and Reported to dummy objects in non-decreasing order.
+	currTime := minTime
+	for i := range bug.Reporting {
+		rep := &bug.Reporting[i]
+		if rep.Dummy {
+			rep.Closed = currTime
+			rep.Reported = currTime
+		} else if rep.Reported.After(currTime) {
+			currTime = rep.Reported
 		}
 	}
 	return nil

@@ -66,6 +66,10 @@ func (s *Symbolizer) Close() {
 }
 
 func (s *Symbolizer) checkBinSupport(addr2line string) error {
+	if s.target.OS != targets.Darwin || s.target.Arch != targets.AMD64 {
+		return nil
+	}
+
 	cmd := exec.Command(addr2line, "--help")
 	cmd.Env = append(os.Environ(), "LC_ALL=C")
 	out, err := cmd.CombinedOutput()
@@ -75,8 +79,7 @@ func (s *Symbolizer) checkBinSupport(addr2line string) error {
 	if !bytes.Contains(out, []byte("supported targets:")) {
 		return fmt.Errorf("addr2line output didn't contain supported targets")
 	}
-	if s.target.OS == targets.Darwin && s.target.Arch == targets.AMD64 &&
-		!bytes.Contains(out, []byte("mach-o-x86-64")) {
+	if !bytes.Contains(out, []byte("mach-o-x86-64")) {
 		return fmt.Errorf("addr2line was built without mach-o-x86-64 support")
 	}
 	return nil

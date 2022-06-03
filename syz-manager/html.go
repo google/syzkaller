@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
-	"github.com/google/syzkaller/pkg/html"
+	"github.com/google/syzkaller/pkg/html/pages"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/signal"
@@ -755,7 +755,7 @@ type UIInput struct {
 	Cover int
 }
 
-var summaryTemplate = html.CreatePage(`
+var summaryTemplate = pages.Create(`
 <!doctype html>
 <html>
 <head>
@@ -819,7 +819,7 @@ var summaryTemplate = html.CreatePage(`
 </body></html>
 `)
 
-var syscallsTemplate = html.CreatePage(`
+var syscallsTemplate = pages.Create(`
 <!doctype html>
 <html>
 <head>
@@ -848,7 +848,7 @@ var syscallsTemplate = html.CreatePage(`
 </body></html>
 `)
 
-var crashTemplate = html.CreatePage(`
+var crashTemplate = pages.Create(`
 <!doctype html>
 <html>
 <head>
@@ -887,7 +887,7 @@ Report: <a href="/report?id={{.ID}}">{{.Triaged}}</a>
 </body></html>
 `)
 
-var corpusTemplate = html.CreatePage(`
+var corpusTemplate = pages.Create(`
 <!doctype html>
 <html>
 <head>
@@ -927,7 +927,7 @@ type UIPrio struct {
 	Prio int32
 }
 
-var prioTemplate = html.CreatePage(`
+var prioTemplate = pages.Create(`
 <!doctype html>
 <html>
 <head>
@@ -961,7 +961,7 @@ type UIFallbackCall struct {
 	Errnos     []int
 }
 
-var fallbackCoverTemplate = html.CreatePage(`
+var fallbackCoverTemplate = pages.Create(`
 <!doctype html>
 <html>
 <head>
@@ -992,7 +992,7 @@ type UIRawCallCover struct {
 	UpdateIDs []int
 }
 
-var rawCoverTemplate = html.CreatePage(`
+var rawCoverTemplate = pages.Create(`
 <!doctype html>
 <html>
 <head>

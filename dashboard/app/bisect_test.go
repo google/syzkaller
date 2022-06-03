@@ -545,6 +545,54 @@ https://goo.gl/tpsmEJ#testing-patches`,
 	}
 }
 
+func TestUnreliableBisect(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client2.UploadBuild(build)
+	// Upload a crash that has only a syz repro.
+	crash := testCrashWithRepro(build, 1)
+	crash.ReproC = nil
+	c.client2.ReportCrash(crash)
+	_ = c.client2.pollEmailBug()
+
+	pollResp := c.client2.pollJobs(build.Manager)
+	jobID := pollResp.ID
+	done := &dashapi.JobDoneReq{
+		ID:    jobID,
+		Build: *build,
+		Log:   []byte("bisect log"),
+		Flags: dashapi.BisectResultRelease,
+		Commits: []dashapi.Commit{
+			{
+				Hash:       "111111111111111111111111",
+				Title:      "Linux 4.10",
+				Author:     "abcd@kernel.org",
+				AuthorName: "Abcd Efgh",
+				CC:         []string{"reviewer1@kernel.org", "reviewer2@kernel.org"},
+				Date:       time.Date(2000, 2, 9, 4, 5, 6, 7, time.UTC),
+			},
+		},
+	}
+	done.Build.ID = jobID
+	c.expectOK(c.client2.JobDone(done))
+
+	// The bisection result is unreliable - it shouldn't be reported.
+	c.expectNoEmail()
+
+	// Upload a crash with a C repro.
+	crash2 := testCrashWithRepro(build, 1)
+	c.client2.ReportCrash(crash2)
+
+	// Make sure it doesn't mention bisection and doesn't include the emails from it.
+	msg := c.pollEmailBug()
+	c.expectEQ(msg.To, []string{"test@syzkaller.com"})
+	c.expectEQ(msg.Subject, crash.Title)
+	c.expectTrue(strings.Contains(msg.Body, "syzbot has found a reproducer for the following issue"))
+	c.expectTrue(!strings.Contains(msg.Body, "bisection"))
+}
+
 func TestBisectWrong(t *testing.T) {
 	// Test bisection results with BisectResultMerge/BisectResultNoop flags set.
 	// If any of these set, the result must not be reported separately,

@@ -1883,7 +1883,9 @@ var linuxOopses = append([]*oops{
 				},
 			},
 		},
-		[]*regexp.Regexp{},
+		[]*regexp.Regexp{
+			compile(`general protection fault .* error:\d+ in `),
+		},
 	},
 	{
 		[]byte("stack segment: "),

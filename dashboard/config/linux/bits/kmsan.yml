@@ -1,9 +1,11 @@
 # Copyright 2020 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+compiler: /usr/local/clang-kmsan/bin/clang
+
 kernel:
  repo: https://github.com/google/kmsan.git
- tag: kmsan-v5.15-rc2
+ tag: kmsan-v5.18-rc4
 
 config:
  - KMSAN
