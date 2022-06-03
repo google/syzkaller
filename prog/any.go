@@ -79,10 +79,17 @@ func (target *Target) isComplexPtr(arg *PointerArg) bool {
 	if target.isAnyPtr(arg.Type()) {
 		return true
 	}
-	complex, hasPtr := false, false
+	complex, unsupported := false, false
 	ForeachSubArg(arg.Res, func(a1 Arg, ctx *ArgCtx) {
 		switch typ := a1.Type().(type) {
 		case *StructType:
+			if typ.OverlayField != 0 {
+				// Squashing of structs with out_overlay is not supported.
+				// If we do it, we need to be careful to either squash out part as well,
+				// or remove any resources in the out part from the prog.
+				unsupported = true
+				ctx.Stop = true
+			}
 			if typ.Varlen() {
 				complex = true
 			}
@@ -91,11 +98,13 @@ func (target *Target) isComplexPtr(arg *PointerArg) bool {
 				complex = true
 			}
 		case *PtrType:
-			hasPtr = true
+			// Squashing of pointers is not supported b/c if we do it
+			// we will pass random garbage as pointers.
+			unsupported = true
 			ctx.Stop = true
 		}
 	})
-	return complex && !hasPtr
+	return complex && !unsupported
 }
 
 func (target *Target) isAnyRes(name string) bool {
@@ -236,18 +245,11 @@ func (target *Target) squashResult(arg *ResultArg, elems *[]Arg) {
 }
 
 func (target *Target) squashGroup(arg *GroupArg, elems *[]Arg) {
-	overlayField := 0
-	if typ, ok := arg.Type().(*StructType); ok {
-		overlayField = typ.OverlayField
+	if typ, ok := arg.Type().(*StructType); ok && typ.OverlayField != 0 {
+		panic("squashing out_overlay")
 	}
 	var bitfield, fieldsSize uint64
-	for i, fld := range arg.Inner {
-		if i != 0 && i == overlayField {
-			// We don't squash overlay fields.
-			// Theoretically we could produce a squashed struct with overlay as well,
-			// but it's quite complex to do.
-			break
-		}
+	for _, fld := range arg.Inner {
 		fieldsSize += fld.Size()
 		// Squash bitfields separately.
 		if fld.Type().IsBitfield() {
