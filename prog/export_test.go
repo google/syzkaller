@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -27,6 +28,9 @@ var (
 
 func randSource(t *testing.T) rand.Source {
 	seed := time.Now().UnixNano()
+	if fixed := os.Getenv("SYZ_SEED"); fixed != "" {
+		seed, _ = strconv.ParseInt(fixed, 0, 64)
+	}
 	if os.Getenv("CI") != "" {
 		seed = 0 // required for deterministic coverage reports
 	}
