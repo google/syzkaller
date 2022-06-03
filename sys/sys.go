@@ -9,6 +9,7 @@ import (
 	_ "github.com/google/syzkaller/sys/darwin/gen"
 	_ "github.com/google/syzkaller/sys/freebsd/gen"
 	_ "github.com/google/syzkaller/sys/fuchsia/gen"
+	_ "github.com/google/syzkaller/sys/kos/gen"
 	_ "github.com/google/syzkaller/sys/linux/gen"
 	_ "github.com/google/syzkaller/sys/netbsd/gen"
 	_ "github.com/google/syzkaller/sys/openbsd/gen"

@@ -157,6 +157,7 @@ var ctors = map[string]fn{
 	targets.OpenBSD: ctorOpenbsd,
 	targets.Fuchsia: ctorFuchsia,
 	targets.Windows: ctorStub,
+	targets.KOS:     ctorKOS,
 }
 
 type config struct {
