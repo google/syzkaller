@@ -94,6 +94,11 @@ ifeq ("$(TARGETOS)", "trusty")
 	TARGETGOARCH := $(HOSTARCH)
 endif
 
+ifeq ("$(TARGETOS)", "kos")
+	TARGETGOOS := $(HOSTOS)
+	TARGETGOARCH := $(HOSTARCH)
+endif
+
 .PHONY: all clean host target \
 	manager runtest fuzzer executor \
 	ci hub \
@@ -115,6 +120,9 @@ executor: descriptions
 ifeq ($(TARGETOS),fuchsia)
 	# Dont build syz-executor for fuchsia.
 else
+ifeq ($(TARGETOS),kos)
+	# Dont build syz-executor for Kaspersky OS.
+else
 ifneq ("$(BUILDOS)", "$(NATIVEBUILDOS)")
 	$(info ************************************************************************************)
 	$(info Executor will not be built)
@@ -132,6 +140,7 @@ else
 	$(CC) -o ./bin/$(TARGETOS)_$(TARGETARCH)/syz-executor$(EXE) executor/executor.cc \
 		$(ADDCFLAGS) $(CFLAGS) -DGOOS_$(TARGETOS)=1 -DGOARCH_$(TARGETARCH)=1 \
 		-DHOSTGOOS_$(HOSTOS)=1 -DGIT_REVISION=\"$(REV)\"
+endif
 endif
 endif
 endif

@@ -1,0 +1,149 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# This file contains some subset of POSIX/libc calls.
+# They should be handled by ulib/fs service rather then by the kernel,
+# but still no reason to not fuzz them.
+
+include <sys/types.h>
+include <sys/stat.h>
+include <sys/file.h>
+include <sys/uio.h>
+include <fcntl.h>
+include <poll.h>
+include <unistd.h>
+include <utime.h>
+
+resource fd[int32]: 0xffffffffffffffff, AT_FDCWD
+resource uid[int32]: 0, 0xffffffffffffffff
+resource gid[int32]: 0, 0xffffffffffffffff
+
+open(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
+openat(fd fd[opt], file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
+creat(file ptr[in, filename], mode flags[open_mode]) fd
+close(fd fd)
+read(fd fd, buf buffer[out], count len[buf])
+readv(fd fd, vec ptr[in, array[iovec_out]], vlen len[vec])
+preadv(fd fd, vec ptr[in, array[iovec_out]], vlen len[vec], off fileoff)
+write(fd fd, buf buffer[in], count len[buf])
+writev(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec])
+pwritev(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec], off fileoff)
+lseek(fd fd, offset fileoff, whence flags[seek_whence])
+
+dup(oldfd fd) fd
+dup2(oldfd fd, newfd fd) fd
+dup3(oldfd fd, newfd fd, flags flags[dup_flags]) fd
+
+stat(file ptr[in, filename], statbuf ptr[out, array[int8]])
+lstat(file ptr[in, filename], statbuf ptr[out, array[int8]])
+fstat(fd fd, statbuf ptr[out, array[int8]])
+
+poll(fds ptr[in, array[pollfd]], nfds len[fds], timeout int32)
+ppoll(fds ptr[in, array[pollfd]], nfds len[fds], tsp ptr[in, timespec], sigmask ptr[in, sigset], size len[sigmask])
+select(n len[inp], inp ptr[inout, fd_set], outp ptr[inout, fd_set], exp ptr[inout, fd_set], tvp ptr[inout, timeval])
+
+chmod(file ptr[in, filename], mode flags[open_mode])
+fchmod(fd fd, mode flags[open_mode])
+fchmodat(dirfd fd, file ptr[in, filename], mode flags[open_mode])
+chown(file ptr[in, filename], uid uid, gid gid)
+lchown(file ptr[in, filename], uid uid, gid gid)
+fchown(fd fd, uid uid, gid gid)
+fchownat(dirfd fd, file ptr[in, filename], uid uid, gid gid, flags flags[at_flags])
+faccessat(dirfd fd, pathname ptr[in, filename], mode flags[open_mode], flags flags[faccessat_flags])
+utime(filename ptr[in, filename], times ptr[in, utimbuf])
+utimes(filename ptr[in, filename], times ptr[in, itimerval])
+utimensat(dir fd, pathname ptr[in, filename], times ptr[in, itimerval], flags flags[utimensat_flags])
+
+link(old ptr[in, filename], new ptr[in, filename])
+linkat(oldfd fd, old ptr[in, filename], newfd fd, new ptr[in, filename], flags flags[linkat_flags])
+symlinkat(old ptr[in, filename], newfd fd, new ptr[in, filename])
+symlink(old ptr[in, filename], new ptr[in, filename])
+unlink(path ptr[in, filename])
+unlinkat(fd fd, path ptr[in, filename], flags flags[unlinkat_flags])
+readlink(path ptr[in, filename], buf buffer[out], siz len[buf])
+readlinkat(fd fd, path ptr[in, filename], buf buffer[out], siz len[buf])
+rename(old ptr[in, filename], new ptr[in, filename])
+renameat(oldfd fd, old ptr[in, filename], newfd fd, new ptr[in, filename])
+mkdir(path ptr[in, filename], mode flags[open_mode])
+mkdirat(fd fd, path ptr[in, filename], mode flags[open_mode])
+rmdir(path ptr[in, filename])
+truncate(file ptr[in, filename], len intptr)
+ftruncate(fd fd, len intptr)
+fsync(fd fd)
+fdatasync(fd fd)
+sync()
+getcwd(buf buffer[out], size len[buf])
+chdir(dir ptr[in, filename])
+
+getgid() gid
+getuid() uid
+getpid()
+
+pipe(pipefd ptr[out, pipefd])
+
+pipefd {
+	rfd	fd
+	wfd	fd
+}
+
+open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, FASYNC, O_CLOEXEC, O_CREAT, O_DIRECT, O_DIRECTORY, O_EXCL, O_LARGEFILE, O_NOATIME, O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_PATH, O_SYNC, O_TRUNC
+open_mode = S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
+seek_whence = SEEK_SET, SEEK_CUR, SEEK_END
+dup_flags = O_CLOEXEC
+pollfd_events = POLLIN, POLLPRI, POLLOUT, POLLERR, POLLHUP, POLLNVAL, POLLRDNORM, POLLRDBAND, POLLWRNORM, POLLWRBAND, POLLMSG, POLLRDHUP
+at_flags = AT_EMPTY_PATH, AT_SYMLINK_NOFOLLOW, AT_SYMLINK_FOLLOW, AT_NO_AUTOMOUNT, AT_EMPTY_PATH
+utimensat_flags = 0, AT_SYMLINK_NOFOLLOW
+linkat_flags = AT_EMPTY_PATH, AT_SYMLINK_FOLLOW
+unlinkat_flags = 0, AT_REMOVEDIR
+faccessat_flags = 0x100, 0x200, 0x400, 0x800, 0x1000
+
+iovec_in {
+	addr	buffer[in]
+	len	len[addr, intptr]
+}
+
+iovec_out {
+	addr	buffer[out]
+	len	len[addr, intptr]
+}
+
+sigset {
+	mask	int64
+}
+
+fd_set {
+	mask0	int64
+	mask1	int64
+	mask2	int64
+	mask3	int64
+	mask4	int64
+	mask5	int64
+	mask6	int64
+	mask7	int64
+}
+
+pollfd {
+	fd	fd
+	events	flags[pollfd_events, int16]
+	revents	const[0, int16]
+}
+
+timespec {
+	sec	intptr
+	nsec	intptr
+}
+
+timeval {
+	sec	intptr
+	usec	intptr
+}
+
+utimbuf {
+	actime	intptr
+	modtime	intptr
+}
+
+itimerval {
+	interv	timeval
+	value	timeval
+}
