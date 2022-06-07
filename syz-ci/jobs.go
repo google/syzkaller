@@ -494,7 +494,6 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 
 func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 	req, resp, mgr := job.req, job.resp, job.mgr
-
 	env, err := instance.NewEnv(mgrcfg)
 	if err != nil {
 		return err
@@ -566,34 +565,40 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 	if err != nil {
 		return err
 	}
-	rep, err := aggregateTestResults(results)
+	ret, err := aggregateTestResults(results)
 	if err != nil {
 		return err
 	}
+	rep := ret.report
 	if rep != nil {
 		resp.CrashTitle = rep.Title
 		resp.CrashReport = rep.Report
-		resp.CrashLog = rep.Output
 	}
+	resp.CrashLog = ret.rawOutput
 	return nil
 }
 
-func aggregateTestResults(results []error) (*report.Report, error) {
+type patchTestResult struct {
+	report    *report.Report
+	rawOutput []byte
+}
+
+func aggregateTestResults(results []instance.EnvTestResult) (*patchTestResult, error) {
 	// We can have transient errors and other errors of different types.
 	// We need to avoid reporting transient "failed to boot" or "failed to copy binary" errors.
 	// If any of the instances crash during testing, we report this with the highest priority.
 	// Then if any of the runs succeed, we report that (to avoid transient errors).
 	// If all instances failed to boot, then we report one of these errors.
-	anySuccess := false
 	var anyErr, testErr error
-	var resReport *report.Report
+	var resReport, resSuccess *patchTestResult
+	anyErr = fmt.Errorf("no env test runs")
 	for _, res := range results {
-		if res == nil {
-			anySuccess = true
+		if res.Error == nil {
+			resSuccess = &patchTestResult{rawOutput: res.RawOutput}
 			continue
 		}
-		anyErr = res
-		switch err := res.(type) {
+		anyErr = res.Error
+		switch err := res.Error.(type) {
 		case *instance.TestError:
 			// We should not put rep into resp.CrashTitle/CrashReport,
 			// because that will be treated as patch not fixing the bug.
@@ -603,16 +608,16 @@ func aggregateTestResults(results []error) (*report.Report, error) {
 				testErr = fmt.Errorf("%v\n\n%s", err.Title, err.Output)
 			}
 		case *instance.CrashError:
-			if resReport == nil || (len(resReport.Report) == 0 && len(err.Report.Report) != 0) {
-				resReport = err.Report
+			if resReport == nil || (len(resReport.report.Report) == 0 && len(err.Report.Report) != 0) {
+				resReport = &patchTestResult{report: err.Report, rawOutput: res.RawOutput}
 			}
 		}
 	}
 	if resReport != nil {
 		return resReport, nil
 	}
-	if anySuccess {
-		return nil, nil
+	if resSuccess != nil {
+		return resSuccess, nil
 	}
 	if testErr != nil {
 		return nil, testErr

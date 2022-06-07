@@ -415,11 +415,11 @@ func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
 	failures := 0
 	var failureErr error
 	for _, res := range results {
-		if res == nil {
+		if res.Error == nil {
 			continue
 		}
 		failures++
-		switch err := res.(type) {
+		switch err := res.Error.(type) {
 		case *instance.TestError:
 			if rep := err.Report; rep != nil {
 				what := "test"
@@ -442,7 +442,7 @@ func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
 				failureErr = fmt.Errorf("VM testing failed with: %v", err)
 			}
 		default:
-			failureErr = res
+			failureErr = res.Error
 		}
 	}
 	if failures > maxFailures {

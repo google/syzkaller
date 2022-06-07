@@ -30,7 +30,7 @@ import (
 type Env interface {
 	BuildSyzkaller(string, string) error
 	BuildKernel(string, string, string, string, string, []byte) (string, build.ImageDetails, error)
-	Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]error, error)
+	Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]EnvTestResult, error)
 }
 
 type env struct {
@@ -207,7 +207,7 @@ func (err *CrashError) Error() string {
 // Test boots numVMs VMs, tests basic kernel operation, and optionally tests the provided reproducer.
 // TestError is returned if there is a problem with kernel/image (crash, reboot loop, etc).
 // CrashError is returned if the reproducer crashes kernel.
-func (env *env) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]error, error) {
+func (env *env) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]EnvTestResult, error) {
 	if err := mgrconfig.Complete(env.cfg); err != nil {
 		return nil, err
 	}
@@ -222,7 +222,7 @@ func (env *env) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]error, e
 	if n := vmPool.Count(); numVMs > n {
 		numVMs = n
 	}
-	res := make(chan error, numVMs)
+	res := make(chan EnvTestResult, numVMs)
 	for i := 0; i < numVMs; i++ {
 		inst := &inst{
 			cfg:           env.cfg,
@@ -236,11 +236,11 @@ func (env *env) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]error, e
 		}
 		go func() { res <- inst.test() }()
 	}
-	var errors []error
+	var ret []EnvTestResult
 	for i := 0; i < numVMs; i++ {
-		errors = append(errors, <-res)
+		ret = append(ret, <-res)
 	}
-	return errors, nil
+	return ret, nil
 }
 
 type inst struct {
@@ -255,15 +255,24 @@ type inst struct {
 	reproC        []byte
 }
 
-func (inst *inst) test() error {
+type EnvTestResult struct {
+	Error     error
+	RawOutput []byte
+}
+
+func (inst *inst) test() EnvTestResult {
 	vmInst, err := inst.vmPool.Create(inst.vmIndex)
 	if err != nil {
 		testErr := &TestError{
 			Boot:  true,
 			Title: err.Error(),
 		}
+		ret := EnvTestResult{
+			Error: testErr,
+		}
 		if bootErr, ok := err.(vm.BootErrorer); ok {
 			testErr.Title, testErr.Output = bootErr.BootError()
+			ret.RawOutput = testErr.Output
 			rep := inst.reporter.Parse(testErr.Output)
 			if rep != nil && rep.Type == report.UnexpectedReboot {
 				// Avoid detecting any boot crash as "unexpected kernel reboot".
@@ -282,19 +291,18 @@ func (inst *inst) test() error {
 			testErr.Report = rep
 			testErr.Title = rep.Title
 		}
-		return testErr
+		return ret
 	}
 	defer vmInst.Close()
 	inst.vm = vmInst
-	if err := inst.testInstance(); err != nil {
-		return err
+	ret := EnvTestResult{}
+	if ret.Error = inst.testInstance(); ret.Error != nil {
+		return ret
 	}
 	if len(inst.reproSyz) != 0 || len(inst.reproC) != 0 {
-		if err := inst.testRepro(); err != nil {
-			return err
-		}
+		ret.RawOutput, ret.Error = inst.testRepro()
 	}
-	return nil
+	return ret
 }
 
 // testInstance tests basic operation of the provided VM
@@ -359,28 +367,29 @@ func (inst *inst) testInstance() error {
 	}
 }
 
-func (inst *inst) testRepro() error {
+func (inst *inst) testRepro() ([]byte, error) {
 	var err error
 	execProg, err := SetupExecProg(inst.vm, inst.cfg, inst.reporter, &OptionalConfig{
 		OldFlagsCompatMode: !inst.optionalFlags,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
-	transformError := func(res *RunResult, err error) error {
+	transformError := func(res *RunResult, err error) ([]byte, error) {
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if res != nil && res.Report != nil {
-			return &CrashError{Report: res.Report}
+			return res.RawOutput, &CrashError{Report: res.Report}
 		}
-		return nil
+		return res.RawOutput, nil
 	}
+	out := []byte{}
 	if len(inst.reproSyz) > 0 {
 		var opts csource.Options
 		opts, err = csource.DeserializeOptions(inst.reproOpts)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		// Combine repro options and default options in a way that increases chances to reproduce the crash.
 		// First, we always enable threaded/collide as it should be [almost] strictly better.
@@ -390,16 +399,16 @@ func (inst *inst) testRepro() error {
 			opts.Sandbox = "none"
 		}
 		opts.Repeat, opts.Threaded = true, true
-		err = transformError(execProg.RunSyzProg(inst.reproSyz,
+		out, err = transformError(execProg.RunSyzProg(inst.reproSyz,
 			inst.cfg.Timeouts.NoOutputRunningTime, opts))
 	}
 	if err == nil && len(inst.reproC) > 0 {
 		// We should test for more than full "no output" timeout, but the problem is that C reproducers
 		// don't print anything, so we will get a false "no output" crash.
-		err = transformError(execProg.RunCProgRaw(inst.reproC, inst.cfg.Target,
+		out, err = transformError(execProg.RunCProgRaw(inst.reproC, inst.cfg.Target,
 			inst.cfg.Timeouts.NoOutput/2))
 	}
-	return err
+	return out, err
 }
 
 type OptionalFuzzerArgs struct {
