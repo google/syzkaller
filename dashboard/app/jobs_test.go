@@ -240,13 +240,15 @@ patch:          %[3]v
 	pollResp = c.client2.pollJobs(build.Manager)
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 	jobDoneReq = &dashapi.JobDoneReq{
-		ID:    pollResp.ID,
-		Build: *build,
+		ID:       pollResp.ID,
+		Build:    *build,
+		CrashLog: []byte("console output"),
 	}
 	c.client2.JobDone(jobDoneReq)
 	{
 		dbJob, dbBuild, _ := c.loadJob(pollResp.ID)
 		patchLink := externalLink(c.ctx, textPatch, dbJob.Patch)
+		logLink := externalLink(c.ctx, textCrashLog, dbJob.CrashLog)
 		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 		msg := c.pollEmailBug()
 		c.expectEQ(len(msg.Attachments), 0)
@@ -260,13 +262,14 @@ Tested on:
 
 commit:         11111111 kernel_commit_title1
 git tree:       repo1 branch1
+console output: %[4]v
 kernel config:  %[3]v
 dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 compiler:       compiler1
 patch:          %[2]v
 
 Note: testing is done by a robot and is best-effort only.
-`, extBugID, patchLink, kernelConfigLink))
+`, extBugID, patchLink, kernelConfigLink, logLink))
 		c.checkURLContents(patchLink, []byte(patch))
 		c.checkURLContents(kernelConfigLink, build.KernelConfig)
 	}

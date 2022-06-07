@@ -48,25 +48,24 @@ func (env *testEnv) BuildKernel(compilerBin, cCache, userspaceDir, cmdlineFile, 
 	return "", details, nil
 }
 
-func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]error, error) {
+func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]instance.EnvTestResult, error) {
 	commit := env.headCommit()
 	if commit >= env.test.brokenStart && commit <= env.test.brokenEnd ||
 		env.config == "baseline-skip" {
 		return nil, fmt.Errorf("broken build")
 	}
+	var ret []instance.EnvTestResult
 	if (env.config == "baseline-repro" || env.config == "new-minimized-config" || env.config == "original config") &&
 		(!env.test.fix && commit >= env.test.culprit || env.test.fix &&
 			commit < env.test.culprit) {
-		var errors []error
 		if env.test.flaky {
-			errors = crashErrors(1, numVMs-1, "crash occurs")
+			ret = crashErrors(1, numVMs-1, "crash occurs")
 		} else {
-			errors = crashErrors(numVMs, 0, "crash occurs")
+			ret = crashErrors(numVMs, 0, "crash occurs")
 		}
-		return errors, nil
+		return ret, nil
 	}
-
-	return make([]error, numVMs), nil
+	return make([]instance.EnvTestResult, numVMs), nil
 }
 
 func (env *testEnv) headCommit() int {
@@ -504,17 +503,19 @@ func checkTest(t *testing.T, test BisectionTest) {
 	}
 }
 
-func crashErrors(crashing, nonCrashing int, title string) []error {
-	var errors []error
+func crashErrors(crashing, nonCrashing int, title string) []instance.EnvTestResult {
+	var ret []instance.EnvTestResult
 	for i := 0; i < crashing; i++ {
-		errors = append(errors, &instance.CrashError{
-			Report: &report.Report{
-				Title: fmt.Sprintf("crashes at %v", title),
+		ret = append(ret, instance.EnvTestResult{
+			Error: &instance.CrashError{
+				Report: &report.Report{
+					Title: fmt.Sprintf("crashes at %v", title),
+				},
 			},
 		})
 	}
 	for i := 0; i < nonCrashing; i++ {
-		errors = append(errors, nil)
+		ret = append(ret, instance.EnvTestResult{})
 	}
-	return errors
+	return ret
 }

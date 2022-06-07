@@ -149,11 +149,11 @@ func test(repo vcs.Repo, bisecter vcs.Bisecter, kernelConfig []byte, env instanc
 	}
 	var verdicts []string
 	for i, res := range results {
-		if res == nil {
+		if res.Error == nil {
 			verdicts = append(verdicts, "OK")
 			continue
 		}
-		switch err := res.(type) {
+		switch err := res.Error.(type) {
 		case *instance.TestError:
 			if err.Boot {
 				verdicts = append(verdicts, fmt.Sprintf("boot failed: %v", err))
