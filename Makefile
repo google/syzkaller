@@ -349,12 +349,12 @@ presubmit_big: descriptions
 	# but these OSes use fixed toolchains and are not affected by SYZ_CLANG=yes.
 	# This way we get maximum coverage: smoke run tests Linux/gcc,
 	# while this run tests Linux/clang + the additional OSes.
-	SYZ_CLANG=yes $(GO) test -short -coverprofile=.coverage.txt ./dashboard/app ./pkg/csource ./pkg/cover
+	SYZ_CLANG=yes $(GO) test -short -vet=off -coverprofile=.coverage.txt ./dashboard/app ./pkg/csource ./pkg/cover
 
 presubmit_race: descriptions
 	# -race requires cgo
 	env CGO_ENABLED=1 $(GO) test -race; if test $$? -ne 2; then \
-	env CGO_ENABLED=1 $(GO) test -race -short -bench=.* -benchtime=.2s ./... ;\
+	env CGO_ENABLED=1 $(GO) test -race -short -vet=off -bench=.* -benchtime=.2s ./... ;\
 	fi
 
 presubmit_old: descriptions
