@@ -21,10 +21,10 @@ const SYSROOT = "/opt/KasperskyOS-Community-Edition-1.0.0.69/sysroot-arm-kos/"
 const TOOLCHAIN = "/opt/KasperskyOS-Community-Edition-1.0.0.69/toolchain/"
 
 // Path to the linker script required for the solution build.
-const LINKER_SCRIPT = "/opt/KasperskyOS-Community-Edition-1.0.0.69/libexec/arm-kos/"
+const LINKERSCRIPT = "/opt/KasperskyOS-Community-Edition-1.0.0.69/libexec/arm-kos/"
 
 // Path to the precompiled KOS kernel not containing romfs.
-const IMG_SRC = "/opt/KasperskyOS-Community-Edition-1.0.0.69/libexec/arm-kos/"
+const IMGSRC = "/opt/KasperskyOS-Community-Edition-1.0.0.69/libexec/arm-kos/"
 
 func (ka kos) build(params Params) (ImageDetails, error) {
 	sysTarget := targets.Get(targets.KOS, params.TargetArch)
