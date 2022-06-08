@@ -131,7 +131,7 @@ func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
 	builders := map[string]builder{
 		targets.Linux:   linux{},
 		targets.Fuchsia: fuchsia{},
-		targets.KOS: kos{},
+		targets.KOS:     kos{},
 		targets.Akaros:  akaros{},
 		targets.OpenBSD: openbsd{},
 		targets.NetBSD:  netbsd{},
