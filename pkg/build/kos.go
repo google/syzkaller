@@ -14,13 +14,13 @@ import (
 
 type kos struct{}
 
-// Path to the root directory
+// Path to the root directory.
 const SYSROOT = "/opt/KasperskyOS-Community-Edition-1.0.0.69/sysroot-arm-kos/"
 
-// Path to the toolchain
+// Path to the toolchain.
 const TOOLCHAIN = "/opt/KasperskyOS-Community-Edition-1.0.0.69/toolchain/"
 
-// Path to the linker script required for the solution build
+// Path to the linker script required for the solution build.
 const LINKER_SCRIPT = "/opt/KasperskyOS-Community-Edition-1.0.0.69/libexec/arm-kos/"
 
 // Path to the precompiled KOS kernel not containing romfs.
@@ -61,15 +61,6 @@ func (ka kos) build(params Params) (ImageDetails, error) {
 		return ImageDetails{}, err
 	}
 	return ImageDetails{}, nil
-}
-
-func runKOSSandboxed(timeout time.Duration, dir, command string, arg ...string) ([]byte, error) {
-	cmd := osutil.Command(command, arg...)
-	cmd.Dir = dir
-	if err := osutil.Sandbox(cmd, true, false); err != nil {
-		return nil, err
-	}
-	return osutil.Run(timeout, cmd)
 }
 
 func (ka kos) clean(kernelDir, targetArch string) error {
