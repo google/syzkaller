@@ -5,6 +5,7 @@ package main
 
 import (
 	"sync"
+	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/host"
@@ -19,9 +20,12 @@ var getReportGenerator = func() func(cfg *mgrconfig.Config,
 	var err error
 	return func(cfg *mgrconfig.Config, modules []host.KernelModule) (*cover.ReportGenerator, error) {
 		once.Do(func() {
+			start := time.Now()
 			log.Logf(0, "initializing coverage information...")
 			rg, err = cover.MakeReportGenerator(cfg.SysTarget, cfg.Type, cfg.KernelObj, cfg.KernelSrc,
 				cfg.KernelBuildSrc, cfg.KernelSubsystem, cfg.ModuleObj, modules, cfg.RawCover)
+			diff := time.Since(start)
+			log.Logf(0, "MakeReportGenerator took %s", diff)
 		})
 		return rg, err
 	}

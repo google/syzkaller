@@ -59,30 +59,12 @@ func elfReadSymbols(module *Module, info *symbolInfo) ([]*Symbol, error) {
 			}
 		}
 	}
-
-	textSecIdx := 0
-	for i, sec := range file.Sections {
-		if sec.Name == ".text" {
-			textSecIdx = i
-		}
-	}
-	textSymbols := make(map[string]bool)
-	for _, s := range allSymbols {
-		if s.Info&0xf == uint8(elf.STT_FUNC) {
-			if s.Section == elf.SectionIndex(textSecIdx) {
-				textSymbols[s.Name] = true
-			}
-		}
-	}
-	allDwarfFunctions, err := readSymbolsFromDwarf(debugInfo, textSymbols)
+	allDwarfFunctions, err := readSymbolsFromDwarf(debugInfo)
 	if err != nil {
 		return nil, err
 	}
 	var symbols []*Symbol
 	for _, ds := range allDwarfFunctions {
-		if len(ds.Ranges) == 0 {
-			continue
-		}
 		start := ds.Ranges[0][0]
 		end := ds.Ranges[len(ds.Ranges)-1][1]
 		var ranges [][2]uint64

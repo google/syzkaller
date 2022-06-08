@@ -16,6 +16,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -206,28 +208,28 @@ func makeDWARFUnsafe(target *targets.Target, objDir, srcDir, buildDir string,
 func buildSymbols(symbols []*Symbol, ranges []*DwarfRange, coverPoints [2][]uint64) []*CompileUnit {
 	// Assign coverage point PCs to symbols.
 	// Both ranges and coverage points are sorted, so we do it one pass over both.
+	start := time.Now()
 	selectPCs := func(u *ObjectUnit, typ int) *[]uint64 {
 		return [2]*[]uint64{&u.PCs, &u.CMPs}[typ]
 	}
 	allUnits := make(map[string]map[string]*CompileUnit)
 	var units []*CompileUnit
+	log.Logf(0, "buildSymbols for %d coverPoints, %d ranges", len(coverPoints[0])+len(coverPoints[1]), len(ranges))
 	for pcType := range coverPoints {
 		pcs := coverPoints[pcType]
 		if len(pcs) == 0 {
 			continue
 		}
-		for i := 0; i < len(pcs); i++ {
-			pc := pcs[i]
-			idx := sort.Search(len(ranges), func(i int) bool {
-				return pc < ranges[i].Start
+		for _, pc := range pcs {
+			b := sort.Search(len(ranges), func(i int) bool {
+				return pc < ranges[i].End
 			})
-			if idx == 0 {
-				continue
+			if b != 0 {
+				b--
 			}
-			idx--
 			var symb *Symbol
-			for j := idx; j < len(ranges); j++ {
-				if pc >= ranges[j].Symbol.Start && pc < ranges[j].Symbol.End {
+			for j := b; j < len(ranges); j++ {
+				if pc >= ranges[j].Start && pc < ranges[j].End {
 					symb = ranges[j].Symbol
 					break
 				}
@@ -257,12 +259,15 @@ func buildSymbols(symbols []*Symbol, ranges []*DwarfRange, coverPoints [2][]uint
 			*unitPCs = append(*unitPCs, *symbPCs...)
 		}
 	}
+
 	for _, f := range allUnits {
 		for _, unit := range f {
 			units = append(units, unit)
 		}
 	}
 
+	diff := time.Since(start)
+	log.Logf(0, "buildSymbols took %s", diff)
 	return units
 }
 
@@ -595,6 +600,7 @@ type DwarfCompileUnit struct {
 
 type DwarfFunction struct {
 	DwarfCompileUnit *DwarfCompileUnit
+	Parent           *DwarfFunction
 	Type             dwarf.Tag
 	Name             string
 	Ranges           [][2]uint64
@@ -602,12 +608,34 @@ type DwarfFunction struct {
 	AbstractOrigin   dwarf.Offset
 	Inline           bool
 	Offset           dwarf.Offset
+	Depth            int
 }
 
+var (
+	entryReaderMap map[*dwarf.Data]map[*dwarf.Entry]*dwarf.LineReader
+	mux            sync.Mutex
+)
+
 func getFilenameByIndex(debugInfo *dwarf.Data, entry *dwarf.Entry, index int) (string, error) {
-	r, err := debugInfo.LineReader(entry)
-	if err != nil {
-		return "", fmt.Errorf("not found line reader for Compile Unit")
+	var r *dwarf.LineReader
+	var err error
+	mux.Lock()
+	if entryReaderMap == nil {
+		entryReaderMap = make(map[*dwarf.Data]map[*dwarf.Entry]*dwarf.LineReader)
+	}
+	r = entryReaderMap[debugInfo][entry]
+	mux.Unlock()
+	if r == nil {
+		r, err = debugInfo.LineReader(entry)
+		if err != nil {
+			return "", fmt.Errorf("not found line reader for Compile Unit")
+		}
+		mux.Lock()
+		if entryReaderMap[debugInfo] == nil {
+			entryReaderMap[debugInfo] = make(map[*dwarf.Entry]*dwarf.LineReader)
+		}
+		entryReaderMap[debugInfo][entry] = r
+		mux.Unlock()
 	}
 	files := r.Files()
 	if files == nil {
@@ -662,14 +690,17 @@ func getEntryByOffset(debugInfo *dwarf.Data, offset dwarf.Offset) (*dwarf.Entry,
 	return r.Next()
 }
 
-func readAllSubprograms(debugInfo *dwarf.Data, compileUnit *DwarfCompileUnit) ([]*DwarfFunction, error) {
+func (cu *DwarfCompileUnit) iterateFunctions(debugInfo *dwarf.Data) ([]*DwarfFunction, error) {
 	var data []*DwarfFunction
-
+	inlineSubprograms := make(map[dwarf.Offset]*DwarfFunction)
 	top := true
 	first := true
+	depth := 0
+	var current *DwarfFunction
+
 	for r := debugInfo.Reader(); ; {
 		if top {
-			r.Seek(compileUnit.Offset)
+			r.Seek(cu.Offset)
 			top = false
 		}
 		ent, err := r.Next()
@@ -678,6 +709,9 @@ func readAllSubprograms(debugInfo *dwarf.Data, compileUnit *DwarfCompileUnit) ([
 		}
 		if ent == nil {
 			break
+		}
+		if ent.Children {
+			depth++
 		}
 		if first && ent.Tag == dwarf.TagCompileUnit {
 			first = false
@@ -685,178 +719,124 @@ func readAllSubprograms(debugInfo *dwarf.Data, compileUnit *DwarfCompileUnit) ([
 		} else if ent.Tag == dwarf.TagCompileUnit {
 			break
 		}
-		if ent.Tag != dwarf.TagSubprogram {
-			continue
-		}
-
-		attrName := ent.Val(dwarf.AttrName)
-		attrAbstractOrigin := ent.Val(dwarf.AttrAbstractOrigin)
-		var decfile string
-		if attrName == nil && attrAbstractOrigin != nil {
-			ent1, err := getEntryByOffset(debugInfo, attrAbstractOrigin.(dwarf.Offset))
+		if ent.Tag == dwarf.TagSubprogram {
+			current, err = cu.parseSubprogram(debugInfo, ent, inlineSubprograms, depth)
 			if err != nil {
 				return nil, err
 			}
-			attrName = ent1.Val(dwarf.AttrName)
-			decfile, err = getFilenameByIndex(debugInfo, compileUnit.Entry, int(ent1.Val(dwarf.AttrDeclFile).(int64)))
+			if current != nil {
+				data = append(data, current)
+			}
+		} else if ent.Tag == dwarf.TagInlinedSubroutine {
+			attrAbstractOrigin := ent.Val(dwarf.AttrAbstractOrigin)
+			if attrAbstractOrigin == nil {
+				continue
+			}
+			parent := inlineSubprograms[attrAbstractOrigin.(dwarf.Offset)]
+			ranges, err := debugInfo.Ranges(ent)
 			if err != nil {
 				return nil, err
 			}
-		}
-		if attrName == nil {
-			continue
-		}
-		if decfile == "" && ent.Val(dwarf.AttrDeclFile) != nil {
-			decfile, err = getFilenameByIndex(debugInfo, compileUnit.Entry, int(ent.Val(dwarf.AttrDeclFile).(int64)))
-			if err != nil {
-				return nil, err
+			if len(ranges) == 0 {
+				continue
 			}
+			if parent == nil {
+				continue
+			}
+			current = &DwarfFunction{
+				DwarfCompileUnit: cu,
+				Parent:           parent,
+				Name:             parent.Name,
+				DeclFile:         parent.DeclFile,
+				Type:             dwarf.TagInlinedSubroutine,
+				Ranges:           ranges,
+				Offset:           ent.Offset,
+				Inline:           true,
+				AbstractOrigin:   attrAbstractOrigin.(dwarf.Offset),
+				Depth:            depth,
+			}
+			data = append(data, current)
+		} else if ent.Tag == 0 {
+			depth--
 		}
-		ranges, err := debugInfo.Ranges(ent)
-		if err != nil {
-			return nil, err
-		}
-		inline := false
-		attrInline := ent.Val(dwarf.AttrInline)
-		if attrInline != nil {
-			inline = true
-		}
-
-		data = append(data, &DwarfFunction{
-			DwarfCompileUnit: compileUnit,
-			Type:             dwarf.TagSubprogram,
-			Name:             attrName.(string),
-			Ranges:           ranges,
-			DeclFile:         decfile,
-			Inline:           inline,
-			Offset:           ent.Offset,
-		})
-		r.SkipChildren()
 	}
 
 	return data, nil
 }
 
-func readAllInlinedSubroutines(debugInfo *dwarf.Data, inlineSubprograms map[dwarf.Offset]*DwarfFunction,
-	subprogram *DwarfFunction) ([]*DwarfFunction, error) {
-	var data []*DwarfFunction
+func (cu *DwarfCompileUnit) parseSubprogram(debugInfo *dwarf.Data, ent *dwarf.Entry,
+	inlineSubprograms map[dwarf.Offset]*DwarfFunction, depth int) (*DwarfFunction, error) {
+	attrName := ent.Val(dwarf.AttrName)
+	attrAbstractOrigin := ent.Val(dwarf.AttrAbstractOrigin)
+	var decfile string
+	var current *DwarfFunction
+	var err error
 
-	top := true
-	first := true
-	for r := debugInfo.Reader(); ; {
-		if top {
-			r.Seek(subprogram.Offset)
-			top = false
-		}
-		ent, err := r.Next()
+	if attrName == nil && attrAbstractOrigin != nil {
+		ent1, err := getEntryByOffset(debugInfo, attrAbstractOrigin.(dwarf.Offset))
 		if err != nil {
 			return nil, err
 		}
-		if ent == nil {
-			break
-		}
-		if first && ent.Tag == dwarf.TagSubprogram {
-			first = false
-			continue
-		} else if ent.Tag == dwarf.TagSubprogram {
-			break
-		}
-		if ent.Tag != dwarf.TagInlinedSubroutine {
-			continue
-		}
-		attrAbstractOrigin := ent.Val(dwarf.AttrAbstractOrigin)
-		if attrAbstractOrigin == nil {
-			continue
-		}
-		df := inlineSubprograms[attrAbstractOrigin.(dwarf.Offset)]
-		ranges, err := debugInfo.Ranges(ent)
+		attrName = ent1.Val(dwarf.AttrName)
+		decfile, err = getFilenameByIndex(debugInfo, cu.Entry, int(ent1.Val(dwarf.AttrDeclFile).(int64)))
 		if err != nil {
 			return nil, err
 		}
-		if len(ranges) == 0 {
-			continue
-		}
-		data = append(data, &DwarfFunction{
-			DwarfCompileUnit: df.DwarfCompileUnit,
-			Type:             dwarf.TagInlinedSubroutine,
-			Name:             df.Name,
-			Ranges:           ranges,
-			Offset:           ent.Offset,
-			DeclFile:         df.DeclFile,
-			Inline:           df.Inline,
-			AbstractOrigin:   attrAbstractOrigin.(dwarf.Offset),
-		})
 	}
-
-	return data, nil
-}
-
-func readSymbolsFromDwarf(debugInfo *dwarf.Data, textSymbols map[string]bool) ([]*DwarfFunction, error) {
-	var allSubprograms []*DwarfFunction
-	var allInlineSubroutines []*DwarfFunction
-	compileUnits, err := readAllCompileUnits(debugInfo)
+	if attrName == nil {
+		return nil, nil
+	}
+	if decfile == "" && ent.Val(dwarf.AttrDeclFile) != nil {
+		decfile, err = getFilenameByIndex(debugInfo, cu.Entry, int(ent.Val(dwarf.AttrDeclFile).(int64)))
+		if err != nil {
+			return nil, err
+		}
+	}
+	ranges, err := debugInfo.Ranges(ent)
 	if err != nil {
 		return nil, err
 	}
-	for _, cu := range compileUnits {
-		errc := make(chan error, 1)
-		go func(cu *DwarfCompileUnit) {
-			subprograms, err := readAllSubprograms(debugInfo, cu)
-			if err != nil {
-				errc <- err
-				return
-			}
-			var textSubPrograms []*DwarfFunction
-			for _, subprogram := range subprograms {
-				if ok := textSymbols[subprogram.Name]; ok {
-					textSubPrograms = append(textSubPrograms, subprogram)
-					continue
-				}
-			}
-			allSubprograms = append(allSubprograms, textSubPrograms...)
-			inlineSubprograms := make(map[dwarf.Offset]*DwarfFunction)
-			for _, sp := range subprograms {
-				if sp.Inline {
-					inlineSubprograms[sp.Offset] = sp
-				}
-			}
-			for _, sp := range textSubPrograms {
-				if sp.Inline {
-					continue
-				}
-				erric := make(chan error, 1)
-				go func(sp *DwarfFunction) {
-					inlineSubroutines, err := readAllInlinedSubroutines(debugInfo, inlineSubprograms, sp)
-					if err != nil {
-						erric <- err
-						return
-					}
-					allInlineSubroutines = append(allInlineSubroutines, inlineSubroutines...)
-					erric <- nil
-				}(sp)
-				if err := <-erric; err != nil {
-					errc <- err
-				}
-			}
-			errc <- nil
-		}(cu)
-		if err := <-errc; err != nil {
-			return nil, err
-		}
+	inline := false
+	attrInline := ent.Val(dwarf.AttrInline)
+	if attrInline != nil {
+		inline = true
+	}
+	current = &DwarfFunction{
+		DwarfCompileUnit: cu,
+		Type:             dwarf.TagSubprogram,
+		Name:             attrName.(string),
+		Ranges:           ranges,
+		DeclFile:         decfile,
+		Inline:           inline,
+		Offset:           ent.Offset,
+		Depth:            depth,
+	}
+	if inline {
+		inlineSubprograms[current.Offset] = current
+	}
+
+	return current, nil
+}
+
+func readSymbolsFromDwarf(debugInfo *dwarf.Data) ([]*DwarfFunction, error) {
+	var allFunctions []*DwarfFunction
+	start := time.Now()
+	cus, err := readAllCompileUnits(debugInfo)
+	if err != nil {
+		return nil, err
+	}
+	for _, cu := range cus {
+		functions, _ := cu.iterateFunctions(debugInfo)
+		allFunctions = append(allFunctions, functions...)
 	}
 	var allDwarfFunctions []*DwarfFunction
-	for _, df := range allSubprograms {
+	for _, df := range allFunctions {
 		if len(df.Ranges) == 0 {
 			continue
 		}
 		allDwarfFunctions = append(allDwarfFunctions, df)
 	}
-	for _, df := range allInlineSubroutines {
-		if len(df.Ranges) == 0 {
-			continue
-		}
-		allDwarfFunctions = append(allDwarfFunctions, df)
-	}
+	log.Logf(0, "readSymbolsFromDwarf took %s for %d functions", time.Since(start), len(allDwarfFunctions))
 
 	return allDwarfFunctions, nil
 }
