@@ -234,6 +234,17 @@ var archConfigs = map[string]*archConfig{
 			"kernel.halt-on-panic=true",
 		},
 	},
+	"kos/arm64": {
+		Qemu:      "qemu-system-x86_64",
+		QemuArgs:  "-enable-kvm -machine q35 -cpu host,migratable=off",
+		TargetDir: "/tmp",
+		NetDev:    "e1000",
+		RngDev:    "virtio-rng-pci",
+		CmdLine: []string{
+			"kernel.serial=legacy",
+			"kernel.halt-on-panic=true",
+		},
+	},
 	"akaros/amd64": {
 		Qemu:     "qemu-system-x86_64",
 		QemuArgs: "-enable-kvm -cpu host,migratable=off",
