@@ -6,11 +6,9 @@ package cover
 import (
 	"fmt"
 	"sort"
-	"time"
 
 	"github.com/google/syzkaller/pkg/cover/backend"
 	"github.com/google/syzkaller/pkg/host"
-	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -179,15 +177,12 @@ func (rg *ReportGenerator) lazySymbolize(progs []Prog) error {
 	symbolize := make(map[*backend.Symbol]bool)
 	uniquePCs := make(map[uint64]bool)
 	pcs := make(map[*backend.Module][]uint64)
-	start := time.Now()
-	totalSymbols := 0
 	for _, prog := range progs {
 		for _, pc := range prog.PCs {
 			if uniquePCs[pc] {
 				continue
 			}
 			uniquePCs[pc] = true
-			totalSymbols++
 			sym := rg.findSymbol(pc)
 			if sym == nil || (sym.Symbolized || symbolize[sym]) {
 				continue
@@ -196,8 +191,6 @@ func (rg *ReportGenerator) lazySymbolize(progs []Prog) error {
 			pcs[sym.Module] = append(pcs[sym.Module], sym.PCs...)
 		}
 	}
-	diff := time.Since(start)
-	log.Logf(0, "%d PCs symbolized in %s (avg. %s)", totalSymbols, diff, diff/time.Duration(totalSymbols))
 	if len(uniquePCs) == 0 {
 		return fmt.Errorf("no coverage collected so far")
 	}

@@ -18,10 +18,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/google/syzkaller/pkg/cover/backend"
-	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -60,10 +58,7 @@ func fixUpPCs(target string, progs []Prog, coverFilter map[uint32]uint32) []Prog
 
 func (rg *ReportGenerator) DoHTML(w io.Writer, progs []Prog, coverFilter map[uint32]uint32) error {
 	progs = fixUpPCs(rg.target.Arch, progs, coverFilter)
-	start := time.Now()
 	files, err := rg.prepareFileMap(progs)
-	diff := time.Since(start)
-	log.Logf(0, "rg.prepareFileMap took %s", diff)
 	if err != nil {
 		return err
 	}

@@ -17,7 +17,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -208,13 +207,11 @@ func makeDWARFUnsafe(target *targets.Target, objDir, srcDir, buildDir string,
 func buildSymbols(symbols []*Symbol, ranges []*DwarfRange, coverPoints [2][]uint64) []*CompileUnit {
 	// Assign coverage point PCs to symbols.
 	// Both ranges and coverage points are sorted, so we do it one pass over both.
-	start := time.Now()
 	selectPCs := func(u *ObjectUnit, typ int) *[]uint64 {
 		return [2]*[]uint64{&u.PCs, &u.CMPs}[typ]
 	}
 	allUnits := make(map[string]map[string]*CompileUnit)
 	var units []*CompileUnit
-	log.Logf(0, "buildSymbols for %d coverPoints, %d ranges", len(coverPoints[0])+len(coverPoints[1]), len(ranges))
 	for pcType := range coverPoints {
 		pcs := coverPoints[pcType]
 		if len(pcs) == 0 {
@@ -266,8 +263,6 @@ func buildSymbols(symbols []*Symbol, ranges []*DwarfRange, coverPoints [2][]uint
 		}
 	}
 
-	diff := time.Since(start)
-	log.Logf(0, "buildSymbols took %s", diff)
 	return units
 }
 
@@ -820,7 +815,6 @@ func (cu *DwarfCompileUnit) parseSubprogram(debugInfo *dwarf.Data, ent *dwarf.En
 
 func readSymbolsFromDwarf(debugInfo *dwarf.Data) ([]*DwarfFunction, error) {
 	var allFunctions []*DwarfFunction
-	start := time.Now()
 	cus, err := readAllCompileUnits(debugInfo)
 	if err != nil {
 		return nil, err
@@ -836,7 +830,6 @@ func readSymbolsFromDwarf(debugInfo *dwarf.Data) ([]*DwarfFunction, error) {
 		}
 		allDwarfFunctions = append(allDwarfFunctions, df)
 	}
-	log.Logf(0, "readSymbolsFromDwarf took %s for %d functions", time.Since(start), len(allDwarfFunctions))
 
 	return allDwarfFunctions, nil
 }
