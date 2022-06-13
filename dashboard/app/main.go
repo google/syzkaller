@@ -1279,16 +1279,26 @@ func makeUIJob(job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *
 	return ui
 }
 
+func formatLogLine(line string) string {
+	const maxLineLen = 1000
+
+	line = strings.Replace(line, "\n", " ", -1)
+	line = strings.Replace(line, "\r", "", -1)
+	if len(line) > maxLineLen {
+		line = line[:maxLineLen]
+		line += "..."
+	}
+	return line + "\n"
+}
+
 func fetchErrorLogs(c context.Context) ([]byte, error) {
 	if !appengine.IsAppEngine() {
 		return nil, nil
 	}
 
 	const (
-		maxLines   = 100
-		maxLineLen = 1000
+		maxLines = 100
 	)
-
 	projID := os.Getenv("GOOGLE_CLOUD_PROJECT")
 
 	adminClient, err := logadmin.NewClient(c, projID)
@@ -1297,13 +1307,12 @@ func fetchErrorLogs(c context.Context) ([]byte, error) {
 	}
 	defer adminClient.Close()
 
-	const name = "appengine.googleapis.com%2Frequest_log"
-
 	lastWeek := time.Now().Add(-1 * 7 * 24 * time.Hour).Format(time.RFC3339)
 	iter := adminClient.Entries(c,
 		logadmin.Filter(
-			fmt.Sprintf(`logName = "projects/%s/logs/%s" AND timestamp > "%s" AND severity>="ERROR"`,
-				projID, name, lastWeek)),
+			// We filter our instances.delete errors as false positives. Delete event happens every second.
+			fmt.Sprintf(`(NOT protoPayload.methodName:v1.compute.instances.delete) AND timestamp > "%s" AND severity>="ERROR"`,
+				lastWeek)),
 		logadmin.NewestFirst(),
 	)
 
@@ -1321,26 +1330,25 @@ func fetchErrorLogs(c context.Context) ([]byte, error) {
 
 	var lines []string
 	for _, entry := range entries {
-		requestLog := entry.Payload.(*proto.RequestLog)
-		for _, logLine := range requestLog.Line {
-			if logLine.GetSeverity() < ltype.LogSeverity_ERROR {
-				continue
+		requestLog, isRequestLog := entry.Payload.(*proto.RequestLog)
+		if isRequestLog {
+			for _, logLine := range requestLog.Line {
+				if logLine.GetSeverity() < ltype.LogSeverity_ERROR {
+					continue
+				}
+				line := fmt.Sprintf("%v: %v %v %v \"%v\"",
+					entry.Timestamp.Format(time.Stamp),
+					requestLog.GetStatus(),
+					requestLog.GetMethod(),
+					requestLog.GetResource(),
+					logLine.GetLogMessage())
+				lines = append(lines, formatLogLine(line))
 			}
-			line := fmt.Sprintf("%v: %v %v %v \"%v\"",
+		} else {
+			line := fmt.Sprintf("%v: %v",
 				entry.Timestamp.Format(time.Stamp),
-				requestLog.GetStatus(),
-				requestLog.GetMethod(),
-				requestLog.GetResource(),
-				logLine.GetLogMessage())
-
-			line = strings.Replace(line, "\n", " ", -1)
-			line = strings.Replace(line, "\r", "", -1)
-			if len(line) > maxLineLen {
-				line = line[:maxLineLen]
-			}
-
-			line = line + "\n"
-			lines = append(lines, line)
+				entry.Payload)
+			lines = append(lines, formatLogLine(line))
 		}
 	}
 
