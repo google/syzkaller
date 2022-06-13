@@ -216,6 +216,18 @@ static void use_temporary_dir(void)
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+
+#if GOOS_freebsd
+static void reset_flags(const char* filename)
+{
+	struct stat st;
+	if (lstat(filename, &st))
+		exitf("lstat(%s) failed", filename);
+	st.st_flags &= ~(SF_NOUNLINK | UF_NOUNLINK | SF_IMMUTABLE | UF_IMMUTABLE);
+	if (lchflags(filename, st.st_flags))
+		exitf("lchflags(%s) failed", filename);
+}
+#endif
 static void __attribute__((noinline)) remove_dir(const char* dir)
 {
 	DIR* dp = opendir(dir);
@@ -240,12 +252,28 @@ static void __attribute__((noinline)) remove_dir(const char* dir)
 			remove_dir(filename);
 			continue;
 		}
-		if (unlink(filename))
+		if (unlink(filename)) {
+#if GOOS_freebsd
+			if (errno == EPERM) {
+				reset_flags(filename);
+				if (unlink(filename) == 0)
+					continue;
+			}
+#endif
 			exitf("unlink(%s) failed", filename);
+		}
 	}
 	closedir(dp);
-	if (rmdir(dir))
+	while (rmdir(dir)) {
+#if GOOS_freebsd
+		if (errno == EPERM) {
+			reset_flags(dir);
+			if (rmdir(dir) == 0)
+				break;
+		}
+#endif
 		exitf("rmdir(%s) failed", dir);
+	}
 }
 #endif
 #endif
