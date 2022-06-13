@@ -331,9 +331,10 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len, const ch
 
 		char* response_data = NULL;
 		uint32 response_length = 0;
+		struct usb_qualifier_descriptor qual;
 
 		if (event.ctrl.bRequestType & USB_DIR_IN) {
-			if (!lookup_connect_response_in(fd, descs, &event.ctrl, &response_data, &response_length)) {
+			if (!lookup_connect_response_in(fd, descs, &event.ctrl, &qual, &response_data, &response_length)) {
 				debug("syz_usb_connect: unknown request, stalling\n");
 				usb_raw_ep0_stall(fd);
 				continue;

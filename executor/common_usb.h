@@ -577,6 +577,7 @@ static const char default_lang_id[] = {
 
 static bool lookup_connect_response_in(int fd, const struct vusb_connect_descriptors* descs,
 				       const struct usb_ctrlrequest* ctrl,
+				       struct usb_qualifier_descriptor* qual,
 				       char** response_data, uint32* response_length)
 {
 	struct usb_device_index* index = lookup_usb_index(fd);
@@ -620,8 +621,6 @@ static bool lookup_connect_response_in(int fd, const struct vusb_connect_descrip
 			case USB_DT_DEVICE_QUALIFIER:
 				if (!descs->qual) {
 					// Fill in DEVICE_QUALIFIER based on DEVICE if not provided.
-					struct usb_qualifier_descriptor* qual =
-					    (struct usb_qualifier_descriptor*)response_data;
 					qual->bLength = sizeof(*qual);
 					qual->bDescriptorType = USB_DT_DEVICE_QUALIFIER;
 					qual->bcdUSB = index->dev->bcdUSB;
@@ -631,6 +630,7 @@ static bool lookup_connect_response_in(int fd, const struct vusb_connect_descrip
 					qual->bMaxPacketSize0 = index->dev->bMaxPacketSize0;
 					qual->bNumConfigurations = index->dev->bNumConfigurations;
 					qual->bRESERVED = 0;
+					*response_data = (char*)qual;
 					*response_length = sizeof(*qual);
 					return true;
 				}
