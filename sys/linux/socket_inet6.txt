@@ -89,31 +89,8 @@ setsockopt$inet6_IPV6_DSTOPTS(fd sock_in6, level const[IPPROTO_IPV6], optname co
 # TODO: IPV6_PATHMTU
 # TODO: IP6T_SO_GET_REVISION_MATCH, IP6T_SO_GET_REVISION_TARGET
 
-setsockopt$inet6_MRT6_ADD_MIF(fd sock_in6, level const[IPPROTO_IPV6], optname const[MRT6_ADD_MIF], optval ptr[in, mif6ctl], optlen len[optval])
-setsockopt$inet6_MRT6_ADD_MFC(fd sock_in6, level const[IPPROTO_IPV6], optname const[MRT6_ADD_MFC], optval ptr[in, mf6cctl], optlen len[optval])
-setsockopt$inet6_MRT6_DEL_MFC(fd sock_in6, level const[IPPROTO_IPV6], optname const[MRT6_DEL_MFC], optval ptr[in, mf6cctl], optlen len[optval])
-setsockopt$inet6_MRT6_ADD_MFC_PROXY(fd sock_in6, level const[IPPROTO_IPV6], optname const[MRT6_ADD_MFC_PROXY], optval ptr[in, mf6cctl], optlen len[optval])
-setsockopt$inet6_MRT6_DEL_MFC_PROXY(fd sock_in6, level const[IPPROTO_IPV6], optname const[MRT6_DEL_MFC_PROXY], optval ptr[in, mf6cctl], optlen len[optval])
-
 getsockopt$inet6_mtu(fd sock_in6, level const[IPPROTO_IPV6], optname const[IPV6_MTU_DISCOVER], optval ptr[out, flags[ip_mtu_discover, int32]], optlen ptr[inout, len[optval, int32]])
 setsockopt$inet6_mtu(fd sock_in6, level const[IPPROTO_IPV6], optname const[IPV6_MTU_DISCOVER], optval ptr[in, flags[ip_mtu_discover, int32]], optlen len[optval])
-
-mif6ctl {
-	mif6c_mifi	int16
-	mif6c_flags	flags[mif6c_flags, int8]
-	vifc_threshold	int8
-	mif6c_pifi	int16
-	vifc_rate_limit	int32
-}
-
-mif6c_flags = MIFF_REGISTER
-
-mf6cctl {
-	mf6cc_origin	sockaddr_in6
-	mf6cc_mcastgrp	sockaddr_in6
-	mf6cc_parent	int16
-	mf6cc_ifset	array[int32, 8]
-}
 
 ipv6_mreq {
 	multi	ipv6_addr

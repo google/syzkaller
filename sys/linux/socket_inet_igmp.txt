@@ -1,0 +1,138 @@
+# Copyright 2022 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/ip.h>
+include <linux/ipv6.h>
+include <uapi/linux/mroute.h>
+include <uapi/linux/mroute6.h>
+
+resource sock_igmp[sock_in]
+resource sock_igmp6[sock_in6]
+
+socket$igmp(domain const[AF_INET], type const[SOCK_RAW], proto const[IPPROTO_IGMP]) sock_igmp
+socket$igmp6(domain const[AF_INET6], type const[SOCK_RAW], proto const[IPPROTO_IGMP]) sock_igmp6
+
+setsockopt$MRT_INIT(fd sock_igmp, level const[SOL_IP], opt const[MRT_INIT], val ptr[in, const[0, int32]], len bytesize[val])
+setsockopt$MRT_DONE(fd sock_igmp, level const[SOL_IP], opt const[MRT_DONE], val const[0], len const[0])
+setsockopt$MRT_ADD_VIF(fd sock_igmp, level const[SOL_IP], opt const[MRT_ADD_VIF], val ptr[in, vifctl], len bytesize[val])
+setsockopt$MRT_DEL_VIF(fd sock_igmp, level const[SOL_IP], opt const[MRT_DEL_VIF], val ptr[in, vifctl], len bytesize[val])
+setsockopt$MRT_ADD_MFC(fd sock_igmp, level const[SOL_IP], opt const[MRT_ADD_MFC], val ptr[in, mfcctl], len bytesize[val])
+setsockopt$MRT_DEL_MFC(fd sock_igmp, level const[SOL_IP], opt const[MRT_DEL_MFC], val ptr[in, mfcctl], len bytesize[val])
+setsockopt$MRT_ADD_MFC_PROXY(fd sock_igmp, level const[SOL_IP], opt const[MRT_ADD_MFC_PROXY], val ptr[in, mfcctl], len bytesize[val])
+setsockopt$MRT_DEL_MFC_PROXY(fd sock_igmp, level const[SOL_IP], opt const[MRT_DEL_MFC_PROXY], val ptr[in, mfcctl], len bytesize[val])
+setsockopt$MRT_FLUSH(fd sock_igmp, level const[SOL_IP], opt const[MRT_FLUSH], val ptr[in, flags[mrt_flush_flags, int32]], len bytesize[val])
+setsockopt$MRT_ASSERT(fd sock_igmp, level const[SOL_IP], opt const[MRT_ASSERT], val ptr[in, bool32], len bytesize[val])
+setsockopt$MRT_PIM(fd sock_igmp, level const[SOL_IP], opt const[MRT_ASSERT], val ptr[in, int32[0:IGMPMSG_WRVIFWHOLE]], len bytesize[val])
+setsockopt$MRT_TABLE(fd sock_igmp, level const[SOL_IP], opt const[MRT_ASSERT], val ptr[in, flags[mrt_tables, int32]], len bytesize[val])
+
+getsockopt$MRT(fd sock_igmp, level const[SOL_IP], opt flags[mrt_getsockopts], val ptr[out, int32], len ptr[inout, bytesize[val, int32]])
+
+ioctl$SIOCGETVIFCNT(fd sock_igmp, cmd const[SIOCGETVIFCNT], arg ptr[in, sioc_vif_req])
+ioctl$SIOCGETSGCNT(fd sock_igmp, cmd const[SIOCGETSGCNT], arg ptr[in, sioc_sg_req])
+
+setsockopt$MRT6_INIT(fd sock_igmp6, level const[SOL_IPV6], opt const[MRT6_INIT], val ptr[in, const[0, int32]], len bytesize[val])
+setsockopt$MRT6_DONE(fd sock_igmp6, level const[SOL_IPV6], opt const[MRT6_DONE], val const[0], len const[0])
+setsockopt$MRT6_ADD_MIF(fd sock_igmp6, level const[SOL_IPV6], opt const[MRT6_ADD_MIF], val ptr[in, mif6ctl], len bytesize[val])
+setsockopt$MRT6_DEL_MIF(fd sock_igmp6, level const[SOL_IPV6], opt const[MRT6_DEL_MIF], val ptr[in, mif6ctl], len bytesize[val])
+setsockopt$MRT6_ADD_MFC(fd sock_igmp6, level const[SOL_IPV6], opt const[MRT6_ADD_MFC], val ptr[in, mf6cctl], len bytesize[val])
+setsockopt$MRT6_DEL_MFC(fd sock_igmp6, level const[SOL_IPV6], opt const[MRT6_DEL_MFC], val ptr[in, mf6cctl], len bytesize[val])
+setsockopt$MRT6_ADD_MFC_PROXY(fd sock_igmp6, level const[SOL_IPV6], opt const[MRT6_ADD_MFC_PROXY], val ptr[in, mf6cctl], len bytesize[val])
+setsockopt$MRT6_DEL_MFC_PROXY(fd sock_igmp6, level const[SOL_IPV6], opt const[MRT6_DEL_MFC_PROXY], val ptr[in, mf6cctl], len bytesize[val])
+setsockopt$MRT6_FLUSH(fd sock_igmp6, level const[SOL_IPV6], opt const[MRT6_FLUSH], val ptr[in, flags[mrt6_flush_flags, int32]], len bytesize[val])
+setsockopt$MRT6_ASSERT(fd sock_igmp6, level const[SOL_IPV6], opt const[MRT6_ASSERT], val ptr[in, bool32], len bytesize[val])
+setsockopt$MRT6_PIM(fd sock_igmp6, level const[SOL_IPV6], opt const[MRT6_ASSERT], val ptr[in, int32[0:IGMPMSG_WRVIFWHOLE]], len bytesize[val])
+setsockopt$MRT6_TABLE(fd sock_igmp6, level const[SOL_IPV6], opt const[MRT6_ASSERT], val ptr[in, flags[mrt_tables, int32]], len bytesize[val])
+
+getsockopt$MRT6(fd sock_igmp6, level const[SOL_IPV6], opt flags[mrt6_getsockopts], val ptr[out, int32], len ptr[inout, bytesize[val, int32]])
+
+ioctl$SIOCGETMIFCNT_IN6(fd sock_igmp, cmd const[SIOCGETMIFCNT_IN6], arg ptr[in, sioc_mif_req6])
+ioctl$SIOCGETSGCNT_IN6(fd sock_igmp, cmd const[SIOCGETSGCNT_IN6], arg ptr[in, sioc_sg_req6])
+
+type vifi_t int16[-1:1]
+type mifi_t int16[-1:1]
+mrt_flush_flags = MRT_FLUSH_MFC, MRT_FLUSH_MFC_STATIC, MRT_FLUSH_VIFS, MRT_FLUSH_VIFS_STATIC
+mrt6_flush_flags = MRT6_FLUSH_MFC, MRT6_FLUSH_MFC_STATIC, MRT6_FLUSH_MIFS, MRT6_FLUSH_MIFS_STATIC
+mrt_tables = RT_TABLE_UNSPEC, RT_TABLE_COMPAT, RT_TABLE_DEFAULT, RT_TABLE_MAIN, RT_TABLE_LOCAL, RT_TABLE_MAX, 1
+mrt_getsockopts = MRT_VERSION, MRT_PIM, MRT_ASSERT
+mrt6_getsockopts = MRT6_VERSION, MRT6_PIM, MRT6_ASSERT
+
+vifctl {
+	vifc_vifi	vifi_t
+	vifc_flags	flags[viff_ctls, int8]
+	vifc_threshold	int8
+	vifc_rate_limit	int32
+	u		vifctl_u
+	vifc_rmt_addr	ipv4_addr
+}
+
+vifctl_u [
+	vifc_lcl_addr		ipv4_addr
+	vifc_lcl_ifindex	ifindex
+]
+
+viff_ctls = 0, VIFF_TUNNEL, VIFF_REGISTER, VIFF_USE_IFINDEX
+
+mfcctl {
+	mfcc_origin	ipv4_addr
+	mfcc_mcastgrp	ipv4_addr
+	mfcc_parent	vifi_t
+	mfcc_ttls	array[int8, MAXVIFS]
+	mfcc_pkt_cnt	int32
+	mfcc_byte_cnt	int32
+	mfcc_wrong_if	int32
+	mfcc_expire	int32
+}
+
+sioc_vif_req {
+	vifi	vifi_t
+	icount	intptr	(out)
+	ocount	intptr	(out)
+	ibytes	intptr	(out)
+	obytes	intptr	(out)
+}
+
+sioc_sg_req {
+	src		ipv4_addr
+	grp		ipv4_addr
+	pktcnt		intptr	(out)
+	bytecnt		intptr	(out)
+	wrong_if	intptr	(out)
+}
+
+mif6ctl {
+	mif6c_mifi	mifi_t
+	mif6c_flags	flags[mif6ctl_flags, int8]
+	vifc_threshold	int8
+# TODO: in the kernel this is int16 (WHY?!)
+	mif6c_pifi	ifindex
+	vifc_rate_limit	int32
+}
+
+mif6ctl_flags = 0, MIFF_REGISTER
+
+mf6cctl {
+	mf6cc_origin	sockaddr_in6
+	mf6cc_mcastgrp	sockaddr_in6
+	mf6cc_parent	mifi_t
+	mf6cc_ifset	if_set
+}
+
+if_set {
+	ifs_bits	array[int32, 8]
+}
+
+sioc_mif_req6 {
+	mifi	mifi_t
+	icount	intptr	(out)
+	ocount	intptr	(out)
+	ibytes	intptr	(out)
+	obytes	intptr	(out)
+}
+
+sioc_sg_req6 {
+	src		ipv6_addr
+	grp		ipv6_addr
+	pktcnt		intptr	(out)
+	bytecnt		intptr	(out)
+	wrong_if	intptr	(out)
+}
