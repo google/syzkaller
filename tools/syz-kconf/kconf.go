@@ -129,6 +129,10 @@ func checkConfigs(instances []*Instance, unusedFeatures []string) error {
 	errorString := ""
 	for _, inst := range instances {
 		for _, cfg := range inst.Configs {
+			if strings.HasPrefix(cfg.Name, "CONFIG_") {
+				msg := fmt.Sprintf("Warning: excessive CONFIG_ in %v at %v:%v ?", cfg.Name, cfg.File, cfg.Line)
+				errorString += "\n" + msg
+			}
 			for _, feat := range cfg.Constraints {
 				if feat[0] == '-' {
 					feat = feat[1:]
