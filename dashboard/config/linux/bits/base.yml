@@ -73,7 +73,7 @@ config:
  - USER_NS
  - UTS_NS
  # Depends on CONFIG_SYSVIPC.
- - CONFIG_IPC_NS: [optional]
+ - IPC_NS: [optional]
  - PID_NS
  - NET_NS
 
