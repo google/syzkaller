@@ -1017,7 +1017,7 @@ func linkifyReport(report []byte, repo, commit string) template.HTML {
 	}))
 }
 
-var sourceFileRe = regexp.MustCompile("( |\t|\n)([a-zA-Z0-9/_-]+\\.(?:h|c|cc|cpp|s|S|go|rs)):([0-9]+)( |!|\t|\n)")
+var sourceFileRe = regexp.MustCompile("( |\t|\n)([a-zA-Z0-9/_.-]+\\.(?:h|c|cc|cpp|s|S|go|rs)):([0-9]+)( |!|\t|\n)")
 
 func loadFixBisectionsForBug(c context.Context, bug *Bug) ([]*uiCrash, error) {
 	bugKey := bug.key(c)
