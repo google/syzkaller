@@ -1149,6 +1149,7 @@ static const char default_lang_id[] = {
 
 static bool lookup_connect_response_in(int fd, const struct vusb_connect_descriptors* descs,
 				       const struct usb_ctrlrequest* ctrl,
+				       struct usb_qualifier_descriptor* qual,
 				       char** response_data, uint32* response_length)
 {
 	struct usb_device_index* index = lookup_usb_index(fd);
@@ -1191,8 +1192,6 @@ static bool lookup_connect_response_in(int fd, const struct vusb_connect_descrip
 				return true;
 			case USB_DT_DEVICE_QUALIFIER:
 				if (!descs->qual) {
-					struct usb_qualifier_descriptor* qual =
-					    (struct usb_qualifier_descriptor*)response_data;
 					qual->bLength = sizeof(*qual);
 					qual->bDescriptorType = USB_DT_DEVICE_QUALIFIER;
 					qual->bcdUSB = index->dev->bcdUSB;
@@ -1202,6 +1201,7 @@ static bool lookup_connect_response_in(int fd, const struct vusb_connect_descrip
 					qual->bMaxPacketSize0 = index->dev->bMaxPacketSize0;
 					qual->bNumConfigurations = index->dev->bNumConfigurations;
 					qual->bRESERVED = 0;
+					*response_data = (char*)qual;
 					*response_length = sizeof(*qual);
 					return true;
 				}
@@ -1477,10 +1477,11 @@ static volatile long syz_usb_connect_impl(int fd, uint64 speed, uint64 dev_len,
 
 		char* response_data = NULL;
 		uint32 response_length = 0;
+		struct usb_qualifier_descriptor qual;
 		char data[4096];
 
 		if (req.u.ctrl.bmRequestType & UE_DIR_IN) {
-			if (!lookup_connect_response_in(fd, descs, (const struct usb_ctrlrequest*)&req.u.ctrl, &response_data, &response_length)) {
+			if (!lookup_connect_response_in(fd, descs, (const struct usb_ctrlrequest*)&req.u.ctrl, &qual, &response_data, &response_length)) {
 				debug("syz_usb_connect: unknown control IN request\n");
 				return -1;
 			}
@@ -4833,6 +4834,7 @@ static const char default_lang_id[] = {
 
 static bool lookup_connect_response_in(int fd, const struct vusb_connect_descriptors* descs,
 				       const struct usb_ctrlrequest* ctrl,
+				       struct usb_qualifier_descriptor* qual,
 				       char** response_data, uint32* response_length)
 {
 	struct usb_device_index* index = lookup_usb_index(fd);
@@ -4875,8 +4877,6 @@ static bool lookup_connect_response_in(int fd, const struct vusb_connect_descrip
 				return true;
 			case USB_DT_DEVICE_QUALIFIER:
 				if (!descs->qual) {
-					struct usb_qualifier_descriptor* qual =
-					    (struct usb_qualifier_descriptor*)response_data;
 					qual->bLength = sizeof(*qual);
 					qual->bDescriptorType = USB_DT_DEVICE_QUALIFIER;
 					qual->bcdUSB = index->dev->bcdUSB;
@@ -4886,6 +4886,7 @@ static bool lookup_connect_response_in(int fd, const struct vusb_connect_descrip
 					qual->bMaxPacketSize0 = index->dev->bMaxPacketSize0;
 					qual->bNumConfigurations = index->dev->bNumConfigurations;
 					qual->bRESERVED = 0;
+					*response_data = (char*)qual;
 					*response_length = sizeof(*qual);
 					return true;
 				}
@@ -5383,9 +5384,10 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len, const ch
 
 		char* response_data = NULL;
 		uint32 response_length = 0;
+		struct usb_qualifier_descriptor qual;
 
 		if (event.ctrl.bRequestType & USB_DIR_IN) {
-			if (!lookup_connect_response_in(fd, descs, &event.ctrl, &response_data, &response_length)) {
+			if (!lookup_connect_response_in(fd, descs, &event.ctrl, &qual, &response_data, &response_length)) {
 				debug("syz_usb_connect: unknown request, stalling\n");
 				usb_raw_ep0_stall(fd);
 				continue;
