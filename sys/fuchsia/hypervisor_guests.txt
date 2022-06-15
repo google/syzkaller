@@ -12,7 +12,7 @@ zx_guest_set_trap(guest zx_guest, kind int32, vaddr intptr, len intptr, port con
 
 zx_vcpu_create(guest zx_guest, options int32, vaddr intptr, out ptr[out, zx_vcpu])
 # TODO: teach this about the port_packet_t struct
-zx_vcpu_resume(vcpu zx_vcpu, port_packet ptr[out, zx_port_packet])
+zx_vcpu_enter(vcpu zx_vcpu, port_packet ptr[out, zx_port_packet])
 zx_vcpu_interrupt(vcpu zx_vcpu, vector int32)
 zx_vcpu_read_state(vcpu zx_vcpu, kind int32, buffer buffer[in], buflen len[buffer])
 zx_vcpu_write_state(vcpu zx_vcpu, kind int32, buffer buffer[out], buflen len[buffer])
