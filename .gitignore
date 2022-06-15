@@ -24,3 +24,6 @@ dashboard/app/.gcloudignore
 
 # jetbrains goland
 .idea
+
+# vscode
+.vscode
