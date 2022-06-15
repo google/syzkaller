@@ -123,12 +123,12 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, features *host.Features, report
 						continue
 					default:
 					}
+					time.Sleep(10 * time.Second)
 					var err error
 					inst, err = instance.CreateExecProgInstance(vmPool, vmIndex, cfg,
 						reporter, &instance.OptionalConfig{Logf: ctx.reproLogf})
 					if err != nil {
 						ctx.reproLogf(0, "failed to init instance: %v", err)
-						time.Sleep(10 * time.Second)
 						continue
 					}
 					break
