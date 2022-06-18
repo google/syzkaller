@@ -1,0 +1,41 @@
+TITLE: KASAN: user-memory-access Read in skb_unref
+ALT: bad-access in skb_unref
+
+[   33.956644][ T2205] ==================================================================
+[   33.964872][ T2205] BUG: KASAN: user-memory-access in atomic_read+0x16/0x46
+[   33.971960][ T2205] Read of size 4 at addr 0000003065737046 by task syz-executor877/2205
+[   33.980170][ T2205] 
+[   33.982541][ T2205] CPU: 0 PID: 2205 Comm: syz-executor877 Not tainted 5.4.199-syzkaller-18913-ga1cfe184533b #0
+[   33.992759][ T2205] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   34.002792][ T2205] Call Trace:
+[   34.006066][ T2205]  dump_stack+0xef/0x160
+[   34.014689][ T2205]  __kasan_report+0x15c/0x184
+[   34.023735][ T2205]  kasan_report+0x10/0x16
+[   34.028041][ T2205]  check_memory_region+0x130/0x13d
+[   34.033137][ T2205]  atomic_read+0x16/0x46
+[   34.037440][ T2205]  skb_unref+0x27/0x63
+[   34.041484][ T2205]  kfree_skb+0x18/0x241
+[   34.045628][ T2205]  netif_napi_del+0xda/0x26b
+[   34.050207][ T2205]  free_netdev+0x1ec/0x332
+[   34.060050][ T2205]  netdev_run_todo+0x514/0x5c3
+[   34.074994][ T2205]  rtnetlink_rcv_msg+0x6c1/0x72c
+[   34.099332][ T2205]  netlink_rcv_skb+0x23f/0x31b
+[   34.119672][ T2205]  netlink_unicast+0x42a/0x54e
+[   34.135062][ T2205]  netlink_sendmsg+0x980/0x9df
+[   34.149659][ T2205]  sock_sendmsg_nosec+0x88/0xb4
+[   34.154488][ T2205]  sock_sendmsg+0x5e/0x6f
+[   34.158831][ T2205]  ____sys_sendmsg+0x45c/0x5a5
+[   34.173052][ T2205]  ___sys_sendmsg+0x13e/0x19f
+[   34.206793][ T2205]  __sys_sendmsg+0xf0/0x17b
+[   34.226892][ T2205]  do_syscall_64+0x10b/0x144
+[   34.231459][ T2205]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[   34.237328][ T2205] RIP: 0033:0x7aa14d290e29
+[   34.241719][ T2205] Code: 28 00 00 00 75 05 48 83 c4 28 c3 e8 81 14 00 00 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
+[   34.261298][ T2205] RSP: 002b:00007aa14d243308 EFLAGS: 00000246 ORIG_RAX: 000000000000002e
+[   34.269681][ T2205] RAX: ffffffffffffffda RBX: 00007aa14d319428 RCX: 00007aa14d290e29
+[   34.277627][ T2205] RDX: 0000000000000000 RSI: 0000000020000180 RDI: 0000000000000004
+[   34.285582][ T2205] RBP: 00007aa14d319420 R08: 0000000000000000 R09: 0000000000000000
+[   34.293543][ T2205] R10: 0000000000000000 R11: 0000000000000246 R12: 00007aa14d31942c
+[   34.301493][ T2205] R13: 00007aa14d2e7004 R14: 74656e2f7665642f R15: 0000000000022000
+[   34.309457][ T2205] ==================================================================
+

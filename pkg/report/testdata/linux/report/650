@@ -1,0 +1,119 @@
+TITLE: KASAN: slab-out-of-bounds Write in napi_hash_del
+ALT: bad-access in napi_hash_del
+
+[   34.680402][ T2373] ==================================================================
+[   34.688750][ T2373] BUG: KASAN: slab-out-of-bounds in test_and_clear_bit+0x1a/0x25
+[   34.696499][ T2373] Write of size 8 at addr ffff8881ef4fbf18 by task syz-executor408/2373
+[   34.704858][ T2373] 
+[   34.707200][ T2373] CPU: 0 PID: 2373 Comm: syz-executor408 Not tainted 5.4.199-syzkaller-18913-ga1cfe184533b #0
+[   34.717425][ T2373] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   34.727482][ T2373] Call Trace:
+[   34.730777][ T2373]  dump_stack+0xef/0x160
+[   34.735025][ T2373]  print_address_description.constprop.0+0x17/0x311
+[   34.751298][ T2373]  __kasan_report+0x13f/0x184
+[   34.765316][ T2373]  kasan_report+0x10/0x16
+[   34.769649][ T2373]  check_memory_region+0x130/0x13d
+[   34.774755][ T2373]  test_and_clear_bit+0x1a/0x25
+[   34.779616][ T2373]  napi_hash_del+0x25/0x5f
+[   34.784018][ T2373]  netif_napi_del+0x2d/0x26b
+[   34.788598][ T2373]  free_netdev+0x1ec/0x332
+[   34.798734][ T2373]  netdev_run_todo+0x514/0x5c3
+[   34.813558][ T2373]  rtnetlink_rcv_msg+0x6c1/0x72c
+[   34.837994][ T2373]  netlink_rcv_skb+0x23f/0x31b
+[   34.858440][ T2373]  netlink_unicast+0x42a/0x54e
+[   34.873842][ T2373]  netlink_sendmsg+0x980/0x9df
+[   34.888614][ T2373]  sock_sendmsg_nosec+0x88/0xb4
+[   34.893457][ T2373]  sock_sendmsg+0x5e/0x6f
+[   34.897805][ T2373]  ____sys_sendmsg+0x45c/0x5a5
+[   34.912031][ T2373]  ___sys_sendmsg+0x13e/0x19f
+[   34.946039][ T2373]  __sys_sendmsg+0xf0/0x17b
+[   34.966345][ T2373]  do_syscall_64+0x10b/0x144
+[   34.971039][ T2373]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[   34.977152][ T2373] RIP: 0033:0x7f203b03fa69
+[   34.981568][ T2373] Code: 28 00 00 00 75 05 48 83 c4 28 c3 e8 11 15 00 00 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
+[   35.001288][ T2373] RSP: 002b:00007f203aff1308 EFLAGS: 00000246 ORIG_RAX: 000000000000002e
+[   35.009866][ T2373] RAX: ffffffffffffffda RBX: 00007f203b0c7428 RCX: 00007f203b03fa69
+[   35.017933][ T2373] RDX: 0000000000000000 RSI: 0000000020000180 RDI: 0000000000000004
+[   35.026084][ T2373] RBP: 00007f203b0c7420 R08: 0000000000000000 R09: 0000000000000000
+[   35.034054][ T2373] R10: 0000000000000000 R11: 0000000000000246 R12: 00007f203b0c742c
+[   35.042208][ T2373] R13: 00007f203b095064 R14: 74656e2f7665642f R15: 0000000000022000
+[   35.050265][ T2373] 
+[   35.052580][ T2373] Allocated by task 2351:
+[   35.057057][ T2373]  save_stack+0x1b/0x6a
+[   35.061220][ T2373]  __kasan_kmalloc.constprop.0+0x83/0x94
+[   35.067196][ T2373]  slab_post_alloc_hook+0x2f/0x5c
+[   35.072295][ T2373]  __kmalloc_track_caller+0x161/0x1a4
+[   35.077691][ T2373]  __kmalloc_reserve.constprop.0+0x2e/0xb7
+[   35.083489][ T2373]  __alloc_skb+0x121/0x447
+[   35.087908][ T2373]  __napi_alloc_skb+0x4e/0x296
+[   35.092679][ T2373]  page_to_skb+0x76/0x652
+[   35.096996][ T2373]  receive_buf+0xcb6/0x2e26
+[   35.101504][ T2373]  virtnet_poll+0x5b2/0xcd4
+[   35.106007][ T2373]  __napi_poll+0x8c/0x23b
+[   35.110334][ T2373]  net_rx_action+0x2ed/0x666
+[   35.114928][ T2373]  __do_softirq+0x385/0x70f
+[   35.120096][ T2373] 
+[   35.122430][ T2373] Freed by task 2351:
+[   35.126412][ T2373]  save_stack+0x1b/0x6a
+[   35.130740][ T2373]  __kasan_slab_free+0x106/0x128
+[   35.135668][ T2373]  slab_free_freelist_hook+0xd5/0x132
+[   35.141203][ T2373]  kfree+0x1c5/0x274
+[   35.145180][ T2373]  skb_free_head+0x8c/0x93
+[   35.149794][ T2373]  skb_release_data+0x1fd/0x210
+[   35.154665][ T2373]  skb_release_all+0x4a/0x50
+[   35.159448][ T2373]  __kfree_skb+0x11/0x1a
+[   35.164311][ T2373]  kfree_skb_partial+0x44/0x4b
+[   35.169101][ T2373]  tcp_rcv_established+0xc8d/0xee2
+[   35.174215][ T2373]  tcp_v4_do_rcv+0x31e/0x604
+[   35.178967][ T2373]  tcp_v4_rcv+0x1372/0x183a
+[   35.183553][ T2373]  ip_protocol_deliver_rcu+0x202/0x357
+[   35.189237][ T2373]  ip_local_deliver_finish+0x23a/0x24c
+[   35.195521][ T2373]  ip_local_deliver+0x151/0x189
+[   35.200560][ T2373]  ip_sublist_rcv_finish+0x7a/0xa4
+[   35.205688][ T2373]  ip_sublist_rcv+0x359/0x393
+[   35.210499][ T2373]  ip_list_rcv+0x1e4/0x21e
+[   35.215106][ T2373]  __netif_receive_skb_list_ptype+0x8f/0x177
+[   35.221161][ T2373]  __netif_receive_skb_list_core+0x1f5/0x239
+[   35.227339][ T2373]  netif_receive_skb_list_internal+0x747/0x7b6
+[   35.233744][ T2373]  gro_normal_list+0x61/0xe5
+[   35.238335][ T2373]  napi_complete_done+0x152/0x2e5
+[   35.243836][ T2373]  virtnet_poll+0x817/0xcd4
+[   35.248334][ T2373]  __napi_poll+0x8c/0x23b
+[   35.252776][ T2373]  net_rx_action+0x2ed/0x666
+[   35.257748][ T2373]  __do_softirq+0x385/0x70f
+[   35.262378][ T2373] 
+[   35.264698][ T2373] The buggy address belongs to the object at ffff8881ef4fbc00
+[   35.264698][ T2373]  which belongs to the cache kmalloc-512 of size 512
+[   35.278896][ T2373] The buggy address is located 280 bytes to the right of
+[   35.278896][ T2373]  512-byte region [ffff8881ef4fbc00, ffff8881ef4fbe00)
+[   35.293658][ T2373] The buggy address belongs to the page:
+[   35.299559][ T2373] page:ffffea0007bd3e00 refcount:1 mapcount:0 mapping:ffff8881f5c02500 index:0x0 compound_mapcount: 0
+[   35.311454][ T2373] flags: 0x8000000000010200(slab|head)
+[   35.316912][ T2373] raw: 8000000000010200 ffffea0007c23700 0000000200000002 ffff8881f5c02500
+[   35.325846][ T2373] raw: 0000000000000000 0000000000100010 00000001ffffffff 0000000000000000
+[   35.335614][ T2373] page dumped because: kasan: bad access detected
+[   35.342292][ T2373] page_owner tracks the page as allocated
+[   35.348348][ T2373] page last allocated via order 2, migratetype Unmovable, gfp_mask 0xd20c0(__GFP_IO|__GFP_FS|__GFP_NOWARN|__GFP_NORETRY|__GFP_COMP|__GFP_NOMEMALLOC)
+[   35.363706][ T2373]  prep_new_page+0x16/0x9d
+[   35.368304][ T2373]  get_page_from_freelist+0xdd8/0xf30
+[   35.373913][ T2373]  __alloc_pages_nodemask+0x21e/0x436
+[   35.379713][ T2373]  alloc_slab_page+0x2a/0x24e
+[   35.384376][ T2373]  new_slab+0xcb/0x3eb
+[   35.388719][ T2373]  ___slab_alloc.constprop.0+0x1b0/0x3c0
+[   35.394738][ T2373]  __slab_alloc.constprop.0+0x46/0x6b
+[   35.400114][ T2373]  kmem_cache_alloc_trace+0x7b/0x163
+[   35.405396][ T2373]  __do_execve_file+0x3bb/0x1da2
+[   35.410319][ T2373]  do_execve+0x37/0x45
+[   35.414377][ T2373]  call_usermodehelper_exec_async+0x3c1/0x473
+[   35.420429][ T2373]  ret_from_fork+0x24/0x30
+[   35.424821][ T2373] page_owner free stack trace missing
+[   35.431064][ T2373] 
+[   35.433396][ T2373] Memory state around the buggy address:
+[   35.439054][ T2373]  ffff8881ef4fbe00: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[   35.447107][ T2373]  ffff8881ef4fbe80: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[   35.455252][ T2373] >ffff8881ef4fbf00: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[   35.463485][ T2373]                             ^
+[   35.468329][ T2373]  ffff8881ef4fbf80: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[   35.476749][ T2373]  ffff8881ef4fc000: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[   35.484912][ T2373] ==================================================================
+
