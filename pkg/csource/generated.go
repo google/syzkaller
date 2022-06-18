@@ -2082,7 +2082,7 @@ static void segv_handler(void)
 		longjmp(segv_env, 1);
 	}
 	debug("recover: exiting\n");
-	doexit(SIGSEGV);
+	doexit_thread(SIGSEGV);
 }
 
 static zx_status_t update_exception_thread_regs(zx_handle_t exception)
@@ -2296,7 +2296,7 @@ static long syz_future_time(volatile long when)
 		break;
 	}
 	zx_time_t now = 0;
-	zx_clock_get(ZX_CLOCK_MONOTONIC, &now);
+	zx_clock_read(ZX_CLOCK_MONOTONIC, &now);
 	return now + delta_ms * 1000 * 1000;
 }
 #endif
