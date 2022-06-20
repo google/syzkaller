@@ -8439,6 +8439,7 @@ static int do_sandbox_none(void)
 	if (unshare(CLONE_NEWNET)) {
 		debug("unshare(CLONE_NEWNET): %d\n", errno);
 	}
+	write_file("/proc/sys/net/ipv4/ping_group_range", "0 65535");
 #if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
 	initialize_devlink_pci();
 #endif
@@ -8535,6 +8536,7 @@ static int namespace_sandbox_proc(void* arg)
 #endif
 	if (unshare(CLONE_NEWNET))
 		fail("unshare(CLONE_NEWNET)");
+	write_file("/proc/sys/net/ipv4/ping_group_range", "0 65535");
 #if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
 	initialize_devlink_pci();
 #endif
@@ -9834,7 +9836,6 @@ static void setup_sysctl()
 		{"/proc/sys/vm/oom_dump_tasks", "0"},
 		{"/proc/sys/debug/exception-trace", "0"},
 		{"/proc/sys/kernel/printk", "7 4 1 3"},
-		{"/proc/sys/net/ipv4/ping_group_range", "0 65535"},
 		{"/proc/sys/kernel/keys/gc_delay", "1"},
 		{"/proc/sys/vm/oom_kill_allocating_task", "1"},
 		{"/proc/sys/kernel/ctrl-alt-del", "0"},
