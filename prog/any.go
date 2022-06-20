@@ -13,6 +13,7 @@ type anyTypes struct {
 	blob   *BufferType
 	ptrPtr *PtrType
 	ptr64  *PtrType
+	res8   *ResourceType
 	res16  *ResourceType
 	res32  *ResourceType
 	res64  *ResourceType
@@ -38,12 +39,13 @@ func (target *Target) initAnyTypes() {
 	target.any.array = target.any.ptrPtr.Elem.(*ArrayType)
 	target.any.union = target.any.array.Elem.(*UnionType)
 	target.any.blob = target.any.union.Fields[0].Type.(*BufferType)
-	target.any.res16 = target.any.union.Fields[1].Type.(*ResourceType)
-	target.any.res32 = target.any.union.Fields[2].Type.(*ResourceType)
-	target.any.res64 = target.any.union.Fields[3].Type.(*ResourceType)
-	target.any.resdec = target.any.union.Fields[4].Type.(*ResourceType)
-	target.any.reshex = target.any.union.Fields[5].Type.(*ResourceType)
-	target.any.resoct = target.any.union.Fields[6].Type.(*ResourceType)
+	target.any.res8 = target.any.union.Fields[1].Type.(*ResourceType)
+	target.any.res16 = target.any.union.Fields[2].Type.(*ResourceType)
+	target.any.res32 = target.any.union.Fields[3].Type.(*ResourceType)
+	target.any.res64 = target.any.union.Fields[4].Type.(*ResourceType)
+	target.any.resdec = target.any.union.Fields[5].Type.(*ResourceType)
+	target.any.reshex = target.any.union.Fields[6].Type.(*ResourceType)
+	target.any.resoct = target.any.union.Fields[7].Type.(*ResourceType)
 }
 
 func (target *Target) getAnyPtrType(size uint64) *PtrType {
@@ -113,7 +115,8 @@ func (target *Target) isComplexPtr(arg *PointerArg) bool {
 }
 
 func (target *Target) isAnyRes(name string) bool {
-	return name == target.any.res16.TypeName ||
+	return name == target.any.res8.TypeName ||
+		name == target.any.res16.TypeName ||
 		name == target.any.res32.TypeName ||
 		name == target.any.res64.TypeName ||
 		name == target.any.resdec.TypeName ||
@@ -226,21 +229,23 @@ func (target *Target) squashResult(arg *ResultArg, elems *[]Arg) {
 	switch arg.Type().Format() {
 	case FormatNative, FormatBigEndian:
 		switch arg.Size() {
+		case 1:
+			typ, index = target.any.res8, 1
 		case 2:
-			typ, index = target.any.res16, 1
+			typ, index = target.any.res16, 2
 		case 4:
-			typ, index = target.any.res32, 2
+			typ, index = target.any.res32, 3
 		case 8:
-			typ, index = target.any.res64, 3
+			typ, index = target.any.res64, 4
 		default:
-			panic("bad size")
+			panic(fmt.Sprintf("bad size %v", arg.Size()))
 		}
 	case FormatStrDec:
-		typ, index = target.any.resdec, 4
+		typ, index = target.any.resdec, 5
 	case FormatStrHex:
-		typ, index = target.any.reshex, 5
+		typ, index = target.any.reshex, 6
 	case FormatStrOct:
-		typ, index = target.any.resoct, 6
+		typ, index = target.any.resoct, 7
 	default:
 		panic("bad")
 	}

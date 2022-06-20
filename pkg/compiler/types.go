@@ -1074,6 +1074,7 @@ type optional[T] [
 # prog/any.go knows layout of these types.
 ANYUNION [
 	ANYBLOB		array[int8]
+	ANYRES8		ANYRES8
 	ANYRES16	ANYRES16
 	ANYRES32	ANYRES32
 	ANYRES64	ANYRES64
@@ -1087,15 +1088,17 @@ ANYPTRS [
 	ANYPTR64	ptr64[in, array[ANYUNION]]
 ]
 
+resource ANYRES8[int8]: -1, 0
 resource ANYRES16[int16]: -1, 0
 resource ANYRES32[int32]: -1, 0
 resource ANYRES64[int64]: -1, 0
 
 syz_builtin0(a ptr[in, ANYPTRS]) (disabled)
 syz_builtin1(a ptr[out, ANYUNION]) (disabled)
-syz_builtin2() ANYRES16 (disabled)
-syz_builtin3() ANYRES32 (disabled)
-syz_builtin4() ANYRES64 (disabled)
+syz_builtin2() ANYRES8 (disabled)
+syz_builtin3() ANYRES16 (disabled)
+syz_builtin4() ANYRES32 (disabled)
+syz_builtin5() ANYRES64 (disabled)
 `
 
 func init() {
