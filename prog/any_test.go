@@ -28,7 +28,7 @@ func TestIsComplexPtr(t *testing.T) {
 			calls := r.generateParticularCall(s, meta)
 			p := &Prog{Target: target, Calls: calls}
 			for _, arg := range p.complexPtrs() {
-				compl[arg.Res.Type().String()] = true
+				compl[arg.arg.Res.Type().String()] = true
 			}
 		}
 	}
