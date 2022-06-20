@@ -404,17 +404,19 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 					{{if $job.ErrorLink}}
 						{{link $job.ErrorLink "error"}}
 					{{else if $job.LogLink}}
-						{{link $job.LogLink "log"}}
+						{{link $job.LogLink "job log"}}
 						({{if $job.Commit}}1{{else}}{{len $job.Commits}}{{end}})
 					{{else if $job.CrashTitle}}
 						{{optlink $job.CrashReportLink "report"}}
-						{{optlink $job.CrashLogLink "log"}}
 					{{else if formatTime $job.Finished}}
 						OK
 					{{else if formatTime $job.Started}}
 						running
 					{{else}}
 						pending
+					{{end}}
+					{{if $job.CrashLogLink}}
+						{{optlink $job.CrashLogLink "log"}}
 					{{end}}
 				</td>
 			</tr>
