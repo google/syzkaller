@@ -9,8 +9,8 @@ include <uapi/linux/ip.h>
 include <net/ip.h>
 
 # Fallback tunnels and placeholder names "syztnl*".
-ipv4_tunnel_names = "ip_vti0", "tunl0", "gre0", "gretap0", "erspan0", "syztnl0", "syztnl1", "syztnl2"
-ipv6_tunnel_names = "ip6tnl0", "ip6_vti0", "ip6gre0", "sit0", "syztnl0", "syztnl1", "syztnl2"
+ipv4_tunnel_names = "ip_vti0", "tunl0", "gre0", "gretap0", "erspan0", "sit0", "syztnl0", "syztnl1", "syztnl2"
+ipv6_tunnel_names = "ip6tnl0", "ip6_vti0", "ip6gre0", "syztnl0", "syztnl1", "syztnl2"
 
 ip_tunnel_protocols = IPPROTO_IPIP, IPPROTO_GRE, IPPROTO_IPV6
 ip_tunnel_io_flags = GRE_CSUM, GRE_ROUTING, GRE_KEY, GRE_SEQ, GRE_STRICT, GRE_REC, GRE_ACK, GRE_FLAGS, GRE_VERSION, VTI_ISVTI
@@ -50,12 +50,52 @@ ip6_tnl_parm2 {
 type ifreq_ipv4_tunnel ifreq_dev_t[ipv4_tunnel_names, ptr[inout, ip_tunnel_parm]]
 type ifreq_ipv6_tunnel ifreq_dev_t[ipv6_tunnel_names, ptr[inout, ip6_tnl_parm2]]
 
+ip_tunnel_prl {
+	addr		ipv4_addr
+	flags		flags[ip_tunnel_prl_flags, int16]
+	__reserved	const[0, int16]
+	datalen		bytesize[data, int32]
+	__reserved2	const[0, int32]
+	data		array[ip_tunnel_prl$1]	(out)
+}
+
+ip_tunnel_prl$1 {
+	addr		ipv4_addr
+	flags		flags[ip_tunnel_prl_flags, int16]
+	__reserved	const[0, int16]
+	datalen		const[0, int32]
+	__reserved2	const[0, int32]
+}
+
+ip_tunnel_prl_flags = PRL_DEFAULT
+
+type ifreq_ip_tunnel_prl ifreq_dev_t["sit0", ptr[inout, ip_tunnel_prl]]
+
+ip_tunnel_6rd {
+	prefix		ipv6_addr
+	relay_prefix	ipv4_addr
+	prefixlen	int16[0:32]
+	relay_prefixlen	int16[0:32]
+}
+
+type ifreq_ip_tunnel_6rd ifreq_dev_t["sit0", ptr[inout, ip_tunnel_6rd]]
+
 # Repeat IP tunnel syscall variants here until #1913 is resolved.
 # IPv4 ioctls
 ioctl$sock_ipv4_tunnel_SIOCGETTUNNEL(fd sock_udp, cmd const[SIOCGETTUNNEL], arg ptr[inout, ifreq_ipv4_tunnel])
 ioctl$sock_ipv4_tunnel_SIOCADDTUNNEL(fd sock_udp, cmd const[SIOCADDTUNNEL], arg ptr[inout, ifreq_ipv4_tunnel])
 ioctl$sock_ipv4_tunnel_SIOCDELTUNNEL(fd sock_udp, cmd const[SIOCDELTUNNEL], arg ptr[inout, ifreq_ipv4_tunnel])
 ioctl$sock_ipv4_tunnel_SIOCCHGTUNNEL(fd sock_udp, cmd const[SIOCCHGTUNNEL], arg ptr[inout, ifreq_ipv4_tunnel])
+# SIOC***PRL
+ioctl$sock_ipv6_tunnel_SIOCGETPRL(fd sock_udp, cmd const[SIOCGETPRL], arg ptr[inout, ifreq_ip_tunnel_prl])
+ioctl$sock_ipv6_tunnel_SIOCADDPRL(fd sock_udp, cmd const[SIOCADDPRL], arg ptr[inout, ifreq_ip_tunnel_prl])
+ioctl$sock_ipv6_tunnel_SIOCDELPRL(fd sock_udp, cmd const[SIOCDELPRL], arg ptr[inout, ifreq_ip_tunnel_prl])
+ioctl$sock_ipv6_tunnel_SIOCCHGPRL(fd sock_udp, cmd const[SIOCCHGPRL], arg ptr[inout, ifreq_ip_tunnel_prl])
+# SIOC***6RD
+ioctl$sock_ipv6_tunnel_SIOCGET6RD(fd sock_udp, cmd const[SIOCGET6RD], arg ptr[inout, ifreq_ipv4_tunnel])
+ioctl$sock_ipv6_tunnel_SIOCADD6RD(fd sock_udp, cmd const[SIOCADD6RD], arg ptr[inout, ifreq_ip_tunnel_6rd])
+ioctl$sock_ipv6_tunnel_SIOCDEL6RD(fd sock_udp, cmd const[SIOCDEL6RD], arg ptr[inout, ifreq_ip_tunnel_6rd])
+ioctl$sock_ipv6_tunnel_SIOCCHG6RD(fd sock_udp, cmd const[SIOCCHG6RD], arg ptr[inout, ifreq_ip_tunnel_6rd])
 
 # IPv6 ioctls
 # SIOC***TUNNEL
@@ -63,13 +103,3 @@ ioctl$sock_ipv6_tunnel_SIOCGETTUNNEL(fd sock_udp6, cmd const[SIOCGETTUNNEL], arg
 ioctl$sock_ipv6_tunnel_SIOCADDTUNNEL(fd sock_udp6, cmd const[SIOCADDTUNNEL], arg ptr[inout, ifreq_ipv6_tunnel])
 ioctl$sock_ipv6_tunnel_SIOCDELTUNNEL(fd sock_udp6, cmd const[SIOCDELTUNNEL], arg ptr[inout, ifreq_ipv6_tunnel])
 ioctl$sock_ipv6_tunnel_SIOCCHGTUNNEL(fd sock_udp6, cmd const[SIOCCHGTUNNEL], arg ptr[inout, ifreq_ipv6_tunnel])
-# SIOC***PRL
-ioctl$sock_ipv6_tunnel_SIOCGETPRL(fd sock_udp6, cmd const[SIOCGETPRL], arg ptr[inout, ifreq_ipv6_tunnel])
-ioctl$sock_ipv6_tunnel_SIOCADDPRL(fd sock_udp6, cmd const[SIOCADDPRL], arg ptr[inout, ifreq_ipv6_tunnel])
-ioctl$sock_ipv6_tunnel_SIOCDELPRL(fd sock_udp6, cmd const[SIOCDELPRL], arg ptr[inout, ifreq_ipv6_tunnel])
-ioctl$sock_ipv6_tunnel_SIOCCHGPRL(fd sock_udp6, cmd const[SIOCCHGPRL], arg ptr[inout, ifreq_ipv6_tunnel])
-# SIOC***6RD
-ioctl$sock_ipv6_tunnel_SIOCGET6RD(fd sock_udp6, cmd const[SIOCGET6RD], arg ptr[inout, ifreq_ipv6_tunnel])
-ioctl$sock_ipv6_tunnel_SIOCADD6RD(fd sock_udp6, cmd const[SIOCADD6RD], arg ptr[inout, ifreq_ipv6_tunnel])
-ioctl$sock_ipv6_tunnel_SIOCDEL6RD(fd sock_udp6, cmd const[SIOCDEL6RD], arg ptr[inout, ifreq_ipv6_tunnel])
-ioctl$sock_ipv6_tunnel_SIOCCHG6RD(fd sock_udp6, cmd const[SIOCCHG6RD], arg ptr[inout, ifreq_ipv6_tunnel])
