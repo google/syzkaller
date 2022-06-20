@@ -251,7 +251,7 @@ static void reset_flags(const char* filename)
 	struct stat st;
 	if (lstat(filename, &st))
 		exitf("lstat(%s) failed", filename);
-	st.st_flags &= ~(SF_NOUNLINK | UF_NOUNLINK | SF_IMMUTABLE | UF_IMMUTABLE);
+	st.st_flags &= ~(SF_NOUNLINK | UF_NOUNLINK | SF_IMMUTABLE | UF_IMMUTABLE | SF_APPEND | UF_APPEND);
 	if (lchflags(filename, st.st_flags))
 		exitf("lchflags(%s) failed", filename);
 }
