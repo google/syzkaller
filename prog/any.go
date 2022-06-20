@@ -60,11 +60,16 @@ func (target *Target) isAnyPtr(typ Type) bool {
 	return ok && ptr.Elem == target.any.array
 }
 
-func (p *Prog) complexPtrs() (res []*PointerArg) {
+type complexPtr struct {
+	arg  *PointerArg
+	call *Call
+}
+
+func (p *Prog) complexPtrs() (res []complexPtr) {
 	for _, c := range p.Calls {
 		ForeachArg(c, func(arg Arg, ctx *ArgCtx) {
 			if ptrArg, ok := arg.(*PointerArg); ok && p.Target.isComplexPtr(ptrArg) {
-				res = append(res, ptrArg)
+				res = append(res, complexPtr{ptrArg, c})
 				ctx.Stop = true
 			}
 		})

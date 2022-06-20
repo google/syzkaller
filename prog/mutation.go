@@ -93,12 +93,12 @@ func (ctx *mutator) squashAny() bool {
 		return false
 	}
 	ptr := complexPtrs[r.Intn(len(complexPtrs))]
-	if !p.Target.isAnyPtr(ptr.Type()) {
-		p.Target.squashPtr(ptr)
+	if !p.Target.isAnyPtr(ptr.arg.Type()) {
+		p.Target.squashPtr(ptr.arg)
 	}
 	var blobs []*DataArg
 	var bases []*PointerArg
-	ForeachSubArg(ptr, func(arg Arg, ctx *ArgCtx) {
+	ForeachSubArg(ptr.arg, func(arg Arg, ctx *ArgCtx) {
 		if data, ok := arg.(*DataArg); ok && arg.Dir() != DirOut {
 			blobs = append(blobs, data)
 			bases = append(bases, ctx.Base)
@@ -107,6 +107,10 @@ func (ctx *mutator) squashAny() bool {
 	if len(blobs) == 0 {
 		return false
 	}
+	// Note: we need to call analyze before we mutate the blob.
+	// After mutation the blob can grow out of bounds of the data area
+	// and analyze will crash with out-of-bounds access while marking existing allocations.
+	s := analyze(ctx.ct, ctx.corpus, p, ptr.call)
 	// TODO(dvyukov): we probably want special mutation for ANY.
 	// E.g. merging adjacent ANYBLOBs (we don't create them,
 	// but they can appear in future); or replacing ANYRES
@@ -118,7 +122,6 @@ func (ctx *mutator) squashAny() bool {
 	arg.data = mutateData(r, arg.Data(), 0, maxBlobLen)
 	// Update base pointer if size has increased.
 	if baseSize < base.Res.Size() {
-		s := analyze(ctx.ct, ctx.corpus, p, p.Calls[0])
 		newArg := r.allocAddr(s, base.Type(), base.Dir(), base.Res.Size(), base.Res)
 		*base = *newArg
 	}
