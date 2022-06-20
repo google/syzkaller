@@ -3797,6 +3797,8 @@ static int do_sandbox_none(void)
 	if (unshare(CLONE_NEWNET)) {
 		debug("unshare(CLONE_NEWNET): %d\n", errno);
 	}
+	// Enable access to IPPROTO_ICMP sockets, must be done after CLONE_NEWNET.
+	write_file("/proc/sys/net/ipv4/ping_group_range", "0 65535");
 #if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
 	initialize_devlink_pci();
 #endif
@@ -3902,6 +3904,8 @@ static int namespace_sandbox_proc(void* arg)
 	// because we want the tun device in the test namespace.
 	if (unshare(CLONE_NEWNET))
 		fail("unshare(CLONE_NEWNET)");
+	// Enable access to IPPROTO_ICMP sockets, must be done after CLONE_NEWNET.
+	write_file("/proc/sys/net/ipv4/ping_group_range", "0 65535");
 #if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
 	initialize_devlink_pci();
 #endif
@@ -4732,7 +4736,6 @@ static void setup_sysctl()
 		// Executor hits lots of SIGSEGVs, no point in logging them.
 		{"/proc/sys/debug/exception-trace", "0"},
 		{"/proc/sys/kernel/printk", "7 4 1 3"},
-		{"/proc/sys/net/ipv4/ping_group_range", "0 65535"},
 		// Faster gc (1 second) is intended to make tests more repeatable.
 		{"/proc/sys/kernel/keys/gc_delay", "1"},
 		// We always want to prefer killing the allocating test process rather than somebody else
