@@ -258,6 +258,7 @@ static void __attribute__((noinline)) remove_dir(const char* dir)
 #if GOOS_freebsd
 			if (errno == EPERM) {
 				reset_flags(filename);
+				reset_flags(dir);
 				if (unlink(filename) == 0)
 					continue;
 			}
