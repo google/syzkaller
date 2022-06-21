@@ -18,11 +18,14 @@ The rest of the document will use the following environment variables:
 
 To build fuchsia run:
 
+NOTE: Inside `${SOURCEDIR}/src/testing/fuzzing/syzkaller/BUILD.gnsrc/testing/fuzzing/syzkaller/BUILD.gn`
+you need to replace the line with `"$(src)/executor/kvm.S.h"` by `"${src}/executor/kvm_amd64.S.h"`
+
 ```shell
 $ fx --dir "out/arm64" set core.arm64 \
   --with-base "//bundles:tools" \
   --with-base "//src/testing/fuzzing/syzkaller" \
-  --args=syzkaller_dir='"/full/path/to/syzkaller"'
+  --args=syzkaller_dir='"/full/path/to/syzkaller"'  --variant=kasan
 $ fx clean-build
 ```
 
@@ -32,7 +35,7 @@ And
 $ fx --dir "out/x64" set core.x64 \
   --with-base "//bundles:tools" \
   --with-base "//src/testing/fuzzing/syzkaller" \
-  --args=syzkaller_dir='"/full/path/to/syzkaller"'
+  --args=syzkaller_dir='"/full/path/to/syzkaller"'  --variant=kasan
 $ fx clean-build
 ```
 
@@ -56,8 +59,8 @@ $ ${SOURCEDIR}/out/x64/host_x64/zbi -o ${SOURCEDIR}/out/x64/fuchsia-ssh.zbi ${SO
 You will also need to extend the `fvm` image:
 
 ```
-$ cp "${SOURCEDIR}/out/x64/obj/build/images/fvm.blk" "${SOURCEDIR}/out/x64/obj/build/images/fvm-extended.blk"
-$ ${SOURCEDIR}/out/x64/host_x64/fvm "${SOURCEDIR}/out/x64/obj/build/images/fvm-extended.blk" extend --length 3G
+$ cp "${SOURCEDIR}/out/x64/obj/build/images/fuchsia/fuchsia/fvm.blk" "${SOURCEDIR}/out/x64/obj/build/images/fuchsia/fuchsia/fvm-extended.blk"
+$ ${SOURCEDIR}/out/x64/host_x64/fvm "${SOURCEDIR}/out/x64/obj/build/images/fuchsia/fuchsia/fvm-extended.blk" extend --length 3G
 ```
 
 Note: This needs to be repeated after each `fx build`.
@@ -71,7 +74,7 @@ Run `syz-manager` with a config along the lines of:
         "workdir": "/workdir.fuchsia",
         "kernel_obj": "/fuchsia/out/x64.zircon/kernel-x64-gcc",
         "syzkaller": "/syzkaller",
-        "image": "/fuchsia/out/x64/obj/build/images/fvm-extended.blk",
+        "image": "/fuchsia/out/x64/obj/build/images/fuchsia/fuchsia/fvm-extended.blk",
         "sshkey": "/fuchsia/.ssh/pkey",
         "reproduce": false,
         "cover": false,
