@@ -16,16 +16,17 @@ The rest of the document will use the following environment variables:
 
 ## Building Fuchsia
 
-To build fuchsia run:
-
 NOTE: Inside `${SOURCEDIR}/src/testing/fuzzing/syzkaller/BUILD.gnsrc/testing/fuzzing/syzkaller/BUILD.gn`
 you need to replace the line with `"$(src)/executor/kvm.S.h"` by `"${src}/executor/kvm_amd64.S.h"`
+
+To build fuchsia run:
 
 ```shell
 $ fx --dir "out/arm64" set core.arm64 \
   --with-base "//bundles:tools" \
   --with-base "//src/testing/fuzzing/syzkaller" \
-  --args=syzkaller_dir='"/full/path/to/syzkaller"'  --variant=kasan
+  --args=syzkaller_dir='"/full/path/to/syzkaller"' \
+  --variant=kasan
 $ fx clean-build
 ```
 
@@ -35,7 +36,8 @@ And
 $ fx --dir "out/x64" set core.x64 \
   --with-base "//bundles:tools" \
   --with-base "//src/testing/fuzzing/syzkaller" \
-  --args=syzkaller_dir='"/full/path/to/syzkaller"'  --variant=kasan
+  --args=syzkaller_dir='"/full/path/to/syzkaller"' \
+  --variant=kasan
 $ fx clean-build
 ```
 
