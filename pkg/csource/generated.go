@@ -51,10 +51,12 @@ NORETURN void doexit(int status)
 	for (;;) {
 	}
 }
+#if !GOOS_fuchsia
 NORETURN void doexit_thread(int status)
 {
 	doexit(status);
 }
+#endif
 #endif
 
 #if SYZ_EXECUTOR || SYZ_MULTI_PROC || SYZ_REPEAT && SYZ_CGROUPS ||         \
@@ -2082,7 +2084,7 @@ static void segv_handler(void)
 		longjmp(segv_env, 1);
 	}
 	debug("recover: exiting\n");
-	doexit_thread(SIGSEGV);
+	doexit(SIGSEGV);
 }
 
 static zx_status_t update_exception_thread_regs(zx_handle_t exception)
