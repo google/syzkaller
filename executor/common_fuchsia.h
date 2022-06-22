@@ -43,7 +43,7 @@ static void segv_handler(void)
 		longjmp(segv_env, 1);
 	}
 	debug("recover: exiting\n");
-	doexit_thread(SIGSEGV);
+	doexit(SIGSEGV);
 }
 
 static zx_status_t update_exception_thread_regs(zx_handle_t exception)
