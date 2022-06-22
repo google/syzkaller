@@ -57,11 +57,13 @@ NORETURN void doexit(int status)
 	for (;;) {
 	}
 }
+#if !GOOS_fuchsia
 NORETURN void doexit_thread(int status)
 {
 	// For BSD systems, _exit seems to do exactly what's needed.
 	doexit(status);
 }
+#endif
 #endif
 
 #if SYZ_EXECUTOR || SYZ_MULTI_PROC || SYZ_REPEAT && SYZ_CGROUPS ||         \
