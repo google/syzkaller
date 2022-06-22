@@ -96,7 +96,7 @@ func (a android) build(params Params) (ImageDetails, error) {
 	if err := embedFiles(params, func(mountDir string) error {
 		homeDir := filepath.Join(mountDir, "root")
 
-		if _, err := osutil.RunCmd(time.Hour, homeDir, "./fetchcvd"); err != nil {
+		if _, err := osutil.RunCmd(time.Hour, homeDir, "./fetch_cvd"); err != nil {
 			return err
 		}
 
