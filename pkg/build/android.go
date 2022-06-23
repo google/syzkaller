@@ -122,7 +122,7 @@ func (a android) build(params Params) (ImageDetails, error) {
 		return details, err
 	}
 
-	details.Signature, err = elfBinarySignature(vmlinux)
+	details.Signature, err = elfBinarySignature(vmlinux, params.Tracer)
 	if err != nil {
 		return details, fmt.Errorf("failed to generate signature: %s", err)
 	}
