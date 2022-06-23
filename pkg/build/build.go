@@ -61,7 +61,8 @@ type ImageDetails struct {
 // the version of the compiler/toolchain that was used to build the kernel.
 // The CompilerID field is not guaranteed to be non-empty.
 func Image(params Params) (details ImageDetails, err error) {
-	builder, err := getBuilder(params.TargetOS, params.TargetArch, params.VMType)
+	var builder builder
+	builder, err = getBuilder(params.TargetOS, params.TargetArch, params.VMType)
 	if err != nil {
 		return
 	}
