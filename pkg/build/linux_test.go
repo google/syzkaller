@@ -14,6 +14,7 @@ import (
 	"testing"
 	"text/template"
 
+	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
@@ -86,7 +87,7 @@ func sign(t *testing.T, flags []string, changed, comment bool) string {
 	if err != nil {
 		t.Fatalf("compiler failed: %v\n%s\n\n%s", err, src, out)
 	}
-	sign, err := elfBinarySignature(bin)
+	sign, err := elfBinarySignature(bin, &debugtracer.TestTracer{T: t})
 	if err != nil {
 		t.Fatal(err)
 	}

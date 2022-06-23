@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/vcs"
@@ -32,6 +33,7 @@ type Params struct {
 	CmdlineFile  string
 	SysctlFile   string
 	Config       []byte
+	Tracer       debugtracer.DebugTracer
 }
 
 // Information that is returned from the Image function.
@@ -61,6 +63,9 @@ type ImageDetails struct {
 // the version of the compiler/toolchain that was used to build the kernel.
 // The CompilerID field is not guaranteed to be non-empty.
 func Image(params Params) (details ImageDetails, err error) {
+	if params.Tracer == nil {
+		params.Tracer = &debugtracer.NullTracer{}
+	}
 	var builder builder
 	builder, err = getBuilder(params.TargetOS, params.TargetArch, params.VMType)
 	if err != nil {

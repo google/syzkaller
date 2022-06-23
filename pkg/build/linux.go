@@ -10,7 +10,6 @@ import (
 	"debug/elf"
 	"encoding/hex"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -19,6 +18,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -58,7 +58,8 @@ func (linux linux) build(params Params) (ImageDetails, error) {
 	} else if err := embedLinuxKernel(params, kernelPath); err != nil {
 		return details, err
 	}
-	details.Signature, err = elfBinarySignature(filepath.Join(params.OutputDir, "obj", "vmlinux"))
+	vmlinux := filepath.Join(params.OutputDir, "obj", "vmlinux")
+	details.Signature, err = elfBinarySignature(vmlinux, params.Tracer)
 	return details, err
 }
 
@@ -243,7 +244,7 @@ func queryLinuxCompiler(kernelDir string) (string, error) {
 
 // elfBinarySignature calculates signature of an elf binary aiming at runtime behavior
 // (text/data, debug info is ignored).
-func elfBinarySignature(bin string) (string, error) {
+func elfBinarySignature(bin string, tracer debugtracer.DebugTracer) (string, error) {
 	f, err := os.Open(bin)
 	if err != nil {
 		return "", fmt.Errorf("failed to open binary for signature: %v", err)
@@ -262,7 +263,16 @@ func elfBinarySignature(bin string) (string, error) {
 		if sec.Flags&elf.SHF_ALLOC == 0 || sec.Type == elf.SHT_NOBITS || sec.Type == elf.SHT_NOTE {
 			continue
 		}
-		io.Copy(hasher, sec.Open())
+		data, err := sec.Data()
+		if err != nil {
+			return "", fmt.Errorf("failed to read ELF section %v: %v", sec.Name, err)
+		}
+		hasher1 := sha256.New()
+		hasher1.Write(data)
+		hash := hasher1.Sum(nil)
+		hasher.Write(hash)
+		tracer.Log("section %v: size %v signature %v", sec.Name, len(data), hex.EncodeToString(hash[:8]))
+		tracer.SaveFile(sec.Name, data)
 	}
 	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
