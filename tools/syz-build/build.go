@@ -6,29 +6,33 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"runtime"
 
 	"github.com/google/syzkaller/pkg/build"
+	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/tool"
 )
 
 var (
-	flagOS            = flag.String("os", runtime.GOOS, "OS to test")
-	flagArch          = flag.String("arch", runtime.GOARCH, "arch to test")
+	flagOS            = flag.String("os", runtime.GOOS, "OS to build")
+	flagArch          = flag.String("arch", runtime.GOARCH, "arch to build")
+	flagVM            = flag.String("vm", "gce", "VM type to build")
 	flagKernelSrc     = flag.String("kernel_src", "", "path to kernel checkout")
 	flagCompiler      = flag.String("compiler", "", "non-defult compiler")
 	flagKernelConfig  = flag.String("config", "", "kernel config file")
 	flagKernelSysctl  = flag.String("sysctl", "", "kernel sysctl file")
 	flagKernelCmdline = flag.String("cmdline", "", "kernel cmdline file")
 	flagUserspace     = flag.String("userspace", "", "path to userspace for build")
+	flagTrace         = flag.Bool("trace", false, "trace build process and save debug artefacts")
 )
 
 func main() {
 	flag.Parse()
 	if os.Getuid() != 0 {
-		tool.Failf("image build will fail, run under root")
+		fmt.Printf("not running under root, image build may fail\n")
 	}
 	os.Setenv("SYZ_DISABLE_SANDBOXING", "yes")
 	kernelConfig, err := ioutil.ReadFile(*flagKernelConfig)
@@ -38,7 +42,7 @@ func main() {
 	params := build.Params{
 		TargetOS:     *flagOS,
 		TargetArch:   *flagArch,
-		VMType:       "gce",
+		VMType:       *flagVM,
 		KernelDir:    *flagKernelSrc,
 		OutputDir:    ".",
 		Compiler:     *flagCompiler,
@@ -47,8 +51,18 @@ func main() {
 		CmdlineFile:  *flagKernelCmdline,
 		SysctlFile:   *flagKernelSysctl,
 		Config:       kernelConfig,
+		Tracer:       &debugtracer.NullTracer{},
 	}
-	if _, err := build.Image(params); err != nil {
+	if *flagTrace {
+		params.Tracer = &debugtracer.GenericTracer{
+			TraceWriter: os.Stdout,
+			OutDir:      ".",
+		}
+	}
+	details, err := build.Image(params)
+	if err != nil {
 		tool.Fail(err)
 	}
+	params.Tracer.Log("signature: %v", details.Signature)
+	params.Tracer.Log("compiler: %v", details.CompilerID)
 }
