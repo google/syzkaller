@@ -294,11 +294,15 @@ func (inst *instance) Forward(port int) (string, error) {
 }
 
 func (inst *instance) adb(args ...string) ([]byte, error) {
+	return inst.adbWithTimeout(time.Minute, args...)
+}
+
+func (inst *instance) adbWithTimeout(timeout time.Duration, args ...string) ([]byte, error) {
 	if inst.debug {
 		log.Logf(0, "executing adb %+v", args)
 	}
 	args = append([]string{"-s", inst.device}, args...)
-	out, err := osutil.RunCmd(time.Minute, "", inst.adbBin, args...)
+	out, err := osutil.RunCmd(timeout, "", inst.adbBin, args...)
 	if inst.debug {
 		log.Logf(0, "adb returned")
 	}
@@ -370,16 +374,15 @@ func (inst *instance) runScript(script string) error {
 }
 
 func (inst *instance) waitForSSH() error {
-	var err error
-	for i := 0; i < 300; i++ {
-		if !vmimpl.SleepInterruptible(time.Second) {
-			return fmt.Errorf("shutdown in progress")
-		}
-		if _, err = inst.adb("shell", "pwd"); err == nil {
-			return nil
-		}
+	if !vmimpl.SleepInterruptible(time.Second) {
+		return fmt.Errorf("shutdown in progress")
 	}
-	return fmt.Errorf("instance is dead and unrepairable: %v", err)
+
+	if _, err := inst.adbWithTimeout(10*time.Minute, "wait-for-device"); err != nil {
+		return fmt.Errorf("instance is dead and unrepairable: %v", err)
+	}
+
+	return nil
 }
 
 func (inst *instance) checkBatteryLevel() error {
