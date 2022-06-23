@@ -134,9 +134,9 @@ func createCoverageBitmap(target *targets.Target, pcs map[uint32]uint32) []byte 
 	start, size := coverageFilterRegion(pcs)
 	log.Logf(0, "coverage filter from 0x%x to 0x%x, size 0x%x, pcs %v", start, start+size, size, len(pcs))
 	// The file starts with two uint32: covFilterStart and covFilterSize,
-	// and a bitmap with size ((covFilterSize>>4)/8+1 bytes follow them.
+	// and a bitmap with size ((covFilterSize>>4)/8+2 bytes follow them.
 	// 8-bit = 1-byte
-	data := make([]byte, 8+((size>>4)/8+1))
+	data := make([]byte, 8+((size>>4)/8+2))
 	order := binary.ByteOrder(binary.BigEndian)
 	if target.LittleEndian {
 		order = binary.LittleEndian
