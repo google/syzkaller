@@ -36,6 +36,7 @@ _newer first_
 
 # Other kernel fuzzing work
 
+* [Janus: Fuzzing File Systems via Two-Dimensional Input Space Exploration](https://gts3.org/assets/papers/2019/xu:janus.pdf) ([github](https://github.com/sslab-gatech/janus))
 * [CoLaFUZE: Coverage-Guided and Layout-Aware Fuzzing for Android Drivers](https://www.jstage.jst.go.jp/article/transinf/E104.D/11/E104.D_2021NGP0005/_pdf)
 * [KRACE: Data Race Fuzzing for Kernel File Systems](https://www.cc.gatech.edu/~mxu80/pubs/xu:krace.pdf)
 * [trinity](https://github.com/kernelslacker/trinity)
