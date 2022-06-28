@@ -28,7 +28,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
 	libc6-dev-i386 libc6-dev-i386-amd64-cross lib32gcc-10-dev lib32stdc++-10-dev \
 	apt-transport-https curl gnupg python-is-python3 \
 	# Needed for building Cuttlefish images.
-	rsync
+	rsync libarchive-tools
 
 RUN curl https://dl.google.com/go/go1.17.linux-amd64.tar.gz | tar -C /usr/local -xz
 ENV PATH /usr/local/go/bin:$PATH
