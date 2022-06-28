@@ -28,8 +28,8 @@ type testEnv struct {
 	test   BisectionTest
 }
 
-func (env *testEnv) BuildSyzkaller(repo, commit string) error {
-	return nil
+func (env *testEnv) BuildSyzkaller(repo, commit string) (string, error) {
+	return "", nil
 }
 
 func (env *testEnv) BuildKernel(compilerBin, cCache, userspaceDir, cmdlineFile, sysctlFile string,

@@ -77,21 +77,24 @@ type env struct {
 const MaxNumTests = 20 // number of tests we do per commit
 
 // Result describes bisection result:
-//  - if bisection is conclusive, the single cause/fix commit in Commits
-//    - for cause bisection report is the crash on the cause commit
-//    - for fix bisection report is nil
-//    - Commit is nil
-//    - NoopChange is set if the commit did not cause any change in the kernel binary
-//      (bisection result it most likely wrong)
-//    - Bisected to a release commit
-//  - if bisection is inconclusive, range of potential cause/fix commits in Commits
-//    - report is nil in such case
-//    - Commit is nil
-//  - if the crash still happens on the oldest release/HEAD (for cause/fix bisection correspondingly)
-//    - no commits in Commits
-//    - the crash report on the oldest release/HEAD;
-//    - Commit points to the oldest/latest commit where crash happens.
-//  - Config contains kernel config used for bisection
+// 1. if bisection is conclusive, the single cause/fix commit in Commits
+//   - for cause bisection report is the crash on the cause commit
+//   - for fix bisection report is nil
+//   - Commit is nil
+//   - NoopChange is set if the commit did not cause any change in the kernel binary
+//     (bisection result it most likely wrong)
+//
+// 2. Bisected to a release commit
+//   - if bisection is inconclusive, range of potential cause/fix commits in Commits
+//   - report is nil in such case
+//
+// 3. Commit is nil
+//   - if the crash still happens on the oldest release/HEAD (for cause/fix bisection correspondingly)
+//   - no commits in Commits
+//   - the crash report on the oldest release/HEAD;
+//   - Commit points to the oldest/latest commit where crash happens.
+//
+// 4. Config contains kernel config used for bisection.
 type Result struct {
 	Commits    []*vcs.Commit
 	Report     *report.Report
@@ -198,7 +201,7 @@ func (env *env) bisect() (*Result, error) {
 		return nil, fmt.Errorf("kernel clean failed: %v", err)
 	}
 	env.log("building syzkaller on %v", cfg.Syzkaller.Commit)
-	if err := env.inst.BuildSyzkaller(cfg.Syzkaller.Repo, cfg.Syzkaller.Commit); err != nil {
+	if _, err := env.inst.BuildSyzkaller(cfg.Syzkaller.Repo, cfg.Syzkaller.Commit); err != nil {
 		return nil, err
 	}
 	com, err := env.repo.CheckoutCommit(cfg.Kernel.Repo, cfg.Kernel.Commit)
