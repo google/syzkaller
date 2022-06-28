@@ -28,7 +28,7 @@ import (
 )
 
 type Env interface {
-	BuildSyzkaller(string, string) error
+	BuildSyzkaller(string, string) (string, error)
 	BuildKernel(string, string, string, string, string, []byte) (string, build.ImageDetails, error)
 	Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]EnvTestResult, error)
 }
@@ -61,22 +61,22 @@ func NewEnv(cfg *mgrconfig.Config) (Env, error) {
 	return env, nil
 }
 
-func (env *env) BuildSyzkaller(repoURL, commit string) error {
+func (env *env) BuildSyzkaller(repoURL, commit string) (string, error) {
 	cfg := env.cfg
 	srcIndex := strings.LastIndex(cfg.Syzkaller, "/src/")
 	if srcIndex == -1 {
-		return fmt.Errorf("syzkaller path %q is not in GOPATH", cfg.Syzkaller)
+		return "", fmt.Errorf("syzkaller path %q is not in GOPATH", cfg.Syzkaller)
 	}
 	repo := vcs.NewSyzkallerRepo(cfg.Syzkaller)
 	if _, err := repo.CheckoutCommit(repoURL, commit); err != nil {
-		return fmt.Errorf("failed to checkout syzkaller repo: %v", err)
+		return "", fmt.Errorf("failed to checkout syzkaller repo: %v", err)
 	}
 	// The following commit ("syz-fuzzer: support optional flags") adds support for optional flags
 	// in syz-fuzzer and syz-execprog. This is required to invoke older binaries with newer flags
 	// without failing due to unknown flags.
 	optionalFlags, err := repo.Contains("64435345f0891706a7e0c7885f5f7487581e6005")
 	if err != nil {
-		return fmt.Errorf("optional flags check failed: %v", err)
+		return "", fmt.Errorf("optional flags check failed: %v", err)
 	}
 	env.optionalFlags = optionalFlags
 	cmd := osutil.Command(MakeBin, "target")
@@ -96,16 +96,22 @@ func (env *env) BuildSyzkaller(repoURL, commit string) error {
 		// ebtables.h:197:19: error: invalid conversion from ‘void*’ to ‘ebt_entry_target*’
 		"CFLAGS=-fpermissive -w",
 	)
-	if _, err := osutil.Run(time.Hour, cmd); err != nil {
-		goEnvCmd := osutil.Command("go", "env")
-		goEnvCmd.Dir = cfg.Syzkaller
-		goEnvCmd.Env = append(append([]string{}, os.Environ()...), goEnvOptions...)
-		goEnvOut, goEnvErr := osutil.Run(time.Hour, goEnvCmd)
-		gitStatusOut, gitStatusErr := osutil.RunCmd(time.Hour, cfg.Syzkaller, "git", "status")
-		return fmt.Errorf("syzkaller build failed: %v\ngo env (err=%v)\n%s\ngit status (err=%v)\n%s",
-			err, goEnvErr, goEnvOut, gitStatusErr, gitStatusOut)
+
+	// We collect the potentially useful debug info here unconditionally, because we will
+	// only figure out later whether we actually need it (e.g. if the patch testing fails).
+	goEnvCmd := osutil.Command("go", "env")
+	goEnvCmd.Dir = cfg.Syzkaller
+	goEnvCmd.Env = append(append([]string{}, os.Environ()...), goEnvOptions...)
+	goEnvOut, goEnvErr := osutil.Run(time.Hour, goEnvCmd)
+	gitStatusOut, gitStatusErr := osutil.RunCmd(time.Hour, cfg.Syzkaller, "git", "status")
+	// Compile syzkaller.
+	buildOutput, buildErr := osutil.Run(time.Hour, cmd)
+	buildLog := fmt.Sprintf("go env (err=%v)\n%s\ngit status (err=%v)\n%s\n\n%s",
+		goEnvErr, goEnvOut, gitStatusErr, gitStatusOut, buildOutput)
+	if buildErr != nil {
+		return buildLog, fmt.Errorf("syzkaller build failed: %v\n%s", buildErr, buildLog)
 	}
-	return nil
+	return buildLog, nil
 }
 
 func (env *env) BuildKernel(compilerBin, ccacheBin, userspaceDir, cmdlineFile, sysctlFile string, kernelConfig []byte) (
