@@ -115,10 +115,10 @@ func (a android) build(params Params) (ImageDetails, error) {
 		return details, err
 	}
 
-	if err := osutil.CopyFile(vmlinux, filepath.Join(params.OutputDir, "kernel")); err != nil {
+	if err := osutil.CopyFile(vmlinux, filepath.Join(params.OutputDir, "obj", "vmlinux")); err != nil {
 		return details, err
 	}
-	if err := osutil.CopyFile(initramfs, filepath.Join(params.OutputDir, "initrd")); err != nil {
+	if err := osutil.CopyFile(initramfs, filepath.Join(params.OutputDir, "obj", "initrd")); err != nil {
 		return details, err
 	}
 
