@@ -23,6 +23,13 @@ indexes:
   properties:
   - name: Namespace
   - name: Status
+  - name: HappenedOn
+  - name: Commits
+
+- kind: Bug
+  properties:
+  - name: Namespace
+  - name: Status
   - name: Commits
 
 - kind: Bug
