@@ -1236,12 +1236,12 @@ var linuxOopses = append([]*oops{
 			},
 			{
 				title:  compile("BUG: KASAN:"),
-				report: compile("BUG: KASAN: double-free or invalid-free in {{FUNC}}"),
+				report: compile("BUG: KASAN: (?:double-free or invalid-free|double-free|invalid-free) in {{FUNC}}"),
 				fmt:    "KASAN: invalid-free in %[2]v",
 				alt:    []string{"invalid-free in %[2]v"},
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
-						compile("BUG: KASAN: double-free or invalid-free in {{FUNC}}"),
+						compile("BUG: KASAN: (?:double-free or invalid-free|double-free|invalid-free) in {{FUNC}}"),
 						linuxCallTrace,
 						parseStackTrace,
 					},
