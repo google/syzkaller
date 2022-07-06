@@ -140,6 +140,9 @@ type Config struct {
 	// Reproduce, localize and minimize crashers (default: true).
 	Reproduce bool `json:"reproduce"`
 
+	// The number of VMs used to reproduce a crasher (default: 4).
+	ReproInstances int `json:"repro_instances,omitempty"`
+
 	// The number of VMs that are reserved to only perform fuzzing and nothing else.
 	// Can be helpful e.g. to ensure that the pool of fuzzing VMs is never exhaused and
 	// the manager continues fuzzing no matter how many new bugs are encountered.

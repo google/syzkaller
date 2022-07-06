@@ -81,6 +81,7 @@ func defaultValues() *Config {
 		SSHUser:        "root",
 		Cover:          true,
 		Reproduce:      true,
+		ReproInstances: 4,
 		Sandbox:        "none",
 		RPC:            ":0",
 		MaxCrashLogs:   100,
