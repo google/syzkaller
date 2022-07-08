@@ -51,7 +51,7 @@ For `namespace` sandbox:
 CONFIG_USER_NS=y
 ```
 
-For running in VMs `make kvmconfig` is generally required.
+For running in VMs `make kvm_guest.config` is generally required.
 
 Debian images produced by [tools/create-image.sh](/tools/create-image.sh) also require:
 ```
