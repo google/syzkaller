@@ -367,7 +367,7 @@ func (ctx *linux) Symbolize(rep *Report) error {
 		}
 	}
 
-	rep.Report = ctx.decompileReportOpcodes(rep.Report)
+	rep.Report = ctx.decompileOpcodes(rep.Report, rep)
 
 	// We still do this even if we did not symbolize,
 	// because tests pass in already symbolized input.
@@ -623,14 +623,19 @@ func (ctx *linux) parseOpcodes(codeSlice string) (parsedOpcodes, error) {
 	}, nil
 }
 
-// decompileReportOpcodes detects the most meaningful "Code: " lines from the report, decompiles
+// decompileOpcodes detects the most meaningful "Code: " lines from the report, decompiles
 // them and appends a human-readable listing to the end of the report.
-func (ctx *linux) decompileReportOpcodes(report []byte) []byte {
+func (ctx *linux) decompileOpcodes(text []byte, report *Report) []byte {
+	if report.Type == Hang {
+		// Even though Hang reports do contain the Code: section, there's no point in
+		// decompiling that. So just return the text.
+		return text
+	}
 	// Iterate over all "Code: " lines and pick the first that could be decompiled
 	// that might be of interest to the user.
 	var decompiled *decompiledOpcodes
 	var prevLine []byte
-	for s := bufio.NewScanner(bytes.NewReader(report)); s.Scan(); prevLine = append([]byte{}, s.Bytes()...) {
+	for s := bufio.NewScanner(bytes.NewReader(text)); s.Scan(); prevLine = append([]byte{}, s.Bytes()...) {
 		// We want to avoid decompiling code from user-space as it is not of big interest during
 		// debugging kernel problems.
 		// For now this check only works for x86/amd64, but Linux on other architectures supported
@@ -651,7 +656,7 @@ func (ctx *linux) decompileReportOpcodes(report []byte) []byte {
 	}
 
 	if decompiled == nil {
-		return report
+		return text
 	}
 
 	skipInfo := ""
@@ -664,7 +669,7 @@ func (ctx *linux) decompileReportOpcodes(report []byte) []byte {
 	// the most important information at the top of the report, so that it is visible from
 	// the syzbot dashboard without scrolling.
 	headLine := fmt.Sprintf("----------------\nCode disassembly (best guess)%v:\n", skipInfo)
-	report = append(report, headLine...)
+	text = append(text, headLine...)
 
 	for idx, opcode := range decompiled.opcodes {
 		line := opcode.FullDescription
@@ -673,9 +678,9 @@ func (ctx *linux) decompileReportOpcodes(report []byte) []byte {
 		} else {
 			line += "\n"
 		}
-		report = append(report, line...)
+		text = append(text, line...)
 	}
-	return report
+	return text
 }
 
 func (ctx *linux) extractGuiltyFile(rep *Report) string {
