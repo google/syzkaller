@@ -1,0 +1,18 @@
+TITLE: 
+
+
+
+[pid  3610] mkdir("/dev/binderfs", 0777) = 0
+[pid  3610] mount("binder", "/dev/binderfs", "binder", 0, NULL) = 0
+[pid  3610] symlink("/dev/binderfs", "./binderfs") = 0
+[pid  3610] openat(AT_FDCWD, "/dev/fb0", O_RDONLY) = 3
+[pid  3610] ioctl(3, FBIOPUT_VSCREENINFO, 0x20000040) = -1 EINVAL (Invalid argument)
+[pid  3610] exit_group(1)               = ?
+[   44.986326][   T40] wlan1: Created IBSS using preconfigured BSSID 50:50:50:50:50:50
+[   44.996238][   T40] wlan1: Creating new IBSS network, BSSID 50:50:50:50:50:50
+[   45.007641][   T14] IPv6: ADDRCONF(NETDEV_CHANGE): wlan1: link becomes ready
+[   45.025191][ T3610] WARNING: fbcon: Driver 'vkmsdrmfb' missed to adjust virtual screen size (0x0 vs. 128x16)
+[pid  3610] +++ exited with 1 +++
+--- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=3610, si_uid=0, si_status=1, si_utime=0, si_stime=13} ---
+exit_group(0)                           = ?
++++ exited with 0 +++
