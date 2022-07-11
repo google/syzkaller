@@ -238,15 +238,19 @@ func TestLinuxSymbolizeLine(t *testing.T) {
 	}
 }
 
-func prepareLinuxReporter(t *testing.T, arch string) *linux {
-	config := &config{
-		target: targets.Get(targets.Linux, arch),
+func prepareLinuxReporter(t *testing.T, arch string) (*Reporter, *linux) {
+	cfg := &mgrconfig.Config{
+		Derived: mgrconfig.Derived{
+			TargetOS:   targets.Linux,
+			TargetArch: arch,
+			SysTarget:  targets.Get(targets.Linux, arch),
+		},
 	}
-	reporter, _, err := ctorLinux(config)
+	reporter, err := NewReporter(cfg)
 	if err != nil {
-		t.Errorf("Failed to create a reporter instance %#v", arch)
+		t.Errorf("Failed to create a reporter instance for %#v: %v", arch, err)
 	}
-	return reporter.(*linux)
+	return reporter, reporter.impl.(*linux)
 }
 
 func TestParseLinuxOpcodes(t *testing.T) {
@@ -362,8 +366,8 @@ func TestParseLinuxOpcodes(t *testing.T) {
 		test := test // Capturing the value.
 		t.Run(fmt.Sprintf("%s/%v", test.arch, idx), func(t *testing.T) {
 			t.Parallel()
-			reporter := prepareLinuxReporter(t, test.arch)
-			ret, err := reporter.parseOpcodes(test.input)
+			_, linuxReporter := prepareLinuxReporter(t, test.arch)
+			ret, err := linuxReporter.parseOpcodes(test.input)
 			if test.output == nil && err == nil {
 				t.Errorf("Expected an error on input %#v", test)
 			} else if test.output != nil && err != nil {
@@ -390,10 +394,9 @@ func TestDisassemblyInReports(t *testing.T) {
 		if !obj.IsDir() {
 			continue
 		}
-		reporter := prepareLinuxReporter(t, obj.Name())
-
-		if reporter.target.BrokenCompiler != "" {
-			t.Skip("skipping the test due to broken cross-compiler:\n" + reporter.target.BrokenCompiler)
+		reporter, linuxReporter := prepareLinuxReporter(t, obj.Name())
+		if linuxReporter.target.BrokenCompiler != "" {
+			t.Skip("skipping the test due to broken cross-compiler:\n" + linuxReporter.target.BrokenCompiler)
 		}
 
 		testPath := filepath.Join(archPath, obj.Name())
@@ -408,13 +411,13 @@ func TestDisassemblyInReports(t *testing.T) {
 			}
 			filePath := filepath.Join(testPath, strings.TrimSuffix(file.Name(), ".in"))
 			t.Run(obj.Name()+"/"+file.Name(), func(t *testing.T) {
-				testDisassembly(t, reporter, filePath)
+				testDisassembly(t, reporter, linuxReporter, filePath)
 			})
 		}
 	}
 }
 
-func testDisassembly(t *testing.T, reporter *linux, testFilePrefix string) {
+func testDisassembly(t *testing.T, reporter *Reporter, linuxReporter *linux, testFilePrefix string) {
 	t.Parallel()
 
 	input, err := ioutil.ReadFile(testFilePrefix + ".in")
@@ -422,7 +425,12 @@ func testDisassembly(t *testing.T, reporter *linux, testFilePrefix string) {
 		t.Fatalf("failed to read input file: %v", err)
 	}
 
-	result := reporter.decompileReportOpcodes(input)
+	report := reporter.Parse(input)
+	if report == nil {
+		t.Fatalf("no bug report was found")
+	}
+
+	result := linuxReporter.decompileOpcodes(input, report)
 	if *flagUpdate {
 		osutil.WriteFile(testFilePrefix+".out", result)
 	}
