@@ -70,8 +70,13 @@ var fuzzReporters = func() map[string]*Reporter {
 		if os == targets.Windows {
 			continue
 		}
+		target := targets.Get(os, targets.AMD64)
+		if target == nil {
+			continue
+		}
 		cfg := &mgrconfig.Config{
 			Derived: mgrconfig.Derived{
+				SysTarget:  target,
 				TargetOS:   os,
 				TargetArch: targets.AMD64,
 			},
