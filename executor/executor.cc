@@ -414,6 +414,10 @@ static void setup_features(char** enable, int n);
 
 #include "test.h"
 
+#if SYZ_HAVE_SANDBOX_ANDROID
+static int sandbox_arg = 0;
+#endif
+
 int main(int argc, char** argv)
 {
 	if (argc == 2 && strcmp(argv[1], "version") == 0) {
@@ -527,7 +531,7 @@ int main(int argc, char** argv)
 #endif
 #if SYZ_HAVE_SANDBOX_ANDROID
 	else if (flag_sandbox_android)
-		status = do_sandbox_android();
+		status = do_sandbox_android(sandbox_arg);
 #endif
 	else
 		fail("unknown sandbox type");

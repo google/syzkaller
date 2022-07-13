@@ -51,6 +51,10 @@ func main() {
 		"arm_app_policy.h",
 		"x86_64_app_policy.h",
 		"x86_app_policy.h",
+		"arm64_system_policy.h",
+		"arm_system_policy.h",
+		"x86_64_system_policy.h",
+		"x86_system_policy.h",
 	}
 	data = replaceIncludes(androidFilenames, "../../executor/android/", data)
 	for _, remove := range []string{

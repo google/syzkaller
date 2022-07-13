@@ -4054,6 +4054,9 @@ inline int symlink(const char* old_path, const char* new_path)
 #define UNTRUSTED_APP_UID (AID_APP + 999)
 #define UNTRUSTED_APP_GID (AID_APP + 999)
 
+#define SYSTEM_UID 1000
+#define SYSTEM_GID 1000
+
 const char* const SELINUX_CONTEXT_UNTRUSTED_APP = "u:r:untrusted_app:s0:c512,c768";
 const char* const SELINUX_LABEL_APP_DATA_FILE = "u:object_r:app_data_file:s0:c512,c768";
 const char* const SELINUX_CONTEXT_FILE = "/proc/thread-self/attr/current";
@@ -4061,6 +4064,9 @@ const char* const SELINUX_XATTR_NAME = "security.selinux";
 
 const gid_t UNTRUSTED_APP_GROUPS[] = {UNTRUSTED_APP_GID, AID_NET_BT_ADMIN, AID_NET_BT, AID_INET, AID_EVERYBODY};
 const size_t UNTRUSTED_APP_NUM_GROUPS = sizeof(UNTRUSTED_APP_GROUPS) / sizeof(UNTRUSTED_APP_GROUPS[0]);
+
+const gid_t SYSTEM_GROUPS[] = {SYSTEM_GID, AID_NET_BT_ADMIN, AID_NET_BT, AID_INET, AID_EVERYBODY};
+const size_t SYSTEM_NUM_GROUPS = sizeof(SYSTEM_GROUPS) / sizeof(SYSTEM_GROUPS[0]);
 
 // Similar to libselinux getcon(3), but:
 // - No library dependency
@@ -4132,7 +4138,8 @@ static void setfilecon(const char* path, const char* context)
 }
 
 #define SYZ_HAVE_SANDBOX_ANDROID 1
-static int do_sandbox_android(void)
+
+static int do_sandbox_android(int sandbox_arg)
 {
 	setup_common();
 #if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
@@ -4148,7 +4155,11 @@ static int do_sandbox_android(void)
 	initialize_devlink_pci();
 #endif
 #if SYZ_EXECUTOR || SYZ_NET_INJECTION
-	initialize_tun();
+	if (sandbox_arg != 1) {
+		// TODO (gArtmv): investigate why fuzzing fails when the line
+		// below is executed.
+		initialize_tun();
+	}
 #endif
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	// TODO(dvyukov): unshare net namespace.
@@ -4157,15 +4168,26 @@ static int do_sandbox_android(void)
 	// and try to reinitialize them as other test processes use them.
 	initialize_netdevices();
 #endif
+	uid_t uid = UNTRUSTED_APP_UID;
+	size_t num_groups = UNTRUSTED_APP_NUM_GROUPS;
+	const gid_t* groups = UNTRUSTED_APP_GROUPS;
+	gid_t gid = UNTRUSTED_APP_GID;
+	if (sandbox_arg == 1) {
+		uid = SYSTEM_UID;
+		num_groups = SYSTEM_NUM_GROUPS;
+		groups = SYSTEM_GROUPS;
+		gid = SYSTEM_GID;
 
-	if (chown(".", UNTRUSTED_APP_UID, UNTRUSTED_APP_UID) != 0)
-		fail("do_sandbox_android: chmod failed");
+		debug("fuzzing under SYSTEM account\n");
+	}
+	if (chown(".", uid, uid) != 0)
+		failmsg("do_sandbox_android: chmod failed", "sandbox_arg=%d", sandbox_arg);
 
-	if (setgroups(UNTRUSTED_APP_NUM_GROUPS, UNTRUSTED_APP_GROUPS) != 0)
-		fail("do_sandbox_android: setgroups failed");
+	if (setgroups(num_groups, groups) != 0)
+		failmsg("do_sandbox_android: setgroups failed", "sandbox_arg=%d", sandbox_arg);
 
-	if (setresgid(UNTRUSTED_APP_GID, UNTRUSTED_APP_GID, UNTRUSTED_APP_GID) != 0)
-		fail("do_sandbox_android: setresgid failed");
+	if (setresgid(gid, gid, gid) != 0)
+		failmsg("do_sandbox_android: setresgid failed", "sandbox_arg=%d", sandbox_arg);
 
 	setup_binderfs();
 
@@ -4173,11 +4195,14 @@ static int do_sandbox_android(void)
 	// Will fail() if anything fails.
 	// Must be called when the new process still has CAP_SYS_ADMIN, in this case,
 	// before changing uid from 0, which clears capabilities.
-	set_app_seccomp_filter();
+	int account = SCFS_RestrictedApp;
+	if (sandbox_arg == 1)
+		account = SCFS_SystemAccount;
+	set_app_seccomp_filter(account);
 #endif
 
-	if (setresuid(UNTRUSTED_APP_UID, UNTRUSTED_APP_UID, UNTRUSTED_APP_UID) != 0)
-		fail("do_sandbox_android: setresuid failed");
+	if (setresuid(uid, uid, uid) != 0)
+		failmsg("do_sandbox_android: setresuid failed", "sandbox_arg=%d", sandbox_arg);
 
 	// setresuid and setresgid clear the parent-death signal.
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
