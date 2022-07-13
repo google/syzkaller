@@ -7,6 +7,9 @@
 #include "arm64_app_policy.h"
 static const struct sock_filter* primary_app_filter = arm64_app_filter;
 static const size_t primary_app_filter_size = arm64_app_filter_size;
+#include "arm64_system_policy.h"
+static const struct sock_filter* system_filter = arm64_system_filter;
+static const size_t system_filter_size = arm64_system_filter_size;
 // We need 3 for ValidateArchitecture and 1 for ExamineSyscall and 4 for ValidateArchitectureAndJumpIfNeeded + 2 extra Disallow
 #define kFilterMaxSize (arm64_app_filter_size + 3 + 1 + 4 + 2)
 
@@ -15,6 +18,9 @@ static const size_t primary_app_filter_size = arm64_app_filter_size;
 #include "arm_app_policy.h"
 static const struct sock_filter* primary_app_filter = arm_app_filter;
 static const size_t primary_app_filter_size = arm_app_filter_size;
+#include "arm_system_policy.h"
+static const struct sock_filter* system_filter = arm_system_filter;
+static const size_t system_filter_size = arm_system_filter_size;
 #define kFilterMaxSize (arm_app_filter_size + 3 + 1 + 4 + 2)
 
 #elif GOARCH_amd64
@@ -22,6 +28,9 @@ static const size_t primary_app_filter_size = arm_app_filter_size;
 #include "x86_64_app_policy.h"
 static const struct sock_filter* primary_app_filter = x86_64_app_filter;
 static const size_t primary_app_filter_size = x86_64_app_filter_size;
+#include "x86_64_system_policy.h"
+static const struct sock_filter* system_filter = x86_64_system_filter;
+static const size_t system_filter_size = x86_64_system_filter_size;
 #define kFilterMaxSize (x86_64_app_filter_size + 3 + 1 + 4 + 2)
 
 #elif GOARCH_386
@@ -29,6 +38,9 @@ static const size_t primary_app_filter_size = x86_64_app_filter_size;
 #include "x86_app_policy.h"
 static const struct sock_filter* primary_app_filter = x86_app_filter;
 static const size_t primary_app_filter_size = x86_app_filter_size;
+#include "x86_system_policy.h"
+static const struct sock_filter* system_filter = x86_system_filter;
+static const size_t system_filter_size = x86_system_filter_size;
 #define kFilterMaxSize (x86_app_filter_size + 3 + 1 + 4 + 2)
 
 #else
@@ -83,21 +95,32 @@ static void install_filter(const Filter* f)
 		failmsg("could not set seccomp filter", "size=%zu", f->count);
 }
 
-// Modified from the orignal Android code as we don't need dual arch support
-static void set_app_seccomp_filter()
+// Modified from the original Android code as we don't need dual arch support
+static void set_seccomp_filter(const struct sock_filter* filter, size_t size)
 {
-	const struct sock_filter* p = primary_app_filter;
-	size_t p_size = primary_app_filter_size;
-
 	Filter f;
 	f.count = 0;
 	ValidateArchitecture(&f);
 	ExamineSyscall(&f);
 
-	for (size_t i = 0; i < p_size; ++i)
-		push_back(&f, p[i]);
+	for (size_t i = 0; i < size; ++i)
+		push_back(&f, filter[i]);
 	Disallow(&f);
 
 	// Will fail() if anything fails.
 	install_filter(&f);
+}
+
+enum {
+	SCFS_RestrictedApp,
+	SCFS_SystemAccount
+};
+
+static void set_app_seccomp_filter(int account)
+{
+	if (account == SCFS_SystemAccount) {
+		set_seccomp_filter(system_filter, system_filter_size);
+	} else {
+		set_seccomp_filter(primary_app_filter, primary_app_filter_size);
+	}
 }

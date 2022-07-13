@@ -96,7 +96,11 @@ func (ctx *context) generateSource() ([]byte, error) {
 
 	sandboxFunc := "loop();"
 	if ctx.opts.Sandbox != "" {
-		sandboxFunc = "do_sandbox_" + ctx.opts.Sandbox + "();"
+		arguments := "();"
+		if ctx.opts.Sandbox == "android" {
+			arguments = "(0);"
+		}
+		sandboxFunc = "do_sandbox_" + ctx.opts.Sandbox + arguments
 	}
 	replacements := map[string]string{
 		"PROCS":           fmt.Sprint(ctx.opts.Procs),
