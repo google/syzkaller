@@ -23,12 +23,17 @@ import (
 )
 
 type Dashboard struct {
-	Client       string
-	Addr         string
-	Key          string
-	ctor         RequestCtor
-	doer         RequestDoer
-	logger       RequestLogger
+	Client string
+	Addr   string
+	Key    string
+	ctor   RequestCtor
+	doer   RequestDoer
+	logger RequestLogger
+	// Yes, we have the ability to set custom constructor, doer and logger, but
+	// there are also cases when we just want to mock the whole request processing.
+	// Implementing that on top of http.Request/http.Response would complicate the
+	// code too much.
+	mocker       RequestMocker
 	errorHandler func(error)
 }
 
@@ -36,10 +41,17 @@ func New(client, addr, key string) (*Dashboard, error) {
 	return NewCustom(client, addr, key, http.NewRequest, http.DefaultClient.Do, nil, nil)
 }
 
+func NewMock(mocker RequestMocker) *Dashboard {
+	return &Dashboard{
+		mocker: mocker,
+	}
+}
+
 type (
 	RequestCtor   func(method, url string, body io.Reader) (*http.Request, error)
 	RequestDoer   func(req *http.Request) (*http.Response, error)
 	RequestLogger func(msg string, args ...interface{})
+	RequestMocker func(method string, req, resp interface{}) error
 )
 
 // key == "" indicates that the ambient GCE service account authority
@@ -591,6 +603,9 @@ const (
 func (dash *Dashboard) Query(method string, req, reply interface{}) error {
 	if dash.logger != nil {
 		dash.logger("API(%v): %#v", method, req)
+	}
+	if dash.mocker != nil {
+		return dash.mocker(method, req, reply)
 	}
 	err := dash.queryImpl(method, req, reply)
 	if err != nil {
