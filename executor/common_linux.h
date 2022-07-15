@@ -3442,14 +3442,19 @@ static void mount_cgroups(const char* dir, const char** controllers, int count)
 		strcat(enabled, ",");
 		strcat(enabled, controllers[i]);
 	}
-	if (enabled[0] == 0)
+	if (enabled[0] == 0) {
+		if (rmdir(dir) && errno != EBUSY)
+			failmsg("rmdir failed", "dir=%s", dir);
 		return;
+	}
 	// Now mount all at once.
 	if (mount("none", dir, "cgroup", 0, enabled + 1)) {
 		// In systemd/stretch images this is failing with EBUSY
 		// (systemd starts messing with these mounts?),
 		// so we don't fail, but just log the error.
 		debug("mount(%s, %s) failed: %d\n", dir, enabled + 1, errno);
+		if (rmdir(dir) && errno != EBUSY)
+			failmsg("rmdir failed", "dir=%s enabled=%s", dir, enabled);
 	}
 	if (chmod(dir, 0777)) {
 		debug("chmod(%s) failed: %d\n", dir, errno);
@@ -3477,6 +3482,15 @@ static void setup_cgroups()
 	}
 	if (mount("none", "/syzcgroup/unified", "cgroup2", 0, NULL)) {
 		debug("mount(cgroup2) failed: %d\n", errno);
+		// For all cases when we don't end up mounting cgroup/cgroup2
+		// in /syzcgroup/{unified,net,cpu}, we need to remove the dir.
+		// Otherwise these will end up as normal dirs and the fuzzer may
+		// create huge files there. These files won't be cleaned up
+		// after tests and may easily consume all disk space.
+		// EBUSY usually means that cgroup is already mounted there
+		// by a previous run of e.g. syz-execprog.
+		if (rmdir("/syzcgroup/unified") && errno != EBUSY)
+			fail("rmdir(/syzcgroup/unified) failed");
 	}
 	if (chmod("/syzcgroup/unified", 0777)) {
 		debug("chmod(/syzcgroup/unified) failed: %d\n", errno);

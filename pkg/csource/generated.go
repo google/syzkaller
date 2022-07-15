@@ -8147,10 +8147,15 @@ static void mount_cgroups(const char* dir, const char** controllers, int count)
 		strcat(enabled, ",");
 		strcat(enabled, controllers[i]);
 	}
-	if (enabled[0] == 0)
+	if (enabled[0] == 0) {
+		if (rmdir(dir) && errno != EBUSY)
+			failmsg("rmdir failed", "dir=%s", dir);
 		return;
+	}
 	if (mount("none", dir, "cgroup", 0, enabled + 1)) {
 		debug("mount(%s, %s) failed: %d\n", dir, enabled + 1, errno);
+		if (rmdir(dir) && errno != EBUSY)
+			failmsg("rmdir failed", "dir=%s enabled=%s", dir, enabled);
 	}
 	if (chmod(dir, 0777)) {
 		debug("chmod(%s) failed: %d\n", dir, errno);
@@ -8170,6 +8175,8 @@ static void setup_cgroups()
 	}
 	if (mount("none", "/syzcgroup/unified", "cgroup2", 0, NULL)) {
 		debug("mount(cgroup2) failed: %d\n", errno);
+		if (rmdir("/syzcgroup/unified") && errno != EBUSY)
+			fail("rmdir(/syzcgroup/unified) failed");
 	}
 	if (chmod("/syzcgroup/unified", 0777)) {
 		debug("chmod(/syzcgroup/unified) failed: %d\n", errno);
