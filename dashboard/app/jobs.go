@@ -364,7 +364,10 @@ func createBisectJobForBug(c context.Context, bug0 *Bug, crash *Crash, bugKey, c
 		}
 		return markCrashReported(c, job.CrashID, bugKey, now)
 	}
-	if err := db.RunInTransaction(c, tx, nil); err != nil {
+	if err := db.RunInTransaction(c, tx, &db.TransactionOptions{
+		// We're accessing two different kinds in markCrashReported.
+		XG: true,
+	}); err != nil {
 		return nil, nil, fmt.Errorf("create bisect job tx failed: %v", err)
 	}
 	return job, jobKey, nil

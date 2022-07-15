@@ -50,6 +50,12 @@ type ManagerStats struct {
 	TotalExecs        int64
 }
 
+type Asset struct {
+	Type        dashapi.AssetType
+	DownloadURL string
+	CreateDate  time.Time
+}
+
 type Build struct {
 	Namespace           string
 	Manager             string
@@ -68,6 +74,8 @@ type Build struct {
 	KernelCommitTitle   string    `datastore:",noindex"`
 	KernelCommitDate    time.Time `datastore:",noindex"`
 	KernelConfig        int64     // reference to KernelConfig text entity
+	Assets              []Asset   // build-related assets
+	AssetsLastCheck     time.Time // the last time we checked the assets for deprecation
 }
 
 type Bug struct {
@@ -177,6 +185,7 @@ type ReportingStateEntry struct {
 //   - test of a committed fix
 //   - reproduce crash
 //   - test that crash still happens on HEAD
+//
 // Job has Bug as parent entity.
 type Job struct {
 	Type      JobType

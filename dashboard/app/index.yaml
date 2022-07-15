@@ -102,6 +102,24 @@ indexes:
   - name: Time
     direction: desc
 
+- kind: Build
+  properties:
+  - name: Namespace
+  - name: Manager
+  - name: Assets.Type
+  - name: Assets.CreateDate
+
+- kind: Build
+  properties:
+  - name: Namespace
+  - name: Assets.Type
+  - name: Assets.CreateDate
+
+- kind: Build
+  properties:
+  - name: Namespace
+  - name: AssetsLastCheck
+
 - kind: Crash
   ancestor: yes
   properties:
