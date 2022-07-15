@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/asset"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/html"
 	"github.com/google/syzkaller/sys/targets"
@@ -366,6 +367,7 @@ func reproStr(level dashapi.ReproLevel) string {
 	}
 }
 
+// nolint: gocyclo
 func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key,
 	bugReporting *BugReporting, reporting *Reporting) (*dashapi.BugReport, error) {
 	reportingConfig, err := json.Marshal(reporting.Config)
@@ -422,7 +424,22 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 	if !bugReporting.Reported.IsZero() {
 		typ = dashapi.ReportRepro
 	}
-
+	assetList := []dashapi.Asset{}
+	for _, buildAsset := range build.Assets {
+		typeDescr := asset.GetTypeDescription(buildAsset.Type)
+		if typeDescr == nil || typeDescr.NoReporting {
+			continue
+		}
+		assetList = append(assetList, dashapi.Asset{
+			Title:       typeDescr.GetTitle(targets.Get(build.OS, build.Arch)),
+			DownloadURL: buildAsset.DownloadURL,
+			Type:        buildAsset.Type,
+		})
+	}
+	sort.SliceStable(assetList, func(i, j int) bool {
+		return asset.GetTypeDescription(assetList[i].Type).ReportingPrio <
+			asset.GetTypeDescription(assetList[j].Type).ReportingPrio
+	})
 	kernelRepo := kernelRepoInfo(build)
 	rep := &dashapi.BugReport{
 		Type:            typ,
@@ -448,6 +465,7 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 		CrashTime:       crash.Time,
 		NumCrashes:      bug.NumCrashes,
 		HappenedOn:      managersToRepos(c, bug.Namespace, bug.HappenedOn),
+		Assets:          assetList,
 	}
 	if bugReporting.CC != "" {
 		rep.CC = append(rep.CC, strings.Split(bugReporting.CC, "|")...)
