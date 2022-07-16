@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 `syzkaller` (`[siːzˈkɔːlə]`) is an unsupervised coverage-guided kernel fuzzer.\
-Supported OSes: `Akaros`, `FreeBSD`, `Fuchsia`, `gVisor`, `Linux`, `NetBSD`, `OpenBSD`, `Windows`.
+Supported OSes: `Akaros`, `FreeBSD`, `gVisor`, `Linux`, `NetBSD`, `OpenBSD`, `Windows`.
 
 Mailing list: [syzkaller@googlegroups.com](https://groups.google.com/forum/#!forum/syzkaller) (join on [web](https://groups.google.com/forum/#!forum/syzkaller) or by [email](mailto:syzkaller+subscribe@googlegroups.com)).
 
@@ -23,7 +23,6 @@ For other OS kernels check:
 [Akaros](docs/akaros/README.md),
 [Darwin/XNU](docs/darwin/README.md),
 [FreeBSD](docs/freebsd/README.md),
-[Fuchsia](docs/fuchsia/README.md),
 [NetBSD](docs/netbsd/README.md),
 [OpenBSD](docs/openbsd/setup.md),
 [Windows](docs/windows/README.md),
