@@ -5,6 +5,7 @@ package bisect
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/google/syzkaller/pkg/build"
@@ -147,6 +148,11 @@ func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
 		return nil, err
 	}
 	env.head = head
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "unnamed host"
+	}
+	env.log("%s starts bisection %s", hostname, env.startTime.String())
 	if cfg.Fix {
 		env.log("bisecting fixing commit since %v", cfg.Kernel.Commit)
 	} else {
