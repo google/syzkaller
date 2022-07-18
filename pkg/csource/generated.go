@@ -9814,9 +9814,7 @@ static int do_sandbox_android(int sandbox_arg)
 	initialize_devlink_pci();
 #endif
 #if SYZ_EXECUTOR || SYZ_NET_INJECTION
-	if (sandbox_arg != 1) {
-		initialize_tun();
-	}
+	initialize_tun();
 #endif
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	initialize_netdevices();

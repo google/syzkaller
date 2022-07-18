@@ -176,6 +176,20 @@ var (
 	devToConsole   = make(map[string]string)
 )
 
+func parseAdbOutToInt(out []byte) int {
+	val := 0
+	for _, c := range out {
+		if c >= '0' && c <= '9' {
+			val = val*10 + int(c) - '0'
+			continue
+		}
+		if val != 0 {
+			break
+		}
+	}
+	return val
+}
+
 // findConsole returns console file associated with the dev device (e.g. /dev/ttyUSB0).
 // This code was tested with Suzy-Q and Android Serial Cable (ASC). For Suzy-Q see:
 // https://chromium.googlesource.com/chromiumos/platform/ec/+/master/docs/case_closed_debugging.md
@@ -309,6 +323,40 @@ func (inst *instance) adbWithTimeout(timeout time.Duration, args ...string) ([]b
 	return out, err
 }
 
+func (inst *instance) waitForBootCompletion() {
+	// ADB connects to a phone and starts syz-fuzzer while the phone is still booting.
+	// This enables syzkaller to create a race condition which in certain cases doesn't
+	// allow the phone to finalize initialization.
+	// To determine whether a system has booted and started all system processes and
+	// services we wait for a process named 'com.android.systemui' to start. It's possible
+	// that in the future a new devices which doesn't have 'systemui' process will be fuzzed
+	// with adb, in this case this code should be modified with a new process name to search for.
+	log.Logf(2, "waiting for boot completion")
+
+	sleepTime := 5
+	sleepDuration := time.Duration(sleepTime) * time.Second
+	maxWaitTime := 60 * 3 // 3 minutes to wait until boot completion
+	maxRetries := maxWaitTime / sleepTime
+	i := 0
+	for ; i < maxRetries; i++ {
+		time.Sleep(sleepDuration)
+
+		if out, err := inst.adb("shell", "pgrep systemui | wc -l"); err == nil {
+			count := parseAdbOutToInt(out)
+			if count != 0 {
+				log.Logf(0, "boot completed")
+				break
+			}
+		} else {
+			log.Logf(0, "failed to execute command 'pgrep systemui | wc -l', %v", err)
+			break
+		}
+	}
+	if i == maxRetries {
+		log.Logf(0, "failed to determine boot completion, can't find 'com.android.systemui' process")
+	}
+}
+
 func (inst *instance) repair() error {
 	// Assume that the device is in a bad state initially and reboot it.
 	// Ignore errors, maybe we will manage to reboot it anyway.
@@ -338,6 +386,8 @@ func (inst *instance) repair() error {
 	// Switch to root for userdebug builds.
 	inst.adb("root")
 	inst.waitForSSH()
+	inst.waitForBootCompletion()
+
 	// Mount debugfs.
 	if _, err := inst.adb("shell", "ls /sys/kernel/debug/kcov"); err != nil {
 		log.Logf(2, "debugfs was unmounted mounting")
@@ -428,16 +478,7 @@ func (inst *instance) getBatteryLevel(numRetry int) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	val := 0
-	for _, c := range out {
-		if c >= '0' && c <= '9' {
-			val = val*10 + int(c) - '0'
-			continue
-		}
-		if val != 0 {
-			break
-		}
-	}
+	val := parseAdbOutToInt(out)
 	if val == 0 {
 		return 0, fmt.Errorf("failed to parse 'dumpsys battery' output: %s", out)
 	}
