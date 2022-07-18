@@ -132,6 +132,7 @@ var archConfigs = map[string]*archConfig{
 		CmdLine: []string{
 			"root=/dev/sda",
 			"console=ttyS0",
+			"net.ifnames=0",
 		},
 	},
 	"linux/386": {
@@ -141,6 +142,7 @@ var archConfigs = map[string]*archConfig{
 		CmdLine: []string{
 			"root=/dev/sda",
 			"console=ttyS0",
+			"net.ifnames=0",
 		},
 	},
 	"linux/arm64": {
@@ -151,6 +153,7 @@ var archConfigs = map[string]*archConfig{
 		CmdLine: []string{
 			"root=/dev/vda",
 			"console=ttyAMA0",
+			"net.ifnames=0",
 		},
 	},
 	"linux/arm": {
@@ -162,6 +165,7 @@ var archConfigs = map[string]*archConfig{
 		CmdLine: []string{
 			"root=/dev/vda",
 			"console=ttyAMA0",
+			"net.ifnames=0",
 		},
 	},
 	"linux/mips64le": {
@@ -172,6 +176,7 @@ var archConfigs = map[string]*archConfig{
 		CmdLine: []string{
 			"root=/dev/sda",
 			"console=ttyS0",
+			"net.ifnames=0",
 		},
 	},
 	"linux/ppc64le": {
@@ -189,6 +194,7 @@ var archConfigs = map[string]*archConfig{
 		CmdLine: []string{
 			"root=/dev/vda",
 			"console=ttyS0",
+			"net.ifnames=0",
 		},
 	},
 	"linux/s390x": {
@@ -198,6 +204,7 @@ var archConfigs = map[string]*archConfig{
 		RngDev:   "virtio-rng-ccw",
 		CmdLine: []string{
 			"root=/dev/vda",
+			"net.ifnames=0",
 		},
 	},
 	"freebsd/amd64": {
