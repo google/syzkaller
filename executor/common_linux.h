@@ -4169,11 +4169,7 @@ static int do_sandbox_android(int sandbox_arg)
 	initialize_devlink_pci();
 #endif
 #if SYZ_EXECUTOR || SYZ_NET_INJECTION
-	if (sandbox_arg != 1) {
-		// TODO (gArtmv): investigate why fuzzing fails when the line
-		// below is executed.
-		initialize_tun();
-	}
+	initialize_tun();
 #endif
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	// TODO(dvyukov): unshare net namespace.
