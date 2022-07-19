@@ -534,7 +534,26 @@ func splitArgs(str, templateDir string, index int) (args []string) {
 		if arg == "" {
 			continue
 		}
-		arg = strings.ReplaceAll(arg, "{{INDEX}}", fmt.Sprint(index))
+		// 0-7 VFs/Device, if index >= 8, Device# += (index / 8)
+		if strings.Contains(arg, "{{INDEX}}") {
+			arg = strings.ReplaceAll(arg, "{{INDEX}}", fmt.Sprint(index%8))
+			if index > 7 && strings.Contains(arg, "vfio-pci,host=") {
+				// VFs are 0:7. Need to increment the Device if VF >= 8
+				args1 := strings.Split(arg, "vfio-pci,host=")
+				args2 := strings.Split(args1[1], ":")
+				args3 := strings.Split(args2[1], ".")
+				n, err := strconv.ParseInt(args3[0], 16, 32)
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+				i64 := int64(index)
+				n += (i64 / 8)
+				pat := fmt.Sprintf("%s:%s", args2[0], args3[0])
+				fix := fmt.Sprintf("%s:%02x", args2[0], n)
+				arg = strings.ReplaceAll(arg, pat, fix)
+			}
+		}
 		arg = strings.ReplaceAll(arg, "{{TEMPLATE}}", templateDir)
 		const tcpPort = "{{TCP_PORT}}"
 		if strings.Contains(arg, tcpPort) {
