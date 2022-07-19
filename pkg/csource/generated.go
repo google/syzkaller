@@ -3064,6 +3064,137 @@ static void initialize_devlink_pci(void)
 #endif
 #endif
 
+#define SYZ_VF_PASSTHRU 1
+#if SYZ_EXECUTOR || SYZ_VF_PASSTHRU
+#include <ifaddrs.h>
+#include <linux/ethtool.h>
+#include <linux/sockios.h>
+
+struct vf_intf {
+	char pass_thru_intf[IFNAMSIZ];
+	int ppid;
+};
+
+static vf_intf the_vf_struct, *vfp = &the_vf_struct;
+
+static void find_vf_interface(void)
+{
+	struct ifaddrs* addresses;
+	char cmdline[256];
+	int ret;
+	int pid = getpid();
+
+	memset(vfp, 0, sizeof(struct vf_intf));
+
+	if (system("lspci | sed 's/ .*
+		return;
+
+	debug("Checking for VF pass-thru interface.\n");
+	if (getifaddrs(&addresses) == -1) {
+		perror("getifaddrs");
+		return;
+	}
+
+	int fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+
+	if (fd < 0) {
+		perror("socket");
+		return;
+	}
+	struct ifreq ifr;
+	struct ethtool_drvinfo drvinfo;
+	struct ifaddrs* address = addresses;
+
+	while (address) {
+		debug("ifa_name: %s\n", address->ifa_name);
+		memset(&ifr, 0, sizeof(struct ifreq));
+		strcpy(ifr.ifr_name, address->ifa_name);
+		memset(&drvinfo, 0, sizeof(struct ethtool_drvinfo));
+		drvinfo.cmd = ETHTOOL_GDRVINFO;
+		ifr.ifr_data = (caddr_t)&drvinfo;
+		int ret = ioctl(fd, SIOCETHTOOL, &ifr);
+
+		if (ret < 0) {
+			perror("ioctl");
+		} else if (strlen(drvinfo.bus_info)) {
+			debug("bus_info: %s, strlen(drvinfo.bus_info)=%ld\n",
+			      drvinfo.bus_info, strlen(drvinfo.bus_info));
+			if (strncmp(drvinfo.bus_info, "0000:00:11.0",
+				    strlen("0000:00:11.0")) == 0) {
+				if (strlen(address->ifa_name) <= IFNAMSIZ) {
+					strncpy(vfp->pass_thru_intf, address->ifa_name, IFNAMSIZ);
+					vfp->ppid = getpid();
+					break;
+				}
+			}
+		}
+		address = address->ifa_next;
+	}
+	freeifaddrs(addresses);
+	if (!vfp->ppid)
+		goto error;
+
+	sprintf(cmdline, "ip netns del staging_ns.%d", pid);
+	if (system(cmdline))
+		perror("system: ip netns del staging_ns");
+
+	sprintf(cmdline, "ip netns add staging_ns.%d", pid);
+	ret = system(cmdline);
+	if (ret)
+		goto error;
+	sprintf(cmdline, "ip link set dev %s netns staging_ns.%d", vfp->pass_thru_intf, pid);
+	ret = system(cmdline);
+	if (ret == 0) {
+		debug("PID: %d found VF pass-thru interface %s\n", pid, vfp->pass_thru_intf);
+		return;
+	}
+error:
+	memset(vfp, 0, sizeof(struct vf_intf));
+	sprintf(cmdline, "ip netns del staging_ns.%d", pid);
+	if (system(cmdline))
+		perror("ip netns del staging_ns failed");
+	debug("PID: %d could not find VF pass-thru interface.\n", pid);
+}
+
+static void initialize_vf_passthru(void)
+{
+	char cmdline[256];
+	int ret;
+
+	if (!vfp->ppid)
+		return;
+
+	debug("ppid = %d, vfp->pass_thru_intf: %s\n", vfp->ppid, vfp->pass_thru_intf);
+	sprintf(cmdline, "ip netns list |grep staging_ns.%d", vfp->ppid);
+	ret = system(cmdline);
+	if (ret)
+		return;
+	sprintf(cmdline,
+		"ip netns exec staging_ns.%d ip link set %s netns %d",
+		vfp->ppid, vfp->pass_thru_intf, getpid());
+	ret = system(cmdline);
+
+	if (ret)
+		return;
+
+	sprintf(cmdline, "ip link set %s down", vfp->pass_thru_intf);
+	if (system(cmdline))
+		perror("system: ip link set down");
+
+	sprintf(cmdline, "ip link set %s name netpci0", vfp->pass_thru_intf);
+	if (system(cmdline))
+		perror("system: ip link set name netpci0");
+
+	if (system("ip link set netpci0 up"))
+		perror("system: ip link set netpci0 up");
+
+	if (system("ip addr add 172.20.20.190/24 brd + dev netpci0"))
+		perror("system: ip addr add 172.20.20.190/24 brd + dev netpci0");
+
+	debug("netpci0 VF pass-through setup complete.\n");
+}
+#endif /* SYZ_NET_DEVICES */
+
 #if SYZ_EXECUTOR || SYZ_WIFI || __NR_syz_80211_inject_frame || __NR_syz_80211_join_ibss
 
 #define WIFI_INITIAL_DEVICE_COUNT 2
@@ -8430,6 +8561,9 @@ static void drop_caps(void)
 
 static int do_sandbox_none(void)
 {
+#if SYZ_EXECUTOR || SYZ_VF_PASSTHRU
+	find_vf_interface();
+#endif
 	if (unshare(CLONE_NEWPID)) {
 		debug("unshare(CLONE_NEWPID): %d\n", errno);
 	}
@@ -8462,6 +8596,9 @@ static int do_sandbox_none(void)
 #if SYZ_EXECUTOR || SYZ_WIFI
 	initialize_wifi_devices();
 #endif
+#if SYZ_EXECUTOR || SYZ_VF_PASSTHRU
+	initialize_vf_passthru();
+#endif
 	setup_binderfs();
 	loop();
 	doexit(1);
@@ -8476,6 +8613,9 @@ static int do_sandbox_none(void)
 #define SYZ_HAVE_SANDBOX_SETUID 1
 static int do_sandbox_setuid(void)
 {
+#if SYZ_EXECUTOR || SYZ_VF_PASSTHRU
+	find_vf_interface();
+#endif
 	if (unshare(CLONE_NEWPID)) {
 		debug("unshare(CLONE_NEWPID): %d\n", errno);
 	}
@@ -8505,6 +8645,9 @@ static int do_sandbox_setuid(void)
 #endif
 #if SYZ_EXECUTOR || SYZ_WIFI
 	initialize_wifi_devices();
+#endif
+#if SYZ_EXECUTOR || SYZ_VF_PASSTHRU
+	initialize_vf_passthru();
 #endif
 	setup_binderfs();
 
