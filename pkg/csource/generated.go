@@ -8135,6 +8135,7 @@ static void mount_cgroups(const char* dir, const char** controllers, int count)
 {
 	if (mkdir(dir, 0777)) {
 		debug("mkdir(%s) failed: %d\n", dir, errno);
+		return;
 	}
 	char enabled[128] = {0};
 	int i = 0;
@@ -8162,6 +8163,32 @@ static void mount_cgroups(const char* dir, const char** controllers, int count)
 	}
 }
 
+static void mount_cgroups2(const char** controllers, int count)
+{
+	if (mkdir("/syzcgroup/unified", 0777)) {
+		debug("mkdir(/syzcgroup/unified) failed: %d\n", errno);
+		return;
+	}
+	if (mount("none", "/syzcgroup/unified", "cgroup2", 0, NULL)) {
+		debug("mount(cgroup2) failed: %d\n", errno);
+		if (rmdir("/syzcgroup/unified") && errno != EBUSY)
+			fail("rmdir(/syzcgroup/unified) failed");
+		return;
+	}
+	if (chmod("/syzcgroup/unified", 0777)) {
+		debug("chmod(/syzcgroup/unified) failed: %d\n", errno);
+	}
+	int control = open("/syzcgroup/unified/cgroup.subtree_control", O_WRONLY);
+	if (control == -1)
+		return;
+	int i;
+	for (i = 0; i < count; i++)
+		if (write(control, controllers[i], strlen(controllers[i])) < 0) {
+			debug("write(cgroup.subtree_control, %s) failed: %d\n", controllers[i], errno);
+		}
+	close(control);
+}
+
 static void setup_cgroups()
 {
 	const char* unified_controllers[] = {"+cpu", "+memory", "+io", "+pids"};
@@ -8169,27 +8196,9 @@ static void setup_cgroups()
 	const char* cpu_controllers[] = {"cpuset", "cpuacct", "hugetlb", "rlimit"};
 	if (mkdir("/syzcgroup", 0777)) {
 		debug("mkdir(/syzcgroup) failed: %d\n", errno);
+		return;
 	}
-	if (mkdir("/syzcgroup/unified", 0777)) {
-		debug("mkdir(/syzcgroup/unified) failed: %d\n", errno);
-	}
-	if (mount("none", "/syzcgroup/unified", "cgroup2", 0, NULL)) {
-		debug("mount(cgroup2) failed: %d\n", errno);
-		if (rmdir("/syzcgroup/unified") && errno != EBUSY)
-			fail("rmdir(/syzcgroup/unified) failed");
-	}
-	if (chmod("/syzcgroup/unified", 0777)) {
-		debug("chmod(/syzcgroup/unified) failed: %d\n", errno);
-	}
-	int unified_control = open("/syzcgroup/unified/cgroup.subtree_control", O_WRONLY);
-	if (unified_control != -1) {
-		unsigned i;
-		for (i = 0; i < sizeof(unified_controllers) / sizeof(unified_controllers[0]); i++)
-			if (write(unified_control, unified_controllers[i], strlen(unified_controllers[i])) < 0) {
-				debug("write(cgroup.subtree_control, %s) failed: %d\n", unified_controllers[i], errno);
-			}
-		close(unified_control);
-	}
+	mount_cgroups2(unified_controllers, sizeof(unified_controllers) / sizeof(unified_controllers[0]));
 	mount_cgroups("/syzcgroup/net", net_controllers, sizeof(net_controllers) / sizeof(net_controllers[0]));
 	mount_cgroups("/syzcgroup/cpu", cpu_controllers, sizeof(cpu_controllers) / sizeof(cpu_controllers[0]));
 	write_file("/syzcgroup/cpu/cgroup.clone_children", "1");
