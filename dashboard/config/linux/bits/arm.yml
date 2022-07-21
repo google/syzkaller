@@ -52,3 +52,6 @@ config:
  - BINFMT_SHARED_FLAT
  - CAN_KVASER_PCIEFD: [-baseline, -onlyusb]
  - CRC_T10DIF
+ # Otherwise fuzzing on arm32 is currently hindered due to the "BUG: using smp_processor_id() in preemptible code" bug.
+ # See https://github.com/google/syzkaller/issues/3249
+ - HARDEN_BRANCH_PREDICTOR: n
