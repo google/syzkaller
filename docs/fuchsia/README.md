@@ -4,33 +4,29 @@ For information about checking out and building Fuchsia see
 [Getting Started](https://fuchsia.dev/fuchsia-src/get-started)
 and [Source Code](https://fuchsia.dev/fuchsia-src/get-started/get_fuchsia_source).
 
+## Caveat
+
+Please note that Fuchsia support is currently incomplete, and may break at any
+time due to changes in Fuchsia and/or Syzkaller.
+
+Some known issues include:
+* System call definitions require manual updates.
+* Crash parsing does not work reliably.
+* Coverage feedback is not supported.
+
 ## Prerequisites
 
-To run syzkaller with a fuchsia target, you will need:
+To run syzkaller with a Fuchsia target, you will need:
 
-* A fuchsia checkout.
+* A Fuchsia checkout.
 
 The rest of the document will use the following environment variables:
 
-* `SOURCEDIR` path of your fuchsia checkout.
+* `SOURCEDIR` path of your Fuchsia checkout.
 
 ## Building Fuchsia
 
-NOTE: Inside `${SOURCEDIR}/src/testing/fuzzing/syzkaller/BUILD.gnsrc/testing/fuzzing/syzkaller/BUILD.gn`
-you need to replace the line with `"$(src)/executor/kvm.S.h"` by `"${src}/executor/kvm_amd64.S.h"`
-
-To build fuchsia run:
-
-```shell
-$ fx --dir "out/arm64" set core.arm64 \
-  --with-base "//bundles:tools" \
-  --with-base "//src/testing/fuzzing/syzkaller" \
-  --args=syzkaller_dir='"/full/path/to/syzkaller"' \
-  --variant=kasan
-$ fx clean-build
-```
-
-And
+To build Fuchsia for x64, run:
 
 ```shell
 $ fx --dir "out/x64" set core.x64 \
@@ -38,37 +34,48 @@ $ fx --dir "out/x64" set core.x64 \
   --with-base "//src/testing/fuzzing/syzkaller" \
   --args=syzkaller_dir='"/full/path/to/syzkaller"' \
   --variant=kasan
-$ fx clean-build
+$ fx build
 ```
 
-## Building binaries for fuchsia
+Alternatively, for arm64, run:
 
-To build all the binaries required for running syzkaller in fuchsia, run:
-
+```shell
+$ fx --dir "out/arm64" set core.arm64 \
+  --with-base "//bundles:tools" \
+  --with-base "//src/testing/fuzzing/syzkaller" \
+  --args=syzkaller_dir='"/full/path/to/syzkaller"' \
+  --variant=kasan
+$ fx build
 ```
-$ make TARGETOS=fuchsia TARGETARCH=amd64 \
+
+## Building binaries for Fuchsia
+
+To build all the binaries required for running syzkaller in Fuchsia, run:
+
+```shell
+make TARGETOS=fuchsia TARGETARCH=amd64 \
     SOURCEDIR=path/to/fuchsia/checkout
 ```
 
 ## Running syz-manager
 
-Running syz-manager requires you to have built fuchsia previously, and added the ssh keys to the fuchsia.zbi image:
+Running syz-manager requires you to have built Fuchsia previously, and added the ssh keys to the fuchsia.zbi image:
 
-```
-$ ${SOURCEDIR}/out/x64/host_x64/zbi -o ${SOURCEDIR}/out/x64/fuchsia-ssh.zbi ${SOURCEDIR}/out/x64/fuchsia.zbi --entry "data/ssh/authorized_keys=${SOURCEDIR}/.ssh/authorized_keys"
+```shell
+${SOURCEDIR}/out/x64/host_x64/zbi -o ${SOURCEDIR}/out/x64/fuchsia-ssh.zbi ${SOURCEDIR}/out/x64/fuchsia.zbi --entry "data/ssh/authorized_keys=${SOURCEDIR}/.ssh/authorized_keys"
 ```
 
 You will also need to extend the `fvm` image:
 
-```
-$ cp "${SOURCEDIR}/out/x64/obj/build/images/fuchsia/fuchsia/fvm.blk" "${SOURCEDIR}/out/x64/obj/build/images/fuchsia/fuchsia/fvm-extended.blk"
-$ ${SOURCEDIR}/out/x64/host_x64/fvm "${SOURCEDIR}/out/x64/obj/build/images/fuchsia/fuchsia/fvm-extended.blk" extend --length 3G
+```shell
+cp "${SOURCEDIR}/out/x64/obj/build/images/fuchsia/fuchsia/fvm.blk" "${SOURCEDIR}/out/x64/obj/build/images/fuchsia/fuchsia/fvm-extended.blk"
+${SOURCEDIR}/out/x64/host_x64/fvm "${SOURCEDIR}/out/x64/obj/build/images/fuchsia/fuchsia/fvm-extended.blk" extend --length 3G
 ```
 
 Note: This needs to be repeated after each `fx build`.
 
-Run `syz-manager` with a config along the lines of:
-```
+Set up a config file, using the following as a starting point:
+```json
 {
         "name": "fuchsia",
         "target": "fuchsia/amd64",
@@ -92,7 +99,15 @@ Run `syz-manager` with a config along the lines of:
 }
 ```
 
-## Update syscall and fidl definitions
+Run `syz-manager` with that config:
+```shell
+bin/syz-manager -config manager.cfg
+```
+
+Note: You may need to modify your `PATH` so that qemu can be found, e.g.
+`PATH="$SOURCEDIR/prebuilt/third_party/qemu/linux-x64/bin:$PATH"`
+
+## Update syscall and FIDL definitions
 
 Syscall descriptions live in the `sys/fuchsia` folder. To update a syscall, you need to modify the `.txt` file that contains it, make sure your new definition matches the one in zircon's [syscalls.abigen](https://fuchsia.googlesource.com/fuchsia/+/master/zircon/system/public/zircon/syscalls.abigen) file. **If the syscall was used in `executor/common_fuchsia.h`, you need to update the usages there as well**. FIDL definitions do not need manual updating because they are extracted automatically when you run `make extract`, but they require Fuchsia to be rebuilt for each architecture (see "Building Fuchsia" above).
 
@@ -176,7 +191,7 @@ cannot find /path-to-fuchsia/out/x64/fidling/gen/zircon/public/fidl/zircon-ether
 exit status 1
 ```
 
-You can search for the string in the fuchsia repos or in the code-review tool to
+You can search for the string in the Fuchsia repos or in the code-review tool to
 see what happened to it. If the fidl interface was renamed or removed, you
 should update `sys/fuchsia/fidlgen/main.go` to reflect this change, and remove the
 stale autogenerated files.
