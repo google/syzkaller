@@ -67,6 +67,7 @@ func gvisorSymbolize(bin, srcDir string) ([]Frame, error) {
 		return nil, err
 	}
 	defer cmd.Wait()
+	defer cmd.Process.Kill()
 	var frames []Frame
 	s := bufio.NewScanner(stdout)
 	for s.Scan() {
