@@ -1,6 +1,7 @@
 # Research work based on syzkaller
 
 _newer first_
+* [VaultFuzzer: A state-based approach for Linux kernel](https://hardenedvault.net/blog/2021-09-13-vaultfuzzer/)
 * [Demystifying the Dependency Challenge in Kernel Fuzzing](https://conf.researchr.org/details/icse-2022/icse-2022-papers/89/Demystifying-the-Dependency-Challenge-in-Kernel-Fuzzing)
 * [SyzVegas: Beating Kernel Fuzzing Odds with Reinforcement Learning](https://www.usenix.org/conference/usenixsecurity21/presentation/wang-daimeng)
 * [SyzScope: Revealing High-Risk Security Impacts of Fuzzer-Exposed Bugs in Linux kernel](https://www.usenix.org/conference/usenixsecurity22/presentation/zou)
