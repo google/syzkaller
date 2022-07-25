@@ -73,9 +73,9 @@ jobs:
     # Upload coverage report to codecov.io. For reference see:
     # https://github.com/codecov/codecov-action/blob/master/README.md
     - name: codecov
-      uses: codecov/codecov-action@29386c70ef20e286228c72b668a06fd0e8399192 # v1
+      uses: codecov/codecov-action@2a829b95deaeea2d11d127cc0358005714ff35ea # v3
       with:
-        file: gopath/src/github.com/google/syzkaller/.coverage.txt
+        files: gopath/src/github.com/google/syzkaller/.coverage.txt
         flags: unittests
   dashboard:
     runs-on: ubuntu-latest
