@@ -1,8 +1,8 @@
 # Fuchsia support
 
-For information about checking out and building Fuchsia see
-[Getting Started](https://fuchsia.dev/fuchsia-src/get-started)
-and [Source Code](https://fuchsia.dev/fuchsia-src/get-started/get_fuchsia_source).
+For information about checking out and building Fuchsia see [Get started with
+Fuchsia](https://fuchsia.dev/fuchsia-src/get-started) and [Download the Fuchsia
+source code](https://fuchsia.dev/fuchsia-src/get-started/get_fuchsia_source).
 
 ## Caveat
 
@@ -10,132 +10,165 @@ Please note that Fuchsia support is currently incomplete, and may break at any
 time due to changes in Fuchsia and/or Syzkaller.
 
 Some known issues include:
+
 * System call definitions require manual updates.
 * Crash parsing does not work reliably.
 * Coverage feedback is not supported.
 
 ## Prerequisites
 
-To run syzkaller with a Fuchsia target, you will need:
+To run Syzkaller with a Fuchsia target, you will need a checkout of the Fuchsia
+source repository.
 
-* A Fuchsia checkout.
+The rest of this document will use the environment variable `SOURCEDIR` to
+identify the path to your Fuchsia checkout (e.g. `/home/you/fuchsia`). The
+commands below assume you have set `SOURCEDIR`, like so:
 
-The rest of the document will use the following environment variables:
+```bash
+export SOURCEDIR=/home/you/fuchsia
+```
 
-* `SOURCEDIR` path of your Fuchsia checkout.
+## Quick and easy version
+
+The shell script [setup.sh](setup.sh) automates the building and running
+`syz-manager` steps described below. Give it a try, and see if it works for you.
+For usage help, invoke it with no arguments.
 
 ## Building Fuchsia
 
 To build Fuchsia for x64, run:
 
-```shell
-$ fx --dir "out/x64" set core.x64 \
+```bash
+fx --dir "out/x64" set core.x64 \
   --with-base "//bundles:tools" \
   --with-base "//src/testing/fuzzing/syzkaller" \
   --args=syzkaller_dir='"/full/path/to/syzkaller"' \
   --variant=kasan
-$ fx build
+fx build
 ```
 
 Alternatively, for arm64, run:
 
-```shell
-$ fx --dir "out/arm64" set core.arm64 \
+```bash
+fx --dir "out/arm64" set core.arm64 \
   --with-base "//bundles:tools" \
   --with-base "//src/testing/fuzzing/syzkaller" \
   --args=syzkaller_dir='"/full/path/to/syzkaller"' \
   --variant=kasan
-$ fx build
+fx clean-build
 ```
 
 ## Building binaries for Fuchsia
 
-To build all the binaries required for running syzkaller in Fuchsia, run:
+To build all the binaries required for running Syzkaller in Fuchsia, run this
+from inside your Syzkaller checkout (assuming you built Fuchsia for x64):
 
-```shell
-make TARGETOS=fuchsia TARGETARCH=amd64 \
-    SOURCEDIR=path/to/fuchsia/checkout
+```bash
+make TARGETOS=fuchsia TARGETARCH=amd64 SOURCEDIR=${SOURCEDIR}
 ```
 
 ## Running syz-manager
 
-Running syz-manager requires you to have built Fuchsia previously, and added the ssh keys to the fuchsia.zbi image:
+Running syz-manager requires you to have built Fuchsia previously, and added the
+ssh keys to the fuchsia.zbi image:
 
-```shell
-${SOURCEDIR}/out/x64/host_x64/zbi -o ${SOURCEDIR}/out/x64/fuchsia-ssh.zbi ${SOURCEDIR}/out/x64/fuchsia.zbi --entry "data/ssh/authorized_keys=${SOURCEDIR}/.ssh/authorized_keys"
+```bash
+${SOURCEDIR}/out/x64/host_x64/zbi -o ${SOURCEDIR}/out/x64/fuchsia-ssh.zbi \
+  ${SOURCEDIR}/out/x64/fuchsia.zbi \
+  --entry "data/ssh/authorized_keys=${SOURCEDIR}/.ssh/authorized_keys"
 ```
 
 You will also need to extend the `fvm` image:
 
-```shell
+```bash
 cp "${SOURCEDIR}/out/x64/obj/build/images/fuchsia/fuchsia/fvm.blk" "${SOURCEDIR}/out/x64/obj/build/images/fuchsia/fuchsia/fvm-extended.blk"
 ${SOURCEDIR}/out/x64/host_x64/fvm "${SOURCEDIR}/out/x64/obj/build/images/fuchsia/fuchsia/fvm-extended.blk" extend --length 3G
 ```
 
 Note: This needs to be repeated after each `fx build`.
 
-Set up a config file, using the following as a starting point:
+Create a `syz-manager` configuration file, using this as a starting point:
+
 ```json
 {
-        "name": "fuchsia",
-        "target": "fuchsia/amd64",
-        "http": ":12345",
-        "workdir": "/workdir.fuchsia",
-        "kernel_obj": "/fuchsia/out/x64.zircon/kernel-x64-gcc",
-        "syzkaller": "/syzkaller",
-        "image": "/fuchsia/out/x64/obj/build/images/fuchsia/fuchsia/fvm-extended.blk",
-        "sshkey": "/fuchsia/.ssh/pkey",
-        "reproduce": false,
-        "cover": false,
-        "procs": 8,
-        "type": "qemu",
-        "vm": {
-                "count": 10,
-                "cpu": 4,
-                "mem": 2048,
-                "kernel": "/fuchsia/out/x64/multiboot.bin",
-                "initrd": "/fuchsia/out/x64/fuchsia-ssh.zbi"
-        }
+  "name": "fuchsia",
+  "target": "fuchsia/amd64",
+  "http": ":12345",
+  "workdir": "/workdir.fuchsia",
+  "kernel_obj": "/fuchsia/out/syz/kernel_x64-kasan/obj/zircon/kernel",
+  "syzkaller": "/syzkaller",
+  "image": "/fuchsia/out/x64/obj/build/images/fuchsia/fuchsia/fvm-extended.blk",
+  "sshkey": "/fuchsia/.ssh/pkey",
+  "reproduce": false,
+  "cover": false,
+  "procs": 8,
+  "type": "qemu",
+  "vm": {
+    "count": 10,
+    "cpu": 4,
+    "mem": 2048,
+    "kernel": "/fuchsia/out/x64/multiboot.bin",
+    "initrd": "/fuchsia/out/x64/fuchsia-ssh.zbi"
+  }
 }
 ```
 
 Run `syz-manager` with that config:
-```shell
+
+```bash
 bin/syz-manager -config manager.cfg
 ```
 
 Note: You may need to modify your `PATH` so that qemu can be found, e.g.
-`PATH="$SOURCEDIR/prebuilt/third_party/qemu/linux-x64/bin:$PATH"`
+
+```bash
+export `PATH="$SOURCEDIR/prebuilt/third_party/qemu/linux-x64/bin:$PATH"`
+```
 
 ## Update syscall and FIDL definitions
 
-Syscall descriptions live in the `sys/fuchsia` folder. To update a syscall, you need to modify the `.txt` file that contains it, make sure your new definition matches the one in zircon's [syscalls.abigen](https://fuchsia.googlesource.com/fuchsia/+/master/zircon/system/public/zircon/syscalls.abigen) file. **If the syscall was used in `executor/common_fuchsia.h`, you need to update the usages there as well**. FIDL definitions do not need manual updating because they are extracted automatically when you run `make extract`, but they require Fuchsia to be rebuilt for each architecture (see "Building Fuchsia" above).
+Syscall descriptions live in the `sys/fuchsia` folder. To update a syscall, you
+need to modify the `.txt` file that contains it, make sure your new definition
+matches the one in zircon's
+[syscalls.abigen](https://fuchsia.googlesource.com/fuchsia/+/master/zircon/system/public/zircon/syscalls.abigen)
+file. **If the syscall was used in `executor/common_fuchsia.h`, you need to
+update the usages there as well.** FIDL definitions do not need manual updating
+because they are extracted automatically when you run `make extract`, but they
+require Fuchsia to be rebuilt for each architecture (see [Building
+Fuchsia](#building-fuchsia) above).
 
-Once you updated the syscalls definitions, everything can be regenerated by running:
+Once you updated the syscall definitions, everything can be regenerated by
+running (in your Syzkaller checkout):
 
-```
-make extract TARGETOS=fuchsia SOURCEDIR=/path/to/fuchsia/checkout
+```bash
+make extract TARGETOS=fuchsia SOURCEDIR=${SOURCEDIR}
 make generate
 ```
 
-## How to generate syscall description for FIDL
+**Caveat:** This command does not currently work.
+
+## How to generate syscall definitions from FIDL
 
 TODO: This section is out of date.
 
-Syscall descriptions for FIDL are automatically generated as part of `make extract` as described above.
+Syscall descriptions for FIDL are automatically generated as part of `make
+extract` as described above.
 
-However, if you wish to manually generate syscall descriptions for a given `.fidl` file, do the following.
+However, if you wish to manually generate syscall descriptions for a given
+`.fidl` file, do the following.
 
-FIDL files should first be compiled into FIDL intermediate representation (JSON) files using `fidlc`:
+FIDL files should first be compiled into FIDL intermediate representation (JSON)
+files using `fidlc`:
 
 ```bash
-$SOURCEDIR/out/x64/host_x64/fidlc --json /tmp/io.json --files $SOURCEDIR/zircon/system/fidl/fuchsia-io/io.fidl
+${SOURCEDIR}/out/x64/host_x64/fidlc --json /tmp/io.json --files ${SOURCEDIR}/zircon/system/fidl/fuchsia-io/io.fidl
 ```
 
-Then run FIDL compiler backend `fidlgen` with syzkaller generator, which compiles a FIDL IR file into a syscall description file:
+Then run the FIDL compiler backend `fidlgen` with the syzkaller generator, which
+compiles a FIDL IR file into a syscall description file:
 
 ```bash
-$SOURCEDIR/out/x64/host_x64/fidlgen -generators syzkaller -json /tmp/io.json -output-base fidl_io -include-base fidl_io
+${SOURCEDIR}/out/x64/host_x64/fidlgen -generators syzkaller -json /tmp/io.json -output-base fidl_io -include-base fidl_io
 ```
 
 ## Running syz-ci locally
@@ -146,7 +179,7 @@ To run `syz-ci` locally for Fuchsia, you need:
 - bootstrap `syz-ci` binary (in the current dir, build with `make ci`)
 - `syz-ci` config similar to the one below (in `ci.cfg` file in the current dir)
 
-```
+```json
 {
 	"name": "testci",
 	"http": ":50000",
@@ -173,25 +206,28 @@ To run `syz-ci` locally for Fuchsia, you need:
 ```
 
 Run `syz-ci` as:
-```
+
+```bash
 SOURCEDIR=/bootstrap/fuchsia ./syz-ci -config ci.cfg
 ```
 
 ## Troubleshooting
 
-While running the `make extract` step, it's possible that the fidl definitions
+While running the `make extract` step, it's possible that the FIDL definitions
 are not up to date. It could happen that they have been removed or renamed.
 
 If this is the case, you would see an error mentioning that the fidl.json file
 could not be found:
 
-```
+```bash
 go generate ./sys/fuchsia
 cannot find /path-to-fuchsia/out/x64/fidling/gen/zircon/public/fidl/zircon-ethernet/zircon-ethernet.fidl.json
 exit status 1
 ```
 
-You can search for the string in the Fuchsia repos or in the code-review tool to
-see what happened to it. If the fidl interface was renamed or removed, you
-should update `sys/fuchsia/fidlgen/main.go` to reflect this change, and remove the
-stale autogenerated files.
+You can search for the string in [the Fuchsia code search
+interface](https://cs.opensource.google/fuchsia/fuchsia/+/main:) or in [the
+Gerrit code-review tool](https://fuchsia-review.googlesource.com/) to see what
+happened to it. If the FIDL interface was renamed or removed, you should update
+`sys/fuchsia/fidlgen/main.go` to reflect this change, and remove the stale
+autogenerated files.
