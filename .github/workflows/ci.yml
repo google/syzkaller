@@ -69,7 +69,7 @@ jobs:
         path: .cache
         key: cache
     - name: run
-      run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh syz-env make presubmit_build
+      run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh syz-big-env make presubmit_big presubmit_build
     # Upload coverage report to codecov.io. For reference see:
     # https://github.com/codecov/codecov-action/blob/master/README.md
     - name: codecov
