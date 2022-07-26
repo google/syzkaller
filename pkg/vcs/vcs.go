@@ -172,28 +172,28 @@ const (
 	OptDontSandbox
 )
 
-func NewRepo(os, vm, dir string, opts ...RepoOpt) (Repo, error) {
+func NewRepo(os, vm, dir, tagPrefix string, opts ...RepoOpt) (Repo, error) {
 	switch os {
 	case targets.Linux:
-		return newLinux(dir, opts), nil
+		return newLinux(dir, tagPrefix, opts), nil
 	case targets.Akaros:
-		return newAkaros(dir, opts), nil
+		return newAkaros(dir, tagPrefix, opts), nil
 	case targets.Fuchsia:
-		return newFuchsia(dir, opts), nil
+		return newFuchsia(dir, tagPrefix, opts), nil
 	case targets.OpenBSD:
-		return newGit(dir, nil, opts), nil
+		return newGit(dir, tagPrefix, nil, opts), nil
 	case targets.NetBSD:
-		return newGit(dir, nil, opts), nil
+		return newGit(dir, tagPrefix, nil, opts), nil
 	case targets.FreeBSD:
-		return newGit(dir, nil, opts), nil
+		return newGit(dir, tagPrefix, nil, opts), nil
 	case targets.TestOS:
-		return newTestos(dir, opts), nil
+		return newTestos(dir, tagPrefix, opts), nil
 	}
 	return nil, fmt.Errorf("vcs is unsupported for %v", os)
 }
 
 func NewSyzkallerRepo(dir string, opts ...RepoOpt) Repo {
-	git := newGit(dir, nil, append(opts, OptDontSandbox))
+	git := newGit(dir, "", nil, append(opts, OptDontSandbox))
 	return git
 }
 

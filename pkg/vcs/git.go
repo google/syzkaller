@@ -22,17 +22,19 @@ import (
 )
 
 type git struct {
-	dir      string
-	ignoreCC map[string]bool
-	precious bool
-	sandbox  bool
+	dir       string
+	tagPrefix string
+	ignoreCC  map[string]bool
+	precious  bool
+	sandbox   bool
 }
 
-func newGit(dir string, ignoreCC map[string]bool, opts []RepoOpt) *git {
+func newGit(dir, tagPrefix string, ignoreCC map[string]bool, opts []RepoOpt) *git {
 	git := &git{
-		dir:      dir,
-		ignoreCC: ignoreCC,
-		sandbox:  true,
+		dir:       dir,
+		tagPrefix: tagPrefix,
+		ignoreCC:  ignoreCC,
+		sandbox:   true,
 	}
 	for _, opt := range opts {
 		switch opt {
@@ -541,22 +543,23 @@ func (git *git) ReleaseTag(commit string) (string, error) {
 }
 
 func (git *git) previousReleaseTags(commit string, self, onlyTop, includeRC bool) ([]string, error) {
+	tagGlob := git.tagPrefix + "v*.*"
 	var tags []string
 	if self {
-		output, err := git.git("tag", "--list", "--points-at", commit, "--merged", commit, "v*.*")
+		output, err := git.git("tag", "--list", "--points-at", commit, "--merged", commit, tagGlob)
 		if err != nil {
 			return nil, err
 		}
-		tags = gitParseReleaseTags(output, includeRC)
+		tags = gitParseReleaseTags(output, includeRC, git.tagPrefix)
 		if onlyTop && len(tags) != 0 {
 			return tags, nil
 		}
 	}
-	output, err := git.git("tag", "--no-contains", commit, "--merged", commit, "v*.*")
+	output, err := git.git("tag", "--no-contains", commit, "--merged", commit, tagGlob)
 	if err != nil {
 		return nil, err
 	}
-	tags1 := gitParseReleaseTags(output, includeRC)
+	tags1 := gitParseReleaseTags(output, includeRC, git.tagPrefix)
 	tags = append(tags, tags1...)
 	if len(tags) == 0 {
 		return nil, fmt.Errorf("no release tags found for commit %v", commit)

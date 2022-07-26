@@ -47,7 +47,7 @@ func main() {
 	if *flagSourceDir == "" {
 		tool.Failf("missing mandatory flag -sourcedir")
 	}
-	repo, err := vcs.NewRepo(targets.Linux, "", *flagSourceDir, vcs.OptPrecious)
+	repo, err := vcs.NewRepo(targets.Linux, "", *flagSourceDir, "", vcs.OptPrecious)
 	if err != nil {
 		tool.Failf("failed to create repo: %v", err)
 	}

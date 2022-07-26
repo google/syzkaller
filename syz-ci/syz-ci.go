@@ -155,8 +155,10 @@ type ManagerConfig struct {
 	// File with kernel cmdline values (optional).
 	KernelCmdline string `json:"kernel_cmdline"`
 	// File with sysctl values (e.g. output of sysctl -a, optional).
-	KernelSysctl string      `json:"kernel_sysctl"`
-	Jobs         ManagerJobs `json:"jobs"`
+	KernelSysctl string `json:"kernel_sysctl"`
+	// Optional kernel release tag prefix like 'linux/' if your tags look like 'linux/v5.10'
+	KernelTagPrefix string      `json:"kernel_tag_prefix,omitempty"`
+	Jobs            ManagerJobs `json:"jobs"`
 
 	ManagerConfig json.RawMessage `json:"manager_config"`
 	managercfg    *mgrconfig.Config

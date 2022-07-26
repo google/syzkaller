@@ -128,7 +128,7 @@ v1.
 		"v2.6.13",
 		"v2.6.12",
 	}
-	got := gitParseReleaseTags([]byte(input), false)
+	got := gitParseReleaseTags([]byte(input), false, "")
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("got bad tags\ngot:  %+v\nwant: %+v", got, want)
 	}
@@ -152,7 +152,7 @@ v1.
 		"v2.6-rc5",
 		"v2.6-rc2",
 	}
-	gotRC := gitParseReleaseTags([]byte(input), true)
+	gotRC := gitParseReleaseTags([]byte(input), true, "")
 	if !reflect.DeepEqual(gotRC, wantRC) {
 		t.Fatalf("got bad tags\ngot:  %+v\nwant: %+v", gotRC, wantRC)
 	}

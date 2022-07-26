@@ -31,12 +31,13 @@ type Config struct {
 }
 
 type KernelConfig struct {
-	Repo    string
-	Branch  string
-	Commit  string
-	Cmdline string
-	Sysctl  string
-	Config  []byte
+	Repo      string
+	Branch    string
+	Commit    string
+	Cmdline   string
+	TagPrefix string
+	Sysctl    string
+	Config    []byte
 	// Baseline configuration is used in commit bisection. If the crash doesn't reproduce
 	// with baseline configuratopm config bisection is run. When triggering configuration
 	// option is found provided baseline configuration is modified according the bisection
@@ -112,7 +113,7 @@ func Run(cfg *Config) (*Result, error) {
 		return nil, err
 	}
 	cfg.Manager.Cover = false // it's not supported somewhere back in time
-	repo, err := vcs.NewRepo(cfg.Manager.TargetOS, cfg.Manager.Type, cfg.Manager.KernelSrc)
+	repo, err := vcs.NewRepo(cfg.Manager.TargetOS, cfg.Manager.Type, cfg.Manager.KernelSrc, cfg.Kernel.TagPrefix)
 	if err != nil {
 		return nil, err
 	}

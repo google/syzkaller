@@ -30,12 +30,12 @@ var (
 	_ ConfigMinimizer = new(linux)
 )
 
-func newLinux(dir string, opts []RepoOpt) *linux {
+func newLinux(dir, tagPrefix string, opts []RepoOpt) *linux {
 	ignoreCC := map[string]bool{
 		"stable@vger.kernel.org": true,
 	}
 	return &linux{
-		git: newGit(dir, ignoreCC, opts),
+		git: newGit(dir, tagPrefix, ignoreCC, opts),
 	}
 }
 
@@ -45,7 +45,7 @@ func (ctx *linux) PreviousReleaseTags(commit string) ([]string, error) {
 		return nil, err
 	}
 	for i, tag := range tags {
-		if tag == "v4.5" {
+		if tag == ctx.git.tagPrefix+"v4.5" {
 			// Initially we tried to stop at 3.8 because:
 			// v3.8 does not work with modern perl, and as we go further in history
 			// make stops to work, then binutils, glibc, etc. So we stop at v3.8.
@@ -72,15 +72,18 @@ func (ctx *linux) PreviousReleaseTags(commit string) ([]string, error) {
 	return tags, nil
 }
 
-func gitParseReleaseTags(output []byte, includeRC bool) []string {
+func gitParseReleaseTags(output []byte, includeRC bool, tagPrefix string) []string {
 	var tags []string
 	for _, tag := range bytes.Split(output, []byte{'\n'}) {
-		if gitReleaseTagToInt(string(tag), includeRC) != 0 {
+		_tag := string(bytes.TrimLeft(tag, tagPrefix))
+		if gitReleaseTagToInt(_tag, includeRC) != 0 {
 			tags = append(tags, string(tag))
 		}
 	}
 	sort.Slice(tags, func(i, j int) bool {
-		return gitReleaseTagToInt(tags[i], includeRC) > gitReleaseTagToInt(tags[j], includeRC)
+		ti := string(bytes.TrimLeft([]byte(tags[i]), tagPrefix))
+		tj := string(bytes.TrimLeft([]byte(tags[j]), tagPrefix))
+		return gitReleaseTagToInt(ti, includeRC) > gitReleaseTagToInt(tj, includeRC)
 	})
 	return tags
 }
@@ -132,8 +135,9 @@ func (ctx *linux) EnvForCommit(binDir, commit string, kernelConfig []byte) (*Bis
 		return nil, err
 	}
 	linuxAlterConfigs(cf, tags)
+	version := linuxGCCVersion(tags, ctx.git.tagPrefix)
 	env := &BisectEnv{
-		Compiler:     filepath.Join(binDir, "gcc-"+linuxCompilerVersion(tags), "bin", "gcc"),
+		Compiler:     filepath.Join(binDir, "gcc-"+version, "bin", "gcc"),
 		KernelConfig: cf.Serialize(),
 	}
 	// v4.0 doesn't boot with our config nor with defconfig, it halts on an interrupt in x86_64_start_kernel.
@@ -147,13 +151,13 @@ func (ctx *linux) EnvForCommit(binDir, commit string, kernelConfig []byte) (*Bis
 	return env, nil
 }
 
-func linuxCompilerVersion(tags map[string]bool) string {
+func linuxGCCVersion(tags map[string]bool, tagPrefix string) string {
 	switch {
-	case tags["v5.9"]:
+	case tags[tagPrefix+"v5.9"]:
 		return "10.1.0"
-	case tags["v4.12"]:
+	case tags[tagPrefix+"v4.12"]:
 		return "8.1.0"
-	case tags["v4.11"]:
+	case tags[tagPrefix+"v4.11"]:
 		return "7.3.0"
 	default:
 		return "5.5.0"

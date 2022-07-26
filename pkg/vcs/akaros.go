@@ -12,10 +12,10 @@ type akaros struct {
 	dropbear *git
 }
 
-func newAkaros(dir string, opts []RepoOpt) *akaros {
+func newAkaros(dir, tagPrefix string, opts []RepoOpt) *akaros {
 	return &akaros{
-		git:      newGit(dir, nil, opts),
-		dropbear: newGit(filepath.Join(dir, "dropbear"), nil, opts),
+		git:      newGit(dir, tagPrefix, nil, opts),
+		dropbear: newGit(filepath.Join(dir, "dropbear"), "", nil, opts),
 	}
 }
 

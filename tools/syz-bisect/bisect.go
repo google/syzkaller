@@ -63,6 +63,8 @@ type Config struct {
 
 	KernelConfig         string `json:"kernel_config"`
 	KernelBaselineConfig string `json:"kernel_baseline_config"`
+	// Optional kernel release tag prefix like 'linux/' if your tags look like 'linux/v5.10'
+	KernelTagPrefix string `json:"kernel_tag_prefix,omitempty"`
 
 	// Manager config that was used to obtain the crash.
 	Manager json.RawMessage `json:"manager"`
@@ -104,6 +106,7 @@ func main() {
 			Userspace: mycfg.Userspace,
 			Sysctl:    mycfg.Sysctl,
 			Cmdline:   mycfg.Cmdline,
+			TagPrefix: mycfg.KernelTagPrefix,
 		},
 		Syzkaller: bisect.SyzkallerConfig{
 			Repo:   mycfg.SyzkallerRepo,

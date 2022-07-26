@@ -175,7 +175,7 @@ func (jp *JobProcessor) pollManagerCommits(mgr *Manager) error {
 
 func (jp *JobProcessor) pollRepo(mgr *Manager, URL, branch, reportEmail string) ([]*vcs.Commit, error) {
 	dir := osutil.Abs(filepath.Join("jobs", mgr.managercfg.TargetOS, "kernel"))
-	repo, err := vcs.NewRepo(mgr.managercfg.TargetOS, mgr.managercfg.Type, dir)
+	repo, err := vcs.NewRepo(mgr.managercfg.TargetOS, mgr.managercfg.Type, dir, mgr.mgrcfg.KernelTagPrefix)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create kernel repo: %v", err)
 	}
@@ -187,7 +187,7 @@ func (jp *JobProcessor) pollRepo(mgr *Manager, URL, branch, reportEmail string) 
 
 func (jp *JobProcessor) getCommitInfo(mgr *Manager, URL, branch string, commits []string) ([]*vcs.Commit, error) {
 	dir := osutil.Abs(filepath.Join("jobs", mgr.managercfg.TargetOS, "kernel"))
-	repo, err := vcs.NewRepo(mgr.managercfg.TargetOS, mgr.managercfg.Type, dir)
+	repo, err := vcs.NewRepo(mgr.managercfg.TargetOS, mgr.managercfg.Type, dir, mgr.mgrcfg.KernelTagPrefix)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create kernel repo: %v", err)
 	}
@@ -421,6 +421,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 			Branch:         mgr.mgrcfg.Branch,
 			Commit:         req.KernelCommit,
 			Cmdline:        mgr.mgrcfg.KernelCmdline,
+			TagPrefix:      mgr.mgrcfg.KernelTagPrefix,
 			Sysctl:         mgr.mgrcfg.KernelSysctl,
 			Config:         req.KernelConfig,
 			BaselineConfig: baseline,
@@ -504,7 +505,7 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 		return syzBuildErr
 	}
 	log.Logf(0, "job: fetching kernel...")
-	repo, err := vcs.NewRepo(mgrcfg.TargetOS, mgrcfg.Type, mgrcfg.KernelSrc)
+	repo, err := vcs.NewRepo(mgrcfg.TargetOS, mgrcfg.Type, mgrcfg.KernelSrc, job.mgr.mgrcfg.KernelTagPrefix)
 	if err != nil {
 		return fmt.Errorf("failed to create kernel repo: %v", err)
 	}

@@ -107,7 +107,7 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}, debug
 		}
 	}
 	kernelDir := filepath.Join(dir, "kernel")
-	repo, err := vcs.NewRepo(mgrcfg.managercfg.TargetOS, mgrcfg.managercfg.Type, kernelDir)
+	repo, err := vcs.NewRepo(mgrcfg.managercfg.TargetOS, mgrcfg.managercfg.Type, kernelDir, mgrcfg.KernelTagPrefix)
 	if err != nil {
 		log.Fatalf("failed to create repo for %v: %v", mgrcfg.Name, err)
 	}
