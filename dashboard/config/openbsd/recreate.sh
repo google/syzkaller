@@ -16,9 +16,15 @@
 #  User syzkaller
 #  IdentityFile ~/.ssh/id_syzkaller
 
+# Before running first time do:
+# sudo apt-get install genisoimage growisofs
+
+# The script does not require any arguments/env vars, run just as:
+# $GOPATH/src/github.com/google/syzkaller/dashboard/config/openbsd/recreate.sh
+
 set -eux
 
-TODAY=jul30
+TODAY=$(date -u +%Y-%m-%d)
 
 SYZ_DIR="$(cd "$(dirname "${0}")"/../../..; pwd -P)"
 [[ -d "${SYZ_DIR}/tools" ]] || { echo "Requires syzkaller dir $SYZ_DIR" ; exit 1; }
