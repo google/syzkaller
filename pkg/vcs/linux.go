@@ -137,6 +137,22 @@ func (ctx *linux) EnvForCommit(binDir, commit string, kernelConfig []byte) (*Bis
 		KernelConfig: cf.Serialize(),
 	}
 
+	// Compiling v4.6..v5.11 with a modern objtool, w/o this patch, results in the
+	// following issue, when compiling with clang:
+	// arch/x86/entry/thunk_64.o: warning: objtool: missing symbol table
+	// We don't bisect that far back with neither clang nor gcc, so this should be fine:
+	fix := "1d489151e9f9d1647110277ff77282fe4d96d09b"
+	contained, err := ctx.git.Contains(fix)
+	if err != nil {
+		return nil, err
+	}
+	if !contained {
+		_, err := ctx.git.git("cherry-pick", "--no-commit", fix)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return env, nil
 }
 
