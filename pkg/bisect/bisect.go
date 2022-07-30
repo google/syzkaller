@@ -19,15 +19,16 @@ import (
 )
 
 type Config struct {
-	Trace     debugtracer.DebugTracer
-	Fix       bool
-	BinDir    string
-	Ccache    string
-	Timeout   time.Duration
-	Kernel    KernelConfig
-	Syzkaller SyzkallerConfig
-	Repro     ReproConfig
-	Manager   *mgrconfig.Config
+	Trace          debugtracer.DebugTracer
+	Fix            bool
+	BisectCompiler string
+	BinDir         string
+	Ccache         string
+	Timeout        time.Duration
+	Kernel         KernelConfig
+	Syzkaller      SyzkallerConfig
+	Repro          ReproConfig
+	Manager        *mgrconfig.Config
 }
 
 type KernelConfig struct {
@@ -375,7 +376,7 @@ func (env *env) commitRangeForFix() (*vcs.Commit, *vcs.Commit, *report.Report, [
 
 func (env *env) commitRangeForBug() (*vcs.Commit, *vcs.Commit, *report.Report, []*testResult, error) {
 	cfg := env.cfg
-	tags, err := env.bisecter.PreviousReleaseTags(cfg.Kernel.Commit)
+	tags, err := env.bisecter.PreviousReleaseTags(cfg.Kernel.Commit, cfg.BisectCompiler)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -420,11 +421,11 @@ func (env *env) build() (*vcs.Commit, string, error) {
 		return nil, "", err
 	}
 
-	bisectEnv, err := env.bisecter.EnvForCommit(env.cfg.BinDir, current.Hash, env.kernelConfig)
+	bisectEnv, err := env.bisecter.EnvForCommit(env.cfg.BisectCompiler, env.cfg.BinDir, current.Hash, env.kernelConfig)
 	if err != nil {
 		return current, "", err
 	}
-	env.log("testing commit %v", current.Hash)
+	env.log("testing commit %v %v", current.Hash, env.cfg.BisectCompiler)
 	buildStart := time.Now()
 	mgr := env.cfg.Manager
 	if err := build.Clean(mgr.TargetOS, mgr.TargetVMArch, mgr.Type, mgr.KernelSrc); err != nil {
