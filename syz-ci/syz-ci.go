@@ -102,10 +102,13 @@ type Config struct {
 	CoverUploadPath string `json:"cover_upload_path"`
 	// Path to upload corpus.db from managers (optional).
 	// Supported protocols: GCS (gs://) and HTTP PUT (http:// or https://).
-	CorpusUploadPath string           `json:"corpus_upload_path"`
-	BisectBinDir     string           `json:"bisect_bin_dir"`
-	Ccache           string           `json:"ccache"`
-	Managers         []*ManagerConfig `json:"managers"`
+	CorpusUploadPath string `json:"corpus_upload_path"`
+	// BinDir must point to a dir that contains compilers required to build
+	// older versions of the kernel. For linux, it needs to include several
+	// compiler versions.
+	BisectBinDir string           `json:"bisect_bin_dir"`
+	Ccache       string           `json:"ccache"`
+	Managers     []*ManagerConfig `json:"managers"`
 	// Poll period for jobs in seconds (optional, defaults to 10 seconds)
 	JobPollPeriod int `json:"job_poll_period"`
 	// Poll period for commits in seconds (optional, defaults to 3600 seconds)
@@ -149,12 +152,15 @@ type ManagerConfig struct {
 	DashboardKey    string `json:"dashboard_key"`
 	Repo            string `json:"repo"`
 	// Short name of the repo (e.g. "linux-next"), used only for reporting.
-	RepoAlias    string `json:"repo_alias"`
-	Branch       string `json:"branch"` // Defaults to "master".
-	Compiler     string `json:"compiler"`
-	Ccache       string `json:"ccache"`
-	Userspace    string `json:"userspace"`
-	KernelConfig string `json:"kernel_config"`
+	RepoAlias string `json:"repo_alias"`
+	// Currently either 'gcc' or 'clang'. Note that pkg/bisect requires
+	// explicit plumbing for every os/compiler combination.
+	BisectCompiler string `json:"bisect_compiler"` // Defaults to "gcc"
+	Branch         string `json:"branch"`          // Defaults to "master".
+	Compiler       string `json:"compiler"`
+	Ccache         string `json:"ccache"`
+	Userspace      string `json:"userspace"`
+	KernelConfig   string `json:"kernel_config"`
 	// Baseline config for bisection, see pkg/bisect.KernelConfig.BaselineConfig.
 	KernelBaselineConfig string `json:"kernel_baseline_config"`
 	// File with kernel cmdline values (optional).
@@ -379,6 +385,9 @@ func loadManagerConfig(cfg *Config, mgr *ManagerConfig) error {
 	managerNameRe := regexp.MustCompile("^[a-zA-Z0-9-_]{3,64}$")
 	if !managerNameRe.MatchString(mgr.Name) {
 		return fmt.Errorf("param 'managers.name' has bad value: %q", mgr.Name)
+	}
+	if mgr.BisectCompiler == "" {
+		mgr.BisectCompiler = "gcc"
 	}
 	if mgr.Branch == "" {
 		mgr.Branch = "master"

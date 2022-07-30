@@ -42,32 +42,43 @@ func newLinux(dir string, opts []RepoOpt, vmType string) *linux {
 	}
 }
 
-func (ctx *linux) PreviousReleaseTags(commit string) ([]string, error) {
+func (ctx *linux) PreviousReleaseTags(commit, bisectCompiler string) ([]string, error) {
 	tags, err := ctx.git.previousReleaseTags(commit, false, false, false)
 	if err != nil {
 		return nil, err
 	}
+
+	cutoff := ""
+	if bisectCompiler == "gcc" {
+		// Initially we tried to stop at 3.8 because:
+		// v3.8 does not work with modern perl, and as we go further in history
+		// make stops to work, then binutils, glibc, etc. So we stop at v3.8.
+		// Up to that point we only need an ancient gcc.
+		//
+		// But kernels don't boot starting from 4.0 and back.
+		// That was fixed by 99124e4db5b7b70daeaaf1d88a6a8078a0004c6e,
+		// and it can be cherry-picked into 3.14..4.0 but it conflicts for 3.13 and older.
+		//
+		// But starting from 4.0 our user-space binaries start crashing with
+		// assorted errors which suggests process memory corruption by kernel.
+		//
+		// We used to use 4.1 as the oldest tested release (it works in general).
+		// However, there is correlation between how far back we go and probability
+		// of getting correct result (see #1532). So we now stop at 4.6.
+		// 4.6 is somewhat arbitrary, we've seen lots of wrong results in 4.5..4.6 range,
+		// but there is definitive reason for 4.6. Most likely later we want to bump it
+		// even more (as new releases are produced). Next good candidate may be 4.11
+		// because then we won't need gcc 5.5.
+		cutoff = "v4.5"
+	} else if bisectCompiler == "clang" {
+		// v5.3 was the first release with solid clang support, however I was able to
+		// compile v5.1..v5.3 using a newer defconfig + make oldconfig. Everything older
+		// would require further cherry-picks.
+		cutoff = "v5.2"
+	}
+
 	for i, tag := range tags {
-		if tag == "v4.5" {
-			// Initially we tried to stop at 3.8 because:
-			// v3.8 does not work with modern perl, and as we go further in history
-			// make stops to work, then binutils, glibc, etc. So we stop at v3.8.
-			// Up to that point we only need an ancient gcc.
-			//
-			// But kernels don't boot starting from 4.0 and back.
-			// That was fixed by 99124e4db5b7b70daeaaf1d88a6a8078a0004c6e,
-			// and it can be cherry-picked into 3.14..4.0 but it conflicts for 3.13 and older.
-			//
-			// But starting from 4.0 our user-space binaries start crashing with
-			// assorted errors which suggests process memory corruption by kernel.
-			//
-			// We used to use 4.1 as the oldest tested release (it works in general).
-			// However, there is correlation between how far back we go and probability
-			// of getting correct result (see #1532). So we now stop at 4.6.
-			// 4.6 is somewhat arbitrary, we've seen lots of wrong results in 4.5..4.6 range,
-			// but there is definitive reason for 4.6. Most likely later we want to bump it
-			// even more (as new releases are produced). Next good candidate may be 4.11
-			// because then we won't need gcc 5.5.
+		if tag == cutoff {
 			tags = tags[:i]
 			break
 		}
@@ -121,7 +132,7 @@ func gitReleaseTagToInt(tag string, includeRC bool) uint64 {
 	return v1*1e9 + v2*1e6 + rc*1e3 + v3
 }
 
-func (ctx *linux) EnvForCommit(binDir, commit string, kernelConfig []byte) (*BisectEnv, error) {
+func (ctx *linux) EnvForCommit(bisectCompiler, binDir, commit string, kernelConfig []byte) (*BisectEnv, error) {
 	tagList, err := ctx.previousReleaseTags(commit, true, false, false)
 	if err != nil {
 		return nil, err
@@ -135,8 +146,18 @@ func (ctx *linux) EnvForCommit(binDir, commit string, kernelConfig []byte) (*Bis
 		return nil, err
 	}
 	linuxAlterConfigs(cf, tags)
+
+	compiler := ""
+	if bisectCompiler == "gcc" {
+		compiler = filepath.Join(binDir, "gcc-"+linuxGCCVersion(tags), "bin", "gcc")
+	} else if bisectCompiler == "clang" {
+		compiler = filepath.Join(binDir, "llvm-"+linuxClangVersion(tags), "bin", "clang")
+	} else {
+		return nil, fmt.Errorf("unsupported bisect compiler: %v", bisectCompiler)
+	}
+
 	env := &BisectEnv{
-		Compiler:     filepath.Join(binDir, "gcc-"+linuxCompilerVersion(tags), "bin", "gcc"),
+		Compiler:     compiler,
 		KernelConfig: cf.Serialize(),
 	}
 
@@ -159,7 +180,18 @@ func (ctx *linux) EnvForCommit(binDir, commit string, kernelConfig []byte) (*Bis
 	return env, nil
 }
 
-func linuxCompilerVersion(tags map[string]bool) string {
+func linuxClangVersion(tags map[string]bool) string {
+	switch {
+	case tags["v5.9"]:
+		return "14.0.6"
+	default:
+		// everything before v5.3 might not work great
+		// everything before v5.1 does not work
+		return "9.0.1"
+	}
+}
+
+func linuxGCCVersion(tags map[string]bool) string {
 	switch {
 	case tags["v5.9"]:
 		return "10.1.0"
