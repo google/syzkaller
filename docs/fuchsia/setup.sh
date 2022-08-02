@@ -18,6 +18,9 @@ need a Syzkaller checkout and a Fuchsia checkout, and you will need a working
 installation of the Go programming language. See docs/fuchsia/README.md in the
 Syzkaller repository for more information.
 
+In the commands below, \`syzkaller-directory\` and \`fuchsia-directory\` must be
+absolute pathnames.
+
 Usage:
 
   setup.sh help

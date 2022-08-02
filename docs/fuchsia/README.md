@@ -129,7 +129,7 @@ export `PATH="$SOURCEDIR/prebuilt/third_party/qemu/linux-x64/bin:$PATH"`
 
 Syscall descriptions live in the `sys/fuchsia` folder. To update a syscall, you
 need to modify the `.txt` file that contains it, make sure your new definition
-matches the one in zircon's
+matches the one in Zircon's
 [syscalls.abigen](https://fuchsia.googlesource.com/fuchsia/+/master/zircon/system/public/zircon/syscalls.abigen)
 file. **If the syscall was used in `executor/common_fuchsia.h`, you need to
 update the usages there as well.** FIDL definitions do not need manual updating
