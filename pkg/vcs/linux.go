@@ -136,13 +136,6 @@ func (ctx *linux) EnvForCommit(binDir, commit string, kernelConfig []byte) (*Bis
 		Compiler:     filepath.Join(binDir, "gcc-"+linuxCompilerVersion(tags), "bin", "gcc"),
 		KernelConfig: cf.Serialize(),
 	}
-	// v4.0 doesn't boot with our config nor with defconfig, it halts on an interrupt in x86_64_start_kernel.
-	if !tags["v4.1"] {
-		_, err := ctx.git.git("cherry-pick", "--no-commit", "99124e4db5b7b70daeaaf1d88a6a8078a0004c6e")
-		if err != nil {
-			return nil, err
-		}
-	}
 
 	return env, nil
 }
