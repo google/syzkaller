@@ -188,7 +188,8 @@ func (mgr *Manager) boot(name string, index int) (*report.Report, error) {
 		Test:      false,
 		Runtest:   true,
 		Optional: &instance.OptionalFuzzerArgs{
-			Slowdown: mgr.cfg.Timeouts.Slowdown,
+			Slowdown:   mgr.cfg.Timeouts.Slowdown,
+			SandboxArg: mgr.cfg.SandboxArg,
 		},
 	}
 	cmd := instance.FuzzerCmd(args)

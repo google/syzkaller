@@ -103,6 +103,7 @@ func TestExecute(t *testing.T) {
 			UseShmem:      useShmem,
 			UseForkServer: useForkServer,
 			Timeouts:      timeouts,
+			SandboxArg:    0,
 		}
 		env, err := MakeEnv(cfg, 0)
 		if err != nil {
@@ -144,6 +145,7 @@ func TestParallel(t *testing.T) {
 		UseShmem:      useShmem,
 		UseForkServer: useForkServer,
 		Timeouts:      timeouts,
+		SandboxArg:    0,
 	}
 	const P = 10
 	errs := make(chan error, P)

@@ -70,7 +70,8 @@ type Config struct {
 	UseForkServer bool // use extended protocol with handshake
 
 	// Flags are configuation flags, defined above.
-	Flags EnvFlags
+	Flags      EnvFlags
+	SandboxArg int
 
 	Timeouts targets.Timeouts
 }
@@ -504,9 +505,10 @@ const (
 )
 
 type handshakeReq struct {
-	magic uint64
-	flags uint64 // env flags
-	pid   uint64
+	magic      uint64
+	flags      uint64 // env flags
+	pid        uint64
+	sandboxArg uint64
 }
 
 type handshakeReply struct {
@@ -686,9 +688,10 @@ func (c *command) close() {
 // handshake sends handshakeReq and waits for handshakeReply.
 func (c *command) handshake() error {
 	req := &handshakeReq{
-		magic: inMagic,
-		flags: uint64(c.config.Flags),
-		pid:   uint64(c.pid),
+		magic:      inMagic,
+		flags:      uint64(c.config.Flags),
+		pid:        uint64(c.pid),
+		sandboxArg: uint64(c.config.SandboxArg),
 	}
 	reqData := (*[unsafe.Sizeof(*req)]byte)(unsafe.Pointer(req))[:]
 	if _, err := c.outwp.Write(reqData); err != nil {

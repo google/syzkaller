@@ -24,6 +24,7 @@ type Options struct {
 	Procs       int    `json:"procs"`
 	Slowdown    int    `json:"slowdown"`
 	Sandbox     string `json:"sandbox"`
+	SandboxArg  int    `json:"sandbox_arg"`
 
 	Leak bool `json:"leak,omitempty"` // do leak checking
 
@@ -197,6 +198,86 @@ func (opts Options) Serialize() []byte {
 	return data
 }
 
+func deserializeLegacyOptions1(data string, opts *Options) error {
+	waitRepeat, debug := false, false
+	n, err := fmt.Sscanf(data,
+		"{Threaded:%t Collide:%t Repeat:%t Procs:%d Sandbox:%s"+
+			" Fault:%t FaultCall:%d FaultNth:%d EnableTun:%t UseTmpDir:%t"+
+			" HandleSegv:%t WaitRepeat:%t Debug:%t Repro:%t}",
+		&opts.Threaded, &opts.Collide, &opts.Repeat, &opts.Procs, &opts.Sandbox,
+		&opts.Fault, &opts.FaultCall, &opts.FaultNth, &opts.NetInjection, &opts.UseTmpDir,
+		&opts.HandleSegv, &waitRepeat, &debug, &opts.Repro)
+
+	if err == nil {
+		if want := 14; n != want {
+			return fmt.Errorf("failed to parse repro options: got %v fields, want %v", n, want)
+		}
+	}
+	return err
+}
+
+func deserializeLegacyOptions2(data string, opts *Options) error {
+	waitRepeat, debug := false, false
+	n, err := fmt.Sscanf(data,
+		"{Threaded:%t Collide:%t Repeat:%t Procs:%d Sandbox:%s"+
+			" Fault:%t FaultCall:%d FaultNth:%d EnableTun:%t UseTmpDir:%t"+
+			" EnableCgroups:%t HandleSegv:%t WaitRepeat:%t Debug:%t Repro:%t}",
+		&opts.Threaded, &opts.Collide, &opts.Repeat, &opts.Procs, &opts.Sandbox,
+		&opts.Fault, &opts.FaultCall, &opts.FaultNth, &opts.NetInjection, &opts.UseTmpDir,
+		&opts.Cgroups, &opts.HandleSegv, &waitRepeat, &debug, &opts.Repro)
+	if err == nil {
+		if want := 15; n != want {
+			return fmt.Errorf("failed to parse repro options 2: got %v fields, want %v", n, want)
+		}
+	}
+	return err
+}
+
+// Android format.
+func deserializeLegacyOptions3(data string, opts *Options) error {
+	waitRepeat, debug := false, false
+	n, err := fmt.Sscanf(data,
+		"{Threaded:%t Collide:%t Repeat:%t Procs:%d Sandbox:%s SandboxArg:%d"+
+			" Fault:%t FaultCall:%d FaultNth:%d EnableTun:%t UseTmpDir:%t"+
+			" EnableCgroups:%t HandleSegv:%t WaitRepeat:%t Debug:%t Repro:%t}",
+		&opts.Threaded, &opts.Collide, &opts.Repeat, &opts.Procs, &opts.Sandbox, &opts.SandboxArg,
+		&opts.Fault, &opts.FaultCall, &opts.FaultNth, &opts.NetInjection, &opts.UseTmpDir,
+		&opts.Cgroups, &opts.HandleSegv, &waitRepeat, &debug, &opts.Repro)
+	if err == nil {
+		if want := 16; n != want {
+			return fmt.Errorf("failed to parse repro options 3: got %v fields, want %v", n, want)
+		}
+	}
+	return err
+}
+
+var parsers = []func(string, *Options) error{
+	deserializeLegacyOptions1,
+	deserializeLegacyOptions2,
+	deserializeLegacyOptions3,
+}
+
+// Support for legacy formats.
+func deserializeLegacyFormats(data []byte, opts *Options) error {
+	data = bytes.Replace(data, []byte("Sandbox: "), []byte("Sandbox:empty "), -1)
+	strData := string(data)
+
+	// We can distinguish between legacy formats by the number
+	// of fields. The formats we support have 14, 15 and 16.
+	// Each field can be recognized by ':' char.
+	version := strings.Count(strData, ":")
+	if version < 14 || version > 16 {
+		return fmt.Errorf("unrecognized options format")
+	}
+	index := version - 14
+	err := parsers[index](strData, opts)
+
+	if opts.Sandbox == "empty" {
+		opts.Sandbox = ""
+	}
+	return err
+}
+
 func DeserializeOptions(data []byte) (Options, error) {
 	opts := Options{
 		Slowdown: 1,
@@ -206,41 +287,7 @@ func DeserializeOptions(data []byte) (Options, error) {
 	if err := json.Unmarshal(data, &opts); err == nil {
 		return opts, nil
 	}
-	// Support for legacy formats.
-	data = bytes.Replace(data, []byte("Sandbox: "), []byte("Sandbox:empty "), -1)
-	waitRepeat, debug := false, false
-	n, err := fmt.Sscanf(string(data),
-		"{Threaded:%t Collide:%t Repeat:%t Procs:%d Sandbox:%s"+
-			" Fault:%t FaultCall:%d FaultNth:%d EnableTun:%t UseTmpDir:%t"+
-			" HandleSegv:%t WaitRepeat:%t Debug:%t Repro:%t}",
-		&opts.Threaded, &opts.Collide, &opts.Repeat, &opts.Procs, &opts.Sandbox,
-		&opts.Fault, &opts.FaultCall, &opts.FaultNth, &opts.NetInjection, &opts.UseTmpDir,
-		&opts.HandleSegv, &waitRepeat, &debug, &opts.Repro)
-	if err == nil {
-		if want := 14; n != want {
-			return opts, fmt.Errorf("failed to parse repro options: got %v fields, want %v", n, want)
-		}
-		if opts.Sandbox == "empty" {
-			opts.Sandbox = ""
-		}
-		return opts, nil
-	}
-	n, err = fmt.Sscanf(string(data),
-		"{Threaded:%t Collide:%t Repeat:%t Procs:%d Sandbox:%s"+
-			" Fault:%t FaultCall:%d FaultNth:%d EnableTun:%t UseTmpDir:%t"+
-			" EnableCgroups:%t HandleSegv:%t WaitRepeat:%t Debug:%t Repro:%t}",
-		&opts.Threaded, &opts.Collide, &opts.Repeat, &opts.Procs, &opts.Sandbox,
-		&opts.Fault, &opts.FaultCall, &opts.FaultNth, &opts.NetInjection, &opts.UseTmpDir,
-		&opts.Cgroups, &opts.HandleSegv, &waitRepeat, &debug, &opts.Repro)
-	if err == nil {
-		if want := 15; n != want {
-			return opts, fmt.Errorf("failed to parse repro options: got %v fields, want %v", n, want)
-		}
-		if opts.Sandbox == "empty" {
-			opts.Sandbox = ""
-		}
-		return opts, nil
-	}
+	err := deserializeLegacyFormats(data, &opts)
 	return opts, err
 }
 

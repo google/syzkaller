@@ -4163,7 +4163,7 @@ static void setfilecon(const char* path, const char* context)
 
 #define SYZ_HAVE_SANDBOX_ANDROID 1
 
-static int do_sandbox_android(int sandbox_arg)
+static int do_sandbox_android(uint64 sandbox_arg)
 {
 	setup_common();
 #if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
@@ -4192,6 +4192,7 @@ static int do_sandbox_android(int sandbox_arg)
 	size_t num_groups = UNTRUSTED_APP_NUM_GROUPS;
 	const gid_t* groups = UNTRUSTED_APP_GROUPS;
 	gid_t gid = UNTRUSTED_APP_GID;
+	debug("executor received sandbox_arg=%llu\n", sandbox_arg);
 	if (sandbox_arg == 1) {
 		uid = SYSTEM_UID;
 		num_groups = SYSTEM_NUM_GROUPS;
@@ -4201,13 +4202,13 @@ static int do_sandbox_android(int sandbox_arg)
 		debug("fuzzing under SYSTEM account\n");
 	}
 	if (chown(".", uid, uid) != 0)
-		failmsg("do_sandbox_android: chmod failed", "sandbox_arg=%d", sandbox_arg);
+		failmsg("do_sandbox_android: chmod failed", "sandbox_arg=%llu", sandbox_arg);
 
 	if (setgroups(num_groups, groups) != 0)
-		failmsg("do_sandbox_android: setgroups failed", "sandbox_arg=%d", sandbox_arg);
+		failmsg("do_sandbox_android: setgroups failed", "sandbox_arg=%llu", sandbox_arg);
 
 	if (setresgid(gid, gid, gid) != 0)
-		failmsg("do_sandbox_android: setresgid failed", "sandbox_arg=%d", sandbox_arg);
+		failmsg("do_sandbox_android: setresgid failed", "sandbox_arg=%llu", sandbox_arg);
 
 	setup_binderfs();
 
@@ -4222,7 +4223,7 @@ static int do_sandbox_android(int sandbox_arg)
 #endif
 
 	if (setresuid(uid, uid, uid) != 0)
-		failmsg("do_sandbox_android: setresuid failed", "sandbox_arg=%d", sandbox_arg);
+		failmsg("do_sandbox_android: setresuid failed", "sandbox_arg=%llu", sandbox_arg);
 
 	// setresuid and setresgid clear the parent-death signal.
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
