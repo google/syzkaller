@@ -2,29 +2,29 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 instances:
- - upstream-apparmor-kasan:	[linux-next, x86_64, gcc, bpfjit, lsm, apparmor, kasan, kfence]
- - upstream-selinux-kasan:	[linux-next, x86_64, gcc, lsm, selinux, slab, kasan, kfence]
- - upstream-smack-kasan:	[linux-next, x86_64, clang, bpfjit, lsm, smack, kasan, kfence]
- - upstream-kmsan:		[x86_64, clang, lsm, apparmor, nonoise, kmsan]
- - upstream-kcsan:		[upstream, x86_64, clang, onlynet, slab, nonoise, kcsan]
- - upstream-leak:		[upstream, x86_64, gcc, bpfjit, lsm, apparmor, slab, nonoise, kmemleak]
- - upstream-usb:		[upstream, x86_64, gcc, lsm, apparmor, onlyusb, kasan]
- - upstream-arm64-kasan:	[upstream, arm64, clang, lsm, selinux, reduced, kasan, nokcov]
- - upstream-arm64-mte:		[upstream, arm64, clang, bpfjit, lsm, smack, nonoise, reduced, kfence, mte, nokcov]
+ - upstream-apparmor-kasan:	[linux-next, x86_64, timeouts_native, gcc, bpfjit, lsm, apparmor, kasan, kfence]
+ - upstream-selinux-kasan:	[linux-next, x86_64, timeouts_native, gcc, lsm, selinux, slab, kasan, kfence]
+ - upstream-smack-kasan:	[linux-next, x86_64, timeouts_native, clang, bpfjit, lsm, smack, kasan, kfence]
+ - upstream-kmsan:		[x86_64, timeouts_native, clang, lsm, apparmor, nonoise, kmsan]
+ - upstream-kcsan:		[upstream, timeouts_native, x86_64, clang, onlynet, slab, nonoise, kcsan]
+ - upstream-leak:		[upstream, timeouts_native, x86_64, gcc, bpfjit, lsm, apparmor, slab, nonoise, kmemleak]
+ - upstream-usb:		[upstream, timeouts_native, x86_64, gcc, lsm, apparmor, onlyusb, kasan]
+ - upstream-arm64-kasan:	[upstream, arm64, timeouts_emu, clang, lsm, selinux, reduced, kasan, nokcov]
+ - upstream-arm64-mte:		[upstream, arm64, timeouts_emu, clang, bpfjit, lsm, smack, nonoise, reduced, kfence, mte, nokcov]
  # The full configs are used with syz-check to avoid no-such-struct warnings.
- - upstream-arm64-full:		[upstream, arm64, clang, bpfjit, lsm, smack, nonoise]
+ - upstream-arm64-full:		[upstream, arm64, timeouts_native, clang, bpfjit, lsm, smack]
  # TODO: enable kasan when it works, currently Go binaries hang on KASAN kernel:
  # https://lore.kernel.org/linux-arm-kernel/CACT4Y+YdJoNTqnBSELcEbcbVsKBtJfYUc7_GSXbUQfAJN3JyRg@mail.gmail.com/
- - upstream-arm-kasan:		[upstream, arm, gcc, bpfjit, lsm, selinux, reduced]
- - upstream-arm-full:		[upstream, arm, gcc, bpfjit, lsm, selinux]
- - upstream-riscv64-kasan:	[upstream, riscv, gcc, bpfjit, lsm, apparmor, reduced, kasan, kfence]
+ - upstream-arm-kasan:		[upstream, arm, timeouts_emu, gcc, bpfjit, lsm, selinux, reduced]
+ - upstream-arm-full:		[upstream, arm, timeouts_emu, gcc, bpfjit, lsm, selinux]
+ - upstream-riscv64-kasan:	[upstream, riscv, timeouts_emu, gcc, bpfjit, lsm, apparmor, reduced, kasan, kfence]
  - upstream-s390-kasan:		[upstream, s390, gcc, bpfjit, lsm, selinux, nonoise, reduced, kasan, kfence]
- - stable-5.4-kasan:		[stable-5.4, x86_64, gcc, bpfjit, lsm, apparmor, kasan]
- - android-5.4:			[android, android-5.4, nodefconfig, x86_64, clang, onlyusb, nonoise, kasan]
- - android-5.10:		[android, android-5.10, nodefconfig, x86_64, clang, onlyusb, nonoise, kasan]
- - chromeos-5.4:		[chromeos, chromeos-5.4, nodefconfig, x86_64, onlyusb, kasan]
- - chromeos-5.10:		[chromeos, chromeos-5.10, nodefconfig, x86_64, onlyusb, kasan]
- - chromeos-5.15:		[chromeos, chromeos-5.15, nodefconfig, x86_64, onlyusb, kasan]
+ - stable-5.4-kasan:		[stable-5.4, x86_64, timeouts_native, gcc, bpfjit, lsm, apparmor, kasan]
+ - android-5.4:			[android, android-5.4, nodefconfig, x86_64, timeouts_native, clang, onlyusb, nonoise, kasan]
+ - android-5.10:		[android, android-5.10, nodefconfig, x86_64, timeouts_native, clang, onlyusb, nonoise, kasan]
+ - chromeos-5.4:		[chromeos, chromeos-5.4, nodefconfig, x86_64, timeouts_native, onlyusb, kasan]
+ - chromeos-5.10:		[chromeos, chromeos-5.10, nodefconfig, x86_64, timeouts_native, onlyusb, kasan]
+ - chromeos-5.15:		[chromeos, chromeos-5.15, nodefconfig, x86_64, timeouts_native, onlyusb, kasan]
 
 # These files are included from the bits/ dir.
 includes:
@@ -40,6 +40,8 @@ includes:
  - x86_64.yml: [x86_64]
  - arm64.yml: [arm64]
  - arm.yml: [arm]
+ - timeouts_emu.yml: [timeouts_emu]
+ - timeouts_native.yml: [timeouts_native]
  - riscv64.yml: [riscv]
  - s390.yml: [s390]
  - subsystems.yml: [-baseline, -onlynet, -onlyusb]

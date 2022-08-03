@@ -6,11 +6,7 @@ shell:
  - make kvm_guest.config
 
 config:
- - CMDLINE: [append, "dummy_hcd.num=2 smp.csd_lock_timeout=300000 watchdog_thresh=165 workqueue.watchdog_thresh=420 sysctl.net.core.netdev_unregister_timeout_secs=420"]
  - CMDLINE_EXTEND
- # See the comment in x86_64.yml re these numbers.
- - RCU_CPU_STALL_TIMEOUT: 300
- - DEFAULT_HUNG_TASK_TIMEOUT: 420
 
  # Presumably this gives more interesting coverage.
  - BINFMT_FLAT
