@@ -9854,7 +9854,8 @@ static int do_sandbox_android(int sandbox_arg)
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 
 	setfilecon(".", SELINUX_LABEL_APP_DATA_FILE);
-	setcon(SELINUX_CONTEXT_UNTRUSTED_APP);
+	if (uid == UNTRUSTED_APP_UID)
+		setcon(SELINUX_CONTEXT_UNTRUSTED_APP);
 
 	loop();
 	doexit(1);
