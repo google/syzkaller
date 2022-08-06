@@ -49,6 +49,7 @@ var (
 	flagBisectBin     = flag.String("bisect_bin", "", "path to bisection binaries")
 	flagSyzkaller     = flag.String("syzkaller", ".", "path to built syzkaller")
 	flagSandbox       = flag.String("sandbox", "namespace", "sandbox to use for testing")
+	flagSandboxArg    = flag.Int("sandbox_arg", 0, "an argument for sandbox runner")
 )
 
 const (
@@ -68,18 +69,19 @@ func main() {
 	}
 	defer os.RemoveAll(dir)
 	cfg := &mgrconfig.Config{
-		RawTarget: *flagOS + "/" + *flagArch,
-		HTTP:      ":0",
-		Workdir:   dir,
-		KernelSrc: *flagKernelSrc,
-		KernelObj: *flagKernelSrc,
-		Syzkaller: *flagSyzkaller,
-		Sandbox:   *flagSandbox,
-		SSHUser:   "root",
-		Procs:     1,
-		Cover:     false,
-		Type:      vmType,
-		VM:        json.RawMessage([]byte(fmt.Sprintf(`{ "count": %v, "cpu": 2, "mem": 2048 }`, numTests))),
+		RawTarget:  *flagOS + "/" + *flagArch,
+		HTTP:       ":0",
+		Workdir:    dir,
+		KernelSrc:  *flagKernelSrc,
+		KernelObj:  *flagKernelSrc,
+		Syzkaller:  *flagSyzkaller,
+		Sandbox:    *flagSandbox,
+		SandboxArg: *flagSandboxArg,
+		SSHUser:    "root",
+		Procs:      1,
+		Cover:      false,
+		Type:       vmType,
+		VM:         json.RawMessage([]byte(fmt.Sprintf(`{ "count": %v, "cpu": 2, "mem": 2048 }`, numTests))),
 		Derived: mgrconfig.Derived{
 			TargetOS:     *flagOS,
 			TargetArch:   *flagArch,

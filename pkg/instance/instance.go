@@ -349,7 +349,7 @@ func (inst *inst) testInstance() error {
 	}
 
 	cmd := OldFuzzerCmd(fuzzerBin, executorBin, targets.TestOS, inst.cfg.TargetOS, inst.cfg.TargetArch, fwdAddr,
-		inst.cfg.Sandbox, 0, inst.cfg.Cover, true, inst.optionalFlags, inst.cfg.Timeouts.Slowdown)
+		inst.cfg.Sandbox, inst.cfg.SandboxArg, 0, inst.cfg.Cover, true, inst.optionalFlags, inst.cfg.Timeouts.Slowdown)
 	outc, errc, err := inst.vm.Run(10*time.Minute*inst.cfg.Timeouts.Scale, nil, cmd)
 	if err != nil {
 		return fmt.Errorf("failed to run binary in VM: %v", err)
@@ -418,8 +418,9 @@ func (inst *inst) testRepro() ([]byte, error) {
 }
 
 type OptionalFuzzerArgs struct {
-	Slowdown int
-	RawCover bool
+	Slowdown   int
+	RawCover   bool
+	SandboxArg int
 }
 
 type FuzzerCmdArgs struct {
@@ -460,6 +461,7 @@ func FuzzerCmd(args *FuzzerCmdArgs) string {
 		flags := []tool.Flag{
 			{Name: "slowdown", Value: fmt.Sprint(args.Optional.Slowdown)},
 			{Name: "raw_cover", Value: fmt.Sprint(args.Optional.RawCover)},
+			{Name: "sandbox_arg", Value: fmt.Sprint(args.Optional.SandboxArg)},
 		}
 		optionalArg = " " + tool.OptionalFlags(flags)
 	}
@@ -469,19 +471,19 @@ func FuzzerCmd(args *FuzzerCmdArgs) string {
 		args.Procs, args.Cover, args.Debug, args.Test, runtestArg, verbosityArg, optionalArg)
 }
 
-func OldFuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox string, procs int,
+func OldFuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox string, sandboxArg, procs int,
 	cover, test, optionalFlags bool, slowdown int) string {
 	var optional *OptionalFuzzerArgs
 	if optionalFlags {
-		optional = &OptionalFuzzerArgs{Slowdown: slowdown}
+		optional = &OptionalFuzzerArgs{Slowdown: slowdown, SandboxArg: sandboxArg}
 	}
 	return FuzzerCmd(&FuzzerCmdArgs{Fuzzer: fuzzer, Executor: executor, Name: name,
-		OS: OS, Arch: arch, FwdAddr: fwdAddr, Sandbox: sandbox, Procs: procs,
-		Verbosity: 0, Cover: cover, Debug: false, Test: test, Runtest: false,
+		OS: OS, Arch: arch, FwdAddr: fwdAddr, Sandbox: sandbox,
+		Procs: procs, Verbosity: 0, Cover: cover, Debug: false, Test: test, Runtest: false,
 		Optional: optional})
 }
 
-func ExecprogCmd(execprog, executor, OS, arch, sandbox string, repeat, threaded, collide bool,
+func ExecprogCmd(execprog, executor, OS, arch, sandbox string, sandboxArg int, repeat, threaded, collide bool,
 	procs, faultCall, faultNth int, optionalFlags bool, slowdown int, progFile string) string {
 	repeatCount := 1
 	if repeat {
@@ -501,6 +503,7 @@ func ExecprogCmd(execprog, executor, OS, arch, sandbox string, repeat, threaded,
 	if optionalFlags {
 		optionalArg += " " + tool.OptionalFlags([]tool.Flag{
 			{Name: "slowdown", Value: fmt.Sprint(slowdown)},
+			{Name: "sandboxArg", Value: fmt.Sprint(sandboxArg)},
 		})
 	}
 

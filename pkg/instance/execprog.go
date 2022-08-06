@@ -169,7 +169,7 @@ func (inst *ExecProgInstance) RunSyzProgFile(progFile string, duration time.Dura
 		faultCall = opts.FaultCall
 	}
 	command := ExecprogCmd(inst.execprogBin, inst.executorBin, target.OS, target.Arch, opts.Sandbox,
-		opts.Repeat, opts.Threaded, opts.Collide, opts.Procs, faultCall, opts.FaultNth,
+		opts.SandboxArg, opts.Repeat, opts.Threaded, opts.Collide, opts.Procs, faultCall, opts.FaultNth,
 		!inst.OldFlagsCompatMode, inst.mgrCfg.Timeouts.Slowdown, vmProgFile)
 	return inst.runCommand(command, duration)
 }

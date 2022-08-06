@@ -300,6 +300,7 @@ struct handshake_req {
 	uint64 magic;
 	uint64 flags; // env flags
 	uint64 pid;
+	uint64 sandbox_arg;
 };
 
 struct handshake_reply {
@@ -415,7 +416,7 @@ static void setup_features(char** enable, int n);
 #include "test.h"
 
 #if SYZ_HAVE_SANDBOX_ANDROID
-static int sandbox_arg = 0;
+static uint64 sandbox_arg = 0;
 #endif
 
 int main(int argc, char** argv)
@@ -631,6 +632,9 @@ void receive_handshake()
 		failmsg("handshake read failed", "read=%d", n);
 	if (req.magic != kInMagic)
 		failmsg("bad handshake magic", "magic=0x%llx", req.magic);
+#if SYZ_HAVE_SANDBOX_ANDROID
+	sandbox_arg = req.sandbox_arg;
+#endif
 	parse_env_flags(req.flags);
 	procid = req.pid;
 }

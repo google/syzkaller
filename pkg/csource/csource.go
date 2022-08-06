@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -56,6 +57,18 @@ type context struct {
 	target    *prog.Target
 	sysTarget *targets.Target
 	calls     map[string]uint64 // CallName -> NR
+}
+
+func generateSandboxFunctionSignature(sandboxName string, sandboxArg int) string {
+	if sandboxName == "" {
+		return "loop();"
+	}
+
+	arguments := "();"
+	if sandboxName == "android" {
+		arguments = "(" + strconv.Itoa(sandboxArg) + ");"
+	}
+	return "do_sandbox_" + sandboxName + arguments
 }
 
 func (ctx *context) generateSource() ([]byte, error) {
@@ -94,14 +107,7 @@ func (ctx *context) generateSource() ([]byte, error) {
 		fmt.Fprintf(varsBuf, "};\n")
 	}
 
-	sandboxFunc := "loop();"
-	if ctx.opts.Sandbox != "" {
-		arguments := "();"
-		if ctx.opts.Sandbox == "android" {
-			arguments = "(0);"
-		}
-		sandboxFunc = "do_sandbox_" + ctx.opts.Sandbox + arguments
-	}
+	sandboxFunc := generateSandboxFunctionSignature(ctx.opts.Sandbox, ctx.opts.SandboxArg)
 	replacements := map[string]string{
 		"PROCS":           fmt.Sprint(ctx.opts.Procs),
 		"REPEAT_TIMES":    fmt.Sprint(ctx.opts.RepeatTimes),

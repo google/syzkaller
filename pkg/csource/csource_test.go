@@ -18,6 +18,7 @@ import (
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/assert"
 )
 
 func init() {
@@ -226,4 +227,38 @@ syscall(SYS_csource6, 0x20000140ul);
 			}
 		})
 	}
+}
+
+func generateSandboxFunctionSignatureTestCase(t *testing.T, sandbox string, sandboxArg int, expected, message string) {
+	actual := generateSandboxFunctionSignature(sandbox, sandboxArg)
+	assert.Equal(t, actual, expected, message)
+}
+
+func TestGenerateSandboxFunctionSignature(t *testing.T) {
+	// This test-case intentionally omits the following edge cases:
+	// - sandbox name as whitespaces, tabs
+	// - control chars \r, \n and unprintables
+	// - unsuitable chars - punctuation, emojis, '#', '*', etc
+	// - character case mismatching function prototype defined in common_linux.h.
+	//   For example 'do_sandbox_android' and 'AnDroid'.
+	// - non english letters, unicode compound characters
+	// and focuses on correct handling of sandboxes supporting and not 'sandbox_arg'
+	// config setting.
+	generateSandboxFunctionSignatureTestCase(t,
+		"",        // sandbox name
+		0,         // sandbox arg
+		"loop();", // expected
+		"Empty sandbox name should produce 'loop();'")
+
+	generateSandboxFunctionSignatureTestCase(t,
+		"abrakadabra",               // sandbox name
+		0,                           // sandbox arg
+		"do_sandbox_abrakadabra();", // expected
+		"Empty sandbox name should produce 'loop();'")
+
+	generateSandboxFunctionSignatureTestCase(t,
+		"android",                    // sandbox name
+		-1234,                        // sandbox arg
+		"do_sandbox_android(-1234);", // expected
+		"Android sandbox function requires an argument")
 }
