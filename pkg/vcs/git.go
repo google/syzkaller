@@ -103,7 +103,12 @@ func (git *git) CheckoutBranch(repo, branch string) (*Commit, error) {
 		return nil, err
 	}
 	repoHash := hash.String([]byte(repo))
-	// Ignore error as we can double add the same remote and that will fail.
+	// Because the HEAD is detached, submodules assumes "origin" to be the default
+	// remote when initializing.
+	// This sets "origin" to be the current remote.
+	// Ignore errors as we can double add or remove the same remote and that will fail.
+	git.git("remote", "rm", "origin")
+	git.git("remote", "add", "origin", repo)
 	git.git("remote", "add", repoHash, repo)
 	_, err := git.git("fetch", "--force", repoHash, branch)
 	if err != nil {
