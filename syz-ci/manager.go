@@ -648,7 +648,10 @@ func (mgr *Manager) uploadCoverReport() error {
 	if addr != "" && addr[0] == ':' {
 		addr = "127.0.0.1" + addr // in case addr is ":port"
 	}
-	resp, err := http.Get(fmt.Sprintf("http://%v/cover", addr))
+	client := http.Client{
+		Timeout: time.Hour,
+	}
+	resp, err := client.Get(fmt.Sprintf("http://%v/cover", addr))
 	if err != nil {
 		return fmt.Errorf("failed to get report: %v", err)
 	}
