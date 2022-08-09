@@ -341,6 +341,9 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		if i < 1000 && strings.Contains(err.Error(), "ould not set up host forwarding rule") {
 			continue
 		}
+		if i < 1000 && strings.Contains(err.Error(), "Device or resource busy") {
+			continue
+		}
 		return nil, err
 	}
 }
