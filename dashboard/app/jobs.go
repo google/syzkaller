@@ -41,7 +41,11 @@ func handleTestRequest(c context.Context, bugID, user, extID, link, patch, repo,
 	}
 	bugReporting, _ := bugReportingByID(bug, bugID)
 	now := timeNow(c)
-	reply, err := addTestJob(c, bug, bugKey, bugReporting, user, extID, link, patch, repo, branch, jobCC, now)
+	reply, err := addTestJob(c, &testJobArgs{
+		bug: bug, bugKey: bugKey, bugReporting: bugReporting,
+		user: user, extID: extID, link: link, patch: patch,
+		repo: repo, branch: branch, jobCC: jobCC,
+	}, now)
 	if err != nil {
 		log.Errorf(c, "test request failed: %v", err)
 		if reply == "" {
@@ -74,20 +78,32 @@ func handleTestRequest(c context.Context, bugID, user, extID, link, patch, repo,
 	return reply
 }
 
-func addTestJob(c context.Context, bug *Bug, bugKey *db.Key, bugReporting *BugReporting,
-	user, extID, link, patch, repo, branch string, jobCC []string, now time.Time) (string, error) {
-	crash, crashKey, err := findCrashForBug(c, bug)
+type testJobArgs struct {
+	bug          *Bug
+	bugKey       *db.Key
+	bugReporting *BugReporting
+	user         string
+	extID        string
+	link         string
+	patch        string
+	repo         string
+	branch       string
+	jobCC        []string
+}
+
+func addTestJob(c context.Context, args *testJobArgs, now time.Time) (string, error) {
+	crash, crashKey, err := findCrashForBug(c, args.bug)
 	if err != nil {
 		return "", err
 	}
-	if reason := checkTestJob(c, bug, bugReporting, crash, repo, branch); reason != "" {
+	if reason := checkTestJob(c, args.bug, args.bugReporting, crash,
+		args.repo, args.branch); reason != "" {
 		return reason, nil
 	}
-
 	manager := crash.Manager
 	for _, ns := range config.Namespaces {
 		if mgr, ok := ns.Managers[manager]; ok {
-			if mgr.RestrictedTestingRepo != "" && repo != mgr.RestrictedTestingRepo {
+			if mgr.RestrictedTestingRepo != "" && args.repo != mgr.RestrictedTestingRepo {
 				return mgr.RestrictedTestingReason, nil
 			}
 			if mgr.Decommissioned {
@@ -96,26 +112,24 @@ func addTestJob(c context.Context, bug *Bug, bugKey *db.Key, bugReporting *BugRe
 			break
 		}
 	}
-
-	patchID, err := putText(c, bug.Namespace, textPatch, []byte(patch), false)
+	patchID, err := putText(c, args.bug.Namespace, textPatch, []byte(args.patch), false)
 	if err != nil {
 		return "", err
 	}
-
 	job := &Job{
 		Type:         JobTestPatch,
 		Created:      now,
-		User:         user,
-		CC:           jobCC,
-		Reporting:    bugReporting.Name,
-		ExtID:        extID,
-		Link:         link,
-		Namespace:    bug.Namespace,
+		User:         args.user,
+		CC:           args.jobCC,
+		Reporting:    args.bugReporting.Name,
+		ExtID:        args.extID,
+		Link:         args.link,
+		Namespace:    args.bug.Namespace,
 		Manager:      manager,
-		BugTitle:     bug.displayTitle(),
+		BugTitle:     args.bug.displayTitle(),
 		CrashID:      crashKey.IntID(),
-		KernelRepo:   repo,
-		KernelBranch: branch,
+		KernelRepo:   args.repo,
+		KernelBranch: args.branch,
 		Patch:        patchID,
 	}
 
@@ -126,8 +140,8 @@ func addTestJob(c context.Context, bug *Bug, bugKey *db.Key, bugReporting *BugRe
 		// Filter out such duplicates (for dup we only need link update).
 		var jobs []*Job
 		keys, err := db.NewQuery("Job").
-			Ancestor(bugKey).
-			Filter("ExtID=", extID).
+			Ancestor(args.bugKey).
+			Filter("ExtID=", args.extID).
 			GetAll(c, &jobs)
 		if len(jobs) > 1 || err != nil {
 			return fmt.Errorf("failed to query jobs: jobs=%v err=%v", len(jobs), err)
@@ -136,21 +150,21 @@ func addTestJob(c context.Context, bug *Bug, bugKey *db.Key, bugReporting *BugRe
 			// The job is already present, update link.
 			deletePatch = true
 			existingJob, jobKey := jobs[0], keys[0]
-			if existingJob.Link != "" || link == "" {
+			if existingJob.Link != "" || args.link == "" {
 				return nil
 			}
-			existingJob.Link = link
+			existingJob.Link = args.link
 			if _, err := db.Put(c, jobKey, existingJob); err != nil {
 				return fmt.Errorf("failed to put job: %v", err)
 			}
 			return nil
 		}
 		// Create a new job.
-		jobKey := db.NewIncompleteKey(c, "Job", bugKey)
+		jobKey := db.NewIncompleteKey(c, "Job", args.bugKey)
 		if _, err := db.Put(c, jobKey, job); err != nil {
 			return fmt.Errorf("failed to put job: %v", err)
 		}
-		return markCrashReported(c, job.CrashID, bugKey, now)
+		return markCrashReported(c, job.CrashID, args.bugKey, now)
 	}
 	err = db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true, Attempts: 30})
 	if patchID != 0 && deletePatch || err != nil {
