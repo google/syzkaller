@@ -114,6 +114,7 @@ type ObsoletingConfig struct {
 	MaxPeriod         time.Duration
 	NonFinalMinPeriod time.Duration
 	NonFinalMaxPeriod time.Duration
+	ReproRetestPeriod time.Duration
 }
 
 // ConfigManager describes a single syz-manager instance.

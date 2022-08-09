@@ -433,6 +433,7 @@ type BugUpdate struct {
 	ExtID           string
 	Link            string
 	Status          BugStatus
+	StatusReason    BugStatusReason
 	ReproLevel      ReproLevel
 	DupOf           string
 	OnHold          bool     // If set for open bugs, don't upstream this bug.
@@ -608,10 +609,11 @@ func (dash *Dashboard) LoadBug(id string) (*BugReport, error) {
 }
 
 type (
-	BugStatus  int
-	BugNotif   int
-	ReproLevel int
-	ReportType int
+	BugStatus       int
+	BugStatusReason string
+	BugNotif        int
+	ReproLevel      int
+	ReportType      int
 )
 
 const (
@@ -622,6 +624,11 @@ const (
 	BugStatusUpdate // aux info update (i.e. ExtID/Link/CC)
 	BugStatusUnCC   // don't CC sender on any future communication
 	BugStatusFixed
+)
+
+const (
+	InvalidatedByRevokedRepro = BugStatusReason("invalid_no_repro")
+	InvalidatedByNoActivity   = BugStatusReason("invalid_no_activity")
 )
 
 const (
