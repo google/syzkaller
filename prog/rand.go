@@ -278,6 +278,8 @@ func escapingFilename(file string) bool {
 
 var specialFiles = []string{"", "."}
 
+const specialFileLenPad = "a"
+
 func (r *randGen) filenameImpl(s *state) string {
 	if r.oneOf(100) {
 		return specialFiles[r.Intn(len(specialFiles))]
@@ -296,12 +298,34 @@ func (r *randGen) filenameImpl(s *state) string {
 		}
 		for i := 0; ; i++ {
 			f := fmt.Sprintf("%v/file%v", dir, i)
+			if r.oneOf(100) {
+				// Make file name very long using target.SpecialFileLenghts consts.
+				// Add/subtract some small const to account for our file name prefix
+				// and potential kernel off-by-one's.
+				fileLen := r.randFilenameLength()
+				if add := fileLen - len(f); add > 0 {
+					f += strings.Repeat(specialFileLenPad, add)
+				}
+			}
 			if !s.files[f] {
 				return f
 			}
 		}
 	}
 	return r.randFromMap(s.files)
+}
+
+func (r *randGen) randFilenameLength() int {
+	off := r.biasedRand(10, 5)
+	if r.bin() {
+		off = -off
+	}
+	lens := r.target.SpecialFileLenghts
+	res := lens[r.Intn(len(lens))] + off
+	if res < 0 {
+		res = 0
+	}
+	return res
 }
 
 func (r *randGen) randFromMap(m map[string]bool) string {
@@ -721,10 +745,8 @@ func (a *BufferType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*
 				sz = a.Size()
 			case r.nOutOf(1, 3):
 				sz = r.rand(100)
-			case r.nOutOf(1, 2):
-				sz = 108 // UNIX_PATH_MAX
 			default:
-				sz = 4096 // PATH_MAX
+				sz = uint64(r.randFilenameLength())
 			}
 			return MakeOutDataArg(a, dir, sz), nil
 		}

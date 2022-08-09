@@ -12,7 +12,11 @@ import (
 )
 
 func TestNotEscaping(t *testing.T) {
-	r := newRand(nil, rand.NewSource(0))
+	target, err := GetTarget("test", "64")
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := newRand(target, rand.NewSource(0))
 	s := &state{
 		files: map[string]bool{"./file0": true},
 	}
