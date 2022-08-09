@@ -41,6 +41,12 @@ indexes:
 
 - kind: Bug
   properties:
+  - name: Namespace
+  - name: Status
+  - name: LastTime
+
+- kind: Bug
+  properties:
   - name: HappenedOn
   - name: Status
 

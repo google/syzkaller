@@ -370,6 +370,90 @@ Note: testing is done by a robot and is best-effort only.
 	c.expectEQ(pollResp.ID, "")
 }
 
+func TestReproRetestJob(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	build.KernelRepo = "git://mygit.com/git.git"
+	build.KernelBranch = "main"
+	c.client2.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	crash.ReproOpts = []byte("repro opts")
+	crash.ReproSyz = []byte("repro syz")
+	c.client2.ReportCrash(crash)
+	sender := c.pollEmailBug().Sender
+	_, extBugID, err := email.RemoveAddrContext(sender)
+	c.expectOK(err)
+
+	crash2 := testCrash(build, 1)
+	crash2.ReproOpts = []byte("repro opts")
+	crash2.ReproSyz = []byte("repro syz")
+	crash2.ReproC = []byte("repro C")
+	c.client2.ReportCrash(crash2)
+	// Wait until the bug is upstreamed.
+	c.advanceTime(15 * 24 * time.Hour)
+	c.pollEmailBug()
+	c.pollEmailBug()
+	bug, _, _ := c.loadBug(extBugID)
+	c.expectEQ(bug.ReproLevel, ReproLevelC)
+
+	// Let's say that the C repro testing has failed.
+	c.advanceTime(config.Obsoleting.ReproRetestPeriod + time.Hour)
+	for i := 0; i < 2; i++ {
+		c.updRetestReproJobs()
+		resp := c.client2.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{TestPatches: true})
+		c.expectEQ(resp.Type, dashapi.JobTestPatch)
+		c.expectEQ(resp.KernelRepo, build.KernelRepo)
+		c.expectEQ(resp.KernelBranch, build.KernelBranch)
+		c.expectEQ(resp.Patch, []uint8(nil))
+		var done *dashapi.JobDoneReq
+		if resp.ReproC == nil {
+			// Pretend that the syz repro still works.
+			done = &dashapi.JobDoneReq{
+				ID:          resp.ID,
+				CrashTitle:  crash.Title,
+				CrashLog:    []byte("test crash log"),
+				CrashReport: []byte("test crash report"),
+			}
+		} else {
+			// Pretend that the C repro fails.
+			done = &dashapi.JobDoneReq{
+				ID: resp.ID,
+			}
+		}
+		c.client2.expectOK(c.client2.JobDone(done))
+	}
+	// Expect that the repro level is no longer ReproLevelC.
+	c.expectNoEmail()
+	bug, _, _ = c.loadBug(extBugID)
+	c.expectEQ(bug.HeadReproLevel, ReproLevelSyz)
+	// Let's also deprecate the syz repro.
+	c.advanceTime(config.Obsoleting.ReproRetestPeriod + time.Hour)
+	c.updRetestReproJobs()
+	resp := c.client2.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{TestPatches: true})
+	c.expectEQ(resp.Type, dashapi.JobTestPatch)
+	c.expectEQ(resp.KernelBranch, build.KernelBranch)
+	c.expectEQ(resp.ReproC, []uint8(nil))
+	done := &dashapi.JobDoneReq{
+		ID: resp.ID,
+	}
+	c.client2.expectOK(c.client2.JobDone(done))
+	// Expect that the repro level is no longer ReproLevelC.
+	bug, _, _ = c.loadBug(extBugID)
+	c.expectEQ(bug.HeadReproLevel, ReproLevelNone)
+	c.expectEQ(bug.ReproLevel, ReproLevelC)
+	// Expect that the bug gets deprecated.
+	notif := c.pollEmailBug()
+	if !strings.Contains(notif.Body, "Auto-closing this bug as obsolete") {
+		t.Fatalf("bad notification text: %q", notif.Body)
+	}
+	// Expect that the right obsoletion reason was set.
+	bug, _, _ = c.loadBug(extBugID)
+	c.expectEQ(bug.StatusReason, dashapi.InvalidatedByRevokedRepro)
+}
+
 // Test on a restricted manager.
 func TestJobRestrictedManager(t *testing.T) {
 	c := NewCtx(t)

@@ -60,6 +60,7 @@ func initHTTPHandlers() {
 	}
 	http.HandleFunc("/cache_update", cacheUpdate)
 	http.HandleFunc("/deprecate_assets", handleDeprecateAssets)
+	http.HandleFunc("/retest_repros", handleRetestRepros)
 }
 
 type uiMainPage struct {

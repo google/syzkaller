@@ -753,6 +753,7 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 		}
 		if bug.ReproLevel < reproLevel {
 			bug.ReproLevel = reproLevel
+			bug.HeadReproLevel = reproLevel
 		}
 		if len(req.Report) != 0 {
 			bug.HasReport = true
@@ -777,20 +778,27 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 	return bug, nil
 }
 
-func saveCrash(c context.Context, ns string, req *dashapi.Crash, bug *Bug, bugKey *db.Key, build *Build) error {
-	// Reporting priority of this crash.
+func (crash *Crash) UpdateReportingPriority(build *Build, bug *Bug) {
 	prio := int64(kernelRepoInfo(build).ReportingPriority) * 1e6
-	if len(req.ReproC) != 0 {
-		prio += 4e12
-	} else if len(req.ReproSyz) != 0 {
-		prio += 2e12
+	divReproPrio := int64(1)
+	if crash.ReproIsRevoked {
+		divReproPrio = 10
 	}
-	if req.Title == bug.Title {
+	if crash.ReproC > 0 {
+		prio += 4e12 / divReproPrio
+	} else if crash.ReproSyz > 0 {
+		prio += 2e12 / divReproPrio
+	}
+	if crash.Title == bug.Title {
 		prio += 1e8 // prefer reporting crash that matches bug title
 	}
 	if build.Arch == targets.AMD64 {
 		prio += 1e3
 	}
+	crash.ReportLen = prio
+}
+
+func saveCrash(c context.Context, ns string, req *dashapi.Crash, bug *Bug, bugKey *db.Key, build *Build) error {
 	crash := &Crash{
 		Title:   req.Title,
 		Manager: build.Manager,
@@ -800,7 +808,6 @@ func saveCrash(c context.Context, ns string, req *dashapi.Crash, bug *Bug, bugKe
 			GetEmails(req.Recipients, dashapi.To),
 			GetEmails(req.Recipients, dashapi.Cc)),
 		ReproOpts: req.ReproOpts,
-		ReportLen: prio,
 		Flags:     int64(req.Flags),
 	}
 	var err error
@@ -819,6 +826,7 @@ func saveCrash(c context.Context, ns string, req *dashapi.Crash, bug *Bug, bugKe
 	if crash.MachineInfo, err = putText(c, ns, textMachineInfo, req.MachineInfo, true); err != nil {
 		return err
 	}
+	crash.UpdateReportingPriority(build, bug)
 	crashKey := db.NewIncompleteKey(c, "Crash", bugKey)
 	if _, err = db.Put(c, crashKey, crash); err != nil {
 		return fmt.Errorf("failed to put crash: %v", err)
@@ -1314,7 +1322,7 @@ func needReproForBug(c context.Context, bug *Bug) bool {
 	if syzErrorTitleRe.MatchString(bug.Title) {
 		bestReproLevel = ReproLevelSyz
 	}
-	if bug.ReproLevel < bestReproLevel {
+	if bug.HeadReproLevel < bestReproLevel {
 		// We have not found a best-level repro yet, try until we do.
 		return bug.NumRepro < maxReproPerBug || timeSince(c, bug.LastReproTime) >= reproRetryPeriod
 	}
@@ -1440,4 +1448,12 @@ func checkClient(conf *GlobalConfig, name0, secretPassword, oauthSubject string)
 		}
 	}
 	return "", ErrAccess
+}
+
+func handleRetestRepros(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+	err := updateRetestReproJobs(c)
+	if err != nil {
+		log.Errorf(c, "failed to update retest repro jobs: %v", err)
+	}
 }

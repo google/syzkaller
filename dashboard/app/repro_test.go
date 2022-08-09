@@ -11,9 +11,9 @@ import (
 )
 
 // Normal workflow:
-//  - upload crash -> need repro
-//  - upload syz repro -> still need repro
-//  - upload C repro -> don't need repro
+//   - upload crash -> need repro
+//   - upload syz repro -> still need repro
+//   - upload C repro -> don't need repro
 func testNeedRepro1(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash, newBug bool) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -233,27 +233,30 @@ func TestNeedReproIsolated(t *testing.T) {
 		{
 			// A bug without a C repro.
 			bug: &Bug{
-				Title:      "some normal bug with a syz-repro",
-				ReproLevel: ReproLevelSyz,
+				Title:          "some normal bug with a syz-repro",
+				ReproLevel:     ReproLevelSyz,
+				HeadReproLevel: ReproLevelSyz,
 			},
 			needRepro: true,
 		},
 		{
 			// A bug for which we have recently found a repro.
 			bug: &Bug{
-				Title:         "some normal recent bug",
-				ReproLevel:    ReproLevelC,
-				LastReproTime: nowTime.Add(-time.Hour * 24),
+				Title:          "some normal recent bug",
+				ReproLevel:     ReproLevelC,
+				HeadReproLevel: ReproLevelC,
+				LastReproTime:  nowTime.Add(-time.Hour * 24),
 			},
 			needRepro: false,
 		},
 		{
 			// A bug which has an old C repro.
 			bug: &Bug{
-				Title:         "some normal bug with old repro",
-				ReproLevel:    ReproLevelC,
-				NumRepro:      2 * maxReproPerBug,
-				LastReproTime: nowTime.Add(-reproStalePeriod),
+				Title:          "some normal bug with old repro",
+				ReproLevel:     ReproLevelC,
+				HeadReproLevel: ReproLevelC,
+				NumRepro:       2 * maxReproPerBug,
+				LastReproTime:  nowTime.Add(-reproStalePeriod),
 			},
 			needRepro: true,
 		},
@@ -278,36 +281,48 @@ func TestNeedReproIsolated(t *testing.T) {
 		{
 			// Make sure we try until we find a C repro, not just a syz repro.
 			bug: &Bug{
-				Title:         "too many fails, but only a syz repro",
-				ReproLevel:    ReproLevelSyz,
-				NumRepro:      maxReproPerBug,
-				LastReproTime: nowTime.Add(-24 * time.Hour),
+				Title:          "too many fails, but only a syz repro",
+				ReproLevel:     ReproLevelSyz,
+				HeadReproLevel: ReproLevelSyz,
+				NumRepro:       maxReproPerBug,
+				LastReproTime:  nowTime.Add(-24 * time.Hour),
 			},
 			needRepro: true,
 		},
 		{
 			// We don't need a C repro for SYZFATAL: bugs.
 			bug: &Bug{
-				Title:         "SYZFATAL: Manager.Check call failed",
-				ReproLevel:    ReproLevelSyz,
-				LastReproTime: nowTime.Add(-24 * time.Hour),
+				Title:          "SYZFATAL: Manager.Check call failed",
+				ReproLevel:     ReproLevelSyz,
+				HeadReproLevel: ReproLevelSyz,
+				LastReproTime:  nowTime.Add(-24 * time.Hour),
 			},
 			needRepro: false,
 		},
 		{
 			// .. and for SYZFAIL: bugs.
 			bug: &Bug{
-				Title:         "SYZFAIL: clock_gettime failed",
-				ReproLevel:    ReproLevelSyz,
-				LastReproTime: nowTime.Add(-24 * time.Hour),
+				Title:          "SYZFAIL: clock_gettime failed",
+				ReproLevel:     ReproLevelSyz,
+				HeadReproLevel: ReproLevelSyz,
+				LastReproTime:  nowTime.Add(-24 * time.Hour),
 			},
 			needRepro: false,
 		},
 		{
 			// Yet make sure that we request at least a syz repro.
 			bug: &Bug{
-				Title:      "SYZFATAL: Manager.Check call failed",
-				ReproLevel: ReproLevelNone,
+				Title: "SYZFATAL: Manager.Check call failed",
+			},
+			needRepro: true,
+		},
+		{
+			// A bug with a revoked repro.
+			bug: &Bug{
+				Title:          "some normal bug with a syz-repro",
+				ReproLevel:     ReproLevelC,
+				HeadReproLevel: ReproLevelSyz,
+				LastReproTime:  nowTime.Add(-24 * time.Hour),
 			},
 			needRepro: true,
 		},

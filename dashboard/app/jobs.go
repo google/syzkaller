@@ -41,10 +41,16 @@ func handleTestRequest(c context.Context, bugID, user, extID, link, patch, repo,
 	}
 	bugReporting, _ := bugReportingByID(bug, bugID)
 	now := timeNow(c)
+	crash, crashKey, err := findCrashForBug(c, bug)
+	if err != nil {
+		log.Errorf(c, "failed to find a crash: %v", err)
+		return ""
+	}
 	reply, err := addTestJob(c, &testJobArgs{
 		bug: bug, bugKey: bugKey, bugReporting: bugReporting,
 		user: user, extID: extID, link: link, patch: patch,
 		repo: repo, branch: branch, jobCC: jobCC,
+		crash: crash, crashKey: crashKey,
 	}, now)
 	if err != nil {
 		log.Errorf(c, "test request failed: %v", err)
@@ -79,6 +85,8 @@ func handleTestRequest(c context.Context, bugID, user, extID, link, patch, repo,
 }
 
 type testJobArgs struct {
+	crash        *Crash
+	crashKey     *db.Key
 	bug          *Bug
 	bugKey       *db.Key
 	bugReporting *BugReporting
@@ -92,15 +100,11 @@ type testJobArgs struct {
 }
 
 func addTestJob(c context.Context, args *testJobArgs, now time.Time) (string, error) {
-	crash, crashKey, err := findCrashForBug(c, args.bug)
-	if err != nil {
-		return "", err
-	}
-	if reason := checkTestJob(c, args.bug, args.bugReporting, crash,
+	if reason := checkTestJob(c, args.bug, args.bugReporting, args.crash,
 		args.repo, args.branch); reason != "" {
 		return reason, nil
 	}
-	manager := crash.Manager
+	manager := args.crash.Manager
 	for _, ns := range config.Namespaces {
 		if mgr, ok := ns.Managers[manager]; ok {
 			if mgr.RestrictedTestingRepo != "" && args.repo != mgr.RestrictedTestingRepo {
@@ -116,18 +120,22 @@ func addTestJob(c context.Context, args *testJobArgs, now time.Time) (string, er
 	if err != nil {
 		return "", err
 	}
+	reportingName := ""
+	if args.bugReporting != nil {
+		reportingName = args.bugReporting.Name
+	}
 	job := &Job{
 		Type:         JobTestPatch,
 		Created:      now,
 		User:         args.user,
 		CC:           args.jobCC,
-		Reporting:    args.bugReporting.Name,
+		Reporting:    reportingName,
 		ExtID:        args.extID,
 		Link:         args.link,
 		Namespace:    args.bug.Namespace,
 		Manager:      manager,
 		BugTitle:     args.bug.displayTitle(),
-		CrashID:      crashKey.IntID(),
+		CrashID:      args.crashKey.IntID(),
 		KernelRepo:   args.repo,
 		KernelBranch: args.branch,
 		Patch:        patchID,
@@ -139,12 +147,16 @@ func addTestJob(c context.Context, args *testJobArgs, now time.Time) (string, er
 		// We can get 2 emails for the same request: one direct and one from a mailing list.
 		// Filter out such duplicates (for dup we only need link update).
 		var jobs []*Job
-		keys, err := db.NewQuery("Job").
-			Ancestor(args.bugKey).
-			Filter("ExtID=", args.extID).
-			GetAll(c, &jobs)
-		if len(jobs) > 1 || err != nil {
-			return fmt.Errorf("failed to query jobs: jobs=%v err=%v", len(jobs), err)
+		var keys []*db.Key
+		var err error
+		if args.extID != "" {
+			keys, err = db.NewQuery("Job").
+				Ancestor(args.bugKey).
+				Filter("ExtID=", args.extID).
+				GetAll(c, &jobs)
+			if len(jobs) > 1 || err != nil {
+				return fmt.Errorf("failed to query jobs: jobs=%v err=%v", len(jobs), err)
+			}
 		}
 		if len(jobs) != 0 {
 			// The job is already present, update link.
@@ -195,7 +207,7 @@ func checkTestJob(c context.Context, bug *Bug, bugReporting *BugReporting, crash
 	case bug.Status == BugStatusInvalid:
 		return "This bug is already marked as invalid. No point in testing."
 	// TODO(dvyukov): for BugStatusDup check status of the canonical bug.
-	case !bugReporting.Closed.IsZero():
+	case bugReporting != nil && !bugReporting.Closed.IsZero():
 		return "This bug is already upstreamed. Please test upstream."
 	}
 	return ""
@@ -232,6 +244,83 @@ func getNextJob(c context.Context, managers map[string]dashapi.ManagerJobs) (*Jo
 		return job, jobKey, err
 	}
 	return createBisectJob(c, managers, ReproLevelSyz)
+}
+
+// Ensure that for each manager there's one pending retest repro job.
+func updateRetestReproJobs(c context.Context) error {
+	if config.Obsoleting.ReproRetestPeriod == 0 {
+		return nil
+	}
+	var jobs []*Job
+	_, err := db.NewQuery("Job").
+		Filter("Finished=", time.Time{}).
+		GetAll(c, &jobs)
+	if err != nil {
+		return fmt.Errorf("failed to query jobs: %w", err)
+	}
+	managerHasJob := map[string]bool{}
+	for _, job := range jobs {
+		if job.User == "" && job.Type == JobTestPatch {
+			managerHasJob[job.Manager] = true
+		}
+	}
+	// Let's save resources and only re-check repros for bugs with no recent crashes.
+	now := timeNow(c)
+	maxLastTime := now.Add(-config.Obsoleting.ReproRetestPeriod)
+	bugs, keys, err := loadAllBugs(c, func(query *db.Query) *db.Query {
+		return query.Filter("Status=", BugStatusOpen).
+			Filter("LastTime<", maxLastTime)
+	})
+	if err != nil {
+		return fmt.Errorf("failed to query bugs: %w", err)
+	}
+	for id, bug := range bugs {
+		err := handleRetestForBug(c, now, bug, keys[id], managerHasJob)
+		if err != nil {
+			return fmt.Errorf("bug %v repro retesting failed: %w", keys[id], err)
+		}
+	}
+	return nil
+}
+
+func handleRetestForBug(c context.Context, now time.Time, bug *Bug, bugKey *db.Key,
+	managerHasJob map[string]bool) error {
+	crashes, crashKeys, err := queryCrashesForBug(c, bugKey, maxCrashes)
+	if err != nil {
+		return err
+	}
+	for crashID, crash := range crashes {
+		if crash.ReproSyz == 0 && crash.ReproC == 0 {
+			continue
+		}
+		if now.Sub(crash.LastReproRetest) < config.Obsoleting.ReproRetestPeriod {
+			continue
+		}
+		// TODO: check if the manager can do such jobs.
+		if managerHasJob[crash.Manager] {
+			continue
+		}
+		build, err := loadBuild(c, bug.Namespace, crash.BuildID)
+		if err != nil {
+			return err
+		}
+		reason, err := addTestJob(c, &testJobArgs{
+			crash:    crash,
+			crashKey: crashKeys[crashID],
+			bug:      bug,
+			bugKey:   bugKey,
+			repo:     build.KernelRepo,
+			branch:   build.KernelBranch,
+		}, now)
+		if reason != "" {
+			return fmt.Errorf("job not added for reason %s", reason)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to add job: %w", err)
+		}
+		managerHasJob[crash.Manager] = true
+	}
+	return nil
 }
 
 func createBisectJob(c context.Context, managers map[string]dashapi.ManagerJobs,
@@ -472,6 +561,77 @@ func createJobResp(c context.Context, job *Job, jobKey *db.Key) (*dashapi.JobPol
 	return resp, false, nil
 }
 
+// It would be easier to just check if the User field is empty, but let's also not
+// miss the situation when some actual user sends a patch testing request without
+// patch.
+func isRetestReproJob(job *Job, build *Build) bool {
+	return job.Type == JobTestPatch &&
+		job.Patch == 0 &&
+		job.KernelRepo == build.KernelRepo &&
+		job.KernelBranch == build.KernelBranch
+}
+
+func handleRetestedRepro(c context.Context, now time.Time, job *Job, jobKey *db.Key, crashTitle string) error {
+	bugKey := jobKey.Parent()
+	crashKey := db.NewKey(c, "Crash", "", job.CrashID, bugKey)
+	crash := new(Crash)
+	if err := db.Get(c, crashKey, crash); err != nil {
+		return fmt.Errorf("failed to get crash: %v", crashKey)
+	}
+	build, err := loadBuild(c, job.Namespace, crash.BuildID)
+	if err != nil {
+		return fmt.Errorf("failed to query build: %w", err)
+	}
+	if !isRetestReproJob(job, build) {
+		return nil
+	}
+	bug := new(Bug)
+	if err := db.Get(c, bugKey, bug); err != nil {
+		return fmt.Errorf("failed to get bug: %v", bugKey)
+	}
+	// Update the crash.
+	crash.LastReproRetest = now
+	if crashTitle == "" {
+		// If there was any crash at all, the repro is still not worth discarding.
+		crash.ReproIsRevoked = true
+	}
+	crash.UpdateReportingPriority(build, bug)
+	if _, err := db.Put(c, crashKey, crash); err != nil {
+		return fmt.Errorf("failed to put crash: %v", err)
+	}
+	reproCrashes, crashKeys, err := queryCrashesForBug(c, bugKey, 2)
+	if err != nil {
+		return fmt.Errorf("failed to fetch crashes with repro: %v", err)
+	}
+	// Now we can update the bug.
+	bug.HeadReproLevel = ReproLevelNone
+	for id, bestCrash := range reproCrashes {
+		if crashKeys[id].Equal(crashKey) {
+			// In Datastore, we don't see previous writes in a transaction...
+			bestCrash = crash
+		}
+		if bestCrash.ReproIsRevoked {
+			continue
+		}
+		if bestCrash.ReproC > 0 {
+			bug.HeadReproLevel = ReproLevelC
+		} else if bug.HeadReproLevel != ReproLevelC && bestCrash.ReproSyz > 0 {
+			bug.HeadReproLevel = ReproLevelSyz
+		}
+	}
+	if crashTitle != "" {
+		// We don't want to confuse users, so only update LastTime if the generated crash
+		// really relates to the existing bug.
+		if stringInList(bug.AltTitles, crashTitle) {
+			bug.LastTime = now
+		}
+	}
+	if _, err := db.Put(c, bugKey, bug); err != nil {
+		return fmt.Errorf("failed to put bug: %v", err)
+	}
+	return nil
+}
+
 // doneJob is called by syz-ci to mark completion of a job.
 func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 	jobID := req.ID
@@ -487,6 +647,12 @@ func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 		}
 		if !job.Finished.IsZero() {
 			return fmt.Errorf("job %v: already finished", jobID)
+		}
+		if job.Type == JobTestPatch {
+			err := handleRetestedRepro(c, now, job, jobKey, req.CrashTitle)
+			if err != nil {
+				return fmt.Errorf("job %v: failed to handle retested repro, %w", jobID, err)
+			}
 		}
 		ns := job.Namespace
 		if req.Build.ID != "" {
@@ -570,6 +736,13 @@ func updateBugBisection(c context.Context, job *Job, jobKey *db.Key, req *dashap
 	if _, err := db.Put(c, bugKey, bug); err != nil {
 		return fmt.Errorf("failed to put bug: %v", err)
 	}
+	// The repro is not working on the HEAD commit anymore, update the repro status.
+	if job.Type == JobBisectFix && req.Error == nil && len(req.Commits) > 0 {
+		err := handleRetestedRepro(c, now, job, jobKey, req.CrashTitle)
+		if err != nil {
+			return err
+		}
+	}
 	_, bugReporting, _, _, _ := currentReporting(c, bug)
 	// The bug is either already closed or not yet reported in the current reporting,
 	// either way we don't need to report it. If it wasn't reported, it will be reported
@@ -603,7 +776,10 @@ func pollCompletedJobs(c context.Context, typ string) ([]*dashapi.BugReport, err
 	var reports []*dashapi.BugReport
 	for i, job := range jobs {
 		if job.Reporting == "" {
-			log.Criticalf(c, "no reporting for job %v", extJobID(keys[i]))
+			if job.User != "" {
+				log.Criticalf(c, "no reporting for job %v", extJobID(keys[i]))
+			}
+			// In some cases (e.g. repro retesting), it's ok not to have a reporting.
 			continue
 		}
 		reporting := config.Namespaces[job.Namespace].ReportingByName(job.Reporting)
@@ -801,6 +977,7 @@ func loadPendingJob(c context.Context, managers map[string]dashapi.ManagerJobs) 
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to query jobs: %v", err)
 	}
+	// TODO: prioritize user-initiated jobs.
 	for i, job := range jobs {
 		switch job.Type {
 		case JobTestPatch:

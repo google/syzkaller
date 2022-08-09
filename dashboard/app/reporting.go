@@ -193,7 +193,6 @@ func handleReportNotif(c context.Context, typ string, bug *Bug) (*dashapi.BugNot
 	if bug.Status != BugStatusOpen || bugReporting.Reported.IsZero() {
 		return nil, nil
 	}
-
 	if reporting.moderation &&
 		reporting.Embargo != 0 &&
 		len(bug.Commits) == 0 &&
@@ -210,11 +209,12 @@ func handleReportNotif(c context.Context, typ string, bug *Bug) (*dashapi.BugNot
 		return createNotification(c, dashapi.BugNotifUpstream, true, "", bug, reporting, bugReporting)
 	}
 	if len(bug.Commits) == 0 &&
-		bug.wontBeFixBisected() &&
+		bug.canBeObsoleted() &&
 		timeSince(c, bug.LastActivity) > notifyResendPeriod &&
 		timeSince(c, bug.LastTime) > bug.obsoletePeriod() {
 		log.Infof(c, "%v: obsoleting: %v", bug.Namespace, bug.Title)
-		return createNotification(c, dashapi.BugNotifObsoleted, false, "", bug, reporting, bugReporting)
+		why := bugObsoletionReason(bug)
+		return createNotification(c, dashapi.BugNotifObsoleted, false, string(why), bug, reporting, bugReporting)
 	}
 	if len(bug.Commits) > 0 &&
 		len(bug.PatchedOn) == 0 &&
@@ -227,14 +227,21 @@ func handleReportNotif(c context.Context, typ string, bug *Bug) (*dashapi.BugNot
 	return nil, nil
 }
 
+func bugObsoletionReason(bug *Bug) dashapi.BugStatusReason {
+	if bug.HeadReproLevel == ReproLevelNone && bug.ReproLevel != ReproLevelNone {
+		return dashapi.InvalidatedByRevokedRepro
+	}
+	return dashapi.InvalidatedByNoActivity
+}
+
 // TODO: this is what we would like to do, but we need to figure out
 // KMSAN story: we don't do fix bisection on it (rebased),
 // do we want to close all old KMSAN bugs with repros?
 // For now we only enable this in tests.
 var obsoleteWhatWontBeFixBisected = false
 
-func (bug *Bug) wontBeFixBisected() bool {
-	if bug.ReproLevel == ReproLevelNone {
+func (bug *Bug) canBeObsoleted() bool {
+	if bug.HeadReproLevel == ReproLevelNone {
 		return true
 	}
 	if obsoleteWhatWontBeFixBisected {
@@ -974,6 +981,9 @@ func incomingCommandCmd(c context.Context, now time.Time, cmd *dashapi.BugUpdate
 		bug.UNCC = email.MergeEmailLists(bug.UNCC, cmd.CC)
 	default:
 		return false, internalError, fmt.Errorf("unknown bug status %v", cmd.Status)
+	}
+	if cmd.StatusReason != "" {
+		bug.StatusReason = cmd.StatusReason
 	}
 	return true, "", nil
 }
