@@ -1,0 +1,26 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# See https://cs.opensource.google/fuchsia/fuchsia/+/main:zircon/vdso/stream.fidl
+
+include <zircon/syscalls.h>
+
+resource zx_stream[zx_handle]
+
+zx_stream_create(options int32, vmo zx_vmo, seek int64, out_stream ptr[out, zx_stream])
+
+zx_iovec {
+	buffer		int8
+	capacity	int64
+}
+
+zx_stream_writev(handle zx_stream, options int32, vector ptr[in, array[zx_iovec]], num_vector len[vector], actual ptr[out, int64])
+
+zx_stream_writev_at(handle zx_stream, options int32, offset int64, vector ptr[in, array[zx_iovec]], num_vector len[vector], actual ptr[out, int64])
+
+zx_stream_readv(handle zx_stream, options int32, vector ptr[out, array[zx_iovec]], num_vector len[vector], actual ptr[out, int64])
+
+zx_stream_readv_at(handle zx_stream, options int32, offset int64, vector ptr[out, array[zx_iovec]], num_vector len[vector], actual ptr[out, int64])
+
+zx_stream_seek_origin = ZX_STREAM_SEEK_ORIGIN_START, ZX_STREAM_SEEK_ORIGIN_CURRENT, ZX_STREAM_SEEK_ORIGIN_END
+zx_stream_seek(handle zx_handle, whence flags[zx_stream_seek_origin], offset int64, out_seek ptr[out, int64])
