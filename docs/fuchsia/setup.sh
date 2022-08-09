@@ -12,6 +12,8 @@ IFS=$'\n\t'
 
 # TODO: Make the workdir be a parameter.
 # TODO: Scope locals, pass more things as parameters.
+# TODO: This script is getting overgrown enough that it's probably time start
+# using Go instead.
 
 help="This script will set up, build, and run Syzkaller for Fuchsia. You will
 need a Syzkaller checkout and a Fuchsia checkout, and you will need a working
@@ -31,10 +33,11 @@ Prints this help message.
 
 Builds Syzkaller and Fuchsia for x64.
 
-  setup.sh run syzkaller-directory fuchsia-directory
+  setup.sh [-d] run syzkaller-directory fuchsia-directory
 
 Runs Syzkaller on the Fuchsia emulator. (You must have built both first, using
-\`setup.sh build ...\`.)
+\`setup.sh build ...\`.) If you pass the \`-d\` option, \`syz-manager\` will be
+run with the \`--debug\` option.
 
   setup.sh update syzkaller-directory fuchsia-directory
 
@@ -120,7 +123,7 @@ run() {
   # also //scripts/hermetic-env and //tools/devshell/lib/prebuilt.sh in
   # $fuchsia.
   PATH="$PATH:$fuchsia/prebuilt/third_party/qemu/linux-x64/bin:$fuchsia/prebuilt/third_party/qemu/mac-x64/bin"
-  bin/syz-manager -config "$workdir/fx-syz-manager-config.json" --debug
+  bin/syz-manager -config "$workdir/fx-syz-manager-config.json" "$debug"
 }
 
 update_syscall_definitions() {
@@ -136,6 +139,15 @@ update_syscall_definitions() {
 }
 
 main() {
+  debug=""
+  while getopts "d" o; do
+    case "$o" in
+    d)
+      debug="--debug"
+    esac
+  done
+  shift $((OPTIND - 1))
+
   if [[ $# != 3 ]]; then
     usage
   fi
