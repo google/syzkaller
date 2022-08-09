@@ -503,7 +503,7 @@ func isRemoteCuttlefish(dev string) (bool, string) {
 		return false, ""
 	}
 	ip := strings.Split(dev, ":")[0]
-	if ip == "0.0.0.0" || ip == "127.0.0.1" {
+	if ip == "localhost" || ip == "0.0.0.0" || ip == "127.0.0.1" {
 		return false, ip
 	}
 	return true, ip
