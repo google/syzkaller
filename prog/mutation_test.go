@@ -86,6 +86,7 @@ func TestMutateArgument(t *testing.T) {
 	if testutil.RaceEnabled {
 		t.Skip("skipping in race mode, too slow")
 	}
+	// nolint: lll
 	tests := [][2]string{
 		// Mutate an integer with a higher priority than the boolean arguments.
 		{
@@ -121,6 +122,15 @@ func TestMutateArgument(t *testing.T) {
 		{
 			`mutate_union(&(0x7f0000000000)=@f1=[0x0, 0x1, 0x2, 0x3, 0x0, 0x1, 0x2, 0x3, 0x0, 0x0])`,
 			`mutate_union(&(0x7f0000000000)=@f1=[0x0, 0x1, 0xff, 0x3, 0x0, 0x1, 0x2, 0x3, 0x0, 0x0])`,
+		},
+		// Mutate filename using target.SpecialFileLenghts.
+		{
+			`mutate9(&(0x7f0000000000)='./file0\x00')`,
+			`mutate9(&(0x7f0000000040)='./file0aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\x00')`,
+		},
+		{
+			`mutate10(&(0x7f0000000000)=""/10)`,
+			`mutate10(&(0x7f0000000040)=""/256)`,
 		},
 	}
 

@@ -333,7 +333,11 @@ func (t *BufferType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []
 	}
 	a := arg.(*DataArg)
 	if a.Dir() == DirOut {
-		mutateBufferSize(r, a, minLen, maxLen)
+		if t.Kind == BufferFilename && r.oneOf(100) {
+			a.size = uint64(r.randFilenameLength())
+		} else {
+			mutateBufferSize(r, a, minLen, maxLen)
+		}
 		return
 	}
 	switch t.Kind {
@@ -370,7 +374,8 @@ func (t *BufferType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []
 func mutateBufferSize(r *randGen, arg *DataArg, minLen, maxLen uint64) {
 	for oldSize := arg.Size(); oldSize == arg.Size(); {
 		arg.size += uint64(r.Intn(33)) - 16
-		if arg.size < minLen {
+		// Cast to int64 to prevent underflows.
+		if int64(arg.size) < int64(minLen) {
 			arg.size = minLen
 		}
 		if arg.size > maxLen {

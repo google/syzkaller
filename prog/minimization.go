@@ -4,6 +4,7 @@
 package prog
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 )
@@ -294,30 +295,53 @@ func (typ *ResourceType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bo
 }
 
 func (typ *BufferType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
-	// TODO: try to set individual bytes to 0
-	if typ.Kind != BufferBlobRand && typ.Kind != BufferBlobRange || arg.Dir() == DirOut {
+	if arg.Dir() == DirOut {
 		return false
 	}
 	a := arg.(*DataArg)
-	len0 := len(a.Data())
-	minLen := int(typ.RangeBegin)
-	for step := len(a.Data()) - minLen; len(a.Data()) > minLen && step > 0; {
-		if len(a.Data())-step >= minLen {
-			a.data = a.Data()[:len(a.Data())-step]
-			ctx.target.assignSizesCall(ctx.call)
-			if ctx.pred(ctx.p, ctx.callIndex0) {
-				continue
+	switch typ.Kind {
+	case BufferBlobRand, BufferBlobRange:
+		// TODO: try to set individual bytes to 0
+		len0 := len(a.Data())
+		minLen := int(typ.RangeBegin)
+		for step := len(a.Data()) - minLen; len(a.Data()) > minLen && step > 0; {
+			if len(a.Data())-step >= minLen {
+				a.data = a.Data()[:len(a.Data())-step]
+				ctx.target.assignSizesCall(ctx.call)
+				if ctx.pred(ctx.p, ctx.callIndex0) {
+					continue
+				}
+				a.data = a.Data()[:len(a.Data())+step]
+				ctx.target.assignSizesCall(ctx.call)
 			}
-			a.data = a.Data()[:len(a.Data())+step]
-			ctx.target.assignSizesCall(ctx.call)
+			step /= 2
+			if ctx.crash {
+				break
+			}
 		}
-		step /= 2
-		if ctx.crash {
-			break
+		if len(a.Data()) != len0 {
+			*ctx.p0 = ctx.p
+			ctx.triedPaths[path] = true
+			return true
 		}
-	}
-	if len(a.Data()) != len0 {
-		*ctx.p0 = ctx.p
+	case BufferFilename:
+		// Try to undo target.SpecialFileLenghts mutation
+		// and reduce file name length.
+		if !typ.Varlen() {
+			return false
+		}
+		data0 := append([]byte{}, a.Data()...)
+		a.data = bytes.TrimRight(a.Data(), specialFileLenPad+"\x00")
+		if !typ.NoZ {
+			a.data = append(a.data, 0)
+		}
+		if bytes.Equal(a.data, data0) {
+			return false
+		}
+		ctx.target.assignSizesCall(ctx.call)
+		if ctx.pred(ctx.p, ctx.callIndex0) {
+			*ctx.p0 = ctx.p
+		}
 		ctx.triedPaths[path] = true
 		return true
 	}
