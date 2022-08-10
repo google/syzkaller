@@ -17,11 +17,11 @@ debuglog_read_options = 0
 # zx_log_record {
 #   sequence int64
 #   unused int32
-#   datalen int16
+#   datalen bytesize[data, int16]
 #   severity int8
 #   flags int8
 #   timestamp zx_time
 #   pid int64
 #   tid int64
-#   data array[int8, datalen]
+#   data array[int8]
 # }
