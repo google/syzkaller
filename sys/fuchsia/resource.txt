@@ -1,0 +1,12 @@
+# Copyright 2022 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# See https://cs.opensource.google/fuchsia/fuchsia/+/main:zircon/vdso/resource.fidl
+
+include <zircon/syscalls.h>
+
+resource zx_resource[zx_handle]
+
+zx_resource_create(parent_rsrc zx_handle, options int32, base int64, size int64, name ptr[in, int8], name_size len[name], resource_out ptr[out, zx_resource])
+
+# TODO: The rest of the resource.fidl calls
