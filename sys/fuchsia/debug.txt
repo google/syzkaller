@@ -1,0 +1,8 @@
+# Copyright 2022 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+
+debug_read(handle zx_handle, buffer ptr[in, array[int8]], buffer_size len[buffer], actual ptr[out, int32])
+debug_write(buffer ptr[in, array[int8]], buffer_size len[buffer])
+debug_send_command(resource_ zx_handle, buffer ptr[in, array[int8]], buffer_size len[buffer])
