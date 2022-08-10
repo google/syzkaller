@@ -143,17 +143,18 @@ func (client *Client) DeleteFile(gcsFile string) error {
 	return err
 }
 
-func (client *Client) GetDownloadURL(gcsFile string) (string, error) {
-	bucket, filename, err := split(gcsFile)
-	if err != nil {
-		return "", err
+// Where things get published.
+const (
+	PublicPrefix        = "https://storage.googleapis.com/"
+	AuthenticatedPrefix = "https://storage.cloud.google.com/"
+)
+
+func (client *Client) GetDownloadURL(gcsFile string, publicURL bool) string {
+	gcsFile = strings.TrimPrefix(gcsFile, "/")
+	if publicURL {
+		return PublicPrefix + gcsFile
 	}
-	f := client.client.Bucket(bucket).Object(filename)
-	attrs, err := f.Attrs(client.ctx)
-	if err != nil {
-		return "", err
-	}
-	return attrs.MediaLink, nil
+	return AuthenticatedPrefix + gcsFile
 }
 
 type Object struct {
@@ -180,9 +181,6 @@ func (client *Client) ListObjects(bucket string) ([]*Object, error) {
 	}
 	return ret, nil
 }
-
-// Where things get published.
-const PublicPrefix = "https://storage.googleapis.com/"
 
 func split(file string) (bucket, filename string, err error) {
 	pos := strings.IndexByte(file, '/')
