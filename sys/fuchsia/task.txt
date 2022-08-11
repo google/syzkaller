@@ -12,4 +12,4 @@ zx_task_create_exception_channel(task zx_task, options flags[exception_channel_o
 # zx_task_kill(handle zx_task)
 # zx_task_suspend(handle zx_task, token ptr[out, zx_handle])
 
-exception_channel_options = ZX_EXCEPTION_CHANNEL_DEBUGGER
+exception_channel_options = 0, ZX_EXCEPTION_CHANNEL_DEBUGGER
