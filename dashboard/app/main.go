@@ -193,6 +193,7 @@ type uiCrash struct {
 	ReportLink      string
 	ReproSyzLink    string
 	ReproCLink      string
+	ReproIsRevoked  bool
 	MachineInfoLink string
 	*uiBuild
 }
@@ -1056,6 +1057,7 @@ func makeUICrash(crash *Crash, build *Build) *uiCrash {
 		ReportLink:      textLink(textCrashReport, crash.Report),
 		ReproSyzLink:    textLink(textReproSyz, crash.ReproSyz),
 		ReproCLink:      textLink(textReproC, crash.ReproC),
+		ReproIsRevoked:  crash.ReproIsRevoked,
 		MachineInfoLink: textLink(textMachineInfo, crash.MachineInfo),
 	}
 	if build != nil {
