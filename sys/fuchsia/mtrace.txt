@@ -1,0 +1,8 @@
+# Copyright 2022 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# See https://cs.opensource.google/fuchsia/fuchsia/+/main:zircon/vdso/mtrace.fidl
+
+include <zircon/syscalls.h>
+
+zx_mtrace_control(handle zx_resource, kind int32, action int32, options int32, ptr ptr[in, array[int8]], ptr_size len[ptr])
