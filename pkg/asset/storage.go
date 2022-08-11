@@ -13,12 +13,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
+
+	"github.com/ulikunitz/xz"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/debugtracer"
-	"github.com/google/syzkaller/pkg/osutil"
 )
 
 type Storage struct {
@@ -64,10 +64,7 @@ func (storage *Storage) AssetTypeEnabled(assetType dashapi.AssetType) bool {
 }
 
 func (storage *Storage) getDefaultCompressor() Compressor {
-	if xzAvailable() {
-		return xzCompressor
-	}
-	return gzipCompressor
+	return xzCompressor
 }
 
 var ErrAssetTypeDisabled = errors.New("uploading assets of this type is disabled")
@@ -248,23 +245,6 @@ type StorageBackend interface {
 type Compressor func(req *uploadRequest,
 	next func(req *uploadRequest) (*uploadResponse, error)) (*uploadResponse, error)
 
-var xzPresent bool
-var xzCheck sync.Once
-
-const xzCompressionRatio = 0
-const xzThreadsCount = 6
-
-// TODO: switch to an xz library, so that we don't have to run commands.
-// Then, it'd probably be easier to wrap "writer" instead of "reader".
-
-func xzAvailable() bool {
-	xzCheck.Do(func() {
-		_, err := osutil.RunCmd(time.Minute, "", "xz --version")
-		xzPresent = err != nil
-	})
-	return xzPresent
-}
-
 func xzCompressor(req *uploadRequest,
 	next func(req *uploadRequest) (*uploadResponse, error)) (*uploadResponse, error) {
 	newReq := *req
@@ -279,35 +259,15 @@ func xzCompressor(req *uploadRequest,
 	if err != nil {
 		return nil, err
 	}
-	// Take source data from stdin, write compressed data to stdout.
-	cmd := osutil.Command("xz", fmt.Sprintf("-%d", xzCompressionRatio),
-		"-T", fmt.Sprintf("%d", xzThreadsCount), "-F", "xz", "-c")
-	stdinWriter, err := cmd.StdinPipe()
+	xzWriter, err := xz.NewWriter(resp.writer)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create stdout pipe: %w", err)
-	}
-	cmd.Stdout = resp.writer
-	err = cmd.Start()
-	if err != nil {
-		return nil, fmt.Errorf("xz preprocess: command start failed: %w", err)
+		return nil, fmt.Errorf("failed to create xz writer: %w", err)
 	}
 	return &uploadResponse{
 		path: resp.path,
 		writer: &wrappedWriteCloser{
-			writer: stdinWriter,
-			closeCallback: func() error {
-				// Once the writer which we return is closed, we want to
-				// also close the writer we're proxying.
-				err := cmd.Wait()
-				err2 := resp.writer.Close()
-				if err != nil {
-					return err
-				}
-				if err2 != nil {
-					return err2
-				}
-				return nil
-			},
+			writer:        xzWriter,
+			closeCallback: resp.writer.Close,
 		},
 	}, nil
 }

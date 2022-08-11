@@ -17,7 +17,7 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/debugtracer"
-	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/ulikunitz/xz"
 )
 
 type addBuildAssetCallback func(obj dashapi.NewAsset) error
@@ -94,19 +94,17 @@ func validateXz(res *uploadedFile, expected []byte) error {
 	if res == nil {
 		return fmt.Errorf("no file was uploaded")
 	}
-	xzAvailable := xzAvailable()
 	xzUsed := strings.HasSuffix(res.req.savePath, ".xz")
-	if xzAvailable && !xzUsed {
-		return fmt.Errorf("xz was available, but didn't get used")
-	}
 	if !xzUsed {
-		return validateGzip(res, expected)
+		return fmt.Errorf("xz expected to be used")
 	}
-	cmd := osutil.Command("xz", "--decompress", "--to-stdout")
-	cmd.Stdin = bytes.NewReader(res.bytes)
-	out, err := osutil.Run(time.Minute, cmd)
+	xzReader, err := xz.NewReader(bytes.NewReader(res.bytes))
 	if err != nil {
-		return fmt.Errorf("xz invocation failed: %v", err)
+		return fmt.Errorf("xz reader failed: %w", err)
+	}
+	out, err := ioutil.ReadAll(xzReader)
+	if err != nil {
+		return fmt.Errorf("xz decompression failed: %w", err)
 	}
 	if !reflect.DeepEqual(out, expected) {
 		return fmt.Errorf("decompressed: %#v, expected: %#v", out, expected)
