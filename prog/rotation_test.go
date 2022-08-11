@@ -133,3 +133,19 @@ retry:
 		}
 	}
 }
+
+func TestRotationDeterminism(t *testing.T) {
+	target, rs, _ := initTest(t)
+	calls := make(map[*Syscall]bool)
+	for _, call := range target.Syscalls {
+		calls[call] = true
+	}
+	seed := rs.Int63()
+	rnd0 := rand.New(rand.NewSource(seed))
+	calls0 := MakeRotator(target, calls, rnd0).Select()
+	rnd1 := rand.New(rand.NewSource(seed))
+	calls1 := MakeRotator(target, calls, rnd1).Select()
+	if diff := cmp.Diff(calls0, calls1); diff != "" {
+		t.Fatal(diff)
+	}
+}

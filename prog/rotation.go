@@ -38,7 +38,14 @@ func MakeRotator(target *Target, calls map[*Syscall]bool, rnd *rand.Rand) *Rotat
 		syscallUses: make(map[*Syscall][]*ResourceDesc),
 		resources:   make(map[*ResourceDesc]rotatorResource),
 	}
+	var sorted []*Syscall
 	for call := range calls {
+		sorted = append(sorted, call)
+	}
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].Name < sorted[j].Name
+	})
+	for _, call := range sorted {
 		r.syscallUses[call] = append(r.syscallUses[call], call.inputResources...)
 		r.syscallUses[call] = append(r.syscallUses[call], call.outputResources...)
 		var inputs []*ResourceDesc
