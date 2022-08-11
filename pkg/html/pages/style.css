@@ -181,6 +181,10 @@ table td, table th {
 	font-family: monospace;
 }
 
+.list_table .stale_repro {
+	text-decoration: line-through;
+}
+
 .bad {
 	color: #f00;
 	font-weight: bold;
