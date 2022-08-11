@@ -6,6 +6,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -977,7 +978,10 @@ func loadPendingJob(c context.Context, managers map[string]dashapi.ManagerJobs) 
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to query jobs: %v", err)
 	}
-	// TODO: prioritize user-initiated jobs.
+	// Give priority to user-initiated jobs to reduce the perceived processing time.
+	sort.SliceStable(jobs, func(i, j int) bool {
+		return jobs[i].User != "" && jobs[j].User == ""
+	})
 	for i, job := range jobs {
 		switch job.Type {
 		case JobTestPatch:
