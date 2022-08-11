@@ -63,10 +63,17 @@ func TestRotationCoverage(t *testing.T) {
 		counters[call.Name] = 0
 	}
 	rotator := MakeRotator(target, calls, rand.New(rs))
-	for iter := 0; iter < 2e3; iter++ {
+nextIter:
+	for iter := 0; iter < 1e4; iter++ {
 		for call := range rotator.Select() {
 			counters[call.Name]++
 		}
+		for _, count := range counters {
+			if count == 0 {
+				continue nextIter
+			}
+		}
+		break
 	}
 	type pair struct {
 		name  string
