@@ -1,0 +1,24 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+include <zircon/types.h>
+
+resource zx_vmo[zx_handle]
+
+zx_vmo_create(size int64, options flags[vmo_create_options], out ptr[out, zx_vmo])
+zx_vmo_read(handle zx_vmo, buffer ptr[out, array[int8]], offset int64, buffer_size len[buffer])
+zx_vmo_write(handle zx_vmo, buffer ptr[in, array[int8]], offset int64, buffer_size len[buffer])
+zx_vmo_get_size(handle zx_vmo, size ptr[out, int64])
+zx_vmo_set_size(handle zx_vmo, size int64)
+zx_vmo_op_range(handle zx_vmo, op flags[vmo_op_range_options], offset int64, size int64, buffer const[0], buffer_size const[0])
+zx_vmo_create_child(handle zx_vmo, options flags[vmo_create_child_options], offset int64, size int64, out ptr[out, zx_vmo])
+zx_vmo_set_cache_policy(handle zx_vmo, cache_policy flags[vmo_cache_policy])
+zx_vmo_replace_as_executable(handle zx_vmo, vmex zx_handle, out ptr[out, zx_vmo])
+zx_vmo_create_contiguous(bti zx_handle, size int64, alignment_log2 int32, out ptr[out, zx_vmo])
+zx_vmo_create_physical(handle zx_vmo, paddr ptr[in, int64], size int64, out ptr[out, zx_vmo])
+
+vmo_create_options = 0, ZX_VMO_RESIZABLE, ZX_VMO_DISCARDABLE
+vmo_op_range_options = ZX_VMO_OP_COMMIT, ZX_VMO_OP_DECOMMIT, ZX_VMO_OP_ZERO, ZX_VMO_OP_LOCK, ZX_VMO_OP_TRY_LOCK, ZX_VMO_OP_UNLOCK, ZX_VMO_OP_CACHE_SYNC, ZX_VMO_OP_CACHE_INVALIDATE, ZX_VMO_OP_CACHE_CLEAN, ZX_VMO_OP_CACHE_CLEAN_INVALIDATE, ZX_VMO_OP_DONT_NEED, ZX_VMO_OP_ALWAYS_NEED
+vmo_create_child_options = ZX_VMO_CHILD_SNAPSHOT, ZX_VMO_CHILD_SNAPSHOT_AT_LEAST_ON_WRITE, ZX_VMO_CHILD_SLICE, ZX_VMO_CHILD_RESIZABLE, ZX_VMO_CHILD_NO_WRITE
+vmo_cache_policy = ZX_CACHE_POLICY_CACHED, ZX_CACHE_POLICY_UNCACHED, ZX_CACHE_POLICY_UNCACHED_DEVICE, ZX_CACHE_POLICY_WRITE_COMBINING
