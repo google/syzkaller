@@ -12,6 +12,7 @@ import (
 	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/instance"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
@@ -417,13 +418,13 @@ func (env *env) build() (*vcs.Commit, string, error) {
 
 	bisectEnv, err := env.bisecter.EnvForCommit(env.cfg.BinDir, current.Hash, env.kernelConfig)
 	if err != nil {
-		return nil, "", err
+		return current, "", err
 	}
 	env.log("testing commit %v", current.Hash)
 	buildStart := time.Now()
 	mgr := env.cfg.Manager
 	if err := build.Clean(mgr.TargetOS, mgr.TargetVMArch, mgr.Type, mgr.KernelSrc); err != nil {
-		return nil, "", fmt.Errorf("kernel clean failed: %v", err)
+		return current, "", fmt.Errorf("kernel clean failed: %v", err)
 	}
 	kern := &env.cfg.Kernel
 	_, imageDetails, err := env.inst.BuildKernel(bisectEnv.Compiler, env.cfg.Ccache, kern.Userspace,
@@ -450,7 +451,10 @@ func (env *env) test() (*testResult, error) {
 		kernelSign: kernelSign,
 	}
 	if err != nil {
-		if verr, ok := err.(*osutil.VerboseError); ok {
+		if current == nil {
+			log.Logf(0, "couldn't get repo HEAD: %v", err)
+			return res, err
+		} else if verr, ok := err.(*osutil.VerboseError); ok {
 			env.log("%v", verr.Title)
 			env.saveDebugFile(current.Hash, 0, verr.Output)
 		} else if verr, ok := err.(*build.KernelError); ok {
