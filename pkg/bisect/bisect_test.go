@@ -206,15 +206,6 @@ var bisectionTests = []BisectionTest{
 		resultingConfig: "original config",
 	},
 	{
-		name:            "cause-finds-cause-baseline-fails",
-		startCommit:     905,
-		commitLen:       1,
-		expectRep:       true,
-		culprit:         602,
-		baselineConfig:  "baseline-fails",
-		resultingConfig: "original config",
-	},
-	{
 		name:            "cause-finds-cause-baseline-skip",
 		startCommit:     905,
 		commitLen:       1,
@@ -231,6 +222,12 @@ var bisectionTests = []BisectionTest{
 		culprit:         602,
 		baselineConfig:  "minimize-succeeds",
 		resultingConfig: "new-minimized-config",
+	},
+	{
+		name:           "cause-finds-cause-baseline-fails",
+		startCommit:    905,
+		baselineConfig: "baseline-fails",
+		expectErr:      true,
 	},
 	{
 		name:           "cause-finds-cause-minimize-fails",

@@ -38,7 +38,7 @@ type KernelConfig struct {
 	Sysctl  string
 	Config  []byte
 	// Baseline configuration is used in commit bisection. If the crash doesn't reproduce
-	// with baseline configuratopm config bisection is run. When triggering configuration
+	// with baseline configuration, config bisection is run. When triggering configuration
 	// option is found provided baseline configuration is modified according the bisection
 	// results. This new configuration is tested once more with current head. If crash
 	// reproduces with the generated configuration original configuation is replaced with
@@ -459,7 +459,7 @@ func (env *env) test() (*testResult, error) {
 		} else {
 			env.log("%v", err)
 		}
-		return res, nil
+		return res, err
 	}
 
 	numTests := MaxNumTests / 2
