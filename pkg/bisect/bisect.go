@@ -417,13 +417,13 @@ func (env *env) build() (*vcs.Commit, string, error) {
 
 	bisectEnv, err := env.bisecter.EnvForCommit(env.cfg.BinDir, current.Hash, env.kernelConfig)
 	if err != nil {
-		return nil, "", err
+		return current, "", err
 	}
 	env.log("testing commit %v", current.Hash)
 	buildStart := time.Now()
 	mgr := env.cfg.Manager
 	if err := build.Clean(mgr.TargetOS, mgr.TargetVMArch, mgr.Type, mgr.KernelSrc); err != nil {
-		return nil, "", fmt.Errorf("kernel clean failed: %v", err)
+		return current, "", fmt.Errorf("kernel clean failed: %v", err)
 	}
 	kern := &env.cfg.Kernel
 	_, imageDetails, err := env.inst.BuildKernel(bisectEnv.Compiler, env.cfg.Ccache, kern.Userspace,
@@ -438,6 +438,8 @@ func (env *env) build() (*vcs.Commit, string, error) {
 	return current, imageDetails.Signature, err
 }
 
+// Note: When this function returns an error, the bisection it was called from is aborted.
+// Hence recoverable errors must be handled and the callers must treat testResult with care.
 func (env *env) test() (*testResult, error) {
 	cfg := env.cfg
 	if cfg.Timeout != 0 && time.Since(env.startTime) > cfg.Timeout {
@@ -448,6 +450,10 @@ func (env *env) test() (*testResult, error) {
 		verdict:    vcs.BisectSkip,
 		com:        current,
 		kernelSign: kernelSign,
+	}
+	if current == nil {
+		// This is not recoverable, as the caller must know which commit to skip.
+		return res, fmt.Errorf("couldn't get repo HEAD: %v", err)
 	}
 	if err != nil {
 		if verr, ok := err.(*osutil.VerboseError); ok {
