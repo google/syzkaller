@@ -7,4 +7,4 @@ include <zircon/types.h>
 # Never used as output
 # resource zx_root[zx_handle]
 
-pc_firmware_tables(handle zx_handle, acpi_rsdp ptr[out, int64], smbios ptr[out, int64])
+zx_pc_firmware_tables(handle zx_handle, acpi_rsdp ptr[out, int64], smbios ptr[out, int64])
