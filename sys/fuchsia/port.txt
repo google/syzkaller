@@ -6,7 +6,9 @@ include <zircon/syscalls/port.h>
 
 resource zx_port[zx_handle]
 
-zx_port_create(options const[0], out ptr[out, zx_port])
+port_create_options = ZX_PORT_BIND_TO_INTERRUPT
+
+zx_port_create(options flags[port_create_options], out ptr[out, zx_port])
 zx_port_queue(handle zx_port, packet ptr[in, zx_port_packet])
 zx_port_wait(handle zx_port, deadline zx_time, packet ptr[out, zx_port_packet])
 zx_port_cancel(port zx_port, source zx_handle, key proc[1000, 4])
