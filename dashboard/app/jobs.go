@@ -572,7 +572,7 @@ func isRetestReproJob(job *Job, build *Build) bool {
 		job.KernelBranch == build.KernelBranch
 }
 
-func handleRetestedRepro(c context.Context, now time.Time, job *Job, jobKey *db.Key, crashTitle string) error {
+func handleRetestedRepro(c context.Context, now time.Time, job *Job, jobKey *db.Key, allTitles []string) error {
 	bugKey := jobKey.Parent()
 	crashKey := db.NewKey(c, "Crash", "", job.CrashID, bugKey)
 	crash := new(Crash)
@@ -592,7 +592,7 @@ func handleRetestedRepro(c context.Context, now time.Time, job *Job, jobKey *db.
 	}
 	// Update the crash.
 	crash.LastReproRetest = now
-	if crashTitle == "" {
+	if len(allTitles) == 0 {
 		// If there was any crash at all, the repro is still not worth discarding.
 		crash.ReproIsRevoked = true
 	}
@@ -620,17 +620,23 @@ func handleRetestedRepro(c context.Context, now time.Time, job *Job, jobKey *db.
 			bug.HeadReproLevel = ReproLevelSyz
 		}
 	}
-	if crashTitle != "" {
+	if stringInList(allTitles, bug.Title) || stringListsIntersect(bug.AltTitles, allTitles) {
 		// We don't want to confuse users, so only update LastTime if the generated crash
 		// really relates to the existing bug.
-		if stringInList(bug.AltTitles, crashTitle) {
-			bug.LastTime = now
-		}
+		bug.LastTime = now
 	}
 	if _, err := db.Put(c, bugKey, bug); err != nil {
 		return fmt.Errorf("failed to put bug: %v", err)
 	}
 	return nil
+}
+
+func gatherCrashTitles(req *dashapi.JobDoneReq) []string {
+	ret := append([]string{}, req.CrashAltTitles...)
+	if req.CrashTitle != "" {
+		ret = append(ret, req.CrashTitle)
+	}
+	return ret
 }
 
 // doneJob is called by syz-ci to mark completion of a job.
@@ -650,7 +656,7 @@ func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 			return fmt.Errorf("job %v: already finished", jobID)
 		}
 		if job.Type == JobTestPatch {
-			err := handleRetestedRepro(c, now, job, jobKey, req.CrashTitle)
+			err := handleRetestedRepro(c, now, job, jobKey, gatherCrashTitles(req))
 			if err != nil {
 				return fmt.Errorf("job %v: failed to handle retested repro, %w", jobID, err)
 			}
@@ -739,7 +745,7 @@ func updateBugBisection(c context.Context, job *Job, jobKey *db.Key, req *dashap
 	}
 	// The repro is not working on the HEAD commit anymore, update the repro status.
 	if job.Type == JobBisectFix && req.Error == nil && len(req.Commits) > 0 {
-		err := handleRetestedRepro(c, now, job, jobKey, req.CrashTitle)
+		err := handleRetestedRepro(c, now, job, jobKey, gatherCrashTitles(req))
 		if err != nil {
 			return err
 		}

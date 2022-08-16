@@ -183,13 +183,14 @@ type JobPollResp struct {
 }
 
 type JobDoneReq struct {
-	ID          string
-	Build       Build
-	Error       []byte
-	Log         []byte // bisection log
-	CrashTitle  string
-	CrashLog    []byte
-	CrashReport []byte
+	ID             string
+	Build          Build
+	Error          []byte
+	Log            []byte // bisection log
+	CrashTitle     string
+	CrashAltTitles []string
+	CrashLog       []byte
+	CrashReport    []byte
 	// Bisection results:
 	// If there is 0 commits:
 	//  - still happens on HEAD for fix bisection

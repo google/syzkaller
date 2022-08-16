@@ -669,6 +669,19 @@ func stringInList(list []string, str string) bool {
 	return false
 }
 
+func stringListsIntersect(a, b []string) bool {
+	m := map[string]bool{}
+	for _, strA := range a {
+		m[strA] = true
+	}
+	for _, strB := range b {
+		if m[strB] {
+			return true
+		}
+	}
+	return false
+}
+
 func mergeString(list []string, str string) []string {
 	if !stringInList(list, str) {
 		list = append(list, str)
