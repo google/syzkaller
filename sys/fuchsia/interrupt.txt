@@ -14,8 +14,4 @@ zx_interrupt_bind(handle zx_interrupt, port_handle zx_port, key int64, options i
 
 zx_interrupt_wait(handle zx_interrupt, out_timestamp ptr[out, zx_time])
 
-zx_handle_destroy(handle zx_interrupt)
-
-zx_handle_ack(handle zx_interrupt)
-
 zx_interrupt_trigger(handle zx_interrupt, options int32, timestamp zx_time)
