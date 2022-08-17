@@ -405,7 +405,7 @@ Though, `syz-extract` can still be invoked manually on this file.
 meta arches["arch1", "arch2"]
 ```
 Restricts this file only to the given set of architectures.
-`make extract` and ``make generate` will not use it on other architectures.
+`make extract` and `make generate` will not use it on other architectures.
 
 ## Misc
 
