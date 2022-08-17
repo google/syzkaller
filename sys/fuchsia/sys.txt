@@ -9,13 +9,16 @@ include <ddk/driver.h>
 syz_execute_func(text ptr[in, text[target]])
 
 # Provided by sysroot (include/ddk/driver.h)
+
 resource zx_root_resource[zx_handle]
 get_root_resource() zx_root_resource
 
 # Used by syzkaller to allocate memory for syscall arguments.
+
 syz_mmap(addr vma, len len[addr])
 
 # Provided by process runtime (zircon/process.h).
+
 syz_process_self() zx_process
 syz_thread_self() zx_thread
 syz_vmar_root_self() zx_vmar
@@ -24,6 +27,7 @@ syz_job_default() zx_job
 # TODO: the get_system_features_options flags are only valid on ARM;
 # find a way to make syzkaller generate ARM-specific code
 # zx_system_features(kind int32, features flags[get_system_features_options])
+
 zx_system_get_num_cpus()
 zx_system_get_physmem()
 zx_system_get_version(version ptr[out, array[int8]], version_len len[version])
