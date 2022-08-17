@@ -7,7 +7,6 @@ include <zircon/syscalls/clock.h>
 resource zx_time[int64]: 0, ZX_TIME_INFINITE
 
 zx_clock_get_monotonic() (ignore_return)
-zx_clock_get_monotonic_via_kernel() (ignore_return)
 zx_clock_create(option flags[clock_create_opt], args ptr[in, zx_clock_create_args_v1], out ptr[out, zx_handle])
 zx_clock_read(handle zx_handle, now ptr[out, intptr]) (ignore_return)
 zx_clock_get_details(handle zx_handle, option const[0x400000000000000], details ptr[out, zx_clock_details_v1])
@@ -52,3 +51,5 @@ zx_clock_details_v1 {
 	generation_counter		int32
 	padding1			int32
 }
+
+syz_future_time(when intptr[0:1]) zx_time
