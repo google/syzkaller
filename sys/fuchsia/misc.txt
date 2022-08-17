@@ -7,7 +7,6 @@ include <zircon/syscalls.h>
 
 zx_nanosleep(deadline zx_time)
 zx_ticks_get() (ignore_return)
-zx_ticks_get_via_kernel() (ignore_return)
 zx_ticks_per_second()
 zx_deadline_after(nanoseconds int64) zx_time (ignore_return)
 
