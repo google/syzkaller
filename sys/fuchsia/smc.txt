@@ -1,0 +1,30 @@
+# Copyright 2022 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+
+meta arches["arm64"]
+
+zx_smc_call(handle zx_handle, parameters ptr[in, zx_smc_parameters], out_smc_result ptr[out, zx_smc_result])
+
+zx_smc_parameters {
+	func		int32
+	padding1	int32
+	arg1		int64
+	arg2		int64
+	arg3		int64
+	arg4		int64
+	arg5		int64
+	arg6		int64
+	client_id	int16
+	secure_os_id	int16
+	padding2	int32
+}
+
+zx_smc_result {
+	arg0	int64
+	arg1	int64
+	arg2	int64
+	arg3	int64
+	arg6	int64
+}
