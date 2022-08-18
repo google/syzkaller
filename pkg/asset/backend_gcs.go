@@ -57,6 +57,16 @@ func (wel *writeErrorLogger) Close() error {
 
 func (csb *cloudStorageBackend) upload(req *uploadRequest) (*uploadResponse, error) {
 	path := fmt.Sprintf("%s/%s", csb.bucket, req.savePath)
+	// Best-effort check only. In the worst case we'll just overwite the file.
+	// The alternative would be to add an If-precondition, but it'd require
+	// complicated error-during-write handling.
+	exists, err := csb.client.FileExists(path)
+	if err != nil {
+		return nil, &FileExistsError{req.savePath}
+	}
+	if exists {
+		return nil, ErrAssetExists
+	}
 	w, err := csb.client.FileWriterExt(path, req.contentType, req.contentEncoding)
 	csb.tracer.Log("gcs upload: obtained a writer for %s, error %s", path, err)
 	if err != nil {

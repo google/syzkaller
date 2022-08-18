@@ -67,10 +67,36 @@ func (storage *Storage) getDefaultCompressor() Compressor {
 	return xzCompressor
 }
 
+type ExtraUploadArg struct {
+	// It is assumed that paths constructed with same UniqueTag values
+	// always correspond to an asset having the same content.
+	UniqueTag string
+	// If the asset being uploaded already exists (see above), don't return
+	// an error, abort uploading and return the download URL.
+	SkipIfExists bool
+}
+
 var ErrAssetTypeDisabled = errors.New("uploading assets of this type is disabled")
 
+func (storage *Storage) assetPath(name string, extra *ExtraUploadArg) string {
+	folderName := ""
+	if extra != nil && extra.UniqueTag != "" {
+		folderName = extra.UniqueTag
+	} else {
+		// The idea is to make a file name useful and yet unique.
+		// So we put a file to a pseudo-unique "folder".
+		folderNameBytes := sha256.Sum256([]byte(fmt.Sprintf("%v", time.Now().UnixNano())))
+		folderName = fmt.Sprintf("%x", folderNameBytes)
+	}
+	const folderPrefix = 12
+	if len(folderName) > folderPrefix {
+		folderName = folderName[0:folderPrefix]
+	}
+	return fmt.Sprintf("%s/%s", folderName, name)
+}
+
 func (storage *Storage) uploadFileStream(reader io.Reader, assetType dashapi.AssetType,
-	name string) (string, error) {
+	name string, extra *ExtraUploadArg) (string, error) {
 	if name == "" {
 		return "", fmt.Errorf("file name is not specified")
 	}
@@ -82,14 +108,7 @@ func (storage *Storage) uploadFileStream(reader io.Reader, assetType dashapi.Ass
 		return "", fmt.Errorf("not allowed to upload an asset of type %s: %w",
 			assetType, ErrAssetTypeDisabled)
 	}
-	// The idea is to make a file name useful and yet unique.
-	// So we put a file to a pseudo-unique "folder".
-	const folderPrefix = 6
-	folderName := sha256.Sum256([]byte(fmt.Sprintf("%v", time.Now().UnixNano())))
-	path := fmt.Sprintf("%x/%s", folderName[0:folderPrefix], name)
-	// TODO: allow an optional argument that would replace this "random" prefix.
-	// This should prevent the duplication of a number of assets (if the caller
-	// passes e.g. a file hash).
+	path := storage.assetPath(name, extra)
 	req := &uploadRequest{
 		savePath:          path,
 		contentType:       typeDescr.ContentType,
@@ -103,28 +122,36 @@ func (storage *Storage) uploadFileStream(reader io.Reader, assetType dashapi.Ass
 		compressor = typeDescr.customCompressor
 	}
 	res, err := compressor(req, storage.backend.upload)
-	if err != nil {
-		return "", fmt.Errorf("failed to query writer: %w", err)
-	}
-	written, err := io.Copy(res.writer, reader)
-	if err != nil {
-		more := ""
-		closeErr := res.writer.Close()
-		if exiterr, ok := closeErr.(*exec.ExitError); ok {
-			more = fmt.Sprintf(", process state '%s'", exiterr.ProcessState)
+	if existsErr, ok := err.(*FileExistsError); ok {
+		storage.tracer.Log("asset %s already exists", path)
+		if extra == nil || !extra.SkipIfExists {
+			return "", err
 		}
-		return "", fmt.Errorf("failed to redirect byte stream: copied %d bytes, error %w%s",
-			written, err, more)
-	}
-	err = res.writer.Close()
-	if err != nil {
-		return "", fmt.Errorf("failed to close writer: %w", err)
+		// Let's just return the download URL.
+		return storage.backend.downloadURL(existsErr.Path, storage.cfg.PublicAccess)
+	} else if err != nil {
+		return "", fmt.Errorf("failed to query writer: %w", err)
+	} else {
+		written, err := io.Copy(res.writer, reader)
+		if err != nil {
+			more := ""
+			closeErr := res.writer.Close()
+			if exiterr, ok := closeErr.(*exec.ExitError); ok {
+				more = fmt.Sprintf(", process state '%s'", exiterr.ProcessState)
+			}
+			return "", fmt.Errorf("failed to redirect byte stream: copied %d bytes, error %w%s",
+				written, err, more)
+		}
+		err = res.writer.Close()
+		if err != nil {
+			return "", fmt.Errorf("failed to close writer: %w", err)
+		}
 	}
 	return storage.backend.downloadURL(res.path, storage.cfg.PublicAccess)
 }
 
 func (storage *Storage) UploadBuildAsset(reader io.Reader, fileName string, assetType dashapi.AssetType,
-	build *dashapi.Build) (dashapi.NewAsset, error) {
+	build *dashapi.Build, extra *ExtraUploadArg) (dashapi.NewAsset, error) {
 	const commitPrefix = 8
 	commit := build.KernelCommit
 	if len(commit) > commitPrefix {
@@ -136,7 +163,7 @@ func (storage *Storage) UploadBuildAsset(reader io.Reader, fileName string, asse
 		strings.TrimSuffix(baseName, fileExt),
 		commit,
 		fileExt)
-	url, err := storage.uploadFileStream(reader, assetType, name)
+	url, err := storage.uploadFileStream(reader, assetType, name, extra)
 	if err != nil {
 		return dashapi.NewAsset{}, err
 	}
@@ -155,6 +182,17 @@ func (storage *Storage) ReportBuildAssets(build *dashapi.Build, assets ...dashap
 }
 
 var ErrAssetDoesNotExist = errors.New("the asset did not exist")
+
+type FileExistsError struct {
+	// The path gets changed by wrappers, so we need to return it back.
+	Path string
+}
+
+func (e *FileExistsError) Error() string {
+	return fmt.Sprintf("asset exists: %s", e.Path)
+}
+
+var ErrAssetExists = errors.New("the asset already exists")
 
 const deletionEmbargo = time.Hour * 24 * 7
 

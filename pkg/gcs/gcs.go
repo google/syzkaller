@@ -143,6 +143,20 @@ func (client *Client) DeleteFile(gcsFile string) error {
 	return err
 }
 
+func (client *Client) FileExists(gcsFile string) (bool, error) {
+	bucket, filename, err := split(gcsFile)
+	if err != nil {
+		return false, err
+	}
+	_, err = client.client.Bucket(bucket).Object(filename).Attrs(client.ctx)
+	if err == storage.ErrObjectNotExist {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // Where things get published.
 const (
 	PublicPrefix        = "https://storage.googleapis.com/"

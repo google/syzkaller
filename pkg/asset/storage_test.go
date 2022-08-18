@@ -114,7 +114,7 @@ func validateXz(res *uploadedFile, expected []byte) error {
 
 func (storage *Storage) sendBuildAsset(reader io.Reader, fileName string, assetType dashapi.AssetType,
 	build *dashapi.Build) error {
-	asset, err := storage.UploadBuildAsset(reader, fileName, assetType, build)
+	asset, err := storage.UploadBuildAsset(reader, fileName, assetType, build, nil)
 	if err != nil {
 		return err
 	}
@@ -319,5 +319,36 @@ func TestAssetStorageConfiguration(t *testing.T) {
 	err = storage.sendBuildAsset(bytes.NewReader(testContent), "vmlinux", dashapi.KernelObject, build)
 	if err != nil {
 		t.Fatalf("UploadBuildAssetStream of BootableDisk expected to succeed, got %v", err)
+	}
+}
+
+func TestUploadSameContent(t *testing.T) {
+	dashMock := newDashMock()
+	storage, be := makeStorage(t, dashMock.getDashapi())
+	be.currentTime = time.Now().Add(-2 * deletionEmbargo)
+
+	build := &dashapi.Build{ID: "1234", KernelCommit: "abcdef2134"}
+	extra := &ExtraUploadArg{UniqueTag: "uniquetag", SkipIfExists: true}
+	testContent := []byte{0x1, 0x2, 0x3, 0x4}
+	asset, err := storage.UploadBuildAsset(bytes.NewReader(testContent), "disk.raw",
+		dashapi.BootableDisk, build, extra)
+	if err != nil {
+		t.Fatalf("UploadBuildAssetexpected to succeed, got %v", err)
+	}
+	if !strings.Contains(asset.DownloadURL, extra.UniqueTag) {
+		t.Fatalf("%#v was expected to contain %#v", asset.DownloadURL, extra.UniqueTag)
+	}
+	// Upload the same asset again.
+	be.objectUpload = func(req *uploadRequest) (*uploadResponse, error) {
+		return nil, &FileExistsError{req.savePath}
+	}
+	assetTwo, err := storage.UploadBuildAsset(bytes.NewReader(testContent), "disk.raw",
+		dashapi.BootableDisk, build, extra)
+	if err != nil {
+		t.Fatalf("UploadBuildAssetexpected to succeed, got %v", err)
+	}
+	if asset.DownloadURL != assetTwo.DownloadURL {
+		t.Fatalf("assets were expected to have same download URL, got %#v %#v",
+			asset.DownloadURL, assetTwo.DownloadURL)
 	}
 }

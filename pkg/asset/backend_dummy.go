@@ -52,7 +52,7 @@ func (be *dummyStorageBackend) upload(req *uploadRequest) (*uploadResponse, erro
 	if be.objectUpload != nil {
 		return be.objectUpload(req)
 	}
-	return &uploadResponse{writer: &dummyWriteCloser{}}, nil
+	return &uploadResponse{writer: &dummyWriteCloser{}, path: req.savePath}, nil
 }
 
 func (be *dummyStorageBackend) downloadURL(path string, publicURL bool) (string, error) {
