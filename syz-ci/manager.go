@@ -4,6 +4,7 @@
 package main
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -723,11 +724,20 @@ func (mgr *Manager) uploadBuildAssets(build *dashapi.Build, assetFolder string) 
 			log.Logf(0, "uploading an asset %s of type %s",
 				pendingAsset.path, pendingAsset.assetType)
 		}
-		// TODO: ask the dashboard whether it actually needs this asset?
-		// This should remove the unnecessary re-uploading of assets after
-		// each manager restart, even if the kernel was not built anew.
+		extra := &asset.ExtraUploadArg{SkipIfExists: true}
+		hash := sha256.New()
+		if _, err := io.Copy(hash, file); err != nil {
+			log.Logf(0, "failed calculate hash for the asset %s: %s", pendingAsset.path, err)
+			continue
+		}
+		extra.UniqueTag = fmt.Sprintf("%x", hash.Sum(nil))
+		// Now we need to go back to the beginning of the file again.
+		if _, err := file.Seek(0, io.SeekStart); err != nil {
+			log.Logf(0, "failed wind back the opened file for %s: %s", pendingAsset.path, err)
+			continue
+		}
 		info, err := mgr.storage.UploadBuildAsset(file, pendingAsset.name,
-			pendingAsset.assetType, build)
+			pendingAsset.assetType, build, extra)
 		if err != nil {
 			log.Logf(0, "failed to upload an asset: %s, %s",
 				pendingAsset.path, err)
@@ -775,7 +785,7 @@ func (mgr *Manager) uploadCoverReport() error {
 	}
 	// Upload via the asset storage.
 	newAsset, err := mgr.storage.UploadBuildAsset(resp.Body, mgr.name+".html",
-		dashapi.HTMLCoverageReport, mgr.lastBuild)
+		dashapi.HTMLCoverageReport, mgr.lastBuild, nil)
 	if err != nil {
 		return fmt.Errorf("failed to upload html coverage report: %w", err)
 	}
