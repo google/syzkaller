@@ -248,7 +248,7 @@ func getNextJob(c context.Context, managers map[string]dashapi.ManagerJobs) (*Jo
 }
 
 // Ensure that for each manager there's one pending retest repro job.
-func updateRetestReproJobs(c context.Context) error {
+func updateRetestReproJobs(c context.Context, ns string) error {
 	if config.Obsoleting.ReproRetestPeriod == 0 {
 		return nil
 	}
@@ -270,6 +270,7 @@ func updateRetestReproJobs(c context.Context) error {
 	maxLastTime := now.Add(-config.Obsoleting.ReproRetestPeriod)
 	bugs, keys, err := loadAllBugs(c, func(query *db.Query) *db.Query {
 		return query.Filter("Status=", BugStatusOpen).
+			Filter("Namespace=", ns).
 			Filter("LastTime<", maxLastTime)
 	})
 	if err != nil {
@@ -589,6 +590,9 @@ func handleRetestedRepro(c context.Context, now time.Time, job *Job, jobKey *db.
 	bug := new(Bug)
 	if err := db.Get(c, bugKey, bug); err != nil {
 		return fmt.Errorf("failed to get bug: %v", bugKey)
+	}
+	if !config.Namespaces[bug.Namespace].RetestRepros {
+		return nil
 	}
 	// Update the crash.
 	crash.LastReproRetest = now
