@@ -178,6 +178,7 @@ var testConfig = &GlobalConfig{
 					},
 				},
 			},
+			RetestRepros: true,
 		},
 		// Namespaces for access level testing.
 		"access-admin": {
