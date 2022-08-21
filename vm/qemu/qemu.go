@@ -212,6 +212,13 @@ var archConfigs = map[string]*archConfig{
 		NetDev:   "e1000",
 		RngDev:   "virtio-rng-pci",
 	},
+	"freebsd/riscv64": {
+		Qemu:                   "qemu-system-riscv64",
+		QemuArgs:               "-machine virt",
+		NetDev:                 "virtio-net-pci",
+		RngDev:                 "virtio-rng-pci",
+		UseNewQemuImageOptions: true,
+	},
 	"darwin/amd64": {
 		Qemu: "qemu-system-x86_64",
 		QemuArgs: strings.Join([]string{
