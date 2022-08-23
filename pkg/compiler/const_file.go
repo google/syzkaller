@@ -90,7 +90,6 @@ func (cf *ConstFile) Serialize() []byte {
 	for arch := range cf.arches {
 		arches = append(arches, arch)
 	}
-	arches = append(arches, "riscv64")
 
 	sort.Strings(arches)
 	var consts []constVal
