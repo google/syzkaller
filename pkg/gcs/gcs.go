@@ -158,8 +158,8 @@ func (client *Client) GetDownloadURL(gcsFile string, publicURL bool) string {
 }
 
 type Object struct {
-	DownloadURL string
-	CreatedAt   time.Time
+	Path      string
+	CreatedAt time.Time
 }
 
 func (client *Client) ListObjects(bucket string) ([]*Object, error) {
@@ -175,8 +175,8 @@ func (client *Client) ListObjects(bucket string) ([]*Object, error) {
 			return nil, fmt.Errorf("failed to query GCS objects: %w", err)
 		}
 		ret = append(ret, &Object{
-			DownloadURL: objAttrs.MediaLink,
-			CreatedAt:   objAttrs.Created,
+			Path:      objAttrs.Name,
+			CreatedAt: objAttrs.Created,
 		})
 	}
 	return ret, nil
