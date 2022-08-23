@@ -96,10 +96,6 @@ func (a android) build(params Params) (ImageDetails, error) {
 	if err := embedFiles(params, func(mountDir string) error {
 		homeDir := filepath.Join(mountDir, "root")
 
-		if _, err := osutil.RunCmd(time.Hour, homeDir, "./fetch_cvd"); err != nil {
-			return err
-		}
-
 		if err := osutil.CopyFile(bzImage, filepath.Join(homeDir, "bzImage")); err != nil {
 			return err
 		}
