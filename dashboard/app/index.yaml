@@ -64,6 +64,11 @@ indexes:
 - kind: Bug
   properties:
   - name: Namespace
+  - name: Closed
+
+- kind: Bug
+  properties:
+  - name: Namespace
   - name: NeedCommitInfo
   - name: Commits
 
