@@ -302,7 +302,7 @@ func createNotification(c context.Context, typ dashapi.BugNotif, public bool, te
 	}
 	crash, _, err := findCrashForBug(c, bug)
 	if err != nil {
-		return nil, fmt.Errorf("no crashes for bug")
+		return nil, err
 	}
 	build, err := loadBuild(c, bug.Namespace, crash.BuildID)
 	if err != nil {
