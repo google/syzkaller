@@ -62,6 +62,22 @@ ioctl$VHOST_SET_VRING_ENDIAN(fd fd_vhost, cmd const[VHOST_SET_VRING_ENDIAN], arg
 ioctl$VHOST_GET_VRING_ENDIAN(fd fd_vhost, cmd const[VHOST_GET_VRING_ENDIAN], arg ptr[in, vhost_vring_state])
 ioctl$VHOST_SET_VRING_BUSYLOOP_TIMEOUT(fd fd_vhost, cmd const[VHOST_SET_VRING_BUSYLOOP_TIMEOUT], arg ptr[in, vhost_vring_state])
 
+ioctl$VHOST_VDPA_GET_DEVICE_ID(fd fd_vhost, cmd const[VHOST_VDPA_GET_DEVICE_ID], arg ptr[out, int32])
+ioctl$VHOST_VDPA_GET_STATUS(fd fd_vhost, cmd const[VHOST_VDPA_GET_STATUS], arg ptr[out, int8])
+ioctl$VHOST_VDPA_SET_STATUS(fd fd_vhost, cmd const[VHOST_VDPA_SET_STATUS], arg ptr[in, int8])
+ioctl$VHOST_VDPA_GET_CONFIG(fd fd_vhost, cmd const[VHOST_VDPA_GET_CONFIG], arg ptr[out, vhost_vdpa_config])
+ioctl$VHOST_VDPA_SET_CONFIG(fd fd_vhost, cmd const[VHOST_VDPA_SET_CONFIG], arg ptr[in, vhost_vdpa_config])
+ioctl$VHOST_VDPA_SET_VRING_ENABLE(fd fd_vhost, cmd const[VHOST_VDPA_SET_VRING_ENABLE], arg ptr[in, vhost_vring_state])
+ioctl$VHOST_VDPA_GET_VRING_NUM(fd fd_vhost, cmd const[VHOST_VDPA_GET_VRING_NUM], arg ptr[out, int16])
+ioctl$VHOST_VDPA_SET_CONFIG_CALL(fd fd_vhost, cmd const[VHOST_VDPA_SET_CONFIG_CALL], arg ptr[in, int32])
+ioctl$VHOST_VDPA_GET_IOVA_RANGE(fd fd_vhost, cmd const[VHOST_VDPA_GET_IOVA_RANGE], arg ptr[out, vhost_vdpa_iova_range])
+ioctl$VHOST_VDPA_GET_CONFIG_SIZE(fd fd_vhost, cmd const[VHOST_VDPA_GET_CONFIG_SIZE], arg ptr[out, int32])
+ioctl$VHOST_VDPA_GET_VQS_COUNT(fd fd_vhost, cmd const[VHOST_VDPA_GET_VQS_COUNT], arg ptr[out, int32])
+ioctl$VHOST_VDPA_GET_GROUP_NUM(fd fd_vhost, cmd const[VHOST_VDPA_GET_GROUP_NUM], arg ptr[out, int32])
+ioctl$VHOST_VDPA_GET_AS_NUM(fd fd_vhost, cmd const[VHOST_VDPA_GET_AS_NUM], arg ptr[out, int32])
+ioctl$VHOST_VDPA_GET_VRING_GROUP(fd fd_vhost, cmd const[VHOST_VDPA_GET_VRING_GROUP], arg ptr[inout, vhost_vring_state])
+ioctl$VHOST_VDPA_SET_GROUP_ASID(fd fd_vhost, cmd const[VHOST_VDPA_SET_GROUP_ASID], arg ptr[in, vhost_vring_state])
+
 sockaddr_vm {
 	svm_family	const[AF_VSOCK, int16]
 	svm_reserved1	const[0, int16]
@@ -127,6 +143,17 @@ vhost_msg_v2 {
 	reserved	const[0, int32]
 	iotlb		vhost_iotlb_msg
 } [size[VHOST_MSG_V2_SIZE]]
+
+vhost_vdpa_config {
+	off	int32
+	len	len[buf, int32]
+	buf	array[int8]
+}
+
+vhost_vdpa_iova_range {
+	first	int64
+	last	int64
+}
 
 define VHOST_MSG_V2_SIZE	sizeof(struct vhost_msg_v2)
 
