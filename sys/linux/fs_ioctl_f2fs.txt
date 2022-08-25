@@ -10,7 +10,7 @@ ioctl$F2FS_IOC_START_ATOMIC_WRITE(fd fd, cmd const[F2FS_IOC_START_ATOMIC_WRITE],
 ioctl$F2FS_IOC_COMMIT_ATOMIC_WRITE(fd fd, cmd const[F2FS_IOC_COMMIT_ATOMIC_WRITE], arg const[0])
 ioctl$F2FS_IOC_START_VOLATILE_WRITE(fd fd, cmd const[F2FS_IOC_START_VOLATILE_WRITE], arg const[0])
 ioctl$F2FS_IOC_RELEASE_VOLATILE_WRITE(fd fd, cmd const[F2FS_IOC_RELEASE_VOLATILE_WRITE], arg const[0])
-ioctl$F2FS_IOC_ABORT_VOLATILE_WRITE(fd fd, cmd const[F2FS_IOC_ABORT_VOLATILE_WRITE], arg const[0])
+ioctl$F2FS_IOC_ABORT_ATOMIC_WRITE(fd fd, cmd const[F2FS_IOC_ABORT_ATOMIC_WRITE], arg const[0])
 ioctl$F2FS_IOC_GARBAGE_COLLECT(fd fd, cmd const[F2FS_IOC_GARBAGE_COLLECT], arg ptr[in, bool32])
 ioctl$F2FS_IOC_GARBAGE_COLLECT_RANGE(fd fd, cmd const[F2FS_IOC_GARBAGE_COLLECT_RANGE], arg ptr[in, f2fs_gc_range])
 ioctl$F2FS_IOC_WRITE_CHECKPOINT(fd fd, cmd const[F2FS_IOC_WRITE_CHECKPOINT], arg const[0])
