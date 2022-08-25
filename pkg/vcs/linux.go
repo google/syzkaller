@@ -23,6 +23,7 @@ import (
 
 type linux struct {
 	*git
+	vmType string
 }
 
 var (
@@ -30,12 +31,14 @@ var (
 	_ ConfigMinimizer = new(linux)
 )
 
-func newLinux(dir string, opts []RepoOpt) *linux {
+func newLinux(dir string, opts []RepoOpt, vmType string) *linux {
 	ignoreCC := map[string]bool{
 		"stable@vger.kernel.org": true,
 	}
+
 	return &linux{
-		git: newGit(dir, ignoreCC, opts),
+		git:    newGit(dir, ignoreCC, opts),
+		vmType: vmType,
 	}
 }
 
@@ -246,6 +249,18 @@ func linuxAlterConfigs(cf *kconfig.ConfigFile, tags map[string]bool) {
 			cf.Set(a.To, kconfig.Yes)
 		}
 	}
+}
+
+func (ctx *linux) PrepareBisect() error {
+	if ctx.vmType != "gvisor" {
+		// Some linux repos we fuzz don't import the upstream release git tags. We need tags
+		// to decide which compiler versions to use. Let's fetch upstream for its tags.
+		err := ctx.git.fetchRemote("https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git")
+		if err != nil {
+			return fmt.Errorf("fetching upstream linux failed: %w", err)
+		}
+	}
+	return nil
 }
 
 func (ctx *linux) Bisect(bad, good string, dt debugtracer.DebugTracer, pred func() (BisectResult,

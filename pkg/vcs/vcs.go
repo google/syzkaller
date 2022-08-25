@@ -64,6 +64,10 @@ type Repo interface {
 
 // Bisecter may be optionally implemented by Repo.
 type Bisecter interface {
+	// Can be used for last minute preparations like pulling release tags into the bisected repo, which
+	// is required to determin the compiler version to use on linux. Can be an empty function.
+	PrepareBisect() error
+
 	// Bisect bisects good..bad commit range against the provided predicate (wrapper around git bisect).
 	// The predicate should return an error only if there is no way to proceed
 	// (it will abort the process), if possible it should prefer to return BisectSkip.
@@ -172,10 +176,10 @@ const (
 	OptDontSandbox
 )
 
-func NewRepo(os, vm, dir string, opts ...RepoOpt) (Repo, error) {
+func NewRepo(os, vmType, dir string, opts ...RepoOpt) (Repo, error) {
 	switch os {
 	case targets.Linux:
-		return newLinux(dir, opts), nil
+		return newLinux(dir, opts, vmType), nil
 	case targets.Akaros:
 		return newAkaros(dir, opts), nil
 	case targets.Fuchsia:
