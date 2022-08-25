@@ -201,6 +201,11 @@ func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
 }
 
 func (env *env) bisect() (*Result, error) {
+	err := env.bisecter.PrepareBisect()
+	if err != nil {
+		return nil, err
+	}
+
 	cfg := env.cfg
 	if err := build.Clean(cfg.Manager.TargetOS, cfg.Manager.TargetVMArch,
 		cfg.Manager.Type, cfg.Manager.KernelSrc); err != nil {

@@ -48,3 +48,7 @@ func (ctx *testos) Minimize(target *targets.Target, original, baseline []byte,
 		return original, nil
 	}
 }
+
+func (ctx *testos) PrepareBisect() error {
+	return nil
+}
