@@ -16,7 +16,7 @@ type Config struct {
 	Debug bool `json:"debug"`
 	// Where to upload artifacts.
 	// If "gs://bucket/" is specified, assets will be stored in the corresponding GCS bucket.
-	// If "dummpy://" is specified, assets will not be actually stored anywhere. May be helpful
+	// If "dummy://" is specified, assets will not be actually stored anywhere. May be helpful
 	// for debugging.
 	UploadTo string `json:"upload_to"`
 	// Perform asset deprecation from this instance. If several syz-ci's share a common stoage,
@@ -25,7 +25,7 @@ type Config struct {
 	// Make assets publicly available (note that it also might require special configuration
 	// on the storage backend's side).
 	PublicAccess bool `json:"public_access"`
-	// Which assets need to be uploaded.
+	// Some asset type-specific configurations. By default all asset types are enabled.
 	Assets map[dashapi.AssetType]TypeConfig `json:"assets"`
 }
 
