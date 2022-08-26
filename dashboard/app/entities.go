@@ -50,6 +50,12 @@ type ManagerStats struct {
 	TotalExecs        int64
 }
 
+type Asset struct {
+	Type        dashapi.AssetType
+	DownloadURL string
+	CreateDate  time.Time
+}
+
 type Build struct {
 	Namespace           string
 	Manager             string
@@ -68,19 +74,25 @@ type Build struct {
 	KernelCommitTitle   string    `datastore:",noindex"`
 	KernelCommitDate    time.Time `datastore:",noindex"`
 	KernelConfig        int64     // reference to KernelConfig text entity
+	Assets              []Asset   // build-related assets
+	AssetsLastCheck     time.Time // the last time we checked the assets for deprecation
 }
 
 type Bug struct {
-	Namespace      string
-	Seq            int64 // sequences of the bug with the same title
-	Title          string
-	MergedTitles   []string // crash titles that we already merged into this bug
-	AltTitles      []string // alternative crash titles that we may merge into this bug
-	Status         int
-	DupOf          string
-	NumCrashes     int64
-	NumRepro       int64
+	Namespace    string
+	Seq          int64 // sequences of the bug with the same title
+	Title        string
+	MergedTitles []string // crash titles that we already merged into this bug
+	AltTitles    []string // alternative crash titles that we may merge into this bug
+	Status       int
+	StatusReason dashapi.BugStatusReason // e.g. if the bug status is "invalid", here's the reason why
+	DupOf        string
+	NumCrashes   int64
+	NumRepro     int64
+	// ReproLevel is the best ever found repro level for this bug.
+	// HeadReproLevel is best known repro level that still works on the HEAD commit.
 	ReproLevel     dashapi.ReproLevel
+	HeadReproLevel dashapi.ReproLevel `datastore:"HeadReproLevel"`
 	BisectCause    BisectStatus
 	BisectFix      BisectStatus
 	HasReport      bool
@@ -103,6 +115,29 @@ type Bug struct {
 	// bit 1 - don't want to publish it (syzkaller build/test errors)
 	KcidbStatus int64
 	DailyStats  []BugDailyStats
+}
+
+func (bug *Bug) Load(ps []db.Property) error {
+	if err := db.LoadStruct(bug, ps); err != nil {
+		return err
+	}
+	headReproFound := false
+	for _, p := range ps {
+		if p.Name == "HeadReproLevel" {
+			headReproFound = true
+			break
+		}
+	}
+	if !headReproFound {
+		// The field is new, so it won't be set in all entities.
+		// Assume it to be equal to the best found repro for the bug.
+		bug.HeadReproLevel = bug.ReproLevel
+	}
+	return nil
+}
+
+func (bug *Bug) Save() ([]db.Property, error) {
+	return db.SaveStruct(bug)
 }
 
 type BugDailyStats struct {
@@ -140,19 +175,21 @@ type BugReporting struct {
 type Crash struct {
 	// May be different from bug.Title due to AltTitles.
 	// May be empty for old bugs, in such case bug.Title is the right title.
-	Title       string
-	Manager     string
-	BuildID     string
-	Time        time.Time
-	Reported    time.Time // set if this crash was ever reported
-	Maintainers []string  `datastore:",noindex"`
-	Log         int64     // reference to CrashLog text entity
-	Flags       int64     // properties of the Crash
-	Report      int64     // reference to CrashReport text entity
-	ReproOpts   []byte    `datastore:",noindex"`
-	ReproSyz    int64     // reference to ReproSyz text entity
-	ReproC      int64     // reference to ReproC text entity
-	MachineInfo int64     // Reference to MachineInfo text entity.
+	Title           string
+	Manager         string
+	BuildID         string
+	Time            time.Time
+	Reported        time.Time // set if this crash was ever reported
+	Maintainers     []string  `datastore:",noindex"`
+	Log             int64     // reference to CrashLog text entity
+	Flags           int64     // properties of the Crash
+	Report          int64     // reference to CrashReport text entity
+	ReproOpts       []byte    `datastore:",noindex"`
+	ReproSyz        int64     // reference to ReproSyz text entity
+	ReproC          int64     // reference to ReproC text entity
+	ReproIsRevoked  bool      // the repro no longer triggers the bug on HEAD
+	LastReproRetest time.Time // the last time when the repro was re-checked
+	MachineInfo     int64     // Reference to MachineInfo text entity.
 	// Custom crash priority for reporting (greater values are higher priority).
 	// For example, a crash in mainline kernel has higher priority than a crash in a side branch.
 	// For historical reasons this is called ReportLen.
@@ -177,6 +214,7 @@ type ReportingStateEntry struct {
 //   - test of a committed fix
 //   - reproduce crash
 //   - test that crash still happens on HEAD
+//
 // Job has Bug as parent entity.
 type Job struct {
 	Type      JobType
@@ -625,6 +663,19 @@ func timeDate(t time.Time) int {
 func stringInList(list []string, str string) bool {
 	for _, s := range list {
 		if s == str {
+			return true
+		}
+	}
+	return false
+}
+
+func stringListsIntersect(a, b []string) bool {
+	m := map[string]bool{}
+	for _, strA := range a {
+		m[strA] = true
+	}
+	for _, strB := range b {
+		if m[strB] {
 			return true
 		}
 	}

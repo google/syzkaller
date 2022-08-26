@@ -82,6 +82,7 @@ func TestReportBug(t *testing.T) {
 		CrashTime:         timeNow(c.ctx),
 		NumCrashes:        1,
 		HappenedOn:        []string{"repo1 branch1"},
+		Assets:            []dashapi.Asset{},
 	}
 	c.expectEQ(want, rep)
 
@@ -244,6 +245,7 @@ func TestInvalidBug(t *testing.T) {
 		CrashTime:         timeNow(c.ctx),
 		NumCrashes:        1,
 		HappenedOn:        []string{"repo1 branch1"},
+		Assets:            []dashapi.Asset{},
 	}
 	c.expectEQ(want, rep)
 	c.client.ReportFailedRepro(testCrashID(crash1))

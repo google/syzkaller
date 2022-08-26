@@ -61,7 +61,7 @@ This will create a memory device for the VM file and allow host to install the c
 To get a copy of the current development sources:
 ```console
 # pkg install git
-# git clone --depth=1 --branch=master https://github.com/freebsd/freebsd /usr/src
+# git clone --depth=1 --branch=main https://github.com/freebsd/freebsd-src /usr/src
 ```
 To create a custom kernel configuration file for syzkaller and build a new kernel, run:
 

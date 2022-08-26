@@ -102,6 +102,7 @@ type Build struct {
 	KernelConfig        []byte
 	Commits             []string // see BuilderPoll
 	FixCommits          []Commit
+	Assets              []NewAsset
 }
 
 type Commit struct {
@@ -182,13 +183,14 @@ type JobPollResp struct {
 }
 
 type JobDoneReq struct {
-	ID          string
-	Build       Build
-	Error       []byte
-	Log         []byte // bisection log
-	CrashTitle  string
-	CrashLog    []byte
-	CrashReport []byte
+	ID             string
+	Build          Build
+	Error          []byte
+	Log            []byte // bisection log
+	CrashTitle     string
+	CrashAltTitles []string
+	CrashLog       []byte
+	CrashReport    []byte
 	// Bisection results:
 	// If there is 0 commits:
 	//  - still happens on HEAD for fix bisection
@@ -396,7 +398,26 @@ type BugReport struct {
 	PatchLink      string
 	BisectCause    *BisectResult
 	BisectFix      *BisectResult
+	Assets         []Asset
 }
+
+type Asset struct {
+	Title       string
+	DownloadURL string
+	Type        AssetType
+}
+
+type AssetType string
+
+// Asset types used throughout the system.
+// DO NOT change them, this will break compatibility with DB content.
+const (
+	BootableDisk       AssetType = "bootable_disk"
+	NonBootableDisk    AssetType = "non_bootable_disk"
+	KernelObject       AssetType = "kernel_object"
+	KernelImage        AssetType = "kernel_image"
+	HTMLCoverageReport AssetType = "html_coverage_report"
+)
 
 type BisectResult struct {
 	Commit          *Commit   // for conclusive bisection
@@ -413,6 +434,7 @@ type BugUpdate struct {
 	ExtID           string
 	Link            string
 	Status          BugStatus
+	StatusReason    BugStatusReason
 	ReproLevel      ReproLevel
 	DupOf           string
 	OnHold          bool     // If set for open bugs, don't upstream this bug.
@@ -537,6 +559,35 @@ func (dash *Dashboard) UploadManagerStats(req *ManagerStatsReq) error {
 	return dash.Query("manager_stats", req, nil)
 }
 
+// Asset lifetime:
+// 1. syz-ci uploads it to GCS and reports to the dashboard via add_build_asset.
+// 2. dashboard periodically checks if the asset is still needed.
+// 3. syz-ci queries needed_assets to figure out which assets are still needed.
+// 4. Once an asset is not needed, syz-ci removes the corresponding file.
+type NewAsset struct {
+	DownloadURL string
+	Type        AssetType
+}
+
+type AddBuildAssetsReq struct {
+	BuildID string
+	Assets  []NewAsset
+}
+
+func (dash *Dashboard) AddBuildAssets(req *AddBuildAssetsReq) error {
+	return dash.Query("add_build_assets", req, nil)
+}
+
+type NeededAssetsResp struct {
+	DownloadURLs []string
+}
+
+func (dash *Dashboard) NeededAssetsList() (*NeededAssetsResp, error) {
+	resp := new(NeededAssetsResp)
+	err := dash.Query("needed_assets", nil, resp)
+	return resp, err
+}
+
 type BugListResp struct {
 	List []string
 }
@@ -559,10 +610,11 @@ func (dash *Dashboard) LoadBug(id string) (*BugReport, error) {
 }
 
 type (
-	BugStatus  int
-	BugNotif   int
-	ReproLevel int
-	ReportType int
+	BugStatus       int
+	BugStatusReason string
+	BugNotif        int
+	ReproLevel      int
+	ReportType      int
 )
 
 const (
@@ -573,6 +625,11 @@ const (
 	BugStatusUpdate // aux info update (i.e. ExtID/Link/CC)
 	BugStatusUnCC   // don't CC sender on any future communication
 	BugStatusFixed
+)
+
+const (
+	InvalidatedByRevokedRepro = BugStatusReason("invalid_no_repro")
+	InvalidatedByNoActivity   = BugStatusReason("invalid_no_activity")
 )
 
 const (

@@ -4,6 +4,7 @@
 package main
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -16,6 +17,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/asset"
 	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/gcs"
@@ -62,27 +64,32 @@ func init() {
 // Manager represents a single syz-manager instance.
 // Handles kernel polling, image rebuild and manager process management.
 // As syzkaller builder, it maintains 2 builds:
-//  - latest: latest known good kernel build
-//  - current: currently used kernel build
+//   - latest: latest known good kernel build
+//   - current: currently used kernel build
 type Manager struct {
-	name       string
-	workDir    string
-	kernelDir  string
-	currentDir string
-	latestDir  string
-	configTag  string
-	configData []byte
-	cfg        *Config
-	repo       vcs.Repo
-	mgrcfg     *ManagerConfig
-	managercfg *mgrconfig.Config
-	cmd        *ManagerCmd
-	dash       *dashapi.Dashboard
-	stop       chan struct{}
-	debug      bool
+	name         string
+	workDir      string
+	kernelDir    string
+	currentDir   string
+	latestDir    string
+	configTag    string
+	configData   []byte
+	cfg          *Config
+	repo         vcs.Repo
+	mgrcfg       *ManagerConfig
+	managercfg   *mgrconfig.Config
+	cmd          *ManagerCmd
+	dash         *dashapi.Dashboard
+	debugStorage bool
+	storage      *asset.Storage
+	stop         chan struct{}
+	debug        bool
+	lastBuild    *dashapi.Build
+	buildUpdated bool
 }
 
-func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}, debug bool) (*Manager, error) {
+func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{},
+	debug bool) (*Manager, error) {
 	dir := osutil.Abs(filepath.Join("managers", mgrcfg.Name))
 	err := osutil.MkdirAll(dir)
 	if err != nil {
@@ -99,7 +106,13 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}, debug
 			return nil, err
 		}
 	}
-
+	var assetStorage *asset.Storage
+	if !cfg.AssetStorage.IsEmpty() {
+		assetStorage, err = asset.StorageFromConfig(cfg.AssetStorage, dash)
+		if err != nil {
+			log.Fatalf("failed to create asset storage: %v", err)
+		}
+	}
 	var configData []byte
 	if mgrcfg.KernelConfig != "" {
 		if configData, err = ioutil.ReadFile(mgrcfg.KernelConfig); err != nil {
@@ -113,20 +126,22 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}, debug
 	}
 
 	mgr := &Manager{
-		name:       mgrcfg.managercfg.Name,
-		workDir:    filepath.Join(dir, "workdir"),
-		kernelDir:  kernelDir,
-		currentDir: filepath.Join(dir, "current"),
-		latestDir:  filepath.Join(dir, "latest"),
-		configTag:  hash.String(configData),
-		configData: configData,
-		cfg:        cfg,
-		repo:       repo,
-		mgrcfg:     mgrcfg,
-		managercfg: mgrcfg.managercfg,
-		dash:       dash,
-		stop:       stop,
-		debug:      debug,
+		name:         mgrcfg.managercfg.Name,
+		workDir:      filepath.Join(dir, "workdir"),
+		kernelDir:    kernelDir,
+		currentDir:   filepath.Join(dir, "current"),
+		latestDir:    filepath.Join(dir, "latest"),
+		configTag:    hash.String(configData),
+		configData:   configData,
+		cfg:          cfg,
+		repo:         repo,
+		mgrcfg:       mgrcfg,
+		managercfg:   mgrcfg.managercfg,
+		dash:         dash,
+		storage:      assetStorage,
+		debugStorage: !cfg.AssetStorage.IsEmpty() && cfg.AssetStorage.Debug,
+		stop:         stop,
+		debug:        debug,
 	}
 
 	os.RemoveAll(mgr.currentDir)
@@ -169,10 +184,8 @@ loop:
 		}
 		if !artifactUploadTime.IsZero() && time.Now().After(artifactUploadTime) {
 			artifactUploadTime = time.Time{}
-			if mgr.managercfg.Cover && mgr.cfg.CoverUploadPath != "" {
-				if err := mgr.uploadCoverReport(); err != nil {
-					mgr.Errorf("failed to upload cover report: %v", err)
-				}
+			if err := mgr.uploadCoverReport(); err != nil {
+				mgr.Errorf("failed to upload cover report: %v", err)
 			}
 			if mgr.cfg.CorpusUploadPath != "" {
 				if err := mgr.uploadCorpus(); err != nil {
@@ -234,6 +247,7 @@ func (mgr *Manager) pollAndBuild(lastCommit string, latestInfo *BuildInfo) (
 					if latestInfo == nil {
 						mgr.Errorf("failed to read build info after build")
 					}
+					mgr.buildUpdated = true
 				}
 				<-kernelBuildSem
 			case <-mgr.stop:
@@ -461,6 +475,16 @@ func (mgr *Manager) reportBuildError(rep *report.Report, info *BuildInfo, imageD
 	if err != nil {
 		return err
 	}
+	if mgr.storage != nil {
+		// We have to send assets together with the other info because the report
+		// might be generated immediately.
+		uploadedAssets, err := mgr.uploadBuildAssets(build, imageDir)
+		if err == nil {
+			build.Assets = uploadedAssets
+		} else {
+			log.Logf(0, "%v: failed to upload build assets: %s", mgr.name, err)
+		}
+	}
 	req := &dashapi.BuildErrorReq{
 		Build: *build,
 		Crash: dashapi.Crash{
@@ -472,7 +496,10 @@ func (mgr *Manager) reportBuildError(rep *report.Report, info *BuildInfo, imageD
 			Report:     rep.Report,
 		},
 	}
-	return mgr.dash.ReportBuildError(req)
+	if err := mgr.dash.ReportBuildError(req); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (mgr *Manager) createTestConfig(imageDir string, info *BuildInfo) (*mgrconfig.Config, error) {
@@ -545,6 +572,7 @@ func (mgr *Manager) uploadBuild(info *BuildInfo, imageDir string) (string, error
 	if err != nil {
 		return "", err
 	}
+	mgr.lastBuild = build
 	commitTitles, fixCommits, err := mgr.pollCommits(info.KernelCommit)
 	if err != nil {
 		// This is not critical for operation.
@@ -552,6 +580,19 @@ func (mgr *Manager) uploadBuild(info *BuildInfo, imageDir string) (string, error
 	}
 	build.Commits = commitTitles
 	build.FixCommits = fixCommits
+	// Normally we have no reason to upload build artifacts every restart - we don't rebuild
+	// kernels that often. So we only do that after we have built them. There's only one small
+	// exception - for debugging purposes it's better to upload more than to rebuild more.
+	assetUploadNeeded := mgr.debugStorage || mgr.buildUpdated
+	if mgr.storage != nil && assetUploadNeeded {
+		mgr.buildUpdated = false
+		assets, err := mgr.uploadBuildAssets(build, imageDir)
+		if err != nil {
+			mgr.Errorf("failed to upload build assets: %v", err)
+			return "", err
+		}
+		build.Assets = assets
+	}
 	if err := mgr.dash.UploadBuild(build); err != nil {
 		return "", err
 	}
@@ -634,7 +675,90 @@ func (mgr *Manager) pollCommits(buildCommit string) ([]string, []dashapi.Commit,
 	return present, fixCommits, nil
 }
 
+func (mgr *Manager) uploadBuildAssets(build *dashapi.Build, assetFolder string) ([]dashapi.NewAsset, error) {
+	if mgr.storage == nil {
+		// No reason to continue anyway.
+		return nil, fmt.Errorf("asset storage is not configured")
+	}
+	type pendingAsset struct {
+		path      string
+		assetType dashapi.AssetType
+		name      string
+	}
+	pending := []pendingAsset{}
+	bootableDisk := true
+	kernelFile := filepath.Join(assetFolder, "kernel")
+	if osutil.IsExist(kernelFile) {
+		bootableDisk = true
+		pending = append(pending, pendingAsset{kernelFile, dashapi.KernelImage, "kernel"})
+	}
+	imageFile := filepath.Join(assetFolder, "image")
+	if osutil.IsExist(imageFile) {
+		if bootableDisk {
+			pending = append(pending, pendingAsset{imageFile, dashapi.BootableDisk,
+				"disk.raw"})
+		} else {
+			pending = append(pending, pendingAsset{imageFile, dashapi.NonBootableDisk,
+				"non_bootable_disk.raw"})
+		}
+	}
+	target := mgr.managercfg.SysTarget
+	kernelObjFile := filepath.Join(assetFolder, "obj", target.KernelObject)
+	if osutil.IsExist(kernelObjFile) {
+		pending = append(pending,
+			pendingAsset{kernelObjFile, dashapi.KernelObject, target.KernelObject})
+	}
+	// TODO: add initrd?
+	ret := []dashapi.NewAsset{}
+	for _, pendingAsset := range pending {
+		if !mgr.storage.AssetTypeEnabled(pendingAsset.assetType) {
+			continue
+		}
+		file, err := os.Open(pendingAsset.path)
+		if err != nil {
+			log.Logf(0, "failed to open an asset for uploading: %s, %s",
+				pendingAsset.path, err)
+			continue
+		}
+		if mgr.debugStorage {
+			log.Logf(0, "uploading an asset %s of type %s",
+				pendingAsset.path, pendingAsset.assetType)
+		}
+		extra := &asset.ExtraUploadArg{SkipIfExists: true}
+		hash := sha256.New()
+		if _, err := io.Copy(hash, file); err != nil {
+			log.Logf(0, "failed calculate hash for the asset %s: %s", pendingAsset.path, err)
+			continue
+		}
+		extra.UniqueTag = fmt.Sprintf("%x", hash.Sum(nil))
+		// Now we need to go back to the beginning of the file again.
+		if _, err := file.Seek(0, io.SeekStart); err != nil {
+			log.Logf(0, "failed wind back the opened file for %s: %s", pendingAsset.path, err)
+			continue
+		}
+		info, err := mgr.storage.UploadBuildAsset(file, pendingAsset.name,
+			pendingAsset.assetType, build, extra)
+		if err != nil {
+			log.Logf(0, "failed to upload an asset: %s, %s",
+				pendingAsset.path, err)
+			continue
+		} else if mgr.debugStorage {
+			log.Logf(0, "uploaded an asset: %#v", info)
+		}
+		ret = append(ret, info)
+	}
+	return ret, nil
+}
+
 func (mgr *Manager) uploadCoverReport() error {
+	directUpload := mgr.managercfg.Cover && mgr.cfg.CoverUploadPath != ""
+	if mgr.storage == nil && !directUpload {
+		// Cover report uploading is disabled.
+		return nil
+	}
+	if mgr.storage != nil && directUpload {
+		return fmt.Errorf("cover report must be either uploaded directly or via asset storage")
+	}
 	// Report generation can consume lots of memory. Generate one at a time.
 	select {
 	case kernelBuildSem <- struct{}{}:
@@ -656,8 +780,20 @@ func (mgr *Manager) uploadCoverReport() error {
 		return fmt.Errorf("failed to get report: %v", err)
 	}
 	defer resp.Body.Close()
-	// Upload coverage report.
-	return uploadFile(mgr.cfg.CoverUploadPath, mgr.name+".html", resp.Body)
+	if directUpload {
+		return uploadFile(mgr.cfg.CoverUploadPath, mgr.name+".html", resp.Body)
+	}
+	// Upload via the asset storage.
+	newAsset, err := mgr.storage.UploadBuildAsset(resp.Body, mgr.name+".html",
+		dashapi.HTMLCoverageReport, mgr.lastBuild, nil)
+	if err != nil {
+		return fmt.Errorf("failed to upload html coverage report: %w", err)
+	}
+	err = mgr.storage.ReportBuildAssets(mgr.lastBuild, newAsset)
+	if err != nil {
+		return fmt.Errorf("failed to report the html coverage report asset: %w", err)
+	}
+	return nil
 }
 
 func (mgr *Manager) uploadCorpus() error {

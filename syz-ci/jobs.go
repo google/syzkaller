@@ -477,6 +477,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 	}
 	if res.Report != nil {
 		resp.CrashTitle = res.Report.Title
+		resp.CrashAltTitles = res.Report.AltTitles
 		resp.CrashReport = res.Report.Report
 		resp.CrashLog = res.Report.Output
 		if len(resp.Commits) != 0 {
@@ -572,6 +573,7 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 	rep := ret.report
 	if rep != nil {
 		resp.CrashTitle = rep.Title
+		resp.CrashAltTitles = rep.AltTitles
 		resp.CrashReport = rep.Report
 	}
 	resp.CrashLog = ret.rawOutput
