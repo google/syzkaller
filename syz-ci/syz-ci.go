@@ -261,7 +261,7 @@ func main() {
 	})
 
 	wg.Add(1)
-	go deprecateAssets(cfg, shutdownPending, &wg)
+	go deprecateAssets(cfg, stop, &wg)
 	wg.Wait()
 
 	select {
@@ -271,7 +271,7 @@ func main() {
 	}
 }
 
-func deprecateAssets(cfg *Config, shutdownPending chan struct{}, wg *sync.WaitGroup) {
+func deprecateAssets(cfg *Config, stop chan struct{}, wg *sync.WaitGroup) {
 	defer wg.Done()
 	if cfg.DashboardAddr == "" || cfg.AssetStorage.IsEmpty() ||
 		!cfg.AssetStorage.DoDeprecation {
@@ -292,7 +292,7 @@ loop:
 	for {
 		const sleepDuration = 6 * time.Hour
 		select {
-		case <-shutdownPending:
+		case <-stop:
 			break loop
 		case <-time.After(sleepDuration):
 		}
