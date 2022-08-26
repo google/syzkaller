@@ -978,6 +978,21 @@ func jobReported(c context.Context, jobID string) error {
 	return db.RunInTransaction(c, tx, nil)
 }
 
+type jobSorter struct {
+	jobs []*Job
+	keys []*db.Key
+}
+
+func (sorter *jobSorter) Len() int { return len(sorter.jobs) }
+func (sorter *jobSorter) Less(i, j int) bool {
+	// Give priority to user-initiated jobs to reduce the perceived processing time.
+	return sorter.jobs[i].User != "" && sorter.jobs[j].User == ""
+}
+func (sorter *jobSorter) Swap(i, j int) {
+	sorter.jobs[i], sorter.jobs[j] = sorter.jobs[j], sorter.jobs[i]
+	sorter.keys[i], sorter.keys[j] = sorter.keys[j], sorter.keys[i]
+}
+
 func loadPendingJob(c context.Context, managers map[string]dashapi.ManagerJobs) (*Job, *db.Key, error) {
 	var jobs []*Job
 	keys, err := db.NewQuery("Job").
@@ -988,10 +1003,7 @@ func loadPendingJob(c context.Context, managers map[string]dashapi.ManagerJobs) 
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to query jobs: %v", err)
 	}
-	// Give priority to user-initiated jobs to reduce the perceived processing time.
-	sort.SliceStable(jobs, func(i, j int) bool {
-		return jobs[i].User != "" && jobs[j].User == ""
-	})
+	sort.Stable(&jobSorter{jobs: jobs, keys: keys})
 	for i, job := range jobs {
 		switch job.Type {
 		case JobTestPatch:
