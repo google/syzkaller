@@ -858,6 +858,31 @@ func loadSimilarBugs(c context.Context, r *http.Request, bug *Bug, state *Report
 	return group, nil
 }
 
+func closedBugStatus(bug *Bug, bugReporting *BugReporting) string {
+	status := ""
+	switch bug.Status {
+	case BugStatusInvalid:
+		switch bug.StatusReason {
+		case dashapi.InvalidatedByNoActivity:
+			fallthrough
+		case dashapi.InvalidatedByRevokedRepro:
+			status = "obsoleted due to no activity"
+		default:
+			status = "closed as invalid"
+		}
+		if bugReporting.Auto {
+			status = "auto-" + status
+		}
+	case BugStatusFixed:
+		status = "fixed"
+	case BugStatusDup:
+		status = "closed as dup"
+	default:
+		status = fmt.Sprintf("unknown (%v)", bug.Status)
+	}
+	return fmt.Sprintf("%v on %v", status, html.FormatTime(bug.Closed))
+}
+
 func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []string) *uiBug {
 	reportingIdx, status, link := 0, "", ""
 	var reported time.Time
@@ -882,20 +907,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 				reportingIdx = i
 				reported = bugReporting.Reported
 				link = bugReporting.Link
-				switch bug.Status {
-				case BugStatusInvalid:
-					status = "closed as invalid"
-					if bugReporting.Auto {
-						status = "auto-" + status
-					}
-				case BugStatusFixed:
-					status = "fixed"
-				case BugStatusDup:
-					status = "closed as dup"
-				default:
-					status = fmt.Sprintf("unknown (%v)", bug.Status)
-				}
-				status = fmt.Sprintf("%v on %v", status, html.FormatTime(bug.Closed))
+				status = closedBugStatus(bug, bugReporting)
 				break
 			}
 		}
