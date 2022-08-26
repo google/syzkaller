@@ -573,7 +573,7 @@ func isRetestReproJob(job *Job, build *Build) bool {
 		job.KernelBranch == build.KernelBranch
 }
 
-func handleRetestedRepro(c context.Context, now time.Time, job *Job, jobKey *db.Key, allTitles []string) error {
+func handleRetestedRepro(c context.Context, now time.Time, job *Job, jobKey *db.Key, req *dashapi.JobDoneReq) error {
 	bugKey := jobKey.Parent()
 	crashKey := db.NewKey(c, "Crash", "", job.CrashID, bugKey)
 	crash := new(Crash)
@@ -596,8 +596,10 @@ func handleRetestedRepro(c context.Context, now time.Time, job *Job, jobKey *db.
 	}
 	// Update the crash.
 	crash.LastReproRetest = now
-	if len(allTitles) == 0 {
+	allTitles := gatherCrashTitles(req)
+	if req.Error == nil && len(allTitles) == 0 {
 		// If there was any crash at all, the repro is still not worth discarding.
+		// Also, if repro testing itself failed, it might be just a temporary issue.
 		crash.ReproIsRevoked = true
 	}
 	crash.UpdateReportingPriority(build, bug)
@@ -660,7 +662,7 @@ func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 			return fmt.Errorf("job %v: already finished", jobID)
 		}
 		if job.Type == JobTestPatch {
-			err := handleRetestedRepro(c, now, job, jobKey, gatherCrashTitles(req))
+			err := handleRetestedRepro(c, now, job, jobKey, req)
 			if err != nil {
 				return fmt.Errorf("job %v: failed to handle retested repro, %w", jobID, err)
 			}
@@ -749,7 +751,7 @@ func updateBugBisection(c context.Context, job *Job, jobKey *db.Key, req *dashap
 	}
 	// The repro is not working on the HEAD commit anymore, update the repro status.
 	if job.Type == JobBisectFix && req.Error == nil && len(req.Commits) > 0 {
-		err := handleRetestedRepro(c, now, job, jobKey, gatherCrashTitles(req))
+		err := handleRetestedRepro(c, now, job, jobKey, req)
 		if err != nil {
 			return err
 		}
