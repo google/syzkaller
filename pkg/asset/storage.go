@@ -192,8 +192,6 @@ func (e *FileExistsError) Error() string {
 	return fmt.Sprintf("asset exists: %s", e.Path)
 }
 
-var ErrAssetExists = errors.New("the asset already exists")
-
 const deletionEmbargo = time.Hour * 24 * 7
 
 // Best way: convert download URLs to paths.
