@@ -344,6 +344,11 @@ func (c *Ctx) expectNoEmail() {
 	}
 }
 
+func (c *Ctx) updRetestReproJobs() {
+	_, err := c.GET("/retest_repros")
+	c.expectOK(err)
+}
+
 type apiClient struct {
 	*Ctx
 	*dashapi.Dashboard
@@ -427,19 +432,23 @@ func (client *apiClient) updateBug(extID string, status dashapi.BugStatus, dup s
 	client.expectTrue(reply.OK)
 }
 
-func (client *apiClient) pollJobs(manager string) *dashapi.JobPollResp {
+func (client *apiClient) pollSpecificJobs(manager string, jobs dashapi.ManagerJobs) *dashapi.JobPollResp {
 	req := &dashapi.JobPollReq{
 		Managers: map[string]dashapi.ManagerJobs{
-			manager: {
-				TestPatches: true,
-				BisectCause: true,
-				BisectFix:   true,
-			},
+			manager: jobs,
 		},
 	}
 	resp, err := client.JobPoll(req)
 	client.expectOK(err)
 	return resp
+}
+
+func (client *apiClient) pollJobs(manager string) *dashapi.JobPollResp {
+	return client.pollSpecificJobs(manager, dashapi.ManagerJobs{
+		TestPatches: true,
+		BisectCause: true,
+		BisectFix:   true,
+	})
 }
 
 func (client *apiClient) pollAndFailBisectJob(manager string) {

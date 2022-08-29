@@ -21,6 +21,7 @@ func ctorOpenbsd(cfg *config) (reporterImpl, []string, error) {
 	suppressions := []string{
 		"panic: vop_generic_badop",
 		"witness: lock order reversal:\\n(.*\\n)*.*[0-9stnd]+ 0x[0-9a-f]+ inode(.*\\n)*.*lock order .* first seen at",
+		"panic:.*send disconnect: Broken pipe",
 	}
 	return ctx, suppressions, nil
 }
@@ -39,6 +40,10 @@ var openbsdOopses = append([]*oops{
 	{
 		[]byte("panic:"),
 		[]oopsFormat{
+			{
+				title: compile(`\nddb\{\d+\}> show panic(?Us:.*)[*]cpu\d+: ([^\n]+)(?Us:.*)\nddb\{\d+\}> trace`),
+				fmt:   "panic: %[1]v",
+			},
 			{
 				title: compile("panic: kernel diagnostic assertion (.+) failed: file \".*/([^\"]+)"),
 				fmt:   "assert %[1]v failed in %[2]v",

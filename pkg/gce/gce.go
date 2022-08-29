@@ -43,6 +43,12 @@ type Context struct {
 	apiRateGate <-chan time.Time
 }
 
+type CreateArgs struct {
+	Preemptible   bool
+	DisplayDevice bool
+	NestedVirt    bool
+}
+
 func NewContext(customZoneID string) (*Context, error) {
 	ctx := &Context{
 		apiRateGate: time.NewTicker(time.Second).C,
@@ -103,7 +109,7 @@ func NewContext(customZoneID string) (*Context, error) {
 }
 
 func (ctx *Context) CreateInstance(name, machineType, image, sshkey string,
-	preemptible, displayDevice bool) (string, error) {
+	args CreateArgs) (string, error) {
 	prefix := "https://www.googleapis.com/compute/v1/projects/" + ctx.ProjectID
 	sshkeyAttr := "syzkaller:" + sshkey
 	oneAttr := "1"
@@ -143,11 +149,14 @@ func (ctx *Context) CreateInstance(name, machineType, image, sshkey string,
 		},
 		Scheduling: &compute.Scheduling{
 			AutomaticRestart:  &falseAttr,
-			Preemptible:       preemptible,
+			Preemptible:       args.Preemptible,
 			OnHostMaintenance: "TERMINATE",
 		},
 		DisplayDevice: &compute.DisplayDevice{
-			EnableDisplay: displayDevice,
+			EnableDisplay: args.DisplayDevice,
+		},
+		AdvancedMachineFeatures: &compute.AdvancedMachineFeatures{
+			EnableNestedVirtualization: args.NestedVirt,
 		},
 	}
 retry:

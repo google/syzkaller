@@ -50,6 +50,7 @@ var testConfig = &GlobalConfig{
 		MaxPeriod:         100 * 24 * time.Hour,
 		NonFinalMinPeriod: 40 * 24 * time.Hour,
 		NonFinalMaxPeriod: 60 * 24 * time.Hour,
+		ReproRetestPeriod: 100 * 24 * time.Hour,
 	},
 	DefaultNamespace: "test1",
 	Namespaces: map[string]*Config{
@@ -177,6 +178,7 @@ var testConfig = &GlobalConfig{
 					},
 				},
 			},
+			RetestRepros: true,
 		},
 		// Namespaces for access level testing.
 		"access-admin": {

@@ -359,6 +359,7 @@ github.com/ssgreg/nlreturn/v2/pkg/nlreturn
 ## explicit
 github.com/stretchr/objx
 # github.com/stretchr/testify v1.7.0
+## explicit
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/mock
 # github.com/subosito/gotenv v1.2.0
@@ -377,6 +378,12 @@ github.com/tomarrell/wrapcheck/wrapcheck
 github.com/tommy-muehle/go-mnd/v2
 github.com/tommy-muehle/go-mnd/v2/checks
 github.com/tommy-muehle/go-mnd/v2/config
+# github.com/ulikunitz/xz v0.5.10
+## explicit
+github.com/ulikunitz/xz
+github.com/ulikunitz/xz/internal/hash
+github.com/ulikunitz/xz/internal/xlog
+github.com/ulikunitz/xz/lzma
 # github.com/ultraware/funlen v0.0.3
 github.com/ultraware/funlen
 # github.com/ultraware/whitespace v0.0.4
@@ -434,6 +441,7 @@ golang.org/x/perf/benchstat
 golang.org/x/perf/internal/stats
 golang.org/x/perf/storage/benchfmt
 # golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
 # golang.org/x/sys v0.0.0-20210503080704-8803ae5d1324

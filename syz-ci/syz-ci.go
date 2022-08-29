@@ -62,7 +62,10 @@ import (
 	"path/filepath"
 	"regexp"
 	"sync"
+	"time"
 
+	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/asset"
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -107,6 +110,8 @@ type Config struct {
 	JobPollPeriod int `json:"job_poll_period"`
 	// Poll period for commits in seconds (optional, defaults to 3600 seconds)
 	CommitPollPeriod int `json:"commit_poll_period"`
+	// Asset Storage config.
+	AssetStorage *asset.Config `json:"asset_storage"`
 }
 
 type ManagerConfig struct {
@@ -234,7 +239,6 @@ func main() {
 			}()
 		}
 	}
-
 	jp, err := newJobProcessor(cfg, managers, stop, shutdownPending)
 	if err != nil {
 		log.Fatalf("failed to create dashapi connection %v", err)
@@ -256,12 +260,47 @@ func main() {
 		}
 	})
 
+	wg.Add(1)
+	go deprecateAssets(cfg, stop, &wg)
 	wg.Wait()
 
 	select {
 	case <-shutdownPending:
 	case <-updatePending:
 		updater.UpdateAndRestart()
+	}
+}
+
+func deprecateAssets(cfg *Config, stop chan struct{}, wg *sync.WaitGroup) {
+	defer wg.Done()
+	if cfg.DashboardAddr == "" || cfg.AssetStorage.IsEmpty() ||
+		!cfg.AssetStorage.DoDeprecation {
+		return
+	}
+	dash, err := dashapi.New(cfg.DashboardClient, cfg.DashboardAddr, cfg.DashboardKey)
+	if err != nil {
+		log.Fatalf("failed to create dashapi during asset deprecation: %v", err)
+		return
+	}
+	storage, err := asset.StorageFromConfig(cfg.AssetStorage, dash)
+	if err != nil {
+		dash.LogError("syz-ci",
+			"failed to create asset storage during asset deprecation: %v", err)
+		return
+	}
+loop:
+	for {
+		const sleepDuration = 6 * time.Hour
+		select {
+		case <-stop:
+			break loop
+		case <-time.After(sleepDuration):
+		}
+		log.Logf(0, "deprecating assets")
+		err := storage.DeprecateAssets()
+		if err != nil {
+			dash.LogError("syz-ci", "asset deprecation failed: %v", err)
+		}
 	}
 }
 
@@ -311,6 +350,11 @@ func loadConfig(filename string) (*Config, error) {
 	cfg.Managers = managers
 	if len(cfg.Managers) == 0 {
 		return nil, fmt.Errorf("no managers specified")
+	}
+	if cfg.AssetStorage != nil {
+		if err := cfg.AssetStorage.Validate(); err != nil {
+			return nil, fmt.Errorf("asset storage config error: %w", err)
+		}
 	}
 	return cfg, nil
 }

@@ -23,6 +23,7 @@ import (
 	"github.com/google/syzkaller/pkg/html"
 	"github.com/google/syzkaller/pkg/vcs"
 	"golang.org/x/net/context"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/api/iterator"
 	"google.golang.org/appengine/v2"
 	db "google.golang.org/appengine/v2/datastore"
@@ -58,6 +59,8 @@ func initHTTPHandlers() {
 		http.Handle("/"+ns+"/graph/crashes", handlerWrapper(handleGraphCrashes))
 	}
 	http.HandleFunc("/cache_update", cacheUpdate)
+	http.HandleFunc("/deprecate_assets", handleDeprecateAssets)
+	http.HandleFunc("/retest_repros", handleRetestRepros)
 }
 
 type uiMainPage struct {
@@ -190,6 +193,7 @@ type uiCrash struct {
 	ReportLink      string
 	ReproSyzLink    string
 	ReproCLink      string
+	ReproIsRevoked  bool
 	MachineInfoLink string
 	*uiBuild
 }
@@ -854,6 +858,31 @@ func loadSimilarBugs(c context.Context, r *http.Request, bug *Bug, state *Report
 	return group, nil
 }
 
+func closedBugStatus(bug *Bug, bugReporting *BugReporting) string {
+	status := ""
+	switch bug.Status {
+	case BugStatusInvalid:
+		switch bug.StatusReason {
+		case dashapi.InvalidatedByNoActivity:
+			fallthrough
+		case dashapi.InvalidatedByRevokedRepro:
+			status = "obsoleted due to no activity"
+		default:
+			status = "closed as invalid"
+		}
+		if bugReporting.Auto {
+			status = "auto-" + status
+		}
+	case BugStatusFixed:
+		status = "fixed"
+	case BugStatusDup:
+		status = "closed as dup"
+	default:
+		status = fmt.Sprintf("unknown (%v)", bug.Status)
+	}
+	return fmt.Sprintf("%v on %v", status, html.FormatTime(bug.Closed))
+}
+
 func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []string) *uiBug {
 	reportingIdx, status, link := 0, "", ""
 	var reported time.Time
@@ -878,20 +907,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 				reportingIdx = i
 				reported = bugReporting.Reported
 				link = bugReporting.Link
-				switch bug.Status {
-				case BugStatusInvalid:
-					status = "closed as invalid"
-					if bugReporting.Auto {
-						status = "auto-" + status
-					}
-				case BugStatusFixed:
-					status = "fixed"
-				case BugStatusDup:
-					status = "closed as dup"
-				default:
-					status = fmt.Sprintf("unknown (%v)", bug.Status)
-				}
-				status = fmt.Sprintf("%v on %v", status, html.FormatTime(bug.Closed))
+				status = closedBugStatus(bug, bugReporting)
 				break
 			}
 		}
@@ -1053,6 +1069,7 @@ func makeUICrash(crash *Crash, build *Build) *uiCrash {
 		ReportLink:      textLink(textCrashReport, crash.Report),
 		ReproSyzLink:    textLink(textReproSyz, crash.ReproSyz),
 		ReproCLink:      textLink(textReproC, crash.ReproC),
+		ReproIsRevoked:  crash.ReproIsRevoked,
 		MachineInfoLink: textLink(textMachineInfo, crash.MachineInfo),
 	}
 	if build != nil {
@@ -1095,16 +1112,29 @@ func loadManagers(c context.Context, accessLevel AccessLevel, ns, manager string
 		}
 	}
 	builds := make([]*Build, len(buildKeys))
-	if err := db.GetMulti(c, buildKeys, builds); err != nil {
-		return nil, err
+	stats := make([]*ManagerStats, len(statsKeys))
+	coverAssets := map[string]Asset{}
+	g, _ := errgroup.WithContext(context.Background())
+	g.Go(func() error {
+		return db.GetMulti(c, buildKeys, builds)
+	})
+	g.Go(func() error {
+		return db.GetMulti(c, statsKeys, stats)
+	})
+	g.Go(func() error {
+		// Get the last coverage report asset for the last week.
+		const maxDuration = time.Hour * 24 * 7
+		var err error
+		coverAssets, err = queryLatestManagerAssets(c, ns, dashapi.HTMLCoverageReport, maxDuration)
+		return err
+	})
+	err = g.Wait()
+	if err != nil {
+		return nil, fmt.Errorf("failed to query manager-related info: %w", err)
 	}
 	uiBuilds := make(map[string]*uiBuild)
 	for _, build := range builds {
 		uiBuilds[build.Namespace+"|"+build.ID] = makeUIBuild(build)
-	}
-	stats := make([]*ManagerStats, len(statsKeys))
-	if err := db.GetMulti(c, statsKeys, stats); err != nil {
-		return nil, fmt.Errorf("fetching manager stats: %v", err)
 	}
 	var fullStats []*ManagerStats
 	for _, mgr := range managers {
@@ -1126,12 +1156,20 @@ func loadManagers(c context.Context, accessLevel AccessLevel, ns, manager string
 		if now.Sub(mgr.LastAlive) > 6*time.Hour {
 			uptime = 0
 		}
+		// TODO: also display how fresh the coverage report is (to display it on
+		// the main page -- this will reduce confusion).
+		coverURL := ""
+		if asset, ok := coverAssets[mgr.Name]; ok {
+			coverURL = asset.DownloadURL
+		} else if config.CoverPath != "" {
+			coverURL = config.CoverPath + mgr.Name + ".html"
+		}
 		ui := &uiManager{
 			Now:                   timeNow(c),
 			Namespace:             mgr.Namespace,
 			Name:                  mgr.Name,
 			Link:                  link,
-			CoverLink:             config.CoverPath + mgr.Name + ".html",
+			CoverLink:             coverURL,
 			CurrentBuild:          uiBuilds[mgr.Namespace+"|"+mgr.CurrentBuild],
 			FailedBuildBugLink:    bugLink(mgr.FailedBuildBug),
 			FailedSyzBuildBugLink: bugLink(mgr.FailedSyzBuildBug),

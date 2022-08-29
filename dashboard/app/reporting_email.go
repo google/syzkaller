@@ -159,6 +159,7 @@ func emailPollNotifications(c context.Context) error {
 
 func emailSendBugNotif(c context.Context, notif *dashapi.BugNotification) error {
 	status, body := dashapi.BugStatusOpen, ""
+	var statusReason dashapi.BugStatusReason
 	switch notif.Type {
 	case dashapi.BugNotifUpstream:
 		body = "Sending this report upstream."
@@ -173,9 +174,15 @@ func emailSendBugNotif(c context.Context, notif *dashapi.BugNotification) error 
 			"new crashes with the same signature are ignored.\n",
 			notif.Text, days)
 	case dashapi.BugNotifObsoleted:
-		body = "Auto-closing this bug as obsolete.\n" +
-			"Crashes did not happen for a while, no reproducer and no activity."
+		body = "Auto-closing this bug as obsolete.\n"
+		statusReason = dashapi.BugStatusReason(notif.Text)
+		if statusReason == dashapi.InvalidatedByRevokedRepro {
+			body += "No recent activity, existing reproducers are no longer triggering the issue."
+		} else {
+			body += "Crashes did not happen for a while, no reproducer and no activity."
+		}
 		status = dashapi.BugStatusInvalid
+
 	default:
 		return fmt.Errorf("bad notification type %v", notif.Type)
 	}
@@ -198,6 +205,7 @@ func emailSendBugNotif(c context.Context, notif *dashapi.BugNotification) error 
 	cmd := &dashapi.BugUpdate{
 		ID:           notif.ID,
 		Status:       status,
+		StatusReason: statusReason,
 		Notification: true,
 	}
 	ok, reason, err := incomingCommand(c, cmd)

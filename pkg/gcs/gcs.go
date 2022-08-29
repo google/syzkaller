@@ -143,22 +143,37 @@ func (client *Client) DeleteFile(gcsFile string) error {
 	return err
 }
 
-func (client *Client) GetDownloadURL(gcsFile string) (string, error) {
+func (client *Client) FileExists(gcsFile string) (bool, error) {
 	bucket, filename, err := split(gcsFile)
 	if err != nil {
-		return "", err
+		return false, err
 	}
-	f := client.client.Bucket(bucket).Object(filename)
-	attrs, err := f.Attrs(client.ctx)
-	if err != nil {
-		return "", err
+	_, err = client.client.Bucket(bucket).Object(filename).Attrs(client.ctx)
+	if err == storage.ErrObjectNotExist {
+		return false, nil
+	} else if err != nil {
+		return false, err
 	}
-	return attrs.MediaLink, nil
+	return true, nil
+}
+
+// Where things get published.
+const (
+	PublicPrefix        = "https://storage.googleapis.com/"
+	AuthenticatedPrefix = "https://storage.cloud.google.com/"
+)
+
+func (client *Client) GetDownloadURL(gcsFile string, publicURL bool) string {
+	gcsFile = strings.TrimPrefix(gcsFile, "/")
+	if publicURL {
+		return PublicPrefix + gcsFile
+	}
+	return AuthenticatedPrefix + gcsFile
 }
 
 type Object struct {
-	DownloadURL string
-	CreatedAt   time.Time
+	Path      string
+	CreatedAt time.Time
 }
 
 func (client *Client) ListObjects(bucket string) ([]*Object, error) {
@@ -174,15 +189,12 @@ func (client *Client) ListObjects(bucket string) ([]*Object, error) {
 			return nil, fmt.Errorf("failed to query GCS objects: %w", err)
 		}
 		ret = append(ret, &Object{
-			DownloadURL: objAttrs.MediaLink,
-			CreatedAt:   objAttrs.Created,
+			Path:      objAttrs.Name,
+			CreatedAt: objAttrs.Created,
 		})
 	}
 	return ret, nil
 }
-
-// Where things get published.
-const PublicPrefix = "https://storage.googleapis.com/"
 
 func split(file string) (bucket, filename string, err error) {
 	pos := strings.IndexByte(file, '/')
