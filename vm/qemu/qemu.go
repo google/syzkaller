@@ -330,7 +330,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 			return inst, nil
 		}
 		// Older qemu prints "could", newer -- "Could".
-		if i < 1000 && strings.Contains(err.Error(), "ould not set up host forwarding rule") {
+		if i < 1000 && strings.Contains(err.Error(), "Could not set up host forwarding rule") {
 			continue
 		}
 		return nil, err
