@@ -78,7 +78,7 @@ build() {
     --with-base "//src/testing/fuzzing/syzkaller" \
     --args=syzkaller_dir="\"$syzkaller\"" \
     --variant=kasan
-  fx clean-build
+  fx build
 
   cd "$syzkaller"
   make TARGETOS=fuchsia TARGETARCH=amd64 SOURCEDIR="$fuchsia"
