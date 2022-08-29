@@ -21,6 +21,7 @@ func ctorOpenbsd(cfg *config) (reporterImpl, []string, error) {
 	suppressions := []string{
 		"panic: vop_generic_badop",
 		"witness: lock order reversal:\\n(.*\\n)*.*[0-9stnd]+ 0x[0-9a-f]+ inode(.*\\n)*.*lock order .* first seen at",
+		"panic:.*send disconnect: Broken pipe",
 	}
 	return ctx, suppressions, nil
 }
