@@ -40,6 +40,10 @@ var openbsdOopses = append([]*oops{
 		[]byte("panic:"),
 		[]oopsFormat{
 			{
+				title: compile(`\nddb\{\d+\}> show panic(?Us:.*)[*]cpu\d+: ([^\n]+)(?Us:.*)\nddb\{\d+\}> trace`),
+				fmt:   "panic: %[1]v",
+			},
+			{
 				title: compile("panic: kernel diagnostic assertion (.+) failed: file \".*/([^\"]+)"),
 				fmt:   "assert %[1]v failed in %[2]v",
 			},
