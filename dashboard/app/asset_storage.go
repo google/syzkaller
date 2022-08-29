@@ -239,7 +239,7 @@ func (ad *assetDeprecator) needThisBuildAsset(build *Build, buildAsset *Asset) (
 		// keep all coverage reports, just a share of them.
 		return ad.buildArchivePolicy(build, buildAsset)
 	}
-	if build.Type == BuildNormal {
+	if build.Type == BuildNormal || build.Type == BuildFailed {
 		// A build-related asset, keep it only while there are open bugs with crashes
 		// related to this build.
 		return ad.buildBugStatusPolicy(build)
