@@ -1159,10 +1159,10 @@ func loadManagers(c context.Context, accessLevel AccessLevel, ns, manager string
 		// TODO: also display how fresh the coverage report is (to display it on
 		// the main page -- this will reduce confusion).
 		coverURL := ""
-		if config.CoverPath != "" {
-			coverURL = config.CoverPath + mgr.Name + ".html"
-		} else if asset, ok := coverAssets[mgr.Name]; ok {
+		if asset, ok := coverAssets[mgr.Name]; ok {
 			coverURL = asset.DownloadURL
+		} else if config.CoverPath != "" {
+			coverURL = config.CoverPath + mgr.Name + ".html"
 		}
 		ui := &uiManager{
 			Now:                   timeNow(c),
