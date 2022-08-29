@@ -62,10 +62,10 @@ func (csb *cloudStorageBackend) upload(req *uploadRequest) (*uploadResponse, err
 	// complicated error-during-write handling.
 	exists, err := csb.client.FileExists(path)
 	if err != nil {
-		return nil, &FileExistsError{req.savePath}
+		return nil, err
 	}
 	if exists {
-		return nil, ErrAssetExists
+		return nil, &FileExistsError{req.savePath}
 	}
 	w, err := csb.client.FileWriterExt(path, req.contentType, req.contentEncoding)
 	csb.tracer.Log("gcs upload: obtained a writer for %s, error %s", path, err)
