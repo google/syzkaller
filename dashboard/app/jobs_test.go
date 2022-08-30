@@ -374,12 +374,12 @@ func TestReproRetestJob(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
-	build := testBuild(1)
-	build.KernelRepo = "git://mygit.com/git.git"
-	build.KernelBranch = "main"
-	c.client2.UploadBuild(build)
+	oldBuild := testBuild(1)
+	oldBuild.KernelRepo = "git://mygit.com/git.git"
+	oldBuild.KernelBranch = "main"
+	c.client2.UploadBuild(oldBuild)
 
-	crash := testCrash(build, 1)
+	crash := testCrash(oldBuild, 1)
 	crash.ReproOpts = []byte("repro opts")
 	crash.ReproSyz = []byte("repro syz")
 	c.client2.ReportCrash(crash)
@@ -387,11 +387,20 @@ func TestReproRetestJob(t *testing.T) {
 	_, extBugID, err := email.RemoveAddrContext(sender)
 	c.expectOK(err)
 
-	crash2 := testCrash(build, 1)
+	crash2 := testCrash(oldBuild, 1)
 	crash2.ReproOpts = []byte("repro opts")
 	crash2.ReproSyz = []byte("repro syz")
 	crash2.ReproC = []byte("repro C")
 	c.client2.ReportCrash(crash2)
+
+	// Upload a newer build.
+	c.advanceTime(time.Minute)
+	build := testBuild(1)
+	build.ID = "new-build"
+	build.KernelRepo = "git://mygit.com/new-git.git"
+	build.KernelBranch = "new-main"
+	c.client2.UploadBuild(build)
+
 	// Wait until the bug is upstreamed.
 	c.advanceTime(15 * 24 * time.Hour)
 	c.pollEmailBug()
