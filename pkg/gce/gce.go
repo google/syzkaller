@@ -46,7 +46,6 @@ type Context struct {
 type CreateArgs struct {
 	Preemptible   bool
 	DisplayDevice bool
-	NestedVirt    bool
 }
 
 func NewContext(customZoneID string) (*Context, error) {
@@ -109,7 +108,7 @@ func NewContext(customZoneID string) (*Context, error) {
 }
 
 func (ctx *Context) CreateInstance(name, machineType, image, sshkey string,
-	args CreateArgs) (string, error) {
+	preemptible, displayDevice bool) (string, error) {
 	prefix := "https://www.googleapis.com/compute/v1/projects/" + ctx.ProjectID
 	sshkeyAttr := "syzkaller:" + sshkey
 	oneAttr := "1"
@@ -149,14 +148,11 @@ func (ctx *Context) CreateInstance(name, machineType, image, sshkey string,
 		},
 		Scheduling: &compute.Scheduling{
 			AutomaticRestart:  &falseAttr,
-			Preemptible:       args.Preemptible,
+			Preemptible:       preemptible,
 			OnHostMaintenance: "TERMINATE",
 		},
 		DisplayDevice: &compute.DisplayDevice{
-			EnableDisplay: args.DisplayDevice,
-		},
-		AdvancedMachineFeatures: &compute.AdvancedMachineFeatures{
-			EnableNestedVirtualization: args.NestedVirt,
+			EnableDisplay: displayDevice,
 		},
 	}
 retry:
