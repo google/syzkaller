@@ -149,7 +149,7 @@ func (inst *instance) Close() {
 
 func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (
 	<-chan []byte, <-chan error, error) {
-	return inst.gceInst.Run(timeout, stop, fmt.Sprintf("adb shell %s", command))
+	return inst.gceInst.Run(timeout, stop, fmt.Sprintf("adb shell cd %s; %s", deviceRoot, command))
 }
 
 func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
