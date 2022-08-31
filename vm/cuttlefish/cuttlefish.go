@@ -81,8 +81,12 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		return nil, fmt.Errorf("failed to get root access to device: %s", err)
 	}
 
-	if err := inst.runOnHost(5*time.Minute, fmt.Sprintf("adb shell setprop persist.dbg.keep_debugfs_mounted 1;"+
-		"mount -t debugfs debugfs /sys/kernel/debug; chmod 0755 /sys/kernel/debug")); err != nil {
+	if err := inst.runOnHost(5*time.Minute, fmt.Sprintf("adb shell '"+
+		"setprop persist.dbg.keep_debugfs_mounted 1;"+
+		"mount -t debugfs debugfs /sys/kernel/debug;"+
+		"chmod 0755 /sys/kernel/debug;"+
+		"mkdir %s;"+
+		"'", deviceRoot)); err != nil {
 		return nil, fmt.Errorf("failed to mount debugfs to /sys/kernel/debug: %s", err)
 	}
 
@@ -154,7 +158,7 @@ func (inst *instance) Close() {
 
 func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (
 	<-chan []byte, <-chan error, error) {
-	return inst.gceInst.Run(timeout, stop, fmt.Sprintf("adb shell %s", command))
+	return inst.gceInst.Run(timeout, stop, fmt.Sprintf("adb shell 'cd %s; %s'", deviceRoot, command))
 }
 
 func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
