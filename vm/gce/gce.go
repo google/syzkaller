@@ -46,7 +46,6 @@ type Config struct {
 	GCEImage      string `json:"gce_image"`      // pre-created GCE image to use
 	Preemptible   bool   `json:"preemptible"`    // use preemptible VMs if available (defaults to true)
 	DisplayDevice bool   `json:"display_device"` // enable a virtual display device
-	NestedVirt    bool   `json:"nested_virt"`    // enable nested virtualization
 }
 
 type Pool struct {
@@ -153,13 +152,8 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		return nil, err
 	}
 	log.Logf(0, "creating instance: %v", name)
-	args := gce.CreateArgs{
-		Preemptible:   pool.cfg.Preemptible,
-		DisplayDevice: pool.cfg.DisplayDevice,
-		NestedVirt:    pool.cfg.NestedVirt,
-	}
 	ip, err := pool.GCE.CreateInstance(name, pool.cfg.MachineType, pool.cfg.GCEImage,
-		string(gceKeyPub), args)
+		string(gceKeyPub), pool.cfg.Preemptible, pool.cfg.DisplayDevice)
 	if err != nil {
 		return nil, err
 	}
