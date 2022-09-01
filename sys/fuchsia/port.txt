@@ -1,0 +1,66 @@
+# Copyright 2022 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+include <zircon/syscalls/port.h>
+
+resource zx_port[zx_handle]
+
+port_create_options = ZX_PORT_BIND_TO_INTERRUPT, 0
+
+zx_port_create(options flags[port_create_options], out ptr[out, zx_port])
+zx_port_cancel(port zx_port, source zx_handle, key proc[1000, 16])
+zx_port_queue(handle zx_port, packet ptr[in, zx_port_packet_user])
+zx_port_wait(handle zx_port, deadline zx_time, packet ptr[out, zx_port_packet])
+
+zx_packet_user [
+	u64	array[int64, 4]
+	u32	array[int32, 8]
+	u16	array[int16, 16]
+	c8	array[int8, 32]
+]
+
+zx_packet_signal {
+	trigger		int32
+	observed	int32
+	count		int64
+	timestamp	int64
+	reserved1	int64
+}
+
+zx_packet_interrupt {
+	timestamp	int64
+	reserved0	int64
+	reserved1	int64
+	reserved2	int64
+}
+
+zx_packet_page_request {
+	command		int16
+	flags		int16
+	reserved0	int16
+	offset		int64
+	length		int64
+	reserved1	int64
+}
+
+zx_port_packet_payload [
+	user		zx_packet_user
+	signal		zx_packet_signal
+	interrupt	zx_packet_interrupt
+	page_request	zx_packet_page_request
+]
+
+zx_port_packet {
+	key	int64
+	type	int32
+	status	int32
+	payload	zx_port_packet_payload
+}
+
+zx_port_packet_user {
+	key	proc[1000, 16, int64]
+	type	const[ZX_PKT_TYPE_USER, int32]
+	status	const[0, int32]
+	payload	zx_packet_user
+}
