@@ -336,6 +336,13 @@ func createNotification(c context.Context, typ dashapi.BugNotif, public bool, te
 }
 
 func currentReporting(c context.Context, bug *Bug) (*Reporting, *BugReporting, int, string, error) {
+	if bug.NumCrashes == 0 {
+		// This is possible during the short window when we already created a bug,
+		// but did not attach the first crash to it yet. We need to avoid reporting this bug yet
+		// and wait for the crash. Otherwise reporting filter may mis-classify it as e.g.
+		// not having a report or something else.
+		return nil, nil, 0, "no crashes yet", nil
+	}
 	for i := range bug.Reporting {
 		bugReporting := &bug.Reporting[i]
 		if !bugReporting.Closed.IsZero() {
