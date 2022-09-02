@@ -437,7 +437,7 @@ type Global struct {
 // A Builtin represents a specific use of a built-in function, e.g. len.
 //
 // Builtins are immutable values.  Builtins do not have addresses.
-// Builtins can only appear in CallCommon.Func.
+// Builtins can only appear in CallCommon.Value.
 //
 // Name() indicates the function: one of the built-in functions from the
 // Go spec (excluding "make" and "new") or one of these ssa-defined
@@ -615,9 +615,8 @@ type ChangeType struct {
 //    - between pointers and unsafe.Pointer.
 //    - between unsafe.Pointer and uintptr.
 //    - from (Unicode) integer to (UTF-8) string.
+//    - from slice to array pointer.
 // A conversion may imply a type name change also.
-//
-// This operation cannot fail dynamically.
 //
 // Conversions of untyped string/number/bool constants to a specific
 // representation are eliminated during SSA construction.
