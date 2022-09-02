@@ -233,6 +233,7 @@ type Job struct {
 	KernelRepo   string
 	KernelBranch string
 	Patch        int64 // reference to Patch text entity
+	KernelConfig int64 // reference to the kernel config entity
 
 	Attempts int // number of times we tried to execute this job
 	Started  time.Time
