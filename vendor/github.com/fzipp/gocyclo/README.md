@@ -1,6 +1,7 @@
 # gocyclo
 
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/fzipp/gocyclo)](https://pkg.go.dev/github.com/fzipp/gocyclo)
+![Build Status](https://github.com/fzipp/gocyclo/workflows/build/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/fzipp/gocyclo)](https://goreportcard.com/report/github.com/fzipp/gocyclo)
 
 Gocyclo calculates
@@ -31,7 +32,7 @@ to smaller functions.
 To install the `gocyclo` command, run
 
 ```
-$ go get github.com/fzipp/gocyclo/cmd/gocyclo
+$ go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
 ```
 
 and put the resulting binary in one of your PATH directories if
@@ -49,8 +50,6 @@ Flags:
                           return exit code 1 if the set is non-empty
     -top N                show the top N most complex functions only
     -avg, -avg-short      show the average complexity over all functions;
-                          the short option prints the value without a label
-    -total, -total-short  show the total complexity for all functions;
                           the short option prints the value without a label
     -ignore REGEX         exclude files matching the given regular expression
 

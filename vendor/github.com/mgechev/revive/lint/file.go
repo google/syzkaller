@@ -47,7 +47,7 @@ func (f *File) ToPosition(pos token.Pos) token.Position {
 	return f.Pkg.fset.Position(pos)
 }
 
-// Render renters a node.
+// Render renders a node.
 func (f *File) Render(x interface{}) string {
 	var buf bytes.Buffer
 	if err := printer.Fprint(&buf, f.Pkg.fset, x); err != nil {
@@ -74,10 +74,10 @@ var basicTypeKinds = map[types.BasicKind]string{
 // and indicates what its default type is.
 // scope may be nil.
 func (f *File) IsUntypedConst(expr ast.Expr) (defType string, ok bool) {
-	// Re-evaluate expr outside of its context to see if it's untyped.
+	// Re-evaluate expr outside its context to see if it's untyped.
 	// (An expr evaluated within, for example, an assignment context will get the type of the LHS.)
 	exprStr := f.Render(expr)
-	tv, err := types.Eval(f.Pkg.fset, f.Pkg.TypesPkg, expr.Pos(), exprStr)
+	tv, err := types.Eval(f.Pkg.fset, f.Pkg.TypesPkg(), expr.Pos(), exprStr)
 	if err != nil {
 		return "", false
 	}
@@ -91,10 +91,7 @@ func (f *File) IsUntypedConst(expr ast.Expr) (defType string, ok bool) {
 }
 
 func (f *File) isMain() bool {
-	if f.AST.Name.Name == "main" {
-		return true
-	}
-	return false
+	return f.AST.Name.Name == "main"
 }
 
 const directiveSpecifyDisableReason = "specify-disable-reason"
@@ -129,11 +126,13 @@ type enableDisableConfig struct {
 	position int
 }
 
-const directiveRE = `^//[\s]*revive:(enable|disable)(?:-(line|next-line))?(?::([^\s]+))?[\s]*(?: (.+))?$`
-const directivePos = 1
-const modifierPos = 2
-const rulesPos = 3
-const reasonPos = 4
+const (
+	directiveRE  = `^//[\s]*revive:(enable|disable)(?:-(line|next-line))?(?::([^\s]+))?[\s]*(?: (.+))?$`
+	directivePos = 1
+	modifierPos  = 2
+	rulesPos     = 3
+	reasonPos    = 4
+)
 
 var re = regexp.MustCompile(directiveRE)
 
@@ -207,11 +206,11 @@ func (f *File) disabledIntervals(rules []Rule, mustSpecifyDisableReason bool, fa
 		for _, c := range comments {
 			match := re.FindStringSubmatch(c.Text)
 			if len(match) == 0 {
-				return
+				continue
 			}
-
 			ruleNames := []string{}
 			tempNames := strings.Split(match[rulesPos], ",")
+
 			for _, name := range tempNames {
 				name = strings.Trim(name, "\n")
 				if len(name) > 0 {
@@ -250,7 +249,7 @@ func (f *File) disabledIntervals(rules []Rule, mustSpecifyDisableReason bool, fa
 	return getEnabledDisabledIntervals()
 }
 
-func (f *File) filterFailures(failures []Failure, disabledIntervals disabledIntervalsMap) []Failure {
+func (File) filterFailures(failures []Failure, disabledIntervals disabledIntervalsMap) []Failure {
 	result := []Failure{}
 	for _, failure := range failures {
 		fStart := failure.Position.Start.Line

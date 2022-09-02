@@ -2,20 +2,40 @@ package rule
 
 import (
 	"go/ast"
-
 	"strings"
+	"sync"
 
 	"github.com/mgechev/revive/lint"
 )
 
 // MaxPublicStructsRule lints given else constructs.
-type MaxPublicStructsRule struct{}
+type MaxPublicStructsRule struct {
+	max int64
+	sync.Mutex
+}
+
+func (r *MaxPublicStructsRule) configure(arguments lint.Arguments) {
+	r.Lock()
+	if r.max < 1 {
+		checkNumberOfArguments(1, arguments, r.Name())
+
+		max, ok := arguments[0].(int64) // Alt. non panicking version
+		if !ok {
+			panic(`invalid value passed as argument number to the "max-public-structs" rule`)
+		}
+		r.max = max
+	}
+	r.Unlock()
+}
 
 // Apply applies the rule to given file.
 func (r *MaxPublicStructsRule) Apply(file *lint.File, arguments lint.Arguments) []lint.Failure {
+	r.configure(arguments)
+
 	var failures []lint.Failure
 
 	fileAst := file.AST
+
 	walker := &lintMaxPublicStructs{
 		fileAst: fileAst,
 		onFailure: func(failure lint.Failure) {
@@ -25,12 +45,7 @@ func (r *MaxPublicStructsRule) Apply(file *lint.File, arguments lint.Arguments) 
 
 	ast.Walk(walker, fileAst)
 
-	max, ok := arguments[0].(int64) // Alt. non panicking version
-	if !ok {
-		panic(`invalid value passed as argument number to the "max-public-structs" rule`)
-	}
-
-	if walker.current > max {
+	if walker.current > r.max {
 		walker.onFailure(lint.Failure{
 			Failure:    "you have exceeded the maximum number of public struct declarations",
 			Confidence: 1,
@@ -43,7 +58,7 @@ func (r *MaxPublicStructsRule) Apply(file *lint.File, arguments lint.Arguments) 
 }
 
 // Name returns the rule name.
-func (r *MaxPublicStructsRule) Name() string {
+func (*MaxPublicStructsRule) Name() string {
 	return "max-public-structs"
 }
 
@@ -61,7 +76,6 @@ func (w *lintMaxPublicStructs) Visit(n ast.Node) ast.Visitor {
 		if strings.ToUpper(first) == first {
 			w.current++
 		}
-		break
 	}
 	return w
 }

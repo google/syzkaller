@@ -3,11 +3,12 @@ package lint
 import (
 	"context"
 	"fmt"
-	"os"
 	"runtime/debug"
 	"strings"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
+	gopackages "golang.org/x/tools/go/packages"
 
 	"github.com/golangci/golangci-lint/internal/errorutil"
 	"github.com/golangci/golangci-lint/pkg/config"
@@ -20,8 +21,6 @@ import (
 	"github.com/golangci/golangci-lint/pkg/result"
 	"github.com/golangci/golangci-lint/pkg/result/processors"
 	"github.com/golangci/golangci-lint/pkg/timeutils"
-
-	gopackages "golang.org/x/tools/go/packages"
 )
 
 type Runner struct {
@@ -50,6 +49,22 @@ func NewRunner(cfg *config.Config, log logutils.Log, goenv *goutil.Env, es *lint
 		return nil, errors.Wrap(err, "failed to get enabled linters")
 	}
 
+	// print deprecated messages
+	if !cfg.InternalCmdTest {
+		for name, lc := range enabledLinters {
+			if !lc.IsDeprecated() {
+				continue
+			}
+
+			var extra string
+			if lc.Deprecation.Replacement != "" {
+				extra = fmt.Sprintf(" Replaced by %s.", lc.Deprecation.Replacement)
+			}
+
+			log.Warnf("The linter '%s' is deprecated (since %s) due to: %s %s", name, lc.Deprecation.Since, lc.Deprecation.Message, extra)
+		}
+	}
+
 	return &Runner{
 		Processors: []processors.Processor{
 			processors.NewCgo(goenv),
@@ -72,7 +87,7 @@ func NewRunner(cfg *config.Config, log logutils.Log, goenv *goutil.Env, es *lint
 			processors.NewNolint(log.Child("nolint"), dbManager, enabledLinters),
 
 			processors.NewUniqByLine(cfg),
-			processors.NewDiff(cfg.Issues.Diff, cfg.Issues.DiffFromRevision, cfg.Issues.DiffPatchFilePath),
+			processors.NewDiff(cfg.Issues.Diff, cfg.Issues.DiffFromRevision, cfg.Issues.DiffPatchFilePath, cfg.Issues.WholeFiles),
 			processors.NewMaxPerFileFromLinter(cfg),
 			processors.NewMaxSameIssues(cfg.Issues.MaxSameIssues, log.Child("max_same_issues"), cfg),
 			processors.NewMaxFromLinter(cfg.Issues.MaxIssuesPerLinter, log.Child("max_from_linter"), cfg),
@@ -94,10 +109,10 @@ func (r *Runner) runLinterSafe(ctx context.Context, lintCtx *linter.Context,
 				err = fmt.Errorf("%s: %w", lc.Name(), pe)
 
 				// Don't print stacktrace from goroutines twice
-				lintCtx.Log.Warnf("Panic: %s: %s", pe, pe.Stack())
+				r.Log.Errorf("Panic: %s: %s", pe, pe.Stack())
 			} else {
 				err = fmt.Errorf("panic occurred: %s", panicData)
-				r.Log.Warnf("Panic stack trace: %s", debug.Stack())
+				r.Log.Errorf("Panic stack trace: %s", debug.Stack())
 			}
 		}
 	}()
@@ -109,7 +124,7 @@ func (r *Runner) runLinterSafe(ctx context.Context, lintCtx *linter.Context,
 		// which affects to the next analysis.
 		// To avoid this issue, we clear type information from the packages.
 		// See https://github.com/golangci/golangci-lint/pull/944.
-		// Currently DoesChangeTypes is true only for `unused`.
+		// Currently, DoesChangeTypes is true only for `unused`.
 		lintCtx.ClearTypesInPackages()
 	}
 
@@ -178,25 +193,26 @@ func (r Runner) Run(ctx context.Context, linters []*linter.Config, lintCtx *lint
 	sw := timeutils.NewStopwatch("linters", r.Log)
 	defer sw.Print()
 
-	var issues []result.Issue
-	var runErr error
+	var (
+		lintErrors *multierror.Error
+		issues     []result.Issue
+	)
+
 	for _, lc := range linters {
 		lc := lc
 		sw.TrackStage(lc.Name(), func() {
 			linterIssues, err := r.runLinterSafe(ctx, lintCtx, lc)
 			if err != nil {
-				r.Log.Warnf("Can't run linter %s: %s", lc.Linter.Name(), err)
-				if os.Getenv("GOLANGCI_COM_RUN") == "" {
-					// Don't stop all linters on one linter failure for golangci.com.
-					runErr = err
-				}
+				lintErrors = multierror.Append(lintErrors, fmt.Errorf("can't run linter %s: %w", lc.Linter.Name(), err))
+				r.Log.Warnf("Can't run linter %s: %v", lc.Linter.Name(), err)
+
 				return
 			}
 			issues = append(issues, linterIssues...)
 		})
 	}
 
-	return r.processLintResults(issues), runErr
+	return r.processLintResults(issues), lintErrors.ErrorOrNil()
 }
 
 func (r *Runner) processIssues(issues []result.Issue, sw *timeutils.Stopwatch, statPerProcessor map[string]processorStat) []result.Issue {
@@ -228,9 +244,9 @@ func (r *Runner) processIssues(issues []result.Issue, sw *timeutils.Stopwatch, s
 
 func getExcludeProcessor(cfg *config.Issues) processors.Processor {
 	var excludeTotalPattern string
-	excludeGlobalPatterns := cfg.ExcludePatterns
-	if len(excludeGlobalPatterns) != 0 {
-		excludeTotalPattern = fmt.Sprintf("(%s)", strings.Join(excludeGlobalPatterns, "|"))
+
+	if len(cfg.ExcludePatterns) != 0 {
+		excludeTotalPattern = fmt.Sprintf("(%s)", strings.Join(cfg.ExcludePatterns, "|"))
 	}
 
 	var excludeProcessor processors.Processor

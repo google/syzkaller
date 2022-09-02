@@ -45,17 +45,24 @@ func (c *nilValReturnChecker) VisitStmt(stmt ast.Stmt) {
 		return
 	}
 	ret, ok := ifStmt.Body.List[0].(*ast.ReturnStmt)
-	if !ok || len(ret.Results) != 1 {
+	if !ok {
 		return
 	}
 	expr, ok := ifStmt.Cond.(*ast.BinaryExpr)
-	cond := ok &&
-		expr.Op == token.EQL &&
+	if !ok {
+		return
+	}
+	xIsNil := expr.Op == token.EQL &&
 		typep.SideEffectFree(c.ctx.TypesInfo, expr.X) &&
-		qualifiedName(expr.Y) == "nil" &&
-		astequal.Expr(expr.X, ret.Results[0])
-	if cond {
-		c.warn(ret, expr.X)
+		qualifiedName(expr.Y) == "nil"
+	if !xIsNil {
+		return
+	}
+	for _, res := range ret.Results {
+		if astequal.Expr(expr.X, res) {
+			c.warn(ret, expr.X)
+			break
+		}
 	}
 }
 

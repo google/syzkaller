@@ -4,13 +4,24 @@ import (
 	"errors"
 	"fmt"
 	"go/ast"
+	"go/build"
+	"go/token"
 	"go/types"
 	"io"
+	"io/ioutil"
+	"os"
+	"sort"
 	"strings"
 	"sync"
 
+	"github.com/quasilyte/go-ruleguard/internal/goenv"
+	"github.com/quasilyte/go-ruleguard/ruleguard/ir"
 	"github.com/quasilyte/go-ruleguard/ruleguard/quasigo"
+	"github.com/quasilyte/go-ruleguard/ruleguard/quasigo/stdlib/qfmt"
+	"github.com/quasilyte/go-ruleguard/ruleguard/quasigo/stdlib/qstrconv"
+	"github.com/quasilyte/go-ruleguard/ruleguard/quasigo/stdlib/qstrings"
 	"github.com/quasilyte/go-ruleguard/ruleguard/typematch"
+	"github.com/quasilyte/stdinfo"
 )
 
 type engine struct {
@@ -25,19 +36,42 @@ func newEngine() *engine {
 	}
 }
 
-func (e *engine) Load(ctx *ParseContext, filename string, r io.Reader) error {
-	config := rulesParserConfig{
-		state: e.state,
-		ctx:   ctx,
-		importer: newGoImporter(e.state, goImporterConfig{
-			fset:         ctx.Fset,
-			debugImports: ctx.DebugImports,
-			debugPrint:   ctx.DebugPrint,
-		}),
-		itab: typematch.NewImportsTab(stdlibPackages),
+func (e *engine) LoadedGroups() []GoRuleGroup {
+	result := make([]GoRuleGroup, 0, len(e.ruleSet.groups))
+	for _, g := range e.ruleSet.groups {
+		result = append(result, *g)
 	}
-	p := newRulesParser(config)
-	rset, err := p.ParseFile(filename, r)
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Name < result[j].Name
+	})
+	return result
+}
+
+func (e *engine) Load(ctx *LoadContext, buildContext *build.Context, filename string, r io.Reader) error {
+	data, err := ioutil.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	imp := newGoImporter(e.state, goImporterConfig{
+		fset:         ctx.Fset,
+		debugImports: ctx.DebugImports,
+		debugPrint:   ctx.DebugPrint,
+		buildContext: buildContext,
+	})
+	irfile, pkg, err := convertAST(ctx, imp, filename, data)
+	if err != nil {
+		return err
+	}
+	config := irLoaderConfig{
+		state:      e.state,
+		pkg:        pkg,
+		ctx:        ctx,
+		importer:   imp,
+		itab:       typematch.NewImportsTab(stdinfo.PathByName),
+		gogrepFset: token.NewFileSet(),
+	}
+	l := newIRLoader(config)
+	rset, err := l.LoadFile(filename, irfile)
 	if err != nil {
 		return err
 	}
@@ -55,12 +89,45 @@ func (e *engine) Load(ctx *ParseContext, filename string, r io.Reader) error {
 	return nil
 }
 
-func (e *engine) Run(ctx *RunContext, f *ast.File) error {
+func (e *engine) LoadFromIR(ctx *LoadContext, buildContext *build.Context, filename string, f *ir.File) error {
+	imp := newGoImporter(e.state, goImporterConfig{
+		fset:         ctx.Fset,
+		debugImports: ctx.DebugImports,
+		debugPrint:   ctx.DebugPrint,
+		buildContext: buildContext,
+	})
+	config := irLoaderConfig{
+		state:      e.state,
+		ctx:        ctx,
+		importer:   imp,
+		itab:       typematch.NewImportsTab(stdinfo.PathByName),
+		gogrepFset: token.NewFileSet(),
+	}
+	l := newIRLoader(config)
+	rset, err := l.LoadFile(filename, f)
+	if err != nil {
+		return err
+	}
+
+	if e.ruleSet == nil {
+		e.ruleSet = rset
+	} else {
+		combinedRuleSet, err := mergeRuleSets([]*goRuleSet{e.ruleSet, rset})
+		if err != nil {
+			return err
+		}
+		e.ruleSet = combinedRuleSet
+	}
+
+	return nil
+}
+
+func (e *engine) Run(ctx *RunContext, buildContext *build.Context, f *ast.File) error {
 	if e.ruleSet == nil {
 		return errors.New("used Run() with an empty rule set; forgot to call Load() first?")
 	}
-	rset := cloneRuleSet(e.ruleSet)
-	return newRulesRunner(ctx, e.state, rset).run(f)
+	rset := e.ruleSet
+	return newRulesRunner(ctx, buildContext, e.state, rset).run(f)
 }
 
 // engineState is a shared state inside the engine.
@@ -77,33 +144,16 @@ type engineState struct {
 
 func newEngineState() *engineState {
 	env := quasigo.NewEnv()
+	qstrings.ImportAll(env)
+	qstrconv.ImportAll(env)
+	qfmt.ImportAll(env)
 	state := &engineState{
-		env:      env,
-		pkgCache: make(map[string]*types.Package),
-		typeByFQN: map[string]types.Type{
-			// Predeclared types.
-			`error`:      types.Universe.Lookup("error").Type(),
-			`bool`:       types.Typ[types.Bool],
-			`int`:        types.Typ[types.Int],
-			`int8`:       types.Typ[types.Int8],
-			`int16`:      types.Typ[types.Int16],
-			`int32`:      types.Typ[types.Int32],
-			`int64`:      types.Typ[types.Int64],
-			`uint`:       types.Typ[types.Uint],
-			`uint8`:      types.Typ[types.Uint8],
-			`uint16`:     types.Typ[types.Uint16],
-			`uint32`:     types.Typ[types.Uint32],
-			`uint64`:     types.Typ[types.Uint64],
-			`uintptr`:    types.Typ[types.Uintptr],
-			`string`:     types.Typ[types.String],
-			`float32`:    types.Typ[types.Float32],
-			`float64`:    types.Typ[types.Float64],
-			`complex64`:  types.Typ[types.Complex64],
-			`complex128`: types.Typ[types.Complex128],
-			// Predeclared aliases (provided for convenience).
-			`byte`: types.Typ[types.Uint8],
-			`rune`: types.Typ[types.Int32],
-		},
+		env:       env,
+		pkgCache:  make(map[string]*types.Package),
+		typeByFQN: map[string]types.Type{},
+	}
+	for key, typ := range typeByName {
+		state.typeByFQN[key] = typ
 	}
 	initEnv(state, env)
 	return state
@@ -118,8 +168,25 @@ func (state *engineState) GetCachedPackage(pkgPath string) *types.Package {
 
 func (state *engineState) AddCachedPackage(pkgPath string, pkg *types.Package) {
 	state.pkgCacheMu.Lock()
-	state.pkgCache[pkgPath] = pkg
+	state.addCachedPackage(pkgPath, pkg)
 	state.pkgCacheMu.Unlock()
+}
+
+func (state *engineState) addCachedPackage(pkgPath string, pkg *types.Package) {
+	state.pkgCache[pkgPath] = pkg
+
+	// Also add all complete packages that are dependencies of the pkg.
+	// This way we cache more and avoid duplicated package loading
+	// which can lead to typechecking issues.
+	//
+	// Note that it does not increase our memory consumption
+	// as these packages are reachable via pkg, so they'll
+	// not be freed by GC anyway.
+	for _, imported := range pkg.Imports() {
+		if imported.Complete() {
+			state.addCachedPackage(imported.Path(), imported)
+		}
+	}
 }
 
 func (state *engineState) FindType(importer *goImporter, currentPkg *types.Package, fqn string) (types.Type, error) {
@@ -155,9 +222,12 @@ func (state *engineState) findTypeNoCache(importer *goImporter, currentPkg *type
 	pkgPath := fqn[:pos]
 	objectName := fqn[pos+1:]
 	var pkg *types.Package
-	if directDep := findDependency(currentPkg, pkgPath); directDep != nil {
-		pkg = directDep
-	} else {
+	if currentPkg != nil {
+		if directDep := findDependency(currentPkg, pkgPath); directDep != nil {
+			pkg = directDep
+		}
+	}
+	if pkg == nil {
 		loadedPkg, err := importer.Import(pkgPath)
 		if err != nil {
 			return nil, err
@@ -171,4 +241,30 @@ func (state *engineState) findTypeNoCache(importer *goImporter, currentPkg *type
 	typ := obj.Type()
 	state.typeByFQN[fqn] = typ
 	return typ, nil
+}
+
+func inferBuildContext() *build.Context {
+	// Inherit most fields from the build.Default.
+	ctx := build.Default
+
+	env, err := goenv.Read()
+	if err != nil {
+		return &ctx
+	}
+
+	ctx.GOROOT = env["GOROOT"]
+	ctx.GOPATH = env["GOPATH"]
+	ctx.GOARCH = env["GOARCH"]
+	ctx.GOOS = env["GOOS"]
+
+	switch os.Getenv("CGO_ENABLED") {
+	case "0":
+		ctx.CgoEnabled = false
+	case "1":
+		ctx.CgoEnabled = true
+	default:
+		ctx.CgoEnabled = env["CGO_ENABLED"] == "1"
+	}
+
+	return &ctx
 }

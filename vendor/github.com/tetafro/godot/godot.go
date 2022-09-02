@@ -27,8 +27,8 @@ type Issue struct {
 
 // position is a position inside a comment (might be multiline comment).
 type position struct {
-	line   int
-	column int
+	line   int // starts at 1
+	column int // starts at 1, byte count
 }
 
 // comment is an internal representation of AST comment entity with additional
@@ -38,13 +38,13 @@ type comment struct {
 	lines []string       // unmodified lines from file
 	text  string         // concatenated `lines` with special parts excluded
 	start token.Position // position of the first symbol in comment
-	decl  bool           // whether comment is a special one (should not be checked)
+	decl  bool           // whether comment is a declaration comment
 }
 
 // Run runs this linter on the provided code.
 func Run(file *ast.File, fset *token.FileSet, settings Settings) ([]Issue, error) {
 	pf, err := newParsedFile(file, fset)
-	if err == errEmptyInput {
+	if err == errEmptyInput || err == errUnsuitableInput {
 		return nil, nil
 	}
 	if err != nil {

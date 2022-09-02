@@ -13,7 +13,7 @@ import (
 type TimeNamingRule struct{}
 
 // Apply applies the rule to given file.
-func (r *TimeNamingRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failure {
+func (*TimeNamingRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failure {
 	var failures []lint.Failure
 
 	onFailure := func(failure lint.Failure) {
@@ -28,7 +28,7 @@ func (r *TimeNamingRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failure
 }
 
 // Name returns the rule name.
-func (r *TimeNamingRule) Name() string {
+func (*TimeNamingRule) Name() string {
 	return "time-naming"
 }
 
@@ -76,10 +76,12 @@ func (w *lintTimeNames) Visit(node ast.Node) ast.Visitor {
 // timeSuffixes is a list of name suffixes that imply a time unit.
 // This is not an exhaustive list.
 var timeSuffixes = []string{
-	"Sec", "Secs", "Seconds",
+	"Hour", "Hours",
+	"Min", "Mins", "Minutes", "Minute",
+	"Sec", "Secs", "Seconds", "Second",
 	"Msec", "Msecs",
-	"Milli", "Millis", "Milliseconds",
-	"Usec", "Usecs", "Microseconds",
+	"Milli", "Millis", "Milliseconds", "Millisecond",
+	"Usec", "Usecs", "Microseconds", "Microsecond",
 	"MS", "Ms",
 }
 

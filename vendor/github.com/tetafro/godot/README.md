@@ -28,7 +28,8 @@ or download binary from [releases page](https://github.com/tetafro/godot/release
 
 ## Config
 
-You can specify options using config file. If no config provided the following
+You can specify options using config file. Use default name `.godot.yaml`, or
+set it using `-c filename.yaml` argument. If no config provided the following
 defaults are used:
 
 ```yaml
@@ -36,9 +37,9 @@ defaults are used:
 #   declarations - for top level declaration comments (default);
 #   toplevel     - for top level comments;
 #   all          - for all comments.
-scope: toplevel
+scope: declarations
 
-# List pf regexps for excluding particular comment lines from check.
+# List of regexps for excluding particular comment lines from check.
 exclude:
 
 # Check periods at the end of sentences.

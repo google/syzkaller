@@ -28,6 +28,7 @@ var (
 )
 
 // Run the gomodguard linter. Returns the exit code to use.
+//nolint:funlen
 func Run() int {
 	var (
 		args           []string
@@ -43,7 +44,8 @@ func Run() int {
 	flag.BoolVar(&help, "help", false, "")
 	flag.BoolVar(&noTest, "n", false, "Don't lint test files")
 	flag.BoolVar(&noTest, "no-test", false, "")
-	flag.StringVar(&report, "r", "", "Report results to one of the following formats: checkstyle. A report file destination must also be specified")
+	flag.StringVar(&report, "r", "", "Report results to one of the following formats: checkstyle. "+
+		"A report file destination must also be specified")
 	flag.StringVar(&report, "report", "", "")
 	flag.StringVar(&reportFile, "f", "", "Report results to the specified file. A report type must also be specified")
 	flag.StringVar(&reportFile, "file", "", "")
@@ -197,12 +199,13 @@ Flags:`
 }
 
 // WriteCheckstyle takes the results and writes them to a checkstyle formated file.
-func WriteCheckstyle(checkstyleFilePath string, results []Result) error {
+func WriteCheckstyle(checkstyleFilePath string, results []Issue) error {
 	check := checkstyle.New()
 
 	for i := range results {
 		file := check.EnsureFile(results[i].FileName)
-		file.AddError(checkstyle.NewError(results[i].LineNumber, 1, checkstyle.SeverityError, results[i].Reason, "gomodguard"))
+		file.AddError(checkstyle.NewError(results[i].LineNumber, 1, checkstyle.SeverityError, results[i].Reason,
+			"gomodguard"))
 	}
 
 	checkstyleXML := fmt.Sprintf("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n%s", check.String())

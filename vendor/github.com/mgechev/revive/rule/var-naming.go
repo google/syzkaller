@@ -5,34 +5,47 @@ import (
 	"go/ast"
 	"go/token"
 	"strings"
+	"sync"
 
 	"github.com/mgechev/revive/lint"
 )
 
 // VarNamingRule lints given else constructs.
-type VarNamingRule struct{}
+type VarNamingRule struct {
+	configured bool
+	whitelist  []string
+	blacklist  []string
+	sync.Mutex
+}
+
+func (r *VarNamingRule) configure(arguments lint.Arguments) {
+	r.Lock()
+	if !r.configured {
+		if len(arguments) >= 1 {
+			r.whitelist = getList(arguments[0], "whitelist")
+		}
+
+		if len(arguments) >= 2 {
+			r.blacklist = getList(arguments[1], "blacklist")
+		}
+		r.configured = true
+	}
+	r.Unlock()
+}
 
 // Apply applies the rule to given file.
 func (r *VarNamingRule) Apply(file *lint.File, arguments lint.Arguments) []lint.Failure {
+	r.configure(arguments)
+
 	var failures []lint.Failure
 
-	var whitelist []string
-	var blacklist []string
-
-	if len(arguments) >= 1 {
-		whitelist = getList(arguments[0], "whitelist")
-	}
-
-	if len(arguments) >= 2 {
-		blacklist = getList(arguments[1], "blacklist")
-	}
-
 	fileAst := file.AST
+
 	walker := lintNames{
 		file:      file,
 		fileAst:   fileAst,
-		whitelist: whitelist,
-		blacklist: blacklist,
+		whitelist: r.whitelist,
+		blacklist: r.blacklist,
 		onFailure: func(failure lint.Failure) {
 			failures = append(failures, failure)
 		},
@@ -43,7 +56,7 @@ func (r *VarNamingRule) Apply(file *lint.File, arguments lint.Arguments) []lint.
 		walker.onFailure(lint.Failure{
 			Failure:    "don't use an underscore in package name",
 			Confidence: 1,
-			Node:       walker.fileAst,
+			Node:       walker.fileAst.Name,
 			Category:   "naming",
 		})
 	}
@@ -54,7 +67,7 @@ func (r *VarNamingRule) Apply(file *lint.File, arguments lint.Arguments) []lint.
 }
 
 // Name returns the rule name.
-func (r *VarNamingRule) Name() string {
+func (*VarNamingRule) Name() string {
 	return "var-naming"
 }
 
@@ -120,13 +133,11 @@ func check(id *ast.Ident, thing string, w *lintNames) {
 }
 
 type lintNames struct {
-	file                   *lint.File
-	fileAst                *ast.File
-	lastGen                *ast.GenDecl
-	genDeclMissingComments map[*ast.GenDecl]bool
-	onFailure              func(lint.Failure)
-	whitelist              []string
-	blacklist              []string
+	file      *lint.File
+	fileAst   *ast.File
+	onFailure func(lint.Failure)
+	whitelist []string
+	blacklist []string
 }
 
 func (w *lintNames) Visit(n ast.Node) ast.Visitor {
@@ -141,7 +152,12 @@ func (w *lintNames) Visit(n ast.Node) ast.Visitor {
 			}
 		}
 	case *ast.FuncDecl:
-		if w.file.IsTest() && (strings.HasPrefix(v.Name.Name, "Example") || strings.HasPrefix(v.Name.Name, "Test") || strings.HasPrefix(v.Name.Name, "Benchmark")) {
+		funcName := v.Name.Name
+		if w.file.IsTest() &&
+			(strings.HasPrefix(funcName, "Example") ||
+				strings.HasPrefix(funcName, "Test") ||
+				strings.HasPrefix(funcName, "Benchmark") ||
+				strings.HasPrefix(funcName, "Fuzz")) {
 			return w
 		}
 
@@ -184,7 +200,7 @@ func (w *lintNames) Visit(n ast.Node) ast.Visitor {
 		}
 	case *ast.InterfaceType:
 		// Do not check interface method names.
-		// They are often constrainted by the method names of concrete types.
+		// They are often constrained by the method names of concrete types.
 		for _, x := range v.Methods.List {
 			ft, ok := x.Type.(*ast.FuncType)
 			if !ok { // might be an embedded interface name

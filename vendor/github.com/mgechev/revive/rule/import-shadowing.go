@@ -13,7 +13,7 @@ import (
 type ImportShadowingRule struct{}
 
 // Apply applies the rule to given file.
-func (r *ImportShadowingRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failure {
+func (*ImportShadowingRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failure {
 	var failures []lint.Failure
 
 	importNames := map[string]struct{}{}
@@ -23,7 +23,8 @@ func (r *ImportShadowingRule) Apply(file *lint.File, _ lint.Arguments) []lint.Fa
 
 	fileAst := file.AST
 	walker := importShadowing{
-		importNames: importNames,
+		packageNameIdent: fileAst.Name,
+		importNames:      importNames,
 		onFailure: func(failure lint.Failure) {
 			failures = append(failures, failure)
 		},
@@ -36,7 +37,7 @@ func (r *ImportShadowingRule) Apply(file *lint.File, _ lint.Arguments) []lint.Fa
 }
 
 // Name returns the rule name.
-func (r *ImportShadowingRule) Name() string {
+func (*ImportShadowingRule) Name() string {
 	return "import-shadowing"
 }
 
@@ -57,9 +58,10 @@ func getName(imp *ast.ImportSpec) string {
 }
 
 type importShadowing struct {
-	importNames map[string]struct{}
-	onFailure   func(lint.Failure)
-	alreadySeen map[*ast.Object]struct{}
+	packageNameIdent *ast.Ident
+	importNames      map[string]struct{}
+	onFailure        func(lint.Failure)
+	alreadySeen      map[*ast.Object]struct{}
 }
 
 // Visit visits AST nodes and checks if id nodes (ast.Ident) shadow an import name
@@ -79,6 +81,10 @@ func (w importShadowing) Visit(n ast.Node) ast.Visitor {
 		*ast.StructType:   // skip analysis of struct type because struct fields can not shadow an import name
 		return nil
 	case *ast.Ident:
+		if n == w.packageNameIdent {
+			return nil // skip the ident corresponding to the package name of this file
+		}
+
 		id := n.Name
 		if id == "_" {
 			return w // skip _ id

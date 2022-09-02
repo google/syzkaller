@@ -11,16 +11,16 @@ import (
 type DeepExitRule struct{}
 
 // Apply applies the rule to given file.
-func (r *DeepExitRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failure {
+func (*DeepExitRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failure {
 	var failures []lint.Failure
 	onFailure := func(failure lint.Failure) {
 		failures = append(failures, failure)
 	}
 
-	var exitFunctions = map[string]map[string]bool{
-		"os":      map[string]bool{"Exit": true},
-		"syscall": map[string]bool{"Exit": true},
-		"log": map[string]bool{
+	exitFunctions := map[string]map[string]bool{
+		"os":      {"Exit": true},
+		"syscall": {"Exit": true},
+		"log": {
 			"Fatal":   true,
 			"Fatalf":  true,
 			"Fatalln": true,
@@ -36,7 +36,7 @@ func (r *DeepExitRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failure {
 }
 
 // Name returns the rule name.
-func (r *DeepExitRule) Name() string {
+func (*DeepExitRule) Name() string {
 	return "deep-exit"
 }
 

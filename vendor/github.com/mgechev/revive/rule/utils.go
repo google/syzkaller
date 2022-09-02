@@ -13,15 +13,9 @@ import (
 	"github.com/mgechev/revive/lint"
 )
 
-const styleGuideBase = "https://golang.org/wiki/CodeReviewComments"
-
 // isBlank returns whether id is the blank identifier "_".
 // If id == nil, the answer is false.
 func isBlank(id *ast.Ident) bool { return id != nil && id.Name == "_" }
-
-func isTest(f *lint.File) bool {
-	return strings.HasSuffix(f.Name, "_test.go")
-}
 
 var commonMethods = map[string]bool{
 	"Error":     true,
@@ -29,19 +23,7 @@ var commonMethods = map[string]bool{
 	"ServeHTTP": true,
 	"String":    true,
 	"Write":     true,
-}
-
-func receiverType(fn *ast.FuncDecl) string {
-	switch e := fn.Recv.List[0].Type.(type) {
-	case *ast.Ident:
-		return e.Name
-	case *ast.StarExpr:
-		if id, ok := e.X.(*ast.Ident); ok {
-			return id.Name
-		}
-	}
-	// The parser accepts much more than just the legal forms.
-	return "invalid-type"
+	"Unwrap":    true,
 }
 
 var knownNameExceptions = map[string]bool{
@@ -85,12 +67,13 @@ var zeroLiteral = map[string]bool{
 	"0i":  true,
 }
 
-func validType(T types.Type) bool {
-	return T != nil &&
-		T != types.Typ[types.Invalid] &&
-		!strings.Contains(T.String(), "invalid type") // good but not foolproof
+func validType(t types.Type) bool {
+	return t != nil &&
+		t != types.Typ[types.Invalid] &&
+		!strings.Contains(t.String(), "invalid type") // good but not foolproof
 }
 
+// isPkgDot checks if the expression is <pkg>.<name>
 func isPkgDot(expr ast.Expr, pkg, name string) bool {
 	sel, ok := expr.(*ast.SelectorExpr)
 	return ok && isIdent(sel.X, pkg) && isIdent(sel.Sel, name)
@@ -110,7 +93,7 @@ func srcLine(src []byte, p token.Position) string {
 
 // pick yields a list of nodes by picking them from a sub-ast with root node n.
 // Nodes are selected by applying the fselect function
-// f function is applied to each selected node before inseting it in the final result.
+// f function is applied to each selected node before inserting it in the final result.
 // If f==nil then it defaults to the identity function (ie it returns the node itself)
 func pick(n ast.Node, fselect func(n ast.Node) bool, f func(n ast.Node) []ast.Node) []ast.Node {
 	var result []ast.Node
@@ -128,14 +111,6 @@ func pick(n ast.Node, fselect func(n ast.Node) bool, f func(n ast.Node) []ast.No
 	}
 	p := picker{fselect: fselect, onSelect: onSelect}
 	ast.Walk(p, n)
-	return result
-}
-
-func pickFromExpList(l []ast.Expr, fselect func(n ast.Node) bool, f func(n ast.Node) []ast.Node) []ast.Node {
-	result := make([]ast.Node, 0)
-	for _, e := range l {
-		result = append(result, pick(e, fselect, f)...)
-	}
 	return result
 }
 
@@ -188,4 +163,11 @@ func gofmt(x interface{}) string {
 	fs := token.NewFileSet()
 	printer.Fprint(&buf, fs, x)
 	return buf.String()
+}
+
+// checkNumberOfArguments fails if the given number of arguments is not, at least, the expected one
+func checkNumberOfArguments(expected int, args lint.Arguments, ruleName string) {
+	if len(args) < expected {
+		panic(fmt.Sprintf("not enough arguments for %s rule, expected %d, got %d. Please check the rule's documentation", ruleName, expected, len(args)))
+	}
 }

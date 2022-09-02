@@ -34,7 +34,7 @@ type EvalEnv struct {
 	nativeFuncs []nativeFunc
 	userFuncs   []*Func
 
-	stack *ValueStack
+	Stack ValueStack
 }
 
 // NewEnv creates a new empty environment.
@@ -47,7 +47,7 @@ func (env *Env) GetEvalEnv() *EvalEnv {
 	return &EvalEnv{
 		nativeFuncs: env.nativeFuncs,
 		userFuncs:   env.userFuncs,
-		stack: &ValueStack{
+		Stack: ValueStack{
 			objects: make([]interface{}, 0, 32),
 			ints:    make([]int, 0, 16),
 		},
@@ -84,8 +84,9 @@ type CompileContext struct {
 	// being compiled; then it should be used to execute these functions.
 	Env *Env
 
-	Types *types.Info
-	Fset  *token.FileSet
+	Package *types.Package
+	Types   *types.Info
+	Fset    *token.FileSet
 }
 
 // Compile prepares an executable version of fn.
@@ -93,11 +94,19 @@ func Compile(ctx *CompileContext, fn *ast.FuncDecl) (compiled *Func, err error) 
 	return compile(ctx, fn)
 }
 
-// Call invokes a given function with provided arguments.
-func Call(env *EvalEnv, fn *Func, args ...interface{}) CallResult {
-	env.stack.objects = env.stack.objects[:0]
-	env.stack.ints = env.stack.ints[:0]
-	return eval(env, fn, args)
+// Call invokes a given function.
+// All arguments should be pushed to env.Stack prior to this call.
+//
+// Note that arguments are not popped off the stack,
+// so you can bind the args once and use Call multiple times.
+// If you want to reset arguments, do env.Stack.Reset().
+func Call(env *EvalEnv, fn *Func) CallResult {
+	numObjectArgs := len(env.Stack.objects)
+	numIntArgs := len(env.Stack.ints)
+	result := eval(env, fn, 0, 0)
+	env.Stack.objects = env.Stack.objects[:numObjectArgs]
+	env.Stack.ints = env.Stack.ints[:numIntArgs]
+	return result
 }
 
 // CallResult is a return value of Call function.
@@ -128,6 +137,11 @@ type Func struct {
 
 	constants    []interface{}
 	intConstants []int
+
+	numObjectParams int
+	numIntParams    int
+
+	name string
 }
 
 // ValueStack is used to manipulate runtime values during the evaluation.
@@ -138,8 +152,15 @@ type Func struct {
 // If int was pushed with PushInt(), it should be retrieved by PopInt().
 // It's a bad idea to do a Push() and then PopInt() and vice-versa.
 type ValueStack struct {
-	objects []interface{}
-	ints    []int
+	objects     []interface{}
+	ints        []int
+	variadicLen int
+}
+
+// Reset empties the stack.
+func (s *ValueStack) Reset() {
+	s.objects = s.objects[:0]
+	s.ints = s.ints[:0]
 }
 
 // Pop removes the top stack element and returns it.
@@ -155,6 +176,19 @@ func (s *ValueStack) PopInt() int {
 	x := s.ints[len(s.ints)-1]
 	s.ints = s.ints[:len(s.ints)-1]
 	return x
+}
+
+// PopVariadic removes the `...` argument and returns it as a slice.
+//
+// Slice elements are in the order they were passed to the function,
+// for example, a call Sprintf("%s:%d", filename, line) returns
+// the slice []interface{filename, line}.
+func (s *ValueStack) PopVariadic() []interface{} {
+	to := len(s.objects)
+	from := to - s.variadicLen
+	xs := s.objects[from:to]
+	s.objects = s.objects[:from]
+	return xs
 }
 
 // Push adds x to the stack.

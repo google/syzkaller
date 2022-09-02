@@ -11,7 +11,7 @@ import (
 type RangeValInClosureRule struct{}
 
 // Apply applies the rule to given file.
-func (r *RangeValInClosureRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failure {
+func (*RangeValInClosureRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failure {
 	var failures []lint.Failure
 
 	walker := rangeValInClosure{
@@ -26,7 +26,7 @@ func (r *RangeValInClosureRule) Apply(file *lint.File, _ lint.Arguments) []lint.
 }
 
 // Name returns the rule name.
-func (r *RangeValInClosureRule) Name() string {
+func (*RangeValInClosureRule) Name() string {
 	return "range-val-in-closure"
 }
 
@@ -35,7 +35,6 @@ type rangeValInClosure struct {
 }
 
 func (w rangeValInClosure) Visit(node ast.Node) ast.Visitor {
-
 	// Find the variables updated by the loop statement.
 	var vars []*ast.Ident
 	addVar := func(expr ast.Expr) {
@@ -87,15 +86,25 @@ func (w rangeValInClosure) Visit(node ast.Node) ast.Visitor {
 	if !ok {
 		return w
 	}
+
 	if lit.Type == nil {
 		// Not referring to a variable (e.g. struct field name)
 		return w
 	}
-	ast.Inspect(lit.Body, func(n ast.Node) bool {
+
+	var inspector func(n ast.Node) bool
+	inspector = func(n ast.Node) bool {
+		kv, ok := n.(*ast.KeyValueExpr)
+		if ok {
+			// do not check identifiers acting as key in key-value expressions (see issue #637)
+			ast.Inspect(kv.Value, inspector)
+			return false
+		}
 		id, ok := n.(*ast.Ident)
 		if !ok || id.Obj == nil {
 			return true
 		}
+
 		for _, v := range vars {
 			if v.Obj == id.Obj {
 				w.onFailure(lint.Failure{
@@ -106,6 +115,7 @@ func (w rangeValInClosure) Visit(node ast.Node) ast.Visitor {
 			}
 		}
 		return true
-	})
+	}
+	ast.Inspect(lit.Body, inspector)
 	return w
 }

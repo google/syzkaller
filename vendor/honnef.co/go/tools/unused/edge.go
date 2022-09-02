@@ -1,6 +1,6 @@
 package unused
 
-//go:generate stringer -type edgeKind
+//go:generate go run golang.org/x/tools/cmd/stringer@master -type edgeKind
 type edgeKind uint64
 
 func (e edgeKind) is(o edgeKind) bool {
@@ -51,4 +51,9 @@ const (
 	edgeUnsafeConversion
 	edgeUsedConstant
 	edgeVarDecl
+	edgeIgnored
+	edgeSamePointer
+	edgeTypeParam
+	edgeTypeArg
+	edgeUnionTerm
 )

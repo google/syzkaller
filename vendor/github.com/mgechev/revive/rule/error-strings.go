@@ -4,6 +4,8 @@ import (
 	"go/ast"
 	"go/token"
 	"strconv"
+	"strings"
+	"sync"
 	"unicode"
 	"unicode/utf8"
 
@@ -11,16 +13,60 @@ import (
 )
 
 // ErrorStringsRule lints given else constructs.
-type ErrorStringsRule struct{}
+type ErrorStringsRule struct {
+	errorFunctions map[string]map[string]struct{}
+	sync.Mutex
+}
+
+func (r *ErrorStringsRule) configure(arguments lint.Arguments) {
+	r.Lock()
+	defer r.Unlock()
+
+	if r.errorFunctions != nil {
+		return
+	}
+
+	r.errorFunctions = map[string]map[string]struct{}{
+		"fmt": {
+			"Errorf": {},
+		},
+		"errors": {
+			"Errorf":       {},
+			"WithMessage":  {},
+			"Wrap":         {},
+			"New":          {},
+			"WithMessagef": {},
+			"Wrapf":        {},
+		},
+	}
+
+	var invalidCustomFunctions []string
+	for _, argument := range arguments {
+		if functionName, ok := argument.(string); ok {
+			fields := strings.Split(strings.TrimSpace(functionName), ".")
+			if len(fields) != 2 || len(fields[0]) == 0 || len(fields[1]) == 0 {
+				invalidCustomFunctions = append(invalidCustomFunctions, functionName)
+				continue
+			}
+			r.errorFunctions[fields[0]] = map[string]struct{}{fields[1]: {}}
+		}
+	}
+	if len(invalidCustomFunctions) != 0 {
+		panic("found invalid custom function: " + strings.Join(invalidCustomFunctions, ","))
+	}
+}
 
 // Apply applies the rule to given file.
-func (r *ErrorStringsRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failure {
+func (r *ErrorStringsRule) Apply(file *lint.File, arguments lint.Arguments) []lint.Failure {
 	var failures []lint.Failure
+
+	r.configure(arguments)
 
 	fileAst := file.AST
 	walker := lintErrorStrings{
-		file:    file,
-		fileAst: fileAst,
+		file:           file,
+		fileAst:        fileAst,
+		errorFunctions: r.errorFunctions,
 		onFailure: func(failure lint.Failure) {
 			failures = append(failures, failure)
 		},
@@ -32,29 +78,36 @@ func (r *ErrorStringsRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failu
 }
 
 // Name returns the rule name.
-func (r *ErrorStringsRule) Name() string {
+func (*ErrorStringsRule) Name() string {
 	return "error-strings"
 }
 
 type lintErrorStrings struct {
-	file      *lint.File
-	fileAst   *ast.File
-	onFailure func(lint.Failure)
+	file           *lint.File
+	fileAst        *ast.File
+	errorFunctions map[string]map[string]struct{}
+	onFailure      func(lint.Failure)
 }
 
+// Visit browses the AST
 func (w lintErrorStrings) Visit(n ast.Node) ast.Visitor {
 	ce, ok := n.(*ast.CallExpr)
 	if !ok {
 		return w
 	}
-	if !isPkgDot(ce.Fun, "errors", "New") && !isPkgDot(ce.Fun, "fmt", "Errorf") {
-		return w
-	}
+
 	if len(ce.Args) < 1 {
 		return w
 	}
-	str, ok := ce.Args[0].(*ast.BasicLit)
-	if !ok || str.Kind != token.STRING {
+
+	// expression matches the known pkg.function
+	ok = w.match(ce)
+	if !ok {
+		return w
+	}
+
+	str, ok := w.getMessage(ce)
+	if !ok {
 		return w
 	}
 	s, _ := strconv.Unquote(str.Value) // can assume well-formed Go
@@ -65,7 +118,6 @@ func (w lintErrorStrings) Visit(n ast.Node) ast.Visitor {
 	if clean {
 		return w
 	}
-
 	w.onFailure(lint.Failure{
 		Node:       str,
 		Confidence: conf,
@@ -73,6 +125,55 @@ func (w lintErrorStrings) Visit(n ast.Node) ast.Visitor {
 		Failure:    "error strings should not be capitalized or end with punctuation or a newline",
 	})
 	return w
+}
+
+// match returns true if the expression corresponds to the known pkg.function
+// i.e.: errors.Wrap
+func (w lintErrorStrings) match(expr *ast.CallExpr) bool {
+	sel, ok := expr.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	// retrieve the package
+	id, ok := sel.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	functions, ok := w.errorFunctions[id.Name]
+	if !ok {
+		return false
+	}
+	// retrieve the function
+	_, ok = functions[sel.Sel.Name]
+	return ok
+}
+
+// getMessage returns the message depending on its position
+// returns false if the cast is unsuccessful
+func (w lintErrorStrings) getMessage(expr *ast.CallExpr) (s *ast.BasicLit, success bool) {
+	str, ok := w.checkArg(expr, 0)
+	if ok {
+		return str, true
+	}
+	if len(expr.Args) < 2 {
+		return s, false
+	}
+	str, ok = w.checkArg(expr, 1)
+	if !ok {
+		return s, false
+	}
+	return str, true
+}
+
+func (lintErrorStrings) checkArg(expr *ast.CallExpr, arg int) (s *ast.BasicLit, success bool) {
+	str, ok := expr.Args[arg].(*ast.BasicLit)
+	if !ok {
+		return s, false
+	}
+	if str.Kind != token.STRING {
+		return s, false
+	}
+	return str, true
 }
 
 func lintErrorString(s string) (isClean bool, conf float64) {

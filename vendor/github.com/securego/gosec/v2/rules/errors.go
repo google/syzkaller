@@ -86,8 +86,10 @@ func NewNoErrorCheck(id string, conf gosec.Config) (gosec.Rule, []ast.Node) {
 	whitelist.AddAll("fmt", "Print", "Printf", "Println", "Fprint", "Fprintf", "Fprintln")
 	whitelist.AddAll("strings.Builder", "Write", "WriteByte", "WriteRune", "WriteString")
 	whitelist.Add("io.PipeWriter", "CloseWithError")
+	whitelist.Add("hash.Hash", "Write")
+	whitelist.Add("os", "Unsetenv")
 
-	if configured, ok := conf["G104"]; ok {
+	if configured, ok := conf[id]; ok {
 		if whitelisted, ok := configured.(map[string]interface{}); ok {
 			for pkg, funcs := range whitelisted {
 				if funcs, ok := funcs.([]interface{}); ok {
