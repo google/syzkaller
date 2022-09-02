@@ -399,6 +399,7 @@ func TestReproRetestJob(t *testing.T) {
 	build.ID = "new-build"
 	build.KernelRepo = "git://mygit.com/new-git.git"
 	build.KernelBranch = "new-main"
+	build.KernelConfig = []byte{0xAB, 0xCD, 0xEF}
 	c.client2.UploadBuild(build)
 
 	// Wait until the bug is upstreamed.
@@ -416,6 +417,7 @@ func TestReproRetestJob(t *testing.T) {
 		c.expectEQ(resp.Type, dashapi.JobTestPatch)
 		c.expectEQ(resp.KernelRepo, build.KernelRepo)
 		c.expectEQ(resp.KernelBranch, build.KernelBranch)
+		c.expectEQ(resp.KernelConfig, build.KernelConfig)
 		c.expectEQ(resp.Patch, []uint8(nil))
 		var done *dashapi.JobDoneReq
 		if resp.ReproC == nil {
@@ -445,6 +447,7 @@ func TestReproRetestJob(t *testing.T) {
 	c.expectEQ(resp.Type, dashapi.JobTestPatch)
 	c.expectEQ(resp.KernelBranch, build.KernelBranch)
 	c.expectEQ(resp.ReproC, []uint8(nil))
+	c.expectEQ(resp.KernelConfig, build.KernelConfig)
 	done := &dashapi.JobDoneReq{
 		ID: resp.ID,
 	}

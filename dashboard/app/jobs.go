@@ -98,6 +98,7 @@ type testJobArgs struct {
 	repo         string
 	branch       string
 	jobCC        []string
+	configRef    int64
 }
 
 func addTestJob(c context.Context, args *testJobArgs, now time.Time) (string, error) {
@@ -140,6 +141,7 @@ func addTestJob(c context.Context, args *testJobArgs, now time.Time) (string, er
 		KernelRepo:   args.repo,
 		KernelBranch: args.branch,
 		Patch:        patchID,
+		KernelConfig: args.configRef,
 	}
 
 	deletePatch := false
@@ -309,12 +311,13 @@ func handleRetestForBug(c context.Context, now time.Time, bug *Bug, bugKey *db.K
 			return err
 		}
 		reason, err := addTestJob(c, &testJobArgs{
-			crash:    crash,
-			crashKey: crashKeys[crashID],
-			bug:      bug,
-			bugKey:   bugKey,
-			repo:     build.KernelRepo,
-			branch:   build.KernelBranch,
+			crash:     crash,
+			crashKey:  crashKeys[crashID],
+			bug:       bug,
+			bugKey:    bugKey,
+			repo:      build.KernelRepo,
+			branch:    build.KernelBranch,
+			configRef: build.KernelConfig,
 		}, now)
 		if reason != "" {
 			return fmt.Errorf("job not added for reason %s", reason)
@@ -497,7 +500,12 @@ func createJobResp(c context.Context, job *Job, jobKey *db.Key) (*dashapi.JobPol
 	if err != nil {
 		return nil, false, err
 	}
-	kernelConfig, _, err := getText(c, textKernelConfig, build.KernelConfig)
+
+	configRef := job.KernelConfig
+	if configRef == 0 {
+		configRef = build.KernelConfig
+	}
+	kernelConfig, _, err := getText(c, textKernelConfig, configRef)
 	if err != nil {
 		return nil, false, err
 	}
