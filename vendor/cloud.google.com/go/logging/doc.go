@@ -68,6 +68,21 @@ not recommended for normal use.
 	}
 
 
+Redirecting log ingestion
+
+For cases when runtime environment supports out-of-process log ingestion,
+like logging agent, you can opt-in to write log entries to io.Writer instead of
+ingesting them to Cloud Logging service. Usually, you will use os.Stdout or os.Stderr as
+writers because Google Cloud logging agents are configured to capture logs from standard output.
+The entries will be Jsonified and wrote as one line strings following the structured logging format.
+See https://cloud.google.com/logging/docs/structured-logging#special-payload-fields for the format description.
+To instruct Logger to redirect log entries add RedirectAsJSON() LoggerOption`s.
+
+
+	// Create a logger to print structured logs formatted as a single line Json to stdout
+	loggger := client.Logger("test-log", RedirectAsJSON(os.Stdout))
+
+
 Payloads
 
 An entry payload can be a string, as in the examples above. It can also be any value
@@ -84,6 +99,16 @@ If you have a []byte of JSON, wrap it in json.RawMessage:
 	j := []byte(`{"Name": "Bob", "Count": 3}`)
 	lg.Log(logging.Entry{Payload: json.RawMessage(j)})
 
+If you have proto.Message and want to send it as a protobuf payload, marshal it to anypb.Any:
+
+	// import
+    func logMessage (m proto.Message) {
+		var payload anypb.Any
+		err := anypb.MarshalFrom(&payload, m)
+		if err != nil {
+			lg.Log(logging.Entry{Payload: payload})
+		}
+	}
 
 The Standard Logger
 

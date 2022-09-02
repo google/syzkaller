@@ -33,7 +33,6 @@ import (
 	"strings"
 	"time"
 
-	"cloud.google.com/go/internal/version"
 	"cloud.google.com/go/logging"
 	vkit "cloud.google.com/go/logging/apiv2"
 	"cloud.google.com/go/logging/internal"
@@ -95,9 +94,9 @@ func NewClient(ctx context.Context, parent string, opts ...option.ClientOption) 
 	mc.CallOptions.CreateLogMetric = []gax.CallOption{gax.WithRetry(retryerOnInternal)}
 	mc.CallOptions.UpdateLogMetric = []gax.CallOption{gax.WithRetry(retryerOnInternal)}
 
-	lc.SetGoogleClientInfo("gccl", version.Repo)
-	sc.SetGoogleClientInfo("gccl", version.Repo)
-	mc.SetGoogleClientInfo("gccl", version.Repo)
+	lc.SetGoogleClientInfo("gccl", internal.Version)
+	sc.SetGoogleClientInfo("gccl", internal.Version)
+	mc.SetGoogleClientInfo("gccl", internal.Version)
 	client := &Client{
 		lClient: lc,
 		sClient: sc,
