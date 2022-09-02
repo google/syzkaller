@@ -15,6 +15,12 @@ import (
 	db "google.golang.org/appengine/v2/datastore"
 )
 
+const sampleGitPatch = `--- a/mm/kasan/kasan.c
++++ b/mm/kasan/kasan.c
+-       current->kasan_depth++;
++       current->kasan_depth--;
+`
+
 // nolint: funlen
 func TestJob(t *testing.T) {
 	c := NewCtx(t)
@@ -22,12 +28,6 @@ func TestJob(t *testing.T) {
 
 	build := testBuild(1)
 	c.client2.UploadBuild(build)
-
-	patch := `--- a/mm/kasan/kasan.c
-+++ b/mm/kasan/kasan.c
--       current->kasan_depth++;
-+       current->kasan_depth--;
-`
 
 	// Report crash without repro, check that test requests are not accepted.
 	crash := testCrash(build, 1)
@@ -43,7 +43,7 @@ func TestJob(t *testing.T) {
 	c.incomingEmail(sender, "bla-bla-bla", EmailOptFrom("maintainer@kernel.org"),
 		EmailOptCC([]string{mailingList, "kernel@mailing.list"}))
 
-	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch,
+	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
 		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
 	body := c.pollEmailBug().Body
 	c.expectEQ(strings.Contains(body, "This crash does not have a reproducer"), true)
@@ -75,20 +75,20 @@ func TestJob(t *testing.T) {
 	body = c.pollEmailBug().Body
 	c.expectEQ(strings.Contains(body, "does not look like a valid git repo"), true)
 
-	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch,
+	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
 		EmailOptFrom("\"foo\" <blOcKed@dOmain.COM>"))
 	c.expectNoEmail()
 	pollResp := c.client2.pollJobs(build.Manager)
 	c.expectEQ(pollResp.ID, "")
 
 	// This submits actual test request.
-	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch,
+	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
 		EmailOptMessageID(1), EmailOptFrom("test@requester.com"),
 		EmailOptCC([]string{"somebody@else.com"}))
 	c.expectNoEmail()
 
 	// A dup of the same request with the same Message-ID.
-	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch,
+	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
 		EmailOptMessageID(1), EmailOptFrom("test@requester.com"),
 		EmailOptCC([]string{"somebody@else.com"}))
 	c.expectNoEmail()
@@ -103,7 +103,7 @@ func TestJob(t *testing.T) {
 	c.expectEQ(pollResp.KernelBranch, "kernel-branch")
 	c.expectEQ(pollResp.KernelConfig, build.KernelConfig)
 	c.expectEQ(pollResp.SyzkallerCommit, build.SyzkallerCommit)
-	c.expectEQ(pollResp.Patch, []byte(patch))
+	c.expectEQ(pollResp.Patch, []byte(sampleGitPatch))
 	c.expectEQ(pollResp.ReproOpts, []byte("repro opts"))
 	c.expectEQ(pollResp.ReproSyz, []byte(
 		"# See https://goo.gl/kgGztJ for information about syzkaller reproducers.\n"+
@@ -151,13 +151,13 @@ compiler:       compiler1
 patch:          %[1]v
 
 `, patchLink, kernelConfigLink, logLink, extBugID))
-		c.checkURLContents(patchLink, []byte(patch))
+		c.checkURLContents(patchLink, []byte(sampleGitPatch))
 		c.checkURLContents(kernelConfigLink, build.KernelConfig)
 		c.checkURLContents(logLink, jobDoneReq.CrashLog)
 	}
 
 	// Testing fails with an error.
-	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch, EmailOptMessageID(2))
+	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch, EmailOptMessageID(2))
 	pollResp = c.client2.pollJobs(build.Manager)
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 	jobDoneReq = &dashapi.JobDoneReq{
@@ -189,12 +189,12 @@ compiler:       compiler1
 patch:          %[1]v
 
 `, patchLink, kernelConfigLink, extBugID))
-		c.checkURLContents(patchLink, []byte(patch))
+		c.checkURLContents(patchLink, []byte(sampleGitPatch))
 		c.checkURLContents(kernelConfigLink, build.KernelConfig)
 	}
 
 	// Testing fails with a huge error that can't be inlined in email.
-	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch, EmailOptMessageID(3))
+	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch, EmailOptMessageID(3))
 	pollResp = c.client2.pollJobs(build.Manager)
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 	jobDoneReq = &dashapi.JobDoneReq{
@@ -231,12 +231,12 @@ compiler:       compiler1
 patch:          %[3]v
 
 `, truncatedError, errorLink, patchLink, kernelConfigLink, extBugID))
-		c.checkURLContents(patchLink, []byte(patch))
+		c.checkURLContents(patchLink, []byte(sampleGitPatch))
 		c.checkURLContents(errorLink, jobDoneReq.Error)
 		c.checkURLContents(kernelConfigLink, build.KernelConfig)
 	}
 
-	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch, EmailOptMessageID(4))
+	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch, EmailOptMessageID(4))
 	pollResp = c.client2.pollJobs(build.Manager)
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 	jobDoneReq = &dashapi.JobDoneReq{
@@ -270,7 +270,7 @@ patch:          %[2]v
 
 Note: testing is done by a robot and is best-effort only.
 `, extBugID, patchLink, kernelConfigLink, logLink))
-		c.checkURLContents(patchLink, []byte(patch))
+		c.checkURLContents(patchLink, []byte(sampleGitPatch))
 		c.checkURLContents(kernelConfigLink, build.KernelConfig)
 	}
 
@@ -279,18 +279,12 @@ Note: testing is done by a robot and is best-effort only.
 }
 
 // Test whether we can test boot time crashes.
-func TestJobBootError(t *testing.T) {
+func TestBootErrorPatch(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
 	build := testBuild(1)
 	c.client2.UploadBuild(build)
-
-	patch := `--- a/mm/kasan/kasan.c
-+++ b/mm/kasan/kasan.c
--       current->kasan_depth++;
-+       current->kasan_depth--;
-`
 
 	crash := testCrash(build, 2)
 	crash.Title = "riscv/fixes boot error: can't ssh into the instance"
@@ -301,7 +295,30 @@ func TestJobBootError(t *testing.T) {
 	sender = c.pollEmailBug().Sender
 	mailingList := config.Namespaces["test2"].Reporting[1].Config.(*EmailConfig).Email
 
-	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch,
+	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
+	c.expectNoEmail()
+	pollResp := c.client2.pollJobs(build.Manager)
+	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
+}
+
+func TestTestErrorPatch(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client2.UploadBuild(build)
+
+	crash := testCrash(build, 2)
+	crash.Title = "upstream test error: WARNING in __queue_work"
+	c.client2.ReportCrash(crash)
+
+	sender := c.pollEmailBug().Sender
+	c.incomingEmail(sender, "#syz upstream\n")
+	sender = c.pollEmailBug().Sender
+	mailingList := config.Namespaces["test2"].Reporting[1].Config.(*EmailConfig).Email
+
+	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
 		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
 	c.expectNoEmail()
 	pollResp := c.client2.pollJobs(build.Manager)
