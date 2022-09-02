@@ -84,7 +84,7 @@ linters-settings:
     # TODO: consider reducing this value.
     min-complexity: 12
   godot:
-    check-all: true
+    scope: toplevel
   gocognit:
     # TODO: consider reducing this value.
     min-complexity: 70
@@ -100,7 +100,6 @@ issues:
   exclude-use-default: false
   max-same-issues: 0
   exclude:
-    - "Comment should end in a period"
     - "exported .* should have comment"
     - "comment on .* should be of the form"
     - "at least one file in a package should have a package comment"
