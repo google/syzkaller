@@ -339,7 +339,7 @@ func (ctx *context) emitCallBody(w *bytes.Buffer, call prog.ExecCall, native boo
 	} else if strings.HasPrefix(callName, "syz_") {
 		fmt.Fprintf(w, "%v(", callName)
 	} else {
-		args := strings.Repeat(",intptr_t", len(call.Args))
+		args := strings.Repeat(",intptr_t", len(call.Args)+call.Meta.MissingArgs)
 		if args != "" {
 			args = args[1:]
 		}
