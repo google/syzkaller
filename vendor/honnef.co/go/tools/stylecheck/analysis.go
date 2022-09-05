@@ -1,25 +1,28 @@
 package stylecheck
 
 import (
+	"honnef.co/go/tools/analysis/facts/generated"
+	"honnef.co/go/tools/analysis/facts/tokenfile"
+	"honnef.co/go/tools/analysis/lint"
+	"honnef.co/go/tools/config"
+	"honnef.co/go/tools/internal/passes/buildir"
+	"honnef.co/go/tools/internal/sharedcheck"
+
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
-	"honnef.co/go/tools/config"
-	"honnef.co/go/tools/facts"
-	"honnef.co/go/tools/internal/passes/buildir"
-	"honnef.co/go/tools/lint/lintutil"
 )
 
-var Analyzers = lintutil.InitializeAnalyzers(Docs, map[string]*analysis.Analyzer{
+var Analyzers = lint.InitializeAnalyzers(Docs, map[string]*analysis.Analyzer{
 	"ST1000": {
 		Run: CheckPackageComment,
 	},
 	"ST1001": {
 		Run:      CheckDotImports,
-		Requires: []*analysis.Analyzer{facts.Generated, config.Analyzer},
+		Requires: []*analysis.Analyzer{generated.Analyzer, config.Analyzer},
 	},
 	"ST1003": {
 		Run:      CheckNames,
-		Requires: []*analysis.Analyzer{inspect.Analyzer, facts.Generated, config.Analyzer},
+		Requires: []*analysis.Analyzer{inspect.Analyzer, generated.Analyzer, config.Analyzer},
 	},
 	"ST1005": {
 		Run:      CheckErrorStrings,
@@ -27,7 +30,7 @@ var Analyzers = lintutil.InitializeAnalyzers(Docs, map[string]*analysis.Analyzer
 	},
 	"ST1006": {
 		Run:      CheckReceiverNames,
-		Requires: []*analysis.Analyzer{buildir.Analyzer, facts.Generated},
+		Requires: []*analysis.Analyzer{buildir.Analyzer, generated.Analyzer},
 	},
 	"ST1008": {
 		Run:      CheckErrorReturn,
@@ -38,25 +41,24 @@ var Analyzers = lintutil.InitializeAnalyzers(Docs, map[string]*analysis.Analyzer
 		Requires: []*analysis.Analyzer{inspect.Analyzer},
 	},
 	"ST1012": {
-		Run:      CheckErrorVarNames,
-		Requires: []*analysis.Analyzer{config.Analyzer},
+		Run: CheckErrorVarNames,
 	},
 	"ST1013": {
 		Run: CheckHTTPStatusCodes,
-		// TODO(dh): why does this depend on facts.TokenFile?
-		Requires: []*analysis.Analyzer{facts.Generated, facts.TokenFile, config.Analyzer, inspect.Analyzer},
+		// TODO(dh): why does this depend on tokenfile.TokenFile?
+		Requires: []*analysis.Analyzer{generated.Analyzer, tokenfile.Analyzer, config.Analyzer, inspect.Analyzer},
 	},
 	"ST1015": {
 		Run:      CheckDefaultCaseOrder,
-		Requires: []*analysis.Analyzer{inspect.Analyzer, facts.Generated, facts.TokenFile},
+		Requires: []*analysis.Analyzer{inspect.Analyzer, generated.Analyzer, tokenfile.Analyzer},
 	},
 	"ST1016": {
 		Run:      CheckReceiverNamesIdentical,
-		Requires: []*analysis.Analyzer{buildir.Analyzer, facts.Generated},
+		Requires: []*analysis.Analyzer{buildir.Analyzer, generated.Analyzer},
 	},
 	"ST1017": {
 		Run:      CheckYodaConditions,
-		Requires: []*analysis.Analyzer{inspect.Analyzer, facts.Generated, facts.TokenFile},
+		Requires: []*analysis.Analyzer{inspect.Analyzer, generated.Analyzer, tokenfile.Analyzer},
 	},
 	"ST1018": {
 		Run:      CheckInvisibleCharacters,
@@ -64,18 +66,19 @@ var Analyzers = lintutil.InitializeAnalyzers(Docs, map[string]*analysis.Analyzer
 	},
 	"ST1019": {
 		Run:      CheckDuplicatedImports,
-		Requires: []*analysis.Analyzer{facts.Generated, config.Analyzer},
+		Requires: []*analysis.Analyzer{generated.Analyzer},
 	},
 	"ST1020": {
 		Run:      CheckExportedFunctionDocs,
-		Requires: []*analysis.Analyzer{facts.Generated, inspect.Analyzer},
+		Requires: []*analysis.Analyzer{generated.Analyzer, inspect.Analyzer},
 	},
 	"ST1021": {
 		Run:      CheckExportedTypeDocs,
-		Requires: []*analysis.Analyzer{facts.Generated, inspect.Analyzer},
+		Requires: []*analysis.Analyzer{generated.Analyzer, inspect.Analyzer},
 	},
 	"ST1022": {
 		Run:      CheckExportedVarDocs,
-		Requires: []*analysis.Analyzer{facts.Generated, inspect.Analyzer},
+		Requires: []*analysis.Analyzer{generated.Analyzer, inspect.Analyzer},
 	},
+	"ST1023": sharedcheck.RedundantTypeInDeclarationChecker("should", false),
 })

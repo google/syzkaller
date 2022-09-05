@@ -49,7 +49,7 @@ func (c *emptyFallthroughChecker) VisitStmt(stmt ast.Stmt) {
 					warn = true
 					if prevCaseDefault {
 						c.warnDefault(bs)
-					} else {
+					} else if cc.List != nil {
 						c.warn(bs)
 					}
 				}

@@ -4,6 +4,10 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
+
+	"golang.org/x/tools/go/analysis"
+	"golang.org/x/tools/go/analysis/passes/inspect"
+	"golang.org/x/tools/go/ast/inspector"
 )
 
 // Stat is statistic of the complexity.
@@ -45,23 +49,12 @@ func funcName(fn *ast.FuncDecl) string {
 	return fn.Name.Name
 }
 
-// recvString returns a string representation of recv of the
-// form "T", "*T", or "BADRECV" (if not a proper receiver type).
-func recvString(recv ast.Expr) string {
-	switch t := recv.(type) {
-	case *ast.Ident:
-		return t.Name
-	case *ast.StarExpr:
-		return "*" + recvString(t.X)
-	}
-	return "BADRECV"
-}
-
 // Complexity calculates the cognitive complexity of a function.
 func Complexity(fn *ast.FuncDecl) int {
 	v := complexityVisitor{
 		name: fn.Name,
 	}
+
 	ast.Walk(&v, fn)
 	return v.complexity
 }
@@ -129,6 +122,8 @@ func (v *complexityVisitor) Visit(n ast.Node) ast.Visitor {
 		return v.visitIfStmt(n)
 	case *ast.SwitchStmt:
 		return v.visitSwitchStmt(n)
+	case *ast.TypeSwitchStmt:
+		return v.visitTypeSwitchStmt(n)
 	case *ast.SelectStmt:
 		return v.visitSelectStmt(n)
 	case *ast.ForStmt:
@@ -150,38 +145,59 @@ func (v *complexityVisitor) Visit(n ast.Node) ast.Visitor {
 func (v *complexityVisitor) visitIfStmt(n *ast.IfStmt) ast.Visitor {
 	v.incIfComplexity(n)
 
-	if n.Init != nil {
-		ast.Walk(v, n.Init)
+	if n := n.Init; n != nil {
+		ast.Walk(v, n)
 	}
 
 	ast.Walk(v, n.Cond)
 
-	v.incNesting()
-	ast.Walk(v, n.Body)
-	v.decNesting()
+	pure := !v.markedAsElseNode(n) // pure `if` statement, not an `else if`
+	if pure {
+		v.incNesting()
+		ast.Walk(v, n.Body)
+		v.decNesting()
+	} else {
+		ast.Walk(v, n.Body)
+	}
 
 	if _, ok := n.Else.(*ast.BlockStmt); ok {
 		v.incComplexity()
 
-		v.incNesting()
 		ast.Walk(v, n.Else)
-		v.decNesting()
 	} else if _, ok := n.Else.(*ast.IfStmt); ok {
 		v.markAsElseNode(n.Else)
 		ast.Walk(v, n.Else)
 	}
+
 	return nil
 }
 
 func (v *complexityVisitor) visitSwitchStmt(n *ast.SwitchStmt) ast.Visitor {
 	v.nestIncComplexity()
 
-	if n.Init != nil {
-		ast.Walk(v, n.Init)
+	if n := n.Init; n != nil {
+		ast.Walk(v, n)
 	}
 
-	if n.Tag != nil {
-		ast.Walk(v, n.Tag)
+	if n := n.Tag; n != nil {
+		ast.Walk(v, n)
+	}
+
+	v.incNesting()
+	ast.Walk(v, n.Body)
+	v.decNesting()
+	return nil
+}
+
+func (v *complexityVisitor) visitTypeSwitchStmt(n *ast.TypeSwitchStmt) ast.Visitor {
+	v.nestIncComplexity()
+
+	if n := n.Init; n != nil {
+		ast.Walk(v, n)
+	}
+
+	if n := n.Assign; n != nil {
+		ast.Walk(v, n)
 	}
 
 	v.incNesting()
@@ -202,16 +218,16 @@ func (v *complexityVisitor) visitSelectStmt(n *ast.SelectStmt) ast.Visitor {
 func (v *complexityVisitor) visitForStmt(n *ast.ForStmt) ast.Visitor {
 	v.nestIncComplexity()
 
-	if n.Init != nil {
-		ast.Walk(v, n.Init)
+	if n := n.Init; n != nil {
+		ast.Walk(v, n)
 	}
 
-	if n.Cond != nil {
-		ast.Walk(v, n.Cond)
+	if n := n.Cond; n != nil {
+		ast.Walk(v, n)
 	}
 
-	if n.Post != nil {
-		ast.Walk(v, n.Post)
+	if n := n.Post; n != nil {
+		ast.Walk(v, n)
 	}
 
 	v.incNesting()
@@ -223,12 +239,12 @@ func (v *complexityVisitor) visitForStmt(n *ast.ForStmt) ast.Visitor {
 func (v *complexityVisitor) visitRangeStmt(n *ast.RangeStmt) ast.Visitor {
 	v.nestIncComplexity()
 
-	if n.Key != nil {
-		ast.Walk(v, n.Key)
+	if n := n.Key; n != nil {
+		ast.Walk(v, n)
 	}
 
-	if n.Value != nil {
-		ast.Walk(v, n.Value)
+	if n := n.Value; n != nil {
+		ast.Walk(v, n)
 	}
 
 	ast.Walk(v, n.X)
@@ -271,8 +287,10 @@ func (v *complexityVisitor) visitBinaryExpr(n *ast.BinaryExpr) ast.Visitor {
 }
 
 func (v *complexityVisitor) visitCallExpr(n *ast.CallExpr) ast.Visitor {
-	if name, ok := n.Fun.(*ast.Ident); ok {
-		if name.Obj == v.name.Obj && name.Name == v.name.Name {
+	if callIdent, ok := n.Fun.(*ast.Ident); ok {
+		obj, name := callIdent.Obj, callIdent.Name
+		if obj == v.name.Obj && name == v.name.Name {
+			// called by same function directly (direct recursion)
 			v.incComplexity()
 		}
 	}
@@ -310,4 +328,46 @@ func mergeBinaryOps(x []token.Token, op token.Token, y []token.Token) []token.To
 		out = append(out, y...)
 	}
 	return out
+}
+
+const Doc = `Find complex function using cognitive complexity calculation.
+
+The gocognit analysis reports functions or methods which the complexity is over 
+than the specified limit.`
+
+// Analyzer reports a diagnostic for every function or method which is
+// too complex specified by its -over flag.
+var Analyzer = &analysis.Analyzer{
+	Name:     "gocognit",
+	Doc:      Doc,
+	Requires: []*analysis.Analyzer{inspect.Analyzer},
+	Run:      run,
+}
+
+var (
+	over int // -over flag
+)
+
+func init() {
+	Analyzer.Flags.IntVar(&over, "over", over, "show functions with complexity > N only")
+}
+
+func run(pass *analysis.Pass) (interface{}, error) {
+	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
+
+	nodeFilter := []ast.Node{
+		(*ast.FuncDecl)(nil),
+	}
+	inspect.Preorder(nodeFilter, func(n ast.Node) {
+		fnDecl := n.(*ast.FuncDecl)
+
+		fnName := funcName(fnDecl)
+		fnComplexity := Complexity(fnDecl)
+
+		if fnComplexity > over {
+			pass.Reportf(fnDecl.Pos(), "cognitive complexity %d of func %s is high (> %d)", fnComplexity, fnName, over)
+		}
+	})
+
+	return nil, nil
 }

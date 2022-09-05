@@ -3,34 +3,42 @@ package ruleguard
 import (
 	"fmt"
 	"go/ast"
-	"go/token"
 	"go/types"
+	"regexp"
 
-	"github.com/quasilyte/go-ruleguard/internal/mvdan.cc/gogrep"
 	"github.com/quasilyte/go-ruleguard/ruleguard/quasigo"
+	"github.com/quasilyte/go-ruleguard/ruleguard/typematch"
+	"github.com/quasilyte/gogrep"
+	"github.com/quasilyte/gogrep/nodetag"
 )
 
 type goRuleSet struct {
 	universal *scopedGoRuleSet
 
-	groups map[string]token.Position // To handle redefinitions
+	groups map[string]*GoRuleGroup // To handle redefinitions
 }
 
 type scopedGoRuleSet struct {
-	uncategorized   []goRule
-	categorizedNum  int
-	rulesByCategory [nodeCategoriesCount][]goRule
+	categorizedNum int
+	rulesByTag     [nodetag.NumBuckets][]goRule
+	commentRules   []goCommentRule
+}
+
+type goCommentRule struct {
+	base          goRule
+	pat           *regexp.Regexp
+	captureGroups bool
 }
 
 type goRule struct {
-	group      string
-	filename   string
+	group      *GoRuleGroup
 	line       int
 	pat        *gogrep.Pattern
 	msg        string
 	location   string
 	suggestion string
 	filter     matchFilter
+	do         *quasigo.Func
 }
 
 type matchFilterResult string
@@ -52,18 +60,36 @@ type filterParams struct {
 	imports  map[string]struct{}
 	env      *quasigo.EvalEnv
 
-	importer *goImporter
+	importer       *goImporter
+	gogrepSubState *gogrep.MatcherState
+	typematchState *typematch.MatcherState
 
-	values map[string]ast.Node
+	match    matchData
+	nodePath *nodePath
 
-	nodeText func(n ast.Node) []byte
+	nodeText   func(n ast.Node) []byte
+	nodeString func(n ast.Node) string
+
+	deadcode bool
+
+	currentFunc *ast.FuncDecl
 
 	// varname is set only for custom filters before bytecode function is called.
 	varname string
+
+	// Both of these are Do() function related fields.
+	reportString  string
+	suggestString string
+}
+
+func (params *filterParams) subNode(name string) ast.Node {
+	n, _ := params.match.CapturedByName(name)
+	return n
 }
 
 func (params *filterParams) subExpr(name string) ast.Expr {
-	switch n := params.values[name].(type) {
+	n, _ := params.match.CapturedByName(name)
+	switch n := n.(type) {
 	case ast.Expr:
 		return n
 	case *ast.ExprStmt:
@@ -74,38 +100,34 @@ func (params *filterParams) subExpr(name string) ast.Expr {
 }
 
 func (params *filterParams) typeofNode(n ast.Node) types.Type {
-	if e, ok := n.(ast.Expr); ok {
-		if typ := params.ctx.Types.TypeOf(e); typ != nil {
-			return typ
-		}
+	var e ast.Expr
+	switch n := n.(type) {
+	case ast.Expr:
+		e = n
+	case *ast.Field:
+		e = n.Type
 	}
-
-	return types.Typ[types.Invalid]
-}
-
-func cloneRuleSet(rset *goRuleSet) *goRuleSet {
-	out, err := mergeRuleSets([]*goRuleSet{rset})
-	if err != nil {
-		panic(err) // Should never happen
+	if typ := params.ctx.Types.TypeOf(e); typ != nil {
+		return typ
 	}
-	return out
+	return invalidType
 }
 
 func mergeRuleSets(toMerge []*goRuleSet) (*goRuleSet, error) {
 	out := &goRuleSet{
 		universal: &scopedGoRuleSet{},
-		groups:    make(map[string]token.Position),
+		groups:    make(map[string]*GoRuleGroup),
 	}
 
 	for _, x := range toMerge {
 		out.universal = appendScopedRuleSet(out.universal, x.universal)
-		for group, pos := range x.groups {
-			if prevPos, ok := out.groups[group]; ok {
-				newRef := fmt.Sprintf("%s:%d", pos.Filename, pos.Line)
-				oldRef := fmt.Sprintf("%s:%d", prevPos.Filename, prevPos.Line)
-				return nil, fmt.Errorf("%s: redefenition of %s(), previously defined at %s", newRef, group, oldRef)
+		for groupName, group := range x.groups {
+			if prevGroup, ok := out.groups[groupName]; ok {
+				newRef := fmt.Sprintf("%s:%d", group.Filename, group.Line)
+				oldRef := fmt.Sprintf("%s:%d", prevGroup.Filename, prevGroup.Line)
+				return nil, fmt.Errorf("%s: redefinition of %s(), previously defined at %s", newRef, groupName, oldRef)
 			}
-			out.groups[group] = pos
+			out.groups[groupName] = group
 		}
 	}
 
@@ -113,11 +135,11 @@ func mergeRuleSets(toMerge []*goRuleSet) (*goRuleSet, error) {
 }
 
 func appendScopedRuleSet(dst, src *scopedGoRuleSet) *scopedGoRuleSet {
-	dst.uncategorized = append(dst.uncategorized, cloneRuleSlice(src.uncategorized)...)
-	for cat, rules := range src.rulesByCategory {
-		dst.rulesByCategory[cat] = append(dst.rulesByCategory[cat], cloneRuleSlice(rules)...)
+	for tag, rules := range src.rulesByTag {
+		dst.rulesByTag[tag] = append(dst.rulesByTag[tag], cloneRuleSlice(rules)...)
 		dst.categorizedNum += len(rules)
 	}
+	dst.commentRules = append(dst.commentRules, src.commentRules...)
 	return dst
 }
 

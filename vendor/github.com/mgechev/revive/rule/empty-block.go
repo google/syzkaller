@@ -10,20 +10,20 @@ import (
 type EmptyBlockRule struct{}
 
 // Apply applies the rule to given file.
-func (r *EmptyBlockRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failure {
+func (*EmptyBlockRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failure {
 	var failures []lint.Failure
 
 	onFailure := func(failure lint.Failure) {
 		failures = append(failures, failure)
 	}
 
-	w := lintEmptyBlock{make(map[*ast.BlockStmt]bool, 0), onFailure}
+	w := lintEmptyBlock{make(map[*ast.BlockStmt]bool), onFailure}
 	ast.Walk(w, file.AST)
 	return failures
 }
 
 // Name returns the rule name.
-func (r *EmptyBlockRule) Name() string {
+func (*EmptyBlockRule) Name() string {
 	return "empty-block"
 }
 

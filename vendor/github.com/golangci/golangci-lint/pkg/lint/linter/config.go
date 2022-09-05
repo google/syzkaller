@@ -1,17 +1,36 @@
 package linter
 
 import (
+	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/packages"
+
+	"github.com/golangci/golangci-lint/pkg/config"
 )
 
 const (
-	PresetFormatting  = "format"
-	PresetComplexity  = "complexity"
-	PresetStyle       = "style"
-	PresetBugs        = "bugs"
-	PresetUnused      = "unused"
-	PresetPerformance = "performance"
+	PresetBugs        = "bugs"        // Related to bugs detection.
+	PresetComment     = "comment"     // Related to comments analysis.
+	PresetComplexity  = "complexity"  // Related to code complexity analysis.
+	PresetError       = "error"       // Related to error handling analysis.
+	PresetFormatting  = "format"      // Related to code formatting.
+	PresetImport      = "import"      // Related to imports analysis.
+	PresetMetaLinter  = "metalinter"  // Related to linter that contains multiple rules or multiple linters.
+	PresetModule      = "module"      // Related to Go modules analysis.
+	PresetPerformance = "performance" // Related to performance.
+	PresetSQL         = "sql"         // Related to SQL.
+	PresetStyle       = "style"       // Related to coding style.
+	PresetTest        = "test"        // Related to the analysis of the code of the tests.
+	PresetUnused      = "unused"      // Related to the detection of unused code.
 )
+
+// LastLinter nolintlint must be last because it looks at the results of all the previous linters for unused nolint directives.
+const LastLinter = "nolintlint"
+
+type Deprecation struct {
+	Since       string
+	Message     string
+	Replacement string
+}
 
 type Config struct {
 	Linter           Linter
@@ -26,6 +45,9 @@ type Config struct {
 	CanAutoFix      bool
 	IsSlow          bool
 	DoesChangeTypes bool
+
+	Since       string
+	Deprecation *Deprecation
 }
 
 func (lc *Config) ConsiderSlow() *Config {
@@ -34,7 +56,7 @@ func (lc *Config) ConsiderSlow() *Config {
 }
 
 func (lc *Config) IsSlowLinter() bool {
-	return lc.IsSlow || (lc.LoadMode&packages.NeedTypesInfo != 0 && lc.LoadMode&packages.NeedDeps != 0)
+	return lc.IsSlow
 }
 
 func (lc *Config) WithLoadFiles() *Config {
@@ -44,7 +66,8 @@ func (lc *Config) WithLoadFiles() *Config {
 
 func (lc *Config) WithLoadForGoAnalysis() *Config {
 	lc = lc.WithLoadFiles()
-	lc.LoadMode |= packages.NeedImports | packages.NeedDeps | packages.NeedExportsFile | packages.NeedTypesSizes
+	lc.LoadMode |= packages.NeedImports | packages.NeedDeps | packages.NeedExportFile | packages.NeedTypesSizes
+	lc.IsSlow = true
 	return lc
 }
 
@@ -73,12 +96,47 @@ func (lc *Config) WithChangeTypes() *Config {
 	return lc
 }
 
+func (lc *Config) WithSince(version string) *Config {
+	lc.Since = version
+	return lc
+}
+
+func (lc *Config) Deprecated(message, version, replacement string) *Config {
+	lc.Deprecation = &Deprecation{
+		Since:       version,
+		Message:     message,
+		Replacement: replacement,
+	}
+	return lc
+}
+
+func (lc *Config) IsDeprecated() bool {
+	return lc.Deprecation != nil
+}
+
 func (lc *Config) AllNames() []string {
 	return append([]string{lc.Name()}, lc.AlternativeNames...)
 }
 
 func (lc *Config) Name() string {
 	return lc.Linter.Name()
+}
+
+func (lc *Config) WithNoopFallback(cfg *config.Config) *Config {
+	if cfg != nil && config.IsGreaterThanOrEqualGo118(cfg.Run.Go) {
+		lc.Linter = &Noop{
+			name: lc.Linter.Name(),
+			desc: lc.Linter.Desc(),
+			run: func(pass *analysis.Pass) (interface{}, error) {
+				return nil, nil
+			},
+		}
+
+		lc.LoadMode = 0
+		return lc.WithLoadFiles()
+	}
+
+	return lc
 }
 
 func NewConfig(linter Linter) *Config {

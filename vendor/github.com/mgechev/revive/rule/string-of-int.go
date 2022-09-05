@@ -11,7 +11,7 @@ import (
 type StringOfIntRule struct{}
 
 // Apply applies the rule to given file.
-func (r *StringOfIntRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failure {
+func (*StringOfIntRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failure {
 	var failures []lint.Failure
 
 	onFailure := func(failure lint.Failure) {
@@ -28,7 +28,7 @@ func (r *StringOfIntRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failur
 }
 
 // Name returns the rule name.
-func (r *StringOfIntRule) Name() string {
+func (*StringOfIntRule) Name() string {
 	return "string-of-int"
 }
 
@@ -54,7 +54,7 @@ func (w *lintStringInt) Visit(node ast.Node) ast.Visitor {
 	w.onFailure(lint.Failure{
 		Confidence: 1,
 		Node:       ce,
-		Failure:    "dubious convertion of an integer into a string, use strconv.Itoa",
+		Failure:    "dubious conversion of an integer into a string, use strconv.Itoa",
 	})
 
 	return w

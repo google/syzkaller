@@ -10,7 +10,7 @@ import (
 type UnconditionalRecursionRule struct{}
 
 // Apply applies the rule to given file.
-func (r *UnconditionalRecursionRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failure {
+func (*UnconditionalRecursionRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failure {
 	var failures []lint.Failure
 
 	onFailure := func(failure lint.Failure) {
@@ -23,7 +23,7 @@ func (r *UnconditionalRecursionRule) Apply(file *lint.File, _ lint.Arguments) []
 }
 
 // Name returns the rule name.
-func (r *UnconditionalRecursionRule) Name() string {
+func (*UnconditionalRecursionRule) Name() string {
 	return "unconditional-recursion"
 }
 
@@ -61,8 +61,10 @@ func (w lintUnconditionalRecursionRule) Visit(node ast.Node) ast.Visitor {
 	case *ast.FuncDecl:
 		var rec *ast.Ident
 		switch {
-		case n.Recv == nil || n.Recv.NumFields() < 1 || len(n.Recv.List[0].Names) < 1:
+		case n.Recv == nil:
 			rec = nil
+		case n.Recv.NumFields() < 1 || len(n.Recv.List[0].Names) < 1:
+			rec = &ast.Ident{Name: "_"}
 		default:
 			rec = n.Recv.List[0].Names[0]
 		}
@@ -137,9 +139,9 @@ func (w *lintUnconditionalRecursionRule) updateFuncStatus(node ast.Node) {
 }
 
 var exitFunctions = map[string]map[string]bool{
-	"os":      map[string]bool{"Exit": true},
-	"syscall": map[string]bool{"Exit": true},
-	"log": map[string]bool{
+	"os":      {"Exit": true},
+	"syscall": {"Exit": true},
+	"log": {
 		"Fatal":   true,
 		"Fatalf":  true,
 		"Fatalln": true,
@@ -149,7 +151,7 @@ var exitFunctions = map[string]map[string]bool{
 	},
 }
 
-func (w *lintUnconditionalRecursionRule) hasControlExit(node ast.Node) bool {
+func (lintUnconditionalRecursionRule) hasControlExit(node ast.Node) bool {
 	// isExit returns true if the given node makes control exit the function
 	isExit := func(node ast.Node) bool {
 		switch n := node.(type) {

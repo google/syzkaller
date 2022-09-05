@@ -84,7 +84,7 @@ linters-settings:
     # TODO: consider reducing this value.
     min-complexity: 12
   godot:
-    check-all: true
+    scope: toplevel
   gocognit:
     # TODO: consider reducing this value.
     min-complexity: 70

@@ -50,6 +50,7 @@ import (
 
 	gcemd "cloud.google.com/go/compute/metadata"
 	"cloud.google.com/go/internal/version"
+	"cloud.google.com/go/profiler/internal"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/pprof/profile"
@@ -79,7 +80,7 @@ var (
 	sleep            = gax.Sleep
 	dialGRPC         = gtransport.DialPool
 	onGCE            = gcemd.OnGCE
-	serviceRegexp    = regexp.MustCompile(`^[a-z]([-a-z0-9_.]{0,253}[a-z0-9])?$`)
+	serviceRegexp    = regexp.MustCompile(`^[a-z0-9]([-a-z0-9_.]{0,253}[a-z0-9])?$`)
 
 	// For testing only.
 	// When the profiling loop has exited without error and this channel is
@@ -240,7 +241,7 @@ func start(cfg Config, options ...option.ClientOption) error {
 	opts := []option.ClientOption{
 		option.WithEndpoint(config.APIAddr),
 		option.WithScopes(scope),
-		option.WithUserAgent(fmt.Sprintf("gcloud-go-profiler/%s", version.Repo)),
+		option.WithUserAgent(fmt.Sprintf("gcloud-go-profiler/%s", internal.Version)),
 	}
 	if !config.EnableOCTelemetry {
 		opts = append(opts, option.WithTelemetryDisabled())
@@ -475,7 +476,7 @@ func mutexProfile() (*profile.Profile, error) {
 // the `x-goog-api-client` header passed on each request. Intended for
 // use by Google-written clients.
 func withXGoogHeader(ctx context.Context, keyval ...string) context.Context {
-	kv := append([]string{"gl-go", version.Go(), "gccl", version.Repo}, keyval...)
+	kv := append([]string{"gl-go", version.Go(), "gccl", internal.Version}, keyval...)
 	kv = append(kv, "gax", gax.Version, "grpc", grpc.Version)
 
 	md, _ := grpcmd.FromOutgoingContext(ctx)
@@ -610,7 +611,7 @@ func initializeConfig(cfg Config) error {
 // server for instructions, and collects and uploads profiles as
 // requested.
 func pollProfilerService(ctx context.Context, a *agent) {
-	debugLog("Cloud Profiler Go Agent version: %s", version.Repo)
+	debugLog("Cloud Profiler Go Agent version: %s", internal.Version)
 	debugLog("profiler has started")
 	for i := 0; config.numProfiles == 0 || i < config.numProfiles; i++ {
 		p := a.createProfile(ctx)

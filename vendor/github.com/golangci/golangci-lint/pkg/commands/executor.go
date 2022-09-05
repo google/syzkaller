@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"encoding/json"
 	"io"
 	"os"
 	"path/filepath"
@@ -16,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"gopkg.in/yaml.v3"
 
 	"github.com/golangci/golangci-lint/internal/cache"
 	"github.com/golangci/golangci-lint/internal/pkgcache"
@@ -38,7 +38,7 @@ type Executor struct {
 	exitCode              int
 	version, commit, date string
 
-	cfg               *config.Config
+	cfg               *config.Config // cfg is the unmarshaled data from the golangci config file.
 	log               logutils.Log
 	reportData        report.Data
 	DBManager         *lintersdb.Manager
@@ -55,6 +55,7 @@ type Executor struct {
 	flock     *flock.Flock
 }
 
+// NewExecutor creates and initializes a new command executor.
 func NewExecutor(version, commit, date string) *Executor {
 	startedAt := time.Now()
 	e := &Executor{
@@ -97,7 +98,6 @@ func NewExecutor(version, commit, date string) *Executor {
 	e.initHelp()
 	e.initLinters()
 	e.initConfig()
-	e.initCompletion()
 	e.initVersion()
 	e.initCache()
 
@@ -108,6 +108,10 @@ func NewExecutor(version, commit, date string) *Executor {
 	r := config.NewFileReader(e.cfg, commandLineCfg, e.log.Child("config_reader"))
 	if err = r.Read(); err != nil {
 		e.log.Fatalf("Can't read config: %s", err)
+	}
+
+	if (commandLineCfg == nil || commandLineCfg.Run.Go == "") && e.cfg != nil && e.cfg.Run.Go == "" {
+		e.cfg.Run.Go = config.DetectGoVersion()
 	}
 
 	// recreate after getting config
@@ -194,7 +198,7 @@ func computeConfigSalt(cfg *config.Config) ([]byte, error) {
 	// We don't hash all config fields to reduce meaningless cache
 	// invalidations. At least, it has a huge impact on tests speed.
 
-	lintersSettingsBytes, err := json.Marshal(cfg.LintersSettings)
+	lintersSettingsBytes, err := yaml.Marshal(cfg.LintersSettings)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to json marshal config linter settings")
 	}
@@ -205,7 +209,9 @@ func computeConfigSalt(cfg *config.Config) ([]byte, error) {
 	configData.WriteString("\nbuild-tags=%s" + strings.Join(cfg.Run.BuildTags, ","))
 
 	h := sha256.New()
-	h.Write(configData.Bytes()) //nolint:errcheck
+	if _, err := h.Write(configData.Bytes()); err != nil {
+		return nil, err
+	}
 	return h.Sum(nil), nil
 }
 

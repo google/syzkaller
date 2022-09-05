@@ -1,5 +1,3 @@
-// +build go1.6
-
 // Copyright 2014 Unknwon
 //
 // Licensed under the Apache License, Version 2.0 (the "License"): you may
@@ -113,7 +111,7 @@ type LoadOptions struct {
 	UnparseableSections []string
 	// KeyValueDelimiters is the sequence of delimiters that are used to separate key and value. By default, it is "=:".
 	KeyValueDelimiters string
-	// KeyValueDelimiters is the delimiter that are used to separate key and value output. By default, it is "=".
+	// KeyValueDelimiterOnWrite is the delimiter that are used to separate key and value output. By default, it is "=".
 	KeyValueDelimiterOnWrite string
 	// ChildSectionDelimiter is the delimiter that is used to separate child sections. By default, it is ".".
 	ChildSectionDelimiter string
@@ -125,6 +123,8 @@ type LoadOptions struct {
 	ReaderBufferSize int
 	// AllowNonUniqueSections indicates whether to allow sections with the same name multiple times.
 	AllowNonUniqueSections bool
+	// AllowDuplicateShadowValues indicates whether values for shadowed keys should be deduplicated.
+	AllowDuplicateShadowValues bool
 }
 
 // DebugFunc is the type of function called to log parse events.

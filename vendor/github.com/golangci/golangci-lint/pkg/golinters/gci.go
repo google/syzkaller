@@ -1,79 +1,61 @@
 package golinters
 
 import (
-	"bytes"
 	"fmt"
+	"strings"
 	"sync"
 
+	gcicfg "github.com/daixiang0/gci/pkg/config"
 	"github.com/daixiang0/gci/pkg/gci"
 	"github.com/pkg/errors"
-	"github.com/shazow/go-diff/difflib"
 	"golang.org/x/tools/go/analysis"
 
+	"github.com/golangci/golangci-lint/pkg/config"
 	"github.com/golangci/golangci-lint/pkg/golinters/goanalysis"
 	"github.com/golangci/golangci-lint/pkg/lint/linter"
 )
 
 const gciName = "gci"
 
-func NewGci() *goanalysis.Linter {
+func NewGci(settings *config.GciSettings) *goanalysis.Linter {
 	var mu sync.Mutex
 	var resIssues []goanalysis.Issue
-	differ := difflib.New()
 
 	analyzer := &analysis.Analyzer{
 		Name: gciName,
 		Doc:  goanalysis.TheOnlyanalyzerDoc,
+		Run:  goanalysis.DummyRun,
 	}
+
+	var cfg *gcicfg.Config
+	if settings != nil {
+		rawCfg := gcicfg.YamlConfig{
+			Cfg: gcicfg.BoolConfig{
+				SkipGenerated: settings.SkipGenerated,
+			},
+			SectionStrings: settings.Sections,
+		}
+
+		if settings.LocalPrefixes != "" {
+			prefix := []string{"standard", "default", fmt.Sprintf("prefix(%s)", settings.LocalPrefixes)}
+			rawCfg.SectionStrings = prefix
+		}
+
+		cfg, _ = rawCfg.Parse()
+	}
+
+	var lock sync.Mutex
+
 	return goanalysis.NewLinter(
 		gciName,
-		"Gci control golang package import order and make it always deterministic.",
+		"Gci controls golang package import order and makes it always deterministic.",
 		[]*analysis.Analyzer{analyzer},
 		nil,
 	).WithContextSetter(func(lintCtx *linter.Context) {
-		localFlag := lintCtx.Settings().Gci.LocalPrefixes
-		goimportsFlag := lintCtx.Settings().Goimports.LocalPrefixes
-		if localFlag == "" && goimportsFlag != "" {
-			localFlag = goimportsFlag
-		}
-
 		analyzer.Run = func(pass *analysis.Pass) (interface{}, error) {
-			var fileNames []string
-			for _, f := range pass.Files {
-				pos := pass.Fset.PositionFor(f.Pos(), false)
-				fileNames = append(fileNames, pos.Filename)
-			}
-
-			var issues []goanalysis.Issue
-
-			for _, f := range fileNames {
-				source, result, err := gci.Run(f, &gci.FlagSet{LocalFlag: localFlag})
-				if err != nil {
-					return nil, err
-				}
-				if result == nil {
-					continue
-				}
-
-				diff := bytes.Buffer{}
-				_, err = diff.WriteString(fmt.Sprintf("--- %[1]s\n+++ %[1]s\n", f))
-				if err != nil {
-					return nil, fmt.Errorf("can't write diff header: %v", err)
-				}
-
-				err = differ.Diff(&diff, bytes.NewReader(source), bytes.NewReader(result))
-				if err != nil {
-					return nil, fmt.Errorf("can't get gci diff output: %v", err)
-				}
-
-				is, err := extractIssuesFromPatch(diff.String(), lintCtx.Log, lintCtx, gciName)
-				if err != nil {
-					return nil, errors.Wrapf(err, "can't extract issues from gci diff output %q", diff.String())
-				}
-
-				for i := range is {
-					issues = append(issues, goanalysis.NewIssue(&is[i], pass))
-				}
+			issues, err := runGci(pass, lintCtx, cfg, &lock)
+			if err != nil {
+				return nil, err
 			}
 
 			if len(issues) == 0 {
@@ -89,4 +71,58 @@ func NewGci() *goanalysis.Linter {
 	}).WithIssuesReporter(func(*linter.Context) []goanalysis.Issue {
 		return resIssues
 	}).WithLoadMode(goanalysis.LoadModeSyntax)
+}
+
+func runGci(pass *analysis.Pass, lintCtx *linter.Context, cfg *gcicfg.Config, lock *sync.Mutex) ([]goanalysis.Issue, error) {
+	var fileNames []string
+	for _, f := range pass.Files {
+		pos := pass.Fset.PositionFor(f.Pos(), false)
+		fileNames = append(fileNames, pos.Filename)
+	}
+
+	var diffs []string
+	err := gci.DiffFormattedFilesToArray(fileNames, *cfg, &diffs, lock)
+	if err != nil {
+		return nil, err
+	}
+
+	var issues []goanalysis.Issue
+
+	for _, diff := range diffs {
+		if diff == "" {
+			continue
+		}
+
+		is, err := extractIssuesFromPatch(diff, lintCtx, gciName)
+		if err != nil {
+			return nil, errors.Wrapf(err, "can't extract issues from gci diff output %s", diff)
+		}
+
+		for i := range is {
+			issues = append(issues, goanalysis.NewIssue(&is[i], pass))
+		}
+	}
+
+	return issues, nil
+}
+
+func getErrorTextForGci(settings config.GciSettings) string {
+	text := "File is not `gci`-ed"
+
+	hasOptions := settings.SkipGenerated || len(settings.Sections) > 0
+	if !hasOptions {
+		return text
+	}
+
+	text += " with"
+
+	if settings.SkipGenerated {
+		text += " -skip-generated"
+	}
+
+	if len(settings.Sections) > 0 {
+		text += " -s " + strings.Join(settings.Sections, ",")
+	}
+
+	return text
 }

@@ -1,16 +1,21 @@
 package staticcheck
 
 import (
-	"honnef.co/go/tools/facts"
+	"honnef.co/go/tools/analysis/facts/deprecated"
+	"honnef.co/go/tools/analysis/facts/generated"
+	"honnef.co/go/tools/analysis/facts/nilness"
+	"honnef.co/go/tools/analysis/facts/purity"
+	"honnef.co/go/tools/analysis/facts/tokenfile"
+	"honnef.co/go/tools/analysis/facts/typedness"
+	"honnef.co/go/tools/analysis/lint"
 	"honnef.co/go/tools/internal/passes/buildir"
-	"honnef.co/go/tools/lint/lintutil"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
 )
 
 func makeCallCheckerAnalyzer(rules map[string]CallCheck, extraReqs ...*analysis.Analyzer) *analysis.Analyzer {
-	reqs := []*analysis.Analyzer{buildir.Analyzer, facts.TokenFile}
+	reqs := []*analysis.Analyzer{buildir.Analyzer, tokenfile.Analyzer}
 	reqs = append(reqs, extraReqs...)
 	return &analysis.Analyzer{
 		Run:      callChecker(rules),
@@ -18,7 +23,7 @@ func makeCallCheckerAnalyzer(rules map[string]CallCheck, extraReqs ...*analysis.
 	}
 }
 
-var Analyzers = lintutil.InitializeAnalyzers(Docs, map[string]*analysis.Analyzer{
+var Analyzers = lint.InitializeAnalyzers(Docs, map[string]*analysis.Analyzer{
 	"SA1000": makeCallCheckerAnalyzer(checkRegexpRules),
 	"SA1001": {
 		Run:      CheckTemplate,
@@ -66,7 +71,7 @@ var Analyzers = lintutil.InitializeAnalyzers(Docs, map[string]*analysis.Analyzer
 	"SA1018": makeCallCheckerAnalyzer(checkStringsReplaceZeroRules),
 	"SA1019": {
 		Run:      CheckDeprecated,
-		Requires: []*analysis.Analyzer{inspect.Analyzer, facts.Deprecated, facts.Generated},
+		Requires: []*analysis.Analyzer{inspect.Analyzer, deprecated.Analyzer, generated.Analyzer},
 	},
 	"SA1020": makeCallCheckerAnalyzer(checkListenAddressRules),
 	"SA1021": makeCallCheckerAnalyzer(checkBytesEqualIPRules),
@@ -83,6 +88,7 @@ var Analyzers = lintutil.InitializeAnalyzers(Docs, map[string]*analysis.Analyzer
 	"SA1027": makeCallCheckerAnalyzer(checkAtomicAlignment),
 	"SA1028": makeCallCheckerAnalyzer(checkSortSliceRules),
 	"SA1029": makeCallCheckerAnalyzer(checkWithValueKeyRules),
+	"SA1030": makeCallCheckerAnalyzer(checkStrconvRules),
 
 	"SA2000": {
 		Run:      CheckWaitgroupAdd,
@@ -112,7 +118,7 @@ var Analyzers = lintutil.InitializeAnalyzers(Docs, map[string]*analysis.Analyzer
 
 	"SA4000": {
 		Run:      CheckLhsRhsIdentical,
-		Requires: []*analysis.Analyzer{inspect.Analyzer, facts.TokenFile, facts.Generated},
+		Requires: []*analysis.Analyzer{inspect.Analyzer, tokenfile.Analyzer, generated.Analyzer},
 	},
 	"SA4001": {
 		Run:      CheckIneffectiveCopy,
@@ -126,9 +132,13 @@ var Analyzers = lintutil.InitializeAnalyzers(Docs, map[string]*analysis.Analyzer
 		Run:      CheckIneffectiveLoop,
 		Requires: []*analysis.Analyzer{inspect.Analyzer},
 	},
+	"SA4005": {
+		Run:      CheckIneffectiveFieldAssignments,
+		Requires: []*analysis.Analyzer{buildir.Analyzer},
+	},
 	"SA4006": {
 		Run:      CheckUnreadVariableValues,
-		Requires: []*analysis.Analyzer{buildir.Analyzer, facts.Generated},
+		Requires: []*analysis.Analyzer{buildir.Analyzer, generated.Analyzer},
 	},
 	"SA4008": {
 		Run:      CheckLoopCondition,
@@ -161,19 +171,19 @@ var Analyzers = lintutil.InitializeAnalyzers(Docs, map[string]*analysis.Analyzer
 	"SA4015": makeCallCheckerAnalyzer(checkMathIntRules),
 	"SA4016": {
 		Run:      CheckSillyBitwiseOps,
-		Requires: []*analysis.Analyzer{inspect.Analyzer, facts.TokenFile},
+		Requires: []*analysis.Analyzer{inspect.Analyzer, tokenfile.Analyzer},
 	},
 	"SA4017": {
 		Run:      CheckPureFunctions,
-		Requires: []*analysis.Analyzer{buildir.Analyzer, facts.Purity},
+		Requires: []*analysis.Analyzer{buildir.Analyzer, purity.Analyzer},
 	},
 	"SA4018": {
 		Run:      CheckSelfAssignment,
-		Requires: []*analysis.Analyzer{inspect.Analyzer, facts.Generated, facts.TokenFile, facts.Purity},
+		Requires: []*analysis.Analyzer{inspect.Analyzer, generated.Analyzer, tokenfile.Analyzer, purity.Analyzer},
 	},
 	"SA4019": {
 		Run:      CheckDuplicateBuildConstraints,
-		Requires: []*analysis.Analyzer{facts.Generated},
+		Requires: []*analysis.Analyzer{generated.Analyzer},
 	},
 	"SA4020": {
 		Run:      CheckUnreachableTypeCases,
@@ -181,7 +191,47 @@ var Analyzers = lintutil.InitializeAnalyzers(Docs, map[string]*analysis.Analyzer
 	},
 	"SA4021": {
 		Run:      CheckSingleArgAppend,
-		Requires: []*analysis.Analyzer{inspect.Analyzer, facts.Generated, facts.TokenFile},
+		Requires: []*analysis.Analyzer{inspect.Analyzer, generated.Analyzer, tokenfile.Analyzer},
+	},
+	"SA4022": {
+		Run:      CheckAddressIsNil,
+		Requires: []*analysis.Analyzer{inspect.Analyzer},
+	},
+	"SA4023": {
+		Run:      CheckTypedNilInterface,
+		Requires: []*analysis.Analyzer{buildir.Analyzer, typedness.Analysis, nilness.Analysis},
+	},
+	"SA4024": {
+		Run:      CheckBuiltinZeroComparison,
+		Requires: []*analysis.Analyzer{inspect.Analyzer},
+	},
+	"SA4025": {
+		Run:      CheckIntegerDivisionEqualsZero,
+		Requires: []*analysis.Analyzer{inspect.Analyzer},
+	},
+	"SA4026": {
+		Run:      CheckNegativeZeroFloat,
+		Requires: []*analysis.Analyzer{inspect.Analyzer},
+	},
+	"SA4027": {
+		Run:      CheckIneffectiveURLQueryModification,
+		Requires: []*analysis.Analyzer{inspect.Analyzer},
+	},
+	"SA4028": {
+		Run:      CheckModuloOne,
+		Requires: []*analysis.Analyzer{inspect.Analyzer},
+	},
+	"SA4029": {
+		Run:      CheckIneffectiveSort,
+		Requires: []*analysis.Analyzer{inspect.Analyzer},
+	},
+	"SA4030": {
+		Run:      CheckIneffectiveRandInt,
+		Requires: []*analysis.Analyzer{inspect.Analyzer},
+	},
+	"SA4031": {
+		Run:      CheckAllocationNilCheck,
+		Requires: []*analysis.Analyzer{buildir.Analyzer, inspect.Analyzer, tokenfile.Analyzer},
 	},
 
 	"SA5000": {
@@ -219,11 +269,16 @@ var Analyzers = lintutil.InitializeAnalyzers(Docs, map[string]*analysis.Analyzer
 	"SA5009": makeCallCheckerAnalyzer(checkPrintfRules),
 	"SA5010": {
 		Run:      CheckImpossibleTypeAssertion,
-		Requires: []*analysis.Analyzer{buildir.Analyzer, facts.TokenFile},
+		Requires: []*analysis.Analyzer{buildir.Analyzer, tokenfile.Analyzer},
 	},
 	"SA5011": {
 		Run:      CheckMaybeNil,
 		Requires: []*analysis.Analyzer{buildir.Analyzer},
+	},
+	"SA5012": {
+		Run:       CheckEvenSliceLength,
+		FactTypes: []analysis.Fact{new(evenElements)},
+		Requires:  []*analysis.Analyzer{buildir.Analyzer},
 	},
 
 	"SA6000": makeCallCheckerAnalyzer(checkRegexpMatchLoopRules),
@@ -251,17 +306,25 @@ var Analyzers = lintutil.InitializeAnalyzers(Docs, map[string]*analysis.Analyzer
 	},
 	"SA9003": {
 		Run:      CheckEmptyBranch,
-		Requires: []*analysis.Analyzer{buildir.Analyzer, facts.TokenFile, facts.Generated},
+		Requires: []*analysis.Analyzer{buildir.Analyzer, tokenfile.Analyzer, generated.Analyzer},
 	},
 	"SA9004": {
 		Run:      CheckMissingEnumTypesInDeclaration,
 		Requires: []*analysis.Analyzer{inspect.Analyzer},
 	},
 	// Filtering generated code because it may include empty structs generated from data models.
-	"SA9005": makeCallCheckerAnalyzer(checkNoopMarshal, facts.Generated),
-
-	"SA4022": {
-		Run:      CheckAddressIsNil,
+	"SA9005": makeCallCheckerAnalyzer(checkNoopMarshal, generated.Analyzer),
+	"SA9006": {
+		Run:      CheckStaticBitShift,
 		Requires: []*analysis.Analyzer{inspect.Analyzer},
+	},
+	"SA9007": {
+		Run:      CheckBadRemoveAll,
+		Requires: []*analysis.Analyzer{buildir.Analyzer},
+	},
+
+	"SA9008": {
+		Run:      CheckTypeAssertionShadowingElse,
+		Requires: []*analysis.Analyzer{inspect.Analyzer, buildir.Analyzer, tokenfile.Analyzer},
 	},
 })

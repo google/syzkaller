@@ -7,6 +7,7 @@ type Arguments = []interface{}
 type RuleConfig struct {
 	Arguments Arguments
 	Severity  Severity
+	Disabled  bool
 }
 
 // RulesConfig defines the config for all rules.
@@ -25,8 +26,10 @@ type Config struct {
 	IgnoreGeneratedHeader bool `toml:"ignoreGeneratedHeader"`
 	Confidence            float64
 	Severity              Severity
+	EnableAllRules        bool             `toml:"enableAllRules"`
 	Rules                 RulesConfig      `toml:"rule"`
 	ErrorCode             int              `toml:"errorCode"`
 	WarningCode           int              `toml:"warningCode"`
 	Directives            DirectivesConfig `toml:"directive"`
+	Exclude               []string         `toml:"exclude"`
 }

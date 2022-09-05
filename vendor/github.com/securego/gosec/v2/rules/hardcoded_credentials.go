@@ -117,12 +117,12 @@ func (r *credentials) matchEqualityCheck(binaryExpr *ast.BinaryExpr, ctx *gosec.
 // NewHardcodedCredentials attempts to find high entropy string constants being
 // assigned to variables that appear to be related to credentials.
 func NewHardcodedCredentials(id string, conf gosec.Config) (gosec.Rule, []ast.Node) {
-	pattern := `(?i)passwd|pass|password|pwd|secret|token`
+	pattern := `(?i)passwd|pass|password|pwd|secret|token|pw|apiKey|bearer|cred`
 	entropyThreshold := 80.0
 	perCharThreshold := 3.0
 	ignoreEntropy := false
-	var truncateString = 16
-	if val, ok := conf["G101"]; ok {
+	truncateString := 16
+	if val, ok := conf[id]; ok {
 		conf := val.(map[string]interface{})
 		if configPattern, ok := conf["pattern"]; ok {
 			if cfgPattern, ok := configPattern.(string); ok {
