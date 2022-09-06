@@ -2312,6 +2312,7 @@ static int do_sandbox_none(void)
 	return 0;
 }
 #endif
+#define CAST(f) ({void* p = (void*)f; p; })
 
 #elif GOOS_linux
 
@@ -10413,6 +10414,7 @@ static void setup_802154()
 
 #if GOARCH_s390x
 #include <sys/mman.h>
+#define CAST(f) ({void* p = (void*)f; p; })
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_fuse_handle_req

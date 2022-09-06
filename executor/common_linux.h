@@ -4857,6 +4857,10 @@ static void setup_802154()
 
 #if GOARCH_s390x
 #include <sys/mman.h>
+// Ugly way to work around gcc's "error: function called through a non-compatible type".
+// Simply casting via (void*) inline does not work b/c gcc sees through a chain of casts.
+// The macro is used in generated C code.
+#define CAST(f) ({void* p = (void*)f; p; })
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_fuse_handle_req

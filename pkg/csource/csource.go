@@ -343,7 +343,7 @@ func (ctx *context) emitCallBody(w *bytes.Buffer, call prog.ExecCall, native boo
 		if args != "" {
 			args = args[1:]
 		}
-		fmt.Fprintf(w, "((intptr_t(*)(%v))(void*)(%v))(", args, callName)
+		fmt.Fprintf(w, "((intptr_t(*)(%v))CAST(%v))(", args, callName)
 	}
 	for ai, arg := range call.Args {
 		if native || ai > 0 {
