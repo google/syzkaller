@@ -272,3 +272,7 @@ static int do_sandbox_none(void)
 	return 0;
 }
 #endif
+
+// Ugly way to work around gcc's "error: function called through a non-compatible type".
+// The macro is used in generated C code.
+#define CAST(f) ({void* p = (void*)f; p; })
