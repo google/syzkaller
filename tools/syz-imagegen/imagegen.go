@@ -341,7 +341,7 @@ var fileSystems = []FileSystem{
 		ReadOnly:  true,
 		MkfsFlags: []string{"-T1000"},
 		MkfsFlagCombinations: [][]string{
-			{"-z lz4,1", "-z lz4,9", "-z lz4hc,1", "-z lz4hc,9"},
+			{"-z lz4", "-z lz4hc,1", "-z lz4hc,9"},
 			{"-x 1", "-x 2"},
 			{"", "-E legacy-compress"},
 		},
