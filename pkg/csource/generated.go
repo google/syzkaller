@@ -11220,6 +11220,11 @@ static void use_temporary_dir(void)
 #error "unknown OS"
 #endif
 
+#if SYZ_TEST_COMMON_EXT_EXAMPLE
+#include "common_ext_example.h"
+#else
+
+#endif
 
 #if SYZ_EXECUTOR || __NR_syz_execute_func
 static long syz_execute_func(volatile long text)
