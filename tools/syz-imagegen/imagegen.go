@@ -60,7 +60,6 @@ var fileSystems = []FileSystem{
 		MkfsFlagCombinations: [][]string{
 			{"-a 0", "-a 1"},
 			{"-s 1", "-s 2"},
-			{"", "-m"},
 			{
 				"",
 				"-O encrypt",
