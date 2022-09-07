@@ -79,5 +79,9 @@
 				}
 			}
 		}
-	]
+	],
+	"asset_storage": {
+		"upload_to": "gs://syzbot-assets",
+		"public_access": true
+	}
 }
