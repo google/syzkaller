@@ -288,6 +288,11 @@ func updateRetestReproJobs(c context.Context, ns string) error {
 
 func handleRetestForBug(c context.Context, now time.Time, bug *Bug, bugKey *db.Key,
 	managerHasJob map[string]bool) error {
+	if len(bug.Commits) > 0 {
+		// Let's save resources -- there's no point in retesting repros for bugs
+		// for which we were already given fixing commits.
+		return nil
+	}
 	crashes, crashKeys, err := queryCrashesForBug(c, bugKey, maxCrashes)
 	if err != nil {
 		return err
