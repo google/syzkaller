@@ -27,6 +27,11 @@ func (*freebsd) prepareArch(arch *Arch) error {
 	if archName == "386" {
 		archName = "i386"
 	}
+
+	if archName == "riscv64" {
+		archName = "riscv"
+	}
+
 	if err := os.Symlink(filepath.Join(arch.sourceDir, "sys", archName, "include"),
 		filepath.Join(arch.buildDir, "machine")); err != nil {
 		return fmt.Errorf("failed to create link: %v", err)
