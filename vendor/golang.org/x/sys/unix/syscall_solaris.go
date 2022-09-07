@@ -956,11 +956,7 @@ func (e *EventPort) peIntToExt(peInt *portEvent, peExt *PortEvent) {
 			// the unsafe version would be (*fileObj)(unsafe.Pointer(uintptr(peInt.Object)))
 			peExt.fobj = fCookie.fobj
 		} else {
-<<<<<<< HEAD
 			panic("unexpected event port address; may be due to kernel bug; see https://go.dev/issue/54254")
-=======
-			panic("mismanaged memory")
->>>>>>> go.mod: update sys for freebsd/riscv64 support
 		}
 		delete(e.cookies, cookie)
 		peExt.Path = BytePtrToString((*byte)(unsafe.Pointer(peExt.fobj.Name)))
