@@ -6285,7 +6285,7 @@ error_clear_loop:
 #include <stddef.h>
 #include <string.h>
 #include <sys/mount.h>
-static long syz_mount_image(volatile long fsarg, volatile long dir, volatile unsigned long size, volatile unsigned long nsegs, volatile long segments, volatile long flags, volatile long optsarg)
+static long syz_mount_image(volatile long fsarg, volatile long dir, volatile unsigned long size, volatile unsigned long nsegs, volatile long segments, volatile long flags, volatile long optsarg, volatile long change_dir)
 {
 	struct fs_image_segment* segs = (struct fs_image_segment*)segments;
 	int res = -1, err = 0, loopfd = -1, memfd = -1, need_loop_device = !!segs;
@@ -6332,6 +6332,14 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 	if (res == -1) {
 		debug("syz_mount_image > open error: %d\n", errno);
 		err = errno;
+		goto error_clear_loop;
+	}
+	if (change_dir) {
+		res = chdir(target);
+		if (res == -1) {
+			debug("syz_mount_image > chdir error: %d\n", errno);
+			err = errno;
+		}
 	}
 
 error_clear_loop:
