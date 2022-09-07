@@ -180,7 +180,6 @@ var fileSystems = []FileSystem{
 		MkfsFlags: []string{"-f", "-F", "-L", "syzkaller"},
 		MkfsFlagCombinations: [][]string{
 			{
-				"-s 256 -c 256",
 				"-s 256 -c 2048",
 				"-s 512 -c 1024",
 				"-s 512 -c 4096",
