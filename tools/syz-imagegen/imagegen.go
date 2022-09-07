@@ -115,7 +115,7 @@ var fileSystems = []FileSystem{
 	{
 		Name:      "xfs",
 		MinSize:   16 << 20,
-		MkfsFlags: []string{"-l", "internal"},
+		MkfsFlags: []string{"-l", "internal", "--unsupported"},
 		MkfsFlagCombinations: [][]string{
 			// Most XFS options are inter-dependent and total number of combinations is huge,
 			// so we enumerate some combinations that don't produce errors.
