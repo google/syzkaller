@@ -9,7 +9,7 @@
 // It requires the following packages to be installed:
 //
 //	f2fs-tools, xfsprogs, reiserfsprogs, gfs2-utils, ocfs2-tools, genromfs, erofs-utils, makefs, udftools,
-//	mtd-utils, nilfs-tools, squashfs-tools, genisoimage.
+//	mtd-utils, nilfs-tools, squashfs-tools, genisoimage, jfsutils, exfat-utils, ntfs-3g.
 package main
 
 import (
