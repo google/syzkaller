@@ -9,3 +9,6 @@
 
 // This file can also define SYZ_HAVE_SETUP_EXT to 1 and provide
 // void setup_ext() function that will be called during VM setup.
+
+// This file can also define SYZ_HAVE_SETUP_EXT_TEST to 1 and provide
+// void setup_ext_test() function that will be called during setup of each test process.
