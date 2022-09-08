@@ -2644,7 +2644,7 @@ static void netlink_add_xfrm(struct nlmsg* nlmsg, int sock, const char* name)
 	netlink_add_device_impl(nlmsg, "xfrm", name, true);
 	netlink_nest(nlmsg, IFLA_INFO_DATA);
 	int if_id = 1;
-	netlink_attr(nlmsg, IFLA_XFRM_IF_ID, &if_id, sizeof(if_id));
+	netlink_attr(nlmsg, 2, &if_id, sizeof(if_id));
 	netlink_done(nlmsg);
 	netlink_done(nlmsg);
 	int err = netlink_send(nlmsg, sock);
@@ -3369,10 +3369,9 @@ static void initialize_wifi_devices(void)
 
 static void netdevsim_add(unsigned int addr, unsigned int port_count)
 {
-	char buf[16];
-
-	sprintf(buf, "%u %u", addr, port_count);
-	if (write_file("/sys/bus/netdevsim/new_device", buf)) {
+	write_file("/sys/bus/netdevsim/del_device", "%u", addr);
+	if (write_file("/sys/bus/netdevsim/new_device", "%u %u", addr, port_count)) {
+		char buf[32];
 		snprintf(buf, sizeof(buf), "netdevsim%d", addr);
 		initialize_devlink_ports("netdevsim", buf, "netdevsim");
 	}
@@ -3629,7 +3628,6 @@ static void initialize_netdevices(void)
 	    {"caif", "caif0"},
 	    {"batadv", "batadv0"},
 	    {"vxcan", "vxcan1"},
-	    {"netdevsim", netdevsim},
 	    {"veth", 0},
 	    {"wireguard", "wg0"},
 	    {"wireguard", "wg1"},

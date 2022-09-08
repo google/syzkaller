@@ -331,7 +331,8 @@ static void netlink_add_xfrm(struct nlmsg* nlmsg, int sock, const char* name)
 	netlink_add_device_impl(nlmsg, "xfrm", name, true);
 	netlink_nest(nlmsg, IFLA_INFO_DATA);
 	int if_id = 1;
-	netlink_attr(nlmsg, IFLA_XFRM_IF_ID, &if_id, sizeof(if_id));
+	// This is IFLA_XFRM_IF_ID attr which is not present in older kernel headers.
+	netlink_attr(nlmsg, 2, &if_id, sizeof(if_id));
 	netlink_done(nlmsg);
 	netlink_done(nlmsg);
 	int err = netlink_send(nlmsg, sock);
@@ -1094,10 +1095,11 @@ static void initialize_wifi_devices(void)
 
 static void netdevsim_add(unsigned int addr, unsigned int port_count)
 {
-	char buf[16];
-
-	sprintf(buf, "%u %u", addr, port_count);
-	if (write_file("/sys/bus/netdevsim/new_device", buf)) {
+	// These devices are sticky and are not deleted on net namespace destruction.
+	// So try to delete the previous version of the device.
+	write_file("/sys/bus/netdevsim/del_device", "%u", addr);
+	if (write_file("/sys/bus/netdevsim/new_device", "%u %u", addr, port_count)) {
+		char buf[32];
 		snprintf(buf, sizeof(buf), "netdevsim%d", addr);
 		initialize_devlink_ports("netdevsim", buf, "netdevsim");
 	}
@@ -1365,6 +1367,7 @@ static void initialize_netdevices(void)
 	// - ifb0/1
 	// - teql0
 	// - eql
+	// Note: netdevsim devices can't have the same name even in different namespaces.
 	char netdevsim[16];
 	sprintf(netdevsim, "netdevsim%d", (int)procid);
 	struct {
@@ -1383,8 +1386,6 @@ static void initialize_netdevices(void)
 	    {"batadv", "batadv0"},
 	    // Note: this adds vxcan0/vxcan1 pair, similar to veth (creating vxcan0 would fail).
 	    {"vxcan", "vxcan1"},
-	    // Note: netdevsim devices can't have the same name even in different namespaces.
-	    {"netdevsim", netdevsim},
 	    // This adds connected veth0 and veth1 devices.
 	    {"veth", 0},
 	    {"wireguard", "wg0"},
