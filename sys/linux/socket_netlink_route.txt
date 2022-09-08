@@ -407,7 +407,7 @@ ifla_vlan_qos_mapping {
 
 xfrmi_policy [
 	IFLA_XFRM_LINK	nlattr[IFLA_XFRM_LINK, int32[0:4]]
-	IFLA_XFRM_IF_ID	nlattr[IFLA_XFRM_IF_ID, int32[0:4]]
+	IFLA_XFRM_IF_ID	nlattr[IFLA_XFRM_IF_ID, xfrm_if_id]
 ] [varlen]
 
 hsr_policy [

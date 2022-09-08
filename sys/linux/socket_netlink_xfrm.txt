@@ -14,6 +14,9 @@ type xfrm_req_id int32[13567:13575, opt]
 type xfrm_policy_index int32[7236528:7236544, opt]
 type xfrm_spi int32be[1234:1238]
 
+# Note: executor sets up xfrm0 device with XFRM_IF_ID=1.
+type xfrm_if_id int32[1:4]
+
 socket$nl_xfrm(domain const[AF_NETLINK], type const[SOCK_RAW], proto const[NETLINK_XFRM]) sock_nl_xfrm
 
 sendmsg$nl_xfrm(fd sock_nl_xfrm, msg ptr[in, msghdr_nl_xfrm], f flags[send_flags])
@@ -145,7 +148,7 @@ xfrma_policy [
 	address_filter		nlattr[XFRMA_ADDRESS_FILTER, xfrm_address_filter]
 	XFRMA_SET_MARK		nlattr[XFRMA_SET_MARK, int32]
 	XFRMA_SET_MARK_MASK	nlattr[XFRMA_SET_MARK_MASK, int32]
-	XFRMA_IF_ID		nlattr[XFRMA_IF_ID, ifindex]
+	XFRMA_IF_ID		nlattr[XFRMA_IF_ID, xfrm_if_id]
 ] [varlen]
 
 define XFRM_MAX_DEPTH	6
