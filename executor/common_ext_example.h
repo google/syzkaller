@@ -8,3 +8,10 @@ static void setup_ext()
 {
 	debug("example setup_ext called\n");
 }
+
+#define SYZ_HAVE_SETUP_EXT_TEST 1
+static void setup_ext_test()
+{
+	// See TestCommonExt.
+	*(uint64*)(SYZ_DATA_OFFSET + 0x1234) = 0xbadc0ffee;
+}

@@ -11370,6 +11370,9 @@ static void loop(void)
 #if SYZ_HAVE_SETUP_TEST
 			setup_test();
 #endif
+#if SYZ_HAVE_SETUP_EXT_TEST
+			setup_ext_test();
+#endif
 #if GOOS_akaros
 #if SYZ_EXECUTOR
 			dup2(child_pipe[0], kInPipeFd);
