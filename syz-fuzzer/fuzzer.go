@@ -83,19 +83,21 @@ const (
 	StatHint
 	StatSeed
 	StatCollide
+	StatBufferTooSmall
 	StatCount
 )
 
 var statNames = [StatCount]string{
-	StatGenerate:  "exec gen",
-	StatFuzz:      "exec fuzz",
-	StatCandidate: "exec candidate",
-	StatTriage:    "exec triage",
-	StatMinimize:  "exec minimize",
-	StatSmash:     "exec smash",
-	StatHint:      "exec hints",
-	StatSeed:      "exec seeds",
-	StatCollide:   "exec collide",
+	StatGenerate:       "exec gen",
+	StatFuzz:           "exec fuzz",
+	StatCandidate:      "exec candidate",
+	StatTriage:         "exec triage",
+	StatMinimize:       "exec minimize",
+	StatSmash:          "exec smash",
+	StatHint:           "exec hints",
+	StatSeed:           "exec seeds",
+	StatCollide:        "exec collide",
+	StatBufferTooSmall: "buffer too small",
 }
 
 type OutputType int

@@ -322,8 +322,9 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.P
 		if err != nil {
 			if err == prog.ErrExecBufferTooSmall {
 				// It's bad if we systematically fail to serialize programs,
-				// but so far we don't have a better handling than ignoring this.
+				// but so far we don't have a better handling than counting this.
 				// This error is observed a lot on the seeded syz_mount_image calls.
+				atomic.AddUint64(&proc.fuzzer.stats[StatBufferTooSmall], 1)
 				return nil
 			}
 			if try > 10 {
