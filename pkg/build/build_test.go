@@ -532,4 +532,18 @@ make: *** Waiting for unfinished jobs....
 		"",
 		"",
 	},
+	{`
+sh: 1: column: not found
+FAILED: host_x64/obj/tools/docsgen/clidoc_out.tar.gz
+../../build/rbe/output-scanner.sh --label //tools/docsgen:invoke_clidoc\(//build/toolchain:host_x64\) host_x64/obj/tools/docsgen/clidoc_out.tar.gz -- ../../build/gn_run_binary.sh ../../prebuilt/third_party/clang/linux-x64/bin host_x64/clidoc -o host_x64/gen/tools/docsgen/sdk-docs --quiet --tarball-dir host_x64/obj/tools/docsgen/clidoc_out.tar.gz --depfile host_x64/obj/tools/docsgen/invoke_clidoc.d
+Error: Unable to write generate doc for "/syzkaller/managers/main/kernel/out/x64/host_x64/fpublish" to "host_x64/gen/tools/docsgen/sdk-docs"
+Caused by:
+    Error running help: Unexpected non-zero error code with tool "/syzkaller/managers/main/kernel/out/x64/host_x64/fpublish"
+                and subcommands [].
+ninja: build stopped: subcommand failed.
+`,
+		`Error: Unable to write generate doc for "/syzkaller/managers/main/kernel/out/x64/host_x64/fpublish" to "host_x64/gen/tools/docsgen/sdk-docs"`,
+		"",
+		"",
+	},
 }
