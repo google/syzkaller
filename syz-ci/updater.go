@@ -69,7 +69,7 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 	osutil.MkdirAll(syzkallerDir)
 
 	// List of required files in syzkaller build (contents of latest/current dirs).
-	files := map[string]bool{
+	syzFiles := map[string]bool{
 		"tag":             true, // contains syzkaller repo git hash
 		"bin/syz-ci":      true, // these are just copied from syzkaller dir
 		"bin/syz-manager": true,
@@ -80,15 +80,11 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 		mgrcfg := mgr.managercfg
 		os, vmarch, arch := mgrcfg.TargetOS, mgrcfg.TargetVMArch, mgrcfg.TargetArch
 		targets[os+"/"+vmarch+"/"+arch] = true
-		files[fmt.Sprintf("bin/%v_%v/syz-fuzzer", os, vmarch)] = true
-		files[fmt.Sprintf("bin/%v_%v/syz-execprog", os, vmarch)] = true
+		syzFiles[fmt.Sprintf("bin/%v_%v/syz-fuzzer", os, vmarch)] = true
+		syzFiles[fmt.Sprintf("bin/%v_%v/syz-execprog", os, vmarch)] = true
 		if mgrcfg.SysTarget.ExecutorBin == "" {
-			files[fmt.Sprintf("bin/%v_%v/syz-executor", os, arch)] = true
+			syzFiles[fmt.Sprintf("bin/%v_%v/syz-executor", os, arch)] = true
 		}
-	}
-	syzFiles := make(map[string]bool)
-	for f := range files {
-		syzFiles[f] = true
 	}
 	compilerID, err := osutil.RunCmd(time.Minute, "", "go", "version")
 	if err != nil {
