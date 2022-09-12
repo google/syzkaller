@@ -5,6 +5,7 @@ package osutil
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -77,6 +78,14 @@ func Run(timeout time.Duration, cmd *exec.Cmd) ([]byte, error) {
 		}
 	}
 	return output.Bytes(), nil
+}
+
+// CommandContext is similar to os/exec.CommandContext, but also sets PDEATHSIG to SIGKILL on linux,
+// i.e. the child will be killed immediately.
+func CommandContext(ctx context.Context, bin string, args ...string) *exec.Cmd {
+	cmd := exec.CommandContext(ctx, bin, args...)
+	setPdeathsig(cmd, true)
+	return cmd
 }
 
 // Command is similar to os/exec.Command, but also sets PDEATHSIG to SIGKILL on linux,

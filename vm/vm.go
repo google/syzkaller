@@ -32,6 +32,7 @@ import (
 	_ "github.com/google/syzkaller/vm/isolated"
 	_ "github.com/google/syzkaller/vm/kvm"
 	_ "github.com/google/syzkaller/vm/odroid"
+	_ "github.com/google/syzkaller/vm/proxyapp"
 	_ "github.com/google/syzkaller/vm/qemu"
 	_ "github.com/google/syzkaller/vm/vmm"
 	_ "github.com/google/syzkaller/vm/vmware"
