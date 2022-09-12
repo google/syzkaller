@@ -85,7 +85,6 @@ type Manager struct {
 	stop         chan struct{}
 	debug        bool
 	lastBuild    *dashapi.Build
-	buildUpdated bool
 }
 
 func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{},
@@ -247,7 +246,6 @@ func (mgr *Manager) pollAndBuild(lastCommit string, latestInfo *BuildInfo) (
 					if latestInfo == nil {
 						mgr.Errorf("failed to read build info after build")
 					}
-					mgr.buildUpdated = true
 				}
 				<-kernelBuildSem
 			case <-mgr.stop:
@@ -580,12 +578,11 @@ func (mgr *Manager) uploadBuild(info *BuildInfo, imageDir string) (string, error
 	}
 	build.Commits = commitTitles
 	build.FixCommits = fixCommits
-	// Normally we have no reason to upload build artifacts every restart - we don't rebuild
-	// kernels that often. So we only do that after we have built them. There's only one small
-	// exception - for debugging purposes it's better to upload more than to rebuild more.
-	assetUploadNeeded := mgr.debugStorage || mgr.buildUpdated
-	if mgr.storage != nil && assetUploadNeeded {
-		mgr.buildUpdated = false
+	if mgr.storage != nil {
+		// We always upload build assets -- we create a separate Build object not just for
+		// different kernel commits, but also for different syzkaller commits, configs, etc.
+		// Since we deduplicate assets by hashing, this should not be a problem -- no assets
+		// will be actually duplicated, only the records in the DB.
 		assets, err := mgr.uploadBuildAssets(build, imageDir)
 		if err != nil {
 			mgr.Errorf("failed to upload build assets: %v", err)
