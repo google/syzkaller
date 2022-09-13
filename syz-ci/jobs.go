@@ -412,11 +412,12 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 		// compete with patch testing jobs (it's bad delaying patch testing).
 		// When/if bisection jobs don't compete with patch testing,
 		// it makes sense to increase this to 12-24h.
-		Timeout:        8 * time.Hour,
-		Fix:            req.Type == dashapi.JobBisectFix,
-		BisectCompiler: mgr.mgrcfg.BisectCompiler,
-		BinDir:         jp.cfg.BisectBinDir,
-		Ccache:         jp.cfg.Ccache,
+		Timeout:         8 * time.Hour,
+		Fix:             req.Type == dashapi.JobBisectFix,
+		DefaultCompiler: mgr.mgrcfg.Compiler,
+		CompilerType:    mgr.mgrcfg.CompilerType,
+		BinDir:          jp.cfg.BisectBinDir,
+		Ccache:          jp.cfg.Ccache,
 		Kernel: bisect.KernelConfig{
 			Repo:           mgr.mgrcfg.Repo,
 			Branch:         mgr.mgrcfg.Branch,

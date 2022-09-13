@@ -42,14 +42,14 @@ func newLinux(dir string, opts []RepoOpt, vmType string) *linux {
 	}
 }
 
-func (ctx *linux) PreviousReleaseTags(commit, bisectCompiler string) ([]string, error) {
+func (ctx *linux) PreviousReleaseTags(commit, compilerType string) ([]string, error) {
 	tags, err := ctx.git.previousReleaseTags(commit, false, false, false)
 	if err != nil {
 		return nil, err
 	}
 
 	cutoff := ""
-	if bisectCompiler == "gcc" {
+	if compilerType == "gcc" {
 		// Initially we tried to stop at 3.8 because:
 		// v3.8 does not work with modern perl, and as we go further in history
 		// make stops to work, then binutils, glibc, etc. So we stop at v3.8.
@@ -70,7 +70,7 @@ func (ctx *linux) PreviousReleaseTags(commit, bisectCompiler string) ([]string, 
 		// even more (as new releases are produced). Next good candidate may be 4.11
 		// because then we won't need gcc 5.5.
 		cutoff = "v4.5"
-	} else if bisectCompiler == "clang" {
+	} else if compilerType == "clang" {
 		// v5.3 was the first release with solid clang support, however I was able to
 		// compile v5.1..v5.3 using a newer defconfig + make oldconfig. Everything older
 		// would require further cherry-picks.
@@ -132,7 +132,9 @@ func gitReleaseTagToInt(tag string, includeRC bool) uint64 {
 	return v1*1e9 + v2*1e6 + rc*1e3 + v3
 }
 
-func (ctx *linux) EnvForCommit(bisectCompiler, binDir, commit string, kernelConfig []byte) (*BisectEnv, error) {
+func (ctx *linux) EnvForCommit(
+	defaultCompiler, compilerType, binDir, commit string, kernelConfig []byte,
+) (*BisectEnv, error) {
 	tagList, err := ctx.previousReleaseTags(commit, true, false, false)
 	if err != nil {
 		return nil, err
@@ -148,12 +150,12 @@ func (ctx *linux) EnvForCommit(bisectCompiler, binDir, commit string, kernelConf
 	linuxAlterConfigs(cf, tags)
 
 	compiler := ""
-	if bisectCompiler == "gcc" {
-		compiler = filepath.Join(binDir, "gcc-"+linuxGCCVersion(tags), "bin", "gcc")
-	} else if bisectCompiler == "clang" {
-		compiler = filepath.Join(binDir, "llvm-"+linuxClangVersion(tags), "bin", "clang")
+	if compilerType == "gcc" {
+		compiler = linuxGCCPath(tags, binDir, defaultCompiler)
+	} else if compilerType == "clang" {
+		compiler = linuxClangPath(tags, binDir, defaultCompiler)
 	} else {
-		return nil, fmt.Errorf("unsupported bisect compiler: %v", bisectCompiler)
+		return nil, fmt.Errorf("unsupported bisect compiler: %v", compilerType)
 	}
 
 	env := &BisectEnv{
@@ -180,28 +182,34 @@ func (ctx *linux) EnvForCommit(bisectCompiler, binDir, commit string, kernelConf
 	return env, nil
 }
 
-func linuxClangVersion(tags map[string]bool) string {
+func linuxClangPath(tags map[string]bool, binDir, defaultCompiler string) string {
+	version := ""
 	switch {
 	case tags["v5.9"]:
-		return "14.0.6"
+		// Verified to work with 14.0.6.
+		return defaultCompiler
 	default:
 		// everything before v5.3 might not work great
 		// everything before v5.1 does not work
-		return "9.0.1"
+		version = "9.0.1"
 	}
+	return filepath.Join(binDir, "llvm-"+version, "bin", "clang")
 }
 
-func linuxGCCVersion(tags map[string]bool) string {
+func linuxGCCPath(tags map[string]bool, binDir, defaultCompiler string) string {
+	version := ""
 	switch {
 	case tags["v5.9"]:
-		return "10.1.0"
+		// Verified to work with 10.1.0.
+		return defaultCompiler
 	case tags["v4.12"]:
-		return "8.1.0"
+		version = "8.1.0"
 	case tags["v4.11"]:
-		return "7.3.0"
+		version = "7.3.0"
 	default:
-		return "5.5.0"
+		version = "5.5.0"
 	}
+	return filepath.Join(binDir, "gcc-"+version, "bin", "gcc")
 }
 
 func linuxAlterConfigs(cf *kconfig.ConfigFile, tags map[string]bool) {

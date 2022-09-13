@@ -153,14 +153,14 @@ type ManagerConfig struct {
 	Repo            string `json:"repo"`
 	// Short name of the repo (e.g. "linux-next"), used only for reporting.
 	RepoAlias string `json:"repo_alias"`
+	Branch    string `json:"branch"` // Defaults to "master".
 	// Currently either 'gcc' or 'clang'. Note that pkg/bisect requires
 	// explicit plumbing for every os/compiler combination.
-	BisectCompiler string `json:"bisect_compiler"` // Defaults to "gcc"
-	Branch         string `json:"branch"`          // Defaults to "master".
-	Compiler       string `json:"compiler"`
-	Ccache         string `json:"ccache"`
-	Userspace      string `json:"userspace"`
-	KernelConfig   string `json:"kernel_config"`
+	CompilerType string `json:"compiler_type"` // Defaults to "gcc"
+	Compiler     string `json:"compiler"`
+	Ccache       string `json:"ccache"`
+	Userspace    string `json:"userspace"`
+	KernelConfig string `json:"kernel_config"`
 	// Baseline config for bisection, see pkg/bisect.KernelConfig.BaselineConfig.
 	KernelBaselineConfig string `json:"kernel_baseline_config"`
 	// File with kernel cmdline values (optional).
@@ -386,8 +386,8 @@ func loadManagerConfig(cfg *Config, mgr *ManagerConfig) error {
 	if !managerNameRe.MatchString(mgr.Name) {
 		return fmt.Errorf("param 'managers.name' has bad value: %q", mgr.Name)
 	}
-	if mgr.BisectCompiler == "" {
-		mgr.BisectCompiler = "gcc"
+	if mgr.CompilerType == "" {
+		mgr.CompilerType = "gcc"
 	}
 	if mgr.Branch == "" {
 		mgr.Branch = "master"
