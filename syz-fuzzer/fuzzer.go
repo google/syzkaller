@@ -128,6 +128,9 @@ func createIPCConfig(features *host.Features, config *ipc.Config) {
 	if features[host.FeatureDevlinkPCI].Enabled {
 		config.Flags |= ipc.FlagEnableDevlinkPCI
 	}
+	if features[host.FeatureNicVF].Enabled {
+		config.Flags |= ipc.FlagEnableNicVF
+	}
 	if features[host.FeatureVhciInjection].Enabled {
 		config.Flags |= ipc.FlagEnableVhciInjection
 	}

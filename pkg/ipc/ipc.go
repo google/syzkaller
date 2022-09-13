@@ -43,6 +43,7 @@ const (
 	FlagEnableVhciInjection                      // setup and use /dev/vhci for hci packet injection
 	FlagEnableWifi                               // setup and use mac80211_hwsim for wifi emulation
 	FlagDelayKcovMmap                            // manage kcov memory in an optimized way
+	FlagEnableNicVF                              // setup NIC VF device
 )
 
 // Per-exec flags for ExecOpts.Flags.

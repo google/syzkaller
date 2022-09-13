@@ -246,6 +246,10 @@ func createProg2CArgs(bug *dashapi.BugReport, opts csource.Options, file string)
 		enable = append(enable, "devlink_pci")
 		flags = append(flags, "-devlinkpci")
 	}
+	if opts.NicVF {
+		enable = append(enable, "nic_vf")
+		flags = append(flags, "-nic_vf")
+	}
 	if opts.VhciInjection {
 		enable = append(enable, "vhci")
 		flags = append(flags, "-vhci")
