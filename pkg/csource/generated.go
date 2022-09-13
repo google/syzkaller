@@ -2422,7 +2422,7 @@ static bool write_file(const char* file, const char* what, ...)
 #endif
 
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI || SYZ_WIFI || SYZ_802154 || \
-    __NR_syz_genetlink_get_family_id || __NR_syz_80211_inject_frame || __NR_syz_80211_join_ibss
+    __NR_syz_genetlink_get_family_id || __NR_syz_80211_inject_frame || __NR_syz_80211_join_ibss || SYZ_NIC_VF
 #include <arpa/inet.h>
 #include <net/if.h>
 #include <netinet/in.h>
@@ -2484,6 +2484,87 @@ static void netlink_done(struct nlmsg* nlmsg)
 	struct nlattr* attr = nlmsg->nested[--nlmsg->nesting];
 	attr->nla_len = nlmsg->pos - (char*)attr;
 }
+
+#if SYZ_EXECUTOR || SYZ_NIC_VF
+#include <ifaddrs.h>
+#include <linux/ethtool.h>
+#include <linux/sockios.h>
+#include <sys/ioctl.h>
+
+struct vf_intf {
+	char pass_thru_intf[IFNAMSIZ];
+	int ppid;
+};
+
+static struct vf_intf vf_intf;
+
+static void find_vf_interface(void)
+{
+#if SYZ_EXECUTOR
+	if (!flag_nic_vf)
+		return;
+#endif
+	struct ifaddrs* addresses = NULL;
+	int pid = getpid();
+	int ret = 0;
+
+	memset(&vf_intf, 0, sizeof(struct vf_intf));
+
+	debug("Checking for VF pass-thru interface.\n");
+	if (getifaddrs(&addresses) == -1) {
+		debug("%s: getifaddrs() failed.\n", __func__);
+		return;
+	}
+
+	int fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+
+	if (fd < 0) {
+		debug("%s: socket() failed.\n", __func__);
+		return;
+	}
+	struct ifreq ifr;
+	struct ethtool_drvinfo drvinfo;
+	struct ifaddrs* address = addresses;
+
+	while (address) {
+		debug("ifa_name: %s\n", address->ifa_name);
+		memset(&ifr, 0, sizeof(struct ifreq));
+		strcpy(ifr.ifr_name, address->ifa_name);
+		memset(&drvinfo, 0, sizeof(struct ethtool_drvinfo));
+		drvinfo.cmd = ETHTOOL_GDRVINFO;
+		ifr.ifr_data = (caddr_t)&drvinfo;
+		ret = ioctl(fd, SIOCETHTOOL, &ifr);
+
+		if (ret < 0) {
+			debug("%s: ioctl() failed.\n", __func__);
+		} else if (strlen(drvinfo.bus_info)) {
+			debug("bus_info: %s, strlen(drvinfo.bus_info)=%zu\n",
+			      drvinfo.bus_info, strlen(drvinfo.bus_info));
+			if (strcmp(drvinfo.bus_info, "0000:00:11.0") == 0) {
+				if (strlen(address->ifa_name) < IFNAMSIZ) {
+					strncpy(vf_intf.pass_thru_intf,
+						address->ifa_name, IFNAMSIZ);
+					vf_intf.ppid = pid;
+				} else {
+					debug("%s: %d strlen(%s) >= IFNAMSIZ.\n",
+					      __func__, pid, address->ifa_name);
+				}
+				break;
+			}
+		}
+		address = address->ifa_next;
+	}
+	freeifaddrs(addresses);
+	if (!vf_intf.ppid) {
+		memset(&vf_intf, 0, sizeof(struct vf_intf));
+		debug("%s: %d could not find VF pass-thru interface.\n", __func__, pid);
+		return;
+	}
+	debug("%s: %d found VF pass-thru interface %s\n",
+	      __func__, pid, vf_intf.pass_thru_intf);
+}
+#endif
+
 #endif
 
 static int netlink_send_ext(struct nlmsg* nlmsg, int sock,
@@ -3606,6 +3687,52 @@ static void netlink_wireguard_setup(void)
 error:
 	close(sock);
 }
+
+#if SYZ_EXECUTOR || SYZ_NIC_VF
+static int runcmdline(char* cmdline)
+{
+	debug("%s\n", cmdline);
+	int ret = system(cmdline);
+	if (ret) {
+		debug("FAIL: %s\n", cmdline);
+	}
+	return ret;
+}
+
+static void netlink_nicvf_setup(void)
+{
+	char cmdline[256];
+
+#if SYZ_EXECUTOR
+	if (!flag_nic_vf)
+		return;
+#endif
+	if (!vf_intf.ppid)
+		return;
+
+	debug("ppid = %d, vf_intf.pass_thru_intf: %s\n",
+	      vf_intf.ppid, vf_intf.pass_thru_intf);
+
+	sprintf(cmdline, "nsenter -t 1 -n ip link set %s netns %d",
+		vf_intf.pass_thru_intf, getpid());
+	if (runcmdline(cmdline))
+		return;
+
+	sprintf(cmdline, "ip a s %s", vf_intf.pass_thru_intf);
+	if (runcmdline(cmdline))
+		return;
+
+	sprintf(cmdline, "ip link set %s down", vf_intf.pass_thru_intf);
+	if (runcmdline(cmdline))
+		return;
+
+	sprintf(cmdline, "ip link set %s name nicvf0", vf_intf.pass_thru_intf);
+	if (runcmdline(cmdline))
+		return;
+
+	debug("nicvf0 VF pass-through setup complete.\n");
+}
+#endif
 static void initialize_netdevices(void)
 {
 #if SYZ_EXECUTOR
@@ -3618,20 +3745,23 @@ static void initialize_netdevices(void)
 		const char* type;
 		const char* dev;
 	} devtypes[] = {
-	    {"ip6gretap", "ip6gretap0"},
-	    {"bridge", "bridge0"},
-	    {"vcan", "vcan0"},
-	    {"bond", "bond0"},
-	    {"team", "team0"},
-	    {"dummy", "dummy0"},
-	    {"nlmon", "nlmon0"},
-	    {"caif", "caif0"},
-	    {"batadv", "batadv0"},
-	    {"vxcan", "vxcan1"},
-	    {"veth", 0},
-	    {"wireguard", "wg0"},
-	    {"wireguard", "wg1"},
-	    {"wireguard", "wg2"},
+		{"ip6gretap", "ip6gretap0"},
+		{"bridge", "bridge0"},
+		{"vcan", "vcan0"},
+		{"bond", "bond0"},
+		{"team", "team0"},
+		{"dummy", "dummy0"},
+#if SYZ_EXECUTOR || SYZ_NIC_VF
+		{"nicvf", "nicvf0"},
+#endif
+		{"nlmon", "nlmon0"},
+		{"caif", "caif0"},
+		{"batadv", "batadv0"},
+		{"vxcan", "vxcan1"},
+		{"veth", 0},
+		{"wireguard", "wg0"},
+		{"wireguard", "wg1"},
+		{"wireguard", "wg2"},
 	};
 	const char* devmasters[] = {"bridge", "bond", "team", "batadv"};
 	struct {
@@ -3639,64 +3769,67 @@ static void initialize_netdevices(void)
 		int macsize;
 		bool noipv6;
 	} devices[] = {
-	    {"lo", ETH_ALEN},
-	    {"sit0", 0},
-	    {"bridge0", ETH_ALEN},
-	    {"vcan0", 0, true},
-	    {"tunl0", 0},
-	    {"gre0", 0},
-	    {"gretap0", ETH_ALEN},
-	    {"ip_vti0", 0},
-	    {"ip6_vti0", 0},
-	    {"ip6tnl0", 0},
-	    {"ip6gre0", 0},
-	    {"ip6gretap0", ETH_ALEN},
-	    {"erspan0", ETH_ALEN},
-	    {"bond0", ETH_ALEN},
-	    {"veth0", ETH_ALEN},
-	    {"veth1", ETH_ALEN},
-	    {"team0", ETH_ALEN},
-	    {"veth0_to_bridge", ETH_ALEN},
-	    {"veth1_to_bridge", ETH_ALEN},
-	    {"veth0_to_bond", ETH_ALEN},
-	    {"veth1_to_bond", ETH_ALEN},
-	    {"veth0_to_team", ETH_ALEN},
-	    {"veth1_to_team", ETH_ALEN},
-	    {"veth0_to_hsr", ETH_ALEN},
-	    {"veth1_to_hsr", ETH_ALEN},
-	    {"hsr0", 0},
-	    {"dummy0", ETH_ALEN},
-	    {"nlmon0", 0},
-	    {"vxcan0", 0, true},
-	    {"vxcan1", 0, true},
-	    {"caif0", ETH_ALEN},
-	    {"batadv0", ETH_ALEN},
-	    {netdevsim, ETH_ALEN},
-	    {"xfrm0", ETH_ALEN},
-	    {"veth0_virt_wifi", ETH_ALEN},
-	    {"veth1_virt_wifi", ETH_ALEN},
-	    {"virt_wifi0", ETH_ALEN},
-	    {"veth0_vlan", ETH_ALEN},
-	    {"veth1_vlan", ETH_ALEN},
-	    {"vlan0", ETH_ALEN},
-	    {"vlan1", ETH_ALEN},
-	    {"macvlan0", ETH_ALEN},
-	    {"macvlan1", ETH_ALEN},
-	    {"ipvlan0", ETH_ALEN},
-	    {"ipvlan1", ETH_ALEN},
-	    {"veth0_macvtap", ETH_ALEN},
-	    {"veth1_macvtap", ETH_ALEN},
-	    {"macvtap0", ETH_ALEN},
-	    {"macsec0", ETH_ALEN},
-	    {"veth0_to_batadv", ETH_ALEN},
-	    {"veth1_to_batadv", ETH_ALEN},
-	    {"batadv_slave_0", ETH_ALEN},
-	    {"batadv_slave_1", ETH_ALEN},
-	    {"geneve0", ETH_ALEN},
-	    {"geneve1", ETH_ALEN},
-	    {"wg0", 0},
-	    {"wg1", 0},
-	    {"wg2", 0},
+		{"lo", ETH_ALEN},
+		{"sit0", 0},
+		{"bridge0", ETH_ALEN},
+		{"vcan0", 0, true},
+		{"tunl0", 0},
+		{"gre0", 0},
+		{"gretap0", ETH_ALEN},
+		{"ip_vti0", 0},
+		{"ip6_vti0", 0},
+		{"ip6tnl0", 0},
+		{"ip6gre0", 0},
+		{"ip6gretap0", ETH_ALEN},
+		{"erspan0", ETH_ALEN},
+		{"bond0", ETH_ALEN},
+		{"veth0", ETH_ALEN},
+		{"veth1", ETH_ALEN},
+		{"team0", ETH_ALEN},
+		{"veth0_to_bridge", ETH_ALEN},
+		{"veth1_to_bridge", ETH_ALEN},
+		{"veth0_to_bond", ETH_ALEN},
+		{"veth1_to_bond", ETH_ALEN},
+		{"veth0_to_team", ETH_ALEN},
+		{"veth1_to_team", ETH_ALEN},
+		{"veth0_to_hsr", ETH_ALEN},
+		{"veth1_to_hsr", ETH_ALEN},
+		{"hsr0", 0},
+		{"dummy0", ETH_ALEN},
+#if SYZ_EXECUTOR || SYZ_NIC_VF
+		{"nicvf0", 0, true},
+#endif
+		{"nlmon0", 0},
+		{"vxcan0", 0, true},
+		{"vxcan1", 0, true},
+		{"caif0", ETH_ALEN},
+		{"batadv0", ETH_ALEN},
+		{netdevsim, ETH_ALEN},
+		{"xfrm0", ETH_ALEN},
+		{"veth0_virt_wifi", ETH_ALEN},
+		{"veth1_virt_wifi", ETH_ALEN},
+		{"virt_wifi0", ETH_ALEN},
+		{"veth0_vlan", ETH_ALEN},
+		{"veth1_vlan", ETH_ALEN},
+		{"vlan0", ETH_ALEN},
+		{"vlan1", ETH_ALEN},
+		{"macvlan0", ETH_ALEN},
+		{"macvlan1", ETH_ALEN},
+		{"ipvlan0", ETH_ALEN},
+		{"ipvlan1", ETH_ALEN},
+		{"veth0_macvtap", ETH_ALEN},
+		{"veth1_macvtap", ETH_ALEN},
+		{"macvtap0", ETH_ALEN},
+		{"macsec0", ETH_ALEN},
+		{"veth0_to_batadv", ETH_ALEN},
+		{"veth1_to_batadv", ETH_ALEN},
+		{"batadv_slave_0", ETH_ALEN},
+		{"batadv_slave_1", ETH_ALEN},
+		{"geneve0", ETH_ALEN},
+		{"geneve1", ETH_ALEN},
+		{"wg0", 0},
+		{"wg1", 0},
+		{"wg2", 0},
 	};
 	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 	if (sock == -1)
@@ -3755,6 +3888,10 @@ static void initialize_netdevices(void)
 
 	netlink_wireguard_setup();
 
+#if SYZ_EXECUTOR || SYZ_NIC_VF
+	netlink_nicvf_setup();
+#endif
+
 	for (i = 0; i < sizeof(devices) / (sizeof(devices[0])); i++) {
 		char addr[32];
 		sprintf(addr, DEV_IPV4, i + 10);
@@ -3802,6 +3939,10 @@ static void initialize_netdevices_init(void)
 		netlink_device_change(&nlmsg, sock, dev, !devtypes[i].noup, 0, &macaddr, macsize, NULL);
 	}
 	close(sock);
+
+#if SYZ_EXECUTOR || SYZ_NIC_VF
+	find_vf_interface();
+#endif
 }
 #endif
 
@@ -9122,7 +9263,7 @@ static const size_t system_filter_size = arm_system_filter_size;
 #elif GOARCH_amd64
 #define PRIMARY_ARCH AUDIT_ARCH_X86_64
 
-const sock_filter x86_64_app_filter[] = {
+const struct sock_filter x86_64_app_filter[] = {
 BPF_JUMP(BPF_JMP|BPF_JGE|BPF_K, 0, 0, 114),
 BPF_JUMP(BPF_JMP|BPF_JEQ|BPF_K, 202, 112, 0),
 BPF_JUMP(BPF_JMP|BPF_JEQ|BPF_K, 16, 111, 0),
@@ -9245,7 +9386,7 @@ BPF_STMT(BPF_RET|BPF_K, SECCOMP_RET_ALLOW),
 static const struct sock_filter* primary_app_filter = x86_64_app_filter;
 static const size_t primary_app_filter_size = x86_64_app_filter_size;
 
-const sock_filter x86_64_system_filter[] = {
+const struct sock_filter x86_64_system_filter[] = {
 BPF_JUMP(BPF_JMP|BPF_JGE|BPF_K, 0, 0, 100),
 BPF_JUMP(BPF_JMP|BPF_JEQ|BPF_K, 202, 98, 0),
 BPF_JUMP(BPF_JMP|BPF_JEQ|BPF_K, 16, 97, 0),
