@@ -173,6 +173,7 @@ static bool flag_net_reset;
 static bool flag_cgroups;
 static bool flag_close_fds;
 static bool flag_devlink_pci;
+static bool flag_nic_vf;
 static bool flag_vhci_injection;
 static bool flag_wifi;
 static bool flag_delay_kcov_mmap;
@@ -621,6 +622,7 @@ void parse_env_flags(uint64 flags)
 	flag_vhci_injection = flags & (1 << 12);
 	flag_wifi = flags & (1 << 13);
 	flag_delay_kcov_mmap = flags & (1 << 14);
+	flag_nic_vf = flags & (1 << 15);
 }
 
 #if SYZ_EXECUTOR_USES_FORK_SERVER

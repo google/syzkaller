@@ -37,6 +37,7 @@ type Options struct {
 	CloseFDs      bool `json:"close_fds"`
 	KCSAN         bool `json:"kcsan,omitempty"`
 	DevlinkPCI    bool `json:"devlinkpci,omitempty"`
+	NicVF         bool `json:"nicvf,omitempty"`
 	USB           bool `json:"usb,omitempty"`
 	VhciInjection bool `json:"vhci,omitempty"`
 	Wifi          bool `json:"wifi,omitempty"`
@@ -141,6 +142,7 @@ func (opts Options) checkLinuxOnly(OS string) error {
 		"CloseFDs":      &opts.CloseFDs,
 		"KCSAN":         &opts.KCSAN,
 		"DevlinkPCI":    &opts.DevlinkPCI,
+		"NicVF":         &opts.NicVF,
 		"USB":           &opts.USB,
 		"VhciInjection": &opts.VhciInjection,
 		"Wifi":          &opts.Wifi,
@@ -175,6 +177,7 @@ func DefaultOpts(cfg *mgrconfig.Config) Options {
 		opts.BinfmtMisc = true
 		opts.CloseFDs = true
 		opts.DevlinkPCI = true
+		opts.NicVF = true
 		opts.USB = true
 		opts.VhciInjection = true
 		opts.Wifi = true
@@ -307,6 +310,7 @@ func defaultFeatures(value bool) Features {
 		"binfmt_misc": {"setup binfmt_misc for testing", value},
 		"close_fds":   {"close fds after each program", value},
 		"devlink_pci": {"setup devlink PCI device", value},
+		"nic_vf":      {"setup NIC VF device", value},
 		"usb":         {"setup and use /dev/raw-gadget for USB emulation", value},
 		"vhci":        {"setup and use /dev/vhci for hci packet injection", value},
 		"wifi":        {"setup and use mac80211_hwsim for wifi emulation", value},

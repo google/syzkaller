@@ -87,6 +87,7 @@ func main() {
 		CloseFDs:      features["close_fds"].Enabled,
 		KCSAN:         features["kcsan"].Enabled,
 		DevlinkPCI:    features["devlink_pci"].Enabled,
+		NicVF:         features["nic_vf"].Enabled,
 		USB:           features["usb"].Enabled,
 		VhciInjection: features["vhci"].Enabled,
 		Wifi:          features["wifi"].Enabled,
