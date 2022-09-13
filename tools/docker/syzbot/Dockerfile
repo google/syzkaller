@@ -62,5 +62,5 @@ RUN echo "deb [arch=amd64] http://storage.googleapis.com/bazel-apt stable jdk1.8
 RUN apt-get update --allow-releaseinfo-change && DEBIAN_FRONTEND=noninteractive apt-get install -y -q bazel
 
 # pkg/osutil uses syzkaller user for sandboxing.
-RUN useradd syzkaller
+RUN useradd --create-home syzkaller
 RUN echo "export PS1='\n\W🤖 '" >> /root/.bashrc
