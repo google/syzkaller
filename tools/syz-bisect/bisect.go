@@ -35,11 +35,12 @@ import (
 )
 
 var (
-	flagConfig          = flag.String("config", "", "bisect config file")
-	flagCrash           = flag.String("crash", "", "dir with crash info")
-	flagFix             = flag.Bool("fix", false, "search for crash fix")
-	flagKernelCommit    = flag.String("kernel_commit", "", "original kernel commit")
-	flagSyzkallerCommit = flag.String("syzkaller_commit", "", "original syzkaller commit")
+	flagConfig            = flag.String("config", "", "bisect config file")
+	flagCrash             = flag.String("crash", "", "dir with crash info")
+	flagFix               = flag.Bool("fix", false, "search for crash fix")
+	flagKernelCommit      = flag.String("kernel_commit", "", "original kernel commit")
+	flagKernelCommitTitle = flag.String("kernel_commit_title", "", "original kernel commit title")
+	flagSyzkallerCommit   = flag.String("syzkaller_commit", "", "original syzkaller commit")
 )
 
 type Config struct {
@@ -101,12 +102,13 @@ func main() {
 		BinDir:         mycfg.BinDir,
 		Ccache:         mycfg.Ccache,
 		Kernel: bisect.KernelConfig{
-			Repo:      mycfg.KernelRepo,
-			Branch:    mycfg.KernelBranch,
-			Commit:    *flagKernelCommit,
-			Userspace: mycfg.Userspace,
-			Sysctl:    mycfg.Sysctl,
-			Cmdline:   mycfg.Cmdline,
+			Repo:        mycfg.KernelRepo,
+			Branch:      mycfg.KernelBranch,
+			Commit:      *flagKernelCommit,
+			CommitTitle: *flagKernelCommitTitle,
+			Userspace:   mycfg.Userspace,
+			Sysctl:      mycfg.Sysctl,
+			Cmdline:     mycfg.Cmdline,
 		},
 		Syzkaller: bisect.SyzkallerConfig{
 			Repo:   mycfg.SyzkallerRepo,

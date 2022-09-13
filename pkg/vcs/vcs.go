@@ -37,9 +37,9 @@ type Repo interface {
 	// HeadCommit returns info about the HEAD commit of the current branch of git repository.
 	HeadCommit() (*Commit, error)
 
-	// GetCommitByTitle finds commit info by the title.
-	// Remote is not fetched, the commit needs to be reachable from the current repo state
-	// (e.g. do CheckoutBranch before). If the commit is not found, nil is returned.
+	// GetCommitByTitle finds commit info by the title. If the commit is not found, nil is returned.
+	// Remote is not fetched and only commits reachable from the checked out HEAD are searched
+	// (e.g. do CheckoutBranch before).
 	GetCommitByTitle(title string) (*Commit, error)
 
 	// GetCommitsByTitles is a batch version of GetCommitByTitle.
@@ -57,8 +57,9 @@ type Repo interface {
 	// ReleaseTag returns the latest release tag that is reachable from the given commit.
 	ReleaseTag(commit string) (string, error)
 
-	// Returns true if the current tree contains the specified commit
-	// (the commit is reachable from the current HEAD).
+	// Returns true if the current tree contains the specified commit.
+	// Remote is not fetched and only commits reachable from the checked out HEAD are searched
+	// (e.g. do CheckoutBranch before).
 	Contains(commit string) (bool, error)
 }
 
