@@ -44,9 +44,10 @@ var (
 )
 
 type Config struct {
+	Compiler string `json:"compiler"`
 	// Currently either 'gcc' or 'clang'. Note that pkg/bisect requires
 	// explicit plumbing for every os/compiler combination.
-	BisectCompiler string `json:"bisect_compiler"`
+	CompilerType string `json:"compiler_type"`
 	// BinDir must point to a dir that contains compilers required to build
 	// older versions of the kernel. For linux, it needs to include several
 	// compiler versions.
@@ -97,10 +98,11 @@ func main() {
 			TraceWriter: os.Stdout,
 			OutDir:      *flagCrash,
 		},
-		Fix:            *flagFix,
-		BisectCompiler: mycfg.BisectCompiler,
-		BinDir:         mycfg.BinDir,
-		Ccache:         mycfg.Ccache,
+		Fix:             *flagFix,
+		DefaultCompiler: mycfg.Compiler,
+		CompilerType:    mycfg.CompilerType,
+		BinDir:          mycfg.BinDir,
+		Ccache:          mycfg.Ccache,
 		Kernel: bisect.KernelConfig{
 			Repo:        mycfg.KernelRepo,
 			Branch:      mycfg.KernelBranch,

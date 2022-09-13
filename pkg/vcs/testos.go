@@ -22,11 +22,13 @@ func newTestos(dir string, opts []RepoOpt) *testos {
 	}
 }
 
-func (ctx *testos) PreviousReleaseTags(commit, bisectCompiler string) ([]string, error) {
+func (ctx *testos) PreviousReleaseTags(commit, compilerType string) ([]string, error) {
 	return ctx.git.previousReleaseTags(commit, false, false, false)
 }
 
-func (ctx *testos) EnvForCommit(bisectCompiler, binDir, commit string, kernelConfig []byte) (*BisectEnv, error) {
+func (ctx *testos) EnvForCommit(
+	defaultCompiler, compilerType, binDir, commit string, kernelConfig []byte,
+) (*BisectEnv, error) {
 	return &BisectEnv{KernelConfig: kernelConfig}, nil
 }
 

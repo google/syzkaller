@@ -125,7 +125,8 @@ func main() {
 }
 
 func test(repo vcs.Repo, bisecter vcs.Bisecter, kernelConfig []byte, env instance.Env, com *vcs.Commit) {
-	bisectEnv, err := bisecter.EnvForCommit("gcc", *flagBisectBin, com.Hash, kernelConfig)
+	compiler, compilerType := "gcc", "gcc"
+	bisectEnv, err := bisecter.EnvForCommit(compiler, compilerType, *flagBisectBin, com.Hash, kernelConfig)
 	if err != nil {
 		tool.Fail(err)
 	}
