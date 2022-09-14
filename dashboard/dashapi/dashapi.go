@@ -284,6 +284,7 @@ type Crash struct {
 	Flags       CrashFlags
 	Report      []byte
 	MachineInfo []byte
+	Assets      []NewAsset
 	// The following is optional and is filled only after repro.
 	ReproOpts []byte
 	ReproSyz  []byte

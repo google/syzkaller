@@ -193,7 +193,9 @@ type Crash struct {
 	// Custom crash priority for reporting (greater values are higher priority).
 	// For example, a crash in mainline kernel has higher priority than a crash in a side branch.
 	// For historical reasons this is called ReportLen.
-	ReportLen int64
+	ReportLen       int64
+	Assets          []Asset   // crash-related assets
+	AssetsLastCheck time.Time // the last time we checked the assets for deprecation
 }
 
 // ReportingState holds dynamic info associated with reporting.
