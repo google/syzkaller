@@ -50,6 +50,13 @@ var assetTypes = map[dashapi.AssetType]*TypeDescription{
 		customCompressor:  gzipCompressor,
 		preserveExtension: true,
 	},
+	dashapi.MountInRepro: {
+		GetTitle:      constTitle("mounted in repro"),
+		ReportingPrio: 5,
+		// It feels that such images are very well compressible, so we can just use
+		// the omnipresent gzip compression.
+		customCompressor: gzipCompressor,
+	},
 }
 
 type QueryTypeTitle func(*targets.Target) string

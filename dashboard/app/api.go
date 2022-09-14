@@ -694,6 +694,10 @@ func apiReportCrash(c context.Context, ns string, r *http.Request, payload []byt
 }
 
 func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, error) {
+	assets, err := parseCrashAssets(c, req)
+	if err != nil {
+		return nil, err
+	}
 	req.Title = canonicalizeCrashTitle(req.Title, req.Corrupted, req.Suppressed)
 	if req.Corrupted || req.Suppressed {
 		req.AltTitles = []string{req.Title}
@@ -731,7 +735,7 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 		bug.NumCrashes%20 == 0 ||
 		!stringInList(bug.MergedTitles, req.Title)
 	if save {
-		if err := saveCrash(c, ns, req, bug, bugKey, build); err != nil {
+		if err := saveCrash(c, ns, req, bug, bugKey, build, assets); err != nil {
 			return nil, err
 		}
 	} else {
@@ -778,6 +782,18 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 	return bug, nil
 }
 
+func parseCrashAssets(c context.Context, req *dashapi.Crash) ([]Asset, error) {
+	assets := []Asset{}
+	for i, toAdd := range req.Assets {
+		newAsset, err := parseIncomingAsset(c, toAdd)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse asset #%d: %w", i, err)
+		}
+		assets = append(assets, newAsset)
+	}
+	return assets, nil
+}
+
 func (crash *Crash) UpdateReportingPriority(build *Build, bug *Bug) {
 	prio := int64(kernelRepoInfo(build).ReportingPriority) * 1e6
 	divReproPrio := int64(1)
@@ -798,7 +814,8 @@ func (crash *Crash) UpdateReportingPriority(build *Build, bug *Bug) {
 	crash.ReportLen = prio
 }
 
-func saveCrash(c context.Context, ns string, req *dashapi.Crash, bug *Bug, bugKey *db.Key, build *Build) error {
+func saveCrash(c context.Context, ns string, req *dashapi.Crash, bug *Bug, bugKey *db.Key,
+	build *Build, assets []Asset) error {
 	crash := &Crash{
 		Title:   req.Title,
 		Manager: build.Manager,
@@ -809,6 +826,7 @@ func saveCrash(c context.Context, ns string, req *dashapi.Crash, bug *Bug, bugKe
 			GetEmails(req.Recipients, dashapi.Cc)),
 		ReproOpts: req.ReproOpts,
 		Flags:     int64(req.Flags),
+		Assets:    assets,
 	}
 	var err error
 	if crash.Log, err = putText(c, ns, textCrashLog, req.Log, false); err != nil {
