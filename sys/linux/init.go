@@ -54,6 +54,7 @@ func InitTarget(target *prog.Target) {
 
 	target.MakeDataMmap = targets.MakePosixMmap(target, true, true)
 	target.Neutralize = arch.neutralize
+	target.ExtractMountedImage = arch.extractSyzMountImage
 	target.SpecialTypes = map[string]func(g *prog.Gen, typ prog.Type, dir prog.Dir, old prog.Arg) (
 		prog.Arg, []*prog.Call){
 		"timespec":                  arch.generateTimespec,
