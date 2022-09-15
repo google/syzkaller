@@ -5,8 +5,10 @@ package osutil
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -267,6 +269,18 @@ func MkdirAll(dir string) error {
 
 func WriteFile(filename string, data []byte) error {
 	return ioutil.WriteFile(filename, data, DefaultFilePerm)
+}
+
+func WriteGzipStream(filename string, reader io.Reader) error {
+	f, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	gz := gzip.NewWriter(f)
+	defer gz.Close()
+	_, err = io.Copy(gz, reader)
+	return err
 }
 
 func WriteExecFile(filename string, data []byte) error {

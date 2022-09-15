@@ -1084,6 +1084,9 @@ func (mgr *Manager) saveRepro(res *ReproResult) {
 	if len(cprogText) > 0 {
 		osutil.WriteFile(filepath.Join(dir, "repro.cprog"), cprogText)
 	}
+	for _, asset := range repro.Prog.ExtractAssets() {
+		saveReproAsset(dir, asset)
+	}
 	if res.strace != nil {
 		// Unlike dashboard reporting, we save strace output separately from the original log.
 		if res.strace.Error != nil {
@@ -1095,6 +1098,25 @@ func (mgr *Manager) saveRepro(res *ReproResult) {
 		}
 	}
 	saveReproStats(filepath.Join(dir, "repro.stats"), res.stats)
+}
+
+func saveReproAsset(dir string, asset *prog.ExtractedAsset) {
+	path := ""
+	switch asset.Type {
+	case prog.MountInRepro:
+		path = filepath.Join(dir, fmt.Sprintf("repro.mount%d", asset.Call))
+	default:
+		panic("unknown extracted prog asset")
+	}
+	var err error
+	if asset.Error != nil {
+		err = osutil.WriteFile(path+".error", []byte(asset.Error.Error()))
+	} else if asset.Reader != nil {
+		err = osutil.WriteGzipStream(path+".gz", asset.Reader)
+	}
+	if err != nil {
+		log.Logf(0, "failed to write crash asset: type %d, write error %v", asset.Type, err)
+	}
 }
 
 func saveReproStats(filename string, stats *repro.Stats) {
