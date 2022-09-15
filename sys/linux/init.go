@@ -241,6 +241,8 @@ func (arch *arch) neutralize(c *prog.Call) {
 	case "sched_setattr":
 		// Enabling a SCHED_FIFO or a SCHED_RR policy may lead to false positive stall-related crashes.
 		neutralizeSchedAttr(c.Args[1])
+	case "syz_mount_image":
+		arch.fixUpSyzMountImage(c)
 	}
 
 	switch c.Meta.Name {
