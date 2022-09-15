@@ -66,9 +66,14 @@ func TestDeserializeHelper(t *testing.T, OS, arch string, transform func(*Target
 						transform(target, p)
 					}
 					output := strings.TrimSpace(string(p.Serialize()))
+					outputVerbose := strings.TrimSpace(string(p.SerializeVerbose()))
 					want := strings.TrimSpace(test.Out)
-					if want != output {
-						t.Fatalf("wrong serialized data:\n%s\nexpect:\n%s\n", output, want)
+					// We want to compare both verbose & non verbose mode.
+					// Otherwise we cannot have just In: field for the calls where
+					// the verbose and non-verbose output don't match -- the strict parsing
+					// mode does not accept the non-verbose output as input.
+					if want != output && want != outputVerbose {
+						t.Fatalf("wrong serialized data:\n%s\nexpect:\n%s\n", outputVerbose, want)
 					}
 					p.SerializeForExec(buf)
 				}
