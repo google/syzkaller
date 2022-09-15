@@ -5,6 +5,7 @@ package prog
 
 import (
 	"fmt"
+	"io"
 	"math/rand"
 	"sort"
 	"sync"
@@ -60,6 +61,11 @@ type Target struct {
 	// Filled by prog package:
 	SyscallMap map[string]*Syscall
 	ConstMap   map[string]uint64
+
+	// The extracted images will be then saved to the disk or uploaded to the asset storage.
+	// Returns nil if the call does not mount any image.
+	// We have to use io.Reader since such blobs can get pretty large.
+	ExtractMountedImage func(c *Call) (io.Reader, error)
 
 	init        sync.Once
 	initArch    func(target *Target)

@@ -417,6 +417,7 @@ const (
 	KernelObject       AssetType = "kernel_object"
 	KernelImage        AssetType = "kernel_image"
 	HTMLCoverageReport AssetType = "html_coverage_report"
+	MountInRepro       AssetType = "mount_in_repro"
 )
 
 type BisectResult struct {
