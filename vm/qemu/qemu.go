@@ -232,6 +232,14 @@ var archConfigs = map[string]*archConfig{
 		CmdLine: []string{
 			"kernel.serial=legacy",
 			"kernel.halt-on-panic=true",
+			// Set long (300sec) thresholds for kernel lockup detector to
+			// prevent false alarms from potentially oversubscribed hosts.
+			// (For more context, see fxbug.dev/109612.)
+			"kernel.lockup-detector.critical-section-threshold-ms=300000",
+			"kernel.lockup-detector.critical-section-fatal-threshold-ms=300000",
+			"kernel.lockup-detector.heartbeat-period-ms=300000",
+			"kernel.lockup-detector.heartbeat-age-threshold-ms=300000",
+			"kernel.lockup-detector.heartbeat-age-fatal-threshold-ms=300000",
 		},
 	},
 	"akaros/amd64": {
