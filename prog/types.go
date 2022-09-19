@@ -39,6 +39,7 @@ type SyscallAttrs struct {
 	IgnoreReturn  bool
 	BreaksReturns bool
 	NoGenerate    bool
+	NoMinimize    bool
 }
 
 // MaxArgs is maximum number of syscall arguments.
