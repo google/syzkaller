@@ -41,7 +41,7 @@ write$FUSE_NOTIFY_STORE(fd fd_fuse, arg ptr[in, fuse_notify[FUSE_NOTIFY_STORE, f
 write$FUSE_NOTIFY_RETRIEVE(fd fd_fuse, arg ptr[in, fuse_notify[FUSE_NOTIFY_RETRIEVE, fuse_notify_retrieve_out]], len bytesize[arg])
 write$FUSE_NOTIFY_DELETE(fd fd_fuse, arg ptr[in, fuse_notify[FUSE_NOTIFY_DELETE, fuse_notify_delete_out]], len bytesize[arg])
 
-syz_mount_image$fuse(fs ptr[in, string["fuse"]], dir ptr[in, filename], size const[0], nsegs const[0], segments const[0], flags flags[mount_flags], opts ptr[in, fuse_options], chdir bool8) fd_dir (no_generate)
+syz_mount_image$fuse(fs ptr[in, string["fuse"]], dir ptr[in, filename], size const[0], nsegs const[0], segments const[0], flags flags[mount_flags], opts ptr[in, fuse_options], chdir bool8) fd_dir (no_generate, no_minimize)
 syz_fuse_handle_req(fd fd_fuse, buf ptr[in, read_buffer], len bytesize[buf], res ptr[in, syz_fuse_req_out])
 
 type fuse_ino int64[0:6]
