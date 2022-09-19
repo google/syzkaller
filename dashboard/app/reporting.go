@@ -75,9 +75,15 @@ func reportingPollBugs(c context.Context, typ string) []*dashapi.BugReport {
 
 func handleReportBug(c context.Context, typ string, state *ReportingState, bug *Bug) (
 	*dashapi.BugReport, error) {
-	reporting, bugReporting, crash, crashKey, _, _, _, err := needReport(c, typ, state, bug)
+	reporting, bugReporting, _, _, _, err := needReport(c, typ, state, bug)
 	if err != nil || reporting == nil {
 		return nil, err
+	}
+	crash, crashKey, err := findCrashForBug(c, bug)
+	if err != nil {
+		return nil, err
+	} else if crash == nil {
+		return nil, fmt.Errorf("no crashes")
 	}
 	rep, err := createBugReport(c, bug, crash, crashKey, bugReporting, reporting)
 	if err != nil {
@@ -88,8 +94,8 @@ func handleReportBug(c context.Context, typ string, state *ReportingState, bug *
 }
 
 func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) (
-	reporting *Reporting, bugReporting *BugReporting, crash *Crash,
-	crashKey *db.Key, reportingIdx int, status, link string, err error) {
+	reporting *Reporting, bugReporting *BugReporting, reportingIdx int,
+	status, link string, err error) {
 	reporting, bugReporting, reportingIdx, status, err = currentReporting(c, bug)
 	if err != nil || reporting == nil {
 		return
@@ -124,9 +130,7 @@ func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) 
 		reporting, bugReporting = nil, nil
 		return
 	}
-
-	crash, crashKey, err = findCrashForBug(c, bug)
-	if err != nil {
+	if bug.NumCrashes == 0 {
 		status = fmt.Sprintf("%v: no crashes!", reporting.DisplayTitle)
 		reporting, bugReporting = nil, nil
 		return
