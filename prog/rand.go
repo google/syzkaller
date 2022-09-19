@@ -436,7 +436,7 @@ func (r *randGen) createResource(s *state, res *ResourceType, dir Dir) (Arg, []*
 func (r *randGen) enabledCtors(s *state, kind string) []*Syscall {
 	var metas []*Syscall
 	for _, meta := range r.target.resourceCtors[kind] {
-		if s.ct.Enabled(meta.ID) {
+		if s.ct.Generatable(meta.ID) {
 			metas = append(metas, meta)
 		}
 	}
@@ -562,7 +562,11 @@ func (r *randGen) generateCall(s *state, p *Prog, insertionPoint int) []*Call {
 	biasCall := -1
 	if insertionPoint > 0 {
 		// Choosing the base call is based on the insertion point of the new calls sequence.
-		biasCall = p.Calls[r.Intn(insertionPoint)].Meta.ID
+		insertionCall := p.Calls[r.Intn(insertionPoint)].Meta
+		if !insertionCall.Attrs.NoGenerate {
+			// We must be careful not to bias towards a non-generatable call.
+			biasCall = insertionCall.ID
+		}
 	}
 	idx := s.ct.choose(r.Rand, biasCall)
 	meta := r.target.Syscalls[idx]
@@ -572,6 +576,9 @@ func (r *randGen) generateCall(s *state, p *Prog, insertionPoint int) []*Call {
 func (r *randGen) generateParticularCall(s *state, meta *Syscall) (calls []*Call) {
 	if meta.Attrs.Disabled {
 		panic(fmt.Sprintf("generating disabled call %v", meta.Name))
+	}
+	if meta.Attrs.NoGenerate {
+		panic(fmt.Sprintf("generating no_generate call: %v", meta.Name))
 	}
 	c := MakeCall(meta, nil)
 	c.Args, calls = r.generateArgs(s, meta.Args, DirIn)
@@ -588,7 +595,10 @@ func (target *Target) GenerateAllSyzProg(rs rand.Source) *Prog {
 	s := newState(target, target.DefaultChoiceTable(), nil)
 	handled := make(map[string]bool)
 	for _, meta := range target.Syscalls {
-		if !strings.HasPrefix(meta.CallName, "syz_") || handled[meta.CallName] || meta.Attrs.Disabled {
+		if !strings.HasPrefix(meta.CallName, "syz_") ||
+			handled[meta.CallName] ||
+			meta.Attrs.Disabled ||
+			meta.Attrs.NoGenerate {
 			continue
 		}
 		handled[meta.CallName] = true

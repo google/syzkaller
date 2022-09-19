@@ -180,11 +180,12 @@ func normalizePrio(prios [][]int32) {
 }
 
 // ChooseTable allows to do a weighted choice of a syscall for a given syscall
-// based on call-to-call priorities and a set of enabled syscalls.
+// based on call-to-call priorities and a set of enabled and generatable syscalls.
 type ChoiceTable struct {
-	target *Target
-	runs   [][]int32
-	calls  []*Syscall
+	target          *Target
+	runs            [][]int32
+	calls           []*Syscall
+	noGenerateCalls map[int]bool
 }
 
 func (target *Target) BuildChoiceTable(corpus []*Prog, enabled map[*Syscall]bool) *ChoiceTable {
@@ -194,24 +195,28 @@ func (target *Target) BuildChoiceTable(corpus []*Prog, enabled map[*Syscall]bool
 			enabled[c] = true
 		}
 	}
+	noGenerateCalls := make(map[int]bool)
 	for call := range enabled {
 		if call.Attrs.Disabled {
 			delete(enabled, call)
+		} else if call.Attrs.NoGenerate {
+			noGenerateCalls[call.ID] = true
+			delete(enabled, call)
 		}
 	}
-	var enabledCalls []*Syscall
+	var generatableCalls []*Syscall
 	for c := range enabled {
-		enabledCalls = append(enabledCalls, c)
+		generatableCalls = append(generatableCalls, c)
 	}
-	if len(enabledCalls) == 0 {
-		panic("no syscalls enabled")
+	if len(generatableCalls) == 0 {
+		panic("no syscalls enabled and generatable")
 	}
-	sort.Slice(enabledCalls, func(i, j int) bool {
-		return enabledCalls[i].ID < enabledCalls[j].ID
+	sort.Slice(generatableCalls, func(i, j int) bool {
+		return generatableCalls[i].ID < generatableCalls[j].ID
 	})
 	for _, p := range corpus {
 		for _, call := range p.Calls {
-			if !enabled[call.Meta] {
+			if !enabled[call.Meta] && !noGenerateCalls[call.Meta.ID] {
 				fmt.Printf("corpus contains disabled syscall %v\n", call.Meta.Name)
 				panic("disabled syscall")
 			}
@@ -232,10 +237,14 @@ func (target *Target) BuildChoiceTable(corpus []*Prog, enabled map[*Syscall]bool
 			run[i][j] = sum
 		}
 	}
-	return &ChoiceTable{target, run, enabledCalls}
+	return &ChoiceTable{target, run, generatableCalls, noGenerateCalls}
 }
 
 func (ct *ChoiceTable) Enabled(call int) bool {
+	return ct.Generatable(call) || ct.noGenerateCalls[call]
+}
+
+func (ct *ChoiceTable) Generatable(call int) bool {
 	return ct.runs[call] != nil
 }
 
@@ -243,17 +252,17 @@ func (ct *ChoiceTable) choose(r *rand.Rand, bias int) int {
 	if bias < 0 {
 		bias = ct.calls[r.Intn(len(ct.calls))].ID
 	}
-	if !ct.Enabled(bias) {
-		fmt.Printf("bias to disabled syscall %v\n", ct.target.Syscalls[bias].Name)
-		panic("disabled syscall")
+	if !ct.Generatable(bias) {
+		fmt.Printf("bias to disabled or non-generatable syscall %v\n", ct.target.Syscalls[bias].Name)
+		panic("disabled or non-generatable syscall")
 	}
 	run := ct.runs[bias]
 	x := int32(r.Intn(int(run[len(run)-1])) + 1)
 	res := sort.Search(len(run), func(i int) bool {
 		return run[i] >= x
 	})
-	if !ct.Enabled(res) {
-		panic("selected disabled syscall")
+	if !ct.Generatable(res) {
+		panic("selected disabled or non-generatable syscall")
 	}
 	return res
 }
