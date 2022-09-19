@@ -20,7 +20,7 @@ func TestIsComplexPtr(t *testing.T) {
 	r := newRand(target, rs)
 	compl := make(map[string]bool)
 	for _, meta := range target.Syscalls {
-		if meta.Attrs.Disabled {
+		if meta.Attrs.Disabled || meta.Attrs.NoGenerate {
 			continue
 		}
 		for i := 0; i < iters; i++ {
