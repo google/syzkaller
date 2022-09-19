@@ -35,6 +35,9 @@ func Minimize(p0 *Prog, callIndex0 int, crash bool, pred0 func(*Prog, int) bool)
 
 	// Try to minimize individual calls.
 	for i := 0; i < len(p0.Calls); i++ {
+		if p0.Calls[i].Meta.Attrs.NoMinimize {
+			continue
+		}
 		ctx := &minimizeArgsCtx{
 			target:     p0.Target,
 			p0:         &p0,
