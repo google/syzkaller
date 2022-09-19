@@ -888,7 +888,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 	var reported time.Time
 	var err error
 	if bug.Status == BugStatusOpen {
-		_, _, _, _, reportingIdx, status, link, err = needReport(c, "", state, bug)
+		_, _, reportingIdx, status, link, err = needReport(c, "", state, bug)
 		reported = bug.Reporting[reportingIdx].Reported
 		if err != nil {
 			status = err.Error()
