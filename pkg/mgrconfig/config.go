@@ -166,6 +166,8 @@ type Config struct {
 	EnabledSyscalls []string `json:"enable_syscalls,omitempty"`
 	// List of system calls that should be treated as disabled (optional).
 	DisabledSyscalls []string `json:"disable_syscalls,omitempty"`
+	// List of syscalls that should not be mutated by the fuzzer (optional).
+	NoMutateSyscalls []string `json:"no_mutate_syscalls,omitempty"`
 	// List of regexps for known bugs.
 	// Don't save reports matching these regexps, but reboot VM after them,
 	// matched against whole report output.

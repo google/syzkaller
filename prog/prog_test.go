@@ -193,7 +193,7 @@ func testCrossTarget(t *testing.T, target *Target, crossTargets []*Target) {
 			t.Fatal(err)
 		}
 		testCrossArchProg(t, p, crossTargets)
-		p.Mutate(rs, 20, ct, nil)
+		p.Mutate(rs, 20, ct, nil, nil)
 		testCrossArchProg(t, p, crossTargets)
 		p, _ = Minimize(p, -1, false, func(*Prog, int) bool {
 			return rs.Int63()%2 == 0

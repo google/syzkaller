@@ -53,7 +53,7 @@ func FuzzDeserialize(data []byte) int {
 			panic(err)
 		}
 	}
-	p3.Mutate(rand.NewSource(0), 3, fuzzChoiceTable, nil)
+	p3.Mutate(rand.NewSource(0), 3, fuzzChoiceTable, nil, nil)
 	return 0
 }
 
