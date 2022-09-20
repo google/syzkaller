@@ -221,7 +221,7 @@ func TestMutateRandom(t *testing.T) {
 			// There is a chance that mutation will produce the same program.
 			// So we check that at least 1 out of 20 mutations actually change the program.
 			for try := 0; try < 20; try++ {
-				p1.Mutate(rs, 10, ct, nil)
+				p1.Mutate(rs, 10, ct, nil, nil)
 				data := p.Serialize()
 				if !bytes.Equal(data0, data) {
 					t.Fatalf("program changed after mutate\noriginal:\n%s\n\nnew:\n%s\n",
@@ -251,7 +251,7 @@ func TestMutateCorpus(t *testing.T) {
 	}
 	for i := 0; i < iters; i++ {
 		p1 := target.Generate(rs, 10, ct)
-		p1.Mutate(rs, 10, ct, corpus)
+		p1.Mutate(rs, 10, ct, nil, corpus)
 	}
 }
 
@@ -383,7 +383,7 @@ func BenchmarkMutate(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		rs := rand.NewSource(0)
 		for pb.Next() {
-			p.Clone().Mutate(rs, progLen, ct, nil)
+			p.Clone().Mutate(rs, progLen, ct, nil, nil)
 		}
 	})
 }
@@ -422,7 +422,7 @@ func runMutationTests(t *testing.T, tests [][2]string, valid bool) {
 			}
 			for i := 0; i < iters; i++ {
 				p1 := p.Clone()
-				p1.Mutate(rs, len(goal.Calls), ct, nil)
+				p1.Mutate(rs, len(goal.Calls), ct, nil, nil)
 				data1 := p1.Serialize()
 				if bytes.Equal(want, data1) {
 					if !valid {

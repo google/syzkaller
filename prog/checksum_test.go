@@ -18,7 +18,7 @@ func TestChecksumCalcRandom(t *testing.T) {
 		for _, call := range p.Calls {
 			CalcChecksumsCall(call)
 		}
-		p.Mutate(rs, 10, ct, nil)
+		p.Mutate(rs, 10, ct, nil, nil)
 		for _, call := range p.Calls {
 			CalcChecksumsCall(call)
 		}

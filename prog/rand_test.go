@@ -56,7 +56,7 @@ func TestDeterminism(t *testing.T) {
 
 func generateProg(t *testing.T, target *Target, rs rand.Source, ct *ChoiceTable, corpus []*Prog) *Prog {
 	p := target.Generate(rs, 5, ct)
-	p.Mutate(rs, 10, ct, corpus)
+	p.Mutate(rs, 10, ct, nil, corpus)
 	for i, c := range p.Calls {
 		comps := make(CompMap)
 		for v := range extractValues(c) {
@@ -101,7 +101,7 @@ func TestEnabledCalls(t *testing.T) {
 	for i := 0; i < tries; i++ {
 		p := target.Generate(rs, 50, ct)
 		for it := 0; it < iters/tries; it++ {
-			p.Mutate(rs, 50, ct, nil)
+			p.Mutate(rs, 50, ct, nil, nil)
 		}
 		for _, c := range p.Calls {
 			if _, ok := enabledCalls[c.Meta.Name]; !ok {
@@ -225,7 +225,7 @@ func TestNoGenerate(t *testing.T) {
 	for i := 0; i < tries; i++ {
 		p := target.Generate(rs, 50, ct)
 		for it := 0; it < iters/tries; it++ {
-			p.Mutate(rs, 50, ct, nil)
+			p.Mutate(rs, 50, ct, nil, nil)
 		}
 		for _, c := range p.Calls {
 			if c.Meta.Attrs.NoGenerate {

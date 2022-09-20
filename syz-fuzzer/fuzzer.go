@@ -40,6 +40,7 @@ type Fuzzer struct {
 	workQueue         *WorkQueue
 	needPoll          chan struct{}
 	choiceTable       *prog.ChoiceTable
+	noMutate          map[int]bool
 	stats             [StatCount]uint64
 	manager           *rpctype.RPCClient
 	target            *prog.Target
@@ -275,6 +276,7 @@ func main() {
 		corpusHashes:             make(map[hash.Sig]struct{}),
 		checkResult:              r.CheckResult,
 		fetchRawCover:            *flagRawCover,
+		noMutate:                 r.NoMutateCalls,
 	}
 	gateCallback := fuzzer.useBugFrames(r, *flagProcs)
 	fuzzer.gate = ipc.NewGate(2**flagProcs, gateCallback)

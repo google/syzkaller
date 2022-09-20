@@ -16,22 +16,24 @@ const maxBlobLen = uint64(100 << 10)
 
 // Mutate program p.
 //
-// p:       The program to mutate.
-// rs:      Random source.
-// ncalls:  The allowed maximum calls in mutated program.
-// ct:      ChoiceTable for syscalls.
-// corpus:  The entire corpus, including original program p.
-func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Prog) {
+// p:           The program to mutate.
+// rs:          Random source.
+// ncalls:      The allowed maximum calls in mutated program.
+// ct:          ChoiceTable for syscalls.
+// noMutate:    Set of IDs of syscalls which should not be mutated.
+// corpus:      The entire corpus, including original program p.
+func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, noMutate map[int]bool, corpus []*Prog) {
 	r := newRand(p.Target, rs)
 	if ncalls < len(p.Calls) {
 		ncalls = len(p.Calls)
 	}
 	ctx := &mutator{
-		p:      p,
-		r:      r,
-		ncalls: ncalls,
-		ct:     ct,
-		corpus: corpus,
+		p:        p,
+		r:        r,
+		ncalls:   ncalls,
+		ct:       ct,
+		noMutate: noMutate,
+		corpus:   corpus,
 	}
 	for stop, ok := false, false; !stop; stop = ok && len(p.Calls) != 0 && r.oneOf(3) {
 		switch {
@@ -59,11 +61,12 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 // Internal state required for performing mutations -- currently this matches
 // the arguments passed to Mutate().
 type mutator struct {
-	p      *Prog        // The program to mutate.
-	r      *randGen     // The randGen instance.
-	ncalls int          // The allowed maximum calls in mutated program.
-	ct     *ChoiceTable // ChoiceTable for syscalls.
-	corpus []*Prog      // The entire corpus, including original program p.
+	p        *Prog        // The program to mutate.
+	r        *randGen     // The randGen instance.
+	ncalls   int          // The allowed maximum calls in mutated program.
+	ct       *ChoiceTable // ChoiceTable for syscalls.
+	noMutate map[int]bool // Set of IDs of syscalls which should not be mutated.
+	corpus   []*Prog      // The entire corpus, including original program p.
 }
 
 // This function selects a random other program p0 out of the corpus, and
@@ -93,6 +96,9 @@ func (ctx *mutator) squashAny() bool {
 		return false
 	}
 	ptr := complexPtrs[r.Intn(len(complexPtrs))]
+	if ctx.noMutate[ptr.call.Meta.ID] {
+		return false
+	}
 	if !p.Target.isAnyPtr(ptr.arg.Type()) {
 		p.Target.squashPtr(ptr.arg)
 	}
@@ -172,6 +178,9 @@ func (ctx *mutator) mutateArg() bool {
 		return false
 	}
 	c := p.Calls[idx]
+	if ctx.noMutate[c.Meta.ID] {
+		return false
+	}
 	updateSizes := true
 	for stop, ok := false, false; !stop; stop = ok && r.oneOf(3) {
 		ok = true

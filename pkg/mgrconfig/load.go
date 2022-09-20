@@ -34,8 +34,9 @@ type Derived struct {
 	ExecprogBin string
 	ExecutorBin string
 
-	Syscalls []int
-	Timeouts targets.Timeouts
+	Syscalls      []int
+	NoMutateCalls map[int]bool // Set of IDs of syscalls which should not be mutated.
+	Timeouts      targets.Timeouts
 }
 
 func LoadData(data []byte) (*Config, error) {
@@ -174,6 +175,10 @@ func Complete(cfg *Config) error {
 
 	var err error
 	cfg.Syscalls, err = ParseEnabledSyscalls(cfg.Target, cfg.EnabledSyscalls, cfg.DisabledSyscalls)
+	if err != nil {
+		return err
+	}
+	cfg.NoMutateCalls, err = ParseNoMutateSyscalls(cfg.Target, cfg.NoMutateSyscalls)
 	if err != nil {
 		return err
 	}
@@ -327,6 +332,25 @@ func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string) ([]in
 		arr = append(arr, id)
 	}
 	return arr, nil
+}
+
+func ParseNoMutateSyscalls(target *prog.Target, syscalls []string) (map[int]bool, error) {
+	var result = make(map[int]bool)
+
+	for _, c := range syscalls {
+		n := 0
+		for _, call := range target.Syscalls {
+			if MatchSyscall(call.Name, c) {
+				result[call.ID] = true
+				n++
+			}
+		}
+		if n == 0 {
+			return nil, fmt.Errorf("unknown no_mutate syscall: %v", c)
+		}
+	}
+
+	return result, nil
 }
 
 func MatchSyscall(name, pattern string) bool {
