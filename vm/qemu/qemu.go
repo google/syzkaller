@@ -239,7 +239,6 @@ var archConfigs = map[string]*archConfig{
 			// (For more context, see fxbug.dev/109612.)
 			"kernel.lockup-detector.critical-section-threshold-ms=300000",
 			"kernel.lockup-detector.critical-section-fatal-threshold-ms=300000",
-			"kernel.lockup-detector.heartbeat-period-ms=300000",
 			"kernel.lockup-detector.heartbeat-age-threshold-ms=300000",
 			"kernel.lockup-detector.heartbeat-age-fatal-threshold-ms=300000",
 		},
