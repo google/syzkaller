@@ -30,9 +30,11 @@ import (
 	"net"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/internal/channelz"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/resolver"
@@ -518,24 +520,19 @@ const (
 // ServerConfig consists of all the configurations to establish a server transport.
 type ServerConfig struct {
 	MaxStreams            uint32
-	AuthInfo              credentials.AuthInfo
+	ConnectionTimeout     time.Duration
+	Credentials           credentials.TransportCredentials
 	InTapHandle           tap.ServerInHandle
-	StatsHandler          stats.Handler
+	StatsHandlers         []stats.Handler
 	KeepaliveParams       keepalive.ServerParameters
 	KeepalivePolicy       keepalive.EnforcementPolicy
 	InitialWindowSize     int32
 	InitialConnWindowSize int32
 	WriteBufferSize       int
 	ReadBufferSize        int
-	ChannelzParentID      int64
+	ChannelzParentID      *channelz.Identifier
 	MaxHeaderListSize     *uint32
 	HeaderTableSize       *uint32
-}
-
-// NewServerTransport creates a ServerTransport with conn or non-nil error
-// if it fails.
-func NewServerTransport(protocol string, conn net.Conn, config *ServerConfig) (ServerTransport, error) {
-	return newHTTP2Server(conn, config)
 }
 
 // ConnectOptions covers all relevant options for communicating with the server.
@@ -556,8 +553,8 @@ type ConnectOptions struct {
 	CredsBundle credentials.Bundle
 	// KeepaliveParams stores the keepalive parameters.
 	KeepaliveParams keepalive.ClientParameters
-	// StatsHandler stores the handler for stats.
-	StatsHandler stats.Handler
+	// StatsHandlers stores the handler for stats.
+	StatsHandlers []stats.Handler
 	// InitialWindowSize sets the initial window size for a stream.
 	InitialWindowSize int32
 	// InitialConnWindowSize sets the initial window size for a connection.
@@ -567,7 +564,7 @@ type ConnectOptions struct {
 	// ReadBufferSize sets the size of read buffer, which in turn determines how much data can be read at most for one read syscall.
 	ReadBufferSize int
 	// ChannelzParentID sets the addrConn id which initiate the creation of this client transport.
-	ChannelzParentID int64
+	ChannelzParentID *channelz.Identifier
 	// MaxHeaderListSize sets the max (uncompressed) size of header list that is prepared to be received.
 	MaxHeaderListSize *uint32
 	// UseProxy specifies if a proxy should be used.
@@ -622,7 +619,7 @@ type ClientTransport interface {
 	// Close tears down this transport. Once it returns, the transport
 	// should not be accessed any more. The caller must make sure this
 	// is called only once.
-	Close() error
+	Close(err error)
 
 	// GracefulClose starts to tear down the transport: the transport will stop
 	// accepting new RPCs and NewStream will return error. Once all streams are
@@ -656,8 +653,9 @@ type ClientTransport interface {
 	// HTTP/2).
 	GoAway() <-chan struct{}
 
-	// GetGoAwayReason returns the reason why GoAway frame was received.
-	GetGoAwayReason() GoAwayReason
+	// GetGoAwayReason returns the reason why GoAway frame was received, along
+	// with a human readable string with debug info.
+	GetGoAwayReason() (GoAwayReason, string)
 
 	// RemoteAddr returns the remote network address.
 	RemoteAddr() net.Addr
@@ -693,7 +691,7 @@ type ServerTransport interface {
 	// Close tears down the transport. Once it is called, the transport
 	// should not be accessed any more. All the pending streams and their
 	// handlers will be terminated asynchronously.
-	Close() error
+	Close()
 
 	// RemoteAddr returns the remote network address.
 	RemoteAddr() net.Addr
@@ -741,6 +739,12 @@ func (e ConnectionError) Origin() error {
 	if e.err == nil {
 		return e
 	}
+	return e.err
+}
+
+// Unwrap returns the original error of this connection error or nil when the
+// origin is nil.
+func (e ConnectionError) Unwrap() error {
 	return e.err
 }
 

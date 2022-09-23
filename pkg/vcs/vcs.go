@@ -64,6 +64,10 @@ type Repo interface {
 
 // Bisecter may be optionally implemented by Repo.
 type Bisecter interface {
+	// Can be used for last minute preparations like pulling release tags into the bisected repo, which
+	// is required to determin the compiler version to use on linux. Can be an empty function.
+	PrepareBisect() error
+
 	// Bisect bisects good..bad commit range against the provided predicate (wrapper around git bisect).
 	// The predicate should return an error only if there is no way to proceed
 	// (it will abort the process), if possible it should prefer to return BisectSkip.
@@ -74,11 +78,11 @@ type Bisecter interface {
 
 	// PreviousReleaseTags returns list of preceding release tags that are reachable from the given commit.
 	// If the commit itself has a release tag, this tag is not included.
-	PreviousReleaseTags(commit string) ([]string, error)
+	PreviousReleaseTags(commit, bisectCompiler string) ([]string, error)
 
 	IsRelease(commit string) (bool, error)
 
-	EnvForCommit(binDir, commit string, kernelConfig []byte) (*BisectEnv, error)
+	EnvForCommit(bisectCompiler, binDir, commit string, kernelConfig []byte) (*BisectEnv, error)
 }
 
 type ConfigMinimizer interface {
@@ -172,10 +176,10 @@ const (
 	OptDontSandbox
 )
 
-func NewRepo(os, vm, dir string, opts ...RepoOpt) (Repo, error) {
+func NewRepo(os, vmType, dir string, opts ...RepoOpt) (Repo, error) {
 	switch os {
 	case targets.Linux:
-		return newLinux(dir, opts), nil
+		return newLinux(dir, opts, vmType), nil
 	case targets.Akaros:
 		return newAkaros(dir, opts), nil
 	case targets.Fuchsia:
@@ -307,25 +311,29 @@ const SyzkallerRepo = "https://github.com/google/syzkaller"
 const HEAD = "HEAD"
 
 func CommitLink(url, hash string) string {
-	return link(url, hash, 0)
+	return link(url, hash, "", 0, 0)
 }
 
 func TreeLink(url, hash string) string {
-	return link(url, hash, 1)
+	return link(url, hash, "", 0, 1)
 }
 
 func LogLink(url, hash string) string {
-	return link(url, hash, 2)
+	return link(url, hash, "", 0, 2)
 }
 
-func link(url, hash string, typ int) string {
+func FileLink(url, hash, file string, line int) string {
+	return link(url, hash, file, line, 3)
+}
+
+func link(url, hash, file string, line, typ int) string {
 	if url == "" || hash == "" {
 		return ""
 	}
 	switch url {
 	case "https://fuchsia.googlesource.com":
 		// We collect hashes from the fuchsia repo.
-		return link(url+"/fuchsia", hash, typ)
+		return link(url+"/fuchsia", hash, file, line, typ)
 	}
 	if strings.HasPrefix(url, "https://github.com/") {
 		url = strings.TrimSuffix(url, ".git")
@@ -334,6 +342,8 @@ func link(url, hash string, typ int) string {
 			return url + "/tree/" + hash
 		case 2:
 			return url + "/commits/" + hash
+		case 3:
+			return url + "/blob/" + hash + "/" + file + "#L" + fmt.Sprint(line)
 		default:
 			return url + "/commit/" + hash
 		}
@@ -348,6 +358,8 @@ func link(url, hash string, typ int) string {
 			return url + "/tree/?id=" + hash
 		case 2:
 			return url + "/log/?id=" + hash
+		case 3:
+			return url + "/tree/" + file + "?id=" + hash + "#n" + fmt.Sprint(line)
 		default:
 			return url + "/commit/?id=" + hash
 		}
@@ -363,6 +375,8 @@ func link(url, hash string, typ int) string {
 				return url + "/tree/?id=" + hash
 			case 2:
 				return url + "/log/?id=" + hash
+			case 3:
+				return url + "/tree/" + file + "?id=" + hash + "#n" + fmt.Sprint(line)
 			default:
 				return url + "/commit/?id=" + hash
 			}
@@ -374,6 +388,8 @@ func link(url, hash string, typ int) string {
 			return url + "/+/" + hash + "/"
 		case 2:
 			return url + "/+log/" + hash
+		case 3:
+			return url + "/+/" + hash + "/" + file + "#" + fmt.Sprint(line)
 		default:
 			return url + "/+/" + hash + "^!"
 		}

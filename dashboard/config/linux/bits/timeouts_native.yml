@@ -1,0 +1,32 @@
+# Copyright 2022 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+config:
+ - CMDLINE: [append, "smp.csd_lock_timeout=100000 watchdog_thresh=55 workqueue.watchdog_thresh=140 sysctl.net.core.netdev_unregister_timeout_secs=140 dummy_hcd.num=8"]
+ # Deterministic hang/stall detection.
+ # Without careful tuning the same hang/stall can be detected in multiple, radically-different ways.
+ # For example, an infinite loop can be detected as CPU stall, RCU stall, hung task or workqueue stall.
+ # This may lead to lots of duplicate bugs. In order to prevent this we strictly order hang/stall detection
+ # timeouts based on their causality (CPU stall can cause hung task, but not vise versa). See #516 for details.
+ #
+ # 1. RCU stalls has the highest priority.
+ #    RCU_CPU_STALL_TIMEOUT=100 results in stalls detected after 100-101 secs.
+ #    This also includes CSD lock timeout (CONFIG_CSD_LOCK_WAIT_DEBUG + smp.csd_lock_timeout=100000(ms)).
+ #
+ # 2. Then softlockup detector.
+ #    kernel.watchdog_thresh = 55 detects stalls after 110-132 secs.
+ #
+ # 3. Then hung tasks, workqueue stalls and netdev unregister hangs.
+ #    Unfortunately we can't separate them because that would require setting "no output" timeout to 10+ minutes.
+ #    watchdog_thresh=140 and DEFAULT_HUNG_TASK_TIMEOUT=140 both result in detection after 140-280 secs.
+ #
+ # 4. Finally, "no output" crashes.
+ #    sys/targets.Timeouts.NoOutput is set to 300 secs.
+ #
+ # Don't change these values without considering all other values as well.
+ # Note: executor also sets hung_task_check_interval_secs=20 sysctl.
+ # Note: gVisor watchdog timeout is 3 mins + 1/4 of that for checking period = 3m45s.
+ # Note: other arches that use qemu emulation scale all these timeouts by 3 (sys/targets.Timeouts.Scale).
+ - RCU_CPU_STALL_TIMEOUT: 100
+ # The constraints repeat constraints on inclusion of debug.yml which enables hung task detection.
+ - DEFAULT_HUNG_TASK_TIMEOUT: [140, -nonoise, -kmsan, -kcsan, -kmemleak]

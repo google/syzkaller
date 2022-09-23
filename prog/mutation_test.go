@@ -86,6 +86,7 @@ func TestMutateArgument(t *testing.T) {
 	if testutil.RaceEnabled {
 		t.Skip("skipping in race mode, too slow")
 	}
+	// nolint: lll
 	tests := [][2]string{
 		// Mutate an integer with a higher priority than the boolean arguments.
 		{
@@ -121,6 +122,15 @@ func TestMutateArgument(t *testing.T) {
 		{
 			`mutate_union(&(0x7f0000000000)=@f1=[0x0, 0x1, 0x2, 0x3, 0x0, 0x1, 0x2, 0x3, 0x0, 0x0])`,
 			`mutate_union(&(0x7f0000000000)=@f1=[0x0, 0x1, 0xff, 0x3, 0x0, 0x1, 0x2, 0x3, 0x0, 0x0])`,
+		},
+		// Mutate filename using target.SpecialFileLenghts.
+		{
+			`mutate9(&(0x7f0000000000)='./file0\x00')`,
+			`mutate9(&(0x7f0000000040)='./file0aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\x00')`,
+		},
+		{
+			`mutate10(&(0x7f0000000000)=""/10)`,
+			`mutate10(&(0x7f0000000040)=""/256)`,
 		},
 	}
 
@@ -211,7 +221,7 @@ func TestMutateRandom(t *testing.T) {
 			// There is a chance that mutation will produce the same program.
 			// So we check that at least 1 out of 20 mutations actually change the program.
 			for try := 0; try < 20; try++ {
-				p1.Mutate(rs, 10, ct, nil)
+				p1.Mutate(rs, 10, ct, nil, nil)
 				data := p.Serialize()
 				if !bytes.Equal(data0, data) {
 					t.Fatalf("program changed after mutate\noriginal:\n%s\n\nnew:\n%s\n",
@@ -241,7 +251,7 @@ func TestMutateCorpus(t *testing.T) {
 	}
 	for i := 0; i < iters; i++ {
 		p1 := target.Generate(rs, 10, ct)
-		p1.Mutate(rs, 10, ct, corpus)
+		p1.Mutate(rs, 10, ct, nil, corpus)
 	}
 }
 
@@ -373,7 +383,7 @@ func BenchmarkMutate(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		rs := rand.NewSource(0)
 		for pb.Next() {
-			p.Clone().Mutate(rs, progLen, ct, nil)
+			p.Clone().Mutate(rs, progLen, ct, nil, nil)
 		}
 	})
 }
@@ -412,7 +422,7 @@ func runMutationTests(t *testing.T, tests [][2]string, valid bool) {
 			}
 			for i := 0; i < iters; i++ {
 				p1 := p.Clone()
-				p1.Mutate(rs, len(goal.Calls), ct, nil)
+				p1.Mutate(rs, len(goal.Calls), ct, nil, nil)
 				data1 := p1.Serialize()
 				if bytes.Equal(want, data1) {
 					if !valid {

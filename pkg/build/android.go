@@ -96,10 +96,6 @@ func (a android) build(params Params) (ImageDetails, error) {
 	if err := embedFiles(params, func(mountDir string) error {
 		homeDir := filepath.Join(mountDir, "root")
 
-		if _, err := osutil.RunCmd(time.Hour, homeDir, "./fetchcvd"); err != nil {
-			return err
-		}
-
 		if err := osutil.CopyFile(bzImage, filepath.Join(homeDir, "bzImage")); err != nil {
 			return err
 		}
@@ -115,14 +111,14 @@ func (a android) build(params Params) (ImageDetails, error) {
 		return details, err
 	}
 
-	if err := osutil.CopyFile(vmlinux, filepath.Join(params.OutputDir, "kernel")); err != nil {
+	if err := osutil.CopyFile(vmlinux, filepath.Join(params.OutputDir, "obj", "vmlinux")); err != nil {
 		return details, err
 	}
-	if err := osutil.CopyFile(initramfs, filepath.Join(params.OutputDir, "initrd")); err != nil {
+	if err := osutil.CopyFile(initramfs, filepath.Join(params.OutputDir, "obj", "initrd")); err != nil {
 		return details, err
 	}
 
-	details.Signature, err = elfBinarySignature(vmlinux)
+	details.Signature, err = elfBinarySignature(vmlinux, params.Tracer)
 	if err != nil {
 		return details, fmt.Errorf("failed to generate signature: %s", err)
 	}

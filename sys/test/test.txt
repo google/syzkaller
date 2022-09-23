@@ -747,6 +747,8 @@ mutate5(filename ptr[in, filename], flags flags[open_flags]) fd
 mutate6(fd fd, data ptr[in, array[int8]], size bytesize[data])
 mutate7(a0 ptr[in, string], a1 len[a0])
 mutate8(a0 proc[100, 4, opt])
+mutate9(filename ptr[in, filename])
+mutate10(filename ptr[out, filename])
 
 # Test for arguments mutation
 mutate_integer(b1 bool8, b2 bool8, b3 bool8, b4 bool8, b5 bool8, b6 bool8, b7 bool8, b8 bool8, i9 int64)

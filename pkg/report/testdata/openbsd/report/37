@@ -1,0 +1,30 @@
+TITLE: panic: vop_generic_badop
+
+panic: vop_generic_bapdoapn
+iStopped at     db_enter+0x18:  addq    $0x8,%rsp
+    TID    PID    UID     PRFLAGS     PFLAGS  CPU  COMMAND
+ 398284  22754      0           0  0x4000000    1  syz-executor.5
+*248934   9887      0         0x2          0    0  syz-executor.7
+db_enter() at db_enter+0x18
+panic(ffffffff8259599b) at panic+0x177
+vop_generic_badop(ffff80002b00e378) at vop_generic_badop+0x1b
+VOP_STRATEGY(fffffd807ba95960,fffffd807bc216c8) at VOP_STRATEGY+0x9b
+bwrite(fffffd807bc216c8) at bwrite+0x1f0
+VOP_BWRITE(fffffd807bc216c8) at VOP_BWRITE+0x4a
+ufs_mkdir(ffff80002b00e610) at ufs_mkdir+0x6b4
+VOP_MKDIR(fffffd8069ea92c8,ffff80002b00e770,ffff80002b00e7a0,ffff80002b00e6a0) at VOP_MKDIR+0xbf
+domkdirat(ffff8000212f47f0,ffffff9c,7f7fffff5050,1ff) at domkdirat+0x121
+syscall(ffff80002b00e920) at syscall+0x435
+Xsyscall() at Xsyscall+0x128
+end of kernel
+end trace frame: 0x7f7fffff50c0, count: 4
+https://www.openbsd.org/ddb.html describes the minimum info required in bug
+reports.  Insufficient info makes it difficult to find and fix bugs.
+ddb{0}> 
+ddb{0}> set $lines = 0
+ddb{0}> set $maxwidth = 0
+ddb{0}> show panic
+*cpu0: vop_generic_badop
+ cpu1: kernel diagnostic assertion "!_kernel_lock_held()" failed: file "/syzkaller/managers/multicore/kernel/sys/kern/kern_fork.c", line 676
+ddb{0}> trace
+db_enter() at db_enter+0x18

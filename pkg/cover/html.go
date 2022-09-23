@@ -96,12 +96,19 @@ func (rg *ReportGenerator) DoHTML(w io.Writer, progs []Prog, coverFilter map[uin
 			pos = pos.Dirs[dir]
 			fname = fname[sep+1:]
 		}
+		var TotalInCoveredFunc int
+		for _, function := range file.functions {
+			if function.covered > 0 {
+				TotalInCoveredFunc += function.pcs
+			}
+		}
 		f := &templateFile{
 			templateBase: templateBase{
-				Path:    path,
-				Name:    fname,
-				Total:   file.totalPCs,
-				Covered: file.coveredPCs,
+				Path:               path,
+				Name:               fname,
+				Total:              file.totalPCs,
+				TotalInCoveredFunc: TotalInCoveredFunc,
+				Covered:            file.coveredPCs,
 			},
 			HasFunctions: len(file.functions) != 0,
 		}
@@ -235,6 +242,7 @@ type fileStats struct {
 }
 
 var csvFilesHeader = []string{
+	"Module",
 	"Filename",
 	"CoveredLines",
 	"TotalLines",
@@ -317,6 +325,7 @@ func (rg *ReportGenerator) DoCSVFiles(w io.Writer, progs []Prog, coverFilter map
 	var d [][]string
 	for _, dt := range data {
 		d = append(d, []string{
+			dt.Module,
 			dt.Name,
 			strconv.Itoa(dt.CoveredLines),
 			strconv.Itoa(dt.TotalLines),
@@ -347,7 +356,7 @@ func groupCoverByFilePrefixes(datas []fileStats, subsystems []mgrconfig.Subsyste
 		var percentLines float64
 		var percentPCsInFile float64
 		var percentPCsInFunc float64
-		var percentPCsInCoveredFunc float64
+		var percentInCoveredFunc float64
 		var percentCoveredFunc float64
 
 		for _, path := range subsystem.Paths {
@@ -377,7 +386,7 @@ func groupCoverByFilePrefixes(datas []fileStats, subsystems []mgrconfig.Subsyste
 			percentPCsInFunc = 100.0 * float64(coveredPCsInFuncs) / float64(pcsInFuncs)
 		}
 		if pcsInCoveredFuncs != 0 {
-			percentPCsInCoveredFunc = 100.0 * float64(coveredPCsInFuncs) / float64(pcsInCoveredFuncs)
+			percentInCoveredFunc = 100.0 * float64(coveredPCsInFuncs) / float64(pcsInCoveredFuncs)
 		}
 		if totalFuncs != 0 {
 			percentCoveredFunc = 100.0 * float64(coveredFuncs) / float64(totalFuncs)
@@ -389,7 +398,7 @@ func groupCoverByFilePrefixes(datas []fileStats, subsystems []mgrconfig.Subsyste
 			"PCsInFiles":        fmt.Sprintf("%v / %v / %.2f%%", coveredPCsInFile, totalPCsInFile, percentPCsInFile),
 			"Funcs":             fmt.Sprintf("%v / %v / %.2f%%", coveredFuncs, totalFuncs, percentCoveredFunc),
 			"PCsInFuncs":        fmt.Sprintf("%v / %v / %.2f%%", coveredPCsInFuncs, pcsInFuncs, percentPCsInFunc),
-			"PCsInCoveredFuncs": fmt.Sprintf("%v / %v / %.2f%%", coveredPCsInFuncs, pcsInCoveredFuncs, percentPCsInCoveredFunc),
+			"PCsInCoveredFuncs": fmt.Sprintf("%v / %v / %.2f%%", coveredPCsInFuncs, pcsInCoveredFuncs, percentInCoveredFunc),
 		}
 	}
 
@@ -423,7 +432,7 @@ func groupCoverByModule(datas []fileStats) map[string]map[string]string {
 	percentLines := make(map[string]float64)
 	percentPCsInFile := make(map[string]float64)
 	percentPCsInFunc := make(map[string]float64)
-	percentPCsInCoveredFunc := make(map[string]float64)
+	percentInCoveredFunc := make(map[string]float64)
 	percentCoveredFunc := make(map[string]float64)
 
 	for _, data := range datas {
@@ -449,7 +458,7 @@ func groupCoverByModule(datas []fileStats) map[string]map[string]string {
 			percentPCsInFunc[m] = 100.0 * float64(coveredPCsInFuncs[m]) / float64(pcsInFuncs[m])
 		}
 		if pcsInCoveredFuncs[m] != 0 {
-			percentPCsInCoveredFunc[m] = 100.0 * float64(coveredPCsInFuncs[m]) / float64(pcsInCoveredFuncs[m])
+			percentInCoveredFunc[m] = 100.0 * float64(coveredPCsInFuncs[m]) / float64(pcsInCoveredFuncs[m])
 		}
 		if totalFuncs[m] != 0 {
 			percentCoveredFunc[m] = 100.0 * float64(coveredFuncs[m]) / float64(totalFuncs[m])
@@ -458,7 +467,7 @@ func groupCoverByModule(datas []fileStats) map[string]map[string]string {
 		pcsInFiles := fmt.Sprintf("%v / %v / %.2f%%", coveredPCsInFile[m], totalPCsInFile[m], percentPCsInFile[m])
 		funcs := fmt.Sprintf("%v / %v / %.2f%%", coveredFuncs[m], totalFuncs[m], percentCoveredFunc[m])
 		pcsInFuncs := fmt.Sprintf("%v / %v / %.2f%%", coveredPCsInFuncs[m], pcsInFuncs[m], percentPCsInFunc[m])
-		covedFuncs := fmt.Sprintf("%v / %v / %.2f%%", coveredPCsInFuncs[m], pcsInCoveredFuncs[m], percentPCsInCoveredFunc[m])
+		covedFuncs := fmt.Sprintf("%v / %v / %.2f%%", coveredPCsInFuncs[m], pcsInCoveredFuncs[m], percentInCoveredFunc[m])
 		d[m] = map[string]string{
 			"name":              m,
 			"lines":             lines,
@@ -485,6 +494,7 @@ func (rg *ReportGenerator) DoModuleCover(w io.Writer, progs []Prog, coverFilter 
 }
 
 var csvHeader = []string{
+	"Module",
 	"Filename",
 	"Function",
 	"Covered PCs",
@@ -501,6 +511,7 @@ func (rg *ReportGenerator) DoCSV(w io.Writer, progs []Prog, coverFilter map[uint
 	for fname, file := range files {
 		for _, function := range file.functions {
 			data = append(data, []string{
+				file.module,
 				fname,
 				function.name,
 				strconv.Itoa(function.covered),
@@ -652,10 +663,14 @@ func mergeLine(chunks []lineCoverChunk, start, end int, covered bool) []lineCove
 
 func addFunctionCoverage(file *file, data *templateData) {
 	var buf bytes.Buffer
+	var coveredTotal int
+	var TotalInCoveredFunc int
 	for _, function := range file.functions {
 		percentage := ""
+		coveredTotal += function.covered
 		if function.covered > 0 {
 			percentage = fmt.Sprintf("%v%%", percent(function.covered, function.pcs))
+			TotalInCoveredFunc += function.pcs
 		} else {
 			percentage = "---"
 		}
@@ -664,6 +679,17 @@ func addFunctionCoverage(file *file, data *templateData) {
 		buf.WriteString(fmt.Sprintf("<span class='cover-right'>of %v", strconv.Itoa(function.pcs)))
 		buf.WriteString("</span></span></span><br>\n")
 	}
+	buf.WriteString("-----------<br>\n")
+	buf.WriteString("<span class='hover'>SUMMARY")
+	percentInCoveredFunc := ""
+	if TotalInCoveredFunc > 0 {
+		percentInCoveredFunc = fmt.Sprintf("%v%%", percent(coveredTotal, TotalInCoveredFunc))
+	} else {
+		percentInCoveredFunc = "---"
+	}
+	buf.WriteString(fmt.Sprintf("<span class='cover hover'>%v", percentInCoveredFunc))
+	buf.WriteString(fmt.Sprintf("<span class='cover-right'>of %v", strconv.Itoa(TotalInCoveredFunc)))
+	buf.WriteString("</span></span></span><br>\n")
 	data.Functions = append(data.Functions, template.HTML(buf.String()))
 }
 
@@ -681,14 +707,22 @@ func processDir(dir *templateDir) {
 	for _, f := range dir.Files {
 		dir.Total += f.Total
 		dir.Covered += f.Covered
+		dir.TotalInCoveredFunc += f.TotalInCoveredFunc
 		f.Percent = percent(f.Covered, f.Total)
+		if f.TotalInCoveredFunc > 0 {
+			f.PercentInCoveredFunc = percent(f.Covered, f.TotalInCoveredFunc)
+		}
 	}
 	for _, child := range dir.Dirs {
 		processDir(child)
 		dir.Total += child.Total
 		dir.Covered += child.Covered
+		dir.TotalInCoveredFunc += child.TotalInCoveredFunc
 	}
 	dir.Percent = percent(dir.Covered, dir.Total)
+	if dir.TotalInCoveredFunc > 0 {
+		dir.PercentInCoveredFunc += percent(dir.Covered, dir.TotalInCoveredFunc)
+	}
 	if dir.Covered == 0 {
 		dir.Dirs = nil
 		dir.Files = nil
@@ -737,11 +771,13 @@ type templateProg struct {
 }
 
 type templateBase struct {
-	Name    string
-	Path    string
-	Total   int
-	Covered int
-	Percent int
+	Name                 string
+	Path                 string
+	Total                int
+	Covered              int
+	TotalInCoveredFunc   int
+	Percent              int
+	PercentInCoveredFunc int
 }
 
 type templateDir struct {
@@ -805,7 +841,7 @@ var coverTemplate = template.Must(template.New("").Parse(`
 			}
 			.cover {
 				float: right;
-				width: 120px;
+				width: 250px;
 				padding-right: 4px;
 			}
 			.cover-right {
@@ -950,8 +986,8 @@ var coverTemplate = template.Must(template.New("").Parse(`
 			<span id="path/{{$dir.Path}}" class="caret hover">
 				{{$dir.Name}}
 				<span class="cover hover">
-					{{if $dir.Covered}}{{$dir.Percent}}%{{else}}---{{end}}
-					<span class="cover-right">of {{$dir.Total}}</span>
+					{{if $dir.Covered}}{{$dir.Percent}}%({{$dir.PercentInCoveredFunc}}%){{else}}---{{end}}
+					<span class="cover-right">of {{$dir.Total}}({{$dir.TotalInCoveredFunc}})</span>
 				</span>
 			</span>
 			<ul class="nested">
@@ -968,9 +1004,9 @@ var coverTemplate = template.Must(template.New("").Parse(`
 				<span class="cover hover">
 					<a href="#{{$file.Path}}" id="path/{{$file.Path}}"
 						onclick="{{if .HasFunctions}}onPercentClick{{else}}onFileClick{{end}}({{$file.Index}})">
-                                                {{$file.Percent}}%
+                                                {{$file.Percent}}%({{$file.PercentInCoveredFunc}}%)
 					</a>
-					<span class="cover-right">of {{$file.Total}}</span>
+					<span class="cover-right">of {{$file.Total}}({{$file.TotalInCoveredFunc}})</span>
 				</span>
 			{{else}}
 					{{$file.Name}}<span class="cover hover">---<span class="cover-right">

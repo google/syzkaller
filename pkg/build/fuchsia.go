@@ -72,7 +72,7 @@ func (fu fuchsia) build(params Params) (ImageDetails, error) {
 	// Copy and extend the fvm.
 	fvmTool := filepath.Join("out", arch, "host_x64", "fvm")
 	fvmDst := filepath.Join(params.OutputDir, "image")
-	fvmSrc := filepath.Join(params.KernelDir, "out", arch, "obj/build/images/fvm.blk")
+	fvmSrc := filepath.Join(params.KernelDir, "out", arch, "obj", "build", "images", "fuchsia", "fuchsia", "fvm.blk")
 	if err := osutil.CopyFile(fvmSrc, fvmDst); err != nil {
 		return ImageDetails{}, err
 	}

@@ -180,6 +180,7 @@ PermitRootLogin yes
 PasswordAuthentication yes
 PermitEmptyPasswords yes
 ClientAliveInterval 420
+Subsystem	sftp	/usr/libexec/sftp-server
 EOF
 
 # Generate sshd host keys.

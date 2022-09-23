@@ -26,7 +26,9 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
 	g++-arm-linux-gnueabi g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu \
 	g++-mips64el-linux-gnuabi64 g++-s390x-linux-gnu g++-riscv64-linux-gnu \
 	libc6-dev-i386 libc6-dev-i386-amd64-cross lib32gcc-10-dev lib32stdc++-10-dev \
-	apt-transport-https curl gnupg python-is-python3
+	apt-transport-https curl gnupg python-is-python3 \
+	# Needed for building Cuttlefish images.
+	rsync libarchive-tools
 
 RUN curl https://dl.google.com/go/go1.17.linux-amd64.tar.gz | tar -C /usr/local -xz
 ENV PATH /usr/local/go/bin:$PATH
@@ -46,7 +48,7 @@ RUN sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/b
 
 # Download and install the custom Clang required to build KMSAN.
 # TODO(@ramosian-glider): switch to stable Clang once KMSAN is upstreamed.
-ENV CLANG_KMSAN_VER 38e16e1cebb8
+ENV CLANG_KMSAN_VER 610139d2d9ce
 RUN curl https://storage.googleapis.com/syzkaller/clang-${CLANG_KMSAN_VER}.tar.gz | tar -C /usr/local/ -xz
 RUN ln -s /usr/local/clang-${CLANG_KMSAN_VER} /usr/local/clang-kmsan
 
@@ -60,5 +62,5 @@ RUN echo "deb [arch=amd64] http://storage.googleapis.com/bazel-apt stable jdk1.8
 RUN apt-get update --allow-releaseinfo-change && DEBIAN_FRONTEND=noninteractive apt-get install -y -q bazel
 
 # pkg/osutil uses syzkaller user for sandboxing.
-RUN useradd syzkaller
+RUN useradd --create-home syzkaller
 RUN echo "export PS1='\n\W🤖 '" >> /root/.bashrc

@@ -3,8 +3,14 @@
 
 config:
  - LOCKDEP
- - LOCKDEP_BITS: [16, v5.13]
- - LOCKDEP_CHAINS_BITS: [17, v5.13]
+ # This helps to preent "BUG: MAX_LOCKDEP_ENTRIES too low!"
+ - LOCKDEP_BITS: [17, v5.13]
+ # This helps to prevent "BUG: MAX_LOCKDEP_CHAINS too low!"
+ # and "BUG: MAX_LOCKDEP_CHAIN_HLOCKS too low!"
+ # We don't set it to 18 on arm64, because in that case the -full config does not boot on GCE.
+ # It boots with 17, but the kconf syntax currently does not let us set it to 17 for some arches
+ # and to 18 for others.
+ - LOCKDEP_CHAINS_BITS: [18, v5.13, -arm64]
  - LOCKDEP_STACK_TRACE_BITS: [20, v5.13]
  - LOCKDEP_STACK_TRACE_HASH_BITS: [14, v5.13]
  - LOCKDEP_CIRCULAR_QUEUE_BITS: [12, v5.13]

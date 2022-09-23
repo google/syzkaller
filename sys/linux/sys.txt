@@ -56,6 +56,9 @@ include <uapi/linux/seccomp.h>
 include <uapi/linux/watch_queue.h>
 include <kernel/sched/sched.h>
 include <uapi/linux/close_range.h>
+include <uapi/linux/netfilter/xt_cgroup.h>
+include <fs/cifs/cifsglob.h>
+include <xen/interface/io/xs_wire.h>
 
 resource fd[int32]: -1
 resource fd_dir[fd]: AT_FDCWD
@@ -1318,6 +1321,9 @@ close_range_flags = CLOSE_RANGE_UNSHARE
 _ = STA_PLL, STA_PPSFREQ, STA_PPSTIME, STA_FLL, STA_INS, STA_DEL, STA_UNSYNC, STA_FREQHOLD, STA_PPSSIGNAL, STA_PPSJITTER, STA_PPSWANDER, STA_PPSERROR, STA_CLOCKERR, STA_NANO, STA_MODE, STA_CLK, STA_RONLY
 # clock_adjtime modes
 _ = ADJ_OFFSET, ADJ_FREQUENCY, ADJ_MAXERROR, ADJ_ESTERROR, ADJ_STATUS, ADJ_TIMECONST, ADJ_TAI, ADJ_SETOFFSET, ADJ_MICRO, ADJ_NANO, ADJ_TICK, ADJ_OFFSET_SINGLESHOT
+
+# Consts for target.SpecialFileLenghts.
+_ = SMB_PATH_MAX, XT_CGROUP_PATH_MAX, XENSTORE_REL_PATH_MAX
 
 # misc
 _ = KCOV_INIT_TRACE, KCOV_ENABLE, KCOV_DISABLE, KCOV_TRACE_PC, KCOV_TRACE_CMP, PTRACE_TRACEME, SYSLOG_ACTION_CONSOLE_ON, SYSLOG_ACTION_CONSOLE_OFF, SYSLOG_ACTION_CONSOLE_LEVEL, SYSLOG_ACTION_CLEAR, __NR_mmap2

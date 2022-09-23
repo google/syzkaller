@@ -2,9 +2,9 @@
 # https://help.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners
 
 *.py		@xairy
-*fuchsia*	@mvanotti
+*fuchsia*	@mvanotti @noncombatant
 *freebsd*	@markjdb @tuexen
 *netbsd*	@krytarowski @R3x
 *openbsd*	@blackgnezdo @mptre
-*gvisor*	@avagin @dean-deng
+*gvisor*	@avagin
 vendor/		@dvyukov

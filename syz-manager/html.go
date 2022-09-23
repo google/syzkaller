@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
-	"github.com/google/syzkaller/pkg/html"
+	"github.com/google/syzkaller/pkg/html/pages"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/signal"
@@ -33,34 +33,35 @@ import (
 )
 
 func (mgr *Manager) initHTTP() {
-	mux := http.NewServeMux()
-
-	mux.HandleFunc("/", mgr.httpSummary)
-	mux.HandleFunc("/config", mgr.httpConfig)
-	mux.HandleFunc("/metrics", promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}).ServeHTTP)
-	mux.HandleFunc("/syscalls", mgr.httpSyscalls)
-	mux.HandleFunc("/corpus", mgr.httpCorpus)
-	mux.HandleFunc("/corpus.db", mgr.httpDownloadCorpus)
-	mux.HandleFunc("/crash", mgr.httpCrash)
-	mux.HandleFunc("/cover", mgr.httpCover)
-	mux.HandleFunc("/subsystemcover", mgr.httpSubsystemCover)
-	mux.HandleFunc("/modulecover", mgr.httpModuleCover)
-	mux.HandleFunc("/prio", mgr.httpPrio)
-	mux.HandleFunc("/file", mgr.httpFile)
-	mux.HandleFunc("/report", mgr.httpReport)
-	mux.HandleFunc("/rawcover", mgr.httpRawCover)
-	mux.HandleFunc("/rawcoverfiles", mgr.httpRawCoverFiles)
-	mux.HandleFunc("/filterpcs", mgr.httpFilterPCs)
-	mux.HandleFunc("/funccover", mgr.httpFuncCover)
-	mux.HandleFunc("/filecover", mgr.httpFileCover)
-	mux.HandleFunc("/input", mgr.httpInput)
-	mux.HandleFunc("/debuginput", mgr.httpDebugInput)
+	handle := func(pattern string, handler func(http.ResponseWriter, *http.Request)) {
+		http.Handle(pattern, handlers.CompressHandler(http.HandlerFunc(handler)))
+	}
+	handle("/", mgr.httpSummary)
+	handle("/config", mgr.httpConfig)
+	handle("/metrics", promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}).ServeHTTP)
+	handle("/syscalls", mgr.httpSyscalls)
+	handle("/corpus", mgr.httpCorpus)
+	handle("/corpus.db", mgr.httpDownloadCorpus)
+	handle("/crash", mgr.httpCrash)
+	handle("/cover", mgr.httpCover)
+	handle("/subsystemcover", mgr.httpSubsystemCover)
+	handle("/modulecover", mgr.httpModuleCover)
+	handle("/prio", mgr.httpPrio)
+	handle("/file", mgr.httpFile)
+	handle("/report", mgr.httpReport)
+	handle("/rawcover", mgr.httpRawCover)
+	handle("/rawcoverfiles", mgr.httpRawCoverFiles)
+	handle("/filterpcs", mgr.httpFilterPCs)
+	handle("/funccover", mgr.httpFuncCover)
+	handle("/filecover", mgr.httpFileCover)
+	handle("/input", mgr.httpInput)
+	handle("/debuginput", mgr.httpDebugInput)
 	// Browsers like to request this, without special handler this goes to / handler.
-	mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
+	handle("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
 
 	log.Logf(0, "serving http on http://%v", mgr.cfg.HTTP)
 	go func() {
-		err := http.ListenAndServe(mgr.cfg.HTTP, handlers.CompressHandler(mux))
+		err := http.ListenAndServe(mgr.cfg.HTTP, nil)
 		if err != nil {
 			log.Fatalf("failed to listen on %v: %v", mgr.cfg.HTTP, err)
 		}
@@ -755,7 +756,7 @@ type UIInput struct {
 	Cover int
 }
 
-var summaryTemplate = html.CreatePage(`
+var summaryTemplate = pages.Create(`
 <!doctype html>
 <html>
 <head>
@@ -819,7 +820,7 @@ var summaryTemplate = html.CreatePage(`
 </body></html>
 `)
 
-var syscallsTemplate = html.CreatePage(`
+var syscallsTemplate = pages.Create(`
 <!doctype html>
 <html>
 <head>
@@ -848,7 +849,7 @@ var syscallsTemplate = html.CreatePage(`
 </body></html>
 `)
 
-var crashTemplate = html.CreatePage(`
+var crashTemplate = pages.Create(`
 <!doctype html>
 <html>
 <head>
@@ -887,7 +888,7 @@ Report: <a href="/report?id={{.ID}}">{{.Triaged}}</a>
 </body></html>
 `)
 
-var corpusTemplate = html.CreatePage(`
+var corpusTemplate = pages.Create(`
 <!doctype html>
 <html>
 <head>
@@ -927,7 +928,7 @@ type UIPrio struct {
 	Prio int32
 }
 
-var prioTemplate = html.CreatePage(`
+var prioTemplate = pages.Create(`
 <!doctype html>
 <html>
 <head>
@@ -961,7 +962,7 @@ type UIFallbackCall struct {
 	Errnos     []int
 }
 
-var fallbackCoverTemplate = html.CreatePage(`
+var fallbackCoverTemplate = pages.Create(`
 <!doctype html>
 <html>
 <head>
@@ -992,7 +993,7 @@ type UIRawCallCover struct {
 	UpdateIDs []int
 }
 
-var rawCoverTemplate = html.CreatePage(`
+var rawCoverTemplate = pages.Create(`
 <!doctype html>
 <html>
 <head>

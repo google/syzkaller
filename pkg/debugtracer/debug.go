@@ -8,6 +8,7 @@ import (
 	"io"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/google/syzkaller/pkg/osutil"
 )
@@ -18,6 +19,7 @@ type DebugTracer interface {
 }
 
 type GenericTracer struct {
+	WithTime    bool
 	TraceWriter io.Writer
 	OutDir      string
 }
@@ -30,7 +32,13 @@ type NullTracer struct {
 }
 
 func (gt *GenericTracer) Log(msg string, args ...interface{}) {
-	fmt.Fprintf(gt.TraceWriter, msg+"\n", args...)
+	if gt.WithTime {
+		timeStr := time.Now().Format("02-Jan-2006 15:04:05")
+		newArgs := append([]interface{}{timeStr}, args...)
+		fmt.Fprintf(gt.TraceWriter, "%s: "+msg+"\n", newArgs...)
+	} else {
+		fmt.Fprintf(gt.TraceWriter, msg+"\n", args...)
+	}
 }
 
 func (gt *GenericTracer) SaveFile(filename string, data []byte) {

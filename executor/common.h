@@ -57,11 +57,13 @@ NORETURN void doexit(int status)
 	for (;;) {
 	}
 }
+#if !GOOS_fuchsia
 NORETURN void doexit_thread(int status)
 {
 	// For BSD systems, _exit seems to do exactly what's needed.
 	doexit(status);
 }
+#endif
 #endif
 
 #if SYZ_EXECUTOR || SYZ_MULTI_PROC || SYZ_REPEAT && SYZ_CGROUPS ||         \
@@ -244,6 +246,19 @@ static void use_temporary_dir(void)
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#if GOOS_freebsd
+// Unset file flags which might inhibit unlinking.
+static void reset_flags(const char* filename)
+{
+	struct stat st;
+	if (lstat(filename, &st))
+		exitf("lstat(%s) failed", filename);
+	st.st_flags &= ~(SF_NOUNLINK | UF_NOUNLINK | SF_IMMUTABLE | UF_IMMUTABLE | SF_APPEND | UF_APPEND);
+	if (lchflags(filename, st.st_flags))
+		exitf("lchflags(%s) failed", filename);
+}
+#endif
+
 // We need to prevent the compiler from unrolling the while loop by using the gcc's noinline attribute
 // because otherwise it could trigger the compiler warning about a potential format truncation
 // when a filename is constructed with help of snprintf. This warning occurs because by unrolling
@@ -280,12 +295,29 @@ static void __attribute__((noinline)) remove_dir(const char* dir)
 			remove_dir(filename);
 			continue;
 		}
-		if (unlink(filename))
+		if (unlink(filename)) {
+#if GOOS_freebsd
+			if (errno == EPERM) {
+				reset_flags(filename);
+				reset_flags(dir);
+				if (unlink(filename) == 0)
+					continue;
+			}
+#endif
 			exitf("unlink(%s) failed", filename);
+		}
 	}
 	closedir(dp);
-	if (rmdir(dir))
+	while (rmdir(dir)) {
+#if GOOS_freebsd
+		if (errno == EPERM) {
+			reset_flags(dir);
+			if (rmdir(dir) == 0)
+				break;
+		}
+#endif
 		exitf("rmdir(%s) failed", dir);
+	}
 }
 #endif
 #endif

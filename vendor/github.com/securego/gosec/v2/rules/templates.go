@@ -43,7 +43,6 @@ func (t *templateCheck) Match(n ast.Node, c *gosec.Context) (*gosec.Issue, error
 // NewTemplateCheck constructs the template check rule. This rule is used to
 // find use of templates where HTML/JS escaping is not being used
 func NewTemplateCheck(id string, conf gosec.Config) (gosec.Rule, []ast.Node) {
-
 	calls := gosec.NewCallList()
 	calls.Add("html/template", "HTML")
 	calls.Add("html/template", "HTMLAttr")
@@ -55,7 +54,7 @@ func NewTemplateCheck(id string, conf gosec.Config) (gosec.Rule, []ast.Node) {
 			ID:         id,
 			Severity:   gosec.Medium,
 			Confidence: gosec.Low,
-			What:       "this method will not auto-escape HTML. Verify data is well formed.",
+			What:       "The used method does not auto-escape HTML. This can potentially lead to 'Cross-site Scripting' vulnerabilities, in case the attacker controls the input.",
 		},
 	}, []ast.Node{(*ast.CallExpr)(nil)}
 }

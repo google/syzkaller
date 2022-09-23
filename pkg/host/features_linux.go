@@ -32,6 +32,7 @@ func init() {
 	checkFeature[FeatureNetDevices] = unconditionallyEnabled
 	checkFeature[FeatureKCSAN] = checkKCSAN
 	checkFeature[FeatureDevlinkPCI] = checkDevlinkPCI
+	checkFeature[FeatureNicVF] = checkNicVF
 	checkFeature[FeatureUSBEmulation] = checkUSBEmulation
 	checkFeature[FeatureVhciInjection] = checkVhciInjection
 	checkFeature[FeatureWifiEmulation] = checkWifiEmulation
@@ -256,6 +257,13 @@ func checkKCSAN() string {
 func checkDevlinkPCI() string {
 	if err := osutil.IsAccessible("/sys/bus/pci/devices/0000:00:10.0/"); err != nil {
 		return "PCI device 0000:00:10.0 is not available"
+	}
+	return ""
+}
+
+func checkNicVF() string {
+	if err := osutil.IsAccessible("/sys/bus/pci/devices/0000:00:11.0/"); err != nil {
+		return "PCI device 0000:00:11.0 is not available"
 	}
 	return ""
 }

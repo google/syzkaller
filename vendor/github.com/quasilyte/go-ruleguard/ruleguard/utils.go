@@ -6,9 +6,41 @@ import (
 	"go/parser"
 	"go/token"
 	"go/types"
+	"regexp/syntax"
 	"strconv"
 	"strings"
 )
+
+var invalidType = types.Typ[types.Invalid]
+
+func regexpHasCaptureGroups(pattern string) bool {
+	// regexp.Compile() uses syntax.Perl flags, so
+	// we use the same flags here.
+	re, err := syntax.Parse(pattern, syntax.Perl)
+	if err != nil {
+		return true // true is more conservative than false
+	}
+
+	found := false
+
+	var walkRegexp func(*syntax.Regexp)
+	walkRegexp = func(re *syntax.Regexp) {
+		if found {
+			return
+		}
+		// OpCapture handles both named and unnamed capture groups.
+		if re.Op == syntax.OpCapture {
+			found = true
+			return
+		}
+		for _, sub := range re.Sub {
+			walkRegexp(sub)
+		}
+	}
+	walkRegexp(re)
+
+	return found
+}
 
 func findDependency(pkg *types.Package, path string) *types.Package {
 	if pkg.Path() == path {
@@ -24,24 +56,30 @@ func findDependency(pkg *types.Package, path string) *types.Package {
 	return nil
 }
 
-var basicTypeByName = map[string]types.Type{
-	"bool":       types.Typ[types.Bool],
-	"int":        types.Typ[types.Int],
-	"int8":       types.Typ[types.Int8],
-	"int16":      types.Typ[types.Int16],
-	"int32":      types.Typ[types.Int32],
-	"int64":      types.Typ[types.Int64],
-	"uint":       types.Typ[types.Uint],
-	"uint8":      types.Typ[types.Uint8],
-	"uint16":     types.Typ[types.Uint16],
-	"uint32":     types.Typ[types.Uint32],
-	"uint64":     types.Typ[types.Uint64],
-	"uintptr":    types.Typ[types.Uintptr],
-	"float32":    types.Typ[types.Float32],
-	"float64":    types.Typ[types.Float64],
-	"complex64":  types.Typ[types.Complex64],
-	"complex128": types.Typ[types.Complex128],
-	"string":     types.Typ[types.String],
+var typeByName = map[string]types.Type{
+	// Predeclared types.
+	`error`:      types.Universe.Lookup("error").Type(),
+	`bool`:       types.Typ[types.Bool],
+	`int`:        types.Typ[types.Int],
+	`int8`:       types.Typ[types.Int8],
+	`int16`:      types.Typ[types.Int16],
+	`int32`:      types.Typ[types.Int32],
+	`int64`:      types.Typ[types.Int64],
+	`uint`:       types.Typ[types.Uint],
+	`uint8`:      types.Typ[types.Uint8],
+	`uint16`:     types.Typ[types.Uint16],
+	`uint32`:     types.Typ[types.Uint32],
+	`uint64`:     types.Typ[types.Uint64],
+	`uintptr`:    types.Typ[types.Uintptr],
+	`string`:     types.Typ[types.String],
+	`float32`:    types.Typ[types.Float32],
+	`float64`:    types.Typ[types.Float64],
+	`complex64`:  types.Typ[types.Complex64],
+	`complex128`: types.Typ[types.Complex128],
+
+	// Predeclared aliases (provided for convenience).
+	`byte`: types.Typ[types.Uint8],
+	`rune`: types.Typ[types.Int32],
 }
 
 func typeFromString(s string) (types.Type, error) {
@@ -57,9 +95,9 @@ func typeFromString(s string) (types.Type, error) {
 func typeFromNode(e ast.Expr) types.Type {
 	switch e := e.(type) {
 	case *ast.Ident:
-		basic, ok := basicTypeByName[e.Name]
+		typ, ok := typeByName[e.Name]
 		if ok {
-			return basic
+			return typ
 		}
 
 	case *ast.ArrayType:
@@ -78,7 +116,7 @@ func typeFromNode(e ast.Expr) types.Type {
 		if err != nil {
 			return nil
 		}
-		types.NewArray(elem, int64(length))
+		return types.NewArray(elem, int64(length))
 
 	case *ast.MapType:
 		keyType := typeFromNode(e.Key)
@@ -143,7 +181,7 @@ func isPure(info *types.Info, expr ast.Expr) bool {
 	case *ast.UnaryExpr:
 		return expr.Op != token.ARROW &&
 			isPure(info, expr.X)
-	case *ast.BasicLit, *ast.Ident:
+	case *ast.BasicLit, *ast.Ident, *ast.FuncLit:
 		return true
 	case *ast.IndexExpr:
 		return isPure(info, expr.X) &&
@@ -184,6 +222,37 @@ func isConstant(info *types.Info, expr ast.Expr) bool {
 	return ok && tv.Value != nil
 }
 
+func isConstantSlice(info *types.Info, expr ast.Expr) bool {
+	switch expr := expr.(type) {
+	case *ast.CallExpr:
+		// Matches []byte("string").
+		if len(expr.Args) != 1 {
+			return false
+		}
+		lit, ok := expr.Args[0].(*ast.BasicLit)
+		if !ok || lit.Kind != token.STRING {
+			return false
+		}
+		typ, ok := info.TypeOf(expr.Fun).(*types.Slice)
+		if !ok {
+			return false
+		}
+		basicType, ok := typ.Elem().(*types.Basic)
+		return ok && basicType.Kind() == types.Uint8
+
+	case *ast.CompositeLit:
+		for _, elt := range expr.Elts {
+			if !isConstant(info, elt) {
+				return false
+			}
+		}
+		return true
+
+	default:
+		return false
+	}
+}
+
 // isTypeExpr reports whether x represents a type expression.
 //
 // Type expression does not evaluate to any run time value,
@@ -211,5 +280,18 @@ func isTypeExpr(info *types.Info, x ast.Expr) bool {
 
 	default:
 		return false
+	}
+}
+
+func identOf(e ast.Expr) *ast.Ident {
+	switch e := e.(type) {
+	case *ast.ParenExpr:
+		return identOf(e.X)
+	case *ast.Ident:
+		return e
+	case *ast.SelectorExpr:
+		return e.Sel
+	default:
+		return nil
 	}
 }

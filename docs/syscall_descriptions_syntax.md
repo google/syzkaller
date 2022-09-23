@@ -93,6 +93,8 @@ Call attributes are:
 "ignore_return": ignore return value of this syscall in fallback feedback; need to be used for calls
 	that don't return fixed error codes but rather something else (e.g. the current time).
 "breaks_returns": ignore return values of all subsequent calls in the program in fallback feedback (can't be trusted).
+"no_generate": do not try to generate this syscall, i.e. use only seed descriptions to produce it.
+"no_minimize": do not modify instances of this syscall when trying to minimize a crashing program.
 ```
 
 ## Ints
@@ -405,7 +407,7 @@ Though, `syz-extract` can still be invoked manually on this file.
 meta arches["arch1", "arch2"]
 ```
 Restricts this file only to the given set of architectures.
-`make extract` and ``make generate` will not use it on other architectures.
+`make extract` and `make generate` will not use it on other architectures.
 
 ## Misc
 

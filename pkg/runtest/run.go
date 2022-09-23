@@ -299,12 +299,14 @@ func parseProg(target *prog.Target, dir, filename string) (*prog.Prog, map[strin
 		"ENOMEM":     12,
 		"EACCES":     13,
 		"EFAULT":     14,
+		"EXDEV":      18,
 		"EINVAL":     22,
 		"ENOTTY":     25,
 		"EOPNOTSUPP": 95,
 
 		// Fuchsia specific errors.
 		"ZX_ERR_BAD_HANDLE": 11,
+		"ZX_ERR_TIMED_OUT":  21,
 	}
 	info := &ipc.ProgInfo{Calls: make([]ipc.CallInfo, len(p.Calls))}
 	for i, call := range p.Calls {
@@ -425,6 +427,9 @@ func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bo
 	cfg.Flags |= ipc.FlagEnableCgroups
 	if ctx.Features[host.FeatureDevlinkPCI].Enabled {
 		cfg.Flags |= ipc.FlagEnableDevlinkPCI
+	}
+	if ctx.Features[host.FeatureNicVF].Enabled {
+		cfg.Flags |= ipc.FlagEnableNicVF
 	}
 	if ctx.Features[host.FeatureVhciInjection].Enabled {
 		cfg.Flags |= ipc.FlagEnableVhciInjection

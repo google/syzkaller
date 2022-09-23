@@ -24,7 +24,9 @@ getsockname(fd sock, addr ptr[out, sockaddr_storage], addrlen ptr[inout, len[add
 getpeername(fd sock, peer ptr[out, sockaddr_storage], peerlen ptr[inout, len[peer, int32]])
 
 sendmsg(fd sock, msg ptr[in, send_msghdr], f flags[send_flags])
+sendmmsg(fd sock, mmsg ptr[inout, send_mmsghdr], len len[mmsg], f flags[send_flags])
 recvmsg(fd sock, msg ptr[inout, recv_msghdr], f flags[recv_flags])
+recvmmsg(fd sock, mmsg ptr[inout, recv_mmsghdr], len len[mmsg], f flags[recv_flags], timeout ptr[in, timespec, opt])
 
 listen(fd sock, backlog int32)
 shutdown(fd sock, how flags[shutdown_flags])
@@ -37,7 +39,7 @@ socket_type = SOCK_STREAM, SOCK_DGRAM, SOCK_RAW, SOCK_RDM, SOCK_SEQPACKET, SOCK_
 # accept_flags = SOCK_NONBLOCK, SOCK_CLOEXEC
 shutdown_flags = SHUT_RD, SHUT_WR, SHUT_RDWR
 send_flags = MSG_OOB, MSG_PEEK, MSG_DONTROUTE, MSG_EOR, MSG_NOSIGNAL
-recv_flags = MSG_CMSG_CLOEXEC, MSG_OOB, MSG_PEEK, MSG_WAITALL
+recv_flags = MSG_CMSG_CLOEXEC, MSG_OOB, MSG_PEEK, MSG_WAITALL, MSG_WAITFORONE
 cmsg_levels = SOL_SOCKET, IPPROTO_ICMP
 
 sock_pair {
@@ -62,6 +64,11 @@ send_msghdr {
 	msg_flags	const[0, int32]
 }
 
+send_mmsghdr {
+	hdr	ptr[inout, send_msghdr]
+	len	int32
+}
+
 recv_msghdr {
 	msg_name	ptr[out, sockaddr_storage, opt]
 	msg_namelen	len[msg_name, int32]
@@ -70,6 +77,11 @@ recv_msghdr {
 	msg_control	buffer[out]
 	msg_controllen	len[msg_control, intptr]
 	msg_flags	const[0, int32]
+}
+
+recv_mmsghdr {
+	hdr	ptr[inout, recv_msghdr]
+	len	int32
 }
 
 cmsghdr {

@@ -21,6 +21,32 @@ indexes:
 
 - kind: Bug
   properties:
+  - name: Namespace
+  - name: Status
+  - name: HappenedOn
+  - name: Commits
+
+- kind: Bug
+  properties:
+  - name: Namespace
+  - name: Status
+  - name: Commits
+
+- kind: Bug
+  properties:
+  - name: Namespace
+  - name: Status
+  - name: Commits
+  - name: HappenedOn
+
+- kind: Bug
+  properties:
+  - name: Namespace
+  - name: Status
+  - name: LastTime
+
+- kind: Bug
+  properties:
   - name: HappenedOn
   - name: Status
 
@@ -40,6 +66,11 @@ indexes:
   properties:
   - name: Namespace
   - name: AltTitles
+
+- kind: Bug
+  properties:
+  - name: Namespace
+  - name: Closed
 
 - kind: Bug
   properties:
@@ -81,6 +112,24 @@ indexes:
   - name: Type
   - name: Time
     direction: desc
+
+- kind: Build
+  properties:
+  - name: Namespace
+  - name: Manager
+  - name: Assets.Type
+  - name: Assets.CreateDate
+
+- kind: Build
+  properties:
+  - name: Namespace
+  - name: Assets.Type
+  - name: Assets.CreateDate
+
+- kind: Build
+  properties:
+  - name: Namespace
+  - name: AssetsLastCheck
 
 - kind: Crash
   ancestor: yes

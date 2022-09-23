@@ -40,6 +40,7 @@ type Fuzzer struct {
 	workQueue         *WorkQueue
 	needPoll          chan struct{}
 	choiceTable       *prog.ChoiceTable
+	noMutate          map[int]bool
 	stats             [StatCount]uint64
 	manager           *rpctype.RPCClient
 	target            *prog.Target
@@ -83,19 +84,21 @@ const (
 	StatHint
 	StatSeed
 	StatCollide
+	StatBufferTooSmall
 	StatCount
 )
 
 var statNames = [StatCount]string{
-	StatGenerate:  "exec gen",
-	StatFuzz:      "exec fuzz",
-	StatCandidate: "exec candidate",
-	StatTriage:    "exec triage",
-	StatMinimize:  "exec minimize",
-	StatSmash:     "exec smash",
-	StatHint:      "exec hints",
-	StatSeed:      "exec seeds",
-	StatCollide:   "exec collide",
+	StatGenerate:       "exec gen",
+	StatFuzz:           "exec fuzz",
+	StatCandidate:      "exec candidate",
+	StatTriage:         "exec triage",
+	StatMinimize:       "exec minimize",
+	StatSmash:          "exec smash",
+	StatHint:           "exec hints",
+	StatSeed:           "exec seeds",
+	StatCollide:        "exec collide",
+	StatBufferTooSmall: "buffer too small",
 }
 
 type OutputType int
@@ -125,6 +128,9 @@ func createIPCConfig(features *host.Features, config *ipc.Config) {
 	config.Flags |= ipc.FlagEnableCloseFds
 	if features[host.FeatureDevlinkPCI].Enabled {
 		config.Flags |= ipc.FlagEnableDevlinkPCI
+	}
+	if features[host.FeatureNicVF].Enabled {
+		config.Flags |= ipc.FlagEnableNicVF
 	}
 	if features[host.FeatureVhciInjection].Enabled {
 		config.Flags |= ipc.FlagEnableVhciInjection
@@ -270,6 +276,7 @@ func main() {
 		corpusHashes:             make(map[hash.Sig]struct{}),
 		checkResult:              r.CheckResult,
 		fetchRawCover:            *flagRawCover,
+		noMutate:                 r.NoMutateCalls,
 	}
 	gateCallback := fuzzer.useBugFrames(r, *flagProcs)
 	fuzzer.gate = ipc.NewGate(2**flagProcs, gateCallback)

@@ -25,7 +25,7 @@ import (
 type filePermissions struct {
 	gosec.MetaData
 	mode  int64
-	pkg   string
+	pkgs  []string
 	calls []string
 }
 
@@ -34,7 +34,7 @@ func (r *filePermissions) ID() string {
 }
 
 func getConfiguredMode(conf map[string]interface{}, configKey string, defaultMode int64) int64 {
-	var mode = defaultMode
+	mode := defaultMode
 	if value, ok := conf[configKey]; ok {
 		switch value := value.(type) {
 		case int64:
@@ -51,10 +51,12 @@ func getConfiguredMode(conf map[string]interface{}, configKey string, defaultMod
 }
 
 func (r *filePermissions) Match(n ast.Node, c *gosec.Context) (*gosec.Issue, error) {
-	if callexpr, matched := gosec.MatchCallByPackage(n, c, r.pkg, r.calls...); matched {
-		modeArg := callexpr.Args[len(callexpr.Args)-1]
-		if mode, err := gosec.GetInt(modeArg); err == nil && mode > r.mode {
-			return gosec.NewIssue(c, n, r.ID(), r.What, r.Severity, r.Confidence), nil
+	for _, pkg := range r.pkgs {
+		if callexpr, matched := gosec.MatchCallByPackage(n, c, pkg, r.calls...); matched {
+			modeArg := callexpr.Args[len(callexpr.Args)-1]
+			if mode, err := gosec.GetInt(modeArg); err == nil && mode > r.mode {
+				return gosec.NewIssue(c, n, r.ID(), r.What, r.Severity, r.Confidence), nil
+			}
 		}
 	}
 	return nil, nil
@@ -62,10 +64,10 @@ func (r *filePermissions) Match(n ast.Node, c *gosec.Context) (*gosec.Issue, err
 
 // NewWritePerms creates a rule to detect file Writes with bad permissions.
 func NewWritePerms(id string, conf gosec.Config) (gosec.Rule, []ast.Node) {
-	mode := getConfiguredMode(conf, "G306", 0600)
+	mode := getConfiguredMode(conf, id, 0o600)
 	return &filePermissions{
 		mode:  mode,
-		pkg:   "io/ioutil",
+		pkgs:  []string{"io/ioutil", "os"},
 		calls: []string{"WriteFile"},
 		MetaData: gosec.MetaData{
 			ID:         id,
@@ -79,10 +81,10 @@ func NewWritePerms(id string, conf gosec.Config) (gosec.Rule, []ast.Node) {
 // NewFilePerms creates a rule to detect file creation with a more permissive than configured
 // permission mask.
 func NewFilePerms(id string, conf gosec.Config) (gosec.Rule, []ast.Node) {
-	mode := getConfiguredMode(conf, "G302", 0600)
+	mode := getConfiguredMode(conf, id, 0o600)
 	return &filePermissions{
 		mode:  mode,
-		pkg:   "os",
+		pkgs:  []string{"os"},
 		calls: []string{"OpenFile", "Chmod"},
 		MetaData: gosec.MetaData{
 			ID:         id,
@@ -96,10 +98,10 @@ func NewFilePerms(id string, conf gosec.Config) (gosec.Rule, []ast.Node) {
 // NewMkdirPerms creates a rule to detect directory creation with more permissive than
 // configured permission mask.
 func NewMkdirPerms(id string, conf gosec.Config) (gosec.Rule, []ast.Node) {
-	mode := getConfiguredMode(conf, "G301", 0750)
+	mode := getConfiguredMode(conf, id, 0o750)
 	return &filePermissions{
 		mode:  mode,
-		pkg:   "os",
+		pkgs:  []string{"os"},
 		calls: []string{"Mkdir", "MkdirAll"},
 		MetaData: gosec.MetaData{
 			ID:         id,

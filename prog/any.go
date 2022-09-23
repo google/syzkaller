@@ -13,6 +13,7 @@ type anyTypes struct {
 	blob   *BufferType
 	ptrPtr *PtrType
 	ptr64  *PtrType
+	res8   *ResourceType
 	res16  *ResourceType
 	res32  *ResourceType
 	res64  *ResourceType
@@ -38,12 +39,13 @@ func (target *Target) initAnyTypes() {
 	target.any.array = target.any.ptrPtr.Elem.(*ArrayType)
 	target.any.union = target.any.array.Elem.(*UnionType)
 	target.any.blob = target.any.union.Fields[0].Type.(*BufferType)
-	target.any.res16 = target.any.union.Fields[1].Type.(*ResourceType)
-	target.any.res32 = target.any.union.Fields[2].Type.(*ResourceType)
-	target.any.res64 = target.any.union.Fields[3].Type.(*ResourceType)
-	target.any.resdec = target.any.union.Fields[4].Type.(*ResourceType)
-	target.any.reshex = target.any.union.Fields[5].Type.(*ResourceType)
-	target.any.resoct = target.any.union.Fields[6].Type.(*ResourceType)
+	target.any.res8 = target.any.union.Fields[1].Type.(*ResourceType)
+	target.any.res16 = target.any.union.Fields[2].Type.(*ResourceType)
+	target.any.res32 = target.any.union.Fields[3].Type.(*ResourceType)
+	target.any.res64 = target.any.union.Fields[4].Type.(*ResourceType)
+	target.any.resdec = target.any.union.Fields[5].Type.(*ResourceType)
+	target.any.reshex = target.any.union.Fields[6].Type.(*ResourceType)
+	target.any.resoct = target.any.union.Fields[7].Type.(*ResourceType)
 }
 
 func (target *Target) getAnyPtrType(size uint64) *PtrType {
@@ -60,11 +62,16 @@ func (target *Target) isAnyPtr(typ Type) bool {
 	return ok && ptr.Elem == target.any.array
 }
 
-func (p *Prog) complexPtrs() (res []*PointerArg) {
+type complexPtr struct {
+	arg  *PointerArg
+	call *Call
+}
+
+func (p *Prog) complexPtrs() (res []complexPtr) {
 	for _, c := range p.Calls {
 		ForeachArg(c, func(arg Arg, ctx *ArgCtx) {
 			if ptrArg, ok := arg.(*PointerArg); ok && p.Target.isComplexPtr(ptrArg) {
-				res = append(res, ptrArg)
+				res = append(res, complexPtr{ptrArg, c})
 				ctx.Stop = true
 			}
 		})
@@ -79,10 +86,17 @@ func (target *Target) isComplexPtr(arg *PointerArg) bool {
 	if target.isAnyPtr(arg.Type()) {
 		return true
 	}
-	complex, hasPtr := false, false
+	complex, unsupported := false, false
 	ForeachSubArg(arg.Res, func(a1 Arg, ctx *ArgCtx) {
 		switch typ := a1.Type().(type) {
 		case *StructType:
+			if typ.OverlayField != 0 {
+				// Squashing of structs with out_overlay is not supported.
+				// If we do it, we need to be careful to either squash out part as well,
+				// or remove any resources in the out part from the prog.
+				unsupported = true
+				ctx.Stop = true
+			}
 			if typ.Varlen() {
 				complex = true
 			}
@@ -91,15 +105,18 @@ func (target *Target) isComplexPtr(arg *PointerArg) bool {
 				complex = true
 			}
 		case *PtrType:
-			hasPtr = true
+			// Squashing of pointers is not supported b/c if we do it
+			// we will pass random garbage as pointers.
+			unsupported = true
 			ctx.Stop = true
 		}
 	})
-	return complex && !hasPtr
+	return complex && !unsupported
 }
 
 func (target *Target) isAnyRes(name string) bool {
-	return name == target.any.res16.TypeName ||
+	return name == target.any.res8.TypeName ||
+		name == target.any.res16.TypeName ||
 		name == target.any.res32.TypeName ||
 		name == target.any.res64.TypeName ||
 		name == target.any.resdec.TypeName ||
@@ -212,21 +229,23 @@ func (target *Target) squashResult(arg *ResultArg, elems *[]Arg) {
 	switch arg.Type().Format() {
 	case FormatNative, FormatBigEndian:
 		switch arg.Size() {
+		case 1:
+			typ, index = target.any.res8, 1
 		case 2:
-			typ, index = target.any.res16, 1
+			typ, index = target.any.res16, 2
 		case 4:
-			typ, index = target.any.res32, 2
+			typ, index = target.any.res32, 3
 		case 8:
-			typ, index = target.any.res64, 3
+			typ, index = target.any.res64, 4
 		default:
-			panic("bad size")
+			panic(fmt.Sprintf("bad size %v", arg.Size()))
 		}
 	case FormatStrDec:
-		typ, index = target.any.resdec, 4
+		typ, index = target.any.resdec, 5
 	case FormatStrHex:
-		typ, index = target.any.reshex, 5
+		typ, index = target.any.reshex, 6
 	case FormatStrOct:
-		typ, index = target.any.resoct, 6
+		typ, index = target.any.resoct, 7
 	default:
 		panic("bad")
 	}
@@ -236,18 +255,11 @@ func (target *Target) squashResult(arg *ResultArg, elems *[]Arg) {
 }
 
 func (target *Target) squashGroup(arg *GroupArg, elems *[]Arg) {
-	overlayField := 0
-	if typ, ok := arg.Type().(*StructType); ok {
-		overlayField = typ.OverlayField
+	if typ, ok := arg.Type().(*StructType); ok && typ.OverlayField != 0 {
+		panic("squashing out_overlay")
 	}
 	var bitfield, fieldsSize uint64
-	for i, fld := range arg.Inner {
-		if i != 0 && i == overlayField {
-			// We don't squash overlay fields.
-			// Theoretically we could produce a squashed struct with overlay as well,
-			// but it's quite complex to do.
-			break
-		}
+	for _, fld := range arg.Inner {
 		fieldsSize += fld.Size()
 		// Squash bitfields separately.
 		if fld.Type().IsBitfield() {

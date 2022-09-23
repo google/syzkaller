@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -42,6 +43,7 @@ type Config struct {
 	// "{{INDEX}}" is replaced with 0-based index of the VM (from 0 to Count-1).
 	// "{{TEMPLATE}}" is replaced with the path to a copy of workdir/template dir.
 	// "{{TCP_PORT}}" is replaced with a random free TCP port
+	// "{{FN%8}}" is replaced with PCI BDF (Function#%8) and PCI BDF Dev# += index/8
 	QemuArgs string `json:"qemu_args"`
 	// Location of the kernel for injected boot (e.g. arch/x86/boot/bzImage, optional).
 	// This is passed to QEMU as the -kernel option.
@@ -232,6 +234,13 @@ var archConfigs = map[string]*archConfig{
 		CmdLine: []string{
 			"kernel.serial=legacy",
 			"kernel.halt-on-panic=true",
+			// Set long (300sec) thresholds for kernel lockup detector to
+			// prevent false alarms from potentially oversubscribed hosts.
+			// (For more context, see fxbug.dev/109612.)
+			"kernel.lockup-detector.critical-section-threshold-ms=300000",
+			"kernel.lockup-detector.critical-section-fatal-threshold-ms=300000",
+			"kernel.lockup-detector.heartbeat-age-threshold-ms=300000",
+			"kernel.lockup-detector.heartbeat-age-fatal-threshold-ms=300000",
 		},
 	},
 	"akaros/amd64": {
@@ -331,6 +340,9 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		}
 		// Older qemu prints "could", newer -- "Could".
 		if i < 1000 && strings.Contains(err.Error(), "ould not set up host forwarding rule") {
+			continue
+		}
+		if i < 1000 && strings.Contains(err.Error(), "Device or resource busy") {
 			continue
 		}
 		return nil, err
@@ -529,6 +541,26 @@ func (inst *instance) boot() error {
 	return nil
 }
 
+// "vfio-pci,host=BN:DN.{{FN%8}},addr=0x11".
+func handleVfioPciArg(arg string, index int) string {
+	if !strings.Contains(arg, "{{FN%8}}") {
+		return arg
+	}
+	if index > 7 {
+		re := regexp.MustCompile(`vfio-pci,host=[a-bA-B0-9]+(:[a-bA-B0-9]{1,8}).{{FN%8}},[^:.,]+$`)
+		matches := re.FindAllStringSubmatch(arg, -1)
+		if len(matches[0]) != 2 {
+			return arg
+		}
+		submatch := matches[0][1]
+		dnSubmatch, _ := strconv.ParseInt(submatch[1:], 16, 64)
+		devno := dnSubmatch + int64(index/8)
+		arg = strings.ReplaceAll(arg, submatch, fmt.Sprintf(":%02x", devno))
+	}
+	arg = strings.ReplaceAll(arg, "{{FN%8}}", fmt.Sprint(index%8))
+	return arg
+}
+
 func splitArgs(str, templateDir string, index int) (args []string) {
 	for _, arg := range strings.Split(str, " ") {
 		if arg == "" {
@@ -536,6 +568,7 @@ func splitArgs(str, templateDir string, index int) (args []string) {
 		}
 		arg = strings.ReplaceAll(arg, "{{INDEX}}", fmt.Sprint(index))
 		arg = strings.ReplaceAll(arg, "{{TEMPLATE}}", templateDir)
+		arg = handleVfioPciArg(arg, index)
 		const tcpPort = "{{TCP_PORT}}"
 		if strings.Contains(arg, tcpPort) {
 			arg = strings.ReplaceAll(arg, tcpPort, fmt.Sprint(vmimpl.UnusedTCPPort()))

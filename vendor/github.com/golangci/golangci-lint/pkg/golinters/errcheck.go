@@ -10,9 +10,10 @@ import (
 	"strings"
 	"sync"
 
-	errcheck "github.com/golangci/errcheck/golangci"
+	"github.com/kisielk/errcheck/errcheck"
 	"github.com/pkg/errors"
 	"golang.org/x/tools/go/analysis"
+	"golang.org/x/tools/go/packages"
 
 	"github.com/golangci/golangci-lint/pkg/config"
 	"github.com/golangci/golangci-lint/pkg/fsutils"
@@ -21,58 +22,93 @@ import (
 	"github.com/golangci/golangci-lint/pkg/result"
 )
 
-func NewErrcheck() *goanalysis.Linter {
-	const linterName = "errcheck"
+const errcheckName = "errcheck"
+
+func NewErrcheck(settings *config.ErrcheckSettings) *goanalysis.Linter {
 	var mu sync.Mutex
-	var res []goanalysis.Issue
+	var resIssues []goanalysis.Issue
+
 	analyzer := &analysis.Analyzer{
-		Name: linterName,
+		Name: errcheckName,
 		Doc:  goanalysis.TheOnlyanalyzerDoc,
+		Run:  goanalysis.DummyRun,
 	}
+
 	return goanalysis.NewLinter(
-		linterName,
+		errcheckName,
 		"Errcheck is a program for checking for unchecked errors "+
 			"in go programs. These unchecked errors can be critical bugs in some cases",
 		[]*analysis.Analyzer{analyzer},
 		nil,
 	).WithContextSetter(func(lintCtx *linter.Context) {
+		// copied from errcheck
+		checker, err := getChecker(settings)
+		if err != nil {
+			lintCtx.Log.Errorf("failed to get checker: %v", err)
+			return
+		}
+
+		checker.Tags = lintCtx.Cfg.Run.BuildTags
+
 		analyzer.Run = func(pass *analysis.Pass) (interface{}, error) {
-			prog := goanalysis.MakeFakeLoaderProgram(pass)
-			errCfg, err := genConfig(&lintCtx.Settings().Errcheck)
-			if err != nil {
-				return nil, err
-			}
-			errcheckIssues, err := errcheck.RunWithConfig(prog, errCfg)
+			issues := runErrCheck(lintCtx, pass, checker)
 			if err != nil {
 				return nil, err
 			}
 
-			if len(errcheckIssues) == 0 {
+			if len(issues) == 0 {
 				return nil, nil
 			}
 
-			issues := make([]goanalysis.Issue, 0, len(errcheckIssues))
-			for _, i := range errcheckIssues {
-				var text string
-				if i.FuncName != "" {
-					text = fmt.Sprintf("Error return value of %s is not checked", formatCode(i.FuncName, lintCtx.Cfg))
-				} else {
-					text = "Error return value is not checked"
-				}
-				issues = append(issues, goanalysis.NewIssue(&result.Issue{
-					FromLinter: linterName,
-					Text:       text,
-					Pos:        i.Pos,
-				}, pass))
-			}
 			mu.Lock()
-			res = append(res, issues...)
+			resIssues = append(resIssues, issues...)
 			mu.Unlock()
+
 			return nil, nil
 		}
 	}).WithIssuesReporter(func(*linter.Context) []goanalysis.Issue {
-		return res
+		return resIssues
 	}).WithLoadMode(goanalysis.LoadModeTypesInfo)
+}
+
+func runErrCheck(lintCtx *linter.Context, pass *analysis.Pass, checker *errcheck.Checker) []goanalysis.Issue {
+	pkg := &packages.Package{
+		Fset:      pass.Fset,
+		Syntax:    pass.Files,
+		Types:     pass.Pkg,
+		TypesInfo: pass.TypesInfo,
+	}
+
+	lintIssues := checker.CheckPackage(pkg).Unique()
+	if len(lintIssues.UncheckedErrors) == 0 {
+		return nil
+	}
+
+	issues := make([]goanalysis.Issue, len(lintIssues.UncheckedErrors))
+
+	for i, err := range lintIssues.UncheckedErrors {
+		text := "Error return value is not checked"
+
+		if err.FuncName != "" {
+			code := err.SelectorName
+			if err.SelectorName == "" {
+				code = err.FuncName
+			}
+
+			text = fmt.Sprintf("Error return value of %s is not checked", formatCode(code, lintCtx.Cfg))
+		}
+
+		issues[i] = goanalysis.NewIssue(
+			&result.Issue{
+				FromLinter: errcheckName,
+				Text:       text,
+				Pos:        err.Pos,
+			},
+			pass,
+		)
+	}
+
+	return issues
 }
 
 // parseIgnoreConfig was taken from errcheck in order to keep the API identical.
@@ -104,16 +140,26 @@ func parseIgnoreConfig(s string) (map[string]*regexp.Regexp, error) {
 	return cfg, nil
 }
 
-func genConfig(errCfg *config.ErrcheckSettings) (*errcheck.Config, error) {
+func getChecker(errCfg *config.ErrcheckSettings) (*errcheck.Checker, error) {
 	ignoreConfig, err := parseIgnoreConfig(errCfg.Ignore)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse 'ignore' directive")
 	}
 
-	c := &errcheck.Config{
-		Ignore:  ignoreConfig,
-		Blank:   errCfg.CheckAssignToBlank,
-		Asserts: errCfg.CheckTypeAssertions,
+	checker := errcheck.Checker{
+		Exclusions: errcheck.Exclusions{
+			BlankAssignments:       !errCfg.CheckAssignToBlank,
+			TypeAssertions:         !errCfg.CheckTypeAssertions,
+			SymbolRegexpsByPackage: map[string]*regexp.Regexp{},
+		},
+	}
+
+	if !errCfg.DisableDefaultExclusions {
+		checker.Exclusions.Symbols = append(checker.Exclusions.Symbols, errcheck.DefaultExcludedSymbols...)
+	}
+
+	for pkg, re := range ignoreConfig {
+		checker.Exclusions.SymbolRegexpsByPackage[pkg] = re
 	}
 
 	if errCfg.Exclude != "" {
@@ -121,10 +167,13 @@ func genConfig(errCfg *config.ErrcheckSettings) (*errcheck.Config, error) {
 		if err != nil {
 			return nil, err
 		}
-		c.Exclude = exclude
+
+		checker.Exclusions.Symbols = append(checker.Exclusions.Symbols, exclude...)
 	}
 
-	return c, nil
+	checker.Exclusions.Symbols = append(checker.Exclusions.Symbols, errCfg.ExcludeFunctions...)
+
+	return &checker, nil
 }
 
 func getFirstPathArg() string {
@@ -192,7 +241,7 @@ func setupConfigFileSearch(name string) []string {
 	return configSearchPaths
 }
 
-func readExcludeFile(name string) (map[string]bool, error) {
+func readExcludeFile(name string) ([]string, error) {
 	var err error
 	var fh *os.File
 
@@ -205,13 +254,17 @@ func readExcludeFile(name string) (map[string]bool, error) {
 	if fh == nil {
 		return nil, errors.Wrapf(err, "failed reading exclude file: %s", name)
 	}
+
 	scanner := bufio.NewScanner(fh)
-	exclude := make(map[string]bool)
+
+	var excludes []string
 	for scanner.Scan() {
-		exclude[scanner.Text()] = true
+		excludes = append(excludes, scanner.Text())
 	}
+
 	if err := scanner.Err(); err != nil {
 		return nil, errors.Wrapf(err, "failed scanning file: %s", name)
 	}
-	return exclude, nil
+
+	return excludes, nil
 }

@@ -82,6 +82,8 @@ type Config struct {
 	WaitForRepro time.Duration
 	// If set, successful fix bisections will auto-close the bug.
 	FixBisectionAutoClose bool
+	// If set, dashboard will periodically request repros and revoke no longer working ones.
+	RetestRepros bool
 	// Managers contains some special additional info about syz-manager instances.
 	Managers map[string]ConfigManager
 	// Reporting config.
@@ -114,6 +116,7 @@ type ObsoletingConfig struct {
 	MaxPeriod         time.Duration
 	NonFinalMinPeriod time.Duration
 	NonFinalMaxPeriod time.Duration
+	ReproRetestPeriod time.Duration
 }
 
 // ConfigManager describes a single syz-manager instance.

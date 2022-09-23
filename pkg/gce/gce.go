@@ -43,6 +43,11 @@ type Context struct {
 	apiRateGate <-chan time.Time
 }
 
+type CreateArgs struct {
+	Preemptible   bool
+	DisplayDevice bool
+}
+
 func NewContext(customZoneID string) (*Context, error) {
 	ctx := &Context{
 		apiRateGate: time.NewTicker(time.Second).C,

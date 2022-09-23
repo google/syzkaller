@@ -104,13 +104,13 @@ func main() {
 				if *flagGenerate && len(corpus) == 0 || i%4 != 0 {
 					p = target.Generate(rs, prog.RecommendedCalls, ct)
 					execute(pid, env, execOpts, p)
-					p.Mutate(rs, prog.RecommendedCalls, ct, corpus)
+					p.Mutate(rs, prog.RecommendedCalls, ct, nil, corpus)
 					execute(pid, env, execOpts, p)
 				} else {
 					p = corpus[rnd.Intn(len(corpus))].Clone()
-					p.Mutate(rs, prog.RecommendedCalls, ct, corpus)
+					p.Mutate(rs, prog.RecommendedCalls, ct, nil, corpus)
 					execute(pid, env, execOpts, p)
-					p.Mutate(rs, prog.RecommendedCalls, ct, corpus)
+					p.Mutate(rs, prog.RecommendedCalls, ct, nil, corpus)
 					execute(pid, env, execOpts, p)
 				}
 			}
@@ -167,6 +167,9 @@ func createIPCConfig(target *prog.Target, features *host.Features, featuresFlags
 	}
 	if featuresFlags["devlink_pci"].Enabled && features[host.FeatureDevlinkPCI].Enabled {
 		config.Flags |= ipc.FlagEnableDevlinkPCI
+	}
+	if featuresFlags["nic_vf"].Enabled && features[host.FeatureNicVF].Enabled {
+		config.Flags |= ipc.FlagEnableNicVF
 	}
 	if featuresFlags["vhci"].Enabled && features[host.FeatureVhciInjection].Enabled {
 		config.Flags |= ipc.FlagEnableVhciInjection

@@ -1,0 +1,14 @@
+# Copyright 2022 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+
+zx_vcpu_create(guest zx_handle, options int32, entry intptr, out ptr[out, zx_handle])
+
+# TODO: teach this about the port_packet_t struct
+
+zx_vcpu_enter(handle zx_handle, packet ptr[out, zx_port_packet])
+zx_vcpu_kick(handle zx_handle)
+zx_vcpu_interrupt(handle zx_handle, vector int32)
+zx_vcpu_read_state(handle zx_handle, kind int32, buffer buffer[in], buffer_size len[buffer])
+zx_vcpu_write_state(handle zx_handle, kind int32, buffer buffer[out], buffer_size len[buffer])

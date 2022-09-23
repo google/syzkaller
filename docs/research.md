@@ -1,6 +1,8 @@
 # Research work based on syzkaller
 
 _newer first_
+* [KASPER: Scanning for Generalized Transient Execution Gadgets in the Linux Kernel](https://www.vusec.net/projects/kasper/)
+* [VaultFuzzer: A state-based approach for Linux kernel](https://hardenedvault.net/blog/2021-09-13-vaultfuzzer/)
 * [Demystifying the Dependency Challenge in Kernel Fuzzing](https://conf.researchr.org/details/icse-2022/icse-2022-papers/89/Demystifying-the-Dependency-Challenge-in-Kernel-Fuzzing)
 * [SyzVegas: Beating Kernel Fuzzing Odds with Reinforcement Learning](https://www.usenix.org/conference/usenixsecurity21/presentation/wang-daimeng)
 * [SyzScope: Revealing High-Risk Security Impacts of Fuzzer-Exposed Bugs in Linux kernel](https://www.usenix.org/conference/usenixsecurity22/presentation/zou)
@@ -36,6 +38,8 @@ _newer first_
 
 # Other kernel fuzzing work
 
+* [Hydra: Finding Semantic Bugs in File Systems with an Extensible Fuzzing Framework](https://squizz617.github.io/pubs/hydra-sosp19.pdf) ([github](https://github.com/sslab-gatech/hydra))
+* [Janus: Fuzzing File Systems via Two-Dimensional Input Space Exploration](https://gts3.org/assets/papers/2019/xu:janus.pdf) ([github](https://github.com/sslab-gatech/janus))
 * [CoLaFUZE: Coverage-Guided and Layout-Aware Fuzzing for Android Drivers](https://www.jstage.jst.go.jp/article/transinf/E104.D/11/E104.D_2021NGP0005/_pdf)
 * [KRACE: Data Race Fuzzing for Kernel File Systems](https://www.cc.gatech.edu/~mxu80/pubs/xu:krace.pdf)
 * [trinity](https://github.com/kernelslacker/trinity)

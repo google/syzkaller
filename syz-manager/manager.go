@@ -774,8 +774,9 @@ func (mgr *Manager) runInstanceInner(index int, instanceName string) (*report.Re
 		Test:      false,
 		Runtest:   false,
 		Optional: &instance.OptionalFuzzerArgs{
-			Slowdown: mgr.cfg.Timeouts.Slowdown,
-			RawCover: mgr.cfg.RawCover,
+			Slowdown:   mgr.cfg.Timeouts.Slowdown,
+			RawCover:   mgr.cfg.RawCover,
+			SandboxArg: mgr.cfg.SandboxArg,
 		},
 	}
 	cmd := instance.FuzzerCmd(args)

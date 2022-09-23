@@ -67,6 +67,7 @@ func gvisorSymbolize(bin, srcDir string) ([]Frame, error) {
 		return nil, err
 	}
 	defer cmd.Wait()
+	defer cmd.Process.Kill()
 	var frames []Frame
 	s := bufio.NewScanner(stdout)
 	for s.Scan() {
@@ -108,15 +109,15 @@ func gvisorParseLine(s *bufio.Scanner) (Frame, error) {
 	}
 	var ints [4]int
 	for i := range ints {
-		x, err := strconv.ParseUint(match[i+2], 0, 32)
+		x, err := strconv.ParseUint(match[i+3], 0, 32)
 		if err != nil {
-			return Frame{}, fmt.Errorf("failed to parse number %q: %v", match[i+2], err)
+			return Frame{}, fmt.Errorf("failed to parse number %q: %v", match[i+3], err)
 		}
 		ints[i] = int(x)
 	}
 	frame := Frame{
 		PC:   pc,
-		Name: match[1],
+		Name: match[2],
 		Range: Range{
 			StartLine: ints[0],
 			StartCol:  ints[1],
@@ -127,4 +128,4 @@ func gvisorParseLine(s *bufio.Scanner) (Frame, error) {
 	return frame, nil
 }
 
-var gvisorLineRe = regexp.MustCompile(`/gvisor/([^:]+):([0-9]+).([0-9]+),([0-9]+).([0-9]+)$`)
+var gvisorLineRe = regexp.MustCompile(`^(.*/)?(pkg/[^:]+):([0-9]+).([0-9]+),([0-9]+).([0-9]+)$`)

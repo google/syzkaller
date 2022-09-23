@@ -10,6 +10,7 @@ import (
 
 // nolint:gocyclo
 func TestMinimize(t *testing.T) {
+	// nolint: lll
 	tests := []struct {
 		os              string
 		arch            string
@@ -215,6 +216,29 @@ func TestMinimize(t *testing.T) {
 			},
 			"pipe2(0x0, 0x0) (rerun: 100)\n",
 			-1,
+		},
+		// Undo target.SpecialFileLenghts mutation (reduce file name length).
+		{
+			"test", "64",
+			"mutate9(&(0x7f0000000000)='./file0aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\x00')\n",
+			0,
+			func(p *Prog, callIndex int) bool {
+				return p.Calls[0].Args[0].(*PointerArg).Res != nil
+			},
+			"mutate9(&(0x7f0000000000)='./file0\\x00')\n",
+			0,
+		},
+		// Ensure `no_minimize` calls are untouched.
+		{
+			"linux", "amd64",
+			"syz_mount_image$ext4(&(0x7f0000000000)='ext4\\x00', &(0x7f0000000100)='./file0\\x00', 0x40000, 0x2a, &(0x7f0000000200)=[{&(0x7f0000010000)='test\\x00'/32, 0x20, 0x400}], 0x0, &(0x7f0000010020), 0x1)\n",
+			0,
+			func(p *Prog, callIndex int) bool {
+				// Anything is allowed except removing a call.
+				return len(p.Calls) > 0
+			},
+			"syz_mount_image$ext4(&(0x7f0000000000)='ext4\\x00', &(0x7f0000000100)='./file0\\x00', 0x40000, 0x2a, &(0x7f0000000200)=[{&(0x7f0000010000)='test\\x00'/32, 0x20, 0x400}], 0x0, &(0x7f0000010020), 0x1)\n",
+			0,
 		},
 	}
 	t.Parallel()

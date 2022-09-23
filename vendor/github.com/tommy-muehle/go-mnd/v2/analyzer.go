@@ -102,6 +102,9 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		c := c
 		i.Preorder(c.NodeFilter(), func(node ast.Node) {
 			for _, exclude := range conf.IgnoredFiles {
+				if exclude.String() == "" {
+					continue
+				}
 				if exclude.MatchString(pass.Fset.Position(node.Pos()).Filename) {
 					return
 				}

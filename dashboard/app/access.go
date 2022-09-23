@@ -117,7 +117,7 @@ func checkCrashTextAccess(c context.Context, r *http.Request, field string, id i
 	if len(crashes) != 1 {
 		err := fmt.Errorf("checkCrashTextAccess: found %v crashes for %v=%v", len(crashes), field, id)
 		if len(crashes) == 0 {
-			err = ErrDontLog{err}
+			err = fmt.Errorf("%v: %w", err, ErrClientNotFound)
 		}
 		return nil, nil, err
 	}
@@ -142,7 +142,7 @@ func checkJobTextAccess(c context.Context, r *http.Request, field string, id int
 		err := fmt.Errorf("checkJobTextAccess: found %v jobs for %v=%v", len(keys), field, id)
 		if len(keys) == 0 {
 			// This can be triggered by bad user requests, so don't log the error.
-			err = ErrDontLog{err}
+			err = fmt.Errorf("%v: %w", err, ErrClientNotFound)
 		}
 		return err
 	}

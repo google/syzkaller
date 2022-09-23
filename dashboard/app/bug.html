@@ -14,13 +14,13 @@ Page with details about a single bug.
 <body>
 	{{template "header" .Header}}
 
-	<b>{{.Bug.Title}}</b><br>
+	<b>{{.Bug.Title}}</b><br><br>
 	Status: {{if .Bug.ExternalLink}}<a href="{{.Bug.ExternalLink}}">{{.Bug.Status}}</a>{{else}}{{.Bug.Status}}{{end}}<br>
 	Reported-by: {{.Bug.CreditEmail}}<br>
 	{{if .Bug.Commits}}
-		Fix commit: {{template "fix_commits" .Bug.Commits}}<br>
+		<b>Fix commit:</b> {{template "fix_commits" .Bug.Commits}}<br>
 		{{if .Bug.ClosedTime.IsZero}}
-			Patched on: {{.Bug.PatchedOn}}, missing on: {{.Bug.MissingOn}}<br>
+			<b>Patched on:</b> {{.Bug.PatchedOn}}, missing on: {{.Bug.MissingOn}}<br>
 		{{end}}
 	{{end}}
 	First crash: {{formatLateness $.Now $.Bug.FirstTime}}, last: {{formatLateness $.Now $.Bug.LastTime}}<br>
@@ -35,7 +35,7 @@ Page with details about a single bug.
 
 	{{if .SampleReport}}
 	<br><b>Sample crash report:</b><br>
-	<textarea id="log_textarea" readonly rows="25" wrap=off>{{printf "%s" .SampleReport}}</textarea><br>
+	<div id="crash_div"><pre>{{.SampleReport}}</pre></div><br>
 	{{end}}
 
 	{{if .FixBisections}}

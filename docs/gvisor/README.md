@@ -301,3 +301,24 @@ You can also adjust the args to `syz-execprog` in `config.json`. e.g., add
 	}
 }
 ```
+## syzkaller way gVisor use
+
+To build specific gVisor ver:
+
+```
+git clone https://github.com/google/gvisor
+git checkout be6ffa78e4df78df13d004a17f2a8833305285c4
+```
+
+To build runsc:
+
+```
+bazel build --verbose_failures --collect_code_coverage --instrumentation_filter=//pkg/...,-//pkg/sentry/platform,-//pkg/ring0,-//pkg/coverage:coverage //runsc:runsc
+```
+
+To find runsc binary and get symbols
+
+```
+bazel aquery --collect_code_coverage --instrumentation_filter=//pkg/...,-//pkg/sentry/platform,-//pkg/ring0,-//pkg/coverage:coverage 'mnemonic("GoLink", //runsc:runsc)'
+./bazel-out/k8-fastbuild-ST-a2b97ed4b8d6/bin/runsc/runsc_/runsc symbolize -all > symbolize_all_gvisor_be6ffa78e4df78df13d004a17f2a8833305285c4.txt
+```

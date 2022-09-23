@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/syzkaller/pkg/debugtracer"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/vcs"
@@ -32,6 +33,7 @@ type Params struct {
 	CmdlineFile  string
 	SysctlFile   string
 	Config       []byte
+	Tracer       debugtracer.DebugTracer
 }
 
 // Information that is returned from the Image function.
@@ -61,7 +63,11 @@ type ImageDetails struct {
 // the version of the compiler/toolchain that was used to build the kernel.
 // The CompilerID field is not guaranteed to be non-empty.
 func Image(params Params) (details ImageDetails, err error) {
-	builder, err := getBuilder(params.TargetOS, params.TargetArch, params.VMType)
+	if params.Tracer == nil {
+		params.Tracer = &debugtracer.NullTracer{}
+	}
+	var builder builder
+	builder, err = getBuilder(params.TargetOS, params.TargetArch, params.VMType)
 	if err != nil {
 		return
 	}
@@ -287,15 +293,16 @@ type buildFailureCause struct {
 
 var buildFailureCauses = [...]buildFailureCause{
 	{pattern: regexp.MustCompile(`: error: `)},
+	{pattern: regexp.MustCompile(`Error: `)},
 	{pattern: regexp.MustCompile(`ERROR: `)},
 	{pattern: regexp.MustCompile(`: fatal error: `)},
 	{pattern: regexp.MustCompile(`: undefined reference to`)},
 	{pattern: regexp.MustCompile(`: multiple definition of`)},
 	{pattern: regexp.MustCompile(`: Permission denied`)},
-	{pattern: regexp.MustCompile(`: not found`)},
 	{pattern: regexp.MustCompile(`^([a-zA-Z0-9_\-/.]+):[0-9]+:([0-9]+:)?.*(error|invalid|fatal|wrong)`)},
 	{pattern: regexp.MustCompile(`FAILED unresolved symbol`)},
 	{pattern: regexp.MustCompile(`No rule to make target`)},
+	{weak: true, pattern: regexp.MustCompile(`: not found`)},
 	{weak: true, pattern: regexp.MustCompile(`: final link failed: `)},
 	{weak: true, pattern: regexp.MustCompile(`collect2: error: `)},
 	{weak: true, pattern: regexp.MustCompile(`FAILED: Build did NOT complete`)},

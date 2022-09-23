@@ -1,0 +1,55 @@
+# Copyright 2022 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+include <zircon/syscalls/clock.h>
+
+resource zx_time[int64]: 0, ZX_TIME_INFINITE
+
+zx_clock_get_monotonic() (ignore_return)
+zx_clock_create(option flags[clock_create_opt], args ptr[in, zx_clock_create_args_v1], out ptr[out, zx_handle])
+zx_clock_read(handle zx_handle, now ptr[out, intptr]) (ignore_return)
+zx_clock_get_details(handle zx_handle, option const[0x400000000000000], details ptr[out, zx_clock_details_v1])
+zx_clock_update(handle zx_handle, option flags[clock_update_opt], args ptr[in, zx_clock_update_args_v2])
+
+clock_create_opt = ZX_CLOCK_OPT_MONOTONIC, ZX_CLOCK_OPT_CONTINUOUS, ZX_CLOCK_OPT_AUTO_START
+clock_update_opt = 0x800000000000000, ZX_CLOCK_UPDATE_OPTION_SYNTHETIC_VALUE_VALID, ZX_CLOCK_UPDATE_OPTION_REFERENCE_VALUE_VALID, ZX_CLOCK_UPDATE_OPTION_RATE_ADJUST_VALID, ZX_CLOCK_UPDATE_OPTION_ERROR_BOUND_VALID
+
+zx_clock_update_args_v2 {
+	rate_adjust	int32
+	padding		int32
+	synthetic_value	int64
+	reference_value	int64
+	error_bound	int64
+}
+
+zx_clock_create_args_v1 {
+	backstop_time	zx_time
+}
+
+zx_clock_rate {
+	synthetic_ticks	int32
+	reference_ticks	int32
+}
+
+zx_clock_transformation {
+	reference_offset	int64
+	synthetic_offset	int64
+	rate			zx_clock_rate
+}
+
+zx_clock_details_v1 {
+	options				int64
+	backstop_time			zx_time
+	ticks_to_synthetic		zx_clock_transformation
+	mono_to_synthetic		zx_clock_transformation
+	error_bound			int64
+	query_ticks			int64
+	last_value_update_ticks		int64
+	last_rate_adjust_update_ticks	int64
+	last_error_bounds_update_ticks	int64
+	generation_counter		int32
+	padding1			int32
+}
+
+syz_future_time(when intptr[0:1]) zx_time

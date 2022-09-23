@@ -14,7 +14,7 @@ type Range struct {
 
 type Replacement struct {
 	NeedOnlyDelete bool     // need to delete all lines of the issue without replacement with new lines
-	NewLines       []string // is NeedDelete is false it's the replacement lines
+	NewLines       []string // if NeedDelete is false it's the replacement lines
 	Inline         *InlineFix
 }
 
@@ -92,7 +92,7 @@ func (i *Issue) Fingerprint() string {
 	}
 
 	hash := md5.New() //nolint:gosec
-	_, _ = hash.Write([]byte(fmt.Sprintf("%s%s%s", i.Pos.Filename, i.Text, firstLine)))
+	_, _ = fmt.Fprintf(hash, "%s%s%s", i.Pos.Filename, i.Text, firstLine)
 
 	return fmt.Sprintf("%X", hash.Sum(nil))
 }

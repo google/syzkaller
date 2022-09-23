@@ -251,7 +251,7 @@ print('\tpowerpc.Register(insns)')
 print('}')
 print('')
 print('var insns = []*powerpc.Insn{')
-generate_go(insns, collect_priv(isa_dir + "/Appendices/PPC_ApInstMnem.tex", insns))
+generate_go(insns, collect_priv(isa_dir + "/Appendices/inst-mnem.tex", insns))
 print("}")
 
 pe.pprint("Processed {} instructions".format(len(insns)))

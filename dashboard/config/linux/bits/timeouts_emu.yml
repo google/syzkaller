@@ -1,0 +1,10 @@
+# Copyright 2022 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+config:
+ # We reduce number of vivid/netrom/rose/hcd devices to 2 because we use at most 2 procs
+ # with emulation and creating these devices takes time during boot.
+ - CMDLINE: [append, "smp.csd_lock_timeout=300000 watchdog_thresh=165 workqueue.watchdog_thresh=420 sysctl.net.core.netdev_unregister_timeout_secs=420 dummy_hcd.num=2"]
+ # See the comment in x86_64.yml re these numbers.
+ - RCU_CPU_STALL_TIMEOUT: 300
+ - DEFAULT_HUNG_TASK_TIMEOUT: [420, -nonoise, -kmsan, -kcsan, -kmemleak]

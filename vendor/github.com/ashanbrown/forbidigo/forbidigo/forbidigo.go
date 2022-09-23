@@ -24,10 +24,15 @@ type UsedIssue struct {
 	identifier string
 	pattern    string
 	position   token.Position
+	customMsg  string
 }
 
 func (a UsedIssue) Details() string {
-	return fmt.Sprintf("use of `%s` forbidden by pattern `%s`", a.identifier, a.pattern)
+	explanation := fmt.Sprintf(` because %q`, a.customMsg)
+	if a.customMsg == "" {
+		explanation = fmt.Sprintf(" by pattern `%s`", a.pattern)
+	}
+	return fmt.Sprintf("use of `%s` forbidden", a.identifier) + explanation
 }
 
 func (a UsedIssue) Position() token.Position {
@@ -36,17 +41,17 @@ func (a UsedIssue) Position() token.Position {
 
 func (a UsedIssue) String() string { return toString(a) }
 
-func toString(i Issue) string {
+func toString(i UsedIssue) string {
 	return fmt.Sprintf("%s at %s", i.Details(), i.Position())
 }
 
 type Linter struct {
 	cfg      config
-	patterns []*regexp.Regexp
+	patterns []*pattern
 }
 
 func DefaultPatterns() []string {
-	return []string{`^fmt\.Print(|f|ln)$`}
+	return []string{`^(fmt\.Print(|f|ln)|print|println)$`}
 }
 
 //go:generate go-options config
@@ -65,13 +70,13 @@ func NewLinter(patterns []string, options ...Option) (*Linter, error) {
 	if len(patterns) == 0 {
 		patterns = DefaultPatterns()
 	}
-	compiledPatterns := make([]*regexp.Regexp, 0, len(patterns))
-	for _, p := range patterns {
-		re, err := regexp.Compile(p)
+	compiledPatterns := make([]*pattern, 0, len(patterns))
+	for _, ptrn := range patterns {
+		p, err := parse(ptrn)
 		if err != nil {
-			return nil, fmt.Errorf("unable to compile pattern `%s`: %s", p, err)
+			return nil, err
 		}
-		compiledPatterns = append(compiledPatterns, re)
+		compiledPatterns = append(compiledPatterns, p)
 	}
 	return &Linter{
 		cfg:      cfg,
@@ -91,7 +96,7 @@ type visitor struct {
 }
 
 func (l *Linter) Run(fset *token.FileSet, nodes ...ast.Node) ([]Issue, error) {
-	var issues []Issue // nolint:prealloc // we don't know how many there will be
+	var issues []Issue //nolint:prealloc // we don't know how many there will be
 	for _, node := range nodes {
 		var comments []*ast.CommentGroup
 		isTestFile := false
@@ -158,11 +163,12 @@ func (v *visitor) Visit(node ast.Node) ast.Visitor {
 		return v
 	}
 	for _, p := range v.linter.patterns {
-		if p.MatchString(v.textFor(node)) && !v.permit(node) {
+		if p.pattern.MatchString(v.textFor(node)) && !v.permit(node) {
 			v.issues = append(v.issues, UsedIssue{
 				identifier: v.textFor(node),
-				pattern:    p.String(),
+				pattern:    p.pattern.String(),
 				position:   v.fset.Position(node.Pos()),
+				customMsg:  p.msg,
 			})
 		}
 	}
@@ -182,10 +188,10 @@ func (v *visitor) permit(node ast.Node) bool {
 		return false
 	}
 	nodePos := v.fset.Position(node.Pos())
-	var nolint = regexp.MustCompile(fmt.Sprintf(`^permit:%s\b`, regexp.QuoteMeta(v.textFor(node))))
+	var nolint = regexp.MustCompile(fmt.Sprintf(`^//\s?permit:%s\b`, regexp.QuoteMeta(v.textFor(node))))
 	for _, c := range v.comments {
 		commentPos := v.fset.Position(c.Pos())
-		if commentPos.Line == nodePos.Line && nolint.MatchString(c.Text()) {
+		if commentPos.Line == nodePos.Line && len(c.List) > 0 && nolint.MatchString(c.List[0].Text) {
 			return true
 		}
 	}

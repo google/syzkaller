@@ -212,7 +212,7 @@ func (vrf *Verifier) SetPrintStatAtSIGINT() error {
 		return errors.New("verifier.stats is nil")
 	}
 
-	osSignalChannel := make(chan os.Signal)
+	osSignalChannel := make(chan os.Signal, 1)
 	signal.Notify(osSignalChannel, os.Interrupt)
 
 	go func() {

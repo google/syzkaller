@@ -11,9 +11,9 @@ import (
 )
 
 // Normal workflow:
-//  - upload crash -> need repro
-//  - upload syz repro -> still need repro
-//  - upload C repro -> don't need repro
+//   - upload crash -> need repro
+//   - upload syz repro -> still need repro
+//   - upload C repro -> don't need repro
 func testNeedRepro1(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash, newBug bool) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -131,45 +131,6 @@ func TestNeedRepro3_dup(t *testing.T)         { testNeedRepro3(t, dupCrash) }
 func TestNeedRepro3_closed(t *testing.T)      { testNeedRepro3(t, closedCrash) }
 func TestNeedRepro3_closedRepro(t *testing.T) { testNeedRepro3(t, closedWithReproCrash) }
 
-// Test that after uploading 5 syz repros, app stops requesting repros.
-func testNeedRepro4(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash, newBug bool) {
-	c := NewCtx(t)
-	defer c.Close()
-
-	crash1 := crashCtor(c)
-	crash1.ReproOpts = []byte("opts")
-	crash1.ReproSyz = []byte("repro syz")
-	for i := 0; i < maxReproPerBug-1; i++ {
-		resp, _ := c.client.ReportCrash(crash1)
-		c.expectEQ(resp.NeedRepro, true)
-		needRepro, _ := c.client.NeedRepro(testCrashID(crash1))
-		c.expectEQ(needRepro, true)
-	}
-
-	resp, _ := c.client.ReportCrash(crash1)
-	c.expectEQ(resp.NeedRepro, false)
-	needRepro, _ := c.client.NeedRepro(testCrashID(crash1))
-	c.expectEQ(needRepro, false)
-
-	// No more repros even after a day.
-	c.advanceTime(25 * time.Hour)
-	crash1.ReproOpts = nil
-	crash1.ReproSyz = nil
-
-	resp, _ = c.client.ReportCrash(crash1)
-	c.expectEQ(resp.NeedRepro, false)
-	needRepro, _ = c.client.NeedRepro(testCrashID(crash1))
-	c.expectEQ(needRepro, false)
-	if newBug {
-		c.client.pollBug()
-	}
-}
-
-func TestNeedRepro4_normal(t *testing.T)      { testNeedRepro4(t, normalCrash, true) }
-func TestNeedRepro4_dup(t *testing.T)         { testNeedRepro4(t, dupCrash, false) }
-func TestNeedRepro4_closed(t *testing.T)      { testNeedRepro4(t, closedCrash, true) }
-func TestNeedRepro4_closedRepro(t *testing.T) { testNeedRepro4(t, closedWithReproCrash, true) }
-
 func normalCrash(c *Ctx) *dashapi.Crash {
 	build := testBuild(1)
 	c.client.UploadBuild(build)
@@ -236,4 +197,146 @@ func TestNeedReproMissing(t *testing.T) {
 	needRepro, err = client.NeedRepro(cid)
 	c.expectEQ(err, nil)
 	c.expectEQ(needRepro, true)
+}
+
+// In addition to the above, do a number of quick tests of the needReproForBug function.
+func TestNeedReproIsolated(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	nowTime := c.mockedTime
+	tests := []struct {
+		bug       *Bug
+		needRepro bool
+	}{
+		{
+			// A bug without a repro.
+			bug: &Bug{
+				Title: "normal bug without a repro",
+			},
+			needRepro: true,
+		},
+		{
+			// Corrupted bug.
+			bug: &Bug{
+				Title: corruptedReportTitle,
+			},
+			needRepro: false,
+		},
+		{
+			// Suppressed bug.
+			bug: &Bug{
+				Title: suppressedReportTitle,
+			},
+			needRepro: false,
+		},
+		{
+			// A bug without a C repro.
+			bug: &Bug{
+				Title:          "some normal bug with a syz-repro",
+				ReproLevel:     ReproLevelSyz,
+				HeadReproLevel: ReproLevelSyz,
+			},
+			needRepro: true,
+		},
+		{
+			// A bug for which we have recently found a repro.
+			bug: &Bug{
+				Title:          "some normal recent bug",
+				ReproLevel:     ReproLevelC,
+				HeadReproLevel: ReproLevelC,
+				LastReproTime:  nowTime.Add(-time.Hour * 24),
+			},
+			needRepro: false,
+		},
+		{
+			// A bug which has an old C repro.
+			bug: &Bug{
+				Title:          "some normal bug with old repro",
+				ReproLevel:     ReproLevelC,
+				HeadReproLevel: ReproLevelC,
+				NumRepro:       2 * maxReproPerBug,
+				LastReproTime:  nowTime.Add(-reproStalePeriod),
+			},
+			needRepro: true,
+		},
+		{
+			// Several failed repro attepts are OK.
+			bug: &Bug{
+				Title:         "some normal bug with several fails",
+				NumRepro:      maxReproPerBug - 1,
+				LastReproTime: nowTime,
+			},
+			needRepro: true,
+		},
+		{
+			// ... but there are limits.
+			bug: &Bug{
+				Title:         "some normal bug with too much fails",
+				NumRepro:      maxReproPerBug,
+				LastReproTime: nowTime,
+			},
+			needRepro: false,
+		},
+		{
+			// Make sure we try until we find a C repro, not just a syz repro.
+			bug: &Bug{
+				Title:          "too many fails, but only a syz repro",
+				ReproLevel:     ReproLevelSyz,
+				HeadReproLevel: ReproLevelSyz,
+				NumRepro:       maxReproPerBug,
+				LastReproTime:  nowTime.Add(-24 * time.Hour),
+			},
+			needRepro: true,
+		},
+		{
+			// We don't need a C repro for SYZFATAL: bugs.
+			bug: &Bug{
+				Title:          "SYZFATAL: Manager.Check call failed",
+				ReproLevel:     ReproLevelSyz,
+				HeadReproLevel: ReproLevelSyz,
+				LastReproTime:  nowTime.Add(-24 * time.Hour),
+			},
+			needRepro: false,
+		},
+		{
+			// .. and for SYZFAIL: bugs.
+			bug: &Bug{
+				Title:          "SYZFAIL: clock_gettime failed",
+				ReproLevel:     ReproLevelSyz,
+				HeadReproLevel: ReproLevelSyz,
+				LastReproTime:  nowTime.Add(-24 * time.Hour),
+			},
+			needRepro: false,
+		},
+		{
+			// Yet make sure that we request at least a syz repro.
+			bug: &Bug{
+				Title: "SYZFATAL: Manager.Check call failed",
+			},
+			needRepro: true,
+		},
+		{
+			// A bug with a revoked repro.
+			bug: &Bug{
+				Title:          "some normal bug with a syz-repro",
+				ReproLevel:     ReproLevelC,
+				HeadReproLevel: ReproLevelSyz,
+				LastReproTime:  nowTime.Add(-24 * time.Hour),
+			},
+			needRepro: true,
+		},
+	}
+
+	for _, test := range tests {
+		bug := test.bug
+		if bug.Namespace == "" {
+			bug.Namespace = "test1"
+		}
+		funcResult := needReproForBug(c.ctx, bug)
+		if funcResult != test.needRepro {
+			t.Errorf("For %#v expected needRepro=%v, got needRepro=%v",
+				bug, test.needRepro, funcResult)
+		}
+	}
 }

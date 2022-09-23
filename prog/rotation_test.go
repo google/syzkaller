@@ -63,10 +63,17 @@ func TestRotationCoverage(t *testing.T) {
 		counters[call.Name] = 0
 	}
 	rotator := MakeRotator(target, calls, rand.New(rs))
-	for iter := 0; iter < 2e3; iter++ {
+nextIter:
+	for iter := 0; iter < 1e4; iter++ {
 		for call := range rotator.Select() {
 			counters[call.Name]++
 		}
+		for _, count := range counters {
+			if count == 0 {
+				continue nextIter
+			}
+		}
+		break
 	}
 	type pair struct {
 		name  string
@@ -131,5 +138,21 @@ retry:
 				goto retry
 			}
 		}
+	}
+}
+
+func TestRotationDeterminism(t *testing.T) {
+	target, rs, _ := initTest(t)
+	calls := make(map[*Syscall]bool)
+	for _, call := range target.Syscalls {
+		calls[call] = true
+	}
+	seed := rs.Int63()
+	rnd0 := rand.New(rand.NewSource(seed))
+	calls0 := MakeRotator(target, calls, rnd0).Select()
+	rnd1 := rand.New(rand.NewSource(seed))
+	calls1 := MakeRotator(target, calls, rnd1).Select()
+	if diff := cmp.Diff(calls0, calls1); diff != "" {
+		t.Fatal(diff)
 	}
 }

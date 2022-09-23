@@ -279,7 +279,7 @@ func (m *MemMapFs) RemoveAll(path string) error {
 	defer m.mu.RUnlock()
 
 	for p := range m.getData() {
-		if strings.HasPrefix(p, path) {
+		if p == path || strings.HasPrefix(p, path+FilePathSeparator) {
 			m.mu.RUnlock()
 			m.mu.Lock()
 			delete(m.getData(), p)
@@ -363,6 +363,22 @@ func (m *MemMapFs) setFileMode(name string, mode os.FileMode) error {
 	return nil
 }
 
+func (m *MemMapFs) Chown(name string, uid, gid int) error {
+	name = normalizePath(name)
+
+	m.mu.RLock()
+	f, ok := m.getData()[name]
+	m.mu.RUnlock()
+	if !ok {
+		return &os.PathError{Op: "chown", Path: name, Err: ErrFileNotFound}
+	}
+
+	mem.SetUID(f, uid)
+	mem.SetGID(f, gid)
+
+	return nil
+}
+
 func (m *MemMapFs) Chtimes(name string, atime time.Time, mtime time.Time) error {
 	name = normalizePath(name)
 
@@ -386,9 +402,3 @@ func (m *MemMapFs) List() {
 		fmt.Println(x.Name(), y.Size())
 	}
 }
-
-// func debugMemMapList(fs Fs) {
-// 	if x, ok := fs.(*MemMapFs); ok {
-// 		x.List()
-// 	}
-// }

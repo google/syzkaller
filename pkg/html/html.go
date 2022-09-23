@@ -1,14 +1,11 @@
 // Copyright 2018 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-//go:generate ./gen.sh
-
 package html
 
 import (
 	"fmt"
 	"html/template"
-	"io/fs"
 	"reflect"
 	"strings"
 	texttemplate "text/template"
@@ -17,27 +14,12 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 )
 
-func CreatePage(page string) *template.Template {
-	page = strings.Replace(page, "{{HEAD}}", getHeadTemplate(), 1)
-	return template.Must(template.New("").Funcs(Funcs).Parse(page))
-}
-
 func CreateGlob(glob string) *template.Template {
 	return template.Must(template.New("").Funcs(Funcs).ParseGlob(glob))
 }
 
-func CreateFromFS(fs fs.FS, patterns ...string) *template.Template {
-	t := template.Must(template.New("syz-head").Funcs(Funcs).Parse(getHeadTemplate()))
-	return template.Must(t.New("").Funcs(Funcs).ParseFS(fs, patterns...))
-}
-
 func CreateTextGlob(glob string) *texttemplate.Template {
 	return texttemplate.Must(texttemplate.New("").Funcs(texttemplate.FuncMap(Funcs)).ParseGlob(glob))
-}
-
-func getHeadTemplate() string {
-	const headTempl = `<style type="text/css" media="screen">%v</style><script>%v</script>`
-	return fmt.Sprintf(headTempl, style, js)
 }
 
 var Funcs = template.FuncMap{

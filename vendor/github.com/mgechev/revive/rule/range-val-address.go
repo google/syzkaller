@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
+	"strings"
 
 	"github.com/mgechev/revive/lint"
 )
@@ -12,26 +13,29 @@ import (
 type RangeValAddress struct{}
 
 // Apply applies the rule to given file.
-func (r *RangeValAddress) Apply(file *lint.File, _ lint.Arguments) []lint.Failure {
+func (*RangeValAddress) Apply(file *lint.File, _ lint.Arguments) []lint.Failure {
 	var failures []lint.Failure
 
 	walker := rangeValAddress{
+		file: file,
 		onFailure: func(failure lint.Failure) {
 			failures = append(failures, failure)
 		},
 	}
 
+	file.Pkg.TypeCheck()
 	ast.Walk(walker, file.AST)
 
 	return failures
 }
 
 // Name returns the rule name.
-func (r *RangeValAddress) Name() string {
+func (*RangeValAddress) Name() string {
 	return "range-val-address"
 }
 
 type rangeValAddress struct {
+	file      *lint.File
 	onFailure func(lint.Failure)
 }
 
@@ -46,17 +50,24 @@ func (w rangeValAddress) Visit(node ast.Node) ast.Visitor {
 		return w
 	}
 
+	valueIsStarExpr := false
+	if t := w.file.Pkg.TypeOf(value); t != nil {
+		valueIsStarExpr = strings.HasPrefix(t.String(), "*")
+	}
+
 	ast.Walk(rangeBodyVisitor{
-		valueID:   value.Obj,
-		onFailure: w.onFailure,
+		valueIsStarExpr: valueIsStarExpr,
+		valueID:         value.Obj,
+		onFailure:       w.onFailure,
 	}, n.Body)
 
 	return w
 }
 
 type rangeBodyVisitor struct {
-	valueID   *ast.Object
-	onFailure func(lint.Failure)
+	valueIsStarExpr bool
+	valueID         *ast.Object
+	onFailure       func(lint.Failure)
 }
 
 func (bw rangeBodyVisitor) Visit(node ast.Node) ast.Visitor {
@@ -77,21 +88,39 @@ func (bw rangeBodyVisitor) Visit(node ast.Node) ast.Visitor {
 
 	for _, exp := range asgmt.Rhs {
 		switch e := exp.(type) {
-		case *ast.UnaryExpr: // e.g. ...&value
+		case *ast.UnaryExpr: // e.g. ...&value, ...&value.id
 			if bw.isAccessingRangeValueAddress(e) {
 				bw.onFailure(bw.newFailure(e))
 			}
 		case *ast.CallExpr:
 			if fun, ok := e.Fun.(*ast.Ident); ok && fun.Name == "append" { // e.g. ...append(arr, &value)
 				for _, v := range e.Args {
-					if bw.isAccessingRangeValueAddress(v) {
-						bw.onFailure(bw.newFailure(e))
+					if lit, ok := v.(*ast.CompositeLit); ok { // e.g. ...append(arr, v{id:&value})
+						bw.checkCompositeLit(lit)
+						continue
+					}
+					if bw.isAccessingRangeValueAddress(v) { // e.g. ...append(arr, &value)
+						bw.onFailure(bw.newFailure(v))
 					}
 				}
 			}
+		case *ast.CompositeLit: // e.g. ...v{id:&value}
+			bw.checkCompositeLit(e)
 		}
 	}
 	return bw
+}
+
+func (bw rangeBodyVisitor) checkCompositeLit(comp *ast.CompositeLit) {
+	for _, exp := range comp.Elts {
+		e, ok := exp.(*ast.KeyValueExpr)
+		if !ok {
+			continue
+		}
+		if bw.isAccessingRangeValueAddress(e.Value) {
+			bw.onFailure(bw.newFailure(e.Value))
+		}
+	}
 }
 
 func (bw rangeBodyVisitor) isAccessingRangeValueAddress(exp ast.Expr) bool {
@@ -100,8 +129,28 @@ func (bw rangeBodyVisitor) isAccessingRangeValueAddress(exp ast.Expr) bool {
 		return false
 	}
 
+	if u.Op != token.AND {
+		return false
+	}
+
 	v, ok := u.X.(*ast.Ident)
-	return ok && u.Op == token.AND && v.Obj == bw.valueID
+	if !ok {
+		var s *ast.SelectorExpr
+		s, ok = u.X.(*ast.SelectorExpr)
+		if !ok {
+			return false
+		}
+		v, ok = s.X.(*ast.Ident)
+		if !ok {
+			return false
+		}
+
+		if bw.valueIsStarExpr { // check type of value
+			return false
+		}
+	}
+
+	return ok && v.Obj == bw.valueID
 }
 
 func (bw rangeBodyVisitor) newFailure(node ast.Node) lint.Failure {

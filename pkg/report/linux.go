@@ -367,7 +367,7 @@ func (ctx *linux) Symbolize(rep *Report) error {
 		}
 	}
 
-	rep.Report = ctx.decompileReportOpcodes(rep.Report)
+	rep.Report = ctx.decompileOpcodes(rep.Report, rep)
 
 	// We still do this even if we did not symbolize,
 	// because tests pass in already symbolized input.
@@ -623,14 +623,19 @@ func (ctx *linux) parseOpcodes(codeSlice string) (parsedOpcodes, error) {
 	}, nil
 }
 
-// decompileReportOpcodes detects the most meaningful "Code: " lines from the report, decompiles
+// decompileOpcodes detects the most meaningful "Code: " lines from the report, decompiles
 // them and appends a human-readable listing to the end of the report.
-func (ctx *linux) decompileReportOpcodes(report []byte) []byte {
+func (ctx *linux) decompileOpcodes(text []byte, report *Report) []byte {
+	if report.Type == Hang {
+		// Even though Hang reports do contain the Code: section, there's no point in
+		// decompiling that. So just return the text.
+		return text
+	}
 	// Iterate over all "Code: " lines and pick the first that could be decompiled
 	// that might be of interest to the user.
 	var decompiled *decompiledOpcodes
 	var prevLine []byte
-	for s := bufio.NewScanner(bytes.NewReader(report)); s.Scan(); prevLine = append([]byte{}, s.Bytes()...) {
+	for s := bufio.NewScanner(bytes.NewReader(text)); s.Scan(); prevLine = append([]byte{}, s.Bytes()...) {
 		// We want to avoid decompiling code from user-space as it is not of big interest during
 		// debugging kernel problems.
 		// For now this check only works for x86/amd64, but Linux on other architectures supported
@@ -651,7 +656,7 @@ func (ctx *linux) decompileReportOpcodes(report []byte) []byte {
 	}
 
 	if decompiled == nil {
-		return report
+		return text
 	}
 
 	skipInfo := ""
@@ -664,7 +669,7 @@ func (ctx *linux) decompileReportOpcodes(report []byte) []byte {
 	// the most important information at the top of the report, so that it is visible from
 	// the syzbot dashboard without scrolling.
 	headLine := fmt.Sprintf("----------------\nCode disassembly (best guess)%v:\n", skipInfo)
-	report = append(report, headLine...)
+	text = append(text, headLine...)
 
 	for idx, opcode := range decompiled.opcodes {
 		line := opcode.FullDescription
@@ -673,9 +678,9 @@ func (ctx *linux) decompileReportOpcodes(report []byte) []byte {
 		} else {
 			line += "\n"
 		}
-		report = append(report, line...)
+		text = append(text, line...)
 	}
-	return report
+	return text
 }
 
 func (ctx *linux) extractGuiltyFile(rep *Report) string {
@@ -1060,7 +1065,8 @@ var linuxStackParams = &stackParams{
 		"mutex_remove_waiter",
 		"osq_lock",
 		"osq_unlock",
-		"atomic_dec",
+		"atomic(64)?_(dec|inc|read|set|or|xor|and|add|sub|fetch|xchg|cmpxchg|try)",
+		"(set|clear|change|test)_bit",
 		"__wake_up",
 		"refcount_add",
 		"refcount_sub",
@@ -1235,12 +1241,12 @@ var linuxOopses = append([]*oops{
 			},
 			{
 				title:  compile("BUG: KASAN:"),
-				report: compile("BUG: KASAN: double-free or invalid-free in {{FUNC}}"),
+				report: compile("BUG: KASAN: (?:double-free or invalid-free|double-free|invalid-free) in {{FUNC}}"),
 				fmt:    "KASAN: invalid-free in %[2]v",
 				alt:    []string{"invalid-free in %[2]v"},
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
-						compile("BUG: KASAN: double-free or invalid-free in {{FUNC}}"),
+						compile("BUG: KASAN: (?:double-free or invalid-free|double-free|invalid-free) in {{FUNC}}"),
 						linuxCallTrace,
 						parseStackTrace,
 					},
@@ -1728,6 +1734,7 @@ var linuxOopses = append([]*oops{
 			compile("WARNING: [Tt]he mand mount option (is being|has been) deprecated"),
 			compile("WARNING: Unsupported flag value\\(s\\) of 0x%x in DT_FLAGS_1"), // printed when glibc is dumped
 			compile("WARNING: Unprivileged eBPF is enabled with eIBRS"),
+			compile(`WARNING: fbcon: Driver '(.*)' missed to adjust virtual screen size (\((?:\d+)x(?:\d+) vs\. (?:\d+)x(?:\d+)\))`),
 		},
 	},
 	{
@@ -1883,7 +1890,9 @@ var linuxOopses = append([]*oops{
 				},
 			},
 		},
-		[]*regexp.Regexp{},
+		[]*regexp.Regexp{
+			compile(`general protection fault .* error:\d+ in `),
+		},
 	},
 	{
 		[]byte("stack segment: "),

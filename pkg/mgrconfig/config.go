@@ -112,13 +112,23 @@ type Config struct {
 	MaxCrashLogs int `json:"max_crash_logs"`
 
 	// Type of sandbox to use during fuzzing:
-	// "none": don't do anything special beyond resource sandboxing, default
-	// "setuid": impersonate into user nobody (65534). Supported only for some OSes.
-	// "namespace": create a new namespace for fuzzer using CLONE_NEWNS/CLONE_NEWNET/CLONE_NEWPID/etc,
-	//	requires building kernel with CONFIG_NAMESPACES, CONFIG_UTS_NS, CONFIG_USER_NS,
-	//	CONFIG_PID_NS and CONFIG_NET_NS. Supported only for some OSes.
-	// "android": (Android) Emulate permissions of an untrusted app.
+	// "none": test under root;
+	//      don't do anything special beyond resource sandboxing,
+	//      gives the most coverage, default
+	// "namespace": create a new user namespace for testing using CLONE_NEWUSER (supported only on Linux),
+	//      the test process has CAP_ADMIN inside of the user namespace, but not in the init namespace,
+	//      but the test process still has access to all /dev/ nodes owned by root,
+	//      this is a compromise between coverage and bug impact,
+	//	requires building kernel with CONFIG_USER_NS
+	// "setuid": impersonate into user nobody (65534) (supported on Linux, FreeBSD, NetBSD, OpenBSD)
+	//      this is the most restrictive sandbox
+	// "android": emulate permissions of an untrusted Android app (supported only on Linux)
 	Sandbox string `json:"sandbox"`
+
+	// This value is passed as an argument to executor and allows to adjust sandbox behavior
+	// via manager config. For example you can switch between system and user accounts based
+	// on this value.
+	SandboxArg int `json:"sandbox_arg"`
 
 	// Use KCOV coverage (default: true).
 	Cover bool `json:"cover"`
@@ -156,6 +166,8 @@ type Config struct {
 	EnabledSyscalls []string `json:"enable_syscalls,omitempty"`
 	// List of system calls that should be treated as disabled (optional).
 	DisabledSyscalls []string `json:"disable_syscalls,omitempty"`
+	// List of syscalls that should not be mutated by the fuzzer (optional).
+	NoMutateSyscalls []string `json:"no_mutate_syscalls,omitempty"`
 	// List of regexps for known bugs.
 	// Don't save reports matching these regexps, but reboot VM after them,
 	// matched against whole report output.

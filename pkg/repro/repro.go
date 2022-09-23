@@ -192,6 +192,9 @@ func createStartOptions(cfg *mgrconfig.Config, features *host.Features, crashTyp
 		if !features[host.FeatureDevlinkPCI].Enabled {
 			opts.DevlinkPCI = false
 		}
+		if !features[host.FeatureNicVF].Enabled {
+			opts.NicVF = false
+		}
 		if !features[host.FeatureUSBEmulation].Enabled {
 			opts.USB = false
 		}
@@ -759,6 +762,7 @@ var cSimplifies = append(progSimplifies, []Simplify{
 		opts.BinfmtMisc = false
 		opts.CloseFDs = false
 		opts.DevlinkPCI = false
+		opts.NicVF = false
 		opts.USB = false
 		opts.VhciInjection = false
 		opts.Wifi = false
@@ -813,6 +817,13 @@ var cSimplifies = append(progSimplifies, []Simplify{
 			return false
 		}
 		opts.DevlinkPCI = false
+		return true
+	},
+	func(opts *csource.Options) bool {
+		if !opts.NicVF {
+			return false
+		}
+		opts.NicVF = false
 		return true
 	},
 	func(opts *csource.Options) bool {

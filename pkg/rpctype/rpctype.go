@@ -41,6 +41,7 @@ type ConnectArgs struct {
 
 type ConnectRes struct {
 	EnabledCalls      []int
+	NoMutateCalls     map[int]bool
 	GitRevision       string
 	TargetRevision    string
 	AllSandboxes      bool

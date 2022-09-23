@@ -5,6 +5,7 @@ package bisect
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/google/syzkaller/pkg/build"
@@ -18,15 +19,16 @@ import (
 )
 
 type Config struct {
-	Trace     debugtracer.DebugTracer
-	Fix       bool
-	BinDir    string
-	Ccache    string
-	Timeout   time.Duration
-	Kernel    KernelConfig
-	Syzkaller SyzkallerConfig
-	Repro     ReproConfig
-	Manager   *mgrconfig.Config
+	Trace          debugtracer.DebugTracer
+	Fix            bool
+	BisectCompiler string
+	BinDir         string
+	Ccache         string
+	Timeout        time.Duration
+	Kernel         KernelConfig
+	Syzkaller      SyzkallerConfig
+	Repro          ReproConfig
+	Manager        *mgrconfig.Config
 }
 
 type KernelConfig struct {
@@ -77,21 +79,24 @@ type env struct {
 const MaxNumTests = 20 // number of tests we do per commit
 
 // Result describes bisection result:
-//  - if bisection is conclusive, the single cause/fix commit in Commits
-//    - for cause bisection report is the crash on the cause commit
-//    - for fix bisection report is nil
-//    - Commit is nil
-//    - NoopChange is set if the commit did not cause any change in the kernel binary
-//      (bisection result it most likely wrong)
-//    - Bisected to a release commit
-//  - if bisection is inconclusive, range of potential cause/fix commits in Commits
-//    - report is nil in such case
-//    - Commit is nil
-//  - if the crash still happens on the oldest release/HEAD (for cause/fix bisection correspondingly)
-//    - no commits in Commits
-//    - the crash report on the oldest release/HEAD;
-//    - Commit points to the oldest/latest commit where crash happens.
-//  - Config contains kernel config used for bisection
+// 1. if bisection is conclusive, the single cause/fix commit in Commits
+//   - for cause bisection report is the crash on the cause commit
+//   - for fix bisection report is nil
+//   - Commit is nil
+//   - NoopChange is set if the commit did not cause any change in the kernel binary
+//     (bisection result it most likely wrong)
+//
+// 2. Bisected to a release commit
+//   - if bisection is inconclusive, range of potential cause/fix commits in Commits
+//   - report is nil in such case
+//
+// 3. Commit is nil
+//   - if the crash still happens on the oldest release/HEAD (for cause/fix bisection correspondingly)
+//   - no commits in Commits
+//   - the crash report on the oldest release/HEAD;
+//   - Commit points to the oldest/latest commit where crash happens.
+//
+// 4. Config contains kernel config used for bisection.
 type Result struct {
 	Commits    []*vcs.Commit
 	Report     *report.Report
@@ -144,6 +149,11 @@ func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
 		return nil, err
 	}
 	env.head = head
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "unnamed host"
+	}
+	env.log("%s starts bisection %s", hostname, env.startTime.String())
 	if cfg.Fix {
 		env.log("bisecting fixing commit since %v", cfg.Kernel.Commit)
 	} else {
@@ -192,13 +202,18 @@ func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
 }
 
 func (env *env) bisect() (*Result, error) {
+	err := env.bisecter.PrepareBisect()
+	if err != nil {
+		return nil, err
+	}
+
 	cfg := env.cfg
 	if err := build.Clean(cfg.Manager.TargetOS, cfg.Manager.TargetVMArch,
 		cfg.Manager.Type, cfg.Manager.KernelSrc); err != nil {
 		return nil, fmt.Errorf("kernel clean failed: %v", err)
 	}
 	env.log("building syzkaller on %v", cfg.Syzkaller.Commit)
-	if err := env.inst.BuildSyzkaller(cfg.Syzkaller.Repo, cfg.Syzkaller.Commit); err != nil {
+	if _, err := env.inst.BuildSyzkaller(cfg.Syzkaller.Repo, cfg.Syzkaller.Commit); err != nil {
 		return nil, err
 	}
 	com, err := env.repo.CheckoutCommit(cfg.Kernel.Repo, cfg.Kernel.Commit)
@@ -361,7 +376,7 @@ func (env *env) commitRangeForFix() (*vcs.Commit, *vcs.Commit, *report.Report, [
 
 func (env *env) commitRangeForBug() (*vcs.Commit, *vcs.Commit, *report.Report, []*testResult, error) {
 	cfg := env.cfg
-	tags, err := env.bisecter.PreviousReleaseTags(cfg.Kernel.Commit)
+	tags, err := env.bisecter.PreviousReleaseTags(cfg.Kernel.Commit, cfg.BisectCompiler)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -406,15 +421,15 @@ func (env *env) build() (*vcs.Commit, string, error) {
 		return nil, "", err
 	}
 
-	bisectEnv, err := env.bisecter.EnvForCommit(env.cfg.BinDir, current.Hash, env.kernelConfig)
+	bisectEnv, err := env.bisecter.EnvForCommit(env.cfg.BisectCompiler, env.cfg.BinDir, current.Hash, env.kernelConfig)
 	if err != nil {
-		return nil, "", err
+		return current, "", err
 	}
-	env.log("testing commit %v", current.Hash)
+	env.log("testing commit %v %v", current.Hash, env.cfg.BisectCompiler)
 	buildStart := time.Now()
 	mgr := env.cfg.Manager
 	if err := build.Clean(mgr.TargetOS, mgr.TargetVMArch, mgr.Type, mgr.KernelSrc); err != nil {
-		return nil, "", fmt.Errorf("kernel clean failed: %v", err)
+		return current, "", fmt.Errorf("kernel clean failed: %v", err)
 	}
 	kern := &env.cfg.Kernel
 	_, imageDetails, err := env.inst.BuildKernel(bisectEnv.Compiler, env.cfg.Ccache, kern.Userspace,
@@ -429,6 +444,8 @@ func (env *env) build() (*vcs.Commit, string, error) {
 	return current, imageDetails.Signature, err
 }
 
+// Note: When this function returns an error, the bisection it was called from is aborted.
+// Hence recoverable errors must be handled and the callers must treat testResult with care.
 func (env *env) test() (*testResult, error) {
 	cfg := env.cfg
 	if cfg.Timeout != 0 && time.Since(env.startTime) > cfg.Timeout {
@@ -439,6 +456,10 @@ func (env *env) test() (*testResult, error) {
 		verdict:    vcs.BisectSkip,
 		com:        current,
 		kernelSign: kernelSign,
+	}
+	if current == nil {
+		// This is not recoverable, as the caller must know which commit to skip.
+		return res, fmt.Errorf("couldn't get repo HEAD: %v", err)
 	}
 	if err != nil {
 		if verr, ok := err.(*osutil.VerboseError); ok {
@@ -488,15 +509,16 @@ func (env *env) test() (*testResult, error) {
 	return res, nil
 }
 
-func (env *env) processResults(current *vcs.Commit, results []error) (bad, good int, rep *report.Report) {
+func (env *env) processResults(current *vcs.Commit, results []instance.EnvTestResult) (
+	bad, good int, rep *report.Report) {
 	var verdicts []string
 	for i, res := range results {
-		if res == nil {
+		if res.Error == nil {
 			good++
 			verdicts = append(verdicts, "OK")
 			continue
 		}
-		switch err := res.(type) {
+		switch err := res.Error.(type) {
 		case *instance.TestError:
 			if err.Boot {
 				verdicts = append(verdicts, fmt.Sprintf("boot failed: %v", err))

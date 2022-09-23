@@ -13,7 +13,7 @@ other. The tool automates checking out syzkaller repos, building them, running
 {
   "workdir": "/tmp/syz-testbed-workdir/",
   "corpus": "/tmp/corpus.db",
-  "target": "syzkaller",
+  "target": "syz-manager",
   "max_instances": 5,
   "run_time": "24h",
   "http": "0.0.0.0:50000",

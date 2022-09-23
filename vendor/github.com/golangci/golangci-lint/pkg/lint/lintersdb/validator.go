@@ -21,7 +21,7 @@ func (v Validator) validateLintersNames(cfg *config.Linters) error {
 	allNames := append([]string{}, cfg.Enable...)
 	allNames = append(allNames, cfg.Disable...)
 
-	unknownNames := []string{}
+	var unknownNames []string
 
 	for _, name := range allNames {
 		if v.m.GetLinterConfigs(name) == nil {
@@ -30,7 +30,7 @@ func (v Validator) validateLintersNames(cfg *config.Linters) error {
 	}
 
 	if len(unknownNames) > 0 {
-		return fmt.Errorf("unknown linters: '%v', run 'golangci-lint linters' to see the list of supported linters",
+		return fmt.Errorf("unknown linters: '%v', run 'golangci-lint help linters' to see the list of supported linters",
 			strings.Join(unknownNames, ","))
 	}
 

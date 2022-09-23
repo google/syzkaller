@@ -44,14 +44,12 @@ func SetupExecProg(vmInst *vm.Instance, mgrCfg *mgrconfig.Config, reporter *repo
 	opt *OptionalConfig) (*ExecProgInstance, error) {
 	execprogBin, err := vmInst.Copy(mgrCfg.ExecprogBin)
 	if err != nil {
-		vmInst.Close()
 		return nil, &TestError{Title: fmt.Sprintf("failed to copy syz-execprog to VM: %v", err)}
 	}
 	executorBin := mgrCfg.SysTarget.ExecutorBin
 	if executorBin == "" {
 		executorBin, err = vmInst.Copy(mgrCfg.ExecutorBin)
 		if err != nil {
-			vmInst.Close()
 			return nil, &TestError{Title: fmt.Sprintf("failed to copy syz-executor to VM: %v", err)}
 		}
 	}
@@ -68,7 +66,6 @@ func SetupExecProg(vmInst *vm.Instance, mgrCfg *mgrconfig.Config, reporter *repo
 			var err error
 			ret.StraceBin, err = vmInst.Copy(ret.StraceBin)
 			if err != nil {
-				vmInst.Close()
 				return nil, &TestError{Title: fmt.Sprintf("failed to copy strace bin: %v", err)}
 			}
 		}
@@ -172,7 +169,7 @@ func (inst *ExecProgInstance) RunSyzProgFile(progFile string, duration time.Dura
 		faultCall = opts.FaultCall
 	}
 	command := ExecprogCmd(inst.execprogBin, inst.executorBin, target.OS, target.Arch, opts.Sandbox,
-		opts.Repeat, opts.Threaded, opts.Collide, opts.Procs, faultCall, opts.FaultNth,
+		opts.SandboxArg, opts.Repeat, opts.Threaded, opts.Collide, opts.Procs, faultCall, opts.FaultNth,
 		!inst.OldFlagsCompatMode, inst.mgrCfg.Timeouts.Slowdown, vmProgFile)
 	return inst.runCommand(command, duration)
 }

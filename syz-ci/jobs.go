@@ -412,10 +412,11 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 		// compete with patch testing jobs (it's bad delaying patch testing).
 		// When/if bisection jobs don't compete with patch testing,
 		// it makes sense to increase this to 12-24h.
-		Timeout: 8 * time.Hour,
-		Fix:     req.Type == dashapi.JobBisectFix,
-		BinDir:  jp.cfg.BisectBinDir,
-		Ccache:  jp.cfg.Ccache,
+		Timeout:        8 * time.Hour,
+		Fix:            req.Type == dashapi.JobBisectFix,
+		BisectCompiler: mgr.mgrcfg.BisectCompiler,
+		BinDir:         jp.cfg.BisectBinDir,
+		Ccache:         jp.cfg.Ccache,
 		Kernel: bisect.KernelConfig{
 			Repo:           mgr.mgrcfg.Repo,
 			Branch:         mgr.mgrcfg.Branch,
@@ -477,6 +478,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 	}
 	if res.Report != nil {
 		resp.CrashTitle = res.Report.Title
+		resp.CrashAltTitles = res.Report.AltTitles
 		resp.CrashReport = res.Report.Report
 		resp.CrashLog = res.Report.Output
 		if len(resp.Commits) != 0 {
@@ -494,16 +496,15 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 
 func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 	req, resp, mgr := job.req, job.resp, job.mgr
-
 	env, err := instance.NewEnv(mgrcfg)
 	if err != nil {
 		return err
 	}
 	log.Logf(0, "job: building syzkaller on %v...", req.SyzkallerCommit)
-	if err := env.BuildSyzkaller(jp.syzkallerRepo, req.SyzkallerCommit); err != nil {
-		return err
+	syzBuildLog, syzBuildErr := env.BuildSyzkaller(jp.syzkallerRepo, req.SyzkallerCommit)
+	if syzBuildErr != nil {
+		return syzBuildErr
 	}
-
 	log.Logf(0, "job: fetching kernel...")
 	repo, err := vcs.NewRepo(mgrcfg.TargetOS, mgrcfg.Type, mgrcfg.KernelSrc)
 	if err != nil {
@@ -564,36 +565,43 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 	log.Logf(0, "job: testing...")
 	results, err := env.Test(3, req.ReproSyz, req.ReproOpts, req.ReproC)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w\n\nsyzkaller build log:\n%s", err, syzBuildLog)
 	}
-	rep, err := aggregateTestResults(results)
+	ret, err := aggregateTestResults(results)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w\n\nsyzkaller build log:\n%s", err, syzBuildLog)
 	}
+	rep := ret.report
 	if rep != nil {
 		resp.CrashTitle = rep.Title
+		resp.CrashAltTitles = rep.AltTitles
 		resp.CrashReport = rep.Report
-		resp.CrashLog = rep.Output
 	}
+	resp.CrashLog = ret.rawOutput
 	return nil
 }
 
-func aggregateTestResults(results []error) (*report.Report, error) {
+type patchTestResult struct {
+	report    *report.Report
+	rawOutput []byte
+}
+
+func aggregateTestResults(results []instance.EnvTestResult) (*patchTestResult, error) {
 	// We can have transient errors and other errors of different types.
 	// We need to avoid reporting transient "failed to boot" or "failed to copy binary" errors.
 	// If any of the instances crash during testing, we report this with the highest priority.
 	// Then if any of the runs succeed, we report that (to avoid transient errors).
 	// If all instances failed to boot, then we report one of these errors.
-	anySuccess := false
 	var anyErr, testErr error
-	var resReport *report.Report
+	var resReport, resSuccess *patchTestResult
+	anyErr = fmt.Errorf("no env test runs")
 	for _, res := range results {
-		if res == nil {
-			anySuccess = true
+		if res.Error == nil {
+			resSuccess = &patchTestResult{rawOutput: res.RawOutput}
 			continue
 		}
-		anyErr = res
-		switch err := res.(type) {
+		anyErr = res.Error
+		switch err := res.Error.(type) {
 		case *instance.TestError:
 			// We should not put rep into resp.CrashTitle/CrashReport,
 			// because that will be treated as patch not fixing the bug.
@@ -603,16 +611,16 @@ func aggregateTestResults(results []error) (*report.Report, error) {
 				testErr = fmt.Errorf("%v\n\n%s", err.Title, err.Output)
 			}
 		case *instance.CrashError:
-			if resReport == nil || (len(resReport.Report) == 0 && len(err.Report.Report) != 0) {
-				resReport = err.Report
+			if resReport == nil || (len(resReport.report.Report) == 0 && len(err.Report.Report) != 0) {
+				resReport = &patchTestResult{report: err.Report, rawOutput: res.RawOutput}
 			}
 		}
 	}
 	if resReport != nil {
 		return resReport, nil
 	}
-	if anySuccess {
-		return nil, nil
+	if resSuccess != nil {
+		return resSuccess, nil
 	}
 	if testErr != nil {
 		return nil, testErr

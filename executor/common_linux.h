@@ -109,7 +109,7 @@ static bool write_file(const char* file, const char* what, ...)
 #endif
 
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI || SYZ_WIFI || SYZ_802154 || \
-    __NR_syz_genetlink_get_family_id || __NR_syz_80211_inject_frame || __NR_syz_80211_join_ibss
+    __NR_syz_genetlink_get_family_id || __NR_syz_80211_inject_frame || __NR_syz_80211_join_ibss || SYZ_NIC_VF
 #include <arpa/inet.h>
 #include <net/if.h>
 #include <netinet/in.h>
@@ -171,6 +171,87 @@ static void netlink_done(struct nlmsg* nlmsg)
 	struct nlattr* attr = nlmsg->nested[--nlmsg->nesting];
 	attr->nla_len = nlmsg->pos - (char*)attr;
 }
+
+#if SYZ_EXECUTOR || SYZ_NIC_VF
+#include <ifaddrs.h>
+#include <linux/ethtool.h>
+#include <linux/sockios.h>
+#include <sys/ioctl.h>
+
+struct vf_intf {
+	char pass_thru_intf[IFNAMSIZ];
+	int ppid; // used by Child
+};
+
+static struct vf_intf vf_intf;
+
+static void find_vf_interface(void)
+{
+#if SYZ_EXECUTOR
+	if (!flag_nic_vf)
+		return;
+#endif
+	struct ifaddrs* addresses = NULL;
+	int pid = getpid();
+	int ret = 0;
+
+	memset(&vf_intf, 0, sizeof(struct vf_intf));
+
+	debug("Checking for VF pass-thru interface.\n");
+	if (getifaddrs(&addresses) == -1) {
+		debug("%s: getifaddrs() failed.\n", __func__);
+		return;
+	}
+
+	int fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+
+	if (fd < 0) {
+		debug("%s: socket() failed.\n", __func__);
+		return;
+	}
+	struct ifreq ifr;
+	struct ethtool_drvinfo drvinfo;
+	struct ifaddrs* address = addresses;
+
+	while (address) {
+		debug("ifa_name: %s\n", address->ifa_name);
+		memset(&ifr, 0, sizeof(struct ifreq));
+		strcpy(ifr.ifr_name, address->ifa_name);
+		memset(&drvinfo, 0, sizeof(struct ethtool_drvinfo));
+		drvinfo.cmd = ETHTOOL_GDRVINFO;
+		ifr.ifr_data = (caddr_t)&drvinfo;
+		ret = ioctl(fd, SIOCETHTOOL, &ifr);
+
+		if (ret < 0) {
+			debug("%s: ioctl() failed.\n", __func__);
+		} else if (strlen(drvinfo.bus_info)) {
+			debug("bus_info: %s, strlen(drvinfo.bus_info)=%zu\n",
+			      drvinfo.bus_info, strlen(drvinfo.bus_info));
+			if (strcmp(drvinfo.bus_info, "0000:00:11.0") == 0) {
+				if (strlen(address->ifa_name) < IFNAMSIZ) {
+					strncpy(vf_intf.pass_thru_intf,
+						address->ifa_name, IFNAMSIZ);
+					vf_intf.ppid = pid;
+				} else {
+					debug("%s: %d strlen(%s) >= IFNAMSIZ.\n",
+					      __func__, pid, address->ifa_name);
+				}
+				break;
+			}
+		}
+		address = address->ifa_next;
+	}
+	freeifaddrs(addresses);
+	if (!vf_intf.ppid) {
+		memset(&vf_intf, 0, sizeof(struct vf_intf));
+		debug("%s: %d could not find VF pass-thru interface.\n", __func__, pid);
+		return;
+	}
+	debug("%s: %d found VF pass-thru interface %s\n",
+	      __func__, pid, vf_intf.pass_thru_intf);
+}
+#endif // SYZ_NIC_VF
+
 #endif
 
 static int netlink_send_ext(struct nlmsg* nlmsg, int sock,
@@ -283,10 +364,12 @@ static int netlink_next_msg(struct nlmsg* nlmsg, unsigned int offset,
 
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_802154
 static void netlink_add_device_impl(struct nlmsg* nlmsg, const char* type,
-				    const char* name)
+				    const char* name, bool up)
 {
 	struct ifinfomsg hdr;
 	memset(&hdr, 0, sizeof(hdr));
+	if (up)
+		hdr.ifi_flags = hdr.ifi_change = IFF_UP;
 	netlink_init(nlmsg, RTM_NEWLINK, NLM_F_EXCL | NLM_F_CREATE, &hdr, sizeof(hdr));
 	if (name)
 		netlink_attr(nlmsg, IFLA_IFNAME, name, strlen(name));
@@ -299,7 +382,7 @@ static void netlink_add_device_impl(struct nlmsg* nlmsg, const char* type,
 static void netlink_add_device(struct nlmsg* nlmsg, int sock, const char* type,
 			       const char* name)
 {
-	netlink_add_device_impl(nlmsg, type, name);
+	netlink_add_device_impl(nlmsg, type, name, false);
 	netlink_done(nlmsg);
 	int err = netlink_send(nlmsg, sock);
 	if (err < 0) {
@@ -310,7 +393,7 @@ static void netlink_add_device(struct nlmsg* nlmsg, int sock, const char* type,
 static void netlink_add_veth(struct nlmsg* nlmsg, int sock, const char* name,
 			     const char* peer)
 {
-	netlink_add_device_impl(nlmsg, "veth", name);
+	netlink_add_device_impl(nlmsg, "veth", name, false);
 	netlink_nest(nlmsg, IFLA_INFO_DATA);
 	netlink_nest(nlmsg, VETH_INFO_PEER);
 	nlmsg->pos += sizeof(struct ifinfomsg);
@@ -324,10 +407,25 @@ static void netlink_add_veth(struct nlmsg* nlmsg, int sock, const char* name,
 	}
 }
 
+static void netlink_add_xfrm(struct nlmsg* nlmsg, int sock, const char* name)
+{
+	netlink_add_device_impl(nlmsg, "xfrm", name, true);
+	netlink_nest(nlmsg, IFLA_INFO_DATA);
+	int if_id = 1;
+	// This is IFLA_XFRM_IF_ID attr which is not present in older kernel headers.
+	netlink_attr(nlmsg, 2, &if_id, sizeof(if_id));
+	netlink_done(nlmsg);
+	netlink_done(nlmsg);
+	int err = netlink_send(nlmsg, sock);
+	if (err < 0) {
+		debug("netlink: adding device %s type xfrm if_id %d: %s\n", name, if_id, strerror(errno));
+	}
+}
+
 static void netlink_add_hsr(struct nlmsg* nlmsg, int sock, const char* name,
 			    const char* slave1, const char* slave2)
 {
-	netlink_add_device_impl(nlmsg, "hsr", name);
+	netlink_add_device_impl(nlmsg, "hsr", name, false);
 	netlink_nest(nlmsg, IFLA_INFO_DATA);
 	int ifindex1 = if_nametoindex(slave1);
 	netlink_attr(nlmsg, IFLA_HSR_SLAVE1, &ifindex1, sizeof(ifindex1));
@@ -337,13 +435,13 @@ static void netlink_add_hsr(struct nlmsg* nlmsg, int sock, const char* name,
 	netlink_done(nlmsg);
 	int err = netlink_send(nlmsg, sock);
 	if (err < 0) {
-		debug("netlink: adding device %s type hsr slave1 %s slave2 %s: %s\n", name, slave1, slave2, strerror(err));
+		debug("netlink: adding device %s type hsr slave1 %s slave2 %s: %s\n", name, slave1, slave2, strerror(errno));
 	}
 }
 
 static void netlink_add_linked(struct nlmsg* nlmsg, int sock, const char* type, const char* name, const char* link)
 {
-	netlink_add_device_impl(nlmsg, type, name);
+	netlink_add_device_impl(nlmsg, type, name, false);
 	netlink_done(nlmsg);
 	int ifindex = if_nametoindex(link);
 	netlink_attr(nlmsg, IFLA_LINK, &ifindex, sizeof(ifindex));
@@ -355,7 +453,7 @@ static void netlink_add_linked(struct nlmsg* nlmsg, int sock, const char* type, 
 
 static void netlink_add_vlan(struct nlmsg* nlmsg, int sock, const char* name, const char* link, uint16 id, uint16 proto)
 {
-	netlink_add_device_impl(nlmsg, "vlan", name);
+	netlink_add_device_impl(nlmsg, "vlan", name, false);
 	netlink_nest(nlmsg, IFLA_INFO_DATA);
 	netlink_attr(nlmsg, IFLA_VLAN_ID, &id, sizeof(id));
 	netlink_attr(nlmsg, IFLA_VLAN_PROTOCOL, &proto, sizeof(proto));
@@ -371,7 +469,7 @@ static void netlink_add_vlan(struct nlmsg* nlmsg, int sock, const char* name, co
 
 static void netlink_add_macvlan(struct nlmsg* nlmsg, int sock, const char* name, const char* link)
 {
-	netlink_add_device_impl(nlmsg, "macvlan", name);
+	netlink_add_device_impl(nlmsg, "macvlan", name, false);
 	netlink_nest(nlmsg, IFLA_INFO_DATA);
 	uint32 mode = MACVLAN_MODE_BRIDGE;
 	netlink_attr(nlmsg, IFLA_MACVLAN_MODE, &mode, sizeof(mode));
@@ -387,7 +485,7 @@ static void netlink_add_macvlan(struct nlmsg* nlmsg, int sock, const char* name,
 
 static void netlink_add_geneve(struct nlmsg* nlmsg, int sock, const char* name, uint32 vni, struct in_addr* addr4, struct in6_addr* addr6)
 {
-	netlink_add_device_impl(nlmsg, "geneve", name);
+	netlink_add_device_impl(nlmsg, "geneve", name, false);
 	netlink_nest(nlmsg, IFLA_INFO_DATA);
 	netlink_attr(nlmsg, IFLA_GENEVE_ID, &vni, sizeof(vni));
 	if (addr4)
@@ -409,7 +507,7 @@ static void netlink_add_geneve(struct nlmsg* nlmsg, int sock, const char* name, 
 
 static void netlink_add_ipvlan(struct nlmsg* nlmsg, int sock, const char* name, const char* link, uint16 mode, uint16 flags)
 {
-	netlink_add_device_impl(nlmsg, "ipvlan", name);
+	netlink_add_device_impl(nlmsg, "ipvlan", name, false);
 	netlink_nest(nlmsg, IFLA_INFO_DATA);
 	netlink_attr(nlmsg, IFLA_IPVLAN_MODE, &mode, sizeof(mode));
 	netlink_attr(nlmsg, IFLA_IPVLAN_FLAGS, &flags, sizeof(flags));
@@ -1078,10 +1176,11 @@ static void initialize_wifi_devices(void)
 
 static void netdevsim_add(unsigned int addr, unsigned int port_count)
 {
-	char buf[16];
-
-	sprintf(buf, "%u %u", addr, port_count);
-	if (write_file("/sys/bus/netdevsim/new_device", buf)) {
+	// These devices are sticky and are not deleted on net namespace destruction.
+	// So try to delete the previous version of the device.
+	write_file("/sys/bus/netdevsim/del_device", "%u", addr);
+	if (write_file("/sys/bus/netdevsim/new_device", "%u %u", addr, port_count)) {
+		char buf[32];
 		snprintf(buf, sizeof(buf), "netdevsim%d", addr);
 		initialize_devlink_ports("netdevsim", buf, "netdevsim");
 	}
@@ -1327,6 +1426,52 @@ error:
 	close(sock);
 }
 
+#if SYZ_EXECUTOR || SYZ_NIC_VF
+static int runcmdline(char* cmdline)
+{
+	debug("%s\n", cmdline);
+	int ret = system(cmdline);
+	if (ret) {
+		debug("FAIL: %s\n", cmdline);
+	}
+	return ret;
+}
+
+static void netlink_nicvf_setup(void)
+{
+	char cmdline[256];
+
+#if SYZ_EXECUTOR
+	if (!flag_nic_vf)
+		return;
+#endif
+	if (!vf_intf.ppid)
+		return;
+
+	debug("ppid = %d, vf_intf.pass_thru_intf: %s\n",
+	      vf_intf.ppid, vf_intf.pass_thru_intf);
+
+	sprintf(cmdline, "nsenter -t 1 -n ip link set %s netns %d",
+		vf_intf.pass_thru_intf, getpid());
+	if (runcmdline(cmdline))
+		return;
+
+	sprintf(cmdline, "ip a s %s", vf_intf.pass_thru_intf);
+	if (runcmdline(cmdline))
+		return;
+
+	sprintf(cmdline, "ip link set %s down", vf_intf.pass_thru_intf);
+	if (runcmdline(cmdline))
+		return;
+
+	sprintf(cmdline, "ip link set %s name nicvf0", vf_intf.pass_thru_intf);
+	if (runcmdline(cmdline))
+		return;
+
+	debug("nicvf0 VF pass-through setup complete.\n");
+}
+#endif // SYZ_NIC_VF
+
 // We test in a separate namespace, which does not have any network devices initially (even lo).
 // Create/up as many as we can.
 static void initialize_netdevices(void)
@@ -1349,32 +1494,33 @@ static void initialize_netdevices(void)
 	// - ifb0/1
 	// - teql0
 	// - eql
+	// Note: netdevsim devices can't have the same name even in different namespaces.
 	char netdevsim[16];
 	sprintf(netdevsim, "netdevsim%d", (int)procid);
 	struct {
 		const char* type;
 		const char* dev;
 	} devtypes[] = {
-	    // Note: ip6erspan device can't be added if ip6gretap exists in the same namespace.
-	    {"ip6gretap", "ip6gretap0"},
-	    {"bridge", "bridge0"},
-	    {"vcan", "vcan0"},
-	    {"bond", "bond0"},
-	    {"team", "team0"},
-	    {"dummy", "dummy0"},
-	    {"nlmon", "nlmon0"},
-	    {"caif", "caif0"},
-	    {"batadv", "batadv0"},
-	    // Note: this adds vxcan0/vxcan1 pair, similar to veth (creating vxcan0 would fail).
-	    {"vxcan", "vxcan1"},
-	    // Note: netdevsim devices can't have the same name even in different namespaces.
-	    {"netdevsim", netdevsim},
-	    // This adds connected veth0 and veth1 devices.
-	    {"veth", 0},
-	    {"xfrm", "xfrm0"},
-	    {"wireguard", "wg0"},
-	    {"wireguard", "wg1"},
-	    {"wireguard", "wg2"},
+		// Note: ip6erspan device can't be added if ip6gretap exists in the same namespace.
+		{"ip6gretap", "ip6gretap0"},
+		{"bridge", "bridge0"},
+		{"vcan", "vcan0"},
+		{"bond", "bond0"},
+		{"team", "team0"},
+		{"dummy", "dummy0"},
+#if SYZ_EXECUTOR || SYZ_NIC_VF
+		{"nicvf", "nicvf0"},
+#endif
+		{"nlmon", "nlmon0"},
+		{"caif", "caif0"},
+		{"batadv", "batadv0"},
+		// Note: this adds vxcan0/vxcan1 pair, similar to veth (creating vxcan0 would fail).
+		{"vxcan", "vxcan1"},
+		// This adds connected veth0 and veth1 devices.
+		{"veth", 0},
+		{"wireguard", "wg0"},
+		{"wireguard", "wg1"},
+		{"wireguard", "wg2"},
 	};
 	const char* devmasters[] = {"bridge", "bond", "team", "batadv"};
 	// If you extend this array, also update netdev_addr_id in vnet.txt
@@ -1384,64 +1530,67 @@ static void initialize_netdevices(void)
 		int macsize;
 		bool noipv6;
 	} devices[] = {
-	    {"lo", ETH_ALEN},
-	    {"sit0", 0},
-	    {"bridge0", ETH_ALEN},
-	    {"vcan0", 0, true},
-	    {"tunl0", 0},
-	    {"gre0", 0},
-	    {"gretap0", ETH_ALEN},
-	    {"ip_vti0", 0},
-	    {"ip6_vti0", 0},
-	    {"ip6tnl0", 0},
-	    {"ip6gre0", 0},
-	    {"ip6gretap0", ETH_ALEN},
-	    {"erspan0", ETH_ALEN},
-	    {"bond0", ETH_ALEN},
-	    {"veth0", ETH_ALEN},
-	    {"veth1", ETH_ALEN},
-	    {"team0", ETH_ALEN},
-	    {"veth0_to_bridge", ETH_ALEN},
-	    {"veth1_to_bridge", ETH_ALEN},
-	    {"veth0_to_bond", ETH_ALEN},
-	    {"veth1_to_bond", ETH_ALEN},
-	    {"veth0_to_team", ETH_ALEN},
-	    {"veth1_to_team", ETH_ALEN},
-	    {"veth0_to_hsr", ETH_ALEN},
-	    {"veth1_to_hsr", ETH_ALEN},
-	    {"hsr0", 0},
-	    {"dummy0", ETH_ALEN},
-	    {"nlmon0", 0},
-	    {"vxcan0", 0, true},
-	    {"vxcan1", 0, true},
-	    {"caif0", ETH_ALEN}, // TODO: up'ing caif fails with ENODEV
-	    {"batadv0", ETH_ALEN},
-	    {netdevsim, ETH_ALEN},
-	    {"xfrm0", ETH_ALEN},
-	    {"veth0_virt_wifi", ETH_ALEN},
-	    {"veth1_virt_wifi", ETH_ALEN},
-	    {"virt_wifi0", ETH_ALEN},
-	    {"veth0_vlan", ETH_ALEN},
-	    {"veth1_vlan", ETH_ALEN},
-	    {"vlan0", ETH_ALEN},
-	    {"vlan1", ETH_ALEN},
-	    {"macvlan0", ETH_ALEN},
-	    {"macvlan1", ETH_ALEN},
-	    {"ipvlan0", ETH_ALEN},
-	    {"ipvlan1", ETH_ALEN},
-	    {"veth0_macvtap", ETH_ALEN},
-	    {"veth1_macvtap", ETH_ALEN},
-	    {"macvtap0", ETH_ALEN},
-	    {"macsec0", ETH_ALEN},
-	    {"veth0_to_batadv", ETH_ALEN},
-	    {"veth1_to_batadv", ETH_ALEN},
-	    {"batadv_slave_0", ETH_ALEN},
-	    {"batadv_slave_1", ETH_ALEN},
-	    {"geneve0", ETH_ALEN},
-	    {"geneve1", ETH_ALEN},
-	    {"wg0", 0},
-	    {"wg1", 0},
-	    {"wg2", 0},
+		{"lo", ETH_ALEN},
+		{"sit0", 0},
+		{"bridge0", ETH_ALEN},
+		{"vcan0", 0, true},
+		{"tunl0", 0},
+		{"gre0", 0},
+		{"gretap0", ETH_ALEN},
+		{"ip_vti0", 0},
+		{"ip6_vti0", 0},
+		{"ip6tnl0", 0},
+		{"ip6gre0", 0},
+		{"ip6gretap0", ETH_ALEN},
+		{"erspan0", ETH_ALEN},
+		{"bond0", ETH_ALEN},
+		{"veth0", ETH_ALEN},
+		{"veth1", ETH_ALEN},
+		{"team0", ETH_ALEN},
+		{"veth0_to_bridge", ETH_ALEN},
+		{"veth1_to_bridge", ETH_ALEN},
+		{"veth0_to_bond", ETH_ALEN},
+		{"veth1_to_bond", ETH_ALEN},
+		{"veth0_to_team", ETH_ALEN},
+		{"veth1_to_team", ETH_ALEN},
+		{"veth0_to_hsr", ETH_ALEN},
+		{"veth1_to_hsr", ETH_ALEN},
+		{"hsr0", 0},
+		{"dummy0", ETH_ALEN},
+#if SYZ_EXECUTOR || SYZ_NIC_VF
+		{"nicvf0", 0, true},
+#endif
+		{"nlmon0", 0},
+		{"vxcan0", 0, true},
+		{"vxcan1", 0, true},
+		{"caif0", ETH_ALEN}, // TODO: up'ing caif fails with ENODEV
+		{"batadv0", ETH_ALEN},
+		{netdevsim, ETH_ALEN},
+		{"xfrm0", ETH_ALEN},
+		{"veth0_virt_wifi", ETH_ALEN},
+		{"veth1_virt_wifi", ETH_ALEN},
+		{"virt_wifi0", ETH_ALEN},
+		{"veth0_vlan", ETH_ALEN},
+		{"veth1_vlan", ETH_ALEN},
+		{"vlan0", ETH_ALEN},
+		{"vlan1", ETH_ALEN},
+		{"macvlan0", ETH_ALEN},
+		{"macvlan1", ETH_ALEN},
+		{"ipvlan0", ETH_ALEN},
+		{"ipvlan1", ETH_ALEN},
+		{"veth0_macvtap", ETH_ALEN},
+		{"veth1_macvtap", ETH_ALEN},
+		{"macvtap0", ETH_ALEN},
+		{"macsec0", ETH_ALEN},
+		{"veth0_to_batadv", ETH_ALEN},
+		{"veth1_to_batadv", ETH_ALEN},
+		{"batadv_slave_0", ETH_ALEN},
+		{"batadv_slave_1", ETH_ALEN},
+		{"geneve0", ETH_ALEN},
+		{"geneve1", ETH_ALEN},
+		{"wg0", 0},
+		{"wg1", 0},
+		{"wg2", 0},
 	};
 	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 	if (sock == -1)
@@ -1465,6 +1614,8 @@ static void initialize_netdevices(void)
 		netlink_device_change(&nlmsg, sock, slave0, false, master, 0, 0, NULL);
 		netlink_device_change(&nlmsg, sock, slave1, false, master, 0, 0, NULL);
 	}
+	netlink_add_xfrm(&nlmsg, sock, "xfrm0");
+
 	// bond/team_slave_* will set up automatically when set their master.
 	// But bridge_slave_* need to set up manually.
 	netlink_device_change(&nlmsg, sock, "bridge_slave_0", true, 0, 0, 0, NULL);
@@ -1507,6 +1658,10 @@ static void initialize_netdevices(void)
 	netdevsim_add((int)procid, 4); // Number of port is in sync with value in sys/linux/socket_netlink_generic_devlink.txt
 
 	netlink_wireguard_setup();
+
+#if SYZ_EXECUTOR || SYZ_NIC_VF
+	netlink_nicvf_setup();
+#endif
 
 	for (i = 0; i < sizeof(devices) / (sizeof(devices[0])); i++) {
 		// Assign some unique address to devices. Some devices won't up without this.
@@ -1564,6 +1719,10 @@ static void initialize_netdevices_init(void)
 		netlink_device_change(&nlmsg, sock, dev, !devtypes[i].noup, 0, &macaddr, macsize, NULL);
 	}
 	close(sock);
+
+#if SYZ_EXECUTOR || SYZ_NIC_VF
+	find_vf_interface();
+#endif
 }
 #endif
 
@@ -2842,13 +3001,13 @@ error_clear_loop:
 #include <string.h>
 #include <sys/mount.h>
 
-// syz_mount_image(fs ptr[in, string[disk_filesystems]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[vfat_options]]) fd_dir
+// syz_mount_image(fs ptr[in, string[disk_filesystems]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[vfat_options]], chdir bool8) fd_dir
 // fs_image_segment {
 //	data	ptr[in, array[int8]]
 //	size	len[data, intptr]
 //	offset	intptr
 // }
-static long syz_mount_image(volatile long fsarg, volatile long dir, volatile unsigned long size, volatile unsigned long nsegs, volatile long segments, volatile long flags, volatile long optsarg)
+static long syz_mount_image(volatile long fsarg, volatile long dir, volatile unsigned long size, volatile unsigned long nsegs, volatile long segments, volatile long flags, volatile long optsarg, volatile long change_dir)
 {
 	struct fs_image_segment* segs = (struct fs_image_segment*)segments;
 	int res = -1, err = 0, loopfd = -1, memfd = -1, need_loop_device = !!segs;
@@ -2902,6 +3061,14 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 	if (res == -1) {
 		debug("syz_mount_image > open error: %d\n", errno);
 		err = errno;
+		goto error_clear_loop;
+	}
+	if (change_dir) {
+		res = chdir(target);
+		if (res == -1) {
+			debug("syz_mount_image > chdir error: %d\n", errno);
+			err = errno;
+		}
 	}
 
 error_clear_loop:
@@ -3429,6 +3596,7 @@ static void mount_cgroups(const char* dir, const char** controllers, int count)
 {
 	if (mkdir(dir, 0777)) {
 		debug("mkdir(%s) failed: %d\n", dir, errno);
+		return;
 	}
 	// First, probe one-by-one to understand what controllers are present.
 	char enabled[128] = {0};
@@ -3442,18 +3610,56 @@ static void mount_cgroups(const char* dir, const char** controllers, int count)
 		strcat(enabled, ",");
 		strcat(enabled, controllers[i]);
 	}
-	if (enabled[0] == 0)
+	if (enabled[0] == 0) {
+		if (rmdir(dir) && errno != EBUSY)
+			failmsg("rmdir failed", "dir=%s", dir);
 		return;
+	}
 	// Now mount all at once.
 	if (mount("none", dir, "cgroup", 0, enabled + 1)) {
 		// In systemd/stretch images this is failing with EBUSY
 		// (systemd starts messing with these mounts?),
 		// so we don't fail, but just log the error.
 		debug("mount(%s, %s) failed: %d\n", dir, enabled + 1, errno);
+		if (rmdir(dir) && errno != EBUSY)
+			failmsg("rmdir failed", "dir=%s enabled=%s", dir, enabled);
 	}
 	if (chmod(dir, 0777)) {
 		debug("chmod(%s) failed: %d\n", dir, errno);
 	}
+}
+
+static void mount_cgroups2(const char** controllers, int count)
+{
+	if (mkdir("/syzcgroup/unified", 0777)) {
+		debug("mkdir(/syzcgroup/unified) failed: %d\n", errno);
+		return;
+	}
+	if (mount("none", "/syzcgroup/unified", "cgroup2", 0, NULL)) {
+		debug("mount(cgroup2) failed: %d\n", errno);
+		// For all cases when we don't end up mounting cgroup/cgroup2
+		// in /syzcgroup/{unified,net,cpu}, we need to remove the dir.
+		// Otherwise these will end up as normal dirs and the fuzzer may
+		// create huge files there. These files won't be cleaned up
+		// after tests and may easily consume all disk space.
+		// EBUSY usually means that cgroup is already mounted there
+		// by a previous run of e.g. syz-execprog.
+		if (rmdir("/syzcgroup/unified") && errno != EBUSY)
+			fail("rmdir(/syzcgroup/unified) failed");
+		return;
+	}
+	if (chmod("/syzcgroup/unified", 0777)) {
+		debug("chmod(/syzcgroup/unified) failed: %d\n", errno);
+	}
+	int control = open("/syzcgroup/unified/cgroup.subtree_control", O_WRONLY);
+	if (control == -1)
+		return;
+	int i;
+	for (i = 0; i < count; i++)
+		if (write(control, controllers[i], strlen(controllers[i])) < 0) {
+			debug("write(cgroup.subtree_control, %s) failed: %d\n", controllers[i], errno);
+		}
+	close(control);
 }
 
 static void setup_cgroups()
@@ -3470,26 +3676,11 @@ static void setup_cgroups()
 	const char* net_controllers[] = {"net", "net_prio", "devices", "blkio", "freezer"};
 	const char* cpu_controllers[] = {"cpuset", "cpuacct", "hugetlb", "rlimit"};
 	if (mkdir("/syzcgroup", 0777)) {
+		// Can happen due to e.g. read-only file system (EROFS).
 		debug("mkdir(/syzcgroup) failed: %d\n", errno);
+		return;
 	}
-	if (mkdir("/syzcgroup/unified", 0777)) {
-		debug("mkdir(/syzcgroup/unified) failed: %d\n", errno);
-	}
-	if (mount("none", "/syzcgroup/unified", "cgroup2", 0, NULL)) {
-		debug("mount(cgroup2) failed: %d\n", errno);
-	}
-	if (chmod("/syzcgroup/unified", 0777)) {
-		debug("chmod(/syzcgroup/unified) failed: %d\n", errno);
-	}
-	int unified_control = open("/syzcgroup/unified/cgroup.subtree_control", O_WRONLY);
-	if (unified_control != -1) {
-		unsigned i;
-		for (i = 0; i < sizeof(unified_controllers) / sizeof(unified_controllers[0]); i++)
-			if (write(unified_control, unified_controllers[i], strlen(unified_controllers[i])) < 0) {
-				debug("write(cgroup.subtree_control, %s) failed: %d\n", unified_controllers[i], errno);
-			}
-		close(unified_control);
-	}
+	mount_cgroups2(unified_controllers, sizeof(unified_controllers) / sizeof(unified_controllers[0]));
 	mount_cgroups("/syzcgroup/net", net_controllers, sizeof(net_controllers) / sizeof(net_controllers[0]));
 	mount_cgroups("/syzcgroup/cpu", cpu_controllers, sizeof(cpu_controllers) / sizeof(cpu_controllers[0]));
 	write_file("/syzcgroup/cpu/cgroup.clone_children", "1");
@@ -3797,6 +3988,8 @@ static int do_sandbox_none(void)
 	if (unshare(CLONE_NEWNET)) {
 		debug("unshare(CLONE_NEWNET): %d\n", errno);
 	}
+	// Enable access to IPPROTO_ICMP sockets, must be done after CLONE_NEWNET.
+	write_file("/proc/sys/net/ipv4/ping_group_range", "0 65535");
 #if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
 	initialize_devlink_pci();
 #endif
@@ -3902,6 +4095,8 @@ static int namespace_sandbox_proc(void* arg)
 	// because we want the tun device in the test namespace.
 	if (unshare(CLONE_NEWNET))
 		fail("unshare(CLONE_NEWNET)");
+	// Enable access to IPPROTO_ICMP sockets, must be done after CLONE_NEWNET.
+	write_file("/proc/sys/net/ipv4/ping_group_range", "0 65535");
 #if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
 	initialize_devlink_pci();
 #endif
@@ -4050,6 +4245,9 @@ inline int symlink(const char* old_path, const char* new_path)
 #define UNTRUSTED_APP_UID (AID_APP + 999)
 #define UNTRUSTED_APP_GID (AID_APP + 999)
 
+#define SYSTEM_UID 1000
+#define SYSTEM_GID 1000
+
 const char* const SELINUX_CONTEXT_UNTRUSTED_APP = "u:r:untrusted_app:s0:c512,c768";
 const char* const SELINUX_LABEL_APP_DATA_FILE = "u:object_r:app_data_file:s0:c512,c768";
 const char* const SELINUX_CONTEXT_FILE = "/proc/thread-self/attr/current";
@@ -4057,6 +4255,9 @@ const char* const SELINUX_XATTR_NAME = "security.selinux";
 
 const gid_t UNTRUSTED_APP_GROUPS[] = {UNTRUSTED_APP_GID, AID_NET_BT_ADMIN, AID_NET_BT, AID_INET, AID_EVERYBODY};
 const size_t UNTRUSTED_APP_NUM_GROUPS = sizeof(UNTRUSTED_APP_GROUPS) / sizeof(UNTRUSTED_APP_GROUPS[0]);
+
+const gid_t SYSTEM_GROUPS[] = {SYSTEM_GID, AID_NET_BT_ADMIN, AID_NET_BT, AID_INET, AID_EVERYBODY};
+const size_t SYSTEM_NUM_GROUPS = sizeof(SYSTEM_GROUPS) / sizeof(SYSTEM_GROUPS[0]);
 
 // Similar to libselinux getcon(3), but:
 // - No library dependency
@@ -4128,7 +4329,8 @@ static void setfilecon(const char* path, const char* context)
 }
 
 #define SYZ_HAVE_SANDBOX_ANDROID 1
-static int do_sandbox_android(void)
+
+static int do_sandbox_android(uint64 sandbox_arg)
 {
 	setup_common();
 #if SYZ_EXECUTOR || SYZ_VHCI_INJECTION
@@ -4153,33 +4355,50 @@ static int do_sandbox_android(void)
 	// and try to reinitialize them as other test processes use them.
 	initialize_netdevices();
 #endif
+	uid_t uid = UNTRUSTED_APP_UID;
+	size_t num_groups = UNTRUSTED_APP_NUM_GROUPS;
+	const gid_t* groups = UNTRUSTED_APP_GROUPS;
+	gid_t gid = UNTRUSTED_APP_GID;
+	debug("executor received sandbox_arg=%llu\n", sandbox_arg);
+	if (sandbox_arg == 1) {
+		uid = SYSTEM_UID;
+		num_groups = SYSTEM_NUM_GROUPS;
+		groups = SYSTEM_GROUPS;
+		gid = SYSTEM_GID;
 
-	if (chown(".", UNTRUSTED_APP_UID, UNTRUSTED_APP_UID) != 0)
-		fail("do_sandbox_android: chmod failed");
+		debug("fuzzing under SYSTEM account\n");
+	}
+	if (chown(".", uid, uid) != 0)
+		failmsg("do_sandbox_android: chmod failed", "sandbox_arg=%llu", sandbox_arg);
 
-	if (setgroups(UNTRUSTED_APP_NUM_GROUPS, UNTRUSTED_APP_GROUPS) != 0)
-		fail("do_sandbox_android: setgroups failed");
+	if (setgroups(num_groups, groups) != 0)
+		failmsg("do_sandbox_android: setgroups failed", "sandbox_arg=%llu", sandbox_arg);
 
-	if (setresgid(UNTRUSTED_APP_GID, UNTRUSTED_APP_GID, UNTRUSTED_APP_GID) != 0)
-		fail("do_sandbox_android: setresgid failed");
+	if (setresgid(gid, gid, gid) != 0)
+		failmsg("do_sandbox_android: setresgid failed", "sandbox_arg=%llu", sandbox_arg);
+
+	setup_binderfs();
 
 #if GOARCH_arm || GOARCH_arm64 || GOARCH_386 || GOARCH_amd64
 	// Will fail() if anything fails.
 	// Must be called when the new process still has CAP_SYS_ADMIN, in this case,
 	// before changing uid from 0, which clears capabilities.
-	set_app_seccomp_filter();
+	int account = SCFS_RestrictedApp;
+	if (sandbox_arg == 1)
+		account = SCFS_SystemAccount;
+	set_app_seccomp_filter(account);
 #endif
 
-	if (setresuid(UNTRUSTED_APP_UID, UNTRUSTED_APP_UID, UNTRUSTED_APP_UID) != 0)
-		fail("do_sandbox_android: setresuid failed");
+	if (setresuid(uid, uid, uid) != 0)
+		failmsg("do_sandbox_android: setresuid failed", "sandbox_arg=%llu", sandbox_arg);
 
 	// setresuid and setresgid clear the parent-death signal.
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 
 	setfilecon(".", SELINUX_LABEL_APP_DATA_FILE);
-	setcon(SELINUX_CONTEXT_UNTRUSTED_APP);
+	if (uid == UNTRUSTED_APP_UID)
+		setcon(SELINUX_CONTEXT_UNTRUSTED_APP);
 
-	setup_binderfs();
 	loop();
 	doexit(1);
 }
@@ -4731,7 +4950,6 @@ static void setup_sysctl()
 		// Executor hits lots of SIGSEGVs, no point in logging them.
 		{"/proc/sys/debug/exception-trace", "0"},
 		{"/proc/sys/kernel/printk", "7 4 1 3"},
-		{"/proc/sys/net/ipv4/ping_group_range", "0 65535"},
 		// Faster gc (1 second) is intended to make tests more repeatable.
 		{"/proc/sys/kernel/keys/gc_delay", "1"},
 		// We always want to prefer killing the allocating test process rather than somebody else
@@ -4790,7 +5008,7 @@ static void setup_802154()
 		}
 		netlink_device_change(&nlmsg, sock_route, devname, true, 0, &hwaddr, sizeof(hwaddr), 0);
 		if (i == 0) {
-			netlink_add_device_impl(&nlmsg, "lowpan", "lowpan0");
+			netlink_add_device_impl(&nlmsg, "lowpan", "lowpan0", false);
 			netlink_done(&nlmsg);
 			netlink_attr(&nlmsg, IFLA_LINK, &ifindex, sizeof(ifindex));
 			int err = netlink_send(&nlmsg, sock_route);
@@ -4807,6 +5025,7 @@ static void setup_802154()
 #if GOARCH_s390x
 #include <sys/mman.h>
 // Ugly way to work around gcc's "error: function called through a non-compatible type".
+// Simply casting via (void*) inline does not work b/c gcc sees through a chain of casts.
 // The macro is used in generated C code.
 #define CAST(f) ({void* p = (void*)f; p; })
 #endif
@@ -5271,6 +5490,8 @@ static long handle_clone_ret(long ret)
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_clone
+#include <sched.h>
+
 // syz_clone is mostly needed on kernels which do not suport clone3.
 static long syz_clone(volatile long flags, volatile long stack, volatile long stack_len,
 		      volatile long ptid, volatile long ctid, volatile long tls)

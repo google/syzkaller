@@ -67,9 +67,10 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		gceInst: gceInst,
 	}
 
-	// Start a Cuttlefish device on the GCE instance
-	// TODO: pass it the specific kernel artifact using -kernel_path and -initramfs_path flags
-	if err := inst.runOnHost(10*time.Minute, "./bin/launch_cvd -daemon"); err != nil {
+	// Start a Cuttlefish device on the GCE instance.
+	if err := inst.runOnHost(10*time.Minute,
+		fmt.Sprintf("./bin/launch_cvd -daemon -kernel_path=./bzImage -initramfs_path=./initramfs.img"+
+			" --noenable_sandbox -report_anonymous_usage_stats=n")); err != nil {
 		return nil, fmt.Errorf("failed to start cuttlefish: %s", err)
 	}
 
@@ -79,6 +80,15 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 
 	if err := inst.runOnHost(5*time.Minute, "adb root"); err != nil {
 		return nil, fmt.Errorf("failed to get root access to device: %s", err)
+	}
+
+	if err := inst.runOnHost(5*time.Minute, fmt.Sprintf("adb shell '"+
+		"setprop persist.dbg.keep_debugfs_mounted 1;"+
+		"mount -t debugfs debugfs /sys/kernel/debug;"+
+		"chmod 0755 /sys/kernel/debug;"+
+		"mkdir %s;"+
+		"'", deviceRoot)); err != nil {
+		return nil, fmt.Errorf("failed to mount debugfs to /sys/kernel/debug: %s", err)
 	}
 
 	return inst, nil
@@ -149,7 +159,7 @@ func (inst *instance) Close() {
 
 func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (
 	<-chan []byte, <-chan error, error) {
-	return inst.gceInst.Run(timeout, stop, fmt.Sprintf("adb shell %s", command))
+	return inst.gceInst.Run(timeout, stop, fmt.Sprintf("adb shell 'cd %s; %s'", deviceRoot, command))
 }
 
 func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {

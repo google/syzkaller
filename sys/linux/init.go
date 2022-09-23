@@ -98,6 +98,18 @@ func InitTarget(target *prog.Target) {
 		panic("unknown arch")
 	}
 
+	target.SpecialFileLenghts = []int{
+		int(target.GetConst("PATH_MAX")),
+		int(target.GetConst("UNIX_PATH_MAX")),
+		int(target.GetConst("NAME_MAX")),
+		int(target.GetConst("BTRFS_INO_LOOKUP_PATH_MAX")),
+		int(target.GetConst("BTRFS_INO_LOOKUP_USER_PATH_MAX")),
+		int(target.GetConst("SMB_PATH_MAX")),
+		int(target.GetConst("XT_CGROUP_PATH_MAX")),
+		int(target.GetConst("XENSTORE_REL_PATH_MAX")),
+		1 << 16, // gVisor's MaxFilenameLen
+	}
+
 	if target.Arch == runtime.GOARCH {
 		KCOV_INIT_TRACE = uintptr(target.GetConst("KCOV_INIT_TRACE"))
 		KCOV_ENABLE = uintptr(target.GetConst("KCOV_ENABLE"))

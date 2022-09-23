@@ -1,10 +1,11 @@
 # Copyright 2018 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+resource anyres8[int8]
 resource anyres32[int32]
 resource anyres64[int64]
 
-foo$anyres(a0 ptr[out, anyres32], a1 ptr[out, anyres64])
+foo$anyres(a0 ptr[out, anyres8], a1 ptr[out, anyres32], a2 ptr[out, anyres64])
 
 foo$any0(a ptr[in, any0])
 
@@ -24,6 +25,7 @@ any1 {
 } [packed, align[2]]
 
 anyunion0 [
+	res8	anyres8
 	res32	anyres32
 	res64	anyres64
 ]

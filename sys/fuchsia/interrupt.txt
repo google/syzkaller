@@ -1,0 +1,17 @@
+# Copyright 2022 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# See https://cs.opensource.google/fuchsia/fuchsia/+/main:zircon/vdso/interrupt.fidl
+
+include <zircon/syscalls.h>
+include <zircon/types.h>
+
+resource zx_interrupt[zx_handle]
+
+zx_interrupt_create(src_obj zx_resource, src_num int32, options int32, out_handle ptr[out, zx_interrupt])
+
+zx_interrupt_bind(handle zx_interrupt, port_handle zx_port, key int64, options int32)
+
+zx_interrupt_wait(handle zx_interrupt, out_timestamp ptr[out, zx_time])
+
+zx_interrupt_trigger(handle zx_interrupt, options int32, timestamp zx_time)

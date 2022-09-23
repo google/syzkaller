@@ -103,7 +103,12 @@ func (git *git) CheckoutBranch(repo, branch string) (*Commit, error) {
 		return nil, err
 	}
 	repoHash := hash.String([]byte(repo))
-	// Ignore error as we can double add the same remote and that will fail.
+	// Because the HEAD is detached, submodules assumes "origin" to be the default
+	// remote when initializing.
+	// This sets "origin" to be the current remote.
+	// Ignore errors as we can double add or remove the same remote and that will fail.
+	git.git("remote", "rm", "origin")
+	git.git("remote", "add", "origin", repo)
 	git.git("remote", "add", repoHash, repo)
 	_, err := git.git("fetch", "--force", repoHash, branch)
 	if err != nil {
@@ -308,6 +313,10 @@ func (git *git) GetCommitByTitle(title string) (*Commit, error) {
 	return commits[0], nil
 }
 
+const (
+	fetchCommitsMaxAgeInYears = 5
+)
+
 func (git *git) GetCommitsByTitles(titles []string) ([]*Commit, []string, error) {
 	var greps []string
 	m := make(map[string]string)
@@ -316,7 +325,7 @@ func (git *git) GetCommitsByTitles(titles []string) ([]*Commit, []string, error)
 		greps = append(greps, canonical)
 		m[canonical] = title
 	}
-	since := time.Now().Add(-time.Hour * 24 * 365 * 2).Format("01-02-2006")
+	since := time.Now().Add(-time.Hour * 24 * 365 * fetchCommitsMaxAgeInYears).Format("01-02-2006")
 	commits, err := git.fetchCommits(since, "HEAD", "", "", greps, true)
 	if err != nil {
 		return nil, nil, err
@@ -354,7 +363,7 @@ func (git *git) ExtractFixTagsFromCommits(baseCommit, email string) ([]*Commit, 
 		return nil, fmt.Errorf("failed to parse email %q: %v", email, err)
 	}
 	grep := user + "+.*" + domain
-	since := time.Now().Add(-time.Hour * 24 * 365).Format("01-02-2006")
+	since := time.Now().Add(-time.Hour * 24 * 365 * fetchCommitsMaxAgeInYears).Format("01-02-2006")
 	return git.fetchCommits(since, baseCommit, user, domain, []string{grep}, false)
 }
 

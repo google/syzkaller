@@ -11,6 +11,7 @@ package gcs
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -18,6 +19,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
+	"google.golang.org/api/iterator"
 )
 
 type Client struct {
@@ -79,14 +81,14 @@ func (client *Client) Read(gcsFile string) (*File, error) {
 	return file, nil
 }
 
-func (client *Client) UploadFile(localFile, gcsFile string) error {
+func (client *Client) UploadFile(localFile, gcsFile, contentType, contentEncoding string) error {
 	local, err := os.Open(localFile)
 	if err != nil {
 		return err
 	}
 	defer local.Close()
 
-	w, err := client.FileWriter(gcsFile)
+	w, err := client.FileWriterExt(gcsFile, contentType, contentEncoding)
 	if err != nil {
 		return err
 	}
@@ -96,7 +98,7 @@ func (client *Client) UploadFile(localFile, gcsFile string) error {
 	return err
 }
 
-func (client *Client) FileWriter(gcsFile string) (io.WriteCloser, error) {
+func (client *Client) FileWriterExt(gcsFile, contentType, contentEncoding string) (io.WriteCloser, error) {
 	bucket, filename, err := split(gcsFile)
 	if err != nil {
 		return nil, err
@@ -104,7 +106,17 @@ func (client *Client) FileWriter(gcsFile string) (io.WriteCloser, error) {
 	bkt := client.client.Bucket(bucket)
 	f := bkt.Object(filename)
 	w := f.NewWriter(client.ctx)
+	if contentType != "" {
+		w.ContentType = contentType
+	}
+	if contentEncoding != "" {
+		w.ContentEncoding = contentEncoding
+	}
 	return w, nil
+}
+
+func (client *Client) FileWriter(gcsFile string) (io.WriteCloser, error) {
+	return client.FileWriterExt(gcsFile, "", "")
 }
 
 // Publish lets any user read gcsFile.
@@ -117,8 +129,72 @@ func (client *Client) Publish(gcsFile string) error {
 	return obj.ACL().Set(client.ctx, storage.AllUsers, storage.RoleReader)
 }
 
+var ErrFileNotFound = errors.New("the requested files does not exist")
+
+func (client *Client) DeleteFile(gcsFile string) error {
+	bucket, filename, err := split(gcsFile)
+	if err != nil {
+		return err
+	}
+	err = client.client.Bucket(bucket).Object(filename).Delete(client.ctx)
+	if err == storage.ErrObjectNotExist {
+		return ErrFileNotFound
+	}
+	return err
+}
+
+func (client *Client) FileExists(gcsFile string) (bool, error) {
+	bucket, filename, err := split(gcsFile)
+	if err != nil {
+		return false, err
+	}
+	_, err = client.client.Bucket(bucket).Object(filename).Attrs(client.ctx)
+	if err == storage.ErrObjectNotExist {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // Where things get published.
-const PublicPrefix = "https://storage.googleapis.com/"
+const (
+	PublicPrefix        = "https://storage.googleapis.com/"
+	AuthenticatedPrefix = "https://storage.cloud.google.com/"
+)
+
+func (client *Client) GetDownloadURL(gcsFile string, publicURL bool) string {
+	gcsFile = strings.TrimPrefix(gcsFile, "/")
+	if publicURL {
+		return PublicPrefix + gcsFile
+	}
+	return AuthenticatedPrefix + gcsFile
+}
+
+type Object struct {
+	Path      string
+	CreatedAt time.Time
+}
+
+func (client *Client) ListObjects(bucket string) ([]*Object, error) {
+	ctx := context.Background()
+	it := client.client.Bucket(bucket).Objects(ctx, nil)
+	ret := []*Object{}
+	for {
+		objAttrs, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to query GCS objects: %w", err)
+		}
+		ret = append(ret, &Object{
+			Path:      objAttrs.Name,
+			CreatedAt: objAttrs.Created,
+		})
+	}
+	return ret, nil
+}
 
 func split(file string) (bucket, filename string, err error) {
 	pos := strings.IndexByte(file, '/')

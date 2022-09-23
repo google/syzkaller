@@ -80,7 +80,7 @@ func main() {
 	if extractor == nil {
 		tool.Failf("unknown os: %v", OS)
 	}
-	arches, err := createArches(OS, archList(OS, *flagArch), flag.Args())
+	arches, nfiles, err := createArches(OS, archList(OS, *flagArch), flag.Args())
 	if err != nil {
 		tool.Fail(err)
 	}
@@ -92,7 +92,7 @@ func main() {
 		tool.Fail(err)
 	}
 
-	jobC := make(chan interface{}, len(arches))
+	jobC := make(chan interface{}, len(arches)+nfiles)
 	for _, arch := range arches {
 		jobC <- arch
 	}
@@ -169,26 +169,27 @@ func worker(extractor Extractor, jobC chan interface{}) {
 	}
 }
 
-func createArches(OS string, archArray, files []string) ([]*Arch, error) {
+func createArches(OS string, archArray, files []string) ([]*Arch, int, error) {
 	errBuf := new(bytes.Buffer)
 	eh := func(pos ast.Pos, msg string) {
 		fmt.Fprintf(errBuf, "%v: %v\n", pos, msg)
 	}
 	top := ast.ParseGlob(filepath.Join("sys", OS, "*.txt"), eh)
 	if top == nil {
-		return nil, fmt.Errorf("%v", errBuf.String())
+		return nil, 0, fmt.Errorf("%v", errBuf.String())
 	}
 	allFiles := compiler.FileList(top, OS, eh)
 	if allFiles == nil {
-		return nil, fmt.Errorf("%v", errBuf.String())
+		return nil, 0, fmt.Errorf("%v", errBuf.String())
 	}
+	nfiles := 0
 	var arches []*Arch
 	for _, archStr := range archArray {
 		buildDir := ""
 		if *flagBuild {
 			dir, err := ioutil.TempDir("", "syzkaller-kernel-build")
 			if err != nil {
-				return nil, fmt.Errorf("failed to create temp dir: %v", err)
+				return nil, 0, fmt.Errorf("failed to create temp dir: %v", err)
 			}
 			buildDir = dir
 		} else if *flagBuildDir != "" {
@@ -199,7 +200,7 @@ func createArches(OS string, archArray, files []string) ([]*Arch, error) {
 
 		target := targets.Get(OS, archStr)
 		if target == nil {
-			return nil, fmt.Errorf("unknown arch: %v", archStr)
+			return nil, 0, fmt.Errorf("unknown arch: %v", archStr)
 		}
 
 		arch := &Arch{
@@ -228,8 +229,9 @@ func createArches(OS string, archArray, files []string) ([]*Arch, error) {
 			})
 		}
 		arches = append(arches, arch)
+		nfiles += len(arch.files)
 	}
-	return arches, nil
+	return arches, nfiles, nil
 }
 
 func archList(OS, arches string) []string {

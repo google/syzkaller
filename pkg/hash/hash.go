@@ -50,8 +50,6 @@ func FromString(str string) (Sig, error) {
 		return Sig{}, fmt.Errorf("failed to decode sig '%v': bad len", str)
 	}
 	var sig Sig
-	for i, v := range bin {
-		sig[i] = v
-	}
+	copy(sig[:], bin[:])
 	return sig, err
 }

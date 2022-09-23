@@ -73,7 +73,7 @@ config:
  - USER_NS
  - UTS_NS
  # Depends on CONFIG_SYSVIPC.
- - CONFIG_IPC_NS: [optional]
+ - IPC_NS: [optional]
  - PID_NS
  - NET_NS
 
@@ -104,6 +104,9 @@ config:
 
  - NET_DEV_REFCNT_TRACKER: [v5.17]
  - NET_NS_REFCNT_TRACKER: [v5.17]
+
+ # Added in 5.18 to aid network debugging.
+ - DEBUG_NET: [linux-next]
 
  # This config does not add any debug checks (only debug output).
  - DEBUG_KOBJECT: n

@@ -1,4 +1,4 @@
-// makezero provides a linter for appends to slices initialized with non-zero length.
+// Package makezero provides a linter for appends to slices initialized with non-zero length.
 package makezero
 
 import (
@@ -12,19 +12,32 @@ import (
 	"regexp"
 )
 
+// a decl might include multiple var,
+// so var name with decl make final uniq obj.
+type uniqDecl struct {
+	varName string
+	decl    interface{}
+}
+
 type Issue interface {
 	Details() string
+	Pos() token.Pos
 	Position() token.Position
 	String() string
 }
 
 type AppendIssue struct {
 	name     string
+	pos      token.Pos
 	position token.Position
 }
 
 func (a AppendIssue) Details() string {
 	return fmt.Sprintf("append to slice `%s` with non-zero initialized length", a.name)
+}
+
+func (a AppendIssue) Pos() token.Pos {
+	return a.pos
 }
 
 func (a AppendIssue) Position() token.Position {
@@ -35,11 +48,16 @@ func (a AppendIssue) String() string { return toString(a) }
 
 type MustHaveNonZeroInitLenIssue struct {
 	name     string
+	pos      token.Pos
 	position token.Position
 }
 
 func (i MustHaveNonZeroInitLenIssue) Details() string {
 	return fmt.Sprintf("slice `%s` does not have non-zero initial length", i.name)
+}
+
+func (i MustHaveNonZeroInitLenIssue) Pos() token.Pos {
+	return i.pos
 }
 
 func (i MustHaveNonZeroInitLenIssue) Position() token.Position {
@@ -58,7 +76,7 @@ type visitor struct {
 	comments []*ast.CommentGroup // comments to apply during this visit
 	info     *types.Info
 
-	nonZeroLengthSliceDecls map[interface{}]struct{}
+	nonZeroLengthSliceDecls map[uniqDecl]struct{}
 	fset                    *token.FileSet
 	issues                  []Issue
 }
@@ -74,14 +92,14 @@ func NewLinter(initialLengthMustBeZero bool) *Linter {
 }
 
 func (l Linter) Run(fset *token.FileSet, info *types.Info, nodes ...ast.Node) ([]Issue, error) {
-	var issues []Issue // nolint:prealloc // don't know how many there will be
+	var issues []Issue
 	for _, node := range nodes {
 		var comments []*ast.CommentGroup
 		if file, ok := node.(*ast.File); ok {
 			comments = file.Comments
 		}
 		visitor := visitor{
-			nonZeroLengthSliceDecls: make(map[interface{}]struct{}),
+			nonZeroLengthSliceDecls: make(map[uniqDecl]struct{}),
 			initLenMustBeZero:       l.initLenMustBeZero,
 			info:                    info,
 			fset:                    fset,
@@ -103,7 +121,12 @@ func (v *visitor) Visit(node ast.Node) ast.Visitor {
 		if sliceIdent, ok := node.Args[0].(*ast.Ident); ok &&
 			v.hasNonZeroInitialLength(sliceIdent) &&
 			!v.hasNoLintOnSameLine(fun) {
-			v.issues = append(v.issues, AppendIssue{name: sliceIdent.Name, position: v.fset.Position(fun.Pos())})
+			v.issues = append(v.issues,
+				AppendIssue{
+					name:     sliceIdent.Name,
+					pos:      fun.Pos(),
+					position: v.fset.Position(fun.Pos()),
+				})
 		}
 	case *ast.AssignStmt:
 		for i, right := range node.Rhs {
@@ -116,13 +139,14 @@ func (v *visitor) Visit(node ast.Node) ast.Visitor {
 				if len(right.Args) == 2 {
 					// ignore if not a slice or it has explicit zero length
 					if !v.isSlice(right.Args[0]) {
-						break
+						continue
 					} else if lit, ok := right.Args[1].(*ast.BasicLit); ok && lit.Kind == token.INT && lit.Value == "0" {
-						break
+						continue
 					}
 					if v.initLenMustBeZero && !v.hasNoLintOnSameLine(fun) {
 						v.issues = append(v.issues, MustHaveNonZeroInitLenIssue{
 							name:     v.textFor(left),
+							pos:      node.Pos(),
 							position: v.fset.Position(node.Pos()),
 						})
 					}
@@ -148,7 +172,10 @@ func (v *visitor) hasNonZeroInitialLength(ident *ast.Ident) bool {
 			ident.Name, v.fset.Position(ident.Pos()).String())
 		return false
 	}
-	_, exists := v.nonZeroLengthSliceDecls[ident.Obj.Decl]
+	_, exists := v.nonZeroLengthSliceDecls[uniqDecl{
+		varName: ident.Obj.Name,
+		decl:    ident.Obj.Decl,
+	}]
 	return exists
 }
 
@@ -157,7 +184,13 @@ func (v *visitor) recordNonZeroLengthSlices(node ast.Node) {
 	if !ok {
 		return
 	}
-	v.nonZeroLengthSliceDecls[ident.Obj.Decl] = struct{}{}
+	if ident.Obj == nil {
+		return
+	}
+	v.nonZeroLengthSliceDecls[uniqDecl{
+		varName: ident.Obj.Name,
+		decl:    ident.Obj.Decl,
+	}] = struct{}{}
 }
 
 func (v *visitor) isSlice(node ast.Node) bool {
@@ -185,7 +218,7 @@ func (v *visitor) isSlice(node ast.Node) bool {
 }
 
 func (v *visitor) hasNoLintOnSameLine(node ast.Node) bool {
-	var nolint = regexp.MustCompile(`^\s*nozero\b`)
+	nolint := regexp.MustCompile(`^\s*nozero\b`)
 	nodePos := v.fset.Position(node.Pos())
 	for _, c := range v.comments {
 		commentPos := v.fset.Position(c.Pos())

@@ -41,8 +41,12 @@ func (a *ArgumentAnalyzer) Check(n ast.Node) {
 	case *ast.CallExpr:
 		a.checkCallExpr(expr)
 	case *ast.GenDecl:
-		if expr.Tok == token.CONST {
-			pos := a.pass.Fset.Position(expr.TokPos)
+		if expr.Tok != token.CONST {
+			return
+		}
+
+		for _, x := range expr.Specs {
+			pos := a.pass.Fset.Position(x.Pos())
 
 			mu.Lock()
 			constantDefinitions[pos.Filename+":"+strconv.Itoa(pos.Line)] = true
@@ -70,6 +74,10 @@ func (a *ArgumentAnalyzer) checkCallExpr(expr *ast.CallExpr) {
 				return
 			}
 		}
+	case *ast.Ident:
+		if a.config.IsIgnoredFunction(f.Name) {
+			return
+		}
 	}
 
 	for i, arg := range expr.Args {
@@ -82,10 +90,9 @@ func (a *ArgumentAnalyzer) checkCallExpr(expr *ast.CallExpr) {
 			if i == 0 {
 				a.pass.Reportf(x.Pos(), reportMsg, x.Value, ArgumentCheck)
 			} else {
-				// Otherwise check the previous element type
-				switch expr.Args[i-1].(type) {
-				case *ast.ChanType:
-					// When it's not a simple buffered channel, report it
+				// Otherwise check all args
+				switch expr.Args[i].(type) {
+				case *ast.BasicLit:
 					if a.isMagicNumber(x) {
 						a.pass.Reportf(x.Pos(), reportMsg, x.Value, ArgumentCheck)
 					}

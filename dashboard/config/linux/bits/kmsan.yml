@@ -1,9 +1,11 @@
 # Copyright 2020 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+compiler: /usr/local/clang-kmsan/bin/clang
+
 kernel:
  repo: https://github.com/google/kmsan.git
- tag: kmsan-v5.15-rc2
+ tag: kmsan-v5.18-rc4
 
 config:
  - KMSAN
@@ -25,6 +27,12 @@ config:
 
  # KMSAN doesn't support ORC unwinder (https://github.com/google/kmsan/issues/48).
  - UNWINDER_FRAME_POINTER
+
+ # Newer Clang versions generate DWARF5 by default, but old binutils choke on that.
+ # This results in syzbot being unable to symbolize reports.
+ # Stick to DWARF4 for now.
+ - DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT: [n, weak]
+ - DEBUG_INFO_DWARF4
 
  - HYPERVISOR_GUEST: n
  - PARAVIRT: n
