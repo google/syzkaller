@@ -240,6 +240,7 @@ generate:
 
 generate_go: format_cpp
 	$(GO) generate ./pkg/csource ./executor ./pkg/ifuzz ./pkg/build
+	$(GO) generate ./vm/proxyapp
 
 generate_fidl:
 ifeq ($(TARGETOS),fuchsia)

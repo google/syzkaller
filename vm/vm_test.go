@@ -29,6 +29,10 @@ func (pool *testPool) Create(workdir string, index int) (vmimpl.Instance, error)
 	}, nil
 }
 
+func (pool *testPool) Close() error {
+	return nil
+}
+
 type testInstance struct {
 	outc           chan []byte
 	errc           chan error
@@ -350,6 +354,7 @@ func testMonitorExecution(t *testing.T, test *Test) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer pool.Close()
 	reporter, err := report.NewReporter(cfg)
 	if err != nil {
 		t.Fatal(err)
