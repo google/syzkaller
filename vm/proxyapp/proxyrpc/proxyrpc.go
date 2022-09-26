@@ -14,6 +14,7 @@ type ProxyAppInterface interface {
 	RunStop(in RunStopParams, out *RunStopReply) error
 	RunReadProgress(in RunReadProgressParams, out *RunReadProgressReply) error
 	Close(in CloseParams, out *CloseReply) error
+	PoolLogs(in PoolLogsParam, out *PoolLogsReply) error
 }
 
 type CreatePoolParams struct {
@@ -96,4 +97,12 @@ type DiagnoseParams struct {
 
 type DiagnoseReply struct {
 	Diagnosis string
+}
+
+type PoolLogsParam struct {
+}
+
+type PoolLogsReply struct {
+	Log      string
+	Severity int
 }
