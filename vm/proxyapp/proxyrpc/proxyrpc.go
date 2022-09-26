@@ -14,6 +14,7 @@ type ProxyAppInterface interface {
 	RunStop(in RunStopParams, out *RunStopReply) error
 	RunReadProgress(in RunReadProgressParams, out *RunReadProgressReply) error
 	Close(in CloseParams, out *CloseReply) error
+	PoolLogs(in PoolLogsParam, out *PoolLogsReply) error
 }
 
 type CreatePoolParams struct {
@@ -96,4 +97,15 @@ type DiagnoseParams struct {
 
 type DiagnoseReply struct {
 	Diagnosis string
+}
+
+type PoolLogsParam struct {
+}
+
+type PoolLogsReply struct {
+	Log string
+	// Verbosity follows pkg/log rules.
+	// Messages with Verbosity 0 are printed by default.
+	// The higher is this value - the lower is importance of the message.
+	Verbosity int
 }
