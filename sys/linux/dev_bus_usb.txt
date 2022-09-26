@@ -46,9 +46,13 @@ ioctl$USBDEVFS_CLAIM_PORT(fd fd_usbfs, cmd const[USBDEVFS_CLAIM_PORT], arg ptr[i
 ioctl$USBDEVFS_RELEASE_PORT(fd fd_usbfs, cmd const[USBDEVFS_RELEASE_PORT], arg ptr[in, int32])
 ioctl$USBDEVFS_GET_CAPABILITIES(fd fd_usbfs, cmd const[USBDEVFS_GET_CAPABILITIES], arg ptr[out, int32])
 ioctl$USBDEVFS_DISCONNECT_CLAIM(fd fd_usbfs, cmd const[USBDEVFS_DISCONNECT_CLAIM], arg ptr[in, usbdevfs_disconnect_claim])
+ioctl$USBDEVFS_ALLOC_STREAMS(fd fd_usbfs, cmd const[USBDEVFS_ALLOC_STREAMS], arg ptr[in, usbdevfs_streams])
 ioctl$USBDEVFS_FREE_STREAMS(fd fd_usbfs, cmd const[USBDEVFS_FREE_STREAMS], arg ptr[in, usbdevfs_streams])
 ioctl$USBDEVFS_DROP_PRIVILEGES(fd fd_usbfs, cmd const[USBDEVFS_DROP_PRIVILEGES], arg ptr[in, int32])
 ioctl$USBDEVFS_GET_SPEED(fd fd_usbfs, cmd const[USBDEVFS_GET_SPEED])
+ioctl$USBDEVFS_FORBID_SUSPEND(fd fd_usbfs, cmd const[USBDEVFS_FORBID_SUSPEND])
+ioctl$USBDEVFS_ALLOW_SUSPEND(fd fd_usbfs, cmd const[USBDEVFS_ALLOW_SUSPEND])
+ioctl$USBDEVFS_WAIT_FOR_RESUME(fd fd_usbfs, cmd const[USBDEVFS_WAIT_FOR_RESUME])
 
 usbdevfs_ep {
 	num	int8:7[0:15]

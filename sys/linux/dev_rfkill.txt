@@ -11,6 +11,7 @@ openat$rfkill(fd const[AT_FDCWD], file ptr[in, string["/dev/rfkill"]], flags fla
 write$rfkill(fd fd_rfkill, data ptr[in, rfkill_event], len bytesize[data])
 read$rfkill(fd fd_rfkill, data ptr[out, rfkill_event], len bytesize[data])
 ioctl$RFKILL_IOCTL_NOINPUT(fd fd_rfkill, cmd const[RFKILL_IOCTL_NOINPUT])
+ioctl$RFKILL_IOC_MAX_SIZE(fd fd_rfkill, cmd const[RFKILL_IOC_MAX_SIZE], arg ptr[in, int32])
 
 rfkill_event {
 	idx	int32
