@@ -35,6 +35,12 @@ ioctl$SG_SET_DEBUG(fd fd_sg, cmd const[SG_SET_DEBUG], arg ptr[in, bool32])
 ioctl$SG_SCSI_RESET(fd fd_sg, cmd const[SG_SCSI_RESET], arg const[0])
 ioctl$SG_GET_REQUEST_TABLE(fd fd_sg, cmd const[SG_GET_REQUEST_TABLE], arg ptr[out, array[int8, SG_REQUEST_TABLE_SIZE]])
 
+ioctl$SG_BLKSECTGET(fd fd_sg, cmd const[BLKSECTGET], arg ptr[out, intptr])
+ioctl$SG_BLKTRACESETUP(fd fd_sg, cmd const[BLKTRACESETUP], arg ptr[in, blk_user_trace_setup])
+ioctl$SG_BLKTRACESTART(fd fd_sg, cmd const[BLKTRACESTART], arg const[0])
+ioctl$SG_BLKTRACESTOP(fd fd_sg, cmd const[BLKTRACESTOP], arg const[0])
+ioctl$SG_BLKTRACETEARDOWN(fd fd_sg, cmd const[BLKTRACETEARDOWN], arg const[0])
+
 ioctl$SCSI_IOCTL_SEND_COMMAND(fd fd_sg, cmd const[SCSI_IOCTL_SEND_COMMAND], arg ptr[in, scsi_ioctl_command])
 ioctl$SCSI_IOCTL_TEST_UNIT_READY(fd fd_sg, cmd const[SCSI_IOCTL_TEST_UNIT_READY])
 ioctl$SCSI_IOCTL_DOORLOCK(fd fd_sg, cmd const[SCSI_IOCTL_DOORLOCK])

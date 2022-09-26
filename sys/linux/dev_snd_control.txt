@@ -70,7 +70,7 @@ snd_ctl_elem_info {
 	names_ptr	ptr64[in, array[string]]
 	names_length	bytesize[names_ptr, int32]
 	pad1		array[const[0, int8], 44]
-	d		array[int16, 4]
+	pad		array[const[0, int8], 64]
 } [size[SND_CTL_ELEM_INFO_SIZE]]
 
 define SND_CTL_ELEM_INFO_SIZE	sizeof(struct snd_ctl_elem_info)

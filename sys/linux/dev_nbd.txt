@@ -24,6 +24,7 @@ ioctl$NBD_SET_TIMEOUT(fd fd_nbd, cmd const[NBD_SET_TIMEOUT], arg intptr)
 ioctl$NBD_SET_FLAGS(fd fd_nbd, cmd const[NBD_SET_FLAGS], arg intptr)
 ioctl$NBD_DO_IT(fd fd_nbd, cmd const[NBD_DO_IT])
 ioctl$NBD_CLEAR_QUE(fd fd_nbd, cmd const[NBD_CLEAR_QUE])
+ioctl$NBD_PRINT_DEBUG(fd fd_nbd, cmd const[NBD_PRINT_DEBUG])
 
 type msghdr_nl_nbd[CMD] msghdr_netlink[netlink_msg_t[genl_nbd_family_id, genlmsghdr_t[CMD], nbd_attr_policy]]
 
