@@ -1605,6 +1605,11 @@ var linuxOopses = append([]*oops{
 				fmt:    "WARNING: still has locks held in %[1]v",
 			},
 			{
+				title:  compile("WARNING: Nested lock was not taken"),
+				report: compile("WARNING: Nested lock was not taken(?:.*\\n)+?.*at: {{FUNC}}"),
+				fmt:    "WARNING: nested lock was not taken in %[1]v",
+			},
+			{
 				title:        compile("WARNING: lock held when returning to user space"),
 				report:       compile("WARNING: lock held when returning to user space(?:.*\\n)+?.*leaving the kernel with locks still held(?:.*\\n)+?.*at: (?:{{PC}} +)?{{FUNC}}"),
 				fmt:          "WARNING: lock held when returning to user space in %[1]v",

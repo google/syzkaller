@@ -1,0 +1,68 @@
+TITLE: WARNING: nested lock was not taken in evict
+
+[ 1078.040195][ T3315] 
+[ 1078.040755][ T3315] ==================================
+[ 1078.042081][ T3315] WARNING: Nested lock was not taken
+[ 1078.043153][ T3316] ntfs3: loop5: Failed to load $Extend.
+[ 1078.043337][ T3315] 6.0.0-rc6-syzkaller-17742-gc194837ebb57 #0 Not tainted
+[ 1078.046447][ T3315] ----------------------------------
+[ 1078.047725][ T3315] syz-executor253/3315 is trying to lock:
+[ 1078.049217][ T3315] ffff0000c495a9d8 (&s->s_inode_list_lock){+.+.}-{2:2}, at: evict+0x90/0x334
+[ 1078.051440][ T3315] 
+[ 1078.051440][ T3315] but this task is not holding:
+[ 1078.053131][ T3315] Unable to handle kernel paging request at virtual address 0000000100000017
+[ 1078.055233][ T3315] Mem abort info:
+[ 1078.056133][ T3315]   ESR = 0x0000000096000005
+[ 1078.057204][ T3315]   EC = 0x25: DABT (current EL), IL = 32 bits
+[ 1078.058716][ T3315]   SET = 0, FnV = 0
+[ 1078.059637][ T3315]   EA = 0, S1PTW = 0
+[ 1078.060589][ T3315]   FSC = 0x05: level 1 translation fault
+[ 1078.061959][ T3315] Data abort info:
+[ 1078.062853][ T3315]   ISV = 0, ISS = 0x00000005
+[ 1078.063987][ T3315]   CM = 0, WnR = 0
+[ 1078.064892][ T3315] user pgtable: 4k pages, 48-bit VAs, pgdp=000000010a8da000
+[ 1078.066680][ T3315] [0000000100000017] pgd=0800000107ed2003, p4d=0800000107ed2003, pud=0000000000000000
+[ 1078.069103][ T3315] Internal error: Oops: 0000000096000005 [#1] PREEMPT SMP
+[ 1078.070881][ T3315] Modules linked in:
+[ 1078.071888][ T3315] CPU: 0 PID: 3315 Comm: syz-executor253 Not tainted 6.0.0-rc6-syzkaller-17742-gc194837ebb57 #0
+[ 1078.074459][ T3315] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 08/26/2022
+[ 1078.076756][ T3315] pstate: 604000c5 (nZCv daIF +PAN -UAO -TCO -DIT -SSBS BTYPE=--)
+[ 1078.078660][ T3315] pc : __lock_acquire+0x7cc/0x30a4
+[ 1078.079935][ T3315] lr : __lock_acquire+0x7c0/0x30a4
+[ 1078.081181][ T3315] sp : ffff80001289b8b0
+[ 1078.082207][ T3315] x29: ffff80001289b990 x28: 0000000000000001 x27: ffff80000d30c000
+[ 1078.084192][ T3315] x26: ffff0000c68d24b8 x25: ffff0000c68d24d8 x24: 0000000000000002
+[ 1078.085915][ T3315] x23: ffff0000c68d24d0 x22: ffff80000d32a753 x21: ffff80000d32a712
+[ 1078.087867][ T3315] x20: 0000000000040067 x19: ffff0000c68d1a80 x18: 0000000000000156
+[ 1078.089808][ T3315] x17: 2b7463697665203a x16: 0000000000000002 x15: 0000000000000000
+[ 1078.091780][ T3315] x14: 0000000000000000 x13: 205d353133335420 x12: 5b5d303434313530
+[ 1078.093792][ T3315] x11: ff808000081c1630 x10: 0000000000000000 x9 : 30785d1575e13b00
+[ 1078.095725][ T3315] x8 : 00000000ffffffff x7 : 205b5d3034343135 x6 : ffff800008195d30
+[ 1078.097725][ T3315] x5 : 0000000000000000 x4 : 0000000000000001 x3 : 0000000000000000
+[ 1078.099626][ T3315] x2 : 0000000000000000 x1 : 0000000100000001 x0 : ffff80000cb555a1
+[ 1078.101524][ T3315] Call trace:
+[ 1078.102396][ T3315]  __lock_acquire+0x7cc/0x30a4
+[ 1078.103517][ T3315]  lock_acquire+0x100/0x1f8
+[ 1078.104638][ T3315]  _raw_spin_lock+0x54/0x6c
+[ 1078.105747][ T3315]  evict+0x90/0x334
+[ 1078.106660][ T3315]  iput+0x2c4/0x324
+[ 1078.107628][ T3315]  ntfs_fill_super+0x1254/0x14a4
+[ 1078.108899][ T3315]  get_tree_bdev+0x1e8/0x2a0
+[ 1078.110000][ T3315]  ntfs_fs_get_tree+0x28/0x38
+[ 1078.111128][ T3315]  vfs_get_tree+0x40/0x140
+[ 1078.112248][ T3315]  do_new_mount+0x1dc/0x4e4
+[ 1078.113347][ T3315]  path_mount+0x358/0x914
+[ 1078.114385][ T3315]  __arm64_sys_mount+0x2c4/0x3c4
+[ 1078.115590][ T3315]  el0_svc_common+0x138/0x220
+[ 1078.116753][ T3315]  do_el0_svc+0x48/0x164
+[ 1078.117799][ T3315]  el0_svc+0x58/0x150
+[ 1078.118772][ T3315]  el0t_64_sync_handler+0x84/0xf0
+[ 1078.119981][ T3315]  el0t_64_sync+0x18c/0x190
+[ 1078.121250][ T3315] Code: 94f84769 f94002e8 d0024dc0 91168400 (f9400d01) 
+[ 1078.122961][ T3315] ---[ end trace 0000000000000000 ]---
+[ 1078.297669][ T3315] Kernel panic - not syncing: Oops: Fatal exception
+[ 1078.299392][ T3315] SMP: stopping secondary CPUs
+[ 1078.300556][ T3315] Kernel Offset: disabled
+[ 1078.301613][ T3315] CPU features: 0x00000,02070084,26017203
+[ 1078.303051][ T3315] Memory Limit: none
+[ 1078.489200][ T3315] Rebooting in 86400 seconds..

@@ -414,6 +414,11 @@ func removeArg(arg0 Arg) {
 	})
 }
 
+// The public alias for the removeArg method.
+func RemoveArg(arg Arg) {
+	removeArg(arg)
+}
+
 // removeCall removes call idx from p.
 func (p *Prog) RemoveCall(idx int) {
 	c := p.Calls[idx]

@@ -11,8 +11,10 @@ package vm
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -30,16 +32,18 @@ import (
 	_ "github.com/google/syzkaller/vm/isolated"
 	_ "github.com/google/syzkaller/vm/kvm"
 	_ "github.com/google/syzkaller/vm/odroid"
+	_ "github.com/google/syzkaller/vm/proxyapp"
 	_ "github.com/google/syzkaller/vm/qemu"
 	_ "github.com/google/syzkaller/vm/vmm"
 	_ "github.com/google/syzkaller/vm/vmware"
 )
 
 type Pool struct {
-	impl     vmimpl.Pool
-	workdir  string
-	template string
-	timeouts targets.Timeouts
+	impl        vmimpl.Pool
+	workdir     string
+	template    string
+	timeouts    targets.Timeouts
+	activeCount int32
 }
 
 type Instance struct {
@@ -47,6 +51,7 @@ type Instance struct {
 	workdir  string
 	timeouts targets.Timeouts
 	index    int
+	onClose  func()
 }
 
 var (
@@ -123,12 +128,26 @@ func (pool *Pool) Create(index int) (*Instance, error) {
 		os.RemoveAll(workdir)
 		return nil, err
 	}
+	atomic.AddInt32(&pool.activeCount, 1)
 	return &Instance{
 		impl:     impl,
 		workdir:  workdir,
 		timeouts: pool.timeouts,
 		index:    index,
+		onClose:  func() { atomic.AddInt32(&pool.activeCount, -1) },
 	}, nil
+}
+
+// TODO: Integration or end-to-end testing is needed.
+//  https://github.com/google/syzkaller/pull/3269#discussion_r967650801
+func (pool *Pool) Close() error {
+	if pool.activeCount != 0 {
+		panic("all the instances should be closed before pool.Close()")
+	}
+	if closer, ok := pool.impl.(io.Closer); ok {
+		return closer.Close()
+	}
+	return nil
 }
 
 func (inst *Instance) Copy(hostSrc string) (string, error) {
@@ -161,6 +180,7 @@ func (inst *Instance) diagnose(rep *report.Report) ([]byte, bool) {
 func (inst *Instance) Close() {
 	inst.impl.Close()
 	os.RemoveAll(inst.workdir)
+	inst.onClose()
 }
 
 type ExitCondition int

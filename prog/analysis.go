@@ -10,6 +10,7 @@ package prog
 
 import (
 	"fmt"
+	"io"
 )
 
 type state struct {
@@ -336,4 +337,41 @@ func checkMaxCallID(id int) {
 	if id & ^fallbackCallMask != 0 {
 		panic(fmt.Sprintf("too many syscalls, have %v, max supported %v", id, fallbackCallMask+1))
 	}
+}
+
+type ExtractedAssetType int
+
+const (
+	MountInRepro ExtractedAssetType = iota
+)
+
+type ExtractedAsset struct {
+	Call   int
+	Type   ExtractedAssetType
+	Reader io.Reader
+	Error  error
+}
+
+func (p *Prog) ExtractAssets() []*ExtractedAsset {
+	handler := p.Target.ExtractMountedImage
+	if handler == nil {
+		// Such an operation is not supported by the target.
+		return nil
+	}
+	ret := []*ExtractedAsset{}
+	for id, c := range p.Calls {
+		// So far we only support the MountInRepro asset.
+		reader, err := handler(c)
+		if reader == nil && err == nil {
+			// This is not the call that contains the mount image.
+			continue
+		}
+		ret = append(ret, &ExtractedAsset{
+			Type:   MountInRepro,
+			Call:   id,
+			Reader: reader,
+			Error:  err,
+		})
+	}
+	return ret
 }
