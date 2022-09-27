@@ -10,19 +10,33 @@ import (
 	"github.com/google/syzkaller/prog"
 )
 
-// WorkQueue holds global non-fuzzing work items (see the Work* structs below).
-// WorkQueue also does prioritization among work items, for example, we want
-// to triage and send to manager new inputs before we smash programs
-// in order to not permanently lose interesting programs in case of VM crash.
-type WorkQueue struct {
-	mu              sync.RWMutex
-	triageCandidate []*WorkTriage
-	candidate       []*WorkCandidate
-	triage          []*WorkTriage
-	smash           []*WorkSmash
+// Work queues hold work items (see Work* struct) and do prioritization among
+// them. For example, we want to triage and send to manager new inputs before
+// we smash programs in order to not permanently lose interesting programs in
+// case of a VM crash.
+
+// GlobalWorkQueue holds work items that are global to the whole syz-fuzzer.
+// At the moment these are the work items coming from syz-manager, and we
+// naturally want them to be distributed among all procs.
+type GlobalWorkQueue struct {
+	mu        sync.RWMutex
+	candidate []*WorkCandidate
 
 	procs          int
 	needCandidates chan struct{}
+}
+
+// GroupWorkQueue holds work items for a particular subset of procs. The intent is
+// to let the fuzzer operate on different subsystems simultaneously. If only one
+// work queue is used for the whole syz-fuzzer, similar progs tend to spread
+// over almost all procs. It is not very efficient, e.g. when such progs contain many
+// blocking syscalls and, as a result, the whole VM is just idle most of the time.
+type GroupWorkQueue struct {
+	mu              sync.RWMutex
+	globalQueue     *GlobalWorkQueue
+	triage          []*WorkTriage
+	triageCandidate []*WorkTriage
+	smash           []*WorkSmash
 }
 
 type ProgTypes int
@@ -61,58 +75,32 @@ type WorkSmash struct {
 	call int
 }
 
-func newWorkQueue(procs int, needCandidates chan struct{}) *WorkQueue {
-	return &WorkQueue{
+func newGlobalWorkQueue(procs int, needCandidates chan struct{}) *GlobalWorkQueue {
+	return &GlobalWorkQueue{
 		procs:          procs,
 		needCandidates: needCandidates,
 	}
 }
 
-func (wq *WorkQueue) enqueue(item interface{}) {
+func (wq *GlobalWorkQueue) enqueue(item interface{}) {
 	wq.mu.Lock()
 	defer wq.mu.Unlock()
 	switch item := item.(type) {
-	case *WorkTriage:
-		if item.flags&ProgCandidate != 0 {
-			wq.triageCandidate = append(wq.triageCandidate, item)
-		} else {
-			wq.triage = append(wq.triage, item)
-		}
 	case *WorkCandidate:
 		wq.candidate = append(wq.candidate, item)
-	case *WorkSmash:
-		wq.smash = append(wq.smash, item)
 	default:
-		panic("unknown work type")
+		panic("GlobalWorkQueue: unknown work type")
 	}
 }
 
-func (wq *WorkQueue) dequeue() (item interface{}) {
-	wq.mu.RLock()
-	if len(wq.triageCandidate)+len(wq.candidate)+len(wq.triage)+len(wq.smash) == 0 {
-		wq.mu.RUnlock()
-		return nil
-	}
-	wq.mu.RUnlock()
+func (wq *GlobalWorkQueue) dequeue() (item interface{}) {
 	wq.mu.Lock()
 	wantCandidates := false
-	if len(wq.triageCandidate) != 0 {
-		last := len(wq.triageCandidate) - 1
-		item = wq.triageCandidate[last]
-		wq.triageCandidate = wq.triageCandidate[:last]
-	} else if len(wq.candidate) != 0 {
+	if len(wq.candidate) != 0 {
 		last := len(wq.candidate) - 1
 		item = wq.candidate[last]
 		wq.candidate = wq.candidate[:last]
 		wantCandidates = len(wq.candidate) < wq.procs
-	} else if len(wq.triage) != 0 {
-		last := len(wq.triage) - 1
-		item = wq.triage[last]
-		wq.triage = wq.triage[:last]
-	} else if len(wq.smash) != 0 {
-		last := len(wq.smash) - 1
-		item = wq.smash[last]
-		wq.smash = wq.smash[:last]
 	}
 	wq.mu.Unlock()
 	if wantCandidates {
@@ -124,8 +112,64 @@ func (wq *WorkQueue) dequeue() (item interface{}) {
 	return item
 }
 
-func (wq *WorkQueue) wantCandidates() bool {
+func (wq *GlobalWorkQueue) wantCandidates() bool {
 	wq.mu.RLock()
 	defer wq.mu.RUnlock()
 	return len(wq.candidate) < wq.procs
+}
+
+func newGroupWorkQueue(global *GlobalWorkQueue) *GroupWorkQueue {
+	return &GroupWorkQueue{
+		globalQueue: global,
+	}
+}
+
+func (wq *GroupWorkQueue) enqueue(item interface{}) {
+	wq.mu.Lock()
+	defer wq.mu.Unlock()
+	switch item := item.(type) {
+	case *WorkTriage:
+		if item.flags&ProgCandidate != 0 {
+			wq.triageCandidate = append(wq.triageCandidate, item)
+		} else {
+			wq.triage = append(wq.triage, item)
+		}
+	case *WorkSmash:
+		wq.smash = append(wq.smash, item)
+	default:
+		panic("GroupWorkQueue: unknown work type")
+	}
+}
+
+func (wq *GroupWorkQueue) dequeue() (item interface{}) {
+	// Triage candidate have the highest priority - handle them first.
+	wq.mu.Lock()
+	if len(wq.triageCandidate) != 0 {
+		last := len(wq.triageCandidate) - 1
+		item = wq.triageCandidate[last]
+		wq.triageCandidate = wq.triageCandidate[:last]
+	}
+	wq.mu.Unlock()
+	if item != nil {
+		return
+	}
+
+	// If there are no triage candidates, ry to query the global queue
+	// for a candidate.
+	item = wq.globalQueue.dequeue()
+	if item != nil {
+		return
+	}
+	wq.mu.Lock()
+	if len(wq.triage) != 0 {
+		last := len(wq.triage) - 1
+		item = wq.triage[last]
+		wq.triage = wq.triage[:last]
+	} else if len(wq.smash) != 0 {
+		last := len(wq.smash) - 1
+		item = wq.smash[last]
+		wq.smash = wq.smash[:last]
+	}
+	wq.mu.Unlock()
+	return item
 }
