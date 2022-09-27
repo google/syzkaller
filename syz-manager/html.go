@@ -25,7 +25,6 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/signal"
-	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/prog"
 	"github.com/gorilla/handlers"
 	"github.com/prometheus/client_golang/prometheus"
@@ -69,18 +68,32 @@ func (mgr *Manager) initHTTP() {
 }
 
 func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
-	data := &UISummaryData{
-		Name:  mgr.cfg.Name,
-		Log:   log.CachedLogOutput(),
-		Stats: mgr.collectStats(),
-	}
+	data := make(map[string]interface{})
 
-	var err error
-	if data.Crashes, err = mgr.collectCrashes(mgr.cfg.Workdir); err != nil {
+	stats := mgr.collectStats()
+
+	crashTypes, err := mgr.collectCrashes(mgr.cfg.Workdir)
+
+	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to collect crashes: %v", err), http.StatusInternalServerError)
 		return
 	}
-	executeTemplate(w, summaryTemplate, data)
+	logLines := strings.Split(log.CachedLogOutput(), "\n")
+
+	stats["crashTypes"] = len(crashTypes)
+	data["name"] = mgr.cfg.Name
+	data["log"] = logLines[len(logLines)-10:]
+	data["stats"] = stats
+	w.Header().Set("Content-Type", "application/json")
+
+	jsonData, dataErr := json.Marshal(data)
+
+	if dataErr != nil {
+		http.Error(w, fmt.Sprintf("failed to collect stats: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(jsonData)
 }
 
 func (mgr *Manager) httpConfig(w http.ResponseWriter, r *http.Request) {
@@ -115,7 +128,7 @@ func (mgr *Manager) httpSyscalls(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, syscallsTemplate, data)
 }
 
-func (mgr *Manager) collectStats() []UIStat {
+func (mgr *Manager) collectStats() map[string]interface{} {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
@@ -125,46 +138,20 @@ func (mgr *Manager) collectStats() []UIStat {
 	}
 	rawStats := mgr.stats.all()
 	head := prog.GitRevisionBase
-	stats := []UIStat{
-		{Name: "revision", Value: fmt.Sprint(head[:8]), Link: vcs.LogLink(vcs.SyzkallerRepo, head)},
-		{Name: "config", Value: configName, Link: "/config"},
-		{Name: "uptime", Value: fmt.Sprint(time.Since(mgr.startTime) / 1e9 * 1e9)},
-		{Name: "fuzzing", Value: fmt.Sprint(mgr.fuzzingTime / 60e9 * 60e9)},
-		{Name: "corpus", Value: fmt.Sprint(len(mgr.corpus)), Link: "/corpus"},
-		{Name: "triage queue", Value: fmt.Sprint(len(mgr.candidates))},
-		{Name: "signal", Value: fmt.Sprint(rawStats["signal"])},
-		{Name: "coverage", Value: fmt.Sprint(rawStats["coverage"]), Link: "/cover"},
-	}
-	if mgr.coverFilter != nil {
-		stats = append(stats, UIStat{
-			Name: "filtered coverage",
-			Value: fmt.Sprintf("%v / %v (%v%%)",
-				rawStats["filtered coverage"], len(mgr.coverFilter),
-				rawStats["filtered coverage"]*100/uint64(len(mgr.coverFilter))),
-			Link: "/cover?filter=yes",
-		})
-	}
-	delete(rawStats, "signal")
-	delete(rawStats, "coverage")
-	delete(rawStats, "filtered coverage")
-	if mgr.checkResult != nil {
-		stats = append(stats, UIStat{
-			Name:  "syscalls",
-			Value: fmt.Sprint(len(mgr.checkResult.EnabledCalls[mgr.cfg.Sandbox])),
-			Link:  "/syscalls",
-		})
-	}
 
-	secs := uint64(1)
-	if !mgr.firstConnect.IsZero() {
-		secs = uint64(time.Since(mgr.firstConnect))/1e9 + 1
-	}
-	intStats := convertStats(rawStats, secs)
-	sort.Slice(intStats, func(i, j int) bool {
-		return intStats[i].Name < intStats[j].Name
-	})
-	stats = append(stats, intStats...)
-	return stats
+	new_stats := make(map[string]interface{})
+
+	new_stats["revision"] = head[:8]
+	new_stats["config"] = mgr.cfg.Name
+	new_stats["uptime"] = uint64(time.Since(mgr.startTime).Microseconds()) / 1e6
+	new_stats["fuzzing"] = uint64(mgr.fuzzingTime.Microseconds()) / 1e6
+	new_stats["corpus"] = len(mgr.corpus)
+	new_stats["triage queue"] = len(mgr.candidates)
+	new_stats["signal"] = rawStats["signal"]
+	new_stats["coverage"] = rawStats["coverage"]
+	new_stats["syscalls"] = len(mgr.checkResult.EnabledCalls[mgr.cfg.Sandbox])
+
+	return new_stats
 }
 
 func convertStats(stats map[string]uint64, secs uint64) []UIStat {
