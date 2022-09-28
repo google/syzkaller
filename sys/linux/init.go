@@ -173,8 +173,11 @@ type arch struct {
 	TIOCGSERIAL                 uint64
 }
 
-func (arch *arch) neutralize(c *prog.Call) {
-	arch.unix.Neutralize(c)
+func (arch *arch) neutralize(c *prog.Call, fixStructure bool) error {
+	err := arch.unix.Neutralize(c, fixStructure)
+	if err != nil {
+		return err
+	}
 	switch c.Meta.CallName {
 	case "mremap":
 		// Add MREMAP_FIXED flag, otherwise it produces non-deterministic results.
@@ -243,13 +246,14 @@ func (arch *arch) neutralize(c *prog.Call) {
 		// Enabling a SCHED_FIFO or a SCHED_RR policy may lead to false positive stall-related crashes.
 		neutralizeSchedAttr(c.Args[1])
 	case "syz_mount_image":
-		arch.fixUpSyzMountImage(c)
+		return arch.fixUpSyzMountImage(c, fixStructure)
 	}
 
 	switch c.Meta.Name {
 	case "setsockopt$EBT_SO_SET_ENTRIES":
 		arch.neutralizeEbtables(c)
 	}
+	return nil
 }
 
 func neutralizeSchedAttr(a prog.Arg) {
