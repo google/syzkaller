@@ -1056,6 +1056,7 @@ func (mgr *Manager) saveRepro(res *ReproResult) {
 			output = res.strace.Output
 			crashFlags = dashapi.CrashUnderStrace
 		}
+
 		dc := &dashapi.Crash{
 			BuildID:    mgr.cfg.Tag,
 			Title:      report.Title,
@@ -1068,6 +1069,7 @@ func (mgr *Manager) saveRepro(res *ReproResult) {
 			ReproOpts:  repro.Opts.Serialize(),
 			ReproSyz:   repro.Prog.Serialize(),
 			ReproC:     cprogText,
+			Assets:     mgr.uploadReproAssets(repro),
 		}
 		if _, err := mgr.dash.ReportCrash(dc); err != nil {
 			log.Logf(0, "failed to report repro to dashboard: %v", err)
@@ -1112,6 +1114,42 @@ func (mgr *Manager) saveRepro(res *ReproResult) {
 		}
 	}
 	saveReproStats(filepath.Join(dir, "repro.stats"), res.stats)
+}
+
+func (mgr *Manager) uploadReproAssets(repro *repro.Result) []dashapi.NewAsset {
+	ret := []dashapi.NewAsset{}
+	if mgr.assetStorage == nil {
+		return ret
+	}
+
+	for _, asset := range repro.Prog.ExtractAssets() {
+		if asset.Reader == nil {
+			// Skip empty assets.
+			continue
+		}
+		newAsset, err := mgr.uploadReproAsset(asset)
+		if err != nil {
+			log.Logf(1, "processing of the asset #%d,%v failed: %s",
+				asset.Call, asset.Type, err)
+			continue
+		}
+		ret = append(ret, newAsset)
+	}
+	return ret
+}
+
+func (mgr *Manager) uploadReproAsset(asset *prog.ExtractedAsset) (dashapi.NewAsset, error) {
+	if asset.Error != nil {
+		return dashapi.NewAsset{}, fmt.Errorf("failed to extract: %w", asset.Error)
+	}
+	switch asset.Type {
+	case prog.MountInRepro:
+		name := fmt.Sprintf("mount_%d", asset.Call)
+		return mgr.assetStorage.UploadCrashAsset(asset.Reader, name,
+			dashapi.MountInRepro, nil)
+	default:
+		panic("unknown extracted prog asset")
+	}
 }
 
 func saveReproAsset(dir string, asset *prog.ExtractedAsset) {

@@ -182,6 +182,18 @@ func (storage *Storage) ReportBuildAssets(build *dashapi.Build, assets ...dashap
 	})
 }
 
+func (storage *Storage) UploadCrashAsset(reader io.Reader, fileName string, assetType dashapi.AssetType,
+	extra *ExtraUploadArg) (dashapi.NewAsset, error) {
+	url, err := storage.uploadFileStream(reader, assetType, fileName, extra)
+	if err != nil {
+		return dashapi.NewAsset{}, err
+	}
+	return dashapi.NewAsset{
+		Type:        assetType,
+		DownloadURL: url,
+	}, nil
+}
+
 var ErrAssetDoesNotExist = errors.New("the asset did not exist")
 
 type FileExistsError struct {
