@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/asset"
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/db"
@@ -92,6 +93,8 @@ type Manager struct {
 	coverFilter        map[uint32]uint32
 	coverFilterBitmap  []byte
 	modulesInitialized bool
+
+	assetStorage *asset.Storage
 }
 
 type CorpusItemUpdate struct {
@@ -215,6 +218,13 @@ func RunManager(cfg *mgrconfig.Config) {
 		}
 	}
 
+	if !cfg.AssetStorage.IsEmpty() {
+		mgr.assetStorage, err = asset.StorageFromConfig(cfg.AssetStorage, mgr.dash)
+		if err != nil {
+			log.Fatalf("failed to init asset storage: %v", err)
+		}
+	}
+
 	go func() {
 		for lastTime := time.Now(); ; {
 			time.Sleep(10 * time.Second)
@@ -242,34 +252,7 @@ func RunManager(cfg *mgrconfig.Config) {
 	}()
 
 	if *flagBench != "" {
-		f, err := os.OpenFile(*flagBench, os.O_WRONLY|os.O_CREATE|os.O_EXCL, osutil.DefaultFilePerm)
-		if err != nil {
-			log.Fatalf("failed to open bench file: %v", err)
-		}
-		go func() {
-			for {
-				time.Sleep(time.Minute)
-				vals := mgr.stats.all()
-				mgr.mu.Lock()
-				if mgr.firstConnect.IsZero() {
-					mgr.mu.Unlock()
-					continue
-				}
-				mgr.minimizeCorpus()
-				vals["corpus"] = uint64(len(mgr.corpus))
-				vals["uptime"] = uint64(time.Since(mgr.firstConnect)) / 1e9
-				vals["fuzzing"] = uint64(mgr.fuzzingTime) / 1e9
-				mgr.mu.Unlock()
-
-				data, err := json.MarshalIndent(vals, "", "  ")
-				if err != nil {
-					log.Fatalf("failed to serialize bench data")
-				}
-				if _, err := f.Write(append(data, '\n')); err != nil {
-					log.Fatalf("failed to write bench data")
-				}
-			}
-		}()
+		mgr.initBench()
 	}
 
 	if mgr.dash != nil {
@@ -285,6 +268,37 @@ func RunManager(cfg *mgrconfig.Config) {
 		return
 	}
 	mgr.vmLoop()
+}
+
+func (mgr *Manager) initBench() {
+	f, err := os.OpenFile(*flagBench, os.O_WRONLY|os.O_CREATE|os.O_EXCL, osutil.DefaultFilePerm)
+	if err != nil {
+		log.Fatalf("failed to open bench file: %v", err)
+	}
+	go func() {
+		for {
+			time.Sleep(time.Minute)
+			vals := mgr.stats.all()
+			mgr.mu.Lock()
+			if mgr.firstConnect.IsZero() {
+				mgr.mu.Unlock()
+				continue
+			}
+			mgr.minimizeCorpus()
+			vals["corpus"] = uint64(len(mgr.corpus))
+			vals["uptime"] = uint64(time.Since(mgr.firstConnect)) / 1e9
+			vals["fuzzing"] = uint64(mgr.fuzzingTime) / 1e9
+			mgr.mu.Unlock()
+
+			data, err := json.MarshalIndent(vals, "", "  ")
+			if err != nil {
+				log.Fatalf("failed to serialize bench data")
+			}
+			if _, err := f.Write(append(data, '\n')); err != nil {
+				log.Fatalf("failed to write bench data")
+			}
+		}
+	}()
 }
 
 type RunResult struct {
