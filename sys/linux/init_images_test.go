@@ -38,12 +38,14 @@ func TestSyzMountImageNeutralize(t *testing.T) {
 			// Invalid offset.
 			In: `syz_mount_image$bfs(&(0x7f0000000000)='bfs\x00', &(0x7f0000000100)='./file1\x00', 0x20, 0x2, &(0x7f0000000200)=[{&(0x7f0000010000)="cefaad1bc0210000ff0f0000ffffffffffffffffffffffffffffffff73797a6b616c73797a6b616c00"/64, 0x40, 0x0}, {&(0x7f0000010040)="0200000011000000140000001f22000002000000ed4100000000000001000000020000005ffb19635ffb19635ffb196300"/64, 0x40, 0x9100000}], 0x0, &(0x7f00000100a0)={[], [], 0x0}, 0x0)`,
 			// The segment is deleted.
-			Out: `syz_mount_image$bfs(&(0x7f0000000000)='bfs\x00', &(0x7f0000000100)='./file1\x00', 0x40, 0x1, &(0x7f0000000200)=[{&(0x7f0000010000)="cefaad1bc0210000ff0f0000ffffffffffffffffffffffffffffffff73797a6b616c73797a6b616c00"/64, 0x40, 0x0}], 0x0, &(0x7f00000100a0)={[], [], 0x0}, 0x0)`,
+			Out:       `syz_mount_image$bfs(&(0x7f0000000000)='bfs\x00', &(0x7f0000000100)='./file1\x00', 0x40, 0x1, &(0x7f0000000200)=[{&(0x7f0000010000)="cefaad1bc0210000ff0f0000ffffffffffffffffffffffffffffffff73797a6b616c73797a6b616c00"/64, 0x40, 0x0}], 0x0, &(0x7f00000100a0)={[], [], 0x0}, 0x0)`,
+			StrictErr: `got filtered out`,
 		},
 		{
 			// Overlapping and unsorted segments.
-			In:  `syz_mount_image$bfs(&(0x7f0000000000)='bfs\x00', &(0x7f0000000100)='./file0\x00', 0x2220, 0x3, &(0x7f0000000200)=[{&(0x7f0000010000)="cafef00d"/64, 0x50, 0x20}, {&(0x7f0000010040)="deadbeef"/64, 0x30, 0x10}, {&(0x7f0000010080)="abcdef"/64, 0x40, 0x20}], 0x0, &(0x7f00000100a0)={[], [], 0x0}, 0x0)`,
-			Out: `syz_mount_image$bfs(&(0x7f0000000000)='bfs\x00', &(0x7f0000000100)='./file0\x00', 0x2220, 0x2, &(0x7f0000000200)=[{&(0x7f0000010040)="deadbeef00"/16, 0x10, 0x10}, {&(0x7f0000010000)="cafef00d00"/64, 0x40, 0x20}], 0x0, &(0x7f00000100a0)={[], [], 0x0}, 0x0)`,
+			In:        `syz_mount_image$bfs(&(0x7f0000000000)='bfs\x00', &(0x7f0000000100)='./file0\x00', 0x2220, 0x3, &(0x7f0000000200)=[{&(0x7f0000010000)="cafef00d"/64, 0x50, 0x20}, {&(0x7f0000010040)="deadbeef"/64, 0x30, 0x10}, {&(0x7f0000010080)="abcdef"/64, 0x40, 0x20}], 0x0, &(0x7f00000100a0)={[], [], 0x0}, 0x0)`,
+			Out:       `syz_mount_image$bfs(&(0x7f0000000000)='bfs\x00', &(0x7f0000000100)='./file0\x00', 0x2220, 0x2, &(0x7f0000000200)=[{&(0x7f0000010040)="deadbeef00"/16, 0x10, 0x10}, {&(0x7f0000010000)="cafef00d00"/64, 0x40, 0x20}], 0x0, &(0x7f00000100a0)={[], [], 0x0}, 0x0)`,
+			StrictErr: `segments are not sorted`,
 		},
 	})
 }

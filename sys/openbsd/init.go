@@ -82,7 +82,7 @@ func isExecutorFd(dev uint64) bool {
 	return major == devFdMajor && minor >= 200
 }
 
-func (arch *arch) neutralize(c *prog.Call) {
+func (arch *arch) neutralize(c *prog.Call, fixStructure bool) error {
 	argStart := 1
 	switch c.Meta.CallName {
 	case "chflagsat":
@@ -150,8 +150,9 @@ func (arch *arch) neutralize(c *prog.Call) {
 	case "sysctl":
 		arch.neutralizeSysctl(c)
 	default:
-		arch.unix.Neutralize(c)
+		return arch.unix.Neutralize(c, fixStructure)
 	}
+	return nil
 }
 
 func (arch *arch) neutralizeClockSettime(c *prog.Call) {
