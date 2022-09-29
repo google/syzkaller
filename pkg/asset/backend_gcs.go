@@ -77,12 +77,12 @@ func (csb *cloudStorageBackend) upload(req *uploadRequest) (*uploadResponse, err
 			writeCloser: w,
 			tracer:      csb.tracer,
 		},
-		path: path,
+		path: req.savePath,
 	}, nil
 }
 
 func (csb *cloudStorageBackend) downloadURL(path string, publicURL bool) (string, error) {
-	return csb.client.GetDownloadURL(path, publicURL), nil
+	return csb.client.GetDownloadURL(fmt.Sprintf("%s/%s", csb.bucket, path), publicURL), nil
 }
 
 func (csb *cloudStorageBackend) getPath(downloadURL string) (string, error) {
