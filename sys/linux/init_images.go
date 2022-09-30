@@ -64,9 +64,9 @@ func (zr *zeroReader) Read(p []byte) (n int, err error) {
 
 const imageMaxSize = 129 << 20
 
-func fixUpImageSegments(parsed *mountImageArgs) {
-	const maxImageSegments = 4096
-	parsed.filterSegments(func(i int, segment *mountImageSegment) bool {
+func fixUpImageSegments(parsed *mountImageArgs, fixStructure bool) error {
+	const maxImageSegments = 16784
+	err := parsed.filterSegments(func(i int, segment *mountImageSegment) bool {
 		if i >= maxImageSegments {
 			// We don't want more than maxImageSegments segments.
 			return false
@@ -76,13 +76,16 @@ func fixUpImageSegments(parsed *mountImageArgs) {
 			return false
 		}
 		return segment.offset.Val < imageMaxSize && segment.size.Val < imageMaxSize
-	})
+	}, !fixStructure)
+	if err != nil {
+		return err
+	}
 	// Overwriting of the image multiple times is not efficient and complicates image extraction in Go.
 	// So let's make segments non-overlapping.
-	sort.Stable(parsed)
-	resizeSegment := func(s *mountImageSegment, size uint64) {
-		s.size.Val = size
-		s.data.SetData(s.data.Data()[0:size])
+	if fixStructure {
+		sort.Stable(parsed)
+	} else if !sort.IsSorted(parsed) {
+		return fmt.Errorf("segments are not sorted")
 	}
 
 	newSize := parsed.size.Val
@@ -99,11 +102,19 @@ func fixUpImageSegments(parsed *mountImageArgs) {
 			// Adjust the end of the previous segment.
 			prevSegment := parsed.segments[idx-1]
 			if prevSegment.offset.Val+prevSegment.size.Val > segment.offset.Val {
-				resizeSegment(prevSegment, segment.offset.Val-prevSegment.offset.Val)
+				if fixStructure {
+					prevSegment.resize(segment.offset.Val - prevSegment.offset.Val)
+				} else {
+					return fmt.Errorf("segment %d has invalid size", idx-1)
+				}
 			}
 		}
 		if segment.offset.Val+segment.size.Val > imageMaxSize {
-			resizeSegment(segment, imageMaxSize-segment.offset.Val)
+			if fixStructure {
+				segment.resize(imageMaxSize - segment.offset.Val)
+			} else {
+				return fmt.Errorf("segment %d has invalid size", idx)
+			}
 		}
 		if segment.offset.Val+segment.size.Val > newSize {
 			newSize = segment.offset.Val + segment.size.Val
@@ -116,12 +127,12 @@ func fixUpImageSegments(parsed *mountImageArgs) {
 	parsed.size.Val = newSize
 
 	// Drop 0-size segments.
-	parsed.filterSegments(func(i int, segment *mountImageSegment) bool {
+	return parsed.filterSegments(func(i int, segment *mountImageSegment) bool {
 		return segment.size.Val > 0
-	})
+	}, !fixStructure)
 }
 
-func (arch *arch) fixUpSyzMountImage(c *prog.Call) {
+func (arch *arch) fixUpSyzMountImage(c *prog.Call, fixStructure bool) error {
 	// Previously we did such a sanitization right in the common_linux.h, but this was problematic
 	// for two reasons:
 	// 1) It further complicates the already complicated executor code.
@@ -129,10 +140,13 @@ func (arch *arch) fixUpSyzMountImage(c *prog.Call) {
 	// So now we do all the initialization in Go and let the C code only interpret the commands.
 	ret, err := parseSyzMountImage(c)
 	if err != nil {
-		deactivateSyzMountImage(c)
-		return
+		if fixStructure {
+			deactivateSyzMountImage(c)
+			return nil
+		}
+		return err
 	}
-	fixUpImageSegments(ret)
+	return fixUpImageSegments(ret, fixStructure)
 }
 
 type mountImageArgs struct {
@@ -142,18 +156,21 @@ type mountImageArgs struct {
 	segments      []*mountImageSegment
 }
 
-func (m *mountImageArgs) filterSegments(filter func(int, *mountImageSegment) bool) {
+func (m *mountImageArgs) filterSegments(filter func(int, *mountImageSegment) bool, failOnRemove bool) error {
 	newArgs := []prog.Arg{}
 	newSegments := []*mountImageSegment{}
 	for i, segment := range m.segments {
 		if filter(i, segment) {
 			newSegments = append(newSegments, segment)
 			newArgs = append(newArgs, m.segmentsGroup.Inner[i])
+		} else if failOnRemove {
+			return fmt.Errorf("segment #%d got filtered out", i)
 		}
 	}
 	m.segments = newSegments
 	m.segmentsGroup.Inner = newArgs
 	m.segmentsCount.Val = uint64(len(newArgs))
+	return nil
 }
 
 // Methods for segment sorting.
@@ -175,6 +192,11 @@ type mountImageSegment struct {
 	offset     *prog.ConstArg
 	size       *prog.ConstArg
 	parseError error
+}
+
+func (s *mountImageSegment) resize(newSize uint64) {
+	s.size.Val = newSize
+	s.data.SetData(s.data.Data()[0:newSize])
 }
 
 func parseImageSegment(segmentArg prog.Arg) *mountImageSegment {

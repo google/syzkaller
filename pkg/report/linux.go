@@ -703,27 +703,55 @@ func (ctx *linux) extractGuiltyFile(rep *Report) string {
 }
 
 func (ctx *linux) extractGuiltyFileImpl(report []byte) string {
-	first := ""
-	for s := bufio.NewScanner(bytes.NewReader(report)); s.Scan(); {
-		match := filenameRe.FindSubmatch(s.Bytes())
+	scanner := bufio.NewScanner(bytes.NewReader(report))
+
+	// Extract the first possible guilty file.
+	guilty := ""
+	for scanner.Scan() {
+		match := filenameRe.FindSubmatch(scanner.Bytes())
 		if match == nil {
 			continue
 		}
 		file := match[1]
-		if first == "" {
+		if guilty == "" {
 			// Avoid producing no guilty file at all, otherwise we mail the report to nobody.
 			// It's unclear if it's better to return the first one or the last one.
 			// So far the only test we have has only one file anyway.
-			first = string(file)
+			guilty = string(file)
 		}
 
-		if matchesAny(file, ctx.guiltyFileIgnores) || ctx.guiltyLineIgnore.Match(s.Bytes()) {
+		if matchesAny(file, ctx.guiltyFileIgnores) || ctx.guiltyLineIgnore.Match(scanner.Bytes()) {
 			continue
 		}
-		first = string(file)
+		guilty = string(file)
 		break
 	}
-	return filepath.Clean(first)
+	guilty = filepath.Clean(guilty)
+
+	// Search for deeper filepaths in the stack trace below the first possible guilty file.
+	deepestPath := filepath.Dir(guilty)
+	for scanner.Scan() {
+		match := filenameRe.FindSubmatch(scanner.Bytes())
+		if match == nil {
+			continue
+		}
+		file := match[1]
+		if matchesAny(file, ctx.guiltyFileIgnores) || ctx.guiltyLineIgnore.Match(scanner.Bytes()) {
+			continue
+		}
+		clean := filepath.Clean(string(file))
+
+		// Check if the new path has *both* the same directory prefix *and* a deeper suffix.
+		if strings.HasPrefix(clean, deepestPath) {
+			suffix := strings.TrimPrefix(clean, deepestPath)
+			if deeperPathRe.Match([]byte(suffix)) {
+				guilty = clean
+				deepestPath = filepath.Dir(guilty)
+			}
+		}
+	}
+
+	return guilty
 }
 
 func (ctx *linux) getMaintainers(file string) (vcs.Recipients, error) {

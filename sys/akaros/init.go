@@ -20,7 +20,7 @@ func InitTarget(target *prog.Target) {
 	target.Neutralize = arch.Neutralize
 }
 
-func (arch *arch) Neutralize(c *prog.Call) {
+func (arch *arch) Neutralize(c *prog.Call, fixStructure bool) error {
 	switch c.Meta.CallName {
 	case "mmap":
 		c.Args[3].(*prog.ConstArg).Val |= arch.MAP_FIXED
@@ -30,4 +30,5 @@ func (arch *arch) Neutralize(c *prog.Call) {
 			pid.Val = 0
 		}
 	}
+	return nil
 }
