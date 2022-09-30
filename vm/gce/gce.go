@@ -49,26 +49,32 @@ type Config struct {
 }
 
 type Pool struct {
-	env *vmimpl.Env
-	cfg *Config
-	GCE *gce.Context
+	env            *vmimpl.Env
+	cfg            *Config
+	GCE            *gce.Context
+	consoleReadCmd string // optional: command to read non-standard kernel console
 }
 
 type instance struct {
-	env      *vmimpl.Env
-	cfg      *Config
-	GCE      *gce.Context
-	debug    bool
-	name     string
-	ip       string
-	gceKey   string // per-instance private ssh key associated with the instance
-	sshKey   string // ssh key
-	sshUser  string
-	closed   chan bool
-	consolew io.WriteCloser
+	env            *vmimpl.Env
+	cfg            *Config
+	GCE            *gce.Context
+	debug          bool
+	name           string
+	ip             string
+	gceKey         string // per-instance private ssh key associated with the instance
+	sshKey         string // ssh key
+	sshUser        string
+	closed         chan bool
+	consolew       io.WriteCloser
+	consoleReadCmd string // optional: command to read non-standard kernel console
 }
 
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
+	return Ctor(env, "")
+}
+
+func Ctor(env *vmimpl.Env, consoleReadCmd string) (*Pool, error) {
 	if env.Name == "" {
 		return nil, fmt.Errorf("config param name is empty (required for GCE)")
 	}
@@ -123,9 +129,10 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		}
 	}
 	pool := &Pool{
-		cfg: cfg,
-		env: env,
-		GCE: GCE,
+		cfg:            cfg,
+		env:            env,
+		GCE:            GCE,
+		consoleReadCmd: consoleReadCmd,
 	}
 	return pool, nil
 }
@@ -182,16 +189,17 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	}
 	ok = true
 	inst := &instance{
-		env:     pool.env,
-		cfg:     pool.cfg,
-		debug:   pool.env.Debug,
-		GCE:     pool.GCE,
-		name:    name,
-		ip:      ip,
-		gceKey:  gceKey,
-		sshKey:  sshKey,
-		sshUser: sshUser,
-		closed:  make(chan bool),
+		env:            pool.env,
+		cfg:            pool.cfg,
+		debug:          pool.env.Debug,
+		GCE:            pool.GCE,
+		name:           name,
+		ip:             ip,
+		gceKey:         gceKey,
+		sshKey:         sshKey,
+		sshUser:        sshUser,
+		closed:         make(chan bool),
+		consoleReadCmd: pool.consoleReadCmd,
 	}
 	return inst, nil
 }
@@ -224,11 +232,16 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		return nil, nil, err
 	}
 
-	conAddr := fmt.Sprintf("%v.%v.%v.syzkaller.port=1@ssh-serialport.googleapis.com",
-		inst.GCE.ProjectID, inst.GCE.ZoneID, inst.name)
-	conArgs := append(vmimpl.SSHArgs(inst.debug, inst.gceKey, 9600), conAddr)
-	// TODO: remove this later (see also a comment in getSerialPortOutput).
-	conArgs = append(conArgs, "-o", "HostKeyAlgorithms=+ssh-rsa")
+	var conArgs []string
+	if inst.consoleReadCmd == "" {
+		conAddr := fmt.Sprintf("%v.%v.%v.syzkaller.port=1@ssh-serialport.googleapis.com",
+			inst.GCE.ProjectID, inst.GCE.ZoneID, inst.name)
+		conArgs = append(vmimpl.SSHArgs(inst.debug, inst.gceKey, 9600), conAddr)
+		// TODO: remove this later (see also a comment in getSerialPortOutput).
+		conArgs = append(conArgs, "-o", "HostKeyAlgorithms=+ssh-rsa")
+	} else {
+		conArgs = inst.sshArgs(inst.consoleReadCmd)
+	}
 	con := osutil.Command("ssh", conArgs...)
 	con.Env = []string{}
 	con.Stdout = conWpipe

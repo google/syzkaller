@@ -15,13 +15,15 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/vm/gce"
 	"github.com/google/syzkaller/vm/vmimpl"
 )
 
 const (
-	deviceRoot = "/data/fuzz"
+	deviceRoot     = "/data/fuzz"
+	consoleReadCmd = "tail -f cuttlefish/instances/cvd-1/kernel.log"
 )
 
 func init() {
@@ -30,16 +32,19 @@ func init() {
 
 type Pool struct {
 	env     *vmimpl.Env
-	gcePool vmimpl.Pool
+	gcePool *gce.Pool
 }
 
 type instance struct {
+	name    string
+	sshKey  string
+	sshUser string
 	debug   bool
 	gceInst vmimpl.Instance
 }
 
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
-	gcePool, err := vmimpl.Types["gce"].Ctor(env)
+	gcePool, err := gce.Ctor(env, consoleReadCmd)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create underlying GCE pool: %s", err)
 	}
@@ -63,6 +68,9 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	}
 
 	inst := &instance{
+		name:    fmt.Sprintf("%v-%v", pool.env.Name, index),
+		sshKey:  pool.env.SSHKey,
+		sshUser: pool.env.SSHUser,
 		debug:   pool.env.Debug,
 		gceInst: gceInst,
 	}
@@ -94,24 +102,18 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	return inst, nil
 }
 
-func (inst *instance) runOnHost(timeout time.Duration, cmd string) error {
-	outc, errc, err := inst.gceInst.Run(timeout, nil, cmd)
-	if err != nil {
-		return fmt.Errorf("failed to run command: %s", err)
+func (inst *instance) sshArgs(command string) []string {
+	sshArgs := append(vmimpl.SSHArgs(inst.debug, inst.sshKey, 22), inst.sshUser+"@"+inst.name)
+	if inst.sshUser != "root" {
+		return append(sshArgs, "sudo", "bash", "-c", "'"+command+"'")
 	}
+	return append(sshArgs, command)
+}
 
-	for {
-		select {
-		case <-vmimpl.Shutdown:
-			return nil
-		case err := <-errc:
-			return err
-		case out, ok := <-outc:
-			if ok && inst.debug {
-				log.Logf(1, "%s", out)
-			}
-		}
-	}
+func (inst *instance) runOnHost(timeout time.Duration, command string) error {
+	_, err := osutil.RunCmd(timeout, "/root", "ssh", inst.sshArgs(command)...)
+
+	return err
 }
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
