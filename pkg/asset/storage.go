@@ -112,6 +112,7 @@ func (storage *Storage) uploadFileStream(reader io.Reader, assetType dashapi.Ass
 	req := &uploadRequest{
 		savePath:          path,
 		contentType:       typeDescr.ContentType,
+		contentEncoding:   typeDescr.ContentEncoding,
 		preserveExtension: typeDescr.preserveExtension,
 	}
 	if req.contentType == "" {
@@ -287,10 +288,6 @@ func xzCompressor(req *uploadRequest,
 	if !req.preserveExtension {
 		newReq.savePath = fmt.Sprintf("%s.xz", newReq.savePath)
 	}
-	// "gz" contentEncoding is not really supported so far, so let's just set contentType.
-	if newReq.contentType == "" {
-		newReq.contentType = "application/x-xz"
-	}
 	resp, err := next(&newReq)
 	if err != nil {
 		return nil, err
@@ -342,7 +339,6 @@ func gzipCompressor(req *uploadRequest,
 	if !req.preserveExtension {
 		newReq.savePath = fmt.Sprintf("%s.gz", newReq.savePath)
 	}
-	newReq.contentEncoding = "gzip"
 	resp, err := next(&newReq)
 	if err != nil {
 		return nil, err
