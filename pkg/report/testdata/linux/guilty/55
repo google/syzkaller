@@ -1,0 +1,82 @@
+FILE: fs/ntfs/super.c
+
+loop4: detected capacity change from 0 to 264192
+==================================
+WARNING: Nested lock was not taken
+6.0.0-rc6-syzkaller-17742-gc194837ebb57 #0 Not tainted
+----------------------------------
+syz-executor253/3315 is trying to lock:
+ffff0000c495a9d8 (&s->s_inode_list_lock){+.+.}-{2:2}, at: spin_lock include/linux/spinlock.h:349 [inline]
+ffff0000c495a9d8 (&s->s_inode_list_lock){+.+.}-{2:2}, at: inode_sb_list_del fs/inode.c:503 [inline]
+ffff0000c495a9d8 (&s->s_inode_list_lock){+.+.}-{2:2}, at: evict+0x90/0x334 fs/inode.c:654
+
+but this task is not holding:
+Unable to handle kernel paging request at virtual address 0000000100000017
+Mem abort info:
+  ESR = 0x0000000096000005
+  EC = 0x25: DABT (current EL), IL = 32 bits
+  SET = 0, FnV = 0
+  EA = 0, S1PTW = 0
+  FSC = 0x05: level 1 translation fault
+Data abort info:
+  ISV = 0, ISS = 0x00000005
+  CM = 0, WnR = 0
+user pgtable: 4k pages, 48-bit VAs, pgdp=000000010a8da000
+[0000000100000017] pgd=0800000107ed2003, p4d=0800000107ed2003, pud=0000000000000000
+Internal error: Oops: 0000000096000005 [#1] PREEMPT SMP
+Modules linked in:
+CPU: 0 PID: 3315 Comm: syz-executor253 Not tainted 6.0.0-rc6-syzkaller-17742-gc194837ebb57 #0
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 08/26/2022
+pstate: 604000c5 (nZCv daIF +PAN -UAO -TCO -DIT -SSBS BTYPE=--)
+pc : print_lock_nested_lock_not_held kernel/locking/lockdep.c:4885 [inline]
+pc : __lock_acquire+0x7cc/0x30a4 kernel/locking/lockdep.c:5044
+lr : print_lock_nested_lock_not_held kernel/locking/lockdep.c:4884 [inline]
+lr : __lock_acquire+0x7c0/0x30a4 kernel/locking/lockdep.c:5044
+sp : ffff80001289b8b0
+x29: ffff80001289b990 x28: 0000000000000001 x27: ffff80000d30c000
+x26: ffff0000c68d24b8 x25: ffff0000c68d24d8 x24: 0000000000000002
+x23: ffff0000c68d24d0 x22: ffff80000d32a753 x21: ffff80000d32a712
+x20: 0000000000040067 x19: ffff0000c68d1a80 x18: 0000000000000156
+x17: 2b7463697665203a x16: 0000000000000002 x15: 0000000000000000
+x14: 0000000000000000 x13: 205d353133335420 x12: 5b5d303434313530
+x11: ff808000081c1630 x10: 0000000000000000 x9 : 30785d1575e13b00
+x8 : 00000000ffffffff x7 : 205b5d3034343135 x6 : ffff800008195d30
+x5 : 0000000000000000 x4 : 0000000000000001 x3 : 0000000000000000
+x2 : 0000000000000000 x1 : 0000000100000001 x0 : ffff80000cb555a1
+Call trace:
+ print_lock_nested_lock_not_held kernel/locking/lockdep.c:4885 [inline]
+ __lock_acquire+0x7cc/0x30a4 kernel/locking/lockdep.c:5044
+ lock_acquire+0x100/0x1f8 kernel/locking/lockdep.c:5666
+ __raw_spin_lock include/linux/spinlock_api_smp.h:133 [inline]
+ _raw_spin_lock+0x54/0x6c kernel/locking/spinlock.c:154
+ spin_lock include/linux/spinlock.h:349 [inline]
+ inode_sb_list_del fs/inode.c:503 [inline]
+ evict+0x90/0x334 fs/inode.c:654
+ iput_final fs/inode.c:1748 [inline]
+ iput+0x2c4/0x324 fs/inode.c:1774
+ ntfs_fill_super+0x1254/0x14a4 fs/ntfs/super.c:188
+ get_tree_bdev+0x1e8/0x2a0 fs/super.c:1323
+ ntfs_fs_get_tree+0x28/0x38 fs/ntfs3/super.c:1358
+ vfs_get_tree+0x40/0x140 fs/super.c:1530
+ do_new_mount+0x1dc/0x4e4 fs/namespace.c:3040
+ path_mount+0x358/0x914 fs/namespace.c:3370
+ do_mount fs/namespace.c:3383 [inline]
+ __do_sys_mount fs/namespace.c:3591 [inline]
+ __se_sys_mount fs/namespace.c:3568 [inline]
+ __arm64_sys_mount+0x2c4/0x3c4 fs/namespace.c:3568
+ __invoke_syscall arch/arm64/kernel/syscall.c:38 [inline]
+ invoke_syscall arch/arm64/kernel/syscall.c:52 [inline]
+ el0_svc_common+0x138/0x220 arch/arm64/kernel/syscall.c:142
+ do_el0_svc+0x48/0x164 arch/arm64/kernel/syscall.c:206
+ el0_svc+0x58/0x150 arch/arm64/kernel/entry-common.c:636
+ el0t_64_sync_handler+0x84/0xf0 arch/arm64/kernel/entry-common.c:654
+ el0t_64_sync+0x18c/0x190
+Code: 94f84769 f94002e8 d0024dc0 91168400 (f9400d01) 
+---[ end trace 0000000000000000 ]---
+----------------
+Code disassembly (best guess):
+   0:	94f84769 	bl	0x3e11da4
+   4:	f94002e8 	ldr	x8, [x23]
+   8:	d0024dc0 	adrp	x0, 0x49ba000
+   c:	91168400 	add	x0, x0, #0x5a1
+* 10:	f9400d01 	ldr	x1, [x8, #24] <-- trapping instruction
