@@ -81,10 +81,17 @@ func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 	logLines := strings.Split(log.CachedLogOutput(), "\n")
 
 	stats["crashTypes"] = len(crashTypes)
-	data["name"] = mgr.cfg.Name
+
+	if mgr != nil && mgr.cfg != nil {
+		data["name"] = mgr.cfg.Name
+	} else {
+		data["name"] = ""
+	}
+
 	data["log"] = logLines[len(logLines)-10:]
 	data["stats"] = stats
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	jsonData, dataErr := json.Marshal(data)
 
