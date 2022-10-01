@@ -31,17 +31,19 @@ import (
 )
 
 type Fuzzer struct {
-	name              string
-	outputType        OutputType
-	config            *ipc.Config
-	execOpts          *ipc.ExecOpts
-	procs             []*Proc
-	gate              *ipc.Gate
-	workQueue         *WorkQueue
-	needPoll          chan struct{}
-	choiceTable       *prog.ChoiceTable
-	noMutate          map[int]bool
-	stats             [StatCount]uint64
+	name        string
+	outputType  OutputType
+	config      *ipc.Config
+	execOpts    *ipc.ExecOpts
+	procs       []*Proc
+	gate        *ipc.Gate
+	workQueue   *WorkQueue
+	needPoll    chan struct{}
+	choiceTable *prog.ChoiceTable
+	noMutate    map[int]bool
+	// The stats field cannot unfortunately be just an uint64 array, because it
+	// results in "unaligned 64-bit atomic operation" errors on 32-bit platforms.
+	stats             []uint64
 	manager           *rpctype.RPCClient
 	target            *prog.Target
 	triagedCandidates uint32
@@ -277,6 +279,7 @@ func main() {
 		checkResult:              r.CheckResult,
 		fetchRawCover:            *flagRawCover,
 		noMutate:                 r.NoMutateCalls,
+		stats:                    make([]uint64, StatCount),
 	}
 	gateCallback := fuzzer.useBugFrames(r, *flagProcs)
 	fuzzer.gate = ipc.NewGate(2**flagProcs, gateCallback)

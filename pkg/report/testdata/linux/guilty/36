@@ -1,4 +1,4 @@
-FILE: sound/core/pcm_native.c
+FILE: sound/core/oss/pcm_oss.c
 
 syz-executor1 (6140) used greatest stack depth: 11720 bytes left
 INFO: rcu_sched self-detected stall on CPU

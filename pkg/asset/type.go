@@ -12,6 +12,7 @@ type TypeDescription struct {
 	AllowMultiple     bool
 	GetTitle          QueryTypeTitle
 	ContentType       string
+	ContentEncoding   string
 	ReportingPrio     int // the smaller, the higher the asset is on the list during reporting
 	NoReporting       bool
 	customCompressor  Compressor
@@ -44,6 +45,7 @@ var assetTypes = map[dashapi.AssetType]*TypeDescription{
 		GetTitle:          constTitle("coverage report(html)"),
 		AllowMultiple:     true,
 		ContentType:       "text/html",
+		ContentEncoding:   "gzip", // We do want to decompress than right in the browser.
 		NoReporting:       true,
 		customCompressor:  gzipCompressor,
 		preserveExtension: true,

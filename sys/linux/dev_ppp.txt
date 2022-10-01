@@ -13,6 +13,9 @@ type ppp_unit int32[0:4]
 openat$ppp(fd const[AT_FDCWD], file ptr[in, string["/dev/ppp"]], flags flags[open_flags], mode const[0]) fd_ppp
 write$ppp(fd fd_ppp, data ptr[in, ppp_packet], size bytesize[data])
 
+ioctl$PPPIOCBRIDGECHAN(fd fd_ppp, cmd const[PPPIOCBRIDGECHAN], arg ptr[in, int32])
+ioctl$PPPIOCUNBRIDGECHAN(fd fd_ppp, cmd const[PPPIOCUNBRIDGECHAN])
+
 ioctl$PPPIOCNEWUNIT(fd fd_ppp, cmd const[PPPIOCNEWUNIT], arg ptr[in, ppp_unit])
 ioctl$PPPIOCATTACH(fd fd_ppp, cmd const[PPPIOCATTACH], arg ptr[in, ppp_unit])
 ioctl$PPPIOCATTCHAN(fd fd_ppp, cmd const[PPPIOCATTCHAN], arg ptr[in, ppp_unit])
@@ -22,6 +25,8 @@ ioctl$PPPIOCSCOMPRESS(fd fd_ppp, cmd const[PPPIOCSCOMPRESS])
 ioctl$PPPIOCGUNIT(fd fd_ppp, cmd const[PPPIOCGUNIT], arg ptr[out, int32])
 ioctl$PPPIOCSDEBUG(fd fd_ppp, cmd const[PPPIOCSDEBUG], arg ptr[in, int32])
 ioctl$PPPIOCGDEBUG(fd fd_ppp, cmd const[PPPIOCGDEBUG], arg ptr[out, int32])
+ioctl$PPPIOCGIDLE32(fd fd_ppp, cmd const[PPPIOCGIDLE32], arg ptr[out, ppp_idle32])
+ioctl$PPPIOCGIDLE64(fd fd_ppp, cmd const[PPPIOCGIDLE64], arg ptr[out, ppp_idle64])
 ioctl$PPPIOCGIDLE(fd fd_ppp, cmd const[PPPIOCGIDLE], arg ptr[out, array[int64, 2]])
 ioctl$PPPIOCSMAXCID(fd fd_ppp, cmd const[PPPIOCSMAXCID], arg ptr[in, int32])
 ioctl$PPPIOCGNPMODE(fd fd_ppp, cmd const[PPPIOCGNPMODE], arg ptr[in, npioctl])
@@ -41,4 +46,14 @@ NPmode = NPMODE_PASS, NPMODE_DROP, NPMODE_ERROR, NPMODE_QUEUE
 npioctl {
 	protocol	flags[ppp_proto, int32]
 	mode		flags[NPmode, int32]
+}
+
+ppp_idle32 {
+	xmit_idle	int32
+	recv_idle	int32
+}
+
+ppp_idle64 {
+	xmit_idle	int64
+	recv_idle	int64
 }

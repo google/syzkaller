@@ -82,12 +82,12 @@ func MakeUnixNeutralizer(target *prog.Target) *UnixNeutralizer {
 	}
 }
 
-func (arch *UnixNeutralizer) Neutralize(c *prog.Call) {
+func (arch *UnixNeutralizer) Neutralize(c *prog.Call, fixStructure bool) error {
 	switch c.Meta.CallName {
 	case "mmap":
 		if c.Meta.Name == "mmap$bifrost" {
 			// Mali bifrost mmap doesn't support MAP_FIXED.
-			return
+			return nil
 		}
 		// Add MAP_FIXED flag, otherwise it produces non-deterministic results.
 		c.Args[3].(*prog.ConstArg).Val |= arch.MAP_FIXED
@@ -98,7 +98,7 @@ func (arch *UnixNeutralizer) Neutralize(c *prog.Call) {
 		}
 		switch c.Args[pos+1].Type().(type) {
 		case *prog.ProcType, *prog.ResourceType:
-			return
+			return nil
 		}
 		mode := c.Args[pos].(*prog.ConstArg)
 		dev := c.Args[pos+1].(*prog.ConstArg)
@@ -128,4 +128,5 @@ func (arch *UnixNeutralizer) Neutralize(c *prog.Call) {
 			code.Val = 1
 		}
 	}
+	return nil
 }
