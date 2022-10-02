@@ -334,7 +334,7 @@ var dynamicTitleReplacement = []replacement{
 	{
 		// Replace that everything looks like an address with "ADDR",
 		// addresses in descriptions can't be good regardless of the oops regexps.
-		regexp.MustCompile(`([^a-zA-Z0])(?:0x)?[0-9a-f]{6,}`),
+		regexp.MustCompile(`([^a-zA-Z0-9])(?:0x)?[0-9a-f]{6,}`),
 		"${1}ADDR",
 	},
 	{
@@ -364,6 +364,13 @@ var dynamicTitleReplacement = []replacement{
 		// matching substrings may overlap (e.g. "0,1,2").
 		regexp.MustCompile(`(\W)(\d+)(\W|$)`),
 		"${1}NUM${3}",
+	},
+	{
+		// Some decimal numbers can be a part of a function name,
+		// we need to preserve them (e.g. cfg80211* or nl802154*).
+		// However, if the number is too long, it's probably something else.
+		regexp.MustCompile(`(\d+){7,}`),
+		"NUM",
 	},
 }
 
