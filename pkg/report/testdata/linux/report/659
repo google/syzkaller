@@ -1,0 +1,50 @@
+TITLE: BUG: corrupted list in nilfs_sysfs_delete_device_group
+ALT: bad-access in nilfs_sysfs_delete_device_group
+
+[  531.961656][ T3061] ------------[ cut here ]------------
+[  531.962869][ T3061] kernel BUG at lib/list_debug.c:64!
+[  531.964139][ T3061] Internal error: Oops - BUG: 00000000f2000800 [#1] PREEMPT SMP
+[  531.965885][ T3061] Modules linked in:
+[  531.966798][ T3061] CPU: 0 PID: 3061 Comm: syz-executor.3 Not tainted 6.0.0-rc6-syzkaller-17742-gc194837ebb57 #0
+[  531.969246][ T3061] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 08/26/2022
+[  531.971647][ T3061] pstate: 60400005 (nZCv daif +PAN -UAO -TCO -DIT -SSBS BTYPE=--)
+[  531.973582][ T3061] pc : __list_del_entry_valid+0xcc/0xd0
+[  531.974869][ T3061] lr : __list_del_entry_valid+0xcc/0xd0
+[  531.976140][ T3061] sp : ffff80001281bb90
+[  531.977033][ T3061] x29: ffff80001281bb90 x28: ffff0000c8b4b500 x27: 0000000000000000
+[  531.978908][ T3061] x26: ffff80000d30cf28 x25: ffff80000d309000 x24: 0000000000000008
+[  531.980773][ T3061] x23: 0000000000000003 x22: ffff80000d56ad28 x21: 0000000000000000
+[  531.982696][ T3061] x20: ffff00010248a8a0 x19: ffff00010248a898 x18: 00000000000000c0
+[  531.984616][ T3061] x17: 20747562202c3061 x16: ffff80000db49158 x15: ffff0000c8b4b500
+[  531.986503][ T3061] x14: 0000000000000000 x13: 00000000ffffffff x12: ffff0000c8b4b500
+[  531.988374][ T3061] x11: ff808000081c1630 x10: 0000000000000000 x9 : bf3d65c85afff700
+[  531.990228][ T3061] x8 : bf3d65c85afff700 x7 : ffff800008195d30 x6 : 0000000000000000
+[  531.992072][ T3061] x5 : 0000000000000080 x4 : 0000000000000001 x3 : 0000000000000000
+[  531.993927][ T3061] x2 : ffff0001fefbecd0 x1 : 0000000000000001 x0 : 000000000000006d
+[  531.995744][ T3061] Call trace:
+[  531.996486][ T3061]  __list_del_entry_valid+0xcc/0xd0
+[  531.997715][ T3061]  __kobject_del+0xa8/0x1f8
+[  531.998801][ T3061]  kobject_cleanup+0xfc/0x280
+[  531.999873][ T3061]  kobject_put+0x94/0xf8
+[  532.000855][ T3061]  nilfs_sysfs_delete_device_group+0x50/0x7c
+[  532.002240][ T3061]  destroy_nilfs+0x4c/0xa0
+[  532.003269][ T3061]  nilfs_put_super+0x84/0x9c
+[  532.004295][ T3061]  generic_shutdown_super+0x8c/0x190
+[  532.005490][ T3061]  kill_block_super+0x30/0x78
+[  532.006596][ T3061]  deactivate_locked_super+0x70/0xe8
+[  532.007815][ T3061]  deactivate_super+0xd0/0xd4
+[  532.008880][ T3061]  cleanup_mnt+0x1f8/0x234
+[  532.009897][ T3061]  __cleanup_mnt+0x20/0x30
+[  532.010929][ T3061]  task_work_run+0xc4/0x14c
+[  532.011849][ T3061]  do_notify_resume+0x174/0x1f0
+[  532.012841][ T3061]  el0_svc+0x9c/0x150
+[  532.013651][ T3061]  el0t_64_sync_handler+0x84/0xf0
+[  532.014809][ T3061]  el0t_64_sync+0x18c/0x190
+[  532.015856][ T3061] Code: d4210000 9001b460 912e4800 94a768fa (d4210000) 
+[  532.017435][ T3061] ---[ end trace 0000000000000000 ]---
+[  532.302442][ T3061] Kernel panic - not syncing: Oops - BUG: Fatal exception
+[  532.304154][ T3061] SMP: stopping secondary CPUs
+[  532.305265][ T3061] Kernel Offset: disabled
+[  532.306261][ T3061] CPU features: 0x00000,02070084,26017203
+[  532.307595][ T3061] Memory Limit: none
+[  532.584206][ T3061] Rebooting in 86400 seconds..
