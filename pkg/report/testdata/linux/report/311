@@ -1,4 +1,4 @@
-TITLE: memory leak in kobject_set_name_vargs
+TITLE: memory leak in gfs2_sys_fs_add
 TYPE: LEAK
 
 BUG: memory leak
