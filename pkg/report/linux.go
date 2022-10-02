@@ -1206,6 +1206,9 @@ var linuxStackParams = &stackParams{
 		"^crc\\d+",
 		"__might_resched",
 		"assertfail",
+		"^iput$",
+		"^iput_final$",
+		"^ihold$",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
@@ -1634,9 +1637,9 @@ var linuxOopses = append([]*oops{
 				fmt:    "WARNING: still has locks held in %[1]v",
 			},
 			{
-				title:  compile("WARNING: Nested lock was not taken"),
-				report: compile("WARNING: Nested lock was not taken(?:.*\\n)+?.*at: {{FUNC}}"),
-				fmt:    "WARNING: nested lock was not taken in %[1]v",
+				title: compile("WARNING: Nested lock was not taken"),
+				fmt:   "WARNING: nested lock was not taken in %[1]v",
+				stack: warningStackFmt(),
 			},
 			{
 				title:        compile("WARNING: lock held when returning to user space"),
