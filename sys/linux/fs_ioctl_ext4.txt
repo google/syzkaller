@@ -16,6 +16,8 @@ ioctl$EXT4_IOC_CLEAR_ES_CACHE(fd fd, cmd const[EXT4_IOC_CLEAR_ES_CACHE])
 ioctl$EXT4_IOC_GETSTATE(fd fd, cmd const[EXT4_IOC_GETSTATE], arg ptr[out, flags[ext4_state_flags, int32]])
 ioctl$EXT4_IOC_GET_ES_CACHE(fd fd, cmd const[EXT4_IOC_GET_ES_CACHE], args ptr[inout, fiemap])
 ioctl$EXT4_IOC_CHECKPOINT(fd fd, cmd const[EXT4_IOC_CHECKPOINT], arg ptr[in, flags[ext4_checkpoint_flags, int32]])
+ioctl$EXT4_IOC_GETFSUUID(fd fd, cmd const[EXT4_IOC_GETFSUUID], arg ptr[out, fsuuid])
+ioctl$EXT4_IOC_SETFSUUID(fd fd, cmd const[EXT4_IOC_SETFSUUID], arg ptr[in, fsuuid])
 
 ext4_state_flags = EXT4_STATE_FLAG_EXT_PRECACHED, EXT4_STATE_FLAG_NEW, EXT4_STATE_FLAG_NEWENTRY, EXT4_STATE_FLAG_DA_ALLOC_CLOSE
 ext4_checkpoint_flags = EXT4_IOC_CHECKPOINT_FLAG_DISCARD, EXT4_IOC_CHECKPOINT_FLAG_ZEROOUT, EXT4_IOC_CHECKPOINT_FLAG_DRY_RUN
@@ -48,3 +50,11 @@ move_extent {
 	len		int64
 	moved_len	int64
 }
+
+fsuuid {
+	fsu_len		flags[ext4_uuid_len, int32]
+	fsu_flags	const[0, int32]
+	fsu_uuid	array[int8, UUID_SIZE]
+}
+
+ext4_uuid_len = 0, UUID_SIZE
