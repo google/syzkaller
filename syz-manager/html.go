@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"io"
 	"io/ioutil"
+	"math"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -36,6 +37,9 @@ func (mgr *Manager) initHTTP() {
 		http.Handle(pattern, handlers.CompressHandler(http.HandlerFunc(handler)))
 	}
 	handle("/", mgr.httpSummary)
+	handle("/logs", mgr.httpLogs)
+	handle("/stats", mgr.httpStats)
+	handle("/crashtypes", mgr.httpCrashType)
 	handle("/config", mgr.httpConfig)
 	handle("/metrics", promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}).ServeHTTP)
 	handle("/syscalls", mgr.httpSyscalls)
@@ -88,7 +92,7 @@ func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 		data["name"] = ""
 	}
 
-	data["log"] = logLines[len(logLines)-10:]
+	data["log"] = logLines[int64(math.Max(float64(0), float64(len(logLines)-10))):]
 	data["stats"] = stats
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -135,6 +139,117 @@ func (mgr *Manager) httpSyscalls(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, syscallsTemplate, data)
 }
 
+func (mgr *Manager) httpStats(w http.ResponseWriter, r *http.Request) {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+	rawStats := mgr.stats.all()
+	stats := make(map[string]interface{})
+
+	data, err := json.Marshal(mgr.cfg)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to encode json: %v", err),
+			http.StatusInternalServerError)
+		return
+	}
+
+	readCrashes, err := mgr.collectCrashes(mgr.cfg.Workdir)
+
+	if err != nil {
+		http.Error(w, "Failed to collect crashes", http.StatusInternalServerError)
+		return
+	}
+
+	if mgr != nil {
+		stats["config"] = string(data)
+		stats["uptime"] = uint64(time.Since(mgr.startTime).Microseconds()) / 1e6
+		stats["fuzzing"] = uint64(mgr.fuzzingTime.Microseconds()) / 1e6
+		stats["corpus"] = len(mgr.corpus)
+		stats["coverage"] = rawStats["coverage"]
+		stats["numcrashes"] = len(readCrashes)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	jsonData, dataErr := json.Marshal(stats)
+
+	if dataErr != nil {
+		http.Error(w, fmt.Sprintf("failed to collect stats: %v", dataErr), http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(jsonData)
+}
+
+func (mgr *Manager) httpLogs(w http.ResponseWriter, r *http.Request) {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+	logLines := strings.Split(log.CachedLogOutput(), "\n")
+	logs := make(map[string]interface{})
+
+	logs["logs"] = logLines
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	jsonData, dataErr := json.Marshal(logs)
+
+	if dataErr != nil {
+		http.Error(w, fmt.Sprintf("failed to collect stats: %v", dataErr), http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(jsonData)
+}
+
+func (mgr *Manager) httpCrashType(w http.ResponseWriter, r *http.Request) {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+
+	crashTypes := make(map[string]interface{})
+
+	readCrashes, err := mgr.collectCrashes(mgr.cfg.Workdir)
+
+	if err != nil {
+		return
+	}
+
+	for i := 0; i < len(readCrashes); i++ {
+		var crash UICrashType = *readCrashes[i]
+
+		crashTypes[readCrashes[i].ID] = map[string]interface{}{
+			"description": crash.Description,
+			"last-time":   crash.LastTime.String(),
+			"count":       crash.Count,
+		}
+
+		var crashes []map[string]interface{}
+
+		for j := 0; j < len(crash.Crashes); j++ {
+			var individualCrash UICrash = *crash.Crashes[j]
+			crashes = append(crashes, map[string]interface{}{
+				"index":  individualCrash.Index,
+				"report": individualCrash.Report,
+				"log":    individualCrash.Log,
+				"time":   individualCrash.Time.String(),
+				"tag":    individualCrash.Tag,
+			})
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	jsonData, dataErr := json.Marshal(crashTypes)
+
+	if dataErr != nil {
+		http.Error(w, fmt.Sprintf("failed to collect stats: %v", dataErr), http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(jsonData)
+}
+
 func (mgr *Manager) collectStats() map[string]interface{} {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
@@ -148,15 +263,20 @@ func (mgr *Manager) collectStats() map[string]interface{} {
 
 	new_stats := make(map[string]interface{})
 
-	new_stats["revision"] = head[:8]
-	new_stats["config"] = mgr.cfg.Name
-	new_stats["uptime"] = uint64(time.Since(mgr.startTime).Microseconds()) / 1e6
-	new_stats["fuzzing"] = uint64(mgr.fuzzingTime.Microseconds()) / 1e6
-	new_stats["corpus"] = len(mgr.corpus)
-	new_stats["triage queue"] = len(mgr.candidates)
-	new_stats["signal"] = rawStats["signal"]
-	new_stats["coverage"] = rawStats["coverage"]
-	new_stats["syscalls"] = len(mgr.checkResult.EnabledCalls[mgr.cfg.Sandbox])
+	if mgr != nil {
+		new_stats["revision"] = head[:8]
+		new_stats["config"] = mgr.cfg.Name
+		new_stats["uptime"] = uint64(time.Since(mgr.startTime).Microseconds()) / 1e6
+		new_stats["fuzzing"] = uint64(mgr.fuzzingTime.Microseconds()) / 1e6
+		new_stats["corpus"] = len(mgr.corpus)
+		new_stats["triage queue"] = len(mgr.candidates)
+		new_stats["signal"] = rawStats["signal"]
+		new_stats["coverage"] = rawStats["coverage"]
+
+		if mgr.checkResult != nil {
+			new_stats["syscalls"] = len(mgr.checkResult.EnabledCalls[mgr.cfg.Sandbox])
+		}
+	}
 
 	return new_stats
 }
