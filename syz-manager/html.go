@@ -217,12 +217,6 @@ func (mgr *Manager) httpCrashType(w http.ResponseWriter, r *http.Request) {
 	for i := 0; i < len(readCrashes); i++ {
 		var crash UICrashType = *readCrashes[i]
 
-		crashTypes[readCrashes[i].ID] = map[string]interface{}{
-			"description": crash.Description,
-			"last-time":   crash.LastTime.String(),
-			"count":       crash.Count,
-		}
-
 		var crashes []map[string]interface{}
 
 		for j := 0; j < len(crash.Crashes); j++ {
@@ -234,6 +228,13 @@ func (mgr *Manager) httpCrashType(w http.ResponseWriter, r *http.Request) {
 				"time":   individualCrash.Time.String(),
 				"tag":    individualCrash.Tag,
 			})
+		}
+
+		crashTypes[readCrashes[i].ID] = map[string]interface{}{
+			"description": crash.Description,
+			"last-time":   crash.LastTime.String(),
+			"count":       crash.Count,
+			"crashes":     crashes,
 		}
 	}
 
@@ -684,7 +685,7 @@ func (mgr *Manager) collectCrashes(workdir string) ([]*UICrashType, error) {
 	}
 	var crashTypes []*UICrashType
 	for _, dir := range dirs {
-		crash := readCrash(workdir, dir, repros, mgr.startTime, false)
+		crash := readCrash(workdir, dir, repros, mgr.startTime, true)
 		if crash != nil {
 			crashTypes = append(crashTypes, crash)
 		}
