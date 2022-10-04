@@ -403,7 +403,6 @@ func loadManagerConfig(cfg *Config, mgr *ManagerConfig) error {
 	if (mgr.Jobs.BisectCause || mgr.Jobs.BisectFix) && cfg.BisectBinDir == "" {
 		return fmt.Errorf("manager %v: enabled bisection but no bisect_bin_dir", mgr.Name)
 	}
-	managercfg.AssetStorage = cfg.AssetStorage
 	mgr.managercfg = managercfg
 	managercfg.Syzkaller = filepath.FromSlash("syzkaller/current")
 	if managercfg.HTTP == "" {
