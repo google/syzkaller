@@ -154,8 +154,9 @@ func deprecateCrashAssets(c context.Context) error {
 
 func deprecateNamespaceAssets(c context.Context, ns string) error {
 	ad := buildAssetDeprecator{
-		ns: ns,
-		c:  c,
+		ns:         ns,
+		c:          c,
+		lastBuilds: map[string]*Build{},
 	}
 	const buildBatchSize = 16
 	err := ad.batchProcessBuilds(buildBatchSize)
@@ -170,9 +171,23 @@ type buildAssetDeprecator struct {
 	c            context.Context
 	bugsQueried  bool
 	relevantBugs map[string]bool
+	lastBuilds   map[string]*Build
 }
 
 const keepAssetsForClosedBugs = time.Hour * 24 * 30
+
+func (ad *buildAssetDeprecator) lastBuild(manager string) (*Build, error) {
+	build, ok := ad.lastBuilds[manager]
+	if ok {
+		return build, nil
+	}
+	lastBuild, err := lastManagerBuild(ad.c, ad.ns, manager)
+	if err != nil {
+		return nil, err
+	}
+	ad.lastBuilds[manager] = lastBuild
+	return lastBuild, err
+}
 
 func (ad *buildAssetDeprecator) queryBugs() error {
 	if ad.bugsQueried {
@@ -219,11 +234,6 @@ func (ad *buildAssetDeprecator) queryBugs() error {
 }
 
 func (ad *buildAssetDeprecator) buildArchivePolicy(build *Build, asset *Asset) (bool, error) {
-	// If the asset is reasonably new, we always keep it.
-	const alwaysKeepPeriod = time.Hour * 24 * 14
-	if asset.CreateDate.After(timeNow(ad.c).Add(-alwaysKeepPeriod)) {
-		return true, nil
-	}
 	// Query builds to see whether there's a newer same-type asset on the same week.
 	var builds []*Build
 	_, err := db.NewQuery("Build").
@@ -280,10 +290,20 @@ func (ad *buildAssetDeprecator) buildBugStatusPolicy(build *Build) (bool, error)
 			return true, nil
 		}
 	}
-	return false, nil
+	// If there are no crashes, but it's the latest build, they may still appear.
+	lastBuild, err := ad.lastBuild(build.Manager)
+	if err != nil {
+		return false, nil
+	}
+	return build.ID == lastBuild.ID, nil
 }
 
 func (ad *buildAssetDeprecator) needThisBuildAsset(build *Build, buildAsset *Asset) (bool, error) {
+	// If the asset is reasonably new, we always keep it.
+	const alwaysKeepPeriod = time.Hour * 24 * 14
+	if buildAsset.CreateDate.After(timeNow(ad.c).Add(-alwaysKeepPeriod)) {
+		return true, nil
+	}
 	if buildAsset.Type == dashapi.HTMLCoverageReport {
 		// We want to keep coverage reports forever, not just
 		// while there are any open bugs. But we don't want to
