@@ -1,0 +1,26 @@
+FILE: fs/jfs/jfs_metapage.c
+
+BUG: memory leak
+unreferenced object 0xffff888114339e80 (size 128):
+  comm "syz-executor.0", pid 3673, jiffies 4295017005 (age 12.610s)
+  hex dump (first 32 bytes):
+    00 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+    00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+  backtrace:
+    [<ffffffff814927b3>] mempool_alloc+0x73/0x230 mm/mempool.c:392
+    [<ffffffff81c5aefa>] alloc_metapage fs/jfs/jfs_metapage.c:176 [inline]
+    [<ffffffff81c5aefa>] __get_metapage+0x38a/0x9b0 fs/jfs/jfs_metapage.c:651
+    [<ffffffff81c43862>] diNewExt+0x3f2/0x9d0 fs/jfs/jfs_imap.c:2265
+    [<ffffffff81c45254>] diAllocExt fs/jfs/jfs_imap.c:1945 [inline]
+    [<ffffffff81c45254>] diAllocAG+0x9a4/0xd50 fs/jfs/jfs_imap.c:1662
+    [<ffffffff81c4707f>] diAlloc+0x31f/0x900 fs/jfs/jfs_imap.c:1583
+    [<ffffffff81c57d9a>] ialloc+0x6a/0x3a0 fs/jfs/jfs_inode.c:56
+    [<ffffffff81c3a4c7>] jfs_mkdir+0xf7/0x480 fs/jfs/namei.c:225
+    [<ffffffff815fc703>] vfs_mkdir+0x223/0x340 fs/namei.c:4013
+    [<ffffffff816056e5>] do_mkdirat+0x1a5/0x1e0 fs/namei.c:4038
+    [<ffffffff81605859>] __do_sys_mkdir fs/namei.c:4058 [inline]
+    [<ffffffff81605859>] __se_sys_mkdir fs/namei.c:4056 [inline]
+    [<ffffffff81605859>] __x64_sys_mkdir+0x69/0x90 fs/namei.c:4056
+    [<ffffffff845eab95>] do_syscall_x64 arch/x86/entry/common.c:50 [inline]
+    [<ffffffff845eab95>] do_syscall_64+0x35/0xb0 arch/x86/entry/common.c:80
+    [<ffffffff84800087>] entry_SYSCALL_64_after_hwframe+0x63/0xcd
