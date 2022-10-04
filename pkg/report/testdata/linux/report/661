@@ -1,0 +1,263 @@
+TITLE: KASAN: slab-out-of-bounds Read in ea_get
+ALT: bad-access in ea_get
+
+[   54.502667][ T3608] BUG: KASAN: slab-out-of-bounds in hex_dump_to_buffer+0xdc1/0xdf0
+[   54.510560][ T3608] Read of size 1 at addr ffff88806c856a40 by task syz-executor371/3608
+[   54.518775][ T3608] 
+[   54.521081][ T3608] CPU: 1 PID: 3608 Comm: syz-executor371 Not tainted 6.0.0-rc7-syzkaller-00239-gb357fd1c2afc #0
+[   54.531468][ T3608] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 09/22/2022
+[   54.541504][ T3608] Call Trace:
+[   54.544767][ T3608]  <TASK>
+[   54.547680][ T3608]  dump_stack_lvl+0xcd/0x134
+[   54.552259][ T3608]  print_report.cold+0x2ba/0x6e9
+[   54.557213][ T3608]  ? hex_dump_to_buffer+0xdc1/0xdf0
+[   54.562412][ T3608]  kasan_report+0xb1/0x1e0
+[   54.566826][ T3608]  ? hex_dump_to_buffer+0xdc1/0xdf0
+[   54.572020][ T3608]  hex_dump_to_buffer+0xdc1/0xdf0
+[   54.577043][ T3608]  print_hex_dump+0x12f/0x1d0
+[   54.581716][ T3608]  ? hex_dump_to_buffer+0xdf0/0xdf0
+[   54.586912][ T3608]  ? vprintk_emit+0x121/0x5f0
+[   54.591588][ T3608]  ? vprintk_store+0xfe/0xae0
+[   54.596257][ T3608]  ? _printk+0xba/0xed
+[   54.600330][ T3608]  ? record_print_text.cold+0x16/0x16
+[   54.605702][ T3608]  ? lockdep_hardirqs_on+0x79/0x100
+[   54.610898][ T3608]  ea_get.cold+0xaa/0x190
+[   54.615233][ T3608]  ? down_read+0x198/0x450
+[   54.619648][ T3608]  ? __kasan_kmalloc+0xa6/0xd0
+[   54.624405][ T3608]  ? ea_release+0x200/0x200
+[   54.628906][ T3608]  ? selinux_d_instantiate+0x23/0x30
+[   54.634196][ T3608]  ? security_d_instantiate+0x50/0xe0
+[   54.639563][ T3608]  ? d_splice_alias+0x8c/0xc80
+[   54.644319][ T3608]  ? jfs_lookup+0x20c/0x2f0
+[   54.648830][ T3608]  ? lookup_open.isra.0+0x76a/0x12a0
+[   54.654107][ T3608]  ? path_openat+0x996/0x28f0
+[   54.658777][ T3608]  ? do_filp_open+0x1b6/0x400
+[   54.663446][ T3608]  ? do_sys_openat2+0x16d/0x4c0
+[   54.668311][ T3608]  __jfs_getxattr+0xc4/0x3d0
+[   54.672900][ T3608]  ? lock_chain_count+0x20/0x20
+[   54.677757][ T3608]  ? jfs_initxattrs+0x200/0x200
+[   54.682603][ T3608]  ? cache_alloc_refill+0x1e7/0x380
+[   54.687797][ T3608]  ? lock_downgrade+0x6e0/0x6e0
+[   54.692640][ T3608]  ? do_raw_spin_lock+0x120/0x2a0
+[   54.697659][ T3608]  ? rwlock_bug.part.0+0x90/0x90
+[   54.702590][ T3608]  ? fs_reclaim_acquire+0xb2/0x160
+[   54.707696][ T3608]  jfs_xattr_get+0x39/0x50
+[   54.712196][ T3608]  ? __jfs_getxattr+0x3d0/0x3d0
+[   54.717130][ T3608]  __vfs_getxattr+0xd9/0x140
+[   54.721721][ T3608]  ? __vfs_setxattr+0x180/0x180
+[   54.726567][ T3608]  ? trace_kmalloc+0x32/0x100
+[   54.731238][ T3608]  ? kmem_cache_alloc_trace+0x278/0x460
+[   54.736779][ T3608]  ? rwlock_bug.part.0+0x90/0x90
+[   54.741716][ T3608]  inode_doinit_use_xattr+0xb5/0x340
+[   54.747003][ T3608]  inode_doinit_with_dentry+0xcd3/0x12e0
+[   54.752635][ T3608]  ? selinux_task_getsecid_obj+0x2d0/0x2d0
+[   54.758438][ T3608]  ? jfs_iget+0x258/0x4d0
+[   54.762767][ T3608]  selinux_d_instantiate+0x23/0x30
+[   54.767884][ T3608]  security_d_instantiate+0x50/0xe0
+[   54.773082][ T3608]  d_splice_alias+0x8c/0xc80
+[   54.777669][ T3608]  ? do_raw_spin_unlock+0x171/0x230
+[   54.782863][ T3608]  jfs_lookup+0x20c/0x2f0
+[   54.787197][ T3608]  ? jfs_link+0x4e0/0x4e0
+[   54.791526][ T3608]  ? __d_lookup+0x28c/0x460
+[   54.796201][ T3608]  ? __d_lookup_rcu+0x4c0/0x4c0
+[   54.801049][ T3608]  ? __d_lookup+0x2ae/0x460
+[   54.805546][ T3608]  lookup_open.isra.0+0x76a/0x12a0
+[   54.810656][ T3608]  ? link_path_walk.part.0+0xe20/0xe20
+[   54.816110][ T3608]  ? p9_client_getlock_dotl+0x130/0x310
+[   54.821651][ T3608]  ? p9_client_getlock_dotl+0x130/0x310
+[   54.827215][ T3608]  ? lookup_fast+0x14e/0x520
+[   54.831798][ T3608]  path_openat+0x996/0x28f0
+[   54.836300][ T3608]  ? __lock_acquire+0x166e/0x56d0
+[   54.841316][ T3608]  ? path_lookupat+0x840/0x840
+[   54.846074][ T3608]  do_filp_open+0x1b6/0x400
+[   54.850570][ T3608]  ? may_open_dev+0xf0/0xf0
+[   54.855068][ T3608]  ? find_held_lock+0x2d/0x110
+[   54.859844][ T3608]  ? do_raw_spin_lock+0x120/0x2a0
+[   54.864870][ T3608]  ? rwlock_bug.part.0+0x90/0x90
+[   54.869806][ T3608]  ? _find_next_bit+0x1e3/0x260
+[   54.874650][ T3608]  ? _raw_spin_unlock+0x24/0x40
+[   54.879495][ T3608]  ? alloc_fd+0x2f0/0x6f0
+[   54.883822][ T3608]  do_sys_openat2+0x16d/0x4c0
+[   54.888496][ T3608]  ? build_open_flags+0x6f0/0x6f0
+[   54.893521][ T3608]  ? ptrace_notify+0xfa/0x140
+[   54.898190][ T3608]  ? lock_downgrade+0x6e0/0x6e0
+[   54.903051][ T3608]  __x64_sys_open+0x119/0x1c0
+[   54.907745][ T3608]  ? do_sys_open+0x140/0x140
+[   54.912350][ T3608]  ? _raw_spin_unlock_irq+0x2a/0x40
+[   54.917552][ T3608]  ? ptrace_notify+0xfa/0x140
+[   54.922240][ T3608]  do_syscall_64+0x35/0xb0
+[   54.926681][ T3608]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[   54.932583][ T3608] RIP: 0033:0x7feb33d6a0c9
+[   54.937001][ T3608] Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 c0 ff ff ff f7 d8 64 89 01 48
+[   54.956697][ T3608] RSP: 002b:00007fff94f813e8 EFLAGS: 00000246 ORIG_RAX: 0000000000000002
+[   54.965105][ T3608] RAX: ffffffffffffffda RBX: 0030656c69662f2e RCX: 00007feb33d6a0c9
+[   54.973070][ T3608] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000020000340
+[   54.981125][ T3608] RBP: 00007feb33d29890 R08: 00005555560782c0 R09: 0000000000000000
+[   54.989107][ T3608] R10: 00007fff94f812b0 R11: 0000000000000246 R12: 00000000f8008000
+[   54.997854][ T3608] R13: 0000000000000000 R14: 00080000000000fc R15: 0000000000000000
+[   55.005821][ T3608]  </TASK>
+[   55.008832][ T3608] 
+[   55.011145][ T3608] Allocated by task 3608:
+[   55.015460][ T3608]  kasan_save_stack+0x1e/0x40
+[   55.020135][ T3608]  __kasan_slab_alloc+0x85/0xb0
+[   55.024976][ T3608]  kmem_cache_alloc_lru+0x23d/0x860
+[   55.030195][ T3608]  jfs_alloc_inode+0x23/0x60
+[   55.034780][ T3608]  alloc_inode+0x61/0x230
+[   55.039101][ T3608]  iget_locked+0x1b7/0x6f0
+[   55.043509][ T3608]  jfs_iget+0x1a/0x4d0
+[   55.047594][ T3608]  jfs_lookup+0x246/0x2f0
+[   55.051923][ T3608]  lookup_open.isra.0+0x76a/0x12a0
+[   55.057090][ T3608]  path_openat+0x996/0x28f0
+[   55.061583][ T3608]  do_filp_open+0x1b6/0x400
+[   55.066082][ T3608]  do_sys_openat2+0x16d/0x4c0
+[   55.070753][ T3608]  __x64_sys_open+0x119/0x1c0
+[   55.075424][ T3608]  do_syscall_64+0x35/0xb0
+[   55.079836][ T3608]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[   55.085724][ T3608] 
+[   55.088035][ T3608] The buggy address belongs to the object at ffff88806c856180
+[   55.088035][ T3608]  which belongs to the cache jfs_ip of size 2240
+[   55.101741][ T3608] The buggy address is located 0 bytes to the right of
+[   55.101741][ T3608]  2240-byte region [ffff88806c856180, ffff88806c856a40)
+[   55.115445][ T3608] 
+[   55.117761][ T3608] The buggy address belongs to the physical page:
+[   55.124159][ T3608] page:ffffea0001b21580 refcount:1 mapcount:0 mapping:0000000000000000 index:0xffff88806c856fff pfn:0x6c856
+[   55.135602][ T3608] flags: 0xfff00000000200(slab|node=0|zone=1|lastcpupid=0x7ff)
+[   55.143154][ T3608] raw: 00fff00000000200 ffffea0001b21488 ffff88801ba2b150 ffff88801ba26a00
+[   55.151732][ T3608] raw: ffff88806c856fff ffff88806c856180 0000000100000001 0000000000000000
+[   55.160399][ T3608] page dumped because: kasan: bad access detected
+[   55.166810][ T3608] page_owner tracks the page as allocated
+[   55.172517][ T3608] page last allocated via order 0, migratetype Reclaimable, gfp_mask 0x242050(__GFP_IO|__GFP_NOWARN|__GFP_COMP|__GFP_THISNODE|__GFP_RECLAIMABLE), pid 3608, tgid 3608 (syz-executor371), ts 53583161798, free_ts 12386078992
+[   55.193874][ T3608]  get_page_from_freelist+0x109b/0x2ce0
+[   55.199429][ T3608]  __alloc_pages+0x1c7/0x510
+[   55.204016][ T3608]  cache_grow_begin+0x75/0x360
+[   55.208786][ T3608]  cache_alloc_refill+0x27f/0x380
+[   55.214023][ T3608]  kmem_cache_alloc_lru+0x727/0x860
+[   55.219216][ T3608]  jfs_alloc_inode+0x23/0x60
+[   55.223802][ T3608]  alloc_inode+0x61/0x230
+[   55.228128][ T3608]  iget_locked+0x1b7/0x6f0
+[   55.234532][ T3608]  jfs_iget+0x1a/0x4d0
+[   55.238600][ T3608]  jfs_lookup+0x246/0x2f0
+[   55.242926][ T3608]  lookup_open.isra.0+0x76a/0x12a0
+[   55.248029][ T3608]  path_openat+0x996/0x28f0
+[   55.252526][ T3608]  do_filp_open+0x1b6/0x400
+[   55.257020][ T3608]  do_sys_openat2+0x16d/0x4c0
+[   55.261693][ T3608]  __x64_sys_open+0x119/0x1c0
+[   55.266364][ T3608]  do_syscall_64+0x35/0xb0
+[   55.270778][ T3608] page last free stack trace:
+[   55.275520][ T3608]  free_pcp_prepare+0x5e4/0xd20
+[   55.280376][ T3608]  free_unref_page+0x19/0x4d0
+[   55.285046][ T3608]  free_contig_range+0xb1/0x180
+[   55.289893][ T3608]  destroy_args+0xa8/0x646
+[   55.294309][ T3608]  debug_vm_pgtable+0x2945/0x29d6
+[   55.299327][ T3608]  do_one_initcall+0xfe/0x650
+[   55.303999][ T3608]  kernel_init_freeable+0x6b1/0x73a
+[   55.309194][ T3608]  kernel_init+0x1a/0x1d0
+[   55.313514][ T3608]  ret_from_fork+0x1f/0x30
+[   55.317923][ T3608] 
+[   55.320236][ T3608] Memory state around the buggy address:
+[   55.325971][ T3608]  ffff88806c856900: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[   55.334029][ T3608]  ffff88806c856980: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[   55.342081][ T3608] >ffff88806c856a00: 00 00 00 00 00 00 00 00 fc fc fc fc fc fc fc fc
+[   55.350130][ T3608]                                            ^
+[   55.356274][ T3608]  ffff88806c856a80: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[   55.364325][ T3608]  ffff88806c856b00: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[   55.372369][ T3608] ==================================================================
+[   55.380635][ T3608] Kernel panic - not syncing: panic_on_warn set ...
+[   55.387232][ T3608] CPU: 0 PID: 3608 Comm: syz-executor371 Not tainted 6.0.0-rc7-syzkaller-00239-gb357fd1c2afc #0
+[   55.397647][ T3608] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 09/22/2022
+[   55.407691][ T3608] Call Trace:
+[   55.410960][ T3608]  <TASK>
+[   55.413885][ T3608]  dump_stack_lvl+0xcd/0x134
+[   55.418470][ T3608]  panic+0x2c8/0x627
+[   55.422360][ T3608]  ? panic_print_sys_info.part.0+0x10b/0x10b
+[   55.428338][ T3608]  ? preempt_schedule_common+0x59/0xc0
+[   55.433792][ T3608]  ? preempt_schedule_thunk+0x16/0x18
+[   55.439162][ T3608]  ? hex_dump_to_buffer+0xdc1/0xdf0
+[   55.444357][ T3608]  end_report.part.0+0x3f/0x7c
+[   55.449115][ T3608]  kasan_report.cold+0xa/0xf
+[   55.453699][ T3608]  ? hex_dump_to_buffer+0xdc1/0xdf0
+[   55.458893][ T3608]  hex_dump_to_buffer+0xdc1/0xdf0
+[   55.463914][ T3608]  print_hex_dump+0x12f/0x1d0
+[   55.468585][ T3608]  ? hex_dump_to_buffer+0xdf0/0xdf0
+[   55.473778][ T3608]  ? vprintk_emit+0x121/0x5f0
+[   55.478449][ T3608]  ? vprintk_store+0xfe/0xae0
+[   55.483117][ T3608]  ? _printk+0xba/0xed
+[   55.487181][ T3608]  ? record_print_text.cold+0x16/0x16
+[   55.492549][ T3608]  ? lockdep_hardirqs_on+0x79/0x100
+[   55.497738][ T3608]  ea_get.cold+0xaa/0x190
+[   55.502071][ T3608]  ? down_read+0x198/0x450
+[   55.506484][ T3608]  ? __kasan_kmalloc+0xa6/0xd0
+[   55.511237][ T3608]  ? ea_release+0x200/0x200
+[   55.515792][ T3608]  ? selinux_d_instantiate+0x23/0x30
+[   55.521076][ T3608]  ? security_d_instantiate+0x50/0xe0
+[   55.526443][ T3608]  ? d_splice_alias+0x8c/0xc80
+[   55.531199][ T3608]  ? jfs_lookup+0x20c/0x2f0
+[   55.535698][ T3608]  ? lookup_open.isra.0+0x76a/0x12a0
+[   55.540979][ T3608]  ? path_openat+0x996/0x28f0
+[   55.545648][ T3608]  ? do_filp_open+0x1b6/0x400
+[   55.550326][ T3608]  ? do_sys_openat2+0x16d/0x4c0
+[   55.555176][ T3608]  __jfs_getxattr+0xc4/0x3d0
+[   55.559766][ T3608]  ? lock_chain_count+0x20/0x20
+[   55.564611][ T3608]  ? jfs_initxattrs+0x200/0x200
+[   55.569462][ T3608]  ? cache_alloc_refill+0x1e7/0x380
+[   55.574657][ T3608]  ? lock_downgrade+0x6e0/0x6e0
+[   55.579502][ T3608]  ? do_raw_spin_lock+0x120/0x2a0
+[   55.584534][ T3608]  ? rwlock_bug.part.0+0x90/0x90
+[   55.589465][ T3608]  ? fs_reclaim_acquire+0xb2/0x160
+[   55.594570][ T3608]  jfs_xattr_get+0x39/0x50
+[   55.598983][ T3608]  ? __jfs_getxattr+0x3d0/0x3d0
+[   55.603830][ T3608]  __vfs_getxattr+0xd9/0x140
+[   55.608416][ T3608]  ? __vfs_setxattr+0x180/0x180
+[   55.613264][ T3608]  ? trace_kmalloc+0x32/0x100
+[   55.617940][ T3608]  ? kmem_cache_alloc_trace+0x278/0x460
+[   55.623481][ T3608]  ? rwlock_bug.part.0+0x90/0x90
+[   55.628412][ T3608]  inode_doinit_use_xattr+0xb5/0x340
+[   55.633700][ T3608]  inode_doinit_with_dentry+0xcd3/0x12e0
+[   55.639450][ T3608]  ? selinux_task_getsecid_obj+0x2d0/0x2d0
+[   55.645356][ T3608]  ? jfs_iget+0x258/0x4d0
+[   55.649684][ T3608]  selinux_d_instantiate+0x23/0x30
+[   55.654814][ T3608]  security_d_instantiate+0x50/0xe0
+[   55.660101][ T3608]  d_splice_alias+0x8c/0xc80
+[   55.664689][ T3608]  ? do_raw_spin_unlock+0x171/0x230
+[   55.669910][ T3608]  jfs_lookup+0x20c/0x2f0
+[   55.674256][ T3608]  ? jfs_link+0x4e0/0x4e0
+[   55.678602][ T3608]  ? __d_lookup+0x28c/0x460
+[   55.683106][ T3608]  ? __d_lookup_rcu+0x4c0/0x4c0
+[   55.687952][ T3608]  ? __d_lookup+0x2ae/0x460
+[   55.692453][ T3608]  lookup_open.isra.0+0x76a/0x12a0
+[   55.697562][ T3608]  ? link_path_walk.part.0+0xe20/0xe20
+[   55.703021][ T3608]  ? p9_client_getlock_dotl+0x130/0x310
+[   55.708566][ T3608]  ? p9_client_getlock_dotl+0x130/0x310
+[   55.714105][ T3608]  ? lookup_fast+0x14e/0x520
+[   55.718687][ T3608]  path_openat+0x996/0x28f0
+[   55.723189][ T3608]  ? __lock_acquire+0x166e/0x56d0
+[   55.728212][ T3608]  ? path_lookupat+0x840/0x840
+[   55.732969][ T3608]  do_filp_open+0x1b6/0x400
+[   55.737466][ T3608]  ? may_open_dev+0xf0/0xf0
+[   55.741962][ T3608]  ? find_held_lock+0x2d/0x110
+[   55.746726][ T3608]  ? do_raw_spin_lock+0x120/0x2a0
+[   55.751917][ T3608]  ? rwlock_bug.part.0+0x90/0x90
+[   55.756848][ T3608]  ? _find_next_bit+0x1e3/0x260
+[   55.761695][ T3608]  ? _raw_spin_unlock+0x24/0x40
+[   55.766544][ T3608]  ? alloc_fd+0x2f0/0x6f0
+[   55.770957][ T3608]  do_sys_openat2+0x16d/0x4c0
+[   55.775633][ T3608]  ? build_open_flags+0x6f0/0x6f0
+[   55.780654][ T3608]  ? ptrace_notify+0xfa/0x140
+[   55.785323][ T3608]  ? lock_downgrade+0x6e0/0x6e0
+[   55.790169][ T3608]  __x64_sys_open+0x119/0x1c0
+[   55.794844][ T3608]  ? do_sys_open+0x140/0x140
+[   55.799433][ T3608]  ? _raw_spin_unlock_irq+0x2a/0x40
+[   55.804634][ T3608]  ? ptrace_notify+0xfa/0x140
+[   55.809305][ T3608]  do_syscall_64+0x35/0xb0
+[   55.813720][ T3608]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[   55.819607][ T3608] RIP: 0033:0x7feb33d6a0c9
+[   55.824014][ T3608] Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 c0 ff ff ff f7 d8 64 89 01 48
+[   55.843787][ T3608] RSP: 002b:00007fff94f813e8 EFLAGS: 00000246 ORIG_RAX: 0000000000000002
+[   55.852192][ T3608] RAX: ffffffffffffffda RBX: 0030656c69662f2e RCX: 00007feb33d6a0c9
+[   55.860154][ T3608] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000020000340
+[   55.868116][ T3608] RBP: 00007feb33d29890 R08: 00005555560782c0 R09: 0000000000000000
+[   55.876078][ T3608] R10: 00007fff94f812b0 R11: 0000000000000246 R12: 00000000f8008000
+[   55.884041][ T3608] R13: 0000000000000000 R14: 00080000000000fc R15: 0000000000000000
+[   55.892007][ T3608]  </TASK>
+[   55.895198][ T3608] Kernel Offset: disabled
+[   55.899517][ T3608] Rebooting in 86400 seconds..
