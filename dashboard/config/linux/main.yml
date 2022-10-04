@@ -22,7 +22,8 @@ instances:
  - stable-5.4-kasan:		[stable-5.4, x86_64, timeouts_native, gcc, bpfjit, lsm, apparmor, kasan]
  - android-5.4:			[android, android-5.4, nodefconfig, x86_64, timeouts_native, clang, onlyusb, nonoise, kasan]
  - android-5.10:		[android, android-5.10, nodefconfig, x86_64, timeouts_native, clang, onlyusb, nonoise, kasan]
- - android-5.15:		[android, android-5.15, nodefconfig, x86_64, timeouts_native, clang, onlyusb, nonoise, kasan]
+ # The generation is broken, disable for now to unbreak "make configs".
+ # - android-5.15:		[android, android-5.15, nodefconfig, x86_64, timeouts_native, clang, onlyusb, nonoise, kasan]
  - chromeos-5.4:		[chromeos, chromeos-5.4, nodefconfig, x86_64, timeouts_native, onlyusb, kasan]
  - chromeos-5.10:		[chromeos, chromeos-5.10, nodefconfig, x86_64, timeouts_native, onlyusb, kasan]
  - chromeos-5.15:		[chromeos, chromeos-5.15, nodefconfig, x86_64, timeouts_native, onlyusb, kasan]
@@ -34,7 +35,7 @@ includes:
  - stable-5.4.yml: [stable-5.4]
  - android-5.4.yml: [android-5.4]
  - android-5.10.yml: [android-5.10]
- - android-5.15.yml: [android-5.15]
+ # - android-5.15.yml: [android-5.15]
  - chromeos-5.4.yml: [chromeos-5.4]
  - chromeos-5.10.yml: [chromeos-5.10]
  - chromeos-5.15.yml: [chromeos-5.15]
