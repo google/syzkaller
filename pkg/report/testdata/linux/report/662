@@ -1,0 +1,125 @@
+TITLE: general protection fault in device_find_child
+ALT: bad-access in device_find_child
+
+
+[   50.704637][   T48] sysfs: cannot create duplicate filename '/devices/virtual/bluetooth/hci0/hci0:201'
+[   50.714462][   T48] CPU: 1 PID: 48 Comm: kworker/u5:0 Not tainted 6.0.0-rc2-syzkaller-00327-g8379c0b31fbc #0
+[   50.724471][   T48] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 07/22/2022
+[   50.734634][   T48] Workqueue: hci0 hci_rx_work
+[   50.739326][   T48] Call Trace:
+[   50.742593][   T48]  <TASK>
+[   50.745516][   T48]  dump_stack_lvl+0xcd/0x134
+[   50.750103][   T48]  sysfs_warn_dup.cold+0x1c/0x29
+[   50.755083][   T48]  sysfs_create_dir_ns+0x233/0x290
+[   50.760187][   T48]  ? sysfs_create_mount_point+0xb0/0xb0
+[   50.765724][   T48]  ? rwlock_bug.part.0+0x90/0x90
+[   50.770657][   T48]  ? do_raw_spin_unlock+0x171/0x230
+[   50.775848][   T48]  kobject_add_internal+0x2c9/0x8f0
+[   50.781038][   T48]  ? kasan_quarantine_put+0x41/0x210
+[   50.786322][   T48]  kobject_add+0x150/0x1c0
+[   50.790734][   T48]  ? kset_create_and_add+0x1a0/0x1a0
+[   50.796012][   T48]  ? kfree_const+0x51/0x60
+[   50.800421][   T48]  ? kfree+0xe2/0x580
+[   50.804405][   T48]  ? rcu_read_lock_sched_held+0x3a/0x70
+[   50.809946][   T48]  device_add+0x368/0x1e90
+[   50.814356][   T48]  ? dev_set_name+0xbb/0xf0
+[   50.818861][   T48]  ? device_initialize+0x540/0x540
+[   50.823982][   T48]  ? __fw_devlink_link_to_suppliers+0x2d0/0x2d0
+[   50.830213][   T48]  ? hci_le_cis_estabilished_evt+0x1ee/0xae0
+[   50.836199][   T48]  ? lock_downgrade+0x6e0/0x6e0
+[   50.841039][   T48]  ? hci_event_packet+0x425/0xfd0
+[   50.846074][   T48]  hci_conn_add_sysfs+0x9b/0x1b0
+[   50.851002][   T48]  hci_le_cis_estabilished_evt+0x57c/0xae0
+[   50.856801][   T48]  ? hci_phy_link_complete_evt+0x660/0x660
+[   50.862612][   T48]  ? wait_for_completion_io_timeout+0x20/0x20
+[   50.868689][   T48]  hci_le_meta_evt+0x2b8/0x510
+[   50.873463][   T48]  ? hci_phy_link_complete_evt+0x660/0x660
+[   50.879265][   T48]  hci_event_packet+0x63d/0xfd0
+[   50.884110][   T48]  ? hci_conn_drop+0x2f0/0x2f0
+[   50.888864][   T48]  ? hci_cs_le_create_conn+0x170/0x170
+[   50.894329][   T48]  ? kcov_remote_start+0x156/0x7a0
+[   50.899454][   T48]  hci_rx_work+0xae7/0x1230
+[   50.903956][   T48]  process_one_work+0x991/0x1610
+[   50.908897][   T48]  ? pwq_dec_nr_in_flight+0x2a0/0x2a0
+[   50.914265][   T48]  ? rwlock_bug.part.0+0x90/0x90
+[   50.919198][   T48]  ? _raw_spin_lock_irq+0x41/0x50
+[   50.924242][   T48]  worker_thread+0x665/0x1080
+[   50.928918][   T48]  ? process_one_work+0x1610/0x1610
+[   50.934108][   T48]  kthread+0x2e4/0x3a0
+[   50.938163][   T48]  ? kthread_complete_and_exit+0x40/0x40
+[   50.943788][   T48]  ret_from_fork+0x1f/0x30
+[   50.948205][   T48]  </TASK>
+[   50.956742][   T48] kobject_add_internal failed for hci0:201 with -EEXIST, don't try to register things with the same name in the same directory.
+[   50.970223][   T48] Bluetooth: hci0: failed to register connection device
+[   50.983422][ T3608] general protection fault, probably for non-canonical address 0xdffffc000000000b: 0000 [#1] PREEMPT SMP KASAN
+[   50.995154][ T3608] KASAN: null-ptr-deref in range [0x0000000000000058-0x000000000000005f]
+[   51.003547][ T3608] CPU: 0 PID: 3608 Comm: syz-executor957 Not tainted 6.0.0-rc2-syzkaller-00327-g8379c0b31fbc #0
+[   51.013953][ T3608] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 07/22/2022
+[   51.023992][ T3608] RIP: 0010:klist_next+0x49/0x510
+[   51.029015][ T3608] Code: 00 fc ff df 48 c1 ea 03 80 3c 02 00 0f 85 2e 04 00 00 48 b8 00 00 00 00 00 fc ff df 48 8b 2b 48 8d 7d 58 48 89 fa 48 c1 ea 03 <80> 3c 02 00 0f 85 33 04 00 00 4c 8d 6b 08 4c 8b 7d 58 48 b8 00 00
+[   51.048608][ T3608] RSP: 0018:ffffc900038cfa60 EFLAGS: 00010202
+[   51.054659][ T3608] RAX: dffffc0000000000 RBX: ffffc900038cfad8 RCX: 0000000000000000
+[   51.062791][ T3608] RDX: 000000000000000b RSI: ffffffff8420c276 RDI: 0000000000000058
+[   51.070745][ T3608] RBP: 0000000000000000 R08: 0000000000000001 R09: 0000000000000000
+[   51.078716][ T3608] R10: 0000000000000001 R11: 0000000000000000 R12: 0000000000000000
+[   51.086681][ T3608] R13: ffffffff886029c0 R14: 1ffff92000719f57 R15: dffffc0000000000
+[   51.094646][ T3608] FS:  0000000000000000(0000) GS:ffff8880b9a00000(0000) knlGS:0000000000000000
+[   51.103563][ T3608] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   51.110135][ T3608] CR2: 00007fc482680078 CR3: 000000000bc8e000 CR4: 00000000003506f0
+[   51.118096][ T3608] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   51.126050][ T3608] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   51.134016][ T3608] Call Trace:
+[   51.137314][ T3608]  <TASK>
+[   51.140246][ T3608]  ? synchronize_rcu_expedited+0x670/0x670
+[   51.146065][ T3608]  ? bt_link_release+0x20/0x20
+[   51.150833][ T3608]  device_find_child+0xba/0x190
+[   51.155683][ T3608]  ? device_for_each_child+0x170/0x170
+[   51.161138][ T3608]  ? _raw_spin_unlock_irqrestore+0x50/0x70
+[   51.166937][ T3608]  hci_conn_del_sysfs+0xc7/0x180
+[   51.171879][ T3608]  hci_conn_cleanup+0x315/0x7b0
+[   51.176752][ T3608]  hci_conn_del+0x29b/0x790
+[   51.181255][ T3608]  hci_conn_hash_flush+0x197/0x260
+[   51.186354][ T3608]  hci_dev_close_sync+0x55d/0x1130
+[   51.191473][ T3608]  ? hci_dev_open_sync+0x2190/0x2190
+[   51.196754][ T3608]  ? kfree+0xe2/0x580
+[   51.200735][ T3608]  hci_dev_do_close+0x2d/0x70
+[   51.205581][ T3608]  hci_unregister_dev+0x17f/0x4e0
+[   51.210597][ T3608]  vhci_release+0x7c/0xf0
+[   51.214929][ T3608]  __fput+0x277/0x9d0
+[   51.218896][ T3608]  ? vhci_close_dev+0x50/0x50
+[   51.223564][ T3608]  task_work_run+0xdd/0x1a0
+[   51.228066][ T3608]  do_exit+0xad5/0x29b0
+[   51.232240][ T3608]  ? mm_update_next_owner+0x7a0/0x7a0
+[   51.237597][ T3608]  ? _raw_spin_unlock_irq+0x1f/0x40
+[   51.242784][ T3608]  ? _raw_spin_unlock_irq+0x1f/0x40
+[   51.247969][ T3608]  do_group_exit+0xd2/0x2f0
+[   51.252475][ T3608]  __x64_sys_exit_group+0x3a/0x50
+[   51.257482][ T3608]  do_syscall_64+0x35/0xb0
+[   51.261883][ T3608]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[   51.267776][ T3608] RIP: 0033:0x7fc4826295e9
+[   51.272177][ T3608] Code: Unable to access opcode bytes at RIP 0x7fc4826295bf.
+[   51.279520][ T3608] RSP: 002b:00007ffc510e6b08 EFLAGS: 00000246 ORIG_RAX: 00000000000000e7
+[   51.287919][ T3608] RAX: ffffffffffffffda RBX: 00007fc4826b4390 RCX: 00007fc4826295e9
+[   51.295874][ T3608] RDX: 000000000000003c RSI: 00000000000000e7 RDI: 0000000000000001
+[   51.303829][ T3608] RBP: 0000000000000001 R08: ffffffffffffffb8 R09: 00007ffc510e65d0
+[   51.311787][ T3608] R10: 0000000000000000 R11: 0000000000000246 R12: 00007fc4826b4390
+[   51.319738][ T3608] R13: 0000000000000001 R14: 0000000000000000 R15: 0000000000000001
+[   51.327716][ T3608]  </TASK>
+[   51.330719][ T3608] Modules linked in:
+[   51.335531][ T3608] ---[ end trace 0000000000000000 ]---
+[   51.341388][ T3608] RIP: 0010:klist_next+0x49/0x510
+[   51.346422][ T3608] Code: 00 fc ff df 48 c1 ea 03 80 3c 02 00 0f 85 2e 04 00 00 48 b8 00 00 00 00 00 fc ff df 48 8b 2b 48 8d 7d 58 48 89 fa 48 c1 ea 03 <80> 3c 02 00 0f 85 33 04 00 00 4c 8d 6b 08 4c 8b 7d 58 48 b8 00 00
+[   51.366403][ T3608] RSP: 0018:ffffc900038cfa60 EFLAGS: 00010202
+[   51.372815][ T3608] RAX: dffffc0000000000 RBX: ffffc900038cfad8 RCX: 0000000000000000
+[   51.380949][ T3608] RDX: 000000000000000b RSI: ffffffff8420c276 RDI: 0000000000000058
+[   51.388937][ T3608] RBP: 0000000000000000 R08: 0000000000000001 R09: 0000000000000000
+[   51.397104][ T3608] R10: 0000000000000001 R11: 0000000000000000 R12: 0000000000000000
+[   51.405159][ T3608] R13: ffffffff886029c0 R14: 1ffff92000719f57 R15: dffffc0000000000
+[   51.413173][ T3608] FS:  0000000000000000(0000) GS:ffff8880b9a00000(0000) knlGS:0000000000000000
+[   51.422178][ T3608] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   51.428766][ T3608] CR2: 00007fc482680078 CR3: 000000000bc8e000 CR4: 00000000003506f0
+[   51.436926][ T3608] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   51.445324][ T3608] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   51.453496][ T3608] Kernel panic - not syncing: Fatal exception
+[   51.459742][ T3608] Kernel Offset: disabled
+[   51.464059][ T3608] Rebooting in 86400 seconds..
