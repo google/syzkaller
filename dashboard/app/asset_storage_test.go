@@ -18,6 +18,7 @@ func TestBuildAssetLifetime(t *testing.T) {
 	defer c.Close()
 
 	build := testBuild(1)
+	build.Manager = "test_manager"
 	// Embed one of the assets right away.
 	build.Assets = []dashapi.NewAsset{
 		{
@@ -26,6 +27,12 @@ func TestBuildAssetLifetime(t *testing.T) {
 		},
 	}
 	c.client2.UploadBuild(build)
+
+	// Add one more build, so that the assets of the previous one could be deprecated.
+	c.advanceTime(time.Minute)
+	build2 := testBuild(2)
+	build2.Manager = "test_manager"
+	c.client2.UploadBuild(build2)
 
 	// "Upload" several more assets.
 	c.expectOK(c.client2.AddBuildAssets(&dashapi.AddBuildAssetsReq{
@@ -256,6 +263,57 @@ func TestCoverReportDeprecation(t *testing.T) {
 	// A year later.
 	c.advanceTime(time.Hour * 24 * 365)
 	ensureNeeded([]string{weekOneSecond, weekTwoSecond, weekThreeFirst, weekFourFirst})
+}
+
+func TestFreshBuildAssets(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	ensureNeeded := func(needed []string) {
+		_, err := c.GET("/deprecate_assets")
+		c.expectOK(err)
+		neededResp, err := c.client.NeededAssetsList()
+		c.expectOK(err)
+		sort.Strings(neededResp.DownloadURLs)
+		sort.Strings(needed)
+		c.expectEQ(neededResp.DownloadURLs, needed)
+	}
+
+	build := testBuild(1)
+	build.Manager = "manager"
+	build.Assets = []dashapi.NewAsset{
+		{
+			Type:        dashapi.KernelObject,
+			DownloadURL: "http://google.com/vmlinux",
+		},
+	}
+	c.client.UploadBuild(build)
+
+	// No crashes yet, but it's the latest build, so the assets must be preserved.
+	ensureNeeded([]string{"http://google.com/vmlinux"})
+
+	// Upload one more build for the same manager.
+	c.advanceTime(time.Minute)
+	build2 := testBuild(2)
+	build2.Manager = "manager"
+	build2.Assets = []dashapi.NewAsset{
+		{
+			Type:        dashapi.KernelObject,
+			DownloadURL: "http://google.com/vmlinux2",
+		},
+	}
+	c.client.UploadBuild(build2)
+
+	// The assets of the previous build are reasonably new, so they must be kept.
+	ensureNeeded([]string{"http://google.com/vmlinux", "http://google.com/vmlinux2"})
+
+	// The assets of the first build must be deprecated now.
+	c.advanceTime(time.Hour * 24 * 14)
+	ensureNeeded([]string{"http://google.com/vmlinux2"})
+
+	// But even if a lot of time passes, but there are no new builds, the assets must stay.
+	c.advanceTime(time.Hour * 24 * 365)
+	ensureNeeded([]string{"http://google.com/vmlinux2"})
 }
 
 func TestCrashAssetLifetime(t *testing.T) {
