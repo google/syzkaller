@@ -1204,6 +1204,8 @@ var linuxStackParams = &stackParams{
 		"^iput$",
 		"^iput_final$",
 		"^ihold$",
+		"hex_dump_to_buffer",
+		"print_hex_dump",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
