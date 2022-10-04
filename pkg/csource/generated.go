@@ -8499,7 +8499,7 @@ static void sandbox_common()
 	setrlimit(RLIMIT_FSIZE, &rlim);
 	rlim.rlim_cur = rlim.rlim_max = 1 << 20;
 	setrlimit(RLIMIT_STACK, &rlim);
-	rlim.rlim_cur = rlim.rlim_max = 0;
+	rlim.rlim_cur = rlim.rlim_max = 128 << 20;
 	setrlimit(RLIMIT_CORE, &rlim);
 	rlim.rlim_cur = rlim.rlim_max = 256;
 	setrlimit(RLIMIT_NOFILE, &rlim);

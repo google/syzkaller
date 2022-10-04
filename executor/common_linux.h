@@ -3842,7 +3842,8 @@ static void sandbox_common()
 	setrlimit(RLIMIT_FSIZE, &rlim);
 	rlim.rlim_cur = rlim.rlim_max = 1 << 20;
 	setrlimit(RLIMIT_STACK, &rlim);
-	rlim.rlim_cur = rlim.rlim_max = 0;
+	// Note: core size is also restricted by RLIMIT_FSIZE.
+	rlim.rlim_cur = rlim.rlim_max = 128 << 20;
 	setrlimit(RLIMIT_CORE, &rlim);
 	rlim.rlim_cur = rlim.rlim_max = 256; // see kMaxFd
 	setrlimit(RLIMIT_NOFILE, &rlim);
