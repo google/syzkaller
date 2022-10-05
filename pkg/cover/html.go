@@ -26,14 +26,14 @@ import (
 
 func fixUpPCs(target string, progs []Prog, coverFilter map[uint32]uint32) []Prog {
 	if coverFilter != nil {
-		for _, prog := range progs {
+		for i, prog := range progs {
 			var nPCs []uint64
 			for _, pc := range prog.PCs {
 				if coverFilter[uint32(pc)] != 0 {
 					nPCs = append(nPCs, pc)
 				}
 			}
-			prog.PCs = nPCs
+			progs[i].PCs = nPCs
 		}
 	}
 
@@ -41,16 +41,17 @@ func fixUpPCs(target string, progs []Prog, coverFilter map[uint32]uint32) []Prog
 	// so there is 0x18 bytes offset from module load address for .text section
 	// we need to remove the 0x18 bytes offset in order to correct module symbol address
 	if target == targets.ARM64 {
-		for _, prog := range progs {
+		for i, prog := range progs {
 			var nPCs []uint64
 			for _, pc := range prog.PCs {
 				// TODO: avoid to hardcode the address
-				if pc < 0xffffffd010000000 {
+				// Fix up kernel PCs, but not the test (userspace) PCs.
+				if pc >= 0x8000000000000000 && pc < 0xffffffd010000000 {
 					pc -= 0x18
 				}
 				nPCs = append(nPCs, pc)
 			}
-			prog.PCs = nPCs
+			progs[i].PCs = nPCs
 		}
 	}
 	return progs
