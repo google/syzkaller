@@ -72,7 +72,28 @@ func (build *Build) AppendAsset(addAsset Asset) error {
 }
 
 func queryNeededAssets(c context.Context) (*dashapi.NeededAssetsResp, error) {
-	// So far only build assets.
+	buildURLs, crashURLs := []string{}, []string{}
+	g, _ := errgroup.WithContext(c)
+	g.Go(func() error {
+		var err error
+		buildURLs, err = neededBuildURLs(c)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		crashURLs, err = neededCrashURLs(c)
+		return err
+	})
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+	return &dashapi.NeededAssetsResp{
+		DownloadURLs: append(buildURLs, crashURLs...),
+	}, nil
+}
+
+// nolint: dupl
+func neededBuildURLs(c context.Context) ([]string, error) {
 	var builds []*Build
 	_, err := db.NewQuery("Build").
 		Filter("Assets.DownloadURL>", "").
@@ -82,13 +103,33 @@ func queryNeededAssets(c context.Context) (*dashapi.NeededAssetsResp, error) {
 		return nil, fmt.Errorf("failed to query builds: %w", err)
 	}
 	log.Infof(c, "queried %v builds with assets", len(builds))
-	resp := &dashapi.NeededAssetsResp{}
+	ret := []string{}
 	for _, build := range builds {
 		for _, asset := range build.Assets {
-			resp.DownloadURLs = append(resp.DownloadURLs, asset.DownloadURL)
+			ret = append(ret, asset.DownloadURL)
 		}
 	}
-	return resp, nil
+	return ret, nil
+}
+
+// nolint: dupl
+func neededCrashURLs(c context.Context) ([]string, error) {
+	var crashes []*Crash
+	_, err := db.NewQuery("Crash").
+		Filter("Assets.DownloadURL>", "").
+		Project("Assets.DownloadURL").
+		GetAll(c, &crashes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query assets: %w", err)
+	}
+	log.Infof(c, "queried %v crashes with assets", len(crashes))
+	ret := []string{}
+	for _, crash := range crashes {
+		for _, asset := range crash.Assets {
+			ret = append(ret, asset.DownloadURL)
+		}
+	}
+	return ret, nil
 }
 
 func handleDeprecateAssets(w http.ResponseWriter, r *http.Request) {
@@ -99,12 +140,23 @@ func handleDeprecateAssets(w http.ResponseWriter, r *http.Request) {
 			log.Errorf(c, "deprecateNamespaceAssets failed for ns=%v: %v", ns, err)
 		}
 	}
+	err := deprecateCrashAssets(c)
+	if err != nil {
+		log.Errorf(c, "deprecateCrashAssets failed: %v", err)
+	}
+}
+
+func deprecateCrashAssets(c context.Context) error {
+	ad := crashAssetDeprecator{c: c}
+	const crashBatchSize = 16
+	return ad.batchProcessCrashes(crashBatchSize)
 }
 
 func deprecateNamespaceAssets(c context.Context, ns string) error {
-	ad := assetDeprecator{
-		ns: ns,
-		c:  c,
+	ad := buildAssetDeprecator{
+		ns:         ns,
+		c:          c,
+		lastBuilds: map[string]*Build{},
 	}
 	const buildBatchSize = 16
 	err := ad.batchProcessBuilds(buildBatchSize)
@@ -114,16 +166,30 @@ func deprecateNamespaceAssets(c context.Context, ns string) error {
 	return nil
 }
 
-type assetDeprecator struct {
+type buildAssetDeprecator struct {
 	ns           string
 	c            context.Context
 	bugsQueried  bool
 	relevantBugs map[string]bool
+	lastBuilds   map[string]*Build
 }
 
 const keepAssetsForClosedBugs = time.Hour * 24 * 30
 
-func (ad *assetDeprecator) queryBugs() error {
+func (ad *buildAssetDeprecator) lastBuild(manager string) (*Build, error) {
+	build, ok := ad.lastBuilds[manager]
+	if ok {
+		return build, nil
+	}
+	lastBuild, err := lastManagerBuild(ad.c, ad.ns, manager)
+	if err != nil {
+		return nil, err
+	}
+	ad.lastBuilds[manager] = lastBuild
+	return lastBuild, err
+}
+
+func (ad *buildAssetDeprecator) queryBugs() error {
 	if ad.bugsQueried {
 		return nil
 	}
@@ -167,12 +233,7 @@ func (ad *assetDeprecator) queryBugs() error {
 	return nil
 }
 
-func (ad *assetDeprecator) buildArchivePolicy(build *Build, asset *Asset) (bool, error) {
-	// If the asset is reasonably new, we always keep it.
-	const alwaysKeepPeriod = time.Hour * 24 * 14
-	if asset.CreateDate.After(timeNow(ad.c).Add(-alwaysKeepPeriod)) {
-		return true, nil
-	}
+func (ad *buildAssetDeprecator) buildArchivePolicy(build *Build, asset *Asset) (bool, error) {
 	// Query builds to see whether there's a newer same-type asset on the same week.
 	var builds []*Build
 	_, err := db.NewQuery("Build").
@@ -211,7 +272,7 @@ func (ad *assetDeprecator) buildArchivePolicy(build *Build, asset *Asset) (bool,
 	return !sameWeek, nil
 }
 
-func (ad *assetDeprecator) buildBugStatusPolicy(build *Build) (bool, error) {
+func (ad *buildAssetDeprecator) buildBugStatusPolicy(build *Build) (bool, error) {
 	if err := ad.queryBugs(); err != nil {
 		return false, fmt.Errorf("failed to query bugs: %w", err)
 	}
@@ -229,10 +290,20 @@ func (ad *assetDeprecator) buildBugStatusPolicy(build *Build) (bool, error) {
 			return true, nil
 		}
 	}
-	return false, nil
+	// If there are no crashes, but it's the latest build, they may still appear.
+	lastBuild, err := ad.lastBuild(build.Manager)
+	if err != nil {
+		return false, nil
+	}
+	return build.ID == lastBuild.ID, nil
 }
 
-func (ad *assetDeprecator) needThisBuildAsset(build *Build, buildAsset *Asset) (bool, error) {
+func (ad *buildAssetDeprecator) needThisBuildAsset(build *Build, buildAsset *Asset) (bool, error) {
+	// If the asset is reasonably new, we always keep it.
+	const alwaysKeepPeriod = time.Hour * 24 * 14
+	if buildAsset.CreateDate.After(timeNow(ad.c).Add(-alwaysKeepPeriod)) {
+		return true, nil
+	}
 	if buildAsset.Type == dashapi.HTMLCoverageReport {
 		// We want to keep coverage reports forever, not just
 		// while there are any open bugs. But we don't want to
@@ -248,24 +319,28 @@ func (ad *assetDeprecator) needThisBuildAsset(build *Build, buildAsset *Asset) (
 	return false, fmt.Errorf("job-related assets are not supported yet")
 }
 
-func (ad *assetDeprecator) updateBuild(buildID string, urlsToDelete []string) error {
+func filterOutAssets(assets []Asset, deleteList []string) []Asset {
 	toDelete := map[string]bool{}
-	for _, url := range urlsToDelete {
+	for _, url := range deleteList {
 		toDelete[url] = true
 	}
+	newAssets := []Asset{}
+	for _, asset := range assets {
+		if _, ok := toDelete[asset.DownloadURL]; !ok {
+			newAssets = append(newAssets, asset)
+		}
+	}
+	return newAssets
+}
+
+func (ad *buildAssetDeprecator) updateBuild(buildID string, urlsToDelete []string) error {
 	tx := func(c context.Context) error {
 		build, err := loadBuild(ad.c, ad.ns, buildID)
 		if build == nil || err != nil {
 			// Assume the DB has been updated in the meanwhile.
 			return nil
 		}
-		newAssets := []Asset{}
-		for _, asset := range build.Assets {
-			if _, ok := toDelete[asset.DownloadURL]; !ok {
-				newAssets = append(newAssets, asset)
-			}
-		}
-		build.Assets = newAssets
+		build.Assets = filterOutAssets(build.Assets, urlsToDelete)
 		build.AssetsLastCheck = timeNow(ad.c)
 		if _, err := db.Put(ad.c, buildKey(ad.c, ad.ns, buildID), build); err != nil {
 			return fmt.Errorf("failed to save build: %w", err)
@@ -278,7 +353,7 @@ func (ad *assetDeprecator) updateBuild(buildID string, urlsToDelete []string) er
 	return nil
 }
 
-func (ad *assetDeprecator) batchProcessBuilds(count int) error {
+func (ad *buildAssetDeprecator) batchProcessBuilds(count int) error {
 	// We cannot query only the Build with non-empty Assets array and yet sort
 	// by AssetsLastCheck. The datastore returns "The first sort property must
 	// be the same as the property to which the inequality filter is applied.
@@ -308,6 +383,80 @@ func (ad *assetDeprecator) batchProcessBuilds(count int) error {
 		if err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+type crashAssetDeprecator struct {
+	c context.Context
+}
+
+func (ad *crashAssetDeprecator) batchProcessCrashes(count int) error {
+	// Unfortunately we cannot only query the crashes with assets.
+	// See the explanation in batchProcessBuilds().
+	var crashes []*Crash
+	crashKeys, err := db.NewQuery("Crash").
+		Order("AssetsLastCheck").
+		Limit(count).
+		GetAll(ad.c, &crashes)
+	if err != nil {
+		return fmt.Errorf("failed to fetch crashes: %w", err)
+	}
+	for i, crash := range crashes {
+		toDelete := []string{}
+		for _, asset := range crash.Assets {
+			needed, err := ad.needThisCrashAsset(crashKeys[i], &asset)
+			if err != nil {
+				return fmt.Errorf("failed to test crash asset: %w", err)
+			} else if !needed {
+				toDelete = append(toDelete, asset.DownloadURL)
+			}
+		}
+		err := ad.updateCrash(crashKeys[i], toDelete)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (ad *crashAssetDeprecator) needThisCrashAsset(crashKey *db.Key, crashAsset *Asset) (bool, error) {
+	if crashAsset.Type == dashapi.MountInRepro {
+		// We keed mount images from reproducers for as long as the bug is still relevant.
+		// They're not that big to set stricter limits.
+		return ad.bugStatusPolicy(crashKey, crashAsset)
+	}
+	return false, fmt.Errorf("no deprecation policy for %s", crashAsset.Type)
+}
+
+func (ad *crashAssetDeprecator) bugStatusPolicy(crashKey *db.Key, crashAsset *Asset) (bool, error) {
+	bugKey := crashKey.Parent()
+	bug := new(Bug)
+	err := db.Get(ad.c, bugKey, bug)
+	if err != nil {
+		return false, fmt.Errorf("failed to query bug: %s", err)
+	}
+	return bug.Status == BugStatusOpen ||
+		bug.Closed.After(timeNow(ad.c).Add(-keepAssetsForClosedBugs)), nil
+}
+
+func (ad *crashAssetDeprecator) updateCrash(crashKey *db.Key, urlsToDelete []string) error {
+	tx := func(c context.Context) error {
+		crash := new(Crash)
+		err := db.Get(c, crashKey, crash)
+		if err != nil {
+			// Assume the DB has been updated in the meanwhile.
+			return nil
+		}
+		crash.Assets = filterOutAssets(crash.Assets, urlsToDelete)
+		crash.AssetsLastCheck = timeNow(ad.c)
+		if _, err := db.Put(ad.c, crashKey, crash); err != nil {
+			return fmt.Errorf("failed to save crash: %w", err)
+		}
+		return nil
+	}
+	if err := db.RunInTransaction(ad.c, tx, &db.TransactionOptions{Attempts: 10}); err != nil {
+		return fmt.Errorf("failed to update crash: %w", err)
 	}
 	return nil
 }

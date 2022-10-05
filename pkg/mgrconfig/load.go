@@ -182,6 +182,15 @@ func Complete(cfg *Config) error {
 	if err != nil {
 		return err
 	}
+	if !cfg.AssetStorage.IsEmpty() {
+		if cfg.DashboardClient == "" {
+			return fmt.Errorf("asset storage also requires dashboard client")
+		}
+		err = cfg.AssetStorage.Validate()
+		if err != nil {
+			return err
+		}
+	}
 	cfg.initTimeouts()
 	return nil
 }

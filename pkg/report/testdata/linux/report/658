@@ -1,0 +1,87 @@
+TITLE: KASAN: stack-out-of-bounds Read in ntfs_fill_super
+ALT: bad-access in ntfs_fill_super
+
+[  474.455813][T13922] ==================================================================
+[  474.463900][T13922] BUG: KASAN: stack-out-of-bounds in lock_acquire+0x1c3/0x3c0
+[  474.471408][T13922] Read of size 8 at addr ffffc9000b7df95f by task syz-executor383/13922
+[  474.479735][T13922] 
+[  474.482063][T13922] CPU: 0 PID: 13922 Comm: syz-executor383 Not tainted 6.0.0-rc6-syzkaller #0
+[  474.490825][T13922] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 08/26/2022
+[  474.500881][T13922] Call Trace:
+[  474.504164][T13922]  <TASK>
+[  474.507102][T13922]  dump_stack_lvl+0x1b1/0x28e
+[  474.529494][T13922]  print_address_description+0x65/0x4b0
+[  474.535058][T13922]  print_report+0x108/0x1f0
+[  474.544223][T13922]  kasan_report+0xc3/0xf0
+[  474.553209][T13922]  lock_acquire+0x1c3/0x3c0
+[  474.568548][T13922]  _raw_spin_lock+0x2a/0x40
+[  474.577058][T13922]  iput+0x3ee/0x760
+[  474.580855][T13922]  ntfs_fill_super+0x2352/0x42a0
+[  474.594918][T13922]  get_tree_bdev+0x400/0x620
+[  474.603838][T13922]  vfs_get_tree+0x88/0x270
+[  474.608238][T13922]  do_new_mount+0x289/0xad0
+[  474.623185][T13922]  __se_sys_mount+0x2d3/0x3c0
+[  474.648533][T13922]  do_syscall_64+0x3d/0xb0
+[  474.652940][T13922]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[  474.658818][T13922] RIP: 0033:0x7f203d446d7a
+[  474.663217][T13922] Code: 48 c7 c2 b8 ff ff ff f7 d8 64 89 02 b8 ff ff ff ff eb d2 e8 d8 00 00 00 0f 1f 84 00 00 00 00 00 49 89 ca b8 a5 00 00 00 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
+[  474.682809][T13922] RSP: 002b:00007f203d3f1078 EFLAGS: 00000286 ORIG_RAX: 00000000000000a5
+[  474.691206][T13922] RAX: ffffffffffffffda RBX: 00007f203d3f10d0 RCX: 00007f203d446d7a
+[  474.699160][T13922] RDX: 0000000020000000 RSI: 0000000020000100 RDI: 00007f203d3f1090
+[  474.707119][T13922] RBP: 000000000000000e R08: 00007f203d3f10d0 R09: 00007f203d3f16b8
+[  474.715074][T13922] R10: 0000000000000000 R11: 0000000000000286 R12: 00007f203d3f1090
+[  474.723030][T13922] R13: 0000000020000350 R14: 0000000000000003 R15: 0000000000000004
+[  474.730992][T13922]  </TASK>
+[  474.733996][T13922] 
+[  474.736303][T13922] The buggy address belongs to stack of task syz-executor383/13922
+[  474.744171][T13922]  and is located at offset 31 in frame:
+[  474.749780][T13922]  lock_acquire+0x0/0x3c0
+[  474.754095][T13922] 
+[  474.756403][T13922] This frame has 3 objects:
+[  474.760883][T13922]  [32, 40) 'flags.i.i.i87'
+[  474.760893][T13922]  [64, 72) 'flags.i.i.i'
+[  474.765373][T13922]  [96, 136) 'hlock'
+[  474.769680][T13922] 
+[  474.775859][T13922] The buggy address belongs to the virtual mapping at
+[  474.775859][T13922]  [ffffc9000b7d8000, ffffc9000b7e1000) created by:
+[  474.775859][T13922]  dup_task_struct+0x8b/0x490
+[  474.793609][T13922] 
+[  474.795918][T13922] The buggy address belongs to the physical page:
+[  474.802309][T13922] page:ffffea0001bcb8c0 refcount:1 mapcount:0 mapping:0000000000000000 index:0x0 pfn:0x6f2e3
+[  474.812440][T13922] flags: 0xfff00000000000(node=0|zone=1|lastcpupid=0x7ff)
+[  474.819538][T13922] raw: 00fff00000000000 0000000000000000 dead000000000122 0000000000000000
+[  474.828102][T13922] raw: 0000000000000000 0000000000000000 00000001ffffffff 0000000000000000
+[  474.836665][T13922] page dumped because: kasan: bad access detected
+[  474.843054][T13922] page_owner tracks the page as allocated
+[  474.848748][T13922] page last allocated via order 0, migratetype Unmovable, gfp_mask 0x2dc2(GFP_KERNEL|__GFP_HIGHMEM|__GFP_NOWARN|__GFP_ZERO), pid 3629, tgid 3629 (syz-executor383), ts 473162860658, free_ts 11190855215
+[  474.868264][T13922]  get_page_from_freelist+0x742/0x7c0
+[  474.873644][T13922]  __alloc_pages+0x259/0x560
+[  474.878218][T13922]  __vmalloc_node_range+0x8f4/0x1290
+[  474.883531][T13922]  alloc_thread_stack_node+0x307/0x500
+[  474.888973][T13922]  dup_task_struct+0x8b/0x490
+[  474.893633][T13922]  copy_process+0x65b/0x3fd0
+[  474.898213][T13922]  kernel_clone+0x21f/0x790
+[  474.902711][T13922]  __x64_sys_clone+0x228/0x290
+[  474.907463][T13922]  do_syscall_64+0x3d/0xb0
+[  474.911874][T13922]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[  474.917761][T13922] page last free stack trace:
+[  474.922423][T13922]  free_pcp_prepare+0x812/0x900
+[  474.927258][T13922]  free_unref_page+0x7d/0x5f0
+[  474.931914][T13922]  free_contig_range+0xa3/0x160
+[  474.936746][T13922]  destroy_args+0xfe/0x91d
+[  474.941216][T13922]  debug_vm_pgtable+0x43e/0x497
+[  474.946063][T13922]  do_one_initcall+0x1b9/0x3e0
+[  474.950820][T13922]  do_initcall_level+0x168/0x218
+[  474.955795][T13922]  do_initcalls+0x4b/0x8c
+[  474.960118][T13922]  kernel_init_freeable+0x3f1/0x57b
+[  474.965302][T13922]  kernel_init+0x19/0x2b0
+[  474.969627][T13922]  ret_from_fork+0x1f/0x30
+[  474.974045][T13922] 
+[  474.976367][T13922] Memory state around the buggy address:
+[  474.981995][T13922]  ffffc9000b7df800: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[  474.990049][T13922]  ffffc9000b7df880: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[  474.998098][T13922] >ffffc9000b7df900: 00 00 00 00 00 00 00 00 f1 f1 f1 f1 00 f2 f2 f2
+[  475.006143][T13922]                                                     ^
+[  475.013059][T13922]  ffffc9000b7df980: 00 f2 f2 f2 00 00 00 00 00 f3 f3 f3 f3 f3 f3 f3
+[  475.021114][T13922]  ffffc9000b7dfa00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[  475.029169][T13922] ==================================================================

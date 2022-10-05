@@ -5,6 +5,8 @@ package mgrconfig
 
 import (
 	"encoding/json"
+
+	"github.com/google/syzkaller/pkg/asset"
 )
 
 type Config struct {
@@ -190,6 +192,16 @@ type Config struct {
 	// VM-type-specific parameters.
 	// Parameters for concrete types are in Config type in vm/TYPE/TYPE.go, e.g. vm/qemu/qemu.go.
 	VM json.RawMessage `json:"vm"`
+
+	// Asset storage configuration. There can be specified the upload location and crash assets
+	// to upload.
+	// A sample config:
+	// {
+	//    "upload_to": "gs://bucket",
+	//    "public_access": true
+	// }
+	// More details can be found in pkg/asset/config.go.
+	AssetStorage *asset.Config `json:"asset_storage"`
 
 	// Implementation details beyond this point. Filled after parsing.
 	Derived `json:"-"`

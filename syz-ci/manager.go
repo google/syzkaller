@@ -524,6 +524,7 @@ func (mgr *Manager) writeConfig(buildTag string) (string, error) {
 		mgrcfg.DashboardClient = mgr.dash.Client
 		mgrcfg.DashboardAddr = mgr.dash.Addr
 		mgrcfg.DashboardKey = mgr.dash.Key
+		mgrcfg.AssetStorage = mgr.cfg.AssetStorage
 	}
 	if mgr.cfg.HubAddr != "" {
 		mgrcfg.HubClient = mgr.cfg.Name
