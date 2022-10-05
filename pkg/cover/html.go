@@ -26,14 +26,14 @@ import (
 
 func fixUpPCs(target string, progs []Prog, coverFilter map[uint32]uint32) []Prog {
 	if coverFilter != nil {
-		for _, prog := range progs {
+		for i, prog := range progs {
 			var nPCs []uint64
 			for _, pc := range prog.PCs {
 				if coverFilter[uint32(pc)] != 0 {
 					nPCs = append(nPCs, pc)
 				}
 			}
-			prog.PCs = nPCs
+			progs[i].PCs = nPCs
 		}
 	}
 
