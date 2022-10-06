@@ -1,5 +1,4 @@
 TITLE: kernel BUG in ucma_join_ip_multicast
-ALT: kernel BUG at lib/string.c:LINE!
 
 [   24.127473] ------------[ cut here ]------------
 [   24.132205] kernel BUG at lib/string.c:1052!
