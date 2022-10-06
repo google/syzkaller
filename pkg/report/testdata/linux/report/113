@@ -1,5 +1,4 @@
 TITLE: kernel BUG in esp6_gro_receive
-ALT: kernel BUG at ./include/linux/skbuff.h:LINE!
 
 [  292.653596] ------------[ cut here ]------------
 [  292.658378] kernel BUG at ./include/linux/skbuff.h:2069!

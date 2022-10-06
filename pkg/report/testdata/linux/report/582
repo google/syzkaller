@@ -1,5 +1,4 @@
 TITLE: kernel BUG in ipgre_header
-ALT: kernel BUG at net/core/skbuff.c:LINE!
 
 [   34.354336] skbuff: skb_under_panic: text:000000000470095b len:82 put:24 head:00000000f453c8df data:000000007cc2256c tail:0x3a end:0xc0 dev:gre0
 [   34.367572] ------------[ cut here ]------------

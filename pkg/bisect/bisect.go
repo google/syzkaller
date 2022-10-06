@@ -32,12 +32,13 @@ type Config struct {
 }
 
 type KernelConfig struct {
-	Repo    string
-	Branch  string
-	Commit  string
-	Cmdline string
-	Sysctl  string
-	Config  []byte
+	Repo        string
+	Branch      string
+	Commit      string
+	CommitTitle string
+	Cmdline     string
+	Sysctl      string
+	Config      []byte
 	// Baseline configuration is used in commit bisection. If the crash doesn't reproduce
 	// with baseline configuratopm config bisection is run. When triggering configuration
 	// option is found provided baseline configuration is modified according the bisection
@@ -148,6 +149,7 @@ func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer env.repo.SwitchCommit(head.Hash)
 	env.head = head
 	hostname, err := os.Hostname()
 	if err != nil {
@@ -216,11 +218,17 @@ func (env *env) bisect() (*Result, error) {
 	if _, err := env.inst.BuildSyzkaller(cfg.Syzkaller.Repo, cfg.Syzkaller.Commit); err != nil {
 		return nil, err
 	}
-	com, err := env.repo.CheckoutCommit(cfg.Kernel.Repo, cfg.Kernel.Commit)
+
+	cfg.Kernel.Commit, err = env.identifyRewrittenCommit()
+	if err != nil {
+		return nil, err
+	}
+	com, err := env.repo.SwitchCommit(cfg.Kernel.Commit)
 	if err != nil {
 		return nil, err
 	}
 
+	env.log("ensuring issue is reproducible on original commit %v\n", cfg.Kernel.Commit)
 	env.commit = com
 	env.kernelConfig = cfg.Kernel.Config
 	testRes, err := env.test()
@@ -300,6 +308,42 @@ func (env *env) bisect() (*Result, error) {
 		res.NoopChange = noopChange
 	}
 	return res, nil
+}
+
+func (env *env) identifyRewrittenCommit() (string, error) {
+	cfg := env.cfg
+	_, err := env.repo.CheckoutBranch(cfg.Kernel.Repo, cfg.Kernel.Branch)
+	if err != nil {
+		return cfg.Kernel.Commit, err
+	}
+	contained, err := env.repo.Contains(cfg.Kernel.Commit)
+	if err != nil || contained {
+		return cfg.Kernel.Commit, err
+	}
+
+	// We record the tested kernel commit when syzkaller triggers a crash. These commits can become
+	// unreachable after the crash was found, when the history of the tested kernel branch was
+	// rewritten. The commit might have been completely deleted from the branch or just changed in
+	// some way. Some branches like linux-next are often and heavily rewritten (aka rebased).
+	// This can also happen when changing the branch you fuzz in an existing syz-manager config.
+	// This makes sense when a downstream kernel fork rebased on top of a new upstream version and
+	// you don't want syzkaller to report all your old bugs again.
+	if cfg.Kernel.CommitTitle == "" {
+		// This can happen during a manual bisection, when only a hash is given.
+		return cfg.Kernel.Commit, fmt.Errorf(
+			"commit %v not reachable in branch '%v' and no commit title available",
+			cfg.Kernel.Commit, cfg.Kernel.Branch)
+	}
+	commit, err := env.repo.GetCommitByTitle(cfg.Kernel.CommitTitle)
+	if err != nil {
+		return cfg.Kernel.Commit, err
+	}
+	if commit == nil {
+		return cfg.Kernel.Commit, fmt.Errorf(
+			"commit %v not reachable in branch '%v'", cfg.Kernel.Commit, cfg.Kernel.Branch)
+	}
+	env.log("rewritten commit %v reidentified by title '%v'\n", commit.Hash, cfg.Kernel.CommitTitle)
+	return commit.Hash, nil
 }
 
 func (env *env) minimizeConfig() (*testResult, error) {

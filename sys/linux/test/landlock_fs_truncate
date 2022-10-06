@@ -1,0 +1,41 @@
+# Makes regular files.
+
+mknodat(0xffffffffffffff9c, &AUTO='./file0\x00', 0x81c0, 0x0)
+mknodat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x81c0, 0x0)
+
+# Opens each file in write mode before sandboxing.
+
+r0 = openat$dir(0xffffffffffffff9c, &AUTO='./file0\x00', 0x1, 0x0)
+r1 = openat$dir(0xffffffffffffff9c, &AUTO='./file1\x00', 0x1, 0x0)
+
+# Creates a ruleset to restrict file truncation: LANDLOCK_ACCESS_FS_TRUNCATE.
+
+r2 = landlock_create_ruleset(&AUTO={0x4000}, AUTO, 0x0)
+
+# Allows truncation of file1.
+
+landlock_add_rule$LANDLOCK_RULE_PATH_BENEATH(r2, AUTO, &AUTO={0x4000, r1}, 0x0)
+
+# No need to close FDs for this test.
+
+# Enforces the first ruleset.
+
+prctl$PR_SET_NO_NEW_PRIVS(0x26, 0x1)
+landlock_restrict_self(r2, 0x0)
+
+# Opens each file in write mode after sandboxing.
+
+r3 = openat$dir(0xffffffffffffff9c, &AUTO='./file0\x00', 0x1, 0x0)
+r4 = openat$dir(0xffffffffffffff9c, &AUTO='./file1\x00', 0x1, 0x0)
+
+# Denied truncation.
+
+truncate(&AUTO='./file0\x00', 0x1) # EACCES
+ftruncate(r3, 0x1) # EACCES
+
+# Allowed truncation.
+
+truncate(&AUTO='./file1\x00', 0x1)
+ftruncate(r0, 0x1)
+ftruncate(r1, 0x1)
+ftruncate(r4, 0x1)

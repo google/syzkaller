@@ -421,6 +421,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 			Repo:           mgr.mgrcfg.Repo,
 			Branch:         mgr.mgrcfg.Branch,
 			Commit:         req.KernelCommit,
+			CommitTitle:    req.KernelCommitTitle,
 			Cmdline:        mgr.mgrcfg.KernelCmdline,
 			Sysctl:         mgr.mgrcfg.KernelSysctl,
 			Config:         req.KernelConfig,

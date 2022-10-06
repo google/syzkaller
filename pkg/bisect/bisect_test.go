@@ -108,7 +108,7 @@ func createTestRepo(t *testing.T) string {
 	return baseDir
 }
 
-func runBisection(t *testing.T, baseDir string, test BisectionTest) (*Result, error) {
+func testBisection(t *testing.T, baseDir string, test BisectionTest) {
 	r, err := vcs.NewRepo(targets.TestOS, targets.TestArch64, baseDir, vcs.OptPrecious)
 	if err != nil {
 		t.Fatal(err)
@@ -131,7 +131,9 @@ func runBisection(t *testing.T, baseDir string, test BisectionTest) (*Result, er
 		},
 		Kernel: KernelConfig{
 			Repo:           baseDir,
+			Branch:         "master",
 			Commit:         sc.Hash,
+			CommitTitle:    sc.Title,
 			Config:         []byte("original config"),
 			BaselineConfig: []byte(test.baselineConfig),
 		},
@@ -141,8 +143,54 @@ func runBisection(t *testing.T, baseDir string, test BisectionTest) (*Result, er
 		r:    r,
 		test: test,
 	}
+
+	checkBisectionError := func(test BisectionTest, res *Result, err error) {
+		if test.expectErr != (err != nil) {
+			t.Fatalf("expected error %v, got %v", test.expectErr, err)
+		}
+		if err != nil {
+			if res != nil {
+				t.Fatalf("got both result and error: '%v' %+v", err, *res)
+			}
+		} else {
+			checkBisectionResult(t, test, res)
+		}
+	}
+
 	res, err := runImpl(cfg, r, inst)
-	return res, err
+	checkBisectionError(test, res, err)
+	// Should be mitigated via GetCommitByTitle during bisection.
+	cfg.Kernel.Commit = fmt.Sprintf("fake-hash-for-%v-%v", cfg.Kernel.Commit, cfg.Kernel.CommitTitle)
+	res, err = runImpl(cfg, r, inst)
+	checkBisectionError(test, res, err)
+}
+
+func checkBisectionResult(t *testing.T, test BisectionTest, res *Result) {
+	if len(res.Commits) != test.commitLen {
+		t.Fatalf("expected %d commits got %d commits", test.commitLen, len(res.Commits))
+	}
+	expectedTitle := fmt.Sprint(test.culprit)
+	if len(res.Commits) == 1 && expectedTitle != res.Commits[0].Title {
+		t.Fatalf("expected commit '%v' got '%v'", expectedTitle, res.Commits[0].Title)
+	}
+	if test.expectRep != (res.Report != nil) {
+		t.Fatalf("got rep: %v, want: %v", res.Report, test.expectRep)
+	}
+	if res.NoopChange != test.noopChange {
+		t.Fatalf("got noop change: %v, want: %v", res.NoopChange, test.noopChange)
+	}
+	if res.IsRelease != test.isRelease {
+		t.Fatalf("got release change: %v, want: %v", res.IsRelease, test.isRelease)
+	}
+	if test.oldestLatest != 0 && fmt.Sprint(test.oldestLatest) != res.Commit.Title ||
+		test.oldestLatest == 0 && res.Commit != nil {
+		t.Fatalf("expected latest/oldest: %v got '%v'",
+			test.oldestLatest, res.Commit.Title)
+	}
+	if test.resultingConfig != "" && test.resultingConfig != string(res.Config) {
+		t.Fatalf("expected resulting config: %q got %q",
+			test.resultingConfig, res.Config)
+	}
 }
 
 type BisectionTest struct {
@@ -441,41 +489,7 @@ func TestBisectionResults(t *testing.T) {
 				defer func() {
 					repoCache <- repoDir
 				}()
-				res, err := runBisection(t, repoDir, test)
-				if test.expectErr != (err != nil) {
-					t.Fatalf("returned error: %v", err)
-				}
-				if err != nil {
-					if res != nil {
-						t.Fatalf("got both result and error: '%v' %+v", err, *res)
-					}
-					return
-				}
-				if len(res.Commits) != test.commitLen {
-					t.Fatalf("expected %d commits got %d commits", test.commitLen, len(res.Commits))
-				}
-				expectedTitle := fmt.Sprint(test.culprit)
-				if len(res.Commits) == 1 && expectedTitle != res.Commits[0].Title {
-					t.Fatalf("expected commit '%v' got '%v'", expectedTitle, res.Commits[0].Title)
-				}
-				if test.expectRep != (res.Report != nil) {
-					t.Fatalf("got rep: %v, want: %v", res.Report, test.expectRep)
-				}
-				if res.NoopChange != test.noopChange {
-					t.Fatalf("got noop change: %v, want: %v", res.NoopChange, test.noopChange)
-				}
-				if res.IsRelease != test.isRelease {
-					t.Fatalf("got release change: %v, want: %v", res.IsRelease, test.isRelease)
-				}
-				if test.oldestLatest != 0 && fmt.Sprint(test.oldestLatest) != res.Commit.Title ||
-					test.oldestLatest == 0 && res.Commit != nil {
-					t.Fatalf("expected latest/oldest: %v got '%v'",
-						test.oldestLatest, res.Commit.Title)
-				}
-				if test.resultingConfig != "" && test.resultingConfig != string(res.Config) {
-					t.Fatalf("expected resulting config: %q got %q",
-						test.resultingConfig, res.Config)
-				}
+				testBisection(t, repoDir, test)
 			})
 		}
 	})

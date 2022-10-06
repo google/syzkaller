@@ -2060,7 +2060,6 @@ var linuxOopses = append([]*oops{
 			{
 				title: compile("kernel BUG at (.*)"),
 				fmt:   "kernel BUG in %[2]v",
-				alt:   []string{"kernel BUG at %[1]v"}, // historical title required for merging with existing bugs
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
 						linuxRipFrame,

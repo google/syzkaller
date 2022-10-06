@@ -157,3 +157,82 @@ v1.
 		t.Fatalf("got bad tags\ngot:  %+v\nwant: %+v", gotRC, wantRC)
 	}
 }
+
+func TestGetCommitsByTitles(t *testing.T) {
+	baseDir := t.TempDir()
+	repo := MakeTestRepo(t, baseDir)
+
+	validateSuccess := func(commit *Commit, results []*Commit, missing []string, err error) {
+		if err != nil {
+			t.Fatalf("expected success, got %v", err)
+		}
+		if len(missing) > 0 {
+			t.Fatalf("expected 0 missing, got %v", missing)
+		}
+		if len(results) != 1 {
+			t.Fatalf("expected 1 results, got %v", len(results))
+		}
+		if results[0].Hash != commit.Hash {
+			t.Fatalf("found unexpected commit %v", results[0].Hash)
+		}
+	}
+
+	// Put three commits in branch-a, two with the title we search for.
+	// We expect GetCommitsByTitles to only return the most recent match.
+	repo.Git("checkout", "-b", "branch-a")
+	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
+	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "abc")
+	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
+	commitA, _ := repo.repo.HeadCommit()
+	results, missing, err := repo.repo.GetCommitsByTitles([]string{"target"})
+	validateSuccess(commitA, results, missing, err)
+
+	// Put another commit with the title we search for in another branch.
+	// We expect GetCommitsByTitles to only find commits in the current branch.
+	repo.Git("checkout", "-b", "branch-b")
+	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
+	repo.Git("checkout", "branch-a")
+	results, missing, err = repo.repo.GetCommitsByTitles([]string{"target"})
+	validateSuccess(commitA, results, missing, err)
+
+	// We expect GetCommitsByTitles to only find commits in the current branch.
+	repo.Git("checkout", "branch-b")
+	results, missing, err = repo.repo.GetCommitsByTitles([]string{"xyz"})
+	if err != nil {
+		t.Fatalf("expected success, got %v", err)
+	}
+	if len(results) > 0 {
+		t.Fatalf("expected 0 results, got %v", len(results))
+	}
+	if len(missing) != 1 {
+		t.Fatalf("expected 1 missing, got %v", missing)
+	}
+	if missing[0] != "xyz" {
+		t.Fatalf("found unexpected value in missing %v", missing[0])
+	}
+}
+
+func TestContains(t *testing.T) {
+	baseDir := t.TempDir()
+	repo := MakeTestRepo(t, baseDir)
+
+	// We expect Contains to return true, if commit is in current checkout.
+	repo.Git("checkout", "-b", "branch-a")
+	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
+	commitA, _ := repo.repo.HeadCommit()
+	if contained, _ := repo.repo.Contains(commitA.Hash); !contained {
+		t.Fatalf("contains claims commit that should be present is not")
+	}
+	if contained, _ := repo.repo.Contains("fake-hash"); contained {
+		t.Fatalf("contains claims commit that is not present is present")
+	}
+
+	// Commits must only be searched for from the checkedout HEAD.
+	repo.Git("checkout", "-b", "branch-b")
+	repo.Git("commit", "--no-edit", "--allow-empty", "-m", "target")
+	commitB, _ := repo.repo.HeadCommit()
+	repo.Git("checkout", "branch-a")
+	if contained, _ := repo.repo.Contains(commitB.Hash); contained {
+		t.Fatalf("contains found commit that is not in current branch")
+	}
+}
