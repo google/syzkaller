@@ -1,5 +1,4 @@
 TITLE: kernel BUG in reserve_bootmem_region
-ALT: kernel BUG at include/linux/page-flags.h:LINE!
 
 [    0.834244][    T0] kernel BUG at include/linux/page-flags.h:356!
 [    0.835624][    T0] invalid opcode: 0000 [#1] PREEMPT SMP KASAN

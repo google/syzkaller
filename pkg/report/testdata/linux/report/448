@@ -1,5 +1,4 @@
 TITLE: kernel BUG in pfkey_send_acquire
-ALT: kernel BUG at net/core/skbuff.c:LINE!
 
 [  666.846118][T27281] skbuff: skb_over_panic: text:00000000db6cba37 len:1744 put:72 head:0000000092f15526 data:0000000092f15526 tail:0x6d0 end:0x6c0 dev:<NULL>
 [  666.877381][T27281] ------------[ cut here ]------------

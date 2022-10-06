@@ -1,5 +1,4 @@
 TITLE: kernel BUG in do_ip_vs_set_ctl
-ALT: kernel BUG at lib/string.c:LINE!
 
 [ 1392.954057] detected buffer overflow in strlen
 [ 1392.958897] ------------[ cut here ]------------
