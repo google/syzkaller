@@ -43,8 +43,10 @@ func (mgr *Manager) initHTTP() {
 	handle("/config", mgr.httpConfig)
 	handle("/metrics", promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}).ServeHTTP)
 	handle("/syscalls", mgr.httpSyscalls)
+	handle("/syscallsjson", mgr.httpSyscallsJSON)
 	handle("/corpus", mgr.httpCorpus)
 	handle("/corpus.db", mgr.httpDownloadCorpus)
+	handle("/corpusjson", mgr.httpCorpusJSON)
 	handle("/crash", mgr.httpCrash)
 	handle("/cover", mgr.httpCover)
 	handle("/subsystemcover", mgr.httpSubsystemCover)
@@ -137,6 +139,38 @@ func (mgr *Manager) httpSyscalls(w http.ResponseWriter, r *http.Request) {
 		return data.Calls[i].Name < data.Calls[j].Name
 	})
 	executeTemplate(w, syscallsTemplate, data)
+}
+
+func (mgr *Manager) httpSyscallsJSON(w http.ResponseWriter, r *http.Request) {
+	data := &UISyscallsData{
+		Name: mgr.cfg.Name,
+	}
+	for c, cc := range mgr.collectSyscallInfo() {
+		var syscallID *int
+		if syscall, ok := mgr.target.SyscallMap[c]; ok {
+			syscallID = &syscall.ID
+		}
+		data.Calls = append(data.Calls, UICallType{
+			Name:   c,
+			ID:     syscallID,
+			Inputs: cc.count,
+			Cover:  len(cc.cov),
+		})
+	}
+	sort.Slice(data.Calls, func(i, j int) bool {
+		return data.Calls[i].Name < data.Calls[j].Name
+	})
+
+	jsonSyscalls, err := json.Marshal(data)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to encode json: %v", err),
+			http.StatusInternalServerError)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Write(jsonSyscalls)
 }
 
 func (mgr *Manager) httpStats(w http.ResponseWriter, r *http.Request) {
@@ -340,6 +374,50 @@ func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
 		return a.Short < b.Short
 	})
 	executeTemplate(w, corpusTemplate, data)
+}
+
+func (mgr *Manager) httpCorpusJSON(w http.ResponseWriter, r *http.Request) {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+
+	data := UICorpus{
+		Call:     r.FormValue("call"),
+		RawCover: mgr.cfg.RawCover,
+	}
+	for sig, inp := range mgr.corpus {
+		if data.Call != "" && data.Call != inp.Call {
+			continue
+		}
+		p, err := mgr.target.Deserialize(inp.Prog, prog.NonStrict)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to deserialize program: %v", err), http.StatusInternalServerError)
+			return
+		}
+		data.Inputs = append(data.Inputs, &UIInput{
+			Sig:   sig,
+			Short: p.String(),
+			Cover: len(inp.Cover),
+		})
+	}
+	sort.Slice(data.Inputs, func(i, j int) bool {
+		a, b := data.Inputs[i], data.Inputs[j]
+		if a.Cover != b.Cover {
+			return a.Cover > b.Cover
+		}
+		return a.Short < b.Short
+	})
+
+	corpusJSON, err := json.Marshal(data)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to encode json: %v", err),
+			http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Write(corpusJSON)
 }
 
 func (mgr *Manager) httpDownloadCorpus(w http.ResponseWriter, r *http.Request) {
