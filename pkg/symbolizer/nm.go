@@ -6,6 +6,7 @@ package symbolizer
 import (
 	"debug/elf"
 	"fmt"
+	"sort"
 
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -26,6 +27,36 @@ func (s *Symbolizer) ReadRodataSymbols(bin string) (map[string][]Symbol, error) 
 }
 
 func read(target *targets.Target, bin string, text bool) (map[string][]Symbol, error) {
+	raw, err := load(target, bin, text)
+	if err != nil {
+		return nil, err
+	}
+	sort.Slice(raw, func(i, j int) bool {
+		return raw[i].Value > raw[j].Value
+	})
+	symbols := make(map[string][]Symbol)
+	// Function sizes reported by the Linux kernel do not match symbol tables.
+	// The kernel computes size of a symbol based on the start of the next symbol.
+	// We need to do the same to match kernel sizes to be able to find the right
+	// symbol across multiple symbols with the same name.
+	var prevAddr uint64
+	var prevSize int
+	for _, symb := range raw {
+		size := int(symb.Size)
+		if text {
+			if symb.Value == prevAddr {
+				size = prevSize
+			} else if prevAddr != 0 {
+				size = int(prevAddr - symb.Value)
+			}
+			prevAddr, prevSize = symb.Value, size
+		}
+		symbols[symb.Name] = append(symbols[symb.Name], Symbol{symb.Value, size})
+	}
+	return symbols, nil
+}
+
+func load(target *targets.Target, bin string, text bool) ([]elf.Symbol, error) {
 	file, err := elf.Open(bin)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open ELF file %v: %v", bin, err)
@@ -34,7 +65,7 @@ func read(target *targets.Target, bin string, text bool) (map[string][]Symbol, e
 	if err != nil {
 		return nil, fmt.Errorf("failed to read ELF symbols: %v", err)
 	}
-	symbols := make(map[string][]Symbol)
+	var symbols []elf.Symbol
 	for _, symb := range allSymbols {
 		if symb.Size == 0 || symb.Section < 0 || int(symb.Section) >= len(file.Sections) {
 			continue
@@ -47,14 +78,7 @@ func read(target *targets.Target, bin string, text bool) (map[string][]Symbol, e
 		if text && !isText || !text && sect.Name != ".rodata" {
 			continue
 		}
-		// Note: function sizes reported by kernel do not match symbol tables.
-		// Kernel probably subtracts address of this symbol from address of the next symbol.
-		// We could do the same, but for now we just round up size to 16.
-		size := int(symb.Size)
-		if text {
-			size = (size + 15) / 16 * 16
-		}
-		symbols[symb.Name] = append(symbols[symb.Name], Symbol{symb.Value, size})
+		symbols = append(symbols, symb)
 	}
 	return symbols, nil
 }
