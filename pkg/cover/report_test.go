@@ -260,6 +260,13 @@ func generateReport(t *testing.T, target *targets.Target, test Test) ([]byte, []
 		},
 	}
 
+	// Deep copy, as we are going to modify progs. Our test generate multiple reports from the same
+	// test object in parallel. Without copying we have a datarace here.
+	progs := []Prog{}
+	for _, p := range test.Progs {
+		progs = append(progs, Prog{Sig: p.Sig, Data: p.Data, PCs: append([]uint64{}, p.PCs...)})
+	}
+
 	rg, err := MakeReportGenerator(target, "", dir, dir, dir, subsystem, nil, nil, false)
 	if err != nil {
 		return nil, nil, err
@@ -297,23 +304,23 @@ func generateReport(t *testing.T, target *targets.Target, test Test) ([]byte, []
 			}
 			t.Logf("using inexact coverage range 0x%x-0x%x", main.Addr, main.Addr+uint64(main.Size))
 		}
-		test.Progs = append(test.Progs, Prog{Data: "main", PCs: pcs})
+		progs = append(progs, Prog{Data: "main", PCs: pcs})
 	}
 	html := new(bytes.Buffer)
-	if err := rg.DoHTML(html, test.Progs, nil); err != nil {
+	if err := rg.DoHTML(html, progs, nil); err != nil {
 		return nil, nil, err
 	}
 	htmlTable := new(bytes.Buffer)
-	if err := rg.DoHTMLTable(htmlTable, test.Progs, nil); err != nil {
+	if err := rg.DoHTMLTable(htmlTable, progs, nil); err != nil {
 		return nil, nil, err
 	}
 	_ = htmlTable
 	csv := new(bytes.Buffer)
-	if err := rg.DoCSV(csv, test.Progs, nil); err != nil {
+	if err := rg.DoCSV(csv, progs, nil); err != nil {
 		return nil, nil, err
 	}
 	csvFiles := new(bytes.Buffer)
-	if err := rg.DoCSVFiles(csvFiles, test.Progs, nil); err != nil {
+	if err := rg.DoCSVFiles(csvFiles, progs, nil); err != nil {
 		return nil, nil, err
 	}
 	_ = csvFiles
