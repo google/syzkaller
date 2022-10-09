@@ -547,6 +547,17 @@ openat$procfs(fd const[AT_FDCWD], file ptr[in, string[procfs_file]], flags const
 
 procfs_file = "/proc/keys", "/proc/key-users", "/proc/crypto", "/proc/consoles", "/proc/cgroups", "/proc/zoneinfo", "/proc/vmstat", "/proc/vmallocinfo", "/proc/tty/drivers", "/proc/tty/ldiscs", "/proc/timer_list", "/proc/sysvipc/sem", "/proc/sysvipc/msg", "/proc/sysvipc/shm", "/proc/stat", "/proc/slabinfo", "/proc/schedstat", "/proc/partitions", "/proc/meminfo", "/proc/mdstat", "/proc/locks", "/proc/diskstats", "/proc/cpuinfo", "/proc/consoles", "/proc/bus/input/devices", "/proc/bus/input/handlers", "/proc/asound/seq/clients", "/proc/asound/seq/clients", "/proc/asound/seq/timer", "/proc/asound/timers"
 
+resource fd_yama_ptrace_scope[fd]
+
+# 0 - YAMA_SCOPE_DISABLED
+# 1 - YAMA_SCOPE_RELATIONAL
+# 2 - YAMA_SCOPE_CAPABILITY
+# 3 - YAMA_SCOPE_NO_ATTACH
+yama_modes = "0", "1", "2", "3"
+
+openat$yama_ptrace_scope(fd const[AT_FDCWD], file ptr[in, string["/proc/sys/kernel/yama/ptrace_scope"]], flags const[O_RDWR], mode const[0]) fd_yama_ptrace_scope
+write$yama_ptrace_scope(fd fd_yama_ptrace_scope, data ptr[in, string[yama_modes]], count len[data])
+
 # Write into some interesting sysct's and sysfs/procfs files.
 resource fd_sysctl[fd]
 
