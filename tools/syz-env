@@ -54,6 +54,9 @@ elif [ "$(basename -- "$0")" == "syz-old-env" ]; then
         IMAGE="old-env"
 fi
 
+# Update docker image
+docker pull -q gcr.io/syzkaller/${IMAGE}
+
 # Run everything as the host user, this is important for created/modified files.
 docker run \
 	--rm \
