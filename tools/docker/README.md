@@ -22,7 +22,7 @@ gcloud auth login && gcloud auth configure-docker
 docker push gcr.io/syzkaller/env
 ```
 
-Also upload a copy to Github packages (some users don't have access to `gcr.io`):
+[DEPRECATED] Github packages are not supported (if you can't access gcr.io, please contact us)
 ```
 docker tag gcr.io/syzkaller/env docker.pkg.github.com/google/syzkaller/env
 docker login https://docker.pkg.github.com
