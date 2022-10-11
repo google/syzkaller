@@ -24,6 +24,16 @@ define newline
 
 
 endef
+
+RED := $(shell tput setaf 1)
+RESET := $(shell tput sgr0)
+
+ifndef SILENCE_SYZ_ENV_HINT
+$(warning $(RED)run command via tools/syz-env for best compatibility, see:$(RESET))
+$(warning $(RED)https://github.com/google/syzkaller/blob/master/docs/contributing.md#using-syz-env$(RESET))
+export SILENCE_SYZ_ENV_HINT=1
+endif
+
 ENV := $(subst \n,$(newline),$(shell CI=$(CI)\
 	SOURCEDIR=$(SOURCEDIR) HOSTOS=$(HOSTOS) HOSTARCH=$(HOSTARCH) \
 	TARGETOS=$(TARGETOS) TARGETARCH=$(TARGETARCH) TARGETVMARCH=$(TARGETVMARCH) \
