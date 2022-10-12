@@ -1,0 +1,220 @@
+TITLE: kernel stack overflow in rtnl_newlink
+ALT: stack-overflow in rtnl_newlink
+
+[ 1349.302803][    C1] Insufficient stack space to handle exception!
+[ 1349.302808][    C1] ESR: 0x0000000096000047 -- DABT (current EL)
+[ 1349.302814][    C1] FAR: 0xffff800015fdffa0
+[ 1349.302816][    C1] Task stack:     [0xffff800015fe0000..0xffff800015fe4000]
+[ 1349.302820][    C1] IRQ stack:      [0xffff800008008000..0xffff80000800c000]
+[ 1349.302823][    C1] Overflow stack: [0xffff0001fefdb310..0xffff0001fefdc310]
+[ 1349.302828][    C1] CPU: 1 PID: 16874 Comm: syz-executor.3 Not tainted 6.0.0-rc7-syzkaller-18095-gbbed346d5a96 #0
+[ 1349.302836][    C1] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 09/30/2022
+[ 1349.302840][    C1] pstate: 404000c5 (nZcv daIF +PAN -UAO -TCO -DIT -SSBS BTYPE=--)
+[ 1349.302849][    C1] pc : mark_lock+0x4/0x1b4
+[ 1349.302859][    C1] lr : __lock_acquire+0x630/0x30a4
+[ 1349.302866][    C1] sp : ffff800015fdffd0
+[ 1349.302868][    C1] x29: ffff800015fe00b0 x28: 0000000000000002 x27: ffff00013e520050
+[ 1349.302877][    C1] x26: ffff00013e520a60 x25: ffff00013e520a80 x24: 0000000000000080
+[ 1349.302885][    C1] x23: 0000000000000000 x22: 0000000000000001 x21: 0000000000000000
+[ 1349.302893][    C1] x20: 0000000000000000 x19: 000000000000008e x18: 00000000000000e9
+[ 1349.302901][    C1] x17: ffff80000bffd6bc x16: ffff80000db49158 x15: ffff00013e520000
+[ 1349.302909][    C1] x14: 0000000000000010 x13: 0000000000000000 x12: 0000000000040000
+[ 1349.302917][    C1] x11: 000000000000008e x10: ffff80000d260994 x9 : 0000000000000000
+[ 1349.302925][    C1] x8 : 00000000000c008e x7 : ffff80000818cfc0 x6 : 0000000000000000
+[ 1349.302933][    C1] x5 : 0000000000000080 x4 : 0000000000000001 x3 : 0000000000000000
+[ 1349.302941][    C1] x2 : 0000000000000008 x1 : ffff00013e520a60 x0 : ffff00013e520000
+[ 1349.302950][    C1] Kernel panic - not syncing: kernel stack overflow
+[ 1349.302953][    C1] CPU: 1 PID: 16874 Comm: syz-executor.3 Not tainted 6.0.0-rc7-syzkaller-18095-gbbed346d5a96 #0
+[ 1349.302960][    C1] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 09/30/2022
+[ 1349.302963][    C1] Call trace:
+[ 1349.302965][    C1]  dump_backtrace+0x1c4/0x1f0
+[ 1349.302971][    C1]  show_stack+0x2c/0x54
+[ 1349.302977][    C1]  dump_stack_lvl+0x104/0x16c
+[ 1349.302984][    C1]  dump_stack+0x1c/0x58
+[ 1349.302990][    C1]  panic+0x218/0x50c
+[ 1349.302995][    C1]  nmi_panic+0xbc/0xf0
+[ 1349.303002][    C1]  panic_bad_stack+0x134/0x154
+[ 1349.303008][    C1]  handle_bad_stack+0x34/0x48
+[ 1349.303013][    C1]  __bad_stack+0x78/0x7c
+[ 1349.303018][    C1]  mark_lock+0x4/0x1b4
+[ 1349.303024][    C1]  lock_acquire+0x100/0x1f8
+[ 1349.303030][    C1]  psi_group_change+0x128/0x3d0
+[ 1349.303037][    C1]  psi_task_switch+0x9c/0x310
+[ 1349.303043][    C1]  __schedule+0x554/0x5a0
+[ 1349.303049][    C1]  preempt_schedule_irq+0x64/0x110
+[ 1349.303055][    C1]  el1_interrupt+0x4c/0x68
+[ 1349.303061][    C1]  el1h_64_irq_handler+0x18/0x24
+[ 1349.303068][    C1]  el1h_64_irq+0x64/0x68
+[ 1349.303073][    C1]  arch_local_irq_restore+0x8/0x10
+[ 1349.303079][    C1]  __might_resched+0x7c/0x218
+[ 1349.303085][    C1]  __might_sleep+0x48/0x78
+[ 1349.303091][    C1]  kmem_cache_alloc_node+0x80/0x370
+[ 1349.303098][    C1]  __alloc_skb+0xf8/0x378
+[ 1349.303104][    C1]  ethnl_default_notify+0x16c/0x320
+[ 1349.303112][    C1]  ethtool_notify+0xb4/0x178
+[ 1349.303118][    C1]  ethnl_netdev_event+0x44/0x60
+[ 1349.303124][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.303131][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.303137][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.303143][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.303149][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.303156][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.303162][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.303169][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.303175][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.303180][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.303186][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.303191][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.303198][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.303204][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.303210][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.303215][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.303221][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.303227][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.303233][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.303239][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.303244][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.303250][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.303256][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.303262][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.303268][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.303273][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.303279][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.303285][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.303291][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.303297][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.303302][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.303308][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.303314][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.303321][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.303326][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.303332][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.303337][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.303344][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.303350][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.303356][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.303361][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.303367][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.303373][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.303379][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.303385][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.303390][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.303396][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.303402][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.303408][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.303414][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.303419][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.303425][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.303431][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.303437][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.303443][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.303448][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.303454][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.303460][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.303466][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.303522][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.303535][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.303548][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.303560][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.303572][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.303584][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.303594][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.303605][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.303618][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.303630][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.303641][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.303652][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.303663][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.303671][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.303677][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.303683][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.303688][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.303694][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.303700][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.303706][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.303712][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.303717][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.303723][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.303729][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.303735][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.303741][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.303746][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.303752][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.303758][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.303765][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.303771][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.303776][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.303781][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.303788][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.303794][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.303800][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.303805][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.303810][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.303817][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.303823][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.303829][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.303834][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.303840][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.303849][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.303855][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.303861][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.303866][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.303872][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.303878][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.303884][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.303890][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.303895][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.303901][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.303907][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.303913][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.303919][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.303924][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.303930][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.303936][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.303942][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.303948][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.303953][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.303959][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.303965][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.303971][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.303977][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.303982][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.303988][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.303994][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.304000][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.304006][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.304011][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.304017][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.304023][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.304029][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.304035][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.304040][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.304046][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.304052][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.304058][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.304064][    C1]  team_device_event+0x1a8/0x25c
+[ 1349.304069][    C1]  raw_notifier_call_chain+0x7c/0x108
+[ 1349.304074][    C1]  netdev_sync_lower_features+0x13c/0x21c
+[ 1349.304081][    C1]  __netdev_update_features+0x284/0xa88
+[ 1349.304087][    C1]  netdev_change_features+0x30/0xfc
+[ 1349.304093][    C1]  team_add_slave+0x7c/0x98
+[ 1349.304099][    C1]  do_setlink+0x5f8/0x17a4
+[ 1349.304105][    C1]  rtnl_newlink+0x988/0xa04
+[ 1349.304111][    C1]  rtnetlink_rcv_msg+0x484/0x82c
+[ 1349.304118][    C1]  netlink_rcv_skb+0xe4/0x1d0
+[ 1349.304124][    C1]  rtnetlink_rcv+0x28/0x38
+[ 1349.304130][    C1]  netlink_unicast_kernel+0xfc/0x1dc
+[ 1349.304137][    C1]  netlink_unicast+0x164/0x248
+[ 1349.304143][    C1]  netlink_sendmsg+0x484/0x584
+[ 1349.304148][    C1]  ____sys_sendmsg+0x2f8/0x440
+[ 1349.304154][    C1]  __sys_sendmsg+0x1ac/0x228
+[ 1349.304160][    C1]  __arm64_sys_sendmsg+0x2c/0x3c
+[ 1349.304166][    C1]  el0_svc_common+0x138/0x220
+[ 1349.304172][    C1]  do_el0_svc+0x48/0x164
+[ 1349.304178][    C1]  el0_svc+0x58/0x150
+[ 1349.304185][    C1]  el0t_64_sync_handler+0x84/0xf0
+[ 1349.304192][    C1]  el0t_64_sync+0x18c/0x190
+[ 1349.304199][    C1] SMP: stopping secondary CPUs
+[ 1349.304214][    C1] Kernel Offset: disabled
+[ 1349.304216][    C1] CPU features: 0x00000,02070084,26017203
+[ 1349.304219][    C1] Memory Limit: none
