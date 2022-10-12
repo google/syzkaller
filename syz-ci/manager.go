@@ -321,6 +321,7 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 		KernelDir:    mgr.kernelDir,
 		OutputDir:    tmpDir,
 		Compiler:     mgr.mgrcfg.Compiler,
+		Linker:       mgr.mgrcfg.Linker,
 		Ccache:       mgr.mgrcfg.Ccache,
 		UserspaceDir: mgr.mgrcfg.Userspace,
 		CmdlineFile:  mgr.mgrcfg.KernelCmdline,
