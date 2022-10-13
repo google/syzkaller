@@ -31,7 +31,7 @@ for ARG in "$@"; do
 		# If we have a kernel path passed in, we mount it in the container
 		# at /syzkaller/kernel and fix up SOURCEDIR argument.
 		if [ "$KEY" == "SOURCEDIR" ]; then
-			DOCKERARGS+=" --volume $VAL:/syzkaller/kernel"
+			DOCKERARGS+=" --volume $VAL:/syzkaller/kernel:z"
 			COMMAND+=" SOURCEDIR=/syzkaller/kernel"
 		else
 			COMMAND+=" $ARG"
@@ -61,8 +61,8 @@ docker pull -q gcr.io/syzkaller/${IMAGE}
 docker run \
 	--rm \
 	--user $(id -u ${USER}):$(id -g ${USER}) \
-	--volume "$SCRIPT_DIR/..:/syzkaller/gopath/src/github.com/google/syzkaller" \
-	--volume "$HOME/.cache:/syzkaller/.cache" \
+	--volume "$SCRIPT_DIR/..:/syzkaller/gopath/src/github.com/google/syzkaller:z" \
+	--volume "$HOME/.cache:/syzkaller/.cache:z" \
 	--volume "/var/run/docker.sock":"/var/run/docker.sock" \
 	--workdir /syzkaller/gopath/src/github.com/google/syzkaller \
 	--env HOME=/syzkaller \
