@@ -6,6 +6,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"golang.org/x/net/context"
 	db "google.golang.org/appengine/v2/datastore"
@@ -120,6 +121,86 @@ func dropEntities(c context.Context, keys []*db.Key, dryRun bool) error {
 	return nil
 }
 
+func restartFailedBisections(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	if accessLevel(c, r) != AccessAdmin {
+		return fmt.Errorf("admin only")
+	}
+	ns := r.FormValue("ns")
+	if ns == "" {
+		return fmt.Errorf("no ns parameter")
+	}
+	var jobs []*Job
+	var jobKeys []*db.Key
+	jobKeys, err := db.NewQuery("Job").
+		Filter("Finished>", time.Time{}).
+		GetAll(c, &jobs)
+	if err != nil {
+		return fmt.Errorf("failed to query jobs: %w", err)
+	}
+	toReset := []*db.Key{}
+	for i, job := range jobs {
+		if job.Namespace != ns {
+			continue
+		}
+		if job.Type != JobBisectCause && job.Type != JobBisectFix {
+			continue
+		}
+		if job.Error == 0 {
+			continue
+		}
+		errorTextBytes, _, err := getText(c, textError, job.Error)
+		if err != nil {
+			return fmt.Errorf("failed to query error text: %w", err)
+		}
+		fmt.Fprintf(w, "job type %v, ns %s, finished at %s, error:%s\n========\n",
+			job.Type, job.Namespace, job.Finished, string(errorTextBytes))
+		toReset = append(toReset, jobKeys[i])
+	}
+	if r.FormValue("apply") != "yes" {
+		return nil
+	}
+	for idx, jobKey := range toReset {
+		tx := func(c context.Context) error {
+			// Reset the job.
+			job := new(Job)
+			if err := db.Get(c, jobKey, job); err != nil {
+				return fmt.Errorf("job %v: failed to get in tx: %v", idx, err)
+			}
+			job.LastStarted = time.Time{}
+			job.Finished = time.Time{}
+			job.Log = 0
+			job.Error = 0
+			job.CrashLog = 0
+			job.Flags = JobFlags(0)
+			if _, err := db.Put(c, jobKey, job); err != nil {
+				return fmt.Errorf("job %v: failed to put: %v", idx, err)
+			}
+			// Update the bug.
+			bug := new(Bug)
+			bugKey := jobKey.Parent()
+			if err := db.Get(c, bugKey, bug); err != nil {
+				return fmt.Errorf("job %v: failed to get bug: %v", idx, err)
+			}
+			if job.Type == JobBisectCause {
+				bug.BisectCause = BisectNot
+			} else if job.Type == JobBisectFix {
+				bug.BisectFix = BisectNot
+			}
+			if _, err := db.Put(c, bugKey, bug); err != nil {
+				return fmt.Errorf("job %v: failed to put the bug: %v", idx, err)
+			}
+			return nil
+		}
+		if err := db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true, Attempts: 10}); err != nil {
+			fmt.Fprintf(w, "update failed: %s", err)
+			return nil
+		}
+	}
+
+	fmt.Fprintf(w, "Done!\n")
+	return nil
+}
+
 // updateBugReporting adds missing reporting stages to bugs in a single namespace.
 // Use with care. There is no undo.
 // This can be used to migrate datastore to a new config with more reporting stages.
@@ -217,4 +298,5 @@ var (
 	_ = dropNamespace
 	_ = updateBugReporting
 	_ = updateBugTitles
+	_ = restartFailedBisections
 )
