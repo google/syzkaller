@@ -6,7 +6,7 @@
 include <zircon/syscalls.h>
 
 # Never used as input
-# resource zx_profile[zx_handle]
+resource zx_profile[zx_handle]
 
 zx_profile_info {
 	flags			int32
@@ -14,4 +14,4 @@ zx_profile_info {
 	cpu_affinity_mask	array[int64, 8]
 }
 
-zx_profile_create(root_job zx_job, options int32, profile ptr[in, zx_profile_info], out_handle ptr[out, zx_handle])
+zx_profile_create(root_job zx_job, options int32, profile ptr[in, zx_profile_info], out_handle ptr[out, zx_profile])
