@@ -138,7 +138,7 @@ func (linux) createImage(params Params, kernelPath string) error {
 }
 
 func (linux) clean(kernelDir, targetArch string) error {
-	return runMakeImpl(targetArch, "", "", kernelDir, "distclean")
+	return runMakeImpl(targetArch, "", "", "", kernelDir, "distclean")
 }
 
 func (linux) writeFile(file string, data []byte) error {
