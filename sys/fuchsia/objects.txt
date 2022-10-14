@@ -12,6 +12,7 @@ resource koid[int64]: 0
 zx_object_get_child(handle zx_handle, koid koid, rights flags[zx_rights], out ptr[out, zx_handle])
 zx_object_get_info$ZX_INFO_HANDLE_VALID(handle zx_handle, topic const[ZX_INFO_HANDLE_VALID], buffer const[0], buffer_size const[0], actual ptr[out, intptr], avail ptr[out, intptr])
 zx_object_get_info$ZX_INFO_HANDLE_BASIC(handle zx_handle, topic const[ZX_INFO_HANDLE_BASIC], buffer ptr[out, zx_info_handle_basic], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_HANDLE_TABLE(handle zx_handle, topic const[ZX_INFO_HANDLE_TABLE], buffer ptr[out, zx_info_handle_extended], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
 zx_object_get_info$ZX_INFO_HANDLE_COUNT(handle zx_handle, topic const[ZX_INFO_HANDLE_COUNT], buffer ptr[out, zx_info_handle_count], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
 zx_object_get_info$ZX_INFO_PROCESS_HANDLE_STATS(handle zx_process, topic const[ZX_INFO_PROCESS_HANDLE_STATS], buffer ptr[out, zx_info_process_handle_stats], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
 zx_object_get_info$ZX_INFO_JOB(handle zx_process, topic const[ZX_INFO_JOB], buffer ptr[out, zx_info_job], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
@@ -30,12 +31,27 @@ zx_object_get_info$ZX_INFO_TASK_STATS(handle zx_process, topic const[ZX_INFO_TAS
 zx_object_get_info$ZX_INFO_PROCESS_MAPS(handle zx_process, topic const[ZX_INFO_PROCESS_MAPS], buffer ptr[out, array[zx_info_maps]], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
 zx_object_get_info$ZX_INFO_PROCESS_VMOS(handle zx_process, topic const[ZX_INFO_PROCESS_VMOS], buffer ptr[out, array[zx_info_vmo]], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
 zx_object_get_info$ZX_INFO_KMEM_STATS(root_resource zx_root_resource, topic const[ZX_INFO_KMEM_STATS], buffer ptr[out, zx_info_kmem_stats], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_KMEM_STATS_EXTENDED(root_resource zx_root_resource, topic const[ZX_INFO_KMEM_STATS_EXTENDED], buffer ptr[out, zx_info_kmem_stats_extended], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_TIMER(handle zx_handle, topic const[ZX_INFO_TIMER], buffer ptr[out, zx_info_timer], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_GUEST_STATS(handle zx_handle, topic const[ZX_INFO_GUEST_STATS], buffer ptr[out, zx_info_handle_basic], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_TASK_RUNTIME(handle zx_handle, topic const[ZX_INFO_TASK_RUNTIME], buffer ptr[out, zx_info_handle_basic], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+
 # TODO: what is handle type here?
 zx_object_get_info$ZX_INFO_RESOURCE(resource_handle zx_handle, topic const[ZX_INFO_RESOURCE], buffer ptr[out, zx_info_resource], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
 zx_object_get_info$ZX_INFO_BTI(resource_handle zx_handle, topic const[ZX_INFO_BTI], buffer ptr[out, zx_info_bti], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
-# TODO: detail properties
-zx_object_get_property(handle zx_handle, property int32, value ptr[out, array[int8]], size len[value])
-zx_object_set_property(handle zx_handle, property int32, value ptr[in, array[int8]], size len[value])
+
+zx_object_get_property$ZX_PROP_PROCESS_DEBUG_ADDR(handle zx_process, property const[ZX_PROP_PROCESS_DEBUG_ADDR], value ptr[out, array[int8]], size len[value])
+zx_object_get_property$ZX_PROP_PROCESS_BREAK_ON_LOAD(handle zx_process, property const[ZX_PROP_PROCESS_BREAK_ON_LOAD], value ptr[out, array[int8]], size len[value])
+zx_object_get_property$ZX_PROP_PROCESS_VDSO_BASE_ADDRESS(handle zx_process, property const[ZX_PROP_PROCESS_VDSO_BASE_ADDRESS], value ptr[out, array[int8]], size len[value])
+zx_object_get_property$ZX_PROP_SOCKET_RX_THRESHOLD(handle zx_socket, property const[ZX_PROP_SOCKET_RX_THRESHOLD], value ptr[out, array[int8]], size len[value])
+zx_object_get_property$ZX_PROP_SOCKET_TX_THRESHOLD(handle zx_socket, property const[ZX_PROP_SOCKET_TX_THRESHOLD], value ptr[out, array[int8]], size len[value])
+
+zx_object_set_property$ZX_PROP_JOB_KILL_ON_OOM(handle zx_job, property const[ZX_PROP_JOB_KILL_ON_OOM], value ptr[in, array[int8]], size len[value])
+zx_object_set_property$ZX_PROP_PROCESS_BREAK_ON_LOAD(handle zx_process, property const[ZX_PROP_PROCESS_BREAK_ON_LOAD], value ptr[in, array[int8]], size len[value])
+zx_object_set_property$ZX_PROP_PROCESS_DEBUG_ADDR(handle zx_process, property const[ZX_PROP_PROCESS_DEBUG_ADDR], value ptr[in, array[int8]], size len[value])
+zx_object_set_property$ZX_PROP_SOCKET_RX_THRESHOLD(handle zx_socket, property const[ZX_PROP_SOCKET_RX_THRESHOLD], value ptr[in, array[int8]], size len[value])
+zx_object_set_property$ZX_PROP_SOCKET_TX_THRESHOLD(handle zx_socket, property const[ZX_PROP_SOCKET_TX_THRESHOLD], value ptr[in, array[int8]], size len[value])
+
 zx_object_signal(handle zx_handle, clear_mask int32, set_mask int32)
 zx_object_signal_peer(handle zx_handle, clear_mask int32, set_mask int32)
 zx_object_wait_many(items ptr[in, array[zx_wait_item]], count len[items], deadline zx_time)
@@ -51,6 +67,16 @@ zx_info_handle_basic {
 	type		int32
 	related_koid	koid
 	props		int32
+}
+
+zx_info_handle_extended {
+	type		int32
+	handle		zx_handle
+	rights		int32
+	reserved	int32
+	koid		koid
+	related_koid	koid
+	peer_owner_koid	koid
 }
 
 zx_info_handle_count {
@@ -170,6 +196,30 @@ zx_info_kmem_stats {
 	mmu_overhead_bytes	int64
 	ipc_bytes		int64
 	other_bytes		int64
+}
+
+zx_info_kmem_stats_extended {
+	total_bytes			int64
+	free_bytes			int64
+	wired_bytes			int64
+	total_heap_bytes		int64
+	free_heap_bytes			int64
+	vmo_bytes			int64
+# extended part
+	vmo_pager_total_bytes		int64
+	vmo_pager_newest_bytes		int64
+	vmo_pager_oldest_bytes		int64
+	vmo_discardable_locked_bytes	int64
+	vmo_discardable_unlocked_bytes	int64
+	mmu_overhead_bytes		int64
+	ipc_bytes			int64
+	other_bytes			int64
+}
+
+zx_info_timer {
+	options		int32
+	deadline	zx_time
+	slack		int64
 }
 
 zx_info_resource {
