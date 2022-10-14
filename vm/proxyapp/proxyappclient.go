@@ -11,7 +11,6 @@ import (
 	"io"
 	"net/rpc"
 	"net/rpc/jsonrpc"
-	"os"
 	"sync"
 	"time"
 
@@ -43,17 +42,16 @@ func ctor(params *proxyAppParams, env *vmimpl.Env) (vmimpl.Pool, error) {
 			select {
 			case <-p.close:
 				p.mu.Lock()
-				if p.proxy != nil {
-					p.proxy.terminate()
-					<-p.proxy.onTerminated
-				}
-				p.proxy = nil
+				p.closeProxy()
+
 				p.onClosed <- nil
 				p.mu.Unlock()
 				return
 			case <-p.proxy.onTerminated:
+			case <-p.proxy.onLostConnection:
 			}
 			p.mu.Lock()
+			p.closeProxy()
 			time.Sleep(params.InitRetryDelay)
 			p.init(params, subConfig)
 			p.mu.Unlock()
@@ -73,22 +71,34 @@ type pool struct {
 }
 
 func (p *pool) init(params *proxyAppParams, cfg *Config) error {
+	usePipedRPC := cfg.RPCServerURI == ""
+	useTCPRPC := !usePipedRPC
 	var err error
-	p.proxy, err = runProxyApp(params, cfg.Command)
+	if cfg.Command != "" {
+		p.proxy, err = runProxyApp(params, cfg.Command, usePipedRPC)
+	} else {
+		p.proxy = &ProxyApp{}
+	}
 	if err != nil {
 		return fmt.Errorf("failed to run ProxyApp: %w", err)
 	}
+
+	if useTCPRPC {
+		p.proxy.Client, err = initNetworkRPCClient(cfg.RPCServerURI)
+		if err != nil {
+			p.closeProxy()
+			return fmt.Errorf("failed to connect ProxyApp pipes: %w", err)
+		}
+	}
+
+	go p.proxy.doLogPooling(params.LogOutput)
 
 	count, err := p.proxy.CreatePool(string(cfg.ProxyAppConfig), p.env.Debug)
 	if err != nil || count == 0 || (p.count != 0 && p.count != count) {
 		if err == nil {
 			err = fmt.Errorf("wrong pool size %v, prev was %v", count, p.count)
 		}
-
-		p.proxy.terminate()
-		<-p.proxy.onTerminated
-		p.proxy = nil
-
+		p.closeProxy()
 		return fmt.Errorf("failed to construct pool: %w", err)
 	}
 
@@ -96,6 +106,22 @@ func (p *pool) init(params *proxyAppParams, cfg *Config) error {
 		p.count = count
 	}
 	return nil
+}
+
+func (p *pool) closeProxy() {
+	if p.proxy != nil {
+		if p.proxy.Client != nil {
+			p.proxy.Client.Close()
+		}
+		if p.proxy.stopLogPooling != nil {
+			p.proxy.stopLogPooling <- true
+		}
+		if p.proxy.terminate != nil {
+			p.proxy.terminate()
+			<-p.proxy.onTerminated
+		}
+	}
+	p.proxy = nil
 }
 
 func (p *pool) Count() int {
@@ -123,11 +149,35 @@ func (p *pool) Close() error {
 
 type ProxyApp struct {
 	*rpc.Client
-	terminate    context.CancelFunc
-	onTerminated chan bool
+	terminate        context.CancelFunc
+	onTerminated     chan bool
+	onLostConnection chan bool
+	stopLogPooling   chan bool
 }
 
-func runProxyApp(params *proxyAppParams, cmd string) (*ProxyApp, error) {
+func initPipedRPCClient(cmd subProcessCmd) (*rpc.Client, error) {
+	subStdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get stdoutpipe: %w", err)
+	}
+
+	subStdin, err := cmd.StdinPipe()
+	if err != nil {
+		subStdout.Close()
+		return nil, fmt.Errorf("failed to get stdinpipe: %w", err)
+	}
+
+	return jsonrpc.NewClient(stdInOutCloser{
+		io.NopCloser(subStdout),
+		subStdin,
+	}), nil
+}
+
+func initNetworkRPCClient(uri string) (*rpc.Client, error) {
+	return jsonrpc.Dial("tcp", uri)
+}
+
+func runProxyApp(params *proxyAppParams, cmd string, initRPClient bool) (*ProxyApp, error) {
 	ctx, cancelContext := context.WithCancel(context.Background())
 	subProcess := params.CommandRunner(ctx, cmd)
 	var toClose []io.Closer
@@ -138,19 +188,16 @@ func runProxyApp(params *proxyAppParams, cmd string) (*ProxyApp, error) {
 		cancelContext()
 	}
 
-	subStdout, err := subProcess.StdoutPipe()
-	if err != nil {
-		freeAll()
-		return nil, fmt.Errorf("failed to get stdoutpipe: %w", err)
+	var client *rpc.Client
+	if initRPClient {
+		var err error
+		client, err = initPipedRPCClient(subProcess)
+		if err != nil {
+			freeAll()
+			return nil, fmt.Errorf("failed to init piped client: %w", err)
+		}
+		toClose = append(toClose, client)
 	}
-	toClose = append(toClose, subStdout)
-
-	subStdin, err := subProcess.StdinPipe()
-	if err != nil {
-		freeAll()
-		return nil, fmt.Errorf("failed to get stdinpipe: %w", err)
-	}
-	toClose = append(toClose, subStdin)
 
 	subprocessLogs, err := subProcess.StderrPipe()
 	if err != nil {
@@ -158,11 +205,6 @@ func runProxyApp(params *proxyAppParams, cmd string) (*ProxyApp, error) {
 		return nil, fmt.Errorf("failed to get stderrpipe: %w", err)
 	}
 	toClose = append(toClose, subprocessLogs)
-
-	codec := jsonrpc.NewClientCodec(stdInOutCloser{
-		io.NopCloser(subStdout),
-		subStdin,
-	})
 
 	if err := subProcess.Start(); err != nil {
 		freeAll()
@@ -172,7 +214,7 @@ func runProxyApp(params *proxyAppParams, cmd string) (*ProxyApp, error) {
 	onTerminated := make(chan bool, 1)
 
 	go func() {
-		io.Copy(os.Stdout, subprocessLogs)
+		io.Copy(params.LogOutput, subprocessLogs)
 		if err := subProcess.Wait(); err != nil {
 			log.Logf(0, "failed to Wait() subprocess: %v", err)
 		}
@@ -180,10 +222,52 @@ func runProxyApp(params *proxyAppParams, cmd string) (*ProxyApp, error) {
 	}()
 
 	return &ProxyApp{
-		Client:       rpc.NewClientWithCodec(codec),
-		terminate:    cancelContext,
-		onTerminated: onTerminated,
+		Client:           client,
+		terminate:        cancelContext,
+		onTerminated:     onTerminated,
+		onLostConnection: make(chan bool, 1),
 	}, nil
+}
+
+func (proxy *ProxyApp) signalLostConnection() {
+	select {
+	case proxy.onLostConnection <- true:
+	default:
+	}
+}
+
+func (proxy *ProxyApp) Call(serviceMethod string, args interface{}, reply interface{}) error {
+	err := proxy.Client.Call(serviceMethod, args, reply)
+	if err == rpc.ErrShutdown {
+		proxy.signalLostConnection()
+	}
+	return err
+}
+
+func (proxy *ProxyApp) doLogPooling(writer io.Writer) {
+	proxy.stopLogPooling = make(chan bool, 1)
+	for {
+		var reply proxyrpc.PoolLogsReply
+		call := proxy.Go(
+			"ProxyVM.PoolLogs",
+			&proxyrpc.PoolLogsParam{},
+			&reply,
+			nil,
+		)
+		select {
+		case <-proxy.stopLogPooling:
+			return
+		case c := <-call.Done:
+			if c.Error == rpc.ErrShutdown {
+				proxy.signalLostConnection()
+			} else if c.Error != nil {
+				log.Logf(0, "error pooling ProxyApp logs: %v", c.Error)
+			} else {
+				writer.Write([]byte(fmt.Sprintf("ProxyAppLog severity %v: %v",
+					reply.Severity, reply.Log)))
+			}
+		}
+	}
 }
 
 func (proxy *ProxyApp) CreatePool(config string, debug bool) (int, error) {

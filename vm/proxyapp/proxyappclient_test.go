@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/report"
-	"github.com/google/syzkaller/vm/proxyapp/mocks"
 	"github.com/google/syzkaller/vm/proxyapp/proxyrpc"
 	"github.com/google/syzkaller/vm/vmimpl"
 	"github.com/stretchr/testify/assert"
@@ -35,18 +34,19 @@ func makeTestParams() *proxyAppParams {
 	return &proxyAppParams{
 		CommandRunner:  osutilCommandContext,
 		InitRetryDelay: 0,
+		LogOutput:      io.Discard,
 	}
 }
 
 func makeMockProxyAppProcess(t *testing.T) (
-	*mock.Mock, io.WriteCloser, io.ReadCloser, io.ReadCloser) {
+	*mockProxyAppInterface, io.WriteCloser, io.ReadCloser, io.ReadCloser) {
 	rStdin, wStdin := io.Pipe()
 	rStdout, wStdout := io.Pipe()
 	rStderr, wStderr := io.Pipe()
 	wStderr.Close()
 
 	server := rpc.NewServer()
-	handler := mocks.NewProxyAppInterface(t)
+	handler := makeMockProxyAppInterface(t)
 	server.RegisterName("ProxyVM", struct{ proxyrpc.ProxyAppInterface }{handler})
 
 	go server.ServeCodec(jsonrpc.NewServerCodec(stdInOutCloser{
@@ -54,7 +54,7 @@ func makeMockProxyAppProcess(t *testing.T) (
 		wStdout,
 	}))
 
-	return &handler.Mock, wStdin, rStdout, rStderr
+	return handler, wStdin, rStdout, rStderr
 }
 
 type nopWriteCloser struct {
@@ -97,7 +97,10 @@ func TestCtor_FailedPipes(t *testing.T) {
 		On("StdoutPipe").
 		Return(io.NopCloser(strings.NewReader("")), nil).
 		On("StderrPipe").
-		Return(nil, fmt.Errorf("stderrpipe error"))
+		Return(nil, fmt.Errorf("stderrpipe error")).
+		Once().
+		On("StderrPipe").
+		Return(io.NopCloser(strings.NewReader("")), nil)
 
 	for i := 0; i < 3; i++ {
 		p, err := ctor(params, testEnv)
@@ -142,7 +145,16 @@ func TestCtor_FailedConstructPool(t *testing.T) {
 
 	mProxyAppServer.
 		On("CreatePool", mock.Anything, mock.Anything).
-		Return(fmt.Errorf("failed to construct pool"))
+		Return(fmt.Errorf("failed to construct pool")).
+		On("PoolLogs", mock.Anything, mock.Anything).
+		Run(func(args mock.Arguments) {
+			select {
+			case mProxyAppServer.OnLogsReceived <- true:
+			default:
+			}
+		}).
+		Return(nil).
+		Maybe() // on CreatePool error we close logger. This close makes PoolLogs racy.
 
 	mCmdRunner, params := makeMockCommandRunner(t)
 	mCmdRunner.
@@ -167,7 +179,7 @@ func TestCtor_FailedConstructPool(t *testing.T) {
 
 // TODO: to remove duplicate see TestCtor_FailedConstructPool() comment
 //  nolint: dupl
-func proxyAppServerFixture(t *testing.T) (*mock.Mock, *mockCommandRunner, *proxyAppParams) {
+func proxyAppServerFixture(t *testing.T) (*mockProxyAppInterface, *mockCommandRunner, *proxyAppParams) {
 	mProxyAppServer, stdin, stdout, stderr :=
 		makeMockProxyAppProcess(t)
 
@@ -177,7 +189,19 @@ func proxyAppServerFixture(t *testing.T) (*mock.Mock, *mockCommandRunner, *proxy
 			out := args.Get(1).(*proxyrpc.CreatePoolResult)
 			out.Count = 2
 		}).
-		Return(nil)
+		Return(nil).
+		On("PoolLogs", mock.Anything, mock.Anything).
+		Run(func(args mock.Arguments) {
+			select {
+			case mProxyAppServer.OnLogsReceived <- true:
+			default:
+			}
+		}).
+		Return(nil).
+		// PoolLogs is optional as we can call .closeProxy any time.
+		// If PoolLogs call is expected we are checking for OnLogsReceived.
+		// TODO: refactor it once Mock.Unset() is available.
+		Maybe()
 
 	mCmdRunner, params := makeMockCommandRunner(t)
 	mCmdRunner.
@@ -200,7 +224,7 @@ func proxyAppServerFixture(t *testing.T) (*mock.Mock, *mockCommandRunner, *proxy
 	return mProxyAppServer, mCmdRunner, params
 }
 
-func poolFixture(t *testing.T) (*mock.Mock, *mockCommandRunner, vmimpl.Pool) {
+func poolFixture(t *testing.T) (*mockProxyAppInterface, *mockCommandRunner, vmimpl.Pool) {
 	mProxyAppServer, mCmdRunner, params := proxyAppServerFixture(t)
 	p, _ := ctor(params, testEnv)
 	return mProxyAppServer, mCmdRunner, p
@@ -257,7 +281,7 @@ func TestPool_Create_ProxyFailure(t *testing.T) {
 }
 
 // nolint: dupl
-func createInstanceFixture(t *testing.T) (*mock.Mock, vmimpl.Instance) {
+func createInstanceFixture(t *testing.T) (*mockProxyAppInterface, vmimpl.Instance) {
 	mockServer, _, p := poolFixture(t)
 	mockServer.
 		On("CreateInstance", mock.Anything, mock.Anything).
