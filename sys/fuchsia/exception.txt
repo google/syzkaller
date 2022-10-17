@@ -1,0 +1,11 @@
+# Copyright 2022 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# See https://cs.opensource.google/fuchsia/fuchsia/+/main:zircon/vdso/exception.fidl
+
+include <zircon/syscalls.h>
+
+resource zx_exception[zx_handle]
+
+zx_exception_get_thread(handle zx_exception, out ptr[out, zx_exception])
+zx_exception_get_process(handle zx_exception, out ptr[out, zx_exception])
