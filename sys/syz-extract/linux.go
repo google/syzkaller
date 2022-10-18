@@ -79,7 +79,7 @@ func (*linux) prepareArch(arch *Arch) error {
 		return nil
 	}
 	kernelDir := arch.sourceDir
-	makeArgs := build.LinuxMakeArgs(arch.target, "", "", arch.buildDir)
+	makeArgs := build.LinuxMakeArgs(arch.target, "", "", "", arch.buildDir)
 	out, err := osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "defconfig")...)
 	if err != nil {
 		return fmt.Errorf("make defconfig failed: %v\n%s", err, out)

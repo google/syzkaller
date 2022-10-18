@@ -1,0 +1,10 @@
+# Copyright 2022 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# See: https://cs.opensource.google/fuchsia/fuchsia/+/main:zircon/vdso/pmt.fidl
+
+include <zircon/syscalls.h>
+
+resource zx_pmt[zx_handle]
+
+zx_pmt_unpin(handle zx_pmt)

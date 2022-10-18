@@ -1,7 +1,5 @@
-# TODO: the arm64 crash has different capitalization for "Call trace:",
-# so we don't recognize it as a stack trace.
-TITLE: kernel panic: corrupted stack end in corrupted
-CORRUPTED: Y
+TITLE: kernel panic: corrupted stack end in sys_socket
+ALT: stack-overflow in sys_socket
 
 [ 2231.649459] Kernel panic - not syncing: corrupted stack end detected inside scheduler
 [ 2231.657307] CPU: 185 PID: 11718 Comm: dbus-daemon Kdump: loaded Tainted: G        W         4.20.0-rc2+ #4
