@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"io"
 	"io/ioutil"
+	"math"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -25,7 +26,6 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/signal"
-	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/prog"
 	"github.com/gorilla/handlers"
 	"github.com/prometheus/client_golang/prometheus"
@@ -37,11 +37,16 @@ func (mgr *Manager) initHTTP() {
 		http.Handle(pattern, handlers.CompressHandler(http.HandlerFunc(handler)))
 	}
 	handle("/", mgr.httpSummary)
+	handle("/logs", mgr.httpLogs)
+	handle("/stats", mgr.httpStats)
+	handle("/crashtypes", mgr.httpCrashType)
 	handle("/config", mgr.httpConfig)
 	handle("/metrics", promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}).ServeHTTP)
 	handle("/syscalls", mgr.httpSyscalls)
+	handle("/syscallsjson", mgr.httpSyscallsJSON)
 	handle("/corpus", mgr.httpCorpus)
 	handle("/corpus.db", mgr.httpDownloadCorpus)
+	handle("/corpusjson", mgr.httpCorpusJSON)
 	handle("/crash", mgr.httpCrash)
 	handle("/cover", mgr.httpCover)
 	handle("/subsystemcover", mgr.httpSubsystemCover)
@@ -69,18 +74,39 @@ func (mgr *Manager) initHTTP() {
 }
 
 func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
-	data := &UISummaryData{
-		Name:  mgr.cfg.Name,
-		Log:   log.CachedLogOutput(),
-		Stats: mgr.collectStats(),
-	}
+	data := make(map[string]interface{})
 
-	var err error
-	if data.Crashes, err = mgr.collectCrashes(mgr.cfg.Workdir); err != nil {
+	stats := mgr.collectStats()
+
+	crashTypes, err := mgr.collectCrashes(mgr.cfg.Workdir)
+
+	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to collect crashes: %v", err), http.StatusInternalServerError)
 		return
 	}
-	executeTemplate(w, summaryTemplate, data)
+	logLines := strings.Split(log.CachedLogOutput(), "\n")
+
+	stats["crashTypes"] = len(crashTypes)
+
+	if mgr != nil && mgr.cfg != nil {
+		data["name"] = mgr.cfg.Name
+	} else {
+		data["name"] = ""
+	}
+
+	data["log"] = logLines[int64(math.Max(float64(0), float64(len(logLines)-10))):]
+	data["stats"] = stats
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	jsonData, dataErr := json.Marshal(data)
+
+	if dataErr != nil {
+		http.Error(w, fmt.Sprintf("failed to collect stats: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(jsonData)
 }
 
 func (mgr *Manager) httpConfig(w http.ResponseWriter, r *http.Request) {
@@ -115,7 +141,151 @@ func (mgr *Manager) httpSyscalls(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, syscallsTemplate, data)
 }
 
-func (mgr *Manager) collectStats() []UIStat {
+func (mgr *Manager) httpSyscallsJSON(w http.ResponseWriter, r *http.Request) {
+	data := &UISyscallsData{
+		Name: mgr.cfg.Name,
+	}
+	for c, cc := range mgr.collectSyscallInfo() {
+		var syscallID *int
+		if syscall, ok := mgr.target.SyscallMap[c]; ok {
+			syscallID = &syscall.ID
+		}
+		data.Calls = append(data.Calls, UICallType{
+			Name:   c,
+			ID:     syscallID,
+			Inputs: cc.count,
+			Cover:  len(cc.cov),
+		})
+	}
+	sort.Slice(data.Calls, func(i, j int) bool {
+		return data.Calls[i].Name < data.Calls[j].Name
+	})
+
+	jsonSyscalls, err := json.Marshal(data)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to encode json: %v", err),
+			http.StatusInternalServerError)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Write(jsonSyscalls)
+}
+
+func (mgr *Manager) httpStats(w http.ResponseWriter, r *http.Request) {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+	rawStats := mgr.stats.all()
+	stats := make(map[string]interface{})
+
+	data, err := json.Marshal(mgr.cfg)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to encode json: %v", err),
+			http.StatusInternalServerError)
+		return
+	}
+
+	readCrashes, err := mgr.collectCrashes(mgr.cfg.Workdir)
+
+	if err != nil {
+		http.Error(w, "Failed to collect crashes", http.StatusInternalServerError)
+		return
+	}
+
+	if mgr != nil {
+		stats["config"] = string(data)
+		stats["uptime"] = uint64(time.Since(mgr.startTime).Microseconds()) / 1e6
+		stats["fuzzing"] = uint64(mgr.fuzzingTime.Microseconds()) / 1e6
+		stats["corpus"] = len(mgr.corpus)
+		stats["coverage"] = rawStats["coverage"]
+		stats["numcrashes"] = len(readCrashes)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	jsonData, dataErr := json.Marshal(stats)
+
+	if dataErr != nil {
+		http.Error(w, fmt.Sprintf("failed to collect stats: %v", dataErr), http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(jsonData)
+}
+
+func (mgr *Manager) httpLogs(w http.ResponseWriter, r *http.Request) {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+	logLines := strings.Split(log.CachedLogOutput(), "\n")
+	logs := make(map[string]interface{})
+
+	logs["logs"] = logLines
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	jsonData, dataErr := json.Marshal(logs)
+
+	if dataErr != nil {
+		http.Error(w, fmt.Sprintf("failed to collect stats: %v", dataErr), http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(jsonData)
+}
+
+func (mgr *Manager) httpCrashType(w http.ResponseWriter, r *http.Request) {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+
+	crashTypes := make(map[string]interface{})
+
+	readCrashes, err := mgr.collectCrashes(mgr.cfg.Workdir)
+
+	if err != nil {
+		return
+	}
+
+	for i := 0; i < len(readCrashes); i++ {
+		var crash UICrashType = *readCrashes[i]
+
+		var crashes []map[string]interface{}
+
+		for j := 0; j < len(crash.Crashes); j++ {
+			var individualCrash UICrash = *crash.Crashes[j]
+			crashes = append(crashes, map[string]interface{}{
+				"index":  individualCrash.Index,
+				"report": individualCrash.Report,
+				"log":    individualCrash.Log,
+				"time":   individualCrash.Time.String(),
+				"tag":    individualCrash.Tag,
+			})
+		}
+
+		crashTypes[readCrashes[i].ID] = map[string]interface{}{
+			"description": crash.Description,
+			"last-time":   crash.LastTime.String(),
+			"count":       crash.Count,
+			"crashes":     crashes,
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	jsonData, dataErr := json.Marshal(crashTypes)
+
+	if dataErr != nil {
+		http.Error(w, fmt.Sprintf("failed to collect stats: %v", dataErr), http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(jsonData)
+}
+
+func (mgr *Manager) collectStats() map[string]interface{} {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
@@ -125,46 +295,25 @@ func (mgr *Manager) collectStats() []UIStat {
 	}
 	rawStats := mgr.stats.all()
 	head := prog.GitRevisionBase
-	stats := []UIStat{
-		{Name: "revision", Value: fmt.Sprint(head[:8]), Link: vcs.LogLink(vcs.SyzkallerRepo, head)},
-		{Name: "config", Value: configName, Link: "/config"},
-		{Name: "uptime", Value: fmt.Sprint(time.Since(mgr.startTime) / 1e9 * 1e9)},
-		{Name: "fuzzing", Value: fmt.Sprint(mgr.fuzzingTime / 60e9 * 60e9)},
-		{Name: "corpus", Value: fmt.Sprint(len(mgr.corpus)), Link: "/corpus"},
-		{Name: "triage queue", Value: fmt.Sprint(len(mgr.candidates))},
-		{Name: "signal", Value: fmt.Sprint(rawStats["signal"])},
-		{Name: "coverage", Value: fmt.Sprint(rawStats["coverage"]), Link: "/cover"},
-	}
-	if mgr.coverFilter != nil {
-		stats = append(stats, UIStat{
-			Name: "filtered coverage",
-			Value: fmt.Sprintf("%v / %v (%v%%)",
-				rawStats["filtered coverage"], len(mgr.coverFilter),
-				rawStats["filtered coverage"]*100/uint64(len(mgr.coverFilter))),
-			Link: "/cover?filter=yes",
-		})
-	}
-	delete(rawStats, "signal")
-	delete(rawStats, "coverage")
-	delete(rawStats, "filtered coverage")
-	if mgr.checkResult != nil {
-		stats = append(stats, UIStat{
-			Name:  "syscalls",
-			Value: fmt.Sprint(len(mgr.checkResult.EnabledCalls[mgr.cfg.Sandbox])),
-			Link:  "/syscalls",
-		})
+
+	new_stats := make(map[string]interface{})
+
+	if mgr != nil {
+		new_stats["revision"] = head[:8]
+		new_stats["config"] = mgr.cfg.Name
+		new_stats["uptime"] = uint64(time.Since(mgr.startTime).Microseconds()) / 1e6
+		new_stats["fuzzing"] = uint64(mgr.fuzzingTime.Microseconds()) / 1e6
+		new_stats["corpus"] = len(mgr.corpus)
+		new_stats["triage queue"] = len(mgr.candidates)
+		new_stats["signal"] = rawStats["signal"]
+		new_stats["coverage"] = rawStats["coverage"]
+
+		if mgr.checkResult != nil {
+			new_stats["syscalls"] = len(mgr.checkResult.EnabledCalls[mgr.cfg.Sandbox])
+		}
 	}
 
-	secs := uint64(1)
-	if !mgr.firstConnect.IsZero() {
-		secs = uint64(time.Since(mgr.firstConnect))/1e9 + 1
-	}
-	intStats := convertStats(rawStats, secs)
-	sort.Slice(intStats, func(i, j int) bool {
-		return intStats[i].Name < intStats[j].Name
-	})
-	stats = append(stats, intStats...)
-	return stats
+	return new_stats
 }
 
 func convertStats(stats map[string]uint64, secs uint64) []UIStat {
@@ -225,6 +374,50 @@ func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
 		return a.Short < b.Short
 	})
 	executeTemplate(w, corpusTemplate, data)
+}
+
+func (mgr *Manager) httpCorpusJSON(w http.ResponseWriter, r *http.Request) {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+
+	data := UICorpus{
+		Call:     r.FormValue("call"),
+		RawCover: mgr.cfg.RawCover,
+	}
+	for sig, inp := range mgr.corpus {
+		if data.Call != "" && data.Call != inp.Call {
+			continue
+		}
+		p, err := mgr.target.Deserialize(inp.Prog, prog.NonStrict)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to deserialize program: %v", err), http.StatusInternalServerError)
+			return
+		}
+		data.Inputs = append(data.Inputs, &UIInput{
+			Sig:   sig,
+			Short: p.String(),
+			Cover: len(inp.Cover),
+		})
+	}
+	sort.Slice(data.Inputs, func(i, j int) bool {
+		a, b := data.Inputs[i], data.Inputs[j]
+		if a.Cover != b.Cover {
+			return a.Cover > b.Cover
+		}
+		return a.Short < b.Short
+	})
+
+	corpusJSON, err := json.Marshal(data)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to encode json: %v", err),
+			http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Write(corpusJSON)
 }
 
 func (mgr *Manager) httpDownloadCorpus(w http.ResponseWriter, r *http.Request) {
@@ -570,7 +763,7 @@ func (mgr *Manager) collectCrashes(workdir string) ([]*UICrashType, error) {
 	}
 	var crashTypes []*UICrashType
 	for _, dir := range dirs {
-		crash := readCrash(workdir, dir, repros, mgr.startTime, false)
+		crash := readCrash(workdir, dir, repros, mgr.startTime, true)
 		if crash != nil {
 			crashTypes = append(crashTypes, crash)
 		}
