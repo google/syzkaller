@@ -5,7 +5,8 @@
 
 include <zircon/syscalls.h>
 
-resource zx_exception[zx_handle]
+# Disabled because never created by a syscall
+# resource zx_exception[zx_handle]
 
-zx_exception_get_thread(handle zx_exception, out ptr[out, zx_exception])
-zx_exception_get_process(handle zx_exception, out ptr[out, zx_exception])
+zx_exception_get_thread(handle zx_handle, out ptr[out, zx_handle])
+zx_exception_get_process(handle zx_handle, out ptr[out, zx_handle])
