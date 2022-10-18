@@ -158,6 +158,7 @@ type ManagerConfig struct {
 	// explicit plumbing for every os/compiler combination.
 	CompilerType string `json:"compiler_type"` // Defaults to "gcc"
 	Compiler     string `json:"compiler"`
+	Linker       string `json:"linker"`
 	Ccache       string `json:"ccache"`
 	Userspace    string `json:"userspace"`
 	KernelConfig string `json:"kernel_config"`

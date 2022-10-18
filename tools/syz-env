@@ -31,7 +31,7 @@ for ARG in "$@"; do
 		# If we have a kernel path passed in, we mount it in the container
 		# at /syzkaller/kernel and fix up SOURCEDIR argument.
 		if [ "$KEY" == "SOURCEDIR" ]; then
-			DOCKERARGS+=" --volume $VAL:/syzkaller/kernel"
+			DOCKERARGS+=" --volume $VAL:/syzkaller/kernel:z"
 			COMMAND+=" SOURCEDIR=/syzkaller/kernel"
 		else
 			COMMAND+=" $ARG"
@@ -54,16 +54,20 @@ elif [ "$(basename -- "$0")" == "syz-old-env" ]; then
         IMAGE="old-env"
 fi
 
+# Update docker image
+docker pull -q gcr.io/syzkaller/${IMAGE}
+
 # Run everything as the host user, this is important for created/modified files.
 docker run \
 	--rm \
 	--user $(id -u ${USER}):$(id -g ${USER}) \
-	--volume "$SCRIPT_DIR/..:/syzkaller/gopath/src/github.com/google/syzkaller" \
-	--volume "$HOME/.cache:/syzkaller/.cache" \
+	--volume "$SCRIPT_DIR/..:/syzkaller/gopath/src/github.com/google/syzkaller:z" \
+	--volume "$HOME/.cache:/syzkaller/.cache:z" \
 	--volume "/var/run/docker.sock":"/var/run/docker.sock" \
 	--workdir /syzkaller/gopath/src/github.com/google/syzkaller \
 	--env HOME=/syzkaller \
 	--env GOPATH=/syzkaller/gopath:/gopath \
+	--env SILENCE_SYZ_ENV_HINT=1 \
 	--env FUZZIT_API_KEY \
 	--env GITHUB_REF \
 	--env GITHUB_SHA \

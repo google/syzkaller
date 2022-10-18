@@ -22,6 +22,7 @@ var (
 	flagVM            = flag.String("vm", "gce", "VM type to build")
 	flagKernelSrc     = flag.String("kernel_src", "", "path to kernel checkout")
 	flagCompiler      = flag.String("compiler", "", "non-defult compiler")
+	flagLinker        = flag.String("linker", "", "non-default linker")
 	flagKernelConfig  = flag.String("config", "", "kernel config file")
 	flagKernelSysctl  = flag.String("sysctl", "", "kernel sysctl file")
 	flagKernelCmdline = flag.String("cmdline", "", "kernel cmdline file")
@@ -46,6 +47,7 @@ func main() {
 		KernelDir:    *flagKernelSrc,
 		OutputDir:    ".",
 		Compiler:     *flagCompiler,
+		Linker:       *flagLinker,
 		Ccache:       "",
 		UserspaceDir: *flagUserspace,
 		CmdlineFile:  *flagKernelCmdline,

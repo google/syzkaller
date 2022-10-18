@@ -138,7 +138,7 @@ func (linux) createImage(params Params, kernelPath string) error {
 }
 
 func (linux) clean(kernelDir, targetArch string) error {
-	return runMakeImpl(targetArch, "", "", kernelDir, "distclean")
+	return runMakeImpl(targetArch, "", "", "", kernelDir, "distclean")
 }
 
 func (linux) writeFile(file string, data []byte) error {
@@ -148,9 +148,9 @@ func (linux) writeFile(file string, data []byte) error {
 	return osutil.SandboxChown(file)
 }
 
-func runMakeImpl(arch, compiler, ccache, kernelDir string, addArgs ...string) error {
+func runMakeImpl(arch, compiler, linker, ccache, kernelDir string, addArgs ...string) error {
 	target := targets.Get(targets.Linux, arch)
-	args := LinuxMakeArgs(target, compiler, ccache, "")
+	args := LinuxMakeArgs(target, compiler, linker, ccache, "")
 	args = append(args, addArgs...)
 	cmd := osutil.Command("make", args...)
 	if err := osutil.Sandbox(cmd, true, true); err != nil {
@@ -175,10 +175,10 @@ func runMakeImpl(arch, compiler, ccache, kernelDir string, addArgs ...string) er
 }
 
 func runMake(params Params, addArgs ...string) error {
-	return runMakeImpl(params.TargetArch, params.Compiler, params.Ccache, params.KernelDir, addArgs...)
+	return runMakeImpl(params.TargetArch, params.Compiler, params.Linker, params.Ccache, params.KernelDir, addArgs...)
 }
 
-func LinuxMakeArgs(target *targets.Target, compiler, ccache, buildDir string) []string {
+func LinuxMakeArgs(target *targets.Target, compiler, linker, ccache, buildDir string) []string {
 	args := []string{
 		"-j", fmt.Sprint(runtime.NumCPU()),
 		"ARCH=" + target.KernelArch,
@@ -189,7 +189,7 @@ func LinuxMakeArgs(target *targets.Target, compiler, ccache, buildDir string) []
 	if compiler == "" {
 		compiler = target.KernelCompiler
 		if target.KernelLinker != "" {
-			args = append(args, "LD="+target.KernelLinker)
+			linker = target.KernelLinker
 		}
 	}
 	if compiler != "" {
@@ -197,6 +197,9 @@ func LinuxMakeArgs(target *targets.Target, compiler, ccache, buildDir string) []
 			compiler = ccache + " " + compiler
 		}
 		args = append(args, "CC="+compiler)
+	}
+	if linker != "" {
+		args = append(args, "LD="+linker)
 	}
 	if buildDir != "" {
 		args = append(args, "O="+buildDir)
