@@ -3,6 +3,7 @@
 
 # Description of syscall arguments. See README.md for details.
 
+include <linux/swap.h>
 include <linux/socket.h>
 include <linux/ptrace.h>
 include <linux/resource.h>
@@ -260,6 +261,7 @@ ptrace$setsig(req const[PTRACE_SETSIGINFO], pid pid, ignored intptr, data ptr[in
 ptrace$setopts(req flags[ptrace_req_setopts], pid pid, ignored intptr, flags flags[ptrace_options]) (breaks_returns)
 ptrace$getenv(req const[PTRACE_GETEVENTMSG], pid pid, ignored intptr, data ptr[out, intptr]) (breaks_returns)
 ptrace$cont(req flags[ptrace_req_cont], pid pid, ignored intptr, data intptr) (breaks_returns)
+ptrace$broken(req flags[ptrace_req_cont], pid const[0xdeadbeaf])
 ptrace$PTRACE_SECCOMP_GET_FILTER(req const[PTRACE_SECCOMP_GET_FILTER], pid pid, addr intptr, data ptr[out, array[int8]]) (breaks_returns)
 ptrace$PTRACE_SECCOMP_GET_METADATA(req const[PTRACE_SECCOMP_GET_METADATA], pid pid, addr len[data], data ptr[in, seccomp_metadata]) (breaks_returns)
 
@@ -306,6 +308,11 @@ utime(filename ptr[in, filename], times ptr[in, utimbuf])
 utimes(filename ptr[in, filename], times ptr[in, itimerval])
 futimesat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval])
 utimensat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval], flags flags[utimensat_flags])
+
+
+#swapon
+swapon(file ptr[in, filename] , flags flags[swapflags])
+
 
 # Small trick - syzkaller cannot give the proper stack pointer to clone(), but we can do it with the aid of pseudo syscalls.
 syz_clone(flags flags[clone_flags], stack buffer[in], stack_len bytesize[stack], parentid ptr[out, int32], childtid ptr[out, int32], tls buffer[in]) pid
@@ -509,6 +516,7 @@ sched_getattr(pid pid, attr ptr[out, sched_attr], size len[attr], flags const[0]
 sched_setattr(pid pid, attr ptr[in, sched_attr], flags const[0])
 sched_yield()
 getrandom(buf buffer[out], len len[buf], flags flags[getrandom_flags])
+getcpu(cpu ptr[in, int64], node ptr[in, int64])
 
 membarrier(cmd flags[membarrier_cmd], flags const[0])
 
@@ -1269,6 +1277,7 @@ finit_module_flags = MODULE_INIT_IGNORE_MODVERSIONS, MODULE_INIT_IGNORE_VERMAGIC
 delete_module_flags = O_NONBLOCK, O_TRUNC
 kexec_load_flags = KEXEC_ON_CRASH, KEXEC_PRESERVE_CONTEXT, KEXEC_ARCH_386, KEXEC_ARCH_X86_64, KEXEC_ARCH_PPC, KEXEC_ARCH_PPC64, KEXEC_ARCH_IA_64, KEXEC_ARCH_ARM, KEXEC_ARCH_S390, KEXEC_ARCH_SH, KEXEC_ARCH_MIPS, KEXEC_ARCH_MIPS_LE, KEXEC_ARCH_DEFAULT
 faccessat_flags = AT_EACCESS, AT_SYMLINK_NOFOLLOW, AT_EMPTY_PATH
+swapflags = SWAP_FLAG_PREFER, SWAP_FLAG_DISCARD
 sync_file_flags = SYNC_FILE_RANGE_WAIT_BEFORE, SYNC_FILE_RANGE_WRITE, SYNC_FILE_RANGE_WAIT_AFTER
 kcmp_flags = KCMP_FILE, KCMP_FILES, KCMP_FS, KCMP_IO, KCMP_SIGHAND, KCMP_SYSVSEM, KCMP_VM
 rusage_who = RUSAGE_SELF, RUSAGE_CHILDREN, RUSAGE_THREAD
@@ -1336,7 +1345,6 @@ define KCOV_REMOTE_ENABLE	1075340134
 # vhangup
 # _sysctl
 # adjtimex
-# swapon
 # swapoff
 # nfsservctl
 # getcpu
