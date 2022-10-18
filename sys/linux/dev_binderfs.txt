@@ -13,10 +13,10 @@ binderfs_mountpoint = "./binderfs", "./binderfs2"
 binderfs_ctrlpath = "./binderfs/binder-control", "./binderfs2/binder-control"
 
 # Device names.
-binderfs_devname = "binder0", "binder1", "custom0", "custom1"
+binderfs_devname = "binder", "binder0", "binder1", "custom0", "custom1"
 
 # Unfortunately, syzlang does not currently favor string concatenation for open (and related) syscalls. So we concatenate it manually.
-binderfs_devpath = "./binderfs/binder0", "./binderfs/binder1", "./binderfs/custom0", "./binderfs/custom1", "./binderfs2/binder0", "./binderfs2/binder1", "./binderfs2/custom0", "./binderfs2/custom1"
+binderfs_devpath = "./binderfs/binder", "./binderfs/binder0", "./binderfs/binder1", "./binderfs/custom0", "./binderfs/custom1", "./binderfs2/binder0", "./binderfs2/binder1", "./binderfs2/custom0", "./binderfs2/custom1"
 
 mkdirat$binderfs(fd const[AT_FDCWD], path ptr[in, string[binderfs_mountpoint]], mode const[0x1ff])
 mount$binderfs(src ptr[in, string["binder"]], dst ptr[in, string[binderfs_mountpoint]], type ptr[in, string["binder"]], flags flags[mount_flags], opts ptr[in, fs_options[binderfs_options]])

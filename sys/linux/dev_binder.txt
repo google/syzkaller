@@ -25,6 +25,10 @@ openat$hwbinder(fd const[AT_FDCWD], file ptr[in, string["/dev/hwbinder"]], flags
 openat$vndbinder(fd const[AT_FDCWD], file ptr[in, string["/dev/vndbinder"]], flags flags[binder_open_flags], mode const[0]) fd_binder
 
 mmap$binder(addr vma, len len[addr], prot const[PROT_READ], flags const[MAP_SHARED], fd fd_binder, offset fileoff) binder_ptr
+mmap$binder_VMA_NULL(addr const[NULL], len len[addr], prot const[PROT_READ], flags const[MAP_SHARED], fd fd_binder, offset fileoff) binder_ptr
+mmap$binder_PROT_FLAGS(addr vma, len len[addr], prot flags[binder_prot_flags], flags const[MAP_SHARED], fd fd_binder, offset fileoff) binder_ptr
+mmap$binder_MAP_FLAGS(addr vma, len len[addr], prot const[PROT_READ], flags flags[binder_mmap_flags], fd fd_binder, offset fileoff) binder_ptr
+mmap$binder_general_flags(addr vma, len len[addr], prot flags[binder_prot_flags], flags flags[binder_mmap_flags], fd fd_binder, offset fileoff) binder_ptr
 
 ioctl$BINDER_SET_MAX_THREADS(fd fd_binder, cmd const[BINDER_SET_MAX_THREADS], arg ptr[in, int32])
 ioctl$BINDER_SET_CONTEXT_MGR(fd fd_binder, cmd const[BINDER_SET_CONTEXT_MGR], arg const[0])
@@ -42,6 +46,8 @@ openat$binder_debug(fd const[AT_FDCWD], file ptr[in, string[binder_debug_file]],
 
 binder_debug_file = "/sys/kernel/debug/binder/failed_transaction_log", "/sys/kernel/debug/binder/state", "/sys/kernel/debug/binder/stats", "/sys/kernel/debug/binder/transaction_log", "/sys/kernel/debug/binder/transactions"
 
+binder_prot_flags = PROT_EXEC, PROT_READ, PROT_WRITE, PROT_NONE
+binder_mmap_flags = MAP_SHARED, MAP_SHARED_VALIDATE, MAP_PRIVATE, MAP_32BIT, MAP_ANON, MAP_ANONYMOUS, MAP_DENYWRITE, MAP_EXECUTABLE, MAP_FILE, MAP_FIXED, MAP_FIXED_NOREPLACE, MAP_GROWSDOWN, MAP_HUGETLB, MAP_HUGE_2MB, MAP_HUGE_1GB, MAP_LOCKED, MAP_NONBLOCK, MAP_POPULATE, MAP_STACK, MAP_SYNC, MAP_UNINITIALIZED
 binder_open_flags = O_RDWR, O_NONBLOCK
 _ = __NR_mmap2
 
