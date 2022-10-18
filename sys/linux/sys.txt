@@ -312,7 +312,8 @@ utimensat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval], flag
 
 #swapon
 swapon(file ptr[in, filename] , flags flags[swapflags])
-
+#swapoff
+swapoff(file ptr[in, filename])
 
 # Small trick - syzkaller cannot give the proper stack pointer to clone(), but we can do it with the aid of pseudo syscalls.
 syz_clone(flags flags[clone_flags], stack buffer[in], stack_len bytesize[stack], parentid ptr[out, int32], childtid ptr[out, int32], tls buffer[in]) pid
@@ -1345,7 +1346,6 @@ define KCOV_REMOTE_ENABLE	1075340134
 # vhangup
 # _sysctl
 # adjtimex
-# swapoff
 # nfsservctl
 # getcpu
 
