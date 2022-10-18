@@ -183,6 +183,7 @@ func proxyAppServerFixture(t *testing.T) (*mockProxyAppInterface, *mockCommandRu
 	mProxyAppServer, stdin, stdout, stderr :=
 		makeMockProxyAppProcess(t)
 
+	log := make(chan bool, 1)
 	mProxyAppServer.
 		On("CreatePool", mock.Anything, mock.Anything).
 		Run(func(args mock.Arguments) {
@@ -196,12 +197,17 @@ func proxyAppServerFixture(t *testing.T) (*mockProxyAppInterface, *mockCommandRu
 			case mProxyAppServer.OnLogsReceived <- true:
 			default:
 			}
+			log <- true
 		}).
 		Return(nil).
 		// PoolLogs is optional as we can call .closeProxy any time.
 		// If PoolLogs call is expected we are checking for OnLogsReceived.
 		// TODO: refactor it once Mock.Unset() is available.
 		Maybe()
+
+	t.Cleanup(func() {
+		<-log
+	})
 
 	mCmdRunner, params := makeMockCommandRunner(t)
 	mCmdRunner.
