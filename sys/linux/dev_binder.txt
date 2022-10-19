@@ -9,6 +9,7 @@
 
 include <linux/android/binder.h>
 include <linux/fcntl.h>
+include <poll.h>
 
 resource fd_binder[fd]
 resource binder_ptr[int64]: 0
@@ -30,6 +31,9 @@ mmap$binder_PROT_FLAGS(addr vma, len len[addr], prot flags[binder_prot_flags], f
 mmap$binder_MAP_FLAGS(addr vma, len len[addr], prot const[PROT_READ], flags flags[binder_mmap_flags], fd fd_binder, offset fileoff) binder_ptr
 mmap$binder_general_flags(addr vma, len len[addr], prot flags[binder_prot_flags], flags flags[binder_mmap_flags], fd fd_binder, offset fileoff) binder_ptr
 
+ppoll$binder(fds ptr[inout, binder_pollfd], nfds_t const[1], tmo_p ptr[inout, binder_timespec], sigmask const[NULL])
+
+
 ioctl$BINDER_SET_MAX_THREADS(fd fd_binder, cmd const[BINDER_SET_MAX_THREADS], arg ptr[in, int32])
 ioctl$BINDER_SET_CONTEXT_MGR(fd fd_binder, cmd const[BINDER_SET_CONTEXT_MGR], arg const[0])
 ioctl$BINDER_SET_CONTEXT_MGR_EXT(fd fd_binder, cmd const[BINDER_SET_CONTEXT_MGR_EXT], arg ptr[in, flat_binder_object_t[BINDER_TYPE_BINDER, binder_node]])
@@ -50,6 +54,19 @@ binder_prot_flags = PROT_EXEC, PROT_READ, PROT_WRITE, PROT_NONE
 binder_mmap_flags = MAP_SHARED, MAP_SHARED_VALIDATE, MAP_PRIVATE, MAP_32BIT, MAP_ANON, MAP_ANONYMOUS, MAP_DENYWRITE, MAP_EXECUTABLE, MAP_FILE, MAP_FIXED, MAP_FIXED_NOREPLACE, MAP_GROWSDOWN, MAP_HUGETLB, MAP_HUGE_2MB, MAP_HUGE_1GB, MAP_LOCKED, MAP_NONBLOCK, MAP_POPULATE, MAP_STACK, MAP_SYNC, MAP_UNINITIALIZED
 binder_open_flags = O_RDWR, O_NONBLOCK
 _ = __NR_mmap2
+
+binder_poll_flags = POLLIN, POLLPRI, POLLOUT, POLLRDHUP, POLLERR, POLLHUP, POLLNVAL, POLLRDNORM, POLLRDBAND, POLLWRNORM, POLLWRBAND
+
+binder_timespec {
+	tv_sec		int64
+	tv_nsec		int64
+}
+
+binder_pollfd {
+	binder_fd	fd_binder
+	events		flags[binder_poll_flags, int16]
+	revents		flags[binder_poll_flags, int16]
+}
 
 binder_freeze_info {
 	pid		pid
