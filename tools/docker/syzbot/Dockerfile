@@ -39,12 +39,13 @@ RUN curl https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
 RUN add-apt-repository "deb http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-13 main"
 RUN apt-get update --allow-releaseinfo-change
 RUN apt-get remove -y -q clang-11
-RUN apt-get install -y -q --no-install-recommends clang-13 clang-format-13 clang-tidy-13
+RUN apt-get install -y -q --no-install-recommends clang-13 clang-format-13 clang-tidy-13 lld-13
 RUN apt autoremove -y -q
 RUN sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-13 100
 RUN sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-13 100
 RUN sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-13 100
 RUN sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-13 100
+RUN sudo update-alternatives --install /usr/bin/ld.lld ld.lld /usr/bin/lld-13 100
 
 # Download and install the custom Clang required to build KMSAN.
 # TODO(@ramosian-glider): switch to stable Clang once KMSAN is upstreamed.
