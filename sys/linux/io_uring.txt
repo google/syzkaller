@@ -46,7 +46,7 @@ io_uring_register$IORING_REGISTER_BUFFERS_UPDATE(fd fd_io_uring, opcode const[IO
 io_uring_register$IORING_REGISTER_FILES2(fd fd_io_uring, opcode const[IORING_REGISTER_FILES2], arg ptr[in, io_uring_rsrc_register], size bytesize[arg])
 io_uring_register$IORING_REGISTER_FILES_UPDATE2(fd fd_io_uring, opcode const[IORING_REGISTER_FILES_UPDATE2], arg ptr[in, io_uring_rsrc_update2], size bytesize[arg])
 # IORING_REGISTER_BUFFERS2, IORING_REGISTER_BUFFERS_UPDATE, IORING_REGISTER_FILES2, IORING_REGISTER_FILES_UPDATE2 >= 5.13
-io_uring_register$IORING_REGISTER_IOWQ_AFF(fd fd_io_uring, opcode const[IORING_REGISTER_IOWQ_AFF], arg ptr[in, int64], size bytesize[arg])
+io_uring_register$IORING_REGISTER_IOWQ_AFF(fd fd_io_uring, opcode const[IORING_REGISTER_IOWQ_AFF], arg ptr[in, array[int8]], size bytesize[arg])
 io_uring_register$IORING_UNREGISTER_IOWQ_AFF(fd fd_io_uring, opcode const[IORING_UNREGISTER_IOWQ_AFF], arg const[0], nr_args const[0])
 # IORING_REGISTER_IOWQ_AFF, IORING_UNREGISTER_IOWQ_AFF >= 5.14
 io_uring_register$IORING_REGISTER_IOWQ_MAX_WORKERS(fd fd_io_uring, opcode const[IORING_REGISTER_IOWQ_MAX_WORKERS], arg ptr[in, array[int32, 2]], nr_args const[2])
@@ -151,19 +151,21 @@ io_uring_restriction_st [
 	ioring_restriction_sqe_flags_required	io_uring_restriction[IORING_RESTRICTION_SQE_FLAGS_REQUIRED, flags[io_uring_register_opcodes, int8]]
 ]
 
+io_uring_rsrc_flags = IORING_RSRC_REGISTER_SPARSE
+
 io_uring_rsrc_register {
 	nr	len[data, int32]
-	flags	int32
-	resv2	int64
-	data	ptr[in, array[iovec_out]]
-	tags	ptr[in, array[int64]]
+	flags	flags[io_uring_rsrc_flags, int32]
+	resv2	const[0, int64]
+	data	ptr64[in, array[iovec_out]]
+	tags	ptr64[in, array[int64]]
 }
 
 io_uring_rsrc_update2 {
 	offset	int32
 	resv	const[0, int32]
-	data	ptr[in, array[iovec_out]]
-	tags	ptr[in, array[int64]]
+	data	ptr64[in, array[iovec_out]]
+	tags	ptr64[in, array[int64]]
 	nr	len[data, int32]
 	resv2	const[0, int32]
 }
@@ -307,10 +309,10 @@ type io_uring_sqe$link_timeout io_uring_sqe[IORING_OP_LINK_TIMEOUT, const[0, int
 type io_uring_sqe$connect io_uring_sqe[IORING_OP_CONNECT, const[0, int16], sock, len[addr, int32], ptr[in, sockaddr_storage], const[0, int32], const[0, int32], sqe_user_data_not_openat, personality_only_misc]
 # IORING_OP_TIMEOUT_REMOVE, IORING_OP_ACCEPT, IORING_OP_ASYNC_CANCEL, IORING_OP_LINK_TIMEOUT, IORING_OP_CONNECT >= 5.5
 type io_uring_sqe$fallocate io_uring_sqe[IORING_OP_FALLOCATE, const[0, int16], fd_or_fixed_fd_index, fileoff[int64], const[0, int64], int32, const[0, int32], sqe_user_data_not_openat, personality_only_misc]
-type io_uring_sqe$openat io_uring_sqe[IORING_OP_OPENAT, const[0, int16], fd_dir[opt], const[0, int64], ptr[in, filename], flags[open_mode, int32], flags[open_flags, int32], sqe_user_data_openat, personality_only_misc]
+type io_uring_sqe$openat io_uring_sqe[IORING_OP_OPENAT, const[0, int16], fd_dir[opt], const[0, int64], ptr64[in, filename], flags[open_mode, int32], flags[open_flags, int32], sqe_user_data_openat, personality_only_misc]
 type io_uring_sqe$close io_uring_sqe[IORING_OP_CLOSE, const[0, int16], fd, const[0, int64], const[0, int64], const[0, int32], const[0, int32], sqe_user_data_not_openat, personality_only_misc]
 type io_uring_sqe$files_update io_uring_sqe[IORING_OP_FILES_UPDATE, const[0, int16], const[0, int32], fileoff[int64], ptr[in, array[fd]], len[addr, int32], const[0, int32], sqe_user_data_not_openat, personality_only_misc]
-type io_uring_sqe$statx io_uring_sqe[IORING_OP_STATX, const[0, int16], fd_dir[opt], ptr[out, statx], ptr[in, filename], flags[statx_mask, int32], flags[statx_flags, int32], sqe_user_data_not_openat, personality_only_misc]
+type io_uring_sqe$statx io_uring_sqe[IORING_OP_STATX, const[0, int16], fd_dir[opt], ptr[out, statx], ptr64[in, filename], flags[statx_mask, int32], flags[statx_flags, int32], sqe_user_data_not_openat, personality_only_misc]
 
 io_uring_sqe_read [
 	pass_buffer		io_uring_sqe[IORING_OP_READ, flags[ioprio_priorities, int16], fd_or_fixed_fd_index, fileoff[int64], buffer[out], bytesize[addr, int32], flags[rwf_flags, int32], sqe_user_data_not_openat, personality_only_misc]
@@ -327,7 +329,7 @@ io_uring_sqe_recv [
 	use_registered_buffer	io_uring_sqe[IORING_OP_RECV, const[0, int16], sock, const[0, int64], const[0, int64], const[0, int32], flags[recv_flags, int32], sqe_user_data_not_openat, buf_group_personality_misc]
 ]
 
-type io_uring_sqe$openat2 io_uring_sqe[IORING_OP_OPENAT2, const[0, int16], fd_dir[opt], ptr[in, open_how], ptr[in, filename], bytesize[off, int32], const[0, int32], sqe_user_data_openat, personality_only_misc]
+type io_uring_sqe$openat2 io_uring_sqe[IORING_OP_OPENAT2, const[0, int16], fd_dir[opt], ptr[in, open_how], ptr64[in, filename], bytesize[off, int32], const[0, int32], sqe_user_data_openat, personality_only_misc]
 type io_uring_sqe$epoll_ctl_t[EPOLL_OP, EPOLL_EVENTS] io_uring_sqe[IORING_OP_EPOLL_CTL, const[0, int16], fd_epoll, EPOLL_EVENTS, fd, const[EPOLL_OP, int32], const[0, int32], sqe_user_data_not_openat, personality_only_misc]
 
 io_uring_sqe_epoll_ctl [
@@ -347,13 +349,13 @@ type io_uring_sqe$tee io_uring_sqe[IORING_OP_TEE, const[0, int16], fd_or_fixed_f
 # IORING_OP_TEE >= 5.8
 
 type io_uring_sqe$shutdown io_uring_sqe[IORING_OP_SHUTDOWN, const[0, int16], sock, const[0, int64], const[0, int64], flags[shutdown_flags, int32], const[0, int32], sqe_user_data_not_openat, personality_only_misc]
-type io_uring_sqe$renameat io_uring_sqe[IORING_OP_RENAMEAT, const[0, int16], fd_dir, ptr[in, filename], ptr[in, filename], fd_dir, const[0, int32], sqe_user_data_not_openat, personality_only_misc]
-type io_uring_sqe$unlinkat io_uring_sqe[IORING_OP_UNLINKAT, const[0, int16], fd_dir, const[0, int64], ptr[in, filename], const[0, int32], flags[unlinkat_flags, int32], sqe_user_data_not_openat, personality_only_misc]
+type io_uring_sqe$renameat io_uring_sqe[IORING_OP_RENAMEAT, const[0, int16], fd_dir, ptr64[in, filename], ptr64[in, filename], fd_dir, const[0, int32], sqe_user_data_not_openat, personality_only_misc]
+type io_uring_sqe$unlinkat io_uring_sqe[IORING_OP_UNLINKAT, const[0, int16], fd_dir, const[0, int64], ptr64[in, filename], const[0, int32], flags[unlinkat_flags, int32], sqe_user_data_not_openat, personality_only_misc]
 # IORING_OP_SHUTDOWN, IORING_OP_RENAMEAT, IORING_OP_UNLINKAT >= 5.11
 
-type io_uring_sqe$mkdirat io_uring_sqe[IORING_OP_MKDIRAT, const[0, int16], fd_dir, const[0, int64], ptr[in, filename], flags[open_mode, int32], const[0, int32], sqe_user_data_not_openat, personality_only_misc]
-type io_uring_sqe$symlinkat io_uring_sqe[IORING_OP_SYMLINKAT, const[0, int16], fd_dir, ptr[in, filename], ptr[in, filename], const[0, int32], const[0, int32], sqe_user_data_not_openat, personality_only_misc]
-type io_uring_sqe$linkat io_uring_sqe[IORING_OP_LINKAT, const[0, int16], fd_dir, ptr[in, filename], ptr[in, filename], fd_dir, flags[linkat_flags, int32], sqe_user_data_not_openat, personality_only_misc]
+type io_uring_sqe$mkdirat io_uring_sqe[IORING_OP_MKDIRAT, const[0, int16], fd_dir, const[0, int64], ptr64[in, filename], flags[open_mode, int32], const[0, int32], sqe_user_data_not_openat, personality_only_misc]
+type io_uring_sqe$symlinkat io_uring_sqe[IORING_OP_SYMLINKAT, const[0, int16], fd_dir, ptr64[in, filename], ptr64[in, filename], const[0, int32], const[0, int32], sqe_user_data_not_openat, personality_only_misc]
+type io_uring_sqe$linkat io_uring_sqe[IORING_OP_LINKAT, const[0, int16], fd_dir, ptr64[in, filename], ptr64[in, filename], fd_dir, flags[linkat_flags, int32], sqe_user_data_not_openat, personality_only_misc]
 # IORING_OP_MKDIRAT, IORING_OP_SYMLINKAT, IORING_OP_LINKAT >= 5.15
 
 type io_uring_sqe$msg_ring io_uring_sqe[IORING_OP_MSG_RING, const[0, int16], fd_io_uring, int64, buffer[in], len[addr, int32], const[0, int32], sqe_user_data_not_openat, personality_only_misc]
