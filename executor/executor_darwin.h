@@ -22,8 +22,9 @@ static void os_init(int argc, char** argv, void* data, size_t data_size)
 	int prot = PROT_READ | PROT_WRITE | PROT_EXEC;
 	int flags = MAP_ANON | MAP_PRIVATE | MAP_FIXED;
 
-	if (mmap(data, data_size, prot, flags, -1, 0) != data)
-		fail("mmap of data segment failed");
+	void* got = mmap(data, data_size, prot, flags, -1, 0);
+	if (data != got)
+		failmsg("mmap of data segment failed", "want %p, got %p", data, got);
 
 	// Makes sure the file descriptor limit is sufficient to map control pipes.
 	struct rlimit rlim;
