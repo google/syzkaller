@@ -5,7 +5,6 @@
 
 include <zircon/syscalls.h>
 
-# Never used as input
 resource zx_profile[zx_handle]
 
 zx_profile_info {
