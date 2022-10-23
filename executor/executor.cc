@@ -37,6 +37,12 @@
 #define __thread __declspec(thread)
 #endif
 
+#if GOOS_openbsd
+#define MUTABLE __attribute__((section(".openbsd.mutable")))
+#else
+#define MUTABLE
+#endif
+
 #ifndef GIT_REVISION
 #define GIT_REVISION "unknown"
 #endif
@@ -220,8 +226,7 @@ static int running;
 uint32 completed;
 bool is_kernel_64_bit = true;
 
-ALIGNED(INPUT_DATA_ALIGNMENT)
-static char input_data[kMaxInput];
+MUTABLE ALIGNED(INPUT_DATA_ALIGNMENT) static char input_data[kMaxInput];
 
 // Checksum kinds.
 static const uint64 arg_csum_inet = 0;
