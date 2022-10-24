@@ -11,7 +11,6 @@ import (
 	"io"
 	"net/rpc"
 	"net/rpc/jsonrpc"
-	"os"
 	"sync"
 	"time"
 
@@ -172,7 +171,7 @@ func runProxyApp(params *proxyAppParams, cmd string) (*ProxyApp, error) {
 	onTerminated := make(chan bool, 1)
 
 	go func() {
-		io.Copy(os.Stdout, subprocessLogs)
+		io.Copy(params.LogOutput, subprocessLogs)
 		if err := subProcess.Wait(); err != nil {
 			log.Logf(0, "failed to Wait() subprocess: %v", err)
 		}
