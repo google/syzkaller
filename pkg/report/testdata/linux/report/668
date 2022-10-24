@@ -1,0 +1,79 @@
+TITLE: inconsistent lock state in io_file_data_ref_zero
+
+[   21.087943][    C0] ================================
+[   21.093011][    C0] WARNING: inconsistent lock state
+[   21.098078][    C0] 5.10.0-syzkaller #0 Not tainted
+[   21.103056][    C0] --------------------------------
+[   21.108120][    C0] inconsistent {SOFTIRQ-ON-W} -> {IN-SOFTIRQ-W} usage.
+[   21.114931][    C0] swapper/0/0 [HC0[0]:SC1[1]:HE1:SE0] takes:
+[   21.120870][    C0] ffff888114bf86a8 (&file_data->lock){+.?.}-{2:2}, at: io_file_data_ref_zero+0x79/0x480
+[   21.130557][    C0] {SOFTIRQ-ON-W} state was registered at:
+[   21.136236][    C0]   lock_acquire+0x2a6/0x770
+[   21.140786][    C0]   _raw_spin_lock+0x2b/0x40
+[   21.145339][    C0]   __do_sys_io_uring_register+0x3684/0x4460
+[   21.151276][    C0]   __x64_sys_io_uring_register+0x97/0xf0
+[   21.156952][    C0]   do_syscall_64+0x32/0x50
+[   21.161418][    C0]   entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[   21.167353][    C0] irq event stamp: 73760
+[   21.171556][    C0] hardirqs last  enabled at (73760): [<ffffffff84736204>] sysvec_call_function_single+0x64/0xb0
+[   21.181920][    C0] hardirqs last disabled at (73759): [<ffffffff847361b0>] sysvec_call_function_single+0x10/0xb0
+[   21.192289][    C0] softirqs last  enabled at (73678): [<ffffffff813dc4bc>] irq_enter_rcu+0xcc/0xe0
+[   21.201439][    C0] softirqs last disabled at (73679): [<ffffffff84800ebf>] asm_call_irq_on_stack+0xf/0x20
+[   21.211191][    C0] 
+[   21.211191][    C0] other info that might help us debug this:
+[   21.219207][    C0]  Possible unsafe locking scenario:
+[   21.219207][    C0] 
+[   21.226616][    C0]        CPU0
+[   21.229856][    C0]        ----
+[   21.233099][    C0]   lock(&file_data->lock);
+[   21.237561][    C0]   <Interrupt>
+[   21.240977][    C0]     lock(&file_data->lock);
+[   21.245612][    C0] 
+[   21.245612][    C0]  *** DEADLOCK ***
+[   21.245612][    C0] 
+[   21.253721][    C0] 2 locks held by swapper/0/0:
+[   21.258439][    C0]  #0: ffffffff86187a40 (rcu_callback){....}-{0:0}, at: rcu_core+0x4ad/0xf30
+[   21.267169][    C0]  #1: ffffffff86187b60 (rcu_read_lock){....}-{1:2}, at: percpu_ref_put_many.constprop.0+0x0/0x270
+[   21.277811][    C0] 
+[   21.277811][    C0] stack backtrace:
+[   21.283663][    C0] CPU: 0 PID: 0 Comm: swapper/0 Not tainted 5.10.0-syzkaller #0
+[   21.291247][    C0] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   21.301259][    C0] Call Trace:
+[   21.304500][    C0]  <IRQ>
+[   21.307318][    C0]  dump_stack+0x111/0x171
+[   21.311606][    C0]  print_usage_bug.part.0+0x349/0x358
+[   21.323142][    C0]  mark_lock.cold+0x3c/0x88
+[   21.361361][    C0]  __lock_acquire+0x1270/0x5bf0
+[   21.372112][    C0]  lock_acquire+0x2a6/0x770
+[   21.400711][    C0]  _raw_spin_lock+0x2b/0x40
+[   21.410500][    C0]  io_file_data_ref_zero+0x79/0x480
+[   21.415659][    C0]  percpu_ref_put_many.constprop.0+0x231/0x270
+[   21.421773][    C0]  percpu_ref_switch_to_atomic_rcu+0x291/0x470
+[   21.427888][    C0]  rcu_core+0x51a/0xf30
+[   21.437682][    C0]  rcu_core_si+0x9/0x10
+[   21.441798][    C0]  __do_softirq+0x1b9/0x932
+[   21.446260][    C0]  asm_call_irq_on_stack+0xf/0x20
+[   21.451239][    C0]  </IRQ>
+[   21.454144][    C0]  do_softirq_own_stack+0x86/0xa0
+[   21.459126][    C0]  irq_exit_rcu+0x127/0x1c0
+[   21.463588][    C0]  sysvec_apic_timer_interrupt+0x54/0xb0
+[   21.469176][    C0]  asm_sysvec_apic_timer_interrupt+0x12/0x20
+[   21.475115][    C0] RIP: 0010:acpi_idle_do_entry+0x1d7/0x270
+[   21.480880][    C0] Code: 4f 8b f6 fc 84 db 75 a9 e8 66 93 f6 fc e8 d1 7a fc fc e9 0c 00 00 00 e8 57 93 f6 fc 0f 00 2d 30 9d 77 00 e8 4b 93 f6 fc fb f4 <9c> 5b 81 e3 00 02 00 00 fa 31 ff 48 89 de e8 76 8b f6 fc 48 85 db
+[   21.500445][    C0] RSP: 0018:ffffffff85c07cd0 EFLAGS: 00000293
+[   21.506470][    C0] RAX: 0000000000000000 RBX: 0000000000000000 RCX: 1ffffffff0d758f9
+[   21.514401][    C0] RDX: ffffffff85c35d00 RSI: ffffffff8474f315 RDI: ffffffff8474f2ff
+[   21.522333][    C0] RBP: ffffffff85c07ce0 R08: 0000000000000001 R09: 0000000000000001
+[   21.530265][    C0] R10: 0000000000000000 R11: 0000000000000001 R12: ffff888102572864
+[   21.538197][    C0] R13: ffff888102572800 R14: ffff888102572864 R15: ffff8881056bd004
+[   21.556450][    C0]  acpi_idle_enter+0x35f/0x4f0
+[   21.561172][    C0]  cpuidle_enter_state+0x1c8/0xce0
+[   21.577075][    C0]  cpuidle_enter+0x4f/0xa0
+[   21.581454][    C0]  do_idle+0x479/0x630
+[   21.595291][    C0]  cpu_startup_entry+0x1b/0x20
+[   21.600012][    C0]  rest_init+0x25a/0x3a6
+[   21.610423][    C0]  arch_call_rest_init+0xe/0x1b
+[   21.615232][    C0]  start_kernel+0x477/0x497
+[   21.619697][    C0]  x86_64_start_reservations+0x29/0x2b
+[   21.625113][    C0]  x86_64_start_kernel+0x77/0x7b
+[   21.630009][    C0]  secondary_startup_64_no_verify+0xb0/0xbb
