@@ -1,4 +1,4 @@
-TITLE: inconsistent lock state in vprintk_emit
+TITLE: inconsistent lock state in bad_mode
 
 [    0.000000][    C0] ================================
 [    0.000000][    C0] WARNING: inconsistent lock state

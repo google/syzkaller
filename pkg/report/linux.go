@@ -1039,6 +1039,7 @@ var linuxStackParams = &stackParams{
 		"report_bug",
 		"fixup_bug",
 		"print_report",
+		"print_usage_bug",
 		"do_error",
 		"invalid_op",
 		"_trap",
@@ -1707,7 +1708,13 @@ var linuxOopses = append([]*oops{
 			{
 				title:  compile("WARNING: inconsistent lock state"),
 				report: compile("WARNING: inconsistent lock state(?:.*\\n)+?.*takes(?:.*\\n)+?.*at: (?:{{PC}} +)?{{FUNC}}"),
-				fmt:    "inconsistent lock state in %[1]v",
+				fmt:    "inconsistent lock state in %[2]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						linuxCallTrace,
+						parseStackTrace,
+					},
+				},
 			},
 			{
 				title:  compile("WARNING: suspicious RCU usage"),
