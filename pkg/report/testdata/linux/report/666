@@ -1,0 +1,68 @@
+TITLE: inconsistent lock state in io_dismantle_req
+
+[   32.237087][    C0] ================================
+[   32.242183][    C0] WARNING: inconsistent lock state
+[   32.247268][    C0] 4.15.0-syzkaller #0 Not tainted
+[   32.252346][    C0] --------------------------------
+[   32.257429][    C0] inconsistent {HARDIRQ-ON-W} -> {IN-HARDIRQ-W} usage.
+[   32.264296][    C0] io_wq_manager/4648 [HC1[1]:SC0[0]:HE0:SE1] takes:
+[   32.270851][    C0] ffff8801e85ebf20 (&(&fs->lock)->rlock){?.+.}, at: io_dismantle_req+0x411/0xae0
+[   32.280025][    C0] {HARDIRQ-ON-W} state was registered at:
+[   32.285719][    C0]   lock_acquire+0x1da/0xb70
+[   32.290293][    C0]   _raw_spin_lock+0x2b/0x40
+[   32.308008][    C0]   set_fs_pwd+0x89/0x1e0
+[   32.312309][    C0]   ksys_chdir+0x131/0x1f0
+[   32.316696][    C0]   devtmpfsd+0x1b1/0x4c0
+[   32.320999][    C0]   kthread+0x450/0x6e0
+[   32.325139][    C0]   ret_from_fork+0x3f/0x50
+[   32.329628][    C0]   0xffffffffffffffff
+[   32.333676][    C0] irq event stamp: 60
+[   32.337631][    C0] hardirqs last  enabled at (59): [<ffffffff8100f908>] _raw_spin_unlock_irq+0x28/0x80
+[   32.347167][    C0] hardirqs last disabled at (60): [<ffffffff8101394e>] trace_hardirqs_off_thunk+0x1a/0x1c
+[   32.357038][    C0] softirqs last  enabled at (0): [<ffffffff81439aaa>] copy_process.part.0+0x176a/0x6820
+[   32.357054][    C0] softirqs last disabled at (0): [<0000000000000000>] 0x0
+[   32.387108][    C0] 
+[   32.387108][    C0] other info that might help us debug this:
+[   32.395209][    C0]  Possible unsafe locking scenario:
+[   32.395209][    C0] 
+[   32.402633][    C0]        CPU0
+[   32.405887][    C0]        ----
+[   32.409141][    C0]   lock(&(&fs->lock)->rlock);
+[   32.413877][    C0]   <Interrupt>
+[   32.417304][    C0]     lock(&(&fs->lock)->rlock);
+[   32.422209][    C0] 
+[   32.422209][    C0]  *** DEADLOCK ***
+[   32.422209][    C0] 
+[   32.430332][    C0] no locks held by io_wq_manager/4648.
+[   32.430335][    C0] 
+[   32.430335][    C0] stack backtrace:
+[   32.430399][    C0] CPU: 0 PID: 4648 Comm: io_wq_manager Not tainted 4.15.0-syzkaller #0
+[   32.463247][    C0] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   32.473275][    C0] Call Trace:
+[   32.476531][    C0]  <IRQ>
+[   32.479364][    C0]  [<ffffffff84aaaf9d>] dump_stack+0x175/0x1dd
+[   32.485622][    C0]  [<ffffffff848ca8d9>] print_usage_bug.part.0+0x34a/0x359
+[   32.492788][    C0]  [<ffffffff848ca8f9>] mark_lock.cold+0x11/0x92
+[   32.499097][    C0]  [<ffffffff8160c7d1>] __lock_acquire+0x13d1/0x5ef0
+[   32.532487][    C0]  [<ffffffff81612cca>] lock_acquire+0x1da/0xb70
+[   32.566303][    C0]  [<ffffffff8100f26b>] _raw_spin_lock+0x2b/0x40
+[   32.593033][    C0]  [<ffffffff81d719c1>] io_dismantle_req+0x411/0xae0
+[   32.599686][    C0]  [<ffffffff81d720a9>] __io_free_req+0x19/0x2b0
+[   32.605989][    C0]  [<ffffffff81d723b8>] io_put_req+0x78/0xb0
+[   32.611950][    C0]  [<ffffffff81d7b8e5>] io_link_timeout_fn+0x375/0x510
+[   32.618801][    C0]  [<ffffffff81697a1e>] __hrtimer_run_queues+0x45e/0xe40
+[   32.638842][    C0]  [<ffffffff8169ab1d>] hrtimer_interrupt+0x30d/0x900
+[   32.638858][    C0]  [<ffffffff84c04ba9>] smp_apic_timer_interrupt+0x159/0x580
+[   32.638877][    C0]  [<ffffffff84c01a3f>] apic_timer_interrupt+0x9f/0xb0
+[   32.672924][    C0]  </IRQ>
+[   32.675841][    C0] RIP: 0010:_raw_spin_unlock_irq+0x54/0x80
+[   32.681613][    C0] RSP: 0018:ffff8801e893bd68 EFLAGS: 00000286 ORIG_RAX: ffffffffffffff12
+[   32.690009][    C0] RAX: 1ffffffff0bed873 RBX: 00000000ffffff83 RCX: 0000000000000000
+[   32.697953][    C0] RDX: dffffc0000000000 RSI: 0000000000000006 RDI: ffff8801e85c8a94
+[   32.705903][    C0] RBP: ffff8801e893bd70 R08: 0000000000000000 R09: 0000000000000000
+[   32.705910][    C0] R10: 0000000000000000 R11: 0000000000000000 R12: ffff8801e8f40d00
+[   32.705925][    C0] R13: ffff8801e8f40880 R14: ffff8801e8f40d00 R15: ffff8801e85c8080
+[   32.750035][    C0]  [<ffffffff81d7bae6>] __io_req_task_cancel+0x66/0x180
+[   32.756959][    C0]  [<ffffffff81d89cfb>] io_async_task_func+0x22b/0x950
+[   32.763798][    C0]  [<ffffffff814bcb64>] task_work_run+0xf4/0x1b0
+[   32.770188][    C0]  [<ffffffff81d98d1e>] io_wq_manager+0x2be/0x980
