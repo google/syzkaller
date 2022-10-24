@@ -39,7 +39,7 @@ func (linux linux) build(params Params) (ImageDetails, error) {
 		return details, err
 	}
 
-	kernelPath := filepath.Join(params.KernelDir, filepath.FromSlash(kernelBin(params.TargetArch)))
+	kernelPath := filepath.Join(params.KernelDir, filepath.FromSlash(LinuxKernelImage(params.TargetArch)))
 
 	// Copy the kernel image to let it be uploaded to the asset storage. If the asset storage is not enabled,
 	// let the file just stay in the output folder -- it is usually very small compared to vmlinux anyway.
@@ -54,8 +54,9 @@ func (linux linux) build(params Params) (ImageDetails, error) {
 			return details, err
 		}
 	} else if params.VMType == "qemu" {
-		// If UserspaceDir is a file (image) and we use qemu, we just copy image and kernel to the output dir
-		// assuming that qemu will use injected kernel boot. In this mode we also assume password/key-less ssh.
+		// If UserspaceDir is a file (image) and we use qemu, we just copy image to the output dir assuming
+		// that qemu will use injected kernel boot. In this mode we also assume password/key-less ssh.
+		// The kernel image was already uploaded above.
 		if err := osutil.CopyFile(params.UserspaceDir, filepath.Join(params.OutputDir, "image")); err != nil {
 			return details, err
 		}
@@ -100,7 +101,7 @@ func (linux linux) buildKernel(params Params) error {
 			return err
 		}
 	}
-	target := path.Base(kernelBin(params.TargetArch))
+	target := path.Base(LinuxKernelImage(params.TargetArch))
 	if err := runMake(params, target); err != nil {
 		return err
 	}
@@ -211,7 +212,7 @@ func LinuxMakeArgs(target *targets.Target, compiler, linker, ccache, buildDir st
 	return args
 }
 
-func kernelBin(arch string) string {
+func LinuxKernelImage(arch string) string {
 	// We build only zImage/bzImage as we currently don't use modules.
 	switch arch {
 	case targets.AMD64:
