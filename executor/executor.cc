@@ -129,7 +129,7 @@ static void reply_handshake();
 #if SYZ_EXECUTOR_USES_SHMEM
 // The output region is the only thing in executor process for which consistency matters.
 // If it is corrupted ipc package will fail to parse its contents and panic.
-// But fuzzer constantly invents new ways of how to currupt the region,
+// But fuzzer constantly invents new ways of how to corrupt the region,
 // so we map the region at a (hopefully) hard to guess address with random offset,
 // surrounded by unmapped pages.
 // The address chosen must also work on 32-bit kernels with 1GB user address space.
@@ -162,7 +162,7 @@ static uint32* write_output_64(uint64 v);
 static void write_completed(uint32 completed);
 static uint32 hash(uint32 a);
 static bool dedup(uint32 sig);
-#endif
+#endif // if SYZ_EXECUTOR_USES_SHMEM
 
 uint64 start_time_ms = 0;
 
@@ -226,7 +226,7 @@ static int running;
 uint32 completed;
 bool is_kernel_64_bit = true;
 
-MUTABLE ALIGNED(INPUT_DATA_ALIGNMENT) static char input_data[kMaxInput];
+static char* input_data;
 
 // Checksum kinds.
 static const uint64 arg_csum_inet = 0;
@@ -465,10 +465,15 @@ int main(int argc, char** argv)
 	current_thread = &threads[0];
 
 #if SYZ_EXECUTOR_USES_SHMEM
-	void* got = mmap(&input_data[0], kMaxInput, PROT_READ, MAP_PRIVATE | MAP_FIXED, kInFd, 0);
-	if (&input_data[0] != got)
-		failmsg("mmap of input file failed", "want %p, got %p", &input_data[0], got);
+	void* mmap_out = mmap(NULL, kMaxInput, PROT_READ, MAP_PRIVATE, kInFd, 0);
+#else
+	void* mmap_out = mmap(NULL, kMaxInput, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+#endif
+	if (mmap_out == MAP_FAILED)
+		fail("mmap of input file failed");
+	input_data = static_cast<char*>(mmap_out);
 
+#if SYZ_EXECUTOR_USES_SHMEM
 	mmap_output(kInitialOutput);
 	// Prevent test programs to mess with these fds.
 	// Due to races in collider mode, a program can e.g. ftruncate one of these fds,
@@ -479,7 +484,8 @@ int main(int argc, char** argv)
 #endif
 	// For SYZ_EXECUTOR_USES_FORK_SERVER, close(kOutFd) is invoked in the forked child,
 	// after the program has been received.
-#endif
+#endif // if  SYZ_EXECUTOR_USES_SHMEM
+
 	use_temporary_dir();
 	install_segv_handler();
 	setup_control_pipes();
@@ -696,7 +702,7 @@ void receive_execute()
 		fail("need_prog: no program");
 	uint64 pos = 0;
 	for (;;) {
-		ssize_t rv = read(kInPipeFd, input_data + pos, sizeof(input_data) - pos);
+		ssize_t rv = read(kInPipeFd, input_data + pos, kMaxInput - pos);
 		if (rv < 0)
 			fail("read failed");
 		pos += rv;
@@ -747,7 +753,7 @@ void realloc_output_data()
 		fail("failed to close kOutFd");
 #endif
 }
-#endif
+#endif // if SYZ_EXECUTOR_USES_SHMEM
 
 // execute_one executes program stored in input_data.
 void execute_one()
@@ -756,7 +762,7 @@ void execute_one()
 	realloc_output_data();
 	output_pos = output_data;
 	write_output(0); // Number of executed syscalls (updated later).
-#endif
+#endif // if SYZ_EXECUTOR_USES_SHMEM
 	uint64 start = current_time_ms();
 	uint64* input_pos = (uint64*)input_data;
 
@@ -1050,7 +1056,7 @@ void write_coverage_signal(cover_t* cov, uint32* signal_count_pos, uint32* cover
 		*cover_count_pos = cover_size;
 	}
 }
-#endif
+#endif // if SYZ_EXECUTOR_USES_SHMEM
 
 void handle_completion(thread_t* th)
 {
@@ -1180,7 +1186,7 @@ void write_call_output(thread_t* th, bool finished)
 		fail("control pipe call write failed");
 	debug_verbose("out: index=%u num=%u errno=%d finished=%d blocked=%d\n",
 		      th->call_index, th->call_num, reserrno, finished, blocked);
-#endif
+#endif // if SYZ_EXECUTOR_USES_SHMEM
 }
 
 void write_extra_output()
@@ -1207,7 +1213,7 @@ void write_extra_output()
 	debug_verbose("extra: sig=%u cover=%u\n", *signal_count_pos, *cover_count_pos);
 	completed++;
 	write_completed(completed);
-#endif
+#endif // if SYZ_EXECUTOR_USES_SHMEM
 }
 
 void thread_create(thread_t* th, int id, bool need_coverage)
@@ -1346,7 +1352,7 @@ static bool dedup(uint32 sig)
 	dedup_table[sig % dedup_table_size] = sig;
 	return false;
 }
-#endif
+#endif // if SYZ_EXECUTOR_USES_SHMEM
 
 template <typename T>
 void copyin_int(char* addr, uint64 val, uint64 bf, uint64 bf_off, uint64 bf_len)
@@ -1542,7 +1548,7 @@ void write_completed(uint32 completed)
 {
 	__atomic_store_n(output_data, completed, __ATOMIC_RELEASE);
 }
-#endif
+#endif // if SYZ_EXECUTOR_USES_SHMEM
 
 #if SYZ_EXECUTOR_USES_SHMEM
 void kcov_comparison_t::write()
@@ -1632,7 +1638,7 @@ bool kcov_comparison_t::operator<(const struct kcov_comparison_t& other) const
 	// We don't check for PC equality now, because it is not used.
 	return arg2 < other.arg2;
 }
-#endif
+#endif // if SYZ_EXECUTOR_USES_SHMEM
 
 void setup_features(char** enable, int n)
 {
