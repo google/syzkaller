@@ -40,6 +40,13 @@ func (linux linux) build(params Params) (ImageDetails, error) {
 	}
 
 	kernelPath := filepath.Join(params.KernelDir, filepath.FromSlash(kernelBin(params.TargetArch)))
+
+	// Copy the kernel image to let it be uploaded to the asset storage. If the asset storage is not enabled,
+	// let the file just stay in the output folder -- it is usually very small compared to vmlinux anyway.
+	if err := osutil.CopyFile(kernelPath, filepath.Join(params.OutputDir, "kernel")); err != nil {
+		return details, err
+	}
+
 	if fileInfo, err := os.Stat(params.UserspaceDir); err == nil && fileInfo.IsDir() {
 		// The old way of assembling the image from userspace dir.
 		// It should be removed once all syzbot instances are switched.
@@ -49,9 +56,6 @@ func (linux linux) build(params Params) (ImageDetails, error) {
 	} else if params.VMType == "qemu" {
 		// If UserspaceDir is a file (image) and we use qemu, we just copy image and kernel to the output dir
 		// assuming that qemu will use injected kernel boot. In this mode we also assume password/key-less ssh.
-		if err := osutil.CopyFile(kernelPath, filepath.Join(params.OutputDir, "kernel")); err != nil {
-			return details, err
-		}
 		if err := osutil.CopyFile(params.UserspaceDir, filepath.Join(params.OutputDir, "image")); err != nil {
 			return details, err
 		}
