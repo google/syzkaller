@@ -43,3 +43,15 @@ func (cmd *mockCommandRunner) Wait() error {
 	cmd.onWaitCalled <- true
 	return cmd.SubProcessCmd.Wait()
 }
+
+type mockProxyAppInterface struct {
+	*mocks.ProxyAppInterface
+	OnLogsReceived chan bool
+}
+
+func makeMockProxyAppInterface(t mocks.NewProxyAppInterfaceT) *mockProxyAppInterface {
+	return &mockProxyAppInterface{
+		ProxyAppInterface: mocks.NewProxyAppInterface(t),
+		OnLogsReceived:    make(chan bool, 1), // 1 is enough as we read it just once
+	}
+}
