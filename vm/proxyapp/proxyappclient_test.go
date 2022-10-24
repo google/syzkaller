@@ -97,7 +97,10 @@ func TestCtor_FailedPipes(t *testing.T) {
 		On("StdoutPipe").
 		Return(io.NopCloser(strings.NewReader("")), nil).
 		On("StderrPipe").
-		Return(nil, fmt.Errorf("stderrpipe error"))
+		Return(nil, fmt.Errorf("stderrpipe error")).
+		Once().
+		On("StderrPipe").
+		Return(io.NopCloser(strings.NewReader("")), nil)
 
 	for i := 0; i < 3; i++ {
 		p, err := ctor(params, testEnv)
