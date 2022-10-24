@@ -20,7 +20,7 @@ linters:
     - lll
     - vet
     - gofmt
-    - golint
+    - revive
     - structcheck
     - unconvert
     - deadcode
@@ -70,6 +70,10 @@ linters:
     - wsl
 
 linters-settings:
+  revive:
+    rules:
+    - name: package-comments
+      disabled: true
   lll:
     line-length: 120
   gocyclo:
