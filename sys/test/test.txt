@@ -776,6 +776,8 @@ minimize$0(a0 proc[10, 2], a1 proc[10, 2, opt])
 
 serialize0(a ptr[in, serialize0_struct])
 serialize1(a ptr[out, array[int8]], b len[a])
+serialize2(a ptr[in, array[int8]])
+serialize3(a ptr[in, compressed_image]) (no_generate, no_minimize)
 
 serialize0_struct {
 	a	string[serialize_strings, 10]
