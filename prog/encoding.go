@@ -597,6 +597,15 @@ func (p *parser) parseArgString(t Type, dir Dir) (Arg, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Check compressed data for validity.
+	if typ.IsCompressed() {
+		_, err = Decompress(data)
+		if err != nil {
+			p.strictFailf("invalid compressed data in arg: %v", err)
+			// In non-strict mode, empty the data slice.
+			data = Compress([]byte{})
+		}
+	}
 	size := ^uint64(0)
 	if p.Char() == '/' {
 		p.Parse('/')

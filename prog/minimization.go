@@ -301,6 +301,9 @@ func (typ *BufferType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool
 	if arg.Dir() == DirOut {
 		return false
 	}
+	if typ.IsCompressed() {
+		panic(fmt.Sprintf("minimizing `no_minimize` call %v", ctx.call.Meta.Name))
+	}
 	a := arg.(*DataArg)
 	switch typ.Kind {
 	case BufferBlobRand, BufferBlobRange:
