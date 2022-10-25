@@ -31,7 +31,7 @@ resource-arg = variable ["/" hex-integer] ["+" hex-integer]
 result-arg = "<" variable "=>" arg
 pointer-arg = "&" pointer-arg-addr ["=ANY"] "=" arg
 pointer-arg-addr = "AUTO" | "(" pointer-addr ["/" region-size] ")"
-string-arg = "'" escaped-string "'" | "\"" escaped-string "\""
+string-arg = "'" escaped-string "'" | "\"" escaped-string "\"" | "\"$" escaped-string "\""
 struct-arg =  "{" [arg ["," arg]*] "}"
 array-arg = "[" [arg ["," arg]*] "]"
 union-arg = "@" field-name ["=" arg]
