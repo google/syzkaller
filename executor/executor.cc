@@ -24,23 +24,13 @@
 #if defined(__GNUC__)
 #define SYSCALLAPI
 #define NORETURN __attribute__((noreturn))
-#define ALIGNED(N) __attribute__((aligned(N)))
 #define PRINTF(fmt, args) __attribute__((format(printf, fmt, args)))
-#define INPUT_DATA_ALIGNMENT 64 << 10
 #else
 // Assuming windows/cl.
 #define SYSCALLAPI WINAPI
 #define NORETURN __declspec(noreturn)
-#define INPUT_DATA_ALIGNMENT 4 << 10
-#define ALIGNED(N) __declspec(align(N)) // here we are not aligning the value because of msvc reporting the value as an illegal value
 #define PRINTF(fmt, args)
 #define __thread __declspec(thread)
-#endif
-
-#if GOOS_openbsd
-#define MUTABLE __attribute__((section(".openbsd.mutable")))
-#else
-#define MUTABLE
 #endif
 
 #ifndef GIT_REVISION
