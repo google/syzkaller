@@ -16,14 +16,15 @@ import (
 
 // typeDesc is arg/field type descriptor.
 type typeDesc struct {
-	Names        []string
-	CanBeTypedef bool       // can be type alias target?
-	CantBeOpt    bool       // can't be marked as opt?
-	CantBeOut    bool       // can't be used as an explicitly output argument
-	NeedBase     bool       // needs base type when used as field?
-	MaxColon     int        // max number of colons (int8:2) on fields
-	OptArgs      int        // number of optional arguments in Args array
-	Args         []namedArg // type arguments
+	Names             []string
+	CanBeTypedef      bool            // can be type alias target?
+	CantBeOpt         bool            // can't be marked as opt?
+	CantBeOut         bool            // can't be used as an explicitly output argument?
+	NeedBase          bool            // needs base type when used as field?
+	MaxColon          int             // max number of colons (int8:2) on fields
+	OptArgs           int             // number of optional arguments in Args array
+	Args              []namedArg      // type arguments
+	RequiresCallAttrs map[string]bool // calls using this type must have these attrs.
 	// CanBeArgRet returns if this type can be syscall argument/return (false if nil).
 	CanBeArgRet func(comp *compiler, t *ast.Type) (bool, bool)
 	// CanBeResourceBase returns if this type can be a resource base type (false if nil.
@@ -830,6 +831,31 @@ var typeFmtFormat = &typeArg{
 	Kind:  kindIdent,
 }
 
+// typeCompressedImage is used for compressed disk images.
+var typeCompressedImage = &typeDesc{
+	Names:     []string{"compressed_image"},
+	CantBeOpt: true,
+	CantBeOut: true,
+	RequiresCallAttrs: map[string]bool{
+		"no_generate": true,
+		"no_minimize": true,
+	},
+	CanBeArgRet: func(comp *compiler, t *ast.Type) (bool, bool) {
+		return true, false
+	},
+	Varlen: func(comp *compiler, t *ast.Type, args []*ast.Type) bool {
+		return true
+	},
+	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
+		base.TypeSize = 0
+		base.TypeAlign = 1
+		return &prog.BufferType{
+			TypeCommon: base.TypeCommon,
+			Kind:       prog.BufferCompressed,
+		}
+	},
+}
+
 // typeArgType is used as placeholder for any type (e.g. ptr target type).
 var typeArgType = &typeArg{}
 
@@ -1116,6 +1142,7 @@ func init() {
 		typeText,
 		typeString,
 		typeFmt,
+		typeCompressedImage,
 	}
 	for _, desc := range builtins {
 		for _, name := range desc.Names {
