@@ -36,7 +36,7 @@ func TestSerializeData(t *testing.T) {
 			if !p.Scan() {
 				t.Fatalf("parser does not scan")
 			}
-			data1, err := p.deserializeData()
+			data1, _, err := p.deserializeData()
 			if err != nil {
 				t.Fatalf("failed to deserialize %q -> %s: %v", data, buf.Bytes(), err)
 			}
@@ -343,6 +343,13 @@ func TestSerializeDeserialize(t *testing.T) {
 		{
 			In:  `serialize1(&(0x7f0000000000)="0000000000000000", 0x8)`,
 			Out: `serialize1(&(0x7f0000000000)=""/8, 0x8)`,
+		},
+		{
+			In:  `serialize2(&(0x7f0000000000)="$c3l6a2FsbGVy")`,
+			Out: `serialize2(&(0x7f0000000000)='syzkaller')`,
+		},
+		{
+			In: `serialize3(&(0x7f0000000000)="$eJwqrqzKTszJSS0CBAAA//8TyQPi")`,
 		},
 	})
 }
