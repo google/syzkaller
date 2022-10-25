@@ -407,3 +407,17 @@ struct$out0 {
 	f2	proc[0, 1, int32] (out)		### proc type must not be used as output
 	f3	bytesize[f1, int32] (out)	### bytesize type must not be used as output
 }
+
+struct_non_generatable {
+	f0 ptr[in, array[compressed_image]]
+}
+
+union_non_minimizable [
+	f0 struct_non_generatable
+	f2 int32
+]
+
+foo$non_generatable(a compressed_image) (no_minimize)	### call foo$non_generatable refers to type compressed_image and so must be marked no_generate
+foo$non_minimizable(a compressed_image) (no_generate)	### call foo$non_minimizable refers to type compressed_image and so must be marked no_minimize
+foo$non_generatable_via_struct(a ptr[in, struct_non_generatable])	(no_minimize)	### call foo$non_generatable_via_struct refers to type compressed_image and so must be marked no_generate
+foo$non_minimizable_via_union(a ptr[in, union_non_minimizable])	(no_generate)	### call foo$non_minimizable_via_union refers to type compressed_image and so must be marked no_minimize

@@ -322,3 +322,19 @@ struct$fmt0 {
 }
 
 flags_with_one_value = 0
+
+# Compressed images.
+
+struct_compressed {
+	f0	compressed_image
+}
+
+union_compressed [
+	f0	compressed_image
+	f1	int32
+] [varlen]
+
+compressed$1(a compressed_image) (no_generate, no_minimize)
+compressed$2(a ptr[in, compressed_image]) (no_generate, no_minimize)
+compressed$3(a ptr[in, struct_compressed]) (no_generate, no_minimize)
+compressed$4(a ptr[in, union_compressed]) (no_generate, no_minimize)

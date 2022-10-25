@@ -422,3 +422,6 @@ union$directions [
 	f1	int32	(in)	### unknown arg/field f1 attribute in
 	f2	int32	(out)	### unknown arg/field f2 attribute out
 ]
+
+
+compressed$test(a int32) compressed_image	### compressed_image can't be syscall return

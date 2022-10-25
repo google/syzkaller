@@ -10,7 +10,8 @@ argname = identifier
 type = typename [ "[" type-options "]" ]
 typename = "const" | "intN" | "intptr" | "flags" | "array" | "ptr" |
 	   "string" | "strconst" | "filename" | "glob" | "len" |
-	   "bytesize" | "bytesizeN" | "bitsize" | "vma" | "proc"
+	   "bytesize" | "bytesizeN" | "bitsize" | "vma" | "proc" |
+	   "compressed_image"
 type-options = [type-opt ["," type-opt]]
 ```
 
@@ -62,6 +63,9 @@ rest of the type-options are type-specific:
 	vma64 has size of 8 bytes regardless of target pointer size
 "proc": per process int (see description below), type-options:
 	value range start, how many values per process, underlying type
+"compressed_image": zlib-compressed disk image
+	syscalls accepting compressed images must be marked with `no_generate`
+	and `no_minimize` call attributes.
 "text": machine code of the specified type, type-options:
 	text type (x86_real, x86_16, x86_32, x86_64, arm64)
 "void": type with static size 0
