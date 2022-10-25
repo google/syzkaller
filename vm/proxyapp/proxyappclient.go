@@ -107,6 +107,12 @@ func (p *pool) init(params *proxyAppParams, cfg *Config) error {
 		}
 	}
 
+	err = p.proxy.Init()
+	if err != nil {
+		p.closeProxy()
+		return fmt.Errorf("failed to init proxyapp: %w", err)
+	}
+
 	p.proxy.doLogPooling(params.LogOutput)
 
 	count, err := p.proxy.CreatePool(string(cfg.ProxyAppConfig), p.env.Debug)
@@ -296,6 +302,13 @@ func (proxy *ProxyApp) doLogPooling(writer io.Writer) {
 			}
 		}
 	}()
+}
+
+func (proxy *ProxyApp) Init() error {
+	return proxy.Call(
+		"ProxyVM.Init",
+		proxyrpc.InitParam{},
+		&proxyrpc.InitReply{})
 }
 
 func (proxy *ProxyApp) CreatePool(config string, debug bool) (int, error) {

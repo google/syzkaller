@@ -5,6 +5,7 @@ package proxyrpc
 
 // ProxyAppInterface is the interface you need to implement.
 type ProxyAppInterface interface {
+	Init(int InitParam, out *InitReply) error
 	CreatePool(in CreatePoolParams, out *CreatePoolResult) error
 	CreateInstance(in CreateInstanceParams, out *CreateInstanceResult) error
 	Diagnose(in DiagnoseParams, out *DiagnoseReply) error
@@ -15,6 +16,12 @@ type ProxyAppInterface interface {
 	RunReadProgress(in RunReadProgressParams, out *RunReadProgressReply) error
 	Close(in CloseParams, out *CloseReply) error
 	PoolLogs(in PoolLogsParam, out *PoolLogsReply) error
+}
+
+type InitParam struct {
+}
+
+type InitReply struct {
 }
 
 type CreatePoolParams struct {

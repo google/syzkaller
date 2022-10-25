@@ -96,6 +96,20 @@ func (_m *ProxyAppInterface) Forward(in proxyrpc.ForwardParams, out *proxyrpc.Fo
 	return r0
 }
 
+// Init provides a mock function with given fields: int, out
+func (_m *ProxyAppInterface) Init(int proxyrpc.InitParam, out *proxyrpc.InitReply) error {
+	ret := _m.Called(int, out)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(proxyrpc.InitParam, *proxyrpc.InitReply) error); ok {
+		r0 = rf(int, out)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // PoolLogs provides a mock function with given fields: in, out
 func (_m *ProxyAppInterface) PoolLogs(in proxyrpc.PoolLogsParam, out *proxyrpc.PoolLogsReply) error {
 	ret := _m.Called(in, out)

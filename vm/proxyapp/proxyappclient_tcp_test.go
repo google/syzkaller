@@ -53,6 +53,9 @@ func TestCtor_TCP_Reconnect_On_LostConnection(t *testing.T) {
 	mProxyAppServer, port, closeServerConnections := makeMockProxyAppServer(t)
 	onConnect := make(chan bool, 1)
 	mProxyAppServer.
+		On("Init", mock.Anything, mock.Anything).
+		Return(nil).
+		Times(2).
 		On("CreatePool", mock.Anything, mock.Anything).
 		Run(func(args mock.Arguments) {
 			out := args.Get(1).(*proxyrpc.CreatePoolResult)
@@ -80,6 +83,8 @@ func TestCtor_TCP_Reconnect_PoolChanged(t *testing.T) {
 	mProxyAppServer, port, closeServerConnections := makeMockProxyAppServer(t)
 	onConnect := make(chan bool, 1)
 	mProxyAppServer.
+		On("Init", mock.Anything, mock.Anything).
+		Return(nil).
 		On("CreatePool", mock.Anything, mock.Anything).
 		Run(func(args mock.Arguments) {
 			out := args.Get(1).(*proxyrpc.CreatePoolResult)

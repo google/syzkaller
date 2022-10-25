@@ -144,6 +144,9 @@ func TestCtor_FailedConstructPool(t *testing.T) {
 		makeMockProxyAppProcess(t)
 
 	mProxyAppServer.
+		On("Init", mock.Anything, mock.Anything).
+		Return(nil).
+		Once().
 		On("CreatePool", mock.Anything, mock.Anything).
 		Return(fmt.Errorf("failed to construct pool")).
 		On("PoolLogs", mock.Anything, mock.Anything).
@@ -173,6 +176,9 @@ func TestCtor_FailedConstructPool(t *testing.T) {
 
 func initProxyAppServerFixture(mProxyAppServer *mockProxyAppInterface) *mockProxyAppInterface {
 	mProxyAppServer.
+		On("Init", mock.Anything, mock.Anything).
+		Return(nil).
+		Once().
 		On("CreatePool", mock.Anything, mock.Anything).
 		Run(func(args mock.Arguments) {
 			out := args.Get(1).(*proxyrpc.CreatePoolResult)
