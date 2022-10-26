@@ -1,0 +1,319 @@
+# Copyright 2022 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# https://elixir.bootlin.com/linux/latest/source/include/uapi/linux/iommufd.h
+# https://elixir.bootlin.com/linux/latest/source/drivers/iommu/iommufd/main.c
+
+include <uapi/linux/fcntl.h>
+include <uapi/linux/iommufd.h>
+include <uapi/linux/vfio.h>
+
+resource fd_iommufd[fd]
+resource ioas_handle[int32]
+
+openat$iommufd(fd const[AT_FDCWD], file ptr[in, string["/dev/iommu"]], flags flags[open_flags], mode const[0]) fd_iommufd
+
+ioctl$IOMMU_DESTROY$ioas(fd fd_iommufd, cmd const[IOMMU_DESTROY], arg ptr[in, iommu_destroy$ioas])
+
+ioctl$IOMMU_IOAS_ALLOC(fd fd_iommufd, cmd const[IOMMU_IOAS_ALLOC], arg ptr[in, iommu_ioas_alloc])
+ioctl$IOMMU_IOAS_IOVA_RANGES(fd fd_iommufd, cmd const[IOMMU_IOAS_IOVA_RANGES], arg ptr[in, iommu_ioas_iova_ranges])
+ioctl$IOMMU_IOAS_ALLOW_IOVAS(fd fd_iommufd, cmd const[IOMMU_IOAS_ALLOW_IOVAS], arg ptr[in, iommu_ioas_allow_iovas])
+ioctl$IOMMU_IOAS_MAP(fd fd_iommufd, cmd const[IOMMU_IOAS_MAP], arg ptr[in, iommu_ioas_map])
+ioctl$IOMMU_IOAS_MAP$PAGES(fd fd_iommufd, cmd const[IOMMU_IOAS_MAP], arg ptr[in, iommu_ioas_map$PAGES])
+ioctl$IOMMU_IOAS_COPY(fd fd_iommufd, cmd const[IOMMU_IOAS_COPY], arg ptr[in, iommu_ioas_copy])
+ioctl$IOMMU_IOAS_COPY$syz(fd fd_iommufd, cmd const[IOMMU_IOAS_COPY], arg ptr[in, iommu_ioas_copy$syz])
+ioctl$IOMMU_IOAS_UNMAP(fd fd_iommufd, cmd const[IOMMU_IOAS_UNMAP], arg ptr[in, iommu_ioas_unmap])
+ioctl$IOMMU_IOAS_UNMAP$ALL(fd fd_iommufd, cmd const[IOMMU_IOAS_UNMAP], arg ptr[in, iommu_ioas_unmap$ALL])
+
+ioctl$IOMMU_OPTION$IOMMU_OPTION_RLIMIT_MODE(fd fd_iommufd, cmd const[IOMMU_OPTION], arg ptr[in, iommu_option$IOMMU_OPTION_RLIMIT_MODE])
+ioctl$IOMMU_OPTION$IOMMU_OPTION_HUGE_PAGES(fd fd_iommufd, cmd const[IOMMU_OPTION], arg ptr[in, iommu_option$IOMMU_OPTION_HUGE_PAGES])
+
+ioctl$IOMMU_VFIO_IOAS$GET(fd fd_iommufd, cmd const[IOMMU_VFIO_IOAS], arg ptr[in, iommu_vfio_ioas$GET])
+ioctl$IOMMU_VFIO_IOAS$SET(fd fd_iommufd, cmd const[IOMMU_VFIO_IOAS], arg ptr[in, iommu_vfio_ioas$SET])
+ioctl$IOMMU_VFIO_IOAS$CLEAR(fd fd_iommufd, cmd const[IOMMU_VFIO_IOAS], arg ptr[in, iommu_vfio_ioas$CLEAR])
+
+# VFIO compatibility ioctls
+# This shares a few structs with dev_vfio.txt
+ioctl$IOMMU_VFIO_GET_API_VERSION(fd fd_iommufd, cmd const[VFIO_GET_API_VERSION])
+ioctl$IOMMU_VFIO_SET_IOMMU(fd fd_iommufd, cmd const[VFIO_SET_IOMMU], arg flags[iommu_type])
+ioctl$IOMMU_VFIO_CHECK_EXTENSION(fd fd_iommufd, cmd const[VFIO_CHECK_EXTENSION], arg flags[iommu_extension])
+ioctl$IOMMU_VFIO_IOMMU_GET_INFO(fd fd_iommufd, cmd const[VFIO_IOMMU_GET_INFO], arg ptr[inout, vfio_iommu_type1_info])
+
+ioctl$IOMMU_VFIO_IOMMU_MAP_DMA(fd fd_iommufd, cmd const[VFIO_IOMMU_MAP_DMA], arg ptr[in, vfio_iommu_type1_dma_map])
+ioctl$IOMMU_VFIO_IOMMU_UNMAP_DMA(fd fd_iommufd, cmd const[VFIO_IOMMU_UNMAP_DMA], arg ptr[in, vfio_iommu_type1_dma_unmap])
+
+iommu_destroy$ioas {
+	size	len[parent, int32]
+	id	ioas_handle
+}
+
+iommu_ioas_alloc {
+	size		len[parent, int32]
+	flags		const[0, int32]
+	out_ioas_id	ioas_handle	(out)
+}
+
+iommu_ioas_iova_ranges {
+	size			len[parent, int32]
+	ioas_id			ioas_handle
+	num_iovas		len[allowed_iovas, int32]
+	__reserved		const[0x0, int32]
+	allowed_iovas		ptr64[out, array[iommu_iova_range]]
+	out_iova_alignment	int64	(out)
+}
+
+iommu_ioas_allow_iovas {
+	size		len[parent, int32]
+	ioas_id		ioas_handle
+	num_iovas	len[allowed_iovas, int32]
+	__reserved	const[0x0, int32]
+	allowed_iovas	ptr64[in, array[iommu_iova_range]]
+}
+
+# user_va/length is a pointer to a chunk of memory
+# iova on output is the address that memory was placed at.
+# The iova/len pair must be used as an input to unmap
+# IOMMU_IOAS_MAP_FIXED_IOVA means iova is an input
+iommu_ioas_map {
+	size		len[parent, int32]
+	flags		flags[iommufd_ioas_map_flags, int32]
+	ioas_id		ioas_handle
+	__reserved	const[0x0, int32]
+	user_va		ptr64[in, array[int8]]
+	length		len[user_va, int64]
+	iova		int64	(inout)
+}
+
+# Version that guarantees 4k alignment, has a higher chance of success
+iommu_ioas_map$PAGES {
+	size		len[parent, int32]
+	flags		flags[iommufd_ioas_map_flags, int32]
+	ioas_id		ioas_handle
+	__reserved	const[0x0, int32]
+	user_va		vma64
+	length		len[user_va, int64]
+	iova		int64	(inout)
+}
+
+iommu_ioas_copy {
+	size		len[parent, int32]
+	flags		flags[iommufd_ioas_map_flags, int32]
+	dst_ioas_id	ioas_handle
+	src_ioas_id	ioas_handle
+	length		int64
+	dst_iova	int64	(inout)
+	src_iova	int64
+}
+
+iommu_ioas_copy$syz {
+	size		len[parent, int32]
+	flags		flags[iommufd_ioas_map_flags_syz, int32]
+	dst_ioas_id	ioas_handle
+	src_ioas_id	ioas_handle
+	length		int64[0:4194304]
+	dst_iova	int64	(inout)
+# See iommufd_test_syz_conv_iova_id()
+	nth_area	int32[0:10]
+	offset		int32[0:4194304]
+}
+
+iommu_ioas_unmap {
+	size	len[parent, int32]
+	ioas_id	ioas_handle
+	iova	int64
+	length	int64
+}
+
+iommu_ioas_unmap$ALL {
+	size	len[parent, int32]
+	ioas_id	ioas_handle
+	iova	const[0x0, int64]
+	length	const[-1, int64]
+}
+
+iommu_option$IOMMU_OPTION_RLIMIT_MODE {
+	size		len[parent, int32]
+	option_id	const[IOMMU_OPTION_RLIMIT_MODE, int32]
+	op		flags[iommufd_option_ops, int16]
+	__reserved	const[0x0, int16]
+	object_id	const[0x0, int32]
+	val64		int64	(inout)
+}
+
+iommu_option$IOMMU_OPTION_HUGE_PAGES {
+	size		len[parent, int32]
+	option_id	const[IOMMU_OPTION_HUGE_PAGES, int32]
+	op		flags[iommufd_option_ops, int16]
+	__reserved	const[0x0, int16]
+	object_id	ioas_handle
+	val64		int64	(inout)
+}
+
+iommu_vfio_ioas$GET {
+	size		len[parent, int32]
+	ioas_id		ioas_handle	(out)
+	opt		const[IOMMU_VFIO_IOAS_GET, int16]
+	__reserved	const[0x0, int16]
+}
+
+iommu_vfio_ioas$SET {
+	size		len[parent, int32]
+	ioas_id		ioas_handle
+	opt		const[IOMMU_VFIO_IOAS_SET, int16]
+	__reserved	const[0x0, int16]
+}
+
+iommu_vfio_ioas$CLEAR {
+	size		len[parent, int32]
+	ioas_id		const[0x0, int32]
+	opt		const[IOMMU_VFIO_IOAS_CLEAR, int16]
+	__reserved	const[0x0, int16]
+}
+
+iommu_iova_range {
+	start	int64
+	last	int64
+}
+
+iommufd_ioas_map_flags = IOMMU_IOAS_MAP_FIXED_IOVA, IOMMU_IOAS_MAP_WRITEABLE, IOMMU_IOAS_MAP_READABLE
+iommufd_ioas_map_flags_syz = MOCK_FLAGS_ACCESS_SYZ, IOMMU_IOAS_MAP_WRITEABLE, IOMMU_IOAS_MAP_READABLE, MOCK_FLAGS_ACCESS_SYZ, IOMMU_IOAS_MAP_READABLE
+iommufd_option_ops = IOMMU_OPTION_OP_SET, IOMMU_OPTION_OP_GET
+
+iommu_type = VFIO_TYPE1_IOMMU, VFIO_TYPE1v2_IOMMU
+iommu_extension = VFIO_TYPE1_IOMMU, VFIO_TYPE1v2_IOMMU, VFIO_UNMAP_ALL, VFIO_DMA_CC_IOMMU, VFIO_TYPE1_NESTING_IOMMU, VFIO_UPDATE_VADDR
+
+# This section requires CONFIG_IOMMUFD_TEST
+# It allows the kernel to provide a mock consumer of iommufd which allows greater coverage
+
+include <../drivers/iommu/iommufd/iommufd_test.h>
+
+define IOMMU_TEST_CMD_SIZE	sizeof(struct iommu_test_cmd)
+
+resource device_handle[int32]
+resource hwpt_handle[int32]
+resource fd_access[fd]
+resource access_pages_handle[int32]
+
+ioctl$IOMMU_TEST_OP_ADD_RESERVED(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$add_reserved])
+ioctl$IOMMU_TEST_OP_MOCK_DOMAIN(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$mock_domain])
+ioctl$IOMMU_TEST_OP_CREATE_ACCESS(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$create_access])
+ioctl$IOMMU_TEST_OP_DESTROY_ACCESS_PAGES(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$destroy_access_pages])
+ioctl$IOMMU_TEST_OP_ACCESS_PAGES(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$access_pages])
+ioctl$IOMMU_TEST_OP_ACCESS_PAGES$syz(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$access_pages$syz])
+ioctl$IOMMU_TEST_OP_ACCESS_RW(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$access_rw])
+ioctl$IOMMU_TEST_OP_ACCESS_RW$syz(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$access_rw$syz])
+ioctl$IOMMU_TEST_OP_SET_TEMP_MEMORY_LIMIT(fd fd_iommufd, cmd const[IOMMU_TEST_CMD], arg ptr[in, iommu_test_cmd$memory_limit])
+
+ioctl$IOMMU_DESTROY$device(fd fd_iommufd, cmd const[IOMMU_DESTROY], arg ptr[in, iommu_destroy$device])
+ioctl$IOMMU_DESTROY$hwpt(fd fd_iommufd, cmd const[IOMMU_DESTROY], arg ptr[in, iommu_destroy$hwpt])
+
+iommu_test_cmd$add_reserved {
+	size		len[parent, int32]
+	op		const[IOMMU_TEST_OP_ADD_RESERVED, int32]
+	id		ioas_handle
+	__reserved	const[0x0, int32]
+	start		int64
+	length		int64
+} [size[IOMMU_TEST_CMD_SIZE]]
+
+iommu_test_cmd$mock_domain {
+	size		len[parent, int32]
+	op		const[IOMMU_TEST_OP_MOCK_DOMAIN, int32]
+	id		ioas_handle
+	__reserved	const[0x0, int32]
+	out_device_id	device_handle	(out)
+	out_hwpt_id	hwpt_handle	(out)
+} [size[IOMMU_TEST_CMD_SIZE]]
+
+iommu_test_cmd$create_access {
+	size		len[parent, int32]
+	op		const[IOMMU_TEST_OP_CREATE_ACCESS, int32]
+	id		ioas_handle
+	__reserved	const[0x0, int32]
+	out_access_fd	fd_access	(out)
+	flags		flags[iommu_test_cmd_create_access_flags, int32]
+} [size[IOMMU_TEST_CMD_SIZE]]
+
+iommu_test_cmd$destroy_access_pages {
+	size		len[parent, int32]
+	op		const[IOMMU_TEST_OP_DESTROY_ACCESS_PAGES, int32]
+	id		ioas_handle
+	__reserved	const[0x0, int32]
+	access_pages_id	access_pages_handle
+} [size[IOMMU_TEST_CMD_SIZE]]
+
+iommu_test_cmd$access_pages {
+	size			len[parent, int32]
+	op			const[IOMMU_TEST_OP_ACCESS_PAGES, int32]
+	id			fd_access
+	__reserved		const[0x0, int32]
+	flags			flags[iommu_test_cmd_acess_pages_flags, int32]
+	out_access_pages_id	access_pages_handle	(out)
+	iova			int64
+	length			int64
+# The test suite uses uptr to confirm the pages are the right pages, 0 will disable the check
+	uptr			const[0x0, int64]
+} [size[IOMMU_TEST_CMD_SIZE]]
+
+iommu_test_cmd$access_pages$syz {
+	size			len[parent, int32]
+	op			const[IOMMU_TEST_OP_ACCESS_PAGES, int32]
+	id			fd_access
+	__reserved		const[0x0, int32]
+	flags			flags[iommu_test_cmd_acess_pages_flags_syz, int32]
+	out_access_pages_id	access_pages_handle	(out)
+# See iommufd_test_syz_conv_iova_id()
+	nth_area		int32[0:10]
+	offset			int32[0:4194304]
+	length			int64[0:4194304]
+# The test suite uses uptr to confirm the pages are the right pages, 0 will disable the check
+	uptr			const[0x0, int64]
+} [size[IOMMU_TEST_CMD_SIZE]]
+
+iommu_test_cmd$access_rw {
+	size		len[parent, int32]
+	op		const[IOMMU_TEST_OP_ACCESS_RW, int32]
+	id		fd_access
+	__reserved	const[0x0, int32]
+	iova		int64
+	length		len[uptr, int64]
+	uptr		ptr64[in, array[int8]]
+	flags		flags[iommu_test_cmd_acess_rw_flags, int32]
+} [size[IOMMU_TEST_CMD_SIZE]]
+
+iommu_test_cmd$access_rw$syz {
+	size		len[parent, int32]
+	op		const[IOMMU_TEST_OP_ACCESS_RW, int32]
+	id		fd_access
+	__reserved	const[0x0, int32]
+# See iommufd_test_syz_conv_iova_id()
+	nth_area	int32[0:10]
+	offset		int32[0:4194304]
+	length		len[uptr, int64]
+	uptr		ptr64[in, array[int8]]
+	flags		flags[iommu_test_cmd_acess_rw_flags_syz, int32]
+} [size[IOMMU_TEST_CMD_SIZE]]
+
+iommu_test_cmd$memory_limit {
+	size		len[parent, int32]
+	op		const[IOMMU_TEST_OP_SET_TEMP_MEMORY_LIMIT, int32]
+	id		const[0x0, int32]
+	__reserved	const[0x0, int32]
+	limit		int32
+} [size[IOMMU_TEST_CMD_SIZE]]
+
+iommu_destroy$device {
+	size	len[parent, int32]
+	id	device_handle
+}
+
+iommu_destroy$hwpt {
+	size	len[parent, int32]
+	id	hwpt_handle
+}
+
+iommu_test_cmd_create_access_flags = MOCK_FLAGS_ACCESS_CREATE_NEEDS_PIN_PAGES
+iommu_test_cmd_acess_pages_flags = MOCK_FLAGS_ACCESS_WRITE
+iommu_test_cmd_acess_pages_flags_syz = MOCK_FLAGS_ACCESS_SYZ, MOCK_FLAGS_ACCESS_WRITE
+iommu_test_cmd_acess_rw_flags = MOCK_ACCESS_RW_WRITE, MOCK_ACCESS_RW_SLOW_PATH
+iommu_test_cmd_acess_rw_flags_syz = MOCK_FLAGS_ACCESS_SYZ, MOCK_ACCESS_RW_WRITE, MOCK_ACCESS_RW_SLOW_PATH
