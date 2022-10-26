@@ -80,7 +80,7 @@ if (foo) {
 		},
 		{
 			pattern:     `//[^\s]`,
-			suppression: `https?://`,
+			suppression: `https?://|//%`,
 			message:     "Add a space after //",
 			tests: []string{
 				`//foo`,

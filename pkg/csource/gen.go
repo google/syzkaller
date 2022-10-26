@@ -57,9 +57,12 @@ func main() {
 		"x86_system_policy.h",
 	}
 	data = replaceIncludes(androidFilenames, "../../executor/android/", data)
+	// Remove `//` comments, but keep lines which start with `//%`.
 	for _, remove := range []string{
-		"(\n|^)\\s*//.*",
-		"\\s*//.*",
+		"(\n|^)\\s*//$",
+		"(\n|^)\\s*//[^%].*",
+		"\\s*//$",
+		"\\s*//[^%].*",
 	} {
 		data = regexp.MustCompile(remove).ReplaceAll(data, nil)
 	}
