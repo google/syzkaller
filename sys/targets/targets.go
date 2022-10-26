@@ -285,6 +285,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:          8,
 			PageSize:         4 << 10,
 			DataOffset:       0xfffff000,
+			CFlags:           []string{"-fPIE"},
 			LittleEndian:     false,
 			Triple:           "s390x-linux-gnu",
 			KernelArch:       "s390",
