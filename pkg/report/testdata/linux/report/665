@@ -1,0 +1,97 @@
+TITLE: inconsistent lock state in ntfs_fill_super
+
+[ 1336.868665][ T9712] ================================
+[ 1336.869886][ T9712] WARNING: inconsistent lock state
+[ 1336.871156][ T9712] 6.0.0-rc7-syzkaller-18095-gbbed346d5a96 #0 Not tainted
+[ 1336.872860][ T9712] --------------------------------
+[ 1336.873490][ T9714] ntfs3: loop4: Mark volume as dirty due to NTFS errors
+[ 1336.874094][ T9712] inconsistent {IN-HARDIRQ-W} -> {HARDIRQ-ON-W} usage.
+[ 1336.877457][ T9712] syz-executor.3/9712 [HC0[0]:SC0[0]:HE1:SE1] takes:
+[ 1336.879185][ T9712] ffff0000d10c2577 (&folio_wait_table[i]){?.-.}-{2:2}, at: _atomic_dec_and_lock+0xc8/0x130
+[ 1336.881722][ T9712] {IN-HARDIRQ-W} state was registered at:
+[ 1336.883125][ T9712]   lock_acquire+0x100/0x1f8
+[ 1336.884272][ T9712]   _raw_spin_lock_irqsave+0x6c/0xb4
+[ 1336.885620][ T9712]   folio_wake_bit+0x88/0x254
+[ 1336.886766][ T9712]   folio_unlock+0xb4/0x210
+[ 1336.887868][ T9712]   unlock_page+0x38/0xb8
+[ 1336.888929][ T9712]   end_buffer_async_read+0x2a8/0x5f8
+[ 1336.890277][ T9712]   end_buffer_async_read_io+0x118/0x12c
+[ 1336.891694][ T9712]   end_bio_bh_io_sync+0x5c/0xac
+[ 1336.892944][ T9712]   bio_endio+0x28c/0x2d8
+[ 1336.894030][ T9712]   blk_mq_end_request_batch+0x18c/0x5ec
+[ 1336.895397][ T9712]   nvme_pci_complete_batch+0x130/0x14c
+[ 1336.895719][ T9716] loop5: detected capacity change from 0 to 4096
+[ 1336.896791][ T9712]   nvme_irq+0x64/0xa8
+[ 1336.896802][ T9712]   __handle_irq_event_percpu+0xa8/0x294
+[ 1336.900793][ T9712]   handle_irq_event+0x4c/0xe8
+[ 1336.901983][ T9712]   handle_fasteoi_irq+0x1b4/0x324
+[ 1336.902059][ T9716] ntfs3: loop5: Different NTFS' sector size (1024) and media sector size (512)
+[ 1336.903236][ T9712]   generic_handle_domain_irq+0x4c/0x6c
+[ 1336.903247][ T9712]   gic_handle_irq+0x78/0x1b4
+[ 1336.906182][ T9717] loop1: detected capacity change from 0 to 4096
+[ 1336.906854][ T9712]   call_on_irq_stack+0x2c/0x54
+[ 1336.906866][ T9712]   do_interrupt_handler+0x7c/0xc0
+[ 1336.906873][ T9712]   el1_interrupt+0x34/0x68
+[ 1336.913339][ T9712]   el1h_64_irq_handler+0x18/0x24
+[ 1336.914550][ T9712]   el1h_64_irq+0x64/0x68
+[ 1336.915531][ T9712]   _raw_spin_unlock_irqrestore+0x58/0x8c
+[ 1336.916831][ T9712]   debug_object_activate+0xb0/0x300
+[ 1336.918177][ T9712]   call_rcu+0x40/0x484
+[ 1336.919171][ T9712]   tlb_flush_mmu_free+0x298/0x3bc
+[ 1336.920433][ T9712]   tlb_flush_mmu+0x274/0x2f0
+[ 1336.921629][ T9712]   tlb_finish_mmu+0x64/0xe4
+[ 1336.922718][ T9712]   exit_mmap+0xe4/0x2e4
+[ 1336.923765][ T9712]   __mmput+0x90/0x204
+[ 1336.924796][ T9712]   mmput+0x64/0xa0
+[ 1336.925734][ T9712]   free_bprm+0xac/0x19c
+[ 1336.926851][ T9712]   kernel_execve+0x4ec/0x540
+[ 1336.928029][ T9712]   call_usermodehelper_exec_async+0x10c/0x214
+[ 1336.929586][ T9712]   ret_from_fork+0x10/0x20
+[ 1336.930736][ T9712] irq event stamp: 8353
+[ 1336.931785][ T9712] hardirqs last  enabled at (8353): [<ffff800008161dac>] finish_lock_switch+0x94/0xe8
+[ 1336.934167][ T9712] hardirqs last disabled at (8352): [<ffff80000bfc0a34>] __schedule+0x84/0x5a0
+[ 1336.936452][ T9712] softirqs last  enabled at (7378): [<ffff8000080102e4>] _stext+0x2e4/0x37c
+[ 1336.938648][ T9712] softirqs last disabled at (7245): [<ffff800008017c14>] ____do_softirq+0x14/0x20
+[ 1336.940993][ T9712] 
+[ 1336.940993][ T9712] other info that might help us debug this:
+[ 1336.943073][ T9712]  Possible unsafe locking scenario:
+[ 1336.943073][ T9712] 
+[ 1336.944957][ T9712]        CPU0
+[ 1336.945828][ T9712]        ----
+[ 1336.946627][ T9712]   lock(&folio_wait_table[i]);
+[ 1336.947864][ T9712]   <Interrupt>
+[ 1336.948763][ T9712]     lock(&folio_wait_table[i]);
+[ 1336.950014][ T9712] 
+[ 1336.950014][ T9712]  *** DEADLOCK ***
+[ 1336.950014][ T9712] 
+[ 1336.952066][ T9712] 1 lock held by syz-executor.3/9712:
+[ 1336.953400][ T9712]  #0: ffff0000d1a700e0 (&type->s_umount_key#46/1){+.+.}-{3:3}, at: alloc_super+0xf8/0x430
+[ 1336.955899][ T9712] 
+[ 1336.955899][ T9712] stack backtrace:
+[ 1336.957367][ T9712] CPU: 1 PID: 9712 Comm: syz-executor.3 Not tainted 6.0.0-rc7-syzkaller-18095-gbbed346d5a96 #0
+[ 1336.959932][ T9712] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 09/30/2022
+[ 1336.962530][ T9712] Call trace:
+[ 1336.963329][ T9712]  dump_backtrace+0x1c4/0x1f0
+[ 1336.964525][ T9712]  show_stack+0x2c/0x54
+[ 1336.965522][ T9712]  dump_stack_lvl+0x104/0x16c
+[ 1336.966763][ T9712]  dump_stack+0x1c/0x58
+[ 1336.967790][ T9712]  print_usage_bug+0x39c/0x3cc
+[ 1336.968966][ T9712]  mark_lock_irq+0x4a8/0x4b4
+[ 1336.970152][ T9712]  mark_lock+0x154/0x1b4
+[ 1336.971226][ T9712]  __lock_acquire+0x5f8/0x30a4
+[ 1336.972429][ T9712]  lock_acquire+0x100/0x1f8
+[ 1336.973530][ T9712]  _raw_spin_lock+0x54/0x6c
+[ 1336.974643][ T9712]  _atomic_dec_and_lock+0xc8/0x130
+[ 1336.975938][ T9712]  iput+0x50/0x324
+[ 1336.976859][ T9712]  ntfs_fill_super+0x1254/0x14a4
+[ 1336.978134][ T9712]  get_tree_bdev+0x1e8/0x2a0
+[ 1336.979340][ T9712]  ntfs_fs_get_tree+0x28/0x38
+[ 1336.980531][ T9712]  vfs_get_tree+0x40/0x140
+[ 1336.981668][ T9712]  do_new_mount+0x1dc/0x4e4
+[ 1336.982779][ T9712]  path_mount+0x358/0x914
+[ 1336.983850][ T9712]  __arm64_sys_mount+0x2c4/0x3c4
+[ 1336.985070][ T9712]  el0_svc_common+0x138/0x220
+[ 1336.986208][ T9712]  do_el0_svc+0x48/0x164
+[ 1336.987271][ T9712]  el0_svc+0x58/0x150
+[ 1336.988276][ T9712]  el0t_64_sync_handler+0x84/0xf0
+[ 1336.989559][ T9712]  el0t_64_sync+0x18c/0x190

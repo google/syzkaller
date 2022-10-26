@@ -11,7 +11,6 @@ import (
 	"io"
 	"net/rpc"
 	"net/rpc/jsonrpc"
-	"os"
 	"sync"
 	"time"
 
@@ -43,11 +42,8 @@ func ctor(params *proxyAppParams, env *vmimpl.Env) (vmimpl.Pool, error) {
 			select {
 			case <-p.close:
 				p.mu.Lock()
-				if p.proxy != nil {
-					p.proxy.terminate()
-					<-p.proxy.onTerminated
-				}
-				p.proxy = nil
+				p.closeProxy()
+
 				p.onClosed <- nil
 				p.mu.Unlock()
 				return
@@ -79,16 +75,14 @@ func (p *pool) init(params *proxyAppParams, cfg *Config) error {
 		return fmt.Errorf("failed to run ProxyApp: %w", err)
 	}
 
+	p.proxy.doLogPooling(params.LogOutput)
+
 	count, err := p.proxy.CreatePool(string(cfg.ProxyAppConfig), p.env.Debug)
 	if err != nil || count == 0 || (p.count != 0 && p.count != count) {
 		if err == nil {
 			err = fmt.Errorf("wrong pool size %v, prev was %v", count, p.count)
 		}
-
-		p.proxy.terminate()
-		<-p.proxy.onTerminated
-		p.proxy = nil
-
+		p.closeProxy()
 		return fmt.Errorf("failed to construct pool: %w", err)
 	}
 
@@ -96,6 +90,23 @@ func (p *pool) init(params *proxyAppParams, cfg *Config) error {
 		p.count = count
 	}
 	return nil
+}
+
+func (p *pool) closeProxy() {
+	if p.proxy != nil {
+		if p.proxy.stopLogPooling != nil {
+			p.proxy.stopLogPooling <- true
+			<-p.proxy.logPoolingDone
+		}
+		if p.proxy.Client != nil {
+			p.proxy.Client.Close()
+		}
+		if p.proxy.terminate != nil {
+			p.proxy.terminate()
+			<-p.proxy.onTerminated
+		}
+	}
+	p.proxy = nil
 }
 
 func (p *pool) Count() int {
@@ -123,8 +134,10 @@ func (p *pool) Close() error {
 
 type ProxyApp struct {
 	*rpc.Client
-	terminate    context.CancelFunc
-	onTerminated chan bool
+	terminate      context.CancelFunc
+	onTerminated   chan bool
+	stopLogPooling chan bool
+	logPoolingDone chan bool
 }
 
 func runProxyApp(params *proxyAppParams, cmd string) (*ProxyApp, error) {
@@ -172,7 +185,7 @@ func runProxyApp(params *proxyAppParams, cmd string) (*ProxyApp, error) {
 	onTerminated := make(chan bool, 1)
 
 	go func() {
-		io.Copy(os.Stdout, subprocessLogs)
+		io.Copy(params.LogOutput, subprocessLogs)
 		if err := subProcess.Wait(); err != nil {
 			log.Logf(0, "failed to Wait() subprocess: %v", err)
 		}
@@ -184,6 +197,38 @@ func runProxyApp(params *proxyAppParams, cmd string) (*ProxyApp, error) {
 		terminate:    cancelContext,
 		onTerminated: onTerminated,
 	}, nil
+}
+
+func (proxy *ProxyApp) doLogPooling(writer io.Writer) {
+	proxy.stopLogPooling = make(chan bool, 1)
+	proxy.logPoolingDone = make(chan bool, 1)
+	go func() {
+		defer func() { proxy.logPoolingDone <- true }()
+		for {
+			var reply proxyrpc.PoolLogsReply
+			call := proxy.Go(
+				"ProxyVM.PoolLogs",
+				&proxyrpc.PoolLogsParam{},
+				&reply,
+				nil,
+			)
+			select {
+			case <-proxy.stopLogPooling:
+				return
+			case c := <-call.Done:
+				if c.Error != nil {
+					// possible errors here are:
+					// "unexpected EOF"
+					// "read tcp 127.0.0.1:56886->127.0.0.1:34603: use of closed network connection"
+					log.Logf(0, "error pooling ProxyApp logs: %v", c.Error)
+					return
+				}
+				if log.V(reply.Verbosity) {
+					writer.Write([]byte(fmt.Sprintf("ProxyAppLog: %v", reply.Log)))
+				}
+			}
+		}
+	}()
 }
 
 func (proxy *ProxyApp) CreatePool(config string, debug bool) (int, error) {

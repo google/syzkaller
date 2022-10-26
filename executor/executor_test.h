@@ -9,8 +9,9 @@
 
 static void os_init(int argc, char** argv, void* data, size_t data_size)
 {
-	if (mmap(data, data_size, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0) != data)
-		fail("mmap of data segment failed");
+	void* got = mmap(data, data_size, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0);
+	if (data != got)
+		failmsg("mmap of data segment failed", "want %p, got %p", data, got);
 }
 
 static intptr_t execute_syscall(const call_t* c, intptr_t a[kMaxArgs])

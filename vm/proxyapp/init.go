@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"time"
 
 	"github.com/google/syzkaller/pkg/config"
@@ -19,6 +20,7 @@ func makeDefaultParams() *proxyAppParams {
 	return &proxyAppParams{
 		CommandRunner:  osutilCommandContext,
 		InitRetryDelay: 10 * time.Second,
+		LogOutput:      os.Stdout,
 	}
 }
 
@@ -35,6 +37,7 @@ func init() {
 type proxyAppParams struct {
 	CommandRunner  func(context.Context, string, ...string) subProcessCmd
 	InitRetryDelay time.Duration
+	LogOutput      io.Writer
 }
 
 func osutilCommandContext(ctx context.Context, bin string, args ...string) subProcessCmd {
