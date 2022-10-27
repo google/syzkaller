@@ -44,6 +44,7 @@ func main() {
 		"kvm.h",
 		"kvm_amd64.S.h",
 		"kvm_ppc64le.S.h",
+		"common_zlib.h",
 	}
 	data = replaceIncludes(executorFilenames, "../../executor/", data)
 	androidFilenames := []string{
