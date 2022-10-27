@@ -6318,19 +6318,382 @@ static long syz_genetlink_get_family_id(volatile long name, volatile long sock_a
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_mount_image || __NR_syz_read_part_table
+
+//% This code is derived from puff.{c,h}, found in the zlib development. The
+//% original files come with the following copyright notice:
+
+//% Copyright (C) 2002-2013 Mark Adler, all rights reserved
+//% version 2.3, 21 Jan 2013
+//% This software is provided 'as-is', without any express or implied
+//% warranty.  In no event will the author be held liable for any damages
+//% arising from the use of this software.
+//% Permission is granted to anyone to use this software for any purpose,
+//% including commercial applications, and to alter it and redistribute it
+//% freely, subject to the following restrictions:
+//% 1. The origin of this software must not be misrepresented; you must not
+//%    claim that you wrote the original software. If you use this software
+//%    in a product, an acknowledgment in the product documentation would be
+//%    appreciated but is not required.
+//% 2. Altered source versions must be plainly marked as such, and must not be
+//%    misrepresented as being the original software.
+//% 3. This notice may not be removed or altered from any source distribution.
+//% Mark Adler    madler@alumni.caltech.edu
+
+//% BEGIN CODE DERIVED FROM puff.{c,h}
+
+#include <setjmp.h>
+#define MAXBITS 15
+#define MAXLCODES 286
+#define MAXDCODES 30
+#define MAXCODES (MAXLCODES + MAXDCODES)
+#define FIXLCODES 288
+
+struct puff_state {
+	unsigned char* out;
+	unsigned long outlen;
+	unsigned long outcnt;
+	const unsigned char* in;
+	unsigned long inlen;
+	unsigned long incnt;
+	int bitbuf;
+	int bitcnt;
+	jmp_buf env;
+};
+static int puff_bits(struct puff_state* s, int need)
+{
+	long val;
+	val = s->bitbuf;
+	while (s->bitcnt < need) {
+		if (s->incnt == s->inlen)
+			longjmp(s->env, 1);
+		val |= (long)(s->in[s->incnt++]) << s->bitcnt;
+		s->bitcnt += 8;
+	}
+	s->bitbuf = (int)(val >> need);
+	s->bitcnt -= need;
+	return (int)(val & ((1L << need) - 1));
+}
+static int puff_stored(struct puff_state* s)
+{
+	unsigned len;
+	s->bitbuf = 0;
+	s->bitcnt = 0;
+	if (s->incnt + 4 > s->inlen)
+		return 2;
+	len = s->in[s->incnt++];
+	len |= s->in[s->incnt++] << 8;
+	if (s->in[s->incnt++] != (~len & 0xff) ||
+	    s->in[s->incnt++] != ((~len >> 8) & 0xff))
+		return -2;
+	if (s->incnt + len > s->inlen)
+		return 2;
+	if (s->out != (unsigned char*)0) {
+		if (s->outcnt + len > s->outlen)
+			return 1;
+		while (len--)
+			s->out[s->outcnt++] = s->in[s->incnt++];
+	} else {
+		s->outcnt += len;
+		s->incnt += len;
+	}
+	return 0;
+}
+struct puff_huffman {
+	short* count;
+	short* symbol;
+};
+static int puff_decode(struct puff_state* s, const struct puff_huffman* h)
+{
+	int len;
+	int code;
+	int first;
+	int count;
+	int index;
+	int bitbuf;
+	int left;
+	short* next;
+
+	bitbuf = s->bitbuf;
+	left = s->bitcnt;
+	code = first = index = 0;
+	len = 1;
+	next = h->count + 1;
+	while (1) {
+		while (left--) {
+			code |= bitbuf & 1;
+			bitbuf >>= 1;
+			count = *next++;
+			if (code - count < first) {
+				s->bitbuf = bitbuf;
+				s->bitcnt = (s->bitcnt - len) & 7;
+				return h->symbol[index + (code - first)];
+			}
+			index += count;
+			first += count;
+			first <<= 1;
+			code <<= 1;
+			len++;
+		}
+		left = (MAXBITS + 1) - len;
+		if (left == 0)
+			break;
+		if (s->incnt == s->inlen)
+			longjmp(s->env, 1);
+		bitbuf = s->in[s->incnt++];
+		if (left > 8)
+			left = 8;
+	}
+	return -10;
+}
+static int puff_construct(struct puff_huffman* h, const short* length, int n)
+{
+	int symbol;
+	int len;
+	int left;
+	short offs[MAXBITS + 1];
+	for (len = 0; len <= MAXBITS; len++)
+		h->count[len] = 0;
+	for (symbol = 0; symbol < n; symbol++)
+		(h->count[length[symbol]])++;
+	if (h->count[0] == n)
+		return 0;
+	left = 1;
+	for (len = 1; len <= MAXBITS; len++) {
+		left <<= 1;
+		left -= h->count[len];
+		if (left < 0)
+			return left;
+	}
+	offs[1] = 0;
+	for (len = 1; len < MAXBITS; len++)
+		offs[len + 1] = offs[len] + h->count[len];
+	for (symbol = 0; symbol < n; symbol++)
+		if (length[symbol] != 0)
+			h->symbol[offs[length[symbol]]++] = symbol;
+	return left;
+}
+static int puff_codes(struct puff_state* s,
+		      const struct puff_huffman* lencode,
+		      const struct puff_huffman* distcode)
+{
+	int symbol;
+	int len;
+	unsigned dist;
+	static const short lens[29] = {
+				       3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
+				       35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258};
+	static const short lext[29] = {
+				       0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2,
+				       3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0};
+	static const short dists[30] = {
+					1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193,
+					257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145,
+					8193, 12289, 16385, 24577};
+	static const short dext[30] = {
+				       0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
+				       7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
+				       12, 12, 13, 13};
+	do {
+		symbol = puff_decode(s, lencode);
+		if (symbol < 0)
+			return symbol;
+		if (symbol < 256) {
+			if (s->out != (unsigned char*)0) {
+				if (s->outcnt == s->outlen)
+					return 1;
+				s->out[s->outcnt] = symbol;
+			}
+			s->outcnt++;
+		} else if (symbol > 256) {
+			symbol -= 257;
+			if (symbol >= 29)
+				return -10;
+			len = lens[symbol] + puff_bits(s, lext[symbol]);
+			symbol = puff_decode(s, distcode);
+			if (symbol < 0)
+				return symbol;
+			dist = dists[symbol] + puff_bits(s, dext[symbol]);
+			if (dist > s->outcnt)
+				return -11;
+			if (s->out != (unsigned char*)0) {
+				if (s->outcnt + len > s->outlen)
+					return 1;
+				while (len--) {
+					s->out[s->outcnt] =
+					    dist > s->outcnt ? 0 : s->out[s->outcnt - dist];
+					s->outcnt++;
+				}
+			} else
+				s->outcnt += len;
+		}
+	} while (symbol != 256);
+	return 0;
+}
+static int puff_fixed(struct puff_state* s)
+{
+	static int virgin = 1;
+	static short lencnt[MAXBITS + 1], lensym[FIXLCODES];
+	static short distcnt[MAXBITS + 1], distsym[MAXDCODES];
+	static struct puff_huffman lencode, distcode;
+	if (virgin) {
+		int symbol;
+		short lengths[FIXLCODES];
+		lencode.count = lencnt;
+		lencode.symbol = lensym;
+		distcode.count = distcnt;
+		distcode.symbol = distsym;
+		for (symbol = 0; symbol < 144; symbol++)
+			lengths[symbol] = 8;
+		for (; symbol < 256; symbol++)
+			lengths[symbol] = 9;
+		for (; symbol < 280; symbol++)
+			lengths[symbol] = 7;
+		for (; symbol < FIXLCODES; symbol++)
+			lengths[symbol] = 8;
+		puff_construct(&lencode, lengths, FIXLCODES);
+		for (symbol = 0; symbol < MAXDCODES; symbol++)
+			lengths[symbol] = 5;
+		puff_construct(&distcode, lengths, MAXDCODES);
+		virgin = 0;
+	}
+	return puff_codes(s, &lencode, &distcode);
+}
+static int puff_dynamic(struct puff_state* s)
+{
+	int nlen, ndist, ncode;
+	int index;
+	int err;
+	short lengths[MAXCODES];
+	short lencnt[MAXBITS + 1], lensym[MAXLCODES];
+	short distcnt[MAXBITS + 1], distsym[MAXDCODES];
+	struct puff_huffman lencode, distcode;
+	static const short order[19] =
+	    {16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15};
+	lencode.count = lencnt;
+	lencode.symbol = lensym;
+	distcode.count = distcnt;
+	distcode.symbol = distsym;
+	nlen = puff_bits(s, 5) + 257;
+	ndist = puff_bits(s, 5) + 1;
+	ncode = puff_bits(s, 4) + 4;
+	if (nlen > MAXLCODES || ndist > MAXDCODES)
+		return -3;
+	for (index = 0; index < ncode; index++)
+		lengths[order[index]] = puff_bits(s, 3);
+	for (; index < 19; index++)
+		lengths[order[index]] = 0;
+	err = puff_construct(&lencode, lengths, 19);
+	if (err != 0)
+		return -4;
+	index = 0;
+	while (index < nlen + ndist) {
+		int symbol;
+		int len;
+
+		symbol = puff_decode(s, &lencode);
+		if (symbol < 0)
+			return symbol;
+		if (symbol < 16)
+			lengths[index++] = symbol;
+		else {
+			len = 0;
+			if (symbol == 16) {
+				if (index == 0)
+					return -5;
+				len = lengths[index - 1];
+				symbol = 3 + puff_bits(s, 2);
+			} else if (symbol == 17)
+				symbol = 3 + puff_bits(s, 3);
+			else
+				symbol = 11 + puff_bits(s, 7);
+			if (index + symbol > nlen + ndist)
+				return -6;
+			while (symbol--)
+				lengths[index++] = len;
+		}
+	}
+	if (lengths[256] == 0)
+		return -9;
+	err = puff_construct(&lencode, lengths, nlen);
+	if (err && (err < 0 || nlen != lencode.count[0] + lencode.count[1]))
+		return -7;
+	err = puff_construct(&distcode, lengths + nlen, ndist);
+	if (err && (err < 0 || ndist != distcode.count[0] + distcode.count[1]))
+		return -8;
+	return puff_codes(s, &lencode, &distcode);
+}
+static int puff(
+    unsigned char* dest,
+    unsigned long* destlen,
+    const unsigned char* source,
+    unsigned long* sourcelen)
+{
+	struct puff_state s;
+	int last, type;
+	int err;
+	s.out = dest;
+	s.outlen = *destlen;
+	s.outcnt = 0;
+	s.in = source;
+	s.inlen = *sourcelen;
+	s.incnt = 0;
+	s.bitbuf = 0;
+	s.bitcnt = 0;
+	if (setjmp(s.env) != 0)
+		err = 2;
+	else {
+		do {
+			last = puff_bits(&s, 1);
+			type = puff_bits(&s, 2);
+			err = type == 0 ? puff_stored(&s) : (type == 1 ? puff_fixed(&s) : (type == 2 ? puff_dynamic(&s) : -1));
+			if (err != 0)
+				break;
+		} while (!last);
+	}
+	if (err <= 0) {
+		*destlen = s.outcnt;
+		*sourcelen = s.incnt;
+	}
+	return err;
+}
+
+//% END CODE DERIVED FROM puff.{c,h}
+
+#include <sys/mman.h>
+#define ZLIB_HEADER_WIDTH 2
+
+static int puff_zlib_to_file(
+    const unsigned char* source,
+    unsigned long sourcelen,
+    int dest_fd,
+    unsigned long destlen)
+{
+	if (sourcelen < ZLIB_HEADER_WIDTH)
+		return -12;
+	source += ZLIB_HEADER_WIDTH;
+	sourcelen -= ZLIB_HEADER_WIDTH;
+	void* ret = mmap(0, destlen, PROT_WRITE | PROT_READ, MAP_SHARED, dest_fd, 0);
+	if (ret == MAP_FAILED)
+		return -13;
+	unsigned char* dest = (unsigned char*)ret;
+	unsigned long destlen_copy = destlen;
+	int err = puff(dest, &destlen_copy, source, &sourcelen);
+	if (err)
+		return err;
+	err = munmap(dest, destlen);
+	if (err)
+		return -14;
+
+	return 0;
+}
+
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/loop.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-
-struct fs_image_segment {
-	void* data;
-	uintptr_t size;
-	uintptr_t offset;
-};
-static int setup_loop_device(long unsigned size, long unsigned nsegs, struct fs_image_segment* segs, const char* loopname, int* memfd_p, int* loopfd_p)
+static int setup_loop_device(long unsigned size, long unsigned compressed_size, unsigned char* data, const char* loopname, int* memfd_p, int* loopfd_p)
 {
 	int err = 0, loopfd = -1;
 	int memfd = syscall(__NR_memfd_create, "syzkaller", 0);
@@ -6342,10 +6705,11 @@ static int setup_loop_device(long unsigned size, long unsigned nsegs, struct fs_
 		err = errno;
 		goto error_close_memfd;
 	}
-	for (size_t i = 0; i < nsegs; i++) {
-		if (pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset) < 0) {
-			debug("setup_loop_device: pwrite[%zu] failed: %d\n", i, errno);
-		}
+
+	err = puff_zlib_to_file(data, compressed_size, memfd, size);
+	if (err) {
+		debug("setup_loop_device: could not decompress data: %d\n", err);
+		goto error_close_memfd;
 	}
 
 	loopfd = open(loopname, O_RDWR);
@@ -6381,14 +6745,14 @@ error:
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_read_part_table
-static long syz_read_part_table(volatile unsigned long size, volatile unsigned long nsegs, volatile long segments)
+static long syz_read_part_table(volatile unsigned long size, volatile unsigned long compressed_size, volatile long image)
 {
-	struct fs_image_segment* segs = (struct fs_image_segment*)segments;
+	unsigned char* data = (unsigned char*)image;
 	int err = 0, res = -1, loopfd = -1, memfd = -1;
 	char loopname[64];
 
 	snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
-	if (setup_loop_device(size, nsegs, segs, loopname, &memfd, &loopfd) == -1)
+	if (setup_loop_device(size, compressed_size, data, loopname, &memfd, &loopfd) == -1)
 		return -1;
 
 	struct loop_info64 info;
@@ -6429,10 +6793,18 @@ error_clear_loop:
 #include <stddef.h>
 #include <string.h>
 #include <sys/mount.h>
-static long syz_mount_image(volatile long fsarg, volatile long dir, volatile unsigned long size, volatile unsigned long nsegs, volatile long segments, volatile long flags, volatile long optsarg, volatile long change_dir)
+static long syz_mount_image(
+    volatile long fsarg,
+    volatile long dir,
+    volatile unsigned long size,
+    volatile unsigned long compressed_size,
+    volatile long flags,
+    volatile long optsarg,
+    volatile long change_dir,
+    volatile long image)
 {
-	struct fs_image_segment* segs = (struct fs_image_segment*)segments;
-	int res = -1, err = 0, loopfd = -1, memfd = -1, need_loop_device = !!segs;
+	unsigned char* data = (unsigned char*)image;
+	int res = -1, err = 0, loopfd = -1, memfd = -1, need_loop_device = !!compressed_size;
 	char* mount_opts = (char*)optsarg;
 	char* target = (char*)dir;
 	char* fs = (char*)fsarg;
@@ -6442,7 +6814,7 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 	if (need_loop_device) {
 		memset(loopname, 0, sizeof(loopname));
 		snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
-		if (setup_loop_device(size, nsegs, segs, loopname, &memfd, &loopfd) == -1)
+		if (setup_loop_device(size, compressed_size, data, loopname, &memfd, &loopfd) == -1)
 			return -1;
 		source = loopname;
 	}
@@ -6462,7 +6834,7 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 	} else if (strcmp(fs, "xfs") == 0) {
 		strcat(opts, ",nouuid");
 	}
-	debug("syz_mount_image: size=%llu segs=%llu loop='%s' dir='%s' fs='%s' flags=%llu opts='%s'\n", (uint64)size, (uint64)nsegs, loopname, target, fs, (uint64)flags, opts);
+	debug("syz_mount_image: size=%llu compressed_size=%llu loop='%s' dir='%s' fs='%s' flags=%llu opts='%s'\n", (uint64)size, (uint64)compressed_size, loopname, target, fs, (uint64)flags, opts);
 #if SYZ_EXECUTOR
 	cover_reset(0);
 #endif
