@@ -51,7 +51,7 @@ Currently all syscall descriptions are manually-written. There is an
 for this process and some ongoing work, but we are not there yet to have a
 fully-automated way to generate descriptions.
 There is a helper [headerparser](headerparser_usage.md) utility that can auto-generate
-some parts of descriptions from header files.
+some parts of descriptions from header files. Visual Studio Code has [syz-lang extension](https://marketplace.visualstudio.com/items?itemName=AndreyArtemiev.syzlang-extension&ssr=false#overview) for highlighting syntax.
 
 To enable fuzzing of a new kernel interface:
 
