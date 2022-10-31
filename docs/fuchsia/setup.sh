@@ -88,12 +88,22 @@ run() {
   preflight "$syzkaller" "$fuchsia"
 
   cd "$fuchsia"
-  ./out/x64/host_x64/zbi -o out/x64/fuchsia-ssh.zbi out/x64/fuchsia.zbi \
+
+  # Look up needed deps from build_api metadata
+  fvm_path=$(jq -r '.[] | select(.name == "storage-full" and .type == "blk").path' out/x64/images.json)
+  zbi_path=$(jq -r '.[] | select(.name == "zircon-a" and .type == "zbi").path' out/x64/images.json)
+  multiboot_path=$(jq -r '.[] | select(.name == "qemu-kernel" and .type == "kernel").path' out/x64/images.json)
+
+  # Make a separate directory for copies of files we need to modify
+  syz_deps_path=$fuchsia/out/x64/syzdeps
+  mkdir -p $syz_deps_path
+
+  ./out/x64/host_x64/zbi -o $syz_deps_path/fuchsia-ssh.zbi out/x64/$zbi_path \
     --entry "data/ssh/authorized_keys=${fuchsia}/.ssh/authorized_keys"
-  cp out/x64/obj/build/images/fuchsia/fuchsia/fvm.blk \
-    out/x64/obj/build/images/fuchsia/fuchsia/fvm-extended.blk
+  cp out/x64/$fvm_path \
+    $syz_deps_path/fvm-extended.blk
   ./out/x64/host_x64/fvm \
-    out/x64/obj/build/images/fuchsia/fuchsia/fvm-extended.blk extend --length 3G
+    $syz_deps_path/fvm-extended.blk extend --length 3G
 
   echo "{
   \"name\": \"fuchsia\",
@@ -102,7 +112,7 @@ run() {
   \"workdir\": \"$workdir\",
   \"kernel_obj\": \"$fuchsia/out/x64/kernel_x64-kasan/obj/zircon/kernel\",
   \"syzkaller\": \"$syzkaller\",
-  \"image\": \"$fuchsia/out/x64/obj/build/images/fuchsia/fuchsia/fvm-extended.blk\",
+  \"image\": \"$syz_deps_path/fvm-extended.blk\",
   \"sshkey\": \"$fuchsia/.ssh/pkey\",
   \"reproduce\": false,
   \"cover\": false,
@@ -112,8 +122,8 @@ run() {
     \"count\": 10,
     \"cpu\": 4,
     \"mem\": 2048,
-    \"kernel\": \"$fuchsia/out/x64/multiboot.bin\",
-    \"initrd\": \"$fuchsia/out/x64/fuchsia-ssh.zbi\"
+    \"kernel\": \"$fuchsia/out/x64/$multiboot_path\",
+    \"initrd\": \"$syz_deps_path/fuchsia-ssh.zbi\"
   }
 }" > "$workdir/fx-syz-manager-config.json"
 

@@ -39,7 +39,14 @@ func (linux linux) build(params Params) (ImageDetails, error) {
 		return details, err
 	}
 
-	kernelPath := filepath.Join(params.KernelDir, filepath.FromSlash(kernelBin(params.TargetArch)))
+	kernelPath := filepath.Join(params.KernelDir, filepath.FromSlash(LinuxKernelImage(params.TargetArch)))
+
+	// Copy the kernel image to let it be uploaded to the asset storage. If the asset storage is not enabled,
+	// let the file just stay in the output folder -- it is usually very small compared to vmlinux anyway.
+	if err := osutil.CopyFile(kernelPath, filepath.Join(params.OutputDir, "kernel")); err != nil {
+		return details, err
+	}
+
 	if fileInfo, err := os.Stat(params.UserspaceDir); err == nil && fileInfo.IsDir() {
 		// The old way of assembling the image from userspace dir.
 		// It should be removed once all syzbot instances are switched.
@@ -47,11 +54,9 @@ func (linux linux) build(params Params) (ImageDetails, error) {
 			return details, err
 		}
 	} else if params.VMType == "qemu" {
-		// If UserspaceDir is a file (image) and we use qemu, we just copy image and kernel to the output dir
-		// assuming that qemu will use injected kernel boot. In this mode we also assume password/key-less ssh.
-		if err := osutil.CopyFile(kernelPath, filepath.Join(params.OutputDir, "kernel")); err != nil {
-			return details, err
-		}
+		// If UserspaceDir is a file (image) and we use qemu, we just copy image to the output dir assuming
+		// that qemu will use injected kernel boot. In this mode we also assume password/key-less ssh.
+		// The kernel image was already uploaded above.
 		if err := osutil.CopyFile(params.UserspaceDir, filepath.Join(params.OutputDir, "image")); err != nil {
 			return details, err
 		}
@@ -96,7 +101,7 @@ func (linux linux) buildKernel(params Params) error {
 			return err
 		}
 	}
-	target := path.Base(kernelBin(params.TargetArch))
+	target := path.Base(LinuxKernelImage(params.TargetArch))
 	if err := runMake(params, target); err != nil {
 		return err
 	}
@@ -138,7 +143,7 @@ func (linux) createImage(params Params, kernelPath string) error {
 }
 
 func (linux) clean(kernelDir, targetArch string) error {
-	return runMakeImpl(targetArch, "", "", kernelDir, "distclean")
+	return runMakeImpl(targetArch, "", "", "", kernelDir, []string{"distclean"})
 }
 
 func (linux) writeFile(file string, data []byte) error {
@@ -148,10 +153,10 @@ func (linux) writeFile(file string, data []byte) error {
 	return osutil.SandboxChown(file)
 }
 
-func runMakeImpl(arch, compiler, ccache, kernelDir string, addArgs ...string) error {
+func runMakeImpl(arch, compiler, linker, ccache, kernelDir string, extraArgs []string) error {
 	target := targets.Get(targets.Linux, arch)
-	args := LinuxMakeArgs(target, compiler, ccache, "")
-	args = append(args, addArgs...)
+	args := LinuxMakeArgs(target, compiler, linker, ccache, "")
+	args = append(args, extraArgs...)
 	cmd := osutil.Command("make", args...)
 	if err := osutil.Sandbox(cmd, true, true); err != nil {
 		return err
@@ -174,11 +179,11 @@ func runMakeImpl(arch, compiler, ccache, kernelDir string, addArgs ...string) er
 	return err
 }
 
-func runMake(params Params, addArgs ...string) error {
-	return runMakeImpl(params.TargetArch, params.Compiler, params.Ccache, params.KernelDir, addArgs...)
+func runMake(params Params, extraArgs ...string) error {
+	return runMakeImpl(params.TargetArch, params.Compiler, params.Linker, params.Ccache, params.KernelDir, extraArgs)
 }
 
-func LinuxMakeArgs(target *targets.Target, compiler, ccache, buildDir string) []string {
+func LinuxMakeArgs(target *targets.Target, compiler, linker, ccache, buildDir string) []string {
 	args := []string{
 		"-j", fmt.Sprint(runtime.NumCPU()),
 		"ARCH=" + target.KernelArch,
@@ -189,7 +194,7 @@ func LinuxMakeArgs(target *targets.Target, compiler, ccache, buildDir string) []
 	if compiler == "" {
 		compiler = target.KernelCompiler
 		if target.KernelLinker != "" {
-			args = append(args, "LD="+target.KernelLinker)
+			linker = target.KernelLinker
 		}
 	}
 	if compiler != "" {
@@ -198,13 +203,16 @@ func LinuxMakeArgs(target *targets.Target, compiler, ccache, buildDir string) []
 		}
 		args = append(args, "CC="+compiler)
 	}
+	if linker != "" {
+		args = append(args, "LD="+linker)
+	}
 	if buildDir != "" {
 		args = append(args, "O="+buildDir)
 	}
 	return args
 }
 
-func kernelBin(arch string) string {
+func LinuxKernelImage(arch string) string {
 	// We build only zImage/bzImage as we currently don't use modules.
 	switch arch {
 	case targets.AMD64:

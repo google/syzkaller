@@ -1,6 +1,7 @@
 # Research work based on syzkaller
 
 _newer first_
+* [HotBPF - An On-demand and On-the-fly Memory Protection](https://www.youtube.com/watch?v=1KSLTsgxaSU)
 * [KASPER: Scanning for Generalized Transient Execution Gadgets in the Linux Kernel](https://www.vusec.net/projects/kasper/)
 * [VaultFuzzer: A state-based approach for Linux kernel](https://hardenedvault.net/blog/2021-09-13-vaultfuzzer/)
 * [Demystifying the Dependency Challenge in Kernel Fuzzing](https://conf.researchr.org/details/icse-2022/icse-2022-papers/89/Demystifying-the-Dependency-Challenge-in-Kernel-Fuzzing)

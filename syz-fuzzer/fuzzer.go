@@ -202,7 +202,7 @@ func main() {
 	log.Logf(0, "dialing manager at %v", *flagManager)
 	manager, err := rpctype.NewRPCClient(*flagManager, timeouts.Scale)
 	if err != nil {
-		log.Fatalf("failed to connect to manager: %v ", err)
+		log.Fatalf("failed to create an RPC client: %v ", err)
 	}
 
 	log.Logf(1, "connecting to manager...")
@@ -213,7 +213,7 @@ func main() {
 	}
 	r := &rpctype.ConnectRes{}
 	if err := manager.Call("Manager.Connect", a, r); err != nil {
-		log.Fatalf("failed to connect to manager: %v ", err)
+		log.Fatalf("failed to call Manager.Connect(): %v ", err)
 	}
 	featureFlags, err := csource.ParseFeaturesFlags("none", "none", true)
 	if err != nil {

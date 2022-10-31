@@ -58,12 +58,15 @@ static void os_init(int argc, char** argv, char* data, size_t data_size)
 	// One observed case before: executor had a mapping above the data mapping (output region),
 	// while C repros did not have that mapping above, as the result in one case VMA had next link,
 	// while in the other it didn't and it caused a bug to not reproduce with the C repro.
-	if (mmap(data - SYZ_PAGE_SIZE, SYZ_PAGE_SIZE, PROT_NONE, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0) != data - SYZ_PAGE_SIZE)
-		fail("mmap of left data PROT_NONE page failed");
-	if (mmap(data, data_size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0) != data)
-		fail("mmap of data segment failed");
-	if (mmap(data + data_size, SYZ_PAGE_SIZE, PROT_NONE, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0) != data + data_size)
-		fail("mmap of right data PROT_NONE page failed");
+	void* got = mmap(data - SYZ_PAGE_SIZE, SYZ_PAGE_SIZE, PROT_NONE, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0);
+	if (data - SYZ_PAGE_SIZE != got)
+		failmsg("mmap of left data PROT_NONE page failed", "want %p, got %p", data - SYZ_PAGE_SIZE, got);
+	got = mmap(data, data_size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0);
+	if (data != got)
+		failmsg("mmap of data segment failed", "want %p, got %p", data, got);
+	got = mmap(data + data_size, SYZ_PAGE_SIZE, PROT_NONE, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0);
+	if (data + data_size != got)
+		failmsg("mmap of right data PROT_NONE page failed", "want %p, got %p", data + data_size, got);
 }
 
 static intptr_t execute_syscall(const call_t* c, intptr_t a[kMaxArgs])

@@ -3,6 +3,7 @@
 
 # Description of syscall arguments. See README.md for details.
 
+include <linux/swap.h>
 include <linux/socket.h>
 include <linux/ptrace.h>
 include <linux/resource.h>
@@ -309,6 +310,12 @@ utimes(filename ptr[in, filename], times ptr[in, itimerval])
 futimesat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval])
 utimensat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval], flags flags[utimensat_flags])
 
+
+#swapon
+swapon(file ptr[in, filename] , flags flags[swapflags])
+#swapoff
+swapoff(file ptr[in, filename])
+
 # Small trick - syzkaller cannot give the proper stack pointer to clone(), but we can do it with the aid of pseudo syscalls.
 syz_clone(flags flags[clone_flags], stack buffer[in], stack_len bytesize[stack], parentid ptr[out, int32], childtid ptr[out, int32], tls buffer[in]) pid
 
@@ -550,6 +557,17 @@ procfs_proc_file = "auxv", "cmdline", "environ", "autogroup", "cgroup", "clear_r
 openat$procfs(fd const[AT_FDCWD], file ptr[in, string[procfs_file]], flags const[O_RDONLY], mode const[0]) fd
 
 procfs_file = "/proc/keys", "/proc/key-users", "/proc/crypto", "/proc/consoles", "/proc/cgroups", "/proc/zoneinfo", "/proc/vmstat", "/proc/vmallocinfo", "/proc/tty/drivers", "/proc/tty/ldiscs", "/proc/timer_list", "/proc/sysvipc/sem", "/proc/sysvipc/msg", "/proc/sysvipc/shm", "/proc/stat", "/proc/slabinfo", "/proc/schedstat", "/proc/partitions", "/proc/meminfo", "/proc/mdstat", "/proc/locks", "/proc/diskstats", "/proc/cpuinfo", "/proc/consoles", "/proc/bus/input/devices", "/proc/bus/input/handlers", "/proc/asound/seq/clients", "/proc/asound/seq/clients", "/proc/asound/seq/timer", "/proc/asound/timers"
+
+resource fd_yama_ptrace_scope[fd]
+
+# 0 - YAMA_SCOPE_DISABLED
+# 1 - YAMA_SCOPE_RELATIONAL
+# 2 - YAMA_SCOPE_CAPABILITY
+# 3 - YAMA_SCOPE_NO_ATTACH
+yama_modes = "0", "1", "2", "3"
+
+openat$yama_ptrace_scope(fd const[AT_FDCWD], file ptr[in, string["/proc/sys/kernel/yama/ptrace_scope"]], flags const[O_RDWR], mode const[0]) fd_yama_ptrace_scope
+write$yama_ptrace_scope(fd fd_yama_ptrace_scope, data ptr[in, string[yama_modes]], count len[data])
 
 # Write into some interesting sysct's and sysfs/procfs files.
 resource fd_sysctl[fd]
@@ -1273,6 +1291,7 @@ finit_module_flags = MODULE_INIT_IGNORE_MODVERSIONS, MODULE_INIT_IGNORE_VERMAGIC
 delete_module_flags = O_NONBLOCK, O_TRUNC
 kexec_load_flags = KEXEC_ON_CRASH, KEXEC_PRESERVE_CONTEXT, KEXEC_ARCH_386, KEXEC_ARCH_X86_64, KEXEC_ARCH_PPC, KEXEC_ARCH_PPC64, KEXEC_ARCH_IA_64, KEXEC_ARCH_ARM, KEXEC_ARCH_S390, KEXEC_ARCH_SH, KEXEC_ARCH_MIPS, KEXEC_ARCH_MIPS_LE, KEXEC_ARCH_DEFAULT
 faccessat_flags = AT_EACCESS, AT_SYMLINK_NOFOLLOW, AT_EMPTY_PATH
+swapflags = SWAP_FLAG_PREFER, SWAP_FLAG_DISCARD
 sync_file_flags = SYNC_FILE_RANGE_WAIT_BEFORE, SYNC_FILE_RANGE_WRITE, SYNC_FILE_RANGE_WAIT_AFTER
 kcmp_flags = KCMP_FILE, KCMP_FILES, KCMP_FS, KCMP_IO, KCMP_SIGHAND, KCMP_SYSVSEM, KCMP_VM
 rusage_who = RUSAGE_SELF, RUSAGE_CHILDREN, RUSAGE_THREAD
@@ -1340,8 +1359,6 @@ define KCOV_REMOTE_ENABLE	1075340134
 # vhangup
 # _sysctl
 # adjtimex
-# swapon
-# swapoff
 # nfsservctl
 # getcpu
 

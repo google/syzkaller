@@ -12,6 +12,7 @@ package cuttlefish
 
 import (
 	"fmt"
+	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -138,8 +139,12 @@ func (inst *instance) Forward(port int) (string, error) {
 		return "", fmt.Errorf("failed to get IP/port from GCE instance: %s", err)
 	}
 
-	cmd := fmt.Sprintf("nohup socat TCP-LISTEN:%d,fork TCP:%s", port, hostForward)
-	if err := inst.runOnHost(time.Second, cmd); err != nil && err != vmimpl.ErrTimeout {
+	// Run socat in the background. This hangs when run from runOnHost().
+	cmdStr := fmt.Sprintf("nohup socat TCP-LISTEN:%d,fork TCP:%s", port, hostForward)
+	cmdArgs := append([]string{"-f"}, inst.sshArgs(cmdStr)...)
+	cmd := exec.Command("ssh", cmdArgs...)
+	cmd.Dir = "/root"
+	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("unable to forward port on host: %s", err)
 	}
 

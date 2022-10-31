@@ -321,6 +321,7 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 		KernelDir:    mgr.kernelDir,
 		OutputDir:    tmpDir,
 		Compiler:     mgr.mgrcfg.Compiler,
+		Linker:       mgr.mgrcfg.Linker,
 		Ccache:       mgr.mgrcfg.Ccache,
 		UserspaceDir: mgr.mgrcfg.Userspace,
 		CmdlineFile:  mgr.mgrcfg.KernelCmdline,
@@ -673,7 +674,7 @@ func (mgr *Manager) pollCommits(buildCommit string) ([]string, []dashapi.Commit,
 	return present, fixCommits, nil
 }
 
-func (mgr *Manager) uploadBuildAssets(build *dashapi.Build, assetFolder string) ([]dashapi.NewAsset, error) {
+func (mgr *Manager) uploadBuildAssets(buildInfo *dashapi.Build, assetFolder string) ([]dashapi.NewAsset, error) {
 	if mgr.storage == nil {
 		// No reason to continue anyway.
 		return nil, fmt.Errorf("asset storage is not configured")
@@ -684,20 +685,23 @@ func (mgr *Manager) uploadBuildAssets(build *dashapi.Build, assetFolder string) 
 		name      string
 	}
 	pending := []pendingAsset{}
-	bootableDisk := true
 	kernelFile := filepath.Join(assetFolder, "kernel")
 	if osutil.IsExist(kernelFile) {
-		bootableDisk = true
-		pending = append(pending, pendingAsset{kernelFile, dashapi.KernelImage, "kernel"})
+		fileName := "kernel"
+		if buildInfo.OS == targets.Linux {
+			fileName = path.Base(build.LinuxKernelImage(buildInfo.Arch))
+		}
+		pending = append(pending, pendingAsset{kernelFile, dashapi.KernelImage, fileName})
 	}
 	imageFile := filepath.Join(assetFolder, "image")
 	if osutil.IsExist(imageFile) {
-		if bootableDisk {
-			pending = append(pending, pendingAsset{imageFile, dashapi.BootableDisk,
-				"disk.raw"})
-		} else {
+		if mgr.managercfg.Type == "qemu" {
+			// For qemu we currently use non-bootable disk images.
 			pending = append(pending, pendingAsset{imageFile, dashapi.NonBootableDisk,
 				"non_bootable_disk.raw"})
+		} else {
+			pending = append(pending, pendingAsset{imageFile, dashapi.BootableDisk,
+				"disk.raw"})
 		}
 	}
 	target := mgr.managercfg.SysTarget
@@ -735,7 +739,7 @@ func (mgr *Manager) uploadBuildAssets(build *dashapi.Build, assetFolder string) 
 			continue
 		}
 		info, err := mgr.storage.UploadBuildAsset(file, pendingAsset.name,
-			pendingAsset.assetType, build, extra)
+			pendingAsset.assetType, buildInfo, extra)
 		if err != nil {
 			log.Logf(0, "failed to upload an asset: %s, %s",
 				pendingAsset.path, err)

@@ -28,6 +28,7 @@ type Params struct {
 	KernelDir    string
 	OutputDir    string
 	Compiler     string
+	Linker       string
 	Ccache       string
 	UserspaceDir string
 	CmdlineFile  string
@@ -47,13 +48,14 @@ type ImageDetails struct {
 // If CmdlineFile is not empty, contents of the file are appended to the kernel command line.
 // If SysctlFile is not empty, contents of the file are appended to the image /etc/sysctl.conf.
 // Output is stored in OutputDir and includes (everything except for image is optional):
-//  - image: the image
-//  - key: ssh key for the image
-//  - kernel: kernel for injected boot
-//  - initrd: initrd for injected boot
-//  - kernel.config: actual kernel config used during build
-//  - obj/: directory with kernel object files (this should match KernelObject
-//    specified in sys/targets, e.g. vmlinux for linux)
+//   - image: the image
+//   - key: ssh key for the image
+//   - kernel: kernel for injected boot
+//   - initrd: initrd for injected boot
+//   - kernel.config: actual kernel config used during build
+//   - obj/: directory with kernel object files (this should match KernelObject
+//     specified in sys/targets, e.g. vmlinux for linux)
+//
 // The returned structure contains a kernel ID that will be the same for kernels
 // with the same runtime behavior, and different for kernels with different runtime
 // behavior. Binary equal builds, or builds that differ only in e.g. debug info,
@@ -305,7 +307,7 @@ var buildFailureCauses = [...]buildFailureCause{
 	{weak: true, pattern: regexp.MustCompile(`: not found`)},
 	{weak: true, pattern: regexp.MustCompile(`: final link failed: `)},
 	{weak: true, pattern: regexp.MustCompile(`collect2: error: `)},
-	{weak: true, pattern: regexp.MustCompile(`FAILED: Build did NOT complete`)},
+	{weak: true, pattern: regexp.MustCompile(`(ERROR|FAILED): Build did NOT complete`)},
 }
 
 var fileRes = []*regexp.Regexp{

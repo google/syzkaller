@@ -1,4 +1,5 @@
 TITLE: BUG: stack guard page was hit in rtnl_newlink
+ALT: stack-overflow in rtnl_newlink
 
 [ 2374.042591][    C0] BUG: TASK stack guard page was hit at ffffc9000e4aff58 (stack is ffffc9000e4b0000..ffffc9000e4b8000)
 [ 2374.042624][    C0] stack guard page: 0000 [#1] PREEMPT SMP KASAN
