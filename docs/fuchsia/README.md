@@ -40,7 +40,7 @@ To build Fuchsia for x64, run:
 
 ```bash
 fx --dir "out/x64" set core.x64 \
-  --with-base "//bundles:tools" \
+  --with-base "//bundles/tools" \
   --with-base "//src/testing/fuzzing/syzkaller" \
   --args=syzkaller_dir='"/full/path/to/syzkaller"' \
   --variant=kasan
@@ -51,7 +51,7 @@ Alternatively, for arm64, run:
 
 ```bash
 fx --dir "out/arm64" set core.arm64 \
-  --with-base "//bundles:tools" \
+  --with-base "//bundles/tools" \
   --with-base "//src/testing/fuzzing/syzkaller" \
   --args=syzkaller_dir='"/full/path/to/syzkaller"' \
   --variant=kasan
