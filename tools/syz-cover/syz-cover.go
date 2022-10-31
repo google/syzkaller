@@ -41,7 +41,8 @@ func main() {
 		flagKernelSrc      = flag.String("kernel_src", "", "path to kernel sources")
 		flagKernelBuildSrc = flag.String("kernel_build_src", "", "path to kernel image's build dir (optional)")
 		flagKernelObj      = flag.String("kernel_obj", "", "path to kernel build/obj dir")
-		flagExport         = flag.String("csv", "", "export coverage data in csv format (optional)")
+		flagExportCSV      = flag.String("csv", "", "export coverage data in csv format (optional)")
+		flagExportHTML     = flag.String("html", "", "save coverage HTML report to file (optional)")
 	)
 	defer tool.Init()()
 
@@ -74,17 +75,23 @@ func main() {
 	}
 	progs := []cover.Prog{{PCs: pcs}}
 	buf := new(bytes.Buffer)
-	if *flagExport != "" {
+	if *flagExportCSV != "" {
 		if err := rg.DoCSV(buf, progs, nil); err != nil {
 			tool.Fail(err)
 		}
-		if err := osutil.WriteFile(*flagExport, buf.Bytes()); err != nil {
+		if err := osutil.WriteFile(*flagExportCSV, buf.Bytes()); err != nil {
 			tool.Fail(err)
 		}
 		return
 	}
 	if err := rg.DoHTML(buf, progs, nil); err != nil {
 		tool.Fail(err)
+	}
+	if *flagExportHTML != "" {
+		if err := osutil.WriteFile(*flagExportHTML, buf.Bytes()); err != nil {
+			tool.Fail(err)
+		}
+		return
 	}
 	fn, err := osutil.TempFile("syz-cover")
 	if err != nil {
