@@ -44,6 +44,7 @@ func (mgr *Manager) initHTTP() {
 	handle("/metrics", promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}).ServeHTTP)
 	handle("/syscalls", mgr.httpSyscalls)
 	handle("/syscallsjson", mgr.httpSyscallsJSON)
+	handle("/disabledsyscallsjson", mgr.httpDisabledSyscallsJSON)
 	handle("/corpus", mgr.httpCorpus)
 	handle("/corpus.db", mgr.httpDownloadCorpus)
 	handle("/corpusjson", mgr.httpCorpusJSON)
@@ -171,6 +172,42 @@ func (mgr *Manager) httpSyscallsJSON(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(jsonSyscalls)
+}
+
+func (mgr *Manager) httpDisabledSyscallsJSON(w http.ResponseWriter, r *http.Request) {
+	// targetArch := mgr.cfg.TargetArch
+	// targetOS := mgr.cfg.TargetOS
+	target, err := prog.GetTarget("linux", "amd64")
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to get Disabled Syscalls", err),
+			http.StatusInternalServerError)
+	}
+
+	calls := make(map[*prog.Syscall]bool)
+	
+	for _, id := range mgr.cfg.Syscalls {
+		c := target.Syscalls[id]
+		calls[c] = true
+	}
+
+	_, disabled := target.TransitivelyEnabledCalls(calls)
+
+	disabledcalls := make(map[string]string)
+
+	for syscall, reason := range disabled {
+		disabledcalls[syscall.Name] = reason
+	}
+	jsonDisabledSyscalls, err := json.Marshal(disabledcalls)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to encode json: %v", err),
+			http.StatusInternalServerError)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Write(jsonDisabledSyscalls)
 }
 
 func (mgr *Manager) httpStats(w http.ResponseWriter, r *http.Request) {
