@@ -59,6 +59,7 @@ include <uapi/linux/close_range.h>
 include <uapi/linux/netfilter/xt_cgroup.h>
 include <fs/cifs/cifsglob.h>
 include <xen/interface/io/xs_wire.h>
+include <timex.h>
 
 resource fd[int32]: -1
 resource fd_dir[fd]: AT_FDCWD
@@ -260,6 +261,7 @@ ptrace$setsig(req const[PTRACE_SETSIGINFO], pid pid, ignored intptr, data ptr[in
 ptrace$setopts(req flags[ptrace_req_setopts], pid pid, ignored intptr, flags flags[ptrace_options]) (breaks_returns)
 ptrace$getenv(req const[PTRACE_GETEVENTMSG], pid pid, ignored intptr, data ptr[out, intptr]) (breaks_returns)
 ptrace$cont(req flags[ptrace_req_cont], pid pid, ignored intptr, data intptr) (breaks_returns)
+ptrace$broken(req flags[ptrace_req_cont], pid const[0xdeadbeaf])
 ptrace$PTRACE_SECCOMP_GET_FILTER(req const[PTRACE_SECCOMP_GET_FILTER], pid pid, addr intptr, data ptr[out, array[int8]]) (breaks_returns)
 ptrace$PTRACE_SECCOMP_GET_METADATA(req const[PTRACE_SECCOMP_GET_METADATA], pid pid, addr len[data], data ptr[in, seccomp_metadata]) (breaks_returns)
 
@@ -459,6 +461,7 @@ timer_delete(timerid timerid)
 time(t ptr[out, intptr])
 clock_gettime(id flags[clock_id], tp ptr[out, timespec])
 clock_settime(id flags[clock_id], tp ptr[in, timespec])
+adjtimex(tx ptr[in, timex])
 clock_adjtime(id flags[clock_id], tx ptr[in, timex])
 clock_getres(id flags[clock_id], tp ptr[out, timespec])
 clock_nanosleep(id flags[clock_id], flags flags[timer_flags], rqtp ptr[in, timespec], rmtp ptr[out, timespec, opt])
@@ -509,6 +512,7 @@ sched_getattr(pid pid, attr ptr[out, sched_attr], size len[attr], flags const[0]
 sched_setattr(pid pid, attr ptr[in, sched_attr], flags const[0])
 sched_yield()
 getrandom(buf buffer[out], len len[buf], flags flags[getrandom_flags])
+getcpu(cpu ptr[in, int64], node ptr[in, int64])
 
 membarrier(cmd flags[membarrier_cmd], flags const[0])
 
