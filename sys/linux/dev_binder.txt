@@ -9,7 +9,6 @@
 
 include <linux/android/binder.h>
 include <linux/fcntl.h>
-include <linux/swap.h>
 
 resource fd_binder[fd]
 resource binder_ptr[int64]: 0
@@ -28,8 +27,6 @@ openat$vndbinder(fd const[AT_FDCWD], file ptr[in, string["/dev/vndbinder"]], fla
 mmap$binder(addr vma, len len[addr], prot const[PROT_READ], flags const[MAP_SHARED], fd fd_binder, offset fileoff) binder_ptr
 
 
-swapon$binder(file ptr[in, filename] , flags flags[swapflags])
-swapoff$binder(file ptr[in, filename])
 
 
 ioctl$BINDER_SET_MAX_THREADS(fd fd_binder, cmd const[BINDER_SET_MAX_THREADS], arg ptr[in, int32])

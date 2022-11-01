@@ -50,5 +50,3 @@ __NR_ioctl = 54, amd64:16, arm64:riscv64:29, mips64le:5015
 __NR_mmap = 90, 386:arm:192, amd64:9, arm64:riscv64:222, mips64le:5009
 __NR_mmap2 = 192, amd64:arm64:mips64le:ppc64le:riscv64:s390x:???
 __NR_openat = 56, 386:295, amd64:257, arm:322, mips64le:5247, ppc64le:286, s390x:288
-__NR_swapoff = 115, amd64:168, arm64:riscv64:225, mips64le:5163
-__NR_swapon = 87, amd64:167, arm64:riscv64:224, mips64le:5162

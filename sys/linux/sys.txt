@@ -60,7 +60,6 @@ include <uapi/linux/close_range.h>
 include <uapi/linux/netfilter/xt_cgroup.h>
 include <fs/cifs/cifsglob.h>
 include <xen/interface/io/xs_wire.h>
-include <timex.h>
 
 resource fd[int32]: -1
 resource fd_dir[fd]: AT_FDCWD
@@ -468,7 +467,6 @@ timer_delete(timerid timerid)
 time(t ptr[out, intptr])
 clock_gettime(id flags[clock_id], tp ptr[out, timespec])
 clock_settime(id flags[clock_id], tp ptr[in, timespec])
-adjtimex(tx ptr[in, timex])
 clock_adjtime(id flags[clock_id], tx ptr[in, timex])
 clock_getres(id flags[clock_id], tp ptr[out, timespec])
 clock_nanosleep(id flags[clock_id], flags flags[timer_flags], rqtp ptr[in, timespec], rmtp ptr[out, timespec, opt])
