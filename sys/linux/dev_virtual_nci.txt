@@ -1,0 +1,276 @@
+# Copyright 2022 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/asm/ioctl.h>
+include <uapi/linux/fcntl.h>
+include <net/nfc/nci.h>
+
+resource fd_nci[fd]
+
+resource nfc_dev_id[int32]
+
+openat$nci(fd const[AT_FDCWD], file ptr[in, string["/dev/virtual_nci"]], flags const[O_RDWR], mode const[0]) fd_nci
+
+ioctl$IOCTL_GET_NCIDEV_IDX(fd fd_nci, cmd const[IOCTL_GET_NCIDEV_IDX], arg ptr[out, nfc_dev_id])
+read$nci(fd fd_nci, data ptr[out, array[int8]], len bytesize[data])
+write$nci(fd fd_nci, data ptr[in, nci_frame], len bytesize[data])
+
+define IOCTL_GET_NCIDEV_IDX	0
+define NCI_OP_CORE_RESET_RSP_OID	nci_opcode_oid(NCI_OP_CORE_RESET_RSP)
+define NCI_OP_CORE_INIT_RSP_OID	nci_opcode_oid(NCI_OP_CORE_INIT_RSP)
+define NCI_OP_CORE_SET_CONFIG_RSP_OID	nci_opcode_oid(NCI_OP_CORE_SET_CONFIG_RSP)
+define NCI_OP_CORE_CONN_CREATE_RSP_OID	nci_opcode_oid(NCI_OP_CORE_CONN_CREATE_RSP)
+define NCI_OP_CORE_CONN_CLOSE_RSP_OID	nci_opcode_oid(NCI_OP_CORE_CONN_CLOSE_RSP)
+define NCI_OP_RF_DISCOVER_MAP_RSP_OID	nci_opcode_oid(NCI_OP_RF_DISCOVER_MAP_RSP)
+define NCI_OP_RF_DISCOVER_RSP_OID	nci_opcode_oid(NCI_OP_RF_DISCOVER_RSP)
+define NCI_OP_RF_DISCOVER_SELECT_RSP_OID	nci_opcode_oid(NCI_OP_RF_DISCOVER_SELECT_RSP)
+define NCI_OP_RF_DEACTIVATE_RSP_OID	nci_opcode_oid(NCI_OP_RF_DEACTIVATE_RSP)
+define NCI_OP_NFCEE_DISCOVER_RSP_OID	nci_opcode_oid(NCI_OP_NFCEE_DISCOVER_RSP)
+define NCI_OP_NFCEE_MODE_SET_RSP_OID	nci_opcode_oid(NCI_OP_NFCEE_MODE_SET_RSP)
+
+define NCI_OP_CORE_RESET_NTF_OID	nci_opcode_oid(NCI_OP_CORE_RESET_NTF)
+define NCI_OP_CORE_CONN_CREDITS_NTF_OID	nci_opcode_oid(NCI_OP_CORE_CONN_CREDITS_NTF)
+define NCI_OP_CORE_GENERIC_ERROR_NTF_OID	nci_opcode_oid(NCI_OP_CORE_GENERIC_ERROR_NTF)
+define NCI_OP_CORE_INTF_ERROR_NTF_OID	nci_opcode_oid(NCI_OP_CORE_INTF_ERROR_NTF)
+define NCI_OP_RF_DISCOVER_NTF_OID	nci_opcode_oid(NCI_OP_RF_DISCOVER_NTF)
+define NCI_OP_RF_INTF_ACTIVATED_NTF_OID	nci_opcode_oid(NCI_OP_RF_INTF_ACTIVATED_NTF)
+define NCI_OP_RF_DEACTIVATE_NTF_OID	nci_opcode_oid(NCI_OP_RF_DEACTIVATE_NTF)
+define NCI_OP_NFCEE_DISCOVER_NTF_OID	nci_opcode_oid(NCI_OP_NFCEE_DISCOVER_NTF)
+define NCI_OP_RF_NFCEE_ACTION_NTF_OID	nci_opcode_oid(NCI_OP_RF_NFCEE_ACTION_NTF)
+
+# The exact error code does not matter much (only ok/not ok).
+type nci_status int8[0:1]
+
+nci_frame [
+	DATA				nci_data_hdr
+
+	NCI_GID_PROPRIETARY_RSP		nci_ctrl_hdr[NCI_MT_RSP_PKT, NCI_GID_PROPRIETARY, 0, array[int8]]
+
+	NCI_OP_CORE_RESET_RSP		nci_ctrl_hdr[NCI_MT_RSP_PKT, NCI_GID_CORE, NCI_OP_CORE_RESET_RSP_OID, nci_core_reset_rsp]
+	NCI_OP_CORE_INIT_RSP		nci_ctrl_hdr[NCI_MT_RSP_PKT, NCI_GID_CORE, NCI_OP_CORE_INIT_RSP_OID, nci_core_init_rsp]
+	NCI_OP_CORE_INIT_RSP_V2		nci_ctrl_hdr[NCI_MT_RSP_PKT, NCI_GID_CORE, NCI_OP_CORE_INIT_RSP_OID, nci_core_init_rsp_nci_ver2]
+	NCI_OP_CORE_SET_CONFIG_RSP	nci_ctrl_hdr[NCI_MT_RSP_PKT, NCI_GID_CORE, NCI_OP_CORE_SET_CONFIG_RSP_OID, nci_core_set_config_rsp]
+	NCI_OP_CORE_CONN_CREATE_RSP	nci_ctrl_hdr[NCI_MT_RSP_PKT, NCI_GID_CORE, NCI_OP_CORE_CONN_CREATE_RSP_OID, nci_core_conn_create_rsp]
+	NCI_OP_CORE_CONN_CLOSE_RSP	nci_ctrl_hdr[NCI_MT_RSP_PKT, NCI_GID_CORE, NCI_OP_CORE_CONN_CLOSE_RSP_OID, nci_status]
+
+	NCI_OP_RF_DISCOVER_MAP_RSP	nci_ctrl_hdr[NCI_MT_RSP_PKT, NCI_GID_RF_MGMT, NCI_OP_RF_DISCOVER_MAP_RSP_OID, nci_status]
+	NCI_OP_RF_DISCOVER_RSP		nci_ctrl_hdr[NCI_MT_RSP_PKT, NCI_GID_RF_MGMT, NCI_OP_RF_DISCOVER_RSP_OID, nci_status]
+	NCI_OP_RF_DISCOVER_SELECT_RSP	nci_ctrl_hdr[NCI_MT_RSP_PKT, NCI_GID_RF_MGMT, NCI_OP_RF_DISCOVER_SELECT_RSP_OID, nci_status]
+	NCI_OP_RF_DEACTIVATE_RSP	nci_ctrl_hdr[NCI_MT_RSP_PKT, NCI_GID_RF_MGMT, NCI_OP_RF_DEACTIVATE_RSP_OID, nci_status]
+
+	NCI_OP_NFCEE_DISCOVER_RSP	nci_ctrl_hdr[NCI_MT_RSP_PKT, NCI_GID_NFCEE_MGMT, NCI_OP_NFCEE_DISCOVER_RSP_OID, nci_nfcee_discover_rsp]
+	NCI_OP_NFCEE_MODE_SET_RSP	nci_ctrl_hdr[NCI_MT_RSP_PKT, NCI_GID_NFCEE_MGMT, NCI_OP_NFCEE_MODE_SET_RSP_OID, nci_status]
+
+	NCI_GID_PROPRIETARY_NFT		nci_ctrl_hdr[NCI_MT_NTF_PKT, NCI_GID_PROPRIETARY, 0, array[int8]]
+
+	NCI_OP_CORE_RESET_NTF		nci_ctrl_hdr[NCI_MT_NTF_PKT, NCI_GID_CORE, NCI_OP_CORE_RESET_NTF_OID, nci_core_reset_ntf]
+	NCI_OP_CORE_CONN_CREDITS_NTF	nci_ctrl_hdr[NCI_MT_NTF_PKT, NCI_GID_CORE, NCI_OP_CORE_CONN_CREDITS_NTF_OID, nci_core_conn_credit_ntf]
+	NCI_OP_CORE_GENERIC_ERROR_NTF	nci_ctrl_hdr[NCI_MT_NTF_PKT, NCI_GID_CORE, NCI_OP_CORE_GENERIC_ERROR_NTF_OID, nci_status]
+	NCI_OP_CORE_INTF_ERROR_NTF	nci_ctrl_hdr[NCI_MT_NTF_PKT, NCI_GID_CORE, NCI_OP_CORE_INTF_ERROR_NTF_OID, nci_core_intf_error_ntf]
+
+	NCI_OP_RF_DISCOVER_NTF		nci_ctrl_hdr[NCI_MT_NTF_PKT, NCI_GID_RF_MGMT, NCI_OP_RF_DISCOVER_NTF_OID, nci_rf_discover_ntf_t]
+	NCI_OP_RF_INTF_ACTIVATED_NTF	nci_ctrl_hdr[NCI_MT_NTF_PKT, NCI_GID_RF_MGMT, NCI_OP_RF_INTF_ACTIVATED_NTF_OID, nci_rf_intf_activated_ntf_t]
+	NCI_OP_RF_DEACTIVATE_NTF	nci_ctrl_hdr[NCI_MT_NTF_PKT, NCI_GID_RF_MGMT, NCI_OP_RF_DEACTIVATE_NTF_OID, nci_rf_deactivate_ntf]
+	NCI_OP_RF_NFCEE_ACTION_NTF	nci_ctrl_hdr[NCI_MT_NTF_PKT, NCI_GID_RF_MGMT, NCI_OP_RF_NFCEE_ACTION_NTF_OID, void]
+
+	NCI_OP_NFCEE_DISCOVER_NTF	nci_ctrl_hdr[NCI_MT_NTF_PKT, NCI_GID_NFCEE_MGMT, NCI_OP_NFCEE_DISCOVER_NTF_OID, nci_nfcee_discover_ntf]
+] [varlen]
+
+nci_data_hdr {
+	conn_id	int8:4[0:4]
+# NCI_PBF_LAST/NCI_PBF_CONT
+	pbf	int8:1
+# This does not seem to be used.
+	mt	const[NCI_MT_DATA_PKT, int8:3]
+# This does not seem to be used.
+	rfu	const[0, int8]
+# It does not seem to be actually used/verified by the code (only logged), so let's keep random.
+	plen	int8
+	data	array[int8]
+} [packed]
+
+type nci_ctrl_hdr[MT, GID, OID, PAYLOAD] {
+	gid	const[GID, int8:4]
+# NCI_PBF_LAST/NCI_PBF_CONT
+	pbf	int8:1
+	mt	const[MT, int8:3]
+	oid	const[OID, int8]
+# It does not seem to be actually used/verified by the code (only logged), so let's keep random.
+	plen	int8
+	payload	PAYLOAD
+} [packed]
+
+nci_core_reset_rsp {
+	status		nci_status
+	nci_ver		flags[nci_ver, int8]
+	config_status	int8
+} [packed]
+
+nci_ver = 0, 1, NCI_VER_2_MASK
+
+nci_core_init_rsp {
+	rsp1	nci_core_init_rsp_1
+	rsp2	nci_core_init_rsp_2
+} [packed]
+
+nci_core_init_rsp_1 {
+	status				nci_status
+	nfcc_features			int32
+	num_supported_rf_interfaces	len[supported_rf_interfaces, int8]
+	supported_rf_interfaces		array[int8]
+} [packed]
+
+nci_core_init_rsp_2 {
+	max_logical_connections		int8
+	max_routing_table_size		int16
+	max_ctrl_pkt_payload_len	int8
+	max_size_for_large_params	int16
+	manufact_id			int8
+	manufact_specific_info		int32
+} [packed]
+
+nci_core_init_rsp_nci_ver2 {
+	status				nci_status
+	nfcc_features			int32
+	max_logical_connections		int8
+	max_routing_table_size		int16
+	max_ctrl_pkt_payload_len	int8
+	max_data_pkt_hci_payload_len	int8
+	number_of_hci_credit		int8
+	max_nfc_v_frame_size		int16
+	num_supported_rf_interfaces	len[supported_rf_interfaces, int8]
+	supported_rf_interfaces		array[int8]
+} [packed]
+
+nci_core_set_config_rsp {
+	status		nci_status
+	num_params	len[params_id, int8]
+	params_id	array[int8]
+} [packed]
+
+nci_core_conn_create_rsp {
+	status				nci_status
+	max_ctrl_pkt_payload_len	int8
+	credits_cnt			int8
+	conn_id				int8[0:4]
+} [packed]
+
+nci_nfcee_discover_rsp {
+	status		nci_status
+	num_nfcee	int8
+} [packed]
+
+nci_core_reset_ntf {
+	reset_trigger			int8
+	config_status			int8
+	nci_ver				flags[nci_ver, int8]
+	manufact_id			int8
+	manufacturer_specific_len	int8
+	manufact_specific_info		int32
+} [packed]
+
+nci_core_conn_credit_ntf {
+	num_entries	len[conn_entries, int8]
+	conn_entries	array[conn_credit_entry]
+} [packed]
+
+conn_credit_entry {
+	conn_id	int8[0:4]
+	credits	int8
+} [packed]
+
+nci_core_intf_error_ntf {
+	status	nci_status
+	conn_id	int8[0:4]
+} [packed]
+
+nci_rf_discover_ntf_t [
+	a	nci_rf_discover_ntf[NCI_NFC_A_PASSIVE_POLL_MODE, rf_tech_specific_params_nfca_poll]
+	b	nci_rf_discover_ntf[NCI_NFC_B_PASSIVE_POLL_MODE, rf_tech_specific_params_nfcb_poll]
+	f	nci_rf_discover_ntf[NCI_NFC_F_PASSIVE_POLL_MODE, rf_tech_specific_params_nfcf_poll]
+	v	nci_rf_discover_ntf[NCI_NFC_V_PASSIVE_POLL_MODE, rf_tech_specific_params_nfcv_poll]
+] [varlen]
+
+type nci_rf_discover_ntf[MODE, POLL] {
+	rf_discovery_id			int8
+	rf_protocol			flags[nci_rf_protocol, int8]
+	rf_tech_and_mode		const[MODE, int8]
+	rf_tech_specific_params_len	int8
+	poll				POLL
+	ntf_type			flags[nci_discover_ntf_type, int8]
+} [packed]
+
+nci_rf_protocol = NCI_RF_PROTOCOL_UNKNOWN, NCI_RF_PROTOCOL_T1T, NCI_RF_PROTOCOL_T2T, NCI_RF_PROTOCOL_T3T, NCI_RF_PROTOCOL_ISO_DEP, NCI_RF_PROTOCOL_NFC_DEP, NCI_RF_PROTOCOL_T5T
+
+rf_tech_specific_params_nfca_poll {
+	sens_res	int8
+	nfcid1_len	len[nfcid1, int8]
+	nfcid1		array[int8]
+	sel_res_len	int8
+	sel_res		int8
+} [packed]
+
+rf_tech_specific_params_nfcb_poll {
+	sensb_res_len	len[sensb_res, int8]
+	sensb_res	array[int8]
+} [packed]
+
+rf_tech_specific_params_nfcf_listen {
+	local_nfcid2_len	len[local_nfcid2, int8]
+	local_nfcid2		array[int8]
+} [packed]
+
+rf_tech_specific_params_nfcf_poll {
+	bit_rate	int8
+	sensf_res_len	len[sensf_res, int8]
+	sensf_res	array[int8]
+} [packed]
+
+rf_tech_specific_params_nfcv_poll {
+	res_flags	int8
+	dsfid		int8
+	uid		array[int8, NFC_ISO15693_UID_MAXSIZE]
+} [packed]
+
+nci_rf_intf_activated_ntf_t [
+	a		nci_rf_intf_activated_ntf[NCI_NFC_A_PASSIVE_POLL_MODE, rf_tech_specific_params_nfca_poll]
+	b		nci_rf_intf_activated_ntf[NCI_NFC_B_PASSIVE_POLL_MODE, rf_tech_specific_params_nfcb_poll]
+	f		nci_rf_intf_activated_ntf[NCI_NFC_F_PASSIVE_POLL_MODE, rf_tech_specific_params_nfcf_poll]
+	v		nci_rf_intf_activated_ntf[NCI_NFC_V_PASSIVE_POLL_MODE, rf_tech_specific_params_nfcv_poll]
+	a_listen	nci_rf_intf_activated_ntf[NCI_NFC_A_PASSIVE_LISTEN_MODE, void]
+	f_listen	nci_rf_intf_activated_ntf[NCI_NFC_F_PASSIVE_LISTEN_MODE, rf_tech_specific_params_nfcf_listen]
+] [varlen]
+
+type nci_rf_intf_activated_ntf[MODE, POLL] {
+	rf_discovery_id			int8
+	rf_interface			flags[nci_rf_interface, int8]
+	rf_protocol			flags[nci_rf_protocol, int8]
+	activation_rf_tech_and_mode	const[MODE, int8]
+	max_data_pkt_payload_size	int8
+	initial_num_credits		int8
+	rf_tech_specific_params_len	int8
+	poll				POLL
+	data_exch_rf_tech_and_mode	int8
+	data_exch_tx_bit_rate		int8
+	data_exch_rx_bit_rate		int8
+	activation_params_len		int8
+# This is how all of activation_params_nfca_poll_iso_dep, activation_params_nfcb_poll_iso_dep,
+# activation_params_poll_nfc_dep and activation_params_listen_nfc_dep look like.
+	res_len				len[res, int8]
+	res				array[int8]
+} [packed]
+
+nci_rf_interface = NCI_RF_INTERFACE_NFCEE_DIRECT, NCI_RF_INTERFACE_FRAME, NCI_RF_INTERFACE_ISO_DEP, NCI_RF_INTERFACE_NFC_DEP
+
+nci_rf_deactivate_ntf {
+	type	int8
+	reason	int8
+} [packed]
+
+nci_nfcee_discover_ntf {
+	nfcee_id	int8
+	nfcee_status	int8
+	unused		array[int8]
+} [packed]
+
+nci_discover_ntf_type = NCI_DISCOVER_NTF_TYPE_LAST, NCI_DISCOVER_NTF_TYPE_LAST_NFCC, NCI_DISCOVER_NTF_TYPE_MORE
