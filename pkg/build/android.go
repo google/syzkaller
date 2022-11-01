@@ -25,7 +25,7 @@ type android struct{}
 func (a android) runBuild(kernelDir, buildConfig string) error {
 	cmd := osutil.Command("build/build.sh")
 	cmd.Dir = kernelDir
-	cmd.Env = append(cmd.Env, "DIST_DIR=out/dist", fmt.Sprintf("BUILD_CONFIG=%s", buildConfig))
+	cmd.Env = append(cmd.Env, "OUT_DIR=out", "DIST_DIR=dist", fmt.Sprintf("BUILD_CONFIG=%s", buildConfig))
 
 	_, err := osutil.Run(time.Hour, cmd)
 	return err
@@ -82,10 +82,13 @@ func (a android) build(params Params) (ImageDetails, error) {
 		return details, fmt.Errorf("failed to build modules: %s", err)
 	}
 
-	buildOutDir := filepath.Join(params.KernelDir, "out", "dist")
-	bzImage := filepath.Join(buildOutDir, "bzImage")
-	vmlinux := filepath.Join(buildOutDir, "vmlinux")
-	initramfs := filepath.Join(buildOutDir, "initramfs.img")
+	buildDistDir := filepath.Join(params.KernelDir, "dist")
+	bzImage := filepath.Join(buildDistDir, "bzImage")
+	vmlinux := filepath.Join(buildDistDir, "vmlinux")
+	initramfs := filepath.Join(buildDistDir, "initramfs.img")
+
+	buildOutDir := filepath.Join(params.KernelDir, "out")
+	config := filepath.Join(buildOutDir, "common", ".config")
 
 	var err error
 	details.CompilerID, err = a.readCompiler(filepath.Join(buildOutDir, "kernel-headers.tar.gz"))
@@ -115,6 +118,9 @@ func (a android) build(params Params) (ImageDetails, error) {
 		return details, err
 	}
 	if err := osutil.CopyFile(initramfs, filepath.Join(params.OutputDir, "obj", "initrd")); err != nil {
+		return details, err
+	}
+	if err := osutil.CopyFile(config, filepath.Join(params.OutputDir, "kernel.config")); err != nil {
 		return details, err
 	}
 
