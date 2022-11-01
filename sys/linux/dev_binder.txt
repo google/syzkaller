@@ -26,7 +26,10 @@ openat$vndbinder(fd const[AT_FDCWD], file ptr[in, string["/dev/vndbinder"]], fla
 
 mmap$binder(addr vma, len len[addr], prot const[PROT_READ], flags const[MAP_SHARED], fd fd_binder, offset fileoff) binder_ptr
 
-
+#release$binder(file ptr[in, fd_binder], file ptr) 
+#tcflush$binder(fd fd_binder, queue_selector flags[binder_tcflush_flags]) 
+#binder_flusg
+ioctl$BINDER_SET_IDLE_TIMEOUT(fd fd_binder, cmd const[BINDER_SET_IDLE_TIMEOUT], arg ptr[in, int32])
 
 
 ioctl$BINDER_SET_MAX_THREADS(fd fd_binder, cmd const[BINDER_SET_MAX_THREADS], arg ptr[in, int32])
@@ -36,10 +39,12 @@ ioctl$BINDER_THREAD_EXIT(fd fd_binder, cmd const[BINDER_THREAD_EXIT], arg const[
 ioctl$BINDER_GET_NODE_DEBUG_INFO(fd fd_binder, cmd const[BINDER_GET_NODE_DEBUG_INFO], arg ptr[inout, binder_node_debug_info])
 ioctl$BINDER_WRITE_READ(fd fd_binder, cmd const[BINDER_WRITE_READ], arg ptr[in, binder_write_read])
 ioctl$BINDER_GET_NODE_INFO_FOR_REF(fd fd_binder, cmd const[BINDER_GET_NODE_INFO_FOR_REF], arg ptr[in, binder_node_info_for_ref])
-ioctl$BINDER_FREEZE(fd fd_binder, cmd const[BINDER_FREEZE], arg ptr[in, binder_freeze_info])
+ioctl$BINDER_FREEZE(fd fd_binder, cmd const[BINDER_FREEZE], arg ptr[in, binder_freeze_info]) 
 ioctl$BINDER_GET_FROZEN_INFO(fd fd_binder, cmd const[BINDER_GET_FROZEN_INFO], arg ptr[in, binder_frozen_status_info])
 ioctl$BINDER_ENABLE_ONEWAY_SPAM_DETECTION(fd fd_binder, cmd const[BINDER_ENABLE_ONEWAY_SPAM_DETECTION], arg ptr[in, bool32])
 ioctl$BINDER_GET_EXTENDED_ERROR(fd fd_binder, cmd const[BINDER_GET_EXTENDED_ERROR], arg ptr[out, binder_extended_error])
+ioctl$BINDER_SET_IDLE_PRIORITY(fd fd_binder, cmd const[BINDER_SET_IDLE_PRIORITY], arg const[0])
+ioctl$BINDER_VERSION(fd fd_binder, cmd const[BINDER_VERSION], arg ptr[inout, binder_version])
 
 openat$binder_debug(fd const[AT_FDCWD], file ptr[in, string[binder_debug_file]], flags const[O_RDONLY], mode const[0]) fd
 
@@ -48,12 +53,23 @@ binder_debug_file = "/sys/kernel/debug/binder/failed_transaction_log", "/sys/ker
 binder_open_flags = O_RDWR, O_NONBLOCK
 _ = __NR_mmap2
 
+#binder_tcflush_flags = TCIFLUSH, TCOFLUSH, TCIOFLUSH
 
-
+#inode{
+#	i_mode flags[int16]
+#	i_opflags flags[int16]
+#	i_uid flag 
+#	i_gid flag 
+#	i_flags
+#}
 binder_freeze_info {
 	pid		pid
 	enable		bool32
 	timeout_ms	int32
+}
+
+binder_version {
+	protocol_version const[0, int32]
 }
 
 binder_frozen_status_info {
