@@ -9,6 +9,7 @@
 
 include <linux/android/binder.h>
 include <linux/fcntl.h>
+include <linux/swap.h>
 
 resource fd_binder[fd]
 resource binder_ptr[int64]: 0
@@ -25,6 +26,11 @@ openat$hwbinder(fd const[AT_FDCWD], file ptr[in, string["/dev/hwbinder"]], flags
 openat$vndbinder(fd const[AT_FDCWD], file ptr[in, string["/dev/vndbinder"]], flags flags[binder_open_flags], mode const[0]) fd_binder
 
 mmap$binder(addr vma, len len[addr], prot const[PROT_READ], flags const[MAP_SHARED], fd fd_binder, offset fileoff) binder_ptr
+
+
+swapon$binder(file ptr[in, filename] , flags flags[swapflags])
+swapoff$binder(file ptr[in, filename])
+
 
 ioctl$BINDER_SET_MAX_THREADS(fd fd_binder, cmd const[BINDER_SET_MAX_THREADS], arg ptr[in, int32])
 ioctl$BINDER_SET_CONTEXT_MGR(fd fd_binder, cmd const[BINDER_SET_CONTEXT_MGR], arg const[0])
@@ -44,6 +50,8 @@ binder_debug_file = "/sys/kernel/debug/binder/failed_transaction_log", "/sys/ker
 
 binder_open_flags = O_RDWR, O_NONBLOCK
 _ = __NR_mmap2
+
+
 
 binder_freeze_info {
 	pid		pid
