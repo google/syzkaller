@@ -13,5 +13,5 @@ static void setup_ext()
 static void setup_ext_test()
 {
 	// See TestCommonExt.
-	*(uint64*)(SYZ_DATA_OFFSET + 0x1234) = 0xbadc0ffee;
+	memcpy((void*)(SYZ_DATA_OFFSET + 0x1234), "\xee\xff\xc0\xad\x0b\x00\x00\x00", 8);
 }
