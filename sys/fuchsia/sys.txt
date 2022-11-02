@@ -21,14 +21,5 @@ syz_thread_self() zx_thread
 syz_vmar_root_self() zx_vmar
 syz_job_default() zx_job
 
-# TODO: the get_system_features_options flags are only valid on ARM;
-# find a way to make syzkaller generate ARM-specific code
-# zx_system_features(kind int32, features flags[get_system_features_options])
-zx_system_get_num_cpus()
-zx_system_get_physmem()
-zx_system_get_version(version ptr[out, array[int8]], version_len len[version])
-
 zx_cprng_draw(buffer ptr[out, array[int8]], len len[buffer])
 zx_cprng_add_entropy(buffer ptr[in, array[int8]], len len[buffer])
-
-# get_system_features_options = ZX_ARM_64_ISA_FP, ZX_ARM64_FEATURE_ASIMD, ZX_ARM64_FEATURE_ISA_AES, ZX_ARM64_FEATURE_ISA_PMULL, ZX_ARM64_FEATURE_ISA_SHA1, ZX_ARM64_FEATURE_ISA_SHA2, ZX_ARM64_FEATURE_ISA_CRC32, ZX_ARM64_FEATURE_ISA_ATOMICS, ZX_ARM64_FEATURE_ISA_RDM, ZX_ARM64_FEATURE_ISA_SHA3, ZX_ARM64_FEATURE_ISA_SM3, ZX_ARM64_FEATURE_ISA_SM4, ZX_ARM64_FEATURE_ISA_DP, ZX_ARM64_FEATURE_ISA_DPB
