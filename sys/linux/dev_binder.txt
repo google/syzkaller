@@ -26,9 +26,6 @@ openat$vndbinder(fd const[AT_FDCWD], file ptr[in, string["/dev/vndbinder"]], fla
 
 mmap$binder(addr vma, len len[addr], prot const[PROT_READ], flags const[MAP_SHARED], fd fd_binder, offset fileoff) binder_ptr
 
-#release$binder(file ptr[in, fd_binder], file ptr) 
-#tcflush$binder(fd fd_binder, queue_selector flags[binder_tcflush_flags]) 
-#binder_flusg
 ioctl$BINDER_SET_IDLE_TIMEOUT(fd fd_binder, cmd const[BINDER_SET_IDLE_TIMEOUT], arg ptr[in, int32])
 
 
@@ -48,20 +45,13 @@ ioctl$BINDER_VERSION(fd fd_binder, cmd const[BINDER_VERSION], arg ptr[inout, bin
 
 openat$binder_debug(fd const[AT_FDCWD], file ptr[in, string[binder_debug_file]], flags const[O_RDONLY], mode const[0]) fd
 
+riscv_flush_icache$BINDER(start const[0], end const[0], flags bool32)
+
 binder_debug_file = "/sys/kernel/debug/binder/failed_transaction_log", "/sys/kernel/debug/binder/state", "/sys/kernel/debug/binder/stats", "/sys/kernel/debug/binder/transaction_log", "/sys/kernel/debug/binder/transactions"
 
 binder_open_flags = O_RDWR, O_NONBLOCK
 _ = __NR_mmap2
 
-#binder_tcflush_flags = TCIFLUSH, TCOFLUSH, TCIOFLUSH
-
-#inode{
-#	i_mode flags[int16]
-#	i_opflags flags[int16]
-#	i_uid flag 
-#	i_gid flag 
-#	i_flags
-#}
 binder_freeze_info {
 	pid		pid
 	enable		bool32
