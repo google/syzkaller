@@ -20,6 +20,3 @@ syz_process_self() zx_process
 syz_thread_self() zx_thread
 syz_vmar_root_self() zx_vmar
 syz_job_default() zx_job
-
-zx_cprng_draw(buffer ptr[out, array[int8]], len len[buffer])
-zx_cprng_add_entropy(buffer ptr[in, array[int8]], len len[buffer])

@@ -1,0 +1,10 @@
+# Copyright 2022 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# See https://cs.opensource.google/fuchsia/fuchsia/+/main:zircon/vdso/cprng.fidl
+
+include <zircon/syscalls.h>
+include <zircon/types.h>
+
+zx_cprng_draw(buffer ptr[out, array[int8, 0:ZX_CPRNG_DRAW_MAX_LEN]], len len[buffer])
+zx_cprng_add_entropy(buffer ptr[in, array[int8, 0:ZX_CPRNG_ADD_ENTROPY_MAX_LEN]], len len[buffer])
