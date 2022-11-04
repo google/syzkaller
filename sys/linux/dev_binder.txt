@@ -9,7 +9,8 @@
 
 include <linux/android/binder.h>
 include <linux/fcntl.h>
-include <stat.h>
+include <linux/statfs.h>
+include <linux/stat.h>
 
 resource fd_binder[fd]
 resource binder_ptr[int64]: 0
@@ -46,7 +47,7 @@ ioctl$BINDER_SET_IDLE_PRIORITY(fd fd_binder, cmd const[BINDER_SET_IDLE_PRIORITY]
 ioctl$BINDER_VERSION(fd fd_binder, cmd const[BINDER_VERSION], arg ptr[inout, binder_version])
 
 openat$binder_debug(fd const[AT_FDCWD], file ptr[in, string[binder_debug_file]], flags const[O_RDONLY], mode const[0]) fd
-fstat$BINDER(fd fd, statbuf ptr[out,binder_stat_types]) 
+fstatfs$binder(fd fd, statbuf ptr[out, statfs]) 
 
 binder_debug_file = "/sys/kernel/debug/binder/failed_transaction_log", "/sys/kernel/debug/binder/state", "/sys/kernel/debug/binder/stats", "/sys/kernel/debug/binder/transaction_log", "/sys/kernel/debug/binder/transactions"
 
@@ -54,15 +55,19 @@ binder_debug_file = "/sys/kernel/debug/binder/failed_transaction_log", "/sys/ker
 binder_open_flags = O_RDWR, O_NONBLOCK
 _ = __NR_mmap2
 
-binder_stat_types{
-	BINDER_STAT_PROC int32
-	BINDER_STAT_THREAD int32
-	BINDER_STAT_NODE int32
-	BINDER_STAT_REF int32
-	BINDER_STAT_DEATH int32
-	BINDER_STAT_TRANSACTION int32
-	BINDER_STAT_TRANSACTION_COMPLETE int32
-	BINDER_STAT_COUNT int32
+statfs{
+f_type int32
+f_bsize int32
+f_blocks int64
+f_bfree int64
+f_bavail int64
+f_files int64
+f_ffree int64
+f_fsid int64
+f_f_namelen int32
+f_frsize int32
+f_spare int32
+
 }
 
 
