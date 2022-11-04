@@ -8,12 +8,14 @@ FROM ubuntu:16.04
 LABEL homepage="https://github.com/google/syzkaller"
 
 RUN dpkg --add-architecture i386 && apt-get update
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
+RUN DEBIAN_FRONTEND=noninteractive \
+	apt-get install -y -q --no-install-recommends \
 	sudo make nano git curl ca-certificates gnupg \
 	apt-transport-https software-properties-common g++ \
 	g++-arm-linux-gnueabi g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu \
 	g++-mips64el-linux-gnuabi64 g++-s390x-linux-gnu \
 	linux-libc-dev:i386 lib32gcc-5-dev lib32stdc++-5-dev \
+	zlib1g-dev zlib1g-dev:i386 \
 	&& \
 	apt-get -y autoremove && \
 	apt-get clean autoclean && \

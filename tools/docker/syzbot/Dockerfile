@@ -9,14 +9,19 @@
 FROM debian:bullseye
 
 RUN apt-get update --allow-releaseinfo-change
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
+RUN DEBIAN_FRONTEND=noninteractive \
+    dpkg --add-architecture arm64 && dpkg --add-architecture armel && \
+	dpkg --add-architecture i386 && dpkg --add-architecture mips64el && \
+	dpkg --add-architecture ppc64el && dpkg --add-architecture s390x && \
+	apt-get update && \
+	apt-get install -y -q \
 	# Build essentials:
 	gcc g++ binutils make ccache \
 	# Some common utilities:
 	unzip curl sudo procps psmisc nano vim git bzip2 dh-autoreconf software-properties-common \
 	# These are needed to build Linux kernel:
 	flex bison bc gawk dwarves cpio texinfo texi2html lzop lbzip2 \
-	zlib1g-dev libelf-dev libncurses-dev libmpc-dev libssl-dev \
+	libelf-dev libncurses-dev libmpc-dev libssl-dev \
 	# This is required to run alien arch binaries in pkg/cover tests:
 	qemu-user \
 	# These are required to run foreign arch kernels:
@@ -27,6 +32,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q \
 	g++-mips64el-linux-gnuabi64 g++-s390x-linux-gnu g++-riscv64-linux-gnu \
 	libc6-dev-i386 libc6-dev-i386-amd64-cross lib32gcc-10-dev lib32stdc++-10-dev \
 	apt-transport-https curl gnupg python-is-python3 \
+	zlib1g-dev zlib1g-dev:arm64 zlib1g-dev:armel zlib1g-dev:i386 \
+	zlib1g-dev:mips64el zlib1g-dev:ppc64el zlib1g-dev:s390x \
 	# Needed for building Cuttlefish images.
 	rsync libarchive-tools
 

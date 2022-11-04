@@ -8,11 +8,18 @@ FROM debian:bullseye
 LABEL homepage="https://github.com/google/syzkaller"
 
 RUN apt-get update --allow-releaseinfo-change
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
+RUN DEBIAN_FRONTEND=noninteractive \
+    dpkg --add-architecture arm64 && dpkg --add-architecture armel && \
+	dpkg --add-architecture i386 && dpkg --add-architecture mips64el && \
+	dpkg --add-architecture ppc64el && dpkg --add-architecture s390x && \
+	apt-get update && \
+	apt-get install -y -q --no-install-recommends \
 	sudo make python nano git curl ca-certificates binutils g++ \
 	g++-arm-linux-gnueabi g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu \
 	g++-mips64el-linux-gnuabi64 g++-s390x-linux-gnu g++-riscv64-linux-gnu \
 	libc6-dev-i386 libc6-dev-i386-amd64-cross lib32gcc-10-dev lib32stdc++-10-dev \
+	zlib1g-dev zlib1g-dev:arm64 zlib1g-dev:armel zlib1g-dev:i386 \
+	zlib1g-dev:mips64el zlib1g-dev:ppc64el zlib1g-dev:s390x \
 	# These are needed to build Linux kernel:
 	flex bison bc libelf-dev libssl-dev \
 	# qemu-user is required to run alien arch binaries in pkg/cover tests.
