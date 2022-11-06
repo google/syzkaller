@@ -20,6 +20,7 @@ import (
 	"github.com/google/syzkaller/pkg/html"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine/v2"
+	db "google.golang.org/appengine/v2/datastore"
 	"google.golang.org/appengine/v2/log"
 	aemail "google.golang.org/appengine/v2/mail"
 )
@@ -294,11 +295,11 @@ func incomingMail(c context.Context, r *http.Request) error {
 		// Sometimes it happens that somebody sends us our own text back, ignore it.
 		msg.Command, msg.CommandArgs = email.CmdNone, ""
 	}
-	bug, _, reporting := loadBugInfo(c, msg)
-	if bug == nil {
+	bugInfo := loadBugInfo(c, msg)
+	if bugInfo == nil {
 		return nil // error was already logged
 	}
-	emailConfig := reporting.Config.(*EmailConfig)
+	emailConfig := bugInfo.reporting.Config.(*EmailConfig)
 	// A mailing list can send us a duplicate email, to not process/reply
 	// to such duplicate emails, we ignore emails coming from our mailing lists.
 	mailingList := email.CanonicalEmail(emailConfig.Email)
@@ -306,7 +307,7 @@ func incomingMail(c context.Context, r *http.Request) error {
 	mailingListInCC := checkMailingListInCC(c, msg, mailingList)
 	log.Infof(c, "from/cc mailing list: %v/%v", fromMailingList, mailingListInCC)
 	if msg.Command == email.CmdTest {
-		return handleTestCommand(c, msg)
+		return handleTestCommand(c, bugInfo, msg)
 	}
 	if fromMailingList && msg.Command != email.CmdNone {
 		log.Infof(c, "duplicate email from mailing list, ignoring")
@@ -314,7 +315,7 @@ func incomingMail(c context.Context, r *http.Request) error {
 	}
 	cmd := &dashapi.BugUpdate{
 		Status: emailCmdToStatus[msg.Command],
-		ID:     msg.BugID,
+		ID:     bugInfo.bugReporting.ID,
 		ExtID:  msg.MessageID,
 		Link:   msg.Link,
 		CC:     msg.Cc,
@@ -367,13 +368,15 @@ var emailCmdToStatus = map[email.Command]dashapi.BugStatus{
 	email.CmdUnCC:     dashapi.BugStatusUnCC,
 }
 
-func handleTestCommand(c context.Context, msg *email.Email) error {
+func handleTestCommand(c context.Context, info *bugInfoResult, msg *email.Email) error {
 	args := strings.Split(msg.CommandArgs, " ")
 	if len(args) != 2 {
 		return replyTo(c, msg, fmt.Sprintf("want 2 args (repo, branch), got %v", len(args)))
 	}
-	reply := handleTestRequest(c, msg.BugID, email.CanonicalEmail(msg.From),
-		msg.MessageID, msg.Link, msg.Patch, args[0], args[1], msg.Cc)
+	reply := handleTestRequest(c, &testReqArgs{
+		bug: info.bug, bugKey: info.bugKey, bugReporting: info.bugReporting,
+		user: email.CanonicalEmail(msg.From), extID: msg.MessageID, link: msg.Link,
+		patch: msg.Patch, repo: args[0], branch: args[1], jobCC: msg.Cc})
 	if reply != "" {
 		return replyTo(c, msg, reply)
 	}
@@ -398,7 +401,14 @@ func handleEmailBounce(w http.ResponseWriter, r *http.Request) {
 // These are just stale emails in MAINTAINERS.
 var nonCriticalBounceRe = regexp.MustCompile(`\*\* Address not found \*\*|550 #5\.1\.0 Address rejected`)
 
-func loadBugInfo(c context.Context, msg *email.Email) (bug *Bug, bugReporting *BugReporting, reporting *Reporting) {
+type bugInfoResult struct {
+	bug          *Bug
+	bugKey       *db.Key
+	bugReporting *BugReporting
+	reporting    *Reporting
+}
+
+func loadBugInfo(c context.Context, msg *email.Email) *bugInfoResult {
 	if msg.BugID == "" {
 		if msg.Command == email.CmdNone {
 			// This happens when people CC syzbot on unrelated emails.
@@ -414,9 +424,9 @@ func loadBugInfo(c context.Context, msg *email.Email) (bug *Bug, bugReporting *B
 				log.Errorf(c, "failed to send reply: %v", err)
 			}
 		}
-		return nil, nil, nil
+		return nil
 	}
-	bug, _, err := findBugByReportingID(c, msg.BugID)
+	bug, bugKey, err := findBugByReportingID(c, msg.BugID)
 	if err != nil {
 		log.Errorf(c, "can't find bug: %v", err)
 		from, err := email.AddAddrContext(ownEmail(c), "HASH")
@@ -427,28 +437,29 @@ func loadBugInfo(c context.Context, msg *email.Email) (bug *Bug, bugReporting *B
 		if err := replyTo(c, msg, fmt.Sprintf(replyBadBugID, from)); err != nil {
 			log.Errorf(c, "failed to send reply: %v", err)
 		}
-		return nil, nil, nil
+		return nil
 	}
-	bugReporting, _ = bugReportingByID(bug, msg.BugID)
+	bugReporting, _ := bugReportingByID(bug, msg.BugID)
 	if bugReporting == nil {
 		log.Errorf(c, "can't find bug reporting: %v", err)
 		if err := replyTo(c, msg, "Can't find the corresponding bug."); err != nil {
 			log.Errorf(c, "failed to send reply: %v", err)
 		}
-		return nil, nil, nil
+		return nil
 	}
-	reporting = config.Namespaces[bug.Namespace].ReportingByName(bugReporting.Name)
+	reporting := config.Namespaces[bug.Namespace].ReportingByName(bugReporting.Name)
 	if reporting == nil {
 		log.Errorf(c, "can't find reporting for this bug: namespace=%q reporting=%q",
 			bug.Namespace, bugReporting.Name)
-		return nil, nil, nil
+		return nil
 	}
 	if reporting.Config.Type() != emailType {
 		log.Errorf(c, "reporting is not email: namespace=%q reporting=%q config=%q",
 			bug.Namespace, bugReporting.Name, reporting.Config.Type())
-		return nil, nil, nil
+		return nil
 	}
-	return bug, bugReporting, reporting
+	return &bugInfoResult{bug, bugKey, bugReporting, reporting}
+	}
 }
 
 func checkMailingListInCC(c context.Context, msg *email.Email, mailingList string) bool {

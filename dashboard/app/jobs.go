@@ -19,75 +19,7 @@ import (
 	"google.golang.org/appengine/v2/log"
 )
 
-// handleTestRequest added new job to db.
-// Returns empty string if job added successfully, or reason why it wasn't added.
-func handleTestRequest(c context.Context, bugID, user, extID, link, patch, repo, branch string,
-	jobCC []string) string {
-	log.Infof(c, "test request: bug=%q user=%q extID=%q patch=%v, repo=%q branch=%q",
-		bugID, user, extID, len(patch), repo, branch)
-	for _, blocked := range config.EmailBlocklist {
-		if user == blocked {
-			log.Errorf(c, "test request from blocked user: %v", user)
-			return ""
-		}
-	}
-	bug, bugKey, err := findBugByReportingID(c, bugID)
-	if err != nil {
-		log.Errorf(c, "can't find bug: %v", err)
-		if link != "" {
-			return "" // don't send duplicate error reply
-		}
-		myEmail, _ := email.AddAddrContext(ownEmail(c), "hash")
-		return fmt.Sprintf("can't find the associated bug (do you have %v in To/CC?)", myEmail)
-	}
-	bugReporting, _ := bugReportingByID(bug, bugID)
-	now := timeNow(c)
-	crash, crashKey, err := findCrashForBug(c, bug)
-	if err != nil {
-		log.Errorf(c, "failed to find a crash: %v", err)
-		return ""
-	}
-	reply, err := addTestJob(c, &testJobArgs{
-		bug: bug, bugKey: bugKey, bugReporting: bugReporting,
-		user: user, extID: extID, link: link, patch: patch,
-		repo: repo, branch: branch, jobCC: jobCC,
-		crash: crash, crashKey: crashKey,
-	}, now)
-	if err != nil {
-		log.Errorf(c, "test request failed: %v", err)
-		if reply == "" {
-			reply = internalError
-		}
-	}
-	// Update bug CC and last activity time.
-	tx := func(c context.Context) error {
-		bug := new(Bug)
-		if err := db.Get(c, bugKey, bug); err != nil {
-			return err
-		}
-		bug.LastActivity = now
-		bugReporting = bugReportingByName(bug, bugReporting.Name)
-		bugCC := strings.Split(bugReporting.CC, "|")
-		merged := email.MergeEmailLists(bugCC, jobCC)
-		bugReporting.CC = strings.Join(merged, "|")
-		if _, err := db.Put(c, bugKey, bug); err != nil {
-			return fmt.Errorf("failed to put bug: %v", err)
-		}
-		return nil
-	}
-	if err := db.RunInTransaction(c, tx, nil); err != nil {
-		// We've already stored the job, so just log the error.
-		log.Errorf(c, "failed to update bug: %v", err)
-	}
-	if link != "" {
-		reply = "" // don't send duplicate error reply
-	}
-	return reply
-}
-
-type testJobArgs struct {
-	crash        *Crash
-	crashKey     *db.Key
+type testReqArgs struct {
 	bug          *Bug
 	bugKey       *db.Key
 	bugReporting *BugReporting
@@ -98,7 +30,67 @@ type testJobArgs struct {
 	repo         string
 	branch       string
 	jobCC        []string
-	configRef    int64
+}
+
+// handleTestRequest added new job to db.
+// Returns empty string if job added successfully, or reason why it wasn't added.
+func handleTestRequest(c context.Context, args *testReqArgs) string {
+	log.Infof(c, "test request: bug=%s user=%q extID=%q patch=%v, repo=%q branch=%q",
+		args.bug.Title, args.user, args.extID, len(args.patch), args.repo, args.branch)
+	for _, blocked := range config.EmailBlocklist {
+		if args.user == blocked {
+			log.Errorf(c, "test request from blocked user: %v", args.user)
+			return ""
+		}
+	}
+	now := timeNow(c)
+	crash, crashKey, err := findCrashForBug(c, args.bug)
+	if err != nil {
+		log.Errorf(c, "failed to find a crash: %v", err)
+		return ""
+	}
+	reply, err := addTestJob(c, &testJobArgs{
+		testReqArgs: *args,
+		crash:       crash, crashKey: crashKey,
+	}, now)
+	if err != nil {
+		log.Errorf(c, "test request failed: %v", err)
+		if reply == "" {
+			reply = internalError
+		}
+	}
+	// Update bug CC and last activity time.
+	tx := func(c context.Context) error {
+		bug := new(Bug)
+		if err := db.Get(c, args.bugKey, bug); err != nil {
+			return err
+		}
+		bug.LastActivity = now
+		bugReporting := args.bugReporting
+		bugReporting = bugReportingByName(bug, bugReporting.Name)
+		bugCC := strings.Split(bugReporting.CC, "|")
+		merged := email.MergeEmailLists(bugCC, args.jobCC)
+		bugReporting.CC = strings.Join(merged, "|")
+		if _, err := db.Put(c, args.bugKey, bug); err != nil {
+			return fmt.Errorf("failed to put bug: %v", err)
+		}
+		return nil
+	}
+	if err := db.RunInTransaction(c, tx, nil); err != nil {
+		// We've already stored the job, so just log the error.
+		log.Errorf(c, "failed to update bug: %v", err)
+	}
+	if args.link != "" {
+		reply = "" // don't send duplicate error reply
+	}
+	return reply
+}
+
+type testJobArgs struct {
+	crash     *Crash
+	crashKey  *db.Key
+	configRef int64
+	testReqArgs
 }
 
 func addTestJob(c context.Context, args *testJobArgs, now time.Time) (string, error) {
@@ -317,11 +309,13 @@ func handleRetestForBug(c context.Context, now time.Time, bug *Bug, bugKey *db.K
 		reason, err := addTestJob(c, &testJobArgs{
 			crash:     crash,
 			crashKey:  crashKeys[crashID],
-			bug:       bug,
-			bugKey:    bugKey,
-			repo:      build.KernelRepo,
-			branch:    build.KernelBranch,
 			configRef: build.KernelConfig,
+			testReqArgs: testReqArgs{
+				bug:    bug,
+				bugKey: bugKey,
+				repo:   build.KernelRepo,
+				branch: build.KernelBranch,
+			},
 		}, now)
 		if reason != "" {
 			return fmt.Errorf("job not added for reason %s", reason)
