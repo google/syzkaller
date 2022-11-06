@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -289,8 +290,8 @@ func incomingMail(c context.Context, r *http.Request) error {
 	if ownEmail(c) == msg.From {
 		return nil
 	}
-	log.Infof(c, "received email: subject %q, from %q, cc %q, msg %q, bug %q, cmd %q, link %q",
-		msg.Subject, msg.From, msg.Cc, msg.MessageID, msg.BugID, msg.Command, msg.Link)
+	log.Infof(c, "received email: subject %q, from %q, cc %q, msg %q, bug %q, cmd %q, link %q, sender %q",
+		msg.Subject, msg.From, msg.Cc, msg.MessageID, msg.BugID, msg.Command, msg.Link, msg.Sender)
 	if msg.Command == email.CmdFix && msg.CommandArgs == "exact-commit-title" {
 		// Sometimes it happens that somebody sends us our own text back, ignore it.
 		msg.Command, msg.CommandArgs = email.CmdNone, ""
@@ -410,6 +411,15 @@ type bugInfoResult struct {
 
 func loadBugInfo(c context.Context, msg *email.Email) *bugInfoResult {
 	if msg.BugID == "" {
+		if msg.Sender != "" {
+			// Give it one more try -- maybe we can determine the bug from the subject + mailing list.
+			ret, err := matchBugFromList(c, msg.Sender, msg.Subject)
+			if err != nil {
+				log.Infof(c, "mailing list matching failed: %s", err)
+			} else {
+				return ret
+			}
+		}
 		if msg.Command == email.CmdNone {
 			// This happens when people CC syzbot on unrelated emails.
 			log.Infof(c, "no bug ID (%q)", msg.Subject)
@@ -459,7 +469,106 @@ func loadBugInfo(c context.Context, msg *email.Email) *bugInfoResult {
 		return nil
 	}
 	return &bugInfoResult{bug, bugKey, bugReporting, reporting}
+}
+
+var (
+	subjectParser subjectTitleParser
+)
+
+func matchBugFromList(c context.Context, sender, subject string) (*bugInfoResult, error) {
+	title, seq, err := subjectParser.parseTitle(subject)
+	if err != nil {
+		return nil, err
 	}
+	// Query all bugs with this title.
+	var bugs []*Bug
+	bugKeys, err := db.NewQuery("Bug").
+		Filter("Title=", title).
+		GetAll(c, &bugs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch bugs: %v", err)
+	}
+	// Filter the bugs by the email.
+	candidates := []*bugInfoResult{}
+	for i, bug := range bugs {
+		log.Infof(c, "processing bug %v", bug.displayTitle())
+		// We could add it to the query, but it's probably not worth it - we already have
+		// tons of db indexes while the number of matching bugs should not be large anyway.
+		if bug.Seq != int64(seq) {
+			log.Infof(c, "bug's seq is %v, wanted %d", bug.Seq, seq)
+			continue
+		}
+		if bug.sanitizeAccess(AccessPublic) != AccessPublic {
+			log.Infof(c, "access denied")
+			continue
+		}
+		reporting, bugReporting, _, _, err := currentReporting(c, bug)
+		if err != nil || reporting == nil {
+			log.Infof(c, "could not query reporting: %s", err)
+			continue
+		}
+		emailConfig, ok := reporting.Config.(*EmailConfig)
+		if !ok {
+			log.Infof(c, "reporting is not EmailConfig (%q)", subject)
+			continue
+		}
+		if emailConfig.Email != sender {
+			log.Infof(c, "config's Email is %v, wanted %v", emailConfig.Email, sender)
+			continue
+		}
+		candidates = append(candidates, &bugInfoResult{
+			bug: bug, bugKey: bugKeys[i],
+			bugReporting: bugReporting, reporting: reporting,
+		})
+	}
+	if len(candidates) != 1 {
+		return nil, fmt.Errorf("unable to determine the bug")
+	}
+	return candidates[0], nil
+}
+
+type subjectTitleParser struct {
+	pattern *regexp.Regexp
+	ready   sync.Once
+}
+
+func (p *subjectTitleParser) parseTitle(subject string) (string, int, error) {
+	p.prepareRegexps()
+	subject = strings.TrimSpace(subject)
+	parts := p.pattern.FindStringSubmatch(subject)
+	if parts == nil || parts[1] == "" {
+		return "", 0, fmt.Errorf("failed to extract the title")
+	}
+	title := parts[1]
+	seq := 0
+	if parts[2] != "" {
+		rawSeq, err := strconv.Atoi(parts[2])
+		if err != nil {
+			return "", 0, fmt.Errorf("failed to parse seq: %w", err)
+		}
+		seq = rawSeq - 1
+	}
+	return title, seq, nil
+}
+
+func (p *subjectTitleParser) prepareRegexps() {
+	p.ready.Do(func() {
+		stripPrefixes := []string{`R[eE]:`}
+		for _, ns := range config.Namespaces {
+			for _, rep := range ns.Reporting {
+				emailConfig, ok := rep.Config.(*EmailConfig)
+				if !ok {
+					continue
+				}
+				if ok && emailConfig.SubjectPrefix != "" {
+					stripPrefixes = append(stripPrefixes,
+						regexp.QuoteMeta(emailConfig.SubjectPrefix))
+				}
+			}
+		}
+		rePrefixes := `^(?:(?:` + strings.Join(stripPrefixes, "|") + `)\s*)*`
+		p.pattern = regexp.MustCompile(rePrefixes + `(.*?)(?:\s\((\d+)\))?$`)
+	})
 }
 
 func checkMailingListInCC(c context.Context, msg *email.Email, mailingList string) bool {
