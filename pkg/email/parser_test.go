@@ -642,6 +642,7 @@ d
 		Subject:   "Re: BUG: unable to handle kernel NULL pointer dereference in sock_poll",
 		From:      "\"bar\" <bar@foo.com>",
 		Cc:        []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
+		Sender:    "syzkaller-bugs@googlegroups.com",
 		Body: `On 2018/06/10 4:57, syzbot wrote:
 > Hello,
 > 
@@ -666,8 +667,9 @@ From: bar@foo.com
 #syz dup:
 BUG: unable to handle kernel NULL pointer dereference in corrupted
 `, Email{
-		From: "<bar@foo.com>",
-		Cc:   []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
+		From:   "<bar@foo.com>",
+		Cc:     []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
+		Sender: "syzkaller-bugs@googlegroups.com",
 		Body: `#syz dup:
 BUG: unable to handle kernel NULL pointer dereference in corrupted
 `,
@@ -683,8 +685,9 @@ From: bar@foo.com
 #syz fix:
 When freeing a lockf struct that already is part of a linked list, make sure to
 `, Email{
-		From: "<bar@foo.com>",
-		Cc:   []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
+		From:   "<bar@foo.com>",
+		Cc:     []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
+		Sender: "syzkaller-bugs@googlegroups.com",
 		Body: `#syz fix:
 When freeing a lockf struct that already is part of a linked list, make sure to
 `,
