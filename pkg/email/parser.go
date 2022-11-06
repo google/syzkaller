@@ -24,6 +24,7 @@ type Email struct {
 	Subject     string
 	From        string
 	Cc          []string
+	Sender      string
 	Body        string  // text/plain part
 	Patch       string  // attached patch, if any
 	Command     Command // command to bot
@@ -97,6 +98,17 @@ func Parse(r io.Reader, ownEmails []string) (*Email, error) {
 		}
 	}
 	ccList = MergeEmailLists(ccList)
+
+	sender := ""
+	senders, err := msg.Header.AddressList("Sender")
+	if err != nil {
+		if err != mail.ErrHeaderNotPresent {
+			return nil, err
+		}
+	} else if len(senders) > 0 {
+		sender = senders[0].Address
+	}
+
 	body, attachments, err := parseBody(msg.Body, msg.Header)
 	if err != nil {
 		return nil, err
@@ -128,6 +140,7 @@ func Parse(r io.Reader, ownEmails []string) (*Email, error) {
 		Subject:     subject,
 		From:        from[0].String(),
 		Cc:          ccList,
+		Sender:      sender,
 		Body:        bodyStr,
 		Patch:       patch,
 		Command:     cmd,
