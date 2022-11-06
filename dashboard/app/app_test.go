@@ -252,12 +252,16 @@ var testConfig = &GlobalConfig{
 					AccessLevel: AccessUser,
 					Name:        "access-user-reporting1",
 					DailyLimit:  1000,
-					Config:      &TestConfig{Index: 1},
+					Config: &EmailConfig{
+						Email: "test@syzkaller.com",
+					},
 				},
 				{
 					Name:       "access-public-reporting2",
 					DailyLimit: 1000,
-					Config:     &TestConfig{Index: 2},
+					Config: &EmailConfig{
+						Email: "test2@syzkaller.com",
+					},
 				},
 			},
 		},
