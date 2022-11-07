@@ -118,6 +118,7 @@ func NewReporter(cfg *mgrconfig.Config) (*Reporter, error) {
 	}
 	config := &config{
 		target:         cfg.SysTarget,
+		vmType:         cfg.Type,
 		kernelSrc:      cfg.KernelSrc,
 		kernelBuildSrc: cfg.KernelBuildSrc,
 		kernelObj:      cfg.KernelObj,
@@ -161,6 +162,7 @@ var ctors = map[string]fn{
 
 type config struct {
 	target         *targets.Target
+	vmType         string
 	kernelSrc      string
 	kernelBuildSrc string
 	kernelObj      string

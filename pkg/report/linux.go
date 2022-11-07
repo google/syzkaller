@@ -7,9 +7,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -20,10 +18,6 @@ import (
 	"github.com/google/syzkaller/pkg/symbolizer"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
-)
-
-const (
-	maintainerScript = "scripts/get_maintainer.pl"
 )
 
 type linux struct {
@@ -375,6 +369,12 @@ func (ctx *linux) Symbolize(rep *Report) error {
 	}
 
 	rep.Report = ctx.decompileOpcodes(rep.Report, rep)
+
+	// Skip getting maintainers for Android fuzzing since the kernel source
+	// directory structure is different.
+	if ctx.config.vmType == "cuttlefish" || ctx.config.vmType == "proxyapp" {
+		return nil
+	}
 
 	// We still do this even if we did not symbolize,
 	// because tests pass in already symbolized input.
@@ -765,11 +765,6 @@ func (ctx *linux) getMaintainers(file string) (vcs.Recipients, error) {
 	if ctx.kernelSrc == "" {
 		return nil, nil
 	}
-
-	if _, err := os.Stat(filepath.Join(ctx.kernelSrc, maintainerScript)); errors.Is(err, os.ErrNotExist) {
-		return nil, nil
-	}
-
 	return GetLinuxMaintainers(ctx.kernelSrc, file)
 }
 
@@ -794,7 +789,8 @@ func getMaintainersImpl(kernelSrc, file string, blame bool) (vcs.Recipients, err
 		args = append(args, "--git-blame")
 	}
 	args = append(args, "-f", file)
-	output, err := osutil.RunCmd(time.Minute, kernelSrc, filepath.FromSlash(maintainerScript), args...)
+	script := filepath.FromSlash("scripts/get_maintainer.pl")
+	output, err := osutil.RunCmd(time.Minute, kernelSrc, script, args...)
 	if err != nil {
 		return nil, err
 	}
