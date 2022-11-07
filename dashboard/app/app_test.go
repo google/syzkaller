@@ -253,14 +253,16 @@ var testConfig = &GlobalConfig{
 					Name:        "access-user-reporting1",
 					DailyLimit:  1000,
 					Config: &EmailConfig{
-						Email: "test@syzkaller.com",
+						Email:            "test@syzkaller.com",
+						HandleListEmails: true,
 					},
 				},
 				{
 					Name:       "access-public-reporting2",
 					DailyLimit: 1000,
 					Config: &EmailConfig{
-						Email: "test2@syzkaller.com",
+						Email:            "test2@syzkaller.com",
+						HandleListEmails: true,
 					},
 				},
 			},

@@ -65,6 +65,7 @@ var mailingLists map[string]bool
 
 type EmailConfig struct {
 	Email              string
+	HandleListEmails   bool // This is a temporary option to simplify the feature deployment.
 	MailMaintainers    bool
 	DefaultMaintainers []string
 	SubjectPrefix      string
@@ -510,6 +511,10 @@ func matchBugFromList(c context.Context, sender, subject string) (*bugInfoResult
 		emailConfig, ok := reporting.Config.(*EmailConfig)
 		if !ok {
 			log.Infof(c, "reporting is not EmailConfig (%q)", subject)
+			continue
+		}
+		if !emailConfig.HandleListEmails {
+			log.Infof(c, "the feature is disabled for the config")
 			continue
 		}
 		if emailConfig.Email != sender {
