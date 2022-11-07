@@ -7,7 +7,9 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -18,6 +20,10 @@ import (
 	"github.com/google/syzkaller/pkg/symbolizer"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/sys/targets"
+)
+
+const (
+	maintainerScript = "scripts/get_maintainer.pl"
 )
 
 type linux struct {
@@ -759,6 +765,11 @@ func (ctx *linux) getMaintainers(file string) (vcs.Recipients, error) {
 	if ctx.kernelSrc == "" {
 		return nil, nil
 	}
+
+	if _, err := os.Stat(filepath.Join(ctx.kernelSrc, maintainerScript)); errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+
 	return GetLinuxMaintainers(ctx.kernelSrc, file)
 }
 
@@ -783,8 +794,7 @@ func getMaintainersImpl(kernelSrc, file string, blame bool) (vcs.Recipients, err
 		args = append(args, "--git-blame")
 	}
 	args = append(args, "-f", file)
-	script := filepath.FromSlash("scripts/get_maintainer.pl")
-	output, err := osutil.RunCmd(time.Minute, kernelSrc, script, args...)
+	output, err := osutil.RunCmd(time.Minute, kernelSrc, filepath.FromSlash(maintainerScript), args...)
 	if err != nil {
 		return nil, err
 	}
