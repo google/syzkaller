@@ -1,0 +1,47 @@
+TITLE: KMSAN: uninit-value in ntfs_iget5
+ALT: KMSAN origin in ntfs_alloc_inode
+ALT: bad-access in ntfs_iget5
+
+[  493.519926][ T7865] =====================================================
+[  493.527002][ T7865] BUG: KMSAN: uninit-value in ntfs_iget5+0x6cf/0x6510
+[  493.533804][ T7865]  ntfs_iget5+0x6cf/0x6510
+[  493.538257][ T7865]  ntfs_fill_super+0x4e66/0x6830
+[  493.543243][ T7865]  get_tree_bdev+0x9ee/0xdd0
+[  493.547926][ T7865]  ntfs_fs_get_tree+0x50/0x60
+[  493.552651][ T7865]  vfs_get_tree+0xd8/0x5d0
+[  493.557114][ T7865]  do_new_mount+0x7b5/0x16f0
+[  493.561759][ T7865]  path_mount+0x1021/0x28b0
+[  493.566296][ T7865]  __se_sys_mount+0x8a8/0x9d0
+[  493.571011][ T7865]  __ia32_sys_mount+0x157/0x1b0
+[  493.575901][ T7865]  __do_fast_syscall_32+0x96/0xf0
+[  493.580978][ T7865]  do_fast_syscall_32+0x34/0x70
+[  493.585869][ T7865]  do_SYSENTER_32+0x1b/0x20
+[  493.590421][ T7865]  entry_SYSENTER_compat_after_hwframe+0x4d/0x5c
+[  493.596799][ T7865] 
+[  493.599130][ T7865] Uninit was created at:
+[  493.603459][ T7865]  __alloc_pages+0xbbf/0x1090
+[  493.608173][ T7865]  alloc_pages+0xa08/0xd50
+[  493.612638][ T7865]  allocate_slab+0x295/0x1c50
+[  493.613989][ T7871] loop0: detected capacity change from 0 to 262128
+[  493.617357][ T7865]  ___slab_alloc+0xb3a/0x1d70
+[  493.617411][ T7865]  kmem_cache_alloc_lru+0x80d/0xf10
+[  493.633746][ T7865]  ntfs_alloc_inode+0x7c/0x160
+[  493.638552][ T7865]  alloc_inode+0xad/0x4b0
+[  493.642949][ T7865]  iget5_locked+0x158/0x300
+[  493.647490][ T7865]  ntfs_iget5+0xf6/0x6510
+[  493.651849][ T7865]  ntfs_fill_super+0x2fe8/0x6830
+[  493.656837][ T7865]  get_tree_bdev+0x9ee/0xdd0
+[  493.661477][ T7865]  ntfs_fs_get_tree+0x50/0x60
+[  493.666194][ T7865]  vfs_get_tree+0xd8/0x5d0
+[  493.670645][ T7865]  do_new_mount+0x7b5/0x16f0
+[  493.675261][ T7865]  path_mount+0x1021/0x28b0
+[  493.679790][ T7865]  __se_sys_mount+0x8a8/0x9d0
+[  493.684499][ T7865]  __ia32_sys_mount+0x157/0x1b0
+[  493.689380][ T7865]  __do_fast_syscall_32+0x96/0xf0
+[  493.694448][ T7865]  do_fast_syscall_32+0x34/0x70
+[  493.699335][ T7865]  do_SYSENTER_32+0x1b/0x20
+[  493.703873][ T7865]  entry_SYSENTER_compat_after_hwframe+0x4d/0x5c
+[  493.710243][ T7865] 
+[  493.712567][ T7865] CPU: 1 PID: 7865 Comm: syz-executor.2 Not tainted 5.18.0-rc4-syzkaller #0
+[  493.721268][ T7865] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  493.731336][ T7865] =====================================================
