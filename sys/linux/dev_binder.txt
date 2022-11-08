@@ -50,10 +50,11 @@ ioctl$BINDER_VERSION(fd fd_binder, cmd const[BINDER_VERSION], arg ptr[inout, bin
 openat$binder_debug(fd const[AT_FDCWD], file ptr[in, string[binder_debug_file]], flags const[O_RDONLY], mode const[0]) fd
 fstatfs$binder(fd fd_binder, buf buffer[out])
 
+flock$binder(fd fd_binder, op flags[flock_op])
+fsync$binder(fd fd_binder)
 
-msync$binder(addr vma, len len[addr], f flags[msync_flags])
 
-fallocate$binder(fd fd, mode flags[fallocate_mode], off intptr, len intptr) 
+
 
 binder_debug_file = "/sys/kernel/debug/binder/failed_transaction_log", "/sys/kernel/debug/binder/state", "/sys/kernel/debug/binder/stats", "/sys/kernel/debug/binder/transaction_log", "/sys/kernel/debug/binder/transactions"
 
