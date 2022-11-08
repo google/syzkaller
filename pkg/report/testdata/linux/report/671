@@ -1,0 +1,38 @@
+TITLE: KMSAN: uninit-value in flush_to_ldisc
+ALT: KMSAN origin in __pskb_copy_fclone
+ALT: bad-access in flush_to_ldisc
+
+[ 1725.922949][   T52] =====================================================
+[ 1725.930075][   T52] BUG: KMSAN: uninit-value in flush_to_ldisc+0x95d/0xdf0
+[ 1725.937350][   T52]  flush_to_ldisc+0x95d/0xdf0
+[ 1725.942227][   T52]  process_one_work+0xb27/0x13e0
+[ 1725.947420][   T52]  worker_thread+0x1076/0x1d60
+[ 1725.952396][   T52]  kthread+0x31b/0x430
+[ 1725.956595][   T52]  ret_from_fork+0x1f/0x30
+[ 1725.961161][   T52] 
+[ 1725.963603][   T52] Uninit was created at:
+[ 1725.968026][   T52]  __alloc_pages+0x9f1/0xe80
+[ 1725.972815][   T52]  alloc_pages+0xaae/0xd80
+[ 1725.977380][   T52]  allocate_slab+0x19b/0xef0
+[ 1725.982149][   T52]  ___slab_alloc+0xa85/0x1c60
+[ 1725.986951][   T52]  __kmalloc_node_track_caller+0x911/0x1250
+[ 1725.993036][   T52]  __alloc_skb+0x346/0xcf0
+[ 1725.997643][   T52]  __pskb_copy_fclone+0xd1/0x1700
+[ 1726.002870][   T52]  tipc_clone_to_loopback+0x151/0x920
+[ 1726.008449][   T52]  tipc_node_xmit+0x977/0x1600
+[ 1726.013405][   T52]  __tipc_sendstream+0x159d/0x1fa0
+[ 1726.018708][   T52]  tipc_send_packet+0xa7/0x100
+[ 1726.023671][   T52]  sock_write_iter+0x495/0x5e0
+[ 1726.028567][   T52]  io_write+0xb7c/0x2300
+[ 1726.033034][   T52]  io_issue_sqe+0x3b1/0x11d0
+[ 1726.037802][   T52]  io_submit_sqe+0xb40/0x1be0
+[ 1726.042689][   T52]  io_submit_sqes+0x542/0xd50
+[ 1726.047502][   T52]  __se_sys_io_uring_enter+0x597/0x1d30
+[ 1726.053260][   T52]  __x64_sys_io_uring_enter+0x117/0x190
+[ 1726.058980][   T52]  do_syscall_64+0x3d/0xb0
+[ 1726.063635][   T52]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[ 1726.069713][   T52] 
+[ 1726.072158][   T52] CPU: 1 PID: 52 Comm: kworker/u4:3 Not tainted 6.0.0-rc5-syzkaller-48543-g968c2729e576 #0
+[ 1726.082328][   T52] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 09/22/2022
+[ 1726.092555][   T52] Workqueue: events_unbound flush_to_ldisc
+[ 1726.098534][   T52] =====================================================

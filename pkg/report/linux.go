@@ -1057,6 +1057,7 @@ var linuxStackParams = &stackParams{
 		"kzalloc",
 		"krealloc",
 		"kmem_cache",
+		"allocate_slab",
 		"slab_",
 		"debug_object",
 		"timer_is_static_object",
