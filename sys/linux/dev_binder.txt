@@ -50,7 +50,12 @@ ioctl$BINDER_VERSION(fd fd_binder, cmd const[BINDER_VERSION], arg ptr[inout, bin
 openat$binder_debug(fd const[AT_FDCWD], file ptr[in, string[binder_debug_file]], flags const[O_RDONLY], mode const[0]) fd
 fstatfs$binder(fd fd_binder, buf buffer[out])
 
+
+close$binder(fd fd_binder)
+
 close_range$binder(fd fd_binder, max_fd fd_binder, flags flags[close_range_flags])
+
+close$binder_range(fd fd_binder, max_fd fd_binder, flags flags[close_range_flags])
 
 
 binder_debug_file = "/sys/kernel/debug/binder/failed_transaction_log", "/sys/kernel/debug/binder/state", "/sys/kernel/debug/binder/stats", "/sys/kernel/debug/binder/transaction_log", "/sys/kernel/debug/binder/transactions"

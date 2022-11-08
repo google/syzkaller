@@ -49,6 +49,7 @@ PROT_READ = 1
 TF_ACCEPT_FDS = 16
 TF_CLEAR_BUF = 32
 TF_ONE_WAY = 1
+__NR_close = 6, amd64:3, arm64:riscv64:57, mips64le:5003
 __NR_close_range = 436, mips64le:5436
 __NR_fstatfs = 100, amd64:138, arm64:riscv64:44, mips64le:5135
 __NR_ioctl = 54, amd64:16, arm64:riscv64:29, mips64le:5015
