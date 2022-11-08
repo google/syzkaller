@@ -1,0 +1,46 @@
+# Expect failure when creating a job from an invalid handle.
+
+zx_job_create(0x0, 0x0, &AUTO) # ZX_ERR_BAD_HANDLE
+
+# Create a valid job handle and several child jobs.
+
+r1 = syz_job_default()
+zx_job_create(r1, 0x0, &AUTO=<r2=>0x0)
+zx_job_create(r1, 0x0, &AUTO=<r3=>0x0)
+zx_job_create(r1, 0x0, &AUTO=<r4=>0x0)
+
+# With policy format ZX_JOB_POL_BASIC_V1, set policy ZX_POL_ACTION_ALLOW for condition ZX_POL_NEW_ANY.
+
+zx_job_set_policy$BASIC_V1(r2, 0x0, 0x0, &AUTO=[{0x3, 0x0}], 0x1)
+
+# With policy format ZX_JOB_POL_TIMER_SLACK, set a min slack of 256ns with a default mode of ZX_TIMER_SLACK_CENTER.
+
+zx_job_set_policy$TIMER_SLACK(r4, 0x0, 0x1, &AUTO=[{0x100, 0x0, "00000000"}], 0x1)
+
+# With policy format ZX_JOB_POL_BASIC_V2, set policy ZX_POL_ACTION_DENY for condition ZX_POL_NEW_ANY with flag ZX_POLICY_OVERRIDE_DENY.
+
+zx_job_set_policy$BASIC_V2(r3, 0x0, 0x01000000, &AUTO=[{0x3, 0x1, 0x1}], 0x1)
+
+# Setting the same policy again should succeed with either the ZX_JOB_POL_ABSOLUTE or ZX_JOB_POL_RELATIVE option.
+
+zx_job_set_policy$BASIC_V2(r3, 0x0, 0x01000000, &AUTO=[{0x3, 0x1, 0x1}], 0x1)
+
+# Setting a conflicting policy with the ZX_JOB_POL_RELATIVE option should succeed.
+
+zx_job_set_policy$BASIC_V2(r3, 0x0, 0x01000000, &AUTO=[{0x3, 0x0, 0x1}], 0x1)
+
+# Setting a conflicting policy with the ZX_JOB_POL_ABSOLUTE option should fail.
+
+zx_job_set_policy$BASIC_V2(r3, 0x1, 0x01000000, &AUTO=[{0x3, 0x0, 0x1}], 0x1) # ZX_ERR_ALREADY_EXISTS
+
+# Create a grandchild job. Expect failure when setting a previously allowed policy once a job has a child job.
+
+zx_job_create(r3, 0x0, &AUTO=<r5=>0x0)
+zx_job_set_policy$BASIC_V2(r3, 0x0, 0x01000000, &AUTO=[{0x3, 0x1, 0x1}], 0x1) # ZX_ERR_BAD_STATE
+
+# Create a process and set it as critical for a job.
+# TODO: when possible, create a non-self process and test that the parent job dies when the process handle is closed.
+
+r6 = syz_job_default()
+r7 = syz_process_self()
+zx_job_set_critical(r6, 0x0, r7)
