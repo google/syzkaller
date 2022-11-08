@@ -1,6 +1,8 @@
 # Copyright 2017 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+# See https://cs.opensource.google/fuchsia/fuchsia/+/main:zircon/vdso/timer.fidl
+
 include <zircon/syscalls.h>
 
 resource zx_timer[zx_handle]
