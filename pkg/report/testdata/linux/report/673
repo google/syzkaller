@@ -1,0 +1,56 @@
+TITLE: KMSAN: uninit-value in nilfs_bmap_lookup_at_level
+ALT: KMSAN origin in nilfs_alloc_inode
+ALT: bad-access in nilfs_bmap_lookup_at_level
+
+[  231.715107][ T3795] =====================================================
+[  231.723837][ T3795] BUG: KMSAN: uninit-value in nilfs_bmap_lookup_at_level+0x22e/0x4c0
+[  231.732205][ T3795]  nilfs_bmap_lookup_at_level+0x22e/0x4c0
+[  231.738098][ T3795]  nilfs_mdt_submit_block+0x2c3/0xec0
+[  231.743719][ T3795]  nilfs_mdt_read_block+0x89/0x5f0
+[  231.748981][ T3795]  nilfs_mdt_get_block+0x77/0x1b0
+[  231.754229][ T3795]  nilfs_palloc_get_block+0x19b/0x380
+[  231.759760][ T3795]  nilfs_palloc_get_entry_block+0x242/0x310
+[  231.765946][ T3795]  nilfs_ifile_get_inode_block+0x12a/0x2c0
+[  231.771981][ T3795]  nilfs_iget+0x29e/0xcf0
+[  231.776457][ T3795]  nilfs_get_root_dentry+0x46/0x580
+[  231.781878][ T3795]  nilfs_fill_super+0x77a/0x9f0
+[  231.786862][ T3795]  nilfs_mount+0xb17/0x1200
+[  231.791499][ T3795]  legacy_get_tree+0x10c/0x280
+[  231.796545][ T3795]  vfs_get_tree+0xa1/0x500
+[  231.801109][ T3795]  do_new_mount+0x694/0x1580
+[  231.805985][ T3795]  path_mount+0x71a/0x1f00
+[  231.810539][ T3795]  __se_sys_mount+0x734/0x840
+[  231.815492][ T3795]  __ia32_sys_mount+0xdf/0x140
+[  231.820475][ T3795]  __do_fast_syscall_32+0xa2/0x100
+[  231.825855][ T3795]  do_fast_syscall_32+0x33/0x70
+[  231.830854][ T3795]  do_SYSENTER_32+0x1b/0x20
+[  231.835616][ T3795]  entry_SYSENTER_compat_after_hwframe+0x70/0x82
+[  231.842206][ T3795] 
+[  231.844598][ T3795] Uninit was created at:
+[  231.849029][ T3795]  __alloc_pages+0x9f1/0xe80
+[  231.853915][ T3795]  alloc_pages+0xaae/0xd80
+[  231.858498][ T3795]  allocate_slab+0x19b/0xef0
+[  231.863382][ T3795]  ___slab_alloc+0xa85/0x1c60
+[  231.868242][ T3795]  kmem_cache_alloc_lru+0x70a/0xba0
+[  231.873773][ T3795]  nilfs_alloc_inode+0x5f/0x1c0
+[  231.878776][ T3795]  alloc_inode+0x83/0x440
+[  231.883333][ T3795]  iget5_locked+0xa5/0x200
+[  231.887913][ T3795]  nilfs_iget_locked+0xe2/0x120
+[  231.893051][ T3795]  nilfs_dat_read+0x150/0x590
+[  231.897877][ T3795]  load_nilfs+0x71a/0x1ac0
+[  231.902539][ T3795]  nilfs_fill_super+0x364/0x9f0
+[  231.907526][ T3795]  nilfs_mount+0xb17/0x1200
+[  231.912245][ T3795]  legacy_get_tree+0x10c/0x280
+[  231.917180][ T3795]  vfs_get_tree+0xa1/0x500
+[  231.921827][ T3795]  do_new_mount+0x694/0x1580
+[  231.926572][ T3795]  path_mount+0x71a/0x1f00
+[  231.931118][ T3795]  __se_sys_mount+0x734/0x840
+[  231.936039][ T3795]  __ia32_sys_mount+0xdf/0x140
+[  231.940946][ T3795]  __do_fast_syscall_32+0xa2/0x100
+[  231.946298][ T3795]  do_fast_syscall_32+0x33/0x70
+[  231.951287][ T3795]  do_SYSENTER_32+0x1b/0x20
+[  231.956025][ T3795]  entry_SYSENTER_compat_after_hwframe+0x70/0x82
+[  231.962619][ T3795] 
+[  231.965009][ T3795] CPU: 0 PID: 3795 Comm: syz-executor.3 Not tainted 6.0.0-rc5-syzkaller-48543-g968c2729e576 #0
+[  231.975574][ T3795] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 10/11/2022
+[  231.985843][ T3795] =====================================================
