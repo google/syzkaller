@@ -35,15 +35,15 @@ vfio_iommu_type1_info {
 
 vfio_iommu_type1_dma_map {
 	argsz	len[parent, int32]
-	flags	flags[vfio_dma_flags, int32]
-	vaddr	int64
+	flags	flags[vfio_map_flags, int32]
+	user_va	ptr64[in, array[int8]]
 	iova	int64
 	size	int64
 }
 
 vfio_iommu_type1_dma_unmap {
 	argsz	len[parent, int32]
-	flags	flags[vfio_dma_flags, int32]
+	flags	flags[vfio_unmap_flags, int32]
 	iova	int64
 	size	int64
 	data	array[int8]
@@ -73,4 +73,5 @@ vfio_iommu_type1_info_dma_avail {
 }
 
 iommu_flags = VFIO_TYPE1_IOMMU, VFIO_SPAPR_TCE_IOMMU, VFIO_TYPE1v2_IOMMU, VFIO_DMA_CC_IOMMU, VFIO_EEH, VFIO_TYPE1_NESTING_IOMMU, VFIO_SPAPR_TCE_v2_IOMMU, VFIO_NOIOMMU_IOMMU
-vfio_dma_flags = VFIO_DMA_MAP_FLAG_READ, VFIO_DMA_MAP_FLAG_WRITE
+vfio_map_flags = VFIO_DMA_MAP_FLAG_READ, VFIO_DMA_MAP_FLAG_WRITE
+vfio_unmap_flags = VFIO_DMA_UNMAP_FLAG_GET_DIRTY_BITMAP, VFIO_DMA_UNMAP_FLAG_ALL, VFIO_DMA_UNMAP_FLAG_VADDR
