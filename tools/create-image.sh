@@ -7,7 +7,6 @@
 set -eux
 
 # Create a minimal Debian distribution in a directory.
-DIR=chroot
 PREINSTALL_PKGS=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sudo,less,psmisc,selinux-utils,policycoreutils,checkpolicy,selinux-policy-default,firmware-atheros,debian-ports-archive-keyring
 
 # If ADD_PACKAGE is not defined as an external environment variable, use our default packages
@@ -19,6 +18,8 @@ fi
 ARCH=$(uname -m)
 RELEASE=stretch
 FEATURE=minimal
+SSH_IDENTITY=id_rsa
+EXTRA=""
 SEEK=2047
 PERF=false
 
@@ -28,7 +29,9 @@ display_help() {
     echo
     echo "   -a, --arch                 Set architecture"
     echo "   -d, --distribution         Set on which debian distribution to create"
+    echo "   -e, --extra                Comma separated list of extra packages to install"
     echo "   -f, --feature              Check what packages to install in the image, options are minimal, full"
+    echo "   -i, --ssh-identity         Path to SSH private key. Will be created if missing."
     echo "   -s, --seek                 Image size (MB), default 2048 (2G)"
     echo "   -h, --help                 Display help message"
     echo "   -p, --add-perf             Add perf support with this option enabled. Please set envrionment variable \$KERNEL at first"
@@ -37,8 +40,8 @@ display_help() {
 
 while true; do
     if [ $# -eq 0 ];then
-	echo $#
-	break
+        echo $#
+        break
     fi
     case "$1" in
         -h | --help)
@@ -46,23 +49,35 @@ while true; do
             exit 0
             ;;
         -a | --arch)
-	    ARCH=$2
+            ARCH=$2
             shift 2
             ;;
         -d | --distribution)
-	    RELEASE=$2
+            RELEASE=$2
+            shift 2
+            ;;
+        -e | --extra)
+            if test -n "${EXTRA}"; then
+                EXTRA=${EXTRA}","$2
+            else
+                EXTRA=$2
+            fi
             shift 2
             ;;
         -f | --feature)
-	    FEATURE=$2
+            FEATURE=$2
+            shift 2
+            ;;
+        -i | --ssh-identity)
+            SSH_IDENTITY=$2
             shift 2
             ;;
         -s | --seek)
-	    SEEK=$(($2 - 1))
+            SEEK=$(($2 - 1))
             shift 2
             ;;
         -p | --add-perf)
-	    PERF=true
+            PERF=true
             shift 1
             ;;
         -*)
@@ -128,6 +143,14 @@ if [ $FEATURE = "full" ]; then
     PREINSTALL_PKGS=$PREINSTALL_PKGS","$ADD_PACKAGE
 fi
 
+# If extra packages are wanted, install them too
+if [ -n "${EXTRA}" ]; then
+    PREINSTALL_PKGS=${PREINSTALL_PKGS}","${EXTRA}
+fi
+
+ID=${ARCH}-${RELEASE}-${FEATURE}
+DIR=chroot-${ID}
+IMG=${ID}.img
 sudo rm -rf $DIR
 sudo mkdir -p $DIR
 sudo chmod 0755 $DIR
@@ -165,9 +188,13 @@ echo 'binfmt_misc /proc/sys/fs/binfmt_misc binfmt_misc defaults 0 0' | sudo tee 
 echo -en "127.0.0.1\tlocalhost\n" | sudo tee $DIR/etc/hosts
 echo "nameserver 8.8.8.8" | sudo tee -a $DIR/etc/resolve.conf
 echo "syzkaller" | sudo tee $DIR/etc/hostname
-ssh-keygen -f $RELEASE.id_rsa -t rsa -N ''
+if [ ! -f "${SSH_IDENTITY}" ]; then
+    b=$(basename "${SSH_IDENTITY}")
+    t=${b/*_/}
+    ssh-keygen -f "${SSH_IDENTITY}" -t ${t} -N ''
+fi
 sudo mkdir -p $DIR/root/.ssh/
-cat $RELEASE.id_rsa.pub | sudo tee $DIR/root/.ssh/authorized_keys
+ssh-keygen -y -f "${SSH_IDENTITY}" | sudo tee $DIR/root/.ssh/authorized_keys
 
 # Add perf support
 if [ $PERF = "true" ]; then
@@ -184,9 +211,13 @@ fi
 echo 'ATTR{name}=="vim2m", SYMLINK+="vim2m"' | sudo tee -a $DIR/etc/udev/rules.d/50-udev-default.rules
 
 # Build a disk image
-dd if=/dev/zero of=$RELEASE.img bs=1M seek=$SEEK count=1
-sudo mkfs.ext4 -F $RELEASE.img
-sudo mkdir -p /mnt/$DIR
-sudo mount -o loop $RELEASE.img /mnt/$DIR
-sudo cp -a $DIR/. /mnt/$DIR/.
-sudo umount /mnt/$DIR
+qemu-img create -f qcow2 ${IMG} ${SEEK}M
+sudo modprobe nbd
+sudo qemu-nbd -c /dev/nbd0 ${IMG}
+sudo mkfs.ext4 /dev/nbd0
+mkdir -p /tmp/$DIR
+sudo mount /dev/nbd0 /tmp/$DIR
+sudo cp -a $DIR/. /tmp/$DIR/.
+sudo umount /tmp/$DIR
+sudo qemu-nbd -d /dev/nbd0
+qemu-img snapshot -c Clean ${IMG}
