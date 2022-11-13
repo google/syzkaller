@@ -418,6 +418,7 @@ config:
  - DMA_CMA
  - VFIO: [-arm, -riscv]
  - VFIO_PCI: [-arm, -riscv]
+ - VFIO_CONTAINER: [linux-next, -arm, -riscv]
  - VIRTIO_PCI
  - VIRTIO_VDPA: [v5.7]
  - VIRTIO_BALLOON
@@ -427,6 +428,10 @@ config:
  - VIRTIO_MMIO
  - VIRTIO_MMIO_CMDLINE_DEVICES
  - VDPA: [v5.5]
+ - VDPA_SIM: [v6.0, -riscv]
+ - VDPA_SIM_NET: [v6.0, -riscv]
+ - VDPA_SIM_BLOCK: [v6.0, -riscv]
+ - VDPA_USER: [v6.0]
  - VP_VDPA: [v5.13]
  - VHOST_NET
  - VHOST_VSOCK
@@ -442,6 +447,12 @@ config:
  - CHROME_PLATFORMS: n
  - AMD_IOMMU: n
  - INTEL_IOMMU: [x86_64]
+ - IOMMUFD: [linux-next]
+ - IOMMUFD_TEST: [linux-next]
+ # Generally we should not enable this since we don't run any boot unit tests.
+ # The only reason to enable it is IOMMUFD_TEST, which really shouldn't
+ # depend on RUNTIME_TESTING_MENU since it only adds debug checks.
+ - RUNTIME_TESTING_MENU: [linux-next]
  - ANDROID_BINDER_IPC
  # Create binder device per test process for isolation.
  # Earlier we defined here 32 devices and syzkaller allocated one per test process.
