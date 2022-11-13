@@ -1040,6 +1040,8 @@ var linuxStackParams = &stackParams{
 		"kmsan",
 		"kcsan_setup_watchpoint",
 		"check_memory_region",
+		"check_heap_object",
+		"check_object",
 		"read_word_at_a_time",
 		"(read|write)_once_.*nocheck",
 		"print_address_description",
