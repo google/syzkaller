@@ -136,7 +136,7 @@ config:
  - NFT_REDIR
  - NFT_NAT
  - NFT_TUNNEL
- - NFT_OBJREF
+ - NFT_OBJREF: [-v6.1]
  - NFT_QUEUE
  - NFT_QUOTA
  - NFT_REJECT
@@ -375,6 +375,7 @@ config:
  - NET_NCSI
  - CGROUP_NET_PRIO
  - CAN
+ - CAN_NETLINK: [v6.1]
  - CAN_J1939
  - CAN_VCAN
  - CAN_VXCAN

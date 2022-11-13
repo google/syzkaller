@@ -44,7 +44,7 @@ config:
  - BINFMT_FLAT
  - BINFMT_FLAT_OLD
  - BINFMT_ZFLAT
- - BINFMT_SHARED_FLAT
+ - BINFMT_SHARED_FLAT: [-v6.1]
  - CAN_KVASER_PCIEFD: [-baseline, -onlyusb]
  - CRC_T10DIF
  # Otherwise fuzzing on arm32 is currently hindered due to the "BUG: using smp_processor_id() in preemptible code" bug.

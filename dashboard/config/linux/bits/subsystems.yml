@@ -26,6 +26,8 @@ config:
  - NUMA_EMU: [x86_64]
  - NUMA_BALANCING: [-arm]
  - NUMA_BALANCING_DEFAULT_ENABLED: [-arm]
+ # KMSAN disables HYPERVISOR_GUEST which is required to enable this.
+ - X86_X2APIC: [x86_64, -kmsan]
  - CGROUPS
  - BLK_CGROUP
  - CGROUP_SCHED
@@ -65,7 +67,10 @@ config:
  - KVM_INTEL: [x86_64]
  - KVM_AMD: [x86_64]
  - KVM_XEN: [x86_64, v5.12]
- - X86_SGX: [x86_64, v5.11]
+ # KMSAN disables HYPERVISOR_GUEST which is required to enable X86_X2APIC
+ # which is required to enable this.
+ - X86_SGX: [x86_64, v5.11, -kmsan]
+ - X86_SGX_KVM: [x86_64, v6.0, -kmsan]
  - JUMP_LABEL
  - MODULES
  - MODULE_UNLOAD
@@ -274,14 +279,14 @@ config:
  - DRM
  # Workaround: select small driver that selects DRM_DISPLAY_HELPER required by
  # DRM_DP_AUX_CHARDEV. Only works with architectures that have CONFIG_PM.
- - DRM_PANEL_EDP: [linux-next, -s390]
- - DRM_DP_AUX_CHARDEV
+ - DRM_PANEL_EDP: [v5.16, -s390]
+ - DRM_DP_AUX_CHARDEV: [x86_64]
  - DRM_DEBUG_MM
- - DRM_I915: n
+ - DRM_I915: [x86_64]
  - DRM_VGEM
  - DRM_VKMS
  - DRM_VMWGFX: [x86_64]
- - DRM_VMWGFX_FBCON: [x86_64]
+ - DRM_VMWGFX_FBCON: [x86_64, -v6.1]
  - DRM_FBDEV_EMULATION: [x86_64] # required by DRM_VMWGFX_FBCON
  - DRM_UDL
  - DRM_BOCHS
@@ -428,7 +433,7 @@ config:
  - VHOST_VDPA: [v5.5]
  - VHOST_CROSS_ENDIAN_LEGACY
  - STAGING
- - ANDROID
+ - ANDROID: [-v6.0]
  # ASHMEM removed from v5.18. Replacement is memfd.
  - ASHMEM: [-v5.18]
  - ION: [-v5.10]
