@@ -175,8 +175,6 @@ config:
  # We don't need it and it enables MAGIC_SYSRQ and KPROBES.
  - KGDB: n
 
- - RUNTIME_TESTING_MENU: n
-
  # Don't test/need this (may be enabled via HID_HYPERV_MOUSE in USB/HID configs).
  - HYPERV: n
 

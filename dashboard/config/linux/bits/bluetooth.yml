@@ -27,3 +27,5 @@ config:
  - BT_HCIUART_MRVL
  - BT_HCIBFUSB
  - BT_HCIVHCI
+ - BT_LE_L2CAP_ECRED: [linux-next]
+ - BT_HCIBTUSB_POLL_SYNC: [linux-next]
