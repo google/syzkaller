@@ -418,7 +418,8 @@ config:
  - DMA_CMA
  - VFIO: [-arm, -riscv]
  - VFIO_PCI: [-arm, -riscv]
- - VFIO_CONTAINER: [linux-next, -arm, -riscv]
+ # This should not be turned on, it will disable some VFIO coverage.
+ - VFIO_CONTAINER: n
  - VIRTIO_PCI
  - VIRTIO_VDPA: [v5.7]
  - VIRTIO_BALLOON
