@@ -9,8 +9,5 @@ config:
  - KERNEL_GZIP
  # gki_defconfig uses these settings
  - CMDLINE: [append, "cgroup_disable=pressure cgroup.memory=nokmem"]
- # Android has back-ported the KASAN_STACK_ENABLE => KASAN_STACK rename from v5.11
- - KASAN_STACK_ENABLE: [n, v5.10, override]
- - KASAN_STACK: [v5.10, override]
  # Disable -Werror for -Wframe-larger-than' warning
  - KVM_WERROR: n
