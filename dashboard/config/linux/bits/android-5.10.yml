@@ -29,3 +29,7 @@ config:
  # None of these have been marked with 'Fixes' or cc'ed to stable, so it is very
  # unlikely that these are going to be fixed in 5.10 stable kernel.
  - IO_URING: n
+
+ # Android has back-ported the KASAN_STACK_ENABLE => KASAN_STACK rename from v5.11
+ - KASAN_STACK_ENABLE: [n, override]
+ - KASAN_STACK: [override]
