@@ -1084,7 +1084,7 @@ var linuxStackParams = &stackParams{
 		"lock_release",
 		"lock_class",
 		"mark_lock",
-		"reacquire_held_locks",
+		"(reacquire|mark)_held_locks",
 		"spin_lock",
 		"spin_trylock",
 		"spin_unlock",
@@ -1221,6 +1221,7 @@ var linuxStackParams = &stackParams{
 		"hex_dump_to_buffer",
 		"print_hex_dump",
 		"^klist_",
+		"(trace|lockdep)_(hard|soft)irq",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
