@@ -1,5 +1,5 @@
 # This is not corrupted but we don't understand this stack trace format.
-TITLE: PANIC: double fault in trace_hardirqs_off_thunk
+TITLE: PANIC: double fault in corrupted
 CORRUPTED: Y
 
 [    0.004000] PANIC: double fault, error_code: 0x0

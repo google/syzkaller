@@ -1,0 +1,81 @@
+TITLE: inconsistent lock state in sync_info_debugfs_show
+
+[  952.323563][T12429] ================================
+[  952.328681][T12429] WARNING: inconsistent lock state
+[  952.333891][T12429] 6.1.0-rc5-next-20221114-syzkaller #0 Not tainted
+[  952.340409][T12429] --------------------------------
+[  952.345521][T12429] inconsistent {IN-HARDIRQ-W} -> {HARDIRQ-ON-W} usage.
+[  952.352376][T12429] syz-executor.0/12429 [HC0[0]:SC0[0]:HE0:SE1] takes:
+[  952.359158][T12429] ffffffff8cb82a18 (sync_timeline_list_lock){?...}-{2:2}, at: sync_info_debugfs_show+0x2d/0x200
+[  952.369735][T12429] {IN-HARDIRQ-W} state was registered at:
+[  952.375558][T12429]   lock_acquire+0x1df/0x630
+[  952.380174][T12429]   _raw_spin_lock_irqsave+0x39/0x50
+[  952.385489][T12429]   sync_timeline_debug_remove+0x25/0x190
+[  952.391234][T12429]   timeline_fence_release+0x263/0x340
+[  952.396785][T12429]   dma_fence_release+0x147/0x680
+[  952.401805][T12429]   dma_fence_array_release+0x1f6/0x2d0
+[  952.407348][T12429]   dma_fence_release+0x147/0x680
+[  952.412364][T12429]   irq_dma_fence_array_work+0xa5/0xd0
+[  952.417824][T12429]   irq_work_single+0x120/0x250
+[  952.422679][T12429]   irq_work_run_list+0x91/0xc0
+[  952.427533][T12429]   irq_work_run+0x54/0xd0
+[  952.431949][T12429]   __sysvec_irq_work+0xca/0x4d0
+[  952.436985][T12429]   sysvec_irq_work+0x8e/0xc0
+[  952.441665][T12429]   asm_sysvec_irq_work+0x16/0x20
+[  952.446692][T12429]   _raw_spin_unlock_irq+0x25/0x40
+[  952.451815][T12429]   sw_sync_debugfs_release+0x15e/0x230
+[  952.457377][T12429]   __fput+0x27c/0xa90
+[  952.461446][T12429]   task_work_run+0x16b/0x270
+[  952.466131][T12429]   exit_to_user_mode_prepare+0x23c/0x250
+[  952.471850][T12429]   syscall_exit_to_user_mode+0x19/0x50
+[  952.477402][T12429]   do_syscall_64+0x42/0xb0
+[  952.481907][T12429]   entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[  952.488673][T12429] irq event stamp: 332
+[  952.492726][T12429] hardirqs last  enabled at (331): [<ffffffff81d20191>] mod_objcg_state+0x591/0xa50
+[  952.502095][T12429] hardirqs last disabled at (332): [<ffffffff89a61131>] _raw_spin_lock_irq+0x41/0x50
+[  952.511560][T12429] softirqs last  enabled at (0): [<ffffffff8146fd28>] copy_process+0x2188/0x75c0
+[  952.520672][T12429] softirqs last disabled at (0): [<0000000000000000>] 0x0
+[  952.527777][T12429] 
+[  952.527777][T12429] other info that might help us debug this:
+[  952.535822][T12429]  Possible unsafe locking scenario:
+[  952.535822][T12429] 
+[  952.543259][T12429]        CPU0
+[  952.546535][T12429]        ----
+[  952.549802][T12429]   lock(sync_timeline_list_lock);
+[  952.554908][T12429]   <Interrupt>
+[  952.558352][T12429]     lock(sync_timeline_list_lock);
+[  952.563647][T12429] 
+[  952.563647][T12429]  *** DEADLOCK ***
+[  952.563647][T12429] 
+[  952.571779][T12429] 3 locks held by syz-executor.0/12429:
+[  952.577314][T12429]  #0: ffff8880298d2868 (&f->f_pos_lock){+.+.}-{3:3}, at: __fdget_pos+0xe3/0x100
+[  952.586471][T12429]  #1: ffff88807c7859e0 (&p->lock){+.+.}-{3:3}, at: seq_read_iter+0xdf/0x1280
+[  952.595441][T12429]  #2: ffffffff8cb82a18 (sync_timeline_list_lock){?...}-{2:2}, at: sync_info_debugfs_show+0x2d/0x200
+[  952.606328][T12429] 
+[  952.606328][T12429] stack backtrace:
+[  952.612210][T12429] CPU: 1 PID: 12429 Comm: syz-executor.0 Not tainted 6.1.0-rc5-next-20221114-syzkaller #0
+[  952.622093][T12429] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 10/26/2022
+[  952.632229][T12429] Call Trace:
+[  952.635501][T12429]  <TASK>
+[  952.638425][T12429]  dump_stack_lvl+0xcd/0x134
+[  952.643026][T12429]  mark_lock.part.0.cold+0x18/0xd8
+[  952.669242][T12429]  mark_held_locks+0x9f/0xe0
+[  952.678772][T12429]  lockdep_hardirqs_on_prepare+0x135/0x400
+[  952.689787][T12429]  trace_hardirqs_on+0x2d/0x180
+[  952.694639][T12429]  _raw_spin_unlock_irq+0x1f/0x40
+[  952.699701][T12429]  sync_info_debugfs_show+0xeb/0x200
+[  952.704998][T12429]  seq_read_iter+0x4f5/0x1280
+[  952.709690][T12429]  seq_read+0x16d/0x210
+[  952.724443][T12429]  vfs_read+0x2dc/0x9d0
+[  952.742853][T12429]  ksys_read+0x127/0x250
+[  952.757430][T12429]  do_syscall_64+0x35/0xb0
+[  952.761872][T12429]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[  952.767768][T12429] RIP: 0033:0x7f8f3168b639
+[  952.772181][T12429] Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
+[  952.791791][T12429] RSP: 002b:00007f8f3238e168 EFLAGS: 00000246 ORIG_RAX: 0000000000000000
+[  952.800203][T12429] RAX: ffffffffffffffda RBX: 00007f8f317abf80 RCX: 00007f8f3168b639
+[  952.808170][T12429] RDX: 0000000000002020 RSI: 0000000020002380 RDI: 0000000000000004
+[  952.816139][T12429] RBP: 00007f8f316e6ae9 R08: 0000000000000000 R09: 0000000000000000
+[  952.824107][T12429] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+[  952.832078][T12429] R13: 00007ffce8cedc8f R14: 00007f8f3238e300 R15: 0000000000022000
+[  952.840061][T12429]  </TASK>
