@@ -58,6 +58,12 @@ flock$binder(fd int32, op flags[flock_op])
 
 fsync$binder(fd int32)
 
+dup$binder(oldfd fd_binder) fd_binder
+dup2$binder(oldfd fd_binder, newfd fd_binder) fd_binder
+dup3$binder(oldfd fd_binder, newfd fd_binder, flags flags[dup_flags]) fd_binder
+
+
+
 binder_debug_file = "/sys/kernel/debug/binder/failed_transaction_log", "/sys/kernel/debug/binder/state", "/sys/kernel/debug/binder/stats", "/sys/kernel/debug/binder/transaction_log", "/sys/kernel/debug/binder/transactions"
 
 binder_open_flags = O_RDWR, O_NONBLOCK
