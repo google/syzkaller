@@ -671,7 +671,6 @@ func appendStackFrame(frames []string, match [][]byte, params *stackParams, skip
 				frameName = strings.TrimPrefix(frameName, prefix)
 			}
 			frames = append(frames, frameName)
-			break
 		}
 	}
 	return frames
