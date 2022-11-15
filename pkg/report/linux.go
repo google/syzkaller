@@ -1027,7 +1027,10 @@ var linuxStackParams = &stackParams{
 	},
 	frameRes: []*regexp.Regexp{
 		compile("^ *(?:{{PC}} ){0,2}{{FUNC}}"),
-		compile(`^ *{{PC}} \([a-zA-Z0-9_]+\) from {{PC}} \({{FUNC}}`), // arm is totally different
+		// Arm is totally different.
+		// Extract both current and next frames. This is needed for the top
+		// frame which is present only in LR register which we don't parse.
+		compile(`^ *{{PC}} \(([a-zA-Z0-9_.]+)\) from {{PC}} \({{FUNC}}`),
 	},
 	skipPatterns: []string{
 		"__sanitizer",
