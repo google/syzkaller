@@ -200,6 +200,10 @@ var archConfigs = map[string]*archConfig{
 		RngDev:   "virtio-rng-ccw",
 		CmdLine: []string{
 			"root=/dev/vda",
+			// The following kernel parameters is a temporary
+			// work-around for not having CONFIG_CMDLINE on s390x.
+			"net.ifnames=0",
+			"biosdevname=0",
 		},
 	},
 	"freebsd/amd64": {

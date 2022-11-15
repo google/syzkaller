@@ -370,6 +370,12 @@ func (ctx *linux) Symbolize(rep *Report) error {
 
 	rep.Report = ctx.decompileOpcodes(rep.Report, rep)
 
+	// Skip getting maintainers for Android fuzzing since the kernel source
+	// directory structure is different.
+	if ctx.config.vmType == "cuttlefish" || ctx.config.vmType == "proxyapp" {
+		return nil
+	}
+
 	// We still do this even if we did not symbolize,
 	// because tests pass in already symbolized input.
 	rep.guiltyFile = ctx.extractGuiltyFile(rep)
@@ -1057,6 +1063,7 @@ var linuxStackParams = &stackParams{
 		"kzalloc",
 		"krealloc",
 		"kmem_cache",
+		"allocate_slab",
 		"slab_",
 		"debug_object",
 		"timer_is_static_object",

@@ -197,16 +197,18 @@ func mergeFile(inst *Instance, raw *rawFile, file string, errs *Errors) {
 		}
 		inst.Linker = raw.Linker
 	}
+	prependShell := []Shell{}
 	for _, node := range raw.Shell {
 		cmd, _, constraints, err := parseNode(node)
 		if err != nil {
 			errs.push("%v:%v: %v", file, node.Line, err)
 		}
-		inst.Shell = append(inst.Shell, Shell{
+		prependShell = append(prependShell, Shell{
 			Cmd:         cmd,
 			Constraints: constraints,
 		})
 	}
+	inst.Shell = append(prependShell, inst.Shell...)
 	if raw.Verbatim != "" {
 		inst.Verbatim = append(append(inst.Verbatim, strings.TrimSpace(raw.Verbatim)...), '\n')
 	}

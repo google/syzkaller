@@ -19,32 +19,59 @@ ioctl$VFIO_GET_API_VERSION(fd fd_vfio, cmd const[VFIO_GET_API_VERSION])
 ioctl$VFIO_CHECK_EXTENSION(fd fd_vfio, cmd const[VFIO_CHECK_EXTENSION], arg flags[iommu_flags])
 ioctl$VFIO_SET_IOMMU(fd fd_vfio, cmd const[VFIO_SET_IOMMU], arg flags[iommu_flags])
 
-ioctl$VFIO_IOMMU_GET_INFO(fd fd_vfio, cmd const[VFIO_IOMMU_GET_INFO], arg ptr[inout, vfio_iommu_type1_info])
+ioctl$VFIO_IOMMU_GET_INFO(fd fd_vfio, cmd const[VFIO_IOMMU_GET_INFO], arg ptr[in, vfio_iommu_type1_info])
 ioctl$VFIO_IOMMU_MAP_DMA(fd fd_vfio, cmd const[VFIO_IOMMU_MAP_DMA], arg ptr[in, vfio_iommu_type1_dma_map])
 ioctl$VFIO_IOMMU_UNMAP_DMA(fd fd_vfio, cmd const[VFIO_IOMMU_UNMAP_DMA], arg ptr[in, vfio_iommu_type1_dma_unmap])
 
 vfio_iommu_type1_info {
 	argsz		len[parent, int32]
 	flags		const[0, int32]
-	iova_pgsizes	const[0, int64]
-	cap_offset	int32
+	iova_pgsizes	int64	(out)
+	cap_offset	int32	(out)
+# iommufd constructs the cap chain like this, vfio will work as well but the things will be jumbled a bit
+	cap1		vfio_iommu_type1_info_dma_avail	(out)
+	cap2		vfio_iommu_type1_info_cap_iova_range	(out)
 }
 
 vfio_iommu_type1_dma_map {
 	argsz	len[parent, int32]
-	flags	flags[vfio_dma_flags, int32]
-	vaddr	int64
+	flags	flags[vfio_map_flags, int32]
+	user_va	ptr64[in, array[int8]]
 	iova	int64
 	size	int64
 }
 
 vfio_iommu_type1_dma_unmap {
 	argsz	len[parent, int32]
-	flags	flags[vfio_dma_flags, int32]
+	flags	flags[vfio_unmap_flags, int32]
 	iova	int64
 	size	int64
 	data	array[int8]
 }
 
+vfio_info_cap_header {
+	id	int16
+	version	int16
+	next	int16
+}
+
+vfio_iova_range {
+	start	int64
+	end	int64
+}
+
+vfio_iommu_type1_info_cap_iova_range {
+	header		vfio_info_cap_header
+	nr_iovs		int32
+	reserved	int32
+	iova_ranges	array[vfio_iova_range]
+}
+
+vfio_iommu_type1_info_dma_avail {
+	header	vfio_info_cap_header
+	avail	int32
+}
+
 iommu_flags = VFIO_TYPE1_IOMMU, VFIO_SPAPR_TCE_IOMMU, VFIO_TYPE1v2_IOMMU, VFIO_DMA_CC_IOMMU, VFIO_EEH, VFIO_TYPE1_NESTING_IOMMU, VFIO_SPAPR_TCE_v2_IOMMU, VFIO_NOIOMMU_IOMMU
-vfio_dma_flags = VFIO_DMA_MAP_FLAG_READ, VFIO_DMA_MAP_FLAG_WRITE
+vfio_map_flags = VFIO_DMA_MAP_FLAG_READ, VFIO_DMA_MAP_FLAG_WRITE
+vfio_unmap_flags = VFIO_DMA_UNMAP_FLAG_GET_DIRTY_BITMAP, VFIO_DMA_UNMAP_FLAG_ALL, VFIO_DMA_UNMAP_FLAG_VADDR

@@ -30,3 +30,6 @@ config:
  - RCU_CPU_STALL_TIMEOUT: 100
  # The constraints repeat constraints on inclusion of debug.yml which enables hung task detection.
  - DEFAULT_HUNG_TASK_TIMEOUT: [140, -nonoise, -kmsan, -kcsan, -kmemleak]
+ # By default it is set to a too small value, which causes tons of
+ # `rcu_preempt detected expedited stalls on CPUs/tasks`.
+ - RCU_EXP_CPU_STALL_TIMEOUT: [21000, v5.19]

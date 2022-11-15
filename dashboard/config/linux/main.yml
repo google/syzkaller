@@ -27,17 +27,9 @@ instances:
  - chromeos-5.10:		[chromeos, chromeos-5.10, nodefconfig, x86_64, timeouts_native, onlyusb, kasan]
  - chromeos-5.15:		[chromeos, chromeos-5.15, nodefconfig, x86_64, timeouts_native, onlyusb, kasan]
 
-# These files are included from the bits/ dir.
+# Note: fragments are included top to bottom from this list. When a config fragments overrides
+# another, the override has to be loaded second. These files are included from the bits/ dir.
 includes:
- - linux-upstream.yml: [upstream]
- - linux-next.yml: [linux-next]
- - stable-5.4.yml: [stable-5.4]
- - android-5.4.yml: [android-5.4]
- - android-5.10.yml: [android-5.10]
- - android-5.15.yml: [android-5.15]
- - chromeos-5.4.yml: [chromeos-5.4]
- - chromeos-5.10.yml: [chromeos-5.10]
- - chromeos-5.15.yml: [chromeos-5.15]
  - base.yml: []
  - x86_64.yml: [x86_64]
  - arm64.yml: [arm64]
@@ -72,8 +64,16 @@ includes:
  - kcsan.yml: [kcsan]
  - kmsan.yml: [kmsan]
  - kfence.yml: [kfence]
+ - linux-upstream.yml: [upstream]
+ - linux-next.yml: [linux-next]
+ - stable-5.4.yml: [stable-5.4]
  - android.yml: [android]
  - android-subsystems.yml: [android, -baseline]
- - android-5.10-late.yml: [android-5.10]
+ - android-5.4.yml: [android-5.4]
+ - android-5.10.yml: [android-5.10]
+ - android-5.15.yml: [android-5.15]
  - chromeos.yml: [chromeos]
  - chromeos-subsystems.yml: [chromeos, -baseline]
+ - chromeos-5.4.yml: [chromeos-5.4]
+ - chromeos-5.10.yml: [chromeos-5.10]
+ - chromeos-5.15.yml: [chromeos-5.15]
