@@ -1169,6 +1169,7 @@ var linuxStackParams = &stackParams{
 		"flush_workqueue",
 		"drain_workqueue",
 		"destroy_workqueue",
+		"queue_work",
 		"finish_wait",
 		"kthread_stop",
 		"kobject_",
