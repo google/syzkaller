@@ -904,14 +904,14 @@ func TestBugFromSubjectInference(t *testing.T) {
 	upstreamCrash(crashTitle)
 	upstreamCrash("unrelated crash 2")
 
-	mailingList := config.Namespaces["access-public"].Reporting[1].Config.(*EmailConfig).Email
+	mailingList := "<" + config.Namespaces["access-public"].Reporting[1].Config.(*EmailConfig).Email + ">"
 
 	// First try to ping some non-existing bug.
 	subject := "Re: unknown-bug"
 	c.incomingEmail("bugs@syzkaller.com",
 		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
-		EmailOptFrom("test@requester.com"),
-		EmailOptSender(mailingList), EmailOptSubject(subject),
+		EmailOptOrigFrom("test@requester.com"),
+		EmailOptFrom(mailingList), EmailOptSubject(subject),
 	)
 	body := c.pollEmailBug().Body
 	c.expectEQ(strings.Contains(body, "can't find the corresponding bug"), true)
@@ -920,8 +920,8 @@ func TestBugFromSubjectInference(t *testing.T) {
 	subject = "Re: " + crashTitle
 	c.incomingEmail("bugs@syzkaller.com",
 		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
-		EmailOptFrom("test@requester.com"),
-		EmailOptSender("unknown-list@syzkaller.com"), EmailOptSubject(subject),
+		EmailOptOrigFrom("test@requester.com"),
+		EmailOptFrom("<unknown-list@syzkaller.com>"), EmailOptSubject(subject),
 	)
 	body = c.pollEmailBug().Body
 	c.expectEQ(strings.Contains(body, "can't find the corresponding bug"), true)
@@ -929,15 +929,24 @@ func TestBugFromSubjectInference(t *testing.T) {
 	// Now try to test the exiting bug with the proper mailing list.
 	c.incomingEmail("bugs@syzkaller.com",
 		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
-		EmailOptFrom("test@requester.com"),
-		EmailOptSender(mailingList), EmailOptSubject(subject),
+		EmailOptFrom(mailingList), EmailOptOrigFrom("test@requester.com"),
+		EmailOptSubject(subject),
+	)
+	body = c.pollEmailBug().Body
+	c.expectEQ(strings.Contains(body, "This crash does not have a reproducer"), true)
+
+	// Test that a different type of email headers is also parsed fine.
+	c.incomingEmail("bugs@syzkaller.com",
+		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+		EmailOptSender(mailingList), EmailOptFrom("test@requester.com"),
+		EmailOptSubject(subject),
 	)
 	body = c.pollEmailBug().Body
 	c.expectEQ(strings.Contains(body, "This crash does not have a reproducer"), true)
 
 	// Close the existing bug.
 	c.incomingEmail("bugs@syzkaller.com", "#syz invalid",
-		EmailOptFrom("test@requester.com"), EmailOptSender(mailingList),
+		EmailOptFrom(mailingList), EmailOptOrigFrom("test@requester.com"),
 		EmailOptSubject(subject), EmailOptCC([]string{mailingList}),
 	)
 	c.expectNoEmail()
@@ -949,11 +958,12 @@ func TestBugFromSubjectInference(t *testing.T) {
 	subject = "Re: " + crashTitle + " (2)"
 	c.incomingEmail("bugs@syzkaller.com",
 		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
-		EmailOptFrom("test@requester.com"),
-		EmailOptSender(mailingList), EmailOptSubject(subject),
+		EmailOptFrom(mailingList), EmailOptOrigFrom("<test@requester.com>"),
+		EmailOptSubject(subject),
 	)
-	body = c.pollEmailBug().Body
-	c.expectEQ(strings.Contains(body, "This crash does not have a reproducer"), true)
+	email := c.pollEmailBug()
+	c.expectEQ(email.To, []string{"test@requester.com"})
+	c.expectEQ(strings.Contains(email.Body, "This crash does not have a reproducer"), true)
 }
 
 // nolint: funlen
@@ -1011,5 +1021,4 @@ For more options, visit https://groups.google.com/d/optout.
 	dbBug, _, _ := c.loadBug(extBugID)
 	reporting := lastReportedReporting(dbBug)
 	c.expectNE(reporting.Link, "")
-
 }
