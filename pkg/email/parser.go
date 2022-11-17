@@ -94,7 +94,7 @@ func Parse(r io.Reader, ownEmails []string) (*Email, error) {
 				bugID = context
 			}
 		} else {
-			ccList = append(ccList, cleaned)
+			ccList = append(ccList, CanonicalEmail(cleaned))
 		}
 	}
 	ccList = MergeEmailLists(ccList)
@@ -138,7 +138,7 @@ func Parse(r io.Reader, ownEmails []string) (*Email, error) {
 		MessageID:   msg.Header.Get("Message-ID"),
 		Link:        link,
 		Subject:     subject,
-		From:        from[0].String(),
+		From:        CanonicalEmail(from[0].Address),
 		Cc:          ccList,
 		Sender:      sender,
 		Body:        bodyStr,

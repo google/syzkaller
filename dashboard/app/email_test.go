@@ -322,7 +322,7 @@ Content-Type: text/plain
 
 	{
 		msg := c.pollEmailBug()
-		c.expectEQ(msg.To, []string{"<foo@bar.com>"})
+		c.expectEQ(msg.To, []string{"foo@bar.com"})
 		c.expectEQ(msg.Subject, "Re: title1")
 		c.expectEQ(msg.Headers["In-Reply-To"], []string{"<abcdef>"})
 		if !strings.Contains(msg.Body, `> #syz bad-command
@@ -576,7 +576,7 @@ func TestEmailErrors(t *testing.T) {
 	// If email contains a command we need to reply.
 	c.incomingEmail("syzbot@testapp.appspotmail.com", "#syz invalid")
 	reply := c.pollEmailBug()
-	c.expectEQ(reply.To, []string{"<default@sender.com>"})
+	c.expectEQ(reply.To, []string{"default@sender.com"})
 	c.expectEQ(reply.Body, `> #syz invalid
 
 I see the command but can't find the corresponding bug.

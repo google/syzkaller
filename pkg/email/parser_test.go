@@ -158,8 +158,8 @@ line1
 #syz fix  bar  	 baz
 line 2
 `,
-		cmd: CmdFix,
-		str: "fix",
+		cmd:  CmdFix,
+		str:  "fix",
 		args: "bar  	 baz",
 	},
 	{
@@ -357,7 +357,7 @@ For more options, visit https://groups.google.com/d/optout.`,
 			MessageID: "<123>",
 			Link:      "https://groups.google.com/d/msgid/syzkaller/abcdef@google.com",
 			Subject:   "test subject",
-			From:      "\"Bob\" <bob@example.com>",
+			From:      "bob@example.com",
 			Cc:        []string{"bob@example.com"},
 			Body: `text body
 second line
@@ -388,7 +388,7 @@ last line`,
 			BugID:     "4564456",
 			MessageID: "<123>",
 			Subject:   "test subject",
-			From:      "\"syzbot\" <foo+4564456@bar.com>",
+			From:      "foo@bar.com",
 			Cc:        []string{"bob@example.com"},
 			Body: `text body
 last line`,
@@ -409,7 +409,7 @@ last line`,
 		Email{
 			MessageID: "<123>",
 			Subject:   "test subject",
-			From:      "\"Bob\" <bob@example.com>",
+			From:      "bob@example.com",
 			Cc:        []string{"alice@example.com", "bob@example.com", "bot@example.com"},
 			Body: `#syz  invalid   	 
 text body
@@ -435,7 +435,7 @@ last line
 		Email{
 			MessageID: "<123>",
 			Subject:   "test subject",
-			From:      "\"Bob\" <bob@example.com>",
+			From:      "bob@example.com",
 			Cc:        []string{"alice@example.com", "bob@example.com", "bot@example.com"},
 			Body: `text body
 second line
@@ -475,7 +475,7 @@ IHQpKSB7CiAJCXNwaW5fdW5sb2NrKCZrY292LT5sb2NrKTsKIAkJcmV0dXJuOwo=
 		Email{
 			MessageID: "<123>",
 			Subject:   "test subject",
-			From:      "\"Bob\" <bob@example.com>",
+			From:      "bob@example.com",
 			Cc:        []string{"bob@example.com", "bot@example.com"},
 			Body: `body text
 >#syz test
@@ -563,7 +563,7 @@ or)</div></div></div>
 		Email{
 			MessageID: "<123>",
 			Subject:   "test subject",
-			From:      "\"Bob\" <bob@example.com>",
+			From:      "bob@example.com",
 			Cc:        []string{"bob@example.com", "bot@example.com"},
 			Body: `On Mon, May 8, 2017 at 6:47 PM, Bob wrote:
 > body text
@@ -640,7 +640,7 @@ d
 `, Email{
 		MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
 		Subject:   "Re: BUG: unable to handle kernel NULL pointer dereference in sock_poll",
-		From:      "\"bar\" <bar@foo.com>",
+		From:      "bar@foo.com",
 		Cc:        []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
 		Sender:    "syzkaller-bugs@googlegroups.com",
 		Body: `On 2018/06/10 4:57, syzbot wrote:
@@ -667,7 +667,7 @@ From: bar@foo.com
 #syz dup:
 BUG: unable to handle kernel NULL pointer dereference in corrupted
 `, Email{
-		From:   "<bar@foo.com>",
+		From:   "bar@foo.com",
 		Cc:     []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
 		Sender: "syzkaller-bugs@googlegroups.com",
 		Body: `#syz dup:
@@ -685,7 +685,7 @@ From: bar@foo.com
 #syz fix:
 When freeing a lockf struct that already is part of a linked list, make sure to
 `, Email{
-		From:   "<bar@foo.com>",
+		From:   "bar@foo.com",
 		Cc:     []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
 		Sender: "syzkaller-bugs@googlegroups.com",
 		Body: `#syz fix:
@@ -707,7 +707,7 @@ nothing to see here`,
 			BugID:       "4564456",
 			MessageID:   "<123>",
 			Subject:     "#syz test: git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git master",
-			From:        "<bob@example.com>",
+			From:        "bob@example.com",
 			Cc:          []string{"bob@example.com"},
 			Body:        `nothing to see here`,
 			Command:     CmdTest,
