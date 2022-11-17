@@ -955,3 +955,61 @@ func TestBugFromSubjectInference(t *testing.T) {
 	body = c.pollEmailBug().Body
 	c.expectEQ(strings.Contains(body, "This crash does not have a reproducer"), true)
 }
+
+// nolint: funlen
+func TestEmailLinks(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client2.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	crash.Maintainers = []string{`"Foo Bar" <foo@bar.com>`}
+	c.client2.ReportCrash(crash)
+
+	// Report the crash over email.
+	msg := c.pollEmailBug()
+
+	// Emulate receive of the report from a mailing list.
+	// This should update the bug with the link/Message-ID.
+	// nolint: lll
+	incoming1 := fmt.Sprintf(`Sender: syzkaller@googlegroups.com
+Date: Tue, 15 Aug 2017 14:59:00 -0700
+Message-ID: <1234>
+Subject: crash1
+From: %v
+To: foo@bar.com
+Content-Type: text/plain
+
+Hello
+
+syzbot will keep track of this issue.
+If you forgot to add the Reported-by tag, once the fix for this bug is merged
+into any tree, please reply to this email with:
+#syz fix: exact-commit-title
+To mark this as a duplicate of another syzbot report, please reply with:
+#syz dup: exact-subject-of-another-report
+If it's a one-off invalid bug report, please reply with:
+#syz invalid
+
+-- 
+You received this message because you are subscribed to the Google Groups "syzkaller" group.
+To unsubscribe from this group and stop receiving emails from it, send an email to syzkaller+unsubscribe@googlegroups.com.
+To post to this group, send email to syzkaller@googlegroups.com.
+To view this discussion on the web visit https://groups.google.com/d/msgid/syzkaller/1234@google.com.
+For more options, visit https://groups.google.com/d/optout.
+`, msg.Sender)
+
+	_, err := c.POST("/_ah/mail/", incoming1)
+	c.expectOK(err)
+
+	_, extBugID, err := email.RemoveAddrContext(msg.Sender)
+	c.expectOK(err)
+
+	// Make sure Link is set for the last Reporting.
+	dbBug, _, _ := c.loadBug(extBugID)
+	reporting := lastReportedReporting(dbBug)
+	c.expectNE(reporting.Link, "")
+
+}
