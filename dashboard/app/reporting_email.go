@@ -305,7 +305,7 @@ func incomingMail(c context.Context, r *http.Request) error {
 	// A mailing list can send us a duplicate email, to not process/reply
 	// to such duplicate emails, we ignore emails coming from our mailing lists.
 	mailingList := email.CanonicalEmail(emailConfig.Email)
-	fromMailingList := email.CanonicalEmail(msg.From) == mailingList
+	fromMailingList := msg.From == mailingList
 	mailingListInCC := checkMailingListInCC(c, msg, mailingList)
 	log.Infof(c, "from/cc mailing list: %v/%v", fromMailingList, mailingListInCC)
 	if msg.Command == email.CmdTest {
@@ -339,7 +339,7 @@ func incomingMail(c context.Context, r *http.Request) error {
 		cmd.DupOf = strings.TrimSpace(strings.TrimPrefix(cmd.DupOf, replySubjectPrefix))
 		cmd.DupOf = strings.TrimSpace(strings.TrimPrefix(cmd.DupOf, emailConfig.SubjectPrefix))
 	case email.CmdUnCC:
-		cmd.CC = []string{email.CanonicalEmail(msg.From)}
+		cmd.CC = []string{msg.From}
 	default:
 		if msg.Command != email.CmdUnknown {
 			log.Errorf(c, "unknown email command %v %q", msg.Command, msg.CommandStr)
@@ -377,7 +377,7 @@ func handleTestCommand(c context.Context, info *bugInfoResult, msg *email.Email)
 	}
 	reply := handleTestRequest(c, &testReqArgs{
 		bug: info.bug, bugKey: info.bugKey, bugReporting: info.bugReporting,
-		user: email.CanonicalEmail(msg.From), extID: msg.MessageID, link: msg.Link,
+		user: msg.From, extID: msg.MessageID, link: msg.Link,
 		patch: msg.Patch, repo: args[0], branch: args[1], jobCC: msg.Cc})
 	if reply != "" {
 		return replyTo(c, msg, reply)
@@ -577,11 +577,11 @@ func (p *subjectTitleParser) prepareRegexps() {
 }
 
 func checkMailingListInCC(c context.Context, msg *email.Email, mailingList string) bool {
-	if email.CanonicalEmail(msg.From) == mailingList {
+	if msg.From == mailingList {
 		return true
 	}
 	for _, cc := range msg.Cc {
-		if email.CanonicalEmail(cc) == mailingList {
+		if cc == mailingList {
 			return true
 		}
 	}
