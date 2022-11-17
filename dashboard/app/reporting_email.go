@@ -289,7 +289,8 @@ func incomingMail(c context.Context, r *http.Request) error {
 	}
 	// Ignore any incoming emails from syzbot itself.
 	if ownEmail(c) == msg.From {
-		return nil
+		// But we still want to remember the id of our own message, so just neutralize the command.
+		msg.Command, msg.CommandArgs = email.CmdNone, ""
 	}
 	log.Infof(c, "received email: subject %q, from %q, cc %q, msg %q, bug %q, cmd %q, link %q, sender %q",
 		msg.Subject, msg.From, msg.Cc, msg.MessageID, msg.BugID, msg.Command, msg.Link, msg.Sender)
