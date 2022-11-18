@@ -11,6 +11,6 @@ zx_socket_write(handle zx_socket, options flags[socket_write_options], buffer pt
 zx_socket_set_disposition(handle zx_socket, disposition flags[socket_disposition_options], disposition_peer flags[socket_disposition_options])
 
 socket_create_options = ZX_SOCKET_STREAM, ZX_SOCKET_DATAGRAM
-socket_read_options = ZX_SOCKET_PEEK
+socket_read_options = 0, ZX_SOCKET_PEEK
 socket_write_options = 0
 socket_disposition_options = ZX_SOCKET_DISPOSITION_WRITE_DISABLED, ZX_SOCKET_DISPOSITION_WRITE_ENABLED
