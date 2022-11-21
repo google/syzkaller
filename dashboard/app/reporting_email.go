@@ -328,18 +328,19 @@ func incomingMail(c context.Context, r *http.Request) error {
 		Link:   msg.Link,
 		CC:     msg.Cc,
 	}
+	bugID := bugInfo.bugReporting.ID
 	switch msg.Command {
 	case email.CmdNone, email.CmdUpstream, email.CmdInvalid, email.CmdUnDup:
 	case email.CmdFix:
 		if msg.CommandArgs == "" {
-			return replyTo(c, msg, "no commit title")
+			return replyTo(c, msg, bugID, "no commit title")
 		}
 		cmd.FixCommits = []string{msg.CommandArgs}
 	case email.CmdUnFix:
 		cmd.ResetFixCommits = true
 	case email.CmdDup:
 		if msg.CommandArgs == "" {
-			return replyTo(c, msg, "no dup title")
+			return replyTo(c, msg, bugID, "no dup title")
 		}
 		cmd.DupOf = msg.CommandArgs
 		cmd.DupOf = strings.TrimSpace(strings.TrimPrefix(cmd.DupOf, replySubjectPrefix))
@@ -350,17 +351,17 @@ func incomingMail(c context.Context, r *http.Request) error {
 		if msg.Command != email.CmdUnknown {
 			log.Errorf(c, "unknown email command %v %q", msg.Command, msg.CommandStr)
 		}
-		return replyTo(c, msg, fmt.Sprintf("unknown command %q", msg.CommandStr))
+		return replyTo(c, msg, bugID, fmt.Sprintf("unknown command %q", msg.CommandStr))
 	}
 	ok, reply, err := incomingCommand(c, cmd)
 	if err != nil {
 		return nil // the error was already logged
 	}
 	if !ok && reply != "" {
-		return replyTo(c, msg, reply)
+		return replyTo(c, msg, bugID, reply)
 	}
 	if !mailingListInCC && msg.Command != email.CmdNone && msg.Command != email.CmdUnCC {
-		warnMailingListInCC(c, msg, mailingList)
+		warnMailingListInCC(c, msg, bugID, mailingList)
 	}
 	return nil
 }
@@ -379,14 +380,15 @@ var emailCmdToStatus = map[email.Command]dashapi.BugStatus{
 func handleTestCommand(c context.Context, info *bugInfoResult, msg *email.Email) error {
 	args := strings.Split(msg.CommandArgs, " ")
 	if len(args) != 2 {
-		return replyTo(c, msg, fmt.Sprintf("want 2 args (repo, branch), got %v", len(args)))
+		return replyTo(c, msg, info.bugReporting.ID,
+			fmt.Sprintf("want 2 args (repo, branch), got %v", len(args)))
 	}
 	reply := handleTestRequest(c, &testReqArgs{
 		bug: info.bug, bugKey: info.bugKey, bugReporting: info.bugReporting,
 		user: msg.Author, extID: msg.MessageID, link: msg.Link,
 		patch: msg.Patch, repo: args[0], branch: args[1], jobCC: msg.Cc})
 	if reply != "" {
-		return replyTo(c, msg, reply)
+		return replyTo(c, msg, info.bugReporting.ID, reply)
 	}
 	return nil
 }
@@ -437,7 +439,7 @@ func loadBugInfo(c context.Context, msg *email.Email) *bugInfoResult {
 				log.Errorf(c, "failed to format sender email address: %v", err)
 				from = "ERROR"
 			}
-			if err := replyTo(c, msg, fmt.Sprintf(replyNoBugID, from)); err != nil {
+			if err := replyTo(c, msg, "", fmt.Sprintf(replyNoBugID, from)); err != nil {
 				log.Errorf(c, "failed to send reply: %v", err)
 			}
 		}
@@ -451,7 +453,7 @@ func loadBugInfo(c context.Context, msg *email.Email) *bugInfoResult {
 			log.Errorf(c, "failed to format sender email address: %v", err)
 			from = "ERROR"
 		}
-		if err := replyTo(c, msg, fmt.Sprintf(replyBadBugID, from)); err != nil {
+		if err := replyTo(c, msg, "", fmt.Sprintf(replyBadBugID, from)); err != nil {
 			log.Errorf(c, "failed to send reply: %v", err)
 		}
 		return nil
@@ -459,7 +461,7 @@ func loadBugInfo(c context.Context, msg *email.Email) *bugInfoResult {
 	bugReporting, _ := bugReportingByID(bug, msg.BugID)
 	if bugReporting == nil {
 		log.Errorf(c, "can't find bug reporting: %v", err)
-		if err := replyTo(c, msg, "Can't find the corresponding bug."); err != nil {
+		if err := replyTo(c, msg, "", "Can't find the corresponding bug."); err != nil {
 			log.Errorf(c, "failed to send reply: %v", err)
 		}
 		return nil
@@ -609,12 +611,12 @@ func checkMailingListInCC(c context.Context, msg *email.Email, mailingList strin
 	return false
 }
 
-func warnMailingListInCC(c context.Context, msg *email.Email, mailingList string) {
+func warnMailingListInCC(c context.Context, msg *email.Email, bugID, mailingList string) {
 	reply := fmt.Sprintf("Your '%v' command is accepted, but please keep %v mailing list"+
 		" in CC next time. It serves as a history of what happened with each bug report."+
 		" Thank you.",
 		msg.CommandStr, mailingList)
-	if err := replyTo(c, msg, reply); err != nil {
+	if err := replyTo(c, msg, bugID, reply); err != nil {
 		log.Errorf(c, "failed to send email reply: %v", err)
 	}
 }
@@ -636,9 +638,10 @@ func sendMailText(c context.Context, cfg *EmailConfig, subject, from string, to 
 	return sendEmail(c, msg)
 }
 
-func replyTo(c context.Context, msg *email.Email, reply string) error {
-	from, err := email.AddAddrContext(fromAddr(c), msg.BugID)
+func replyTo(c context.Context, msg *email.Email, bugID, reply string) error {
+	from, err := email.AddAddrContext(fromAddr(c), bugID)
 	if err != nil {
+		log.Errorf(c, "failed to build the From address: %v", err)
 		return err
 	}
 	log.Infof(c, "sending reply: to=%q cc=%q subject=%q reply=%q",
