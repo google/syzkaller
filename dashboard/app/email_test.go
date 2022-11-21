@@ -887,7 +887,7 @@ func TestBugFromSubjectInference(t *testing.T) {
 
 	const crashTitle = "WARNING in corrupted"
 
-	upstreamCrash := func(title string) {
+	upstreamCrash := func(title string) string {
 		// Upload some garbage crashes.
 		crash := testCrash(build, 1)
 		crash.Title = title
@@ -897,11 +897,12 @@ func TestBugFromSubjectInference(t *testing.T) {
 
 		sender := c.pollEmailBug().Sender
 		c.incomingEmail(sender, "#syz upstream\n")
-		c.pollEmailBug()
+
+		return c.pollEmailBug().Sender
 	}
 
 	upstreamCrash("unrelated crash")
-	upstreamCrash(crashTitle)
+	origSender := upstreamCrash(crashTitle)
 	upstreamCrash("unrelated crash 2")
 
 	mailingList := "<" + config.Namespaces["access-public"].Reporting[1].Config.(*EmailConfig).Email + ">"
@@ -913,8 +914,9 @@ func TestBugFromSubjectInference(t *testing.T) {
 		EmailOptOrigFrom("test@requester.com"),
 		EmailOptFrom(mailingList), EmailOptSubject(subject),
 	)
-	body := c.pollEmailBug().Body
-	c.expectEQ(strings.Contains(body, "can't find the corresponding bug"), true)
+	syzbotReply := c.pollEmailBug()
+	c.expectNE(syzbotReply.Sender, origSender)
+	c.expectEQ(strings.Contains(syzbotReply.Body, "can't find the corresponding bug"), true)
 
 	// Now try to test the exiting bug, but with the wrong mailing list.
 	subject = "Re: " + crashTitle
@@ -923,7 +925,7 @@ func TestBugFromSubjectInference(t *testing.T) {
 		EmailOptOrigFrom("test@requester.com"),
 		EmailOptFrom("<unknown-list@syzkaller.com>"), EmailOptSubject(subject),
 	)
-	body = c.pollEmailBug().Body
+	body := c.pollEmailBug().Body
 	c.expectEQ(strings.Contains(body, "can't find the corresponding bug"), true)
 
 	// Now try to test the exiting bug with the proper mailing list.
@@ -932,8 +934,9 @@ func TestBugFromSubjectInference(t *testing.T) {
 		EmailOptFrom(mailingList), EmailOptOrigFrom("test@requester.com"),
 		EmailOptSubject(subject),
 	)
-	body = c.pollEmailBug().Body
-	c.expectEQ(strings.Contains(body, "This crash does not have a reproducer"), true)
+	syzbotReply = c.pollEmailBug()
+	c.expectEQ(syzbotReply.Sender, origSender)
+	c.expectEQ(strings.Contains(syzbotReply.Body, "This crash does not have a reproducer"), true)
 
 	// Test that a different type of email headers is also parsed fine.
 	c.incomingEmail("bugs@syzkaller.com",
