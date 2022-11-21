@@ -880,7 +880,7 @@ func TestBugFromSubjectInference(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
-	client := c.clientPublic
+	client := c.clientPublicEmail
 
 	build := testBuild(1)
 	client.UploadBuild(build)
@@ -905,7 +905,7 @@ func TestBugFromSubjectInference(t *testing.T) {
 	origSender := upstreamCrash(crashTitle)
 	upstreamCrash("unrelated crash 2")
 
-	mailingList := "<" + config.Namespaces["access-public"].Reporting[1].Config.(*EmailConfig).Email + ">"
+	mailingList := "<" + config.Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email + ">"
 
 	// First try to ping some non-existing bug.
 	subject := "Re: unknown-bug"
