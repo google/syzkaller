@@ -252,16 +252,35 @@ var testConfig = &GlobalConfig{
 					AccessLevel: AccessUser,
 					Name:        "access-user-reporting1",
 					DailyLimit:  1000,
-					Config: &EmailConfig{
-						Email:            "test@syzkaller.com",
-						HandleListEmails: true,
-					},
+					Config:      &TestConfig{Index: 1},
 				},
 				{
 					Name:       "access-public-reporting2",
 					DailyLimit: 1000,
+					Config:     &TestConfig{Index: 2},
+				},
+			},
+		},
+		"access-public-email": {
+			AccessLevel: AccessPublic,
+			Key:         "publickeypublickeypublickey",
+			Clients: map[string]string{
+				clientPublicEmail: keyPublicEmail,
+			},
+			Repos: []KernelRepo{
+				{
+					URL:    "git://syzkaller.org/access-public-email.git",
+					Branch: "access-public-email",
+					Alias:  "access-public-email",
+				},
+			},
+			Reporting: []Reporting{
+				{
+					AccessLevel: AccessPublic,
+					Name:        "access-public-email-reporting1",
+					DailyLimit:  1000,
 					Config: &EmailConfig{
-						Email:            "test2@syzkaller.com",
+						Email:            "test@syzkaller.com",
 						HandleListEmails: true,
 					},
 				},
@@ -271,16 +290,18 @@ var testConfig = &GlobalConfig{
 }
 
 const (
-	client1      = "client1"
-	client2      = "client2"
-	password1    = "client1keyclient1keyclient1key"
-	password2    = "client2keyclient2keyclient2key"
-	clientAdmin  = "client-admin"
-	keyAdmin     = "clientadminkeyclientadminkey"
-	clientUser   = "client-user"
-	keyUser      = "clientuserkeyclientuserkey"
-	clientPublic = "client-public"
-	keyPublic    = "clientpublickeyclientpublickey"
+	client1           = "client1"
+	client2           = "client2"
+	password1         = "client1keyclient1keyclient1key"
+	password2         = "client2keyclient2keyclient2key"
+	clientAdmin       = "client-admin"
+	keyAdmin          = "clientadminkeyclientadminkey"
+	clientUser        = "client-user"
+	keyUser           = "clientuserkeyclientuserkey"
+	clientPublic      = "client-public"
+	keyPublic         = "clientpublickeyclientpublickey"
+	clientPublicEmail = "client-public-email"
+	keyPublicEmail    = "clientpublicemailkeyclientpublicemailkey"
 
 	restrictedManager     = "restricted-manager"
 	noFixBisectionManager = "no-fix-bisection-manager"
