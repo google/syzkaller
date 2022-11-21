@@ -309,9 +309,6 @@ func incomingMail(c context.Context, r *http.Request) error {
 	mailingList := email.CanonicalEmail(emailConfig.Email)
 	mailingListInCC := checkMailingListInCC(c, msg, mailingList)
 	log.Infof(c, "from/cc mailing list: %v/%v", fromMailingList, mailingListInCC)
-	if msg.Command == email.CmdTest {
-		return handleTestCommand(c, bugInfo, msg)
-	}
 	if fromMailingList && msg.BugID != "" && msg.Command != email.CmdNone {
 		// Note that if syzbot was not directly mentioned in To or Cc, this is not really
 		// a duplicate message, so it must be processed. We detect it by looking at BugID.
@@ -320,6 +317,9 @@ func incomingMail(c context.Context, r *http.Request) error {
 		// We don't need to worry about this case, as we won't recognize the bug anyway.
 		log.Infof(c, "duplicate email from mailing list, ignoring")
 		return nil
+	}
+	if msg.Command == email.CmdTest {
+		return handleTestCommand(c, bugInfo, msg)
 	}
 	cmd := &dashapi.BugUpdate{
 		Status: emailCmdToStatus[msg.Command],

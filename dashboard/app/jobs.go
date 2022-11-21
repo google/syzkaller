@@ -80,9 +80,6 @@ func handleTestRequest(c context.Context, args *testReqArgs) string {
 		// We've already stored the job, so just log the error.
 		log.Errorf(c, "failed to update bug: %v", err)
 	}
-	if args.link != "" {
-		reply = "" // don't send duplicate error reply
-	}
 	return reply
 }
 
