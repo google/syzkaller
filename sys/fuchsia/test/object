@@ -1,0 +1,247 @@
+r0 = syz_job_default()
+r1 = syz_process_self()
+zx_thread_create(r1, &AUTO='test_thread', 0xb, 0x0, &AUTO=<r2=>0x0)
+r3 = syz_vmar_root_self()
+zx_vmo_create(0x100, 0x0, &AUTO=<r4=>0x0)
+zx_socket_create(0x0, &AUTO=<r5=>0x0, &AUTO=<r6=>0x0)
+zx_timer_create(0x0, 0x0, &AUTO=<r7=>0x0)
+zx_stream_create(0x0, r4, 0x0, &AUTO=<r8=>0x0)
+zx_event_create(0x0, &AUTO=<r9=>0x0)
+zx_port_create(0x0, &AUTO=<r10=>0x0)
+
+## zx_object_get_info
+
+# Check that the job handle is valid.
+
+zx_object_get_info$ZX_INFO_HANDLE_VALID(r0, 0x1, 0x0, 0x0, &AUTO, &AUTO)
+
+# Get basic info about the job handle. This should fail if the output buffer's stated size is smaller than a `zx_info_handle_basic`.
+
+zx_object_get_info$ZX_INFO_HANDLE_BASIC(r0, 0x2, &AUTO, 0x0, &AUTO, &AUTO) # ZX_ERR_BUFFER_TOO_SMALL
+zx_object_get_info$ZX_INFO_HANDLE_BASIC(r0, 0x2, &AUTO, 0x20, &AUTO, &AUTO)
+
+# Get the number of open handles to the job.
+
+zx_object_get_info$ZX_INFO_HANDLE_COUNT(r0, 0x13, &AUTO, 0x4, &AUTO, &AUTO)
+
+# Get stats for handles in the process.
+
+zx_object_get_info$ZX_INFO_PROCESS_HANDLE_STATS(r1, 0x15, &AUTO, 0x100, &AUTO, &AUTO)
+
+# Get a table of handles in the process.
+# There are no handles in this process, so an output buffer of size 0 is OK.
+
+zx_object_get_info$ZX_INFO_HANDLE_TABLE(r1, 0x1b, &AUTO, 0x0, &AUTO, &AUTO)
+
+# Get info about the job.
+
+zx_object_get_info$ZX_INFO_JOB(r0, 0x18, &AUTO, 0x10, &AUTO, &AUTO)
+
+# Get info about the process.
+
+zx_object_get_info$ZX_INFO_PROCESS(r1, 0x10000003, &AUTO, 0x18, &AUTO, &AUTO)
+
+# Get info for each thread running in the process.
+# No threads are running, so a buffer of size 0 is OK.
+
+zx_object_get_info$ZX_INFO_PROCESS_THREADS(r1, 0x4, &AUTO, 0x0, &AUTO, &AUTO)
+
+# Get info about the thread.
+
+zx_object_get_info$ZX_INFO_THREAD(r2, 0xa, &AUTO, 0x48, &AUTO, &AUTO)
+
+# Get the exception report for the thread.
+# The thread is not in an exception state, so this fails.
+
+zx_object_get_info$ZX_INFO_THREAD_EXCEPTION_REPORT(r2, 0x1000000b, &AUTO, 0x2c, &AUTO, &AUTO) # ZX_ERR_BAD_STATE
+
+# Get stats for the thread.
+
+zx_object_get_info$ZX_INFO_THREAD_STATS(r2, 0xf, &AUTO, 0x10, &AUTO, &AUTO)
+
+# Get info about guests.
+# TODO: this fails because we're not passing in a resource handle. Can we create one?
+
+zx_object_get_info$ZX_INFO_GUEST_STATS(r1, 0x1d, &AUTO, 0x78, &AUTO, &AUTO) # ZX_ERR_WRONG_TYPE
+
+# Get info about CPU usage.
+# TODO: this fails because we're not passing in a resource handle. Can we create one?
+
+zx_object_get_info$ZX_INFO_CPU_STATS(r1, 0x10, &AUTO, 0x78, &AUTO, &AUTO) # ZX_ERR_WRONG_TYPE
+
+# Get info about the vmar handle.
+
+zx_object_get_info$ZX_INFO_VMAR(r3, 0x7, &AUTO, 0x10, &AUTO, &AUTO)
+
+# Get info about the vmo handle.
+
+zx_object_get_info$ZX_INFO_VMO(r4, 0x10000017, &AUTO, 0x78, &AUTO, &AUTO)
+
+# Get info about one of the socket handles.
+
+zx_object_get_info$ZX_INFO_SOCKET(r5, 0x16, &AUTO, 0x30, &AUTO, &AUTO)
+
+# Get info about the timer handle.
+
+zx_object_get_info$ZX_INFO_TIMER(r7, 0x19, &AUTO, 0x20, &AUTO, &AUTO)
+
+# Get child info for the job, before and after creating a child job.
+# TODO: the second `zx_object_get_info` call also succeeds with a buffer of length 0, but shouldn't it need space for 1 koid since the job has a child?
+
+zx_object_get_info$ZX_INFO_JOB_CHILDREN(r0, 0x8, &AUTO, 0x0, &AUTO, &AUTO)
+zx_job_create(r0, 0x0, &AUTO=<r9=>0x0)
+zx_object_get_info$ZX_INFO_JOB_CHILDREN(r0, 0x8, &AUTO, 0x8, &AUTO, &AUTO)
+
+# Get info about child processes for the job.
+# The job has no child processes (and we can't create them now), so this succeeds with an empty buffer.
+
+zx_object_get_info$ZX_INFO_JOB_PROCESSES(r0, 0x9, &AUTO, 0x0, &AUTO, &AUTO)
+
+# Get task stats for the process handle.
+
+zx_object_get_info$ZX_INFO_TASK_STATS(r1, 0xc, &AUTO, 0x20, &AUTO, &AUTO)
+
+# Get task runtime info for the job, process, and thread.
+
+zx_object_get_info$ZX_INFO_TASK_RUNTIME(r0, 0x1000001e, &AUTO, 0x20, &AUTO, &AUTO)
+zx_object_get_info$ZX_INFO_TASK_RUNTIME(r1, 0x1000001e, &AUTO, 0x20, &AUTO, &AUTO)
+zx_object_get_info$ZX_INFO_TASK_RUNTIME(r2, 0x1000001e, &AUTO, 0x20, &AUTO, &AUTO)
+
+# Get info about maps in the process.
+# There are no maps in this process, so an output buffer of length 0 is OK.
+
+zx_object_get_info$ZX_INFO_PROCESS_MAPS(r1, 0xd, &AUTO, 0x0, &AUTO, &AUTO)
+
+# Get info about vmos pointed to by the process.
+# There are no vmos related to this process, so an output buffer of length 0 is OK.
+
+zx_object_get_info$ZX_INFO_PROCESS_VMOS(r1, 0x1000000e, &AUTO, 0x0, &AUTO, &AUTO)
+
+# Get info and extended info about kernel memory usage.
+# TODO: this fails because we're not passing in a resource handle. Can we create one?
+
+zx_object_get_info$ZX_INFO_KMEM_STATS(r0, 0x11, &AUTO, 0x48, &AUTO, &AUTO) # ZX_ERR_WRONG_TYPE
+zx_object_get_info$ZX_INFO_KMEM_STATS_EXTENDED(r0, 0x1f, &AUTO, 0xb0, &AUTO, &AUTO) # ZX_ERR_WRONG_TYPE
+
+# Get info about a resource handle.
+# TODO: this fails because we're not passing in a resource handle. Can we create one?
+
+zx_object_get_info$ZX_INFO_RESOURCE(r0, 0x12, &AUTO, 0x38, &AUTO, &AUTO) # ZX_ERR_WRONG_TYPE
+
+# Get info about a bti.
+# TODO: this fails because we're not passing in a bti handle. Can we create one? This probably requires a resource handle.
+
+zx_object_get_info$ZX_INFO_BTI(r0, 0x14, &AUTO, 0x20, &AUTO, &AUTO) # ZX_ERR_WRONG_TYPE
+
+## zx_object_get_property and zx_object_set_property
+
+# Get and set the names of some handles.
+
+zx_object_get_property$ZX_PROP_NAME(r0, 0x3, &AUTO, 0x20)
+zx_object_get_property$ZX_PROP_NAME(r1, 0x3, &AUTO, 0x20)
+zx_object_get_property$ZX_PROP_NAME(r2, 0x3, &AUTO, 0x20)
+
+zx_object_set_property$ZX_PROP_NAME(r0, 0x3, &AUTO, 0x20)
+zx_object_set_property$ZX_PROP_NAME(r1, 0x3, &AUTO, 0x20)
+zx_object_set_property$ZX_PROP_NAME(r2, 0x3, &AUTO, 0x20)
+
+# Get and set register values for the thread.
+# Only defined for x86-64.
+# TODO: this fails because the thread handle does not have right ZX_RIGHT_GET_PROPERTY or ZX_RIGHT_SET_PROPERTY.
+
+zx_object_get_property$ZX_PROP_REGISTER_FS(r2, 0x4, &AUTO, 0x8) # ZX_ERR_ACCESS_DENIED
+zx_object_get_property$ZX_PROP_REGISTER_GS(r2, 0x2, &AUTO, 0x8) # ZX_ERR_ACCESS_DENIED
+zx_object_set_property$ZX_PROP_REGISTER_FS(r2, 0x4, &AUTO, 0x8) # ZX_ERR_ACCESS_DENIED
+zx_object_set_property$ZX_PROP_REGISTER_GS(r2, 0x2, &AUTO, 0x8) # ZX_ERR_ACCESS_DENIED
+
+# Get and set the debug address of the dynamic loader for the process.
+
+zx_object_get_property$ZX_PROP_PROCESS_DEBUG_ADDR(r1, 0x5, &AUTO, 0x8)
+zx_object_set_property$ZX_PROP_PROCESS_DEBUG_ADDR(r1, 0x5, &AUTO, 0x8)
+
+# Get and set the break-on-load status for shared libraries used by the process.
+
+zx_object_get_property$ZX_PROP_PROCESS_BREAK_ON_LOAD(r1, 0x7, &AUTO, 0x8)
+zx_object_set_property$ZX_PROP_PROCESS_BREAK_ON_LOAD(r1, 0x7, &AUTO, 0x8)
+
+# Get the base address of the vdso mapping for the process.
+
+zx_object_get_property$ZX_PROP_PROCESS_VDSO_BASE_ADDRESS(r1, 0x6, &AUTO, 0x8)
+
+# Set the kill-on-oom state for the job.
+
+zx_object_set_property$ZX_PROP_JOB_KILL_ON_OOM(r0, 0xf, &AUTO, 0x1)
+
+# Get the hardware tracing context id for the process.
+
+zx_object_get_property$ZX_PROP_PROCESS_HW_TRACE_CONTEXT_ID(r1, 0x8, &AUTO, 0x8)
+
+# Get and set the sizes of the read and write thresholds for the socket.
+
+zx_object_get_property$ZX_PROP_SOCKET_RX_THRESHOLD(r5, 0xc, &AUTO, 0x8)
+zx_object_get_property$ZX_PROP_SOCKET_TX_THRESHOLD(r5, 0xd, &AUTO, 0x8)
+zx_object_set_property$ZX_PROP_SOCKET_RX_THRESHOLD(r5, 0xc, &AUTO, 0x8)
+zx_object_set_property$ZX_PROP_SOCKET_TX_THRESHOLD(r5, 0xd, &AUTO, 0x8)
+
+# Get and set the stream append-mode status.
+
+zx_object_get_property$ZX_PROP_STREAM_MODE_APPEND(r8, 0x13, &AUTO, 0x1)
+zx_object_set_property$ZX_PROP_STREAM_MODE_APPEND(r8, 0x13, &AUTO, 0x1)
+
+# Get and set the content size for the vmo.
+
+zx_object_get_property$ZX_PROP_VMO_CONTENT_SIZE(r4, 0x11, &AUTO, 0x8)
+zx_object_set_property$ZX_PROP_VMO_CONTENT_SIZE(r4, 0x11, &AUTO, 0x8)
+
+## zx_object_signal and zx_object_signal_peer
+
+# Set the ZX_USER_SIGNAL_0 bit on one of the socket handles and its peer, then clear the bit.
+
+zx_object_signal(r5, 0x0, 0x1000000)
+zx_object_signal_peer(r5, 0x0, 0x1000000)
+
+zx_object_signal(r5, 0x1000000, 0x0)
+zx_object_signal_peer(r5, 0x1000000, 0x0)
+
+## zx_object_wait_one, zx_object_wait_many, and zx_object_wait_async
+
+# Assert ZX_USER_SIGNAL_0 on the event handle.
+# Check for any asserted signal, then for ZX_USER_SIGNAL_0, then for a different signal (without waiting).
+# TODO: is it possible to wait (with a nontrivial deadline) and then signal?
+
+zx_object_signal(r9, 0x0, 0x1000000)
+zx_object_wait_one(r9, 0xff000000, 0x0, &AUTO)
+zx_object_wait_one(r9, 0x1000000, 0x0, &AUTO)
+zx_object_wait_one(r9, 0x2000000, 0x0, &AUTO) # ZX_ERR_TIMED_OUT
+
+# Make sure that signals are asserted on both the event and socket handles, then check for those signals.
+# Then check for a one asserted and one non-asserted signal; this should also succeed.
+
+zx_object_signal(r5, 0x0, 0x2000000)
+zx_object_wait_many(&AUTO=[{r5, 0x2000000, 0x0}, {r9, 0x1000000, 0x0}], 0x2, 0x0)
+zx_object_wait_many(&AUTO=[{r5, 0x2000000, 0x0}, {r9, 0x2000000, 0x0}], 0x2, 0x0)
+
+# Start an async wait on a new signals on the event handle with the ZX_WAIT_ASYNC_EDGE option.
+# Check for packets on the port; there should be none. Then assert the signal and check for
+# packets again.
+
+zx_object_wait_async(r9, r10, 0x0, 0x2000000, 0x2)
+zx_port_wait(r10, 0x0, &AUTO) # ZX_ERR_TIMED_OUT
+zx_object_signal(r9, 0x0, 0x2000000)
+zx_port_wait(r10, 0x0, &AUTO)
+
+# Start an async wait on an asserted signal on the event handle, with each of the ZX_WAIT_ASYNC_ONCE and ZX_WAIT_ASYNC_TIMESTAMP options.
+# Fetch queued packets from the port.
+
+zx_port_create(0x0, &AUTO=<r11=>0x0)
+zx_object_wait_async(r9, r11, 0x0, 0x1000000, 0x0)
+zx_object_wait_async(r9, r11, 0x0, 0x1000000, 0x1)
+zx_port_wait(r11, 0x0, &AUTO)
+
+## zx_object_set_profile
+
+# Set a profile for the thread.
+# TODO: We can't test this right now, since we need a handle to the root job in order to create a profile.
+
+zx_profile_create(r0, 0x0, &AUTO={0x0, 0x0, [0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0]}, &AUTO=<r12=>0x0) # ZX_ERR_ACCESS_DENIED
+zx_object_set_profile(r2, r12, 0x0) # ZX_ERR_BAD_HANDLE
