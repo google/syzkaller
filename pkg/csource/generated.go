@@ -6361,8 +6361,7 @@ struct puff_state {
 };
 static int puff_bits(struct puff_state* s, int need)
 {
-	long val;
-	val = s->bitbuf;
+	long val = s->bitbuf;
 	while (s->bitcnt < need) {
 		if (s->incnt == s->inlen)
 			longjmp(s->env, 1);
@@ -6375,12 +6374,11 @@ static int puff_bits(struct puff_state* s, int need)
 }
 static int puff_stored(struct puff_state* s)
 {
-	unsigned len;
 	s->bitbuf = 0;
 	s->bitcnt = 0;
 	if (s->incnt + 4 > s->inlen)
 		return 2;
-	len = s->in[s->incnt++];
+	unsigned len = s->in[s->incnt++];
 	len |= s->in[s->incnt++] << 8;
 	if (s->in[s->incnt++] != (~len & 0xff) ||
 	    s->in[s->incnt++] != ((~len >> 8) & 0xff))
@@ -6399,25 +6397,18 @@ struct puff_huffman {
 };
 static int puff_decode(struct puff_state* s, const struct puff_huffman* h)
 {
-	int len;
-	int code;
-	int first;
-	int count;
-	int index;
-	int bitbuf;
-	int left;
-	short* next;
-
-	bitbuf = s->bitbuf;
-	left = s->bitcnt;
-	code = first = index = 0;
-	len = 1;
-	next = h->count + 1;
+	int first = 0;
+	int index = 0;
+	int bitbuf = s->bitbuf;
+	int left = s->bitcnt;
+	int code = first = index = 0;
+	int len = 1;
+	short* next = h->count + 1;
 	while (1) {
 		while (left--) {
 			code |= bitbuf & 1;
 			bitbuf >>= 1;
-			count = *next++;
+			int count = *next++;
 			if (code - count < first) {
 				s->bitbuf = bitbuf;
 				s->bitcnt = (s->bitcnt - len) & 7;
@@ -6442,23 +6433,22 @@ static int puff_decode(struct puff_state* s, const struct puff_huffman* h)
 }
 static int puff_construct(struct puff_huffman* h, const short* length, int n)
 {
-	int symbol;
 	int len;
-	int left;
-	short offs[MAXBITS + 1];
 	for (len = 0; len <= MAXBITS; len++)
 		h->count[len] = 0;
+	int symbol;
 	for (symbol = 0; symbol < n; symbol++)
 		(h->count[length[symbol]])++;
 	if (h->count[0] == n)
 		return 0;
-	left = 1;
+	int left = 1;
 	for (len = 1; len <= MAXBITS; len++) {
 		left <<= 1;
 		left -= h->count[len];
 		if (left < 0)
 			return left;
 	}
+	short offs[MAXBITS + 1];
 	offs[1] = 0;
 	for (len = 1; len < MAXBITS; len++)
 		offs[len + 1] = offs[len] + h->count[len];
@@ -6471,9 +6461,6 @@ static int puff_codes(struct puff_state* s,
 		      const struct puff_huffman* lencode,
 		      const struct puff_huffman* distcode)
 {
-	int symbol;
-	int len;
-	unsigned dist;
 	static const short lens[29] = {
 				       3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
 				       35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258};
@@ -6488,6 +6475,7 @@ static int puff_codes(struct puff_state* s,
 				       0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
 				       7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
 				       12, 12, 13, 13};
+	int symbol;
 	do {
 		symbol = puff_decode(s, lencode);
 		if (symbol < 0)
@@ -6501,11 +6489,11 @@ static int puff_codes(struct puff_state* s,
 			symbol -= 257;
 			if (symbol >= 29)
 				return -10;
-			len = lens[symbol] + puff_bits(s, lext[symbol]);
+			int len = lens[symbol] + puff_bits(s, lext[symbol]);
 			symbol = puff_decode(s, distcode);
 			if (symbol < 0)
 				return symbol;
-			dist = dists[symbol] + puff_bits(s, dext[symbol]);
+			unsigned dist = dists[symbol] + puff_bits(s, dext[symbol]);
 			if (dist > s->outcnt)
 				return -11;
 			if (s->outcnt + len > s->outlen)
@@ -6526,12 +6514,12 @@ static int puff_fixed(struct puff_state* s)
 	static short distcnt[MAXBITS + 1], distsym[MAXDCODES];
 	static struct puff_huffman lencode, distcode;
 	if (virgin) {
-		int symbol;
-		short lengths[FIXLCODES];
 		lencode.count = lencnt;
 		lencode.symbol = lensym;
 		distcode.count = distcnt;
 		distcode.symbol = distsym;
+		short lengths[FIXLCODES];
+		int symbol;
 		for (symbol = 0; symbol < 144; symbol++)
 			lengths[symbol] = 8;
 		for (; symbol < 256; symbol++)
@@ -6550,29 +6538,22 @@ static int puff_fixed(struct puff_state* s)
 }
 static int puff_dynamic(struct puff_state* s)
 {
-	int nlen, ndist, ncode;
-	int index;
-	int err;
-	short lengths[MAXCODES];
-	short lencnt[MAXBITS + 1], lensym[MAXLCODES];
-	short distcnt[MAXBITS + 1], distsym[MAXDCODES];
-	struct puff_huffman lencode, distcode;
 	static const short order[19] =
 	    {16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15};
-	lencode.count = lencnt;
-	lencode.symbol = lensym;
-	distcode.count = distcnt;
-	distcode.symbol = distsym;
-	nlen = puff_bits(s, 5) + 257;
-	ndist = puff_bits(s, 5) + 1;
-	ncode = puff_bits(s, 4) + 4;
+	int nlen = puff_bits(s, 5) + 257;
+	int ndist = puff_bits(s, 5) + 1;
+	int ncode = puff_bits(s, 4) + 4;
 	if (nlen > MAXLCODES || ndist > MAXDCODES)
 		return -3;
+	short lengths[MAXCODES];
+	int index;
 	for (index = 0; index < ncode; index++)
 		lengths[order[index]] = puff_bits(s, 3);
 	for (; index < 19; index++)
 		lengths[order[index]] = 0;
-	err = puff_construct(&lencode, lengths, 19);
+	short lencnt[MAXBITS + 1], lensym[MAXLCODES];
+	struct puff_huffman lencode = {lencnt, lensym};
+	int err = puff_construct(&lencode, lengths, 19);
 	if (err != 0)
 		return -4;
 	index = 0;
@@ -6607,6 +6588,8 @@ static int puff_dynamic(struct puff_state* s)
 	err = puff_construct(&lencode, lengths, nlen);
 	if (err && (err < 0 || nlen != lencode.count[0] + lencode.count[1]))
 		return -7;
+	short distcnt[MAXBITS + 1], distsym[MAXDCODES];
+	struct puff_huffman distcode = {distcnt, distsym};
 	err = puff_construct(&distcode, lengths + nlen, ndist);
 	if (err && (err < 0 || ndist != distcode.count[0] + distcode.count[1]))
 		return -8;
@@ -6616,34 +6599,33 @@ static int puff(
     unsigned char* dest,
     unsigned long* destlen,
     const unsigned char* source,
-    unsigned long* sourcelen)
+    unsigned long sourcelen)
 {
-	struct puff_state s;
-	int last, type;
+	struct puff_state s = {
+	    .out = dest,
+	    .outlen = *destlen,
+	    .outcnt = 0,
+	    .in = source,
+	    .inlen = sourcelen,
+	    .incnt = 0,
+	    .bitbuf = 0,
+	    .bitcnt = 0,
+	};
 	int err;
-	s.out = dest;
-	s.outlen = *destlen;
-	s.outcnt = 0;
-	s.in = source;
-	s.inlen = *sourcelen;
-	s.incnt = 0;
-	s.bitbuf = 0;
-	s.bitcnt = 0;
 	if (setjmp(s.env) != 0)
 		err = 2;
 	else {
+		int last;
 		do {
 			last = puff_bits(&s, 1);
-			type = puff_bits(&s, 2);
+			int type = puff_bits(&s, 2);
 			err = type == 0 ? puff_stored(&s) : (type == 1 ? puff_fixed(&s) : (type == 2 ? puff_dynamic(&s) : -1));
 			if (err != 0)
 				break;
 		} while (!last);
 	}
-	if (err <= 0) {
-		*destlen = s.outcnt;
-		*sourcelen = s.incnt;
-	}
+
+	*destlen = s.outcnt;
 	return err;
 }
 
@@ -6668,7 +6650,7 @@ static int puff_zlib_to_file(const unsigned char* source, unsigned long sourcele
 		return -1;
 	unsigned char* dest = (unsigned char*)ret;
 	unsigned long destlen = max_destlen;
-	int err = puff(dest, &destlen, source, &sourcelen);
+	int err = puff(dest, &destlen, source, sourcelen);
 	if (err) {
 		munmap(dest, max_destlen);
 		errno = -err;
@@ -11520,8 +11502,7 @@ struct puff_state {
 };
 static int puff_bits(struct puff_state* s, int need)
 {
-	long val;
-	val = s->bitbuf;
+	long val = s->bitbuf;
 	while (s->bitcnt < need) {
 		if (s->incnt == s->inlen)
 			longjmp(s->env, 1);
@@ -11534,12 +11515,11 @@ static int puff_bits(struct puff_state* s, int need)
 }
 static int puff_stored(struct puff_state* s)
 {
-	unsigned len;
 	s->bitbuf = 0;
 	s->bitcnt = 0;
 	if (s->incnt + 4 > s->inlen)
 		return 2;
-	len = s->in[s->incnt++];
+	unsigned len = s->in[s->incnt++];
 	len |= s->in[s->incnt++] << 8;
 	if (s->in[s->incnt++] != (~len & 0xff) ||
 	    s->in[s->incnt++] != ((~len >> 8) & 0xff))
@@ -11558,25 +11538,18 @@ struct puff_huffman {
 };
 static int puff_decode(struct puff_state* s, const struct puff_huffman* h)
 {
-	int len;
-	int code;
-	int first;
-	int count;
-	int index;
-	int bitbuf;
-	int left;
-	short* next;
-
-	bitbuf = s->bitbuf;
-	left = s->bitcnt;
-	code = first = index = 0;
-	len = 1;
-	next = h->count + 1;
+	int first = 0;
+	int index = 0;
+	int bitbuf = s->bitbuf;
+	int left = s->bitcnt;
+	int code = first = index = 0;
+	int len = 1;
+	short* next = h->count + 1;
 	while (1) {
 		while (left--) {
 			code |= bitbuf & 1;
 			bitbuf >>= 1;
-			count = *next++;
+			int count = *next++;
 			if (code - count < first) {
 				s->bitbuf = bitbuf;
 				s->bitcnt = (s->bitcnt - len) & 7;
@@ -11601,23 +11574,22 @@ static int puff_decode(struct puff_state* s, const struct puff_huffman* h)
 }
 static int puff_construct(struct puff_huffman* h, const short* length, int n)
 {
-	int symbol;
 	int len;
-	int left;
-	short offs[MAXBITS + 1];
 	for (len = 0; len <= MAXBITS; len++)
 		h->count[len] = 0;
+	int symbol;
 	for (symbol = 0; symbol < n; symbol++)
 		(h->count[length[symbol]])++;
 	if (h->count[0] == n)
 		return 0;
-	left = 1;
+	int left = 1;
 	for (len = 1; len <= MAXBITS; len++) {
 		left <<= 1;
 		left -= h->count[len];
 		if (left < 0)
 			return left;
 	}
+	short offs[MAXBITS + 1];
 	offs[1] = 0;
 	for (len = 1; len < MAXBITS; len++)
 		offs[len + 1] = offs[len] + h->count[len];
@@ -11630,9 +11602,6 @@ static int puff_codes(struct puff_state* s,
 		      const struct puff_huffman* lencode,
 		      const struct puff_huffman* distcode)
 {
-	int symbol;
-	int len;
-	unsigned dist;
 	static const short lens[29] = {
 				       3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
 				       35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258};
@@ -11647,6 +11616,7 @@ static int puff_codes(struct puff_state* s,
 				       0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
 				       7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
 				       12, 12, 13, 13};
+	int symbol;
 	do {
 		symbol = puff_decode(s, lencode);
 		if (symbol < 0)
@@ -11660,11 +11630,11 @@ static int puff_codes(struct puff_state* s,
 			symbol -= 257;
 			if (symbol >= 29)
 				return -10;
-			len = lens[symbol] + puff_bits(s, lext[symbol]);
+			int len = lens[symbol] + puff_bits(s, lext[symbol]);
 			symbol = puff_decode(s, distcode);
 			if (symbol < 0)
 				return symbol;
-			dist = dists[symbol] + puff_bits(s, dext[symbol]);
+			unsigned dist = dists[symbol] + puff_bits(s, dext[symbol]);
 			if (dist > s->outcnt)
 				return -11;
 			if (s->outcnt + len > s->outlen)
@@ -11685,12 +11655,12 @@ static int puff_fixed(struct puff_state* s)
 	static short distcnt[MAXBITS + 1], distsym[MAXDCODES];
 	static struct puff_huffman lencode, distcode;
 	if (virgin) {
-		int symbol;
-		short lengths[FIXLCODES];
 		lencode.count = lencnt;
 		lencode.symbol = lensym;
 		distcode.count = distcnt;
 		distcode.symbol = distsym;
+		short lengths[FIXLCODES];
+		int symbol;
 		for (symbol = 0; symbol < 144; symbol++)
 			lengths[symbol] = 8;
 		for (; symbol < 256; symbol++)
@@ -11709,29 +11679,22 @@ static int puff_fixed(struct puff_state* s)
 }
 static int puff_dynamic(struct puff_state* s)
 {
-	int nlen, ndist, ncode;
-	int index;
-	int err;
-	short lengths[MAXCODES];
-	short lencnt[MAXBITS + 1], lensym[MAXLCODES];
-	short distcnt[MAXBITS + 1], distsym[MAXDCODES];
-	struct puff_huffman lencode, distcode;
 	static const short order[19] =
 	    {16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15};
-	lencode.count = lencnt;
-	lencode.symbol = lensym;
-	distcode.count = distcnt;
-	distcode.symbol = distsym;
-	nlen = puff_bits(s, 5) + 257;
-	ndist = puff_bits(s, 5) + 1;
-	ncode = puff_bits(s, 4) + 4;
+	int nlen = puff_bits(s, 5) + 257;
+	int ndist = puff_bits(s, 5) + 1;
+	int ncode = puff_bits(s, 4) + 4;
 	if (nlen > MAXLCODES || ndist > MAXDCODES)
 		return -3;
+	short lengths[MAXCODES];
+	int index;
 	for (index = 0; index < ncode; index++)
 		lengths[order[index]] = puff_bits(s, 3);
 	for (; index < 19; index++)
 		lengths[order[index]] = 0;
-	err = puff_construct(&lencode, lengths, 19);
+	short lencnt[MAXBITS + 1], lensym[MAXLCODES];
+	struct puff_huffman lencode = {lencnt, lensym};
+	int err = puff_construct(&lencode, lengths, 19);
 	if (err != 0)
 		return -4;
 	index = 0;
@@ -11766,6 +11729,8 @@ static int puff_dynamic(struct puff_state* s)
 	err = puff_construct(&lencode, lengths, nlen);
 	if (err && (err < 0 || nlen != lencode.count[0] + lencode.count[1]))
 		return -7;
+	short distcnt[MAXBITS + 1], distsym[MAXDCODES];
+	struct puff_huffman distcode = {distcnt, distsym};
 	err = puff_construct(&distcode, lengths + nlen, ndist);
 	if (err && (err < 0 || ndist != distcode.count[0] + distcode.count[1]))
 		return -8;
@@ -11775,34 +11740,33 @@ static int puff(
     unsigned char* dest,
     unsigned long* destlen,
     const unsigned char* source,
-    unsigned long* sourcelen)
+    unsigned long sourcelen)
 {
-	struct puff_state s;
-	int last, type;
+	struct puff_state s = {
+	    .out = dest,
+	    .outlen = *destlen,
+	    .outcnt = 0,
+	    .in = source,
+	    .inlen = sourcelen,
+	    .incnt = 0,
+	    .bitbuf = 0,
+	    .bitcnt = 0,
+	};
 	int err;
-	s.out = dest;
-	s.outlen = *destlen;
-	s.outcnt = 0;
-	s.in = source;
-	s.inlen = *sourcelen;
-	s.incnt = 0;
-	s.bitbuf = 0;
-	s.bitcnt = 0;
 	if (setjmp(s.env) != 0)
 		err = 2;
 	else {
+		int last;
 		do {
 			last = puff_bits(&s, 1);
-			type = puff_bits(&s, 2);
+			int type = puff_bits(&s, 2);
 			err = type == 0 ? puff_stored(&s) : (type == 1 ? puff_fixed(&s) : (type == 2 ? puff_dynamic(&s) : -1));
 			if (err != 0)
 				break;
 		} while (!last);
 	}
-	if (err <= 0) {
-		*destlen = s.outcnt;
-		*sourcelen = s.incnt;
-	}
+
+	*destlen = s.outcnt;
 	return err;
 }
 
@@ -11827,7 +11791,7 @@ static int puff_zlib_to_file(const unsigned char* source, unsigned long sourcele
 		return -1;
 	unsigned char* dest = (unsigned char*)ret;
 	unsigned long destlen = max_destlen;
-	int err = puff(dest, &destlen, source, &sourcelen);
+	int err = puff(dest, &destlen, source, sourcelen);
 	if (err) {
 		munmap(dest, max_destlen);
 		errno = -err;
