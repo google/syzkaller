@@ -59,10 +59,9 @@ struct puff_state {
 // eight bits in the buffer.  bits() works properly for need == 0.
 static int puff_bits(struct puff_state* s, int need)
 {
-	long val; // bit accumulator (can use up to 20 bits)
-
+	// bit accumulator (can use up to 20 bits)
 	// load at least need bits into val
-	val = s->bitbuf;
+	long val = s->bitbuf;
 	while (s->bitcnt < need) {
 		if (s->incnt == s->inlen)
 			longjmp(s->env, 1); // out of input
@@ -81,8 +80,6 @@ static int puff_bits(struct puff_state* s, int need)
 // Process a stored block.
 static int puff_stored(struct puff_state* s)
 {
-	unsigned len; // length of stored block
-
 	// discard leftover bits from current byte (assumes s->bitcnt < 8)
 	s->bitbuf = 0;
 	s->bitcnt = 0;
@@ -90,7 +87,7 @@ static int puff_stored(struct puff_state* s)
 	// get length and check against its one's complement
 	if (s->incnt + 4 > s->inlen)
 		return 2; // not enough input
-	len = s->in[s->incnt++];
+	unsigned len = s->in[s->incnt++]; // length of stored block
 	len |= s->in[s->incnt++] << 8;
 	if (s->in[s->incnt++] != (~len & 0xff) ||
 	    s->in[s->incnt++] != ((~len >> 8) & 0xff))
@@ -124,25 +121,18 @@ struct puff_huffman {
 // then -10 is returned after reading MAXBITS bits.
 static int puff_decode(struct puff_state* s, const struct puff_huffman* h)
 {
-	int len; // current number of bits in code
-	int code; // len bits being decoded
-	int first; // first code of length len
-	int count; // number of codes of length len
-	int index; // index of first code of length len in symbol table
-	int bitbuf; // bits from stream
-	int left; // bits left in next or left to process
-	short* next; // next number of codes
-
-	bitbuf = s->bitbuf;
-	left = s->bitcnt;
-	code = first = index = 0;
-	len = 1;
-	next = h->count + 1;
+	int first = 0; // first code of length len
+	int index = 0; // index of first code of length len in symbol table
+	int bitbuf = s->bitbuf; // bits from stream
+	int left = s->bitcnt; // bits left in next or left to process
+	int code = first = index = 0; // len bits being decoded
+	int len = 1; // current number of bits in code
+	short* next = h->count + 1; // next number of codes
 	while (1) {
 		while (left--) {
 			code |= bitbuf & 1;
 			bitbuf >>= 1;
-			count = *next++;
+			int count = *next++; // number of codes of length len
 			if (code - count < first) { // if length len, return symbol
 				s->bitbuf = bitbuf;
 				s->bitcnt = (s->bitcnt - len) & 7;
@@ -189,21 +179,18 @@ static int puff_decode(struct puff_state* s, const struct puff_huffman* h)
 // fixed() and is not verified by construct().
 static int puff_construct(struct puff_huffman* h, const short* length, int n)
 {
-	int symbol; // current symbol when stepping through length[]
-	int len; // current length when stepping through h->count[]
-	int left; // number of possible codes left of current length
-	short offs[MAXBITS + 1]; // offsets in symbol table for each length
-
 	// count number of codes of each length
+	int len; // current length when stepping through h->count[]
 	for (len = 0; len <= MAXBITS; len++)
 		h->count[len] = 0;
+	int symbol; // current symbol when stepping through length[]
 	for (symbol = 0; symbol < n; symbol++)
 		(h->count[length[symbol]])++; // assumes lengths are within bounds
 	if (h->count[0] == n) // no codes!
 		return 0; // complete, but decode() will fail
 
 	// check for an over-subscribed or incomplete set of lengths
-	left = 1; // one possible code of zero length
+	int left = 1; // one possible code of zero length
 	for (len = 1; len <= MAXBITS; len++) {
 		left <<= 1; // one more bit, double codes left
 		left -= h->count[len]; // deduct count from possible codes
@@ -212,6 +199,7 @@ static int puff_construct(struct puff_huffman* h, const short* length, int n)
 	} // left > 0 means incomplete
 
 	// generate offsets into symbol table for each length for sorting
+	short offs[MAXBITS + 1];
 	offs[1] = 0;
 	for (len = 1; len < MAXBITS; len++)
 		offs[len + 1] = offs[len] + h->count[len];
@@ -230,9 +218,6 @@ static int puff_codes(struct puff_state* s,
 		      const struct puff_huffman* lencode,
 		      const struct puff_huffman* distcode)
 {
-	int symbol; // decoded symbol
-	int len; // length for copy
-	unsigned dist; // distance for copy
 	static const short lens[29] = {// Size base for length codes 257..285
 				       3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
 				       35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258};
@@ -249,6 +234,7 @@ static int puff_codes(struct puff_state* s,
 				       12, 12, 13, 13};
 
 	// decode literals and length/distance pairs
+	int symbol; // decoded symbol
 	do {
 		symbol = puff_decode(s, lencode);
 		if (symbol < 0)
@@ -264,13 +250,13 @@ static int puff_codes(struct puff_state* s,
 			symbol -= 257;
 			if (symbol >= 29)
 				return -10; // invalid fixed code
-			len = lens[symbol] + puff_bits(s, lext[symbol]);
+			int len = lens[symbol] + puff_bits(s, lext[symbol]);
 
 			// get and check distance
 			symbol = puff_decode(s, distcode);
 			if (symbol < 0)
 				return symbol; // invalid symbol
-			dist = dists[symbol] + puff_bits(s, dext[symbol]);
+			unsigned dist = dists[symbol] + puff_bits(s, dext[symbol]);
 			if (dist > s->outcnt)
 				return -11; // distance too far back
 
@@ -299,9 +285,6 @@ static int puff_fixed(struct puff_state* s)
 
 	// build fixed huffman tables if first call (may not be thread safe)
 	if (virgin) {
-		int symbol;
-		short lengths[FIXLCODES];
-
 		// construct lencode and distcode
 		lencode.count = lencnt;
 		lencode.symbol = lensym;
@@ -309,6 +292,8 @@ static int puff_fixed(struct puff_state* s)
 		distcode.symbol = distsym;
 
 		// literal/length table
+		short lengths[FIXLCODES];
+		int symbol;
 		for (symbol = 0; symbol < 144; symbol++)
 			lengths[symbol] = 8;
 		for (; symbol < 256; symbol++)
@@ -335,37 +320,28 @@ static int puff_fixed(struct puff_state* s)
 // Process a dynamic codes block.
 static int puff_dynamic(struct puff_state* s)
 {
-	int nlen, ndist, ncode; // number of lengths in descriptor
-	int index; // index of lengths[]
-	int err; // construct() return value
-	short lengths[MAXCODES]; // descriptor code lengths
-	short lencnt[MAXBITS + 1], lensym[MAXLCODES]; // lencode memory
-	short distcnt[MAXBITS + 1], distsym[MAXDCODES]; // distcode memory
-	struct puff_huffman lencode, distcode; // length and distance codes
 	static const short order[19] = // permutation of code length codes
 	    {16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15};
 
-	// construct lencode and distcode
-	lencode.count = lencnt;
-	lencode.symbol = lensym;
-	distcode.count = distcnt;
-	distcode.symbol = distsym;
-
 	// get number of lengths in each table, check lengths
-	nlen = puff_bits(s, 5) + 257;
-	ndist = puff_bits(s, 5) + 1;
-	ncode = puff_bits(s, 4) + 4;
+	int nlen = puff_bits(s, 5) + 257; // number of lengths in descriptor
+	int ndist = puff_bits(s, 5) + 1;
+	int ncode = puff_bits(s, 4) + 4;
 	if (nlen > MAXLCODES || ndist > MAXDCODES)
 		return -3; // bad counts
 
 	// read code length code lengths (really), missing lengths are zero
+	short lengths[MAXCODES]; // descriptor code lengths
+	int index; // index of lengths[]
 	for (index = 0; index < ncode; index++)
 		lengths[order[index]] = puff_bits(s, 3);
 	for (; index < 19; index++)
 		lengths[order[index]] = 0;
 
 	// build huffman table for code lengths codes (use lencode temporarily)
-	err = puff_construct(&lencode, lengths, 19);
+	short lencnt[MAXBITS + 1], lensym[MAXLCODES]; // lencode memory
+	struct puff_huffman lencode = {lencnt, lensym}; // length codes
+	int err = puff_construct(&lencode, lengths, 19);
 	if (err != 0) // require complete code set here
 		return -4;
 
@@ -408,6 +384,8 @@ static int puff_dynamic(struct puff_state* s)
 		return -7; // incomplete code ok only for single length 1 code
 
 	// build huffman table for distance codes
+	short distcnt[MAXBITS + 1], distsym[MAXDCODES]; // distcode memory
+	struct puff_huffman distcode = {distcnt, distsym}; // distance codes
 	err = puff_construct(&distcode, lengths + nlen, ndist);
 	if (err && (err < 0 || ndist != distcode.count[0] + distcode.count[1]))
 		return -8; // incomplete code ok only for single length 1 code
@@ -447,43 +425,35 @@ static int puff(
     unsigned char* dest, // pointer to destination pointer
     unsigned long* destlen, // amount of output space
     const unsigned char* source, // pointer to source data pointer
-    unsigned long* sourcelen) // amount of input available
+    unsigned long sourcelen) // amount of input available
 {
-	struct puff_state s; // input/output state
-	int last, type; // block information
-	int err; // return value
-
-	// initialize output state
-	s.out = dest;
-	s.outlen = *destlen; // ignored if dest is null
-	s.outcnt = 0;
-
-	// initialize input state
-	s.in = source;
-	s.inlen = *sourcelen;
-	s.incnt = 0;
-	s.bitbuf = 0;
-	s.bitcnt = 0;
-
+	struct puff_state s = {
+	    .out = dest,
+	    .outlen = *destlen,
+	    .outcnt = 0,
+	    .in = source,
+	    .inlen = sourcelen,
+	    .incnt = 0,
+	    .bitbuf = 0,
+	    .bitcnt = 0,
+	};
 	// return if bits() or decode() tries to read past available input
+	int err; // return value
 	if (setjmp(s.env) != 0) // if came back here via longjmp()
 		err = 2; // then skip do-loop, return error
 	else {
 		// process blocks until last block or error
+		int last;
 		do {
 			last = puff_bits(&s, 1); // one if last block
-			type = puff_bits(&s, 2); // block type 0..3
+			int type = puff_bits(&s, 2); // block type 0..3
 			err = type == 0 ? puff_stored(&s) : (type == 1 ? puff_fixed(&s) : (type == 2 ? puff_dynamic(&s) : -1)); // type == 3, invalid
 			if (err != 0)
 				break; // return with error
 		} while (!last);
 	}
 
-	// update the lengths and return
-	if (err <= 0) {
-		*destlen = s.outcnt;
-		*sourcelen = s.incnt;
-	}
+	*destlen = s.outcnt;
 	return err;
 }
 
@@ -511,7 +481,7 @@ static int puff_zlib_to_file(const unsigned char* source, unsigned long sourcele
 
 	// Inflate source array to destination file.
 	unsigned long destlen = max_destlen; // copy destlen as puff() may modify it
-	int err = puff(dest, &destlen, source, &sourcelen);
+	int err = puff(dest, &destlen, source, sourcelen);
 	if (err) {
 		munmap(dest, max_destlen);
 		errno = -err;
