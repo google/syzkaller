@@ -22,3 +22,11 @@ func RandSource(t *testing.T) rand.Source {
 	t.Logf("seed=%v", seed)
 	return rand.NewSource(seed)
 }
+
+func RandMountImage(r *rand.Rand) []byte {
+	const maxLen = 1 << 20 // 1 MB.
+	len := r.Intn(maxLen)
+	slice := make([]byte, len)
+	r.Read(slice)
+	return slice
+}

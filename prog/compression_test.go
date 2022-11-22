@@ -30,7 +30,7 @@ func TestEncode(t *testing.T) {
 
 func testRoundTrip(r *rand.Rand, transform func([]byte) []byte, inverse func([]byte) ([]byte, error)) error {
 	for i := 0; i < iterCount(); i++ {
-		randBytes := randomBytes(r)
+		randBytes := testutil.RandMountImage(r)
 		resultBytes := transform(randBytes)
 		resultBytes, err := inverse(resultBytes)
 		if err != nil {
@@ -41,12 +41,4 @@ func testRoundTrip(r *rand.Rand, transform func([]byte) []byte, inverse func([]b
 		}
 	}
 	return nil
-}
-
-func randomBytes(r *rand.Rand) []byte {
-	const maxLen = 1 << 20 // 1 MB.
-	len := r.Intn(maxLen)
-	slice := make([]byte, len)
-	r.Read(slice)
-	return slice
 }
