@@ -3,4 +3,4 @@
 
 # #00: mkfs.cramfs[  1KB] [-b 4096 -N big]
 
-syz_mount_image$cramfs(&AUTO='cramfs\x00', &AUTO='./file0\x00', 0x1000, AUTO, 0x0, &AUTO, 0x1, &AUTO="$eJzszb9LOnEcx/HX53v6VcJI0MGCLGhIEvNnNDlIKQhdRx0StCToRYFmJMSNGbg1Nd9QCS0dLvUHVLRYdyA19ycIDUFj8bnjyCEamt+P4Tie7zfvT8TM5gE/AAj8s9So7x8ozaZSnV6XxIK89XqVgs0DwPs9t2Pu9vAI2JEBBFoD/l+VfcDi9m5Nma80anwtZ/WI7AVivCcA2LsjvK3xlnTajLW3wVvqh5Z2mmuCt6xz7/yT35vlLe/cA/CuatGu/rhq9IqxuctJAe1idApggeEeVk5ShfGOLySgpDxcAGA5VXuJ92L9eFd/Ng1xRRIlM32Tuc4sJDOJRF96MortU7iXfS3rGbY5fO8/QmFXyerHANMApqva4I6NArg/+5DqY54ggLc9P8B+m1TKIXenHPT/gxABAyGEEEIIIYQQ8kdfAQAA//+YaXWU")
+syz_mount_image$cramfs(&AUTO='cramfs\x00', &AUTO='./file0\x00', 0x0, &AUTO, 0x1, AUTO, &AUTO="$eJzszTFLAnEYx/Hfv7O0MBJ0sCALGpLEPE9MCBwslITsqJCgSdCLAs1ICMcK2hp6ATdUQtPha6hosTwIex1CQ9BYPHccOURD8/MZnoPv/+G5sJnOAj4AkGis1mtHx1qjoVVmt9RCbjtljC7D5gbg+Xm3Y+ae5j4N/1mfPhV4gdTeQVVbLNertJaxehgeIEpdBmDvjlHbpBZ32py1t0NN+aUlnOaaopZ27t180b15alnnHoCPph5pG88b3U4+unA3LeEiH5kBhH+wh7RLJTfZ8gYlFLWnWwBipam/xTrR11jb6JndwrpaUM2Eoiwl5LgsJ3vqSzefPL2Ca817Qr8Ru4P3RhAMuYpWPweEDgijqfcfxDiAx+tPtTbhDgB4P/QB4q+Xcik43CoFfEOQwhBgjDHGGGOMMcb+6TsAAP//i5BpfA==")
