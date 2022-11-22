@@ -188,3 +188,41 @@ func TestParallel(t *testing.T) {
 		}
 	}
 }
+
+func TestZlib(t *testing.T) {
+	t.Parallel()
+	target, err := prog.GetTarget(targets.TestOS, targets.TestArch64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, opts, err := ipcconfig.Default(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.Flags |= FlagDebug
+	cfg.Executor = buildExecutor(t, target)
+	defer os.Remove(cfg.Executor)
+	env, err := MakeEnv(cfg, 0)
+	if err != nil {
+		t.Fatalf("failed to create env: %v", err)
+	}
+	defer env.Close()
+	r := rand.New(testutil.RandSource(t))
+	for i := 0; i < 10; i++ {
+		data := testutil.RandMountImage(r)
+		compressed := prog.Compress(data)
+		text := fmt.Sprintf(`syz_compare_zlib(&(0x7f0000000000)="$%s", AUTO, &(0x7f0000800000)="$%s", AUTO)`,
+			prog.EncodeB64(data), prog.EncodeB64(compressed))
+		p, err := target.Deserialize([]byte(text), prog.Strict)
+		if err != nil {
+			t.Fatalf("failed to deserialize empty program: %v", err)
+		}
+		output, info, _, err := env.Exec(opts, p)
+		if err != nil {
+			t.Fatalf("failed to run executor: %v", err)
+		}
+		if info.Calls[0].Errno != 0 {
+			t.Fatalf("data comparison failed: %v\n%s", info.Calls[0].Errno, output)
+		}
+	}
+}
