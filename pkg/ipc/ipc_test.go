@@ -16,6 +16,7 @@ import (
 	. "github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
@@ -36,12 +37,6 @@ func initTest(t *testing.T) (*prog.Target, rand.Source, int, bool, bool, targets
 	if testing.Short() {
 		iters = 10
 	}
-	seed := time.Now().UnixNano()
-	if os.Getenv("CI") != "" {
-		seed = 0 // required for deterministic coverage reports
-	}
-	rs := rand.NewSource(seed)
-	t.Logf("seed=%v", seed)
 	target, err := prog.GetTarget(runtime.GOOS, runtime.GOARCH)
 	if err != nil {
 		t.Fatal(err)
@@ -50,6 +45,7 @@ func initTest(t *testing.T) (*prog.Target, rand.Source, int, bool, bool, targets
 	if err != nil {
 		t.Fatal(err)
 	}
+	rs := testutil.RandSource(t)
 	return target, rs, iters, cfg.UseShmem, cfg.UseForkServer, cfg.Timeouts
 }
 

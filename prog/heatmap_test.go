@@ -7,6 +7,8 @@ import (
 	"math/rand"
 	"sort"
 	"testing"
+
+	"github.com/google/syzkaller/pkg/testutil"
 )
 
 func TestGenericHeatmap(t *testing.T) {
@@ -48,7 +50,7 @@ func TestGenericHeatmap(t *testing.T) {
 	const tries = 10
 	iters := iterCount() / tries
 
-	r := rand.New(randSource(t))
+	r := rand.New(testutil.RandSource(t))
 	for _, test := range testData {
 		data, err := DecodeB64(test.data)
 		if err != nil {
