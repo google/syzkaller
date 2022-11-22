@@ -98,8 +98,10 @@ static int puff_stored(struct puff_state* s)
 		return 2; // not enough input
 	if (s->outcnt + len > s->outlen)
 		return 1; // not enough output space
-	while (len--)
-		s->out[s->outcnt++] = s->in[s->incnt++];
+	for (; len--; s->outcnt++, s->incnt++) {
+		if (s->in[s->incnt])
+			s->out[s->outcnt] = s->in[s->incnt];
+	}
 
 	// done with a valid stored block
 	return 0;
@@ -243,7 +245,8 @@ static int puff_codes(struct puff_state* s,
 			// write out the literal
 			if (s->outcnt == s->outlen)
 				return 1;
-			s->out[s->outcnt] = symbol;
+			if (symbol)
+				s->out[s->outcnt] = symbol;
 			s->outcnt++;
 		} else if (symbol > 256) { // length
 			// get and compute length
@@ -264,8 +267,8 @@ static int puff_codes(struct puff_state* s,
 			if (s->outcnt + len > s->outlen)
 				return 1;
 			while (len--) {
-				s->out[s->outcnt] =
-				    dist > s->outcnt ? 0 : s->out[s->outcnt - dist];
+				if (dist <= s->outcnt && s->out[s->outcnt - dist])
+					s->out[s->outcnt] = s->out[s->outcnt - dist];
 				s->outcnt++;
 			}
 		}
