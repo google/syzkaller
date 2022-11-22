@@ -99,15 +99,10 @@ static int puff_stored(struct puff_state* s)
 	// copy len bytes from in to out
 	if (s->incnt + len > s->inlen)
 		return 2; // not enough input
-	if (s->out != (unsigned char*)0) {
-		if (s->outcnt + len > s->outlen)
-			return 1; // not enough output space
-		while (len--)
-			s->out[s->outcnt++] = s->in[s->incnt++];
-	} else { // just scanning
-		s->outcnt += len;
-		s->incnt += len;
-	}
+	if (s->outcnt + len > s->outlen)
+		return 1; // not enough output space
+	while (len--)
+		s->out[s->outcnt++] = s->in[s->incnt++];
 
 	// done with a valid stored block
 	return 0;
@@ -260,11 +255,9 @@ static int puff_codes(struct puff_state* s,
 			return symbol; // invalid symbol
 		if (symbol < 256) { // literal: symbol is the byte
 			// write out the literal
-			if (s->out != (unsigned char*)0) {
-				if (s->outcnt == s->outlen)
-					return 1;
-				s->out[s->outcnt] = symbol;
-			}
+			if (s->outcnt == s->outlen)
+				return 1;
+			s->out[s->outcnt] = symbol;
 			s->outcnt++;
 		} else if (symbol > 256) { // length
 			// get and compute length
@@ -282,16 +275,13 @@ static int puff_codes(struct puff_state* s,
 				return -11; // distance too far back
 
 			// copy length bytes from distance bytes back
-			if (s->out != (unsigned char*)0) {
-				if (s->outcnt + len > s->outlen)
-					return 1;
-				while (len--) {
-					s->out[s->outcnt] =
-					    dist > s->outcnt ? 0 : s->out[s->outcnt - dist];
-					s->outcnt++;
-				}
-			} else
-				s->outcnt += len;
+			if (s->outcnt + len > s->outlen)
+				return 1;
+			while (len--) {
+				s->out[s->outcnt] =
+				    dist > s->outcnt ? 0 : s->out[s->outcnt - dist];
+				s->outcnt++;
+			}
 		}
 	} while (symbol != 256); // end of block symbol
 

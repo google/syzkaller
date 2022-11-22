@@ -6387,15 +6387,10 @@ static int puff_stored(struct puff_state* s)
 		return -2;
 	if (s->incnt + len > s->inlen)
 		return 2;
-	if (s->out != (unsigned char*)0) {
-		if (s->outcnt + len > s->outlen)
-			return 1;
-		while (len--)
-			s->out[s->outcnt++] = s->in[s->incnt++];
-	} else {
-		s->outcnt += len;
-		s->incnt += len;
-	}
+	if (s->outcnt + len > s->outlen)
+		return 1;
+	while (len--)
+		s->out[s->outcnt++] = s->in[s->incnt++];
 	return 0;
 }
 struct puff_huffman {
@@ -6498,11 +6493,9 @@ static int puff_codes(struct puff_state* s,
 		if (symbol < 0)
 			return symbol;
 		if (symbol < 256) {
-			if (s->out != (unsigned char*)0) {
-				if (s->outcnt == s->outlen)
-					return 1;
-				s->out[s->outcnt] = symbol;
-			}
+			if (s->outcnt == s->outlen)
+				return 1;
+			s->out[s->outcnt] = symbol;
 			s->outcnt++;
 		} else if (symbol > 256) {
 			symbol -= 257;
@@ -6515,16 +6508,13 @@ static int puff_codes(struct puff_state* s,
 			dist = dists[symbol] + puff_bits(s, dext[symbol]);
 			if (dist > s->outcnt)
 				return -11;
-			if (s->out != (unsigned char*)0) {
-				if (s->outcnt + len > s->outlen)
-					return 1;
-				while (len--) {
-					s->out[s->outcnt] =
-					    dist > s->outcnt ? 0 : s->out[s->outcnt - dist];
-					s->outcnt++;
-				}
-			} else
-				s->outcnt += len;
+			if (s->outcnt + len > s->outlen)
+				return 1;
+			while (len--) {
+				s->out[s->outcnt] =
+				    dist > s->outcnt ? 0 : s->out[s->outcnt - dist];
+				s->outcnt++;
+			}
 		}
 	} while (symbol != 256);
 	return 0;
@@ -11559,15 +11549,10 @@ static int puff_stored(struct puff_state* s)
 		return -2;
 	if (s->incnt + len > s->inlen)
 		return 2;
-	if (s->out != (unsigned char*)0) {
-		if (s->outcnt + len > s->outlen)
-			return 1;
-		while (len--)
-			s->out[s->outcnt++] = s->in[s->incnt++];
-	} else {
-		s->outcnt += len;
-		s->incnt += len;
-	}
+	if (s->outcnt + len > s->outlen)
+		return 1;
+	while (len--)
+		s->out[s->outcnt++] = s->in[s->incnt++];
 	return 0;
 }
 struct puff_huffman {
@@ -11670,11 +11655,9 @@ static int puff_codes(struct puff_state* s,
 		if (symbol < 0)
 			return symbol;
 		if (symbol < 256) {
-			if (s->out != (unsigned char*)0) {
-				if (s->outcnt == s->outlen)
-					return 1;
-				s->out[s->outcnt] = symbol;
-			}
+			if (s->outcnt == s->outlen)
+				return 1;
+			s->out[s->outcnt] = symbol;
 			s->outcnt++;
 		} else if (symbol > 256) {
 			symbol -= 257;
@@ -11687,16 +11670,13 @@ static int puff_codes(struct puff_state* s,
 			dist = dists[symbol] + puff_bits(s, dext[symbol]);
 			if (dist > s->outcnt)
 				return -11;
-			if (s->out != (unsigned char*)0) {
-				if (s->outcnt + len > s->outlen)
-					return 1;
-				while (len--) {
-					s->out[s->outcnt] =
-					    dist > s->outcnt ? 0 : s->out[s->outcnt - dist];
-					s->outcnt++;
-				}
-			} else
-				s->outcnt += len;
+			if (s->outcnt + len > s->outlen)
+				return 1;
+			while (len--) {
+				s->out[s->outcnt] =
+				    dist > s->outcnt ? 0 : s->out[s->outcnt - dist];
+				s->outcnt++;
+			}
 		}
 	} while (symbol != 256);
 	return 0;
