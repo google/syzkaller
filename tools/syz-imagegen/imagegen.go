@@ -778,9 +778,8 @@ func writeImage(image *Image, data []byte, chdir bool) ([]byte, error) {
 	if chdir {
 		chdirAsInt = 1
 	}
-	fmt.Fprintf(buf, `syz_mount_image$%v(&AUTO='%v\x00', &AUTO='./file0\x00',`+
-		` 0x%x, AUTO, 0x0, &AUTO, 0x%x, &AUTO="$`,
-		image.fs.Name, image.fs.Name, len(data), chdirAsInt)
+	fmt.Fprintf(buf, `syz_mount_image$%v(&AUTO='%v\x00', &AUTO='./file0\x00', 0x0, &AUTO, 0x%x, AUTO, &AUTO="$`,
+		image.fs.Name, image.fs.Name, chdirAsInt)
 	buf.Write(b64Data)
 	fmt.Fprintf(buf, "\")\n")
 
