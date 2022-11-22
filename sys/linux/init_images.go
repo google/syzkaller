@@ -37,8 +37,8 @@ func (arch *arch) fixUpSyzMountImage(c *prog.Call, fixStructure bool) error {
 	// 1) It further complicates the already complicated executor code.
 	// 2) We'd need to duplicate the logic in Go for raw image extraction.
 	// So now we do all the initialization in Go and let the C code only interpret the commands.
-	data, compressedSizeArg, err := parseSyzMountImage(c)
-	compressedSizeArg.Val = uint64(len(data))
+	data, sizeArg, err := parseSyzMountImage(c)
+	sizeArg.Val = uint64(len(data))
 	if err != nil {
 		if fixStructure {
 			deactivateSyzMountImage(c)
@@ -50,45 +50,38 @@ func (arch *arch) fixUpSyzMountImage(c *prog.Call, fixStructure bool) error {
 }
 
 func deactivateSyzMountImage(c *prog.Call) {
-	dataPointer := c.Args[7]
+	dataPointer := c.Args[6]
 	newArg := dataPointer.Type().DefaultArg(dataPointer.Dir())
 	prog.RemoveArg(dataPointer)
-	c.Args[7] = newArg
-	// Also set the size fields to 0.
-	c.Args[2].(*prog.ConstArg).Val = 0
-	c.Args[3].(*prog.ConstArg).Val = 0
+	c.Args[6] = newArg
+	// Also set the size field to 0.
+	c.Args[5].(*prog.ConstArg).Val = 0
 }
 
 // Returns the compressed disk image and the corresponding length argument.
 func parseSyzMountImage(c *prog.Call) ([]byte, *prog.ConstArg, error) {
-	if len(c.Args) < 8 {
+	if len(c.Args) < 7 {
 		panic("invalid number of arguments in syz_mount_image")
 	}
 
 	// Check `size` argument.
-	_, ok := c.Args[2].(*prog.ConstArg)
+	sizeArg, ok := c.Args[5].(*prog.ConstArg)
 	if !ok {
 		panic("syz_mount_image's size arg is not const")
 	}
 
-	// Check `size_compressed` argument.
-	compressedSizeArg, ok := c.Args[3].(*prog.ConstArg)
-	if !ok {
-		panic("syz_mount_image's compressed size arg is not const")
-	}
-
-	dataPointer, ok := c.Args[7].(*prog.PointerArg)
+	dataPointer, ok := c.Args[6].(*prog.PointerArg)
 	if !ok {
 		panic("syz_mount_image's data pointer is invalid")
 	}
 
 	dataArg, ok := dataPointer.Res.(*prog.DataArg)
 	if !ok {
-		return nil, compressedSizeArg, fmt.Errorf("could not find raw image data")
+		return nil, sizeArg, fmt.Errorf("could not find raw image data")
 	}
 	if dataArg == nil {
-		return nil, compressedSizeArg, fmt.Errorf("image argument contains no data")
+		return nil, sizeArg, fmt.Errorf("image argument contains no data")
 	}
 
-	return dataArg.Data(), compressedSizeArg, nil
+	return dataArg.Data(), sizeArg, nil
 }
