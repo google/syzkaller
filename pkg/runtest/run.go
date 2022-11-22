@@ -310,6 +310,7 @@ func parseProg(target *prog.Target, dir, filename string) (*prog.Prog, map[strin
 		"ZX_ERR_BAD_HANDLE":     11,
 		"ZX_ERR_BAD_STATE":      20,
 		"ZX_ERR_TIMED_OUT":      21,
+		"ZX_ERR_PEER_CLOSED":    24,
 		"ZX_ERR_ALREADY_EXISTS": 26,
 		"ZX_ERR_ACCESS_DENIED":  30,
 	}
