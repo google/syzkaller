@@ -499,6 +499,7 @@ static int puff(
 
 //% END CODE DERIVED FROM puff.{c,h}
 
+#include <errno.h>
 #include <sys/mman.h>
 #define ZLIB_HEADER_WIDTH 2 // Two-byte zlib header width.
 
@@ -509,27 +510,27 @@ static int puff_zlib_to_file(
     unsigned long destlen)
 {
 	// Ignore zlib header.
-	if (sourcelen < ZLIB_HEADER_WIDTH)
-		return -12; // use next available negative return value
+	if (sourcelen < ZLIB_HEADER_WIDTH) {
+		errno = EMSGSIZE;
+		return -1;
+	}
 	source += ZLIB_HEADER_WIDTH;
 	sourcelen -= ZLIB_HEADER_WIDTH;
 
 	// Memory-map destination file dest_fd.
 	void* ret = mmap(0, destlen, PROT_WRITE | PROT_READ, MAP_SHARED, dest_fd, 0);
 	if (ret == MAP_FAILED)
-		return -13; // use next available negative return value
+		return -1;
 	unsigned char* dest = (unsigned char*)ret;
 
 	// Inflate source array to destination file.
 	unsigned long destlen_copy = destlen; // copy destlen as puff() may modify it
 	int err = puff(dest, &destlen_copy, source, &sourcelen);
-	if (err)
-		return err;
+	if (err) {
+		errno = -err;
+		return -1;
+	}
 
 	// Unmap memory-mapped region
-	err = munmap(dest, destlen);
-	if (err)
-		return -14; // use next available negative return value
-
-	return 0;
+	return munmap(dest, destlen);
 }
