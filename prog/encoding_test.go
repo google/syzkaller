@@ -331,6 +331,10 @@ func TestDeserialize(t *testing.T) {
 			In:  `test$opt2(0x0) (fail_nth: 0)`,
 			Out: `test$opt2(0x0)`,
 		},
+		{
+			In:  `test$str2(&(0x7f0000000000)="$eJwqrqzKTszJSS0CBAAA//8TyQPi`,
+			Err: `want ", got EOF`,
+		},
 	})
 }
 
