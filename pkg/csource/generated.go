@@ -6653,11 +6653,7 @@ static int puff(
 #include <sys/mman.h>
 #define ZLIB_HEADER_WIDTH 2
 
-static int puff_zlib_to_file(
-    const unsigned char* source,
-    unsigned long sourcelen,
-    int dest_fd,
-    unsigned long destlen)
+static int puff_zlib_to_file(const unsigned char* source, unsigned long sourcelen, int dest_fd)
 {
 	if (sourcelen < ZLIB_HEADER_WIDTH) {
 		errno = EMSGSIZE;
@@ -6665,14 +6661,21 @@ static int puff_zlib_to_file(
 	}
 	source += ZLIB_HEADER_WIDTH;
 	sourcelen -= ZLIB_HEADER_WIDTH;
-	void* ret = mmap(0, destlen, PROT_WRITE | PROT_READ, MAP_SHARED, dest_fd, 0);
+
+	const unsigned long max_destlen = 132 << 20;
+	void* ret = mmap(0, max_destlen, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANON, -1, 0);
 	if (ret == MAP_FAILED)
 		return -1;
 	unsigned char* dest = (unsigned char*)ret;
-	unsigned long destlen_copy = destlen;
-	int err = puff(dest, &destlen_copy, source, &sourcelen);
+	unsigned long destlen = max_destlen;
+	int err = puff(dest, &destlen, source, &sourcelen);
 	if (err) {
+		munmap(dest, max_destlen);
 		errno = -err;
+		return -1;
+	}
+	if (write(dest_fd, dest, destlen) != (ssize_t)destlen) {
+		munmap(dest, max_destlen);
 		return -1;
 	}
 	return munmap(dest, destlen);
@@ -6684,7 +6687,7 @@ static int puff_zlib_to_file(
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-static int setup_loop_device(long unsigned size, long unsigned compressed_size, unsigned char* data, const char* loopname, int* memfd_p, int* loopfd_p)
+static int setup_loop_device(unsigned char* data, unsigned long size, const char* loopname, int* memfd_p, int* loopfd_p)
 {
 	int err = 0, loopfd = -1;
 	int memfd = syscall(__NR_memfd_create, "syzkaller", 0);
@@ -6692,12 +6695,7 @@ static int setup_loop_device(long unsigned size, long unsigned compressed_size, 
 		err = errno;
 		goto error;
 	}
-	if (ftruncate(memfd, size)) {
-		err = errno;
-		goto error_close_memfd;
-	}
-
-	if (puff_zlib_to_file(data, compressed_size, memfd, size)) {
+	if (puff_zlib_to_file(data, size, memfd)) {
 		err = errno;
 		debug("setup_loop_device: could not decompress data: %d\n", errno);
 		goto error_close_memfd;
@@ -6736,14 +6734,14 @@ error:
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_read_part_table
-static long syz_read_part_table(volatile unsigned long size, volatile unsigned long compressed_size, volatile long image)
+static long syz_read_part_table(volatile unsigned long size, volatile long image)
 {
 	unsigned char* data = (unsigned char*)image;
 	int err = 0, res = -1, loopfd = -1, memfd = -1;
 	char loopname[64];
 
 	snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
-	if (setup_loop_device(size, compressed_size, data, loopname, &memfd, &loopfd) == -1)
+	if (setup_loop_device(data, size, loopname, &memfd, &loopfd) == -1)
 		return -1;
 
 	struct loop_info64 info;
@@ -6787,15 +6785,14 @@ error_clear_loop:
 static long syz_mount_image(
     volatile long fsarg,
     volatile long dir,
-    volatile unsigned long size,
-    volatile unsigned long compressed_size,
     volatile long flags,
     volatile long optsarg,
     volatile long change_dir,
+    volatile unsigned long size,
     volatile long image)
 {
 	unsigned char* data = (unsigned char*)image;
-	int res = -1, err = 0, loopfd = -1, memfd = -1, need_loop_device = !!compressed_size;
+	int res = -1, err = 0, loopfd = -1, memfd = -1, need_loop_device = !!size;
 	char* mount_opts = (char*)optsarg;
 	char* target = (char*)dir;
 	char* fs = (char*)fsarg;
@@ -6805,7 +6802,7 @@ static long syz_mount_image(
 	if (need_loop_device) {
 		memset(loopname, 0, sizeof(loopname));
 		snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
-		if (setup_loop_device(size, compressed_size, data, loopname, &memfd, &loopfd) == -1)
+		if (setup_loop_device(data, size, loopname, &memfd, &loopfd) == -1)
 			return -1;
 		source = loopname;
 	}
@@ -6825,7 +6822,7 @@ static long syz_mount_image(
 	} else if (strcmp(fs, "xfs") == 0) {
 		strcat(opts, ",nouuid");
 	}
-	debug("syz_mount_image: size=%llu compressed_size=%llu loop='%s' dir='%s' fs='%s' flags=%llu opts='%s'\n", (uint64)size, (uint64)compressed_size, loopname, target, fs, (uint64)flags, opts);
+	debug("syz_mount_image: size=%llu loop='%s' dir='%s' fs='%s' flags=%llu opts='%s'\n", (uint64)size, loopname, target, fs, (uint64)flags, opts);
 #if SYZ_EXECUTOR
 	cover_reset(0);
 #endif
@@ -11815,11 +11812,7 @@ static int puff(
 #include <sys/mman.h>
 #define ZLIB_HEADER_WIDTH 2
 
-static int puff_zlib_to_file(
-    const unsigned char* source,
-    unsigned long sourcelen,
-    int dest_fd,
-    unsigned long destlen)
+static int puff_zlib_to_file(const unsigned char* source, unsigned long sourcelen, int dest_fd)
 {
 	if (sourcelen < ZLIB_HEADER_WIDTH) {
 		errno = EMSGSIZE;
@@ -11827,14 +11820,21 @@ static int puff_zlib_to_file(
 	}
 	source += ZLIB_HEADER_WIDTH;
 	sourcelen -= ZLIB_HEADER_WIDTH;
-	void* ret = mmap(0, destlen, PROT_WRITE | PROT_READ, MAP_SHARED, dest_fd, 0);
+
+	const unsigned long max_destlen = 132 << 20;
+	void* ret = mmap(0, max_destlen, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANON, -1, 0);
 	if (ret == MAP_FAILED)
 		return -1;
 	unsigned char* dest = (unsigned char*)ret;
-	unsigned long destlen_copy = destlen;
-	int err = puff(dest, &destlen_copy, source, &sourcelen);
+	unsigned long destlen = max_destlen;
+	int err = puff(dest, &destlen, source, &sourcelen);
 	if (err) {
+		munmap(dest, max_destlen);
 		errno = -err;
+		return -1;
+	}
+	if (write(dest_fd, dest, destlen) != (ssize_t)destlen) {
+		munmap(dest, max_destlen);
 		return -1;
 	}
 	return munmap(dest, destlen);
@@ -11842,19 +11842,21 @@ static int puff_zlib_to_file(
 
 #include <errno.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 static long syz_compare_zlib(volatile long data, volatile long size, volatile long zdata, volatile long zsize)
 {
 	int fd = open("./uncompressed", O_RDWR | O_CREAT | O_EXCL, 0666);
 	if (fd == -1)
 		return -1;
-	if (ftruncate(fd, size))
+	if (puff_zlib_to_file((unsigned char*)zdata, zsize, fd))
 		return -1;
-	if (puff_zlib_to_file((unsigned char*)zdata, zsize, fd, size))
+	struct stat statbuf;
+	if (fstat(fd, &statbuf))
 		return -1;
-	void* uncompressed = mmap(0, size, PROT_READ, MAP_PRIVATE, fd, 0);
+	void* uncompressed = mmap(0, statbuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (uncompressed == MAP_FAILED)
 		return -1;
-	return syz_compare(data, size, (long)uncompressed, size);
+	return syz_compare(data, size, (long)uncompressed, statbuf.st_size);
 }
 #endif
 

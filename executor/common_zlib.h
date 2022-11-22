@@ -493,11 +493,7 @@ static int puff(
 #include <sys/mman.h>
 #define ZLIB_HEADER_WIDTH 2 // Two-byte zlib header width.
 
-static int puff_zlib_to_file(
-    const unsigned char* source,
-    unsigned long sourcelen,
-    int dest_fd,
-    unsigned long destlen)
+static int puff_zlib_to_file(const unsigned char* source, unsigned long sourcelen, int dest_fd)
 {
 	// Ignore zlib header.
 	if (sourcelen < ZLIB_HEADER_WIDTH) {
@@ -507,20 +503,24 @@ static int puff_zlib_to_file(
 	source += ZLIB_HEADER_WIDTH;
 	sourcelen -= ZLIB_HEADER_WIDTH;
 
-	// Memory-map destination file dest_fd.
-	void* ret = mmap(0, destlen, PROT_WRITE | PROT_READ, MAP_SHARED, dest_fd, 0);
+	const unsigned long max_destlen = 132 << 20;
+	void* ret = mmap(0, max_destlen, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANON, -1, 0);
 	if (ret == MAP_FAILED)
 		return -1;
 	unsigned char* dest = (unsigned char*)ret;
 
 	// Inflate source array to destination file.
-	unsigned long destlen_copy = destlen; // copy destlen as puff() may modify it
-	int err = puff(dest, &destlen_copy, source, &sourcelen);
+	unsigned long destlen = max_destlen; // copy destlen as puff() may modify it
+	int err = puff(dest, &destlen, source, &sourcelen);
 	if (err) {
+		munmap(dest, max_destlen);
 		errno = -err;
 		return -1;
 	}
-
+	if (write(dest_fd, dest, destlen) != (ssize_t)destlen) {
+		munmap(dest, max_destlen);
+		return -1;
+	}
 	// Unmap memory-mapped region
 	return munmap(dest, destlen);
 }

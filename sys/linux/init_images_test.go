@@ -26,17 +26,17 @@ func TestSyzMountImageNeutralize(t *testing.T) {
 		{
 			// A valid call, nothing should change.
 			In: `syz_mount_image$bfs(&(0x7f0000000000)='bfs\x00', &(0x7f0000000100)='./file0\x00', ` +
-				`0xdeadbeef, 0x15, 0x0, &(0x7f00000100a0)={[], [], 0x0}, 0x0, ` +
+				`0x0, &(0x7f00000100a0)={[], [], 0x0}, 0x0, 0x15, ` +
 				`&(0x7f0000000200)="$eJwqrqzKTszJSS0CBAAA//8TyQPi")`,
 		},
 		{
 			// Invalid compressed size.
 			In: `syz_mount_image$bfs(&(0x7f0000000000)='bfs\x00', &(0x7f0000000100)='./file0\x00', ` +
-				`0xdeadbeef, 0xdeadbeef, 0x0, &(0x7f00000100a0)={[], [], 0x0}, 0x0, ` +
+				`0x0, &(0x7f00000100a0)={[], [], 0x0}, 0x0, 0xdeadbeef, ` +
 				`&(0x7f0000000200)="$eJwqrqzKTszJSS0CBAAA//8TyQPi")`,
 			// It should be able to fix up the size.
 			Out: `syz_mount_image$bfs(&(0x7f0000000000)='bfs\x00', &(0x7f0000000100)='./file0\x00', ` +
-				`0xdeadbeef, 0x15, 0x0, &(0x7f00000100a0)={[], [], 0x0}, 0x0, ` +
+				`0x0, &(0x7f00000100a0)={[], [], 0x0}, 0x0, 0x15, ` +
 				`&(0x7f0000000200)="$eJwqrqzKTszJSS0CBAAA//8TyQPi")`,
 		},
 	})
