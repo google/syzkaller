@@ -9,6 +9,7 @@ import (
 	"math"
 	"math/rand"
 	"sort"
+	"sync"
 )
 
 // Maximum length of generated binary blobs inserted into the program.
@@ -382,10 +383,17 @@ func (t *BufferType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []
 	return
 }
 
+var imageMu sync.Mutex
+
 func (r *randGen) mutateImage(image []byte) (data []byte, retry bool) {
 	if len(image) == 0 {
 		return image, true
 	}
+	// Don't decompress more than one image at a time
+	// since it can consume lots of memory.
+	// Reconsider when/if we move mutation to the host process.
+	imageMu.Lock()
+	defer imageMu.Unlock()
 	data, err := Decompress(image)
 	if err != nil {
 		panic(fmt.Sprintf("could not decompress data: %v", err))
