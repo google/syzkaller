@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"math/rand"
 	"testing"
+
+	"github.com/google/syzkaller/pkg/testutil"
 )
 
 func TestCompress(t *testing.T) {
-	r := rand.New(randSource(t))
+	r := rand.New(testutil.RandSource(t))
 	err := testRoundTrip(r, Compress, Decompress)
 	if err != nil {
 		t.Fatalf("compress/decompress %v", err)
@@ -19,7 +21,7 @@ func TestCompress(t *testing.T) {
 }
 
 func TestEncode(t *testing.T) {
-	r := rand.New(randSource(t))
+	r := rand.New(testutil.RandSource(t))
 	err := testRoundTrip(r, EncodeB64, DecodeB64)
 	if err != nil {
 		t.Fatalf("encode/decode Base64 %v", err)

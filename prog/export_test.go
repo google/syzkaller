@@ -6,10 +6,7 @@ package prog
 import (
 	"fmt"
 	"math/rand"
-	"os"
-	"strconv"
 	"testing"
-	"time"
 
 	"github.com/google/syzkaller/pkg/testutil"
 )
@@ -26,18 +23,6 @@ var (
 	initTargetTest    = InitTargetTest
 )
 
-func randSource(t *testing.T) rand.Source {
-	seed := time.Now().UnixNano()
-	if fixed := os.Getenv("SYZ_SEED"); fixed != "" {
-		seed, _ = strconv.ParseInt(fixed, 0, 64)
-	}
-	if os.Getenv("CI") != "" {
-		seed = 0 // required for deterministic coverage reports
-	}
-	t.Logf("seed=%v", seed)
-	return rand.NewSource(seed)
-}
-
 func iterCount() int {
 	iters := 1000
 	if testing.Short() {
@@ -51,7 +36,7 @@ func iterCount() int {
 
 func initRandomTargetTest(t *testing.T, os, arch string) (*Target, rand.Source, int) {
 	target := initTargetTest(t, os, arch)
-	return target, randSource(t), iterCount()
+	return target, testutil.RandSource(t), iterCount()
 }
 
 func initTest(t *testing.T) (*Target, rand.Source, int) {
@@ -78,7 +63,7 @@ func testEachTargetRandom(t *testing.T, fn func(t *testing.T, target *Target, rs
 	if iters < 3 {
 		iters = 3
 	}
-	rs0 := randSource(t)
+	rs0 := testutil.RandSource(t)
 	for _, target := range targets {
 		target := target
 		rs := rand.NewSource(rs0.Int63())
