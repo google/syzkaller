@@ -57,8 +57,9 @@ config:
  - XFS_POSIX_ACL
  - XFS_RT
  - XFS_SUPPORT_V4: [v5.10]
- - XFS_DEBUG
- - XFS_ASSERT_FATAL
+ # Not just sanity checks for code, but also image validation checks that BUG.
+ # XFS devs prefer this to be disabled by fuzzers.
+ - XFS_DEBUG: n
 
  - GFS2_FS
  - GFS2_FS_LOCKING_DLM
