@@ -6659,6 +6659,7 @@ static int puff(
 
 //% END CODE DERIVED FROM puff.{c,h}
 
+#include <errno.h>
 #include <sys/mman.h>
 #define ZLIB_HEADER_WIDTH 2
 
@@ -6668,23 +6669,23 @@ static int puff_zlib_to_file(
     int dest_fd,
     unsigned long destlen)
 {
-	if (sourcelen < ZLIB_HEADER_WIDTH)
-		return -12;
+	if (sourcelen < ZLIB_HEADER_WIDTH) {
+		errno = EMSGSIZE;
+		return -1;
+	}
 	source += ZLIB_HEADER_WIDTH;
 	sourcelen -= ZLIB_HEADER_WIDTH;
 	void* ret = mmap(0, destlen, PROT_WRITE | PROT_READ, MAP_SHARED, dest_fd, 0);
 	if (ret == MAP_FAILED)
-		return -13;
+		return -1;
 	unsigned char* dest = (unsigned char*)ret;
 	unsigned long destlen_copy = destlen;
 	int err = puff(dest, &destlen_copy, source, &sourcelen);
-	if (err)
-		return err;
-	err = munmap(dest, destlen);
-	if (err)
-		return -14;
-
-	return 0;
+	if (err) {
+		errno = -err;
+		return -1;
+	}
+	return munmap(dest, destlen);
 }
 
 #include <errno.h>
@@ -6706,9 +6707,9 @@ static int setup_loop_device(long unsigned size, long unsigned compressed_size, 
 		goto error_close_memfd;
 	}
 
-	err = puff_zlib_to_file(data, compressed_size, memfd, size);
-	if (err) {
-		debug("setup_loop_device: could not decompress data: %d\n", err);
+	if (puff_zlib_to_file(data, compressed_size, memfd, size)) {
+		err = errno;
+		debug("setup_loop_device: could not decompress data: %d\n", errno);
 		goto error_close_memfd;
 	}
 

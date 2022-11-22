@@ -2910,9 +2910,9 @@ static int setup_loop_device(long unsigned size, long unsigned compressed_size, 
 		goto error_close_memfd;
 	}
 
-	err = puff_zlib_to_file(data, compressed_size, memfd, size);
-	if (err) {
-		debug("setup_loop_device: could not decompress data: %d\n", err);
+	if (puff_zlib_to_file(data, compressed_size, memfd, size)) {
+		err = errno;
+		debug("setup_loop_device: could not decompress data: %d\n", errno);
 		goto error_close_memfd;
 	}
 
