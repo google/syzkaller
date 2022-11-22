@@ -375,33 +375,36 @@ func (t *BufferType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []
 		data := append([]byte{}, a.Data()...)
 		a.data = r.mutateText(t.Text, data)
 	case BufferCompressed:
-		data := a.Data()
-		if len(data) == 0 {
-			return
-		}
-		data, err := Decompress(data)
-		if err != nil {
-			panic(fmt.Sprintf("could not decompress data: %v", err))
-		}
-		if len(data) == 0 {
-			return // Do not mutate empty data.
-		}
-		hm := MakeGenericHeatmap(data)
-		// At least two mutations, up to about one mutation every 128 KB of heatmap size.
-		numMutations := r.Intn(hm.Size()/(1<<17)+1) + 2
-		for i := 0; i < numMutations; i++ {
-			index := hm.ChooseLocation(r.Rand)
-			width := 1 << uint(r.Intn(4))
-			if index+width > len(data) {
-				width = 1
-			}
-			storeInt(data[index:], r.Uint64(), width)
-		}
-		a.data = Compress(data)
+		a.data, retry = r.mutateImage(a.Data())
 	default:
 		panic("unknown buffer kind")
 	}
 	return
+}
+
+func (r *randGen) mutateImage(image []byte) (data []byte, retry bool) {
+	if len(image) == 0 {
+		return image, true
+	}
+	data, err := Decompress(image)
+	if err != nil {
+		panic(fmt.Sprintf("could not decompress data: %v", err))
+	}
+	if len(data) == 0 {
+		return image, true // Do not mutate empty data.
+	}
+	hm := MakeGenericHeatmap(data)
+	// At least two mutations, up to about one mutation every 128 KB of heatmap size.
+	numMutations := r.Intn(hm.Size()/(1<<17)+1) + 2
+	for i := 0; i < numMutations; i++ {
+		index := hm.ChooseLocation(r.Rand)
+		width := 1 << uint(r.Intn(4))
+		if index+width > len(data) {
+			width = 1
+		}
+		storeInt(data[index:], r.Uint64(), width)
+	}
+	return Compress(data), false
 }
 
 func mutateBufferSize(r *randGen, arg *DataArg, minLen, maxLen uint64) {
