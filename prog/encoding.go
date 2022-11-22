@@ -978,15 +978,15 @@ func (p *parser) deserializeData() ([]byte, bool, error) {
 			// Read Base64 data.
 			p.consume()
 			var rawData []byte
-			for p.Char() != '"' {
+			for !p.EOF() && p.Char() != '"' {
 				v := p.consume()
 				rawData = append(rawData, v)
 			}
+			p.Parse('"')
 			decoded, err := DecodeB64(rawData)
 			if err != nil {
 				return nil, false, fmt.Errorf("data arg is corrupt: %v", err)
 			}
-			p.Parse('"')
 			return decoded, true, nil
 		}
 		val := ""
