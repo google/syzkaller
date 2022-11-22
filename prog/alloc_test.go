@@ -6,6 +6,8 @@ package prog
 import (
 	"fmt"
 	"testing"
+
+	"github.com/google/syzkaller/pkg/testutil"
 )
 
 func TestMemAlloc(t *testing.T) {
@@ -85,7 +87,7 @@ func TestVmaAlloc(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r := newRand(target, randSource(t))
+	r := newRand(target, testutil.RandSource(t))
 	va := newVmaAlloc(1000)
 	for i := 0; i < 30; i++ {
 		size := r.rand(4) + 1
