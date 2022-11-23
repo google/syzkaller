@@ -2982,7 +2982,8 @@ static long syz_read_part_table(volatile unsigned long size, volatile long image
 		}
 	}
 error_clear_loop:
-	ioctl(loopfd, LOOP_CLR_FD, 0);
+	if (res)
+		ioctl(loopfd, LOOP_CLR_FD, 0);
 	close(loopfd);
 	close(memfd);
 	errno = err;
