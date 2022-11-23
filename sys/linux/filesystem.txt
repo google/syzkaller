@@ -86,7 +86,7 @@ loop_filename {
 	z	const[0, int8]
 } [packed]
 
-syz_read_part_table(size len[img], img ptr[in, compressed_image]) (no_generate, no_minimize)
+syz_read_part_table(size len[img], img ptr[in, compressed_image]) (timeout[200], no_generate, no_minimize)
 
 define SYZ_MOUNT_IMAGE_TIMEOUT	4000
 
