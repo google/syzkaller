@@ -410,7 +410,7 @@ func (r *randGen) mutateImage(image []byte) (data []byte, retry bool) {
 		if index+width > len(data) {
 			width = 1
 		}
-		storeInt(data[index:], r.Uint64(), width)
+		storeInt(data[index:], r.randInt(uint64(width*8)), width)
 	}
 	return Compress(data), false
 }
