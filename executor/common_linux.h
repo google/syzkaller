@@ -2897,7 +2897,7 @@ static long syz_genetlink_get_family_id(volatile long name, volatile long sock_a
 // creating and initializing the underlying file backing the loop device and
 // returns the fds to the file and device.
 // Returns 0 on success, -1 otherwise.
-static int setup_loop_device(unsigned char* data, unsigned long size, const char* loopname, int* memfd_p, int* loopfd_p)
+static int setup_loop_device(unsigned char* data, unsigned long size, const char* loopname, int* loopfd_p)
 {
 	int err = 0, loopfd = -1;
 	int memfd = syscall(__NR_memfd_create, "syzkaller", 0);
@@ -2929,7 +2929,7 @@ static int setup_loop_device(unsigned char* data, unsigned long size, const char
 		}
 	}
 
-	*memfd_p = memfd;
+	close(memfd);
 	*loopfd_p = loopfd;
 	return 0;
 
@@ -2948,11 +2948,11 @@ error:
 static long syz_read_part_table(volatile unsigned long size, volatile long image)
 {
 	unsigned char* data = (unsigned char*)image;
-	int err = 0, res = -1, loopfd = -1, memfd = -1;
+	int err = 0, res = -1, loopfd = -1;
 	char loopname[64];
 
 	snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
-	if (setup_loop_device(data, size, loopname, &memfd, &loopfd) == -1)
+	if (setup_loop_device(data, size, loopname, &loopfd) == -1)
 		return -1;
 
 	struct loop_info64 info;
@@ -2985,7 +2985,6 @@ error_clear_loop:
 	if (res)
 		ioctl(loopfd, LOOP_CLR_FD, 0);
 	close(loopfd);
-	close(memfd);
 	errno = err;
 	return res;
 }
@@ -3015,7 +3014,7 @@ static long syz_mount_image(
     volatile long image)
 {
 	unsigned char* data = (unsigned char*)image;
-	int res = -1, err = 0, loopfd = -1, memfd = -1, need_loop_device = !!size;
+	int res = -1, err = 0, loopfd = -1, need_loop_device = !!size;
 	char* mount_opts = (char*)optsarg;
 	char* target = (char*)dir;
 	char* fs = (char*)fsarg;
@@ -3027,7 +3026,7 @@ static long syz_mount_image(
 		// filesystem image.
 		memset(loopname, 0, sizeof(loopname));
 		snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
-		if (setup_loop_device(data, size, loopname, &memfd, &loopfd) == -1)
+		if (setup_loop_device(data, size, loopname, &loopfd) == -1)
 			return -1;
 		source = loopname;
 	}
@@ -3080,7 +3079,6 @@ error_clear_loop:
 	if (need_loop_device) {
 		ioctl(loopfd, LOOP_CLR_FD, 0);
 		close(loopfd);
-		close(memfd);
 	}
 	errno = err;
 	return res;
