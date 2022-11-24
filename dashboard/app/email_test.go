@@ -880,14 +880,17 @@ func TestBugFromSubjectInference(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
-	client := c.clientPublicEmail
+	client := c.makeClient(clientPublicEmail, keyPublicEmail, true)
+	client2 := c.makeClient(clientPublicEmail2, keyPublicEmail2, true)
 
 	build := testBuild(1)
 	client.UploadBuild(build)
 
-	const crashTitle = "WARNING in corrupted"
+	build2 := testBuild(2)
+	client2.UploadBuild(build2)
 
-	upstreamCrash := func(title string) string {
+	const crashTitle = "WARNING in corrupted"
+	upstreamCrash := func(client *apiClient, build *dashapi.Build, title string) string {
 		// Upload some garbage crashes.
 		crash := testCrash(build, 1)
 		crash.Title = title
@@ -901,9 +904,9 @@ func TestBugFromSubjectInference(t *testing.T) {
 		return c.pollEmailBug().Sender
 	}
 
-	upstreamCrash("unrelated crash")
-	origSender := upstreamCrash(crashTitle)
-	upstreamCrash("unrelated crash 2")
+	upstreamCrash(client, build, "unrelated crash")
+	origSender := upstreamCrash(client, build, crashTitle)
+	upstreamCrash(client, build, "unrelated crash 2")
 
 	mailingList := "<" + config.Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email + ">"
 
@@ -947,15 +950,27 @@ func TestBugFromSubjectInference(t *testing.T) {
 	body = c.pollEmailBug().Body
 	c.expectEQ(strings.Contains(body, "This crash does not have a reproducer"), true)
 
+	// Upstream a same-titled bug in another namespace.
+	upstreamCrash(client2, build2, crashTitle)
+
+	// Ensure that the inference fails with the proper title.
+	c.incomingEmail("bugs@syzkaller.com",
+		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+		EmailOptSender(mailingList), EmailOptFrom("test@requester.com"),
+		EmailOptSubject(subject),
+	)
+	body = c.pollEmailBug().Body
+	c.expectEQ(strings.Contains(body, "Several bugs with the exact same title"), true)
+
 	// Close the existing bug.
 	c.incomingEmail("bugs@syzkaller.com", "#syz invalid",
-		EmailOptFrom(mailingList), EmailOptOrigFrom("test@requester.com"),
-		EmailOptSubject(subject), EmailOptCC([]string{mailingList}),
+		EmailOptFrom("test@requester.com"), EmailOptSubject(subject),
+		EmailOptCC([]string{mailingList, origSender}),
 	)
 	c.expectNoEmail()
 
 	// Create the (2) of the bug.
-	upstreamCrash(crashTitle)
+	upstreamCrash(client, build, crashTitle)
 
 	// Make sure syzbot can understand the (2) version.
 	subject = "Re: " + crashTitle + " (2)"

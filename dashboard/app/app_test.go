@@ -286,22 +286,50 @@ var testConfig = &GlobalConfig{
 				},
 			},
 		},
+		// The second namespace reporting to the same mailing list.
+		"access-public-email-2": {
+			AccessLevel: AccessPublic,
+			Key:         "publickeypublickeypublickey",
+			Clients: map[string]string{
+				clientPublicEmail2: keyPublicEmail2,
+			},
+			Repos: []KernelRepo{
+				{
+					URL:    "git://syzkaller.org/access-public-email2.git",
+					Branch: "access-public-email2",
+					Alias:  "access-public-email2",
+				},
+			},
+			Reporting: []Reporting{
+				{
+					AccessLevel: AccessPublic,
+					Name:        "access-public-email2-reporting1",
+					DailyLimit:  1000,
+					Config: &EmailConfig{
+						Email:            "test@syzkaller.com",
+						HandleListEmails: true,
+					},
+				},
+			},
+		},
 	},
 }
 
 const (
-	client1           = "client1"
-	client2           = "client2"
-	password1         = "client1keyclient1keyclient1key"
-	password2         = "client2keyclient2keyclient2key"
-	clientAdmin       = "client-admin"
-	keyAdmin          = "clientadminkeyclientadminkey"
-	clientUser        = "client-user"
-	keyUser           = "clientuserkeyclientuserkey"
-	clientPublic      = "client-public"
-	keyPublic         = "clientpublickeyclientpublickey"
-	clientPublicEmail = "client-public-email"
-	keyPublicEmail    = "clientpublicemailkeyclientpublicemailkey"
+	client1            = "client1"
+	client2            = "client2"
+	password1          = "client1keyclient1keyclient1key"
+	password2          = "client2keyclient2keyclient2key"
+	clientAdmin        = "client-admin"
+	keyAdmin           = "clientadminkeyclientadminkey"
+	clientUser         = "client-user"
+	keyUser            = "clientuserkeyclientuserkey"
+	clientPublic       = "client-public"
+	keyPublic          = "clientpublickeyclientpublickey"
+	clientPublicEmail  = "client-public-email"
+	keyPublicEmail     = "clientpublicemailkeyclientpublicemailkey"
+	clientPublicEmail2 = "client-public-email2"
+	keyPublicEmail2    = "clientpublicemailkeyclientpublicemailkey2"
 
 	restrictedManager     = "restricted-manager"
 	noFixBisectionManager = "no-fix-bisection-manager"
