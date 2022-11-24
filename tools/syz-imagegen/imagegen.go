@@ -96,6 +96,23 @@ var fileSystems = []FileSystem{
 		},
 	},
 	{
+		Name:      "msdos",
+		MinSize:   64 << 10,
+		MkfsFlags: []string{"-n", "SYZKALLER"},
+		MkfsFlagCombinations: [][]string{
+			{"", "-a -I"},
+			{"", "-h 3 -f 4"},
+			{"-s 1", "-s 8", "-s 64"},
+			{
+				"-F 12 -r 64 -S 512",
+				"-F 12 -r 64 -S 2048 -A",
+				"-F 16 -r 112 -S 512",
+				"-F 32 -r 768 -S 512",
+				"-F 32 -r 768 -S 2048 -A",
+			},
+		},
+	},
+	{
 		Name:      "exfat",
 		MinSize:   128 << 10,
 		MkfsFlags: []string{"-i", "0x12341234"},
