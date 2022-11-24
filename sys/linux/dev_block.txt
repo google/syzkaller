@@ -85,11 +85,21 @@ hd_geometry {
 }
 
 blkpg_ioctl_arg {
-	op	int32
-	flags	int32
+	op	flags[blkpg_ioctl_op, int32]
+	flags	const[0, int32]
 	datalen	bytesize[data, int32]
-	data	ptr[in, array[int8]]
+	data	ptr[in, blkpg_partition]
 }
+
+blkpg_partition {
+	start	int64
+	length	int64
+	pno	int32[0:20]
+	devname	array[const[0, int8], BLKPG_DEVNAMELTH]
+	volname	array[const[0, int8], BLKPG_VOLNAMELTH]
+}
+
+blkpg_ioctl_op = BLKPG_ADD_PARTITION, BLKPG_DEL_PARTITION, BLKPG_RESIZE_PARTITION
 
 blk_user_trace_setup {
 	name		array[const[0, int8], BLKTRACE_BDEV_SIZE]
