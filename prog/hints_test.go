@@ -10,6 +10,9 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/syzkaller/pkg/image"
 )
 
 type ConstArgTest struct {
@@ -318,6 +321,97 @@ func TestHintsCheckDataArg(t *testing.T) {
 	}
 }
 
+func TestHintsCompressedImage(t *testing.T) {
+	target := initTargetTest(t, "test", "64")
+	type Test struct {
+		input  string
+		comps  CompMap
+		output []string
+	}
+	var tests = []Test{
+		{
+			"\x00\x11\x22\x33\x44\x55\x66\x77",
+			CompMap{
+				// 1/2-bytes must not be replaced.
+				0x00:   compSet(0xaa),
+				0x11:   compSet(0xaa),
+				0x1122: compSet(0xaabb),
+				0x4455: compSet(0xaabb),
+				// Aligned 4-byte values are replaced in both little/big endian.
+				0x00112233: compSet(0xaabbccdd),
+				0x33221100: compSet(0xaabbccdd),
+				0x44556677: compSet(0xaabbccdd),
+				0x77665544: compSet(0xaabbccdd),
+				// Same for 8-byte values.
+				0x0011223344556677: compSet(0xaabbccddeeff9988),
+				0x7766554433221100: compSet(0xaabbccddeeff9988),
+				// Unaligned 4-bytes are not replaced.
+				0x11223344: compSet(0xaabbccdd),
+				0x22334455: compSet(0xaabbccdd),
+			},
+			[]string{
+				// Mutants for 4-byte values.
+				"\xaa\xbb\xcc\xdd\x44\x55\x66\x77",
+				"\xdd\xcc\xbb\xaa\x44\x55\x66\x77",
+				"\x00\x11\x22\x33\xaa\xbb\xcc\xdd",
+				"\x00\x11\x22\x33\xdd\xcc\xbb\xaa",
+				// Mutants for 8-byte values.
+				"\xaa\xbb\xcc\xdd\xee\xff\x99\x88",
+				"\x88\x99\xff\xee\xdd\xcc\xbb\xaa",
+			},
+		},
+		{
+			"\x00\x11\x22\x33\x44\x55\x66\x77",
+			CompMap{
+				// Special values are used as replacers.
+				0x00112233: compSet(0, 0xffffffff),
+			},
+			[]string{
+				// Mutants for 4-byte values.
+				"\x00\x00\x00\x00\x44\x55\x66\x77",
+				"\xff\xff\xff\xff\x44\x55\x66\x77",
+			},
+		},
+		{
+			// All 0s and 0xff must not be replaced.
+			"\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff\x00\x00\x00\x00\x00\x00\x00\x00",
+			CompMap{
+				0:                  compSet(0xaabbccdd),
+				0xffffffffffffffff: compSet(0xaabbccddaabbccdd),
+			},
+			nil,
+		},
+	}
+	typ := target.SyscallMap["serialize3"].Args[0].Type.(*PtrType).Elem.(*BufferType)
+	if typ.Kind != BufferCompressed {
+		panic("wrong arg type")
+	}
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
+			var res []string
+			arg := MakeDataArg(typ, DirIn, image.Compress([]byte(test.input)))
+			generateHints(test.comps, arg, func() {
+				res = append(res, string(arg.Data()))
+			})
+			for i, compressed := range res {
+				data, dtor := image.MustDecompress([]byte(compressed))
+				res[i] = string(data)
+				dtor()
+			}
+			sort.Strings(res)
+			sort.Strings(test.output)
+			if diff := cmp.Diff(test.output, res); diff != "" {
+				t.Fatalf("got wrong mutants: %v", diff)
+			}
+			data, dtor := image.MustDecompress(arg.Data())
+			defer dtor()
+			if diff := cmp.Diff(test.input, string(data)); diff != "" {
+				t.Fatalf("argument got changed afterwards: %v", diff)
+			}
+		})
+	}
+}
+
 func TestHintsShrinkExpand(t *testing.T) {
 	t.Parallel()
 	// Naming conventions:
@@ -470,7 +564,7 @@ func TestHintsShrinkExpand(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%v", test.name), func(t *testing.T) {
-			res := shrinkExpand(test.in, test.comps, 64)
+			res := shrinkExpand(test.in, test.comps, 64, false)
 			if !reflect.DeepEqual(res, test.res) {
 				t.Fatalf("\ngot : %v\nwant: %v", res, test.res)
 			}

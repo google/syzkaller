@@ -23,6 +23,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"sort"
+
+	"github.com/google/syzkaller/pkg/image"
 )
 
 // Example: for comparisons {(op1, op2), (op1, op3), (op1, op4), (op2, op1)}
@@ -109,11 +111,6 @@ func generateHints(compMap CompMap, arg Arg, exec func()) {
 				// (and filter out file names).
 				return
 			}
-		case BufferCompressed:
-			// We can reconsider this in the future, e.g. by decompressing, applying
-			// hints, then re-compressing. We will need to ensure this doesn't
-			// produce too many mutants given the current handling of buffers.
-			return
 		}
 	}
 
@@ -121,7 +118,11 @@ func generateHints(compMap CompMap, arg Arg, exec func()) {
 	case *ConstArg:
 		checkConstArg(a, compMap, exec)
 	case *DataArg:
-		checkDataArg(a, compMap, exec)
+		if typ.(*BufferType).Kind == BufferCompressed {
+			checkCompressedArg(a, compMap, exec)
+		} else {
+			checkDataArg(a, compMap, exec)
+		}
 	}
 }
 
@@ -129,7 +130,7 @@ func checkConstArg(arg *ConstArg, compMap CompMap, exec func()) {
 	original := arg.Val
 	// Note: because shrinkExpand returns a map, order of programs is non-deterministic.
 	// This can affect test coverage reports.
-	for _, replacer := range shrinkExpand(original, compMap, arg.Type().TypeBitSize()) {
+	for _, replacer := range shrinkExpand(original, compMap, arg.Type().TypeBitSize(), false) {
 		arg.Val = replacer
 		exec()
 	}
@@ -147,13 +148,41 @@ func checkDataArg(arg *DataArg, compMap CompMap, exec func()) {
 		original := make([]byte, 8)
 		copy(original, data[i:])
 		val := binary.LittleEndian.Uint64(original)
-		for _, replacer := range shrinkExpand(val, compMap, 64) {
+		for _, replacer := range shrinkExpand(val, compMap, 64, false) {
 			binary.LittleEndian.PutUint64(bytes, replacer)
 			copy(data[i:], bytes)
 			exec()
 		}
 		copy(data[i:], original)
 	}
+}
+
+func checkCompressedArg(arg *DataArg, compMap CompMap, exec func()) {
+	data0 := arg.Data()
+	if len(data0) == 0 {
+		return
+	}
+	data, dtor := image.MustDecompress(data0)
+	defer dtor()
+	// Images are very large so the generic algorithm for data arguments
+	// can produce too many mutants. For images we consider only
+	// 4/8-byte aligned ints. This is enough to handle all magic
+	// numbers and checksums. We also ignore 0 and ^uint64(0) source bytes,
+	// because there are too many of these in lots of images.
+	bytes := make([]byte, 8)
+	for i := 0; i < len(data); i += 4 {
+		original := make([]byte, 8)
+		copy(original, data[i:])
+		val := binary.LittleEndian.Uint64(original)
+		for _, replacer := range shrinkExpand(val, compMap, 64, true) {
+			binary.LittleEndian.PutUint64(bytes, replacer)
+			copy(data[i:], bytes)
+			arg.SetData(image.Compress(data))
+			exec()
+		}
+		copy(data[i:], original)
+	}
+	arg.SetData(data0)
 }
 
 // Shrink and expand mutations model the cases when the syscall arguments
@@ -185,7 +214,7 @@ func checkDataArg(arg *DataArg, compMap CompMap, exec func()) {
 // check the extension.
 // As with shrink we ignore cases when the other operand is wider.
 // Note that executor sign extends all the comparison operands to int64.
-func shrinkExpand(v uint64, compMap CompMap, bitsize uint64) []uint64 {
+func shrinkExpand(v uint64, compMap CompMap, bitsize uint64, image bool) []uint64 {
 	v = truncateToBitSize(v, bitsize)
 	limit := uint64(1<<bitsize - 1)
 	var replacers map[uint64]bool
@@ -206,6 +235,15 @@ func shrinkExpand(v uint64, compMap CompMap, bitsize uint64) []uint64 {
 				continue
 			}
 			mutant = v | ^((1 << size) - 1)
+		}
+		if image {
+			// For images we can produce too many mutants for small integers.
+			if width < 4 {
+				continue
+			}
+			if mutant == 0 || (mutant|^((1<<size)-1)) == ^uint64(0) {
+				continue
+			}
 		}
 		// Use big-endian match/replace for both blobs and ints.
 		// Sometimes we have unmarked blobs (no little/big-endian info);
@@ -236,7 +274,11 @@ func shrinkExpand(v uint64, compMap CompMap, bitsize uint64) []uint64 {
 				if bigendian {
 					newV = swapInt(newV, width)
 				}
-				if specialIntsSet[newV] {
+				// We insert special ints (like 0) with high probability,
+				// so we don't try to replace to special ints them here.
+				// Images are large so it's hard to guess even special
+				// ints with random mutations.
+				if !image && specialIntsSet[newV] {
 					continue
 				}
 				// Replace size least significant bits of v with
@@ -245,7 +287,6 @@ func shrinkExpand(v uint64, compMap CompMap, bitsize uint64) []uint64 {
 				if replacer == v {
 					continue
 				}
-
 				replacer = truncateToBitSize(replacer, bitsize)
 				// TODO(dvyukov): should we try replacing with arg+/-1?
 				// This could trigger some off-by-ones.
