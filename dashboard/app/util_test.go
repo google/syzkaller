@@ -34,14 +34,13 @@ import (
 )
 
 type Ctx struct {
-	t                 *testing.T
-	inst              aetest.Instance
-	ctx               context.Context
-	mockedTime        time.Time
-	emailSink         chan *aemail.Message
-	client            *apiClient
-	client2           *apiClient
-	clientPublicEmail *apiClient
+	t          *testing.T
+	inst       aetest.Instance
+	ctx        context.Context
+	mockedTime time.Time
+	emailSink  chan *aemail.Message
+	client     *apiClient
+	client2    *apiClient
 }
 
 var skipDevAppserverTests = func() bool {
@@ -76,7 +75,6 @@ func NewCtx(t *testing.T) *Ctx {
 	}
 	c.client = c.makeClient(client1, password1, true)
 	c.client2 = c.makeClient(client2, password2, true)
-	c.clientPublicEmail = c.makeClient(clientPublicEmail, keyPublicEmail, true)
 	registerContext(r, c)
 	return c
 }
