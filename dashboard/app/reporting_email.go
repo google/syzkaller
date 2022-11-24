@@ -6,6 +6,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -55,6 +56,10 @@ const (
 	replyNoBugID = "I see the command but can't find the corresponding bug.\n" +
 		"Please resend the email to %[1]v address\n" +
 		"that is the sender of the bug report (also present in the Reported-by tag)."
+	replyAmbiguousBugID = "I see the command, but I cannot identify the bug that was meant.\n" +
+		"Several bugs with the exact same title were earlier sent to the mailing list.\n" +
+		"Please resend the email to %[1]v address\n" +
+		"that is the sender of the original bug report (also present in the Reported-by tag)."
 	replyBadBugID = "I see the command but can't find the corresponding bug.\n" +
 		"The email is sent to  %[1]v address\n" +
 		"but the HASH does not correspond to any known bug.\n" +
@@ -420,14 +425,15 @@ type bugInfoResult struct {
 
 func loadBugInfo(c context.Context, msg *email.Email) *bugInfoResult {
 	if msg.BugID == "" {
+		var matchingErr error
 		// Give it one more try -- maybe we can determine the bug from the subject + mailing list.
 		if msg.MailingList != "" {
-			ret, err := matchBugFromList(c, msg.MailingList, msg.Subject)
-			if err != nil {
-				log.Infof(c, "mailing list matching failed: %s", err)
-			} else {
+			var ret *bugInfoResult
+			ret, matchingErr = matchBugFromList(c, msg.MailingList, msg.Subject)
+			if matchingErr == nil {
 				return ret
 			}
+			log.Infof(c, "mailing list matching failed: %s", matchingErr)
 		}
 		if msg.Command == email.CmdNone {
 			// This happens when people CC syzbot on unrelated emails.
@@ -439,7 +445,11 @@ func loadBugInfo(c context.Context, msg *email.Email) *bugInfoResult {
 				log.Errorf(c, "failed to format sender email address: %v", err)
 				from = "ERROR"
 			}
-			if err := replyTo(c, msg, "", fmt.Sprintf(replyNoBugID, from)); err != nil {
+			message := fmt.Sprintf(replyNoBugID, from)
+			if matchingErr == errAmbiguousTitle {
+				message = fmt.Sprintf(replyAmbiguousBugID, from)
+			}
+			if err := replyTo(c, msg, "", message); err != nil {
 				log.Errorf(c, "failed to send reply: %v", err)
 			}
 		}
@@ -495,7 +505,8 @@ func ownMailingLists() []string {
 }
 
 var (
-	subjectParser subjectTitleParser
+	subjectParser     subjectTitleParser
+	errAmbiguousTitle = errors.New("ambiguous bug title")
 )
 
 func matchBugFromList(c context.Context, sender, subject string) (*bugInfoResult, error) {
@@ -548,7 +559,9 @@ func matchBugFromList(c context.Context, sender, subject string) (*bugInfoResult
 			bugReporting: bugReporting, reporting: reporting,
 		})
 	}
-	if len(candidates) != 1 {
+	if len(candidates) > 1 {
+		return nil, errAmbiguousTitle
+	} else if len(candidates) == 0 {
 		return nil, fmt.Errorf("unable to determine the bug")
 	}
 	return candidates[0], nil
