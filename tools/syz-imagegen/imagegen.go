@@ -8,8 +8,8 @@
 // syz-imagegen generates sys/linux/test/syz_mount_image_* test files.
 // It requires the following packages to be installed:
 //
-//	f2fs-tools, xfsprogs, reiserfsprogs, gfs2-utils, ocfs2-tools, genromfs, erofs-utils, makefs, udftools,
-//	mtd-utils, nilfs-tools, squashfs-tools, genisoimage, jfsutils, exfat-utils, ntfs-3g.
+//	f2fs-tools xfsprogs reiserfsprogs gfs2-utils ocfs2-tools genromfs erofs-utils makefs udftools
+//	mtd-utils nilfs-tools squashfs-tools genisoimage jfsutils exfat-utils ntfs-3g hfsprogs.
 package main
 
 import (
@@ -459,6 +459,23 @@ var fileSystems = []FileSystem{
 		Mkfs: func(image *Image) error {
 			_, err := runCmd("genisoimage", append(image.flags, "-o", image.disk, image.templateDir)...)
 			return err
+		},
+	},
+	{
+		Name:    "hfs",
+		MinSize: 16 << 10,
+		MkfsFlagCombinations: [][]string{
+			{"", "-P"},
+			{"", "-c a=1024,b=512,c=128,d=256"},
+		},
+	},
+	{
+		Name:    "hfsplus",
+		MinSize: 512 << 10,
+		MkfsFlagCombinations: [][]string{
+			{"", "-P"},
+			{"", "-s"},
+			{"-b 512", "-b 1024", "-b 2048"},
 		},
 	},
 	{
