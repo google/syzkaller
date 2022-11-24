@@ -57,10 +57,10 @@ func TestGenericHeatmap(t *testing.T) {
 			t.Fatalf("bad decode: %v", err)
 		}
 		for i := 0; i < iters; i++ {
-			hm := MakeGenericHeatmap(data).(*GenericHeatmap)
+			hm := MakeGenericHeatmap(data, r).(*GenericHeatmap)
 
 			for j := 0; j < tries; j++ {
-				index := hm.ChooseLocation(r)
+				index := hm.ChooseLocation()
 				if !checkIndex(index, len(data), test.regions) {
 					hm.debugPrint(t, data, test.regions)
 					t.Fatalf("selected index %d does not fall in a region\n", index)
