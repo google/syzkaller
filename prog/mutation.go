@@ -401,11 +401,9 @@ func (r *randGen) mutateImage(image []byte) (data []byte, retry bool) {
 	if len(data) == 0 {
 		return image, true // Do not mutate empty data.
 	}
-	hm := MakeGenericHeatmap(data)
-	// At least two mutations, up to about one mutation every 128 KB of heatmap size.
-	numMutations := r.Intn(hm.Size()/(1<<17)+1) + 2
-	for i := 0; i < numMutations; i++ {
-		index := hm.ChooseLocation(r.Rand)
+	hm := MakeGenericHeatmap(data, r.Rand)
+	for i := hm.NumMutations(); i > 0; i-- {
+		index := hm.ChooseLocation()
 		width := 1 << uint(r.Intn(4))
 		if index+width > len(data) {
 			width = 1
