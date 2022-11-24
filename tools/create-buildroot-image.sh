@@ -40,7 +40,7 @@ case "$TARGETARCH" in
 esac
 
 git fetch origin
-git checkout 2022.02
+git checkout 2022.08.2
 
 make "${DEFCONFIG}"
 
