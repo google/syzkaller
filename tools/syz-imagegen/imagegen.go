@@ -13,7 +13,9 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"flag"
 	"fmt"
@@ -26,6 +28,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"unsafe"
 
 	"github.com/google/syzkaller/pkg/image"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -650,10 +653,26 @@ func addEmptyImages(target *prog.Target) {
 		}
 		fileSystems = append(fileSystems, FileSystem{
 			Name:      name,
-			MinSize:   1 << 20,
+			MinSize:   64 << 10,
 			ReadOnly:  true,
-			MkfsFlags: []string{"fake empty image"},
-			Mkfs:      func(img *Image) error { return nil },
+			MkfsFlags: []string{"fake image"},
+			Mkfs: func(img *Image) error {
+				// Fill the image with unique 4-byte values.
+				// This allows hints mutation to easily guess magic numbers and checksums.
+				f, err := os.Create(img.disk)
+				if err != nil {
+					return err
+				}
+				defer f.Close()
+				buf := bufio.NewWriter(f)
+				defer buf.Flush()
+				for i := uint32(0); i < uint32(img.size/int(unsafe.Sizeof(i))); i++ {
+					if err := binary.Write(buf, binary.LittleEndian, i+0x7b3184b5); err != nil {
+						return err
+					}
+				}
+				return nil
+			},
 		})
 	}
 }
