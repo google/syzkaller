@@ -37,8 +37,17 @@ func MakeGenericHeatmap(data []byte, r *rand.Rand) Heatmap {
 }
 
 func (hm *GenericHeatmap) NumMutations() int {
-	// At least two mutations, up to about one mutation every 128 KB of heatmap size.
-	return hm.r.Intn(hm.length/(1<<17)+1) + 2
+	// At least one mutation.
+	n := 1
+	// + up to about one mutation every 4 KB of heatmap size.
+	n += hm.r.Intn(hm.length/(4<<10) + 1)
+	// + up to 4 mutations at random so that even small images can get more than one.
+	n += hm.r.Intn(5)
+	// But don't do too many as it will most likely corrupt the image.
+	if max := 10; n > max {
+		n = max
+	}
+	return n
 }
 
 func (hm *GenericHeatmap) ChooseLocation() int {
