@@ -530,13 +530,17 @@ var fileSystems = []FileSystem{
 	},
 }
 
-const parttable = "parttable"
+const (
+	syzMountImage    = "syz_mount_image"
+	syzReadPartTable = "syz_read_part_table"
+	parttable        = "parttable"
+)
 
 func (fs FileSystem) filePrefix() string {
 	if fs.Name == parttable {
-		return "syz_read_part_table"
+		return syzReadPartTable
 	}
-	return "syz_mount_image_" + fs.Name
+	return syzMountImage + "_" + fs.Name
 }
 
 // Image represents one image we generate for a file system.
@@ -557,8 +561,7 @@ func (image *Image) String() string {
 	if image.size >= 1<<20 {
 		size = fmt.Sprintf("%vMB", image.size>>20)
 	}
-	result := fmt.Sprintf("#%02v: mkfs.%v[%5v] %v", image.index, image.fs.Name, size, image.flags)
-	return result
+	return fmt.Sprintf("#%02v: mkfs.%v[%5v] %v", image.index, image.fs.Name, size, image.flags)
 }
 
 var errShutdown = errors.New("shutdown")
@@ -586,6 +589,7 @@ func main() {
 	if err != nil {
 		tool.Fail(err)
 	}
+	addEmptyImages(target)
 	images, err := generateImages(target, *flagFS, *flagList)
 	if err != nil {
 		tool.Fail(err)
@@ -626,6 +630,31 @@ func main() {
 		}()
 	}
 	printResults(images, shutdown, *flagKeepImage, *flagVerbose)
+}
+
+func addEmptyImages(target *prog.Target) {
+	// Since syz_mount_image calls are no_generate we need to add at least some
+	// empty seeds for all the filesystems.
+	have := make(map[string]bool)
+	for _, fs := range fileSystems {
+		have[fs.Name] = true
+	}
+	for _, call := range target.Syscalls {
+		if call.CallName != syzMountImage {
+			continue
+		}
+		name := strings.TrimPrefix(call.Name, syzMountImage+"$")
+		if have[name] {
+			continue
+		}
+		fileSystems = append(fileSystems, FileSystem{
+			Name:      name,
+			MinSize:   1 << 20,
+			ReadOnly:  true,
+			MkfsFlags: []string{"fake empty image"},
+			Mkfs:      func(image *Image) error { return nil },
+		})
+	}
 }
 
 func printResults(images []*Image, shutdown chan struct{}, keepImage, verbose bool) {
@@ -851,10 +880,10 @@ func writeImage(image *Image, data []byte) ([]byte, error) {
 	compressedData := prog.Compress(data)
 	b64Data := prog.EncodeB64(compressedData)
 	if image.fs.Name == parttable {
-		fmt.Fprintf(buf, `syz_read_part_table(AUTO, &AUTO="$`)
+		fmt.Fprintf(buf, `%s(AUTO, &AUTO="$`, syzReadPartTable)
 	} else {
-		fmt.Fprintf(buf, `syz_mount_image$%v(&AUTO='%v\x00', &AUTO='./file0\x00', 0x0, &AUTO, 0x1, AUTO, &AUTO="$`,
-			image.fs.Name, image.fs.Name)
+		fmt.Fprintf(buf, `%s$%v(&AUTO='%v\x00', &AUTO='./file0\x00', 0x0, &AUTO, 0x1, AUTO, &AUTO="$`,
+			syzMountImage, image.fs.Name, image.fs.Name)
 	}
 	buf.Write(b64Data)
 	fmt.Fprintf(buf, "\")\n")
