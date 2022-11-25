@@ -29,18 +29,22 @@ func Compress(rawData []byte) []byte {
 }
 
 func Decompress(compressedData []byte) ([]byte, error) {
+	buf := new(bytes.Buffer)
+	err := DecompressWriter(buf, compressedData)
+	return buf.Bytes(), err
+}
+
+func DecompressWriter(w io.Writer, compressedData []byte) error {
 	zlibReader, err := zlib.NewReader(bytes.NewReader(compressedData))
 	if err != nil {
-		return nil, fmt.Errorf("could not initialise zlib: %v", err)
+		return fmt.Errorf("could not initialise zlib: %v", err)
 	}
 
-	data, err := io.ReadAll(zlibReader)
-	if err != nil {
-		return nil, fmt.Errorf("could not read data with zlib: %v", err)
+	if _, err := io.Copy(w, zlibReader); err != nil {
+		return fmt.Errorf("could not read data with zlib: %v", err)
 	}
 
-	err = zlibReader.Close()
-	return data, err
+	return zlibReader.Close()
 }
 
 func DecodeB64(b64Data []byte) ([]byte, error) {

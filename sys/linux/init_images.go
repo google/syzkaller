@@ -24,11 +24,11 @@ func (arch *arch) extractSyzMountImage(c *prog.Call) (io.Reader, error) {
 	} else if len(data) == 0 {
 		return nil, fmt.Errorf("an empty image")
 	}
-	decompressedData, err := prog.Decompress(data)
-	if err != nil {
+	buf := new(bytes.Buffer)
+	if err := prog.DecompressWriter(buf, data); err != nil {
 		return nil, err
 	}
-	return bytes.NewReader(decompressedData), nil
+	return buf, nil
 }
 
 func (arch *arch) fixUpSyzMountImage(c *prog.Call, fixStructure bool) error {
