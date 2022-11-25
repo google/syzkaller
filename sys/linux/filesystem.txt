@@ -114,13 +114,24 @@ syz_mount_image$exfat(fs ptr[in, string["exfat"]], dir ptr[in, filename], flags 
 syz_mount_image$afs(fs ptr[in, string["afs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[afs_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$cramfs(fs ptr[in, string["cramfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$romfs(fs ptr[in, string["romfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
-syz_mount_image$zonefs(fs ptr[in, string["zonefs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[zonefs_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$efs(fs ptr[in, string["efs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$jffs2(fs ptr[in, string["jffs2"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[jffs2_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$nilfs2(fs ptr[in, string["nilfs2"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[nilfs2_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
-syz_mount_image$ubifs(fs ptr[in, string["ubifs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[ubifs_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$squashfs(fs ptr[in, string["squashfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$udf(fs ptr[in, string["udf"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[udf_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
+
+# TODO: zonefs needs a zoned block device:
+# https://elixir.bootlin.com/linux/v6.1-rc6/source/fs/zonefs/super.c#L1768
+# So currnetly the mount always fails.
+# These docs say such devices can be emulated with nullb, but need special setup:
+# https://zonedstorage.io/docs/getting-started/zbd-emulation
+# https://btrfs.wiki.kernel.org/index.php/Zoned
+syz_mount_image$zonefs(fs ptr[in, string["zonefs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[zonefs_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
+
+# TODO: ubifs needs a special ubi device:
+# https://elixir.bootlin.com/linux/v6.1-rc6/source/fs/ubifs/super.c#L2063
+# So currnetly the mount always fails.
+syz_mount_image$ubifs(fs ptr[in, string["ubifs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[ubifs_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 
 # TODO: add mount options for the following file systems.
 syz_mount_image$adfs(fs ptr[in, string["adfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
