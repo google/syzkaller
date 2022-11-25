@@ -25,6 +25,16 @@ mount$bind(src ptr[in, filename], dst ptr[in, filename], type ptr[in, string["pi
 # https://chromium.googlesource.com/chromiumos/third_party/kernel/+/d2c1fb9fcdb53%5E%21/
 mount$esdfs(src ptr[in, filename], dst ptr[in, filename], type ptr[in, string["esdfs"]], flags flags[mount_flags], opts ptr[in, fs_options[esdfs_options]])
 
+# TODO: pvfs2 requires some device/source, but it looks unused:
+# https://elixir.bootlin.com/linux/v6.1-rc6/source/fs/orangefs/super.c#L488
+# Instead it sends requests to some pvfs2-req character device,
+# and somebody is supposed to answer these requests with ioctls.
+# But the deivce is not even created in /dev, somebody is supposed to mknod it.
+# And it's major number is unknown (printed to console in debug mode only):
+# https://elixir.bootlin.com/linux/v6.1-rc6/source/fs/orangefs/devorangefs-req.c#L803
+# It does not look usable.
+mount$pvfs2(src ptr[in, string["unused"]], dst ptr[in, filename], type ptr[in, string["pvfs2"]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]])
+
 resource fd_fscontext[fd]
 
 fsopen(type ptr[in, string[filesystem]], flags flags[fsopen_flags]) fd_fscontext
@@ -136,7 +146,6 @@ syz_mount_image$ubifs(fs ptr[in, string["ubifs"]], dir ptr[in, filename], flags 
 # TODO: add mount options for the following file systems.
 syz_mount_image$adfs(fs ptr[in, string["adfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$affs(fs ptr[in, string["affs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
-syz_mount_image$pvfs2(fs ptr[in, string["pvfs2"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$befs(fs ptr[in, string["befs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$vxfs(fs ptr[in, string["vxfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$omfs(fs ptr[in, string["omfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
