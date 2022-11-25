@@ -573,7 +573,7 @@ func main() {
 		flagDebug     = flag.Bool("debug", false, "print lots of debugging output")
 		flagPopulate  = flag.String("populate", "", "populate the specified image with files (for internal use)")
 		flagKeepImage = flag.Bool("keep", false, "save disk images as .img files")
-		flagFS        = flag.String("fs", "", "generate images only for this single filesystem")
+		flagFS        = flag.String("fs", "", "comma-separated list of filesystems to generate, all if empty")
 	)
 	flag.Parse()
 	if *flagDebug {
@@ -707,7 +707,7 @@ func printResults(images []*Image, shutdown chan struct{}, keepImage, verbose bo
 func generateImages(target *prog.Target, flagFS string, list bool) ([]*Image, error) {
 	var images []*Image
 	for _, fs := range fileSystems {
-		if flagFS != "" && flagFS != fs.Name {
+		if flagFS != "" && !strings.Contains(","+flagFS+",", ","+fs.Name+",") {
 			continue
 		}
 		index := 0
