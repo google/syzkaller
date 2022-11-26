@@ -36,6 +36,12 @@ mount$esdfs(src ptr[in, filename], dst ptr[in, filename], type ptr[in, string["e
 # It does not look usable.
 mount$pvfs2(src ptr[in, string["unused"]], dst ptr[in, filename], type ptr[in, string["pvfs2"]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]])
 
+# TODO: nfs source is "hostname:export_path", but we also needs to setup port,
+# protocol and other options, and most importantly we need the server to reply to RPCs.
+# There is something called nfsd (fs/nfsd) which may help and which we need to test as well.
+mount$nfs(src ptr[in, string], dst ptr[in, filename], type ptr[in, string["nfs"]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]])
+mount$nfs4(src ptr[in, string], dst ptr[in, filename], type ptr[in, string["nfs4"]], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]])
+
 resource fd_fscontext[fd]
 
 fsopen(type ptr[in, string[filesystem]], flags flags[fsopen_flags]) fd_fscontext
@@ -118,8 +124,6 @@ syz_mount_image$ntfs3(fs ptr[in, string["ntfs3"]], dir ptr[in, filename], flags 
 syz_mount_image$ext4(fs ptr[in, string[ext4_types]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[ext4_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$f2fs(fs ptr[in, string["f2fs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[f2fs_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$ocfs2(fs ptr[in, string["ocfs2"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
-syz_mount_image$nfs(fs ptr[in, string["nfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
-syz_mount_image$nfs4(fs ptr[in, string["nfs4"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$erofs(fs ptr[in, string["erofs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[erofs_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$exfat(fs ptr[in, string["exfat"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[exfat_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$cramfs(fs ptr[in, string["cramfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
