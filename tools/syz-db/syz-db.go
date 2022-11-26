@@ -44,9 +44,6 @@ func main() {
 		bench(target, args[1])
 		return
 	}
-	if len(args) != 3 {
-		usage()
-	}
 	var target *prog.Target
 	if *flagOS != "" || *flagArch != "" {
 		var err error
@@ -57,9 +54,20 @@ func main() {
 	}
 	switch args[0] {
 	case "pack":
+		if len(args) != 3 {
+			usage()
+		}
 		pack(args[1], args[2], target, *flagVersion)
 	case "unpack":
+		if len(args) != 3 {
+			usage()
+		}
 		unpack(args[1], args[2])
+	case "merge":
+		if len(args) < 3 {
+			usage()
+		}
+		merge(args[1], args[2:], target)
 	default:
 		usage()
 	}
@@ -69,6 +77,7 @@ func usage() {
 	fmt.Fprintf(os.Stderr, "usage:\n")
 	fmt.Fprintf(os.Stderr, "  syz-db pack dir corpus.db\n")
 	fmt.Fprintf(os.Stderr, "  syz-db unpack corpus.db dir\n")
+	fmt.Fprintf(os.Stderr, "  syz-db merge dst-corpus.db add-corpus.db* add-prog*\n")
 	fmt.Fprintf(os.Stderr, "  syz-db bench corpus.db\n")
 	os.Exit(1)
 }
@@ -128,6 +137,34 @@ func unpack(file, dir string) {
 		if err := osutil.WriteFile(fname, rec.Val); err != nil {
 			tool.Failf("failed to output file: %v", err)
 		}
+	}
+}
+
+func merge(file string, adds []string, target *prog.Target) {
+	dstDB, err := db.Open(file, false)
+	if err != nil {
+		tool.Failf("failed to open database: %v", err)
+	}
+	for _, add := range adds {
+		if addDB, err := db.Open(add, false); err == nil {
+			for key, rec := range addDB.Records {
+				dstDB.Save(key, rec.Val, rec.Seq)
+			}
+			continue
+		} else if target == nil {
+			tool.Failf("failed to open db %v: %v", add, err)
+		}
+		data, err := ioutil.ReadFile(add)
+		if err != nil {
+			tool.Fail(err)
+		}
+		if _, err := target.Deserialize(data, prog.NonStrict); err != nil {
+			tool.Failf("failed to deserialize %v: %v", add, err)
+		}
+		dstDB.Save(hash.String(data), data, 0)
+	}
+	if err := dstDB.Flush(); err != nil {
+		tool.Failf("failed to save db: %v", err)
 	}
 }
 
