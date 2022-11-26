@@ -44,7 +44,10 @@ config:
  - JFFS2_CMODE_PRIORITY
 
  - UFS_FS
- - UFS_FS_WRITE: n
+ # Write support for UFS. The description says experimental/dangerous,
+ # but seems to mean only that images can be corrupted
+ # ("you should back up your UFS partitions beforehand").
+ - UFS_FS_WRITE
  - UFS_DEBUG: n
 
  - JFS_FS
