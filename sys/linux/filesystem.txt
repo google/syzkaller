@@ -14,6 +14,7 @@ mount$binder(src const[0], dst ptr[in, filename], type ptr[in, string["binder"]]
 mount$tmpfs(src const[0], dst ptr[in, filename], type ptr[in, string["tmpfs"]], flags flags[mount_flags], opts ptr[in, fs_options[tmpfs_options]])
 mount$cgroup(src const[0], dst ptr[in, filename], type ptr[in, string["cgroup"]], flags flags[mount_flags], opts ptr[in, fs_options[cgroup_options]])
 mount$cgroup2(src const[0], dst ptr[in, filename], type ptr[in, string["cgroup2"]], flags flags[mount_flags], opts ptr[in, fs_options[cgroup2_options]])
+mount$afs(src ptr[in, afs_source], dst ptr[in, filename], type ptr[in, string["afs"]], flags flags[mount_flags], opts ptr[in, fs_options[afs_options]])
 
 # A bind mount ignores the filesystem type argument, but
 # pkg/host/syscalls_linux.go:isSupportedFilesystem() requires one in
@@ -121,7 +122,6 @@ syz_mount_image$nfs(fs ptr[in, string["nfs"]], dir ptr[in, filename], flags flag
 syz_mount_image$nfs4(fs ptr[in, string["nfs4"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$erofs(fs ptr[in, string["erofs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[erofs_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$exfat(fs ptr[in, string["exfat"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[exfat_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
-syz_mount_image$afs(fs ptr[in, string["afs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[afs_options]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$cramfs(fs ptr[in, string["cramfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$romfs(fs ptr[in, string["romfs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
 syz_mount_image$efs(fs ptr[in, string["efs"]], dir ptr[in, filename], flags flags[mount_flags], opts ptr[in, fs_options[stringnoz]], chdir bool8, size len[img], img ptr[in, compressed_image]) fd_dir (timeout[SYZ_MOUNT_IMAGE_TIMEOUT], no_generate, no_minimize)
@@ -807,6 +807,26 @@ exfat_options [
 	discard		stringnoz["discard"]
 ] [varlen]
 
+# TODO: afs should be configured via /proc/fs/afs/{cells,servers} (see fs/afs/proc.c).
+# Without that mounting of afs will fail.
+afs_source [
+	none	string["none"]
+	cell	afs_cell_source
+] [varlen]
+
+afs_cell_source {
+	prefix	flags[afs_cell_prefix, int8]
+	cell	stringnoz[afs_cells]
+	volname	stringnoz[afs_volnames]
+	suffix	stringnoz[afs_suffixes]
+	z	const[0, int8]
+} [packed]
+
+afs_cell_prefix = '%', '#'
+afs_cells = "", "syz0:", "syz1:"
+afs_volnames = "syz0", "syz1"
+afs_suffixes = "", ".readonly", ".backup"
+
 afs_options [
 	autocell	stringnoz["autocell"]
 	dyn		stringnoz["dyn"]
@@ -814,7 +834,6 @@ afs_options [
 	flock_openafs	stringnoz["flock=openafs"]
 	flock_strict	stringnoz["flock=strict"]
 	flock_write	stringnoz["flock=write"]
-	source		fs_opt_str["source"]
 ] [varlen]
 
 tmpfs_options [
