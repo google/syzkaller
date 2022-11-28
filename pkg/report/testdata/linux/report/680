@@ -1,0 +1,72 @@
+TITLE: BUG: unable to handle kernel paging request in simple_xattr_alloc
+ALT: bad-access in simple_xattr_alloc
+
+[   34.404245][ T3083] Unable to handle kernel paging request at virtual address 00616161616161a1
+[   34.406713][ T3083] Mem abort info:
+[   34.407658][ T3083]   ESR = 0x0000000096000004
+[   34.408910][ T3083]   EC = 0x25: DABT (current EL), IL = 32 bits
+[   34.410573][ T3083]   SET = 0, FnV = 0
+[   34.411554][ T3083]   EA = 0, S1PTW = 0
+[   34.412644][ T3083]   FSC = 0x04: level 0 translation fault
+[   34.414225][ T3083] Data abort info:
+[   34.415404][ T3080] Unable to handle kernel paging request at virtual address 00616161616161a1
+[   34.417299][ T3083]   ISV = 0, ISS = 0x00000004
+[   34.417606][ T3080] Mem abort info:
+[   34.418811][ T3083]   CM = 0, WnR = 0
+[   34.419691][ T3080]   ESR = 0x0000000096000004
+[   34.419699][ T3080]   EC = 0x25: DABT (current EL), IL = 32 bits
+[   34.420662][ T3083] [00616161616161a1] address between user and kernel address ranges
+[   34.421855][ T3080]   SET = 0, FnV = 0
+[   34.423545][ T3083] Internal error: Oops: 0000000096000004 [#1] PREEMPT SMP
+[   34.425783][ T3080]   EA = 0, S1PTW = 0
+[   34.426681][ T3083] Modules linked in:
+[   34.428473][ T3080]   FSC = 0x04: level 0 translation fault
+[   34.429485][ T3083] 
+[   34.429489][ T3083] CPU: 0 PID: 3083 Comm: udevd Not tainted 6.1.0-rc6-syzkaller-32662-g6d464646530f #0
+[   34.430419][ T3080] Data abort info:
+[   34.430424][ T3080]   ISV = 0, ISS = 0x00000004
+[   34.431908][ T3083] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 09/30/2022
+[   34.432445][ T3080]   CM = 0, WnR = 0
+[   34.434937][ T3083] pstate: 40400005 (nZcv daif +PAN -UAO -TCO -DIT -SSBS BTYPE=--)
+[   34.434950][ T3083] pc : __kmem_cache_alloc_node+0x17c/0x350
+[   34.434965][ T3083] lr : __kmem_cache_alloc_node+0x80/0x350
+[   34.434973][ T3083] sp : ffff80000fee3890
+[   34.434976][ T3083] x29: ffff80000fee38a0
+[   34.435905][ T3080] [00616161616161a1] address between user and kernel address ranges
+[   34.437058][ T3083]  x28: ffff0000c5718000 x27: ffff80000cf6f4f0
+[   34.451823][ T3083] x26: ffff80000fee3a10 x25: 00000000ffffffff x24: ffff8000084360d4
+[   34.453862][ T3083] x23: 0000000000000021 x22: 6161616161616161 x21: 0000000000000000
+[   34.455892][ T3083] x20: 0000000000000cc0 x19: ffff0000c0001200 x18: 0000000000000000
+[   34.457903][ T3083] x17: 0000000000000000 x16: ffff80000dbe6158 x15: ffff0000c5718000
+[   34.460002][ T3083] x14: 0000000000000010 x13: 0000000000000000 x12: ffff0000c5718000
+[   34.462077][ T3083] x11: 0000000000000001 x10: 0000000000000000 x9 : 0000000000000040
+[   34.464076][ T3083] x8 : 00000000000ae251 x7 : ffff8000084bf248 x6 : 0000000000000000
+[   34.466177][ T3083] x5 : 0000000000000000 x4 : 0000000000000001 x3 : 00000000000ae259
+[   34.468216][ T3083] x2 : 0000000000000000 x1 : 0000000000000cc0 x0 : fffffc00032c8dc0
+[   34.470248][ T3083] Call trace:
+[   34.471114][ T3083]  __kmem_cache_alloc_node+0x17c/0x350
+[   34.472525][ T3083]  __kmalloc_node+0xbc/0x14c
+[   34.473703][ T3083]  kvmalloc_node+0x84/0x1a4
+[   34.474905][ T3083]  simple_xattr_alloc+0x50/0x90
+[   34.476169][ T3083]  shmem_initxattrs+0x44/0xf0
+[   34.477361][ T3083]  security_inode_init_security+0x208/0x278
+[   34.478889][ T3083]  shmem_mknod+0xa0/0x13c
+[   34.480111][ T3083]  shmem_create+0x40/0x54
+[   34.481248][ T3083]  path_openat+0x804/0x11c4
+[   34.482400][ T3083]  do_filp_open+0xdc/0x1b8
+[   34.483526][ T3083]  do_sys_openat2+0xb8/0x22c
+[   34.484696][ T3083]  __arm64_sys_openat+0xb0/0xe0
+[   34.485978][ T3083]  el0_svc_common+0x138/0x220
+[   34.487231][ T3083]  do_el0_svc+0x48/0x164
+[   34.488333][ T3083]  el0_svc+0x58/0x150
+[   34.489365][ T3083]  el0t_64_sync_handler+0x84/0xf0
+[   34.490670][ T3083]  el0t_64_sync+0x190/0x194
+[   34.491794][ T3083] Code: 54000ee1 34000eeb b9402a69 91002103 (f8696ada) 
+[   34.493712][ T3083] ---[ end trace 0000000000000000 ]---
+[   34.717898][ T3083] Kernel panic - not syncing: Oops: Fatal exception
+[   34.719763][ T3083] SMP: stopping secondary CPUs
+[   35.781656][ T3083] SMP: failed to stop secondary CPUs 0-1
+[   35.783212][ T3083] Kernel Offset: disabled
+[   35.784331][ T3083] CPU features: 0x00000,040e0108,4c017203
+[   35.785802][ T3083] Memory Limit: none
+[   36.006715][ T3083] Rebooting in 86400 seconds..
