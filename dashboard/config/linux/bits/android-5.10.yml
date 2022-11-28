@@ -10,9 +10,9 @@ kernel:
  tag: 8d21bcc704ea1
 
 shell:
- - make gki_defconfig: [-virtual_modules]
- - cp /syzkaller/gopath/src/github.com/google/syzkaller/dashboard/config/android-modules/android-5.10/vd_x86_64_gki_defconfig arch/x86/configs/: [virtual_modules]
- - make vd_x86_64_gki_defconfig: [virtual_modules]
+ - make gki_defconfig: [-cuttlefish]
+ - cp /syzkaller/gopath/src/github.com/google/syzkaller/dashboard/config/android-modules/android-5.10/vd_x86_64_gki_defconfig arch/x86/configs/: [cuttlefish]
+ - make vd_x86_64_gki_defconfig: [cuttlefish]
 
 config:
  # 5.10 has lots of io_uring bugs that are not easy (if not impossible) to backport, e.g.:
@@ -35,4 +35,5 @@ config:
  # Android has back-ported the KASAN_STACK_ENABLE => KASAN_STACK rename from v5.11
  - KASAN_STACK_ENABLE: [n, override]
  # Doesn't boot on Cuttlefish with KASAN_STACK
- - KASAN_STACK: [override, -virtual_modules]
+ # TODO: re-enable once KASAN_STACK works with Cuttlefish
+ - KASAN_STACK: [override, -cuttlefish]

@@ -22,7 +22,7 @@ instances:
  - stable-5.4-kasan:		[stable-5.4, x86_64, timeouts_native, gcc, bpfjit, lsm, apparmor, kasan]
  - android-5.4:			[android, android-5.4, nodefconfig, x86_64, timeouts_native, clang, onlyusb, nonoise, kasan]
  - android-5.10:		[android, android-5.10, nodefconfig, x86_64, timeouts_native, clang, onlyusb, nonoise, kasan]
- - android-5.10-cuttlefish:     [android, android-5.10, nodefconfig, x86_64, modules, virtual_modules, timeouts_native, clang, baseline, nonoise, kasan]
+ - android-5.10-cuttlefish:     [android, android-5.10, nodefconfig, x86_64, modules, cuttlefish, timeouts_native, clang, baseline, nonoise, kasan]
  - android-5.15:		[android, android-5.15, nodefconfig, x86_64, timeouts_native, clang, onlyusb, nonoise, kasan]
  - chromeos-5.4:		[chromeos, chromeos-5.4, nodefconfig, x86_64, timeouts_native, onlyusb, kasan]
  - chromeos-5.10:		[chromeos, chromeos-5.10, nodefconfig, x86_64, timeouts_native, onlyusb, kasan]
