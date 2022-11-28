@@ -1064,6 +1064,7 @@ var linuxStackParams = &stackParams{
 		"__warn",
 		"alloc_page",
 		"kmalloc",
+		"kvmalloc",
 		"kcalloc",
 		"kzalloc",
 		"krealloc",
