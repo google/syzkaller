@@ -2,8 +2,8 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 shell:
- - make x86_64_defconfig: [-nodefconfig]
- - make kvm_guest.config
+  - make x86_64_defconfig: [-nodefconfig]
+  - make kvm_guest.config: [-virtual_modules]
 
 config:
  # root=/dev/sda is not necessary correct, but it's a common setting and user arguments are appended
