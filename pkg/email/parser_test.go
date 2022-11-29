@@ -762,4 +762,31 @@ nothing to see here`,
 			Body:        `nothing to see here`,
 			Command:     CmdNone,
 		}},
+	{`Sender: syzkaller-bugs@googlegroups.com
+Subject: Re: BUG: unable to handle kernel NULL pointer dereference in
+ sock_poll
+To: syzbot <syzbot+344bb0f46d7719cd9483@syzkaller.appspotmail.com>
+From: bar <bar@foo.com>
+Message-ID: <1250334f-7220-2bff-5d87-b87573758d81@bar.com>
+Date: Sun, 10 Jun 2018 10:38:20 +0900
+MIME-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Language: en-US
+Content-Transfer-Encoding: quoted-printable
+
+#syz=20
+test: https://github.com/torvalds/linux.git 7b5bb460defa107dd2e82=
+f950fddb9ea6bdb5e39
+`, Email{
+		MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
+		Subject:   "Re: BUG: unable to handle kernel NULL pointer dereference in sock_poll",
+		Author:    "bar@foo.com",
+		Cc:        []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
+		Body: `#syz 
+test: https://github.com/torvalds/linux.git 7b5bb460defa107dd2e82f950fddb9ea6bdb5e39
+`,
+		Command:     CmdTest,
+		CommandStr:  "test:",
+		CommandArgs: "https://github.com/torvalds/linux.git 7b5bb460defa107dd2e82f950fddb9ea6bdb5e39",
+	}},
 }
