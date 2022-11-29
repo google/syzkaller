@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"unicode"
 )
 
 type Email struct {
@@ -251,7 +252,7 @@ func extractCommand(body string) (cmd Command, str, args string) {
 		return
 	}
 	cmdPos += len(commandPrefix) + 1
-	for cmdPos < len(body) && (body[cmdPos] == ' ' || body[cmdPos] == '\t') {
+	for cmdPos < len(body) && unicode.IsSpace(rune(body[cmdPos])) {
 		cmdPos++
 	}
 	cmdEnd := strings.IndexByte(body[cmdPos:], '\n')
