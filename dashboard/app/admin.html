@@ -47,6 +47,8 @@ Main page.
 	{{end}}
 
 	{{template "manager_list" $.Managers}}
-	{{template "job_list" $.Jobs}}
+	{{template "job_list" $.RunningJobs}}
+	{{template "job_list" $.PendingJobs}}
+	{{template "job_list" $.RecentJobs}}
 </body>
 </html>
