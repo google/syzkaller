@@ -186,6 +186,12 @@ indexes:
   - name: Finished
 
 - kind: Job
+  properties:
+  - name: Finished
+  - name: Started
+    direction: desc
+
+- kind: Job
   ancestor: yes
   properties:
   - name: Type
