@@ -67,7 +67,7 @@ EOF2
     set -eux
     ulimit -d 8000000
     export GOCACHE=/syzkaller/go-cache
-    mkdir -p $GOCACHE
+    mkdir -p \$GOCACHE
     test -x syz-ci || (
          go get github.com/google/syzkaller/syz-ci &&
          go build github.com/google/syzkaller/syz-ci)
