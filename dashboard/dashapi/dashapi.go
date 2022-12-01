@@ -498,6 +498,19 @@ type PollClosedResponse struct {
 	IDs []string
 }
 
+type TestPatchRequest struct {
+	BugID  string
+	Link   string
+	User   string
+	Repo   string
+	Branch string
+	Patch  []byte
+}
+
+type TestPatchReply struct {
+	ErrorText string
+}
+
 func (dash *Dashboard) ReportingPollBugs(typ string) (*PollBugsResponse, error) {
 	req := &PollBugsRequest{
 		Type: typ,
@@ -534,6 +547,14 @@ func (dash *Dashboard) ReportingPollClosed(ids []string) ([]string, error) {
 func (dash *Dashboard) ReportingUpdate(upd *BugUpdate) (*BugUpdateReply, error) {
 	resp := new(BugUpdateReply)
 	if err := dash.Query("reporting_update", upd, resp); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (dash *Dashboard) NewTestJob(upd *TestPatchRequest) (*TestPatchReply, error) {
+	resp := new(TestPatchReply)
+	if err := dash.Query("new_test_job", upd, resp); err != nil {
 		return nil, err
 	}
 	return resp, nil

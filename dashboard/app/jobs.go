@@ -26,7 +26,7 @@ type testReqArgs struct {
 	user         string
 	extID        string
 	link         string
-	patch        string
+	patch        []byte
 	repo         string
 	branch       string
 	jobCC        []string
@@ -107,7 +107,7 @@ func addTestJob(c context.Context, args *testJobArgs, now time.Time) error {
 			break
 		}
 	}
-	patchID, err := putText(c, args.bug.Namespace, textPatch, []byte(args.patch), false)
+	patchID, err := putText(c, args.bug.Namespace, textPatch, args.patch, false)
 	if err != nil {
 		return err
 	}
@@ -995,6 +995,46 @@ func jobReported(c context.Context, jobID string) error {
 		return nil
 	}
 	return db.RunInTransaction(c, tx, nil)
+}
+
+func handleExternalTestRequest(c context.Context, req *dashapi.TestPatchRequest) error {
+	bug, bugKey, err := findBugByReportingID(c, req.BugID)
+	if err != nil {
+		return fmt.Errorf("failed to find the bug: %w", err)
+	}
+	bugReporting, _ := bugReportingByID(bug, req.BugID)
+	if bugReporting == nil {
+		return fmt.Errorf("failed to find the bug reporting object")
+	}
+	crash, crashKey, err := findCrashForBug(c, bug)
+	if err != nil {
+		return fmt.Errorf("failed to find a crash: %v", err)
+	}
+	if req.Branch == "" && req.Repo == "" {
+		build, err := loadBuild(c, bug.Namespace, crash.BuildID)
+		if err != nil {
+			return fmt.Errorf("failed to find the bug reporting object: %w", err)
+		}
+		req.Branch = build.KernelBranch
+		req.Repo = build.KernelRepo
+	} else if req.Branch == "" || req.Repo == "" {
+		return fmt.Errorf("branch and repo should be either both set or both empty")
+	}
+	now := timeNow(c)
+	return addTestJob(c, &testJobArgs{
+		crash:    crash,
+		crashKey: crashKey,
+		testReqArgs: testReqArgs{
+			bug:          bug,
+			bugKey:       bugKey,
+			bugReporting: bugReporting,
+			repo:         req.Repo,
+			branch:       req.Branch,
+			user:         req.User,
+			link:         req.Link,
+			patch:        req.Patch,
+		},
+	}, now)
 }
 
 type jobSorter struct {
