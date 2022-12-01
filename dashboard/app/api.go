@@ -42,6 +42,7 @@ var apiHandlers = map[string]APIHandler{
 	"reporting_poll_notifs": apiReportingPollNotifications,
 	"reporting_poll_closed": apiReportingPollClosed,
 	"reporting_update":      apiReportingUpdate,
+	"new_test_job":          apiNewTestJob,
 	"needed_assets":         apiNeededAssetsList,
 }
 
