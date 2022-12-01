@@ -388,10 +388,23 @@ func handleTestCommand(c context.Context, info *bugInfoResult, msg *email.Email)
 		return replyTo(c, msg, info.bugReporting.ID,
 			fmt.Sprintf("want 2 args (repo, branch), got %v", len(args)))
 	}
-	reply := handleTestRequest(c, &testReqArgs{
+	reply := ""
+	err := handleTestRequest(c, &testReqArgs{
 		bug: info.bug, bugKey: info.bugKey, bugReporting: info.bugReporting,
 		user: msg.Author, extID: msg.MessageID, link: msg.Link,
 		patch: msg.Patch, repo: args[0], branch: args[1], jobCC: msg.Cc})
+	if err != nil {
+		log.Errorf(c, "failed to handle the test request: %v", err)
+		switch e := err.(type) {
+		case *TestRequestDeniedError:
+			// Don't send a reply in this case.
+		case *BadTestRequestError:
+			reply = e.Error()
+		default:
+			// Don't leak any details to the email.
+			reply = "Processing failed due to an internal error"
+		}
+	}
 	if reply != "" {
 		return replyTo(c, msg, info.bugReporting.ID, reply)
 	}
