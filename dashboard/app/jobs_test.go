@@ -46,6 +46,7 @@ func TestJob(t *testing.T) {
 	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
 		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
 	body := c.pollEmailBug().Body
+	t.Logf("body: %s", body)
 	c.expectEQ(strings.Contains(body, "This crash does not have a reproducer"), true)
 
 	// Report crash with repro.
