@@ -303,6 +303,8 @@ func TestBootErrorPatch(t *testing.T) {
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 }
 
+const testErrorTitle = `upstream test error: WARNING in __queue_work`
+
 func TestTestErrorPatch(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -311,7 +313,7 @@ func TestTestErrorPatch(t *testing.T) {
 	c.client2.UploadBuild(build)
 
 	crash := testCrash(build, 2)
-	crash.Title = "upstream test error: WARNING in __queue_work"
+	crash.Title = testErrorTitle
 	c.client2.ReportCrash(crash)
 
 	sender := c.pollEmailBug().Sender
@@ -834,4 +836,161 @@ func TestFixBisectionsDisabled(t *testing.T) {
 	// Ensure that we do not get a JobBisectFix.
 	resp = c.client2.pollJobs(build.Manager)
 	c.client2.expectEQ(resp.ID, "")
+}
+
+func TestExternalPatchFlow(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	crash := testCrash(build, 2)
+	crash.Title = testErrorTitle
+	client.ReportCrash(crash)
+
+	// Confirm the report.
+	reports, err := client.ReportingPollBugs("test")
+	origReport := reports.Reports[0]
+	c.expectOK(err)
+	c.expectEQ(len(reports.Reports), 1)
+
+	reply, _ := client.ReportingUpdate(&dashapi.BugUpdate{
+		ID:     origReport.ID,
+		Status: dashapi.BugStatusOpen,
+	})
+	client.expectEQ(reply.Error, false)
+	client.expectEQ(reply.OK, true)
+
+	// Create a new patch testing job.
+	ret, err := client.NewTestJob(&dashapi.TestPatchRequest{
+		BugID:  origReport.ID,
+		Link:   "http://some-link.com/",
+		User:   "developer@kernel.org",
+		Branch: "kernel-branch",
+		Repo:   "git://git.git/git.git",
+		Patch:  []byte(sampleGitPatch),
+	})
+	c.expectOK(err)
+	c.expectEQ(ret.ErrorText, "")
+
+	// Make sure the job will be passed to the job processor.
+	pollResp := c.client2.pollJobs(build.Manager)
+	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
+	c.expectEQ(pollResp.KernelRepo, "git://git.git/git.git")
+	c.expectEQ(pollResp.KernelBranch, "kernel-branch")
+	c.expectEQ(pollResp.Patch, []byte(sampleGitPatch))
+
+	// Emulate the completion of the job.
+	build2 := testBuild(2)
+	jobDoneReq := &dashapi.JobDoneReq{
+		ID:          pollResp.ID,
+		Build:       *build2,
+		CrashTitle:  "test crash title",
+		CrashLog:    []byte("test crash log"),
+		CrashReport: []byte("test crash report"),
+	}
+	err = c.client2.JobDone(jobDoneReq)
+	c.expectOK(err)
+
+	// Verify that we do get the bug update about the completed request.
+	jobDoneUpdates, err := client.ReportingPollBugs("test")
+	c.expectOK(err)
+	c.expectEQ(len(jobDoneUpdates.Reports), 1)
+
+	newReport := jobDoneUpdates.Reports[0]
+	c.expectEQ(newReport.Type, dashapi.ReportTestPatch)
+	c.expectEQ(newReport.CrashTitle, "test crash title")
+	c.expectEQ(newReport.Report, []byte("test crash report"))
+
+	// Confirm the patch testing result.
+	reply, _ = client.ReportingUpdate(&dashapi.BugUpdate{
+		ID:     origReport.ID,
+		JobID:  pollResp.ID,
+		Status: dashapi.BugStatusOpen,
+	})
+	client.expectEQ(reply.Error, false)
+	client.expectEQ(reply.OK, true)
+}
+
+func TestExternalPatchTestError(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	crash := testCrash(build, 2)
+	crash.Title = testErrorTitle
+	client.ReportCrash(crash)
+
+	// Confirm the report.
+	reports, err := client.ReportingPollBugs("test")
+	origReport := reports.Reports[0]
+	c.expectOK(err)
+	c.expectEQ(len(reports.Reports), 1)
+
+	reply, _ := client.ReportingUpdate(&dashapi.BugUpdate{
+		ID:     origReport.ID,
+		Status: dashapi.BugStatusOpen,
+	})
+	client.expectEQ(reply.Error, false)
+	client.expectEQ(reply.OK, true)
+
+	// Create a new patch testing job.
+	ret, err := client.NewTestJob(&dashapi.TestPatchRequest{
+		BugID:  origReport.ID,
+		User:   "developer@kernel.org",
+		Branch: "kernel-branch",
+		Repo:   "invalid-repo",
+		Patch:  []byte(sampleGitPatch),
+	})
+	c.expectOK(err)
+	c.expectEQ(ret.ErrorText, `"invalid-repo" does not look like a valid git repo address.`)
+}
+
+func TestExternalPatchCompletion(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client
+
+	build := testBuild(1)
+	build.KernelRepo = "git://git.git/git.git"
+	client.UploadBuild(build)
+
+	crash := testCrash(build, 2)
+	crash.Title = testErrorTitle
+	client.ReportCrash(crash)
+
+	// Confirm the report.
+	reports, err := client.ReportingPollBugs("test")
+	origReport := reports.Reports[0]
+	c.expectOK(err)
+	c.expectEQ(len(reports.Reports), 1)
+
+	reply, _ := client.ReportingUpdate(&dashapi.BugUpdate{
+		ID:     origReport.ID,
+		Status: dashapi.BugStatusOpen,
+	})
+	client.expectEQ(reply.Error, false)
+	client.expectEQ(reply.OK, true)
+
+	// Create a new patch testing job.
+	ret, err := client.NewTestJob(&dashapi.TestPatchRequest{
+		BugID: origReport.ID,
+		User:  "developer@kernel.org",
+		Patch: []byte(sampleGitPatch),
+	})
+	c.expectOK(err)
+	c.expectEQ(ret.ErrorText, "")
+
+	// Make sure branch and repo are correct.
+	pollResp := c.client2.pollJobs(build.Manager)
+	c.expectEQ(pollResp.KernelRepo, build.KernelRepo)
+	c.expectEQ(pollResp.KernelBranch, build.KernelBranch)
 }

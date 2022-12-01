@@ -392,17 +392,19 @@ func handleTestCommand(c context.Context, info *bugInfoResult, msg *email.Email)
 	err := handleTestRequest(c, &testReqArgs{
 		bug: info.bug, bugKey: info.bugKey, bugReporting: info.bugReporting,
 		user: msg.Author, extID: msg.MessageID, link: msg.Link,
-		patch: msg.Patch, repo: args[0], branch: args[1], jobCC: msg.Cc})
+		patch: []byte(msg.Patch), repo: args[0], branch: args[1], jobCC: msg.Cc})
 	if err != nil {
-		log.Errorf(c, "failed to handle the test request: %v", err)
 		switch e := err.(type) {
 		case *TestRequestDeniedError:
 			// Don't send a reply in this case.
+			log.Errorf(c, "patch test request denied: %v", e)
 		case *BadTestRequestError:
 			reply = e.Error()
 		default:
-			// Don't leak any details to the email.
+			// Don't leak any details to the reply email.
 			reply = "Processing failed due to an internal error"
+			// .. but they are useful for debugging, so we'd like to see it on the Admin page.
+			log.Errorf(c, "handleTestRequest error: %v", e)
 		}
 	}
 	if reply != "" {
