@@ -388,6 +388,10 @@ func handleTestCommand(c context.Context, info *bugInfoResult, msg *email.Email)
 		return replyTo(c, msg, info.bugReporting.ID,
 			fmt.Sprintf("want 2 args (repo, branch), got %v", len(args)))
 	}
+	if info.bug.sanitizeAccess(AccessPublic) != AccessPublic {
+		log.Warningf(c, "%v: bug is not AccessPublic, patch testing request is denied", info.bug.Title)
+		return nil
+	}
 	reply := ""
 	err := handleTestRequest(c, &testReqArgs{
 		bug: info.bug, bugKey: info.bugKey, bugReporting: info.bugReporting,
