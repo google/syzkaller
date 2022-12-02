@@ -1040,3 +1040,29 @@ For more options, visit https://groups.google.com/d/optout.
 	reporting := lastReportedReporting(dbBug)
 	c.expectNE(reporting.Link, "")
 }
+
+func TestEmailPatchTestingAccess(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client2
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	client.ReportCrash(crash)
+
+	sender := c.pollEmailBug().Sender
+	c.incomingEmail(sender,
+		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+		EmailOptFrom("user@kernel.org"), EmailOptSubject("Re: "+crash.Title),
+	)
+
+	// We expect syzbot to just ignore this patch testing request.
+	c.expectNoEmail()
+
+	// The patch test job should also not be created.
+	pollResp := client.pollJobs(build.Manager)
+	c.expectEQ(pollResp.ID, "")
+}
