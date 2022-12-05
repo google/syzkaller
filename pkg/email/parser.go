@@ -131,13 +131,13 @@ func Parse(r io.Reader, ownEmails []string, goodLists []string) (*Email, error) 
 	patch, cmdStr, cmdArgs := "", "", ""
 	if !fromMe {
 		for _, a := range attachments {
-			_, patch, _ = ParsePatch(string(a))
+			patch = ParsePatch(a)
 			if patch != "" {
 				break
 			}
 		}
 		if patch == "" {
-			_, patch, _ = ParsePatch(bodyStr)
+			patch = ParsePatch(body)
 		}
 		cmd, cmdStr, cmdArgs = extractCommand(subject + "\n" + bodyStr)
 	}

@@ -5,23 +5,19 @@ package email
 
 import (
 	"bufio"
-	"fmt"
+	"bytes"
 	"regexp"
 	"strings"
 )
 
-func ParsePatch(text string) (title, diff string, err error) {
-	s := bufio.NewScanner(strings.NewReader(text))
-	lastLine := ""
+func ParsePatch(message []byte) (diff string) {
+	s := bufio.NewScanner(bytes.NewReader(message))
 	diffStarted := false
 	for s.Scan() {
 		ln := s.Text()
 		if lineMatchesDiffStart(ln) {
 			diffStarted = true
 			diff += ln + "\n"
-			if title == "" {
-				title = lastLine
-			}
 			continue
 		}
 		if diffStarted {
@@ -36,37 +32,9 @@ func ParsePatch(text string) (title, diff string, err error) {
 				continue
 			}
 		}
-		if strings.HasPrefix(ln, "Subject: ") {
-			title = ln[len("Subject: "):]
-			continue
-		}
-		if ln == "" || title != "" || diffStarted {
-			continue
-		}
-		lastLine = ln
-		if strings.HasPrefix(ln, "    ") {
-			title = ln[4:]
-		}
 	}
-	if err = s.Err(); err != nil {
-		return
-	}
-	if strings.Contains(strings.ToLower(title), "[patch") {
-		pos := strings.IndexByte(title, ']')
-		if pos == -1 {
-			err = fmt.Errorf("title contains '[patch' but not ']'")
-			return
-		}
-		title = title[pos+1:]
-	}
-	title = strings.TrimSpace(title)
-	if title == "" {
-		err = fmt.Errorf("failed to extract title")
-		return
-	}
-	if diff == "" {
-		err = fmt.Errorf("failed to extract diff")
-		return
+	if err := s.Err(); err != nil {
+		panic("error while scanning from memory: " + err.Error())
 	}
 	return
 }
