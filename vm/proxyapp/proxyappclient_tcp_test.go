@@ -21,7 +21,7 @@ func testTCPEnv(port string) *vmimpl.Env {
 	return &vmimpl.Env{
 		Config: []byte(`
 {
-		"rpc_server_uri": "127.0.0.1:` + port + `",
+		"rpc_server_uri": "localhost:` + port + `",
 		"config": {
 			"internal_values": 123
 		}
