@@ -132,10 +132,6 @@ var testConfig = &GlobalConfig{
 				},
 			},
 			Managers: map[string]ConfigManager{
-				restrictedManager: {
-					RestrictedTestingRepo:   "git://restricted.git/restricted.git",
-					RestrictedTestingReason: "you should test only on restricted.git",
-				},
 				noFixBisectionManager: {
 					FixBisectionDisabled: true,
 				},
@@ -267,6 +263,12 @@ var testConfig = &GlobalConfig{
 			Clients: map[string]string{
 				clientPublicEmail: keyPublicEmail,
 			},
+			Managers: map[string]ConfigManager{
+				restrictedManager: {
+					RestrictedTestingRepo:   "git://restricted.git/restricted.git",
+					RestrictedTestingReason: "you should test only on restricted.git",
+				},
+			},
 			Repos: []KernelRepo{
 				{
 					URL:    "git://syzkaller.org/access-public-email.git",
@@ -282,6 +284,7 @@ var testConfig = &GlobalConfig{
 					Config: &EmailConfig{
 						Email:            "test@syzkaller.com",
 						HandleListEmails: true,
+						SubjectPrefix:    "[syzbot]",
 					},
 				},
 			},
