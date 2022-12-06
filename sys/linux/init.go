@@ -44,6 +44,7 @@ func InitTarget(target *prog.Target) {
 		AF_NETLINK:                  target.GetConst("AF_NETLINK"),
 		SOCK_RAW:                    target.GetConst("SOCK_RAW"),
 		NETLINK_GENERIC:             target.GetConst("NETLINK_GENERIC"),
+		NETLINK_ISCSI:		     target.GetConst("NETLINK_ISCSI"),
 		USB_MAJOR:                   target.GetConst("USB_MAJOR"),
 		TIOCSSERIAL:                 target.GetConst("TIOCSSERIAL"),
 		TIOCGSERIAL:                 target.GetConst("TIOCGSERIAL"),
@@ -168,6 +169,7 @@ type arch struct {
 	AF_NETLINK                  uint64
 	SOCK_RAW                    uint64
 	NETLINK_GENERIC             uint64
+	NETLINK_ISCSI		    uint64
 	USB_MAJOR                   uint64
 	TIOCSSERIAL                 uint64
 	TIOCGSERIAL                 uint64
