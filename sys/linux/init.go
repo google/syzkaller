@@ -234,7 +234,7 @@ func (arch *arch) neutralize(c *prog.Call, fixStructure bool) error {
 			arch.AF_X25, arch.AF_AX25, arch.AF_NETROM, arch.AF_ROSE:
 		case arch.AF_NETLINK:
 			c.Args[1].(*prog.ConstArg).Val = arch.SOCK_RAW
-			//c.Args[2].(*prog.ConstArg).Val = arch.NETLINK_GENERIC
+			c.Args[2].(*prog.ConstArg).Val = arch.NETLINK_ISCSI
 		default:
 			family.Val = ^uint64(0)
 		}
