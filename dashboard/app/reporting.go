@@ -565,17 +565,9 @@ func fillBugReport(c context.Context, rep *dashapi.BugReport, bug *Bug, bugRepor
 	if err != nil {
 		return err
 	}
-	switch bug.Status {
-	case BugStatusOpen:
-		rep.BugStatus = dashapi.BugStatusOpen
-	case BugStatusFixed:
-		rep.BugStatus = dashapi.BugStatusFixed
-	case BugStatusInvalid:
-		rep.BugStatus = dashapi.BugStatusInvalid
-	case BugStatusDup:
-		rep.BugStatus = dashapi.BugStatusDup
-	default:
-		return fmt.Errorf("unknown bugs status %v", bug.Status)
+	rep.BugStatus, err = bug.dashapiStatus()
+	if err != nil {
+		return err
 	}
 	rep.Namespace = bug.Namespace
 	rep.ID = bugReporting.ID
