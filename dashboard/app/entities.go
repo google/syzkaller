@@ -642,6 +642,23 @@ func (bug *Bug) dailyStatsTail(from time.Time) []BugDailyStats {
 	return bug.DailyStats[startPos:]
 }
 
+func (bug *Bug) dashapiStatus() (dashapi.BugStatus, error) {
+	var status dashapi.BugStatus
+	switch bug.Status {
+	case BugStatusOpen:
+		status = dashapi.BugStatusOpen
+	case BugStatusFixed:
+		status = dashapi.BugStatusFixed
+	case BugStatusInvalid:
+		status = dashapi.BugStatusInvalid
+	case BugStatusDup:
+		status = dashapi.BugStatusDup
+	default:
+		return status, fmt.Errorf("unknown bugs status %v", bug.Status)
+	}
+	return status, nil
+}
+
 func markCrashReported(c context.Context, crashID int64, bugKey *db.Key, now time.Time) error {
 	crash := new(Crash)
 	crashKey := db.NewKey(c, "Crash", "", crashID, bugKey)
