@@ -388,10 +388,6 @@ func reproStr(level dashapi.ReproLevel) string {
 // nolint: gocyclo
 func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key,
 	bugReporting *BugReporting, reporting *Reporting) (*dashapi.BugReport, error) {
-	reportingConfig, err := json.Marshal(reporting.Config)
-	if err != nil {
-		return nil, err
-	}
 	var job *Job
 	if bug.BisectCause == BisectYes || bug.BisectCause == BisectInconclusive || bug.BisectCause == BisectHorizont {
 		// If we have bisection results, report the crash/repro used for bisection.
@@ -410,6 +406,23 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 				crash, crashKey = crash1, crashKey1
 			}
 		}
+	}
+	rep, err := crashBugReport(c, bug, crash, crashKey, bugReporting, reporting)
+	if err != nil {
+		return nil, err
+	}
+	if job != nil {
+		rep.BisectCause = bisectFromJob(c, rep, job)
+	}
+	return rep, nil
+}
+
+// crashBugReport fills in crash and build related fields into *dashapi.BugReport.
+func crashBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key,
+	bugReporting *BugReporting, reporting *Reporting) (*dashapi.BugReport, error) {
+	reportingConfig, err := json.Marshal(reporting.Config)
+	if err != nil {
+		return nil, err
 	}
 	crashLog, _, err := getText(c, textCrashLog, crash.Log)
 	if err != nil {
@@ -498,9 +511,6 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 		if build.Type == BuildFailed {
 			rep.Maintainers = append(rep.Maintainers, mgr.CC.BuildMaintainers...)
 		}
-	}
-	if job != nil {
-		rep.BisectCause = bisectFromJob(c, rep, job)
 	}
 	if err := fillBugReport(c, rep, bug, bugReporting, build); err != nil {
 		return nil, err
