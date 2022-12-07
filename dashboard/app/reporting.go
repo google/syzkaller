@@ -412,7 +412,9 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 		return nil, err
 	}
 	if job != nil {
-		rep.BisectCause = bisectFromJob(c, rep, job)
+		cause, emails := bisectFromJob(c, job)
+		rep.BisectCause = cause
+		rep.Maintainers = append(rep.Maintainers, emails...)
 	}
 	return rep, nil
 }
