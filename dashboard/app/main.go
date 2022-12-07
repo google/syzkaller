@@ -420,7 +420,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
-	similar, err := loadSimilarBugs(c, r, bug, state)
+	similar, err := loadSimilarBugsUI(c, r, bug, state)
 	if err != nil {
 		return err
 	}
@@ -829,37 +829,26 @@ func loadDupsForBug(c context.Context, r *http.Request, bug *Bug, state *Reporti
 	return group, nil
 }
 
-func loadSimilarBugs(c context.Context, r *http.Request, bug *Bug, state *ReportingState) (*uiBugGroup, error) {
+func loadSimilarBugsUI(c context.Context, r *http.Request, bug *Bug, state *ReportingState) (*uiBugGroup, error) {
 	managers := make(map[string][]string)
-	var results []*uiBug
 	accessLevel := accessLevel(c, r)
-	domain := config.Namespaces[bug.Namespace].SimilarityDomain
-	dedup := make(map[string]bool)
-	dedup[bug.keyHash()] = true
-	for _, title := range bug.AltTitles {
-		var similar []*Bug
-		_, err := db.NewQuery("Bug").
-			Filter("AltTitles=", title).
-			GetAll(c, &similar)
-		if err != nil {
-			return nil, err
+	similarBugs, err := loadSimilarBugs(c, bug)
+	if err != nil {
+		return nil, err
+	}
+	var results []*uiBug
+	for _, similar := range similarBugs {
+		if accessLevel < similar.sanitizeAccess(accessLevel) {
+			continue
 		}
-		for _, similar := range similar {
-			if accessLevel < similar.sanitizeAccess(accessLevel) ||
-				config.Namespaces[similar.Namespace].SimilarityDomain != domain ||
-				dedup[similar.keyHash()] {
-				continue
+		if managers[similar.Namespace] == nil {
+			mgrs, err := managerList(c, similar.Namespace)
+			if err != nil {
+				return nil, err
 			}
-			dedup[similar.keyHash()] = true
-			if managers[similar.Namespace] == nil {
-				mgrs, err := managerList(c, similar.Namespace)
-				if err != nil {
-					return nil, err
-				}
-				managers[similar.Namespace] = mgrs
-			}
-			results = append(results, createUIBug(c, similar, state, managers[similar.Namespace]))
+			managers[similar.Namespace] = mgrs
 		}
+		results = append(results, createUIBug(c, similar, state, managers[similar.Namespace]))
 	}
 	group := &uiBugGroup{
 		Now:           timeNow(c),
