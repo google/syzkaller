@@ -910,12 +910,14 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *db.Key, config i
 		if bugReporting.CC != "" {
 			rep.CC = strings.Split(bugReporting.CC, "|")
 		}
+		var emails []string
 		switch job.Type {
 		case JobBisectCause:
-			rep.BisectCause = bisectFromJob(c, rep, job)
+			rep.BisectCause, emails = bisectFromJob(c, job)
 		case JobBisectFix:
-			rep.BisectFix = bisectFromJob(c, rep, job)
+			rep.BisectFix, emails = bisectFromJob(c, job)
 		}
+		rep.Maintainers = append(rep.Maintainers, emails...)
 	}
 	if mgr := bug.managerConfig(); mgr != nil {
 		rep.CC = append(rep.CC, mgr.CC.Always...)
@@ -934,7 +936,7 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *db.Key, config i
 	return rep, nil
 }
 
-func bisectFromJob(c context.Context, rep *dashapi.BugReport, job *Job) *dashapi.BisectResult {
+func bisectFromJob(c context.Context, job *Job) (*dashapi.BisectResult, []string) {
 	bisect := &dashapi.BisectResult{
 		LogLink:         externalLink(c, textLog, job.Log),
 		CrashLogLink:    externalLink(c, textCrashLog, job.CrashLog),
@@ -950,14 +952,15 @@ func bisectFromJob(c context.Context, rep *dashapi.BugReport, job *Job) *dashapi
 			Date:       com.Date,
 		})
 	}
+	var newEmails []string
 	if len(bisect.Commits) == 1 {
 		bisect.Commit = bisect.Commits[0]
 		bisect.Commits = nil
 		com := job.Commits[0]
-		rep.Maintainers = append(rep.Maintainers, com.Author)
-		rep.Maintainers = append(rep.Maintainers, strings.Split(com.CC, "|")...)
+		newEmails = []string{com.Author}
+		newEmails = append(newEmails, strings.Split(com.CC, "|")...)
 	}
-	return bisect
+	return bisect, newEmails
 }
 
 func jobReported(c context.Context, jobID string) error {
