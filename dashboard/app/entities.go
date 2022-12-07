@@ -558,6 +558,32 @@ func bugKeyHash(ns, title string, seq int64) string {
 	return hash.String([]byte(fmt.Sprintf("%v-%v-%v-%v", config.Namespaces[ns].Key, ns, title, seq)))
 }
 
+func loadSimilarBugs(c context.Context, bug *Bug) ([]*Bug, error) {
+	domain := config.Namespaces[bug.Namespace].SimilarityDomain
+	dedup := make(map[string]bool)
+	dedup[bug.keyHash()] = true
+
+	ret := []*Bug{}
+	for _, title := range bug.AltTitles {
+		var similar []*Bug
+		_, err := db.NewQuery("Bug").
+			Filter("AltTitles=", title).
+			GetAll(c, &similar)
+		if err != nil {
+			return nil, err
+		}
+		for _, bug := range similar {
+			if config.Namespaces[bug.Namespace].SimilarityDomain != domain ||
+				dedup[bug.keyHash()] {
+				continue
+			}
+			dedup[bug.keyHash()] = true
+			ret = append(ret, bug)
+		}
+	}
+	return ret, nil
+}
+
 // Since these IDs appear in Reported-by tags in commit, we slightly limit their size.
 const reportingHashLen = 20
 
