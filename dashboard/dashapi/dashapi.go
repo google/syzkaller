@@ -632,6 +632,31 @@ func (dash *Dashboard) LoadBug(id string) (*BugReport, error) {
 	return resp, err
 }
 
+type LoadFullBugReq struct {
+	BugID string
+}
+
+type FullBugInfo struct {
+	SimilarBugs []*SimilarBugInfo
+	BisectCause *BisectResult
+	BisectFix   *BisectResult
+	Crashes     []*BugReport
+}
+
+type SimilarBugInfo struct {
+	Title     string
+	Status    BugStatus
+	Namespace string
+	Link      string
+	Closed    time.Time
+}
+
+func (dash *Dashboard) LoadFullBug(req *LoadFullBugReq) (*FullBugInfo, error) {
+	resp := new(FullBugInfo)
+	err := dash.Query("load_full_bug", req, resp)
+	return resp, err
+}
+
 type (
 	BugStatus       int
 	BugStatusReason string
