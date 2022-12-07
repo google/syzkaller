@@ -58,6 +58,7 @@ var testConfig = &GlobalConfig{
 			AccessLevel:           AccessAdmin,
 			Key:                   "test1keytest1keytest1key",
 			FixBisectionAutoClose: true,
+			SimilarityDomain:      testDomain,
 			Clients: map[string]string{
 				client1: password1,
 				"oauth": auth.OauthMagic + "111111122222222",
@@ -106,8 +107,9 @@ var testConfig = &GlobalConfig{
 			},
 		},
 		"test2": {
-			AccessLevel: AccessAdmin,
-			Key:         "test2keytest2keytest2key",
+			AccessLevel:      AccessAdmin,
+			Key:              "test2keytest2keytest2key",
+			SimilarityDomain: testDomain,
 			Clients: map[string]string{
 				client2: password2,
 			},
@@ -337,6 +339,8 @@ const (
 	restrictedManager     = "restricted-manager"
 	noFixBisectionManager = "no-fix-bisection-manager"
 	specialCCManager      = "special-cc-manager"
+
+	testDomain = "test"
 )
 
 func skipWithRepro(bug *Bug) FilterResult {
