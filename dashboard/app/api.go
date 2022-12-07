@@ -44,6 +44,7 @@ var apiHandlers = map[string]APIHandler{
 	"reporting_update":      apiReportingUpdate,
 	"new_test_job":          apiNewTestJob,
 	"needed_assets":         apiNeededAssetsList,
+	"load_full_bug":         apiLoadFullBug,
 }
 
 var apiNamespaceHandlers = map[string]APINamespaceHandler{
@@ -1081,6 +1082,22 @@ func apiLoadBug(c context.Context, ns string, r *http.Request, payload []byte) (
 		return nil, nil
 	}
 	return loadBugReport(c, bug)
+}
+
+func apiLoadFullBug(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
+	req := new(dashapi.LoadFullBugReq)
+	if err := json.Unmarshal(payload, req); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+	}
+	bug, bugKey, err := findBugByReportingID(c, req.BugID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find the bug: %w", err)
+	}
+	bugReporting, _ := bugReportingByID(bug, req.BugID)
+	if bugReporting == nil {
+		return nil, fmt.Errorf("failed to find the bug reporting: %w", err)
+	}
+	return loadFullBugInfo(c, bug, bugKey, bugReporting)
 }
 
 func loadBugReport(c context.Context, bug *Bug) (*dashapi.BugReport, error) {

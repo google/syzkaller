@@ -1302,6 +1302,128 @@ func (state *ReportingState) getEntry(now time.Time, namespace, name string) *Re
 	return &state.Entries[len(state.Entries)-1]
 }
 
+func loadFullBugInfo(c context.Context, bug *Bug, bugKey *db.Key,
+	bugReporting *BugReporting) (*dashapi.FullBugInfo, error) {
+	reporting := config.Namespaces[bug.Namespace].ReportingByName(bugReporting.Name)
+	if reporting == nil {
+		return nil, fmt.Errorf("failed to find the reporting object")
+	}
+	ret := &dashapi.FullBugInfo{}
+	// Query bisections.
+	if bug.BisectCause > BisectPending {
+		job, _, _, _, err := loadBisectJob(c, bug, JobBisectCause)
+		if err != nil {
+			return nil, err
+		}
+		ret.BisectCause, _ = bisectFromJob(c, job)
+	}
+	if bug.BisectFix > BisectPending {
+		job, _, _, _, err := loadBisectJob(c, bug, JobBisectFix)
+		if err != nil {
+			return nil, err
+		}
+		ret.BisectFix, _ = bisectFromJob(c, job)
+	}
+	// Query similar bugs.
+	similar, err := loadSimilarBugs(c, bug)
+	if err != nil {
+		return nil, err
+	}
+	for _, similarBug := range similar {
+		_, bugReporting, _, _, _ := currentReporting(c, similarBug)
+		if bugReporting == nil {
+			continue
+		}
+		status, err := similarBug.dashapiStatus()
+		if err != nil {
+			return nil, err
+		}
+		ret.SimilarBugs = append(ret.SimilarBugs, &dashapi.SimilarBugInfo{
+			Title:     similarBug.displayTitle(),
+			Status:    status,
+			Namespace: similarBug.Namespace,
+			Link:      fmt.Sprintf("%v/bug?extid=%v", appURL(c), bugReporting.ID),
+			Closed:    similarBug.Closed,
+		})
+	}
+	// Query crashes.
+	crashes, err := representativeCrashes(c, bugKey)
+	if err != nil {
+		return nil, err
+	}
+	for _, crash := range crashes {
+		rep, err := crashBugReport(c, bug, crash.crash, crash.key, bugReporting, reporting)
+		if err != nil {
+			return nil, fmt.Errorf("crash %d: %e", crash.key.IntID(), err)
+		}
+		ret.Crashes = append(ret.Crashes, rep)
+	}
+	return ret, nil
+}
+
+type crashWithKey struct {
+	crash *Crash
+	key   *db.Key
+}
+
+func representativeCrashes(c context.Context, bugKey *db.Key) ([]*crashWithKey, error) {
+	// There should generally be no need to query lots of crashes.
+	const fetchCrashes = 50
+	allCrashes, allCrashKeys, err := queryCrashesForBug(c, bugKey, fetchCrashes)
+	if err != nil {
+		return nil, err
+	}
+	// Let's consider a crash fresh if it happened within the last week.
+	const recentDuration = time.Hour * 24 * 7
+	now := timeNow(c)
+
+	var bestCrash, recentCrash, straceCrash *crashWithKey
+	for id, crash := range allCrashes {
+		key := allCrashKeys[id]
+		if bestCrash == nil {
+			bestCrash = &crashWithKey{crash, key}
+		}
+		if now.Sub(crash.Time) < recentDuration && recentCrash == nil {
+			recentCrash = &crashWithKey{crash, key}
+		}
+		if dashapi.CrashFlags(crash.Flags)&dashapi.CrashUnderStrace > 0 &&
+			straceCrash == nil {
+			straceCrash = &crashWithKey{crash, key}
+		}
+	}
+	// It's possible that there are so many crashes with reproducers that
+	// we do not get to see the recent crashes without them.
+	// Give it one more try.
+	if recentCrash == nil {
+		var crashes []*Crash
+		keys, err := db.NewQuery("Crash").
+			Ancestor(bugKey).
+			Order("-Time").
+			Limit(1).
+			GetAll(c, &crashes)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch the latest crash: %v", err)
+		}
+		if len(crashes) > 0 {
+			recentCrash = &crashWithKey{crashes[0], keys[0]}
+		}
+	}
+	dedup := map[int64]bool{}
+	crashes := []*crashWithKey{}
+	for _, item := range []*crashWithKey{recentCrash, bestCrash, straceCrash} {
+		if item == nil || dedup[item.key.IntID()] {
+			continue
+		}
+		crashes = append(crashes, item)
+		dedup[item.key.IntID()] = true
+	}
+	// Sort by Time in desc order.
+	sort.Slice(crashes, func(i, j int) bool {
+		return crashes[i].crash.Time.After(crashes[j].crash.Time)
+	})
+	return crashes, nil
+}
+
 // bugReportSorter sorts bugs by priority we want to report them.
 // E.g. we want to report bugs with reproducers before bugs without reproducers.
 type bugReportSorter []*Bug

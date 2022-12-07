@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -910,5 +911,74 @@ func TestUpdateBugReporting(t *testing.T) {
 		if !test.Error && !reflect.DeepEqual(bug.Reporting, test.After) {
 			t.Errorf("Before: %#v, Expected After: %#v, Got After: %#v", test.Before, test.After, bug.Reporting)
 		}
+	}
+}
+
+func TestFullBugInfo(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client.UploadBuild(build)
+
+	const crashTitle = "WARNING: abcd"
+
+	// Oldest crash: with strace.
+	crashStrace := testCrashWithRepro(build, 1)
+	crashStrace.Title = crashTitle
+	crashStrace.Flags = dashapi.CrashUnderStrace
+	crashStrace.Report = []byte("with strace")
+	c.client.ReportCrash(crashStrace)
+	rep := c.client.pollBug()
+
+	// Newer: just with repro.
+	c.advanceTime(24 * 7 * time.Hour)
+	crashRepro := testCrashWithRepro(build, 1)
+	crashRepro.Title = crashTitle
+	crashRepro.Report = []byte("with repro")
+	c.client.ReportCrash(crashRepro)
+
+	// Ensure we have some bisect jobs done.
+	c.client.pollAndFailBisectJob(build.Manager)
+
+	// Yet newer: no repro.
+	c.advanceTime(24 * 7 * time.Hour)
+	crashNew := testCrash(build, 1)
+	crashNew.Title = crashTitle
+	c.client.ReportCrash(crashNew)
+
+	// And yet newer.
+	c.advanceTime(24 * time.Hour)
+	crashNew2 := testCrash(build, 1)
+	crashNew2.Title = crashTitle
+	crashNew2.Report = []byte("newest")
+	c.client.ReportCrash(crashNew2)
+
+	// Also create a bug in another namespace.
+	otherBuild := testBuild(2)
+	c.client2.UploadBuild(otherBuild)
+
+	otherCrash := testCrash(otherBuild, 1)
+	otherCrash.Title = crashTitle
+	c.client2.ReportCrash(otherCrash)
+	otherPollMsg := c.client2.pollEmailBug()
+	_, otherExtBugID, _ := email.RemoveAddrContext(otherPollMsg.Sender)
+
+	// Query the full bug info.
+	info, err := c.client.LoadFullBug(&dashapi.LoadFullBugReq{BugID: rep.ID})
+	c.expectOK(err)
+	c.expectNE(info.BisectCause, nil)
+	c.expectEQ(info.SimilarBugs, []*dashapi.SimilarBugInfo{{
+		Title:     crashTitle,
+		Namespace: "test2",
+		Status:    dashapi.BugStatusOpen,
+		Link:      "https://testapp.appspot.com/bug?extid=" + otherExtBugID,
+	}})
+
+	// There must be 3 crashes.
+	reportsOrder := [][]byte{[]byte("newest"), []byte("with repro"), []byte("with strace")}
+	c.expectEQ(len(info.Crashes), len(reportsOrder))
+	for i, report := range reportsOrder {
+		c.expectEQ(info.Crashes[i].Report, report)
 	}
 }
