@@ -6,11 +6,10 @@ package ifuzz
 import (
 	"encoding/hex"
 	"math/rand"
-	"os"
 	"testing"
-	"time"
 
 	"github.com/google/syzkaller/pkg/ifuzz/iset"
+	"github.com/google/syzkaller/pkg/testutil"
 )
 
 var allArches = []string{ArchX86, ArchPowerPC}
@@ -53,12 +52,7 @@ func testDecode(t *testing.T, arch string) {
 	if _, err := insnset.DecodeExt(0, nil); err == nil {
 		xedEnabled = true
 	}
-	seed := time.Now().UnixNano()
-	if os.Getenv("CI") != "" {
-		seed = 0 // required for deterministic coverage reports
-	}
-	t.Logf("seed=%v", seed)
-	r := rand.New(rand.NewSource(seed))
+	r := rand.New(testutil.RandSource(t))
 
 	for repeat := 0; repeat < 10; repeat++ {
 		for mode := iset.Mode(0); mode < iset.ModeLast; mode++ {

@@ -11,4 +11,4 @@ zx_fifo_create(elem_count int64, elem_size int64, options int32, out0 ptr[out, z
 
 zx_fifo_read(handle zx_fifo, elem_size int64, data ptr[out, array[int8]], count len[data], actual_count ptr[out, int64])
 
-zx_fifo_write(handle zx_fifo, elem_size int64, data ptr[out, array[int8]], count len[data], actual_count ptr[out, int64])
+zx_fifo_write(handle zx_fifo, elem_size int64, data ptr[in, array[int8]], count len[data], actual_count ptr[out, int64])

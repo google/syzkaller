@@ -17,7 +17,7 @@ import (
 
 const (
 	// "Recommended" number of calls in programs that we try to aim at during fuzzing.
-	RecommendedCalls = 20
+	RecommendedCalls = 30
 	// "Recommended" max number of calls in programs.
 	// If we receive longer programs from hub/corpus we discard them.
 	MaxCalls = 40
@@ -768,6 +768,8 @@ func (a *BufferType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*
 			return MakeOutDataArg(a, dir, uint64(r.Intn(100))), nil
 		}
 		return MakeDataArg(a, dir, r.generateText(a.Text)), nil
+	case BufferCompressed:
+		panic(fmt.Sprintf("can't generate compressed type %v", a))
 	default:
 		panic("unknown buffer kind")
 	}

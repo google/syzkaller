@@ -8,13 +8,12 @@
 // syz-imagegen generates sys/linux/test/syz_mount_image_* test files.
 // It requires the following packages to be installed:
 //
-//	f2fs-tools, xfsprogs, reiserfsprogs, gfs2-utils, ocfs2-tools, genromfs, erofs-utils, makefs, udftools,
-//	mtd-utils, nilfs-tools, squashfs-tools, genisoimage, jfsutils, exfat-utils, ntfs-3g.
+//	f2fs-tools xfsprogs reiserfsprogs gfs2-utils ocfs2-tools genromfs erofs-utils makefs udftools
+//	mtd-utils nilfs-tools squashfs-tools genisoimage jfsutils exfat-utils ntfs-3g hfsprogs.
 package main
 
 import (
 	"bytes"
-	"encoding/hex"
 	"errors"
 	"flag"
 	"fmt"
@@ -81,6 +80,23 @@ var fileSystems = []FileSystem{
 	},
 	{
 		Name:      "vfat",
+		MinSize:   64 << 10,
+		MkfsFlags: []string{"-n", "SYZKALLER"},
+		MkfsFlagCombinations: [][]string{
+			{"", "-a -I"},
+			{"", "-h 3 -f 4"},
+			{"-s 1", "-s 8", "-s 64"},
+			{
+				"-F 12 -r 64 -S 512",
+				"-F 12 -r 64 -S 2048 -A",
+				"-F 16 -r 112 -S 512",
+				"-F 32 -r 768 -S 512",
+				"-F 32 -r 768 -S 2048 -A",
+			},
+		},
+	},
+	{
+		Name:      "msdos",
 		MinSize:   64 << 10,
 		MkfsFlags: []string{"-n", "SYZKALLER"},
 		MkfsFlagCombinations: [][]string{
@@ -462,6 +478,69 @@ var fileSystems = []FileSystem{
 			return err
 		},
 	},
+	{
+		Name:    "hfs",
+		MinSize: 16 << 10,
+		MkfsFlagCombinations: [][]string{
+			{"", "-P"},
+			{"", "-c a=1024,b=512,c=128,d=256"},
+		},
+	},
+	{
+		Name:    "hfsplus",
+		MinSize: 512 << 10,
+		MkfsFlagCombinations: [][]string{
+			{"", "-P"},
+			{"", "-s"},
+			{"-b 512", "-b 1024", "-b 2048"},
+		},
+	},
+	{
+		Name:     parttable,
+		MinSize:  1 << 20,
+		ReadOnly: true,
+		MkfsFlagCombinations: [][]string{{
+			// You can test/explore these commands with:
+			// $ rm -f disk && touch disk && fallocate -l 16M disk && fdisk disk
+			"g n 1 34 47 n 2 48 96 n 3 97 2013 t 1 uefi t 2 linux t 3 swap w",
+			"g n 1 100 200 n 2 50 80 n 3 1000 1900 M a c r x n 1 syzkaller A 1 r w",
+			"g n 3 200 300 n 7 400 500 n 2 600 700 x l 700 r w",
+			"G n 1 16065 16265 w",
+			"G n 16 20000 30000 i w",
+			"o n p 1 2048 4096 n p 3 4097 4100 n e 2 4110 4200 a 1 t 2 a5 t 3 uefi b y x 1 e r w",
+			"o n p 1 2048 3071 n e 3 3072 32767 n 6200 7999 n 10240 20000 w",
+			"s c 1 a 2 w",
+		}},
+		Mkfs: func(image *Image) error {
+			cmd := exec.Command("fdisk", "--noauto-pt", "--color=always", image.disk)
+			cmd.Stdin = strings.NewReader(strings.Join(image.flags, "\n"))
+			output, err := osutil.Run(10*time.Minute, cmd)
+			if err != nil {
+				return err
+			}
+			// It's hard to understand if any of the commands fail,
+			// fdisk does not exit with an error and print assorted error messages.
+			// So instead we run it with --color=always and grep for red color marker
+			// in the output (ESC[31m).
+			if bytes.Contains(output, []byte{0x1b, 0x5b, 0x33, 0x31, 0x6d}) {
+				return errors.New(string(output))
+			}
+			return err
+		},
+	},
+}
+
+const (
+	syzMountImage    = "syz_mount_image"
+	syzReadPartTable = "syz_read_part_table"
+	parttable        = "parttable"
+)
+
+func (fs FileSystem) filePrefix() string {
+	if fs.Name == parttable {
+		return syzReadPartTable
+	}
+	return syzMountImage + "_" + fs.Name
 }
 
 // Image represents one image we generate for a file system.
@@ -482,8 +561,7 @@ func (image *Image) String() string {
 	if image.size >= 1<<20 {
 		size = fmt.Sprintf("%vMB", image.size>>20)
 	}
-	result := fmt.Sprintf("#%02v: mkfs.%v[%5v] %v", image.index, image.fs.Name, size, image.flags)
-	return result
+	return fmt.Sprintf("#%02v: mkfs.%v[%5v] %v", image.index, image.fs.Name, size, image.flags)
 }
 
 var errShutdown = errors.New("shutdown")
@@ -495,7 +573,7 @@ func main() {
 		flagDebug     = flag.Bool("debug", false, "print lots of debugging output")
 		flagPopulate  = flag.String("populate", "", "populate the specified image with files (for internal use)")
 		flagKeepImage = flag.Bool("keep", false, "save disk images as .img files")
-		flagFS        = flag.String("fs", "", "generate images only for this single filesystem")
+		flagFS        = flag.String("fs", "", "comma-separated list of filesystems to generate, all if empty")
 	)
 	flag.Parse()
 	if *flagDebug {
@@ -511,6 +589,7 @@ func main() {
 	if err != nil {
 		tool.Fail(err)
 	}
+	addEmptyImages(target)
 	images, err := generateImages(target, *flagFS, *flagList)
 	if err != nil {
 		tool.Fail(err)
@@ -551,6 +630,31 @@ func main() {
 		}()
 	}
 	printResults(images, shutdown, *flagKeepImage, *flagVerbose)
+}
+
+func addEmptyImages(target *prog.Target) {
+	// Since syz_mount_image calls are no_generate we need to add at least some
+	// empty seeds for all the filesystems.
+	have := make(map[string]bool)
+	for _, fs := range fileSystems {
+		have[fs.Name] = true
+	}
+	for _, call := range target.Syscalls {
+		if call.CallName != syzMountImage {
+			continue
+		}
+		name := strings.TrimPrefix(call.Name, syzMountImage+"$")
+		if have[name] {
+			continue
+		}
+		fileSystems = append(fileSystems, FileSystem{
+			Name:      name,
+			MinSize:   1 << 20,
+			ReadOnly:  true,
+			MkfsFlags: []string{"fake empty image"},
+			Mkfs:      func(image *Image) error { return nil },
+		})
+	}
 }
 
 func printResults(images []*Image, shutdown chan struct{}, keepImage, verbose bool) {
@@ -603,7 +707,7 @@ func printResults(images []*Image, shutdown chan struct{}, keepImage, verbose bo
 func generateImages(target *prog.Target, flagFS string, list bool) ([]*Image, error) {
 	var images []*Image
 	for _, fs := range fileSystems {
-		if flagFS != "" && flagFS != fs.Name {
+		if flagFS != "" && !strings.Contains(","+flagFS+",", ","+fs.Name+",") {
 			continue
 		}
 		index := 0
@@ -612,7 +716,7 @@ func generateImages(target *prog.Target, flagFS string, list bool) ([]*Image, er
 			fmt.Printf("%v [%v images]\n", fs.Name, index)
 			continue
 		}
-		files, err := filepath.Glob(filepath.Join("sys", targets.Linux, "test", "syz_mount_image_"+fs.Name+"_*"))
+		files, err := filepath.Glob(filepath.Join("sys", targets.Linux, "test", fs.filePrefix()+"_*"))
 		if err != nil {
 			return nil, fmt.Errorf("error reading output dir: %v", err)
 		}
@@ -660,7 +764,7 @@ func (image *Image) generate() error {
 
 func (image *Image) generateSize() error {
 	outFile := filepath.Join("sys", targets.Linux, "test",
-		fmt.Sprintf("syz_mount_image_%v_%v", image.fs.Name, image.index))
+		fmt.Sprintf("%v_%v", image.fs.filePrefix(), image.index))
 	image.disk = outFile + ".img"
 	f, err := os.Create(image.disk)
 	if err != nil {
@@ -692,10 +796,11 @@ func (image *Image) generateSize() error {
 	}
 	image.hash = crc32.ChecksumIEEE(data)
 
-	segments := calculateSegments(data)
-
 	// Write out image *with* change of directory.
-	out := writeImage(image, len(data), segments, true)
+	out, err := writeImage(image, data)
+	if err != nil {
+		return fmt.Errorf("failed to write image: %v", err)
+	}
 
 	p, err := image.target.Deserialize(out, prog.Strict)
 	if err != nil {
@@ -767,85 +872,21 @@ func runCmd(cmd string, args ...string) ([]byte, error) {
 	return osutil.RunCmd(10*time.Minute, "", cmd, args...)
 }
 
-func writeImage(image *Image, length int, segments []Segment, chdir bool) []byte {
+func writeImage(image *Image, data []byte) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	fmt.Fprintf(buf, "# Code generated by tools/syz-imagegen. DO NOT EDIT.\n")
 	fmt.Fprintf(buf, "# requires: manual\n\n")
 	fmt.Fprintf(buf, "# %v\n\n", image)
-	fmt.Fprintf(buf, `syz_mount_image$%v(&(0x7f0000000000)='%v\x00', &(0x7f0000000100)='./file0\x00',`+
-		` 0x%x, 0x%x, &(0x7f0000000200)=[`,
-		image.fs.Name, image.fs.Name, length, len(segments))
-	addr := 0x7f0000010000
-	for i, seg := range segments {
-		if i != 0 {
-			fmt.Fprintf(buf, ", ")
-		}
-		fmt.Fprintf(buf, `{&(0x%x)="%v", 0x%x, 0x%x}`,
-			addr, hex.EncodeToString(seg.data), len(seg.data), seg.offset)
-		addr += len(seg.data)
+	compressedData := prog.Compress(data)
+	b64Data := prog.EncodeB64(compressedData)
+	if image.fs.Name == parttable {
+		fmt.Fprintf(buf, `%s(AUTO, &AUTO="$`, syzReadPartTable)
+	} else {
+		fmt.Fprintf(buf, `%s$%v(&AUTO='%v\x00', &AUTO='./file0\x00', 0x0, &AUTO, 0x1, AUTO, &AUTO="$`,
+			syzMountImage, image.fs.Name, image.fs.Name)
 	}
-	chdirAsInt := 0
-	if chdir {
-		chdirAsInt = 1
-	}
-	fmt.Fprintf(buf, "], 0x0, &(0x%x), 0x%x)\n", addr, chdirAsInt)
-	return buf.Bytes()
-}
+	buf.Write(b64Data)
+	fmt.Fprintf(buf, "\")\n")
 
-type Segment struct {
-	offset int
-	data   []byte
+	return buf.Bytes(), nil
 }
-
-func calculateSegments(data []byte) []Segment {
-	const (
-		skip  = 32 // min zero bytes to skip
-		align = 32 // non-zero block alignment
-	)
-	data0 := data
-	zeros := make([]byte, skip+align)
-	var segs []Segment
-	offset := 0
-	for len(data) != 0 {
-		pos := bytes.Index(data, zeros)
-		if pos == -1 {
-			segs = append(segs, Segment{offset, data})
-			break
-		}
-		pos = (pos + align - 1) & ^(align - 1)
-		if pos != 0 {
-			segs = append(segs, Segment{offset, data[:pos]})
-		}
-		for pos < len(data) && data[pos] == 0 {
-			pos++
-		}
-		pos = pos & ^(align - 1)
-		offset += pos
-		data = data[pos:]
-	}
-	if false {
-		// self-test.
-		restored := make([]byte, len(data0))
-		for _, seg := range segs {
-			copy(restored[seg.offset:], seg.data)
-		}
-		if !bytes.Equal(data0, restored) {
-			panic("restored data differs!")
-		}
-	}
-	return segs
-}
-
-// TODO: also generate syz_read_part_table tests:
-//	fmt.Printf(`syz_read_part_table(0x%x, 0x%x, &(0x7f0000000200)=[`,
-//		len(data0), len(segs))
-//	addr := 0x7f0000010000
-//	for i, seg := range segs {
-//		if i != 0 {
-//			fmt.Printf(", ")
-//		}
-//		fmt.Printf(`{&(0x%x)="%v", 0x%x, 0x%x}`,
-//			addr, hex.EncodeToString(seg.data), len(seg.data), seg.offset)
-//		addr = (addr + len(seg.data) + 0xff) & ^0xff
-//	}
-//	fmt.Printf("])\n")

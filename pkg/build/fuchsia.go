@@ -43,7 +43,7 @@ func (fu fuchsia) build(params Params) (ImageDetails, error) {
 		"scripts/fx", "--dir", "out/"+arch,
 		"set", product,
 		"--args", fmt.Sprintf(`syzkaller_dir="%s"`, syzDir),
-		"--with-base", "//bundles:tools",
+		"--with-base", "//bundles/tools",
 		"--with-base", "//src/testing/fuzzing/syzkaller",
 		"--variant", "kasan",
 		"--no-goma",

@@ -370,6 +370,12 @@ func (ctx *linux) Symbolize(rep *Report) error {
 
 	rep.Report = ctx.decompileOpcodes(rep.Report, rep)
 
+	// Skip getting maintainers for Android fuzzing since the kernel source
+	// directory structure is different.
+	if ctx.config.vmType == "cuttlefish" || ctx.config.vmType == "proxyapp" {
+		return nil
+	}
+
 	// We still do this even if we did not symbolize,
 	// because tests pass in already symbolized input.
 	rep.guiltyFile = ctx.extractGuiltyFile(rep)
@@ -1021,7 +1027,10 @@ var linuxStackParams = &stackParams{
 	},
 	frameRes: []*regexp.Regexp{
 		compile("^ *(?:{{PC}} ){0,2}{{FUNC}}"),
-		compile(`^ *{{PC}} \([a-zA-Z0-9_]+\) from {{PC}} \({{FUNC}}`), // arm is totally different
+		// Arm is totally different.
+		// Extract both current and next frames. This is needed for the top
+		// frame which is present only in LR register which we don't parse.
+		compile(`^ *{{PC}} \(([a-zA-Z0-9_.]+)\) from {{PC}} \({{FUNC}}`),
 	},
 	skipPatterns: []string{
 		"__sanitizer",
@@ -1031,6 +1040,8 @@ var linuxStackParams = &stackParams{
 		"kmsan",
 		"kcsan_setup_watchpoint",
 		"check_memory_region",
+		"check_heap_object",
+		"check_object",
 		"read_word_at_a_time",
 		"(read|write)_once_.*nocheck",
 		"print_address_description",
@@ -1039,6 +1050,7 @@ var linuxStackParams = &stackParams{
 		"report_bug",
 		"fixup_bug",
 		"print_report",
+		"print_usage_bug",
 		"do_error",
 		"invalid_op",
 		"_trap",
@@ -1052,10 +1064,12 @@ var linuxStackParams = &stackParams{
 		"__warn",
 		"alloc_page",
 		"kmalloc",
+		"kvmalloc",
 		"kcalloc",
 		"kzalloc",
 		"krealloc",
 		"kmem_cache",
+		"allocate_slab",
 		"slab_",
 		"debug_object",
 		"timer_is_static_object",
@@ -1071,7 +1085,8 @@ var linuxStackParams = &stackParams{
 		"lock_release",
 		"lock_class",
 		"mark_lock",
-		"reacquire_held_locks",
+		"(reacquire|mark)_held_locks",
+		"raw_spin_rq",
 		"spin_lock",
 		"spin_trylock",
 		"spin_unlock",
@@ -1089,10 +1104,10 @@ var linuxStackParams = &stackParams{
 		"down_trylock",
 		"up_read",
 		"up_write",
-		"mutex_lock",
-		"mutex_trylock",
-		"mutex_unlock",
-		"mutex_remove_waiter",
+		"^mutex_",
+		"^__mutex_",
+		"^rt_mutex_",
+		"owner_on_cpu",
 		"osq_lock",
 		"osq_unlock",
 		"atomic(64)?_(dec|inc|read|set|or|xor|and|add|sub|fetch|xchg|cmpxchg|try)",
@@ -1159,6 +1174,7 @@ var linuxStackParams = &stackParams{
 		"flush_workqueue",
 		"drain_workqueue",
 		"destroy_workqueue",
+		"queue_work",
 		"finish_wait",
 		"kthread_stop",
 		"kobject_",
@@ -1208,6 +1224,7 @@ var linuxStackParams = &stackParams{
 		"hex_dump_to_buffer",
 		"print_hex_dump",
 		"^klist_",
+		"(trace|lockdep)_(hard|soft)irq",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
@@ -1708,7 +1725,13 @@ var linuxOopses = append([]*oops{
 			{
 				title:  compile("WARNING: inconsistent lock state"),
 				report: compile("WARNING: inconsistent lock state(?:.*\\n)+?.*takes(?:.*\\n)+?.*at: (?:{{PC}} +)?{{FUNC}}"),
-				fmt:    "inconsistent lock state in %[1]v",
+				fmt:    "inconsistent lock state in %[2]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						linuxCallTrace,
+						parseStackTrace,
+					},
+				},
 			},
 			{
 				title:  compile("WARNING: suspicious RCU usage"),

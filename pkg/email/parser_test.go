@@ -120,7 +120,8 @@ func TestCanonicalEmail(t *testing.T) {
 func TestParse(t *testing.T) {
 	for i, test := range parseTests {
 		body := func(t *testing.T, test ParseTest) {
-			email, err := Parse(strings.NewReader(test.email), []string{"bot <foo@bar.com>"})
+			email, err := Parse(strings.NewReader(test.email),
+				[]string{"bot <foo@bar.com>"}, []string{"list@googlegroups.com"})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -357,7 +358,7 @@ For more options, visit https://groups.google.com/d/optout.`,
 			MessageID: "<123>",
 			Link:      "https://groups.google.com/d/msgid/syzkaller/abcdef@google.com",
 			Subject:   "test subject",
-			From:      "\"Bob\" <bob@example.com>",
+			Author:    "bob@example.com",
 			Cc:        []string{"bob@example.com"},
 			Body: `text body
 second line
@@ -388,7 +389,7 @@ last line`,
 			BugID:     "4564456",
 			MessageID: "<123>",
 			Subject:   "test subject",
-			From:      "\"syzbot\" <foo+4564456@bar.com>",
+			Author:    "foo@bar.com",
 			Cc:        []string{"bob@example.com"},
 			Body: `text body
 last line`,
@@ -409,7 +410,7 @@ last line`,
 		Email{
 			MessageID: "<123>",
 			Subject:   "test subject",
-			From:      "\"Bob\" <bob@example.com>",
+			Author:    "bob@example.com",
 			Cc:        []string{"alice@example.com", "bob@example.com", "bot@example.com"},
 			Body: `#syz  invalid   	 
 text body
@@ -435,7 +436,7 @@ last line
 		Email{
 			MessageID: "<123>",
 			Subject:   "test subject",
-			From:      "\"Bob\" <bob@example.com>",
+			Author:    "bob@example.com",
 			Cc:        []string{"alice@example.com", "bob@example.com", "bot@example.com"},
 			Body: `text body
 second line
@@ -475,7 +476,7 @@ IHQpKSB7CiAJCXNwaW5fdW5sb2NrKCZrY292LT5sb2NrKTsKIAkJcmV0dXJuOwo=
 		Email{
 			MessageID: "<123>",
 			Subject:   "test subject",
-			From:      "\"Bob\" <bob@example.com>",
+			Author:    "bob@example.com",
 			Cc:        []string{"bob@example.com", "bot@example.com"},
 			Body: `body text
 >#syz test
@@ -563,7 +564,7 @@ or)</div></div></div>
 		Email{
 			MessageID: "<123>",
 			Subject:   "test subject",
-			From:      "\"Bob\" <bob@example.com>",
+			Author:    "bob@example.com",
 			Cc:        []string{"bob@example.com", "bot@example.com"},
 			Body: `On Mon, May 8, 2017 at 6:47 PM, Bob wrote:
 > body text
@@ -640,7 +641,7 @@ d
 `, Email{
 		MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
 		Subject:   "Re: BUG: unable to handle kernel NULL pointer dereference in sock_poll",
-		From:      "\"bar\" <bar@foo.com>",
+		Author:    "bar@foo.com",
 		Cc:        []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
 		Body: `On 2018/06/10 4:57, syzbot wrote:
 > Hello,
@@ -666,8 +667,8 @@ From: bar@foo.com
 #syz dup:
 BUG: unable to handle kernel NULL pointer dereference in corrupted
 `, Email{
-		From: "<bar@foo.com>",
-		Cc:   []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
+		Author: "bar@foo.com",
+		Cc:     []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
 		Body: `#syz dup:
 BUG: unable to handle kernel NULL pointer dereference in corrupted
 `,
@@ -683,8 +684,8 @@ From: bar@foo.com
 #syz fix:
 When freeing a lockf struct that already is part of a linked list, make sure to
 `, Email{
-		From: "<bar@foo.com>",
-		Cc:   []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
+		Author: "bar@foo.com",
+		Cc:     []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
 		Body: `#syz fix:
 When freeing a lockf struct that already is part of a linked list, make sure to
 `,
@@ -692,7 +693,6 @@ When freeing a lockf struct that already is part of a linked list, make sure to
 		CommandStr:  "fix:",
 		CommandArgs: "When freeing a lockf struct that already is part of a linked list, make sure to",
 	}},
-
 	{`Date: Sun, 7 May 2017 19:54:00 -0700
 Message-ID: <123>
 Subject: #syz test: git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git master
@@ -704,11 +704,89 @@ nothing to see here`,
 			BugID:       "4564456",
 			MessageID:   "<123>",
 			Subject:     "#syz test: git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git master",
-			From:        "<bob@example.com>",
+			Author:      "bob@example.com",
 			Cc:          []string{"bob@example.com"},
 			Body:        `nothing to see here`,
 			Command:     CmdTest,
 			CommandStr:  "test:",
 			CommandArgs: "git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git master",
 		}},
+	{`Date: Sun, 7 May 2017 19:54:00 -0700
+Message-ID: <123>
+Sender: list@googlegroups.com
+Subject: Subject
+From: user@mail.com
+To: syzbot <list@googlegroups.com>
+
+nothing to see here`,
+		Email{
+			MessageID:   "<123>",
+			Subject:     "Subject",
+			Author:      "user@mail.com",
+			MailingList: "list@googlegroups.com",
+			Cc:          []string{"list@googlegroups.com", "user@mail.com"},
+			Body:        `nothing to see here`,
+			Command:     CmdNone,
+		}},
+	{`Date: Sun, 7 May 2017 19:54:00 -0700
+Message-ID: <123>
+From: list@googlegroups.com
+X-Original-From: user@mail.com
+Subject: Subject
+To: <user2@mail.com>
+
+nothing to see here`,
+		Email{
+			MessageID:   "<123>",
+			Subject:     "Subject",
+			Author:      "user@mail.com",
+			MailingList: "list@googlegroups.com",
+			Cc:          []string{"list@googlegroups.com", "user2@mail.com", "user@mail.com"},
+			Body:        `nothing to see here`,
+			Command:     CmdNone,
+		}},
+	// A faulty case, just check we handle it normally.
+	{`Date: Sun, 7 May 2017 19:54:00 -0700
+Message-ID: <123>
+From: list@googlegroups.com
+Subject: Subject
+To: <user2@mail.com>
+
+nothing to see here`,
+		Email{
+			MessageID:   "<123>",
+			Subject:     "Subject",
+			Author:      "list@googlegroups.com",
+			MailingList: "list@googlegroups.com",
+			Cc:          []string{"list@googlegroups.com", "user2@mail.com"},
+			Body:        `nothing to see here`,
+			Command:     CmdNone,
+		}},
+	{`Sender: syzkaller-bugs@googlegroups.com
+Subject: Re: BUG: unable to handle kernel NULL pointer dereference in
+ sock_poll
+To: syzbot <syzbot+344bb0f46d7719cd9483@syzkaller.appspotmail.com>
+From: bar <bar@foo.com>
+Message-ID: <1250334f-7220-2bff-5d87-b87573758d81@bar.com>
+Date: Sun, 10 Jun 2018 10:38:20 +0900
+MIME-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Language: en-US
+Content-Transfer-Encoding: quoted-printable
+
+#syz=20
+test: https://github.com/torvalds/linux.git 7b5bb460defa107dd2e82=
+f950fddb9ea6bdb5e39
+`, Email{
+		MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
+		Subject:   "Re: BUG: unable to handle kernel NULL pointer dereference in sock_poll",
+		Author:    "bar@foo.com",
+		Cc:        []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
+		Body: `#syz 
+test: https://github.com/torvalds/linux.git 7b5bb460defa107dd2e82f950fddb9ea6bdb5e39
+`,
+		Command:     CmdTest,
+		CommandStr:  "test:",
+		CommandArgs: "https://github.com/torvalds/linux.git 7b5bb460defa107dd2e82f950fddb9ea6bdb5e39",
+	}},
 }

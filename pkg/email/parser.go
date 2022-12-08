@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"unicode"
 )
 
 type Email struct {
@@ -22,7 +23,8 @@ type Email struct {
 	MessageID   string
 	Link        string
 	Subject     string
-	From        string
+	MailingList string
+	Author      string
 	Cc          []string
 	Body        string  // text/plain part
 	Patch       string  // attached patch, if any
@@ -51,7 +53,18 @@ const (
 var groupsLinkRe = regexp.MustCompile("\nTo view this discussion on the web visit" +
 	" (https://groups\\.google\\.com/.*?)\\.(?:\r)?\n")
 
-func Parse(r io.Reader, ownEmails []string) (*Email, error) {
+func prepareEmails(list []string) map[string]bool {
+	ret := make(map[string]bool)
+	for _, email := range list {
+		ret[email] = true
+		if addr, err := mail.ParseAddress(email); err == nil {
+			ret[addr.Address] = true
+		}
+	}
+	return ret
+}
+
+func Parse(r io.Reader, ownEmails []string, goodLists []string) (*Email, error) {
 	msg, err := mail.ReadMessage(r)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read email: %v", err)
@@ -69,13 +82,7 @@ func Parse(r io.Reader, ownEmails []string) (*Email, error) {
 	cc, _ := msg.Header.AddressList("Cc")
 	bugID := ""
 	var ccList []string
-	ownAddrs := make(map[string]bool)
-	for _, email := range ownEmails {
-		ownAddrs[email] = true
-		if addr, err := mail.ParseAddress(email); err == nil {
-			ownAddrs[addr.Address] = true
-		}
-	}
+	ownAddrs := prepareEmails(ownEmails)
 	fromMe := false
 	for _, addr := range from {
 		cleaned, _, _ := RemoveAddrContext(addr.Address)
@@ -83,7 +90,16 @@ func Parse(r io.Reader, ownEmails []string) (*Email, error) {
 			fromMe = true
 		}
 	}
-	for _, addr := range append(append(cc, to...), from...) {
+
+	originalFrom := ""
+	// Ignore error since the header might not be present.
+	originalFroms, _ := msg.Header.AddressList("X-Original-From")
+	if len(originalFroms) > 0 {
+		originalFrom = originalFroms[0].String()
+	}
+
+	rawCcList := append(append(append(cc, to...), from...), originalFroms...)
+	for _, addr := range rawCcList {
 		cleaned, context, _ := RemoveAddrContext(addr.Address)
 		if addr, err := mail.ParseAddress(cleaned); err == nil {
 			cleaned = addr.Address
@@ -93,10 +109,18 @@ func Parse(r io.Reader, ownEmails []string) (*Email, error) {
 				bugID = context
 			}
 		} else {
-			ccList = append(ccList, cleaned)
+			ccList = append(ccList, CanonicalEmail(cleaned))
 		}
 	}
 	ccList = MergeEmailLists(ccList)
+
+	sender := ""
+	// Ignore error since the header might not be present.
+	senders, _ := msg.Header.AddressList("Sender")
+	if len(senders) > 0 {
+		sender = senders[0].Address
+	}
+
 	body, attachments, err := parseBody(msg.Body, msg.Header)
 	if err != nil {
 		return nil, err
@@ -107,13 +131,13 @@ func Parse(r io.Reader, ownEmails []string) (*Email, error) {
 	patch, cmdStr, cmdArgs := "", "", ""
 	if !fromMe {
 		for _, a := range attachments {
-			_, patch, _ = ParsePatch(string(a))
+			patch = ParsePatch(a)
 			if patch != "" {
 				break
 			}
 		}
 		if patch == "" {
-			_, patch, _ = ParsePatch(bodyStr)
+			patch = ParsePatch(body)
 		}
 		cmd, cmdStr, cmdArgs = extractCommand(subject + "\n" + bodyStr)
 	}
@@ -121,12 +145,30 @@ func Parse(r io.Reader, ownEmails []string) (*Email, error) {
 	if match := groupsLinkRe.FindStringSubmatchIndex(bodyStr); match != nil {
 		link = bodyStr[match[2]:match[3]]
 	}
+
+	author := CanonicalEmail(from[0].Address)
+	mailingList := ""
+
+	goodListsMap := prepareEmails(goodLists)
+	if goodListsMap[author] {
+		// In some cases, the mailing list would change From and introduce X-Original-From.
+		mailingList = author
+		if originalFrom != "" {
+			author = CanonicalEmail(originalFrom)
+		}
+		// Not sure if `else` can happen here, but let it be mailingList == author in this case.
+	} else if goodListsMap[CanonicalEmail(sender)] {
+		// In other cases, the mailing list would preserve From and just change Sender.
+		mailingList = CanonicalEmail(sender)
+	}
+
 	email := &Email{
 		BugID:       bugID,
 		MessageID:   msg.Header.Get("Message-ID"),
 		Link:        link,
+		Author:      author,
+		MailingList: mailingList,
 		Subject:     subject,
-		From:        from[0].String(),
 		Cc:          ccList,
 		Body:        bodyStr,
 		Patch:       patch,
@@ -210,7 +252,7 @@ func extractCommand(body string) (cmd Command, str, args string) {
 		return
 	}
 	cmdPos += len(commandPrefix) + 1
-	for cmdPos < len(body) && (body[cmdPos] == ' ' || body[cmdPos] == '\t') {
+	for cmdPos < len(body) && unicode.IsSpace(rune(body[cmdPos])) {
 		cmdPos++
 	}
 	cmdEnd := strings.IndexByte(body[cmdPos:], '\n')

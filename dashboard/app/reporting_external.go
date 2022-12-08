@@ -85,3 +85,20 @@ func apiReportingUpdate(c context.Context, r *http.Request, payload []byte) (int
 		Text:  reason,
 	}, nil
 }
+
+func apiNewTestJob(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
+	req := new(dashapi.TestPatchRequest)
+	if err := json.Unmarshal(payload, req); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+	}
+	resp := &dashapi.TestPatchReply{}
+	err := handleExternalTestRequest(c, req)
+	if err != nil {
+		resp.ErrorText = err.Error()
+		if _, ok := err.(*BadTestRequestError); !ok {
+			// Log errors that are not related to the invalid input.
+			log.Errorf(c, "external patch posting error: %v", err)
+		}
+	}
+	return resp, nil
+}

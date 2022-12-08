@@ -180,7 +180,7 @@ func TestCrossTarget(t *testing.T) {
 
 func testCrossTarget(t *testing.T, target *Target, crossTargets []*Target) {
 	ct := target.DefaultChoiceTable()
-	rs := randSource(t)
+	rs := testutil.RandSource(t)
 	iters := 100
 	if testing.Short() {
 		iters /= 10

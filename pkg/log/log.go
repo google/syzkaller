@@ -59,9 +59,14 @@ func CachedLogOutput() string {
 	return buf.String()
 }
 
+// V reports whether verbosity at the call site is at least the requested level.
+// See https://pkg.go.dev/github.com/golang/glog#V for details.
+func V(level int) bool {
+	return level <= *flagV
+}
+
 func Logf(v int, msg string, args ...interface{}) {
 	mu.Lock()
-	doLog := v <= *flagV
 	if cacheEntries != nil && v <= 1 {
 		cacheMem -= len(cacheEntries[cachePos])
 		if cacheMem < 0 {
@@ -88,7 +93,7 @@ func Logf(v int, msg string, args ...interface{}) {
 	}
 	mu.Unlock()
 
-	if doLog {
+	if V(v) {
 		golog.Printf(msg, args...)
 	}
 }

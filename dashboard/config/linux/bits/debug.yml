@@ -9,17 +9,16 @@ config:
 
  - DEBUG_VM
  - DEBUG_VM_RB
- - DEBUG_VM_VMACACHE
+ - DEBUG_VM_VMACACHE: [-v6.1]
  - DEBUG_VM_PGFLAGS
  - DEBUG_VM_PGTABLE: [v5.8, -arm]
+ - DEBUG_VM_MAPLE_TREE: [v6.1]
+ - DEBUG_MAPLE_TREE: [v6.1]
  - DEBUG_KMAP_LOCAL_FORCE_MAP: [x86_64, v5.11]
  - DEBUG_VIRTUAL: [-s390]
  - LOCKUP_DETECTOR: [-s390]
  - SOFTLOCKUP_DETECTOR: [-s390]
- # This config itself was added in v5.10, but the smp.csd_lock_timeout command line argument
- # that is required to make it reliably usable is currently only in linux-next.
- # TODO: change this to v5.18 when smp.csd_lock_timeout reaches mainline.
- - CSD_LOCK_WAIT_DEBUG: [linux-next]
+ - CSD_LOCK_WAIT_DEBUG: [v5.19, -arm]
  - DETECT_HUNG_TASK
  - WQ_WATCHDOG
  - BOOTPARAM_HUNG_TASK_PANIC
@@ -55,4 +54,4 @@ config:
 
  # For context see: https://groups.google.com/g/syzkaller/c/SoydtBd-dYs/m/ns67L4ApAwAJ
  - VIRT_CPU_ACCOUNTING_GEN
- - CONTEXT_TRACKING_FORCE
+ - CONTEXT_TRACKING_FORCE: [-v6.1]

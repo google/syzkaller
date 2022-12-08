@@ -112,6 +112,7 @@ config:
  - ARCH_XGENE: n
  - ARCH_ZX: n
  - ARCH_ZYNQMP: n
+ - ARCH_NPCM: n
 
  # Disable whole menu "PCI controller drivers"
  - PCI_MVEBU: n

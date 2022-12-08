@@ -10,16 +10,11 @@
 # See https://github.com/google/syzkaller/issues/1622 for details.
 # DEBUG_AID_FOR_SYZBOT can be used to enable any additional temporal debugging features in linux-next tree.
 # It is kept in verbatim because it has for some reason disappeared from next-20220222.
-# CONFIG_RCU_EXP_CPU_STALL_TIMEOUT is now only in the linux-next branch.
-# By default it is set to a too small value, which causes tons of `rcu_preempt detected expedited stalls
-# on CPUs/tasks`.
-# TODO: turn it into a normal config once it reaches mainline.
 verbatim: |
  CONFIG_DEBUG_MEMORY=y
  CONFIG_TWIST_KERNEL_BEHAVIOR=y
  CONFIG_TWIST_FOR_SYZKALLER_TESTING=y
  CONFIG_DEBUG_AID_FOR_SYZBOT=y
- CONFIG_RCU_EXP_CPU_STALL_TIMEOUT=21000
 
 config:
  # Required to enable some other configs we set.
@@ -60,8 +55,8 @@ config:
  - HW_RANDOM_INTEL: n
  - HW_RANDOM_AMD: n
  - HW_RANDOM_VIA: n
- - RANDOM_TRUST_CPU: [-arm, -riscv]
- - RANDOM_TRUST_BOOTLOADER: [v4.16]
+ - RANDOM_TRUST_CPU: [-arm, -riscv, -v6.1]
+ - RANDOM_TRUST_BOOTLOADER: [v4.16, -v6.1]
 
  # For detection of supported syscalls
  - KALLSYMS
@@ -105,8 +100,7 @@ config:
  - NET_DEV_REFCNT_TRACKER: [v5.17]
  - NET_NS_REFCNT_TRACKER: [v5.17]
 
- # Added in 5.18 to aid network debugging.
- - DEBUG_NET: [linux-next]
+ - DEBUG_NET: [v5.19]
 
  # This config does not add any debug checks (only debug output).
  - DEBUG_KOBJECT: n
@@ -180,8 +174,6 @@ config:
  - MAGIC_SYSRQ: n
  # We don't need it and it enables MAGIC_SYSRQ and KPROBES.
  - KGDB: n
-
- - RUNTIME_TESTING_MENU: n
 
  # Don't test/need this (may be enabled via HID_HYPERV_MOUSE in USB/HID configs).
  - HYPERV: n

@@ -9,10 +9,10 @@ import (
 )
 
 var (
-	GitRevision     string    // emitted by Makefile, may contain + at the end
-	GitRevisionBase string    // without +
-	gitRevisionDate string    // emitted by Makefile
-	GitRevisionDate time.Time // parsed from gitRevisionDate
+	GitRevision     = "unknown" // emitted by Makefile, may contain + at the end
+	GitRevisionBase string      // without +
+	gitRevisionDate string      // emitted by Makefile
+	GitRevisionDate time.Time   // parsed from gitRevisionDate
 )
 
 func init() {

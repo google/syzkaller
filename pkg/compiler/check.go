@@ -341,7 +341,47 @@ func (comp *compiler) checkAttributeValues() {
 					comp.error(f.Pos, "%v type must not be used as output", f.Type.Ident)
 				}
 			}
+		case *ast.Call:
+			attrNames := make(map[string]bool)
+			descAttrs := comp.parseAttrs(callAttrs, n, n.Attrs)
+			for desc := range descAttrs {
+				attrNames[prog.CppName(desc.Name)] = true
+			}
+
+			checked := make(map[string]bool)
+			for _, a := range n.Args {
+				comp.checkRequiredCallAttrs(n, attrNames, a.Type, checked)
+			}
 		}
+	}
+}
+
+func (comp *compiler) checkRequiredCallAttrs(call *ast.Call, callAttrNames map[string]bool,
+	t *ast.Type, checked map[string]bool) {
+	desc := comp.getTypeDesc(t)
+	for attr := range desc.RequiresCallAttrs {
+		if !callAttrNames[attr] {
+			comp.error(call.Pos, "call %v refers to type %v and so must be marked %s", call.Name.Name, t.Ident, attr)
+		}
+	}
+
+	if desc == typeStruct {
+		s := comp.structs[t.Ident]
+		// Prune recursion, can happen even on correct tree via opt pointers.
+		if checked[s.Name.Name] {
+			return
+		}
+		checked[s.Name.Name] = true
+		fields := s.Fields
+		for _, fld := range fields {
+			comp.checkRequiredCallAttrs(call, callAttrNames, fld.Type, checked)
+		}
+	} else if desc == typeArray {
+		typ := t.Args[0]
+		comp.checkRequiredCallAttrs(call, callAttrNames, typ, checked)
+	} else if desc == typePtr {
+		typ := t.Args[1]
+		comp.checkRequiredCallAttrs(call, callAttrNames, typ, checked)
 	}
 }
 

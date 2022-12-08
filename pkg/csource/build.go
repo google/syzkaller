@@ -17,7 +17,7 @@ import (
 
 // Build builds a C program from source src and returns name of the resulting binary.
 func Build(target *prog.Target, src []byte) (string, error) {
-	return build(target, src, "", true)
+	return build(target, src, "")
 }
 
 // BuildNoWarn is the same as Build, but ignores all compilation warnings.
@@ -25,15 +25,15 @@ func Build(target *prog.Target, src []byte) (string, error) {
 // using an old repro with newer compiler, or a compiler that we never seen before.
 // In these cases it's more important to build successfully.
 func BuildNoWarn(target *prog.Target, src []byte) (string, error) {
-	return build(target, src, "", false)
+	return build(target, src, "", "-fpermissive", "-w")
 }
 
 // BuildFile builds a C/C++ program from file src and returns name of the resulting binary.
-func BuildFile(target *prog.Target, src string) (string, error) {
-	return build(target, nil, src, true)
+func BuildFile(target *prog.Target, src string, cflags ...string) (string, error) {
+	return build(target, nil, src, cflags...)
 }
 
-func build(target *prog.Target, src []byte, file string, warn bool) (string, error) {
+func build(target *prog.Target, src []byte, file string, cflags ...string) (string, error) {
 	sysTarget := targets.Get(target.OS, target.Arch)
 	compiler := sysTarget.CCompiler
 	// We call the binary syz-executor because it sometimes shows in bug titles,
@@ -59,9 +59,7 @@ func build(target *prog.Target, src []byte, file string, warn bool) (string, err
 		// We do generate uint64's for syscall arguments that overflow longs on 32-bit archs.
 		flags = append(flags, "-Wno-overflow")
 	}
-	if !warn {
-		flags = append(flags, "-fpermissive", "-w")
-	}
+	flags = append(flags, cflags...)
 	cmd := osutil.Command(compiler, flags...)
 	if file == "" {
 		cmd.Stdin = bytes.NewReader(src)

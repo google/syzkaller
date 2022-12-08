@@ -1,0 +1,191 @@
+TITLE: KMSAN: uninit-value in native_apic_mem_write
+ALT: KMSAN origin in inet_reqsk_alloc
+ALT: bad-access in native_apic_mem_write
+
+[  663.629383][    C1] =====================================================
+[  663.636461][    C1] BUG: KMSAN: uninit-value in native_apic_mem_write+0x6e/0x90
+[  663.643970][    C1]  native_apic_mem_write+0x6e/0x90
+[  663.649144][    C1]  sysvec_reschedule_ipi+0x31/0x110
+[  663.654395][    C1]  asm_sysvec_reschedule_ipi+0x12/0x20
+[  663.659900][    C1]  kmsan_get_metadata+0x7/0x220
+[  663.664784][    C1]  kmsan_get_shadow_origin_ptr+0x9b/0xf0
+[  663.670443][    C1]  __msan_metadata_ptr_for_load_8+0x20/0x30
+[  663.676379][    C1]  inet_csk_complete_hashdance+0x34b/0x12b0
+[  663.682318][    C1]  dccp_check_req+0x9a9/0xa30
+[  663.687038][    C1]  dccp_v6_rcv+0x130f/0x25b0
+[  663.691658][    C1]  ip6_protocol_deliver_rcu+0x142f/0x28b0
+[  663.697417][    C1]  ip6_input+0x25a/0x540
+[  663.701694][    C1]  ip6_rcv_finish+0x67b/0x850
+[  663.706402][    C1]  ipv6_rcv+0x1d1/0x460
+[  663.710585][    C1]  __netif_receive_skb+0x1ec/0x630
+[  663.715727][    C1]  process_backlog+0x4f7/0xb70
+[  663.720523][    C1]  __napi_poll+0x14c/0xc00
+[  663.724965][    C1]  net_rx_action+0x7e2/0x1820
+[  663.729677][    C1]  __do_softirq+0x1ee/0x7c5
+[  663.734210][    C1]  do_softirq+0x16d/0x220
+[  663.738574][    C1]  __local_bh_enable_ip+0xd5/0xe0
+[  663.743634][    C1]  local_bh_enable+0x36/0x40
+[  663.748255][    C1]  ip6_finish_output2+0x240a/0x2c40
+[  663.753487][    C1]  __ip6_finish_output+0xf64/0x10b0
+[  663.758720][    C1]  ip6_finish_output+0x15c/0x590
+[  663.763687][    C1]  ip6_output+0x4b9/0x800
+[  663.768045][    C1]  ip6_xmit+0x20f8/0x28b0
+[  663.772402][    C1]  inet6_csk_xmit+0x5c1/0x730
+[  663.777102][    C1]  dccp_transmit_skb+0x172c/0x1aa0
+[  663.782237][    C1]  dccp_send_ack+0x2dd/0x540
+[  663.786848][    C1]  dccp_rcv_request_sent_state_process+0xdd3/0xf40
+[  663.793398][    C1]  dccp_rcv_state_process+0xba1/0xf60
+[  663.798812][    C1]  dccp_v6_do_rcv+0x652/0x11b0
+[  663.803607][    C1]  __release_sock+0x256/0x640
+[  663.808308][    C1]  release_sock+0x98/0x2e0
+[  663.812762][    C1]  __inet_stream_connect+0xd72/0x1830
+[  663.818167][    C1]  inet_stream_connect+0xff/0x180
+[  663.823217][    C1]  __sys_connect+0x7bb/0x830
+[  663.827837][    C1]  __x64_sys_connect+0xd8/0x120
+[  663.832721][    C1]  do_syscall_64+0x3d/0x90
+[  663.837168][    C1]  entry_SYSCALL_64_after_hwframe+0x44/0xae
+[  663.843102][    C1] 
+[  663.845423][    C1] Uninit was stored to memory at:
+[  663.850500][    C1]  inet_reqsk_alloc+0x71e/0x8d0
+[  663.855378][    C1]  dccp_v6_conn_request+0x932/0x18c0
+[  663.860696][    C1]  dccp_rcv_state_process+0x2e4/0xf60
+[  663.866111][    C1]  dccp_v6_do_rcv+0x652/0x11b0
+[  663.870905][    C1]  __sk_receive_skb+0x61e/0x11b0
+[  663.875884][    C1]  dccp_v6_rcv+0x21b7/0x25b0
+[  663.880515][    C1]  ip6_protocol_deliver_rcu+0x142f/0x28b0
+[  663.886272][    C1]  ip6_input+0x25a/0x540
+[  663.890546][    C1]  ip6_rcv_finish+0x67b/0x850
+[  663.895252][    C1]  ipv6_rcv+0x1d1/0x460
+[  663.899437][    C1]  __netif_receive_skb+0x1ec/0x630
+[  663.904583][    C1]  process_backlog+0x4f7/0xb70
+[  663.909380][    C1]  __napi_poll+0x14c/0xc00
+[  663.913822][    C1]  net_rx_action+0x7e2/0x1820
+[  663.918529][    C1]  __do_softirq+0x1ee/0x7c5
+[  663.923061][    C1] 
+[  663.925382][    C1] Uninit was stored to memory at:
+[  663.930456][    C1]  inet_reqsk_alloc+0x71e/0x8d0
+[  663.935331][    C1]  dccp_v6_conn_request+0x932/0x18c0
+[  663.940655][    C1]  dccp_rcv_state_process+0x2e4/0xf60
+[  663.946074][    C1]  dccp_v6_do_rcv+0x652/0x11b0
+[  663.950870][    C1]  __sk_receive_skb+0x61e/0x11b0
+[  663.955846][    C1]  dccp_v6_rcv+0x21b7/0x25b0
+[  663.960464][    C1]  ip6_protocol_deliver_rcu+0x142f/0x28b0
+[  663.966221][    C1]  ip6_input+0x25a/0x540
+[  663.970493][    C1]  ip6_rcv_finish+0x67b/0x850
+[  663.975203][    C1]  ipv6_rcv+0x1d1/0x460
+[  663.979386][    C1]  __netif_receive_skb+0x1ec/0x630
+[  663.984529][    C1]  process_backlog+0x4f7/0xb70
+[  663.989324][    C1]  __napi_poll+0x14c/0xc00
+[  663.993773][    C1]  net_rx_action+0x7e2/0x1820
+[  663.998479][    C1]  __do_softirq+0x1ee/0x7c5
+[  664.003024][    C1] 
+[  664.005342][    C1] Uninit was stored to memory at:
+[  664.010420][    C1]  inet_reqsk_alloc+0x71e/0x8d0
+[  664.015297][    C1]  dccp_v6_conn_request+0x932/0x18c0
+[  664.020617][    C1]  dccp_rcv_state_process+0x2e4/0xf60
+[  664.026031][    C1]  dccp_v6_do_rcv+0x652/0x11b0
+[  664.030824][    C1]  __sk_receive_skb+0x61e/0x11b0
+[  664.035807][    C1]  dccp_v6_rcv+0x21b7/0x25b0
+[  664.040430][    C1]  ip6_protocol_deliver_rcu+0x142f/0x28b0
+[  664.046186][    C1]  ip6_input+0x25a/0x540
+[  664.050457][    C1]  ip6_rcv_finish+0x67b/0x850
+[  664.055164][    C1]  ipv6_rcv+0x1d1/0x460
+[  664.059348][    C1]  __netif_receive_skb+0x1ec/0x630
+[  664.064489][    C1]  process_backlog+0x4f7/0xb70
+[  664.069283][    C1]  __napi_poll+0x14c/0xc00
+[  664.073727][    C1]  net_rx_action+0x7e2/0x1820
+[  664.078433][    C1]  __do_softirq+0x1ee/0x7c5
+[  664.082984][    C1] 
+[  664.085309][    C1] Uninit was stored to memory at:
+[  664.090384][    C1]  inet_reqsk_alloc+0x71e/0x8d0
+[  664.095260][    C1]  dccp_v6_conn_request+0x932/0x18c0
+[  664.100576][    C1]  dccp_rcv_state_process+0x2e4/0xf60
+[  664.105993][    C1]  dccp_v6_do_rcv+0x652/0x11b0
+[  664.110792][    C1]  __sk_receive_skb+0x61e/0x11b0
+[  664.115770][    C1]  dccp_v6_rcv+0x21b7/0x25b0
+[  664.120392][    C1]  ip6_protocol_deliver_rcu+0x142f/0x28b0
+[  664.126151][    C1]  ip6_input+0x25a/0x540
+[  664.130421][    C1]  ip6_rcv_finish+0x67b/0x850
+[  664.135129][    C1]  ipv6_rcv+0x1d1/0x460
+[  664.139313][    C1]  __netif_receive_skb+0x1ec/0x630
+[  664.144455][    C1]  process_backlog+0x4f7/0xb70
+[  664.149251][    C1]  __napi_poll+0x14c/0xc00
+[  664.153693][    C1]  net_rx_action+0x7e2/0x1820
+[  664.158437][    C1]  __do_softirq+0x1ee/0x7c5
+[  664.162999][    C1] 
+[  664.165325][    C1] Uninit was stored to memory at:
+[  664.170405][    C1]  inet_reqsk_alloc+0x71e/0x8d0
+[  664.175283][    C1]  dccp_v6_conn_request+0x932/0x18c0
+[  664.180606][    C1]  dccp_rcv_state_process+0x2e4/0xf60
+[  664.186020][    C1]  dccp_v6_do_rcv+0x652/0x11b0
+[  664.190815][    C1]  __sk_receive_skb+0x61e/0x11b0
+[  664.195793][    C1]  dccp_v6_rcv+0x21b7/0x25b0
+[  664.200417][    C1]  ip6_protocol_deliver_rcu+0x142f/0x28b0
+[  664.206177][    C1]  ip6_input+0x25a/0x540
+[  664.210449][    C1]  ip6_rcv_finish+0x67b/0x850
+[  664.215160][    C1]  ipv6_rcv+0x1d1/0x460
+[  664.219345][    C1]  __netif_receive_skb+0x1ec/0x630
+[  664.224494][    C1]  process_backlog+0x4f7/0xb70
+[  664.229292][    C1]  __napi_poll+0x14c/0xc00
+[  664.233737][    C1]  net_rx_action+0x7e2/0x1820
+[  664.238446][    C1]  __do_softirq+0x1ee/0x7c5
+[  664.243005][    C1] 
+[  664.245325][    C1] Uninit was stored to memory at:
+[  664.250400][    C1]  inet_reqsk_alloc+0x71e/0x8d0
+[  664.255276][    C1]  dccp_v6_conn_request+0x932/0x18c0
+[  664.260596][    C1]  dccp_rcv_state_process+0x2e4/0xf60
+[  664.266009][    C1]  dccp_v6_do_rcv+0x652/0x11b0
+[  664.270803][    C1]  __sk_receive_skb+0x61e/0x11b0
+[  664.275782][    C1]  dccp_v6_rcv+0x21b7/0x25b0
+[  664.280401][    C1]  ip6_protocol_deliver_rcu+0x142f/0x28b0
+[  664.286174][    C1]  ip6_input+0x25a/0x540
+[  664.290447][    C1]  ip6_rcv_finish+0x67b/0x850
+[  664.295153][    C1]  ipv6_rcv+0x1d1/0x460
+[  664.299335][    C1]  __netif_receive_skb+0x1ec/0x630
+[  664.304480][    C1]  process_backlog+0x4f7/0xb70
+[  664.309285][    C1]  __napi_poll+0x14c/0xc00
+[  664.313728][    C1]  net_rx_action+0x7e2/0x1820
+[  664.318438][    C1]  __do_softirq+0x1ee/0x7c5
+[  664.322972][    C1] 
+[  664.325293][    C1] Uninit was stored to memory at:
+[  664.330370][    C1]  inet_reqsk_alloc+0x71e/0x8d0
+[  664.335246][    C1]  dccp_v6_conn_request+0x932/0x18c0
+[  664.340564][    C1]  dccp_rcv_state_process+0x2e4/0xf60
+[  664.345980][    C1]  dccp_v6_do_rcv+0x652/0x11b0
+[  664.350874][    C1]  __sk_receive_skb+0x61e/0x11b0
+[  664.355872][    C1]  dccp_v6_rcv+0x21b7/0x25b0
+[  664.360494][    C1]  ip6_protocol_deliver_rcu+0x142f/0x28b0
+[  664.366251][    C1]  ip6_input+0x25a/0x540
+[  664.370519][    C1]  ip6_rcv_finish+0x67b/0x850
+[  664.375225][    C1]  ipv6_rcv+0x1d1/0x460
+[  664.379410][    C1]  __netif_receive_skb+0x1ec/0x630
+[  664.384554][    C1]  process_backlog+0x4f7/0xb70
+[  664.389349][    C1]  __napi_poll+0x14c/0xc00
+[  664.393793][    C1]  net_rx_action+0x7e2/0x1820
+[  664.398498][    C1]  __do_softirq+0x1ee/0x7c5
+[  664.403030][    C1] 
+[  664.405350][    C1] Uninit was created at:
+[  664.409635][    C1]  __alloc_pages+0xbbf/0x1090
+[  664.414332][    C1]  alloc_pages+0xa08/0xd50
+[  664.418783][    C1]  allocate_slab+0x295/0x1c50
+[  664.423492][    C1]  ___slab_alloc+0xb3a/0x1d70
+[  664.428196][    C1]  kmem_cache_alloc+0xb8a/0x11a0
+[  664.433161][    C1]  inet_reqsk_alloc+0xa9/0x8d0
+[  664.437951][    C1]  dccp_v6_conn_request+0x932/0x18c0
+[  664.443278][    C1]  dccp_rcv_state_process+0x2e4/0xf60
+[  664.448694][    C1]  dccp_v6_do_rcv+0x652/0x11b0
+[  664.453487][    C1]  __sk_receive_skb+0x61e/0x11b0
+[  664.458467][    C1]  dccp_v6_rcv+0x21b7/0x25b0
+[  664.463085][    C1]  ip6_protocol_deliver_rcu+0x142f/0x28b0
+[  664.468841][    C1]  ip6_input+0x25a/0x540
+[  664.473111][    C1]  ip6_rcv_finish+0x67b/0x850
+[  664.477817][    C1]  ipv6_rcv+0x1d1/0x460
+[  664.482003][    C1]  __netif_receive_skb+0x1ec/0x630
+[  664.487145][    C1]  process_backlog+0x4f7/0xb70
+[  664.492110][    C1]  __napi_poll+0x14c/0xc00
+[  664.496554][    C1]  net_rx_action+0x7e2/0x1820
+[  664.501261][    C1]  __do_softirq+0x1ee/0x7c5
+[  664.505793][    C1] 
+[  664.508115][    C1] CPU: 1 PID: 15398 Comm: syz-executor.5 Not tainted 5.18.0-rc4-syzkaller #0
+[  664.516901][    C1] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  664.526976][    C1] =====================================================

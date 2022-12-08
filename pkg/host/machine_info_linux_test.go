@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/sys/targets"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCollectMachineInfo(t *testing.T) {
@@ -46,7 +48,8 @@ func TestCannedCPUInfoLinux(t *testing.T) {
 func checkCPUInfo(t *testing.T, data []byte, arch string) {
 	t.Logf("input data:\n%s", data)
 	keys := make(map[string]bool)
-	for s := bufio.NewScanner(bytes.NewReader(data)); s.Scan(); {
+	s := longScanner(bytes.NewReader(data))
+	for s.Scan() {
 		splitted := strings.Split(s.Text(), ":")
 		if len(splitted) != 2 {
 			t.Fatalf("the format of line %q is not correct", s.Text())
@@ -54,6 +57,8 @@ func checkCPUInfo(t *testing.T, data []byte, arch string) {
 		key := strings.TrimSpace(splitted[0])
 		keys[key] = true
 	}
+	assert.Nil(t, s.Err(), "scanner failed reading the CpuInfo: %v", s.Err())
+
 	importantKeys := map[string][]string{
 		targets.PPC64LE:  {"cpu", "revision", "platform", "model", "machine"},
 		targets.AMD64:    {"vendor_id", "model", "flags"},
@@ -412,4 +417,11 @@ func TestGetGlobsInfo(t *testing.T) {
 	if diff := cmp.Diff(infos[glob], want); diff != "" {
 		t.Fatal(diff)
 	}
+}
+
+func longScanner(r io.Reader) *bufio.Scanner {
+	const newMaxTokenSize = 1 * 1024 * 1024
+	s := bufio.NewScanner(r)
+	s.Buffer(nil, newMaxTokenSize)
+	return s
 }

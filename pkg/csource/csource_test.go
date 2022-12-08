@@ -12,7 +12,6 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/prog"
@@ -59,12 +58,7 @@ func TestGenerate(t *testing.T) {
 }
 
 func testTarget(t *testing.T, target *prog.Target, full bool) {
-	seed := time.Now().UnixNano()
-	if os.Getenv("CI") != "" {
-		seed = 0 // required for deterministic coverage reports
-	}
-	rs := rand.NewSource(seed)
-	t.Logf("seed=%v", seed)
+	rs := testutil.RandSource(t)
 	p := target.Generate(rs, 10, target.DefaultChoiceTable())
 	// Turns out that fully minimized program can trigger new interesting warnings,
 	// e.g. about NULL arguments for functions that require non-NULL arguments in syz_ functions.
@@ -151,6 +145,7 @@ func TestExecutorMacros(t *testing.T) {
 	expected["SYZ_HAVE_SETUP_LOOP"] = true
 	expected["SYZ_HAVE_RESET_LOOP"] = true
 	expected["SYZ_HAVE_SETUP_TEST"] = true
+	expected["SYZ_TEST_COMMON_EXT_EXAMPLE"] = true
 	macros := regexp.MustCompile("SYZ_[A-Za-z0-9_]+").FindAllString(commonHeader, -1)
 	for _, macro := range macros {
 		if strings.HasPrefix(macro, "SYZ_HAVE_") {

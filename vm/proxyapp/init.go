@@ -6,8 +6,11 @@ package proxyapp
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"net/url"
+	"os"
 	"time"
 
 	"github.com/google/syzkaller/pkg/config"
@@ -19,6 +22,7 @@ func makeDefaultParams() *proxyAppParams {
 	return &proxyAppParams{
 		CommandRunner:  osutilCommandContext,
 		InitRetryDelay: 10 * time.Second,
+		LogOutput:      os.Stdout,
 	}
 }
 
@@ -35,6 +39,7 @@ func init() {
 type proxyAppParams struct {
 	CommandRunner  func(context.Context, string, ...string) subProcessCmd
 	InitRetryDelay time.Duration
+	LogOutput      io.Writer
 }
 
 func osutilCommandContext(ctx context.Context, bin string, args ...string) subProcessCmd {
@@ -49,8 +54,15 @@ type subProcessCmd interface {
 	Wait() error
 }
 
+// Config is valid if at least cmd or rpc_server_uri specified.
 type Config struct {
-	Command        string          `json:"cmd"`
+	// cmd is the optional command needed to initialize plugin.
+	// By default we'll connect to its std[in, out, err].
+	Command string `json:"cmd"`
+	// rpc_server_uri is used to specify plugin endpoint address.
+	// if not specified, we'll connect to the plugin by std[in, out, err].
+	RPCServerURI string `json:"rpc_server_uri"`
+	// config is an optional remote plugin config
 	ProxyAppConfig json.RawMessage `json:"config"`
 }
 
@@ -59,5 +71,22 @@ func parseConfig(conf []byte) (*Config, error) {
 	if err := config.LoadData(conf, vmCfg); err != nil {
 		return nil, fmt.Errorf("failed to parseConfig(): %w", err)
 	}
+
+	if vmCfg.RPCServerURI == "" && vmCfg.Command == "" {
+		return nil, errors.New("failed to parseConfig(): neither 'cmd' nor 'rpc_server_uri' specified for plugin")
+	}
+
+	if vmCfg.RPCServerURI != "" && URIParseErr(vmCfg.RPCServerURI) != nil {
+		return nil, fmt.Errorf("failed to parseConfig(): %w", URIParseErr(vmCfg.RPCServerURI))
+	}
+
 	return vmCfg, nil
+}
+
+func URIParseErr(uri string) error {
+	dest, err := url.Parse("http://" + uri)
+	if err != nil || dest.Port() == "" || dest.Host != uri {
+		return fmt.Errorf("bad uri (%v), host:port were expected", uri)
+	}
+	return nil
 }

@@ -5,11 +5,10 @@ package repro
 
 import (
 	"math/rand"
-	"os"
 	"testing"
-	"time"
 
 	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/testutil"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -19,13 +18,7 @@ func initTest(t *testing.T) (*rand.Rand, int) {
 	if testing.Short() {
 		iters = 100
 	}
-	seed := time.Now().UnixNano()
-	if os.Getenv("CI") != "" {
-		seed = 0 // required for deterministic coverage reports
-	}
-	rs := rand.NewSource(seed)
-	t.Logf("seed=%v", seed)
-	return rand.New(rs), iters
+	return rand.New(testutil.RandSource(t)), iters
 }
 
 func TestBisect(t *testing.T) {

@@ -74,7 +74,7 @@ build() {
 
   cd "$fuchsia"
   fx --dir "out/x64" set core.x64 \
-    --with-base "//bundles:tools" \
+    --with-base "//bundles/tools" \
     --with-base "//src/testing/fuzzing/syzkaller" \
     --args=syzkaller_dir="\"$syzkaller\"" \
     --variant=kasan

@@ -1,0 +1,22 @@
+# Copyright 2022 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# See https://cs.opensource.google/fuchsia/fuchsia/+/main:zircon/vdso/vmar.fidl
+
+include <zircon/syscalls.h>
+include <zircon/types.h>
+
+resource zx_vmar[zx_handle]
+resource zx_vaddr[intptr]
+
+zx_vmar_allocate(parent_vmar zx_vmar, options flags[vmar_allocate_options], offset intptr, size intptr, child_vmar ptr[out, zx_vmar], child_addr ptr[out, zx_vaddr])
+zx_vmar_destroy(handle zx_vmar)
+zx_vmar_map(handle zx_vmar, options flags[vmar_map_options], vmar_offset intptr, vmo zx_vmo, vmo_offset int64, len intptr, mapped_addr ptr[out, zx_vaddr])
+zx_vmar_unmap(handle zx_vmar, addr zx_vaddr, len intptr)
+zx_vmar_protect(handle zx_vmar, options flags[vmar_protect_options], addr zx_vaddr, len intptr)
+zx_vmar_op_range(handle zx_vmar, op flags[vmar_op_range_options], address zx_vaddr, size intptr, buffer const[0], buffer_size const[0])
+
+vmar_allocate_options = ZX_VM_COMPACT, ZX_VM_SPECIFIC, ZX_VM_OFFSET_IS_UPPER_LIMIT, ZX_VM_CAN_MAP_SPECIFIC, ZX_VM_CAN_MAP_READ, ZX_VM_CAN_MAP_WRITE, ZX_VM_CAN_MAP_EXECUTE, ZX_VM_ALIGN_1KB, ZX_VM_ALIGN_2KB, ZX_VM_ALIGN_4KB, ZX_VM_ALIGN_8KB, ZX_VM_ALIGN_16KB, ZX_VM_ALIGN_32KB, ZX_VM_ALIGN_64KB, ZX_VM_ALIGN_128KB, ZX_VM_ALIGN_256KB, ZX_VM_ALIGN_512KB, ZX_VM_ALIGN_1MB, ZX_VM_ALIGN_2MB, ZX_VM_ALIGN_4MB, ZX_VM_ALIGN_8MB, ZX_VM_ALIGN_16MB, ZX_VM_ALIGN_32MB, ZX_VM_ALIGN_64MB, ZX_VM_ALIGN_128MB, ZX_VM_ALIGN_256MB, ZX_VM_ALIGN_512MB, ZX_VM_ALIGN_1GB, ZX_VM_ALIGN_2GB, ZX_VM_ALIGN_4GB
+vmar_map_options = ZX_FLAG_SPECIFIC, ZX_FLAG_SPECIFIC_OVERWRITE, ZX_VM_OFFSET_IS_UPPER_LIMIT, ZX_VM_PERM_READ, ZX_VM_PERM_WRITE, ZX_VM_PERM_EXECUTE, ZX_VM_MAP_RANGE, ZX_VM_ALLOW_FAULTS, ZX_VM_PERM_READ_IF_XOM_UNSUPPORTED, ZX_VM_ALIGN_1KB, ZX_VM_ALIGN_2KB, ZX_VM_ALIGN_4KB, ZX_VM_ALIGN_8KB, ZX_VM_ALIGN_16KB, ZX_VM_ALIGN_32KB, ZX_VM_ALIGN_64KB, ZX_VM_ALIGN_128KB, ZX_VM_ALIGN_256KB, ZX_VM_ALIGN_512KB, ZX_VM_ALIGN_1MB, ZX_VM_ALIGN_2MB, ZX_VM_ALIGN_4MB, ZX_VM_ALIGN_8MB, ZX_VM_ALIGN_16MB, ZX_VM_ALIGN_32MB, ZX_VM_ALIGN_64MB, ZX_VM_ALIGN_128MB, ZX_VM_ALIGN_256MB, ZX_VM_ALIGN_512MB, ZX_VM_ALIGN_1GB, ZX_VM_ALIGN_2GB, ZX_VM_ALIGN_4GB
+vmar_protect_options = ZX_VM_PERM_READ, ZX_VM_PERM_WRITE, ZX_VM_PERM_EXECUTE, ZX_VM_PERM_READ_IF_XOM_UNSUPPORTED
+vmar_op_range_options = ZX_VMAR_OP_COMMIT, ZX_VMAR_OP_DECOMMIT, ZX_VMAR_OP_MAP_RANGE, ZX_VMAR_OP_DONT_NEED, ZX_VMAR_OP_ALWAYS_NEED

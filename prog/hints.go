@@ -109,6 +109,11 @@ func generateHints(compMap CompMap, arg Arg, exec func()) {
 				// (and filter out file names).
 				return
 			}
+		case BufferCompressed:
+			// We can reconsider this in the future, e.g. by decompressing, applying
+			// hints, then re-compressing. We will need to ensure this doesn't
+			// produce too many mutants given the current handling of buffers.
+			return
 		}
 	}
 

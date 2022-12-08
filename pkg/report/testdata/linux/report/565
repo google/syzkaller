@@ -1,4 +1,4 @@
-TITLE: BUG: using __this_cpu_read() in preemptible code in trace_hardirqs_on
+TITLE: BUG: using __this_cpu_read() in preemptible code in __bad_area_nosemaphore
 
 [  127.573471][ T9951] BUG: using __this_cpu_read() in preemptible [00000000] code: syz-executor.0/9951
 [  127.583549][ T9951] caller is lockdep_hardirqs_on_prepare+0x5e/0x410

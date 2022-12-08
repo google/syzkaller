@@ -2586,11 +2586,21 @@ struct hci_dev_req {
 	uint32 dev_opt;
 };
 
-struct vhci_vendor_pkt {
+struct vhci_vendor_pkt_request {
 	uint8 type;
 	uint8 opcode;
-	uint16 id;
-};
+} __attribute__((packed));
+
+struct vhci_pkt {
+	uint8 type;
+	union {
+		struct {
+			uint8 opcode;
+			uint16 id;
+		} __attribute__((packed)) vendor_pkt;
+		struct hci_command_hdr command_hdr;
+	};
+} __attribute__((packed));
 
 #define HCIDEVUP _IOW('H', 201, int)
 #define HCISETSCAN _IOW('H', 221, int)
@@ -2718,6 +2728,9 @@ static void* event_thread(void* arg)
 #define HCI_HANDLE_1 200
 #define HCI_HANDLE_2 201
 
+#define HCI_PRIMARY 0
+#define HCI_OP_RESET 0x0c03
+
 static void initialize_vhci()
 {
 #if SYZ_EXECUTOR
@@ -2741,25 +2754,38 @@ static void initialize_vhci()
 	close(vhci_fd);
 	vhci_fd = kVhciFd;
 
-	struct vhci_vendor_pkt vendor_pkt;
-	if (read(vhci_fd, &vendor_pkt, sizeof(vendor_pkt)) != sizeof(vendor_pkt))
-		fail("read failed");
+	struct vhci_vendor_pkt_request vendor_pkt_req = {HCI_VENDOR_PKT, HCI_PRIMARY};
+	if (write(vhci_fd, &vendor_pkt_req, sizeof(vendor_pkt_req)) != sizeof(vendor_pkt_req))
+		fail("vendor_pkt_req write failed");
 
-	if (vendor_pkt.type != HCI_VENDOR_PKT)
+	struct vhci_pkt vhci_pkt;
+	if (read(vhci_fd, &vhci_pkt, sizeof(vhci_pkt)) != sizeof(vhci_pkt))
+		fail("vhci_pkt read failed");
+
+	if (vhci_pkt.type == HCI_COMMAND_PKT && vhci_pkt.command_hdr.opcode == HCI_OP_RESET) {
+		char response[1] = {0};
+		hci_send_event_cmd_complete(vhci_fd, HCI_OP_RESET, response, sizeof(response));
+
+		if (read(vhci_fd, &vhci_pkt, sizeof(vhci_pkt)) != sizeof(vhci_pkt))
+			fail("vhci_pkt read failed");
+	}
+
+	if (vhci_pkt.type != HCI_VENDOR_PKT)
 		fail("wrong response packet");
 
-	debug("hci dev id: %x\n", vendor_pkt.id);
+	int dev_id = vhci_pkt.vendor_pkt.id;
+	debug("hci dev id: %x\n", dev_id);
 
 	pthread_t th;
 	if (pthread_create(&th, NULL, event_thread, NULL))
 		fail("pthread_create failed");
 
 	// Bring hci device up
-	int ret = ioctl(hci_sock, HCIDEVUP, vendor_pkt.id);
+	int ret = ioctl(hci_sock, HCIDEVUP, dev_id);
 	if (ret) {
 		if (errno == ERFKILL) {
 			rfkill_unblock_all();
-			ret = ioctl(hci_sock, HCIDEVUP, vendor_pkt.id);
+			ret = ioctl(hci_sock, HCIDEVUP, dev_id);
 		}
 
 		if (ret && errno != EALREADY)
@@ -2768,7 +2794,7 @@ static void initialize_vhci()
 
 	// Activate page scanning mode which is required to fake a connection.
 	struct hci_dev_req dr = {0};
-	dr.dev_id = vendor_pkt.id;
+	dr.dev_id = dev_id;
 	dr.dev_opt = SCAN_PAGE;
 	if (ioctl(hci_sock, HCISETSCAN, &dr))
 		fail("ioctl(HCISETSCAN) failed");
@@ -2859,6 +2885,7 @@ static long syz_genetlink_get_family_id(volatile long name, volatile long sock_a
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_mount_image || __NR_syz_read_part_table
+#include "common_zlib.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/loop.h>
@@ -2866,17 +2893,11 @@ static long syz_genetlink_get_family_id(volatile long name, volatile long sock_a
 #include <sys/stat.h>
 #include <sys/types.h>
 
-struct fs_image_segment {
-	void* data;
-	uintptr_t size;
-	uintptr_t offset;
-};
-
 // Setup the loop device needed for mounting a filesystem image. Takes care of
 // creating and initializing the underlying file backing the loop device and
 // returns the fds to the file and device.
 // Returns 0 on success, -1 otherwise.
-static int setup_loop_device(long unsigned size, long unsigned nsegs, struct fs_image_segment* segs, const char* loopname, int* memfd_p, int* loopfd_p)
+static int setup_loop_device(unsigned char* data, unsigned long size, const char* loopname, int* loopfd_p)
 {
 	int err = 0, loopfd = -1;
 	int memfd = syscall(__NR_memfd_create, "syzkaller", 0);
@@ -2884,14 +2905,10 @@ static int setup_loop_device(long unsigned size, long unsigned nsegs, struct fs_
 		err = errno;
 		goto error;
 	}
-	if (ftruncate(memfd, size)) {
+	if (puff_zlib_to_file(data, size, memfd)) {
 		err = errno;
+		debug("setup_loop_device: could not decompress data: %d\n", errno);
 		goto error_close_memfd;
-	}
-	for (size_t i = 0; i < nsegs; i++) {
-		if (pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset) < 0) {
-			debug("setup_loop_device: pwrite[%zu] failed: %d\n", i, errno);
-		}
 	}
 
 	loopfd = open(loopname, O_RDWR);
@@ -2912,7 +2929,7 @@ static int setup_loop_device(long unsigned size, long unsigned nsegs, struct fs_
 		}
 	}
 
-	*memfd_p = memfd;
+	close(memfd);
 	*loopfd_p = loopfd;
 	return 0;
 
@@ -2927,15 +2944,15 @@ error:
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_read_part_table
-// syz_read_part_table(size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]])
-static long syz_read_part_table(volatile unsigned long size, volatile unsigned long nsegs, volatile long segments)
+// syz_read_part_table(size len[img], img ptr[in, compressed_image])
+static long syz_read_part_table(volatile unsigned long size, volatile long image)
 {
-	struct fs_image_segment* segs = (struct fs_image_segment*)segments;
-	int err = 0, res = -1, loopfd = -1, memfd = -1;
+	unsigned char* data = (unsigned char*)image;
+	int err = 0, res = -1, loopfd = -1;
 	char loopname[64];
 
 	snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
-	if (setup_loop_device(size, nsegs, segs, loopname, &memfd, &loopfd) == -1)
+	if (setup_loop_device(data, size, loopname, &loopfd) == -1)
 		return -1;
 
 	struct loop_info64 info;
@@ -2965,9 +2982,9 @@ static long syz_read_part_table(volatile unsigned long size, volatile unsigned l
 		}
 	}
 error_clear_loop:
-	ioctl(loopfd, LOOP_CLR_FD, 0);
+	if (res)
+		ioctl(loopfd, LOOP_CLR_FD, 0);
 	close(loopfd);
-	close(memfd);
 	errno = err;
 	return res;
 }
@@ -2978,16 +2995,26 @@ error_clear_loop:
 #include <string.h>
 #include <sys/mount.h>
 
-// syz_mount_image(fs ptr[in, string[disk_filesystems]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[vfat_options]], chdir bool8) fd_dir
-// fs_image_segment {
-//	data	ptr[in, array[int8]]
-//	size	len[data, intptr]
-//	offset	intptr
-// }
-static long syz_mount_image(volatile long fsarg, volatile long dir, volatile unsigned long size, volatile unsigned long nsegs, volatile long segments, volatile long flags, volatile long optsarg, volatile long change_dir)
+// syz_mount_image(
+// 	fs ptr[in, string[fs]],
+// 	dir ptr[in, filename],
+// 	flags flags[mount_flags],
+// 	opts ptr[in, fs_options],
+// 	chdir bool8,
+// 	size len[img],
+// 	img ptr[in, compressed_image]
+// ) fd_dir
+static long syz_mount_image(
+    volatile long fsarg,
+    volatile long dir,
+    volatile long flags,
+    volatile long optsarg,
+    volatile long change_dir,
+    volatile unsigned long size,
+    volatile long image)
 {
-	struct fs_image_segment* segs = (struct fs_image_segment*)segments;
-	int res = -1, err = 0, loopfd = -1, memfd = -1, need_loop_device = !!segs;
+	unsigned char* data = (unsigned char*)image;
+	int res = -1, err = 0, loopfd = -1, need_loop_device = !!size;
 	char* mount_opts = (char*)optsarg;
 	char* target = (char*)dir;
 	char* fs = (char*)fsarg;
@@ -2999,7 +3026,7 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 		// filesystem image.
 		memset(loopname, 0, sizeof(loopname));
 		snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
-		if (setup_loop_device(size, nsegs, segs, loopname, &memfd, &loopfd) == -1)
+		if (setup_loop_device(data, size, loopname, &loopfd) == -1)
 			return -1;
 		source = loopname;
 	}
@@ -3024,7 +3051,7 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 		// and if two parallel executors mounts fs with the same uuid, second mount fails.
 		strcat(opts, ",nouuid");
 	}
-	debug("syz_mount_image: size=%llu segs=%llu loop='%s' dir='%s' fs='%s' flags=%llu opts='%s'\n", (uint64)size, (uint64)nsegs, loopname, target, fs, (uint64)flags, opts);
+	debug("syz_mount_image: size=%llu loop='%s' dir='%s' fs='%s' flags=%llu opts='%s'\n", (uint64)size, loopname, target, fs, (uint64)flags, opts);
 #if SYZ_EXECUTOR
 	cover_reset(0);
 #endif
@@ -3052,7 +3079,6 @@ error_clear_loop:
 	if (need_loop_device) {
 		ioctl(loopfd, LOOP_CLR_FD, 0);
 		close(loopfd);
-		close(memfd);
 	}
 	errno = err;
 	return res;

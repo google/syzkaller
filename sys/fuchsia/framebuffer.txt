@@ -1,0 +1,8 @@
+# Copyright 2022 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# See https://cs.opensource.google/fuchsia/fuchsia/+/main:zircon/vdso/framebuffer.fidl
+
+zx_framebuffer_get_info(resource_ zx_resource, format ptr[out, int32], width ptr[out, int32], height ptr[out, int32], stride ptr[out, int32])
+
+zx_framebuffer_set_range(resource_ zx_resource, vmo zx_vmo, length int32, format int32, width int32, height int32, stride int32)

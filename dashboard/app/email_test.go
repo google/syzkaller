@@ -322,7 +322,7 @@ Content-Type: text/plain
 
 	{
 		msg := c.pollEmailBug()
-		c.expectEQ(msg.To, []string{"<foo@bar.com>"})
+		c.expectEQ(msg.To, []string{"foo@bar.com"})
 		c.expectEQ(msg.Subject, "Re: title1")
 		c.expectEQ(msg.Headers["In-Reply-To"], []string{"<abcdef>"})
 		if !strings.Contains(msg.Body, `> #syz bad-command
@@ -576,7 +576,7 @@ func TestEmailErrors(t *testing.T) {
 	// If email contains a command we need to reply.
 	c.incomingEmail("syzbot@testapp.appspotmail.com", "#syz invalid")
 	reply := c.pollEmailBug()
-	c.expectEQ(reply.To, []string{"<default@sender.com>"})
+	c.expectEQ(reply.To, []string{"default@sender.com"})
 	c.expectEQ(reply.Body, `> #syz invalid
 
 I see the command but can't find the corresponding bug.
@@ -819,4 +819,250 @@ syzbot will keep track of this issue. See:
 https://goo.gl/tpsmEJ#status for how to communicate with syzbot.`,
 		extBugID, crashLogLink, kernelConfigLink))
 	c.checkURLContents(crashLogLink, crash.Log)
+}
+
+func TestSubjectTitleParser(t *testing.T) {
+	tests := []struct {
+		inSubject string
+		outTitle  string
+		outSeq    int
+	}{
+		{
+			inSubject: "Re: kernel BUG in blk_mq_dispatch_rq_list (4)",
+			outTitle:  "kernel BUG in blk_mq_dispatch_rq_list",
+			outSeq:    3,
+		},
+		{
+			inSubject: "Re: [syzbot] kernel BUG in blk_mq_dispatch_rq_list (4)",
+			outTitle:  "kernel BUG in blk_mq_dispatch_rq_list",
+			outSeq:    3,
+		},
+		{
+			// Make sure we always take the (number) at the end.
+			inSubject: "Re: kernel BUG in blk_mq_dispatch_rq_list(6) (4)",
+			outTitle:  "kernel BUG in blk_mq_dispatch_rq_list(6)",
+			outSeq:    3,
+		},
+		{
+			inSubject: "RE: kernel BUG in blk_mq_dispatch_rq_list",
+			outTitle:  "kernel BUG in blk_mq_dispatch_rq_list",
+			outSeq:    0,
+		},
+		{
+			// Make sure we trim the title.
+			inSubject: "RE:  kernel BUG in blk_mq_dispatch_rq_list ",
+			outTitle:  "kernel BUG in blk_mq_dispatch_rq_list",
+			outSeq:    0,
+		},
+		{
+			inSubject: "Re: ",
+			outTitle:  "",
+			outSeq:    0,
+		},
+	}
+
+	p := subjectTitleParser{}
+	for _, test := range tests {
+		title, seq, err := p.parseTitle(test.inSubject)
+		if test.outTitle == "" {
+			if err == nil {
+				t.Fatalf("subj: %q, expected error, got none (%q)", test.inSubject, title)
+			}
+		} else if title != test.outTitle {
+			t.Fatalf("subj: %q, expected title=%q, got %q", test.inSubject, test.outTitle, title)
+		} else if seq != test.outSeq {
+			t.Fatalf("subj: %q, expected seq=%q, got %q", test.inSubject, test.outSeq, seq)
+		}
+	}
+}
+
+func TestBugFromSubjectInference(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.makeClient(clientPublicEmail, keyPublicEmail, true)
+	client2 := c.makeClient(clientPublicEmail2, keyPublicEmail2, true)
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	build2 := testBuild(2)
+	client2.UploadBuild(build2)
+
+	const crashTitle = "WARNING in corrupted"
+	upstreamCrash := func(client *apiClient, build *dashapi.Build, title string) string {
+		// Upload some garbage crashes.
+		crash := testCrash(build, 1)
+		crash.Title = title
+		crash.Log = []byte(fmt.Sprintf("log%v", title))
+		crash.Maintainers = []string{"maintainer@kernel.org"}
+		client.ReportCrash(crash)
+
+		sender := c.pollEmailBug().Sender
+		c.incomingEmail(sender, "#syz upstream\n")
+
+		return c.pollEmailBug().Sender
+	}
+
+	upstreamCrash(client, build, "unrelated crash")
+	origSender := upstreamCrash(client, build, crashTitle)
+	upstreamCrash(client, build, "unrelated crash 2")
+
+	mailingList := "<" + config.Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email + ">"
+
+	// First try to ping some non-existing bug.
+	subject := "Re: unknown-bug"
+	c.incomingEmail("bugs@syzkaller.com",
+		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+		EmailOptOrigFrom("test@requester.com"),
+		EmailOptFrom(mailingList), EmailOptSubject(subject),
+	)
+	syzbotReply := c.pollEmailBug()
+	c.expectNE(syzbotReply.Sender, origSender)
+	c.expectEQ(strings.Contains(syzbotReply.Body, "can't find the corresponding bug"), true)
+
+	// Now try to test the exiting bug, but with the wrong mailing list.
+	subject = "Re: " + crashTitle
+	c.incomingEmail("bugs@syzkaller.com",
+		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+		EmailOptOrigFrom("test@requester.com"),
+		EmailOptFrom("<unknown-list@syzkaller.com>"), EmailOptSubject(subject),
+	)
+	body := c.pollEmailBug().Body
+	c.expectEQ(strings.Contains(body, "can't find the corresponding bug"), true)
+
+	// Now try to test the exiting bug with the proper mailing list.
+	c.incomingEmail("bugs@syzkaller.com",
+		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+		EmailOptFrom(mailingList), EmailOptOrigFrom("test@requester.com"),
+		EmailOptSubject(subject),
+	)
+	syzbotReply = c.pollEmailBug()
+	c.expectEQ(syzbotReply.Sender, origSender)
+	c.expectEQ(strings.Contains(syzbotReply.Body, "This crash does not have a reproducer"), true)
+
+	// Test that a different type of email headers is also parsed fine.
+	c.incomingEmail("bugs@syzkaller.com",
+		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+		EmailOptSender(mailingList), EmailOptFrom("test@requester.com"),
+		EmailOptSubject(subject),
+	)
+	body = c.pollEmailBug().Body
+	c.expectEQ(strings.Contains(body, "This crash does not have a reproducer"), true)
+
+	// Upstream a same-titled bug in another namespace.
+	upstreamCrash(client2, build2, crashTitle)
+
+	// Ensure that the inference fails with the proper title.
+	c.incomingEmail("bugs@syzkaller.com",
+		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+		EmailOptSender(mailingList), EmailOptFrom("test@requester.com"),
+		EmailOptSubject(subject),
+	)
+	body = c.pollEmailBug().Body
+	c.expectEQ(strings.Contains(body, "Several bugs with the exact same title"), true)
+
+	// Close the existing bug.
+	c.incomingEmail("bugs@syzkaller.com", "#syz invalid",
+		EmailOptFrom("test@requester.com"), EmailOptSubject(subject),
+		EmailOptCC([]string{mailingList, origSender}),
+	)
+	c.expectNoEmail()
+
+	// Create the (2) of the bug.
+	upstreamCrash(client, build, crashTitle)
+
+	// Make sure syzbot can understand the (2) version.
+	subject = "Re: " + crashTitle + " (2)"
+	c.incomingEmail("bugs@syzkaller.com",
+		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+		EmailOptFrom(mailingList), EmailOptOrigFrom("<test@requester.com>"),
+		EmailOptSubject(subject),
+	)
+	email := c.pollEmailBug()
+	c.expectEQ(email.To, []string{"test@requester.com"})
+	c.expectEQ(strings.Contains(email.Body, "This crash does not have a reproducer"), true)
+}
+
+// nolint: funlen
+func TestEmailLinks(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client2.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	crash.Maintainers = []string{`"Foo Bar" <foo@bar.com>`}
+	c.client2.ReportCrash(crash)
+
+	// Report the crash over email.
+	msg := c.pollEmailBug()
+
+	// Emulate receive of the report from a mailing list.
+	// This should update the bug with the link/Message-ID.
+	// nolint: lll
+	incoming1 := fmt.Sprintf(`Sender: syzkaller@googlegroups.com
+Date: Tue, 15 Aug 2017 14:59:00 -0700
+Message-ID: <1234>
+Subject: crash1
+From: %v
+To: foo@bar.com
+Content-Type: text/plain
+
+Hello
+
+syzbot will keep track of this issue.
+If you forgot to add the Reported-by tag, once the fix for this bug is merged
+into any tree, please reply to this email with:
+#syz fix: exact-commit-title
+To mark this as a duplicate of another syzbot report, please reply with:
+#syz dup: exact-subject-of-another-report
+If it's a one-off invalid bug report, please reply with:
+#syz invalid
+
+-- 
+You received this message because you are subscribed to the Google Groups "syzkaller" group.
+To unsubscribe from this group and stop receiving emails from it, send an email to syzkaller+unsubscribe@googlegroups.com.
+To post to this group, send email to syzkaller@googlegroups.com.
+To view this discussion on the web visit https://groups.google.com/d/msgid/syzkaller/1234@google.com.
+For more options, visit https://groups.google.com/d/optout.
+`, msg.Sender)
+
+	_, err := c.POST("/_ah/mail/", incoming1)
+	c.expectOK(err)
+
+	_, extBugID, err := email.RemoveAddrContext(msg.Sender)
+	c.expectOK(err)
+
+	// Make sure Link is set for the last Reporting.
+	dbBug, _, _ := c.loadBug(extBugID)
+	reporting := lastReportedReporting(dbBug)
+	c.expectNE(reporting.Link, "")
+}
+
+func TestEmailPatchTestingAccess(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client2
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	client.ReportCrash(crash)
+
+	sender := c.pollEmailBug().Sender
+	c.incomingEmail(sender,
+		"#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
+		EmailOptFrom("user@kernel.org"), EmailOptSubject("Re: "+crash.Title),
+	)
+
+	// We expect syzbot to just ignore this patch testing request.
+	c.expectNoEmail()
+
+	// The patch test job should also not be created.
+	pollResp := client.pollJobs(build.Manager)
+	c.expectEQ(pollResp.ID, "")
 }

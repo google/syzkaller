@@ -101,6 +101,30 @@ static long syz_compare_int(volatile long n, ...)
 }
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_compare_zlib
+#include "common_zlib.h"
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+
+// syz_compare_zlib(data ptr[in, array[int8]], size bytesize[data], zdata ptr[in, compressed_image], zsize bytesize[zdata])
+static long syz_compare_zlib(volatile long data, volatile long size, volatile long zdata, volatile long zsize)
+{
+	int fd = open("./uncompressed", O_RDWR | O_CREAT | O_EXCL, 0666);
+	if (fd == -1)
+		return -1;
+	if (puff_zlib_to_file((unsigned char*)zdata, zsize, fd))
+		return -1;
+	struct stat statbuf;
+	if (fstat(fd, &statbuf))
+		return -1;
+	void* uncompressed = mmap(0, statbuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	if (uncompressed == MAP_FAILED)
+		return -1;
+	return syz_compare(data, size, (long)uncompressed, statbuf.st_size);
+}
+#endif
+
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
 static void loop();
 static int do_sandbox_none(void)

@@ -1,0 +1,52 @@
+TITLE: KMSAN: uninit-value in ext4_evict_inode
+ALT: KMSAN origin in ext4_alloc_inode
+ALT: bad-access in ext4_evict_inode
+
+[  345.516988][ T3516] =====================================================
+[  345.524532][ T3516] BUG: KMSAN: uninit-value in ext4_evict_inode+0xdd/0x26b0
+[  345.532072][ T3516]  ext4_evict_inode+0xdd/0x26b0
+[  345.537093][ T3516]  evict+0x365/0x9a0
+[  345.541148][ T3516]  iput+0x985/0xdd0
+[  345.545260][ T3516]  ext4_mb_release+0x1058/0x1910
+[  345.550343][ T3516]  ext4_put_super+0x42b/0x1a60
+[  345.555440][ T3516]  generic_shutdown_super+0x18c/0x570
+[  345.561002][ T3516]  kill_block_super+0x8d/0x180
+[  345.566076][ T3516]  deactivate_locked_super+0xb1/0x120
+[  345.571600][ T3516]  deactivate_super+0x13a/0x150
+[  345.580327][ T3516]  cleanup_mnt+0x6b5/0x730
+[  345.586098][ T3516]  __cleanup_mnt+0x1e/0x30
+[  345.590660][ T3516]  task_work_run+0x229/0x2c0
+[  345.595548][ T3516]  exit_to_user_mode_loop+0x2a9/0x320
+[  345.601140][ T3516]  exit_to_user_mode_prepare+0x16e/0x220
+[  345.607049][ T3516]  syscall_exit_to_user_mode+0x23/0x40
+[  345.612752][ T3516]  __do_fast_syscall_32+0xb1/0x100
+[  345.618025][ T3516]  do_fast_syscall_32+0x33/0x70
+[  345.623137][ T3516]  do_SYSENTER_32+0x1b/0x20
+[  345.627774][ T3516]  entry_SYSENTER_compat_after_hwframe+0x70/0x82
+[  345.634443][ T3516] 
+[  345.636838][ T3516] Uninit was created at:
+[  345.641300][ T3516]  __alloc_pages+0x9f1/0xe80
+[  345.646181][ T3516]  alloc_pages+0xaae/0xd80
+[  345.650772][ T3516]  allocate_slab+0x1b5/0x1010
+[  345.655716][ T3516]  ___slab_alloc+0x10c3/0x2d60
+[  345.660656][ T3516]  kmem_cache_alloc_lru+0x6f3/0xb30
+[  345.666130][ T3516]  ext4_alloc_inode+0x5f/0x860
+[  345.671074][ T3516]  alloc_inode+0x83/0x440
+[  345.675635][ T3516]  new_inode+0x3b/0x430
+[  345.679946][ T3516]  ext4_mb_init+0x2227/0x3210
+[  345.684875][ T3516]  ext4_fill_super+0xbed2/0xd7d0
+[  345.689966][ T3516]  get_tree_bdev+0x8a3/0xd30
+[  345.694723][ T3516]  ext4_get_tree+0x30/0x40
+[  345.699278][ T3516]  vfs_get_tree+0xa1/0x500
+[  345.703819][ T3516]  do_new_mount+0x694/0x1580
+[  345.708476][ T3516]  path_mount+0x71a/0x1eb0
+[  345.713007][ T3516]  __se_sys_mount+0x734/0x840
+[  345.717751][ T3516]  __ia32_sys_mount+0xdf/0x140
+[  345.722637][ T3516]  __do_fast_syscall_32+0xa2/0x100
+[  345.727819][ T3516]  do_fast_syscall_32+0x33/0x70
+[  345.732789][ T3516]  do_SYSENTER_32+0x1b/0x20
+[  345.737355][ T3516]  entry_SYSENTER_compat_after_hwframe+0x70/0x82
+[  345.743838][ T3516] 
+[  345.746194][ T3516] CPU: 0 PID: 3516 Comm: syz-executor.1 Not tainted 6.1.0-rc4-syzkaller-62818-gb1376a14297d #0
+[  345.756646][ T3516] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 10/26/2022
+[  345.766805][ T3516] =====================================================

@@ -28,18 +28,20 @@ import (
 	"google.golang.org/appengine/v2"
 	"google.golang.org/appengine/v2/aetest"
 	db "google.golang.org/appengine/v2/datastore"
+	"google.golang.org/appengine/v2/log"
 	aemail "google.golang.org/appengine/v2/mail"
 	"google.golang.org/appengine/v2/user"
 )
 
 type Ctx struct {
-	t          *testing.T
-	inst       aetest.Instance
-	ctx        context.Context
-	mockedTime time.Time
-	emailSink  chan *aemail.Message
-	client     *apiClient
-	client2    *apiClient
+	t            *testing.T
+	inst         aetest.Instance
+	ctx          context.Context
+	mockedTime   time.Time
+	emailSink    chan *aemail.Message
+	client       *apiClient
+	client2      *apiClient
+	publicClient *apiClient
 }
 
 var skipDevAppserverTests = func() bool {
@@ -74,6 +76,7 @@ func NewCtx(t *testing.T) *Ctx {
 	}
 	c.client = c.makeClient(client1, password1, true)
 	c.client2 = c.makeClient(client2, password2, true)
+	c.publicClient = c.makeClient(clientPublicEmail, keyPublicEmail, true)
 	registerContext(r, c)
 	return c
 }
@@ -466,7 +469,9 @@ type (
 	EmailOptMessageID int
 	EmailOptSubject   string
 	EmailOptFrom      string
+	EmailOptOrigFrom  string
 	EmailOptCC        []string
+	EmailOptSender    string
 )
 
 func (c *Ctx) incomingEmail(to, body string, opts ...interface{}) {
@@ -474,6 +479,8 @@ func (c *Ctx) incomingEmail(to, body string, opts ...interface{}) {
 	subject := "crash1"
 	from := "default@sender.com"
 	cc := []string{"test@syzkaller.com", "bugs@syzkaller.com", "bugs2@syzkaller.com"}
+	sender := ""
+	origFrom := ""
 	for _, o := range opts {
 		switch opt := o.(type) {
 		case EmailOptMessageID:
@@ -482,9 +489,16 @@ func (c *Ctx) incomingEmail(to, body string, opts ...interface{}) {
 			subject = string(opt)
 		case EmailOptFrom:
 			from = string(opt)
+		case EmailOptSender:
+			sender = string(opt)
 		case EmailOptCC:
 			cc = []string(opt)
+		case EmailOptOrigFrom:
+			origFrom = fmt.Sprintf("\nX-Original-From: %v", string(opt))
 		}
+	}
+	if sender == "" {
+		sender = from
 	}
 	email := fmt.Sprintf(`Sender: %v
 Date: Tue, 15 Aug 2017 14:59:00 -0700
@@ -492,11 +506,12 @@ Message-ID: <%v>
 Subject: %v
 From: %v
 Cc: %v
-To: %v
+To: %v%v
 Content-Type: text/plain
 
 %v
-`, from, id, subject, from, strings.Join(cc, ","), to, body)
+`, sender, id, subject, from, strings.Join(cc, ","), to, origFrom, body)
+	log.Infof(c.ctx, "sending %s", email)
 	_, err := c.POST("/_ah/mail/", email)
 	c.expectOK(err)
 }

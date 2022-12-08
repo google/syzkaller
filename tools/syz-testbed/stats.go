@@ -33,6 +33,7 @@ type SyzReproResult struct {
 	Input       *SyzReproInput
 	ReproFound  bool
 	CReproFound bool
+	ReproTitle  string
 	Duration    time.Duration
 }
 
@@ -393,7 +394,7 @@ func (view StatView) GenerateReproDurationTable() (*Table, error) {
 
 // List all repro attempts.
 func (view StatView) GenerateReproAttemptsTable() (*Table, error) {
-	table := NewTable("Result #", "Bug", "Checkout", "Repro found", "C repro found", "Duration")
+	table := NewTable("Result #", "Bug", "Checkout", "Repro found", "C repro found", "Repro title", "Duration")
 	for gid, group := range view.Groups {
 		for rid, result := range group.SyzReproResults() {
 			table.AddRow(
@@ -402,6 +403,7 @@ func (view StatView) GenerateReproAttemptsTable() (*Table, error) {
 				group.Name,
 				NewBoolCell(result.ReproFound),
 				NewBoolCell(result.CReproFound),
+				result.ReproTitle,
 				result.Duration.Round(time.Second).String(),
 			)
 		}

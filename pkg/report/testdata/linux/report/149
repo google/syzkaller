@@ -1,5 +1,5 @@
-TITLE: KASAN: use-after-free Read in __queue_work
-ALT: bad-access in __queue_work
+TITLE: KASAN: use-after-free Read in strp_check_rcv
+ALT: bad-access in strp_check_rcv
 
 [ 1140.689311] ==================================================================
 [ 1140.696784] BUG: KASAN: use-after-free in work_is_static_object+0x39/0x40

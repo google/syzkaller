@@ -9,6 +9,7 @@ import (
 	"math"
 	"math/rand"
 	"sort"
+	"sync"
 )
 
 // Maximum length of generated binary blobs inserted into the program.
@@ -374,10 +375,42 @@ func (t *BufferType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []
 	case BufferText:
 		data := append([]byte{}, a.Data()...)
 		a.data = r.mutateText(t.Text, data)
+	case BufferCompressed:
+		a.data, retry = r.mutateImage(a.Data())
 	default:
 		panic("unknown buffer kind")
 	}
 	return
+}
+
+var imageMu sync.Mutex
+
+func (r *randGen) mutateImage(image []byte) (data []byte, retry bool) {
+	if len(image) == 0 {
+		return image, true
+	}
+	// Don't decompress more than one image at a time
+	// since it can consume lots of memory.
+	// Reconsider when/if we move mutation to the host process.
+	imageMu.Lock()
+	defer imageMu.Unlock()
+	data, err := Decompress(image)
+	if err != nil {
+		panic(fmt.Sprintf("could not decompress data: %v", err))
+	}
+	if len(data) == 0 {
+		return image, true // Do not mutate empty data.
+	}
+	hm := MakeGenericHeatmap(data, r.Rand)
+	for i := hm.NumMutations(); i > 0; i-- {
+		index := hm.ChooseLocation()
+		width := 1 << uint(r.Intn(4))
+		if index+width > len(data) {
+			width = 1
+		}
+		storeInt(data[index:], r.randInt(uint64(width*8)), width)
+	}
+	return Compress(data), false
 }
 
 func mutateBufferSize(r *randGen, arg *DataArg, minLen, maxLen uint64) {
@@ -662,6 +695,10 @@ func (t *BufferType) getMutationPrio(target *Target, arg Arg, ignoreSpecial bool
 	if t.Kind == BufferString && len(t.Values) == 1 {
 		// These are effectively consts (and frequently file names).
 		return dontMutate, false
+	}
+	if t.Kind == BufferCompressed {
+		// Prioritise mutation of compressed buffers, e.g. disk images (`compressed_image`).
+		return maxPriority, false
 	}
 	return 0.8 * maxPriority, false
 }
