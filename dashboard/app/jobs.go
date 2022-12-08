@@ -168,7 +168,8 @@ func addTestJob(c context.Context, args *testJobArgs, now time.Time) error {
 		if _, err := db.Put(c, jobKey, job); err != nil {
 			return fmt.Errorf("failed to put job: %v", err)
 		}
-		return markCrashReported(c, job.CrashID, args.bugKey, now)
+		return addCrashReference(c, job.CrashID, args.bugKey,
+			CrashReference{CrashReferenceJob, extJobID(jobKey), now})
 	}
 	err = db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true, Attempts: 30})
 	if patchID != 0 && deletePatch || err != nil {
@@ -480,10 +481,11 @@ func createBisectJobForBug(c context.Context, bug0 *Bug, crash *Crash, bugKey, c
 		if _, err := db.Put(c, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to put bug: %v", err)
 		}
-		return markCrashReported(c, job.CrashID, bugKey, now)
+		return addCrashReference(c, job.CrashID, bugKey,
+			CrashReference{CrashReferenceJob, extJobID(jobKey), now})
 	}
 	if err := db.RunInTransaction(c, tx, &db.TransactionOptions{
-		// We're accessing two different kinds in markCrashReported.
+		// We're accessing two different kinds in addCrashReference.
 		XG: true,
 	}); err != nil {
 		return nil, nil, fmt.Errorf("create bisect job tx failed: %v", err)
