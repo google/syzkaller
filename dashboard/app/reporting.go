@@ -931,12 +931,23 @@ func incomingCommandUpdate(c context.Context, now time.Time, cmd *dashapi.BugUpd
 			bug.updateCommits(cmd.FixCommits, now)
 		}
 	}
+	toReport := append([]int64{}, cmd.ReportCrashIDs...)
 	if cmd.CrashID != 0 {
-		// Rememeber that we've reported this crash.
-		if err := markCrashReported(c, cmd.CrashID, bugKey, now); err != nil {
+		bugReporting.CrashID = cmd.CrashID
+		toReport = append(toReport, cmd.CrashID)
+	}
+	newRef := CrashReference{CrashReferenceReporting, bugReporting.Name, now}
+	for _, crashID := range toReport {
+		err := addCrashReference(c, crashID, bugKey, newRef)
+		if err != nil {
 			return false, internalError, err
 		}
-		bugReporting.CrashID = cmd.CrashID
+	}
+	for _, crashID := range cmd.UnreportCrashIDs {
+		err := removeCrashReference(c, crashID, bugKey, CrashReferenceReporting, bugReporting.Name)
+		if err != nil {
+			return false, internalError, err
+		}
 	}
 	if bugReporting.ExtID == "" {
 		bugReporting.ExtID = cmd.ExtID
