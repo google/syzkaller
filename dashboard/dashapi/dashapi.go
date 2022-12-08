@@ -444,7 +444,13 @@ type BugUpdate struct {
 	ResetFixCommits bool     // Remove all commits (empty FixCommits means leave intact).
 	FixCommits      []string // Titles of commits that fix this bug.
 	CC              []string // Additional emails to add to CC list in future emails.
-	CrashID         int64
+
+	CrashID int64 // This is a deprecated field, left here for backward compatibility.
+
+	// The new interface that allows to report and unreport several crashes at the same time.
+	// This is not relevant for emails, but may be important for external reportings.
+	ReportCrashIDs   []int64
+	UnreportCrashIDs []int64
 }
 
 type BugUpdateReply struct {

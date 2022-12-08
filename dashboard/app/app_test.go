@@ -646,6 +646,44 @@ func TestPurgeOldCrashes(t *testing.T) {
 			c.t.Errorf("preserved bad crash repro=%v: %v", crash.ReproC != 0, idx)
 		}
 	}
+
+	firstCrashExists := func() bool {
+		_, crashKeys, err := queryCrashesForBug(c.ctx, bug.key(c.ctx), 10*totalReported)
+		c.expectOK(err)
+		for _, key := range crashKeys {
+			if key.IntID() == rep.CrashID {
+				return true
+			}
+		}
+		return false
+	}
+
+	// A sanity check for the test itself.
+	if !firstCrashExists() {
+		t.Fatalf("The first reported crash should be present")
+	}
+
+	// Unreport the first crash.
+	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+		ID:               rep.ID,
+		Status:           dashapi.BugStatusUpdate,
+		ReproLevel:       dashapi.ReproLevelC,
+		UnreportCrashIDs: []int64{rep.CrashID},
+	})
+	c.expectEQ(reply.OK, true)
+
+	// Trigger more purge events.
+	for i := 0; i < maxCrashes; i++ {
+		c.advanceTime(2 * time.Hour) // This ensures that crashes are saved.
+		crash.ReproSyz = nil
+		crash.ReproC = nil
+		crash.ReproOpts = []byte(fmt.Sprintf("%v", i))
+		c.client.ReportCrash(crash)
+	}
+	// Check that the unreported crash was purged.
+	if firstCrashExists() {
+		t.Fatalf("The unreported crash should have been purged.")
+	}
 }
 
 func TestManagerFailedBuild(t *testing.T) {
