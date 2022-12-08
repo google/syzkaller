@@ -9,6 +9,9 @@
 
 include <linux/android/binder.h>
 include <linux/fcntl.h>
+include <linux/stat.h>
+include <linux/mman.h>
+include <linux/close_range.h>
 include <poll.h>
 
 resource fd_binder[fd]
@@ -33,6 +36,7 @@ mmap$binder_general_flags(addr vma, len len[addr], prot flags[binder_prot_flags]
 
 ppoll$binder(fds ptr[inout, binder_pollfd], nfds_t const[1], tmo_p ptr[inout, binder_timespec], sigmask const[NULL])
 
+ioctl$BINDER_SET_IDLE_TIMEOUT(fd fd_binder, cmd const[BINDER_SET_IDLE_TIMEOUT], arg ptr[in, int32])
 
 ioctl$BINDER_SET_MAX_THREADS(fd fd_binder, cmd const[BINDER_SET_MAX_THREADS], arg ptr[in, int32])
 ioctl$BINDER_SET_CONTEXT_MGR(fd fd_binder, cmd const[BINDER_SET_CONTEXT_MGR], arg const[0])
@@ -45,8 +49,27 @@ ioctl$BINDER_FREEZE(fd fd_binder, cmd const[BINDER_FREEZE], arg ptr[in, binder_f
 ioctl$BINDER_GET_FROZEN_INFO(fd fd_binder, cmd const[BINDER_GET_FROZEN_INFO], arg ptr[in, binder_frozen_status_info])
 ioctl$BINDER_ENABLE_ONEWAY_SPAM_DETECTION(fd fd_binder, cmd const[BINDER_ENABLE_ONEWAY_SPAM_DETECTION], arg ptr[in, bool32])
 ioctl$BINDER_GET_EXTENDED_ERROR(fd fd_binder, cmd const[BINDER_GET_EXTENDED_ERROR], arg ptr[out, binder_extended_error])
+ioctl$BINDER_SET_IDLE_PRIORITY(fd fd_binder, cmd const[BINDER_SET_IDLE_PRIORITY], arg const[0])
+ioctl$BINDER_VERSION(fd fd_binder, cmd const[BINDER_VERSION], arg ptr[inout, binder_version])
 
 openat$binder_debug(fd const[AT_FDCWD], file ptr[in, string[binder_debug_file]], flags const[O_RDONLY], mode const[0]) fd
+fstatfs$binder(fd fd_binder, buf buffer[out])
+
+close$binder(fd int32)
+
+close$binder_range(fd int32, max_fd int32, flags flags[close_range_flags])
+
+fallocate$binder(fd int32, mode flags[fallocate_mode], off intptr, len intptr)
+
+flock$binder(fd int32, op flags[flock_op])
+
+fsync$binder(fd int32)
+
+dup$binder(oldfd fd_binder) fd_binder
+dup2$binder(oldfd fd_binder, newfd fd_binder) fd_binder
+dup3$binder(oldfd fd_binder, newfd fd_binder, flags flags[dup_flags]) fd_binder
+
+
 
 binder_debug_file = "/sys/kernel/debug/binder/failed_transaction_log", "/sys/kernel/debug/binder/state", "/sys/kernel/debug/binder/stats", "/sys/kernel/debug/binder/transaction_log", "/sys/kernel/debug/binder/transactions"
 
@@ -72,6 +95,10 @@ binder_freeze_info {
 	pid		pid
 	enable		bool32
 	timeout_ms	int32
+}
+
+binder_version {
+	protocol_version	const[0, int32]
 }
 
 binder_frozen_status_info {
