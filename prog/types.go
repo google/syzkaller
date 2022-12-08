@@ -484,6 +484,7 @@ const (
 	BufferFilename
 	BufferText
 	BufferGlob
+	BufferCompressed
 )
 
 type TextKind int
@@ -552,6 +553,10 @@ func (t *BufferType) isDefaultArg(arg Arg) bool {
 		}
 	}
 	return true
+}
+
+func (t *BufferType) IsCompressed() bool {
+	return t.Kind == BufferCompressed
 }
 
 type ArrayKind int

@@ -26,38 +26,38 @@ type testReqArgs struct {
 	user         string
 	extID        string
 	link         string
-	patch        string
+	patch        []byte
 	repo         string
 	branch       string
 	jobCC        []string
 }
 
 // handleTestRequest added new job to db.
-// Returns empty string if job added successfully, or reason why it wasn't added.
-func handleTestRequest(c context.Context, args *testReqArgs) string {
+// Returns nil if job added successfully.
+// If the arguments are invalid, the error is of type *BadTestRequest.
+// If the request was denied, the error is of type *TestRequestDenied.
+// All other errors correspond to internal processing problems.
+func handleTestRequest(c context.Context, args *testReqArgs) error {
 	log.Infof(c, "test request: bug=%s user=%q extID=%q patch=%v, repo=%q branch=%q",
 		args.bug.Title, args.user, args.extID, len(args.patch), args.repo, args.branch)
 	for _, blocked := range config.EmailBlocklist {
 		if args.user == blocked {
-			log.Errorf(c, "test request from blocked user: %v", args.user)
-			return ""
+			return &TestRequestDeniedError{
+				fmt.Sprintf("test request from blocked user: %v", args.user),
+			}
 		}
 	}
 	now := timeNow(c)
 	crash, crashKey, err := findCrashForBug(c, args.bug)
 	if err != nil {
-		log.Errorf(c, "failed to find a crash: %v", err)
-		return ""
+		return fmt.Errorf("failed to find a crash: %v", err)
 	}
-	reply, err := addTestJob(c, &testJobArgs{
+	err = addTestJob(c, &testJobArgs{
 		testReqArgs: *args,
 		crash:       crash, crashKey: crashKey,
 	}, now)
 	if err != nil {
-		log.Errorf(c, "test request failed: %v", err)
-		if reply == "" {
-			reply = internalError
-		}
+		return err
 	}
 	// Update bug CC and last activity time.
 	tx := func(c context.Context) error {
@@ -80,10 +80,7 @@ func handleTestRequest(c context.Context, args *testReqArgs) string {
 		// We've already stored the job, so just log the error.
 		log.Errorf(c, "failed to update bug: %v", err)
 	}
-	if args.link != "" {
-		reply = "" // don't send duplicate error reply
-	}
-	return reply
+	return nil
 }
 
 type testJobArgs struct {
@@ -93,16 +90,16 @@ type testJobArgs struct {
 	testReqArgs
 }
 
-func addTestJob(c context.Context, args *testJobArgs, now time.Time) (string, error) {
+func addTestJob(c context.Context, args *testJobArgs, now time.Time) error {
 	if reason := checkTestJob(c, args.bug, args.bugReporting, args.crash,
 		args.repo, args.branch); reason != "" {
-		return reason, nil
+		return &BadTestRequestError{reason}
 	}
 	manager := args.crash.Manager
 	for _, ns := range config.Namespaces {
 		if mgr, ok := ns.Managers[manager]; ok {
 			if mgr.RestrictedTestingRepo != "" && args.repo != mgr.RestrictedTestingRepo {
-				return mgr.RestrictedTestingReason, nil
+				return &BadTestRequestError{mgr.RestrictedTestingReason}
 			}
 			if mgr.Decommissioned {
 				manager = mgr.DelegatedTo
@@ -110,9 +107,9 @@ func addTestJob(c context.Context, args *testJobArgs, now time.Time) (string, er
 			break
 		}
 	}
-	patchID, err := putText(c, args.bug.Namespace, textPatch, []byte(args.patch), false)
+	patchID, err := putText(c, args.bug.Namespace, textPatch, args.patch, false)
 	if err != nil {
-		return "", err
+		return err
 	}
 	reportingName := ""
 	if args.bugReporting != nil {
@@ -180,9 +177,9 @@ func addTestJob(c context.Context, args *testJobArgs, now time.Time) (string, er
 		}
 	}
 	if err != nil {
-		return "", fmt.Errorf("job tx failed: %v", err)
+		return fmt.Errorf("job tx failed: %v", err)
 	}
-	return "", nil
+	return nil
 }
 
 func checkTestJob(c context.Context, bug *Bug, bugReporting *BugReporting, crash *Crash,
@@ -205,6 +202,22 @@ func checkTestJob(c context.Context, bug *Bug, bugReporting *BugReporting, crash
 		return "This bug is already upstreamed. Please test upstream."
 	}
 	return ""
+}
+
+type BadTestRequestError struct {
+	message string
+}
+
+func (e *BadTestRequestError) Error() string {
+	return e.message
+}
+
+type TestRequestDeniedError struct {
+	message string
+}
+
+func (e *TestRequestDeniedError) Error() string {
+	return e.message
 }
 
 // pollPendingJobs returns the next job to execute for the provided list of managers.
@@ -306,7 +319,7 @@ func handleRetestForBug(c context.Context, now time.Time, bug *Bug, bugKey *db.K
 		if err != nil {
 			return err
 		}
-		reason, err := addTestJob(c, &testJobArgs{
+		err = addTestJob(c, &testJobArgs{
 			crash:     crash,
 			crashKey:  crashKeys[crashID],
 			configRef: build.KernelConfig,
@@ -317,9 +330,6 @@ func handleRetestForBug(c context.Context, now time.Time, bug *Bug, bugKey *db.K
 				branch: build.KernelBranch,
 			},
 		}, now)
-		if reason != "" {
-			return fmt.Errorf("job not added for reason %s", reason)
-		}
 		if err != nil {
 			return fmt.Errorf("failed to add job: %w", err)
 		}
@@ -985,6 +995,46 @@ func jobReported(c context.Context, jobID string) error {
 		return nil
 	}
 	return db.RunInTransaction(c, tx, nil)
+}
+
+func handleExternalTestRequest(c context.Context, req *dashapi.TestPatchRequest) error {
+	bug, bugKey, err := findBugByReportingID(c, req.BugID)
+	if err != nil {
+		return fmt.Errorf("failed to find the bug: %w", err)
+	}
+	bugReporting, _ := bugReportingByID(bug, req.BugID)
+	if bugReporting == nil {
+		return fmt.Errorf("failed to find the bug reporting object")
+	}
+	crash, crashKey, err := findCrashForBug(c, bug)
+	if err != nil {
+		return fmt.Errorf("failed to find a crash: %v", err)
+	}
+	if req.Branch == "" && req.Repo == "" {
+		build, err := loadBuild(c, bug.Namespace, crash.BuildID)
+		if err != nil {
+			return fmt.Errorf("failed to find the bug reporting object: %w", err)
+		}
+		req.Branch = build.KernelBranch
+		req.Repo = build.KernelRepo
+	} else if req.Branch == "" || req.Repo == "" {
+		return fmt.Errorf("branch and repo should be either both set or both empty")
+	}
+	now := timeNow(c)
+	return addTestJob(c, &testJobArgs{
+		crash:    crash,
+		crashKey: crashKey,
+		testReqArgs: testReqArgs{
+			bug:          bug,
+			bugKey:       bugKey,
+			bugReporting: bugReporting,
+			repo:         req.Repo,
+			branch:       req.Branch,
+			user:         req.User,
+			link:         req.Link,
+			patch:        req.Patch,
+		},
+	}, now)
 }
 
 type jobSorter struct {

@@ -16,7 +16,7 @@ sudo apt install make gcc flex bison libncurses-dev libelf-dev libssl-dev
 
 ## GCC
 
-If your distro's GCC is older, it's preferable to get the lastest GCC from [this](/docs/syzbot.md#crash-does-not-reproduce) list. Download and unpack into `$GCC`, and you should have GCC binaries in `$GCC/bin/`
+If your distro's GCC is older, it's preferable to get the latest GCC from [this](/docs/syzbot.md#crash-does-not-reproduce) list. Download and unpack into `$GCC`, and you should have GCC binaries in `$GCC/bin/`
 
 >**Ubuntu 20.04 LTS**: You can ignore this section. GCC is up-to-date.
 
@@ -106,14 +106,14 @@ CONFIG_CMDLINE="net.ifnames=0"
 ### Build the Kernel
 
 Command:
-```
+``` bash
 make -j`nproc`
 ```
 
 Or if you want to specify a compiler.
 
 Command:
-```
+``` bash
 make CC="$GCC/bin/gcc" -j`nproc`
 ```
 
@@ -141,7 +141,7 @@ sudo apt install debootstrap
 Create a Debian Stretch Linux image with the minimal set of required packages.
 
 Command:
-```
+``` bash
 mkdir $IMAGE
 cd $IMAGE/
 wget https://raw.githubusercontent.com/google/syzkaller/master/tools/create-image.sh -O create-image.sh
@@ -158,7 +158,7 @@ Command:
 ./create-image.sh --distribution buster
 ```
 
-### Image exatra tools
+### Image extra tools
 
 Sometimes it's useful to have some additional packages and tools available in the VM even though they are not required to run syzkaller. To install a set of tools we find useful do (feel free to edit the list of tools in the script):
 
@@ -205,7 +205,7 @@ qemu-system-x86_64 \
 	2>&1 | tee vm.log
 ```
 
-```
+``` text
 early console in setup code
 early console in extract_kernel
 input_data: 0x0000000005d9e276
@@ -251,7 +251,7 @@ Build syzkaller as described [here](/docs/linux/setup.md#go-and-syzkaller).
 Then create a manager config like the following, replacing the environment
 variables `$GOPATH`, `$KERNEL` and `$IMAGE` with their actual values.
 
-```
+``` json
 {
 	"target": "linux/amd64",
 	"http": "127.0.0.1:56741",

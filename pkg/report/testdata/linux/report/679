@@ -1,0 +1,91 @@
+TITLE: inconsistent lock state in sched_core_balance
+
+[  124.804344][ T3879] ================================
+[  124.809430][ T3879] WARNING: inconsistent lock state
+[  124.814523][ T3879] 5.10.136-syzkaller-19376-g6f46a5fe0124 #0 Not tainted
+[  124.821439][ T3879] --------------------------------
+[  124.826523][ T3879] inconsistent {IN-HARDIRQ-W} -> {HARDIRQ-ON-W} usage.
+[  124.833359][ T3879] syz-executor.4/3879 [HC0[0]:SC0[0]:HE0:SE1] takes:
+[  124.840218][ T3879] ffff888114ca0920 (&p->pi_lock){?.-.}-{2:2}, at: task_blocks_on_rt_mutex+0x231/0x342
+[  124.849778][ T3879] {IN-HARDIRQ-W} state was registered at:
+[  124.855477][ T3879]   lock_acquire+0x379/0x3f9
+[  124.860053][ T3879]   _raw_spin_lock_irqsave+0x3c/0x4c
+[  124.865322][ T3879]   try_to_wake_up+0xf9/0x9d4
+[  124.869975][ T3879]   swake_up_locked+0x5c/0x69
+[  124.874631][ T3879]   swake_up_one+0x16/0x24
+[  124.879026][ T3879]   rcu_report_exp_cpu_mult+0x1f9/0x239
+[  124.884551][ T3879]   flush_smp_call_function_queue+0x56a/0x5da
+[  124.890600][ T3879]   __sysvec_call_function_single+0x154/0x299
+[  124.896644][ T3879]   asm_call_irq_on_stack+0xf/0x20
+[  124.901733][ T3879]   sysvec_call_function_single+0x90/0xca
+[  124.907429][ T3879]   asm_sysvec_call_function_single+0x12/0x20
+[  124.913476][ T3879]   get_page_from_freelist+0xdbe/0x1087
+[  124.918999][ T3879]   __alloc_pages_nodemask+0x25c/0x485
+[  124.924439][ T3879]   alloc_slab_page+0x22/0x57
+[  124.929094][ T3879]   allocate_slab+0x77/0x393
+[  124.933664][ T3879]   ___slab_alloc.constprop.0+0x308/0x3e0
+[  124.939365][ T3879]   __slab_alloc.constprop.0+0x67/0x8e
+[  124.944797][ T3879]   kmem_cache_alloc+0x91/0x217
+[  124.949623][ T3879]   __alloc_file+0x28/0x2e6
+[  124.954106][ T3879]   alloc_empty_file+0xfb/0x180
+[  124.958934][ T3879]   path_openat+0xed/0x192a
+[  124.963415][ T3879]   do_filp_open+0xc2/0x156
+[  124.967893][ T3879]   do_open_execat+0x123/0x70f
+[  124.972629][ T3879]   bprm_execve+0x4f2/0x146b
+[  124.977202][ T3879]   kernel_execve+0x2ee/0x30d
+[  124.981858][ T3879]   call_usermodehelper_exec_async+0x278/0x328
+[  124.987987][ T3879]   ret_from_fork+0x1f/0x30
+[  124.992458][ T3879] irq event stamp: 66
+[  124.996421][ T3879] hardirqs last  enabled at (65): [<ffffffff847e2f33>] syscall_enter_from_user_mode+0x52/0x79
+[  125.006637][ T3879] hardirqs last disabled at (66): [<ffffffff847f0fc1>] _raw_spin_lock_irqsave+0x16/0x4c
+[  125.016328][ T3879] softirqs last  enabled at (50): [<ffffffff811d6ec0>] fpregs_unlock+0x0/0x45
+[  125.025168][ T3879] softirqs last disabled at (48): [<ffffffff811d6e9b>] fpregs_lock+0x0/0x25
+[  125.033810][ T3879] 
+[  125.033810][ T3879] other info that might help us debug this:
+[  125.041845][ T3879]  Possible unsafe locking scenario:
+[  125.041845][ T3879] 
+[  125.049272][ T3879]        CPU0
+[  125.052528][ T3879]        ----
+[  125.055783][ T3879]   lock(&p->pi_lock);
+[  125.059831][ T3879]   <Interrupt>
+[  125.063262][ T3879]     lock(&p->pi_lock);
+[  125.067489][ T3879] 
+[  125.067489][ T3879]  *** DEADLOCK ***
+[  125.067489][ T3879] 
+[  125.075612][ T3879] 5 locks held by syz-executor.4/3879:
+[  125.081037][ T3879]  #0: ffffffff868d4e30 ((task_exit_notifier).rwsem){++++}-{3:3}, at: blocking_notifier_call_chain+0x58/0x89
+[  125.092588][ T3879]  #1: ffffffff870080e0 (uid_lock){+.+.}-{0:0}, at: process_notifier+0x7f/0x32e
+[  125.101614][ T3879]  #2: ffffffff87008078 (uid_lock.wait_lock){+...}-{2:2}, at: rt_mutex_slowlock+0x9f/0x345
+[  125.111592][ T3879]  #3: ffff888114ca0920 (&p->pi_lock){?.-.}-{2:2}, at: task_blocks_on_rt_mutex+0x231/0x342
+[  125.121573][ T3879]  #4: ffffffff868c1760 (rcu_read_lock){....}-{1:2}, at: rcu_lock_acquire.constprop.0+0x0/0x22
+[  125.131900][ T3879] 
+[  125.131900][ T3879] stack backtrace:
+[  125.137774][ T3879] CPU: 0 PID: 3879 Comm: syz-executor.4 Not tainted 5.10.136-syzkaller-19376-g6f46a5fe0124 #0 8f0771607702f5ef7184d2ee33bd0acd70219fc4
+[  125.151538][ T3879] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 10/26/2022
+[  125.161567][ T3879] Call Trace:
+[  125.164842][ T3879]  dump_stack+0x107/0x163
+[  125.169156][ T3879]  mark_lock+0x310/0x6ae
+[  125.197302][ T3879]  mark_held_locks+0xa4/0xbb
+[  125.207058][ T3879]  lockdep_hardirqs_on_prepare+0x2fe/0x376
+[  125.212865][ T3879]  trace_hardirqs_on+0x69/0x74
+[  125.217615][ T3879]  raw_spin_rq_unlock_irq+0xa/0xc
+[  125.222622][ T3879]  sched_core_balance+0xa8/0x635
+[  125.238157][ T3879]  balance_callback+0xcb/0xf0
+[  125.242816][ T3879]  rt_mutex_setprio+0x745/0x80e
+[  125.261963][ T3879]  task_blocks_on_rt_mutex+0x25d/0x342
+[  125.267404][ T3879]  rt_mutex_slowlock+0x1b3/0x345
+[  125.277599][ T3879]  process_notifier+0x7f/0x32e
+[  125.292269][ T3879]  notifier_call_chain+0x125/0x1a2
+[  125.297364][ T3879]  blocking_notifier_call_chain+0x6c/0x89
+[  125.303062][ T3879]  do_exit+0x1c1/0x2054
+[  125.335433][ T3879]  __x64_sys_exit+0x42/0x42
+[  125.339917][ T3879]  do_syscall_64+0x33/0x40
+[  125.344315][ T3879]  entry_SYSCALL_64_after_hwframe+0x61/0xc6
+[  125.350188][ T3879] RIP: 0033:0x7a9d147cc639
+[  125.354583][ T3879] Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
+[  125.374167][ T3879] RSP: 002b:0000000020000698 EFLAGS: 00000246 ORIG_RAX: 000000000000003c
+[  125.382561][ T3879] RAX: ffffffffffffffda RBX: 00007a9d148ecf80 RCX: 00007a9d147cc639
+[  125.390513][ T3879] RDX: 00007a9d147cc639 RSI: 00000000200006c0 RDI: 000000000000000b
+[  125.398462][ T3879] RBP: 000000000000000b R08: 0000000000000000 R09: 0000000000000000
+[  125.406413][ T3879] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+[  125.414365][ T3879] R13: 00007ffe8426462f R14: 00007a9d12d3f300 R15: 0000000000022000

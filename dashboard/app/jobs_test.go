@@ -26,34 +26,36 @@ func TestJob(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
+	client := c.publicClient
 	build := testBuild(1)
-	c.client2.UploadBuild(build)
+	client.UploadBuild(build)
 
 	// Report crash without repro, check that test requests are not accepted.
 	crash := testCrash(build, 1)
 	crash.Maintainers = []string{"maintainer@kernel.org"}
-	c.client2.ReportCrash(crash)
+	client.ReportCrash(crash)
 
 	sender := c.pollEmailBug().Sender
 	c.incomingEmail(sender, "#syz upstream\n")
 	sender = c.pollEmailBug().Sender
 	_, extBugID, err := email.RemoveAddrContext(sender)
 	c.expectOK(err)
-	mailingList := config.Namespaces["test2"].Reporting[1].Config.(*EmailConfig).Email
+	mailingList := config.Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
 	c.incomingEmail(sender, "bla-bla-bla", EmailOptFrom("maintainer@kernel.org"),
 		EmailOptCC([]string{mailingList, "kernel@mailing.list"}))
 
 	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
 		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
 	body := c.pollEmailBug().Body
+	t.Logf("body: %s", body)
 	c.expectEQ(strings.Contains(body, "This crash does not have a reproducer"), true)
 
 	// Report crash with repro.
 	crash.ReproOpts = []byte("repro opts")
 	crash.ReproSyz = []byte("repro syz")
 	crash.ReproC = []byte("repro C")
-	c.client2.ReportCrash(crash)
-	c.client2.pollAndFailBisectJob(build.Manager)
+	client.ReportCrash(crash)
+	client.pollAndFailBisectJob(build.Manager)
 
 	body = c.pollEmailBug().Body
 	c.expectEQ(strings.Contains(body, "syzbot has found a reproducer"), true)
@@ -78,7 +80,7 @@ func TestJob(t *testing.T) {
 	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch,
 		EmailOptFrom("\"foo\" <blOcKed@dOmain.COM>"))
 	c.expectNoEmail()
-	pollResp := c.client2.pollJobs(build.Manager)
+	pollResp := client.pollJobs(build.Manager)
 	c.expectEQ(pollResp.ID, "")
 
 	// This submits actual test request.
@@ -93,9 +95,9 @@ func TestJob(t *testing.T) {
 		EmailOptCC([]string{"somebody@else.com"}))
 	c.expectNoEmail()
 
-	pollResp = c.client2.pollJobs("foobar")
+	pollResp = client.pollJobs("foobar")
 	c.expectEQ(pollResp.ID, "")
-	pollResp = c.client2.pollJobs(build.Manager)
+	pollResp = client.pollJobs(build.Manager)
 	c.expectNE(pollResp.ID, "")
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 	c.expectEQ(pollResp.Manager, build.Manager)
@@ -111,7 +113,7 @@ func TestJob(t *testing.T) {
 			"repro syz"))
 	c.expectEQ(pollResp.ReproC, []byte("repro C"))
 
-	pollResp2 := c.client2.pollJobs(build.Manager)
+	pollResp2 := client.pollJobs(build.Manager)
 	c.expectEQ(pollResp2, pollResp)
 
 	jobDoneReq := &dashapi.JobDoneReq{
@@ -121,7 +123,7 @@ func TestJob(t *testing.T) {
 		CrashLog:    []byte("test crash log"),
 		CrashReport: []byte("test crash report"),
 	}
-	c.client2.JobDone(jobDoneReq)
+	client.JobDone(jobDoneReq)
 
 	{
 		dbJob, dbBuild, _ := c.loadJob(pollResp.ID)
@@ -158,14 +160,14 @@ patch:          %[1]v
 
 	// Testing fails with an error.
 	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch, EmailOptMessageID(2))
-	pollResp = c.client2.pollJobs(build.Manager)
+	pollResp = client.pollJobs(build.Manager)
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 	jobDoneReq = &dashapi.JobDoneReq{
 		ID:    pollResp.ID,
 		Build: *build,
 		Error: []byte("failed to apply patch"),
 	}
-	c.client2.JobDone(jobDoneReq)
+	client.JobDone(jobDoneReq)
 	{
 		dbJob, dbBuild, _ := c.loadJob(pollResp.ID)
 		patchLink := externalLink(c.ctx, textPatch, dbJob.Patch)
@@ -195,14 +197,14 @@ patch:          %[1]v
 
 	// Testing fails with a huge error that can't be inlined in email.
 	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch, EmailOptMessageID(3))
-	pollResp = c.client2.pollJobs(build.Manager)
+	pollResp = client.pollJobs(build.Manager)
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 	jobDoneReq = &dashapi.JobDoneReq{
 		ID:    pollResp.ID,
 		Build: *build,
 		Error: bytes.Repeat([]byte{'a', 'b', 'c'}, (maxInlineError+100)/3),
 	}
-	c.client2.JobDone(jobDoneReq)
+	client.JobDone(jobDoneReq)
 	{
 		dbJob, dbBuild, _ := c.loadJob(pollResp.ID)
 		patchLink := externalLink(c.ctx, textPatch, dbJob.Patch)
@@ -237,14 +239,14 @@ patch:          %[3]v
 	}
 
 	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+sampleGitPatch, EmailOptMessageID(4))
-	pollResp = c.client2.pollJobs(build.Manager)
+	pollResp = client.pollJobs(build.Manager)
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 	jobDoneReq = &dashapi.JobDoneReq{
 		ID:       pollResp.ID,
 		Build:    *build,
 		CrashLog: []byte("console output"),
 	}
-	c.client2.JobDone(jobDoneReq)
+	client.JobDone(jobDoneReq)
 	{
 		dbJob, dbBuild, _ := c.loadJob(pollResp.ID)
 		patchLink := externalLink(c.ctx, textPatch, dbJob.Patch)
@@ -274,7 +276,7 @@ Note: testing is done by a robot and is best-effort only.
 		c.checkURLContents(kernelConfigLink, build.KernelConfig)
 	}
 
-	pollResp = c.client2.pollJobs(build.Manager)
+	pollResp = client.pollJobs(build.Manager)
 	c.expectEQ(pollResp.ID, "")
 }
 
@@ -302,6 +304,8 @@ func TestBootErrorPatch(t *testing.T) {
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 }
 
+const testErrorTitle = `upstream test error: WARNING in __queue_work`
+
 func TestTestErrorPatch(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -310,7 +314,7 @@ func TestTestErrorPatch(t *testing.T) {
 	c.client2.UploadBuild(build)
 
 	crash := testCrash(build, 2)
-	crash.Title = "upstream test error: WARNING in __queue_work"
+	crash.Title = testErrorTitle
 	c.client2.ReportCrash(crash)
 
 	sender := c.pollEmailBug().Sender
@@ -330,14 +334,16 @@ func TestJobWithoutPatch(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
+	client := c.publicClient
+
 	build := testBuild(1)
-	c.client2.UploadBuild(build)
+	client.UploadBuild(build)
 
 	crash := testCrash(build, 1)
 	crash.ReproOpts = []byte("repro opts")
 	crash.ReproSyz = []byte("repro syz")
-	c.client2.ReportCrash(crash)
-	c.client2.pollAndFailBisectJob(build.Manager)
+	client.ReportCrash(crash)
+	client.pollAndFailBisectJob(build.Manager)
 	sender := c.pollEmailBug().Sender
 	_, extBugID, err := email.RemoveAddrContext(sender)
 	c.expectOK(err)
@@ -347,7 +353,8 @@ func TestJobWithoutPatch(t *testing.T) {
 
 	c.incomingEmail(sender, "#syz test git://mygit.com/git.git 5e6a2eea\n", EmailOptMessageID(1))
 	c.expectNoEmail()
-	pollResp := c.client2.pollJobs(build.Manager)
+	pollResp := client.pollJobs(build.Manager)
+	c.expectNE(pollResp.ID, "")
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 	testBuild := testBuild(2)
 	testBuild.KernelRepo = "git://mygit.com/git.git"
@@ -357,7 +364,7 @@ func TestJobWithoutPatch(t *testing.T) {
 		ID:    pollResp.ID,
 		Build: *testBuild,
 	}
-	c.client2.JobDone(jobDoneReq)
+	client.JobDone(jobDoneReq)
 	{
 		_, dbBuild, _ := c.loadJob(pollResp.ID)
 		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
@@ -383,7 +390,7 @@ Note: testing is done by a robot and is best-effort only.
 		c.checkURLContents(kernelConfigLink, testBuild.KernelConfig)
 	}
 
-	pollResp = c.client2.pollJobs(build.Manager)
+	pollResp = client.pollJobs(build.Manager)
 	c.expectEQ(pollResp.ID, "")
 }
 
@@ -488,25 +495,27 @@ func TestJobRestrictedManager(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
+	client := c.publicClient
+
 	build := testBuild(1)
 	build.Manager = restrictedManager
-	c.client2.UploadBuild(build)
+	client.UploadBuild(build)
 
 	crash := testCrash(build, 1)
 	crash.ReproSyz = []byte("repro syz")
-	c.client2.ReportCrash(crash)
-	c.client2.pollAndFailBisectJob(build.Manager)
+	client.ReportCrash(crash)
+	client.pollAndFailBisectJob(build.Manager)
 	sender := c.pollEmailBug().Sender
 
 	// Testing on a wrong repo must fail and no test jobs passed to manager.
 	c.incomingEmail(sender, "#syz test: git://mygit.com/git.git master\n", EmailOptMessageID(1))
 	c.expectEQ(strings.Contains((<-c.emailSink).Body, "you should test only on restricted.git"), true)
-	pollResp := c.client2.pollJobs(build.Manager)
+	pollResp := client.pollJobs(build.Manager)
 	c.expectEQ(pollResp.ID, "")
 
 	// Testing on the right repo must succeed.
 	c.incomingEmail(sender, "#syz test: git://restricted.git/restricted.git master\n", EmailOptMessageID(2))
-	pollResp = c.client2.pollJobs(build.Manager)
+	pollResp = client.pollJobs(build.Manager)
 	c.expectNE(pollResp.ID, "")
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 	c.expectEQ(pollResp.Manager, build.Manager)
@@ -833,4 +842,161 @@ func TestFixBisectionsDisabled(t *testing.T) {
 	// Ensure that we do not get a JobBisectFix.
 	resp = c.client2.pollJobs(build.Manager)
 	c.client2.expectEQ(resp.ID, "")
+}
+
+func TestExternalPatchFlow(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	crash := testCrash(build, 2)
+	crash.Title = testErrorTitle
+	client.ReportCrash(crash)
+
+	// Confirm the report.
+	reports, err := client.ReportingPollBugs("test")
+	origReport := reports.Reports[0]
+	c.expectOK(err)
+	c.expectEQ(len(reports.Reports), 1)
+
+	reply, _ := client.ReportingUpdate(&dashapi.BugUpdate{
+		ID:     origReport.ID,
+		Status: dashapi.BugStatusOpen,
+	})
+	client.expectEQ(reply.Error, false)
+	client.expectEQ(reply.OK, true)
+
+	// Create a new patch testing job.
+	ret, err := client.NewTestJob(&dashapi.TestPatchRequest{
+		BugID:  origReport.ID,
+		Link:   "http://some-link.com/",
+		User:   "developer@kernel.org",
+		Branch: "kernel-branch",
+		Repo:   "git://git.git/git.git",
+		Patch:  []byte(sampleGitPatch),
+	})
+	c.expectOK(err)
+	c.expectEQ(ret.ErrorText, "")
+
+	// Make sure the job will be passed to the job processor.
+	pollResp := c.client2.pollJobs(build.Manager)
+	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
+	c.expectEQ(pollResp.KernelRepo, "git://git.git/git.git")
+	c.expectEQ(pollResp.KernelBranch, "kernel-branch")
+	c.expectEQ(pollResp.Patch, []byte(sampleGitPatch))
+
+	// Emulate the completion of the job.
+	build2 := testBuild(2)
+	jobDoneReq := &dashapi.JobDoneReq{
+		ID:          pollResp.ID,
+		Build:       *build2,
+		CrashTitle:  "test crash title",
+		CrashLog:    []byte("test crash log"),
+		CrashReport: []byte("test crash report"),
+	}
+	err = c.client2.JobDone(jobDoneReq)
+	c.expectOK(err)
+
+	// Verify that we do get the bug update about the completed request.
+	jobDoneUpdates, err := client.ReportingPollBugs("test")
+	c.expectOK(err)
+	c.expectEQ(len(jobDoneUpdates.Reports), 1)
+
+	newReport := jobDoneUpdates.Reports[0]
+	c.expectEQ(newReport.Type, dashapi.ReportTestPatch)
+	c.expectEQ(newReport.CrashTitle, "test crash title")
+	c.expectEQ(newReport.Report, []byte("test crash report"))
+
+	// Confirm the patch testing result.
+	reply, _ = client.ReportingUpdate(&dashapi.BugUpdate{
+		ID:     origReport.ID,
+		JobID:  pollResp.ID,
+		Status: dashapi.BugStatusOpen,
+	})
+	client.expectEQ(reply.Error, false)
+	client.expectEQ(reply.OK, true)
+}
+
+func TestExternalPatchTestError(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	crash := testCrash(build, 2)
+	crash.Title = testErrorTitle
+	client.ReportCrash(crash)
+
+	// Confirm the report.
+	reports, err := client.ReportingPollBugs("test")
+	origReport := reports.Reports[0]
+	c.expectOK(err)
+	c.expectEQ(len(reports.Reports), 1)
+
+	reply, _ := client.ReportingUpdate(&dashapi.BugUpdate{
+		ID:     origReport.ID,
+		Status: dashapi.BugStatusOpen,
+	})
+	client.expectEQ(reply.Error, false)
+	client.expectEQ(reply.OK, true)
+
+	// Create a new patch testing job.
+	ret, err := client.NewTestJob(&dashapi.TestPatchRequest{
+		BugID:  origReport.ID,
+		User:   "developer@kernel.org",
+		Branch: "kernel-branch",
+		Repo:   "invalid-repo",
+		Patch:  []byte(sampleGitPatch),
+	})
+	c.expectOK(err)
+	c.expectEQ(ret.ErrorText, `"invalid-repo" does not look like a valid git repo address.`)
+}
+
+func TestExternalPatchCompletion(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client
+
+	build := testBuild(1)
+	build.KernelRepo = "git://git.git/git.git"
+	client.UploadBuild(build)
+
+	crash := testCrash(build, 2)
+	crash.Title = testErrorTitle
+	client.ReportCrash(crash)
+
+	// Confirm the report.
+	reports, err := client.ReportingPollBugs("test")
+	origReport := reports.Reports[0]
+	c.expectOK(err)
+	c.expectEQ(len(reports.Reports), 1)
+
+	reply, _ := client.ReportingUpdate(&dashapi.BugUpdate{
+		ID:     origReport.ID,
+		Status: dashapi.BugStatusOpen,
+	})
+	client.expectEQ(reply.Error, false)
+	client.expectEQ(reply.OK, true)
+
+	// Create a new patch testing job.
+	ret, err := client.NewTestJob(&dashapi.TestPatchRequest{
+		BugID: origReport.ID,
+		User:  "developer@kernel.org",
+		Patch: []byte(sampleGitPatch),
+	})
+	c.expectOK(err)
+	c.expectEQ(ret.ErrorText, "")
+
+	// Make sure branch and repo are correct.
+	pollResp := c.client2.pollJobs(build.Manager)
+	c.expectEQ(pollResp.KernelRepo, build.KernelRepo)
+	c.expectEQ(pollResp.KernelBranch, build.KernelBranch)
 }

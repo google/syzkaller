@@ -1027,7 +1027,10 @@ var linuxStackParams = &stackParams{
 	},
 	frameRes: []*regexp.Regexp{
 		compile("^ *(?:{{PC}} ){0,2}{{FUNC}}"),
-		compile(`^ *{{PC}} \([a-zA-Z0-9_]+\) from {{PC}} \({{FUNC}}`), // arm is totally different
+		// Arm is totally different.
+		// Extract both current and next frames. This is needed for the top
+		// frame which is present only in LR register which we don't parse.
+		compile(`^ *{{PC}} \(([a-zA-Z0-9_.]+)\) from {{PC}} \({{FUNC}}`),
 	},
 	skipPatterns: []string{
 		"__sanitizer",
@@ -1037,6 +1040,8 @@ var linuxStackParams = &stackParams{
 		"kmsan",
 		"kcsan_setup_watchpoint",
 		"check_memory_region",
+		"check_heap_object",
+		"check_object",
 		"read_word_at_a_time",
 		"(read|write)_once_.*nocheck",
 		"print_address_description",
@@ -1059,6 +1064,7 @@ var linuxStackParams = &stackParams{
 		"__warn",
 		"alloc_page",
 		"kmalloc",
+		"kvmalloc",
 		"kcalloc",
 		"kzalloc",
 		"krealloc",
@@ -1079,7 +1085,8 @@ var linuxStackParams = &stackParams{
 		"lock_release",
 		"lock_class",
 		"mark_lock",
-		"reacquire_held_locks",
+		"(reacquire|mark)_held_locks",
+		"raw_spin_rq",
 		"spin_lock",
 		"spin_trylock",
 		"spin_unlock",
@@ -1099,6 +1106,7 @@ var linuxStackParams = &stackParams{
 		"up_write",
 		"^mutex_",
 		"^__mutex_",
+		"^rt_mutex_",
 		"owner_on_cpu",
 		"osq_lock",
 		"osq_unlock",
@@ -1166,6 +1174,7 @@ var linuxStackParams = &stackParams{
 		"flush_workqueue",
 		"drain_workqueue",
 		"destroy_workqueue",
+		"queue_work",
 		"finish_wait",
 		"kthread_stop",
 		"kobject_",
@@ -1215,6 +1224,7 @@ var linuxStackParams = &stackParams{
 		"hex_dump_to_buffer",
 		"print_hex_dump",
 		"^klist_",
+		"(trace|lockdep)_(hard|soft)irq",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.

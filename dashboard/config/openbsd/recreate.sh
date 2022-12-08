@@ -17,7 +17,7 @@
 #  IdentityFile ~/.ssh/id_syzkaller
 
 # Before running first time do:
-# sudo apt-get install genisoimage growisofs
+# sudo apt-get install genisoimage growisofs qemu qemu-kvm qemu-system-x86-64 expect
 
 # The script does not require any arguments/env vars, run just as:
 # $GOPATH/src/github.com/google/syzkaller/dashboard/config/openbsd/recreate.sh

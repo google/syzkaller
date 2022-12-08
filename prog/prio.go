@@ -96,7 +96,7 @@ func (target *Target) calcResourceUsage() map[string]map[int]weights {
 			}
 		case *BufferType:
 			switch a.Kind {
-			case BufferBlobRand, BufferBlobRange, BufferText:
+			case BufferBlobRand, BufferBlobRange, BufferText, BufferCompressed:
 			case BufferString, BufferGlob:
 				if a.SubKind != "" {
 					noteUsage(uses, c, 2, ctx.Dir, fmt.Sprintf("str-%v", a.SubKind))

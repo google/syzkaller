@@ -21,6 +21,12 @@ Here are some things to check if there are problems running syzkaller.
        In this case, running the `syz-execprog` test with the `-sandbox=setuid` option fixes the problem,
        so the main configuration needs to be updated to set `sandbox` to `setuid`.
 
+ - If syzkaller prinths the `failed to copy binary` error shortly after VM has booted:
+     - If you're using Buildroot images and the error output contains the `subsystem request
+       failed on channel 0` line, this can be due to the [OpenSSH 9.0 changes](https://www.openssh.com/txt/release-9.0)
+       that force the use of the SFTP protocol. Upgrade your Buildroot image to the latest version and
+       make sure SFTP is enabled there.
+
 Also see [this](linux/troubleshooting.md) for Linux kernel specific troubleshooting advice.
 
 If none of the above helps, file a bug on [the bug tracker](https://github.com/google/syzkaller/issues)

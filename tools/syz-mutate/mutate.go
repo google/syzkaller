@@ -21,12 +21,15 @@ import (
 )
 
 var (
-	flagOS     = flag.String("os", runtime.GOOS, "target os")
-	flagArch   = flag.String("arch", runtime.GOARCH, "target arch")
-	flagSeed   = flag.Int("seed", -1, "prng seed")
-	flagLen    = flag.Int("len", prog.RecommendedCalls, "number of calls in programs")
-	flagEnable = flag.String("enable", "", "comma-separated list of enabled syscalls")
-	flagCorpus = flag.String("corpus", "", "name of the corpus file")
+	flagOS       = flag.String("os", runtime.GOOS, "target os")
+	flagArch     = flag.String("arch", runtime.GOARCH, "target arch")
+	flagSeed     = flag.Int("seed", -1, "prng seed")
+	flagLen      = flag.Int("len", prog.RecommendedCalls, "number of calls in programs")
+	flagEnable   = flag.String("enable", "", "comma-separated list of enabled syscalls")
+	flagCorpus   = flag.String("corpus", "", "name of the corpus file")
+	flagHintCall = flag.Int("hint-call", -1, "mutate the specified call with hints in hint-src/cmp flags")
+	flagHintSrc  = flag.Uint64("hint-src", 0, "compared value in the program")
+	flagHintCmp  = flag.Uint64("hint-cmp", 0, "compare operand in the kernel")
 )
 
 func main() {
@@ -79,7 +82,16 @@ func main() {
 			fmt.Fprintf(os.Stderr, "failed to deserialize the program: %v\n", err)
 			os.Exit(1)
 		}
-		p.Mutate(rs, *flagLen, ct, nil, corpus)
+		if *flagHintCall != -1 {
+			comps := make(prog.CompMap)
+			comps.AddComp(*flagHintSrc, *flagHintCmp)
+			p.MutateWithHints(*flagHintCall, comps, func(p *prog.Prog) {
+				fmt.Printf("%s\n\n", p.Serialize())
+			})
+			return
+		} else {
+			p.Mutate(rs, *flagLen, ct, nil, corpus)
+		}
 	}
 	fmt.Printf("%s\n", p.Serialize())
 }

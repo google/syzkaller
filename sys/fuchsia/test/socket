@@ -1,0 +1,37 @@
+# Create a socket with the ZX_SOCKET_STREAM option.
+
+zx_socket_create(0x0, &AUTO=<r0=>0x0, &AUTO=<r1=>0x0)
+
+# Create a socket with the ZX_SOCKET_DATAGRAM option.
+
+zx_socket_create(0x1, &AUTO, &AUTO)
+
+# Write some data to a ZX_SOCKET_STREAM socket.
+
+zx_socket_write(r0, 0x0, &AUTO="0a1b2c3d", 0x4, &AUTO)
+zx_socket_write(r0, 0x0, &AUTO="", 0x0, &AUTO)
+
+# Read some data from a ZX_SOCKET_STREAM socket, using the ZX_SOCKET_PEEK option to leave the data in the socket for a subsequent read.
+
+zx_socket_read(r1, 0x8, &AUTO, 0x10, &AUTO)
+zx_socket_read(r1, 0x8, &AUTO, 0x10, &AUTO)
+
+# Read all of the buffered data from a ZX_SOCKET_STREAM socket, clearing the data from the socket.
+
+zx_socket_read(r1, 0x0, &AUTO, 0x10, &AUTO)
+zx_socket_read(r1, 0x0, &AUTO, 0x10, &AUTO) # ZX_ERR_SHOULD_WAIT
+
+# Disable writes on a socket endpoint while enabling writes on its peer, then re-enable writes for both.
+
+zx_socket_set_disposition(r0, 0x1, 0x2)
+zx_socket_write(r0, 0, &AUTO="0d", 0x1, &AUTO) # ZX_ERR_BAD_STATE
+zx_socket_write(r1, 0, &AUTO="0e", 0x1, &AUTO)
+zx_socket_set_disposition(r0, 0x2, 0x2)
+
+# Write some data to a socket, then disable writes on an endpoint. It should not be possible to re-enable writes on the write-disabled peer its peer has read the buffered data.
+
+zx_socket_write(r0, 0, &AUTO="0f", 0x1, &AUTO)
+zx_socket_set_disposition(r0, 0x1, 0x2) 
+zx_socket_set_disposition(r0, 0x2, 0x2) # ZX_ERR_BAD_STATE
+zx_socket_read(r1, 0x0, &AUTO, 0x10, &AUTO)
+zx_socket_set_disposition(r0, 0x2, 0x2)

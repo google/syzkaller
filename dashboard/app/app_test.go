@@ -132,10 +132,6 @@ var testConfig = &GlobalConfig{
 				},
 			},
 			Managers: map[string]ConfigManager{
-				restrictedManager: {
-					RestrictedTestingRepo:   "git://restricted.git/restricted.git",
-					RestrictedTestingReason: "you should test only on restricted.git",
-				},
 				noFixBisectionManager: {
 					FixBisectionDisabled: true,
 				},
@@ -252,16 +248,68 @@ var testConfig = &GlobalConfig{
 					AccessLevel: AccessUser,
 					Name:        "access-user-reporting1",
 					DailyLimit:  1000,
-					Config: &EmailConfig{
-						Email:            "test@syzkaller.com",
-						HandleListEmails: true,
-					},
+					Config:      &TestConfig{Index: 1},
 				},
 				{
 					Name:       "access-public-reporting2",
 					DailyLimit: 1000,
+					Config:     &TestConfig{Index: 2},
+				},
+			},
+		},
+		"access-public-email": {
+			AccessLevel: AccessPublic,
+			Key:         "publickeypublickeypublickey",
+			Clients: map[string]string{
+				clientPublicEmail: keyPublicEmail,
+			},
+			Managers: map[string]ConfigManager{
+				restrictedManager: {
+					RestrictedTestingRepo:   "git://restricted.git/restricted.git",
+					RestrictedTestingReason: "you should test only on restricted.git",
+				},
+			},
+			Repos: []KernelRepo{
+				{
+					URL:    "git://syzkaller.org/access-public-email.git",
+					Branch: "access-public-email",
+					Alias:  "access-public-email",
+				},
+			},
+			Reporting: []Reporting{
+				{
+					AccessLevel: AccessPublic,
+					Name:        "access-public-email-reporting1",
+					DailyLimit:  1000,
 					Config: &EmailConfig{
-						Email:            "test2@syzkaller.com",
+						Email:            "test@syzkaller.com",
+						HandleListEmails: true,
+						SubjectPrefix:    "[syzbot]",
+					},
+				},
+			},
+		},
+		// The second namespace reporting to the same mailing list.
+		"access-public-email-2": {
+			AccessLevel: AccessPublic,
+			Key:         "publickeypublickeypublickey",
+			Clients: map[string]string{
+				clientPublicEmail2: keyPublicEmail2,
+			},
+			Repos: []KernelRepo{
+				{
+					URL:    "git://syzkaller.org/access-public-email2.git",
+					Branch: "access-public-email2",
+					Alias:  "access-public-email2",
+				},
+			},
+			Reporting: []Reporting{
+				{
+					AccessLevel: AccessPublic,
+					Name:        "access-public-email2-reporting1",
+					DailyLimit:  1000,
+					Config: &EmailConfig{
+						Email:            "test@syzkaller.com",
 						HandleListEmails: true,
 					},
 				},
@@ -271,16 +319,20 @@ var testConfig = &GlobalConfig{
 }
 
 const (
-	client1      = "client1"
-	client2      = "client2"
-	password1    = "client1keyclient1keyclient1key"
-	password2    = "client2keyclient2keyclient2key"
-	clientAdmin  = "client-admin"
-	keyAdmin     = "clientadminkeyclientadminkey"
-	clientUser   = "client-user"
-	keyUser      = "clientuserkeyclientuserkey"
-	clientPublic = "client-public"
-	keyPublic    = "clientpublickeyclientpublickey"
+	client1            = "client1"
+	client2            = "client2"
+	password1          = "client1keyclient1keyclient1key"
+	password2          = "client2keyclient2keyclient2key"
+	clientAdmin        = "client-admin"
+	keyAdmin           = "clientadminkeyclientadminkey"
+	clientUser         = "client-user"
+	keyUser            = "clientuserkeyclientuserkey"
+	clientPublic       = "client-public"
+	keyPublic          = "clientpublickeyclientpublickey"
+	clientPublicEmail  = "client-public-email"
+	keyPublicEmail     = "clientpublicemailkeyclientpublicemailkey"
+	clientPublicEmail2 = "client-public-email2"
+	keyPublicEmail2    = "clientpublicemailkeyclientpublicemailkey2"
 
 	restrictedManager     = "restricted-manager"
 	noFixBisectionManager = "no-fix-bisection-manager"
@@ -705,6 +757,7 @@ kernel BUG at fs/ext4/inode.c:2753!
 pkg/sentry/fsimpl/fuse/fusefs.go:278 +0x384
  kvm_vcpu_release+0x4d/0x70 arch/x86/kvm/../../../virt/kvm/kvm_main.c:3713
 	arch/x86/entry/entry_64.S:298
+[<81751700>] (show_stack) from [<8176d3e0>] (dump_stack_lvl+0x48/0x54 lib/dump_stack.c:106)
 `
 	// nolint: lll
 	output := `
@@ -714,6 +767,7 @@ kernel BUG at <a href='https://github.com/google/syzkaller/blob/111222/fs/ext4/i
 <a href='https://github.com/google/syzkaller/blob/111222/pkg/sentry/fsimpl/fuse/fusefs.go#L278'>pkg/sentry/fsimpl/fuse/fusefs.go:278</a> +0x384
  kvm_vcpu_release+0x4d/0x70 <a href='https://github.com/google/syzkaller/blob/111222/arch/x86/kvm/../../../virt/kvm/kvm_main.c#L3713'>arch/x86/kvm/../../../virt/kvm/kvm_main.c:3713</a>
 	<a href='https://github.com/google/syzkaller/blob/111222/arch/x86/entry/entry_64.S#L298'>arch/x86/entry/entry_64.S:298</a>
+[&lt;81751700&gt;] (show_stack) from [&lt;8176d3e0&gt;] (dump_stack_lvl+0x48/0x54 <a href='https://github.com/google/syzkaller/blob/111222/lib/dump_stack.c#L106'>lib/dump_stack.c:106</a>)
 `
 	got := linkifyReport([]byte(input), "https://github.com/google/syzkaller", "111222")
 	if diff := cmp.Diff(output, string(got)); diff != "" {

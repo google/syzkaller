@@ -368,7 +368,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 {{define "job_list"}}
 {{if $.Jobs}}
 	<table class="list_table">
-		<caption id="jobs"><a class="plain" href="#jobs">{{if $.PerBug}}Patch testing requests:{{else}}Recent jobs:{{end}}</a></caption>
+		<caption id="jobs"><a class="plain" href="#jobs">{{$.Title}}</a></caption>
 		<thead>
 		<tr>
 			{{if not $.PerBug}}<th>Bug</th>{{end}}
@@ -391,7 +391,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 				</td>
 				<td>
 					{{if eq $job.Type 0}}
-						{{$job.User}}
+						{{if $job.User}}{{$job.User}}{{else}}retest repro{{end}}
 					{{else if eq $job.Type 1}}
 						bisect
 					{{else if eq $job.Type 2}}

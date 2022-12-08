@@ -1,5 +1,5 @@
-TITLE: INFO: rcu detected stall in do_tcp_setsockopt
-ALT: stall in do_tcp_setsockopt
+TITLE: INFO: rcu detected stall in tcp_setsockopt
+ALT: stall in tcp_setsockopt
 TYPE: HANG
 
 [ 1335.106333][    C1] rcu: INFO: rcu_sched self-detected stall on CPU

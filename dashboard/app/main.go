@@ -81,7 +81,9 @@ type uiAdminPage struct {
 	Header        *uiHeader
 	Log           []byte
 	Managers      []*uiManager
-	Jobs          *uiJobList
+	RecentJobs    *uiJobList
+	PendingJobs   *uiJobList
+	RunningJobs   *uiJobList
 	MemcacheStats *memcache.Statistics
 }
 
@@ -156,6 +158,7 @@ type uiBugGroup struct {
 }
 
 type uiJobList struct {
+	Title  string
 	PerBug bool
 	Jobs   []*uiJob
 }
@@ -344,7 +347,15 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 	if err != nil {
 		return err
 	}
-	jobs, err := loadRecentJobs(c)
+	recentJobs, err := loadRecentJobs(c)
+	if err != nil {
+		return err
+	}
+	pendingJobs, err := loadPendingJobs(c)
+	if err != nil {
+		return err
+	}
+	runningJobs, err := loadRunningJobs(c)
 	if err != nil {
 		return err
 	}
@@ -352,7 +363,9 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 		Header:        hdr,
 		Log:           errorLog,
 		Managers:      managers,
-		Jobs:          &uiJobList{Jobs: jobs},
+		RecentJobs:    &uiJobList{Title: "Recent jobs:", Jobs: recentJobs},
+		RunningJobs:   &uiJobList{Title: "Running jobs:", Jobs: runningJobs},
+		PendingJobs:   &uiJobList{Title: "Pending jobs:", Jobs: pendingJobs},
 		MemcacheStats: memcacheStats,
 	}
 	return serveTemplate(w, "admin.html", data)
@@ -441,6 +454,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		SampleReport: sampleReport,
 		Crashes:      crashesTable,
 		TestPatchJobs: &uiJobList{
+			Title:  "Patch testing requests:",
 			PerBug: true,
 			Jobs:   testPatchJobs,
 		},
@@ -1033,7 +1047,7 @@ func linkifyReport(report []byte, repo, commit string) template.HTML {
 	}))
 }
 
-var sourceFileRe = regexp.MustCompile("( |\t|\n)([a-zA-Z0-9/_.-]+\\.(?:h|c|cc|cpp|s|S|go|rs)):([0-9]+)( |!|\t|\n)")
+var sourceFileRe = regexp.MustCompile("( |\t|\n)([a-zA-Z0-9/_.-]+\\.(?:h|c|cc|cpp|s|S|go|rs)):([0-9]+)( |!|\\)|\t|\n)")
 
 func loadFixBisectionsForBug(c context.Context, bug *Bug) ([]*uiCrash, error) {
 	bugKey := bug.key(c)
@@ -1226,11 +1240,41 @@ func loadRecentJobs(c context.Context) ([]*uiJob, error) {
 	if err != nil {
 		return nil, err
 	}
+	return getUIJobs(keys, jobs), nil
+}
+
+func loadPendingJobs(c context.Context) ([]*uiJob, error) {
+	var jobs []*Job
+	keys, err := db.NewQuery("Job").
+		Filter("Started=", time.Time{}).
+		Limit(50).
+		GetAll(c, &jobs)
+	if err != nil {
+		return nil, err
+	}
+	return getUIJobs(keys, jobs), nil
+}
+
+func loadRunningJobs(c context.Context) ([]*uiJob, error) {
+	var jobs []*Job
+	keys, err := db.NewQuery("Job").
+		Filter("Finished=", time.Time{}).
+		Filter("Started>", time.Time{}).
+		Order("-Started").
+		Limit(50).
+		GetAll(c, &jobs)
+	if err != nil {
+		return nil, err
+	}
+	return getUIJobs(keys, jobs), nil
+}
+
+func getUIJobs(keys []*db.Key, jobs []*Job) []*uiJob {
 	var results []*uiJob
 	for i, job := range jobs {
 		results = append(results, makeUIJob(job, keys[i], nil, nil, nil))
 	}
-	return results, nil
+	return results
 }
 
 func loadTestPatchJobs(c context.Context, bug *Bug) ([]*uiJob, error) {

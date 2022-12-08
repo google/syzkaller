@@ -23,8 +23,9 @@ var (
 	flagConfig = flag.String("config", "", "manager configuration file (manager.cfg)")
 	flagCount  = flag.Int("count", 0, "number of VMs to use (overrides config count param)")
 	flagDebug  = flag.Bool("debug", false, "print debug output")
-	flagOutput = flag.String("output", filepath.Join(".", "repro.txt"), "output description file (output.txt)")
+	flagOutput = flag.String("output", filepath.Join(".", "repro.txt"), "output syz repro file (repro.txt)")
 	flagCRepro = flag.String("crepro", filepath.Join(".", "repro.c"), "output c file (repro.c)")
+	flagTitle  = flag.String("title", "", "where to save the title of the reproduced bug")
 	flagStrace = flag.String("strace", "", "output strace log (strace_bin must be set)")
 )
 
@@ -89,37 +90,56 @@ func main() {
 		log.Logf(0, "failed to write prog to file: %v", err)
 	}
 
+	if res.Report != nil && *flagTitle != "" {
+		recordTitle(res, *flagTitle)
+	}
 	if res.CRepro {
-		src, err := csource.Write(res.Prog, res.Opts)
-		if err != nil {
-			log.Fatalf("failed to generate C repro: %v", err)
-		}
-		if formatted, err := csource.Format(src); err == nil {
-			src = formatted
-		}
-		fmt.Printf("%s\n", src)
-
-		if err := osutil.WriteFile(*flagCRepro, src); err == nil {
-			fmt.Printf("C file saved to %s\n", *flagCRepro)
-		} else {
-			log.Logf(0, "failed to write C repro to file: %v", err)
-		}
+		recordCRepro(res, *flagCRepro)
 	}
 	if *flagStrace != "" {
 		result := repro.RunStrace(res, cfg, reporter, vmPool, vmIndexes[0])
-		if result.Error != nil {
-			log.Logf(0, "failed to run strace: %v", result.Error)
-		} else {
-			if result.Report != nil {
-				log.Logf(0, "under strace repro crashed with title: %s", result.Report.Title)
-			} else {
-				log.Logf(0, "repro didn't crash under strace")
-			}
-			if err := osutil.WriteFile(*flagStrace, result.Output); err == nil {
-				fmt.Printf("C file saved to %s\n", *flagStrace)
-			} else {
-				log.Logf(0, "failed to write strace output to file: %v", err)
-			}
-		}
+		recordStraceResult(result, *flagStrace)
+	}
+}
+
+func recordTitle(res *repro.Result, fileName string) {
+	if err := osutil.WriteFile(fileName, []byte(res.Report.Title)); err == nil {
+		fmt.Printf("bug title saved to %s\n", *flagTitle)
+	} else {
+		log.Logf(0, "failed to write bug title to file: %v", err)
+	}
+}
+
+func recordCRepro(res *repro.Result, fileName string) {
+	src, err := csource.Write(res.Prog, res.Opts)
+	if err != nil {
+		log.Fatalf("failed to generate C repro: %v", err)
+	}
+	if formatted, err := csource.Format(src); err == nil {
+		src = formatted
+	}
+	fmt.Printf("%s\n", src)
+
+	if err := osutil.WriteFile(fileName, src); err == nil {
+		fmt.Printf("C file saved to %s\n", *flagCRepro)
+	} else {
+		log.Logf(0, "failed to write C repro to file: %v", err)
+	}
+}
+
+func recordStraceResult(result *repro.StraceResult, fileName string) {
+	if result.Error != nil {
+		log.Logf(0, "failed to run strace: %v", result.Error)
+		return
+	}
+	if result.Report != nil {
+		log.Logf(0, "under strace repro crashed with title: %s", result.Report.Title)
+	} else {
+		log.Logf(0, "repro didn't crash under strace")
+	}
+	if err := osutil.WriteFile(fileName, result.Output); err == nil {
+		fmt.Printf("C file saved to %s\n", *flagStrace)
+	} else {
+		log.Logf(0, "failed to write strace output to file: %v", err)
 	}
 }

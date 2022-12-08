@@ -1,0 +1,111 @@
+TITLE: BUG: unable to handle kernel NULL pointer dereference in gsmld_receive_buf
+ALT: bad-access in gsmld_receive_buf
+
+[  794.144064][ T8604] 8<--- cut here ---
+[  794.144523][ T8604] Unable to handle kernel NULL pointer dereference at virtual address 00000000
+[  794.145138][ T8604] [00000000] *pgd=85387003, *pmd=fe74e003
+[  794.146728][ T8604] Internal error: Oops: 80000207 [#1] PREEMPT SMP ARM
+[  794.147404][ T8604] Modules linked in:
+[  794.148040][ T8604] CPU: 1 PID: 8604 Comm: syz-executor.1 Not tainted 6.0.0-rc3-syzkaller #0
+[  794.148672][ T8604] Hardware name: ARM-Versatile Express
+[  794.149090][ T8604] PC is at 0x0
+[  794.149804][ T8604] LR is at gsmld_receive_buf+0xc0/0x15c
+[  794.150448][ T8604] pc : [<00000000>]    lr : [<808eaab4>]    psr: 60000013
+[  794.150724][ T8604] sp : dfa2de28  ip : 826efeb0  fp : dfa2de6c
+[  794.151086][ T8604] r10: 81de5c68  r9 : 825d5140  r8 : dfa2de7c
+[  794.151661][ T8604] r7 : 84e11000  r6 : 00000000  r5 : dfa2de7d  r4 : dfa2de7c
+[  794.151959][ T8604] r3 : 00000000  r2 : dfa2de7c  r1 : 00000000  r0 : 84e11000
+[  794.152303][ T8604] Flags: nZCv  IRQs on  FIQs on  Mode SVC_32  ISA ARM  Segment none
+[  794.152899][ T8604] Control: 30c5387d  Table: 8502cb40  DAC: 00000000
+[  794.153395][ T8604] Register r0 information: slab kmalloc-512 start 84e11000 pointer offset 0 size 512
+[  794.154488][ T8604] Register r1 information: NULL pointer
+[  794.156110][ T8604] Register r2 information: 2-page vmalloc region starting at 0xdfa2c000 allocated at kernel_clone+0x9c/0x440
+[  794.157235][ T8604] Register r3 information: NULL pointer
+[  794.157755][ T8604] Register r4 information: 2-page vmalloc region starting at 0xdfa2c000 allocated at kernel_clone+0x9c/0x440
+[  794.158609][ T8604] Register r5 information: 2-page vmalloc region starting at 0xdfa2c000 allocated at kernel_clone+0x9c/0x440
+[  794.159314][ T8604] Register r6 information: NULL pointer
+[  794.159801][ T8604] Register r7 information: slab kmalloc-512 start 84e11000 pointer offset 0 size 512
+[  794.160396][ T8604] Register r8 information: 2-page vmalloc region starting at 0xdfa2c000 allocated at kernel_clone+0x9c/0x440
+[  794.160971][ T8604] Register r9 information: non-slab/vmalloc memory
+[  794.161432][ T8604] Register r10 information: non-slab/vmalloc memory
+[  794.161980][ T8604] Register r11 information: 2-page vmalloc region starting at 0xdfa2c000 allocated at kernel_clone+0x9c/0x440
+[  794.162798][ T8604] Register r12 information: non-slab/vmalloc memory
+[  794.163398][ T8604] Process syz-executor.1 (pid: 8604, stack limit = 0xdfa2c000)
+[  794.164111][ T8604] Stack: (0xdfa2de28 to 0xdfa2e000)
+[  794.164480][ T8604] de20:                   8067b314 0b6d83e6 84e00c00 84e00c18 81de5bc0 84e00c00
+[  794.164913][ T8604] de40: 85048900 00000000 85363540 84e00c00 808ea9f4 85048900 20000000 84e00c00
+[  794.165210][ T8604] de60: dfa2df14 dfa2de70 808dcfac 808eaa00 00000001 82b20450 00000054 85048900
+[  794.165803][ T8604] de80: 00000004 00000036 dfa2dee4 dfa2de98 8068af1c 80680e64 00000001 00000054
+[  794.166303][ T8604] dea0: 00000012 dfa2deb4 83ea59d0 82c3c770 dfa25412 0b6d830b dfa2dea8 81f4cdc0
+[  794.166930][ T8604] dec0: 20000000 0b6d83e6 81f4c0dc 20000000 85048900 00005412 dfa2def4 dfa2dee8
+[  794.167494][ T8604] dee0: 8068b020 0b6d83e6 dfa2df14 00005412 00000000 85048901 20000000 85048900
+[  794.168120][ T8604] df00: 00000004 82b20450 dfa2dfa4 dfa2df18 804b9814 808dc804 dfa2df34 83242f00
+[  794.168805][ T8604] df20: 83243620 00000002 ddde36e8 5bb3b000 822a86f0 83242f00 00000002 ddde36e8
+[  794.169246][ T8604] df40: dfa2df5c dfa2df50 8172d110 8172cfd8 dfa2df84 dfa2df60 8172cbe8 8172d100
+[  794.169617][ T8604] df60: 60000013 00000000 0012bfd0 00000036 60000010 0b6d83e6 dfa2df9c 00000000
+[  794.170016][ T8604] df80: 00000000 0012bfd0 00000036 80200288 83242f00 00000036 00000000 dfa2dfa8
+[  794.170515][ T8604] dfa0: 80200060 804b9710 00000000 00000000 00000004 00005412 20000000 00000000
+[  794.171027][ T8604] dfc0: 00000000 00000000 0012bfd0 00000036 7e9763b2 76f096d0 7e976544 76f0920c
+[  794.171548][ T8604] dfe0: 76f09020 76f09010 00016420 0004c150 60000010 00000004 00000000 00000000
+[  794.172256][ T8604] Backtrace: 
+[  794.172767][ T8604] [<808ea9f4>] (gsmld_receive_buf) from [<808dcfac>] (tty_ioctl+0x7b4/0xa6c)
+[  794.173346][ T8604]  r10:84e00c00 r9:20000000 r8:85048900 r7:808ea9f4 r6:84e00c00 r5:85363540
+[  794.173589][ T8604]  r4:00000000
+[  794.173988][ T8604] [<808dc7f8>] (tty_ioctl) from [<804b9814>] (sys_ioctl+0x110/0xa74)
+[  794.174574][ T8604]  r10:82b20450 r9:00000004 r8:85048900 r7:20000000 r6:85048901 r5:00000000
+[  794.174880][ T8604]  r4:00005412
+[  794.175125][ T8604] [<804b9704>] (sys_ioctl) from [<80200060>] (ret_fast_syscall+0x0/0x1c)
+[  794.175776][ T8604] Exception stack(0xdfa2dfa8 to 0xdfa2dff0)
+[  794.176190][ T8604] dfa0:                   00000000 00000000 00000004 00005412 20000000 00000000
+[  794.176508][ T8604] dfc0: 00000000 00000000 0012bfd0 00000036 7e9763b2 76f096d0 7e976544 76f0920c
+[  794.176771][ T8604] dfe0: 76f09020 76f09010 00016420 0004c150
+[  794.176940][ T8604]  r10:00000036 r9:83242f00 r8:80200288 r7:00000036 r6:0012bfd0 r5:00000000
+[  794.177160][ T8604]  r4:00000000
+[  794.177489][ T8604] Code: bad PC value
+[  794.201191][ T8604] ---[ end trace 0000000000000000 ]---
+[  794.202055][ T8604] Kernel panic - not syncing: Fatal exception
+[  794.202742][    C0] CPU0: stopping
+[  794.203557][    C0] CPU: 0 PID: 8603 Comm: syz-executor.0 Tainted: G      D            6.0.0-rc3-syzkaller #0
+[  794.203834][    C0] Hardware name: ARM-Versatile Express
+[  794.204178][    C0] Backtrace: frame pointer underflow
+[  794.204626][    C0] [<8171012c>] (dump_backtrace) from [<8171045c>] (show_stack+0x18/0x1c)
+[  794.205735][    C0]  r7:81d73900 r6:8190dcc8 r5:60000193 r4:81d864f0
+[  794.205873][    C0] [<81710444>] (show_stack) from [<81719328>] (dump_stack_lvl+0x48/0x54)
+[  794.206085][    C0] [<817192e0>] (dump_stack_lvl) from [<8171934c>] (dump_stack+0x18/0x1c)
+[  794.206758][    C0]  r5:00000000 r4:00000003
+[  794.207224][    C0] [<81719334>] (dump_stack) from [<80210700>] (do_handle_IPI+0x3bc/0x3f0)
+[  794.208164][    C0] [<80210344>] (do_handle_IPI) from [<80210754>] (ipi_handler+0x20/0x28)
+[  794.208879][    C0]  r10:00000053 r9:830f0bc0 r8:df801f78 r7:00000014 r6:8190dcc8 r5:8280cb80
+[  794.209312][    C0]  r4:82888a00 r3:00000010
+[  794.209597][    C0] [<80210734>] (ipi_handler) from [<802ba8e8>] (handle_percpu_devid_irq+0x9c/0x2d4)
+[  794.210185][    C0] [<802ba84c>] (handle_percpu_devid_irq) from [<802b41fc>] (generic_handle_domain_irq+0x30/0x40)
+[  794.210778][    C0]  r10:00000053 r9:830f0bc0 r8:00000000 r7:df80a00c r6:822a91f0 r5:df80a000
+[  794.211281][    C0]  r4:8240ccf4 r3:00010000
+[  794.211529][    C0] [<802b41cc>] (generic_handle_domain_irq) from [<8083b114>] (gic_handle_irq+0x68/0x7c)
+[  794.212162][    C0] [<8083b0ac>] (gic_handle_irq) from [<8172c64c>] (generic_handle_arch_irq+0x60/0x80)
+[  794.212820][    C0]  r7:dfb79d80 r6:81f36e54 r5:81f36e6c r4:822a91e4
+[  794.213253][    C0] [<8172c5ec>] (generic_handle_arch_irq) from [<8081bde8>] (call_with_stack+0x1c/0x20)
+[  794.213873][    C0]  r9:830f0bc0 r8:8453bd68 r7:dfb79db4 r6:ffffffff r5:20000013 r4:805ca6e0
+[  794.214111][    C0] [<8081bdcc>] (call_with_stack) from [<80200b44>] (__irq_svc+0x84/0xac)
+[  794.214497][    C0] Exception stack(0xdfb79d80 to 0xdfb79dc8)
+[  794.214815][    C0] 9d80: 00000014 00000000 ffffffec 00000001 00000000 83edd800 846b502c 8453bd68
+[  794.215049][    C0] 9da0: 8453bd68 00000001 00000053 dfb79e64 83edd800 dfb79dd0 dfb79e84 805ca6e0
+[  794.215579][    C0] 9dc0: 20000013 ffffffff
+[  794.215833][    C0] [<805ca5d0>] (__ext4_find_entry) from [<805cb430>] (ext4_lookup+0x19c/0x280)
+[  794.216424][    C0]  r10:00000053 r9:00000000 r8:8453bd68 r7:dfb79f18 r6:8453bd68 r5:846b5000
+[  794.216723][    C0]  r4:00000000
+[  794.216914][    C0] [<805cb294>] (ext4_lookup) from [<804af1a0>] (__lookup_hash+0x68/0x90)
+[  794.217288][    C0]  r9:00000000 r8:8453bd68 r7:dfb79f18 r6:00000600 r5:846b5660 r4:846b5000
+[  794.217694][    C0] [<804af138>] (__lookup_hash) from [<804b3588>] (filename_create+0xb8/0x168)
+[  794.218326][    C0]  r9:00000000 r8:dfb79f18 r7:00000600 r6:dfb79f5c r5:00000600 r4:00000000
+[  794.218798][    C0] [<804b34d0>] (filename_create) from [<804b6cd0>] (do_symlinkat+0x50/0x12c)
+[  794.219296][    C0]  r9:ffffff9c r8:843f5000 r7:843f0000 r6:00000000 r5:000886b8 r4:843f0000
+[  794.219742][    C0] [<804b6c80>] (do_symlinkat) from [<804b6e34>] (sys_symlink+0x40/0x44)
+[  794.220345][    C0]  r9:830f0bc0 r8:80200288 r7:00000053 r6:00000bc1 r5:000886b8 r4:843f0000
+[  794.220571][    C0] [<804b6df4>] (sys_symlink) from [<80200060>] (ret_fast_syscall+0x0/0x1c)
+[  794.220844][    C0] Exception stack(0xdfb79fa8 to 0xdfb79ff0)
+[  794.221065][    C0] 9fa0:                   00000000 00000000 7ece16a4 000886b8 00000000 00000000
+[  794.221346][    C0] 9fc0: 00000000 00000000 00000bc1 00000053 00120000 7ece16a4 00000000 00000000
+[  794.221607][    C0] 9fe0: 00000000 7ece15d4 0002112c 0004b63c
+[  794.221773][    C0]  r5:00000000 r4:00000000
+[  794.224965][ T8604] Rebooting in 86400 seconds..

@@ -10,13 +10,7 @@ import (
 func TestParsePatch(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.title, func(t *testing.T) {
-			title, diff, err := ParsePatch(test.text)
-			if err != nil {
-				t.Fatalf("failed to parse patch: %v", err)
-			}
-			if test.title != title {
-				t.Fatalf("title mismatch, want:\n%v\ngot:\n%v", test.title, title)
-			}
+			diff := ParsePatch([]byte(test.text))
 			if test.diff != diff {
 				t.Fatalf("diff mismatch, want:\n%v\ngot:\n%v", test.diff, diff)
 			}
@@ -477,5 +471,15 @@ Index: usb-devel/drivers/usb/core/hub.c
  	if (status < 0)
  		dev_err(hub->intfdev, "activate --> %d\n", status);
 `,
+	},
+	{
+		text: `Some
+Text
+Without
+Any
+Diff
+`,
+		diff:  "",
+		title: "test empty patch",
 	},
 }

@@ -44,7 +44,10 @@ config:
  - JFFS2_CMODE_PRIORITY
 
  - UFS_FS
- - UFS_FS_WRITE: n
+ # Write support for UFS. The description says experimental/dangerous,
+ # but seems to mean only that images can be corrupted
+ # ("you should back up your UFS partitions beforehand").
+ - UFS_FS_WRITE
  - UFS_DEBUG: n
 
  - JFS_FS
@@ -57,8 +60,9 @@ config:
  - XFS_POSIX_ACL
  - XFS_RT
  - XFS_SUPPORT_V4: [v5.10]
- - XFS_DEBUG
- - XFS_ASSERT_FATAL
+ # Not just sanity checks for code, but also image validation checks that BUG.
+ # XFS devs prefer this to be disabled by fuzzers.
+ - XFS_DEBUG: n
 
  - GFS2_FS
  - GFS2_FS_LOCKING_DLM
