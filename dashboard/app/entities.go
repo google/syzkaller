@@ -21,7 +21,6 @@ const (
 	maxTextLen   = 200
 	MaxStringLen = 1024
 
-	maxCrashes        = 40
 	maxBugHistoryDays = 365 * 5
 )
 

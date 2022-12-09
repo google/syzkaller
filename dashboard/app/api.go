@@ -84,6 +84,11 @@ func timeSince(c context.Context, t time.Time) time.Duration {
 	return timeNow(c).Sub(t)
 }
 
+var maxCrashes = func() int {
+	const maxCrashesPerBug = 40
+	return maxCrashesPerBug
+}
+
 func handleJSON(fn JSONHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c := appengine.NewContext(r)
@@ -732,7 +737,7 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 		reproLevel = ReproLevelSyz
 	}
 	save := reproLevel != ReproLevelNone ||
-		bug.NumCrashes < maxCrashes ||
+		bug.NumCrashes < int64(maxCrashes()) ||
 		now.Sub(bug.LastSavedCrash) > time.Hour ||
 		bug.NumCrashes%20 == 0 ||
 		!stringInList(bug.MergedTitles, req.Title)
@@ -856,7 +861,7 @@ func saveCrash(c context.Context, ns string, req *dashapi.Crash, bug *Bug, bugKe
 
 func purgeOldCrashes(c context.Context, bug *Bug, bugKey *db.Key) {
 	const purgeEvery = 10
-	if bug.NumCrashes <= 2*maxCrashes || (bug.NumCrashes-1)%purgeEvery != 0 {
+	if bug.NumCrashes <= int64(2*maxCrashes()) || (bug.NumCrashes-1)%purgeEvery != 0 {
 		return
 	}
 	var crashes []*Crash
@@ -900,7 +905,7 @@ func purgeOldCrashes(c context.Context, bug *Bug, bugKey *db.Key) {
 		if crash.ReproSyz != 0 || crash.ReproC != 0 {
 			count = &reproCount
 		}
-		if *count < maxCrashes {
+		if *count < maxCrashes() {
 			*count++
 			continue
 		}
