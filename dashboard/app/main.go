@@ -1000,7 +1000,7 @@ func updateBugBadness(c context.Context, bug *uiBug) {
 func loadCrashesForBug(c context.Context, bug *Bug) ([]*uiCrash, template.HTML, error) {
 	bugKey := bug.key(c)
 	// We can have more than maxCrashes crashes, if we have lots of reproducers.
-	crashes, _, err := queryCrashesForBug(c, bugKey, 2*maxCrashes+200)
+	crashes, _, err := queryCrashesForBug(c, bugKey, 2*maxCrashes()+200)
 	if err != nil || len(crashes) == 0 {
 		return nil, "", err
 	}

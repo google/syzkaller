@@ -596,7 +596,7 @@ func TestPurgeOldCrashes(t *testing.T) {
 	c.client.pollBug()
 
 	// Now report lots of bugs with/without repros. Some of the older ones should be purged.
-	const totalReported = 3 * maxCrashes
+	var totalReported = 3 * maxCrashes()
 	for i := 0; i < totalReported; i++ {
 		c.advanceTime(2 * time.Hour) // This ensures that crashes are saved.
 		crash.ReproSyz = nil
@@ -625,10 +625,10 @@ func TestPurgeOldCrashes(t *testing.T) {
 		}
 	}
 	c.t.Logf("got reported=%v, norepro=%v, repro=%v, maxCrashes=%v",
-		reported, norepro, repro, maxCrashes)
+		reported, norepro, repro, maxCrashes())
 	if reported != 3 ||
-		norepro < maxCrashes || norepro > maxCrashes+10 ||
-		repro < maxCrashes || repro > maxCrashes+10 {
+		norepro < maxCrashes() || norepro > maxCrashes()+10 ||
+		repro < maxCrashes() || repro > maxCrashes()+10 {
 		c.t.Fatalf("bad purged crashes")
 	}
 	// Then, check that latest crashes were preserved.
@@ -673,7 +673,8 @@ func TestPurgeOldCrashes(t *testing.T) {
 	c.expectEQ(reply.OK, true)
 
 	// Trigger more purge events.
-	for i := 0; i < maxCrashes; i++ {
+	var moreIterations = maxCrashes()
+	for i := 0; i < moreIterations; i++ {
 		c.advanceTime(2 * time.Hour) // This ensures that crashes are saved.
 		crash.ReproSyz = nil
 		crash.ReproC = nil
