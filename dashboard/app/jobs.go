@@ -299,7 +299,7 @@ func handleRetestForBug(c context.Context, now time.Time, bug *Bug, bugKey *db.K
 		// for which we were already given fixing commits.
 		return nil
 	}
-	crashes, crashKeys, err := queryCrashesForBug(c, bugKey, maxCrashes)
+	crashes, crashKeys, err := queryCrashesForBug(c, bugKey, maxCrashes())
 	if err != nil {
 		return err
 	}
@@ -420,7 +420,7 @@ func shouldBisectBug(bug *Bug, managers map[string]bool) bool {
 
 func bisectCrashForBug(c context.Context, bug *Bug, bugKey *db.Key, managers map[string]bool, jobType JobType) (
 	*Crash, *db.Key, error) {
-	crashes, crashKeys, err := queryCrashesForBug(c, bugKey, maxCrashes)
+	crashes, crashKeys, err := queryCrashesForBug(c, bugKey, maxCrashes())
 	if err != nil {
 		return nil, nil, err
 	}

@@ -525,6 +525,11 @@ func initMocks() {
 		getRequestContext(c).emailSink <- msg
 		return nil
 	}
+	maxCrashes = func() int {
+		// dev_appserver is very slow, so let's make tests smaller.
+		const maxCrashesDuringTest = 20
+		return maxCrashesDuringTest
+	}
 }
 
 // Machinery to associate mocked time with requests.
