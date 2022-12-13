@@ -939,7 +939,25 @@ func TestFullBugInfo(t *testing.T) {
 	c.client.ReportCrash(crashRepro)
 
 	// Ensure we have some bisect jobs done.
-	c.client.pollAndFailBisectJob(build.Manager)
+	pollResp := c.client.pollJobs(build.Manager)
+	c.expectNE(pollResp.ID, "")
+	jobID := pollResp.ID
+	done := &dashapi.JobDoneReq{
+		ID:    jobID,
+		Build: *testBuild(3),
+		Log:   []byte("bisect log"),
+		Commits: []dashapi.Commit{
+			{
+				Hash:   "111111111111111111111111",
+				Title:  "kernel: break build",
+				Author: "hacker@kernel.org",
+				CC:     []string{"reviewer1@kernel.org"},
+				Date:   time.Date(2000, 2, 9, 4, 5, 6, 7, time.UTC),
+			},
+		},
+	}
+	c.client.expectOK(c.client.JobDone(done))
+	c.client.pollBug()
 
 	// Yet newer: no repro.
 	c.advanceTime(24 * 7 * time.Hour)
@@ -967,7 +985,12 @@ func TestFullBugInfo(t *testing.T) {
 	// Query the full bug info.
 	info, err := c.client.LoadFullBug(&dashapi.LoadFullBugReq{BugID: rep.ID})
 	c.expectOK(err)
-	c.expectNE(info.BisectCause, nil)
+	if info.BisectCause == nil {
+		t.Fatalf("info.BisectCause is empty")
+	}
+	if info.BisectCause.BisectCause == nil {
+		t.Fatalf("info.BisectCause.BisectCause is empty")
+	}
 	c.expectEQ(info.SimilarBugs, []*dashapi.SimilarBugInfo{{
 		Title:     crashTitle,
 		Namespace: "test2",

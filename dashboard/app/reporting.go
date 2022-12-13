@@ -1321,19 +1321,18 @@ func loadFullBugInfo(c context.Context, bug *Bug, bugKey *db.Key,
 	}
 	ret := &dashapi.FullBugInfo{}
 	// Query bisections.
+	var err error
 	if bug.BisectCause > BisectPending {
-		job, _, _, _, err := loadBisectJob(c, bug, JobBisectCause)
+		ret.BisectCause, err = prepareBisectionReport(c, bug, JobBisectCause, reporting)
 		if err != nil {
 			return nil, err
 		}
-		ret.BisectCause, _ = bisectFromJob(c, job)
 	}
 	if bug.BisectFix > BisectPending {
-		job, _, _, _, err := loadBisectJob(c, bug, JobBisectFix)
+		ret.BisectFix, err = prepareBisectionReport(c, bug, JobBisectFix, reporting)
 		if err != nil {
 			return nil, err
 		}
-		ret.BisectFix, _ = bisectFromJob(c, job)
 	}
 	// Query similar bugs.
 	similar, err := loadSimilarBugs(c, bug)
@@ -1370,6 +1369,22 @@ func loadFullBugInfo(c context.Context, bug *Bug, bugKey *db.Key,
 		ret.Crashes = append(ret.Crashes, rep)
 	}
 	return ret, nil
+}
+
+func prepareBisectionReport(c context.Context, bug *Bug, jobType JobType,
+	reporting *Reporting) (*dashapi.BugReport, error) {
+	job, _, jobKey, _, err := loadBisectJob(c, bug, jobType)
+	if err != nil {
+		return nil, err
+	}
+	if job.Reporting != "" {
+		ret, err := createBugReportForJob(c, job, jobKey, reporting.Config)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create the job bug report: %w", err)
+		}
+		return ret, nil
+	}
+	return nil, nil
 }
 
 type crashWithKey struct {

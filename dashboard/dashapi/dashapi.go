@@ -644,8 +644,8 @@ type LoadFullBugReq struct {
 
 type FullBugInfo struct {
 	SimilarBugs []*SimilarBugInfo
-	BisectCause *BisectResult
-	BisectFix   *BisectResult
+	BisectCause *BugReport
+	BisectFix   *BugReport
 	Crashes     []*BugReport
 }
 
