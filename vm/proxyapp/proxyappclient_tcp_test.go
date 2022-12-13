@@ -72,8 +72,12 @@ func TestCtor_TCP_Reconnect_On_LostConnection(t *testing.T) {
 
 	ctor(makeTestParams(), testTCPEnv(port))
 	<-onConnect
+	<-mProxyAppServer.OnLogsReceived
+
 	closeServerConnections()
+
 	<-onConnect
+	<-mProxyAppServer.OnLogsReceived
 }
 
 func TestCtor_TCP_Reconnect_PoolChanged(t *testing.T) {
