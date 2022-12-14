@@ -42,7 +42,7 @@ options 	DIAGNOSTIC
 	}
 
 	objPrefix := filepath.Join(params.KernelDir, "obj")
-	if err := ctx.make(params.KernelDir, objPrefix, "kernel-toolchain", "-DNO_CLEAN"); err != nil {
+	if err := ctx.make(params.KernelDir, objPrefix, "kernel-toolchain"); err != nil {
 		return ImageDetails{}, err
 	}
 	if err := ctx.make(params.KernelDir, objPrefix, "buildkernel", "WITH_EXTRA_TCP_STACKS=",
