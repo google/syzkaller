@@ -318,8 +318,8 @@ func testGuiltyFile(t *testing.T, reporter *Reporter, fn string) {
 	if err := reporter.Symbolize(rep); err != nil {
 		t.Fatalf("failed to symbolize report: %v", err)
 	}
-	if rep.guiltyFile != file {
-		t.Fatalf("got guilty %q, want %q", rep.guiltyFile, file)
+	if rep.GuiltyFile != file {
+		t.Fatalf("got guilty %q, want %q", rep.GuiltyFile, file)
 	}
 }
 

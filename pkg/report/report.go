@@ -63,8 +63,8 @@ type Report struct {
 	CorruptedReason string
 	// Recipients is a list of RecipientInfo with Email, Display Name, and type.
 	Recipients vcs.Recipients
-	// guiltyFile is the source file that we think is to blame for the crash  (filled in by Symbolize).
-	guiltyFile string
+	// GuiltyFile is the source file that we think is to blame for the crash  (filled in by Symbolize).
+	GuiltyFile string
 	// reportPrefixLen is length of additional prefix lines that we added before actual crash report.
 	reportPrefixLen int
 	// symbolized is set if the report is symbolized.
@@ -242,7 +242,7 @@ func (reporter *Reporter) isInteresting(rep *Report) bool {
 		return true
 	}
 	if matchesAnyString(rep.Title, reporter.interests) ||
-		matchesAnyString(rep.guiltyFile, reporter.interests) {
+		matchesAnyString(rep.GuiltyFile, reporter.interests) {
 		return true
 	}
 	for _, title := range rep.AltTitles {

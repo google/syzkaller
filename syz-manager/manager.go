@@ -881,6 +881,7 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 			Log:         crash.Output,
 			Report:      crash.Report.Report,
 			MachineInfo: crash.machineInfo,
+			GuiltyFiles: []string{crash.Report.GuiltyFile},
 		}
 		resp, err := mgr.dash.ReportCrash(dc)
 		if err != nil {
