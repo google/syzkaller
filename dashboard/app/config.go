@@ -100,6 +100,15 @@ type Config struct {
 	Repos []KernelRepo
 	// If not nil, bugs in this namespace will be exported to the specified Kcidb.
 	Kcidb *KcidbConfig
+	// Subsystems config.
+	Subsystems SubsystemsConfig
+}
+
+// SubsystemsConfig describes how to generate the list of kernel subsystems and the rules of
+// subsystem inference / bug reporting.
+type SubsystemsConfig struct {
+	// IMPORTANT: this interface is experimental and will likely change in the future.
+	SubsystemCc func(name string) []string
 }
 
 // ObsoletingConfig describes how bugs without reproducer should be obsoleted.
@@ -338,6 +347,9 @@ func checkNamespace(ns string, cfg *Config, namespaces, clientNames map[string]b
 	}
 	if cfg.Kcidb != nil {
 		checkKcidb(ns, cfg.Kcidb)
+	}
+	if cfg.Subsystems.SubsystemCc == nil {
+		cfg.Subsystems.SubsystemCc = func(string) []string { return nil }
 	}
 	checkKernelRepos(ns, cfg)
 	checkNamespaceReporting(ns, cfg)
