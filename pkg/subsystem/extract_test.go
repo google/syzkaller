@@ -4,6 +4,7 @@
 package subsystem
 
 import (
+	"reflect"
 	"sort"
 	"testing"
 
@@ -66,4 +67,44 @@ io_uring_enter(r0, 0x2ff, 0x0, 0x0, 0x0, 0x0)`,
 	sort.Strings(ret)
 	assert.Exactlyf(t, ret, []string{"io_uring", "tty", "tty_ioctls"},
 		"invalid resulting subsystems: %s", ret)
+}
+
+func TestFsSubsystemExtraction(t *testing.T) {
+	extractor := MakeLinuxSubsystemExtractor()
+
+	tests := []struct {
+		guilty     string
+		prog       string
+		subsystems []string
+	}{
+		{
+			guilty: "fs/nilfs2/dat.c",
+			// nolint: lll
+			prog: `syz_mount_image$nilfs2(&(0x7f0000000000), &(0x7f0000000100)='./file0\x00', 0x100000, 0x3b, &(0x7f0000000200)=[{&(0x7f0000011240)="02", 0x1}, {&(0x7f0000012a40)="03000000", 0x4, 0x1}], 0x0, &(0x7f00000131c0), 0x1)
+openat$incfs(0xffffffffffffff9c, &(0x7f0000000000)='.pending_reads\x00', 0x4040, 0x0)`,
+			subsystems: []string{"nilfs2"},
+		},
+		{
+			guilty: "fs/namei.c",
+			// nolint: lll
+			prog: `syz_mount_image$ntfs3(&(0x7f0000000240), &(0x7f000001f3c0)='./file0\x00', 0xc40, &(0x7f00000005c0)=ANY=[@ANYBLOB="0032"], 0x3, 0x1f398, &(0x7f000003e7c0)="111")
+r0 = openat(0xffffffffffffff9c, &(0x7f0000000040)='.\x00', 0x0, 0x0)
+mkdirat(r0, &(0x7f0000000180)='./bus\x00', 0x0)
+mkdirat(r0, &(0x7f0000000280)='./bus/file0\x00', 0x0)
+renameat2(r0, &(0x7f00000004c0)='./file0\x00', r0, &(0x7f0000000500)='./bus/file0/file0\x00', 0x0)`,
+			subsystems: []string{"ntfs3", "vfs"},
+		},
+	}
+
+	for i, test := range tests {
+		ret := extractor.Extract(&Crash{
+			OS:          targets.Linux,
+			GuiltyFiles: []string{test.guilty},
+			SyzRepro:    test.prog,
+		})
+		sort.Strings(ret)
+		if !reflect.DeepEqual(ret, test.subsystems) {
+			t.Fatalf("test #%d: got %+v, wanted %+v", i, ret, test.subsystems)
+		}
+	}
 }
