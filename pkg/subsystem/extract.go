@@ -7,11 +7,11 @@ import (
 	"regexp"
 
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys/targets"
 )
 
 type SubsystemExtractor struct {
-	CallToSubsystems func(call string) []string
+	pathToSubsystems func(path string) []string
+	callToSubsystems func(call string) []string
 }
 
 // Crash contains the subset of Crash fields relevant for subsystem extraction.
@@ -21,21 +21,26 @@ type Crash struct {
 	SyzRepro    string
 }
 
+func MakeLinuxSubsystemExtractor() *SubsystemExtractor {
+	return &SubsystemExtractor{
+		pathToSubsystems: linuxPathToSubsystems,
+	}
+}
+
 func (se *SubsystemExtractor) Extract(crash *Crash) []string {
 	retMap := map[string]bool{}
 	// Currently we only have the dumbest possible implementation of subsystem detection.
-	if crash.OS == targets.Linux {
-		for _, guiltyPath := range crash.GuiltyFiles {
-			if vfsPathRegexp.MatchString(guiltyPath) {
-				retMap["vfs"] = true
-				break
+	if se.pathToSubsystems != nil {
+		for _, path := range crash.GuiltyFiles {
+			for _, value := range se.pathToSubsystems(path) {
+				retMap[value] = true
 			}
 		}
 	}
-	if se.CallToSubsystems != nil {
+	if se.callToSubsystems != nil {
 		callSet, _, _ := prog.CallSet([]byte(crash.SyzRepro))
 		for call := range callSet {
-			for _, subsystem := range se.CallToSubsystems(call) {
+			for _, subsystem := range se.callToSubsystems(call) {
 				retMap[subsystem] = true
 			}
 		}
@@ -45,6 +50,14 @@ func (se *SubsystemExtractor) Extract(crash *Crash) []string {
 		retSlice = append(retSlice, name)
 	}
 	return retSlice
+}
+
+func linuxPathToSubsystems(path string) []string {
+	ret := []string{}
+	if vfsPathRegexp.MatchString(path) {
+		ret = append(ret, "vfs")
+	}
+	return ret
 }
 
 var (

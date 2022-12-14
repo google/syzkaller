@@ -23,6 +23,7 @@ import (
 	"github.com/google/syzkaller/pkg/auth"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/hash"
+	"github.com/google/syzkaller/pkg/subsystem"
 	"github.com/google/syzkaller/sys/targets"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine/v2"
@@ -700,6 +701,7 @@ func apiReportCrash(c context.Context, ns string, r *http.Request, payload []byt
 	return resp, nil
 }
 
+// nolint: gocyclo
 func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, error) {
 	assets, err := parseCrashAssets(c, req)
 	if err != nil {
@@ -736,19 +738,21 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 	} else if len(req.ReproSyz) != 0 {
 		reproLevel = ReproLevelSyz
 	}
+	newSubsystems := []string{}
 	save := reproLevel != ReproLevelNone ||
 		bug.NumCrashes < int64(maxCrashes()) ||
 		now.Sub(bug.LastSavedCrash) > time.Hour ||
 		bug.NumCrashes%20 == 0 ||
 		!stringInList(bug.MergedTitles, req.Title)
 	if save {
+		newSubsystems = detectCrashSubsystems(req, build)
+		log.Infof(c, "determined subsystems: %q", newSubsystems)
 		if err := saveCrash(c, ns, req, bug, bugKey, build, assets); err != nil {
 			return nil, err
 		}
 	} else {
 		log.Infof(c, "not saving crash for %q", bug.Title)
 	}
-
 	tx := func(c context.Context) error {
 		bug = new(Bug)
 		if err := db.Get(c, bugKey, bug); err != nil {
@@ -768,6 +772,9 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 		}
 		if len(req.Report) != 0 {
 			bug.HasReport = true
+		}
+		for _, name := range newSubsystems {
+			bug.addSubsystem(BugSubsystem{name})
 		}
 		bug.increaseCrashStats(now)
 		bug.HappenedOn = mergeString(bug.HappenedOn, build.Manager)
@@ -799,6 +806,22 @@ func parseCrashAssets(c context.Context, req *dashapi.Crash) ([]Asset, error) {
 		assets = append(assets, newAsset)
 	}
 	return assets, nil
+}
+
+func detectCrashSubsystems(req *dashapi.Crash, build *Build) []string {
+	if build.OS == targets.Linux {
+		extractor := subsystem.MakeLinuxSubsystemExtractor()
+		return extractor.Extract(&subsystem.Crash{
+			GuiltyFiles: req.GuiltyFiles,
+			SyzRepro:    string(req.ReproSyz),
+		})
+	}
+	return nil
+}
+
+func subsystemMaintainers(ns, subsystemName string) []string {
+	nsConfig := config.Namespaces[ns]
+	return nsConfig.Subsystems.SubsystemCc(subsystemName)
 }
 
 func (crash *Crash) UpdateReportingPriority(build *Build, bug *Bug) {

@@ -12,7 +12,7 @@ import (
 )
 
 func TestSimpleLinuxExtract(t *testing.T) {
-	se := &SubsystemExtractor{}
+	se := MakeLinuxSubsystemExtractor()
 
 	ret := se.Extract(&Crash{
 		OS: targets.Linux,
@@ -34,7 +34,8 @@ func TestSimpleLinuxExtract(t *testing.T) {
 
 func TestProgCallRules(t *testing.T) {
 	se := &SubsystemExtractor{
-		CallToSubsystems: func(call string) []string {
+		pathToSubsystems: linuxPathToSubsystems,
+		callToSubsystems: func(call string) []string {
 			ret := map[string][]string{
 				// Intentionally add some that are not present in the test below.
 				"test":               {"test"},
