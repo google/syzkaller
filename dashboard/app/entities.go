@@ -129,6 +129,15 @@ type BugSubsystem struct {
 	Name string
 }
 
+func (bug *Bug) addSubsystem(subsystem BugSubsystem) {
+	for _, item := range bug.Tags.Subsystems {
+		if item.Name == subsystem.Name {
+			return
+		}
+	}
+	bug.Tags.Subsystems = append(bug.Tags.Subsystems, subsystem)
+}
+
 func (bug *Bug) Load(ps []db.Property) error {
 	if err := db.LoadStruct(bug, ps); err != nil {
 		return err
