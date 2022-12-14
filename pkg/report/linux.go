@@ -378,9 +378,9 @@ func (ctx *linux) Symbolize(rep *Report) error {
 
 	// We still do this even if we did not symbolize,
 	// because tests pass in already symbolized input.
-	rep.guiltyFile = ctx.extractGuiltyFile(rep)
-	if rep.guiltyFile != "" {
-		maintainers, err := ctx.getMaintainers(rep.guiltyFile)
+	rep.GuiltyFile = ctx.extractGuiltyFile(rep)
+	if rep.GuiltyFile != "" {
+		maintainers, err := ctx.getMaintainers(rep.GuiltyFile)
 		if err != nil {
 			return err
 		}
