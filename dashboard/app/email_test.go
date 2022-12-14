@@ -859,6 +859,12 @@ func TestSubjectTitleParser(t *testing.T) {
 			outTitle:  "",
 			outSeq:    0,
 		},
+		{
+			// Make sure we delete filesystem tags.
+			inSubject: "Re: [syzbot] [ntfs3?] [ext4?] kernel BUG in blk_mq_dispatch_rq_list (4)",
+			outTitle:  "kernel BUG in blk_mq_dispatch_rq_list",
+			outSeq:    3,
+		},
 	}
 
 	p := subjectTitleParser{}
