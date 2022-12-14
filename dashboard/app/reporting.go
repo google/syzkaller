@@ -595,6 +595,9 @@ func fillBugReport(c context.Context, rep *dashapi.BugReport, bug *Bug, bugRepor
 		rep.CC = email.RemoveFromEmailList(rep.CC, addr)
 		rep.Maintainers = email.RemoveFromEmailList(rep.Maintainers, addr)
 	}
+	for _, item := range bug.Tags.Subsystems {
+		rep.Subsystems = append(rep.Subsystems, dashapi.BugSubsystem{Name: item.Name})
+	}
 	return nil
 }
 
