@@ -271,8 +271,17 @@ func emailReport(c context.Context, rep *dashapi.BugReport) error {
 	if err := mailTemplates.ExecuteTemplate(body, templ, rep); err != nil {
 		return fmt.Errorf("failed to execute %v template: %v", templ, err)
 	}
-	log.Infof(c, "sending email %q to %q", rep.Title, to)
-	return sendMailText(c, cfg, rep.Title, from, to, rep.ExtID, body.String())
+	title := generateEmailBugTitle(rep, cfg)
+	log.Infof(c, "sending email %q to %q", title, to)
+	return sendMailText(c, cfg, title, from, to, rep.ExtID, body.String())
+}
+
+func generateEmailBugTitle(rep *dashapi.BugReport, emailConfig *EmailConfig) string {
+	title := ""
+	for i := len(rep.Subsystems) - 1; i >= 0; i-- {
+		title = fmt.Sprintf("[%s?] %s", rep.Subsystems[i].Name, title)
+	}
+	return title + rep.Title
 }
 
 // handleIncomingMail is the entry point for incoming emails.
@@ -626,7 +635,7 @@ func (p *subjectTitleParser) prepareRegexps() {
 			}
 		}
 		rePrefixes := `^(?:(?:` + strings.Join(stripPrefixes, "|") + `)\s*)*`
-		p.pattern = regexp.MustCompile(rePrefixes + `(.*?)(?:\s\((\d+)\))?$`)
+		p.pattern = regexp.MustCompile(rePrefixes + `(?:\[[^\]]+\]\s*)*(.*?)(?:\s\((\d+)\))?$`)
 	})
 }
 
