@@ -114,6 +114,19 @@ type Bug struct {
 	// bit 1 - don't want to publish it (syzkaller build/test errors)
 	KcidbStatus int64
 	DailyStats  []BugDailyStats
+	Tags        BugTags
+}
+
+type BugTags struct {
+	Subsystems []BugSubsystem
+}
+
+type BugSubsystem struct {
+	// For now, let's keep the bare minimum number of fields.
+	// The subsystem names we use now are not stable and should not be relied upon.
+	// Once the subsystem management functionality is fully implemented, we'll
+	// override everything stored here.
+	Name string
 }
 
 func (bug *Bug) Load(ps []db.Property) error {
