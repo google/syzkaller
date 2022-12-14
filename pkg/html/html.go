@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/vcs"
 )
 
 func CreateGlob(glob string) *template.Template {
@@ -40,6 +41,7 @@ var Funcs = template.FuncMap{
 	"formatList":             formatStringList,
 	"selectBisect":           selectBisect,
 	"dereference":            dereferencePointer,
+	"commitLink":             commitLink,
 }
 
 func selectBisect(rep *dashapi.BugReport) *dashapi.BisectResult {
@@ -184,4 +186,8 @@ func dereferencePointer(v interface{}) interface{} {
 		}
 	}
 	return v
+}
+
+func commitLink(repo, commit string) string {
+	return vcs.CommitLink(repo, commit)
 }
