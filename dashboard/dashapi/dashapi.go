@@ -400,6 +400,11 @@ type BugReport struct {
 	BisectCause    *BisectResult
 	BisectFix      *BisectResult
 	Assets         []Asset
+	Subsystems     []BugSubsystem
+}
+
+type BugSubsystem struct {
+	Name string
 }
 
 type Asset struct {
