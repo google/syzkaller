@@ -46,8 +46,15 @@ func TestFsSubsystemFlow(t *testing.T) {
 	client.ReportCrash(crash)
 
 	reply = c.pollEmailBug()
-	// We have no means to determine the subsystem now, so it shouldn't be anywhere.
-	c.expectEQ(reply.Subject, "[syzbot] WARNING in nilfs_dat_commit_end")
+	// The subsystem should have been taken from the guilty path.
+	c.expectEQ(reply.Subject, "[syzbot] [nilfs2?] WARNING in nilfs_dat_commit_end")
+	c.expectEQ(reply.To, []string{
+		"konishi.ryusuke@gmail.com",
+		"linux-kernel@vger.kernel.org",
+		"linux-nilfs@vger.kernel.org",
+		"maintainer@kernel.org",
+		"test@syzkaller.com",
+	})
 
 	// C. Send a possibly vfs bug without a reproducer.
 	// -----------------------------------------

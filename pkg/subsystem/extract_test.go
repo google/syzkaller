@@ -4,34 +4,12 @@
 package subsystem
 
 import (
-	"reflect"
 	"sort"
 	"testing"
 
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestSimpleLinuxExtract(t *testing.T) {
-	se := MakeLinuxSubsystemExtractor()
-
-	ret := se.Extract(&Crash{
-		OS: targets.Linux,
-		GuiltyFiles: []string{
-			"fs/ext4/abc.c",
-		},
-	})
-	assert.Empty(t, ret, "the test should have found 0 subsystems")
-
-	ret = se.Extract(&Crash{
-		OS: targets.Linux,
-		GuiltyFiles: []string{
-			"fs/ext4/abc.c",
-			"fs/def.c",
-		},
-	})
-	assert.Exactly(t, ret, []string{"vfs"}, "the test should have only found vfs")
-}
 
 func TestProgCallRules(t *testing.T) {
 	se := &SubsystemExtractor{
@@ -78,6 +56,10 @@ func TestFsSubsystemExtraction(t *testing.T) {
 		subsystems []string
 	}{
 		{
+			guilty:     "fs/abc.c",
+			subsystems: []string{"vfs"},
+		},
+		{
 			guilty: "fs/nilfs2/dat.c",
 			// nolint: lll
 			prog: `syz_mount_image$nilfs2(&(0x7f0000000000), &(0x7f0000000100)='./file0\x00', 0x100000, 0x3b, &(0x7f0000000200)=[{&(0x7f0000011240)="02", 0x1}, {&(0x7f0000012a40)="03000000", 0x4, 0x1}], 0x0, &(0x7f00000131c0), 0x1)
@@ -94,6 +76,24 @@ mkdirat(r0, &(0x7f0000000280)='./bus/file0\x00', 0x0)
 renameat2(r0, &(0x7f00000004c0)='./file0\x00', r0, &(0x7f0000000500)='./bus/file0/file0\x00', 0x0)`,
 			subsystems: []string{"ntfs3", "vfs"},
 		},
+		{
+			guilty: "fs/ext4/file.c",
+			// nolint: lll
+			prog: `syz_mount_image$ntfs3(&(0x7f0000000240), &(0x7f000001f3c0)='./file0\x00', 0xc40, &(0x7f00000005c0)=ANY=[@ANYBLOB="0032"], 0x3, 0x1f398, &(0x7f000003e7c0)="111")
+r0 = openat(0xffffffffffffff9c, &(0x7f0000000040)='.\x00', 0x0, 0x0)
+mkdirat(r0, &(0x7f0000000180)='./bus\x00', 0x0)
+mkdirat(r0, &(0x7f0000000280)='./bus/file0\x00', 0x0)
+renameat2(r0, &(0x7f00000004c0)='./file0\x00', r0, &(0x7f0000000500)='./bus/file0/file0\x00', 0x0)`,
+			subsystems: []string{"ntfs3", "ext4"},
+		},
+		{
+			guilty:     "fs/gfs2/ops_fstype.c",
+			subsystems: []string{"gfs2"},
+		},
+		{
+			guilty:     "net/mac80211/main.c",
+			subsystems: []string{},
+		},
 	}
 
 	for i, test := range tests {
@@ -103,8 +103,7 @@ renameat2(r0, &(0x7f00000004c0)='./file0\x00', r0, &(0x7f0000000500)='./bus/file
 			SyzRepro:    test.prog,
 		})
 		sort.Strings(ret)
-		if !reflect.DeepEqual(ret, test.subsystems) {
-			t.Fatalf("test #%d: got %+v, wanted %+v", i, ret, test.subsystems)
-		}
+		sort.Strings(test.subsystems)
+		assert.Exactlyf(t, ret, test.subsystems, "#%d: invalid resulting subsystems", i)
 	}
 }

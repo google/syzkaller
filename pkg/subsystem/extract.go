@@ -5,6 +5,7 @@ package subsystem
 
 import (
 	"regexp"
+	"sync"
 
 	"github.com/google/syzkaller/prog"
 )
@@ -58,8 +59,23 @@ func linuxPathToSubsystems(path string) []string {
 	if vfsPathRegexp.MatchString(path) {
 		ret = append(ret, "vfs")
 	}
+	linuxSubsystemsOnce.Do(func() {
+		for name, info := range linuxSubsystems {
+			linuxSubsystemRegexps[name] = regexp.MustCompile("^/?" + info.path + ".*")
+		}
+	})
+	for name, pattern := range linuxSubsystemRegexps {
+		if pattern.MatchString(path) {
+			ret = append(ret, name)
+		}
+	}
 	return ret
 }
+
+var (
+	linuxSubsystemsOnce   sync.Once
+	linuxSubsystemRegexps = map[string]*regexp.Regexp{}
+)
 
 func linuxCallToSubsystems(call string) []string {
 	name := linuxCallToSubsystemsMap[call]

@@ -357,7 +357,7 @@ var testConfig = &GlobalConfig{
 					},
 				},
 			},
-			Subsystems: &SubsystemsConfig{
+			Subsystems: SubsystemsConfig{
 				SubsystemCc: subsystem.LinuxGetMaintainers,
 			},
 		},
