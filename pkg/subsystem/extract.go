@@ -107,7 +107,7 @@ var linuxCallToSubsystemsMap = map[string]string{
 	"syz_mount_image$udf":      "udf",
 	"syz_mount_image$ufs":      "ufs",
 	"syz_mount_image$v7":       "v7",
-	"syz_mount_image$vfat":     "vfat",
+	"syz_mount_image$vfat":     "fat",
 	"syz_mount_image$vxfs":     "vxfs",
 	"syz_mount_image$xfs":      "xfs",
 	"syz_mount_image$zonefs":   "zonefs",
