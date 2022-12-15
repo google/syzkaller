@@ -15,6 +15,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/auth"
+	"github.com/google/syzkaller/pkg/subsystem"
 	"github.com/google/syzkaller/sys/targets"
 	"google.golang.org/appengine/v2/user"
 )
@@ -317,6 +318,49 @@ var testConfig = &GlobalConfig{
 				},
 			},
 		},
+		"fs-bugs-reporting": {
+			AccessLevel: AccessPublic,
+			Key:         "fspublickeypublickeypublickey",
+			Clients: map[string]string{
+				clientPublicFs: keyPublicFs,
+			},
+			Repos: []KernelRepo{
+				{
+					URL:    "git://syzkaller.org/fs-bugs.git",
+					Branch: "fs-bugs",
+					Alias:  "fs-bugs",
+				},
+			},
+			Reporting: []Reporting{
+				{
+					Name:       "wait-repro",
+					DailyLimit: 1000,
+					Filter: func(bug *Bug) FilterResult {
+						if canBeVfsBug(bug) &&
+							bug.ReproLevel == dashapi.ReproLevelNone {
+							return FilterReport
+						}
+						return FilterSkip
+					},
+					Config: &TestConfig{Index: 1},
+				},
+				{
+					AccessLevel: AccessPublic,
+					Name:        "public",
+					DailyLimit:  1000,
+					Config: &EmailConfig{
+						Email:              "test@syzkaller.com",
+						HandleListEmails:   true,
+						DefaultMaintainers: []string{"linux-kernel@vger.kernel.org"},
+						MailMaintainers:    true,
+						SubjectPrefix:      "[syzbot]",
+					},
+				},
+			},
+			Subsystems: &SubsystemsConfig{
+				SubsystemCc: subsystem.LinuxGetMaintainers,
+			},
+		},
 	},
 }
 
@@ -335,6 +379,8 @@ const (
 	keyPublicEmail     = "clientpublicemailkeyclientpublicemailkey"
 	clientPublicEmail2 = "client-public-email2"
 	keyPublicEmail2    = "clientpublicemailkeyclientpublicemailkey2"
+	clientPublicFs     = "client-public-fs"
+	keyPublicFs        = "keypublicfskeypublicfskeypublicfs"
 
 	restrictedManager     = "restricted-manager"
 	noFixBisectionManager = "no-fix-bisection-manager"
