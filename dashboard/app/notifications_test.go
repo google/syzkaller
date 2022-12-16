@@ -4,11 +4,13 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/email"
 )
 
 func TestEmailNotifUpstreamEmbargo(t *testing.T) {
@@ -78,6 +80,8 @@ func TestEmailNotifBadFix(t *testing.T) {
 	c.client2.ReportCrash(crash)
 	report := c.pollEmailBug()
 	c.expectEQ(report.To, []string{"test@syzkaller.com"})
+	_, extBugID, err := email.RemoveAddrContext(report.Sender)
+	c.expectOK(err)
 
 	c.incomingEmail(report.Sender, "#syz fix some: commit title")
 	c.expectNoEmail()
@@ -89,8 +93,21 @@ func TestEmailNotifBadFix(t *testing.T) {
 	c.expectNoEmail()
 	c.advanceTime(10 * 24 * time.Hour)
 	notif := c.pollEmailBug()
-	if !strings.Contains(notif.Body, "This bug is marked as fixed by commit:\nsome: commit title\n") {
-		t.Fatalf("bad notification text: %q", notif.Body)
+	t.Logf("%s", notif.Body)
+
+	expectReply := fmt.Sprintf(`This bug is marked as fixed by commit:
+some: commit title
+But I can't find it in any tested tree for more than 90 days.
+Is it a correct commit? Please update it by replying:
+#syz fix: exact-commit-title
+
+Until then the bug is still considered open and new crashes with the same signature are ignored.
+
+Dashboard link: https://testapp.appspot.com/bug?extid=%s
+`, extBugID)
+
+	if notif.Body != expectReply {
+		t.Fatalf("bad notification text: %q, expected: %q", notif.Body, expectReply)
 	}
 	// No notifications for another 14 days, then another one.
 	c.advanceTime(13 * 24 * time.Hour)
