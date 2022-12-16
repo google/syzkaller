@@ -322,6 +322,7 @@ func createNotification(c context.Context, typ dashapi.BugNotif, public bool, te
 		Title:     bug.displayTitle(),
 		Text:      text,
 		Public:    public,
+		Link:      fmt.Sprintf("%v/bug?extid=%v", appURL(c), bugReporting.ID),
 		CC:        kernelRepo.CC.Always,
 	}
 	if public {

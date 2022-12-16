@@ -177,9 +177,10 @@ func emailSendBugNotif(c context.Context, notif *dashapi.BugNotification) error 
 		body = fmt.Sprintf("This bug is marked as fixed by commit:\n%v\n"+
 			"But I can't find it in any tested tree for more than %v days.\n"+
 			"Is it a correct commit? Please update it by replying:\n"+
-			"#syz fix: exact-commit-title\n"+
-			"Until then the bug is still considered open and\n"+
-			"new crashes with the same signature are ignored.\n",
+			"#syz fix: exact-commit-title\n\n"+
+			"Until then the bug is still considered open and "+
+			"new crashes with the same signature are ignored.\n\n"+
+			"Dashboard link: "+notif.Link+"\n",
 			notif.Text, days)
 	case dashapi.BugNotifObsoleted:
 		body = "Auto-closing this bug as obsolete.\n"
