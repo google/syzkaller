@@ -23,20 +23,9 @@ var (
 	initTargetTest    = InitTargetTest
 )
 
-func iterCount() int {
-	iters := 1000
-	if testing.Short() {
-		iters /= 10
-	}
-	if testutil.RaceEnabled {
-		iters /= 10
-	}
-	return iters
-}
-
 func initRandomTargetTest(t *testing.T, os, arch string) (*Target, rand.Source, int) {
 	target := initTargetTest(t, os, arch)
-	return target, testutil.RandSource(t), iterCount()
+	return target, testutil.RandSource(t), testutil.IterCount()
 }
 
 func initTest(t *testing.T) (*Target, rand.Source, int) {
@@ -58,7 +47,7 @@ func testEachTarget(t *testing.T, fn func(t *testing.T, target *Target)) {
 func testEachTargetRandom(t *testing.T, fn func(t *testing.T, target *Target, rs rand.Source, iters int)) {
 	t.Parallel()
 	targets := AllTargets()
-	iters := iterCount()
+	iters := testutil.IterCount()
 	iters /= len(targets)
 	if iters < 3 {
 		iters = 3

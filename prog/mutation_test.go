@@ -416,7 +416,7 @@ func runMutationTests(t *testing.T, tests [][2]string, valid bool) {
 				t.Fatalf("failed to deserialize the program: %v", err)
 			}
 			want := goal.Serialize()
-			iters := iterCount()
+			iters := testutil.IterCount()
 			if valid {
 				iters = 1e6 // it will stop after reaching the goal
 			}
