@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/image"
 	. "github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -210,9 +211,9 @@ func TestZlib(t *testing.T) {
 	r := rand.New(testutil.RandSource(t))
 	for i := 0; i < 10; i++ {
 		data := testutil.RandMountImage(r)
-		compressed := prog.Compress(data)
+		compressed := image.Compress(data)
 		text := fmt.Sprintf(`syz_compare_zlib(&(0x7f0000000000)="$%s", AUTO, &(0x7f0000800000)="$%s", AUTO)`,
-			prog.EncodeB64(data), prog.EncodeB64(compressed))
+			image.EncodeB64(data), image.EncodeB64(compressed))
 		p, err := target.Deserialize([]byte(text), prog.Strict)
 		if err != nil {
 			t.Fatalf("failed to deserialize empty program: %v", err)

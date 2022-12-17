@@ -8,6 +8,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/google/syzkaller/pkg/image"
 	"github.com/google/syzkaller/pkg/testutil"
 )
 
@@ -52,7 +53,7 @@ func TestGenericHeatmap(t *testing.T) {
 
 	r := rand.New(testutil.RandSource(t))
 	for _, test := range testData {
-		data, err := DecodeB64(test.data)
+		data, err := image.DecodeB64(test.data)
 		if err != nil {
 			t.Fatalf("bad decode: %v", err)
 		}
