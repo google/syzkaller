@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/google/syzkaller/pkg/image"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -25,7 +26,7 @@ func (arch *arch) extractSyzMountImage(c *prog.Call) (io.Reader, error) {
 		return nil, fmt.Errorf("an empty image")
 	}
 	buf := new(bytes.Buffer)
-	if err := prog.DecompressWriter(buf, data); err != nil {
+	if err := image.DecompressWriter(buf, data); err != nil {
 		return nil, err
 	}
 	return buf, nil
