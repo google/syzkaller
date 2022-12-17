@@ -172,6 +172,12 @@ func (r *randGen) mutateSize(arg *ConstArg, parent []Arg, fields []Field) bool {
 					switch targetType := inner.Type().(type) {
 					case *VmaType:
 						return false
+					case *BufferType:
+						// Don't mutate size of compressed images.
+						// If we do, then our code will fail/crash on decompression.
+						if targetType.Kind == BufferCompressed {
+							return false
+						}
 					case *ArrayType:
 						if targetType.Elem.Varlen() {
 							return false
