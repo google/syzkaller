@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"net"
@@ -1014,12 +1015,12 @@ func (mgr *Manager) saveFailedRepro(rep *report.Report, stats *repro.Stats) {
 func (mgr *Manager) saveRepro(res *ReproResult) {
 	repro := res.repro
 	opts := fmt.Sprintf("# %+v\n", repro.Opts)
-	prog := repro.Prog.Serialize()
+	progText := repro.Prog.Serialize()
 
 	// Append this repro to repro list to send to hub if it didn't come from hub originally.
 	if !res.hub {
 		progForHub := []byte(fmt.Sprintf("# %+v\n# %v\n# %v\n%s",
-			repro.Opts, repro.Report.Title, mgr.cfg.Tag, prog))
+			repro.Opts, repro.Report.Title, mgr.cfg.Tag, progText))
 		mgr.mu.Lock()
 		mgr.newRepros = append(mgr.newRepros, progForHub)
 		mgr.mu.Unlock()
@@ -1068,7 +1069,7 @@ func (mgr *Manager) saveRepro(res *ReproResult) {
 			Flags:      crashFlags,
 			Report:     report.Report,
 			ReproOpts:  repro.Opts.Serialize(),
-			ReproSyz:   repro.Prog.Serialize(),
+			ReproSyz:   progText,
 			ReproC:     cprogText,
 			Assets:     mgr.uploadReproAssets(repro),
 		}
@@ -1088,7 +1089,7 @@ func (mgr *Manager) saveRepro(res *ReproResult) {
 	if err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(rep.Title+"\n")); err != nil {
 		log.Logf(0, "failed to write crash: %v", err)
 	}
-	osutil.WriteFile(filepath.Join(dir, "repro.prog"), append([]byte(opts), prog...))
+	osutil.WriteFile(filepath.Join(dir, "repro.prog"), append([]byte(opts), progText...))
 	if mgr.cfg.Tag != "" {
 		osutil.WriteFile(filepath.Join(dir, "repro.tag"), []byte(mgr.cfg.Tag))
 	}
@@ -1101,9 +1102,11 @@ func (mgr *Manager) saveRepro(res *ReproResult) {
 	if len(cprogText) > 0 {
 		osutil.WriteFile(filepath.Join(dir, "repro.cprog"), cprogText)
 	}
-	for _, asset := range repro.Prog.ExtractAssets() {
-		saveReproAsset(dir, asset)
-	}
+	repro.Prog.ForEachAsset(func(name string, typ prog.AssetType, r io.Reader) {
+		if err := osutil.WriteGzipStream(name+".gz", r); err != nil {
+			log.Logf(0, "failed to write crash asset: type %d, write error %v", typ, err)
+		}
+	})
 	if res.strace != nil {
 		// Unlike dashboard reporting, we save strace output separately from the original log.
 		if res.strace.Error != nil {
@@ -1118,58 +1121,26 @@ func (mgr *Manager) saveRepro(res *ReproResult) {
 }
 
 func (mgr *Manager) uploadReproAssets(repro *repro.Result) []dashapi.NewAsset {
-	ret := []dashapi.NewAsset{}
 	if mgr.assetStorage == nil {
-		return ret
+		return nil
 	}
 
-	for _, asset := range repro.Prog.ExtractAssets() {
-		if asset.Reader == nil {
-			// Skip empty assets.
-			continue
+	ret := []dashapi.NewAsset{}
+	repro.Prog.ForEachAsset(func(name string, typ prog.AssetType, r io.Reader) {
+		dashTyp, ok := map[prog.AssetType]dashapi.AssetType{
+			prog.MountInRepro: dashapi.MountInRepro,
+		}[typ]
+		if !ok {
+			panic("unknown extracted prog asset")
 		}
-		newAsset, err := mgr.uploadReproAsset(asset)
+		asset, err := mgr.assetStorage.UploadCrashAsset(r, name, dashTyp, nil)
 		if err != nil {
-			log.Logf(1, "processing of the asset #%d,%v failed: %s",
-				asset.Call, asset.Type, err)
-			continue
+			log.Logf(1, "processing of the asset %v (%v) failed: %v", name, typ, err)
+			return
 		}
-		ret = append(ret, newAsset)
-	}
+		ret = append(ret, asset)
+	})
 	return ret
-}
-
-func (mgr *Manager) uploadReproAsset(asset *prog.ExtractedAsset) (dashapi.NewAsset, error) {
-	if asset.Error != nil {
-		return dashapi.NewAsset{}, fmt.Errorf("failed to extract: %w", asset.Error)
-	}
-	switch asset.Type {
-	case prog.MountInRepro:
-		name := fmt.Sprintf("mount_%d", asset.Call)
-		return mgr.assetStorage.UploadCrashAsset(asset.Reader, name,
-			dashapi.MountInRepro, nil)
-	default:
-		panic("unknown extracted prog asset")
-	}
-}
-
-func saveReproAsset(dir string, asset *prog.ExtractedAsset) {
-	path := ""
-	switch asset.Type {
-	case prog.MountInRepro:
-		path = filepath.Join(dir, fmt.Sprintf("repro.mount%d", asset.Call))
-	default:
-		panic("unknown extracted prog asset")
-	}
-	var err error
-	if asset.Error != nil {
-		err = osutil.WriteFile(path+".error", []byte(asset.Error.Error()))
-	} else if asset.Reader != nil {
-		err = osutil.WriteGzipStream(path+".gz", asset.Reader)
-	}
-	if err != nil {
-		log.Logf(0, "failed to write crash asset: type %d, write error %v", asset.Type, err)
-	}
 }
 
 func saveReproStats(filename string, stats *repro.Stats) {
