@@ -9,7 +9,6 @@ import (
 	"math"
 	"math/rand"
 	"sort"
-	"sync"
 
 	"github.com/google/syzkaller/pkg/image"
 )
@@ -385,17 +384,10 @@ func (t *BufferType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []
 	return
 }
 
-var imageMu sync.Mutex
-
 func (r *randGen) mutateImage(compressed []byte) (data []byte, retry bool) {
 	if len(compressed) == 0 {
 		return compressed, true
 	}
-	// Don't decompress more than one image at a time
-	// since it can consume lots of memory.
-	// Reconsider when/if we move mutation to the host process.
-	imageMu.Lock()
-	defer imageMu.Unlock()
 	data, dtor := image.MustDecompress(compressed)
 	defer dtor()
 	if len(data) == 0 {
