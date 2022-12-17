@@ -11,6 +11,8 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/google/syzkaller/pkg/image"
 )
 
 // String generates a very compact program description (mostly for debug output).
@@ -604,10 +606,10 @@ func (p *parser) parseArgString(t Type, dir Dir) (Arg, error) {
 	}
 	// Check compressed data for validity.
 	if typ.IsCompressed() {
-		if err := DecompressWriter(ioutil.Discard, data); err != nil {
+		if err := image.DecompressWriter(ioutil.Discard, data); err != nil {
 			p.strictFailf("invalid compressed data in arg: %v", err)
 			// In non-strict mode, empty the data slice.
-			data = Compress(nil)
+			data = image.Compress(nil)
 		}
 	}
 	size := ^uint64(0)
@@ -887,8 +889,7 @@ func serializeData(buf *bytes.Buffer, data []byte, readable bool) {
 func serializeCompressedData(buf *bytes.Buffer, data []byte) {
 	buf.WriteByte('"')
 	buf.WriteByte('$')
-	encoded := EncodeB64(data)
-	buf.Write(encoded)
+	buf.Write(image.EncodeB64(data))
 	buf.WriteByte('"')
 }
 
@@ -983,7 +984,7 @@ func (p *parser) deserializeData() ([]byte, bool, error) {
 				rawData = append(rawData, v)
 			}
 			p.Parse('"')
-			decoded, err := DecodeB64(rawData)
+			decoded, err := image.DecodeB64(rawData)
 			if err != nil {
 				return nil, false, fmt.Errorf("data arg is corrupt: %v", err)
 			}
