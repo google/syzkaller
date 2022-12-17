@@ -29,14 +29,6 @@ func Compress(rawData []byte) []byte {
 	return buffer.Bytes()
 }
 
-func MustDecompress(compressed []byte) (data []byte, dtor func()) {
-	buf := new(bytes.Buffer)
-	if err := decompressWriter(buf, compressed); err != nil {
-		panic(err)
-	}
-	return buf.Bytes(), func() {}
-}
-
 func DecompressCheck(compressed []byte) error {
 	return decompressWriter(ioutil.Discard, compressed)
 }

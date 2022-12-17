@@ -476,6 +476,7 @@ static int puff_zlib_to_file(const unsigned char* source, unsigned long sourcele
 	source += ZLIB_HEADER_WIDTH;
 	sourcelen -= ZLIB_HEADER_WIDTH;
 
+	// Note: pkg/image/compression.go also knows this const.
 	const unsigned long max_destlen = 132 << 20;
 	void* ret = mmap(0, max_destlen, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANON, -1, 0);
 	if (ret == MAP_FAILED)
