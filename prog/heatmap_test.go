@@ -48,7 +48,7 @@ func TestGenericHeatmap(t *testing.T) {
 	}
 
 	const tries = 10
-	iters := iterCount() / tries
+	iters := testutil.IterCount() / tries
 
 	r := rand.New(testutil.RandSource(t))
 	for _, test := range testData {
