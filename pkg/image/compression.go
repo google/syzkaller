@@ -29,11 +29,21 @@ func Compress(rawData []byte) []byte {
 	return buffer.Bytes()
 }
 
+func MustDecompress(compressed []byte) (data []byte, dtor func()) {
+	if len(compressed) == 0 {
+		return nil, func() {}
+	}
+	return mustDecompress(compressed)
+}
+
 func DecompressCheck(compressed []byte) error {
 	return decompressWriter(ioutil.Discard, compressed)
 }
 
 func decompressWriter(w io.Writer, compressed []byte) error {
+	if len(compressed) == 0 {
+		return nil
+	}
 	zlibReader, err := zlib.NewReader(bytes.NewReader(compressed))
 	if err != nil {
 		return fmt.Errorf("could not initialise zlib: %v", err)

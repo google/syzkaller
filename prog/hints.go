@@ -159,9 +159,6 @@ func checkDataArg(arg *DataArg, compMap CompMap, exec func()) {
 
 func checkCompressedArg(arg *DataArg, compMap CompMap, exec func()) {
 	data0 := arg.Data()
-	if len(data0) == 0 {
-		return
-	}
 	data, dtor := image.MustDecompress(data0)
 	defer dtor()
 	// Images are very large so the generic algorithm for data arguments

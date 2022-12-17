@@ -29,7 +29,7 @@ var decompressPool = sync.Pool{New: func() interface{} {
 	}
 }}
 
-func MustDecompress(compressed []byte) (data []byte, dtor func()) {
+func mustDecompress(compressed []byte) (data []byte, dtor func()) {
 	// Optimized decompression procedure that is ~2x faster than a naive version
 	// and consumes significantly less memory and generates less garbage.
 	// Images tend to contain lots of 0s, especially the larger images.
