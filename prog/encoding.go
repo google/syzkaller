@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"reflect"
 	"strconv"
 	"strings"
@@ -606,7 +605,7 @@ func (p *parser) parseArgString(t Type, dir Dir) (Arg, error) {
 	}
 	// Check compressed data for validity.
 	if typ.IsCompressed() {
-		if err := image.DecompressWriter(ioutil.Discard, data); err != nil {
+		if err := image.DecompressCheck(data); err != nil {
 			p.strictFailf("invalid compressed data in arg: %v", err)
 			// In non-strict mode, empty the data slice.
 			data = image.Compress(nil)

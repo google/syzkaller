@@ -396,10 +396,8 @@ func (r *randGen) mutateImage(compressed []byte) (data []byte, retry bool) {
 	// Reconsider when/if we move mutation to the host process.
 	imageMu.Lock()
 	defer imageMu.Unlock()
-	data, err := image.Decompress(compressed)
-	if err != nil {
-		panic(fmt.Sprintf("could not decompress data: %v", err))
-	}
+	data, dtor := image.MustDecompress(compressed)
+	defer dtor()
 	if len(data) == 0 {
 		return compressed, true // Do not mutate empty data.
 	}

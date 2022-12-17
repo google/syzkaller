@@ -356,10 +356,8 @@ func (p *Prog) ForEachAsset(cb func(name string, typ AssetType, r io.Reader)) {
 			if !ok || a.Type().(*BufferType).Kind != BufferCompressed {
 				return
 			}
-			data, err := image.Decompress(a.Data())
-			if err != nil {
-				panic(err)
-			}
+			data, dtor := image.MustDecompress(a.Data())
+			defer dtor()
 			if len(data) == 0 {
 				return
 			}
