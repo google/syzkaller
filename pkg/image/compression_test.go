@@ -13,32 +13,33 @@ import (
 )
 
 func TestCompress(t *testing.T) {
+	t.Parallel()
 	r := rand.New(testutil.RandSource(t))
-	err := testRoundTrip(r, Compress, Decompress)
-	if err != nil {
-		t.Fatalf("compress/decompress %v", err)
+	for i := 0; i < testutil.IterCount(); i++ {
+		t.Run(fmt.Sprint(i), func(t *testing.T) {
+			randBytes := testutil.RandMountImage(r)
+			resultBytes := Compress(randBytes)
+			resultBytes, dtor := MustDecompress(resultBytes)
+			defer dtor()
+			if !bytes.Equal(randBytes, resultBytes) {
+				t.Fatalf("roundtrip changes data (length %v->%v)", len(randBytes), len(resultBytes))
+			}
+		})
 	}
 }
 
 func TestEncode(t *testing.T) {
+	t.Parallel()
 	r := rand.New(testutil.RandSource(t))
-	err := testRoundTrip(r, EncodeB64, DecodeB64)
-	if err != nil {
-		t.Fatalf("encode/decode Base64 %v", err)
-	}
-}
-
-func testRoundTrip(r *rand.Rand, transform func([]byte) []byte, inverse func([]byte) ([]byte, error)) error {
 	for i := 0; i < testutil.IterCount(); i++ {
 		randBytes := testutil.RandMountImage(r)
-		resultBytes := transform(randBytes)
-		resultBytes, err := inverse(resultBytes)
+		resultBytes := EncodeB64(randBytes)
+		resultBytes, err := DecodeB64(resultBytes)
 		if err != nil {
-			return err
+			t.Fatalf("decoding failed: %v", err)
 		}
 		if !bytes.Equal(randBytes, resultBytes) {
-			return fmt.Errorf("roundtrip changes data (original length %d)", len(randBytes))
+			t.Fatalf("roundtrip changes data (original length %d)", len(randBytes))
 		}
 	}
-	return nil
 }

@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"io/ioutil"
 )
 
 func Compress(rawData []byte) []byte {
@@ -28,14 +29,20 @@ func Compress(rawData []byte) []byte {
 	return buffer.Bytes()
 }
 
-func Decompress(compressedData []byte) ([]byte, error) {
+func MustDecompress(compressed []byte) (data []byte, dtor func()) {
 	buf := new(bytes.Buffer)
-	err := DecompressWriter(buf, compressedData)
-	return buf.Bytes(), err
+	if err := decompressWriter(buf, compressed); err != nil {
+		panic(err)
+	}
+	return buf.Bytes(), func() {}
 }
 
-func DecompressWriter(w io.Writer, compressedData []byte) error {
-	zlibReader, err := zlib.NewReader(bytes.NewReader(compressedData))
+func DecompressCheck(compressed []byte) error {
+	return decompressWriter(ioutil.Discard, compressed)
+}
+
+func decompressWriter(w io.Writer, compressed []byte) error {
+	zlibReader, err := zlib.NewReader(bytes.NewReader(compressed))
 	if err != nil {
 		return fmt.Errorf("could not initialise zlib: %v", err)
 	}
