@@ -11,6 +11,17 @@ import (
 	"time"
 )
 
+func IterCount() int {
+	iters := 1000
+	if testing.Short() {
+		iters /= 10
+	}
+	if RaceEnabled {
+		iters /= 10
+	}
+	return iters
+}
+
 func RandSource(t *testing.T) rand.Source {
 	seed := time.Now().UnixNano()
 	if fixed := os.Getenv("SYZ_SEED"); fixed != "" {

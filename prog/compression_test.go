@@ -29,7 +29,7 @@ func TestEncode(t *testing.T) {
 }
 
 func testRoundTrip(r *rand.Rand, transform func([]byte) []byte, inverse func([]byte) ([]byte, error)) error {
-	for i := 0; i < iterCount(); i++ {
+	for i := 0; i < testutil.IterCount(); i++ {
 		randBytes := testutil.RandMountImage(r)
 		resultBytes := transform(randBytes)
 		resultBytes, err := inverse(resultBytes)
