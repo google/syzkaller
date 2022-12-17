@@ -469,10 +469,8 @@ static int puff(
 static int puff_zlib_to_file(const unsigned char* source, unsigned long sourcelen, int dest_fd)
 {
 	// Ignore zlib header.
-	if (sourcelen < ZLIB_HEADER_WIDTH) {
-		errno = EMSGSIZE;
-		return -1;
-	}
+	if (sourcelen < ZLIB_HEADER_WIDTH)
+		return 0;
 	source += ZLIB_HEADER_WIDTH;
 	sourcelen -= ZLIB_HEADER_WIDTH;
 

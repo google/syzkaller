@@ -13,7 +13,7 @@ import (
 
 var decompressMu sync.Mutex
 
-func MustDecompress(compressed []byte) (data []byte, dtor func()) {
+func mustDecompress(compressed []byte) (data []byte, dtor func()) {
 	// Don't decompress more than one image at a time since it can consume lots of memory.
 	// Reconsider when/if we move mutation to the host process.
 	decompressMu.Lock()
