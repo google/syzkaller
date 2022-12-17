@@ -9,8 +9,11 @@
 package prog
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+
+	"github.com/google/syzkaller/pkg/image"
 )
 
 type state struct {
@@ -340,39 +343,27 @@ func checkMaxCallID(id int) {
 	}
 }
 
-type ExtractedAssetType int
+type AssetType int
 
 const (
-	MountInRepro ExtractedAssetType = iota
+	MountInRepro AssetType = iota
 )
 
-type ExtractedAsset struct {
-	Call   int
-	Type   ExtractedAssetType
-	Reader io.Reader
-	Error  error
-}
-
-func (p *Prog) ExtractAssets() []*ExtractedAsset {
-	handler := p.Target.ExtractMountedImage
-	if handler == nil {
-		// Such an operation is not supported by the target.
-		return nil
-	}
-	ret := []*ExtractedAsset{}
+func (p *Prog) ForEachAsset(cb func(name string, typ AssetType, r io.Reader)) {
 	for id, c := range p.Calls {
-		// So far we only support the MountInRepro asset.
-		reader, err := handler(c)
-		if reader == nil && err == nil {
-			// This is not the call that contains the mount image.
-			continue
-		}
-		ret = append(ret, &ExtractedAsset{
-			Type:   MountInRepro,
-			Call:   id,
-			Reader: reader,
-			Error:  err,
+		ForeachArg(c, func(arg Arg, _ *ArgCtx) {
+			a, ok := arg.(*DataArg)
+			if !ok || a.Type().(*BufferType).Kind != BufferCompressed {
+				return
+			}
+			data, err := image.Decompress(a.Data())
+			if err != nil {
+				panic(err)
+			}
+			if len(data) == 0 {
+				return
+			}
+			cb(fmt.Sprintf("mount_%v", id), MountInRepro, bytes.NewReader(data))
 		})
 	}
-	return ret
 }

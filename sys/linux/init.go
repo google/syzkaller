@@ -54,7 +54,6 @@ func InitTarget(target *prog.Target) {
 
 	target.MakeDataMmap = targets.MakePosixMmap(target, true, true)
 	target.Neutralize = arch.neutralize
-	target.ExtractMountedImage = arch.extractSyzMountImage
 	target.SpecialTypes = map[string]func(g *prog.Gen, typ prog.Type, dir prog.Dir, old prog.Arg) (
 		prog.Arg, []*prog.Call){
 		"timespec":                  arch.generateTimespec,
@@ -245,8 +244,6 @@ func (arch *arch) neutralize(c *prog.Call, fixStructure bool) error {
 	case "sched_setattr":
 		// Enabling a SCHED_FIFO or a SCHED_RR policy may lead to false positive stall-related crashes.
 		neutralizeSchedAttr(c.Args[1])
-	case "syz_mount_image":
-		return arch.fixUpSyzMountImage(c, fixStructure)
 	}
 
 	switch c.Meta.Name {
