@@ -48,7 +48,7 @@ type FileSystem struct {
 	// Generate images for all possible permutations of these flag combinations.
 	MkfsFlagCombinations [][]string
 	// Custom mkfs invocation, if nil then mkfs.name is invoked in a standard way.
-	Mkfs func(image *Image) error
+	Mkfs func(img *Image) error
 }
 
 // nolint:lll
@@ -227,8 +227,8 @@ var fileSystems = []FileSystem{
 			},
 			{"", "-I"},
 		},
-		Mkfs: func(image *Image) error {
-			_, err := runCmd("mkfs.ntfs", append(image.flags, image.disk)...)
+		Mkfs: func(img *Image) error {
+			_, err := runCmd("mkfs.ntfs", append(img.flags, img.disk)...)
 			return err
 		},
 	},
@@ -332,8 +332,8 @@ var fileSystems = []FileSystem{
 			{"-b 4096", "-b 8192"},
 			{"-N big", "-N little"},
 		},
-		Mkfs: func(image *Image) error {
-			_, err := runCmd("mkfs.cramfs", append(image.flags, image.templateDir, image.disk)...)
+		Mkfs: func(img *Image) error {
+			_, err := runCmd("mkfs.cramfs", append(img.flags, img.templateDir, img.disk)...)
 			return err
 		},
 	},
@@ -345,8 +345,8 @@ var fileSystems = []FileSystem{
 		MkfsFlagCombinations: [][]string{
 			{"-a 16", "-a 256"},
 		},
-		Mkfs: func(image *Image) error {
-			_, err := runCmd("genromfs", append(image.flags, "-f", image.disk, "-d", image.templateDir)...)
+		Mkfs: func(img *Image) error {
+			_, err := runCmd("genromfs", append(img.flags, "-f", img.disk, "-d", img.templateDir)...)
 			return err
 		},
 	},
@@ -361,8 +361,8 @@ var fileSystems = []FileSystem{
 			{"-x 1", "-x 2"},
 			{"", "-E legacy-compress"},
 		},
-		Mkfs: func(image *Image) error {
-			_, err := runCmd("mkfs.erofs", append(image.flags, image.disk, image.templateDir)...)
+		Mkfs: func(img *Image) error {
+			_, err := runCmd("mkfs.erofs", append(img.flags, img.disk, img.templateDir)...)
 			return err
 		},
 	},
@@ -390,8 +390,8 @@ var fileSystems = []FileSystem{
 				"-t cd9660 -o rockridge",
 			},
 		},
-		Mkfs: func(image *Image) error {
-			_, err := runCmd("makefs", append(image.flags, image.disk, image.templateDir)...)
+		Mkfs: func(img *Image) error {
+			_, err := runCmd("makefs", append(img.flags, img.disk, img.templateDir)...)
 			return err
 		},
 	},
@@ -434,8 +434,8 @@ var fileSystems = []FileSystem{
 			{"--little-endian", "--big-endian"},
 			{"--compression-mode=none", "--compression-mode=size"},
 		},
-		Mkfs: func(image *Image) error {
-			_, err := runCmd("mkfs.jffs2", append(image.flags, "-o", image.disk, "--root", image.templateDir)...)
+		Mkfs: func(img *Image) error {
+			_, err := runCmd("mkfs.jffs2", append(img.flags, "-o", img.disk, "--root", img.templateDir)...)
 			return err
 		},
 	},
@@ -457,9 +457,9 @@ var fileSystems = []FileSystem{
 			{"", "-noI -noX", "-noI -noD -noF -noX"},
 			{"-no-fragments", "-always-use-fragments -nopad"},
 		},
-		Mkfs: func(image *Image) error {
-			os.Remove(image.disk)
-			_, err := runCmd("mksquashfs", append([]string{image.templateDir, image.disk}, image.flags...)...)
+		Mkfs: func(img *Image) error {
+			os.Remove(img.disk)
+			_, err := runCmd("mksquashfs", append([]string{img.templateDir, img.disk}, img.flags...)...)
 			return err
 		},
 	},
@@ -473,8 +473,8 @@ var fileSystems = []FileSystem{
 			{"-pad", "-no-pad"},
 			{"", "-hfs", "-apple -r"},
 		},
-		Mkfs: func(image *Image) error {
-			_, err := runCmd("genisoimage", append(image.flags, "-o", image.disk, image.templateDir)...)
+		Mkfs: func(img *Image) error {
+			_, err := runCmd("genisoimage", append(img.flags, "-o", img.disk, img.templateDir)...)
 			return err
 		},
 	},
@@ -511,9 +511,9 @@ var fileSystems = []FileSystem{
 			"o n p 1 2048 3071 n e 3 3072 32767 n 6200 7999 n 10240 20000 w",
 			"s c 1 a 2 w",
 		}},
-		Mkfs: func(image *Image) error {
-			cmd := exec.Command("fdisk", "--noauto-pt", "--color=always", image.disk)
-			cmd.Stdin = strings.NewReader(strings.Join(image.flags, "\n"))
+		Mkfs: func(img *Image) error {
+			cmd := exec.Command("fdisk", "--noauto-pt", "--color=always", img.disk)
+			cmd.Stdin = strings.NewReader(strings.Join(img.flags, "\n"))
 			output, err := osutil.Run(10*time.Minute, cmd)
 			if err != nil {
 				return err
@@ -556,12 +556,12 @@ type Image struct {
 	done        chan error
 }
 
-func (image *Image) String() string {
-	size := fmt.Sprintf("%vKB", image.size>>10)
-	if image.size >= 1<<20 {
-		size = fmt.Sprintf("%vMB", image.size>>20)
+func (img *Image) String() string {
+	size := fmt.Sprintf("%vKB", img.size>>10)
+	if img.size >= 1<<20 {
+		size = fmt.Sprintf("%vMB", img.size>>20)
 	}
-	return fmt.Sprintf("#%02v: mkfs.%v[%5v] %v", image.index, image.fs.Name, size, image.flags)
+	return fmt.Sprintf("#%02v: mkfs.%v[%5v] %v", img.index, img.fs.Name, size, img.flags)
 }
 
 var errShutdown = errors.New("shutdown")
@@ -611,20 +611,20 @@ func main() {
 	procs := runtime.NumCPU()
 	requests := make(chan *Image, procs)
 	go func() {
-		for _, image := range images {
-			image.templateDir = templateDir
-			requests <- image
+		for _, img := range images {
+			img.templateDir = templateDir
+			requests <- img
 		}
 		close(requests)
 	}()
 	for p := 0; p < procs; p++ {
 		go func() {
-			for image := range requests {
+			for img := range requests {
 				select {
 				case <-shutdown:
-					image.done <- errShutdown
+					img.done <- errShutdown
 				default:
-					image.done <- image.generate()
+					img.done <- img.generate()
 				}
 			}
 		}()
@@ -652,7 +652,7 @@ func addEmptyImages(target *prog.Target) {
 			MinSize:   1 << 20,
 			ReadOnly:  true,
 			MkfsFlags: []string{"fake empty image"},
-			Mkfs:      func(image *Image) error { return nil },
+			Mkfs:      func(img *Image) error { return nil },
 		})
 	}
 }
@@ -660,10 +660,10 @@ func addEmptyImages(target *prog.Target) {
 func printResults(images []*Image, shutdown chan struct{}, keepImage, verbose bool) {
 	good, failed := 0, 0
 	hashes := make(map[uint32][]*Image)
-	for _, image := range images {
-		err := <-image.done
-		if image.disk != "" && !keepImage {
-			os.Remove(image.disk)
+	for _, img := range images {
+		err := <-img.done
+		if img.disk != "" && !keepImage {
+			os.Remove(img.disk)
 		}
 		select {
 		case <-shutdown:
@@ -678,25 +678,25 @@ func printResults(images []*Image, shutdown chan struct{}, keepImage, verbose bo
 			res = fmt.Sprintf("failed:\n\t%v", err)
 		}
 		if verbose || err != nil {
-			fmt.Printf("%v: %v\n", image, res)
+			fmt.Printf("%v: %v\n", img, res)
 		}
 		if err != nil {
 			failed++
 			continue
 		}
-		hashes[image.hash] = append(hashes[image.hash], image)
+		hashes[img.hash] = append(hashes[img.hash], img)
 		good++
 	}
 	fmt.Printf("generated images: %v/%v\n", good, len(images))
-	for _, image := range images {
-		group := hashes[image.hash]
+	for _, img := range images {
+		group := hashes[img.hash]
 		if len(group) <= 1 {
 			continue
 		}
-		delete(hashes, image.hash)
+		delete(hashes, img.hash)
 		fmt.Printf("equal images:\n")
-		for _, image := range group {
-			fmt.Printf("\tmkfs.%v %v\n", image.fs.Name, image.flags)
+		for _, img := range group {
+			fmt.Printf("\tmkfs.%v %v\n", img.fs.Name, img.flags)
 		}
 	}
 	if failed != 0 {
@@ -752,57 +752,57 @@ func enumerateFlags(target *prog.Target, images *[]*Image, index *int, fs FileSy
 	}
 }
 
-func (image *Image) generate() error {
+func (img *Image) generate() error {
 	var err error
-	for image.size = image.fs.MinSize; image.size <= 128<<20; image.size *= 2 {
-		if err = image.generateSize(); err == nil {
+	for img.size = img.fs.MinSize; img.size <= 128<<20; img.size *= 2 {
+		if err = img.generateSize(); err == nil {
 			return nil
 		}
 	}
 	return err
 }
 
-func (image *Image) generateSize() error {
+func (img *Image) generateSize() error {
 	outFile := filepath.Join("sys", targets.Linux, "test",
-		fmt.Sprintf("%v_%v", image.fs.filePrefix(), image.index))
-	image.disk = outFile + ".img"
-	f, err := os.Create(image.disk)
+		fmt.Sprintf("%v_%v", img.fs.filePrefix(), img.index))
+	img.disk = outFile + ".img"
+	f, err := os.Create(img.disk)
 	if err != nil {
 		return err
 	}
 	f.Close()
-	if err := os.Truncate(image.disk, int64(image.size)); err != nil {
+	if err := os.Truncate(img.disk, int64(img.size)); err != nil {
 		return err
 	}
-	if image.fs.Mkfs == nil {
-		if _, err := runCmd("mkfs."+image.fs.Name, append(image.flags, image.disk)...); err != nil {
+	if img.fs.Mkfs == nil {
+		if _, err := runCmd("mkfs."+img.fs.Name, append(img.flags, img.disk)...); err != nil {
 			return err
 		}
 	} else {
-		if err := image.fs.Mkfs(image); err != nil {
+		if err := img.fs.Mkfs(img); err != nil {
 			return err
 		}
 	}
-	if !image.fs.ReadOnly {
+	if !img.fs.ReadOnly {
 		// This does not work with runCmd -- sudo does not show password prompt on console.
-		cmd := exec.Command("sudo", os.Args[0], "-populate", image.disk, "-fs", image.fs.Name)
+		cmd := exec.Command("sudo", os.Args[0], "-populate", img.disk, "-fs", img.fs.Name)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			return fmt.Errorf("image population failed: %v\n%s", err, out)
 		}
 	}
-	data, err := ioutil.ReadFile(image.disk)
+	data, err := ioutil.ReadFile(img.disk)
 	if err != nil {
 		return err
 	}
-	image.hash = crc32.ChecksumIEEE(data)
+	img.hash = crc32.ChecksumIEEE(data)
 
 	// Write out image *with* change of directory.
-	out, err := writeImage(image, data)
+	out, err := writeImage(img, data)
 	if err != nil {
 		return fmt.Errorf("failed to write image: %v", err)
 	}
 
-	p, err := image.target.Deserialize(out, prog.Strict)
+	p, err := img.target.Deserialize(out, prog.Strict)
 	if err != nil {
 		return fmt.Errorf("failed to deserialize resulting program: %v", err)
 	}
@@ -872,18 +872,18 @@ func runCmd(cmd string, args ...string) ([]byte, error) {
 	return osutil.RunCmd(10*time.Minute, "", cmd, args...)
 }
 
-func writeImage(image *Image, data []byte) ([]byte, error) {
+func writeImage(img *Image, data []byte) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	fmt.Fprintf(buf, "# Code generated by tools/syz-imagegen. DO NOT EDIT.\n")
 	fmt.Fprintf(buf, "# requires: manual\n\n")
-	fmt.Fprintf(buf, "# %v\n\n", image)
+	fmt.Fprintf(buf, "# %v\n\n", img)
 	compressedData := prog.Compress(data)
 	b64Data := prog.EncodeB64(compressedData)
-	if image.fs.Name == parttable {
+	if img.fs.Name == parttable {
 		fmt.Fprintf(buf, `%s(AUTO, &AUTO="$`, syzReadPartTable)
 	} else {
 		fmt.Fprintf(buf, `%s$%v(&AUTO='%v\x00', &AUTO='./file0\x00', 0x0, &AUTO, 0x1, AUTO, &AUTO="$`,
-			syzMountImage, image.fs.Name, image.fs.Name)
+			syzMountImage, img.fs.Name, img.fs.Name)
 	}
 	buf.Write(b64Data)
 	fmt.Fprintf(buf, "\")\n")
