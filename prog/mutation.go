@@ -385,9 +385,6 @@ func (t *BufferType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []
 }
 
 func (r *randGen) mutateImage(compressed []byte) (data []byte, retry bool) {
-	if len(compressed) == 0 {
-		return compressed, true
-	}
 	data, dtor := image.MustDecompress(compressed)
 	defer dtor()
 	if len(data) == 0 {
