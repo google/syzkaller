@@ -57,6 +57,7 @@ func initHTTPHandlers() {
 		http.Handle("/"+ns+"/graph/lifetimes", handlerWrapper(handleGraphLifetimes))
 		http.Handle("/"+ns+"/graph/fuzzing", handlerWrapper(handleGraphFuzzing))
 		http.Handle("/"+ns+"/graph/crashes", handlerWrapper(handleGraphCrashes))
+		http.Handle("/"+ns+"/repos", handlerWrapper(handleRepos))
 	}
 	http.HandleFunc("/cache_update", cacheUpdate)
 	http.HandleFunc("/deprecate_assets", handleDeprecateAssets)
@@ -98,6 +99,17 @@ func (stats *uiBugStats) Record(bug *Bug, bugReporting *BugReporting) {
 			stats.ReproObsoleted++
 		}
 	}
+}
+
+type uiReposPage struct {
+	Header *uiHeader
+	Repos  []*uiRepo
+}
+
+type uiRepo struct {
+	URL    string
+	Branch string
+	Alias  string
 }
 
 type uiAdminPage struct {
@@ -303,6 +315,21 @@ func handleInvalid(c context.Context, w http.ResponseWriter, r *http.Request) er
 		Subpage:   "/invalid",
 		ShowPatch: false,
 		ShowStats: true,
+	})
+}
+
+func handleRepos(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	hdr, err := commonHeader(c, r, w, "")
+	if err != nil {
+		return err
+	}
+	repos, err := loadRepos(c, accessLevel(c, r), hdr.Namespace)
+	if err != nil {
+		return err
+	}
+	return serveTemplate(w, "repos.html", &uiReposPage{
+		Header: hdr,
+		Repos:  repos,
 	})
 }
 
@@ -1126,6 +1153,47 @@ func makeUIBuild(build *Build) *uiBuild {
 		KernelCommitDate:    build.KernelCommitDate,
 		KernelConfigLink:    textLink(textKernelConfig, build.KernelConfig),
 	}
+}
+
+func loadRepos(c context.Context, accessLevel AccessLevel, ns string) ([]*uiRepo, error) {
+	managers, _, err := loadManagerList(c, accessLevel, ns, "")
+	if err != nil {
+		return nil, err
+	}
+	var buildKeys []*db.Key
+	for _, mgr := range managers {
+		if mgr.CurrentBuild != "" {
+			buildKeys = append(buildKeys, buildKey(c, mgr.Namespace, mgr.CurrentBuild))
+		}
+	}
+	builds := make([]*Build, len(buildKeys))
+	err = db.GetMulti(c, buildKeys, builds)
+	if err != nil {
+		return nil, err
+	}
+	ret := []*uiRepo{}
+	dedupRepos := map[string]bool{}
+	for _, build := range builds {
+		if build == nil {
+			continue
+		}
+		hash := build.KernelRepo + "|" + build.KernelBranch
+		if dedupRepos[hash] {
+			continue
+		}
+		dedupRepos[hash] = true
+		ret = append(ret, &uiRepo{
+			URL:    build.KernelRepo,
+			Branch: build.KernelBranch,
+		})
+	}
+	sort.Slice(ret, func(i, j int) bool {
+		if ret[i].URL != ret[j].URL {
+			return ret[i].URL < ret[j].URL
+		}
+		return ret[i].Branch < ret[j].Branch
+	})
+	return ret, nil
 }
 
 func loadManagers(c context.Context, accessLevel AccessLevel, ns, manager string) ([]*uiManager, error) {
