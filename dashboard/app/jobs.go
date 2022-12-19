@@ -311,6 +311,10 @@ func handleRetestForBug(c context.Context, now time.Time, bug *Bug, bugKey *db.K
 		if now.Sub(crash.LastReproRetest) < config.Obsoleting.ReproRetestPeriod {
 			continue
 		}
+		if crash.ReproIsRevoked {
+			// No sense in retesting the already revoked repro.
+			continue
+		}
 		// TODO: check if the manager can do such jobs.
 		if managerHasJob[crash.Manager] {
 			continue
