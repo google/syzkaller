@@ -734,7 +734,8 @@ func reportingPollClosed(c context.Context, ids []string) ([]string, error) {
 				log.Errorf(c, "%v", err)
 				break
 			}
-			if bug.Status >= BugStatusFixed || !bugReporting.Closed.IsZero() {
+			if bug.Status >= BugStatusFixed || !bugReporting.Closed.IsZero() ||
+				config.Namespaces[bug.Namespace].Decommissioned {
 				closed = append(closed, bugReporting.ID)
 			}
 			break
