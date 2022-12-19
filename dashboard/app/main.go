@@ -75,6 +75,29 @@ type uiTerminalPage struct {
 	Header *uiHeader
 	Now    time.Time
 	Bugs   *uiBugGroup
+	Stats  *uiBugStats
+}
+
+type uiBugStats struct {
+	Total          int
+	AutoObsoleted  int
+	ReproObsoleted int
+	UserObsoleted  int
+}
+
+func (stats *uiBugStats) Record(bug *Bug, bugReporting *BugReporting) {
+	stats.Total++
+	switch bug.Status {
+	case BugStatusInvalid:
+		if bugReporting.Auto {
+			stats.AutoObsoleted++
+		} else {
+			stats.UserObsoleted++
+		}
+		if bug.StatusReason == dashapi.InvalidatedByRevokedRepro {
+			stats.ReproObsoleted++
+		}
+	}
 }
 
 type uiAdminPage struct {
@@ -279,6 +302,7 @@ func handleInvalid(c context.Context, w http.ResponseWriter, r *http.Request) er
 		Status:    BugStatusInvalid,
 		Subpage:   "/invalid",
 		ShowPatch: false,
+		ShowStats: true,
 	})
 }
 
@@ -287,6 +311,7 @@ type TerminalBug struct {
 	Subpage     string
 	ShowPatch   bool
 	ShowPatched bool
+	ShowStats   bool
 }
 
 func handleTerminalBugList(c context.Context, w http.ResponseWriter, r *http.Request, typ *TerminalBug) error {
@@ -305,14 +330,18 @@ func handleTerminalBugList(c context.Context, w http.ResponseWriter, r *http.Req
 			return err
 		}
 	}
-	bugs, err := fetchTerminalBugs(c, accessLevel, hdr.Namespace, manager, typ, extraBugs)
+	bugs, stats, err := fetchTerminalBugs(c, accessLevel, hdr.Namespace, manager, typ, extraBugs)
 	if err != nil {
 		return err
+	}
+	if !typ.ShowStats {
+		stats = nil
 	}
 	data := &uiTerminalPage{
 		Header: hdr,
 		Now:    timeNow(c),
 		Bugs:   bugs,
+		Stats:  stats,
 	}
 	return serveTemplate(w, "terminal.html", data)
 }
@@ -755,7 +784,7 @@ func loadVisibleBugs(c context.Context, accessLevel AccessLevel, ns, manager str
 }
 
 func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
-	ns, manager string, typ *TerminalBug, extraBugs []*Bug) (*uiBugGroup, error) {
+	ns, manager string, typ *TerminalBug, extraBugs []*Bug) (*uiBugGroup, *uiBugStats, error) {
 	bugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
 		query = query.Filter("Namespace=", ns).
 			Filter("Status=", typ.Status)
@@ -765,16 +794,16 @@ func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
 		return query
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	bugs = append(bugs, extraBugs...)
 	state, err := loadReportingState(c)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	managers, err := managerList(c, ns)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	sort.Slice(bugs, func(i, j int) bool {
 		iFixed := bugs[i].Status == BugStatusFixed
@@ -785,6 +814,7 @@ func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
 		}
 		return bugs[i].Closed.After(bugs[j].Closed)
 	})
+	stats := &uiBugStats{}
 	res := &uiBugGroup{
 		Now:         timeNow(c),
 		ShowPatch:   typ.ShowPatch,
@@ -795,9 +825,11 @@ func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
 		if accessLevel < bug.sanitizeAccess(accessLevel) {
 			continue
 		}
-		res.Bugs = append(res.Bugs, createUIBug(c, bug, state, managers))
+		uiBug := createUIBug(c, bug, state, managers)
+		res.Bugs = append(res.Bugs, uiBug)
+		stats.Record(bug, &bug.Reporting[uiBug.ReportingIndex])
 	}
-	return res, nil
+	return res, stats, nil
 }
 
 func loadDupsForBug(c context.Context, r *http.Request, bug *Bug, state *ReportingState, managers []string) (

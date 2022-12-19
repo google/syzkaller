@@ -14,6 +14,13 @@ Terminal bugs page (fixed, invalid).
 <body>
 	{{template "header" .Header}}
 
+
+	{{if .Stats}}
+		{{with .Stats}}
+Out of <b>{{.Total}}</b> bugs, <b>{{.AutoObsoleted}}</b> were automatically obsoleted (<b>{{.ReproObsoleted}}</b> due to revoked reproducers), <b>{{.UserObsoleted}}</b> were invalidated by users.<br />
+		{{end}}
+	{{end}}
+
 	{{template "bug_list" .Bugs}}
 </body>
 </html>
