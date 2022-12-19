@@ -1,0 +1,31 @@
+{{/*
+Copyright 2022 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+The list of polled trees.
+*/}}
+
+<!doctype html>
+<html>
+<head>
+	{{template "head" .Header}}
+	<title>syzbot</title>
+</head>
+<body>
+	{{template "header" .Header}}
+
+	<table class="list_table">
+		<caption>The fixing commit must reach the following trees (<a href="https://github.com/google/syzkaller/blob/master/docs/syzbot.md#bug-status-tracking">more info</a>):</caption>
+		<tr>
+			<th>URL</th>
+			<th>Branch</th>
+		</tr>
+		{{range $repo := .Repos}}
+		<tr>
+			<td>{{$repo.URL}}</td>
+			<td>{{$repo.Branch}}</td>
+		</tr>
+		{{end}}
+	</table>
+</body>
+</html>
