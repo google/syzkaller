@@ -68,8 +68,20 @@ type uiMainPage struct {
 	Header         *uiHeader
 	Now            time.Time
 	Decommissioned bool
-	Managers       []*uiManager
+	Managers       *uiManagerList
 	Groups         []*uiBugGroup
+}
+
+type uiManagerList struct {
+	RepoLink string
+	List     []*uiManager
+}
+
+func makeManagerList(managers []*uiManager, ns string) *uiManagerList {
+	return &uiManagerList{
+		RepoLink: fmt.Sprintf("/%s/repos", ns),
+		List:     managers,
+	}
 }
 
 type uiTerminalPage struct {
@@ -115,7 +127,7 @@ type uiRepo struct {
 type uiAdminPage struct {
 	Header        *uiHeader
 	Log           []byte
-	Managers      []*uiManager
+	Managers      *uiManagerList
 	RecentJobs    *uiJobList
 	PendingJobs   *uiJobList
 	RunningJobs   *uiJobList
@@ -295,7 +307,7 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 		Decommissioned: config.Namespaces[hdr.Namespace].Decommissioned,
 		Now:            timeNow(c),
 		Groups:         groups,
-		Managers:       managers,
+		Managers:       makeManagerList(managers, hdr.Namespace),
 	}
 	return serveTemplate(w, "main.html", data)
 }
@@ -418,7 +430,7 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 	data := &uiAdminPage{
 		Header:        hdr,
 		Log:           errorLog,
-		Managers:      managers,
+		Managers:      makeManagerList(managers, hdr.Namespace),
 		RecentJobs:    &uiJobList{Title: "Recent jobs:", Jobs: recentJobs},
 		RunningJobs:   &uiJobList{Title: "Running jobs:", Jobs: runningJobs},
 		PendingJobs:   &uiJobList{Title: "Pending jobs:", Jobs: pendingJobs},
