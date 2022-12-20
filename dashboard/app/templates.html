@@ -169,7 +169,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 {{define "manager_list"}}
 {{if .}}
 <table class="list_table">
-	<caption id="managers"><a class="plain" href="managers">Instances:</a></caption>
+	<caption id="managers">Instances [{{link .RepoLink "tested repos"}}]:</caption>
 	<thead>
 	<tr>
 		<th>Name</th>
@@ -200,7 +200,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	</tr>
 	</thead>
 	<tbody>
-	{{range $mgr := .}}
+	{{range $mgr := .List}}
 		<tr>
 			<td>{{link $mgr.Link $mgr.Name}}</td>
 			<td class="stat {{if not $mgr.CurrentUpTime}}bad{{end}}">{{formatLateness $mgr.Now $mgr.LastActive}}</td>
