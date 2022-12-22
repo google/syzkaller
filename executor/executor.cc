@@ -3,6 +3,10 @@
 
 // +build
 
+#if !GOOS_windows
+#include <sys/mman.h>
+#endif
+
 #include <algorithm>
 #include <errno.h>
 #include <limits.h>
