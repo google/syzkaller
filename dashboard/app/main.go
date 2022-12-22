@@ -299,12 +299,16 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 		return err
 	}
 	accessLevel := accessLevel(c, r)
-	manager := r.FormValue("manager")
+	onlyManager := r.FormValue("only_manager")
+	manager := onlyManager
+	if manager == "" {
+		manager = r.FormValue("manager")
+	}
 	managers, err := loadManagers(c, accessLevel, hdr.Namespace, manager)
 	if err != nil {
 		return err
 	}
-	groups, err := fetchNamespaceBugs(c, accessLevel, hdr.Namespace, manager)
+	groups, err := fetchNamespaceBugs(c, accessLevel, hdr.Namespace, manager, onlyManager != "")
 	if err != nil {
 		return err
 	}
@@ -360,6 +364,8 @@ type TerminalBug struct {
 	ShowPatch   bool
 	ShowPatched bool
 	ShowStats   bool
+	Manager     string
+	OneManager  bool
 }
 
 func handleTerminalBugList(c context.Context, w http.ResponseWriter, r *http.Request, typ *TerminalBug) error {
@@ -369,16 +375,22 @@ func handleTerminalBugList(c context.Context, w http.ResponseWriter, r *http.Req
 		return err
 	}
 	hdr.Subpage = typ.Subpage
-	manager := r.FormValue("manager")
+	onlyManager := r.FormValue("only_manager")
+	if onlyManager != "" {
+		typ.Manager = onlyManager
+		typ.OneManager = true
+	} else {
+		typ.Manager = r.FormValue("manager")
+	}
 	extraBugs := []*Bug{}
 	if typ.Status == BugStatusFixed {
 		// Mix in bugs that have pending fixes.
-		extraBugs, err = fetchFixPendingBugs(c, hdr.Namespace, manager)
+		extraBugs, err = fetchFixPendingBugs(c, hdr.Namespace, typ.Manager)
 		if err != nil {
 			return err
 		}
 	}
-	bugs, stats, err := fetchTerminalBugs(c, accessLevel, hdr.Namespace, manager, typ, extraBugs)
+	bugs, stats, err := fetchTerminalBugs(c, accessLevel, hdr.Namespace, typ, extraBugs)
 	if err != nil {
 		return err
 	}
@@ -796,7 +808,8 @@ func fetchFixPendingBugs(c context.Context, ns, manager string) ([]*Bug, error) 
 	return rawBugs, nil
 }
 
-func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns, manager string) ([]*uiBugGroup, error) {
+func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns,
+	manager string, oneManager bool) ([]*uiBugGroup, error) {
 	bugs, err := loadVisibleBugs(c, accessLevel, ns, manager)
 	if err != nil {
 		return nil, err
@@ -818,6 +831,9 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns, manager 
 		}
 		if bug.Status == BugStatusDup {
 			dups = append(dups, bug)
+			continue
+		}
+		if oneManager && len(bug.HappenedOn) > 1 {
 			continue
 		}
 		uiBug := createUIBug(c, bug, state, managers)
@@ -914,12 +930,12 @@ func loadVisibleBugs(c context.Context, accessLevel AccessLevel, ns, manager str
 }
 
 func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
-	ns, manager string, typ *TerminalBug, extraBugs []*Bug) (*uiBugGroup, *uiBugStats, error) {
+	ns string, typ *TerminalBug, extraBugs []*Bug) (*uiBugGroup, *uiBugStats, error) {
 	bugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
 		query = query.Filter("Namespace=", ns).
 			Filter("Status=", typ.Status)
-		if manager != "" {
-			query = query.Filter("HappenedOn=", manager)
+		if typ.Manager != "" {
+			query = query.Filter("HappenedOn=", typ.Manager)
 		}
 		return query
 	})
@@ -953,6 +969,9 @@ func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
 	}
 	for _, bug := range bugs {
 		if accessLevel < bug.sanitizeAccess(accessLevel) {
+			continue
+		}
+		if typ.OneManager && len(bug.HappenedOn) > 1 {
 			continue
 		}
 		uiBug := createUIBug(c, bug, state, managers)
