@@ -548,7 +548,8 @@ func createJobResp(c context.Context, job *Job, jobKey *db.Key) (*dashapi.JobPol
 			return nil
 		}
 		job.Attempts++
-		job.Started = now
+		job.IsRunning = true
+		job.LastStarted = now
 		if _, err := db.Put(c, jobKey, job); err != nil {
 			return fmt.Errorf("job %v: failed to put: %v", jobID, err)
 		}
@@ -666,6 +667,48 @@ func gatherCrashTitles(req *dashapi.JobDoneReq) []string {
 	return ret
 }
 
+// resetJobs is called to indicate that, for the specified managers, all started jobs are no longer
+// in progress.
+func resetJobs(c context.Context, req *dashapi.JobResetReq) error {
+	var jobs []*Job
+	keys, err := db.NewQuery("Job").
+		Filter("Finished=", time.Time{}).
+		Filter("IsRunning=", true).
+		GetAll(c, &jobs)
+	if err != nil {
+		return err
+	}
+	managerMap := map[string]bool{}
+	for _, name := range req.Managers {
+		managerMap[name] = true
+	}
+	for idx, job := range jobs {
+		if !managerMap[job.Manager] {
+			continue
+		}
+		jobKey := keys[idx]
+		tx := func(c context.Context) error {
+			job = new(Job)
+			if err := db.Get(c, jobKey, job); err != nil {
+				return fmt.Errorf("job %v: failed to get in tx: %v", jobKey, err)
+			}
+			if job.IsFinished() {
+				// Just in case.
+				return nil
+			}
+			job.IsRunning = false
+			if _, err := db.Put(c, jobKey, job); err != nil {
+				return fmt.Errorf("job %v: failed to put: %v", jobKey, err)
+			}
+			return nil
+		}
+		if err := db.RunInTransaction(c, tx, nil); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // doneJob is called by syz-ci to mark completion of a job.
 func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 	jobID := req.ID
@@ -734,6 +777,7 @@ func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 		job.BuildID = req.Build.ID
 		job.CrashTitle = req.CrashTitle
 		job.Finished = now
+		job.IsRunning = false
 		job.Flags = JobFlags(req.Flags)
 		if job.Type == JobBisectCause || job.Type == JobBisectFix {
 			// Update bug.BisectCause/Fix status and also remember current bug reporting to send results.
@@ -1066,6 +1110,7 @@ func loadPendingJob(c context.Context, managers map[string]dashapi.ManagerJobs) 
 	var jobs []*Job
 	keys, err := db.NewQuery("Job").
 		Filter("Finished=", time.Time{}).
+		Filter("IsRunning=", false).
 		Order("Attempts").
 		Order("Created").
 		GetAll(c, &jobs)
@@ -1089,7 +1134,7 @@ func loadPendingJob(c context.Context, managers map[string]dashapi.ManagerJobs) 
 			// and protects from bisection job crashing syz-ci.
 			const bisectRepeat = 3 * 24 * time.Hour
 			if timeSince(c, job.Created) < bisectRepeat ||
-				timeSince(c, job.Started) < bisectRepeat {
+				timeSince(c, job.LastStarted) < bisectRepeat {
 				continue
 			}
 		default:

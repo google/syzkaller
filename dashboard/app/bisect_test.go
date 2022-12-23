@@ -80,11 +80,6 @@ func TestBisectCause(t *testing.T) {
 			"syncfs(3)"))
 	c.expectEQ(pollResp.ReproC, []byte("int main() { return 3; }"))
 
-	// Since we did not reply, we should get the same response.
-	c.advanceTime(5 * 24 * time.Hour)
-	pollResp2 := c.client2.pollJobs(build.Manager)
-	c.expectEQ(pollResp, pollResp2)
-
 	// Bisection failed with an error.
 	done := &dashapi.JobDoneReq{
 		ID:    pollResp.ID,
@@ -95,6 +90,7 @@ func TestBisectCause(t *testing.T) {
 	c.expectNoEmail()
 
 	// BisectCause #2
+	pollResp2 := pollResp
 	pollResp = c.client2.pollJobs(build.Manager)
 	c.expectNE(pollResp.ID, pollResp2.ID)
 	c.expectEQ(pollResp.ReproOpts, []byte("repro opts 2"))
@@ -316,8 +312,6 @@ https://goo.gl/tpsmEJ#testing-patches`,
 	c.expectEQ(pollResp.Type, dashapi.JobBisectFix)
 	c.expectEQ(pollResp.ReproOpts, []byte("repro opts 2"))
 	c.advanceTime(5 * 24 * time.Hour)
-	pollResp2 = c.client2.pollJobs(build.Manager)
-	c.expectEQ(pollResp, pollResp2)
 	done = &dashapi.JobDoneReq{
 		ID:    pollResp.ID,
 		Log:   []byte("bisect log 2"),

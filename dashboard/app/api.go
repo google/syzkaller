@@ -38,6 +38,7 @@ func initAPIHandlers() {
 var apiHandlers = map[string]APIHandler{
 	"log_error":             apiLogError,
 	"job_poll":              apiJobPoll,
+	"job_reset":             apiJobReset,
 	"job_done":              apiJobDone,
 	"reporting_poll_bugs":   apiReportingPollBugs,
 	"reporting_poll_notifs": apiReportingPollNotifications,
@@ -366,12 +367,23 @@ func apiJobPoll(c context.Context, r *http.Request, payload []byte) (interface{}
 	return pollPendingJobs(c, req.Managers)
 }
 
+// nolint: dupl
 func apiJobDone(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.JobDoneReq)
 	if err := json.Unmarshal(payload, req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
 	err := doneJob(c, req)
+	return nil, err
+}
+
+// nolint: dupl
+func apiJobReset(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
+	req := new(dashapi.JobResetReq)
+	if err := json.Unmarshal(payload, req); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+	}
+	err := resetJobs(c, req)
 	return nil, err
 }
 
