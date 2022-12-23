@@ -177,6 +177,7 @@ indexes:
 - kind: Job
   properties:
   - name: Finished
+  - name: IsRunning
   - name: Attempts
   - name: Created
 

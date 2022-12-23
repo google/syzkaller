@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
+	"github.com/stretchr/testify/assert"
 	db "google.golang.org/appengine/v2/datastore"
 )
 
@@ -112,9 +113,6 @@ func TestJob(t *testing.T) {
 			"#repro opts\n"+
 			"repro syz"))
 	c.expectEQ(pollResp.ReproC, []byte("repro C"))
-
-	pollResp2 := client.pollJobs(build.Manager)
-	c.expectEQ(pollResp2, pollResp)
 
 	jobDoneReq := &dashapi.JobDoneReq{
 		ID:          pollResp.ID,
@@ -1000,4 +998,105 @@ func TestExternalPatchCompletion(t *testing.T) {
 	pollResp := c.client2.pollJobs(build.Manager)
 	c.expectEQ(pollResp.KernelRepo, build.KernelRepo)
 	c.expectEQ(pollResp.KernelBranch, build.KernelBranch)
+}
+
+func TestParallelJobs(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	crash := testCrash(build, 2)
+	crash.Title = testErrorTitle
+	client.ReportCrash(crash)
+
+	// Confirm the report.
+	reports, err := client.ReportingPollBugs("test")
+	origReport := reports.Reports[0]
+	c.expectOK(err)
+	c.expectEQ(len(reports.Reports), 1)
+
+	reply, _ := client.ReportingUpdate(&dashapi.BugUpdate{
+		ID:     origReport.ID,
+		Status: dashapi.BugStatusOpen,
+	})
+	client.expectEQ(reply.Error, false)
+	client.expectEQ(reply.OK, true)
+
+	// Create a patch testing job.
+	const (
+		repo1 = "git://git.git/git1.git"
+		repo2 = "git://git.git/git2.git"
+	)
+	testPatchReq := &dashapi.TestPatchRequest{
+		BugID:  origReport.ID,
+		Link:   "http://some-link.com/",
+		User:   "developer@kernel.org",
+		Branch: "kernel-branch",
+		Repo:   repo1,
+		Patch:  []byte(sampleGitPatch),
+	}
+	ret, err := client.NewTestJob(testPatchReq)
+	c.expectOK(err)
+	c.expectEQ(ret.ErrorText, "")
+
+	// Make sure the job will be passed to the job processor.
+	pollResp := client.pollJobs(build.Manager)
+	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
+	c.expectEQ(pollResp.KernelRepo, repo1)
+
+	// This job is already taken, there are no other jobs.
+	emptyPollResp := client.pollJobs(build.Manager)
+	c.expectEQ(emptyPollResp, &dashapi.JobPollResp{})
+
+	// Create another job.
+	testPatchReq.Repo = repo2
+	ret, err = client.NewTestJob(testPatchReq)
+	c.expectOK(err)
+	c.expectEQ(ret.ErrorText, "")
+
+	// Make sure the new job will be passed to the job processor.
+	pollResp = client.pollJobs(build.Manager)
+	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
+	c.expectEQ(pollResp.KernelRepo, repo2)
+
+	// .. and then there'll be no other jobs.
+	emptyPollResp = client.pollJobs(build.Manager)
+	c.expectEQ(emptyPollResp, &dashapi.JobPollResp{})
+
+	// Emulate a syz-ci restart.
+	client.JobReset(&dashapi.JobResetReq{Managers: []string{build.Manager}})
+
+	// .. and re-query both jobs.
+	repos := []string{}
+	for i := 0; i < 2; i++ {
+		pollResp = client.pollJobs(build.Manager)
+		c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
+		repos = append(repos, pollResp.KernelRepo)
+	}
+	assert.ElementsMatch(t, repos, []string{repo1, repo2}, "two patch testing requests are expected")
+
+	// .. but nothing else is to be expected.
+	emptyPollResp = client.pollJobs(build.Manager)
+	c.expectEQ(emptyPollResp, &dashapi.JobPollResp{})
+
+	// Emulate the job's completion.
+	build2 := testBuild(2)
+	jobDoneReq := &dashapi.JobDoneReq{
+		ID:          pollResp.ID,
+		Build:       *build2,
+		CrashTitle:  "test crash title",
+		CrashLog:    []byte("test crash log"),
+		CrashReport: []byte("test crash report"),
+	}
+	err = client.JobDone(jobDoneReq)
+	c.expectOK(err)
+	client.pollBugs(1)
+
+	// .. and make sure it doesn't appear again.
+	emptyPollResp = client.pollJobs(build.Manager)
+	c.expectEQ(emptyPollResp, &dashapi.JobPollResp{})
 }
