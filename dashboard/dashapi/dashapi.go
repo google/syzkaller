@@ -147,6 +147,8 @@ func (dash *Dashboard) BuilderPoll(manager string) (*BuilderPollResp, error) {
 }
 
 // Jobs workflow:
+//   - syz-ci sends JobResetReq to indicate that no previously started jobs
+//     are any longer in progress.
 //   - syz-ci sends JobPollReq periodically to check for new jobs,
 //     request contains list of managers that this syz-ci runs.
 //   - dashboard replies with JobPollResp that contains job details,
@@ -154,6 +156,10 @@ func (dash *Dashboard) BuilderPoll(manager string) (*BuilderPollResp, error) {
 //   - when syz-ci finishes the job, it sends JobDoneReq which contains
 //     job execution result (Build, Crash or Error details),
 //     ID must match JobPollResp.ID.
+
+type JobResetReq struct {
+	Managers []string
+}
 
 type JobPollReq struct {
 	Managers map[string]ManagerJobs
@@ -226,6 +232,10 @@ func (dash *Dashboard) JobPoll(req *JobPollReq) (*JobPollResp, error) {
 
 func (dash *Dashboard) JobDone(req *JobDoneReq) error {
 	return dash.Query("job_done", req, nil)
+}
+
+func (dash *Dashboard) JobReset(req *JobResetReq) error {
+	return dash.Query("job_reset", req, nil)
 }
 
 type BuildErrorReq struct {

@@ -328,9 +328,10 @@ type Job struct {
 	Patch        int64 // reference to Patch text entity
 	KernelConfig int64 // reference to the kernel config entity
 
-	Attempts int // number of times we tried to execute this job
-	Started  time.Time
-	Finished time.Time // if set, job is finished
+	Attempts    int       // number of times we tried to execute this job
+	IsRunning   bool      // the job might have been started, but never finished
+	LastStarted time.Time `datastore:"Started"`
+	Finished    time.Time // if set, job is finished
 
 	// Result of execution:
 	CrashTitle  string // if empty, we did not hit crash during testing
@@ -343,6 +344,10 @@ type Job struct {
 	Flags       JobFlags
 
 	Reported bool // have we reported result back to user?
+}
+
+func (job *Job) IsFinished() bool {
+	return !job.Finished.IsZero()
 }
 
 type JobType int

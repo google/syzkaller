@@ -1542,7 +1542,7 @@ func makeUIJob(job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *
 		KernelCommitLink: vcs.CommitLink(kernelRepo, kernelCommit),
 		PatchLink:        textLink(textPatch, job.Patch),
 		Attempts:         job.Attempts,
-		Started:          job.Started,
+		Started:          job.LastStarted,
 		Finished:         job.Finished,
 		CrashTitle:       job.CrashTitle,
 		CrashLogLink:     textLink(textCrashLog, job.CrashLog),
@@ -1552,7 +1552,7 @@ func makeUIJob(job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *
 		Reported:         job.Reported,
 	}
 	if !job.Finished.IsZero() {
-		ui.Duration = job.Finished.Sub(job.Started)
+		ui.Duration = job.Finished.Sub(job.LastStarted)
 	}
 	if job.Type == JobBisectCause || job.Type == JobBisectFix {
 		// We don't report these yet (or at all), see pollCompletedJobs.
