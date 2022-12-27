@@ -26,6 +26,7 @@ var linuxSubsystems = map[string]linuxSubsystemInfo{
 	"efs":      {path: "fs/efs/", cc: []string{}},
 	"erofs":    {path: "fs/erofs/", cc: []string{"xiang@kernel.org", "chao@kernel.org", "linux-erofs@lists.ozlabs.org"}},
 	"exfat":    {path: "fs/exfat/", cc: []string{"linkinjeon@kernel.org", "sj1557.seo@samsung.com", "linux-fsdevel@vger.kernel.org"}},
+	"fat":      {path: "fs/fat/", cc: []string{"hirofumi@mail.parknet.co.jp"}},
 	"ext4":     {path: "fs/ext4/", cc: []string{"linux-ext4@vger.kernel.org", "tytso@mit.edu", "adilger.kernel@dilger.ca"}},
 	"f2fs":     {path: "fs/f2fs/", cc: []string{"linux-f2fs-devel@lists.sourceforge.net", "jaegeuk@kernel.org", "chao@kernel.org"}},
 	"gfs2":     {path: "fs/gfs2/", cc: []string{"cluster-devel@redhat.com", "rpeterso@redhat.com", "agruenba@redhat.com"}},
