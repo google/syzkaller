@@ -389,7 +389,7 @@ static void setup_features(char** enable, int n);
 
 #include "syscalls.h"
 
-#if GOOS_linux
+#if GOOS_linux || GOOS_starnix
 #include "executor_linux.h"
 #elif GOOS_fuchsia
 #include "executor_fuchsia.h"
@@ -1594,7 +1594,7 @@ bool kcov_comparison_t::ignore() const
 			return true;
 		if (arg2 >= out_start && arg2 <= out_end)
 			return true;
-#if defined(GOOS_linux)
+#if defined(GOOS_linux) || defined(GOOS_starnix)
 		// Filter out kernel physical memory addresses.
 		// These are internal kernel comparisons and should not be interesting.
 		// The range covers first 1TB of physical mapping.

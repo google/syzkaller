@@ -1,0 +1,1 @@
+../linux/acpi_thermal_rel.txt

@@ -122,6 +122,7 @@ const (
 	Darwin  = "darwin"
 	Fuchsia = "fuchsia"
 	Linux   = "linux"
+	Starnix = "starnix"
 	NetBSD  = "netbsd"
 	OpenBSD = "openbsd"
 	TestOS  = "test"
@@ -217,6 +218,94 @@ var List = map[string]map[string]*Target{
 				ExecutorUsesForkServer: true,
 				HostFuzzer:             true,
 			},
+		},
+	},
+	Starnix: {
+		AMD64: {
+			PtrSize:          8,
+			PageSize:         4 << 10,
+			LittleEndian:     true,
+			CFlags:           []string{"-m64"},
+			Triple:           "x86_64-linux-gnu",
+			KernelArch:       "x86_64",
+			KernelHeaderArch: "x86",
+			NeedSyscallDefine: func(nr uint64) bool {
+				// Only generate defines for new syscalls
+				// (added after commit 8a1ab3155c2ac on 2012-10-04).
+				return nr >= 313
+			},
+		},
+		I386: {
+			VMArch:           AMD64,
+			PtrSize:          4,
+			PageSize:         4 << 10,
+			Int64Alignment:   4,
+			LittleEndian:     true,
+			CFlags:           []string{"-m32"},
+			Triple:           "x86_64-linux-gnu",
+			KernelArch:       "i386",
+			KernelHeaderArch: "x86",
+		},
+		ARM64: {
+			PtrSize:          8,
+			PageSize:         4 << 10,
+			LittleEndian:     true,
+			Triple:           "aarch64-linux-gnu",
+			KernelArch:       "arm64",
+			KernelHeaderArch: "arm64",
+		},
+		ARM: {
+			VMArch:           ARM64,
+			PtrSize:          4,
+			PageSize:         4 << 10,
+			LittleEndian:     true,
+			CFlags:           []string{"-D__LINUX_ARM_ARCH__=6", "-march=armv6"},
+			Triple:           "arm-linux-gnueabi",
+			KernelArch:       "arm",
+			KernelHeaderArch: "arm",
+		},
+		MIPS64LE: {
+			PtrSize:          8,
+			PageSize:         4 << 10,
+			LittleEndian:     true,
+			CFlags:           []string{"-march=mips64r2", "-mabi=64", "-EL"},
+			Triple:           "mips64el-linux-gnuabi64",
+			KernelArch:       "mips",
+			KernelHeaderArch: "mips",
+		},
+		PPC64LE: {
+			PtrSize:          8,
+			PageSize:         64 << 10,
+			LittleEndian:     true,
+			CFlags:           []string{"-D__powerpc64__"},
+			Triple:           "powerpc64le-linux-gnu",
+			KernelArch:       "powerpc",
+			KernelHeaderArch: "powerpc",
+		},
+		S390x: {
+			PtrSize:          8,
+			PageSize:         4 << 10,
+			DataOffset:       0xfffff000,
+			CFlags:           []string{"-fPIE"},
+			LittleEndian:     false,
+			Triple:           "s390x-linux-gnu",
+			KernelArch:       "s390",
+			KernelHeaderArch: "s390",
+			SyscallTrampolines: map[string]string{
+				// The s390x Linux syscall ABI allows for upto 5 input parameters passed in registers, and this is not enough
+				// for the mmap syscall. Therefore, all input parameters for the mmap syscall are packed into a struct
+				// on user stack and the pointer to the struct is passed as an input parameter to the syscall.
+				// To work around this problem we therefore reroute the mmap syscall to the glibc mmap wrapper.
+				"mmap": "mmap",
+			},
+		},
+		RiscV64: {
+			PtrSize:          8,
+			PageSize:         4 << 10,
+			LittleEndian:     true,
+			Triple:           "riscv64-linux-gnu",
+			KernelArch:       "riscv",
+			KernelHeaderArch: "riscv",
 		},
 	},
 	Linux: {
@@ -463,6 +552,23 @@ var List = map[string]map[string]*Target{
 }
 
 var oses = map[string]osCommon{
+	Starnix: {
+		BuildOS:                Linux,
+		SyscallNumbers:         true,
+		SyscallPrefix:          "__NR_",
+		ExecutorUsesShmem:      false,
+		ExecutorUsesForkServer: false,
+		HostFuzzer:             true,
+		KernelObject:           "vmlinux",
+		PseudoSyscallDeps: map[string][]string{
+			"syz_read_part_table": {"memfd_create"},
+			"syz_mount_image":     {"memfd_create"},
+			"syz_io_uring_setup":  {"io_uring_setup"},
+			"syz_clone3":          {"clone3", "exit"},
+			"syz_clone":           {"clone", "exit"},
+		},
+		cflags: []string{"-static-pie"},
+	},
 	Linux: {
 		SyscallNumbers:         true,
 		SyscallPrefix:          "__NR_",

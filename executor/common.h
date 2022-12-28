@@ -47,7 +47,7 @@ typedef signed int ssize_t;
 /*{{{SYSCALL_DEFINES}}}*/
 #endif
 
-#if SYZ_EXECUTOR && !GOOS_linux
+#if SYZ_EXECUTOR && !GOOS_linux && !GOOS_starnix
 #if !GOOS_windows
 #include <unistd.h>
 #endif
@@ -79,7 +79,7 @@ static unsigned long long procid;
 #include <signal.h>
 #include <string.h>
 
-#if GOOS_linux
+#if GOOS_linux || GOOS_starnix
 #include <sys/syscall.h>
 #endif
 
@@ -145,7 +145,7 @@ static void segv_handler(int sig, siginfo_t* info, void* ctx)
 static void install_segv_handler(void)
 {
 	struct sigaction sa;
-#if GOOS_linux
+#if GOOS_linux || GOOS_starnix
 	// Don't need that SIGCANCEL/SIGSETXID glibc stuff.
 	// SIGCANCEL sent to main thread causes it to exit
 	// without bringing down the whole group.
@@ -175,7 +175,7 @@ static void install_segv_handler(void)
 #endif
 #endif
 
-#if !GOOS_linux
+#if !GOOS_linux && !GOOS_starnix
 #if (SYZ_EXECUTOR || SYZ_REPEAT) && SYZ_EXECUTOR_USES_FORK_SERVER
 #include <signal.h>
 #include <sys/types.h>
@@ -322,7 +322,7 @@ static void __attribute__((noinline)) remove_dir(const char* dir)
 #endif
 #endif
 
-#if !GOOS_linux && !GOOS_netbsd
+#if !GOOS_linux && !GOOS_starnix && !GOOS_netbsd
 #if SYZ_EXECUTOR || SYZ_FAULT
 static int inject_fault(int nth)
 {
@@ -497,7 +497,7 @@ static uint16 csum_inet_digest(struct csum_inet* csum)
 #include "common_bsd.h"
 #elif GOOS_fuchsia
 #include "common_fuchsia.h"
-#elif GOOS_linux
+#elif GOOS_linux || GOOS_starnix
 #include "common_linux.h"
 #elif GOOS_test
 #include "common_test.h"
@@ -612,7 +612,7 @@ static void execute_one(void);
 #include <sys/types.h>
 #include <sys/wait.h>
 
-#if GOOS_linux
+#if GOOS_linux || GOOS_starnix
 #define WAIT_FLAGS __WALL
 #else
 #define WAIT_FLAGS 0
