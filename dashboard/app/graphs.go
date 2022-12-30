@@ -305,14 +305,22 @@ func handleGraphFuzzing(c context.Context, w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return err
 	}
+	managers, err := createCheckBox(r, "Instances", allManagers)
+	if err != nil {
+		return err
+	}
+	metrics, err := createCheckBox(r, "Metrics", []string{
+		"MaxCorpus", "MaxCover", "MaxPCs", "TotalFuzzingTime",
+		"TotalCrashes", "CrashTypes", "SuppressedCrashes", "TotalExecs",
+		"ExecsPerSec"})
+	if err != nil {
+		return err
+	}
 	data := &uiManagersPage{
 		Header:   hdr,
-		Managers: createCheckBox(r, "Instances", allManagers),
-		Metrics: createCheckBox(r, "Metrics", []string{
-			"MaxCorpus", "MaxCover", "MaxPCs", "TotalFuzzingTime",
-			"TotalCrashes", "CrashTypes", "SuppressedCrashes", "TotalExecs",
-			"ExecsPerSec"}),
-		Months: createSlider(r, "Months", 1, 36),
+		Managers: managers,
+		Metrics:  metrics,
+		Months:   createSlider(r, "Months", 1, 36),
 	}
 	data.Graph, err = createManagersGraph(c, hdr.Namespace, data.Managers.vals, data.Metrics.vals, data.Months.Val*30)
 	if err != nil {
@@ -419,15 +427,20 @@ func extractMetric(stat *ManagerStats, metric string) float64 {
 	}
 }
 
-func createCheckBox(r *http.Request, caption string, values []string) *uiCheckbox {
+// createCheckBox additionally validates r.Form data and returns 400 error in case of mismatch.
+func createCheckBox(r *http.Request, caption string, values []string) (*uiCheckbox, error) {
 	// TODO: turn this into proper ID that can be used in HTML.
 	id := caption
+	for _, formVal := range r.Form[id] {
+		if !stringInList(values, formVal) {
+			return nil, ErrClientBadRequest
+		}
+	}
 	ui := &uiCheckbox{
 		ID:      id,
 		Caption: caption,
 		vals:    r.Form[id],
 	}
-	// TODO: filter selMetrics against allMetrics.
 	if len(ui.vals) == 0 {
 		ui.vals = []string{values[0]}
 	}
@@ -438,7 +451,7 @@ func createCheckBox(r *http.Request, caption string, values []string) *uiCheckbo
 			Selected: stringInList(ui.vals, val),
 		})
 	}
-	return ui
+	return ui, nil
 }
 
 func createSlider(r *http.Request, caption string, min, max int) *uiSlider {
