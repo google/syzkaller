@@ -111,3 +111,32 @@ func TestManagersGraphs(t *testing.T) {
 	// TODO: check reply
 	_ = reply
 }
+
+func managersGraphFixture(t *testing.T) *Ctx {
+	c := NewCtx(t)
+	t.Cleanup(c.Close)
+
+	build1 := testBuild(1)
+	c.client2.UploadBuild(build1)
+
+	c.client2.UploadManagerStats(&dashapi.ManagerStatsReq{
+		Name:   build1.Manager,
+		Corpus: 100,
+		PCs:    1000,
+		Cover:  2000,
+	})
+
+	return c
+}
+
+func TestManagersGraph_FuzzingMetric_OK_OnValidInput(t *testing.T) {
+	c := managersGraphFixture(t)
+	_, err := c.AuthGET(AccessAdmin, "/test2/graph/fuzzing?Metrics=MaxCorpus")
+	c.expectOK(err)
+}
+
+func TestManagersGraph_FuzzingMetric_BadRequest_OnMalformedInput(t *testing.T) {
+	c := managersGraphFixture(t)
+	_, err := c.AuthGET(AccessAdmin, "/test2/graph/fuzzing?Metrics=MaxCorpus'%2F*%22ZYLQ%22*%2F+AND+'0'%3D'0&Months=27")
+	c.expectBadReqest(err)
+}
