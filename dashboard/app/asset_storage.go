@@ -7,10 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/asset"
+	"github.com/google/syzkaller/sys/targets"
 	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/appengine/v2"
@@ -484,4 +486,45 @@ func queryLatestManagerAssets(c context.Context, ns string, assetType dashapi.As
 		}
 	}
 	return ret, nil
+}
+
+func createAssetList(build *Build, crash *Crash) []dashapi.Asset {
+	assetList := []dashapi.Asset{}
+	for _, reportAsset := range append(build.Assets, crash.Assets...) {
+		typeDescr := asset.GetTypeDescription(reportAsset.Type)
+		if typeDescr == nil || typeDescr.NoReporting {
+			continue
+		}
+		assetList = append(assetList, dashapi.Asset{
+			Title:       typeDescr.GetTitle(targets.Get(build.OS, build.Arch)),
+			DownloadURL: reportAsset.DownloadURL,
+			Type:        reportAsset.Type,
+		})
+	}
+	sort.SliceStable(assetList, func(i, j int) bool {
+		return asset.GetTypeDescription(assetList[i].Type).ReportingPrio <
+			asset.GetTypeDescription(assetList[j].Type).ReportingPrio
+	})
+	handleDupAssetTitles(assetList)
+	return assetList
+}
+
+// Convert asset lists like {"Mounted image", "Mounted image"} to {"Mounted image #1", "Mounted image #2"}.
+func handleDupAssetTitles(assetList []dashapi.Asset) {
+	duplicates := map[string]bool{}
+	for _, asset := range assetList {
+		if _, ok := duplicates[asset.Title]; ok {
+			duplicates[asset.Title] = true
+		} else {
+			duplicates[asset.Title] = false
+		}
+	}
+	counts := map[string]int{}
+	for i, asset := range assetList {
+		if !duplicates[asset.Title] {
+			continue
+		}
+		counts[asset.Title]++
+		assetList[i].Title = fmt.Sprintf("%s #%d", asset.Title, counts[asset.Title])
+	}
 }
