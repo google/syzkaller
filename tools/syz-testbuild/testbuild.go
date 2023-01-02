@@ -8,12 +8,12 @@
 // The kernel checkout given to the tool will be cleaned and used for in-tree builds.
 // Example invocation:
 //
-// sudo syz-testbuild -kernel_src $LINUX_CHECKOUT \
-//	-config dashboard/config/upstream-kasan.config \
-//	-sysctl dashboard/config/upstream.sysctl \
-//	-cmdline dashboard/config/upstream-apparmor.cmdline \
-//	-userspace $WHEEZY_USERSPACE \
-//	-bisect_bin $BISECT_BIN
+//	sudo syz-testbuild -kernel_src $LINUX_CHECKOUT \
+//		-config dashboard/config/upstream-kasan.config \
+//		-sysctl dashboard/config/upstream.sysctl \
+//		-cmdline dashboard/config/upstream-apparmor.cmdline \
+//		-userspace $WHEEZY_USERSPACE \
+//		-bisect_bin $BISECT_BIN
 //
 // A suitable wheezy userspace can be downloaded from:
 // https://storage.googleapis.com/syzkaller/wheezy.tar.gz
@@ -110,7 +110,7 @@ func main() {
 	if err != nil {
 		tool.Fail(err)
 	}
-	env, err := instance.NewEnv(cfg)
+	env, err := instance.NewEnv(cfg, nil)
 	if err != nil {
 		tool.Fail(err)
 	}

@@ -79,7 +79,7 @@ loop:
 		}
 		select {
 		case <-jobTicker.C:
-			if len(kernelBuildSem) != 0 {
+			if buildSem.Available() == 0 {
 				// If normal kernel build is in progress (usually on start), don't query jobs.
 				// Otherwise we claim a job, but can't start it for a while.
 				continue loop
@@ -250,13 +250,6 @@ func (jp *JobProcessor) pollJobs() {
 }
 
 func (jp *JobProcessor) processJob(job *Job) {
-	select {
-	case kernelBuildSem <- struct{}{}:
-	case <-jp.stop:
-		return
-	}
-	defer func() { <-kernelBuildSem }()
-
 	req := job.req
 	log.Logf(0, "starting job %v type %v for manager %v on %v/%v",
 		req.ID, req.Type, req.Manager, req.KernelRepo, req.KernelBranch)
@@ -439,7 +432,8 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 			Syz:  req.ReproSyz,
 			C:    req.ReproC,
 		},
-		Manager: mgrcfg,
+		Manager:        mgrcfg,
+		BuildSemaphore: buildSem,
 	}
 
 	res, err := bisect.Run(cfg)
@@ -499,7 +493,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 
 func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 	req, resp, mgr := job.req, job.resp, job.mgr
-	env, err := instance.NewEnv(mgrcfg)
+	env, err := instance.NewEnv(mgrcfg, buildSem)
 	if err != nil {
 		return err
 	}
