@@ -335,6 +335,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			<th><a onclick="return sortTable(this, 'Syz repro', reproSort)" href="#">Syz repro</a></th>
 			<th><a onclick="return sortTable(this, 'C repro', textSort)" href="#">C repro</a></th>
 			<th><a onclick="return sortTable(this, 'VM info', textSort)" href="#">VM info</a></th>
+			<th><a onclick="return sortTable(this, 'Assets', textSort)" href="#">Assets</a></th>
 			<th><a onclick="return sortTable(this, 'Title', textSort)" href="#">Title</a></th>
 		</tr>
 		</thead>
@@ -353,6 +354,9 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			<td class="repro{{if $b.ReproIsRevoked}} stale_repro{{end}}">{{if $b.ReproSyzLink}}<a href="{{$b.ReproSyzLink}}">syz</a>{{end}}</td>
 			<td class="repro{{if $b.ReproIsRevoked}} stale_repro{{end}}">{{if $b.ReproCLink}}<a href="{{$b.ReproCLink}}">C</a>{{end}}</td>
 			<td class="repro">{{if $b.MachineInfoLink}}<a href="{{$b.MachineInfoLink}}">info</a>{{end}}</td>
+			<td class="assets">{{range $i, $asset := .Assets}}
+				<span class="no-break">[<a href="{{$asset.DownloadURL}}">{{$asset.Title}}</a>]</span>
+			{{end}}</td>
 			<td class="manager">{{$b.Title}}</td>
 		</tr>
 		{{end}}
