@@ -111,6 +111,9 @@ type Config struct {
 	Managers     []*ManagerConfig `json:"managers"`
 	// Poll period for jobs in seconds (optional, defaults to 10 seconds)
 	JobPollPeriod int `json:"job_poll_period"`
+	// Set up a second (parallel) job processor to speed up processing.
+	// For now, this second job processor only handles patch testing requests.
+	ParallelJobs bool `json:"parallel_jobs"`
 	// Poll period for commits in seconds (optional, defaults to 3600 seconds)
 	CommitPollPeriod int `json:"commit_poll_period"`
 	// Asset Storage config.
@@ -181,6 +184,19 @@ type ManagerJobs struct {
 	BisectFix   bool `json:"bisect_fix"`   // do fix bisection
 }
 
+func (m *ManagerJobs) AnyEnabled() bool {
+	return m.TestPatches || m.PollCommits || m.BisectCause || m.BisectFix
+}
+
+func (m *ManagerJobs) Filter(filter *ManagerJobs) *ManagerJobs {
+	return &ManagerJobs{
+		TestPatches: m.TestPatches && filter.TestPatches,
+		PollCommits: m.PollCommits && filter.PollCommits,
+		BisectCause: m.BisectCause && filter.BisectCause,
+		BisectFix:   m.BisectFix && filter.BisectFix,
+	}
+}
+
 func main() {
 	flag.Parse()
 	log.EnableLogCaching(1000, 1<<20)
@@ -246,14 +262,14 @@ func main() {
 			}()
 		}
 	}
-	jp, err := newJobProcessor(cfg, managers, stop, shutdownPending)
+	jp, err := newJobManager(cfg, managers, shutdownPending)
 	if err != nil {
 		log.Fatalf("failed to create dashapi connection %v", err)
 	}
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		jp.loop()
+		jp.loop(stop)
 	}()
 
 	// For testing. Racy. Use with care.
@@ -393,9 +409,7 @@ func loadManagerConfig(cfg *Config, mgr *ManagerConfig) error {
 	if mgr.Branch == "" {
 		mgr.Branch = "master"
 	}
-	if (mgr.Jobs.TestPatches || mgr.Jobs.PollCommits ||
-		mgr.Jobs.BisectCause || mgr.Jobs.BisectFix) &&
-		(cfg.DashboardAddr == "" || cfg.DashboardClient == "") {
+	if mgr.Jobs.AnyEnabled() && (cfg.DashboardAddr == "" || cfg.DashboardClient == "") {
 		return fmt.Errorf("manager %v: has jobs but no dashboard info", mgr.Name)
 	}
 	if mgr.Jobs.PollCommits && (cfg.DashboardAddr == "" || mgr.DashboardClient == "") {
