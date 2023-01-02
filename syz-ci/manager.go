@@ -147,10 +147,10 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{},
 	return mgr, nil
 }
 
-// Gates kernel builds.
+// Gates kernel builds, syzkaller builds and coverage report generation.
 // Kernel builds take whole machine, so we don't run more than one at a time.
 // Also current image build script uses some global resources (/dev/nbd0) and can't run in parallel.
-var kernelBuildSem = make(chan struct{}, 1)
+var buildSem = instance.NewSemaphore(1)
 
 func (mgr *Manager) loop() {
 	lastCommit := ""
@@ -235,7 +235,7 @@ func (mgr *Manager) pollAndBuild(lastCommit string, latestInfo *BuildInfo) (
 				mgr.configTag != latestInfo.KernelConfigTag) {
 			lastCommit = commit.Hash
 			select {
-			case kernelBuildSem <- struct{}{}:
+			case <-buildSem.WaitC():
 				log.Logf(0, "%v: building kernel...", mgr.name)
 				if err := mgr.build(commit); err != nil {
 					log.Logf(0, "%v: %v", mgr.name, err)
@@ -247,7 +247,7 @@ func (mgr *Manager) pollAndBuild(lastCommit string, latestInfo *BuildInfo) (
 						mgr.Errorf("failed to read build info after build")
 					}
 				}
-				<-kernelBuildSem
+				buildSem.Signal()
 			case <-mgr.stop:
 			}
 		}
@@ -413,7 +413,7 @@ func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
 	if !vm.AllowsOvercommit(mgrcfg.Type) {
 		return nil // No support for creating machines out of thin air.
 	}
-	env, err := instance.NewEnv(mgrcfg)
+	env, err := instance.NewEnv(mgrcfg, buildSem)
 	if err != nil {
 		return err
 	}
@@ -763,11 +763,11 @@ func (mgr *Manager) uploadCoverReport() error {
 	}
 	// Report generation can consume lots of memory. Generate one at a time.
 	select {
-	case kernelBuildSem <- struct{}{}:
+	case <-buildSem.WaitC():
 	case <-mgr.stop:
 		return nil
 	}
-	defer func() { <-kernelBuildSem }()
+	defer buildSem.Signal()
 
 	// Get coverage report from manager.
 	addr := mgr.managercfg.HTTP

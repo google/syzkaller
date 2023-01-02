@@ -219,7 +219,7 @@ func main() {
 		case <-shutdownPending:
 		case <-updatePending:
 		}
-		kernelBuildSem <- struct{}{} // wait for all current builds
+		buildSem.WaitAll() // wait for all current builds
 		close(stop)
 		wg.Done()
 	}()
