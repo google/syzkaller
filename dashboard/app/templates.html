@@ -349,7 +349,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	{{formatTime $b.KernelCommitDate}}">{{link $b.KernelCommitLink (formatTagHash $b.KernelCommit)}}</td>
 			<td class="tag">{{link $b.SyzkallerCommitLink (formatShortHash $b.SyzkallerCommit)}}</td>
 			<td class="config">{{if $b.KernelConfigLink}}<a href="{{$b.KernelConfigLink}}">.config</a>{{end}}</td>
-			<td class="repro">{{if $b.LogLink}}<a href="{{$b.LogLink}}">log</a>{{end}}</td>
+			<td class="repro">{{if $b.LogLink}}<a href="{{$b.LogLink}}">{{if $b.LogHasStrace}}strace{{else}}console{{end}} log</a>{{end}}</td>
 			<td class="repro">{{if $b.ReportLink}}<a href="{{$b.ReportLink}}">report</a>{{end}}</td>
 			<td class="repro{{if $b.ReproIsRevoked}} stale_repro{{end}}">{{if $b.ReproSyzLink}}<a href="{{$b.ReproSyzLink}}">syz</a>{{end}}</td>
 			<td class="repro{{if $b.ReproIsRevoked}} stale_repro{{end}}">{{if $b.ReproCLink}}<a href="{{$b.ReproCLink}}">C</a>{{end}}</td>
