@@ -185,6 +185,15 @@ table td, table th {
 	text-decoration: line-through;
 }
 
+.list_table .assets {
+	max-width: 120pt;
+	white-space: normal;
+}
+
+.list_table .assets .no-break {
+	display: inline-block;
+}
+
 .bad {
 	color: #f00;
 	font-weight: bold;

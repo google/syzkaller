@@ -247,7 +247,13 @@ type uiCrash struct {
 	ReproCLink      string
 	ReproIsRevoked  bool
 	MachineInfoLink string
+	Assets          []*uiAsset
 	*uiBuild
+}
+
+type uiAsset struct {
+	Title       string
+	DownloadURL string
 }
 
 type uiCrashTable struct {
@@ -1218,6 +1224,13 @@ func loadFixBisectionsForBug(c context.Context, bug *Bug) ([]*uiCrash, error) {
 }
 
 func makeUICrash(crash *Crash, build *Build) *uiCrash {
+	uiAssets := []*uiAsset{}
+	for _, asset := range createAssetList(build, crash) {
+		uiAssets = append(uiAssets, &uiAsset{
+			Title:       asset.Title,
+			DownloadURL: asset.DownloadURL,
+		})
+	}
 	ui := &uiCrash{
 		Title:           crash.Title,
 		Manager:         crash.Manager,
@@ -1229,6 +1242,7 @@ func makeUICrash(crash *Crash, build *Build) *uiCrash {
 		ReproCLink:      textLink(textReproC, crash.ReproC),
 		ReproIsRevoked:  crash.ReproIsRevoked,
 		MachineInfoLink: textLink(textMachineInfo, crash.MachineInfo),
+		Assets:          uiAssets,
 	}
 	if build != nil {
 		ui.uiBuild = makeUIBuild(build)
