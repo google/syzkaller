@@ -242,6 +242,7 @@ type uiCrash struct {
 	Time            time.Time
 	Maintainers     string
 	LogLink         string
+	LogHasStrace    bool
 	ReportLink      string
 	ReproSyzLink    string
 	ReproCLink      string
@@ -1237,6 +1238,7 @@ func makeUICrash(crash *Crash, build *Build) *uiCrash {
 		Time:            crash.Time,
 		Maintainers:     strings.Join(crash.Maintainers, ", "),
 		LogLink:         textLink(textCrashLog, crash.Log),
+		LogHasStrace:    dashapi.CrashFlags(crash.Flags)&dashapi.CrashUnderStrace > 0,
 		ReportLink:      textLink(textCrashReport, crash.Report),
 		ReproSyzLink:    textLink(textReproSyz, crash.ReproSyz),
 		ReproCLink:      textLink(textReproC, crash.ReproC),
