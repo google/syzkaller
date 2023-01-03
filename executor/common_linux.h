@@ -3044,7 +3044,15 @@ static long syz_mount_image(
 	} else if (strncmp(fs, "ext", 3) == 0) {
 		// For ext2/3/4 we have to have errors=continue because the image
 		// can contain errors=panic flag and can legally crash kernel.
-		if (strstr(opts, "errors=panic") || strstr(opts, "errors=remount-ro") == 0)
+		bool has_remount_ro = false;
+		char* remount_ro_start = strstr(opts, "errors=remount-ro");
+		if (remount_ro_start != NULL) {
+			// syzkaller can sometimes break the options format, so we have to make sure this option can really be parsed.
+			char after = *(remount_ro_start + strlen("errors=remount-ro"));
+			char before = remount_ro_start == opts ? '\0' : *(remount_ro_start - 1);
+			has_remount_ro = ((before == '\0' || before == ',') && (after == '\0' || after == ','));
+		}
+		if (strstr(opts, "errors=panic") || !has_remount_ro)
 			strcat(opts, ",errors=continue");
 	} else if (strcmp(fs, "xfs") == 0) {
 		// For xfs we need nouuid because xfs has a global uuids table
