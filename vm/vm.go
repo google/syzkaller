@@ -34,6 +34,7 @@ import (
 	_ "github.com/google/syzkaller/vm/odroid"
 	_ "github.com/google/syzkaller/vm/proxyapp"
 	_ "github.com/google/syzkaller/vm/qemu"
+	_ "github.com/google/syzkaller/vm/starnix"
 	_ "github.com/google/syzkaller/vm/vmm"
 	_ "github.com/google/syzkaller/vm/vmware"
 )
@@ -139,7 +140,8 @@ func (pool *Pool) Create(index int) (*Instance, error) {
 }
 
 // TODO: Integration or end-to-end testing is needed.
-//  https://github.com/google/syzkaller/pull/3269#discussion_r967650801
+//
+//	https://github.com/google/syzkaller/pull/3269#discussion_r967650801
 func (pool *Pool) Close() error {
 	if pool.activeCount != 0 {
 		panic("all the instances should be closed before pool.Close()")
