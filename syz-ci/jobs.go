@@ -143,7 +143,7 @@ loop:
 			break loop
 		}
 	}
-	log.Logf(0, "job loop stopped")
+	jp.Logf(0, "job loop stopped")
 }
 
 func (jp *JobProcessor) pollCommits() {
@@ -168,7 +168,7 @@ func (jp *JobProcessor) pollManagerCommits(mgr *Manager) error {
 	if err != nil {
 		return err
 	}
-	log.Logf(0, "polling commits for %v: repos %v, commits %v", mgr.name, len(resp.Repos), len(resp.Commits))
+	jp.Logf(0, "polling commits for %v: repos %v, commits %v", mgr.name, len(resp.Repos), len(resp.Commits))
 	if len(resp.Repos) == 0 {
 		return fmt.Errorf("no repos")
 	}
@@ -183,7 +183,7 @@ func (jp *JobProcessor) pollManagerCommits(mgr *Manager) error {
 				jp.Errorf("failed to poll %v %v: %v", repo.URL, repo.Branch, err)
 				continue
 			}
-			log.Logf(1, "got %v commits from %v/%v repo", len(commits1), repo.URL, repo.Branch)
+			jp.Logf(1, "got %v commits from %v/%v repo", len(commits1), repo.URL, repo.Branch)
 			for _, com := range commits1 {
 				// Only the "main" repo is the source of true hashes.
 				if i != 0 {
@@ -202,7 +202,7 @@ func (jp *JobProcessor) pollManagerCommits(mgr *Manager) error {
 				jp.Errorf("failed to poll %v %v: %v", repo.URL, repo.Branch, err)
 				continue
 			}
-			log.Logf(1, "got %v commit infos from %v/%v repo", len(commits1), repo.URL, repo.Branch)
+			jp.Logf(1, "got %v commit infos from %v/%v repo", len(commits1), repo.URL, repo.Branch)
 			for _, com := range commits1 {
 				// GetCommitByTitle does not accept ReportEmail and does not return tags,
 				// so don't replace the existing commit.
@@ -251,7 +251,7 @@ func (jp *JobProcessor) getCommitInfo(mgr *Manager, URL, branch string, commits 
 		return nil, err
 	}
 	for _, title := range missing {
-		log.Logf(0, "did not find commit %q in kernel repo %v/%v", title, URL, branch)
+		jp.Logf(0, "did not find commit %q in kernel repo %v/%v", title, URL, branch)
 	}
 	return results, nil
 }
@@ -305,16 +305,16 @@ func (jp *JobProcessor) pollJobs() {
 
 func (jp *JobProcessor) processJob(job *Job) {
 	req := job.req
-	log.Logf(0, "starting job %v type %v for manager %v on %v/%v",
+	jp.Logf(0, "starting job %v type %v for manager %v on %v/%v",
 		req.ID, req.Type, req.Manager, req.KernelRepo, req.KernelBranch)
 	resp := jp.process(job)
-	log.Logf(0, "done job %v: commit %v, crash %q, error: %s",
+	jp.Logf(0, "done job %v: commit %v, crash %q, error: %s",
 		resp.ID, resp.Build.KernelCommit, resp.CrashTitle, resp.Error)
 	select {
 	case <-jp.shutdownPending:
 		if len(resp.Error) != 0 {
 			// Ctrl+C can kill a child process which will cause an error.
-			log.Logf(0, "ignoring error: shutdown pending")
+			jp.Logf(0, "ignoring error: shutdown pending")
 			return
 		}
 	default:
@@ -551,12 +551,12 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 	if err != nil {
 		return err
 	}
-	log.Logf(0, "job: building syzkaller on %v...", req.SyzkallerCommit)
+	jp.Logf(0, "building syzkaller on %v...", req.SyzkallerCommit)
 	syzBuildLog, syzBuildErr := env.BuildSyzkaller(jp.cfg.SyzkallerRepo, req.SyzkallerCommit)
 	if syzBuildErr != nil {
 		return syzBuildErr
 	}
-	log.Logf(0, "job: fetching kernel...")
+	jp.Logf(0, "fetching kernel...")
 	repo, err := vcs.NewRepo(mgrcfg.TargetOS, mgrcfg.Type, mgrcfg.KernelSrc)
 	if err != nil {
 		return fmt.Errorf("failed to create kernel repo: %v", err)
@@ -620,7 +620,7 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 			return fmt.Errorf("failed to read config file: %v", err)
 		}
 	}
-	log.Logf(0, "job: testing...")
+	jp.Logf(0, "job: testing...")
 	results, err := env.Test(3, req.ReproSyz, req.ReproOpts, req.ReproC)
 	if err != nil {
 		return fmt.Errorf("%w\n\nsyzkaller build log:\n%s", err, syzBuildLog)
@@ -684,6 +684,10 @@ func aggregateTestResults(results []instance.EnvTestResult) (*patchTestResult, e
 		return nil, testErr
 	}
 	return nil, anyErr
+}
+
+func (jp *JobProcessor) Logf(level int, msg string, args ...interface{}) {
+	log.Logf(level, "%s: "+msg, append([]interface{}{jp.name}, args...)...)
 }
 
 // Errorf logs non-fatal error and sends it to dashboard.
