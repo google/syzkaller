@@ -296,7 +296,7 @@ func (pass *Pass) logFormatArg(n *ast.CallExpr) (arg int, newLine, sure bool) {
 		return -1, false, false
 	}
 	switch fmt.Sprintf("%v.%v", fun.X, fun.Sel) {
-	case "log.Print", "log.Printf", "log.Fatal", "log.Fatalf", "fmt.Error", "fmt.Errorf":
+	case "log.Print", "log.Printf", "log.Fatal", "log.Fatalf", "fmt.Error", "fmt.Errorf", "jp.Logf":
 		return 0, false, true
 	case "log.Logf":
 		return 1, false, true
