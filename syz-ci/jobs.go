@@ -417,6 +417,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 		DefaultCompiler: mgr.mgrcfg.Compiler,
 		CompilerType:    mgr.mgrcfg.CompilerType,
 		BinDir:          jp.cfg.BisectBinDir,
+		Linker:          mgr.mgrcfg.Linker,
 		Ccache:          jp.cfg.Ccache,
 		Kernel: bisect.KernelConfig{
 			Repo:           mgr.mgrcfg.Repo,
@@ -552,8 +553,8 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 		[]byte("# CONFIG_DEBUG_INFO_BTF is not set"), -1)
 
 	log.Logf(0, "job: building kernel...")
-	kernelConfig, details, err := env.BuildKernel(mgr.mgrcfg.Compiler, mgr.mgrcfg.Ccache, mgr.mgrcfg.Userspace,
-		mgr.mgrcfg.KernelCmdline, mgr.mgrcfg.KernelSysctl, req.KernelConfig)
+	kernelConfig, details, err := env.BuildKernel(mgr.mgrcfg.Compiler, mgr.mgrcfg.Linker, mgr.mgrcfg.Ccache,
+		mgr.mgrcfg.Userspace, mgr.mgrcfg.KernelCmdline, mgr.mgrcfg.KernelSysctl, req.KernelConfig)
 	resp.Build.CompilerID = details.CompilerID
 	if err != nil {
 		return err
