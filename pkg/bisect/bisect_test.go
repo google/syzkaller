@@ -32,7 +32,7 @@ func (env *testEnv) BuildSyzkaller(repo, commit string) (string, error) {
 	return "", nil
 }
 
-func (env *testEnv) BuildKernel(compilerBin, cCache, userspaceDir, cmdlineFile, sysctlFile string,
+func (env *testEnv) BuildKernel(compilerBin, linker, cCache, userspaceDir, cmdlineFile, sysctlFile string,
 	kernelConfig []byte) (string, build.ImageDetails, error) {
 	commit := env.headCommit()
 	configHash := hash.String(kernelConfig)

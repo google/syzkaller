@@ -29,7 +29,7 @@ import (
 
 type Env interface {
 	BuildSyzkaller(string, string) (string, error)
-	BuildKernel(string, string, string, string, string, []byte) (string, build.ImageDetails, error)
+	BuildKernel(string, string, string, string, string, string, []byte) (string, build.ImageDetails, error)
 	Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]EnvTestResult, error)
 }
 
@@ -114,7 +114,8 @@ func (env *env) BuildSyzkaller(repoURL, commit string) (string, error) {
 	return buildLog, nil
 }
 
-func (env *env) BuildKernel(compilerBin, ccacheBin, userspaceDir, cmdlineFile, sysctlFile string, kernelConfig []byte) (
+func (env *env) BuildKernel(compilerBin, linkerBin, ccacheBin, userspaceDir, cmdlineFile, sysctlFile string,
+	kernelConfig []byte) (
 	string, build.ImageDetails, error) {
 	imageDir := filepath.Join(env.cfg.Workdir, "image")
 	params := build.Params{
@@ -124,6 +125,7 @@ func (env *env) BuildKernel(compilerBin, ccacheBin, userspaceDir, cmdlineFile, s
 		KernelDir:    env.cfg.KernelSrc,
 		OutputDir:    imageDir,
 		Compiler:     compilerBin,
+		Linker:       linkerBin,
 		Ccache:       ccacheBin,
 		UserspaceDir: userspaceDir,
 		CmdlineFile:  cmdlineFile,
