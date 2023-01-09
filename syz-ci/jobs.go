@@ -553,8 +553,15 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 		[]byte("# CONFIG_DEBUG_INFO_BTF is not set"), -1)
 
 	log.Logf(0, "job: building kernel...")
-	kernelConfig, details, err := env.BuildKernel(mgr.mgrcfg.Compiler, mgr.mgrcfg.Linker, mgr.mgrcfg.Ccache,
-		mgr.mgrcfg.Userspace, mgr.mgrcfg.KernelCmdline, mgr.mgrcfg.KernelSysctl, req.KernelConfig)
+	kernelConfig, details, err := env.BuildKernel(&instance.BuildKernelConfig{
+		CompilerBin:  mgr.mgrcfg.Compiler,
+		LinkerBin:    mgr.mgrcfg.Linker,
+		CcacheBin:    mgr.mgrcfg.Ccache,
+		UserspaceDir: mgr.mgrcfg.Userspace,
+		CmdlineFile:  mgr.mgrcfg.KernelCmdline,
+		SysctlFile:   mgr.mgrcfg.KernelSysctl,
+		KernelConfig: req.KernelConfig,
+	})
 	resp.Build.CompilerID = details.CompilerID
 	if err != nil {
 		return err
