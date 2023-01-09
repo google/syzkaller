@@ -32,16 +32,15 @@ func (env *testEnv) BuildSyzkaller(repo, commit string) (string, error) {
 	return "", nil
 }
 
-func (env *testEnv) BuildKernel(compilerBin, linker, cCache, userspaceDir, cmdlineFile, sysctlFile string,
-	kernelConfig []byte) (string, build.ImageDetails, error) {
+func (env *testEnv) BuildKernel(buildCfg *instance.BuildKernelConfig) (string, build.ImageDetails, error) {
 	commit := env.headCommit()
-	configHash := hash.String(kernelConfig)
+	configHash := hash.String(buildCfg.KernelConfig)
 	details := build.ImageDetails{}
 	details.Signature = fmt.Sprintf("%v-%v", commit, configHash)
 	if commit >= env.test.sameBinaryStart && commit <= env.test.sameBinaryEnd {
 		details.Signature = "same-sign-" + configHash
 	}
-	env.config = string(kernelConfig)
+	env.config = string(buildCfg.KernelConfig)
 	if env.config == "baseline-fails" {
 		return "", details, fmt.Errorf("failure")
 	}
