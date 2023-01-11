@@ -8,9 +8,12 @@ import (
 	"fmt"
 	"io"
 	"net/mail"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"unicode"
+
+	"github.com/google/syzkaller/pkg/subsystem/entity"
 )
 
 // maintainersRecord represents a single raw record in the MAINTAINERS file.
@@ -141,4 +144,69 @@ func parseEmail(value string) (string, error) {
 		return "", err
 	}
 	return addr.Address, nil
+}
+
+func (r maintainersRecord) ToPathRule() entity.PathRule {
+	inclRe := strings.Builder{}
+	for i, wildcard := range r.includePatterns {
+		if i > 0 {
+			inclRe.WriteByte('|')
+		}
+		wildcardToRegexp(wildcard, &inclRe)
+	}
+	for _, rg := range r.regexps {
+		if inclRe.Len() > 0 {
+			inclRe.WriteByte('|')
+		}
+		inclRe.WriteString(rg)
+	}
+	exclRe := strings.Builder{}
+	for i, wildcard := range r.excludePatterns {
+		if i > 0 {
+			exclRe.WriteByte('|')
+		}
+		wildcardToRegexp(wildcard, &exclRe)
+	}
+	return entity.PathRule{
+		IncludeRegexp: inclRe.String(),
+		ExcludeRegexp: exclRe.String(),
+	}
+}
+
+var (
+	escapedSeparator = regexp.QuoteMeta(fmt.Sprintf("%c", filepath.Separator))
+	wildcardReplace  = map[byte]string{
+		'*': `[^` + escapedSeparator + `]*`,
+		'?': `.`,
+		'/': escapedSeparator,
+	}
+)
+
+func wildcardToRegexp(wildcard string, store *strings.Builder) {
+	store.WriteByte('^')
+
+	// We diverge a bit from the standard MAINTAINERS rule semantics.
+	// path/* corresponds to the files belonging to the `path` folder,
+	// but, since we also infer the parent-child relationship, it's
+	// easier to make it cover the whole subtree.
+	if len(wildcard) >= 2 && wildcard[len(wildcard)-2:] == "/*" {
+		wildcard = wildcard[:len(wildcard)-1]
+	}
+
+	tokenStart := 0
+	for i, c := range wildcard {
+		replace, exists := wildcardReplace[byte(c)]
+		if !exists {
+			continue
+		}
+		store.WriteString(regexp.QuoteMeta(wildcard[tokenStart:i]))
+		store.WriteString(replace)
+		tokenStart = i + 1
+	}
+	if tokenStart < len(wildcard) {
+		store.WriteString(regexp.QuoteMeta(wildcard[tokenStart:]))
+	}
+	if wildcard == "" || wildcard[len(wildcard)-1] != '/' {
+		store.WriteByte('$')
+	}
 }
