@@ -8,7 +8,141 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/syzkaller/pkg/subsystem/entity"
+	"github.com/google/syzkaller/pkg/subsystem/match"
 )
+
+func TestRecordToPathRule(t *testing.T) {
+	tests := []struct {
+		name    string
+		record  maintainersRecord
+		match   []string
+		noMatch []string
+	}{
+		{
+			name: `general test`,
+			record: maintainersRecord{
+				includePatterns: []string{
+					`drivers/gpio/gpio-*wm*.c`,
+					`drivers/hwmon/wm83??-hwmon.c`,
+					`include/linux/mfd/arizona/`,
+					`include/linux/wm97xx.h`,
+				},
+			},
+			match: []string{
+				`drivers/gpio/gpio-wm831x.c`,
+				`drivers/gpio/gpio-abcdwm831x.c`,
+				`drivers/hwmon/wm8355-hwmon.c`,
+				`include/linux/mfd/arizona/file.c`,
+				`include/linux/mfd/arizona/subfolder/file.c`,
+				`include/linux/wm97xx.h`,
+			},
+			noMatch: []string{
+				`drivers/gpio/gpio-w831x.c`,
+				`drivers/hwmon/wm83556-hwmon.c`,
+				`drivers/hwmon/wm831-hwmon.c`,
+				`include/linux/mfd`,
+				`include`,
+				`random-file`,
+			},
+		},
+		{
+			name: `include patterns and regexp`,
+			record: maintainersRecord{
+				includePatterns: []string{`drivers/rtc/rtc-opal.c`},
+				regexps:         []string{`[^a-z0-9]ps3`},
+			},
+			match: []string{
+				`drivers/rtc/rtc-opal.c`,
+				`drivers/ps3/a.c`,
+				`drivers/sub/ps3/a.c`,
+				`drivers/sub/sub/ps3.c`,
+			},
+			noMatch: []string{
+				`drivers/aps3/a.c`,
+				`drivers/abc/aps3.c`,
+			},
+		},
+		{
+			name: `exclude patterns`,
+			record: maintainersRecord{
+				includePatterns: []string{`security/`},
+				excludePatterns: []string{`security/selinux/`},
+			},
+			match: []string{
+				`security/apparmor/abcd.c`,
+				`security/abcd.c`,
+			},
+			noMatch: []string{
+				`security/selinux/abcd.c`,
+			},
+		},
+		{
+			name: `handle / at the end`,
+			record: maintainersRecord{
+				includePatterns: []string{
+					`with-subfolders/`,
+					`dir/only-one`,
+					`also-with-subfolders/*`,
+				},
+			},
+			match: []string{
+				`with-subfolders/a`,
+				`with-subfolders/a/b`,
+				`dir/only-one`,
+				`also-with-subfolders/a.c`,
+				`also-with-subfolders/b/a.c`,
+			},
+			noMatch: []string{
+				`dir/only-one/a.c`,
+				`dir/only-one/a/b.c`,
+			},
+		},
+		{
+			name: `wildcards are well escaped`,
+			record: maintainersRecord{
+				includePatterns: []string{`drivers/net/ethernet/smsc/smc91x.*`},
+			},
+			match: []string{
+				`drivers/net/ethernet/smsc/smc91x.c`,
+				`drivers/net/ethernet/smsc/smc91x.h`,
+			},
+			noMatch: []string{
+				`drivers/net/ethernet/smsc/smc91xAh`,
+			},
+		},
+		{
+			name: `match everything`,
+			record: maintainersRecord{
+				includePatterns: []string{`*`, `*/`},
+			},
+			match: []string{
+				`a`,
+				`a/b`,
+				`a/b/c`,
+			},
+		},
+	}
+
+	for _, loopTest := range tests {
+		test := loopTest
+		t.Run(test.name, func(t *testing.T) {
+			pm := match.MakePathMatcher([]*entity.Subsystem{
+				{PathRules: []entity.PathRule{test.record.ToPathRule()}},
+			})
+			for _, path := range test.match {
+				if len(pm.Match(path)) != 1 {
+					t.Fatalf("did not match %#v", path)
+				}
+			}
+			for _, path := range test.noMatch {
+				if len(pm.Match(path)) > 0 {
+					t.Fatalf("matched %#v", path)
+				}
+			}
+		})
+	}
+}
 
 func TestLinuxMaintainers(t *testing.T) {
 	result, err := parseLinuxMaintainers(
