@@ -488,6 +488,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 		},
 		Manager:        mgrcfg,
 		BuildSemaphore: buildSem,
+		TestSemaphore:  testSem,
 	}
 
 	res, err := bisect.Run(cfg)
@@ -547,7 +548,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 
 func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 	req, resp, mgr := job.req, job.resp, job.mgr
-	env, err := instance.NewEnv(mgrcfg, buildSem)
+	env, err := instance.NewEnv(mgrcfg, buildSem, testSem)
 	if err != nil {
 		return err
 	}

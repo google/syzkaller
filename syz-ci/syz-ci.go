@@ -236,6 +236,7 @@ func main() {
 		case <-updatePending:
 		}
 		buildSem.WaitAll() // wait for all current builds
+		testSem.WaitAll()
 		close(stop)
 		wg.Done()
 	}()
