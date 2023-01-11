@@ -37,6 +37,7 @@ type env struct {
 	cfg           *mgrconfig.Config
 	optionalFlags bool
 	buildSem      *Semaphore
+	testSem       *Semaphore
 }
 
 type BuildKernelConfig struct {
@@ -49,7 +50,7 @@ type BuildKernelConfig struct {
 	KernelConfig []byte
 }
 
-func NewEnv(cfg *mgrconfig.Config, buildSem *Semaphore) (Env, error) {
+func NewEnv(cfg *mgrconfig.Config, buildSem, testSem *Semaphore) (Env, error) {
 	if !vm.AllowsOvercommit(cfg.Type) {
 		return nil, fmt.Errorf("test instances are not supported for %v VMs", cfg.Type)
 	}
@@ -69,6 +70,7 @@ func NewEnv(cfg *mgrconfig.Config, buildSem *Semaphore) (Env, error) {
 		cfg:           cfg,
 		optionalFlags: true,
 		buildSem:      buildSem,
+		testSem:       testSem,
 	}
 	return env, nil
 }
@@ -235,6 +237,10 @@ func (err *CrashError) Error() string {
 // TestError is returned if there is a problem with kernel/image (crash, reboot loop, etc).
 // CrashError is returned if the reproducer crashes kernel.
 func (env *env) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]EnvTestResult, error) {
+	if env.testSem != nil {
+		env.testSem.Wait()
+		defer env.testSem.Signal()
+	}
 	if err := mgrconfig.Complete(env.cfg); err != nil {
 		return nil, err
 	}
