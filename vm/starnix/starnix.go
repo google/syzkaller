@@ -1,4 +1,4 @@
-// Copyright 2018 syzkaller project authors. All rights reserved.
+// Copyright 2023 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 package starnix
@@ -28,7 +28,6 @@ func init() {
 type Config struct {
 	// Number of VMs to run in parallel (1 by default).
 	Count int `json:"count"`
-	// Additional command line arguments for the QEMU binary.
 	// Location of Fuchsia checkout, for now we need this to run ffx commands.
 	Fuchsia string `json:"fuchsia"`
 }
@@ -41,23 +40,22 @@ type Pool struct {
 }
 
 type instance struct {
-	fuchsia  string
-	name     string
-	index    int
-	cfg      *Config
-	version  string
-	args     []string
-	debug    bool
-	workdir  string
-	timeouts targets.Timeouts
-	port     int
-	rpipe    io.ReadCloser
-	wpipe    io.WriteCloser
-	adb      *exec.Cmd
-	starnix  *exec.Cmd
-	executor string
-	merger   *vmimpl.OutputMerger
-	diagnose chan bool
+	fuchsia          string
+	name             string
+	index            int
+	cfg              *Config
+	version          string
+	args             []string
+	debug            bool
+	workdir          string
+	timeouts         targets.Timeouts
+	port             int
+	rpipe            io.ReadCloser
+	wpipe            io.WriteCloser
+	fuchsiaVmStarted bool
+	executor         string
+	merger           *vmimpl.OutputMerger
+	diagnose         chan bool
 }
 
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
@@ -85,13 +83,7 @@ func (pool *Pool) Count() int {
 }
 
 func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
-	for i := 0; ; i++ {
-		inst, err := pool.ctor(workdir, index)
-		if err == nil {
-			return inst, nil
-		}
-		return nil, err
-	}
+	return pool.ctor(workdir, index)
 }
 
 func (pool *Pool) ctor(workdir string, index int) (vmimpl.Instance, error) {
@@ -103,6 +95,7 @@ func (pool *Pool) ctor(workdir string, index int) (vmimpl.Instance, error) {
 		debug:    pool.env.Debug,
 		timeouts: pool.env.Timeouts,
 		workdir:  workdir,
+		// This file is auto-generated inside createAdbScript
 		executor: filepath.Join(workdir, "adb_executor.sh"),
 	}
 	closeInst := inst
@@ -125,15 +118,6 @@ func (pool *Pool) ctor(workdir string, index int) (vmimpl.Instance, error) {
 	closeInst = nil
 	return inst, nil
 }
-func (inst *instance) adbPids() ([]string, error) {
-	cmd := osutil.Command("lsof", "-ti", fmt.Sprintf(":%d", inst.port))
-	rawOutput, err := cmd.Output()
-	if err != nil {
-		return nil, err
-	}
-	pidsString := strings.Trim(string(rawOutput), "\n ")
-	return strings.Split(pidsString, "\n"), nil
-}
 
 func (inst *instance) terminateFuchsiaVm() {
 	if inst.debug {
@@ -143,7 +127,7 @@ func (inst *instance) terminateFuchsiaVm() {
 }
 
 func (inst *instance) Close() {
-	if inst.starnix != nil {
+	if inst.fuchsiaVmStarted {
 		inst.terminateFuchsiaVm()
 	}
 	if inst.merger != nil {
@@ -158,11 +142,11 @@ func (inst *instance) Close() {
 }
 
 func (inst *instance) startFuchsiaVm() error {
-	cmd, err := inst.runCommand("ffx", "emu", "start", "--headless", "--name", inst.name)
+	_, err := inst.runCommand("ffx", "emu", "start", "--headless", "--name", inst.name)
 	if err != nil {
 		return err
 	}
-	inst.starnix = cmd
+	inst.fuchsiaVmStarted = true
 	return nil
 }
 
@@ -181,16 +165,15 @@ func (inst *instance) startAdbServerAndConnection(timeout time.Duration) error {
 	if err := cmd.Start(); err != nil {
 		return err
 	}
-	inst.adb = cmd
-	if err := inst.waitForAdb(timeout); err != nil {
-		return err
-	}
 	return inst.connectToAdb(timeout)
 }
 
 func (inst *instance) connectToAdb(timeout time.Duration) error {
 	startTime := time.Now()
 	for {
+		select {
+		case <-time.After(3 * time.Second):
+		}
 		if inst.debug {
 			log.Logf(0, "Attempting to connect to ADB")
 		}
@@ -205,51 +188,19 @@ func (inst *instance) connectToAdb(timeout time.Duration) error {
 			log.Logf(0, "adb connect failed")
 		}
 		if time.Since(startTime) > timeout {
-			return &osutil.VerboseError{Title: "Can't connect to ADB server", Output: []byte("Can't connect to ADB server")}
-		}
-	}
-}
-
-func (inst *instance) waitForAdb(timeout time.Duration) error {
-	startTime := time.Now()
-	for {
-		vmimpl.SleepInterruptible(1 * time.Second)
-		if inst.debug {
-			log.Logf(0, "Checking for ADB server")
-		}
-		pids, err := inst.adbPids()
-		if err == nil && len(pids) > 0 {
-			return nil
-		}
-		if inst.debug {
-			log.Logf(0, "ADB server not online yet")
-		}
-		if time.Since(startTime) > timeout {
-			return &osutil.VerboseError{Title: "Couldn't start ADB listener", Output: []byte("Couldn't start ADB listener")}
+			return fmt.Errorf("Can't connect to ADB server")
 		}
 	}
 }
 
 // Script for telling syz-fuzzer how to connect to syz-executor
 func (inst *instance) createAdbScript() error {
-	f, err := os.Create(inst.executor)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
 	adbScript := fmt.Sprintf(
 		`#!/bin/bash
 		adb_port=$1
 		fuzzer_args=${@:2}
 		adb -s 127.0.0.1:$adb_port shell "cd %s; ./syz-executor $fuzzer_args"`, inst.targetDir())
-	if _, err := f.WriteString(adbScript); err != nil {
-		return err
-	}
-	f.Sync()
-	if err := os.Chmod(inst.executor, 0777); err != nil {
-		return err
-	}
-	return nil
+	return os.WriteFile(inst.executor, []byte(adbScript), 0777)
 }
 
 func (inst *instance) boot() error {
@@ -279,7 +230,7 @@ func (inst *instance) boot() error {
 		return err
 	}
 	if inst.debug {
-		log.Logf(0, "VM %s booted successfully, inst.port = %d", inst.name, inst.port)
+		log.Logf(0, "%s booted successfully, inst.port = %d", inst.name, inst.port)
 	}
 	return nil
 }
@@ -329,7 +280,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	if err != nil {
 		return nil, nil, err
 	}
-	inst.merger.Add("ssh", rpipe)
+	inst.merger.Add("adb", rpipe)
 
 	args := strings.Split(command, " ")
 	if bin := filepath.Base(args[0]); bin == "syz-fuzzer" || bin == "syz-execprog" {
@@ -338,8 +289,6 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 				args[i] = fmt.Sprintf("-executor=%s %d", inst.executor, inst.port)
 			}
 		}
-	} else {
-		log.Logf(0, fmt.Sprintf("WTF is this? %v", command))
 	}
 	log.Logf(0, "running command: %#v", args)
 	cmd := osutil.Command(args[0], args[1:]...)
