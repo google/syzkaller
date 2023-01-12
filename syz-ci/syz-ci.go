@@ -227,20 +227,7 @@ func main() {
 		}()
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(1)
 	stop := make(chan struct{})
-	go func() {
-		select {
-		case <-shutdownPending:
-		case <-updatePending:
-		}
-		buildSem.WaitAll() // wait for all current builds
-		testSem.WaitAll()
-		close(stop)
-		wg.Done()
-	}()
-
 	var managers []*Manager
 	for _, mgrcfg := range cfg.Managers {
 		mgr, err := createManager(cfg, mgrcfg, stop, *flagDebug)
@@ -253,6 +240,7 @@ func main() {
 	if len(managers) == 0 {
 		log.Fatalf("failed to create all managers")
 	}
+	var wg sync.WaitGroup
 	if *flagManagers {
 		for _, mgr := range managers {
 			mgr := mgr
@@ -267,11 +255,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to create dashapi connection %v", err)
 	}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		jp.loop(stop)
-	}()
+	stopJobs := jp.startLoop(&wg)
 
 	// For testing. Racy. Use with care.
 	http.HandleFunc("/upload_cover", func(w http.ResponseWriter, r *http.Request) {
@@ -286,11 +270,18 @@ func main() {
 
 	wg.Add(1)
 	go deprecateAssets(cfg, stop, &wg)
-	wg.Wait()
 
 	select {
 	case <-shutdownPending:
 	case <-updatePending:
+	}
+	stopJobs() // Gracefully wait for the running jobs to finish.
+	close(stop)
+	wg.Wait()
+
+	select {
+	case <-shutdownPending:
+	default:
 		updater.UpdateAndRestart()
 	}
 }

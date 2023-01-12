@@ -571,12 +571,6 @@ func (s *Semaphore) Wait() {
 	<-s.ch
 }
 
-func (s *Semaphore) WaitAll() {
-	for i := 0; i < cap(s.ch); i++ {
-		s.Wait()
-	}
-}
-
 func (s *Semaphore) WaitC() <-chan struct{} {
 	return s.ch
 }
