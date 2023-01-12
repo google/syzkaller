@@ -563,8 +563,8 @@ func addCommitsToBugsInStatus(c context.Context, status int, ns, manager string,
 	return nil
 }
 
-func addCommitsToBug(c context.Context, bug *Bug, manager string, managers []string,
-	fixCommits []string, presentCommits map[string]bool) error {
+func addCommitsToBug(c context.Context, bug *Bug, manager string, managers, fixCommits []string,
+	presentCommits map[string]bool) error {
 	if !bugNeedsCommitUpdate(c, bug, manager, fixCommits, presentCommits, true) {
 		return nil
 	}
