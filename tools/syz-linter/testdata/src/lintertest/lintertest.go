@@ -47,6 +47,9 @@ func funcArgsGood(a, b int) (int, int) {
 	return 0, 0
 }
 
+func funcArgsGood2(a []int, b ...int) {
+}
+
 func funcArgsBad0(a int, b int) { // want "Use 'a, b int'"
 }
 
@@ -55,6 +58,11 @@ func funcArgsBad1() (a int, b int) { // want "Use 'a, b int'"
 }
 
 func funcArgsBad2(a int16, b, c uint32, d uint32, e int16) { // want "Use 'b, c, d uint32'"
+}
+
+type Foo struct{}
+
+func funcArgsBad3(s string, b *Foo, c *Foo) { // want "b, c \\*lintertest\\.Foo"
 }
 
 func flagDefinitions() {
