@@ -64,7 +64,7 @@ func prepareEmails(list []string) map[string]bool {
 	return ret
 }
 
-func Parse(r io.Reader, ownEmails []string, goodLists []string) (*Email, error) {
+func Parse(r io.Reader, ownEmails, goodLists []string) (*Email, error) {
 	msg, err := mail.ReadMessage(r)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read email: %v", err)

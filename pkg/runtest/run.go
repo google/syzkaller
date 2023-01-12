@@ -378,7 +378,7 @@ func (ctx *Context) produceTest(progs chan *RunRequest, req *RunRequest, name st
 	progs <- req
 }
 
-func match(props map[string]bool, requires map[string]bool) bool {
+func match(props, requires map[string]bool) bool {
 	for req, positive := range requires {
 		if positive {
 			if !props[req] {
