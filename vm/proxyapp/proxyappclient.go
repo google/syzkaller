@@ -256,7 +256,7 @@ func (proxy *ProxyApp) signalLostConnection() {
 	}
 }
 
-func (proxy *ProxyApp) Call(serviceMethod string, args interface{}, reply interface{}) error {
+func (proxy *ProxyApp) Call(serviceMethod string, args, reply interface{}) error {
 	err := proxy.Client.Call(serviceMethod, args, reply)
 	if err == rpc.ErrShutdown {
 		proxy.signalLostConnection()
