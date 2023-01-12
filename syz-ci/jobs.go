@@ -58,6 +58,23 @@ func newJobManager(cfg *Config, managers []*Manager, shutdownPending chan struct
 	}, nil
 }
 
+// startLoop starts a job loop in parallel and returns a blocking function
+// to gracefully stop job processing.
+func (jm *JobManager) startLoop(wg *sync.WaitGroup) func() {
+	stop := make(chan struct{})
+	done := make(chan struct{}, 1)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		jm.loop(stop)
+		done <- struct{}{}
+	}()
+	return func() {
+		stop <- struct{}{}
+		<-done
+	}
+}
+
 func (jm *JobManager) loop(stop chan struct{}) {
 	if err := jm.resetJobs(); err != nil {
 		if jm.dash != nil {
