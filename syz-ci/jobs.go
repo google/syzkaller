@@ -28,10 +28,11 @@ import (
 )
 
 type JobManager struct {
-	cfg             *Config
-	dash            *dashapi.Dashboard
-	managers        []*Manager
-	shutdownPending <-chan struct{}
+	cfg               *Config
+	dash              *dashapi.Dashboard
+	managers          []*Manager
+	parallelJobFilter *ManagerJobs
+	shutdownPending   <-chan struct{}
 }
 
 type JobProcessor struct {
@@ -55,6 +56,8 @@ func newJobManager(cfg *Config, managers []*Manager, shutdownPending chan struct
 		dash:            dash,
 		managers:        managers,
 		shutdownPending: shutdownPending,
+		// For now let's only parallelize patch testing requests.
+		parallelJobFilter: &ManagerJobs{TestPatches: true},
 	}, nil
 }
 
@@ -100,8 +103,7 @@ func (jm *JobManager) loop(stop chan struct{}) {
 		} else {
 			jp.instanceSuffix = "-job-parallel"
 			jp.baseDir = osutil.Abs("jobs-2")
-			// For now let's only parallelize patch testing requests.
-			jp.jobFilter = &ManagerJobs{TestPatches: true}
+			jp.jobFilter = jm.parallelJobFilter
 		}
 		jp.name = fmt.Sprintf("%v%v", jm.cfg.Name, jp.instanceSuffix)
 		wg.Add(1)
@@ -109,11 +111,23 @@ func (jm *JobManager) loop(stop chan struct{}) {
 			defer wg.Done()
 			jp.loop(stop)
 		}()
-		if main != jm.cfg.ParallelJobs {
+		if !main || !jm.needParallelProcessor() {
 			break
 		}
 	}
 	wg.Wait()
+}
+
+func (jm *JobManager) needParallelProcessor() bool {
+	if !jm.cfg.ParallelJobs {
+		return false
+	}
+	for _, mgr := range jm.managers {
+		if mgr.mgrcfg.Jobs.Filter(jm.parallelJobFilter).AnyEnabled() {
+			return true
+		}
+	}
+	return false
 }
 
 func (jm *JobManager) resetJobs() error {
