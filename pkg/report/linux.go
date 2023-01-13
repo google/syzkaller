@@ -1339,7 +1339,7 @@ var linuxOopses = append([]*oops{
 						compile("(Local variable .* created at:|Uninit was created at:)"),
 						parseStackTrace,
 					},
-					skip: []string{"alloc_skb"},
+					skip: []string{"alloc_skb", "netlink_ack", "netlink_rcv_skb"},
 				},
 				noStackTrace: true,
 			},

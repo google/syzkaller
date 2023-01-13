@@ -1,0 +1,46 @@
+TITLE: KMSAN: uninit-value in ieee80211_rx_list
+ALT: KMSAN origin in nfnetlink_rcv
+ALT: bad-access in ieee80211_rx_list
+
+[  338.587187][    C0] BUG: KMSAN: uninit-value in ieee80211_rx_list+0x1839/0x5860
+[  338.594871][    C0]  ieee80211_rx_list+0x1839/0x5860
+[  338.600143][    C0]  ieee80211_rx_napi+0x90/0x380
+[  338.605200][    C0]  ieee80211_tasklet_handler+0x1a5/0x310
+[  338.611062][    C0]  tasklet_action_common+0x47c/0x720
+[  338.616689][    C0]  tasklet_action+0x5f/0x80
+[  338.621345][    C0]  __do_softirq+0x1c5/0x7b9
+[  338.626157][    C0]  do_softirq+0x13d/0x1e0
+[  338.630634][    C0]  __local_bh_enable_ip+0x93/0xa0
+[  338.635916][    C0]  _raw_spin_unlock_bh+0x29/0x30
+[  338.641045][    C0]  cfg80211_bss_update+0x1f58/0x3ec0
+[  338.646657][    C0]  cfg80211_inform_single_bss_frame_data+0xe64/0x1e70
+[  338.653704][    C0]  cfg80211_inform_bss_frame_data+0x99/0x1b40
+[  338.659962][    C0]  ieee80211_bss_info_update+0x87a/0x1150
+[  338.666024][    C0]  ieee80211_ibss_rx_queued_mgmt+0x2d71/0x3e80
+[  338.672393][    C0]  ieee80211_iface_work+0xea4/0x17d0
+[  338.677831][    C0]  process_one_work+0xb27/0x13e0
+[  338.683071][    C0]  worker_thread+0x1076/0x1d60
+[  338.687999][    C0]  kthread+0x31b/0x430
+[  338.691893][    C1] hrtimer: interrupt took 233159 ns
+[  338.692296][    C0]  ret_from_fork+0x1f/0x30
+[  338.702095][    C0] 
+[  338.704483][    C0] Uninit was created at:
+[  338.708983][    C0]  __kmem_cache_alloc_node+0x6ee/0xc90
+[  338.714717][    C0]  __kmalloc_node_track_caller+0x117/0x3d0
+[  338.720725][    C0]  __alloc_skb+0x34a/0xca0
+[  338.725471][    C0]  netlink_ack+0x5ac/0x15d0
+[  338.730208][    C0]  nfnetlink_rcv+0x402a/0x4470
+[  338.735277][    C0]  netlink_unicast+0xf3b/0x1270
+[  338.740311][    C0]  netlink_sendmsg+0x127d/0x1430
+[  338.745531][    C0]  ____sys_sendmsg+0xa8e/0xe70
+[  338.750527][    C0]  ___sys_sendmsg+0x2a1/0x3f0
+[  338.755490][    C0]  __sys_sendmsg+0x258/0x440
+[  338.760257][    C0]  __ia32_compat_sys_sendmsg+0x99/0xe0
+[  338.766026][    C0]  __do_fast_syscall_32+0xa2/0x100
+[  338.771300][    C0]  do_fast_syscall_32+0x33/0x70
+[  338.776388][    C0]  do_SYSENTER_32+0x1b/0x20
+[  338.781039][    C0]  entry_SYSENTER_compat_after_hwframe+0x70/0x82
+[  338.787574][    C0] 
+[  338.789963][    C0] CPU: 0 PID: 3540 Comm: kworker/u4:7 Not tainted 6.1.0-rc4-syzkaller-62818-gb1376a14297d #0
+[  338.800358][    C0] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 10/26/2022
+[  338.810593][    C0] Workqueue: phy10 ieee80211_iface_work

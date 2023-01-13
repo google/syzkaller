@@ -1,0 +1,30 @@
+TITLE: KMSAN: uninit-value in net_tx_action
+ALT: KMSAN origin in rtnetlink_rcv
+ALT: bad-access in net_tx_action
+
+[  142.141483][    C0] =====================================================
+[  142.148660][    C0] BUG: KMSAN: uninit-value in net_tx_action+0x77c/0x9a0
+[  142.165151][    C0]  net_tx_action+0x77c/0x9a0
+[  142.169831][    C0]  __do_softirq+0x1cc/0x7fb
+[  142.174442][    C0]  run_ksoftirqd+0x2c/0x50
+[  142.178988][    C0]  smpboot_thread_fn+0x554/0x9f0
+[  142.184042][    C0]  kthread+0x31b/0x430
+[  142.188232][    C0]  ret_from_fork+0x1f/0x30
+[  142.192767][    C0] 
+[  142.195121][    C0] Uninit was created at:
+[  142.199507][    C0]  __kmalloc_node_track_caller+0x814/0x1250
+[  142.205514][    C0]  __alloc_skb+0x346/0xcf0
+[  142.210040][    C0]  netlink_ack+0x5f3/0x12b0
+[  142.214623][    C0]  netlink_rcv_skb+0x55d/0x6c0
+[  142.219490][    C0]  rtnetlink_rcv+0x30/0x40
+[  142.224001][    C0]  netlink_unicast+0xf3b/0x1270
+[  142.228990][    C0]  netlink_sendmsg+0x1288/0x1440
+[  142.234035][    C0]  ____sys_sendmsg+0xabc/0xe90
+[  142.239046][    C0]  ___sys_sendmsg+0x2a1/0x3f0
+[  142.243937][    C0]  __x64_sys_sendmsg+0x367/0x540
+[  142.249034][    C0]  do_syscall_64+0x3d/0xb0
+[  142.253645][    C0]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[  142.259689][    C0] 
+[  142.262155][    C0] CPU: 0 PID: 13 Comm: ksoftirqd/0 Not tainted 6.0.0-rc2-syzkaller-47461-gac3859c02d7f #0
+[  142.272387][    C0] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 07/22/2022
+[  142.282630][    C0] =====================================================
