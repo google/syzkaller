@@ -166,7 +166,8 @@ func (rg *ReportGenerator) DoRawCoverFiles(w http.ResponseWriter, progs []Prog, 
 	fmt.Fprintf(buf, "PC,Module,Offset,Filename,StartLine,EndLine\n")
 	for _, frame := range rg.Frames {
 		offset := frame.PC - frame.Module.Addr
-		fmt.Fprintf(buf, "0x%x,%v,0x%x,%v,%v,%v\n", frame.PC, frame.Module.Name, offset, frame.Name, frame.StartLine, frame.EndLine)
+		fmt.Fprintf(buf, "0x%x,%v,0x%x,%v,%v,%v\n",
+			frame.PC, frame.Module.Name, offset, frame.Name, frame.StartLine, frame.EndLine)
 	}
 	buf.Flush()
 	return nil
