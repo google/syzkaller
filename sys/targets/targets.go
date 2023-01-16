@@ -172,7 +172,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:  8,
 			PageSize: 4 << 10,
 			// Compile with -no-pie due to issues with ASan + ASLR on ppc64le.
-			CFlags: []string{"-m64", "-fsanitize=address", "-no-pie"},
+			CFlags: []string{"-fsanitize=address", "-no-pie"},
 			osCommon: osCommon{
 				SyscallNumbers:         true,
 				SyscallPrefix:          "SYS_",
@@ -184,7 +184,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:  8,
 			PageSize: 8 << 10,
 			// Compile with -no-pie due to issues with ASan + ASLR on ppc64le.
-			CFlags: []string{"-m64", "-fsanitize=address", "-no-pie"},
+			CFlags: []string{"-fsanitize=address", "-no-pie"},
 			osCommon: osCommon{
 				SyscallNumbers:         true,
 				SyscallPrefix:          "SYS_",
@@ -196,7 +196,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:        4,
 			PageSize:       8 << 10,
 			Int64Alignment: 4,
-			CFlags:         []string{"-m32", "-static"},
+			CFlags:         []string{"-static"},
 			osCommon: osCommon{
 				SyscallNumbers:         true,
 				Int64SyscallArgs:       true,
@@ -208,7 +208,7 @@ var List = map[string]map[string]*Target{
 		TestArch32ForkShmem: {
 			PtrSize:  4,
 			PageSize: 4 << 10,
-			CFlags:   []string{"-m32", "-static-pie"},
+			CFlags:   []string{"-static-pie"},
 			osCommon: osCommon{
 				SyscallNumbers:         true,
 				Int64SyscallArgs:       true,
@@ -487,7 +487,14 @@ var oses = map[string]osCommon{
 		KernelObject:           "kernel.full",
 		CPP:                    "g++",
 		// FreeBSD is missing toolchain support for static PIEs.
-		cflags: []string{"-static", "-lc++"},
+		cflags: []string{
+			"-static",
+			"-lc++",
+			// For some configurations -no-pie is passed to the compiler,
+			// which is not used by clang.
+			// Ensure clang does not complain about it.
+			"-Wno-unused-command-line-argument",
+		},
 	},
 	Darwin: {
 		SyscallNumbers:    true,
@@ -612,35 +619,33 @@ func init() {
 			initTarget(target, OS, arch)
 		}
 	}
-	goarch := runtime.GOARCH
+	arch32, arch64 := splitArch(runtime.GOARCH)
 	goos := runtime.GOOS
 	if goos == "android" {
 		goos = Linux
 	}
 	for _, target := range List[TestOS] {
 		if List[goos] != nil {
-			if host := List[goos][goarch]; host != nil {
+			arch := arch64
+			if target.PtrSize == 4 {
+				arch = arch32
+			}
+			host := List[goos][arch]
+			if host != nil {
 				target.CCompiler = host.CCompiler
 				target.CPP = host.CPP
-				if goos == FreeBSD {
-					// For some configurations -no-pie is passed to the compiler,
-					// which is not used by clang.
-					// Ensure clang does not complain about it.
-					target.CFlags = append(target.CFlags, "-Wno-unused-command-line-argument")
-					// When building executor for the test OS, clang needs
-					// to link against the libc++ library.
-					target.CFlags = append(target.CFlags, "-lc++")
-				}
+				target.CFlags = append(append([]string{}, host.CFlags...), target.CFlags...)
+				target.CFlags = processMergedFlags(target.CFlags)
 				// In ESA/390 mode, the CPU is able to address only 31bit of memory but
 				// arithmetic operations are still 32bit
 				// Fix cflags by replacing compiler's -m32 option with -m31
-				if goarch == S390x {
+				if arch == S390x {
 					for i := range target.CFlags {
 						target.CFlags[i] = strings.Replace(target.CFlags[i], "-m32", "-m31", -1)
 					}
 				}
 			}
-			if target.PtrSize == 4 && goos == FreeBSD && goarch == AMD64 {
+			if target.PtrSize == 4 && goos == FreeBSD && arch == AMD64 {
 				// A hack to let 32-bit "test" target tests run on FreeBSD:
 				// freebsd/386 requires a non-default DataOffset to avoid
 				// clobbering mappings created by the C runtime. Since that is the
@@ -883,6 +888,68 @@ func checkFlagSupported(target *Target, flag string) bool {
 	cmd := exec.Command(target.CCompiler, "-x", "c++", "-", "-o", "/dev/null", "-Werror", flag)
 	cmd.Stdin = strings.NewReader(simpleProg)
 	return cmd.Run() == nil
+}
+
+// Split an arch into a pair of related 32 and 64 bit arch names.
+// If the arch is unknown, we assume that the arch is 64 bit.
+func splitArch(arch string) (string, string) {
+	type pair struct {
+		name32 string
+		name64 string
+	}
+	pairs := []pair{
+		{I386, AMD64},
+		{ARM, ARM64},
+	}
+	for _, p := range pairs {
+		if p.name32 == arch || p.name64 == arch {
+			return p.name32, p.name64
+		}
+	}
+	return "", arch
+}
+
+func processMergedFlags(flags []string) []string {
+	mutuallyExclusive := [][]string{
+		// For GCC, "-static-pie -static" is not equal to "-static".
+		// And since we do it anyway, also clean up those that do get overridden -
+		// this will improve the flags list readability.
+		{"-static", "-static-pie", "-no-pie", "-pie"},
+	}
+	// For mutually exclusive groups, keep only the last flag.
+	for _, group := range mutuallyExclusive {
+		m := map[string]bool{}
+		for _, s := range group {
+			m[s] = true
+		}
+		keep := ""
+		for i := len(flags) - 1; i >= 0; i-- {
+			if m[flags[i]] {
+				keep = flags[i]
+				break
+			}
+		}
+		if keep != "" {
+			newFlags := []string{}
+			for _, s := range flags {
+				if s == keep || !m[s] {
+					newFlags = append(newFlags, s)
+				}
+			}
+			flags = newFlags
+		}
+	}
+	// Clean up duplicates.
+	dup := map[string]bool{}
+	newFlags := []string{}
+	for _, s := range flags {
+		if dup[s] {
+			continue
+		}
+		newFlags = append(newFlags, s)
+		dup[s] = true
+	}
+	return newFlags
 }
 
 func needSyscallDefine(nr uint64) bool     { return true }
