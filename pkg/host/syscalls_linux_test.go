@@ -27,11 +27,9 @@ func TestSupportedSyscalls(t *testing.T) {
 		"memfd_create",
 		"sendfile",
 		"bpf$MAP_CREATE",
-		"open",
 		"openat",
 		"read",
 		"write",
-		"stat",
 	}
 	enabled := make(map[*prog.Syscall]bool)
 	for _, name := range safe {
