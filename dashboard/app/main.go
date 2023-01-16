@@ -1478,9 +1478,7 @@ func loadPendingJobs(c context.Context) ([]*uiJob, error) {
 func loadRunningJobs(c context.Context) ([]*uiJob, error) {
 	var jobs []*Job
 	keys, err := db.NewQuery("Job").
-		Filter("Finished=", time.Time{}).
-		Filter("Started>", time.Time{}).
-		Order("-Started").
+		Filter("IsRunning=", true).
 		Limit(50).
 		GetAll(c, &jobs)
 	if err != nil {
