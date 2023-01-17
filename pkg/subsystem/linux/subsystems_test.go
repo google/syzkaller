@@ -25,17 +25,21 @@ func TestGroupLinuxSubsystems(t *testing.T) {
 	}
 	expected := []*entity.Subsystem{
 		{
+			Name:        "fs",
 			Lists:       []string{"linux-fsdevel@vger.kernel.org"},
 			Maintainers: []string{"email_vfs@email.com"},
 		},
 		{
+			Name:        "ext4",
 			Lists:       []string{"linux-ext4@vger.kernel.org"},
 			Maintainers: []string{"email_ext4@email.com", "email_ext4_2@email.com"},
 		},
 		{
+			Name:  "mm",
 			Lists: []string{"linux-mm@kvack.org"},
 		},
 		{
+			Name:        "kernel",
 			Lists:       []string{"linux-kernel@vger.kernel.org"},
 			Maintainers: []string{"email_rest@email.com"},
 		},
