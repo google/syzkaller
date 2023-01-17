@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-To run Syzkaller with a Starnix target, you will need a checkout of the Fuchsia
+To run syzkaller with a Starnix target, you will need a checkout of the Fuchsia
 source repository.
 
 The rest of this document will use the environment variable `SOURCEDIR` to
@@ -24,10 +24,10 @@ fx build
 You will also need to follow the instructions in the sections `GCC` and `Kernel` of the [setup\_ubuntu-host\_qemu-vm\_x86-64-kernel.md](../linux/setup_ubuntu-host_qemu-vm_x86-64-kernel.md) file.
 
 
-## Syzkaller
+## syzkaller
 
 ### Building binaries for Starnix
-First, you need to build all the binaries required for running Syzkaller in Starnix. For that, you only need to run this from inside your Syzkaller checkout (assuming you built Fuchsia for x64):
+First, you need to build all the binaries required for running syzkaller in Starnix. For that, you only need to run this from inside your syzkaller checkout (assuming you built Fuchsia for x64):
 
 ```bash
 make TARGETOS=starnix TARGETARCH=amd64
@@ -57,7 +57,7 @@ Create a manager config like the following, replacing the environment variables 
 
 ### Running
 
-Lastly, just run the command below to start fuzzing. 
+Lastly, just run the command below to start fuzzing.
 
 ```bash
 bin/syz-manager -config=./starnix.cfg

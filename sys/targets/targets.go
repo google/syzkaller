@@ -221,6 +221,17 @@ var List = map[string]map[string]*Target{
 		},
 	},
 	Starnix: {
+		I386: {
+			VMArch:           AMD64,
+			PtrSize:          4,
+			PageSize:         4 << 10,
+			Int64Alignment:   4,
+			LittleEndian:     true,
+			CFlags:           []string{"-m32"},
+			Triple:           "x86_64-linux-gnu",
+			KernelArch:       "i386",
+			KernelHeaderArch: "x86",
+		},
 		AMD64: {
 			PtrSize:          8,
 			PageSize:         4 << 10,
@@ -235,25 +246,6 @@ var List = map[string]map[string]*Target{
 				return nr >= 313
 			},
 		},
-		I386: {
-			VMArch:           AMD64,
-			PtrSize:          4,
-			PageSize:         4 << 10,
-			Int64Alignment:   4,
-			LittleEndian:     true,
-			CFlags:           []string{"-m32"},
-			Triple:           "x86_64-linux-gnu",
-			KernelArch:       "i386",
-			KernelHeaderArch: "x86",
-		},
-		ARM64: {
-			PtrSize:          8,
-			PageSize:         4 << 10,
-			LittleEndian:     true,
-			Triple:           "aarch64-linux-gnu",
-			KernelArch:       "arm64",
-			KernelHeaderArch: "arm64",
-		},
 		ARM: {
 			VMArch:           ARM64,
 			PtrSize:          4,
@@ -264,14 +256,13 @@ var List = map[string]map[string]*Target{
 			KernelArch:       "arm",
 			KernelHeaderArch: "arm",
 		},
-		MIPS64LE: {
+		ARM64: {
 			PtrSize:          8,
 			PageSize:         4 << 10,
 			LittleEndian:     true,
-			CFlags:           []string{"-march=mips64r2", "-mabi=64", "-EL"},
-			Triple:           "mips64el-linux-gnuabi64",
-			KernelArch:       "mips",
-			KernelHeaderArch: "mips",
+			Triple:           "aarch64-linux-gnu",
+			KernelArch:       "arm64",
+			KernelHeaderArch: "arm64",
 		},
 		PPC64LE: {
 			PtrSize:          8,
@@ -281,6 +272,23 @@ var List = map[string]map[string]*Target{
 			Triple:           "powerpc64le-linux-gnu",
 			KernelArch:       "powerpc",
 			KernelHeaderArch: "powerpc",
+		},
+		MIPS64LE: {
+			PtrSize:          8,
+			PageSize:         4 << 10,
+			LittleEndian:     true,
+			CFlags:           []string{"-march=mips64r2", "-mabi=64", "-EL"},
+			Triple:           "mips64el-linux-gnuabi64",
+			KernelArch:       "mips",
+			KernelHeaderArch: "mips",
+		},
+		RiscV64: {
+			PtrSize:          8,
+			PageSize:         4 << 10,
+			LittleEndian:     true,
+			Triple:           "riscv64-linux-gnu",
+			KernelArch:       "riscv",
+			KernelHeaderArch: "riscv",
 		},
 		S390x: {
 			PtrSize:          8,
@@ -298,14 +306,6 @@ var List = map[string]map[string]*Target{
 				// To work around this problem we therefore reroute the mmap syscall to the glibc mmap wrapper.
 				"mmap": "mmap",
 			},
-		},
-		RiscV64: {
-			PtrSize:          8,
-			PageSize:         4 << 10,
-			LittleEndian:     true,
-			Triple:           "riscv64-linux-gnu",
-			KernelArch:       "riscv",
-			KernelHeaderArch: "riscv",
 		},
 	},
 	Linux: {

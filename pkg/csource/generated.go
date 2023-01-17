@@ -41,7 +41,7 @@ typedef signed int ssize_t;
 /*{{{SYSCALL_DEFINES}}}*/
 #endif
 
-#if SYZ_EXECUTOR && !GOOS_linux
+#if SYZ_EXECUTOR && !GOOS_linux && !GOOS_starnix
 #if !GOOS_windows
 #include <unistd.h>
 #endif
@@ -72,7 +72,7 @@ static unsigned long long procid;
 #include <signal.h>
 #include <string.h>
 
-#if GOOS_linux
+#if GOOS_linux || GOOS_starnix
 #include <sys/syscall.h>
 #endif
 
@@ -121,7 +121,7 @@ static void segv_handler(int sig, siginfo_t* info, void* ctx)
 static void install_segv_handler(void)
 {
 	struct sigaction sa;
-#if GOOS_linux
+#if GOOS_linux || GOOS_starnix
 	memset(&sa, 0, sizeof(sa));
 	sa.sa_handler = SIG_IGN;
 	syscall(SYS_rt_sigaction, 0x20, &sa, NULL, 8);
@@ -148,7 +148,7 @@ static void install_segv_handler(void)
 #endif
 #endif
 
-#if !GOOS_linux
+#if !GOOS_linux && !GOOS_starnix
 #if (SYZ_EXECUTOR || SYZ_REPEAT) && SYZ_EXECUTOR_USES_FORK_SERVER
 #include <signal.h>
 #include <sys/types.h>
@@ -281,7 +281,7 @@ static void __attribute__((noinline)) remove_dir(const char* dir)
 #endif
 #endif
 
-#if !GOOS_linux && !GOOS_netbsd
+#if !GOOS_linux && !GOOS_starnix && !GOOS_netbsd
 #if SYZ_EXECUTOR || SYZ_FAULT
 static int inject_fault(int nth)
 {
@@ -1279,7 +1279,7 @@ static bool lookup_connect_response_out_generic(int fd, const struct vusb_connec
 }
 #endif
 
-#if GOOS_linux && (SYZ_EXECUTOR || __NR_syz_usb_connect_ath9k)
+#if (GOOS_linux || GOOS_starnix) && (SYZ_EXECUTOR || __NR_syz_usb_connect_ath9k)
 #define ATH9K_FIRMWARE_DOWNLOAD 0x30
 #define ATH9K_FIRMWARE_DOWNLOAD_COMP 0x31
 
@@ -1314,7 +1314,7 @@ static bool lookup_connect_response_out_ath9k(int fd, const struct vusb_connect_
 
 #endif
 
-#if GOOS_linux && (SYZ_EXECUTOR || __NR_syz_usb_control_io)
+#if (GOOS_linux || GOOS_starnix) && (SYZ_EXECUTOR || __NR_syz_usb_control_io)
 
 struct vusb_descriptor {
 	uint8 req_type;
@@ -2314,7 +2314,7 @@ static int do_sandbox_none(void)
 #endif
 #define CAST(f) ({void* p = (void*)f; p; })
 
-#elif GOOS_linux
+#elif GOOS_linux || GOOS_starnix
 
 #include <stdlib.h>
 #include <sys/syscall.h>
@@ -4378,7 +4378,7 @@ static long syz_memcpy_off(volatile long a0, volatile long a1, volatile long a2,
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_REPEAT && SYZ_NET_INJECTION
+#if (SYZ_EXECUTOR || SYZ_REPEAT && SYZ_NET_INJECTION) && SYZ_EXECUTOR_USES_FORK_SERVER
 static void flush_tun()
 {
 #if SYZ_EXECUTOR
@@ -5119,7 +5119,7 @@ static bool lookup_connect_response_out_generic(int fd, const struct vusb_connec
 }
 #endif
 
-#if GOOS_linux && (SYZ_EXECUTOR || __NR_syz_usb_connect_ath9k)
+#if (GOOS_linux || GOOS_starnix) && (SYZ_EXECUTOR || __NR_syz_usb_connect_ath9k)
 #define ATH9K_FIRMWARE_DOWNLOAD 0x30
 #define ATH9K_FIRMWARE_DOWNLOAD_COMP 0x31
 
@@ -5154,7 +5154,7 @@ static bool lookup_connect_response_out_ath9k(int fd, const struct vusb_connect_
 
 #endif
 
-#if GOOS_linux && (SYZ_EXECUTOR || __NR_syz_usb_control_io)
+#if (GOOS_linux || GOOS_starnix) && (SYZ_EXECUTOR || __NR_syz_usb_control_io)
 
 struct vusb_descriptor {
 	uint8 req_type;
@@ -8173,7 +8173,7 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 #endif
 #endif
 
-#if SYZ_EXECUTOR || SYZ_NET_RESET
+#if (SYZ_EXECUTOR || SYZ_NET_RESET) && SYZ_EXECUTOR_USES_FORK_SERVER
 #include <errno.h>
 #include <net/if.h>
 #include <netinet/in.h>
@@ -8719,7 +8719,7 @@ static void setup_cgroups()
 	write_file("/syzcgroup/cpu/cpuset.memory_pressure_enabled", "1");
 }
 
-#if SYZ_EXECUTOR || SYZ_REPEAT
+#if (SYZ_EXECUTOR || SYZ_REPEAT) && SYZ_EXECUTOR_USES_FORK_SERVER
 static void setup_cgroups_loop()
 {
 #if SYZ_EXECUTOR
@@ -10542,7 +10542,7 @@ static int fault_injected(int fail_fd)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_REPEAT
+#if (SYZ_EXECUTOR || SYZ_REPEAT) && SYZ_EXECUTOR_USES_FORK_SERVER
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -10592,7 +10592,7 @@ static void kill_and_wait(int pid, int* status)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_REPEAT && (SYZ_CGROUPS || SYZ_NET_RESET)
+#if (SYZ_EXECUTOR || SYZ_REPEAT && (SYZ_CGROUPS || SYZ_NET_RESET)) && SYZ_EXECUTOR_USES_FORK_SERVER
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
@@ -10611,7 +10611,7 @@ static void setup_loop()
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_REPEAT && (SYZ_NET_RESET || __NR_syz_mount_image || __NR_syz_read_part_table)
+#if (SYZ_EXECUTOR || SYZ_REPEAT && (SYZ_NET_RESET || __NR_syz_mount_image || __NR_syz_read_part_table)) && SYZ_EXECUTOR_USES_FORK_SERVER
 #define SYZ_HAVE_RESET_LOOP 1
 static void reset_loop()
 {
@@ -10630,7 +10630,7 @@ static void reset_loop()
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_REPEAT
+#if (SYZ_EXECUTOR || SYZ_REPEAT) && SYZ_EXECUTOR_USES_FORK_SERVER
 #include <sys/prctl.h>
 #include <unistd.h>
 
@@ -12058,7 +12058,7 @@ static void execute_one(void);
 #include <sys/types.h>
 #include <sys/wait.h>
 
-#if GOOS_linux
+#if GOOS_linux || GOOS_starnix
 #define WAIT_FLAGS __WALL
 #else
 #define WAIT_FLAGS 0
