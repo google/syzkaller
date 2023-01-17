@@ -509,7 +509,8 @@ func TestJobRestrictedManager(t *testing.T) {
 
 	// Testing on a wrong repo must fail and no test jobs passed to manager.
 	c.incomingEmail(sender, "#syz test: git://mygit.com/git.git master\n", EmailOptMessageID(1))
-	c.expectEQ(strings.Contains((<-c.emailSink).Body, "you should test only on restricted.git"), true)
+	reply := c.pollEmailBug()
+	c.expectEQ(strings.Contains(reply.Body, "you should test only on restricted.git"), true)
 	pollResp := client.pollJobs(build.Manager)
 	c.expectEQ(pollResp.ID, "")
 
