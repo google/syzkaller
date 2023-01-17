@@ -82,6 +82,9 @@ func (ctx *linuxCtx) getSubsystems() ([]*entity.Subsystem, error) {
 		mergeRawRecords(s, raw.records)
 		ret = append(ret, s)
 	}
+	if err := setSubsystemNames(ret); err != nil {
+		return nil, fmt.Errorf("failed to set names: %w", err)
+	}
 	return ret, nil
 }
 
@@ -95,6 +98,7 @@ func mergeRawRecords(subsystem *entity.Subsystem, records []*maintainersRecord) 
 		for s := range m {
 			ret = append(ret, s)
 		}
+		sort.Strings(ret)
 		return ret
 	}
 	var lists, maintainers []string
