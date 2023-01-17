@@ -161,6 +161,7 @@ func caller(skip int) string {
 }
 
 func (c *Ctx) Close() {
+	defer c.inst.Close()
 	if !c.t.Failed() {
 		// To avoid per-day reporting limits for left-over emails.
 		c.advanceTime(25 * time.Hour)
@@ -197,7 +198,6 @@ func (c *Ctx) Close() {
 		}
 	}
 	unregisterContext(c)
-	c.inst.Close()
 }
 
 func (c *Ctx) advanceTime(d time.Duration) {
