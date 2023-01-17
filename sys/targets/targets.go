@@ -640,6 +640,8 @@ func init() {
 		target.CPP = host.CPP
 		target.CFlags = append(append([]string{}, host.CFlags...), target.CFlags...)
 		target.CFlags = processMergedFlags(target.CFlags)
+		// At least FreeBSD/386 requires a non-default DataOffset value.
+		target.DataOffset = host.DataOffset
 		// In ESA/390 mode, the CPU is able to address only 31bit of memory but
 		// arithmetic operations are still 32bit
 		// Fix cflags by replacing compiler's -m32 option with -m31
@@ -647,13 +649,6 @@ func init() {
 			for i := range target.CFlags {
 				target.CFlags[i] = strings.Replace(target.CFlags[i], "-m32", "-m31", -1)
 			}
-		}
-		if target.PtrSize == 4 && goos == FreeBSD && arch == AMD64 {
-			// A hack to let 32-bit "test" target tests run on FreeBSD:
-			// freebsd/386 requires a non-default DataOffset to avoid
-			// clobbering mappings created by the C runtime. Since that is the
-			// only target with this constraint, just special-case it for now.
-			target.DataOffset = List[goos][I386].DataOffset
 		}
 		target.BuildOS = goos
 	}
