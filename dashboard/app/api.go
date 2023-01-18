@@ -23,7 +23,7 @@ import (
 	"github.com/google/syzkaller/pkg/auth"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/hash"
-	"github.com/google/syzkaller/pkg/subsystem"
+	subsystem "github.com/google/syzkaller/pkg/subsystem/legacy"
 	"github.com/google/syzkaller/sys/targets"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine/v2"

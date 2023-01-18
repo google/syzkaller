@@ -15,7 +15,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/auth"
-	"github.com/google/syzkaller/pkg/subsystem"
+	subsystem "github.com/google/syzkaller/pkg/subsystem/legacy"
 	"github.com/google/syzkaller/sys/targets"
 	"google.golang.org/appengine/v2/user"
 )
