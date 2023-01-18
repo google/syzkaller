@@ -302,7 +302,7 @@ https://goo.gl/tpsmEJ#testing-patches`,
 			msg := c.pollEmailBug()
 			if i < 3 {
 				c.expectEQ(msg.Subject, subjects[i])
-				c.expectTrue(strings.Contains(msg.Body, "Sending this report upstream."))
+				c.expectTrue(strings.Contains(msg.Body, "Sending this report to the next reporting stage."))
 			} else {
 				c.expectEQ(msg.Subject, "[syzbot] "+subjects[i])
 				c.expectTrue(strings.Contains(msg.Body, "syzbot found the following issue on"))
@@ -683,7 +683,7 @@ func TestBisectWrong(t *testing.T) {
 			// Auto-upstreamming.
 			c.advanceTime(31 * 24 * time.Hour)
 			msg := c.pollEmailBug()
-			c.expectTrue(strings.Contains(msg.Body, "Sending this report upstream"))
+			c.expectTrue(strings.Contains(msg.Body, "Sending this report to the next reporting stage."))
 			msg = c.pollEmailBug()
 			c.expectTrue(strings.Contains(msg.Body, "syzbot found the following issue on:"))
 			if i == 0 {
@@ -1036,7 +1036,7 @@ func TestBugBisectionResults(t *testing.T) {
 		msg := c.client2.pollEmailBug()
 		c.expectTrue(strings.Contains(msg.Body, "syzbot has bisected this issue to:"))
 		msg = c.client2.pollEmailBug()
-		c.expectTrue(strings.Contains(msg.Body, "Sending this report upstream."))
+		c.expectTrue(strings.Contains(msg.Body, "Sending this report to the next reporting stage."))
 		msg = c.client2.pollEmailBug()
 		c.expectTrue(strings.Contains(msg.Body, "syzbot found the following issue"))
 	}
@@ -1149,7 +1149,7 @@ func TestBugBisectionStatus(t *testing.T) {
 		msg := c.client2.pollEmailBug()
 		c.expectTrue(strings.Contains(msg.Body, "syzbot has bisected this issue to:"))
 		msg = c.client2.pollEmailBug()
-		c.expectTrue(strings.Contains(msg.Body, "Sending this report upstream."))
+		c.expectTrue(strings.Contains(msg.Body, "Sending this report to the next reporting stage."))
 		msg = c.client2.pollEmailBug()
 		c.expectTrue(strings.Contains(msg.Body, "syzbot found the following issue"))
 	}
