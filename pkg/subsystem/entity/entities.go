@@ -9,6 +9,7 @@ type Subsystem struct {
 	Syscalls    []string
 	Lists       []string
 	Maintainers []string
+	Parents     []*Subsystem
 }
 
 // PathRule describes the part of the directory tree belonging to a single subsystem.
