@@ -9,6 +9,7 @@ import (
 	"testing/fstest"
 
 	"github.com/google/syzkaller/pkg/subsystem/entity"
+	"github.com/google/syzkaller/pkg/subsystem/match"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -67,6 +68,67 @@ func TestCustomCallRules(t *testing.T) {
 	assert.Equal(t, len(expectCalls), len(gotCalls))
 	for name, expect := range expectCalls {
 		assert.ElementsMatchf(t, expect, gotCalls[name], "syscalls of %s", name)
+	}
+}
+
+func TestLinuxSubsystemPaths(t *testing.T) {
+	// For the list of subsystems, see TestLinuxSubsystemsList.
+	// Here we rely on the same ones.
+	repo := prepareTestLinuxRepo(t, []byte(testMaintainers))
+	subsystems, err := listFromRepoInner(repo, testRules)
+	if err != nil {
+		t.Fatal(err)
+	}
+	matcher := match.MakePathMatcher(subsystems)
+	tests := []struct {
+		path string
+		list []string
+	}{
+		{
+			path: `fs/internal.h`,
+			list: []string{"kernel", "fs"},
+		},
+		{
+			path: `fs/ext4/mmp.c`,
+			list: []string{"kernel", "fs", "ext4"},
+		},
+		{
+			// The subsystem is not present in our test MAINTAINERS.
+			path: `fs/fat/inode.c`,
+			list: []string{"kernel", "fs"},
+		},
+		{
+			path: `fs/freevxfs/vxfs_olt.c`,
+			list: []string{"kernel", "fs"},
+		},
+		{
+			path: `mm/memory.c`,
+			list: []string{"kernel", "mm"},
+		},
+		{
+			path: `mm/shmem.c`,
+			list: []string{"kernel", "mm"},
+		},
+		{
+			path: `include/net/ah.h`,
+			list: []string{"kernel"},
+		},
+		{
+			path: `include/linux/mm.h`,
+			list: []string{"kernel", "mm"},
+		},
+		{
+			path: `include/linux/fs.h`,
+			list: []string{"kernel", "fs"},
+		},
+	}
+	for _, test := range tests {
+		retList := []string{}
+		for _, s := range matcher.Match(test.path) {
+			retList = append(retList, s.Name)
+		}
+		assert.ElementsMatchf(t, retList, test.list,
+			"invalid subsystems for %#v", test.path)
 	}
 }
 
