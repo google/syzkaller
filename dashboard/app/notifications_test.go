@@ -36,7 +36,7 @@ func TestEmailNotifUpstreamEmbargo(t *testing.T) {
 	upstreamReport := c.pollEmailBug()
 	c.expectEQ(notifUpstream.Subject, crash.Title)
 	c.expectEQ(notifUpstream.Sender, report.Sender)
-	c.expectEQ(notifUpstream.Body, "Sending this report upstream.")
+	c.expectEQ(notifUpstream.Body, "Sending this report to the next reporting stage.")
 	c.expectEQ(upstreamReport.Subject, "[syzbot] "+crash.Title)
 	c.expectNE(upstreamReport.Sender, report.Sender)
 	c.expectEQ(upstreamReport.To, []string{"bugs@syzkaller.com", "default@maintainers.com"})
@@ -65,7 +65,7 @@ func TestEmailNotifUpstreamSkip(t *testing.T) {
 	notifUpstream := c.pollEmailBug()
 	upstreamReport := c.pollEmailBug()
 	c.expectEQ(notifUpstream.Sender, report.Sender)
-	c.expectEQ(notifUpstream.Body, "Sending this report upstream.")
+	c.expectEQ(notifUpstream.Body, "Sending this report to the next reporting stage.")
 	c.expectNE(upstreamReport.Sender, report.Sender)
 	c.expectEQ(upstreamReport.To, []string{"bugs@syzkaller.com", "default@maintainers.com"})
 }

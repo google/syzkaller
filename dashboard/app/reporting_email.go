@@ -170,7 +170,7 @@ func emailSendBugNotif(c context.Context, notif *dashapi.BugNotification) error 
 	var statusReason dashapi.BugStatusReason
 	switch notif.Type {
 	case dashapi.BugNotifUpstream:
-		body = "Sending this report upstream."
+		body = "Sending this report to the next reporting stage."
 		status = dashapi.BugStatusUpstream
 	case dashapi.BugNotifBadCommit:
 		var err error

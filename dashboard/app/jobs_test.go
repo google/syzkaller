@@ -554,7 +554,7 @@ func TestBisectFixJob(t *testing.T) {
 		c.advanceTime(30 * 24 * time.Hour)
 		msg := c.client2.pollEmailBug()
 		c.expectEQ(msg.Subject, "title1")
-		c.expectTrue(strings.Contains(msg.Body, "Sending this report upstream."))
+		c.expectTrue(strings.Contains(msg.Body, "Sending this report to the next reporting stage."))
 
 		msg = c.client2.pollEmailBug()
 		c.expectEQ(msg.Subject, "[syzbot] title1")
@@ -599,7 +599,7 @@ func TestBisectFixRetry(t *testing.T) {
 		c.advanceTime(30 * 24 * time.Hour)
 		msg := c.client2.pollEmailBug()
 		c.expectEQ(msg.Subject, "title1")
-		c.expectTrue(strings.Contains(msg.Body, "Sending this report upstream."))
+		c.expectTrue(strings.Contains(msg.Body, "Sending this report to the next reporting stage."))
 
 		msg = c.client2.pollEmailBug()
 		c.expectEQ(msg.Subject, "[syzbot] title1")
@@ -664,7 +664,7 @@ func TestNotReportingAlreadyFixed(t *testing.T) {
 		c.advanceTime(30 * 24 * time.Hour)
 		msg := c.client2.pollEmailBug()
 		c.expectEQ(msg.Subject, "title1")
-		c.expectTrue(strings.Contains(msg.Body, "Sending this report upstream."))
+		c.expectTrue(strings.Contains(msg.Body, "Sending this report to the next reporting stage."))
 
 		msg = c.client2.pollEmailBug()
 		c.expectEQ(msg.Subject, "[syzbot] title1")
@@ -755,7 +755,7 @@ func TestFixBisectionsListed(t *testing.T) {
 		c.advanceTime(30 * 24 * time.Hour)
 		msg := c.client2.pollEmailBug()
 		c.expectEQ(msg.Subject, "title1")
-		c.expectTrue(strings.Contains(msg.Body, "Sending this report upstream."))
+		c.expectTrue(strings.Contains(msg.Body, "Sending this report to the next reporting stage."))
 
 		msg = c.client2.pollEmailBug()
 		c.expectEQ(msg.Subject, "[syzbot] title1")
@@ -833,7 +833,7 @@ func TestFixBisectionsDisabled(t *testing.T) {
 		c.advanceTime(30 * 24 * time.Hour)
 		msg := c.client2.pollEmailBug()
 		c.expectEQ(msg.Subject, "title20")
-		c.expectTrue(strings.Contains(msg.Body, "Sending this report upstream."))
+		c.expectTrue(strings.Contains(msg.Body, "Sending this report to the next reporting stage."))
 
 		msg = c.client2.pollEmailBug()
 		c.expectEQ(msg.Subject, "[syzbot] title20")
