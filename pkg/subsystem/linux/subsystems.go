@@ -10,6 +10,7 @@ import (
 	"sort"
 
 	"github.com/google/syzkaller/pkg/subsystem/entity"
+	"github.com/google/syzkaller/pkg/subsystem/match"
 )
 
 func ListFromRepo(repo string) ([]*entity.Subsystem, error) {
@@ -86,6 +87,14 @@ func (ctx *linuxCtx) getSubsystems() ([]*entity.Subsystem, error) {
 		return nil, fmt.Errorf("failed to set names: %w", err)
 	}
 	ctx.applyExtraRules(ret)
+	matrix, err := match.BuildCoincidenceMatrix(ctx.root, ret, nil)
+	if err != nil {
+		return nil, err
+	}
+	err = SetParents(matrix, ret)
+	if err != nil {
+		return nil, err
+	}
 	return ret, nil
 }
 
