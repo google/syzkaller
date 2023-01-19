@@ -95,17 +95,10 @@ func addTestJob(c context.Context, args *testJobArgs, now time.Time) error {
 		args.repo, args.branch); reason != "" {
 		return &BadTestRequestError{reason}
 	}
-	manager := args.crash.Manager
-	for _, ns := range config.Namespaces {
-		if mgr, ok := ns.Managers[manager]; ok {
-			if mgr.RestrictedTestingRepo != "" && args.repo != mgr.RestrictedTestingRepo {
-				return &BadTestRequestError{mgr.RestrictedTestingReason}
-			}
-			if mgr.Decommissioned {
-				manager = mgr.DelegatedTo
-			}
-			break
-		}
+	manager, mgrConfig := activeManager(args.crash.Manager, args.bug.Namespace)
+	if mgrConfig != nil && mgrConfig.RestrictedTestingRepo != "" &&
+		args.repo != mgrConfig.RestrictedTestingRepo {
+		return &BadTestRequestError{mgrConfig.RestrictedTestingReason}
 	}
 	patchID, err := putText(c, args.bug.Namespace, textPatch, args.patch, false)
 	if err != nil {
@@ -319,9 +312,14 @@ func handleRetestForBug(c context.Context, now time.Time, bug *Bug, bugKey *db.K
 		if managerHasJob[crash.Manager] {
 			continue
 		}
+		// We could have decommissioned the original manager since then.
+		manager, _ := activeManager(crash.Manager, bug.Namespace)
+		if manager == "" {
+			continue
+		}
 		// Take the last successful build -- the build on which this crash happened
 		// might contain already obsolete repro and branch values.
-		build, err := lastManagerBuild(c, bug.Namespace, crash.Manager)
+		build, err := lastManagerBuild(c, bug.Namespace, manager)
 		if err != nil {
 			return err
 		}
@@ -1143,6 +1141,22 @@ func loadPendingJob(c context.Context, managers map[string]dashapi.ManagerJobs) 
 		return job, keys[i], nil
 	}
 	return nil, nil, nil
+}
+
+// activeManager determines the manager currently responsible for all bugs found by
+// the specified manager.
+func activeManager(manager, ns string) (string, *ConfigManager) {
+	nsConfig := config.Namespaces[ns]
+	if mgr, ok := nsConfig.Managers[manager]; ok {
+		if mgr.Decommissioned {
+			newMgr := nsConfig.Managers[mgr.DelegatedTo]
+			return mgr.DelegatedTo, &newMgr
+		}
+		return manager, &mgr
+	}
+	// This manager is not mentioned in the configuration, therefore it was
+	// definitely not decommissioned.
+	return manager, nil
 }
 
 func extJobID(jobKey *db.Key) string {
