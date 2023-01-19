@@ -16,7 +16,6 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
-	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/vmimpl"
 )
 
@@ -37,27 +36,25 @@ type Pool struct {
 }
 
 type instance struct {
-	ffxBinary        string
 	fuchsiaDirectory string
 	name             string
 	index            int
 	cfg              *Config
 	version          string
-	args             []string
 	debug            bool
 	workdir          string
-	timeouts         targets.Timeouts
 	port             int
 	rpipe            io.ReadCloser
 	wpipe            io.WriteCloser
-	fuchsiaVMStarted bool
 	fuchsiaLogs      *exec.Cmd
 	adb              *exec.Cmd
 	executor         string
 	merger           *vmimpl.OutputMerger
 	diagnose         chan bool
-	targetDir        string
 }
+
+const ffxBinary = ".jiri_root/bin/ffx"
+const targetDir = "/data"
 
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	cfg := &Config{}
@@ -67,8 +64,8 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if cfg.Count < 1 || cfg.Count > 128 {
 		return nil, fmt.Errorf("invalid config param count: %v, want [1, 128]", cfg.Count)
 	}
-	if !osutil.IsDir(env.KernelSrc) {
-		return nil, fmt.Errorf("%q is not a directory", env.KernelSrc)
+	if _, err := exec.LookPath("adb"); err != nil {
+		return nil, err
 	}
 
 	pool := &Pool{
@@ -85,17 +82,14 @@ func (pool *Pool) Count() int {
 
 func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	inst := &instance{
-		ffxBinary:        ".jiri_root/bin/ffx",
 		fuchsiaDirectory: pool.env.KernelSrc,
 		name:             fmt.Sprintf("VM-%v", index),
 		index:            index,
 		cfg:              pool.cfg,
 		debug:            pool.env.Debug,
-		timeouts:         pool.env.Timeouts,
 		workdir:          workdir,
 		// This file is auto-generated inside createAdbScript.
-		executor:  filepath.Join(workdir, "adb_executor.sh"),
-		targetDir: "/data",
+		executor: filepath.Join(workdir, "adb_executor.sh"),
 	}
 	closeInst := inst
 	defer func() {
@@ -110,6 +104,13 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		return nil, err
 	}
 
+	if err := inst.setFuchsiaVersion(); err != nil {
+		return nil, fmt.Errorf(
+			"there is an error running ffx commands in the Fuchsia checkout (%q): %v",
+			inst.fuchsiaDirectory,
+			err)
+	}
+
 	if err := inst.boot(); err != nil {
 		return nil, err
 	}
@@ -118,17 +119,39 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	return inst, nil
 }
 
-func (inst *instance) terminateFuchsiaVM() {
-	if inst.debug {
-		log.Logf(0, "terminating Fuchsia VM: %v", inst.name)
+func (inst *instance) boot() error {
+	inst.port = vmimpl.UnusedTCPPort()
+	// Start output merger.
+	inst.merger = vmimpl.NewOutputMerger(nil)
+
+	inst.ffx("doctor", "--restart-daemon")
+
+	inst.ffx("emu", "stop", inst.name)
+
+	if err := inst.startFuchsiaVM(); err != nil {
+		return fmt.Errorf("could not start Fuchsia VM: %v", err)
 	}
-	inst.runCommand(1*time.Minute*inst.timeouts.Scale, inst.ffxBinary, "emu", "stop", inst.name)
+
+	if err := inst.startAdbServerAndConnection(1 * time.Minute); err != nil {
+		return fmt.Errorf("could not start and connect to the adb server: %v", err)
+	}
+
+	if err := inst.createAdbScript(); err != nil {
+		return fmt.Errorf("could not create adb script: %v", err)
+	}
+
+	err := inst.startFuchsiaLogs()
+	if err != nil {
+		return fmt.Errorf("could not start fuchsia logs: %v", err)
+	}
+	if inst.debug {
+		log.Logf(0, "%s booted successfully", inst.name)
+	}
+	return nil
 }
 
 func (inst *instance) Close() {
-	if inst.fuchsiaVMStarted {
-		inst.terminateFuchsiaVM()
-	}
+	inst.ffx("emu", "stop", inst.name)
 	if inst.fuchsiaLogs != nil {
 		inst.fuchsiaLogs.Process.Kill()
 		inst.fuchsiaLogs.Wait()
@@ -149,27 +172,25 @@ func (inst *instance) Close() {
 }
 
 func (inst *instance) startFuchsiaVM() error {
-	ffxArgs := []string{"emu", "start", "--headless", "--name", inst.name}
-	inst.args = ffxArgs[2:]
-	err := inst.runCommand(5*time.Minute*inst.timeouts.Scale, inst.ffxBinary, ffxArgs...)
+	err := inst.ffx("emu", "start", "--headless", "--name", inst.name)
 	if err != nil {
 		return err
 	}
-	inst.fuchsiaVMStarted = true
 	return nil
 }
 
-func (inst *instance) startFuchsiaLogs() (*exec.Cmd, error) {
-	cmd := osutil.Command(inst.ffxBinary, "--target", inst.name, "log")
+func (inst *instance) startFuchsiaLogs() error {
+	cmd := osutil.Command(ffxBinary, "--target", inst.name, "log")
 	cmd.Dir = inst.fuchsiaDirectory
 	cmd.Stdout = inst.wpipe
 	cmd.Stderr = inst.wpipe
 	inst.merger.Add("fuchsia", inst.rpipe)
-	return cmd, cmd.Start()
+	inst.fuchsiaLogs = cmd
+	return cmd.Start()
 }
 
 func (inst *instance) startAdbServerAndConnection(timeout time.Duration) error {
-	cmd := osutil.Command(inst.ffxBinary, "--target", inst.name, "starnix", "adb", "-p", fmt.Sprintf("%d", inst.port))
+	cmd := osutil.Command(ffxBinary, "--target", inst.name, "starnix", "adb", "-p", fmt.Sprintf("%d", inst.port))
 	cmd.Dir = inst.fuchsiaDirectory
 	if err := cmd.Start(); err != nil {
 		return err
@@ -188,13 +209,16 @@ func (inst *instance) connectToAdb(timeout time.Duration) error {
 		if inst.debug {
 			log.Logf(0, "attempting to connect to ADB")
 		}
-		cmd := osutil.Command("adb", "connect", fmt.Sprintf("127.0.0.1:%d", inst.port))
-		connectOutput, err := cmd.Output()
+		connectOutput, err := osutil.RunCmd(
+			2*time.Minute,
+			inst.fuchsiaDirectory,
+			"adb",
+			"connect",
+			fmt.Sprintf("127.0.0.1:%d", inst.port))
 		if err == nil && strings.HasPrefix(string(connectOutput), "connected to") {
 			return nil
 		}
-		cmd = osutil.Command("adb", "disconnect", fmt.Sprintf("127.0.0.1:%d", inst.port))
-		cmd.Run()
+		inst.runCommand("adb", "disconnect", fmt.Sprintf("127.0.0.1:%d", inst.port))
 		if inst.debug {
 			log.Logf(0, "adb connect failed")
 		}
@@ -210,64 +234,20 @@ func (inst *instance) createAdbScript() error {
 		`#!/bin/bash
 		adb_port=$1
 		fuzzer_args=${@:2}
-		adb -s 127.0.0.1:$adb_port shell "cd %s; ./syz-executor $fuzzer_args"`, inst.targetDir)
+		adb -s 127.0.0.1:$adb_port shell "cd %s; ./syz-executor $fuzzer_args"`, targetDir)
 	return os.WriteFile(inst.executor, []byte(adbScript), 0777)
 }
 
-func (inst *instance) restartDaemon() {
-	if inst.debug {
-		log.Logf(0, "restarting daemon")
-	}
-	osutil.RunCmd(1*time.Minute*inst.timeouts.Scale, inst.fuchsiaDirectory, "ffx", "doctor", "--restart-daemon")
+func (inst *instance) ffx(args ...string) error {
+	return inst.runCommand(ffxBinary, args...)
 }
 
-func (inst *instance) boot() error {
-	inst.port = vmimpl.UnusedTCPPort()
-	// Start output merger.
-	var tee io.Writer
-	inst.merger = vmimpl.NewOutputMerger(tee)
-
-	if err := inst.setFuchsiaVersion(); err != nil {
-		return fmt.Errorf(
-			"there is an error running ffx commands in the Fuchsia checkout (%q): %v",
-			inst.fuchsiaDirectory,
-			err)
-	}
-
-	inst.restartDaemon()
-
-	inst.terminateFuchsiaVM()
-
-	if err := inst.startFuchsiaVM(); err != nil {
-		return fmt.Errorf("could not start Fuchsia VM: %v", err)
-	}
-
-	if err := inst.startAdbServerAndConnection(1 * time.Minute * inst.timeouts.Scale); err != nil {
-		return fmt.Errorf("could not start and connect to the adb server: %v", err)
-	}
-
-	if err := inst.createAdbScript(); err != nil {
-		return fmt.Errorf("could not create adb script: %v", err)
-	}
-
-	cmd, err := inst.startFuchsiaLogs()
-	if err != nil {
-		return fmt.Errorf("could not start fuchsia logs: %v", err)
-	}
-	inst.fuchsiaLogs = cmd
-	if inst.debug {
-		log.Logf(0, "%s booted successfully", inst.name)
-	}
-	return nil
-}
-
-// Runs a command inside the fuchsia directory and redirects the output to the
-// instance output merger.
-func (inst *instance) runCommand(timeout time.Duration, cmd string, args ...string) error {
+// Runs a command inside the fuchsia directory.
+func (inst *instance) runCommand(cmd string, args ...string) error {
 	if inst.debug {
 		log.Logf(0, "running command: %s %q", cmd, args)
 	}
-	output, err := osutil.RunCmd(timeout, inst.fuchsiaDirectory, cmd, args...)
+	output, err := osutil.RunCmd(5*time.Minute, inst.fuchsiaDirectory, cmd, args...)
 	if inst.debug {
 		log.Logf(0, "%s", output)
 	}
@@ -283,13 +263,12 @@ func (inst *instance) Forward(port int) (string, error) {
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	base := filepath.Base(hostSrc)
-	vmDst := filepath.Join(inst.targetDir, base)
+	vmDst := filepath.Join(targetDir, base)
 	if base == "syz-fuzzer" || base == "syz-execprog" {
 		return hostSrc, nil // we will run these on host.
 	}
 
 	err := inst.runCommand(
-		1*time.Minute*inst.timeouts.Scale,
 		"adb",
 		"-s",
 		fmt.Sprintf("127.0.0.1:%d", inst.port),
@@ -313,8 +292,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 			if strings.HasPrefix(arg, "-executor=") {
 				args[i] = fmt.Sprintf("-executor=%s %d", inst.executor, inst.port)
 				// TODO(fxbug.dev/120202): reenable threaded mode once clone3 is fixed.
-				args = append(args[:i+2], args[i+1:]...)
-				args[i+1] = "-threaded=0"
+				args = append(args, "-threaded=0")
 			}
 		}
 	}
@@ -365,7 +343,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 }
 
 func (inst *instance) Info() ([]byte, error) {
-	info := fmt.Sprintf("%v\n%v %q", inst.version, "ffx", inst.args)
+	info := fmt.Sprintf("%v\n%v", inst.version, "ffx")
 	return []byte(info), nil
 }
 
@@ -374,7 +352,7 @@ func (inst *instance) Diagnose(rep *report.Report) ([]byte, bool) {
 }
 
 func (inst *instance) setFuchsiaVersion() error {
-	version, err := osutil.RunCmd(1*time.Minute*inst.timeouts.Scale, inst.fuchsiaDirectory, inst.ffxBinary, "version")
+	version, err := osutil.RunCmd(1*time.Minute, inst.fuchsiaDirectory, ffxBinary, "version")
 	if err != nil {
 		return err
 	}
