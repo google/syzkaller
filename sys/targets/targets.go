@@ -313,7 +313,7 @@ var List = map[string]map[string]*Target{
 			PageSize:     4 << 10,
 			LittleEndian: true,
 			CCompiler:    "clang",
-			CFlags:       []string{"-m64"},
+			CFlags:       []string{"-m64", "--target=x86_64-unknown-freebsd14.0"},
 			NeedSyscallDefine: func(nr uint64) bool {
 				// freebsd_12_shm_open, shm_open2, shm_rename, __realpathat, close_range, copy_file_range
 				return nr == 482 || nr >= 569
@@ -329,7 +329,7 @@ var List = map[string]map[string]*Target{
 			Int64Alignment: 4,
 			LittleEndian:   true,
 			CCompiler:      "clang",
-			CFlags:         []string{"-m32"},
+			CFlags:         []string{"-m32", "--target=i386-unknown-freebsd14.0"},
 			NeedSyscallDefine: func(nr uint64) bool {
 				// freebsd_12_shm_open, shm_open2, shm_rename, __realpathat, close_range, copy_file_range
 				return nr == 482 || nr >= 569
@@ -340,7 +340,7 @@ var List = map[string]map[string]*Target{
 			PageSize:     4 << 10,
 			LittleEndian: true,
 			CCompiler:    "clang",
-			CFlags:       []string{"-m64"},
+			CFlags:       []string{"-m64", "--target=riscv64-unknown-freebsd14.0"},
 			NeedSyscallDefine: func(nr uint64) bool {
 				// freebsd_12_shm_open, shm_open2, shm_rename, __realpathat, close_range, copy_file_range
 				return nr == 482 || nr >= 569
