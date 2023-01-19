@@ -319,6 +319,17 @@ var List = map[string]map[string]*Target{
 				return nr == 482 || nr >= 569
 			},
 		},
+		ARM64: {
+			PtrSize:      8,
+			PageSize:     4 << 10,
+			LittleEndian: true,
+			CCompiler:    "clang",
+			CFlags:       []string{"-m64", "--target=aarch64-unknown-freebsd14.0"},
+			NeedSyscallDefine: func(nr uint64) bool {
+				// freebsd_12_shm_open, shm_open2, shm_rename, __realpathat, close_range, copy_file_range
+				return nr == 482 || nr >= 569
+			},
+		},
 		I386: {
 			VMArch:   AMD64,
 			PtrSize:  4,
