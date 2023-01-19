@@ -28,3 +28,18 @@ docker tag gcr.io/syzkaller/env docker.pkg.github.com/google/syzkaller/env
 docker login https://docker.pkg.github.com
 docker push docker.pkg.github.com/google/syzkaller/env
 ```
+
+## Syzbot image
+
+The syzbot image supports two architectures (arm64, amd64), so we need to build it with care.
+
+The example below uses [the standard Docker functionality](https://docs.docker.com/build/building/multi-platform/) to build a
+multi-arch image in a way that allows to distribute it under one tag names.
+
+```bash
+docker run --privileged --rm tonistiigi/binfmt --install all
+docker buildx create --name mybuilder --driver docker-container --bootstrap
+docker buildx use mybuilder
+gcloud auth login && gcloud auth configure-docker
+docker buildx build --platform linux/amd64,linux/arm64 -t gcr.io/syzkaller/syzbot tools/docker/syzbot --push
+```
