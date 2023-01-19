@@ -543,7 +543,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		SampleReport: sampleReport,
 		Crashes:      crashesTable,
 		TestPatchJobs: &uiJobList{
-			Title:  "Patch testing requests:",
+			Title:  "Last patch testing requests:",
 			PerBug: true,
 			Jobs:   testPatchJobs,
 		},
@@ -1497,6 +1497,7 @@ func getUIJobs(keys []*db.Key, jobs []*Job) []*uiJob {
 
 func loadTestPatchJobs(c context.Context, bug *Bug) ([]*uiJob, error) {
 	bugKey := bug.key(c)
+
 	var jobs []*Job
 	keys, err := db.NewQuery("Job").
 		Ancestor(bugKey).
@@ -1507,8 +1508,16 @@ func loadTestPatchJobs(c context.Context, bug *Bug) ([]*uiJob, error) {
 	if err != nil {
 		return nil, err
 	}
+	const maxAutomaticJobs = 10
+	autoJobsLeft := maxAutomaticJobs
 	var results []*uiJob
 	for i, job := range jobs {
+		if job.User == "" {
+			if autoJobsLeft == 0 {
+				continue
+			}
+			autoJobsLeft--
+		}
 		var build *Build
 		if job.BuildID != "" {
 			if build, err = loadBuild(c, bug.Namespace, job.BuildID); err != nil {
