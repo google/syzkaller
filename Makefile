@@ -333,6 +333,7 @@ presubmit_arch_freebsd: descriptions
 	env HOSTOS=freebsd HOSTARCH=amd64 $(MAKE) host
 	env TARGETOS=freebsd TARGETARCH=amd64 $(MAKE) target
 	env TARGETOS=freebsd TARGETARCH=386 $(MAKE) target
+	env TARGETOS=freebsd TARGETARCH=arm64 $(MAKE) target
 	env TARGETOS=freebsd TARGETARCH=riscv64 $(MAKE) target
 
 presubmit_arch_netbsd: descriptions
