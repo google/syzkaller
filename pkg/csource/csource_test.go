@@ -188,18 +188,23 @@ csource4(&AUTO)
 csource5(&AUTO)
 csource6(&AUTO)
 `,
-			output: `
-NONFAILING(memcpy((void*)0x20000040, "\x12\x34\x56\x78", 4));
-syscall(SYS_csource2, 0x20000040ul);
-NONFAILING(memset((void*)0x20000080, 0, 10));
-syscall(SYS_csource3, 0x20000080ul);
-NONFAILING(memset((void*)0x200000c0, 48, 10));
-syscall(SYS_csource4, 0x200000c0ul);
-NONFAILING(memcpy((void*)0x20000100, "0101010101", 10));
-syscall(SYS_csource5, 0x20000100ul);
-NONFAILING(memcpy((void*)0x20000140, "101010101010", 12));
-syscall(SYS_csource6, 0x20000140ul);
+			output: fmt.Sprintf(`
+NONFAILING(memcpy((void*)0x%x, "\x12\x34\x56\x78", 4));
+syscall(SYS_csource2, 0x%xul);
+NONFAILING(memset((void*)0x%x, 0, 10));
+syscall(SYS_csource3, 0x%xul);
+NONFAILING(memset((void*)0x%x, 48, 10));
+syscall(SYS_csource4, 0x%xul);
+NONFAILING(memcpy((void*)0x%x, "0101010101", 10));
+syscall(SYS_csource5, 0x%xul);
+NONFAILING(memcpy((void*)0x%x, "101010101010", 12));
+syscall(SYS_csource6, 0x%xul);
 `,
+				target.DataOffset+0x40, target.DataOffset+0x40,
+				target.DataOffset+0x80, target.DataOffset+0x80,
+				target.DataOffset+0xc0, target.DataOffset+0xc0,
+				target.DataOffset+0x100, target.DataOffset+0x100,
+				target.DataOffset+0x140, target.DataOffset+0x140),
 		},
 	}
 	for i, test := range tests {
