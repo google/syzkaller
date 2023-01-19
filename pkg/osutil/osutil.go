@@ -130,6 +130,11 @@ func PrependContext(ctx string, err error) error {
 	}
 }
 
+func IsDir(name string) bool {
+	fileInfo, err := os.Stat(name)
+	return err == nil && fileInfo.IsDir()
+}
+
 // IsExist returns true if the file name exists.
 func IsExist(name string) bool {
 	_, err := os.Stat(name)

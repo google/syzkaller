@@ -726,6 +726,12 @@ func initTarget(target *Target, OS, arch string) {
 	} else {
 		target.HostEndian = binary.BigEndian
 	}
+	// Temporal hack.
+	if OS == Linux && os.Getenv("SYZ_STARNIX_HACK") != "" {
+		target.ExecutorUsesShmem = false
+		target.ExecutorUsesForkServer = false
+		target.HostFuzzer = true
+	}
 }
 
 func (target *Target) Timeouts(slowdown int) Timeouts {

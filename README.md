@@ -26,6 +26,7 @@ For other OS kernels check:
 [Fuchsia](docs/fuchsia/README.md),
 [NetBSD](docs/netbsd/README.md),
 [OpenBSD](docs/openbsd/setup.md),
+[Starnix](docs/starnix/README.md),
 [Windows](docs/windows/README.md),
 [gVisor](docs/gvisor/README.md).
 

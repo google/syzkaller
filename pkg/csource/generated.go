@@ -4378,7 +4378,7 @@ static long syz_memcpy_off(volatile long a0, volatile long a1, volatile long a2,
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_REPEAT && SYZ_NET_INJECTION
+#if (SYZ_EXECUTOR || SYZ_REPEAT && SYZ_NET_INJECTION) && SYZ_EXECUTOR_USES_FORK_SERVER
 static void flush_tun()
 {
 #if SYZ_EXECUTOR
@@ -8173,7 +8173,7 @@ static volatile long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volat
 #endif
 #endif
 
-#if SYZ_EXECUTOR || SYZ_NET_RESET
+#if (SYZ_EXECUTOR || SYZ_NET_RESET) && SYZ_EXECUTOR_USES_FORK_SERVER
 #include <errno.h>
 #include <net/if.h>
 #include <netinet/in.h>
@@ -8719,7 +8719,7 @@ static void setup_cgroups()
 	write_file("/syzcgroup/cpu/cpuset.memory_pressure_enabled", "1");
 }
 
-#if SYZ_EXECUTOR || SYZ_REPEAT
+#if (SYZ_EXECUTOR || SYZ_REPEAT) && SYZ_EXECUTOR_USES_FORK_SERVER
 static void setup_cgroups_loop()
 {
 #if SYZ_EXECUTOR
@@ -10542,7 +10542,7 @@ static int fault_injected(int fail_fd)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_REPEAT
+#if (SYZ_EXECUTOR || SYZ_REPEAT) && SYZ_EXECUTOR_USES_FORK_SERVER
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -10592,7 +10592,7 @@ static void kill_and_wait(int pid, int* status)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_REPEAT && (SYZ_CGROUPS || SYZ_NET_RESET)
+#if (SYZ_EXECUTOR || SYZ_REPEAT && (SYZ_CGROUPS || SYZ_NET_RESET)) && SYZ_EXECUTOR_USES_FORK_SERVER
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
@@ -10611,7 +10611,7 @@ static void setup_loop()
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_REPEAT && (SYZ_NET_RESET || __NR_syz_mount_image || __NR_syz_read_part_table)
+#if (SYZ_EXECUTOR || SYZ_REPEAT && (SYZ_NET_RESET || __NR_syz_mount_image || __NR_syz_read_part_table)) && SYZ_EXECUTOR_USES_FORK_SERVER
 #define SYZ_HAVE_RESET_LOOP 1
 static void reset_loop()
 {
@@ -10630,7 +10630,7 @@ static void reset_loop()
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_REPEAT
+#if (SYZ_EXECUTOR || SYZ_REPEAT) && SYZ_EXECUTOR_USES_FORK_SERVER
 #include <sys/prctl.h>
 #include <unistd.h>
 
