@@ -34,6 +34,7 @@ import (
 	_ "github.com/google/syzkaller/vm/odroid"
 	_ "github.com/google/syzkaller/vm/proxyapp"
 	_ "github.com/google/syzkaller/vm/qemu"
+	_ "github.com/google/syzkaller/vm/starnix"
 	_ "github.com/google/syzkaller/vm/vmm"
 	_ "github.com/google/syzkaller/vm/vmware"
 )
@@ -83,16 +84,17 @@ func Create(cfg *mgrconfig.Config, debug bool) (*Pool, error) {
 		return nil, fmt.Errorf("unknown instance type '%v'", cfg.Type)
 	}
 	env := &vmimpl.Env{
-		Name:     cfg.Name,
-		OS:       cfg.TargetOS,
-		Arch:     cfg.TargetVMArch,
-		Workdir:  cfg.Workdir,
-		Image:    cfg.Image,
-		SSHKey:   cfg.SSHKey,
-		SSHUser:  cfg.SSHUser,
-		Timeouts: cfg.Timeouts,
-		Debug:    debug,
-		Config:   cfg.VM,
+		Name:      cfg.Name,
+		OS:        cfg.TargetOS,
+		Arch:      cfg.TargetVMArch,
+		Workdir:   cfg.Workdir,
+		Image:     cfg.Image,
+		SSHKey:    cfg.SSHKey,
+		SSHUser:   cfg.SSHUser,
+		Timeouts:  cfg.Timeouts,
+		Debug:     debug,
+		Config:    cfg.VM,
+		KernelSrc: cfg.KernelSrc,
 	}
 	impl, err := typ.Ctor(env)
 	if err != nil {
@@ -139,7 +141,8 @@ func (pool *Pool) Create(index int) (*Instance, error) {
 }
 
 // TODO: Integration or end-to-end testing is needed.
-//  https://github.com/google/syzkaller/pull/3269#discussion_r967650801
+//
+//	https://github.com/google/syzkaller/pull/3269#discussion_r967650801
 func (pool *Pool) Close() error {
 	if pool.activeCount != 0 {
 		panic("all the instances should be closed before pool.Close()")
