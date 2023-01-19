@@ -66,9 +66,10 @@ func (*freebsd) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]ui
 	}
 	args = append(args, arch.target.CFlags...)
 	params := &extractParams{
-		AddSource:     "#include <sys/syscall.h>",
-		DeclarePrintf: true,
-		TargetEndian:  arch.target.HostEndian,
+		AddSource:      "#include <sys/syscall.h>",
+		DeclarePrintf:  true,
+		ExtractFromELF: true,
+		TargetEndian:   arch.target.HostEndian,
 	}
 	cc := arch.target.CCompiler
 	return extract(info, cc, args, params)
