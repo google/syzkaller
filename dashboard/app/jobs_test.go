@@ -488,6 +488,74 @@ func TestReproRetestJob(t *testing.T) {
 	c.expectEQ(bug.StatusReason, dashapi.InvalidatedByRevokedRepro)
 }
 
+func TestDelegatedManagerReproRetest(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client2
+	oldManager := noFixBisectionManager
+	newManager := specialCCManager
+
+	oldBuild := testBuild(1)
+	oldBuild.KernelRepo = "git://delegated.repo/git.git"
+	oldBuild.KernelBranch = "main"
+	oldBuild.Manager = oldManager
+	client.UploadBuild(oldBuild)
+
+	crash := testCrash(oldBuild, 1)
+	crash.ReproOpts = []byte("repro opts")
+	crash.ReproSyz = []byte("repro syz")
+	crash.ReproC = []byte("repro C")
+	client.ReportCrash(crash)
+	sender := c.pollEmailBug().Sender
+	_, extBugID, err := email.RemoveAddrContext(sender)
+	c.expectOK(err)
+
+	// Deprecate the oldManager.
+	mgrConfig := config.Namespaces["test2"].Managers[oldManager]
+	mgrConfig.Decommissioned = true
+	mgrConfig.DelegatedTo = newManager
+	config.Namespaces["test2"].Managers[oldManager] = mgrConfig
+
+	// Upload a build for the new manager.
+	c.advanceTime(time.Minute)
+	build := testBuild(1)
+	build.ID = "new-build"
+	build.KernelRepo = "git://delegated.repo/new-git.git"
+	build.KernelBranch = "new-main"
+	build.KernelConfig = []byte{0xAB, 0xCD, 0xEF}
+	build.Manager = newManager
+	client.UploadBuild(build)
+
+	// Wait until the bug is upstreamed.
+	c.advanceTime(20 * 24 * time.Hour)
+	c.pollEmailBug()
+	c.pollEmailBug()
+
+	// Let's say that the C repro testing has failed.
+	c.advanceTime(config.Obsoleting.ReproRetestPeriod + time.Hour)
+	c.updRetestReproJobs()
+
+	resp := client.pollSpecificJobs(build.Manager, dashapi.ManagerJobs{TestPatches: true})
+	c.expectEQ(resp.Type, dashapi.JobTestPatch)
+	c.expectEQ(resp.KernelRepo, build.KernelRepo)
+	c.expectEQ(resp.KernelBranch, build.KernelBranch)
+	c.expectEQ(resp.KernelConfig, build.KernelConfig)
+	c.expectEQ(resp.Patch, []uint8(nil))
+
+	// Pretend that the C repro fails.
+	done := &dashapi.JobDoneReq{
+		ID: resp.ID,
+	}
+
+	client.expectOK(client.JobDone(done))
+
+	// If it has worked, the repro is revoked and the bug is obsoleted.
+	c.pollEmailBug()
+	bug, _, _ := c.loadBug(extBugID)
+	c.expectEQ(bug.HeadReproLevel, ReproLevelNone)
+}
+
 // Test on a restricted manager.
 func TestJobRestrictedManager(t *testing.T) {
 	c := NewCtx(t)
