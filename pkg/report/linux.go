@@ -2243,6 +2243,30 @@ var linuxOopses = append([]*oops{
 		[]*regexp.Regexp{},
 	},
 	{
+		// Custom vfs error printed by older versions of the kernel, see #3621.
+		[]byte("VFS: Close: file count is 0"),
+		[]oopsFormat{
+			{
+				title:        compile("VFS: Close: file count is 0"),
+				fmt:          "VFS: Close: file count is zero (use-after-free)",
+				noStackTrace: true,
+			},
+		},
+		[]*regexp.Regexp{},
+	},
+	{
+		// Custom vfs error printed by older versions of the kernel, see #3621.
+		[]byte("VFS: Busy inodes after unmount"),
+		[]oopsFormat{
+			{
+				title:        compile("VFS: Busy inodes after unmount"),
+				fmt:          "VFS: Busy inodes after unmount (use-after-free)",
+				noStackTrace: true,
+			},
+		},
+		[]*regexp.Regexp{},
+	},
+	{
 		[]byte("Internal error:"),
 		[]oopsFormat{
 			{

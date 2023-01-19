@@ -1,0 +1,3 @@
+TITLE: VFS: Close: file count is zero (use-after-free)
+
+VFS: Close: file count is 0
