@@ -41,6 +41,9 @@ options 	DIAGNOSTIC
 		return ImageDetails{}, err
 	}
 
+	if _, err := osutil.RunCmd(10*time.Minute, params.KernelDir, "rm", "-rf", "obj"); err != nil {
+		return ImageDetails{}, err
+	}
 	objPrefix := filepath.Join(params.KernelDir, "obj")
 	if err := ctx.make(params.KernelDir, objPrefix, "kernel-toolchain"); err != nil {
 		return ImageDetails{}, err
