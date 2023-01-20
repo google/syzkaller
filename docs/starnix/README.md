@@ -51,7 +51,7 @@ Create a manager config like the following, replacing the environment variables 
     "procs": 8,
     "type": "starnix",
     "vm": {
-        "count": 1,
+        "count": 1
     },
     "cover": false
 }
