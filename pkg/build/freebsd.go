@@ -45,12 +45,17 @@ options 	DIAGNOSTIC
 		return ImageDetails{}, err
 	}
 	objPrefix := filepath.Join(params.KernelDir, "obj")
-	if err := ctx.make(params.KernelDir, objPrefix, "kernel-toolchain"); err != nil {
+	output, err := ctx.make(params.KernelDir, objPrefix, "kernel-toolchain")
+	if err != nil {
 		return ImageDetails{}, err
 	}
-	if err := ctx.make(params.KernelDir, objPrefix, "buildkernel", "WITH_EXTRA_TCP_STACKS=",
+	if _, err := ctx.make(params.KernelDir, objPrefix, "buildkernel", "WITH_EXTRA_TCP_STACKS=",
 		fmt.Sprintf("KERNCONF=%v", confFile)); err != nil {
-		return ImageDetails{}, err
+		// The kernel-toolchain make target has to be built separately
+		// because FreeBSD's build doesn't correctly order the two
+		// targets. Its output is useful for debugging though, so
+		// include it here.
+		return ImageDetails{}, osutil.PrependContext(string(output), err)
 	}
 
 	kernelObjDir := filepath.Join(objPrefix, params.KernelDir,
@@ -116,16 +121,17 @@ sudo mdconfig -d -u ${md#md}
 
 func (ctx freebsd) clean(kernelDir, targetArch string) error {
 	objPrefix := filepath.Join(kernelDir, "obj")
-	return ctx.make(kernelDir, objPrefix, "cleanworld")
+	_, err := ctx.make(kernelDir, objPrefix, "cleanworld")
+	return err
 }
 
-func (ctx freebsd) make(kernelDir, objPrefix string, makeArgs ...string) error {
+func (ctx freebsd) make(kernelDir, objPrefix string, makeArgs ...string) ([]byte, error) {
 	args := append([]string{
 		fmt.Sprintf("MAKEOBJDIRPREFIX=%v", objPrefix),
 		"make",
 		"-C", kernelDir,
 		"-j", strconv.Itoa(runtime.NumCPU()),
 	}, makeArgs...)
-	_, err := osutil.RunCmd(3*time.Hour, kernelDir, "sh", "-c", strings.Join(args, " "))
-	return err
+	output, err := osutil.RunCmd(3*time.Hour, kernelDir, "sh", "-c", strings.Join(args, " "))
+	return output, err
 }
