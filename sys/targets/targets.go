@@ -672,10 +672,7 @@ func initTarget(target *Target, OS, arch string) {
 		target.DataOffset = 512 << 20
 	}
 	target.NumPages = (16 << 20) / target.PageSize
-	sourceDir := os.Getenv("SOURCEDIR_" + strings.ToUpper(OS))
-	if sourceDir == "" {
-		sourceDir = os.Getenv("SOURCEDIR")
-	}
+	sourceDir := getSourceDir(target)
 	for sourceDir != "" && sourceDir[len(sourceDir)-1] == '/' {
 		sourceDir = sourceDir[:len(sourceDir)-1]
 	}
@@ -822,7 +819,7 @@ func (target *Target) lazyInit() {
 	// Only fail on CI for native build.
 	// On CI we want to fail loudly if cross-compilation breaks.
 	// Also fail if SOURCEDIR_GOOS is set b/c in that case user probably assumes it will work.
-	if (target.OS != runtime.GOOS || !runningOnCI) && os.Getenv("SOURCEDIR_"+strings.ToUpper(target.OS)) == "" {
+	if (target.OS != runtime.GOOS || !runningOnCI) && getSourceDir(target) == "" {
 		if _, err := exec.LookPath(target.CCompiler); err != nil {
 			target.BrokenCompiler = fmt.Sprintf("%v is missing (%v)", target.CCompiler, err)
 			return
@@ -874,7 +871,7 @@ func (target *Target) lazyInit() {
 	//	fatal error: asm/unistd.h: No such file or directory
 	//	fatal error: asm/errno.h: No such file or directory
 	//	collect2: error: ld terminated with signal 11 [Segmentation fault]
-	if runningOnCI || os.Getenv("SOURCEDIR_"+strings.ToUpper(target.OS)) != "" {
+	if runningOnCI || getSourceDir(target) != "" {
 		return // On CI all compilers are expected to work, so we don't do the following check.
 	}
 	args := []string{"-x", "c++", "-", "-o", "/dev/null"}
@@ -953,6 +950,23 @@ func processMergedFlags(flags []string) []string {
 		dup[s] = true
 	}
 	return newFlags
+}
+
+func getSourceDir(target *Target) string {
+	// First try the most granular env option.
+	name := fmt.Sprintf("SOURCEDIR_%s_%s_%s_%s",
+		strings.ToUpper(target.OS), strings.ToUpper(target.Arch),
+		strings.ToUpper(runtime.GOOS), strings.ToUpper(runtime.GOARCH),
+	)
+	if ret := os.Getenv(name); ret != "" {
+		return ret
+	}
+	// .. then the older one.
+	name = fmt.Sprintf("SOURCEDIR_%s", strings.ToUpper(target.OS))
+	if ret := os.Getenv(name); ret != "" {
+		return ret
+	}
+	return os.Getenv("SOURCEDIR")
 }
 
 func needSyscallDefine(nr uint64) bool     { return true }
