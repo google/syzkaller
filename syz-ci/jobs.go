@@ -436,10 +436,8 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 	var err error
 	switch req.Type {
 	case dashapi.JobTestPatch:
-		mgrcfg.Name += "-test" + jp.instanceSuffix
 		err = jp.testPatch(job, mgrcfg)
 	case dashapi.JobBisectCause, dashapi.JobBisectFix:
-		mgrcfg.Name += "-bisect" + jp.instanceSuffix
 		err = jp.bisect(job, mgrcfg)
 	}
 	if err != nil {
