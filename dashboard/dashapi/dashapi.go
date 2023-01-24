@@ -412,6 +412,11 @@ type BugReport struct {
 	BisectFix      *BisectResult
 	Assets         []Asset
 	Subsystems     []BugSubsystem
+	ReportElements *ReportElements
+}
+
+type ReportElements struct {
+	GuiltyFiles []string
 }
 
 type BugSubsystem struct {
