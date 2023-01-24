@@ -484,6 +484,7 @@ func crashBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key,
 		NumCrashes:      bug.NumCrashes,
 		HappenedOn:      managersToRepos(c, bug.Namespace, bug.HappenedOn),
 		Assets:          assetList,
+		ReportElements:  &dashapi.ReportElements{GuiltyFiles: crash.ReportElements.GuiltyFiles},
 	}
 	if bugReporting.CC != "" {
 		rep.CC = append(rep.CC, strings.Split(bugReporting.CC, "|")...)
