@@ -91,7 +91,7 @@ func (a android) build(params Params) (ImageDetails, error) {
 	config := filepath.Join(buildOutDir, "common", ".config")
 
 	var err error
-	details.CompilerID, err = a.readCompiler(filepath.Join(buildOutDir, "kernel-headers.tar.gz"))
+	details.CompilerID, err = a.readCompiler(filepath.Join(buildDistDir, "kernel-headers.tar.gz"))
 	if err != nil {
 		return details, err
 	}
