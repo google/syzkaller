@@ -685,6 +685,16 @@ func (dash *Dashboard) LoadFullBug(req *LoadFullBugReq) (*FullBugInfo, error) {
 	return resp, err
 }
 
+type UpdateReportReq struct {
+	BugID       string
+	CrashID     int64
+	GuiltyFiles *[]string
+}
+
+func (dash *Dashboard) UpdateReport(req *UpdateReportReq) error {
+	return dash.Query("update_report", req, nil)
+}
+
 type (
 	BugStatus       int
 	BugStatusReason string

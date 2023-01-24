@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/sys/targets"
@@ -1005,6 +1006,48 @@ func TestFullBugInfo(t *testing.T) {
 	c.expectEQ(len(info.Crashes), len(reportsOrder))
 	for i, report := range reportsOrder {
 		c.expectEQ(info.Crashes[i].Report, report)
+	}
+}
+
+func TestUpdateReportApi(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client.UploadBuild(build)
+
+	// Report a crash.
+	c.client.ReportCrash(testCrashWithRepro(build, 1))
+	c.client.pollBug()
+
+	listResp, err := c.client.BugList()
+	c.expectOK(err)
+	c.expectEQ(len(listResp.List), 1)
+
+	// Load the bug info.
+	bugID := listResp.List[0]
+	rep, err := c.client.LoadBug(bugID)
+	c.expectOK(err)
+
+	// Now update the crash.
+	setGuiltyFiles := []string{"fs/a.c", "net/b.c"}
+	err = c.client.UpdateReport(&dashapi.UpdateReportReq{
+		BugID:       bugID,
+		CrashID:     rep.CrashID,
+		GuiltyFiles: &setGuiltyFiles,
+	})
+	c.expectOK(err)
+
+	// And make sure it's been updated.
+	ret, err := c.client.LoadBug(bugID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ret.ReportElements == nil {
+		t.Fatalf("ReportElements is nil")
+	}
+	if diff := cmp.Diff(ret.ReportElements.GuiltyFiles, setGuiltyFiles); diff != "" {
+		t.Fatal(diff)
 	}
 }
 
