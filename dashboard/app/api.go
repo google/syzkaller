@@ -1121,9 +1121,6 @@ func apiLoadBug(c context.Context, ns string, r *http.Request, payload []byte) (
 	if bug.Namespace != ns {
 		return nil, fmt.Errorf("no such bug")
 	}
-	if bug.sanitizeAccess(AccessPublic) > AccessPublic {
-		return nil, nil
-	}
 	return loadBugReport(c, bug)
 }
 
