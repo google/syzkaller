@@ -61,6 +61,7 @@ var apiNamespaceHandlers = map[string]APINamespaceHandler{
 	"upload_commits":      apiUploadCommits,
 	"bug_list":            apiBugList,
 	"load_bug":            apiLoadBug,
+	"update_report":       apiUpdateReport,
 	"add_build_assets":    apiAddBuildAssets,
 }
 
@@ -1106,6 +1107,36 @@ func apiBugList(c context.Context, ns string, r *http.Request, payload []byte) (
 		resp.List = append(resp.List, key.StringID())
 	}
 	return resp, nil
+}
+
+func apiUpdateReport(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
+	req := new(dashapi.UpdateReportReq)
+	if err := json.Unmarshal(payload, req); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+	}
+	bug := new(Bug)
+	bugKey := db.NewKey(c, "Bug", req.BugID, 0, nil)
+	if err := db.Get(c, bugKey, bug); err != nil {
+		return nil, fmt.Errorf("failed to get bug: %v", err)
+	}
+	if bug.Namespace != ns {
+		return nil, fmt.Errorf("no such bug")
+	}
+	tx := func(c context.Context) error {
+		crash := new(Crash)
+		crashKey := db.NewKey(c, "Crash", "", req.CrashID, bugKey)
+		if err := db.Get(c, crashKey, crash); err != nil {
+			return fmt.Errorf("failed to query the crash: %v", err)
+		}
+		if req.GuiltyFiles != nil {
+			crash.ReportElements.GuiltyFiles = *req.GuiltyFiles
+		}
+		if _, err := db.Put(c, crashKey, crash); err != nil {
+			return fmt.Errorf("failed to put reported crash: %v", err)
+		}
+		return nil
+	}
+	return nil, db.RunInTransaction(c, tx, &db.TransactionOptions{Attempts: 5})
 }
 
 func apiLoadBug(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
