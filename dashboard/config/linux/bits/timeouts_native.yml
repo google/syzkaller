@@ -32,4 +32,6 @@ config:
  - DEFAULT_HUNG_TASK_TIMEOUT: [140, -nonoise, -kmsan, -kcsan, -kmemleak]
  # By default it is set to a too small value, which causes tons of
  # `rcu_preempt detected expedited stalls on CPUs/tasks`.
+ # TODO: `rcu: Allow up to five minutes expedited RCU CPU stall-warning timeouts` lets us set more than 21k,
+ # but we first need to change the config generation tool to support multiple possible parameter values.
  - RCU_EXP_CPU_STALL_TIMEOUT: [21000, v5.19]
