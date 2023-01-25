@@ -16,7 +16,7 @@ As USB fuzzing requires kernel side support, for non-mainline kernels you need a
 
 ## Internals
 
-Currently, syzkaller defines 6 USB pseudo-syscalls (see [syzlang descriptions](/sys/linux/vusb.txt) and [pseudo-syscalls](/executor/common_usb.h) [implementation](https://github.com/xairy/syzkaller/blob/up-usb-docs/executor/common_usb_linux.h), which relies on the Raw Gadget interface linked above):
+Currently, syzkaller defines 6 USB pseudo-syscalls (see [syzlang descriptions](/sys/linux/vusb.txt) and [pseudo-syscalls](/executor/common_usb.h) [implementation](/executor/common_usb_linux.h), which relies on the Raw Gadget interface linked above):
 
 1. `syz_usb_connect` - connects a USB device. Handles all requests to the control endpoint until a `SET_CONFIGURATION` request is received.
 2. `syz_usb_connect_ath9k` - connects an `ath9k` USB device. Compared to `syz_usb_connect`, this syscall also handles firmware download requests that happen after `SET_CONFIGURATION` for the `ath9k` driver.
