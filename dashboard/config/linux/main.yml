@@ -18,7 +18,7 @@ instances:
  - upstream-arm-kasan:		[upstream, arm, timeouts_emu, gcc, bpfjit, lsm, selinux, reduced]
  - upstream-arm-full:		[upstream, arm, timeouts_emu, gcc, bpfjit, lsm, selinux]
  - upstream-riscv64-kasan:	[upstream, riscv, timeouts_emu, gcc, bpfjit, lsm, apparmor, reduced, kasan, kfence]
- - upstream-s390-kasan:		[upstream, s390, gcc, bpfjit, lsm, selinux, nonoise, reduced, kasan, kfence]
+ - upstream-s390-kasan:		[upstream, s390, gcc, bpfjit, lsm, selinux, nonoise, reduced, kasan, kfence, nokcov]
  - stable-5.4-kasan:		[stable-5.4, x86_64, timeouts_native, gcc, bpfjit, lsm, apparmor, kasan]
  - android-5.4:			[android, android-5.4, nodefconfig, x86_64, timeouts_native, clang, onlyusb, nonoise, kasan]
  - android-5.10:		[android, android-5.10, nodefconfig, x86_64, timeouts_native, clang, onlyusb, nonoise, kasan]

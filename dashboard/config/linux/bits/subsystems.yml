@@ -448,7 +448,8 @@ config:
  - CHROME_PLATFORMS: n
  - AMD_IOMMU: n
  - INTEL_IOMMU: [x86_64]
- - IOMMUFD: [linux-next]
+ # IOMMUFD must be enabled in order to keep VFIO_CONTAINER disabled.
+ - IOMMUFD: [v6.2]
  - IOMMUFD_TEST: [linux-next]
  # Generally we should not enable this since we don't run any boot unit tests.
  # The only reason to enable it is IOMMUFD_TEST, which really shouldn't

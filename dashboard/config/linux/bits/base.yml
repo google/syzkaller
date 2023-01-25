@@ -28,7 +28,7 @@ config:
  # Huge page overcommit is disabled by default, allowing some overcommit
  # with vm.nr_overcommit_hugepages is intended to give more coverage.
  # secretmem_enable enables memfd_secret syscall.
- - CMDLINE: "earlyprintk=serial net.ifnames=0 sysctl.kernel.hung_task_all_cpu_backtrace=1 ima_policy=tcb nf-conntrack-ftp.ports=20000 nf-conntrack-tftp.ports=20000 nf-conntrack-sip.ports=20000 nf-conntrack-irc.ports=20000 nf-conntrack-sane.ports=20000 binder.debug_mask=0 rcupdate.rcu_expedited=1 no_hash_pointers page_owner=on sysctl.vm.nr_hugepages=4 sysctl.vm.nr_overcommit_hugepages=4 secretmem.enable=1 sysctl.max_rcu_stall_to_panic=1 msr.allow_writes=off coredump_filter=0xffff"
+ - CMDLINE: "earlyprintk=serial net.ifnames=0 sysctl.kernel.hung_task_all_cpu_backtrace=1 ima_policy=tcb nf-conntrack-ftp.ports=20000 nf-conntrack-tftp.ports=20000 nf-conntrack-sip.ports=20000 nf-conntrack-irc.ports=20000 nf-conntrack-sane.ports=20000 binder.debug_mask=0 rcupdate.rcu_expedited=1 rcupdate.rcu_cpu_stall_cputime=1 no_hash_pointers page_owner=on sysctl.vm.nr_hugepages=4 sysctl.vm.nr_overcommit_hugepages=4 secretmem.enable=1 sysctl.max_rcu_stall_to_panic=1 msr.allow_writes=off coredump_filter=0xffff"
 
  # We don't need lots, but some configs set it to 2 which is too low.
  - NR_CPUS: 8
@@ -127,7 +127,8 @@ config:
  - DEBUG_FS
 
  # Required for KCOV but also eliminates unnecessary non-determinism.
- - RELOCATABLE: n
+ # For s390, it's always enabled after the `s390: always build relocatable kernel` commit.
+ - RELOCATABLE: [n, -s390]
  - RANDOMIZE_BASE: n
 
  # Print thread and CPU ids.
@@ -161,6 +162,9 @@ config:
  # Options enabled to boot Debian Stretch.
  - CONFIGFS_FS
  - SECURITYFS
+
+ # More debugging info is always good.
+ - NMI_CHECK_CPU: [linux-next]
 
  # If syzkaller gets to /dev/{mem,kmem,ioport}, it will destroy the machine.
  # It managed to do so with some mount's, chdir's and bogus file names.
