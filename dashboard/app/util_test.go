@@ -230,7 +230,14 @@ func (c *Ctx) POST(url, body string) ([]byte, error) {
 // ContentType returns the response Content-Type header value.
 func (c *Ctx) ContentType(url string) (string, error) {
 	w, err := c.httpRequest("HEAD", url, "", AccessAdmin)
-	return (w.Header()["Content-Type"][0]), err
+	if err != nil {
+		return "", err
+	}
+	values := w.Header()["Content-Type"]
+	if len(values) == 0 {
+		return "", fmt.Errorf("no Content-Type")
+	}
+	return values[0], nil
 }
 
 func (c *Ctx) httpRequest(method, url, body string, access AccessLevel) (*httptest.ResponseRecorder, error) {
