@@ -194,6 +194,21 @@ table td, table th {
 	display: inline-block;
 }
 
+.list_table .subsystem {
+	background: white;
+	border: 1pt solid black;
+	display: inline-block;
+	padding-left: 2pt;
+	padding-right: 2pt;
+	margin-left: 4pt;
+	font-size: small;
+}
+
+.list_table .subsystem a {
+	text-decoration: none;
+	color: black;
+}
+
 .bad {
 	color: #f00;
 	font-weight: bold;

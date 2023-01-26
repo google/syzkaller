@@ -6,6 +6,7 @@ package html
 import (
 	"fmt"
 	"html/template"
+	"net/url"
 	"reflect"
 	"strings"
 	texttemplate "text/template"
@@ -190,4 +191,18 @@ func dereferencePointer(v interface{}) interface{} {
 
 func commitLink(repo, commit string) string {
 	return vcs.CommitLink(repo, commit)
+}
+
+func AmendURL(baseURL, key, value string) string {
+	if baseURL == "" {
+		return ""
+	}
+	parsed, err := url.Parse(baseURL)
+	if err != nil {
+		return ""
+	}
+	values := parsed.Query()
+	values.Set(key, value)
+	parsed.RawQuery = values.Encode()
+	return parsed.String()
 }
