@@ -125,7 +125,12 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	{{range $b := .Bugs}}
 		<tr>
 			{{if $.ShowNamespace}}<td>{{$b.Namespace}}</td>{{end}}
-			<td class="title"><a href="{{$b.Link}}">{{$b.Title}}</a></td>
+			<td class="title">
+				<a href="{{$b.Link}}">{{$b.Title}}</a>
+				{{- range $b.Subsystems}}
+					<span class="subsystem">{{link .Link .Name}}</span>
+				{{- end}}
+			</td>
 			<td class="stat">{{formatReproLevel $b.ReproLevel}}</td>
 			<td class="bisect_status">{{print $b.BisectCause}}</td>
 			<td class="bisect_status">{{print $b.BisectFix}}</td>

@@ -234,6 +234,12 @@ type uiBug struct {
 	MissingOn      []string
 	NumManagers    int
 	LastActivity   time.Time
+	Subsystems     []*uiBugSubsystem
+}
+
+type uiBugSubsystem struct {
+	Name string
+	Link string
 }
 
 type uiCrash struct {
@@ -1119,6 +1125,12 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 		CreditEmail:    creditEmail,
 		NumManagers:    len(managers),
 		LastActivity:   bug.LastActivity,
+	}
+	for _, entry := range bug.Tags.Subsystems {
+		uiBug.Subsystems = append(uiBug.Subsystems, &uiBugSubsystem{
+			Name: entry.Name,
+			Link: html.AmendURL(getCurrentURL(c), "subsystem", entry.Name),
+		})
 	}
 	updateBugBadness(c, uiBug)
 	if len(bug.Commits) != 0 {
