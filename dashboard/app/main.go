@@ -314,7 +314,10 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 	if err != nil {
 		return err
 	}
-	groups, err := fetchNamespaceBugs(c, accessLevel, hdr.Namespace, manager, onlyManager != "")
+	groups, err := fetchNamespaceBugs(c, accessLevel, hdr.Namespace,
+		manager, onlyManager != "",
+		r.FormValue("subsystem"),
+	)
 	if err != nil {
 		return err
 	}
@@ -372,6 +375,7 @@ type TerminalBug struct {
 	ShowStats   bool
 	Manager     string
 	OneManager  bool
+	Subsystem   string
 }
 
 func handleTerminalBugList(c context.Context, w http.ResponseWriter, r *http.Request, typ *TerminalBug) error {
@@ -388,6 +392,7 @@ func handleTerminalBugList(c context.Context, w http.ResponseWriter, r *http.Req
 	} else {
 		typ.Manager = r.FormValue("manager")
 	}
+	typ.Subsystem = r.FormValue("subsystem")
 	extraBugs := []*Bug{}
 	if typ.Status == BugStatusFixed {
 		// Mix in bugs that have pending fixes.
@@ -815,7 +820,7 @@ func fetchFixPendingBugs(c context.Context, ns, manager string) ([]*Bug, error) 
 }
 
 func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns,
-	manager string, oneManager bool) ([]*uiBugGroup, error) {
+	manager string, oneManager bool, subsystem string) ([]*uiBugGroup, error) {
 	bugs, err := loadVisibleBugs(c, accessLevel, ns, manager)
 	if err != nil {
 		return nil, err
@@ -840,6 +845,9 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns,
 			continue
 		}
 		if oneManager && len(bug.HappenedOn) > 1 {
+			continue
+		}
+		if subsystem != "" && !bug.hasSubsystem(subsystem) {
 			continue
 		}
 		uiBug := createUIBug(c, bug, state, managers)
@@ -978,6 +986,9 @@ func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
 			continue
 		}
 		if typ.OneManager && len(bug.HappenedOn) > 1 {
+			continue
+		}
+		if typ.Subsystem != "" && !bug.hasSubsystem(typ.Subsystem) {
 			continue
 		}
 		uiBug := createUIBug(c, bug, state, managers)
