@@ -758,7 +758,7 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 		bug.NumCrashes%20 == 0 ||
 		!stringInList(bug.MergedTitles, req.Title)
 	if save {
-		newSubsystems = detectCrashSubsystems(req, build)
+		newSubsystems = detectCrashSubsystems(c, req, build)
 		log.Infof(c, "determined subsystems: %q", newSubsystems)
 		if err := saveCrash(c, ns, req, bug, bugKey, build, assets); err != nil {
 			return nil, err
@@ -821,7 +821,13 @@ func parseCrashAssets(c context.Context, req *dashapi.Crash) ([]Asset, error) {
 	return assets, nil
 }
 
-func detectCrashSubsystems(req *dashapi.Crash, build *Build) []string {
+const overrideSubsystemsKey = "set_subsystems"
+
+func detectCrashSubsystems(c context.Context, req *dashapi.Crash, build *Build) []string {
+	val, ok := c.Value(overrideSubsystemsKey).([]string)
+	if ok {
+		return val
+	}
 	if build.OS == targets.Linux {
 		extractor := subsystem.MakeLinuxSubsystemExtractor()
 		return extractor.Extract(&subsystem.Crash{

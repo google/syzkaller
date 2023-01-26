@@ -38,6 +38,7 @@ type Ctx struct {
 	ctx          context.Context
 	mockedTime   time.Time
 	emailSink    chan *aemail.Message
+	contextVars  map[interface{}]interface{}
 	client       *apiClient
 	client2      *apiClient
 	publicClient *apiClient
@@ -67,10 +68,11 @@ func NewCtx(t *testing.T) *Ctx {
 		t.Fatal(err)
 	}
 	c := &Ctx{
-		t:          t,
-		inst:       inst,
-		mockedTime: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
-		emailSink:  make(chan *aemail.Message, 100),
+		t:           t,
+		inst:        inst,
+		mockedTime:  time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+		contextVars: make(map[interface{}]interface{}),
+		emailSink:   make(chan *aemail.Message, 100),
 	}
 	c.client = c.makeClient(client1, password1, true)
 	c.client2 = c.makeClient(client2, password2, true)
@@ -374,6 +376,11 @@ type apiClient struct {
 func (c *Ctx) makeClient(client, key string, failOnErrors bool) *apiClient {
 	doer := func(r *http.Request) (*http.Response, error) {
 		r = registerRequest(r, c)
+		newCtx := r.Context()
+		for key, val := range c.contextVars {
+			newCtx = context.WithValue(newCtx, key, val)
+		}
+		r = r.WithContext(newCtx)
 		w := httptest.NewRecorder()
 		http.DefaultServeMux.ServeHTTP(w, r)
 		res := &http.Response{
