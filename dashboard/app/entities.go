@@ -138,6 +138,15 @@ func (bug *Bug) addSubsystem(subsystem BugSubsystem) {
 	bug.Tags.Subsystems = append(bug.Tags.Subsystems, subsystem)
 }
 
+func (bug *Bug) hasSubsystem(name string) bool {
+	for _, item := range bug.Tags.Subsystems {
+		if item.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
 func (bug *Bug) Load(ps []db.Property) error {
 	if err := db.LoadStruct(bug, ps); err != nil {
 		return err
