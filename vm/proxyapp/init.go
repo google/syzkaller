@@ -62,6 +62,12 @@ type Config struct {
 	// rpc_server_uri is used to specify plugin endpoint address.
 	// if not specified, we'll connect to the plugin by std[in, out, err].
 	RPCServerURI string `json:"rpc_server_uri"`
+	// security can be one of "none", "tls" (for server TLS) and "mtls" for mutal
+	// TLS.
+	Security string `json:"security"`
+	// server_tls_cert points a TLS certificate used to authenticate the server.
+	// If not provided, the default system certificate pool will be used.
+	ServerTLSCert string `json:"server_tls_cert"`
 	// config is an optional remote plugin config
 	ProxyAppConfig json.RawMessage `json:"config"`
 }

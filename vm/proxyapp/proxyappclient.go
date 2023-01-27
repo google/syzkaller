@@ -7,10 +7,14 @@ package proxyapp
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io"
+	"net"
 	"net/rpc"
 	"net/rpc/jsonrpc"
+	"os"
 	"sync"
 	"time"
 
@@ -100,7 +104,7 @@ func (p *pool) init(params *proxyAppParams, cfg *Config) error {
 
 	if useTCPRPC {
 		p.proxy.onLostConnection = make(chan bool, 1)
-		p.proxy.Client, err = initNetworkRPCClient(cfg.RPCServerURI)
+		p.proxy.Client, err = initNetworkRPCClient(cfg)
 		if err != nil {
 			p.closeProxy()
 			return fmt.Errorf("failed to connect ProxyApp pipes: %w", err)
@@ -193,8 +197,42 @@ func initPipedRPCClient(cmd subProcessCmd) (*rpc.Client, []io.Closer, error) {
 		nil
 }
 
-func initNetworkRPCClient(uri string) (*rpc.Client, error) {
-	return jsonrpc.Dial("tcp", uri)
+func initNetworkRPCClient(cfg *Config) (*rpc.Client, error) {
+	var conn io.ReadWriteCloser
+
+	switch cfg.Security {
+	case "none":
+		var err error
+		conn, err = net.Dial("tcp", cfg.RPCServerURI)
+		if err != nil {
+			return nil, fmt.Errorf("dial: %v", err)
+		}
+	case "tls":
+		var certPool *x509.CertPool
+
+		if cfg.ServerTLSCert != "" {
+			certPool = x509.NewCertPool()
+			b, err := os.ReadFile(cfg.ServerTLSCert)
+			if err != nil {
+				return nil, fmt.Errorf("read server certificate: %v", err)
+			}
+			if !certPool.AppendCertsFromPEM(b) {
+				return nil, fmt.Errorf("append server certificate to empty pool: %v", err)
+			}
+		}
+
+		var err error
+		conn, err = tls.Dial("tcp", cfg.RPCServerURI, &tls.Config{RootCAs: certPool})
+		if err != nil {
+			return nil, fmt.Errorf("dial with tls: %v", err)
+		}
+	case "mtls":
+		return nil, fmt.Errorf("mutual TLS not implemented")
+	default:
+		return nil, fmt.Errorf("security value is %q, must be 'none', 'tls', or 'mtls'", cfg.Security)
+	}
+
+	return jsonrpc.NewClient(conn), nil
 }
 
 func runProxyApp(params *proxyAppParams, cmd string, initRPClient bool) (*ProxyApp, error) {
