@@ -492,9 +492,9 @@ func TestDelegatedManagerReproRetest(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
-	client := c.client2
-	oldManager := noFixBisectionManager
-	newManager := specialCCManager
+	client := c.makeClient(clientMgrDecommission, keyMgrDecommission, true)
+	oldManager := notYetDecommManger
+	newManager := delegateToManager
 
 	oldBuild := testBuild(1)
 	oldBuild.KernelRepo = "git://delegated.repo/git.git"
@@ -512,10 +512,10 @@ func TestDelegatedManagerReproRetest(t *testing.T) {
 	c.expectOK(err)
 
 	// Deprecate the oldManager.
-	mgrConfig := config.Namespaces["test2"].Managers[oldManager]
+	mgrConfig := config.Namespaces["test-mgr-decommission"].Managers[oldManager]
 	mgrConfig.Decommissioned = true
 	mgrConfig.DelegatedTo = newManager
-	config.Namespaces["test2"].Managers[oldManager] = mgrConfig
+	config.Namespaces["test-mgr-decommission"].Managers[oldManager] = mgrConfig
 
 	// Upload a build for the new manager.
 	c.advanceTime(time.Minute)
