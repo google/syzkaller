@@ -4,12 +4,20 @@
 package proxyapp
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
+	"math/big"
 	"net"
 	"net/rpc"
 	"net/rpc/jsonrpc"
 	"net/url"
+	"os"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/google/syzkaller/vm/proxyapp/proxyrpc"
 	"github.com/google/syzkaller/vm/vmimpl"
@@ -22,6 +30,21 @@ func testTCPEnv(port string) *vmimpl.Env {
 		Config: []byte(`
 {
 		"rpc_server_uri": "localhost:` + port + `",
+		"security": "none",
+		"config": {
+			"internal_values": 123
+		}
+	}
+`)}
+}
+
+func testTCPEnvTLS(port, certPath string) *vmimpl.Env {
+	return &vmimpl.Env{
+		Config: []byte(`
+{
+		"rpc_server_uri": "localhost:` + port + `",
+		"security": "tls",
+		"server_tls_cert": "` + certPath + `",
 		"config": {
 			"internal_values": 123
 		}
@@ -34,9 +57,65 @@ func proxyAppServerTCPFixture(t *testing.T) (*mockProxyAppInterface, string, *pr
 	return initProxyAppServerFixture(mProxyAppServer), port, makeTestParams()
 }
 
+func proxyAppServerTCPFixtureTLS(t *testing.T, cert tls.Certificate) (*mockProxyAppInterface, string, *proxyAppParams) {
+	mProxyAppServer, port, _ := makeMockProxyAppServerTLS(t, cert)
+	return initProxyAppServerFixture(mProxyAppServer), port, makeTestParams()
+}
+
 func TestCtor_TCP_Ok(t *testing.T) {
 	_, port, params := proxyAppServerTCPFixture(t)
 	p, err := ctor(params, testTCPEnv(port))
+
+	assert.Nil(t, err)
+	assert.Equal(t, 2, p.Count())
+}
+
+func TestCtor_TCP_Ok_TLS(t *testing.T) {
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate private key: %v", err)
+	}
+	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
+
+	template := &x509.Certificate{
+		SerialNumber:   big.NewInt(1),
+		NotBefore:      time.Now().Add(-10 * time.Second),
+		NotAfter:       time.Now().AddDate(10, 0, 0),
+		KeyUsage:       x509.KeyUsageCRLSign,
+		ExtKeyUsage:    []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		IsCA:           false,
+		MaxPathLenZero: true,
+		DNSNames:       []string{"localhost"},
+	}
+	certBytes, err := x509.CreateCertificate(rand.Reader, template, template, key.Public(), key)
+	if err != nil {
+		t.Fatalf("generate certificate: %v", err)
+	}
+	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
+
+	cert, err := tls.X509KeyPair(certPEM, keyPEM)
+	if err != nil {
+		t.Fatalf("load keypair to cert: %v", err)
+	}
+
+	_, port, params := proxyAppServerTCPFixtureTLS(t, cert)
+
+	// Write the certificate to a temp file where the client can use it.
+	certFile, err := os.CreateTemp("", "test-cert")
+	if err != nil {
+		t.Fatalf("temp file for certificate: %v", err)
+	}
+	defer certFile.Close()
+	defer os.Remove(certFile.Name())
+
+	if _, err := certFile.Write(certPEM); err != nil {
+		t.Fatalf("write cert: %v", err)
+	}
+	if err := certFile.Close(); err != nil {
+		t.Fatalf("close cert: %v", err)
+	}
+
+	p, err := ctor(params, testTCPEnvTLS(port, certFile.Name()))
 
 	assert.Nil(t, err)
 	assert.Equal(t, 2, p.Count())
@@ -113,15 +192,11 @@ func TestCtor_TCP_Reconnect_PoolChanged(t *testing.T) {
 	}
 }
 
-func makeMockProxyAppServer(t *testing.T) (*mockProxyAppInterface, string, func()) {
+func makeMockProxyAppServerWithListener(t *testing.T, l net.Listener) (*mockProxyAppInterface, string, func()) {
 	handler := makeMockProxyAppInterface(t)
 	server := rpc.NewServer()
 	server.RegisterName("ProxyVM", struct{ proxyrpc.ProxyAppInterface }{handler})
 
-	l, e := net.Listen("tcp", ":0")
-	if e != nil {
-		t.Fatalf("listen error: %v", e)
-	}
 	dest, err := url.Parse("http://" + l.Addr().String())
 	if err != nil {
 		t.Fatalf("failed to get server endpoint addr: %v", err)
@@ -151,4 +226,22 @@ func makeMockProxyAppServer(t *testing.T) (*mockProxyAppInterface, string, func(
 			conn.Close()
 		}
 	}
+}
+
+func makeMockProxyAppServer(t *testing.T) (*mockProxyAppInterface, string, func()) {
+	l, e := net.Listen("tcp", ":0")
+	if e != nil {
+		t.Fatalf("listen error: %v", e)
+	}
+
+	return makeMockProxyAppServerWithListener(t, l)
+}
+
+func makeMockProxyAppServerTLS(t *testing.T, cert tls.Certificate) (*mockProxyAppInterface, string, func()) {
+	l, e := tls.Listen("tcp", ":0", &tls.Config{Certificates: []tls.Certificate{cert}})
+	if e != nil {
+		t.Fatalf("listen error: %v", e)
+	}
+
+	return makeMockProxyAppServerWithListener(t, l)
 }
