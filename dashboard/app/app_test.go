@@ -361,30 +361,111 @@ var testConfig = &GlobalConfig{
 				SubsystemCc: subsystem.LinuxGetMaintainers,
 			},
 		},
+		"test-decommission": {
+			AccessLevel:      AccessAdmin,
+			Key:              "testdecommissiontestdecommission",
+			SimilarityDomain: testDomain,
+			Clients: map[string]string{
+				clientTestDecomm: keyTestDecomm,
+			},
+			Repos: []KernelRepo{
+				{
+					URL:    "git://syzkaller.org",
+					Branch: "branch10",
+					Alias:  "repo10alias",
+				},
+			},
+			Reporting: []Reporting{
+				{
+					Name:       "reporting1",
+					DailyLimit: 3,
+					Embargo:    14 * 24 * time.Hour,
+					Filter:     skipWithRepro,
+					Config: &TestConfig{
+						Index: 1,
+					},
+				},
+				{
+					Name:       "reporting2",
+					DailyLimit: 3,
+					Config: &TestConfig{
+						Index: 2,
+					},
+				},
+			},
+		},
+		"test-mgr-decommission": {
+			AccessLevel:      AccessAdmin,
+			Key:              "testmgrdecommissiontestmgrdecommission",
+			SimilarityDomain: testDomain,
+			Clients: map[string]string{
+				clientMgrDecommission: keyMgrDecommission,
+			},
+			Managers: map[string]ConfigManager{
+				notYetDecommManger: {},
+				delegateToManager:  {},
+			},
+			Repos: []KernelRepo{
+				{
+					URL:    "git://syzkaller.org",
+					Branch: "branch10",
+					Alias:  "repo10alias",
+				},
+			},
+			Reporting: []Reporting{
+				{
+					Name:       "reporting1",
+					DailyLimit: 5,
+					Embargo:    14 * 24 * time.Hour,
+					Filter:     skipWithRepro,
+					Config: &EmailConfig{
+						Email: "test@syzkaller.com",
+					},
+				},
+				{
+					Name:       "reporting2",
+					DailyLimit: 3,
+					Filter:     skipWithRepro2,
+					Config: &EmailConfig{
+						Email:              "bugs@syzkaller.com",
+						DefaultMaintainers: []string{"default@maintainers.com"},
+						SubjectPrefix:      "[syzbot]",
+						MailMaintainers:    true,
+					},
+				},
+			},
+			RetestRepros: true,
+		},
 	},
 }
 
 const (
-	client1            = "client1"
-	client2            = "client2"
-	password1          = "client1keyclient1keyclient1key"
-	password2          = "client2keyclient2keyclient2key"
-	clientAdmin        = "client-admin"
-	keyAdmin           = "clientadminkeyclientadminkey"
-	clientUser         = "client-user"
-	keyUser            = "clientuserkeyclientuserkey"
-	clientPublic       = "client-public"
-	keyPublic          = "clientpublickeyclientpublickey"
-	clientPublicEmail  = "client-public-email"
-	keyPublicEmail     = "clientpublicemailkeyclientpublicemailkey"
-	clientPublicEmail2 = "client-public-email2"
-	keyPublicEmail2    = "clientpublicemailkeyclientpublicemailkey2"
-	clientPublicFs     = "client-public-fs"
-	keyPublicFs        = "keypublicfskeypublicfskeypublicfs"
+	client1               = "client1"
+	client2               = "client2"
+	password1             = "client1keyclient1keyclient1key"
+	password2             = "client2keyclient2keyclient2key"
+	clientAdmin           = "client-admin"
+	keyAdmin              = "clientadminkeyclientadminkey"
+	clientUser            = "client-user"
+	keyUser               = "clientuserkeyclientuserkey"
+	clientPublic          = "client-public"
+	keyPublic             = "clientpublickeyclientpublickey"
+	clientPublicEmail     = "client-public-email"
+	keyPublicEmail        = "clientpublicemailkeyclientpublicemailkey"
+	clientPublicEmail2    = "client-public-email2"
+	keyPublicEmail2       = "clientpublicemailkeyclientpublicemailkey2"
+	clientPublicFs        = "client-public-fs"
+	keyPublicFs           = "keypublicfskeypublicfskeypublicfs"
+	clientTestDecomm      = "client-test-decomm"
+	keyTestDecomm         = "keyTestDecommkeyTestDecomm"
+	clientMgrDecommission = "client-mgr-decommission"
+	keyMgrDecommission    = "keyMgrDecommissionkeyMgrDecommission"
 
 	restrictedManager     = "restricted-manager"
 	noFixBisectionManager = "no-fix-bisection-manager"
 	specialCCManager      = "special-cc-manager"
+	notYetDecommManger    = "not-yet-decomm-manager"
+	delegateToManager     = "delegate-to-manager"
 
 	testDomain = "test"
 )
