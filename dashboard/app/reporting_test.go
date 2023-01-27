@@ -1055,21 +1055,22 @@ func TestReportDecommissionedBugs(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
+	client := c.makeClient(clientTestDecomm, keyTestDecomm, true)
 	build := testBuild(1)
-	c.client.UploadBuild(build)
+	client.UploadBuild(build)
 
 	crash := testCrash(build, 1)
-	c.client.ReportCrash(crash)
-	rep := c.client.pollBug()
+	client.ReportCrash(crash)
+	rep := client.pollBug()
 
-	closed, _ := c.client.ReportingPollClosed([]string{rep.ID})
+	closed, _ := client.ReportingPollClosed([]string{rep.ID})
 	c.expectEQ(len(closed), 0)
 
 	// And now let's decommission the namespace.
 	config.Namespaces[rep.Namespace].Decommissioned = true
 	defer func() { config.Namespaces[rep.Namespace].Decommissioned = false }()
 
-	closed, _ = c.client.ReportingPollClosed([]string{rep.ID})
+	closed, _ = client.ReportingPollClosed([]string{rep.ID})
 	c.expectEQ(len(closed), 1)
 	c.expectEQ(closed[0], rep.ID)
 }
