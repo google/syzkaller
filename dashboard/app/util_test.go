@@ -85,7 +85,7 @@ func NewCtx(t *testing.T) *Ctx {
 func (c *Ctx) expectOK(err error) {
 	if err != nil {
 		c.t.Helper()
-		c.t.Fatal(err)
+		c.t.Fatalf("expected OK, got error: %v", err)
 	}
 }
 
