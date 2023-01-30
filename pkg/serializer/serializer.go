@@ -27,6 +27,12 @@ func Write(ww io.Writer, i interface{}) {
 	w.do(v, false)
 }
 
+func WriteString(i interface{}) string {
+	var sb strings.Builder
+	Write(&sb, i)
+	return sb.String()
+}
+
 type writer struct {
 	w io.Writer
 }
