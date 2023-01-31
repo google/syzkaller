@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"regexp"
 	"sort"
 
 	"github.com/google/syzkaller/pkg/subsystem/entity"
@@ -23,6 +24,7 @@ func listFromRepoInner(root fs.FS, rules *customRules) ([]*entity.Subsystem, err
 	if err != nil {
 		return nil, err
 	}
+	removeMatchingPatterns(records, dropPatterns)
 	ctx := &linuxCtx{
 		root:       root,
 		rawRecords: records,
@@ -58,6 +60,12 @@ type subsystemCandidate struct {
 	records     []*maintainersRecord
 	commonEmail string
 }
+
+var (
+	// Some of the patterns are not really needed for bug subsystem inteference and
+	// only complicate the manual review of the rules.
+	dropPatterns = regexp.MustCompile(`^(Documentation|scripts|samples|tools)|Makefile`)
+)
 
 func (ctx *linuxCtx) groupByList() []*subsystemCandidate {
 	perList := make(map[string][]*maintainersRecord)
