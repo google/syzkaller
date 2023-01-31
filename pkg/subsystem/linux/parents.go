@@ -35,8 +35,7 @@ func transitiveReduction(list []*entity.Subsystem) {
 	for _, s := range list {
 		removeParents := map[*entity.Subsystem]bool{}
 		for _, p := range s.Parents {
-			reachable := reachableParents(p)
-			for otherP := range reachable {
+			for otherP := range p.ReachableParents() {
 				removeParents[otherP] = true
 			}
 		}
@@ -48,20 +47,6 @@ func transitiveReduction(list []*entity.Subsystem) {
 		}
 		s.Parents = newParents
 	}
-}
-
-// reachableParents lists all entity.Subsystem entries reachable from the given one.
-func reachableParents(start *entity.Subsystem) map[*entity.Subsystem]bool {
-	ret := make(map[*entity.Subsystem]bool)
-	var dfs func(node *entity.Subsystem)
-	dfs = func(node *entity.Subsystem) {
-		for _, p := range node.Parents {
-			ret[p] = true
-			dfs(p)
-		}
-	}
-	dfs(start)
-	return ret
 }
 
 // loopsExist is a helper method that verifies that the resulting graph has no loops.
