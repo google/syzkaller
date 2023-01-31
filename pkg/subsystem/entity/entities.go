@@ -12,6 +12,23 @@ type Subsystem struct {
 	Parents     []*Subsystem
 }
 
+// ReachableParents returns the set of subsystems reachable from the current one.
+func (subsystem *Subsystem) ReachableParents() map[*Subsystem]struct{} {
+	ret := make(map[*Subsystem]struct{})
+	var dfs func(node *Subsystem)
+	dfs = func(node *Subsystem) {
+		if _, visited := ret[node]; visited {
+			return
+		}
+		for _, p := range node.Parents {
+			ret[p] = struct{}{}
+			dfs(p)
+		}
+	}
+	dfs(subsystem)
+	return ret
+}
+
 // PathRule describes the part of the directory tree belonging to a single subsystem.
 type PathRule struct {
 	IncludeRegexp string
