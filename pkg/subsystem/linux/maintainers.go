@@ -173,6 +173,22 @@ func (r maintainersRecord) ToPathRule() entity.PathRule {
 	}
 }
 
+func removeMatchingPatterns(records []*maintainersRecord, rule *regexp.Regexp) {
+	filter := func(list []string) []string {
+		ret := []string{}
+		for _, item := range list {
+			if !rule.MatchString(item) {
+				ret = append(ret, item)
+			}
+		}
+		return ret
+	}
+	for _, record := range records {
+		record.includePatterns = filter(record.includePatterns)
+		record.excludePatterns = filter(record.excludePatterns)
+	}
+}
+
 var (
 	escapedSeparator = regexp.QuoteMeta(fmt.Sprintf("%c", filepath.Separator))
 	wildcardReplace  = map[byte]string{
