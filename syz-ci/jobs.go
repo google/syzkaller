@@ -73,7 +73,7 @@ func (jm *JobManager) startLoop(wg *sync.WaitGroup) func() {
 		done <- struct{}{}
 	}()
 	return func() {
-		stop <- struct{}{}
+		close(stop)
 		<-done
 	}
 }
