@@ -144,6 +144,7 @@ func (jm *JobManager) resetJobs() error {
 }
 
 func (jp *JobProcessor) loop(stop chan struct{}) {
+	jp.Logf(0, "job loop started")
 loop:
 	for {
 		// Check jp.stop separately first, otherwise if stop signal arrives during a job execution,
