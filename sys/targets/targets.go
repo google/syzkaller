@@ -576,15 +576,17 @@ var (
 		"-Wno-stringop-overflow",
 		"-Wno-array-bounds",
 		"-Wno-format-overflow",
+		"-Wno-unused-but-set-variable",
 	}
 	optionalCFlags = map[string]bool{
-		"-static":                 true, // some distributions don't have static libraries
-		"-static-pie":             true, // this flag is also not supported everywhere
-		"-Wunused-const-variable": true, // gcc 5 does not support this flag
-		"-fsanitize=address":      true, // some OSes don't have ASAN
-		"-Wno-stringop-overflow":  true,
-		"-Wno-array-bounds":       true,
-		"-Wno-format-overflow":    true,
+		"-static":                      true, // some distributions don't have static libraries
+		"-static-pie":                  true, // this flag is also not supported everywhere
+		"-Wunused-const-variable":      true, // gcc 5 does not support this flag
+		"-fsanitize=address":           true, // some OSes don't have ASAN
+		"-Wno-stringop-overflow":       true,
+		"-Wno-array-bounds":            true,
+		"-Wno-format-overflow":         true,
+		"-Wno-unused-but-set-variable": true,
 	}
 	fallbackCFlags = map[string]string{
 		"-static-pie": "-static", // if an ASLR static binary is impossible, build just a static one
