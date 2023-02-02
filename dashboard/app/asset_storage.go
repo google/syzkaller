@@ -414,6 +414,12 @@ func (ad *crashAssetDeprecator) batchProcessCrashes(count int) error {
 				toDelete = append(toDelete, asset.DownloadURL)
 			}
 		}
+		if i > 0 {
+			// Sleep for one second to prevent the "API error 2 (datastore_v3:
+			// CONCURRENT_TRANSACTION): too much contention on these datastore
+			// entities. please try again." error.
+			time.Sleep(time.Second)
+		}
 		err := ad.updateCrash(crashKeys[i], toDelete)
 		if err != nil {
 			return err
