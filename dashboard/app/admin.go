@@ -265,6 +265,27 @@ func updateBugTitles(c context.Context, w http.ResponseWriter, r *http.Request) 
 	})
 }
 
+// setMissingBugFields makes sure all Bug entity fields are present in the database.
+// The problem is that, in Datastore, sorting/filtering on a field will only return entries
+// where that field is present.
+func setMissingBugFields(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	if accessLevel(c, r) != AccessAdmin {
+		return fmt.Errorf("admin only")
+	}
+	var keys []*db.Key
+	// Query everything.
+	err := foreachBug(c, nil, func(bug *Bug, key *db.Key) error {
+		keys = append(keys, key)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	log.Warningf(c, "fetched %v bugs for update", len(keys))
+	// Save everything unchanged.
+	return updateBugBatch(c, keys, func(bug *Bug) {})
+}
+
 func updateBugBatch(c context.Context, keys []*db.Key, transform func(bug *Bug)) error {
 	for len(keys) != 0 {
 		batchSize := 20
@@ -299,4 +320,5 @@ var (
 	_ = updateBugReporting
 	_ = updateBugTitles
 	_ = restartFailedBisections
+	_ = setMissingBugFields
 )
