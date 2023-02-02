@@ -176,10 +176,11 @@ func (git *git) reset() error {
 	if git.precious {
 		return nil
 	}
-	git.git("reset", "--hard")
+	git.git("reset", "--hard", "--recurse-submodules")
 	git.git("clean", "-fdx")
+	git.git("submodule", "foreach", "--recursive", "git", "clean", "-fdx")
 	git.git("bisect", "reset")
-	_, err := git.git("reset", "--hard")
+	_, err := git.git("reset", "--hard", "--recurse-submodules")
 	return err
 }
 
