@@ -30,22 +30,23 @@ import (
 )
 
 type Test struct {
-	Name     string
-	CFlags   []string
-	LDFlags  []string
-	Progs    []Prog
-	AddCover bool
-	Result   string
-	Supports func(target *targets.Target) bool
+	Name      string
+	CFlags    []string
+	LDFlags   []string
+	Progs     []Prog
+	DebugInfo bool
+	AddCover  bool
+	Result    string
+	Supports  func(target *targets.Target) bool
 }
 
 func TestReportGenerator(t *testing.T) {
 	tests := []Test{
 		{
-			Name:     "no-coverage",
-			CFlags:   []string{"-g"},
-			AddCover: true,
-			Result:   `.* doesn't contain coverage callbacks \(set CONFIG_KCOV=y on linux\)`,
+			Name:      "no-coverage",
+			DebugInfo: true,
+			AddCover:  true,
+			Result:    `.* doesn't contain coverage callbacks \(set CONFIG_KCOV=y on linux\)`,
 		},
 		{
 			Name:     "no-debug-info",
@@ -54,26 +55,30 @@ func TestReportGenerator(t *testing.T) {
 			Result:   `failed to parse DWARF.*\(set CONFIG_DEBUG_INFO=y on linux\)`,
 		},
 		{
-			Name:   "no-pcs",
-			CFlags: []string{"-fsanitize-coverage=trace-pc", "-g"},
-			Result: `no coverage collected so far`,
+			Name:      "no-pcs",
+			CFlags:    []string{"-fsanitize-coverage=trace-pc"},
+			DebugInfo: true,
+			Result:    `no coverage collected so far`,
 		},
 		{
-			Name:   "bad-pcs",
-			CFlags: []string{"-fsanitize-coverage=trace-pc", "-g"},
-			Progs:  []Prog{{Data: "data", PCs: []uint64{0x1, 0x2}}},
-			Result: `coverage doesn't match any coverage callbacks`,
+			Name:      "bad-pcs",
+			CFlags:    []string{"-fsanitize-coverage=trace-pc"},
+			DebugInfo: true,
+			Progs:     []Prog{{Data: "data", PCs: []uint64{0x1, 0x2}}},
+			Result:    `coverage doesn't match any coverage callbacks`,
 		},
 		{
-			Name:     "good",
-			AddCover: true,
-			CFlags:   []string{"-fsanitize-coverage=trace-pc", "-g"},
+			Name:      "good",
+			AddCover:  true,
+			CFlags:    []string{"-fsanitize-coverage=trace-pc"},
+			DebugInfo: true,
 		},
 		{
-			Name:     "good-pie",
-			AddCover: true,
-			CFlags:   []string{"-fsanitize-coverage=trace-pc", "-g", "-fpie"},
-			LDFlags:  []string{"-pie", "-Wl,--section-start=.text=0x33300000"},
+			Name:      "good-pie",
+			AddCover:  true,
+			CFlags:    []string{"-fsanitize-coverage=trace-pc", "-fpie"},
+			LDFlags:   []string{"-pie", "-Wl,--section-start=.text=0x33300000"},
+			DebugInfo: true,
 			Supports: func(target *targets.Target) bool {
 				return target.OS == targets.Fuchsia ||
 					// Fails with "relocation truncated to fit: R_AARCH64_CALL26 against symbol `memcpy'".
@@ -86,8 +91,9 @@ func TestReportGenerator(t *testing.T) {
 			// This produces a binary that resembles CONFIG_RANDOMIZE_BASE=y.
 			// Symbols and .text section has addresses around 0x33300000,
 			// but debug info has all PC ranges around 0 address.
-			CFlags:  []string{"-fsanitize-coverage=trace-pc", "-g", "-fpie"},
-			LDFlags: []string{"-pie", "-Wl,--section-start=.text=0x33300000,--emit-relocs"},
+			CFlags:    []string{"-fsanitize-coverage=trace-pc", "-fpie"},
+			LDFlags:   []string{"-pie", "-Wl,--section-start=.text=0x33300000,--emit-relocs"},
+			DebugInfo: true,
 			Supports: func(target *targets.Target) bool {
 				return target.OS == targets.Fuchsia ||
 					target.OS == targets.Linux && target.Arch != targets.ARM64 &&
@@ -205,6 +211,10 @@ func buildTestBinary(t *testing.T, target *targets.Target, test Test, dir string
 	// ubsan runtime is missing for arm/arm64/riscv arches in the llvm packages.
 	// So we first compile with -fsanitize-coverage and then link w/o it.
 	cflags := append(append([]string{"-w", "-c", "-o", obj, src}, target.CFlags...), test.CFlags...)
+	if test.DebugInfo {
+		// TODO: pkg/cover doesn't support DWARF5 yet, which is the default in Clang.
+		cflags = append([]string{"-g", "-gdwarf-4"}, cflags...)
+	}
 	if _, err := osutil.RunCmd(time.Hour, "", target.CCompiler, cflags...); err != nil {
 		errText := err.Error()
 		errText = strings.ReplaceAll(errText, "‘", "'")
