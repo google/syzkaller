@@ -85,7 +85,17 @@ func (ctx *linuxCtx) getSubsystems() ([]*entity.Subsystem, error) {
 	if err := setSubsystemNames(ret); err != nil {
 		return nil, fmt.Errorf("failed to set names: %w", err)
 	}
+	ctx.applyExtraRules(ret)
 	return ret, nil
+}
+
+func (ctx *linuxCtx) applyExtraRules(list []*entity.Subsystem) {
+	if ctx.extraRules == nil {
+		return
+	}
+	for _, entry := range list {
+		entry.Syscalls = ctx.extraRules.subsystemCalls[entry.Name]
+	}
 }
 
 func mergeRawRecords(subsystem *entity.Subsystem, records []*maintainersRecord) {
