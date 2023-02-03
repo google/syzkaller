@@ -836,11 +836,17 @@ func (target *Target) lazyInit() {
 	}
 
 	flags := make(map[string]*bool)
+	commonCFlags := []string{}
+	uncommonCFlags := []string{}
 	var wg sync.WaitGroup
 	for _, flag := range flagsToCheck {
 		if !optionalCFlags[flag] {
+			commonCFlags = append(commonCFlags, flag)
 			continue
 		}
+		uncommonCFlags = append(uncommonCFlags, flag)
+	}
+	for _, flag := range uncommonCFlags {
 		_, exists := flags[flag]
 		if exists {
 			continue
@@ -850,7 +856,7 @@ func (target *Target) lazyInit() {
 		wg.Add(1)
 		go func(flag string) {
 			defer wg.Done()
-			*res = checkFlagSupported(target, flag)
+			*res = checkFlagSupported(target, commonCFlags, flag)
 		}(flag)
 	}
 	wg.Wait()
@@ -888,8 +894,10 @@ func (target *Target) lazyInit() {
 	}
 }
 
-func checkFlagSupported(target *Target, flag string) bool {
-	cmd := exec.Command(target.CCompiler, "-x", "c++", "-", "-o", "/dev/null", "-Werror", flag)
+func checkFlagSupported(target *Target, targetCFlags []string, flag string) bool {
+	args := []string{"-x", "c++", "-", "-o", "/dev/null", "-Werror", flag}
+	args = append(args, targetCFlags...)
+	cmd := exec.Command(target.CCompiler, args...)
 	cmd.Stdin = strings.NewReader(simpleProg)
 	return cmd.Run() == nil
 }
