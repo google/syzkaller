@@ -47,6 +47,29 @@ func TestGroupLinuxSubsystems(t *testing.T) {
 	assert.ElementsMatch(t, subsystems, expected)
 }
 
+func TestCustomCallRules(t *testing.T) {
+	subsystems, err := listFromRepoInner(
+		prepareTestLinuxRepo(t, []byte(testMaintainers)),
+		testRules,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectCalls := map[string][]string{
+		"ext4": []string{"syz_mount_image$ext4"},
+	}
+	gotCalls := map[string][]string{}
+	for _, s := range subsystems {
+		if len(s.Syscalls) > 0 {
+			gotCalls[s.Name] = s.Syscalls
+		}
+	}
+	assert.Equal(t, len(expectCalls), len(gotCalls))
+	for name, expect := range expectCalls {
+		assert.ElementsMatchf(t, expect, gotCalls[name], "syscalls of %s", name)
+	}
+}
+
 func prepareTestLinuxRepo(t *testing.T, maintainers []byte) fs.FS {
 	return fstest.MapFS{
 		`fs/ext4/fsync.c`:        {},
@@ -64,6 +87,13 @@ func prepareTestLinuxRepo(t *testing.T, maintainers []byte) fs.FS {
 }
 
 var (
+	testRules = &customRules{
+		subsystemCalls: map[string][]string{
+			"ext4":  []string{"syz_mount_image$ext4"},
+			"vxfs":  []string{"syz_mount_image$vxfs"},
+			"tmpfs": []string{"syz_mount_image$tmpfs"},
+		},
+	}
 	testMaintainers = `
 Maintainers List
 ----------------
