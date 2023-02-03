@@ -1,5 +1,5 @@
-TITLE: general protection fault in vmalloc_fault
-ALT: bad-access in vmalloc_fault
+TITLE: general protection fault in corrupted
+ALT: bad-access in corrupted
 CORRUPTED: Y
 
 [  888.868901] IPv6: ADDRCONF(NETDEV_UP): team_slave_0: link is not ready
