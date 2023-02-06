@@ -6,6 +6,9 @@ package linux
 type customRules struct {
 	// The mapping between a Linux subsystem name and its system calls.
 	subsystemCalls map[string][]string
+	// These emails do not represent separate subsystems, even though they seem to
+	// per all criteria we have.
+	notSubsystemEmails map[string]struct{}
 }
 
 var (
@@ -49,6 +52,11 @@ var (
 			"vxfs":     {"syz_mount_image$vxfs"},
 			"xfs":      {"syz_mount_image$xfs"},
 			"zonefs":   {"syz_mount_image$zonefs"},
+		},
+		notSubsystemEmails: map[string]struct{}{
+			"linaro-mm-sig@lists.linaro.org":  {},
+			"samba-technical@lists.samba.org": {},
+			"storagedev@microchip.com":        {},
 		},
 	}
 )
