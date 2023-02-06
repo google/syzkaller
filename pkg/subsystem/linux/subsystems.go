@@ -83,8 +83,15 @@ func (ctx *linuxCtx) groupByList() []*subsystemCandidate {
 			perList[list] = append(perList[list], record)
 		}
 	}
+	var exclude map[string]struct{}
+	if ctx.extraRules != nil {
+		exclude = ctx.extraRules.notSubsystemEmails
+	}
 	ret := []*subsystemCandidate{}
 	for email, list := range perList {
+		if _, skip := exclude[email]; skip {
+			continue
+		}
 		ret = append(ret, &subsystemCandidate{
 			commonEmail: email,
 			records:     list,
