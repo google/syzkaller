@@ -9,6 +9,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/subsystem/linux"
 	"github.com/google/syzkaller/pkg/tool"
+	"github.com/google/syzkaller/pkg/vcs"
 )
 
 var (
@@ -52,7 +54,8 @@ func main() {
 	if err = osutil.MkdirAll(folder); err != nil {
 		tool.Failf("failed to create %s: %v", folder, err)
 	}
-	code, err := generateSubsystemsFile(*flagName, list)
+	commitInfo := determineCommitInfo(*flagKernelRepo)
+	code, err := generateSubsystemsFile(*flagName, list, commitInfo)
 	if err != nil {
 		tool.Failf("failed to generate code: %s", err)
 	}
@@ -60,4 +63,17 @@ func main() {
 	if err != nil {
 		tool.Failf("failed to save the code: %s", err)
 	}
+}
+
+func determineCommitInfo(dir string) string {
+	// Best effort only.
+	repo, err := vcs.NewRepo(*flagOS, "", dir, vcs.OptPrecious, vcs.OptDontSandbox)
+	if err != nil {
+		return fmt.Sprintf("failed to open repo: %v", err)
+	}
+	commit, err := repo.HeadCommit()
+	if err != nil {
+		return fmt.Sprintf("failed to get HEAD commit: %v", err)
+	}
+	return fmt.Sprintf(`Commit %s, "%.32s"`, commit.Hash, commit.Title)
 }
