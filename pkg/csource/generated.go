@@ -10324,6 +10324,10 @@ static int do_sandbox_android(uint64 sandbox_arg)
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	initialize_netdevices_init();
 #endif
+	if (unshare(CLONE_NEWNET)) {
+		debug("unshare(CLONE_NEWNET): %d\n", errno);
+	}
+	write_file("/proc/sys/net/ipv4/ping_group_range", "0 65535");
 #if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
 	initialize_devlink_pci();
 #endif

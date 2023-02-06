@@ -4354,6 +4354,14 @@ static int do_sandbox_android(uint64 sandbox_arg)
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	initialize_netdevices_init();
 #endif
+	// CLONE_NEWNET must always happen before tun setup, because we want the tun
+	// device in the test namespace. If we don't do this, executor will crash with
+	// SYZFATAL: executor NUM failed NUM times: executor NUM: EOF
+	if (unshare(CLONE_NEWNET)) {
+		debug("unshare(CLONE_NEWNET): %d\n", errno);
+	}
+	// Enable access to IPPROTO_ICMP sockets, must be done after CLONE_NEWNET.
+	write_file("/proc/sys/net/ipv4/ping_group_range", "0 65535");
 #if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
 	initialize_devlink_pci();
 #endif
@@ -4361,10 +4369,6 @@ static int do_sandbox_android(uint64 sandbox_arg)
 	initialize_tun();
 #endif
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
-	// TODO(dvyukov): unshare net namespace.
-	// Currently all netdev setup happens in init namespace.
-	// It will lead to some mess, all test process will use the same devices
-	// and try to reinitialize them as other test processes use them.
 	initialize_netdevices();
 #endif
 	uid_t uid = UNTRUSTED_APP_UID;
