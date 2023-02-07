@@ -797,7 +797,7 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 			bug.HasReport = true
 		}
 		if calculateSubsystems {
-			bug.SetSubsystems(newSubsystems)
+			bug.SetSubsystems(newSubsystems, now, getSubsystemRevision(c, ns))
 		}
 		bug.increaseCrashStats(now)
 		bug.HappenedOn = mergeString(bug.HappenedOn, build.Manager)
@@ -1340,18 +1340,19 @@ func createBugForCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, 
 					return fmt.Errorf("failed to get bug: %v", err)
 				}
 				bug = &Bug{
-					Namespace:    ns,
-					Seq:          seq,
-					Title:        req.Title,
-					MergedTitles: []string{req.Title},
-					AltTitles:    req.AltTitles,
-					Status:       BugStatusOpen,
-					NumCrashes:   0,
-					NumRepro:     0,
-					ReproLevel:   ReproLevelNone,
-					HasReport:    false,
-					FirstTime:    now,
-					LastTime:     now,
+					Namespace:      ns,
+					Seq:            seq,
+					Title:          req.Title,
+					MergedTitles:   []string{req.Title},
+					AltTitles:      req.AltTitles,
+					Status:         BugStatusOpen,
+					NumCrashes:     0,
+					NumRepro:       0,
+					ReproLevel:     ReproLevelNone,
+					HasReport:      false,
+					FirstTime:      now,
+					LastTime:       now,
+					SubsystemsTime: now,
 				}
 				err = bug.updateReportings(config.Namespaces[ns], now)
 				if err != nil {
@@ -1560,6 +1561,17 @@ func handleRetestRepros(w http.ResponseWriter, r *http.Request) {
 		err := updateRetestReproJobs(c, ns)
 		if err != nil {
 			log.Errorf(c, "failed to update retest repro jobs for %s: %v", ns, err)
+		}
+	}
+}
+
+func handleRefreshSubsystems(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+	const updateBugsCount = 20
+	for ns := range config.Namespaces {
+		err := reassignBugSubsystems(c, ns, updateBugsCount)
+		if err != nil {
+			log.Errorf(c, "failed to update subsystems for %s: %v", ns, err)
 		}
 	}
 }
