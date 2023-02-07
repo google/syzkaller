@@ -110,7 +110,7 @@ type SubsystemsConfig struct {
 	// If Service is set, dashboard will use it to infer and recalculate subsystems.
 	Service *subsystem.Service
 	// If all existing subsystem labels must be recalculated, increase this integer.
-	Revision int64
+	Revision int
 }
 
 // ObsoletingConfig describes how bugs without reproducer should be obsoleted.
