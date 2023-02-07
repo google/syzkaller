@@ -47,12 +47,6 @@ RUN sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++
 RUN sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-15 100
 RUN sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-15 100
 
-# Download and install the custom Clang required to build KMSAN.
-# TODO(@ramosian-glider): switch to stable Clang once KMSAN is upstreamed.
-ENV CLANG_KMSAN_VER 610139d2d9ce
-RUN curl https://storage.googleapis.com/syzkaller/clang-${CLANG_KMSAN_VER}.tar.gz | tar -C /usr/local/ -xz
-RUN ln -s /usr/local/clang-${CLANG_KMSAN_VER} /usr/local/clang-kmsan
-
 # The default Docker prompt is too ugly and takes the whole line:
 # I have no name!@0f3331d2fb54:~/gopath/src/github.com/google/syzkaller$
 RUN echo "export PS1='syz-env🈴 '" > /syzkaller/.bashrc
