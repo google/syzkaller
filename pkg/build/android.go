@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/osutil"
@@ -18,6 +19,7 @@ import (
 const (
 	kernelConfig = "common/build.config.gki_kasan.x86_64"
 	moduleConfig = "common-modules/virtual-device/build.config.virtual_device_kasan.x86_64"
+	bazelTarget  = "//common-modules/virtual-device:virtual_device_x86_64_dist"
 )
 
 type android struct{}
@@ -27,6 +29,13 @@ func (a android) runBuild(kernelDir, buildConfig string) error {
 	cmd.Dir = kernelDir
 	cmd.Env = append(cmd.Env, "OUT_DIR=out", "DIST_DIR=dist", fmt.Sprintf("BUILD_CONFIG=%s", buildConfig))
 
+	_, err := osutil.Run(time.Hour, cmd)
+	return err
+}
+
+func (a android) runBazel(kernelDir, buildConfig string) error {
+	cmd := osutil.Command("tools/bazel", "run", "--kasan", bazelTarget, "--", "--dist_dir=dist")
+	cmd.Dir = kernelDir
 	_, err := osutil.Run(time.Hour, cmd)
 	return err
 }
@@ -75,11 +84,29 @@ func (a android) build(params Params) (ImageDetails, error) {
 		return details, fmt.Errorf("sysctl file is not supported for android cuttlefish images")
 	}
 
-	if err := a.runBuild(params.KernelDir, kernelConfig); err != nil {
-		return details, fmt.Errorf("failed to build kernel: %s", err)
-	}
-	if err := a.runBuild(params.KernelDir, moduleConfig); err != nil {
-		return details, fmt.Errorf("failed to build modules: %s", err)
+	var config string
+	var err error
+	// Default to build.sh if compiler is not specified.
+	if params.Compiler == "bazel" {
+		if err := a.runBazel(params.KernelDir, bazelTarget); err != nil {
+			return details, fmt.Errorf("failed to build kernel: %s", err)
+		}
+		// Find the .config file; it is placed in a temporary output directory during the build.
+		cmd := osutil.Command("find", ".", "-wholename", "*virtual_device_x86_64_config/out_dir/.config")
+		cmd.Dir = params.KernelDir
+		configBytes, err := osutil.Run(time.Minute, cmd)
+		if err != nil {
+			return details, fmt.Errorf("failed to find build config: %v", err)
+		}
+		config = filepath.Join(params.KernelDir, strings.TrimSpace(string(configBytes)))
+	} else {
+		if err := a.runBuild(params.KernelDir, kernelConfig); err != nil {
+			return details, fmt.Errorf("failed to build kernel: %s", err)
+		}
+		if err := a.runBuild(params.KernelDir, moduleConfig); err != nil {
+			return details, fmt.Errorf("failed to build modules: %s", err)
+		}
+		config = filepath.Join(params.KernelDir, "out", "common", ".config")
 	}
 
 	buildDistDir := filepath.Join(params.KernelDir, "dist")
@@ -87,10 +114,6 @@ func (a android) build(params Params) (ImageDetails, error) {
 	vmlinux := filepath.Join(buildDistDir, "vmlinux")
 	initramfs := filepath.Join(buildDistDir, "initramfs.img")
 
-	buildOutDir := filepath.Join(params.KernelDir, "out")
-	config := filepath.Join(buildOutDir, "common", ".config")
-
-	var err error
 	details.CompilerID, err = a.readCompiler(filepath.Join(buildDistDir, "kernel-headers.tar.gz"))
 	if err != nil {
 		return details, err
