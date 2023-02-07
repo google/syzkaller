@@ -21,3 +21,21 @@ func TestReachableParents(t *testing.T) {
 	}
 	assert.ElementsMatch(t, retParents, []*Subsystem{parentA, parentB, parentParent})
 }
+
+func TestSubsystemEmails(t *testing.T) {
+	parentParent := &Subsystem{Lists: []string{"a@list.com"}, Maintainers: []string{"a@person.com"}}
+	parent1 := &Subsystem{Lists: []string{"b@list.com"}, Maintainers: []string{"b@person.com"}}
+	parent2 := &Subsystem{
+		Lists:       []string{"c@list.com"},
+		Maintainers: []string{"c@person.com"},
+		Parents:     []*Subsystem{parentParent},
+	}
+	subsystem := &Subsystem{
+		Lists:       []string{"d@list.com"},
+		Maintainers: []string{"d@person.com"},
+		Parents:     []*Subsystem{parent1, parent2},
+	}
+	assert.ElementsMatch(t, subsystem.Emails(), []string{
+		"a@list.com", "b@list.com", "c@list.com", "d@list.com", "d@person.com",
+	})
+}
