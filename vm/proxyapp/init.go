@@ -68,6 +68,9 @@ type Config struct {
 	// server_tls_cert points a TLS certificate used to authenticate the server.
 	// If not provided, the default system certificate pool will be used.
 	ServerTLSCert string `json:"server_tls_cert"`
+	// transfer_file_content will send the file content as a byte array in
+	// addition to the filename.
+	TransferFileContent bool `json:"transfer_file_content"`
 	// config is an optional remote plugin config
 	ProxyAppConfig json.RawMessage `json:"config"`
 }
