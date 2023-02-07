@@ -11,10 +11,13 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
+	"io/fs"
 	"net"
 	"net/rpc"
 	"net/rpc/jsonrpc"
 	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -96,7 +99,9 @@ func (p *pool) init(params *proxyAppParams, cfg *Config) error {
 	if cfg.Command != "" {
 		p.proxy, err = runProxyApp(params, cfg.Command, usePipedRPC)
 	} else {
-		p.proxy = &ProxyApp{}
+		p.proxy = &ProxyApp{
+			transferFileContent: cfg.TransferFileContent,
+		}
 	}
 	if err != nil {
 		return fmt.Errorf("failed to run ProxyApp: %w", err)
@@ -170,11 +175,12 @@ func (p *pool) Close() error {
 
 type ProxyApp struct {
 	*rpc.Client
-	terminate        context.CancelFunc
-	onTerminated     chan bool
-	onLostConnection chan bool
-	stopLogPooling   chan bool
-	logPoolingDone   chan bool
+	transferFileContent bool
+	terminate           context.CancelFunc
+	onTerminated        chan bool
+	onLostConnection    chan bool
+	stopLogPooling      chan bool
+	logPoolingDone      chan bool
 }
 
 func initPipedRPCClient(cmd subProcessCmd) (*rpc.Client, []io.Closer, error) {
@@ -354,12 +360,40 @@ func (proxy *ProxyApp) CreatePool(config string, debug bool) (int, error) {
 
 func (proxy *ProxyApp) CreateInstance(workdir string, index int) (vmimpl.Instance, error) {
 	var reply proxyrpc.CreateInstanceResult
-	err := proxy.Call(
-		"ProxyVM.CreateInstance",
-		proxyrpc.CreateInstanceParams{
-			Workdir: workdir,
-			Index:   index},
-		&reply)
+
+	params := proxyrpc.CreateInstanceParams{
+		Workdir: workdir,
+		Index:   index,
+	}
+
+	if proxy.transferFileContent {
+		workdirData := make(map[string][]byte)
+
+		err := filepath.WalkDir(workdir, func(path string, d fs.DirEntry, e error) error {
+			if d.IsDir() {
+				return nil
+			}
+
+			name := strings.TrimPrefix(path, workdir)
+
+			data, err := os.ReadFile(path)
+			if err != nil {
+				return fmt.Errorf("read file on host: %s", err)
+			}
+
+			workdirData[name] = data
+
+			return nil
+		})
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to walk workdir: %v", err)
+		}
+
+		params.WorkdirData = workdirData
+	}
+
+	err := proxy.Call("ProxyVM.CreateInstance", params, &reply)
 	if err != nil {
 		return nil, fmt.Errorf("failed to proxy.Call(\"ProxyVM.CreateInstance\"): %w", err)
 	}
@@ -379,13 +413,21 @@ type instance struct {
 // nolint: dupl
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	var reply proxyrpc.CopyResult
-	err := inst.ProxyApp.Call(
-		"ProxyVM.Copy",
-		proxyrpc.CopyParams{
-			ID:      inst.ID,
-			HostSrc: hostSrc,
-		},
-		&reply)
+	params := proxyrpc.CopyParams{
+		ID:      inst.ID,
+		HostSrc: hostSrc,
+	}
+
+	if inst.ProxyApp.transferFileContent {
+		data, err := os.ReadFile(hostSrc)
+		if err != nil {
+			return "", fmt.Errorf("read file on host: %s", err)
+		}
+
+		params.Data = data
+	}
+
+	err := inst.ProxyApp.Call("ProxyVM.Copy", params, &reply)
 	if err != nil {
 		return "", err
 	}

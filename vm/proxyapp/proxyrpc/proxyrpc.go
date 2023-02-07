@@ -27,8 +27,9 @@ type CreatePoolResult struct {
 }
 
 type CreateInstanceParams struct {
-	Workdir string
-	Index   int
+	Workdir     string
+	Index       int
+	WorkdirData map[string][]byte
 }
 
 type CreateInstanceResult struct {
@@ -38,6 +39,7 @@ type CreateInstanceResult struct {
 type CopyParams struct {
 	ID      string
 	HostSrc string
+	Data    []byte
 }
 
 type CopyResult struct {
