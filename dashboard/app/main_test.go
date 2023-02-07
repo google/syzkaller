@@ -77,11 +77,14 @@ func TestOnlyManagerFilter(t *testing.T) {
 	}
 }
 
+const (
+	subsystemA = "subsystemA"
+	subsystemB = "subsystemB"
+)
+
 func TestSubsystemFilterMain(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
-
-	subsystemA, subsystemB := "subsystemA", "subsystemB"
 
 	client := c.client
 	build := testBuild(1)
@@ -89,12 +92,12 @@ func TestSubsystemFilterMain(t *testing.T) {
 
 	crash1 := testCrash(build, 1)
 	crash1.Title = "first bug"
-	c.contextVars[overrideSubsystemsKey] = []string{subsystemA}
+	crash1.GuiltyFiles = []string{"a.c"}
 	client.ReportCrash(crash1)
 
 	crash2 := testCrash(build, 2)
-	c.contextVars[overrideSubsystemsKey] = []string{subsystemB}
 	crash2.Title = "second bug"
+	crash2.GuiltyFiles = []string{"b.c"}
 	client.ReportCrash(crash2)
 
 	client.pollBugs(2)
@@ -123,20 +126,18 @@ func TestSubsystemFilterTerminal(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
-	subsystemA, subsystemB := "subsystemA", "subsystemB"
-
 	client := c.client
 	build := testBuild(1)
 	client.UploadBuild(build)
 
 	crash1 := testCrash(build, 1)
 	crash1.Title = "first bug"
-	c.contextVars[overrideSubsystemsKey] = []string{subsystemA}
+	crash1.GuiltyFiles = []string{"a.c"}
 	client.ReportCrash(crash1)
 
 	crash2 := testCrash(build, 2)
-	c.contextVars[overrideSubsystemsKey] = []string{subsystemB}
 	crash2.Title = "second bug"
+	crash2.GuiltyFiles = []string{"b.c"}
 	client.ReportCrash(crash2)
 
 	// Invalidate all these bugs.

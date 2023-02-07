@@ -15,7 +15,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/auth"
-	subsystem "github.com/google/syzkaller/pkg/subsystem/legacy"
+	"github.com/google/syzkaller/pkg/subsystem"
+	_ "github.com/google/syzkaller/pkg/subsystem/lists"
 	"github.com/google/syzkaller/sys/targets"
 	"google.golang.org/appengine/v2/user"
 )
@@ -105,6 +106,22 @@ var testConfig = &GlobalConfig{
 						Index: 2,
 					},
 				},
+			},
+			Subsystems: SubsystemsConfig{
+				Service: subsystem.MustMakeService([]*subsystem.Subsystem{
+					{
+						Name:        "subsystemA",
+						PathRules:   []subsystem.PathRule{{IncludeRegexp: `a\.c`}},
+						Lists:       []string{"subsystemA@list.com"},
+						Maintainers: []string{"subsystemA@person.com"},
+					},
+					{
+						Name:        "subsystemB",
+						PathRules:   []subsystem.PathRule{{IncludeRegexp: `b\.c`}},
+						Lists:       []string{"subsystemB@list.com"},
+						Maintainers: []string{"subsystemB@person.com"},
+					},
+				}),
 			},
 		},
 		"test2": {
@@ -358,7 +375,7 @@ var testConfig = &GlobalConfig{
 				},
 			},
 			Subsystems: SubsystemsConfig{
-				SubsystemCc: subsystem.LinuxGetMaintainers,
+				Service: subsystem.ListService("linux"),
 			},
 		},
 		"test-decommission": {

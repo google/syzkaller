@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFsSubsystemFlow(t *testing.T) {
@@ -33,7 +34,7 @@ func TestFsSubsystemFlow(t *testing.T) {
 
 	// We skip the first stage and report the bug right away.
 	reply := c.pollEmailBug()
-	c.expectEQ(reply.Subject, "[syzbot] WARNING: abcd")
+	c.expectEQ(reply.Subject, "[syzbot] [kernel?] WARNING: abcd")
 
 	// B. Send a non-vfs bug without a reproducer.
 	// -----------------------------------------
@@ -47,9 +48,10 @@ func TestFsSubsystemFlow(t *testing.T) {
 
 	reply = c.pollEmailBug()
 	// The subsystem should have been taken from the guilty path.
-	c.expectEQ(reply.Subject, "[syzbot] [nilfs2?] WARNING in nilfs_dat_commit_end")
-	c.expectEQ(reply.To, []string{
+	c.expectEQ(reply.Subject, "[syzbot] [nilfs?] WARNING in nilfs_dat_commit_end")
+	assert.ElementsMatch(t, reply.To, []string{
 		"konishi.ryusuke@gmail.com",
+		"linux-fsdevel@vger.kernel.org",
 		"linux-kernel@vger.kernel.org",
 		"linux-nilfs@vger.kernel.org",
 		"maintainer@kernel.org",
@@ -91,11 +93,16 @@ renameat2(r0, &(0x7f00000004c0)='./file0\x00', r0, &(0x7f0000000500)='./bus/file
 	client.updateBug(vfsBug.ID, dashapi.BugStatusUpstream, "")
 	// .. and poll the email.
 	reply = c.pollEmailBug()
-	c.expectEQ(reply.Subject, "[syzbot] [vfs?] [ntfs3?] WARNING in do_mkdirat")
+	c.expectEQ(reply.Subject, "[syzbot] [ntfs3?] WARNING in do_mkdirat")
 	// Make sure ntfs3 maintainers are in the recipients.
-	c.expectEQ(reply.To, []string{"almaz.alexandrovich@paragon-software.com",
-		"linux-kernel@vger.kernel.org", "maintainer@kernel.org",
-		"ntfs3@lists.linux.dev", "test@syzkaller.com"})
+	assert.ElementsMatch(t, reply.To, []string{
+		"almaz.alexandrovich@paragon-software.com",
+		"linux-fsdevel@vger.kernel.org",
+		"linux-kernel@vger.kernel.org",
+		"maintainer@kernel.org",
+		"ntfs3@lists.linux.dev",
+		"test@syzkaller.com",
+	})
 }
 
 func TestVfsSubsystemFlow(t *testing.T) {
@@ -143,5 +150,5 @@ renameat2(r0, &(0x7f00000004c0)='./file0\x00', r0, &(0x7f0000000500)='./bus/file
 	client.updateBug(vfsBug.ID, dashapi.BugStatusUpstream, "")
 	// .. and poll the email.
 	reply := c.pollEmailBug()
-	c.expectEQ(reply.Subject, "[syzbot] [vfs?] WARNING in do_mkdirat2")
+	c.expectEQ(reply.Subject, "[syzbot] [fs?] WARNING in do_mkdirat2")
 }
