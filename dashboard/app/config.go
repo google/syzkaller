@@ -14,6 +14,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/auth"
 	"github.com/google/syzkaller/pkg/email"
+	"github.com/google/syzkaller/pkg/subsystem"
 	"github.com/google/syzkaller/pkg/vcs"
 )
 
@@ -104,11 +105,12 @@ type Config struct {
 	Subsystems SubsystemsConfig
 }
 
-// SubsystemsConfig describes how to generate the list of kernel subsystems and the rules of
-// subsystem inference / bug reporting.
+// SubsystemsConfig describes where to take the list of subsystems and how to infer them.
 type SubsystemsConfig struct {
-	// IMPORTANT: this interface is experimental and will likely change in the future.
-	SubsystemCc func(name string) []string
+	// If Service is set, dashboard will use it to infer and recalculate subsystems.
+	Service *subsystem.Service
+	// If all existing subsystem labels must be recalculated, increase this integer.
+	Revision int64
 }
 
 // ObsoletingConfig describes how bugs without reproducer should be obsoleted.
@@ -347,9 +349,6 @@ func checkNamespace(ns string, cfg *Config, namespaces, clientNames map[string]b
 	}
 	if cfg.Kcidb != nil {
 		checkKcidb(ns, cfg.Kcidb)
-	}
-	if cfg.Subsystems.SubsystemCc == nil {
-		cfg.Subsystems.SubsystemCc = func(string) []string { return nil }
 	}
 	checkKernelRepos(ns, cfg)
 	checkNamespaceReporting(ns, cfg)

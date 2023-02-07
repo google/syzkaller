@@ -9,7 +9,8 @@ package main
 // canBeVfsBug determines whether a bug could belong to the VFS subsystem itself.
 func canBeVfsBug(bug *Bug) bool {
 	for _, subsystem := range bug.Tags.Subsystems {
-		if subsystem.Name == "vfs" {
+		// The "vfs" one is left for compatibility with the older matching code.
+		if subsystem.Name == "vfs" || subsystem.Name == "fs" {
 			return true
 		}
 	}

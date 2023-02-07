@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/hash"
+	"github.com/google/syzkaller/pkg/subsystem"
 	"golang.org/x/net/context"
 	db "google.golang.org/appengine/v2/datastore"
 )
@@ -129,13 +130,11 @@ type BugSubsystem struct {
 	Name string
 }
 
-func (bug *Bug) addSubsystem(subsystem BugSubsystem) {
-	for _, item := range bug.Tags.Subsystems {
-		if item.Name == subsystem.Name {
-			return
-		}
+func (bug *Bug) SetSubsystems(list []*subsystem.Subsystem) {
+	bug.Tags.Subsystems = nil
+	for _, item := range list {
+		bug.Tags.Subsystems = append(bug.Tags.Subsystems, BugSubsystem{Name: item.Name})
 	}
-	bug.Tags.Subsystems = append(bug.Tags.Subsystems, subsystem)
 }
 
 func (bug *Bug) hasSubsystem(name string) bool {
