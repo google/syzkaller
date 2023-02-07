@@ -26,3 +26,7 @@ func RegisterList(name string, list []*Subsystem) {
 func GetList(name string) []*Subsystem {
 	return lists[name]
 }
+
+func ListService(name string) *Service {
+	return MustMakeService(lists[name])
+}
