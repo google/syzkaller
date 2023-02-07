@@ -31,6 +31,19 @@ func (subsystem *Subsystem) ReachableParents() map[*Subsystem]struct{} {
 	return ret
 }
 
+// Emails returns the list of emails related to the subsystem.
+func (subsystem *Subsystem) Emails() []string {
+	ret := []string{}
+	// For the subsystem itself, we take both lists and maintainers.
+	ret = append(ret, subsystem.Lists...)
+	ret = append(ret, subsystem.Maintainers...)
+	// For its parent subsystems, we only take lists.
+	for parent := range subsystem.ReachableParents() {
+		ret = append(ret, parent.Lists...)
+	}
+	return ret
+}
+
 // PathRule describes the part of the directory tree belonging to a single subsystem.
 type PathRule struct {
 	IncludeRegexp string
