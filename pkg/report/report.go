@@ -259,6 +259,20 @@ func (reporter *Reporter) isInteresting(rep *Report) bool {
 	return false
 }
 
+// There are cases when we need to extract a guilty file, but have no ability to do it the
+// proper way -- parse and symbolize the raw console output log. One of such cases is
+// the syz-fillreports tool, which only has access to the already symbolized logs.
+// ReportToGuiltyFile does its best to extract the data.
+func (reporter *Reporter) ReportToGuiltyFile(title string, report []byte) string {
+	ii, ok := reporter.impl.(interface {
+		extractGuiltyFileRaw(title string, report []byte) string
+	})
+	if !ok {
+		return ""
+	}
+	return ii.extractGuiltyFileRaw(title, report)
+}
+
 func extractReportType(rep *Report) Type {
 	// Type/frame extraction logic should be integrated with oops types.
 	// But for now we do this more ad-hoc analysis here to at least isolate
