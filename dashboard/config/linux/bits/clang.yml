@@ -1,0 +1,9 @@
+# Copyright 2023 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+config:
+ # Newer Clang versions generate DWARF5 by default, but old binutils choke on that.
+ # This results in syzbot being unable to symbolize reports.
+ # Stick to DWARF4 for now.
+ - DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT: [n, weak]
+ - DEBUG_INFO_DWARF4
