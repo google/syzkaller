@@ -279,27 +279,8 @@ func TestGuiltyFile(t *testing.T) {
 }
 
 func testGuiltyFile(t *testing.T, reporter *Reporter, fn string) {
-	data, err := ioutil.ReadFile(fn)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for bytes.HasPrefix(data, []byte{'#'}) {
-		nl := bytes.Index(data, []byte{'\n'})
-		if nl == -1 {
-			t.Fatalf("unterminated comment in file")
-		}
-		data = data[nl+1:]
-	}
-	const prefix = "FILE: "
-	if !bytes.HasPrefix(data, []byte(prefix)) {
-		t.Fatalf("no %v prefix in file", prefix)
-	}
-	nlnl := bytes.Index(data[len(prefix):], []byte{'\n', '\n'})
-	if nlnl == -1 {
-		t.Fatalf("no \\n\\n in file")
-	}
-	file := string(data[len(prefix) : len(prefix)+nlnl])
-	report := data[len(prefix)+nlnl:]
+	vars, report := parseGuiltyTest(t, fn)
+	file := vars["FILE"]
 	rep := reporter.Parse(report)
 	if rep == nil {
 		t.Fatalf("did not find crash in the input")
@@ -321,6 +302,43 @@ func testGuiltyFile(t *testing.T, reporter *Reporter, fn string) {
 	if rep.GuiltyFile != file {
 		t.Fatalf("got guilty %q, want %q", rep.GuiltyFile, file)
 	}
+}
+
+func TestRawGuiltyFile(t *testing.T) {
+	forEachFile(t, "guilty_raw", testRawGuiltyFile)
+}
+
+func testRawGuiltyFile(t *testing.T, reporter *Reporter, fn string) {
+	vars, report := parseGuiltyTest(t, fn)
+	outFile := reporter.ReportToGuiltyFile(vars["TITLE"], report)
+	if outFile != vars["FILE"] {
+		t.Fatalf("expected %#v, got %#v", vars["FILE"], outFile)
+	}
+}
+
+func parseGuiltyTest(t *testing.T, fn string) (map[string]string, []byte) {
+	data, err := ioutil.ReadFile(fn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	nlnl := bytes.Index(data, []byte{'\n', '\n'})
+	if nlnl == -1 {
+		t.Fatalf("no \\n\\n in file")
+	}
+	vars := map[string]string{}
+	s := bufio.NewScanner(bytes.NewReader(data[:nlnl]))
+	for s.Scan() {
+		ln := strings.TrimSpace(s.Text())
+		if ln == "" || ln[0] == '#' {
+			continue
+		}
+		colon := strings.IndexByte(ln, ':')
+		if colon == -1 {
+			t.Fatalf("no : in %s", ln)
+		}
+		vars[strings.TrimSpace(ln[:colon])] = strings.TrimSpace(ln[colon+1:])
+	}
+	return vars, data[nlnl+2:]
 }
 
 func forEachFile(t *testing.T, dir string, fn func(t *testing.T, reporter *Reporter, fn string)) {
