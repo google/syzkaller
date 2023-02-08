@@ -691,8 +691,11 @@ func (ctx *linux) decompileOpcodes(text []byte, report *Report) []byte {
 }
 
 func (ctx *linux) extractGuiltyFile(rep *Report) string {
-	report := rep.Report[rep.reportPrefixLen:]
-	if strings.HasPrefix(rep.Title, "INFO: rcu detected stall") {
+	return ctx.extractGuiltyFileRaw(rep.Title, rep.Report[rep.reportPrefixLen:])
+}
+
+func (ctx *linux) extractGuiltyFileRaw(title string, report []byte) string {
+	if strings.HasPrefix(title, "INFO: rcu detected stall") {
 		// Special case for rcu stalls.
 		// There are too many frames that we want to skip before actual guilty frames,
 		// we would need to ignore too many files and that would be fragile.

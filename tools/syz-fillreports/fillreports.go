@@ -62,32 +62,15 @@ func processReport(dash *dashapi.Dashboard, bugReport *dashapi.BugReport, bugID 
 		log.Fatalf("%v: failed to create a reporter for %s/%s",
 			bugReport.ID, bugReport.OS, bugReport.Arch)
 	}
-	rep := reporter.Parse(bugReport.Log)
-	if rep == nil {
-		log.Printf("%v: no crash is detected", bugReport.ID)
-		return
-	}
-	// In order to extract a guilty path, the report needs to be normally symbolized,
-	// and for symbolization we need the kernel object file (e.g. vmlinux) for the
-	// kernel, on which the crash was triggered.
-	// We do not have it for all our crashes, but we can do a hack here -- we already
-	// have a symbolized report on the dashboard, so we can substitute it into the
-	// partially processed Report object. This is not the most robust solution, as
-	// it relies on the internals of how the `Symbolize` method works, but it's short
-	// and works now, and furthermore we do not really have other options.
-	rep.Report = bugReport.Report
-	err = reporter.Symbolize(rep)
-	if err != nil {
-		log.Printf("%v: symbolize failed: %v", bugReport.ID, err)
-	}
-	if rep.GuiltyFile == "" {
+	guiltyFile := reporter.ReportToGuiltyFile(bugReport.Title, bugReport.Report)
+	if guiltyFile == "" {
 		log.Printf("%v: no guilty files extracted", bugReport.ID)
 		return
 	}
 	err = dash.UpdateReport(&dashapi.UpdateReportReq{
 		BugID:       bugID,
 		CrashID:     bugReport.CrashID,
-		GuiltyFiles: &[]string{rep.GuiltyFile},
+		GuiltyFiles: &[]string{guiltyFile},
 	})
 	if err != nil {
 		log.Printf("%v: failed to save: %v", bugReport.ID, err)
