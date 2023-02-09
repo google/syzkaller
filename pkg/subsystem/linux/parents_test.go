@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDropEmptySubsystems(t *testing.T) {
+func TestDropSmallSubsystems(t *testing.T) {
 	kernel := &entity.Subsystem{}
 	net := &entity.Subsystem{}
 	fs := &entity.Subsystem{}
@@ -22,8 +22,10 @@ func TestDropEmptySubsystems(t *testing.T) {
 	matrix.Record(kernel, net)
 	matrix.Record(kernel, fs)
 	matrix.Record(kernel, net, fs)
+	matrix.Record(kernel, net, fs)
+	matrix.Record(kernel, net, fs)
 
-	ret := dropEmptySubsystems(matrix, []*entity.Subsystem{kernel, net, fs, legal})
+	ret := dropSmallSubsystems(matrix, []*entity.Subsystem{kernel, net, fs, legal})
 	assert.ElementsMatch(t, []*entity.Subsystem{kernel, net, fs}, ret)
 }
 

@@ -12,7 +12,6 @@ func init() {
 
 // The subsystem list:
 // - kernel
-//   - abi
 //   - accelerators
 //   - acpi
 //     - acpica
@@ -21,7 +20,6 @@ func init() {
 //   - alsa
 //     - cirrus
 //     - sof
-//   - api
 //   - arch
 //   - arm
 //     - actions
@@ -34,11 +32,9 @@ func init() {
 //     - mediatek
 //     - omap
 //     - oxnas
-//     - realtek-soc
 //     - rockchip
 //     - rpi
 //     - samsung-soc
-//       - openmoko
 //     - stm32
 //     - sunxi
 //     - unisoc
@@ -48,7 +44,6 @@ func init() {
 //   - audit
 //   - axis
 //   - bcache
-//   - blinux
 //   - block
 //     - drbd
 //     - nbd
@@ -71,7 +66,6 @@ func init() {
 //     - etnaviv
 //     - fbdev
 //       - geode
-//       - nvidia
 //     - freedreno
 //     - intel-gfx
 //       - intel-gvt
@@ -84,7 +78,6 @@ func init() {
 //   - fpga
 //   - fs
 //     - afs
-//     - aio
 //     - autofs
 //     - btrfs
 //     - cachefs
@@ -105,9 +98,9 @@ func init() {
 //     - ntfs3
 //     - ocfs2
 //     - orangefs
+//     - overlayfs
 //     - reiserfs
 //     - squashfs
-//     - unionfs
 //     - v9fs
 //     - xfs
 //   - fsi
@@ -123,12 +116,9 @@ func init() {
 //   - iio
 //   - industrypack
 //   - input
-//     - usbb2k-api
-//     - usrp
 //   - integrity
 //   - io-uring
 //   - iommu
-//   - jailhouse
 //   - kasan
 //   - kexec
 //   - keyrings
@@ -144,6 +134,9 @@ func init() {
 //   - live-patching
 //   - llvm
 //   - loongarch
+//   - lsm
+//     - apparmor
+//     - tomoyo
 //   - m68k
 //     - uclinux
 //   - media
@@ -156,16 +149,13 @@ func init() {
 //   - mm
 //     - damon
 //   - mmc
-//     - sdricohcs
 //   - modules
 //   - mtd
 //   - net
-//     - acenic
 //     - atm
 //     - b.a.t.m.a.n
 //     - bluetooth
 //     - bridge
-//     - cake
 //     - can
 //     - coreteam
 //       - lvs
@@ -178,13 +168,11 @@ func init() {
 //     - nfc
 //     - openvswitch
 //     - openwrt
-//     - osmocom
 //     - oss-drivers
 //     - ppp
 //     - rds
 //     - sctp
 //     - tipc
-//     - tlan
 //     - wireguard
 //     - wireless
 //       - SHA-cyfmac
@@ -211,7 +199,6 @@ func init() {
 //   - phy
 //   - pm
 //   - pwm
-//   - qemu
 //   - raid
 //   - rcu
 //   - rdma
@@ -224,33 +211,25 @@ func init() {
 //   - rust-for
 //   - s390
 //   - scsi
-//     - dc395x
 //     - megaraid
 //     - mpi3
 //     - mpt-fusion
 //     - open-iscsi
 //     - target
-//   - security-module
-//     - apparmor
-//     - tomoyo
 //   - selinux
 //   - serial
 //   - sgx
 //   - sh
 //   - snps-arc
 //   - sparclinux
-//   - sparse
 //   - speakup
 //   - spi
-//   - tboot
 //   - tegra
 //     - ac100
 //   - trace
 //     - rt-tools
 //   - um
 //   - usb
-//     - accessrunner
-//     - legousb
 //     - usb-storage
 //   - video
 //   - virt
@@ -260,12 +239,11 @@ func init() {
 //   - x86-drivers
 //     - acpi4asus
 //     - dell
-//     - ibm-acpi
 //   - xen
 //   - xtensa
 
 var subsystems = []*Subsystem{
-	shacyfmac, abi, ac100, accelerators, accessrunner, acenic, acpi, acpi4asus, acpica, acrn, actions, afs, aio, alpha, alsa, amdgfx, amlogic, api, apparmor, arch, arm, armmsm, asahi, aspeed, ath10k, ath11k, atm, audit, autofs, axis, batman, b43, bcache, blinux, block, bluetooth, bpf, brcm80211, bridge, btrfs, cachefs, cake, can, ceph, cgroups, chromeplatform, cifs, cirrus, clk, cluster, codalist, coresight, coreteam, crypto, csky, cxl, damon, dc395x, dccp, dell, devicetree, dm, dmaengine, drbd, dri, ecryptfs, edac, efi, erofs, etnaviv, ext4, f2fs, fbdev, fpga, freedreno, fs, fscrypt, fsi, fsverity, geode, gpio, greybus, hams, hardening, hexagon, hippi, hwmon, hyperv, i2c, i3c, ia64, ibmacpi, ide, iio, imx, industrypack, input, integrity, intelgfx, intelgvt, intelwiredlan, iouring, iommu, isdn4linux, jailhouse, jfs, karma, kasan, kernel, kexec, keyrings, kgdbbugreport, kselftest, kunit, kvm, kvmriscv, kvmarm, leds, legousb, libertas, lima, linux1394, linuxppc, linuxpps, livepatching, llvm, loongarch, lvs, m68k, malidp, media, mediatek, megaraid, mhi, mips, mjpeg, mm, mmc, modules, mpi3, mptfusion, mptcp, mtd, nbd, net, nfc, nfs, nilfs, nitro, nouveau, ntb, ntfs, ntfs3, nvdimm, nvidia, nvme, ocfs2, omap, optee, openiscsi, openbmc, openipmi, openmoko, openrisc, openvswitch, openwrt, orangefs, osmocom, ossdrivers, oxnas, parisc, parport, pci, perf, phy, pm, ppp, pvrusb2, pwm, qat, qemu, raid, rcu, rdma, rds, realteksoc, reiserfs, remoteproc, renesassoc, riscv, rockchip, rpi, rttools, rtc, rustfor, s390, samsungsoc, scsi, sctp, sdricohcs, securitymodule, selinux, serial, sgx, sh, snpsarc, sof, sparclinux, sparse, speakup, spi, spice, squashfs, staging, stm32, sunxi, target, tboot, tegra, tipc, tlan, tomoyo, trace, uclinux, um, unionfs, unisoc, usb, usbstorage, usbb2kapi, usrp, v9fs, video, virt, watchdog, wcn36xx, wireguard, wireless, wpan, x25, x86, x86drivers, xen, xfs, xtensa, zd1211,
+	shacyfmac, ac100, accelerators, acpi, acpi4asus, acpica, acrn, actions, afs, alpha, alsa, amdgfx, amlogic, apparmor, arch, arm, armmsm, asahi, aspeed, ath10k, ath11k, atm, audit, autofs, axis, batman, b43, bcache, block, bluetooth, bpf, brcm80211, bridge, btrfs, cachefs, can, ceph, cgroups, chromeplatform, cifs, cirrus, clk, cluster, codalist, coresight, coreteam, crypto, csky, cxl, damon, dccp, dell, devicetree, dm, dmaengine, drbd, dri, ecryptfs, edac, efi, erofs, etnaviv, ext4, f2fs, fbdev, fpga, freedreno, fs, fscrypt, fsi, fsverity, geode, gpio, greybus, hams, hardening, hexagon, hippi, hwmon, hyperv, i2c, i3c, ia64, ide, iio, imx, industrypack, input, integrity, intelgfx, intelgvt, intelwiredlan, iouring, iommu, isdn4linux, jfs, karma, kasan, kernel, kexec, keyrings, kgdbbugreport, kselftest, kunit, kvm, kvmriscv, kvmarm, leds, libertas, lima, linux1394, linuxppc, linuxpps, livepatching, llvm, loongarch, lsm, lvs, m68k, malidp, media, mediatek, megaraid, mhi, mips, mjpeg, mm, mmc, modules, mpi3, mptfusion, mptcp, mtd, nbd, net, nfc, nfs, nilfs, nitro, nouveau, ntb, ntfs, ntfs3, nvdimm, nvme, ocfs2, omap, optee, openiscsi, openbmc, openipmi, openrisc, openvswitch, openwrt, orangefs, ossdrivers, overlayfs, oxnas, parisc, parport, pci, perf, phy, pm, ppp, pvrusb2, pwm, qat, raid, rcu, rdma, rds, reiserfs, remoteproc, renesassoc, riscv, rockchip, rpi, rttools, rtc, rustfor, s390, samsungsoc, scsi, sctp, selinux, serial, sgx, sh, snpsarc, sof, sparclinux, speakup, spi, spice, squashfs, staging, stm32, sunxi, target, tegra, tipc, tomoyo, trace, uclinux, um, unisoc, usb, usbstorage, v9fs, video, virt, watchdog, wcn36xx, wireguard, wireless, wpan, x25, x86, x86drivers, xen, xfs, xtensa, zd1211,
 }
 
 // Subsystem info.
@@ -277,16 +255,6 @@ var shacyfmac = &Subsystem{
 	Parents:     []*Subsystem{wireless},
 	PathRules: []PathRule{
 		{IncludeRegexp: "^drivers/net/wireless/broadcom/brcm80211/"},
-	},
-}
-
-var abi = &Subsystem{
-	Name:        "abi",
-	Lists:       []string{"linux-abi-devel@lists.sourceforge.net"},
-	Maintainers: []string{"hch@infradead.org"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^include/linux/personality\\.h$|^include/uapi/linux/personality\\.h$"},
 	},
 }
 
@@ -307,25 +275,6 @@ var accelerators = &Subsystem{
 	Parents:     []*Subsystem{kernel},
 	PathRules: []PathRule{
 		{IncludeRegexp: "^drivers/misc/uacce/|^include/linux/uacce\\.h$|^include/uapi/misc/uacce/"},
-	},
-}
-
-var accessrunner = &Subsystem{
-	Name:    "accessrunner",
-	Lists:   []string{"accessrunner-general@lists.sourceforge.net"},
-	Parents: []*Subsystem{usb},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/usb/atm/cxacru\\.c$"},
-	},
-}
-
-var acenic = &Subsystem{
-	Name:        "acenic",
-	Lists:       []string{"linux-acenic@sunsite.dk"},
-	Maintainers: []string{"jes@trained-monkey.org"},
-	Parents:     []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/net/ethernet/alteon/acenic[^/]*$"},
 	},
 }
 
@@ -396,16 +345,6 @@ var afs = &Subsystem{
 	PathRules: []PathRule{
 		{IncludeRegexp: "^fs/afs/|^include/trace/events/afs\\.h$"},
 		{IncludeRegexp: "^include/keys/rxrpc-type\\.h$|^include/net/af_rxrpc\\.h$|^include/trace/events/rxrpc\\.h$|^include/uapi/linux/rxrpc\\.h$|^net/rxrpc/"},
-	},
-}
-
-var aio = &Subsystem{
-	Name:        "aio",
-	Lists:       []string{"linux-aio@kvack.org"},
-	Maintainers: []string{"bcrl@kvack.org"},
-	Parents:     []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/aio\\.c$|^include/linux/[^/]*aio[^/]*\\.h$"},
 	},
 }
 
@@ -499,20 +438,11 @@ var amlogic = &Subsystem{
 	},
 }
 
-var api = &Subsystem{
-	Name:    "api",
-	Lists:   []string{"linux-api@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{"^include/linux/syscalls\\.h$|^kernel/sys_ni\\.c$", "^include/uapi/|^arch/[^/]*/include/uapi/"},
-	},
-}
-
 var apparmor = &Subsystem{
 	Name:        "apparmor",
 	Lists:       []string{"apparmor@lists.ubuntu.com"},
 	Maintainers: []string{"john.johansen@canonical.com", "john@apparmor.net"},
-	Parents:     []*Subsystem{securitymodule},
+	Parents:     []*Subsystem{lsm},
 	PathRules: []PathRule{
 		{IncludeRegexp: "^security/apparmor/"},
 	},
@@ -827,16 +757,6 @@ var bcache = &Subsystem{
 	},
 }
 
-var blinux = &Subsystem{
-	Name:        "blinux",
-	Lists:       []string{"blinux-list@redhat.com"},
-	Maintainers: []string{"jrv@vanzandt.mv.com"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/char/dtlk\\.c$|^include/linux/dtlk\\.h$"},
-	},
-}
-
 var block = &Subsystem{
 	Name:    "block",
 	Lists:   []string{"linux-block@vger.kernel.org"},
@@ -936,16 +856,6 @@ var cachefs = &Subsystem{
 	PathRules: []PathRule{
 		{IncludeRegexp: "^fs/cachefiles/"},
 		{IncludeRegexp: "^fs/fscache/|^include/linux/fscache[^/]*\\.h$"},
-	},
-}
-
-var cake = &Subsystem{
-	Name:        "cake",
-	Lists:       []string{"cake@lists.bufferbloat.net"},
-	Maintainers: []string{"toke@toke.dk"},
-	Parents:     []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^net/sched/sch_cake\\.c$"},
 	},
 }
 
@@ -1145,16 +1055,6 @@ var damon = &Subsystem{
 	Parents:     []*Subsystem{mm},
 	PathRules: []PathRule{
 		{IncludeRegexp: "^include/linux/damon\\.h$|^include/trace/events/damon\\.h$|^mm/damon/"},
-	},
-}
-
-var dc395x = &Subsystem{
-	Name:        "dc395x",
-	Lists:       []string{"dc395x@twibble.org"},
-	Maintainers: []string{"aliakc@web.de", "lenehan@twibble.org", "oliver@neukum.org"},
-	Parents:     []*Subsystem{scsi},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/scsi/dc395x\\.[^/]*$"},
 	},
 }
 
@@ -1783,16 +1683,6 @@ var ia64 = &Subsystem{
 	},
 }
 
-var ibmacpi = &Subsystem{
-	Name:        "ibm-acpi",
-	Lists:       []string{"ibm-acpi-devel@lists.sourceforge.net"},
-	Maintainers: []string{"hmh@hmh.eng.br"},
-	Parents:     []*Subsystem{x86drivers},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/platform/x86/thinkpad_acpi\\.c$"},
-	},
-}
-
 var ide = &Subsystem{
 	Name:    "ide",
 	Lists:   []string{"linux-ide@vger.kernel.org"},
@@ -2053,16 +1943,6 @@ var isdn4linux = &Subsystem{
 	},
 }
 
-var jailhouse = &Subsystem{
-	Name:        "jailhouse",
-	Lists:       []string{"jailhouse-dev@googlegroups.com"},
-	Maintainers: []string{"jan.kiszka@siemens.com"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/x86/include/asm/jailhouse_para\\.h$|^arch/x86/kernel/jailhouse\\.c$"},
-	},
-}
-
 var jfs = &Subsystem{
 	Name:        "jfs",
 	Syscalls:    []string{"syz_mount_image$jfs"},
@@ -2288,7 +2168,7 @@ var kvmriscv = &Subsystem{
 
 var kvmarm = &Subsystem{
 	Name:        "kvmarm",
-	Lists:       []string{"kvmarm@lists.cs.columbia.edu"},
+	Lists:       []string{"kvmarm@lists.linux.dev"},
 	Maintainers: []string{"maz@kernel.org"},
 	Parents:     []*Subsystem{arm},
 	PathRules: []PathRule{
@@ -2304,16 +2184,6 @@ var leds = &Subsystem{
 		{IncludeRegexp: "^drivers/leds/flash/leds-as3645a\\.c$"},
 		{IncludeRegexp: "^drivers/leds/leds-mlxcpld\\.c$|^drivers/leds/leds-mlxreg\\.c$"},
 		{IncludeRegexp: "^drivers/leds/|^include/dt-bindings/leds/|^include/linux/leds\\.h$"},
-	},
-}
-
-var legousb = &Subsystem{
-	Name:        "legousb",
-	Lists:       []string{"legousb-devel@lists.sourceforge.net"},
-	Maintainers: []string{"starblue@users.sourceforge.net"},
-	Parents:     []*Subsystem{usb},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/usb/misc/legousbtower\\.c$"},
 	},
 }
 
@@ -2427,6 +2297,19 @@ var loongarch = &Subsystem{
 	PathRules: []PathRule{
 		{IncludeRegexp: "^arch/loongarch/|^drivers/[^/]*/[^/]*loongarch[^/]*$"},
 		{IncludeRegexp: "^drivers/soc/loongson/loongson2_guts\\.c$"},
+	},
+}
+
+var lsm = &Subsystem{
+	Name:    "lsm",
+	Lists:   []string{"linux-security-module@vger.kernel.org"},
+	Parents: []*Subsystem{kernel},
+	PathRules: []PathRule{
+		{IncludeRegexp: "^include/linux/capability\\.h$|^include/uapi/linux/capability\\.h$|^kernel/capability\\.c$|^security/commoncap\\.c$"},
+		{IncludeRegexp: "^include/net/calipso\\.h$|^include/net/cipso_ipv4\\.h$|^include/net/netlabel\\.h$|^include/uapi/linux/netfilter/xt_CONNSECMARK\\.h$|^include/uapi/linux/netfilter/xt_SECMARK\\.h$|^net/ipv4/cipso_ipv4\\.c$|^net/ipv6/calipso\\.c$|^net/netfilter/xt_CONNSECMARK\\.c$|^net/netfilter/xt_SECMARK\\.c$|^net/netlabel/"},
+		{IncludeRegexp: "^include/uapi/linux/landlock\\.h$|^security/landlock/"},
+		{"^security/", "^security/selinux/"},
+		{IncludeRegexp: "^security/smack/"},
 	},
 }
 
@@ -3298,16 +3181,6 @@ var nvdimm = &Subsystem{
 	},
 }
 
-var nvidia = &Subsystem{
-	Name:        "nvidia",
-	Lists:       []string{"linux-nvidia@lists.surfsouth.com"},
-	Maintainers: []string{"fero@drama.obuda.kando.hu"},
-	Parents:     []*Subsystem{fbdev},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/video/fbdev/hgafb\\.c$"},
-	},
-}
-
 var nvme = &Subsystem{
 	Name:    "nvme",
 	Lists:   []string{"linux-nvme@lists.infradead.org"},
@@ -3415,15 +3288,6 @@ var openipmi = &Subsystem{
 	},
 }
 
-var openmoko = &Subsystem{
-	Name:    "openmoko",
-	Lists:   []string{"openmoko-kernel@lists.openmoko.org"},
-	Parents: []*Subsystem{samsungsoc},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/arm/mach-s3c/gta02\\.h$|^arch/arm/mach-s3c/mach-gta02\\.c$"},
-	},
-}
-
 var openrisc = &Subsystem{
 	Name:        "openrisc",
 	Lists:       []string{"linux-openrisc@vger.kernel.org"},
@@ -3464,16 +3328,6 @@ var orangefs = &Subsystem{
 	},
 }
 
-var osmocom = &Subsystem{
-	Name:        "osmocom",
-	Lists:       []string{"osmocom-net-gprs@lists.osmocom.org"},
-	Maintainers: []string{"laforge@gnumonks.org", "pablo@netfilter.org"},
-	Parents:     []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/net/gtp\\.c$"},
-	},
-}
-
 var ossdrivers = &Subsystem{
 	Name:        "oss-drivers",
 	Lists:       []string{"oss-drivers@corigine.com"},
@@ -3481,6 +3335,16 @@ var ossdrivers = &Subsystem{
 	Parents:     []*Subsystem{net},
 	PathRules: []PathRule{
 		{IncludeRegexp: "^drivers/net/ethernet/netronome/"},
+	},
+}
+
+var overlayfs = &Subsystem{
+	Name:        "overlayfs",
+	Lists:       []string{"linux-unionfs@vger.kernel.org"},
+	Maintainers: []string{"miklos@szeredi.hu"},
+	Parents:     []*Subsystem{fs},
+	PathRules: []PathRule{
+		{IncludeRegexp: "^fs/overlayfs/"},
 	},
 }
 
@@ -3695,16 +3559,6 @@ var qat = &Subsystem{
 	},
 }
 
-var qemu = &Subsystem{
-	Name:        "qemu",
-	Lists:       []string{"qemu-devel@nongnu.org"},
-	Maintainers: []string{"mst@redhat.com", "somlo@cmu.edu"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/firmware/qemu_fw_cfg\\.c$|^include/uapi/linux/qemu_fw_cfg\\.h$"},
-	},
-}
-
 var raid = &Subsystem{
 	Name:        "raid",
 	Lists:       []string{"linux-raid@vger.kernel.org"},
@@ -3767,16 +3621,6 @@ var rds = &Subsystem{
 	Parents:     []*Subsystem{net, rdma},
 	PathRules: []PathRule{
 		{IncludeRegexp: "^net/rds/"},
-	},
-}
-
-var realteksoc = &Subsystem{
-	Name:        "realtek-soc",
-	Lists:       []string{"linux-realtek-soc@lists.infradead.org"},
-	Maintainers: []string{"afaerber@suse.de"},
-	Parents:     []*Subsystem{arm},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/arm/boot/dts/rtd[^/]*$|^arch/arm/mach-realtek/|^arch/arm64/boot/dts/realtek/"},
 	},
 }
 
@@ -4038,29 +3882,6 @@ var sctp = &Subsystem{
 	},
 }
 
-var sdricohcs = &Subsystem{
-	Name:        "sdricohcs",
-	Lists:       []string{"sdricohcs-devel@lists.sourceforge.net"},
-	Maintainers: []string{"saschasommer@freenet.de"},
-	Parents:     []*Subsystem{mmc},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/mmc/host/sdricoh_cs\\.c$"},
-	},
-}
-
-var securitymodule = &Subsystem{
-	Name:    "security-module",
-	Lists:   []string{"linux-security-module@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^include/linux/capability\\.h$|^include/uapi/linux/capability\\.h$|^kernel/capability\\.c$|^security/commoncap\\.c$"},
-		{IncludeRegexp: "^include/net/calipso\\.h$|^include/net/cipso_ipv4\\.h$|^include/net/netlabel\\.h$|^include/uapi/linux/netfilter/xt_CONNSECMARK\\.h$|^include/uapi/linux/netfilter/xt_SECMARK\\.h$|^net/ipv4/cipso_ipv4\\.c$|^net/ipv6/calipso\\.c$|^net/netfilter/xt_CONNSECMARK\\.c$|^net/netfilter/xt_SECMARK\\.c$|^net/netlabel/"},
-		{IncludeRegexp: "^include/uapi/linux/landlock\\.h$|^security/landlock/"},
-		{"^security/", "^security/selinux/"},
-		{IncludeRegexp: "^security/smack/"},
-	},
-}
-
 var selinux = &Subsystem{
 	Name:        "selinux",
 	Lists:       []string{"selinux@vger.kernel.org"},
@@ -4134,16 +3955,6 @@ var sparclinux = &Subsystem{
 	PathRules: []PathRule{
 		{IncludeRegexp: "^arch/sparc/|^drivers/sbus/"},
 		{IncludeRegexp: "^drivers/tty/serial/suncore\\.c$|^drivers/tty/serial/sunhv\\.c$|^drivers/tty/serial/sunsab\\.c$|^drivers/tty/serial/sunsab\\.h$|^drivers/tty/serial/sunsu\\.c$|^drivers/tty/serial/sunzilog\\.c$|^drivers/tty/serial/sunzilog\\.h$|^drivers/tty/vcc\\.c$|^include/linux/sunserialcore\\.h$"},
-	},
-}
-
-var sparse = &Subsystem{
-	Name:        "sparse",
-	Lists:       []string{"linux-sparse@vger.kernel.org"},
-	Maintainers: []string{"luc.vanoostenryck@gmail.com"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^include/linux/compiler\\.h$"},
 	},
 }
 
@@ -4244,16 +4055,6 @@ var target = &Subsystem{
 	},
 }
 
-var tboot = &Subsystem{
-	Name:        "tboot",
-	Lists:       []string{"tboot-devel@lists.sourceforge.net"},
-	Maintainers: []string{"ning.sun@intel.com"},
-	Parents:     []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^arch/x86/kernel/tboot\\.c$|^include/linux/tboot\\.h$"},
-	},
-}
-
 var tegra = &Subsystem{
 	Name:    "tegra",
 	Lists:   []string{"linux-tegra@vger.kernel.org"},
@@ -4282,21 +4083,11 @@ var tipc = &Subsystem{
 	},
 }
 
-var tlan = &Subsystem{
-	Name:        "tlan",
-	Lists:       []string{"tlan-devel@lists.sourceforge.net"},
-	Maintainers: []string{"chessman@tux.org"},
-	Parents:     []*Subsystem{net},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/net/ethernet/ti/tlan\\.[^/]*$"},
-	},
-}
-
 var tomoyo = &Subsystem{
 	Name:        "tomoyo",
-	Lists:       []string{"tomoyo-users-en@lists.osdn.me"},
+	Lists:       []string{"tomoyo-dev-en@lists.osdn.me"},
 	Maintainers: []string{"penguin-kernel@I-love.SAKURA.ne.jp", "takedakn@nttdata.co.jp"},
-	Parents:     []*Subsystem{securitymodule},
+	Parents:     []*Subsystem{lsm},
 	PathRules: []PathRule{
 		{IncludeRegexp: "^security/tomoyo/"},
 	},
@@ -4331,16 +4122,6 @@ var um = &Subsystem{
 	Parents:     []*Subsystem{kernel},
 	PathRules: []PathRule{
 		{IncludeRegexp: "^arch/um/|^arch/x86/um/|^fs/hostfs/"},
-	},
-}
-
-var unionfs = &Subsystem{
-	Name:        "unionfs",
-	Lists:       []string{"linux-unionfs@vger.kernel.org"},
-	Maintainers: []string{"miklos@szeredi.hu"},
-	Parents:     []*Subsystem{fs},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^fs/overlayfs/"},
 	},
 }
 
@@ -4426,26 +4207,6 @@ var usbstorage = &Subsystem{
 	Parents:     []*Subsystem{usb},
 	PathRules: []PathRule{
 		{IncludeRegexp: "^drivers/usb/storage/"},
-	},
-}
-
-var usbb2kapi = &Subsystem{
-	Name:        "usbb2k-api",
-	Lists:       []string{"usbb2k-api-dev@nongnu.org"},
-	Maintainers: []string{"Henk.Vergonet@gmail.com"},
-	Parents:     []*Subsystem{input},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/input/misc/yealink\\.[^/]*$"},
-	},
-}
-
-var usrp = &Subsystem{
-	Name:        "usrp",
-	Lists:       []string{"usrp-users@lists.ettus.com"},
-	Maintainers: []string{"moritz.fischer@ettus.com"},
-	Parents:     []*Subsystem{input},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/input/misc/e3x0-button\\.c$"},
 	},
 }
 
