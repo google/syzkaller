@@ -30,11 +30,11 @@ func listFromRepoInner(root fs.FS, rules *customRules) ([]*entity.Subsystem, err
 		rawRecords: records,
 		extraRules: rules,
 	}
-	ctx.groupByList()
-	list, err := ctx.getSubsystems()
-	if err != nil {
-		return nil, err
+	list := ctx.groupByList()
+	if err := setSubsystemNames(list); err != nil {
+		return nil, fmt.Errorf("failed to set names: %w", err)
 	}
+	ctx.applyExtraRules(list)
 	matrix, err := match.BuildCoincidenceMatrix(root, list, dropPatterns)
 	if err != nil {
 		return nil, err
@@ -65,18 +65,13 @@ type linuxCtx struct {
 	extraRules *customRules
 }
 
-type subsystemCandidate struct {
-	records     []*maintainersRecord
-	commonEmail string
-}
-
 var (
 	// Some of the patterns are not really needed for bug subsystem inteference and
 	// only complicate the manual review of the rules.
 	dropPatterns = regexp.MustCompile(`^(Documentation|scripts|samples|tools)|Makefile`)
 )
 
-func (ctx *linuxCtx) groupByList() []*subsystemCandidate {
+func (ctx *linuxCtx) groupByList() []*entity.Subsystem {
 	perList := make(map[string][]*maintainersRecord)
 	for _, record := range ctx.rawRecords {
 		for _, list := range record.lists {
@@ -87,35 +82,18 @@ func (ctx *linuxCtx) groupByList() []*subsystemCandidate {
 	if ctx.extraRules != nil {
 		exclude = ctx.extraRules.notSubsystemEmails
 	}
-	ret := []*subsystemCandidate{}
+	ret := []*entity.Subsystem{}
 	for email, list := range perList {
 		if _, skip := exclude[email]; skip {
 			continue
 		}
-		ret = append(ret, &subsystemCandidate{
-			commonEmail: email,
-			records:     list,
-		})
+		s := mergeRawRecords(email, list)
+		// Skip empty subsystems.
+		if len(s.PathRules) > 0 {
+			ret = append(ret, s)
+		}
 	}
 	return ret
-}
-
-func (ctx *linuxCtx) getSubsystems() ([]*entity.Subsystem, error) {
-	ret := []*entity.Subsystem{}
-	for _, raw := range ctx.groupByList() {
-		s := &entity.Subsystem{}
-		raw.mergeRawRecords(s)
-		// Skip empty subsystems.
-		if len(s.Syscalls)+len(s.PathRules) == 0 {
-			continue
-		}
-		ret = append(ret, s)
-	}
-	if err := setSubsystemNames(ret); err != nil {
-		return nil, fmt.Errorf("failed to set names: %w", err)
-	}
-	ctx.applyExtraRules(ret)
-	return ret, nil
 }
 
 func (ctx *linuxCtx) applyExtraRules(list []*entity.Subsystem) {
@@ -127,7 +105,7 @@ func (ctx *linuxCtx) applyExtraRules(list []*entity.Subsystem) {
 	}
 }
 
-func (candidate *subsystemCandidate) mergeRawRecords(subsystem *entity.Subsystem) {
+func mergeRawRecords(email string, records []*maintainersRecord) *entity.Subsystem {
 	unique := func(list []string) []string {
 		m := make(map[string]struct{})
 		for _, s := range list {
@@ -141,23 +119,20 @@ func (candidate *subsystemCandidate) mergeRawRecords(subsystem *entity.Subsystem
 		return ret
 	}
 	var maintainers []string
-	for _, record := range candidate.records {
+	subsystem := &entity.Subsystem{Lists: []string{email}}
+	for _, record := range records {
 		rule := record.ToPathRule()
 		if !rule.IsEmpty() {
 			subsystem.PathRules = append(subsystem.PathRules, rule)
 		}
 		maintainers = append(maintainers, record.maintainers...)
 	}
-	if candidate.commonEmail != "" {
-		// For list-grouped subsystems, we risk merging just too many lists.
-		// Keep the list short in this case.
-		subsystem.Lists = []string{candidate.commonEmail}
-	}
 	// There's a risk that we collect too many unrelated maintainers, so
 	// let's only merge them if there are no lists.
-	if len(candidate.records) <= 1 {
+	if len(records) <= 1 {
 		subsystem.Maintainers = unique(maintainers)
 	}
+	return subsystem
 }
 
 func getMaintainers(root fs.FS) ([]*maintainersRecord, error) {
