@@ -91,6 +91,8 @@ var (
 		"megaraidlinux.pdl@broadcom.com":            "megaraid",
 		"mpi3mr-linuxdrv.pdl@broadcom.com":          "mpi3",
 		"MPT-FusionLinux.pdl@broadcom.com":          "mpt-fusion",
+		"linux-security-module@vger.kernel.org":     "lsm",       // the original name is too long
+		"linux-unionfs@vger.kernel.org":             "overlayfs", // the name has changed
 	}
 	stripPrefixes = []string{"linux-"}
 	stripSuffixes = []string{
