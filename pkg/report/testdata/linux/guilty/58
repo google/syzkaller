@@ -1,0 +1,79 @@
+FILE: net/core/devlink.c
+
+rcu: INFO: rcu_preempt detected stalls on CPUs/tasks:
+rcu: 	Tasks blocked on level-0 rcu_node (CPUs 0-1): P28912
+	(detected by 0, t=10502 jiffies, g=275385, q=3760 ncpus=2)
+task:syz-executor.2  state:R  running task     stack:24600 pid:28912 ppid:1      flags:0x00004006
+Call Trace:
+ <IRQ>
+ sched_show_task kernel/sched/core.c:8967 [inline]
+ sched_show_task+0x450/0x5c0 kernel/sched/core.c:8941
+ rcu_print_detail_task_stall_rnp kernel/rcu/tree_stall.h:255 [inline]
+ print_other_cpu_stall kernel/rcu/tree_stall.h:599 [inline]
+ check_cpu_stall kernel/rcu/tree_stall.h:761 [inline]
+ rcu_pending kernel/rcu/tree.c:3858 [inline]
+ rcu_sched_clock_irq+0x21d1/0x2470 kernel/rcu/tree.c:2343
+ update_process_times+0x11e/0x1a0 kernel/time/timer.c:2071
+ tick_sched_handle+0x9b/0x180 kernel/time/tick-sched.c:243
+ tick_sched_timer+0xf2/0x120 kernel/time/tick-sched.c:1480
+ __run_hrtimer kernel/time/hrtimer.c:1685 [inline]
+ __hrtimer_run_queues+0x1c6/0xfb0 kernel/time/hrtimer.c:1749
+ hrtimer_interrupt+0x320/0x790 kernel/time/hrtimer.c:1811
+ local_apic_timer_interrupt arch/x86/kernel/apic/apic.c:1096 [inline]
+ __sysvec_apic_timer_interrupt+0x180/0x640 arch/x86/kernel/apic/apic.c:1113
+ sysvec_apic_timer_interrupt+0x92/0xc0 arch/x86/kernel/apic/apic.c:1107
+ </IRQ>
+ <TASK>
+ asm_sysvec_apic_timer_interrupt+0x1a/0x20 arch/x86/include/asm/idtentry.h:649
+RIP: 0010:kasan_mem_to_shadow include/linux/kasan.h:60 [inline]
+RIP: 0010:memory_is_poisoned_n mm/kasan/generic.c:129 [inline]
+RIP: 0010:memory_is_poisoned mm/kasan/generic.c:159 [inline]
+RIP: 0010:check_region_inline mm/kasan/generic.c:180 [inline]
+RIP: 0010:kasan_check_range+0x53/0x190 mm/kasan/generic.c:189
+Code: ff ff 48 39 c7 0f 86 05 01 00 00 49 83 e9 01 48 89 fd 48 b8 00 00 00 00 00 fc ff df 4d 89 ca 48 c1 ed 03 49 c1 ea 03 48 01 c5 <49> 01 c2 48 89 e8 49 8d 5a 01 48 89 da 48 29 ea 48 83 fa 10 7e 63
+RSP: 0018:ffffc900031af250 EFLAGS: 00000286
+RAX: dffffc0000000000 RBX: 0000000000000003 RCX: ffffffff8163f019
+RDX: 0000000000000000 RSI: 0000000000000008 RDI: ffffffff8e72d650
+RBP: fffffbfff1ce5aca R08: 0000000000000000 R09: ffffffff8e72d657
+R10: 1ffffffff1ce5aca R11: 0000000000000000 R12: ffffffff8c791a80
+R13: ffffc900031af4d8 R14: 0000000000000000 R15: ffffc900031af358
+ instrument_atomic_read include/linux/instrumented.h:72 [inline]
+ _test_bit include/asm-generic/bitops/instrumented-non-atomic.h:141 [inline]
+ cpumask_test_cpu include/linux/cpumask.h:444 [inline]
+ cpu_online include/linux/cpumask.h:1030 [inline]
+ trace_lock_release include/trace/events/lock.h:69 [inline]
+ lock_release+0xd9/0x810 kernel/locking/lockdep.c:5679
+ rcu_lock_release include/linux/rcupdate.h:330 [inline]
+ rcu_read_unlock include/linux/rcupdate.h:797 [inline]
+ xa_find+0x1a0/0x330 lib/xarray.c:2026
+ devlinks_xa_find_get.constprop.0+0x93/0x260 net/core/devlink.c:306
+ devlinks_xa_find_get_first net/core/devlink.c:334 [inline]
+ devlink_nl_cmd_port_get_dumpit+0x11d/0x4e0 net/core/devlink.c:1699
+ netlink_dump+0x570/0xc50 net/netlink/af_netlink.c:2286
+ __netlink_dump_start+0x64b/0x910 net/netlink/af_netlink.c:2391
+ genl_family_rcv_msg_dumpit+0x2be/0x310 net/netlink/genetlink.c:929
+ genl_family_rcv_msg net/netlink/genetlink.c:1045 [inline]
+ genl_rcv_msg+0x419/0x7e0 net/netlink/genetlink.c:1065
+ netlink_rcv_skb+0x165/0x440 net/netlink/af_netlink.c:2564
+ genl_rcv+0x28/0x40 net/netlink/genetlink.c:1076
+ netlink_unicast_kernel net/netlink/af_netlink.c:1330 [inline]
+ netlink_unicast+0x547/0x7f0 net/netlink/af_netlink.c:1356
+ netlink_sendmsg+0x91b/0xe10 net/netlink/af_netlink.c:1932
+ sock_sendmsg_nosec net/socket.c:714 [inline]
+ sock_sendmsg+0xd3/0x120 net/socket.c:734
+ __sys_sendto+0x23a/0x340 net/socket.c:2117
+ __do_sys_sendto net/socket.c:2129 [inline]
+ __se_sys_sendto net/socket.c:2125 [inline]
+ __x64_sys_sendto+0xe1/0x1b0 net/socket.c:2125
+ do_syscall_x64 arch/x86/entry/common.c:50 [inline]
+ do_syscall_64+0x39/0xb0 arch/x86/entry/common.c:80
+ entry_SYSCALL_64_after_hwframe+0x63/0xcd
+RIP: 0033:0x7fbf31c3e0dc
+Code: fa fa ff ff 44 8b 4c 24 2c 4c 8b 44 24 20 89 c5 44 8b 54 24 28 48 8b 54 24 18 b8 2c 00 00 00 48 8b 74 24 10 8b 7c 24 08 0f 05 <48> 3d 00 f0 ff ff 77 34 89 ef 48 89 44 24 08 e8 20 fb ff ff 48 8b
+RSP: 002b:00007fff97133d00 EFLAGS: 00000293 ORIG_RAX: 000000000000002c
+RAX: ffffffffffffffda RBX: 00007fbf328d4620 RCX: 00007fbf31c3e0dc
+RDX: 0000000000000034 RSI: 00007fbf328d4670 RDI: 0000000000000005
+RBP: 0000000000000000 R08: 00007fff97133d54 R09: 000000000000000c
+R10: 0000000000000000 R11: 0000000000000293 R12: 00007fff97133dc8
+R13: 00007fbf328d4670 R14: 0000000000000005 R15: 0000000000000000
+ </TASK>
