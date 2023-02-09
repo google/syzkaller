@@ -1,0 +1,112 @@
+TITLE: INFO: rcu detected stall in devlink_nl_cmd_port_get_dumpit
+ALT: stall in devlink_nl_cmd_port_get_dumpit
+TYPE: HANG
+
+
+[ 1914.284449][ T1208] ieee802154 phy0 wpan0: encryption failed: -22
+[ 1914.290793][ T1208] ieee802154 phy1 wpan1: encryption failed: -22
+[ 1946.223778][    C0] rcu: INFO: rcu_preempt detected stalls on CPUs/tasks:
+[ 1946.230746][    C0] rcu: 	Tasks blocked on level-0 rcu_node (CPUs 0-1): P28912
+[ 1946.238666][    C0] 	(detected by 0, t=10502 jiffies, g=275385, q=3760 ncpus=2)
+[ 1946.246113][    C0] task:syz-executor.2  state:R  running task     stack:24600 pid:28912 ppid:1      flags:0x00004006
+[ 1946.258006][    C0] Call Trace:
+[ 1946.261280][    C0]  <IRQ>
+[ 1946.264115][    C0]  sched_show_task+0x450/0x5c0
+[ 1946.268877][    C0]  ? check_same_owner+0x260/0x260
+[ 1946.273918][    C0]  rcu_sched_clock_irq+0x21d1/0x2470
+[ 1946.279317][    C0]  ? rcu_note_context_switch+0x1800/0x1800
+[ 1946.285160][    C0]  update_process_times+0x11e/0x1a0
+[ 1946.290396][    C0]  tick_sched_handle+0x9b/0x180
+[ 1946.295255][    C0]  tick_sched_timer+0xf2/0x120
+[ 1946.300006][    C0]  ? tick_sched_do_timer+0x470/0x470
+[ 1946.305278][    C0]  __hrtimer_run_queues+0x1c6/0xfb0
+[ 1946.310482][    C0]  ? hrtimer_sleeper_start_expires+0x80/0x80
+[ 1946.316542][    C0]  ? ktime_get_update_offsets_now+0x3ef/0x5c0
+[ 1946.322615][    C0]  hrtimer_interrupt+0x320/0x790
+[ 1946.327561][    C0]  __sysvec_apic_timer_interrupt+0x180/0x640
+[ 1946.333536][    C0]  sysvec_apic_timer_interrupt+0x92/0xc0
+[ 1946.339158][    C0]  </IRQ>
+[ 1946.342075][    C0]  <TASK>
+[ 1946.344994][    C0]  asm_sysvec_apic_timer_interrupt+0x1a/0x20
+[ 1946.351004][    C0] RIP: 0010:kasan_check_range+0x53/0x190
+[ 1946.356650][    C0] Code: ff ff 48 39 c7 0f 86 05 01 00 00 49 83 e9 01 48 89 fd 48 b8 00 00 00 00 00 fc ff df 4d 89 ca 48 c1 ed 03 49 c1 ea 03 48 01 c5 <49> 01 c2 48 89 e8 49 8d 5a 01 48 89 da 48 29 ea 48 83 fa 10 7e 63
+[ 1946.376261][    C0] RSP: 0018:ffffc900031af250 EFLAGS: 00000286
+[ 1946.382340][    C0] RAX: dffffc0000000000 RBX: 0000000000000003 RCX: ffffffff8163f019
+[ 1946.390298][    C0] RDX: 0000000000000000 RSI: 0000000000000008 RDI: ffffffff8e72d650
+[ 1946.398258][    C0] RBP: fffffbfff1ce5aca R08: 0000000000000000 R09: ffffffff8e72d657
+[ 1946.406221][    C0] R10: 1ffffffff1ce5aca R11: 0000000000000000 R12: ffffffff8c791a80
+[ 1946.414177][    C0] R13: ffffc900031af4d8 R14: 0000000000000000 R15: ffffc900031af358
+[ 1946.422152][    C0]  ? lock_release+0xd9/0x810
+[ 1946.426756][    C0]  lock_release+0xd9/0x810
+[ 1946.431165][    C0]  ? xa_find+0x17e/0x330
+[ 1946.435410][    C0]  ? lock_downgrade+0x6e0/0x6e0
+[ 1946.440250][    C0]  ? xas_find_marked+0x348/0x10b0
+[ 1946.445274][    C0]  xa_find+0x1a0/0x330
+[ 1946.449336][    C0]  ? xas_find+0x7d0/0x7d0
+[ 1946.453656][    C0]  ? asm_sysvec_call_function_single+0x1a/0x20
+[ 1946.459898][    C0]  ? devlinks_xa_find_get.constprop.0+0xcf/0x260
+[ 1946.466250][    C0]  ? xas_find+0x7d0/0x7d0
+[ 1946.470571][    C0]  devlinks_xa_find_get.constprop.0+0x93/0x260
+[ 1946.476719][    C0]  devlink_nl_cmd_port_get_dumpit+0x11d/0x4e0
+[ 1946.482787][    C0]  ? devlink_nl_cmd_get_dumpit+0x400/0x400
+[ 1946.488583][    C0]  ? __build_skb_around+0x276/0x3a0
+[ 1946.493818][    C0]  ? __alloc_skb+0x185/0x310
+[ 1946.498403][    C0]  netlink_dump+0x570/0xc50
+[ 1946.502938][    C0]  ? netlink_deliver_tap+0xc50/0xc50
+[ 1946.508225][    C0]  ? kasan_set_track+0x25/0x30
+[ 1946.512979][    C0]  ? __kasan_kmalloc+0xa5/0xb0
+[ 1946.517730][    C0]  ? genl_start+0x43d/0x660
+[ 1946.522222][    C0]  __netlink_dump_start+0x64b/0x910
+[ 1946.527419][    C0]  ? genl_family_rcv_msg_attrs_parse.constprop.0+0x290/0x290
+[ 1946.534778][    C0]  ? lock_chain_count+0x20/0x20
+[ 1946.539619][    C0]  genl_family_rcv_msg_dumpit+0x2be/0x310
+[ 1946.545329][    C0]  ? genl_rcv+0x40/0x40
+[ 1946.549473][    C0]  ? genl_cmd_full_to_split+0x650/0x650
+[ 1946.555004][    C0]  ? unwind_get_return_address+0x55/0xa0
+[ 1946.560638][    C0]  ? genl_family_rcv_msg_attrs_parse.constprop.0+0x290/0x290
+[ 1946.567996][    C0]  ? devlink_nl_cmd_get_dumpit+0x400/0x400
+[ 1946.573803][    C0]  ? genl_lock_dumpit+0x90/0x90
+[ 1946.578664][    C0]  ? __lock_acquire+0x166e/0x56d0
+[ 1946.583675][    C0]  ? __radix_tree_lookup+0x215/0x2a0
+[ 1946.588952][    C0]  genl_rcv_msg+0x419/0x7e0
+[ 1946.593449][    C0]  ? genl_family_rcv_msg_doit.isra.0+0x2d0/0x2d0
+[ 1946.599773][    C0]  ? lockdep_hardirqs_on_prepare+0x410/0x410
+[ 1946.605747][    C0]  ? devlink_nl_cmd_get_dumpit+0x400/0x400
+[ 1946.611550][    C0]  netlink_rcv_skb+0x165/0x440
+[ 1946.616308][    C0]  ? genl_family_rcv_msg_doit.isra.0+0x2d0/0x2d0
+[ 1946.622624][    C0]  ? netlink_ack+0x1370/0x1370
+[ 1946.627391][    C0]  ? rwsem_down_read_slowpath+0xb20/0xb20
+[ 1946.633140][    C0]  ? netlink_deliver_tap+0x1b1/0xc50
+[ 1946.638424][    C0]  genl_rcv+0x28/0x40
+[ 1946.642393][    C0]  netlink_unicast+0x547/0x7f0
+[ 1946.647153][    C0]  ? netlink_attachskb+0x890/0x890
+[ 1946.652254][    C0]  ? __virt_addr_valid+0x61/0x2e0
+[ 1946.657271][    C0]  ? __phys_addr_symbol+0x30/0x70
+[ 1946.662284][    C0]  ? __check_object_size+0x2e2/0x5a0
+[ 1946.667590][    C0]  netlink_sendmsg+0x91b/0xe10
+[ 1946.672351][    C0]  ? netlink_unicast+0x7f0/0x7f0
+[ 1946.677288][    C0]  ? bpf_lsm_socket_sendmsg+0x9/0x10
+[ 1946.682597][    C0]  ? netlink_unicast+0x7f0/0x7f0
+[ 1946.687531][    C0]  sock_sendmsg+0xd3/0x120
+[ 1946.691984][    C0]  __sys_sendto+0x23a/0x340
+[ 1946.696485][    C0]  ? __ia32_sys_getpeername+0xb0/0xb0
+[ 1946.701851][    C0]  ? find_held_lock+0x2d/0x110
+[ 1946.706635][    C0]  ? bpf_trace_run2+0x196/0x3d0
+[ 1946.711656][    C0]  ? __bpf_trace_bpf_trace_printk+0xc0/0xc0
+[ 1946.717546][    C0]  __x64_sys_sendto+0xe1/0x1b0
+[ 1946.722306][    C0]  ? syscall_trace_enter.constprop.0+0x119/0x250
+[ 1946.728629][    C0]  do_syscall_64+0x39/0xb0
+[ 1946.733050][    C0]  entry_SYSCALL_64_after_hwframe+0x63/0xcd
+[ 1946.738929][    C0] RIP: 0033:0x7fbf31c3e0dc
+[ 1946.743332][    C0] Code: fa fa ff ff 44 8b 4c 24 2c 4c 8b 44 24 20 89 c5 44 8b 54 24 28 48 8b 54 24 18 b8 2c 00 00 00 48 8b 74 24 10 8b 7c 24 08 0f 05 <48> 3d 00 f0 ff ff 77 34 89 ef 48 89 44 24 08 e8 20 fb ff ff 48 8b
+[ 1946.762926][    C0] RSP: 002b:00007fff97133d00 EFLAGS: 00000293 ORIG_RAX: 000000000000002c
+[ 1946.771337][    C0] RAX: ffffffffffffffda RBX: 00007fbf328d4620 RCX: 00007fbf31c3e0dc
+[ 1946.779311][    C0] RDX: 0000000000000034 RSI: 00007fbf328d4670 RDI: 0000000000000005
+[ 1946.787274][    C0] RBP: 0000000000000000 R08: 00007fff97133d54 R09: 000000000000000c
+[ 1946.795234][    C0] R10: 0000000000000000 R11: 0000000000000293 R12: 00007fff97133dc8
+[ 1946.803192][    C0] R13: 00007fbf328d4670 R14: 0000000000000005 R15: 0000000000000000
+[ 1946.811166][    C0]  </TASK>
+[ 1947.084170][ T5091] Bluetooth: hci1: command 0x0406 tx timeout
+[ 1947.090224][ T5091] Bluetooth: hci3: command 0x0406 tx timeout
+[ 1947.097842][T28905] Bluetooth: hci5: command 0x0406 tx timeout
+[ 1952.190632][T28905] Bluetooth: hci9: unexpected cc 0x0c03 length: 249 > 1
