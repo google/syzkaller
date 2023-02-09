@@ -702,7 +702,8 @@ func (ctx *linux) extractGuiltyFileRaw(title string, report []byte) string {
 		// we would need to ignore too many files and that would be fragile.
 		// So instead we try to extract guilty file starting from the known
 		// interrupt entry point first.
-		for _, interruptEnd := range []string{"apic_timer_interrupt+0x", "Exception stack"} {
+		for _, interruptEnd := range []string{"apic_timer_interrupt+0x",
+			"el1h_64_irq+0x", "Exception stack"} {
 			if pos := bytes.Index(report, []byte(interruptEnd)); pos != -1 {
 				if file := ctx.extractGuiltyFileImpl(report[pos:]); file != "" {
 					return file

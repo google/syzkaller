@@ -1,0 +1,81 @@
+FILE: net/core/skmsg.c
+
+
+rcu: INFO: rcu_sched self-detected stall on CPU
+rcu: 	1-...!: (10499 ticks this GP) idle=9f9/1/0x4000000000000002 softirq=2116/2117 fqs=0 
+	(t=10500 jiffies g=989 q=72)
+rcu: rcu_sched kthread starved for 10500 jiffies! g989 f0x0 RCU_GP_WAIT_FQS(5) ->state=0x0 ->cpu=0
+rcu: 	Unless rcu_sched kthread gets sufficient CPU time, OOM is now expected behavior.
+rcu: RCU grace-period kthread stack dump:
+task:rcu_sched       state:R  running task on cpu   0   stack:    0 pid:   13 ppid:     2 flags:123x00000008
+Call trace:
+ __switch_to+0x330/0x614 arch/arm64/kernel/process.c:123
+ context_switch kernel/sched/core.c:123 [inline]
+ __schedule+0x858/0xfc0 kernel/sched/core.c:123
+ schedule+0x17c/0x37c kernel/sched/core.c:123
+ schedule_timeout+0x1c8/0x334 kernel/time/timer.c:123
+ rcu_gp_fqs_loop+0x238/0x1124 kernel/rcu/tree.c:123
+ rcu_gp_kthread+0xb4/0x240 kernel/rcu/tree.c:123
+ kthread+0x37c/0x4c0 kernel/kthread.c:123
+ ret_from_fork+0x10/0x20 arch/arm64/kernel/entry.S:123
+rcu: Stack dump where RCU GP kthread last ran:
+Task dump for CPU 0:
+task:syz-executor913 state:R  running task on cpu   0   stack:    0 pid: 1432 ppid:  1414 flags:123x00000002
+Call trace:
+ __switch_to+0x330/0x614 arch/arm64/kernel/process.c:123
+ 0x202
+Task dump for CPU 1:
+task:syz-executor913 state:R  running task on cpu   1   stack:    0 pid: 1429 ppid:  1407 flags:123x00000002
+Call trace:
+ walk_stackframe+0xa4/0xa8 arch/arm64/kernel/stacktrace.c:123
+ show_stack+0x2c/0x3c arch/arm64/kernel/stacktrace.c:123
+ _sched_show_task+0x488/0x670
+ sched_show_task kernel/sched/core.c:123 [inline]
+ dump_cpu_task+0x88/0xac kernel/sched/core.c:123
+ rcu_dump_cpu_stacks+0x294/0x518 kernel/rcu/tree_stall.h:123
+ print_cpu_stall+0x4cc/0xc2c kernel/rcu/tree_stall.h:123
+ check_cpu_stall+0x2ec/0x17d0 kernel/rcu/tree_stall.h:123
+ rcu_pending kernel/rcu/tree.c:123 [inline]
+ rcu_sched_clock_irq+0x2e8/0xb38 kernel/rcu/tree.c:123
+ update_process_times+0x190/0x214 kernel/time/timer.c:123
+ tick_sched_handle kernel/time/tick-sched.c:123 [inline]
+ tick_sched_timer+0x22c/0x3c0 kernel/time/tick-sched.c:123
+ __run_hrtimer kernel/time/hrtimer.c:123 [inline]
+ __hrtimer_run_queues+0x3c0/0x864 kernel/time/hrtimer.c:123
+ hrtimer_interrupt+0x2b4/0xbec kernel/time/hrtimer.c:123
+ timer_handler drivers/clocksource/arm_arch_timer.c:123 [inline]
+ arch_timer_handler_virt+0x74/0x88 drivers/clocksource/arm_arch_timer.c:123
+ handle_percpu_devid_irq+0x15c/0x320 kernel/irq/chip.c:123
+ generic_handle_irq_desc include/linux/irqdesc.h:123 [inline]
+ handle_irq_desc kernel/irq/irqdesc.c:123 [inline]
+ handle_domain_irq+0xc8/0x138 kernel/irq/irqdesc.c:123
+ gic_handle_irq+0xac/0x1f4 drivers/irqchip/irq-gic-v3.c:123
+ call_on_irq_stack+0x2c/0x54 arch/arm64/kernel/entry.S:123
+ do_interrupt_handler+0x78/0x98 arch/arm64/kernel/entry-common.c:123
+ el1_interrupt+0x30/0x48 arch/arm64/kernel/entry-common.c:123
+ el1h_64_irq_handler+0x18/0x24 arch/arm64/kernel/entry-common.c:123
+ el1h_64_irq+0x7c/0x80 arch/arm64/kernel/entry.S:123
+ arch_local_irq_restore arch/arm64/include/asm/irqflags.h:123 [inline]
+ lock_acquire+0x214/0x650 kernel/locking/lockdep.c:123
+ __raw_spin_lock_bh include/linux/spinlock_api_smp.h:123 [inline]
+ _raw_spin_lock_bh+0x124/0x1c4 kernel/locking/spinlock.c:123
+ spin_lock_bh include/linux/spinlock.h:123 [inline]
+ sk_psock_peek_msg include/linux/skmsg.h:123 [inline]
+ sk_msg_recvmsg+0x58/0xb7c net/core/skmsg.c:123
+ tcp_bpf_recvmsg_parser+0xdc/0x45c net/ipv4/tcp_bpf.c:123
+ inet_recvmsg+0x128/0x214 net/ipv4/af_inet.c:123
+ ____sys_recvmsg+0x1d0/0xecc
+ ___sys_recvmsg net/socket.c:123 [inline]
+ do_recvmmsg+0x738/0x17a0 net/socket.c:123
+ __sys_recvmmsg net/socket.c:123 [inline]
+ __do_sys_recvmmsg net/socket.c:123 [inline]
+ __se_sys_recvmmsg net/socket.c:123 [inline]
+ __arm64_sys_recvmmsg+0x170/0x22c net/socket.c:123
+ __invoke_syscall arch/arm64/kernel/syscall.c:123 [inline]
+ invoke_syscall+0x94/0x2c8 arch/arm64/kernel/syscall.c:123
+ el0_svc_common+0x144/0x3d0 arch/arm64/kernel/syscall.c:123
+ do_el0_svc+0x58/0x12c arch/arm64/kernel/syscall.c:123
+ el0_svc+0x78/0x200 arch/arm64/kernel/entry-common.c:123
+ el0t_64_sync_handler+0x84/0xe4 arch/arm64/kernel/entry-common.c:123
+ el0t_64_sync+0x1a4/0x1a8 arch/arm64/kernel/entry.S:123
+ 
