@@ -987,6 +987,7 @@ var linuxStallAnchorFrames = []*regexp.Regexp{
 	compile("^compat_sock_ioctl"),
 	compile("^nfnetlink_rcv_msg"),
 	compile("^rtnetlink_rcv_msg"),
+	compile("^netlink_dump"),
 	compile("^(sys_)?(socketpair|connect|ioctl)"),
 	// Page fault entry points:
 	compile("__do_fault"),
