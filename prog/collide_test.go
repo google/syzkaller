@@ -148,3 +148,67 @@ dup(r3)
 		}
 	}
 }
+
+func TestParallelExecCollide(t *testing.T) {
+	tests := []struct {
+		os   string
+		arch string
+		orig string
+		ret  []string
+	}{
+		{
+			"linux", "amd64",
+			`r0 = openat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x42, 0x1ff)
+r1 = dup(r0)
+nanosleep(&AUTO={0x0,0x4C4B40}, &AUTO={0,0})
+r2 = dup(r1)
+`,
+			[]string{
+				`r0 = openat(0xffffffffffffff9c, &(0x7f0000000040)='./file1\x00', 0x42, 0x1ff) (async)
+r1 = openat(0xffffffffffffff9c, &(0x7f0000000040)='./file1\x00', 0x42, 0x1ff)
+r2 = dup(r0)
+r3 = dup(r1)
+nanosleep(&(0x7f0000000080)={0x0, 0x4c4b40}, &(0x7f00000000c0)) (async)
+nanosleep(&(0x7f0000000080)={0x0, 0x4c4b40}, &(0x7f00000000c0))
+dup(r2)
+dup(r3)
+`,
+				`r0 = openat(0xffffffffffffff9c, &(0x7f0000000040)='./file1\x00', 0x42, 0x1ff)
+r1 = openat(0xffffffffffffff9c, &(0x7f0000000040)='./file1\x00', 0x42, 0x1ff)
+r2 = dup(r0) (async)
+r3 = dup(r1)
+nanosleep(&(0x7f0000000080)={0x0, 0x4c4b40}, &(0x7f00000000c0))
+nanosleep(&(0x7f0000000080)={0x0, 0x4c4b40}, &(0x7f00000000c0))
+dup(r2) (async)
+dup(r3)
+`,
+			},
+		},
+	}
+	_, rs, iters := initTest(t)
+	r := rand.New(rs)
+	for _, test := range tests {
+		target, err := GetTarget(test.os, test.arch)
+		if err != nil {
+			t.Fatal(err)
+		}
+		p, err := target.Deserialize([]byte(test.orig), Strict)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i := 0; i < iters; i++ {
+			collided, err := ParallelExecCollide(p, r)
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			serialized := string(collided.Serialize())
+			found := false
+			for _, p := range test.ret {
+				found = found || p == serialized
+			}
+			if !found {
+				t.Fatalf("unexpected output:\n%s", serialized)
+			}
+		}
+	}
+}

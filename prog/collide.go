@@ -97,3 +97,41 @@ func DoubleExecCollide(origProg *Prog, rand *rand.Rand) (*Prog, error) {
 	prog.Calls = append(prog.Calls, dupCalls...)
 	return prog, nil
 }
+
+// Duplicate every call in the program and execute the duplicated copies in parallel.
+// To ensure that async call execute in order, set async to every other call.
+// Example input:
+// r1 = test1()
+// test2(r1)
+// test3(r1)
+// Example output:
+// r1 = test1() (async)
+// r2 = test1()
+// test2(r1) # Note that we don't assign async here.
+// test2(r2)
+// test3(r1) (async)
+// test3(r2).
+func ParallelExecCollide(origProg *Prog, rand *rand.Rand) (*Prog, error) {
+	if 4*len(origProg.Calls)/MaxCalls > 3 {
+		// If the original prog is already too big, there's little sense for such transformation.
+		return nil, fmt.Errorf("the prog is too big for the ParallelExecCollide transformation")
+	}
+	prog := origProg.Clone()
+	dupCalls := cloneCalls(prog.Calls, make(map[*ResultArg]*ResultArg))
+	// We either start alternating async from the first or the second orig call.
+	assignAsync := rand.Intn(2) == 0
+	leftAsync := maxAsyncPerProg
+	calls := []*Call{}
+	for i := 0; i < len(prog.Calls) && len(calls)+2 <= MaxCalls; i++ {
+		origCall := prog.Calls[i]
+		if assignAsync && leftAsync > 0 {
+			origCall.Props.Async = true
+			leftAsync--
+		}
+		calls = append(calls, origCall)
+		calls = append(calls, dupCalls[i])
+		assignAsync = !assignAsync
+	}
+	prog.Calls = calls
+	return prog, nil
+}

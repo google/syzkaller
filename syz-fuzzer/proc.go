@@ -294,10 +294,16 @@ func (proc *Proc) executeAndCollide(execOpts *ipc.ExecOpts, p *prog.Prog, flags 
 }
 
 func (proc *Proc) randomCollide(origP *prog.Prog) *prog.Prog {
-	// Old-styl collide with a 33% probability.
-	if proc.rnd.Intn(3) == 0 {
+	if proc.rnd.Intn(4) == 0 {
+		// Old-style collide with a 25% probability.
 		p, err := prog.DoubleExecCollide(origP, proc.rnd)
 		if err == nil {
+			return p
+		}
+	} else if proc.rnd.Intn(7) == 0 {
+		// Duplicate calls with 14% probability.
+		p, err := prog.ParallelExecCollide(origP, proc.rnd)
+		if err != nil {
 			return p
 		}
 	}
