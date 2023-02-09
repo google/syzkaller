@@ -13,7 +13,7 @@ import (
 // parentTransformations applies all subsystem list transformations that have been implemented.
 func parentTransformations(matrix *match.CoincidenceMatrix,
 	list []*entity.Subsystem) ([]*entity.Subsystem, error) {
-	list = dropEmptySubsystems(matrix, list)
+	list = dropSmallSubsystems(matrix, list)
 	list = dropDuplicateSubsystems(matrix, list)
 	err := setParents(matrix, list)
 	if err != nil {
@@ -49,11 +49,13 @@ func setParents(matrix *match.CoincidenceMatrix, list []*entity.Subsystem) error
 	return nil
 }
 
-// dropEmptySubsystems removes subsystems for which we have found no matches in the filesystem tree.
-func dropEmptySubsystems(matrix *match.CoincidenceMatrix, list []*entity.Subsystem) []*entity.Subsystem {
+// dropSmallSubsystems removes subsystems for which we have found only a few matches in the filesystem tree.
+func dropSmallSubsystems(matrix *match.CoincidenceMatrix, list []*entity.Subsystem) []*entity.Subsystem {
+	const cutOffCount = 2
+
 	newList := []*entity.Subsystem{}
 	for _, item := range list {
-		if matrix.Count(item) > 0 {
+		if matrix.Count(item) > cutOffCount || len(item.Syscalls) > 0 {
 			newList = append(newList, item)
 		}
 	}

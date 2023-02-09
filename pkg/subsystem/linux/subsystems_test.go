@@ -169,17 +169,23 @@ func TestLinuxSubsystemParents(t *testing.T) {
 
 func prepareTestLinuxRepo(t *testing.T, maintainers []byte) fs.FS {
 	return fstest.MapFS{
-		`fs/ext4/fsync.c`:        {},
-		`fs/ext4/mmp.c`:          {},
-		`fs/freevxfs/vxfs_olt.c`: {},
-		`fs/file.c`:              {},
-		`fs/internal.h`:          {},
-		`include/linux/fs.h`:     {},
-		`include/linux/mm.h`:     {},
-		`include/net/ah.h`:       {},
-		`mm/memory.c`:            {},
-		`mm/shmem.c`:             {},
-		`MAINTAINERS`:            {Data: maintainers},
+		`fs/ext4/fsync.c`:          {},
+		`fs/ext4/fsync.h`:          {},
+		`fs/ext4/mmp.c`:            {},
+		`fs/ext4/mmp.h`:            {},
+		`fs/freevxfs/vxfs_olt.c`:   {},
+		`fs/freevxfs/vxfs_olt.h`:   {},
+		`fs/freevxfs/file.c`:       {},
+		`fs/file.c`:                {},
+		`fs/internal.h`:            {},
+		`include/linux/fs.h`:       {},
+		`include/linux/mm.h`:       {},
+		`include/linux/shmem_fs.h`: {},
+		`include/net/ah.h`:         {},
+		`mm/memory.c`:              {},
+		`mm/shmem.c`:               {},
+		`mm/shmem2.c`:              {},
+		`MAINTAINERS`:              {Data: maintainers},
 	}
 }
 
@@ -249,7 +255,7 @@ M:	Developer <email_shmem@email.com>
 L:	tmpfs@kvack.org
 S:	Maintained
 F:	include/linux/shmem_fs.h
-F:	mm/shmem.c
+F:	mm/shmem*
 
 THE REST
 M:	Developer <email_rest@email.com>
