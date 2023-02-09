@@ -1,0 +1,72 @@
+TITLE: INFO: rcu detected stall in sys_recvmmsg
+ALT: stall in sys_recvmmsg
+TYPE: HANG
+
+
+[    8.040784][ T1208] 8021q: adding VLAN 0 to HW filter on device bond0
+[    8.065392][  T350] gvnic 0000:00:00.0 eth0: Device link is up.
+[    8.067296][   T25] IPv6: ADDRCONF(NETDEV_CHANGE): eth0: link becomes ready
+Starting sshd: OK
+
+syzkaller
+Warning: Permanently added '10.10.0.53' (ECDSA) to the list of known hosts.
+syzkaller login: [  417.725670][    C1] rcu: INFO: rcu_sched self-detected stall on CPU
+[  417.727544][    C1] rcu: 	1-...!: (10499 ticks this GP) idle=9f9/1/0x4000000000000002 softirq=2116/2117 fqs=0 
+[  417.730327][    C1] 	(t=10500 jiffies g=989 q=72)
+[  417.731616][    C1] rcu: rcu_sched kthread starved for 10500 jiffies! g989 f0x0 RCU_GP_WAIT_FQS(5) ->state=0x0 ->cpu=0
+[  417.734458][    C1] rcu: 	Unless rcu_sched kthread gets sufficient CPU time, OOM is now expected behavior.
+[  417.737083][    C1] rcu: RCU grace-period kthread stack dump:
+[  417.738658][    C1] task:rcu_sched       state:R  running task on cpu   0   stack:    0 pid:   13 ppid:     2 flags:0x00000008
+[  417.741712][    C1] Call trace:
+[  417.742580][    C1]  __switch_to+0x123/0x123
+[  417.743759][    C1]  __schedule+0x123/0x123
+[  417.744891][    C1]  schedule+0x123/0x123
+[  417.745979][    C1]  schedule_timeout+0x123/0x123
+[  417.747210][    C1]  rcu_gp_fqs_loop+0x123/0x123
+[  417.748498][    C1]  rcu_gp_kthread+0x123/0x123
+[  417.749712][    C1]  kthread+0x123/0x123
+[  417.750767][    C1]  ret_from_fork+0x123/0x123
+[  417.751954][    C1] rcu: Stack dump where RCU GP kthread last ran:
+[  417.753610][    C1] Task dump for CPU 0:
+[  417.754667][    C1] task:syz-executor913 state:R  running task on cpu   0   stack:    0 pid: 1432 ppid:  1414 flags:0x00000002
+[  417.757734][    C1] Call trace:
+[  417.758593][    C1]  __switch_to+0x123/0x123
+[  417.759750][    C1]  0x202
+[  417.760503][    C1] Task dump for CPU 1:
+[  417.761565][    C1] task:syz-executor913 state:R  running task on cpu   1   stack:    0 pid: 1429 ppid:  1407 flags:0x00000002
+[  417.764661][    C1] Call trace:
+[  417.765509][    C1]  walk_stackframe+0x123/0x123
+[  417.766717][    C1]  show_stack+0x123/0x123
+[  417.767848][    C1]  _sched_show_task+0x123/0x123
+[  417.769129][    C1]  dump_cpu_task+0x123/0x123
+[  417.770301][    C1]  rcu_dump_cpu_stacks+0x123/0x123
+[  417.771650][    C1]  print_cpu_stall+0x123/0x123
+[  417.772896][    C1]  check_cpu_stall+0x123/0x123
+[  417.774184][    C1]  rcu_sched_clock_irq+0x123/0x123
+[  417.775546][    C1]  update_process_times+0x123/0x123
+[  417.776929][    C1]  tick_sched_timer+0x123/0x123
+[  417.778212][    C1]  __hrtimer_run_queues+0x123/0x123
+[  417.779598][    C1]  hrtimer_interrupt+0x123/0x123
+[  417.780909][    C1]  arch_timer_handler_virt+0x123/0x123
+[  417.782290][    C1]  handle_percpu_devid_irq+0x123/0x123
+[  417.783736][    C1]  handle_domain_irq+0x123/0x123
+[  417.785016][    C1]  gic_handle_irq+0x123/0x123
+[  417.786222][    C1]  call_on_irq_stack+0x123/0x123
+[  417.787489][    C1]  do_interrupt_handler+0x123/0x123
+[  417.788820][    C1]  el1_interrupt+0x123/0x123
+[  417.789988][    C1]  el1h_64_irq_handler+0x123/0x123
+[  417.791312][    C1]  el1h_64_irq+0x123/0x123
+[  417.792422][    C1]  lock_acquire+0x123/0x123
+[  417.793620][    C1]  _raw_spin_lock_bh+0x123/0x123
+[  417.794925][    C1]  sk_msg_recvmsg+0x123/0x123
+[  417.796127][    C1]  tcp_bpf_recvmsg_parser+0x123/0x123
+[  417.797490][    C1]  inet_recvmsg+0x123/0x123
+[  417.798695][    C1]  ____sys_recvmsg+0x123/0x123
+[  417.799947][    C1]  do_recvmmsg+0x123/0x123
+[  417.801142][    C1]  __arm64_sys_recvmmsg+0x123/0x123
+[  417.802546][    C1]  invoke_syscall+0x123/0x123
+[  417.803758][    C1]  el0_svc_common+0x123/0x123
+[  417.804977][    C1]  do_el0_svc+0x123/0x123
+[  417.806112][    C1]  el0_svc+0x123/0x123
+[  417.807175][    C1]  el0t_64_sync_handler+0x123/0x123
+[  417.808519][    C1]  el0t_64_sync+0x123/0x123

@@ -930,6 +930,7 @@ var linuxStallAnchorFrames = []*regexp.Regexp{
 	compile("sysenter_dispatch"), // syscall entry
 	compile("tracesys_phase2"),   // syscall entry
 	compile("el0_svc_handler"),   // syscall entry
+	compile("invoke_syscall"),    // syscall entry
 	compile("ret_fast_syscall"),  // arm syscall entry
 	compile("netif_receive_skb"), // net receive entry point
 	compile("do_softirq"),
@@ -1834,7 +1835,7 @@ var linuxOopses = append([]*oops{
 						parseStackTrace,
 					},
 					parts2: []*regexp.Regexp{
-						compile("(?:apic_timer_interrupt|Exception stack)"),
+						compile("(?:apic_timer_interrupt|Exception stack|el1h_64_irq)"),
 						parseStackTrace,
 					},
 					skip:      []string{"apic_timer_interrupt", "rcu"},
