@@ -69,21 +69,6 @@ func TestDropDuplicateSubsystems(t *testing.T) {
 	assert.ElementsMatch(t, ret, expected)
 }
 
-func TestLoopsDoExist(t *testing.T) {
-	a := &entity.Subsystem{}
-	b := &entity.Subsystem{Parents: []*entity.Subsystem{a}}
-	c := &entity.Subsystem{Parents: []*entity.Subsystem{b}}
-	a.Parents = []*entity.Subsystem{c}
-	assert.True(t, loopsExist([]*entity.Subsystem{a, b, c}))
-}
-
-func TestLoopsDoNotExist(t *testing.T) {
-	a := &entity.Subsystem{}
-	b := &entity.Subsystem{Parents: []*entity.Subsystem{a}}
-	c := &entity.Subsystem{Parents: []*entity.Subsystem{b}}
-	assert.False(t, loopsExist([]*entity.Subsystem{a, b, c}))
-}
-
 func TestTransitiveReduction(t *testing.T) {
 	// (d, c), (c, b), (b, a)
 	// (d, a)

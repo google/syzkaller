@@ -21,6 +21,9 @@ func (subsystem *Subsystem) ReachableParents() map[*Subsystem]struct{} {
 			return
 		}
 		for _, p := range node.Parents {
+			if p == subsystem {
+				panic("loop in the parents relation")
+			}
 			ret[p] = struct{}{}
 			dfs(p)
 		}

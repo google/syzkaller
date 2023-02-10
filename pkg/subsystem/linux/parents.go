@@ -4,8 +4,6 @@
 package linux
 
 import (
-	"fmt"
-
 	"github.com/google/syzkaller/pkg/subsystem/entity"
 	"github.com/google/syzkaller/pkg/subsystem/match"
 )
@@ -39,12 +37,9 @@ func setParents(matrix *match.CoincidenceMatrix, list []*entity.Subsystem) error
 		// Demand that >= 50% paths are related.
 		if 2*count/matrix.Count(a) >= 1 && matrix.Count(a) < matrix.Count(b) {
 			a.Parents = append(a.Parents, b)
+			a.ReachableParents() // make sure we haven't created a loop
 		}
 	})
-	// Just in case.
-	if loopsExist(list) {
-		return fmt.Errorf("there are loops in the parents relation")
-	}
 	transitiveReduction(list)
 	return nil
 }
@@ -123,43 +118,4 @@ func transitiveReduction(list []*entity.Subsystem) {
 		}
 		s.Parents = newParents
 	}
-}
-
-// loopsExist is a helper method that verifies that the resulting graph has no loops.
-func loopsExist(list []*entity.Subsystem) bool {
-	type graphNode struct {
-		obj     *entity.Subsystem
-		entered bool
-		left    bool
-	}
-	nodes := []*graphNode{}
-	objToNode := map[*entity.Subsystem]*graphNode{}
-	for _, obj := range list {
-		node := &graphNode{obj: obj}
-		nodes = append(nodes, node)
-		objToNode[obj] = node
-	}
-	var dfs func(*graphNode) bool
-	dfs = func(node *graphNode) bool {
-		if node.left {
-			return false
-		}
-		if node.entered {
-			// We've found a cycle.
-			return true
-		}
-		node.entered = true
-		anyLoop := false
-		for _, parent := range node.obj.Parents {
-			anyLoop = anyLoop || dfs(objToNode[parent])
-		}
-		node.left = true
-		return anyLoop
-	}
-	for _, node := range nodes {
-		if dfs(node) {
-			return true
-		}
-	}
-	return false
 }
