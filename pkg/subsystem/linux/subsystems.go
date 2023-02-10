@@ -35,6 +35,15 @@ func listFromRepoInner(root fs.FS, rules *customRules) ([]*entity.Subsystem, err
 	if err != nil {
 		return nil, err
 	}
+	matrix, err := match.BuildCoincidenceMatrix(root, list, dropPatterns)
+	if err != nil {
+		return nil, err
+	}
+	list, err = parentTransformations(matrix, list)
+	if err != nil {
+		return nil, err
+	}
+
 	// Sort subsystems by name to keep output consistent.
 	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
 	// Sort path rules to keep output consistent.
@@ -89,20 +98,16 @@ func (ctx *linuxCtx) getSubsystems() ([]*entity.Subsystem, error) {
 	for _, raw := range ctx.groupByList() {
 		s := &entity.Subsystem{}
 		raw.mergeRawRecords(s)
+		// Skip empty subsystems.
+		if len(s.Syscalls)+len(s.PathRules) == 0 {
+			continue
+		}
 		ret = append(ret, s)
 	}
 	if err := setSubsystemNames(ret); err != nil {
 		return nil, fmt.Errorf("failed to set names: %w", err)
 	}
 	ctx.applyExtraRules(ret)
-	matrix, err := match.BuildCoincidenceMatrix(ctx.root, ret, nil)
-	if err != nil {
-		return nil, err
-	}
-	err = SetParents(matrix, ret)
-	if err != nil {
-		return nil, err
-	}
 	return ret, nil
 }
 
