@@ -1,18 +1,18 @@
 // Copyright 2023 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package match
+package linux
 
 import (
 	"testing"
 
-	"github.com/google/syzkaller/pkg/subsystem/entity"
+	"github.com/google/syzkaller/pkg/subsystem"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCoincidenceMatrix(t *testing.T) {
 	cm := MakeCoincidenceMatrix()
-	a, b, c := &entity.Subsystem{}, &entity.Subsystem{}, &entity.Subsystem{}
+	a, b, c := &subsystem.Subsystem{}, &subsystem.Subsystem{}, &subsystem.Subsystem{}
 	cm.Record(a, b)
 	cm.Record(b, c)
 
@@ -28,12 +28,12 @@ func TestCoincidenceMatrix(t *testing.T) {
 
 	// Test the iterator.
 	type pair struct {
-		a *entity.Subsystem
-		b *entity.Subsystem
+		a *subsystem.Subsystem
+		b *subsystem.Subsystem
 	}
 	expected := []pair{{a, b}, {b, a}, {b, c}, {c, b}}
 	got := []pair{}
-	cm.NonEmptyPairs(func(a, b *entity.Subsystem, _ int) {
+	cm.NonEmptyPairs(func(a, b *subsystem.Subsystem, _ int) {
 		got = append(got, pair{a, b})
 	})
 	assert.ElementsMatch(t, expected, got)
