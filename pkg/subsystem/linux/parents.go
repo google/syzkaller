@@ -10,14 +10,34 @@ import (
 	"github.com/google/syzkaller/pkg/subsystem/match"
 )
 
-// SetParents attempts to determine the parent-child relations among the extracted subsystems.
+// parentTransformations applies all subsystem list transformations that have been implemented.
+func parentTransformations(matrix *match.CoincidenceMatrix,
+	list []*entity.Subsystem) ([]*entity.Subsystem, error) {
+	list = dropEmptySubsystems(matrix, list)
+	list = dropDuplicateSubsystems(matrix, list)
+	err := setParents(matrix, list)
+	if err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+// setParents attempts to determine the parent-child relations among the extracted subsystems.
 // We assume A is a child of B if:
 // 1) B covers more paths than A.
 // 2) Most of the paths that relate to A also relate to B.
-func SetParents(matrix *match.CoincidenceMatrix, list []*entity.Subsystem) error {
+func setParents(matrix *match.CoincidenceMatrix, list []*entity.Subsystem) error {
+	// Some subsystems might have already been dropeed.
+	inInput := map[*entity.Subsystem]bool{}
+	for _, item := range list {
+		inInput[item] = true
+	}
 	matrix.NonEmptyPairs(func(a, b *entity.Subsystem, count int) {
-		// Demand that > 2/3 paths are related.
-		if 3*count/matrix.Count(a) >= 2 && matrix.Count(a) < matrix.Count(b) {
+		if !inInput[a] || !inInput[b] {
+			return
+		}
+		// Demand that >= 50% paths are related.
+		if 2*count/matrix.Count(a) >= 1 && matrix.Count(a) < matrix.Count(b) {
 			a.Parents = append(a.Parents, b)
 		}
 	})
@@ -27,6 +47,57 @@ func SetParents(matrix *match.CoincidenceMatrix, list []*entity.Subsystem) error
 	}
 	transitiveReduction(list)
 	return nil
+}
+
+// dropEmptySubsystems removes subsystems for which we have found no matches in the filesystem tree.
+func dropEmptySubsystems(matrix *match.CoincidenceMatrix, list []*entity.Subsystem) []*entity.Subsystem {
+	newList := []*entity.Subsystem{}
+	for _, item := range list {
+		if matrix.Count(item) > 0 {
+			newList = append(newList, item)
+		}
+	}
+	return newList
+}
+
+// dropDuplicateSubsystems makes sure there are no duplicate subsystems.
+// First, if subsystems A and B 100% overlap, we prefer the one that's alphabetically first.
+// Second, if subsystem A is fully enclosed in subsystem B and constitutes more than 75% of B,
+// we drop A, since it brings little value.
+func dropDuplicateSubsystems(matrix *match.CoincidenceMatrix, list []*entity.Subsystem) []*entity.Subsystem {
+	drop := map[*entity.Subsystem]struct{}{}
+	nameIsBetter := func(first, second string) bool {
+		// Let's prefer shorter names first.
+		if len(first) < len(second) {
+			return true
+		}
+		return first < second
+	}
+	matrix.NonEmptyPairs(func(a, b *entity.Subsystem, count int) {
+		// Only consider cases when A is fully enclosed in B, i.e. M[A][B] == M[A][A].
+		if count != matrix.Count(a) {
+			return
+		}
+		// If A and B 100% coincide, eliminate A and keep B if A > B.
+		if count == matrix.Count(b) {
+			if nameIsBetter(a.Name, b.Name) {
+				return
+			}
+			drop[a] = struct{}{}
+			return
+		}
+		// If A constitutes > 75% of B, drop A.
+		if 4*matrix.Count(a)/matrix.Count(b) >= 3 {
+			drop[a] = struct{}{}
+		}
+	})
+	newList := []*entity.Subsystem{}
+	for _, item := range list {
+		if _, exists := drop[item]; !exists {
+			newList = append(newList, item)
+		}
+	}
+	return newList
 }
 
 // The algorithm runs in O(E * (E + V)).
