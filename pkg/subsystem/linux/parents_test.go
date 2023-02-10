@@ -39,7 +39,8 @@ func TestDropDuplicateSubsystems(t *testing.T) {
 	expected = append(expected, kernel)
 
 	// Fully overlap.
-	sameA, sameB := &entity.Subsystem{Name: "SameA"}, &entity.Subsystem{Name: "SameB"}
+	sameA := &entity.Subsystem{Lists: []string{"SameA@gmail.com"}}
+	sameB := &entity.Subsystem{Lists: []string{"SameB@gmail.com"}}
 	matrix.Record(kernel, sameA, sameB)
 	matrix.Record(kernel, sameA, sameB)
 	matrix.Record(kernel, sameA, sameB)

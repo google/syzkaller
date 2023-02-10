@@ -31,10 +31,6 @@ func listFromRepoInner(root fs.FS, rules *customRules) ([]*entity.Subsystem, err
 		extraRules: rules,
 	}
 	list := ctx.groupByList()
-	if err := setSubsystemNames(list); err != nil {
-		return nil, fmt.Errorf("failed to set names: %w", err)
-	}
-	ctx.applyExtraRules(list)
 	matrix, err := match.BuildCoincidenceMatrix(root, list, dropPatterns)
 	if err != nil {
 		return nil, err
@@ -43,6 +39,10 @@ func listFromRepoInner(root fs.FS, rules *customRules) ([]*entity.Subsystem, err
 	if err != nil {
 		return nil, err
 	}
+	if err := setSubsystemNames(list); err != nil {
+		return nil, fmt.Errorf("failed to set names: %w", err)
+	}
+	ctx.applyExtraRules(list)
 
 	// Sort subsystems by name to keep output consistent.
 	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })

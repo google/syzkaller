@@ -68,12 +68,15 @@ func dropSmallSubsystems(matrix *match.CoincidenceMatrix, list []*entity.Subsyst
 // we drop A, since it brings little value.
 func dropDuplicateSubsystems(matrix *match.CoincidenceMatrix, list []*entity.Subsystem) []*entity.Subsystem {
 	drop := map[*entity.Subsystem]struct{}{}
-	nameIsBetter := func(first, second string) bool {
-		// Let's prefer shorter names first.
-		if len(first) < len(second) {
-			return true
+	firstIsBetter := func(first, second *entity.Subsystem) bool {
+		firstEmail, secondEmail := "", ""
+		if len(first.Lists) > 0 {
+			firstEmail = first.Lists[0]
 		}
-		return first < second
+		if len(second.Lists) > 0 {
+			secondEmail = second.Lists[0]
+		}
+		return firstEmail < secondEmail
 	}
 	matrix.NonEmptyPairs(func(a, b *entity.Subsystem, count int) {
 		// Only consider cases when A is fully enclosed in B, i.e. M[A][B] == M[A][A].
@@ -82,7 +85,7 @@ func dropDuplicateSubsystems(matrix *match.CoincidenceMatrix, list []*entity.Sub
 		}
 		// If A and B 100% coincide, eliminate A and keep B if A > B.
 		if count == matrix.Count(b) {
-			if nameIsBetter(a.Name, b.Name) {
+			if firstIsBetter(a, b) {
 				return
 			}
 			drop[a] = struct{}{}
