@@ -1,27 +1,27 @@
 // Copyright 2023 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package match
+package linux
 
 import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/google/syzkaller/pkg/subsystem/entity"
+	"github.com/google/syzkaller/pkg/subsystem"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestBuildCoincidenceMatrix(t *testing.T) {
-	vfs := &entity.Subsystem{PathRules: []entity.PathRule{
+	vfs := &subsystem.Subsystem{PathRules: []subsystem.PathRule{
 		{IncludeRegexp: `^fs/`},
 	}}
-	ext4 := &entity.Subsystem{PathRules: []entity.PathRule{
+	ext4 := &subsystem.Subsystem{PathRules: []subsystem.PathRule{
 		{IncludeRegexp: `^fs/ext4/`},
 	}}
-	ntfs := &entity.Subsystem{PathRules: []entity.PathRule{
+	ntfs := &subsystem.Subsystem{PathRules: []subsystem.PathRule{
 		{IncludeRegexp: `^fs/ntfs/`},
 	}}
-	kernel := &entity.Subsystem{PathRules: []entity.PathRule{
+	kernel := &subsystem.Subsystem{PathRules: []subsystem.PathRule{
 		{IncludeRegexp: `.*`},
 	}}
 
@@ -33,7 +33,7 @@ func TestBuildCoincidenceMatrix(t *testing.T) {
 		"fs/fat/file.c":  {},
 		"net/socket.c":   {},
 	}
-	matrix, err := BuildCoincidenceMatrix(fs, []*entity.Subsystem{vfs, ntfs, ext4, kernel}, nil)
+	matrix, err := BuildCoincidenceMatrix(fs, []*subsystem.Subsystem{vfs, ntfs, ext4, kernel}, nil)
 	assert.NoError(t, err)
 
 	// Test total counts.

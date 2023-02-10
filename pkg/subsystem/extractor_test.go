@@ -7,7 +7,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/google/syzkaller/pkg/subsystem/entity"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,14 +14,14 @@ func TestExtractor(t *testing.T) {
 	// Objects used in tests.
 	fsPath := "fs/"
 	extProg, nfsProg := []byte("ext prog"), []byte("nfs prog")
-	fs := &entity.Subsystem{Name: "fs"}
-	ext := &entity.Subsystem{Name: "ext", Parents: []*entity.Subsystem{fs}}
-	nfs := &entity.Subsystem{Name: "nfs", Parents: []*entity.Subsystem{fs}}
+	fs := &Subsystem{Name: "fs"}
+	ext := &Subsystem{Name: "ext", Parents: []*Subsystem{fs}}
+	nfs := &Subsystem{Name: "nfs", Parents: []*Subsystem{fs}}
 	// Tests themselves.
 	tests := []struct {
 		name    string
 		crashes []*Crash
-		want    []*entity.Subsystem
+		want    []*Subsystem
 	}{
 		{
 			name: `Make sure it works fine with just a single path`,
@@ -31,7 +30,7 @@ func TestExtractor(t *testing.T) {
 					GuiltyPath: fsPath,
 				},
 			},
-			want: []*entity.Subsystem{fs},
+			want: []*Subsystem{fs},
 		},
 		{
 			name: `Make sure a child shadows its parent`,
@@ -44,7 +43,7 @@ func TestExtractor(t *testing.T) {
 					SyzRepro:   extProg,
 				},
 			},
-			want: []*entity.Subsystem{ext},
+			want: []*Subsystem{ext},
 		},
 		{
 			name: `Two equally present children`,
@@ -61,7 +60,7 @@ func TestExtractor(t *testing.T) {
 					SyzRepro:   nfsProg,
 				},
 			},
-			want: []*entity.Subsystem{nfs, ext},
+			want: []*Subsystem{nfs, ext},
 		},
 		{
 			name: `One child is more present than another`,
@@ -82,17 +81,17 @@ func TestExtractor(t *testing.T) {
 					SyzRepro:   extProg,
 				},
 			},
-			want: []*entity.Subsystem{ext},
+			want: []*Subsystem{ext},
 		},
 	}
 	extractor := &Extractor{
 		raw: &testRawExtractor{
-			perPath: map[string][]*entity.Subsystem{
+			perPath: map[string][]*Subsystem{
 				fsPath: {fs},
 			},
 			perProg: []progSubsystems{
-				{extProg, []*entity.Subsystem{ext}},
-				{nfsProg, []*entity.Subsystem{nfs}},
+				{extProg, []*Subsystem{ext}},
+				{nfsProg, []*Subsystem{nfs}},
 			},
 		},
 	}
@@ -103,20 +102,20 @@ func TestExtractor(t *testing.T) {
 }
 
 type testRawExtractor struct {
-	perPath map[string][]*entity.Subsystem
+	perPath map[string][]*Subsystem
 	perProg []progSubsystems
 }
 
 type progSubsystems struct {
 	prog []byte
-	ret  []*entity.Subsystem
+	ret  []*Subsystem
 }
 
-func (e *testRawExtractor) FromPath(path string) []*entity.Subsystem {
+func (e *testRawExtractor) FromPath(path string) []*Subsystem {
 	return e.perPath[path]
 }
 
-func (e *testRawExtractor) FromProg(progBytes []byte) []*entity.Subsystem {
+func (e *testRawExtractor) FromProg(progBytes []byte) []*Subsystem {
 	for _, obj := range e.perProg {
 		if reflect.DeepEqual(progBytes, obj.prog) {
 			return obj.ret

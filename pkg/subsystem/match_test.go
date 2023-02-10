@@ -1,18 +1,17 @@
 // Copyright 2023 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package match
+package subsystem
 
 import (
 	"testing"
 
-	"github.com/google/syzkaller/pkg/subsystem/entity"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPathMatcher(t *testing.T) {
-	arm := &entity.Subsystem{
-		PathRules: []entity.PathRule{
+	arm := &Subsystem{
+		PathRules: []PathRule{
 			{
 				IncludeRegexp: `^arch/arm/.*$`,
 				ExcludeRegexp: `^arch/arm/boot/dts/.*$`,
@@ -24,29 +23,29 @@ func TestPathMatcher(t *testing.T) {
 			},
 		},
 	}
-	docs := &entity.Subsystem{
-		PathRules: []entity.PathRule{
+	docs := &Subsystem{
+		PathRules: []PathRule{
 			{IncludeRegexp: `^Documentation/.*$`},
 		},
 	}
-	m := MakePathMatcher([]*entity.Subsystem{arm, docs})
-	assert.ElementsMatch(t, []*entity.Subsystem{arm, docs},
+	m := MakePathMatcher([]*Subsystem{arm, docs})
+	assert.ElementsMatch(t, []*Subsystem{arm, docs},
 		m.Match(`Documentation/devicetree/bindings/interrupt-controller/arm,vic.yaml`))
-	assert.ElementsMatch(t, []*entity.Subsystem{arm}, m.Match(`arch/arm/a.c`))
-	assert.ElementsMatch(t, []*entity.Subsystem{docs}, m.Match(`Documentation/a/b/c.md`))
+	assert.ElementsMatch(t, []*Subsystem{arm}, m.Match(`arch/arm/a.c`))
+	assert.ElementsMatch(t, []*Subsystem{docs}, m.Match(`Documentation/a/b/c.md`))
 	assert.Empty(t, m.Match(`arch/boot/dts/a.c`))
 }
 
 func TestPathMatchOrder(t *testing.T) {
-	s := &entity.Subsystem{
-		PathRules: []entity.PathRule{
+	s := &Subsystem{
+		PathRules: []PathRule{
 			{
 				IncludeRegexp: `^a/b/.*$`,
 				ExcludeRegexp: `^a/.*$`,
 			},
 		},
 	}
-	m := MakePathMatcher([]*entity.Subsystem{s})
+	m := MakePathMatcher([]*Subsystem{s})
 	// If we first exclude a/, then a/b/c never matches.
 	assert.Empty(t, m.Match("a/b/c"))
 }

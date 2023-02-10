@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/google/syzkaller/pkg/subsystem/entity"
+	"github.com/google/syzkaller/pkg/subsystem"
 )
 
 // setSubsystemNames assigns unique names to the presented subsystems.
 // If it failed to assign a name to a subsystem, the Name field remains empty.
-func setSubsystemNames(list []*entity.Subsystem) error {
+func setSubsystemNames(list []*subsystem.Subsystem) error {
 	dups := map[string]bool{}
 	for _, item := range list {
 		// For now, we can only infer name from the list email.

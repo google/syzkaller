@@ -10,16 +10,15 @@ import (
 	"regexp"
 	"sort"
 
-	"github.com/google/syzkaller/pkg/subsystem/entity"
-	"github.com/google/syzkaller/pkg/subsystem/match"
+	"github.com/google/syzkaller/pkg/subsystem"
 )
 
-func ListFromRepo(repo string) ([]*entity.Subsystem, error) {
+func ListFromRepo(repo string) ([]*subsystem.Subsystem, error) {
 	return listFromRepoInner(os.DirFS(repo), linuxSubsystemRules)
 }
 
 // listFromRepoInner allows for better testing.
-func listFromRepoInner(root fs.FS, rules *customRules) ([]*entity.Subsystem, error) {
+func listFromRepoInner(root fs.FS, rules *customRules) ([]*subsystem.Subsystem, error) {
 	records, err := getMaintainers(root)
 	if err != nil {
 		return nil, err
@@ -31,7 +30,7 @@ func listFromRepoInner(root fs.FS, rules *customRules) ([]*entity.Subsystem, err
 		extraRules: rules,
 	}
 	list := ctx.groupByList()
-	matrix, err := match.BuildCoincidenceMatrix(root, list, dropPatterns)
+	matrix, err := BuildCoincidenceMatrix(root, list, dropPatterns)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +70,7 @@ var (
 	dropPatterns = regexp.MustCompile(`^(Documentation|scripts|samples|tools)|Makefile`)
 )
 
-func (ctx *linuxCtx) groupByList() []*entity.Subsystem {
+func (ctx *linuxCtx) groupByList() []*subsystem.Subsystem {
 	perList := make(map[string][]*maintainersRecord)
 	for _, record := range ctx.rawRecords {
 		for _, list := range record.lists {
@@ -82,7 +81,7 @@ func (ctx *linuxCtx) groupByList() []*entity.Subsystem {
 	if ctx.extraRules != nil {
 		exclude = ctx.extraRules.notSubsystemEmails
 	}
-	ret := []*entity.Subsystem{}
+	ret := []*subsystem.Subsystem{}
 	for email, list := range perList {
 		if _, skip := exclude[email]; skip {
 			continue
@@ -96,7 +95,7 @@ func (ctx *linuxCtx) groupByList() []*entity.Subsystem {
 	return ret
 }
 
-func (ctx *linuxCtx) applyExtraRules(list []*entity.Subsystem) {
+func (ctx *linuxCtx) applyExtraRules(list []*subsystem.Subsystem) {
 	if ctx.extraRules == nil {
 		return
 	}
@@ -105,7 +104,7 @@ func (ctx *linuxCtx) applyExtraRules(list []*entity.Subsystem) {
 	}
 }
 
-func mergeRawRecords(email string, records []*maintainersRecord) *entity.Subsystem {
+func mergeRawRecords(email string, records []*maintainersRecord) *subsystem.Subsystem {
 	unique := func(list []string) []string {
 		m := make(map[string]struct{})
 		for _, s := range list {
@@ -119,7 +118,7 @@ func mergeRawRecords(email string, records []*maintainersRecord) *entity.Subsyst
 		return ret
 	}
 	var maintainers []string
-	subsystem := &entity.Subsystem{Lists: []string{email}}
+	subsystem := &subsystem.Subsystem{Lists: []string{email}}
 	for _, record := range records {
 		rule := record.ToPathRule()
 		if !rule.IsEmpty() {

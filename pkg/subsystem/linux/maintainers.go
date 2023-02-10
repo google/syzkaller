@@ -13,7 +13,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/google/syzkaller/pkg/subsystem/entity"
+	"github.com/google/syzkaller/pkg/subsystem"
 )
 
 // maintainersRecord represents a single raw record in the MAINTAINERS file.
@@ -146,7 +146,7 @@ func parseEmail(value string) (string, error) {
 	return addr.Address, nil
 }
 
-func (r maintainersRecord) ToPathRule() entity.PathRule {
+func (r maintainersRecord) ToPathRule() subsystem.PathRule {
 	inclRe := strings.Builder{}
 	for i, wildcard := range r.includePatterns {
 		if i > 0 {
@@ -167,7 +167,7 @@ func (r maintainersRecord) ToPathRule() entity.PathRule {
 		}
 		wildcardToRegexp(wildcard, &exclRe)
 	}
-	return entity.PathRule{
+	return subsystem.PathRule{
 		IncludeRegexp: inclRe.String(),
 		ExcludeRegexp: exclRe.String(),
 	}
