@@ -12,6 +12,60 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestDropEmptySubsystems(t *testing.T) {
+	kernel := &entity.Subsystem{}
+	net := &entity.Subsystem{}
+	fs := &entity.Subsystem{}
+	legal := &entity.Subsystem{}
+
+	matrix := match.MakeCoincidenceMatrix()
+	matrix.Record(kernel, net)
+	matrix.Record(kernel, fs)
+	matrix.Record(kernel, net, fs)
+
+	ret := dropEmptySubsystems(matrix, []*entity.Subsystem{kernel, net, fs, legal})
+	assert.ElementsMatch(t, []*entity.Subsystem{kernel, net, fs}, ret)
+}
+
+func TestDropDuplicateSubsystems(t *testing.T) {
+	input, expected := []*entity.Subsystem{}, []*entity.Subsystem{}
+	matrix := match.MakeCoincidenceMatrix()
+
+	// Always present.
+	kernel := &entity.Subsystem{Name: "kernel"}
+	input = append(input, kernel)
+	expected = append(expected, kernel)
+
+	// Fully overlap.
+	sameA, sameB := &entity.Subsystem{Name: "SameA"}, &entity.Subsystem{Name: "SameB"}
+	matrix.Record(kernel, sameA, sameB)
+	matrix.Record(kernel, sameA, sameB)
+	matrix.Record(kernel, sameA, sameB)
+	input = append(input, sameA, sameB)
+	expected = append(expected, sameA)
+
+	// Overlap, but the smaller one is not so significant.
+	ext4, fs := &entity.Subsystem{Name: "ext4"}, &entity.Subsystem{Name: "fs"}
+	matrix.Record(kernel, ext4, fs)
+	matrix.Record(kernel, ext4, fs)
+	matrix.Record(kernel, fs) // 66%.
+	input = append(input, ext4, fs)
+	expected = append(expected, ext4, fs)
+
+	// Overlap, and the smaller one takes a big part.
+	toDrop, stays := &entity.Subsystem{Name: "to-drop"}, &entity.Subsystem{Name: "stays"}
+	for i := 0; i < 5; i++ {
+		matrix.Record(kernel, toDrop, stays)
+	}
+	matrix.Record(kernel, stays)
+	input = append(input, toDrop, stays)
+	expected = append(expected, stays)
+
+	// Run the analysis.
+	ret := dropDuplicateSubsystems(matrix, input)
+	assert.ElementsMatch(t, ret, expected)
+}
+
 func TestLoopsDoExist(t *testing.T) {
 	a := &entity.Subsystem{}
 	b := &entity.Subsystem{Parents: []*entity.Subsystem{a}}
@@ -77,7 +131,8 @@ func TestSetParents(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Calculate parents.
-	err = SetParents(matrix, []*entity.Subsystem{kernel, net, wireless, drivers})
+
+	err = setParents(matrix, []*entity.Subsystem{kernel, net, wireless, drivers})
 	if err != nil {
 		t.Fatal(err)
 	}
