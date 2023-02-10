@@ -1,13 +1,11 @@
 // Copyright 2023 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package match
+package subsystem
 
 import (
 	"regexp"
 	"strings"
-
-	"github.com/google/syzkaller/pkg/subsystem/entity"
 )
 
 type PathMatcher struct {
@@ -17,10 +15,10 @@ type PathMatcher struct {
 type match struct {
 	include *regexp.Regexp
 	exclude *regexp.Regexp
-	object  *entity.Subsystem
+	object  *Subsystem
 }
 
-func MakePathMatcher(list []*entity.Subsystem) *PathMatcher {
+func MakePathMatcher(list []*Subsystem) *PathMatcher {
 	m := &PathMatcher{}
 	for _, item := range list {
 		m.register(item)
@@ -28,9 +26,9 @@ func MakePathMatcher(list []*entity.Subsystem) *PathMatcher {
 	return m
 }
 
-func (p *PathMatcher) register(item *entity.Subsystem) {
+func (p *PathMatcher) register(item *Subsystem) {
 	onlyInclude := []string{}
-	list := []entity.PathRule{}
+	list := []PathRule{}
 	for _, r := range item.PathRules {
 		if r.ExcludeRegexp == "" {
 			// It's expected that almost everything will go to this branch.
@@ -40,7 +38,7 @@ func (p *PathMatcher) register(item *entity.Subsystem) {
 		}
 	}
 	if len(onlyInclude) > 0 {
-		list = append(list, entity.PathRule{
+		list = append(list, PathRule{
 			IncludeRegexp: strings.Join(onlyInclude, "|"),
 		})
 	}
@@ -49,8 +47,8 @@ func (p *PathMatcher) register(item *entity.Subsystem) {
 	}
 }
 
-func (p *PathMatcher) Match(path string) []*entity.Subsystem {
-	ret := []*entity.Subsystem{}
+func (p *PathMatcher) Match(path string) []*Subsystem {
+	ret := []*Subsystem{}
 	for _, m := range p.matches {
 		if m.exclude != nil && m.exclude.MatchString(path) {
 			continue
@@ -63,7 +61,7 @@ func (p *PathMatcher) Match(path string) []*entity.Subsystem {
 	return ret
 }
 
-func buildMatch(rule entity.PathRule, item *entity.Subsystem) *match {
+func buildMatch(rule PathRule, item *Subsystem) *match {
 	m := &match{object: item}
 	if rule.IncludeRegexp != "" {
 		m.include = regexp.MustCompile(rule.IncludeRegexp)

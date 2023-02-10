@@ -1,7 +1,7 @@
 // Copyright 2023 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package match
+package linux
 
 import (
 	"io/fs"
@@ -9,13 +9,13 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/google/syzkaller/pkg/subsystem/entity"
+	"github.com/google/syzkaller/pkg/subsystem"
 )
 
-func BuildCoincidenceMatrix(root fs.FS, list []*entity.Subsystem,
+func BuildCoincidenceMatrix(root fs.FS, list []*subsystem.Subsystem,
 	excludeRe *regexp.Regexp) (*CoincidenceMatrix, error) {
 	// Create a matcher.
-	matcher := MakePathMatcher(list)
+	matcher := subsystem.MakePathMatcher(list)
 	chPaths, chResult := extractSubsystems(matcher)
 	// The final consumer goroutine.
 	cm := MakeCoincidenceMatrix()
@@ -47,9 +47,9 @@ var (
 	includePathRe = regexp.MustCompile(`(?:/|\.(?:c|h|S))$`)
 )
 
-func extractSubsystems(matcher *PathMatcher) (chan<- string, <-chan []*entity.Subsystem) {
+func extractSubsystems(matcher *subsystem.PathMatcher) (chan<- string, <-chan []*subsystem.Subsystem) {
 	procs := runtime.NumCPU()
-	paths, output := make(chan string, procs), make(chan []*entity.Subsystem, procs)
+	paths, output := make(chan string, procs), make(chan []*subsystem.Subsystem, procs)
 	var wg sync.WaitGroup
 	for i := 0; i < procs; i++ {
 		wg.Add(1)

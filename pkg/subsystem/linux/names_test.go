@@ -6,7 +6,7 @@ package linux
 import (
 	"testing"
 
-	"github.com/google/syzkaller/pkg/subsystem/entity"
+	"github.com/google/syzkaller/pkg/subsystem"
 )
 
 func TestEmailToName(t *testing.T) {
@@ -33,8 +33,8 @@ type subsystemTestInput struct {
 	outName string
 }
 
-func (sti subsystemTestInput) ToSubsystem() *entity.Subsystem {
-	s := &entity.Subsystem{}
+func (sti subsystemTestInput) ToSubsystem() *subsystem.Subsystem {
+	s := &subsystem.Subsystem{}
 	if sti.email != "" {
 		s.Lists = append(s.Lists, sti.email)
 	}
@@ -92,7 +92,7 @@ func TestSetSubsystemNames(t *testing.T) {
 	for _, test := range tests {
 		curr := test
 		t.Run(curr.name, func(t *testing.T) {
-			list := []*entity.Subsystem{}
+			list := []*subsystem.Subsystem{}
 			for _, i := range curr.inputs {
 				list = append(list, i.ToSubsystem())
 			}

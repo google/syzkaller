@@ -3,11 +3,10 @@
 
 package lists
 
-import . "github.com/google/syzkaller/pkg/subsystem/entity"
-import "github.com/google/syzkaller/pkg/subsystem"
+import . "github.com/google/syzkaller/pkg/subsystem"
 
 func init() {
-	subsystem.RegisterList("linux", subsystems)
+	RegisterList("linux", subsystems)
 }
 
 // The subsystem list:
@@ -123,7 +122,6 @@ func init() {
 //   - kexec
 //   - keyrings
 //   - kgdb-bugreport
-//   - kselftest
 //   - kunit
 //   - kvm
 //     - kvm-riscv
@@ -179,7 +177,6 @@ func init() {
 //       - ath10k
 //       - ath11k
 //       - b43
-//       - brcm80211
 //       - libertas
 //       - wcn36xx
 //       - zd1211
@@ -243,7 +240,7 @@ func init() {
 //   - xtensa
 
 var subsystems = []*Subsystem{
-	shacyfmac, ac100, accelerators, acpi, acpi4asus, acpica, acrn, actions, afs, alpha, alsa, amdgfx, amlogic, apparmor, arch, arm, armmsm, asahi, aspeed, ath10k, ath11k, atm, audit, autofs, axis, batman, b43, bcache, block, bluetooth, bpf, brcm80211, bridge, btrfs, cachefs, can, ceph, cgroups, chromeplatform, cifs, cirrus, clk, cluster, codalist, coresight, coreteam, crypto, csky, cxl, damon, dccp, dell, devicetree, dm, dmaengine, drbd, dri, ecryptfs, edac, efi, erofs, etnaviv, ext4, f2fs, fbdev, fpga, freedreno, fs, fscrypt, fsi, fsverity, geode, gpio, greybus, hams, hardening, hexagon, hippi, hwmon, hyperv, i2c, i3c, ia64, ide, iio, imx, industrypack, input, integrity, intelgfx, intelgvt, intelwiredlan, iouring, iommu, isdn4linux, jfs, karma, kasan, kernel, kexec, keyrings, kgdbbugreport, kselftest, kunit, kvm, kvmriscv, kvmarm, leds, libertas, lima, linux1394, linuxppc, linuxpps, livepatching, llvm, loongarch, lsm, lvs, m68k, malidp, media, mediatek, megaraid, mhi, mips, mjpeg, mm, mmc, modules, mpi3, mptfusion, mptcp, mtd, nbd, net, nfc, nfs, nilfs, nitro, nouveau, ntb, ntfs, ntfs3, nvdimm, nvme, ocfs2, omap, optee, openiscsi, openbmc, openipmi, openrisc, openvswitch, openwrt, orangefs, ossdrivers, overlayfs, oxnas, parisc, parport, pci, perf, phy, pm, ppp, pvrusb2, pwm, qat, raid, rcu, rdma, rds, reiserfs, remoteproc, renesassoc, riscv, rockchip, rpi, rttools, rtc, rustfor, s390, samsungsoc, scsi, sctp, selinux, serial, sgx, sh, snpsarc, sof, sparclinux, speakup, spi, spice, squashfs, staging, stm32, sunxi, target, tegra, tipc, tomoyo, trace, uclinux, um, unisoc, usb, usbstorage, v9fs, video, virt, watchdog, wcn36xx, wireguard, wireless, wpan, x25, x86, x86drivers, xen, xfs, xtensa, zd1211,
+	shacyfmac, ac100, accelerators, acpi, acpi4asus, acpica, acrn, actions, afs, alpha, alsa, amdgfx, amlogic, apparmor, arch, arm, armmsm, asahi, aspeed, ath10k, ath11k, atm, audit, autofs, axis, batman, b43, bcache, block, bluetooth, bpf, bridge, btrfs, cachefs, can, ceph, cgroups, chromeplatform, cifs, cirrus, clk, cluster, codalist, coresight, coreteam, crypto, csky, cxl, damon, dccp, dell, devicetree, dm, dmaengine, drbd, dri, ecryptfs, edac, efi, erofs, etnaviv, ext4, f2fs, fbdev, fpga, freedreno, fs, fscrypt, fsi, fsverity, geode, gpio, greybus, hams, hardening, hexagon, hippi, hwmon, hyperv, i2c, i3c, ia64, ide, iio, imx, industrypack, input, integrity, intelgfx, intelgvt, intelwiredlan, iouring, iommu, isdn4linux, jfs, karma, kasan, kernel, kexec, keyrings, kgdbbugreport, kunit, kvm, kvmriscv, kvmarm, leds, libertas, lima, linux1394, linuxppc, linuxpps, livepatching, llvm, loongarch, lsm, lvs, m68k, malidp, media, mediatek, megaraid, mhi, mips, mjpeg, mm, mmc, modules, mpi3, mptfusion, mptcp, mtd, nbd, net, nfc, nfs, nilfs, nitro, nouveau, ntb, ntfs, ntfs3, nvdimm, nvme, ocfs2, omap, optee, openiscsi, openbmc, openipmi, openrisc, openvswitch, openwrt, orangefs, ossdrivers, overlayfs, oxnas, parisc, parport, pci, perf, phy, pm, ppp, pvrusb2, pwm, qat, raid, rcu, rdma, rds, reiserfs, remoteproc, renesassoc, riscv, rockchip, rpi, rttools, rtc, rustfor, s390, samsungsoc, scsi, sctp, selinux, serial, sgx, sh, snpsarc, sof, sparclinux, speakup, spi, spice, squashfs, staging, stm32, sunxi, target, tegra, tipc, tomoyo, trace, uclinux, um, unisoc, usb, usbstorage, v9fs, video, virt, watchdog, wcn36xx, wireguard, wireless, wpan, x25, x86, x86drivers, xen, xfs, xtensa, zd1211,
 }
 
 // Subsystem info.
@@ -815,16 +812,6 @@ var bpf = &Subsystem{
 		{IncludeRegexp: "^kernel/bpf/verifier\\.c$|^kernel/bpf/tnum\\.c$|^kernel/bpf/core\\.c$|^kernel/bpf/syscall\\.c$|^kernel/bpf/dispatcher\\.c$|^kernel/bpf/trampoline\\.c$|^include/linux/bpf[^/]*$|^include/linux/filter\\.h$|^include/linux/tnum\\.h$"},
 		{IncludeRegexp: "^kernel/trace/bpf_trace\\.c$|^kernel/bpf/stackmap\\.c$"},
 		{IncludeRegexp: "^net/core/filter\\.c$|^net/sched/act_bpf\\.c$|^net/sched/cls_bpf\\.c$"},
-	},
-}
-
-var brcm80211 = &Subsystem{
-	Name:        "brcm80211",
-	Lists:       []string{"brcm80211-dev-list.pdl@broadcom.com"},
-	Maintainers: []string{"aspriel@gmail.com", "franky.lin@broadcom.com", "hante.meuleman@broadcom.com"},
-	Parents:     []*Subsystem{wireless},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^drivers/net/wireless/broadcom/brcm80211/"},
 	},
 }
 
@@ -2106,16 +2093,6 @@ var kgdbbugreport = &Subsystem{
 	},
 }
 
-var kselftest = &Subsystem{
-	Name:    "kselftest",
-	Lists:   []string{"linux-kselftest@vger.kernel.org"},
-	Parents: []*Subsystem{kernel},
-	PathRules: []PathRule{
-		{IncludeRegexp: "^include/kunit/|^lib/kunit/"},
-		{IncludeRegexp: "^lib/list-test\\.c$"},
-	},
-}
-
 var kunit = &Subsystem{
 	Name:    "kunit",
 	Lists:   []string{"kunit-dev@googlegroups.com"},
@@ -2168,7 +2145,7 @@ var kvmriscv = &Subsystem{
 
 var kvmarm = &Subsystem{
 	Name:        "kvmarm",
-	Lists:       []string{"kvmarm@lists.linux.dev"},
+	Lists:       []string{"kvmarm@lists.cs.columbia.edu"},
 	Maintainers: []string{"maz@kernel.org"},
 	Parents:     []*Subsystem{arm},
 	PathRules: []PathRule{
