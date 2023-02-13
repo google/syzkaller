@@ -117,7 +117,7 @@ https://goo.gl/tpsmEJ#status for how to communicate with syzbot.`,
 
 	// Invalidate the bug.
 	c.client.updateBug(extBugID, dashapi.BugStatusInvalid, "")
-	_, err = c.GET("/deprecate_assets")
+	_, err = c.GET("/cron/deprecate_assets")
 	c.expectOK(err)
 
 	// Query the needed assets once more, so far there should be no change.
@@ -128,7 +128,7 @@ https://goo.gl/tpsmEJ#status for how to communicate with syzbot.`,
 
 	// Skip one month and deprecate assets.
 	c.advanceTime(time.Hour * 24 * 31)
-	_, err = c.GET("/deprecate_assets")
+	_, err = c.GET("/cron/deprecate_assets")
 	c.expectOK(err)
 
 	// Only the html asset should have persisted.
@@ -194,7 +194,7 @@ func TestCoverReportDeprecation(t *testing.T) {
 	defer c.Close()
 
 	ensureNeeded := func(needed []string) {
-		_, err := c.GET("/deprecate_assets")
+		_, err := c.GET("/cron/deprecate_assets")
 		c.expectOK(err)
 		neededResp, err := c.client.NeededAssetsList()
 		c.expectOK(err)
@@ -270,7 +270,7 @@ func TestFreshBuildAssets(t *testing.T) {
 	defer c.Close()
 
 	ensureNeeded := func(needed []string) {
-		_, err := c.GET("/deprecate_assets")
+		_, err := c.GET("/cron/deprecate_assets")
 		c.expectOK(err)
 		neededResp, err := c.client.NeededAssetsList()
 		c.expectOK(err)
@@ -395,7 +395,7 @@ https://goo.gl/tpsmEJ#status for how to communicate with syzbot.`,
 
 	// Invalidate the bug.
 	c.client.updateBug(extBugID, dashapi.BugStatusInvalid, "")
-	_, err = c.GET("/deprecate_assets")
+	_, err = c.GET("/cron/deprecate_assets")
 	c.expectOK(err)
 
 	// Query the needed assets once more, so far there should be no change.
@@ -406,7 +406,7 @@ https://goo.gl/tpsmEJ#status for how to communicate with syzbot.`,
 
 	// Skip one month and deprecate assets.
 	c.advanceTime(time.Hour * 24 * 31)
-	_, err = c.GET("/deprecate_assets")
+	_, err = c.GET("/cron/deprecate_assets")
 	c.expectOK(err)
 
 	// Nothing should have been persisted.

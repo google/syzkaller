@@ -16,7 +16,7 @@ import (
 )
 
 func initKcidb() {
-	http.HandleFunc("/kcidb_poll", handleKcidbPoll)
+	http.HandleFunc("/cron/kcidb_poll", handleKcidbPoll)
 }
 
 func handleKcidbPoll(w http.ResponseWriter, r *http.Request) {
