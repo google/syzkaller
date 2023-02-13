@@ -17,15 +17,14 @@ func (subsystem *Subsystem) ReachableParents() map[*Subsystem]struct{} {
 	ret := make(map[*Subsystem]struct{})
 	var dfs func(node *Subsystem)
 	dfs = func(node *Subsystem) {
-		if _, visited := ret[node]; visited {
-			return
-		}
 		for _, p := range node.Parents {
 			if p == subsystem {
 				panic("loop in the parents relation")
 			}
-			ret[p] = struct{}{}
-			dfs(p)
+			if _, visited := ret[p]; !visited {
+				ret[p] = struct{}{}
+				dfs(p)
+			}
 		}
 	}
 	dfs(subsystem)
