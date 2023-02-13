@@ -97,3 +97,43 @@ func DoubleExecCollide(origProg *Prog, rand *rand.Rand) (*Prog, error) {
 	prog.Calls = append(prog.Calls, dupCalls...)
 	return prog, nil
 }
+
+// DupCallCollide duplicates some of the calls in the program and marks them async.
+// This should hopefully trigger races in a more granular way than DoubleExecCollide.
+func DupCallCollide(origProg *Prog, rand *rand.Rand) (*Prog, error) {
+	if len(origProg.Calls) < 2 {
+		// For 1-call programs the behavior is similar to DoubleExecCollide.
+		return nil, fmt.Errorf("the prog is too small for the transformation")
+	}
+	// By default let's duplicate 1/3 calls in the original program.
+	insert := len(origProg.Calls) / 3
+	if insert == 0 {
+		// .. but always at least one.
+		insert = 1
+	}
+	if insert > maxAsyncPerProg {
+		insert = maxAsyncPerProg
+	}
+	if insert+len(origProg.Calls) > MaxCalls {
+		insert = MaxCalls - len(origProg.Calls)
+	}
+	if insert == 0 {
+		return nil, fmt.Errorf("no calls could be duplicated")
+	}
+	duplicate := map[int]bool{}
+	for _, pos := range rand.Perm(len(origProg.Calls))[:insert] {
+		duplicate[pos] = true
+	}
+	prog := origProg.Clone()
+	var retCalls []*Call
+	for i, c := range prog.Calls {
+		if duplicate[i] {
+			dupCall := cloneCall(c, nil)
+			dupCall.Props.Async = true
+			retCalls = append(retCalls, dupCall)
+		}
+		retCalls = append(retCalls, c)
+	}
+	prog.Calls = retCalls
+	return prog, nil
+}
