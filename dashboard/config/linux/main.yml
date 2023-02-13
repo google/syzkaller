@@ -12,7 +12,7 @@ instances:
  - upstream-arm64-kasan:	[upstream, arm64, timeouts_emu, clang, lsm, selinux, reduced, kasan, nokcov]
  - upstream-arm64-mte:		[upstream, arm64, timeouts_emu, clang, bpfjit, lsm, smack, nonoise, reduced, kfence, mte, nokcov]
  # The full configs are used with syz-check to avoid no-such-struct warnings.
- - upstream-arm64-full:		[upstream, arm64, timeouts_native, clang, bpfjit, lsm, smack]
+ - upstream-arm64-full:		[upstream, arm64, timeouts_native, clang, bpfjit, lsm, smack, kasan, kfence]
  # TODO: enable kasan when it works, currently Go binaries hang on KASAN kernel:
  # https://lore.kernel.org/linux-arm-kernel/CACT4Y+YdJoNTqnBSELcEbcbVsKBtJfYUc7_GSXbUQfAJN3JyRg@mail.gmail.com/
  - upstream-arm-kasan:		[upstream, arm, timeouts_emu, gcc, bpfjit, lsm, selinux, reduced]
