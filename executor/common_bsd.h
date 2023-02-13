@@ -11,6 +11,20 @@
 #include <string.h>
 #include <sys/syscall.h>
 
+#if GOOS_openbsd
+// Needed syscall libc stubs.
+#include <poll.h>
+#include <sys/event.h>
+#include <sys/ioctl.h>
+#include <sys/ktrace.h>
+#include <sys/mman.h>
+#include <sys/msg.h>
+#include <sys/sem.h>
+#include <sys/shm.h>
+#include <sys/sysctl.h>
+#include <sys/syslog.h>
+#endif
+
 #if GOOS_netbsd
 
 #if SYZ_EXECUTOR || __NR_syz_usb_connect

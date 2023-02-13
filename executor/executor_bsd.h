@@ -11,10 +11,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#if GOOS_openbsd
-#include <sys/sysctl.h>
-#endif
-
 static void os_init(int argc, char** argv, void* data, size_t data_size)
 {
 #if GOOS_openbsd

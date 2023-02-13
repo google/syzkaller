@@ -313,11 +313,13 @@ func newSyscallData(target *targets.Target, sc *prog.Syscall, attrs []uint64) Sy
 	if !patchCallName {
 		callName = sc.CallName
 	}
+	needCall := (!target.SyscallNumbers || strings.HasPrefix(sc.CallName, "syz_") ||
+		patchCallName || target.OS == "openbsd") && !sc.Attrs.Disabled
 	return SyscallData{
 		Name:     sc.Name,
 		CallName: callName,
 		NR:       int32(sc.NR),
-		NeedCall: (!target.SyscallNumbers || strings.HasPrefix(sc.CallName, "syz_") || patchCallName) && !sc.Attrs.Disabled,
+		NeedCall: needCall,
 		Attrs:    attrs,
 	}
 }
