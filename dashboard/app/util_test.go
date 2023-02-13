@@ -364,7 +364,7 @@ func (c *Ctx) expectNoEmail() {
 }
 
 func (c *Ctx) updRetestReproJobs() {
-	_, err := c.GET("/retest_repros")
+	_, err := c.GET("/cron/retest_repros")
 	c.expectOK(err)
 }
 
