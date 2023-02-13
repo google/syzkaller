@@ -4,13 +4,13 @@
 cron:
 - url: /email_poll
   schedule: every 1 minutes
-- url: /cache_update
+- url: /cron/cache_update
   schedule: every 1 hours
-- url: /deprecate_assets
+- url: /cron/deprecate_assets
   schedule: every 1 hours
-- url: /kcidb_poll
+- url: /cron/kcidb_poll
   schedule: every 5 minutes
-- url: /retest_repros
+- url: /cron/retest_repros
   schedule: every 1 hours
 - url: /_ah/datastore_admin/backup.create?name=backup&filesystem=gs&gs_bucket_name=syzkaller-backups&kind=Bug&kind=Build&kind=Crash&kind=CrashLog&kind=CrashReport&kind=Error&kind=Job&kind=KernelConfig&kind=Manager&kind=ManagerStats&kind=Patch&kind=ReportingState&kind=ReproC&kind=ReproSyz
   schedule: every monday 00:00
