@@ -6,6 +6,8 @@ package prog
 import (
 	"math/rand"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAssignRandomAsync(t *testing.T) {
@@ -145,6 +147,64 @@ dup(r3)
 				}
 			}
 			// TODO: also test the `async` assignment.
+		}
+	}
+}
+
+func TestDupCallCollide(t *testing.T) {
+	tests := []struct {
+		os   string
+		arch string
+		orig string
+		rets []string
+	}{
+		{
+			"linux", "amd64",
+			`r0 = openat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x42, 0x1ff)
+r1 = dup(r0)
+r2 = dup(r1)
+dup(r2)
+`,
+			[]string{
+				`r0 = openat(0xffffffffffffff9c, &(0x7f0000000040)='./file1\x00', 0x42, 0x1ff)
+dup(r0) (async)
+r1 = dup(r0)
+r2 = dup(r1)
+dup(r2)
+`,
+				`r0 = openat(0xffffffffffffff9c, &(0x7f0000000040)='./file1\x00', 0x42, 0x1ff)
+r1 = dup(r0)
+r2 = dup(r1)
+dup(r2) (async)
+dup(r2)
+`,
+			},
+		},
+	}
+	_, rs, iters := initTest(t)
+	if iters > 100 {
+		// Let's save resources -- we don't need that many for these small tests.
+		iters = 100
+	}
+	r := rand.New(rs)
+	for _, test := range tests {
+		target, err := GetTarget(test.os, test.arch)
+		if err != nil {
+			t.Fatal(err)
+		}
+		p, err := target.Deserialize([]byte(test.orig), Strict)
+		if err != nil {
+			t.Fatal(err)
+		}
+		detected := map[string]struct{}{}
+		for i := 0; i < iters; i++ {
+			collided, err := DupCallCollide(p, r)
+			assert.NoError(t, err)
+			detected[string(collided.Serialize())] = struct{}{}
+		}
+		for _, variant := range test.rets {
+			_, exists := detected[variant]
+			assert.True(t, exists)
 		}
 	}
 }

@@ -20,19 +20,23 @@ func (p *Prog) Clone() *Prog {
 func cloneCalls(origCalls []*Call, newargs map[*ResultArg]*ResultArg) []*Call {
 	calls := make([]*Call, len(origCalls))
 	for ci, c := range origCalls {
-		c1 := new(Call)
-		c1.Meta = c.Meta
-		if c.Ret != nil {
-			c1.Ret = clone(c.Ret, newargs).(*ResultArg)
-		}
-		c1.Args = make([]Arg, len(c.Args))
-		for ai, arg := range c.Args {
-			c1.Args[ai] = clone(arg, newargs)
-		}
-		c1.Props = c.Props
-		calls[ci] = c1
+		calls[ci] = cloneCall(c, newargs)
 	}
 	return calls
+}
+
+func cloneCall(c *Call, newargs map[*ResultArg]*ResultArg) *Call {
+	c1 := new(Call)
+	c1.Meta = c.Meta
+	if c.Ret != nil {
+		c1.Ret = clone(c.Ret, newargs).(*ResultArg)
+	}
+	c1.Args = make([]Arg, len(c.Args))
+	for ai, arg := range c.Args {
+		c1.Args[ai] = clone(arg, newargs)
+	}
+	c1.Props = c.Props
+	return c1
 }
 
 func clone(arg Arg, newargs map[*ResultArg]*ResultArg) Arg {
