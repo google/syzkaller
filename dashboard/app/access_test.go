@@ -409,3 +409,25 @@ func TestAccess(t *testing.T) {
 		}
 	}
 }
+
+func TestCronEndpointAccess(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	// The entpoint should not be available to the public.
+	_, err := c.AuthGET(AccessPublic, "/retest_repros")
+	httpErr, ok := err.(HTTPError)
+	c.expectTrue(ok)
+	c.expectEQ(httpErr.Code, http.StatusForbidden)
+
+	// Yet the admin can invoke the call.
+	_, err = c.AuthGET(AccessAdmin, "/retest_repros")
+	c.expectOK(err)
+
+	// It should also succeed if X-Appengine-Cron is set.
+	c.transformRequest = func(r *http.Request) {
+		r.Header.Set("X-Appengine-Cron", "true")
+	}
+	_, err = c.AuthGET(AccessPublic, "/retest_repros")
+	c.expectOK(err)
+}

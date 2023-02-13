@@ -33,15 +33,16 @@ import (
 )
 
 type Ctx struct {
-	t            *testing.T
-	inst         aetest.Instance
-	ctx          context.Context
-	mockedTime   time.Time
-	emailSink    chan *aemail.Message
-	contextVars  map[interface{}]interface{}
-	client       *apiClient
-	client2      *apiClient
-	publicClient *apiClient
+	t                *testing.T
+	inst             aetest.Instance
+	ctx              context.Context
+	mockedTime       time.Time
+	emailSink        chan *aemail.Message
+	contextVars      map[interface{}]interface{}
+	transformRequest func(*http.Request)
+	client           *apiClient
+	client2          *apiClient
+	publicClient     *apiClient
 }
 
 var skipDevAppserverTests = func() bool {
@@ -68,11 +69,12 @@ func NewCtx(t *testing.T) *Ctx {
 		t.Fatal(err)
 	}
 	c := &Ctx{
-		t:           t,
-		inst:        inst,
-		mockedTime:  time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
-		contextVars: make(map[interface{}]interface{}),
-		emailSink:   make(chan *aemail.Message, 100),
+		t:                t,
+		inst:             inst,
+		mockedTime:       time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+		contextVars:      make(map[interface{}]interface{}),
+		transformRequest: func(r *http.Request) {},
+		emailSink:        make(chan *aemail.Message, 100),
 	}
 	c.client = c.makeClient(client1, password1, true)
 	c.client2 = c.makeClient(client2, password2, true)
@@ -247,6 +249,7 @@ func (c *Ctx) httpRequest(method, url, body string, access AccessLevel) (*httpte
 	if err != nil {
 		c.t.Fatal(err)
 	}
+	c.transformRequest(r)
 	r = registerRequest(r, c)
 	if access == AccessAdmin || access == AccessUser {
 		user := &user.User{

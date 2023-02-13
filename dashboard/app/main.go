@@ -61,9 +61,9 @@ func initHTTPHandlers() {
 		http.Handle("/"+ns+"/repos", handlerWrapper(handleRepos))
 		http.Handle("/"+ns+"/bug-stats", handlerWrapper(handleBugStats))
 	}
-	http.HandleFunc("/cache_update", cacheUpdate)
-	http.HandleFunc("/deprecate_assets", handleDeprecateAssets)
-	http.HandleFunc("/retest_repros", handleRetestRepros)
+	http.HandleFunc("/cache_update", cronWrapper(cacheUpdate))
+	http.HandleFunc("/deprecate_assets", cronWrapper(handleDeprecateAssets))
+	http.HandleFunc("/retest_repros", cronWrapper(handleRetestRepros))
 }
 
 type uiMainPage struct {

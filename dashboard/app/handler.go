@@ -74,6 +74,20 @@ func handleContext(fn contextHandler) http.Handler {
 	})
 }
 
+func cronWrapper(fn func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Only allow requests from the admin or the cron scheduler.
+		cronHeader := len(r.Header["X-Appengine-Cron"]) == 1 &&
+			r.Header["X-Appengine-Cron"][0] == "true"
+		c := appengine.NewContext(r)
+		if cronHeader || accessLevel(c, r) == AccessAdmin {
+			fn(w, r)
+			return
+		}
+		http.Error(w, "403 Forbidden", http.StatusForbidden)
+	}
+}
+
 const currentURLKey = "current_url"
 
 func getCurrentURL(c context.Context) string {
