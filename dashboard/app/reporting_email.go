@@ -30,7 +30,7 @@ import (
 // Email reporting interface.
 
 func initEmailReporting() {
-	http.HandleFunc("/email_poll", handleEmailPoll)
+	http.HandleFunc("/cron/email_poll", handleEmailPoll)
 	http.HandleFunc("/_ah/mail/", handleIncomingMail)
 	http.HandleFunc("/_ah/bounce", handleEmailBounce)
 
