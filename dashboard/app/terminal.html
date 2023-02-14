@@ -21,6 +21,7 @@ Out of <b>{{.Total}}</b> bugs, <b>{{.AutoObsoleted}}</b> were automatically obso
 		{{end}}
 	{{end}}
 
+	{{template "bug_filter" $.BugFilter}}
 	{{template "bug_list" .Bugs}}
 </body>
 </html>
