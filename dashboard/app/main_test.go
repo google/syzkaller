@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestOnlyManagerFilter(t *testing.T) {
@@ -155,4 +156,29 @@ func TestSubsystemFilterTerminal(t *testing.T) {
 	if !bytes.Contains(reply, []byte(crash2.Title)) {
 		t.Fatalf("%#v is not contained on the invalid bugs page", crash2.Title)
 	}
+}
+
+func TestMainBugFilters(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client
+	build1 := testBuild(1)
+	build1.Manager = "manager-name-123"
+	client.UploadBuild(build1)
+
+	crash1 := testCrash(build1, 1)
+	client.ReportCrash(crash1)
+	client.pollBugs(1)
+
+	// The normal main page.
+	reply, err := c.AuthGET(AccessAdmin, "/test1")
+	c.expectOK(err)
+	assert.Contains(t, string(reply), build1.Manager)
+	assert.NotContains(t, string(reply), "Applied filters")
+
+	reply, err = c.AuthGET(AccessAdmin, "/test1?subsystem=abcd")
+	c.expectOK(err)
+	assert.NotContains(t, string(reply), build1.Manager) // managers are hidden
+	assert.Contains(t, string(reply), "Applied filters") // we're seeing a prompt to disable the filter
 }

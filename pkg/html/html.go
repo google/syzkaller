@@ -202,7 +202,11 @@ func AmendURL(baseURL, key, value string) string {
 		return ""
 	}
 	values := parsed.Query()
-	values.Set(key, value)
+	if value == "" {
+		values.Del(key)
+	} else {
+		values.Set(key, value)
+	}
 	parsed.RawQuery = values.Encode()
 	return parsed.String()
 }
