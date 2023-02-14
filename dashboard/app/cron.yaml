@@ -2,7 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 cron:
-- url: /email_poll
+- url: /cron/email_poll
   schedule: every 1 minutes
 - url: /cron/cache_update
   schedule: every 1 hours

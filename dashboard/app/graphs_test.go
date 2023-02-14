@@ -81,7 +81,7 @@ func TestManagersGraphs(t *testing.T) {
 
 	for {
 		c.advanceTime(7 * 25 * time.Hour)
-		_, err := c.GET("/email_poll")
+		_, err := c.GET("/cron/email_poll")
 		c.expectOK(err)
 		if len(c.emailSink) == 0 {
 			break
