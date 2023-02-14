@@ -79,6 +79,23 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	<br>
 {{end}}
 
+{{/* List of enabled filters, invoked with *uiBugFilter */}}
+{{define "bug_filter"}}
+{{if .Filter.Any}}
+	<b>Applied filters: </b>
+	{{if .Filter.Manager}}
+		Manager={{.Filter.Manager}} ({{link (call .DropURL "manager") "drop"}})
+	{{end}}
+	{{if .Filter.OnlyManager}}
+		Only Manager={{.Filter.OnlyManager}} ({{link (call .DropURL "only_manager") "drop"}})
+	{{end}}
+	{{if .Filter.Subsystem}}
+		Subsystem={{.Filter.Subsystem}} ({{link (call .DropURL "subsystem") "drop"}})
+	{{end}}
+	<br>
+{{end}}
+{{end}}
+
 {{/* List of bugs, invoked with *uiBugGroup */}}
 {{define "bug_list"}}
 {{if .}}

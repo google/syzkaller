@@ -71,7 +71,23 @@ type uiMainPage struct {
 	Now            time.Time
 	Decommissioned bool
 	Managers       *uiManagerList
+	BugFilter      *uiBugFilter
 	Groups         []*uiBugGroup
+}
+
+type uiBugFilter struct {
+	Filter  *userBugFilter
+	DropURL func(string) string
+}
+
+func makeUIBugFilter(c context.Context, filter *userBugFilter) *uiBugFilter {
+	url := getCurrentURL(c)
+	return &uiBugFilter{
+		Filter: filter,
+		DropURL: func(name string) string {
+			return html.AmendURL(url, name, "")
+		},
+	}
 }
 
 type uiManagerList struct {
@@ -87,10 +103,11 @@ func makeManagerList(managers []*uiManager, ns string) *uiManagerList {
 }
 
 type uiTerminalPage struct {
-	Header *uiHeader
-	Now    time.Time
-	Bugs   *uiBugGroup
-	Stats  *uiBugStats
+	Header    *uiHeader
+	Now       time.Time
+	Bugs      *uiBugGroup
+	Stats     *uiBugStats
+	BugFilter *uiBugFilter
 }
 
 type uiBugStats struct {
@@ -314,7 +331,8 @@ func MakeBugFilter(r *http.Request) *userBugFilter {
 }
 
 func (filter *userBugFilter) MatchManagerName(name string) bool {
-	return filter == nil || filter.Manager == name || filter.OnlyManager == name
+	target := filter.ManagerName()
+	return target == "" || target == name
 }
 
 func (filter *userBugFilter) ManagerName() string {
@@ -343,6 +361,13 @@ func (filter *userBugFilter) MatchBug(bug *Bug) bool {
 	return true
 }
 
+func (filter *userBugFilter) Any() bool {
+	if filter == nil {
+		return false
+	}
+	return filter.Subsystem != "" || filter.OnlyManager != "" || filter.Manager != ""
+}
+
 // handleMain serves main page.
 func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	hdr, err := commonHeader(c, r, w, "")
@@ -368,6 +393,7 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 		Now:            timeNow(c),
 		Groups:         groups,
 		Managers:       makeManagerList(managers, hdr.Namespace),
+		BugFilter:      makeUIBugFilter(c, filter),
 	}
 	return serveTemplate(w, "main.html", data)
 }
@@ -438,10 +464,11 @@ func handleTerminalBugList(c context.Context, w http.ResponseWriter, r *http.Req
 		stats = nil
 	}
 	data := &uiTerminalPage{
-		Header: hdr,
-		Now:    timeNow(c),
-		Bugs:   bugs,
-		Stats:  stats,
+		Header:    hdr,
+		Now:       timeNow(c),
+		Bugs:      bugs,
+		Stats:     stats,
+		BugFilter: makeUIBugFilter(c, typ.Filter),
 	}
 	return serveTemplate(w, "terminal.html", data)
 }
