@@ -190,6 +190,7 @@ type uiBugPage struct {
 	Crashes       *uiCrashTable
 	FixBisections *uiCrashTable
 	TestPatchJobs *uiJobList
+	Subsystems    []*uiBugSubsystem
 }
 
 type uiBugGroup struct {
@@ -558,6 +559,12 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 			PerBug: true,
 			Jobs:   testPatchJobs,
 		},
+	}
+	for _, entry := range bug.Tags.Subsystems {
+		data.Subsystems = append(data.Subsystems, &uiBugSubsystem{
+			Name: entry.Name,
+			Link: html.AmendURL("/"+bug.Namespace, "subsystem", entry.Name),
+		})
 	}
 	// bug.BisectFix is set to BisectNot in two cases :
 	// - no fix bisections have been performed on the bug
