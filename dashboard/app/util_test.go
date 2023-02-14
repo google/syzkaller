@@ -187,7 +187,7 @@ func (c *Ctx) Close() {
 			c.expectOK(err)
 		}
 		// No pending emails (tests need to consume them).
-		_, err = c.GET("/email_poll")
+		_, err = c.GET("/cron/email_poll")
 		c.expectOK(err)
 		for len(c.emailSink) != 0 {
 			c.t.Errorf("ERROR: leftover email: %v", (<-c.emailSink).Body)
@@ -344,7 +344,7 @@ func (c *Ctx) checkURLContents(url string, want []byte) {
 }
 
 func (c *Ctx) pollEmailBug() *aemail.Message {
-	_, err := c.GET("/email_poll")
+	_, err := c.GET("/cron/email_poll")
 	c.expectOK(err)
 	if len(c.emailSink) == 0 {
 		c.t.Helper()
@@ -354,7 +354,7 @@ func (c *Ctx) pollEmailBug() *aemail.Message {
 }
 
 func (c *Ctx) expectNoEmail() {
-	_, err := c.GET("/email_poll")
+	_, err := c.GET("/cron/email_poll")
 	c.expectOK(err)
 	if len(c.emailSink) != 0 {
 		msg := <-c.emailSink
