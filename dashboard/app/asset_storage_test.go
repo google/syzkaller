@@ -148,7 +148,7 @@ func TestCoverReportDisplay(t *testing.T) {
 	c.client.UploadBuild(testBuild(2))
 
 	// We expect no coverage reports to be present.
-	uiManagers, err := loadManagers(c.ctx, AccessAdmin, "test1", "")
+	uiManagers, err := loadManagers(c.ctx, AccessAdmin, "test1", nil)
 	c.expectOK(err)
 	c.expectEQ(len(uiManagers), 2)
 	c.expectEQ(uiManagers[0].CoverLink, "")
@@ -165,7 +165,7 @@ func TestCoverReportDisplay(t *testing.T) {
 			},
 		},
 	}))
-	uiManagers, err = loadManagers(c.ctx, AccessAdmin, "test1", "")
+	uiManagers, err = loadManagers(c.ctx, AccessAdmin, "test1", nil)
 	c.expectOK(err)
 	c.expectEQ(len(uiManagers), 2)
 	c.expectEQ(uiManagers[0].CoverLink, origHTMLAsset)
@@ -182,7 +182,7 @@ func TestCoverReportDisplay(t *testing.T) {
 			},
 		},
 	}))
-	uiManagers, err = loadManagers(c.ctx, AccessAdmin, "test1", "")
+	uiManagers, err = loadManagers(c.ctx, AccessAdmin, "test1", nil)
 	c.expectOK(err)
 	c.expectEQ(len(uiManagers), 2)
 	c.expectEQ(uiManagers[0].CoverLink, newHTMLAsset)

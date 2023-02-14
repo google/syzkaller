@@ -299,6 +299,50 @@ type uiJob struct {
 	Reported         bool
 }
 
+type userBugFilter struct {
+	Manager     string // show bugs that happened on the manager
+	OnlyManager string // show bugs that happened ONLY on the manager
+	Subsystem   string // only show bugs belonging to the subsystem
+}
+
+func MakeBugFilter(r *http.Request) *userBugFilter {
+	return &userBugFilter{
+		Subsystem:   r.FormValue("subsystem"),
+		Manager:     r.FormValue("manager"),
+		OnlyManager: r.FormValue("only_manager"),
+	}
+}
+
+func (filter *userBugFilter) MatchManagerName(name string) bool {
+	return filter == nil || filter.Manager == name || filter.OnlyManager == name
+}
+
+func (filter *userBugFilter) ManagerName() string {
+	if filter != nil && filter.OnlyManager != "" {
+		return filter.OnlyManager
+	}
+	if filter != nil && filter.Manager != "" {
+		return filter.Manager
+	}
+	return ""
+}
+
+func (filter *userBugFilter) MatchBug(bug *Bug) bool {
+	if filter == nil {
+		return true
+	}
+	if filter.OnlyManager != "" && (len(bug.HappenedOn) != 1 || bug.HappenedOn[0] != filter.OnlyManager) {
+		return false
+	}
+	if filter.Manager != "" && !stringInList(bug.HappenedOn, filter.Manager) {
+		return false
+	}
+	if filter.Subsystem != "" && !bug.hasSubsystem(filter.Subsystem) {
+		return false
+	}
+	return true
+}
+
 // handleMain serves main page.
 func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	hdr, err := commonHeader(c, r, w, "")
@@ -306,19 +350,12 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 		return err
 	}
 	accessLevel := accessLevel(c, r)
-	onlyManager := r.FormValue("only_manager")
-	manager := onlyManager
-	if manager == "" {
-		manager = r.FormValue("manager")
-	}
-	managers, err := loadManagers(c, accessLevel, hdr.Namespace, manager)
+	filter := MakeBugFilter(r)
+	managers, err := loadManagers(c, accessLevel, hdr.Namespace, filter)
 	if err != nil {
 		return err
 	}
-	groups, err := fetchNamespaceBugs(c, accessLevel, hdr.Namespace,
-		manager, onlyManager != "",
-		r.FormValue("subsystem"),
-	)
+	groups, err := fetchNamespaceBugs(c, accessLevel, hdr.Namespace, filter)
 	if err != nil {
 		return err
 	}
@@ -374,9 +411,7 @@ type TerminalBug struct {
 	ShowPatch   bool
 	ShowPatched bool
 	ShowStats   bool
-	Manager     string
-	OneManager  bool
-	Subsystem   string
+	Filter      *userBugFilter
 }
 
 func handleTerminalBugList(c context.Context, w http.ResponseWriter, r *http.Request, typ *TerminalBug) error {
@@ -386,18 +421,11 @@ func handleTerminalBugList(c context.Context, w http.ResponseWriter, r *http.Req
 		return err
 	}
 	hdr.Subpage = typ.Subpage
-	onlyManager := r.FormValue("only_manager")
-	if onlyManager != "" {
-		typ.Manager = onlyManager
-		typ.OneManager = true
-	} else {
-		typ.Manager = r.FormValue("manager")
-	}
-	typ.Subsystem = r.FormValue("subsystem")
+	typ.Filter = MakeBugFilter(r)
 	extraBugs := []*Bug{}
 	if typ.Status == BugStatusFixed {
 		// Mix in bugs that have pending fixes.
-		extraBugs, err = fetchFixPendingBugs(c, hdr.Namespace, typ.Manager)
+		extraBugs, err = fetchFixPendingBugs(c, hdr.Namespace, typ.Filter.ManagerName())
 		if err != nil {
 			return err
 		}
@@ -440,7 +468,7 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 	if err != nil {
 		return err
 	}
-	managers, err := loadManagers(c, accessLevel, "", "")
+	managers, err := loadManagers(c, accessLevel, "", nil)
 	if err != nil {
 		return err
 	}
@@ -826,9 +854,9 @@ func fetchFixPendingBugs(c context.Context, ns, manager string) ([]*Bug, error) 
 	return rawBugs, nil
 }
 
-func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns,
-	manager string, oneManager bool, subsystem string) ([]*uiBugGroup, error) {
-	bugs, err := loadVisibleBugs(c, accessLevel, ns, manager)
+func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
+	filter *userBugFilter) ([]*uiBugGroup, error) {
+	bugs, err := loadVisibleBugs(c, accessLevel, ns, filter.ManagerName())
 	if err != nil {
 		return nil, err
 	}
@@ -851,10 +879,7 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns,
 			dups = append(dups, bug)
 			continue
 		}
-		if oneManager && len(bug.HappenedOn) > 1 {
-			continue
-		}
-		if subsystem != "" && !bug.hasSubsystem(subsystem) {
+		if !filter.MatchBug(bug) {
 			continue
 		}
 		uiBug := createUIBug(c, bug, state, managers)
@@ -955,8 +980,9 @@ func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
 	bugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
 		query = query.Filter("Namespace=", ns).
 			Filter("Status=", typ.Status)
-		if typ.Manager != "" {
-			query = query.Filter("HappenedOn=", typ.Manager)
+		manager := typ.Filter.ManagerName()
+		if manager != "" {
+			query = query.Filter("HappenedOn=", manager)
 		}
 		return query
 	})
@@ -992,10 +1018,7 @@ func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
 		if accessLevel < bug.sanitizeAccess(accessLevel) {
 			continue
 		}
-		if typ.OneManager && len(bug.HappenedOn) > 1 {
-			continue
-		}
-		if typ.Subsystem != "" && !bug.hasSubsystem(typ.Subsystem) {
+		if !typ.Filter.MatchBug(bug) {
 			continue
 		}
 		uiBug := createUIBug(c, bug, state, managers)
@@ -1317,7 +1340,7 @@ func makeUIBuild(build *Build) *uiBuild {
 }
 
 func loadRepos(c context.Context, accessLevel AccessLevel, ns string) ([]*uiRepo, error) {
-	managers, _, err := loadManagerList(c, accessLevel, ns, "")
+	managers, _, err := loadManagerList(c, accessLevel, ns, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1357,10 +1380,10 @@ func loadRepos(c context.Context, accessLevel AccessLevel, ns string) ([]*uiRepo
 	return ret, nil
 }
 
-func loadManagers(c context.Context, accessLevel AccessLevel, ns, manager string) ([]*uiManager, error) {
+func loadManagers(c context.Context, accessLevel AccessLevel, ns string, filter *userBugFilter) ([]*uiManager, error) {
 	now := timeNow(c)
 	date := timeDate(now)
-	managers, managerKeys, err := loadManagerList(c, accessLevel, ns, manager)
+	managers, managerKeys, err := loadManagerList(c, accessLevel, ns, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -1457,7 +1480,8 @@ func loadManagers(c context.Context, accessLevel AccessLevel, ns, manager string
 	return results, nil
 }
 
-func loadManagerList(c context.Context, accessLevel AccessLevel, ns, manager string) ([]*Manager, []*db.Key, error) {
+func loadManagerList(c context.Context, accessLevel AccessLevel, ns string,
+	filter *userBugFilter) ([]*Manager, []*db.Key, error) {
 	managers, keys, err := loadAllManagers(c, ns)
 	if err != nil {
 		return nil, nil, err
@@ -1472,7 +1496,7 @@ func loadManagerList(c context.Context, accessLevel AccessLevel, ns, manager str
 		if ns == "" && cfg.Decommissioned {
 			continue
 		}
-		if manager != "" && manager != mgr.Name {
+		if !filter.MatchManagerName(mgr.Name) {
 			continue
 		}
 		filtered = append(filtered, mgr)
