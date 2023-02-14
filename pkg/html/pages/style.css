@@ -194,7 +194,7 @@ table td, table th {
 	display: inline-block;
 }
 
-.list_table .subsystem {
+.subsystem {
 	background: white;
 	border: 1pt solid black;
 	display: inline-block;
@@ -204,7 +204,7 @@ table td, table th {
 	font-size: small;
 }
 
-.list_table .subsystem a {
+.subsystem a {
 	text-decoration: none;
 	color: black;
 }

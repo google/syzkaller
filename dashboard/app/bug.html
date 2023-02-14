@@ -16,6 +16,12 @@ Page with details about a single bug.
 
 	<b>{{.Bug.Title}}</b><br><br>
 	Status: {{if .Bug.ExternalLink}}<a href="{{.Bug.ExternalLink}}">{{.Bug.Status}}</a>{{else}}{{.Bug.Status}}{{end}}<br>
+	{{if .Subsystems}}
+		Subsystems: {{range .Subsystems}}
+			<span class="subsystem">{{link .Link .Name}}</span>
+		{{- end}}
+		<br>
+	{{- end}}
 	Reported-by: {{.Bug.CreditEmail}}<br>
 	{{if .Bug.Commits}}
 		<b>Fix commit:</b> {{template "fix_commits" .Bug.Commits}}<br>
