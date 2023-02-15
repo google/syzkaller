@@ -182,6 +182,10 @@ func (arg *DataArg) validate(ctx *validCtx) error {
 			return fmt.Errorf("string arg '%v' has size %v, which should be %v",
 				typ.Name(), arg.Size(), typ.TypeSize)
 		}
+	case BufferFilename:
+		if escapingFilename(string(arg.data)) {
+			return fmt.Errorf("escaping filename %q", arg.data)
+		}
 	}
 	return nil
 }
