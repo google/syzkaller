@@ -335,6 +335,13 @@ func TestDeserialize(t *testing.T) {
 			In:  `test$str2(&(0x7f0000000000)="$eJwqrqzKTszJSS0CBAAA//8TyQPi`,
 			Err: `want ", got EOF`,
 		},
+		{
+			In: `mutate9(&(0x7f0000000000)='./local/filename\x00')`,
+		},
+		{
+			In:  `mutate9(&(0x7f0000000000)='/escaping/filename\x00')`,
+			Err: `escaping filename`,
+		},
 	})
 }
 
