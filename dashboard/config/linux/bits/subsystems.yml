@@ -578,6 +578,14 @@ config:
  - DAMON_DBGFS: [v5.15]
  - DAMON_RECLAIM: [v5.17]
 
+ # Multi-gen LRU is the new better LRU implementation
+ # that is supposed to be the default in future,
+ # so we want to enable it in most tested kernels.
+ # It has no relation to smack, but we use the smack tag
+ # just to get some kernels tested w/o multi-gen LRU as well.
+ - LRU_GEN: [v6.1, -smack]
+ - LRU_GEN_ENABLED: [v6.1, -smack]
+
  # For testing of core dumping functionality itself.
  - COREDUMP
  - ELF_CORE
