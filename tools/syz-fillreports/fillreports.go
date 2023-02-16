@@ -46,8 +46,13 @@ func processReport(dash *dashapi.Dashboard, bugReport *dashapi.BugReport, bugID 
 		log.Printf("%v: already has guilty files", bugReport.ID)
 		return
 	}
-	if bugReport.BugStatus != dashapi.BugStatusOpen {
-		log.Printf("%v: status != BugStatusOpen", bugReport.ID)
+	if bugReport.BugStatus != dashapi.BugStatusOpen &&
+		bugReport.BugStatus != dashapi.BugStatusFixed {
+		log.Printf("%v: status is not BugStatusOpen or BugStatusFixed", bugReport.ID)
+		return
+	}
+	if bugReport.OS == "" || bugReport.Arch == "" {
+		log.Printf("%v: OS or Arch is empty", bugReport.ID)
 		return
 	}
 	cfg := &mgrconfig.Config{
