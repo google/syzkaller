@@ -1,0 +1,116 @@
+FILE: 
+
+======================================================
+WARNING: possible circular locking dependency detected
+6.2.0-rc6-syzkaller-00163-g66a87fff1a87 #0 Not tainted
+------------------------------------------------------
+syz-executor.3/1006 is trying to acquire lock:
+ffff88814b6c4650 (sb_internal){.+.+}-{0:0}, at: ext4_evict_inode+0x53d/0x1230
+
+but task is already holding lock:
+ffff88814b6c6b98 (&sbi->s_writepages_rwsem){++++}-{0:0}, at: ext4_ext_migrate+0x2e2/0x1310
+
+which lock already depends on the new lock.
+
+
+the existing dependency chain (in reverse order) is:
+
+-> #3 (&sbi->s_writepages_rwsem){++++}-{0:0}:
+       lock_acquire+0x20b/0x600
+       percpu_down_write+0x54/0x2f0
+       ext4_ind_migrate+0x258/0x760
+       ext4_fileattr_set+0xe94/0x1770
+       vfs_fileattr_set+0x8f2/0xd30
+       do_vfs_ioctl+0x1dbe/0x2a40
+       __se_sys_ioctl+0x81/0x160
+       do_syscall_64+0x41/0xc0
+       entry_SYSCALL_64_after_hwframe+0x63/0xcd
+
+-> #2 (&sb->s_type->i_mutex_key#8){++++}-{3:3}:
+       lock_acquire+0x20b/0x600
+       down_read+0x3d/0x50
+       ext4_bmap+0x4f/0x410
+       bmap+0xa5/0xe0
+       jbd2_journal_flush+0x5b6/0xc40
+       ext4_ioctl+0x39b9/0x6130
+       __se_sys_ioctl+0xf1/0x160
+       do_syscall_64+0x41/0xc0
+       entry_SYSCALL_64_after_hwframe+0x63/0xcd
+
+-> #1 (&journal->j_checkpoint_mutex){+.+.}-{3:3}:
+       lock_acquire+0x20b/0x600
+       __mutex_lock_common+0x1c2/0x2630
+       mutex_lock_io_nested+0x47/0x60
+       __jbd2_log_wait_for_space+0x209/0x6c0
+       add_transaction_credits+0x94a/0xc00
+       start_this_handle+0x739/0x1660
+       jbd2__journal_start+0x2d5/0x5d0
+       __ext4_journal_start_sb+0x363/0x880
+       ext4_evict_inode+0x9b0/0x1230
+       evict+0x2a4/0x620
+       do_unlinkat+0x4ad/0x8c0
+       __x64_sys_unlink+0x49/0x50
+       do_syscall_64+0x41/0xc0
+       entry_SYSCALL_64_after_hwframe+0x63/0xcd
+
+-> #0 (sb_internal){.+.+}-{0:0}:
+       validate_chain+0x166b/0x5860
+       __lock_acquire+0x125b/0x1f80
+       lock_acquire+0x20b/0x600
+       percpu_down_read+0x44/0x190
+       ext4_evict_inode+0x53d/0x1230
+       evict+0x2a4/0x620
+       ext4_ext_migrate+0x102a/0x1310
+       ext4_ioctl+0x1caf/0x6130
+       __se_sys_ioctl+0xf1/0x160
+       do_syscall_64+0x41/0xc0
+       entry_SYSCALL_64_after_hwframe+0x63/0xcd
+
+other info that might help us debug this:
+
+Chain exists of:
+  sb_internal --> &sb->s_type->i_mutex_key#8 --> &sbi->s_writepages_rwsem
+
+ Possible unsafe locking scenario:
+
+       CPU0                    CPU1
+       ----                    ----
+  lock(&sbi->s_writepages_rwsem);
+                               lock(&sb->s_type->i_mutex_key#8);
+                               lock(&sbi->s_writepages_rwsem);
+  lock(sb_internal);
+
+ *** DEADLOCK ***
+
+3 locks held by syz-executor.3/1006:
+ #0: ffff88814b6c4460 (sb_writers#4){.+.+}-{0:0}, at: mnt_want_write_file+0x5e/0x1f0
+ #1: ffff888051572218 (&sb->s_type->i_mutex_key#8){++++}-{3:3}, at: ext4_ioctl+0x1ca7/0x6130
+ #2: ffff88814b6c6b98 (&sbi->s_writepages_rwsem){++++}-{0:0}, at: ext4_ext_migrate+0x2e2/0x1310
+
+stack backtrace:
+CPU: 0 PID: 1006 Comm: syz-executor.3 Not tainted 6.2.0-rc6-syzkaller-00163-g66a87fff1a87 #0
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/12/2023
+Call Trace:
+ <TASK>
+ dump_stack_lvl+0x1b5/0x2a0
+ check_noncircular+0x2d1/0x390
+ validate_chain+0x166b/0x5860
+ __lock_acquire+0x125b/0x1f80
+ lock_acquire+0x20b/0x600
+ percpu_down_read+0x44/0x190
+ ext4_evict_inode+0x53d/0x1230
+ evict+0x2a4/0x620
+ ext4_ext_migrate+0x102a/0x1310
+ ext4_ioctl+0x1caf/0x6130
+ __se_sys_ioctl+0xf1/0x160
+ do_syscall_64+0x41/0xc0
+ entry_SYSCALL_64_after_hwframe+0x63/0xcd
+RIP: 0033:0x7f275948c0c9
+Code: 28 00 00 00 75 05 48 83 c4 28 c3 e8 f1 19 00 00 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 b8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007f275a288168 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+RAX: ffffffffffffffda RBX: 00007f27595abf80 RCX: 00007f275948c0c9
+RDX: 0000000000000000 RSI: 0000000000006609 RDI: 0000000000000003
+RBP: 00007f27594e7ae9 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+R13: 00007ffe180057ef R14: 00007f275a288300 R15: 0000000000022000
+ </TASK>
