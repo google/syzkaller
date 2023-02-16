@@ -13,6 +13,9 @@ type Service struct {
 }
 
 func MustMakeService(list []*Subsystem) *Service {
+	if len(list) == 0 {
+		panic("the subsystem list is empty")
+	}
 	service, err := MakeService(list)
 	if err != nil {
 		panic(fmt.Sprintf("service creation failed: %s", err))
