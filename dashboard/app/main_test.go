@@ -183,3 +183,30 @@ func TestMainBugFilters(t *testing.T) {
 	assert.NotContains(t, string(reply), build1.Manager) // managers are hidden
 	assert.Contains(t, string(reply), "Applied filters") // we're seeing a prompt to disable the filter
 }
+
+func TestSubsystemsList(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	crash1 := testCrash(build, 1)
+	crash1.GuiltyFiles = []string{"a.c"}
+	client.ReportCrash(crash1)
+	client.pollBug()
+
+	crash2 := testCrash(build, 2)
+	crash2.GuiltyFiles = []string{"b.c"}
+	client.ReportCrash(crash2)
+	client.updateBug(client.pollBug().ID, dashapi.BugStatusInvalid, "")
+
+	_, err := c.AuthGET(AccessUser, "/cron/refresh_subsystems")
+	c.expectOK(err)
+
+	reply, err := c.AuthGET(AccessAdmin, "/test1/subsystems")
+	c.expectOK(err)
+	assert.Contains(t, string(reply), "subsystemA")
+	assert.Contains(t, string(reply), "subsystemB")
+}

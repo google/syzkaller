@@ -140,8 +140,8 @@ table td, table th {
 }
 
 .list_table .maintainers {
-	width: 150pt;
-	max-width: 150pt;
+	max-width: 300pt;
+	white-space: normal;
 }
 
 .list_table .result {
