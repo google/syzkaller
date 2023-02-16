@@ -129,6 +129,7 @@ type uiHeader struct {
 	Namespace           string
 	BugCounts           *CachedBugStats
 	Namespaces          []uiNamespace
+	ShowSubsystems      bool
 }
 
 type uiNamespace struct {
@@ -203,6 +204,7 @@ func commonHeader(c context.Context, r *http.Request, w http.ResponseWriter, ns 
 	}
 	if ns != adminPage {
 		h.Namespace = ns
+		h.ShowSubsystems = getSubsystemService(c, ns) != nil
 		cookie.Namespace = ns
 		encodeCookie(w, cookie)
 		cached, err := CacheGet(c, r, ns)

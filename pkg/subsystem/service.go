@@ -45,3 +45,11 @@ func MakeService(list []*Subsystem) (*Service, error) {
 func (s *Service) ByName(name string) *Subsystem {
 	return s.perName[name]
 }
+
+func (s *Service) List() []*Subsystem {
+	ret := []*Subsystem{}
+	for _, item := range s.perName {
+		ret = append(ret, item)
+	}
+	return ret
+}
