@@ -31,12 +31,11 @@ sudo apt-get install -y -q make git curl bison flex bc libssl-dev gcc g++ qemu-s
 
 curl https://dl.google.com/go/go1.10.1.linux-amd64.tar.gz | tar -xz
 curl https://storage.googleapis.com/syzkaller/gcc-7.tar.gz | tar -xz
-curl https://storage.googleapis.com/syzkaller/corpus.db.tar.gz | tar -xz
 wget https://storage.googleapis.com/syzkaller/wheezy.img
 wget https://storage.googleapis.com/syzkaller/wheezy.img.key
 chmod 0600 wheezy.img.key
 mkdir workdir
-mv corpus.db workdir/
+wget -O workdir/corpus.db https://storage.googleapis.com/syzkaller/corpus/ci-upstream-kasan-gce-corpus.db
 
 go get -d github.com/google/syzkaller/...
 (cd $GOPATH/src/github.com/google/syzkaller; \
