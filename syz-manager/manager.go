@@ -882,8 +882,8 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 			Log:         crash.Output,
 			Report:      crash.Report.Report,
 			MachineInfo: crash.machineInfo,
-			GuiltyFiles: []string{crash.Report.GuiltyFile},
 		}
+		setGuiltyFiles(dc, crash.Report)
 		resp, err := mgr.dash.ReportCrash(dc)
 		if err != nil {
 			log.Logf(0, "failed to report crash to dashboard: %v", err)
@@ -1073,6 +1073,7 @@ func (mgr *Manager) saveRepro(res *ReproResult) {
 			ReproC:     cprogText,
 			Assets:     mgr.uploadReproAssets(repro),
 		}
+		setGuiltyFiles(dc, report)
 		if _, err := mgr.dash.ReportCrash(dc); err != nil {
 			log.Logf(0, "failed to report repro to dashboard: %v", err)
 		} else {
@@ -1243,6 +1244,12 @@ func (mgr *Manager) minimizeCorpus() {
 		}
 	}
 	mgr.corpusDB.BumpVersion(currentDBVersion)
+}
+
+func setGuiltyFiles(crash *dashapi.Crash, report *report.Report) {
+	if report.GuiltyFile != "" {
+		crash.GuiltyFiles = []string{report.GuiltyFile}
+	}
 }
 
 type CallCov struct {
