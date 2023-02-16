@@ -735,10 +735,9 @@ func (ctx *linux) extractGuiltyFileImpl(report []byte) string {
 		if matchesAny(file, ctx.guiltyFileIgnores) || ctx.guiltyLineIgnore.Match(scanner.Bytes()) {
 			continue
 		}
-		guilty = string(file)
+		guilty = filepath.Clean(string(file))
 		break
 	}
-	guilty = filepath.Clean(guilty)
 
 	// Search for deeper filepaths in the stack trace below the first possible guilty file.
 	deepestPath := filepath.Dir(guilty)
