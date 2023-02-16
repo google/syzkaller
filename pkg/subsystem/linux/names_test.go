@@ -17,6 +17,8 @@ func TestEmailToName(t *testing.T) {
 		"tipc-discussion@lists.sourceforge.net": "tipc",
 		"v9fs-developer@lists.sourceforge.net":  "v9fs",
 		"zd1211-devs@lists.sourceforge.net":     "zd1211",
+		"chrome-platform@lists.linux.dev":       "chrome",
+		"b.a.t.m.a.n@lists.open-mesh.org":       "batman",
 		// Test that we can handle exceptions.
 		"virtualization@lists.linux-foundation.org": "virt",
 	}
