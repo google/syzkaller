@@ -6,6 +6,7 @@ package linux
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/google/syzkaller/pkg/subsystem"
 )
@@ -49,7 +50,7 @@ func emailToName(email string) string {
 	if ret == nil {
 		return ""
 	}
-	return ret[1]
+	return strings.ReplaceAll(ret[1], ".", "")
 }
 
 func buildEmailStripRe() *regexp.Regexp {
@@ -98,8 +99,8 @@ var (
 	stripSuffixes = []string{
 		"-devel", "-dev", "-devs", "-developer", "devel",
 		"-user", "-users",
-		"-discussion", "-discuss", "-list", "-en",
-		"-kernel", "-linux", "-general",
+		"-discussion", "-discuss", "-list", "-en", "-bugreport",
+		"-kernel", "-linux", "-general", "-platform",
 	}
 	emailStripRe = buildEmailStripRe()
 )
