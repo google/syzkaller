@@ -18,8 +18,10 @@ type ProxyAppInterface interface {
 }
 
 type CreatePoolParams struct {
-	Debug bool
-	Param string
+	Debug     bool
+	Param     string
+	Image     string
+	ImageData []byte
 }
 
 type CreatePoolResult struct {
