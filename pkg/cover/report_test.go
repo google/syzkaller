@@ -132,6 +132,10 @@ func TestReportGenerator(t *testing.T) {
 }
 
 func testReportGenerator(t *testing.T, target *targets.Target, test Test) {
+	if target.OS == "fuchsia" && test.Name == "no-debug-info" {
+		// TODO: debug info always there even without -g for fuchsia target
+		return
+	}
 	rep, csv, err := generateReport(t, target, test)
 	if err != nil {
 		if test.Result == "" {
@@ -351,10 +355,10 @@ func checkCSVReport(t *testing.T, CSVReport []byte) {
 
 	foundMain := false
 	for _, line := range lines {
-		if line[2] == "main" {
+		if line[3] == "main" {
 			foundMain = true
-			if line[3] != "1" && line[4] != "1" {
-				t.Fatalf("function coverage percentage doesn't match %v vs. %v", line[3], "100")
+			if line[4] != "1" && line[5] != "1" {
+				t.Fatalf("function coverage percentage doesn't match %v vs. %v", line[4], "100")
 			}
 		}
 	}

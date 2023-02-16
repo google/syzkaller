@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/host"
-	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -22,7 +21,6 @@ func makeELF(target *targets.Target, objDir, srcDir, buildDir string,
 			readSymbols:           elfReadSymbols,
 			readTextData:          elfReadTextData,
 			readModuleCoverPoints: elfReadModuleCoverPoints,
-			readTextRanges:        elfReadTextRanges,
 		},
 	)
 }
@@ -32,6 +30,10 @@ func elfReadSymbols(module *Module, info *symbolInfo) ([]*Symbol, error) {
 	if err != nil {
 		return nil, err
 	}
+	debugInfo, err := file.DWARF()
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse DWARF: %v (set CONFIG_DEBUG_INFO=y on linux)", err)
+	}
 	text := file.Section(".text")
 	if text == nil {
 		return nil, fmt.Errorf("no .text section in the object file")
@@ -40,27 +42,9 @@ func elfReadSymbols(module *Module, info *symbolInfo) ([]*Symbol, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read ELF symbols: %v", err)
 	}
-	if module.Name == "" {
-		info.textAddr = text.Addr
-	}
-	var symbols []*Symbol
+	info.textAddr = text.Addr
 	for i, symb := range allSymbols {
-		if symb.Info&0xf != uint8(elf.STT_FUNC) && symb.Info&0xf != uint8(elf.STT_NOTYPE) {
-			// Only save STT_FUNC, STT_NONE otherwise some symb range inside another symb range.
-			continue
-		}
 		text := symb.Value >= text.Addr && symb.Value+symb.Size <= text.Addr+text.Size
-		if text {
-			start := symb.Value + module.Addr
-			symbols = append(symbols, &Symbol{
-				Module: module,
-				ObjectUnit: ObjectUnit{
-					Name: symb.Name,
-				},
-				Start: start,
-				End:   start + symb.Size,
-			})
-		}
 		if strings.HasPrefix(symb.Name, "__sanitizer_cov_trace_") {
 			if symb.Name == "__sanitizer_cov_trace_pc" {
 				info.tracePCIdx[i] = true
@@ -75,50 +59,42 @@ func elfReadSymbols(module *Module, info *symbolInfo) ([]*Symbol, error) {
 			}
 		}
 	}
+	allDwarfFunctions, err := readSymbolsFromDwarf(debugInfo)
+	if err != nil {
+		return nil, err
+	}
+	var symbols []*Symbol
+	for _, ds := range allDwarfFunctions {
+		start := ds.Ranges[0][0]
+		end := ds.Ranges[len(ds.Ranges)-1][1]
+		var ranges [][2]uint64
+		for _, r := range ds.Ranges {
+			ranges = append(ranges, [2]uint64{
+				r[0] + module.Addr,
+				r[1] + module.Addr,
+			})
+		}
+		text := start >= text.Addr && end <= text.Addr+text.Size
+		if text {
+			symbols = append(symbols, &Symbol{
+				Module: module,
+				ObjectUnit: ObjectUnit{
+					Name: ds.Name,
+				},
+				Start:  start + module.Addr,
+				End:    end + module.Addr,
+				Ranges: ranges,
+				Inline: ds.Inline,
+				Unit: &CompileUnit{
+					Module: module,
+					ObjectUnit: ObjectUnit{
+						Name: ds.DeclFile,
+					},
+				},
+			})
+		}
+	}
 	return symbols, nil
-}
-
-func elfReadTextRanges(module *Module) ([]pcRange, []*CompileUnit, error) {
-	file, err := elf.Open(module.Path)
-	if err != nil {
-		return nil, nil, err
-	}
-	text := file.Section(".text")
-	if text == nil {
-		return nil, nil, fmt.Errorf("no .text section in the object file")
-	}
-	kaslr := file.Section(".rela.text") != nil
-	debugInfo, err := file.DWARF()
-	if err != nil {
-		if module.Name != "" {
-			log.Logf(0, "ignoring module %v without DEBUG_INFO", module.Name)
-			return nil, nil, nil
-		}
-		return nil, nil, fmt.Errorf("failed to parse DWARF: %v (set CONFIG_DEBUG_INFO=y on linux)", err)
-	}
-
-	var pcFix pcFixFn
-	if kaslr {
-		pcFix = func(r [2]uint64) ([2]uint64, bool) {
-			if r[0] >= r[1] || r[0] < text.Addr || r[1] > text.Addr+text.Size {
-				// Linux kernel binaries with CONFIG_RANDOMIZE_BASE=y are strange.
-				// .text starts at 0xffffffff81000000 and symbols point there as
-				// well, but PC ranges point to addresses around 0.
-				// So try to add text offset and retry the check.
-				// It's unclear if we also need some offset on top of text.Addr,
-				// it gives approximately correct addresses, but not necessary
-				// precisely correct addresses.
-				r[0] += text.Addr
-				r[1] += text.Addr
-				if r[0] >= r[1] || r[0] < text.Addr || r[1] > text.Addr+text.Size {
-					return r, true
-				}
-			}
-			return r, false
-		}
-	}
-
-	return readTextRanges(debugInfo, module, pcFix)
 }
 
 func elfReadTextData(module *Module) ([]byte, error) {

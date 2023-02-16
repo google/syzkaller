@@ -16,6 +16,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -82,6 +83,13 @@ func makeDWARF(target *targets.Target, objDir, srcDir, buildDir string,
 	impl, err = makeDWARFUnsafe(target, objDir, srcDir, buildDir, moduleObj, hostModules, fn)
 	return
 }
+
+type DwarfRange struct {
+	Symbol *Symbol
+	Start  uint64
+	End    uint64
+}
+
 func makeDWARFUnsafe(target *targets.Target, objDir, srcDir, buildDir string,
 	moduleObj []string, hostModules []host.KernelModule, fn *containerFns) (
 	*Impl, error) {
@@ -94,11 +102,10 @@ func makeDWARFUnsafe(target *targets.Target, objDir, srcDir, buildDir string,
 	// and index 1 refers to comparison callbacks (__sanitizer_cov_trace_cmp*).
 	var allCoverPoints [2][]uint64
 	var allSymbols []*Symbol
-	var allRanges []pcRange
 	var allUnits []*CompileUnit
 	var pcBase uint64
+	errc := make(chan error, len(modules))
 	for _, module := range modules {
-		errc := make(chan error, 1)
 		go func() {
 			info := &symbolInfo{
 				traceCmp:    make(map[uint64]bool),
@@ -114,62 +121,68 @@ func makeDWARFUnsafe(target *targets.Target, objDir, srcDir, buildDir string,
 			if module.Name == "" {
 				pcBase = info.textAddr
 			}
-			var data []byte
 			var coverPoints [2][]uint64
 			if target.Arch != targets.AMD64 && target.Arch != targets.ARM64 {
 				coverPoints, err = objdump(target, module)
 			} else if module.Name == "" {
-				data, err = fn.readTextData(module)
+				data, err := fn.readTextData(module)
 				if err != nil {
 					errc <- err
 					return
 				}
 				coverPoints, err = readCoverPoints(target, info, data)
+				if err != nil {
+					errc <- err
+					return
+				}
 			} else {
 				coverPoints, err = fn.readModuleCoverPoints(target, module, info)
 			}
+			if err != nil {
+				errc <- err
+				return
+			}
 			allCoverPoints[0] = append(allCoverPoints[0], coverPoints[0]...)
 			allCoverPoints[1] = append(allCoverPoints[1], coverPoints[1]...)
-			if err == nil && module.Name == "" && len(coverPoints[0]) == 0 {
+			if module.Name == "" && len(coverPoints[0]) == 0 {
 				err = fmt.Errorf("%v doesn't contain coverage callbacks (set CONFIG_KCOV=y on linux)", module.Path)
 			}
 			errc <- err
 		}()
-		ranges, units, err := fn.readTextRanges(module)
-		if err != nil {
-			return nil, err
-		}
 		if err := <-errc; err != nil {
 			return nil, err
 		}
-		allRanges = append(allRanges, ranges...)
-		allUnits = append(allUnits, units...)
 	}
-
-	sort.Slice(allSymbols, func(i, j int) bool {
-		return allSymbols[i].Start < allSymbols[j].Start
-	})
-	sort.Slice(allRanges, func(i, j int) bool {
-		return allRanges[i].start < allRanges[j].start
-	})
 	for k := range allCoverPoints {
 		sort.Slice(allCoverPoints[k], func(i, j int) bool {
 			return allCoverPoints[k][i] < allCoverPoints[k][j]
 		})
 	}
-
-	allSymbols = buildSymbols(allSymbols, allRanges, allCoverPoints)
-	nunit := 0
-	for _, unit := range allUnits {
-		if len(unit.PCs) == 0 {
-			continue // drop the unit
+	var allRanges []*DwarfRange
+	for _, symbol := range allSymbols {
+		for _, r := range symbol.Ranges {
+			allRanges = append(allRanges, &DwarfRange{
+				Symbol: symbol,
+				Start:  r[0],
+				End:    r[1],
+			})
 		}
-		// TODO: objDir won't work for out-of-tree modules.
-		unit.Name, unit.Path = cleanPath(unit.Name, objDir, srcDir, buildDir)
-		allUnits[nunit] = unit
-		nunit++
 	}
-	allUnits = allUnits[:nunit]
+	sort.Slice(allRanges, func(i, j int) bool {
+		if allRanges[i].End != allRanges[j].End {
+			return allRanges[i].End < allRanges[j].End
+		}
+		return allRanges[i].Start > allRanges[j].Start
+	})
+
+	allUnits = buildSymbols(allSymbols, allRanges, allCoverPoints)
+	for _, s := range allSymbols {
+		// TODO: objDir won't work for out-of-tree modules.
+		s.Unit.Name, s.Unit.Path = cleanPath(s.Unit.Name, objDir, srcDir, buildDir)
+	}
+	for _, unit := range allUnits {
+		unit.Name, unit.Path = cleanPath(unit.Name, objDir, srcDir, buildDir)
+	}
 	if len(allSymbols) == 0 || len(allUnits) == 0 {
 		return nil, fmt.Errorf("failed to parse DWARF (set CONFIG_DEBUG_INFO=y on linux)")
 	}
@@ -180,6 +193,7 @@ func makeDWARFUnsafe(target *targets.Target, objDir, srcDir, buildDir string,
 	impl := &Impl{
 		Units:   allUnits,
 		Symbols: allSymbols,
+		Ranges:  allRanges,
 		Symbolize: func(pcs map[*Module][]uint64) ([]Frame, error) {
 			return symbolize(target, objDir, srcDir, buildDir, pcs)
 		},
@@ -190,64 +204,66 @@ func makeDWARFUnsafe(target *targets.Target, objDir, srcDir, buildDir string,
 	return impl, nil
 }
 
-func buildSymbols(symbols []*Symbol, ranges []pcRange, coverPoints [2][]uint64) []*Symbol {
+func buildSymbols(symbols []*Symbol, ranges []*DwarfRange, coverPoints [2][]uint64) []*CompileUnit {
 	// Assign coverage point PCs to symbols.
-	// Both symbols and coverage points are sorted, so we do it one pass over both.
+	// Both ranges and coverage points are sorted, so we do it one pass over both.
 	selectPCs := func(u *ObjectUnit, typ int) *[]uint64 {
 		return [2]*[]uint64{&u.PCs, &u.CMPs}[typ]
 	}
+	allUnits := make(map[string]map[string]*CompileUnit)
+	var units []*CompileUnit
 	for pcType := range coverPoints {
 		pcs := coverPoints[pcType]
-		var curSymbol *Symbol
-		firstSymbolPC, symbolIdx := -1, 0
-		for i := 0; i < len(pcs); i++ {
-			pc := pcs[i]
-			for ; symbolIdx < len(symbols) && pc >= symbols[symbolIdx].End; symbolIdx++ {
+		if len(pcs) == 0 {
+			continue
+		}
+		for _, pc := range pcs {
+			b := sort.Search(len(ranges), func(i int) bool {
+				return pc < ranges[i].End
+			})
+			if b != 0 {
+				b--
 			}
 			var symb *Symbol
-			if symbolIdx < len(symbols) && pc >= symbols[symbolIdx].Start && pc < symbols[symbolIdx].End {
-				symb = symbols[symbolIdx]
+			for j := b; j < len(ranges); j++ {
+				if pc >= ranges[j].Start && pc < ranges[j].End {
+					symb = ranges[j].Symbol
+					break
+				}
 			}
-			if curSymbol != nil && curSymbol != symb {
-				*selectPCs(&curSymbol.ObjectUnit, pcType) = pcs[firstSymbolPC:i]
-				firstSymbolPC = -1
+			if symb == nil {
+				continue
 			}
-			curSymbol = symb
-			if symb != nil && firstSymbolPC == -1 {
-				firstSymbolPC = i
-			}
+			sPCs := selectPCs(&symb.ObjectUnit, pcType)
+			*sPCs = append(*sPCs, pc)
 		}
-		if curSymbol != nil {
-			*selectPCs(&curSymbol.ObjectUnit, pcType) = pcs[firstSymbolPC:]
-		}
-	}
-	// Assign compile units to symbols based on unit pc ranges.
-	// Do it one pass as both are sorted.
-	nsymbol := 0
-	rangeIndex := 0
-	for _, s := range symbols {
-		for ; rangeIndex < len(ranges) && ranges[rangeIndex].end <= s.Start; rangeIndex++ {
-		}
-		if rangeIndex == len(ranges) || s.Start < ranges[rangeIndex].start || len(s.PCs) == 0 {
-			continue // drop the symbol
-		}
-		unit := ranges[rangeIndex].unit
-		s.Unit = unit
-		symbols[nsymbol] = s
-		nsymbol++
-	}
-	symbols = symbols[:nsymbol]
 
-	for pcType := range coverPoints {
 		for _, s := range symbols {
 			symbPCs := selectPCs(&s.ObjectUnit, pcType)
-			unitPCs := selectPCs(&s.Unit.ObjectUnit, pcType)
-			pos := len(*unitPCs)
+			if allUnits[s.Module.Name] == nil {
+				allUnits[s.Module.Name] = make(map[string]*CompileUnit)
+			}
+			if allUnits[s.Module.Name][s.Unit.Name] == nil {
+				allUnits[s.Module.Name][s.Unit.Name] = &CompileUnit{
+					Module: s.Module,
+					ObjectUnit: ObjectUnit{
+						OrigName: s.Unit.ObjectUnit.Name,
+						Name:     s.Unit.ObjectUnit.Name,
+					},
+				}
+			}
+			unitPCs := selectPCs(&allUnits[s.Module.Name][s.Unit.Name].ObjectUnit, pcType)
 			*unitPCs = append(*unitPCs, *symbPCs...)
-			*symbPCs = (*unitPCs)[pos:]
 		}
 	}
-	return symbols
+
+	for _, f := range allUnits {
+		for _, unit := range f {
+			units = append(units, unit)
+		}
+	}
+
+	return units
 }
 
 type symbolInfo struct {
@@ -382,6 +398,8 @@ func symbolizeModule(target *targets.Target, objDir, srcDir, buildDir string,
 					EndLine:   frame.Line,
 					EndCol:    LineEnd,
 				},
+				Inline: frame.Inline,
+				Func:   frame.Func,
 			})
 		}
 	}
@@ -566,4 +584,252 @@ func archCallInsn(target *targets.Target) ([][]byte, [][]byte) {
 	default:
 		panic(fmt.Sprintf("unknown arch %q", target.Arch))
 	}
+}
+
+type DwarfCompileUnit struct {
+	Entry  *dwarf.Entry
+	Name   string
+	Ranges [][2]uint64
+	Offset dwarf.Offset
+}
+
+type DwarfFunction struct {
+	DwarfCompileUnit *DwarfCompileUnit
+	Parent           *DwarfFunction
+	Type             dwarf.Tag
+	Name             string
+	Ranges           [][2]uint64
+	DeclFile         string
+	AbstractOrigin   dwarf.Offset
+	Inline           bool
+	Offset           dwarf.Offset
+	Depth            int
+}
+
+var (
+	entryReaderMap map[*dwarf.Data]map[*dwarf.Entry]*dwarf.LineReader
+	mux            sync.Mutex
+)
+
+func getFilenameByIndex(debugInfo *dwarf.Data, entry *dwarf.Entry, index int) (string, error) {
+	var r *dwarf.LineReader
+	var err error
+	mux.Lock()
+	if entryReaderMap == nil {
+		entryReaderMap = make(map[*dwarf.Data]map[*dwarf.Entry]*dwarf.LineReader)
+	}
+	r = entryReaderMap[debugInfo][entry]
+	mux.Unlock()
+	if r == nil {
+		r, err = debugInfo.LineReader(entry)
+		if err != nil {
+			return "", fmt.Errorf("not found line reader for Compile Unit")
+		}
+		mux.Lock()
+		if entryReaderMap[debugInfo] == nil {
+			entryReaderMap[debugInfo] = make(map[*dwarf.Entry]*dwarf.LineReader)
+		}
+		entryReaderMap[debugInfo][entry] = r
+		mux.Unlock()
+	}
+	files := r.Files()
+	if files == nil {
+		return "", fmt.Errorf("files == nil")
+	}
+	if index >= len(files) {
+		return "", fmt.Errorf("index (%v) >= len(files) (%v)", index, len(files))
+	}
+	if index == 0 {
+		return "", nil
+	}
+	return files[index].Name, nil
+}
+
+func readAllCompileUnits(debugInfo *dwarf.Data) ([]*DwarfCompileUnit, error) {
+	var data []*DwarfCompileUnit
+
+	for r := debugInfo.Reader(); ; {
+		ent, err := r.Next()
+		if err != nil {
+			return nil, err
+		}
+		if ent == nil {
+			break
+		}
+		if ent.Tag != dwarf.TagCompileUnit {
+			return nil, fmt.Errorf("found unexpected tag %v on top level", ent.Tag)
+		}
+		attrName := ent.Val(dwarf.AttrName)
+		if attrName == nil {
+			continue
+		}
+		ranges, err := debugInfo.Ranges(ent)
+		if err != nil {
+			return nil, err
+		}
+		data = append(data, &DwarfCompileUnit{
+			Entry:  ent,
+			Name:   attrName.(string),
+			Ranges: ranges,
+			Offset: ent.Offset,
+		})
+		r.SkipChildren()
+	}
+
+	return data, nil
+}
+
+func getEntryByOffset(debugInfo *dwarf.Data, offset dwarf.Offset) (*dwarf.Entry, error) {
+	r := debugInfo.Reader()
+	r.Seek(offset)
+	return r.Next()
+}
+
+func (cu *DwarfCompileUnit) iterateFunctions(debugInfo *dwarf.Data) ([]*DwarfFunction, error) {
+	var data []*DwarfFunction
+	inlineSubprograms := make(map[dwarf.Offset]*DwarfFunction)
+	top := true
+	first := true
+	depth := 0
+	var current *DwarfFunction
+
+	for r := debugInfo.Reader(); ; {
+		if top {
+			r.Seek(cu.Offset)
+			top = false
+		}
+		ent, err := r.Next()
+		if err != nil {
+			return nil, err
+		}
+		if ent == nil {
+			break
+		}
+		if ent.Children {
+			depth++
+		}
+		if first && ent.Tag == dwarf.TagCompileUnit {
+			first = false
+			continue
+		} else if ent.Tag == dwarf.TagCompileUnit {
+			break
+		}
+		if ent.Tag == dwarf.TagSubprogram {
+			current, err = cu.parseSubprogram(debugInfo, ent, inlineSubprograms, depth)
+			if err != nil {
+				return nil, err
+			}
+			if current != nil {
+				data = append(data, current)
+			}
+		} else if ent.Tag == dwarf.TagInlinedSubroutine {
+			attrAbstractOrigin := ent.Val(dwarf.AttrAbstractOrigin)
+			if attrAbstractOrigin == nil {
+				continue
+			}
+			parent := inlineSubprograms[attrAbstractOrigin.(dwarf.Offset)]
+			ranges, err := debugInfo.Ranges(ent)
+			if err != nil {
+				return nil, err
+			}
+			if len(ranges) == 0 {
+				continue
+			}
+			if parent == nil {
+				continue
+			}
+			current = &DwarfFunction{
+				DwarfCompileUnit: cu,
+				Parent:           parent,
+				Name:             parent.Name,
+				DeclFile:         parent.DeclFile,
+				Type:             dwarf.TagInlinedSubroutine,
+				Ranges:           ranges,
+				Offset:           ent.Offset,
+				Inline:           true,
+				AbstractOrigin:   attrAbstractOrigin.(dwarf.Offset),
+				Depth:            depth,
+			}
+			data = append(data, current)
+		} else if ent.Tag == 0 {
+			depth--
+		}
+	}
+
+	return data, nil
+}
+
+func (cu *DwarfCompileUnit) parseSubprogram(debugInfo *dwarf.Data, ent *dwarf.Entry,
+	inlineSubprograms map[dwarf.Offset]*DwarfFunction, depth int) (*DwarfFunction, error) {
+	attrName := ent.Val(dwarf.AttrName)
+	attrAbstractOrigin := ent.Val(dwarf.AttrAbstractOrigin)
+	var decfile string
+	var current *DwarfFunction
+	var err error
+
+	if attrName == nil && attrAbstractOrigin != nil {
+		ent1, err := getEntryByOffset(debugInfo, attrAbstractOrigin.(dwarf.Offset))
+		if err != nil {
+			return nil, err
+		}
+		attrName = ent1.Val(dwarf.AttrName)
+		decfile, err = getFilenameByIndex(debugInfo, cu.Entry, int(ent1.Val(dwarf.AttrDeclFile).(int64)))
+		if err != nil {
+			return nil, err
+		}
+	}
+	if attrName == nil {
+		return nil, nil
+	}
+	if decfile == "" && ent.Val(dwarf.AttrDeclFile) != nil {
+		decfile, err = getFilenameByIndex(debugInfo, cu.Entry, int(ent.Val(dwarf.AttrDeclFile).(int64)))
+		if err != nil {
+			return nil, err
+		}
+	}
+	ranges, err := debugInfo.Ranges(ent)
+	if err != nil {
+		return nil, err
+	}
+	inline := false
+	attrInline := ent.Val(dwarf.AttrInline)
+	if attrInline != nil {
+		inline = true
+	}
+	current = &DwarfFunction{
+		DwarfCompileUnit: cu,
+		Type:             dwarf.TagSubprogram,
+		Name:             attrName.(string),
+		Ranges:           ranges,
+		DeclFile:         decfile,
+		Inline:           inline,
+		Offset:           ent.Offset,
+		Depth:            depth,
+	}
+	if inline {
+		inlineSubprograms[current.Offset] = current
+	}
+
+	return current, nil
+}
+
+func readSymbolsFromDwarf(debugInfo *dwarf.Data) ([]*DwarfFunction, error) {
+	var allFunctions []*DwarfFunction
+	cus, err := readAllCompileUnits(debugInfo)
+	if err != nil {
+		return nil, err
+	}
+	for _, cu := range cus {
+		functions, _ := cu.iterateFunctions(debugInfo)
+		allFunctions = append(allFunctions, functions...)
+	}
+	var allDwarfFunctions []*DwarfFunction
+	for _, df := range allFunctions {
+		if len(df.Ranges) == 0 {
+			continue
+		}
+		allDwarfFunctions = append(allDwarfFunctions, df)
+	}
+
+	return allDwarfFunctions, nil
 }

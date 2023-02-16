@@ -53,6 +53,8 @@ func MakeReportGenerator(target *targets.Target, vm, objDir, srcDir, buildDir st
 
 type file struct {
 	module     string
+	origname   string
+	name       string
 	filename   string
 	lines      map[int]line
 	functions  []*function
@@ -63,9 +65,12 @@ type file struct {
 }
 
 type function struct {
+	module  string
 	name    string
+	start   uint64
 	pcs     int
 	covered int
+	inline  bool
 }
 
 type line struct {
@@ -73,14 +78,19 @@ type line struct {
 	progIndex int          // example program index that covers this line
 }
 
-func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error) {
+func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]map[string]*file, error) {
 	if err := rg.lazySymbolize(progs); err != nil {
 		return nil, err
 	}
-	files := make(map[string]*file)
+	files := make(map[string]map[string]*file)
 	for _, unit := range rg.Units {
-		files[unit.Name] = &file{
+		if files[unit.Module.Name] == nil {
+			files[unit.Module.Name] = make(map[string]*file)
+		}
+		files[unit.Module.Name][unit.Name] = &file{
+			origname: unit.OrigName,
 			module:   unit.Module.Name,
+			name:     unit.Name,
 			filename: unit.Path,
 			lines:    make(map[int]line),
 			totalPCs: len(unit.PCs),
@@ -97,7 +107,7 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error
 	}
 	matchedPC := false
 	for _, frame := range rg.Frames {
-		f := getFile(files, frame.Name, frame.Path, frame.Module.Name)
+		f := getFile(files[frame.Module.Name], frame.Name, frame.Path, frame.Module.Name)
 		ln := f.lines[frame.StartLine]
 		coveredBy := progPCs[frame.PC]
 		if len(coveredBy) == 0 {
@@ -123,7 +133,7 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error
 		return nil, fmt.Errorf("coverage doesn't match any coverage callbacks")
 	}
 	for _, unit := range rg.Units {
-		f := files[unit.Name]
+		f := files[unit.Module.Name][unit.Name]
 		for _, pc := range unit.PCs {
 			if progPCs[pc] != nil {
 				f.coveredPCs++
@@ -132,21 +142,30 @@ func (rg *ReportGenerator) prepareFileMap(progs []Prog) (map[string]*file, error
 	}
 	for _, s := range rg.Symbols {
 		fun := &function{
-			name: s.Name,
-			pcs:  len(s.PCs),
+			module: s.Module.Name,
+			name:   s.Name,
+			start:  s.Start,
+			pcs:    len(s.PCs),
+			inline: s.Inline,
 		}
 		for _, pc := range s.PCs {
 			if progPCs[pc] != nil {
 				fun.covered++
 			}
 		}
-		f := files[s.Unit.Name]
+		f := files[s.Module.Name][s.Unit.Name]
+		if f == nil {
+			files[s.Module.Name][s.Unit.Name] = getFile(files[s.Module.Name], s.Unit.Name, s.Unit.Path, s.Module.Name)
+			f = files[s.Module.Name][s.Unit.Name]
+		}
 		f.functions = append(f.functions, fun)
 	}
-	for _, f := range files {
-		sort.Slice(f.functions, func(i, j int) bool {
-			return f.functions[i].name < f.functions[j].name
-		})
+	for _, m := range files {
+		for _, f := range m {
+			sort.Slice(f.functions, func(i, j int) bool {
+				return f.functions[i].name < f.functions[j].name
+			})
+		}
 	}
 	return files, nil
 }
@@ -180,15 +199,9 @@ func (rg *ReportGenerator) lazySymbolize(progs []Prog) error {
 		return err
 	}
 	rg.Frames = append(rg.Frames, frames...)
-	uniqueFrames := make(map[uint64]bool)
-	var finalFrames []backend.Frame
-	for _, frame := range rg.Frames {
-		if !uniqueFrames[frame.PC] {
-			uniqueFrames[frame.PC] = true
-			finalFrames = append(finalFrames, frame)
-		}
-	}
-	rg.Frames = finalFrames
+	sort.Slice(rg.Frames, func(i, j int) bool {
+		return rg.Frames[i].PC < rg.Frames[j].PC
+	})
 	for sym := range symbolize {
 		sym.Symbolized = true
 	}
@@ -212,15 +225,21 @@ func getFile(files map[string]*file, name, path, module string) *file {
 }
 
 func (rg *ReportGenerator) findSymbol(pc uint64) *backend.Symbol {
-	idx := sort.Search(len(rg.Symbols), func(i int) bool {
-		return pc < rg.Symbols[i].End
+	b := sort.Search(len(rg.Ranges), func(i int) bool {
+		return pc < rg.Ranges[i].End
 	})
-	if idx == len(rg.Symbols) {
+	if b != 0 {
+		b--
+	}
+	var symb *backend.Symbol
+	for j := b; j < len(rg.Ranges); j++ {
+		if pc >= rg.Ranges[j].Symbol.Start && pc < rg.Ranges[j].Symbol.End {
+			symb = rg.Ranges[j].Symbol
+			break
+		}
+	}
+	if symb == nil {
 		return nil
 	}
-	s := rg.Symbols[idx]
-	if pc < s.Start || pc > s.End {
-		return nil
-	}
-	return s
+	return symb
 }

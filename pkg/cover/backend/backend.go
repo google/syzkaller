@@ -13,6 +13,7 @@ import (
 type Impl struct {
 	Units     []*CompileUnit
 	Symbols   []*Symbol
+	Ranges    []*DwarfRange
 	Frames    []Frame
 	Symbolize func(pcs map[*Module][]uint64) ([]Frame, error)
 	RestorePC func(pc uint32) uint64
@@ -36,14 +37,17 @@ type Symbol struct {
 	Unit       *CompileUnit
 	Start      uint64
 	End        uint64
+	Ranges     [][2]uint64
 	Symbolized bool
+	Inline     bool
 }
 
 // ObjectUnit represents either CompileUnit or Symbol.
 type ObjectUnit struct {
-	Name string
-	PCs  []uint64 // PCs we can get in coverage callbacks for this unit.
-	CMPs []uint64 // PCs we can get in comparison interception callbacks for this unit.
+	OrigName string   // DeclFile name in dwarf debug_line section.
+	Name     string   // DeclFile name after doing cleanPath.
+	PCs      []uint64 // PCs we can get in coverage callbacks for this unit.
+	CMPs     []uint64 // PCs we can get in comparison interception callbacks for this unit.
 }
 
 type Frame struct {
@@ -52,6 +56,8 @@ type Frame struct {
 	Name   string
 	Path   string
 	Range
+	Inline bool
+	Func   string
 }
 
 type Range struct {
