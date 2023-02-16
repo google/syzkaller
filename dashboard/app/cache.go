@@ -15,6 +15,11 @@ import (
 )
 
 type Cached struct {
+	Total      CachedBugStats
+	Subsystems map[string]CachedBugStats
+}
+
+type CachedBugStats struct {
 	Open    int
 	Fixed   int
 	Invalid int
@@ -58,22 +63,18 @@ func cacheUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func buildAndStoreCached(c context.Context, bugs []*Bug, ns string, accessLevel AccessLevel) (*Cached, error) {
-	v := &Cached{}
+	v := &Cached{
+		Subsystems: make(map[string]CachedBugStats),
+	}
 	for _, bug := range bugs {
-		switch bug.Status {
-		case BugStatusOpen:
-			if accessLevel < bug.sanitizeAccess(accessLevel) {
-				continue
-			}
-			if len(bug.Commits) == 0 {
-				v.Open++
-			} else {
-				v.Fixed++
-			}
-		case BugStatusFixed:
-			v.Fixed++
-		case BugStatusInvalid:
-			v.Invalid++
+		if bug.Status == BugStatusOpen && accessLevel < bug.sanitizeAccess(accessLevel) {
+			continue
+		}
+		v.Total.Record(bug)
+		for _, subsystem := range bug.Tags.Subsystems {
+			stats := v.Subsystems[subsystem.Name]
+			stats.Record(bug)
+			v.Subsystems[subsystem.Name] = stats
 		}
 	}
 	item := &memcache.Item{
@@ -85,6 +86,21 @@ func buildAndStoreCached(c context.Context, bugs []*Bug, ns string, accessLevel 
 		return nil, err
 	}
 	return v, nil
+}
+
+func (c *CachedBugStats) Record(bug *Bug) {
+	switch bug.Status {
+	case BugStatusOpen:
+		if len(bug.Commits) == 0 {
+			c.Open++
+		} else {
+			c.Fixed++
+		}
+	case BugStatusFixed:
+		c.Fixed++
+	case BugStatusInvalid:
+		c.Invalid++
+	}
 }
 
 func cacheKey(ns string, accessLevel AccessLevel) string {

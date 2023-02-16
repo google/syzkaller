@@ -127,7 +127,7 @@ type uiHeader struct {
 	AnalyticsTrackingID string
 	Subpage             string
 	Namespace           string
-	Cached              *Cached
+	BugCounts           *CachedBugStats
 	Namespaces          []uiNamespace
 }
 
@@ -209,7 +209,7 @@ func commonHeader(c context.Context, r *http.Request, w http.ResponseWriter, ns 
 		if err != nil {
 			return nil, err
 		}
-		h.Cached = cached
+		h.BugCounts = &cached.Total
 	}
 	return h, nil
 }
