@@ -60,6 +60,7 @@ func initHTTPHandlers() {
 		http.Handle("/"+ns+"/graph/crashes", handlerWrapper(handleGraphCrashes))
 		http.Handle("/"+ns+"/repos", handlerWrapper(handleRepos))
 		http.Handle("/"+ns+"/bug-stats", handlerWrapper(handleBugStats))
+		http.Handle("/"+ns+"/subsystems", handlerWrapper(handleSubsystemsList))
 	}
 	http.HandleFunc("/cron/cache_update", cacheUpdate)
 	http.HandleFunc("/cron/deprecate_assets", handleDeprecateAssets)
@@ -142,6 +143,25 @@ type uiRepo struct {
 	URL    string
 	Branch string
 	Alias  string
+}
+
+type uiSubsystemsPage struct {
+	Header *uiHeader
+	List   []*uiSubsystem
+}
+
+type uiSubsystem struct {
+	Name        string
+	Lists       string
+	Maintainers string
+	Open        uiSubsystemStats
+	Fixed       uiSubsystemStats
+	Invalid     uiSubsystemStats
+}
+
+type uiSubsystemStats struct {
+	Count int
+	Link  string
 }
 
 type uiAdminPage struct {
@@ -768,6 +788,50 @@ func getUIJob(c context.Context, bug *Bug, jobType JobType) (*uiJob, error) {
 		return nil, err
 	}
 	return makeUIJob(job, jobKey, bug, crash, build), nil
+}
+
+func handleSubsystemsList(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	hdr, err := commonHeader(c, r, w, "")
+	if err != nil {
+		return err
+	}
+	cached, err := CacheGet(c, r, hdr.Namespace)
+	if err != nil {
+		return err
+	}
+	service := getSubsystemService(c, hdr.Namespace)
+	if service == nil {
+		return fmt.Errorf("the namespace does not have subsystems")
+	}
+	list := []*uiSubsystem{}
+	for _, item := range service.List() {
+		stats := cached.Subsystems[item.Name]
+		list = append(list, &uiSubsystem{
+			Name:        item.Name,
+			Lists:       strings.Join(item.Lists, ", "),
+			Maintainers: strings.Join(item.Maintainers, ", "),
+			Open: uiSubsystemStats{
+				Count: stats.Open,
+				Link: html.AmendURL("/"+hdr.Namespace,
+					"subsystem", item.Name),
+			},
+			Fixed: uiSubsystemStats{
+				Count: stats.Fixed,
+				Link: html.AmendURL("/"+hdr.Namespace+"/fixed",
+					"subsystem", item.Name),
+			},
+			Invalid: uiSubsystemStats{
+				Count: stats.Invalid,
+				Link: html.AmendURL("/"+hdr.Namespace+"/invalid",
+					"subsystem", item.Name),
+			},
+		})
+	}
+	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
+	return serveTemplate(w, "subsystems.html", &uiSubsystemsPage{
+		Header: hdr,
+		List:   list,
+	})
 }
 
 // handleText serves plain text blobs (crash logs, reports, reproducers, etc).
