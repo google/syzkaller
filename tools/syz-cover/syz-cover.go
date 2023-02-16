@@ -54,12 +54,15 @@ func main() {
 	if *flagKernelSrc == "" {
 		*flagKernelSrc = "."
 	}
+	*flagKernelSrc = osutil.Abs(*flagKernelSrc)
 	if *flagKernelObj == "" {
 		*flagKernelObj = *flagKernelSrc
 	}
+	*flagKernelObj = osutil.Abs(*flagKernelObj)
 	if *flagKernelBuildSrc == "" {
 		*flagKernelBuildSrc = *flagKernelSrc
 	}
+	*flagKernelBuildSrc = osutil.Abs(*flagKernelBuildSrc)
 	target := targets.Get(*flagOS, *flagArch)
 	if target == nil {
 		tool.Failf("unknown target %v/%v", *flagOS, *flagArch)
