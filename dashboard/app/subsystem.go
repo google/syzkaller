@@ -153,7 +153,11 @@ func contextWithSubsystems(c context.Context, custom *customSubsystemList) conte
 func getSubsystemService(c context.Context, ns string) *subsystem.Service {
 	// This is needed to emulate changes to the subsystem list over time during testing.
 	if val, ok := c.Value(&subsystemsListKey).(*customSubsystemList); ok && val.ns == ns {
-		return subsystem.MustMakeService(val.list)
+		if len(val.list) == 0 {
+			return nil
+		} else {
+			return subsystem.MustMakeService(val.list)
+		}
 	}
 	return config.Namespaces[ns].Subsystems.Service
 }
