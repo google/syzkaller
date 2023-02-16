@@ -239,6 +239,7 @@ func (ctx *Context) generate() error {
 }
 
 func (ctx *Context) executeShell() error {
+	envRe := regexp.MustCompile("^[A-Z0-9_]+=")
 	for _, shell := range ctx.Inst.Shell {
 		if !ctx.Inst.Features.Match(shell.Constraints) {
 			continue
@@ -253,7 +254,18 @@ func (ctx *Context) executeShell() error {
 			}
 			continue
 		}
-		if _, err := osutil.RunCmd(10*time.Minute, ctx.SourceDir, args[0], args[1:]...); err != nil {
+		env := os.Environ()
+		for len(args) > 1 {
+			if !envRe.MatchString(args[0]) {
+				break
+			}
+			env = append(env, args[0])
+			args = args[1:]
+		}
+		cmd := osutil.Command(args[0], args[1:]...)
+		cmd.Dir = ctx.SourceDir
+		cmd.Env = env
+		if _, err := osutil.Run(10*time.Minute, cmd); err != nil {
 			return err
 		}
 	}
