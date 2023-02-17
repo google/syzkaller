@@ -24,12 +24,16 @@ import (
 )
 
 type dwarfParams struct {
-	target                *targets.Target
-	objDir                string
-	srcDir                string
-	buildDir              string
-	moduleObj             []string
-	hostModules           []host.KernelModule
+	target      *targets.Target
+	objDir      string
+	srcDir      string
+	buildDir    string
+	moduleObj   []string
+	hostModules []host.KernelModule
+	// Kernel coverage PCs in the [pcFixUpStart,pcFixUpEnd) range are offsetted by pcFixUpOffset.
+	pcFixUpStart          uint64
+	pcFixUpEnd            uint64
+	pcFixUpOffset         uint64
 	readSymbols           func(*Module, *symbolInfo) ([]*Symbol, error)
 	readTextData          func(*Module) ([]byte, error)
 	readModuleCoverPoints func(*targets.Target, *Module, *symbolInfo) ([2][]uint64, error)
@@ -189,23 +193,16 @@ func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
 		Symbolize: func(pcs map[*Module][]uint64) ([]Frame, error) {
 			return symbolize(target, objDir, srcDir, buildDir, pcs)
 		},
-		RestorePC: makeRestorePC(target, pcBase),
+		RestorePC: makeRestorePC(params, pcBase),
 	}
 	return impl, nil
 }
 
-func makeRestorePC(target *targets.Target, pcBase uint64) func(pc uint32) uint64 {
+func makeRestorePC(params *dwarfParams, pcBase uint64) func(pc uint32) uint64 {
 	return func(pcLow uint32) uint64 {
-		pc := PreviousInstructionPC(target, RestorePC(pcLow, uint32(pcBase>>32)))
-		// On arm64 as PLT is enabled by default, .text section is loaded after .plt section,
-		// so there is 0x18 bytes offset from module load address for .text section
-		// we need to remove the 0x18 bytes offset in order to correct module symbol address
-		if target.Arch == targets.ARM64 {
-			// TODO: avoid to hardcode the address
-			// Fix up kernel PCs, but not the test (userspace) PCs.
-			if pc >= 0x8000000000000000 && pc < 0xffffffd010000000 {
-				pc -= 0x18
-			}
+		pc := PreviousInstructionPC(params.target, RestorePC(pcLow, uint32(pcBase>>32)))
+		if pc >= params.pcFixUpStart && pc < params.pcFixUpEnd {
+			pc -= params.pcFixUpOffset
 		}
 		return pc
 	}
