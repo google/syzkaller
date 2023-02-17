@@ -19,12 +19,12 @@ The list of polled trees.
 	<table class="list_table">
 		<caption>Subsystems list</caption>
 		<tr>
-			<th>Name</th>
+			<th><a onclick="return sortTable(this, 'Name', textSort)" href="#">Name</a></th>
 			<th>Lists</th>
 			<th>Maintainers</th>
-			<th>Open bugs</th>
-			<th>Fixed</th>
-			<th>Invalid</th>
+			<th><a onclick="return sortTable(this, 'Open', numSort)" href="#">Open bugs</a></th>
+			<th><a onclick="return sortTable(this, 'Fixed', numSort)" href="#">Fixed</a></th>
+			<th><a onclick="return sortTable(this, 'Invalid', numSort)" href="#">Invalid</a></th>
 		</tr>
 		{{range $item := .List}}
 		<tr>
