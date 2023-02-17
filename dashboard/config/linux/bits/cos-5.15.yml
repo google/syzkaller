@@ -1,0 +1,10 @@
+# Copyright 2023 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+kernel:
+ repo: https://cos.googlesource.com/third_party/kernel
+ # HEAD of cos-5.15 branch.
+ tag: 989d5b675f3b2eaa295383d94b40192d7caaf67f
+
+shell:
+ - make lakitu_defconfig
