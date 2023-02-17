@@ -94,12 +94,14 @@ var (
 		"MPT-FusionLinux.pdl@broadcom.com":          "mpt-fusion",
 		"linux-security-module@vger.kernel.org":     "lsm",       // the original name is too long
 		"linux-unionfs@vger.kernel.org":             "overlayfs", // the name has changed
+		"rust-for-linux@vger.kernel.org":            "rust",
+		"industrypack-devel@lists.sourceforge.net":  "ipack",
 	}
 	stripPrefixes = []string{"linux-"}
 	stripSuffixes = []string{
 		"-devel", "-dev", "-devs", "-developer", "devel",
 		"-user", "-users",
-		"-discussion", "-discuss", "-list", "-en", "-bugreport",
+		"-discussion", "-discuss", "-list", "-en", "-bugreport", "list",
 		"-kernel", "-linux", "-general", "-platform",
 	}
 	emailStripRe = buildEmailStripRe()
