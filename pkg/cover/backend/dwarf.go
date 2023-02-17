@@ -23,7 +23,13 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-type containerFns struct {
+type dwarfParams struct {
+	target                *targets.Target
+	objDir                string
+	srcDir                string
+	buildDir              string
+	moduleObj             []string
+	hostModules           []host.KernelModule
 	readSymbols           func(*Module, *symbolInfo) ([]*Symbol, error)
 	readTextData          func(*Module) ([]byte, error)
 	readModuleCoverPoints func(*targets.Target, *Module, *symbolInfo) ([2][]uint64, error)
@@ -65,9 +71,7 @@ var arches = map[string]Arch{
 	},
 }
 
-func makeDWARF(target *targets.Target, objDir, srcDir, buildDir string,
-	moduleObj []string, hostModules []host.KernelModule, fn *containerFns) (
-	impl *Impl, err error) {
+func makeDWARF(params *dwarfParams) (impl *Impl, err error) {
 	defer func() {
 		// It turns out that the DWARF-parsing library in Go crashes while parsing DWARF 5 data.
 		// As GCC11 uses DWARF 5 by default, we can expect larger number of problems with
@@ -79,13 +83,15 @@ func makeDWARF(target *targets.Target, objDir, srcDir, buildDir string,
 				"(possible remedy: use go1.16+ which support DWARF 5 debug data): %s", recErr)
 		}
 	}()
-	impl, err = makeDWARFUnsafe(target, objDir, srcDir, buildDir, moduleObj, hostModules, fn)
+	impl, err = makeDWARFUnsafe(params)
 	return
 }
-func makeDWARFUnsafe(target *targets.Target, objDir, srcDir, buildDir string,
-	moduleObj []string, hostModules []host.KernelModule, fn *containerFns) (
-	*Impl, error) {
-	modules, err := discoverModules(target, objDir, moduleObj, hostModules)
+func makeDWARFUnsafe(params *dwarfParams) (*Impl, error) {
+	target := params.target
+	objDir := params.objDir
+	srcDir := params.srcDir
+	buildDir := params.buildDir
+	modules, err := discoverModules(target, objDir, params.moduleObj, params.hostModules)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +111,7 @@ func makeDWARFUnsafe(target *targets.Target, objDir, srcDir, buildDir string,
 				tracePCIdx:  make(map[int]bool),
 				traceCmpIdx: make(map[int]bool),
 			}
-			symbols, err := fn.readSymbols(module, info)
+			symbols, err := params.readSymbols(module, info)
 			if err != nil {
 				errc <- err
 				return
@@ -119,14 +125,14 @@ func makeDWARFUnsafe(target *targets.Target, objDir, srcDir, buildDir string,
 			if target.Arch != targets.AMD64 && target.Arch != targets.ARM64 {
 				coverPoints, err = objdump(target, module)
 			} else if module.Name == "" {
-				data, err = fn.readTextData(module)
+				data, err = params.readTextData(module)
 				if err != nil {
 					errc <- err
 					return
 				}
 				coverPoints, err = readCoverPoints(target, info, data)
 			} else {
-				coverPoints, err = fn.readModuleCoverPoints(target, module, info)
+				coverPoints, err = params.readModuleCoverPoints(target, module, info)
 			}
 			allCoverPoints[0] = append(allCoverPoints[0], coverPoints[0]...)
 			allCoverPoints[1] = append(allCoverPoints[1], coverPoints[1]...)
@@ -135,7 +141,7 @@ func makeDWARFUnsafe(target *targets.Target, objDir, srcDir, buildDir string,
 			}
 			errc <- err
 		}()
-		ranges, units, err := fn.readTextRanges(module)
+		ranges, units, err := params.readTextRanges(module)
 		if err != nil {
 			return nil, err
 		}

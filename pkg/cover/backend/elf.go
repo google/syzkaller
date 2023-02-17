@@ -17,14 +17,18 @@ import (
 
 func makeELF(target *targets.Target, objDir, srcDir, buildDir string,
 	moduleObj []string, hostModules []host.KernelModule) (*Impl, error) {
-	return makeDWARF(target, objDir, srcDir, buildDir, moduleObj, hostModules,
-		&containerFns{
-			readSymbols:           elfReadSymbols,
-			readTextData:          elfReadTextData,
-			readModuleCoverPoints: elfReadModuleCoverPoints,
-			readTextRanges:        elfReadTextRanges,
-		},
-	)
+	return makeDWARF(&dwarfParams{
+		target:                target,
+		objDir:                objDir,
+		srcDir:                srcDir,
+		buildDir:              buildDir,
+		moduleObj:             moduleObj,
+		hostModules:           hostModules,
+		readSymbols:           elfReadSymbols,
+		readTextData:          elfReadTextData,
+		readModuleCoverPoints: elfReadModuleCoverPoints,
+		readTextRanges:        elfReadTextRanges,
+	})
 }
 
 func elfReadSymbols(module *Module, info *symbolInfo) ([]*Symbol, error) {
