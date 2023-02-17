@@ -54,9 +54,11 @@ var (
 			"zonefs":   {"syz_mount_image$zonefs"},
 		},
 		notSubsystemEmails: map[string]struct{}{
-			"linaro-mm-sig@lists.linaro.org":  {},
-			"samba-technical@lists.samba.org": {},
-			"storagedev@microchip.com":        {},
+			"linaro-mm-sig@lists.linaro.org":   {},
+			"samba-technical@lists.samba.org":  {},
+			"storagedev@microchip.com":         {},
+			"coreteam@netfilter.org":           {},
+			"SHA-cyfmac-dev-list@infineon.com": {},
 		},
 	}
 )
