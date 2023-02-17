@@ -36,6 +36,7 @@ func elfReadSymbols(module *Module, info *symbolInfo) ([]*Symbol, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer file.Close()
 	text := file.Section(".text")
 	if text == nil {
 		return nil, fmt.Errorf("no .text section in the object file")
@@ -87,6 +88,7 @@ func elfReadTextRanges(module *Module) ([]pcRange, []*CompileUnit, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	defer file.Close()
 	text := file.Section(".text")
 	if text == nil {
 		return nil, nil, fmt.Errorf("no .text section in the object file")
@@ -130,6 +132,7 @@ func elfReadTextData(module *Module) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer file.Close()
 	text := file.Section(".text")
 	if text == nil {
 		return nil, fmt.Errorf("no .text section in the object file")
@@ -143,6 +146,7 @@ func elfReadModuleCoverPoints(target *targets.Target, module *Module, info *symb
 	if err != nil {
 		return pcs, err
 	}
+	defer file.Close()
 	callRelocType := arches[target.Arch].callRelocType
 	relaOffset := arches[target.Arch].relaOffset
 	for _, s := range file.Sections {
