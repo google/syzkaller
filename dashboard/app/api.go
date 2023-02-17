@@ -1567,7 +1567,7 @@ func handleRetestRepros(w http.ResponseWriter, r *http.Request) {
 
 func handleRefreshSubsystems(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
-	const updateBugsCount = 20
+	const updateBugsCount = 25
 	for ns := range config.Namespaces {
 		err := reassignBugSubsystems(c, ns, updateBugsCount)
 		if err != nil {
