@@ -15,7 +15,8 @@ config:
  - ARM64_MTE
 
  - ARCH_VEXPRESS
- - I2C_VERSATILE
+ # TODO: figure out why it doesn't get enabled on COS.
+ - I2C_VERSATILE: [-cos]
  - CLK_SP810
  - ICST: [-v5.16]
  - CLK_ICST: [v5.16]
