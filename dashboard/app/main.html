@@ -14,7 +14,7 @@ Main page.
 <body>
 	{{template "header" .Header}}
 	{{if $.Decommissioned}}<h1>This kernel is DECOMMISSIONED</h1>{{end}}
-        {{if not $.BugFilter.Filter.Any}}
+        {{if or (not $.BugFilter.Filter.Any) ($.BugFilter.Filter.ManagerName)}}
 		{{template "manager_list" $.Managers}}
 	{{end}}
 	{{template "bug_filter" $.BugFilter}}
