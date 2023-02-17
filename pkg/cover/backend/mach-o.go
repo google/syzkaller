@@ -16,14 +16,18 @@ import (
 
 func makeMachO(target *targets.Target, objDir, srcDir, buildDir string,
 	moduleObj []string, hostModules []host.KernelModule) (*Impl, error) {
-	return makeDWARF(target, objDir, srcDir, buildDir, moduleObj, hostModules,
-		&containerFns{
-			readSymbols:           machoReadSymbols,
-			readTextData:          machoReadTextData,
-			readModuleCoverPoints: machoReadModuleCoverPoints,
-			readTextRanges:        machoReadTextRanges,
-		},
-	)
+	return makeDWARF(&dwarfParams{
+		target:                target,
+		objDir:                objDir,
+		srcDir:                srcDir,
+		buildDir:              buildDir,
+		moduleObj:             moduleObj,
+		hostModules:           hostModules,
+		readSymbols:           machoReadSymbols,
+		readTextData:          machoReadTextData,
+		readModuleCoverPoints: machoReadModuleCoverPoints,
+		readTextRanges:        machoReadTextRanges,
+	})
 }
 
 func machoReadSymbols(module *Module, info *symbolInfo) ([]*Symbol, error) {
