@@ -183,11 +183,26 @@ func makeDWARFUnsafe(target *targets.Target, objDir, srcDir, buildDir string,
 		Symbolize: func(pcs map[*Module][]uint64) ([]Frame, error) {
 			return symbolize(target, objDir, srcDir, buildDir, pcs)
 		},
-		RestorePC: func(pc uint32) uint64 {
-			return PreviousInstructionPC(target, RestorePC(pc, uint32(pcBase>>32)))
-		},
+		RestorePC: makeRestorePC(target, pcBase),
 	}
 	return impl, nil
+}
+
+func makeRestorePC(target *targets.Target, pcBase uint64) func(pc uint32) uint64 {
+	return func(pcLow uint32) uint64 {
+		pc := PreviousInstructionPC(target, RestorePC(pcLow, uint32(pcBase>>32)))
+		// On arm64 as PLT is enabled by default, .text section is loaded after .plt section,
+		// so there is 0x18 bytes offset from module load address for .text section
+		// we need to remove the 0x18 bytes offset in order to correct module symbol address
+		if target.Arch == targets.ARM64 {
+			// TODO: avoid to hardcode the address
+			// Fix up kernel PCs, but not the test (userspace) PCs.
+			if pc >= 0x8000000000000000 && pc < 0xffffffd010000000 {
+				pc -= 0x18
+			}
+		}
+		return pc
+	}
 }
 
 func buildSymbols(symbols []*Symbol, ranges []pcRange, coverPoints [2][]uint64) []*Symbol {
