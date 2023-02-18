@@ -178,12 +178,14 @@ func runImpl(cfg *Config, repo vcs.Repo, inst instance.Env) (*Result, error) {
 	}
 	if len(res.Commits) == 0 {
 		if cfg.Fix {
-			env.log("the crash still happens on HEAD")
+			env.log("crash still not fixed on HEAD or HEAD had kernel test errors")
 		} else {
-			env.log("the crash already happened on the oldest tested release")
+			env.log("oldest tested release already had the bug or it had kernel test errors")
 		}
 		env.log("commit msg: %v", res.Commit.Title)
-		env.log("crash: %v\n%s", res.Report.Title, res.Report.Report)
+		if res.Report != nil {
+			env.log("crash: %v\n%s", res.Report.Title, res.Report.Report)
+		}
 		return res, nil
 	}
 	what := "bad"
@@ -252,20 +254,11 @@ func (env *env) bisect() (*Result, error) {
 		}
 	}
 
-	bad, good, rep1, results1, err := env.commitRange()
-	if err != nil {
-		return nil, err
+	bad, good, results1, fatalResult, err := env.commitRange()
+	if fatalResult != nil || err != nil {
+		return fatalResult, err
 	}
-	if rep1 != nil {
-		return &Result{Report: rep1, Commit: bad, Config: env.kernelConfig},
-			nil // still not fixed/happens on the oldest release
-	}
-	if good == nil {
-		// Special case: all previous releases are build broken.
-		// It's unclear what's the best way to report this.
-		// We return 2 commits which means "inconclusive".
-		return &Result{Commits: []*vcs.Commit{com, bad}, Config: env.kernelConfig}, nil
-	}
+
 	results := map[string]*testResult{cfg.Kernel.Commit: testRes}
 	for _, res := range results1 {
 		results[res.com.Hash] = res
@@ -400,60 +393,95 @@ func (env *env) detectNoopChange(results map[string]*testResult, com *vcs.Commit
 	return testRes.kernelSign == parentRes.kernelSign, nil
 }
 
-func (env *env) commitRange() (*vcs.Commit, *vcs.Commit, *report.Report, []*testResult, error) {
+func (env *env) commitRange() (*vcs.Commit, *vcs.Commit, []*testResult, *Result, error) {
+	rangeFunc := env.commitRangeForCause
 	if env.cfg.Fix {
-		return env.commitRangeForFix()
+		rangeFunc = env.commitRangeForFix
 	}
-	return env.commitRangeForBug()
+
+	bad, good, results1, err := rangeFunc()
+	if err != nil {
+		return bad, good, results1, nil, err
+	}
+
+	fatalResult, err := env.validateCommitRange(bad, good, results1)
+	return bad, good, results1, fatalResult, err
 }
 
-func (env *env) commitRangeForFix() (*vcs.Commit, *vcs.Commit, *report.Report, []*testResult, error) {
+func (env *env) commitRangeForFix() (*vcs.Commit, *vcs.Commit, []*testResult, error) {
 	env.log("testing current HEAD %v", env.head.Hash)
 	if _, err := env.repo.SwitchCommit(env.head.Hash); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, err
 	}
 	res, err := env.test()
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, err
 	}
 	if res.verdict != vcs.BisectGood {
-		return env.head, nil, res.rep, []*testResult{res}, nil
+		return env.head, nil, []*testResult{res}, nil
 	}
-	return env.head, env.commit, nil, []*testResult{res}, nil
+	return env.head, env.commit, []*testResult{res}, nil
 }
 
-func (env *env) commitRangeForBug() (*vcs.Commit, *vcs.Commit, *report.Report, []*testResult, error) {
+func (env *env) commitRangeForCause() (*vcs.Commit, *vcs.Commit, []*testResult, error) {
 	cfg := env.cfg
 	tags, err := env.bisecter.PreviousReleaseTags(cfg.Kernel.Commit, cfg.CompilerType)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, err
 	}
 	if len(tags) == 0 {
-		return nil, nil, nil, nil, fmt.Errorf("no release tags before this commit")
+		return nil, nil, nil, fmt.Errorf("no release tags before this commit")
 	}
 	lastBad := env.commit
-	var lastRep *report.Report
 	var results []*testResult
 	for _, tag := range tags {
 		env.log("testing release %v", tag)
 		com, err := env.repo.SwitchCommit(tag)
 		if err != nil {
-			return nil, nil, nil, nil, err
+			return nil, nil, nil, err
 		}
 		res, err := env.test()
 		if err != nil {
-			return nil, nil, nil, nil, err
+			return nil, nil, nil, err
 		}
 		results = append(results, res)
 		if res.verdict == vcs.BisectGood {
-			return lastBad, com, nil, results, nil
+			return lastBad, com, results, nil
 		}
 		if res.verdict == vcs.BisectBad {
 			lastBad = com
-			lastRep = res.rep
 		}
 	}
-	return lastBad, nil, lastRep, results, nil
+	// All tags were vcs.BisectBad or vcs.BisectSkip.
+	return lastBad, nil, results, nil
+}
+
+func (env *env) validateCommitRange(bad, good *vcs.Commit, results []*testResult) (*Result, error) {
+	if len(results) < 1 {
+		return nil, fmt.Errorf("commitRange returned no results")
+	}
+
+	finalResult := results[len(results)-1] // HEAD test for fix, oldest tested test for cause bisection
+	if finalResult.verdict == vcs.BisectBad {
+		// For cause bisection: Oldest tested release already had the bug. Giving up.
+		// For fix bisection:   Crash still not fixed on HEAD. Leaving Result.Commits empty causes
+		//                      syzbot to retry this bisection later.
+		env.log("crash still not fixed/happens on the oldest tested release")
+		return &Result{Report: finalResult.rep, Commit: bad, Config: env.kernelConfig}, nil
+	}
+	if finalResult.verdict == vcs.BisectSkip {
+		if env.cfg.Fix {
+			// HEAD is moving target. Sometimes changes break syzkaller fuzzing.
+			// Leaving Result.Commits empty so syzbot retries this bisection again later.
+			env.log("HEAD had kernel build, boot or test errors")
+			return &Result{Report: finalResult.rep, Commit: bad, Config: env.kernelConfig}, nil
+		}
+		// The oldest tested release usually doesn't change. Retrying would give us the same result,
+		// unless we change the syz-ci setup (e.g. new rootfs, new compilers).
+		return nil, fmt.Errorf("oldest tested release had kernel build, boot or test errors")
+	}
+
+	return nil, nil
 }
 
 type testResult struct {
@@ -502,6 +530,7 @@ func (env *env) build() (*vcs.Commit, string, error) {
 
 // Note: When this function returns an error, the bisection it was called from is aborted.
 // Hence recoverable errors must be handled and the callers must treat testResult with care.
+// e.g. testResult.verdict will be vcs.BisectSkip for a broken build, but err will be nil.
 func (env *env) test() (*testResult, error) {
 	cfg := env.cfg
 	if cfg.Timeout != 0 && time.Since(env.startTime) > cfg.Timeout {
@@ -518,15 +547,20 @@ func (env *env) test() (*testResult, error) {
 		return res, fmt.Errorf("couldn't get repo HEAD: %v", err)
 	}
 	if err != nil {
+		errInfo := fmt.Sprintf("failed building %v: ", current.Hash)
 		if verr, ok := err.(*osutil.VerboseError); ok {
-			env.log("%v", verr.Title)
+			errInfo += verr.Title
 			env.saveDebugFile(current.Hash, 0, verr.Output)
 		} else if verr, ok := err.(*build.KernelError); ok {
-			env.log("%s", verr.Report)
+			errInfo += string(verr.Report)
 			env.saveDebugFile(current.Hash, 0, verr.Output)
 		} else {
+			errInfo += err.Error()
 			env.log("%v", err)
 		}
+
+		env.log("%s", errInfo)
+		res.rep = &report.Report{Title: errInfo}
 		return res, nil
 	}
 
@@ -543,7 +577,10 @@ func (env *env) test() (*testResult, error) {
 	results, err := env.inst.Test(numTests, cfg.Repro.Syz, cfg.Repro.Opts, cfg.Repro.C)
 	env.testTime += time.Since(testStart)
 	if err != nil {
-		env.log("failed: %v", err)
+		res.rep = &report.Report{
+			Title: fmt.Sprintf("failed testing reproducer on %v: %v", current.Hash, err),
+		}
+		env.log(res.rep.Title)
 		return res, nil
 	}
 	bad, good, rep := env.processResults(current, results)
