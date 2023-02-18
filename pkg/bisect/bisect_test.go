@@ -203,14 +203,19 @@ type BisectionTest struct {
 	sameBinaryStart int
 	sameBinaryEnd   int
 	// expected output
-	expectErr    bool
-	expectRep    bool
-	noopChange   bool
-	isRelease    bool
-	flaky        bool
-	commitLen    int
+	expectErr bool
+	// Expect res.Report != nil.
+	expectRep  bool
+	noopChange bool
+	isRelease  bool
+	flaky      bool
+	// Expected number of returned commits for inconclusive bisection.
+	commitLen int
+	// For cause bisection: Oldest commit returned by bisection.
+	// For fix bisection: Newest commit returned by bisection.
 	oldestLatest int
-	// input and output
+	// For cause bisection: The commit introducing the bug.
+	// For fix bisection: The commit fixing the bug.
 	culprit         int
 	baselineConfig  string
 	resultingConfig string
@@ -329,7 +334,11 @@ var bisectionTests = []BisectionTest{
 		startCommit: 802,
 		brokenStart: 100,
 		brokenEnd:   800,
-		commitLen:   2,
+		// We mark these as failed, because build/boot failures of ancient releases are unlikely to get fixed
+		// without manual intervention by syz-ci admins.
+		commitLen: 0,
+		expectRep: false,
+		expectErr: true,
 	},
 	// Tests that bisection returns the correct fix commit.
 	{
@@ -348,16 +357,33 @@ var bisectionTests = []BisectionTest{
 		startCommit: 905,
 		expectErr:   true,
 	},
+	// Tests that no commits are returned when HEAD is build broken.
+	// Fix bisection equivalent of all-releases-broken.
+	{
+		name:         "fix-HEAD-broken",
+		fix:          true,
+		startCommit:  400,
+		brokenStart:  500,
+		brokenEnd:    1000,
+		culprit:      1000,
+		oldestLatest: 905,
+		// We mark these as re-tryable, because build/boot failures of HEAD will also be caught during regular fuzzing
+		// and are fixed by kernel devs or syz-ci admins in a timely manner.
+		commitLen: 0,
+		expectRep: true,
+		expectErr: false,
+	},
 	// Tests that no commits are returned when crash occurs on HEAD
 	// for fix bisection.
 	{
-		name:         "fix-crashes-HEAD",
+		name:         "fix-HEAD-crashes",
 		fix:          true,
 		startCommit:  400,
-		commitLen:    0,
-		expectRep:    true,
 		culprit:      1000,
 		oldestLatest: 905,
+		commitLen:    0,
+		expectRep:    true,
+		expectErr:    false,
 	},
 	// Tests that more than 1 commit is returned when fix bisection is inconclusive.
 	{
