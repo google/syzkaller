@@ -71,6 +71,10 @@ type Report struct {
 	symbolized bool
 }
 
+func (r Report) String() string {
+	return fmt.Sprintf("crash: %v\n%s", r.Title, r.Report)
+}
+
 type Type int
 
 const (
