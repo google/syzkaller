@@ -224,6 +224,9 @@ func (target *Target) BuildChoiceTable(corpus []*Prog, enabled map[*Syscall]bool
 	}
 	prios := target.CalculatePriorities(corpus)
 	run := make([][]int32, len(target.Syscalls))
+	// ChoiceTable.runs[][] contains cumulated sum of weighted priority numbers.
+	// This helps in quick binary search with biases when generating programs.
+	// This only applies for system calls that are enabled for the target.
 	for i := range run {
 		if !enabled[target.Syscalls[i]] {
 			continue
