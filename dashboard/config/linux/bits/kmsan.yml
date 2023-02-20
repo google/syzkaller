@@ -9,6 +9,7 @@ kernel:
 
 config:
  - KMSAN
+ - KMSAN_CHECK_PARAM_RETVAL
  # Crash the kernel after the first KMSAN report.
  - CMDLINE: [append, "kmsan.panic=1"]
 
