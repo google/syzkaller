@@ -235,6 +235,7 @@ func (target *Target) BuildChoiceTable(corpus []*Prog, enabled map[*Syscall]bool
 				sum += prios[i][j]
 			}
 			run[i][j] = sum
+			sum = 0
 		}
 	}
 	return &ChoiceTable{target, run, generatableCalls, noGenerateCalls}
