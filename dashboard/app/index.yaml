@@ -112,6 +112,12 @@ indexes:
   - name: Status
   - name: SubsystemsRev
 
+- kind: Bug
+  properties:
+  - name: Namespace
+  - name: Tags.Subsystems.Name
+  - name: Status
+
 - kind: Build
   properties:
   - name: Namespace
