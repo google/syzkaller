@@ -421,6 +421,7 @@ type ReportElements struct {
 
 type BugSubsystem struct {
 	Name string
+	Link string
 }
 
 type Asset struct {
