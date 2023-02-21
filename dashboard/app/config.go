@@ -55,6 +55,8 @@ type GlobalConfig struct {
 	// Main part of the URL at which the app is reachable.
 	// This URL is used e.g. to construct HTML links contained in the emails sent by the app.
 	AppURL string
+	// The email address to display on all web pages.
+	ContactEmail string
 }
 
 // Per-namespace config.

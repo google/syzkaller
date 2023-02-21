@@ -127,6 +127,7 @@ type uiHeader struct {
 	AnalyticsTrackingID string
 	Subpage             string
 	Namespace           string
+	ContactEmail        string
 	BugCounts           *CachedBugStats
 	Namespaces          []uiNamespace
 	ShowSubsystems      bool
@@ -146,6 +147,7 @@ func commonHeaderRaw(c context.Context, r *http.Request) *uiHeader {
 		Admin:               accessLevel(c, r) == AccessAdmin,
 		URLPath:             r.URL.Path,
 		AnalyticsTrackingID: config.AnalyticsTrackingID,
+		ContactEmail:        config.ContactEmail,
 	}
 	if user.Current(c) == nil {
 		h.LoginLink, _ = user.LoginURL(c, r.URL.String())

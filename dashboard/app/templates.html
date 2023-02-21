@@ -76,6 +76,12 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 					<a class="navigation_tab{{if eq .URLPath (printf "/%v/graph/crashes" $.Namespace)}}_selected{{end}}" href='/{{$.Namespace}}/graph/crashes'>
 						<span style="color:DarkOrange;">📈</span> Crashes</a> 
 				</td>
+                                {{if .ContactEmail}}
+				<td class="navigation-right">
+					<a class="navigation_tab" href='mailto:{{.ContactEmail}}'>
+						<span style="color:ForestGreen;">💬</span> Send us feedback</a>
+				</td>
+                                {{end}}
 			</tr>
 		</table>
 		{{end}}
