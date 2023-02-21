@@ -164,7 +164,6 @@ type uiSubsystem struct {
 	Maintainers string
 	Open        uiSubsystemStats
 	Fixed       uiSubsystemStats
-	Invalid     uiSubsystemStats
 }
 
 type uiSubsystemStats struct {
@@ -864,15 +863,11 @@ func createUISubsystem(ns string, item *subsystem.Subsystem, cached *Cached) *ui
 		Maintainers: strings.Join(item.Maintainers, ", "),
 		Open: uiSubsystemStats{
 			Count: stats.Open,
-			Link:  html.AmendURL("/"+ns, "subsystem", item.Name),
+			Link:  "/" + ns + "/s/" + item.Name,
 		},
 		Fixed: uiSubsystemStats{
 			Count: stats.Fixed,
 			Link:  html.AmendURL("/"+ns+"/fixed", "subsystem", item.Name),
-		},
-		Invalid: uiSubsystemStats{
-			Count: stats.Invalid,
-			Link:  html.AmendURL("/"+ns+"/invalid", "subsystem", item.Name),
 		},
 	}
 }
