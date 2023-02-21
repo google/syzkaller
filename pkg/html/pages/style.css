@@ -33,6 +33,11 @@ h1, h2, h3, h4 {
 	padding-bottom: 6px;
 }
 
+.position_table .navigation-right {
+	padding-top: 15px;
+	text-align: right;
+}
+
 table {
 	border: 1px solid #ccc;
 	margin: 20px 5px;
