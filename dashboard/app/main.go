@@ -991,7 +991,7 @@ func fetchFixPendingBugs(c context.Context, ns, manager string) ([]*Bug, error) 
 
 func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 	filter *userBugFilter) ([]*uiBugGroup, error) {
-	bugs, err := loadVisibleBugs(c, accessLevel, ns, filter.ManagerName())
+	bugs, err := loadVisibleBugs(c, accessLevel, ns, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -1070,7 +1070,8 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 	return uiGroups, nil
 }
 
-func loadVisibleBugs(c context.Context, accessLevel AccessLevel, ns, manager string) ([]*Bug, error) {
+func loadVisibleBugs(c context.Context, accessLevel AccessLevel, ns string,
+	bugFilter *userBugFilter) ([]*Bug, error) {
 	// Load open and dup bugs in in 2 separate queries.
 	// Ideally we load them in one query with a suitable filter,
 	// but unfortunately status values don't allow one query (<BugStatusFixed || >BugStatusInvalid).
@@ -1081,24 +1082,22 @@ func loadVisibleBugs(c context.Context, accessLevel AccessLevel, ns, manager str
 	var dups []*Bug
 	go func() {
 		filter := func(query *db.Query) *db.Query {
-			query = query.Filter("Namespace=", ns).
-				Filter("Status=", BugStatusDup)
-			if manager != "" {
-				query = query.Filter("HappenedOn=", manager)
-			}
-			return query
+			return applyBugFilter(
+				query.Filter("Namespace=", ns).
+					Filter("Status=", BugStatusDup),
+				bugFilter,
+			)
 		}
 		var err error
 		dups, _, err = loadAllBugs(c, filter)
 		errc <- err
 	}()
 	filter := func(query *db.Query) *db.Query {
-		query = query.Filter("Namespace=", ns).
-			Filter("Status<", BugStatusFixed)
-		if manager != "" {
-			query = query.Filter("HappenedOn=", manager)
-		}
-		return query
+		return applyBugFilter(
+			query.Filter("Namespace=", ns).
+				Filter("Status<", BugStatusFixed),
+			bugFilter,
+		)
 	}
 	bugs, _, err := loadAllBugs(c, filter)
 	if err != nil {
@@ -1113,13 +1112,10 @@ func loadVisibleBugs(c context.Context, accessLevel AccessLevel, ns, manager str
 func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
 	ns string, typ *TerminalBug, extraBugs []*Bug) (*uiBugGroup, *uiBugStats, error) {
 	bugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
-		query = query.Filter("Namespace=", ns).
-			Filter("Status=", typ.Status)
-		manager := typ.Filter.ManagerName()
-		if manager != "" {
-			query = query.Filter("HappenedOn=", manager)
-		}
-		return query
+		return applyBugFilter(
+			query.Filter("Namespace=", ns).Filter("Status=", typ.Status),
+			typ.Filter,
+		)
 	})
 	if err != nil {
 		return nil, nil, err
@@ -1161,6 +1157,17 @@ func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
 		stats.Record(bug, &bug.Reporting[uiBug.ReportingIndex])
 	}
 	return res, stats, nil
+}
+
+func applyBugFilter(query *db.Query, filter *userBugFilter) *db.Query {
+	manager, subsystem := filter.ManagerName(), filter.Subsystem
+	if subsystem != "" {
+		// Subsystem filter is more granular, so give it priority.
+		query = query.Filter("Tags.Subsystems.Name=", subsystem)
+	} else if manager != "" {
+		query = query.Filter("HappenedOn=", manager)
+	}
+	return query
 }
 
 func loadDupsForBug(c context.Context, r *http.Request, bug *Bug, state *ReportingState, managers []string) (
