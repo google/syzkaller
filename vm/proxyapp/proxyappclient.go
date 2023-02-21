@@ -118,7 +118,7 @@ func (p *pool) init(params *proxyAppParams, cfg *Config) error {
 
 	p.proxy.doLogPooling(params.LogOutput)
 
-	count, err := p.proxy.CreatePool(string(cfg.ProxyAppConfig), p.env.Debug)
+	count, err := p.proxy.CreatePool(cfg, p.env.Image, p.env.Debug)
 	if err != nil || count == 0 || (p.count != 0 && p.count != count) {
 		if err == nil {
 			err = fmt.Errorf("wrong pool size %v, prev was %v", count, p.count)
@@ -163,7 +163,7 @@ func (p *pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		return nil, fmt.Errorf("can't create instance using nil pool")
 	}
 
-	return proxy.CreateInstance(workdir, index)
+	return proxy.CreateInstance(workdir, p.env.Image, index)
 }
 
 // Close is not used now. Its support require wide code changes.
@@ -342,15 +342,28 @@ func (proxy *ProxyApp) doLogPooling(writer io.Writer) {
 	}()
 }
 
-func (proxy *ProxyApp) CreatePool(config string, debug bool) (int, error) {
+func (proxy *ProxyApp) CreatePool(config *Config, image string, debug bool) (int, error) {
 	var reply proxyrpc.CreatePoolResult
+	params := proxyrpc.CreatePoolParams{
+		Debug: debug,
+		Param: string(config.ProxyAppConfig),
+		Image: image,
+	}
+
+	if config.TransferFileContent {
+		imageData, err := os.ReadFile(image)
+		if err != nil {
+			return 0, fmt.Errorf("read image on host: %v", err)
+		}
+
+		params.ImageData = imageData
+	}
+
 	err := proxy.Call(
 		"ProxyVM.CreatePool",
-		proxyrpc.CreatePoolParams{
-			Debug: debug,
-			Param: config,
-		},
+		params,
 		&reply)
+
 	if err != nil {
 		return 0, err
 	}
@@ -358,7 +371,7 @@ func (proxy *ProxyApp) CreatePool(config string, debug bool) (int, error) {
 	return reply.Count, nil
 }
 
-func (proxy *ProxyApp) CreateInstance(workdir string, index int) (vmimpl.Instance, error) {
+func (proxy *ProxyApp) CreateInstance(workdir, image string, index int) (vmimpl.Instance, error) {
 	var reply proxyrpc.CreateInstanceResult
 
 	params := proxyrpc.CreateInstanceParams{
