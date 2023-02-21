@@ -22,6 +22,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/html"
+	"github.com/google/syzkaller/pkg/subsystem"
 	"github.com/google/syzkaller/pkg/vcs"
 	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
@@ -61,6 +62,7 @@ func initHTTPHandlers() {
 		http.Handle("/"+ns+"/repos", handlerWrapper(handleRepos))
 		http.Handle("/"+ns+"/bug-stats", handlerWrapper(handleBugStats))
 		http.Handle("/"+ns+"/subsystems", handlerWrapper(handleSubsystemsList))
+		http.Handle("/"+ns+"/s/", handlerWrapper(handleSubsystemPage))
 	}
 	http.HandleFunc("/cron/cache_update", cacheUpdate)
 	http.HandleFunc("/cron/deprecate_assets", handleDeprecateAssets)
@@ -143,6 +145,12 @@ type uiRepo struct {
 	URL    string
 	Branch string
 	Alias  string
+}
+
+type uiSubsystemPage struct {
+	Header *uiHeader
+	Info   *uiSubsystem
+	Groups []*uiBugGroup
 }
 
 type uiSubsystemsPage struct {
@@ -434,6 +442,40 @@ func handleInvalid(c context.Context, w http.ResponseWriter, r *http.Request) er
 		Subpage:   "/invalid",
 		ShowPatch: false,
 		ShowStats: true,
+	})
+}
+
+func handleSubsystemPage(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	hdr, err := commonHeader(c, r, w, "")
+	if err != nil {
+		return err
+	}
+	service := getSubsystemService(c, hdr.Namespace)
+	if service == nil {
+		return fmt.Errorf("the namespace does not have subsystems")
+	}
+	var subsystem *subsystem.Subsystem
+	if pos := strings.Index(r.URL.Path, "/s/"); pos != -1 {
+		subsystem = service.ByName(r.URL.Path[pos+3:])
+	}
+	if subsystem == nil {
+		return fmt.Errorf("the subsystem is not found")
+	}
+	groups, err := fetchNamespaceBugs(c, accessLevel(c, r),
+		hdr.Namespace, &userBugFilter{
+			Subsystem: subsystem.Name,
+		})
+	if err != nil {
+		return err
+	}
+	cached, err := CacheGet(c, r, hdr.Namespace)
+	if err != nil {
+		return err
+	}
+	return serveTemplate(w, "subsystem_page.html", &uiSubsystemPage{
+		Header: hdr,
+		Info:   createUISubsystem(hdr.Namespace, subsystem, cached),
+		Groups: groups,
 	})
 }
 
@@ -805,33 +847,34 @@ func handleSubsystemsList(c context.Context, w http.ResponseWriter, r *http.Requ
 	}
 	list := []*uiSubsystem{}
 	for _, item := range service.List() {
-		stats := cached.Subsystems[item.Name]
-		list = append(list, &uiSubsystem{
-			Name:        item.Name,
-			Lists:       strings.Join(item.Lists, ", "),
-			Maintainers: strings.Join(item.Maintainers, ", "),
-			Open: uiSubsystemStats{
-				Count: stats.Open,
-				Link: html.AmendURL("/"+hdr.Namespace,
-					"subsystem", item.Name),
-			},
-			Fixed: uiSubsystemStats{
-				Count: stats.Fixed,
-				Link: html.AmendURL("/"+hdr.Namespace+"/fixed",
-					"subsystem", item.Name),
-			},
-			Invalid: uiSubsystemStats{
-				Count: stats.Invalid,
-				Link: html.AmendURL("/"+hdr.Namespace+"/invalid",
-					"subsystem", item.Name),
-			},
-		})
+		list = append(list, createUISubsystem(hdr.Namespace, item, cached))
 	}
 	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
 	return serveTemplate(w, "subsystems.html", &uiSubsystemsPage{
 		Header: hdr,
 		List:   list,
 	})
+}
+
+func createUISubsystem(ns string, item *subsystem.Subsystem, cached *Cached) *uiSubsystem {
+	stats := cached.Subsystems[item.Name]
+	return &uiSubsystem{
+		Name:        item.Name,
+		Lists:       strings.Join(item.Lists, ", "),
+		Maintainers: strings.Join(item.Maintainers, ", "),
+		Open: uiSubsystemStats{
+			Count: stats.Open,
+			Link:  html.AmendURL("/"+ns, "subsystem", item.Name),
+		},
+		Fixed: uiSubsystemStats{
+			Count: stats.Fixed,
+			Link:  html.AmendURL("/"+ns+"/fixed", "subsystem", item.Name),
+		},
+		Invalid: uiSubsystemStats{
+			Count: stats.Invalid,
+			Link:  html.AmendURL("/"+ns+"/invalid", "subsystem", item.Name),
+		},
+	}
 }
 
 // handleText serves plain text blobs (crash logs, reports, reproducers, etc).

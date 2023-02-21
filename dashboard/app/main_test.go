@@ -210,3 +210,29 @@ func TestSubsystemsList(t *testing.T) {
 	assert.Contains(t, string(reply), "subsystemA")
 	assert.Contains(t, string(reply), "subsystemB")
 }
+
+func TestSubsystemPage(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.client
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	crash1 := testCrash(build, 1)
+	crash1.Title = "test crash title"
+	crash1.GuiltyFiles = []string{"a.c"}
+	client.ReportCrash(crash1)
+	client.pollBug()
+
+	crash2 := testCrash(build, 2)
+	crash2.GuiltyFiles = []string{"b.c"}
+	client.ReportCrash(crash2)
+	crash2.Title = "crash that must not be present"
+	client.updateBug(client.pollBug().ID, dashapi.BugStatusInvalid, "")
+
+	reply, err := c.AuthGET(AccessAdmin, "/test1/s/subsystemA")
+	c.expectOK(err)
+	assert.Contains(t, string(reply), crash1.Title)
+	assert.NotContains(t, string(reply), crash2.Title)
+}
