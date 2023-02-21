@@ -1,0 +1,28 @@
+{{/*
+Copyright 2023 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+The list of polled trees.
+*/}}
+
+<!doctype html>
+<html>
+<head>
+	{{template "head" .Header}}
+	<title>syzbot: {{.Info.Name}} subsystem</title>
+</head>
+<body>
+	{{template "header" .Header}}
+	<h2>{{.Info.Name}} subsystem</h2><br>
+	{{if .Info.Lists}}
+		<b>List(s):</b> {{.Info.Lists}}<br>
+	{{end}}
+	{{if .Info.Maintainers}}
+		<b>Maintainer(s):</b> {{.Info.Maintainers}}<br>
+	{{end}}
+	<b>Fixed bugs:</b> {{link .Info.Fixed.Link (printf "%d" .Info.Fixed.Count)}}<br>
+	{{range $group := $.Groups}}
+		{{template "bug_list" $group}}
+	{{end}}
+</body>
+</html>
