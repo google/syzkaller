@@ -25,26 +25,15 @@ func reassignBugSubsystems(c context.Context, ns string, count int) error {
 		return err
 	}
 	log.Infof(c, "updating subsystems for %d bugs in %#v", len(keys), ns)
-	now := timeNow(c)
 	rev := getSubsystemRevision(c, ns)
 	for i, bugKey := range keys {
 		list, err := inferSubsystems(c, bugs[i], bugKey)
 		if err != nil {
 			return fmt.Errorf("failed to infer subsystems: %w", err)
 		}
-		tx := func(c context.Context) error {
-			bug := new(Bug)
-			if err := db.Get(c, bugKey, bug); err != nil {
-				return fmt.Errorf("failed to get bug: %v", err)
-			}
-			bug.SetSubsystems(list, now, rev)
-			if _, err = db.Put(c, bugKey, bug); err != nil {
-				return fmt.Errorf("failed to put bug: %v", err)
-			}
-			return nil
-		}
-		if err := db.RunInTransaction(c, tx, &db.TransactionOptions{Attempts: 10}); err != nil {
-			return err
+		err = updateBugSubsystems(c, bugKey, list, autoInference(rev))
+		if err != nil {
+			return fmt.Errorf("failed to save subsystems: %w", err)
 		}
 	}
 	return nil
@@ -86,6 +75,33 @@ func bugsToUpdateSubsystems(c context.Context, ns string, count int) ([]*Bug, []
 		count -= len(tmpKeys)
 	}
 	return bugs, keys, nil
+}
+
+type (
+	autoInference  int
+	userAssignment string
+)
+
+func updateBugSubsystems(c context.Context, bugKey *db.Key,
+	list []*subsystem.Subsystem, info interface{}) error {
+	now := timeNow(c)
+	tx := func(c context.Context) error {
+		bug := new(Bug)
+		if err := db.Get(c, bugKey, bug); err != nil {
+			return fmt.Errorf("failed to get bug: %v", err)
+		}
+		switch v := info.(type) {
+		case autoInference:
+			bug.SetAutoSubsystems(list, now, int(v))
+		case userAssignment:
+			bug.SetUserSubsystems(list, now, string(v))
+		}
+		if _, err := db.Put(c, bugKey, bug); err != nil {
+			return fmt.Errorf("failed to put bug: %v", err)
+		}
+		return nil
+	}
+	return db.RunInTransaction(c, tx, &db.TransactionOptions{Attempts: 10})
 }
 
 const (

@@ -127,18 +127,35 @@ type BugTags struct {
 type BugSubsystem struct {
 	// For now, let's keep the bare minimum number of fields.
 	// The subsystem names we use now are not stable and should not be relied upon.
-	// Once the subsystem management functionality is fully implemented, we'll
-	// override everything stored here.
 	Name string
+	// The email of the user who manually set this subsystem tag.
+	// If empty, the subsystem was set automatically.
+	SetBy string
 }
 
-func (bug *Bug) SetSubsystems(list []*subsystem.Subsystem, now time.Time, rev int) {
-	bug.Tags.Subsystems = nil
-	bug.SubsystemsTime = now
-	bug.SubsystemsRev = rev
+func (bug *Bug) SetAutoSubsystems(list []*subsystem.Subsystem, now time.Time, rev int) {
+	objects := []BugSubsystem{}
 	for _, item := range list {
-		bug.Tags.Subsystems = append(bug.Tags.Subsystems, BugSubsystem{Name: item.Name})
+		objects = append(objects, BugSubsystem{Name: item.Name})
 	}
+	bug.SubsystemsRev = rev
+	bug.SetSubsystems(objects, now)
+}
+
+func (bug *Bug) SetUserSubsystems(list []*subsystem.Subsystem, now time.Time, user string) {
+	objects := []BugSubsystem{}
+	for _, item := range list {
+		objects = append(objects, BugSubsystem{
+			Name:  item.Name,
+			SetBy: user,
+		})
+	}
+	bug.SetSubsystems(objects, now)
+}
+
+func (bug *Bug) SetSubsystems(list []BugSubsystem, now time.Time) {
+	bug.Tags.Subsystems = list
+	bug.SubsystemsTime = now
 }
 
 func (bug *Bug) hasSubsystem(name string) bool {
