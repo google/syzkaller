@@ -32,6 +32,7 @@ func TestReportBug(t *testing.T) {
 		Flags:       dashapi.CrashUnderStrace,
 		Report:      []byte("report1"),
 		MachineInfo: []byte("machine info 1"),
+		GuiltyFiles: []string{"a.c"},
 	}
 	c.client.ReportCrash(crash1)
 
@@ -59,7 +60,7 @@ func TestReportBug(t *testing.T) {
 		Title:             "title1",
 		Link:              fmt.Sprintf("https://testapp.appspot.com/bug?extid=%v", rep.ID),
 		CreditEmail:       fmt.Sprintf("syzbot+%v@testapp.appspotmail.com", rep.ID),
-		Maintainers:       []string{"bar@foo.com", "foo@bar.com"},
+		Maintainers:       []string{"bar@foo.com", "foo@bar.com", "subsystemA@list.com", "subsystemA@person.com"},
 		CompilerID:        "compiler1",
 		BuildID:           "build1",
 		BuildTime:         timeNow(c.ctx),
@@ -85,7 +86,13 @@ func TestReportBug(t *testing.T) {
 		NumCrashes:        1,
 		HappenedOn:        []string{"repo1 branch1"},
 		Assets:            []dashapi.Asset{},
-		ReportElements:    &dashapi.ReportElements{},
+		ReportElements:    &dashapi.ReportElements{GuiltyFiles: []string{"a.c"}},
+		Subsystems: []dashapi.BugSubsystem{
+			{
+				Name: "subsystemA",
+				Link: "https://testapp.appspot.com/test1/s/subsystemA",
+			},
+		},
 	}
 	c.expectEQ(want, rep)
 
