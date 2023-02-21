@@ -45,6 +45,7 @@ const (
 	CmdTest
 	CmdInvalid
 	CmdUnCC
+	CmdSet
 
 	cmdTest5
 )
@@ -276,6 +277,8 @@ func extractCommand(body string) (cmd Command, str, args string) {
 	switch cmd {
 	case CmdTest:
 		args = extractArgsTokens(body[cmdPos+cmdEnd:], 2)
+	case CmdSet:
+		args = extractArgsLine(body[cmdPos+cmdEnd:])
 	case cmdTest5:
 		args = extractArgsTokens(body[cmdPos+cmdEnd:], 5)
 	case CmdFix, CmdDup:
@@ -306,6 +309,8 @@ func strToCmd(str string) Command {
 		return CmdInvalid
 	case "uncc", "uncc:":
 		return CmdUnCC
+	case "set", "set:":
+		return CmdSet
 	case "test_5_arg_cmd":
 		return cmdTest5
 	}

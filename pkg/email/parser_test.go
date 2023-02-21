@@ -327,6 +327,14 @@ baz
 		cmd: CmdUnknown,
 		str: "foo",
 	},
+	{
+		body: `
+#syz set subsystems: net, fs
+`,
+		cmd:  CmdSet,
+		str:  "set",
+		args: "subsystems: net, fs",
+	},
 }
 
 type ParseTest struct {
