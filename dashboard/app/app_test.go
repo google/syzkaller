@@ -108,20 +108,7 @@ var testConfig = &GlobalConfig{
 				},
 			},
 			Subsystems: SubsystemsConfig{
-				Service: subsystem.MustMakeService([]*subsystem.Subsystem{
-					{
-						Name:        "subsystemA",
-						PathRules:   []subsystem.PathRule{{IncludeRegexp: `a\.c`}},
-						Lists:       []string{"subsystemA@list.com"},
-						Maintainers: []string{"subsystemA@person.com"},
-					},
-					{
-						Name:        "subsystemB",
-						PathRules:   []subsystem.PathRule{{IncludeRegexp: `b\.c`}},
-						Lists:       []string{"subsystemB@list.com"},
-						Maintainers: []string{"subsystemB@person.com"},
-					},
-				}),
+				Service: subsystem.MustMakeService(testSubsystems),
 			},
 		},
 		"test2": {
@@ -308,6 +295,9 @@ var testConfig = &GlobalConfig{
 					},
 				},
 			},
+			Subsystems: SubsystemsConfig{
+				Service: subsystem.MustMakeService(testSubsystems),
+			},
 		},
 		// The second namespace reporting to the same mailing list.
 		"access-public-email-2": {
@@ -453,6 +443,21 @@ var testConfig = &GlobalConfig{
 			},
 			RetestRepros: true,
 		},
+	},
+}
+
+var testSubsystems = []*subsystem.Subsystem{
+	{
+		Name:        "subsystemA",
+		PathRules:   []subsystem.PathRule{{IncludeRegexp: `a\.c`}},
+		Lists:       []string{"subsystemA@list.com"},
+		Maintainers: []string{"subsystemA@person.com"},
+	},
+	{
+		Name:        "subsystemB",
+		PathRules:   []subsystem.PathRule{{IncludeRegexp: `b\.c`}},
+		Lists:       []string{"subsystemB@list.com"},
+		Maintainers: []string{"subsystemB@person.com"},
 	},
 }
 

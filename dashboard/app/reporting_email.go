@@ -20,6 +20,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/html"
+	"github.com/google/syzkaller/pkg/subsystem"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine/v2"
 	db "google.golang.org/appengine/v2/datastore"
@@ -329,6 +330,7 @@ func handleIncomingMail(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// nolint: gocyclo
 func incomingMail(c context.Context, r *http.Request) error {
 	msg, err := email.Parse(r.Body, ownEmails(c), ownMailingLists())
 	if err != nil {
@@ -371,6 +373,8 @@ func incomingMail(c context.Context, r *http.Request) error {
 	}
 	if msg.Command == email.CmdTest {
 		return handleTestCommand(c, bugInfo, msg)
+	} else if msg.Command == email.CmdSet {
+		return handleSetCommand(c, bugInfo, msg)
 	}
 	cmd := &dashapi.BugUpdate{
 		Status: emailCmdToStatus[msg.Command],
@@ -461,6 +465,67 @@ func handleTestCommand(c context.Context, info *bugInfoResult, msg *email.Email)
 		return replyTo(c, msg, info.bugReporting.ID, reply)
 	}
 	return nil
+}
+
+var (
+	// The format is `#syz set KEY: value(s)`. We also tolerate `#syz set KEY value(s)`.
+	setCmdRe           = regexp.MustCompile(`^(\w+):?\s*(.*?)\s*$`)
+	setCmdArgSplitRe   = regexp.MustCompile(`[\s,]+`)
+	cmdParseFailureFmt = `I've failed to parse your command. Please use the following format:
+#syz set subsystems: some-subsystem-A, some-subsystem-B
+
+The list of subsystems can be found at %s`
+	cmdNoSubsystems = `Subsystems assignment is not yet supported for this kernel.
+Please contact the bot's maintainers.`
+	cmdUnknownSubsystemFmt = `Please use subsystem names from the list of supported subsystems:
+%s
+
+If you believe that the subsystem list should be changed, please contact the bot's maintainers.`
+	cmdNoSubsystemsSetFmt = `You must specify at least one subsystem name.
+The list of available subsystems can be found at %s`
+)
+
+func handleSetCommand(c context.Context, info *bugInfoResult, msg *email.Email) error {
+	subsystemsURL := fmt.Sprintf("%v/%v/subsystems?all=true", appURL(c), info.bug.Namespace)
+	match := setCmdRe.FindStringSubmatch(msg.CommandArgs)
+	if len(match) != 3 {
+		return replyTo(c, msg, info.bugReporting.ID,
+			fmt.Sprintf(cmdParseFailureFmt, subsystemsURL))
+	}
+	cmd, args := match[1], match[2]
+	// Now we only support setting bug's subsystems.
+	// Also let's tolerate both subsystem spellings.
+	if cmd != "subsystem" && cmd != "subsystems" {
+		return replyTo(c, msg, info.bugReporting.ID,
+			fmt.Sprintf(cmdParseFailureFmt, subsystemsURL))
+	}
+	service := getSubsystemService(c, info.bug.Namespace)
+	if service == nil {
+		return replyTo(c, msg, info.bugReporting.ID, cmdNoSubsystems)
+	}
+	if args == "" {
+		return replyTo(c, msg, info.bugReporting.ID,
+			fmt.Sprintf(cmdNoSubsystemsSetFmt, subsystemsURL))
+	}
+	subsystems := []*subsystem.Subsystem{}
+	for _, name := range setCmdArgSplitRe.Split(args, -1) {
+		item := service.ByName(name)
+		if item == nil {
+			return replyTo(c, msg, info.bugReporting.ID,
+				fmt.Sprintf(cmdUnknownSubsystemFmt, subsystemsURL))
+		}
+		subsystems = append(subsystems, item)
+	}
+	// All the replies below will only be sent to the initiator and the mailing list.
+	msg.Cc = []string{info.reporting.Config.(*EmailConfig).Email}
+	err := updateBugSubsystems(c, info.bugKey, subsystems, userAssignment(msg.Author))
+	if err != nil {
+		log.Errorf(c, "failed to assign bug's subsystems: %s", err)
+		return replyTo(c, msg, info.bugReporting.ID,
+			"I've failed to update subsystems due to an internal error.\n")
+	}
+	return replyTo(c, msg, info.bugReporting.ID,
+		"Thank you!\n\nI've successfully updated the bug's subsystems.")
 }
 
 func handleEmailBounce(w http.ResponseWriter, r *http.Request) {

@@ -1072,3 +1072,81 @@ func TestEmailPatchTestingAccess(t *testing.T) {
 	pollResp := client.pollJobs(build.Manager)
 	c.expectEQ(pollResp.ID, "")
 }
+
+func TestEmailInvalidSetCommand(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.makeClient(clientPublicEmail, keyPublicEmail, true)
+	mailingList := config.Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	client.ReportCrash(crash)
+	c.incomingEmail(c.pollEmailBug().Sender, "#syz upstream\n")
+
+	sender := c.pollEmailBug().Sender
+
+	// Fully invalid command.
+	c.incomingEmail(sender, "#syz set tag\n",
+		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
+	syzbotReply := c.pollEmailBug()
+	c.expectEQ(strings.Contains(syzbotReply.Body, "I've failed to parse your command"), true)
+
+	// Invalid subsystem name.
+	c.incomingEmail(sender, "#syz set subsystems: non-existent",
+		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
+	c.expectEQ(c.pollEmailBug().Body, `> #syz set subsystems: non-existent
+
+Please use subsystem names from the list of supported subsystems:
+https://testapp.appspot.com/access-public-email/subsystems?all=true
+
+If you believe that the subsystem list should be changed, please contact the bot's maintainers.
+
+`)
+
+	// No subsystems.
+	c.incomingEmail(sender, "#syz set subsystems:\n",
+		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
+	c.expectEQ(strings.Contains(c.pollEmailBug().Body,
+		"You must specify at least one subsystem name"), true)
+}
+
+func TestEmailSetCommand(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	client := c.makeClient(clientPublicEmail, keyPublicEmail, true)
+	mailingList := config.Namespaces["access-public-email"].Reporting[0].Config.(*EmailConfig).Email
+
+	build := testBuild(1)
+	client.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	client.ReportCrash(crash)
+	c.incomingEmail(c.pollEmailBug().Sender, "#syz upstream\n")
+
+	sender := c.pollEmailBug().Sender
+	_, extBugID, err := email.RemoveAddrContext(sender)
+	c.expectOK(err)
+
+	// At the beginning, there are no subsystems.
+	expectSubsystems(t, client, extBugID)
+
+	// Set one subsystem.
+	c.incomingEmail(sender, "#syz set subsystems: subsystemA\n",
+		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
+	syzbotReply := c.pollEmailBug()
+	c.expectEQ(syzbotReply.To, []string{"test@requester.com"})
+	c.expectEQ(syzbotReply.Cc, []string{"test@syzkaller.com"})
+	c.expectEQ(strings.Contains(syzbotReply.Body, "I've successfully updated the bug's subsystems."), true)
+	expectSubsystems(t, client, extBugID, "subsystemA")
+
+	// Set two subsystems.
+	c.incomingEmail(sender, "#syz set subsystems: subsystemA, subsystemB\n",
+		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
+	c.pollEmailBug()
+	expectSubsystems(t, client, extBugID, "subsystemA", "subsystemB")
+}
