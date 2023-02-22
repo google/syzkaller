@@ -397,3 +397,19 @@ func testMonitorExecution(t *testing.T, test *Test) {
 		t.Fatalf("want output:\n%s\n\ngot output:\n%s\n", test.Report.Output, rep.Output)
 	}
 }
+
+func TestVMType(t *testing.T) {
+	testCases := []struct {
+		in   string
+		want string
+	}{
+		{"gvisor", "gvisor"},
+		{"proxyapp:android", "proxyapp"},
+	}
+
+	for _, tc := range testCases {
+		if got := vmType(tc.in); got != tc.want {
+			t.Errorf("vmType(%q) = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+}
