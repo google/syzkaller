@@ -128,7 +128,17 @@ func NewReporter(cfg *mgrconfig.Config) (*Reporter, error) {
 	if err != nil {
 		return nil, err
 	}
-	supps, err := compileRegexps(append(suppressions, cfg.Suppressions...))
+	suppressions = append(suppressions, []string{
+		// Go runtime OOM messages:
+		"fatal error: runtime: out of memory",
+		"fatal error: runtime: cannot allocate memory",
+		"fatal error: out of memory",
+		"fatal error: newosproc",
+		// Panic with ENOMEM err:
+		"panic: .*cannot allocate memory",
+	}...)
+	suppressions = append(suppressions, cfg.Suppressions...)
+	supps, err := compileRegexps(suppressions)
 	if err != nil {
 		return nil, err
 	}
@@ -819,5 +829,16 @@ var commonOopses = []*oops{
 			compile(`ddb\.onpanic:`),
 			compile(`evtlog_status:`),
 		},
+	},
+	{
+		[]byte("fatal error:"),
+		[]oopsFormat{
+			{
+				title:        compile("fatal error:(.*)"),
+				fmt:          "fatal error:%[1]v",
+				noStackTrace: true,
+			},
+		},
+		[]*regexp.Regexp{},
 	},
 }
