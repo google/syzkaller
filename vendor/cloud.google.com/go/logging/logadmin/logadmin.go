@@ -316,7 +316,7 @@ func fromLogEntry(le *logpb.LogEntry) (*logging.Entry, error) {
 	case *logpb.LogEntry_ProtoPayload:
 		var d ptypes.DynamicAny
 		if err := ptypes.UnmarshalAny(x.ProtoPayload, &d); err != nil {
-			return nil, fmt.Errorf("logging: unmarshalling proto payload: %v", err)
+			return nil, fmt.Errorf("logging: unmarshalling proto payload: %w", err)
 		}
 		payload = d.Message
 

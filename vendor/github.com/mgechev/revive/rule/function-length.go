@@ -11,17 +11,19 @@ import (
 
 // FunctionLength lint.
 type FunctionLength struct {
-	maxStmt  int
-	maxLines int
+	maxStmt    int
+	maxLines   int
+	configured bool
 	sync.Mutex
 }
 
 func (r *FunctionLength) configure(arguments lint.Arguments) {
 	r.Lock()
-	if r.maxLines == 0 {
+	if !r.configured {
 		maxStmt, maxLines := r.parseArguments(arguments)
 		r.maxStmt = int(maxStmt)
 		r.maxLines = int(maxLines)
+		r.configured = true
 	}
 	r.Unlock()
 }

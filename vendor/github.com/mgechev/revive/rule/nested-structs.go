@@ -37,12 +37,22 @@ type lintNestedStructs struct {
 
 func (l *lintNestedStructs) Visit(n ast.Node) ast.Visitor {
 	switch v := n.(type) {
+	case *ast.TypeSpec:
+		_, isInterface := v.Type.(*ast.InterfaceType)
+		if isInterface {
+			return nil // do not analyze interface declarations
+		}
 	case *ast.FuncDecl:
 		if v.Body != nil {
 			ast.Walk(l, v.Body)
 		}
 		return nil
 	case *ast.Field:
+		_, isChannelField := v.Type.(*ast.ChanType)
+		if isChannelField {
+			return nil
+		}
+
 		filter := func(n ast.Node) bool {
 			switch n.(type) {
 			case *ast.StructType:

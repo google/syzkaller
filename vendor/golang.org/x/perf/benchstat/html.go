@@ -6,8 +6,10 @@ package benchstat
 
 import (
 	"bytes"
-	"html/template"
 	"strings"
+
+	"github.com/google/safehtml"
+	"github.com/google/safehtml/template"
 )
 
 var htmlTemplate = template.Must(template.New("").Funcs(htmlFuncs).Parse(`
@@ -73,6 +75,17 @@ func htmlGroup(rows []*Row) (out [][]*Row) {
 		out = append(out, cur)
 	}
 	return
+}
+
+// SafeFormatHTML returns the HTML formatting of the tables.
+func SafeFormatHTML(tables []*Table) safehtml.HTML {
+	h, err := htmlTemplate.ExecuteToHTML(tables)
+	if err != nil {
+		// Only possible errors here are template not matching data structure.
+		// Don't make caller check - it's our fault.
+		panic(err)
+	}
+	return h
 }
 
 // FormatHTML appends an HTML formatting of the tables to buf.

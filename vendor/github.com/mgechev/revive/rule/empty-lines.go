@@ -51,7 +51,7 @@ func (w lintEmptyLines) checkStart(block *ast.BlockStmt) {
 	firstNode := block.List[0]
 	firstStmt := w.position(firstNode.Pos())
 
-	firstBlockLineIsStmt := firstStmt.Line-(blockStart.Line+1) == 0
+	firstBlockLineIsStmt := firstStmt.Line-(blockStart.Line+1) <= 0
 	_, firstBlockLineIsComment := w.cmap[blockStart.Line+1]
 	if firstBlockLineIsStmt || firstBlockLineIsComment {
 		return
@@ -70,7 +70,7 @@ func (w lintEmptyLines) checkEnd(block *ast.BlockStmt) {
 	lastNode := block.List[len(block.List)-1]
 	lastStmt := w.position(lastNode.End())
 
-	lastBlockLineIsStmt := (blockEnd.Line-1)-lastStmt.Line == 0
+	lastBlockLineIsStmt := (blockEnd.Line-1)-lastStmt.Line <= 0
 	_, lastBlockLineIsComment := w.cmap[blockEnd.Line-1]
 	if lastBlockLineIsStmt || lastBlockLineIsComment {
 		return

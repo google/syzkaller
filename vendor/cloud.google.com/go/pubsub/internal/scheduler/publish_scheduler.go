@@ -39,8 +39,8 @@ type PublishScheduler struct {
 	BufferedByteLimit    int
 
 	mu          sync.Mutex
-	bundlers    map[string]*bundler.Bundler
-	outstanding map[string]int
+	bundlers    sync.Map // keys -> *bundler.Bundler
+	outstanding sync.Map // keys -> num outstanding messages
 
 	keysMu sync.RWMutex
 	// keysWithErrors tracks ordering keys that cannot accept new messages.
@@ -76,8 +76,6 @@ func NewPublishScheduler(workers int, handle func(bundle interface{})) *PublishS
 	}
 
 	s := PublishScheduler{
-		bundlers:       make(map[string]*bundler.Bundler),
-		outstanding:    make(map[string]int),
 		keysWithErrors: make(map[string]struct{}),
 		workers:        make(chan struct{}, workers),
 		handle:         handle,
@@ -106,9 +104,11 @@ func (s *PublishScheduler) Add(key string, item interface{}, size int) error {
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	b, ok := s.bundlers[key]
+	var b *bundler.Bundler
+	bInterface, ok := s.bundlers.Load(key)
+
 	if !ok {
-		s.outstanding[key] = 1
+		s.outstanding.Store(key, 1)
 		b = bundler.NewBundler(item, func(bundle interface{}) {
 			s.workers <- struct{}{}
 			s.handle(bundle)
@@ -116,10 +116,11 @@ func (s *PublishScheduler) Add(key string, item interface{}, size int) error {
 
 			nlen := reflect.ValueOf(bundle).Len()
 			s.mu.Lock()
-			s.outstanding[key] -= nlen
-			if s.outstanding[key] == 0 {
-				delete(s.outstanding, key)
-				delete(s.bundlers, key)
+			outsInterface, _ := s.outstanding.Load(key)
+			s.outstanding.Store(key, outsInterface.(int)-nlen)
+			if v, _ := s.outstanding.Load(key); v == 0 {
+				s.outstanding.Delete(key)
+				s.bundlers.Delete(key)
 			}
 			s.mu.Unlock()
 		})
@@ -142,9 +143,13 @@ func (s *PublishScheduler) Add(key string, item interface{}, size int) error {
 			b.HandlerLimit = 1
 		}
 
-		s.bundlers[key] = b
+		s.bundlers.Store(key, b)
+	} else {
+		b = bInterface.(*bundler.Bundler)
+		oi, _ := s.outstanding.Load(key)
+		s.outstanding.Store(key, oi.(int)+1)
 	}
-	s.outstanding[key]++
+
 	return b.Add(item, size)
 }
 
@@ -152,9 +157,25 @@ func (s *PublishScheduler) Add(key string, item interface{}, size int) error {
 // blocks until all items have been flushed.
 func (s *PublishScheduler) FlushAndStop() {
 	close(s.done)
-	for _, b := range s.bundlers {
-		b.Flush()
-	}
+	s.bundlers.Range(func(_, bi interface{}) bool {
+		bi.(*bundler.Bundler).Flush()
+		return true
+	})
+}
+
+// Flush waits until all bundlers are sent.
+func (s *PublishScheduler) Flush() {
+	var wg sync.WaitGroup
+	s.bundlers.Range(func(_, bi interface{}) bool {
+		wg.Add(1)
+		go func(b *bundler.Bundler) {
+			defer wg.Done()
+			b.Flush()
+		}(bi.(*bundler.Bundler))
+		return true
+	})
+	wg.Wait()
+
 }
 
 // IsPaused checks if the bundler associated with an ordering keys is

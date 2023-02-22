@@ -63,8 +63,10 @@ func (lintIdenticalBranches) identicalBranches(branches []*ast.BlockStmt) bool {
 	}
 
 	ref := gofmt(branches[0])
+	refSize := len(branches[0].List)
 	for i := 1; i < len(branches); i++ {
-		if gofmt(branches[i]) != ref {
+		currentSize := len(branches[i].List)
+		if currentSize != refSize || gofmt(branches[i]) != ref {
 			return false
 		}
 	}

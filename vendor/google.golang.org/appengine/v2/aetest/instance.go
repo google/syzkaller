@@ -110,7 +110,6 @@ type instance struct {
 	appDir         string
 	appID          string
 	startupTimeout time.Duration
-	relFuncs       []func() // funcs to release any associated contexts
 }
 
 // NewRequest returns an *http.Request associated with this instance.
@@ -121,21 +120,11 @@ func (i *instance) NewRequest(method, urlStr string, body io.Reader) (*http.Requ
 	}
 
 	// Associate this request.
-	req, release := internal.RegisterTestRequest(req, i.apiURL, func(ctx context.Context) context.Context {
-		ctx = internal.WithAppIDOverride(ctx, "dev~"+i.appID)
-		return ctx
-	})
-	i.relFuncs = append(i.relFuncs, release)
-
-	return req, nil
+	return internal.RegisterTestRequest(req, i.apiURL, "dev~"+i.appID), nil
 }
 
 // Close kills the child api_server.py process, releasing its resources.
 func (i *instance) Close() (err error) {
-	for _, rel := range i.relFuncs {
-		rel()
-	}
-	i.relFuncs = nil
 	child := i.child
 	if child == nil {
 		return nil

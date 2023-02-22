@@ -196,6 +196,18 @@ func IndexExpr(x *ast.IndexExpr) *ast.IndexExpr {
 	return &cp
 }
 
+// IndexListExpr returns x deep copy.
+// Copy of nil argument is nil.
+func IndexListExpr(x *typeparams.IndexListExpr) *typeparams.IndexListExpr {
+	if x == nil {
+		return nil
+	}
+	cp := *x
+	cp.X = copyExpr(x.X)
+	cp.Indices = ExprList(x.Indices)
+	return &cp
+}
+
 // SliceExpr returns x deep copy.
 // Copy of nil argument is nil.
 func SliceExpr(x *ast.SliceExpr) *ast.SliceExpr {
@@ -334,21 +346,6 @@ func FieldList(x *ast.FieldList) *ast.FieldList {
 	return &cp
 }
 
-// FuncType returns x deep copy.
-// Copy of nil argument is nil.
-func FuncType(x *ast.FuncType) *ast.FuncType {
-	if x == nil {
-		return nil
-	}
-	cp := *x
-	cp.Params = FieldList(x.Params)
-	cp.Results = FieldList(x.Results)
-	if typeParams := typeparams.ForFuncType(x); typeParams != nil {
-		*typeparams.ForFuncType(&cp) = *FieldList(typeParams)
-	}
-	return &cp
-}
-
 // InterfaceType returns x deep copy.
 // Copy of nil argument is nil.
 func InterfaceType(x *ast.InterfaceType) *ast.InterfaceType {
@@ -420,23 +417,6 @@ func ValueSpec(x *ast.ValueSpec) *ast.ValueSpec {
 	cp.Type = copyExpr(x.Type)
 	cp.Doc = CommentGroup(x.Doc)
 	cp.Comment = CommentGroup(x.Comment)
-	return &cp
-}
-
-// TypeSpec returns x deep copy.
-// Copy of nil argument is nil.
-func TypeSpec(x *ast.TypeSpec) *ast.TypeSpec {
-	if x == nil {
-		return nil
-	}
-	cp := *x
-	cp.Name = Ident(x.Name)
-	cp.Type = copyExpr(x.Type)
-	cp.Doc = CommentGroup(x.Doc)
-	cp.Comment = CommentGroup(x.Comment)
-	if typeParams := typeparams.ForTypeSpec(x); typeParams != nil {
-		*typeparams.ForTypeSpec(&cp) = *FieldList(typeParams)
-	}
 	return &cp
 }
 
@@ -858,6 +838,8 @@ func copyExpr(x ast.Expr) ast.Expr {
 		return SelectorExpr(x)
 	case *ast.IndexExpr:
 		return IndexExpr(x)
+	case *typeparams.IndexListExpr:
+		return IndexListExpr(x)
 	case *ast.SliceExpr:
 		return SliceExpr(x)
 	case *ast.TypeAssertExpr:

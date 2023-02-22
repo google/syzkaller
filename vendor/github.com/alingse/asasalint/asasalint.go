@@ -16,7 +16,7 @@ import (
 	"golang.org/x/tools/go/ast/inspector"
 )
 
-const BuiltinExclusions = `^(fmt|log|logger)\.(Print|Fprint|Sprint|Fatal|Panic|Error|Warn|Warning|Info|Debug)(|f|ln)$`
+const BuiltinExclusions = `^(fmt|log|logger|t|)\.(Print|Fprint|Sprint|Fatal|Panic|Error|Warn|Warning|Info|Debug|Log)(|f|ln)$`
 
 type LinterSetting struct {
 	Exclude             []string

@@ -3,6 +3,7 @@ package rule
 import (
 	"fmt"
 	"go/ast"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -32,8 +33,9 @@ func (wl whiteList) add(kind, list string) {
 
 // AddConstantRule lints unused params in functions.
 type AddConstantRule struct {
-	whiteList   whiteList
-	strLitLimit int
+	whiteList       whiteList
+	ignoreFunctions []*regexp.Regexp
+	strLitLimit     int
 	sync.Mutex
 }
 
@@ -47,7 +49,13 @@ func (r *AddConstantRule) Apply(file *lint.File, arguments lint.Arguments) []lin
 		failures = append(failures, failure)
 	}
 
-	w := lintAddConstantRule{onFailure: onFailure, strLits: make(map[string]int), strLitLimit: r.strLitLimit, whiteLst: r.whiteList}
+	w := lintAddConstantRule{
+		onFailure:       onFailure,
+		strLits:         make(map[string]int),
+		strLitLimit:     r.strLitLimit,
+		whiteLst:        r.whiteList,
+		ignoreFunctions: r.ignoreFunctions,
+	}
 
 	ast.Walk(w, file.AST)
 
@@ -60,26 +68,74 @@ func (*AddConstantRule) Name() string {
 }
 
 type lintAddConstantRule struct {
-	onFailure   func(lint.Failure)
-	strLits     map[string]int
-	strLitLimit int
-	whiteLst    whiteList
+	onFailure       func(lint.Failure)
+	strLits         map[string]int
+	strLitLimit     int
+	whiteLst        whiteList
+	ignoreFunctions []*regexp.Regexp
 }
 
 func (w lintAddConstantRule) Visit(node ast.Node) ast.Visitor {
 	switch n := node.(type) {
+	case *ast.CallExpr:
+		w.checkFunc(n)
+		return nil
 	case *ast.GenDecl:
 		return nil // skip declarations
 	case *ast.BasicLit:
-		switch kind := n.Kind.String(); kind {
-		case kindFLOAT, kindINT:
-			w.checkNumLit(kind, n)
-		case kindSTRING:
-			w.checkStrLit(n)
-		}
+		w.checkLit(n)
 	}
 
 	return w
+}
+
+func (w lintAddConstantRule) checkFunc(expr *ast.CallExpr) {
+	fName := w.getFuncName(expr)
+
+	for _, arg := range expr.Args {
+		switch t := arg.(type) {
+		case *ast.CallExpr:
+			w.checkFunc(t)
+		case *ast.BasicLit:
+			if w.isIgnoredFunc(fName) {
+				continue
+			}
+			w.checkLit(t)
+		}
+	}
+}
+
+func (w lintAddConstantRule) getFuncName(expr *ast.CallExpr) string {
+	switch f := expr.Fun.(type) {
+	case *ast.SelectorExpr:
+		switch prefix := f.X.(type) {
+		case *ast.Ident:
+			return prefix.Name + "." + f.Sel.Name
+		}
+	case *ast.Ident:
+		return f.Name
+	}
+
+	return ""
+}
+
+func (w lintAddConstantRule) checkLit(n *ast.BasicLit) {
+	switch kind := n.Kind.String(); kind {
+	case kindFLOAT, kindINT:
+		w.checkNumLit(kind, n)
+	case kindSTRING:
+		w.checkStrLit(n)
+	}
+}
+
+func (w lintAddConstantRule) isIgnoredFunc(fName string) bool {
+	for _, pattern := range w.ignoreFunctions {
+		if pattern.MatchString(fName) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (w lintAddConstantRule) checkStrLit(n *ast.BasicLit) {
@@ -158,6 +214,25 @@ func (r *AddConstantRule) configure(arguments lint.Arguments) {
 						panic(fmt.Sprintf("Invalid argument to the add-constant rule, expecting string representation of an integer. Got '%v'", v))
 					}
 					r.strLitLimit = limit
+				case "ignoreFuncs":
+					excludes, ok := v.(string)
+					if !ok {
+						panic(fmt.Sprintf("Invalid argument to the ignoreFuncs parameter of add-constant rule, string expected. Got '%v' (%T)", v, v))
+					}
+
+					for _, exclude := range strings.Split(excludes, ",") {
+						exclude = strings.Trim(exclude, " ")
+						if exclude == "" {
+							panic("Invalid argument to the ignoreFuncs parameter of add-constant rule, expected regular expression must not be empty.")
+						}
+
+						exp, err := regexp.Compile(exclude)
+						if err != nil {
+							panic(fmt.Sprintf("Invalid argument to the ignoreFuncs parameter of add-constant rule: regexp %q does not compile: %v", exclude, err))
+						}
+
+						r.ignoreFunctions = append(r.ignoreFunctions, exp)
+					}
 				}
 			}
 		}

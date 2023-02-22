@@ -476,7 +476,7 @@ func callNext(c context.Context, res *pb.QueryResult, offset, count int32) error
 // The keys returned by GetAll will be in a 1-1 correspondence with the entities
 // added to dst.
 //
-// If q is a ``keys-only'' query, GetAll ignores dst and only returns the keys.
+// If q is a “keys-only” query, GetAll ignores dst and only returns the keys.
 //
 // The running time and number of API calls made by GetAll scale linearly with
 // the sum of the query's offset and limit. Unless the result count is

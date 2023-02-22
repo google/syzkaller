@@ -16,11 +16,11 @@
 //
 // Usage example:
 //
-//   import "cloud.google.com/go/profiler"
-//   ...
-//   if err := profiler.Start(profiler.Config{Service: "my-service"}); err != nil {
-//       // TODO: Handle error.
-//   }
+//	import "cloud.google.com/go/profiler"
+//	...
+//	if err := profiler.Start(profiler.Config{Service: "my-service"}); err != nil {
+//	    // TODO: Handle error.
+//	}
 //
 // Calling Start will start a goroutine to collect profiles and upload to
 // the profiler server, at the rhythm specified by the server.
@@ -577,20 +577,20 @@ func initializeConfig(cfg Config) error {
 		var err error
 		if config.ProjectID == "" {
 			if config.ProjectID, err = getProjectID(); err != nil {
-				return fmt.Errorf("failed to get the project ID from Compute Engine metadata: %v", err)
+				return fmt.Errorf("failed to get the project ID from Compute Engine metadata: %w", err)
 			}
 		}
 
 		if config.Zone == "" {
 			if config.Zone, err = getZone(); err != nil {
-				return fmt.Errorf("failed to get zone from Compute Engine metadata: %v", err)
+				return fmt.Errorf("failed to get zone from Compute Engine metadata: %w", err)
 			}
 		}
 
 		if config.Instance == "" {
 			if config.Instance, err = getInstanceName(); err != nil {
 				if _, ok := err.(gcemd.NotDefinedError); !ok {
-					return fmt.Errorf("failed to get instance name from Compute Engine metadata: %v", err)
+					return fmt.Errorf("failed to get instance name from Compute Engine metadata: %w", err)
 				}
 				debugLog("failed to get instance name from Compute Engine metadata, will use empty name: %v", err)
 			}
