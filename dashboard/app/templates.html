@@ -102,6 +102,9 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	{{if .Filter.Subsystem}}
 		Subsystem={{.Filter.Subsystem}} ({{link (call .DropURL "subsystem") "drop"}})
 	{{end}}
+	{{if .Filter.NoSubsystem}}
+		NoSubsystem={{.Filter.NoSubsystem}} ({{link (call .DropURL "no_subsystem") "drop"}})
+	{{end}}
 	<br>
 {{end}}
 {{end}}

@@ -169,6 +169,7 @@ func TestMainBugFilters(t *testing.T) {
 	client.UploadBuild(build1)
 
 	crash1 := testCrash(build1, 1)
+	crash1.Title = "my-crash-title"
 	client.ReportCrash(crash1)
 	client.pollBugs(1)
 
@@ -182,6 +183,11 @@ func TestMainBugFilters(t *testing.T) {
 	c.expectOK(err)
 	assert.NotContains(t, string(reply), build1.Manager) // managers are hidden
 	assert.Contains(t, string(reply), "Applied filters") // we're seeing a prompt to disable the filter
+	assert.NotContains(t, string(reply), crash1.Title)   // the bug does not belong to the subsystem
+
+	reply, err = c.AuthGET(AccessAdmin, "/test1?no_subsystem=true")
+	c.expectOK(err)
+	assert.Contains(t, string(reply), crash1.Title) // the bug has no subsystems
 }
 
 func TestSubsystemsList(t *testing.T) {
