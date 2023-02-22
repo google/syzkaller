@@ -15,8 +15,9 @@ import (
 )
 
 type Cached struct {
-	Total      CachedBugStats
-	Subsystems map[string]CachedBugStats
+	Total       CachedBugStats
+	Subsystems  map[string]CachedBugStats
+	NoSubsystem CachedBugStats
 }
 
 type CachedBugStats struct {
@@ -75,6 +76,9 @@ func buildAndStoreCached(c context.Context, bugs []*Bug, ns string, accessLevel 
 			stats := v.Subsystems[subsystem.Name]
 			stats.Record(bug)
 			v.Subsystems[subsystem.Name] = stats
+		}
+		if len(bug.Tags.Subsystems) == 0 {
+			v.NoSubsystem.Record(bug)
 		}
 	}
 	item := &memcache.Item{

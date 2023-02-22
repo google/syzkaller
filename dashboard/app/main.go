@@ -351,11 +351,13 @@ type userBugFilter struct {
 	Manager     string // show bugs that happened on the manager
 	OnlyManager string // show bugs that happened ONLY on the manager
 	Subsystem   string // only show bugs belonging to the subsystem
+	NoSubsystem bool
 }
 
 func MakeBugFilter(r *http.Request) *userBugFilter {
 	return &userBugFilter{
 		Subsystem:   r.FormValue("subsystem"),
+		NoSubsystem: r.FormValue("no_subsystem") != "",
 		Manager:     r.FormValue("manager"),
 		OnlyManager: r.FormValue("only_manager"),
 	}
@@ -386,6 +388,9 @@ func (filter *userBugFilter) MatchBug(bug *Bug) bool {
 	if filter.Manager != "" && !stringInList(bug.HappenedOn, filter.Manager) {
 		return false
 	}
+	if filter.NoSubsystem && len(bug.Tags.Subsystems) > 0 {
+		return false
+	}
 	if filter.Subsystem != "" && !bug.hasSubsystem(filter.Subsystem) {
 		return false
 	}
@@ -396,7 +401,7 @@ func (filter *userBugFilter) Any() bool {
 	if filter == nil {
 		return false
 	}
-	return filter.Subsystem != "" || filter.OnlyManager != "" || filter.Manager != ""
+	return filter.Subsystem != "" || filter.OnlyManager != "" || filter.Manager != "" || filter.NoSubsystem
 }
 
 // handleMain serves main page.
@@ -862,6 +867,17 @@ func handleSubsystemsList(c context.Context, w http.ResponseWriter, r *http.Requ
 		}
 		list = append(list, record)
 	}
+	list = append(list, &uiSubsystem{
+		Name: "",
+		Open: uiSubsystemStats{
+			Count: cached.NoSubsystem.Open,
+			Link:  html.AmendURL("/"+hdr.Namespace, "no_subsystem", "true"),
+		},
+		Fixed: uiSubsystemStats{
+			Count: cached.NoSubsystem.Open,
+			Link:  html.AmendURL("/"+hdr.Namespace+"/fixed", "no_subsystem", "true"),
+		},
+	})
 	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
 	return serveTemplate(w, "subsystems.html", &uiSubsystemsPage{
 		Header:   hdr,

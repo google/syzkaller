@@ -28,7 +28,11 @@ The list of polled trees.
 		</tr>
 		{{range $item := .List}}
 		<tr>
-			<td>{{link $item.Open.Link $item.Name}}</td>
+			{{if $item.Name}}
+				<td>{{link $item.Open.Link $item.Name}}</td>
+			{{else}}
+				<td><b>{{link $item.Open.Link "no subsystem"}}</b></td>
+			{{end}}
 			<td>{{$item.Lists}}</td>
 			<td>{{link $item.Open.Link (printf "%d" $item.Open.Count)}}</td>
 			<td>{{link $item.Fixed.Link (printf "%d" $item.Fixed.Count)}}</td>
