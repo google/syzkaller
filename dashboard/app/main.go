@@ -148,9 +148,10 @@ type uiRepo struct {
 }
 
 type uiSubsystemPage struct {
-	Header *uiHeader
-	Info   *uiSubsystem
-	Groups []*uiBugGroup
+	Header   *uiHeader
+	Info     *uiSubsystem
+	Children []*uiSubsystem
+	Groups   []*uiBugGroup
 }
 
 type uiSubsystemsPage struct {
@@ -471,10 +472,16 @@ func handleSubsystemPage(c context.Context, w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		return err
 	}
+	children := []*uiSubsystem{}
+	for _, item := range service.Children(subsystem) {
+		children = append(children, createUISubsystem(hdr.Namespace, item, cached))
+	}
+	sort.Slice(children, func(i, j int) bool { return children[i].Name < children[j].Name })
 	return serveTemplate(w, "subsystem_page.html", &uiSubsystemPage{
-		Header: hdr,
-		Info:   createUISubsystem(hdr.Namespace, subsystem, cached),
-		Groups: groups,
+		Header:   hdr,
+		Info:     createUISubsystem(hdr.Namespace, subsystem, cached),
+		Children: children,
+		Groups:   groups,
 	})
 }
 
