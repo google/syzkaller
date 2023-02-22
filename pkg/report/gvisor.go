@@ -17,9 +17,6 @@ func ctorGvisor(cfg *config) (reporterImpl, []string, error) {
 		config: cfg,
 	}
 	suppressions := []string{
-		"fatal error: runtime: out of memory",
-		"fatal error: runtime: cannot allocate memory",
-		"fatal error: newosproc",
 		"panic: ptrace sysemu failed: no such process",                                          // OOM kill
 		`panic: ptrace (s|g)et fpregs.* failed: no such process`,                                // OOM kill
 		`panic: ptrace (s|g)et regs.* failed: no such process`,                                  // OOM kill
