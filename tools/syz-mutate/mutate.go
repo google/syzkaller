@@ -7,7 +7,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"runtime"
@@ -72,7 +71,7 @@ func main() {
 	if flag.NArg() == 0 {
 		p = target.Generate(rs, *flagLen, ct)
 	} else {
-		data, err := ioutil.ReadFile(flag.Arg(0))
+		data, err := os.ReadFile(flag.Arg(0))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to read prog file: %v\n", err)
 			os.Exit(1)

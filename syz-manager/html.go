@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"io/ioutil"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -235,7 +234,7 @@ func (mgr *Manager) httpDownloadCorpus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer file.Close()
-	buf, err := ioutil.ReadAll(file)
+	buf, err := io.ReadAll(file)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to read corpus : %v", err), http.StatusInternalServerError)
 		return
@@ -513,15 +512,15 @@ func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {
 	defer mgr.mu.Unlock()
 
 	crashID := r.FormValue("id")
-	desc, err := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "description"))
+	desc, err := os.ReadFile(filepath.Join(mgr.crashdir, crashID, "description"))
 	if err != nil {
 		http.Error(w, "failed to read description file", http.StatusInternalServerError)
 		return
 	}
-	tag, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.tag"))
-	prog, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.prog"))
-	cprog, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.cprog"))
-	rep, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.report"))
+	tag, _ := os.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.tag"))
+	prog, _ := os.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.prog"))
+	cprog, _ := os.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.cprog"))
+	rep, _ := os.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.report"))
 
 	commitDesc := ""
 	if len(tag) != 0 {
@@ -591,7 +590,7 @@ func readCrash(workdir, dir string, repros map[string]bool, start time.Time, ful
 		return nil
 	}
 	defer descFile.Close()
-	descBytes, err := ioutil.ReadAll(descFile)
+	descBytes, err := io.ReadAll(descFile)
 	if err != nil || len(descBytes) == 0 {
 		return nil
 	}
@@ -642,7 +641,7 @@ func readCrash(workdir, dir string, repros map[string]bool, start time.Time, ful
 				crash.Time = stat.ModTime()
 				crash.Active = crash.Time.After(start)
 			}
-			tag, _ := ioutil.ReadFile(filepath.Join(crashdir, dir, "tag"+index))
+			tag, _ := os.ReadFile(filepath.Join(crashdir, dir, "tag"+index))
 			crash.Tag = string(tag)
 			reportFile := filepath.Join("crashes", dir, "report"+index)
 			if osutil.IsExist(filepath.Join(workdir, reportFile)) {

@@ -5,7 +5,6 @@ package build
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -37,7 +36,7 @@ func embedFiles(params Params, callback func(mountDir string) error) error {
 	if params.CmdlineFile != "" {
 		return fmt.Errorf("cmdline file is not supported for linux images")
 	}
-	tempDir, err := ioutil.TempDir("", "syz-build")
+	tempDir, err := os.MkdirTemp("", "syz-build")
 	if err != nil {
 		return err
 	}

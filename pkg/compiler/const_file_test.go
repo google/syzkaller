@@ -4,7 +4,6 @@
 package compiler
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -91,7 +90,7 @@ CONST5_SOME_UNDEFINED2 = 100, arch3:???
 		t.Fatal(diff)
 	}
 	{
-		file, err := ioutil.TempFile("", "syz-const")
+		file, err := os.CreateTemp("", "syz-const")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -112,7 +111,7 @@ CONST5_SOME_UNDEFINED2 = 100, arch3:???
 		dir := t.TempDir()
 		for name, arch := range arches {
 			file := filepath.Join(dir, "consts_"+name+".const")
-			if err := ioutil.WriteFile(file, []byte(arch.oldFormat), 0600); err != nil {
+			if err := os.WriteFile(file, []byte(arch.oldFormat), 0600); err != nil {
 				t.Fatal(err)
 			}
 		}

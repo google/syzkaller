@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"runtime"
 	"sync"
@@ -299,7 +298,7 @@ func loadPrograms(target *prog.Target, files []string) []*prog.Prog {
 			}
 			continue
 		}
-		data, err := ioutil.ReadFile(fn)
+		data, err := os.ReadFile(fn)
 		if err != nil {
 			log.Fatalf("failed to read log file: %v", err)
 		}

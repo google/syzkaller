@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"regexp"
 
 	"github.com/google/syzkaller/pkg/osutil"
@@ -17,7 +17,7 @@ func LoadFile(filename string, cfg interface{}) error {
 	if filename == "" {
 		return fmt.Errorf("no config file specified")
 	}
-	data, err := ioutil.ReadFile(filename)
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		return fmt.Errorf("failed to read config file: %v", err)
 	}

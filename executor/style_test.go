@@ -5,7 +5,7 @@ package executor
 
 import (
 	"bytes"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -160,7 +160,7 @@ if (foo) {
 		}
 	}
 	for _, file := range executorFiles(t) {
-		data, err := ioutil.ReadFile(file)
+		data, err := os.ReadFile(file)
 		if err != nil {
 			t.Fatal(err)
 		}

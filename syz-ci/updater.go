@@ -5,7 +5,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -226,7 +225,7 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 	defer buildSem.Signal()
 
 	if upd.descriptions != "" {
-		files, err := ioutil.ReadDir(upd.descriptions)
+		files, err := os.ReadDir(upd.descriptions)
 		if err != nil {
 			return fmt.Errorf("failed to read descriptions dir: %v", err)
 		}
@@ -347,6 +346,6 @@ func (upd *SyzUpdater) checkLatest() string {
 	if !osutil.FilesExist(upd.latestDir, upd.syzFiles) {
 		return ""
 	}
-	tag, _ := ioutil.ReadFile(filepath.Join(upd.latestDir, "tag"))
+	tag, _ := os.ReadFile(filepath.Join(upd.latestDir, "tag"))
 	return string(tag)
 }

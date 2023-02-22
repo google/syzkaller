@@ -9,7 +9,7 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -394,7 +394,7 @@ func (c *Ctx) makeClient(client, key string, failOnErrors bool) *apiClient {
 		res := &http.Response{
 			StatusCode: w.Code,
 			Status:     http.StatusText(w.Code),
-			Body:       ioutil.NopCloser(w.Result().Body),
+			Body:       io.NopCloser(w.Result().Body),
 		}
 		return res, nil
 	}

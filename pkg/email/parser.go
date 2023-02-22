@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime"
 	"mime/multipart"
 	"mime/quotedprintable"
@@ -367,14 +366,14 @@ func parseBody(r io.Reader, headers mail.Header) ([]byte, [][]byte, error) {
 	}
 	disp, _, _ := mime.ParseMediaType(headers.Get("Content-Disposition"))
 	if disp == "attachment" {
-		attachment, err := ioutil.ReadAll(r)
+		attachment, err := io.ReadAll(r)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to read email body: %v", err)
 		}
 		return nil, [][]byte{attachment}, nil
 	}
 	if mediaType == "text/plain" {
-		body, err := ioutil.ReadAll(r)
+		body, err := io.ReadAll(r)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to read email body: %v", err)
 		}

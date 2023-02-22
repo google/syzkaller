@@ -17,7 +17,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -149,7 +148,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	if out, err := keygen.CombinedOutput(); err != nil {
 		return nil, fmt.Errorf("failed to execute ssh-keygen: %v\n%s", err, out)
 	}
-	gceKeyPub, err := ioutil.ReadFile(gceKey + ".pub")
+	gceKeyPub, err := os.ReadFile(gceKey + ".pub")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %v", err)
 	}

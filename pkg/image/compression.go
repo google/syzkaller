@@ -9,7 +9,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"io/ioutil"
 )
 
 func Compress(rawData []byte) []byte {
@@ -37,7 +36,7 @@ func MustDecompress(compressed []byte) (data []byte, dtor func()) {
 }
 
 func DecompressCheck(compressed []byte) error {
-	return decompressWriter(ioutil.Discard, compressed)
+	return decompressWriter(io.Discard, compressed)
 }
 
 func decompressWriter(w io.Writer, compressed []byte) error {

@@ -25,7 +25,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"runtime"
@@ -63,7 +62,7 @@ func main() {
 		tool.Failf("image build will fail, run under root")
 	}
 	os.Setenv("SYZ_DISABLE_SANDBOXING", "yes")
-	dir, err := ioutil.TempDir("", "syz-testbuild")
+	dir, err := os.MkdirTemp("", "syz-testbuild")
 	if err != nil {
 		tool.Fail(err)
 	}
@@ -106,7 +105,7 @@ func main() {
 		tool.Fail(err)
 	}
 	log.Printf("tags: %v", tags)
-	kernelConfig, err := ioutil.ReadFile(*flagKernelConfig)
+	kernelConfig, err := os.ReadFile(*flagKernelConfig)
 	if err != nil {
 		tool.Fail(err)
 	}

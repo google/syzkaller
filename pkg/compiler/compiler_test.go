@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -112,7 +112,7 @@ func TestData(t *testing.T) {
 				}
 				if formatted := ast.Format(astDesc); !bytes.Equal(em.Data, formatted) {
 					if *flagUpdate {
-						ioutil.WriteFile(fileName, formatted, 0644)
+						os.WriteFile(fileName, formatted, 0644)
 					}
 					t.Fatalf("description is not formatted")
 				}

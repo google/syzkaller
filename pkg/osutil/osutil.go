@@ -9,7 +9,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -235,7 +234,7 @@ func CopyDirRecursively(srcDir, dstDir string) error {
 	if err := MkdirAll(dstDir); err != nil {
 		return err
 	}
-	files, err := ioutil.ReadDir(srcDir)
+	files, err := os.ReadDir(srcDir)
 	if err != nil {
 		return err
 	}
@@ -273,7 +272,7 @@ func MkdirAll(dir string) error {
 }
 
 func WriteFile(filename string, data []byte) error {
-	return ioutil.WriteFile(filename, data, DefaultFilePerm)
+	return os.WriteFile(filename, data, DefaultFilePerm)
 }
 
 func WriteGzipStream(filename string, reader io.Reader) error {
@@ -290,13 +289,13 @@ func WriteGzipStream(filename string, reader io.Reader) error {
 
 func WriteExecFile(filename string, data []byte) error {
 	os.Remove(filename)
-	return ioutil.WriteFile(filename, data, DefaultExecPerm)
+	return os.WriteFile(filename, data, DefaultExecPerm)
 }
 
 // TempFile creates a unique temp filename.
 // Note: the file already exists when the function returns.
 func TempFile(prefix string) (string, error) {
-	f, err := ioutil.TempFile("", prefix)
+	f, err := os.CreateTemp("", prefix)
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp file: %v", err)
 	}

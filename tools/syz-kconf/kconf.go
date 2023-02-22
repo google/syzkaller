@@ -9,7 +9,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -168,7 +167,7 @@ type Context struct {
 
 func (ctx *Context) generate() error {
 	var err error
-	if ctx.BuildDir, err = ioutil.TempDir("", "syz-kconf"); err != nil {
+	if ctx.BuildDir, err = os.MkdirTemp("", "syz-kconf"); err != nil {
 		return err
 	}
 	defer os.RemoveAll(ctx.BuildDir)
@@ -460,7 +459,7 @@ func (ctx *Context) replaceVars(str string) string {
 }
 
 func releaseTag(dir string) (string, error) {
-	data, err := ioutil.ReadFile(filepath.Join(dir, "Makefile"))
+	data, err := os.ReadFile(filepath.Join(dir, "Makefile"))
 	if err != nil {
 		return "", err
 	}

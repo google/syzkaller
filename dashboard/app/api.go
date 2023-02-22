@@ -8,7 +8,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -146,7 +146,7 @@ func handleAPI(c context.Context, r *http.Request) (reply interface{}, err error
 		if err != nil {
 			return nil, fmt.Errorf("failed to ungzip payload: %v", err)
 		}
-		payload, err = ioutil.ReadAll(gr)
+		payload, err = io.ReadAll(gr)
 		if err != nil {
 			return nil, fmt.Errorf("failed to ungzip payload: %v", err)
 		}
@@ -1489,7 +1489,7 @@ func getText(c context.Context, tag string, id int64) ([]byte, string, error) {
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to read text %v: %v", tag, err)
 	}
-	data, err := ioutil.ReadAll(d)
+	data, err := io.ReadAll(d)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to read text %v: %v", tag, err)
 	}

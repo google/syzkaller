@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/mail"
 	"net/url"
@@ -808,7 +807,7 @@ func (dash *Dashboard) queryImpl(method string, req, reply interface{}) error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		data, _ := ioutil.ReadAll(resp.Body)
+		data, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("request failed with %v: %s", resp.Status, data)
 	}
 	if reply != nil {

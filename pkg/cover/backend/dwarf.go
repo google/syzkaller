@@ -10,7 +10,7 @@ import (
 	"debug/elf"
 	"encoding/binary"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"path/filepath"
 	"runtime"
 	"sort"
@@ -503,7 +503,7 @@ func objdump(target *targets.Target, mod *Module) ([2][]uint64, error) {
 			pcs[0] = append(pcs[0], pc+mod.Addr)
 		}
 	}
-	stderrOut, _ := ioutil.ReadAll(stderr)
+	stderrOut, _ := io.ReadAll(stderr)
 	if err := cmd.Wait(); err != nil {
 		return pcs, fmt.Errorf("failed to run objdump on %v: %v\n%s", mod.Path, err, stderrOut)
 	}

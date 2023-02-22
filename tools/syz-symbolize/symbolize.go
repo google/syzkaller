@@ -6,7 +6,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -47,7 +46,7 @@ func main() {
 	if err != nil {
 		tool.Failf("failed to create reporter: %v", err)
 	}
-	text, err := ioutil.ReadFile(flag.Args()[0])
+	text, err := os.ReadFile(flag.Args()[0])
 	if err != nil {
 		tool.Failf("failed to open input file: %v", err)
 	}

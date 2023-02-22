@@ -11,9 +11,9 @@ import (
 	"html"
 	"html/template"
 	"io"
-	"io/ioutil"
 	"math"
 	"net/http"
+	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -721,7 +721,7 @@ func percent(covered, total int) int {
 }
 
 func parseFile(fn string) ([][]byte, error) {
-	data, err := ioutil.ReadFile(fn)
+	data, err := os.ReadFile(fn)
 	if err != nil {
 		return nil, err
 	}

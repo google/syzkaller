@@ -7,7 +7,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -29,7 +29,7 @@ type errorDesc struct {
 }
 
 func NewErrorMatcher(t *testing.T, file string) *ErrorMatcher {
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		t.Fatalf("failed to open input file: %v", err)
 	}

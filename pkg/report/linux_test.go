@@ -6,7 +6,7 @@ package report
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -385,7 +385,7 @@ func TestDisassemblyInReports(t *testing.T) {
 	}
 
 	archPath := filepath.Join("testdata", "linux", "decompile")
-	subFolders, err := ioutil.ReadDir(archPath)
+	subFolders, err := os.ReadDir(archPath)
 	if err != nil {
 		t.Fatalf("disassembly reports failed: %v", err)
 	}
@@ -400,7 +400,7 @@ func TestDisassemblyInReports(t *testing.T) {
 		}
 
 		testPath := filepath.Join(archPath, obj.Name())
-		testFiles, err := ioutil.ReadDir(testPath)
+		testFiles, err := os.ReadDir(testPath)
 		if err != nil {
 			t.Fatalf("failed to list tests for %v: %v", obj.Name(), err)
 		}
@@ -420,7 +420,7 @@ func TestDisassemblyInReports(t *testing.T) {
 func testDisassembly(t *testing.T, reporter *Reporter, linuxReporter *linux, testFilePrefix string) {
 	t.Parallel()
 
-	input, err := ioutil.ReadFile(testFilePrefix + ".in")
+	input, err := os.ReadFile(testFilePrefix + ".in")
 	if err != nil {
 		t.Fatalf("failed to read input file: %v", err)
 	}
@@ -435,7 +435,7 @@ func testDisassembly(t *testing.T, reporter *Reporter, linuxReporter *linux, tes
 		osutil.WriteFile(testFilePrefix+".out", result)
 	}
 
-	output, err := ioutil.ReadFile(testFilePrefix + ".out")
+	output, err := os.ReadFile(testFilePrefix + ".out")
 	if err != nil {
 		t.Fatalf("failed to read output file: %v", err)
 	}

@@ -6,7 +6,6 @@ package ipc
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -551,7 +550,7 @@ type callReply struct {
 
 func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File, outmem []byte,
 	tmpDirPath string) (*command, error) {
-	dir, err := ioutil.TempDir(tmpDirPath, "syzkaller-testdir")
+	dir, err := os.MkdirTemp(tmpDirPath, "syzkaller-testdir")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp dir: %v", err)
 	}

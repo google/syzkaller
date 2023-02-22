@@ -7,7 +7,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -168,7 +168,7 @@ func DeserializeConstFile(glob string, eh ast.ErrorHandler) *ConstFile {
 	cf := NewConstFile()
 	oldFormat := regexp.MustCompile(`_([a-z0-9]+)\.const$`)
 	for _, f := range files {
-		data, err := ioutil.ReadFile(f)
+		data, err := os.ReadFile(f)
 		if err != nil {
 			eh(ast.Pos{}, fmt.Sprintf("failed to read const file: %v", err))
 			return nil

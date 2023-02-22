@@ -7,7 +7,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -114,7 +113,7 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{},
 	}
 	var configData []byte
 	if mgrcfg.KernelConfig != "" {
-		if configData, err = ioutil.ReadFile(mgrcfg.KernelConfig); err != nil {
+		if configData, err = os.ReadFile(mgrcfg.KernelConfig); err != nil {
 			return nil, err
 		}
 	}
@@ -607,7 +606,7 @@ func (mgr *Manager) createDashboardBuild(info *BuildInfo, imageDir, typ string) 
 	var kernelConfig []byte
 	if kernelConfigFile := filepath.Join(imageDir, "kernel.config"); osutil.IsExist(kernelConfigFile) {
 		var err error
-		if kernelConfig, err = ioutil.ReadFile(kernelConfigFile); err != nil {
+		if kernelConfig, err = os.ReadFile(kernelConfigFile); err != nil {
 			return nil, fmt.Errorf("failed to read kernel.config: %v", err)
 		}
 	}

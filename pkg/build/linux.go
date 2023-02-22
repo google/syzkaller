@@ -10,7 +10,6 @@ import (
 	"debug/elf"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -114,7 +113,7 @@ func (linux linux) buildKernel(params Params) error {
 }
 
 func (linux) createImage(params Params, kernelPath string) error {
-	tempDir, err := ioutil.TempDir("", "syz-build")
+	tempDir, err := os.MkdirTemp("", "syz-build")
 	if err != nil {
 		return err
 	}
@@ -239,7 +238,7 @@ func LinuxKernelImage(arch string) string {
 var linuxCompilerRegexp = regexp.MustCompile(`#define\s+LINUX_COMPILER\s+"(.*)"`)
 
 func queryLinuxCompiler(kernelDir string) (string, error) {
-	bytes, err := ioutil.ReadFile(filepath.Join(kernelDir, "include", "generated", "compile.h"))
+	bytes, err := os.ReadFile(filepath.Join(kernelDir, "include", "generated", "compile.h"))
 	if err != nil {
 		return "", err
 	}

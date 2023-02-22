@@ -6,7 +6,6 @@ package osutil
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 )
 
@@ -54,7 +53,7 @@ func Rename(oldFile, newFile string) error {
 // WriteTempFile writes data to a temp file and returns its name.
 func WriteTempFile(data []byte) (string, error) {
 	// Note: pkg/report knows about "syzkaller" prefix as it appears in crashes as process name.
-	f, err := ioutil.TempFile("", "syzkaller")
+	f, err := os.CreateTemp("", "syzkaller")
 	if err != nil {
 		return "", fmt.Errorf("failed to create a temp file: %v", err)
 	}

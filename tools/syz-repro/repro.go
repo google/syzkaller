@@ -6,7 +6,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -40,7 +39,7 @@ func main() {
 		log.Fatalf("%v: %v", *flagConfig, err)
 	}
 	logFile := flag.Args()[0]
-	data, err := ioutil.ReadFile(logFile)
+	data, err := os.ReadFile(logFile)
 	if err != nil {
 		log.Fatalf("failed to open log file %v: %v", logFile, err)
 	}

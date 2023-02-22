@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -44,7 +44,7 @@ type ParseTest struct {
 }
 
 func testParseFile(t *testing.T, reporter *Reporter, fn string) {
-	data, err := ioutil.ReadFile(fn)
+	data, err := os.ReadFile(fn)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -269,7 +269,7 @@ func updateReportTest(t *testing.T, test *ParseTest, title string, altTitles []s
 	if test.HasReport {
 		fmt.Fprintf(buf, "REPORT:\n%s", test.Report)
 	}
-	if err := ioutil.WriteFile(test.FileName, buf.Bytes(), 0640); err != nil {
+	if err := os.WriteFile(test.FileName, buf.Bytes(), 0640); err != nil {
 		t.Logf("failed to update test file: %v", err)
 	}
 }
@@ -317,7 +317,7 @@ func testRawGuiltyFile(t *testing.T, reporter *Reporter, fn string) {
 }
 
 func parseGuiltyTest(t *testing.T, fn string) (map[string]string, []byte) {
-	data, err := ioutil.ReadFile(fn)
+	data, err := os.ReadFile(fn)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -378,7 +378,7 @@ func readDir(t *testing.T, dir string) (files []string) {
 	if !osutil.IsExist(dir) {
 		return nil
 	}
-	entries, err := ioutil.ReadDir(dir)
+	entries, err := os.ReadDir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}

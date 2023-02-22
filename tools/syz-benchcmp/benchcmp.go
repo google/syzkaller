@@ -13,7 +13,6 @@ import (
 	"flag"
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -224,7 +223,7 @@ func display(graphs []*Graph) {
 	var outf *os.File
 	var err error
 	if *flagOut == "" {
-		outf, err = ioutil.TempFile("", "*.html")
+		outf, err = os.CreateTemp("", "*.html")
 		if err != nil {
 			tool.Failf("failed to create temp file: %v", err)
 		}

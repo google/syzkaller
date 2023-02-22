@@ -6,7 +6,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -64,14 +63,14 @@ func collectBugs(workdir string) ([]BugInfo, error) {
 	bugs := []BugInfo{}
 	for _, dir := range dirs {
 		bugFolder := filepath.Join(crashdir, dir)
-		titleBytes, err := ioutil.ReadFile(filepath.Join(bugFolder, "description"))
+		titleBytes, err := os.ReadFile(filepath.Join(bugFolder, "description"))
 		if err != nil {
 			return nil, err
 		}
 		bug := BugInfo{
 			Title: strings.TrimSpace(string(titleBytes)),
 		}
-		files, err := ioutil.ReadDir(bugFolder)
+		files, err := os.ReadDir(bugFolder)
 		if err != nil {
 			return nil, err
 		}

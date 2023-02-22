@@ -12,7 +12,6 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -26,7 +25,7 @@ func main() {
 	if len(os.Args) != 2 {
 		fatalf("usage: syz-upgrade corpus_dir")
 	}
-	files, err := ioutil.ReadDir(os.Args[1])
+	files, err := os.ReadDir(os.Args[1])
 	if err != nil {
 		fatalf("failed to read corpus dir: %v", err)
 	}
@@ -36,7 +35,7 @@ func main() {
 	}
 	for _, f := range files {
 		fname := filepath.Join(os.Args[1], f.Name())
-		data, err := ioutil.ReadFile(fname)
+		data, err := os.ReadFile(fname)
 		if err != nil {
 			fatalf("failed to read program: %v", err)
 		}
