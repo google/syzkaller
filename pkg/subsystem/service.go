@@ -9,7 +9,8 @@ import (
 
 type Service struct {
 	*Extractor
-	perName map[string]*Subsystem
+	perName   map[string]*Subsystem
+	perParent map[*Subsystem][]*Subsystem
 }
 
 func MustMakeService(list []*Subsystem) *Service {
@@ -26,6 +27,7 @@ func MustMakeService(list []*Subsystem) *Service {
 func MakeService(list []*Subsystem) (*Service, error) {
 	extractor := MakeExtractor(list)
 	perName := map[string]*Subsystem{}
+	perParent := map[*Subsystem][]*Subsystem{}
 	for _, item := range list {
 		if item.Name == "" {
 			return nil, fmt.Errorf("input contains a subsystem without a name")
@@ -34,11 +36,14 @@ func MakeService(list []*Subsystem) (*Service, error) {
 			return nil, fmt.Errorf("collision on %#v name", item.Name)
 		}
 		perName[item.Name] = item
+		for _, p := range item.Parents {
+			perParent[p] = append(perParent[p], item)
+		}
 	}
-
 	return &Service{
 		Extractor: extractor,
 		perName:   perName,
+		perParent: perParent,
 	}, nil
 }
 
@@ -52,4 +57,8 @@ func (s *Service) List() []*Subsystem {
 		ret = append(ret, item)
 	}
 	return ret
+}
+
+func (s *Service) Children(parent *Subsystem) []*Subsystem {
+	return append([]*Subsystem{}, s.perParent[parent]...)
 }
